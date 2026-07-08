@@ -9,10 +9,10 @@
 | 未来协议块 | 当前状态 | 后续 owner |
 |---|---|---|
 | candidate issue discovery | v0 ledger / schema 已定义；真实 discovery runner 未实现 | [issue_lifecycle/](./issue_lifecycle/), `PR-discover-confirm` |
-| strict source-level confirmation | v0 两条 confirmed path 已定义；source trace 仍未定义 | [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md), `PR-source-trace` |
+| strict source-level confirmation | v0 两条 confirmed path 已定义；source trace v0 已定义 | [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md), [source_trace/](./source_trace/) |
 | confirmed issue ledger | v0 JSON schema / fixture / pytest gate 已定义；尚未接真实 case | [../pipeline/evaluation/schemas/source_issue_ledger.schema.json](../pipeline/evaluation/schemas/source_issue_ledger.schema.json) |
 | issue-grounded repair / change ledger | 尚未定义 | `PR-repair-runner`, `PR-loop-io` |
-| raw/source patch bundle or final raw/source `STM_k` | 尚未定义导出 / 投影协议 | `PR-source-trace`, `PR-raw-export` |
+| raw/source patch bundle or final raw/source `STM_k` | source trace v0 已定义；导出 / patch bundle 协议尚未实现 | [source_trace/](./source_trace/), `PR-raw-export` |
 | closure / regression audit | 尚未定义 | `PR-closure-audit`, later `PR-eval-rubric` |
 | final metrics / baseline / judge prompt | pilot 前不得冻结 | `PR-loop-pilot` 之后再进入 `PR-eval-rubric` / `PR-baseline-contract` |
 
@@ -24,6 +24,7 @@
 | [GUIDE.md](./GUIDE.md) | 后续协议设计纪律。 | 不把 archived Better STM gate 迁回 active guardrail。 |
 | [metrics/README.md](./metrics/README.md) | future metrics placeholder。 | pilot 前不冻结 final metric / baseline / judge prompt。 |
 | [issue_lifecycle/README.md](./issue_lifecycle/README.md) | source issue ledger v0 合同入口。 | 只定义 issue status / evidence gate，不运行 repair、不生成实验结果。 |
+| [source_trace/README.md](./source_trace/README.md) | source trace v0 合同入口。 | 只定义 trace / projection / attribution gate，不生成真实 patch 或 closure 结果。 |
 
 ## 3. 历史 R5.7 快照
 
@@ -39,5 +40,6 @@ R5.7 资产已经从本目录移出。若需要追溯旧讨论，请只从 archi
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | `PR-source-trace` 后新增 [source_trace/](./source_trace/) 合同入口，并将 source trace / projection 从未定义更新为 v0 trace contract 已定义 / raw export 未实现。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后新增 [issue_lifecycle/](./issue_lifecycle/) 合同入口，并将前三个协议块从“未定义”更新为 v0 contract 已定义 / runner 未实现。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写为 source-level issue lifecycle scaffold；R5.7 Better STM 资产改由 cold archive 入口追溯。 |

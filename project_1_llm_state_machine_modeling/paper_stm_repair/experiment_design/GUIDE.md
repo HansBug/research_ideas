@@ -13,6 +13,7 @@
 | candidate issue | 为什么怀疑 raw/source `STM_0` 存在行为问题？ | `NL`、raw/source element、intermediate diagnostics / simulation / check feedback、问题描述；具体字段见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md)。 |
 | confirmed issue | 该问题是否真是 source-level behavioral issue，而非表达债、转换损失或中间表示偏差？ | strict source-level confirmation 记录、证据片段、排除 conversion / lowering 归因；v0 允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条路径。 |
 | repair/change | 修复动作针对哪个 confirmed issue？ | change ledger、source trace、输入输出 hash、LLM / deterministic step 记录。 |
+| source trace | confirmed issue 的 raw/source 元素如何对应到中间表示元素？ | [source_trace/source_trace_contract.md](./source_trace/source_trace_contract.md)、trace ledger、negative attribution gate。 |
 | source projection | 修复如何回到 raw/source 层？ | patch bundle、projection note、unsupported projection 记录。 |
 | closure / regression | 问题是否闭合，是否引入新问题？ | post-repair rediscovery / confirmation、regression audit、失败 / unknown 入账。 |
 
@@ -50,5 +51,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-08 14:03:59 | `PR-source-trace` 后同步 GUIDE：source trace v0 已定义，后续 projection / closure 必须消费 trace ledger 并尊重 negative attribution gate。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步 GUIDE：candidate / confirmed issue 已有 v0 字段合同和两条 confirmed path，但仍不冻结 final metrics / baseline。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写 GUIDE：移除 active Better STM gate 维护纪律，改为 source-level issue lifecycle protocol 设计纪律。 |

@@ -1,0 +1,598 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://research-ideas.local/project_1/paper_stm_repair/source_trace.schema.json",
+  "title": "Source Trace Ledger v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_ledger_id",
+    "case_id",
+    "source_model_id",
+    "intermediate_model_id",
+    "trace_scope",
+    "trace_entries",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "source_trace.v0"
+    },
+    "trace_ledger_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intermediate_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trace_scope": {
+      "enum": [
+        "contract_fixture",
+        "pilot_candidate",
+        "formal_experiment_candidate"
+      ]
+    },
+    "trace_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/trace_entry"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "element_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "element_id",
+        "element_type",
+        "reference",
+        "summary"
+      ],
+      "properties": {
+        "element_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "element_type": {
+          "enum": [
+            "state",
+            "transition",
+            "event",
+            "guard",
+            "action",
+            "effect",
+            "variable",
+            "hierarchy",
+            "model",
+            "unknown"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "trace_evidence_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "evidence_type",
+        "reference",
+        "summary"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_type": {
+          "enum": [
+            "source_fragment_match",
+            "element_id_match",
+            "conversion_report",
+            "normalization_report",
+            "manual_alignment",
+            "structural_match",
+            "negative_trace_check",
+            "other_reference"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "attribution_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_level_claim_allowed",
+        "conversion_or_lowering_related",
+        "representation_related",
+        "closure_claim_allowed",
+        "rationale"
+      ],
+      "properties": {
+        "source_level_claim_allowed": {
+          "type": "boolean"
+        },
+        "conversion_or_lowering_related": {
+          "type": "boolean"
+        },
+        "representation_related": {
+          "type": "boolean"
+        },
+        "closure_claim_allowed": {
+          "type": "boolean"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "trace_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trace_id",
+        "source_elements",
+        "intermediate_elements",
+        "trace_relation",
+        "projection_status",
+        "required_for_issue_ids",
+        "issue_binding_policy",
+        "attribution_boundary",
+        "trace_relation_rationale",
+        "trace_evidence",
+        "reviewer_notes"
+      ],
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Z0-9_.-]+$"
+        },
+        "source_elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/element_ref"
+          }
+        },
+        "intermediate_elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/element_ref"
+          }
+        },
+        "trace_relation": {
+          "enum": [
+            "exact",
+            "normalized",
+            "split",
+            "ambiguous",
+            "untraceable",
+            "conversion_artifact"
+          ]
+        },
+        "projection_status": {
+          "enum": [
+            "projectable",
+            "partially_projectable",
+            "unprojectable",
+            "not_applicable"
+          ]
+        },
+        "required_for_issue_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ISSUE\\.[A-Z0-9_.-]+$"
+          },
+          "uniqueItems": true
+        },
+        "attribution_boundary": {
+          "$ref": "#/$defs/attribution_boundary"
+        },
+        "trace_relation_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trace_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/trace_evidence_item"
+          }
+        },
+        "reviewer_notes": {
+          "type": "string"
+        },
+        "projection_detail": {
+          "$ref": "#/$defs/projection_detail"
+        },
+        "issue_binding_policy": {
+          "enum": [
+            "confirmed_repair_eligible_allowed",
+            "candidate_or_rejected_only",
+            "no_issue_binding"
+          ],
+          "description": "Machine-readable v0 policy for interpreting required_for_issue_ids. Cross-ledger pytest/consumer validation must still confirm actual issue statuses."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "exact"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "projectable"
+              },
+              "source_elements": {
+                "minItems": 1
+              },
+              "intermediate_elements": {
+                "minItems": 1
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": true
+                  },
+                  "conversion_or_lowering_related": {
+                    "const": false
+                  },
+                  "closure_claim_allowed": {
+                    "const": true
+                  }
+                }
+              },
+              "trace_evidence": {
+                "contains": {
+                  "properties": {
+                    "evidence_type": {
+                      "enum": [
+                        "source_fragment_match",
+                        "element_id_match"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "evidence_type"
+                  ]
+                }
+              },
+              "issue_binding_policy": {
+                "const": "confirmed_repair_eligible_allowed"
+              }
+            },
+            "not": {
+              "required": [
+                "projection_detail"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "normalized"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "projectable"
+              },
+              "source_elements": {
+                "minItems": 1
+              },
+              "intermediate_elements": {
+                "minItems": 1
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": true
+                  },
+                  "conversion_or_lowering_related": {
+                    "const": false
+                  },
+                  "closure_claim_allowed": {
+                    "const": true
+                  }
+                }
+              },
+              "trace_evidence": {
+                "contains": {
+                  "properties": {
+                    "evidence_type": {
+                      "const": "normalization_report"
+                    }
+                  },
+                  "required": [
+                    "evidence_type"
+                  ]
+                }
+              },
+              "issue_binding_policy": {
+                "const": "confirmed_repair_eligible_allowed"
+              }
+            },
+            "not": {
+              "required": [
+                "projection_detail"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "split"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "partially_projectable"
+              },
+              "source_elements": {
+                "minItems": 1
+              },
+              "intermediate_elements": {
+                "minItems": 2
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": true
+                  },
+                  "conversion_or_lowering_related": {
+                    "const": false
+                  },
+                  "closure_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "trace_relation_rationale": {
+                "minLength": 20
+              },
+              "issue_binding_policy": {
+                "const": "confirmed_repair_eligible_allowed"
+              }
+            },
+            "required": [
+              "projection_detail"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "ambiguous"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "unprojectable"
+              },
+              "source_elements": {
+                "minItems": 2
+              },
+              "intermediate_elements": {
+                "minItems": 1
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": false
+                  },
+                  "closure_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "issue_binding_policy": {
+                "const": "candidate_or_rejected_only"
+              }
+            },
+            "not": {
+              "required": [
+                "projection_detail"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "untraceable"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "unprojectable"
+              },
+              "source_elements": {
+                "maxItems": 0
+              },
+              "intermediate_elements": {
+                "minItems": 1
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": false
+                  },
+                  "closure_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "trace_evidence": {
+                "contains": {
+                  "properties": {
+                    "evidence_type": {
+                      "const": "negative_trace_check"
+                    }
+                  },
+                  "required": [
+                    "evidence_type"
+                  ]
+                }
+              },
+              "issue_binding_policy": {
+                "const": "no_issue_binding"
+              },
+              "required_for_issue_ids": {
+                "maxItems": 0
+              }
+            },
+            "not": {
+              "required": [
+                "projection_detail"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "trace_relation": {
+                "const": "conversion_artifact"
+              }
+            },
+            "required": [
+              "trace_relation"
+            ]
+          },
+          "then": {
+            "properties": {
+              "projection_status": {
+                "const": "not_applicable"
+              },
+              "intermediate_elements": {
+                "minItems": 1
+              },
+              "attribution_boundary": {
+                "properties": {
+                  "source_level_claim_allowed": {
+                    "const": false
+                  },
+                  "conversion_or_lowering_related": {
+                    "const": true
+                  },
+                  "closure_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "trace_evidence": {
+                "contains": {
+                  "properties": {
+                    "evidence_type": {
+                      "const": "conversion_report"
+                    }
+                  },
+                  "required": [
+                    "evidence_type"
+                  ]
+                }
+              },
+              "issue_binding_policy": {
+                "const": "candidate_or_rejected_only"
+              }
+            },
+            "not": {
+              "required": [
+                "projection_detail"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "projection_detail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectable_source_behavior",
+        "non_projectable_or_ambiguous_part",
+        "closure_implication"
+      ],
+      "properties": {
+        "projectable_source_behavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "non_projectable_or_ambiguous_part": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_implication": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

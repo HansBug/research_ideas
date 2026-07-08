@@ -4,7 +4,7 @@
 
 | 项 | 数量 / 状态 |
 |---|---|
-| active human-facing reports | 8 |
+| active human-facing reports | 9 |
 | archived R5.7 Better STM reports | 6，见 [../archive/r5_7_better_stm_snapshot/reports/](../archive/r5_7_better_stm_snapshot/reports/) |
 | 已部分 superseded / current-status-overridden reports | 5（R5.5.2 覆盖 R5 seed readiness、R5 directional analysis、main seed profile、scope handoff、negative evidence report 中的 blocked/current-status 部分） |
 | 当前主入口 | 当前状态数字优先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)；10 cluster / 60 pair 历史画像再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 |
@@ -20,6 +20,7 @@
 
 | report | 精确时间 | 类型 | 状态 | 核心结论一句话 |
 |---|---|---|---|---|
+| [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | 2026-07-08 14:03:59 | source trace contract | 🟢 | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
 | [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md) | 2026-07-08 10:15:00 | issue ledger contract | 🟢 | source issue ledger v0 合同报告；定义 candidate / confirmed / rejected / out-of-scope / insufficient-evidence gate，不是实验结果。 |
 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | 2026-06-29 19:55:45 | PlantUML blocked recovery | 🟢 | `llms-emp` 三个原 blocked 已恢复为 partial；conversion recovery 不计 repair gain。 |
 | [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md) | 2026-06-29 00:03:56 | main seed profile | 🟢 | 10 NL cluster × 6 LLM 输出的历史画像；当前状态数字以 R5.5.2 recovery report 为准。 |
@@ -50,11 +51,13 @@
 4. `llms-emp` 当前已无 blocked pair；旧 blocked 只作历史负证据和 conversion-recovery 线索。
 5. R5.7 archived 报告不得回流为 active evaluation protocol；后续 final rubric 必须等 pilot 后重新冻结。
 6. issue ledger contract report 只证明 v0 schema / fixture / gate 存在，不证明真实 discovery / repair / closure 效果。
+7. source trace contract report 只证明 trace / projection / attribution gate 存在，不证明真实 source-level patch export 或 closure 效果。
 
 ## 5. 更新日志
 
 | 时间 | 更新 |
 |---|---|
+| 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace contract report，并把 active report 计数从 8 更新为 9。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 issue ledger contract report，并把 active report 计数从 7 更新为 8。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后补充 R5 / R5.5 active report 的 historical wording 提醒，避免早期 Better STM / `STM_k` wording 被误读为当前 active 口径。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后将 R5.7.1--R5.7.5 六份报告从 active reports 总账移到 archive pointer。 |
