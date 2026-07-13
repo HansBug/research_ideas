@@ -59,6 +59,21 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
 
 
+def test_tool_results_are_not_repeated_in_the_next_model_prompt() -> None:
+    def lookup(value: str) -> dict[str, str]:
+        return {"value": value}
+
+    events = []
+    AgentApp._for_test(
+        AgentSpec(name="prompt-history", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
+        LLMConfig(model="gpt-5.5", api_key="key"),
+        FakeStreamingModel(),
+    ).run("read", renderer="quiet", on_event=events.append)
+    prompts = [event.data["prompt"] for event in events if event.kind == "model_started"]
+    assert len(prompts) == 2
+    assert "[tool]" not in prompts[1]
+
+
 def test_missing_audit_is_not_academic_eligible() -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
@@ -290,9 +305,10 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     renderer.render(AgentEvent("run-rich", 3, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": '{"ok": true}'}))
     rendered = output.getvalue()
     assert "TURN 1 | MODEL REQUEST" in rendered
-    assert "STRUCTURED OUTPUT" in rendered
+    assert "STRUCTURED OUTPUT VALIDATED" in rendered
     assert "AGENT COMPLETE" in rendered
     assert "SUCCESS" in rendered
+    assert "result:" in rendered
     assert rendered.count("{'ok': True}") == 1
 
 

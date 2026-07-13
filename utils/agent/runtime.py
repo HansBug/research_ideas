@@ -384,7 +384,6 @@ class _Renderer:
         self._Panel = None
         self._Rule = None
         self._Text = None
-        self._structured_output_seen = False
         if mode in {"auto", "rich"}:
             try:
                 from rich.console import Console
@@ -506,11 +505,8 @@ class _Renderer:
             body.append("SUCCESS\n", style="bold green")
             body.append(f"run_id: {event.run_id}\n", style="dim")
             body.append(f"model: {data.get('model')}\n\n", style="cyan")
-            body.append("result: ", style="bold")
-            if self._structured_output_seen:
-                body.append("structured output shown above", style="dim")
-            else:
-                body.append(_preview(str(data.get("final_text") or data.get("output")), 4000))
+            body.append("result:\n", style="bold")
+            body.append(_preview(str(data.get("output") if data.get("output") is not None else data.get("final_text", "")), 4000))
             if data.get("output") is not None and data.get("final_text") and not _same_output(data.get("output"), str(data.get("final_text"))):
                 body.append("\n\nsummary:\n", style="bold")
                 body.append(_preview(str(data.get("final_text")), 4000))
@@ -550,11 +546,12 @@ class _Renderer:
             }
             prefix, style = prefix_styles[event.kind]
             if event.kind == "structured_output" and Panel is not None:
-                self._structured_output_seen = True
+                output = data.get("output")
+                fields = ", ".join(sorted(output)) if isinstance(output, Mapping) else "n/a"
                 self.console.print(
                     Panel(
-                        Text(_preview(str(data.get("output")), 4000)),
-                        title="[bold white on magenta] STRUCTURED OUTPUT [/bold white on magenta]",
+                        Text(f"validated: true\nfields: {fields}"),
+                        title="[bold white on magenta] STRUCTURED OUTPUT VALIDATED [/bold white on magenta]",
                         border_style="magenta",
                         padding=(0, 1),
                         expand=True,
@@ -936,6 +933,8 @@ class AgentApp:
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
                     replayed = _is_replayed_tool_result(data.get("output"))
+                    if isinstance(data.get("output"), BaseMessage):
+                        _mark_tool_message_shown(data["output"], shown_message_keys)
                     record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
                     if record is not None:
                         record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
@@ -1129,6 +1128,14 @@ def _mark_message_shown(message: Any, shown: set[str]) -> None:
     shown.add(_message_key(message))
 
 
+def _mark_tool_message_shown(message: Any, shown: set[str]) -> None:
+    _mark_message_shown(message, shown)
+    shown.add(f"tool-content:{_message_text(message)}")
+    tool_call_id = getattr(message, "tool_call_id", None)
+    if tool_call_id:
+        shown.add(f"tool-id:{tool_call_id}")
+
+
 def _prompt_from_messages(value: Any, system_prompt: str, shown: set[str], system_shown: bool) -> tuple[str, bool]:
     messages = _messages_from_event(value)
     parts: list[str] = []
@@ -1137,10 +1144,11 @@ def _prompt_from_messages(value: Any, system_prompt: str, shown: set[str], syste
         system_shown = True
     for message in messages:
         key = _message_key(message)
-        if key in shown:
+        role = getattr(message, "type", None) or message.__class__.__name__
+        tool_call_id = getattr(message, "tool_call_id", None)
+        if key in shown or (role == "tool" and (f"tool-content:{_message_text(message)}" in shown or f"tool-id:{tool_call_id}" in shown)):
             continue
         shown.add(key)
-        role = getattr(message, "type", None) or message.__class__.__name__
         parts.append(f"[{role}]\n{_message_text(message)}")
     return _preview("\n\n".join(parts), 12000), system_shown
 
