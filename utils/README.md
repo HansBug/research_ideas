@@ -101,7 +101,9 @@ spec = AgentSpec(
 )
 ```
 
-限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败。`tools` 同时是 allowlist：未知工具、多于一个工具请求、业务工具与结构化终止混合时，在执行前直接失败；工具异常和结构化输出校验失败也按运行错误处理。这些是行为边界，不是复杂预算策略。
+限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
+
+`seconds` 是从 `run_started` 到 `completed/failed/cancelled` 的 wall-clock 上限，包含 provider 等待、工具执行和写出结果的时间；普通同步工具在线程中执行，不阻塞 heartbeat。
 
 ```python
 AgentApp.from_registry(
@@ -120,7 +122,9 @@ AgentApp.from_config(
 ) -> AgentApp
 ```
 
-`from_registry` 是下游实验首选入口；省略 `profile` 使用默认 profile。`model_options` 只在构造 `ChatOpenAI` 时使用，例如 `streaming=True`、`stream_usage=True`、`timeout=600`、`max_retries=0`，不写入 YAML。
+`from_registry` 是下游实验首选入口；省略 `profile` 使用默认 profile。`model_options` 只允许 `streaming`、`stream_usage`、`timeout`、`max_retries` 四个构造选项，不写入 YAML，也不能覆盖 `model`、`base_url`、`api_key`、`headers` 或身份相关参数；未知键直接失败。配置缺少 `api_key` 时运行前失败，不从环境变量静默回退。
+
+结果中的 `model` 是 profile 中实际传入的模型 ID，`observed_model` 来自 provider 响应（若 provider 返回）；真实 demo 启动前要求 profile 名、配置 model 和期望 `gpt-5.5` 完全一致，结束后若 provider 返回了不同 model 也失败，不把错误模型标成真实 demo 成功。
 
 ```python
 app.run(
@@ -128,16 +132,21 @@ app.run(
     *,
     context: Sequence[str | Mapping[str, Any]] | None = None,
     renderer: str = "auto",
+    log_level: str = "INFO",
     on_event: Callable[[AgentEvent], None] | None = None,
     audit_out: Path | None = None,
     result_out: Path | None = None,
     model_call_options: Mapping[str, Any] | None = None,
 ) -> AgentRunResult
 
-await app.arun(input_text, same_options) -> AgentRunResult
+await app.arun(input_text, context=context, renderer="auto", ...) -> AgentRunResult
 ```
 
-`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份。
+`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份。
+
+终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。
+
+每次 `run/arun` 会在原有 `system_prompt` 后追加一条运行级要求：模型给出可见的计算步骤、依据、工具结果和最终总结，但不输出隐藏思维链。这样下游拿到的 `final_text` 或结构化 `summary` 不会只有一个无依据的数字。
 
 `context` 是本次运行的有序上下文页面，不需要额外的上下文类：
 
@@ -149,9 +158,9 @@ context = [
 result = app.run("分析这些事实", context=context, renderer="rich")
 ```
 
-也可以直接传字符串，运行时会按顺序编号。页面边界、顺序、`id` 和 `hash`（若提供）会被保留。运行时根据 `LLMConfig.context_window_tokens` 与 `max_output_tokens` 装配当前请求；接近窗口时从同一组页面开启新的 attempt，并重放原始输入、已完成的结构化工具/动作记录和精确页面，不做静默截断、自动摘要或 provider compact。没有足够 token 配置、单页本身超限或无法无损继续时返回 `context_budget_exceeded`。paper1 只需把自己的 immutable record pager 转成上述页面，不需要让根级 `utils` 认识 issue、DSL 或 trace。
+也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。运行时根据 `LLMConfig.context_window_tokens` 与 `max_output_tokens` 装配当前请求；接近窗口时从同一组页面开启新的 attempt，并重放原始输入、已完成的结构化工具/动作记录和精确页面，不做静默截断、自动摘要或 provider compact。没有足够 token 配置、单页本身超限或无法无损继续时返回 `status="failed"`、`error.code="context_budget_exceeded"`。paper1 只需把自己的 immutable record pager 转成上述页面，不需要让根级 `utils` 认识 issue、DSL 或 trace。
 
-上下文装配会产生 `context_loaded`、`context_rollover`、`context_failed` 观察事件；这些事件可以显示在 Rich 中，但学术 `audit_out` 只记录实际交给模型的页面及其顺序/hash，不记录上下文管理器的内部调试状态。若实验需要分析决策依据，可在 system prompt 或输出 schema 中要求简短、可见的 rationale；审计只保存模型实际给出的这类摘要，不声称拥有隐藏思维链。
+上下文装配会产生 `context_loaded`、`context_rollover`、`context_failed` 观察事件；这些事件可以显示在 Rich 中，但学术 `audit_out` 只记录实际交给模型的页面及其顺序/hash，不记录上下文管理器的内部调试状态。rollover 只注入已经完成的结构化 action 记录，不重新执行工具；存在未决工具副作用时直接失败。若实验需要分析决策依据，可在 system prompt 或输出 schema 中要求简短、可见的 rationale；审计只保存模型实际给出的这类摘要，不声称拥有隐藏思维链。
 
 ```python
 AgentEvent(
@@ -171,12 +180,18 @@ AgentRunResult(
     usage: dict | None,
     error: dict | None,
     real_llm: bool,
+    model: str,
+    observed_model: str | None,
+    academic_eligible: bool,
+    context_manifest_hash: str | None,
 )
 ```
 
-事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
+`status` 只有 `success`、`failed`、`cancelled`；上下文无法无损继续时使用 `status="failed"` 和 `error.code="context_budget_exceeded"`。`real_llm` 在公共真实运行中为 `True`，仅测试目录的内部桩可以为 `False`，测试结果不得作为真实实验制品。
 
-`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。不再定义额外的 record 类型。`usage` 未知时为 `None` 或字段值为 `None`，不能把未知伪造成 0。`error` 至少包含 `code` 和 `message`。
+事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_rollover`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
+
+`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。流式参数由 LangGraph/LangChain 先完整重组并校验。`usage` 未知时为 `None` 或字段值为 `None`，不能把未知伪造成 0。`error` 至少包含 `code` 和 `message`，`status` 只允许 `success`、`failed`、`cancelled`。
 
 ```python
 result.require_output() -> T
@@ -184,9 +199,9 @@ result.to_dict() -> dict[str, JSONValue]
 result.to_json() -> str
 ```
 
-`require_output` 在失败、取消或没有 output 时抛出 `AgentError`。完整内容从 result 读取，不从终端抓取。
+`require_output` 在失败、取消或没有 output 时抛出 `AgentError`。完整内容从 result 读取，不从终端抓取。没有 `audit_out` 或审计未能写出完整 `finish` 时，`academic_eligible=False`，结果不得进入正式学术统计；这不改变普通运行的 `status`，但调用者必须检查该字段。
 
-`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。
+`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`limit_exceeded`、`audit_write_failed` 和 `json_export_failed`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。
 ## 3. 最小真实 Agent 示例
 
 ```python
@@ -224,25 +239,28 @@ print(answer.summary)
 
 Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本的等价异步事件流，不能先 `invoke/ainvoke` 再伪造进度。
 
-启动 provider 请求前立即输出 `run_started`；静默期间每秒输出 `heartbeat`，实际观察间隔不超过约 1.5 秒。Rich 和 callback 消费实时 `AgentEvent`，用于操作员观察；`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。
+启动 provider 请求前立即输出 `run_started`；静默期间每秒发送 `heartbeat`（logging DEBUG），实际观察间隔不超过约 1.5 秒。Rich 和 callback 消费实时 `AgentEvent`，用于操作员观察；`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。Rich 控制台会连续显示模型文本、工具调用参数、工具返回值、上下文 rollover、结构化结果和结束状态，不是运行结束后的摘要。
 
-`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按行为顺序写入四类普通 JSON 记录：
+`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按行为顺序写入四类普通 JSON 记录；每条记录都带 `run_id`、`attempt_id`、`turn`、`order`、`context_manifest_hash`，工具记录另外带 `tool_call_id`，从而能把决策、页面和动作在 rollover 后重新绑定：
 
 1. `context`：任务输入、system prompt、Agent 名称、可用工具名称/描述/schema、输出 schema、模型标识，以及每个 attempt 实际交给模型的页面顺序、`id`、`hash` 和文本，说明 Agent 当时能做什么、看到了什么。
 2. `decision`：每一轮模型可见的输出、请求调用的工具及参数、结构化提交，以及 provider 明确返回的 `reasoning_summary`/`rationale`（没有就写 `null`）。
 3. `action`：每次工具尝试的目标、参数、是否被 allowlist 接受、实际返回值或错误；未知工具、拒绝执行和重复调用也必须记录。
 4. `finish`：最终文本/结构化结果、结束原因（如 `final_answer`、`structured_output`、`error`、`cancelled`、`limit`）和成功/失败状态。
 
-审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。key、authorization、headers 和明确标记为 secret 的字段统一脱敏；其余任务输入、可见模型文本、工具参数和工具结果不截断。每条学术记录写入后 flush，成功和失败都必须有 `finish`；文件写入失败只影响运行状态，不得伪造审计内容。
+审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。脱敏必须递归处理嵌套 mapping/list，并清理 secret-like key、API key 模式和 `<analysis>...</analysis>` 内容；其余任务输入、可见模型文本、工具参数和工具结果不截断。每条学术记录写入后 flush，成功和失败都必须有 `finish`；`result_out` 使用临时文件加 `os.replace` 原子写出，写盘失败返回 `audit_write_failed` 或 `json_export_failed`，不得伪造审计内容。
 
 ```bash
-python -m utils.agent.demo --config .llmconfig.yml --profile gpt-5.5 --renderer rich
-python -m utils.agent.demo --profile gpt-5.5 --renderer rich \
+python -m utils.agent
+python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level INFO \
   --audit-out /tmp/agent-audit.jsonl \
   --result-out /tmp/agent-result.json </dev/null
+python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level DEBUG </dev/null
 ```
 
-demo 必须调用无参数 `read_demo_context` 业务工具一次，完成一次结构化输出，校验 evidence ID，并且永远使用真实 `gpt-5.5`。没有 fake、offline、deterministic、replay 或人工输入。
+不传 `--audit-out/--result-out` 时 demo 默认写入 `runs/utils-agent/demo-audit.jsonl` 和 `runs/utils-agent/demo-result.json`；这些文件只包含脱敏内容。`python -m utils.agent` 与 `python -m utils.agent.demo` 使用同一真实 demo 入口。
+
+demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；它永远使用真实 `gpt-5.5`，没有 fake、offline、deterministic、replay 或人工输入。
 
 ## 5. CLI、测试和边界
 
