@@ -94,12 +94,10 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--audit-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-audit.jsonl"), show_default=True)
 @click.option("--result-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-result.json"), show_default=True)
 def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_out: Path, result_out: Path) -> None:
-    """真实调用 gpt-5.5 的最小工具型 Agent 演示。"""
+    """真实调用所选 profile 的最小工具型 Agent 演示（默认 gpt-5.5）。"""
 
     registry = load_llm_registry(config)
     selected = registry.require(profile)
-    if profile != "gpt-5.5" or selected.model != "gpt-5.5":
-        raise click.ClickException("demo requires profile gpt-5.5 with model gpt-5.5")
 
     from langchain_core.tools import tool
 
@@ -145,7 +143,8 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
     if (
         not {"current_system_time", "calculate_expression"}.issubset(names)
         or not result.real_llm
-        or (result.observed_model is not None and result.observed_model != "gpt-5.5")
+        or result.model != selected.model
+        or (result.observed_model is not None and result.observed_model != selected.model)
         or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
         or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
         or not valid_offset

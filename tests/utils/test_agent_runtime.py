@@ -265,3 +265,43 @@ def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:
         "当前系统时间：2026-07-13T23:15:25.531476+08:00；对应美国东部时间：2026-07-13T11:15:25.531476-04:00"
     )
     assert parsed.isoformat() == "2026-07-13T11:15:25.531476-04:00"
+
+
+def test_demo_profile_defaults_to_gpt_but_accepts_other_configured_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    from utils.agent import demo
+    from utils.agent.demo import DemoAnswer
+
+    class Registry:
+        def require(self, name: str) -> LLMConfig:
+            assert name == "research-model"
+            return LLMConfig(model="research-model", api_key="key")
+
+    class Result:
+        status = "success"
+        real_llm = True
+        model = "research-model"
+        observed_model = "research-model"
+        tool_calls = [
+            {"name": "current_system_time", "status": "completed"},
+            {"name": "calculate_expression", "status": "completed"},
+        ]
+
+        def require_output(self) -> DemoAnswer:
+            return DemoAnswer(
+                summary="51.25 hours",
+                base_time="2026-07-13T11:15:25-04:00",
+                offset_hours=51.25,
+                target_time="2026-07-15T14:30:25-04:00",
+                evidence_ids=["system-time-001", "math-expression-001"],
+            )
+
+    class App:
+        def run(self, *_args: object, **_kwargs: object) -> Result:
+            return Result()
+
+    monkeypatch.setattr(demo, "load_llm_registry", lambda _path: Registry())
+    monkeypatch.setattr(demo.AgentApp, "from_config", staticmethod(lambda *_args, **_kwargs: App()))
+    demo.cli.main(
+        args=["--profile", "research-model", "--renderer", "quiet"],
+        standalone_mode=False,
+    )

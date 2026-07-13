@@ -124,7 +124,7 @@ AgentApp.from_config(
 
 `from_registry` 是下游实验首选入口；省略 `profile` 使用默认 profile。`model_options` 只允许 `streaming`、`stream_usage`、`timeout`、`max_retries` 四个构造选项，不写入 YAML，也不能覆盖 `model`、`base_url`、`api_key`、`headers` 或身份相关参数；未知键直接失败。配置缺少 `api_key` 时运行前失败，不从环境变量静默回退。
 
-结果中的 `model` 是 profile 中实际传入的模型 ID，`observed_model` 来自 provider 响应（若 provider 返回）；真实 demo 启动前要求 profile 名、配置 model 和期望 `gpt-5.5` 完全一致，结束后若 provider 返回了不同 model 也失败，不把错误模型标成真实 demo 成功。
+结果中的 `model` 是 profile 中实际传入的模型 ID，`observed_model` 来自 provider 响应（若 provider 返回）；真实 demo 默认使用 `gpt-5.5`，也允许通过 `--profile` 选择其他已配置模型，结束后若 provider 返回了不同 model 也失败，不把错误模型标成真实 demo 成功。
 
 ```python
 app.run(
@@ -260,7 +260,7 @@ python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level DEBUG <
 
 不传 `--audit-out/--result-out` 时 demo 默认写入 `runs/utils-agent/demo-audit.jsonl` 和 `runs/utils-agent/demo-result.json`；这些文件只包含脱敏内容。`python -m utils.agent` 与 `python -m utils.agent.demo` 使用同一真实 demo 入口。
 
-demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；它永远使用真实 `gpt-5.5`，没有 fake、offline、deterministic、replay 或人工输入。
+demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；默认使用真实 `gpt-5.5`，也可通过 `--profile` 运行其他已配置的真实模型，没有 fake、offline、deterministic、replay 或人工输入。
 
 ## 5. CLI、测试和边界
 
