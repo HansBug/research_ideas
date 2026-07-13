@@ -1,6 +1,6 @@
 # ICSE 2026 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICSE 2026](https://conf.researchr.org/home/icse-2026) | 官方 conf.researchr 年度入口 | `2026-06-04 21:10` |
+| 年度主页 | [ICSE 2026](https://conf.researchr.org/home/icse-2026) | 官方 conf.researchr 年度入口；会期已于 `2026-04-18` 结束 | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | 若未公布则保持未公布，不伪造链接 | `2026-06-04 21:10` |
 | Important Dates | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | 通常与 Research / Technical Track 同页 | `2026-06-04 21:10` |
 | Submission system | [HotCRP](https://icse2026.hotcrp.com/) | 未找到稳定公开投稿入口 | `2026-06-04 21:10` |
@@ -77,7 +77,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICSE 2026](https://conf.researchr.org/home/icse-2026) | `2026-06-04 21:10` | 年度主页可访问；地点 / 会期按官方页面信息记录。 |
+| 官方年度主页 | [ICSE 2026](https://conf.researchr.org/home/icse-2026) | `2026-07-13 19:13:21` | 年度主页可访问；会期 `2026-04-12..2026-04-18` 已结束。 |
 | 官方 CFP / Dates | [Research Track](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) | `2026-06-04 21:10` | Research / Technical Track 页面作为 CFP 与 important dates 入口。 |
 | 官方论文名录 / proceedings | [Research Track accepted papers](https://conf.researchr.org/track/icse-2026/icse-2026-research-track) / [Program](https://conf.researchr.org/program/icse-2026/program-icse-2026/) | `2026-06-04 21:10` | Research Track accepted papers 已公开；proceedings / DBLP 年度页尚未公开。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | DBLP 用作论文名录与数量交叉核验 fallback；未公开年度写⏳已检索未公布。 |
@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 ICSE 2026 已结束状态；proceedings / DBLP 年度页仍作为后续补证项。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ICSE 2026 年度 README。 |

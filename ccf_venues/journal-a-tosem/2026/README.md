@@ -1,6 +1,6 @@
 # TOSEM 2026 README
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -9,11 +9,11 @@
 | Journal | TOSEM |
 | 年份 | 2026 |
 | 出版商 | ACM |
-| Volume / issues | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
+| Volume / issues | [ACM DL TOSEM Vol. 35 No. 7](https://dl.acm.org/toc/tosem/2026/35/7)；[DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
 | 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) |
 | Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) |
-| Special issues / topical collections | Agentic AI special issue 线索，deadline 未公布 |
+| Special issues / topical collections | 无已知 active dated CFP；Agentic AI special issue 线索仍无公开 deadline |
 | Articles in press / online first | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) |
 | DBLP 年度页 | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
 | 当前年度状态 | 🟢 滚动开放 |
@@ -26,7 +26,7 @@
 | Author guidelines | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | TOSEM-specific author guidelines；ACM DL 动态访问可能受限 | `2026-06-04 21:15` |
 | Submission system | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | TOSEM ScholarOne 子站为候选入口；canonical 入口仍待 ACM DL TOSEM Submit Manuscript 当前页给出公开可审计证据 | `2026-06-04 21:15` |
 | Special issue / topical collection CFP | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | Agentic AI special issue 仅为线索，未发现明确 deadline | `2026-06-04 21:15` |
-| Volume / issue archive | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | DBLP Vol. 35 可作年度落点；2026 进行中 | `2026-06-04 21:15` |
+| Volume / issue archive | [ACM DL TOSEM Vol. 35 No. 7](https://dl.acm.org/toc/tosem/2026/35/7) | ACM DL 搜索结果标示 Issue 7 / July 2026 / Current；DBLP Vol. 35 可作年度落点；2026 进行中 | `2026-07-13 19:10` |
 | Articles in press / online first | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | ACM DL 动态访问受限；PFP 仅作运营线索，不作为 canonical online-first | `2026-06-04 21:15` |
 | Annual article list / publisher search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | 当前环境对 ACM DL 正文抓取受限，未获公开可审计正文 | `2026-06-04 21:15` |
 | DBLP 年度页 | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) | 年度计数 baseline；2026 进行中 | `2026-06-04 21:15` |
@@ -43,14 +43,14 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Agentic AI special issue | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | 未公布 | 线索待复核 | ACM DL / 2026 editorial 线索 | 不适用 | 未发现官方明确 deadline，不进入 Gantt。 |
+| Agentic AI special issue | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | 未公布 | 线索待复核 | ACM DL / 2026 editorial 线索 | 不适用 | 2026-07-13 复查仍未发现官方明确 deadline，不进入 Gantt。 |
 
 ## 5. 年度论文入口与数量
 
 | 字段 | 内容 |
 |---|---|
 | 年度论文数量 | DBLP `entry article` baseline：115 |
-| 出版商年度入口 / Volume issue | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html)；[ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
+| 出版商年度入口 / Volume issue | [ACM DL TOSEM Vol. 35 No. 7](https://dl.acm.org/toc/tosem/2026/35/7)；[DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html)；[ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | Online first / Articles in press | [ACM DL TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) |
 | Publisher article list / search | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) |
 | DBLP 年度页 | [DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) |
@@ -64,6 +64,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 2026 常态化复查 | [ACM DL TOSEM Vol. 35 No. 7](https://dl.acm.org/toc/tosem/2026/35/7)；[ACM DL TOSEM](https://dl.acm.org/journal/tosem)；[DBLP TOSEM Volume 35](https://dblp.org/db/journals/tosem/tosem35.html) | `2026-07-13 19:10` | 官方入口显示 2026 Volume 35 已到 No. 7 / July 2026；未发现 active dated special issue。 |
 | 期刊主页 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 官方入口可用；CLI/动态页受限，未获公开可审计正文。 |
 | Author guidelines / submission | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines)；[TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem)；[ACM submission sites](https://authors.acm.org/journals/journals-submission-sites) | `2026-06-04 21:15` | 记录为 TOSEM ScholarOne 候选入口；canonical 入口待 ACM DL 当前页公开可审计确认。 |
 | Special issue / topical collection | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | `2026-06-04 21:15` | 仅发现 Agentic AI special issue 线索，未发现明确 deadline。 |
@@ -81,6 +82,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：将 2026 卷期入口升级为 ACM DL Vol. 35 No. 7 / July 2026；确认常规 rolling 与无 active dated CFP 口径。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 统一 TOSEM author guidelines、ScholarOne 候选入口、Just Accepted 和 DBLP canonical 年度链接口径。 |
 | `2026-06-04 20:43` | 初始化 TOSEM 2026 年度 README，并记录 Agentic AI special issue 线索。 |

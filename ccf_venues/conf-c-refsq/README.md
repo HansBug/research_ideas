@@ -1,6 +1,6 @@
 # REFSQ README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -50,9 +50,9 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [researchr REFSQ series](https://conf.researchr.org/series/refsq) | researchr / 年度独立站点为主 | `2026-06-06 13:16` |
-| Latest year homepage | [REFSQ 2027](https://2027.refsq.org/) | 未来年度无官网时写 `⏳ 已检索未公布` | `2026-06-06 13:16` |
-| CFP / Call for Papers | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | 年度 CFP 分散在 track 页面 | `2026-06-06 13:16` |
-| Important Dates | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 可与 CFP 同页 | `2026-06-06 13:16` |
+| Latest year homepage | [REFSQ 2027](https://2027.refsq.org/) | Research dates 已公布；2028/2029+ 已复查未见官方年度信息 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [REFSQ 2027 Research](https://2027.refsq.org/track/refsq-2027-research-papers) | 年度 CFP 分散在 track 页面 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/refsq-2027) | 官方 dates 页；历史年度在年度 README 展开 | `2026-07-13 10:27:51` |
 | Submission system | [EasyChair REFSQ 2026](https://easychair.org/conferences/?conf=refsq2026) | 历史年度入口需逐年复核 | `2026-06-06 13:16` |
 | Program / accepted papers | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | 已结束年度优先官方 program / accepted papers | `2026-06-06 13:16` |
 | Proceedings | Springer LNCS / LNBIP 与 CEUR 分散，逐年度待补卷号 | DBLP 仅作论文名录 / 计数 fallback | `2026-06-06 13:16` |
@@ -77,7 +77,7 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟢 已公布 CFP / 征稿窗口未到 | [REFSQ 2027](https://2027.refsq.org/) | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | [Important Dates](https://2027.refsq.org/dates/refsq-2027) | 未公布（Research track 页面尚未给投稿系统） | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-11-05 待补时刻 AoE | 2026-11-12 待补时刻 AoE | 2027-01-14 待补时刻 AoE | 2027-04-12..2027-04-15 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 投稿中 | [REFSQ 2027](https://2027.refsq.org/) | [Research Papers](https://2027.refsq.org/track/refsq-2027-research-papers) | [Important Dates](https://conf.researchr.org/dates/refsq-2027) | 未公布（Research track 页面尚未给投稿系统） | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-11-05 待补时刻 AoE | 2026-11-12 待补时刻 AoE | 2027-01-14 待补时刻 AoE | 2027-04-12..2027-04-15 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束/论文名录已公开 | [REFSQ 2026](https://2026.refsq.org/) | [Research Track](https://2026.refsq.org/track/refsq-2026-research-papers) | [Important Dates](https://2026.refsq.org/dates/refsq-2026) | [EasyChair REFSQ 2026](https://easychair.org/conferences/?conf=refsq2026) | [Program](https://2026.refsq.org/program/program-refsq-2026/) / [Accepted Papers](https://2026.refsq.org/track/refsq-2026-research-papers) | 未公布（Springer LNCS / LNBIP 待补卷号） | ⏳ 已检索未公布 | 2025-10-10 待补时刻 AoE | 2025-10-17 待补时刻 AoE | 2025-12-15 待补时刻 AoE | 2026-03-23..2026-03-26 | 官方 Research Track accepted 已公开；数量待脚本复核 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [REFSQ 2025](https://2025.refsq.org/) | [Research Track](https://2025.refsq.org/track/refsq-2025-research-papers) | [Important Dates](https://2025.refsq.org/dates/refsq-2025) | 待补（历史 EasyChair 入口需复核） | [Program](https://2025.refsq.org/program/program-refsq-2025/) / [Research Track](https://2025.refsq.org/track/refsq-2025-research-papers) | 待补（Springer LNCS / LNBIP 卷号） | [DBLP 2025](https://dblp.org/db/conf/refsq/refsq2025.html) | 2024-11-01 待补时刻 AoE | 2024-11-08 待补时刻 AoE | 2025-01-15 待补时刻 AoE | 2025-04-07..2025-04-10 | 待复核（official program / DBLP fallback） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [REFSQ 2024](https://2024.refsq.org/) | [Research Track](https://2024.refsq.org/track/refsq-2024-papers) | [Important Dates](https://2024.refsq.org/dates/refsq-2024) | 待补（历史入口需复核） | [Program](https://2024.refsq.org/program/program-refsq-2024/) / [Research Track](https://2024.refsq.org/track/refsq-2024-papers) | 待补（Springer LNCS / LNBIP 卷号） | [DBLP 2024](https://dblp.org/db/conf/refsq/refsq2024.html) | 2023-11-03 待补时刻 AoE | 2023-11-10 待补时刻 AoE | 2024-01-15 待补时刻 AoE | 2024-04-08..2024-04-11 | 待复核（official program / DBLP fallback） | 🟡 部分核验 |
@@ -101,6 +101,7 @@ REFSQ 是需求工程基础与软件质量交叉的小型会议，关注需求�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新 REFSQ 2026/2027：确认 2026 已结束，升级 2027 Research official dates；2028/2029+ 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

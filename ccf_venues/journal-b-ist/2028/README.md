@@ -1,6 +1,6 @@
 # IST 2028 README
 
-> 信息更新时间：`2026-06-05 18:24`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -86,5 +86,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：未发现 IST 2028 官方年度卷期、DBLP 年度页或 active dated CFP；保守维持 rolling + 已检索未公布口径。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 IST 2028 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为未获公开可审计正文，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 IST 2028 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

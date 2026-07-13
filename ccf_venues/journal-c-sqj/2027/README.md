@@ -1,6 +1,6 @@
 # SQJ 2027 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:27:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -73,7 +73,7 @@
 |---|---|---|---|
 | 期刊主页 / scope | [Springer SQJ](https://link.springer.com/journal/11219)；[Aims and scope](https://link.springer.com/journal/11219/aims-and-scope) | `2026-06-05 17:21` | 官方入口可用；scope 面向 software quality。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines)；[Submit manuscript](https://submission.nature.com/new-submission/11219/3) | `2026-06-05 17:21` | 常规投稿入口已记录，按 rolling submission 处理。 |
-| Special issue / topical collection | ⏳ 已检索未公布（[collections](https://link.springer.com/journal/11219/collections)） | `2026-06-05 17:21` | 关键 deadline / 状态见 §4；无 dated CFP 年度按未公布或无已知记录。 |
+| Special issue / topical collection | ⏳ 已检索未公布（[collections](https://link.springer.com/journal/11219/collections)） | `2026-07-13 19:27:00` | 已复查，未发现 2027 active dated CFP；2026 Quantum Software Quality 不硬扩展为 2027 年度事实。 |
 | Volume / issue / articles | ⏳ 已检索未公布（[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)）；[Springer articles](https://link.springer.com/journal/11219/articles) | `2026-06-05 17:21` | 已记录 Springer archive 与 DBLP baseline；待逐项计数。 |
 | DBLP fallback | ⏳ 已检索未公布（[DBLP SQJ](https://dblp.org/db/journals/sqj/)） | `2026-06-05 17:21` | 用作 bibliographic baseline，不替代 publisher article type 口径。 |
 
@@ -87,4 +87,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:27:00` | 常态化刷新：复查 Springer collections / volumes / DBLP 入口，未发现 2027 年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。 |
 | `2026-06-05 17:21` | 初始化 SQJ 2027 年度 README，记录 Springer / DBLP 入口、volume baseline、topical collection 状态与 project 相关性。 |

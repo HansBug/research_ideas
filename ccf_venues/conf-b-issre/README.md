@@ -1,6 +1,6 @@
 # ISSRE README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 |---|---|---|---|
 | Series / main site | [ISSRE official GitHub pages / annual sites](https://issre.github.io/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造 | `2026-06-05 09:15` |
+| 最新年度入口 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 2027 仅有 future edition / Macau 线索，尚无可写 deadline 的官方 CFP；2028/2029+ 已检索未公布 | `2026-07-13 13:30` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -71,8 +71,8 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 复审中 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | [CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) | [Submission](https://easychair.org/conferences/?conf=issre2026) | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 2026-04-24 待补时刻 AoE | 2026-04-24 待补时刻 AoE | 2026-07-08 待补时刻 | 2026-10-20..2026-10-23 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟦 已有线索 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 未公布（Macau 线索待官方 CFP / 年度页确认） | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟣 通知后 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | [CFP](https://cyprusconferences.org/issre2026/cfp-research/) | [Important Dates](https://cyprusconferences.org/issre2026/dates/) | [Submission](https://easychair.org/conferences/?conf=issre2026) | 未公布 | 未公布 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) | 2026-04-24 待补时刻 AoE | 2026-04-24 待补时刻 AoE | 2026-07-08 待补时刻 AoE | 2026-10-20..2026-10-23 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ISSRE 2025](https://issre.github.io/2025/) | [CFP](https://issre.github.io/2025/calls_cfp-research.html) | 未公布 | 未公布 | [Program / Accepted](https://issre.github.io/2025/program_research.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2025 待补精确日期 | 官方 statistics 待拆 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ISSRE 2024](https://issre.github.io/2024/) | 未公布 | [Important Dates](https://issre.github.io/2024/important-dates.html) | 未公布 | [Program / Accepted](https://issre.github.io/2024/program_full_program.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | DBLP/IEEE 待拆 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [ISSRE 2023](https://issre.github.io/2023/) | 未公布 | [Important Dates](https://issre.github.io/2023/important-dates.html) | 未公布 | [Program / Accepted](https://issre.github.io/2023/program_research.html) | 未公布 | [DBLP](https://dblp.org/db/conf/issre/index.html) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | DBLP/IEEE 待拆 | 🟡 部分核验 |
@@ -82,10 +82,10 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 均已做公开入口检索；2027 仅保留 future edition / Macau 线索，尚无官方年度主页 / CFP / Important Dates 可写 deadline；未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ISSRE 2028 官方年页。
-- 2027 计数口径：未发现 ISSRE 2027 官方年页。
-- 2026 计数口径：Research track 包含 RES/PER/TAR；industry/tool/workshop 不混入 research count；Research CFP 当前把旧 abstract / paper deadline 延展到 `2026-04-24 AoE`。
+- 2027 计数口径：未发现 ISSRE 2027 官方年页；Macau 线索不等同于 CFP / dates。
+- 2026 计数口径：Research track 包含 RES/PER/TAR；industry/tool/workshop 不混入 research count；Research CFP 当前把旧 abstract / paper deadline 延展到 `2026-04-24 AoE`，notification 已于 `2026-07-08` 过去，下一主链节点为 `2026-08-19 待补时刻 AoE` camera-ready。
 - 2025 计数口径：已知 official statistics 页面线索，需补 research / industry / tool 拆分。
 - 2022 计数口径：CFP/program 子路径待补；当前只把官方年页作为稳定入口。
 
@@ -101,6 +101,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新 ISSRE：将 2026 阶段改为通知后，Important Dates 绑定官方 dates 页并保留 camera-ready `2026-08-19 AoE`；2027 仅记录 Macau future-edition 线索、无 CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

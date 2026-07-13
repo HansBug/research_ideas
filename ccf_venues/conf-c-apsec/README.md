@@ -1,6 +1,6 @@
 # APSEC README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -51,8 +51,8 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [APSEC series](https://conf.researchr.org/series/apsec) | 年度事实仍以年度主页 / CFP / committee 为准 | `2026-06-05 17:23` |
-| Latest year homepage | [APSEC 2026](https://conf.researchr.org/home/apsec-2026) | 2027/2028 已检索未公布 | `2026-06-05 17:23` |
-| CFP / Important Dates | [APSEC 2026 dates](https://conf.researchr.org/dates/apsec-2026) | 历史年度在年度 README 展开 | `2026-06-05 17:23` |
+| Latest year homepage | [APSEC 2026](https://conf.researchr.org/home/apsec-2026) | 2026 Technical Track dates 已复查；2027/2028 未发现官方主页 / CFP / dates | `2026-07-13 19:11:00` |
+| CFP / Important Dates | [APSEC 2026 dates](https://conf.researchr.org/dates/apsec-2026) | 2026 Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time) | `2026-07-13 19:11:00` |
 | Submission system | [2026 submission](https://easychair.org/conferences/?conf=apsec2026) | 投稿系统可能按 track 拆分；年度页保留具体入口 | `2026-06-05 17:23` |
 | Program / accepted papers | [2026 program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 已结束年度优先官方 program / accepted；缺失时用 DBLP fallback | `2026-06-05 17:23` |
 | Proceedings | 未公布 | 出版商 / proceedings DOI 优先；受限时记录 WAF / 已检索未获可审计证据 | `2026-06-05 17:23` |
@@ -79,7 +79,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 投稿中 | [年度主页](https://conf.researchr.org/home/apsec-2026) | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Submission](https://easychair.org/conferences/?conf=apsec2026) | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 未公布 | 未公布 | 2026-07-06 | 2026-07-13 | 2026-09-14 | 2026-12-07..2026-12-10 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟢 投稿中 | [年度主页](https://conf.researchr.org/home/apsec-2026) | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Submission](https://easychair.org/conferences/?conf=apsec2026) | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 未公布 | 未公布 | 2026-07-13 待补时刻 UTC+8 (Bali time) | 2026-07-20 待补时刻 UTC+8 (Bali time) | 2026-09-14 待补时刻 UTC+8 (Bali time) | 2026-12-07..2026-12-10 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2025) | [CFP / track](https://conf.researchr.org/track/apsec-2025/apsec-2025-papers) | [Dates](https://conf.researchr.org/dates/apsec-2025) | [Submission](https://apsec25.hotcrp.com) | [Program / accepted](https://conf.researchr.org/program/apsec-2025/program-apsec-2025/) | 未公布 | [DBLP](https://dblp.org/db/conf/apsec/apsec2025.html) | 2025-07-13 | 2025-07-20 | 2025-09-20 | 2025-12-02..2025-12-05 | DBLP fallback `inproceedings`=117；IEEE proceedings URL 待补 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2024) | [CFP / track](https://conf.researchr.org/track/apsec-2024/apsec-2024-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2024) | [Submission](https://easychair.org/conferences/?conf=apsec2024) | [Program / accepted](https://conf.researchr.org/program/apsec-2024/program-apsec-2024/) | 未公布 | [DBLP](https://dblp.org/db/conf/apsec/apsec2024.html) | 2024-07-13 | 2024-07-20 | 2024-09-13 | 2024-12-03..2024-12-06 | DBLP fallback `inproceedings`=68；IEEE proceedings URL 待补 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2023) | [CFP / track](https://conf.researchr.org/track/apsec-2023/apsec-2023-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2023) | [Submission](https://easychair.org/conferences/?conf=apsec2023) | [Program / accepted](https://conf.researchr.org/program/apsec-2023/program-apsec-2023/) | [Proceedings](https://ieeexplore.ieee.org/xpl/conhome/1000681/all-proceedings) | [DBLP](https://dblp.org/db/conf/apsec/apsec2023.html) | 2023-07-07 | 2023-07-14 | 2023-08-23 | 2023-12-04..2023-12-07 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 已检索未获可审计证据 | 🟡 部分核验 |
@@ -90,8 +90,8 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 - 本目录属于 PR-9 / P2 邻近观察，只服务于检索扩展、投稿分流和社区画像，不把 APSEC 升级为 P0/P1 主投目标。
 - 论文数量优先使用官方 accepted / proceedings；DBLP 只作 fallback，且不得写成 main / research track count。
 - Research、industry、tool、artifact、workshop、special session、virtual / live segment 必须分开记录，不能混算。
-- 2027/2028 公开信息已检索；未公布年度保留占位，不预造 deadline / committee / proceedings。
-- PR-10 复核：APSEC 2026 Technical Track dates 页对 technical chain 标注 `UTC+8 (Bali time)`，不是 AoE；ERA / SEIP / tutorials 等其他 track 另有 AoE / UTC+8 混合标注，不能混用于 technical track。
+- 2027/2028 已于 2026-07-13 复查；未公布年度保留占位，不预造 deadline / committee / proceedings。
+- 2026-07-13 复核：APSEC 2026 Technical Track dates 页当前列 optional abstract `2026-07-13`、full paper `2026-07-20`、author notification `2026-09-14`、camera-ready `2026-10-19`，technical chain 时区为 `UTC+8 (Bali time)`；ERA / SEIP / tutorials 等其他 track 不作为本轮当前投稿机会。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -103,6 +103,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：按官方 APSEC 2026 dates 更新 Technical Track optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19，保留 UTC+8 (Bali time)；复查 2027/2028 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

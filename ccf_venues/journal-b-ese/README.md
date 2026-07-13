@@ -1,6 +1,6 @@
 # Empirical Software Engineering README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -101,7 +101,7 @@
 |---|---|---|---|---|---|---|---|---|---|---:|---|
 | [`2028`](./2028/README.md) | 滚动投稿占位；年度卷期未公布 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | 无已知 active dated collection | 滚动投稿 | ⏳ 已检索未公布 | [Online first](https://link.springer.com/journal/10664/online-first) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ |
 | [`2027`](./2027/README.md) | 滚动投稿占位；有 PROMPT-SE 2026 截止事件 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe) | 2027-03-01 待补时刻（submission deadline） | ⏳ 已检索未公布 | [Online first](https://link.springer.com/journal/10664/online-first) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ |
-| [`2026`](./2026/README.md) | 多个 collection / 年度进行中 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [Agentic SE](https://link.springer.com/collections/aaaihgcafc)；[FORGE 2026](https://link.springer.com/collections/aciaceiigh)；[EASE 2026](https://link.springer.com/collections/jefiadfibb)；[PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe) | 2026-09-28 待补时刻（Agentic final submission）；2026-10-02 待补时刻（FORGE submission）；2026-10-31 待补时刻（EASE submission）；2027-03-01 待补时刻（PROMPT-SE submission） | [Vol. 31 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [DBLP Vol. 31](https://dblp.org/db/journals/ese/ese31.html) | 147 | 🟡 |
+| [`2026`](./2026/README.md) | public collection / 年度进行中 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [Agentic SE](https://link.springer.com/collections/aaaihgcafc)；[PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe)；invite-only collection 不列通用机会 | 2026-09-28 待补时刻（Agentic final submission）；2027-03-01 待补时刻（PROMPT-SE submission） | [Vol. 31 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [DBLP Vol. 31](https://dblp.org/db/journals/ese/ese31.html) | 147 | 🟡 |
 | [`2025`](./2025/README.md) | 年度已归档；多个 closed collection | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | [AI Foundation Models](https://link.springer.com/collections/dbdgadcbdg)；[Advancing SE with LLMs](https://link.springer.com/collections/jfdgedjehb) | 2025-08-23 待补时刻（conference round submission）；2025-12-28 待补时刻（journal round submission）；2025-11-28 待补时刻（expected first submission） | [Vol. 30 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/30-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [DBLP Vol. 30](https://dblp.org/db/journals/ese/ese30.html) | 178 | 🟢 |
 | [`2024`](./2024/README.md) | 年度已归档 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | 无已知重点 dated collection | 滚动投稿 | [Vol. 29 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/29-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [DBLP Vol. 29](https://dblp.org/db/journals/ese/ese29.html) | 163 | 🟢 |
 | [`2023`](./2023/README.md) | 年度已归档 | [Springer ESE](https://link.springer.com/journal/10664) | [Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | 无已知重点 dated collection | 滚动投稿 | [Vol. 28 Issue 1](https://link.springer.com/journal/10664/volumes-and-issues/28-1) | [Online first](https://link.springer.com/journal/10664/online-first) | [DBLP Vol. 28](https://dblp.org/db/journals/ese/ese28.html) | 153 | 🟢 |
@@ -112,7 +112,9 @@
 - 2022-2026 论文数量采用 DBLP 年度页 `entry article` baseline：2022=196、2023=153、2024=163、2025=178、2026=147；该数不是 Springer publisher 最终闭合数，后续需用 Springer issue TOC 按 article type 交叉核验。
 - 2026 仍处当前年度，DBLP Vol. 31 baseline 与 Springer Vol. 31 issue pages 可能继续变化，不应写成年度最终闭合数。
 - 2027/2028 已检索 [Springer volumes and issues](https://link.springer.com/journal/10664/volumes-and-issues)、[Springer collections](https://link.springer.com/journal/10664/collections) 与 [DBLP venue page](https://dblp.org/db/journals/ese/)；未发现年度卷期、DBLP 年度页或 2028 dated collection，故年度页中显式写 `⏳ 已检索未公布`。
-- dated collection 的全局 [../TIMELINE.md](../TIMELINE.md)、根 [../SUMMARY.md](../SUMMARY.md) 与根 [../README.md](../README.md) 已在本轮同步。
+- 2026-07-13 复查：ESE 常规投稿 rolling；通用 special issue 机会只列公开非 invite-only 的 [Agentic Software Engineering](https://link.springer.com/collections/aaaihgcafc)（2026-09-28）与 [PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe)（2027-03-01）。
+- FORGE 2026、EASE 2026 等 Springer 页面虽有日期，但为 invite-only / selected-paper 扩展，不作为通用投稿机会。
+- 截至 2026-07-13，公开 dated collection 已同步至全局 [../TIMELINE.md](../TIMELINE.md)、根 [../SUMMARY.md](../SUMMARY.md) 与根 [../README.md](../README.md)。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -131,6 +133,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：确认 ESE public opportunities 为 Agentic SE 与 PROMPT-SE；invite-only collection 从通用机会口径排除。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

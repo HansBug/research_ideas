@@ -1,6 +1,6 @@
 # SANER 2028 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ 已检索未公布 | 未公布时写 `⏳ 已检索未公布`，不伪造 URL | `2026-06-05 17:35` |
+| 年度主页 | ⏳ 已检索未公布 | 2026-07-13 复查：未发现 SANER 2028 官方主页 / CFP / important dates，不伪造 URL | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | 未公布 | track 分散时逐 track 补链接 | `2026-06-05 17:35` |
 | Important Dates | 未公布 | 官方仅给日期时写 `待补时刻` | `2026-06-05 17:35` |
 | Submission system | 未公布 | 历史入口失效时保留待复核说明 | `2026-06-05 17:35` |
@@ -73,13 +73,14 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | ⏳ 已检索未公布 | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
+| 官方年度主页 / CFP / dates 复查 | ⏳ 已检索未公布 | `2026-07-13 19:11:00` | 未发现 SANER 2028 官方主页、Research Track CFP 或 important dates；不写入 dated timeline。 |
 | 官方 CFP / Dates | 未公布 | `2026-06-05 17:35` | 已提取 main / research track 核心日期；具体时刻仍待补。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 
 ## 8. 待补 / 风险记录
 
-- 仅在 SANER 2026 program 中见到 SANER 2028 Announcement & Townhall Meeting 线索；未检到官方主页 / CFP / dates。
+- 仅在 SANER 2026 program 中见到 SANER 2028 Announcement & Townhall Meeting 线索；2026-07-13 复查仍未检到官方主页 / CFP / dates。
 - 后续论文数量精算时必须先确定 main / research track 边界，再决定是否使用 DBLP / proceedings fallback。
 
 ## 9. TIMELINE.md 同步提示
@@ -93,5 +94,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 SANER 2028 未发现官方主页 / CFP / important dates，继续保留占位，不伪造日期。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 SANER 2028 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

@@ -1,6 +1,6 @@
 # FM README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -14,6 +14,8 @@
 | 本库目录 | `conf-a-fm` |
 | 出版方 | Springer LNCS / FM 官方年度页 |
 | 官方 series page | [FM Europe / FM official series](https://www.fmeurope.org/) |
+| 官方当前 / 最新年度主页 | [FM 2026](https://conf.researchr.org/home/fm-2026)；2027/2028 未发现正式会议主页 / CFP / dates |
+| 官方 CFP / Important Dates 总入口 | [FM 2026 Research paper](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) / [FM 2026 dates](https://conf.researchr.org/dates/fm-2026) |
 | DBLP venue page | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；若后续发现 `2029+` 官方 CFP / important dates，必须继续新增年度页 |
 
@@ -47,9 +49,10 @@ FM 是形式化方法主会，覆盖形式化规格、验证、模型检查、�
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
-| Series / main site | [FM Europe / FM official series](https://www.fmeurope.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
+| Series / main site | [FM Europe / FM official series](https://www.fmeurope.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-07-13 19:13:21` |
 | DBLP venue page | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造 | `2026-06-05 09:15` |
+| Latest year homepage | [FM 2026](https://conf.researchr.org/home/fm-2026) | 2026 已结束；2027/2028 于 2026-07-13 复查仍未发现正式会议主页 / CFP / dates | `2026-07-13 19:13:21` |
+| CFP / Important Dates | [FM 2026 Research paper](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) / [FM 2026 dates](https://conf.researchr.org/dates/fm-2026) | 2027 仅有 organizer call 线索，不等同于正式 CFP | `2026-07-13 19:13:21` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -83,10 +86,10 @@ FM 是形式化方法主会，覆盖形式化规格、验证、模型检查、�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
-- 2028：截至本轮核查未发现稳定 FM 2028 官方主页、CFP、重要日期或投稿入口。
+- `2027`、`2028` 与 `2029+` 于 2026-07-13 复查仍未发现正式官方主页、CFP 或重要日期；未公布年度保留占位与核查记录，不预设 CFP。
+- 2028：截至 2026-07-13 核查未发现稳定 FM 2028 官方主页、CFP、重要日期或投稿入口。
 - 2028 计数口径：未检索到 FM 2028 官方年页 / CFP；只保留年度占位。
-- 2027：已检索到官方线索 [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)；未发现正式会议主页、CFP、dates、submission、program 或 proceedings。
+- 2027：已检索到官方线索 [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)；截至 2026-07-13 未发现正式会议主页、CFP、dates、submission、program 或 proceedings。
 - 2027 计数口径：FM Europe 只公开 FM 2027 organizer call；不等同于正式 CFP。
 - 2026 计数口径：Springer Part I about page count；invited/tutorial/industry 条目不混入 research full/short count。
 - 2025：本页保留占位，避免把非主系列或地区性形式化方法活动混作 FM 主会。
@@ -108,6 +111,7 @@ FM 是形式化方法主会，覆盖形式化规格、验证、模型检查、�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 FM 2026 已结束状态；FM 2027/2028 仍无正式 CFP / dates，2027 organizer call 继续保守记录为线索。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

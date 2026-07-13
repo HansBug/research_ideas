@@ -1,6 +1,6 @@
 # EASE 2027 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -8,23 +8,23 @@
 |---|---|
 | Venue | EASE |
 | 年份 | `2027` |
-| 地点 | 未公布 |
-| 官方年度主页 | ⏳ 已检索未公布 |
+| 地点 | Hanoi, Vietnam |
+| 官方年度主页 | [EASE 2027](https://conf.researchr.org/home/ease-2027) |
 | 官方 CFP | 未公布 |
-| Important Dates | 未公布 |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/ease-2027)（当前未公布 research submission deadlines） |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | ⏳ 已检索未公布 |
+| 当前阶段状态 | 🟦 已有主页 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ 已检索未公布 | 官方 `home/ease-2027` / `dates/ease-2027` 已检索未公布；series 当前只列到 EASE 2026。 | `2026-06-05 17:23` |
+| 年度主页 | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 2026-07-13 复查：Hanoi home 已上线，页面列会期 2027-06-15..2027-06-18。 | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | 未公布 | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | 未公布 | 可与 CFP 同页 | `2026-06-05 17:23` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/ease-2027) | 当前只可核验会期 / 地点，未见 research submission deadlines。 | `2026-07-13 19:11:00` |
 | Submission system | 未公布 | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
 | Tracks / program | 未公布 | 已结束年度优先 official program | `2026-06-05 17:23` |
 | Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
@@ -35,17 +35,17 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Abstract deadline | 未公布 | 待补 | 待补 | 官方年度主页 / CFP / dates 已检索未公布。 |
-| Submission deadline | 未公布 | 待补 | 待补 | 官方年度主页 / CFP / dates 已检索未公布。 |
-| Notification | 未公布 | 待补 | 待补 | 官方年度主页 / CFP / dates 已检索未公布。 |
-| Camera-ready | 未公布 | 待补 | 待补 | 官方年度主页 / CFP / dates 已检索未公布。 |
-| Conference dates | 未公布 | 待补 | 待补 | 官方年度主页 / CFP / dates 已检索未公布。 |
+| Abstract deadline | 未公布 | [Important Dates](https://conf.researchr.org/dates/ease-2027) | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 当前未公布 research submission deadlines，不预造日期。 |
+| Submission deadline | 未公布 | [Important Dates](https://conf.researchr.org/dates/ease-2027) | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 当前未公布 research submission deadlines，不预造日期。 |
+| Notification | 未公布 | [Important Dates](https://conf.researchr.org/dates/ease-2027) | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 当前未公布 research notification，不预造日期。 |
+| Camera-ready | 未公布 | [Important Dates](https://conf.researchr.org/dates/ease-2027) | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 当前未公布 camera-ready，不预造日期。 |
+| Conference dates | 2027-06-15..2027-06-18 | [EASE 2027](https://conf.researchr.org/home/ease-2027) / [Important Dates](https://conf.researchr.org/dates/ease-2027) | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 官方 home / dates 页列 `Tue 15 - Fri 18 June 2027`，地点 Hanoi, Vietnam。 |
 
 ## 4. Tracks
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
-| Main / Technical / Research track | 未公布 | 未公布 | 未公布 | 🟡 关注 | P2 观察时优先读取 main / technical / research track。 |
+| Main / Technical / Research track | [EASE 2027 Research Papers](https://conf.researchr.org/track/ease-2027/ease-2027-papers) | 未公布 | 未公布 | 🟡 关注 | P2 观察时优先读取 main / technical / research track；当前未公布 submission dates。 |
 | Data / Tool / Industry / Special session | 未公布 | 未公布 | 未公布 | 🟡 按需 | 不能与 main track count 混算；有强相关 LLM / data / verification 主题时单独记录。 |
 
 ## 5. 论文名录与数量
@@ -70,8 +70,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | `2026-06-05 17:23` | ⏳ 已检索未公布。 |
-| 官方 CFP / Dates | 未公布 | `2026-06-05 17:23` | 已检索未公布。 |
+| 官方年度主页 | [EASE 2027](https://conf.researchr.org/home/ease-2027) | `2026-07-13 19:11:00` | 已上线；Hanoi, Vietnam；会期 2027-06-15..2027-06-18。 |
+| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/ease-2027) | `2026-07-13 19:11:00` | 当前未公布 research submission deadlines / notification / camera-ready，只记录会期。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
 | DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
@@ -84,4 +84,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：升级 EASE 2027 Hanoi 官方主页与会期，保守记录 submission dates 未公布。 |
 | `2026-06-05 17:23` | PR-9 初始化 EASE 2027 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

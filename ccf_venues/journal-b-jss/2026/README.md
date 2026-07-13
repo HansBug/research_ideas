@@ -1,6 +1,6 @@
 # JSS 2026 README
 
-> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 期刊主页 | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) |
 | Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx)（CLI/landing 可能提示 `site under development`，待再核验） |
-| Special issues / article collections | [AI for Software Architecting](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) |
+| Special issues / article collections | [Software Quality Assurance for Artificial Intelligence](https://www.sciencedirect.com/special-issue/332719/software-quality-assurance-for-artificial-intelligence-the-journal-of-systems-software)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems)；[Software Architecture in a Digital Society](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) |
 | Articles in press | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) |
 | DBLP 年度页 / volume set | DBLP Vol. 232-240（[232](https://dblp.org/db/journals/jss/jss232.html)–[240](https://dblp.org/db/journals/jss/jss240.html)；[index](https://dblp.org/db/journals/jss/)） |
 | 当前年度状态 | 🟢 年度进行中；常规 rolling 开放 |
@@ -25,7 +25,7 @@
 | Journal homepage | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | [DBLP JSS](https://dblp.org/db/journals/jss/) 作 bibliographic fallback | `2026-06-05 17:21` |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) | 常规投稿按 rolling submission 处理 | `2026-06-05 17:21` |
 | Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | CLI/landing 可能提示 `site under development`，CLI/动态页/登录流程受限，未获公开可审计正文 | `2026-06-05 17:21` |
-| Special issue / CFP | [AI for Software Architecting](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) | 无 active CFP 时以 [special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) 作复查入口 | `2026-06-05 17:21` |
+| Special issue / CFP | [Software Quality Assurance for Artificial Intelligence](https://www.sciencedirect.com/special-issue/332719/software-quality-assurance-for-artificial-intelligence-the-journal-of-systems-software)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems)；[Software Architecture in a Digital Society](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | 只列公开、非邀请制的 active CFP | `2026-07-13 19:10` |
 | Volume / issue archive | Vol. 232-240（[ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues)；DBLP Vol. 232-240（[232](https://dblp.org/db/journals/jss/jss232.html)–[240](https://dblp.org/db/journals/jss/jss240.html)；[index](https://dblp.org/db/journals/jss/)）） | ScienceDirect publisher archive 与 DBLP volume set 需后续交叉核验 | `2026-06-05 17:21` |
 | Articles in press | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) | online-first 与正式 volume 可能跨年 | `2026-06-05 17:21` |
 | Annual article list / publisher search | [ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues) | 待按 volume / issue 和 article type 逐卷计数 | `2026-06-05 17:21` |
@@ -45,8 +45,9 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Artificial Intelligence for Software Architecting (AI for SA) | [CFP](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa) | 2026-03-15 待补时刻 | 🔒 | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa) | 已同步至 TIMELINE / SUMMARY | 主题覆盖 AI-enabled architecture、LLM for software architecture、requirements engineering for software architectures。 |
+| Software Quality Assurance for Artificial Intelligence | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/332719/software-quality-assurance-for-artificial-intelligence-the-journal-of-systems-software) | 2026-08-31 待补时刻 | 🟢 | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/332719/software-quality-assurance-for-artificial-intelligence-the-journal-of-systems-software) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Public special issue；与 AI software quality assurance、testing 和 reliability 直接相关。 |
 | AI Techniques for Performance, Reliability, and Sustainability of Modern Software Systems | [CFP](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) | 2026-09-30 待补时刻 | 🟢 | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) | 已同步至 TIMELINE / SUMMARY | 主题覆盖 LLM performance、AI for reliability/dependability、sustainable computing。 |
+| Software Architecture in a Digital Society | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | 2027-01-31 待补时刻 | 🟢 / 跨年 | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Public special issue；deadline 落在 2027，年度页 2027 同步记录。 |
 
 ## 5. 年度论文入口与数量
 
@@ -70,6 +71,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 2026 常态化复查 | [Software QA for AI CFP](https://www.sciencedirect.com/special-issue/332719/software-quality-assurance-for-artificial-intelligence-the-journal-of-systems-software)；[AI performance/reliability CFP](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems)；[Software Architecture in a Digital Society CFP](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | `2026-07-13 19:10` | Public opportunities: Software QA for AI 2026-08-31；AI performance/reliability 2026-09-30；Software Architecture in a Digital Society 2027-01-31；AST selected papers 不列通用机会。 |
 | 期刊主页 / scope | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | `2026-06-05 17:21` | 官方入口可用；scope 覆盖软件工程全链路。 |
 | Author guidelines / submission | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors)；[Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | `2026-06-05 17:21` | 投稿入口可点击；Editorial Manager landing 仍CLI/动态页/登录流程受限，未获公开可审计正文。 |
 | Special issue / article collection | [AI for Software Architecting](https://www.sciencedirect.com/special-issue/329237/artificial-intelligence-for-software-architecting-ai-for-sa)；[AI Techniques for Performance / Reliability / Sustainability](https://www.sciencedirect.com/special-issue/329342/special-issue-on-ai-techniques-for-performance-reliability-and-sustainability-of-modern-software-systems) | `2026-06-05 17:21` | 关键 deadline 见 §4；无 dated CFP 年度按未公布记录。 |
@@ -78,7 +80,7 @@
 
 ## 8. TIMELINE.md 同步提示
 
-- 本年度 2026-03-15 与 2026-09-30 两个 JSS special issue deadline 已同步至 [../../TIMELINE.md](../../TIMELINE.md)。
+- 本年度三个开放 JSS special issue deadline（2026-08-31、2026-09-30、2027-01-31）已同步至 [../../TIMELINE.md](../../TIMELINE.md)。
 
 ## 9. 更新日志
 
@@ -86,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：更新 JSS public special issue 机会并核实三个独立 CFP 直链；排除 AST selected papers 通用机会。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 JSS AI Techniques special issue 官方 URL 仍存在 CLI 403/WAF caveat，当前只保留官方 URL 与 access caveat，不升级为完全核验事实。 |
 | `2026-06-05 17:21` | 初始化 JSS 2026 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

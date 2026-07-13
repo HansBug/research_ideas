@@ -1,6 +1,6 @@
 # ICPC 2026 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -72,7 +72,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
+| 官方年度主页 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | `2026-07-13 13:30` | 已复查 official home / dates；ICPC 2026 已结束，proceedings / DBLP 年度页仍待补。 |
 | 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/icpc-2026) | `2026-06-05 17:35` | 已提取 main / research track 核心日期；具体时刻仍待补。 |
 | 官方论文名录 / proceedings | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：确认 ICPC 2026 已结束；保留 proceedings / DBLP 年度页待补，不改历史 deadline。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 ICPC 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

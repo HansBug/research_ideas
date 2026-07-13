@@ -1,6 +1,6 @@
 # ATVA 2028 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
+| 官方年度主页 | 未公布 | 2026-07-13 复查：[ATVA official site](https://atva-conference.org/) 未公开 2028 edition 主页 / CFP / dates | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Important Dates | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -65,10 +65,11 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/atva/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| 官方年度主页 / CFP / dates 复查 | [ATVA official site](https://atva-conference.org/) | `2026-07-13 19:11:00` | 未发现 ATVA 2028 official edition 主页、CFP 或 important dates；不写入 dated timeline。 |
 
 ## 8. 待补 / 风险记录
 
-- 未发现 ATVA 2028 官方年页。
+- 2026-07-13 复查仍未发现 ATVA 2028 官方年页 / CFP / dates。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -81,4 +82,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 ATVA 2028 未发现官方主页 / CFP / important dates，继续保留占位。 |
 | `2026-06-05 09:15` | PR-3 初始化 ATVA 2028 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

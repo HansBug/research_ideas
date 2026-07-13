@@ -1,6 +1,6 @@
 # ATVA README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 |---|---|---|---|
 | Series / main site | [ATVA official site](https://atva-conference.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP ATVA index](https://dblp.org/db/conf/atva/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造 | `2026-06-05 09:15` |
+| 最新年度入口 | ⏳ 已检索未公布 | 2026-07-13 复查：[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates；未来年度不得伪造 | `2026-07-13 19:11:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -89,11 +89,11 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates，未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ATVA 2028 官方年页。
 - 2027 计数口径：未发现 ATVA 2027 官方年页。
 - 2026：命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
-- 2026 计数口径：截至 2026-06-05 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
+- 2026 计数口径：截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
 - 2022 计数口径：已核验独立年度页；Springer proceedings 写 21 regular + 5 tool + 1 invited，Springer TOC 显示 27 papers；EasyChair CFP 仅作历史 fallback。
 
 ## 8. TIMELINE.md 同步提示
@@ -108,6 +108,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 ATVA official site，仍无 2026/2027/2028 edition 官方主页 / CFP / important dates；对应年度页继续保守占位。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

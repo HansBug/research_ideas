@@ -1,6 +1,6 @@
 # RE 2026 README
 
-> 信息更新时间：`2026-06-05 08:35`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中/接近通知 |
+| 当前阶段状态 | 🔵 会期临近 |
 
 ## 2. 年度核心 URL 索引
 
@@ -73,7 +73,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [RE 2026](https://conf.researchr.org/home/RE-2026) | `2026-06-05 08:35` | 已按可访问状态记录；未公布年度写明未公布。 |
-| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/RE-2026) | `2026-06-05 08:35` | 已提取 research / main track 核心日期；具体时刻仍待补。 |
+| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/RE-2026) | `2026-07-13 13:30` | 已复查 Research Papers 核心日期；camera-ready `2026-06-08 待补时刻 AoE` 已过，会期未开始。 |
 | 官方论文名录 / proceedings | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) / 未公布 | `2026-06-05 08:35` | 论文名录入口已记录；publisher proceedings 仍有待补项。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：确认 Research Papers camera-ready 已过、会期 `2026-08-17..2026-08-21` 未开始，将阶段改为会期临近。 |
 | `2026-06-05 08:35` | 初始化 RE 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

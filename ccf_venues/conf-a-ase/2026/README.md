@@ -1,6 +1,6 @@
 # ASE 2026 README
 
-> 信息更新时间：`2026-06-05 08:38`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,15 +17,15 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中 |
+| 当前阶段状态 | 🟣 通知后 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | conf.researchr 年度入口；未来年度若 404 写已检索未公布 | `2026-06-05 08:38` |
-| CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | Research Papers / Research Track 为主 track；其他 track 单独列出，不混入主论文数量 | `2026-06-05 08:38` |
-| Important Dates | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | dates 通常与 CFP 同页 | `2026-06-05 08:38` |
+| 年度主页 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | conf.researchr 年度入口；未来年度若 404 写已检索未公布 | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | Research Papers / Research Track 为主 track；其他 track 单独列出，不混入主论文数量 | `2026-07-13 19:13:21` |
+| Important Dates | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | Research Track 官方 dates 给出 AoE / UTC-12h 日期；未给具体钟点时保留待补时刻 | `2026-07-13 19:13:21` |
 | Submission system | [HotCRP](https://ase26.hotcrp.com/) | 若未公开写未公布 | `2026-06-05 08:38` |
 | Tracks / program | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | 年度主页 tracks 导航可继续展开 | `2026-06-05 08:38` |
 | Accepted papers / paper list | 未公布 | 已结束年度优先官方 program；数量若无法按主 track 稳定计数则用 DBLP fallback 并说明口径 | `2026-06-05 08:38` |
@@ -77,8 +77,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | `2026-06-05 08:38` | 年度主页 / 404 probe 已核验；未公布不补造。 |
-| 官方 CFP / Dates | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | `2026-06-05 08:38` | 以 Research Papers / Research Track 页面为主，官方仅日期时标 `待补时刻`。 |
+| 官方年度主页 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | `2026-07-13 19:13:21` | 年度主页已复查；会期为 `2026-10-12..2026-10-16`。 |
+| 官方 CFP / Dates | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | `2026-07-13 19:13:21` | 大修提交 `2026-07-16`、大修通知 `2026-07-29`、camera-ready `2026-08-03` 已按官方日期与 AoE / UTC-12h 记录。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 08:38` | program 优先；proceedings probe 若 Access denied 则不作为可读论文名录。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:38` | DBLP 只作论文名录 / 计数 fallback；不代表主 track accepted papers 数量。 |
 
@@ -93,4 +93,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 Research Track 大修提交、通知、camera-ready 与会期，当前阶段改为 `🟣 通知后`。 |
 | `2026-06-05 08:38` | 初始化 ASE 2026 年度 README，填充核心链接、Research Papers 日期、tracks 与计数口径。 |

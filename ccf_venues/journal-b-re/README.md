@@ -1,6 +1,6 @@
 # Requirements Engineering README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -90,7 +90,7 @@
 |---|---|---|---|---|---|---|---|---|---|---:|---|
 | [`2028`](./2028/README.md) | 🟢 | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | 无已知（[Springer collections](https://link.springer.com/journal/766/collections)） | 滚动投稿 | ⏳ 已检索未公布（[volumes and issues](https://link.springer.com/journal/766/volumes-and-issues)） | [Online first](https://link.springer.com/journal/766/online-first) | ⏳ 已检索未公布（[DBLP RE](https://dblp.org/db/journals/re/index.html)） | ⏳ 已检索未公布 | 🟡 |
 | [`2027`](./2027/README.md) | 🟢 | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | 无已知（[Springer collections](https://link.springer.com/journal/766/collections)） | 滚动投稿 | ⏳ 已检索未公布（[volumes and issues](https://link.springer.com/journal/766/volumes-and-issues)） | [Online first](https://link.springer.com/journal/766/online-first) | ⏳ 已检索未公布（[DBLP RE](https://dblp.org/db/journals/re/index.html)） | ⏳ 已检索未公布 | 🟡 |
-| [`2026`](./2026/README.md) | 🟡 | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)（By Invite Only）；[LLM collection](https://link.springer.com/collections/deebijccbh) | [LLM collection](https://link.springer.com/collections/deebijccbh)：2026-04-30 待补时刻；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)：2026-06-20 待补时刻（邀请制）；[REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)：2026-06-29 待补时刻 | [Vol. 31 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/766/online-first) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | 6 | 🟡 |
+| [`2026`](./2026/README.md) | 🟢 | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)（Closed）；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)（By Invite Only / Closed）；[LLM collection](https://link.springer.com/collections/deebijccbh)（Closed） | 常规 rolling；三项 2026 collections 均已 Closed：[LLM collection](https://link.springer.com/collections/deebijccbh) `2026-04-30 待补时刻`、[30th Anniversary](https://link.springer.com/collections/hegaifabjh) `2026-06-20 待补时刻`、[REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) `2026-06-29 待补时刻` | [Vol. 31 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/31-1) | [Online first](https://link.springer.com/journal/766/online-first) | [DBLP Vol. 31](https://dblp.org/db/journals/re/re31.html) | 6 | 🟡 |
 | [`2025`](./2025/README.md) | ✅ | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [RE 2025](https://link.springer.com/collections/hbagjecafi) 已关闭 | 滚动投稿 | [Vol. 30 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/30-1) | [Online first](https://link.springer.com/journal/766/online-first) | [DBLP Vol. 30](https://dblp.org/db/journals/re/re30.html) | 9 | 🟡 |
 | [`2024`](./2024/README.md) | ✅ | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | [RE 2024 invite-only](https://link.springer.com/collections/djjfgheaej) 已关闭 | 滚动投稿 | [Vol. 29 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/29-1) | [Online first](https://link.springer.com/journal/766/online-first) | [DBLP Vol. 29](https://dblp.org/db/journals/re/re29.html) | 24 | 🟡 |
 | [`2023`](./2023/README.md) | ✅ | [Springer RE](https://link.springer.com/journal/766) | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines) | [Submit manuscript](https://submission.springernature.com/new-submission/766/3) | 无已知（[Springer collections](https://link.springer.com/journal/766/collections)） | 滚动投稿 | [Vol. 28 Issue 1](https://link.springer.com/journal/766/volumes-and-issues/28-1) | [Online first](https://link.springer.com/journal/766/online-first) | [DBLP Vol. 28](https://dblp.org/db/journals/re/re28.html) | 26 | 🟡 |
@@ -100,13 +100,13 @@
 
 | 检索对象 | 官方 / fallback 链接 | 结论 | 核查时间 |
 |---|---|---|---|
-| Springer collections / calls for papers | [Springer collections](https://link.springer.com/journal/766/collections) | 当前只核到 REFSQ 2026、30th Anniversary、LLM collection、RE 2025、RE 2024 等 collection；未发现 `2029+` Requirements Engineering 官方 CFP 或 dated deadline。 | `2026-06-05 11:57` |
+| Springer collections / calls for papers | [Springer collections](https://link.springer.com/journal/766/collections) | 2026-07-13 复查：REFSQ 2026、30th Anniversary、Rethinking RE in LLM age 均为 Closed；未发现 `2027` / `2028` / `2029+` Requirements Engineering 官方 dated CFP。 | `2026-07-13 19:15:00` |
 | Springer volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/766/volumes-and-issues) | 当前只以 2022-2026 已发布卷期和长期 archive 为可核验事实；未发现 `2029+` 年度卷期入口。 | `2026-06-05 11:57` |
 | DBLP venue page | [DBLP Requirements Engineering](https://dblp.org/db/journals/re/index.html) | 当前可见年度页到 [Volume 31, 2026](https://dblp.org/db/journals/re/re31.html)；未发现 `2027+` / `2029+` DBLP 年度页。 | `2026-06-05 11:57` |
 
 维护备注：
 
-- 2026 collections 当前口径：1 个公开开放 CFP（REFSQ 2026）+ 1 个邀请制开放 collection（30th Anniversary）+ 1 个已关闭 collection（LLM）；不得把 By Invite Only 写成普通公开 CFP。
+- 2026 collections 当前口径（2026-07-13 复查）：[REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)、[30th Anniversary](https://link.springer.com/collections/hegaifabjh)（By Invite Only）与 [Rethinking RE in LLM age](https://link.springer.com/collections/deebijccbh) 均已 Closed；常规稿仍按 rolling submission 处理。
 - 2022-2026 论文数量采用 DBLP entry article baseline：2026=6、2025=9、2024=24、2023=26、2022=25；该数不是 Springer publisher 最终闭合数，后续需按 Springer issue TOC / online first 交叉核验。
 - 常规投稿为 rolling，不进入 Mermaid dated event；Springer collections 中带明确日期的 deadline 按 [../TIMELINE.md](../TIMELINE.md) 的年度事件表和 Mermaid Gantt 维护；只有月份的 revision / final decision 信息只在年度页备注保留，不硬凑具体日期。
 - 2027/2028 年度页仅作为 rolling submission 与未来核验占位，不能写成已经公布年度卷期或 CFP。
@@ -114,7 +114,7 @@
 ## 8. TIMELINE.md 同步提示
 
 - Requirements Engineering rolling submission 已同步至 [../TIMELINE.md](../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表，链接 [submission guidelines](https://link.springer.com/journal/766/submission-guidelines)、[submission system](https://submission.springernature.com/new-submission/766/3)、[volumes and issues](https://link.springer.com/journal/766/volumes-and-issues)、[online first](https://link.springer.com/journal/766/online-first) 和本库年度页。
-- 2026 年 Springer collections 中的 [30th Anniversary](https://link.springer.com/collections/hegaifabjh) submission deadline `2026-06-20 待补时刻` 与 [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) submission deadline `2026-06-29 待补时刻` 已同步至 2026 时间线和 Mermaid Gantt。
+- 2026 年 Springer collections 中的 [30th Anniversary](https://link.springer.com/collections/hegaifabjh) submission deadline `2026-06-20 待补时刻` 与 [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) submission deadline `2026-06-29 待补时刻` 已成为历史 Closed 事件；本轮仅更新本目录，未触碰全局 [../TIMELINE.md](../TIMELINE.md)。
 - [Rethinking Requirements Engineering in the Age of Large Language Models](https://link.springer.com/collections/deebijccbh) 已关闭，官方页面记录 submission deadline `2026-04-30 待补时刻`，已作为历史 dated event 同步至 2026 时间线；同页 `Revisions Due: July 2026`、`Final Decisions: September 2026` 仅给月份，不写入 dated event。
 
 ## 9. 更新日志
@@ -123,6 +123,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:15:00` | 常态化刷新：复查 Springer collections，确认 REFSQ 2026、30th Anniversary、Rethinking RE in LLM age 均 Closed；根年度表改回常规 rolling 为当前可投口径，并记录 2027/2028 未发现新 dated CFP。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

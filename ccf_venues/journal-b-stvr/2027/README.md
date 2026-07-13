@@ -1,6 +1,6 @@
 # STVR 2027 README
 
-> 信息更新时间：`2026-06-05 12:05`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:24:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -74,7 +74,7 @@
 | 期刊主页 | [Wiley STVR](https://onlinelibrary.wiley.com/journal/10991689) | `2026-06-05 12:05` | 官方入口保留；CLI 返回 WAF/403，未获公开可审计正文。 |
 | Author guidelines / submission | [Wiley STVR for authors](https://onlinelibrary.wiley.com/page/journal/10991689/homepage/forauthors.html)；[Wiley Authors STVR dashboard](https://authors.wiley.com/dashboard/journal?groupCode=STVR)；[Wiley submission candidate for STVR](https://submission.wiley.com/submission/submissionBoard/new/?journalCode=STVR) | `2026-06-05 12:05` | 官方入口保留；Wiley Authors / submission SPA 可访问但具体细节CLI/动态页/登录流程受限，未获公开可审计正文。 |
 | Editorial board | [Wiley STVR editorial board](https://onlinelibrary.wiley.com/page/journal/10991689/homepage/editorialboard.html) | `2026-06-05 12:05` | CLI 返回 WAF/403，当前编辑人员不得臆造，未获公开可审计正文。 |
-| Special issue / topical collection | [Wiley STVR](https://onlinelibrary.wiley.com/journal/10991689) | `2026-06-05 12:05` | 未发现 2027 active dated CFP；官方入口已记录，待公开可审计证据补齐。 |
+| Special issue / topical collection | [Wiley STVR](https://onlinelibrary.wiley.com/journal/10991689) | `2026-07-13 19:24:00` | 已复查，未发现 2027 active dated CFP；官方入口已记录，Wiley 403 / 动态页受限。 |
 | Volume / issue / online first | ⏳ 已检索未公布；保留 [Wiley volume archive](https://onlinelibrary.wiley.com/loi/10991689) 复查；[Wiley STVR Early View](https://onlinelibrary.wiley.com/journal/10991689/earlyview) | `2026-06-05 12:05` | Wiley 官方链接保留；CLI 返回 WAF/403。 |
 | DBLP fallback | ⏳ 已检索未公布；fallback：[DBLP STVR](https://dblp.org/db/journals/stvr/index.html) | `2026-06-05 12:05` | 未来年度 DBLP 年度页未公布。 |
 | `2029+` 核查 | [Wiley STVR volumes and issues](https://onlinelibrary.wiley.com/loi/10991689)；[Wiley STVR Early View](https://onlinelibrary.wiley.com/journal/10991689/earlyview)；[DBLP STVR](https://dblp.org/db/journals/stvr/index.html) | `2026-06-05 12:05` | 未发现可命令行核验的 `2029+` 年度卷期或 dated CFP；Wiley 受 WAF/403，未获公开可审计正文。 |
@@ -91,4 +91,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:24:00` | 常态化刷新：复查 Wiley / DBLP 入口，未发现 2027 年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位和 WAF/403 caveat。 |
 | `2026-06-05 12:05` | 初始化 STVR 2027 年度 README，记录 Wiley 官方入口、WAF/403 caveat、DBLP fallback 与年度状态。 |

@@ -1,6 +1,6 @@
 # ASE 2027 README
 
-> 信息更新时间：`2026-06-05 08:38`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -10,7 +10,7 @@
 | 年份 | 2027 |
 | 地点 | 未公布 |
 | 官方 series page | [ASE series](https://conf.researchr.org/series/ase) |
-| 官方年度主页 | ⏳ [probe 404](https://conf.researchr.org/home/ase-2027) |
+| 官方年度主页 | ⏳ 年度主页未公布（[ASE series](https://conf.researchr.org/series/ase)） |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ [probe 404](https://conf.researchr.org/home/ase-2027) | conf.researchr 年度入口；未来年度若 404 写已检索未公布 | `2026-06-05 08:38` |
+| 年度主页 | ⏳ 年度主页未公布（[ASE series](https://conf.researchr.org/series/ase)） | 2026-07-13 复查仍未获正式年度主页 / CFP / dates；不伪造日期 | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | 未公布 | Research Papers / Research Track 为主 track；其他 track 单独列出，不混入主论文数量 | `2026-06-05 08:38` |
 | Important Dates | 未公布 | dates 通常与 CFP 同页 | `2026-06-05 08:38` |
 | Submission system | 未公布 | 若未公开写未公布 | `2026-06-05 08:38` |
@@ -36,7 +36,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Conference dates | 未公布 | ⏳ [probe 404](https://conf.researchr.org/home/ase-2027) | ⏳ [probe 404](https://conf.researchr.org/home/ase-2027) | 官方仅给日期时写待补时刻；AoE 按官方保留。 |
+| Conference dates | 未公布 | ⏳ 年度主页未公布（[ASE series](https://conf.researchr.org/series/ase)） | ⏳ 已检索未公布 | 官方仅给日期时写待补时刻；AoE 按官方保留。 |
 
 ## 4. Tracks
 
@@ -70,7 +70,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ [probe 404](https://conf.researchr.org/home/ase-2027) | `2026-06-05 08:38` | 年度主页 / 404 probe 已核验；未公布不补造。 |
+| 官方年度主页 | [ASE series](https://conf.researchr.org/series/ase) | `2026-07-13 19:13:21` | 年度候选路径返回 404；仍未发现官方 2027 CFP / dates，未公布不补造。 |
 | 官方 CFP / Dates | 未公布 | `2026-06-05 08:38` | 以 Research Papers / Research Track 页面为主，官方仅日期时标 `待补时刻`。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 08:38` | program 优先；proceedings probe 若 Access denied 则不作为可读论文名录。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:38` | DBLP 只作论文名录 / 计数 fallback；不代表主 track accepted papers 数量。 |
@@ -86,4 +86,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复查 ASE 2027 官方入口，仍未获正式 CFP / dates，仅保守更新核查时间与风险说明。 |
 | `2026-06-05 08:38` | 初始化 ASE 2027 年度 README，填充核心链接、Research Papers 日期、tracks 与计数口径。 |

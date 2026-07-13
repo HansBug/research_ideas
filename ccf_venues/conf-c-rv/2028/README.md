@@ -1,6 +1,6 @@
 # RV 2028 README
 
-> 信息更新时间：`2026-06-05 17:23`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -22,14 +22,14 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ 已检索未公布 | 官方 Future Events 当前只列到 RV 2026；DBLP 年度页 404。 | `2026-06-05 17:23` |
-| CFP / Call for Papers | 未公布 | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | 未公布 | 可与 CFP 同页 | `2026-06-05 17:23` |
-| Submission system | 未公布 | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
-| Tracks / program | 未公布 | 已结束年度优先 official program | `2026-06-05 17:23` |
-| Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
-| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-06-05 17:23` |
-| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:23` |
+| 年度主页 | ⏳ 已检索未公布 | 官方 Future Events 当前只列到 RV 2026；DBLP 年度页 404。 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | 未公布 | track 分散时按年度主页展开 | `2026-07-13 10:27:51` |
+| Important Dates | 未公布 | 可与 CFP 同页 | `2026-07-13 10:27:51` |
+| Submission system | 未公布 | 不公开时写未公布；历史入口可能登录受限 | `2026-07-13 10:27:51` |
+| Tracks / program | 未公布 | 已结束年度优先 official program | `2026-07-13 10:27:51` |
+| Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-07-13 10:27:51` |
+| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
@@ -70,10 +70,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | `2026-06-05 17:23` | ⏳ 已检索未公布。 |
-| 官方 CFP / Dates | 未公布 | `2026-06-05 17:23` | 已检索未公布。 |
-| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
-| DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
+| 官方年度主页 | 未公布 | `2026-07-13 10:27:51` | ⏳ 已检索未公布。 |
+| 官方 CFP / Dates | 未公布 | `2026-07-13 10:27:51` | 已检索未公布。 |
+| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-07-13 10:27:51` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
+| DBLP fallback | 未公布 | `2026-07-13 10:27:51` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -84,4 +84,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：复查 RV 2028 官方入口未公布，保留占位和未公布日期。 |
 | `2026-06-05 17:23` | PR-9 初始化 RV 2028 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

@@ -1,6 +1,6 @@
 # SoSyM README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:21:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -87,7 +87,7 @@
 |---|---|---|---|---|---|---|---|---|---|---:|---|
 | [`2028`](./2028/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | 🟢 滚动开放 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 专刊征稿 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | 30 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟡 专刊征稿 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme](https://www.sosym.org/edtconf_journal_first/) | Industry 5.0 submission `2026-07-15 待补时刻`；notification `2026-10-15 待补时刻`；Digital Twins rolling | [Vol. 25 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 25](https://dblp.org/db/journals/sosym/sosym25.html) | 30 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 多个已关闭 special / theme section | 滚动投稿 | [Vol. 24 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/24-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 24](https://dblp.org/db/journals/sosym/sosym24.html) | 91 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 23 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/23-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 23](https://dblp.org/db/journals/sosym/sosym23.html) | 75 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 年度已归档 | [Springer SoSyM](https://link.springer.com/journal/10270) | [Submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | 无已知 active CFP | 滚动投稿 | [Vol. 22 Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/22-1) | [SoSyM online](https://www.sosym.org/online/) | [DBLP Vol. 22](https://dblp.org/db/journals/sosym/sosym22.html) | 98 | 🟡 部分核验 |
@@ -96,8 +96,9 @@
 ## 7. 维护备注
 
 - SoSyM regular / tool / expert voice papers 可 rolling submission，不进入 dated Mermaid。
-- Industry 5.0 theme section 有 2026-07-15 submission deadline，已同步进 [../TIMELINE.md](../TIMELINE.md)。
-- Engineering of Digital Twins 是 SoSyM official site 给出的 rolling theme section，和 Industry 5.0 是不同条目；EDTConf'26 相关日期只作为“若希望会议展示”的目标节点记录，不写成普通 SoSyM 截稿。
+- Industry 5.0 theme section 仍处于 2026-07-15 submission deadline 前（官方仅给日期，未给具体时刻），并给出 2026-10-15 notification；本轮只更新本目录，未触碰全局 [../TIMELINE.md](../TIMELINE.md)。
+- Engineering of Digital Twins 是 SoSyM official site 给出的 ongoing rolling theme section，和 Industry 5.0 是不同条目；EDTConf'26 相关日期只作为“若希望会议展示”的目标节点记录，不写成普通 SoSyM 截稿。
+- 2027/2028 已于 2026-07-13 复查，未发现新的官方年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。
 - 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 Springer issue pages / SoSyM online 按 article type 交叉核验。
 
 ## 8. TIMELINE.md 同步提示
@@ -111,6 +112,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:21:00` | 常态化刷新：确认 SoSyM Industry 5.0 仍开放至 2026-07-15（官方仅给日期）且 notification 为 2026-10-15；Digital Twins 为 ongoing rolling theme，2027/2028 未发现新 dated CFP。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

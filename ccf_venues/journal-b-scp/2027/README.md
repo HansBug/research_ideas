@@ -1,6 +1,6 @@
 # SCP 2027 README
 
-> 信息更新时间：`2026-06-05 18:24`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:18:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -69,7 +69,7 @@
 |---|---|---|---|
 | 期刊主页 | [ScienceDirect journal page](https://www.sciencedirect.com/journal/science-of-computer-programming) | `2026-06-05 18:24` | 官方入口已记录；CLI WAF/403，正文未获公开可审计正文。 |
 | Author guidelines / submission | [Guide for Authors](https://www.sciencedirect.com/science/journal/01676423/publish/guide-for-authors)；[Editorial Manager](https://www.editorialmanager.com/scico/default.aspx) | `2026-06-05 18:24` | 常规投稿按 rolling submission 处理；投稿表单可能需登录。 |
-| Special issue / topical collection | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | `2026-06-05 18:24` | Candidate CFP 见 §4；无公开可审计核验 deadline 前不伪造日期。 |
+| Special issue / topical collection | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | `2026-07-13 19:18:00` | 已复查，未发现 2027 普通投稿者直接相关公开 active dated CFP；不伪造日期。 |
 | Volume / issue / online first | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues)；[Articles in Press](https://www.sciencedirect.com/journal/science-of-computer-programming/articles-in-press) | `2026-06-05 18:24` | 未发现官方年度卷期 / DBLP 年度 volume；Articles in Press 不与卷期双算。 |
 | DBLP fallback | [DBLP index](https://dblp.org/db/journals/scp/index.html) | `2026-06-05 18:24` | DBLP 仅作书目 / count fallback；publisher archive 优先。 |
 | `2029+` 核查 | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues)；[ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[DBLP index](https://dblp.org/db/journals/scp/index.html) | `2026-06-05 18:24` | 未发现可命令行核验的官方 `2029+` 年度卷期或 dated CFP。 |
@@ -86,5 +86,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:18:00` | 常态化刷新：复查 ScienceDirect / DBLP 入口，未发现 2027 官方年度卷期、DBLP 年度页或普通公开 active dated CFP；保留 rolling 占位。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 SCP 2027 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为未获公开可审计正文，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 SCP 2027 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

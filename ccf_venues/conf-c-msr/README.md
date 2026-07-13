@@ -1,6 +1,6 @@
 # MSR README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -51,8 +51,8 @@ MSR 聚焦 mining software repositories、software analytics、dataset / benchma
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [MSR series](https://www.msrconf.org/) | 年度事实仍以年度主页 / CFP / committee 为准 | `2026-06-05 17:23` |
-| Latest year homepage | [MSR 2026](https://2026.msrconf.org/) | 2027/2028 已检索未公布 | `2026-06-05 17:23` |
-| CFP / Important Dates | [MSR 2026 dates](https://2026.msrconf.org/dates) | 历史年度在年度 README 展开 | `2026-06-05 17:23` |
+| Latest year homepage | [MSR 2027](https://2027.msrconf.org/) | Technical Papers dates 已公布；2028/2029+ 已复查未见官方年度信息 | `2026-07-13 10:27:51` |
+| CFP / Important Dates | [MSR 2027 Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) / [dates](https://conf.researchr.org/dates/msr-2027) | 历史年度在年度 README 展开 | `2026-07-13 10:27:51` |
 | Submission system | [2026 submission](https://msr2026.hotcrp.com) | 投稿系统可能按 track 拆分；年度页保留具体入口 | `2026-06-05 17:23` |
 | Program / accepted papers | [2026 Technical Papers accepted list](https://2026.msrconf.org/track/msr-2026-technical-papers) / [2026 program](https://2026.msrconf.org/program/program-msr-2026/) | 已结束年度优先 official accepted list / program；2026 Technical Papers official accepted count = 48 | `2026-06-05 18:36` |
 | Proceedings | [Proceedings入口](https://doi.org/10.1109/MSR66628.2025) | 出版商 / proceedings DOI 优先；受限时记录 WAF / 已检索未获可审计证据 | `2026-06-05 17:23` |
@@ -78,7 +78,7 @@ MSR 聚焦 mining software repositories、software analytics、dataset / benchma
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 投稿中 | [年度主页](https://2027.msrconf.org/) | [Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) | [Dates](https://conf.researchr.org/dates/msr-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 2026-10-20 待补时刻 AoE | 2026-10-23 待补时刻 AoE | 2027-01-08 待补时刻 AoE | 2027-04-26..2027-04-27 | 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束 / proceedings 待补 | [年度主页](https://2026.msrconf.org/) | [CFP / track](https://2026.msrconf.org/track/msr-2026-technical-papers) | [Dates](https://2026.msrconf.org/dates) | [Submission](https://msr2026.hotcrp.com) | [Technical Papers accepted list](https://2026.msrconf.org/track/msr-2026-technical-papers) | 未公布 | 未公布 | 2025-10-20 | 2025-10-23 | 2026-01-07 | 2026-04-13..2026-04-14 | official Technical Papers accepted list `48` | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://2025.msrconf.org/) | [CFP / track](https://2025.msrconf.org/track/msr-2025-technical-papers) | [Dates](https://2025.msrconf.org/dates) | [Submission](https://msr2025-technical.hotcrp.com/) | [Program / accepted](https://2025.msrconf.org/program/program-msr-2025/) | [Proceedings](https://doi.org/10.1109/MSR66628.2025) | [DBLP](https://dblp.org/db/conf/msr/msr2025.html) | 2024-11-06 | 2024-11-09 | 2025-01-12 | 2025-04-28..2025-04-29 | DBLP fallback `inproceedings`=110 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://2024.msrconf.org/) | [CFP / track](https://2024.msrconf.org/track/msr-2024-technical-papers) | [Dates](https://2024.msrconf.org/dates) | [Submission](https://msr2024-technical.hotcrp.com/) | [Program / accepted](https://2024.msrconf.org/program/program-msr-2024/) | [Proceedings](https://doi.org/10.1145/3643991) | [DBLP](https://dblp.org/db/conf/msr/msr2024.html) | 2023-11-14 | 2023-11-17 | 2024-01-12 | 2024-04-15..2024-04-16 | DBLP fallback `inproceedings`=97 | 🟡 部分核验 |
@@ -102,6 +102,7 @@ MSR 聚焦 mining software repositories、software analytics、dataset / benchma
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新 MSR 2026/2027：确认 2026 已结束，升级 2027 Technical Papers official dates；2028/2029+ 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

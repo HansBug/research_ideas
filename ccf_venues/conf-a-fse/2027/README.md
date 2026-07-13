@@ -1,6 +1,6 @@
 # FSE 2027 README
 
-> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,9 +23,9 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | 官方年度入口；列出 Shenzhen 会期和 Research Papers 重要日期 | `2026-06-06 11:46` |
-| CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | track 页已发布 research call；submission site 仍待公布 | `2026-06-06 11:46` |
-| Important Dates | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) | 年度主页侧栏同步列出；时区为 AoE / UTC-12h | `2026-06-06 11:46` |
+| 年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | 官方年度入口；列出 Shenzhen 会期和 Research Papers 重要日期 | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | track 页已发布 research call；submission site 仍待公布 | `2026-07-13 19:13:21` |
+| Important Dates | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) | 年度主页侧栏同步列出；Research Papers track 标注 AoE / UTC-12h；full paper deadline 按 `23:59:59` 记录 | `2026-07-13 19:13:21` |
 | Submission system | 待公布 | track 明确写 submission site 会在临近 deadline 时发布，不预造 HotCRP URL | `2026-06-06 11:46` |
 | Tracks / program | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | 其他 tracks 后续按年度主页展开 | `2026-06-06 11:46` |
 | Accepted papers / paper list | 未公布 | 官方 program 优先；DBLP 作 fallback | `2026-06-06 11:46` |
@@ -36,7 +36,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Full paper submission | 2026-10-02 待补时刻 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | researchr 行级 `Timezone: AoE (UTC-12h)`；未给具体钟点，故保留待补时刻。 |
+| Full paper submission | 2026-10-02 23:59:59 AoE / UTC-12h | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | Research Papers track 标注 AoE / UTC-12h；本轮按投稿决策口径精确到日末。 |
 | Author response period | 2026-12-14..2026-12-18 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | researchr 行级 `Timezone: AoE (UTC-12h)`。 |
 | Initial notification | 2027-01-22 待补时刻 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | initial decision，可为 accept / reject / major revision。 |
 | Major revision submission | 2027-03-05 待补时刻 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | major revision track-specific submission deadline。 |
@@ -74,8 +74,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | `2026-06-06 11:46` | 官方主页已发布 Shenzhen 会期、Research Papers track 与重要日期。 |
-| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers)；[Dates](https://conf.researchr.org/dates/fse-2027) | `2026-06-06 11:46` | 已核验 full paper submission、author response、initial notification、major revision submission、final notification；时区为 AoE / UTC-12h。 |
+| 官方年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | `2026-07-13 19:13:21` | 官方主页已发布 Shenzhen 会期 `2027-07-12..2027-07-16`、Research Papers track 与重要日期。 |
+| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers)；[Dates](https://conf.researchr.org/dates/fse-2027) | `2026-07-13 19:13:21` | 已核验 full paper submission `2026-10-02 23:59:59 AoE / UTC-12h`、author response、initial notification、major revision submission、final notification。 |
 | 官方论文名录 / proceedings | 未公布；未公布 | `2026-06-06 11:46` | 官方 program / proceedings 尚未公布；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-06 11:46` | DBLP 仅作论文名录与数量 fallback。 |
 
@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 FSE 2027 official home / Research Papers / dates，将 full paper deadline 精确为 `2026-10-02 23:59:59 AoE / UTC-12h`。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：按 FSE 2027 官方主页 / dates / Research Papers track 补齐投稿、response、initial notification、major revision、final notification 与会期，并同步根 README 与 TIMELINE。 |
 | `2026-06-05 08:39` | 初始化 FSE 2027 年度 README 草稿。 |

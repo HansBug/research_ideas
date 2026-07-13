@@ -1,6 +1,6 @@
 # Empirical Software Engineering 2026 README
 
-> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 期刊主页 | [Springer Empirical Software Engineering](https://link.springer.com/journal/10664) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10664/submission-guidelines) |
 | Submission system | [Editorial Manager EMSE](https://www.editorialmanager.com/emse/) |
-| Special issues / topical collections | [Agentic Software Engineering: The Rise of AI Teammates](https://link.springer.com/collections/aaaihgcafc)；[By Invite Only - FORGE 2026](https://link.springer.com/collections/aciaceiigh)；[By Invite Only - Evaluation and Assessment in Software Engineering (EASE) 2026](https://link.springer.com/collections/jefiadfibb)；[Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026)](https://link.springer.com/collections/bddiejbihe)；[Advancing Software Engineering with Large Language Models](https://link.springer.com/collections/jfdgedjehb) |
+| Special issues / topical collections | [Agentic Software Engineering: The Rise of AI Teammates](https://link.springer.com/collections/aaaihgcafc)；[Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026)](https://link.springer.com/collections/bddiejbihe)；invite-only / selected-paper collections 不列为通用机会 |
 | Articles in press / online first | [Springer online first](https://link.springer.com/journal/10664/online-first) |
 | DBLP 年度页 | [DBLP ESE Volume 31](https://dblp.org/db/journals/ese/ese31.html) |
 | 当前年度状态 | 年度进行中；多个 collection |
@@ -45,8 +45,6 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Agentic Software Engineering: The Rise of AI Teammates | [CFP](https://link.springer.com/collections/aaaihgcafc) | 2026-09-28 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/aaaihgcafc) | 已同步至 TIMELINE / SUMMARY | 官方页面写 Open for submissions 与 Submission deadline 28 September 2026；submission instructions 要求在 EMSE Editorial Manager 中选择 Agentic Software Engineering。 |
-| By Invite Only - FORGE 2026 | [CFP](https://link.springer.com/collections/aciaceiigh) | 2026-10-02 待补时刻 | 邀请制开放 | [官方来源](https://link.springer.com/collections/aciaceiigh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方 collection 页面显示 Open for submissions 与 Submission deadline 02 October 2026；editors: Gabriele Bavota / Yuan Tian；邀请制。 |
-| By Invite Only - Evaluation and Assessment in Software Engineering (EASE) 2026 | [CFP](https://link.springer.com/collections/jefiadfibb) | 2026-10-31 待补时刻 | 邀请制开放 | [官方来源](https://link.springer.com/collections/jefiadfibb) | 已同步至 TIMELINE / SUMMARY | 官方页面写 Submissions open on 12 June 2026 与 Submission deadline 31 October 2026；仅邀请 selected EASE 2026 papers extended version。 |
 | Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026) | [CFP](https://link.springer.com/collections/bddiejbihe) | 2026-07-01 待补时刻（submissions open）；2027-03-01 待补时刻（submission deadline） | 即将开放 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | 官方页面写 Submissions open on 01 July 2026；deadline 落在 2027 年，年度页 2027 也需记录。 |
 | Advancing Software Engineering with Large Language Models | [CFP](https://link.springer.com/collections/jfdgedjehb) | 2026-05-31 待补时刻（first review round）；2026-07-15 待补时刻（revision due）；2026-09-15 待补时刻（final notification） | 已关闭 | [官方来源](https://link.springer.com/collections/jfdgedjehb) | 已同步至 TIMELINE / SUMMARY | 官方页面已关闭；2026 日期为 tentative first review round、revision due、final author notification。 |
 
@@ -72,6 +70,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 2026 常态化复查 | [Springer collections](https://link.springer.com/journal/10664/collections)；[Agentic SE](https://link.springer.com/collections/aaaihgcafc)；[PROMPT-SE 2026](https://link.springer.com/collections/bddiejbihe) | `2026-07-13 19:10` | public opportunities 为 Agentic SE（2026-09-28）与 PROMPT-SE（2027-03-01）；invite-only / selected-paper collections 不作为通用投稿机会。 |
 | 期刊主页 | [Springer Empirical Software Engineering](https://link.springer.com/journal/10664) | `2026-06-05 17:21` | 官方期刊入口可用，记录 ISSN、publishing model 与 journal metrics。 |
 | Aims / Author guidelines / submission | [Aims and scope](https://link.springer.com/journal/10664/aims-and-scope)；[Submission guidelines](https://link.springer.com/journal/10664/submission-guidelines)；[Editorial Manager EMSE](https://www.editorialmanager.com/emse/) | `2026-06-05 17:21` | scope、常规投稿、conference extension 与 Open Choice / OA 口径已记录。 |
 | Special issue / topical collection | [Springer collections](https://link.springer.com/journal/10664/collections) | `2026-06-05 17:21` | 本年度重点 collection 见 §4；未列出的历史 collection 后续可按专题继续展开。 |
@@ -89,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：保留 Agentic SE 与 PROMPT-SE 作为 public opportunities，排除 FORGE / EASE invite-only collection 通用机会口径。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 Agentic SE、FORGE 2026、EASE 2026、PROMPT-SE 2026 与 Advancing SE with LLM collection 的 Springer 日期 / 邀请制 caveat，并确认已同步 TIMELINE 对应 dated events。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 2026 年度 README，记录 Springer / DBLP 核心入口、重点 collection、投稿节奏与 DBLP entry article baseline。 |

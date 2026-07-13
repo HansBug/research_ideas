@@ -1,6 +1,6 @@
 # TSE README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -81,9 +81,9 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 52](https://dblp.org/db/journals/tse/tse52.html) | 98 | 🟡 部分核验 |
+| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP（2026-07-13 复查） | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP（2026-07-13 复查） | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP | 滚动投稿 | [TSE Vol. 52 Issue 6](https://www.computer.org/csdl/journal/ts/2026/06) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 52](https://dblp.org/db/journals/tse/tse52.html) | 98 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 active dated CFP | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 51](https://dblp.org/db/journals/tse/tse51.html) | 228 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 50](https://dblp.org/db/journals/tse/tse50.html) | 182 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 年度已归档 | [TSE](https://www.computer.org/csdl/journal/ts) | [Author Resources](https://www.computer.org/publications/author-resources/) | [IEEE Publishing Portal](https://publishingportal.ieee.org/) | 无已知 | 滚动投稿 | [TSE archive](https://www.computer.org/csdl/journal/ts) | [TSE archive](https://www.computer.org/csdl/journal/ts) | [DBLP Vol. 49](https://dblp.org/db/journals/tse/tse49.html) | 278 | 🟡 部分核验 |
@@ -94,7 +94,7 @@
 - TSE 常规投稿按 rolling submission 处理，不进入 dated Mermaid。
 - 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 IEEE CSDL / Early Access 按 article type 交叉核验。
 - IEEE CSDL 根 archive 当前不提供稳定年度分卷 permalink，根表 Volume / issue 列统一指向主 archive；年度区分以 DBLP volume/year 为可点击 fallback。
-- 2027、2028 和 `2029+` 未发现官方年度卷期或专刊 deadline，已保留核查记录，不预设未来卷号。
+- 2026-07-13 复查：TSE 2026 官方卷期入口已定位到 [Vol. 52 Issue 6](https://www.computer.org/csdl/journal/ts/2026/06)；2027、2028 和 `2029+` 未发现官方年度卷期或专刊 deadline，不预设未来卷号。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -107,6 +107,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：确认 TSE 常规 rolling，2026 卷期入口更新为 Vol. 52 Issue 6；2027/2028 未发现官方 dated CFP 或年度卷期。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |
