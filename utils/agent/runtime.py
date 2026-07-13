@@ -17,7 +17,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
-from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -48,9 +47,6 @@ _IDENTITY_KEYS = frozenset(
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
 _SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b")
-_BEARER_VALUE = re.compile(r"(?i)\bBearer\s+[^\s'\"},]+")
-_URL_VALUE = re.compile(r"https?://[^\s'\"},]+")
-_ANALYSIS_BLOCK = re.compile(r"<(?:analysis|thinking|reasoning)>.*?</(?:analysis|thinking|reasoning)>", re.I | re.S)
 
 
 class AgentError(Exception):
@@ -126,7 +122,7 @@ class AgentRunResult:
     context_manifest_hash: str | None
 
     def __post_init__(self) -> None:
-        # Keep the object handed to downstream experiments safe, not only its JSON export.
+        # Public result objects retain the normal model/tool shape while protecting secrets.
         self.output = _redact_public(self.output)
         self.final_text = _redact(self.final_text)
         self.tool_calls = _redact_public(self.tool_calls)
@@ -299,7 +295,7 @@ def _redact(value: Any, *, key: str | None = None) -> Any:
     if isinstance(value, (list, tuple)):
         return [_redact(item) for item in value]
     if isinstance(value, str):
-        return _SECRET_VALUE.sub("[redacted_secret]", _ANALYSIS_BLOCK.sub("[redacted_reasoning]", value))
+        return _SECRET_VALUE.sub("[redacted_secret]", value)
     return value
 
 
@@ -315,8 +311,10 @@ def _redact_public(value: Any) -> Any:
 
 def _redact_exception_text(value: str) -> str:
     value = _redact(value)
-    value = _BEARER_VALUE.sub("[redacted_bearer]", value)
-    return _URL_VALUE.sub("[redacted_endpoint]", value)
+    lowered = value.lower()
+    if any(marker in lowered for marker in ("bearer ", "http://", "https://")):
+        return "[redacted provider error message]"
+    return value
 
 
 def _exception_details(exc: BaseException) -> dict[str, Any]:
@@ -913,7 +911,6 @@ class AgentApp:
         self.config = config
         self.model = model
         self.real_llm = real_llm
-        self._json_output_fallback = _uses_deepseek_json_mode(config)
 
     @classmethod
     def from_registry(cls, spec: AgentSpec, registry: LLMRegistry, profile: str | None = None, *, model_options: Mapping[str, Any] | None = None) -> "AgentApp":
@@ -1021,11 +1018,22 @@ class AgentApp:
                 emit("heartbeat", {"elapsed_seconds": time.monotonic() - started, "attempt_id": attempt_id})
 
         replay_records: list[dict[str, Any]] = []
+        replay_queue: list[dict[str, Any]] = []
+        replay_enqueued = 0
+
+        def replay_key(name: Any, arguments: Any) -> str:
+            return f"{name}:{json.dumps(_safe_json(arguments), ensure_ascii=False, sort_keys=True)}"
+
+        def take_replay(request: Mapping[str, Any]) -> dict[str, Any] | None:
+            key = replay_key(request.get("name"), request.get("arguments", {}))
+            for index, record in enumerate(replay_queue):
+                if replay_key(record.get("name"), record.get("arguments", {})) == key:
+                    return replay_queue.pop(index)
+            return None
 
         async def consume(graph: Any) -> dict[str, Any] | None:
             nonlocal turn, final_text, output, usage, observed_model, business_tool_called, system_shown, tool_error_seen
-            replay_text = replay_records if attempt_id != "attempt-1" else None
-            inputs = {"messages": [{"role": "user", "content": _input_with_context(input_text, pages, replay_text)}]}
+            inputs = {"messages": [{"role": "user", "content": _input_with_context(input_text, pages)}]}
             async for event in graph.astream_events(inputs, version="v2"):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
@@ -1068,7 +1076,22 @@ class AgentApp:
                         )
                         for request in requests:
                             if request["kind"] == "business":
-                                pending_tool_ids.setdefault(str(request["name"]), []).append(str(request["tool_call_id"]))
+                                replay = take_replay(request) if attempt_id != "attempt-1" else None
+                                if replay is None:
+                                    pending_tool_ids.setdefault(str(request["name"]), []).append(str(request["tool_call_id"]))
+                                else:
+                                    replay_record = {
+                                        **request,
+                                        "status": "completed",
+                                        "result": replay["result"],
+                                        "replayed": True,
+                                        "started_at": datetime.now(timezone.utc).isoformat(),
+                                        "finished_at": datetime.now(timezone.utc).isoformat(),
+                                    }
+                                    tool_calls.append(replay_record)
+                                    business_tool_called = True
+                                    emit("tool_started", {"name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "status": "started", "attempt_id": attempt_id, "turn": turn, "replayed": True})
+                                    emit("tool_completed", {"name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "result": replay["result"], "status": "completed", "attempt_id": attempt_id, "turn": turn, "replayed": True})
                             else:
                                 tool_calls.append({**request, "status": "requested", "started_at": datetime.now(timezone.utc).isoformat()})
                         audit_write({"record": "decision", "message": _safe_json(ai.content), "tool_requests": requests, "reasoning_summary": _visible_reasoning(ai)})
@@ -1089,10 +1112,29 @@ class AgentApp:
                     call_id = ids.pop(0) if ids else str(event.get("run_id") or uuid.uuid4().hex)
                     args = data.get("input")
                     name_value = name
-                    record = {"kind": "business", "name": name_value, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(args), "status": "started", "started_at": datetime.now(timezone.utc).isoformat()}
-                    tool_calls.append(record)
+                    key = replay_key(name_value, args)
+                    provenance = replay_provenance.get(key, [])
+                    was_replay = bool(provenance and provenance.pop(0))
+                    if was_replay:
+                        record = next(
+                            (
+                                item
+                                for item in reversed(tool_calls)
+                                if item.get("name") == name_value
+                                and item.get("attempt_id") == attempt_id
+                                and item.get("replayed") is True
+                                and item.get("arguments") == _safe_json(args)
+                            ),
+                            None,
+                        )
+                    else:
+                        record = None
+                    if record is None:
+                        record = {"kind": "business", "name": name_value, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(args), "status": "started", "started_at": datetime.now(timezone.utc).isoformat()}
+                        tool_calls.append(record)
                     active_tool_records[str(event.get("run_id") or call_id)] = record
-                    emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "attempt_id": attempt_id, "turn": turn})
+                    if not was_replay:
+                        emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
                     execution_id = str(event.get("run_id") or "")
@@ -1101,17 +1143,16 @@ class AgentApp:
                         record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
                     replayed = _is_replayed_tool_result(data.get("output"))
                     if record is not None:
-                        key = f"{record['name']}:{json.dumps(_safe_json(record['arguments']), ensure_ascii=False, sort_keys=True)}"
-                        flags = replay_provenance.get(key, [])
-                        if flags:
-                            replayed = flags.pop(0)
-                    if record is not None:
-                        record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
+                        if record.get("status") == "completed" and record.get("replayed"):
+                            replayed = True
+                        else:
+                            record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
                         business_tool_called = True
-                        if not replayed:
+                        if not replayed and record.get("status") == "completed":
                             replay_records.append({"name": record["name"], "tool_call_id": record["tool_call_id"], "attempt_id": record["attempt_id"], "turn": record["turn"], "arguments": record["arguments"], "result": record["result"]})
                             audit_write({"record": "action", **record})
-                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
+                    if not (record and record.get("replayed")):
+                        emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_error":
                     tool_error_seen = True
                     raw_error = data.get("error")
@@ -1135,8 +1176,6 @@ class AgentApp:
                     final = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if final is not None:
                         final_text = _message_text(final)
-                    if output is None and self._json_output_fallback and self.spec.output_schema is not None and final_text:
-                        output = _parse_structured_output(self.spec.output_schema, final_text)
                     structured_record = next((item for item in reversed(tool_calls) if item.get("kind") == "structured" and item.get("status") == "requested"), None)
                     if output is not None:
                         if structured_record is not None:
@@ -1154,7 +1193,7 @@ class AgentApp:
                 if estimated + self.config.max_output_tokens > self.config.context_window_tokens:
                     emit("context_failed", {"code": "context_budget_exceeded", "message": "context cannot fit without truncation"})
                     raise AgentError("context_budget_exceeded", "context cannot fit without truncation")
-            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm, "structured_output_mode": "final_text_json" if self._json_output_fallback and self.spec.output_schema is not None else "langgraph_response_format" if self.spec.output_schema is not None else None})
+            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm, "structured_output_mode": "langgraph_response_format" if self.spec.output_schema is not None else None})
             if pages:
                 emit("context_loaded", {"attempt_id": attempt_id, "page_count": len(pages), "context_manifest_hash": manifest, "pages": [{"id": page["id"], "hash": page["hash"]} for page in pages]})
             audit_write(
@@ -1164,7 +1203,7 @@ class AgentApp:
                     "system_prompt": self.spec.system_prompt,
                     "agent_name": self.spec.name,
                     "model": self.config.model,
-                    "structured_output_mode": "final_text_json" if self._json_output_fallback and self.spec.output_schema is not None else "langgraph_response_format" if self.spec.output_schema is not None else None,
+                    "structured_output_mode": "langgraph_response_format" if self.spec.output_schema is not None else None,
                     "tools": [{"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)} for tool in self.spec.tools],
                     "output_schema": self.spec.output_schema.model_json_schema() if self.spec.output_schema else None,
                     "pages": pages,
@@ -1183,12 +1222,13 @@ class AgentApp:
                     max_output_tokens=self.config.max_output_tokens,
                     counters=counters,
                 )
+                replay_cache = _build_replay_cache(replay_queue)
                 graph = create_agent(
                     model=self.model,
                     tools=_langchain_tools(self.spec.tools),
                     system_prompt=self.spec.system_prompt,
-                    response_format=None if self._json_output_fallback and self.spec.output_schema is not None else self.spec.output_schema,
-                    middleware=[guard, _ReplayToolMiddleware(_build_replay_cache(replay_records), enabled=rollover_count > 0, provenance=replay_provenance), _ModelOptionsMiddleware(model_call_options)],
+                    response_format=self.spec.output_schema,
+                    middleware=[guard, _ReplayToolMiddleware(replay_cache, enabled=rollover_count > 0, provenance=replay_provenance), _ModelOptionsMiddleware(model_call_options)],
                     name=self.spec.name,
                 )
                 try:
@@ -1207,6 +1247,8 @@ class AgentApp:
                         raise
                     rollover_count += 1
                     attempt_id = f"attempt-{rollover_count + 1}"
+                    replay_queue.extend(replay_records[replay_enqueued:])
+                    replay_enqueued = len(replay_records)
                     system_shown = False
                     shown_message_keys.clear()
                     emit("context_rollover", {"attempt_id": attempt_id, "context_manifest_hash": manifest, "replayed_actions": len(replay_records)})
@@ -1260,39 +1302,12 @@ class AgentApp:
         return result
 
 
-def _input_with_context(input_text: str, pages: Sequence[Mapping[str, Any]], replay_records: Sequence[Mapping[str, Any]] | None = None) -> str:
+def _input_with_context(input_text: str, pages: Sequence[Mapping[str, Any]]) -> str:
     parts = [input_text]
     if pages:
         rendered = "\n\n".join(f"[{page['id']}]\n{page['text']}" for page in pages)
         parts.append(f"上下文页面（按顺序，不可改写）：\n{rendered}")
-    if replay_records:
-        parts.append("已完成工具结果（只读重放，不重新执行）：\n" + json.dumps(_safe_json(list(replay_records)), ensure_ascii=False, sort_keys=True))
     return "\n\n".join(parts)
-
-
-def _uses_deepseek_json_mode(config: LLMConfig) -> bool:
-    host = urlsplit(config.base_url or "").hostname
-    return host == "api.deepseek.com" or config.model.lower().startswith("deepseek-")
-
-
-def _parse_structured_output(schema: type[BaseModel], text: str) -> BaseModel:
-    candidate = text.strip()
-    if candidate.startswith("```"):
-        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.I | re.S).strip()
-    try:
-        payload = json.loads(candidate)
-    except json.JSONDecodeError:
-        start, end = candidate.find("{"), candidate.rfind("}")
-        if start < 0 or end <= start:
-            raise AgentError("structured_output_invalid", "structured JSON output could not be parsed")
-        try:
-            payload = json.loads(candidate[start : end + 1])
-        except json.JSONDecodeError as exc:
-            raise AgentError("structured_output_invalid", "structured JSON output could not be parsed", details=_exception_details(exc)) from exc
-    try:
-        return schema.model_validate(payload)
-    except Exception as exc:
-        raise AgentError("structured_output_invalid", "structured JSON output failed schema validation", details=_exception_details(exc)) from exc
 
 
 def _estimate_messages(messages: Sequence[Any]) -> int:

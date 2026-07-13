@@ -232,6 +232,78 @@ def test_same_arguments_in_same_attempt_are_not_replayed() -> None:
     assert {item["tool_call_id"] for item in result.tool_calls} == {"probe-1", "probe-2"}
 
 
+def test_rollover_replay_keeps_replayed_and_new_same_argument_calls(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from utils.agent import runtime
+
+    class _Graph:
+        def __init__(self, attempt: int):
+            self.attempt = attempt
+
+        async def astream_events(self, _inputs, version: str):
+            assert version == "v2"
+            if self.attempt == 1:
+                yield {"event": "on_chain_start", "name": "model", "data": {"input": {"messages": []}}}
+                yield {
+                    "event": "on_chain_end",
+                    "name": "model",
+                    "data": {"output": {"messages": [AIMessage(content="", tool_calls=[{"name": "probe", "args": {}, "id": "id-1", "type": "tool_call"}])] }},
+                }
+                yield {"event": "on_tool_start", "name": "probe", "run_id": "exec-1", "data": {"input": {}}}
+                yield {"event": "on_tool_end", "name": "probe", "run_id": "exec-1", "data": {"output": ToolMessage(content="old", name="probe", tool_call_id="id-1")}}
+                raise AgentError("context_rollover", "test rollover")
+
+            yield {"event": "on_chain_start", "name": "model", "data": {"input": {"messages": []}}}
+            yield {
+                "event": "on_chain_end",
+                "name": "model",
+                "data": {
+                    "output": {
+                        "messages": [
+                            AIMessage(
+                                content="",
+                                tool_calls=[
+                                    {"name": "probe", "args": {}, "id": "id-2", "type": "tool_call"},
+                                    {"name": "probe", "args": {}, "id": "id-3", "type": "tool_call"},
+                                ],
+                            )
+                        ]
+                    }
+                },
+            }
+            yield {"event": "on_tool_start", "name": "probe", "run_id": "exec-3", "data": {"input": {}}}
+            yield {"event": "on_tool_end", "name": "probe", "run_id": "exec-3", "data": {"output": ToolMessage(content="new", name="probe", tool_call_id="id-3")}}
+            yield {"event": "on_chain_end", "name": "LangGraph", "data": {"output": {"messages": [AIMessage(content="done")]}}}
+
+    created = 0
+
+    def fake_create_agent(**_kwargs):
+        nonlocal created
+        created += 1
+        return _Graph(created)
+
+    monkeypatch.setattr(runtime, "create_agent", fake_create_agent)
+
+    def probe() -> str:
+        return "unused"
+
+    events = []
+    result = AgentApp._for_test(
+        AgentSpec(name="rollover", system_prompt="probe", tools=(probe,), require_tool_call=True),
+        LLMConfig(model="gpt-5.5"),
+        object(),
+    ).run("run", renderer="quiet", on_event=events.append, audit_out=tmp_path / "audit.jsonl")
+
+    assert result.status == "success"
+    assert [(item["tool_call_id"], item.get("replayed", False)) for item in result.tool_calls] == [("id-1", False), ("id-2", True), ("id-3", False)]
+    tool_events = [event for event in events if event.kind in {"tool_started", "tool_completed"}]
+    assert [event.data["tool_call_id"] for event in tool_events] == ["id-1", "id-1", "id-2", "id-2", "id-3", "id-3"]
+    records = [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()]
+    actions = [record for record in records if record.get("record") == "action"]
+    assert [record["tool_call_id"] for record in actions] == ["id-1", "id-3"]
+    rollover = next(record for record in records if record.get("record") == "context" and record.get("rollover"))
+    assert [record["tool_call_id"] for record in rollover["replayed_actions"]] == ["id-1"]
+
+
 def test_operator_events_redact_secret_values() -> None:
     class _TextModel(BaseChatModel):
         @property
@@ -254,6 +326,30 @@ def test_operator_events_redact_secret_values() -> None:
     serialized = json.dumps([event.to_dict() for event in events], ensure_ascii=False)
     assert "sk-secret12345678" not in serialized
     assert "DO_NOT_LEAK_SYSTEM" in serialized
+
+
+def test_model_text_is_not_rewritten_by_runtime_postprocessing() -> None:
+    class _RawTextModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "raw-text-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="<analysis>visible</analysis>\\nanswer"))])
+
+    events = []
+    result = AgentApp._for_test(
+        AgentSpec(name="raw-output", system_prompt="answer", tools=()),
+        LLMConfig(model="gpt-5.5"),
+        _RawTextModel(),
+    ).run("run", renderer="quiet", on_event=events.append)
+
+    assert result.status == "success"
+    assert result.final_text == "<analysis>visible</analysis>\\nanswer"
+    assert next(event for event in events if event.kind == "model_text").data["text"] == result.final_text
 
 
 def test_result_export_redacts_secret_tool_values() -> None:

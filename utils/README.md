@@ -252,7 +252,7 @@ Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本
 3. `action`：每次工具尝试的目标、参数、是否被 allowlist 接受、实际返回值或错误；未知工具、拒绝执行和重复调用也必须记录。
 4. `finish`：最终文本/结构化结果、结束原因（如 `final_answer`、`structured_output`、`error`、`cancelled`、`limit`）和成功/失败状态。
 
-审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。脱敏必须递归处理嵌套 mapping/list，并清理 secret-like key、API key 模式和 `<analysis>...</analysis>` 内容；其余任务输入、可见模型文本、工具参数和工具结果不截断。每条学术记录写入后 flush，成功和失败都必须有 `finish`；`result_out` 使用临时文件加 `os.replace` 原子写出，写盘失败返回 `audit_write_failed` 或 `json_export_failed`，不得伪造审计内容。
+审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。脱敏只递归处理嵌套 mapping/list 中的 secret-like key 和 API key 模式；不改写普通任务输入、可见模型文本、工具参数或工具结果。每条学术记录写入后 flush，成功和失败都必须有 `finish`；`result_out` 使用临时文件加 `os.replace` 原子写出，写盘失败返回 `audit_write_failed` 或 `json_export_failed`，不得伪造审计内容。
 
 ```bash
 python -m utils.agent
