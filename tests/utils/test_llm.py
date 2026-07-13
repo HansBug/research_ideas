@@ -41,6 +41,21 @@ def test_config_rejects_unknown_provider_field() -> None:
         LLMConfig.model_validate({"model": "gpt-5.5", "provider": "openai"})
 
 
+def test_config_rejects_userinfo_in_base_url() -> None:
+    with pytest.raises(ValueError, match="userinfo"):
+        LLMConfig(model="gpt-5.5", base_url="https://user:password@example.invalid/v1")
+
+
+def test_public_base_url_reference_contains_only_host_and_port() -> None:
+    config = LLMConfig(model="gpt-5.5", base_url="https://example.invalid:8443/v1")
+    assert config.public_dict()["base_url_ref"] == "https://example.invalid:8443"
+
+
+def test_public_base_url_reference_preserves_ipv6_brackets() -> None:
+    config = LLMConfig(model="gpt-5.5", base_url="https://[::1]:8443/v1")
+    assert config.public_dict()["base_url_ref"] == "https://[::1]:8443"
+
+
 def test_registry_path_can_be_selected_by_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     path = tmp_path / "selected.yml"
     path.write_text("default: local\nprofiles:\n  local:\n    model: local-model\n", encoding="utf-8")

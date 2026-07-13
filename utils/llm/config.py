@@ -43,6 +43,12 @@ class LLMConfig(BaseModel):
         parsed = urlsplit(value)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("base_url must be an absolute http(s) URL")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("base_url must not contain userinfo")
+        try:
+            parsed.port
+        except ValueError as exc:
+            raise ValueError("base_url must contain a valid port") from exc
         return value.rstrip("/")
 
     @field_validator("api_key", mode="before")
@@ -80,7 +86,14 @@ class LLMConfig(BaseModel):
         endpoint_ref: str | None = None
         if self.base_url:
             parsed = urlsplit(self.base_url)
-            endpoint_ref = f"{parsed.scheme}://{parsed.netloc}"
+            # Rebuild from the parsed host rather than echoing ``netloc``.  The
+            # validator rejects userinfo, and this remains defensive if a
+            # model is constructed through a future deserialization path.
+            host = parsed.hostname
+            if host:
+                port = parsed.port
+                display_host = f"[{host}]" if ":" in host else host
+                endpoint_ref = f"{parsed.scheme}://{display_host}{f':{port}' if port is not None else ''}"
         return {
             "model": self.model,
             "base_url_ref": endpoint_ref,

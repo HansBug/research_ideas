@@ -217,7 +217,7 @@ result.to_json() -> str
 
 配置侧的 `api_key` 使用 Pydantic `SecretStr`，不会在公开摘要中展开。运行侧需要处理的是审计、console、export 的嵌套 JSON 边界：普通 URL 必须保留，`api_url`/`base_url`、Bearer/API key 和 secret-like 字段才精确替换。已核对的第三方方案中，`detect-secrets` 是仓库扫描器，`scrubadub`/Presidio 面向 PII 文本，`loggingredactor` 只作用于 logging record，LangChain `PIIMiddleware` 会改写 agent state/工具输入且 URL 规则过宽；它们都不能直接满足这个导出契约。因此这里保留无状态的递归策略，并用结构化/嵌套/普通 URL/endpoint/异常路径测试钉住边界，不引入不匹配的重依赖。
 
-`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`limit_exceeded`、`audit_write_failed` 和 `json_export_failed`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。
+`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`provider_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`limit_exceeded`、`cancelled`、`audit_write_failed` 和 `json_export_failed`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。脱敏会覆盖复合 secret 字段（如 `api_key_value`、`my_token`），同时保留 `token_usage`、`prompt_tokens` 和 `api_key_configured` 等统计/状态字段。
 ## 3. 最小真实 Agent 示例
 
 ```python
@@ -262,7 +262,7 @@ Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本
 1. `context`：任务输入、system prompt、Agent 名称、可用工具名称/描述/schema、输出 schema、模型标识，以及每个 attempt 实际交给模型的页面顺序、`id`、`hash` 和文本，说明 Agent 当时能做什么、看到了什么。
 2. `decision`：每一轮模型可见的输出、请求调用的工具及参数、结构化提交，以及 provider 明确返回的 `reasoning_summary`/`rationale`（没有就写 `null`）。
 3. `action`：每次工具尝试的目标、参数、是否被 allowlist 接受、实际返回值或错误；未知工具、拒绝执行和重复调用也必须记录。
-4. `finish`：最终文本/结构化结果、结束原因（如 `final_answer`、`structured_output`、`error`、`cancelled`、`limit`）和成功/失败状态。
+4. `finish`：最终文本/结构化结果、结束原因（成功时为 `final_answer` 或 `structured_output`；失败/取消时为对应的 `error.code`，例如 `provider_error`、`limit_exceeded` 或 `cancelled`）和最终状态。
 
 审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。脱敏只递归处理嵌套 mapping/list 中的 secret-like key 和 API key 模式；不改写普通任务输入、可见模型文本、工具参数或工具结果。每条学术记录写入后 flush，成功和失败都必须有 `finish`；`result_out` 使用临时文件加 `os.replace` 原子写出，写盘失败返回 `audit_write_failed` 或 `json_export_failed`，不得伪造审计内容。
 

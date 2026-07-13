@@ -47,8 +47,13 @@ _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
+_USAGE_KEY = re.compile(
+    r"^(?:usage|token[_-]?usage|(?:prompt|completion|input|output|total|cache_read_input|cache_creation_input)[_-]?tokens)$",
+    re.I,
+)
+_NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
-_SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b")
+_SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b", re.I)
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_CONTEXT_ROLLOVER_LIMIT = 1_000_000
 
@@ -328,7 +333,7 @@ def _safe_json(value: Any) -> Any:
 
 
 def _redact(value: Any, *, key: str | None = None) -> Any:
-    if key and _SECRET_KEY.search(key):
+    if key and _is_secret_key(key):
         return "[redacted]"
     if key and _ENDPOINT_KEY.search(key) and isinstance(value, str):
         return _redact_text(value, redact_endpoints=True)
@@ -339,6 +344,45 @@ def _redact(value: Any, *, key: str | None = None) -> Any:
     if isinstance(value, str):
         return _redact_text(value)
     return value
+
+
+def _is_secret_key(key: str) -> bool:
+    return bool(_SECRET_KEY.search(key) and not _USAGE_KEY.fullmatch(key) and not _NON_SECRET_FLAG_KEY.search(key))
+
+
+def _model_output_messages(value: Any) -> list[Any]:
+    """Return model messages from standard LangChain event payloads."""
+
+    if isinstance(value, BaseMessage):
+        return [value]
+    generations = getattr(value, "generations", None)
+    if generations:
+        messages: list[Any] = []
+        for generation_group in generations:
+            for generation in generation_group if isinstance(generation_group, (list, tuple)) else (generation_group,):
+                message = getattr(generation, "message", None)
+                if isinstance(message, BaseMessage):
+                    messages.append(message)
+        return messages
+    return _messages_from_event(value)
+
+
+def _model_metadata(value: Any) -> tuple[dict[str, Any] | None, str | None]:
+    """Read usage/model identity from LangChain's standard message metadata."""
+
+    usage: dict[str, Any] | None = None
+    observed_model: str | None = None
+    for message in _model_output_messages(value):
+        response_metadata = getattr(message, "response_metadata", {}) or {}
+        if isinstance(response_metadata, Mapping):
+            usage_value = response_metadata.get("token_usage") or response_metadata.get("usage")
+            if isinstance(usage_value, Mapping):
+                usage = dict(usage_value)
+            observed_model = observed_model or response_metadata.get("model_name") or response_metadata.get("model")
+        usage_metadata = getattr(message, "usage_metadata", None)
+        if usage is None and isinstance(usage_metadata, Mapping):
+            usage = dict(usage_metadata)
+    return usage, observed_model if isinstance(observed_model, str) else None
 
 
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
@@ -1163,6 +1207,10 @@ class AgentApp:
                     emit("model_started", {"attempt_id": attempt_id, "turn": turn, "prompt": prompt})
                 elif kind == "on_chat_model_start":
                     observed_model = observed_model or data.get("metadata", {}).get("model_name")
+                elif kind == "on_chat_model_end":
+                    model_usage, model_name = _model_metadata(data.get("output"))
+                    usage = model_usage or usage
+                    observed_model = observed_model or model_name
                 elif kind == "on_chat_model_stream":
                     chunk = data.get("chunk")
                     text = _message_text(chunk) if chunk is not None else ""
@@ -1225,10 +1273,9 @@ class AgentApp:
                         if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
                             for request in business_requests:
                                 audit_write({"record": "action", "kind": "business", "name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "status": "rejected", "error": {"code": "mixed_terminal_tool", "message": "structured output cannot share a model turn with a business tool"}})
-                    metadata = getattr(data.get("output"), "response_metadata", {}) if data.get("output") is not None else {}
-                    if isinstance(metadata, Mapping):
-                        usage = metadata.get("token_usage") or metadata.get("usage") or usage
-                        observed_model = observed_model or metadata.get("model_name") or metadata.get("model")
+                    model_usage, model_name = _model_metadata(data.get("output"))
+                    usage = model_usage or usage
+                    observed_model = observed_model or model_name
                 elif kind == "on_tool_start":
                     ids = pending_tool_ids.get(name, [])
                     call_id = ids.pop(0) if ids else str(event.get("run_id") or uuid.uuid4().hex)
@@ -1396,6 +1443,9 @@ class AgentApp:
                 }
             else:
                 error = {"code": "limit_exceeded", "message": "seconds limit exceeded", "details": details}
+        except asyncio.CancelledError:
+            status = "cancelled"
+            error = {"code": "cancelled", "message": "agent run was cancelled"}
         except AgentError as exc:
             error = {"code": exc.code, "message": exc.message}
             if exc.details:

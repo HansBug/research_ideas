@@ -385,6 +385,65 @@ def test_operator_events_redact_secret_values() -> None:
     assert "DO_NOT_LEAK_SYSTEM" in serialized
 
 
+def test_redaction_handles_secret_prefix_case_without_hiding_usage() -> None:
+    from utils.agent.runtime import _redact
+
+    value = {
+        "message": "SK-UPPERCASE12345678 SESS-MixedCase12345678",
+        "token_usage": {"prompt_tokens": 7, "completion_tokens": 2},
+        "secret_value": "hidden",
+        "api_key_value": "hidden-too",
+        "password_hash": "hidden-hash",
+        "my_token": "hidden-token",
+        "api_key_configured": True,
+    }
+    redacted = _redact(value)
+    serialized = json.dumps(redacted, ensure_ascii=False)
+    assert "SK-UPPERCASE12345678" not in serialized
+    assert "SESS-MixedCase12345678" not in serialized
+    assert redacted["token_usage"] == {"prompt_tokens": 7, "completion_tokens": 2}
+    assert redacted["secret_value"] == "[redacted]"
+    assert redacted["api_key_value"] == "[redacted]"
+    assert redacted["password_hash"] == "[redacted]"
+    assert redacted["my_token"] == "[redacted]"
+    assert redacted["api_key_configured"] is True
+
+
+def test_model_usage_and_observed_model_are_read_from_chat_model_end() -> None:
+    class _UsageModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "usage-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="done",
+                            response_metadata={
+                                "token_usage": {"prompt_tokens": 7, "completion_tokens": 2},
+                                "model_name": "provider-model",
+                            },
+                        )
+                    )
+                ]
+            )
+
+    result = AgentApp._for_test(
+        AgentSpec(name="usage", system_prompt="answer"),
+        LLMConfig(model="configured-model"),
+        _UsageModel(),
+    ).run("run", renderer="quiet")
+
+    assert result.status == "success"
+    assert result.usage == {"prompt_tokens": 7, "completion_tokens": 2}
+    assert result.observed_model == "provider-model"
+
+
 def test_model_text_is_not_rewritten_by_runtime_postprocessing() -> None:
     class _RawTextModel(BaseChatModel):
         @property
@@ -516,6 +575,43 @@ def test_provider_timeout_is_not_reported_as_agent_budget() -> None:
     assert result.status == "failed"
     assert result.error is not None
     assert result.error["code"] == "provider_error"
+
+
+def test_cancelled_run_has_structured_status_and_audit_finish(tmp_path: Path) -> None:
+    class _SlowModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "slow-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+            await asyncio.sleep(60)
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="never"))])
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            raise AssertionError("the async test model must use _agenerate")
+
+    async def cancel_run() -> object:
+        audit = tmp_path / "cancelled.jsonl"
+        task = asyncio.create_task(
+            AgentApp._for_test(
+                AgentSpec(name="cancelled", system_prompt="answer"),
+                LLMConfig(model="gpt-5.5"),
+                _SlowModel(),
+            ).arun("run", renderer="quiet", audit_out=audit)
+        )
+        await asyncio.sleep(0.05)
+        task.cancel()
+        return await task
+
+    result = asyncio.run(cancel_run())
+    assert result.status == "cancelled"
+    assert result.error == {"code": "cancelled", "message": "agent run was cancelled"}
+    records = [json.loads(line) for line in (tmp_path / "cancelled.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert records[-1]["record"] == "finish"
+    assert records[-1]["status"] == "cancelled"
 
 
 def test_redaction_preserves_normal_urls_in_model_content() -> None:
@@ -733,6 +829,7 @@ def test_demo_profile_defaults_to_gpt_but_accepts_other_configured_model(monkeyp
     class Result:
         status = "success"
         real_llm = True
+        academic_eligible = True
         model = "research-model"
         observed_model = "research-model"
         final_text = "51.25 hours"
@@ -760,3 +857,71 @@ def test_demo_profile_defaults_to_gpt_but_accepts_other_configured_model(monkeyp
         args=["--profile", "research-model", "--renderer", "quiet"],
         standalone_mode=False,
     )
+
+
+def test_demo_rejects_result_without_academic_audit(monkeypatch: pytest.MonkeyPatch) -> None:
+    import click
+    from utils.agent import demo
+
+    class Registry:
+        def require(self, name: str) -> LLMConfig:
+            return LLMConfig(model=name, api_key="key")
+
+    class Result:
+        status = "success"
+        real_llm = True
+        academic_eligible = False
+        model = "research-model"
+        observed_model = "research-model"
+        tool_calls = [
+            {"name": "current_system_time", "status": "completed"},
+            {"name": "calculate_expression", "status": "completed"},
+        ]
+
+    class App:
+        def run(self, *_args: object, **_kwargs: object) -> Result:
+            return Result()
+
+    monkeypatch.setattr(demo, "load_llm_registry", lambda _path: Registry())
+    monkeypatch.setattr(demo.AgentApp, "from_config", staticmethod(lambda *_args, **_kwargs: App()))
+    with pytest.raises(click.ClickException, match="demo tool/model validation failed"):
+        demo.cli.main(args=["--profile", "research-model", "--renderer", "quiet"], standalone_mode=False)
+
+
+def test_demo_rejects_inconsistent_structured_timestamps(monkeypatch: pytest.MonkeyPatch) -> None:
+    import click
+    from utils.agent import demo
+    from utils.agent.demo import DemoAnswer
+
+    class Registry:
+        def require(self, name: str) -> LLMConfig:
+            return LLMConfig(model=name, api_key="key")
+
+    class Result:
+        status = "success"
+        real_llm = True
+        academic_eligible = True
+        model = "research-model"
+        observed_model = "research-model"
+        tool_calls = [
+            {"name": "current_system_time", "status": "completed"},
+            {"name": "calculate_expression", "status": "completed"},
+        ]
+
+        def require_output(self) -> DemoAnswer:
+            return DemoAnswer(
+                summary="valid-looking but inconsistent",
+                base_time="2026-07-13T11:15:25-04:00",
+                offset_hours=51.25,
+                target_time="2026-07-13T12:15:25-04:00",
+                evidence_ids=["system-time-001", "math-expression-001"],
+            )
+
+    class App:
+        def run(self, *_args: object, **_kwargs: object) -> Result:
+            return Result()
+
+    monkeypatch.setattr(demo, "load_llm_registry", lambda _path: Registry())
+    monkeypatch.setattr(demo.AgentApp, "from_config", staticmethod(lambda *_args, **_kwargs: App()))
+    with pytest.raises(click.ClickException, match="demo structured output validation failed"):
+        demo.cli.main(args=["--profile", "research-model", "--renderer", "quiet"], standalone_mode=False)

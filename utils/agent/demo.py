@@ -170,16 +170,26 @@ def cli(
     if (
         not {"current_system_time", "calculate_expression"}.issubset(names)
         or not result.real_llm
+        or not result.academic_eligible
         or result.model != selected.model
         or (result.observed_model is not None and result.observed_model != selected.model)
     ):
         raise click.ClickException("demo tool/model validation failed")
     answer = result.require_output()
+    try:
+        base_time = datetime.fromisoformat(answer.base_time.strip().replace("Z", "+00:00"))
+        target_time = datetime.fromisoformat(answer.target_time.strip().replace("Z", "+00:00"))
+        delta_hours = (target_time - base_time).total_seconds() / 3600
+    except ValueError as exc:
+        raise click.ClickException(f"demo structured output validation failed: timestamps must be ISO-8601: {exc}") from exc
     if (
         not answer.summary.strip()
         or not answer.base_time.strip()
         or not answer.target_time.strip()
+        or base_time.tzinfo is None
+        or target_time.tzinfo is None
         or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
+        or not math.isclose(delta_hours, answer.offset_hours, rel_tol=0, abs_tol=1e-9)
         or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
     ):
         raise click.ClickException("demo structured output validation failed")
