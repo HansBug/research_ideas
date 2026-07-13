@@ -245,6 +245,8 @@ def _resolve_inference_options(
     if reasoning_effort is not None and not think_mode:
         raise ValueError("reasoning_effort requires think_mode=True")
     options = dict(model_call_options or {})
+    if not think_mode and options.get("reasoning_effort") is not None:
+        raise ValueError("reasoning_effort requires think_mode=True")
     if reasoning_effort is not None:
         existing = options.get("reasoning_effort")
         if existing is not None and existing != reasoning_effort:

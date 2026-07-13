@@ -74,3 +74,11 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
     )
     assert enabled is False
     assert options["extra_body"] == {"thinking": {"type": "disabled"}}
+
+    with pytest.raises(ValueError, match="reasoning_effort requires think_mode=True"):
+        _resolve_inference_options(
+            openai_config,
+            model_call_options={"reasoning_effort": "medium"},
+            think_mode=False,
+            reasoning_effort=None,
+        )
