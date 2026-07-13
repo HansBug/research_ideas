@@ -425,13 +425,13 @@ class _Renderer:
             "context_loaded": f"context loaded pages={data.get('page_count')} manifest={data.get('context_manifest_hash')}",
             "context_rollover": f"context rollover attempt={data.get('attempt_id')}",
             "context_failed": f"context failed code={data.get('code')} message={data.get('message')}",
-            "model_started": f"\n================ TURN {data.get('turn')} | MODEL REQUEST ================\n" + (f"input messages:\n{_preview(str(data.get('prompt', '')), 12000)}" if data.get("prompt") else ""),
-            "model_text": f"assistant: {_preview(str(data.get('text', '')), 4000)}",
-            "model_completed": f"---------------- TURN {data.get('turn')} | MODEL COMPLETE | tool_count={data.get('tool_count')} ----------------",
-            "tool_started": f"tool call -> {data.get('name')}({data.get('arguments')}) id={data.get('tool_call_id')}",
-            "tool_completed": f"tool result <- {data.get('name')}: {_preview(str(data.get('result')), 4000)}",
+            "model_started": f"\n================ TURN {data.get('turn')} | MODEL INPUT ================\n" + (f"input messages:\n{_preview(str(data.get('prompt', '')), 12000)}" if data.get("prompt") else ""),
+            "model_text": f"model output | assistant: {_preview(str(data.get('text', '')), 4000)}",
+            "model_completed": f"---------------- TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')} ----------------",
+            "tool_started": f"model tool call -> {data.get('name')}({data.get('arguments')}) id={data.get('tool_call_id')}",
+            "tool_completed": f"tool result -> next model input | {data.get('name')}: {_preview(str(data.get('result')), 4000)}",
             "tool_failed": f"tool error <- {data.get('name')}: {data.get('error')}",
-            "structured_output": f"structured output: {data.get('output')}",
+            "structured_output": f"model output | structured result: {data.get('output')}",
             "failed": f"\n################ AGENT FAILED ##################\ncode={data.get('code')} message={data.get('message')}\n#################################################",
         }
         return messages.get(event.kind, f"{event.kind}: {data}")
@@ -479,13 +479,13 @@ class _Renderer:
             self.console.print(Panel(body, title="CONTEXT ROLLOVER", border_style="yellow", padding=(0, 1), expand=True))
             return
         if event.kind == "model_started" and Rule is not None:
-            self.console.print(Rule(f"TURN {data.get('turn')} | MODEL REQUEST", style="cyan"))
+            self.console.print(Rule(f"TURN {data.get('turn')} | MODEL INPUT", style="cyan"))
             prompt = data.get("prompt")
             if prompt and Panel is not None:
                 self.console.print(
                     Panel(
                         Text(_preview(str(prompt), 12000)),
-                        title="input messages",
+                        title="MODEL INPUT | MESSAGES",
                         border_style="cyan",
                         padding=(0, 1),
                     )
@@ -494,7 +494,7 @@ class _Renderer:
         if event.kind == "model_completed" and Rule is not None:
             self.console.print(
                 Rule(
-                    f"TURN {data.get('turn')} | MODEL COMPLETE | tool_count={data.get('tool_count')}",
+                    f"TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')}",
                     style="green",
                 )
             )
@@ -538,11 +538,11 @@ class _Renderer:
             return
         if event.kind in {"model_text", "tool_started", "tool_completed", "tool_failed", "structured_output"}:
             prefix_styles = {
-                "model_text": ("assistant: ", "bold cyan"),
-                "tool_started": ("tool call -> ", "bold yellow"),
-                "tool_completed": ("tool result <- ", "bold green"),
+                "model_text": ("MODEL OUTPUT | ASSISTANT: ", "bold cyan"),
+                "tool_started": ("MODEL OUTPUT | TOOL CALL: ", "bold yellow"),
+                "tool_completed": ("TOOL RESULT -> NEXT MODEL INPUT: ", "bold green"),
                 "tool_failed": ("tool error <- ", "bold red"),
-                "structured_output": ("structured output: ", "bold magenta"),
+                "structured_output": ("MODEL OUTPUT | STRUCTURED RESULT: ", "bold magenta"),
             }
             prefix, style = prefix_styles[event.kind]
             if event.kind == "structured_output" and Panel is not None:
@@ -551,7 +551,7 @@ class _Renderer:
                 self.console.print(
                     Panel(
                         Text(f"validated: true\nfields: {fields}"),
-                        title="[bold white on magenta] STRUCTURED OUTPUT VALIDATED [/bold white on magenta]",
+                        title="[bold white on magenta] MODEL OUTPUT | STRUCTURED RESULT VALIDATED [/bold white on magenta]",
                         border_style="magenta",
                         padding=(0, 1),
                         expand=True,
@@ -564,13 +564,13 @@ class _Renderer:
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
                     tool_body.append(f"arguments: {_preview(str(data.get('arguments')), 4000)}\n")
                     tool_body.append(f"tool_call_id: {data.get('tool_call_id')}", style="dim")
-                    title, border = "TOOL CALL", "yellow"
+                    title, border = "MODEL OUTPUT | TOOL CALL", "yellow"
                 elif event.kind == "tool_completed":
                     tool_body = Text()
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
                     tool_body.append("result:\n", style="bold")
                     tool_body.append(_preview(str(data.get('result')), 4000))
-                    title, border = "TOOL RESULT", "green"
+                    title, border = "TOOL RESULT -> NEXT MODEL INPUT", "green"
                 else:
                     tool_body = Text()
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")

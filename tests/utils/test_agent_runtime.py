@@ -305,8 +305,8 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     renderer.render(AgentEvent("run-rich", 2, now, "structured_output", {"output": {"ok": True}}))
     renderer.render(AgentEvent("run-rich", 3, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": '{"ok": true}'}))
     rendered = output.getvalue()
-    assert "TURN 1 | MODEL REQUEST" in rendered
-    assert "STRUCTURED OUTPUT VALIDATED" in rendered
+    assert "TURN 1 | MODEL INPUT" in rendered
+    assert "MODEL OUTPUT | STRUCTURED RESULT VALIDATED" in rendered
     assert "AGENT COMPLETE" in rendered
     assert "SUCCESS" in rendered
     assert "result:" in rendered
