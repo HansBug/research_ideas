@@ -725,6 +725,31 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     assert rendered.count("{'ok': True}") == 1
 
 
+def test_rich_completion_panel_keeps_full_result() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "INFO", "run-full-result")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    now = datetime.now(timezone.utc)
+    payload = "x" * 5001
+    renderer.render(
+        AgentEvent(
+            "run-full-result",
+            1,
+            now,
+            "completed",
+            {"model": "gpt-5.5", "output": payload, "final_text": payload},
+        )
+    )
+    rendered = output.getvalue()
+    # Rich wraps long unbroken text across panel lines; every character must
+    # still be present in the final panel.
+    assert rendered.count("x") == len(payload)
+    assert "中间省略" not in rendered
+
+
 def test_rich_renderer_shows_structured_call_and_result_in_output_phase() -> None:
     from rich.console import Console
     from utils.agent.runtime import _Renderer

@@ -717,7 +717,9 @@ class _Renderer:
             body.append(f"run_id: {event.run_id}\n", style="dim")
             body.append(f"model: {data.get('model')}\n\n", style="cyan")
             body.append("result:\n", style="bold")
-            body.append(_preview(str(data.get("output") if data.get("output") is not None else data.get("final_text", "")), 4000))
+            # The completion panel is the final operator-facing result view;
+            # unlike streaming previews, it must retain the complete payload.
+            body.append(str(data.get("output") if data.get("output") is not None else data.get("final_text", "")))
             self.console.print()
             self.console.print(
                 Panel(
