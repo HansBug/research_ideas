@@ -169,6 +169,62 @@ def test_multiple_registered_tools_are_allowed_without_default_limit() -> None:
     assert sorted(item["name"] for item in result.tool_calls) == ["first", "second"]
 
 
+def test_graph_recursion_safeguard_is_not_an_implicit_agent_budget() -> None:
+    from utils.agent.runtime import _DEFAULT_GRAPH_RECURSION_LIMIT, _graph_recursion_limit
+
+    assert _graph_recursion_limit(AgentSpec(name="unbounded", system_prompt="answer")) == _DEFAULT_GRAPH_RECURSION_LIMIT
+    assert _DEFAULT_GRAPH_RECURSION_LIMIT > 25
+    assert _graph_recursion_limit(AgentSpec(name="bounded", system_prompt="answer", limits={"turns": 3})) >= 100
+
+
+def test_demo_forwards_only_explicit_limits(monkeypatch: pytest.MonkeyPatch) -> None:
+    from utils.agent import demo
+
+    captured: dict[str, object] = {}
+
+    class Registry:
+        def require(self, name: str) -> LLMConfig:
+            return LLMConfig(model=name, api_key="key")
+
+    class Result:
+        status = "failed"
+        error = {"code": "stop", "message": "captured"}
+
+    class App:
+        def run(self, *_args: object, **kwargs: object) -> Result:
+            captured["run"] = kwargs
+            return Result()
+
+    def make_app(spec: AgentSpec, *_args: object, **_kwargs: object) -> App:
+        captured["spec"] = spec
+        return App()
+
+    monkeypatch.setattr(demo, "load_llm_registry", lambda _path: Registry())
+    monkeypatch.setattr(demo.AgentApp, "from_config", staticmethod(make_app))
+    with pytest.raises(Exception):
+        demo.cli.main(args=["--renderer", "quiet"], standalone_mode=False)
+    assert captured["spec"].limits == {}
+
+    captured.clear()
+    with pytest.raises(Exception):
+        demo.cli.main(
+            args=[
+                "--renderer",
+                "quiet",
+                "--max-model-calls",
+                "2",
+                "--max-tool-calls",
+                "5",
+                "--max-turns",
+                "3",
+                "--max-seconds",
+                "12.5",
+            ],
+            standalone_mode=False,
+        )
+    assert captured["spec"].limits == {"model_calls": 2, "tool_calls": 5, "turns": 3, "seconds": 12.5}
+
+
 def test_explicit_tool_limit_blocks_before_tool_node() -> None:
     called = False
 
@@ -352,6 +408,42 @@ def test_model_text_is_not_rewritten_by_runtime_postprocessing() -> None:
     assert next(event for event in events if event.kind == "model_text").data["text"] == result.final_text
 
 
+def test_hidden_thinking_blocks_are_excluded_from_academic_audit(tmp_path: Path) -> None:
+    class _ThinkingModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "thinking-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content=[
+                                {"type": "thinking", "thinking": "PRIVATE-CHAIN"},
+                                {"type": "text", "text": "visible answer"},
+                            ]
+                        )
+                    )
+                ]
+            )
+
+    audit = tmp_path / "audit.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="thinking-audit", system_prompt="answer"),
+        LLMConfig(model="gpt-5.5"),
+        _ThinkingModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "success"
+    serialized = audit.read_text(encoding="utf-8")
+    assert "PRIVATE-CHAIN" not in serialized
+    assert "visible answer" in serialized
+
+
 def test_result_export_redacts_secret_tool_values() -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value, "token": "sk-secret12345678"}
@@ -365,6 +457,15 @@ def test_result_export_redacts_secret_tool_values() -> None:
     assert "sk-secret12345678" not in result.to_json()
     assert result.tool_calls[0]["result"]["token"] == "[redacted]"
     assert "sk-secret12345678" not in json.dumps(result.tool_calls, ensure_ascii=False)
+
+
+def test_tool_result_preserves_scalar_text_but_decodes_structured_json() -> None:
+    from utils.agent.runtime import _tool_result_value
+
+    scalar = ToolMessage(content="123", name="probe", tool_call_id="scalar")
+    structured = ToolMessage(content='{"value": 123}', name="probe", tool_call_id="structured")
+    assert _tool_result_value(scalar) == "123"
+    assert _tool_result_value(structured) == {"value": 123}
 
 
 def test_exception_details_redact_endpoint_and_bearer_token() -> None:
@@ -386,6 +487,15 @@ def test_exception_details_redact_endpoint_and_bearer_token() -> None:
     assert "provider.invalid" not in serialized
     assert details["status_code"] == 401
     assert details["request_id"] == "req-1"
+    assert "Bearer [redacted_bearer]" in details["message"]
+    assert "[redacted_endpoint]" in details["message"]
+
+
+def test_redaction_preserves_normal_urls_in_model_content() -> None:
+    from utils.agent.runtime import _redact
+
+    value = "参考 https://example.org/docs 完成任务"
+    assert _redact(value) == value
 
 
 def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
@@ -605,6 +715,7 @@ def test_demo_profile_defaults_to_gpt_but_accepts_other_configured_model(monkeyp
         real_llm = True
         model = "research-model"
         observed_model = "research-model"
+        final_text = "51.25 hours"
         tool_calls = [
             {"name": "current_system_time", "status": "completed"},
             {"name": "calculate_expression", "status": "completed"},

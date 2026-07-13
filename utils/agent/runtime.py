@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -25,6 +26,7 @@ from utils.llm import LLMConfig, LLMRegistry
 try:
     from langchain.agents import create_agent
     from langchain.agents.middleware import AgentMiddleware
+    from langchain.agents.structured_output import ToolStrategy
     from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
     from langchain_core.outputs import ChatGeneration, ChatResult
@@ -33,6 +35,7 @@ try:
 except Exception:  # pragma: no cover - import errors are reported at construction time
     create_agent = None  # type: ignore[assignment]
     AgentMiddleware = object  # type: ignore[assignment,misc]
+    ToolStrategy = object  # type: ignore[assignment,misc]
     BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = ToolMessage = object  # type: ignore[assignment,misc]
     ChatGeneration = ChatResult = object  # type: ignore[assignment,misc]
     StructuredTool = object  # type: ignore[assignment,misc]
@@ -46,7 +49,10 @@ _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
+_ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|endpoint)", re.I)
 _SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b")
+_DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
+_DEFAULT_CONTEXT_ROLLOVER_LIMIT = 1_000_000
 
 
 class AgentError(Exception):
@@ -210,6 +216,42 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
         raise ValueError(f"model_call_options_not_allowed: {sorted(forbidden or unknown)}")
 
 
+def _is_deepseek_config(config: LLMConfig) -> bool:
+    host = (urlsplit(config.base_url or "").hostname or "").lower()
+    return host.endswith("deepseek.com") or config.model.lower().startswith("deepseek-")
+
+
+def _resolve_inference_options(
+    config: LLMConfig,
+    *,
+    model_call_options: Mapping[str, Any] | None,
+    think_mode: bool,
+    reasoning_effort: str | None,
+) -> tuple[dict[str, Any], bool | None]:
+    if not isinstance(think_mode, bool):
+        raise ValueError("think_mode must be a boolean")
+    if reasoning_effort is not None and not isinstance(reasoning_effort, str):
+        raise ValueError("reasoning_effort must be a string or None")
+    if reasoning_effort is not None and not think_mode:
+        raise ValueError("reasoning_effort requires think_mode=True")
+    options = dict(model_call_options or {})
+    if reasoning_effort is not None:
+        existing = options.get("reasoning_effort")
+        if existing is not None and existing != reasoning_effort:
+            raise ValueError("reasoning_effort was supplied twice with different values")
+        options["reasoning_effort"] = reasoning_effort
+
+    deepseek = _is_deepseek_config(config)
+    effective_think_mode = think_mode
+    if deepseek and effective_think_mode is not None:
+        extra_body = dict(options.get("extra_body") or {})
+        thinking = dict(extra_body.get("thinking") or {})
+        thinking["type"] = "enabled" if effective_think_mode else "disabled"
+        extra_body["thinking"] = thinking
+        options["extra_body"] = extra_body
+    return options, effective_think_mode
+
+
 def _hash_text(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -290,12 +332,50 @@ def _safe_json(value: Any) -> Any:
 def _redact(value: Any, *, key: str | None = None) -> Any:
     if key and _SECRET_KEY.search(key):
         return "[redacted]"
+    if key and _ENDPOINT_KEY.search(key) and isinstance(value, str):
+        return _redact_text(value, redact_endpoints=True)
     if isinstance(value, Mapping):
         return {str(k): _redact(v, key=str(k)) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
         return [_redact(item) for item in value]
     if isinstance(value, str):
-        return _SECRET_VALUE.sub("[redacted_secret]", value)
+        return _redact_text(value)
+    return value
+
+
+def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
+    value = _SECRET_VALUE.sub("[redacted_secret]", value)
+    lowered = value.lower()
+    if "bearer " in lowered:
+        cursor = 0
+        pieces: list[str] = []
+        while True:
+            marker = lowered.find("bearer ", cursor)
+            if marker < 0:
+                pieces.append(value[cursor:])
+                break
+            end = marker + len("bearer ")
+            while end < len(value) and not value[end].isspace():
+                end += 1
+            pieces.extend((value[cursor:marker], "Bearer [redacted_bearer]"))
+            cursor = end
+        value = "".join(pieces)
+    if redact_endpoints:
+        lowered = value.lower()
+        cursor = 0
+        pieces = []
+        while True:
+            starts = [index for index in (lowered.find("http://", cursor), lowered.find("https://", cursor)) if index >= 0]
+            if not starts:
+                pieces.append(value[cursor:])
+                break
+            start = min(starts)
+            end = start
+            while end < len(value) and not value[end].isspace() and value[end] not in "'\"},)]":
+                end += 1
+            pieces.extend((value[cursor:start], "[redacted_endpoint]"))
+            cursor = end
+        value = "".join(pieces)
     return value
 
 
@@ -310,15 +390,13 @@ def _redact_public(value: Any) -> Any:
 
 
 def _redact_exception_text(value: str) -> str:
-    value = _redact(value)
-    lowered = value.lower()
-    if any(marker in lowered for marker in ("bearer ", "http://", "https://")):
-        return "[redacted provider error message]"
-    return value
+    return _redact_text(value, redact_endpoints=True)
 
 
 def _exception_details(exc: BaseException) -> dict[str, Any]:
-    details: dict[str, Any] = {"type": type(exc).__name__}
+    module = type(exc).__module__.lower()
+    source = "provider" if getattr(exc, "status_code", None) is not None or "openai" in module or "httpx" in module else "runtime"
+    details: dict[str, Any] = {"source": source, "type": type(exc).__name__}
     if message := str(exc):
         details["message"] = _redact_exception_text(message)
     for attribute in ("status_code", "code", "request_id"):
@@ -476,7 +554,7 @@ class _Renderer:
             message = f"\n################ AGENT COMPLETE ################\nstatus=success\nresult={_preview(str(result), 4000)}"
             return message + "\n#################################################"
         messages = {
-            "run_started": f"agent run started run_id={event.run_id} model={data.get('model')} real_llm={data.get('real_llm')}",
+            "run_started": f"agent run started run_id={event.run_id} model={data.get('model')} real_llm={data.get('real_llm')} streaming={data.get('streaming')} think_mode={data.get('think_mode')} reasoning_effort={data.get('reasoning_effort')}",
             "heartbeat": f"heartbeat elapsed={data.get('elapsed_seconds', 0):.1f}s",
             "context_loaded": f"context loaded pages={data.get('page_count')} manifest={data.get('context_manifest_hash')}",
             "context_rollover": f"context rollover attempt={data.get('attempt_id')}",
@@ -600,7 +678,7 @@ class _Renderer:
             body = Text()
             body.append(f"code: {data.get('code')}\n", style="bold red")
             body.append(f"message: {data.get('message')}")
-            if data.get("details") and self.logger.level <= logging.DEBUG:
+            if data.get("details"):
                 body.append("\ndetails:\n", style="bold")
                 body.append(_preview(json.dumps(_safe_json(data["details"]), ensure_ascii=False, sort_keys=True), 4000), style="dim")
             self.console.print(
@@ -953,12 +1031,25 @@ class AgentApp:
         context: Sequence[str | Mapping[str, Any]] | None = None,
         renderer: str = "auto",
         log_level: str = "INFO",
+        think_mode: bool = False,
+        reasoning_effort: str | None = None,
         on_event: Callable[[AgentEvent], None] | None = None,
         audit_out: Path | None = None,
         result_out: Path | None = None,
         model_call_options: Mapping[str, Any] | None = None,
     ) -> AgentRunResult:
         _validate_model_call_options(model_call_options)
+        inference_options, effective_think_mode = _resolve_inference_options(
+            self.config,
+            model_call_options=model_call_options,
+            think_mode=think_mode,
+            reasoning_effort=reasoning_effort,
+        )
+        inference_summary = {
+            "streaming": getattr(self.model, "streaming", None),
+            "think_mode": effective_think_mode,
+            "reasoning_effort": inference_options.get("reasoning_effort"),
+        }
         try:
             pages = _normalize_context(context)
         except ValueError as exc:
@@ -1033,8 +1124,38 @@ class AgentApp:
 
         async def consume(graph: Any) -> dict[str, Any] | None:
             nonlocal turn, final_text, output, usage, observed_model, business_tool_called, system_shown, tool_error_seen
-            inputs = {"messages": [{"role": "user", "content": _input_with_context(input_text, pages)}]}
-            async for event in graph.astream_events(inputs, version="v2"):
+            messages: list[Any] = [{"role": "user", "content": _input_with_context(input_text, pages)}]
+            if attempt_id != "attempt-1":
+                for record in replay_records:
+                    call = {
+                        "name": record["name"],
+                        "args": record["arguments"],
+                        "id": record["tool_call_id"],
+                        "type": "tool_call",
+                    }
+                    result = record.get("result")
+                    content = result if isinstance(result, str) else json.dumps(_safe_json(result), ensure_ascii=False, sort_keys=True)
+                    messages.extend(
+                        [
+                            AIMessage(content="", tool_calls=[call]),
+                            ToolMessage(content=content, name=record["name"], tool_call_id=record["tool_call_id"]),
+                        ]
+                    )
+            inputs = {"messages": messages}
+            stream_kwargs: dict[str, Any] = {"version": "v2"}
+            # LangGraph's default recursion limit is 25.  That is an internal
+            # graph safeguard, not an AgentSpec budget, so raise it unless the
+            # caller explicitly supplied a finite budget.  Test doubles from
+            # older callers may not expose the newer ``config`` parameter.
+            try:
+                stream_signature = inspect.signature(graph.astream_events)
+            except (TypeError, ValueError):  # pragma: no cover - unusual proxy objects
+                stream_signature = None
+            if stream_signature is None or "config" in stream_signature.parameters or any(
+                parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in stream_signature.parameters.values()
+            ):
+                stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
+            async for event in graph.astream_events(inputs, **stream_kwargs):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
                 data = event.get("data") or {}
@@ -1094,7 +1215,10 @@ class AgentApp:
                                     emit("tool_completed", {"name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "result": replay["result"], "status": "completed", "attempt_id": attempt_id, "turn": turn, "replayed": True})
                             else:
                                 tool_calls.append({**request, "status": "requested", "started_at": datetime.now(timezone.utc).isoformat()})
-                        audit_write({"record": "decision", "message": _safe_json(ai.content), "tool_requests": requests, "reasoning_summary": _visible_reasoning(ai)})
+                        # ``_message_text`` deliberately excludes provider
+                        # thinking/reasoning blocks; audit is an academic
+                        # behavior record and must not persist hidden CoT.
+                        audit_write({"record": "decision", "message": _message_text(ai), "tool_requests": requests, "reasoning_summary": _visible_reasoning(ai)})
                         unknown_requests = [item for item in requests if item["name"] not in self.spec.tool_names and item["name"] != structured_name]
                         business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
                         if unknown_requests:
@@ -1188,12 +1312,7 @@ class AgentApp:
         try:
             if not input_text.strip():
                 raise AgentError("input_invalid", "input_text must not be empty")
-            if self.config.context_window_tokens is not None and self.config.max_output_tokens is not None:
-                estimated = max(1, math.ceil(len(_input_with_context(input_text, pages)) / 4)) + _estimate_agent_overhead(self.spec)
-                if estimated + self.config.max_output_tokens > self.config.context_window_tokens:
-                    emit("context_failed", {"code": "context_budget_exceeded", "message": "context cannot fit without truncation"})
-                    raise AgentError("context_budget_exceeded", "context cannot fit without truncation")
-            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm, "structured_output_mode": "langgraph_response_format" if self.spec.output_schema is not None else None})
+            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm, **inference_summary, "structured_output_mode": "langgraph_response_format" if self.spec.output_schema is not None else None})
             if pages:
                 emit("context_loaded", {"attempt_id": attempt_id, "page_count": len(pages), "context_manifest_hash": manifest, "pages": [{"id": page["id"], "hash": page["hash"]} for page in pages]})
             audit_write(
@@ -1203,12 +1322,18 @@ class AgentApp:
                     "system_prompt": self.spec.system_prompt,
                     "agent_name": self.spec.name,
                     "model": self.config.model,
+                    "inference": inference_summary,
                     "structured_output_mode": "langgraph_response_format" if self.spec.output_schema is not None else None,
                     "tools": [{"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)} for tool in self.spec.tools],
                     "output_schema": self.spec.output_schema.model_json_schema() if self.spec.output_schema else None,
                     "pages": pages,
                 }
             )
+            if self.config.context_window_tokens is not None and self.config.max_output_tokens is not None:
+                estimated = max(1, math.ceil(len(_input_with_context(input_text, pages)) / 4)) + _estimate_agent_overhead(self.spec)
+                if estimated + self.config.max_output_tokens > self.config.context_window_tokens:
+                    emit("context_failed", {"code": "context_budget_exceeded", "message": "context cannot fit without truncation"})
+                    raise AgentError("context_budget_exceeded", "context cannot fit without truncation")
             if create_agent is None:
                 raise AgentError("config_error", "langchain is required")
             heartbeat_task = asyncio.create_task(heartbeat())
@@ -1223,12 +1348,13 @@ class AgentApp:
                     counters=counters,
                 )
                 replay_cache = _build_replay_cache(replay_queue)
+                response_format = ToolStrategy(self.spec.output_schema, handle_errors=False) if self.spec.output_schema is not None else None
                 graph = create_agent(
                     model=self.model,
                     tools=_langchain_tools(self.spec.tools),
                     system_prompt=self.spec.system_prompt,
-                    response_format=self.spec.output_schema,
-                    middleware=[guard, _ReplayToolMiddleware(replay_cache, enabled=rollover_count > 0, provenance=replay_provenance), _ModelOptionsMiddleware(model_call_options)],
+                    response_format=response_format,
+                    middleware=[guard, _ReplayToolMiddleware(replay_cache, enabled=rollover_count > 0, provenance=replay_provenance), _ModelOptionsMiddleware(inference_options)],
                     name=self.spec.name,
                 )
                 try:
@@ -1241,7 +1367,7 @@ class AgentApp:
                         await asyncio.wait_for(consume(graph), timeout=remaining)
                     break
                 except AgentError as exc:
-                    if exc.code != "context_rollover" or rollover_count >= 8:
+                    if exc.code != "context_rollover" or rollover_count >= _DEFAULT_CONTEXT_ROLLOVER_LIMIT:
                         if exc.code == "context_rollover":
                             raise AgentError("context_budget_exceeded", "context cannot fit without truncation") from exc
                         raise
@@ -1265,8 +1391,16 @@ class AgentApp:
             if exc.details:
                 error["details"] = _redact(_safe_json(exc.details))
         except Exception as exc:
-            error = {"code": "tool_error", "message": "registered tool failed"} if tool_error_seen else {"code": "runtime_error", "message": "agent execution failed"}
-            error["details"] = _exception_details(exc)
+            details = _exception_details(exc)
+            if tool_error_seen:
+                error = {"code": "tool_error", "message": "registered tool execution failed; inspect details for the tool and failure cause"}
+            elif details.get("source") == "provider":
+                error = {"code": "provider_error", "message": "LLM provider request failed; inspect provider type, status, code, request_id, and details"}
+            elif self.spec.output_schema is not None:
+                error = {"code": "structured_output_invalid", "message": "structured output validation failed; inspect the model response and schema diagnostics"}
+            else:
+                error = {"code": "runtime_error", "message": "agent runtime failed; inspect the diagnostic details"}
+            error["details"] = details
         finally:
             if heartbeat_task is not None:
                 heartbeat_task.cancel()
@@ -1274,10 +1408,13 @@ class AgentApp:
                     await heartbeat_task
             try:
                 for record in tool_calls:
-                    if record.get("kind") == "structured" and record.get("status") == "requested":
-                        record.update({"status": "failed", "error": error or {"code": "structured_output_invalid", "message": "structured output was not returned"}, "finished_at": datetime.now(timezone.utc).isoformat()})
+                    if record.get("status") in {"started", "requested"}:
+                        if error is None:
+                            error = {"code": "incomplete_tool", "message": "tool execution did not produce a completion event"}
+                            status = "failed"
+                        record.update({"status": "failed", "error": error, "finished_at": datetime.now(timezone.utc).isoformat()})
                         audit_write({"record": "action", **record})
-                audit_write({"record": "finish", "status": status, "final_text": final_text, "output": output, "reason": "structured_output" if output is not None else ("final_answer" if status == "success" else (error or {}).get("code", "runtime_error"))})
+                audit_write({"record": "finish", "status": status, "final_text": final_text, "output": output, "error": error, "reason": "structured_output" if output is not None else ("final_answer" if status == "success" else (error or {}).get("code", "runtime_error"))})
             except AgentError:
                 error = {"code": "audit_write_failed", "message": "audit output failed"}
                 status = "failed"
@@ -1325,6 +1462,27 @@ def _estimate_agent_overhead(spec: AgentSpec) -> int:
         "output_schema": spec.output_schema.model_json_schema() if spec.output_schema else None,
     }
     return max(1, math.ceil(len(json.dumps(_safe_json(payload), ensure_ascii=False, sort_keys=True)) / 4)) + 1024
+
+
+def _graph_recursion_limit(spec: AgentSpec) -> int:
+    """Choose a graph safeguard without imposing a default AgentSpec budget.
+
+    A finite business limit needs only a small amount of graph headroom: a
+    model node, optional tool node, and middleware events per turn.  With no
+    finite count configured, use a large safeguard so LangGraph's default 25
+    does not become an accidental maximum iteration count.  The explicit
+    ``seconds`` limit remains enforced by ``asyncio.wait_for``.
+    """
+
+    limits = spec.limits or {}
+    finite_counts = [
+        int(math.ceil(float(limits[key])))
+        for key in ("model_calls", "tool_calls", "turns")
+        if limits.get(key) is not None
+    ]
+    if not finite_counts:
+        return _DEFAULT_GRAPH_RECURSION_LIMIT
+    return max(100, 4 * max(finite_counts) + 32)
 
 
 def _preview(value: str, limit: int = 4000) -> str:
@@ -1385,7 +1543,15 @@ def _message_text(message: Any) -> str:
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return "".join(item.get("text", "") for item in content if isinstance(item, Mapping))
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, Mapping) and str(item.get("type", "")).lower() in {"thinking", "reasoning", "reasoning_content"}:
+                continue
+            if isinstance(item, Mapping) and isinstance(item.get("text"), str):
+                parts.append(item["text"])
+            else:
+                parts.append(json.dumps(_safe_json(item), ensure_ascii=False, sort_keys=True))
+        return "".join(parts)
     return str(content or "")
 
 
@@ -1406,9 +1572,10 @@ def _tool_result_value(value: Any) -> Any:
         content = value.content
         if isinstance(content, str):
             try:
-                return json.loads(content)
+                parsed = json.loads(content)
             except json.JSONDecodeError:
                 return content
+            return parsed if isinstance(parsed, (dict, list)) else content
         return content
     return value
 

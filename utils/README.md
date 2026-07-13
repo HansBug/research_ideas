@@ -138,13 +138,17 @@ app.run(
     on_event: Callable[[AgentEvent], None] | None = None,
     audit_out: Path | None = None,
     result_out: Path | None = None,
+    think_mode: bool = False,
+    reasoning_effort: str | None = None,
     model_call_options: Mapping[str, Any] | None = None,
 ) -> AgentRunResult
 
-await app.arun(input_text, context=context, renderer="auto", ...) -> AgentRunResult
+await app.arun(input_text, context=context, renderer="auto", think_mode=False, ...) -> AgentRunResult
 ```
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份。
+
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。CLI 对应 `--enable-think` 和 `--reasoning-effort`。模型请求默认 `streaming=True`，也可以在 `model_options` 中显式传入 `{"streaming": False}` 覆盖；YAML 不保存这些单次运行参数。
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化结果；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。已展示的 assistant history 不重复打印，完成面板保留一次完整最终结果。
 
@@ -260,9 +264,13 @@ python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level INFO \
   --audit-out /tmp/agent-audit.jsonl \
   --result-out /tmp/agent-result.json </dev/null
 python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level DEBUG </dev/null
+python -m utils.agent.demo --profile gpt-5.5 --max-model-calls 20 --max-tool-calls 50 \
+  --max-turns 30 --max-seconds 900 </dev/null
 ```
 
 不传 `--audit-out/--result-out` 时 demo 默认写入 `runs/utils-agent/demo-audit.jsonl` 和 `runs/utils-agent/demo-result.json`；这些文件只包含脱敏内容。`python -m utils.agent` 与 `python -m utils.agent.demo` 使用同一真实 demo 入口。
+
+demo 的 `--max-model-calls`、`--max-tool-calls`、`--max-turns`、`--max-seconds` 都是可选限制；不传任何一个时不设置业务资源预算。LangGraph 内部的递归保护会自动提高到足够大的值，不会把默认的 25 次图步骤误当成 Agent 的最大迭代次数；只有显式的 limits 才会返回 `limit_exceeded`。
 
 demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；system prompt 只放通用工具/输出协议，具体任务只放在唯一的 user prompt：`请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。`；默认使用真实 `gpt-5.5`，也可通过 `--profile` 运行其他已配置的真实模型，没有 fake、offline、deterministic、replay 或人工输入。
 

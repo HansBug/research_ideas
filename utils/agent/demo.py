@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import ast
+import json
 import math
 import operator
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import click
@@ -91,9 +93,28 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--profile", default="gpt-5.5", show_default=True)
 @click.option("--renderer", type=click.Choice(("auto", "rich", "jsonl", "quiet")), default="rich", show_default=True)
 @click.option("--log-level", type=click.Choice(("DEBUG", "INFO", "WARNING", "ERROR")), default="INFO", show_default=True)
+@click.option("--enable-think", is_flag=True, default=False, help="显式开启模型思考模式；默认关闭。")
+@click.option("--reasoning-effort", type=click.Choice(("low", "medium", "high", "xhigh", "max")), default=None, help="单次推理 effort；不传则使用 provider 默认值。")
+@click.option("--max-model-calls", type=click.IntRange(min=1), default=None, help="显式限制模型调用次数；默认不限制。")
+@click.option("--max-tool-calls", type=click.IntRange(min=1), default=None, help="显式限制业务工具调用次数；默认不限制。")
+@click.option("--max-turns", type=click.IntRange(min=1), default=None, help="显式限制模型轮数；默认不限制。")
+@click.option("--max-seconds", type=click.FloatRange(min=0, min_open=True), default=None, help="显式限制整个运行的秒数；默认不限制。")
 @click.option("--audit-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-audit.jsonl"), show_default=True)
 @click.option("--result-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-result.json"), show_default=True)
-def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_out: Path, result_out: Path) -> None:
+def cli(
+    config: Path | None,
+    profile: str,
+    renderer: str,
+    log_level: str,
+    enable_think: bool,
+    reasoning_effort: str | None,
+    max_model_calls: int | None,
+    max_tool_calls: int | None,
+    max_turns: int | None,
+    max_seconds: float | None,
+    audit_out: Path,
+    result_out: Path,
+) -> None:
     """真实调用所选 profile 的最小工具型 Agent 演示（默认 gpt-5.5）。"""
 
     registry = load_llm_registry(config)
@@ -124,6 +145,16 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
 
         return _current_system_time()
 
+    limits = {
+        key: value
+        for key, value in {
+            "model_calls": max_model_calls,
+            "tool_calls": max_tool_calls,
+            "turns": max_turns,
+            "seconds": max_seconds,
+        }.items()
+        if value is not None
+    }
     spec = AgentSpec(
         name="utils-demo",
         system_prompt=(
@@ -135,7 +166,8 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
             "and conclusion, and evidence_ids must cite the tool evidence."
         ),
         tools=(current_system_time, calculate_expression),
-        output_schema=DemoAnswer,
+        output_schema=None if _is_deepseek_profile(selected) else DemoAnswer,
+        limits=limits or None,
         require_tool_call=True,
     )
     app = AgentApp.from_config(spec, selected, model_options={"streaming": True, "stream_usage": True, "max_retries": 0})
@@ -143,29 +175,45 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
         "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。",
         renderer=renderer,
         log_level=log_level,
+        think_mode=enable_think,
+        reasoning_effort=reasoning_effort,
         audit_out=audit_out,
         result_out=result_out,
     )
     if result.status != "success":
-        raise click.ClickException((result.error or {}).get("message", "agent failed"))
-    answer = result.require_output()
+        error = result.error or {"code": "agent_failed", "message": "agent failed"}
+        detail = json.dumps(error.get("details"), ensure_ascii=False, sort_keys=True) if error.get("details") else "none"
+        raise click.ClickException(f"{error.get('message', 'agent failed')}\ncode={error.get('code')}\ndetails={detail}")
     names = {item.get("name") for item in result.tool_calls if item.get("status") == "completed"}
-    try:
-        base_time = _last_timestamp(answer.base_time)
-        target_time = _last_timestamp(answer.target_time)
-        valid_offset = abs((target_time - base_time - timedelta(hours=51.25)).total_seconds()) <= 1
-    except (TypeError, ValueError):
-        valid_offset = False
     if (
         not {"current_system_time", "calculate_expression"}.issubset(names)
         or not result.real_llm
         or result.model != selected.model
         or (result.observed_model is not None and result.observed_model != selected.model)
-        or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
-        or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
-        or not valid_offset
+        or (_is_deepseek_profile(selected) and not result.final_text.strip())
     ):
         raise click.ClickException("demo tool/model validation failed")
+    if not _is_deepseek_profile(selected):
+        answer = result.require_output()
+        try:
+            base_time = _last_timestamp(answer.base_time)
+            target_time = _last_timestamp(answer.target_time)
+            valid_offset = abs((target_time - base_time - timedelta(hours=51.25)).total_seconds()) <= 1
+        except (TypeError, ValueError):
+            valid_offset = False
+        if (
+            not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
+            or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
+            or not valid_offset
+        ):
+            raise click.ClickException("demo structured output validation failed")
+
+
+def _is_deepseek_profile(config: object) -> bool:
+    model = str(getattr(config, "model", "")).lower()
+    base_url = str(getattr(config, "base_url", "") or "")
+    host = (urlsplit(base_url).hostname or "").lower()
+    return model.startswith("deepseek-") or host.endswith("deepseek.com")
 
 
 def main(argv: list[str] | None = None) -> int:
