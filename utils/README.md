@@ -211,6 +211,10 @@ result.to_json() -> str
 
 `require_output` 在失败、取消或没有 output 时抛出 `AgentError`。完整内容从 result 读取，不从终端抓取。没有 `audit_out` 或审计未能写出完整 `finish` 时，`academic_eligible=False`，结果不得进入正式学术统计；这不改变普通运行的 `status`，但调用者必须检查该字段。
 
+### 脱敏选型
+
+配置侧的 `api_key` 使用 Pydantic `SecretStr`，不会在公开摘要中展开。运行侧需要处理的是审计、console、export 的嵌套 JSON 边界：普通 URL 必须保留，`api_url`/`base_url`、Bearer/API key 和 secret-like 字段才精确替换。已核对的第三方方案中，`detect-secrets` 是仓库扫描器，`scrubadub`/Presidio 面向 PII 文本，`loggingredactor` 只作用于 logging record，LangChain `PIIMiddleware` 会改写 agent state/工具输入且 URL 规则过宽；它们都不能直接满足这个导出契约。因此这里保留无状态的递归策略，并用结构化/嵌套/普通 URL/endpoint/异常路径测试钉住边界，不引入不匹配的重依赖。
+
 `AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`limit_exceeded`、`audit_write_failed` 和 `json_export_failed`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。
 ## 3. 最小真实 Agent 示例
 
