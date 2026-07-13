@@ -47,7 +47,7 @@ _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
-_ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|endpoint)", re.I)
+_ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 _SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b")
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_CONTEXT_ROLLOVER_LIMIT = 1_000_000
@@ -1549,20 +1549,11 @@ def _messages_from_event(value: Any) -> list[Any]:
 
 
 def _message_text(message: Any) -> str:
+    text = getattr(message, "text", None)
+    if text is not None:
+        return str(text)
     content = getattr(message, "content", "")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for item in content:
-            if isinstance(item, Mapping) and str(item.get("type", "")).lower() in {"thinking", "reasoning", "reasoning_content"}:
-                continue
-            if isinstance(item, Mapping) and isinstance(item.get("text"), str):
-                parts.append(item["text"])
-            else:
-                parts.append(json.dumps(_safe_json(item), ensure_ascii=False, sort_keys=True))
-        return "".join(parts)
-    return str(content or "")
+    return content if isinstance(content, str) else str(content or "")
 
 
 def _tool_request(call: Mapping[str, Any], attempt_id: str, turn: int, *, kind: str) -> dict[str, Any]:

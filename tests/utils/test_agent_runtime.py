@@ -523,6 +523,8 @@ def test_redaction_preserves_normal_urls_in_model_content() -> None:
 
     value = "参考 https://example.org/docs 完成任务"
     assert _redact(value) == value
+    assert _redact({"url": "https://example.org/docs"}) == {"url": "https://example.org/docs"}
+    assert _redact({"api_url": "https://provider.invalid/v1"}) == {"api_url": "[redacted_endpoint]"}
 
 
 def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
