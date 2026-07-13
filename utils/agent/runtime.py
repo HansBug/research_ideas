@@ -490,7 +490,7 @@ class _Renderer:
             self.console.print(
                 Panel(
                     body,
-                    title="[bold white on green] AGENT COMPLETE ",
+                    title="[bold white on green] AGENT COMPLETE [/bold white on green]",
                     border_style="green",
                     padding=(1, 2),
                     expand=True,
@@ -503,7 +503,13 @@ class _Renderer:
             body.append(f"code: {data.get('code')}\n", style="bold red")
             body.append(f"message: {data.get('message')}")
             self.console.print(
-                Panel(body, title="[bold white on red] AGENT FAILED ", border_style="red", padding=(1, 2), expand=True)
+                Panel(
+                    body,
+                    title="[bold white on red] AGENT FAILED [/bold white on red]",
+                    border_style="red",
+                    padding=(1, 2),
+                    expand=True,
+                )
             )
             return
         if event.kind in {"model_text", "tool_started", "tool_completed", "tool_failed", "structured_output"}:
