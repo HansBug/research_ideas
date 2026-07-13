@@ -1,6 +1,6 @@
 # EASE 2026 README
 
-> 信息更新时间：`2026-06-05 18:03`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,13 +16,13 @@
 | Program / accepted papers | [Program / accepted](https://conf.researchr.org/program/ease-2026/program-ease-2026/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🔵 会期临近 |
+| 当前阶段状态 | ✅ 已结束 / 待 proceedings |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://conf.researchr.org/home/ease-2026) | ACM proceedings / DBLP 尚未发布或未可核验。 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://conf.researchr.org/home/ease-2026) | 2026-07-13 复查：2026-06-09..2026-06-12 会期已结束，ACM proceedings / DBLP 尚未发布或未可核验。 | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | [CFP / track](https://conf.researchr.org/track/ease-2026/ease-2026-research-papers) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/ease-2026) | 可与 CFP 同页 | `2026-06-05 17:23` |
 | Submission system | [Submission](https://easychair.org/conferences/?conf=ease2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
@@ -70,7 +70,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [年度主页](https://conf.researchr.org/home/ease-2026) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
+| 官方年度主页 | [年度主页](https://conf.researchr.org/home/ease-2026) | `2026-07-13 19:11:00` | 2026-06-09..2026-06-12 会期已结束；当前保持 proceedings / DBLP 待补。 |
 | 官方 CFP / Dates | [CFP / Dates](https://conf.researchr.org/dates/ease-2026) | `2026-06-05 17:23` | 已定位。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/ease-2026/program-ease-2026/) / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
 | DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
@@ -84,5 +84,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：确认 EASE 2026 已结束，阶段状态更新为 `✅ 已结束 / 待 proceedings`，未新增 proceedings / DBLP 年度事实。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🔵 会期临近`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 EASE 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

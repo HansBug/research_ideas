@@ -1,6 +1,6 @@
 # Empirical Software Engineering 2027 README
 
-> 信息更新时间：`2026-06-06 00:58`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -85,5 +85,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：保留 PROMPT-SE 2026 跨年 public deadline 2027-03-01；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 PROMPT-SE 2026 collection 的 2027 submission / review / revision / final notification 日期，并确认按事件发生年份同步 TIMELINE。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 2027 年度 README，记录 Springer / DBLP 核心入口、重点 collection、投稿节奏与 DBLP entry article baseline。 |

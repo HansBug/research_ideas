@@ -1,6 +1,6 @@
 # SCP 2026 README
 
-> 信息更新时间：`2026-06-05 18:24`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:18:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Special issues / topical collections | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) |
 | Articles in press / online first | [Articles in Press](https://www.sciencedirect.com/journal/science-of-computer-programming/articles-in-press) |
 | DBLP 年度页 | [DBLP index](https://dblp.org/db/journals/scp/index.html) |
-| 当前年度状态 | 🟢 滚动开放 |
+| 当前年度状态 | 🟢 滚动开放；未发现普通投稿者直接相关公开 active dated CFP |
 
 ## 2. 年度核心 URL 索引
 
@@ -25,7 +25,7 @@
 | Journal homepage | [ScienceDirect journal page](https://www.sciencedirect.com/journal/science-of-computer-programming) | CLI WAF/403；年度事实仍以 issue archive / special issue 公开可审计核验为准 | `2026-06-05 18:24` |
 | Author guidelines | [Guide for Authors](https://www.sciencedirect.com/science/journal/01676423/publish/guide-for-authors)；[ScienceDirect journal path](https://www.sciencedirect.com/journal/science-of-computer-programming/publish/guide-for-authors) | 常规投稿 rolling；正文未获公开可审计正文 | `2026-06-05 18:24` |
 | Submission system | [Editorial Manager default](https://www.editorialmanager.com/scico/default.aspx)；[Editorial Manager main page](https://www.editorialmanager.com/scico/mainpage.html) | 入口可能需登录 | `2026-06-05 18:24` |
-| Special issue / topical collection CFP | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | Candidate 线索见 §4；deadline 未核验前不进 TIMELINE | `2026-06-05 18:24` |
+| Special issue / topical collection CFP | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | 2026-07-13 复查：未发现普通投稿者直接相关公开 active dated CFP；selected / invitation collections 不列为通用机会 | `2026-07-13 19:18:00` |
 | Volume / issue archive | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues) | Vols. 248-253（DBLP baseline；年度进行中）；ScienceDirect CLI WAF/403 时使用 DBLP baseline fallback | `2026-06-05 18:24` |
 | Articles in press / online first | [Articles in Press](https://www.sciencedirect.com/journal/science-of-computer-programming/articles-in-press) | Articles in Press 迁移到卷期后不得双算 | `2026-06-05 18:24` |
 | Annual article list / publisher search | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues) | publisher archive 优先于 DBLP；当前正文未获公开可审计正文 | `2026-06-05 18:24` |
@@ -43,8 +43,7 @@
 
 | 名称 | CFP / 入口 | 截止时间 | 状态 | 核验结论 | TIMELINE 同步 |
 |---|---|---|---|---|---|
-| FSEN 2025 extended versions | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/327466/fundamentals-of-software-engineering-extended-versions-of-selected-papers-of-fsen-2025) | 未获公开可审计正文 | ⏳ 待核验 | ScienceDirect CLI WAF/403；不写成 dated event | 未同步；已检索未获可审计证据 deadline 后再进 TIMELINE |
-| ICFEM 2025 selected software | [candidate CFP / special issue](https://www.sciencedirect.com/special-issue/328870/selected-software-from-the-26th-international-conference-on-formal-engineering-methods) | 未获公开可审计正文 | ⏳ 待核验 | ScienceDirect CLI WAF/403；不写成 dated event | 未同步；已检索未获可审计证据 deadline 后再进 TIMELINE |
+| 无普通投稿者直接相关公开 active dated CFP | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | 未公布 | 不适用 | CLI WAF/403；selected / invitation collections 不列为通用机会，未发现可行动 public deadline | 不适用 |
 
 ## 5. 年度论文入口与数量
 
@@ -70,7 +69,7 @@
 |---|---|---|---|
 | 期刊主页 | [ScienceDirect journal page](https://www.sciencedirect.com/journal/science-of-computer-programming) | `2026-06-05 18:24` | 官方入口已记录；CLI WAF/403，正文未获公开可审计正文。 |
 | Author guidelines / submission | [Guide for Authors](https://www.sciencedirect.com/science/journal/01676423/publish/guide-for-authors)；[Editorial Manager](https://www.editorialmanager.com/scico/default.aspx) | `2026-06-05 18:24` | 常规投稿按 rolling submission 处理；投稿表单可能需登录。 |
-| Special issue / topical collection | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | `2026-06-05 18:24` | Candidate CFP 见 §4；无公开可审计核验 deadline 前不伪造日期。 |
+| Special issue / topical collection | [ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[Calls for papers](https://www.sciencedirect.com/journal/science-of-computer-programming/about/call-for-papers) | `2026-07-13 19:18:00` | 无普通投稿者直接相关公开 active dated CFP；selected / invitation collections 不列为通用机会。 |
 | Volume / issue / online first | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues)；[Articles in Press](https://www.sciencedirect.com/journal/science-of-computer-programming/articles-in-press) | `2026-06-05 18:24` | Vols. 248-253（DBLP baseline；年度进行中）；Articles in Press 不与卷期双算。 |
 | DBLP fallback | [DBLP index](https://dblp.org/db/journals/scp/index.html) | `2026-06-05 18:24` | DBLP 仅作书目 / count fallback；publisher archive 优先。 |
 | `2029+` 核查 | [ScienceDirect all issues](https://www.sciencedirect.com/journal/science-of-computer-programming/issues)；[ScienceDirect special issues](https://www.sciencedirect.com/journal/science-of-computer-programming/special-issues)；[DBLP index](https://dblp.org/db/journals/scp/index.html) | `2026-06-05 18:24` | 未发现可命令行核验的官方 `2029+` 年度卷期或 dated CFP。 |
@@ -78,7 +77,7 @@
 ## 8. TIMELINE.md 同步提示
 
 - 常规 rolling submission 不进入 dated Mermaid；本年度 rolling 状态进入 [../../TIMELINE.md](../../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表。
-- 本年度 candidate special issue 未经公开可审计核验 deadline，不进入 [../../TIMELINE.md](../../TIMELINE.md) dated event 或 Mermaid。
+- 本年度未发现普通投稿者直接相关公开 active dated CFP；selected / invitation collections 不进入 [../../TIMELINE.md](../../TIMELINE.md) dated event 或 Mermaid。
 - 后续若新增或修改 dated CFP，必须同步 [../../TIMELINE.md](../../TIMELINE.md)。
 
 ## 9. 更新日志
@@ -87,5 +86,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:18:00` | 常态化刷新：确认 SCP 2026 以常规 rolling 为主，未发现普通投稿者直接相关公开 active dated CFP；selected / invitation collections 不列为通用机会。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 SCP 2026 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为未获公开可审计正文，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 SCP 2026 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

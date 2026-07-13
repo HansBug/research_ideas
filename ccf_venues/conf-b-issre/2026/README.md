@@ -1,6 +1,6 @@
 # ISSRE 2026 README
 
-> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -12,12 +12,12 @@
 | 地点 | Limassol, Cyprus |
 | 官方年度主页 | [ISSRE 2026](https://cyprusconferences.org/issre2026/) |
 | 官方 CFP | [CFP](https://cyprusconferences.org/issre2026/cfp-research/) |
-| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) |
+| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/dates/) |
 | Submission system | [Submission](https://easychair.org/conferences/?conf=issre2026) |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) |
-| 当前阶段状态 | 🟡 复审中 |
+| 当前阶段状态 | 🟣 通知后 |
 
 ## 2. 年度核心 URL 索引
 
@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://cyprusconferences.org/issre2026/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 11:12` |
 | CFP / Call for Papers | [CFP / Call for Papers](https://cyprusconferences.org/issre2026/cfp-research/) | 普通 `curl` 曾出现 404/WAF-like 响应；带常见 User-Agent 后可核验 extended dates | `2026-06-05 11:12` |
-| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) | 普通 `curl` 曾出现 404/WAF-like 响应；带常见 User-Agent 后可核验 extended dates | `2026-06-05 11:12` |
+| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/dates/) | 官方 dates 页明确写作 `ISSRE 2026 Dates (AoE)`；普通 `curl` 曾出现 404/WAF-like 响应，需保留访问 caveat | `2026-07-13 13:30` |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=issre2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -73,7 +73,7 @@
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://cyprusconferences.org/issre2026/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | CFP / Call for Papers | [CFP / Call for Papers](https://cyprusconferences.org/issre2026/cfp-research/) | `2026-06-05 11:12` | 已按 extended dates 修正 abstract / paper deadline；命令行核验需注意 UA / WAF-like 响应。 |
-| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/cfp-research/) | `2026-06-05 11:12` | 已按 extended dates 修正 abstract / paper deadline；命令行核验需注意 UA / WAF-like 响应。 |
+| Important Dates | [Important Dates](https://cyprusconferences.org/issre2026/dates/) | `2026-07-13 13:30` | 已复查 official dates：notification `2026-07-08 待补时刻 AoE` 已过，camera-ready `2026-08-19 待补时刻 AoE`。 |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=issre2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/issre/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：将阶段改为通知后，Important Dates 改挂官方 dates 页，保留 camera-ready `2026-08-19 待补时刻 AoE` 与会期 `2026-10-20..2026-10-23`。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：将 ISSRE 2026 rebuttal、early decision、revision period、notification 与 camera-ready 明确为 AoE 口径，并同步 TIMELINE revision period。 |
 | `2026-06-05 11:12` | 根据复审修正 ISSRE 2026 extended dates：abstract / paper submission 均为 2026-04-24 AoE，并记录普通 curl 可能 404/WAF-like、带 UA 可核验的访问坑。 |
 | `2026-06-05 09:15` | PR-3 初始化 ISSRE 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

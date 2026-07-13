@@ -1,6 +1,6 @@
 # MSR 2026 README
 
-> 信息更新时间：`2026-06-05 18:36`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -22,14 +22,14 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://2026.msrconf.org/) | DBLP/proceedings 未闭合；Data/Tool、Mining Challenge、Registered Reports、Industry tracks 另有 HotCRP。 | `2026-06-05 17:23` |
-| CFP / Call for Papers | [CFP / track](https://2026.msrconf.org/track/msr-2026-technical-papers) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | [Important Dates](https://2026.msrconf.org/dates) | 可与 CFP 同页 | `2026-06-05 17:23` |
-| Submission system | [Submission](https://msr2026.hotcrp.com) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://2026.msrconf.org/) | DBLP/proceedings 未闭合；Data/Tool、Mining Challenge、Registered Reports、Industry tracks 另有 HotCRP。 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [CFP / track](https://2026.msrconf.org/track/msr-2026-technical-papers) | track 分散时按年度主页展开 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://2026.msrconf.org/dates) | 可与 CFP 同页 | `2026-07-13 10:27:51` |
+| Submission system | [Submission](https://msr2026.hotcrp.com) | 不公开时写未公布；历史入口可能登录受限 | `2026-07-13 10:27:51` |
 | Tracks / program | [Technical Papers track](https://2026.msrconf.org/track/msr-2026-technical-papers) / [Program](https://2026.msrconf.org/program/program-msr-2026/) | 已结束年度优先 official track accepted list / program；2026 Technical Papers accepted list 已公开。 | `2026-06-05 18:36` |
 | Accepted papers / paper list | [Technical Papers accepted list](https://2026.msrconf.org/track/msr-2026-technical-papers) | official track accepted list；非 proceedings / DBLP fallback。 | `2026-06-05 18:36` |
-| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-06-05 17:23` |
-| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:23` |
+| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
@@ -71,8 +71,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [年度主页](https://2026.msrconf.org/) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://2026.msrconf.org/dates) | `2026-06-05 17:23` | 已定位。 |
+| 官方年度主页 | [年度主页](https://2026.msrconf.org/) | `2026-07-13 10:27:51` | 🟢 已公布 / 进行中。 |
+| 官方 CFP / Dates | [CFP / Dates](https://2026.msrconf.org/dates) | `2026-07-13 10:27:51` | 已定位。 |
 | 官方论文名录 / proceedings | [Technical Papers accepted list](https://2026.msrconf.org/track/msr-2026-technical-papers) / proceedings 未公布 | `2026-06-05 18:36` | 官方 Technical Papers accepted list 已公开并计数 48；proceedings / DBLP 仍未闭合。 |
 | DBLP fallback | 未公布 | `2026-06-05 18:36` | 仅作论文名录与计数 fallback；当前 48 来自 official accepted list，不来自 DBLP。 |
 
@@ -85,6 +85,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：确认 MSR 2026 已结束，保留 proceedings 待补风险。 |
 | `2026-06-05 18:36` | 修复实现后复审 I1：核验官方 Technical Papers track accepted list，回填 official accepted count `48`，并明确 proceedings / DBLP 仍未闭合且不得冒充 main track count。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `✅ 已结束 / proceedings 待补`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 MSR 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

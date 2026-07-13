@@ -1,6 +1,6 @@
 # ISSRE 2027 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,15 +17,15 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) |
-| 当前阶段状态 | ⏳ 已检索未公布 |
+| 当前阶段状态 | 🟦 已有线索 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| CFP / Call for Papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Important Dates | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
+| 官方年度主页 | 未公布 | 仅有 future edition / Macau 线索，尚未形成可公开审计的年度主页正文 | `2026-07-13 13:30` |
+| CFP / Call for Papers | 未公布 | 未发现官方 CFP；不预设 research track deadline | `2026-07-13 13:30` |
+| Important Dates | 未公布 | 未发现官方 Important Dates；不写 dated event | `2026-07-13 13:30` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [ISSRE official GitHub pages / annual sites](https://issre.github.io/) | 未公布 | 本轮未检索到可写入 dated timeline 的稳定日期。 |
+| 官方年页 / CFP / important dates | 🟦 已有线索，日期未公布 | [ISSRE official GitHub pages / annual sites](https://issre.github.io/) | 未公布 | 仅保留 2027 future edition / Macau 线索；未检索到可写入 dated timeline 的稳定日期。 |
 
 ## 4. Tracks / 口径边界
 
@@ -52,7 +52,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP ISSRE index](https://dblp.org/db/conf/issre/index.html) |
-| 计数口径 | 未发现 ISSRE 2027 官方年页。 |
+| 计数口径 | 未发现 ISSRE 2027 官方年页 / CFP / dates；Macau 线索不等同于 research track 论文口径。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -68,7 +68,7 @@
 
 ## 8. 待补 / 风险记录
 
-- 未发现 ISSRE 2027 官方年页。
+- 仅有 ISSRE 2027 / Macau future-edition 线索；未发现官方年页、CFP、Important Dates、submission system 或 research track 页面，不能写入 deadline。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -81,4 +81,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：记录 ISSRE 2027 仅有 future edition / Macau 线索，仍无官方年页、CFP 或 Important Dates；不伪造日期。 |
 | `2026-06-05 09:15` | PR-3 初始化 ISSRE 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

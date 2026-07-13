@@ -1,6 +1,6 @@
 # RV 2026 README
 
-> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,20 +16,20 @@
 | Program / accepted papers | [Program / accepted](https://rv2026.smithengineering.queensu.ca/program/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 审稿中 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tool showcase 2026-08-10 / 2026-08-17 另列，accepted/proceedings/DBLP 尚未发布。 | `2026-06-05 17:23` |
-| CFP / Call for Papers | [CFP / track](https://rv2026.smithengineering.queensu.ca/cfp/) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | [Important Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | 可与 CFP 同页 | `2026-06-05 17:23` |
-| Submission system | [Submission](https://easychair.org/conferences?conf=rv2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
-| Tracks / program | [Program / track](https://rv2026.smithengineering.queensu.ca/program/) | 已结束年度优先 official program | `2026-06-05 17:23` |
-| Accepted papers / paper list | [Accepted / program](https://rv2026.smithengineering.queensu.ca/program/) | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
-| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-06-05 17:23` |
-| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tool showcase 2026-08-10 / 2026-08-17 另列，accepted/proceedings/DBLP 尚未发布。 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [CFP / track](https://rv2026.smithengineering.queensu.ca/cfp/) | track 分散时按年度主页展开 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | 可与 CFP 同页 | `2026-07-13 10:27:51` |
+| Submission system | [Submission](https://easychair.org/conferences?conf=rv2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-07-13 10:27:51` |
+| Tracks / program | [Program / track](https://rv2026.smithengineering.queensu.ca/program/) | 已结束年度优先 official program | `2026-07-13 10:27:51` |
+| Accepted papers / paper list | [Accepted / program](https://rv2026.smithengineering.queensu.ca/program/) | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-07-13 10:27:51` |
+| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
@@ -37,8 +37,8 @@
 |---|---|---|---|---|
 | Paper submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Paper submission; extended; all deadlines are AoE. |
 | Tutorial proposal submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tutorial proposal submission; extended; all deadlines are AoE；tutorial 最长 2 小时。 |
-| Notification | 2026-07-30 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Notification; AoE / extended |
-| Camera-ready | 2026-08-10 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Camera-ready; AoE |
+| Notification | 2026-08-01 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Notification; official extended date, all deadlines AoE |
+| Camera-ready | 2026-08-12 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Camera-ready; official extended date, all deadlines AoE |
 | Conference dates | 2026-10-06..2026-10-09 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Conference; Kingston local time |
 
 ## 4. Tracks
@@ -71,10 +71,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | `2026-06-05 17:23` | 已定位。 |
-| 官方论文名录 / proceedings | [Program](https://rv2026.smithengineering.queensu.ca/program/) / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
-| DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
+| 官方年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | `2026-07-13 10:27:51` | 🟢 已公布 / 进行中。 |
+| 官方 CFP / Dates | [CFP / Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | `2026-07-13 10:27:51` | 已定位。 |
+| 官方论文名录 / proceedings | [Program](https://rv2026.smithengineering.queensu.ca/program/) / 未公布 | `2026-07-13 10:27:51` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
+| DBLP fallback | 未公布 | `2026-07-13 10:27:51` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -85,6 +85,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：按官方 extended dates 更新 RV 2026 为已截稿审稿中。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 RV 2026 Tutorial proposal submission `2026-06-14` AoE，明确 tutorial track 与 paper submission 同日但不混入主论文计数。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 RV 2026 CFP extended 日期（submission `2026-06-14` AoE、notification `2026-07-30`、camera-ready `2026-08-10`、会期 `2026-10-06..09`）与 TIMELINE 一致，未改变官方来源口径。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟢 投稿中`；未改变官方日期与来源口径。 |

@@ -1,6 +1,6 @@
 # ESEM 2026 README
 
-> 信息更新时间：`2026-06-05 18:39`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,7 +17,7 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中 |
+| 当前阶段状态 | 🟡 审稿中 / 通知临近 |
 
 ## 2. 年度核心 URL 索引
 
@@ -39,7 +39,7 @@
 |---|---|---|---|---|
 | Abstract deadline | 2026-05-11 待补时刻 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | ESEM Technical Track / Technical Papers；官方仅给日期，具体时刻待补。 |
 | Submission deadline | 2026-05-18 待补时刻 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | ESEM Technical Track / Technical Papers；不混入其他 track。 |
-| Notification | 2026-07-10 待补时刻 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | 官方仅给日期，具体时刻待补。 |
+| Notification | 2026-07-14 待补时刻 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | 官方 dates 页写作 `Notification updated`；官方仅给日期，具体时刻待补。 |
 | Camera-ready | 2026-08-17 待补时刻 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | 官方仅给日期，具体时刻待补。 |
 | Conference dates | 2026-10-04..2026-10-09 | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | 地点：München, Germany / Science Congress Center Munich。 |
 
@@ -77,7 +77,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | `2026-06-05 17:23` | 已按 researchr 年度主页记录。 |
-| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | `2026-06-05 17:23` | 已按 ESEM Technical Track / Technical Papers 核心日期记录，具体时刻待补。 |
+| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | `2026-07-13 13:30` | 已按 ESEM Technical Track / Technical Papers 核心日期记录；Technical Track notification 已更新为 `2026-07-14 待补时刻`，具体时刻仍待补。 |
 | 官方 track / program | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) / 未公布 | `2026-06-05 17:23` | Track / program 入口已记录；主 track 与其他 ESEIW track 需分开计数。 |
 | 官方论文名录 / proceedings | 未公布 / [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） | `2026-06-05 17:23` | 2026 proceedings 未公布，仅记录 LIPIcs / open science 官方说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:23` | 2026 及未来年度 DBLP 年度页未公开。 |
@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：按官方 Important Dates 将 Technical Track notification 从 `2026-07-10` 更新为 `2026-07-14`，并将阶段记为通知临近；camera-ready 保持 `2026-08-17 待补时刻`。 |
 | `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2026 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |

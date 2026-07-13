@@ -1,6 +1,6 @@
 # ICSE 2028 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,9 +23,9 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | 官方 conf.researchr 年度入口 | `2026-06-04 21:10` |
-| CFP / Call for Papers | 未公布 | 若未公布则保持未公布，不伪造链接 | `2026-06-04 21:10` |
-| Important Dates | 未公布 | 通常与 Research / Technical Track 同页 | `2026-06-04 21:10` |
+| 年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | 官方 conf.researchr 年度入口当前 Access denied；另有 Hawaii 预告 | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | 未公布 | 2026-07-13 复查仍未发现正式 CFP | `2026-07-13 19:13:21` |
+| Important Dates | 未公布 | 2026-07-13 复查仍未发现正式 dates | `2026-07-13 19:13:21` |
 | Submission system | 未公布 | 未找到稳定公开投稿入口 | `2026-06-04 21:10` |
 | Tracks / program | 未公布 | 年度主页 tracks 导航可继续展开 | `2026-06-04 21:10` |
 | Accepted papers / paper list | 未公布 | 官方 program 优先；DBLP 作 fallback | `2026-06-04 21:10` |
@@ -66,9 +66,9 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | `2026-06-04 21:10` | 页面 HTTP 可访问，但内容为 Access denied；不视为完整年度主页。 |
-| 官方预告 | [Introduction to ICSE 2028 in Hawaii](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) | `2026-06-04 21:10` | 可证明 ICSE 2028 in Hawaii 预告存在。 |
-| 官方 CFP / Dates | 未公布 | `2026-06-04 21:10` | 已检索未公布。 |
+| 官方年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | `2026-07-13 19:13:21` | 页面 HTTP 可访问，但内容为 Access denied；不视为完整年度主页。 |
+| 官方预告 | [Introduction to ICSE 2028 in Hawaii](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) | `2026-07-13 19:13:21` | 可证明 ICSE 2028 in Hawaii 预告存在；未给 CFP / dates。 |
+| 官方 CFP / Dates | 未公布 | `2026-07-13 19:13:21` | 已复查仍未公布。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | DBLP 2028 年度页未公开。 |
 
 ## 8. TIMELINE.md 同步提示
@@ -82,5 +82,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复查 ICSE 2028，Hawaii 仍仅为官方预告，正式 CFP / dates 未公布。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ICSE 2028 年度 README。 |

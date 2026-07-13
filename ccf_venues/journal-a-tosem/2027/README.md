@@ -1,6 +1,6 @@
 # TOSEM 2027 README
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -82,6 +82,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：未发现 TOSEM 2027 官方年度卷期、DBLP 年度页或 active dated CFP；保守维持 rolling + 已检索未公布口径。 |
 | `2026-06-04 22:05` | 补充年度 README 更新日志降序提示，保持后续维护规则一致。 |
 | `2026-06-04 21:15` | 根据 review 统一 TOSEM author guidelines、ScholarOne 候选入口、Just Accepted 和 DBLP canonical 年度链接口径。 |
 | `2026-06-04 20:43` | 初始化 TOSEM 2027 年度 README，并记录未来年度已检索未公布状态。 |

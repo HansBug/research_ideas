@@ -1,6 +1,6 @@
 # SoSyM 2028 README
 
-> 信息更新时间：`2026-06-04 22:05`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:21:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -67,7 +67,7 @@
 |---|---|---|---|
 | 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270)；[SoSyM official site](https://www.sosym.org/) | `2026-06-04 21:15` | 稳定入口可用。 |
 | Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines)；[SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 21:15` | 常规投稿入口可用；Manuscript Central 直链已记录，但 Industry 5.0 CFP 已提示 SoSyM online submission system 将变更。 |
-| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/10270/collections)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-06-04 21:15` | 未发现 2028 active dated CFP。 |
+| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/10270/collections)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-07-13 19:21:00` | 已复查，未发现 2028 active dated CFP；Digital Twins 为 ongoing rolling theme，不硬写年度 deadline。 |
 | Volume / issue / online first | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[SoSyM online](https://www.sosym.org/online/) | `2026-06-04 21:15` | 未发现 2028 年度卷期 / online-first 年度入口。 |
 | DBLP fallback | [DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 21:15` | 未发现 2028 年度页。 |
 | `2029+` 核查 | [Springer volumes and issues](https://link.springer.com/journal/10270/volumes-and-issues)；[Springer collections](https://link.springer.com/journal/10270/collections)；[DBLP SoSyM](https://dblp.org/db/journals/sosym/index.html) | `2026-06-04 21:15` | 未发现 `2029+` 官方年度卷期 / CFP。 |
@@ -83,6 +83,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:21:00` | 常态化刷新：复查 Springer / SoSyM / DBLP 入口，未发现 2028 年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。 |
 | `2026-06-04 22:05` | 补充年度 README 更新日志降序提示，保持后续维护规则一致。 |
 | `2026-06-04 21:15` | 根据 review 补充 Industry 5.0 CFP 提到的 SoSyM online submission system 将变更的 caveat。 |
 | `2026-06-04 20:43` | 初始化 SoSyM 2028 年度 README，并记录未来年度已检索未公布状态。 |

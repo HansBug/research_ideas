@@ -1,6 +1,6 @@
 # EASE README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -14,8 +14,8 @@
 | 本库目录 | `conf-c-ease` |
 | 出版方 | ACM / EASE official researchr pages |
 | 官方 series page | [EASE series](https://conf.researchr.org/series/ease) |
-| 官方当前 / 最新年度主页 | [EASE 2026](https://conf.researchr.org/home/ease-2026) |
-| 官方 CFP / Important Dates 总入口 | [EASE 2026 dates](https://conf.researchr.org/dates/ease-2026) |
+| 官方当前 / 最新年度主页 | [EASE 2027](https://conf.researchr.org/home/ease-2027) |
+| 官方 CFP / Important Dates 总入口 | [EASE 2027 dates](https://conf.researchr.org/dates/ease-2027)（当前未列 research submission dates；2026 dates 见年度页） |
 | 官方 proceedings / paper list 总入口 | [DBLP / proceedings fallback](https://dblp.org/db/conf/ease/index.html) |
 | DBLP venue page | [DBLP EASE index](https://dblp.org/db/conf/ease/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；若后续发现 `2029+` 官方 CFP / important dates，必须继续新增年度页 |
@@ -51,8 +51,8 @@ EASE 聚焦 empirical / evidence-based / evaluation and assessment in software e
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [EASE series](https://conf.researchr.org/series/ease) | 年度事实仍以年度主页 / CFP / committee 为准 | `2026-06-05 17:23` |
-| Latest year homepage | [EASE 2026](https://conf.researchr.org/home/ease-2026) | 2027/2028 已检索未公布 | `2026-06-05 17:23` |
-| CFP / Important Dates | [EASE 2026 dates](https://conf.researchr.org/dates/ease-2026) | 历史年度在年度 README 展开 | `2026-06-05 17:23` |
+| Latest year homepage | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 2027 Hanoi home 已上线；2028 未发现官方主页 / CFP / dates | `2026-07-13 19:11:00` |
+| CFP / Important Dates | [EASE 2027 dates](https://conf.researchr.org/dates/ease-2027) | 2027 dates 页当前只给会期 / 地点，未公布 research submission deadlines；2026 已结束 | `2026-07-13 19:11:00` |
 | Submission system | [2026 submission](https://easychair.org/conferences/?conf=ease2026) | 投稿系统可能按 track 拆分；年度页保留具体入口 | `2026-06-05 17:23` |
 | Program / accepted papers | [2026 program](https://conf.researchr.org/program/ease-2026/program-ease-2026/) | 已结束年度优先官方 program / accepted；缺失时用 DBLP fallback | `2026-06-05 17:23` |
 | Proceedings | [Proceedings入口](https://dl.acm.org/doi/proceedings/10.1145/3756681) | 出版商 / proceedings DOI 优先；受限时记录 WAF / 已检索未获可审计证据 | `2026-06-05 17:23` |
@@ -78,8 +78,8 @@ EASE 聚焦 empirical / evidence-based / evaluation and assessment in software e
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🔵 会期临近 | [年度主页](https://conf.researchr.org/home/ease-2026) | [CFP / track](https://conf.researchr.org/track/ease-2026/ease-2026-research-papers) | [Dates](https://conf.researchr.org/dates/ease-2026) | [Submission](https://easychair.org/conferences/?conf=ease2026) | [Program / accepted](https://conf.researchr.org/program/ease-2026/program-ease-2026/) | 未公布 | 未公布 | 2026-01-16 | 2026-01-23 | 2026-03-13 | 2026-06-09..2026-06-12 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟦 已有主页 | [年度主页](https://conf.researchr.org/home/ease-2027) | 未公布 | [Dates](https://conf.researchr.org/dates/ease-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 2027-06-15..2027-06-18 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | ✅ 已结束 / 待 proceedings | [年度主页](https://conf.researchr.org/home/ease-2026) | [CFP / track](https://conf.researchr.org/track/ease-2026/ease-2026-research-papers) | [Dates](https://conf.researchr.org/dates/ease-2026) | [Submission](https://easychair.org/conferences/?conf=ease2026) | [Program / accepted](https://conf.researchr.org/program/ease-2026/program-ease-2026/) | 未公布 | 未公布 | 2026-01-16 | 2026-01-23 | 2026-03-13 | 2026-06-09..2026-06-12 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/ease-2025) | [CFP / track](https://conf.researchr.org/track/ease-2025/ease-2025-research-papers) | [Dates](https://conf.researchr.org/dates/ease-2025) | [Submission](https://easychair.org/conferences/?conf=ease2025) | [Program / accepted](https://conf.researchr.org/program/ease-2025/program-ease-2025/) | [Proceedings](https://dl.acm.org/doi/proceedings/10.1145/3756681) | [DBLP](https://dblp.org/db/conf/ease/ease2025.html) | 2025-01-24 | 2025-01-31 | 2025-03-21 | 2025-06-17..2025-06-20 | DBLP fallback entries=126；ACM proceedings DOI candidate CLI 403 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/ease-2024) | [CFP / track](https://conf.researchr.org/track/ease-2024/ease-2024-papers) | [Dates](https://conf.researchr.org/dates/ease-2024) | [Submission](https://easychair.org/conferences/?conf=ease2024) | [Program / accepted](https://conf.researchr.org/program/ease-2024/program-ease-2024/) | [Proceedings](https://dl.acm.org/doi/proceedings/10.1145/3661167) | [DBLP](https://dblp.org/db/conf/ease/ease2024.html) | 2024-01-11 | 2024-01-18 | 2024-03-06 | 2024-06-18..2024-06-21 | DBLP fallback entries=100；ACM proceedings DOI candidate CLI 403 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/ease-2023) | [CFP / track](https://conf.researchr.org/track/ease-2023/ease-2023-research) | [Dates](https://conf.researchr.org/dates/ease-2023) | [Submission](https://easychair.org/conferences/?conf=ease2023) | [Program / accepted](https://conf.researchr.org/program/ease-2023/program-ease-2023/) | [Proceedings](https://conf.researchr.org/info/ease-2023/proceedings) | [DBLP](https://dblp.org/db/conf/ease/ease2023.html) | 2023-01-13 | 2023-01-20 | 2023-03-06 | 2023-06-13..2023-06-16 | DBLP fallback entries=76 | 🟡 部分核验 |
@@ -90,7 +90,7 @@ EASE 聚焦 empirical / evidence-based / evaluation and assessment in software e
 - 本目录属于 PR-9 / P2 邻近观察，只服务于检索扩展、投稿分流和社区画像，不把 EASE 升级为 P0/P1 主投目标。
 - 论文数量优先使用官方 accepted / proceedings；DBLP 只作 fallback，且不得写成 main / research track count。
 - Research、industry、tool、artifact、workshop、special session、virtual / live segment 必须分开记录，不能混算。
-- 2027/2028 公开信息已检索；未公布年度保留占位，不预造 deadline / committee / proceedings。
+- 2027 Hanoi home 已于 2026-07-13 复查上线，当前只记录年度主页、地点与 2027-06-15..2027-06-18 会期；research submission deadlines / CFP 未公布，不预造 deadline。2028 公开信息已检索未公布，保留占位。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -102,6 +102,7 @@ EASE 聚焦 empirical / evidence-based / evaluation and assessment in software e
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：更新 EASE 最新年度为 2027 Hanoi home（会期 2027-06-15..2027-06-18，submission dates 未公布），将 EASE 2026 改为已结束 / 待 proceedings，并复查 2028 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

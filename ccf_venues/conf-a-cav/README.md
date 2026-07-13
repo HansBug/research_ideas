@@ -1,6 +1,6 @@
 # CAV README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -14,6 +14,8 @@
 | 本库目录 | `conf-a-cav` |
 | 出版方 | Springer LNCS / CAV 官方年度页 |
 | 官方 series page | [CAV official series](https://conferences.i-cav.org/) |
+| 官方当前 / 最新年度主页 | [CAV 2026](https://conferences.i-cav.org/2026/)；2027/2028 于 2026-07-13 复查仍未获正式 CFP / dates |
+| 官方 CFP / Important Dates 总入口 | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) |
 | DBLP venue page | [DBLP CAV index](https://dblp.org/db/conf/cav/index.html) |
 | 当前默认调查范围 | `2022` 至 `2028`；若后续发现 `2029+` 官方 CFP / important dates，必须继续新增年度页 |
 
@@ -47,9 +49,10 @@ CAV 聚焦计算机辅助验证、模型检查、SMT/SAT、程序验证、系统
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
-| Series / main site | [CAV official series](https://conferences.i-cav.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
+| Series / main site | [CAV official series](https://conferences.i-cav.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-07-13 19:13:21` |
 | DBLP venue page | [DBLP CAV index](https://dblp.org/db/conf/cav/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造 | `2026-06-05 09:15` |
+| Latest year homepage | [CAV 2026](https://conferences.i-cav.org/2026/) | 2027/2028 于 2026-07-13 复查仍未获正式年度主页 / CFP / dates；未来年度不得伪造 | `2026-07-13 19:13:21` |
+| CFP / Important Dates | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | main conference paper chain；artifact evaluation 单列，不混入主论文口径 | `2026-07-13 19:13:21` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -73,7 +76,7 @@ CAV 聚焦计算机辅助验证、模型检查、SMT/SAT、程序验证、系统
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP CAV index](https://dblp.org/db/conf/cav/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP CAV index](https://dblp.org/db/conf/cav/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 已通知 / 待会期 | [CAV 2026](https://conferences.i-cav.org/2026/) | [CFP](https://conferences.i-cav.org/2026/cfp/) | [Important Dates](https://conferences.i-cav.org/2026/cfp/) | [Submission](https://submissions.floc26.org/cav/) | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/cav/index.html) | 未公布 | 2026-01-28 待补时刻 AoE | 2026-04-17 待补时刻 | 2026-07-26..2026-07-29 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🔵 会期临近 | [CAV 2026](https://conferences.i-cav.org/2026/) | [CFP](https://conferences.i-cav.org/2026/cfp/) | [Important Dates](https://conferences.i-cav.org/2026/cfp/) | [Submission](https://submissions.floc26.org/cav/) | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/cav/index.html) | 未公布 | 2026-01-28 待补时刻 AoE | 2026-04-17 待补时刻；camera-ready 2026-05-15 待补时刻 | 2026-07-26..2026-07-29 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [CAV 2025](https://conferences.i-cav.org/2025/) | [CFP](https://conferences.i-cav.org/2025/cfp/) | [Important Dates](https://conferences.i-cav.org/2025/cfp/) | 未公布 | [Program / Accepted](https://conferences.i-cav.org/2025/accepted) | 未公布 | [DBLP](https://dblp.org/db/conf/cav/index.html) | 未公布 | 2025-01-31 待补时刻 | 2025-04-02 待补时刻 | 2025-07-21..2025-07-25 | 官方 accepted 待拆 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [CAV 2024](https://i-cav.org/2024/) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-65627-9) | [DBLP](https://dblp.org/db/conf/cav/index.html) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | Springer Part I 待拆 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [CAV 2023](https://www.i-cav.org/2023/) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-37706-8) | [DBLP](https://dblp.org/db/conf/cav/index.html) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | Springer Part I 待拆 | 🟡 部分核验 |
@@ -83,7 +86,8 @@ CAV 聚焦计算机辅助验证、模型检查、SMT/SAT、程序验证、系统
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 于 2026-07-13 复查仍未发现正式官方主页、CFP 或重要日期；未公布年度保留占位与核查记录，不预设 CFP。
+- 2026 当前已过 camera-ready，官方会期为 `2026-07-26..2026-07-29`，阶段按 `🔵 会期临近` 记录。
 - 2028 计数口径：未检索到 CAV 2028 官方年页 / CFP。
 - 2027 计数口径：未检索到 CAV 2027 官方年页 / CFP。
 - 2026 计数口径：2026 proceedings / DBLP 年度页尚未落地；不得用 artifact/workshop 混算。
@@ -104,6 +108,7 @@ CAV 聚焦计算机辅助验证、模型检查、SMT/SAT、程序验证、系统
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 CAV 2026 会期与阶段，2027/2028 仍未发现正式官方 CFP / dates，仅保守更新复查记录。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

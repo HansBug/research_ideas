@@ -1,6 +1,6 @@
 # Requirements Engineering 2027 README
 
-> 信息更新时间：`2026-06-05 11:57`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:15:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -71,7 +71,7 @@
 |---|---|---|---|
 | 期刊主页 | [Springer Requirements Engineering](https://link.springer.com/journal/766) | `2026-06-05 11:57` | 官方期刊入口可用。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines)；[Submit manuscript](https://submission.springernature.com/new-submission/766/3) | `2026-06-05 11:57` | 常规投稿入口可用，按 rolling submission 处理。 |
-| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/766/collections) | `2026-06-05 11:57` | 无已知；关键 deadline 见 §4。 |
+| Special issue / topical collection | [Springer collections](https://link.springer.com/journal/766/collections) | `2026-07-13 19:15:00` | 已复查，未发现 2027 active dated CFP；常规投稿仍按 rolling 处理。 |
 | Volume / issue / online first | ⏳ 已检索未公布（[Springer volumes and issues](https://link.springer.com/journal/766/volumes-and-issues)）；[Online first](https://link.springer.com/journal/766/online-first) | `2026-06-05 11:57` | 出版商入口已记录；online-first 与正式卷期可能跨年。 |
 | DBLP fallback | ⏳ 已检索未公布（[DBLP RE](https://dblp.org/db/journals/re/index.html)） | `2026-06-05 11:57` | DBLP 年度页 / venue 页用于 `entry article` baseline 与 bibliographic fallback。 |
 
@@ -86,4 +86,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:15:00` | 常态化刷新：复查 Springer collections / volumes / DBLP 入口，未发现 2027 官方年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。 |
 | `2026-06-05 11:57` | 初始化 Requirements Engineering 2027 年度 README，记录 Springer / DBLP 核心入口、collection 状态、投稿节奏与 DBLP entry article baseline。 |

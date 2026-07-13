@@ -1,6 +1,6 @@
 # SEKE README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -51,7 +51,7 @@ SEKE 连接 software engineering 与 knowledge engineering，覆盖 requirements
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [SEKE series](https://ksiresearch.org/seke/) | 年度事实仍以年度主页 / CFP / committee 为准 | `2026-06-05 17:23` |
-| Latest year homepage | [SEKE 2026](https://ksiresearch.org/seke/seke26.html) | 2027/2028 已检索未公布 | `2026-06-05 17:23` |
+| Latest year homepage | [SEKE 2026](https://ksiresearch.org/seke/seke26.html) | 2027/2028 已于 2026-07-13 复查；未公布则保留占位 | `2026-07-13 10:27:51` |
 | CFP / Important Dates | [SEKE 2026 dates](https://ksiresearch.org/seke/seke26main.html) | 历史年度在年度 README 展开 | `2026-06-05 17:23` |
 | Submission system | [2026 submission](https://www.easychair.org/conferences/?conf=seke26) | 投稿系统可能按 track 拆分；年度页保留具体入口 | `2026-06-05 17:23` |
 | Program / accepted papers | 未公布 | 已结束年度优先官方 program / accepted；缺失时用 DBLP fallback | `2026-06-05 17:23` |
@@ -79,7 +79,7 @@ SEKE 连接 software engineering 与 knowledge engineering，覆盖 requirements
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 审稿中 / 待通知 | [年度主页](https://ksiresearch.org/seke/seke26.html) | [CFP / track](https://ksiresearch.org/seke/seke26main.html) | [Dates](https://ksiresearch.org/seke/seke26main.html) | [Submission](https://www.easychair.org/conferences/?conf=seke26) | 未公布 | 未公布 | 未公布 | 未公布 | 2026-05-10 | 2026-06-20 | 2026-10-01..2026-10-02; 2026-10-04..2026-10-10 virtual | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟣 通知后 | [年度主页](https://ksiresearch.org/seke/seke26.html) | [CFP / track](https://ksiresearch.org/seke/seke26main.html) | [Dates](https://ksiresearch.org/seke/seke26main.html) | [Submission](https://www.easychair.org/conferences/?conf=seke26) | 未公布 | 未公布 | 未公布 | 未公布 | 2026-05-10 待补时刻 EST | 2026-06-20 待补时刻 | 2026-10-01..2026-10-02; 2026-10-04..2026-10-10 virtual | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://ksiresearch.org/seke/seke25.html) | [CFP / track](https://ksiresearch.org/seke/seke25main.html) | [Dates](https://ksiresearch.org/seke/seke25main.html) | [Submission](https://www.easychair.org/conferences/?conf=seke25) | [Program / accepted](https://ksiresearch.org/seke/seke25pgm.html) | [Proceedings](http://ksiresearchorg.ipage.com/seke/Proceedings/seke/SEKE2025_Proceedings.pdf) | [DBLP](https://dblp.org/db/conf/seke/seke2025.html) | 未公布 | 2025-05-15 | 2025-06-20 | 2025-09-29..2025-09-30; 2025-10-01..2025-10-06 virtual | DBLP fallback ≈63 paper entries + 1 volume record | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://ksiresearch.org/seke/seke24.html) | [CFP / track](https://ksiresearch.org/seke/seke24main.html) | [Dates](https://ksiresearch.org/seke/seke24main.html) | [Submission](https://www.easychair.org/conferences/?conf=seke24) | 未公布 | [Proceedings](http://ksiresearchorg.ipage.com/seke/Proceedings/seke/SEKE2024_Proceedings.pdf) | [DBLP](https://dblp.org/db/conf/seke/seke2024.html) | 未公布 | 2024-06-07 | 2024-07-20 | 2024-10-26..2024-10-28; 2024-10-29..2024-11-03 virtual | DBLP fallback ≈81 paper entries + 1 volume record | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://ksiresearch.org/seke/seke23.html) | [CFP / track](https://ksiresearch.org/seke/seke23main.html) | [Dates](https://ksiresearch.org/seke/seke23main.html) | [Submission](https://www.easychair.org/conferences/?conf=seke23) | [Program / accepted](https://ksiresearch.org/seke/seke23pgm.html) | [Proceedings](http://ksiresearchorg.ipage.com/seke/Proceedings/seke/SEKE2023_Proceedings.pdf) | [DBLP](https://dblp.org/db/conf/seke/seke2023.html) | 未公布 | 2023-03-15 | 2023-04-20 | 2023-07-01..2023-07-03; 2023-07-05..2023-07-10 virtual | DBLP fallback ≈124 paper entries + 1 volume record | 🟡 部分核验 |
@@ -102,6 +102,7 @@ SEKE 连接 software engineering 与 knowledge engineering，覆盖 requirements
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新 SEKE 2026：确认 notification 已过，camera-ready / early registration 2026-07-20 仍待发生；2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

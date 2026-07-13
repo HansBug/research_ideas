@@ -1,6 +1,6 @@
 # TOSEM README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -83,9 +83,9 @@
 
 | 年份 | 年度状态 | 期刊主页 | Author guidelines | Submission system | Special issue / CFP | 关键截止时间 | Volume / issue | Articles / Online first | DBLP 年度页 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---:|---|
-| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | Agentic AI 线索，deadline 未公布 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 35](https://dblp.org/db/journals/tosem/tosem35.html) | 115 | 🟡 部分核验 |
+| [`2028`](./2028/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 active dated CFP（2026-07-13 复查） | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 active dated CFP（2026-07-13 复查） | 滚动投稿 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟢 滚动开放 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 active dated CFP；Agentic AI 线索仍无公开 deadline | 滚动投稿 | [ACM DL Vol. 35 No. 7](https://dl.acm.org/toc/tosem/2026/35/7) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 35](https://dblp.org/db/journals/tosem/tosem35.html) | 115 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 active CFP；Agentic AI 未见 2025 dated deadline | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 34](https://dblp.org/db/journals/tosem/tosem34.html) | 242 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 33](https://dblp.org/db/journals/tosem/tosem33.html) | 223 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 年度已归档 | [TOSEM](https://dl.acm.org/journal/tosem) | [ACM DL TOSEM author guidelines](https://dl.acm.org/journal/tosem/author-guidelines) | [TOSEM ScholarOne 候选入口](https://mc.manuscriptcentral.com/tosem) | 无已知 | 滚动投稿 | [ACM DL TOSEM](https://dl.acm.org/journal/tosem) | [TOSEM Just Accepted](https://dl.acm.org/journal/tosem/just-accepted) | [DBLP Vol. 32](https://dblp.org/db/journals/tosem/tosem32.html) | 161 | 🟡 部分核验 |
@@ -94,7 +94,9 @@
 ## 7. 维护备注
 
 - TOSEM 常规投稿按 rolling submission 处理，不进入 dated Mermaid。
+- 2026-07-13 复查：TOSEM 常规稿仍按 rolling submission；ACM DL / DBLP 可定位 2026 Volume 35，ACM DL 当前 issue 为 [Vol. 35 No. 7 July 2026](https://dl.acm.org/toc/tosem/2026/35/7)。
 - 当前未发现 TOSEM special issue 的明确 deadline；Agentic AI special issue 仅作为线索记录，不能写入 Gantt。
+- 2027/2028 年度页保守维持 rolling + 年度卷期未公布口径；本轮未发现官方 future volume / dated CFP。
 - 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 ACM DL issue TOC / Just Accepted 按 article type 交叉核验。
 
 ## 8. TIMELINE.md 同步提示
@@ -108,6 +110,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：确认 TOSEM 常规 rolling，2026 官方卷期入口更新为 ACM DL Vol. 35 No. 7；2027/2028 未发现官方 dated CFP 或年度卷期，按已复查未公布记录。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

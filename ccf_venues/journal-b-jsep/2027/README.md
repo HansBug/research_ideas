@@ -1,6 +1,6 @@
 # JSEP 2027 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -89,5 +89,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：未发现 JSEP 2027 官方年度卷期、DBLP 年度页或 active dated CFP；保守维持 rolling + Wiley caveat 口径。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：降级 Wiley rolling 投稿为候选口径，并将 current issue 与 Early View / articles in press 入口明确分离。 |
 | `2026-06-05 17:35` | PR-6 初始化 JSEP 2027 年度 README，记录 Wiley / DBLP 核心入口、投稿节奏、special issue 线索与 DBLP entry article baseline。 |

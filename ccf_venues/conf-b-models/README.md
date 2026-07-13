@@ -1,6 +1,6 @@
 # MoDELS README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -51,7 +51,7 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [researchr MoDELS series](https://conf.researchr.org/series/models) | [models-conf.com](https://www.models-conf.com/) 当前返回 `522`，保留作长期域名线索 | `2026-06-04 21:10` |
-| Latest year homepage | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 2027/2028 探测未发布 | `2026-06-04 21:10` |
+| Latest year homepage | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | 2027/2028 于 `2026-07-13` 复查仍未发布 | `2026-07-13 13:30` |
 | CFP / Call for Papers | [MoDELS 2026 Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | 年度 CFP 分散在 track 页面 | `2026-06-04 21:10` |
 | Important Dates | [MoDELS 2026 dates](https://conf.researchr.org/dates/models-2026) | 历年 dates 页见年度表 | `2026-06-04 21:10` |
 | Submission system | [EasyChair MoDELS 2026](https://easychair.org/conferences/?conf=models2026) | EasyChair 会跳转登录页 | `2026-06-04 21:10` |
@@ -82,7 +82,7 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
-| [2026](./2026/README.md) | 🟡 审稿中 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟣 通知后 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2026) | [Submission](https://easychair.org/conferences/?conf=models2026) | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 为 Access denied） | 未公布 | ⏳ 已检索未公布 | 2026-03-20 待补时刻 AoE | 2026-03-27 待补时刻 AoE | 2026-06-17 待补时刻 AoE | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [MoDELS 2025](https://2025.models-conf.com/) | [Research Papers track](https://2025.models-conf.com/track/models-2025-research-papers) | [Important Dates](https://conf.researchr.org/dates/models-2025) | [Submission](https://easychair.org/conferences/?conf=models2025) | [Program](https://2025.models-conf.com/program/program-models-2025/) | 未公布 | [DBLP 2025](https://dblp.org/db/conf/models/models2025.html) | 2025-03-27 待补时刻 AoE | 2025-04-03 待补时刻 AoE | 2025-06-24 待补时刻 AoE | 2025-10-05..2025-10-10 | DBLP inproceedings: 27 | 🟢 已核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [MoDELS 2024](https://conf.researchr.org/home/models-2024) | [CfP PDF](https://conf.researchr.org/getImage/models-2024/orig/CfP.pdf) | [Important Dates](https://conf.researchr.org/dates/models-2024) | [Submission](https://easychair.org/conferences/?conf=models24) | [Program](https://conf.researchr.org/program/models-2024/program-models-2024/) | [Proceedings](https://conf.researchr.org/info/models-2024/conference-proceedings) | [DBLP 2024](https://dblp.org/db/conf/models/models2024.html) | 2024-03-21 待补时刻 AoE | 2024-03-28 待补时刻 AoE | 2024-06-17 待补时刻 AoE | 2024-09-22..2024-09-27 | DBLP inproceedings: 26 | 🟢 已核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [MoDELS 2023](https://conf.researchr.org/home/models-2023) | [Research Papers track](https://conf.researchr.org/track/models-2023/models-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/models-2023) | [Submission](https://easychair.org/conferences/?conf=models23) | [FT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---ft) / [PT accepted papers](https://conf.researchr.org/info/models-2023/accepted-papers---pt) | 未公布 | [DBLP 2023](https://dblp.org/db/conf/models/models2023.html) | 2023-04-07 待补时刻 AoE | 2023-04-14 待补时刻 AoE | 2023-06-26 待补时刻 AoE | 2023-10-01..2023-10-06 | Official FT/PT accepted: 30 | 🟢 已核验 |
@@ -91,8 +91,8 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 
 ## 7. 维护备注
 
-- 2028 / 2027：官方 home、dates、Research track URL 已检索，均返回 `404`；按“未发布”处理，不伪造年度主页或 deadline。
-- 2026：official home、dates、submission、Research Papers track 可访问；截至 `2026-06-04` submission 与 rebuttal 已过但 notification 尚未到达，因此整体阶段写作 `🟡 审稿中`；program URL 当前跳转 accessDenied，论文数量未最终公布。
+- 2028 / 2027：官方 home、dates、Research track URL 已于 `2026-07-13` 复查，仍返回 `404`；按“未发布”处理，不伪造年度主页或 deadline。
+- 2026：official home、dates、submission、Research Papers track 可访问；Research Papers track 页面写明 submission dates at `23:59 AoE`，Author notification 为 `2026-06-17`、Camera Ready Due 为 `2026-07-31`；截至 `2026-07-13` notification 已过且 camera-ready 未到，整体阶段写作 `🟣 通知后`；program URL 当前跳转 accessDenied，论文数量未最终公布。
 - 2025 / 2024 / 2023 / 2022：论文数量使用 DBLP `inproceedings` 或官方 accepted paper 口径记录；年度页逐项说明计数口径。
 - ACM DL DOI 页面在本次 curl 核查中返回 `403`，但 DOI 链接仍按官方 proceedings 页给出的 main / companion proceedings 入口记录。
 
@@ -107,6 +107,7 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新 MoDELS：按官方 Research Papers track / dates 确认 notification `2026-06-17 AoE` 已过、camera-ready `2026-07-31 AoE` 未到；2027/2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

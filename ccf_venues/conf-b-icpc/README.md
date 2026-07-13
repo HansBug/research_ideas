@@ -1,6 +1,6 @@
 # ICPC README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -13,7 +13,7 @@
 | CCF 等级 | 🥈 |
 | 出版方 | IEEE / ACM |
 | 官方 series page | [ICPC official site](https://www.program-comprehension.org/)；[researchr ICPC series](https://conf.researchr.org/series/icpc) |
-| 官方当前 / 最新年度主页 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) |
+| 官方当前 / 最新年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) |
 | 官方 CFP / Important Dates 总入口 | 逐年度维护；当前最新可核验入口见 §6 年度信息汇总 |
 | 官方 proceedings / paper list 总入口 | 逐年度使用 official program / publisher / DBLP fallback |
 | DBLP venue page | [DBLP ICPC stream](https://dblp.org/streams/conf/iwpc) |
@@ -50,9 +50,9 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [ICPC official site](https://www.program-comprehension.org/)；[researchr ICPC series](https://conf.researchr.org/series/icpc) | 年度独立站点 / researchr / 官方组织站点并行 | `2026-06-05 17:35` |
-| Latest year homepage | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | 未公布年度写 `⏳ 已检索未公布` | `2026-06-05 17:35` |
-| CFP / Call for Papers | 见 §6 年度信息汇总 | track 分散时在年度 README 展开 | `2026-06-05 17:35` |
-| Important Dates | 见 §6 年度信息汇总 | researchr dates / official CFP 优先 | `2026-06-05 17:35` |
+| Latest year homepage | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | 2027 已有 official home / venue / tracks，但 CFP / Important Dates 未公布；2028 仍未公布 | `2026-07-13 13:30` |
+| CFP / Call for Papers | 见 §6 年度信息汇总 | 2027 已有 official home / tracks，但 Research Track CFP 未公布；track 分散时在年度 README 展开 | `2026-07-13 13:30` |
+| Important Dates | 见 §6 年度信息汇总 | 2027 Important Dates 未公布；researchr dates / official CFP 优先 | `2026-07-13 13:30` |
 | Submission system | 见 §6 年度信息汇总 | 历史系统可能失效，失效时保留待复核 | `2026-06-05 17:35` |
 | Program / accepted papers | 见 §6 年度信息汇总 | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 见 §6 年度信息汇总 | publisher proceedings 优先，DBLP 仅作 fallback | `2026-06-05 17:35` |
@@ -77,7 +77,7 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟦 已有主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 2027-04-25..2027-04-26 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束 / proceedings 待补 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) | [Important Dates](https://conf.researchr.org/dates/icpc-2026) | [HotCRP](https://icpc2026-technical.hotcrp.com) | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) | 未公布 | ⏳ 已检索未公布 | 2025-10-19 待补时刻 | 2025-10-23 待补时刻 | 2026-01-05 待补时刻 | 2026-04-12..2026-04-13 | 未公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ICPC 2025](https://conf.researchr.org/home/icpc-2025) | [Research Track](https://conf.researchr.org/track/icpc-2025/icpc-2025-research) | [Important Dates](https://conf.researchr.org/dates/icpc-2025) | [HotCRP](https://icpc2025-technical.hotcrp.com) | [Research Track](https://conf.researchr.org/track/icpc-2025/icpc-2025-research) | [DBLP 2025](https://dblp.org/db/conf/iwpc/icpc2025.html) | [DBLP 2025](https://dblp.org/db/conf/iwpc/icpc2025.html) | 2024-11-06 待补时刻 | 2024-11-09 待补时刻 | 2025-01-12 待补时刻 | 2025-04-27..2025-04-28 | 59（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ICPC 2024](https://conf.researchr.org/home/icpc-2024) | [Research Track](https://conf.researchr.org/track/icpc-2024/icpc-2024-research) | [Important Dates](https://conf.researchr.org/dates/icpc-2024) | [HotCRP](https://icpc2024.hotcrp.com) | [Research Track](https://conf.researchr.org/track/icpc-2024/icpc-2024-research) | [DBLP 2024](https://dblp.org/db/conf/iwpc/icpc2024) | [DBLP 2024](https://dblp.org/db/conf/iwpc/icpc2024) | 2023-10-30 待补时刻 | 2023-11-03 待补时刻 | 2024-01-10 待补时刻 | 2024-04-15..2024-04-16 | 46（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
@@ -88,7 +88,7 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、industry、tool、journal-first、registered report、artifact、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027` 已出现 [ICPC 2027](https://conf.researchr.org/home/icpc-2027) official home，地点 Dublin, Ireland，会期 `2027-04-25..2027-04-26`，co-located with ICSE 2027；截至 `2026-07-13` 仍未公布 CFP / Important Dates / submission。`2028` 与 `2029+` 已做公开入口检索，未公布年度保留占位与核查记录，不预设 CFP。
 - 本 venue 的 dated events 已按事件发生年份同步到 [../TIMELINE.md](../TIMELINE.md)；后续修改 deadline 必须同步更新年度 README、根表与 Mermaid。
 
 ## 8. TIMELINE.md 同步提示
@@ -102,6 +102,7 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新 ICPC：确认 2026 已结束；升级 2027 official home / venue / 会期占位，CFP 与 Important Dates 仍未公布；复查 2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

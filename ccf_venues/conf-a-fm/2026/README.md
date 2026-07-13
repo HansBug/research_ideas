@@ -1,6 +1,6 @@
 # FM 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,9 +23,9 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/fm-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/fm-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/fm-2026) | 官方会期 `2026-05-18..2026-05-22` 已结束 | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) | 官方 CFP / dates 已复查；历史投稿窗口已关闭 | `2026-07-13 19:13:21` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/fm-2026) | 官方 important dates 已复查；本年度仅作归档记录 | `2026-07-13 19:13:21` |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=fm2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/fm-2026/program-fm-2026/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Proceedings | [Proceedings](https://link.springer.com/book/10.1007/978-3-032-26204-2) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
@@ -68,9 +68,9 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/fm-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/fm-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/fm-2026) | `2026-07-13 19:13:21` | 已复核本年度已结束；会期 `2026-05-18..2026-05-22`。 |
+| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) | `2026-07-13 19:13:21` | 已复核，历史投稿窗口已关闭；不作为当前机会。 |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/fm-2026) | `2026-07-13 19:13:21` | 已复核，日期仅作归档；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=fm2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/fm-2026/program-fm-2026/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Proceedings | [Proceedings](https://link.springer.com/book/10.1007/978-3-032-26204-2) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
@@ -91,4 +91,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 FM 2026 official home / CFP / dates，确认本年度已结束且无当前投稿机会。 |
 | `2026-06-05 09:15` | PR-3 初始化 FM 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

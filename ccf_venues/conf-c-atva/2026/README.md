@@ -1,6 +1,6 @@
 # ATVA 2026 README
 
-> 信息更新时间：`2026-06-05 10:04`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ 已检索未公布 | [ATVA official site](https://atva-conference.org/) 只是 series/main site，不得冒充 2026 年度主页 | `2026-06-05 10:04` |
+| 官方年度主页 | ⏳ 已检索未公布 | 2026-07-13 复查：[ATVA official site](https://atva-conference.org/) 只是 series/main site，仍不得冒充 2026 年度主页 | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Important Dates | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -52,7 +52,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/atva/index.html) |
-| 计数口径 | 截至 2026-06-05 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。 |
+| 计数口径 | 截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -65,12 +65,13 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | ⏳ 已检索未公布 | `2026-06-05 10:04` | 未检索到独立 ATVA 2026 年度主页；[ATVA official site](https://atva-conference.org/) 仅作为 series/main site 与后续复查入口。 |
+| 官方年度主页 / CFP / dates 复查 | [ATVA official site](https://atva-conference.org/) | `2026-07-13 19:11:00` | 未发现 ATVA 2026 official edition 主页、CFP 或 important dates；series/main site 不升级为年度事实。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/atva/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
 
 - 命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
-- 截至 2026-06-05 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
+- 截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -83,5 +84,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 ATVA official site 仍无 2026 edition 官方主页 / CFP / important dates，继续保留占位。 |
 | `2026-06-05 10:04` | 修正 ATVA official site 的定位：仅作 series/main site，不再写成 ATVA 2026 官方年度主页；保留 ATVA 2026 年页 / CFP / dates 已检索未公布结论。 |
 | `2026-06-05 09:15` | PR-3 初始化 ATVA 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

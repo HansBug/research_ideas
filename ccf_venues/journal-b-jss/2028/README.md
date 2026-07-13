@@ -1,6 +1,6 @@
 # JSS 2028 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -85,4 +85,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：未发现 JSS 2028 官方年度卷期、DBLP 年度页或 active dated CFP；保守维持 rolling + 已检索未公布口径。 |
 | `2026-06-05 17:21` | 初始化 JSS 2028 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

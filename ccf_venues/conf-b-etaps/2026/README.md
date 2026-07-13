@@ -1,6 +1,6 @@
 # ETAPS / TACAS 2026 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -80,8 +80,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| ETAPS umbrella 年度主页 | [ETAPS 2026](https://etaps.org/2026/) | `2026-06-04 21:10` | 已核验年度主页链接可访问。 |
-| 官方 CFP / Dates | [CFP / Dates](https://etaps.org/2026/cfp/) | `2026-06-04 21:10` | 已按给定官方证据记录 TACAS 相关日期。 |
+| ETAPS umbrella 年度主页 | [ETAPS 2026](https://etaps.org/2026/) | `2026-07-13 13:30` | 已复查年度主页链接；ETAPS 2026 已结束。 |
+| 官方 CFP / Dates | [CFP / Dates](https://etaps.org/2026/cfp/) | `2026-07-13 13:30` | 已按官方 CFP / dates 记录 TACAS 相关日期；本轮只更新阶段复查，不改历史 deadline。 |
 | TACAS 分会页 | [TACAS 2026](https://etaps.org/2026/conferences/tacas/) | `2026-06-04 21:10` | 已核验 TACAS track 链接可访问。 |
 | Submission system | [EasyChair TACAS 2026](https://easychair.org/conferences/?conf=tacas26) | `2026-06-04 21:10` | EasyChair 链接可访问但会重定向到登录页。 |
 | 官方论文名录 / proceedings | [Program / Proceedings](https://etaps.org/2026/programme/) | `2026-06-04 21:10` | 年度 proceedings 专页未单独给定；使用 ETAPS 官方 proceedings 总说明页与 DBLP TACAS 年度页作为索引/核验入口。 |
@@ -98,5 +98,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：复查 ETAPS/TACAS 2026 已结束；保留既有 CFP / dates 与 proceedings 待补口径。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ETAPS / TACAS 2026 年度 README，区分 ETAPS umbrella 与 TACAS 分会。 |

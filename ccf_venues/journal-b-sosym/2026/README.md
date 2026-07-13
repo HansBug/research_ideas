@@ -1,6 +1,6 @@
 # SoSyM 2026 README
 
-> 信息更新时间：`2026-06-04 22:31`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:21:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) |
 | Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym)；online submission system 将变更，以最新 submission guidelines 为准 |
-| Special issues / topical collections | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) |
+| Special issues / topical collections | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) |
 | Articles in press / online first | [SoSyM online](https://www.sosym.org/online/) |
 | DBLP 年度页 | [DBLP SoSyM Volume 25](https://dblp.org/db/journals/sosym/sosym25.html) |
 | 当前年度状态 | 🟡 专刊征稿 |
@@ -25,7 +25,7 @@
 | Journal homepage | [Springer SoSyM](https://link.springer.com/journal/10270) | [SoSyM official site](https://www.sosym.org/) 作补充 | `2026-06-04 21:15` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines) | [SoSyM submission notes](https://www.sosym.org/submission/) | `2026-06-04 21:15` |
 | Submission system | [SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | Industry 5.0 CFP 提到 submission system 变更，具体提交细节需以最新 submission guidelines 或 CFP 更新为准 | `2026-06-04 21:15` |
-| Special issue / topical collection CFP | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | [SoSyM theme sections](https://www.sosym.org/theme_sections) 作交叉核验 | `2026-06-04 21:15` |
+| Special issue / topical collection CFP | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) | [SoSyM theme sections](https://www.sosym.org/theme_sections) 作交叉核验 | `2026-07-13 19:21:00` |
 | Volume / issue archive | [Volume 25, Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1) | Springer 年度卷期入口；2026 仍进行中 | `2026-06-04 21:15` |
 | Articles in press / online first | [SoSyM online](https://www.sosym.org/online/) | Online first 与正式卷期可能跨年 | `2026-06-04 21:15` |
 | Annual article list / publisher search | [Springer SoSyM articles](https://link.springer.com/journal/10270) | 待按卷期过滤 | `2026-06-04 21:15` |
@@ -43,8 +43,8 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Theme Section: Software and Systems Modeling in Industry 5.0 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | 2026-07-15 待补时刻 | 🟡 专刊征稿 | Springer collection；[SoSyM theme sections](https://www.sosym.org/theme_sections) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Springer 仅给日期，未给具体时刻；另有 2026-02-15 intent（✅ 已过去）与 2026-10-15 notification。 |
-| Theme Section: Engineering of Digital Twins | [rolling theme section](https://www.sosym.org/edtconf_journal_first/) | 滚动投稿 | 🟢 滚动开放 | SoSyM official site | 仅入 rolling / 待补记录 | 和 Industry 5.0 是不同条目；EDTConf'26 相关日期只表示若希望会议展示的目标节点，不写成普通 SoSyM 截稿。 |
+| Theme Section: Software and Systems Modeling in Industry 5.0 | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf) | Submission: 2026-07-15 待补时刻；Notification: 2026-10-15 待补时刻 | 🟡 专刊征稿 | [Springer collection](https://link.springer.com/collections/hhibjbacdf)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | 已有历史同步；本轮未改全局 TIMELINE | Springer 仅给日期，未给具体时刻；另有 2026-02-15 intent（✅ 已过去）。截至 2026-07-13 仍在 submission deadline 前。 |
+| Theme Section: Engineering of Digital Twins | [rolling theme section](https://www.sosym.org/edtconf_journal_first/) | 滚动投稿 | 🟢 滚动开放 | [SoSyM official site](https://www.sosym.org/edtconf_journal_first/) | 仅入 rolling / 待补记录 | Ongoing rolling theme；和 Industry 5.0 是不同条目；EDTConf'26 相关日期只表示若希望会议展示的目标节点，不写成普通 SoSyM 截稿。 |
 
 ## 5. 年度论文入口与数量
 
@@ -68,14 +68,14 @@
 |---|---|---|---|
 | 期刊主页 | [Springer SoSyM](https://link.springer.com/journal/10270)；[SoSyM official site](https://www.sosym.org/) | `2026-06-04 21:15` | 官方/出版商入口可用。 |
 | Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10270/submission-guidelines)；[SoSyM Manuscript Central](https://mc.manuscriptcentral.com/sosym) | `2026-06-04 21:15` | 投稿入口与指南可用；Manuscript Central 直链已记录，但 Industry 5.0 CFP 明确提示 SoSyM online submission system 将变更，需以最新 submission guidelines 或 CFP 更新为准。 |
-| Special issue / topical collection | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-06-04 21:15` | Industry 5.0 submission deadline 为 2026-07-15；Digital Twins 是独立 rolling theme section，不与 Industry 5.0 合并。 |
+| Special issue / topical collection | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/)；[SoSyM theme sections](https://www.sosym.org/theme_sections) | `2026-07-13 19:21:00` | Industry 5.0 submission deadline 为 2026-07-15，notification 为 2026-10-15，官方仅给日期；Digital Twins 是 independent ongoing rolling theme section，不与 Industry 5.0 合并。 |
 | Volume / issue / online first | [Volume 25, Issue 1](https://link.springer.com/journal/10270/volumes-and-issues/25-1)；[SoSyM online](https://www.sosym.org/online/) | `2026-06-04 21:15` | Springer 年度卷期入口可用，2026 仍进行中。 |
 | DBLP fallback | [DBLP SoSyM Volume 25](https://dblp.org/db/journals/sosym/sosym25.html) | `2026-06-04 21:15` | 可作年度 baseline；2026 仍可能更新。 |
 
 ## 8. TIMELINE.md 同步提示
 
 - 常规 rolling submission 不进入 dated Mermaid。
-- Industry 5.0 theme section 的 2026-07-15 submission deadline 已进入 [../../TIMELINE.md](../../TIMELINE.md) 的 2026 年度事件表和 Mermaid Gantt。
+- Industry 5.0 theme section 的 2026-07-15 submission deadline 已有历史同步记录；本轮按分工未修改 [../../TIMELINE.md](../../TIMELINE.md)。
 - Digital Twins rolling theme section 只进入 [../../TIMELINE.md](../../TIMELINE.md) rolling / 待补记录；EDTConf'26 目标日期不进入主 dated event。
 
 ## 9. 更新日志
@@ -84,6 +84,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:21:00` | 常态化刷新：确认 Industry 5.0 submission 2026-07-15 / notification 2026-10-15 仍为官方日期但待补时刻；Digital Twins 为 ongoing rolling theme section。 |
 | `2026-06-04 22:31` | 根据 deepseek reviewer 修复后复审意见，将 Industry 5.0 的 2026-02-15 intent 节点显式标为已过去，与 TIMELINE.md 状态口径对齐。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 补充 Industry 5.0 CFP 提到的 SoSyM online submission system 将变更的 caveat。 |

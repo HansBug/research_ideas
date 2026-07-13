@@ -1,6 +1,6 @@
 # Automated Software Engineering Journal 2026 README
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 期刊主页 | [Springer Automated Software Engineering](https://link.springer.com/journal/10515) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10515/submission-guidelines) |
 | Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) |
-| Special issues / topical collections | [Springer collections](https://link.springer.com/journal/10515/collections) |
+| Special issues / topical collections | [Springer collections](https://link.springer.com/journal/10515/collections)：Green and Sustainable Software；Genetic Improvement；Reproducibility @ SANER；Low-Code Modeling；Ex-ASE；Q-SE；Interplay of ASE and Software-Intensive Business；Code Review Quality；Trustworthy LLM；SBSE in LLMs/Agents；APSEC collection |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) |
 | DBLP 年度页 | [DBLP Vol. 33](https://dblp.org/db/journals/ase/ase33.html) |
 | 当前年度状态 | 🟡 滚动开放 / 多个 collection open |
@@ -25,7 +25,7 @@
 | Journal homepage | [Springer ASE Journal](https://link.springer.com/journal/10515) | 与 ASE 会议消歧 | `2026-06-07 12:47` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10515/submission-guidelines) | rolling 常规投稿 | `2026-06-07 12:47` |
 | Submission system | [Springer Nature submission](https://submission.nature.com/new-submission/10515/3) | 登录 / article type routing 已检索未获可审计证据 | `2026-06-07 12:47` |
-| Special issue / topical collection CFP | [Springer collections](https://link.springer.com/journal/10515/collections) | Ex-ASE；Low-Code Modeling；Reproducibility @ SANER；Interplay ASE/business；Code review quality；SBSE in LLMs/Agents | `2026-06-07 12:47` |
+| Special issue / topical collection CFP | [Springer collections](https://link.springer.com/journal/10515/collections) | 本轮只列公开、非 invite-only 且直接相关的 collection；排除 selected-paper / invite-only / 弱相关旁支 | `2026-07-13 19:10` |
 | Volume / issue archive | [Vol. 33 Issue 1](https://link.springer.com/journal/10515/volumes-and-issues/33-1) | future 年度未公布时不预设 | `2026-06-07 12:47` |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) | continuous article publishing | `2026-06-07 12:47` |
 | DBLP 年度页 | [DBLP Vol. 33](https://dblp.org/db/journals/ase/ase33.html) | bibliographic fallback，不等于 publisher final count | `2026-06-07 12:47` |
@@ -42,12 +42,17 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Explainability in Automated Software Engineering (Ex-ASE) | [Springer collection](https://link.springer.com/collections/edfceadhdg) | 2026-06-30 待补时刻 | Open | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2026 TIMELINE | 与 LLM-generated artifact explainability / review 相关。 |
-| Reproducibility Studies and Negative Results @ SANER | [Springer collection](https://link.springer.com/collections/jdacgeggca) | 2026-08-15 待补时刻 | Open | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2026 TIMELINE | P4 / empirical validation 相关；collection 边界待详情页复核。 |
-| Low-Code Development - Architecture, Design, and Modeling | [Springer collection](https://link.springer.com/collections/eefheafjba) | 2026-09-01 待补时刻 | Open | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2026 TIMELINE | P1 强到中；模型 / 架构 / 低代码相关。 |
-| Interplay of Automated Software Engineering and Software-Intensive Business | [Springer collection](https://link.springer.com/collections/geiadeefdd) | 2026-09-30 待补时刻 | Open | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2026 TIMELINE | P1/P4 中；偏 adoption / business context。 |
-| Intelligent Techniques for Automated Code Review and Software Quality Evaluation | [Springer collection](https://link.springer.com/collections/jjgcbecced) | 2026-10-01 待补时刻 | Open | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2026 TIMELINE | P2/P4 强，P1 中；与 review / quality evaluation / judge 相关。 |
-| Search-Based Software Engineering in the Era of LLMs and Agentic Systems | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 2026-07-15 open；2027-01-30 deadline | Upcoming | [Springer collections](https://link.springer.com/journal/10515/collections) | open 与 deadline 已同步 | P1/P4 强，P2 中到强。 |
+| Green and Sustainable Software | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 2026-07-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P3/P4 中；energy / sustainability evidence 相关。 |
+| Genetic Improvement of Software | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 2026-07-31 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P4 强；自动修复 / search-based improvement 相关。 |
+| Reproducibility Studies and Negative Results @ Software Analysis, Evolution and Reengineering | [Springer collection](https://link.springer.com/collections/jdacgeggca) | 2026-08-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jdacgeggca) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 公开征稿；P4 / empirical validation 相关。 |
+| Low-Code Development - Architecture, Design, and Modeling | [Springer collection](https://link.springer.com/collections/eefheafjba) | 2026-09-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/eefheafjba) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1 强到中；模型 / 架构 / 低代码相关。 |
+| Explainability in Automated Software Engineering (Ex-ASE) | [Springer collection](https://link.springer.com/collections/edfceadhdg) | 2026-09-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/edfceadhdg) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 与 LLM-generated artifact explainability / review 相关。 |
+| Quantum Software Engineering (Q-SE 2026) | [Springer collection](https://link.springer.com/collections/biiifjacaf) | 2026-09-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/biiifjacaf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 公开 original contributions；selected Q-SE workshop papers 也可扩展投稿。 |
+| The Interplay of Automated Software Engineering and Software-Intensive Business | [Springer collection](https://link.springer.com/collections/geiadeefdd) | 2026-09-30 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/geiadeefdd) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 明确向 broader international community 开放 original submissions。 |
+| Intelligent Techniques for Automated Code Review and Software Quality Evaluation | [Springer collection](https://link.springer.com/collections/jjgcbecced) | 2026-10-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jjgcbecced) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P2/P4 强，P1 中；与 review / quality evaluation / judge 相关。 |
+| Special Issue on Software Engineering for and with Trustworthy Large Language Models | [Springer collection](https://link.springer.com/collections/bhgdidaibi) | 2026-12-31 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/bhgdidaibi) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1/P2/P4 强；LLM trustworthiness 与评测相关。 |
+| Search-Based Software Engineering in the Era of LLMs and Agentic Systems | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 2026-07-15 待补时刻（submissions open）；2027-01-30 待补时刻（deadline） | Upcoming / 跨年 | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1/P4 强，P2 中到强。 |
+| Asia-Pacific Software Engineering Conference collection | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 2026-12-15 待补时刻（submissions open）；2027-03-12 待补时刻（deadline） | Upcoming / 跨年 | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 公开 original research 征稿；不是 ASE Journal 常规 deadline。 |
 
 ## 5. 年度论文入口与数量
 
@@ -70,6 +75,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 2026 常态化复查 | [Springer collections](https://link.springer.com/journal/10515/collections) | `2026-07-13 19:10` | 仅将公开、非 invite-only 且直接相关的 collection 作为通用机会；selected-paper / invite-only / 弱相关旁支不列为当前机会。 |
 | Springer homepage | [Springer ASE Journal](https://link.springer.com/journal/10515) | `2026-06-07 12:47` | 官方期刊入口已定位。 |
 | Springer collections | [Collections](https://link.springer.com/journal/10515/collections) | `2026-06-07 12:47` | project-relevant dated collections 已按年度维护；弱相关 CFP 未纳入 watchlist。 |
 | DBLP fallback | [DBLP ASE Journal](https://dblp.org/db/journals/ase/index.html) | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
@@ -84,4 +90,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：按官方 Springer collections 更新 2026 open / upcoming special issue 窗口，并排除 invite-only / selected-paper / 弱相关旁支。 |
 | `2026-06-07 12:47` | 初始化 ASE Journal 2026 年度 README，记录 rolling / collection / volume / DBLP fallback 与 TIMELINE 同步口径。 |

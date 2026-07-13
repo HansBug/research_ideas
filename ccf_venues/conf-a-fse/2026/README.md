@@ -1,6 +1,6 @@
 # FSE 2026 README
 
-> 信息更新时间：`2026-06-06 13:16`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,13 +17,13 @@
 | Program / accepted papers | [FSE Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) |
 | Proceedings | 未公布；PACMSE Issue FSE 2026 由 Research Papers track 说明 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 已通知 / 会前 |
+| 当前阶段状态 | ✅ 已结束 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 官方年度入口；未公布年度不伪造 | `2026-06-05 08:39` |
+| 年度主页 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | 官方会期 `2026-07-05..2026-07-09` 已结束 | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | FSE/ISSTA 主 research / technical papers track；缺失写未公布或待补 | `2026-06-05 08:39` |
 | Important Dates | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | 通常与 CFP 同页 | `2026-06-05 08:39` |
 | Submission system | [HotCRP](https://fse2026.hotcrp.com/) | 若历史 HotCRP 不稳定，后续复核 | `2026-06-05 08:39` |
@@ -74,7 +74,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | `2026-06-05 08:39` | PACMSE Issue FSE 2026 是主 Research Papers 出版口径，不额外重复计数。 |
+| 官方年度主页 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | `2026-07-13 19:13:21` | 会期 `2026-07-05..2026-07-09` 已结束；PACMSE Issue FSE 2026 是主 Research Papers 出版口径，不额外重复计数。 |
 | 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | `2026-06-06 13:16` | 主 submission / notification / camera-ready 已按可访问页面记录；缺失字段显式待补。 |
 | 官方论文名录 / proceedings | [FSE Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/)；未公布；PACMSE Issue FSE 2026 由 Research Papers track 说明 | `2026-06-05 08:39` | 官方 program / proceedings 优先；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:39` | DBLP 仅作论文名录与数量 fallback。 |
@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 FSE 2026 official home，确认会期已结束，当前阶段改为 `✅ 已结束`。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：补齐 FSE 2026 Research Papers 官方 camera-ready 日期 `2026-04-23`。 |
 | `2026-06-05 08:39` | 初始化 FSE 2026 年度 README 草稿。 |

@@ -1,6 +1,6 @@
 # JSEP 2026 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -43,7 +43,7 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| 无已知 active dated CFP | 待补或无已知 active CFP | 未公布 | 🟡 rolling 候选 / 已检索未获可审计证据 | ⏳ 已检索未公布 | 不适用 | DBLP 当前未显示 Volume 38；Wiley 页面未获公开可审计正文。 |
+| 无已知 active dated CFP | 待补或无已知 active CFP | 未公布 | 🟡 rolling 候选 / 已检索未获可审计证据 | ⏳ 已检索未公布 | 不适用 | 2026-07-13 复查：未核到公开、active、dated CFP；Wiley 页面未获公开可审计正文。 |
 
 ## 5. 年度论文入口与数量
 
@@ -67,6 +67,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 2026 常态化复查 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481)；[Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html)；[DBLP JSEP](https://dblp.org/db/journals/smr/) | `2026-07-13 19:10` | 常规 rolling；未核到 active dated CFP；Wiley 官方页面仍需浏览器人工复核。 |
 | Wiley 官方主页 | [Wiley JSEP](https://onlinelibrary.wiley.com/journal/20477481) | `2026-06-05 17:35` | CLI WAF/403；保留官方入口，未获公开可审计正文。 |
 | Author guidelines / submission | [Wiley for authors](https://onlinelibrary.wiley.com/hub/journal/20477481/homepage/forauthors.html) / [ScholarOne / Manuscript Central candidate](https://mc.manuscriptcentral.com/jsme) | `2026-06-05 17:35` | 候选入口已记录；当前性待核验。 |
 | Volume / issue / Current issue candidate | ⏳ 已检索未公布 / [Wiley current issue candidate（Early View 待定位）](https://onlinelibrary.wiley.com/journal/20477481/currentissue) | `2026-06-05 17:35` | DBLP 可见年度作为 fallback；Wiley 正文未获公开可审计正文。 |
@@ -89,5 +90,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：确认 JSEP 2026 rolling 投稿口径，无可核验 active dated CFP；保留 Wiley WAF/403 与 ScholarOne 当前性 caveat。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：降级 Wiley rolling 投稿为候选口径，并将 current issue 与 Early View / articles in press 入口明确分离。 |
 | `2026-06-05 17:35` | PR-6 初始化 JSEP 2026 年度 README，记录 Wiley / DBLP 核心入口、投稿节奏、special issue 线索与 DBLP entry article baseline。 |

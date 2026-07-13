@@ -1,6 +1,6 @@
 # ICST README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ ICST 聚焦软件测试、验证、验证与验证确认、tool competition、in
 |---|---|---|---|
 | Series / main site | [ICST official pages on researchr](https://conf.researchr.org/series/icst) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP ICST index](https://dblp.org/db/conf/icst/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造 | `2026-06-05 09:15` |
+| 最新年度入口 | [ICST 2027](https://conf.researchr.org/home/icst-2027) / [Important Dates](https://conf.researchr.org/dates/icst-2027) | Research Papers dates 已公布；2028/2029+ 已复查未见官方年度信息 | `2026-07-13 10:27:51` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -71,7 +71,7 @@ ICST 聚焦软件测试、验证、验证与验证确认、tool competition、in
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICST index](https://dblp.org/db/conf/icst/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟦 已有会期主页 | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 未公布 | [Important Dates](https://conf.researchr.org/dates/icst-2027) | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/icst/index.html) | 未公布 | 未公布 | 未公布 | 2027-05-17..2027-05-21 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 投稿中 | [ICST 2027](https://conf.researchr.org/home/icst-2027) | [Research Papers](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) | [Important Dates](https://conf.researchr.org/dates/icst-2027) | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/icst/index.html) | 未公布 | 2026-11-02 待补时刻 AoE | 2026-12-22 待补时刻 AoE（initial notification） | 2027-05-17..2027-05-21 | 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束/待 proceedings | [ICST 2026](https://conf.researchr.org/home/icst-2026) | [CFP](https://conf.researchr.org/track/icst-2026/icst-2026-research) | [Important Dates](https://conf.researchr.org/dates/icst-2026) | 未公布 | [Program / Accepted](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | 未公布 | [DBLP](https://dblp.org/db/conf/icst/index.html) | 未公布 | 2025-12-22 待补时刻 | 2026-02-20 待补时刻 | 2026-05-18..2026-05-22 | Research track count 待拆；DBLP series-wide 不作主会数 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ICST 2025](https://conf.researchr.org/home/icst-2025) | 未公布 | 未公布 | 未公布 | [Program / Accepted](https://conf.researchr.org/program/icst-2025/program-icst-2025/) | 未公布 | [DBLP](https://dblp.org/db/conf/icst/icst2025.html) | 未公布 | 未公布 | 未公布 | 2025-03-31..2025-04-04 | DBLP series-wide；research track 待拆 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ICST 2024](https://conf.researchr.org/home/icst-2024) | 未公布 | 未公布 | 未公布 | [Program / Accepted](https://conf.researchr.org/program/icst-2024/program-icst-2024/) | 未公布 | [DBLP](https://dblp.org/db/conf/icst/icst2024.html) | 未公布 | 未公布 | 未公布 | 2024-05-27..2024-05-31 | DBLP series-wide；research track 待拆 | 🟡 部分核验 |
@@ -82,9 +82,9 @@ ICST 聚焦软件测试、验证、验证与验证确认、tool competition、in
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 已于 2026-07-13 做公开入口复查；未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ICST 2028 官方年页。
-- 2027 计数口径：已核验 home/dates shell；Research track / CFP 未公布，不写 submission。
+- 2027 计数口径：已核验 ICST 2027 Research Papers official dates；submission / notification / camera-ready 官方仅给日期与 AoE，论文数量未公布。
 - 2026 计数口径：官方 dates/program 强 track 化；Research / Industry / Short / Workshops / Tool competitions 不混算。
 - 2025 计数口径：DBLP 年度页是 series-wide fallback，不能与主会 research 论文数横比。
 
@@ -100,6 +100,7 @@ ICST 聚焦软件测试、验证、验证与验证确认、tool competition、in
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新 ICST 2026/2027：确认 2026 已结束，升级 2027 Research Papers official dates；2028/2029+ 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

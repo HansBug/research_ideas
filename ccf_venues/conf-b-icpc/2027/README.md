@@ -1,6 +1,6 @@
 # ICPC 2027 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -9,23 +9,23 @@
 | Venue | ICPC |
 | 年份 | `2027` |
 | 本库目录 | `ccf_venues/conf-b-icpc/2027/` |
-| 地点 | 未公布 |
-| 官方年度主页 | ⏳ 已检索未公布 |
+| 地点 | Dublin, Ireland |
+| 官方年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 已检索未公布 |
+| 当前阶段状态 | 🟦 已有主页 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ 已检索未公布 | 未公布时写 `⏳ 已检索未公布`，不伪造 URL | `2026-06-05 17:35` |
-| CFP / Call for Papers | 未公布 | track 分散时逐 track 补链接 | `2026-06-05 17:35` |
-| Important Dates | 未公布 | 官方仅给日期时写 `待补时刻` | `2026-06-05 17:35` |
+| 年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | official home 已公布；CFP / Important Dates 未公布 | `2026-07-13 13:30` |
+| CFP / Call for Papers | 未公布 | track 分散时逐 track 补链接；当前仅有 track 导航，无 CFP 日期 | `2026-07-13 13:30` |
+| Important Dates | 未公布 | 官方仅给日期时写 `待补时刻`；当前未公布 deadline | `2026-07-13 13:30` |
 | Submission system | 未公布 | 历史入口失效时保留待复核说明 | `2026-06-05 17:35` |
 | Tracks / program | 未公布 | Research Track；ERA / RENE / Tool / Journal First 需分开 | `2026-06-05 17:35` |
 | Accepted papers / paper list | 未公布 | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
@@ -41,7 +41,7 @@
 | Rebuttal / response | 待补或不适用 | 未公布 | ⏳ 已检索未公布 | 只在官方明确给出时同步到 TIMELINE。 |
 | Notification | 未公布 | 未公布 | ⏳ 已检索未公布 | 官方仅给日期时具体时刻待补。 |
 | Camera-ready | 未公布 | 未公布 | ⏳ 已检索未公布 | 官方未公布时写 TBD / 未公布，不预设。 |
-| Conference dates | 未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未检到官方年度页 / CFP / dates / DBLP 年页。 |
+| Conference dates | 2027-04-25..2027-04-26 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | 官方 home 给出会期、Dublin, Ireland、co-located with ICSE 2027；CFP / deadline 未公布。 |
 
 ## 4. Tracks / 口径边界
 
@@ -72,8 +72,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ 已检索未公布 | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
-| 官方 CFP / Dates | 未公布 | `2026-06-05 17:35` | 已提取 main / research track 核心日期；具体时刻仍待补。 |
+| 官方年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | `2026-07-13 13:30` | official home 已公布；会期 `2027-04-25..2027-04-26`，Dublin, Ireland。 |
+| 官方 CFP / Dates | 未公布 | `2026-07-13 13:30` | 未发现 Research Track CFP / Important Dates；不预设 submission / notification。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 
@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：升级 ICPC 2027 official home、地点与会期；CFP / Important Dates / submission 仍未公布。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 ICPC 2027 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |
