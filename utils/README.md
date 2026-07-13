@@ -154,6 +154,8 @@ Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 sys
 
 结构化结果直接通过 `create_agent(response_format=YourSchema)` 交给 LangGraph；由 LangGraph AutoStrategy 按模型能力选择 provider-native structured output 或官方 tool-calling fallback。运行时不把普通 assistant 文本自行 `json.loads` 成结果，也不为某个 provider 另写一套结构化后处理；provider 不支持或返回无效结构时保留原始失败诊断。
 
+官方 tool-calling fallback 的 schema 校验重试由 LangGraph 自己管理；默认不额外加隐藏重试上限，以保持“未配置预算就不限制”的契约。需要为不兼容 provider 设置止损时，显式传 `limits`（例如 `model_calls` 或 `seconds`），失败结果会保留 `structured_output_invalid`/provider 诊断和 audit `finish`。
+
 终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。每个 tool Panel 都明确标出 `name`、`tool_call_id`、`status`、`arguments`，结果 Panel 还标出 `result`；工具异常会标出安全的 `error`，DEBUG 时补充异常类型和 provider request id 等诊断字段。
 
 运行时不会改写、追加或重排调用方提供的 `system_prompt` 和任务输入。若实验需要可见的计算步骤、依据、工具结果或总结，直接把要求写进调用方自己的 prompt 或输出 schema；框架只展示模型实际返回的内容，不生成或猜测隐藏思维链。`model_started.data.prompt` 和 Rich 的 MODEL INPUT 面板会展示经过脱敏的可见输入，这是实时观察契约的一部分；学术审计同样只保存脱敏后的上下文事实。
