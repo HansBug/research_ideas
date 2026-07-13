@@ -10,6 +10,7 @@ from utils.agent.runtime import (
     _normalize_context,
     _validate_model_options,
 )
+from utils.llm import LLMConfig
 
 
 def test_context_hash_is_verified_and_manifest_is_stable() -> None:
@@ -49,3 +50,27 @@ def test_agent_spec_tools_are_the_registration_allowlist() -> None:
 
     spec = AgentSpec(name="test", system_prompt="use the tool", tools=(lookup,))
     assert spec.tool_names == ("lookup",)
+
+
+def test_think_off_pins_official_reasoning_defaults() -> None:
+    from utils.agent.runtime import _resolve_inference_options
+
+    openai_config = LLMConfig(model="gpt-5.5", base_url="https://api.openai.com/v1")
+    options, enabled = _resolve_inference_options(
+        openai_config,
+        model_call_options=None,
+        think_mode=False,
+        reasoning_effort=None,
+    )
+    assert enabled is False
+    assert options["reasoning_effort"] == "none"
+
+    deepseek_config = LLMConfig(model="deepseek-v4-flash", base_url="https://api.deepseek.com")
+    options, enabled = _resolve_inference_options(
+        deepseek_config,
+        model_call_options=None,
+        think_mode=False,
+        reasoning_effort=None,
+    )
+    assert enabled is False
+    assert options["extra_body"] == {"thinking": {"type": "disabled"}}

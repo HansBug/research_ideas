@@ -193,6 +193,7 @@ def test_demo_forwards_only_explicit_limits(monkeypatch: pytest.MonkeyPatch) -> 
 
     class App:
         def run(self, *_args: object, **kwargs: object) -> Result:
+            captured["input"] = _args[0]
             captured["run"] = kwargs
             return Result()
 
@@ -205,6 +206,8 @@ def test_demo_forwards_only_explicit_limits(monkeypatch: pytest.MonkeyPatch) -> 
     with pytest.raises(Exception):
         demo.cli.main(args=["--renderer", "quiet"], standalone_mode=False)
     assert captured["spec"].limits == {}
+    assert captured["input"] == "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。"
+    assert "51.25" not in captured["spec"].system_prompt
 
     captured.clear()
     with pytest.raises(Exception):
@@ -224,6 +227,14 @@ def test_demo_forwards_only_explicit_limits(monkeypatch: pytest.MonkeyPatch) -> 
             standalone_mode=False,
         )
     assert captured["spec"].limits == {"model_calls": 2, "tool_calls": 5, "turns": 3, "seconds": 12.5}
+
+
+def test_demo_expression_tool_supports_numeric_modulo_only() -> None:
+    from utils.agent.demo import _calculate_expression
+
+    assert _calculate_expression("66.083333 % 24")["value"] == pytest.approx(18.083333)
+    with pytest.raises((SyntaxError, ValueError)):
+        _calculate_expression("2026-07-13T14:52:09-04:00 + 51.25 hours")
 
 
 def test_explicit_tool_limit_blocks_before_tool_node() -> None:
@@ -391,6 +402,10 @@ def test_redaction_handles_secret_prefix_case_without_hiding_usage() -> None:
     value = {
         "message": "SK-UPPERCASE12345678 SESS-MixedCase12345678",
         "token_usage": {"prompt_tokens": 7, "completion_tokens": 2},
+        "prompt_tokens_details": {"cached_tokens": 1},
+        "completion_tokens_details": {"reasoning_tokens": 3},
+        "input_token_details": {"cached_tokens": 4},
+        "output_token_details": {"reasoning_tokens": 5},
         "secret_value": "hidden",
         "api_key_value": "hidden-too",
         "password_hash": "hidden-hash",
@@ -402,6 +417,10 @@ def test_redaction_handles_secret_prefix_case_without_hiding_usage() -> None:
     assert "SK-UPPERCASE12345678" not in serialized
     assert "SESS-MixedCase12345678" not in serialized
     assert redacted["token_usage"] == {"prompt_tokens": 7, "completion_tokens": 2}
+    assert redacted["prompt_tokens_details"] == {"cached_tokens": 1}
+    assert redacted["completion_tokens_details"] == {"reasoning_tokens": 3}
+    assert redacted["input_token_details"] == {"cached_tokens": 4}
+    assert redacted["output_token_details"] == {"reasoning_tokens": 5}
     assert redacted["secret_value"] == "[redacted]"
     assert redacted["api_key_value"] == "[redacted]"
     assert redacted["password_hash"] == "[redacted]"

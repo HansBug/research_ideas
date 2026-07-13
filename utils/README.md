@@ -148,7 +148,9 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False, .
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。CLI 对应 `--enable-think` 和 `--reasoning-effort`。模型请求默认 `streaming=True`，也可以在 `model_options` 中显式传入 `{"streaming": False}` 覆盖；YAML 不保存这些单次运行参数。
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。对 OpenAI reasoning model（包括 `gpt-5.5`），运行时按官方 API 显式发送 `reasoning_effort="none"` 来实现默认关闭（OpenAI 文档说明 `gpt-5.5` 默认 effort 为 `medium`）；对 DeepSeek，按官方 OpenAI-compatible API 在 `extra_body.thinking.type` 发送 `disabled/enabled`。CLI 对应 `--enable-think` 和 `--reasoning-effort`。模型请求默认 `streaming=True`，也可以在 `model_options` 中显式传入 `{"streaming": False}` 覆盖；YAML 不保存这些单次运行参数。
+
+官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化结果；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。已展示的 assistant history 不重复打印，完成面板保留一次完整最终结果。
 

@@ -48,7 +48,7 @@ _IDENTITY_KEYS = frozenset(
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
 _USAGE_KEY = re.compile(
-    r"^(?:usage|token[_-]?usage|(?:prompt|completion|input|output|total|cache_read_input|cache_creation_input)[_-]?tokens)$",
+    r"^(?:usage|token[_-]?usage|(?:prompt|completion|input|output|total|reasoning|cached|cache_read_input|cache_creation_input|accepted_prediction|rejected_prediction|audio|text)[_-]?tokens?(?:[_-].*)?)$",
     re.I,
 )
 _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
@@ -224,6 +224,13 @@ def _is_deepseek_config(config: LLMConfig) -> bool:
     return host.endswith("deepseek.com") or config.model.lower().startswith("deepseek-")
 
 
+def _is_openai_reasoning_model(config: LLMConfig) -> bool:
+    """Identify OpenAI reasoning model IDs whose official API accepts ``none``."""
+
+    model = config.model.lower()
+    return not _is_deepseek_config(config) and model.startswith(("gpt-5", "o1", "o3", "o4"))
+
+
 def _resolve_inference_options(
     config: LLMConfig,
     *,
@@ -246,6 +253,11 @@ def _resolve_inference_options(
 
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
+    if not think_mode and _is_openai_reasoning_model(config):
+        # OpenAI documents gpt-5.5's default as medium.  Pin ``none`` for the
+        # framework's explicit think-off default instead of relying on a
+        # provider default that would change the experiment semantics.
+        options["reasoning_effort"] = "none"
     if deepseek and effective_think_mode is not None:
         extra_body = dict(options.get("extra_body") or {})
         thinking = dict(extra_body.get("thinking") or {})

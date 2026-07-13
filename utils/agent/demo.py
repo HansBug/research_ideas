@@ -28,6 +28,7 @@ _OPERATORS = {
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
     ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
     ast.Pow: operator.pow,
     ast.USub: operator.neg,
 }
@@ -75,7 +76,7 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--renderer", type=click.Choice(("auto", "rich", "jsonl", "quiet")), default="rich", show_default=True)
 @click.option("--log-level", type=click.Choice(("DEBUG", "INFO", "WARNING", "ERROR")), default="INFO", show_default=True)
 @click.option("--enable-think", is_flag=True, default=False, help="显式开启模型思考模式；默认关闭。")
-@click.option("--reasoning-effort", type=click.Choice(("low", "medium", "high", "xhigh", "max")), default=None, help="单次推理 effort；不传则使用 provider 默认值。")
+@click.option("--reasoning-effort", type=click.Choice(("none", "low", "medium", "high", "xhigh", "max")), default=None, help="显式开启思考后设置单次 reasoning effort；不传则使用 provider 默认值。")
 @click.option("--max-model-calls", type=click.IntRange(min=1), default=None, help="显式限制模型调用次数；默认不限制。")
 @click.option("--max-tool-calls", type=click.IntRange(min=1), default=None, help="显式限制业务工具调用次数；默认不限制。")
 @click.option("--max-turns", type=click.IntRange(min=1), default=None, help="显式限制模型轮数；默认不限制。")
@@ -108,9 +109,9 @@ def cli(
         """Evaluate a numeric arithmetic expression for the time offset.
 
         Purpose: obtain a reproducible numeric value for the requested offset.
-        Input: expression containing only numbers and +, -, *, /, or **.
+        Input: expression containing only numbers and +, -, *, /, %, or **.
         Output: the original expression, its numeric value, and an evidence ID.
-        Constraint: no names, attributes, function calls, or other Python syntax.
+        Constraint: no names, attributes, function calls, or other Python syntax; % is numeric modulo.
         """
 
         return _calculate_expression(expression)
@@ -141,8 +142,10 @@ def cli(
         system_prompt=(
             "You are a careful tool-using research agent. "
             "Available tools are current_system_time, which returns the local and US Eastern ISO timestamps with an evidence ID, "
-            "and calculate_expression, which evaluates a numeric arithmetic expression and returns its value with an evidence ID. "
-            "Use the available tools when evidence or calculation is needed. After the necessary tool results are available, "
+            "and calculate_expression, which evaluates a numeric arithmetic expression (+, -, *, /, %, **), and returns its value with an evidence ID. "
+            "Use each evidence tool only when its documented input is needed. calculate_expression accepts numeric expressions only: never pass timestamps, prose, units, or datetime arithmetic to it. "
+            "After current_system_time and the numeric calculation are available, do not call another business tool; "
+            "use those results directly to finish. After the necessary tool results are available, "
             "finish through the framework's structured response format with exactly the fields summary, base_time, offset_hours, "
             "target_time, and evidence_ids; do not emit that JSON as ordinary assistant text, and do not repeat a tool call. "
             "summary must include the visible calculation steps and conclusion, and evidence_ids must cite the tool evidence."
