@@ -47,12 +47,24 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     )
     audit = tmp_path / "audit.jsonl"
     result_path = tmp_path / "result.json"
+    events = []
 
-    result = app.run("read", audit_out=audit, result_out=result_path, renderer="quiet")
+    result = app.run("read", audit_out=audit, result_out=result_path, renderer="quiet", on_event=events.append)
 
     assert result.status == "success"
     assert result.academic_eligible is True
     assert result.tool_calls[0]["name"] == "lookup"
+    assert [event.kind for event in events] == [
+        "run_started",
+        "model_started",
+        "model_completed",
+        "tool_started",
+        "tool_completed",
+        "model_started",
+        "model_text",
+        "model_completed",
+        "completed",
+    ]
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
     assert [record["record"] for record in records] == ["context", "decision", "action", "decision", "finish"]
     assert all("heartbeat" not in record for record in records)
@@ -302,15 +314,59 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     renderer.console = Console(file=output, force_terminal=False, color_system=None)
     now = datetime.now(timezone.utc)
     renderer.render(AgentEvent("run-rich", 1, now, "model_started", {"turn": 1, "prompt": "hello"}))
-    renderer.render(AgentEvent("run-rich", 2, now, "structured_output", {"output": {"ok": True}}))
-    renderer.render(AgentEvent("run-rich", 3, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": '{"ok": true}'}))
+    renderer.render(AgentEvent("run-rich", 2, now, "model_text", {"turn": 1, "text": "answer"}))
+    renderer.render(AgentEvent("run-rich", 3, now, "model_completed", {"turn": 1, "tool_count": 0}))
+    renderer.render(AgentEvent("run-rich", 4, now, "structured_output", {"output": {"ok": True}}))
+    renderer.render(AgentEvent("run-rich", 5, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": '{"ok": true}'}))
     rendered = output.getvalue()
     assert "TURN 1 | MODEL INPUT" in rendered
-    assert "MODEL OUTPUT | STRUCTURED RESULT VALIDATED" in rendered
+    assert "MODEL OUTPUT | ASSISTANT" in rendered
+    assert "assistant: answer" not in rendered
     assert "AGENT COMPLETE" in rendered
     assert "SUCCESS" in rendered
     assert "result:" in rendered
     assert rendered.count("{'ok': True}") == 1
+
+
+def test_rich_renderer_preserves_input_output_tool_timing() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "DEBUG", "run-order")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    now = datetime.now(timezone.utc)
+    sequence = [
+        AgentEvent("run-order", 1, now, "model_started", {"turn": 1, "prompt": "user input"}),
+        AgentEvent("run-order", 2, now, "model_completed", {"turn": 1, "tool_count": 1}),
+        AgentEvent("run-order", 3, now, "tool_started", {"name": "probe", "arguments": {}, "tool_call_id": "call-1"}),
+        AgentEvent("run-order", 4, now, "tool_completed", {"name": "probe", "result": {"value": 1}}),
+        AgentEvent("run-order", 5, now, "model_started", {"turn": 2, "prompt": "[tool] {\"value\": 1}"}),
+        AgentEvent("run-order", 6, now, "model_text", {"turn": 2, "text": "answer"}),
+        AgentEvent("run-order", 7, now, "model_completed", {"turn": 2, "tool_count": 0}),
+        AgentEvent("run-order", 8, now, "structured_output", {"output": {"answer": "answer"}}),
+        AgentEvent("run-order", 9, now, "completed", {"model": "gpt-5.5", "output": {"answer": "answer"}, "final_text": '{"answer":"answer"}'}),
+        AgentEvent("run-order", 10, now, "heartbeat", {"elapsed_seconds": 1.0, "attempt_id": "attempt-1"}),
+    ]
+    for event in sequence:
+        renderer.render(event)
+    rendered = output.getvalue()
+    markers = [
+        "TURN 1 | MODEL INPUT",
+        "TURN 1 | MODEL OUTPUT",
+        "MODEL OUTPUT | TOOL CALL",
+        "TOOL RESULT -> NEXT MODEL INPUT",
+        "TURN 2 | MODEL INPUT",
+        "TURN 2 | MODEL OUTPUT",
+        "MODEL OUTPUT | ASSISTANT",
+        "AGENT COMPLETE",
+        "HEARTBEAT",
+    ]
+    positions = [rendered.index(marker) for marker in markers]
+    assert positions == sorted(positions)
+    assert "assistant: answer" not in rendered
+    assert "INFO" not in rendered
+    assert "DEBUG" not in rendered
 
 
 def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:

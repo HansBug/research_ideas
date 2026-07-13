@@ -384,9 +384,15 @@ class _Renderer:
         self._Panel = None
         self._Rule = None
         self._Text = None
+        self._Live = None
+        self._assistant_live = None
+        self._assistant_turn = None
+        self._assistant_text = ""
+        self._output_turn = None
         if mode in {"auto", "rich"}:
             try:
                 from rich.console import Console
+                from rich.live import Live
                 from rich.logging import RichHandler
                 from rich.panel import Panel
                 from rich.rule import Rule
@@ -401,6 +407,7 @@ class _Renderer:
                     self._Panel = Panel
                     self._Rule = Rule
                     self._Text = Text
+                    self._Live = Live
                     self.handler = RichHandler(console=self.console, show_path=False, show_time=False, markup=False)
             except ImportError:
                 self.mode = "jsonl"
@@ -461,12 +468,18 @@ class _Renderer:
         Panel = self._Panel
         Rule = self._Rule
         data = event.data
+        if event.kind == "model_text":
+            self._ensure_model_output_boundary(data.get("turn"))
+            self._render_assistant_text(data)
+            return
+        if event.kind in {"model_started", "model_completed", "completed", "failed"}:
+            self._finish_assistant_text()
         if event.kind == "run_started" and Panel is not None:
             body = Text()
             body.append(f"run_id: {event.run_id}\n", style="dim")
             body.append(f"model: {data.get('model')}\n", style="cyan")
             body.append(f"real_llm: {data.get('real_llm')}")
-            self.console.print(Panel(body, title="[bold white on blue] AGENT RUN [/bold white on blue]", border_style="blue", padding=(0, 1), expand=True))
+            self.console.print(Panel(body, title="AGENT RUN", border_style="blue", padding=(0, 1), expand=True))
             return
         if event.kind == "context_loaded" and Panel is not None:
             body = Text()
@@ -478,13 +491,23 @@ class _Renderer:
             body = Text(f"attempt: {data.get('attempt_id')}\nreplayed actions: {data.get('replayed_actions')}")
             self.console.print(Panel(body, title="CONTEXT ROLLOVER", border_style="yellow", padding=(0, 1), expand=True))
             return
+        if event.kind == "context_failed" and Panel is not None:
+            body = Text()
+            body.append(f"code: {data.get('code')}\n", style="bold red")
+            body.append(f"message: {data.get('message')}")
+            self.console.print(Panel(body, title="CONTEXT ERROR", border_style="red", padding=(0, 1), expand=True))
+            return
+        if event.kind == "heartbeat" and Panel is not None:
+            body = Text(f"elapsed: {data.get('elapsed_seconds', 0):.1f}s\nattempt: {data.get('attempt_id')}", style="dim")
+            self.console.print(Panel(body, title="HEARTBEAT", border_style="dim", padding=(0, 1), expand=True))
+            return
         if event.kind == "model_started" and Rule is not None:
             self.console.print(Rule(f"TURN {data.get('turn')} | MODEL INPUT", style="cyan"))
             prompt = data.get("prompt")
-            if prompt and Panel is not None:
+            if Panel is not None:
                 self.console.print(
                     Panel(
-                        Text(_preview(str(prompt), 12000)),
+                        Text(_preview(str(prompt), 12000) if prompt else "no new messages; history already shown"),
                         title="MODEL INPUT | MESSAGES",
                         border_style="cyan",
                         padding=(0, 1),
@@ -492,12 +515,7 @@ class _Renderer:
                 )
             return
         if event.kind == "model_completed" and Rule is not None:
-            self.console.print(
-                Rule(
-                    f"TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')}",
-                    style="green",
-                )
-            )
+            self._ensure_model_output_boundary(data.get("turn"), data.get("tool_count"))
             return
         if event.kind == "completed" and Panel is not None:
             body = Text()
@@ -529,35 +547,22 @@ class _Renderer:
             self.console.print(
                 Panel(
                     body,
-                    title="[bold white on red] AGENT FAILED [/bold white on red]",
+                    title="AGENT FAILED",
                     border_style="red",
                     padding=(1, 2),
                     expand=True,
                 )
             )
             return
-        if event.kind in {"model_text", "tool_started", "tool_completed", "tool_failed", "structured_output"}:
+        if event.kind == "structured_output":
+            return
+        if event.kind in {"tool_started", "tool_completed", "tool_failed"}:
             prefix_styles = {
-                "model_text": ("MODEL OUTPUT | ASSISTANT: ", "bold cyan"),
                 "tool_started": ("MODEL OUTPUT | TOOL CALL: ", "bold yellow"),
                 "tool_completed": ("TOOL RESULT -> NEXT MODEL INPUT: ", "bold green"),
                 "tool_failed": ("tool error <- ", "bold red"),
-                "structured_output": ("MODEL OUTPUT | STRUCTURED RESULT: ", "bold magenta"),
             }
             prefix, style = prefix_styles[event.kind]
-            if event.kind == "structured_output" and Panel is not None:
-                output = data.get("output")
-                fields = ", ".join(sorted(output)) if isinstance(output, Mapping) else "n/a"
-                self.console.print(
-                    Panel(
-                        Text(f"validated: true\nfields: {fields}"),
-                        title="[bold white on magenta] MODEL OUTPUT | STRUCTURED RESULT VALIDATED [/bold white on magenta]",
-                        border_style="magenta",
-                        padding=(0, 1),
-                        expand=True,
-                    )
-                )
-                return
             if event.kind in {"tool_started", "tool_completed", "tool_failed"} and Panel is not None:
                 if event.kind == "tool_started":
                     tool_body = Text()
@@ -579,9 +584,7 @@ class _Renderer:
                 self.console.print(Panel(tool_body, title=title, border_style=border, padding=(0, 1), expand=True))
                 return
             line = Text(prefix, style=style)
-            if event.kind == "model_text":
-                body = _preview(str(data.get("text", "")), 4000)
-            elif event.kind == "tool_started":
+            if event.kind == "tool_started":
                 body = f"{data.get('name')}({data.get('arguments')}) id={data.get('tool_call_id')}"
             elif event.kind == "tool_completed":
                 body = _preview(str(data.get("result")), 4000)
@@ -592,7 +595,64 @@ class _Renderer:
             line.append(body)
             self.console.print(line)
             return
+        if Panel is not None:
+            self.console.print(
+                Panel(
+                    Text(message),
+                    title=str(event.kind).upper(),
+                    border_style="white",
+                    padding=(0, 1),
+                    expand=True,
+                )
+            )
+            return
         self.logger.log(_level_for_event(event.kind), message)
+
+    def _ensure_model_output_boundary(self, turn: Any, tool_count: Any = None) -> None:
+        if self.console is None or self._Rule is None or self._output_turn == turn:
+            return
+        suffix = f" | tool_count={tool_count}" if tool_count is not None else ""
+        self.console.print(self._Rule(f"TURN {turn} | MODEL OUTPUT{suffix}", style="green"))
+        self._output_turn = turn
+
+    def _assistant_panel(self) -> Any:
+        assert self._Panel is not None
+        assert self._Text is not None
+        return self._Panel(
+            self._Text(_preview(self._assistant_text, 4000)),
+            title="MODEL OUTPUT | ASSISTANT",
+            border_style="cyan",
+            padding=(0, 1),
+            expand=True,
+        )
+
+    def _render_assistant_text(self, data: Mapping[str, Any]) -> None:
+        if self.console is None or self._Panel is None or self._Text is None:
+            return
+        turn = data.get("turn")
+        if self._assistant_turn != turn:
+            self._finish_assistant_text()
+            self._assistant_turn = turn
+            self._assistant_text = ""
+        self._assistant_text += str(data.get("text", ""))
+        if self._Live is None:
+            self.console.print(self._assistant_panel())
+            return
+        if self._assistant_live is None:
+            self._assistant_live = self._Live(self._assistant_panel(), console=self.console, refresh_per_second=10, transient=False)
+            self._assistant_live.start(refresh=True)
+        else:
+            self._assistant_live.update(self._assistant_panel(), refresh=True)
+
+    def _finish_assistant_text(self) -> None:
+        if self._assistant_live is not None:
+            self._assistant_live.update(self._assistant_panel(), refresh=True)
+            self._assistant_live.stop()
+            self._assistant_live = None
+            if self.console is not None:
+                self.console.print()
+        self._assistant_turn = None
+        self._assistant_text = ""
 
     def close(self) -> None:
         if self.handler is not None:
