@@ -129,21 +129,23 @@ class AgentRunResult:
         return self.output
 
     def to_dict(self) -> dict[str, Any]:
-        return _safe_json(
-            {
-                "run_id": self.run_id,
-                "status": self.status,
-                "output": self.output,
-                "final_text": self.final_text,
-                "tool_calls": self.tool_calls,
-                "usage": self.usage,
-                "error": self.error,
-                "real_llm": self.real_llm,
-                "model": self.model,
-                "observed_model": self.observed_model,
-                "academic_eligible": self.academic_eligible,
-                "context_manifest_hash": self.context_manifest_hash,
-            }
+        return _redact(
+            _safe_json(
+                {
+                    "run_id": self.run_id,
+                    "status": self.status,
+                    "output": self.output,
+                    "final_text": self.final_text,
+                    "tool_calls": self.tool_calls,
+                    "usage": self.usage,
+                    "error": self.error,
+                    "real_llm": self.real_llm,
+                    "model": self.model,
+                    "observed_model": self.observed_model,
+                    "academic_eligible": self.academic_eligible,
+                    "context_manifest_hash": self.context_manifest_hash,
+                }
+            )
         )
 
     def to_json(self) -> str:
@@ -382,6 +384,7 @@ class _Renderer:
         self._Panel = None
         self._Rule = None
         self._Text = None
+        self._structured_output_seen = False
         if mode in {"auto", "rich"}:
             try:
                 from rich.console import Console
@@ -411,6 +414,12 @@ class _Renderer:
     @staticmethod
     def message(event: AgentEvent) -> str:
         data = event.data
+        if event.kind == "completed":
+            result = data.get("output") if data.get("output") is not None else data.get("final_text", "")
+            message = f"\n################ AGENT COMPLETE ################\nstatus=success\nresult={_preview(str(result), 4000)}"
+            if data.get("output") is not None and data.get("final_text") and not _same_output(data.get("output"), str(data.get("final_text"))):
+                message += f"\nsummary={_preview(str(data.get('final_text')), 4000)}"
+            return message + "\n#################################################"
         messages = {
             "run_started": f"agent run started run_id={event.run_id} model={data.get('model')} real_llm={data.get('real_llm')}",
             "heartbeat": f"heartbeat elapsed={data.get('elapsed_seconds', 0):.1f}s",
@@ -424,7 +433,6 @@ class _Renderer:
             "tool_completed": f"tool result <- {data.get('name')}: {_preview(str(data.get('result')), 4000)}",
             "tool_failed": f"tool error <- {data.get('name')}: {data.get('error')}",
             "structured_output": f"structured output: {data.get('output')}",
-            "completed": f"\n################ AGENT COMPLETE ################\nstatus=success\noutput={_preview(str(data.get('output')), 4000)}\nsummary={_preview(str(data.get('final_text', '')), 4000)}\n#################################################",
             "failed": f"\n################ AGENT FAILED ##################\ncode={data.get('code')} message={data.get('message')}\n#################################################",
         }
         return messages.get(event.kind, f"{event.kind}: {data}")
@@ -454,6 +462,23 @@ class _Renderer:
         Panel = self._Panel
         Rule = self._Rule
         data = event.data
+        if event.kind == "run_started" and Panel is not None:
+            body = Text()
+            body.append(f"run_id: {event.run_id}\n", style="dim")
+            body.append(f"model: {data.get('model')}\n", style="cyan")
+            body.append(f"real_llm: {data.get('real_llm')}")
+            self.console.print(Panel(body, title="[bold white on blue] AGENT RUN [/bold white on blue]", border_style="blue", padding=(0, 1), expand=True))
+            return
+        if event.kind == "context_loaded" and Panel is not None:
+            body = Text()
+            body.append(f"pages: {data.get('page_count')}\n", style="bold")
+            body.append(f"manifest: {data.get('context_manifest_hash')}", style="dim")
+            self.console.print(Panel(body, title="CONTEXT LOADED", border_style="blue", padding=(0, 1), expand=True))
+            return
+        if event.kind == "context_rollover" and Panel is not None:
+            body = Text(f"attempt: {data.get('attempt_id')}\nreplayed actions: {data.get('replayed_actions')}")
+            self.console.print(Panel(body, title="CONTEXT ROLLOVER", border_style="yellow", padding=(0, 1), expand=True))
+            return
         if event.kind == "model_started" and Rule is not None:
             self.console.print(Rule(f"TURN {data.get('turn')} | MODEL REQUEST", style="cyan"))
             prompt = data.get("prompt")
@@ -481,9 +506,12 @@ class _Renderer:
             body.append("SUCCESS\n", style="bold green")
             body.append(f"run_id: {event.run_id}\n", style="dim")
             body.append(f"model: {data.get('model')}\n\n", style="cyan")
-            body.append("output:\n", style="bold")
-            body.append(_preview(str(data.get("output")), 4000))
-            if data.get("final_text"):
+            body.append("result: ", style="bold")
+            if self._structured_output_seen:
+                body.append("structured output shown above", style="dim")
+            else:
+                body.append(_preview(str(data.get("final_text") or data.get("output")), 4000))
+            if data.get("output") is not None and data.get("final_text") and not _same_output(data.get("output"), str(data.get("final_text"))):
                 body.append("\n\nsummary:\n", style="bold")
                 body.append(_preview(str(data.get("final_text")), 4000))
             self.console.print()
@@ -521,6 +549,38 @@ class _Renderer:
                 "structured_output": ("structured output: ", "bold magenta"),
             }
             prefix, style = prefix_styles[event.kind]
+            if event.kind == "structured_output" and Panel is not None:
+                self._structured_output_seen = True
+                self.console.print(
+                    Panel(
+                        Text(_preview(str(data.get("output")), 4000)),
+                        title="[bold white on magenta] STRUCTURED OUTPUT [/bold white on magenta]",
+                        border_style="magenta",
+                        padding=(0, 1),
+                        expand=True,
+                    )
+                )
+                return
+            if event.kind in {"tool_started", "tool_completed", "tool_failed"} and Panel is not None:
+                if event.kind == "tool_started":
+                    tool_body = Text()
+                    tool_body.append(f"name: {data.get('name')}\n", style="bold")
+                    tool_body.append(f"arguments: {_preview(str(data.get('arguments')), 4000)}\n")
+                    tool_body.append(f"tool_call_id: {data.get('tool_call_id')}", style="dim")
+                    title, border = "TOOL CALL", "yellow"
+                elif event.kind == "tool_completed":
+                    tool_body = Text()
+                    tool_body.append(f"name: {data.get('name')}\n", style="bold")
+                    tool_body.append("result:\n", style="bold")
+                    tool_body.append(_preview(str(data.get('result')), 4000))
+                    title, border = "TOOL RESULT", "green"
+                else:
+                    tool_body = Text()
+                    tool_body.append(f"name: {data.get('name')}\n", style="bold")
+                    tool_body.append(f"error: {data.get('error')}", style="red")
+                    title, border = "TOOL ERROR", "red"
+                self.console.print(Panel(tool_body, title=title, border_style=border, padding=(0, 1), expand=True))
+                return
             line = Text(prefix, style=style)
             if event.kind == "model_text":
                 body = _preview(str(data.get("text", "")), 4000)
@@ -614,22 +674,40 @@ class _ReplayToolMiddleware(AgentMiddleware):
     def wrap_tool_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         call = request.tool_call
         key = self._key(call)
-        if self.enabled and key in self.cache:
-            return ToolMessage(content=self.cache[key], name=call.get("name"), tool_call_id=call.get("id"))
+        if self.enabled and self.cache.get(key):
+            return ToolMessage(
+                content=self.cache[key].pop(0),
+                name=call.get("name"),
+                tool_call_id=call.get("id"),
+                additional_kwargs={"replayed": True},
+            )
         result = handler(request)
-        if isinstance(result, ToolMessage):
-            self.cache[key] = result.content
+        if not self.enabled and isinstance(result, ToolMessage):
+            self.cache.setdefault(key, []).append(result.content)
         return result
 
     async def awrap_tool_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         call = request.tool_call
         key = self._key(call)
-        if self.enabled and key in self.cache:
-            return ToolMessage(content=self.cache[key], name=call.get("name"), tool_call_id=call.get("id"))
+        if self.enabled and self.cache.get(key):
+            return ToolMessage(
+                content=self.cache[key].pop(0),
+                name=call.get("name"),
+                tool_call_id=call.get("id"),
+                additional_kwargs={"replayed": True},
+            )
         result = await handler(request)
-        if isinstance(result, ToolMessage):
-            self.cache[key] = result.content
+        if not self.enabled and isinstance(result, ToolMessage):
+            self.cache.setdefault(key, []).append(result.content)
         return result
+
+
+def _build_replay_cache(records: Sequence[Mapping[str, Any]]) -> dict[str, list[Any]]:
+    cache: dict[str, list[Any]] = {}
+    for record in records:
+        key = f"{record.get('name')}:{json.dumps(_safe_json(record.get('arguments', {})), ensure_ascii=False, sort_keys=True)}"
+        cache.setdefault(key, []).append(record.get("result"))
+    return cache
 
 
 class _ModelOptionsMiddleware(AgentMiddleware):
@@ -767,7 +845,6 @@ class AgentApp:
         audit_ok = audit.enabled
         business_tool_called = False
         tool_error_seen = False
-        replay_cache: dict[str, Any] = {}
         heartbeat_task: asyncio.Task[None] | None = None
 
         def emit(kind: str, data: Mapping[str, Any]) -> None:
@@ -858,10 +935,12 @@ class AgentApp:
                     emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
+                    replayed = _is_replayed_tool_result(data.get("output"))
                     record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
                     if record is not None:
-                        record.update({"status": "completed", "result": _safe_json(result_value), "finished_at": datetime.now(timezone.utc).isoformat()})
-                        replay_records.append({"name": record["name"], "arguments": record["arguments"], "result": record["result"]})
+                        record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
+                        if not replayed:
+                            replay_records.append({"name": record["name"], "arguments": record["arguments"], "result": record["result"]})
                         audit_write({"record": "action", **record})
                     emit("tool_completed", {"name": name, "result": _safe_json(result_value), "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_error":
@@ -925,7 +1004,7 @@ class AgentApp:
                     tools=_langchain_tools(self.spec.tools),
                     system_prompt=_effective_system_prompt(self.spec.system_prompt),
                     response_format=self.spec.output_schema,
-                    middleware=[guard, _ReplayToolMiddleware(replay_cache, enabled=rollover_count > 0), _ModelOptionsMiddleware(model_call_options)],
+                    middleware=[guard, _ReplayToolMiddleware(_build_replay_cache(replay_records), enabled=rollover_count > 0), _ModelOptionsMiddleware(model_call_options)],
                     name=self.spec.name,
                 )
                 try:
@@ -1032,6 +1111,15 @@ def _preview(value: str, limit: int = 4000) -> str:
     return f"{value[:head]}\n... [中间省略 {len(value) - limit} 字符] ...\n{value[-tail:]}"
 
 
+def _same_output(output: Any, final_text: str) -> bool:
+    if output is None or not final_text.strip():
+        return False
+    try:
+        return _safe_json(output) == _safe_json(json.loads(final_text))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+
+
 def _message_key(message: Any) -> str:
     identity = getattr(message, "id", None) or ""
     return f"{identity}:{getattr(message, 'type', message.__class__.__name__)}:{_message_text(message)}"
@@ -1104,6 +1192,13 @@ def _tool_result_value(value: Any) -> Any:
                 return content
         return content
     return value
+
+
+def _is_replayed_tool_result(value: Any) -> bool:
+    if not isinstance(value, ToolMessage):
+        return False
+    metadata = getattr(value, "additional_kwargs", {}) or {}
+    return isinstance(metadata, Mapping) and metadata.get("replayed") is True
 
 
 def _visible_reasoning(message: Any) -> str | None:

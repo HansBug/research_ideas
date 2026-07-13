@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import Field
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessageChunk
+from langchain_core.messages import AIMessageChunk, ToolMessage
 from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
@@ -205,6 +205,41 @@ def test_operator_events_redact_secret_values() -> None:
     assert "DO_NOT_LEAK_SYSTEM" in serialized
 
 
+def test_result_export_redacts_secret_tool_values() -> None:
+    def lookup(value: str) -> dict[str, str]:
+        return {"value": value, "token": "sk-secret12345678"}
+
+    result = AgentApp._for_test(
+        AgentSpec(name="result-redact", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
+        LLMConfig(model="gpt-5.5", api_key="key"),
+        FakeStreamingModel(),
+    ).run("read", renderer="quiet")
+
+    assert "sk-secret12345678" not in result.to_json()
+    assert result.tool_calls[0]["result"]["token"] == "sk-secret12345678"
+
+
+def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
+    from utils.agent.runtime import _ReplayToolMiddleware
+
+    class Request:
+        tool_call = {"name": "probe", "args": {}, "id": "call-1"}
+
+    calls: list[str] = []
+
+    def handler(_request: Request) -> ToolMessage:
+        calls.append("executed")
+        return ToolMessage(content="new", name="probe", tool_call_id="call-2")
+
+    middleware = _ReplayToolMiddleware({"probe:{}": ["old"]}, enabled=True)
+    replayed = middleware.wrap_tool_call(Request(), handler)
+    new_call = middleware.wrap_tool_call(Request(), handler)
+    assert replayed.content == "old"
+    assert replayed.additional_kwargs["replayed"] is True
+    assert new_call.content == "new"
+    assert calls == ["executed"]
+
+
 def test_invalid_audit_path_is_structured_error(tmp_path: Path) -> None:
     def lookup() -> str:
         """lookup."""
@@ -251,11 +286,14 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     renderer.console = Console(file=output, force_terminal=False, color_system=None)
     now = datetime.now(timezone.utc)
     renderer.render(AgentEvent("run-rich", 1, now, "model_started", {"turn": 1, "prompt": "hello"}))
-    renderer.render(AgentEvent("run-rich", 2, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": "done"}))
+    renderer.render(AgentEvent("run-rich", 2, now, "structured_output", {"output": {"ok": True}}))
+    renderer.render(AgentEvent("run-rich", 3, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": '{"ok": true}'}))
     rendered = output.getvalue()
     assert "TURN 1 | MODEL REQUEST" in rendered
+    assert "STRUCTURED OUTPUT" in rendered
     assert "AGENT COMPLETE" in rendered
     assert "SUCCESS" in rendered
+    assert rendered.count("{'ok': True}") == 1
 
 
 def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:
