@@ -69,6 +69,29 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert [record["record"] for record in records] == ["context", "decision", "action", "decision", "finish"]
     assert all("heartbeat" not in record for record in records)
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
+    assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
+
+
+def test_tool_events_keep_standard_call_metadata() -> None:
+    def lookup(value: str) -> dict[str, str]:
+        """Look up one value from the test fixture."""
+        return {"value": value}
+
+    events = []
+    AgentApp._for_test(
+        AgentSpec(name="tool-metadata", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    ).run("read", renderer="quiet", on_event=events.append)
+
+    started = next(event for event in events if event.kind == "tool_started")
+    completed = next(event for event in events if event.kind == "tool_completed")
+    for event, status in ((started, "started"), (completed, "completed")):
+        assert event.data["name"] == "lookup"
+        assert event.data["tool_call_id"] == "call-1"
+        assert event.data["status"] == status
+        assert "arguments" in event.data
+    assert completed.data["result"] == {"value": "ok"}
 
 
 def test_next_model_prompt_shows_tool_inputs_without_assistant_history() -> None:
@@ -244,7 +267,29 @@ def test_result_export_redacts_secret_tool_values() -> None:
     ).run("read", renderer="quiet")
 
     assert "sk-secret12345678" not in result.to_json()
-    assert result.tool_calls[0]["result"]["token"] == "sk-secret12345678"
+    assert result.tool_calls[0]["result"]["token"] == "[redacted]"
+    assert "sk-secret12345678" not in json.dumps(result.tool_calls, ensure_ascii=False)
+
+
+def test_exception_details_redact_endpoint_and_bearer_token() -> None:
+    from utils.agent.runtime import _exception_details
+
+    class ProviderError(Exception):
+        status_code = 401
+        code = "unauthorized"
+        request_id = "req-1"
+        body = {
+            "message": "Bearer opaque-token-123 https://provider.invalid/v1/chat/completions",
+            "type": "invalid_request_error",
+            "param": None,
+        }
+
+    details = _exception_details(ProviderError("Bearer opaque-token-123 https://provider.invalid/v1"))
+    serialized = json.dumps(details, ensure_ascii=False)
+    assert "opaque-token-123" not in serialized
+    assert "provider.invalid" not in serialized
+    assert details["status_code"] == 401
+    assert details["request_id"] == "req-1"
 
 
 def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
@@ -254,18 +299,20 @@ def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
         tool_call = {"name": "probe", "args": {}, "id": "call-1"}
 
     calls: list[str] = []
+    provenance: dict[str, list[bool]] = {}
 
     def handler(_request: Request) -> ToolMessage:
         calls.append("executed")
         return ToolMessage(content="new", name="probe", tool_call_id="call-2")
 
-    middleware = _ReplayToolMiddleware({"probe:{}": ["old"]}, enabled=True)
+    middleware = _ReplayToolMiddleware({"probe:{}": ["old"]}, enabled=True, provenance=provenance)
     replayed = middleware.wrap_tool_call(Request(), handler)
     new_call = middleware.wrap_tool_call(Request(), handler)
     assert replayed.content == "old"
     assert replayed.additional_kwargs["replayed"] is True
     assert new_call.content == "new"
     assert calls == ["executed"]
+    assert provenance["probe:{}"] == [True, False]
 
 
 def test_invalid_audit_path_is_structured_error(tmp_path: Path) -> None:
@@ -328,6 +375,45 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     assert rendered.count("{'ok': True}") == 1
 
 
+def test_rich_renderer_shows_structured_call_and_result_in_output_phase() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "INFO", "run-structured")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    now = datetime.now(timezone.utc)
+    renderer.render(AgentEvent("run-structured", 1, now, "model_started", {"turn": 1, "prompt": "go"}))
+    renderer.render(
+        AgentEvent(
+            "run-structured",
+            2,
+            now,
+            "model_completed",
+            {
+                "turn": 1,
+                "tool_count": 1,
+                "output": "",
+                "structured_request": {
+                    "kind": "structured",
+                    "name": "Answer",
+                    "tool_call_id": "structured-1",
+                    "status": "requested",
+                    "arguments": {"answer": "ok"},
+                },
+            },
+        )
+    )
+    renderer.render(AgentEvent("run-structured", 3, now, "structured_output", {"output": {"answer": "ok"}}))
+    rendered = output.getvalue()
+    assert "MODEL OUTPUT | STRUCTURED CALL" in rendered
+    assert "MODEL OUTPUT | STRUCTURED RESULT" in rendered
+    assert "status: requested" in rendered
+    assert "structured-1" in rendered
+    assert "purpose:" not in rendered
+    assert "STRUCTURE RESULT VALIDATED" not in rendered
+
+
 def test_rich_renderer_preserves_input_output_tool_timing() -> None:
     from rich.console import Console
     from utils.agent.runtime import _Renderer
@@ -367,6 +453,37 @@ def test_rich_renderer_preserves_input_output_tool_timing() -> None:
     assert "assistant: answer" not in rendered
     assert "INFO" not in rendered
     assert "DEBUG" not in rendered
+
+
+def test_system_prompt_is_forwarded_without_runtime_suffix() -> None:
+    class _CaptureModel(BaseChatModel):
+        captured: list[object] = Field(default_factory=list)
+
+        @property
+        def _llm_type(self) -> str:
+            return "capture"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.captured = list(messages)
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="done"))])
+
+    model = _CaptureModel()
+    system_prompt = "Use the exact experiment protocol."
+    result = AgentApp._for_test(
+        AgentSpec(name="prompt-identity", system_prompt=system_prompt),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    ).run("raw task", renderer="quiet")
+    assert result.status == "success"
+    system_messages = [message for message in model.captured if getattr(message, "type", "") == "system"]
+    assert len(system_messages) == 1
+    assert system_messages[0].content == system_prompt
+    human_messages = [message for message in model.captured if getattr(message, "type", "") == "human"]
+    assert len(human_messages) == 1
+    assert human_messages[0].content == "raw task"
 
 
 def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:

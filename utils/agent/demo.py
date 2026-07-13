@@ -103,20 +103,36 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
 
     @tool
     def calculate_expression(expression: str) -> dict[str, float | str]:
-        """安全计算数字数学表达式。"""
+        """Evaluate a numeric arithmetic expression for the time offset.
+
+        Purpose: obtain a reproducible numeric value for the requested offset.
+        Input: expression containing only numbers and +, -, *, /, or **.
+        Output: the original expression, its numeric value, and an evidence ID.
+        Constraint: no names, attributes, function calls, or other Python syntax.
+        """
 
         return _calculate_expression(expression)
 
     @tool
     def current_system_time() -> dict[str, str]:
-        """读取当前机器系统时间。"""
+        """Read the current system time and convert it to US Eastern time.
+
+        Purpose: provide the time anchor for the calculation.
+        Input: none.
+        Output: local ISO time, timezone, US Eastern ISO time, and an evidence ID.
+        """
 
         return _current_system_time()
 
     spec = AgentSpec(
         name="utils-demo",
         system_prompt=(
-            "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。"
+            "You are a careful tool-using research agent. "
+            "Available tools are current_system_time, which returns the local and US Eastern ISO timestamps with an evidence ID, "
+            "and calculate_expression, which evaluates a numeric arithmetic expression and returns its value with an evidence ID. "
+            "Use the available tools when evidence or calculation is needed, then return valid JSON with exactly the fields "
+            "summary, base_time, offset_hours, target_time, and evidence_ids; summary must include the visible calculation steps "
+            "and conclusion, and evidence_ids must cite the tool evidence."
         ),
         tools=(current_system_time, calculate_expression),
         output_schema=DemoAnswer,
@@ -124,7 +140,7 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
     )
     app = AgentApp.from_config(spec, selected, model_options={"streaming": True, "stream_usage": True, "max_retries": 0})
     result = app.run(
-        "请完成上述时间计算并给出结构化答案。",
+        "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。",
         renderer=renderer,
         log_level=log_level,
         audit_out=audit_out,

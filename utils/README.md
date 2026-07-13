@@ -103,6 +103,8 @@ spec = AgentSpec(
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
 
+限制计数是整个 `run` 的累计值，跨 context rollover attempt 不重置；rollover 只重放已完成动作，不重新获得新的预算。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；两者同时提供时运行时才做本地窗口预检，缺省时把窗口/输出预算交给 provider，不在本地擅自猜测数值。
+
 `seconds` 是从 `run_started` 到 `completed/failed/cancelled` 的 wall-clock 上限，包含 provider 等待、工具执行和写出结果的时间；普通同步工具在线程中执行，不阻塞 heartbeat。
 
 ```python
@@ -146,9 +148,9 @@ await app.arun(input_text, context=context, renderer="auto", ...) -> AgentRunRes
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化结果；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。已展示的 assistant history 不重复打印，完成面板保留一次完整最终结果。
 
-终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。
+终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。每个 tool Panel 都明确标出 `name`、`tool_call_id`、`status`、`arguments`，结果 Panel 还标出 `result`；工具异常会标出安全的 `error`，DEBUG 时补充异常类型和 provider request id 等诊断字段。
 
-每次 `run/arun` 会在原有 `system_prompt` 后追加一条运行级要求：模型给出可见的计算步骤、依据、工具结果和最终总结，但不输出隐藏思维链。这样下游拿到的 `final_text` 或结构化 `summary` 不会只有一个无依据的数字。
+运行时不会改写、追加或重排调用方提供的 `system_prompt` 和任务输入。若实验需要可见的计算步骤、依据、工具结果或总结，直接把要求写进调用方自己的 prompt 或输出 schema；框架只展示模型实际返回的内容，不生成或猜测隐藏思维链。`model_started.data.prompt` 和 Rich 的 MODEL INPUT 面板会展示经过脱敏的可见输入，这是实时观察契约的一部分；学术审计同样只保存脱敏后的上下文事实。
 
 `context` 是本次运行的有序上下文页面，不需要额外的上下文类：
 
@@ -193,7 +195,7 @@ AgentRunResult(
 
 事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_rollover`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
 
-`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。流式参数由 LangGraph/LangChain 先完整重组并校验。`usage` 未知时为 `None` 或字段值为 `None`，不能把未知伪造成 0。`error` 至少包含 `code` 和 `message`，`status` 只允许 `success`、`failed`、`cancelled`。
+`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。工具的完整 description/schema 仍保存在 `context` 审计记录中，但不在实时 tool Panel 重复输出。rollover 重放的记录标记 `replayed=true`；物理执行统计应过滤该标记，重放事实保存在 rollover 的 `context.replayed_actions` 中，不重复写入新的 `action`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。流式参数由 LangGraph/LangChain 先完整重组并校验。`usage` 未知时为 `None` 或字段值为 `None`，不能把未知伪造成 0。`error` 至少包含 `code` 和 `message`，`status` 只允许 `success`、`failed`、`cancelled`。
 
 ```python
 result.require_output() -> T
@@ -262,7 +264,7 @@ python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level DEBUG <
 
 不传 `--audit-out/--result-out` 时 demo 默认写入 `runs/utils-agent/demo-audit.jsonl` 和 `runs/utils-agent/demo-result.json`；这些文件只包含脱敏内容。`python -m utils.agent` 与 `python -m utils.agent.demo` 使用同一真实 demo 入口。
 
-demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；默认使用真实 `gpt-5.5`，也可通过 `--profile` 运行其他已配置的真实模型，没有 fake、offline、deterministic、replay 或人工输入。
+demo 使用两个无副作用工具：无参数 `current_system_time` 和安全的 `calculate_expression`，计算当前系统时间起 51.25 小时后的美国东部时间节点，完成结构化输出并校验两个 evidence ID；system prompt 只放通用工具/输出协议，具体任务只放在唯一的 user prompt：`请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。`；默认使用真实 `gpt-5.5`，也可通过 `--profile` 运行其他已配置的真实模型，没有 fake、offline、deterministic、replay 或人工输入。
 
 ## 5. CLI、测试和边界
 

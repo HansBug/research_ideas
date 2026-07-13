@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -47,6 +48,8 @@ _IDENTITY_KEYS = frozenset(
 )
 _SECRET_KEY = re.compile(r"(api[_-]?key|authorization|token|secret|password|cookie|headers?)", re.I)
 _SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b")
+_BEARER_VALUE = re.compile(r"(?i)\bBearer\s+[^\s'\"},]+")
+_URL_VALUE = re.compile(r"https?://[^\s'\"},]+")
 _ANALYSIS_BLOCK = re.compile(r"<(?:analysis|thinking|reasoning)>.*?</(?:analysis|thinking|reasoning)>", re.I | re.S)
 
 
@@ -122,6 +125,14 @@ class AgentRunResult:
     academic_eligible: bool
     context_manifest_hash: str | None
 
+    def __post_init__(self) -> None:
+        # Keep the object handed to downstream experiments safe, not only its JSON export.
+        self.output = _redact_public(self.output)
+        self.final_text = _redact(self.final_text)
+        self.tool_calls = _redact_public(self.tool_calls)
+        self.usage = _redact_public(self.usage)
+        self.error = _redact_public(self.error)
+
     def require_output(self) -> T:
         if self.status != "success" or self.output is None:
             error = self.error or {"code": "missing_output", "message": "run has no successful output"}
@@ -160,7 +171,8 @@ def _tool_name(tool: Any) -> str:
 
 
 def _tool_description(tool: Any) -> str:
-    return str(getattr(tool, "description", None) or inspect.getdoc(tool) or "")
+    description = str(getattr(tool, "description", None) or inspect.getdoc(tool) or "").strip()
+    return description or f"Invoke the registered tool '{_tool_name(tool)}'."
 
 
 def _tool_schema(tool: Any) -> dict[str, Any]:
@@ -289,6 +301,42 @@ def _redact(value: Any, *, key: str | None = None) -> Any:
     if isinstance(value, str):
         return _SECRET_VALUE.sub("[redacted_secret]", _ANALYSIS_BLOCK.sub("[redacted_reasoning]", value))
     return value
+
+
+def _redact_public(value: Any) -> Any:
+    safe = _redact(_safe_json(value))
+    if isinstance(value, BaseModel):
+        try:
+            return type(value).model_validate(safe)
+        except Exception:
+            return safe
+    return safe
+
+
+def _redact_exception_text(value: str) -> str:
+    value = _redact(value)
+    value = _BEARER_VALUE.sub("[redacted_bearer]", value)
+    return _URL_VALUE.sub("[redacted_endpoint]", value)
+
+
+def _exception_details(exc: BaseException) -> dict[str, Any]:
+    details: dict[str, Any] = {"type": type(exc).__name__}
+    if message := str(exc):
+        details["message"] = _redact_exception_text(message)
+    for attribute in ("status_code", "code", "request_id"):
+        value = getattr(exc, attribute, None)
+        if value is not None and isinstance(value, (str, int, float, bool)):
+            details[attribute] = _redact(value)
+    body = getattr(exc, "body", None)
+    if isinstance(body, Mapping):
+        safe_body: dict[str, Any] = {}
+        for key in ("type", "code", "status_code", "request_id", "param", "message"):
+            if key in body:
+                value = body[key]
+                safe_body[key] = _redact_exception_text(value) if isinstance(value, str) else _redact(value, key=key)
+        if safe_body:
+            details["body"] = safe_body
+    return details
 
 
 def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -420,11 +468,14 @@ class _Renderer:
     @staticmethod
     def message(event: AgentEvent) -> str:
         data = event.data
+        if event.kind == "failed":
+            message = f"\n################ AGENT FAILED ##################\ncode={data.get('code')} message={data.get('message')}"
+            if data.get("details"):
+                message += f"\ndetails={_preview(json.dumps(_safe_json(data['details']), ensure_ascii=False, sort_keys=True), 4000)}"
+            return message + "\n#################################################"
         if event.kind == "completed":
             result = data.get("output") if data.get("output") is not None else data.get("final_text", "")
             message = f"\n################ AGENT COMPLETE ################\nstatus=success\nresult={_preview(str(result), 4000)}"
-            if data.get("output") is not None and data.get("final_text") and not _same_output(data.get("output"), str(data.get("final_text"))):
-                message += f"\nsummary={_preview(str(data.get('final_text')), 4000)}"
             return message + "\n#################################################"
         messages = {
             "run_started": f"agent run started run_id={event.run_id} model={data.get('model')} real_llm={data.get('real_llm')}",
@@ -435,8 +486,8 @@ class _Renderer:
             "model_started": f"\n================ TURN {data.get('turn')} | MODEL INPUT ================\n" + (f"input messages:\n{_preview(str(data.get('prompt', '')), 12000)}" if data.get("prompt") else ""),
             "model_text": f"model output | assistant: {_preview(str(data.get('text', '')), 4000)}",
             "model_completed": f"---------------- TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')} ----------------",
-            "tool_started": f"model tool call -> {data.get('name')}({data.get('arguments')}) id={data.get('tool_call_id')}",
-            "tool_completed": f"tool result -> next model input | {data.get('name')}: {_preview(str(data.get('result')), 4000)}",
+            "tool_started": f"model tool call -> {data.get('name')} id={data.get('tool_call_id')}",
+            "tool_completed": f"tool result -> next model input | {data.get('name')} id={data.get('tool_call_id')}: {_preview(str(data.get('result')), 4000)}",
             "tool_failed": f"tool error <- {data.get('name')}: {data.get('error')}",
             "structured_output": f"model output | structured result: {data.get('output')}",
             "failed": f"\n################ AGENT FAILED ##################\ncode={data.get('code')} message={data.get('message')}\n#################################################",
@@ -516,6 +567,16 @@ class _Renderer:
             return
         if event.kind == "model_completed" and Rule is not None:
             self._ensure_model_output_boundary(data.get("turn"), data.get("tool_count"))
+            structured_request = data.get("structured_request")
+            if structured_request and Panel is not None:
+                body = Text()
+                body.append("kind: structured\n", style="dim")
+                body.append(f"name: {structured_request.get('name')}\n", style="bold")
+                body.append(f"tool_call_id: {structured_request.get('tool_call_id')}\n", style="dim")
+                body.append(f"status: {structured_request.get('status')}\n", style="yellow")
+                body.append("arguments:\n", style="bold")
+                body.append(_preview(json.dumps(structured_request.get("arguments", {}), ensure_ascii=False, sort_keys=True), 4000))
+                self.console.print(Panel(body, title="MODEL OUTPUT | STRUCTURED CALL", border_style="yellow", padding=(0, 1), expand=True))
             return
         if event.kind == "completed" and Panel is not None:
             body = Text()
@@ -525,9 +586,6 @@ class _Renderer:
             body.append(f"model: {data.get('model')}\n\n", style="cyan")
             body.append("result:\n", style="bold")
             body.append(_preview(str(data.get("output") if data.get("output") is not None else data.get("final_text", "")), 4000))
-            if data.get("output") is not None and data.get("final_text") and not _same_output(data.get("output"), str(data.get("final_text"))):
-                body.append("\n\nsummary:\n", style="bold")
-                body.append(_preview(str(data.get("final_text")), 4000))
             self.console.print()
             self.console.print(
                 Panel(
@@ -544,6 +602,9 @@ class _Renderer:
             body = Text()
             body.append(f"code: {data.get('code')}\n", style="bold red")
             body.append(f"message: {data.get('message')}")
+            if data.get("details") and self.logger.level <= logging.DEBUG:
+                body.append("\ndetails:\n", style="bold")
+                body.append(_preview(json.dumps(_safe_json(data["details"]), ensure_ascii=False, sort_keys=True), 4000), style="dim")
             self.console.print(
                 Panel(
                     body,
@@ -554,7 +615,13 @@ class _Renderer:
                 )
             )
             return
-        if event.kind == "structured_output":
+        if event.kind == "structured_output" and Panel is not None:
+            body = Text()
+            body.append("kind: structured\n", style="dim")
+            body.append("status: completed\n", style="bold green")
+            body.append("result:\n", style="bold")
+            body.append(_preview(json.dumps(_safe_json(data.get("output")), ensure_ascii=False, sort_keys=True), 4000))
+            self.console.print(Panel(body, title="MODEL OUTPUT | STRUCTURED RESULT", border_style="green", padding=(0, 1), expand=True))
             return
         if event.kind in {"tool_started", "tool_completed", "tool_failed"}:
             prefix_styles = {
@@ -566,19 +633,29 @@ class _Renderer:
             if event.kind in {"tool_started", "tool_completed", "tool_failed"} and Panel is not None:
                 if event.kind == "tool_started":
                     tool_body = Text()
+                    tool_body.append("kind: business\n", style="dim")
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
-                    tool_body.append(f"arguments: {_preview(str(data.get('arguments')), 4000)}\n")
-                    tool_body.append(f"tool_call_id: {data.get('tool_call_id')}", style="dim")
+                    tool_body.append(f"tool_call_id: {data.get('tool_call_id')}\n", style="dim")
+                    tool_body.append("status: started\n", style="yellow")
+                    tool_body.append("arguments:\n", style="bold")
+                    tool_body.append(_preview(json.dumps(_safe_json(data.get("arguments")), ensure_ascii=False, sort_keys=True), 4000))
                     title, border = "MODEL OUTPUT | TOOL CALL", "yellow"
                 elif event.kind == "tool_completed":
                     tool_body = Text()
+                    tool_body.append("kind: business\n", style="dim")
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
+                    tool_body.append(f"tool_call_id: {data.get('tool_call_id')}\n", style="dim")
+                    tool_body.append("status: completed\n", style="bold green")
+                    tool_body.append(f"arguments: {_preview(json.dumps(_safe_json(data.get('arguments')), ensure_ascii=False, sort_keys=True), 4000)}\n")
                     tool_body.append("result:\n", style="bold")
-                    tool_body.append(_preview(str(data.get('result')), 4000))
+                    tool_body.append(_preview(json.dumps(_safe_json(data.get("result")), ensure_ascii=False, sort_keys=True), 4000))
                     title, border = "TOOL RESULT -> NEXT MODEL INPUT", "green"
                 else:
                     tool_body = Text()
+                    tool_body.append("kind: business\n", style="dim")
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
+                    tool_body.append(f"tool_call_id: {data.get('tool_call_id')}\n", style="dim")
+                    tool_body.append("status: failed\n", style="bold red")
                     tool_body.append(f"error: {data.get('error')}", style="red")
                     title, border = "TOOL ERROR", "red"
                 self.console.print(Panel(tool_body, title=title, border_style=border, padding=(0, 1), expand=True))
@@ -655,6 +732,7 @@ class _Renderer:
         self._assistant_text = ""
 
     def close(self) -> None:
+        self._finish_assistant_text()
         if self.handler is not None:
             self.logger.removeHandler(self.handler)
             self.handler.close()
@@ -720,9 +798,10 @@ class _AgentGuardMiddleware(AgentMiddleware):
 class _ReplayToolMiddleware(AgentMiddleware):
     """Rollover 时注入已经完成的工具结果，避免再次执行副作用。"""
 
-    def __init__(self, cache: dict[str, Any], *, enabled: bool):
+    def __init__(self, cache: dict[str, Any], *, enabled: bool, provenance: dict[str, list[bool]] | None = None):
         self.cache = cache
         self.enabled = enabled
+        self.provenance = provenance if provenance is not None else {}
 
     @staticmethod
     def _key(call: Mapping[str, Any]) -> str:
@@ -732,6 +811,7 @@ class _ReplayToolMiddleware(AgentMiddleware):
         call = request.tool_call
         key = self._key(call)
         if self.enabled and self.cache.get(key):
+            self.provenance.setdefault(key, []).append(True)
             return ToolMessage(
                 content=self.cache[key].pop(0),
                 name=call.get("name"),
@@ -741,12 +821,15 @@ class _ReplayToolMiddleware(AgentMiddleware):
         result = handler(request)
         if not self.enabled and isinstance(result, ToolMessage):
             self.cache.setdefault(key, []).append(result.content)
+        if isinstance(result, ToolMessage):
+            self.provenance.setdefault(key, []).append(False)
         return result
 
     async def awrap_tool_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         call = request.tool_call
         key = self._key(call)
         if self.enabled and self.cache.get(key):
+            self.provenance.setdefault(key, []).append(True)
             return ToolMessage(
                 content=self.cache[key].pop(0),
                 name=call.get("name"),
@@ -756,6 +839,8 @@ class _ReplayToolMiddleware(AgentMiddleware):
         result = await handler(request)
         if not self.enabled and isinstance(result, ToolMessage):
             self.cache.setdefault(key, []).append(result.content)
+        if isinstance(result, ToolMessage):
+            self.provenance.setdefault(key, []).append(False)
         return result
 
 
@@ -828,6 +913,7 @@ class AgentApp:
         self.config = config
         self.model = model
         self.real_llm = real_llm
+        self._json_output_fallback = _uses_deepseek_json_mode(config)
 
     @classmethod
     def from_registry(cls, spec: AgentSpec, registry: LLMRegistry, profile: str | None = None, *, model_options: Mapping[str, Any] | None = None) -> "AgentApp":
@@ -851,7 +937,7 @@ class AgentApp:
         try:
             model = ChatOpenAI(**kwargs)
         except Exception as exc:
-            raise AgentError("config_error", "model construction failed") from exc
+            raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model)
 
     @classmethod
@@ -896,6 +982,8 @@ class AgentApp:
         error: dict[str, Any] | None = None
         tool_calls: list[dict[str, Any]] = []
         pending_tool_ids: dict[str, list[str]] = {}
+        active_tool_records: dict[str, dict[str, Any]] = {}
+        replay_provenance: dict[str, list[bool]] = {}
         shown_message_keys: set[str] = set()
         system_shown = False
         streamed_turns: set[int] = set()
@@ -944,13 +1032,13 @@ class AgentApp:
                 data = event.get("data") or {}
                 if kind == "on_chain_start" and name == "model":
                     turn += 1
-                    prompt, system_shown = _prompt_from_messages(data.get("input"), _effective_system_prompt(self.spec.system_prompt), shown_message_keys, system_shown)
+                    prompt, system_shown = _prompt_from_messages(data.get("input"), self.spec.system_prompt, shown_message_keys, system_shown)
                     emit("model_started", {"attempt_id": attempt_id, "turn": turn, "prompt": prompt})
                 elif kind == "on_chat_model_start":
                     observed_model = observed_model or data.get("metadata", {}).get("model_name")
                 elif kind == "on_chat_model_stream":
                     chunk = data.get("chunk")
-                    text = _chunk_text(chunk)
+                    text = _message_text(chunk) if chunk is not None else ""
                     if text:
                         streamed_turns.add(turn)
                         emit("model_text", {"attempt_id": attempt_id, "turn": turn, "text": text})
@@ -959,17 +1047,31 @@ class AgentApp:
                     ai = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if ai is not None:
                         calls = list(getattr(ai, "tool_calls", None) or [])
-                        if _message_text(ai) and turn not in streamed_turns:
+                        if _message_text(ai) and not calls and turn not in streamed_turns:
                             emit("model_text", {"attempt_id": attempt_id, "turn": turn, "text": _message_text(ai)})
                         _mark_message_shown(ai, shown_message_keys)
-                        emit("model_completed", {"attempt_id": attempt_id, "turn": turn, "tool_count": len(calls), "output": _message_text(ai)})
-                        requests = [_tool_request(call, attempt_id, turn) for call in calls]
-                        for request in requests:
-                            pending_tool_ids.setdefault(str(request["name"]), []).append(str(request["tool_call_id"]))
-                        if requests:
-                            business_tool_called = business_tool_called or any(item["name"] in self.spec.tool_names for item in requests)
-                        audit_write({"record": "decision", "message": _safe_json(ai.content), "tool_requests": requests, "reasoning_summary": _visible_reasoning(ai)})
                         structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
+                        requests = [
+                            _tool_request(call, attempt_id, turn, kind="structured" if call.get("name") == structured_name else "business")
+                            for call in calls
+                        ]
+                        structured_requests = [request for request in requests if request["kind"] == "structured"]
+                        emit(
+                            "model_completed",
+                            {
+                                "attempt_id": attempt_id,
+                                "turn": turn,
+                                "tool_count": len(calls),
+                                "output": _message_text(ai) if not calls else "",
+                                "structured_request": structured_requests[0] if structured_requests else None,
+                            },
+                        )
+                        for request in requests:
+                            if request["kind"] == "business":
+                                pending_tool_ids.setdefault(str(request["name"]), []).append(str(request["tool_call_id"]))
+                            else:
+                                tool_calls.append({**request, "status": "requested", "started_at": datetime.now(timezone.utc).isoformat()})
+                        audit_write({"record": "decision", "message": _safe_json(ai.content), "tool_requests": requests, "reasoning_summary": _visible_reasoning(ai)})
                         unknown_requests = [item for item in requests if item["name"] not in self.spec.tool_names and item["name"] != structured_name]
                         business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
                         if unknown_requests:
@@ -989,25 +1091,43 @@ class AgentApp:
                     name_value = name
                     record = {"kind": "business", "name": name_value, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(args), "status": "started", "started_at": datetime.now(timezone.utc).isoformat()}
                     tool_calls.append(record)
-                    emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "attempt_id": attempt_id, "turn": turn})
+                    active_tool_records[str(event.get("run_id") or call_id)] = record
+                    emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
+                    execution_id = str(event.get("run_id") or "")
+                    record = active_tool_records.pop(execution_id, None)
+                    if record is None:
+                        record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
                     replayed = _is_replayed_tool_result(data.get("output"))
-                    record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
+                    if record is not None:
+                        key = f"{record['name']}:{json.dumps(_safe_json(record['arguments']), ensure_ascii=False, sort_keys=True)}"
+                        flags = replay_provenance.get(key, [])
+                        if flags:
+                            replayed = flags.pop(0)
                     if record is not None:
                         record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
+                        business_tool_called = True
                         if not replayed:
-                            replay_records.append({"name": record["name"], "arguments": record["arguments"], "result": record["result"]})
-                        audit_write({"record": "action", **record})
-                    emit("tool_completed", {"name": name, "result": _safe_json(result_value), "attempt_id": attempt_id, "turn": turn})
+                            replay_records.append({"name": record["name"], "tool_call_id": record["tool_call_id"], "attempt_id": record["attempt_id"], "turn": record["turn"], "arguments": record["arguments"], "result": record["result"]})
+                            audit_write({"record": "action", **record})
+                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_error":
                     tool_error_seen = True
+                    raw_error = data.get("error")
                     safe_error = {"code": "tool_error", "message": "registered tool failed"}
-                    record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
-                    if record is not None:
-                        record.update({"status": "failed", "error": safe_error, "finished_at": datetime.now(timezone.utc).isoformat()})
-                        audit_write({"record": "action", **record})
-                    emit("tool_failed", {"name": name, "error": safe_error, "attempt_id": attempt_id, "turn": turn})
+                    if isinstance(raw_error, BaseException):
+                        safe_error["details"] = _exception_details(raw_error)
+                    execution_id = str(event.get("run_id") or "")
+                    record = active_tool_records.pop(execution_id, None)
+                    if record is None:
+                        record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
+                    if record is None:
+                        record = {"kind": "business", "name": name, "tool_call_id": event.get("tool_call_id") or event.get("run_id"), "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(data.get("input")), "status": "failed"}
+                        tool_calls.append(record)
+                    record.update({"status": "failed", "error": safe_error, "finished_at": datetime.now(timezone.utc).isoformat()})
+                    audit_write({"record": "action", **record})
+                    emit("tool_failed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else None, "error": safe_error, "status": "failed", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_chain_end" and name in {"LangGraph", self.spec.name}:
                     state = data.get("output") or {}
                     output = state.get("structured_response")
@@ -1015,7 +1135,13 @@ class AgentApp:
                     final = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if final is not None:
                         final_text = _message_text(final)
+                    if output is None and self._json_output_fallback and self.spec.output_schema is not None and final_text:
+                        output = _parse_structured_output(self.spec.output_schema, final_text)
+                    structured_record = next((item for item in reversed(tool_calls) if item.get("kind") == "structured" and item.get("status") == "requested"), None)
                     if output is not None:
+                        if structured_record is not None:
+                            structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": datetime.now(timezone.utc).isoformat()})
+                            audit_write({"record": "action", **structured_record})
                         emit("structured_output", {"attempt_id": attempt_id, "turn": turn, "output": _safe_json(output)})
                     return state
             return None
@@ -1028,16 +1154,17 @@ class AgentApp:
                 if estimated + self.config.max_output_tokens > self.config.context_window_tokens:
                     emit("context_failed", {"code": "context_budget_exceeded", "message": "context cannot fit without truncation"})
                     raise AgentError("context_budget_exceeded", "context cannot fit without truncation")
-            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm})
+            emit("run_started", {"model": self.config.model, "has_context": bool(pages), "real_llm": self.real_llm, "structured_output_mode": "final_text_json" if self._json_output_fallback and self.spec.output_schema is not None else "langgraph_response_format" if self.spec.output_schema is not None else None})
             if pages:
                 emit("context_loaded", {"attempt_id": attempt_id, "page_count": len(pages), "context_manifest_hash": manifest, "pages": [{"id": page["id"], "hash": page["hash"]} for page in pages]})
             audit_write(
                 {
                     "record": "context",
                     "input_text": input_text,
-                    "system_prompt": _effective_system_prompt(self.spec.system_prompt),
+                    "system_prompt": self.spec.system_prompt,
                     "agent_name": self.spec.name,
                     "model": self.config.model,
+                    "structured_output_mode": "final_text_json" if self._json_output_fallback and self.spec.output_schema is not None else "langgraph_response_format" if self.spec.output_schema is not None else None,
                     "tools": [{"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)} for tool in self.spec.tools],
                     "output_schema": self.spec.output_schema.model_json_schema() if self.spec.output_schema else None,
                     "pages": pages,
@@ -1059,9 +1186,9 @@ class AgentApp:
                 graph = create_agent(
                     model=self.model,
                     tools=_langchain_tools(self.spec.tools),
-                    system_prompt=_effective_system_prompt(self.spec.system_prompt),
-                    response_format=self.spec.output_schema,
-                    middleware=[guard, _ReplayToolMiddleware(_build_replay_cache(replay_records), enabled=rollover_count > 0), _ModelOptionsMiddleware(model_call_options)],
+                    system_prompt=self.spec.system_prompt,
+                    response_format=None if self._json_output_fallback and self.spec.output_schema is not None else self.spec.output_schema,
+                    middleware=[guard, _ReplayToolMiddleware(_build_replay_cache(replay_records), enabled=rollover_count > 0, provenance=replay_provenance), _ModelOptionsMiddleware(model_call_options)],
                     name=self.spec.name,
                 )
                 try:
@@ -1090,18 +1217,25 @@ class AgentApp:
                 raise AgentError("structured_output_invalid", "structured output was not returned")
             status = "success"
         except asyncio.TimeoutError as exc:
-            error = {"code": "limit_exceeded", "message": "seconds limit exceeded"}
+            error = {"code": "limit_exceeded", "message": "seconds limit exceeded", "details": _exception_details(exc)}
         except AgentError as exc:
             error = {"code": exc.code, "message": exc.message}
-        except Exception:
+            if exc.details:
+                error["details"] = _redact(_safe_json(exc.details))
+        except Exception as exc:
             error = {"code": "tool_error", "message": "registered tool failed"} if tool_error_seen else {"code": "runtime_error", "message": "agent execution failed"}
+            error["details"] = _exception_details(exc)
         finally:
             if heartbeat_task is not None:
                 heartbeat_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await heartbeat_task
             try:
-                audit_write({"record": "finish", "status": status, "final_text": final_text, "output": output, "reason": "structured_output" if output is not None else ("final_answer" if status == "success" else error["code"])})
+                for record in tool_calls:
+                    if record.get("kind") == "structured" and record.get("status") == "requested":
+                        record.update({"status": "failed", "error": error or {"code": "structured_output_invalid", "message": "structured output was not returned"}, "finished_at": datetime.now(timezone.utc).isoformat()})
+                        audit_write({"record": "action", **record})
+                audit_write({"record": "finish", "status": status, "final_text": final_text, "output": output, "reason": "structured_output" if output is not None else ("final_answer" if status == "success" else (error or {}).get("code", "runtime_error"))})
             except AgentError:
                 error = {"code": "audit_write_failed", "message": "audit output failed"}
                 status = "failed"
@@ -1136,11 +1270,29 @@ def _input_with_context(input_text: str, pages: Sequence[Mapping[str, Any]], rep
     return "\n\n".join(parts)
 
 
-def _effective_system_prompt(system_prompt: str) -> str:
-    return (
-        system_prompt.rstrip()
-        + "\n\n请给出可见且简洁的计算过程、依据、工具结果与最终总结；不要输出或猜测隐藏思维链。"
-    )
+def _uses_deepseek_json_mode(config: LLMConfig) -> bool:
+    host = urlsplit(config.base_url or "").hostname
+    return host == "api.deepseek.com" or config.model.lower().startswith("deepseek-")
+
+
+def _parse_structured_output(schema: type[BaseModel], text: str) -> BaseModel:
+    candidate = text.strip()
+    if candidate.startswith("```"):
+        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.I | re.S).strip()
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError:
+        start, end = candidate.find("{"), candidate.rfind("}")
+        if start < 0 or end <= start:
+            raise AgentError("structured_output_invalid", "structured JSON output could not be parsed")
+        try:
+            payload = json.loads(candidate[start : end + 1])
+        except json.JSONDecodeError as exc:
+            raise AgentError("structured_output_invalid", "structured JSON output could not be parsed", details=_exception_details(exc)) from exc
+    try:
+        return schema.model_validate(payload)
+    except Exception as exc:
+        raise AgentError("structured_output_invalid", "structured JSON output failed schema validation", details=_exception_details(exc)) from exc
 
 
 def _estimate_messages(messages: Sequence[Any]) -> int:
@@ -1150,7 +1302,7 @@ def _estimate_messages(messages: Sequence[Any]) -> int:
 
 def _estimate_agent_overhead(spec: AgentSpec) -> int:
     payload = {
-        "system_prompt": _effective_system_prompt(spec.system_prompt),
+        "system_prompt": spec.system_prompt,
         "tools": [
             {"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)}
             for tool in spec.tools
@@ -1166,15 +1318,6 @@ def _preview(value: str, limit: int = 4000) -> str:
     head = int(limit * 0.7)
     tail = limit - head
     return f"{value[:head]}\n... [中间省略 {len(value) - limit} 字符] ...\n{value[-tail:]}"
-
-
-def _same_output(output: Any, final_text: str) -> bool:
-    if output is None or not final_text.strip():
-        return False
-    try:
-        return _safe_json(output) == _safe_json(json.loads(final_text))
-    except (TypeError, ValueError, json.JSONDecodeError):
-        return False
 
 
 def _message_key(message: Any) -> str:
@@ -1231,12 +1374,16 @@ def _message_text(message: Any) -> str:
     return str(content or "")
 
 
-def _chunk_text(chunk: Any) -> str:
-    return _message_text(chunk) if chunk is not None else ""
-
-
-def _tool_request(call: Mapping[str, Any], attempt_id: str, turn: int) -> dict[str, Any]:
-    return {"name": call.get("name"), "tool_call_id": call.get("id"), "arguments": _safe_json(call.get("args", {})), "attempt_id": attempt_id, "turn": turn}
+def _tool_request(call: Mapping[str, Any], attempt_id: str, turn: int, *, kind: str) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "name": call.get("name"),
+        "tool_call_id": call.get("id"),
+        "arguments": _safe_json(call.get("args", {})),
+        "attempt_id": attempt_id,
+        "turn": turn,
+        "status": "requested",
+    }
 
 
 def _tool_result_value(value: Any) -> Any:
