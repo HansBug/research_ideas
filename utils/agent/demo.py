@@ -4,10 +4,8 @@ import ast
 import json
 import math
 import operator
-import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import click
@@ -23,23 +21,6 @@ class DemoAnswer(BaseModel):
     offset_hours: float
     target_time: str
     evidence_ids: list[str]
-
-
-_ISO_TIMESTAMP = re.compile(
-    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})"
-)
-
-
-def _last_timestamp(value: str) -> datetime:
-    """Extract the final timezone-aware ISO timestamp from visible model text."""
-
-    matches = _ISO_TIMESTAMP.findall(value)
-    if not matches:
-        raise ValueError("timestamp not found")
-    parsed = datetime.fromisoformat(matches[-1].replace("Z", "+00:00"))
-    if parsed.tzinfo is None:
-        raise ValueError("timestamp must include timezone")
-    return parsed
 
 
 _OPERATORS = {
@@ -161,12 +142,13 @@ def cli(
             "You are a careful tool-using research agent. "
             "Available tools are current_system_time, which returns the local and US Eastern ISO timestamps with an evidence ID, "
             "and calculate_expression, which evaluates a numeric arithmetic expression and returns its value with an evidence ID. "
-            "Use the available tools when evidence or calculation is needed, then return valid JSON with exactly the fields "
-            "summary, base_time, offset_hours, target_time, and evidence_ids; summary must include the visible calculation steps "
-            "and conclusion, and evidence_ids must cite the tool evidence."
+            "Use the available tools when evidence or calculation is needed. After the necessary tool results are available, "
+            "finish through the framework's structured response format with exactly the fields summary, base_time, offset_hours, "
+            "target_time, and evidence_ids; do not emit that JSON as ordinary assistant text, and do not repeat a tool call. "
+            "summary must include the visible calculation steps and conclusion, and evidence_ids must cite the tool evidence."
         ),
         tools=(current_system_time, calculate_expression),
-        output_schema=None if _is_deepseek_profile(selected) else DemoAnswer,
+        output_schema=DemoAnswer,
         limits=limits or None,
         require_tool_call=True,
     )
@@ -190,30 +172,17 @@ def cli(
         or not result.real_llm
         or result.model != selected.model
         or (result.observed_model is not None and result.observed_model != selected.model)
-        or (_is_deepseek_profile(selected) and not result.final_text.strip())
     ):
         raise click.ClickException("demo tool/model validation failed")
-    if not _is_deepseek_profile(selected):
-        answer = result.require_output()
-        try:
-            base_time = _last_timestamp(answer.base_time)
-            target_time = _last_timestamp(answer.target_time)
-            valid_offset = abs((target_time - base_time - timedelta(hours=51.25)).total_seconds()) <= 1
-        except (TypeError, ValueError):
-            valid_offset = False
-        if (
-            not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
-            or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
-            or not valid_offset
-        ):
-            raise click.ClickException("demo structured output validation failed")
-
-
-def _is_deepseek_profile(config: object) -> bool:
-    model = str(getattr(config, "model", "")).lower()
-    base_url = str(getattr(config, "base_url", "") or "")
-    host = (urlsplit(base_url).hostname or "").lower()
-    return model.startswith("deepseek-") or host.endswith("deepseek.com")
+    answer = result.require_output()
+    if (
+        not answer.summary.strip()
+        or not answer.base_time.strip()
+        or not answer.target_time.strip()
+        or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
+        or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
+    ):
+        raise click.ClickException("demo structured output validation failed")
 
 
 def main(argv: list[str] | None = None) -> int:

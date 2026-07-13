@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timezone
 from io import StringIO
@@ -491,6 +492,32 @@ def test_exception_details_redact_endpoint_and_bearer_token() -> None:
     assert "[redacted_endpoint]" in details["message"]
 
 
+def test_provider_timeout_is_not_reported_as_agent_budget() -> None:
+    class ProviderStreamTimeout(asyncio.TimeoutError):
+        __module__ = "openai._exceptions"
+
+    class _TimeoutModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "provider-timeout-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            raise ProviderStreamTimeout("provider stream timed out")
+
+    result = AgentApp._for_test(
+        AgentSpec(name="provider-timeout", system_prompt="answer"),
+        LLMConfig(model="gpt-5.5"),
+        _TimeoutModel(),
+    ).run("run", renderer="quiet")
+
+    assert result.status == "failed"
+    assert result.error is not None
+    assert result.error["code"] == "provider_error"
+
+
 def test_redaction_preserves_normal_urls_in_model_content() -> None:
     from utils.agent.runtime import _redact
 
@@ -690,15 +717,6 @@ def test_system_prompt_is_forwarded_without_runtime_suffix() -> None:
     human_messages = [message for message in model.captured if getattr(message, "type", "") == "human"]
     assert len(human_messages) == 1
     assert human_messages[0].content == "raw task"
-
-
-def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:
-    from utils.agent.demo import _last_timestamp
-
-    parsed = _last_timestamp(
-        "当前系统时间：2026-07-13T23:15:25.531476+08:00；对应美国东部时间：2026-07-13T11:15:25.531476-04:00"
-    )
-    assert parsed.isoformat() == "2026-07-13T11:15:25.531476-04:00"
 
 
 def test_demo_profile_defaults_to_gpt_but_accepts_other_configured_model(monkeypatch: pytest.MonkeyPatch) -> None:

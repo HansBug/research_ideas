@@ -26,7 +26,6 @@ from utils.llm import LLMConfig, LLMRegistry
 try:
     from langchain.agents import create_agent
     from langchain.agents.middleware import AgentMiddleware
-    from langchain.agents.structured_output import ToolStrategy
     from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
     from langchain_core.outputs import ChatGeneration, ChatResult
@@ -35,7 +34,6 @@ try:
 except Exception:  # pragma: no cover - import errors are reported at construction time
     create_agent = None  # type: ignore[assignment]
     AgentMiddleware = object  # type: ignore[assignment,misc]
-    ToolStrategy = object  # type: ignore[assignment,misc]
     BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = ToolMessage = object  # type: ignore[assignment,misc]
     ChatGeneration = ChatResult = object  # type: ignore[assignment,misc]
     StructuredTool = object  # type: ignore[assignment,misc]
@@ -1348,7 +1346,11 @@ class AgentApp:
                     counters=counters,
                 )
                 replay_cache = _build_replay_cache(replay_queue)
-                response_format = ToolStrategy(self.spec.output_schema, handle_errors=False) if self.spec.output_schema is not None else None
+                # Let LangGraph select the provider-native structured-output
+                # strategy (or its official tool-calling fallback).  Do not
+                # force a hand-selected tool choice here: OpenAI-compatible
+                # providers differ in how they implement structured output.
+                response_format = self.spec.output_schema
                 graph = create_agent(
                     model=self.model,
                     tools=_langchain_tools(self.spec.tools),
@@ -1385,7 +1387,15 @@ class AgentApp:
                 raise AgentError("structured_output_invalid", "structured output was not returned")
             status = "success"
         except asyncio.TimeoutError as exc:
-            error = {"code": "limit_exceeded", "message": "seconds limit exceeded", "details": _exception_details(exc)}
+            details = _exception_details(exc)
+            if details.get("source") == "provider":
+                error = {
+                    "code": "provider_error",
+                    "message": "LLM provider request timed out; inspect provider type, request_id, and diagnostics",
+                    "details": details,
+                }
+            else:
+                error = {"code": "limit_exceeded", "message": "seconds limit exceeded", "details": details}
         except AgentError as exc:
             error = {"code": exc.code, "message": exc.message}
             if exc.details:

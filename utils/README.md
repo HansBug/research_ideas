@@ -152,6 +152,8 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False, .
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化结果；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。已展示的 assistant history 不重复打印，完成面板保留一次完整最终结果。
 
+结构化结果直接通过 `create_agent(response_format=YourSchema)` 交给 LangGraph；由 LangGraph AutoStrategy 按模型能力选择 provider-native structured output 或官方 tool-calling fallback。运行时不把普通 assistant 文本自行 `json.loads` 成结果，也不为某个 provider 另写一套结构化后处理；provider 不支持或返回无效结构时保留原始失败诊断。
+
 终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。每个 tool Panel 都明确标出 `name`、`tool_call_id`、`status`、`arguments`，结果 Panel 还标出 `result`；工具异常会标出安全的 `error`，DEBUG 时补充异常类型和 provider request id 等诊断字段。
 
 运行时不会改写、追加或重排调用方提供的 `system_prompt` 和任务输入。若实验需要可见的计算步骤、依据、工具结果或总结，直接把要求写进调用方自己的 prompt 或输出 schema；框架只展示模型实际返回的内容，不生成或猜测隐藏思维链。`model_started.data.prompt` 和 Rich 的 MODEL INPUT 面板会展示经过脱敏的可见输入，这是实时观察契约的一部分；学术审计同样只保存脱敏后的上下文事实。
@@ -292,3 +294,5 @@ CLI 不访问 provider 网络，错误写 stderr，成功数据写 stdout，`sho
 ## 6. 简单维护规则
 
 允许增加必要的可选参数和事件，但不要引入新的包装实体、枚举层或版本系统，不要重定义现有语义，不要把业务工具和结构化输出混计，不要把 secret 放入公开对象。修改 API 时同步修改 Issue #155、本文档和测试。
+
+评审时必须先查阅当前 LangGraph/LangChain/provider 官方文档：已有官方能力时直接调用官方 API，禁止手写等价 agent loop、schema parser、tool dispatcher 或 provider 专用后处理。新增兼容分支必须有官方依据、最小回归测试和真实 smoke 证据；没有依据的“看起来能用”实现不进入基础设施。
