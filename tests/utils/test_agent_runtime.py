@@ -256,3 +256,12 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     assert "TURN 1 | MODEL REQUEST" in rendered
     assert "AGENT COMPLETE" in rendered
     assert "SUCCESS" in rendered
+
+
+def test_demo_timestamp_validation_accepts_visible_natural_language() -> None:
+    from utils.agent.demo import _last_timestamp
+
+    parsed = _last_timestamp(
+        "当前系统时间：2026-07-13T23:15:25.531476+08:00；对应美国东部时间：2026-07-13T11:15:25.531476-04:00"
+    )
+    assert parsed.isoformat() == "2026-07-13T11:15:25.531476-04:00"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import math
 import operator
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -20,6 +21,23 @@ class DemoAnswer(BaseModel):
     offset_hours: float
     target_time: str
     evidence_ids: list[str]
+
+
+_ISO_TIMESTAMP = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})"
+)
+
+
+def _last_timestamp(value: str) -> datetime:
+    """Extract the final timezone-aware ISO timestamp from visible model text."""
+
+    matches = _ISO_TIMESTAMP.findall(value)
+    if not matches:
+        raise ValueError("timestamp not found")
+    parsed = datetime.fromisoformat(matches[-1].replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("timestamp must include timezone")
+    return parsed
 
 
 _OPERATORS = {
@@ -119,8 +137,8 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
     answer = result.require_output()
     names = {item.get("name") for item in result.tool_calls if item.get("status") == "completed"}
     try:
-        base_time = datetime.fromisoformat(answer.base_time.split("（", 1)[0].strip())
-        target_time = datetime.fromisoformat(answer.target_time.split("（", 1)[0].strip())
+        base_time = _last_timestamp(answer.base_time)
+        target_time = _last_timestamp(answer.target_time)
         valid_offset = abs((target_time - base_time - timedelta(hours=51.25)).total_seconds()) <= 1
     except (TypeError, ValueError):
         valid_offset = False
