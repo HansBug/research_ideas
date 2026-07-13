@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
+from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -10,7 +12,7 @@ from langchain_core.messages import AIMessageChunk
 from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
-from utils.agent import AgentApp, AgentSpec
+from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
 from utils.llm import LLMConfig
 
 
@@ -138,3 +140,96 @@ def test_explicit_tool_limit_blocks_before_tool_node() -> None:
     assert result.status == "failed"
     assert result.error == {"code": "limit_exceeded", "message": "tool_calls limit exceeded"}
     assert called is False
+
+
+class _RepeatToolModel(BaseChatModel):
+    calls: int = Field(default=0)
+
+    @property
+    def _llm_type(self) -> str:
+        return "repeat-tool-test"
+
+    def bind_tools(self, tools, **kwargs):
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        if self.calls <= 2:
+            tool_calls = [{"name": "probe", "args": {}, "id": f"probe-{self.calls}", "type": "tool_call"}]
+        else:
+            tool_calls = []
+        return ChatResult(generations=[ChatGeneration(message=AIMessage(content="done", tool_calls=tool_calls))])
+
+
+def test_same_arguments_in_same_attempt_are_not_replayed() -> None:
+    executions: list[int] = []
+
+    def probe() -> str:
+        """probe current state."""
+        executions.append(1)
+        return f"value-{len(executions)}"
+
+    result = AgentApp._for_test(
+        AgentSpec(name="repeat", system_prompt="probe twice", tools=(probe,)),
+        LLMConfig(model="gpt-5.5"),
+        _RepeatToolModel(),
+    ).run("run", renderer="quiet")
+
+    assert result.status == "success"
+    assert executions == [1, 1]
+    assert len(result.tool_calls) == 2
+    assert {item["tool_call_id"] for item in result.tool_calls} == {"probe-1", "probe-2"}
+
+
+def test_operator_events_redact_secret_values() -> None:
+    class _TextModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "text-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="done"))])
+
+    events = []
+    AgentApp._for_test(
+        AgentSpec(name="redact", system_prompt="DO_NOT_LEAK_SYSTEM", tools=()),
+        LLMConfig(model="gpt-5.5"),
+        _TextModel(),
+    ).run("sk-secret12345678", renderer="quiet", on_event=events.append)
+
+    serialized = json.dumps([event.to_dict() for event in events], ensure_ascii=False)
+    assert "sk-secret12345678" not in serialized
+    assert "DO_NOT_LEAK_SYSTEM" in serialized
+
+
+def test_invalid_audit_path_is_structured_error(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """lookup."""
+        return "ok"
+
+    app = AgentApp._for_test(
+        AgentSpec(name="audit-path", system_prompt="answer", tools=(lookup,)),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    )
+    with pytest.raises(AgentError, match="audit_write_failed"):
+        app.run("answer", renderer="quiet", audit_out=tmp_path)
+
+
+def test_rich_renderer_marks_turns_and_completion() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "INFO", "run-rich")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    now = datetime.now(timezone.utc)
+    renderer.render(AgentEvent("run-rich", 1, now, "model_started", {"turn": 1, "prompt": "hello"}))
+    renderer.render(AgentEvent("run-rich", 2, now, "completed", {"model": "gpt-5.5", "output": {"ok": True}, "final_text": "done"}))
+    rendered = output.getvalue()
+    assert "TURN 1 | MODEL REQUEST" in rendered
+    assert "AGENT COMPLETE" in rendered
+    assert "SUCCESS" in rendered

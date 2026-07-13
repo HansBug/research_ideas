@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import ast
+import math
 import operator
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -117,10 +118,19 @@ def cli(config: Path | None, profile: str, renderer: str, log_level: str, audit_
         raise click.ClickException((result.error or {}).get("message", "agent failed"))
     answer = result.require_output()
     names = {item.get("name") for item in result.tool_calls if item.get("status") == "completed"}
+    try:
+        base_time = datetime.fromisoformat(answer.base_time.split("（", 1)[0].strip())
+        target_time = datetime.fromisoformat(answer.target_time.split("（", 1)[0].strip())
+        valid_offset = abs((target_time - base_time - timedelta(hours=51.25)).total_seconds()) <= 1
+    except (TypeError, ValueError):
+        valid_offset = False
     if (
         not {"current_system_time", "calculate_expression"}.issubset(names)
         or not result.real_llm
         or (result.observed_model is not None and result.observed_model != "gpt-5.5")
+        or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
+        or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
+        or not valid_offset
     ):
         raise click.ClickException("demo tool/model validation failed")
 

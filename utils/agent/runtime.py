@@ -41,6 +41,7 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
 
 T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
+_MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "max_completion_tokens", "stop", "seed", "reasoning_effort", "verbosity"})
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -192,9 +193,11 @@ def _validate_model_options(options: Mapping[str, Any] | None) -> None:
 
 
 def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
-    forbidden = set(options or {}) & _IDENTITY_KEYS
-    if forbidden:
-        raise ValueError(f"model_call_options_not_allowed: {sorted(forbidden)}")
+    supplied = set(options or {})
+    forbidden = supplied & _IDENTITY_KEYS
+    unknown = supplied - _MODEL_CALL_OPTIONS
+    if forbidden or unknown:
+        raise ValueError(f"model_call_options_not_allowed: {sorted(forbidden or unknown)}")
 
 
 def _hash_text(text: str) -> str:
@@ -307,13 +310,18 @@ class _AuditWriter:
         self.path = path
         self.run_id = run_id
         self.temporary: Path | None = None
-        if path is not None:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-            self.temporary = Path(temporary)
-            self.stream = os.fdopen(fd, "w", encoding="utf-8")
-        else:
-            self.stream = None
+        try:
+            if path is not None:
+                if path.exists() and not path.is_file():
+                    raise OSError("audit output path is not a file")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+                self.temporary = Path(temporary)
+                self.stream = os.fdopen(fd, "w", encoding="utf-8")
+            else:
+                self.stream = None
+        except OSError as exc:
+            raise AgentError("audit_write_failed", "audit output cannot be opened") from exc
         self.order = 0
 
     @property
@@ -330,12 +338,21 @@ class _AuditWriter:
 
     def close(self) -> None:
         if self.stream is not None:
-            self.stream.flush()
-            os.fsync(self.stream.fileno())
-            self.stream.close()
-            if self.path is not None and self.temporary is not None:
-                os.replace(self.temporary, self.path)
-                self.temporary = None
+            try:
+                self.stream.flush()
+                os.fsync(self.stream.fileno())
+                self.stream.close()
+                if self.path is not None and self.temporary is not None:
+                    os.replace(self.temporary, self.path)
+                    self.temporary = None
+            except OSError as exc:
+                with contextlib.suppress(OSError):
+                    self.stream.close()
+                if self.temporary is not None:
+                    with contextlib.suppress(OSError):
+                        os.unlink(self.temporary)
+                    self.temporary = None
+                raise AgentError("audit_write_failed", "audit output could not be finalized") from exc
 
 
 def _level_for_event(kind: str) -> int:
@@ -362,15 +379,26 @@ class _Renderer:
         self.logger.setLevel(getattr(logging, level_name))
         self.handler: logging.Handler | None = None
         self.console = None
+        self._Panel = None
+        self._Rule = None
+        self._Text = None
         if mode in {"auto", "rich"}:
             try:
                 from rich.console import Console
                 from rich.logging import RichHandler
+                from rich.panel import Panel
+                from rich.rule import Rule
+                from rich.text import Text
 
                 self.console = Console()
                 if mode == "auto" and not self.console.is_terminal:
                     self.mode = "jsonl"
-                elif self.mode == "rich":
+                else:
+                    self.mode = "rich"
+                if self.mode == "rich":
+                    self._Panel = Panel
+                    self._Rule = Rule
+                    self._Text = Text
                     self.handler = RichHandler(console=self.console, show_path=False, show_time=False, markup=False)
             except ImportError:
                 self.mode = "jsonl"
@@ -413,6 +441,94 @@ class _Renderer:
             payload["message"] = message
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True), flush=True)
             return
+        if self.mode == "rich" and self.console is not None and self._Text is not None:
+            self._render_rich(event, message)
+            return
+        self.logger.log(_level_for_event(event.kind), message)
+
+    def _render_rich(self, event: AgentEvent, message: str) -> None:
+        """Render high-signal lifecycle events as visual Rich blocks."""
+
+        assert self.console is not None
+        Text = self._Text
+        Panel = self._Panel
+        Rule = self._Rule
+        data = event.data
+        if event.kind == "model_started" and Rule is not None:
+            self.console.print(Rule(f"TURN {data.get('turn')} | MODEL REQUEST", style="cyan"))
+            prompt = data.get("prompt")
+            if prompt and Panel is not None:
+                self.console.print(
+                    Panel(
+                        Text(_preview(str(prompt), 12000)),
+                        title="input messages",
+                        border_style="cyan",
+                        padding=(0, 1),
+                    )
+                )
+            return
+        if event.kind == "model_completed" and Rule is not None:
+            self.console.print(
+                Rule(
+                    f"TURN {data.get('turn')} | MODEL COMPLETE | tool_count={data.get('tool_count')}",
+                    style="green",
+                )
+            )
+            return
+        if event.kind == "completed" and Panel is not None:
+            body = Text()
+            body.append("status: ", style="bold")
+            body.append("SUCCESS\n", style="bold green")
+            body.append(f"run_id: {event.run_id}\n", style="dim")
+            body.append(f"model: {data.get('model')}\n\n", style="cyan")
+            body.append("output:\n", style="bold")
+            body.append(_preview(str(data.get("output")), 4000))
+            if data.get("final_text"):
+                body.append("\n\nsummary:\n", style="bold")
+                body.append(_preview(str(data.get("final_text")), 4000))
+            self.console.print()
+            self.console.print(
+                Panel(
+                    body,
+                    title="[bold white on green] AGENT COMPLETE ",
+                    border_style="green",
+                    padding=(1, 2),
+                    expand=True,
+                )
+            )
+            self.console.print()
+            return
+        if event.kind == "failed" and Panel is not None:
+            body = Text()
+            body.append(f"code: {data.get('code')}\n", style="bold red")
+            body.append(f"message: {data.get('message')}")
+            self.console.print(
+                Panel(body, title="[bold white on red] AGENT FAILED ", border_style="red", padding=(1, 2), expand=True)
+            )
+            return
+        if event.kind in {"model_text", "tool_started", "tool_completed", "tool_failed", "structured_output"}:
+            prefix_styles = {
+                "model_text": ("assistant: ", "bold cyan"),
+                "tool_started": ("tool call -> ", "bold yellow"),
+                "tool_completed": ("tool result <- ", "bold green"),
+                "tool_failed": ("tool error <- ", "bold red"),
+                "structured_output": ("structured output: ", "bold magenta"),
+            }
+            prefix, style = prefix_styles[event.kind]
+            line = Text(prefix, style=style)
+            if event.kind == "model_text":
+                body = _preview(str(data.get("text", "")), 4000)
+            elif event.kind == "tool_started":
+                body = f"{data.get('name')}({data.get('arguments')}) id={data.get('tool_call_id')}"
+            elif event.kind == "tool_completed":
+                body = _preview(str(data.get("result")), 4000)
+            elif event.kind == "tool_failed":
+                body = str(data.get("error"))
+            else:
+                body = str(data.get("output"))
+            line.append(body)
+            self.console.print(line)
+            return
         self.logger.log(_level_for_event(event.kind), message)
 
     def close(self) -> None:
@@ -437,7 +553,7 @@ class _AgentGuardMiddleware(AgentMiddleware):
         if limits.get("turns") is not None and self.counters["turns"] >= limits["turns"]:
             raise AgentError("limit_exceeded", "turns limit exceeded")
         if self.context_window_tokens and self.max_output_tokens and self.counters["model_calls"] > 0:
-            estimate = _estimate_messages(state.get("messages", []))
+            estimate = _estimate_messages(state.get("messages", [])) + _estimate_agent_overhead(self.spec)
             if estimate + self.max_output_tokens > self.context_window_tokens:
                 raise AgentError("context_rollover", "model context approaching window")
         self.counters["turns"] += 1
@@ -481,8 +597,9 @@ class _AgentGuardMiddleware(AgentMiddleware):
 class _ReplayToolMiddleware(AgentMiddleware):
     """Rollover 时注入已经完成的工具结果，避免再次执行副作用。"""
 
-    def __init__(self, cache: dict[str, Any]):
+    def __init__(self, cache: dict[str, Any], *, enabled: bool):
         self.cache = cache
+        self.enabled = enabled
 
     @staticmethod
     def _key(call: Mapping[str, Any]) -> str:
@@ -491,7 +608,7 @@ class _ReplayToolMiddleware(AgentMiddleware):
     def wrap_tool_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         call = request.tool_call
         key = self._key(call)
-        if key in self.cache:
+        if self.enabled and key in self.cache:
             return ToolMessage(content=self.cache[key], name=call.get("name"), tool_call_id=call.get("id"))
         result = handler(request)
         if isinstance(result, ToolMessage):
@@ -501,7 +618,7 @@ class _ReplayToolMiddleware(AgentMiddleware):
     async def awrap_tool_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         call = request.tool_call
         key = self._key(call)
-        if key in self.cache:
+        if self.enabled and key in self.cache:
             return ToolMessage(content=self.cache[key], name=call.get("name"), tool_call_id=call.get("id"))
         result = await handler(request)
         if isinstance(result, ToolMessage):
@@ -650,7 +767,7 @@ class AgentApp:
         def emit(kind: str, data: Mapping[str, Any]) -> None:
             nonlocal seq
             seq += 1
-            event = AgentEvent(run_id, seq, datetime.now(timezone.utc), kind, dict(data))
+            event = AgentEvent(run_id, seq, datetime.now(timezone.utc), kind, _redact(_safe_json(dict(data))))
             renderer_obj.render(event)
             if on_event is not None:
                 on_event(event)
@@ -765,7 +882,7 @@ class AgentApp:
             if not input_text.strip():
                 raise AgentError("input_invalid", "input_text must not be empty")
             if self.config.context_window_tokens is not None and self.config.max_output_tokens is not None:
-                estimated = max(1, math.ceil(len(_input_with_context(input_text, pages)) / 4))
+                estimated = max(1, math.ceil(len(_input_with_context(input_text, pages)) / 4)) + _estimate_agent_overhead(self.spec)
                 if estimated + self.config.max_output_tokens > self.config.context_window_tokens:
                     emit("context_failed", {"code": "context_budget_exceeded", "message": "context cannot fit without truncation"})
                     raise AgentError("context_budget_exceeded", "context cannot fit without truncation")
@@ -802,7 +919,7 @@ class AgentApp:
                     tools=_langchain_tools(self.spec.tools),
                     system_prompt=_effective_system_prompt(self.spec.system_prompt),
                     response_format=self.spec.output_schema,
-                    middleware=[guard, _ReplayToolMiddleware(replay_cache), _ModelOptionsMiddleware(model_call_options)],
+                    middleware=[guard, _ReplayToolMiddleware(replay_cache, enabled=rollover_count > 0), _ModelOptionsMiddleware(model_call_options)],
                     name=self.spec.name,
                 )
                 try:
@@ -832,8 +949,6 @@ class AgentApp:
             status = "success"
         except asyncio.TimeoutError as exc:
             error = {"code": "limit_exceeded", "message": "seconds limit exceeded"}
-            raise_error = AgentError(error["code"], error["message"])
-            error = {"code": raise_error.code, "message": raise_error.message}
         except AgentError as exc:
             error = {"code": exc.code, "message": exc.message}
         except Exception:
@@ -884,6 +999,18 @@ def _effective_system_prompt(system_prompt: str) -> str:
 def _estimate_messages(messages: Sequence[Any]) -> int:
     text = "\n".join(_message_text(message) for message in messages)
     return max(1, math.ceil(len(text) / 4))
+
+
+def _estimate_agent_overhead(spec: AgentSpec) -> int:
+    payload = {
+        "system_prompt": _effective_system_prompt(spec.system_prompt),
+        "tools": [
+            {"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)}
+            for tool in spec.tools
+        ],
+        "output_schema": spec.output_schema.model_json_schema() if spec.output_schema else None,
+    }
+    return max(1, math.ceil(len(json.dumps(_safe_json(payload), ensure_ascii=False, sort_keys=True)) / 4)) + 1024
 
 
 def _preview(value: str, limit: int = 4000) -> str:

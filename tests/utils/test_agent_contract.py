@@ -34,6 +34,15 @@ def test_model_options_have_a_small_explicit_allowlist() -> None:
         _validate_model_options({"api_key": "secret"})
 
 
+def test_model_call_options_cannot_change_tool_or_retry_contract() -> None:
+    from utils.agent.runtime import _validate_model_call_options
+
+    _validate_model_call_options({"temperature": 0})
+    for key in ("parallel_tool_calls", "tool_choice", "response_format", "max_retries"):
+        with pytest.raises(ValueError, match="model_call_options_not_allowed"):
+            _validate_model_call_options({key: True})
+
+
 def test_agent_spec_tools_are_the_registration_allowlist() -> None:
     def lookup(value: str) -> str:
         return value
