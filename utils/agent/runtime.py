@@ -345,7 +345,7 @@ class _AuditWriter:
                 if self.path is not None and self.temporary is not None:
                     os.replace(self.temporary, self.path)
                     self.temporary = None
-            except OSError as exc:
+            except (OSError, ValueError) as exc:
                 with contextlib.suppress(OSError):
                     self.stream.close()
                 if self.temporary is not None:
@@ -964,16 +964,21 @@ class AgentApp:
                 heartbeat_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await heartbeat_task
-            if error is None:
-                emit("completed", {"model": self.config.model, "output": _safe_json(output), "final_text": final_text})
-            else:
-                emit("failed", error)
             try:
                 audit_write({"record": "finish", "status": status, "final_text": final_text, "output": output, "reason": "structured_output" if output is not None else ("final_answer" if status == "success" else error["code"])})
             except AgentError:
                 error = {"code": "audit_write_failed", "message": "audit output failed"}
                 status = "failed"
-            audit.close()
+            try:
+                audit.close()
+            except AgentError:
+                audit_ok = False
+                error = {"code": "audit_write_failed", "message": "audit output could not be finalized"}
+                status = "failed"
+            if error is None:
+                emit("completed", {"model": self.config.model, "output": _safe_json(output), "final_text": final_text})
+            else:
+                emit("failed", error)
             renderer_obj.close()
         academic_eligible = audit.enabled and audit_ok and status == "success"
         result = AgentRunResult(run_id, status, output, final_text, tool_calls, usage, error, self.real_llm, self.config.model, observed_model, academic_eligible, manifest)

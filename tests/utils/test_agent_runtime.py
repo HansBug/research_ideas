@@ -219,6 +219,29 @@ def test_invalid_audit_path_is_structured_error(tmp_path: Path) -> None:
         app.run("answer", renderer="quiet", audit_out=tmp_path)
 
 
+def test_audit_finalize_failure_returns_structured_failed_result(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def lookup() -> str:
+        """lookup."""
+        return "ok"
+
+    app = AgentApp._for_test(
+        AgentSpec(name="audit-finalize", system_prompt="answer", tools=(lookup,)),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    )
+
+    def fail_close(_audit: object) -> None:
+        raise AgentError("audit_write_failed", "audit output could not be finalized")
+
+    from utils.agent import runtime
+
+    monkeypatch.setattr(runtime._AuditWriter, "close", fail_close)
+    result = app.run("answer", renderer="quiet", audit_out=tmp_path / "audit.jsonl")
+    assert result.status == "failed"
+    assert result.error == {"code": "audit_write_failed", "message": "audit output could not be finalized"}
+    assert result.academic_eligible is False
+
+
 def test_rich_renderer_marks_turns_and_completion() -> None:
     from rich.console import Console
     from utils.agent.runtime import _Renderer
