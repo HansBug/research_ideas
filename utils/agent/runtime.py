@@ -933,8 +933,6 @@ class AgentApp:
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
                     replayed = _is_replayed_tool_result(data.get("output"))
-                    if isinstance(data.get("output"), BaseMessage):
-                        _mark_tool_message_shown(data["output"], shown_message_keys)
                     record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
                     if record is not None:
                         record.update({"status": "completed", "result": _safe_json(result_value), "replayed": replayed, "finished_at": datetime.now(timezone.utc).isoformat()})
@@ -1128,14 +1126,6 @@ def _mark_message_shown(message: Any, shown: set[str]) -> None:
     shown.add(_message_key(message))
 
 
-def _mark_tool_message_shown(message: Any, shown: set[str]) -> None:
-    _mark_message_shown(message, shown)
-    shown.add(f"tool-content:{_message_text(message)}")
-    tool_call_id = getattr(message, "tool_call_id", None)
-    if tool_call_id:
-        shown.add(f"tool-id:{tool_call_id}")
-
-
 def _prompt_from_messages(value: Any, system_prompt: str, shown: set[str], system_shown: bool) -> tuple[str, bool]:
     messages = _messages_from_event(value)
     parts: list[str] = []
@@ -1144,11 +1134,10 @@ def _prompt_from_messages(value: Any, system_prompt: str, shown: set[str], syste
         system_shown = True
     for message in messages:
         key = _message_key(message)
-        role = getattr(message, "type", None) or message.__class__.__name__
-        tool_call_id = getattr(message, "tool_call_id", None)
-        if key in shown or (role == "tool" and (f"tool-content:{_message_text(message)}" in shown or f"tool-id:{tool_call_id}" in shown)):
+        if key in shown:
             continue
         shown.add(key)
+        role = getattr(message, "type", None) or message.__class__.__name__
         parts.append(f"[{role}]\n{_message_text(message)}")
     return _preview("\n\n".join(parts), 12000), system_shown
 

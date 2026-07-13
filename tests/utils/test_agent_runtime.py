@@ -59,7 +59,7 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
 
 
-def test_tool_results_are_not_repeated_in_the_next_model_prompt() -> None:
+def test_next_model_prompt_shows_tool_inputs_without_assistant_history() -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
 
@@ -71,7 +71,8 @@ def test_tool_results_are_not_repeated_in_the_next_model_prompt() -> None:
     ).run("read", renderer="quiet", on_event=events.append)
     prompts = [event.data["prompt"] for event in events if event.kind == "model_started"]
     assert len(prompts) == 2
-    assert "[tool]" not in prompts[1]
+    assert "[tool]" in prompts[1]
+    assert "[assistant]" not in prompts[1]
 
 
 def test_missing_audit_is_not_academic_eligible() -> None:
