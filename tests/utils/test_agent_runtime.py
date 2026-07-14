@@ -1105,11 +1105,12 @@ def test_compact_audit_keeps_native_summary_and_call_links(tmp_path: Path) -> No
         return "ok"
 
     audit = tmp_path / "compact.jsonl"
+    events: list[AgentEvent] = []
     result = AgentApp._for_test(
         AgentSpec(name="compact-audit", system_prompt="use probe", tools=(probe,)),
         LLMConfig(model="compact-audit-test", context_window_tokens=1020, max_output_tokens=20),
         CompactModel(),
-    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, audit_out=audit)
+    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, audit_out=audit, on_event=events.append)
     assert result.status == "success", result.error
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
     compact_done = [record for record in records if record.get("record") == "context" and record.get("operation") == "compact" and record.get("status") == "completed"]
@@ -1120,6 +1121,9 @@ def test_compact_audit_keeps_native_summary_and_call_links(tmp_path: Path) -> No
     assert all(record.get("model_call_id") for record in decisions)
     refs = [ref for record in decisions for ref in record.get("input_message_refs", [])]
     assert refs and all("source_seq" in ref for ref in refs)
+    completed_event = next(event for event in events if event.kind == "compaction_completed")
+    assert completed_event.data["source_refs"]
+    assert all(ref.get("source_seq") is not None for ref in completed_event.data["source_refs"])
 
 
 def test_receipt_hash_matches_final_result_and_audit(tmp_path: Path) -> None:

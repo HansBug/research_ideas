@@ -148,7 +148,7 @@ app.run(
 await app.arun(input_text, context=context, renderer="auto", think_mode=False, ...) -> AgentRunResult
 ```
 
-`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；`max_tokens`/`max_completion_tokens` 可显式覆盖本次 output reserve，二者若同时传入必须相同。
+`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；本接口只允许 `max_tokens` 作为单次 output reserve 覆盖项。
 
 `think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。模型请求默认 `streaming=True`、`stream_usage=True`，也可以在 `model_options` 中显式覆盖；YAML 不保存这些单次运行参数。某些兼容 endpoint 不接受 usage stream option 时，下游可以显式传 `stream_usage=False`，缺少 terminal usage 时记录 `unavailable`。
 
@@ -215,7 +215,7 @@ AgentRunResult(
 
 `status` 只有 `success`、`failed`、`cancelled`；上下文无法无损继续时使用 `status="failed"` 和 `error.code="context_budget_exceeded"`。`real_llm` 在公共真实运行中为 `True`，仅测试目录的内部桩可以为 `False`，测试结果不得作为真实实验制品。
 
-事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_usage`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`compaction_started`、`compaction_summary`、`compaction_completed`、`compaction_failed`、`structured_output`、`completed`、`failed`。每个模型 transport（包括 official compact summary）都带 `model_call_id` 与 `call_kind`；结构化输出事件也带产生它的 `model_call_id`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
+事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_usage`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`compaction_started`、`compaction_summary`、`compaction_completed`、`compaction_failed`、`structured_output`、`completed`、`failed`。每个模型 transport（包括 official compact summary）都带 `model_call_id` 与 `call_kind`；结构化输出事件也带产生它的 `model_call_id`。compact 的开始/成功/失败事件都带 `source_refs`，用于回链被压缩的 message 集合。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
 
 `tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。`usage` 按 primary/compact transport 顺序保存，缺失值保持 `None`，不能把未知伪造成 0。
 

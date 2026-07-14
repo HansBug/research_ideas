@@ -50,7 +50,7 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
 
 T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
-_MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "max_completion_tokens", "stop", "seed", "verbosity"})
+_MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "stop", "seed", "verbosity"})
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -2320,6 +2320,7 @@ class AgentApp:
         last_compaction_id: str | None = None
         compact_tracker = _CompactTracker(context_meter, compact_threshold) if compact_threshold is not None else None
         compaction_summary_info: dict[str, dict[str, Any]] = {}
+        compaction_source_refs: dict[str, list[dict[str, Any]]] = {}
         stream_holdbacks: dict[str, _StreamHoldback] = {}
         sensitive_values = _sensitive_inventory(self.config, pages)
         audit.set_sensitive_values(sensitive_values)
@@ -2340,6 +2341,12 @@ class AgentApp:
         request_captures: list[dict[str, Any]] = []
         request_capture_by_call: dict[str, dict[str, Any]] = {}
         message_source_refs: dict[str, tuple[int, str]] = {}
+        message_source_by_id: dict[str, tuple[int, str]] = {}
+        source_state: dict[str, tuple[int, str] | None] = {
+            "latest_decision": None,
+            "latest_action": None,
+            "latest_compact": None,
+        }
         initial_context_seq: int | None = None
         started_turns: set[int] = set()
         compaction_announced_turns: set[int] = set()
@@ -2396,11 +2403,26 @@ class AgentApp:
 
         def message_ref(message: Any) -> dict[str, Any]:
             source = message_source_refs.get(_message_key(message))
+            identity = getattr(message, "id", None)
+            if source is None and identity:
+                source = message_source_by_id.get(str(identity))
             source_seq = source[0] if source else None
             source_record = source[1] if source else None
             if source_seq is None and (getattr(message, "type", None) in {"human", "user"}):
                 source_seq = initial_context_seq
                 source_record = "context" if source_seq is not None else None
+            if source_seq is None:
+                role = getattr(message, "type", None)
+                if role == "ai":
+                    source = source_state.get("latest_decision")
+                elif role == "tool":
+                    tool_call_id = getattr(message, "tool_call_id", None)
+                    source = message_source_by_id.get(str(tool_call_id)) if tool_call_id else None
+                    source = source or source_state.get("latest_action")
+                else:
+                    source = source_state.get("latest_compact") or source_state.get("latest_decision") or source_state.get("latest_action")
+                source_seq = source[0] if source else None
+                source_record = source[1] if source else None
             return _message_ref(message, source_seq=source_seq, source_record=source_record)
 
         async def heartbeat() -> None:
@@ -2418,6 +2440,7 @@ class AgentApp:
                     "compaction_id": last_compaction_id,
                     "model_call_id": info.get("model_call_id"),
                     "summary_hash": info.get("summary_hash"),
+                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
                     "post_basis": post_estimate,
                     "status": "completed",
                 },
@@ -2431,6 +2454,7 @@ class AgentApp:
                     "model_call_id": info.get("model_call_id"),
                     "summary": info.get("summary"),
                     "summary_hash": info.get("summary_hash"),
+                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
                     "post_basis": post_estimate,
                     "usage": info.get("usage"),
                     "status": "completed",
@@ -2447,6 +2471,7 @@ class AgentApp:
                 "compaction_failed",
                 {
                     "compaction_id": last_compaction_id,
+                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
                     "error": {"code": exc.code, "message": exc.message},
                     "status": "failed",
                 },
@@ -2460,6 +2485,7 @@ class AgentApp:
                     "summary": compaction_summary_info.get(last_compaction_id, {}).get("summary"),
                     "partial_summary": compaction_summary_info.get(last_compaction_id, {}).get("partial_summary"),
                     "summary_hash": compaction_summary_info.get(last_compaction_id, {}).get("summary_hash"),
+                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
                     "error": {"code": exc.code, "message": exc.message},
                     "status": "failed",
                 }
@@ -2514,9 +2540,10 @@ class AgentApp:
                     last_compaction_id = f"compact-{compact_count}"
                 callback_summary_ids.add(call_id)
                 model_call_kinds[call_id] = "compact"
+                compaction_source_refs.setdefault(last_compaction_id or "", [message_ref(message) for message in last_state_messages_snapshot])
                 if turn not in compaction_announced_turns:
                     compaction_announced_turns.add(turn)
-                    emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "threshold": compact_threshold})
+                    emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "threshold": compact_threshold, "source_refs": compaction_source_refs.get(last_compaction_id or "", [])})
                 emit(
                     "model_started",
                     {
@@ -2782,8 +2809,12 @@ class AgentApp:
                         compact_count += 1
                         last_compaction_id = f"compact-{compact_count}"
                         compaction_announced_turns.add(turn)
-                        emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold})
-                        audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": [message_ref(message) for message in summary_messages], "status": "started", "summary_template": "langgraph_default"})
+                        compact_source_refs = [message_ref(message) for message in summary_messages]
+                        compaction_source_refs[last_compaction_id] = compact_source_refs
+                        emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": compact_source_refs})
+                        compact_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": compact_source_refs, "status": "started", "summary_template": "langgraph_default"})
+                        if compact_seq is not None:
+                            source_state["latest_compact"] = (compact_seq, "context")
                 elif kind == "on_chat_model_start":
                     metadata = data.get("metadata", {}) or {}
                     observed_model = observed_model or metadata.get("model_name")
@@ -2850,7 +2881,12 @@ class AgentApp:
                         # thinking/reasoning blocks; audit is an academic
                         # behavior record and must not persist hidden CoT.
                         capture = request_capture_by_call.get(current_model_call_id or "")
-                        audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
+                        decision_seq = audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
+                        if decision_seq is not None:
+                            source_state["latest_decision"] = (decision_seq, "decision")
+                            message_source_refs[_message_key(ai)] = (decision_seq, "decision")
+                            if getattr(ai, "id", None):
+                                message_source_by_id[str(ai.id)] = (decision_seq, "decision")
                         decision_written_turns.add(turn)
                         unknown_requests = [item for item in requests if item["name"] not in self.spec.tool_names and item["name"] != structured_name]
                         business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
@@ -2889,6 +2925,9 @@ class AgentApp:
                         action_seq = audit_write({"record": "action", "record_type": "action", **record})
                         if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                             message_source_refs[_message_key(data["output"])] = (action_seq, "action")
+                        if action_seq is not None:
+                            source_state["latest_action"] = (action_seq, "action")
+                            message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
                     if isinstance(data.get("output"), BaseMessage):
                         last_state_messages = [*last_state_messages, data["output"]]
                     emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
@@ -2918,13 +2957,22 @@ class AgentApp:
                     action_seq = audit_write({"record": "action", **record})
                     if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                         message_source_refs[_message_key(data["output"])] = (action_seq, "action")
+                    if action_seq is not None:
+                        source_state["latest_action"] = (action_seq, "action")
+                        message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
                     emit("tool_failed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else None, "error": safe_error, "status": "failed", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_chain_end" and name.startswith("SummarizationMiddleware.before_model"):
                     replacement = data.get("output") or {}
                     replacement_messages = _messages_from_event(replacement.get("messages") if isinstance(replacement, Mapping) else replacement)
                     context_meter.invalidate_provider_anchor()
                     replacement_refs = [message_ref(message) for message in replacement_messages]
-                    audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": _safe_json(replacement), "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": _safe_json(replacement), "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    if replacement_seq is not None:
+                        source_state["latest_compact"] = (replacement_seq, "context")
+                        for message in replacement_messages:
+                            message_source_refs[_message_key(message)] = (replacement_seq, "context")
+                            if getattr(message, "id", None):
+                                message_source_by_id[str(message.id)] = (replacement_seq, "context")
                 elif kind == "on_chain_end" and name in {"LangGraph", self.spec.name}:
                     state = data.get("output") or {}
                     output = state.get("structured_response")
