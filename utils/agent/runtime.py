@@ -835,8 +835,13 @@ class _StreamHoldback:
         # A delimited token is complete and can be released immediately.  An
         # unterminated credential-shaped token stays buffered until the next
         # chunk or the terminal callback, so a split credential cannot leak.
-        if delimiter is None and any(token.lower().startswith(prefix.lower()) for prefix in self._PREFIXES):
-            end = min(end, token_start)
+        if delimiter is None:
+            token_lower = token.lower()
+            if any(
+                prefix.lower().startswith(token_lower) or token_lower.startswith(prefix.lower())
+                for prefix in self._PREFIXES
+            ):
+                end = min(end, token_start)
         return max(0, end)
 
     def feed(self, text: str, *, final: bool = False) -> str:

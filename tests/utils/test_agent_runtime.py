@@ -418,6 +418,11 @@ def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credential
     delimited = _StreamHoldback(())
     assert delimited.feed("sk-id ") == "sk-id "
 
+    for prefix, suffix in (("Bearer", " token12345"), ("sk", "-live-secret-123456789"), ("hf", "_abcdefghijklmnopqrstuvwxyz123456")):
+        split = _StreamHoldback(())
+        assert split.feed(prefix) == ""
+        assert suffix.strip() not in split.feed(suffix, final=True)
+
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
     from utils.agent.runtime import _model_usage_info
