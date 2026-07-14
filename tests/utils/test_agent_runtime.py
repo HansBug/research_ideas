@@ -475,6 +475,7 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         assert streamed.feed(prefix) == ""
         assert token not in streamed.feed(token[3:], final=True)
     assert _redact_text("key-research-153") == "key-research-153"
+    assert _redact_text("the bearer of the message") == "the bearer of the message"
     for run_id in (
         "gsk_baseline_v1_epoch_100",
         "fw_ablation_run_smoke",
@@ -489,6 +490,25 @@ def test_redaction_handles_unseparated_google_and_aws_fingerprints() -> None:
 
     assert "AKIAIOSF...MPLE" not in _redact_text("AKIAIOSF...MPLE was rejected")
     assert "AIzaSyABC...WXYZ" not in _redact_text("AIzaSyABC...WXYZ rate limit")
+
+
+def test_redaction_preserves_non_secret_headers_and_redacts_header_credentials() -> None:
+    from utils.agent.runtime import _redact, _redact_with_inventory
+
+    headers = {
+        "Content-Type": "application/json",
+        "X-Request-Id": "req-123",
+        "Authorization": "Bearer abcdefgh123456",
+        "X-Api-Key": "sk-abcdefghijklmnop123456",
+    }
+    expected = {
+        "Content-Type": "application/json",
+        "X-Request-Id": "req-123",
+        "Authorization": "[redacted]",
+        "X-Api-Key": "[redacted]",
+    }
+    assert _redact({"headers": headers}) == {"headers": expected}
+    assert _redact_with_inventory({"headers": headers}, ()) == {"headers": expected}
 
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:

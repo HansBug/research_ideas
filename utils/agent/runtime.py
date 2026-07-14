@@ -62,6 +62,8 @@ _USAGE_KEY = re.compile(
 _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
 _NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
+_SECRET_MAPPING_CONTAINERS = frozenset({"headers", "default_headers"})
+_BEARER_VALUE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
 # Provider credential formats that are safe to recognise by prefix.  ``key-``
 # is deliberately excluded: research identifiers commonly use that shape and
 # configured credentials are still redacted through the run-scoped inventory.
@@ -416,7 +418,7 @@ def _safe_json(value: Any) -> Any:
 
 
 def _redact(value: Any, *, key: str | None = None) -> Any:
-    if key and _is_secret_key(key):
+    if key and _is_secret_key(key) and not (isinstance(value, Mapping) and key.lower() in _SECRET_MAPPING_CONTAINERS):
         return "[redacted]"
     if key and _ENDPOINT_KEY.search(key) and isinstance(value, str):
         return _redact_text(value, redact_endpoints=True)
@@ -926,21 +928,7 @@ def _redact_credential_url(value: str) -> str:
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
     value = _PARTIAL_SECRET_VALUE.sub("[redacted_secret]", value)
     value = _SECRET_VALUE.sub("[redacted_secret]", value)
-    lowered = value.lower()
-    if "bearer " in lowered:
-        cursor = 0
-        pieces: list[str] = []
-        while True:
-            marker = lowered.find("bearer ", cursor)
-            if marker < 0:
-                pieces.append(value[cursor:])
-                break
-            end = marker + len("bearer ")
-            while end < len(value) and not value[end].isspace():
-                end += 1
-            pieces.extend((value[cursor:marker], "Bearer [redacted_bearer]"))
-            cursor = end
-        value = "".join(pieces)
+    value = _BEARER_VALUE.sub("Bearer [redacted_bearer]", value)
     if redact_endpoints:
         lowered = value.lower()
         cursor = 0
@@ -994,7 +982,7 @@ def _redact_with_inventory(value: Any, secrets: Sequence[str]) -> Any:
         result: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
-            if _is_secret_key(key_text):
+            if _is_secret_key(key_text) and not (isinstance(item, Mapping) and key_text.lower() in _SECRET_MAPPING_CONTAINERS):
                 result[key_text] = "[redacted]"
             elif _ENDPOINT_KEY.search(key_text) and isinstance(item, str):
                 result[key_text] = _redact_with_inventory(_redact_text(item, redact_endpoints=True), secrets)
