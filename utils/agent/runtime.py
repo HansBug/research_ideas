@@ -50,7 +50,7 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
 
 T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
-_MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "max_completion_tokens", "stop", "seed", "reasoning_effort", "verbosity"})
+_MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "max_completion_tokens", "stop", "seed", "verbosity"})
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -1157,8 +1157,11 @@ def _publish_receipt(audit_path: Path | None, result_path: Path | None, *, run_i
 
 
 def _validate_output_paths(audit_path: Path | None, result_path: Path | None) -> tuple[Path | None, Path | None]:
-    audit = audit_path.resolve(strict=False) if audit_path is not None else None
-    result = result_path.resolve(strict=False) if result_path is not None else None
+    try:
+        audit = audit_path.resolve(strict=False) if audit_path is not None else None
+        result = result_path.resolve(strict=False) if result_path is not None else None
+    except (OSError, RuntimeError) as exc:
+        raise AgentError("config_error", "output path cannot be resolved") from exc
     receipt = audit.with_name(audit.name + ".receipt.json") if audit is not None else None
     if audit is not None and result is not None and audit == result:
         raise AgentError("config_error", "audit_out and result_out must be different files")

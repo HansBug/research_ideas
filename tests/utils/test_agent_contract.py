@@ -42,6 +42,18 @@ def test_model_call_options_cannot_change_tool_or_retry_contract() -> None:
     for key in ("parallel_tool_calls", "tool_choice", "response_format", "max_retries"):
         with pytest.raises(ValueError, match="model_call_options_not_allowed"):
             _validate_model_call_options({key: True})
+    with pytest.raises(ValueError, match="model_call_options_not_allowed"):
+        _validate_model_call_options({"reasoning_effort": "high"})
+
+
+def test_output_symlink_loop_is_a_structured_config_error(tmp_path: Path) -> None:
+    from utils.agent.runtime import AgentError, _validate_output_paths
+
+    loop = tmp_path / "loop"
+    loop.symlink_to(loop)
+    with pytest.raises(AgentError) as error:
+        _validate_output_paths(loop, None)
+    assert getattr(error.value, "code", None) == "config_error"
 
 
 def test_agent_spec_tools_are_the_registration_allowlist() -> None:
