@@ -438,6 +438,15 @@ def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credential
         assert secret_fragment not in rendered
 
 
+def test_redaction_handles_truncated_credential_fingerprints_without_hiding_ids() -> None:
+    from utils.agent.runtime import _redact_text, _redact_with_inventory
+
+    secret = "sk-conf-abcdefghijklmnopqrstuv12345678"
+    assert "sk-conf...5678" not in _redact_text("provider rejected key sk-conf...5678")
+    assert "5678" not in _redact_with_inventory("invalid key ending ...5678", (secret,))
+    assert _redact_with_inventory("key-research-153", (secret,)) == "key-research-153"
+
+
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
     from utils.agent.runtime import _model_usage_info
 

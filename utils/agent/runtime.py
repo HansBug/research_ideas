@@ -70,6 +70,10 @@ _SECRET_VALUE = re.compile(
     r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b)",
     re.I,
 )
+_PARTIAL_SECRET_VALUE = re.compile(
+    r"\b(?:sk|sess|hf|gh[po]|AIza|AKIA)[-_][A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
+    re.I,
+)
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_COMPACT_TRIGGER_RATIO = 0.85
 _DEFAULT_COMPACT_KEEP_MESSAGES = 20
@@ -913,6 +917,7 @@ def _redact_credential_url(value: str) -> str:
 
 
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
+    value = _PARTIAL_SECRET_VALUE.sub("[redacted_secret]", value)
     value = _SECRET_VALUE.sub("[redacted_secret]", value)
     lowered = value.lower()
     if "bearer " in lowered:
@@ -996,6 +1001,20 @@ def _redact_with_inventory(value: Any, secrets: Sequence[str]) -> Any:
         for secret in secrets:
             if secret:
                 value = value.replace(secret, "[redacted_secret]")
+                if len(secret) >= 8:
+                    prefix = secret[:6]
+                    suffix = secret[-4:]
+                    value = re.sub(
+                        re.escape(prefix) + r"\.\.\." + re.escape(suffix),
+                        "[redacted_secret]",
+                        value,
+                        flags=re.I,
+                    )
+                    value = re.sub(
+                        rf"(?i)(\b(?:api[ _-]?key|key|token|secret)\b[^\n]{{0,32}}\.\.\.){re.escape(suffix)}\b",
+                        r"\1[redacted_secret]",
+                        value,
+                    )
         return value
     return value
 
