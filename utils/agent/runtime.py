@@ -2321,6 +2321,7 @@ class AgentApp:
         compact_tracker = _CompactTracker(context_meter, compact_threshold) if compact_threshold is not None else None
         compaction_summary_info: dict[str, dict[str, Any]] = {}
         compaction_source_refs: dict[str, list[dict[str, Any]]] = {}
+        compaction_failure_errors: dict[str, AgentError] = {}
         stream_holdbacks: dict[str, _StreamHoldback] = {}
         sensitive_values = _sensitive_inventory(self.config, pages)
         audit.set_sensitive_values(sensitive_values)
@@ -2433,6 +2434,12 @@ class AgentApp:
         def compaction_validated(post_estimate: int | None) -> None:
             if last_compaction_id is None:
                 return
+            failure = compaction_failure_errors.get(last_compaction_id)
+            if failure is not None:
+                # A failed summary must never be treated as a successful state
+                # replacement, even if the middleware returns an error-shaped
+                # message to the graph.
+                raise AgentError(failure.code, failure.message, details=failure.details)
             info = compaction_summary_info.get(last_compaction_id, {})
             emit(
                 "compaction_completed",
@@ -2467,6 +2474,7 @@ class AgentApp:
             if last_compaction_id in compaction_failure_ids:
                 return
             compaction_failure_ids.add(last_compaction_id)
+            compaction_failure_errors[last_compaction_id] = exc
             emit(
                 "compaction_failed",
                 {

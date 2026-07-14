@@ -1126,6 +1126,54 @@ def test_compact_audit_keeps_native_summary_and_call_links(tmp_path: Path) -> No
     assert all(ref.get("source_seq") is not None for ref in completed_event.data["source_refs"])
 
 
+def test_compact_summary_failure_stops_before_next_primary_turn() -> None:
+    class FailingCompactModel(BaseChatModel):
+        calls: int = Field(default=0)
+
+        @property
+        def _llm_type(self) -> str:
+            return "compact-summary-failure"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.calls += 1
+            if any("Context Extraction Assistant" in str(getattr(item, "content", "")) for item in messages):
+                raise RuntimeError("summary provider unavailable")
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[{"name": "probe", "args": {}, "id": f"call-{self.calls}", "type": "tool_call"}],
+                        )
+                    )
+                ]
+            )
+
+    def probe() -> str:
+        return "ok"
+
+    events: list[AgentEvent] = []
+    result = AgentApp._for_test(
+        AgentSpec(name="compact-summary-failure", system_prompt="use probe", tools=(probe,)),
+        LLMConfig(model="compact-summary-failure", context_window_tokens=1020, max_output_tokens=20),
+        FailingCompactModel(),
+    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, on_event=events.append)
+    assert result.status == "failed"
+    assert result.error is not None
+    assert result.error["code"] == "compact_error"
+    kinds = [event.kind for event in events]
+    assert "compaction_failed" in kinds
+    assert "compaction_completed" not in kinds
+    failed_index = kinds.index("compaction_failed")
+    assert not any(
+        event.kind == "model_started" and event.data.get("call_kind") == "primary"
+        for event in events[failed_index + 1 :]
+    )
+
+
 def test_receipt_hash_matches_final_result_and_audit(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         """Return a fixed observation."""
