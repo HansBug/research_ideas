@@ -176,7 +176,7 @@ context = [
 result = app.run("分析这些事实", context=context, renderer="rich")
 ```
 
-也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。compact 阈值使用 LangChain 官方 `max_input_tokens`/`context_window_tokens`，按 `floor(context_window_tokens * compact_trigger_ratio)` 触发，不从官方输入窗口擅自扣减单独的 `max_output_tokens`；`safe_input_tokens` 只是该官方输入容量的公开别名。默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
+也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。compact 阈值使用 LangChain 官方 `max_input_tokens`/`context_window_tokens`，按 `floor(context_window_tokens * compact_trigger_ratio)` 触发，不从官方输入窗口擅自扣减单独的 `max_output_tokens`；`safe_input_tokens` 只是该官方输入容量的公开别名。默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。实现对应 [LangChain 短期记忆与 SummarizationMiddleware](https://docs.langchain.com/oss/python/langchain/short-term-memory)；容量和 usage 字段以 [GPT-5.5 官方模型页](https://developers.openai.com/api/docs/models/gpt-5.5) 与 [Reasoning usage 文档](https://developers.openai.com/api/docs/guides/reasoning) 为准。
 
 每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel，保持高信号而不重复历史：
 
