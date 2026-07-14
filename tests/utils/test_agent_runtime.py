@@ -494,6 +494,33 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         assert _redact_text(run_id) == run_id
 
 
+def test_redaction_covers_anthropic_and_openai_project_tokens_without_hiding_ids() -> None:
+    from utils.agent.runtime import _StreamHoldback, _redact_text
+
+    tokens = (
+        "sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890",
+        "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",
+    )
+    for token in tokens:
+        assert token not in _redact_text(f"provider token {token}")
+        streamed = _StreamHoldback(())
+        assert streamed.feed(f"response {token[:9]}") == "response "
+        assert token not in streamed.feed(token[9:], final=True)
+
+    for academic_id in ("sk-ant-baseline-1", "sk-project-plan-2026"):
+        assert _redact_text(academic_id) == academic_id
+
+
+def test_bearer_redaction_keeps_plain_english_phrases() -> None:
+    from utils.agent.runtime import _redact_text
+
+    assert _redact_text("Standard bearer authentication is required") == "Standard bearer authentication is required"
+    assert _redact_text("bearer credentials required") == "bearer credentials required"
+    assert _redact_text("the bearer instrument was returned") == "the bearer instrument was returned"
+    assert "token12345" not in _redact_text("Bearer token12345")
+    assert "opaque-token-123" not in _redact_text("Bearer opaque-token-123")
+
+
 def test_redaction_handles_unseparated_google_and_aws_fingerprints() -> None:
     from utils.agent.runtime import _redact_text
 
@@ -1428,3 +1455,28 @@ def test_result_and_audit_redact_configured_key_across_boundaries(tmp_path: Path
     assert result.status == "success"
     serialized = result.to_json() + audit.read_text(encoding="utf-8")
     assert "sk-configured-secret-123456" not in serialized
+
+
+def test_result_public_fields_redact_anthropic_and_project_tokens() -> None:
+    from utils.agent.runtime import AgentRunResult
+
+    anthropic = "sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890"
+    project = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"
+    result = AgentRunResult(
+        run_id="run-redact",
+        status="success",
+        output={"token": anthropic},
+        final_text=f"provider returned {project}",
+        tool_calls=[{"name": "probe", "result": {"value": anthropic}}],
+        usage=[],
+        error=None,
+        real_llm=True,
+        model="gpt-5.5",
+        observed_model="gpt-5.5",
+        academic_eligible=False,
+        context_manifest_hash=None,
+    )
+
+    serialized = json.dumps(result.to_dict(), ensure_ascii=False)
+    assert anthropic not in serialized
+    assert project not in serialized

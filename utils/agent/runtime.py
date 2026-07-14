@@ -63,12 +63,16 @@ _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)
 _NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 _SECRET_MAPPING_CONTAINERS = frozenset({"headers", "default_headers"})
-_BEARER_VALUE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
+_BEARER_VALUE = re.compile(
+    r"(?i)\bBearer\s+(?=[A-Za-z0-9._~+/=-]{8,}\b)(?=[A-Za-z0-9._~+/=-]*[0-9._~+/=-])"
+    r"[A-Za-z0-9._~+/=-]+"
+)
 # Provider credential formats that are safe to recognise by prefix.  ``key-``
 # is deliberately excluded: research identifiers commonly use that shape and
 # configured credentials are still redacted through the run-scoped inventory.
 _SECRET_VALUE = re.compile(
-    r"(?:\b(?:sk|sess)[-_][A-Za-z0-9]{16,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
+    r"(?:\b(?:sk-ant|sk-proj)[-_][A-Za-z0-9][A-Za-z0-9_-]{20,}\b|"
+    r"\b(?:sk|sess)[-_][A-Za-z0-9]{16,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
     r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|"
     r"\bgsk_[A-Za-z0-9]{52}\b|\bpplx-[A-Za-z0-9]{48}\b|"
     r"\br8_[A-Za-z0-9_-]{37}\b)",
@@ -819,7 +823,7 @@ class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = (
-        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
+        "sk-", "sk-ant-", "sk-proj-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
     )
     _URL_PREFIXES = ("http://", "https://")
 
