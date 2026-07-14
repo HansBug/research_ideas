@@ -347,10 +347,10 @@ def test_operator_events_redact_secret_values() -> None:
         AgentSpec(name="redact", system_prompt="DO_NOT_LEAK_SYSTEM", tools=()),
         LLMConfig(model="gpt-5.5"),
         _TextModel(),
-    ).run("sk-secret12345678", renderer="quiet", on_event=events.append)
+    ).run("sk-abcdefghijklmnop123456", renderer="quiet", on_event=events.append)
 
     serialized = json.dumps([event.to_dict() for event in events], ensure_ascii=False)
-    assert "sk-secret12345678" not in serialized
+    assert "sk-abcdefghijklmnop123456" not in serialized
     assert "DO_NOT_LEAK_SYSTEM" in serialized
 
 
@@ -418,7 +418,7 @@ def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credential
     delimited = _StreamHoldback(())
     assert delimited.feed("sk-id ") == "sk-id "
 
-    for prefix, suffix in (("Bearer", " token12345"), ("sk", "-live-secret-123456789"), ("hf", "_abcdefghijklmnopqrstuvwxyz123456")):
+    for prefix, suffix in (("Bearer", " token12345"), ("sk", "-abcdefghijklmnopqrstuv"), ("hf", "_abcdefghijklmnopqrstuvwxyz123456")):
         split = _StreamHoldback(())
         assert split.feed(prefix) == ""
         assert suffix.strip() not in split.feed(suffix, final=True)
@@ -443,7 +443,14 @@ def test_redaction_handles_truncated_credential_fingerprints_without_hiding_ids(
 
     secret = "sk-conf-abcdefghijklmnopqrstuv12345678"
     assert "sk-conf...5678" not in _redact_text("provider rejected key sk-conf...5678")
-    assert "5678" not in _redact_with_inventory("invalid key ending ...5678", (secret,))
+    for text in (
+        "invalid key ending ...5678",
+        "OpenAI error: api_key ...5678 is invalid",
+        "invalid api key '...5678'",
+        "The provided API key ...5678 was rejected",
+        "key ...5678 expired",
+    ):
+        assert "5678" not in _redact_with_inventory(text, (secret,))
     assert _redact_with_inventory("key-research-153", (secret,)) == "key-research-153"
     for text in ("key research ...5678", "key-research-153 ...5678", "token budget ...5678"):
         assert _redact_with_inventory(text, (secret,)) == text
@@ -468,6 +475,20 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         assert streamed.feed(prefix) == ""
         assert token not in streamed.feed(token[3:], final=True)
     assert _redact_text("key-research-153") == "key-research-153"
+    for run_id in (
+        "gsk_baseline_v1_epoch_100",
+        "fw_ablation_run_smoke",
+        "sk-branch-152",
+        "tgp_v1_train_epoch_000042",
+    ):
+        assert _redact_text(run_id) == run_id
+
+
+def test_redaction_handles_unseparated_google_and_aws_fingerprints() -> None:
+    from utils.agent.runtime import _redact_text
+
+    assert "AKIAIOSF...MPLE" not in _redact_text("AKIAIOSF...MPLE was rejected")
+    assert "AIzaSyABC...WXYZ" not in _redact_text("AIzaSyABC...WXYZ rate limit")
 
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
@@ -604,7 +625,7 @@ def test_hidden_thinking_blocks_are_excluded_from_academic_audit(tmp_path: Path)
 
 def test_result_export_redacts_secret_tool_values() -> None:
     def lookup(value: str) -> dict[str, str]:
-        return {"value": value, "token": "sk-secret12345678"}
+        return {"value": value, "token": "sk-abcdefghijklmnop123456"}
 
     result = AgentApp._for_test(
         AgentSpec(name="result-redact", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
@@ -612,9 +633,9 @@ def test_result_export_redacts_secret_tool_values() -> None:
         FakeStreamingModel(),
     ).run("read", renderer="quiet")
 
-    assert "sk-secret12345678" not in result.to_json()
+    assert "sk-abcdefghijklmnop123456" not in result.to_json()
     assert result.tool_calls[0]["result"]["token"] == "[redacted]"
-    assert "sk-secret12345678" not in json.dumps(result.tool_calls, ensure_ascii=False)
+    assert "sk-abcdefghijklmnop123456" not in json.dumps(result.tool_calls, ensure_ascii=False)
 
 
 def test_tool_result_preserves_scalar_text_but_decodes_structured_json() -> None:
