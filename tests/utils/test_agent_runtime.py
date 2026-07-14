@@ -507,6 +507,9 @@ def test_redaction_covers_anthropic_and_openai_project_tokens_without_hiding_ids
         assert streamed.feed(f"response {token[:9]}") == "response "
         assert token not in streamed.feed(token[9:], final=True)
 
+    for token in ("sk-ant-api03-real...5678", "sk-proj-abcdef012...5678"):
+        assert "5678" not in _redact_text(f"provider rejected {token}")
+
     for academic_id in ("sk-ant-baseline-1", "sk-project-plan-2026"):
         assert _redact_text(academic_id) == academic_id
 
@@ -519,6 +522,17 @@ def test_bearer_redaction_keeps_plain_english_phrases() -> None:
     assert _redact_text("the bearer instrument was returned") == "the bearer instrument was returned"
     assert "token12345" not in _redact_text("Bearer token12345")
     assert "opaque-token-123" not in _redact_text("Bearer opaque-token-123")
+
+
+def test_compact_threshold_uses_official_input_window_without_output_subtraction() -> None:
+    from utils.agent.runtime import _model_capacity
+
+    context, output, safe_input, _sources = _model_capacity(
+        object(), LLMConfig(model="gpt-5.5", context_window_tokens=1_050_000, max_output_tokens=128_000)
+    )
+    assert context == 1_050_000
+    assert output == 128_000
+    assert safe_input == 1_050_000
 
 
 def test_redaction_handles_unseparated_google_and_aws_fingerprints() -> None:

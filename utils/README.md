@@ -174,7 +174,7 @@ context = [
 result = app.run("分析这些事实", context=context, renderer="rich")
 ```
 
-也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。若同时提供 context window 与 max output，运行时计算 `safe_input = context_window - max_output`，并按 `floor(safe_input * compact_trigger_ratio)` 触发官方 `SummarizationMiddleware`；默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
+也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。compact 阈值使用 LangChain 官方 `max_input_tokens`/`context_window_tokens`，按 `floor(context_window_tokens * compact_trigger_ratio)` 触发，不从官方输入窗口擅自扣减单独的 `max_output_tokens`；`safe_input_tokens` 只是该官方输入容量的公开别名。默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
 
 每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel。第一行固定说明本轮核心消耗：`input + output = total tokens`，并在存在时追加 `cache` 与 `reasoning`；第二行固定说明当前 `context used/window tokens (percent%)`，再给出 `compact at threshold / trigger-ratio` 及状态。context basis 取 provider total 高水位加新增消息估算、provider input 加新增消息估算、完整 LangChain 估算三者最大值；因此可能带 `~`，但不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`；官方 summary transport 也发出带 `model_call_id` 的 `model_started`/`model_completed` 事件，但 Rich 不再重复渲染一套 MODEL INPUT/OUTPUT 面板。
 
@@ -294,7 +294,7 @@ Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本
 
 compact 只由 LangGraph 官方 `SummarizationMiddleware` 执行，运行时不手写第二套上下文压缩、工具重放或 JSON 摘要解析。装配关系固定为：
 
-1. `context_window_tokens` 和本次 `max_output_tokens` 都存在时，先计算 `safe_input = context_window_tokens - max_output_tokens`；再计算 `threshold = floor(safe_input * compact_trigger_ratio)`。只提供窗口时使用窗口乘比例；两者都未知时不猜容量，compact 状态为 `unavailable`。
+1. `threshold = floor(context_window_tokens * compact_trigger_ratio)`，其中 `context_window_tokens` 来自配置或官方模型 profile；`max_output_tokens` 单独记录，不从输入窗口中扣减。两者都未知时不猜容量，compact 状态为 `unavailable`。
 2. `SummarizationMiddleware(trigger=("tokens", threshold), keep=("messages", 20))` 观察 LangGraph state；达到阈值后由同一模型、同一推理设置生成 summary，并由 middleware 用官方 `RemoveMessage` replacement 写回 state。
 3. compact 不重新执行已经完成的业务工具，不复制旧 tool result，不改变调用方原始 prompt；summary transport 是一次普通模型调用，计入显式 `model_calls`，但不计业务 tool/turn。
 4. 实时顺序必须是 `CONTEXT` -> `COMPACTION | START` -> 可见 summary 流 -> `COMPACTION | COMPLETE` -> 下一轮 `MODEL INPUT`；失败则输出 `COMPACTION | FAILED`，并在最终 `AGENT FAILED` 与 audit `finish` 中说明归属和诊断。

@@ -79,6 +79,7 @@ _SECRET_VALUE = re.compile(
     re.I,
 )
 _PARTIAL_SECRET_VALUE = re.compile(
+    r"\b(?:sk-ant|sk-proj)[-_][A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
     r"\b(?:sk|sess|hf|gh[po]|gsk|pplx|r8)[-_][A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
     r"\b(?:AIza|AKIA)[A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
     re.I,
@@ -772,9 +773,11 @@ def _model_capacity(model: Any, config: LLMConfig, *, max_output_override: int |
             if max_output is None and isinstance(profile.get("max_output_tokens"), int):
                 max_output = int(profile["max_output_tokens"])
                 sources["max_output"] = "official_profile"
-    safe_input = context - max_output if context is not None and max_output is not None else None
-    if safe_input is not None and safe_input <= 0:
-        raise AgentError("config_error", "max_output_tokens must be smaller than context window")
+    # LangChain's official model profile exposes ``max_input_tokens`` as the
+    # input capacity used by SummarizationMiddleware.  Do not subtract the
+    # separately reported output reserve locally: that would silently lower
+    # the provider's documented context capacity and trigger compact early.
+    safe_input = context
     return context, max_output, safe_input, sources
 
 
@@ -2361,12 +2364,10 @@ class AgentApp:
             max_output_override=max_output_override if isinstance(max_output_override, int) else None,
         )
         compact_threshold = (
-            math.floor(safe_input_tokens * compact_trigger_ratio)
-            if safe_input_tokens is not None and compact_trigger_ratio is not None
+            math.floor(context_window_tokens * compact_trigger_ratio)
+            if context_window_tokens is not None and compact_trigger_ratio is not None
             else None
         )
-        if compact_threshold is None and context_window_tokens is not None and compact_trigger_ratio is not None:
-            compact_threshold = math.floor(context_window_tokens * compact_trigger_ratio)
         context_error: AgentError | None = None
         try:
             pages = _normalize_context(context)
