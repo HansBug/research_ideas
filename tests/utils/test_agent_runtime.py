@@ -430,6 +430,7 @@ def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credential
     for first, second, secret_fragment in (
         ("https://user", ":pass@host/x", ":pass@"),
         ("https://x/?api_key=", "supersecret123", "supersecret123"),
+        ("ht", "tps://user:pass@host/x", ":pass@"),
     ):
         url = _StreamHoldback(())
         assert url.feed(first) == ""

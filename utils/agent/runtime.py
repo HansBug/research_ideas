@@ -845,7 +845,7 @@ class _StreamHoldback:
                 for prefix in self._PREFIXES
             ):
                 end = min(end, token_start)
-            if any(token_lower.startswith(prefix) for prefix in self._URL_PREFIXES):
+            if any(prefix.startswith(token_lower) or token_lower.startswith(prefix) for prefix in self._URL_PREFIXES):
                 # URL credentials/query values can be split after the scheme
                 # or parameter name; keep the URL token for one parser pass.
                 end = min(end, token_start)
