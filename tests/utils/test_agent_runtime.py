@@ -236,6 +236,8 @@ def test_demo_forwards_only_explicit_limits(monkeypatch: pytest.MonkeyPatch) -> 
     assert captured["spec"].limits == {}
     assert captured["input"] == "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。"
     assert "51.25" not in captured["spec"].system_prompt
+    assert "current_system_time" not in captured["spec"].system_prompt
+    assert "calculate_expression" not in captured["spec"].system_prompt
 
     captured.clear()
     with pytest.raises(Exception):

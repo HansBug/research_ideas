@@ -241,7 +241,7 @@ venv/bin/python tests/utils/validate_agent_smoke.py --root runs/utils-agent
 
 provider token 的静态识别只使用高置信格式：Anthropic `sk-ant-`、OpenAI project `sk-proj-`、Groq `gsk_`、Perplexity `pplx-`、Replicate `r8_` 使用当前 scanner/官方资料支持的形态；xAI、Together、Fireworks、Mistral 等没有稳定且官方公开的固定长度合同，默认只依赖当前运行的精确 `api_key` inventory，显式 `auth`/`token`/`api_key` 语境仍会进入上下文脱敏。不会用通用长字符串正则，否则会把 `gsk_baseline_v1_epoch_100`、`key-research-153` 等学术标识抹掉。流式 holdback 会保留紧邻的 credential context，确保 `api_key=`、`auth:` 等无空格分块也能在同一次解析中脱敏；长度不足的研究标识如 `sk-ant-baseline-1`、`sk-project-plan-2026` 保持原样。
 
-`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`provider_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`limit_exceeded`、`cancelled`、`audit_write_failed` 和 `json_export_failed`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。脱敏会覆盖复合 secret 字段（如 `api_key_value`、`my_token`），同时保留 `token_usage`、`prompt_tokens` 和 `api_key_configured` 等统计/状态字段。
+`AgentError` 是运行期间唯一需要下游捕获的公开异常，至少提供安全的 `code` 和 `message`；`AgentRunResult.error` 使用相同的两个字段。稳定错误码包括 `config_error`、`provider_error`、`tool_error`、`tool_not_allowed`、`mixed_terminal_tool`、`context_budget_exceeded`、`compact_error`、`context_invalid`、`input_invalid`、`tool_required`、`structured_output_invalid`、`limit_exceeded`、`cancelled`、`audit_write_failed`、`json_export_failed`、`runtime_error` 和 `incomplete_tool`。错误消息不得包含 key、headers、完整 endpoint、prompt 或 traceback。脱敏会覆盖复合 secret 字段（如 `api_key_value`、`my_token`），同时保留 `token_usage`、`prompt_tokens` 和 `api_key_configured` 等统计/状态字段。
 ## 3. 最小真实 Agent 示例
 
 ```python

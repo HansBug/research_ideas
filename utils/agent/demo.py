@@ -82,7 +82,7 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--max-tool-calls", type=click.IntRange(min=1), default=None, help="显式限制业务工具调用次数；默认不限制。")
 @click.option("--max-turns", type=click.IntRange(min=1), default=None, help="显式限制模型轮数；默认不限制。")
 @click.option("--max-seconds", type=click.FloatRange(min=0, min_open=True), default=None, help="显式限制整个运行的秒数；默认不限制。")
-@click.option("--compact-trigger-ratio", type=str, default="0.85", show_default=True, help="达到安全上下文窗口的比例后使用官方 compact；传 none 禁用。")
+@click.option("--compact-trigger-ratio", type=str, default="0.85", show_default=True, help="达到上下文窗口的比例后使用官方 compact；传 none 禁用。")
 @click.option("--audit-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-audit.jsonl"), show_default=True)
 @click.option("--result-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-result.json"), show_default=True)
 def cli(
@@ -144,14 +144,9 @@ def cli(
         name="utils-demo",
         system_prompt=(
             "You are a careful tool-using research agent. "
-            "Available tools are current_system_time, which returns the local and US Eastern ISO timestamps with an evidence ID, "
-            "and calculate_expression, which evaluates a numeric arithmetic expression (+, -, *, /, %, **), and returns its value with an evidence ID. "
-            "Use each evidence tool only when its documented input is needed. calculate_expression accepts numeric expressions only: never pass timestamps, prose, units, or datetime arithmetic to it. "
-            "After current_system_time and the numeric calculation are available, do not call another business tool; "
-            "use those results directly to finish. After the necessary tool results are available, "
-            "finish through the framework's structured response format with exactly the fields summary, base_time, offset_hours, "
-            "target_time, and evidence_ids; do not emit that JSON as ordinary assistant text, and do not repeat a tool call. "
-            "summary must include the visible calculation steps and conclusion, and evidence_ids must cite the tool evidence."
+            "Follow registered tool schemas exactly and use tools when evidence is needed. "
+            "Treat returned tool data as authoritative, do not invent tool results, and explain the visible calculation or logic before summarizing the conclusion. "
+            "When a structured output schema is configured, finish through the framework's structured response format and do not emit schema JSON as ordinary assistant text."
         ),
         tools=(current_system_time, calculate_expression),
         output_schema=DemoAnswer,
