@@ -803,6 +803,7 @@ class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = ("sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "Bearer ")
+    _URL_PREFIXES = ("http://", "https://")
 
     def __init__(self, secrets: Sequence[str]):
         self.secrets = tuple(secrets)
@@ -843,6 +844,10 @@ class _StreamHoldback:
                 prefix.lower().startswith(token_lower) or token_lower.startswith(prefix.lower())
                 for prefix in self._PREFIXES
             ):
+                end = min(end, token_start)
+            if any(token_lower.startswith(prefix) for prefix in self._URL_PREFIXES):
+                # URL credentials/query values can be split after the scheme
+                # or parameter name; keep the URL token for one parser pass.
                 end = min(end, token_start)
         elif delimiter.start() == len(token_tail) - 1:
             # ``Bearer `` can be split exactly after its delimiter.  Keep the

@@ -427,6 +427,15 @@ def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credential
     assert bearer.feed("Bearer ") == ""
     assert bearer.feed("token12345", final=True) == "Bearer [redacted_bearer]"
 
+    for first, second, secret_fragment in (
+        ("https://user", ":pass@host/x", ":pass@"),
+        ("https://x/?api_key=", "supersecret123", "supersecret123"),
+    ):
+        url = _StreamHoldback(())
+        assert url.feed(first) == ""
+        rendered = url.feed(second, final=True)
+        assert secret_fragment not in rendered
+
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
     from utils.agent.runtime import _model_usage_info
