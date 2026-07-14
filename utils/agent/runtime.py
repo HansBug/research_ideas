@@ -67,11 +67,14 @@ _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 # configured credentials are still redacted through the run-scoped inventory.
 _SECRET_VALUE = re.compile(
     r"(?:\b(?:sk|sess)[-_][A-Za-z0-9_-]{8,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
-    r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b)",
+    r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|"
+    r"\bxai-[A-Za-z0-9_-]{20,}\b|\bgsk_[A-Za-z0-9_-]{20,}\b|\bpplx-[A-Za-z0-9_-]{20,}\b|"
+    r"\btgp_v1_[A-Za-z0-9_-]{16,}\b|\bfw_[A-Za-z0-9_-]{16,}\b|"
+    r"\bmist-[A-Za-z0-9_-]{16,}\b|\br8_[A-Za-z0-9_-]{16,}\b)",
     re.I,
 )
 _PARTIAL_SECRET_VALUE = re.compile(
-    r"\b(?:sk|sess|hf|gh[po]|AIza|AKIA)[-_][A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
+    r"\b(?:sk|sess|hf|gh[po]|AIza|AKIA|xai|gsk|pplx|tgp_v1|fw|mist|r8)[-_][A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
     re.I,
 )
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
@@ -806,7 +809,10 @@ def _sensitive_inventory(config: LLMConfig, pages: Sequence[Mapping[str, Any]]) 
 class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
-    _PREFIXES = ("sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "Bearer ")
+    _PREFIXES = (
+        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-",
+        "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
+    )
     _URL_PREFIXES = ("http://", "https://")
 
     def __init__(self, secrets: Sequence[str]):
@@ -1011,7 +1017,7 @@ def _redact_with_inventory(value: Any, secrets: Sequence[str]) -> Any:
                         flags=re.I,
                     )
                     value = re.sub(
-                        rf"(?i)(\b(?:api[ _-]?key|key|token|secret)\b[^\n]{{0,32}}\.\.\.){re.escape(suffix)}\b",
+                        rf"(?i)(\b(?:api[ _-]?key|key|token|secret)\b[^\n]{{0,20}}\b(?:ending|suffix|fingerprint)\b[^\n]{{0,12}}\.\.\.){re.escape(suffix)}\b",
                         r"\1[redacted_secret]",
                         value,
                     )

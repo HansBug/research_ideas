@@ -445,6 +445,29 @@ def test_redaction_handles_truncated_credential_fingerprints_without_hiding_ids(
     assert "sk-conf...5678" not in _redact_text("provider rejected key sk-conf...5678")
     assert "5678" not in _redact_with_inventory("invalid key ending ...5678", (secret,))
     assert _redact_with_inventory("key-research-153", (secret,)) == "key-research-153"
+    for text in ("key research ...5678", "key-research-153 ...5678", "token budget ...5678"):
+        assert _redact_with_inventory(text, (secret,)) == text
+
+
+def test_redaction_covers_known_provider_token_formats_without_generic_hiding() -> None:
+    from utils.agent.runtime import _redact_text, _StreamHoldback
+
+    tokens = (
+        "xai-abcdefghij1234567890abcdefghijkl",
+        "gsk_abcdefghij1234567890abcdefghij",
+        "pplx-abcdefghij1234567890abcdef",
+        "tgp_v1_abcdefghij1234567890abcdefghij",
+        "fw_abcdefghij1234567890abcdefgh",
+        "mist-abcdefghij1234567890abcdef",
+        "r8_abcdefghij1234567890abcdef",
+    )
+    for token in tokens:
+        assert token not in _redact_text(f"provider rejected {token}")
+        prefix = token[:3]
+        streamed = _StreamHoldback(())
+        assert streamed.feed(prefix) == ""
+        assert token not in streamed.feed(token[3:], final=True)
+    assert _redact_text("key-research-153") == "key-research-153"
 
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
