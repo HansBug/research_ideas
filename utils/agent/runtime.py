@@ -2284,6 +2284,11 @@ class AgentApp:
         self.model = model
         self.real_llm = real_llm
         self.profile = profile
+        self.adapter_name = (
+            "langchain-deepseek/chat-completions"
+            if type(model).__module__.split(".", 1)[0] == "langchain_deepseek"
+            else ("test/model" if not real_llm else "langchain-openai/chat-completions")
+        )
 
     @classmethod
     def from_registry(cls, spec: AgentSpec, registry: LLMRegistry, profile: str | None = None, *, model_options: Mapping[str, Any] | None = None) -> "AgentApp":
@@ -2295,18 +2300,23 @@ class AgentApp:
         _validate_model_options(model_options)
         if config.api_key is None:
             raise AgentError("config_error", "api_key is required for a real model run")
+        deepseek = _is_deepseek_config(config)
         try:
-            from langchain_openai import ChatOpenAI
+            if deepseek:
+                from langchain_deepseek import ChatDeepSeek as ChatModel
+            else:
+                from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
-            raise AgentError("config_error", "langchain-openai is required") from exc
+            package = "langchain-deepseek" if deepseek else "langchain-openai"
+            raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
         if config.max_output_tokens is not None:
-            kwargs["max_completion_tokens"] = config.max_output_tokens
+            kwargs["max_tokens" if deepseek else "max_completion_tokens"] = config.max_output_tokens
         kwargs["use_responses_api"] = False
         kwargs.update({"streaming": True, "stream_usage": True, "max_retries": 0})
         kwargs.update(dict(model_options or {}))
         try:
-            model = ChatOpenAI(**kwargs)
+            model = ChatModel(**kwargs)
         except Exception as exc:
             raise AgentError("config_error", "model construction failed", details=_exception_details(exc)) from exc
         return cls(spec, config, model, profile=profile)
@@ -2384,7 +2394,7 @@ class AgentApp:
             {
                 "profile": self.profile,
                 "model": self.config.model,
-                "adapter": "langchain-openai/chat-completions",
+                "adapter": self.adapter_name,
                 "endpoint_fingerprint": endpoint_fingerprint,
                 "capacity": {"context_window_tokens": context_window_tokens, "max_output_tokens": max_output_tokens, "safe_input_tokens": safe_input_tokens, "capacity_source": capacity_source},
                 "inference": inference_options,
@@ -3115,7 +3125,7 @@ class AgentApp:
                 "agent": self.spec.name,
                 "model": self.config.model,
                 "started_at_utc": started_at_utc.isoformat(),
-                "adapter": "langchain-openai/chat-completions",
+                "adapter": self.adapter_name,
                 "real_llm": self.real_llm,
                 "has_context": bool(pages),
                 "context_status": "invalid" if context_error is not None else ("loaded" if pages else "none"),
@@ -3145,7 +3155,7 @@ class AgentApp:
                     "record": "context",
                     "record_type": "context",
                     "profile": self.profile,
-                    "adapter": "langchain-openai/chat-completions",
+                    "adapter": self.adapter_name,
                     "config_fingerprint": behavior_fingerprint,
                     "endpoint_ref": self.profile or "direct",
                     "endpoint_fingerprint": endpoint_fingerprint,

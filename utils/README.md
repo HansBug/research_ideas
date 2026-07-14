@@ -154,7 +154,7 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False, .
 
 官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
 
-兼容性边界：DeepSeek 的 OpenAI-compatible endpoint 在 `think_mode=False`（默认）下可直接走工具调用与 LangGraph structured-output fallback；开启思考并继续调用工具时，上游要求后续请求保留 `reasoning_content`，而当前 `ChatOpenAI` 适配器不会替该第三方字段做手写转换。因此这条组合不宣称兼容，不通过额外后处理“伪装支持”；需要该模式时应接入官方/成熟的 DeepSeek LangChain adapter，并保持同一事件与审计契约。
+DeepSeek profile 使用官方 LangChain integration `langchain-deepseek` 的 `ChatDeepSeek`，由该 adapter 负责保留 `reasoning_content` 并支持 tool loop；默认仍是 `think_mode=False`，显式 `--enable-think` 才启用思考。OpenAI/Claude 等其他 OpenAI-compatible profile 继续使用 `ChatOpenAI`。两条路径都保持 `streaming=True`、LangGraph structured output、同一 Rich 事件顺序和同一 audit 契约，不在 runtime 手写 provider 消息转换或 JSON 后处理。
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化 call；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。`CONTEXT` 只保留两行消耗摘要，结构化最终结果只在 `AGENT COMPLETE` 中完整展示一次。
 

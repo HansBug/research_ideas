@@ -77,7 +77,7 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--renderer", type=click.Choice(("auto", "rich", "jsonl", "quiet")), default="rich", show_default=True)
 @click.option("--log-level", type=click.Choice(("DEBUG", "INFO", "WARNING", "ERROR")), default="INFO", show_default=True)
 @click.option("--enable-think", is_flag=True, default=False, help="显式开启模型思考模式；默认关闭。")
-@click.option("--reasoning-effort", type=click.Choice(("none", "low", "medium", "high", "xhigh", "max")), default=None, help="显式开启思考后设置单次 reasoning effort；不传则使用 provider 默认值。")
+@click.option("--reasoning-effort", type=str, default=None, help="显式开启思考后传递 provider 的 reasoning effort；不传则使用 provider 默认值。")
 @click.option("--max-model-calls", type=click.IntRange(min=1), default=None, help="显式限制模型调用次数；默认不限制。")
 @click.option("--max-tool-calls", type=click.IntRange(min=1), default=None, help="显式限制业务工具调用次数；默认不限制。")
 @click.option("--max-turns", type=click.IntRange(min=1), default=None, help="显式限制模型轮数；默认不限制。")

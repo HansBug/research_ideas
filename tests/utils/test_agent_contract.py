@@ -94,3 +94,16 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
             think_mode=False,
             reasoning_effort=None,
         )
+
+
+def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="deepseek", system_prompt="answer"),
+        LLMConfig(model="deepseek-v4-flash", base_url="https://api.deepseek.com", api_key="test-key"),
+        profile="deepseek-v4-flash",
+    )
+    assert type(app.model).__module__.split(".", 1)[0] == "langchain_deepseek"
+    assert app.adapter_name == "langchain-deepseek/chat-completions"
+    assert app.model.streaming is True
