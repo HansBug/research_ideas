@@ -469,10 +469,10 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         "r8_abcdefghij1234567890abcdef",
     )
     for token in tokens:
-        assert token not in _redact_text(f"provider rejected {token}")
+        assert token not in _redact_text(f"provider token {token}")
         prefix = token[:3]
-        streamed = _StreamHoldback(())
-        assert streamed.feed(prefix) == ""
+        streamed = _StreamHoldback((token,))
+        assert streamed.feed(f"auth {prefix}") == "auth "
         assert token not in streamed.feed(token[3:], final=True)
     assert _redact_text("key-research-153") == "key-research-153"
     assert _redact_text("the bearer of the message") == "the bearer of the message"

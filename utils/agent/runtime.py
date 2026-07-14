@@ -70,15 +70,18 @@ _BEARER_VALUE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}")
 _SECRET_VALUE = re.compile(
     r"(?:\b(?:sk|sess)[-_][A-Za-z0-9]{16,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
     r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|"
-    r"\bxai-[A-Za-z0-9]{20,}\b|\bgsk_[A-Za-z0-9]{20,}\b|\bpplx-[A-Za-z0-9]{20,}\b|"
-    r"\btgp_v1_[A-Za-z0-9]{16,}\b|\bfw_[A-Za-z0-9]{16,}\b|"
-    r"\bmist-[A-Za-z0-9]{16,}\b|\br8_[A-Za-z0-9]{16,}\b)",
+    r"\bgsk_[A-Za-z0-9]{52}\b|\bpplx-[A-Za-z0-9]{48}\b|"
+    r"\br8_[A-Za-z0-9_-]{37}\b)",
     re.I,
 )
 _PARTIAL_SECRET_VALUE = re.compile(
-    r"\b(?:sk|sess|hf|gh[po]|xai|gsk|pplx|tgp_v1|fw|mist|r8)[-_][A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
+    r"\b(?:sk|sess|hf|gh[po]|gsk|pplx|r8)[-_][A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
     r"\b(?:AIza|AKIA)[A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
     re.I,
+)
+_CONTEXT_SECRET_VALUE = re.compile(
+    r"(?i)(\b(?:api[ _-]?key|authorization|access[ _-]?token|user[ _-]?token|token|secret|credential|auth)\b\s*(?:[:=]\s*)?)"
+    r"((?:xai-|gsk_|pplx-|tgp_v1_|fw_|mist-|r8_)[A-Za-z0-9_-]{8,})"
 )
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_COMPACT_TRIGGER_RATIO = 0.85
@@ -813,8 +816,7 @@ class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = (
-        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-",
-        "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
+        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "r8_", "Bearer ",
     )
     _URL_PREFIXES = ("http://", "https://")
 
@@ -928,6 +930,7 @@ def _redact_credential_url(value: str) -> str:
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
     value = _PARTIAL_SECRET_VALUE.sub("[redacted_secret]", value)
     value = _SECRET_VALUE.sub("[redacted_secret]", value)
+    value = _CONTEXT_SECRET_VALUE.sub(r"\1[redacted_secret]", value)
     value = _BEARER_VALUE.sub("Bearer [redacted_bearer]", value)
     if redact_endpoints:
         lowered = value.lower()
