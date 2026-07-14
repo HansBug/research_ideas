@@ -826,8 +826,10 @@ class _StreamHoldback:
                     end = min(end, start)
                     break
 
+        token_end = len(self.buffer.rstrip(" \n\t\r"))
+        token_prefix = self.buffer[:token_end]
         token_start = max(
-            self.buffer.rfind(" "), self.buffer.rfind("\n"), self.buffer.rfind("\t"), self.buffer.rfind("\r")
+            token_prefix.rfind(" "), token_prefix.rfind("\n"), token_prefix.rfind("\t"), token_prefix.rfind("\r")
         ) + 1
         token_tail = self.buffer[token_start:]
         delimiter = re.search(r"\s", token_tail)
@@ -841,6 +843,13 @@ class _StreamHoldback:
                 prefix.lower().startswith(token_lower) or token_lower.startswith(prefix.lower())
                 for prefix in self._PREFIXES
             ):
+                end = min(end, token_start)
+        elif delimiter.start() == len(token_tail) - 1:
+            # ``Bearer `` can be split exactly after its delimiter.  Keep the
+            # prefix until the following chunk so the bearer value is redacted
+            # as one credential rather than emitting a marker and leaking the
+            # value on its own.
+            if any(prefix.rstrip().lower() == token.lower() for prefix in self._PREFIXES):
                 end = min(end, token_start)
         return max(0, end)
 
