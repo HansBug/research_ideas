@@ -107,3 +107,18 @@ def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     assert type(app.model).__module__.split(".", 1)[0] == "langchain_deepseek"
     assert app.adapter_name == "langchain-deepseek/chat-completions"
     assert app.model.streaming is True
+    from utils.agent.runtime import _model_capacity
+
+    context, max_output, safe_input, sources = _model_capacity(app.model, app.config)
+    assert context == 1_000_000
+    assert max_output == 384_000
+    assert safe_input == 1_000_000
+    assert sources == {"context_window": "official_profile", "max_output": "official_profile"}
+
+
+def test_dependency_versions_record_both_provider_adapters() -> None:
+    from utils.agent.runtime import _dependency_versions
+
+    versions = _dependency_versions()
+    assert "langchain-openai" in versions
+    assert "langchain-deepseek" in versions

@@ -526,6 +526,46 @@ def test_bearer_redaction_keeps_plain_english_phrases() -> None:
     assert "opaque-token-123" not in _redact_text("Bearer opaque-token-123")
 
 
+def test_no_space_bearer_redacts_foreign_provider_tokens() -> None:
+    from utils.agent.runtime import _StreamHoldback, _redact_text, _redact_with_inventory
+
+    pplx_token = "pplx-" + "a" * 48
+    messages = (
+        "Authorization: Bearersk-live-foreignkey1234567890ab",
+        f"Authorization:Bearer{pplx_token}",
+        "Authorization:Beareropaque-token-123",
+        "Authorization:Bearerxai-" + "a" * 24,
+        "Authorization:Bearer" + "tgp_v1_" + "a" * 24,
+        "Authorization:Bearerfw_" + "a" * 24,
+        "Authorization:Bearermist-" + "a" * 24,
+    )
+    for message in messages:
+        assert "foreignkey" not in _redact_text(message)
+        assert "pplx-" not in _redact_text(message)
+        assert "opaque-token" not in _redact_text(message)
+        assert "foreignkey" not in _redact_with_inventory(message, ())
+    streamed = _StreamHoldback(())
+    assert "foreignkey" not in streamed.feed(messages[0], final=True)
+
+
+def test_inventory_redacts_plain_suffix_fingerprints_but_keeps_unrelated_numbers() -> None:
+    from utils.agent.runtime import _redact_with_inventory
+
+    secret = "sk-conf-abcdefghijklmnopqrstuv12345678"
+    assert "5678" not in _redact_with_inventory("Invalid key ending in 5678", (secret,))
+    assert "12345678" not in _redact_with_inventory("Key ends with: 12345678", (secret,))
+    assert _redact_with_inventory("the equation ending in 5678", (secret,)) == "the equation ending in 5678"
+    assert _redact_with_inventory("token budget 5678", (secret,)) == "token budget 5678"
+
+
+def test_partial_provider_fingerprints_are_redacted_without_generic_hiding() -> None:
+    from utils.agent.runtime import _redact_text
+
+    for token in ("xai-ab...1234", "tgp_v1_ab...1234", "fw_ab...1234", "mist-ab...1234"):
+        assert "1234" not in _redact_text(f"provider rejected {token}")
+    assert _redact_text("xai-ablation-run-2026") == "xai-ablation-run-2026"
+
+
 def test_compact_threshold_uses_official_input_window_without_output_subtraction() -> None:
     from utils.agent.runtime import _model_capacity
 

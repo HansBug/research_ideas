@@ -64,8 +64,17 @@ _NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
 _SECRET_MAPPING_CONTAINERS = frozenset({"headers", "default_headers"})
 _BEARER_VALUE = re.compile(
-    r"(?i)\bBearer\s+(?=[A-Za-z0-9._~+/=-]{8,}\b)(?=[A-Za-z0-9._~+/=-]*[0-9._~+/=-])"
+    r"(?i)\bBearer\s*(?=[A-Za-z0-9._~+/=-]{8,}\b)(?=[A-Za-z0-9._~+/=-]*[0-9._~+/=-])"
     r"[A-Za-z0-9._~+/=-]+"
+)
+_BEARER_PROVIDER_VALUE = re.compile(
+    r"(?i)\bBearer\s*(?:"
+    r"(?:sk-ant-|sk-proj-)[A-Za-z0-9][A-Za-z0-9_-]{20,}|"
+    r"(?:sk-|sess-)[A-Za-z0-9][A-Za-z0-9_-]{15,}|"
+    r"(?:hf_|ghp_|gho_)[A-Za-z0-9]{20,}|"
+    r"AIza[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|"
+    r"gsk_[A-Za-z0-9]{52}|pplx-[A-Za-z0-9]{48}|r8_[A-Za-z0-9_-]{37}|"
+    r"xai-[A-Za-z0-9_-]{8,}|tgp_v1_[A-Za-z0-9_-]{8,}|fw_[A-Za-z0-9_-]{8,}|mist-[A-Za-z0-9_-]{8,})"
 )
 # Provider credential formats that are safe to recognise by prefix.  ``key-``
 # is deliberately excluded: research identifiers commonly use that shape and
@@ -81,12 +90,16 @@ _SECRET_VALUE = re.compile(
 _PARTIAL_SECRET_VALUE = re.compile(
     r"\b(?:sk-ant|sk-proj)[-_][A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
     r"\b(?:sk|sess|hf|gh[po]|gsk|pplx|r8)[-_][A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
-    r"\b(?:AIza|AKIA)[A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
+    r"\b(?:AIza|AKIA)[A-Za-z0-9]{2,}\.\.\.[A-Za-z0-9]{4,}\b|"
+    r"\b(?:xai-|tgp_v1_|fw_|mist-)[A-Za-z0-9_-]{2,}\.\.\.[A-Za-z0-9]{4,}\b",
     re.I,
 )
 _CONTEXT_SECRET_VALUE = re.compile(
     r"(?i)(\b(?:api[ _-]?key|authorization|access[ _-]?token|user[ _-]?token|token|secret|credential|auth)\b\s*(?:[:=]\s*)?)"
-    r"((?:xai-|gsk_|pplx-|tgp_v1_|fw_|mist-|r8_)[A-Za-z0-9_-]{8,})"
+    r"((?:sk-ant-|sk-proj-)[A-Za-z0-9][A-Za-z0-9_-]{20,}|"
+    r"(?:sk-|sess-)[A-Za-z0-9][A-Za-z0-9_-]{15,}|"
+    r"(?:hf_|ghp_|gho_)[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|"
+    r"(?:xai-|gsk_|pplx-|tgp_v1_|fw_|mist-|r8_)[A-Za-z0-9_-]{8,})"
 )
 _CONTEXT_SECRET_PREFIX = re.compile(
     r"(?i)\b(?:api[ _-]?key|authorization|access[ _-]?token|user[ _-]?token|token|secret|credential|auth)\b\s*(?:[:=]\s*)?$"
@@ -345,7 +358,7 @@ def _hash_text(text: str) -> str:
 
 
 def _dependency_versions() -> dict[str, str | None]:
-    names = ("python", "langchain", "langgraph", "langchain-openai", "openai")
+    names = ("python", "langchain", "langgraph", "langchain-openai", "langchain-deepseek", "openai")
     result: dict[str, str | None] = {"python": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}"}
     for name in names[1:]:
         try:
@@ -763,16 +776,13 @@ def _model_capacity(model: Any, config: LLMConfig, *, max_output_override: int |
     }
     if context is None or max_output is None:
         profile = getattr(model, "profile", None)
-        effective_url = _effective_model_base_url(model, config)
-        host = (urlsplit(str(effective_url)).hostname or "").lower()
-        if host == "api.openai.com":
-            profile = profile if isinstance(profile, Mapping) else {}
-            if context is None and isinstance(profile.get("max_input_tokens"), int):
-                context = int(profile["max_input_tokens"])
-                sources["context_window"] = "official_profile"
-            if max_output is None and isinstance(profile.get("max_output_tokens"), int):
-                max_output = int(profile["max_output_tokens"])
-                sources["max_output"] = "official_profile"
+        profile = profile if isinstance(profile, Mapping) else {}
+        if context is None and isinstance(profile.get("max_input_tokens"), int):
+            context = int(profile["max_input_tokens"])
+            sources["context_window"] = "official_profile"
+        if max_output is None and isinstance(profile.get("max_output_tokens"), int):
+            max_output = int(profile["max_output_tokens"])
+            sources["max_output"] = "official_profile"
     # LangChain's official model profile exposes ``max_input_tokens`` as the
     # input capacity used by SummarizationMiddleware.  Do not subtract the
     # separately reported output reserve locally: that would silently lower
@@ -826,7 +836,7 @@ class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = (
-        "sk-", "sk-ant-", "sk-proj-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
+        "sk-", "sk-ant-", "sk-proj-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ", "Bearer",
     )
     _URL_PREFIXES = ("http://", "https://")
 
@@ -963,6 +973,7 @@ def _redact_credential_url(value: str) -> str:
 
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
     value = _PARTIAL_SECRET_VALUE.sub("[redacted_secret]", value)
+    value = _BEARER_PROVIDER_VALUE.sub("Bearer [redacted_bearer]", value)
     value = _SECRET_VALUE.sub("[redacted_secret]", value)
     value = _CONTEXT_SECRET_VALUE.sub(r"\1[redacted_secret]", value)
     value = _BEARER_VALUE.sub("Bearer [redacted_bearer]", value)
@@ -1057,6 +1068,22 @@ def _redact_with_inventory(value: Any, secrets: Sequence[str]) -> Any:
                         r"\1[redacted_secret]",
                         value,
                     )
+                    # Provider diagnostics may spell out a key suffix without
+                    # an ellipsis.  Redact only when the same line contains
+                    # both credential/error language and a suffix marker; a
+                    # bare academic number remains untouched.
+                    for suffix_size in (8, 6, 4):
+                        suffix_value = secret[-suffix_size:]
+                        marker = re.compile(r"(?i)\b(?:ending|ends?|suffix|last|tail|fingerprint|finishes?)\b")
+                        credential_context = re.compile(
+                            r"(?i)\b(?:api[ _-]?key|key|token|secret|credential|invalid|rejected|expired|revoked|unauthorized|error)\b"
+                        )
+                        suffix_pattern = re.compile(rf"(?i)(?<![A-Za-z0-9]){re.escape(suffix_value)}(?![A-Za-z0-9])")
+                        lines = value.splitlines(keepends=True)
+                        for index, line in enumerate(lines):
+                            if marker.search(line) and credential_context.search(line) and suffix_pattern.search(line):
+                                lines[index] = suffix_pattern.sub("[redacted_secret]", line)
+                        value = "".join(lines)
         return value
     return value
 
