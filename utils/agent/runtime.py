@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, TypeVar
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from pydantic import BaseModel
 
@@ -62,7 +62,14 @@ _USAGE_KEY = re.compile(
 _NON_SECRET_FLAG_KEY = re.compile(r"(?:configured|present|enabled|set|available)$", re.I)
 _NON_SECRET_NUMERIC_KEY = re.compile(r"(?:^|_)(?:context|context_window|context_basis|max_output|safe_input|compact_threshold|threshold|window|max_input|input|output|total|prompt|completion|cached|reasoning)(?:_tokens)?$", re.I)
 _ENDPOINT_KEY = re.compile(r"(?:base[_-]?url|api[_-]?url|endpoint)", re.I)
-_SECRET_VALUE = re.compile(r"\b(?:sk|sess|key)[-_][A-Za-z0-9_-]{8,}\b", re.I)
+# Provider credential formats that are safe to recognise by prefix.  ``key-``
+# is deliberately excluded: research identifiers commonly use that shape and
+# configured credentials are still redacted through the run-scoped inventory.
+_SECRET_VALUE = re.compile(
+    r"(?:\b(?:sk|sess)[-_][A-Za-z0-9_-]{8,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
+    r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b)",
+    re.I,
+)
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_COMPACT_TRIGGER_RATIO = 0.85
 _DEFAULT_COMPACT_KEEP_MESSAGES = 20
@@ -486,6 +493,36 @@ def _model_usage_info(value: Any) -> tuple[dict[str, Any] | None, list[dict[str,
         )
         for item in candidates
     ]
+    # Cache and reasoning details are part of provider usage too.  Comparing
+    # only input/output/total lets two contradictory observations look equal.
+    def usage_signature(item_usage: Mapping[str, Any]) -> tuple[int | None, ...]:
+        input_details = item_usage.get("input_token_details")
+        output_details = item_usage.get("output_token_details")
+        input_details = input_details if isinstance(input_details, Mapping) else {}
+        output_details = output_details if isinstance(output_details, Mapping) else {}
+
+        def first_number(*values: int | None) -> int | None:
+            return next((value for value in values if value is not None), None)
+
+        return (
+            _usage_number(item_usage, "input_tokens", "prompt_tokens"),
+            _usage_number(item_usage, "output_tokens", "completion_tokens"),
+            _usage_number(item_usage, "total_tokens"),
+            first_number(
+                _usage_number(input_details, "cache_read", "cached_tokens", "cache_read_input_tokens"),
+                _usage_number(item_usage, "cache_read", "cached_tokens", "cache_read_input_tokens"),
+            ),
+            first_number(
+                _usage_number(input_details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
+                _usage_number(item_usage, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
+            ),
+            first_number(
+                _usage_number(output_details, "reasoning", "reasoning_tokens"),
+                _usage_number(item_usage, "reasoning", "reasoning_tokens"),
+            ),
+        )
+
+    comparable = [usage_signature(item["usage"]) for item in candidates]
     conflict = len({item for item in comparable if any(value is not None for value in item)}) > 1
     observed_model: str | None = None
     for message in _model_output_messages(value):
@@ -594,12 +631,14 @@ class _ContextMeter:
         self.last_sources: list[str] = []
 
     def begin_primary(self, messages: Iterable[Any] = ()) -> None:
-        """Drop stale provider anchors and remember the new request prefix."""
+        """Remember the next request while retaining the provider anchor.
 
-        self.provider_input = None
-        self.provider_total = None
+        A provider's terminal usage belongs to the previous request, but it is
+        still the most accurate anchor for the next request's growing prefix.
+        It is invalidated only when official compaction replaces that prefix.
+        """
+
         self.primary_input_keys = tuple(_message_key(message) for message in messages)
-        self.primary_output_keys = ()
 
     def record(
         self,
@@ -763,7 +802,7 @@ def _sensitive_inventory(config: LLMConfig, pages: Sequence[Mapping[str, Any]]) 
 class _StreamHoldback:
     """Hold possible credential suffixes across streamed chunk boundaries."""
 
-    _PREFIXES = ("sk-", "sess-", "key-", "Bearer ")
+    _PREFIXES = ("sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "Bearer ")
 
     def __init__(self, secrets: Sequence[str]):
         self.secrets = tuple(secrets)
@@ -812,6 +851,37 @@ class _StreamHoldback:
         }
 
 
+def _redact_credential_url(value: str) -> str:
+    """Redact credentials in a URL while preserving ordinary URL content."""
+
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return value
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return value
+    if parsed.username is not None or parsed.password is not None:
+        host = parsed.hostname or ""
+        if ":" in host:
+            host = f"[{host}]"
+        if parsed.port is not None:
+            host = f"{host}:{parsed.port}"
+        netloc = f"[redacted]@{host}"
+    else:
+        netloc = parsed.netloc
+    query = parsed.query
+    if query:
+        fields = []
+        for part in query.split("&"):
+            key, _, item = part.partition("=")
+            if _is_secret_key(key) or (item and _SECRET_VALUE.search(item)):
+                fields.append(f"{key}={quote('[redacted]', safe='')}")
+            else:
+                fields.append(part)
+        query = "&".join(fields)
+    return parsed._replace(netloc=netloc, query=query).geturl()
+
+
 def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
     value = _SECRET_VALUE.sub("[redacted_secret]", value)
     lowered = value.lower()
@@ -845,6 +915,15 @@ def _redact_text(value: str, *, redact_endpoints: bool = False) -> str:
             pieces.extend((value[cursor:start], "[redacted_endpoint]"))
             cursor = end
         value = "".join(pieces)
+    else:
+        # In ordinary model text, keep normal links intact but scrub only URL
+        # userinfo/query credentials.
+        value = re.sub(
+            r"https?://[^\s'\"},)]*",
+            lambda match: _redact_credential_url(match.group(0)),
+            value,
+            flags=re.I,
+        )
     return value
 
 
@@ -1363,6 +1442,7 @@ class _Renderer:
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
             f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · retries={cls._setting(option('max_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
+            f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"tools     {tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
             f"output    schema={cls._setting(output_schema, default='none')} · strategy={strategy}",
             f"limits    model={limit('model_calls')} · tools={limit('tool_calls')} · turns={limit('turns')} · time={limit('seconds')}",
@@ -1395,15 +1475,13 @@ class _Renderer:
             reason = cls._first(usage.get("unavailable_reason"), data.get("unavailable_reason"))
             first_line = f"turn {turn} · usage unavailable"
             if reason:
-                first_line += f" ({_preview(str(reason), 160)})"
+                first_line += f" ({_preview(str(reason), 96)})"
         else:
-            first_line = f"turn {turn} · {cls._number(input_tokens)} in"
+            first_line = f"turn {turn} · {cls._number(input_tokens)} in + {cls._number(output_tokens)} out = {cls._number(total_tokens)} tokens"
             if cache_read is not None:
-                first_line += f" ({cls._number(cache_read)} cache)"
-            first_line += f" + {cls._number(output_tokens)} out"
+                first_line += f" · cache {cls._number(cache_read)}"
             if reasoning is not None:
-                first_line += f" ({cls._number(reasoning)} reasoning)"
-            first_line += f" = {cls._number(total_tokens)}"
+                first_line += f" · reasoning {cls._number(reasoning)}"
 
         basis = cls._mapping(data.get("context_basis"))
         capacity = cls._mapping(data.get("capacity"))
@@ -1423,6 +1501,7 @@ class _Renderer:
             compact.get("threshold_tokens"),
             compact.get("threshold"),
         )
+        ratio = data.get("compact_trigger_ratio")
         source = cls._first(data.get("basis_source"), basis.get("source"), default="")
         approximate = data.get("estimated") is True or "estimate" in str(source)
         marker = "~" if approximate else ""
@@ -1433,7 +1512,7 @@ class _Renderer:
             context_text = "context window unknown"
         else:
             percent = float(basis_tokens) / float(window) * 100 if window else 0.0
-            context_text = f"context {marker}{cls._number(basis_tokens)}/{cls._number(window)} ({percent:.1f}%)"
+            context_text = f"context {marker}{cls._number(basis_tokens)}/{cls._number(window)} tokens ({percent:.1f}%)"
 
         decision_value = data.get("decision")
         if isinstance(decision_value, Mapping):
@@ -1441,11 +1520,9 @@ class _Renderer:
         decision = str(decision_value or "").lower()
         labels = {"required": "REQUIRED", "run_ending": "run ending", "disabled": "disabled"}
         if basis_tokens is not None and threshold is not None:
-            percent = float(basis_tokens) / float(threshold) * 100 if threshold else 0.0
-            suffix = f", {labels[decision]}" if decision in labels else ""
-            compact_text = (
-                f"compact {marker}{cls._number(basis_tokens)}/{cls._number(threshold)} ({percent:.1f}%{suffix})"
-            )
+            suffix = f" ({labels[decision]})" if decision in labels else ""
+            ratio_text = f" / {float(ratio) * 100:g}%" if isinstance(ratio, (int, float)) else ""
+            compact_text = f"compact at {cls._number(threshold)}{ratio_text}{suffix}"
         elif decision == "disabled":
             compact_text = "compact disabled"
         else:
@@ -1485,6 +1562,11 @@ class _Renderer:
         if event.kind == "model_text":
             self._ensure_model_output_boundary(data.get("turn"))
             self._render_assistant_text(data)
+            return
+        if event.kind in {"model_started", "model_completed"} and data.get("call_kind") == "compact":
+            # Compact transport has its own lifecycle and streaming summary
+            # panel; keep its model events in the event/audit stream without
+            # adding a duplicate user-facing MODEL INPUT/OUTPUT block.
             return
         if event.kind == "model_failed" and Panel is not None:
             self._finish_assistant_text()
@@ -2254,6 +2336,8 @@ class AgentApp:
         pending_model_inputs: dict[int, tuple[str, list[Any], str | None]] = {}
         request_captures: list[dict[str, Any]] = []
         request_capture_by_call: dict[str, dict[str, Any]] = {}
+        message_source_refs: dict[str, tuple[int, str]] = {}
+        initial_context_seq: int | None = None
         started_turns: set[int] = set()
         compaction_announced_turns: set[int] = set()
         compaction_failure_ids: set[str] = set()
@@ -2291,7 +2375,7 @@ class AgentApp:
             if on_event is not None:
                 on_event(event)
 
-        def audit_write(record: Mapping[str, Any], *, turn_value: int | None = None) -> None:
+        def audit_write(record: Mapping[str, Any], *, turn_value: int | None = None) -> int | None:
             nonlocal audit_ok
             try:
                 audit.write(
@@ -2302,9 +2386,19 @@ class AgentApp:
                         **record,
                     }
                 )
+                return audit.order if audit.enabled else None
             except Exception as exc:
                 audit_ok = False
                 raise AgentError("audit_write_failed", "audit output failed") from exc
+
+        def message_ref(message: Any) -> dict[str, Any]:
+            source = message_source_refs.get(_message_key(message))
+            source_seq = source[0] if source else None
+            source_record = source[1] if source else None
+            if source_seq is None and (getattr(message, "type", None) in {"human", "user"}):
+                source_seq = initial_context_seq
+                source_record = "context" if source_seq is not None else None
+            return _message_ref(message, source_seq=source_seq, source_record=source_record)
 
         async def heartbeat() -> None:
             while True:
@@ -2420,6 +2514,17 @@ class AgentApp:
                 if turn not in compaction_announced_turns:
                     compaction_announced_turns.add(turn)
                     emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "threshold": compact_threshold})
+                emit(
+                    "model_started",
+                    {
+                        "attempt_id": attempt_id,
+                        "turn": turn,
+                        "model_call_id": call_id,
+                        "call_kind": "compact",
+                        "prompt": "[official compact] summarize the prior agent context",
+                        "input_message_refs": [message_ref(message) for message in last_state_messages_snapshot],
+                    },
+                )
             else:
                 model_call_kinds.setdefault(call_id, "primary")
                 # Publish MODEL INPUT even when the provider fails before its
@@ -2438,7 +2543,7 @@ class AgentApp:
             capture = request_capture_by_call.get(call_id)
             current_rendered_input_hash = (capture or {}).get("rendered_input_hash") or rendered_hash
             started_turns.add(turn)
-            emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [_message_ref(item) for item in input_messages]})
+            emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages]})
 
         def callback_token(call_id: str, token: str, chunk: Any, metadata: Mapping[str, Any]) -> None:
             holdback = stream_holdbacks.setdefault(call_id, _StreamHoldback(sensitive_values))
@@ -2495,7 +2600,11 @@ class AgentApp:
             if call_kind == "primary" and compact_tracker is not None:
                 compact_tracker.primary_completed()
             if call_kind == "compact":
-                summary_text = _message_text(response)
+                summary_messages = _model_output_messages(response)
+                summary_text = next(
+                    (_message_text(message) for message in summary_messages if _message_text(message)),
+                    partial_texts.get(call_id, ""),
+                )
                 summary_hash = _hash_text(summary_text)
                 compaction_summary_info[last_compaction_id or ""] = {
                     "model_call_id": call_id,
@@ -2503,6 +2612,17 @@ class AgentApp:
                     "summary_hash": summary_hash,
                     "usage": usage[-1] if usage else None,
                 }
+                emit(
+                    "model_completed",
+                    {
+                        "attempt_id": attempt_id,
+                        "turn": turn,
+                        "model_call_id": call_id,
+                        "call_kind": "compact",
+                        "tool_count": 0,
+                        "output": summary_text,
+                    },
+                )
             if isinstance(model_name, str):
                 observed_model = observed_model or model_name
 
@@ -2609,7 +2729,7 @@ class AgentApp:
                         decision = "run ending" if run_ending else ("REQUIRED" if estimated >= compact_threshold else "not required")
                         second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact {marker}{min(estimated, compact_threshold):,}/{compact_threshold:,} ({min(compact_percent, 100):.1f}%, {decision})"
                 decision = "run_ending" if run_ending else ("required" if estimated is not None and compact_threshold is not None and estimated >= compact_threshold else "not_required")
-                payload = {"turn": context_turn, "usage": latest, "context_tokens": estimated, "context_basis_tokens": estimated, "context_window_tokens": context_window_tokens, "compact_threshold": compact_threshold, "basis_source": sources, "decision": decision, "lines": [first, second], "estimated": bool(sources and "provider_input" not in sources)}
+                payload = {"turn": context_turn, "usage": latest, "context_tokens": estimated, "context_basis_tokens": estimated, "context_window_tokens": context_window_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "basis_source": sources, "decision": decision, "lines": [first, second], "estimated": bool(sources and "provider_input" not in sources)}
                 emit("context_usage", payload)
                 audit_write({"record": "context", "record_type": "context", "operation": "turn_context", "model_call_id": (latest or {}).get("model_call_id"), "usage": latest, "context_basis_tokens": estimated, "basis_source": sources, "context_window_tokens": context_window_tokens, "safe_input_tokens": safe_input_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "compact_decision": decision})
 
@@ -2660,7 +2780,7 @@ class AgentApp:
                         last_compaction_id = f"compact-{compact_count}"
                         compaction_announced_turns.add(turn)
                         emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold})
-                        audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": [_message_ref(message) for message in summary_messages], "status": "started", "summary_template": "langgraph_default"})
+                        audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": [message_ref(message) for message in summary_messages], "status": "started", "summary_template": "langgraph_default"})
                 elif kind == "on_chat_model_start":
                     metadata = data.get("metadata", {}) or {}
                     observed_model = observed_model or metadata.get("model_name")
@@ -2691,7 +2811,7 @@ class AgentApp:
                         current_model_call_id = current_model_call_id or str(event.get("run_id") or uuid.uuid4().hex)
                         current_rendered_input_hash = rendered_hash
                         started_turns.add(turn)
-                        emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": current_model_call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [_message_ref(item) for item in input_messages]})
+                        emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": current_model_call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages]})
                     ai = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if ai is not None:
                         calls = list(getattr(ai, "tool_calls", None) or [])
@@ -2703,12 +2823,16 @@ class AgentApp:
                             _tool_request(call, attempt_id, turn, kind="structured" if call.get("name") == structured_name else "business")
                             for call in calls
                         ]
+                        for request in requests:
+                            request["model_call_id"] = current_model_call_id
                         structured_requests = [request for request in requests if request["kind"] == "structured"]
                         emit(
                             "model_completed",
                             {
                                 "attempt_id": attempt_id,
                                 "turn": turn,
+                                "model_call_id": current_model_call_id,
+                                "call_kind": "primary",
                                 "tool_count": len(calls),
                                 "output": _message_text(ai) if not calls else "",
                                 "structured_request": structured_requests[0] if structured_requests else None,
@@ -2723,7 +2847,7 @@ class AgentApp:
                         # thinking/reasoning blocks; audit is an academic
                         # behavior record and must not persist hidden CoT.
                         capture = request_capture_by_call.get(current_model_call_id or "")
-                        audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [_message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
+                        audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
                         decision_written_turns.add(turn)
                         unknown_requests = [item for item in requests if item["name"] not in self.spec.tool_names and item["name"] != structured_name]
                         business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
@@ -2759,7 +2883,9 @@ class AgentApp:
                         started_at = datetime.fromisoformat(record["started_at"])
                         record.update({"status": "completed", "result": _safe_json(result_value), "finished_at": finished_at.isoformat(), "duration_seconds": max(0.0, (finished_at - started_at).total_seconds())})
                         business_tool_called = True
-                        audit_write({"record": "action", "record_type": "action", **record})
+                        action_seq = audit_write({"record": "action", "record_type": "action", **record})
+                        if action_seq is not None and isinstance(data.get("output"), BaseMessage):
+                            message_source_refs[_message_key(data["output"])] = (action_seq, "action")
                     if isinstance(data.get("output"), BaseMessage):
                         last_state_messages = [*last_state_messages, data["output"]]
                     emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
@@ -2786,13 +2912,16 @@ class AgentApp:
                         finished_at = datetime.fromisoformat(record["finished_at"])
                         started_at = datetime.fromisoformat(record["started_at"])
                         record["duration_seconds"] = max(0.0, (finished_at - started_at).total_seconds())
-                    audit_write({"record": "action", **record})
+                    action_seq = audit_write({"record": "action", **record})
+                    if action_seq is not None and isinstance(data.get("output"), BaseMessage):
+                        message_source_refs[_message_key(data["output"])] = (action_seq, "action")
                     emit("tool_failed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else None, "error": safe_error, "status": "failed", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_chain_end" and name.startswith("SummarizationMiddleware.before_model"):
                     replacement = data.get("output") or {}
                     replacement_messages = _messages_from_event(replacement.get("messages") if isinstance(replacement, Mapping) else replacement)
                     context_meter.invalidate_provider_anchor()
-                    audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": _safe_json(replacement), "replacement_refs": [_message_ref(message) for message in replacement_messages], "replacement_hash": _hash_text(json.dumps([_message_ref(message) for message in replacement_messages], ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    replacement_refs = [message_ref(message) for message in replacement_messages]
+                    audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": _safe_json(replacement), "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
                 elif kind == "on_chain_end" and name in {"LangGraph", self.spec.name}:
                     state = data.get("output") or {}
                     output = state.get("structured_response")
@@ -2805,7 +2934,7 @@ class AgentApp:
                         if structured_record is not None:
                             structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": datetime.now(timezone.utc).isoformat()})
                             audit_write({"record": "action", **structured_record})
-                        emit("structured_output", {"attempt_id": attempt_id, "turn": turn, "output": _safe_json(output)})
+                        emit("structured_output", {"attempt_id": attempt_id, "turn": turn, "model_call_id": (structured_record or {}).get("model_call_id") or current_model_call_id, "call_kind": "primary", "output": _safe_json(output)})
                     emit_context_usage(turn, messages or last_state_messages, run_ending=True)
                     return state
             return None
@@ -2822,6 +2951,11 @@ class AgentApp:
                 "real_llm": self.real_llm,
                 "has_context": bool(pages),
                 "config_fingerprint": behavior_fingerprint,
+                "system_prompt_hash": _hash_text(self.spec.system_prompt),
+                "input_hash": _hash_text(input_text),
+                "tools_hash": _behavior_fingerprint({"tools": [_tool_schema(tool) for tool in self.spec.tools]}),
+                "output_schema_hash": _behavior_fingerprint(self.spec.output_schema.model_json_schema()) if self.spec.output_schema else None,
+                "context_manifest_hash": manifest,
                 "endpoint_ref": self.profile or "direct",
                 "endpoint_fingerprint": endpoint_fingerprint,
                 "dependency_versions": _dependency_versions(),
@@ -2837,7 +2971,7 @@ class AgentApp:
             })
             if pages:
                 emit("context_loaded", {"attempt_id": attempt_id, "page_count": len(pages), "context_manifest_hash": manifest, "pages": [{"id": page["id"], "hash": page["hash"]} for page in pages]})
-            audit_write(
+            initial_context_seq = audit_write(
                 {
                     "record": "context",
                     "record_type": "context",
@@ -2966,7 +3100,7 @@ class AgentApp:
                             "call_kind": model_call_kinds.get(current_model_call_id, "primary"),
                             "status": "cancelled" if status == "cancelled" else "failed",
                             "message": partial_texts.get(current_model_call_id, ""),
-                            "input_message_refs": [_message_ref(item) for item in current_input_messages_snapshot],
+                            "input_message_refs": [message_ref(item) for item in current_input_messages_snapshot],
                             "rendered_input_hash": current_rendered_input_hash,
                             "rendered_input_scope": "langchain_model_request",
                             "rendered_input_projection": capture.get("projection"),
@@ -3146,7 +3280,12 @@ def _message_key(message: Any) -> str:
     return f"{identity}:{getattr(message, 'type', message.__class__.__name__)}:{_message_text(message)}"
 
 
-def _message_ref(message: Any) -> dict[str, Any]:
+def _message_ref(
+    message: Any,
+    *,
+    source_seq: int | None = None,
+    source_record: str | None = None,
+) -> dict[str, Any]:
     role = getattr(message, "type", None) or message.__class__.__name__
     identity = getattr(message, "id", None)
     text = _message_text(message)
@@ -3155,6 +3294,8 @@ def _message_ref(message: Any) -> dict[str, Any]:
         "role": str(role),
         "content_hash": _hash_text(text),
         "content": _safe_json(text),
+        "source_seq": source_seq,
+        "source_record": source_record,
     }
 
 

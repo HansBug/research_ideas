@@ -360,6 +360,43 @@ def test_redaction_handles_secret_prefix_case_without_hiding_usage() -> None:
     assert redacted["api_key_configured"] is True
 
 
+def test_redaction_keeps_research_ids_and_scrubs_provider_tokens_and_url_credentials() -> None:
+    from utils.agent.runtime import _redact
+
+    value = (
+        "key-research-153 https://example.org/docs?topic=agent&api_key=sk-live-secret-123456 "
+        "hf_abcdefghijklmnopqrstuvwxyz123456 ghp_abcdefghijklmnopqrstuvwxyz123456"
+    )
+    redacted = _redact(value)
+    assert "key-research-153" in redacted
+    assert "example.org/docs" in redacted
+    assert "sk-live-secret-123456" not in redacted
+    assert "api_key=%5Bredacted%5D" in redacted
+    assert "hf_abcdefghijklmnopqrstuvwxyz123456" not in redacted
+    assert "ghp_abcdefghijklmnopqrstuvwxyz123456" not in redacted
+
+
+def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
+    from utils.agent.runtime import _model_usage_info
+
+    class _Usage:
+        llm_output = {"token_usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12, "cached_tokens": 1, "reasoning_tokens": 3}}
+
+    message = AIMessage(
+        content="done",
+        usage_metadata={
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "total_tokens": 12,
+            "input_token_details": {"cache_read": 7},
+            "output_token_details": {"reasoning": 3},
+        },
+    )
+    _Usage.generations = [[ChatGeneration(message=message)]]
+    _, _, conflict, _ = _model_usage_info(_Usage())
+    assert conflict is True
+
+
 def test_model_usage_and_observed_model_are_read_from_chat_model_end() -> None:
     class _UsageModel(BaseChatModel):
         @property
@@ -648,6 +685,46 @@ def test_rich_renderer_marks_turns_and_completion() -> None:
     assert "SUCCESS" in rendered
     assert "result:" in rendered
     assert rendered.count("{'ok': True}") == 1
+
+
+def test_rich_agent_run_panel_exposes_behavior_fingerprints_without_raw_prompt() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "INFO", "run-config")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    now = datetime.now(timezone.utc)
+    renderer.render(
+        AgentEvent(
+            "run-config",
+            1,
+            now,
+            "run_started",
+            {
+                "agent": "demo",
+                "profile": "gpt-5.5",
+                "model": "gpt-5.5",
+                "real_llm": True,
+                "adapter": "langchain-openai/chat-completions",
+                "streaming": True,
+                "stream_usage": True,
+                "think_mode": False,
+                "reasoning_effort": "none",
+                "system_prompt_hash": "sha256:" + "a" * 64,
+                "tools_hash": "sha256:" + "b" * 64,
+                "input_hash": "sha256:" + "c" * 64,
+                "context_manifest_hash": None,
+                "tools": ["probe"],
+                "limits": {},
+                "compact": {"enabled": True, "trigger_ratio": 0.85, "threshold": 800, "keep_messages": 20},
+            },
+        )
+    )
+    rendered = output.getvalue()
+    assert "behavior" in rendered
+    assert "system=sha256:aaaaaaaaaaaa" in rendered
+    assert "prompt" not in rendered.lower()
 
 
 def test_rich_completion_panel_keeps_full_result() -> None:
@@ -977,6 +1054,55 @@ def test_compact_with_too_few_messages_fails_closed_without_next_model() -> None
     assert kinds.index("compaction_started") < kinds.index("compaction_failed")
     assert "compaction_completed" not in kinds
     assert kinds.count("model_started") == 1
+
+
+def test_compact_audit_keeps_native_summary_and_call_links(tmp_path: Path) -> None:
+    class CompactModel(BaseChatModel):
+        calls: int = Field(default=0)
+
+        @property
+        def _llm_type(self) -> str:
+            return "compact-audit-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.calls += 1
+            if any("Context Extraction Assistant" in str(getattr(item, "content", "")) for item in messages):
+                return ChatResult(generations=[ChatGeneration(message=AIMessage(content="native compact summary"))])
+            if self.calls <= 20:
+                return ChatResult(
+                    generations=[
+                        ChatGeneration(
+                            message=AIMessage(
+                                content="",
+                                tool_calls=[{"name": "probe", "args": {}, "id": f"call-{self.calls}", "type": "tool_call"}],
+                            )
+                        )
+                    ]
+                )
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="done"))])
+
+    def probe() -> str:
+        return "ok"
+
+    audit = tmp_path / "compact.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="compact-audit", system_prompt="use probe", tools=(probe,)),
+        LLMConfig(model="compact-audit-test", context_window_tokens=1020, max_output_tokens=20),
+        CompactModel(),
+    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, audit_out=audit)
+    assert result.status == "success", result.error
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    compact_done = [record for record in records if record.get("record") == "context" and record.get("operation") == "compact" and record.get("status") == "completed"]
+    assert compact_done
+    assert compact_done[-1]["summary"] == "native compact summary"
+    assert compact_done[-1]["summary_hash"].startswith("sha256:")
+    decisions = [record for record in records if record.get("record") == "decision"]
+    assert all(record.get("model_call_id") for record in decisions)
+    refs = [ref for record in decisions for ref in record.get("input_message_refs", [])]
+    assert refs and all("source_seq" in ref for ref in refs)
 
 
 def test_receipt_hash_matches_final_result_and_audit(tmp_path: Path) -> None:

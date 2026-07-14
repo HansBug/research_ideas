@@ -176,9 +176,9 @@ result = app.run("分析这些事实", context=context, renderer="rich")
 
 也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。若同时提供 context window 与 max output，运行时计算 `safe_input = context_window - max_output`，并按 `floor(safe_input * compact_trigger_ratio)` 触发官方 `SummarizationMiddleware`；默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
 
-每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel：第一行是本轮 provider `input/output/total` 以及可用的 cache-read/reasoning；第二行是当前 context 消耗、窗口占比和 compact 阈值占比。context basis 取 provider total 高水位加新增消息估算、provider input 加新增消息估算、完整 LangChain 估算三者最大值；因此可能带 `~`，但不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`，不再维护第二套上下文流程。
+每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel。第一行固定说明本轮核心消耗：`input + output = total tokens`，并在存在时追加 `cache` 与 `reasoning`；第二行固定说明当前 `context used/window tokens (percent%)`，再给出 `compact at threshold / trigger-ratio` 及状态。context basis 取 provider total 高水位加新增消息估算、provider input 加新增消息估算、完整 LangChain 估算三者最大值；因此可能带 `~`，但不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`；官方 summary transport 也发出带 `model_call_id` 的 `model_started`/`model_completed` 事件，但 Rich 不再重复渲染一套 MODEL INPUT/OUTPUT 面板。
 
-`AGENT RUN` 启动面板固定展示会改变行为的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、工具 allowlist 与是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、prompt 或文件路径。
+`AGENT RUN` 启动面板固定展示会改变行为的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、system/tools/input/context 的行为指纹、工具 allowlist 与是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、prompt 或文件路径。
 
 ```python
 AgentEvent(
@@ -215,7 +215,7 @@ AgentRunResult(
 
 `status` 只有 `success`、`failed`、`cancelled`；上下文无法无损继续时使用 `status="failed"` 和 `error.code="context_budget_exceeded"`。`real_llm` 在公共真实运行中为 `True`，仅测试目录的内部桩可以为 `False`，测试结果不得作为真实实验制品。
 
-事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_usage`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`compaction_started`、`compaction_summary`、`compaction_completed`、`compaction_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
+事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_usage`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`compaction_started`、`compaction_summary`、`compaction_completed`、`compaction_failed`、`structured_output`、`completed`、`failed`。每个模型 transport（包括 official compact summary）都带 `model_call_id` 与 `call_kind`；结构化输出事件也带产生它的 `model_call_id`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
 
 `tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。`usage` 按 primary/compact transport 顺序保存，缺失值保持 `None`，不能把未知伪造成 0。
 
@@ -279,7 +279,7 @@ Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本
 
 启动 provider 请求前立即输出 `run_started`；静默期间每秒发送 `heartbeat`（logging DEBUG），实际观察间隔不超过约 1.5 秒。模型 callback 负责实时 token/usage，LangGraph event stream 负责工具和 middleware 生命周期；`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。Rich 控制台会连续显示模型文本、工具调用参数、工具返回值、两行 CONTEXT、compact 生命周期和结束状态，不是运行结束后的摘要。
 
-`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按 Agent 行为顺序写入四类普通 JSON 记录：`context`、`decision`、`action`、`finish`；compact 作为 `context.operation="compact"`。每条记录都带 `run_id`、`seq/order`、`recorded_at`，工具记录另外带 `tool_call_id`，从而能重建每轮输入、输出、工具结果、context decision、compact replacement 和最终结束。
+`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按 Agent 行为顺序写入四类普通 JSON 记录：`context`、`decision`、`action`、`finish`；compact 作为 `context.operation="compact"`。每条记录都带 `run_id`、`seq/order`、`recorded_at`，工具记录另外带 `tool_call_id`，模型决策带 `model_call_id`。`input_message_refs`/`replacement_refs` 中每条 message ref 都带 `source_seq` 与 `source_record`（初始输入回链 `context`，工具结果回链对应 `action`），从而能重建每轮输入、输出、工具结果、context decision、compact replacement 和最终结束。
 
 1. `context`：任务输入、system prompt、Agent 名称、可用工具名称/描述/schema、输出 schema、模型标识，以及每个 attempt 实际交给模型的页面顺序、`id`、`hash` 和文本，说明 Agent 当时能做什么、看到了什么。
 2. `decision`：每一轮模型可见的输出、请求调用的工具及参数、结构化提交，以及 provider 明确返回的 `reasoning_summary`/`rationale`（没有就写 `null`）。
