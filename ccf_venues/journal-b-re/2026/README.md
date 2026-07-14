@@ -1,6 +1,6 @@
 # Requirements Engineering 2026 README
 
-> 信息更新时间：`2026-06-06 11:46`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:15:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Special issues / topical collections | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[LLM collection](https://link.springer.com/collections/deebijccbh) |
 | Articles in press / online first | [Springer online first](https://link.springer.com/journal/766/online-first) |
 | DBLP 年度页 | [DBLP Requirements Engineering Volume 31](https://dblp.org/db/journals/re/re31.html) |
-| 当前年度状态 | 常规 rolling 开放；Springer collections 中存在 2 个 open dated CFP 与 1 个 closed LLM collection |
+| 当前年度状态 | 🟢 常规 rolling 开放；Springer 2026 collections 均已 Closed |
 
 ## 2. 年度核心 URL 索引
 
@@ -46,8 +46,8 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Rethinking Requirements Engineering in the Age of Large Language Models | [LLM collection](https://link.springer.com/collections/deebijccbh) | 2026-04-30 待补时刻 | 🔒 | [Springer collection](https://link.springer.com/collections/deebijccbh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方 collection 页面为 Closed；主题与 LLM4RE / project_1 / project_2 高度相关；官方另给 `Revisions Due: July 2026`、`Final Decisions: September 2026`，只有月份，故不写成具体日期。 |
-| By Invite Only - Requirements Engineering 30th Anniversary | [30th Anniversary](https://link.springer.com/collections/hegaifabjh) | 2026-06-20 待补时刻 | 🟣 邀请制开放 | [Springer collection](https://link.springer.com/collections/hegaifabjh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方标题明确 By Invite Only；不是面向所有作者的普通开放征稿。官方仅给日期，未给具体时刻；collection editors 包含 Fabiano Dalpiaz 与 Peri Loucopoulos。 |
-| REFSQ 2026 | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) | 2026-06-29 待补时刻 | 🟢 | [Springer collection](https://link.springer.com/collections/gidfjjdijf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 官方仅给日期，未给具体时刻；collection editors 包含 Renata Guizzardi 与 João Araújo。 |
+| By Invite Only - Requirements Engineering 30th Anniversary | [30th Anniversary](https://link.springer.com/collections/hegaifabjh) | 2026-06-20 待补时刻 | 🔒 | [Springer collection](https://link.springer.com/collections/hegaifabjh) | 历史事件；本轮未改全局 TIMELINE | 官方标题明确 By Invite Only；不是面向所有作者的普通开放征稿。2026-07-13 复查为 Closed；官方仅给日期，未给具体时刻；collection editors 包含 Fabiano Dalpiaz 与 Peri Loucopoulos。 |
+| REFSQ 2026 | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf) | 2026-06-29 待补时刻 | 🔒 | [Springer collection](https://link.springer.com/collections/gidfjjdijf) | 历史事件；本轮未改全局 TIMELINE | 2026-07-13 复查为 Closed；官方仅给日期，未给具体时刻；collection editors 包含 Renata Guizzardi 与 João Araújo。 |
 
 ## 5. 年度论文入口与数量
 
@@ -73,14 +73,14 @@
 |---|---|---|---|
 | 期刊主页 | [Springer Requirements Engineering](https://link.springer.com/journal/766) | `2026-06-05 11:57` | 官方期刊入口可用。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines)；[Submit manuscript](https://submission.springernature.com/new-submission/766/3) | `2026-06-05 11:57` | 常规投稿入口可用，按 rolling submission 处理。 |
-| Special issue / topical collection | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[LLM collection](https://link.springer.com/collections/deebijccbh) | `2026-06-05 11:57` | REFSQ 2026；30th Anniversary；LLM collection；关键 deadline 见 §4。 |
+| Special issue / topical collection | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[LLM collection](https://link.springer.com/collections/deebijccbh) | `2026-07-13 19:15:00` | 三项 2026 collections 均已 Closed；关键历史 deadline 见 §4，当前可投口径回到常规 rolling。 |
 | Volume / issue / online first | [Volume 31, Issue 1](https://link.springer.com/journal/766/volumes-and-issues/31-1)；[Online first](https://link.springer.com/journal/766/online-first) | `2026-06-05 11:57` | 出版商入口已记录；online-first 与正式卷期可能跨年。 |
 | DBLP fallback | [DBLP Requirements Engineering Volume 31](https://dblp.org/db/journals/re/re31.html) | `2026-06-05 11:57` | DBLP 年度页 / venue 页用于 `entry article` baseline 与 bibliographic fallback。 |
 
 ## 8. TIMELINE.md 同步提示
 
 - 常规 rolling submission 不进入 dated Mermaid；Requirements Engineering 已同步至 [../../TIMELINE.md](../../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表。
-- §4 中状态为 `🟢` 且带明确日期的 collection，按 [../../TIMELINE.md](../../TIMELINE.md) 的对应年度事件表和 Mermaid Gantt 维护；无 dated collection 时不生成 dated Mermaid 事件。
+- §4 中 2026 collection deadline 均已成为历史 Closed 事件；本轮按分工未修改 [../../TIMELINE.md](../../TIMELINE.md)。
 
 ## 9. 更新日志
 
@@ -88,6 +88,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:15:00` | 常态化刷新：确认 REFSQ 2026、30th Anniversary、Rethinking RE in LLM age 均 Closed，当前可行动入口为常规 rolling；保留历史 deadline 与待补时刻 caveat。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：将 Requirements Engineering 30th Anniversary collection 明确标为 By Invite Only / 邀请制开放，避免误读为普通可投窗口。 |
 | `2026-06-05 12:47` | 专项复核 2026 三个 Springer collections：保留 LLM submission deadline 的明确日期，并将 LLM revision / final decision 的月份信息写为备注，不硬凑具体日期。 |
 | `2026-06-05 11:57` | 初始化 Requirements Engineering 2026 年度 README，记录 Springer / DBLP 核心入口、collection 状态、投稿节奏与 DBLP entry article baseline。 |

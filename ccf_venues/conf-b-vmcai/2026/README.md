@@ -1,6 +1,6 @@
 # VMCAI 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,13 +17,13 @@
 | Program / accepted papers | [Program / Accepted](https://conf.researchr.org/program/VMCAI-2026/program-VMCAI-2026/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/vmcai/index.html) |
-| 当前阶段状态 | 🟡 已通知 / 待会期 |
+| 当前阶段状态 | ✅ 已结束 / 待 proceedings |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/VMCAI-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/VMCAI-2026) | 2026-07-13 复查：2026-01-12..2026-01-13 会期已结束，proceedings 仍待补 | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/VMCAI-2026/VMCAI-2026-papers) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/VMCAI-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -57,7 +57,7 @@
 | 论文名录 / accepted papers | [Program / Accepted](https://conf.researchr.org/program/VMCAI-2026/program-VMCAI-2026/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/vmcai/index.html) |
-| 计数口径 | 2026 proceedings / DBLP 尚未稳定落地。 |
+| 计数口径 | 2026 会期已结束；proceedings / DBLP 尚未稳定落地。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -70,6 +70,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/VMCAI-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| 官方年度主页 / 阶段复查 | [官方年度主页](https://conf.researchr.org/home/VMCAI-2026) | `2026-07-13 19:11:00` | 2026-01-12..2026-01-13 会期已结束；当前保留 program / accepted 官方入口，proceedings 待补。 |
 | CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/VMCAI-2026/VMCAI-2026-papers) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/VMCAI-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/VMCAI-2026/program-VMCAI-2026/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
@@ -77,7 +78,7 @@
 
 ## 8. 待补 / 风险记录
 
-- 2026 proceedings / DBLP 尚未稳定落地。
+- 2026 会期已结束；proceedings / DBLP 尚未稳定落地。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -90,4 +91,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：确认 VMCAI 2026 已结束，阶段状态更新为 `✅ 已结束 / 待 proceedings`，未新增 proceedings / DBLP 年度事实。 |
 | `2026-06-05 09:15` | PR-3 初始化 VMCAI 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

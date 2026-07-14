@@ -1,6 +1,6 @@
 # SANER 2026 README
 
-> 信息更新时间：`2026-06-05 18:13`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [SANER 2026](https://conf.researchr.org/home/saner-2026) | 未公布时写 `⏳ 已检索未公布`，不伪造 URL | `2026-06-05 17:35` |
+| 年度主页 | [SANER 2026](https://conf.researchr.org/home/saner-2026) | 2026-07-13 复查：会期已结束，proceedings 仍待补 | `2026-07-13 19:11:00` |
 | CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/saner-2026/saner-2026-papers) | track 分散时逐 track 补链接 | `2026-06-05 17:35` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/saner-2026) | 官方仅给日期时写 `待补时刻` | `2026-06-05 17:35` |
 | Submission system | 未公布 | 历史入口失效时保留待复核说明 | `2026-06-05 17:35` |
@@ -73,6 +73,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [SANER 2026](https://conf.researchr.org/home/saner-2026) | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
+| 官方年度主页 / 阶段复查 | [SANER 2026](https://conf.researchr.org/home/saner-2026) | `2026-07-13 19:11:00` | 2026-03-17..2026-03-20 会期已结束；当前保持 `✅ 已结束 / 待 proceedings`，不新增未公布 proceedings 事实。 |
 | 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/saner-2026) | `2026-06-05 17:35` | 已提取 main / research track 核心日期；具体时刻仍待补。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/saner-2026/program-saner-2026/) / [Research Track](https://conf.researchr.org/track/saner-2026/saner-2026-papers) / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | [DBLP SANER index](https://dblp.org/db/conf/saner/index) | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
@@ -93,5 +94,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 SANER 2026 会期已结束，Research Track / program 入口仍为官方来源，proceedings / DBLP 年度页待补。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 SANER 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

@@ -1,6 +1,6 @@
 # SQJ 2026 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:27:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,10 +14,10 @@
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/11219/aims-and-scope) |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) |
 | Submission system | [Springer Nature Submit your manuscript](https://submission.nature.com/new-submission/11219/3) |
-| Special issues / topical collections | [Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) |
+| Special issues / topical collections | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/11219/articles) |
 | DBLP 年度页 | [DBLP SQJ Vol. 34](https://dblp.org/db/journals/sqj/sqj34.html) |
-| 当前年度状态 | 🟢 年度进行中；Software Quality in an AI-Driven World collection 当前已关闭 |
+| 当前年度状态 | 🟡 专刊征稿；Quantum Software Quality open，Software Quality in an AI-Driven World Closed |
 
 ## 2. 年度核心 URL 索引
 
@@ -27,7 +27,7 @@
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/11219/aims-and-scope) | software quality、quality management、methods / tools / products | `2026-06-05 17:21` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | 常规投稿按 rolling submission 处理 | `2026-06-05 17:21` |
 | Submission system | [Springer Nature new submission](https://submission.nature.com/new-submission/11219/3) | 由 Springer Submit manuscript 入口指向 | `2026-06-05 17:21` |
-| Special issue / topical collection CFP | [Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | 无 active CFP 时以 [collections](https://link.springer.com/journal/11219/collections) 作复查入口 | `2026-06-05 17:21` |
+| Special issue / topical collection CFP | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | 无 active CFP 时以 [collections](https://link.springer.com/journal/11219/collections) 作复查入口 | `2026-07-13 19:27:00` |
 | Volume / issue archive | Vol. 34（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/34-1)；[Issue 2](https://link.springer.com/journal/11219/volumes-and-issues/34-2)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | 2027/2028 未公布时只挂长期 archive | `2026-06-05 17:21` |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/11219/articles) | latest articles 与正式卷期可能跨年 | `2026-06-05 17:21` |
 | Annual article list / publisher search | [Springer articles](https://link.springer.com/journal/11219/articles) | 待按 issue / article type 逐项计数 | `2026-06-05 17:21` |
@@ -47,7 +47,8 @@
 
 | 名称 | CFP / collection | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Software Quality in an AI-Driven World | [Collection](https://link.springer.com/collections/bjjddgfaei) | 2026-03-30 待补时刻（日期待归档源复核） | 🔒 | [Springer collection](https://link.springer.com/collections/bjjddgfaei)；[Springer collections](https://link.springer.com/journal/11219/collections) | 已同步至 TIMELINE / SUMMARY | 当前 collection 页面显示 Closed；历史 deadline 保留为待归档源复核，不写成当前可行动窗口。 |
+| Quantum Software Quality | [Collection](https://link.springer.com/collections/iaiffbgcbf) | 2026-12-20 待补时刻 | 🟡 | [Springer collection](https://link.springer.com/collections/iaiffbgcbf)；[Springer collections](https://link.springer.com/journal/11219/collections) | 本轮未改全局 TIMELINE | 当前 collection 页面显示 Open for submissions；官方仅给日期，未给具体时刻。主题覆盖 quantum / hybrid quantum-classical software quality、testing、verification、debugging 与 GenAI for software quality。 |
+| Software Quality in an AI-Driven World | [Collection](https://link.springer.com/collections/bjjddgfaei) | 2026-03-30 待补时刻（日期待归档源复核） | 🔒 | [Springer collection](https://link.springer.com/collections/bjjddgfaei)；[Springer collections](https://link.springer.com/journal/11219/collections) | 已有历史同步；本轮未改全局 TIMELINE | 当前 collection 页面显示 Closed；历史 deadline 保留为待归档源复核，不写成当前可行动窗口。 |
 
 ## 5. 年度论文入口与数量
 
@@ -73,12 +74,13 @@
 |---|---|---|---|
 | 期刊主页 / scope | [Springer SQJ](https://link.springer.com/journal/11219)；[Aims and scope](https://link.springer.com/journal/11219/aims-and-scope) | `2026-06-05 17:21` | 官方入口可用；scope 面向 software quality。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines)；[Submit manuscript](https://submission.nature.com/new-submission/11219/3) | `2026-06-05 17:21` | 常规投稿入口已记录，按 rolling submission 处理。 |
-| Special issue / topical collection | [Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | `2026-06-05 17:21` | 关键 deadline / 状态见 §4；无 dated CFP 年度按未公布或无已知记录。 |
+| Special issue / topical collection | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | `2026-07-13 19:27:00` | Quantum Software Quality open，deadline 为 2026-12-20 待补时刻；AI-Driven World Closed。 |
 | Volume / issue / articles | Vol. 34（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/34-1)；[Issue 2](https://link.springer.com/journal/11219/volumes-and-issues/34-2)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)）；[Springer articles](https://link.springer.com/journal/11219/articles) | `2026-06-05 17:21` | 已记录 Springer archive 与 DBLP baseline；待逐项计数。 |
 | DBLP fallback | [DBLP SQJ Vol. 34](https://dblp.org/db/journals/sqj/sqj34.html) | `2026-06-05 17:21` | 用作 bibliographic baseline，不替代 publisher article type 口径。 |
 
 ## 8. TIMELINE.md 同步提示
 
+- Quantum Software Quality 2026-12-20 deadline 是当前 open dated collection；本轮按分工未修改 [../../TIMELINE.md](../../TIMELINE.md)。
 - 本年度 2026-03-30 SQJ AI-Driven World deadline 已作为历史 closed collection event 同步至 [../../TIMELINE.md](../../TIMELINE.md)；日期仍需后续用官方归档或公开可审计复核。
 
 ## 9. 更新日志
@@ -87,4 +89,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:27:00` | 常态化刷新：新增 Quantum Software Quality open collection，记录 submission deadline 2026-12-20 待补时刻；确认 AI-Driven World Closed。 |
 | `2026-06-05 17:21` | 初始化 SQJ 2026 年度 README，记录 Springer / DBLP 入口、volume baseline、topical collection 状态与 project 相关性。 |

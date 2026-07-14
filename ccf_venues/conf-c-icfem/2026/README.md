@@ -1,6 +1,6 @@
 # ICFEM 2026 README
 
-> 信息更新时间：`2026-06-06 10:16`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,7 +17,7 @@
 | Program / accepted papers | 未公布（`#program` 当前 TBA） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/icfem/index.html) |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 已截稿 |
 
 ## 2. 年度核心 URL 索引
 
@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://icfem2026.github.io/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | CFP / Call for Papers | [CFP / Call for Papers](https://icfem2026.github.io/#call-for-papers) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | 官方页面已核验 `All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)` | `2026-06-06 10:16` |
+| Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | 2026-07-13 复查：submission 已截止；notification 2026-08-08、camera-ready 2026-09-07，均按 `23:59 AoE / UTC-12` | `2026-07-13 19:11:00` |
 | Submission system | [Submission system](https://icfem2026.github.io/#submission) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 | Program / accepted papers | 未公布 | [Program anchor](https://icfem2026.github.io/#program) 当前为 TBA，不能写成 accepted papers | `2026-06-05 11:12` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Extended abstract | 2026-06-15 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
+| Extended abstract | 2026-06-22 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 当前显示 abstract submission 已延期至 2026-06-22；所有 deadline 为 23:59 AoE (UTC-12)。 |
 | Extended full paper | 2026-06-22 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
 | Acceptance notification | 2026-08-08 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
 | Camera-ready | 2026-09-07 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
@@ -70,14 +70,14 @@
 |---|---|---|---|
 | 官方年度主页 | [官方年度主页](https://icfem2026.github.io/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | CFP / Call for Papers | [CFP / Call for Papers](https://icfem2026.github.io/#call-for-papers) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | `2026-06-06 10:16` | 已核验官方 `23:59 AoE / UTC-12` deadline 口径。 |
+| Important Dates | [Important Dates](https://icfem2026.github.io/#dates) | `2026-07-13 19:11:00` | 已核验官方 `23:59 AoE / UTC-12` deadline 口径；当前已截稿，notification 2026-08-08、camera-ready 2026-09-07。 |
 | Submission system | [Submission system](https://icfem2026.github.io/#submission) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Program / accepted papers | [Program anchor](https://icfem2026.github.io/#program) | `2026-06-05 11:12` | 当前为 TBA，只能作为 program 占位线索，不能支撑 accepted papers 或论文数量。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icfem/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
 
-- 2026 不设置 artifact evaluation；`#program` 当前为 TBA，论文数量、accepted papers 和 proceedings 均待公布。
+- 2026 已截稿；不设置 artifact evaluation；`#program` 当前为 TBA，论文数量、accepted papers 和 proceedings 均待公布。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -90,6 +90,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：将 ICFEM 2026 阶段改为 `🟡 已截稿`，复查 Important Dates 中 notification / camera-ready / 会期仍可核验。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Important Dates，将 ICFEM 2026 abstract / full paper / notification / camera-ready 精确到 `23:59 AoE / UTC-12`。 |
 | `2026-06-05 11:12` | 修复 ICFEM 2026 program 口径：`#program` 当前为 TBA，仅作占位线索，不写成 accepted papers / 论文名录。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICFEM 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

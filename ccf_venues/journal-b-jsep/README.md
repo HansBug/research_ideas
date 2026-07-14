@@ -1,6 +1,6 @@
 # JSEP README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -91,7 +91,8 @@ JSEP 面向软件演化、维护、过程改进、项目 / 过程管理、软件
 
 ## 7. 维护备注
 
-- JSEP 常规投稿按 rolling submission 候选处理，但 `author guidelines / submission system / online first` 均需 Wiley 公开可审计核验。
+- 2026-07-13 复查：JSEP 常规投稿按 rolling submission 候选处理；未核到公开、active、dated special issue CFP。
+- `author guidelines / submission system / online first` 均需 Wiley 公开可审计核验；Wiley 页面 CLI WAF/403 与 ScholarOne 当前性 caveat 保留。
 - 当前未发现 2022-2028 active dated special issue / topical collection CFP；已出版 special issue 线索只作为年度论文筛选线索，不生成 Mermaid milestone。
 - `2029+` 检索结论：未发现可命令行核验的官方年度卷期、DBLP 年度页或 dated CFP；后续待 Wiley / DBLP 发布后补录。
 - 2022-2025 年度论文数量为 DBLP `entry article` baseline，不等同于 Wiley publisher article-type 闭合数；后续需用 Wiley issue TOC 公开可审计核验 editorial、erratum、front matter 等是否纳入。
@@ -107,6 +108,7 @@ JSEP 面向软件演化、维护、过程改进、项目 / 过程管理、软件
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化刷新：确认 JSEP rolling 投稿口径，无可核验 active dated CFP；保留 Wiley WAF/403 与 ScholarOne 当前性 caveat。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

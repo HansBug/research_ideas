@@ -1,6 +1,6 @@
 # SQJ README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:27:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -116,7 +116,7 @@ Springer 当前公开页面列出 Editor-in-Chief 与 Editorial Board；未公�
 |---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [`2028`](./2028/README.md) | 🟢 | 滚动开放；年度卷期 / DBLP 年度归档待公布 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | ⏳ 已检索未公布（[collections](https://link.springer.com/journal/11219/collections)） | ⏳ 已检索未公布 | ⏳ 已检索未公布（[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | ⏳ 已检索未公布（[DBLP SQJ](https://dblp.org/db/journals/sqj/)） | ⏳ 已检索未公布 | 🟡 |
 | [`2027`](./2027/README.md) | 🟢 | 滚动开放；年度卷期 / DBLP 年度归档待公布 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | ⏳ 已检索未公布（[collections](https://link.springer.com/journal/11219/collections)） | ⏳ 已检索未公布 | ⏳ 已检索未公布（[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | ⏳ 已检索未公布（[DBLP SQJ](https://dblp.org/db/journals/sqj/)） | ⏳ 已检索未公布 | 🟡 |
-| [`2026`](./2026/README.md) | 🟢 | 年度进行中；按 Springer / DBLP volume 维护 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | [Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | 2026-03-30 待补时刻（历史 deadline；当前 collection 页面显示 Closed，日期待归档源复核） | Vol. 34（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/34-1)；[Issue 2](https://link.springer.com/journal/11219/volumes-and-issues/34-2)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | [DBLP SQJ Vol. 34](https://dblp.org/db/journals/sqj/sqj34.html) | 待 DBLP / Springer 逐卷计数 | 🟡 |
+| [`2026`](./2026/README.md) | 🟡 | Quantum Software Quality open；AI-Driven World Closed；常规 rolling 仍开放 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)：2026-12-20 待补时刻；[AI-Driven World](https://link.springer.com/collections/bjjddgfaei)：Closed / 2026-03-30 待补时刻（历史） | Vol. 34（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/34-1)；[Issue 2](https://link.springer.com/journal/11219/volumes-and-issues/34-2)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | [DBLP SQJ Vol. 34](https://dblp.org/db/journals/sqj/sqj34.html) | 待 DBLP / Springer 逐卷计数 | 🟡 |
 | [`2025`](./2025/README.md) | ✅ | 年度已归档；按 Springer / DBLP volume 维护 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | 无已知 dated collection（[collections](https://link.springer.com/journal/11219/collections)） | 滚动投稿 | Vol. 33（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/33-1)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | [DBLP SQJ Vol. 33](https://dblp.org/db/journals/sqj/sqj33.html) | 待 DBLP / Springer 逐卷计数 | 🟡 |
 | [`2024`](./2024/README.md) | ✅ | 年度已归档；按 Springer / DBLP volume 维护 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | [Gamification of Software Development / Verification / Validation](https://link.springer.com/collections/hbihjfgjbc)；[Quality of Learning-enabled Autonomous Systems](https://link.springer.com/collections/ejhjajiejd) | 2024-03-31 待补时刻 | Vol. 32（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/32-1)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | [DBLP SQJ Vol. 32](https://dblp.org/db/journals/sqj/sqj32.html) | 待 DBLP / Springer 逐卷计数 | 🟡 |
 | [`2023`](./2023/README.md) | ✅ | 年度已归档；按 Springer / DBLP volume 维护 | [SQJ](https://link.springer.com/journal/11219) | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines) | [Submit manuscript](https://submission.nature.com/new-submission/11219/3) | 无已知 dated collection（[collections](https://link.springer.com/journal/11219/collections)） | 滚动投稿 | Vol. 31（[Issue 1](https://link.springer.com/journal/11219/volumes-and-issues/31-1)；[volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)） | [Articles](https://link.springer.com/journal/11219/articles) | [DBLP SQJ Vol. 31](https://dblp.org/db/journals/sqj/sqj31.html) | 待 DBLP / Springer 逐卷计数 | 🟡 |
@@ -124,14 +124,16 @@ Springer 当前公开页面列出 Editor-in-Chief 与 Editorial Board；未公�
 
 ## 7. 维护备注
 
-- SQJ 常规投稿按 rolling submission 处理，不进入 dated Mermaid；带明确 deadline 的 topical collection 已同步至 [../TIMELINE.md](../TIMELINE.md)；后续若 Springer 更新状态或归档日期再增量维护。
+- SQJ 常规投稿按 rolling submission 处理，不进入 dated Mermaid；历史 topical collection dated event 已有同步记录；本轮新增 / 刷新的 Quantum Software Quality dated collection 因分工限制未修改全局 [../TIMELINE.md](../TIMELINE.md)，需由合流环节补齐。
 - 2022-2026 volume baseline：2022=Vol.30，2023=Vol.31，2024=Vol.32，2025=Vol.33，2026=Vol.34。
 - 2027/2028：已检索 [Springer volumes and issues](https://link.springer.com/journal/11219/volumes-and-issues)、[collections](https://link.springer.com/journal/11219/collections) 与 [DBLP SQJ](https://dblp.org/db/journals/sqj/)，年度卷期 / DBLP 年度页 / dated CFP 均按 `⏳ 已检索未公布` 记录。
+- `Quantum Software Quality`：2026-07-13 复查 Springer collection 显示 Open for submissions，submission deadline 为 `2026-12-20 待补时刻`（官方仅给日期），是当前普通投稿者可行动的 dated collection。
 - `Software Quality in an AI-Driven World`：当前 Springer collection 页面显示 Closed；本库保留历史 deadline `2026-03-30 待补时刻`，但仍需后续用官方归档或公开可审计复核该日期。
 
 ## 8. TIMELINE.md 同步提示
 
 - 2024-03-31 `[SQJ] Gamification of Software Development / Verification / Validation` 和 `[SQJ] Quality of Learning-enabled Autonomous Systems` 是 dated event 候选。
+- 2026-12-20 `[SQJ] Quantum Software Quality` 是当前 open dated collection；本轮按分工未修改全局 [../TIMELINE.md](../TIMELINE.md)。
 - 2026-03-30 `[SQJ] Software Quality in an AI-Driven World` 已作为历史 closed collection dated event 同步至 [../TIMELINE.md](../TIMELINE.md)；日期仍需后续用官方归档页或公开可审计复核。
 
 ## 9. 更新日志
@@ -140,6 +142,7 @@ Springer 当前公开页面列出 Editor-in-Chief 与 Editorial Board；未公�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:27:00` | 常态化刷新：新增 Quantum Software Quality open collection（deadline 2026-12-20 待补时刻），确认 Software Quality in an AI-Driven World 已 Closed；2027/2028 未发现新 dated CFP。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

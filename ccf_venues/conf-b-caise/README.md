@@ -1,6 +1,6 @@
 # CAiSE README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -12,10 +12,10 @@
 | CCF 大类 | 软件工程 / 系统软件 / 程序设计语言（[CCF 官方目录入口](https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/)；CLI 可能触发 WAF，正文未获公开可审计正文） |
 | CCF 等级 | 🥈 |
 | 出版方 | Springer LNCS（主会）；Forum / DC / Workshop 可能为 Springer / CEUR 等独立卷 |
-| 官方 series page | [CAiSE long-term site](https://caise-conference.org/)（本次 CLI 访问异常，作长期域名线索） |
-| 官方当前 / 最新年度主页 | [CAiSE 2026](https://caise26.polimi.it/) |
+| 官方 series page | [CAiSE long-term site](https://caise-conference.diag.uniroma1.it/) |
+| 官方当前 / 最新年度主页 | [CAiSE 2027 Seville announcement](https://caise-conference.diag.uniroma1.it/) |
 | 官方 CFP / Important Dates 总入口 | [CAiSE 2026 full papers CFP](https://caise26.polimi.it/?page_id=60) / [CAiSE 2026 dates](https://caise26.polimi.it/?page_id=60) |
-| 官方 proceedings / paper list 总入口 | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) / 未公布 / Springer 待补 |
+| 官方 proceedings / paper list 总入口 | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) / [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) |
 | DBLP venue page | [DBLP CAiSE](https://dblp.org/db/conf/caise/) |
 | 当前默认调查范围 | `2022` 至 `2028`；未公布未来年度不预造 |
 
@@ -51,13 +51,13 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
-| Series / main site | [CAiSE long-term site](https://caise-conference.org/)（本次 CLI 访问异常，作长期域名线索） | 若长期站访问异常，年度事实以年度 official site 为准 | `2026-06-07 12:47` |
-| Latest year homepage | [CAiSE 2026](https://caise26.polimi.it/) | future 年度未公布时写 `⏳ 已检索未公布` | `2026-06-07 12:47` |
-| CFP / Call for Papers | [CAiSE 2026 full papers CFP](https://caise26.polimi.it/?page_id=60) | 若分 track，年度页展开 | `2026-06-07 12:47` |
-| Important Dates | [CAiSE 2026 dates](https://caise26.polimi.it/?page_id=60) | 可与 CFP 同页 | `2026-06-07 12:47` |
+| Series / main site | [CAiSE long-term site](https://caise-conference.diag.uniroma1.it/) | 当前官方 long-term series 入口可访问 | `2026-07-13 19:13:21` |
+| Latest year homepage | [CAiSE 2027 Seville announcement](https://caise-conference.diag.uniroma1.it/) | CAiSE long-term site announces 2027 Seville `2027-06-07..2027-06-11` but no public CFP / dates page yet; 官方 long-term site 可访问 | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | [CAiSE 2026 full papers CFP](https://caise26.polimi.it/?page_id=60) | 2027 CFP / dates 未公布；2026 已结束，历史 CFP 仅作归档 | `2026-07-13 19:13:21` |
+| Important Dates | [CAiSE 2026 dates](https://caise26.polimi.it/?page_id=60) | 2027 仅公告会期；无 CFP / submission / notification dates | `2026-07-13 19:13:21` |
 | Submission system | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | 只能证明投稿入口，不替代 CFP / dates | `2026-06-07 12:47` |
 | Program / accepted papers | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | 已结束年度优先 official accepted/program | `2026-06-07 12:47` |
-| Proceedings | 未公布 / Springer 待补 | publisher / DBLP fallback 分开 | `2026-06-07 12:47` |
+| Proceedings | [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) | 两卷共 46 篇 main conference full papers；DBLP fallback 分开 | `2026-07-13 19:13:21` |
 | DBLP venue | [DBLP CAiSE](https://dblp.org/db/conf/caise/) | 仅作论文名录 / 计数 fallback | `2026-06-07 12:47` |
 
 ## 5. 核心人员情报
@@ -78,8 +78,8 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | Camera-ready | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟡 已公布 / 会前 | [CAiSE 2026](https://caise26.polimi.it/) | [Full papers CFP](https://caise26.polimi.it/?page_id=60) | [CFP / dates](https://caise26.polimi.it/?page_id=60) | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | 未公布 / Springer 主会 proceedings 待补 | ⏳ 已检索未公布 | 2025-11-21 待补时刻 AoE | 2025-11-28 待补时刻 AoE | 2026-02-12 待补时刻 | 待补 | 2026-06-08..2026-06-12 | accepted page 可公开证据计数；proceedings / DBLP 待补 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟦 已有主页 / 会期 | [CAiSE 2027 Seville announcement](https://caise-conference.diag.uniroma1.it/) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 2027-06-07..2027-06-11 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | ✅ 已结束 | [CAiSE 2026](https://caise26.polimi.it/) | [Full papers CFP](https://caise26.polimi.it/?page_id=60) | [CFP / dates](https://caise26.polimi.it/?page_id=60) | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) | ⏳ 已检索未公布 | 2025-11-21 待补时刻 AoE | 2025-11-28 待补时刻 AoE | 2026-02-12 待补时刻 | 待补 | 2026-06-08..2026-06-12 | main conference full papers: 46（Springer 两卷合计；DBLP 待补） | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [CAiSE 2025](https://conferences.big.tuwien.ac.at/caise2025/) | [Full papers CFP](https://conferences.big.tuwien.ac.at/caise2025/cfp_full.php) | [CFP / dates](https://conferences.big.tuwien.ac.at/caise2025/cfp_full.php) | [EasyChair CAiSE 2025](https://easychair.org/my/conference?conf=caise2025) | [Accepted papers](https://conferences.big.tuwien.ac.at/caise2025/accepted_papers.php?type=Main%20Conference) | [Proceedings page](https://conferences.big.tuwien.ac.at/caise2025/proceedings.php) / [Vol.1](https://link.springer.com/book/10.1007/978-3-031-94569-4) / [Vol.2](https://link.springer.com/book/10.1007/978-3-031-94571-7) | ⏳ 已检索未公布 | 2024-11-22 待补时刻 | 2024-12-01 待补时刻 | 2025-02-28 待补时刻 | 2025-04-14 待补时刻 | 2025-06-16..2025-06-20 | 待按 main conference / LNCS 主卷复核 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 / 归档待补 | 待补（官方年度站当前未定位到可访问归档） | 待补 | 待补 | 待补 | 待补 | [DBLP / Springer proceedings record](https://dblp.org/db/conf/caise/caise2024.html) | [DBLP CAiSE 2024](https://dblp.org/db/conf/caise/caise2024.html) | 待补 | 待补 | 待补 | 待补 | 2024-06-03..2024-06-07（DBLP proceedings record） | DBLP 可计数；待 main conference 口径复核 | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [CAiSE 2023](https://caise23.svit.usj.es/) | [Main conference](https://caise23.svit.usj.es/main-conference/) | [Main conference dates](https://caise23.svit.usj.es/main-conference/) | 待补（官方按钮 / EasyChair 历史入口需复核） | [Accepted papers](https://caise23.svit.usj.es/accepted-papers/) / [Program](https://caise23.svit.usj.es/program/) | [Proceedings](https://caise23.svit.usj.es/proceedings/) | [DBLP CAiSE 2023](https://dblp.org/db/conf/caise/caise2023.html) | 2022-11-22 待补时刻 | 2022-11-29 待补时刻 | 2023-03-01 待补时刻 | 2023-04-03 待补时刻 AoE | 2023-06-12..2023-06-16 | DBLP 可计数；待 main conference 口径复核 | 🟡 部分核验 |
@@ -89,7 +89,9 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 
 - CAiSE 主会计数只算 main conference / LNCS main proceedings；Forum、Doctoral Consortium、Journal First、RPE、Workshops、BPMDS、EMMSAD 不混入主会数量。
 - 2024 official annual site 当前未定位到可访问归档；只用 DBLP / Springer proceedings record 落会期和 proceedings 线索，不补写 CFP / deadline。
-- 2027/2028 未公布，不预造 homepage、committee、CFP、submission system 或 DBLP 年度页。
+- CAiSE 2026 已于 `2026-06-12` 结束；Springer 两卷主会 proceedings 已发布，后续只补 DBLP 年度页与 publisher / DBLP 计数交叉核验，不再作为当前投稿机会。
+- CAiSE 2027 已有 Seville `2027-06-07..2027-06-11` 官方公告，但截至 2026-07-13 未公布 CFP、submission、notification 或 camera-ready dates。
+- CAiSE 2028 未公布，不预造 homepage、committee、CFP、submission system 或 DBLP 年度页。
 
 ## 8. 证据与核查记录
 
@@ -110,6 +112,7 @@ CAiSE 聚焦 Advanced Information Systems Engineering，覆盖 requirements engi
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：将 CAiSE 2026 标记为已结束并补入 LNCS 16558 + 16559 共 46 篇主会 full papers；升级 CAiSE 2027 Seville `2027-06-07..2027-06-11` 占位但不伪造 CFP / dates；2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

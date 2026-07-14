@@ -1,6 +1,6 @@
 # JSS 2027 README
 
-> 信息更新时间：`2026-06-05 17:21`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,10 +13,10 @@
 | 期刊主页 | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) |
 | Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx)（CLI/landing 可能提示 `site under development`，待再核验） |
-| Special issues / article collections | ⏳ 已检索未公布（[special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues)） |
+| Special issues / article collections | [Software Architecture in a Digital Society](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society)（跨年开放，2027-01-31 截止） |
 | Articles in press | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) |
 | DBLP 年度页 / volume set | ⏳ 已检索未公布（[DBLP JSS](https://dblp.org/db/journals/jss/)） |
-| 当前年度状态 | 🟢 滚动开放；官方年度卷期 / DBLP volume set / dated CFP 均未公布 |
+| 当前年度状态 | 🟢 滚动开放；跨年 public special issue 截止已公布；年度卷期 / DBLP volume set 未公布 |
 
 ## 2. 年度核心 URL 索引
 
@@ -25,7 +25,7 @@
 | Journal homepage | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | [DBLP JSS](https://dblp.org/db/journals/jss/) 作 bibliographic fallback | `2026-06-05 17:21` |
 | Author guidelines | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors) | 常规投稿按 rolling submission 处理 | `2026-06-05 17:21` |
 | Submission system | [Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | CLI/landing 可能提示 `site under development`，CLI/动态页/登录流程受限，未获公开可审计正文 | `2026-06-05 17:21` |
-| Special issue / CFP | ⏳ 已检索未公布（[special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues)） | 无 active CFP 时以 [special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) 作复查入口 | `2026-06-05 17:21` |
+| Special issue / CFP | [Software Architecture in a Digital Society](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | Public special issue；2027-01-31 截止 | `2026-07-13 19:10` |
 | Volume / issue archive | ⏳ 已检索未公布（[ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues)；[DBLP JSS](https://dblp.org/db/journals/jss/)） | ScienceDirect publisher archive 与 DBLP volume set 需后续交叉核验 | `2026-06-05 17:21` |
 | Articles in press | [ScienceDirect articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) | online-first 与正式 volume 可能跨年 | `2026-06-05 17:21` |
 | Annual article list / publisher search | [ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues) | 待按 volume / issue 和 article type 逐卷计数 | `2026-06-05 17:21` |
@@ -45,7 +45,7 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| 无已知 active special issue | [ScienceDirect special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) | ⏳ 已检索未公布 | ⚪ | [ScienceDirect special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues) | 不适用 | 2027/2028 未发现 JSS dated CFP；常规投稿仍 rolling。 |
+| Software Architecture in a Digital Society | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | 2027-01-31 待补时刻 | 🟢 / 跨年 | [ScienceDirect CFP](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | Public special issue；deadline 落在 2027；常规投稿仍 rolling。 |
 
 ## 5. 年度论文入口与数量
 
@@ -71,13 +71,13 @@
 |---|---|---|---|
 | 期刊主页 / scope | [ScienceDirect JSS](https://www.sciencedirect.com/journal/journal-of-systems-and-software) | `2026-06-05 17:21` | 官方入口可用；scope 覆盖软件工程全链路。 |
 | Author guidelines / submission | [Guide for authors](https://www.sciencedirect.com/journal/journal-of-systems-and-software/publish/guide-for-authors)；[Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) | `2026-06-05 17:21` | 投稿入口可点击；Editorial Manager landing 仍CLI/动态页/登录流程受限，未获公开可审计正文。 |
-| Special issue / article collection | ⏳ 已检索未公布（[special issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/special-issues)） | `2026-06-05 17:21` | 关键 deadline 见 §4；无 dated CFP 年度按未公布记录。 |
+| Special issue / article collection | [Software Architecture in a Digital Society](https://www.sciencedirect.com/special-issue/331752/software-architecture-in-a-digital-society) | `2026-07-13 19:10` | ScienceDirect 一手页面明确给出 2027-01-31 submission deadline。 |
 | Volume / issue / articles in press | ⏳ 已检索未公布（[ScienceDirect all issues](https://www.sciencedirect.com/journal/journal-of-systems-and-software/issues)；[DBLP JSS](https://dblp.org/db/journals/jss/)）；[Articles in press](https://www.sciencedirect.com/journal/journal-of-systems-and-software/articles-in-press) | `2026-06-05 17:21` | 已记录官方 archive 与 DBLP volume baseline；待逐卷计数。 |
 | DBLP fallback | ⏳ 已检索未公布（[DBLP JSS](https://dblp.org/db/journals/jss/)） | `2026-06-05 17:21` | 用作 bibliographic baseline，不替代 publisher article type 口径。 |
 
 ## 8. TIMELINE.md 同步提示
 
-- 当前未发现本年度 JSS dated special issue，不生成 dated event；rolling submission 需按全局维护流程维护。
+- Software Architecture in a Digital Society 的 2027-01-31 deadline 已同步至 [../../TIMELINE.md](../../TIMELINE.md)；常规 rolling submission 另表维护。
 
 ## 9. 更新日志
 
@@ -85,4 +85,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：记录 JSS Software Architecture in a Digital Society public special issue 跨年 deadline 2027-01-31；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-05 17:21` | 初始化 JSS 2027 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

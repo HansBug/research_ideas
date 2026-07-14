@@ -1,6 +1,6 @@
 # MoDELS 2026 README
 
-> 信息更新时间：`2026-06-05 01:08`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中 |
+| 当前阶段状态 | 🟣 通知后 |
 
 ## 2. 年度核心 URL 索引
 
@@ -57,7 +57,7 @@
 | Program | ⏳ 已检索未公布；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 计数口径 | 会议尚未召开；截至 `2026-06-04` submission 与 rebuttal 已过但 notification 尚未到达，整体阶段为 `🟡 审稿中`；program URL 当前跳转 accessDenied，最终论文数待 proceedings / DBLP 发布后补。 |
+| 计数口径 | 会议尚未召开；截至 `2026-07-13` notification 已过但 camera-ready 尚未到达，整体阶段为 `🟣 通知后`；program URL 当前跳转 accessDenied，最终论文数待 proceedings / DBLP 发布后补。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -71,7 +71,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [MoDELS 2026](https://conf.researchr.org/home/models-2026) | `2026-06-04 21:10` | 可访问。 |
-| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) | `2026-06-04 21:10` | 可访问；deadline 已按官方日期记录，具体时刻待补。 |
+| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) / [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) | `2026-07-13 13:30` | 可访问；Research Papers track 明确 all submission dates at `23:59 AoE`，notification `2026-06-17` 已过，camera-ready `2026-07-31` 未到。 |
 | 官方 track / program | [Research Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers)；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) | `2026-06-04 21:10` | Research track 可访问；program probe 当前跳转 Access denied，不作为已公开 program / accepted papers。 |
 | 官方论文名录 / proceedings | 未公布 | `2026-06-04 21:10` | 未发布。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | 未发布。 |
@@ -87,6 +87,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：按官方 Research Papers track / dates 将阶段改为通知后，保留 camera-ready `2026-07-31 待补时刻 AoE` 与会期 `2026-10-04..2026-10-09`。 |
 | `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 将当前阶段统一为审稿中，并补充阶段状态判定依据。 |
 | `2026-06-04 21:10` | 初始化 MoDELS 2026 年度 README，记录核心 URL、重要时间点、Tracks、论文数量与核查状态。 |

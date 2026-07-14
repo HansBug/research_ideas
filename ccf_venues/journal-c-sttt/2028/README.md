@@ -1,6 +1,6 @@
 # STTT 2028 README
 
-> 信息更新时间：`2026-06-05 12:52`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -27,7 +27,7 @@
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | development / verification tools、formal approaches、technology transfer 口径 | `2026-06-05 11:58` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines) | single-blind peer review；special / guest-edited issue 同样走期刊 peer review | `2026-06-05 11:58` |
 | Submission system | [Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | Springer `Submit your manuscript` 直链；Equinocs 是 SPA，登录后期刊选项未获公开可审计正文 | `2026-06-05 11:58` |
-| Special issue / topical collection CFP | 无已知 | 已查 [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072)，未发现 2028 active dated CFP | `2026-06-05 11:58` |
+| Special issue / topical collection CFP | 无已知 | 已查 [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072)，未发现 2028 active dated CFP | `2026-07-13 19:30:00` |
 | Volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues) | 未发现 2028 年度卷期 | `2026-06-05 12:52` |
 | Articles in press / online first | [Springer online first](https://link.springer.com/journal/10009/online-first)（未发现可归档到 2028 的年度入口） | 已查 [Springer online first](https://link.springer.com/journal/10009/online-first)，未发现可归档到 2028 的年度入口 | `2026-06-05 11:58` |
 | Annual article list / publisher search | [Springer articles](https://link.springer.com/journal/10009/articles) | 未发现 2028 年度条目；后续待 Springer 发布后补录 | `2026-06-05 12:52` |
@@ -70,7 +70,7 @@
 |---|---|---|---|
 | 期刊主页 / scope | [Springer STTT](https://link.springer.com/journal/10009)；[Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | `2026-06-05 11:58` | 官方入口与 scope 可用。 |
 | Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines)；[Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | `2026-06-05 11:58` | 投稿指南与 Equinocs 入口可用；Equinocs 页面命令行只显示 loading 壳，未获公开可审计正文登录后流程。 |
-| Special issue / journal updates | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | `2026-06-05 11:58` | 未发现 2028 active dated CFP。 |
+| Special issue / journal updates | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | `2026-07-13 19:30:00` | 已复查，未发现 2028 active dated CFP；未来年度卷期 / DBLP 年度页未公布。 |
 | Volume / issue / online first | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues)；[Springer online first](https://link.springer.com/journal/10009/online-first) | `2026-06-05 11:58` | 未发现 2028 年度卷期 / online-first 年度入口。 |
 | DBLP fallback | [DBLP STTT](https://dblp.org/db/journals/sttt/index.html) | `2026-06-05 11:58` | 未发现 2028 年度页。 |
 | `2029+` 核查 | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues)；[Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072)；[Springer online first](https://link.springer.com/journal/10009/online-first)；[DBLP STTT](https://dblp.org/db/journals/sttt/index.html)；DBLP `sttt29` / `sttt30` 候选页 | `2026-06-05 11:58` | 未发现 `2029+` 官方年度卷期 / active dated CFP / DBLP 年度页。 |
@@ -87,5 +87,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:30:00` | 常态化刷新：复查 Springer updates / volumes / online-first / DBLP 入口，未发现 2028 年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。 |
 | `2026-06-05 12:52` | 更新 STTT 未来年度记录：把 Springer volumes / online-first / articles / DBLP 入口改为可点击核验入口，并保留未公布状态。 |
 | `2026-06-05 11:58` | 初始化 STTT 2028 年度 README，记录未来年度已检索未公布状态、Springer / Equinocs / DBLP 核心入口和 2029+ 检索口径。 |

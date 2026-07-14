@@ -1,6 +1,6 @@
 # ETAPS / TACAS 2027 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -80,9 +80,9 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| ETAPS umbrella 年度主页 | [ETAPS 2027](https://etaps.org/2027/) | `2026-06-04 21:10` | 已核验年度主页链接可访问。 |
-| 官方 CFP / Dates | [CFP / Dates](https://etaps.org/2027/cfp/) | `2026-06-04 21:10` | 已按给定官方证据记录 TACAS 相关日期。 |
-| TACAS 分会页 | [TACAS 2027](https://etaps.org/2027/conferences/tacas/) | `2026-06-04 21:10` | 已核验 TACAS track 链接可访问。 |
+| ETAPS umbrella 年度主页 | [ETAPS 2027](https://etaps.org/2027/) | `2026-07-13 13:30` | 已复查年度主页链接可访问；umbrella 会期为 `2027-04-10..2027-04-15`。 |
+| 官方 CFP / Dates | [CFP / Dates](https://etaps.org/2027/cfp/) | `2026-07-13 13:30` | 已复查 TACAS 2027 submission `2026-10-15 待补时刻 AoE`、mandatory artifact `2026-10-29 待补时刻 AoE`、notification `2026-12-22 待补时刻 AoE`。 |
+| TACAS 分会页 | [TACAS 2027](https://etaps.org/2027/conferences/tacas/) | `2026-07-13 13:30` | 已核验 TACAS track 链接可访问；Main conferences/TACAS 会期为 `2027-04-12..2027-04-15`。 |
 | Submission system | [EasyChair TACAS 2027](https://easychair.org/conferences/?conf=tacas27) | `2026-06-04 21:10` | EasyChair 链接可访问但会重定向到登录页。 |
 | 官方论文名录 / proceedings | 未公布 | `2026-06-04 21:10` | Important Dates 与 CFP 同页；用户给定证据显示 important-dates 重定向 CFP。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | DBLP TACAS 年度锚点用于 TACAS 论文名录 / count fallback。 |
@@ -98,5 +98,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：复核 ETAPS/TACAS 2027 官方 CFP，确认 paper submission、mandatory artifact、notification 与 Main conferences/TACAS 会期；状态保持投稿中。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ETAPS / TACAS 2027 年度 README，区分 ETAPS umbrella 与 TACAS 分会。 |

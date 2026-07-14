@@ -1,6 +1,6 @@
 # ICFEM README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 |---|---|---|---|
 | Series / main site | 待补 | 未发现独立稳定 series page；当前以 [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) 作索引 fallback，年度信息仍以年度页 / CFP 为准 | `2026-06-05 11:12` |
 | DBLP venue page | [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | `2029+` 已检索未公布；未来年度不得伪造；2026 Important Dates 已复核 `23:59 AoE / UTC-12` | `2026-06-06 10:16` |
+| 最新年度入口 | [ICFEM 2026](https://icfem2026.github.io/) | 2026-07-13 复查：2026 已截稿，notification 2026-08-08 23:59 AoE / UTC-12；2027/2028 未发现官方主页 / CFP / dates，未来年度不得伪造 | `2026-07-13 19:11:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -72,7 +72,7 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICFEM index](https://dblp.org/db/conf/icfem/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟢 投稿中 | [ICFEM 2026](https://icfem2026.github.io/) | [CFP](https://icfem2026.github.io/#call-for-papers) | [Important Dates](https://icfem2026.github.io/#dates) | [Submission](https://icfem2026.github.io/#submission) | 未公布（`#program` 当前 TBA） | 未公布 | [DBLP](https://dblp.org/db/conf/icfem/index.html) | 2026-06-15 23:59 AoE / UTC-12 | 2026-06-22 23:59 AoE / UTC-12 | 2026-08-08 23:59 AoE / UTC-12 | 2026-11-17..2026-11-20 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟡 已截稿 | [ICFEM 2026](https://icfem2026.github.io/) | [CFP](https://icfem2026.github.io/#call-for-papers) | [Important Dates](https://icfem2026.github.io/#dates) | [Submission](https://icfem2026.github.io/#submission) | 未公布（`#program` 当前 TBA） | 未公布 | [DBLP](https://dblp.org/db/conf/icfem/index.html) | 2026-06-22 23:59 AoE / UTC-12 | 2026-06-22 23:59 AoE / UTC-12 | 2026-08-08 23:59 AoE / UTC-12 | 2026-11-17..2026-11-20 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ICFEM 2025](https://icfem2025.github.io/) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-981-95-4213-0) | [DBLP](https://dblp.org/db/conf/icfem/icfem2025) | 未公布 | 未公布 | 未公布 | 2025-11-10..2025-11-13 | 21 papers / 1 volume | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ICFEM 2024](https://icfem2024.info/) | [CFP](https://icfem2024.info/ICFEM2024CallforPapers.pdf) | 未公布 | 未公布 | [Program / Accepted](https://icfem2024.info/ICFEM2024_Formatted_Program_VeryFinal.pdf) | [Proceedings](https://link.springer.com/book/10.1007/978-981-96-0617-7) | [DBLP](https://dblp.org/db/conf/icfem/icfem2024) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | 22 papers / 1 volume | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [ICFEM 2023](https://formal-analysis.com/icfem/2023/) | 未公布 | 未公布 | 未公布 | [Program / Accepted](https://formal-analysis.com/icfem/2023/ICFEM2023-Program.pdf) | [Proceedings](https://link.springer.com/book/10.1007/978-981-99-7584-6) | [DBLP](https://dblp.org/db/conf/icfem/icfem2023) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | 23 papers / 1 volume | 🟡 部分核验 |
@@ -82,10 +82,10 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；未发现官方主页 / CFP / dates，未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ICFEM 2028 官方年页。
 - 2027 计数口径：未发现 ICFEM 2027 官方年页。
-- 2026 计数口径：2026 不设置 artifact evaluation；`#program` 当前为 TBA，不能写成 accepted papers；论文数量待 accepted/proceedings。
+- 2026 计数口径：2026 已截稿；不设置 artifact evaluation；`#program` 当前为 TBA，不能写成 accepted papers；论文数量待 accepted/proceedings。
 - 2025 计数口径：Springer LNCS 16229 / DBLP 年度页交叉核验。
 
 ## 8. TIMELINE.md 同步提示
@@ -100,6 +100,7 @@ ICFEM 关注形式化工程方法、形式化规格、验证、建模、测试�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：按当前日期将 ICFEM 2026 阶段改为 `🟡 已截稿`，保留 notification 2026-08-08 23:59 AoE / UTC-12、camera-ready 2026-09-07、会期 2026-11-17..2026-11-20；复查 2027/2028 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

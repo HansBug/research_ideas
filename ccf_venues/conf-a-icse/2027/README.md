@@ -1,6 +1,6 @@
 # ICSE 2027 README
 
-> 信息更新时间：`2026-06-06 10:16`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,15 +17,15 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 已截稿 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 官方 conf.researchr 年度入口 | `2026-06-06 10:16` |
-| CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 若未公布则保持未公布，不伪造链接 | `2026-06-06 10:16` |
-| Important Dates | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 官方页面已核验 `All dates are 23:59:59 AoE (UTC-12h)` | `2026-06-06 10:16` |
+| 年度主页 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | 官方 conf.researchr 年度入口；会期 `2027-04-25..2027-05-01` | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 已于 `2026-06-30 23:59:59 AoE / UTC-12h` 截稿；保留后续 review / notification 节点 | `2026-07-13 19:13:21` |
+| Important Dates | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 官方页面已核验 `All dates are 23:59:59 AoE (UTC-12h)`；下一关键节点 notification `2026-10-20` | `2026-07-13 19:13:21` |
 | Submission system | [HotCRP](https://icse2027.hotcrp.com/) | 未找到稳定公开投稿入口 | `2026-06-04 21:10` |
 | Tracks / program | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | 年度主页 tracks 导航可继续展开 | `2026-06-06 10:16` |
 | Accepted papers / paper list | 未公布 | 官方 program 优先；DBLP 作 fallback | `2026-06-04 21:10` |
@@ -77,8 +77,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | `2026-06-06 10:16` | 年度主页可访问；地点 / 会期按官方页面信息记录。 |
-| 官方 CFP / Dates | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | `2026-06-06 10:16` | Research / Technical Track 页面作为 CFP 与 important dates 入口，已核验 `23:59:59 AoE / UTC-12h`。 |
+| 官方年度主页 | [ICSE 2027](https://conf.researchr.org/home/icse-2027) | `2026-07-13 19:13:21` | 年度主页可访问；地点 / 会期按官方页面信息记录。 |
+| 官方 CFP / Dates | [Research Track](https://conf.researchr.org/track/icse-2027/icse-2027-research-track) | `2026-07-13 19:13:21` | Research Track 已截稿；notification `2026-10-20 23:59:59 AoE / UTC-12h` 与后续 revision / camera-ready 节点仍按官方记录。 |
 | 官方论文名录 / proceedings | 未公布 | `2026-06-04 21:10` | 已结束年度优先官方 program / proceedings；未结束年度写未公布。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | DBLP 用作论文名录与数量交叉核验 fallback；未公开年度写⏳已检索未公布。 |
 
@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 ICSE 2027 Research Track 已截稿，保留 notification `2026-10-20 23:59:59 AoE / UTC-12h` 与会期 `2027-04-25..2027-05-01`。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Research Track 页面，将 ICSE 2027 全部 Research Track 日期精确到 `23:59:59 AoE / UTC-12h`。 |
 | `2026-06-04 22:20` | 回填 Research Track rebuttal、revision、camera-ready 和 final decision 等关键时间点。 |
 | `2026-06-04 21:10` | 初始化 ICSE 2027 年度 README。 |

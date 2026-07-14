@@ -1,6 +1,6 @@
 # ESEM README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -51,9 +51,9 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [researchr ESEM series](https://conf.researchr.org/series/esem) | ESEM 年度主页常以 ESEIW umbrella 形式发布 | `2026-06-05 17:23` |
-| Latest year homepage | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | `home/esem-2026` 会跳转到 `home/eseiw-2026` | `2026-06-05 17:23` |
-| CFP / Call for Papers | [ESEM - Technical Track 2026](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | 2022-2025 使用 `esem-YYYY` track URL；2026 使用 `eseiw-2026` track URL | `2026-06-05 17:23` |
-| Important Dates | [ESEIW 2026 dates](https://conf.researchr.org/dates/eseiw-2026) | 2022-2025 使用 `dates/esem-YYYY` | `2026-06-05 17:23` |
+| Latest year homepage | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | `home/esem-2026` 会跳转到 `home/eseiw-2026`；2027/2028 复查仍未公布 | `2026-07-13 13:30` |
+| CFP / Call for Papers | [ESEM - Technical Track 2026](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | 2022-2025 使用 `esem-YYYY` track URL；2026 使用 `eseiw-2026` track URL | `2026-07-13 13:30` |
+| Important Dates | [ESEIW 2026 dates](https://conf.researchr.org/dates/eseiw-2026) | 2022-2025 使用 `dates/esem-YYYY`；2026 Technical Track notification 当前 official dates 写作 `2026-07-14` | `2026-07-13 13:30` |
 | Submission system | [HotCRP esem26](https://esem26.hotcrp.com) | 2022-2025 历史投稿入口已在年度页记录为 EasyChair；归档登录状态仍未获公开可审计正文 | `2026-06-05 17:23` |
 | Program / accepted papers | 逐年度 program 页面；当前最新已结束年度见 [ESEIW 2025 Program](https://conf.researchr.org/program/esem-2025/program-esem-2025/) | 已结束年度优先 official program；数量仍需 DBLP / proceedings 复核 | `2026-06-05 17:23` |
 | Proceedings | [Dagstuhl LIPIcs FAQ 2026](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy) | 2026 官方说明出版和开放科学口径发生变化；正式 proceedings 尚未公布 | `2026-06-05 17:23` |
@@ -82,7 +82,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟡 审稿中 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [HotCRP esem26](https://esem26.hotcrp.com) | 未公布 | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） | ⏳ 已检索未公布 | 2026-05-11 待补时刻 | 2026-05-18 待补时刻 | 2026-07-10 待补时刻 | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟡 审稿中 / 通知临近 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [HotCRP esem26](https://esem26.hotcrp.com) | 未公布 | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） | ⏳ 已检索未公布 | 2026-05-11 待补时刻 | 2026-05-18 待补时刻 | 2026-07-14 待补时刻 | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ESEIW 2025](https://conf.researchr.org/home/esem-2025) | [ESEM - Technical Track](https://conf.researchr.org/track/esem-2025/esem-2025-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2025) | [EasyChair esem25](https://easychair.org/conferences/?conf=esem25) | [Program](https://conf.researchr.org/program/esem-2025/program-esem-2025/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2025](https://dblp.org/db/conf/esem/esem2025.html) | 2025-04-18 待补时刻 | 2025-04-25 待补时刻 | 2025-06-16 待补时刻 | 2025-09-28..2025-10-03 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ESEIW 2024](https://conf.researchr.org/home/esem-2024) | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2024) | [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | [Program](https://conf.researchr.org/program/esem-2024/program-esem-2024/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2024](https://dblp.org/db/conf/esem/esem2024.html) | 2024-05-02 待补时刻 | 2024-05-06 待补时刻 | 2024-06-20 待补时刻 | 2024-10-20..2024-10-25 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ESEIW 2023](https://conf.researchr.org/home/esem-2023) | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2023/esem-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2023) | [EasyChair esem2023](https://easychair.org/my/conference?conf=esem2023) | [Program](https://conf.researchr.org/program/esem-2023/program-esem-2023/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2023](https://dblp.org/db/conf/esem/esem2023.html) | 2023-04-24 待补时刻 | 2023-05-02 待补时刻 | 2023-06-16 待补时刻 | 2023-10-22..2023-10-27 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
@@ -90,9 +90,9 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 
 ## 7. 维护备注
 
-- 2026：researchr 年度页采用 `eseiw-2026` slug；`esem-2026` URL 会重定向。官方公布 ESEIW Munich 会期为 `2026-10-04..2026-10-09`，Technical Track abstract / submission / notification / camera-ready 分别为 `2026-05-11`、`2026-05-18`、`2026-07-10`、`2026-08-17`；投稿系统为 [HotCRP esem26](https://esem26.hotcrp.com)；Technical Track 明确 double-anonymous review、open by default，并说明 selected strong papers 可被邀请扩展投稿到 Empirical Software Engineering special issue。
+- 2026：researchr 年度页采用 `eseiw-2026` slug；`esem-2026` URL 会重定向。官方公布 ESEIW Munich 会期为 `2026-10-04..2026-10-09`，Technical Track abstract / submission / updated notification / camera-ready 分别为 `2026-05-11`、`2026-05-18`、`2026-07-14`、`2026-08-17`；截至 `2026-07-13` 官方 current dates 页显示 notification 为次日 `2026-07-14`，本库按官方页写作通知临近；投稿系统为 [HotCRP esem26](https://esem26.hotcrp.com)；Technical Track 明确 double-anonymous review、open by default，并说明 selected strong papers 可被邀请扩展投稿到 Empirical Software Engineering special issue。
 - 2025-2022：使用 researchr 年度主页、Important Dates 与 DBLP 年度页作为基础入口；论文数量待后续逐年计数复核，统一标注为“DBLP 年度页已定位；数量待复核”。
-- 2027 / 2028：已检索 researchr `home` / `dates` 的 `esem` 与 `eseiw` slug，均未公布；本目录显式写 `⏳ 已检索未公布`，不伪造 deadline 或地点。
+- 2027 / 2028：`2026-07-13` 复查 researchr `home` / `dates` 的 `esem` 与 `eseiw` slug，仍未发现官方年度主页、CFP 或 Important Dates；本目录显式写 `⏳ 已检索未公布`，不伪造 deadline 或地点。
 - 2022-2026 ESEM Technical Track dated events 已同步到 [../TIMELINE.md](../TIMELINE.md) 的全局时间线与 Mermaid。
 
 ## 8. TIMELINE.md 同步提示
@@ -106,6 +106,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新 ESEM 2026：按官方 Important Dates 将 Technical Track notification 更新为 `2026-07-14 待补时刻`、阶段记为通知临近；复查 2027/2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

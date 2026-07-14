@@ -1,6 +1,6 @@
 # STTT README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -78,7 +78,7 @@
 | Aims and scope | [Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | Scope 明确 development / verification tools、formal approaches、technology transfer | `2026-06-05 11:58` |
 | Author guidelines | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines) | 包含 single-blind peer review、special / guest-edited issue peer-review 说明与 LaTeX template | `2026-06-05 11:58` |
 | Submission system | [Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | Springer `Submit your manuscript` 直链；页面为 Equinocs SPA，命令行只能看到 loading 壳，需公开可审计证据确认登录后期刊选项 | `2026-06-05 11:58` |
-| Special issues / topical collections | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | 当前 updates 仅发现 special issue guidelines，未发现 active dated CFP | `2026-06-05 11:58` |
+| Special issues / topical collections | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | 当前 updates 仅发现 special issue guidelines，未发现 active dated CFP | `2026-07-13 19:30:00` |
 | Volume / issue archive | [Springer volumes and issues](https://link.springer.com/journal/10009/volumes-and-issues) | 2022-2026 对应 Vol. 24-28；2027+ 未公布 | `2026-06-05 11:58` |
 | Articles in press / online first | [Springer online first](https://link.springer.com/journal/10009/online-first) | online first 与正式卷期可能跨年；计数时需避免重复 | `2026-06-05 11:58` |
 | DBLP venue | [DBLP STTT](https://dblp.org/db/journals/sttt/index.html) | 年度计数 baseline / bibliographic fallback；不得替代 publisher article type 口径 | `2026-06-05 11:58` |
@@ -98,10 +98,10 @@
 ## 7. 维护备注
 
 - STTT 常规投稿按 rolling submission 处理，不进入 dated Mermaid；只有 Springer journal updates / special issue CFP 明确给出 deadline 时才应进入 [../TIMELINE.md](../TIMELINE.md) dated event。
-- 截至 `2026-06-05 12:52`，未发现 STTT 2026-2028 active dated special issue CFP；Springer updates 当前主要是 special issue proposal guidelines。
+- 截至 `2026-07-13 19:30:00`，未发现 STTT 2026-2028 active dated special issue CFP；Springer updates 当前主要是 special issue proposal guidelines / online-first 出版入口，常规投稿按 rolling 处理。
 - STTT 与 TACAS、SPIN、Runtime Verification、FMICS、ECBS 等会议 / workshop 存在 conference-based special issue / invited-paper 传统。年度论文数量当前仅填 DBLP `entry article` baseline，不等于普通投稿论文数量，也不应与会议 proceedings 论文数混用。
 - 2022-2026 年度 DBLP baseline：Vol. 24=51、Vol. 25=49、Vol. 26=48、Vol. 27=41、Vol. 28=14（2026 仍进行中）。后续需用 Springer issue pages 按 article type / issue special section 交叉核验。
-- `2029+` 检索结论：已查 Springer volumes-and-issues、journal updates、online first 与 DBLP venue / `sttt29` / `sttt30` 年度页；截至 `2026-06-05 11:58` 未发现 2029+ 官方卷期、active CFP 或 DBLP 年度页。
+- `2029+` 检索结论：已查 Springer volumes-and-issues、journal updates、online first 与 DBLP venue / `sttt29` / `sttt30` 年度页；截至 `2026-07-13 19:30:00` 未发现 2029+ 官方卷期、active CFP 或 DBLP 年度页。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -115,6 +115,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:30:00` | 常态化刷新：确认 STTT rolling / online-first 为当前维护口径，未发现 2026-2028 active dated CFP；保留 Equinocs SPA caveat。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

@@ -1,6 +1,6 @@
 # STVR README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:24:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -93,10 +93,10 @@
 ## 7. 维护备注
 
 - STVR 常规投稿按 rolling submission 处理，不进入 dated Mermaid。
-- 当前未发现 2022-2028 active dated special issue / topical collection CFP；若后续发现 Wiley 官方 CFP，需新增 dated event 并同步 [../TIMELINE.md](../TIMELINE.md)。
+- 2026-07-13 复查：当前未发现 2026-2028 active dated special issue / topical collection CFP；若后续发现 Wiley 官方 CFP，需新增 dated event 并同步 [../TIMELINE.md](../TIMELINE.md)。
 - `2029+` 检索结论：已检查 [Wiley STVR volumes and issues](https://onlinelibrary.wiley.com/loi/10991689)、[Wiley STVR Early View](https://onlinelibrary.wiley.com/journal/10991689/earlyview)、[Wiley STVR 期刊主页](https://onlinelibrary.wiley.com/journal/10991689) 与 [DBLP STVR](https://dblp.org/db/journals/stvr/index.html)；CLI 受 Wiley WAF/403 限制，未发现可命令行核验的 `2029+` 年度卷期或 dated CFP，未获公开可审计正文。
 - 2022-2025 年度论文数量为 DBLP `entry article` baseline，不等同于 Wiley publisher article-type 闭合数；后续需用 Wiley volume / issue 页面公开可审计核验 editorial、erratum、front matter 等是否纳入。
-- 2026 DBLP 年度页尚未公布；[DBLP STVR](https://dblp.org/db/journals/stvr/index.html) 目前未提供 2026 年度 volume 页，本目录不预设闭合论文数量。
+- 2026 DBLP 年度页尚未公布；[DBLP STVR](https://dblp.org/db/journals/stvr/index.html) 目前未提供 2026 年度 volume 页，本目录不预设闭合论文数量。2027/2028 同样仅保留 rolling 占位。
 
 ## 8. TIMELINE.md 同步提示
 
@@ -110,6 +110,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:24:00` | 常态化刷新：确认 STVR 仍以 rolling 为主，未发现 2026-2028 active dated CFP；保留 Wiley WAF/403 与 DBLP 年度页待补 caveat。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

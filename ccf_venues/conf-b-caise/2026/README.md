@@ -1,6 +1,6 @@
 # CAiSE 2026 README
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,20 +14,20 @@
 | Important Dates | [CFP / dates](https://caise26.polimi.it/?page_id=60) |
 | Submission system | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) |
 | Program / accepted papers | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) |
-| Proceedings | 未公布 / Springer 主会 proceedings 待补 |
+| Proceedings | [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 已公布 / 会前 |
+| 当前阶段状态 | ✅ 已结束 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [CAiSE 2026](https://caise26.polimi.it/) | 官方已公布 accepted papers / final program；DBLP / Springer proceedings 尚未闭合。 | `2026-06-07 12:47` |
+| 年度主页 | [CAiSE 2026](https://caise26.polimi.it/) | 官方已公布 accepted papers / final program；会期已结束，Springer 两卷 proceedings 已发布；DBLP 年度页未公布。 | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | [Full papers CFP](https://caise26.polimi.it/?page_id=60) | 未公布或待补时不得用第三方页面替代 | `2026-06-07 12:47` |
 | Important Dates | [CFP / dates](https://caise26.polimi.it/?page_id=60) | 可与 CFP 同页 | `2026-06-07 12:47` |
 | Submission system | [EasyChair CAiSE 2026](https://easychair.org/my/conference?conf=caise2026) | 投稿系统不能替代 CFP / dates / accepted papers | `2026-06-07 12:47` |
 | Tracks / program | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) | 已结束年度优先 official program / accepted papers | `2026-06-07 12:47` |
-| Proceedings | 未公布 / Springer 主会 proceedings 待补 | publisher / DBLP fallback 分开 | `2026-06-07 12:47` |
+| Proceedings | [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) | 两卷共 46 篇 main conference full papers；DBLP fallback 分开 | `2026-07-13 19:13:21` |
 | DBLP 年度页 | ⏳ 已检索未公布 | 仅作 fallback / 计数核验 | `2026-06-07 12:47` |
 
 ## 3. 重要时间点
@@ -52,9 +52,9 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | accepted page 可公开证据计数；proceedings / DBLP 待补 |
+| 论文数量 | main conference full papers: 46（Springer 两卷合计；DBLP 待补） |
 | 官方论文名录 / accepted papers | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) |
-| Proceedings | 未公布 / Springer 主会 proceedings 待补 |
+| Proceedings | [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 计数口径 | main / research / full paper、Forum / DC / Workshop / companion、publisher TOC 与 DBLP fallback 必须分开，不能混算。 |
 
@@ -69,15 +69,15 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [CAiSE 2026](https://caise26.polimi.it/) | `2026-06-07 12:47` | 官方已公布 accepted papers / final program；DBLP / Springer proceedings 尚未闭合。 |
+| 官方年度主页 | [CAiSE 2026](https://caise26.polimi.it/) | `2026-07-13 19:13:21` | 会期 `2026-06-08..2026-06-12` 已结束；官方已公布 accepted papers / final program；Springer 两卷 proceedings 已发布；DBLP 年度页未公布。 |
 | 官方 CFP / Dates | [Full papers CFP](https://caise26.polimi.it/?page_id=60) / [CFP / dates](https://caise26.polimi.it/?page_id=60) | `2026-06-07 12:47` | 可核验则进入重要时间点；待补则不写 dated event。 |
-| 官方论文名录 / proceedings | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) / 未公布 / Springer 主会 proceedings 待补 | `2026-06-07 12:47` | 论文数量仍需按 track / publisher / DBLP 拆分复核。 |
+| 官方论文名录 / proceedings | [Accepted papers](https://caise26.polimi.it/?page_id=948) / [Final program](https://caise26.polimi.it/?page_id=1122) / [LNCS 16558 / Part I](https://link.springer.com/book/10.1007/978-3-032-28110-4) / [LNCS 16559 / Part II](https://link.springer.com/book/10.1007/978-3-032-28117-3) | `2026-07-13 19:13:21` | Springer 两卷共 46 篇 full papers；仍需与 accepted page / DBLP 按 track 交叉核验。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-07 12:47` | 仅作 bibliographic fallback。 |
 
 ## 8. 待补 / 风险记录
 
-- 官方已公布 accepted papers / final program；DBLP / Springer proceedings 尚未闭合。
-- 如果后续定位到新的 official CFP、important dates、accepted papers 或 proceedings，必须同步根 README、本文、[../../TIMELINE.md](../../TIMELINE.md) 和 SUMMARY 待补记录。
+- 官方已公布 accepted papers / final program；会期已结束；Springer 两卷 proceedings 已发布；DBLP 年度页未公布。
+- 如果后续定位到新的 official CFP、important dates、accepted papers、DBLP 年度页或 proceedings 状态变化，必须同步根 README、本文、[../../TIMELINE.md](../../TIMELINE.md) 和 SUMMARY 待补记录。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复核 CAiSE 2026 已结束状态，补入 LNCS 16558 + 16559 共 46 篇主会 full papers；DBLP 年度页仍待发布。 |
 | `2026-06-07 12:47` | 初始化 CAiSE 2026 年度 README，记录 official / DBLP 入口、重要时间点、计数口径和 TIMELINE 同步状态。 |

@@ -1,6 +1,6 @@
 # Automated Software Engineering Journal 2027 README
 
-> 信息更新时间：`2026-06-07 12:47`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -43,7 +43,7 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Search-Based Software Engineering in the Era of LLMs and Agentic Systems | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 2027-01-30 待补时刻 | Upcoming / open window | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2027 TIMELINE | P1/P4 强，P2 中到强。 |
-| Asia-Pacific Software Engineering Conference collection | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 2027-03-12 待补时刻 | Upcoming / open window | [Springer collections](https://link.springer.com/journal/10515/collections) | 已同步 2027 TIMELINE | APSEC extended papers collection；不升级为 ASE Journal 常规 deadline。 |
+| Asia-Pacific Software Engineering Conference collection | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 2027-03-12 待补时刻 | Upcoming / open window | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 已同步 2027 TIMELINE | 公开 original research 征稿；不是 ASE Journal 常规 deadline。 |
 
 ## 5. 年度论文入口与数量
 
@@ -80,4 +80,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:10:00` | 常态化复查：记录 SBSE in LLMs/Agents 跨年至 2027-01-30 deadline；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-07 12:47` | 初始化 ASE Journal 2027 年度 README，记录 rolling / collection / volume / DBLP fallback 与 TIMELINE 同步口径。 |

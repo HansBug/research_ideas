@@ -1,6 +1,6 @@
 # FSE 2028 README
 
-> 信息更新时间：`2026-06-05 08:39`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -8,22 +8,22 @@
 |---|---|
 | Venue | FSE |
 | 年份 | 2028 |
-| 地点 | 未公布 |
+| 地点 | Milan, Italy（仅预告，正式 CFP / dates 未公布） |
 | 官方 series page | [FSE series](https://conf.researchr.org/series/fse) |
-| 官方年度主页 | ⏳ 已检索未公布 |
+| 官方年度主页 | FSE 2028 Milan 预告；正式年度主页未公开（[FSE series](https://conf.researchr.org/series/fse)） |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 待官网 |
+| 当前阶段状态 | 🟦 已有预告 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | ⏳ 已检索未公布 | 官方年度入口；未公布年度不伪造 | `2026-06-05 08:39` |
+| 年度主页 | FSE 2028 Milan 预告；正式年度主页未公开（[FSE series](https://conf.researchr.org/series/fse)） | 仅记录地点预告；未公布正式 CFP / dates / submission system | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | 未公布 | FSE/ISSTA 主 research / technical papers track；缺失写未公布或待补 | `2026-06-05 08:39` |
 | Important Dates | 未公布 | 通常与 CFP 同页 | `2026-06-05 08:39` |
 | Submission system | 未公布 | 若历史 HotCRP 不稳定，后续复核 | `2026-06-05 08:39` |
@@ -41,7 +41,7 @@
 | Rebuttal / response | 见官方 track | 未公布 | ⏳ 已检索未公布 | 本轮优先记录主 submission / notification / 会期。 |
 | Notification | 未公布 | 未公布 | ⏳ 已检索未公布 | major revision / final notification 若存在写入同格。 |
 | Camera-ready | 待补 | 未公布 | ⏳ 已检索未公布 | 已在部分官方 track 中可见，后续逐年细化。 |
-| Conference dates | 未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 按官方年度主页记录。 |
+| Conference dates | 未公布 | FSE 2028 Milan 预告；正式年度主页未公开（[FSE series](https://conf.researchr.org/series/fse)） | FSE 2028 Milan 预告 | 仅预告地点；未公布日期，不进入 dated event。 |
 
 ## 4. Tracks
 
@@ -74,7 +74,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ 已检索未公布 | `2026-06-05 08:39` | researchr home/fse-2028 当前 404；未发现官方 CFP / dates。 |
+| 官方年度主页 | [FSE series](https://conf.researchr.org/series/fse) | `2026-07-13 19:13:21` | 候选年度路径返回 404；仅记录 Milan 预告，未发现正式 CFP / dates / submission system。 |
 | 官方 CFP / Dates | 未公布 | `2026-06-05 08:39` | 主 submission / notification 已按可访问页面记录；缺失字段显式待补。 |
 | 官方论文名录 / proceedings | 未公布；未公布 | `2026-06-05 08:39` | 官方 program / proceedings 优先；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:39` | DBLP 仅作论文名录与数量 fallback。 |
@@ -88,4 +88,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：升级 FSE 2028 为 Milan 预告占位；未发现正式 CFP / dates / submission system，不写 dated event。 |
 | `2026-06-05 08:39` | 初始化 FSE 2028 年度 README 草稿。 |

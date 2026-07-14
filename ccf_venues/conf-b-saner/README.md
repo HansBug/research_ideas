@@ -1,6 +1,6 @@
 # SANER README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -50,9 +50,9 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [researchr SANER series](https://conf.researchr.org/series/saner)；[DBLP SANER index](https://dblp.org/db/conf/saner/index) | 年度独立站点 / researchr / 官方组织站点并行 | `2026-06-05 17:35` |
-| Latest year homepage | [SANER 2027](https://conf.researchr.org/home/saner-2027) | 未公布年度写 `⏳ 已检索未公布` | `2026-06-05 17:35` |
-| CFP / Call for Papers | 见 §6 年度信息汇总 | track 分散时在年度 README 展开 | `2026-06-05 17:35` |
-| Important Dates | 见 §6 年度信息汇总 | researchr dates / official CFP 优先 | `2026-06-05 17:35` |
+| Latest year homepage | [SANER 2027](https://conf.researchr.org/home/saner-2027) | 2027 Research Track 官方主页 / dates 已复查；2028 未发现官方主页 / CFP / dates | `2026-07-13 19:11:00` |
+| CFP / Call for Papers | 见 §6 年度信息汇总；当前最新为 [SANER 2027 Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | track 分散时在年度 README 展开；本轮只更新 Research Track / main 口径 | `2026-07-13 19:11:00` |
+| Important Dates | 见 §6 年度信息汇总；当前最新为 [SANER 2027 Important Dates](https://conf.researchr.org/dates/saner-2027) | researchr dates / official CFP 优先；2027 dates 页列 Research Track mandatory abstract / paper / notification | `2026-07-13 19:11:00` |
 | Submission system | 见 §6 年度信息汇总 | 历史系统可能失效，失效时保留待复核 | `2026-06-05 17:35` |
 | Program / accepted papers | 见 §6 年度信息汇总 | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 见 §6 年度信息汇总 | publisher proceedings 优先，DBLP 仅作 fallback | `2026-06-05 17:35` |
@@ -88,7 +88,7 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、industry、tool、journal-first、registered report、artifact、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 均已做公开入口检索；2027 Research Track dates 页已标注 AoE / UTC-12h，未公布年度保留占位与核查记录，不预设 CFP。SANER 2022 HTTPS 证书主机名不匹配，当前年度页使用 HTTP 官方站入口。
+- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；2027 Research Track dates 页列 mandatory abstract `2026-09-21`、paper `2026-09-25`、notification `2026-12-01` 与 AoE / UTC-12h，2028 未发现官方主页 / CFP / dates，未公布年度保留占位与核查记录，不预设 CFP。SANER 2022 HTTPS 证书主机名不匹配，当前年度页使用 HTTP 官方站入口。
 - 本 venue 的 dated events 已按事件发生年份同步到 [../TIMELINE.md](../TIMELINE.md)；后续修改 deadline 必须同步更新年度 README、根表与 Mermaid。
 
 ## 8. TIMELINE.md 同步提示
@@ -102,6 +102,7 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:11:00` | 常态化刷新：复查 SANER 2026 已结束、SANER 2027 Research Track 官方 dates 仍为 mandatory abstract 2026-09-21 / paper 2026-09-25 / notification 2026-12-01（AoE / UTC-12h）且会期 2027-03-09..2027-03-12；2028 未发现官方主页 / CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

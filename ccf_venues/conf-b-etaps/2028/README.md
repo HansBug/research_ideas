@@ -1,6 +1,6 @@
 # ETAPS / TACAS 2028 README
 
-> 信息更新时间：`2026-06-04 22:20`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -25,10 +25,10 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| ETAPS umbrella 年度主页 | [ETAPS 2028](https://etaps.org/2028/) | umbrella 入口 | `2026-06-04 21:10` |
-| CFP / Call for Papers | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
-| Important Dates | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
-| TACAS 分会页 | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
+| ETAPS umbrella 年度主页 | [ETAPS 2028](https://etaps.org/2028/) | umbrella 入口；官方写明 future edition | `2026-07-13 13:30` |
+| CFP / Call for Papers | 未公布 | `2026-07-13` 复查仍未公布 | `2026-07-13 13:30` |
+| Important Dates | 未公布 | `2026-07-13` 复查仍未公布；仅主页会期可核验 | `2026-07-13 13:30` |
+| TACAS 分会页 | 未公布 | `2026-07-13` 复查仍未公布 | `2026-07-13 13:30` |
 | Submission system | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
 | Program | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
 | Accepted papers / paper list | 未公布 | ⏳ 已检索未公布 | `2026-06-04 21:10` |
@@ -75,8 +75,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| ETAPS umbrella 年度主页 | [ETAPS 2028](https://etaps.org/2028/) | `2026-06-04 21:10` | 已核验年度主页链接可访问。 |
-| 官方 CFP / Dates | 未公布 | `2026-06-04 21:10` | ⏳ 已检索未公布。 |
+| ETAPS umbrella 年度主页 | [ETAPS 2028](https://etaps.org/2028/) | `2026-07-13 13:30` | 已复查年度主页链接可访问；官方主页给出 `2028-04-02..2028-04-07` Karlsruhe, Germany。 |
+| 官方 CFP / Dates | 未公布 | `2026-07-13 13:30` | CFP、TACAS track 和 detailed dates 仍未公布；不伪造 deadline。 |
 | TACAS 分会页 | 未公布 | `2026-06-04 21:10` | ⏳ 已检索未公布。 |
 | Submission system | 未公布 | `2026-06-04 21:10` | ⏳ 已检索未公布。 |
 | 官方论文名录 / proceedings | 未公布 | `2026-06-04 21:10` | TACAS 分会页、CFP、重要日期、投稿入口、program、proceedings 与论文数量均未公布。 |
@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新：复查 ETAPS 2028 仍只有官方主页和会期，CFP / TACAS track / detailed dates 未公布。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ETAPS / TACAS 2028 年度 README，区分 ETAPS umbrella 与 TACAS 分会。 |

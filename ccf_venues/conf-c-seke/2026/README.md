@@ -1,6 +1,6 @@
 # SEKE 2026 README
 
-> 信息更新时间：`2026-06-05 18:03`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,20 +16,20 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🟡 审稿中 / 待通知 |
+| 当前阶段状态 | 🟣 通知后 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://ksiresearch.org/seke/seke26.html) | `seke26pgm.html` 当前疑似旧页残留，不采信；proceedings / DBLP 未公布。 | `2026-06-05 17:23` |
-| CFP / Call for Papers | [CFP / track](https://ksiresearch.org/seke/seke26main.html) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | [Important Dates](https://ksiresearch.org/seke/seke26main.html) | 可与 CFP 同页 | `2026-06-05 17:23` |
-| Submission system | [Submission](https://www.easychair.org/conferences/?conf=seke26) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
-| Tracks / program | [Program / track](https://ksiresearch.org/seke/seke26main.html) | 已结束年度优先 official program | `2026-06-05 17:23` |
-| Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
-| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-06-05 17:23` |
-| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:23` |
+| 年度主页 | [年度主页](https://ksiresearch.org/seke/seke26.html) | `seke26pgm.html` 当前疑似旧页残留，不采信；proceedings / DBLP 未公布。 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [CFP / track](https://ksiresearch.org/seke/seke26main.html) | track 分散时按年度主页展开 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://ksiresearch.org/seke/seke26main.html) | 可与 CFP 同页 | `2026-07-13 10:27:51` |
+| Submission system | [Submission](https://www.easychair.org/conferences/?conf=seke26) | 不公开时写未公布；历史入口可能登录受限 | `2026-07-13 10:27:51` |
+| Tracks / program | [Program / track](https://ksiresearch.org/seke/seke26main.html) | 已结束年度优先 official program | `2026-07-13 10:27:51` |
+| Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-07-13 10:27:51` |
+| Proceedings | 未公布 | Publisher / DOI / proceedings PDF 优先；受限时标注 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | 未公布 | 仅作 fallback / 计数核验 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
@@ -70,10 +70,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [年度主页](https://ksiresearch.org/seke/seke26.html) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://ksiresearch.org/seke/seke26main.html) | `2026-06-05 17:23` | 已定位。 |
-| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
-| DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
+| 官方年度主页 | [年度主页](https://ksiresearch.org/seke/seke26.html) | `2026-07-13 10:27:51` | 🟢 已公布 / 进行中。 |
+| 官方 CFP / Dates | [CFP / Dates](https://ksiresearch.org/seke/seke26main.html) | `2026-07-13 10:27:51` | 已定位。 |
+| 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-07-13 10:27:51` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
+| DBLP fallback | 未公布 | `2026-07-13 10:27:51` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
 ## 8. TIMELINE.md 同步提示
 
@@ -84,5 +84,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：确认 SEKE 2026 notification 已过，camera-ready / early registration 2026-07-20 待发生。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟡 审稿中 / 待通知`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 SEKE 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

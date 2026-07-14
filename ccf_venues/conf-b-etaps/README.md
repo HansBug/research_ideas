@@ -1,6 +1,6 @@
 # ETAPS / TACAS README
 
-> 信息更新时间：`2026-06-09 18:52:22`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -53,9 +53,9 @@
 | Series / main site | [ETAPS](https://etaps.org/) | ETAPS umbrella 长期主页 | `2026-06-04 21:10` |
 | Proceedings info | [ETAPS proceedings information](https://etaps.org/about/proceedings/) | 年度 proceedings 缺失时使用该页说明出版口径 | `2026-06-04 21:10` |
 | TACAS DBLP venue | [DBLP TACAS index](https://dblp.org/db/conf/tacas/) | 仅作 TACAS 论文名录 / 计数 fallback 与交叉核验 | `2026-06-04 21:10` |
-| Latest year homepage | [ETAPS 2028](https://etaps.org/2028/) | 2028 已有年度主页，但 CFP / TACAS / dates 未公布 | `2026-06-04 21:10` |
-| 2027 CFP / Important Dates | [ETAPS 2027 CFP](https://etaps.org/2027/cfp/) | important-dates 重定向 CFP | `2026-06-04 21:10` |
-| 2027 TACAS track | [TACAS 2027](https://etaps.org/2027/conferences/tacas/) | TACAS 分会页 | `2026-06-04 21:10` |
+| Latest year homepage | [ETAPS 2028](https://etaps.org/2028/) | 2028 已有年度主页和会期，但 CFP / TACAS track / dates 未公布 | `2026-07-13 13:30` |
+| 2027 CFP / Important Dates | [ETAPS 2027 CFP](https://etaps.org/2027/cfp/) | CFP 明确 `All the dates are AoE`；TACAS paper submission `2026-10-15`、mandatory artifact `2026-10-29` | `2026-07-13 13:30` |
+| 2027 TACAS track | [TACAS 2027](https://etaps.org/2027/conferences/tacas/) | TACAS 分会页；Main conferences/TACAS 会期 `2027-04-12..2027-04-15` | `2026-07-13 13:30` |
 | 2027 submission system | [EasyChair TACAS 2027](https://easychair.org/conferences/?conf=tacas27) | EasyChair 会重定向到登录页 | `2026-06-04 21:10` |
 
 ## 5. 核心人员情报
@@ -80,7 +80,7 @@
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | TACAS 分会 | Submission system | Program / Accepted papers | Proceedings | DBLP TACAS 年度页 | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | 🟦 已有主页 | [ETAPS 2028](https://etaps.org/2028/) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 2028-04-02..2028-04-07 | ETAPS umbrella: 未公布；TACAS: 未公布 | ⏳ 已检索未公布 |
-| [`2027`](./2027/README.md) | 🟢 投稿中 | [ETAPS 2027](https://etaps.org/2027/) | [CFP](https://etaps.org/2027/cfp/) | [Important Dates](https://etaps.org/2027/cfp/) | [TACAS track](https://etaps.org/2027/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas27) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-10-15 待补时刻 AoE | 2026-12-22 待补时刻 | ETAPS 2027-04-10..2027-04-15；Main conferences/TACAS 2027-04-12..2027-04-15 | ETAPS umbrella: 未公布；TACAS: 未公布 | ⏳ 已检索未公布 |
+| [`2027`](./2027/README.md) | 🟢 投稿中 | [ETAPS 2027](https://etaps.org/2027/) | [CFP](https://etaps.org/2027/cfp/) | [Important Dates](https://etaps.org/2027/cfp/) | [TACAS track](https://etaps.org/2027/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas27) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-10-15 待补时刻 AoE | 2026-12-22 待补时刻 AoE | ETAPS 2027-04-10..2027-04-15；Main conferences/TACAS 2027-04-12..2027-04-15 | ETAPS umbrella: 未公布；TACAS: 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束 | [ETAPS 2026](https://etaps.org/2026/) | [CFP](https://etaps.org/2026/cfp/) | [Important Dates](https://etaps.org/2026/cfp/) | [TACAS track](https://etaps.org/2026/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas26) | [Program / Accepted](https://etaps.org/2026/programme/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2026](https://dblp.org/db/conf/tacas/index.html#2026) | 2025-10-16 待补时刻 AoE | 2025-12-22 待补时刻 | ETAPS 2026-04-11..2026-04-16；TACAS 2026-04-13..2026-04-16 | ETAPS umbrella: 138；TACAS: 56 | 🟢 已核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ETAPS 2025](https://etaps.org/2025/) | [CFP](https://etaps.org/2025/cfp/) | [Important Dates](https://etaps.org/2025/cfp/) | [TACAS track](https://etaps.org/2025/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas25) | [Program / Accepted](https://etaps.org/2025/past-conference/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2025](https://dblp.org/db/conf/tacas/index.html#2025) | 2024-10-10 23:59 AoE | 2024-12-20 待补时刻 | 2025-05-03..2025-05-08 | ETAPS umbrella: 106；TACAS: 46 | 🟢 已核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ETAPS 2024](https://etaps.org/2024/) | [CFP](https://etaps.org/2024/cfp/) | [Important Dates](https://etaps.org/2024/cfp/) | [TACAS track](https://etaps.org/2024/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas24) | [Program / Accepted](https://etaps.org/2024/past-conference/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2024](https://dblp.org/db/conf/tacas/index.html#2024) | 2023-10-12 23:59 AoE | 2023-12-21 待补时刻 | 2024-04-06..2024-04-11 | ETAPS umbrella: 117；TACAS: 53 | 🟢 已核验 |
@@ -91,9 +91,9 @@
 
 - ETAPS umbrella 与 TACAS 分会不要拆目录：本库固定使用 `ccf_venues/conf-b-etaps/`。
 - 年度页必须分别记录 ETAPS umbrella official count 与 TACAS official count；不能把 TACAS count 当作 ETAPS 总数。
-- 2028 仅官方主页和会期可核验；CFP、dates、TACAS track、submission、program、proceedings 与 count 均未公布。
+- 2028：截至 `2026-07-13` 仅 [ETAPS 2028](https://etaps.org/2028/) 官方主页和会期 `2028-04-02..2028-04-07` 可核验；CFP、dates、TACAS track、submission、program、proceedings 与 count 均未公布。
 - 2023 未找到独立 TACAS 分会页时，根表与年度页均显式写作 `fallback`，避免把 ETAPS programme 误读为独立 TACAS track 页。
-- 2026 / 2027 CFP 均写明 `All the dates are AoE`；投稿、artifact、rebuttal、notification、final version 等 deadline 默认按 AoE 口径记录，会期日期本身不按 AoE deadline 解释。
+- 2026 / 2027 CFP 均写明 `All the dates are AoE`；投稿、artifact、rebuttal、notification、final version 等 deadline 默认按 AoE 口径记录，会期日期本身不按 AoE deadline 解释。2026 已结束；2027 TACAS 仍处于可投稿窗口，paper submission 为 `2026-10-15 待补时刻 AoE`，mandatory artifact 为 `2026-10-29 待补时刻 AoE`。
 - 2027 ETAPS 年度主页 / CFP 给出 umbrella 会期 `2027-04-10..2027-04-15`，CFP 同时注明 Main conferences `2027-04-12..2027-04-15`；本库在根表与年度页同时保留两层日期。
 - 2024 TACAS artifact deadline 存在版本差异，当前按已知官方证据记为 `2023-10-26 23:59 AoE`，并在年度页保留矛盾提示。
 
@@ -108,6 +108,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 13:30:00` | 常态化刷新 ETAPS/TACAS：确认 2026 已结束；复核 2027 TACAS paper、mandatory artifact、notification 与会期 AoE 口径；复查 2028 仅有主页和会期，CFP 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 14:35:00` | 按实现复审收紧 EI 口径：ETAPS/TACAS 仅有 LNCS book-series discovery 线索，不得误读为 venue-level EI source 事实。 |

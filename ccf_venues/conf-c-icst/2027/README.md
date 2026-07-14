@@ -1,6 +1,6 @@
 # ICST 2027 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -11,37 +11,42 @@
 | 本库目录 | `ccf_venues/conf-c-icst/2027/` |
 | 地点 | San Sebastián, Spain |
 | 官方年度主页 | [ICST 2027](https://conf.researchr.org/home/icst-2027) |
-| 官方 CFP | 未公布 |
+| 官方 CFP | [Research Papers](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2027) |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/icst/index.html) |
-| 当前阶段状态 | 🟦 已有会期主页 |
+| 当前阶段状态 | 🟢 投稿中 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2027) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| CFP / Call for Papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2027) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2027) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) | 主关注 track；其他 track 不作为当前机会 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2027) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Conference | 2027-05-17..2027-05-21 | [年度主页](https://conf.researchr.org/home/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
+| Research Papers submission | 2026-11-02 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Initial notification | 2026-12-22 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Major revision submission | 2027-01-31 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Final notification | 2027-02-20 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Camera-ready | 2027-03-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Conference | 2027-05-17..2027-05-21 | [ICST 2027](https://conf.researchr.org/home/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方年度主页给出会期。 |
 
 ## 4. Tracks / 口径边界
 
 | Track / 类别 | 官方链接 | 是否关注 | 备注 |
 |---|---|---|---|
-| 主会 / research track | 待补或未公布 | 🟡 关注 | 若年度只保留 proceedings / DBLP fallback，后续需补 track 边界。 |
+| Research Papers | [Research Papers](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) | 主关注 | 只作为 research/main track 入口，不代表 journal-first、short papers、tools 或 co-located events。 |
 
 ## 5. 论文名录与数量
 
@@ -52,7 +57,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/icst/index.html) |
-| 计数口径 | 已核验 home/dates shell；Research track / CFP 未公布，不写 submission。 |
+| 计数口径 | 已核验 ICST 2027 Research Papers official dates；submission / notification / camera-ready 官方仅给日期与 AoE，论文数量未公布。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -64,13 +69,16 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2027) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2027) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| 官方年度主页 | [ICST 2027](https://conf.researchr.org/home/icst-2027) | `2026-07-13 10:27:51` | 已升级为本年度官方入口；若未公布字段则不造日期。 |
+| CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) | `2026-07-13 10:27:51` | 主关注 track 已定位；旁支 track 不作为当前通用机会。 |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2027) | `2026-07-13 10:27:51` | 本页 §3 是年度事实源之一；official dates 标注 AoE。 |
+| Submission system | 未公布 | `2026-07-13 10:27:51` | 历史投稿入口可能关闭或需登录；仅作入口记录。 |
+| Program / accepted papers | 未公布 | `2026-07-13 10:27:51` | 未公布时不得用 DBLP 冒充 official accepted list。 |
+| Proceedings / DBLP fallback | 未公布；[DBLP](https://dblp.org/db/conf/icst/index.html) | `2026-07-13 10:27:51` | 出版商 / DBLP 仅作 proceedings / bibliographic fallback。 |
 
 ## 8. 待补 / 风险记录
 
-- 已核验 home/dates shell；Research track / CFP 未公布，不写 submission。
+- 2026-07-13 复查：ICST 2027 Research Papers dates 已官方公布，所有 listed deadlines 标注 AoE；submission system、accepted list、proceedings 未公布。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -83,4 +91,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：升级 ICST 2027 Research Papers official dates。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICST 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

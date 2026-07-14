@@ -1,6 +1,6 @@
 # ICST 2026 README
 
-> 信息更新时间：`2026-06-05 09:15`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,13 +23,13 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/icst-2026/icst-2026-research) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/icst-2026/icst-2026-research) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2026) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
+| Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
 
 ## 3. 重要时间点
 
@@ -67,15 +67,17 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/icst-2026/icst-2026-research) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2026) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
-| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| 官方年度主页 | [官方年度主页](https://conf.researchr.org/home/icst-2026) | `2026-07-13 10:27:51` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| CFP / Call for Papers | [CFP / Call for Papers](https://conf.researchr.org/track/icst-2026/icst-2026-research) | `2026-07-13 10:27:51` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/icst-2026) | `2026-07-13 10:27:51` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| Program / accepted papers | [Program / accepted papers](https://conf.researchr.org/program/icst-2026/program-icst-2026/) | `2026-07-13 10:27:51` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
+| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/icst/index.html) | `2026-07-13 10:27:51` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
 
 - 官方 dates/program 强 track 化；Research / Industry / Short / Workshops / Tool competitions 不混算。
+
+- 2026-07-13 复查：ICST 2026 会期已结束；proceedings / DBLP 2026 年度页仍待后续闭合，未用 DBLP series-wide 反推 research track count。
 
 ## 9. TIMELINE.md 同步提示
 
@@ -88,4 +90,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 10:27:51` | 常态化刷新：确认 ICST 2026 已结束，program 已可作为 accepted/program 入口，proceedings / DBLP 年度闭合仍待补。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICST 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

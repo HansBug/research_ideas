@@ -1,6 +1,6 @@
 # FM 2027 README
 
-> 信息更新时间：`2026-06-05 10:04`（Asia/Shanghai）
+> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,9 +23,9 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | 仅找到官方线索：[FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)；不等同于年度主页 / CFP | `2026-06-05 10:04` |
-| CFP / Call for Papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
-| Important Dates | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
+| 官方年度主页 | 未公布 | 仅找到官方线索：[FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)；2026-07-13 复查仍不等同于年度主页 / CFP | `2026-07-13 19:13:21` |
+| CFP / Call for Papers | 未公布 | 2026-07-13 复查仍未发现正式 CFP | `2026-07-13 19:13:21` |
+| Important Dates | 未公布 | 2026-07-13 复查仍未发现正式 dates | `2026-07-13 19:13:21` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/) | 未公布 | organizer call 只证明主办征集线索，不等同于正式年度主页 / CFP；本轮未检索到可写入 dated timeline 的稳定日期。 |
+| 官方年页 / CFP / important dates | ⏳ 已检索未公布 | [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/) | 未公布 | organizer call 只证明主办征集线索，不等同于正式年度主页 / CFP；2026-07-13 复查仍未检索到可写入 dated timeline 的稳定日期。 |
 
 ## 4. Tracks / 口径边界
 
@@ -64,12 +64,12 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方主办征集线索 | [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/) | `2026-06-05 10:04` | 只作为主办征集线索；未写成正式年度主页 / CFP。 |
+| 官方主办征集线索 | [FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/) | `2026-07-13 19:13:21` | 只作为主办征集线索；2026-07-13 复查仍未升级为正式年度主页 / CFP。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/fm/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
 ## 8. 待补 / 风险记录
 
-- 已检索到 FM 2027 call for organizers；未发现正式会议主页、CFP、dates、submission、program 或 proceedings。
+- 已检索到 FM 2027 call for organizers；截至 2026-07-13 未发现正式会议主页、CFP、dates、submission、program 或 proceedings。
 - FM Europe 只公开 FM 2027 organizer call；不等同于正式 CFP。
 
 ## 9. TIMELINE.md 同步提示
@@ -83,5 +83,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-07-13 19:13:21` | 常态化刷新：复查 FM 2027，organizer call 仍仅为官方线索，未发现正式 CFP / dates。 |
 | `2026-06-05 10:04` | 将 FM 2027 organizer call 从官方年度主页降级为主办征集线索，避免把 organizer call 冒充年度主页 / CFP。 |
 | `2026-06-05 09:15` | PR-3 初始化 FM 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |
