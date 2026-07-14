@@ -83,6 +83,9 @@ _CONTEXT_SECRET_VALUE = re.compile(
     r"(?i)(\b(?:api[ _-]?key|authorization|access[ _-]?token|user[ _-]?token|token|secret|credential|auth)\b\s*(?:[:=]\s*)?)"
     r"((?:xai-|gsk_|pplx-|tgp_v1_|fw_|mist-|r8_)[A-Za-z0-9_-]{8,})"
 )
+_CONTEXT_SECRET_PREFIX = re.compile(
+    r"(?i)\b(?:api[ _-]?key|authorization|access[ _-]?token|user[ _-]?token|token|secret|credential|auth)\b\s*(?:[:=]\s*)?$"
+)
 _DEFAULT_GRAPH_RECURSION_LIMIT = 1_000_000
 _DEFAULT_COMPACT_TRIGGER_RATIO = 0.85
 _DEFAULT_COMPACT_KEEP_MESSAGES = 20
@@ -816,7 +819,7 @@ class _StreamHoldback:
     """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = (
-        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "r8_", "Bearer ",
+        "sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "xai-", "gsk_", "pplx-", "tgp_v1_", "fw_", "mist-", "r8_", "Bearer ",
     )
     _URL_PREFIXES = ("http://", "https://")
 
@@ -859,7 +862,12 @@ class _StreamHoldback:
                 prefix.lower().startswith(token_lower) or token_lower.startswith(prefix.lower())
                 for prefix in self._PREFIXES
             ):
-                end = min(end, token_start)
+                hold_start = token_start
+                context = self.buffer[:token_start]
+                context_match = _CONTEXT_SECRET_PREFIX.search(context)
+                if context_match is not None:
+                    hold_start = context_match.start()
+                end = min(end, hold_start)
             if any(prefix.startswith(token_lower) or token_lower.startswith(prefix) for prefix in self._URL_PREFIXES):
                 # URL credentials/query values can be split after the scheme
                 # or parameter name; keep the URL token for one parser pass.
