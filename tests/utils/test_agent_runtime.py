@@ -1012,8 +1012,25 @@ def test_official_compact_is_ordered_after_context_and_before_next_model() -> No
     kinds = [event.kind for event in events]
     compact_start = kinds.index("compaction_started")
     context_before = max(index for index, kind in enumerate(kinds[:compact_start]) if kind == "context_usage")
-    next_model = next(index for index in range(compact_start + 1, len(kinds)) if kinds[index] == "model_started")
-    assert context_before < compact_start < next_model
+    compact_model_start = next(
+        index
+        for index in range(compact_start + 1, len(kinds))
+        if kinds[index] == "model_started" and events[index].data.get("call_kind") == "compact"
+    )
+    compact_model_complete = next(
+        index
+        for index in range(compact_model_start + 1, len(kinds))
+        if kinds[index] == "model_completed" and events[index].data.get("call_kind") == "compact"
+    )
+    compact_complete = kinds.index("compaction_completed")
+    next_primary_model = next(
+        index
+        for index in range(compact_complete + 1, len(kinds))
+        if kinds[index] == "model_started" and events[index].data.get("call_kind") == "primary"
+    )
+    assert context_before < compact_start < compact_model_start < compact_model_complete < compact_complete < next_primary_model
+    for index in (compact_model_start, compact_model_complete):
+        assert events[index].data.get("model_call_id")
     assert kinds.count("context_usage") >= 1
 
 
