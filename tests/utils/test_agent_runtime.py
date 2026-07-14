@@ -942,6 +942,10 @@ def test_rich_agent_run_panel_exposes_behavior_fingerprints_without_raw_prompt()
                 "tools_hash": "sha256:" + "b" * 64,
                 "input_hash": "sha256:" + "c" * 64,
                 "context_manifest_hash": None,
+                "system_chars": 184,
+                "input_chars": 37,
+                "context_pages": 2,
+                "tool_count": 1,
                 "tools": ["probe"],
                 "limits": {},
                 "compact": {"enabled": True, "trigger_ratio": 0.85, "threshold": 800, "keep_messages": 20},
@@ -951,6 +955,10 @@ def test_rich_agent_run_panel_exposes_behavior_fingerprints_without_raw_prompt()
     rendered = output.getvalue()
     assert "behavior" in rendered
     assert "system=sha256:aaaaaaaaaaaa" in rendered
+    assert "system_chars=184" in rendered
+    assert "task_chars=37" in rendered
+    assert "context_pages=2" in rendered
+    assert "count=1" in rendered
     assert "prompt" not in rendered.lower()
 
 
@@ -1450,6 +1458,7 @@ def test_context_panel_has_two_logical_lines() -> None:
     rendered = output.getvalue()
     assert "CONTEXT | TURN 4" in rendered
     assert "context ~150/1,000" in rendered
+    assert "compact@800" in rendered
     assert rendered.count("turn 4") == 1
 
 

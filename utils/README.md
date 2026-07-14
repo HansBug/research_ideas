@@ -178,9 +178,16 @@ result = app.run("分析这些事实", context=context, renderer="rich")
 
 也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。compact 阈值使用 LangChain 官方 `max_input_tokens`/`context_window_tokens`，按 `floor(context_window_tokens * compact_trigger_ratio)` 触发，不从官方输入窗口擅自扣减单独的 `max_output_tokens`；`safe_input_tokens` 只是该官方输入容量的公开别名。默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
 
-每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel。第一行固定说明本轮核心消耗：`input + output = total tokens`，并在存在时追加 `cache` 与 `reasoning`；第二行固定说明当前 `context used/window tokens (percent%)`，再给出 `compact at threshold / trigger-ratio` 及状态。context basis 取 provider total 高水位加新增消息估算、provider input 加新增消息估算、完整 LangChain 估算三者最大值；因此可能带 `~`，但不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`；官方 summary transport 也发出带 `model_call_id` 的 `model_started`/`model_completed` 事件，但 Rich 不再重复渲染一套 MODEL INPUT/OUTPUT 面板。
+每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel，保持高信号而不重复历史：
 
-`AGENT RUN` 启动面板固定展示会改变行为的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、system/tools/input/context 的行为指纹、工具 allowlist 与是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、prompt 或文件路径。
+```text
+turn 2 · 487 in + 96 out = 583 · cache=320 · reasoning=0
+context ~1,240/1,050,000 tokens (0.1%) · compact@892,500 (85%) not required
+```
+
+第一行只说明本轮核心消耗 `input + output = total`，provider 返回时追加 `cache`/`reasoning`；第二行只说明整体上下文的 `used/window`、占比和百分比，再给 compact 阈值及状态。`~` 表示使用了 LangChain 公共估算补足 provider 未返回的输入锚点；不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`；官方 summary transport 也发出带 `model_call_id` 的 `model_started`/`model_completed` 事件，但 Rich 不再重复渲染一套 MODEL INPUT/OUTPUT 面板。
+
+`AGENT RUN` 启动面板是本次实验的行为配置快照，固定展示会改变模型决策或运行边界的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、system/tools/input/context 的行为指纹、system/task 字符数、context 页数、工具 allowlist/数量/是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、原始 prompt 或文件路径；长度和 hash 只用于复现实验输入，不代替 `MODEL INPUT` 的实际可见消息。
 
 ```python
 AgentEvent(

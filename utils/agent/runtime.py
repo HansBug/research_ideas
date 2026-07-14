@@ -1564,10 +1564,11 @@ class _Renderer:
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
             f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · retries={cls._setting(option('max_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
-            f"tools     {tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
+            f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
+            f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
             f"output    schema={cls._setting(output_schema, default='none')} · strategy={strategy}",
             f"limits    model={limit('model_calls')} · tools={limit('tool_calls')} · turns={limit('turns')} · time={limit('seconds')}",
-            f"context   window={cls._number(context_window)} ({context_source}) · max_output={cls._number(max_output)} ({output_source}) · safe_input={cls._number(safe_input)}",
+            f"context   pages={cls._number(data.get('context_pages'))} · window={cls._number(context_window)} ({context_source}) · max_output={cls._number(max_output)} ({output_source}) · safe_input={cls._number(safe_input)}",
             f"compact   enabled={cls._setting(compact_enabled)} · trigger={ratio_text} ({cls._number(compact_threshold)}) · keep={keep} messages · summary={summary}",
         )
         return cls._Text("\n".join(lines))
@@ -1594,15 +1595,15 @@ class _Renderer:
         turn = data.get("turn", "?")
         if input_tokens is None and output_tokens is None and total_tokens is None:
             reason = cls._first(usage.get("unavailable_reason"), data.get("unavailable_reason"))
-            first_line = f"turn {turn} · usage unavailable"
+            first_line = f"turn {turn} · tokens unavailable"
             if reason:
-                first_line += f" ({_preview(str(reason), 96)})"
+                first_line += f" ({_preview(str(reason), 72)})"
         else:
-            first_line = f"turn {turn} · {cls._number(input_tokens)} in + {cls._number(output_tokens)} out = {cls._number(total_tokens)} tokens"
+            first_line = f"turn {turn} · {cls._number(input_tokens)} in + {cls._number(output_tokens)} out = {cls._number(total_tokens)}"
             if cache_read is not None:
-                first_line += f" · cache {cls._number(cache_read)}"
+                first_line += f" · cache={cls._number(cache_read)}"
             if reasoning is not None:
-                first_line += f" · reasoning {cls._number(reasoning)}"
+                first_line += f" · reasoning={cls._number(reasoning)}"
 
         basis = cls._mapping(data.get("context_basis"))
         capacity = cls._mapping(data.get("capacity"))
@@ -1628,9 +1629,9 @@ class _Renderer:
         marker = "~" if approximate else ""
 
         if basis_tokens is None:
-            context_text = f"context unavailable/{cls._number(window)}" if window is not None else "context window unknown"
+            context_text = f"context unavailable/{cls._number(window)}" if window is not None else "context unknown"
         elif window is None:
-            context_text = "context window unknown"
+            context_text = "context unknown"
         else:
             percent = float(basis_tokens) / float(window) * 100 if window else 0.0
             context_text = f"context {marker}{cls._number(basis_tokens)}/{cls._number(window)} tokens ({percent:.1f}%)"
@@ -1641,9 +1642,9 @@ class _Renderer:
         decision = str(decision_value or "").lower()
         labels = {"required": "REQUIRED", "run_ending": "run ending", "disabled": "disabled"}
         if basis_tokens is not None and threshold is not None:
-            suffix = f" ({labels[decision]})" if decision in labels else ""
-            ratio_text = f" / {float(ratio) * 100:g}%" if isinstance(ratio, (int, float)) else ""
-            compact_text = f"compact at {cls._number(threshold)}{ratio_text}{suffix}"
+            suffix = f" {labels[decision]}" if decision in labels else ""
+            ratio_text = f" ({float(ratio) * 100:g}%)" if isinstance(ratio, (int, float)) else ""
+            compact_text = f"compact@{cls._number(threshold)}{ratio_text}{suffix}"
         elif decision == "disabled":
             compact_text = "compact disabled"
         else:
@@ -2892,26 +2893,26 @@ class AgentApp:
                 cache_read = (latest or {}).get("input_token_details", {}).get("cache_read")
                 reasoning = (latest or {}).get("output_token_details", {}).get("reasoning")
                 if total_tokens is None:
-                    first = f"turn {context_turn} · usage unavailable (terminal usage not exposed)"
+                    first = f"turn {context_turn} · tokens unavailable (provider usage unavailable)"
                 else:
                     first = f"turn {context_turn} · {input_tokens:,} in" if isinstance(input_tokens, (int, float)) else f"turn {context_turn} · ? in"
                     if cache_read is not None:
-                        first += f" ({cache_read:,} cache)" if isinstance(cache_read, (int, float)) else f" ({cache_read} cache)"
+                        first += f" · cache={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache={cache_read}"
                     first += f" + {output_tokens:,} out" if isinstance(output_tokens, (int, float)) else " + ? out"
                     if reasoning is not None:
-                        first += f" ({reasoning:,} reasoning)" if isinstance(reasoning, (int, float)) else f" ({reasoning} reasoning)"
+                        first += f" · reasoning={reasoning:,}" if isinstance(reasoning, (int, float)) else f" · reasoning={reasoning}"
                     first += f" = {total_tokens:,}" if isinstance(total_tokens, (int, float)) else f" = {total_tokens}"
                 if context_window_tokens is None or estimated is None:
-                    second = "context window unknown · compact unavailable"
+                    second = "context unknown · compact unavailable"
                 else:
                     percent = estimated / context_window_tokens * 100
                     marker = "~" if "provider_input" not in sources else ""
                     if compact_threshold is None:
                         second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact disabled"
                     else:
-                        compact_percent = estimated / compact_threshold * 100
                         decision = "run ending" if run_ending else ("REQUIRED" if estimated >= compact_threshold else "not required")
-                        second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact {marker}{min(estimated, compact_threshold):,}/{compact_threshold:,} ({min(compact_percent, 100):.1f}%, {decision})"
+                        ratio_text = f" ({compact_trigger_ratio * 100:g}%)" if isinstance(compact_trigger_ratio, (int, float)) else ""
+                        second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact@{compact_threshold:,}{ratio_text} {decision}"
                 decision = "run_ending" if run_ending else ("required" if estimated is not None and compact_threshold is not None and estimated >= compact_threshold else "not_required")
                 payload = {"turn": context_turn, "usage": latest, "context_tokens": estimated, "context_basis_tokens": estimated, "context_window_tokens": context_window_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "basis_source": sources, "decision": decision, "lines": [first, second], "estimated": bool(sources and "provider_input" not in sources)}
                 emit("context_usage", payload)
@@ -3165,6 +3166,10 @@ class AgentApp:
                 "endpoint_ref": self.profile or "direct",
                 "endpoint_fingerprint": endpoint_fingerprint,
                 "dependency_versions": _dependency_versions(),
+                "system_chars": len(self.spec.system_prompt),
+                "input_chars": len(input_text),
+                "context_pages": len(pages),
+                "tool_count": len(self.spec.tools),
                 "summary_template_hash": _hash_text(DEFAULT_SUMMARY_PROMPT) if compact_threshold is not None else None,
                 "effective_options": inference_options,
                 "capacity": {"context_window_tokens": context_window_tokens, "max_output_tokens": max_output_tokens, "safe_input_tokens": safe_input_tokens, "capacity_source": capacity_source},
