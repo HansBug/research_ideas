@@ -127,6 +127,32 @@ def test_missing_audit_is_not_academic_eligible() -> None:
     assert result.academic_eligible is False
 
 
+def test_invalid_context_emits_structured_failure_and_audit_finish(tmp_path: Path) -> None:
+    app = AgentApp._for_test(
+        AgentSpec(name="invalid-context", system_prompt="answer"),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    )
+    events: list[AgentEvent] = []
+    audit = tmp_path / "invalid-context.jsonl"
+    result = app.run(
+        "answer",
+        context=[{"id": "bad", "hash": "sha256:not-the-text-hash", "text": "facts"}],
+        renderer="quiet",
+        audit_out=audit,
+        on_event=events.append,
+    )
+
+    assert result.status == "failed"
+    assert result.error is not None
+    assert result.error["code"] == "context_invalid"
+    assert [event.kind for event in events] == ["run_started", "context_failed", "failed"]
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    assert records[0]["record"] == "context"
+    assert records[-1]["record"] == "finish"
+    assert records[-1]["error"]["code"] == "context_invalid"
+
+
 class _TwoToolModel(BaseChatModel):
     calls: int = Field(default=0)
 
@@ -374,6 +400,23 @@ def test_redaction_keeps_research_ids_and_scrubs_provider_tokens_and_url_credent
     assert "api_key=%5Bredacted%5D" in redacted
     assert "hf_abcdefghijklmnopqrstuvwxyz123456" not in redacted
     assert "ghp_abcdefghijklmnopqrstuvwxyz123456" not in redacted
+
+
+def test_stream_holdback_does_not_delay_ordinary_text_but_holds_split_credentials() -> None:
+    from utils.agent.runtime import _StreamHoldback
+
+    ordinary = _StreamHoldback(())
+    assert ordinary.feed("ordinary output") == "ordinary output"
+    assert ordinary.withheld_chars == 0
+
+    secret = "sk-configured-secret-12345678"
+    streamed = _StreamHoldback((secret,))
+    assert streamed.feed("prefix ") == "prefix "
+    assert streamed.feed("sk-conf") == ""
+    assert streamed.feed("igured-secret-12345678", final=True) == "[redacted_secret]"
+
+    delimited = _StreamHoldback(())
+    assert delimited.feed("sk-id ") == "sk-id "
 
 
 def test_usage_conflict_includes_cache_and_reasoning_details() -> None:

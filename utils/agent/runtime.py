@@ -800,31 +800,42 @@ def _sensitive_inventory(config: LLMConfig, pages: Sequence[Mapping[str, Any]]) 
 
 
 class _StreamHoldback:
-    """Hold possible credential suffixes across streamed chunk boundaries."""
+    """Hold only a credential-shaped token across streamed chunk boundaries."""
 
     _PREFIXES = ("sk-", "sess-", "hf_", "ghp_", "gho_", "AIza", "AKIA", "Bearer ")
 
     def __init__(self, secrets: Sequence[str]):
         self.secrets = tuple(secrets)
-        self.max_hold = max((len(secret) for secret in self.secrets), default=0) - 1
-        self.max_hold = max(self.max_hold, 8)
         self.buffer = ""
         self.withheld_chars = 0
         self.redaction_hits = 0
 
     def _safe_end(self) -> int:
-        end = max(0, len(self.buffer) - self.max_hold)
+        end = len(self.buffer)
         for secret in self.secrets:
             position = self.buffer.find(secret)
-            if position >= 0 and position < end < position + len(secret):
+            if position >= 0:
                 end = position
-            for index in range(max(0, end - self.max_hold), len(self.buffer)):
-                suffix = self.buffer[index:]
-                if suffix and len(suffix) < len(secret) and secret.startswith(suffix):
-                    end = min(end, index)
-        token_start = max(self.buffer.rfind(" "), self.buffer.rfind("\n"), self.buffer.rfind("\t")) + 1
-        token = self.buffer[token_start:]
-        if any(token.lower().startswith(prefix.lower()) for prefix in self._PREFIXES):
+                break
+
+            # Keep a suffix that is a prefix of a configured secret.  This is
+            # the only inventory-based holdback needed for a split token.
+            for size in range(min(len(secret) - 1, len(self.buffer)), 0, -1):
+                start = len(self.buffer) - size
+                if self.buffer[start:] == secret[:size]:
+                    end = min(end, start)
+                    break
+
+        token_start = max(
+            self.buffer.rfind(" "), self.buffer.rfind("\n"), self.buffer.rfind("\t"), self.buffer.rfind("\r")
+        ) + 1
+        token_tail = self.buffer[token_start:]
+        delimiter = re.search(r"\s", token_tail)
+        token = token_tail if delimiter is None else token_tail[: delimiter.start()]
+        # A delimited token is complete and can be released immediately.  An
+        # unterminated credential-shaped token stays buffered until the next
+        # chunk or the terminal callback, so a split credential cannot leak.
+        if delimiter is None and any(token.lower().startswith(prefix.lower()) for prefix in self._PREFIXES):
             end = min(end, token_start)
         return max(0, end)
 
@@ -2149,10 +2160,24 @@ class _LegacyModelAdapter(BaseChatModel):
             binder(tools, **kwargs)
         return self
 
-    async def _agenerate(self, messages: list[Any], stop: list[str] | None = None, **kwargs: Any) -> Any:
+    async def _agenerate(
+        self,
+        messages: list[Any],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> Any:
         chunks: list[Any] = []
         async for chunk in self._inner.astream(messages, **kwargs):
             chunks.append(chunk)
+            if run_manager is not None:
+                token = _message_text(chunk)
+                if token:
+                    callback = getattr(run_manager, "on_llm_new_token", None)
+                    if callback is not None:
+                        callback_result = callback(token, chunk=chunk)
+                        if inspect.isawaitable(callback_result):
+                            await callback_result
         if not chunks:
             message = AIMessage(content="")
         else:
@@ -2168,7 +2193,8 @@ class _LegacyModelAdapter(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
     def _generate(self, messages: list[Any], stop: list[str] | None = None, **kwargs: Any) -> Any:
-        return asyncio.run(self._agenerate(messages, stop=stop, **kwargs))
+        run_manager = kwargs.pop("run_manager", None)
+        return asyncio.run(self._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs))
 
 
 class AgentApp:
@@ -2264,10 +2290,15 @@ class AgentApp:
         )
         if compact_threshold is None and context_window_tokens is not None and compact_trigger_ratio is not None:
             compact_threshold = math.floor(context_window_tokens * compact_trigger_ratio)
+        context_error: AgentError | None = None
         try:
             pages = _normalize_context(context)
         except ValueError as exc:
-            raise AgentError("context_invalid", str(exc)) from exc
+            # Keep preflight failures on the same observable run path as
+            # provider/tool failures: callers receive an event and an audit
+            # finish record before the structured error is raised.
+            pages = []
+            context_error = AgentError("context_invalid", str(exc))
         run_id = uuid.uuid4().hex
         manifest = _build_context_manifest(pages) if pages else None
         endpoint_fingerprint = _endpoint_fingerprint(_effective_model_base_url(self.model, self.config))
@@ -3009,6 +3040,7 @@ class AgentApp:
                 "adapter": "langchain-openai/chat-completions",
                 "real_llm": self.real_llm,
                 "has_context": bool(pages),
+                "context_status": "invalid" if context_error is not None else ("loaded" if pages else "none"),
                 "config_fingerprint": behavior_fingerprint,
                 "system_prompt_hash": _hash_text(self.spec.system_prompt),
                 "input_hash": _hash_text(input_text),
@@ -3050,6 +3082,7 @@ class AgentApp:
                     "tools": [{"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)} for tool in self.spec.tools],
                     "output_schema": self.spec.output_schema.model_json_schema() if self.spec.output_schema else None,
                     "pages": pages,
+                    "context_status": "invalid" if context_error is not None else ("loaded" if pages else "none"),
                     "capacity": {"context_window_tokens": context_window_tokens, "max_output_tokens": max_output_tokens, "safe_input_tokens": safe_input_tokens, "capacity_source": capacity_source},
                     "compact": {"trigger_ratio": compact_trigger_ratio, "threshold": compact_threshold, "keep_messages": _DEFAULT_COMPACT_KEEP_MESSAGES},
                     "summary_template": "langgraph_default" if compact_threshold is not None else None,
@@ -3059,6 +3092,16 @@ class AgentApp:
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
                 }
             )
+            if context_error is not None:
+                emit(
+                    "context_failed",
+                    {
+                        "attempt_id": attempt_id,
+                        "code": context_error.code,
+                        "message": context_error.message,
+                    },
+                )
+                raise context_error
             if create_agent is None:
                 raise AgentError("config_error", "langchain is required")
             heartbeat_task = asyncio.create_task(heartbeat())
