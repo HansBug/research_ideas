@@ -148,7 +148,7 @@ app.run(
 await app.arun(input_text, context=context, renderer="auto", think_mode=False, ...) -> AgentRunResult
 ```
 
-`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；本接口只允许 `max_tokens` 作为单次 output reserve 覆盖项。
+`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；允许的键为 `temperature`、`top_p`、`stop`、`seed`、`verbosity` 与 `max_tokens`，其中只有 `max_tokens` 可以覆盖单次 output reserve。
 
 `think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。模型请求默认 `streaming=True`、`stream_usage=True`，也可以在 `model_options` 中显式覆盖；YAML 不保存这些单次运行参数。某些兼容 endpoint 不接受 usage stream option 时，下游可以显式传 `stream_usage=False`，缺少 terminal usage 时记录 `unavailable`。
 
