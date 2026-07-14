@@ -61,13 +61,15 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
         "model_completed",
         "tool_started",
         "tool_completed",
+        "context_usage",
         "model_started",
         "model_text",
         "model_completed",
+        "context_usage",
         "completed",
     ]
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
-    assert [record["record"] for record in records] == ["context", "decision", "action", "decision", "finish"]
+    assert [record["record"] for record in records] == ["context", "decision", "action", "context", "decision", "context", "finish"]
     assert all("heartbeat" not in record for record in records)
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
     assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
@@ -257,7 +259,9 @@ def test_explicit_tool_limit_blocks_before_tool_node() -> None:
     ).run("run", renderer="quiet")
 
     assert result.status == "failed"
-    assert result.error == {"code": "limit_exceeded", "message": "tool_calls limit exceeded"}
+    assert result.error is not None
+    assert result.error["code"] == "limit_exceeded"
+    assert result.error["message"] == "tool_calls limit exceeded"
     assert called is False
 
 
@@ -298,78 +302,6 @@ def test_same_arguments_in_same_attempt_are_not_replayed() -> None:
     assert executions == [1, 1]
     assert len(result.tool_calls) == 2
     assert {item["tool_call_id"] for item in result.tool_calls} == {"probe-1", "probe-2"}
-
-
-def test_rollover_replay_keeps_replayed_and_new_same_argument_calls(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    from utils.agent import runtime
-
-    class _Graph:
-        def __init__(self, attempt: int):
-            self.attempt = attempt
-
-        async def astream_events(self, _inputs, version: str):
-            assert version == "v2"
-            if self.attempt == 1:
-                yield {"event": "on_chain_start", "name": "model", "data": {"input": {"messages": []}}}
-                yield {
-                    "event": "on_chain_end",
-                    "name": "model",
-                    "data": {"output": {"messages": [AIMessage(content="", tool_calls=[{"name": "probe", "args": {}, "id": "id-1", "type": "tool_call"}])] }},
-                }
-                yield {"event": "on_tool_start", "name": "probe", "run_id": "exec-1", "data": {"input": {}}}
-                yield {"event": "on_tool_end", "name": "probe", "run_id": "exec-1", "data": {"output": ToolMessage(content="old", name="probe", tool_call_id="id-1")}}
-                raise AgentError("context_rollover", "test rollover")
-
-            yield {"event": "on_chain_start", "name": "model", "data": {"input": {"messages": []}}}
-            yield {
-                "event": "on_chain_end",
-                "name": "model",
-                "data": {
-                    "output": {
-                        "messages": [
-                            AIMessage(
-                                content="",
-                                tool_calls=[
-                                    {"name": "probe", "args": {}, "id": "id-2", "type": "tool_call"},
-                                    {"name": "probe", "args": {}, "id": "id-3", "type": "tool_call"},
-                                ],
-                            )
-                        ]
-                    }
-                },
-            }
-            yield {"event": "on_tool_start", "name": "probe", "run_id": "exec-3", "data": {"input": {}}}
-            yield {"event": "on_tool_end", "name": "probe", "run_id": "exec-3", "data": {"output": ToolMessage(content="new", name="probe", tool_call_id="id-3")}}
-            yield {"event": "on_chain_end", "name": "LangGraph", "data": {"output": {"messages": [AIMessage(content="done")]}}}
-
-    created = 0
-
-    def fake_create_agent(**_kwargs):
-        nonlocal created
-        created += 1
-        return _Graph(created)
-
-    monkeypatch.setattr(runtime, "create_agent", fake_create_agent)
-
-    def probe() -> str:
-        return "unused"
-
-    events = []
-    result = AgentApp._for_test(
-        AgentSpec(name="rollover", system_prompt="probe", tools=(probe,), require_tool_call=True),
-        LLMConfig(model="gpt-5.5"),
-        object(),
-    ).run("run", renderer="quiet", on_event=events.append, audit_out=tmp_path / "audit.jsonl")
-
-    assert result.status == "success"
-    assert [(item["tool_call_id"], item.get("replayed", False)) for item in result.tool_calls] == [("id-1", False), ("id-2", True), ("id-3", False)]
-    tool_events = [event for event in events if event.kind in {"tool_started", "tool_completed"}]
-    assert [event.data["tool_call_id"] for event in tool_events] == ["id-1", "id-1", "id-2", "id-2", "id-3", "id-3"]
-    records = [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()]
-    actions = [record for record in records if record.get("record") == "action"]
-    assert [record["tool_call_id"] for record in actions] == ["id-1", "id-3"]
-    rollover = next(record for record in records if record.get("record") == "context" and record.get("rollover"))
-    assert [record["tool_call_id"] for record in rollover["replayed_actions"]] == ["id-1"]
 
 
 def test_operator_events_redact_secret_values() -> None:
@@ -459,8 +391,24 @@ def test_model_usage_and_observed_model_are_read_from_chat_model_end() -> None:
     ).run("run", renderer="quiet")
 
     assert result.status == "success"
-    assert result.usage == {"prompt_tokens": 7, "completion_tokens": 2}
+    assert result.usage[0]["input_tokens"] == 7
+    assert result.usage[0]["output_tokens"] == 2
+    assert result.usage[0]["source"] == "provider"
     assert result.observed_model == "provider-model"
+
+
+def test_model_usage_reads_public_llm_output_token_usage() -> None:
+    from utils.agent.runtime import _model_usage_info
+
+    value = ChatResult(
+        generations=[ChatGeneration(message=AIMessage(content="done"))],
+        llm_output={"token_usage": {"prompt_tokens": 11, "completion_tokens": 3}, "model_name": "provider-model"},
+    )
+    usage, observed, conflict, model = _model_usage_info(value)
+    assert usage == {"prompt_tokens": 11, "completion_tokens": 3}
+    assert observed[0]["source"] == "llm_output.token_usage"
+    assert conflict is False
+    assert model == "provider-model"
 
 
 def test_model_text_is_not_rewritten_by_runtime_postprocessing() -> None:
@@ -642,29 +590,6 @@ def test_redaction_preserves_normal_urls_in_model_content() -> None:
     assert _redact({"api_url": "https://provider.invalid/v1"}) == {"api_url": "[redacted_endpoint]"}
 
 
-def test_rollover_replay_queue_does_not_swallow_new_duplicate_call() -> None:
-    from utils.agent.runtime import _ReplayToolMiddleware
-
-    class Request:
-        tool_call = {"name": "probe", "args": {}, "id": "call-1"}
-
-    calls: list[str] = []
-    provenance: dict[str, list[bool]] = {}
-
-    def handler(_request: Request) -> ToolMessage:
-        calls.append("executed")
-        return ToolMessage(content="new", name="probe", tool_call_id="call-2")
-
-    middleware = _ReplayToolMiddleware({"probe:{}": ["old"]}, enabled=True, provenance=provenance)
-    replayed = middleware.wrap_tool_call(Request(), handler)
-    new_call = middleware.wrap_tool_call(Request(), handler)
-    assert replayed.content == "old"
-    assert replayed.additional_kwargs["replayed"] is True
-    assert new_call.content == "new"
-    assert calls == ["executed"]
-    assert provenance["probe:{}"] == [True, False]
-
-
 def test_invalid_audit_path_is_structured_error(tmp_path: Path) -> None:
     def lookup() -> str:
         """lookup."""
@@ -782,7 +707,7 @@ def test_rich_renderer_shows_structured_call_and_result_in_output_phase() -> Non
     renderer.render(AgentEvent("run-structured", 3, now, "structured_output", {"output": {"answer": "ok"}}))
     rendered = output.getvalue()
     assert "MODEL OUTPUT | STRUCTURED CALL" in rendered
-    assert "MODEL OUTPUT | STRUCTURED RESULT" in rendered
+    assert "MODEL OUTPUT | STRUCTURED RESULT" not in rendered
     assert "status: requested" in rendered
     assert "structured-1" in rendered
     assert "purpose:" not in rendered
@@ -969,3 +894,198 @@ def test_demo_rejects_inconsistent_structured_timestamps(monkeypatch: pytest.Mon
     monkeypatch.setattr(demo.AgentApp, "from_config", staticmethod(lambda *_args, **_kwargs: App()))
     with pytest.raises(click.ClickException, match="demo structured output validation failed"):
         demo.cli.main(args=["--profile", "research-model", "--renderer", "quiet"], standalone_mode=False)
+
+
+def test_official_compact_is_ordered_after_context_and_before_next_model() -> None:
+    class CompactModel(BaseChatModel):
+        calls: int = Field(default=0)
+
+        @property
+        def _llm_type(self) -> str:
+            return "compact-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            self.calls += 1
+            if any("Context Extraction Assistant" in str(getattr(item, "content", "")) for item in messages):
+                return ChatResult(generations=[ChatGeneration(message=AIMessage(content="summary of prior work"))])
+            if self.calls <= 20:
+                message = AIMessage(
+                    content="",
+                    tool_calls=[{"name": "probe", "args": {}, "id": f"call-{self.calls}", "type": "tool_call"}],
+                )
+            else:
+                message = AIMessage(content="done")
+            return ChatResult(generations=[ChatGeneration(message=message)])
+
+    def probe() -> str:
+        """Return a small observation."""
+        return "ok"
+
+    events: list[AgentEvent] = []
+    result = AgentApp._for_test(
+        AgentSpec(name="compact-order", system_prompt="use probe", tools=(probe,)),
+        LLMConfig(model="compact-test", context_window_tokens=1020, max_output_tokens=20),
+        CompactModel(),
+    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, on_event=events.append)
+
+    assert result.status == "success", result.error
+    kinds = [event.kind for event in events]
+    compact_start = kinds.index("compaction_started")
+    context_before = max(index for index, kind in enumerate(kinds[:compact_start]) if kind == "context_usage")
+    next_model = next(index for index in range(compact_start + 1, len(kinds)) if kinds[index] == "model_started")
+    assert context_before < compact_start < next_model
+    assert kinds.count("context_usage") >= 1
+
+
+def test_compact_with_too_few_messages_fails_closed_without_next_model() -> None:
+    class CompactModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "compact-no-progress"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[{"name": "probe", "args": {}, "id": "call-1", "type": "tool_call"}],
+                        )
+                    )
+                ]
+            )
+
+    def probe() -> str:
+        return "ok"
+
+    events: list[AgentEvent] = []
+    result = AgentApp._for_test(
+        AgentSpec(name="compact-no-progress", system_prompt="use probe", tools=(probe,)),
+        LLMConfig(model="compact-no-progress", context_window_tokens=100, max_output_tokens=10),
+        CompactModel(),
+    ).run("run", renderer="quiet", compact_trigger_ratio=0.5, on_event=events.append)
+    assert result.status == "failed"
+    assert result.error is not None
+    assert result.error["code"] in {"context_budget_exceeded", "compact_error"}
+    kinds = [event.kind for event in events]
+    assert kinds.index("compaction_started") < kinds.index("compaction_failed")
+    assert "compaction_completed" not in kinds
+    assert kinds.count("model_started") == 1
+
+
+def test_receipt_hash_matches_final_result_and_audit(tmp_path: Path) -> None:
+    def lookup(value: str) -> dict[str, str]:
+        """Return a fixed observation."""
+        return {"value": value}
+
+    audit = tmp_path / "trace.jsonl"
+    result_path = tmp_path / "result.json"
+    result = AgentApp._for_test(
+        AgentSpec(name="receipt", system_prompt="answer", tools=(lookup,), require_tool_call=True),
+        LLMConfig(model="gpt-5.5"),
+        FakeStreamingModel(),
+    ).run("run", renderer="quiet", audit_out=audit, result_out=result_path)
+
+    assert result.academic_eligible is True
+    receipt = json.loads((tmp_path / "trace.jsonl.receipt.json").read_text(encoding="utf-8"))
+    import hashlib
+
+    assert receipt["audit_sha256"] == "sha256:" + hashlib.sha256(audit.read_bytes()).hexdigest()
+    assert receipt["result_sha256"] == "sha256:" + hashlib.sha256(result_path.read_bytes()).hexdigest()
+    assert all("recorded_at_utc" in json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines())
+
+
+def test_context_panel_has_two_logical_lines() -> None:
+    from rich.console import Console
+    from utils.agent.runtime import _Renderer
+
+    output = StringIO()
+    renderer = _Renderer("rich", "INFO", "context-panel")
+    renderer.console = Console(file=output, force_terminal=False, color_system=None)
+    renderer.render(
+        AgentEvent(
+            "context-panel",
+            1,
+            datetime.now(timezone.utc),
+            "context_usage",
+            {
+                "turn": 4,
+                "usage": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+                "context_basis_tokens": 150,
+                "context_window_tokens": 1000,
+                "compact_threshold": 800,
+                "basis_source": ["langchain_estimate"],
+                "decision": "not_required",
+            },
+        )
+    )
+    rendered = output.getvalue()
+    assert "CONTEXT | TURN 4" in rendered
+    assert "context ~150/1,000" in rendered
+    assert rendered.count("turn 4") == 1
+
+
+def test_context_basis_prefers_provider_input_over_output_tokens() -> None:
+    from utils.agent.runtime import _ContextMeter
+
+    meter = _ContextMeter(system_prompt="answer")
+    meter.record({"input_tokens": 100, "output_tokens": 900, "total_tokens": 1000})
+
+    tokens, sources = meter.count([])
+
+    assert tokens == 1000
+    assert sources == ["provider_total_anchor"]
+    assert meter.estimate([]) != 100
+
+
+def test_context_meter_uses_maximum_public_usage_anchor() -> None:
+    from utils.agent.runtime import _ContextMeter
+
+    meter = _ContextMeter(system_prompt="answer")
+    meter.record(
+        {"input_tokens": 100, "output_tokens": 10, "total_tokens": 110},
+        observed_usages=[
+            {"source": "llm_output.token_usage", "usage": {"prompt_tokens": 180, "completion_tokens": 20, "total_tokens": 200}}
+        ],
+    )
+    tokens, sources = meter.count([])
+    assert tokens == 200
+    assert sources == ["provider_total_anchor"]
+
+
+def test_output_target_cannot_use_audit_sidecar_path(tmp_path: Path) -> None:
+    from utils.agent.runtime import _validate_output_paths
+
+    audit = tmp_path / "trace.jsonl"
+    with pytest.raises(AgentError, match="derived sidecar"):
+        _validate_output_paths(audit, audit.with_name(audit.name + ".lock"))
+
+
+def test_result_and_audit_redact_configured_key_across_boundaries(tmp_path: Path) -> None:
+    class _LeakModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "leak-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="key=sk-configured-secret-123456"))])
+
+    audit = tmp_path / "trace.jsonl"
+    result_path = tmp_path / "result.json"
+    result = AgentApp._for_test(
+        AgentSpec(name="redact-config", system_prompt="answer"),
+        LLMConfig(model="gpt-5.5", api_key="sk-configured-secret-123456"),
+        _LeakModel(),
+    ).run("run", renderer="quiet", audit_out=audit, result_out=result_path)
+    assert result.status == "success"
+    serialized = result.to_json() + audit.read_text(encoding="utf-8")
+    assert "sk-configured-secret-123456" not in serialized

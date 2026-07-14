@@ -6,6 +6,7 @@ import math
 import operator
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import click
@@ -81,6 +82,7 @@ def _current_system_time() -> dict[str, str]:
 @click.option("--max-tool-calls", type=click.IntRange(min=1), default=None, help="显式限制业务工具调用次数；默认不限制。")
 @click.option("--max-turns", type=click.IntRange(min=1), default=None, help="显式限制模型轮数；默认不限制。")
 @click.option("--max-seconds", type=click.FloatRange(min=0, min_open=True), default=None, help="显式限制整个运行的秒数；默认不限制。")
+@click.option("--compact-trigger-ratio", type=str, default="0.85", show_default=True, help="达到安全上下文窗口的比例后使用官方 compact；传 none 禁用。")
 @click.option("--audit-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-audit.jsonl"), show_default=True)
 @click.option("--result-out", type=click.Path(path_type=Path), default=Path("runs/utils-agent/demo-result.json"), show_default=True)
 def cli(
@@ -94,6 +96,7 @@ def cli(
     max_tool_calls: int | None,
     max_turns: int | None,
     max_seconds: float | None,
+    compact_trigger_ratio: str,
     audit_out: Path,
     result_out: Path,
 ) -> None:
@@ -155,13 +158,32 @@ def cli(
         limits=limits or None,
         require_tool_call=True,
     )
-    app = AgentApp.from_config(spec, selected, model_options={"streaming": True, "stream_usage": True, "max_retries": 0})
+    endpoint_host = (urlsplit(selected.base_url or "https://api.openai.com").hostname or "").lower()
+    # The framework default is stream_usage=True.  Known OpenAI-compatible
+    # proxies/DeepSeek endpoints may reject stream_options, so the real demo
+    # explicitly opts out for those transports while retaining streaming.
+    stream_usage = endpoint_host == "api.openai.com"
+    app = AgentApp.from_config(
+        spec,
+        selected,
+        profile=profile,
+        model_options={"streaming": True, "stream_usage": stream_usage, "max_retries": 0},
+    )
+    compact_value: float | None
+    if compact_trigger_ratio.strip().lower() in {"none", "0"}:
+        compact_value = None
+    else:
+        try:
+            compact_value = float(compact_trigger_ratio)
+        except ValueError as exc:
+            raise click.ClickException("--compact-trigger-ratio must be a number in (0, 1] or none") from exc
     result = app.run(
         "请计算当前系统时间 (2 * 24) + 3 + (15 / 60) 小时后的美国东部时间。",
         renderer=renderer,
         log_level=log_level,
         think_mode=enable_think,
         reasoning_effort=reasoning_effort,
+        compact_trigger_ratio=compact_value,
         audit_out=audit_out,
         result_out=result_out,
     )
@@ -192,7 +214,10 @@ def cli(
         or base_time.tzinfo is None
         or target_time.tzinfo is None
         or not math.isclose(answer.offset_hours, 51.25, rel_tol=0, abs_tol=1e-9)
-        or not math.isclose(delta_hours, answer.offset_hours, rel_tol=0, abs_tol=1e-9)
+        # Providers may round the displayed ISO timestamp to whole seconds;
+        # keep the numeric check strict to a few seconds without rejecting a
+        # correct tool-backed calculation.
+        or not math.isclose(delta_hours, answer.offset_hours, rel_tol=0, abs_tol=1e-3)
         or set(answer.evidence_ids) != {"system-time-001", "math-expression-001"}
     ):
         raise click.ClickException("demo structured output validation failed")

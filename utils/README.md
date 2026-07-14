@@ -103,7 +103,7 @@ spec = AgentSpec(
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
 
-限制计数是整个 `run` 的累计值，跨 context rollover attempt 不重置；rollover 只重放已完成动作，不重新获得新的预算。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；两者同时提供时运行时才做本地窗口预检，缺省时把窗口/输出预算交给 provider，不在本地擅自猜测数值。
+限制计数是整个 `run` 的累计值；compact summary transport 也计入显式 `model_calls`，但不计业务 turn/tool。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；缺省时把容量交给 provider，不在本地擅自猜测数值。
 
 `seconds` 是从 `run_started` 到 `completed/failed/cancelled` 的 wall-clock 上限，包含 provider 等待、工具执行和写出结果的时间；普通同步工具在线程中执行，不阻塞 heartbeat。
 
@@ -120,6 +120,7 @@ AgentApp.from_config(
     spec: AgentSpec,
     config: LLMConfig,
     *,
+    profile: str = "direct",
     model_options: Mapping[str, Any] | None = None,
 ) -> AgentApp
 ```
@@ -140,19 +141,20 @@ app.run(
     result_out: Path | None = None,
     think_mode: bool = False,
     reasoning_effort: str | None = None,
+    compact_trigger_ratio: float | None = 0.85,
     model_call_options: Mapping[str, Any] | None = None,
 ) -> AgentRunResult
 
 await app.arun(input_text, context=context, renderer="auto", think_mode=False, ...) -> AgentRunResult
 ```
 
-`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份。
+`renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret 或覆盖 profile 身份；`max_tokens`/`max_completion_tokens` 可显式覆盖本次 output reserve，二者若同时传入必须相同。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。对 OpenAI reasoning model（包括 `gpt-5.5`），运行时按官方 API 显式发送 `reasoning_effort="none"` 来实现默认关闭（OpenAI 文档说明 `gpt-5.5` 默认 effort 为 `medium`）；对 DeepSeek，按官方 OpenAI-compatible API 在 `extra_body.thinking.type` 发送 `disabled/enabled`。CLI 对应 `--enable-think` 和 `--reasoning-effort`。模型请求默认 `streaming=True`，也可以在 `model_options` 中显式传入 `{"streaming": False}` 覆盖；YAML 不保存这些单次运行参数。
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。模型请求默认 `streaming=True`、`stream_usage=True`，也可以在 `model_options` 中显式覆盖；YAML 不保存这些单次运行参数。某些兼容 endpoint 不接受 usage stream option 时，下游可以显式传 `stream_usage=False`，缺少 terminal usage 时记录 `unavailable`。
 
 官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
 
-Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化结果；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。已展示的 assistant history 不重复打印，完成面板保留一次完整最终结果。
+Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages；`MODEL OUTPUT` 是模型返回的 assistant 文本、tool call 或结构化 call；工具执行结果标为 `TOOL RESULT -> NEXT MODEL INPUT`，并在下一轮 input 面板中作为 `[tool]` message 出现。`CONTEXT` 只保留两行消耗摘要，结构化最终结果只在 `AGENT COMPLETE` 中完整展示一次。
 
 结构化结果直接通过 `create_agent(response_format=YourSchema)` 交给 LangGraph；由 LangGraph AutoStrategy 按模型能力选择 provider-native structured output 或官方 tool-calling fallback。运行时不把普通 assistant 文本自行 `json.loads` 成结果，也不为某个 provider 另写一套结构化后处理；provider 不支持或返回无效结构时保留原始失败诊断。
 
@@ -172,9 +174,11 @@ context = [
 result = app.run("分析这些事实", context=context, renderer="rich")
 ```
 
-也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。运行时根据 `LLMConfig.context_window_tokens` 与 `max_output_tokens` 装配当前请求；接近窗口时从同一组页面开启新的 attempt，并重放原始输入、已完成的结构化工具/动作记录和精确页面，不做静默截断、自动摘要或 provider compact。没有足够 token 配置、单页本身超限或无法无损继续时返回 `status="failed"`、`error.code="context_budget_exceeded"`。paper1 只需把自己的 immutable record pager 转成上述页面，不需要让根级 `utils` 认识 issue、DSL 或 trace。
+也可以直接传字符串，运行时会按顺序编号。mapping 至少包含 `text`，推荐同时提供 `id`、`hash`、`snapshot`、`cursor`、`source`；hash 必须等于规范化 text 的 SHA-256，重复 id、hash 不匹配或同一运行内 snapshot 漂移直接失败。若同时提供 context window 与 max output，运行时计算 `safe_input = context_window - max_output`，并按 `floor(safe_input * compact_trigger_ratio)` 触发官方 `SummarizationMiddleware`；默认保留最近 20 条消息，摘要仍由同一模型和推理设置完成。`compact_trigger_ratio=None` 禁用自动 compact，窗口未知时不猜测容量并记录 `compact unavailable`。compact 会把官方 summary replacement 写回 LangGraph state，后续任务继续使用新上下文，不重放工具、不启动额外上下文流程。
 
-上下文装配会产生 `context_loaded`、`context_rollover`、`context_failed` 观察事件；这些事件可以显示在 Rich 中，但学术 `audit_out` 只记录实际交给模型的页面及其顺序/hash，不记录上下文管理器的内部调试状态。rollover 只注入已经完成的结构化 action 记录，不重新执行工具；存在未决工具副作用时直接失败。若实验需要分析决策依据，可在 system prompt 或输出 schema 中要求简短、可见的 rationale；审计只保存模型实际给出的这类摘要，不声称拥有隐藏思维链。
+每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel：第一行是本轮 provider `input/output/total` 以及可用的 cache-read/reasoning；第二行是当前 context 消耗、窗口占比和 compact 阈值占比。context basis 取 provider total 高水位加新增消息估算、provider input 加新增消息估算、完整 LangChain 估算三者最大值；因此可能带 `~`，但不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`，不再维护第二套上下文流程。
+
+`AGENT RUN` 启动面板固定展示会改变行为的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、工具 allowlist 与是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、prompt 或文件路径。
 
 ```python
 AgentEvent(
@@ -191,21 +195,29 @@ AgentRunResult(
     output: Any,
     final_text: str,
     tool_calls: list[dict],
-    usage: dict | None,
+    usage: list[dict],
     error: dict | None,
     real_llm: bool,
     model: str,
     observed_model: str | None,
     academic_eligible: bool,
     context_manifest_hash: str | None,
+    profile: str,
+    context_window_tokens: int | None,
+    max_output_tokens: int | None,
+    safe_input_tokens: int | None,
+    capacity_source: dict[str, str],
+    eligibility_scope: str,
+    eligibility_reasons: list[str],
+    trace_commit_id: str | None,
 )
 ```
 
 `status` 只有 `success`、`failed`、`cancelled`；上下文无法无损继续时使用 `status="failed"` 和 `error.code="context_budget_exceeded"`。`real_llm` 在公共真实运行中为 `True`，仅测试目录的内部桩可以为 `False`，测试结果不得作为真实实验制品。
 
-事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_rollover`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
+事件 `kind` 使用简单字符串：`run_started`、`heartbeat`、`context_loaded`、`context_usage`、`context_failed`、`model_started`、`model_text`、`model_completed`、`tool_started`、`tool_completed`、`tool_failed`、`compaction_started`、`compaction_summary`、`compaction_completed`、`compaction_failed`、`structured_output`、`completed`、`failed`。`seq` 从 1 递增，普通观察事件的 data 不得包含 key、headers、raw response 或 hidden reasoning。
 
-`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。工具的完整 description/schema 仍保存在 `context` 审计记录中，但不在实时 tool Panel 重复输出。rollover 重放的记录标记 `replayed=true`；物理执行统计应过滤该标记，重放事实保存在 rollover 的 `context.replayed_actions` 中，不重复写入新的 `action`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。流式参数由 LangGraph/LangChain 先完整重组并校验。`usage` 未知时为 `None` 或字段值为 `None`，不能把未知伪造成 0。`error` 至少包含 `code` 和 `message`，`status` 只允许 `success`、`failed`、`cancelled`。
+`tool_calls` 是普通 JSON 列表，每条记录至少有 `kind`、`name`、`tool_call_id`、`attempt_id`、`turn`、`arguments`、`status`、开始/结束时间，以及成功时的 `result` 或失败时的安全错误；业务工具使用 `kind="business"`，结构化提交使用 `kind="structured"`。同一轮模型响应内出现多个已注册业务工具调用是合法的；同一轮出现未知工具，或业务工具与结构化终止同时出现，必须在任何工具执行前失败。`usage` 按 primary/compact transport 顺序保存，缺失值保持 `None`，不能把未知伪造成 0。
 
 ```python
 result.require_output() -> T
@@ -214,6 +226,14 @@ result.to_json() -> str
 ```
 
 `require_output` 在失败、取消或没有 output 时抛出 `AgentError`。完整内容从 result 读取，不从终端抓取。没有 `audit_out` 或审计未能写出完整 `finish` 时，`academic_eligible=False`，结果不得进入正式学术统计；这不改变普通运行的 `status`，但调用者必须检查该字段。
+
+真实 smoke 产物可在模型运行结束后离线校验，不需要重新调用 provider：
+
+```bash
+venv/bin/python tests/utils/validate_agent_smoke.py --root runs/utils-agent
+```
+
+校验器检查三 profile 的 result/audit/receipt 是否存在、SHA-256 与 commit id 是否一致、唯一 finish、两个业务工具、结构化字段、关键审计记录、无 credential 泄漏且没有残留 `.part` 文件。
 
 ### 脱敏选型
 
@@ -246,7 +266,7 @@ spec = AgentSpec(
 )
 app = AgentApp.from_registry(
     spec, load_llm_registry(), profile="gpt-5.5",
-    model_options={"streaming": True, "stream_usage": True},
+    model_options={"streaming": True},
 )
 result = app.run("请读取 note-001", renderer="rich")
 answer = result.require_output()
@@ -257,16 +277,31 @@ print(answer.summary)
 
 Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本的等价异步事件流，不能先 `invoke/ainvoke` 再伪造进度。
 
-启动 provider 请求前立即输出 `run_started`；静默期间每秒发送 `heartbeat`（logging DEBUG），实际观察间隔不超过约 1.5 秒。Rich 和 callback 消费实时 `AgentEvent`，用于操作员观察；`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。Rich 控制台会连续显示模型文本、工具调用参数、工具返回值、上下文 rollover、结构化结果和结束状态，不是运行结束后的摘要。
+启动 provider 请求前立即输出 `run_started`；静默期间每秒发送 `heartbeat`（logging DEBUG），实际观察间隔不超过约 1.5 秒。模型 callback 负责实时 token/usage，LangGraph event stream 负责工具和 middleware 生命周期；`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。Rich 控制台会连续显示模型文本、工具调用参数、工具返回值、两行 CONTEXT、compact 生命周期和结束状态，不是运行结束后的摘要。
 
-`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按行为顺序写入四类普通 JSON 记录；每条记录都带 `run_id`、`attempt_id`、`turn`、`order`、`context_manifest_hash`，工具记录另外带 `tool_call_id`，从而能把决策、页面和动作在 rollover 后重新绑定：
+`audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按 Agent 行为顺序写入四类普通 JSON 记录：`context`、`decision`、`action`、`finish`；compact 作为 `context.operation="compact"`。每条记录都带 `run_id`、`seq/order`、`recorded_at`，工具记录另外带 `tool_call_id`，从而能重建每轮输入、输出、工具结果、context decision、compact replacement 和最终结束。
 
 1. `context`：任务输入、system prompt、Agent 名称、可用工具名称/描述/schema、输出 schema、模型标识，以及每个 attempt 实际交给模型的页面顺序、`id`、`hash` 和文本，说明 Agent 当时能做什么、看到了什么。
 2. `decision`：每一轮模型可见的输出、请求调用的工具及参数、结构化提交，以及 provider 明确返回的 `reasoning_summary`/`rationale`（没有就写 `null`）。
 3. `action`：每次工具尝试的目标、参数、是否被 allowlist 接受、实际返回值或错误；未知工具、拒绝执行和重复调用也必须记录。
 4. `finish`：最终文本/结构化结果、结束原因（成功时为 `final_answer` 或 `structured_output`；失败/取消时为对应的 `error.code`，例如 `provider_error`、`limit_exceeded` 或 `cancelled`）和最终状态。
 
-审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、依据什么继续、最后如何结束”所需的数据。heartbeat、Rich 刷新、callback、HTTP endpoint、重试、timeout、缓存、内部 graph state、observer 错误和 token 统计等纯工程信息不得进入 `audit_out`。隐藏 chain-of-thought 不作为可导出事实；只记录模型明确给出的可见 rationale/summary，不生成或猜测缺失内容。脱敏只递归处理嵌套 mapping/list 中的 secret-like key 和 API key 模式；不改写普通任务输入、可见模型文本、工具参数或工具结果。每条学术记录写入后 flush，成功和失败都必须有 `finish`；`result_out` 使用临时文件加 `os.replace` 原子写出，写盘失败返回 `audit_write_failed` 或 `json_export_failed`，不得伪造审计内容。
+审计记录只保留回答“Agent 试图做什么、实际做了什么、看到了什么、得到了什么、context 如何 compact、最后如何结束”所需的数据。heartbeat、Rich 刷新、HTTP endpoint、headers、内部 graph state、observer 错误、traceback 和 hidden chain-of-thought 不进入 `audit_out`；usage 只因为它决定 compact 才记录。每条记录写入后 flush，成功和失败都必须有 `finish`。启用 `audit_out` 时最终发布 `<audit_out>.receipt.json`，receipt 保存 audit/result hash、`trace_commit_id` 和 finish 序号；只有 receipt 与两个文件 hash 一致时 `academic_eligible=True`。
+
+### 4.1 Compact 与学术审计的完整闭环
+
+compact 只由 LangGraph 官方 `SummarizationMiddleware` 执行，运行时不手写第二套上下文压缩、工具重放或 JSON 摘要解析。装配关系固定为：
+
+1. `context_window_tokens` 和本次 `max_output_tokens` 都存在时，先计算 `safe_input = context_window_tokens - max_output_tokens`；再计算 `threshold = floor(safe_input * compact_trigger_ratio)`。只提供窗口时使用窗口乘比例；两者都未知时不猜容量，compact 状态为 `unavailable`。
+2. `SummarizationMiddleware(trigger=("tokens", threshold), keep=("messages", 20))` 观察 LangGraph state；达到阈值后由同一模型、同一推理设置生成 summary，并由 middleware 用官方 `RemoveMessage` replacement 写回 state。
+3. compact 不重新执行已经完成的业务工具，不复制旧 tool result，不改变调用方原始 prompt；summary transport 是一次普通模型调用，计入显式 `model_calls`，但不计业务 tool/turn。
+4. 实时顺序必须是 `CONTEXT` -> `COMPACTION | START` -> 可见 summary 流 -> `COMPACTION | COMPLETE` -> 下一轮 `MODEL INPUT`；失败则输出 `COMPACTION | FAILED`，并在最终 `AGENT FAILED` 与 audit `finish` 中说明归属和诊断。
+
+显式 `limits.model_calls` 使用同一 run-scoped ledger；普通 turn 不需要 compact 时预留 1 次，需要 compact 时在 summary transport 前原子预留 `summary + next primary` 两次，预算不足不会启动任何一条 transport。ledger 的 reserved/started/completed/cancelled 和 compact 次数会进入 result/finish，默认无限策略不增加隐藏上限。
+
+学术审计只记录 Agent 行为事实：`context` 说明输入、可用能力和实际 context；`decision` 说明模型可见输出、工具/结构化请求和 provider 提供的 rationale/summary；`action` 说明尝试访问的工具、参数、结果或拒绝/异常；`finish` 说明如何结束。compact 的开始、summary hash、replacement 和结束状态仍作为 `context.operation="compact"` 写入，便于重建“为什么压缩、压缩了什么、压缩后继续看到了什么”。不写 heartbeat、Rich 刷新、请求 headers、内部 graph state 或隐藏 chain-of-thought。
+
+审计文件采用 `.part` + 独占 lock + flush/fsync + 原子 rename；完成后生成 receipt，保存 audit/result SHA-256、`trace_commit_id` 和 finish 序号。只有 `audit_out` 存在、最终状态成功、finish 完整且 receipt hash 校验通过时，`academic_eligible=True`；否则结果仍可供调试读取，但不能进入正式学术统计。
 
 ```bash
 python -m utils.agent
@@ -275,7 +310,7 @@ python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level INFO \
   --result-out /tmp/agent-result.json </dev/null
 python -m utils.agent.demo --profile gpt-5.5 --renderer rich --log-level DEBUG </dev/null
 python -m utils.agent.demo --profile gpt-5.5 --max-model-calls 20 --max-tool-calls 50 \
-  --max-turns 30 --max-seconds 900 </dev/null
+  --max-turns 30 --max-seconds 900 --compact-trigger-ratio 0.85 </dev/null
 ```
 
 不传 `--audit-out/--result-out` 时 demo 默认写入 `runs/utils-agent/demo-audit.jsonl` 和 `runs/utils-agent/demo-result.json`；这些文件只包含脱敏内容。`python -m utils.agent` 与 `python -m utils.agent.demo` 使用同一真实 demo 入口。
