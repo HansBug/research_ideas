@@ -471,11 +471,20 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         "r8_abcdefghij1234567890abcdef",
     )
     for token in tokens:
-        assert token not in _redact_text(f"provider token {token}")
+        assert token not in _redact_text(f"standalone value {token}")
         prefix = token[:3]
         streamed = _StreamHoldback(())
         assert streamed.feed(f"auth {prefix}") == ""
         assert token not in streamed.feed(token[3:], final=True)
+
+    # Provider tokens must not leak when their length exceeds a historical
+    # fixed-format assumption, including a Bearer prefix and its suffix.
+    for prefix in ("gsk_", "pplx-", "r8_", "xai-", "tgp_v1_", "fw_", "mist-"):
+        token = prefix + "a" * 32 + "TAILSECRET"
+        for value in (token, f"Bearer {token}"):
+            rendered = _redact_text(value)
+            assert token not in rendered
+            assert "TAILSECRET" not in rendered
     for label, token in (
         ("api_key=", "xai-abcdefghij1234567890abcdefghijkl"),
         ("token=", "tgp_v1_abcdefghij1234567890abcdefghij"),
@@ -564,6 +573,26 @@ def test_partial_provider_fingerprints_are_redacted_without_generic_hiding() -> 
     for token in ("xai-ab...1234", "tgp_v1_ab...1234", "fw_ab...1234", "mist-ab...1234"):
         assert "1234" not in _redact_text(f"provider rejected {token}")
     assert _redact_text("xai-ablation-run-2026") == "xai-ablation-run-2026"
+
+
+def test_compact_replacement_projection_excludes_hidden_reasoning() -> None:
+    from utils.agent.runtime import _compact_replacement_projection
+
+    message = AIMessage(
+        content=[
+            {"type": "thinking", "thinking": "PRIVATE-CHAIN-OF-THOUGHT"},
+            {"type": "text", "text": "VISIBLE SUMMARY"},
+        ],
+        additional_kwargs={"reasoning_content": "PRIVATE-RAW-REASONING"},
+    )
+    projection = _compact_replacement_projection([message])
+    serialized = json.dumps(projection, ensure_ascii=False, sort_keys=True)
+
+    assert "VISIBLE SUMMARY" in serialized
+    assert "PRIVATE-CHAIN-OF-THOUGHT" not in serialized
+    assert "PRIVATE-RAW-REASONING" not in serialized
+    assert "additional_kwargs" not in serialized
+    assert projection["message_count"] == 1
 
 
 def test_compact_threshold_uses_official_input_window_without_output_subtraction() -> None:

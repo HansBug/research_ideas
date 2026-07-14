@@ -73,8 +73,8 @@ _BEARER_PROVIDER_VALUE = re.compile(
     r"(?:sk-|sess-)[A-Za-z0-9][A-Za-z0-9_-]{15,}|"
     r"(?:hf_|ghp_|gho_)[A-Za-z0-9]{20,}|"
     r"AIza[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|"
-    r"gsk_[A-Za-z0-9]{52}|pplx-[A-Za-z0-9]{48}|r8_[A-Za-z0-9_-]{37}|"
-    r"xai-[A-Za-z0-9_-]{8,}|tgp_v1_[A-Za-z0-9_-]{8,}|fw_[A-Za-z0-9_-]{8,}|mist-[A-Za-z0-9_-]{8,})"
+    r"gsk_[A-Za-z0-9_-]{24,}|pplx-[A-Za-z0-9_-]{24,}|r8_[A-Za-z0-9_-]{24,}|"
+    r"xai-[A-Za-z0-9_-]{24,}|tgp_v1_[A-Za-z0-9_-]{24,}|fw_[A-Za-z0-9_-]{24,}|mist-[A-Za-z0-9_-]{24,})"
 )
 # Provider credential formats that are safe to recognise by prefix.  ``key-``
 # is deliberately excluded: research identifiers commonly use that shape and
@@ -83,8 +83,10 @@ _SECRET_VALUE = re.compile(
     r"(?:\b(?:sk-ant|sk-proj)[-_][A-Za-z0-9][A-Za-z0-9_-]{20,}\b|"
     r"\b(?:sk|sess)[-_][A-Za-z0-9]{16,}\b|\bhf_[A-Za-z0-9]{20,}\b|"
     r"\bgh[po]_[A-Za-z0-9]{20,}\b|\bAIza[0-9A-Za-z_-]{20,}\b|\bAKIA[0-9A-Z]{16}\b|"
-    r"\bgsk_[A-Za-z0-9]{52}\b|\bpplx-[A-Za-z0-9]{48}\b|"
-    r"\br8_[A-Za-z0-9_-]{37}\b)",
+    r"\bgsk_[A-Za-z0-9_-]{24,}\b|\bpplx-[A-Za-z0-9_-]{24,}\b|"
+    r"\br8_[A-Za-z0-9_-]{24,}\b|"
+    r"\bxai-[A-Za-z0-9_-]{24,}\b|\btgp_v1_[A-Za-z0-9_-]{24,}\b|"
+    r"\bfw_[A-Za-z0-9_-]{24,}\b|\bmist-[A-Za-z0-9_-]{24,}\b)",
     re.I,
 )
 _PARTIAL_SECRET_VALUE = re.compile(
@@ -3121,7 +3123,8 @@ class AgentApp:
                     replacement_messages = _messages_from_event(replacement.get("messages") if isinstance(replacement, Mapping) else replacement)
                     context_meter.invalidate_provider_anchor()
                     replacement_refs = [message_ref(message) for message in replacement_messages]
-                    replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": _safe_json(replacement), "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    replacement_projection = _compact_replacement_projection(replacement_messages)
+                    replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": replacement_projection, "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
                     if replacement_seq is not None:
                         source_state["latest_compact"] = (replacement_seq, "context")
                         for message in replacement_messages:
@@ -3519,6 +3522,13 @@ def _message_ref(
         "source_seq": source_seq,
         "source_record": source_record,
     }
+
+
+def _compact_replacement_projection(messages: Sequence[Any]) -> dict[str, Any]:
+    """Export only visible replacement evidence, never raw LangGraph state."""
+
+    refs = [_message_ref(message) for message in messages]
+    return {"message_count": len(refs), "message_refs": refs}
 
 
 def _mark_message_shown(message: Any, shown: set[str]) -> None:
