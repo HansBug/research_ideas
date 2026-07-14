@@ -868,6 +868,22 @@ class _StreamHoldback:
                 if context_match is not None:
                     hold_start = context_match.start()
                 end = min(end, hold_start)
+            for separator in ("=", ":"):
+                separator_position = token_lower.find(separator)
+                if separator_position <= 0:
+                    continue
+                candidate = token_lower[separator_position + 1 :]
+                if not candidate:
+                    continue
+                if any(
+                    prefix.lower().startswith(candidate) or candidate.startswith(prefix.lower())
+                    for prefix in self._PREFIXES
+                ):
+                    context = self.buffer[:token_start] + token[: separator_position + 1]
+                    context_match = _CONTEXT_SECRET_PREFIX.search(context)
+                    if context_match is not None:
+                        end = min(end, context_match.start())
+                        break
             if any(prefix.startswith(token_lower) or token_lower.startswith(prefix) for prefix in self._URL_PREFIXES):
                 # URL credentials/query values can be split after the scheme
                 # or parameter name; keep the URL token for one parser pass.
@@ -879,6 +895,9 @@ class _StreamHoldback:
             # value on its own.
             if any(prefix.rstrip().lower() == token.lower() for prefix in self._PREFIXES):
                 end = min(end, token_start)
+        trailing_context = _CONTEXT_SECRET_PREFIX.search(self.buffer)
+        if trailing_context is not None:
+            end = min(end, trailing_context.start())
         return max(0, end)
 
     def feed(self, text: str, *, final: bool = False) -> str:

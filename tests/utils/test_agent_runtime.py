@@ -474,6 +474,15 @@ def test_redaction_covers_known_provider_token_formats_without_generic_hiding() 
         streamed = _StreamHoldback(())
         assert streamed.feed(f"auth {prefix}") == ""
         assert token not in streamed.feed(token[3:], final=True)
+    for label, token in (
+        ("api_key=", "xai-abcdefghij1234567890abcdefghijkl"),
+        ("token=", "tgp_v1_abcdefghij1234567890abcdefghij"),
+        ("auth:", "fw_abcdefghij1234567890abcdefgh"),
+        ("authorization=", "mist-abcdefghij1234567890abcdef"),
+    ):
+        streamed = _StreamHoldback(())
+        assert streamed.feed(label + token[:3]) == ""
+        assert token not in streamed.feed(token[3:], final=True)
     assert _redact_text("key-research-153") == "key-research-153"
     assert _redact_text("the bearer of the message") == "the bearer of the message"
     for run_id in (
