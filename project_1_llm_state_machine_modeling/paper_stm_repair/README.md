@@ -2,12 +2,12 @@
 
 ## 1. 一句话任务
 
-本工作区承载 paper1 当前主线：给定自然语言需求 `NL` 与已有 raw/source 状态机 `STM_0`，研究如何借助中间语义执行表示和工具 / agent 反馈，发现 source-level behavioral issues，确认问题、围绕 confirmed issues 修复，并回到 raw/source 层审计 issue 是否闭合以及是否引入 regression。
+本工作区承载 paper1 当前主线：给定自然语言需求 `NL` 与已有 raw/source 状态机 `STM_0`，研究如何借助中间语义执行表示和工具 / agent 反馈，先执行一次 Discover，再通过多轮 Repair-Confirm 处理全部问题，最后回到 raw/source 层审计 issue 是否闭合以及是否引入 regression。
 
 ```text
 输入：<NL, raw/source STM_0>
 中间：<intermediate executable semantic representation, diagnostics, simulation/probe, verification/check feedback>
-输出：<candidate issue ledger, confirmed issue ledger, repair/change ledger, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
+输出：<discover roots/checks, repair-confirm issue chains, final fcstm STM_k, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
 ```
 
 `NL -> STM` 一轮式生成不是本文主贡献；`fcstm` / `pyfcstm` 只是中间语义执行表示与可执行反馈介质，不是 paper1 的建模语言贡献。conversion / normalization / lowering 只属于输入准备和表示桥，不能计为 method gain。issue / repair / closure / regression ledger 是评价和可复现证据链，不是 headline contribution。
@@ -18,7 +18,7 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 
 当前可写成贡献的内容：
 
-1. 面向已有 `NL + raw/source STM_0` 的 feedback-driven LLM refinement loop：发现、确认、修复并闭合 source-level behavioral issues。
+1. 面向已有 `NL + raw/source STM_0` 的 feedback-driven LLM refinement loop：一次 Discover 初始化问题与检查项，多轮 Repair-Confirm 处理问题并形成可审计闭环。
 2. 将 diagnostics / inspect、simulation / probe、formal verification / check feedback 接入 agent loop 的 executable-feedback integration。
 3. 修复结果回到 raw/source 层表达，并围绕 issue discovery / closure / regression 与 direct raw/source LLM baseline 设计后续实验。
 
@@ -52,8 +52,8 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 
 1. 已定义最小 source issue ledger v0：见 [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/) 与 [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json)；但尚未接入真实 discovery / repair loop。
 2. 已定义 raw/source 到中间表示的最小 source trace v0；但尚未接入真实 loop、repair/change ledger 或 raw/source patch export。
-3. 尚未冻结 paper1 loop 的 stage IO / run record 合同。
-4. 尚未实现 discovery / confirmation、issue-grounded repair、raw/source export、closure/regression audit。
+3. [Issue #152](https://github.com/HansBug/research_ideas/issues/152) 已定义 A/B/C、一次 Discover、多轮 Repair-Confirm、append-only records、任务/历史读取与双语报告合同；具体 stage IO / runtime schema 尚未实现。
+4. 尚未实现完整 Discover Agent、Repair Agent、Confirm Agent、确定性顶层 loop、raw/source export 与 closure/regression audit。
 5. 尚未运行 pilot；因此尚未冻结 final evaluation rubric、baseline contract 或正式实验协议。
 6. 尚未执行真实 repair loop；archived constructed `STM_k` dry-run 不能作为 method effectiveness evidence。
 
@@ -61,20 +61,17 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 
 ```mermaid
 flowchart TD
-  A[NL + raw/source STM_0] --> B[source ingestion and trace]
-  B --> C[intermediate executable semantic representation]
-  C --> D[diagnostics / inspect / simulation / verification feedback]
-  D --> E[candidate issue ledger]
-  E --> F[strict source-level confirmation]
-  F --> G[confirmed issue ledger]
-  G --> H[issue-grounded repair]
-  H --> I[repair/change ledger]
-  I --> J[raw/source patch bundle or final raw/source STM_k]
-  J --> K[post-repair rediscovery / re-confirmation]
-  K --> L[closure / regression ledger]
+  A["A: NL + raw/source STM_0"] --> B0["B: fcstm STM_0"]
+  B0 --> D["Discover once<br/>publish roots and immutable checks"]
+  D --> R["Repair full pending batch<br/>fix or reject each node"]
+  R --> M["Publish fcstm STM_i+1 and diff"]
+  M --> C["Confirm all dispositions<br/>accept or add successor"]
+  C -->|successor nodes| R
+  C -->|all chains closed| F["B-final evidence gate"]
+  F --> X["C: one-time source projection<br/>closure and regression audit"]
 ```
 
-这张图描述长期方法链路，不是当前 PR 施工状态。动态施工状态仍以 GitHub PR / issue body 和 comment 为准。
+Discover 中的 `confirmed/candidate_only` 是 root assessment，不是 Repair 前另设一个 Confirm Agent；B-confirm 只审查本轮 `fix/reject` disposition 及其对已发布 `STM_{i+1}` 的结果。Confirm reject 只追加 successor 并回到 Repair，不回 Discover、不回滚模型。这张图描述长期方法链路，不是当前 PR 施工状态；动态施工状态仍以 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) body / comment 为准。
 
 ## 5. 目录地图
 
@@ -96,13 +93,14 @@ flowchart TD
 1. 想快速理解 paper1 当前做什么：读本文件，然后读 [SUMMARY.md](./SUMMARY.md)、[STATUS.md](./STATUS.md)、[GUIDE.md](./GUIDE.md)。
 2. 想理解战略转向来源：读 [../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md](../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) 和 [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)。
 3. 想写或审 paper story：读 [story/README.md](./story/README.md)，再读 [story/paper_story.md](./story/paper_story.md)、[story/task_boundary.md](./story/task_boundary.md)、[story/model_scope.md](./story/model_scope.md)、[story/terminology_policy.md](./story/terminology_policy.md)、[story/claim_evidence_map.md](./story/claim_evidence_map.md) 与 [story/paper_outline.md](./story/paper_outline.md)。
-4. 想接后续实现：先读 [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/)、[experiment_design/source_trace/](./experiment_design/source_trace/) 与 [pipeline/evaluation/README.md](./pipeline/evaluation/README.md)，再根据伞 PR 进入后续 `PR-loop-io` / `PR-discover-confirm`。
+4. 想接后续实现：先读 [Issue #152](https://github.com/HansBug/research_ideas/issues/152)、[experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/)、[experiment_design/source_trace/](./experiment_design/source_trace/) 与 [pipeline/evaluation/README.md](./pipeline/evaluation/README.md)，再到 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 核对当前 active subPR、前置依赖与状态。
 5. 想引用旧 R5.7 资产：必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并写成 historical / superseded / calibration-only；不得把 Better STM / constructed `STM_k` adjudication 写成 active method result。
 
 ## 7. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152 与伞 PR #100：长期方法改为一次 Discover + 多轮 Repair-Confirm + 一次 C 回投；动态 subPR 路线只由 #100 维护。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 定义 source trace v0，新增 source_trace 文档入口、machine schema / fixtures / tests，并明确 negative trace 不得进入 source-level closure 主证据。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 定义 source issue ledger v0，新增 issue lifecycle 入口、machine schema / fixture / tests 指针，并保留“未接入真实 loop”的限制。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后同步根入口：experiment_design 改为 active scaffold，R5.7 资产改指 cold archive。 |

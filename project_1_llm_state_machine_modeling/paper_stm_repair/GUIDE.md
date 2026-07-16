@@ -5,13 +5,15 @@
 处理本工作区时，默认按以下顺序阅读：
 
 1. [README.md](./README.md)：确认当前 paper1 active 主线。
-2. [SUMMARY.md](./SUMMARY.md)：获取轻量总账和下一步依赖。
+2. [SUMMARY.md](./SUMMARY.md)：获取轻量总账和稳定能力依赖。
 3. [STATUS.md](./STATUS.md)：确认已完成 / 未完成事实和禁止主张。
 4. [GUIDE.md](./GUIDE.md)：读取当前工作纪律。
-5. [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md)：若任务涉及 issue discovery / confirmation / repair eligibility，先读 v0 issue ledger 合同。
-6. [experiment_design/source_trace/README.md](./experiment_design/source_trace/README.md)：若任务涉及 raw/source ↔ intermediate trace、projection 或 closure attribution，读取 source trace v0 合同。
-7. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
-8. [story/README.md](./story/README.md)：进入 paper story 专题。
+5. [伞 PR #100 body / comment](https://github.com/HansBug/research_ideas/pull/100)：仅在要接续施工时读取当前 active subPR slug、状态与前置依赖；仓库文档不做动态路线的第二事实源。
+6. [Issue #152](https://github.com/HansBug/research_ideas/issues/152)：若任务涉及 A/B/C、Discover/Repair/Confirm、records/context、工具或 B-final，读取稳定方法合同。
+7. [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md)：若任务涉及 root assessment / repair eligibility / disposition，先读 v0 issue ledger 合同及 runtime 迁移边界。
+8. [experiment_design/source_trace/README.md](./experiment_design/source_trace/README.md)：若任务涉及 raw/source ↔ intermediate trace、projection 或 closure attribution，读取 source trace v0 合同。
+9. [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md)：确认资产应 active / update / archive / historical。
+10. [story/README.md](./story/README.md)：进入 paper story 专题。
 
 任何后续 PR 如果需要使用历史 R5.7 / Better STM-facing 文件，必须从 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) 进入，并确认它们只是 historical / superseded / calibration-only。
 
@@ -23,13 +25,17 @@
 
 ```text
 NL + raw/source STM_0
-  -> candidate issue discovery
-  -> strict source-level confirmation
-  -> confirmed issue ledger
-  -> issue-grounded repair
-  -> raw/source patch bundle or final raw/source STM_k
-  -> closure / regression audit
+  -> A: one-time source ingestion / trace / fcstm STM_0
+  -> B-discover once: roots + immutable issue_checks[]
+  -> B-repair: handle every pending node with fix or reasoned reject
+  -> publish full fcstm STM_i+1 + diff
+  -> B-confirm: accept or reject every disposition
+  -> successor nodes return only to B-repair until all chains close
+  -> B-final evidence gate
+  -> C: one-time source projection + closure / regression audit
 ```
+
+Discover 内的 `confirmed/candidate_only` 是初始 root assessment，不是 Repair 前另设 Confirm 阶段。Confirm Agent 发生在模型修改已经发布之后，核对已知问题是否被本轮处置、是否出现回归或证据矛盾；它不 rediscover、不回滚模型、不在运行时引入人类裁决。
 
 不得重新把 active headline 写成：
 
@@ -54,13 +60,14 @@ candidate / confirmed issue ledger、trace、attribution boundary、closure / re
 |---|---|---|
 | raw/source `STM_0` | 输入的原始或源层状态机制品。 | 不把 canonical / fcstm 表示当成唯一评价对象。 |
 | intermediate executable semantic representation | 用于 diagnostics / inspect / simulation / verification feedback 的中间执行表示。 | 不写成 paper1 contribution。 |
-| candidate issue | 工具、LLM 或人工提示的可疑行为问题。 | 不直接计入 method success。 |
+| candidate issue | 工具、LLM 或 protocol seed 提示但尚不足以允许 fix 的可疑行为问题。 | 不直接计入 method success；运行时不引入人类裁决。 |
 | confirmed source-level behavioral issue | v0 默认通过 `NL + raw/source element + behavior evidence` 确认；另允许 `raw_internal_inconsistency` 第二路径，但必须有 source 内部冲突证据、typed internal-consistency evidence、NL 不强制的 rationale 和 attribution boundary。 | 不把 folded event / ugly expression 自动当确认问题；不把 conversion / lowering artifact 当 source-level issue。 |
 | issue-grounded repair | 绑定 `issue_id` 的修复或 refinement。 | 不允许泛泛重写整个模型来声称变好。 |
 | source trace | raw/source 元素与中间表示元素之间的追踪关系，见 [experiment_design/source_trace/](./experiment_design/source_trace/)。 | 不把 ambiguous / untraceable / conversion artifact trace 当作 closure 主证据。 |
 | source-level patch bundle | 可回投到 raw/source 层解释的补丁、diff 或说明。 | 不把无法投影的中间改动算 closure。 |
-| closure audit | 修复后判断原 issue closed / partially closed / not closed / over-repaired / unjudgeable。 | 不用单一 LLM 偏好判断替代证据链。 |
-| regression audit | 检查修复是否引入新的 source-level issue。 | 不因原 issue 闭合就忽略新问题。 |
+| B-confirm | 对当前轮全部 `fix/reject` dispositions 作 `accept/reject`，并为 reject 追加 successor node。 | 不等同于 source-level closure；不回 Discover、不修改或回滚已发布模型。 |
+| closure audit | B-final 后在 source 层判断原 issue closed / partially closed / not closed / over-repaired / unjudgeable。 | 不用单一 LLM 偏好判断替代证据链。 |
+| regression audit | 在最终 source output 上检查修复是否引入新的 source-level issue。 | 不因 B-confirm accept 或原 issue 闭合就忽略新问题。 |
 
 ## 4. 资产使用纪律
 
@@ -121,6 +128,7 @@ rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-gro
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152：工作流改为 Discover once + Repair-Confirm 循环；区分 Discover root assessment、B-confirm disposition 审查与 C closure audit，并把动态施工真源指向 #100。 |
 | 2026-07-08 14:03:59 | GUIDE 同步 `PR-source-trace`：将 source trace 合同加入默认阅读路径，并固定 negative trace / partial projection / reverse index 纪律。 |
 | 2026-07-08 10:15:00 | GUIDE 同步 `PR-issue-ledger`：将 issue lifecycle 合同加入默认阅读路径，并修正 confirmed issue 的两条 v0 evidence path。 |
 | 2026-07-07 23:40:00 | GUIDE 同步 `PR-better-archive`：历史 R5.7 资产改为 cold archive pointer，并要求 residual scan 排除 archive。 |

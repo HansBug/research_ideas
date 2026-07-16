@@ -4,7 +4,7 @@
 
 ## 1. 当前一句话状态
 
-paper1 当前已经完成战略转向后的资产清账，并将 active 主线重置为 **source-level behavioral issue discovery and closure**：给定 `NL + raw/source STM_0`，通过中间语义执行表示和工具 / agent 反馈发现、确认、修复 source-level behavioral issues，并回到 raw/source 层做 closure / regression audit。
+paper1 当前已经完成战略转向后的资产清账，并将 active 主线重置为 **source-level behavioral issue discovery and closure**：给定 `NL + raw/source STM_0`，通过中间语义执行表示执行一次 Discover，再以多轮 Repair-Confirm 处理全部 issue chains，最后回到 raw/source 层做 closure / regression audit。
 
 当前 contribution 口径已进一步收敛为：**feedback-driven LLM refinement loop + diagnostics / simulation / formal-verification feedback integration + source-level repair/evaluation setup**。ledger、audit、trace、run record 和 attribution boundary 只是方法 / 评价 / 可复现纪律，不能作为 headline contribution。
 
@@ -31,19 +31,19 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 |---|---|---|
 | Root docs 和 story | 已转向 source-level issue lifecycle 口径；仍需后续 review 持续防止旧 wording 回流。 | [README.md](./README.md), [story/](./story/) |
 | R5.7 / Better STM-facing 资产 | 已迁入 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/)；只作 historical / superseded / calibration-only。 | archive snapshot |
-| conversion / representation / pyfcstm 相关基础设施 | 可继续作为中间语义执行表示和工具反馈 infrastructure。 | 后续 `PR-source-trace`, `PR-loop-io`, `PR-raw-export` |
-| seed / corpus / baseline 候选 | 可作为未来 protocol 输入来源，但本阶段不冻结样本分母或 baseline contract。 | 后续 `PR-loop-pilot`, `PR-baseline-contract`, `PR-exp-protocol` |
+| conversion / representation / pyfcstm 相关基础设施 | 可继续作为中间语义执行表示和工具反馈 infrastructure；当前 pyfcstm gitlink 已在伞分支直接更新，paper1 adapter 仍待阶段实现。 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 当前路线 |
+| seed / corpus / baseline 候选 | 可作为未来 protocol 输入来源，但本阶段不冻结样本分母或 baseline contract。 | pilot 后实验设计阶段；动态顺序见 [#100](https://github.com/HansBug/research_ideas/pull/100) |
 | reports / paper_v1 / discussions | 只作历史动机、negative evidence 或旧路线 provenance。 | 后续 archive / story 引用时必须降级 |
 | issue ledger v0 | 已定义最小 schema / fixture / pytest gate；只覆盖合同分支，不是实验结果。 | [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/), [pipeline/evaluation/](./pipeline/evaluation/) |
 | source trace v0 | 已定义最小 schema / fixture / pytest gate；覆盖 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 | [experiment_design/source_trace/](./experiment_design/source_trace/), [pipeline/evaluation/](./pipeline/evaluation/) |
 
 ## 4. 下一步依赖
 
-1. `PR-issue-ledger`：已定义最小 candidate / confirmed issue ledger v0，后续不得绕过该 gate。
-2. `PR-source-trace`：已定义 raw/source element 与中间表示的最小 trace 合同；后续 raw/source patch projection 仍需 `PR-raw-export`。
-3. `PR-loop-io`：冻结最小 stage IO、artifact naming、run record 和失败状态。
-4. `PR-discover-confirm` 之后才进入真实 issue discovery / confirmation 实现。
-5. `PR-loop-pilot` 产出真实 raw/source `STM_k` 或 source-level patch bundle 后，才能冻结 `PR-eval-rubric` 与 `PR-baseline-contract`.
+1. 已完成的 issue ledger v0 与 source trace v0 是 runtime v1 的迁移输入，后续实现不得绕过其 attribution / negative gate，但也不得把 v0 直接冒充真实 loop 输出。
+2. 先交付完整 Discover Agent，同时落下最小 shared kernel、schema-safe pyfcstm adapter、records/context/renderer、工具、prompt、runner、CLI 与 stage smoke。
+3. 再依次交付完整 Repair Agent 与 Confirm Agent；Repair 处理当前全部 pending nodes，Confirm 审查全部 dispositions，reject 只追加 successor 并回 Repair。
+4. 三个阶段完成后，由无顶层 Agent/prompt、只按 typed stage result 转移的确定性 controller 组织闭环，再进入一次性 source projection 与 closure audit。
+5. 动态 subPR slug、状态和前置依赖只维护在 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)；pilot 产出真实 raw/source `STM_k` 或 patch bundle 后，才能冻结 final rubric 与 baseline contract。
 
 ## 5. 禁止误读
 
@@ -59,6 +59,7 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152 与伞 PR #100：删除旧 active subPR 路由，固定一次 Discover、多轮 Repair-Confirm、确定性顶层 controller 与 pilot 后冻结评价/baseline 的稳定能力顺序。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 后同步总账：最小 source trace v0 已落到 source_trace 文档、schema、六个 fixture 与 pytest gate；真实 loop / patch export / closure audit 仍未运行。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步总账：最小 issue ledger v0 已落到 issue lifecycle 文档、schema、六个 fixture 与 pytest gate；真实 loop / pilot 仍未运行。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后同步总账：R5.7 / Better STM-facing 资产已迁入 cold archive，下一步依赖从 `PR-issue-ledger` 开始。 |

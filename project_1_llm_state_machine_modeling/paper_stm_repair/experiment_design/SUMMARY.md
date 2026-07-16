@@ -11,8 +11,8 @@
 | candidate issue ledger | v0 已定义 | 字段、证据和 confirmation status 见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md) 与 schema。 |
 | confirmed issue ledger | v0 已定义 | 只允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path；folded event 默认仍 candidate。 |
 | source trace / patch projection | source trace v0 已定义；patch projection 未实现 | [source_trace/](./source_trace/) 已定义 raw/source ↔ intermediate trace、projection status 与 attribution gate；真实 patch bundle 仍由 `PR-raw-export` 接管。 |
-| loop IO / run record | 未冻结 | 真实 repair loop 尚未重跑；必须先冻结 stage input/output、失败态和 redaction。 |
-| closure / regression audit | 未定义 | 需要基于真实 repair/change ledger 与 post-repair rediscovery 设计。 |
+| stage runtime / run record | Issue #152 已定义稳定语义，尚未实现 | 必须由完整 Discover/Repair/Confirm 阶段纵向落地 input/output、失败态、append-only records、context 与 redaction，不能再拆空 IO PR。 |
+| closure / regression audit | 未定义 | 需要基于真实 Repair-Confirm issue chains、最终 source projection 与隐藏审计资产设计，不能用 post-repair rediscovery 代替。 |
 | final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）后再冻结。 |
 
 ## 3. R5.7 archive 状态
@@ -27,7 +27,7 @@
 
 1. 当前 story 与贡献口径：先读 [../README.md](../README.md) 和 [../story/README.md](../story/README.md)。
 2. 资产归档依据：读 [../evidence/ledgers/paper1_strategy_asset_map.md](../evidence/ledgers/paper1_strategy_asset_map.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md)。
-3. 后续实验设计：先读 [issue_lifecycle/README.md](./issue_lifecycle/README.md)，再进入 `PR-source-trace` / `PR-loop-io`；不要从 archive 直接恢复旧 Better STM gate。
+3. 后续实验设计：先读 [Issue #152](https://github.com/HansBug/research_ideas/issues/152)、[issue_lifecycle/README.md](./issue_lifecycle/README.md) 与 [source_trace/README.md](./source_trace/README.md)，再到 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 查询动态施工顺序；不要从 archive 直接恢复旧 Better STM gate。
 
 ## 5. 禁止误读
 
@@ -40,6 +40,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐一次 Discover + 多轮 Repair-Confirm 合同；runtime 由完整阶段 Agent 纵向落地，C closure/regression 不再依赖 post-repair rediscovery。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 后把 source trace / patch projection 行更新为 trace v0 已定义 / patch export 未实现，并链接 source_trace docs / schema / fixture / tests。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后把 candidate / confirmed issue ledger 标为 v0 已定义，并链接 issue lifecycle docs / schema / fixture / tests。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后将 pilot 后产物记号从易混淆的 active `STM_k` 改为 `STM_final`，避免与 archived constructed `STM_k` 混淆。 |

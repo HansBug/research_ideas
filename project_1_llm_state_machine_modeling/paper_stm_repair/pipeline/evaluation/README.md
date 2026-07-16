@@ -5,7 +5,8 @@
 本目录当前保留 source-level issue ledger v0 的 machine contract，并为后续 evaluation scaffold 留出入口。paper1 后续 evaluation 不再从 Better STM / which STM is better gate 继承，而应围绕 source-level issue lifecycle 重建：
 
 ```text
-candidate issue -> confirmed issue -> repair/change -> source projection -> closure/regression
+Discover roots/checks -> Repair dispositions/model diff -> Confirm decisions/successors
+  -> B-final -> source projection -> closure/regression
 ```
 
 ## 当前状态
@@ -23,7 +24,7 @@ candidate issue -> confirmed issue -> repair/change -> source projection -> clos
 | LLM / human judge prompt | 未定义 |
 | baseline comparison contract | 未定义 |
 
-除 issue ledger v0 与 source trace v0 外，其余 closure rubric / baseline / judge prompt 必须等 `PR-loop-io` 和 pilot 产出真实 repair/change evidence 后再冻结。
+除 issue ledger v0 与 source trace v0 外，其余 closure rubric / baseline / judge prompt 必须等完整 Discover/Repair/Confirm/loop pilot 产出真实 repair/change/source evidence 后再冻结；动态施工顺序见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 
 ## 禁止误读
 
@@ -36,6 +37,7 @@ candidate issue -> confirmed issue -> repair/change -> source projection -> clos
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | active scaffold 对齐一次 Discover、多轮 Repair-Confirm、B-final 与 C source audit；删除旧 loop-io 路由。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace schema、六个合同 fixture 与 pytest gate；negative trace / partial projection 不得进入 closure 主证据。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 source issue ledger schema、六个合同 fixture 与 pytest gate；其他 evaluation rubric / baseline / judge prompt 仍未冻结。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重建 placeholder；旧 R4/R5.7 evaluation directory 已冷归档。 |

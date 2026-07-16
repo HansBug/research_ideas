@@ -9,7 +9,7 @@
 要点：
 
 1. LLM 和建模工具可以产生状态机式制品，但已有制品往往存在行为层问题。
-2. 问题不只是模型是否 runnable，也不是表达语言是否更强，而是 source-level behavioral issue 是否能被发现、确认、修复和闭合。
+2. 问题不只是模型是否 runnable，也不是表达语言是否更强，而是 source-level behavioral issue 是否能被发现、经 Repair-Confirm 处理并最终在 source 层闭合。
 3. 描述性状态机、folded event、guard/action/event 混淆等会削弱后续 simulation / verification feedback。
 4. 本文提出一个围绕 existing raw/source STM artifact 的 issue lifecycle workflow。
 5. 贡献需写成 feedback-driven LLM refinement loop、simulation / formal-verification-enabled executable feedback integration、source-level repair output and evaluation setup；ledger / audit / attribution boundary 只能作为方法和评价纪律，不作为主贡献。
@@ -47,12 +47,13 @@ Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle 
 
 1. Source ingestion and trace
 2. Intermediate executable semantic representation
-3. Candidate issue discovery
-4. Strict source-level confirmation
-5. Issue-grounded repair
-6. Raw/source patch bundle or final raw/source `STM_k`
-7. Closure and regression audit
-8. Run record and eligibility discipline
+3. B-discover once: root assessment and immutable checks
+4. B-repair: full-batch `fix/reject` and atomic model publication
+5. B-confirm: full-batch `accept/reject` and successor chains
+6. Deterministic loop control and B-final evidence gate
+7. One-time raw/source patch bundle or final raw/source `STM_k`
+8. Source-level closure and regression audit
+9. Run record and eligibility discipline
 
 写作纪律：
 

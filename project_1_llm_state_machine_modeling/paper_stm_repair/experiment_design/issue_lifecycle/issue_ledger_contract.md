@@ -43,15 +43,17 @@ and attribution_boundary.source_level_claim_allowed == true
 
 非 confirmed 状态必须 `downstream_repair_allowed=false` 且 `confirmation_evidence_path=not_applicable`；反向地，`downstream_repair_allowed=true` 必须推出 `confirmation_status=confirmed`。
 
-## 5. 后续 PR 不得绕过的规则
+## 5. 后续阶段不得绕过的规则
 
-1. `PR-discover-confirm` 不能把 candidate 直接当 confirmed；folded event / expression debt 默认只能 candidate，除非后续被重分类为具体 source-level behavioral issue。
-2. `PR-repair-runner` 不能修没有 `confirmed issue_id` 的泛化目标。
-3. `PR-raw-export` 必须能把 change / patch 回指到 issue。
-4. `PR-closure-audit` 必须保留 closed / partial / not closed / regression / unjudgeable，而不能删除失败项。
+1. Discover 不能把 candidate 直接当 confirmed；folded event / expression debt 默认只能 candidate，除非同一 Discover assessment 有足够 source-level behavior evidence 支撑重分类。
+2. Repair 不能对没有 `confirmed issue_id` 的泛化目标执行 `fix`；对不可 fix 的 pending root 必须给出可审计 reject 理由。
+3. Confirm 只审查本轮 disposition 与已发布模型；不能回 Discover、修改旧记录或把 B-confirm accept 直接当 source closure。
+4. source export 必须能把 change / patch 回指到 issue chain 与 disposition。
+5. C closure audit 必须保留 closed / partial / not closed / regression / unjudgeable，而不能删除失败项。
 
 ## 6. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 将旧 PR slug 规则改为 Discover/Repair/Confirm/C 阶段合同，保留 v0 repair eligibility gate。 |
 | 2026-07-08 09:52:31 | 初始化 issue ledger 字段语义与 repair eligibility gate。 |

@@ -66,7 +66,7 @@ v0 明确不支持 `merged` / `inferred`。原因是它们在没有真实 pilot 
 | `unprojectable` | 不能可靠投影。 | 用于 `ambiguous` / `untraceable`。 |
 | `not_applicable` | 投影问题不适用。 | v0 用于 `conversion_artifact`。 |
 
-`partially_projectable` 是一个保守状态。它可帮助定位 issue，但后续 closure audit 只能把它作为 partial / candidate evidence；full closure 必须另有 raw/source patch evidence 与 post-repair rediscovery 证据。
+`partially_projectable` 是一个保守状态。它可帮助定位 issue，但后续 closure audit 只能把它作为 partial / candidate evidence；full closure 必须另有 raw/source patch evidence 与独立 C-stage source audit 证据，不能用 B-confirm accept 或 post-repair rediscovery 代替。
 
 ## 6. attribution boundary
 

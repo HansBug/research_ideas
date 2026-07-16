@@ -16,7 +16,7 @@
 
 | 文件 | 内容 | 推荐阅读场景 | 禁止误用 |
 |---|---|---|---|
-| [paper1_strategy_asset_map.md](./paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图。 | 后续 `PR-story-reset`、`PR-better-archive`、`PR-issue-ledger`、`PR-source-trace`、`PR-loop-io` 施工前。 | 不能把 `archive` 资产继续当 active 方法协议；不能把 `active` conversion / representation 资产写成 method gain。 |
+| [paper1_strategy_asset_map.md](./paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图。 | 追溯 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的资产来源；动态施工顺序见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。 | 不能把 `archive` 资产继续当 active 方法协议；不能把 `active` conversion / representation 资产写成 method gain；地图中的旧 PR slug 是历史 handoff。 |
 | [upstream_fact_ledger.md](./upstream_fact_ledger.md) | 上游 PR、导师讨论、旧分支、仓库事实等级。 | 解释某个事实为何被采信或降级。 | 不能替代当前 PR body / report / registry。 |
 | [source_coverage_ledger.md](./source_coverage_ledger.md) | R1 检索来源覆盖、去重闭合和未深审边界。 | 解释 search coverage 与未覆盖风险。 | 不能直接推出当前 seed eligibility。 |
 | [artifact_availability_ledger.md](./artifact_availability_ledger.md) | 代码、数据、结果、artifact 可获取性历史台账。 | 追溯某论文资源当时是否可得。 | 不能当作当前可下载状态，正式实验前必须重新核验。 |

@@ -4,7 +4,7 @@
 
 `evidence/` 已按 R5.5.1 路径重构为四类历史证据索引：[ledgers/README.md](./ledgers/README.md)、[audits/README.md](./audits/README.md)、[matrices/README.md](./matrices/README.md)、[traces/README.md](./traces/README.md)。本目录保留 R0/R1 证据链，但不再作为当前 corpus 事实真源。
 
-2026-07-07 战略转向后，本目录新增 [ledgers/paper1_strategy_asset_map.md](./ledgers/paper1_strategy_asset_map.md) 与 [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md)，作为 `PR-story-reset`、`PR-better-archive`、`PR-issue-ledger`、`PR-source-trace` 和 `PR-loop-io` 的清账入口。它们只做资产地图与静态扫描审计，不移动文件、不重写 story、不报告方法效果。
+2026-07-07 战略转向后，本目录新增 [ledgers/paper1_strategy_asset_map.md](./ledgers/paper1_strategy_asset_map.md) 与 [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md)，作为 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的清账入口。它们只做资产地图与静态扫描审计，不移动文件、不重写 story、不报告方法效果；其中历史 handoff slug 不代表当前施工路线，动态路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 
 当前事实源：seed 看 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) 与 [../corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)，repair baseline 看 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，纯 NL 数据源看 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)，转换 / 表示 / readiness 看 [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md)，人类结论看 [../reports/SUMMARY.md](../reports/SUMMARY.md)。
 

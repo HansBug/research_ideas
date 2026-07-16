@@ -2,7 +2,7 @@
 
 ## 1. 定义目标
 
-本文件只定义 paper1 当前 source-level issue lifecycle 的 v0 合同。它的作用是给后续 `PR-discover-confirm`、`PR-repair-runner` 和 `PR-closure-audit` 提供共同对象，而不是定义最终实验指标或 baseline。
+本文件只定义 paper1 当前 source-level issue lifecycle 的 v0 合同。它的作用是给 Discover root assessment、Repair eligibility、Confirm issue-chain 处置和 C closure audit 提供共同迁移对象，而不是定义最终实验指标或 baseline；动态 subPR 路线以 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 为准。
 
 ## 2. 核心术语
 

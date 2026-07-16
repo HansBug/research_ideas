@@ -2,19 +2,19 @@
 
 本目录现在只维护 paper1 后续实验协议的 **active scaffold**。2026-07-07 战略校准后，paper1 不再以 Better STM / which STM is better 作为 headline evaluation framework；R5.7 的 Better STM definition、repair target taxonomy、objective metric framework、constructed `STM_k` / blind adjudication prompt 与 dry-run 资产已经整体迁入 cold archive：[../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。
 
-当前 active 实验问题是：给定 `NL + raw/source STM_0`，如何发现、确认、修复 source-level behavioral issues，并回到 raw/source 层审计 issue closure 与 regression。
+当前 active 实验问题是：给定 `NL + raw/source STM_0`，一次 Discover 能发现哪些 source-level behavioral issues，多轮 Repair-Confirm 能否处理全部 issue chains，并最终在 raw/source 层审计 closure 与 regression。
 
 ## 1. 当前 active 职责
 
-| 未来协议块 | 当前状态 | 后续 owner |
+| 未来协议块 | 当前状态 | 稳定 owner / 入口 |
 |---|---|---|
-| candidate issue discovery | v0 ledger / schema 已定义；真实 discovery runner 未实现 | [issue_lifecycle/](./issue_lifecycle/), `PR-discover-confirm` |
-| strict source-level confirmation | v0 两条 confirmed path 已定义；source trace v0 已定义 | [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md), [source_trace/](./source_trace/) |
-| confirmed issue ledger | v0 JSON schema / fixture / pytest gate 已定义；尚未接真实 case | [../pipeline/evaluation/schemas/source_issue_ledger.schema.json](../pipeline/evaluation/schemas/source_issue_ledger.schema.json) |
-| issue-grounded repair / change ledger | 尚未定义 | `PR-repair-runner`, `PR-loop-io` |
-| raw/source patch bundle or final raw/source `STM_k` | source trace v0 已定义；导出 / patch bundle 协议尚未实现 | [source_trace/](./source_trace/), `PR-raw-export` |
-| closure / regression audit | 尚未定义 | `PR-closure-audit`, later `PR-eval-rubric` |
-| final metrics / baseline / judge prompt | pilot 前不得冻结 | `PR-loop-pilot` 之后再进入 `PR-eval-rubric` / `PR-baseline-contract` |
+| Discover roots / checks | v0 ledger / schema 是迁移输入；真实 Discover Agent、runtime roots 与 immutable checks 未实现 | [issue_lifecycle/](./issue_lifecycle/), [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
+| Repair dispositions / change ledger | 尚未实现；每轮必须覆盖全部 pending nodes，并对每项 `fix/reject` 给出理由 | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
+| Confirm decisions / successor chains | 尚未实现；每轮必须覆盖全部 dispositions，reject 只追加 successor 并回 Repair | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
+| deterministic B loop / B-final | 尚未实现；顶层不新增 Agent/prompt，只按 typed results 控制循环 | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
+| raw/source patch bundle or final raw/source `STM_k` | source trace v0 已定义；导出 / patch bundle 协议尚未实现 | [source_trace/](./source_trace/), [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| closure / regression audit | 尚未定义；只在 B-final 后进入一次性 C 阶段 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| final metrics / baseline / judge prompt | pilot 前不得冻结 | pilot 后路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
 
 ## 2. 当前保留文件
 
@@ -40,6 +40,7 @@ R5.7 资产已经从本目录移出。若需要追溯旧讨论，请只从 archi
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152：active 协议块改为 Discover roots/checks、Repair dispositions、Confirm decisions/successors、deterministic B loop 与一次性 C audit。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 后新增 [source_trace/](./source_trace/) 合同入口，并将 source trace / projection 从未定义更新为 v0 trace contract 已定义 / raw export 未实现。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后新增 [issue_lifecycle/](./issue_lifecycle/) 合同入口，并将前三个协议块从“未定义”更新为 v0 contract 已定义 / runner 未实现。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写为 source-level issue lifecycle scaffold；R5.7 Better STM 资产改由 cold archive 入口追溯。 |

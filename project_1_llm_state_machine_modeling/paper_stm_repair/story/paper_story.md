@@ -2,15 +2,15 @@
 
 ## Thesis
 
-We study feedback-driven source-level behavioral issue discovery and closure for existing state-machine artifacts: given natural-language requirements and a raw/source state machine, the workflow uses an intermediate executable semantic representation to expose candidate issues, confirm source-level behavioral issues, repair confirmed issues, and project the repair evidence back to the source level for closure and regression audit.
+We study feedback-driven source-level behavioral issue discovery and closure for existing state-machine artifacts: given natural-language requirements and a raw/source state machine, the workflow uses an intermediate executable semantic representation to discover issue roots and immutable checks once, iteratively repair and confirm issue dispositions until every chain is closed, and project the final repair evidence back to the source level for closure and regression audit.
 
-中文概括：本文不是证明某种状态机表达语言更好，而是研究如何用可执行语义中间表示和工具反馈，帮助已有 raw/source 状态机发现、确认、修复并闭合行为问题。
+中文概括：本文不是证明某种状态机表达语言更好，而是研究如何用可执行语义中间表示和工具反馈，对已有 raw/source 状态机执行一次问题发现、多轮修复-确认，并在源层闭合行为问题。
 
 ## Task Boundary
 
 - Inputs: `NL` and existing raw/source `STM_0`.
-- Intermediate artifacts: source trace, intermediate executable semantic representation, diagnostics / inspect / simulation / verification feedback, candidate issue ledger.
-- Outputs: confirmed issue ledger, issue-grounded repair/change ledger, raw/source patch bundle or final raw/source `STM_k`, closure/regression ledger.
+- Intermediate artifacts: source trace, intermediate executable semantic representation, diagnostics / inspect / simulation / verification feedback, Discover roots/checks, Repair dispositions, Confirm decisions/successors, and immutable run records.
+- Outputs: final fcstm `STM_k`, issue-grounded repair/change chains, raw/source patch bundle or final raw/source `STM_k`, and closure/regression ledger.
 - Supported settings: discrete control-oriented FSM / HSM / statechart-like models with states, transitions, events, guard-like conditions, variables, actions/effects, and hierarchy when traceable.
 - Out-of-scope settings: one-shot `NL -> STM` generation as the main contribution, modeling-language superiority claims, arbitrary UML/SysML coverage, timed/hybrid automata headline claims, and constructed `STM_k` adjudication as method evidence.
 
@@ -22,9 +22,9 @@ The gap is therefore not “which state-machine representation is better”. The
 
 ## Technical Challenge
 
-1. **Candidate vs confirmed issue**: tool diagnostics, folded events, or expression debt may indicate a risk, but they are not automatically source-level model issues.
+1. **Candidate vs repair-eligible root**: tool diagnostics, folded events, or expression debt may indicate a risk, but they are not automatically source-level model issues or valid fix targets; Discover must make this assessment before publishing roots.
 2. **Intermediate vs source attribution**: conversion, normalization, and lowering may make a model executable, but their benefits must not be counted as repair gain.
-3. **Repair without over-repair**: an issue-grounded repair should close confirmed issues without rewriting the whole model or introducing regression.
+3. **Repair and confirmation without over-repair**: Repair must process the complete pending batch, while Confirm must accept or reject every disposition against immutable checks without rediscovery, model rollback, or silent regression.
 4. **Evaluation timing**: closure, over-repair, regression, and baseline fairness depend on the real raw/source output shape; final rubric and baseline contract must wait until pilot outputs exist.
 
 ## Method Insight
@@ -33,18 +33,18 @@ Separate semantic reasoning from source-level accountability. The intermediate r
 
 ## System / Method Stages
 
-1. **Source ingestion and trace**: record raw/source elements and their relation to intermediate elements.
-2. **Initial discovery**: use diagnostics, inspect output, simulation/probe, verification/check hints, and LLM reasoning to propose candidate issues.
-3. **Strict confirmation**: validate candidate issues against `NL`, raw/source elements, and behavioral evidence.
-4. **Issue-grounded repair**: generate repair plans and candidate changes tied to `issue_id`.
-5. **Raw/source export**: produce a raw/source patch bundle, raw-level diff/explanation, or final raw/source `STM_k`.
-6. **Closure and regression audit**: rediscover/reconfirm after repair and classify issues as closed, partially closed, not closed, over-repaired, regression-introduced, or unjudgeable.
+1. **A: source ingestion and trace**: record raw/source elements, produce fcstm `STM_0`, and freeze issue-neutral trace/provenance.
+2. **B-discover once**: derive issue checks, use executable feedback and LLM reasoning to publish the complete initial root batch with `confirmed/candidate_only` assessments, or publish zero-root.
+3. **B-repair**: process every pending node in one batch with a reasoned `fix` or `reject`, then atomically publish the complete fcstm `STM_{i+1}` and model diff.
+4. **B-confirm**: inspect every disposition on the published model, issue a reasoned `accept` or `reject`, and append successor nodes for rejected dispositions; successors return only to Repair until all chains close.
+5. **B-final**: deterministically validate record integrity, evidence coverage, and accepted-fix support; this gate only establishes eligibility to attempt source projection.
+6. **C: raw/source export and closure/regression audit**: project once to a raw/source patch bundle or final raw/source `STM_k`, then classify source-level closure, partial closure, non-closure, over-repair, regression, or unjudgeable outcomes.
 
 ## Contributions
 
 Current contribution wording must follow the 2026-07-07 mentor guidance: paper1 contributes the loop plus simulation / formal-verification-enabled feedback, not a new state-machine language and not an audit ledger by itself.
 
-1. **Feedback-driven LLM refinement loop for existing STM artifacts**: formulate and implement an iterative loop over `NL + raw/source STM_0` that discovers candidate source-level behavioral issues, confirms them against source evidence, repairs confirmed issues, and checks whether the repaired raw/source artifact closes the issue.
+1. **Feedback-driven LLM refinement loop for existing STM artifacts**: formulate and implement a loop over `NL + raw/source STM_0` with one Discover stage, iterative Repair-Confirm rounds over issue-linked dispositions, and final source-level closure/regression assessment.
 2. **Executable-feedback integration into the loop**: use an intermediate executable semantic representation to bring diagnostics / inspect output, simulation/probe results, and formal-verification/check feedback into the LLM refinement process, so that the loop is not only free-form textual rewriting.
 3. **Source-level repair output and evaluation setup**: require repair evidence to be projected back to raw/source-level patches, diffs, or final raw/source `STM_k`, and set up the eventual evaluation around issue discovery, issue closure, partial closure, non-closure, regression / over-repair, and direct raw/source LLM baselines.
 
@@ -74,7 +74,7 @@ Do not position the paper as a PlantUML-vs-fcstm or SysML-vs-fcstm language pape
 
 - We study source-level behavioral issue discovery and closure for existing state-machine artifacts.
 - We use an intermediate executable semantic representation to enable diagnostics, simulation/probe, and verification/check feedback.
-- We separate candidate issue discovery from strict source-level confirmation.
+- We separate Discover-time root assessment, post-repair disposition confirmation, and final source-level closure assessment.
 - We require repairs to be issue-grounded and auditable through source-level patch / projection evidence.
 - We defer final rubric and baseline contract until pilot outputs reveal the actual raw/source output shape.
 
@@ -100,6 +100,6 @@ Do not position the paper as a PlantUML-vs-fcstm or SysML-vs-fcstm language pape
 |---|---|---|
 | Reviewer thinks this is a modeling-language paper. | Would shift burden to proving fcstm superiority. | State fcstm as intermediate medium only and evaluate at raw/source issue level. |
 | Reviewer challenges “better STM”. | “Better” is underspecified and may mix expression quality with semantic correctness. | Archive Better STM headline; use issue discovery / closure instead. |
-| Reviewer asks how issues are confirmed. | Candidate diagnostics alone are weak. | Require `NL + raw/source element + behavior evidence`. |
+| Reviewer asks how issues become repair-eligible and how repairs are confirmed. | Candidate diagnostics alone are weak, while a runnable patch may still be wrong. | Discover requires `NL/source/behavior` or source-internal evidence for repair eligibility; B-confirm then evaluates every disposition on the published model using immutable checks and explicit reasons. |
 | Reviewer asks if repair overfits the model. | Scenario/property generation may overfit source model. | Defer final rubric/baseline until pilot; include regression and unjudgeable states. |
 | Reviewer asks for fair baselines. | Baseline input visibility depends on final output form. | Freeze baseline contract only after pilot. |

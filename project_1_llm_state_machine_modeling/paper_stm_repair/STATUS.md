@@ -2,7 +2,7 @@
 
 ## 1. 当前阶段
 
-paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**。当前 active 主线是 source-level behavioral issue discovery and closure，不再是 Better STM / which STM is better 主框架。
+paper1 处于 **方法合同已讨论、阶段 Agent 即将纵向实现** 的阶段。当前 active 主线是 source-level behavioral issue discovery and closure，不再是 Better STM / which STM is better 主框架；稳定控制流为一次 Discover、多轮 Repair-Confirm、一次 C 阶段 source projection / closure audit。
 
 ## 2. 已完成事实
 
@@ -20,19 +20,17 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 
 ## 3. 尚未完成事实
 
-| 后续能力 | 当前状态 | 后续 PR |
+| 后续能力 | 当前状态 | 动态施工入口 |
 |---|---|---|
 | Better STM-facing 资产归档 | 已完成；只允许 historical / superseded / calibration-only 引用 | [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/) |
-| raw/source trace 与 patch/projection 挂接 | source trace v0 已定义；尚未接入真实 repair/change ledger 或 raw/source export | `PR-loop-io`, `PR-raw-export` |
-| 最小 loop IO / run record | 未冻结 | `PR-loop-io` |
-| discovery + strict confirmation | 未实现 | `PR-discover-confirm` |
-| issue-grounded repair runner | 未实现 | `PR-repair-runner` |
-| raw/source export 或 patch bundle | 未实现 | `PR-raw-export` |
-| closure / regression audit | 未实现 | `PR-closure-audit` |
-| pilot | 未运行 | `PR-loop-pilot` |
-| final evaluation rubric | 未冻结；必须等 pilot 后 | `PR-eval-rubric` |
-| baseline contract | 未冻结；必须等 pilot 和 rubric 后 | `PR-baseline-contract` |
-| formal experiment protocol | 未冻结 | `PR-exp-protocol` |
+| shared kernel / stage IO / run record | Issue #152 已定义稳定语义；runtime schema、writer/reader、renderer 与恢复尚未实现，最早由完整 Discover 阶段按需落地 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| Discover Agent | 未实现；必须一次性发布 roots、immutable checks 或 zero-root | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| Repair Agent | 未实现；必须整批 `fix/reject` 并原子发布完整 `STM_{i+1}` 与 diff | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| Confirm Agent | 未实现；必须审查全部 dispositions，reject 只追加 successor 并回 Repair | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| deterministic loop controller | 未实现；不新增顶层 Agent/prompt，只按 typed results 组织 Discover once 与 Repair-Confirm 循环 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| raw/source trace 与 patch/projection 挂接 | source trace v0 已定义；尚未接入真实 repair/change ledger 或一次性 raw/source export | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| closure / regression audit | 未实现；只在 B-final 后进入 C 阶段 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| pilot、final rubric、baseline contract、formal protocol | 均未完成；rubric / baseline 必须等 pilot 暴露真实 source output 后冻结 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
 
 ## 4. 当前可声称与不可声称
 
@@ -42,7 +40,7 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 - 2026-07-07 导师讨论进一步确认：paper1 contribution 应聚焦 feedback-driven LLM refinement loop，以及 diagnostics / inspect、simulation / probe、formal verification / check feedback 如何进入这个 loop；不把 fcstm 本身作为贡献。
 - 已有 conversion / representation / readiness 资产可作为后续方法 infrastructure。
 - 已完成 asset map，可指导哪些材料保留、改写、归档或只作历史证据。
-- 已定义 issue ledger v0 与 source trace v0，可作为后续 loop IO / discovery / repair / raw export 的最小 evidence-chain contract。
+- 已定义 issue ledger v0 与 source trace v0，可作为后续 Discover / Repair / Confirm / source export 的迁移输入与最小 evidence-chain guardrail。
 
 ### 不可声称
 
@@ -68,6 +66,7 @@ paper1 处于 **战略转向后的 story reset / issue lifecycle 准备阶段**�
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152 与伞 PR #100：状态表改为完整 Discover/Repair/Confirm Agent + 确定性 loop controller；动态 subPR 状态只链接 #100，不再保留旧 slug。 |
 | 2026-07-08 14:03:59 | STATUS 同步 `PR-source-trace`：最小 source trace v0 已定义，negative trace gate / reverse index / partial projection 均有 schema 与 tests，但尚未接入真实 loop。 |
 | 2026-07-08 10:15:00 | STATUS 同步 `PR-issue-ledger`：最小 source issue ledger v0 已定义，但尚未接入真实 discovery / repair / closure loop。 |
 | 2026-07-07 23:40:00 | STATUS 同步 `PR-better-archive`：R5.7 Better STM-facing 资产已迁入 cold archive，R5/R5.5 reports 与 R5.7 reports 分开。 |

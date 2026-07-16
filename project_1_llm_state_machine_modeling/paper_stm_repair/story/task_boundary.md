@@ -6,10 +6,10 @@
 
 ```text
 Input:  <NL, raw/source STM_0>
-Output: <confirmed issue ledger, repair/change ledger, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
+Output: <Discover roots/checks, Repair-Confirm issue chains, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
 ```
 
-方法目标是在已有状态机制品中发现、确认、修复并闭合 source-level behavioral issues。
+方法目标是在已有状态机制品中执行一次问题发现、多轮修复-确认，并最终闭合 source-level behavioral issues。
 
 ## 2. 输入
 
@@ -24,9 +24,8 @@ Output: <confirmed issue ledger, repair/change ledger, raw/source patch bundle o
 
 | 输出 | 说明 | 不能做什么 |
 |---|---|---|
-| candidate issue ledger | 记录工具 / LLM /人工提示的可疑行为问题。 | 不能直接作为 confirmed issue 或 success。 |
-| confirmed issue ledger | 记录经 `NL + raw/source element + behavior evidence` 确认的问题。 | 不能由 folded event / diagnostic alone 自动生成。 |
-| repair/change ledger | 记录每个 `issue_id` 对应的修复计划、候选修改、失败或 unsupported 情形。 | 不能泛泛重写整个模型。 |
+| Discover roots/checks | 记录工具 / LLM 发现的问题、`confirmed/candidate_only` assessment、repair eligibility 与 immutable checks。 | 不能由 folded event / diagnostic alone 自动生成 repair-eligible root。 |
+| Repair-Confirm issue chains | 记录每个 node 的 `fix/reject`、已发布模型/diff、`accept/reject`、理由、证据和 successor。 | 不能泛泛重写整个模型，不能修改旧节点或回到 Discover。 |
 | raw/source patch bundle or final raw/source `STM_k` | 回到源层的补丁、diff、解释或完整候选模型。 | 无法投影的中间修改不能算 closure。 |
 | closure/regression ledger | 记录 closed / partially closed / not closed / over-repaired / regression-introduced / unjudgeable。 | 不得静默删除未闭合或新引入的问题。 |
 
@@ -37,11 +36,12 @@ Output: <confirmed issue ledger, repair/change ledger, raw/source patch bundle o
 1. raw/source 资产读取与 source trace。
 2. 中间可执行语义表示构造。
 3. diagnostics / inspect / simulation / verification feedback 消费。
-4. candidate issue discovery。
-5. strict source-level confirmation。
-6. issue-grounded repair。
-7. raw/source patch/projection。
-8. closure / regression audit。
+4. 一次 B-discover：root assessment 与 immutable checks。
+5. 多轮 B-repair：整批 `fix/reject` 与原子模型发布。
+6. 多轮 B-confirm：整批 `accept/reject` 与 successor 追加。
+7. B-final evidence gate。
+8. 一次 raw/source patch/projection。
+9. C closure / regression audit。
 
 ### 方法外
 
@@ -58,7 +58,7 @@ Output: <confirmed issue ledger, repair/change ledger, raw/source patch bundle o
 |---|---|
 | 任务和范围设定 | 冻结 paper story、scope、claim boundary。 |
 | reference issue / pilot 后 rubric | 可参与人工复核和 ambiguity 标注。 |
-| 方法运行 | 不应在 run 中手工替换 `STM_0` 或私自修补输出。 |
+| 方法运行 | 无人在回路；人类不得在 run 中替换 `STM_0`、裁决 disposition 或私自修补输出。 |
 | 失败处理 | 标注 unsupported / untraceable / unjudgeable，而不是隐性删除失败。 |
 
 ## 6. 失败状态

@@ -31,15 +31,17 @@
 - 本目录下的 `fixtures/*/README.md` 只做人类可读 narrative，不增加字段、不覆盖 JSON。
 - 若二者冲突，以 JSON fixture + schema + pytest 为准，并同步修正文档。
 
-## 4. 与后续 PR 的接口
+## 4. 与后续阶段的接口
 
-| 后续 PR | 如何消费本合同 |
+| 后续阶段 | 如何消费本合同 |
 |---|---|
-| `PR-source-trace` | 接管 `source_element_refs` 和 `required_future_trace`，定义 raw/source ↔ intermediate trace。 |
-| `PR-loop-io` | 将本 ledger 放入 stage IO / run record 合同。 |
-| `PR-discover-confirm` | 产生 candidate / confirmed issue ledger。 |
-| `PR-repair-runner` | 只能修复 `confirmation_status=confirmed` 且 `downstream_repair_allowed=true` 的 issue。 |
-| `PR-closure-audit` | 用 issue ledger 判断 repair 后 closure / regression。 |
+| source trace v0 | 已接管 `source_element_refs` 和 `required_future_trace`，定义 raw/source ↔ intermediate trace。 |
+| Discover | 将 v0 ledger 迁移为 runtime roots / assessments / immutable checks；`candidate_only` 不能被自动升级为可 fix。 |
+| Repair | 只有 `confirmation_status=confirmed` 且 `downstream_repair_allowed=true` 的 root 可以 `fix`；其余 pending root 必须给出 reasoned `reject`。 |
+| Confirm | 审查本轮 dispositions 与已发布模型，不重做 Discover assessment；reject 通过 successor node 延续同一 issue chain。 |
+| C closure audit | 在最终 source projection 上用 issue chain 判断 closure / regression，不把 B-confirm accept 直接当 source closure。 |
+
+动态 subPR 名称、状态与依赖只维护在 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 
 ## 5. 禁止误读
 
@@ -53,4 +55,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 将旧 subPR 接口改为 Discover/Repair/Confirm/C 稳定能力接口，并明确 v0 ledger 到 runtime roots 的迁移边界。 |
 | 2026-07-08 09:52:31 | 初始化 `PR-issue-ledger` issue lifecycle 合同入口、schema/fixture 指针与后续 PR 接口。 |

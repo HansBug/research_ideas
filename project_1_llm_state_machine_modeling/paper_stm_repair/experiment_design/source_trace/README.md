@@ -64,10 +64,11 @@ source trace 是证据链和归因边界，不是 paper1 的 headline contributi
 - 不把 `normalized` 造成的语法变化写成 repair gain。
 - 不把 `split` 的 partial localization 写成 full issue closure。
 - 不把 `ambiguous` / `untraceable` / `conversion_artifact` 用作 source-level closure 主证据。
-- 不用本目录替代后续 `PR-loop-io`、`PR-raw-export`、`PR-closure-audit` 或 `PR-eval-rubric`。
+- 不用本目录替代 Discover/Repair/Confirm runtime、最终 source export、C closure audit 或 pilot 后 evaluation rubric；动态施工顺序见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 
 ## 7. 更新日志
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 删除旧 loop-io 动态路由，改为稳定阶段能力与 #100 动态施工入口。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 初始化 source trace 合同入口、v0 relation 口径和 machine schema / fixture / tests 指针。 |

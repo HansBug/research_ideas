@@ -9,9 +9,10 @@
 | 中间语义执行表示 | intermediate executable semantic representation | 用于 diagnostics / simulation / verification feedback；可由 `fcstm` 承载。 |
 | 候选问题 | candidate issue | 工具或 LLM 提示的可疑问题。 |
 | 已确认源层行为问题 | confirmed source-level behavioral issue | 经过 `NL + raw/source element + behavior evidence` 确认的问题。 |
-| 问题发现 | issue discovery | 产生 candidate issue。 |
-| 严格确认 | strict confirmation | 把 candidate issue 判为 confirmed / unconfirmed / unjudgeable。 |
+| 问题发现 | B-discover / issue discovery | 只执行一次，产生 roots、`confirmed/candidate_only` assessment 与 immutable checks。 |
+| 初始问题评估 | root assessment | Discover 内判断 root 是否 repair-eligible；不是独立的 pre-repair Confirm stage。 |
 | 问题绑定修复 | issue-grounded repair | repair 必须绑定 `issue_id`。 |
+| 处置确认 | B-confirm / disposition confirmation | Repair 后逐项审查 `fix/reject`，输出 `accept/reject` 与理由；reject 追加 successor 并回 Repair。 |
 | 源层补丁包 | source-level patch bundle | 可回投到 raw/source 层的 patch / diff / explanation。 |
 | 闭合审计 | closure audit | 判断原 issue 是否 closed / partially closed / not closed / over-repaired / unjudgeable。 |
 | 回归审计 | regression audit | 判断是否引入新 source-level issue。 |
@@ -54,5 +55,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 区分 Discover root assessment、Repair disposition、B-confirm 与 C closure，废止 strict-confirm-before-repair 的阶段化误读。 |
 | 2026-07-07 22:10:00 | 增加 contribution 术语禁区：ledger / audit 不能写成 headline contribution。 |
 | 2026-07-07 21:20:00 | 术语从 Better STM / repair target 框架改为 issue discovery / confirmation / repair / closure / regression。 |

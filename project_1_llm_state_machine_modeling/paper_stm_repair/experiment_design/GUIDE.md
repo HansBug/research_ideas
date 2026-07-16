@@ -2,7 +2,7 @@
 
 ## 1. 总原则
 
-本目录只维护 paper1 当前主线的实验设计纪律：**source-level behavioral issue discovery -> strict confirmation -> issue-grounded repair -> raw/source closure / regression audit**。
+本目录只维护 paper1 当前主线的实验设计纪律：**Discover once -> Repair full batch -> Confirm all dispositions -> Repair-Confirm until all chains close -> one-time raw/source closure / regression audit**。
 
 旧 R5.7 / Better STM-facing 规则已经归档到 [../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。它们可以作为 historical / calibration / anti-pattern 参考，但不能直接作为 active guardrail、正式 metric、baseline contract 或 judge prompt。
 
@@ -11,11 +11,12 @@
 | 对象 | 必须回答的问题 | 最低证据 |
 |---|---|---|
 | candidate issue | 为什么怀疑 raw/source `STM_0` 存在行为问题？ | `NL`、raw/source element、intermediate diagnostics / simulation / check feedback、问题描述；具体字段见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md)。 |
-| confirmed issue | 该问题是否真是 source-level behavioral issue，而非表达债、转换损失或中间表示偏差？ | strict source-level confirmation 记录、证据片段、排除 conversion / lowering 归因；v0 允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条路径。 |
-| repair/change | 修复动作针对哪个 confirmed issue？ | change ledger、source trace、输入输出 hash、LLM / deterministic step 记录。 |
+| Discover root assessment | 该 root 是否有足够依据进入 `fix`，还是只能由 Repair reasoned reject？ | Discover 发布的 `confirmed/candidate_only` assessment、immutable checks、证据片段与 attribution boundary；v0 允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path。 |
+| repair/change | 本轮对每个 pending node 做了 `fix` 还是 `reject`，理由与实际改动是什么？ | 完整 disposition batch、change ledger、source trace、输入输出 hash、模型 diff、LLM / deterministic step 记录。 |
+| B-confirm | 本轮每个 disposition 是否可接受；若不可接受，如何在同一 issue chain 上追加 successor？ | typed expected-outcome match、当前模型检查结果、完整自然语言理由、successor linkage 与因果记录。 |
 | source trace | confirmed issue 的 raw/source 元素如何对应到中间表示元素？ | [source_trace/source_trace_contract.md](./source_trace/source_trace_contract.md)、trace ledger、negative attribution gate。 |
 | source projection | 修复如何回到 raw/source 层？ | patch bundle、projection note、unsupported projection 记录。 |
-| closure / regression | 问题是否闭合，是否引入新问题？ | post-repair rediscovery / confirmation、regression audit、失败 / unknown 入账。 |
+| closure / regression | B-final 后回投 source 层时，问题是否闭合，是否引入新问题？ | final source projection、隐藏/独立审计、失败 / unknown 入账；B-confirm accept 不能单独冒充 source closure。 |
 
 ## 3. 禁止直接继承的 archived 内容
 
@@ -51,6 +52,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | 对齐 Issue #152：区分 Discover root assessment、Repair disposition、B-confirm 决议与 C closure；删除 strict-confirm-before-repair / post-repair rediscovery 旧顺序。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 后同步 GUIDE：source trace v0 已定义，后续 projection / closure 必须消费 trace ledger 并尊重 negative attribution gate。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步 GUIDE：candidate / confirmed issue 已有 v0 字段合同和两条 confirmed path，但仍不冻结 final metrics / baseline。 |
 | 2026-07-07 23:40:00 | `PR-better-archive` 后重写 GUIDE：移除 active Better STM gate 维护纪律，改为 source-level issue lifecycle protocol 设计纪律。 |

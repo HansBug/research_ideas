@@ -4,7 +4,7 @@
 
 ## 1. 当前 thesis
 
-给定自然语言需求 `NL` 与已有 raw/source 状态机 `STM_0`，本文研究如何通过中间语义执行表示和工具 / agent 反馈发现 source-level behavioral issues，确认问题、围绕 confirmed issues 修复，并回到 raw/source 层审计 closure 与 regression。
+给定自然语言需求 `NL` 与已有 raw/source 状态机 `STM_0`，本文研究如何通过中间语义执行表示和工具 / agent 反馈执行一次 Discover，再以多轮 Repair-Confirm 处理全部 issue chains，并回到 raw/source 层审计 closure 与 regression。
 
 `fcstm` / `pyfcstm` 只作为 intermediate executable semantic representation / feedback medium；它们不是 paper1 的 contribution。ledger / audit / evidence bookkeeping 也不是 headline contribution，只能作为方法、评价和可复现纪律。
 
@@ -47,7 +47,7 @@ paper1 当前 contribution 口径限定为：
 
 **Q：这是不是在定义什么是 better specification？**
 
-不是。Better STM 主框架已经 superseded。当前问题是 issue lifecycle：发现哪些 source-level behavioral issues、哪些被确认、哪些被 issue-grounded repair 闭合、是否引入 regression。
+不是。Better STM 主框架已经 superseded。当前问题是 issue lifecycle：Discover 初始化哪些 source-level behavioral issue roots 与 checks，Repair 如何逐项 `fix/reject`，Confirm 如何接受处置或追加 successor，以及最终 source projection 是否闭合问题、是否引入 regression。
 
 详细模型范围和行为表达边界见 [model_scope.md](./model_scope.md)。
 
@@ -55,5 +55,6 @@ paper1 当前 contribution 口径限定为：
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-17 00:32:36 | story 入口对齐一次 Discover + 多轮 Repair-Confirm + 一次 C closure audit，删除 strict-confirm-before-repair 旧顺序。 |
 | 2026-07-07 22:10:00 | story 入口补充 contribution 口径限定：主贡献是 feedback-driven LLM refinement loop、executable-feedback integration 与 source-level repair/evaluation setup；ledger / audit 降级为方法和评价纪律。 |
 | 2026-07-07 21:20:00 | story 入口重置为 source-level behavioral issue discovery and closure；Better STM 主框架降级为 historical / cold archived。 |

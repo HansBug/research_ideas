@@ -18,7 +18,7 @@
 
 后续 `PR-eval-rubric` 可考虑围绕以下对象重建指标：
 
-1. issue discovery coverage / precision：发现的问题是否能被 strict source-level confirmation 支撑。
+1. issue discovery coverage / precision：Discover roots 是否有足够 NL/source/behavior 或 source-internal evidence 支撑其 assessment，且 candidate-only 不被误计为 repair-eligible。
 2. confirmed issue closure：每个 confirmed issue 是否被修复、部分闭合、未闭合或 unknown。
 3. regression：修复后是否引入新的 source-level behavioral issue。
 4. source projection success：中间表示修复是否能回到 raw/source patch bundle。
