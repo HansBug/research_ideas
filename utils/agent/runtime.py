@@ -3347,7 +3347,17 @@ class AgentApp:
                 info["partial_summary"] = partial_texts.get(call_id, "")
                 info["usage"] = next((item for item in reversed(usage) if item.get("model_call_id") == call_id), None)
                 compaction_failed(compaction_id, AgentError("compact_error", "summary model transport failed"))
-            emit("model_failed", {"model_call_id": call_id, "call_kind": model_call_kinds.get(call_id, "primary"), "turn": call_turn, "error": transport_errors[call_id], **public_model_timing(call_id)})
+            emit(
+                "model_failed",
+                {
+                    "model_call_id": call_id,
+                    "call_kind": model_call_kinds.get(call_id, "primary"),
+                    "turn": call_turn,
+                    "compaction_id": compaction_by_model_call.get(call_id),
+                    "error": transport_errors[call_id],
+                    **public_model_timing(call_id),
+                },
+            )
 
         def redaction_report() -> list[dict[str, Any]]:
             return [
