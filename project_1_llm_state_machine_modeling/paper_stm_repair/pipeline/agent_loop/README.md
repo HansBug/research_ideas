@@ -17,9 +17,11 @@ source producer 或其他 Agent。唯一的 Discover Agent 在同一次 run 内�
    必须先读取 `pyfcstm.llm` 提供的 FBMCQ guide。
 4. 调用 `evaluate_checks`，由确定性代码完成 binding、scenario、bounded property、
    static consistency 和 mechanical eligibility。
-5. 仅针对明确证据缺口调用结构、轨迹或 source-trace 查询工具。
+5. 仅针对 eligible batch 的明确证据缺口调用一次合并后的轨迹或 source-trace
+   microscope；若调用后修改 drafts，必须重新执行最终完整 batch。
 6. 对完整 check batch 给出 `confirmed / candidate_only / rejected` 理由。
-7. 一次性提交与某次 eligible `evaluate_checks` 调用完全一致的 drafts、roots 和
+7. 最后一轮通过结构化终止工具，一次性提交与某次 eligible `evaluate_checks` 调用
+   完全一致的 drafts、roots 和
    rejected propositions。
 
 Agent 获得七个 bounded 工具：
@@ -30,14 +32,16 @@ Agent 获得七个 bounded 工具：
 | `read_fbmcq_guide` | 读取 `pyfcstm.llm` 中完整、带版本与 SHA-256 的 FBMCQ guide | 首次构造、修订或提交 property 前必用 |
 | `read_task` | 读取或重读同一 attempt 的六字段冻结上下文 | FCSTM guide 后必用；Compact 后或需复核时可重读 |
 | `query_model` | 查询分页结构化 inspect 事实 | 存在明确的结构证据缺口时 |
-| `observe_trace` | 探索一条有限事件轨迹 | 存在明确的轨迹问题时 |
-| `lookup_source_trace` | 查询 source 与 fcstm 元素映射 | 引用边界不清楚时 |
+| `observe_trace` | 探索一条最短有限事件轨迹 | eligible batch 之后；每个不同 drafts hash 最多完成一次，重复同一 batch 不重置 |
+| `lookup_source_trace` | 合并查询 source 与 fcstm 元素映射 | eligible batch 之后；一次传入该 batch 全部 refs，每个不同 drafts hash 最多完成一次 |
 | `evaluate_checks` | 绑定并执行完整 check draft batch | 最终 batch 必须调用且通过机械 gate |
 
 初始 provider input 不包含 FCSTM 正文，只包含 run/model 身份和 hash。Controller 通过
 内容隔离、工具前置条件和 run 后顺序复核三层机制强制执行
 `read_fcstm_guide -> read_task -> model work`；property batch 另强制
 `read_fbmcq_guide -> property work`。任何先违规后补读的 attempt 仍会 fail-closed。
+Discover 另开启 `require_tool_each_turn`：每一轮必须选择已注册业务工具或结构化终止
+工具，不能用空白或普通文本提前结束。该策略不限制模型调用、工具调用、时间或 token。
 
 `evaluate_checks` 内部固定调用 `run_scenarios`、`verify_properties`、
 `verify_static_consistency` 和 `validate_discovery_checks`，但不调用 LLM、不修改模型、

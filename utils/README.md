@@ -85,6 +85,7 @@ AgentSpec(
     output_schema: type[BaseModel] | None = None,
     limits: Mapping[str, int | float | None] | None = None,
     require_tool_call: bool = False,
+    require_tool_each_turn: bool = False,
 )
 ```
 
@@ -102,6 +103,8 @@ spec = AgentSpec(
 ```
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
+
+`require_tool_call=True` 只要求整次运行至少成功调用过一个业务工具；`require_tool_each_turn=True` 则由 runtime 在每次模型请求中注入标准 `tool_choice=required`，要求模型每轮选择一个已注册业务工具或结构化终止工具，避免以空白/普通文本提前结束。后者不限制调用次数、时间或 token，也不允许调用方指定任意工具名；只有协议本身要求“工具或结构化提交驱动”的 agent 才应开启。
 
 限制计数是整个 `run` 的累计值；compact summary transport 也计入显式 `model_calls`，但不计业务 turn/tool。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；缺省时把容量交给 provider，不在本地擅自猜测数值。
 

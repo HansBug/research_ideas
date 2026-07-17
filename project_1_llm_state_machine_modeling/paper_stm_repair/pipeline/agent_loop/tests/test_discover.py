@@ -32,6 +32,8 @@ def test_discover_runtime_contains_exactly_one_agent_app_run_and_no_controller_a
     assert "AgentSpec" not in controller_source
     assert discover_source.count("result = app.run(") == 1
     assert "prepare_issue_checks" not in discover_source
+    assert "require_tool_each_turn=True" in discover_source
+    assert 'limits=manifest.get("agent_limits") or None' in discover_source
 
 
 def test_pair_loader_uses_canonical_nl_and_prepared_fcstm():

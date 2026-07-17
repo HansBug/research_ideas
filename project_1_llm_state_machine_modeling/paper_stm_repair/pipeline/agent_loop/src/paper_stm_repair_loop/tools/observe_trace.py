@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ..schemas.tools import ObserveTraceInput, TraceObservation, SimpleStructuredTool
+from .post_batch_investigation import PostBatchInvestigationState
 
 _LIMITATIONS = [
     "exploratory_trace_only",
@@ -202,7 +203,11 @@ def execute(
     return _normalize_runner_result(raw, params.events, model_sha256)
 
 
-def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> SimpleStructuredTool:
+def build_tool(
+    snapshot: dict[str, Any],
+    runner: Callable[..., Any] | None,
+    investigation_state: PostBatchInvestigationState | None = None,
+) -> SimpleStructuredTool:
     """Purpose: create ``observe_trace`` bound to the current frozen model.
 
     Parameters: ``snapshot`` supplies the frozen model hash and optional inspect
@@ -212,9 +217,9 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
     Returns: a ``StructuredTool`` named ``observe_trace`` with strict input schema
     and ``TraceObservation`` output semantics.
 
-    Execution: validates that requested events are known when the frozen inspect
-    provides an event list, checks the optional step bound, then delegates to the
-    injected runner and normalizes the result.
+    Execution: when a protocol state is supplied, requires one distinct eligible
+    ``evaluate_checks`` batch and permits one completed trace microscope for that
+    batch; then validates events and delegates to the injected runner.
 
     Failure semantics: unknown events, empty sequence, over-budget steps, missing
     runner, runner timeout, and runner exception each produce structured status;
@@ -238,7 +243,10 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
         -------
         Execute one exploratory, finite event sequence against the frozen current
         ``STM_0`` to answer a concrete diagnostic question that remains after an
-        eligible full-batch ``evaluate_checks`` result. Use it to distinguish one
+        eligible full-batch ``evaluate_checks`` result. The Controller enforces
+        at most one completed trace microscope per distinct eligible draft-batch
+        hash; re-evaluating the same drafts does not reopen trace exploration.
+        Use it to distinguish one
         named uncertainty about consumption, stutter/no-progress behavior, reached
         configuration, or runtime diagnostics. It is not a coverage engine: do
         not enumerate event permutations, duplicate evaluated scenarios, repeat
@@ -275,19 +283,23 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
 
         Execution
         ---------
-        1. Validate non-empty strings, qualified names against frozen inspect when
+        1. Require a distinct eligible full-batch ``evaluate_checks`` result and
+           reject repeated trace exploration for the same draft-batch hash.
+        2. Validate non-empty strings, qualified names against frozen inspect when
            available, and ``max_steps``.
-        2. Invoke the Controller-injected deterministic runner on the already bound
+        3. Invoke the Controller-injected deterministic runner on the already bound
            model; no model/path argument is accepted from the Agent.
-        3. Normalize cycles, event accounting, final configuration, diagnostics,
+        4. Normalize cycles, event accounting, final configuration, diagnostics,
            status, and model hash into the strict output schema.
-        4. Preserve timeout/unknown/incomplete/error instead of coercing them to a
+        5. Preserve timeout/unknown/incomplete/error instead of coercing them to a
            successful domain observation. No latest-state reload or record update
            occurs.
 
         Failure semantics
         -----------------
-        Empty/non-string events, unknown qualified event, or too-small/nonpositive
+        Missing eligible evaluation returns ``prerequisite_required``. A second
+        trace for the same eligible draft batch returns ``invalid_arguments`` and
+        must not be retried. Empty/non-string events, unknown qualified event, or too-small/nonpositive
         ``max_steps`` returns ``invalid_arguments`` without execution. Missing
         runner returns ``tool_unavailable``. Runner exception/non-object output is
         ``execution_error``. Timeout, unknown, and incomplete remain distinct.
@@ -317,6 +329,45 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
         ``{"execution_status":"completed","model_sha256":"...","requested_events":["Root.go"],"cycles":1,"input_events":["Root.go"],"consumed_events":["Root.go"],"unconsumed_events":[],"final_configuration":{"current_state":"Root.Done"},"diagnostics":[],"limitations":[...]}``.
         """
 
+        batch_sha256 = (
+            investigation_state.latest_eligible_batch()
+            if investigation_state is not None
+            else None
+        )
+        if investigation_state is not None and batch_sha256 is None:
+            return TraceObservation(
+                execution_status="prerequisite_required",
+                model_sha256=model_sha256,
+                requested_events=events,
+                input_events=events,
+                unconsumed_events=events,
+                diagnostics=[
+                    {
+                        "code": "eligible_evaluate_checks_required_first",
+                        "severity": "error",
+                    }
+                ],
+                limitations=[*_LIMITATIONS, "post_batch_investigation_only"],
+            ).model_dump(mode="json")
+        if (
+            investigation_state is not None
+            and batch_sha256 is not None
+            and investigation_state.already_completed("observe_trace", batch_sha256)
+        ):
+            return TraceObservation(
+                execution_status="invalid_arguments",
+                model_sha256=model_sha256,
+                requested_events=events,
+                input_events=events,
+                unconsumed_events=events,
+                diagnostics=[
+                    {
+                        "code": "post_batch_trace_already_completed",
+                        "severity": "error",
+                    }
+                ],
+                limitations=[*_LIMITATIONS, "one_trace_per_distinct_eligible_batch"],
+            ).model_dump(mode="json")
         if known_events:
             unknown = [event for event in events if event not in known_events]
             if unknown:
@@ -329,6 +380,13 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
                     diagnostics=[{"code": "unknown_event", "refs": unknown, "severity": "error"}],
                     limitations=[*_LIMITATIONS, "unknown_event_not_executed"],
                 ).model_dump(mode="json")
-        return execute("", events, "<frozen>", max_steps, runner, model_sha256)
+        result = execute("", events, "<frozen>", max_steps, runner, model_sha256)
+        if (
+            investigation_state is not None
+            and batch_sha256 is not None
+            and result.get("execution_status") == "completed"
+        ):
+            investigation_state.mark_completed("observe_trace", batch_sha256)
+        return result
 
     return SimpleStructuredTool(func=observe_trace, name="observe_trace", description=observe_trace.__doc__ or "observe_trace", args_schema=ObserveTraceInput)

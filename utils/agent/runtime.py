@@ -130,6 +130,7 @@ class AgentSpec:
     output_schema: type[BaseModel] | None = None
     limits: Mapping[str, int | float | None] | None = None
     require_tool_call: bool = False
+    require_tool_each_turn: bool = False
 
     def __post_init__(self) -> None:
         if not self.name.strip() or not self.system_prompt.strip():
@@ -144,6 +145,10 @@ class AgentSpec:
             raise ValueError(f"agent_spec_invalid: unknown limit keys: {sorted(unknown)}")
         if any(value is not None and (not isinstance(value, (int, float)) or value <= 0) for value in limits.values()):
             raise ValueError("agent_spec_invalid: limits must be positive")
+        if self.require_tool_each_turn and not (self.tools or self.output_schema is not None):
+            raise ValueError(
+                "agent_spec_invalid: require_tool_each_turn needs a business tool or output schema"
+            )
         object.__setattr__(self, "limits", limits)
 
     @property
@@ -2165,16 +2170,28 @@ class _CompactPostGuardMiddleware(AgentMiddleware):
 class _ModelOptionsMiddleware(AgentMiddleware):
     """Apply per-inference model settings without changing profile identity."""
 
-    def __init__(self, options: Mapping[str, Any] | None):
+    def __init__(
+        self,
+        options: Mapping[str, Any] | None,
+        *,
+        required_tool_choice: bool = False,
+    ):
         self.options = dict(options or {})
+        self.required_tool_choice = required_tool_choice
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
-        return handler(request.override(model_settings=settings))
+        overrides: dict[str, Any] = {"model_settings": settings}
+        if self.required_tool_choice:
+            overrides["tool_choice"] = "required"
+        return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
-        return await handler(request.override(model_settings=settings))
+        overrides: dict[str, Any] = {"model_settings": settings}
+        if self.required_tool_choice:
+            overrides["tool_choice"] = "required"
+        return await handler(request.override(**overrides))
 
 
 def _request_projection(request: Any) -> dict[str, Any]:
@@ -3180,6 +3197,7 @@ class AgentApp:
                 "limits": dict(self.spec.limits or {}),
                 "tools": list(self.spec.tool_names),
                 "required_tool": self.spec.require_tool_call,
+                "required_tool_each_turn": self.spec.require_tool_each_turn,
                 "structured_output": self.spec.output_schema.__name__ if self.spec.output_schema is not None else None,
                 **inference_summary,
             })
@@ -3211,6 +3229,7 @@ class AgentApp:
                     "summary_template": "langgraph_default" if compact_threshold is not None else None,
                     "summary_template_hash": _hash_text(DEFAULT_SUMMARY_PROMPT) if compact_threshold is not None else None,
                     "limits": dict(self.spec.limits or {}),
+                    "required_tool_each_turn": self.spec.require_tool_each_turn,
                     "redaction_report": [],
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
                 }
@@ -3241,7 +3260,14 @@ class AgentApp:
                 counters=counters,
             )
             primary_model = self.model.with_config(callbacks=[observer]) if hasattr(self.model, "with_config") else self.model
-            middleware: list[Any] = [_ModelOptionsMiddleware(inference_options), _RequestCaptureMiddleware(request_captures), guard]
+            middleware: list[Any] = [
+                _ModelOptionsMiddleware(
+                    inference_options,
+                    required_tool_choice=self.spec.require_tool_each_turn,
+                ),
+                _RequestCaptureMiddleware(request_captures),
+                guard,
+            ]
             if compact_threshold is not None and compact_trigger_ratio is not None:
                 summary_model = primary_model.with_config(metadata={"lc_source": "summarization"}) if hasattr(primary_model, "with_config") else primary_model
                 summary_model = summary_model.bind(**inference_options) if inference_options else summary_model

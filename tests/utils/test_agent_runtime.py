@@ -20,8 +20,10 @@ from utils.llm import LLMConfig
 class FakeStreamingModel:
     def __init__(self) -> None:
         self.calls = 0
+        self.bind_kwargs: list[dict[str, object]] = []
 
     def bind_tools(self, tools, **kwargs):
+        self.bind_kwargs.append(dict(kwargs))
         return self
 
     async def astream(self, messages, **kwargs):
@@ -41,10 +43,11 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
 
+    model = FakeStreamingModel()
     app = AgentApp._for_test(
         AgentSpec(name="demo", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
         LLMConfig(model="gpt-5.5", api_key="key"),
-        FakeStreamingModel(),
+        model,
     )
     audit = tmp_path / "audit.jsonl"
     result_path = tmp_path / "result.json"
@@ -73,6 +76,32 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert all("heartbeat" not in record for record in records)
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
     assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
+
+
+def test_require_tool_each_turn_is_injected_as_auditable_request_policy() -> None:
+    def lookup(value: str) -> dict[str, str]:
+        return {"value": value}
+
+    events: list[AgentEvent] = []
+    model = FakeStreamingModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="required-each-turn",
+            system_prompt="use lookup",
+            tools=(lookup,),
+            require_tool_call=True,
+            require_tool_each_turn=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    result = app.run("read", renderer="quiet", on_event=events.append)
+
+    assert result.status == "success"
+    started = next(event for event in events if event.kind == "run_started")
+    assert started.data["required_tool_each_turn"] is True
+    assert model.bind_kwargs
+    assert all(item.get("tool_choice") == "required" for item in model.bind_kwargs)
 
 
 def test_tool_events_keep_standard_call_metadata() -> None:

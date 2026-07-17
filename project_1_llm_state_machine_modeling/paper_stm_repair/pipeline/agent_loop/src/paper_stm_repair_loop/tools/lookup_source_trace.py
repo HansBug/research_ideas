@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from ..schemas.tools import LookupSourceTraceInput, SourceTraceLookupResult, SimpleStructuredTool
+from .post_batch_investigation import PostBatchInvestigationState
 
 _LIMITATIONS = [
     "issue_agnostic_source_trace_only",
@@ -156,7 +157,10 @@ def execute(trace: dict[str, Any], element_refs: list[str], direction: str = "fc
     ).model_dump(mode="json")
 
 
-def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
+def build_tool(
+    snapshot: dict[str, Any],
+    investigation_state: PostBatchInvestigationState | None = None,
+) -> SimpleStructuredTool:
     """Purpose: create ``lookup_source_trace`` bound to one frozen source trace.
 
     Parameters: ``snapshot`` is the controller-captured attempt snapshot or trace
@@ -166,9 +170,9 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     Returns: a ``StructuredTool`` named ``lookup_source_trace`` with strict input
     schema and ``SourceTraceLookupResult`` output semantics.
 
-    Execution: every invocation partitions requested refs into exact, ambiguous,
-    and untraceable using the same frozen trace hash; it performs no name-based
-    guessing or latest-state lookup.
+    Execution: when a protocol state is supplied, requires one distinct eligible
+    ``evaluate_checks`` batch and permits one completed consolidated lookup for
+    that batch; then partitions refs using the frozen trace hash.
 
     Failure semantics: invalid refs/direction and missing trace are structured
     failures; ambiguous/untraceable mappings are explicit normal outputs and must
@@ -190,7 +194,11 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         -------
         Resolve typed element references through the current run's frozen,
         issue-agnostic source-to-fcstm trace when a Discover proposition needs an
-        attribution boundary. The tool classifies recorded mappings; it does not
+        attribution boundary after an eligible full-batch ``evaluate_checks``
+        result. Submit all refs for the current batch in one consolidated call;
+        the Controller permits one completed lookup per distinct eligible
+        draft-batch hash, and re-evaluating identical drafts does not reopen it.
+        The tool classifies recorded mappings; it does not
         infer semantic equivalence, create issue bindings, or declare closure.
 
         Parameters
@@ -223,17 +231,21 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Execution
         ---------
-        1. Validate the direction and non-empty exact ref strings.
-        2. Read only ``entries`` from the source trace closed over before dispatch.
-        3. Select source or intermediate side according to ``direction``.
-        4. Partition each ref deterministically into exact, ambiguous, or
+        1. Require a distinct eligible full-batch ``evaluate_checks`` result and
+           reject repeated source lookup for the same draft-batch hash.
+        2. Validate the direction and non-empty exact ref strings.
+        3. Read only ``entries`` from the source trace closed over before dispatch.
+        4. Select source or intermediate side according to ``direction``.
+        5. Partition each ref deterministically into exact, ambiguous, or
            untraceable without name guessing, parsing files, or consulting an LLM.
-        5. Return all candidates and the same frozen trace hash; no cache refresh,
+        6. Return all candidates and the same frozen trace hash; no cache refresh,
            latest-state lookup, issue mutation, or record publication occurs.
 
         Failure semantics
         -----------------
-        Invalid direction, empty list, non-string, or blank ref returns
+        Missing eligible evaluation returns ``prerequisite_required``. A second
+        lookup for the same eligible draft batch returns ``invalid_arguments`` and
+        must not be retried. Invalid direction, empty list, non-string, or blank ref returns
         ``invalid_arguments`` and no exact match. Missing/non-list trace entries
         returns ``tool_unavailable``. Ambiguous and untraceable are normal
         completed mapping outcomes, not exceptions; never silently select an
@@ -261,6 +273,50 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         may return ``{"execution_status":"completed","direction":"fcstm_to_source","requested_refs":["transition:T1"],"exact_matches":[{"entry_index":0,"requested_ref":"transition:T1","mapped_refs":["source:req1"],"entry":{...}}],"ambiguous_matches":[],"untraceable_refs":[],"trace_sha256":"...","limitations":[...]}``.
         """
 
-        return execute(frozen, element_refs, direction)
+        trace = _trace_from(frozen)
+        trace_sha256 = _trace_sha(trace, frozen)
+        batch_sha256 = (
+            investigation_state.latest_eligible_batch()
+            if investigation_state is not None
+            else None
+        )
+        if investigation_state is not None and batch_sha256 is None:
+            return SourceTraceLookupResult(
+                execution_status="prerequisite_required",
+                direction=direction,
+                requested_refs=element_refs,
+                exact_matches=[],
+                ambiguous_matches=[],
+                untraceable_refs=element_refs,
+                trace_sha256=trace_sha256,
+                limitations=[*_LIMITATIONS, "eligible_evaluate_checks_required_first"],
+            ).model_dump(mode="json")
+        if (
+            investigation_state is not None
+            and batch_sha256 is not None
+            and investigation_state.already_completed("lookup_source_trace", batch_sha256)
+        ):
+            return SourceTraceLookupResult(
+                execution_status="invalid_arguments",
+                direction=direction,
+                requested_refs=element_refs,
+                exact_matches=[],
+                ambiguous_matches=[],
+                untraceable_refs=element_refs,
+                trace_sha256=trace_sha256,
+                limitations=[
+                    *_LIMITATIONS,
+                    "post_batch_source_lookup_already_completed",
+                    "one_lookup_per_distinct_eligible_batch",
+                ],
+            ).model_dump(mode="json")
+        result = execute(frozen, element_refs, direction)
+        if (
+            investigation_state is not None
+            and batch_sha256 is not None
+            and result.get("execution_status") == "completed"
+        ):
+            investigation_state.mark_completed("lookup_source_trace", batch_sha256)
+        return result
 
     return SimpleStructuredTool(func=lookup_source_trace, name="lookup_source_trace", description=lookup_source_trace.__doc__ or "lookup_source_trace", args_schema=LookupSourceTraceInput)

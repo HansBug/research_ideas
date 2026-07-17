@@ -12,6 +12,7 @@ from paper_stm_repair_loop.tools.evaluate_checks import build_tool as build_eval
 from paper_stm_repair_loop.tools.guide_access import GuideAccessState, guard_tool, property_batch_requested
 from paper_stm_repair_loop.tools.lookup_source_trace import build_tool as build_lookup_source_trace_tool
 from paper_stm_repair_loop.tools.observe_trace import build_tool as build_observe_trace_tool
+from paper_stm_repair_loop.tools.post_batch_investigation import PostBatchInvestigationState
 from paper_stm_repair_loop.tools.query_model import build_tool as build_query_model_tool
 from paper_stm_repair_loop.tools.read_task import build_tool as build_read_task_tool
 from paper_stm_repair_loop.tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide_tool
@@ -72,9 +73,32 @@ def deterministic_runner(*, events: list[str], max_steps: int | None = None) -> 
     }
 
 
+def eligible_scenario_payload(check_id: str = "draft-go") -> dict[str, Any]:
+    return {
+        "checks": [
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": check_id,
+                "check_kind": "scenario",
+                "statement": "The go event reaches Done.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": [],
+                "nl_basis": [
+                    {"quote": "When go occurs, Done is reachable.", "role": "requirement"}
+                ],
+                "executable_spec": {"event_labels": ["Root.go"]},
+                "binding_refs": [],
+                "required": True,
+            }
+        ]
+    }
+
+
 def registered_tools(*, unlock_fcstm: bool = False, unlock_fbmcq: bool = False):
     model_text = SNAPSHOT["model"]["fcstm"]
     state = GuideAccessState()
+    evaluation_invocations: list[dict[str, Any]] = []
+    investigation_state = PostBatchInvestigationState(evaluation_invocations)
     fcstm_guide = build_read_fcstm_guide_tool(state)
     fbmcq_guide = build_read_fbmcq_guide_tool(state)
     tools = (
@@ -82,15 +106,15 @@ def registered_tools(*, unlock_fcstm: bool = False, unlock_fbmcq: bool = False):
         fbmcq_guide,
         guard_tool(build_read_task_tool(SNAPSHOT), state),
         guard_tool(build_query_model_tool(SNAPSHOT), state),
-        guard_tool(build_observe_trace_tool(SNAPSHOT, deterministic_runner), state),
-        guard_tool(build_lookup_source_trace_tool(SNAPSHOT), state),
+        guard_tool(build_observe_trace_tool(SNAPSHOT, deterministic_runner, investigation_state), state),
+        guard_tool(build_lookup_source_trace_tool(SNAPSHOT, investigation_state), state),
         guard_tool(build_evaluate_checks_tool(
             SNAPSHOT,
             model_text=model_text,
             check_result=check_fcstm(model_text),
             model_path=Path("<frozen>"),
             formal_required=True,
-            invocation_log=[],
+            invocation_log=evaluation_invocations,
         ), state, require_fbmcq_when=property_batch_requested),
     )
     if unlock_fcstm:
@@ -243,6 +267,20 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert query["truncated"] is True
     assert query["model_sha256"] == "model-sha"
 
+    trace_before_batch = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
+    assert trace_before_batch["execution_status"] == "prerequisite_required"
+    assert trace_before_batch["diagnostics"][0]["code"] == "eligible_evaluate_checks_required_first"
+
+    mapping_before_batch = tools["lookup_source_trace"].invoke(
+        {"element_refs": ["transition:T1"], "direction": "fcstm_to_source"}
+    )
+    assert mapping_before_batch["execution_status"] == "prerequisite_required"
+    assert "eligible_evaluate_checks_required_first" in mapping_before_batch["limitations"]
+
+    evaluated_scenario = tools["evaluate_checks"].invoke(eligible_scenario_payload())
+    assert evaluated_scenario["execution_status"] == "completed"
+    assert evaluated_scenario["gate"]["eligible"] is True
+
     trace = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
     assert trace["execution_status"] == "completed"
     assert trace["consumed_events"] == ["Root.go"]
@@ -254,6 +292,30 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert [item["requested_ref"] for item in mapping["ambiguous_matches"]] == ["transition:T2"]
     assert mapping["untraceable_refs"] == ["transition:missing"]
     assert mapping["trace_sha256"] == "trace-sha"
+
+    repeated_trace = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
+    assert repeated_trace["execution_status"] == "invalid_arguments"
+    assert repeated_trace["diagnostics"][0]["code"] == "post_batch_trace_already_completed"
+
+    repeated_mapping = tools["lookup_source_trace"].invoke(
+        {"element_refs": ["transition:T1"], "direction": "fcstm_to_source"}
+    )
+    assert repeated_mapping["execution_status"] == "invalid_arguments"
+    assert "post_batch_source_lookup_already_completed" in repeated_mapping["limitations"]
+
+    repeated_evaluation = tools["evaluate_checks"].invoke(eligible_scenario_payload())
+    assert repeated_evaluation["drafts_sha256"] == evaluated_scenario["drafts_sha256"]
+    still_blocked = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
+    assert still_blocked["execution_status"] == "invalid_arguments"
+
+    changed_evaluation = tools["evaluate_checks"].invoke(
+        eligible_scenario_payload("draft-go-revised")
+    )
+    assert changed_evaluation["drafts_sha256"] != evaluated_scenario["drafts_sha256"]
+    reopened_for_distinct_batch = tools["observe_trace"].invoke(
+        {"events": ["Root.go"], "max_steps": 2}
+    )
+    assert reopened_for_distinct_batch["execution_status"] == "completed"
 
     property_payload = (
         {
@@ -339,7 +401,11 @@ def test_evaluate_checks_rejects_partially_bound_final_batch():
     ],
 )
 def test_tools_return_structured_failures_not_permission_or_exception_leaks(tool_name: str, payload: dict[str, Any], status: str):
-    tool = {tool.name: tool for tool in registered_tools(unlock_fcstm=True)}[tool_name]
+    tools = {tool.name: tool for tool in registered_tools(unlock_fcstm=True)}
+    if tool_name in {"observe_trace", "lookup_source_trace"}:
+        evaluated = tools["evaluate_checks"].invoke(eligible_scenario_payload())
+        assert evaluated["gate"]["eligible"] is True
+    tool = tools[tool_name]
     result = tool.invoke(payload)
     assert result["execution_status"] == status
     serialized = json.dumps(result, ensure_ascii=False).lower()

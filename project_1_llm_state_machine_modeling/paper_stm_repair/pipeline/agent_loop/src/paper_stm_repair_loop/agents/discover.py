@@ -33,6 +33,7 @@ from ..tools.guide_access import (
 )
 from ..tools.lookup_source_trace import build_tool as build_lookup_source_trace
 from ..tools.observe_trace import build_tool as build_observe_trace
+from ..tools.post_batch_investigation import PostBatchInvestigationState
 from ..tools.query_model import build_tool as build_query_model
 from ..tools.read_task import build_tool as build_read_task
 from ..tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide
@@ -551,16 +552,18 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         content_language=manifest["content_language"],
     )
     evaluation_invocations: list[dict[str, Any]] = []
+    investigation_state = PostBatchInvestigationState(evaluation_invocations)
     guide_access = GuideAccessState()
     read_fcstm_guide = build_read_fcstm_guide(guide_access)
     read_fbmcq_guide = build_read_fbmcq_guide(guide_access)
     read_task = guard_tool(build_read_task(snapshot), guide_access)
     query_model = guard_tool(build_query_model(snapshot), guide_access)
     observe_trace = guard_tool(
-        build_observe_trace(snapshot, _trace_runner(case)), guide_access
+        build_observe_trace(snapshot, _trace_runner(case), investigation_state),
+        guide_access,
     )
     lookup_source_trace = guard_tool(
-        build_lookup_source_trace(snapshot), guide_access
+        build_lookup_source_trace(snapshot, investigation_state), guide_access
     )
     evaluate_checks = guard_tool(
         build_evaluate_checks(
@@ -624,6 +627,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             output_schema=DiscoverSubmission,
             limits=manifest.get("agent_limits") or None,
             require_tool_call=True,
+            require_tool_each_turn=True,
         )
         app = AgentApp.from_registry(
             spec,

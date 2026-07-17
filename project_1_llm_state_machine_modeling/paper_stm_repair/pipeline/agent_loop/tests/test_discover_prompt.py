@@ -30,7 +30,7 @@ def test_prompt_is_executable_protocol_not_toolbox_and_orders_the_workflow():
         "1. **Read the FCSTM guide, then freeze orientation.",
         "2. **Construct one complete check-draft batch.",
         "3. **Evaluate the whole batch.",
-        "4. **Investigate named evidence gaps, then adjudicate conservatively.",
+        "4. **Investigate named evidence gaps, then finalize the batch.",
         "5. **Run batch coverage and zero-root self-check.",
         "6. **Submit once.",
     ]

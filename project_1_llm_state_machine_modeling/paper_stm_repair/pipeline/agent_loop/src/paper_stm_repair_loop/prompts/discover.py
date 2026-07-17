@@ -92,14 +92,19 @@ The only Agent-callable tools are exactly: {tools}.
   `limitations` before relying on it. It gives no verdict.
 - `observe_trace(events, max_steps=None)` is optional. Use it only for an
   explicit finite trace question left unresolved by an eligible
-  `evaluate_checks` result. It is a diagnostic microscope, not a coverage
+  `evaluate_checks` result. The Controller permits at most one completed trace
+  call per distinct eligible draft-batch hash; re-evaluating identical drafts
+  does not reopen it. It is a diagnostic microscope, not a coverage
   engine: never enumerate event permutations, replay every requirement, repeat
   the same prefix with one changed suffix, or use it to reconstruct the complete
   transition system. Check `execution_status`, `model_sha256`,
   consumed/unconsumed events, diagnostics, and limitations. A single
   no-counterexample trace cannot confirm correctness.
 - `lookup_source_trace(element_refs, direction="fcstm_to_source")` is optional.
-  Use it only when a source/model reference boundary is unclear. Check
+  Use it only after an eligible `evaluate_checks` result when a source/model
+  reference boundary is unclear. Submit all refs for that batch in one call;
+  the Controller permits at most one completed lookup per distinct eligible
+  draft-batch hash, and re-evaluating identical drafts does not reopen it. Check
   `execution_status`, `trace_sha256`, `exact_matches`, `ambiguous_matches`,
   `untraceable_refs`, and limitations. Ambiguous or missing mappings cannot be
   used as source closure or as confirmed-root grounding.
@@ -167,7 +172,7 @@ submission.
    pass. Completion condition: one invocation matching the intended final drafts
    has `execution_status=completed` and `gate.eligible=true`.
 
-4. **Investigate named evidence gaps, then adjudicate conservatively.** Use
+4. **Investigate named evidence gaps, then finalize the batch.** Use
    `query_model`, `observe_trace`, or `lookup_source_trace` only when an evaluated
    proposition has a concrete missing structural, exploratory trace, or mapping
    fact. Inspect every response's status, hash, truncation, ambiguity,
@@ -179,8 +184,12 @@ submission.
    do not repeat an already observed sequence or prefix family, and stop tool
    exploration as soon as that question is answered. If no such gap remains,
    proceed directly to adjudication and submission. Optional exploration is
-   never a reason to delay a complete eligible submission.
-   Then assign each proposition exactly one
+   never a reason to delay a complete eligible submission. If either post-batch
+   microscope is used, revise the drafts only when its evidence exposes a real
+   check defect, then call `evaluate_checks` once more on the final complete
+   batch. After that final eligible result, do not reopen investigation: submit
+   immediately. A protocol response saying a microscope was already completed
+   must never be retried. Then assign each proposition exactly one
    assessment boundary in your reasoning: `confirmed`, `candidate_only`, or
    `rejected`.
    - `confirmed` requires a source/model issue in this run, valid current-run
@@ -232,8 +241,9 @@ submission.
 ## Tool-efficiency invariant
 
 The canonical path is `read_fcstm_guide -> read_task -> [read_fbmcq_guide only
-when needed] -> evaluate_checks -> [minimal named-gap query only when needed] ->
-submit_discovery`. Prefer this shortest evidence-complete path. Do not perform
+when needed] -> evaluate_checks -> [one consolidated named-gap microscope only
+when needed -> final evaluate_checks] -> submit_discovery`. Prefer this shortest
+evidence-complete path. Do not perform
 open-ended exploration, exhaustive trace search, repeated tool calls with
 equivalent inputs, or tool use whose result is already present in
 `evaluate_checks`. When a tool limitation prevents stronger evidence, preserve
