@@ -38,6 +38,16 @@ SETUP_MODEL = """state Root {
 }
 """
 
+SHORT_STATE_MODEL = """state Root {
+    event fire;
+    state A;
+    state B;
+    state Done;
+    [*] -> B;
+    B -> Done : fire;
+}
+"""
+
 
 def test_controller_public_callables_have_seven_section_contract_docstrings():
     required = [
@@ -266,6 +276,43 @@ def test_evaluate_checks_rejects_source_only_nl_grounded_check():
     assert result["gate"]["eligible"] is False
     assert result["binding_rejections"][0]["reason"] == (
         "nl_grounded_check_requires_nl_basis"
+    )
+
+
+def test_evaluate_checks_does_not_ignore_short_explicit_nl_state_label():
+    result = evaluate_checks(
+        model_text=SHORT_STATE_MODEL,
+        check_result=check_fcstm(SHORT_STATE_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-short-state-bypass",
+                "check_kind": "scenario",
+                "statement": "fire reaches Done from A.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": ["B -> Done : fire;"],
+                "nl_basis": [
+                    {
+                        "quote": "When fire occurs in A, enter Done.",
+                        "role": "requirement",
+                    }
+                ],
+                "executable_spec": {
+                    "event_labels": ["fire"],
+                    "precondition_state_label": "B",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="When fire occurs in A, enter Done.",
+        raw_source="B -> Done : fire;",
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["binding_rejections"][0]["reason"] == (
+        "scenario_precondition_conflicts_with_nl_state"
     )
 
 

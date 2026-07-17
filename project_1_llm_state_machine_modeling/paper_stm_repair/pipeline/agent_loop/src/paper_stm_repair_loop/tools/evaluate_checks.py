@@ -71,7 +71,14 @@ def _mentioned_state_paths(
         path = str(item["path"])
         visible = str(item.get("name") or _last_label(path))
         token = _normalized_text(visible)
-        if len(token) >= 3 and any(token in text for text in normalized):
+        if len(token) >= 3:
+            found = any(token in text for text in normalized)
+        else:
+            pattern = re.compile(
+                rf"(?<![A-Za-z0-9_]){re.escape(visible)}(?![A-Za-z0-9_])"
+            )
+            found = any(pattern.search(text) is not None for text in texts)
+        if token and found:
             mentioned.add(path)
     return mentioned
 
@@ -151,10 +158,12 @@ def _grounding_rejections(
                         for path in mentioned
                         if not any(_state_related(path, target) for target in target_paths)
                     }
-                    if explicit_preconditions and not any(
-                        _state_related(explicit, declared)
+                    if explicit_preconditions and not all(
+                        any(
+                            _state_related(explicit, declared)
+                            for declared in precondition_paths
+                        )
                         for explicit in explicit_preconditions
-                        for declared in precondition_paths
                     ):
                         reason = "scenario_precondition_conflicts_with_nl_state"
                         details.update(
