@@ -86,8 +86,11 @@ The only Agent-callable tools are exactly: {tools}.
   `execution_status=no_new_task_fact`; it never injects the large task again.
   Treat that status as a stop signal and continue from the already visible task.
 - `query_model(query_kind, name_contains=None, offset=0, limit=50)` is optional.
-  Use it only for a concrete structural evidence gap about normalized inspect
-  facts. Check `execution_status`, `model_sha256`, `truncated`, and
+  It is a post-batch microscope: use it only after one complete
+  `evaluate_checks` invocation has returned `gate.eligible=true`, and only for a
+  concrete structural evidence gap named by that evaluated result. Before then
+  it returns `prerequisite_required` with `required_tool=evaluate_checks` and no
+  structural fact. Check `execution_status`, `model_sha256`, `truncated`, and
   `limitations` before relying on it. It gives no verdict. Exact duplicate
   requests are rejected; once an unfiltered category has been returned from
   offset 0 with `truncated=false`, do not query that category again with filters.

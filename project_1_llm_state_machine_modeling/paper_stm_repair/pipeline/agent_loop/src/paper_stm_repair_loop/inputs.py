@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from .config import PAIRS_JSONL, SELECTED_ROOT
+from .config import PAIRS_JSONL, REPO_ROOT, SELECTED_ROOT
 from .pyfcstm_adapter import sha256_text
 from .records import RecordStore, sha256_file
 
@@ -26,6 +27,49 @@ class PreparedCase:
     @property
     def fcstm_sha256(self) -> str:
         return sha256_text(self.fcstm)
+
+
+def _code_provenance() -> dict[str, Any]:
+    """Capture tracked repository identity without treating run outputs as code."""
+
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        branch_result = subprocess.run(
+            ["git", "symbolic-ref", "--short", "-q", "HEAD"],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        diff_result = subprocess.run(
+            ["git", "diff", "--quiet", "HEAD", "--"],
+            cwd=REPO_ROOT,
+            check=False,
+        )
+        if diff_result.returncode not in {0, 1}:
+            raise RuntimeError("git diff returned an unsupported status")
+        return {
+            "status": "completed",
+            "git_commit": commit,
+            "git_branch": branch_result.stdout.strip() or None,
+            "tracked_worktree_dirty": diff_result.returncode == 1,
+            "untracked_run_outputs_excluded": True,
+        }
+    except Exception as exc:
+        return {
+            "status": "unavailable",
+            "git_commit": None,
+            "git_branch": None,
+            "tracked_worktree_dirty": None,
+            "untracked_run_outputs_excluded": True,
+            "reason": type(exc).__name__,
+        }
 
 
 def _read_pairs() -> dict[str, dict[str, Any]]:
@@ -172,6 +216,7 @@ def prepare_run_dir(
         "renderer": renderer,
         "formal_profile": formal_profile,
         "agent_limits": limits,
+        "code_provenance": _code_provenance(),
         "main_result_eligible": False,
         "reference_assets_visible": False,
         "input_files": {name: str(path.relative_to(run_dir)) for name, path in files.items()},

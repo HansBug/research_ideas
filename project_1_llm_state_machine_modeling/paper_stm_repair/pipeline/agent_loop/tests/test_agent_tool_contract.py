@@ -149,7 +149,7 @@ def registered_tools(*, unlock_fcstm: bool = False, unlock_fbmcq: bool = False):
         fcstm_guide,
         fbmcq_guide,
         guard_tool(build_read_task_tool(SNAPSHOT), state),
-        guard_tool(build_query_model_tool(SNAPSHOT), state),
+        guard_tool(build_query_model_tool(SNAPSHOT, investigation_state), state),
         guard_tool(build_observe_trace_tool(SNAPSHOT, deterministic_runner, investigation_state), state),
         guard_tool(build_lookup_source_trace_tool(SNAPSHOT, investigation_state), state),
         guard_tool(build_evaluate_checks_tool(
@@ -223,6 +223,8 @@ def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_sec
             "required string enum",
             "case-insensitive substring",
             "must be 1 through 500",
+            "eligible full-batch",
+            "``required_tool=evaluate_checks``",
             "``matched_items``",
             "``total_matches``",
             "``truncated``",
@@ -315,6 +317,27 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert duplicate_fcstm_guide["sha256"] == fcstm_guide["sha256"]
     assert "content" not in duplicate_fcstm_guide
 
+    query_before_batch = tools["query_model"].invoke(
+        {"query_kind": "states", "name_contains": "Root", "offset": 0, "limit": 1}
+    )
+    assert query_before_batch["execution_status"] == "prerequisite_required"
+    assert query_before_batch["required_tool"] == "evaluate_checks"
+    assert "eligible_evaluate_checks_required_first" in query_before_batch["limitations"]
+
+    trace_before_batch = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
+    assert trace_before_batch["execution_status"] == "prerequisite_required"
+    assert trace_before_batch["diagnostics"][0]["code"] == "eligible_evaluate_checks_required_first"
+
+    mapping_before_batch = tools["lookup_source_trace"].invoke(
+        {"element_refs": ["transition:T1"], "direction": "fcstm_to_source"}
+    )
+    assert mapping_before_batch["execution_status"] == "prerequisite_required"
+    assert "eligible_evaluate_checks_required_first" in mapping_before_batch["limitations"]
+
+    evaluated_scenario = tools["evaluate_checks"].invoke(eligible_scenario_payload())
+    assert evaluated_scenario["execution_status"] == "completed"
+    assert evaluated_scenario["gate"]["eligible"] is True
+
     query = tools["query_model"].invoke({"query_kind": "states", "name_contains": "Root", "offset": 0, "limit": 1})
     assert query["execution_status"] == "completed"
     assert query["total_matches"] == 2
@@ -343,20 +366,6 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     )
     assert redundant_filtered_events["execution_status"] == "invalid_arguments"
     assert "category_already_returned_untruncated" in redundant_filtered_events["limitations"]
-
-    trace_before_batch = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
-    assert trace_before_batch["execution_status"] == "prerequisite_required"
-    assert trace_before_batch["diagnostics"][0]["code"] == "eligible_evaluate_checks_required_first"
-
-    mapping_before_batch = tools["lookup_source_trace"].invoke(
-        {"element_refs": ["transition:T1"], "direction": "fcstm_to_source"}
-    )
-    assert mapping_before_batch["execution_status"] == "prerequisite_required"
-    assert "eligible_evaluate_checks_required_first" in mapping_before_batch["limitations"]
-
-    evaluated_scenario = tools["evaluate_checks"].invoke(eligible_scenario_payload())
-    assert evaluated_scenario["execution_status"] == "completed"
-    assert evaluated_scenario["gate"]["eligible"] is True
 
     trace = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
     assert trace["execution_status"] == "completed"
@@ -544,7 +553,7 @@ def test_root_issue_schema_rejects_candidate_repair_permission_before_publicatio
 )
 def test_tools_return_structured_failures_not_permission_or_exception_leaks(tool_name: str, payload: dict[str, Any], status: str):
     tools = {tool.name: tool for tool in registered_tools(unlock_fcstm=True)}
-    if tool_name in {"observe_trace", "lookup_source_trace"}:
+    if tool_name in {"query_model", "observe_trace", "lookup_source_trace"}:
         evaluated = tools["evaluate_checks"].invoke(eligible_scenario_payload())
         assert evaluated["gate"]["eligible"] is True
     tool = tools[tool_name]

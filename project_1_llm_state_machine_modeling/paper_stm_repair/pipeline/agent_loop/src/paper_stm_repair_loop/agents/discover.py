@@ -560,7 +560,6 @@ def _build_submit_discovery_response(
             confirmation_possible = bool(exact_pairs)
 
             node_ids: set[str] = set()
-            considered_checks: set[str] = set()
             for root in self.root_nodes:
                 if root.node_id in node_ids:
                     raise ValueError(f"duplicate root node: {root.node_id}")
@@ -873,7 +872,9 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     read_fcstm_guide = build_read_fcstm_guide(guide_access)
     read_fbmcq_guide = build_read_fbmcq_guide(guide_access)
     read_task = guard_tool(build_read_task(snapshot), guide_access)
-    query_model = guard_tool(build_query_model(snapshot), guide_access)
+    query_model = guard_tool(
+        build_query_model(snapshot, investigation_state), guide_access
+    )
     observe_trace = guard_tool(
         build_observe_trace(snapshot, _trace_runner(case), investigation_state),
         guide_access,
@@ -918,6 +919,8 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "conditional_agent_tool_calls": {
                 "property_batch": ["read_fbmcq_guide"],
             },
+            "tool_choice_policy": "paper1-discover-mandatory-v1",
+            "tool_choice_policy_scope": "mandatory_protocol_steps_only",
         },
     )
     replay_file = manifest.get("test_replay_file")
@@ -958,6 +961,28 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         )
         result = None
         failure_recorded = False
+
+        def mandatory_tool_choice() -> str | None:
+            """Force only stage-mandatory protocol steps; never choose content."""
+
+            if not guide_access.has_read("fcstm"):
+                return "read_fcstm_guide"
+            if guide_access.first_attempt_at(
+                "read_task", after=guide_access.fcstm_read_at
+            ) is None:
+                return "read_task"
+            property_attempted = any(
+                item.get("event") == "tool_attempt"
+                and item.get("tool_name") == "evaluate_checks"
+                and item.get("property_batch") is True
+                for item in guide_access.events
+            )
+            if property_attempted and not guide_access.has_read("fbmcq"):
+                return "read_fbmcq_guide"
+            if investigation_state.latest_eligible_batch() is None:
+                return "evaluate_checks"
+            return None
+
         try:
             result = app.run(
                 user_prompt(snapshot),
@@ -966,6 +991,8 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
                 audit_out=audit_path,
                 result_out=result_path,
                 compact_trigger_ratio=0.85,
+                tool_choice_resolver=mandatory_tool_choice,
+                tool_choice_policy_name="paper1-discover-mandatory-v1",
             )
             if (
                 result.status != "success"

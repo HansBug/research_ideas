@@ -45,7 +45,9 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
     DEFAULT_SUMMARY_PROMPT = ""  # type: ignore[assignment]
     count_tokens_approximately = None  # type: ignore[assignment]
     BaseCallbackHandler = object  # type: ignore[assignment,misc]
-    PrivateAttr = lambda *args, **kwargs: None  # type: ignore[assignment]
+
+    def PrivateAttr(*args: Any, **kwargs: Any) -> None:  # type: ignore[misc]
+        return None
 
 
 T = TypeVar("T")
@@ -2175,22 +2177,41 @@ class _ModelOptionsMiddleware(AgentMiddleware):
         options: Mapping[str, Any] | None,
         *,
         forced_tool_choice: Any | None = None,
+        tool_choice_resolver: Callable[[], Any | None] | None = None,
     ):
         self.options = dict(options or {})
         self.forced_tool_choice = forced_tool_choice
+        self.tool_choice_resolver = tool_choice_resolver
+
+    def _tool_choice(self) -> Any | None:
+        if self.forced_tool_choice is not None:
+            return self.forced_tool_choice
+        if self.tool_choice_resolver is None:
+            return None
+        return self.tool_choice_resolver()
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
-        if self.forced_tool_choice is not None:
-            overrides["tool_choice"] = self.forced_tool_choice
+        tool_choice = self._tool_choice()
+        if tool_choice is not None:
+            overrides["tool_choice"] = tool_choice
+            if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
+                # LangChain ToolStrategy otherwise replaces a requested business
+                # tool with ``tool_choice=any`` whenever a structured-output tool
+                # is present. Temporarily suppress that terminal surface while a
+                # caller-declared mandatory business step is active.
+                overrides["response_format"] = None
         return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
-        if self.forced_tool_choice is not None:
-            overrides["tool_choice"] = self.forced_tool_choice
+        tool_choice = self._tool_choice()
+        if tool_choice is not None:
+            overrides["tool_choice"] = tool_choice
+            if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
+                overrides["response_format"] = None
         return await handler(request.override(**overrides))
 
 
@@ -2213,6 +2234,7 @@ def _request_projection(request: Any) -> dict[str, Any]:
         "system": _message_text(system_message) if system_message is not None else None,
         "messages": [_message_text(message) for message in list(getattr(request, "messages", None) or [])],
         "tools": tools,
+        "tool_choice": _safe_json(getattr(request, "tool_choice", None)),
         "response_format": _safe_json(response_format),
         "model_settings": _safe_json(dict(getattr(request, "model_settings", None) or {})),
     }
@@ -2391,7 +2413,17 @@ class AgentApp:
         audit_out: Path | None = None,
         result_out: Path | None = None,
         model_call_options: Mapping[str, Any] | None = None,
+        tool_choice_resolver: Callable[[], Any | None] | None = None,
+        tool_choice_policy_name: str | None = None,
     ) -> AgentRunResult:
+        if (tool_choice_resolver is None) != (tool_choice_policy_name is None):
+            raise ValueError(
+                "tool_choice_resolver and tool_choice_policy_name must be supplied together"
+            )
+        if tool_choice_resolver is not None and not callable(tool_choice_resolver):
+            raise ValueError("tool_choice_resolver must be callable")
+        if tool_choice_policy_name is not None and not tool_choice_policy_name.strip():
+            raise ValueError("tool_choice_policy_name must be non-empty")
         _validate_model_call_options(model_call_options)
         compact_trigger_ratio = _validate_compact_trigger_ratio(compact_trigger_ratio)
         inference_options, effective_think_mode = _resolve_inference_options(
@@ -2407,6 +2439,7 @@ class AgentApp:
             "stream_usage": getattr(self.model, "stream_usage", None),
             "max_retries": getattr(self.model, "max_retries", None),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
+            "tool_choice_policy": tool_choice_policy_name,
         }
         max_output_override = None
         if model_call_options:
@@ -2452,6 +2485,7 @@ class AgentApp:
                 "input_hash": _hash_text(input_text),
                 "context_manifest_hash": manifest,
                 "compact": {"ratio": compact_trigger_ratio, "threshold": compact_threshold},
+                "tool_choice_policy": tool_choice_policy_name,
             }
         )
         canonical_audit_out, canonical_result_out = _validate_output_paths(Path(audit_out) if audit_out is not None else None, Path(result_out) if result_out is not None else None)
@@ -2944,7 +2978,13 @@ class AgentApp:
                 emit("context_usage", payload)
                 audit_write({"record": "context", "record_type": "context", "operation": "turn_context", "model_call_id": (latest or {}).get("model_call_id"), "usage": latest, "context_basis_tokens": estimated, "basis_source": sources, "context_window_tokens": context_window_tokens, "safe_input_tokens": safe_input_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "compact_decision": decision})
 
-            failure_context_emitter = lambda: emit_context_usage(turn, last_state_messages_snapshot, run_ending=True) if turn > 0 else None
+            def emit_failure_context() -> None:
+                if turn > 0:
+                    emit_context_usage(
+                        turn, last_state_messages_snapshot, run_ending=True
+                    )
+
+            failure_context_emitter = emit_failure_context
             inputs = {"messages": messages}
             stream_kwargs: dict[str, Any] = {"version": "v2"}
             # LangGraph's default recursion limit is 25.  That is an internal
@@ -3288,7 +3328,10 @@ class AgentApp:
                 counters=counters,
             )
             primary_model = self.model.with_config(callbacks=[observer]) if hasattr(self.model, "with_config") else self.model
-            model_options_middleware = _ModelOptionsMiddleware(inference_options)
+            model_options_middleware = _ModelOptionsMiddleware(
+                inference_options,
+                tool_choice_resolver=tool_choice_resolver,
+            )
             middleware: list[Any] = [
                 model_options_middleware,
                 _RequestCaptureMiddleware(request_captures),

@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from ..schemas.tools import ModelQueryResult, QueryModelInput, SimpleStructuredTool
+from .post_batch_investigation import PostBatchInvestigationState
 
 _QUERY_KINDS = {"states", "events", "transitions", "variables", "diagnostics"}
 _LIMITATIONS = [
@@ -183,12 +184,18 @@ def execute(
     ).model_dump(mode="json")
 
 
-def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
+def build_tool(
+    snapshot: dict[str, Any],
+    investigation_state: PostBatchInvestigationState | None = None,
+) -> SimpleStructuredTool:
     """Purpose: create the ``query_model`` tool bound to one frozen inspect.
 
     Parameters: ``snapshot`` is the controller-captured attempt snapshot or
     normalized inspect object.  It is closed over before provider dispatch;
     Agents only provide the strict ``QueryModelInput`` fields.
+    ``investigation_state`` is the Controller-bound post-batch protocol state.
+    When supplied, structural queries are unavailable until one complete
+    ``evaluate_checks`` batch has finished with ``gate.eligible=true``.
 
     Returns: a ``StructuredTool`` named ``query_model`` with strict Pydantic input
     schema and ``ModelQueryResult`` output semantics.
@@ -197,9 +204,10 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     snapshot/inspect and therefore remains bound to the current attempt's model
     hash.  No cache refresh or latest-state lookup is performed.
 
-    Failure semantics: bad Agent arguments return structured
-    ``invalid_arguments``; missing inspect returns ``tool_unavailable``; no bare
-    exception text is treated as model evidence.
+    Failure semantics: when no eligible full-batch evaluation exists, return
+    ``prerequisite_required`` with ``required_tool=evaluate_checks``. Bad Agent
+    arguments return structured ``invalid_arguments``; missing inspect returns
+    ``tool_unavailable``; no bare exception text is treated as model evidence.
 
     Evidence limitations: the tool exposes structure only, never a quality,
     behavior, source-closure, or repair verdict.
@@ -262,25 +270,31 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Execution
         ---------
-        1. Validate the strict enum, filter type, offset, and limit. Reject an
+        1. Require one complete eligible ``evaluate_checks`` batch when the
+           Controller supplied post-batch protocol state. Before that point,
+           return ``execution_status=prerequisite_required`` and direct the
+           Agent to ``evaluate_checks`` without exposing another structural fact.
+        2. Validate the strict enum, filter type, offset, and limit. Reject an
            exact duplicate request. If an unfiltered page from offset 0 already
            returned the complete category with ``truncated=false``, reject later
            requests for that same frozen category because no new fact can appear.
-        2. Read only the normalized inspect category closed over before dispatch.
-        3. Normalize items, apply the substring filter, count matches, and slice
+        3. Read only the normalized inspect category closed over before dispatch.
+        4. Normalize items, apply the substring filter, count matches, and slice
            ``[offset:offset+limit]`` deterministically.
-        4. Compare returned item hashes with facts already exposed for this
+        5. Compare returned item hashes with facts already exposed for this
            category. A query that adds no new structural fact is rejected; once
            the union covers the frozen category, mark it fully returned.
-        5. Return a strict schema tied to the same frozen ``model_sha256``. No
+        6. Return a strict schema tied to the same frozen ``model_sha256``. No
            model parsing/reload, simulation, BMC, LLM call, cache refresh, or
            latest-state lookup occurs.
 
         Failure semantics
         -----------------
-        Invalid enum/type/range, an exact duplicate, a query that yields no new
-        structural fact, or a query against a category already returned in full
-        returns ``invalid_arguments`` with an empty page and limitation code.
+        A query before an eligible full-batch evaluation returns
+        ``prerequisite_required`` with ``required_tool=evaluate_checks``. Invalid
+        enum/type/range, an exact duplicate, a query that yields no new structural
+        fact, or a query against a category already returned in full returns
+        ``invalid_arguments`` with an empty page and limitation code.
         Missing/non-structural inspect category returns
         ``tool_unavailable``. An empty completed page is a valid domain result and
         does not mean the model element is impossible or erroneous. Diagnostics
@@ -305,6 +319,27 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         Input ``{"query_kind":"states","name_contains":"Idle","offset":0,"limit":10}``
         returns ``{"execution_status":"completed","query_kind":"states","matched_items":[{"path":"Root.Idle","_index":0}],"total_matches":1,"offset":0,"limit":10,"truncated":false,"model_sha256":"...","limitations":[...]}``.
         """
+
+        if (
+            investigation_state is not None
+            and investigation_state.latest_eligible_batch() is None
+        ):
+            return {
+                "execution_status": "prerequisite_required",
+                "blocked_tool": "query_model",
+                "required_tool": "evaluate_checks",
+                "message": (
+                    "Submit one complete check-draft batch to evaluate_checks and "
+                    "obtain gate.eligible=true before post-batch structural investigation."
+                ),
+                "model_sha256": _model_sha256_from(frozen),
+                "limitations": [
+                    *_LIMITATIONS,
+                    "tool_not_executed",
+                    "eligible_evaluate_checks_required_first",
+                    "no_new_structural_fact_produced",
+                ],
+            }
 
         request_key = (query_kind, name_contains, offset, limit)
         if request_key in completed_requests:

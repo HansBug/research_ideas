@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
-from utils.agent.runtime import _message_ref, _prepare_recovery_history
+from utils.agent.runtime import _ModelOptionsMiddleware, _message_ref, _prepare_recovery_history
 from utils.llm import LLMConfig
 
 
@@ -36,6 +36,53 @@ class FakeStreamingModel:
             )
         else:
             yield AIMessageChunk(content="工具结果已读取")
+
+
+class _MiddlewareRequest:
+    def __init__(self, **values: object) -> None:
+        self.model_settings = values.pop("model_settings", {})
+        self.tool_choice = values.pop("tool_choice", None)
+        self.response_format = values.pop("response_format", "structured")
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    def override(self, **values: object) -> "_MiddlewareRequest":
+        return _MiddlewareRequest(
+            model_settings=values.get("model_settings", self.model_settings),
+            tool_choice=values.get("tool_choice", self.tool_choice),
+            response_format=values.get("response_format", self.response_format),
+        )
+
+
+def test_dynamic_tool_choice_resolver_is_evaluated_for_each_model_request() -> None:
+    choices = iter(("read_fcstm_guide", "read_task", None))
+    middleware = _ModelOptionsMiddleware(
+        {"temperature": 0}, tool_choice_resolver=lambda: next(choices)
+    )
+    request = _MiddlewareRequest()
+
+    first = middleware.wrap_model_call(request, lambda value: value)
+    second = middleware.wrap_model_call(request, lambda value: value)
+    third = middleware.wrap_model_call(request, lambda value: value)
+
+    assert first.tool_choice == "read_fcstm_guide"
+    assert second.tool_choice == "read_task"
+    assert third.tool_choice is None
+    assert first.response_format is None
+    assert second.response_format is None
+    assert third.response_format == "structured"
+    assert first.model_settings == {"temperature": 0}
+
+
+def test_explicit_forced_tool_choice_overrides_dynamic_resolver() -> None:
+    middleware = _ModelOptionsMiddleware(
+        {},
+        forced_tool_choice="required",
+        tool_choice_resolver=lambda: "read_task",
+    )
+    request = middleware.wrap_model_call(_MiddlewareRequest(), lambda value: value)
+    assert request.tool_choice == "required"
+    assert request.response_format == "structured"
 
 
 class _RetryAnswer(BaseModel):

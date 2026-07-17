@@ -164,6 +164,18 @@ python -m paper_stm_repair_loop.discover \
 `manifest.json.agent_limits`，便于复现实验预算。Make 入口可通过
 `DISCOVER_ARGS="--max-model-calls 24 --max-seconds 1800"` 透传相同选项。
 
+资源预算与必用工具协议是两套独立机制。默认无限制不等于允许 Agent 跳过方法步骤：
+`paper1-discover-mandatory-v1` 会在同一个 `AgentApp.run()` 内依次强制
+`read_fcstm_guide -> read_task -> evaluate_checks`。如果首次 property batch 在尚未读取
+FBMCQ guide 时提交，下一轮强制 `read_fbmcq_guide`，随后继续强制
+`evaluate_checks`，直至得到一个 `gate.eligible=true` 的完整批次。该策略只选择合同中
+已经标为必用的工具，不生成检查内容、不决定 issue verdict；获得 eligible batch 后，
+Agent 重新自由选择可选 post-batch 工具或提交结构化结果。
+
+`manifest.json.code_provenance` 记录精确 git commit、分支和 tracked-worktree dirty
+状态。未跟踪的 `runs/paper1/` 输出不计入代码 dirty 判定；正式可比较运行仍应使用
+`tracked_worktree_dirty=false` 的提交态。
+
 ## 自定义输入
 
 只有 `NL + fcstm` 时使用 identity source mode：

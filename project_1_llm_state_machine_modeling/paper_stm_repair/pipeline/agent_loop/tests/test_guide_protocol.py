@@ -167,3 +167,8 @@ def test_prepare_run_dir_persists_only_explicit_limits(tmp_path: Path):
     )
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["agent_limits"] == {"model_calls": 100, "seconds": 3600.0}
+    provenance = manifest["code_provenance"]
+    assert provenance["status"] == "completed"
+    assert len(provenance["git_commit"]) == 40
+    assert isinstance(provenance["tracked_worktree_dirty"], bool)
+    assert provenance["untracked_run_outputs_excluded"] is True
