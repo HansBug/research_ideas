@@ -11,7 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
@@ -224,6 +224,36 @@ def test_model_callback_copy_preserves_existing_callbacks_without_mutation() -> 
     assert observed.count("token") >= 1
     assert observed[0] == "start" and observed[-1] == "end"
     assert list(model.callbacks or []) == callbacks_before
+
+
+def test_model_callback_manager_copy_preserves_existing_callbacks() -> None:
+    observed: list[str] = []
+
+    class ExistingCallback(BaseCallbackHandler):
+        def on_chat_model_start(self, *args: Any, **kwargs: Any) -> None:
+            observed.append("start")
+
+        def on_llm_end(self, *args: Any, **kwargs: Any) -> None:
+            observed.append("end")
+
+    callback = ExistingCallback()
+    manager = CallbackManager([callback])
+    model = _EmptySemanticChunkModel(
+        model="gpt-4o-mini",
+        api_key="sk-test-not-real",
+        streaming=True,
+        callbacks=manager,
+    )
+    result = AgentApp._for_test(
+        AgentSpec(name="callback-manager-copy", system_prompt="Answer directly."),
+        LLMConfig(model="gpt-4o-mini"),
+        model,
+    ).run("hello", renderer="quiet")
+
+    assert result.status == "success", result.error
+    assert observed == ["start", "end"]
+    assert model.callbacks is manager
+    assert manager.handlers == [callback]
 
 
 def test_async_tool_request_and_result_are_visible_at_stage_boundaries(monkeypatch: Any) -> None:
@@ -611,6 +641,71 @@ def test_graph_fallback_has_one_terminal_and_no_fake_first_chunk(monkeypatch: An
     assert result.usage[0]["time_to_first_chunk_seconds"] is None
 
 
+def test_graph_fallback_projects_chat_usage_to_canonical_chain_call(monkeypatch: Any) -> None:
+    import utils.agent.runtime as runtime
+
+    class BufferedFallbackGraph:
+        def __init__(self, middleware: list[Any]) -> None:
+            self.middleware = middleware
+
+        async def astream_events(self, inputs: dict[str, Any], **kwargs: Any):
+            messages = [HumanMessage(content="fallback input")]
+            request = SimpleNamespace(
+                messages=messages,
+                system_message=SystemMessage(content="Fallback system."),
+                tools=[],
+                response_format=None,
+                model_settings={},
+            )
+            capture = next(item for item in self.middleware if isinstance(item, runtime._RequestCaptureMiddleware))
+            capture._capture(request)
+            yield {
+                "event": "on_chain_start",
+                "name": "model",
+                "run_id": "graph-canonical-1",
+                "data": {"input": {"messages": messages}},
+            }
+            answer = AIMessage(
+                content="fallback answer",
+                usage_metadata={"input_tokens": 3, "output_tokens": 2, "total_tokens": 5},
+            )
+            yield {
+                "event": "on_chat_model_end",
+                "name": "ChatModel",
+                "run_id": "chat-observer-1",
+                "data": {"output": ChatResult(generations=[ChatGeneration(message=answer)])},
+            }
+            yield {
+                "event": "on_chain_end",
+                "name": "model",
+                "run_id": "graph-canonical-1",
+                "data": {"output": {"messages": [answer]}},
+            }
+            yield {
+                "event": "on_chain_end",
+                "name": "fallback-canonical",
+                "run_id": "graph-root",
+                "data": {"output": {"messages": [*messages, answer]}},
+            }
+
+    def fake_create_agent(*, middleware: list[Any], **kwargs: Any) -> BufferedFallbackGraph:
+        return BufferedFallbackGraph(middleware)
+
+    monkeypatch.setattr(runtime, "create_agent", fake_create_agent)
+    result = AgentApp._for_test(
+        AgentSpec(name="fallback-canonical", system_prompt="Fallback system."),
+        LLMConfig(model="fallback-canonical"),
+        _EmptySemanticChunkModel(model="gpt-4o-mini", api_key="sk-test-not-real", streaming=True),
+    ).run("fallback input", renderer="quiet")
+
+    assert result.status == "success", result.error
+    assert len(result.usage) == 1
+    assert result.usage[0]["model_call_id"] == "graph-canonical-1"
+    assert result.usage[0]["input_tokens"] == 3
+    assert result.usage[0]["ended_at_utc"] is not None
+    assert result.usage[0]["timing_source"] == "graph_fallback"
+
+
 def test_structured_output_keeps_official_tool_strategy_after_model_copy(monkeypatch: Any) -> None:
     import utils.agent.runtime as runtime
     from langchain.agents.structured_output import ToolStrategy
@@ -885,6 +980,74 @@ def test_cancellation_between_chunks_keeps_partial_text_without_terminal_duplica
     assert len(second_terminals) == 1
     assert second_terminals[0].kind == "model_failed"
     assert second_terminals[0].data["timing_source"] == "runtime_cancel_fallback"
+
+
+def test_cancellation_during_official_compact_closes_summary_trace(tmp_path: Path) -> None:
+    class CancelCompactModel(BaseChatModel):
+        calls: int = Field(default=0)
+        _summary_started: asyncio.Event = PrivateAttr()
+
+        def __init__(self) -> None:
+            super().__init__()
+            self._summary_started = asyncio.Event()
+
+        @property
+        def _llm_type(self) -> str:
+            return "cancel-compact-test"
+
+        def bind_tools(self, tools: Any, **kwargs: Any) -> "CancelCompactModel":
+            return self
+
+        async def _agenerate(self, messages: list[Any], **kwargs: Any) -> ChatResult:
+            is_summary = any("Context Extraction Assistant" in str(getattr(message, "content", "")) for message in messages)
+            if is_summary:
+                self._summary_started.set()
+                await asyncio.Event().wait()
+            self.calls += 1
+            if self.calls < 50:
+                message = AIMessage(
+                    content="",
+                    tool_calls=[{"name": "probe", "args": {}, "id": f"compact-call-{self.calls}", "type": "tool_call"}],
+                )
+            else:
+                message = AIMessage(content="done")
+            return ChatResult(generations=[ChatGeneration(message=message)])
+
+        def _generate(self, *args: Any, **kwargs: Any) -> ChatResult:
+            raise AssertionError("async generation required")
+
+    def probe() -> str:
+        return "x" * 500
+
+    async def scenario() -> tuple[Any, list[AgentEvent]]:
+        events: list[AgentEvent] = []
+        audit = tmp_path / "cancel-compact.jsonl"
+        model = CancelCompactModel()
+        task = asyncio.create_task(
+            AgentApp._for_test(
+                AgentSpec(name="cancel-compact", system_prompt="Use the tool.", tools=(probe,)),
+                LLMConfig(model="cancel-compact-test", context_window_tokens=10_000, max_output_tokens=20),
+                model,
+            ).arun("run", renderer="quiet", compact_trigger_ratio=0.5, audit_out=audit, on_event=events.append)
+        )
+        await asyncio.wait_for(model._summary_started.wait(), timeout=10)
+        task.cancel()
+        return await task, events
+
+    result, events = asyncio.run(scenario())
+    assert result.status == "cancelled"
+    compact_failed = next(event for event in events if event.kind == "compaction_failed")
+    compact_model_failed = next(event for event in events if event.kind == "model_failed" and event.data.get("call_kind") == "compact")
+    assert compact_failed.data["compaction_id"] == compact_model_failed.data["compaction_id"]
+    assert compact_model_failed.data["timing_source"] == "runtime_cancel_fallback"
+    compact_usage = [item for item in result.usage if item["call_kind"] == "compact"]
+    assert len(compact_usage) == 1
+    assert compact_usage[0]["status"] == "cancelled"
+    assert compact_usage[0]["timing_source"] == "runtime_cancel_fallback"
+    records = [json.loads(line) for line in (tmp_path / "cancel-compact.jsonl").read_text(encoding="utf-8").splitlines()]
+    compact_records = [record for record in records if record.get("record") == "context" and record.get("operation") == "compact"]
+    assert {record.get("status") for record in compact_records} >= {"started", "failed"}
+    assert records[-1]["record"] == "finish"
 
 
 def test_assistant_preamble_and_tool_call_share_one_output_phase(monkeypatch: Any) -> None:

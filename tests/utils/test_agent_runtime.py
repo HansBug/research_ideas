@@ -17,6 +17,46 @@ from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
 from utils.llm import LLMConfig
 
 
+def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -> None:
+    class UnknownToolModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "unknown-tool-test"
+
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[
+                                {"name": "not_registered", "args": {}, "id": "unknown-1", "type": "tool_call"}
+                            ],
+                        )
+                    )
+                ]
+            )
+
+    audit = tmp_path / "unknown-tool.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="unknown-tool", system_prompt="Answer."),
+        LLMConfig(model="unknown-tool-test"),
+        UnknownToolModel(),
+    ).run("go", renderer="quiet", audit_out=audit)
+
+    assert result.status == "failed"
+    assert result.error and result.error["code"] == "tool_not_allowed"
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0]["status"] == "rejected"
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    actions = [record for record in records if record.get("record") == "action" and record.get("tool_call_id") == "unknown-1"]
+    assert len(actions) == 1
+    assert actions[0]["status"] == "rejected"
+
+
 class FakeStreamingModel:
     def __init__(self) -> None:
         self.calls = 0

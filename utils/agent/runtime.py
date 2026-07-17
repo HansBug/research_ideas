@@ -32,7 +32,7 @@ try:
     from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage, ToolMessage
     from langchain_core.messages.utils import count_tokens_approximately
-    from langchain_core.callbacks import BaseCallbackHandler
+    from langchain_core.callbacks import BaseCallbackHandler, BaseCallbackManager
     from langchain_core.outputs import ChatGeneration, ChatResult
     from langchain_core.tools import StructuredTool
     from pydantic import PrivateAttr
@@ -47,7 +47,9 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
     DEFAULT_SUMMARY_PROMPT = ""  # type: ignore[assignment]
     count_tokens_approximately = None  # type: ignore[assignment]
     BaseCallbackHandler = object  # type: ignore[assignment,misc]
-    PrivateAttr = lambda *args, **kwargs: None  # type: ignore[assignment]
+    BaseCallbackManager = type("_MissingCallbackManager", (), {})  # type: ignore[assignment,misc]
+    def PrivateAttr(*args: Any, **kwargs: Any) -> Any:  # type: ignore[no-redef]
+        return None
 
 
 T = TypeVar("T")
@@ -2383,6 +2385,21 @@ class _RunModelObserver(BaseCallbackHandler):
     def on_llm_error(self, error: BaseException, *, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, **kwargs: Any) -> None:
         self._on_error(str(run_id), error, {})
 
+
+def _callbacks_with_observer(existing: Any, observer: BaseCallbackHandler) -> Any:
+    """Return a run-local callback value without mutating the model callbacks."""
+
+    if existing is None:
+        return [observer]
+    if isinstance(existing, BaseCallbackManager):
+        copied = existing.copy()
+        copied.add_handler(observer, inherit=True)
+        return copied
+    if isinstance(existing, (list, tuple)):
+        return [*existing, observer]
+    raise TypeError(f"unsupported LangChain callbacks value: {type(existing).__name__}")
+
+
 class _LegacyModelAdapter(BaseChatModel):
     """仅兼容 tests 中的旧式 ``astream`` 测试桩，不属于公共 API。"""
 
@@ -2604,6 +2621,7 @@ class AgentApp:
         compaction_failure_errors: dict[str, AgentError] = {}
         compaction_by_model_call: dict[str, str] = {}
         compaction_by_graph_run: dict[str, str] = {}
+        unmapped_compaction_ids: list[str] = []
         active_summary_graph_run: str | None = None
         stream_holdbacks: dict[str, _StreamHoldback] = {}
         sensitive_values = _sensitive_inventory(self.config, pages)
@@ -2643,8 +2661,10 @@ class AgentApp:
         ledger_completed_ids: set[str] = set()
         primary_ledger_calls: dict[int, str] = {}
         graph_run_turns: dict[str, int] = {}
+        graph_fallback_usages: dict[int, tuple[Mapping[str, Any] | None, Sequence[Mapping[str, Any]], bool, str | None]] = {}
         tool_requested_monotonic: dict[str, float] = {}
         tool_started_monotonic: dict[str, float] = {}
+        audited_tool_action_ids: set[str] = set()
 
         def ledger_start(call_id: str, call_kind: str) -> str | None:
             if call_id in ledger_started_ids:
@@ -2786,6 +2806,16 @@ class AgentApp:
                 audit_ok = False
                 raise AgentError("audit_write_failed", "audit output failed") from exc
 
+        def audit_tool_action(record: Mapping[str, Any], *, turn_value: int | None = None) -> int | None:
+            """Write at most one terminal action record per tool_call_id."""
+
+            call_id = str(record.get("tool_call_id") or "")
+            if call_id and call_id in audited_tool_action_ids:
+                return None
+            if call_id:
+                audited_tool_action_ids.add(call_id)
+            return audit_write({"record": "action", "record_type": "action", **record}, turn_value=turn_value)
+
         def emit_context_usage(context_turn: int, state_messages: Iterable[Any], *, run_ending: bool = False) -> None:
             if context_turn in context_emitted_turns:
                 return
@@ -2858,6 +2888,10 @@ class AgentApp:
             compaction_id = f"compact-{compact_count}"
             source_refs = [message_ref(message) for message in source_messages]
             compaction_source_refs[compaction_id] = source_refs
+            # The callback and graph event streams are independent.  Keep a
+            # durable FIFO so a summary callback arriving before its graph
+            # lifecycle event can still be linked to the replacement.
+            unmapped_compaction_ids.append(compaction_id)
             emit(
                 "compaction_started",
                 {
@@ -3102,37 +3136,24 @@ class AgentApp:
             ]
             business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
             for request in unknown_requests:
-                audit_write(
-                    {
-                        "record": "action",
-                        "kind": "business",
-                        "name": request["name"],
-                        "tool_call_id": request["tool_call_id"],
-                        "arguments": request["arguments"],
-                        "requested_at": request["requested_at"],
-                        "status": "rejected",
-                        "error": {"code": "tool_not_allowed", "message": "tool is not registered"},
-                    },
-                    turn_value=call_turn,
-                )
+                request.update({"status": "rejected", "error": {"code": "tool_not_allowed", "message": "tool is not registered"}})
+                ids = pending_tool_ids.get(str(request["name"]), [])
+                with contextlib.suppress(ValueError):
+                    ids.remove(str(request["tool_call_id"]))
+                audit_tool_action(request, turn_value=call_turn)
             if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
                 for request in business_requests:
-                    audit_write(
-                        {
-                            "record": "action",
-                            "kind": "business",
-                            "name": request["name"],
-                            "tool_call_id": request["tool_call_id"],
-                            "arguments": request["arguments"],
-                            "requested_at": request["requested_at"],
-                            "status": "rejected",
-                            "error": {
-                                "code": "mixed_terminal_tool",
-                                "message": "structured output cannot share a model turn with a business tool",
-                            },
+                    request.update({
+                        "status": "rejected",
+                        "error": {
+                            "code": "mixed_terminal_tool",
+                            "message": "structured output cannot share a model turn with a business tool",
                         },
-                        turn_value=call_turn,
-                    )
+                    })
+                    ids = pending_tool_ids.get(str(request["name"]), [])
+                    with contextlib.suppress(ValueError):
+                        ids.remove(str(request["tool_call_id"]))
+                    audit_tool_action(request, turn_value=call_turn)
 
         def callback_start(call_id: str, metadata: Mapping[str, Any], inputs: Sequence[Any]) -> None:
             nonlocal current_model_call_id, current_rendered_input_hash
@@ -3156,6 +3177,8 @@ class AgentApp:
                 current_rendered_input_hash = capture.get("rendered_input_hash")
             if metadata.get("lc_source") == "summarization":
                 compaction_id = compact_tracker.active_compaction_id if compact_tracker is not None else None
+                if compaction_id is None and unmapped_compaction_ids:
+                    compaction_id = unmapped_compaction_ids[0]
                 if compaction_id is None:
                     compaction_id = reserve_compaction(
                         list(last_state_messages_snapshot),
@@ -3335,6 +3358,22 @@ class AgentApp:
 
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
+        def resolve_tool_record(name: str, arguments: Any) -> dict[str, Any] | None:
+            """Resolve an execution to one requested business action when possible."""
+
+            normalized = _safe_json(arguments)
+            candidates = [
+                record
+                for record in tool_calls
+                if record.get("name") == name
+                and record.get("kind") == "business"
+                and record.get("status") in {"requested", "started"}
+            ]
+            exact = [record for record in candidates if record.get("arguments") == normalized]
+            if len(exact) == 1:
+                return exact[0]
+            return candidates[0] if len(candidates) == 1 else None
+
         async def consume(graph: Any) -> dict[str, Any] | None:
             nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter, active_summary_graph_run
             messages: list[Any] = [{"role": "user", "content": _input_with_context(input_text, pages)}]
@@ -3372,7 +3411,11 @@ class AgentApp:
                 if raw_usage or observed_usages:
                     context_meter.record(raw_usage, call_kind=call_kind, observed_usages=observed_usages)
 
-            failure_context_emitter = lambda: emit_context_usage(turn, last_state_messages_snapshot, run_ending=True) if turn > 0 else None
+            def emit_failure_context() -> None:
+                if turn > 0:
+                    emit_context_usage(turn, last_state_messages_snapshot, run_ending=True)
+
+            failure_context_emitter = emit_failure_context
             inputs = {"messages": messages}
             stream_kwargs: dict[str, Any] = {"version": "v2"}
             # LangGraph's default recursion limit is 25.  That is an internal
@@ -3387,6 +3430,7 @@ class AgentApp:
                 parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in stream_signature.parameters.values()
             ):
                 stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
+
             async for event in graph.astream_events(inputs, **stream_kwargs):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
@@ -3407,15 +3451,26 @@ class AgentApp:
                         current_rendered_input_hash = capture.get("rendered_input_hash")
                 elif kind == "on_chain_start" and name.startswith("SummarizationMiddleware.before_model"):
                     active_summary_graph_run = str(event.get("run_id") or "") or None
+                    if active_summary_graph_run and unmapped_compaction_ids:
+                        compaction_by_graph_run[active_summary_graph_run] = unmapped_compaction_ids[0]
                 elif kind == "on_chat_model_start":
                     metadata = data.get("metadata", {}) or {}
                     observed_model = observed_model or metadata.get("model_name")
                 elif kind == "on_chat_model_end":
                     model_usage, observed_usages, usage_conflict, model_name = _model_usage_info(data.get("output"))
                     call_id = str(event.get("run_id") or "") or None
-                    call_kind = model_call_kinds.get(call_id or "", "primary")
-                    if call_id not in callback_usage_ids and not any(item.get("turn") == turn and item.get("call_kind") == call_kind and item.get("source") == "provider" for item in usage):
-                        record_model_usage(model_usage, call_id, call_kind, turn, observed_usages=observed_usages, usage_conflict=usage_conflict)
+                    if call_id not in callback_usage_ids:
+                        # A graph fallback may expose a chat-model run ID
+                        # that differs from the canonical model chain ID.  Do
+                        # not publish the orphan ID; project the usage at the
+                        # model-chain terminal below.
+                        fallback_turn = active_graph_turn or turn
+                        graph_fallback_usages[fallback_turn] = (
+                            model_usage,
+                            tuple(observed_usages),
+                            usage_conflict,
+                            model_name,
+                        )
                     observed_model = observed_model or model_name
                 elif kind == "on_chat_model_stream":
                     # Model text is emitted only by the bound public callback.
@@ -3429,7 +3484,9 @@ class AgentApp:
                     if chain_call_id:
                         if chain_call_id not in model_call_timings:
                             capture_model_timing(chain_call_id, "graph_fallback")
-                            close_model_timing(chain_call_id, "graph_fallback")
+                        # Callback-free graphs still need a terminal timing;
+                        # close_model_timing is idempotent for callback paths.
+                        close_model_timing(chain_call_id, "graph_fallback" if chain_call_id not in callback_usage_ids else None)
                         ledger_start(chain_call_id, "primary")
                         ledger_complete(chain_call_id)
                     messages = _messages_from_event(data.get("output"))
@@ -3460,19 +3517,34 @@ class AgentApp:
                                 if getattr(ai, "id", None):
                                     message_source_by_id[str(ai.id)] = decision_source
                     model_usage, observed_usages, usage_conflict, model_name = _model_usage_info(data.get("output"))
-                    if model_usage and not any(item.get("turn") == turn and item.get("call_kind") == "primary" and item.get("source") == "provider" for item in usage):
-                        record_model_usage(model_usage, current_model_call_id, "primary", chain_turn, observed_usages=observed_usages, usage_conflict=usage_conflict)
+                    fallback_usage = graph_fallback_usages.pop(chain_turn, None)
+                    if fallback_usage is not None:
+                        fallback_model_usage, fallback_observed, fallback_conflict, fallback_model_name = fallback_usage
+                        record_model_usage(
+                            fallback_model_usage,
+                            chain_call_id,
+                            "primary",
+                            chain_turn,
+                            observed_usages=fallback_observed,
+                            usage_conflict=fallback_conflict,
+                        )
+                        model_name = model_name or fallback_model_name
+                    elif model_usage and not any(item.get("turn") == chain_turn and item.get("call_kind") == "primary" and item.get("source") == "provider" for item in usage):
+                        record_model_usage(model_usage, chain_call_id, "primary", chain_turn, observed_usages=observed_usages, usage_conflict=usage_conflict)
                     elif not any(item.get("turn") == chain_turn and item.get("call_kind") == "primary" for item in usage):
                         record_model_usage(None, current_model_call_id, "primary", chain_turn, status="unavailable")
                     observed_model = observed_model or model_name
                 elif kind == "on_tool_start":
                     ids = pending_tool_ids.get(name, [])
-                    # ToolNode start events do not expose the originating
-                    # tool_call_id.  A single pending request is unambiguous;
-                    # concurrent same-name calls are linked later from the
-                    # official ToolMessage.tool_call_id on completion.
-                    call_id = ids.pop(0) if len(ids) == 1 else None
                     args = data.get("input")
+                    # ToolNode start events may omit the originating ID.  Use
+                    # the official request ID when arguments disambiguate the
+                    # pending calls; otherwise retain an explicit orphan
+                    # execution instead of inventing an ID.
+                    matched = resolve_tool_record(name, args)
+                    call_id = str(matched.get("tool_call_id")) if matched is not None else None
+                    if call_id is not None and call_id in ids:
+                        ids.remove(call_id)
                     name_value = name
                     started_monotonic = _monotonic()
                     started_at = _utc_now().isoformat()
@@ -3484,7 +3556,7 @@ class AgentApp:
                         "_started_monotonic": started_monotonic,
                     }
                     active_tool_records[str(event.get("run_id") or uuid.uuid4().hex)] = execution
-                    record = tool_records_by_id.get(str(call_id)) if call_id is not None else None
+                    record = tool_records_by_id.get(str(call_id)) if call_id is not None else matched
                     queue_duration = None
                     if record is not None:
                         requested_monotonic = tool_requested_monotonic.get(str(call_id))
@@ -3508,7 +3580,9 @@ class AgentApp:
                     output_message = data.get("output")
                     output_call_id = getattr(output_message, "tool_call_id", None)
                     call_id = str(output_call_id or execution.get("tool_call_id") or "") or None
-                    record = tool_records_by_id.get(call_id or "")
+                    record = tool_records_by_id.get(call_id or "") or resolve_tool_record(name, execution.get("arguments", data.get("input")))
+                    if call_id is None and record is not None:
+                        call_id = str(record.get("tool_call_id") or "") or None
                     if call_id is not None:
                         ids = pending_tool_ids.get(name, [])
                         if call_id in ids:
@@ -3543,7 +3617,7 @@ class AgentApp:
                         )
                         record.update({"status": "completed", "result": _safe_json(result_value), "started_at": execution.get("started_at", record.get("started_at")), "finished_at": finished_at, "queue_duration_seconds": queue_duration, "duration_seconds": duration})
                         business_tool_called = True
-                        action_seq = audit_write({"record": "action", "record_type": "action", **record})
+                        action_seq = audit_tool_action(record)
                         if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                             message_source_refs[_message_key(data["output"])] = (action_seq, "action")
                         if action_seq is not None:
@@ -3565,9 +3639,11 @@ class AgentApp:
                     execution_id = str(event.get("run_id") or "")
                     execution = active_tool_records.pop(execution_id, None) or {}
                     call_id = str(execution.get("tool_call_id") or "") or None
-                    record = tool_records_by_id.get(call_id or "")
+                    record = tool_records_by_id.get(call_id or "") or resolve_tool_record(name, execution.get("arguments", data.get("input")))
+                    if call_id is None and record is not None:
+                        call_id = str(record.get("tool_call_id") or "") or None
                     if record is None:
-                        record = {"kind": "business", "name": name, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": execution.get("arguments", _safe_json(data.get("input"))), "requested_at": None, "status": "failed"}
+                        record = {"kind": "business", "name": name, "tool_call_id": None, "attempt_id": attempt_id, "turn": turn, "arguments": execution.get("arguments", _safe_json(data.get("input"))), "requested_at": None, "status": "failed", "mapping": "orphan", "mapping_reason": "tool_error did not expose tool_call_id and pending requests were ambiguous"}
                         tool_calls.append(record)
                     finished_monotonic = _monotonic()
                     started_monotonic = execution.get("_started_monotonic")
@@ -3589,7 +3665,7 @@ class AgentApp:
                         ),
                     })
                     failed_tool_call_ids.add(str(record.get("tool_call_id")))
-                    action_seq = audit_write({"record": "action", **record})
+                    action_seq = audit_tool_action(record)
                     if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                         message_source_refs[_message_key(data["output"])] = (action_seq, "action")
                     if action_seq is not None:
@@ -3601,6 +3677,10 @@ class AgentApp:
                     compaction_id = compaction_by_graph_run.get(graph_run_id)
                     if compaction_id is None and compact_tracker is not None:
                         compaction_id = compact_tracker.active_compaction_id
+                    if compaction_id is None and unmapped_compaction_ids:
+                        compaction_id = unmapped_compaction_ids[0]
+                    if compaction_id is not None:
+                        compaction_by_graph_run[graph_run_id] = compaction_id
                     active_summary_graph_run = None
                     replacement = data.get("output") or {}
                     replacement_messages = _messages_from_event(replacement.get("messages") if isinstance(replacement, Mapping) else replacement)
@@ -3610,6 +3690,8 @@ class AgentApp:
                     replacement_refs = [message_ref(message) for message in replacement_messages]
                     replacement_projection = _compact_replacement_projection(replacement_messages)
                     replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": compaction_id, "replacement": replacement_projection, "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    with contextlib.suppress(ValueError):
+                        unmapped_compaction_ids.remove(compaction_id)
                     if replacement_seq is not None:
                         source_state["latest_compact"] = (replacement_seq, "context")
                         for message in replacement_messages:
@@ -3725,13 +3807,17 @@ class AgentApp:
                 reported_usage_enabled=(lambda: compact_tracker is None or compact_tracker.reported_usage_enabled),
                 counters=counters,
             )
-            existing_callbacks = list(getattr(self.model, "callbacks", None) or [])
+            existing_callbacks = getattr(self.model, "callbacks", None)
             if not hasattr(self.model, "model_copy"):
                 raise AgentError("config_error", "chat model does not support run-scoped callback copies")
-            primary_model = self.model.model_copy(
-                deep=False,
-                update={"callbacks": [*existing_callbacks, observer]},
-            )
+            try:
+                callback_value = _callbacks_with_observer(existing_callbacks, observer)
+                primary_model = self.model.model_copy(
+                    deep=False,
+                    update={"callbacks": callback_value},
+                )
+            except Exception as exc:
+                raise AgentError("config_error", "run-scoped callback setup failed", details=_exception_details(exc)) from exc
             middleware: list[Any] = [
                 _ModelOptionsMiddleware(inference_options),
                 _RequestCaptureMiddleware(request_captures, capture_primary_request),
@@ -3826,31 +3912,53 @@ class AgentApp:
                 with contextlib.suppress(asyncio.CancelledError):
                     await heartbeat_task
             try:
-                if status == "cancelled" and current_model_call_id is not None:
-                    timing = model_call_timings.get(current_model_call_id)
-                    if timing is not None and timing.get("ended_at_utc") is None:
-                        close_model_timing(current_model_call_id, "runtime_cancel_fallback")
-                        ledger_complete(current_model_call_id)
-                        call_kind = model_call_kinds.get(current_model_call_id, "primary")
-                        call_turn = model_call_turns.get(current_model_call_id, turn)
-                        if not any(item.get("model_call_id") == current_model_call_id for item in usage):
-                            record_transport_usage(
-                                None,
-                                current_model_call_id,
-                                call_kind,
-                                call_turn,
-                                status="cancelled",
-                            )
+                ledger.cancel_pending()
+                ended_at_utc = _utc_now()
+                duration_seconds = max(0.0, _monotonic() - started)
+                # Cancellation may interrupt a compact summary or several
+                # parallel ToolNode executions.  Close every open model call,
+                # not only the most recently observed primary call.
+                if status == "cancelled":
+                    for open_call_id, timing in list(model_call_timings.items()):
+                        if timing.get("ended_at_utc") is not None:
+                            continue
+                        close_model_timing(open_call_id, "runtime_cancel_fallback")
+                        call_turn = model_call_turns.get(open_call_id, turn)
+                        canonical_for_turn = model_call_by_turn.get(call_turn)
+                        if (
+                            open_call_id not in model_call_kinds
+                            and canonical_for_turn is not None
+                            and canonical_for_turn != open_call_id
+                        ):
+                            # Graph/chat event IDs are observational aliases
+                            # when the provider callback already supplied the
+                            # canonical call for this turn.  Close the alias
+                            # timing silently to avoid duplicate terminals.
+                            continue
+                        ledger_complete(open_call_id)
+                        call_kind = model_call_kinds.get(open_call_id, "primary")
+                        if not any(item.get("model_call_id") == open_call_id for item in usage):
+                            record_transport_usage(None, open_call_id, call_kind, call_turn, status="cancelled")
+                        if call_kind == "compact":
+                            compaction_id = compaction_by_model_call.get(open_call_id)
+                            if compaction_id is not None:
+                                info = compaction_summary_info.setdefault(compaction_id, {})
+                                info.setdefault("model_call_id", open_call_id)
+                                info.setdefault("partial_summary", partial_texts.get(open_call_id, ""))
+                                info.setdefault("usage", next((item for item in reversed(usage) if item.get("model_call_id") == open_call_id), None))
+                                compaction_failed(compaction_id, AgentError("cancelled", "compact summary transport was cancelled"))
                         emit(
                             "model_failed",
                             {
-                                "model_call_id": current_model_call_id,
+                                "model_call_id": open_call_id,
                                 "call_kind": call_kind,
                                 "turn": call_turn,
+                                "compaction_id": compaction_by_model_call.get(open_call_id) if call_kind == "compact" else None,
                                 "error": error,
-                                **public_model_timing(current_model_call_id),
+                                **public_model_timing(open_call_id),
                             },
                         )
+
                 if error is not None and current_model_call_id is not None and turn not in decision_written_turns:
                     capture = request_capture_by_call.get(current_model_call_id, {})
                     audit_write(
@@ -3870,9 +3978,48 @@ class AgentApp:
                         }
                     )
                     decision_written_turns.add(turn)
-                ledger.cancel_pending()
-                ended_at_utc = _utc_now()
-                duration_seconds = max(0.0, _monotonic() - started)
+
+                # Reconcile ToolNode executions whose lifecycle event did not
+                # carry a tool_call_id before finalising pending requests.
+                for execution in list(active_tool_records.values()):
+                    if execution.get("tool_call_id") is not None:
+                        continue
+                    record = resolve_tool_record(str(execution.get("name") or ""), execution.get("arguments"))
+                    if record is not None:
+                        execution["tool_call_id"] = record.get("tool_call_id")
+                        record.update(
+                            {
+                                "status": "started",
+                                "started_at": execution.get("started_at"),
+                                "queue_duration_seconds": (
+                                    max(0.0, float(execution["_started_monotonic"]) - tool_requested_monotonic.get(str(record.get("tool_call_id"))))
+                                    if tool_requested_monotonic.get(str(record.get("tool_call_id"))) is not None
+                                    else record.get("queue_duration_seconds")
+                                ),
+                            }
+                        )
+                        tool_started_monotonic[str(record.get("tool_call_id"))] = float(execution["_started_monotonic"])
+                    else:
+                        orphan_status = "cancelled" if status == "cancelled" else "failed"
+                        orphan = {
+                            "kind": "business",
+                            "name": execution.get("name"),
+                            "tool_call_id": None,
+                            "attempt_id": attempt_id,
+                            "turn": turn,
+                            "arguments": execution.get("arguments"),
+                            "requested_at": None,
+                            "status": orphan_status,
+                            "mapping": "orphan",
+                            "mapping_reason": "tool lifecycle ended before a unique request ID could be identified",
+                            "started_at": execution.get("started_at"),
+                            "finished_at": _utc_now().isoformat(),
+                            "duration_seconds": max(0.0, _monotonic() - float(execution["_started_monotonic"])),
+                            "error": error,
+                        }
+                        tool_calls.append(orphan)
+                        emit("tool_failed", {"name": orphan["name"], "tool_call_id": None, "arguments": orphan["arguments"], "error": error, "status": orphan_status, "started_at": orphan["started_at"], "finished_at": orphan["finished_at"], "queue_duration_seconds": None, "duration_seconds": orphan["duration_seconds"], "attempt_id": attempt_id, "turn": turn})
+                        audit_tool_action(orphan)
                 for record in tool_calls:
                     if record.get("status") in {"started", "requested"}:
                         if error is None:
@@ -3880,7 +4027,13 @@ class AgentApp:
                             status = "failed"
                         finished_at = _utc_now()
                         started_monotonic = tool_started_monotonic.get(str(record.get("tool_call_id")))
-                        unfinished_status = "cancelled" if error.get("code") in {"tool_error", "provider_error", "cancelled"} else "failed"
+                        unfinished_status = (
+                            "cancelled"
+                            if error.get("code") in {"tool_error", "provider_error", "cancelled"}
+                            else "rejected"
+                            if error.get("code") == "limit_exceeded"
+                            else "failed"
+                        )
                         record.update({
                             "status": unfinished_status,
                             "error": error,
@@ -3892,7 +4045,7 @@ class AgentApp:
                             ),
                         })
                         emit("tool_failed", {"name": record.get("name"), "tool_call_id": record.get("tool_call_id"), "arguments": record.get("arguments"), "error": error, "status": unfinished_status, "started_at": record.get("started_at"), "finished_at": record.get("finished_at"), "queue_duration_seconds": record.get("queue_duration_seconds"), "duration_seconds": record.get("duration_seconds"), "attempt_id": record.get("attempt_id"), "turn": record.get("turn")})
-                        audit_write({"record": "action", **record})
+                        audit_tool_action(record)
                 if error is not None and turn > 0 and failure_context_emitter is not None and turn not in context_events_seen:
                     failure_context_emitter()
                 if canonical_result_out is not None:
