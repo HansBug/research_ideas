@@ -14,10 +14,6 @@ def _record_directory(record: dict[str, Any]) -> str:
 
 _MANDATORY_RECORD_TYPES = {
     "check_fcstm_completed",
-    "prepare_nl_llm_call_finished",
-    "prepare_source_llm_call_finished",
-    "prepare_nl_replay_finished",
-    "prepare_source_replay_finished",
     "issue_check_preparation_completed",
     "run_scenarios_completed",
     "verify_properties_completed",
@@ -40,13 +36,13 @@ def render_discover(
         title, boundary, checks_title, roots_title = "B-discover 阶段报告", "方法边界", "运行内检查项", "发现结果"
         trace_title, mandatory_title, rejected_title = "A 阶段 source trace", "Controller 必跑结果", "未形成 root 的 proposition"
         boundary_text = "本报告仅记录 B-discover 的有界发现结果，不声明模型全局正确、源层闭合、表示语言优越性或论文实验成功。"
-        no_root = "本次运行没有发布可确认的 root issue；这不等于模型无错。"
+        no_root = "本次运行没有发布 confirmed 或 candidate root issue；这不等于模型无错。"
         zero_metrics = "zero-root 固定记账：`accepted_fix_count=0`、`closure_numerator=0`、`repair_gain=0`；漏检只能由方法终止后的隐藏 evaluator 判断。"
     else:
         title, boundary, checks_title, roots_title = "B-discover stage report", "Method boundary", "Run-local checks", "Discovery result"
         trace_title, mandatory_title, rejected_title = "A-stage source trace", "Controller mandatory results", "Propositions not published as roots"
         boundary_text = "This report records bounded B-discover results only. It does not claim global correctness, source closure, representation superiority, or scientific success."
-        no_root = "This run published no confirmed root issue; that does not mean the model is defect-free."
+        no_root = "This run published no confirmed or candidate root issue; that does not mean the model is defect-free."
         zero_metrics = "Zero-root accounting is fixed to `accepted_fix_count=0`, `closure_numerator=0`, and `repair_gain=0`; missed issues can be measured only by the hidden post-run evaluator."
     lines = [
         f"# {title}",

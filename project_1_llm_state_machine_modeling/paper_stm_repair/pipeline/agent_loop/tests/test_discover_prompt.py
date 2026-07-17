@@ -93,7 +93,11 @@ def test_prompt_defines_confirmed_candidate_rejected_boundaries_and_zero_root_ba
     assert "no_issue_found=true" in PROMPT_ZH
     assert "non-empty reason" in PROMPT_ZH
     assert "all-or-nothing" in PROMPT_ZH
-    assert "all confirmed roots cite current-run valid checks/records" in _flat(PROMPT_ZH)
+    flattened = _flat(PROMPT_ZH)
+    assert "all confirmed roots cite current-run valid checks/records" in flattened
+    assert "exact one-to-one grounding" in flattened
+    assert "merely existing in inspect or a check binding is not source attribution" in flattened
+    assert "no defensible confirmed or candidate root remains" in flattened
     assert "Publish confirmed/candidate propositions as `root_nodes`" in _flat(PROMPT_ZH)
     assert "`rejected_propositions`" in PROMPT_ZH
     assert "union of root `required_check_ids` and rejected `considered_check_ids`" in _flat(PROMPT_ZH)

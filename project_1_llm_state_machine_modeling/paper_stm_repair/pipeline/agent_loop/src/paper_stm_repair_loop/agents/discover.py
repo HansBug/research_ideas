@@ -15,7 +15,7 @@ from ..config import LANGUAGES, REPO_ROOT
 from ..context import freeze_task_snapshot, publish_context, validate_reference_blind
 from ..inputs import PreparedCase, load_custom, load_pair, load_run_case, prepare_run_dir
 from ..prompts.discover import system_prompt, user_prompt
-from ..records import RecordStore, canonical_json, sha256_file, sha256_json
+from ..records import RecordStore, sha256_file, sha256_json
 from ..renderer import render_discover
 from ..schemas import AgentReceiptRef, DiscoverCompleted, DiscoverSubmission
 from ..tools.check_fcstm import execute as check_fcstm
@@ -150,6 +150,55 @@ def _accepted_source_refs(case: PreparedCase, checks: list[dict[str, Any]], insp
     return refs
 
 
+def _confirmed_source_refs(case: PreparedCase, accepted_refs: set[str]) -> set[str]:
+    """Return refs with deterministic one-to-one source attribution."""
+
+    trace = case.source_trace
+    if (
+        trace.get("relation_policy") == "exact_identity"
+        and case.raw_source_format == "fcstm-identity"
+        and case.raw_source == case.fcstm
+    ):
+        return set(accepted_refs)
+
+    entries = trace.get("entries")
+    if not isinstance(entries, list):
+        return set()
+
+    source_occurrences: dict[str, list[tuple[int, str]]] = {}
+    intermediate_occurrences: dict[str, list[tuple[int, str]]] = {}
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, Mapping):
+            continue
+        source_refs = [ref for ref in entry.get("source_elements", []) if isinstance(ref, str) and ref]
+        intermediate_refs = [ref for ref in entry.get("intermediate_elements", []) if isinstance(ref, str) and ref]
+        if len(source_refs) != 1 or len(intermediate_refs) != 1:
+            continue
+        source_ref, intermediate_ref = source_refs[0], intermediate_refs[0]
+        source_occurrences.setdefault(source_ref, []).append((index, intermediate_ref))
+        intermediate_occurrences.setdefault(intermediate_ref, []).append((index, source_ref))
+
+    exact_refs: set[str] = set()
+    for source_ref, occurrences in source_occurrences.items():
+        if len(occurrences) != 1:
+            continue
+        index, intermediate_ref = occurrences[0]
+        if intermediate_occurrences.get(intermediate_ref) != [(index, source_ref)]:
+            continue
+        exact_refs.update((source_ref, intermediate_ref))
+    return exact_refs
+
+
+def _payload_contains_check_id(value: Any, check_id: str) -> bool:
+    if isinstance(value, Mapping):
+        if value.get("check_id") == check_id:
+            return True
+        return any(_payload_contains_check_id(item, check_id) for item in value.values())
+    if isinstance(value, list):
+        return any(_payload_contains_check_id(item, check_id) for item in value)
+    return False
+
+
 def _validate_submission(
     raw: Any,
     *,
@@ -157,6 +206,7 @@ def _validate_submission(
     records: list[dict[str, Any]],
     executed_check_ids: set[str],
     accepted_refs: set[str],
+    confirmed_refs: set[str],
 ) -> DiscoverSubmission:
     submission = raw if isinstance(raw, DiscoverSubmission) else DiscoverSubmission.model_validate(raw)
     known_checks = {str(check["check_id"]) for check in checks}
@@ -184,8 +234,8 @@ def _validate_submission(
                 raise ValueError(f"confirmed root {root.node_id} must be repair eligible")
             if not root.required_check_ids or not set(root.required_check_ids).issubset(executed_check_ids):
                 raise ValueError(f"confirmed root {root.node_id} lacks executed checks")
-            if not root.source_element_refs or not set(root.source_element_refs).issubset(accepted_refs):
-                raise ValueError(f"confirmed root {root.node_id} lacks accepted source/model refs")
+            if not root.source_element_refs or not set(root.source_element_refs).issubset(confirmed_refs):
+                raise ValueError(f"confirmed root {root.node_id} lacks exact source attribution")
             preparation_records = [
                 records_by_id[record_id]
                 for record_id in root.supporting_record_ids
@@ -202,9 +252,9 @@ def _validate_submission(
                 }
             ]
             for check_id in root.required_check_ids:
-                if not any(check_id in canonical_json(record["payload"]) for record in preparation_records):
+                if not any(_payload_contains_check_id(record["payload"], check_id) for record in preparation_records):
                     raise ValueError(f"confirmed root {root.node_id} lacks preparation evidence for {check_id}")
-                if not any(check_id in canonical_json(record["payload"]) for record in execution_records):
+                if not any(_payload_contains_check_id(record["payload"], check_id) for record in execution_records):
                     raise ValueError(f"confirmed root {root.node_id} lacks execution evidence for {check_id}")
         elif root.downstream_repair_allowed:
             raise ValueError(f"candidate root {root.node_id} cannot be repair eligible")
@@ -534,12 +584,14 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
                 gate_record["record_id"],
             ],
         )
+        accepted_refs = _accepted_source_refs(case, checks, checked["inspect"])
         validated = _validate_submission(
             submission,
             checks=checks,
             records=store.all(),
             executed_check_ids=set(gate["executed_check_ids"]),
-            accepted_refs=_accepted_source_refs(case, checks, checked["inspect"]),
+            accepted_refs=accepted_refs,
+            confirmed_refs=_confirmed_source_refs(case, accepted_refs),
         )
     except Exception as exc:
         store.append(

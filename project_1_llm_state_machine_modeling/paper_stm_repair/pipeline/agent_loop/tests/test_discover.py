@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 from paper_stm_repair_loop.agents.discover import run_discover
@@ -126,7 +127,19 @@ def test_replay_requires_every_check_to_be_covered_by_root_or_rejected_propositi
 
 
 def test_confirmed_root_is_published_with_controller_execution_evidence(tmp_path: Path):
-    case = load_pair("llms_emp_stm_results_0000")
+    case = replace(
+        load_pair("llms_emp_stm_results_0000"),
+        source_trace={
+            "schema_version": "source_trace_base.v1",
+            "relation_policy": "evidence_only",
+            "entries": [
+                {
+                    "source_elements": ["source:root-operating-mode"],
+                    "intermediate_elements": ["state:llms_emp_gpt4o_hldcs"],
+                }
+            ],
+        },
+    )
     replay = tmp_path / "confirmed-replay.json"
     data = json.loads(REPLAY.read_text(encoding="utf-8"))
     data["submission"].update(
@@ -166,6 +179,91 @@ def test_confirmed_root_is_published_with_controller_execution_evidence(tmp_path
     assert "verify_properties_completed" in supporting_types
     assert "validate_discovery_checks_completed" in supporting_types
     assert "discover_mandatory_preparation_completed" in supporting_types
+
+
+def _confirmed_replay(tmp_path: Path) -> Path:
+    replay = tmp_path / "confirmed-replay.json"
+    data = json.loads(REPLAY.read_text(encoding="utf-8"))
+    data["submission"].update(
+        {
+            "no_issue_found": False,
+            "root_nodes": [
+                {
+                    "node_id": "ISS-root-shape@n0",
+                    "issue_id": "ISS-root-shape",
+                    "assessment": "confirmed",
+                    "downstream_repair_allowed": True,
+                    "statement": "The root state shape contradicts the declared behavior.",
+                    "rationale": "The registered deterministic property check contradicts its typed expectation.",
+                    "supporting_record_ids": [],
+                    "required_check_ids": ["CHK-NL-001"],
+                    "source_element_refs": ["state:llms_emp_gpt4o_hldcs"],
+                }
+            ],
+            "rejected_propositions": [],
+            "rationale": "One root is supported by the registered check batch.",
+        }
+    )
+    replay.write_text(json.dumps(data), encoding="utf-8")
+    return replay
+
+
+def test_confirmed_root_requires_element_level_source_trace(tmp_path: Path):
+    case = load_pair("llms_emp_stm_results_0000")
+    run_dir = tmp_path / "run"
+    prepare_run_dir(
+        run_dir,
+        case,
+        profile="gpt-5.5",
+        content_language="zh-CN",
+        renderer="quiet",
+        replay_file=_confirmed_replay(tmp_path),
+    )
+
+    try:
+        run_discover(run_dir, object())
+    except ValueError as exc:
+        assert "lacks exact source attribution" in str(exc)
+    else:
+        raise AssertionError("empty element-level source trace must not publish a confirmed root")
+    record_types = [json.loads(path.read_text())["record_type"] for path in (run_dir / "records").glob("*/record.json")]
+    assert "run_failed" in record_types
+    assert "discover_completed" not in record_types
+
+
+def test_confirmed_root_rejects_ambiguous_source_trace(tmp_path: Path):
+    case = replace(
+        load_pair("llms_emp_stm_results_0000"),
+        source_trace={
+            "schema_version": "source_trace_base.v1",
+            "relation_policy": "evidence_only",
+            "entries": [
+                {
+                    "source_elements": ["source:root-a", "source:root-b"],
+                    "intermediate_elements": ["state:llms_emp_gpt4o_hldcs"],
+                }
+            ],
+        },
+    )
+    run_dir = tmp_path / "run"
+    prepare_run_dir(
+        run_dir,
+        case,
+        profile="gpt-5.5",
+        content_language="zh-CN",
+        renderer="quiet",
+        replay_file=_confirmed_replay(tmp_path),
+    )
+
+    try:
+        run_discover(run_dir, object())
+    except ValueError as exc:
+        assert "lacks exact source attribution" in str(exc)
+    else:
+        raise AssertionError("ambiguous source trace must not publish a confirmed root")
+    record_types = [json.loads(path.read_text())["record_type"] for path in (run_dir / "records").glob("*/record.json")]
+    assert "run_failed" in record_types
+    assert "discover_completed" not in record_types
 
 
 def test_custom_identity_input(tmp_path: Path):

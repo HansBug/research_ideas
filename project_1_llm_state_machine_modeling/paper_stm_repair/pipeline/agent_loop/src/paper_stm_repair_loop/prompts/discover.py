@@ -152,8 +152,11 @@ submission.
    assessment boundary in your reasoning: `confirmed`, `candidate_only`, or
    `rejected`.
    - `confirmed` requires a source/model issue in this run, valid current-run
-     check or record support, hash-valid evidence, and accepted source/model
-     references. It must become a citeable root.
+     check or record support, hash-valid evidence, and exact one-to-one grounding
+     for every cited ref in the frozen element-level source trace. A ref merely
+     existing in inspect or a check binding is not source attribution. Exact
+     identity input is the only entry-free exception. It must become a citeable
+     root.
    - `candidate_only` means plausible but incomplete, ambiguous, unsupported,
      bounded-only, unmapped, or otherwise not repair-eligible.
    - `rejected` means the proposition is contradicted, out of scope, only a
@@ -171,8 +174,9 @@ submission.
 
 5. **Run batch coverage and zero-root self-check.** Verify that all final checks
    were considered, all confirmed roots cite current-run valid checks/records and
-   accepted refs, and no root depends on reference/gold/future Repair/Confirm
-   information. If no defensible confirmed root remains, submit zero roots with
+   exact source-attributed refs, and no root depends on reference/gold/future
+   Repair/Confirm information. If no defensible confirmed or candidate root
+   remains, submit zero roots with
    `no_issue_found=true` and a non-empty reason explaining why the available
    evidence does not justify a confirmed issue. Completion condition: the batch is
    all-or-nothing and internally consistent.
@@ -202,9 +206,11 @@ submission.
   root with all corroborating check IDs. Do not inflate the issue count by turning
   a scenario, a bounded property, and a static view of the same defect into three
   roots.
-- A confirmed root must cite current-run hash-valid checks/tool records plus
-  accepted source/model refs. Missing, ambiguous, truncated, stale, or unsupported
-  evidence can justify `candidate_only` or `rejected`, not `confirmed`.
+- A confirmed root must cite current-run hash-valid checks/tool records plus refs
+  with deterministic one-to-one source attribution. Inspect membership or check
+  binding alone is insufficient. Missing, ambiguous, truncated, stale, or
+  unsupported evidence can justify `candidate_only` or `rejected`, not
+  `confirmed`.
 - Never claim model completeness, semantic equivalence, source-level closure,
   scientific success, hidden-reference agreement, or future Repair/Confirm
   outcome.

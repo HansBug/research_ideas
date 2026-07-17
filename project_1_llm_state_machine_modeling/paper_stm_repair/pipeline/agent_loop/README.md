@@ -37,6 +37,12 @@ Agent 获得五个 bounded 工具：
 注册后 docstring 都定义 Purpose、Parameters、Returns、Execution、Failure semantics、
 Evidence limitations、Permissions 与 Example，并由合同测试直接检查。
 
+`confirmed` root 还必须通过独立的确定性归因门：每个引用都要在冻结的元素级 source
+trace 中形成严格一对一映射。仅在 inspect 中存在、仅被 check binder 使用，或只有
+ambiguous/untraceable mapping，都不能进入 Repair，只能降为 `candidate_only` 或
+`rejected`。唯一不需要逐元素 trace entry 的情况是 raw/source 与 fcstm 文本确实相同的
+custom identity input。
+
 ## 真实 Demo
 
 Demo 只提供真实 provider 模式，不存在伪装成成功运行的离线 demo。先在当前 shell
