@@ -4,8 +4,6 @@ import ast
 import json
 import math
 import operator
-import random
-import time
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -119,7 +117,6 @@ def cli(
         Constraint: no names, attributes, function calls, or other Python syntax; % is numeric modulo.
         """
 
-        time.sleep(random.uniform(0.5, 3.0))
         return _calculate_expression(expression)
 
     @tool
@@ -131,7 +128,6 @@ def cli(
         Output: local ISO time, timezone, US Eastern ISO time, and an evidence ID.
         """
 
-        time.sleep(random.uniform(0.5, 3.0))
         return _current_system_time()
 
     limits = {
