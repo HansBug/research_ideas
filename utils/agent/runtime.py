@@ -2602,6 +2602,7 @@ class AgentApp:
         observed_model: str | None = None
         error: dict[str, Any] | None = None
         tool_calls: list[dict[str, Any]] = []
+        orphan_executions: list[dict[str, Any]] = []
         tool_records_by_id: dict[str, dict[str, Any]] = {}
         pending_tool_ids: dict[str, list[str]] = {}
         active_tool_records: dict[str, dict[str, Any]] = {}
@@ -2665,6 +2666,7 @@ class AgentApp:
         tool_requested_monotonic: dict[str, float] = {}
         tool_started_monotonic: dict[str, float] = {}
         audited_tool_action_ids: set[str] = set()
+        orphaned_tool_call_ids: set[str] = set()
 
         def ledger_start(call_id: str, call_kind: str) -> str | None:
             if call_id in ledger_started_ids:
@@ -3088,8 +3090,9 @@ class AgentApp:
                     tool_requested_monotonic[tool_call_id] = float(requested_monotonic)
                 if request["kind"] == "business":
                     pending_tool_ids.setdefault(str(request["name"]), []).append(tool_call_id)
-                tool_calls.append(request)
-                tool_records_by_id[tool_call_id] = request
+                if request["kind"] == "structured" or request["name"] in self.spec.tool_names:
+                    tool_calls.append(request)
+                    tool_records_by_id[tool_call_id] = request
             structured_requests = [request for request in requests if request["kind"] == "structured"]
             emit(
                 "model_completed",
@@ -3368,9 +3371,7 @@ class AgentApp:
 
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
-        def resolve_tool_record(name: str, arguments: Any) -> dict[str, Any] | None:
-            """Resolve an execution to one requested business action when possible."""
-
+        def pending_tool_candidates(name: str, arguments: Any) -> list[dict[str, Any]]:
             normalized = _safe_json(arguments)
             candidates = [
                 record
@@ -3380,8 +3381,12 @@ class AgentApp:
                 and record.get("status") in {"requested", "started"}
             ]
             exact = [record for record in candidates if record.get("arguments") == normalized]
-            if len(exact) == 1:
-                return exact[0]
+            return exact if exact else candidates
+
+        def resolve_tool_record(name: str, arguments: Any) -> dict[str, Any] | None:
+            """Resolve an execution to one requested business action when possible."""
+
+            candidates = pending_tool_candidates(name, arguments)
             return candidates[0] if len(candidates) == 1 else None
 
         async def consume(graph: Any) -> dict[str, Any] | None:
@@ -3653,8 +3658,11 @@ class AgentApp:
                     if call_id is None and record is not None:
                         call_id = str(record.get("tool_call_id") or "") or None
                     if record is None:
-                        record = {"kind": "business", "name": name, "tool_call_id": None, "attempt_id": attempt_id, "turn": turn, "arguments": execution.get("arguments", _safe_json(data.get("input"))), "requested_at": None, "status": "failed", "mapping": "orphan", "mapping_reason": "tool_error did not expose tool_call_id and pending requests were ambiguous"}
-                        tool_calls.append(record)
+                        candidates = pending_tool_candidates(name, execution.get("arguments", data.get("input")))
+                        candidate_ids = [str(item.get("tool_call_id")) for item in candidates if item.get("tool_call_id")]
+                        orphaned_tool_call_ids.update(candidate_ids)
+                        record = {"kind": "business", "name": name, "tool_call_id": None, "attempt_id": attempt_id, "turn": turn, "arguments": execution.get("arguments", _safe_json(data.get("input"))), "requested_at": None, "status": "failed", "mapping": "orphan", "candidate_tool_call_ids": candidate_ids, "mapping_reason": "tool_error did not expose tool_call_id and pending requests were ambiguous"}
+                        orphan_executions.append(record)
                     finished_monotonic = _monotonic()
                     started_monotonic = execution.get("_started_monotonic")
                     requested_monotonic = tool_requested_monotonic.get(call_id or "")
@@ -4010,7 +4018,10 @@ class AgentApp:
                         )
                         tool_started_monotonic[str(record.get("tool_call_id"))] = float(execution["_started_monotonic"])
                     else:
-                        orphan_status = "cancelled" if status == "cancelled" else "failed"
+                        candidates = pending_tool_candidates(str(execution.get("name") or ""), execution.get("arguments"))
+                        candidate_ids = [str(item.get("tool_call_id")) for item in candidates if item.get("tool_call_id")]
+                        orphaned_tool_call_ids.update(candidate_ids)
+                        orphan_status = "cancelled" if status == "cancelled" or tool_error_seen else "failed"
                         orphan = {
                             "kind": "business",
                             "name": execution.get("name"),
@@ -4021,17 +4032,31 @@ class AgentApp:
                             "requested_at": None,
                             "status": orphan_status,
                             "mapping": "orphan",
+                            "candidate_tool_call_ids": candidate_ids,
                             "mapping_reason": "tool lifecycle ended before a unique request ID could be identified",
                             "started_at": execution.get("started_at"),
                             "finished_at": _utc_now().isoformat(),
                             "duration_seconds": max(0.0, _monotonic() - float(execution["_started_monotonic"])),
                             "error": error,
                         }
-                        tool_calls.append(orphan)
+                        orphan_executions.append(orphan)
                         emit("tool_failed", {"name": orphan["name"], "tool_call_id": None, "arguments": orphan["arguments"], "error": error, "status": orphan_status, "started_at": orphan["started_at"], "finished_at": orphan["finished_at"], "queue_duration_seconds": None, "duration_seconds": orphan["duration_seconds"], "attempt_id": attempt_id, "turn": turn})
                         audit_tool_action(orphan)
                 for record in tool_calls:
                     if record.get("status") in {"started", "requested"}:
+                        if str(record.get("tool_call_id") or "") in orphaned_tool_call_ids:
+                            record.update(
+                                {
+                                    "status": "unresolved",
+                                    "mapping": "ambiguous",
+                                    "mapping_reason": "an orphan execution was observed but could not be uniquely assigned to this request",
+                                    "error": {
+                                        "code": "tool_mapping_ambiguous",
+                                        "message": "tool execution was observed but its request ID could not be uniquely identified",
+                                    },
+                                }
+                            )
+                            continue
                         if error is None:
                             error = {"code": "incomplete_tool", "message": "tool execution did not produce a completion event"}
                             status = "failed"

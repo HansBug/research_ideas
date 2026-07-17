@@ -49,8 +49,7 @@ def test_unknown_tool_request_has_one_rejected_terminal_action(tmp_path: Path) -
 
     assert result.status == "failed"
     assert result.error and result.error["code"] == "tool_not_allowed"
-    assert len(result.tool_calls) == 1
-    assert result.tool_calls[0]["status"] == "rejected"
+    assert result.tool_calls == []
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
     actions = [record for record in records if record.get("record") == "action" and record.get("tool_call_id") == "unknown-1"]
     assert len(actions) == 1

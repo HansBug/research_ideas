@@ -480,6 +480,65 @@ def test_same_name_parallel_tools_link_results_by_tool_call_id() -> None:
         assert record["duration_seconds"] >= 0
 
 
+def test_same_name_identical_parallel_tools_keep_orphan_execution_separate(tmp_path: Path) -> None:
+    class IdenticalParallelModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "identical-parallel-test"
+
+        def bind_tools(self, tools: Any, **kwargs: Any) -> "IdenticalParallelModel":
+            return self
+
+        def _generate(self, messages: list[Any], stop: list[str] | None = None, run_manager: Any = None, **kwargs: Any) -> ChatResult:
+            return ChatResult(
+                generations=[
+                    ChatGeneration(
+                        message=AIMessage(
+                            content="",
+                            tool_calls=[
+                                {"name": "probe", "args": {"value": "x"}, "id": "identical-a", "type": "tool_call"},
+                                {"name": "probe", "args": {"value": "x"}, "id": "identical-b", "type": "tool_call"},
+                            ],
+                        )
+                    )
+                ]
+            )
+
+    entered = 0
+    lock = asyncio.Lock()
+    both_entered = asyncio.Event()
+
+    async def probe(value: str) -> str:
+        nonlocal entered
+        async with lock:
+            entered += 1
+            invocation = entered
+            if invocation == 2:
+                both_entered.set()
+        await both_entered.wait()
+        if invocation == 1:
+            raise RuntimeError("first identical call failed")
+        await asyncio.Event().wait()
+        return value
+
+    audit = tmp_path / "identical-parallel.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="identical-parallel", system_prompt="Use the tool.", tools=(probe,)),
+        LLMConfig(model="identical-parallel-test"),
+        IdenticalParallelModel(),
+    ).run("run", renderer="quiet", audit_out=audit)
+
+    assert result.status == "failed"
+    assert {item["status"] for item in result.tool_calls} == {"unresolved"}
+    assert {item["mapping"] for item in result.tool_calls} == {"ambiguous"}
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    actions = [record for record in records if record.get("record") == "action"]
+    assert len(actions) == 2
+    assert {record.get("mapping") for record in actions} == {"orphan"}
+    assert {record.get("status") for record in actions} == {"failed", "cancelled"}
+    assert all(set(record["candidate_tool_call_ids"]) == {"identical-a", "identical-b"} for record in actions)
+
+
 def test_model_duration_uses_monotonic_when_utc_moves_backward(monkeypatch: Any) -> None:
     import utils.agent.runtime as runtime
 
