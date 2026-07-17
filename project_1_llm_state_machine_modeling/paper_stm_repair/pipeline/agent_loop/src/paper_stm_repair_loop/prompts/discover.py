@@ -154,10 +154,15 @@ submission.
      labels/specs. A scenario must provide the complete `event_labels` sequence
      from the model initial state and a `precondition_state_label`: all labels
      except the last establish that precondition, and the last label is the event
-     being tested. Every `nl_basis.quote` must occur in the frozen NL and every
+     being tested. Every NL-grounded check requires at least one
+     `nl_basis.quote`; each quote must occur in the frozen NL and every
      `source_basis` item must occur in frozen raw/source `STM_0`. At least one
      such verified basis item must jointly name the declared precondition and
-     final tested event; this is the applicability evidence. Never test a
+     final tested event; this is the applicability evidence. When the NL quote
+     explicitly names a non-target state, the declared precondition must be that
+     state or a hierarchical ancestor/descendant. Use raw/source transition text
+     to supply the operational precondition only when the NL leaves it implicit;
+     raw/source text never replaces NL grounding. Never test a
      deep-state event as a one-step initial-state
      scenario. If setup cannot establish the declared precondition, the result is
      mechanically ineligible rather than evidence of a model contradiction. Do

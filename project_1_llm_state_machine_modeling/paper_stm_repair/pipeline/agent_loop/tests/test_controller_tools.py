@@ -173,7 +173,7 @@ def test_evaluate_checks_rejects_invalid_scenario_precondition_from_gate():
                 "check_kind": "scenario",
                 "statement": "fire reaches Done from Armed.",
                 "expected_outcome": {"target_label": "Done"},
-                "source_basis": [],
+                "source_basis": ["Idle -> Done : fire;"],
                 "nl_basis": [
                     {
                         "quote": "When fire occurs in Armed, enter Done.",
@@ -190,7 +190,7 @@ def test_evaluate_checks_rejects_invalid_scenario_precondition_from_gate():
         ],
         formal_required=False,
         nl_text="When fire occurs in Armed, enter Done.",
-        raw_source="Armed -> Done : fire;",
+        raw_source="Idle -> Done : fire;\nArmed -> Done : fire;",
     )
 
     assert result["scenarios"]["scenario_results"][0]["status"] == "invalid_precondition"
@@ -210,7 +210,7 @@ def test_evaluate_checks_rejects_agent_declared_wrong_precondition_grounding():
                 "check_kind": "scenario",
                 "statement": "fire reaches Done from Armed.",
                 "expected_outcome": {"target_label": "Done"},
-                "source_basis": [],
+                "source_basis": ["Idle -> Done : fire;"],
                 "nl_basis": [
                     {
                         "quote": "When fire occurs in Armed, enter Done.",
@@ -227,13 +227,45 @@ def test_evaluate_checks_rejects_agent_declared_wrong_precondition_grounding():
         ],
         formal_required=False,
         nl_text="When fire occurs in Armed, enter Done.",
-        raw_source="Armed -> Done : fire;",
+        raw_source="Idle -> Done : fire;\nArmed -> Done : fire;",
     )
 
     assert result["gate"]["eligible"] is False
     assert result["issue_checks"] == []
     assert result["binding_rejections"][0]["reason"] == (
-        "scenario_precondition_and_event_not_jointly_grounded"
+        "scenario_precondition_conflicts_with_nl_state"
+    )
+
+
+def test_evaluate_checks_rejects_source_only_nl_grounded_check():
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-source-only",
+                "check_kind": "scenario",
+                "statement": "fire reaches Done from Idle.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": ["Idle -> Done : fire;"],
+                "nl_basis": [],
+                "executable_spec": {
+                    "event_labels": ["fire"],
+                    "precondition_state_label": "Idle",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="When fire occurs in Armed, enter Done.",
+        raw_source="Idle -> Done : fire;\nArmed -> Done : fire;",
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["binding_rejections"][0]["reason"] == (
+        "nl_grounded_check_requires_nl_basis"
     )
 
 

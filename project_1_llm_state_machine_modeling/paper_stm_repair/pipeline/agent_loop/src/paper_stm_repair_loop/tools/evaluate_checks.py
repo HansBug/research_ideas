@@ -29,11 +29,59 @@ def _text_contains(container: str, excerpt: str) -> bool:
     return bool(normalized_excerpt) and normalized_excerpt in normalized_container
 
 
+def _matching_state_paths(label: Any, inspect: Mapping[str, Any]) -> set[str]:
+    if not isinstance(label, str) or not label:
+        return set()
+    wanted = _normalized_text(label)
+    exact: set[str] = set()
+    partial: set[str] = set()
+    for item in inspect.get("states", []) or []:
+        if not isinstance(item, Mapping) or not item.get("path"):
+            continue
+        path = str(item["path"])
+        forms = {
+            _normalized_text(path),
+            _normalized_text(_last_label(path)),
+            _normalized_text(str(item.get("name") or "")),
+        }
+        if wanted in forms:
+            exact.add(path)
+        elif any(wanted in form or form in wanted for form in forms if form):
+            partial.add(path)
+    return exact or partial
+
+
+def _state_related(left: str, right: str) -> bool:
+    return (
+        left == right
+        or left.startswith(right + ".")
+        or right.startswith(left + ".")
+    )
+
+
+def _mentioned_state_paths(
+    texts: list[str],
+    inspect: Mapping[str, Any],
+) -> set[str]:
+    normalized = [_normalized_text(text) for text in texts]
+    mentioned: set[str] = set()
+    for item in inspect.get("states", []) or []:
+        if not isinstance(item, Mapping) or not item.get("path"):
+            continue
+        path = str(item["path"])
+        visible = str(item.get("name") or _last_label(path))
+        token = _normalized_text(visible)
+        if len(token) >= 3 and any(token in text for text in normalized):
+            mentioned.add(path)
+    return mentioned
+
+
 def _grounding_rejections(
     checks: list[DiscoverCheckDraft],
     *,
     nl_text: str,
     raw_source: str,
+    inspect: Mapping[str, Any],
 ) -> tuple[list[DiscoverCheckDraft], list[dict[str, Any]]]:
     """Reject drafts whose claimed basis cannot be verified in frozen inputs."""
 
@@ -50,7 +98,12 @@ def _grounding_rejections(
         ]
         reason: str | None = None
         details: dict[str, Any] = {}
-        if invalid_nl:
+        if (
+            draft.check_origin == "nl_grounded_behavioral_issue"
+            and not draft.nl_basis
+        ):
+            reason = "nl_grounded_check_requires_nl_basis"
+        elif invalid_nl:
             reason = "nl_basis_not_in_frozen_nl"
             details["invalid_nl_basis"] = invalid_nl
         elif invalid_source:
@@ -86,6 +139,32 @@ def _grounding_rejections(
                             "tested_event_label": tested_event,
                         }
                     )
+                else:
+                    nl_texts = [item.get("quote", "") for item in draft.nl_basis]
+                    mentioned = _mentioned_state_paths(nl_texts, inspect)
+                    precondition_paths = _matching_state_paths(precondition, inspect)
+                    target_paths = _matching_state_paths(
+                        draft.expected_outcome.get("target_label"), inspect
+                    )
+                    explicit_preconditions = {
+                        path
+                        for path in mentioned
+                        if not any(_state_related(path, target) for target in target_paths)
+                    }
+                    if explicit_preconditions and not any(
+                        _state_related(explicit, declared)
+                        for explicit in explicit_preconditions
+                        for declared in precondition_paths
+                    ):
+                        reason = "scenario_precondition_conflicts_with_nl_state"
+                        details.update(
+                            {
+                                "precondition_state_label": precondition,
+                                "nl_mentioned_state_paths": sorted(
+                                    explicit_preconditions
+                                ),
+                            }
+                        )
         if reason is None:
             accepted.append(draft)
             continue
@@ -233,6 +312,7 @@ def execute(
         params.checks,
         nl_text=nl_text,
         raw_source=raw_source,
+        inspect=check_result.get("inspect", {}),
     )
     bound = bind_discover_drafts(
         grounded_drafts,
@@ -349,9 +429,10 @@ def build_tool(
           execution result. Scenario drafts normally use ``target_label``;
           property drafts use ``property_satisfied`` or ``satisfied``; source
           internal contradictions use ``consistency_status=contradicts``.
-        - ``nl_basis``: list of ``{"quote":"...","role":"requirement"}``
-          objects. Every quote must occur in the frozen NL. It is required for
-          NL-grounded checks and must be empty for raw-internal checks.
+        - ``nl_basis``: non-empty list of
+          ``{"quote":"...","role":"requirement"}`` objects for every
+          NL-grounded check. Every quote must occur in the frozen NL. It must be
+          empty for raw-internal checks.
         - ``source_basis``: exact quoted facts that occur in frozen raw/source
           ``STM_0``. Raw-internal checks require at least two mutually conflicting
           source facts.
@@ -361,7 +442,10 @@ def build_tool(
           and all preceding events establishing the declared precondition.
           At least one verified NL/source basis item must jointly name that
           precondition and final tested event; separate or invented prose cannot
-          establish applicability.
+          establish applicability. If the NL quote explicitly names a non-target
+          state, the declared precondition must be that state or one of its
+          ancestors/descendants. Raw source may operationalize a precondition only
+          when the NL quote itself leaves it implicit.
           Property drafts use ``kind`` + ``target_label`` + bounded ``bound``;
           static drafts use supported shape labels. Do not pass arbitrary code
           or solver expressions.
