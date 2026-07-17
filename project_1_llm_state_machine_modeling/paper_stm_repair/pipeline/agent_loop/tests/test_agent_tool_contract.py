@@ -193,7 +193,8 @@ def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_sec
             "``targets``",
             "``current_records``",
             "``readable_history``",
-            "same six fields, values, model hash, record set",
+            "``execution_status=no_new_task_fact``",
+            "never repeats the NL, source model, FCSTM body",
         ],
         "read_fcstm_guide": [
             "integrity-checked FCSTM grammar",
@@ -293,6 +294,15 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     task = tools["read_task"].invoke({})
     assert set(task) == {"stage", "loop_no", "model", "targets", "current_records", "readable_history"}
     assert task["model"]["fcstm_sha256"] == "model-sha"
+    duplicate_task = tools["read_task"].invoke({})
+    assert duplicate_task["execution_status"] == "no_new_task_fact"
+    assert duplicate_task["model_sha256"] == "model-sha"
+    assert "model" not in duplicate_task and "current_records" not in duplicate_task
+
+    duplicate_fcstm_guide = tools["read_fcstm_guide"].invoke({})
+    assert duplicate_fcstm_guide["execution_status"] == "no_new_guide_fact"
+    assert duplicate_fcstm_guide["sha256"] == fcstm_guide["sha256"]
+    assert "content" not in duplicate_fcstm_guide
 
     query = tools["query_model"].invoke({"query_kind": "states", "name_contains": "Root", "offset": 0, "limit": 1})
     assert query["execution_status"] == "completed"
@@ -397,6 +407,10 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     fbmcq_guide = tools["read_fbmcq_guide"].invoke({})
     assert fbmcq_guide["execution_status"] == "completed"
     assert fbmcq_guide["content"].startswith("# FBMCQ")
+    duplicate_fbmcq_guide = tools["read_fbmcq_guide"].invoke({})
+    assert duplicate_fbmcq_guide["execution_status"] == "no_new_guide_fact"
+    assert duplicate_fbmcq_guide["sha256"] == fbmcq_guide["sha256"]
+    assert "content" not in duplicate_fbmcq_guide
     evaluated = tools["evaluate_checks"].invoke(property_payload)
     assert evaluated["execution_status"] == "completed"
     assert evaluated["gate"]["eligible"] is True

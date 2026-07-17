@@ -4,6 +4,7 @@ import copy
 from typing import Any
 
 from ..schemas.tools import FrozenTaskSnapshot, ReadTaskInput, SimpleStructuredTool
+from ..records import sha256_json
 
 
 _ALLOWED_KEYS = ("stage", "loop_no", "model", "targets", "current_records", "readable_history")
@@ -99,14 +100,16 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     ``FrozenTaskSnapshot`` JSON object with exactly six top-level keys.
 
     Execution: validation is performed once at factory time to fail closed before
-    provider dispatch, then the registered callable returns the same validated
-    JSON payload on every invocation.
+    provider dispatch. The first registered call returns the complete validated
+    payload; later calls return only its stable hashes and
+    ``execution_status=no_new_task_fact`` so duplicate reads cannot inflate the
+    model context with identical evidence.
 
     Failure semantics: invalid snapshot shape fails during tool construction;
     runtime calls have no domain failure mode because they perform no external IO.
 
-    Evidence limitations: re-reading the task resolves memory/Compact
-    uncertainty only; it is not evidence of model correctness or issue closure.
+    Evidence limitations: a duplicate result adds no evidence and does not refresh
+    mutable state; it is not evidence of model correctness or issue closure.
 
     Permissions: no Agent parameter can name a path, URL, run, case, alternate
     model, shell command, Python/Z3 program, or reference/gold artifact.
@@ -116,15 +119,17 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     """
 
     frozen = _coerce_frozen_snapshot(snapshot)
+    frozen_payload = frozen.model_dump(mode="json")
+    snapshot_sha256 = sha256_json(frozen_payload)
+    served = False
 
     def read_task() -> dict[str, Any]:
         """Purpose
         -------
-        Re-read the canonical, immutable working context for this exact
-        ``B-discover`` attempt. Use it to orient at the start of the workflow and
-        to recover after context compaction or memory uncertainty. It is not a
-        general record reader and never observes facts appended after the attempt
-        snapshot was frozen.
+        Read the canonical, immutable working context for this exact
+        ``B-discover`` attempt. Use it once to orient at the start of the workflow.
+        It is not a general record reader and never observes facts appended after
+        the attempt snapshot was frozen.
 
         Parameters
         ----------
@@ -134,7 +139,8 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Returns
         -------
-        A ``FrozenTaskSnapshot`` JSON object with exactly six top-level fields:
+        On the first call, a ``FrozenTaskSnapshot`` JSON object with exactly six
+        top-level fields:
 
         - ``stage``: string stage identifier; here it must be ``B-discover``.
         - ``loop_no``: integer logical loop number; Discover uses ``0``.
@@ -147,12 +153,17 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         - ``readable_history``: immutable prior-stage/loop history exposed to this
           attempt; initial Discover currently uses ``[]``.
 
+        A later call returns a compact object with
+        ``execution_status=no_new_task_fact``, ``snapshot_sha256``,
+        ``model_sha256``, ``context_snapshot_head``, and limitations. It never
+        repeats the NL, source model, FCSTM body, inspect payload, or history.
+
         Execution
         ---------
-        1. Return a deep-copied Pydantic-validated snapshot captured before
-           provider dispatch.
-        2. Preserve the same six fields, values, model hash, record set, and
-           context snapshot identity on every call.
+        1. On the first call, return a deep-copied Pydantic-validated snapshot
+           captured before provider dispatch.
+        2. On subsequent calls, return only stable identity hashes and mark that
+           no new task fact was produced.
         3. Perform no filesystem scan, latest-record lookup, cache refresh,
            model execution, LLM call, or mutation.
 
@@ -161,7 +172,9 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         Snapshot shape, reference-blindness, and hash identity are validated by
         the Controller before this tool is exposed. A malformed or oversized
         snapshot fails the run before Agent dispatch; this function has no partial
-        fallback. If a returned hash differs from the preloaded context, treat the
+        fallback. A duplicate call is not a failure, but its compact response is a
+        stop signal: continue from the already visible task instead of calling
+        again. If a returned hash differs from the preloaded context, treat the
         attempt as invalid rather than reconciling the two views yourself.
 
         Evidence limitations
@@ -180,10 +193,26 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Example
         -------
-        Input ``{}`` returns a value shaped as
+        The first input ``{}`` returns a value shaped as
         ``{"stage":"B-discover","loop_no":0,"model":{"model_id":"STM_0","content":"...","model_sha256":"..."},"targets":[],"current_records":{"nl":{...}},"readable_history":[]}``.
+        A second input ``{}`` returns
+        ``{"execution_status":"no_new_task_fact","snapshot_sha256":"...","model_sha256":"..."}``.
         """
 
-        return frozen.model_dump(mode="json")
+        nonlocal served
+        if served:
+            return {
+                "execution_status": "no_new_task_fact",
+                "snapshot_sha256": snapshot_sha256,
+                "model_sha256": frozen.model.get("model_sha256") or frozen.model.get("fcstm_sha256"),
+                "context_snapshot_head": frozen.model.get("context_snapshot_head"),
+                "limitations": [
+                    "duplicate_task_read_not_replayed",
+                    "no_new_task_fact",
+                    "use_existing_visible_snapshot",
+                ],
+            }
+        served = True
+        return copy.deepcopy(frozen_payload)
 
     return SimpleStructuredTool(func=read_task, name="read_task", description=read_task.__doc__ or "read_task", args_schema=ReadTaskInput)

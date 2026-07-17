@@ -30,7 +30,7 @@ Agent 获得七个 bounded 工具：
 |---|---|---|
 | `read_fcstm_guide` | 读取 `pyfcstm.llm` 中完整、带版本与 SHA-256 的 FCSTM guide | 必用，且必须是首次业务工具调用 |
 | `read_fbmcq_guide` | 读取 `pyfcstm.llm` 中完整、带版本与 SHA-256 的 FBMCQ guide | 首次构造、修订或提交 property 前必用 |
-| `read_task` | 读取或重读同一 attempt 的六字段冻结上下文 | FCSTM guide 后必用；Compact 后或需复核时可重读 |
+| `read_task` | 首次读取同一 attempt 的六字段冻结上下文 | FCSTM guide 后必用；重复调用只返回 hash 与 `no_new_task_fact` |
 | `query_model` | 查询分页结构化 inspect 事实 | 存在明确的结构证据缺口时 |
 | `observe_trace` | 探索一条最短有限事件轨迹 | eligible batch 之后；每个不同 drafts hash 最多完成一次，重复同一 batch 不重置 |
 | `lookup_source_trace` | 合并查询 source 与 fcstm 元素映射 | eligible batch 之后；一次传入该 batch 全部 refs，每个不同 drafts hash 最多完成一次 |
@@ -40,6 +40,8 @@ Agent 获得七个 bounded 工具：
 内容隔离、工具前置条件和 run 后顺序复核三层机制强制执行
 `read_fcstm_guide -> read_task -> model work`；property batch 另强制
 `read_fbmcq_guide -> property work`。任何先违规后补读的 attempt 仍会 fail-closed。
+三项冻结资源读取都只在首次调用返回完整大文本；同一 run 内重复调用只返回稳定
+资源身份、SHA-256 与 `no_new_*_fact`，防止完全相同的 NL/STM/guide 被反复注入上下文。
 结构化终止工具的物理名称与 prompt 一致，固定为 `submit_discovery`。若 provider
 结束当前 graph 路径却未返回结构化结果，Discover 会保留完整且满足 provider
 tool-message 协议的可见历史，并启用一次可审计恢复路径，要求先补齐遗漏的 mandatory

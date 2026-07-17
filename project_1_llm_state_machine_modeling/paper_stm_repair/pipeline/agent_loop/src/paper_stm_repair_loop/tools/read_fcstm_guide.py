@@ -32,6 +32,8 @@ def execute() -> dict[str, Any]:
 def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
     """Build the attempt-local zero-argument FCSTM guide reader."""
 
+    served_metadata: dict[str, Any] | None = None
+
     def read_fcstm_guide() -> dict[str, Any]:
         """Purpose
         -------
@@ -57,6 +59,10 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         API. pyfcstm verifies the packaged SHA-256 sidecar before returning text.
         Only after both calls succeed does this tool mark the FCSTM guide as read
         for the current attempt, enabling ``read_task`` and model-dependent tools.
+        The full guide is returned once. A repeated call returns only the same
+        resource/version/SHA-256 identity with
+        ``execution_status=no_new_guide_fact`` and never injects the guide text a
+        second time.
 
         Failure semantics
         -----------------
@@ -78,12 +84,38 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
 
         Example
         -------
-        Input ``{}`` returns the full guide with a stable SHA-256. A successful
-        response must precede the first ``read_task`` call.
+        The first input ``{}`` returns the full guide with a stable SHA-256. A
+        successful response must precede the first ``read_task`` call. A repeated
+        input returns only metadata and a ``no_new_guide_fact`` limitation.
         """
 
+        nonlocal served_metadata
+        if served_metadata is not None:
+            return {
+                "execution_status": "no_new_guide_fact",
+                "guide_kind": "fcstm",
+                **served_metadata,
+                "limitations": [
+                    "duplicate_guide_read_not_replayed",
+                    "no_new_guide_fact",
+                    "use_existing_visible_guide",
+                ],
+            }
         result = execute()
         result["guide_access_sequence"] = state.mark_read("fcstm", result)
+        served_metadata = {
+            key: result.get(key)
+            for key in (
+                "resource_name",
+                "pyfcstm_version",
+                "sha256",
+                "expected_sha256",
+                "byte_size",
+                "line_count",
+                "chapter_count",
+                "guide_access_sequence",
+            )
+        }
         return result
 
     return SimpleStructuredTool(

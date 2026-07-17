@@ -198,3 +198,8 @@ def test_user_prompt_is_read_only_and_requests_one_structured_result():
     assert "read_fcstm_guide -> read_task" in text
     assert "first business tool call must be read_fcstm_guide" in text
     assert "return one structured submit_discovery result" in text
+
+
+def test_prompt_stops_duplicate_frozen_resource_reads():
+    assert "execution_status=no_new_task_fact" in PROMPT_ZH
+    assert "no_new_*_fact" in PROMPT_ZH

@@ -32,6 +32,8 @@ def execute() -> dict[str, Any]:
 def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
     """Build the attempt-local zero-argument FBMCQ guide reader."""
 
+    served_metadata: dict[str, Any] | None = None
+
     def read_fbmcq_guide() -> dict[str, Any]:
         """Purpose
         -------
@@ -56,7 +58,9 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         Calls ``pyfcstm.llm.get_fbmcq_language_guide_prompt_for_llm`` and its
         metadata API. pyfcstm verifies the packaged SHA-256 sidecar. Only a
         successful result marks the guide as read; ``evaluate_checks`` then permits
-        a batch containing ``check_kind=property``.
+        a batch containing ``check_kind=property``. The full guide is returned
+        once; a repeated call returns only the same metadata and
+        ``execution_status=no_new_guide_fact``.
 
         Failure semantics
         -----------------
@@ -77,12 +81,39 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
 
         Example
         -------
-        Input ``{}`` returns the full guide and SHA-256. Call it before the first
-        ``evaluate_checks`` request whose batch contains a property draft.
+        The first input ``{}`` returns the full guide and SHA-256. Call it before
+        the first ``evaluate_checks`` request whose batch contains a property
+        draft. Repeated input returns only metadata and a
+        ``no_new_guide_fact`` limitation.
         """
 
+        nonlocal served_metadata
+        if served_metadata is not None:
+            return {
+                "execution_status": "no_new_guide_fact",
+                "guide_kind": "fbmcq",
+                **served_metadata,
+                "limitations": [
+                    "duplicate_guide_read_not_replayed",
+                    "no_new_guide_fact",
+                    "use_existing_visible_guide",
+                ],
+            }
         result = execute()
         result["guide_access_sequence"] = state.mark_read("fbmcq", result)
+        served_metadata = {
+            key: result.get(key)
+            for key in (
+                "resource_name",
+                "pyfcstm_version",
+                "sha256",
+                "expected_sha256",
+                "byte_size",
+                "line_count",
+                "chapter_count",
+                "guide_access_sequence",
+            )
+        }
         return result
 
     return SimpleStructuredTool(
