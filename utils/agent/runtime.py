@@ -3459,7 +3459,7 @@ class AgentApp:
                 elif kind == "on_chat_model_end":
                     model_usage, observed_usages, usage_conflict, model_name = _model_usage_info(data.get("output"))
                     call_id = str(event.get("run_id") or "") or None
-                    if call_id not in callback_usage_ids:
+                    if call_id not in callback_usage_ids and (model_usage is not None or observed_usages):
                         # A graph fallback may expose a chat-model run ID
                         # that differs from the canonical model chain ID.  Do
                         # not publish the orphan ID; project the usage at the
