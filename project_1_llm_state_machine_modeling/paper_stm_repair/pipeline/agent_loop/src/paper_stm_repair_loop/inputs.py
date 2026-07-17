@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from .config import PAIRS_JSONL, SELECTED_ROOT
 from .pyfcstm_adapter import sha256_text
@@ -133,6 +133,7 @@ def prepare_run_dir(
     renderer: str,
     formal_profile: bool = True,
     replay_file: Path | None = None,
+    agent_limits: Mapping[str, int | float] | None = None,
 ) -> None:
     """Materialize the immutable Stage API input boundary for one new run."""
 
@@ -152,6 +153,12 @@ def prepare_run_dir(
     files["model"].write_text(case.fcstm, encoding="utf-8")
     files["source_trace"].write_text(json.dumps(case.source_trace, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     files["case_metadata"].write_text(json.dumps(case.metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    limits = dict(agent_limits or {})
+    allowed_limits = {"model_calls", "tool_calls", "turns", "seconds"}
+    if set(limits) - allowed_limits:
+        raise ValueError(f"unknown Agent limit keys: {sorted(set(limits) - allowed_limits)}")
+    if any(not isinstance(value, (int, float)) or value <= 0 for value in limits.values()):
+        raise ValueError("Agent limits must be positive numbers")
     manifest = {
         "schema_version": "paper1.discover.manifest.v1",
         "run_id": run_dir.name,
@@ -164,6 +171,7 @@ def prepare_run_dir(
         "content_language": content_language,
         "renderer": renderer,
         "formal_profile": formal_profile,
+        "agent_limits": limits,
         "main_result_eligible": False,
         "reference_assets_visible": False,
         "input_files": {name: str(path.relative_to(run_dir)) for name, path in files.items()},

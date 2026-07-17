@@ -15,7 +15,16 @@ class StrictToolModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
-ExecutionStatus = Literal["completed", "invalid_arguments", "tool_unavailable", "execution_error", "unknown", "timeout", "incomplete"]
+ExecutionStatus = Literal[
+    "completed",
+    "prerequisite_required",
+    "invalid_arguments",
+    "tool_unavailable",
+    "execution_error",
+    "unknown",
+    "timeout",
+    "incomplete",
+]
 
 
 class FrozenTaskSnapshot(StrictToolModel):
@@ -28,6 +37,10 @@ class FrozenTaskSnapshot(StrictToolModel):
 
 
 class ReadTaskInput(StrictToolModel):
+    pass
+
+
+class ReadGuideInput(StrictToolModel):
     pass
 
 
@@ -96,6 +109,7 @@ __all__ = [
     "ModelQueryResult",
     "ObserveTraceInput",
     "QueryModelInput",
+    "ReadGuideInput",
     "ReadTaskInput",
     "SourceTraceLookupResult",
     "StrictToolModel",

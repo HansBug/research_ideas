@@ -120,7 +120,10 @@ def execute(
     exceptions return ``execution_error`` with a code only. Runner timeout/unknown
     statuses are preserved as structured statuses and never converted to pass.
 
-    Evidence limitations: a trace is an observation of one bounded path.  Even a
+    Evidence limitations: this is a post-batch diagnostic microscope, not a
+    coverage engine. It must not be used for exhaustive event permutation,
+    repeated-prefix search, or duplicating scenarios already executed by
+    ``evaluate_checks``. A trace is an observation of one bounded path. Even a
     clean no-counterexample trace cannot prove global correctness, NL alignment,
     source closure, property satisfaction, absence of bugs, or repair success.
 
@@ -234,10 +237,12 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
         """Purpose
         -------
         Execute one exploratory, finite event sequence against the frozen current
-        ``STM_0`` to answer a concrete trace question during Discover. Use it to
-        observe consumption, stutter/no-progress behavior, reached configuration,
-        and runtime diagnostics. It does not search all traces or produce an
-        issue/quality verdict.
+        ``STM_0`` to answer a concrete diagnostic question that remains after an
+        eligible full-batch ``evaluate_checks`` result. Use it to distinguish one
+        named uncertainty about consumption, stutter/no-progress behavior, reached
+        configuration, or runtime diagnostics. It is not a coverage engine: do
+        not enumerate event permutations, duplicate evaluated scenarios, repeat
+        a prefix family, search all traces, or produce an issue/quality verdict.
 
         Parameters
         ----------
@@ -291,7 +296,9 @@ def build_tool(snapshot: dict[str, Any], runner: Callable[..., Any] | None) -> S
 
         Evidence limitations
         --------------------
-        A finite trace may illustrate or refute one proposition under that exact
+        ``evaluate_checks`` owns batch coverage. This tool is only for the shortest
+        distinguishing sequence needed by a remaining named evidence gap; stop
+        after that gap is answered. A finite trace may illustrate or refute one proposition under that exact
         input order. It cannot independently prove global correctness, absence of
         another path, NL alignment, source closure, unbounded reachability or
         unreachability, completeness, or a confirmed issue. A no-counterexample

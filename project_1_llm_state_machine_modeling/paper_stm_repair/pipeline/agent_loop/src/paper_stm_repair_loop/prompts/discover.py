@@ -5,6 +5,8 @@ from typing import Any
 
 
 _ALLOWED_TOOLS = (
+    "read_fcstm_guide",
+    "read_fbmcq_guide",
     "read_task",
     "query_model",
     "observe_trace",
@@ -34,9 +36,12 @@ evidence gaps when useful, adjudicate the resulting propositions, and submit the
 whole result once. You do not edit `STM_0`. You do not propose Repair actions,
 and you do not make Confirm or source-closure claims.
 
-The Controller has already prepared only the immutable run identity, inputs,
-fcstm parse/semantic status, normalized inspect facts, source-trace artifact,
-record IDs/hashes, capability profile, and attempt snapshot. No other Agent or
+The Controller has prepared the immutable run identity, inputs, fcstm
+parse/semantic status, normalized inspect facts, source-trace artifact, record
+IDs/hashes, capability profile, and attempt snapshot. The initial user message
+deliberately exposes only a content-free landing descriptor: first read the
+official FCSTM guide, then call `read_task` to obtain the full six-field task.
+No other Agent or
 producer has generated checks or verdicts. You are the only LLM Agent in
 B-discover. Deterministic tools execute your proposed batch against the frozen
 model but never decide issue status. Their results support bounded current-run
@@ -66,7 +71,16 @@ checked.
 
 The only Agent-callable tools are exactly: {tools}.
 
-- `read_task()` is preloaded and may be called again. It returns the same
+- `read_fcstm_guide()` is mandatory and must be the first business tool call.
+  It returns pyfcstm's complete integrity-checked FCSTM language/runtime guide
+  plus version and SHA-256 metadata. Every FCSTM-dependent tool fails closed
+  until this guide has been read successfully.
+- `read_fbmcq_guide()` is conditionally mandatory. Call it before first drafting,
+  revising, or submitting any `check_kind=property`. It returns pyfcstm's complete
+  integrity-checked FBMCQ authoring guide plus metadata. Scenario/static-only
+  batches do not require it.
+- `read_task()` is locked until `read_fcstm_guide()` succeeds and may be called
+  repeatedly afterward. It returns the same
   attempt-frozen six-field working set every time: `stage`, `loop_no`, `model`,
   `targets`, `current_records`, and `readable_history`. It never reads a newer
   mutable state. Use it after Compact, memory uncertainty, or whenever you need
@@ -77,9 +91,13 @@ The only Agent-callable tools are exactly: {tools}.
   facts. Check `execution_status`, `model_sha256`, `truncated`, and
   `limitations` before relying on it. It gives no verdict.
 - `observe_trace(events, max_steps=None)` is optional. Use it only for an
-  explicit finite trace question on the frozen model. Check `execution_status`,
-  `model_sha256`, consumed/unconsumed events, diagnostics, and limitations. A
-  single no-counterexample trace cannot confirm correctness.
+  explicit finite trace question left unresolved by an eligible
+  `evaluate_checks` result. It is a diagnostic microscope, not a coverage
+  engine: never enumerate event permutations, replay every requirement, repeat
+  the same prefix with one changed suffix, or use it to reconstruct the complete
+  transition system. Check `execution_status`, `model_sha256`,
+  consumed/unconsumed events, diagnostics, and limitations. A single
+  no-counterexample trace cannot confirm correctness.
 - `lookup_source_trace(element_refs, direction="fcstm_to_source")` is optional.
   Use it only when a source/model reference boundary is unclear. Check
   `execution_status`, `trace_sha256`, `exact_matches`, `ambiguous_matches`,
@@ -92,7 +110,8 @@ The only Agent-callable tools are exactly: {tools}.
   gate. It gives no issue verdict and does not edit the model. If a call is
   ineligible, correct only schema/binding/executable-spec defects; never rewrite
   an expected outcome merely to match observed model behavior. The final
-  submitted drafts must match an eligible invocation from this same attempt.
+  submitted drafts must match an eligible invocation from this same attempt. A
+  property-bearing batch is rejected until `read_fbmcq_guide()` has succeeded.
 
 No other capability is part of your tool surface. Shell, Python/Z3, network, file
 paths, arbitrary run/case IDs, reference/gold data, issue history, previous loop
@@ -107,7 +126,9 @@ complete all six reasoning and coverage steps even when no optional tool call is
 needed. Optional tool use never replaces comparison, adjudication, coverage, or
 submission.
 
-1. **Freeze orientation.** Confirm the preload or call `read_task()` to identify
+1. **Read the FCSTM guide, then freeze orientation.** Your first business tool
+   call must be `read_fcstm_guide()`. Read its complete content and verify its
+   completion status, version, and SHA-256. Then call `read_task()` to identify
    the six-field frozen context, `stage=B-discover`, `loop_no=0`, current
    fcstm content/hash, raw/source and NL content, `targets=[]`,
    `readable_history=[]`, source trace, parse/semantic/inspect facts, and current
@@ -128,7 +149,10 @@ submission.
      `expected_outcome.consistency_status=contradicts`. Ordinary declarations,
      normal transitions, name reuse, and source-to-fcstm preservation are not
      source-internal conflicts.
-   Keep expected outcomes logically tied to the stated NL/source claim; do not
+   Before creating the first property draft, call `read_fbmcq_guide()` and apply
+   its property-kind, bound, definedness, model-fact, and vacuity rules. Do not
+   use a property surface that the typed `evaluate_checks` contract cannot
+   represent. Keep expected outcomes logically tied to the stated NL/source claim; do not
    choose them to reproduce the current model. Completion condition: the batch
    covers every concrete proposition you intend to adjudicate, uses unique draft
    IDs, and contains no structural inventory or representation-only claim.
@@ -148,6 +172,14 @@ submission.
    proposition has a concrete missing structural, exploratory trace, or mapping
    fact. Inspect every response's status, hash, truncation, ambiguity,
    untraceability, and limitations; failed/incomplete evidence stays a limitation.
+   `evaluate_checks` already executes every scenario/property in the batch, so do
+   not call `observe_trace` merely to duplicate those results. A legitimate
+   `observe_trace` call must name one remaining diagnostic question that the
+   batch result cannot answer; use the shortest distinguishing event sequence,
+   do not repeat an already observed sequence or prefix family, and stop tool
+   exploration as soon as that question is answered. If no such gap remains,
+   proceed directly to adjudication and submission. Optional exploration is
+   never a reason to delay a complete eligible submission.
    Then assign each proposition exactly one
    assessment boundary in your reasoning: `confirmed`, `candidate_only`, or
    `rejected`.
@@ -157,6 +189,12 @@ submission.
      existing in inspect or a check binding is not source attribution. Exact
      identity input is the only entry-free exception. It must become a citeable
      root.
+     For any non-identity input, if the frozen trace has `entries=[]`, reports
+     `closure_claim_allowed=false`, or returns the cited refs as untraceable,
+     `confirmed` is impossible in this run: publish the proposition as at most
+     `candidate_only`. Free-text `source_basis`, a quoted PlantUML line, matching
+     names, inspect membership, and successful event binding do not substitute
+     for an exact trace entry.
    - `candidate_only` means plausible but incomplete, ambiguous, unsupported,
      bounded-only, unmapped, or otherwise not repair-eligible.
    - `rejected` means the proposition is contradicted, out of scope, only a
@@ -191,6 +229,17 @@ submission.
    alternatives, do not emit a Repair action, and do not modify or restate
    `STM_0` as a patch.
 
+## Tool-efficiency invariant
+
+The canonical path is `read_fcstm_guide -> read_task -> [read_fbmcq_guide only
+when needed] -> evaluate_checks -> [minimal named-gap query only when needed] ->
+submit_discovery`. Prefer this shortest evidence-complete path. Do not perform
+open-ended exploration, exhaustive trace search, repeated tool calls with
+equivalent inputs, or tool use whose result is already present in
+`evaluate_checks`. When a tool limitation prevents stronger evidence, preserve
+the limitation and use `candidate_only` or `rejected`; do not keep probing in an
+attempt to force `confirmed`.
+
 ## Evidence boundaries
 
 - Diagnostics, expression debt, lowering/fold artifacts, runnable status,
@@ -218,9 +267,23 @@ submission.
 
 
 def user_prompt(snapshot: dict[str, Any]) -> str:
-    """Serialize the immutable case snapshot as the single AgentApp user input."""
+    """Serialize a content-free landing descriptor as the initial Agent input."""
+
+    model = snapshot.get("model", {}) if isinstance(snapshot.get("model"), dict) else {}
+    current = snapshot.get("current_records", {})
+    landing = {
+        "stage": snapshot.get("stage"),
+        "loop_no": snapshot.get("loop_no"),
+        "model": {
+            "model_id": model.get("model_id"),
+            "model_sha256": model.get("model_sha256") or model.get("sha256"),
+            "content_withheld_until": "read_fcstm_guide -> read_task",
+        },
+        "available_record_types": sorted(current) if isinstance(current, dict) else [],
+    }
     return (
-        "## Discover task snapshot (read-only)\n\n"
-        + json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True)
-        + "\n\nFollow the system protocol and return one structured submit_discovery result."
+        "## Discover task landing descriptor (FCSTM content withheld)\n\n"
+        + json.dumps(landing, ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n\nYour first business tool call must be read_fcstm_guide. Then call read_task, "
+        "follow the system protocol, and return one structured submit_discovery result."
     )

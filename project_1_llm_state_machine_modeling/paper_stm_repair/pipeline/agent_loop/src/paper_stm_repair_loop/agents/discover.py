@@ -10,6 +10,11 @@ from typing import Any, Mapping
 
 from utils.agent import AgentApp, AgentSpec
 from utils.llm import LLMRegistry, load_llm_registry
+from pyfcstm.config.meta import __VERSION__ as PYFCSTM_SOURCE_VERSION
+from pyfcstm.llm import (
+    get_fbmcq_language_guide_prompt_metadata_for_llm,
+    get_grammar_guide_prompt_metadata_for_llm,
+)
 
 from ..config import LANGUAGES, REPO_ROOT
 from ..context import freeze_task_snapshot, publish_context, validate_reference_blind
@@ -20,14 +25,23 @@ from ..renderer import render_discover
 from ..schemas import AgentReceiptRef, DiscoverCompleted, DiscoverSubmission
 from ..tools.check_fcstm import execute as check_fcstm
 from ..tools.evaluate_checks import build_tool as build_evaluate_checks
+from ..tools.guide_access import (
+    GuideAccessState,
+    guard_tool,
+    property_batch_requested,
+)
 from ..tools.lookup_source_trace import build_tool as build_lookup_source_trace
 from ..tools.observe_trace import build_tool as build_observe_trace
 from ..tools.query_model import build_tool as build_query_model
 from ..tools.read_task import build_tool as build_read_task
+from ..tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide
+from ..tools.read_fcstm_guide import build_tool as build_read_fcstm_guide
 from ..tools.run_scenarios import execute as run_scenarios
 
 
 AGENT_TOOL_NAMES = (
+    "read_fcstm_guide",
+    "read_fbmcq_guide",
     "read_task",
     "query_model",
     "observe_trace",
@@ -54,13 +68,28 @@ def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> di
     except Exception:
         bmc_available = False
     formal_required = bool(manifest.get("formal_profile", True))
-    pyfcstm_version = importlib.metadata.version("pyfcstm")
+    distribution_version = importlib.metadata.version("pyfcstm")
+    pyfcstm_version = PYFCSTM_SOURCE_VERSION
     pyfcstm_commit = _pyfcstm_commit()
+    prompt_resources = {
+        "fcstm": dict(get_grammar_guide_prompt_metadata_for_llm()),
+        "fbmcq": dict(get_fbmcq_language_guide_prompt_metadata_for_llm()),
+    }
+    version_consistent = (
+        distribution_version == pyfcstm_version
+        and all(
+            item.get("pyfcstm_version") == pyfcstm_version
+            for item in prompt_resources.values()
+        )
+    )
     capabilities = {
         "schema_version": "paper1.capability_manifest.v1",
         "experiment_profile": "full" if formal_required else "non-formal-ablation",
         "pyfcstm_version": pyfcstm_version,
+        "pyfcstm_distribution_version": distribution_version,
+        "pyfcstm_version_consistent": version_consistent,
         "pyfcstm_git_commit": pyfcstm_commit,
+        "prompt_resources": prompt_resources,
         "tools": {
             name: {
                 "tool_name": name,
@@ -83,10 +112,26 @@ def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> di
                 *AGENT_TOOL_NAMES,
             )
         },
-        "formal_verification_executed": formal_required and bmc_available,
+        "formal_verification_available": formal_required and bmc_available,
+        "formal_verification_executed": False,
         "formal_claim_eligible": formal_required and bmc_available,
     }
     RecordStore(run_dir).write_immutable_json("capability_manifest.json", capabilities)
+    if not version_consistent:
+        store = RecordStore(run_dir)
+        store.append(
+            "run_failed",
+            {
+                "failure_reason": "pyfcstm_version_mismatch",
+                "source_version": pyfcstm_version,
+                "distribution_version": distribution_version,
+                "prompt_versions": {
+                    key: value.get("pyfcstm_version")
+                    for key, value in prompt_resources.items()
+                },
+            },
+        )
+        raise RuntimeError("pyfcstm_version_mismatch")
     if formal_required and not bmc_available:
         store = RecordStore(run_dir)
         store.append("run_failed", {"failure_reason": "required_capability_unavailable", "tool_name": "verify_properties"})
@@ -328,6 +373,52 @@ def _matching_evaluation(
     return result
 
 
+def _validate_guide_protocol(
+    state: GuideAccessState,
+    submission: DiscoverSubmission,
+) -> None:
+    """Fail closed when an Agent attempted model/query work before its guide."""
+
+    fcstm_read = state.fcstm_read_at
+    if fcstm_read is None:
+        raise ValueError("read_fcstm_guide was not called successfully")
+    if not state.events or state.events[0].get("guide_kind") != "fcstm":
+        raise ValueError(
+            "fcstm guide-first protocol violated: "
+            "read_fcstm_guide was not the first business tool call"
+        )
+    model_attempts = [
+        item
+        for item in state.events
+        if item.get("event") == "tool_attempt"
+    ]
+    early_model_attempts = [
+        item for item in model_attempts if int(item["sequence"]) < fcstm_read
+    ]
+    if early_model_attempts:
+        raise ValueError(
+            "fcstm guide-first protocol violated before:"
+            + ",".join(str(item.get("tool_name")) for item in early_model_attempts)
+        )
+
+    property_requested = any(
+        draft.check_kind == "property" for draft in submission.check_drafts
+    )
+    property_attempts = [
+        item for item in model_attempts if item.get("property_batch") is True
+    ]
+    if not property_requested and not property_attempts:
+        return
+    fbmcq_read = state.fbmcq_read_at
+    if fbmcq_read is None:
+        raise ValueError("read_fbmcq_guide was not called before property work")
+    early_property_attempts = [
+        item for item in property_attempts if int(item["sequence"]) < fbmcq_read
+    ]
+    if early_property_attempts:
+        raise ValueError("fbmcq guide-first protocol violated before property evaluation")
+
+
 def _publish_redaction_report(audit_path: Path, destination: Path) -> Path:
     finish: dict[str, Any] = {}
     for line in audit_path.read_text(encoding="utf-8").splitlines():
@@ -457,11 +548,18 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         content_language=manifest["content_language"],
     )
     evaluation_invocations: list[dict[str, Any]] = []
-    tools = (
-        build_read_task(snapshot),
-        build_query_model(snapshot),
-        build_observe_trace(snapshot, _trace_runner(case)),
-        build_lookup_source_trace(snapshot),
+    guide_access = GuideAccessState()
+    read_fcstm_guide = build_read_fcstm_guide(guide_access)
+    read_fbmcq_guide = build_read_fbmcq_guide(guide_access)
+    read_task = guard_tool(build_read_task(snapshot), guide_access)
+    query_model = guard_tool(build_query_model(snapshot), guide_access)
+    observe_trace = guard_tool(
+        build_observe_trace(snapshot, _trace_runner(case)), guide_access
+    )
+    lookup_source_trace = guard_tool(
+        build_lookup_source_trace(snapshot), guide_access
+    )
+    evaluate_checks = guard_tool(
         build_evaluate_checks(
             snapshot,
             model_text=case.fcstm,
@@ -470,6 +568,17 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             formal_required=bool(manifest.get("formal_profile", True)),
             invocation_log=evaluation_invocations,
         ),
+        guide_access,
+        require_fbmcq_when=property_batch_requested,
+    )
+    tools = (
+        read_fcstm_guide,
+        read_fbmcq_guide,
+        read_task,
+        query_model,
+        observe_trace,
+        lookup_source_trace,
+        evaluate_checks,
     )
     if tuple(tool.name for tool in tools) != AGENT_TOOL_NAMES:
         raise AssertionError("Discover Agent physical tool allowlist drift")
@@ -479,13 +588,23 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "attempt_id": attempt_id,
             "context_snapshot_head": context_manifest["context_snapshot_head"],
             "allowed_tools": list(AGENT_TOOL_NAMES),
-            "required_agent_tool_calls": ["evaluate_checks"],
+            "required_agent_tool_calls": [
+                "read_fcstm_guide",
+                "read_task",
+                "evaluate_checks",
+            ],
+            "conditional_agent_tool_calls": {
+                "property_batch": ["read_fbmcq_guide"],
+            },
         },
     )
     replay_file = manifest.get("test_replay_file")
     if replay_file:
         submission, receipt_ref = _run_replay(run_dir, Path(replay_file))
-        tools[-1].invoke(
+        read_fcstm_guide.invoke({})
+        if any(item.check_kind == "property" for item in submission.check_drafts):
+            read_fbmcq_guide.invoke({})
+        evaluate_checks.invoke(
             {"checks": [item.model_dump(mode="json") for item in submission.check_drafts]}
         )
         result_status = {"status": "success", "real_llm": False, "academic_eligible": False, "test_replay": True}
@@ -499,7 +618,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             system_prompt=prompt,
             tools=tools,
             output_schema=DiscoverSubmission,
-            limits={"model_calls": 12, "tool_calls": 40, "turns": 20, "seconds": 900},
+            limits=manifest.get("agent_limits") or None,
             require_tool_call=True,
         )
         app = AgentApp.from_registry(
@@ -539,6 +658,17 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         {"attempt_record_id": attempt_record["record_id"], "result": result_status, "agent_receipt_ref": receipt_ref.model_dump(mode="json")},
     )
     try:
+        _validate_guide_protocol(guide_access, submission)
+        guide_record = store.append(
+            "guide_access_completed",
+            {
+                "schema_version": "paper1.guide_access.v1",
+                "protocol": "fcstm-first;fbmcq-before-property",
+                "events": guide_access.events,
+                "fcstm_read_at": guide_access.fcstm_read_at,
+                "fbmcq_read_at": guide_access.fbmcq_read_at,
+            },
+        )
         evaluation = _matching_evaluation(submission, evaluation_invocations)
         checks = list(evaluation["issue_checks"])
         preparation_record = store.append(
@@ -576,6 +706,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         submission = _augment_submission_evidence(
             submission,
             [
+                guide_record["record_id"],
                 preparation_record["record_id"],
                 scenario_record["record_id"],
                 property_record["record_id"],
@@ -633,6 +764,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         "supporting_record_ids": supporting,
         "preparation_record_ids": [
             check_record["record_id"],
+            guide_record["record_id"],
             preparation_record["record_id"],
             scenario_record["record_id"],
             property_record["record_id"],
@@ -667,6 +799,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--content-language", choices=LANGUAGES, default="zh-CN")
     parser.add_argument("--renderer", choices=("auto", "rich", "jsonl", "quiet"), default="rich")
     parser.add_argument("--formal-profile", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--max-model-calls", type=int)
+    parser.add_argument("--max-tool-calls", type=int)
+    parser.add_argument("--max-turns", type=int)
+    parser.add_argument("--max-seconds", type=float)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--replay-file", type=Path, help=argparse.SUPPRESS)
@@ -703,6 +839,16 @@ def main(argv: list[str] | None = None) -> int:
             renderer=args.renderer,
             formal_profile=args.formal_profile,
             replay_file=args.replay_file,
+            agent_limits={
+                key: value
+                for key, value in {
+                    "model_calls": args.max_model_calls,
+                    "tool_calls": args.max_tool_calls,
+                    "turns": args.max_turns,
+                    "seconds": args.max_seconds,
+                }.items()
+                if value is not None
+            },
         )
         result = run_discover(args.output_dir, registry)
         print(

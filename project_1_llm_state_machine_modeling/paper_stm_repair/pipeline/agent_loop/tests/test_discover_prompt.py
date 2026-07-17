@@ -27,7 +27,7 @@ def _index_all(prompt: str, needles: list[str]) -> list[int]:
 def test_prompt_is_executable_protocol_not_toolbox_and_orders_the_workflow():
     markers = [
         "## Mandatory working protocol and completion conditions",
-        "1. **Freeze orientation.",
+        "1. **Read the FCSTM guide, then freeze orientation.",
         "2. **Construct one complete check-draft batch.",
         "3. **Evaluate the whole batch.",
         "4. **Investigate named evidence gaps, then adjudicate conservatively.",
@@ -37,7 +37,7 @@ def test_prompt_is_executable_protocol_not_toolbox_and_orders_the_workflow():
     assert _index_all(PROMPT_ZH, markers) == sorted(_index_all(PROMPT_ZH, markers))
     assert "Completion condition:" in PROMPT_ZH
     assert "immutable run identity" in PROMPT_ZH
-    assert "Controller has already prepared only" in PROMPT_ZH
+    assert "Controller has prepared the immutable run identity" in _flat(PROMPT_ZH)
     assert "This protocol is the work to perform" in _flat(PROMPT_ZH)
     assert "complete all six reasoning and coverage steps even when no optional tool call is needed" in _flat(PROMPT_ZH)
     assert "Optional tool use never replaces comparison, adjudication, coverage, or submission" in _flat(PROMPT_ZH)
@@ -48,6 +48,8 @@ def test_prompt_requires_attempt_frozen_six_field_context_and_single_agent_run()
     assert "No other Agent or producer has generated checks or verdicts" in _flat(PROMPT_ZH)
     assert "You are the only LLM Agent in B-discover" in _flat(PROMPT_ZH)
     assert "attempt-frozen six-field working set" in PROMPT_ZH
+    assert "initial user message" in PROMPT_ZH
+    assert "content-free landing descriptor" in PROMPT_ZH
     for field in ["`stage`", "`loop_no`", "`model`", "`targets`", "`current_records`", "`readable_history`"]:
         assert field in PROMPT_ZH
     assert "never reads a newer mutable state" in _flat(PROMPT_ZH)
@@ -55,15 +57,38 @@ def test_prompt_requires_attempt_frozen_six_field_context_and_single_agent_run()
     assert "readable_history=[]" in PROMPT_ZH
 
 
-def test_prompt_tool_whitelist_has_four_investigation_tools_plus_mandatory_evaluation():
+def test_prompt_tool_whitelist_has_guides_investigation_tools_and_mandatory_evaluation():
     whitelist_line = next(line for line in PROMPT_ZH.splitlines() if "only Agent-callable tools are exactly" in line)
     tools = re.findall(r"`([a-z_]+)`", whitelist_line)
-    assert tools == ["read_task", "query_model", "observe_trace", "lookup_source_trace", "evaluate_checks"]
+    assert tools == [
+        "read_fcstm_guide",
+        "read_fbmcq_guide",
+        "read_task",
+        "query_model",
+        "observe_trace",
+        "lookup_source_trace",
+        "evaluate_checks",
+    ]
     assert "is optional" in PROMPT_ZH
     assert "only when an evaluated proposition has a concrete missing structural" in _flat(PROMPT_ZH)
     assert "`evaluate_checks(checks)` is mandatory for the final batch" in PROMPT_ZH
+    assert "`read_fcstm_guide()` is mandatory and must be the first business tool call" in _flat(PROMPT_ZH)
+    assert "`read_fbmcq_guide()` is conditionally mandatory" in PROMPT_ZH
+    assert "property-bearing batch is rejected" in _flat(PROMPT_ZH)
     assert "gate.eligible=true" in PROMPT_ZH
     assert "No other capability is part of your tool surface" in PROMPT_ZH
+
+
+def test_prompt_forbids_trace_enumeration_and_prioritizes_batch_evaluation():
+    flat = _flat(PROMPT_ZH)
+    assert "diagnostic microscope, not a coverage engine" in flat
+    assert "never enumerate event permutations" in flat
+    assert "do not call `observe_trace` merely to duplicate those results" in flat
+    assert "use the shortest distinguishing event sequence" in flat
+    assert "do not repeat an already observed sequence or prefix family" in flat
+    assert "## Tool-efficiency invariant" in PROMPT_ZH
+    assert "Prefer this shortest evidence-complete path" in flat
+    assert "do not keep probing in an attempt to force `confirmed`" in flat
 
 
 def test_prompt_does_not_require_controller_tools_or_tool_call_termination():
@@ -97,6 +122,10 @@ def test_prompt_defines_confirmed_candidate_rejected_boundaries_and_zero_root_ba
     assert "all confirmed roots cite current-run valid checks/records" in flattened
     assert "exact one-to-one grounding" in flattened
     assert "merely existing in inspect or a check binding is not source attribution" in flattened
+    assert "if the frozen trace has `entries=[]`" in flattened
+    assert "`closure_claim_allowed=false`" in flattened
+    assert "`confirmed` is impossible in this run" in flattened
+    assert "Free-text `source_basis`" in flattened
     assert "no defensible confirmed or candidate root remains" in flattened
     assert "Publish confirmed/candidate propositions as `root_nodes`" in _flat(PROMPT_ZH)
     assert "`rejected_propositions`" in PROMPT_ZH
@@ -153,8 +182,18 @@ def test_system_prompt_rejects_unknown_language():
 
 
 def test_user_prompt_is_read_only_and_requests_one_structured_result():
-    text = user_prompt({"b": 2, "a": "中文"})
-    assert "Discover task snapshot (read-only)" in text
-    assert '"a": "中文"' in text
-    assert text.find('"a"') < text.find('"b"')
+    text = user_prompt(
+        {
+            "stage": "B-discover",
+            "loop_no": 0,
+            "model": {"model_id": "STM_0", "content": "secret fcstm", "model_sha256": "abc"},
+            "current_records": {"nl": {"content": "secret nl"}},
+        }
+    )
+    assert "Discover task landing descriptor" in text
+    assert "FCSTM content withheld" in text
+    assert "secret fcstm" not in text
+    assert "secret nl" not in text
+    assert "read_fcstm_guide -> read_task" in text
+    assert "first business tool call must be read_fcstm_guide" in text
     assert "return one structured submit_discovery result" in text

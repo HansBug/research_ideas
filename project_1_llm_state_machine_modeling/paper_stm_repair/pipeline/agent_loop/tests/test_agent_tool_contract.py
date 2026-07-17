@@ -9,10 +9,13 @@ import pytest
 
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
 from paper_stm_repair_loop.tools.evaluate_checks import build_tool as build_evaluate_checks_tool
+from paper_stm_repair_loop.tools.guide_access import GuideAccessState, guard_tool, property_batch_requested
 from paper_stm_repair_loop.tools.lookup_source_trace import build_tool as build_lookup_source_trace_tool
 from paper_stm_repair_loop.tools.observe_trace import build_tool as build_observe_trace_tool
 from paper_stm_repair_loop.tools.query_model import build_tool as build_query_model_tool
 from paper_stm_repair_loop.tools.read_task import build_tool as build_read_task_tool
+from paper_stm_repair_loop.tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide_tool
+from paper_stm_repair_loop.tools.read_fcstm_guide import build_tool as build_read_fcstm_guide_tool
 from utils.agent import AgentSpec
 
 
@@ -69,27 +72,45 @@ def deterministic_runner(*, events: list[str], max_steps: int | None = None) -> 
     }
 
 
-def registered_tools():
+def registered_tools(*, unlock_fcstm: bool = False, unlock_fbmcq: bool = False):
     model_text = SNAPSHOT["model"]["fcstm"]
-    return (
-        build_read_task_tool(SNAPSHOT),
-        build_query_model_tool(SNAPSHOT),
-        build_observe_trace_tool(SNAPSHOT, deterministic_runner),
-        build_lookup_source_trace_tool(SNAPSHOT),
-        build_evaluate_checks_tool(
+    state = GuideAccessState()
+    fcstm_guide = build_read_fcstm_guide_tool(state)
+    fbmcq_guide = build_read_fbmcq_guide_tool(state)
+    tools = (
+        fcstm_guide,
+        fbmcq_guide,
+        guard_tool(build_read_task_tool(SNAPSHOT), state),
+        guard_tool(build_query_model_tool(SNAPSHOT), state),
+        guard_tool(build_observe_trace_tool(SNAPSHOT, deterministic_runner), state),
+        guard_tool(build_lookup_source_trace_tool(SNAPSHOT), state),
+        guard_tool(build_evaluate_checks_tool(
             SNAPSHOT,
             model_text=model_text,
             check_result=check_fcstm(model_text),
             model_path=Path("<frozen>"),
             formal_required=True,
             invocation_log=[],
-        ),
+        ), state, require_fbmcq_when=property_batch_requested),
     )
+    if unlock_fcstm:
+        fcstm_guide.invoke({})
+    if unlock_fbmcq:
+        fbmcq_guide.invoke({})
+    return tools
 
 
 def test_agent_spec_exposes_single_run_discover_tools_with_contract_descriptions():
     spec = AgentSpec(name="discover-tool-contract", system_prompt="Use tools safely.", tools=registered_tools())
-    assert spec.tool_names == ("read_task", "query_model", "observe_trace", "lookup_source_trace", "evaluate_checks")
+    assert spec.tool_names == (
+        "read_fcstm_guide",
+        "read_fbmcq_guide",
+        "read_task",
+        "query_model",
+        "observe_trace",
+        "lookup_source_trace",
+        "evaluate_checks",
+    )
     forbidden = {"check_fcstm", "validate_discovery_checks", "run_scenarios", "verify_properties", "compare_models", "read_issue_history", "read_loop"}
     assert not forbidden.intersection(spec.tool_names)
     required_sections = ["Purpose", "Parameters", "Returns", "Execution", "Failure semantics", "Evidence limitations", "Permissions", "Example"]
@@ -117,6 +138,18 @@ def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_sec
             "``readable_history``",
             "same six fields, values, model hash, record set",
         ],
+        "read_fcstm_guide": [
+            "integrity-checked FCSTM grammar",
+            "``pyfcstm_version``",
+            "``sha256``",
+            "must precede the first ``read_task`` call",
+        ],
+        "read_fbmcq_guide": [
+            "integrity-checked FBMCQ authoring guide",
+            "property kinds",
+            "definedness",
+            "vacuity",
+        ],
         "query_model": [
             "required string enum",
             "case-insensitive substring",
@@ -129,6 +162,9 @@ def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_sec
         "observe_trace": [
             "required JSON array of strings",
             "offered in a separate cycle",
+            "not a coverage engine",
+            "do not enumerate event permutations",
+            "eligible full-batch ``evaluate_checks`` result",
             "``consumed_events`` / ``unconsumed_events``",
             "``final_configuration``",
             "``timeout``",
@@ -170,6 +206,8 @@ def test_agent_tool_input_schemas_are_strict_and_do_not_leak_identity_or_permiss
         assert schema.get("additionalProperties") is False
         props = set(schema.get("properties", {}))
         assert not forbidden_props.intersection(props), f"{tool.name} leaked {forbidden_props.intersection(props)}"
+    assert set(registered_tools()[0].args_schema.model_json_schema().get("properties", {})) == set()
+    assert set(registered_tools()[1].args_schema.model_json_schema().get("properties", {})) == set()
     assert set(build_read_task_tool(SNAPSHOT).args_schema.model_json_schema().get("properties", {})) == set()
     assert set(build_query_model_tool(SNAPSHOT).args_schema.model_json_schema()["properties"]) == {"query_kind", "name_contains", "offset", "limit"}
     assert set(build_observe_trace_tool(SNAPSHOT, deterministic_runner).args_schema.model_json_schema()["properties"]) == {"events", "max_steps"}
@@ -180,11 +218,20 @@ def test_agent_tool_input_schemas_are_strict_and_do_not_leak_identity_or_permiss
 
 def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     tools = {tool.name: tool for tool in registered_tools()}
+    assert list(inspect.signature(tools["read_fcstm_guide"].func).parameters) == []
+    assert list(inspect.signature(tools["read_fbmcq_guide"].func).parameters) == []
     assert list(inspect.signature(tools["read_task"].func).parameters) == []
     assert list(inspect.signature(tools["query_model"].func).parameters) == ["query_kind", "name_contains", "offset", "limit"]
     assert list(inspect.signature(tools["observe_trace"].func).parameters) == ["events", "max_steps"]
     assert list(inspect.signature(tools["lookup_source_trace"].func).parameters) == ["element_refs", "direction"]
     assert list(inspect.signature(tools["evaluate_checks"].func).parameters) == ["checks"]
+
+    blocked = tools["read_task"].invoke({})
+    assert blocked["execution_status"] == "prerequisite_required"
+    assert blocked["required_tool"] == "read_fcstm_guide"
+    fcstm_guide = tools["read_fcstm_guide"].invoke({})
+    assert fcstm_guide["execution_status"] == "completed"
+    assert fcstm_guide["content"].startswith("# FCSTM")
 
     task = tools["read_task"].invoke({})
     assert set(task) == {"stage", "loop_no", "model", "targets", "current_records", "readable_history"}
@@ -208,7 +255,7 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert mapping["untraceable_refs"] == ["transition:missing"]
     assert mapping["trace_sha256"] == "trace-sha"
 
-    evaluated = tools["evaluate_checks"].invoke(
+    property_payload = (
         {
             "checks": [
                 {
@@ -226,6 +273,13 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
             ]
         }
     )
+    blocked_property = tools["evaluate_checks"].invoke(property_payload)
+    assert blocked_property["execution_status"] == "prerequisite_required"
+    assert blocked_property["required_tool"] == "read_fbmcq_guide"
+    fbmcq_guide = tools["read_fbmcq_guide"].invoke({})
+    assert fbmcq_guide["execution_status"] == "completed"
+    assert fbmcq_guide["content"].startswith("# FBMCQ")
+    evaluated = tools["evaluate_checks"].invoke(property_payload)
     assert evaluated["execution_status"] == "completed"
     assert evaluated["gate"]["eligible"] is True
     assert evaluated["issue_checks"][0]["check_id"] == "CHK-NL-001"
@@ -233,7 +287,7 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
 
 
 def test_evaluate_checks_rejects_partially_bound_final_batch():
-    tool = {tool.name: tool for tool in registered_tools()}["evaluate_checks"]
+    tool = {tool.name: tool for tool in registered_tools(unlock_fcstm=True, unlock_fbmcq=True)}["evaluate_checks"]
     evaluated = tool.invoke(
         {
             "checks": [
@@ -285,7 +339,7 @@ def test_evaluate_checks_rejects_partially_bound_final_batch():
     ],
 )
 def test_tools_return_structured_failures_not_permission_or_exception_leaks(tool_name: str, payload: dict[str, Any], status: str):
-    tool = {tool.name: tool for tool in registered_tools()}[tool_name]
+    tool = {tool.name: tool for tool in registered_tools(unlock_fcstm=True)}[tool_name]
     result = tool.invoke(payload)
     assert result["execution_status"] == status
     serialized = json.dumps(result, ensure_ascii=False).lower()
