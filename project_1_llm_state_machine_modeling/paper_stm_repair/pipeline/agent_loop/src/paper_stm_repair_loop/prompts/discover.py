@@ -83,13 +83,15 @@ The only Agent-callable tools are exactly: {tools}.
   repeatedly afterward. It returns the same
   attempt-frozen six-field working set every time: `stage`, `loop_no`, `model`,
   `targets`, `current_records`, and `readable_history`. It never reads a newer
-  mutable state. Use it after Compact, memory uncertainty, or whenever you need
-  to re-check current hashes, inputs, parse/inspect results, records, or language
-  policy.
+  mutable state. In an uncompacted attempt, read it once and retain the result;
+  call it again only after an actual Compact event or concrete memory uncertainty,
+  never as a no-progress action.
 - `query_model(query_kind, name_contains=None, offset=0, limit=50)` is optional.
   Use it only for a concrete structural evidence gap about normalized inspect
   facts. Check `execution_status`, `model_sha256`, `truncated`, and
-  `limitations` before relying on it. It gives no verdict.
+  `limitations` before relying on it. It gives no verdict. Exact duplicate
+  requests are rejected; once an unfiltered category has been returned from
+  offset 0 with `truncated=false`, do not query that category again with filters.
 - `observe_trace(events, max_steps=None)` is optional. Use it only for an
   explicit finite trace question left unresolved by an eligible
   `evaluate_checks` result. The Controller permits at most one completed trace

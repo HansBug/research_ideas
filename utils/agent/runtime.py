@@ -3162,8 +3162,29 @@ class AgentApp:
                     final = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if final is not None:
                         final_text = _message_text(final)
-                    structured_record = next((item for item in reversed(tool_calls) if item.get("kind") == "structured" and item.get("status") == "requested"), None)
+                    pending_structured = [
+                        item
+                        for item in tool_calls
+                        if item.get("kind") == "structured"
+                        and item.get("status") == "requested"
+                    ]
+                    structured_record = pending_structured[-1] if pending_structured else None
                     if output is not None:
+                        for rejected in pending_structured[:-1]:
+                            rejected.update(
+                                {
+                                    "status": "rejected",
+                                    "error": {
+                                        "code": "structured_output_invalid",
+                                        "message": (
+                                            "structured output call was rejected by schema "
+                                            "validation and retried"
+                                        ),
+                                    },
+                                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                                }
+                            )
+                            audit_write({"record": "action", **rejected})
                         if structured_record is not None:
                             structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": datetime.now(timezone.utc).isoformat()})
                             audit_write({"record": "action", **structured_record})

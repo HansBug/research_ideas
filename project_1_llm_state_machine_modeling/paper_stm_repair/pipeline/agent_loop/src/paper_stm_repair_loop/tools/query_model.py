@@ -210,6 +210,8 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     """
 
     frozen = copy.deepcopy(snapshot)
+    completed_requests: set[tuple[str, str | None, int, int]] = set()
+    fully_returned_categories: set[str] = set()
 
     def query_model(
         query_kind: str,
@@ -254,7 +256,10 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Execution
         ---------
-        1. Validate the strict enum, filter type, offset, and limit.
+        1. Validate the strict enum, filter type, offset, and limit. Reject an
+           exact duplicate request. If an unfiltered page from offset 0 already
+           returned the complete category with ``truncated=false``, reject later
+           requests for that same frozen category because no new fact can appear.
         2. Read only the normalized inspect category closed over before dispatch.
         3. Normalize items, apply the substring filter, count matches, and slice
            ``[offset:offset+limit]`` deterministically.
@@ -264,7 +269,8 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Failure semantics
         -----------------
-        Invalid enum/type/range returns ``invalid_arguments`` with an empty page
+        Invalid enum/type/range, an exact duplicate, or a query against a category
+        already returned in full returns ``invalid_arguments`` with an empty page
         and limitation code. Missing/non-structural inspect category returns
         ``tool_unavailable``. An empty completed page is a valid domain result and
         does not mean the model element is impossible or erroneous. Diagnostics
@@ -290,6 +296,39 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         returns ``{"execution_status":"completed","query_kind":"states","matched_items":[{"path":"Root.Idle","_index":0}],"total_matches":1,"offset":0,"limit":10,"truncated":false,"model_sha256":"...","limitations":[...]}``.
         """
 
-        return execute(frozen, query_kind, name_contains, offset, limit)
+        request_key = (query_kind, name_contains, offset, limit)
+        if request_key in completed_requests:
+            return ModelQueryResult(
+                execution_status="invalid_arguments",
+                query_kind=query_kind,  # type: ignore[arg-type]
+                matched_items=[],
+                total_matches=0,
+                offset=max(0, offset),
+                limit=limit if isinstance(limit, int) and 1 <= limit <= 500 else 50,
+                truncated=False,
+                model_sha256=_model_sha256_from(frozen),
+                limitations=[*_LIMITATIONS, "duplicate_query_not_executed"],
+            ).model_dump(mode="json")
+        if query_kind in fully_returned_categories:
+            return ModelQueryResult(
+                execution_status="invalid_arguments",
+                query_kind=query_kind,  # type: ignore[arg-type]
+                matched_items=[],
+                total_matches=0,
+                offset=max(0, offset),
+                limit=limit if isinstance(limit, int) and 1 <= limit <= 500 else 50,
+                truncated=False,
+                model_sha256=_model_sha256_from(frozen),
+                limitations=[
+                    *_LIMITATIONS,
+                    "category_already_returned_untruncated",
+                ],
+            ).model_dump(mode="json")
+        result = execute(frozen, query_kind, name_contains, offset, limit)
+        if result.get("execution_status") == "completed":
+            completed_requests.add(request_key)
+            if name_contains is None and offset == 0 and result.get("truncated") is False:
+                fully_returned_categories.add(query_kind)
+        return result
 
     return SimpleStructuredTool(func=query_model, name="query_model", description=query_model.__doc__ or "query_model", args_schema=QueryModelInput)

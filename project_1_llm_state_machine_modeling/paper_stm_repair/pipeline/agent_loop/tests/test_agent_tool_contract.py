@@ -267,6 +267,23 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert query["truncated"] is True
     assert query["model_sha256"] == "model-sha"
 
+    duplicate_query = tools["query_model"].invoke(
+        {"query_kind": "states", "name_contains": "Root", "offset": 0, "limit": 1}
+    )
+    assert duplicate_query["execution_status"] == "invalid_arguments"
+    assert "duplicate_query_not_executed" in duplicate_query["limitations"]
+
+    complete_events = tools["query_model"].invoke(
+        {"query_kind": "events", "offset": 0, "limit": 50}
+    )
+    assert complete_events["execution_status"] == "completed"
+    assert complete_events["truncated"] is False
+    redundant_filtered_events = tools["query_model"].invoke(
+        {"query_kind": "events", "name_contains": "go", "offset": 0, "limit": 50}
+    )
+    assert redundant_filtered_events["execution_status"] == "invalid_arguments"
+    assert "category_already_returned_untruncated" in redundant_filtered_events["limitations"]
+
     trace_before_batch = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
     assert trace_before_batch["execution_status"] == "prerequisite_required"
     assert trace_before_batch["diagnostics"][0]["code"] == "eligible_evaluate_checks_required_first"

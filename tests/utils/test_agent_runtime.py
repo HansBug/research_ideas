@@ -106,6 +106,28 @@ class _MissingThenStructuredModel(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
 
+class _InvalidThenValidStructuredModel(_MissingThenStructuredModel):
+    @property
+    def _llm_type(self) -> str:
+        return "invalid-then-valid-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        args = {} if self.calls == 1 else {"answer": "ok"}
+        message = AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": self.structured_tool_name,
+                    "args": args,
+                    "id": f"structured-{self.calls}",
+                    "type": "tool_call",
+                }
+            ],
+        )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
@@ -177,6 +199,31 @@ def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Pa
     assert len(retry_records) == 1
     assert retry_records[0]["status"] == "started"
     assert retry_records[0]["instruction_hash"].startswith("sha256:")
+
+
+def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:
+    model = _InvalidThenValidStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="schema-retry",
+            system_prompt="Return the structured answer.",
+            output_schema=_RetryAnswer,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=tmp_path / "schema-retry.jsonl",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    structured = [item for item in result.tool_calls if item.get("kind") == "structured"]
+    assert [item["status"] for item in structured] == ["rejected", "completed"]
+    assert structured[0]["error"]["code"] == "structured_output_invalid"
+    assert structured[1]["result"] == {"answer": "ok"}
 
 
 def test_tool_events_keep_standard_call_metadata() -> None:
