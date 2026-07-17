@@ -37,9 +37,10 @@ def _executed_check_ids(
                 "timeout",
                 "incomplete",
                 "execution_error",
+                "invalid_precondition",
             }:
                 continue
-            if item.get("status") not in {"not_implemented", "error"}:
+            if item.get("status") not in {"not_implemented", "error", "invalid_precondition"}:
                 observed.add(str(item.get("check_id")))
     return eligible & observed
 
@@ -256,9 +257,13 @@ def build_tool(
           raw-internal checks.
         - ``source_basis``: quoted source facts. Raw-internal checks require at
           least two mutually conflicting source facts.
-        - ``executable_spec``: scenario ``event_labels``/``events``; property
-          ``kind`` + ``target_label`` + bounded ``bound``; or supported static
-          shape labels. Do not pass arbitrary code or solver expressions.
+        - ``executable_spec``: scenario ``event_labels`` plus
+          ``precondition_state_label``; the labels must describe the complete
+          path from the model initial state, with the final event being tested
+          and all preceding events establishing the declared precondition.
+          Property drafts use ``kind`` + ``target_label`` + bounded ``bound``;
+          static drafts use supported shape labels. Do not pass arbitrary code
+          or solver expressions.
         - ``binding_refs``: usually ``[]`` in a draft; deterministic binding fills
           final typed refs.
         - ``required``: boolean, normally true for a proposition you intend to
@@ -293,7 +298,9 @@ def build_tool(
         1. Validate the complete nested draft schema and origin-specific basis.
         2. Bind state/event/transition labels against frozen normalized inspect;
            ambiguous or missing bindings remain rejected/invalid, never guessed.
-        3. Execute all bound scenario checks on the frozen model.
+        3. Execute all bound scenario checks from the model initial state. A
+           scenario is evidence-eligible only when its setup prefix is consumed
+           and reaches the declared precondition before the final tested event.
         4. Execute property checks through bounded FBMCQ or deterministic
            state-shape evaluation, preserving timeout/unknown/witness/replay.
         5. Execute supported static-consistency checks.
@@ -308,8 +315,9 @@ def build_tool(
         Invalid nested schema or an empty/all-rejected batch returns
         ``invalid_arguments`` with ``gate.eligible=false``. Partial/unbound checks,
         unsupported specs, unavailable capability, timeout, unknown, incomplete,
-        or replay mismatch remain explicit in their result sections and make a
-        required batch ineligible where applicable. A scenario/property that
+        invalid scenario precondition, or replay mismatch remain explicit in
+        their result sections and make a required batch ineligible where
+        applicable. A scenario/property that
         completes and contradicts its expectation is a normal behavioral result,
         not a tool crash. Revise only the draft/binding mistake; never alter the
         expected outcome merely to match the observed model.
@@ -334,7 +342,7 @@ def build_tool(
 
         Example
         -------
-        ``{"checks":[{"check_origin":"nl_grounded_behavioral_issue","check_id":"draft-1","check_kind":"scenario","statement":"go reaches Done","expected_outcome":{"target_label":"Done"},"source_basis":[],"nl_basis":[{"quote":"When go occurs, enter Done.","role":"requirement"}],"executable_spec":{"event_labels":["go"]},"binding_refs":[],"required":true}]}``
+        ``{"checks":[{"check_origin":"nl_grounded_behavioral_issue","check_id":"draft-1","check_kind":"scenario","statement":"go reaches Done from Armed","expected_outcome":{"target_label":"Done"},"source_basis":[],"nl_basis":[{"quote":"When go occurs in Armed, enter Done.","role":"requirement"}],"executable_spec":{"event_labels":["arm","go"],"precondition_state_label":"Armed"},"binding_refs":[],"required":true}]}``
         returns one bound ``CHK-NL-001`` plus scenario, validation, property/static
         sections and a transparent gate tied to the frozen model hash.
         """

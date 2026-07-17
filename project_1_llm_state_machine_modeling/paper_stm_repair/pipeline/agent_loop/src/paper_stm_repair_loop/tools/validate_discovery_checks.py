@@ -61,6 +61,11 @@ def _executable_spec_ok(check_kind: Any, spec: Any) -> bool:
             and bool(events)
             and all(isinstance(event, str) and bool(event) for event in events)
             and not spec.get("unbound_event_labels")
+            and isinstance(spec.get("precondition_state"), str)
+            and bool(spec["precondition_state"])
+            and not spec.get("unbound_precondition_state_label")
+            and spec.get("tested_event") == events[-1]
+            and spec.get("setup_events") == events[:-1]
         )
     if check_kind == "property":
         if spec.get("kind") == "state_shape":

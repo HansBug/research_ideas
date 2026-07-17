@@ -44,6 +44,59 @@ def test_discover_runtime_contains_exactly_one_agent_app_run_and_no_controller_a
     assert 'limits=manifest.get("agent_limits") or None' in discover_source
 
 
+@pytest.mark.parametrize(
+    ("error", "failure_reason", "termination"),
+    [
+        (RuntimeError("provider failed"), "discover_agent_exception", "failed"),
+        (KeyboardInterrupt(), "discover_agent_interrupted", "interrupted"),
+    ],
+)
+def test_agent_exception_or_interrupt_appends_terminal_records_before_reraise(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    error: BaseException,
+    failure_reason: str,
+    termination: str,
+):
+    import paper_stm_repair_loop.agents.discover as discover_module
+
+    class RaisingApp:
+        def run(self, *_args, **_kwargs):
+            raise error
+
+    class AgentFactory:
+        @classmethod
+        def from_registry(cls, *_args, **_kwargs):
+            return RaisingApp()
+
+    monkeypatch.setattr(discover_module, "AgentApp", AgentFactory)
+    run_dir = tmp_path / "run"
+    prepare_run_dir(
+        run_dir,
+        load_pair("llms_emp_stm_results_0000"),
+        profile="gpt-5.5",
+        content_language="zh-CN",
+        renderer="quiet",
+        formal_profile=False,
+    )
+
+    with pytest.raises(type(error)):
+        run_discover(run_dir, object())
+
+    records = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted((run_dir / "records").glob("*/record.json"))
+    ]
+    assert [record["record_type"] for record in records[-2:]] == [
+        "agent_attempt_finished",
+        "run_failed",
+    ]
+    assert records[-2]["payload"]["termination"] == termination
+    assert records[-1]["payload"]["failure_reason"] == failure_reason
+    assert records[-1]["payload"]["attempt_finished_record_id"] == records[-2]["record_id"]
+    assert not any(record["record_type"] == "discover_completed" for record in records)
+
+
 def _run_scoped_submission(
     *,
     relation: str = "contradicts",
@@ -71,7 +124,10 @@ def _run_scoped_submission(
                 else []
             ),
             "executable_spec": (
-                {"event_labels": ["go"]}
+                {
+                    "event_labels": ["go"],
+                    "precondition_state_label": "Done",
+                }
                 if nl_grounded
                 else {"kind": "state_declaration", "state_label": "Done", "state_kind": "simple"}
             ),
@@ -118,7 +174,11 @@ def _run_scoped_submission(
     return (
         _build_submit_discovery_response(
             invocation_log,
-            confirmation_possible=confirmation_possible,
+            accepted_model_refs={"state:Root.Done"},
+            available_source_refs={"source:req"} if confirmation_possible else set(),
+            exact_pairs={
+                ("source:req", "state:Root.Done")
+            } if confirmation_possible else set(),
         ),
         drafts,
         bound_check_id,
@@ -146,11 +206,41 @@ def _submission_payload(
                 "rationale": "The final deterministic check contradicted its sealed expectation.",
                 "supporting_record_ids": [],
                 "required_check_ids": [check_id],
-                "source_element_refs": ["state:Root.Done"],
+                "model_element_refs": ["state:Root.Done"],
+                "source_element_refs": ["source:req"] if assessment == "confirmed" else [],
             }
         ],
         "rejected_propositions": [],
         "rationale": "One bounded behavioral issue remains.",
+    }
+
+
+def _rejected_payload(
+    drafts: list[dict[str, object]],
+    *,
+    check_id: str,
+    rejection_reason: str,
+) -> dict[str, object]:
+    return {
+        "submission_type": "submit_discovery",
+        "assessment_origin": "discover",
+        "check_drafts": drafts,
+        "no_issue_found": True,
+        "root_nodes": [],
+        "rejected_propositions": [
+            {
+                "proposition_id": "REJ-001",
+                "assessment": "rejected",
+                "rejection_reason": rejection_reason,
+                "statement": "The tested proposition is rejected.",
+                "rationale": "The structured reason records why it is rejected.",
+                "supporting_record_ids": [],
+                "considered_check_ids": [check_id],
+                "model_element_refs": ["state:Root.Done"],
+                "source_element_refs": [],
+            }
+        ],
+        "rationale": "The one final check has one rejected decision owner.",
     }
 
 
@@ -167,6 +257,32 @@ def test_run_scoped_schema_accepts_contradicted_candidate_root():
     result = schema.model_validate(_submission_payload(drafts, check_id=check_id))
 
     assert result.root_nodes[0].assessment == "candidate_only"
+
+
+def test_run_scoped_schema_accepts_exactly_paired_confirmed_root():
+    schema, drafts, check_id = _run_scoped_submission(
+        relation="contradicts",
+        confirmation_possible=True,
+    )
+
+    result = schema.model_validate(
+        _submission_payload(drafts, assessment="confirmed", check_id=check_id)
+    )
+
+    assert result.root_nodes[0].source_element_refs == ["source:req"]
+    assert result.root_nodes[0].model_element_refs == ["state:Root.Done"]
+
+
+def test_run_scoped_schema_rejects_unavailable_candidate_source_refs():
+    schema, drafts, check_id = _run_scoped_submission(
+        relation="contradicts",
+        confirmation_possible=False,
+    )
+    payload = _submission_payload(drafts, check_id=check_id)
+    payload["root_nodes"][0]["source_element_refs"] = ["source:req"]
+
+    with pytest.raises(ValidationError, match="unavailable source refs"):
+        schema.model_validate(payload)
 
 
 def test_run_scoped_schema_does_not_treat_raw_static_match_as_semantic_rejection():
@@ -186,7 +302,7 @@ def test_run_scoped_schema_rejects_confirmed_root_without_source_attribution():
         confirmation_possible=False,
     )
 
-    with pytest.raises(ValidationError, match="one-to-one source attribution"):
+    with pytest.raises(ValidationError, match="unavailable source refs"):
         schema.model_validate(
             _submission_payload(drafts, assessment="confirmed", check_id=check_id)
         )
@@ -215,6 +331,51 @@ def test_run_scoped_schema_rejects_unknown_and_uncovered_final_check_ids():
     uncovered["no_issue_found"] = True
     with pytest.raises(ValidationError, match="coverage mismatch"):
         schema.model_validate(uncovered)
+
+
+def test_run_scoped_schema_requires_one_decision_owner_per_final_check():
+    schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
+    payload = _submission_payload(drafts, check_id=check_id)
+    payload["rejected_propositions"] = _rejected_payload(
+        drafts,
+        check_id=check_id,
+        rejection_reason="check_semantically_invalid",
+    )["rejected_propositions"]
+
+    with pytest.raises(ValidationError, match="multiple decision owners"):
+        schema.model_validate(payload)
+
+
+def test_run_scoped_schema_binds_rejection_reason_to_nl_outcome_relation():
+    matched_schema, matched_drafts, matched_id = _run_scoped_submission(relation="matches")
+    matched = matched_schema.model_validate(
+        _rejected_payload(
+            matched_drafts,
+            check_id=matched_id,
+            rejection_reason="expectation_matched",
+        )
+    )
+    assert matched.rejected_propositions[0].rejection_reason == "expectation_matched"
+
+    contradicted_schema, contradicted_drafts, contradicted_id = _run_scoped_submission(
+        relation="contradicts"
+    )
+    with pytest.raises(ValidationError, match="cannot dismiss a contradicted NL check"):
+        contradicted_schema.model_validate(
+            _rejected_payload(
+                contradicted_drafts,
+                check_id=contradicted_id,
+                rejection_reason="expectation_matched",
+            )
+        )
+    accepted = contradicted_schema.model_validate(
+        _rejected_payload(
+            contradicted_drafts,
+            check_id=contradicted_id,
+            rejection_reason="check_semantically_invalid",
+        )
+    )
+    assert accepted.rejected_propositions[0].rejection_reason == "check_semantically_invalid"
 
 
 def test_pair_loader_uses_canonical_nl_and_prepared_fcstm():
@@ -338,7 +499,8 @@ def test_confirmed_root_is_published_with_controller_execution_evidence(tmp_path
                     "rationale": "The registered deterministic property check contradicts its typed expectation.",
                     "supporting_record_ids": [],
                     "required_check_ids": ["CHK-NL-001"],
-                    "source_element_refs": ["state:llms_emp_gpt4o_hldcs"],
+                    "model_element_refs": ["state:llms_emp_gpt4o_hldcs"],
+                    "source_element_refs": ["source:root-operating-mode"],
                 }
             ],
             "rejected_propositions": [],
@@ -380,7 +542,8 @@ def _confirmed_replay(tmp_path: Path) -> Path:
                     "rationale": "The registered deterministic property check contradicts its typed expectation.",
                     "supporting_record_ids": [],
                     "required_check_ids": ["CHK-NL-001"],
-                    "source_element_refs": ["state:llms_emp_gpt4o_hldcs"],
+                    "model_element_refs": ["state:llms_emp_gpt4o_hldcs"],
+                    "source_element_refs": ["source:root-operating-mode"],
                 }
             ],
             "rejected_propositions": [],
@@ -406,7 +569,7 @@ def test_confirmed_root_requires_element_level_source_trace(tmp_path: Path):
     try:
         run_discover(run_dir, object())
     except ValueError as exc:
-        assert "lacks exact source attribution" in str(exc)
+        assert "references unavailable source refs" in str(exc)
     else:
         raise AssertionError("empty element-level source trace must not publish a confirmed root")
     record_types = [json.loads(path.read_text())["record_type"] for path in (run_dir / "records").glob("*/record.json")]
@@ -422,7 +585,7 @@ def test_confirmed_root_rejects_ambiguous_source_trace(tmp_path: Path):
             "relation_policy": "evidence_only",
             "entries": [
                 {
-                    "source_elements": ["source:root-a", "source:root-b"],
+                    "source_elements": ["source:root-operating-mode", "source:root-b"],
                     "intermediate_elements": ["state:llms_emp_gpt4o_hldcs"],
                 }
             ],
@@ -441,7 +604,7 @@ def test_confirmed_root_rejects_ambiguous_source_trace(tmp_path: Path):
     try:
         run_discover(run_dir, object())
     except ValueError as exc:
-        assert "lacks exact source attribution" in str(exc)
+        assert "lacks exact source-to-model attribution" in str(exc)
     else:
         raise AssertionError("ambiguous source trace must not publish a confirmed root")
     record_types = [json.loads(path.read_text())["record_type"] for path in (run_dir / "records").glob("*/record.json")]
@@ -535,7 +698,19 @@ def test_scenarios_dispatch_initial_state_and_accept_binder_event_field():
     Idle -> Done : go;
 }
 """
-    result = run_scenarios(model, [{"check_id": "SC-1", "check_kind": "scenario", "executable_spec": {"event": "Root.go"}}])
+    result = run_scenarios(
+        model,
+        [
+            {
+                "check_id": "SC-1",
+                "check_kind": "scenario",
+                "executable_spec": {
+                    "event": "Root.go",
+                    "precondition_state": "Root.Idle",
+                },
+            }
+        ],
+    )
     assert result["execution_status"] == "completed"
     assert result["scenario_results"][0]["consumed_events"] == ["Root.go"]
     assert result["scenario_results"][0]["current_state"] == "Root.Done"

@@ -61,6 +61,7 @@ class RootIssue(StrictModel):
     rationale: str
     supporting_record_ids: list[str] = Field(default_factory=list)
     required_check_ids: list[str] = Field(min_length=1)
+    model_element_refs: list[str] = Field(default_factory=list)
     source_element_refs: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -77,8 +78,16 @@ class RejectedProposition(StrictModel):
     assessment: Literal["rejected"] = "rejected"
     statement: str
     rationale: str
+    rejection_reason: Literal[
+        "expectation_matched",
+        "check_semantically_invalid",
+        "out_of_scope",
+        "representation_only",
+        "insufficient_evidence",
+    ]
     supporting_record_ids: list[str] = Field(default_factory=list)
     considered_check_ids: list[str] = Field(min_length=1)
+    model_element_refs: list[str] = Field(default_factory=list)
     source_element_refs: list[str] = Field(default_factory=list)
 
 

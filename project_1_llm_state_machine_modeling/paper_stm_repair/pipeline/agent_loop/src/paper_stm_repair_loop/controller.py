@@ -95,15 +95,30 @@ def _bind_drafts(
             refs: list[str] = []
             if draft.check_kind == "scenario":
                 labels = spec.pop("event_labels", None) or spec.get("events") or ([spec["event"]] if spec.get("event") else [])
+                precondition_label = spec.pop("precondition_state_label", None)
+                precondition_state = (
+                    _best_match(str(precondition_label), states)
+                    if isinstance(precondition_label, str) and precondition_label
+                    else None
+                )
                 bound_events = [_best_match(str(label), events, event_semantics=True) for label in labels]
                 missing_labels = [str(label) for label, bound in zip(labels, bound_events) if bound is None]
                 bound_events = [item for item in bound_events if item is not None]
                 spec = {
                     "events": bound_events,
+                    "setup_events": bound_events[:-1],
+                    "tested_event": bound_events[-1] if bound_events else None,
                     "requested_event_labels": [str(label) for label in labels],
                     "unbound_event_labels": missing_labels,
+                    "precondition_state": precondition_state,
+                    "requested_precondition_state_label": precondition_label,
+                    "unbound_precondition_state_label": (
+                        precondition_label if precondition_state is None else None
+                    ),
                 }
                 refs = [f"event:{item}" for item in bound_events]
+                if precondition_state is not None:
+                    refs.append(f"state:{precondition_state}")
             elif draft.check_kind == "property":
                 target_label = str(spec.pop("target_label", ""))
                 state = _best_match(target_label, states)

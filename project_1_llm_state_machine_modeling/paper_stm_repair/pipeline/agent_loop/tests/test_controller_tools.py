@@ -7,7 +7,11 @@ from typing import Any
 from paper_stm_repair_loop.controller import _best_match, _bind_drafts
 from paper_stm_repair_loop.schemas import CheckDraftSubmission
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
-from paper_stm_repair_loop.tools.run_scenarios import execute as run_scenarios
+from paper_stm_repair_loop.tools.evaluate_checks import execute as evaluate_checks
+from paper_stm_repair_loop.tools.run_scenarios import (
+    execute as run_scenarios,
+    observe_events,
+)
 from paper_stm_repair_loop.tools.validate_discovery_checks import execute as validate_discovery_checks
 from paper_stm_repair_loop.tools.verify_properties import execute as verify_properties
 from paper_stm_repair_loop.tools.verify_static_consistency import execute as verify_static_consistency
@@ -19,6 +23,18 @@ MODEL = """state Root {
     state Done;
     [*] -> Idle;
     Idle -> Done : go;
+}
+"""
+
+SETUP_MODEL = """state Root {
+    event arm;
+    event fire;
+    state Idle;
+    state Armed;
+    state Done;
+    [*] -> Idle;
+    Idle -> Armed : arm;
+    Armed -> Done : fire;
 }
 """
 
@@ -49,7 +65,10 @@ def test_run_scenarios_records_expected_actual_and_cycle_event_accounting():
             {
                 "check_id": "SC-1",
                 "check_kind": "scenario",
-                "executable_spec": {"events": ["Root.go"]},
+                "executable_spec": {
+                    "events": ["Root.go"],
+                    "precondition_state": "Root.Idle",
+                },
                 "expected_outcome": {"current_state": "Root.Done", "consumed_events": ["Root.go"]},
             }
         ],
@@ -71,7 +90,10 @@ def test_run_scenarios_executes_ordered_events_as_separate_cycles():
             {
                 "check_id": "SC-SEQUENCE",
                 "check_kind": "scenario",
-                "executable_spec": {"events": ["Root.go", "Root.go"]},
+                "executable_spec": {
+                    "events": ["Root.go", "Root.go"],
+                    "precondition_state": "Root.Done",
+                },
                 "expected_outcome": {"state_in": "Root.Done"},
             }
         ],
@@ -82,6 +104,97 @@ def test_run_scenarios_executes_ordered_events_as_separate_cycles():
     assert item["consumed_events"] == ["Root.go"]
     assert item["unconsumed_events"] == ["Root.go"]
     assert item["expected_outcome_match_status"] == "matches"
+
+
+def test_run_scenarios_requires_setup_to_reach_declared_precondition():
+    result = run_scenarios(
+        SETUP_MODEL,
+        [
+            {
+                "check_id": "SC-SETUP",
+                "check_kind": "scenario",
+                "executable_spec": {
+                    "events": ["Root.arm", "Root.fire"],
+                    "precondition_state": "Root.Armed",
+                },
+                "expected_outcome": {"state_in": "Root.Done"},
+            }
+        ],
+    )
+
+    item = result["scenario_results"][0]
+    assert item["status"] == "passed"
+    assert item["observed_precondition_state"] == "Root.Armed"
+    assert item["tested_event"] == "Root.fire"
+    assert item["consumed_events"] == ["Root.arm", "Root.fire"]
+
+
+def test_run_scenarios_marks_missing_setup_as_invalid_precondition():
+    result = run_scenarios(
+        SETUP_MODEL,
+        [
+            {
+                "check_id": "SC-NO-SETUP",
+                "check_kind": "scenario",
+                "executable_spec": {
+                    "events": ["Root.fire"],
+                    "precondition_state": "Root.Armed",
+                },
+                "expected_outcome": {"state_in": "Root.Done"},
+            }
+        ],
+    )
+
+    item = result["scenario_results"][0]
+    assert item["status"] == "invalid_precondition"
+    assert item["observed_precondition_state"] == "Root.Idle"
+    assert item["expected_outcome_match_status"] == "inconclusive"
+    assert len(item["trace"]["cycles"]) == 1
+
+
+def test_exploratory_trace_runner_remains_separate_from_scenario_precondition_gate():
+    result = observe_events(SETUP_MODEL, ["Root.arm", "Root.fire"])
+
+    assert result["execution_status"] == "completed"
+    assert result["final_configuration"]["current_state"] == "Root.Done"
+    assert result["consumed_events"] == ["Root.arm", "Root.fire"]
+    assert result["unconsumed_events"] == []
+
+
+def test_evaluate_checks_rejects_invalid_scenario_precondition_from_gate():
+    checked = check_fcstm(SETUP_MODEL)
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=checked,
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-fire",
+                "check_kind": "scenario",
+                "statement": "fire reaches Done from Armed.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": [],
+                "nl_basis": [
+                    {
+                        "quote": "When fire occurs in Armed, enter Done.",
+                        "role": "requirement",
+                    }
+                ],
+                "executable_spec": {
+                    "event_labels": ["fire"],
+                    "precondition_state_label": "Armed",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+    )
+
+    assert result["scenarios"]["scenario_results"][0]["status"] == "invalid_precondition"
+    assert result["gate"]["eligible"] is False
+    assert result["gate"]["executed_check_ids"] == []
+    assert result["gate"]["reasons"] == ["required_checks_not_executed:CHK-NL-001"]
 
 
 def test_scenario_exposes_nonstoppable_composite_entry_and_accepts_concrete_fix():
@@ -104,7 +217,10 @@ def test_scenario_exposes_nonstoppable_composite_entry_and_accepts_concrete_fix(
     check = {
         "check_id": "SC-NONSTOPPABLE",
         "check_kind": "scenario",
-        "executable_spec": {"events": ["Root.Human.enter_auto"]},
+        "executable_spec": {
+            "events": ["Root.Human.enter_auto"],
+            "precondition_state": "Root.Human.Init",
+        },
         "expected_outcome": {
             "state_in": "Root.Human.Auto",
             "consumed_events": ["Root.Human.enter_auto"],
@@ -139,7 +255,10 @@ def test_binder_normalizes_typed_scenario_and_property_contracts():
                     "statement": "Go reaches Done.",
                     "expected_outcome": {"relation": "ends_in", "target_label": "Done"},
                     "nl_basis": [{"quote": "go reaches Done", "role": "requirement"}],
-                    "executable_spec": {"event_labels": ["go"]},
+                    "executable_spec": {
+                        "event_labels": ["go"],
+                        "precondition_state_label": "Idle",
+                    },
                 },
                 {
                     "check_id": "draft-property",
@@ -156,6 +275,7 @@ def test_binder_normalizes_typed_scenario_and_property_contracts():
     scenario, prop = (item.model_dump(mode="json") for item in checks)
     assert scenario["executable_spec"]["events"] == ["Root.go"]
     assert scenario["executable_spec"]["unbound_event_labels"] == []
+    assert scenario["executable_spec"]["precondition_state"] == "Root.Idle"
     assert scenario["expected_outcome"] == {
         "state_in": "Root.Done",
         "consumed_events": ["Root.go"],
@@ -259,6 +379,9 @@ def test_validate_discovery_checks_rejects_partially_bound_scenario():
                     "events": ["Root.go"],
                     "requested_event_labels": ["go", "missing"],
                     "unbound_event_labels": ["missing"],
+                    "precondition_state": "Root.Idle",
+                    "setup_events": ["Root.go"],
+                    "tested_event": None,
                 },
                 "required": True,
             }
@@ -273,7 +396,13 @@ def test_validate_discovery_checks_rejects_partially_bound_scenario():
             {
                 "check_id": "SC-PARTIAL",
                 "check_kind": "scenario",
-                "executable_spec": {"events": ["Root.go"], "unbound_event_labels": ["missing"]},
+                "executable_spec": {
+                    "events": ["Root.go"],
+                    "unbound_event_labels": ["missing"],
+                    "precondition_state": "Root.Idle",
+                    "setup_events": [],
+                    "tested_event": "Root.go",
+                },
             }
         ],
     )

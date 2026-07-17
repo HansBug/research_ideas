@@ -15,7 +15,7 @@ def _submission(check_kind: str) -> DiscoverSubmission:
     executable_spec = (
         {"kind": "simple_state", "target_label": "Idle", "bound": 0}
         if check_kind == "property"
-        else {"event_labels": ["Go"]}
+        else {"event_labels": ["Go"], "precondition_state_label": "Idle"}
     )
     return DiscoverSubmission.model_validate(
         {

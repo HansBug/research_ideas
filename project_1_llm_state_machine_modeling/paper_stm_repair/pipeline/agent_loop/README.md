@@ -64,11 +64,31 @@ provider 会在同一个 `AgentApp.run` 内收到 schema validation error 并重
 注册后 docstring 都定义 Purpose、Parameters、Returns、Execution、Failure semantics、
 Evidence limitations、Permissions 与 Example，并由合同测试直接检查。
 
+Scenario 不是“从全局初始态直接点击一个任意事件”。每个 scenario draft 必须给出完整
+`event_labels` 和 `precondition_state_label`：前 $n-1$ 个事件是从模型初始态出发的 setup，
+最后一个事件才是被测事件。确定性 Controller 绑定后记录 `setup_events`、`tested_event` 和
+`precondition_state`；setup 中存在未消费事件或没有到达前置状态时，结果固定为
+`invalid_precondition`，该 check 不计入 executed checks，完整 batch 的 gate 也不会通过。
+例如要检查只在 `Armed` 中有效的 `fire`，draft 应提供 `['arm', 'fire']` 和前置状态
+`Armed`；只提交 `['fire']` 不能用其失败来声称模型存在行为错误。
+
 `confirmed` root 还必须通过独立的确定性归因门：每个引用都要在冻结的元素级 source
 trace 中形成严格一对一映射。仅在 inspect 中存在、仅被 check binder 使用，或只有
 ambiguous/untraceable mapping，都不能进入 Repair，只能降为 `candidate_only` 或
 `rejected`。唯一不需要逐元素 trace entry 的情况是 raw/source 与 fcstm 文本确实相同的
 custom identity input。
+
+最终输出严格区分 `model_element_refs`（FCSTM 中的 state/event/transition/variable 定位）
+与 `source_element_refs`（raw/source 模型侧定位），禁止把 `state:*` 等 FCSTM 引用混进
+source 字段。每个 final check 必须恰好归属一个 root 或一个 rejected proposition。
+Rejected proposition 还必须给出结构化 `rejection_reason`：`expectation_matched`、
+`check_semantically_invalid`、`out_of_scope`、`representation_only` 或
+`insufficient_evidence`；自然语言 rationale 继续解释具体逻辑。NL check 已产生
+`contradicts` 结果时，不能用“预期已满足”或笼统“证据不足”把它静默丢弃。
+
+真实 Agent 调用抛异常或收到中断时，Controller 会先追加 `agent_attempt_finished` 与
+`run_failed` 两个终态记录，再原样抛出异常；不会留下只有 `agent_attempt_started` 的
+方法记录前缀，也不会把 `.part` audit 当作成功 receipt。
 
 ## 真实 Demo
 

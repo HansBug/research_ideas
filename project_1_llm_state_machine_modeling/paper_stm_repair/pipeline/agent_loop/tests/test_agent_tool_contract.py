@@ -87,7 +87,10 @@ def eligible_scenario_payload(check_id: str = "draft-go") -> dict[str, Any]:
                 "nl_basis": [
                     {"quote": "When go occurs, Done is reachable.", "role": "requirement"}
                 ],
-                "executable_spec": {"event_labels": ["Root.go"]},
+                "executable_spec": {
+                    "event_labels": ["Root.go"],
+                    "precondition_state_label": "Root.Idle",
+                },
                 "binding_refs": [],
                 "required": True,
             }
@@ -113,6 +116,7 @@ def test_discover_submission_schema_rejects_empty_rejected_check_relation():
         "rejected_propositions": [
             {
                 "proposition_id": "rejected-1",
+                "rejection_reason": "expectation_matched",
                 "statement": "The scenario does not reveal a defect.",
                 "rationale": "The observed state matches the requirement.",
                 "considered_check_ids": ["draft-1"],

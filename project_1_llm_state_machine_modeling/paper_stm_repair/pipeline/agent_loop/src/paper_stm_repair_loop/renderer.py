@@ -133,7 +133,8 @@ def render_discover(
                 f"- statement: {root.statement}",
                 f"- rationale: {root.rationale}",
                 f"- checks: `{', '.join(root.required_check_ids)}`",
-                f"- source/model refs: `{', '.join(root.source_element_refs)}`",
+                f"- model refs: `{', '.join(root.model_element_refs)}`",
+                f"- source refs: `{', '.join(root.source_element_refs)}`",
                 f"- supporting records: `{', '.join(root.supporting_record_ids)}`",
                 "",
             ]
@@ -148,7 +149,9 @@ def render_discover(
                 f"- statement: {proposition.statement}",
                 f"- rationale: {proposition.rationale}",
                 f"- considered checks: `{', '.join(proposition.considered_check_ids)}`",
-                f"- source/model refs: `{', '.join(proposition.source_element_refs)}`",
+                f"- rejection reason: `{proposition.rejection_reason}`",
+                f"- model refs: `{', '.join(proposition.model_element_refs)}`",
+                f"- source refs: `{', '.join(proposition.source_element_refs)}`",
                 f"- supporting records: `{', '.join(proposition.supporting_record_ids)}`",
                 "",
             ]

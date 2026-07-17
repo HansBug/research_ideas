@@ -151,8 +151,13 @@ submission.
    concrete behavioral proposition:
    - `nl_grounded_behavioral_issue` drafts use `scenario` or `property`, quote a
      specific NL basis, state an expected outcome, and define bounded executable
-     labels/specs. Do not inventory every state or simply test that existing
-     structure is reachable.
+     labels/specs. A scenario must provide the complete `event_labels` sequence
+     from the model initial state and a `precondition_state_label`: all labels
+     except the last establish that precondition, and the last label is the event
+     being tested. Never test a deep-state event as a one-step initial-state
+     scenario. If setup cannot establish the declared precondition, the result is
+     mechanically ineligible rather than evidence of a model contradiction. Do
+     not inventory every state or simply test that existing structure is reachable.
    - `raw_internal_inconsistency` drafts use `static_consistency`, have
      `nl_basis=[]`, cite at least two mutually conflicting source facts, and set
      `expected_outcome.consistency_status=contradicts`. Ordinary declarations,
@@ -217,7 +222,20 @@ submission.
    candidate/rejected item is upgraded merely to increase output volume.
    Publish confirmed/candidate propositions as `root_nodes`; publish every
    rejected proposition in `rejected_propositions` with its considered check IDs,
-   supporting current-run records, source/model refs, statement, and rationale.
+   supporting current-run records, source/model refs, statement, rationale, and
+   exactly one `rejection_reason`. Use `expectation_matched` only when every
+   relevant NL-grounded check matched its sealed expectation;
+   `check_semantically_invalid` for a malformed/invalid proposition or check,
+   `out_of_scope` for a proposition outside paper1's behavioral scope,
+   `representation_only` for a conversion/expression difference without a
+   source behavioral defect, and `insufficient_evidence` only when evidence is
+   genuinely inconclusive. A contradicted NL check cannot be dismissed as
+   `expectation_matched` or generic `insufficient_evidence`.
+   Keep `model_element_refs` and `source_element_refs` separate: the former are
+   FCSTM inspect/binding refs such as `state:Root.Armed`; the latter are raw/source
+   refs from the frozen trace. Never put an FCSTM ref into `source_element_refs`.
+   A confirmed root must cite both sides, and every cited pair must have an exact
+   one-to-one frozen trace mapping.
    `root_nodes` contain behavioral issues only. A final
    `nl_grounded_behavioral_issue` check whose
    `expected_outcome_match_status=matches` says that the observed behavior agrees
