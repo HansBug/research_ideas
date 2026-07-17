@@ -103,6 +103,9 @@ def _run_scoped_submission(
     confirmation_possible: bool = True,
     evaluated_draft_id: str = "draft-1",
     check_origin: str = "nl_grounded_behavioral_issue",
+    extra_model_refs: set[str] | None = None,
+    extra_source_refs: set[str] | None = None,
+    extra_exact_pairs: set[tuple[str, str]] | None = None,
 ):
     nl_grounded = check_origin == "nl_grounded_behavioral_issue"
     bound_check_id = "CHK-NL-001" if nl_grounded else "CHK-SRC-001"
@@ -146,6 +149,7 @@ def _run_scoped_submission(
                     {
                         "check_id": bound_check_id,
                         "check_origin": check_origin,
+                        "binding_refs": ["state:Root.Done"],
                     }
                 ],
                 "scenarios": {
@@ -174,11 +178,18 @@ def _run_scoped_submission(
     return (
         _build_submit_discovery_response(
             invocation_log,
-            accepted_model_refs={"state:Root.Done"},
-            available_source_refs={"source:req"} if confirmation_possible else set(),
-            exact_pairs={
-                ("source:req", "state:Root.Done")
-            } if confirmation_possible else set(),
+            accepted_model_refs={"state:Root.Done"} | (extra_model_refs or set()),
+            available_source_refs=(
+                {"source:req"} | (extra_source_refs or set())
+                if confirmation_possible
+                else set()
+            ),
+            exact_pairs=(
+                {("source:req", "state:Root.Done")}
+                | (extra_exact_pairs or set())
+                if confirmation_possible
+                else set()
+            ),
         ),
         drafts,
         bound_check_id,
@@ -271,6 +282,22 @@ def test_run_scoped_schema_accepts_exactly_paired_confirmed_root():
 
     assert result.root_nodes[0].source_element_refs == ["source:req"]
     assert result.root_nodes[0].model_element_refs == ["state:Root.Done"]
+
+
+def test_run_scoped_schema_rejects_unrelated_exact_identity_ref():
+    schema, drafts, check_id = _run_scoped_submission(
+        relation="contradicts",
+        confirmation_possible=True,
+        extra_model_refs={"state:Root.Unrelated"},
+        extra_source_refs={"source:unrelated"},
+        extra_exact_pairs={("source:unrelated", "state:Root.Unrelated")},
+    )
+    payload = _submission_payload(drafts, assessment="confirmed", check_id=check_id)
+    payload["root_nodes"][0]["model_element_refs"] = ["state:Root.Unrelated"]
+    payload["root_nodes"][0]["source_element_refs"] = ["source:unrelated"]
+
+    with pytest.raises(ValidationError, match="unrelated to its owned checks"):
+        schema.model_validate(payload)
 
 
 def test_run_scoped_schema_rejects_unavailable_candidate_source_refs():

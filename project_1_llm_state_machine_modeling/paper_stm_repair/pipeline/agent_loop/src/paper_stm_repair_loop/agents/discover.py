@@ -245,6 +245,7 @@ def _validate_ref_partition(
     item: RootIssue | RejectedProposition,
     *,
     accepted_model_refs: set[str],
+    owner_model_refs: set[str],
     available_source_refs: set[str],
     exact_pairs: set[tuple[str, str]],
 ) -> None:
@@ -252,6 +253,11 @@ def _validate_ref_partition(
     source_refs = set(item.source_element_refs)
     if not model_refs.issubset(accepted_model_refs):
         raise ValueError(f"{item.node_id if isinstance(item, RootIssue) else item.proposition_id} references unaccepted model refs")
+    if not model_refs.issubset(owner_model_refs):
+        raise ValueError(
+            f"{item.node_id if isinstance(item, RootIssue) else item.proposition_id} "
+            "references model refs unrelated to its owned checks"
+        )
     if not source_refs.issubset(available_source_refs):
         raise ValueError(f"{item.node_id if isinstance(item, RootIssue) else item.proposition_id} references unavailable source refs")
     if not isinstance(item, RootIssue) or item.assessment != "confirmed":
@@ -320,6 +326,18 @@ def _validate_decision_partition(
         raise ValueError(f"discovery proposition coverage mismatch: missing={missing}, extra={extra}")
 
 
+def _owned_model_refs(
+    check_ids: list[str],
+    checks_by_id: Mapping[str, Mapping[str, Any]],
+) -> set[str]:
+    return {
+        ref
+        for check_id in check_ids
+        for ref in checks_by_id.get(check_id, {}).get("binding_refs", [])
+        if isinstance(ref, str)
+    }
+
+
 def _payload_contains_check_id(value: Any, check_id: str) -> bool:
     if isinstance(value, Mapping):
         if value.get("check_id") == check_id:
@@ -344,6 +362,7 @@ def _validate_submission(
 ) -> DiscoverSubmission:
     submission = raw if isinstance(raw, DiscoverSubmission) else DiscoverSubmission.model_validate(raw)
     known_checks = {str(check["check_id"]) for check in checks}
+    checks_by_id = {str(check["check_id"]): check for check in checks}
     records_by_id = {str(record["record_id"]): record for record in records}
     known_records = set(records_by_id)
     if submission.no_issue_found != (len(submission.root_nodes) == 0):
@@ -364,6 +383,7 @@ def _validate_submission(
         _validate_ref_partition(
             root,
             accepted_model_refs=accepted_model_refs,
+            owner_model_refs=_owned_model_refs(root.required_check_ids, checks_by_id),
             available_source_refs=available_source_refs,
             exact_pairs=exact_pairs,
         )
@@ -408,6 +428,9 @@ def _validate_submission(
         _validate_ref_partition(
             proposition,
             accepted_model_refs=accepted_model_refs,
+            owner_model_refs=_owned_model_refs(
+                proposition.considered_check_ids, checks_by_id
+            ),
             available_source_refs=available_source_refs,
             exact_pairs=exact_pairs,
         )
@@ -530,6 +553,10 @@ def _build_submit_discovery_response(
             )
             relations = _check_outcome_relations(evaluation)
             origins = _check_origins(evaluation)
+            checks_by_id = {
+                str(check["check_id"]): check
+                for check in evaluation.get("issue_checks", [])
+            }
             confirmation_possible = bool(exact_pairs)
 
             node_ids: set[str] = set()
@@ -544,6 +571,9 @@ def _build_submit_discovery_response(
                 _validate_ref_partition(
                     root,
                     accepted_model_refs=accepted_model_refs,
+                    owner_model_refs=_owned_model_refs(
+                        root.required_check_ids, checks_by_id
+                    ),
                     available_source_refs=available_source_refs,
                     exact_pairs=exact_pairs,
                 )
@@ -590,6 +620,9 @@ def _build_submit_discovery_response(
                 _validate_ref_partition(
                     proposition,
                     accepted_model_refs=accepted_model_refs,
+                    owner_model_refs=_owned_model_refs(
+                        proposition.considered_check_ids, checks_by_id
+                    ),
                     available_source_refs=available_source_refs,
                     exact_pairs=exact_pairs,
                 )

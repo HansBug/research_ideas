@@ -71,6 +71,11 @@ Scenario 不是“从全局初始态直接点击一个任意事件”。每个 s
 `invalid_precondition`，该 check 不计入 executed checks，完整 batch 的 gate 也不会通过。
 例如要检查只在 `Armed` 中有效的 `fire`，draft 应提供 `['arm', 'fire']` 和前置状态
 `Armed`；只提交 `['fire']` 不能用其失败来声称模型存在行为错误。
+此外，前置状态不能只靠 Agent 自报：每条 `nl_basis.quote` 必须能在冻结 NL 中核验，
+每条 `source_basis` 必须能在冻结 raw/source `STM_0` 中核验，并且 scenario 至少有一条
+已核验依据同时出现前置状态与最后的被测事件。比如 NL 明确写的是“在 `Armed` 收到
+`fire`”，却把 `Idle` 声明为前置状态，即使 `Idle` 恰好是全局初始状态，也会在 binding
+阶段被拒绝，不能产生 eligible 的 `contradicts` 证据。
 
 `confirmed` root 还必须通过独立的确定性归因门：每个引用都要在冻结的元素级 source
 trace 中形成严格一对一映射。仅在 inspect 中存在、仅被 check binder 使用，或只有
@@ -81,6 +86,8 @@ custom identity input。
 最终输出严格区分 `model_element_refs`（FCSTM 中的 state/event/transition/variable 定位）
 与 `source_element_refs`（raw/source 模型侧定位），禁止把 `state:*` 等 FCSTM 引用混进
 source 字段。每个 final check 必须恰好归属一个 root 或一个 rejected proposition。
+每个 proposition 的 `model_element_refs` 还必须来自它自己拥有的 checks 的
+`binding_refs`；不能拿另一个无关 state/event 的合法 source trace 来凑齐 confirmed 归因。
 Rejected proposition 还必须给出结构化 `rejection_reason`：`expectation_matched`、
 `check_semantically_invalid`、`out_of_scope`、`representation_only` 或
 `insufficient_evidence`；自然语言 rationale 继续解释具体逻辑。NL check 已产生

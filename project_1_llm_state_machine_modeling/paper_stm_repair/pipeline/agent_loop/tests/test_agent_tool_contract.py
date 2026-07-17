@@ -38,8 +38,15 @@ SNAPSHOT: dict[str, Any] = {
     },
     "targets": [],
     "current_records": {
-        "nl": {"content": "When go occurs, Done is reachable."},
-        "raw_source": {"content": "Idle -> Done on go"},
+        "nl": {
+            "content": (
+                "When go occurs, Done is reachable. Done is simple. "
+                "Done is reached after go."
+            )
+        },
+        "raw_source": {
+            "content": "Idle -> Done on go\nonly-one-source-fact"
+        },
         "source_trace": {
             "trace_sha256": "trace-sha",
             "entries": [
@@ -83,7 +90,7 @@ def eligible_scenario_payload(check_id: str = "draft-go") -> dict[str, Any]:
                 "check_kind": "scenario",
                 "statement": "The go event reaches Done.",
                 "expected_outcome": {"target_label": "Done"},
-                "source_basis": [],
+                "source_basis": ["Idle -> Done on go"],
                 "nl_basis": [
                     {"quote": "When go occurs, Done is reachable.", "role": "requirement"}
                 ],

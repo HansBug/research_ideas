@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -12,6 +13,91 @@ from .run_scenarios import execute as run_scenarios
 from .validate_discovery_checks import execute as validate_discovery_checks
 from .verify_properties import execute as verify_properties
 from .verify_static_consistency import execute as verify_static_consistency
+
+
+def _normalized_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def _last_label(value: str) -> str:
+    return value.rsplit(".", 1)[-1]
+
+
+def _text_contains(container: str, excerpt: str) -> bool:
+    normalized_container = " ".join(container.split()).casefold()
+    normalized_excerpt = " ".join(excerpt.split()).casefold()
+    return bool(normalized_excerpt) and normalized_excerpt in normalized_container
+
+
+def _grounding_rejections(
+    checks: list[DiscoverCheckDraft],
+    *,
+    nl_text: str,
+    raw_source: str,
+) -> tuple[list[DiscoverCheckDraft], list[dict[str, Any]]]:
+    """Reject drafts whose claimed basis cannot be verified in frozen inputs."""
+
+    accepted: list[DiscoverCheckDraft] = []
+    rejected: list[dict[str, Any]] = []
+    for draft in checks:
+        invalid_nl = [
+            item.get("quote", "")
+            for item in draft.nl_basis
+            if not _text_contains(nl_text, item.get("quote", ""))
+        ]
+        invalid_source = [
+            item for item in draft.source_basis if not _text_contains(raw_source, item)
+        ]
+        reason: str | None = None
+        details: dict[str, Any] = {}
+        if invalid_nl:
+            reason = "nl_basis_not_in_frozen_nl"
+            details["invalid_nl_basis"] = invalid_nl
+        elif invalid_source:
+            reason = "source_basis_not_in_frozen_raw_source"
+            details["invalid_source_basis"] = invalid_source
+        elif draft.check_kind == "scenario":
+            spec = draft.executable_spec
+            labels = spec.get("event_labels") or spec.get("events") or []
+            precondition = spec.get("precondition_state_label")
+            basis_texts = [
+                *[item.get("quote", "") for item in draft.nl_basis],
+                *draft.source_basis,
+            ]
+            tested_event = labels[-1] if isinstance(labels, list) and labels else None
+            if not isinstance(precondition, str) or not precondition:
+                reason = "scenario_precondition_basis_missing"
+            elif not isinstance(tested_event, str) or not tested_event:
+                reason = "scenario_tested_event_basis_missing"
+            else:
+                precondition_token = _normalized_text(_last_label(precondition))
+                event_token = _normalized_text(_last_label(tested_event))
+                jointly_grounded = any(
+                    precondition_token in _normalized_text(text)
+                    and event_token in _normalized_text(text)
+                    for text in basis_texts
+                    if precondition_token and event_token
+                )
+                if not jointly_grounded:
+                    reason = "scenario_precondition_and_event_not_jointly_grounded"
+                    details.update(
+                        {
+                            "precondition_state_label": precondition,
+                            "tested_event_label": tested_event,
+                        }
+                    )
+        if reason is None:
+            accepted.append(draft)
+            continue
+        rejected.append(
+            {
+                "draft_origin": draft.check_origin,
+                "draft_check_id": draft.check_id,
+                "reason": reason,
+                **details,
+            }
+        )
+    return accepted, rejected
 
 
 def _executed_check_ids(
@@ -101,6 +187,8 @@ def execute(
     checks: list[DiscoverCheckDraft | dict[str, Any]],
     model_path: str = "<frozen>",
     formal_required: bool = True,
+    nl_text: str,
+    raw_source: str,
 ) -> dict[str, Any]:
     """Evaluate one complete Discover check-draft batch deterministically.
 
@@ -141,9 +229,13 @@ def execute(
             ],
         }
 
-    binding_rejections: list[dict[str, Any]] = []
-    bound = bind_discover_drafts(
+    grounded_drafts, binding_rejections = _grounding_rejections(
         params.checks,
+        nl_text=nl_text,
+        raw_source=raw_source,
+    )
+    bound = bind_discover_drafts(
+        grounded_drafts,
         check_result.get("inspect", {}),
         binding_rejections=binding_rejections,
     )
@@ -228,6 +320,11 @@ def build_tool(
     frozen_check_result = copy.deepcopy(check_result)
     frozen_model = str(model_text)
     frozen_path = str(model_path)
+    current_records = frozen_snapshot.get("current_records") or {}
+    nl_record = current_records.get("nl") or {}
+    raw_record = current_records.get("raw_source") or {}
+    frozen_nl = str(nl_record.get("content") or "")
+    frozen_raw_source = str(raw_record.get("content") or "")
 
     def evaluate_checks(checks: list[DiscoverCheckDraft]) -> dict[str, Any]:
         """Purpose
@@ -253,14 +350,18 @@ def build_tool(
           property drafts use ``property_satisfied`` or ``satisfied``; source
           internal contradictions use ``consistency_status=contradicts``.
         - ``nl_basis``: list of ``{"quote":"...","role":"requirement"}``
-          objects. It is required for NL-grounded checks and must be empty for
-          raw-internal checks.
-        - ``source_basis``: quoted source facts. Raw-internal checks require at
-          least two mutually conflicting source facts.
+          objects. Every quote must occur in the frozen NL. It is required for
+          NL-grounded checks and must be empty for raw-internal checks.
+        - ``source_basis``: exact quoted facts that occur in frozen raw/source
+          ``STM_0``. Raw-internal checks require at least two mutually conflicting
+          source facts.
         - ``executable_spec``: scenario ``event_labels`` plus
           ``precondition_state_label``; the labels must describe the complete
           path from the model initial state, with the final event being tested
           and all preceding events establishing the declared precondition.
+          At least one verified NL/source basis item must jointly name that
+          precondition and final tested event; separate or invented prose cannot
+          establish applicability.
           Property drafts use ``kind`` + ``target_label`` + bounded ``bound``;
           static drafts use supported shape labels. Do not pass arbitrary code
           or solver expressions.
@@ -295,7 +396,9 @@ def build_tool(
 
         Execution
         ---------
-        1. Validate the complete nested draft schema and origin-specific basis.
+        1. Validate the complete nested draft schema, verify every basis excerpt
+           against frozen NL/raw source, and require scenario precondition plus
+           tested event to be jointly grounded by one verified basis item.
         2. Bind state/event/transition labels against frozen normalized inspect;
            ambiguous or missing bindings remain rejected/invalid, never guessed.
         3. Execute all bound scenario checks from the model initial state. A
@@ -312,7 +415,8 @@ def build_tool(
 
         Failure semantics
         -----------------
-        Invalid nested schema or an empty/all-rejected batch returns
+        Invalid nested schema, invented/mismatched basis, ungrounded scenario
+        applicability, or an empty/all-rejected batch returns
         ``invalid_arguments`` with ``gate.eligible=false``. Partial/unbound checks,
         unsupported specs, unavailable capability, timeout, unknown, incomplete,
         invalid scenario precondition, or replay mismatch remain explicit in
@@ -353,6 +457,8 @@ def build_tool(
             checks=checks,
             model_path=frozen_path,
             formal_required=formal_required,
+            nl_text=frozen_nl,
+            raw_source=frozen_raw_source,
         )
         invocation_log.append(
             {

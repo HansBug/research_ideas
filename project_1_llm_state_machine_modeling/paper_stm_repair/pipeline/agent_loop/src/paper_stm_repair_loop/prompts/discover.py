@@ -154,7 +154,11 @@ submission.
      labels/specs. A scenario must provide the complete `event_labels` sequence
      from the model initial state and a `precondition_state_label`: all labels
      except the last establish that precondition, and the last label is the event
-     being tested. Never test a deep-state event as a one-step initial-state
+     being tested. Every `nl_basis.quote` must occur in the frozen NL and every
+     `source_basis` item must occur in frozen raw/source `STM_0`. At least one
+     such verified basis item must jointly name the declared precondition and
+     final tested event; this is the applicability evidence. Never test a
+     deep-state event as a one-step initial-state
      scenario. If setup cannot establish the declared precondition, the result is
      mechanically ineligible rather than evidence of a model contradiction. Do
      not inventory every state or simply test that existing structure is reachable.
@@ -235,7 +239,9 @@ submission.
    FCSTM inspect/binding refs such as `state:Root.Armed`; the latter are raw/source
    refs from the frozen trace. Never put an FCSTM ref into `source_element_refs`.
    A confirmed root must cite both sides, and every cited pair must have an exact
-   one-to-one frozen trace mapping.
+   one-to-one frozen trace mapping. A proposition's `model_element_refs` may cite
+   only refs owned by its own final checks; unrelated inspect elements remain
+   forbidden even when they have an exact source mapping.
    `root_nodes` contain behavioral issues only. A final
    `nl_grounded_behavioral_issue` check whose
    `expected_outcome_match_status=matches` says that the observed behavior agrees

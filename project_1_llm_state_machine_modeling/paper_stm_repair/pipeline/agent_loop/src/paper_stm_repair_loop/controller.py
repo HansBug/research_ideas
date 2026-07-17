@@ -233,6 +233,9 @@ def _bind_drafts(
                         "consumed_events": list(spec.get("events", [])),
                         "unconsumed_events": [],
                     }
+                    target_ref = f"state:{state}"
+                    if target_ref not in refs:
+                        refs.append(target_ref)
             elif draft.check_kind == "property" and "property_satisfied" not in expected and isinstance(expected.get("satisfied"), bool):
                 expected = {"property_satisfied": expected["satisfied"]}
             output.append(
