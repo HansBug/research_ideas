@@ -198,6 +198,33 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
             assert "/" + "tmp/" not in text
 
 
+
+def test_inspect_fcstm_diagnostics_preserve_nested_spans_as_json_safe_schema():
+    from paper_stm_repair_representation.lowering import inspect_fcstm
+
+    source = """def int counter = 0;
+state Root {
+    state Idle;
+    state Done;
+    [*] -> Idle;
+}
+"""
+    report = inspect_fcstm(source, Path("mini-span.fcstm"))
+
+    assert report["parse_status"] == "ok"
+    assert report["inspect_status"] == "ok"
+    json.dumps(report)
+    diagnostics = report["diagnostics"]
+    assert diagnostics
+    unreachable = next(d for d in diagnostics if d["code"] == "W_UNREACHABLE_STATE")
+    assert set(unreachable) >= {"code", "severity", "message", "span", "refs"}
+    assert unreachable["span"] == {"line": 4, "column": 5, "end_line": 4, "end_column": 16}
+    assert unreachable["refs"] == {"state_path": "Root.Done"}
+
+    deadlock = next(d for d in diagnostics if d["code"] == "W_DEADLOCK_LEAF")
+    assert deadlock["span"]["line"] == 3
+    assert deadlock["refs"]["suggested_fix"]["anchor"] == {"type": "ref", "ref": "refs.parent_path"}
+
 def test_guard_variable_uses_fcstm_safe_identifier_for_special_token():
     from paper_stm_repair_representation.lowering import FCSTMExporter, inspect_fcstm
 

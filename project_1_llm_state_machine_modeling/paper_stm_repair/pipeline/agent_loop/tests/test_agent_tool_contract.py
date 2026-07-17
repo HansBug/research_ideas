@@ -1,0 +1,294 @@
+from __future__ import annotations
+
+import inspect
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
+from paper_stm_repair_loop.tools.evaluate_checks import build_tool as build_evaluate_checks_tool
+from paper_stm_repair_loop.tools.lookup_source_trace import build_tool as build_lookup_source_trace_tool
+from paper_stm_repair_loop.tools.observe_trace import build_tool as build_observe_trace_tool
+from paper_stm_repair_loop.tools.query_model import build_tool as build_query_model_tool
+from paper_stm_repair_loop.tools.read_task import build_tool as build_read_task_tool
+from utils.agent import AgentSpec
+
+
+SNAPSHOT: dict[str, Any] = {
+    "stage": "B-discover",
+    "loop_no": 0,
+    "model": {
+        "fcstm": "state Root { event go; state Idle; state Done; [*] -> Idle; Idle -> Done : go; }",
+        "fcstm_sha256": "model-sha",
+        "context_snapshot_head": "ctx-sha",
+        "normalized_inspect": {
+            "states": [{"path": "Root.Idle"}, {"path": "Root.Done"}],
+            "events": [{"qualified_name": "Root.go"}],
+            "transitions": [{"transition_index": 1, "source": "Root.Idle", "target": "Root.Done", "event": "Root.go"}],
+            "variables": [],
+            "diagnostics": [{"code": "demo", "severity": "info"}],
+        },
+    },
+    "targets": [],
+    "current_records": {
+        "nl": {"content": "When go occurs, Done is reachable."},
+        "raw_source": {"content": "Idle -> Done on go"},
+        "source_trace": {
+            "trace_sha256": "trace-sha",
+            "entries": [
+                {"source_elements": ["source:req1"], "intermediate_elements": ["transition:T1"]},
+                {"source_elements": ["source:req2a", "source:req2b"], "intermediate_elements": ["transition:T2"]},
+            ],
+        },
+        "issue_checks": [],
+        "tool_results": {},
+    },
+    "readable_history": [],
+    "source_trace": {
+        "trace_sha256": "trace-sha",
+        "entries": [
+            {"source_elements": ["source:req1"], "intermediate_elements": ["transition:T1"]},
+            {"source_elements": ["source:req2a", "source:req2b"], "intermediate_elements": ["transition:T2"]},
+        ],
+    },
+}
+
+
+def deterministic_runner(*, events: list[str], max_steps: int | None = None) -> dict[str, Any]:
+    assert max_steps is None or max_steps >= len(events)
+    return {
+        "execution_status": "completed",
+        "cycles": len(events),
+        "input_events": events,
+        "consumed_events": events,
+        "unconsumed_events": [],
+        "final_configuration": {"current_state": "Root.Done"},
+        "diagnostics": [],
+    }
+
+
+def registered_tools():
+    model_text = SNAPSHOT["model"]["fcstm"]
+    return (
+        build_read_task_tool(SNAPSHOT),
+        build_query_model_tool(SNAPSHOT),
+        build_observe_trace_tool(SNAPSHOT, deterministic_runner),
+        build_lookup_source_trace_tool(SNAPSHOT),
+        build_evaluate_checks_tool(
+            SNAPSHOT,
+            model_text=model_text,
+            check_result=check_fcstm(model_text),
+            model_path=Path("<frozen>"),
+            formal_required=True,
+            invocation_log=[],
+        ),
+    )
+
+
+def test_agent_spec_exposes_single_run_discover_tools_with_contract_descriptions():
+    spec = AgentSpec(name="discover-tool-contract", system_prompt="Use tools safely.", tools=registered_tools())
+    assert spec.tool_names == ("read_task", "query_model", "observe_trace", "lookup_source_trace", "evaluate_checks")
+    forbidden = {"check_fcstm", "validate_discovery_checks", "run_scenarios", "verify_properties", "compare_models", "read_issue_history", "read_loop"}
+    assert not forbidden.intersection(spec.tool_names)
+    required_sections = ["Purpose", "Parameters", "Returns", "Execution", "Failure semantics", "Evidence limitations", "Permissions", "Example"]
+    for tool in spec.tools:
+        description = str(getattr(tool, "description", ""))
+        description_flat = " ".join(description.split())
+        assert description == inspect.getdoc(tool.func)
+        for section in required_sections:
+            assert section in description, f"{tool.name} missing {section}"
+        assert "reference/gold" in description
+        assert "arbitrary paths" in description_flat or "No path" in description_flat or "no path" in description_flat
+
+
+def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_section_headings():
+    descriptions = {tool.name: str(tool.description) for tool in registered_tools()}
+    required_markers = {
+        "read_task": [
+            "exactly ``{}``",
+            "exactly six top-level fields",
+            "``stage``",
+            "``loop_no``",
+            "``model``",
+            "``targets``",
+            "``current_records``",
+            "``readable_history``",
+            "same six fields, values, model hash, record set",
+        ],
+        "query_model": [
+            "required string enum",
+            "case-insensitive substring",
+            "must be 1 through 500",
+            "``matched_items``",
+            "``total_matches``",
+            "``truncated``",
+            "If ``truncated=true``",
+        ],
+        "observe_trace": [
+            "required JSON array of strings",
+            "offered in a separate cycle",
+            "``consumed_events`` / ``unconsumed_events``",
+            "``final_configuration``",
+            "``timeout``",
+            "A no-counterexample observation is never a proof",
+        ],
+        "lookup_source_trace": [
+            "required JSON array of strings",
+            "``fcstm_to_source``",
+            "``source_to_fcstm``",
+            "``exact_matches``",
+            "``ambiguous_matches``",
+            "``untraceable_refs``",
+            "Every requested ref appears in exactly one",
+        ],
+        "evaluate_checks": [
+            "one complete batch",
+            "inside this single ``AgentApp.run``",
+            "``check_origin``",
+            "``expected_outcome``",
+            "``issue_checks``",
+            "``validation``",
+            "``scenarios``",
+            "``properties``",
+            "``static_consistency``",
+            "``gate``",
+            "never alter the expected outcome",
+        ],
+    }
+    for tool_name, markers in required_markers.items():
+        description = " ".join(descriptions[tool_name].split())
+        for marker in markers:
+            assert marker in description, f"{tool_name} description missing detailed contract marker: {marker}"
+
+
+def test_agent_tool_input_schemas_are_strict_and_do_not_leak_identity_or_permissions():
+    forbidden_props = {"path", "model_path", "model_text", "model", "run_id", "case_id", "pair_id", "url", "shell", "python", "z3"}
+    for tool in registered_tools():
+        schema = tool.args_schema.model_json_schema()
+        assert schema.get("additionalProperties") is False
+        props = set(schema.get("properties", {}))
+        assert not forbidden_props.intersection(props), f"{tool.name} leaked {forbidden_props.intersection(props)}"
+    assert set(build_read_task_tool(SNAPSHOT).args_schema.model_json_schema().get("properties", {})) == set()
+    assert set(build_query_model_tool(SNAPSHOT).args_schema.model_json_schema()["properties"]) == {"query_kind", "name_contains", "offset", "limit"}
+    assert set(build_observe_trace_tool(SNAPSHOT, deterministic_runner).args_schema.model_json_schema()["properties"]) == {"events", "max_steps"}
+    assert set(build_lookup_source_trace_tool(SNAPSHOT).args_schema.model_json_schema()["properties"]) == {"element_refs", "direction"}
+    evaluate_schema = registered_tools()[-1].args_schema.model_json_schema()
+    assert set(evaluate_schema["properties"]) == {"checks"}
+
+
+def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
+    tools = {tool.name: tool for tool in registered_tools()}
+    assert list(inspect.signature(tools["read_task"].func).parameters) == []
+    assert list(inspect.signature(tools["query_model"].func).parameters) == ["query_kind", "name_contains", "offset", "limit"]
+    assert list(inspect.signature(tools["observe_trace"].func).parameters) == ["events", "max_steps"]
+    assert list(inspect.signature(tools["lookup_source_trace"].func).parameters) == ["element_refs", "direction"]
+    assert list(inspect.signature(tools["evaluate_checks"].func).parameters) == ["checks"]
+
+    task = tools["read_task"].invoke({})
+    assert set(task) == {"stage", "loop_no", "model", "targets", "current_records", "readable_history"}
+    assert task["model"]["fcstm_sha256"] == "model-sha"
+
+    query = tools["query_model"].invoke({"query_kind": "states", "name_contains": "Root", "offset": 0, "limit": 1})
+    assert query["execution_status"] == "completed"
+    assert query["total_matches"] == 2
+    assert query["truncated"] is True
+    assert query["model_sha256"] == "model-sha"
+
+    trace = tools["observe_trace"].invoke({"events": ["Root.go"], "max_steps": 2})
+    assert trace["execution_status"] == "completed"
+    assert trace["consumed_events"] == ["Root.go"]
+    assert "single_trace_cannot_prove_correctness" in trace["limitations"]
+
+    mapping = tools["lookup_source_trace"].invoke({"element_refs": ["transition:T1", "transition:T2", "transition:missing"], "direction": "fcstm_to_source"})
+    assert mapping["execution_status"] == "completed"
+    assert [item["requested_ref"] for item in mapping["exact_matches"]] == ["transition:T1"]
+    assert [item["requested_ref"] for item in mapping["ambiguous_matches"]] == ["transition:T2"]
+    assert mapping["untraceable_refs"] == ["transition:missing"]
+    assert mapping["trace_sha256"] == "trace-sha"
+
+    evaluated = tools["evaluate_checks"].invoke(
+        {
+            "checks": [
+                {
+                    "check_origin": "nl_grounded_behavioral_issue",
+                    "check_id": "draft-simple-state",
+                    "check_kind": "property",
+                    "statement": "Done is a simple state.",
+                    "expected_outcome": {"property_satisfied": True},
+                    "source_basis": [],
+                    "nl_basis": [{"quote": "Done is simple.", "role": "requirement"}],
+                    "executable_spec": {"kind": "simple_state", "target_label": "Done", "bound": 0},
+                    "binding_refs": [],
+                    "required": True,
+                }
+            ]
+        }
+    )
+    assert evaluated["execution_status"] == "completed"
+    assert evaluated["gate"]["eligible"] is True
+    assert evaluated["issue_checks"][0]["check_id"] == "CHK-NL-001"
+    assert evaluated["properties"]["property_results"][0]["solver_status"] == "deterministic_static"
+
+
+def test_evaluate_checks_rejects_partially_bound_final_batch():
+    tool = {tool.name: tool for tool in registered_tools()}["evaluate_checks"]
+    evaluated = tool.invoke(
+        {
+            "checks": [
+                {
+                    "check_origin": "nl_grounded_behavioral_issue",
+                    "check_id": "draft-valid",
+                    "check_kind": "property",
+                    "statement": "Done is a simple state.",
+                    "expected_outcome": {"property_satisfied": True},
+                    "source_basis": [],
+                    "nl_basis": [{"quote": "Done is simple.", "role": "requirement"}],
+                    "executable_spec": {"kind": "simple_state", "target_label": "Done", "bound": 0},
+                    "binding_refs": [],
+                    "required": True,
+                },
+                {
+                    "check_origin": "raw_internal_inconsistency",
+                    "check_id": "draft-invalid-source-contract",
+                    "check_kind": "static_consistency",
+                    "statement": "One source fact does not establish an internal contradiction.",
+                    "expected_outcome": {"consistency_status": "contradicts"},
+                    "source_basis": ["only-one-source-fact"],
+                    "nl_basis": [],
+                    "executable_spec": {"kind": "transition_shape", "source_label": "Idle"},
+                    "binding_refs": [],
+                    "required": True,
+                },
+            ]
+        }
+    )
+
+    assert evaluated["execution_status"] == "completed"
+    assert [item["draft_check_id"] for item in evaluated["binding_rejections"]] == [
+        "draft-invalid-source-contract"
+    ]
+    assert evaluated["gate"]["eligible"] is False
+    assert evaluated["gate"]["reasons"] == [
+        "drafts_rejected_or_unbound:draft-invalid-source-contract"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "payload", "status"),
+    [
+        ("query_model", {"query_kind": "states", "offset": -1, "limit": 1}, "invalid_arguments"),
+        ("observe_trace", {"events": [], "max_steps": 1}, "invalid_arguments"),
+        ("observe_trace", {"events": ["Root.unknown"], "max_steps": 2}, "invalid_arguments"),
+        ("lookup_source_trace", {"element_refs": [], "direction": "fcstm_to_source"}, "invalid_arguments"),
+    ],
+)
+def test_tools_return_structured_failures_not_permission_or_exception_leaks(tool_name: str, payload: dict[str, Any], status: str):
+    tool = {tool.name: tool for tool in registered_tools()}[tool_name]
+    result = tool.invoke(payload)
+    assert result["execution_status"] == status
+    serialized = json.dumps(result, ensure_ascii=False).lower()
+    assert "/home/" not in serialized
+    assert "traceback" not in serialized
+    assert "reference" not in serialized or "reference/gold" not in serialized

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -52,8 +52,34 @@ class RenderedTransition:
     loss_notes: list[str] = field(default_factory=list)
 
 
+def _schema_safe(obj: Any) -> Any:
+    """Recursively convert pyfcstm inspection objects into JSON-safe values.
+
+    pyfcstm diagnostics now embed structured dataclasses such as ``Span``.
+    Downstream R4.5 reports need those fields preserved as schema data rather
+    than collapsed through ``str(diagnostic)`` or left as unserializable Python
+    objects.
+    """
+
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
+    if is_dataclass(obj) and not isinstance(obj, type):
+        return {field.name: _schema_safe(getattr(obj, field.name)) for field in fields(obj)}
+    if isinstance(obj, dict):
+        return {str(key): _schema_safe(value) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_schema_safe(value) for value in obj]
+    if isinstance(obj, set):
+        return [_schema_safe(value) for value in sorted(obj, key=repr)]
+    if isinstance(obj, Path):
+        return display_path(obj)
+    if hasattr(obj, "__dict__"):
+        return {str(key): _schema_safe(value) for key, value in vars(obj).items()}
+    return str(obj)
+
+
 def _json_dumps(obj: Any) -> str:
-    return json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True)
+    return json.dumps(_schema_safe(obj), ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def dsl_string(text: str) -> str:
@@ -293,12 +319,12 @@ def inspect_fcstm(source: str, path: Path) -> Dict[str, Any]:
             "schema_version": "r4_5.parse_inspect_report.v0",
             "parse_status": "ok",
             "inspect_status": "ok",
-            "metrics": asdict(report.metrics),
-            "states": [asdict(s) for s in report.states],
-            "transitions": [asdict(t) for t in report.transitions],
-            "events": [asdict(e) for e in report.events],
-            "variables": [asdict(v) for v in report.variables],
-            "diagnostics": [getattr(d, "__dict__", str(d)) for d in getattr(report, "diagnostics", [])],
+            "metrics": _schema_safe(report.metrics),
+            "states": _schema_safe(report.states),
+            "transitions": _schema_safe(report.transitions),
+            "events": _schema_safe(report.events),
+            "variables": _schema_safe(report.variables),
+            "diagnostics": _schema_safe(getattr(report, "diagnostics", [])),
         }
     except Exception as exc:  # pragma: no cover - exercised via reports when failing
         return {
@@ -664,7 +690,7 @@ class FCSTMExporter:
                 actions.append({"transition_id": t["id"], "raw_action": t.get("action"), "lowering": "transition_action_flag", "emitted_flag": self.action_flags.get(t.get("action")), "status": "mapped" if t.get("action") in self.action_flags else "not_emitted"})
         references = []
         for rt in self.rendered_transitions:
-            references.append(asdict(rt))
+            references.append(_schema_safe(rt))
         hierarchy = []
         for state in self.view.states:
             hierarchy.append({"state_id": state["id"], "parent": state.get("parent"), "emitted_identifier": self.state_id_map.get(state["id"]), "kind": state.get("kind"), "status": "preserved" if state.get("parent") is not None or self.view.is_composite(state["id"]) else "top_level_child"})
@@ -769,7 +795,7 @@ class FCSTMExporter:
         lines.extend(self.render_scope(None, 0))
         fcstm = "\n".join(lines) + "\n"
         inventory = self.build_inventory()
-        blocked = [asdict(rt) for rt in self.rendered_transitions if rt.status == "blocked"]
+        blocked = [_schema_safe(rt) for rt in self.rendered_transitions if rt.status == "blocked"]
         status = "converted" if not blocked else "partial"
         return {
             "status": status,
