@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from typing import Any
 
@@ -212,6 +213,11 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     frozen = copy.deepcopy(snapshot)
     completed_requests: set[tuple[str, str | None, int, int]] = set()
     fully_returned_categories: set[str] = set()
+    seen_item_hashes: dict[str, set[str]] = {}
+
+    def item_hash(item: dict[str, Any]) -> str:
+        payload = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def query_model(
         query_kind: str,
@@ -263,15 +269,19 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         2. Read only the normalized inspect category closed over before dispatch.
         3. Normalize items, apply the substring filter, count matches, and slice
            ``[offset:offset+limit]`` deterministically.
-        4. Return a strict schema tied to the same frozen ``model_sha256``. No
+        4. Compare returned item hashes with facts already exposed for this
+           category. A query that adds no new structural fact is rejected; once
+           the union covers the frozen category, mark it fully returned.
+        5. Return a strict schema tied to the same frozen ``model_sha256``. No
            model parsing/reload, simulation, BMC, LLM call, cache refresh, or
            latest-state lookup occurs.
 
         Failure semantics
         -----------------
-        Invalid enum/type/range, an exact duplicate, or a query against a category
-        already returned in full returns ``invalid_arguments`` with an empty page
-        and limitation code. Missing/non-structural inspect category returns
+        Invalid enum/type/range, an exact duplicate, a query that yields no new
+        structural fact, or a query against a category already returned in full
+        returns ``invalid_arguments`` with an empty page and limitation code.
+        Missing/non-structural inspect category returns
         ``tool_unavailable``. An empty completed page is a valid domain result and
         does not mean the model element is impossible or erroneous. Diagnostics
         are facts and remain non-verdict evidence.
@@ -327,7 +337,31 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         result = execute(frozen, query_kind, name_contains, offset, limit)
         if result.get("execution_status") == "completed":
             completed_requests.add(request_key)
-            if name_contains is None and offset == 0 and result.get("truncated") is False:
+            page_hashes = {
+                item_hash(item)
+                for item in result.get("matched_items", [])
+                if isinstance(item, dict)
+            }
+            previously_seen = seen_item_hashes.setdefault(query_kind, set())
+            new_hashes = page_hashes - previously_seen
+            if not new_hashes and previously_seen:
+                return ModelQueryResult(
+                    execution_status="invalid_arguments",
+                    query_kind=query_kind,  # type: ignore[arg-type]
+                    matched_items=[],
+                    total_matches=0,
+                    offset=offset,
+                    limit=limit,
+                    truncated=False,
+                    model_sha256=_model_sha256_from(frozen),
+                    limitations=[*_LIMITATIONS, "no_new_structural_fact"],
+                ).model_dump(mode="json")
+            previously_seen.update(new_hashes)
+            category_size = len(_items_for(_inspect_from(frozen), query_kind))
+            if (
+                (name_contains is None and offset == 0 and result.get("truncated") is False)
+                or len(previously_seen) >= category_size
+            ):
                 fully_returned_categories.add(query_kind)
         return result
 

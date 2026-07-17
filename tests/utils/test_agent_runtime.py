@@ -90,6 +90,18 @@ class _MissingThenStructuredModel(BaseChatModel):
                 ],
             )
         elif self.calls == 2:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {},
+                        "id": "structured-invalid-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 3:
             message = AIMessage(content="done without structured output")
         else:
             message = AIMessage(
@@ -189,7 +201,7 @@ def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Pa
 
     assert result.status == "success"
     assert result.require_output().answer == "ok"
-    assert model.calls == 3
+    assert model.calls == 4
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
     retry_records = [
         item
@@ -199,6 +211,17 @@ def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Pa
     assert len(retry_records) == 1
     assert retry_records[0]["status"] == "started"
     assert retry_records[0]["instruction_hash"].startswith("sha256:")
+    decisions_after_retry = [
+        item
+        for item in records
+        if item.get("record") == "decision"
+        and item.get("order", 0) > retry_records[0]["order"]
+    ]
+    assert decisions_after_retry
+    retry_roles = [
+        ref["role"] for ref in decisions_after_retry[-1]["input_message_refs"]
+    ]
+    assert retry_roles.count("tool") >= 2
 
 
 def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:

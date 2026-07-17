@@ -92,6 +92,9 @@ The only Agent-callable tools are exactly: {tools}.
   `limitations` before relying on it. It gives no verdict. Exact duplicate
   requests are rejected; once an unfiltered category has been returned from
   offset 0 with `truncated=false`, do not query that category again with filters.
+  The tool also tracks returned structural-item hashes: if it reports
+  `no_new_structural_fact`, stop querying that category instead of trying another
+  spelling for the same state/event/transition.
 - `observe_trace(events, max_steps=None)` is optional. Use it only for an
   explicit finite trace question left unresolved by an eligible
   `evaluate_checks` result. The Controller permits at most one completed trace

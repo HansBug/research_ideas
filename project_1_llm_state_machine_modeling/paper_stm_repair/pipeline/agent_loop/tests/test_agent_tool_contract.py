@@ -273,6 +273,12 @@ def test_docstring_examples_match_signatures_and_strict_schema_dry_run():
     assert duplicate_query["execution_status"] == "invalid_arguments"
     assert "duplicate_query_not_executed" in duplicate_query["limitations"]
 
+    same_fact_new_filter = tools["query_model"].invoke(
+        {"query_kind": "states", "name_contains": "Idle", "offset": 0, "limit": 50}
+    )
+    assert same_fact_new_filter["execution_status"] == "invalid_arguments"
+    assert "no_new_structural_fact" in same_fact_new_filter["limitations"]
+
     complete_events = tools["query_model"].invoke(
         {"query_kind": "events", "offset": 0, "limit": 50}
     )
@@ -448,6 +454,24 @@ def test_evaluate_checks_returns_structured_rejection_for_non_integer_property_b
             "observed_type": "dict",
         }
     ]
+
+
+def test_root_issue_schema_rejects_candidate_repair_permission_before_publication():
+    from pydantic import ValidationError
+
+    from paper_stm_repair_loop.schemas import RootIssue
+
+    with pytest.raises(ValidationError, match="candidate_only root cannot be repair eligible"):
+        RootIssue.model_validate(
+            {
+                "node_id": "ISS-1@n0",
+                "issue_id": "ISS-1",
+                "assessment": "candidate_only",
+                "downstream_repair_allowed": True,
+                "statement": "Candidate only.",
+                "rationale": "Source attribution is incomplete.",
+            }
+        )
 
 
 @pytest.mark.parametrize(

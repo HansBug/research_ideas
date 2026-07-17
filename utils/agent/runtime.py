@@ -3315,13 +3315,16 @@ class AgentApp:
                 middleware=middleware,
                 name=self.spec.name,
             )
+            terminal_state: dict[str, Any] | None
             if seconds is None:
-                await consume(graph)
+                terminal_state = await consume(graph)
             else:
                 remaining = float(seconds) - (time.monotonic() - started)
                 if remaining <= 0:
                     raise AgentError("limit_exceeded", "seconds limit exceeded")
-                await asyncio.wait_for(consume(graph), timeout=remaining)
+                terminal_state = await asyncio.wait_for(
+                    consume(graph), timeout=remaining
+                )
             if (
                 output is None
                 and self.spec.output_schema is not None
@@ -3346,7 +3349,15 @@ class AgentApp:
                     }
                 )
                 model_options_middleware.forced_tool_choice = "required"
-                retry_messages = [*last_state_messages_snapshot, retry_message]
+                terminal_messages = (
+                    list(terminal_state.get("messages") or [])
+                    if isinstance(terminal_state, Mapping)
+                    else []
+                )
+                retry_messages = [
+                    *(terminal_messages or last_state_messages_snapshot),
+                    retry_message,
+                ]
                 if seconds is None:
                     await consume(graph, retry_messages)
                 else:

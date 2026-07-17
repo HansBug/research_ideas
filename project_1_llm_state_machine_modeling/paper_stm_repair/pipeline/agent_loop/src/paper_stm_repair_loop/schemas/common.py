@@ -4,7 +4,7 @@ from typing import Any
 
 from typing_extensions import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -62,6 +62,14 @@ class RootIssue(StrictModel):
     supporting_record_ids: list[str] = Field(default_factory=list)
     required_check_ids: list[str] = Field(default_factory=list)
     source_element_refs: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_repair_boundary(self) -> "RootIssue":
+        if self.assessment == "confirmed" and not self.downstream_repair_allowed:
+            raise ValueError("confirmed root must be repair eligible")
+        if self.assessment == "candidate_only" and self.downstream_repair_allowed:
+            raise ValueError("candidate_only root cannot be repair eligible")
+        return self
 
 
 class RejectedProposition(StrictModel):
