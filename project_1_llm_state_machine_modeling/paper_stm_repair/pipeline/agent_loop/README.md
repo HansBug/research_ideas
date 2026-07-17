@@ -40,8 +40,10 @@ Agent 获得七个 bounded 工具：
 内容隔离、工具前置条件和 run 后顺序复核三层机制强制执行
 `read_fcstm_guide -> read_task -> model work`；property batch 另强制
 `read_fbmcq_guide -> property work`。任何先违规后补读的 attempt 仍会 fail-closed。
-Discover 另开启 `require_tool_each_turn`：每一轮必须选择已注册业务工具或结构化终止
-工具，不能用空白或普通文本提前结束。该策略不限制模型调用、工具调用、时间或 token。
+结构化终止工具的物理名称与 prompt 一致，固定为 `submit_discovery`。若 provider
+结束当前 graph 路径却未返回结构化结果，Discover 会保留完整可见历史并启用一次
+可审计恢复路径，要求先补齐遗漏的 mandatory business tool，再结构化提交；它不限制
+整次运行的模型调用、工具调用、时间或 token，也不会从普通文本伪造结果。
 
 `evaluate_checks` 内部固定调用 `run_scenarios`、`verify_properties`、
 `verify_static_consistency` 和 `validate_discovery_checks`，但不调用 LLM、不修改模型、

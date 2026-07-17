@@ -85,7 +85,7 @@ AgentSpec(
     output_schema: type[BaseModel] | None = None,
     limits: Mapping[str, int | float | None] | None = None,
     require_tool_call: bool = False,
-    require_tool_each_turn: bool = False,
+    retry_missing_structured_output: bool = False,
 )
 ```
 
@@ -104,7 +104,7 @@ spec = AgentSpec(
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
 
-`require_tool_call=True` 只要求整次运行至少成功调用过一个业务工具；`require_tool_each_turn=True` 则由 runtime 在每次模型请求中注入标准 `tool_choice=required`，要求模型每轮选择一个已注册业务工具或结构化终止工具，避免以空白/普通文本提前结束。后者不限制调用次数、时间或 token，也不允许调用方指定任意工具名；只有协议本身要求“工具或结构化提交驱动”的 agent 才应开启。
+`require_tool_call=True` 要求整次运行至少成功调用过一个业务工具。对于 provider 偶发以空白或普通文本结束、但方法协议明确要求结构化终止的 Agent，可显式设置 `retry_missing_structured_output=True`：runtime 会保留完整可见历史，追加一条带 hash 的恢复上下文，并在这条恢复路径中要求模型选择业务工具或结构化终止工具。该机制只在 graph 已结束且 `structured_response` 缺失时启动一次，不限制整次运行的模型调用、工具调用、时间或 token，也不解析普通文本伪造结构化结果。
 
 限制计数是整个 `run` 的累计值；compact summary transport 也计入显式 `model_calls`，但不计业务 turn/tool。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；缺省时把容量交给 provider，不在本地擅自猜测数值。
 
@@ -163,7 +163,7 @@ Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 sys
 
 结构化结果直接通过 `create_agent(response_format=YourSchema)` 交给 LangGraph；由 LangGraph AutoStrategy 按模型能力选择 provider-native structured output 或官方 tool-calling fallback。运行时不把普通 assistant 文本自行 `json.loads` 成结果，也不为某个 provider 另写一套结构化后处理；provider 不支持或返回无效结构时保留原始失败诊断。
 
-官方 tool-calling fallback 的 schema 校验重试由 LangGraph 自己管理；默认不额外加隐藏重试上限，以保持“未配置预算就不限制”的契约。需要为不兼容 provider 设置止损时，显式传 `limits`（例如 `model_calls` 或 `seconds`），失败结果会保留 `structured_output_invalid`/provider 诊断和 audit `finish`。
+官方 tool-calling fallback 的 schema 校验重试由 LangGraph 自己管理；默认不额外增加恢复路径。只有 AgentSpec 显式开启 `retry_missing_structured_output` 时，才在 graph 无结构化终止后追加一次可审计恢复上下文。需要为不兼容 provider 设置止损时，显式传 `limits`（例如 `model_calls` 或 `seconds`），失败结果会保留 `structured_output_invalid`/provider 诊断和 audit `finish`。
 
 终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。每个 tool Panel 都明确标出 `name`、`tool_call_id`、`status`、`arguments`，结果 Panel 还标出 `result`；工具异常会标出安全的 `error`，DEBUG 时补充异常类型和 provider request id 等诊断字段。
 

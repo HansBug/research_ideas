@@ -108,9 +108,35 @@ def _bind_drafts(
                 target_label = str(spec.pop("target_label", ""))
                 state = _best_match(target_label, states)
                 kind = str(spec.get("kind") or "reach")
-                bound = int(spec.get("bound") or 3)
+                temporal_kinds = {
+                    "reach",
+                    "cover",
+                    "exists_always",
+                    "forbid",
+                    "invariant",
+                    "must_reach",
+                }
+                bound = 0
+                if kind in temporal_kinds:
+                    raw_bound = spec.get("bound", 3)
+                    if (
+                        isinstance(raw_bound, bool)
+                        or not isinstance(raw_bound, int)
+                        or raw_bound <= 0
+                    ):
+                        if binding_rejections is not None:
+                            binding_rejections.append(
+                                {
+                                    "draft_origin": origin,
+                                    "draft_check_id": draft.check_id,
+                                    "reason": "property_bound_must_be_positive_integer",
+                                    "observed_type": type(raw_bound).__name__,
+                                }
+                            )
+                        continue
+                    bound = raw_bound
                 if state:
-                    if kind in {"reach", "cover", "exists_always", "forbid", "invariant", "must_reach"}:
+                    if kind in temporal_kinds:
                         predicate = f'active("{state}")'
                         spec = {"query": f"check {kind} <= {bound}: {predicate};", "kind": kind, "bound": bound}
                     elif kind == "has_substates":

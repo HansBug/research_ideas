@@ -391,6 +391,48 @@ def test_evaluate_checks_rejects_partially_bound_final_batch():
     ]
 
 
+def test_evaluate_checks_returns_structured_rejection_for_non_integer_property_bound():
+    tool = {
+        tool.name: tool
+        for tool in registered_tools(unlock_fcstm=True, unlock_fbmcq=True)
+    }["evaluate_checks"]
+    evaluated = tool.invoke(
+        {
+            "checks": [
+                {
+                    "check_origin": "nl_grounded_behavioral_issue",
+                    "check_id": "draft-invalid-bound",
+                    "check_kind": "property",
+                    "statement": "Done must be reached within the declared bound.",
+                    "expected_outcome": {"property_satisfied": True},
+                    "source_basis": [],
+                    "nl_basis": [
+                        {"quote": "Done is reached after go.", "role": "requirement"}
+                    ],
+                    "executable_spec": {
+                        "kind": "must_reach",
+                        "target_label": "Done",
+                        "bound": {"upper": 3},
+                    },
+                    "binding_refs": [],
+                    "required": True,
+                }
+            ]
+        }
+    )
+
+    assert evaluated["execution_status"] == "invalid_arguments"
+    assert evaluated["gate"]["eligible"] is False
+    assert evaluated["binding_rejections"] == [
+        {
+            "draft_origin": "nl_grounded_behavioral_issue",
+            "draft_check_id": "draft-invalid-bound",
+            "reason": "property_bound_must_be_positive_integer",
+            "observed_type": "dict",
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     ("tool_name", "payload", "status"),
     [

@@ -52,6 +52,13 @@ AGENT_TOOL_NAMES = (
 )
 
 
+class SubmitDiscoveryResponse(DiscoverSubmission):
+    """Submit the complete, evaluated Discover batch exactly once."""
+
+
+SubmitDiscoveryResponse.__name__ = "submit_discovery"
+
+
 def _pyfcstm_commit() -> str:
     completed = subprocess.run(
         ["git", "-C", str(REPO_ROOT / "pyfcstm"), "rev-parse", "HEAD"],
@@ -624,10 +631,10 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             name="paper1-b-discover",
             system_prompt=prompt,
             tools=tools,
-            output_schema=DiscoverSubmission,
+            output_schema=SubmitDiscoveryResponse,
             limits=manifest.get("agent_limits") or None,
             require_tool_call=True,
-            require_tool_each_turn=True,
+            retry_missing_structured_output=True,
         )
         app = AgentApp.from_registry(
             spec,

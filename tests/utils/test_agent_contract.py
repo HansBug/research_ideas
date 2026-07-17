@@ -64,21 +64,13 @@ def test_agent_spec_tools_are_the_registration_allowlist() -> None:
     assert spec.tool_names == ("lookup",)
 
 
-def test_require_tool_each_turn_needs_a_callable_terminal_surface() -> None:
-    with pytest.raises(ValueError, match="require_tool_each_turn"):
+def test_missing_structured_output_retry_needs_output_schema() -> None:
+    with pytest.raises(ValueError, match="retry_missing_structured_output"):
         AgentSpec(
-            name="invalid-each-turn",
+            name="invalid-structured-retry",
             system_prompt="answer",
-            require_tool_each_turn=True,
+            retry_missing_structured_output=True,
         )
-
-    spec = AgentSpec(
-        name="valid-each-turn",
-        system_prompt="use lookup",
-        tools=(lambda: "ok",),
-        require_tool_each_turn=True,
-    )
-    assert spec.require_tool_each_turn is True
 
 
 def test_think_off_pins_official_reasoning_defaults() -> None:

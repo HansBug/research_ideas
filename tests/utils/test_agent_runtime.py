@@ -7,7 +7,7 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
-from pydantic import Field
+from pydantic import BaseModel, Field
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessageChunk, ToolMessage
 from langchain_core.messages import AIMessage
@@ -20,10 +20,8 @@ from utils.llm import LLMConfig
 class FakeStreamingModel:
     def __init__(self) -> None:
         self.calls = 0
-        self.bind_kwargs: list[dict[str, object]] = []
 
     def bind_tools(self, tools, **kwargs):
-        self.bind_kwargs.append(dict(kwargs))
         return self
 
     async def astream(self, messages, **kwargs):
@@ -39,15 +37,83 @@ class FakeStreamingModel:
             yield AIMessageChunk(content="工具结果已读取")
 
 
+class _RetryAnswer(BaseModel):
+    answer: str
+
+
+class _MissingThenStructuredModel(BaseChatModel):
+    calls: int = Field(default=0)
+    structured_tool_name: str = Field(default="_RetryAnswer")
+    business_tool_name: str = Field(default="lookup")
+
+    @property
+    def _llm_type(self) -> str:
+        return "missing-then-structured"
+
+    def bind_tools(self, tools, **kwargs):
+        names = [
+            item.get("function", {}).get("name")
+            if isinstance(item, dict)
+            else getattr(item, "name", None)
+            for item in tools
+        ]
+        self.structured_tool_name = next(
+            (
+                name
+                for name in names
+                if isinstance(name, str) and "RetryAnswer" in name
+            ),
+            self.structured_tool_name,
+        )
+        self.business_tool_name = next(
+            (
+                name
+                for name in names
+                if isinstance(name, str) and name != self.structured_tool_name
+            ),
+            self.business_tool_name,
+        )
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": {},
+                        "id": "business-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 2:
+            message = AIMessage(content="done without structured output")
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
 
-    model = FakeStreamingModel()
     app = AgentApp._for_test(
         AgentSpec(name="demo", system_prompt="use lookup", tools=(lookup,), require_tool_call=True),
         LLMConfig(model="gpt-5.5", api_key="key"),
-        model,
+        FakeStreamingModel(),
     )
     audit = tmp_path / "audit.jsonl"
     result_path = tmp_path / "result.json"
@@ -78,30 +144,39 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
 
 
-def test_require_tool_each_turn_is_injected_as_auditable_request_policy() -> None:
-    def lookup(value: str) -> dict[str, str]:
-        return {"value": value}
+def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Path) -> None:
+    def lookup() -> str:
+        """Return one fact."""
+        return "ok"
 
-    events: list[AgentEvent] = []
-    model = FakeStreamingModel()
+    model = _MissingThenStructuredModel()
     app = AgentApp._for_test(
         AgentSpec(
-            name="required-each-turn",
-            system_prompt="use lookup",
+            name="structured-retry",
+            system_prompt="Return the structured answer.",
             tools=(lookup,),
+            output_schema=_RetryAnswer,
             require_tool_call=True,
-            require_tool_each_turn=True,
+            retry_missing_structured_output=True,
         ),
         LLMConfig(model="gpt-5.5"),
         model,
     )
-    result = app.run("read", renderer="quiet", on_event=events.append)
+    audit = tmp_path / "structured-retry.jsonl"
+    result = app.run("answer", renderer="quiet", audit_out=audit)
 
     assert result.status == "success"
-    started = next(event for event in events if event.kind == "run_started")
-    assert started.data["required_tool_each_turn"] is True
-    assert model.bind_kwargs
-    assert all(item.get("tool_choice") == "required" for item in model.bind_kwargs)
+    assert result.require_output().answer == "ok"
+    assert model.calls == 3
+    records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+    retry_records = [
+        item
+        for item in records
+        if item.get("operation") == "missing_structured_output_retry"
+    ]
+    assert len(retry_records) == 1
+    assert retry_records[0]["status"] == "started"
+    assert retry_records[0]["instruction_hash"].startswith("sha256:")
 
 
 def test_tool_events_keep_standard_call_metadata() -> None:

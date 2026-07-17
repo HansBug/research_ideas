@@ -29,7 +29,7 @@ try:
     from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
     from langchain.agents.middleware.summarization import DEFAULT_SUMMARY_PROMPT
     from langchain_core.language_models import BaseChatModel
-    from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage, ToolMessage
+    from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage, ToolMessage
     from langchain_core.messages.utils import count_tokens_approximately
     from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.outputs import ChatGeneration, ChatResult
@@ -38,7 +38,7 @@ try:
 except Exception:  # pragma: no cover - import errors are reported at construction time
     create_agent = None  # type: ignore[assignment]
     AgentMiddleware = object  # type: ignore[assignment,misc]
-    BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = SystemMessage = ToolMessage = object  # type: ignore[assignment,misc]
+    BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = HumanMessage = SystemMessage = ToolMessage = object  # type: ignore[assignment,misc]
     ChatGeneration = ChatResult = object  # type: ignore[assignment,misc]
     StructuredTool = object  # type: ignore[assignment,misc]
     SummarizationMiddleware = object  # type: ignore[assignment,misc]
@@ -130,7 +130,7 @@ class AgentSpec:
     output_schema: type[BaseModel] | None = None
     limits: Mapping[str, int | float | None] | None = None
     require_tool_call: bool = False
-    require_tool_each_turn: bool = False
+    retry_missing_structured_output: bool = False
 
     def __post_init__(self) -> None:
         if not self.name.strip() or not self.system_prompt.strip():
@@ -145,9 +145,9 @@ class AgentSpec:
             raise ValueError(f"agent_spec_invalid: unknown limit keys: {sorted(unknown)}")
         if any(value is not None and (not isinstance(value, (int, float)) or value <= 0) for value in limits.values()):
             raise ValueError("agent_spec_invalid: limits must be positive")
-        if self.require_tool_each_turn and not (self.tools or self.output_schema is not None):
+        if self.retry_missing_structured_output and self.output_schema is None:
             raise ValueError(
-                "agent_spec_invalid: require_tool_each_turn needs a business tool or output schema"
+                "agent_spec_invalid: retry_missing_structured_output needs output_schema"
             )
         object.__setattr__(self, "limits", limits)
 
@@ -2174,23 +2174,23 @@ class _ModelOptionsMiddleware(AgentMiddleware):
         self,
         options: Mapping[str, Any] | None,
         *,
-        required_tool_choice: bool = False,
+        forced_tool_choice: Any | None = None,
     ):
         self.options = dict(options or {})
-        self.required_tool_choice = required_tool_choice
+        self.forced_tool_choice = forced_tool_choice
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
-        if self.required_tool_choice:
-            overrides["tool_choice"] = "required"
+        if self.forced_tool_choice is not None:
+            overrides["tool_choice"] = self.forced_tool_choice
         return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
-        if self.required_tool_choice:
-            overrides["tool_choice"] = "required"
+        if self.forced_tool_choice is not None:
+            overrides["tool_choice"] = self.forced_tool_choice
         return await handler(request.override(**overrides))
 
 
@@ -2862,9 +2862,16 @@ class AgentApp:
 
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
-        async def consume(graph: Any) -> dict[str, Any] | None:
+        async def consume(
+            graph: Any,
+            initial_messages: Sequence[Any] | None = None,
+        ) -> dict[str, Any] | None:
             nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, compact_count, last_compaction_id, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter
-            messages: list[Any] = [{"role": "user", "content": _input_with_context(input_text, pages)}]
+            messages: list[Any] = (
+                list(initial_messages)
+                if initial_messages is not None
+                else [{"role": "user", "content": _input_with_context(input_text, pages)}]
+            )
             last_state_messages: list[Any] = list(messages)
             current_input_messages: list[Any] = list(messages)
             last_state_messages_snapshot = list(last_state_messages)
@@ -3197,7 +3204,7 @@ class AgentApp:
                 "limits": dict(self.spec.limits or {}),
                 "tools": list(self.spec.tool_names),
                 "required_tool": self.spec.require_tool_call,
-                "required_tool_each_turn": self.spec.require_tool_each_turn,
+                "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                 "structured_output": self.spec.output_schema.__name__ if self.spec.output_schema is not None else None,
                 **inference_summary,
             })
@@ -3229,7 +3236,7 @@ class AgentApp:
                     "summary_template": "langgraph_default" if compact_threshold is not None else None,
                     "summary_template_hash": _hash_text(DEFAULT_SUMMARY_PROMPT) if compact_threshold is not None else None,
                     "limits": dict(self.spec.limits or {}),
-                    "required_tool_each_turn": self.spec.require_tool_each_turn,
+                    "retry_missing_structured_output": self.spec.retry_missing_structured_output,
                     "redaction_report": [],
                     "eligibility_scope": _ELIGIBILITY_SCOPE,
                 }
@@ -3260,11 +3267,9 @@ class AgentApp:
                 counters=counters,
             )
             primary_model = self.model.with_config(callbacks=[observer]) if hasattr(self.model, "with_config") else self.model
+            model_options_middleware = _ModelOptionsMiddleware(inference_options)
             middleware: list[Any] = [
-                _ModelOptionsMiddleware(
-                    inference_options,
-                    required_tool_choice=self.spec.require_tool_each_turn,
-                ),
+                model_options_middleware,
                 _RequestCaptureMiddleware(request_captures),
                 guard,
             ]
@@ -3296,6 +3301,40 @@ class AgentApp:
                 if remaining <= 0:
                     raise AgentError("limit_exceeded", "seconds limit exceeded")
                 await asyncio.wait_for(consume(graph), timeout=remaining)
+            if (
+                output is None
+                and self.spec.output_schema is not None
+                and self.spec.retry_missing_structured_output
+            ):
+                retry_message = HumanMessage(
+                    content=(
+                        "The previous path ended without the required structured output. "
+                        "Continue the same task from the complete visible history. Complete "
+                        "any still-missing mandatory business-tool step, then return exactly "
+                        "one structured output. Do not end with prose or an empty response."
+                    )
+                )
+                audit_write(
+                    {
+                        "record": "context",
+                        "record_type": "context",
+                        "operation": "missing_structured_output_retry",
+                        "status": "started",
+                        "previous_turn": turn,
+                        "instruction_hash": _hash_text(_message_text(retry_message)),
+                    }
+                )
+                model_options_middleware.forced_tool_choice = "required"
+                retry_messages = [*last_state_messages_snapshot, retry_message]
+                if seconds is None:
+                    await consume(graph, retry_messages)
+                else:
+                    remaining = float(seconds) - (time.monotonic() - started)
+                    if remaining <= 0:
+                        raise AgentError("limit_exceeded", "seconds limit exceeded")
+                    await asyncio.wait_for(
+                        consume(graph, retry_messages), timeout=remaining
+                    )
             if self.spec.require_tool_call and not business_tool_called:
                 raise AgentError("tool_required", "a business tool call was required")
             if self.spec.output_schema is not None and output is None:
