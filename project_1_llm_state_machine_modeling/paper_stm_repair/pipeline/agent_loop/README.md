@@ -41,9 +41,12 @@ Agent 获得七个 bounded 工具：
 `read_fcstm_guide -> read_task -> model work`；property batch 另强制
 `read_fbmcq_guide -> property work`。任何先违规后补读的 attempt 仍会 fail-closed。
 结构化终止工具的物理名称与 prompt 一致，固定为 `submit_discovery`。若 provider
-结束当前 graph 路径却未返回结构化结果，Discover 会保留完整可见历史并启用一次
-可审计恢复路径，要求先补齐遗漏的 mandatory business tool，再结构化提交；它不限制
-整次运行的模型调用、工具调用、时间或 token，也不会从普通文本伪造结果。
+结束当前 graph 路径却未返回结构化结果，Discover 会保留完整且满足 provider
+tool-message 协议的可见历史，并启用一次可审计恢复路径，要求先补齐遗漏的 mandatory
+business tool，再结构化提交。若末尾 assistant 消息只包含 provider 无法解析的
+`submit_discovery` 调用，该失败提交会作为 `rejected` 证据保留，但不会再次发送给
+provider；任何悬空业务工具调用或历史中段损坏都直接 fail-closed。恢复路径不限制
+整次运行的模型调用、工具调用、时间或 token，也不会从普通文本伪造结果或工具结果。
 
 `evaluate_checks` 内部固定调用 `run_scenarios`、`verify_properties`、
 `verify_static_consistency` 和 `validate_discovery_checks`，但不调用 LLM、不修改模型、

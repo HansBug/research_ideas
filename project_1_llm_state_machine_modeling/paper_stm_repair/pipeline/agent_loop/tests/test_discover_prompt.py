@@ -130,6 +130,7 @@ def test_prompt_defines_confirmed_candidate_rejected_boundaries_and_zero_root_ba
     assert "Publish confirmed/candidate propositions as `root_nodes`" in _flat(PROMPT_ZH)
     assert "`rejected_propositions`" in PROMPT_ZH
     assert "union of root `required_check_ids` and rejected `considered_check_ids`" in _flat(PROMPT_ZH)
+    assert "never use an empty check list or an ID from an earlier/superseded batch" in _flat(PROMPT_ZH)
 
 
 def test_prompt_forbids_model_mutation_repair_future_confirm_and_source_closure_claims():
@@ -150,7 +151,7 @@ def test_prompt_rejects_representation_artifacts_bounded_overclaiming_and_duplic
     flat = _flat(PROMPT_ZH)
     assert "source-to-fcstm structural difference" in flat
     assert "conversion artifact is not a source behavioral issue" in flat
-    assert "Reject representation-only propositions explicitly" in flat
+    assert "Reject a representation-only proposition explicitly only" in flat
     assert "bounded `unsat`, `not_observed_within_bound`" in flat
     assert "cannot independently establish unbounded unreachability" in flat
     assert "one underlying source-model defect should cite one root" in flat

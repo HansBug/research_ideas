@@ -17,6 +17,7 @@ from paper_stm_repair_loop.tools.query_model import build_tool as build_query_mo
 from paper_stm_repair_loop.tools.read_task import build_tool as build_read_task_tool
 from paper_stm_repair_loop.tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide_tool
 from paper_stm_repair_loop.tools.read_fcstm_guide import build_tool as build_read_fcstm_guide_tool
+from paper_stm_repair_loop.schemas.common import DiscoverSubmission
 from utils.agent import AgentSpec
 
 
@@ -93,6 +94,38 @@ def eligible_scenario_payload(check_id: str = "draft-go") -> dict[str, Any]:
         ]
     }
 
+
+def test_discover_submission_schema_rejects_empty_rejected_check_relation():
+    base = {
+        "submission_type": "submit_discovery",
+        "assessment_origin": "discover",
+        "check_drafts": [
+            {
+                "check_id": "draft-1",
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_kind": "scenario",
+                "statement": "The go event reaches Done.",
+                "nl_basis": [{"quote": "When go occurs, Done is reachable.", "role": "requirement"}],
+            }
+        ],
+        "no_issue_found": True,
+        "root_nodes": [],
+        "rejected_propositions": [
+            {
+                "proposition_id": "rejected-1",
+                "statement": "The scenario does not reveal a defect.",
+                "rationale": "The observed state matches the requirement.",
+                "considered_check_ids": ["draft-1"],
+            }
+        ],
+        "rationale": "The complete final batch was considered.",
+    }
+    assert DiscoverSubmission.model_validate(base).no_issue_found is True
+
+    empty_relation = json.loads(json.dumps(base))
+    empty_relation["rejected_propositions"][0]["considered_check_ids"] = []
+    with pytest.raises(ValueError, match="at least 1 item"):
+        DiscoverSubmission.model_validate(empty_relation)
 
 def registered_tools(*, unlock_fcstm: bool = False, unlock_fbmcq: bool = False):
     model_text = SNAPSHOT["model"]["fcstm"]
@@ -470,6 +503,7 @@ def test_root_issue_schema_rejects_candidate_repair_permission_before_publicatio
                 "downstream_repair_allowed": True,
                 "statement": "Candidate only.",
                 "rationale": "Source attribution is incomplete.",
+                "required_check_ids": ["CHK-NL-001"],
             }
         )
 

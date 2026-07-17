@@ -9,11 +9,12 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel, Field
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessageChunk, ToolMessage
+from langchain_core.messages import AIMessageChunk, HumanMessage, ToolMessage
 from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
+from utils.agent.runtime import _message_ref, _prepare_recovery_history
 from utils.llm import LLMConfig
 
 
@@ -247,6 +248,85 @@ def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Pat
     assert [item["status"] for item in structured] == ["rejected", "completed"]
     assert structured[0]["error"]["code"] == "structured_output_invalid"
     assert structured[1]["result"] == {"answer": "ok"}
+
+
+def test_recovery_history_excludes_only_malformed_terminal_structured_call() -> None:
+    malformed = AIMessage(
+        content="",
+        additional_kwargs={
+            "tool_calls": [
+                {
+                    "id": "structured-malformed-1",
+                    "type": "function",
+                    "function": {"name": "_RetryAnswer", "arguments": "{"},
+                }
+            ]
+        },
+        invalid_tool_calls=[
+            {
+                "name": "_RetryAnswer",
+                "args": "{",
+                "id": "structured-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+    initial = HumanMessage(content="answer")
+
+    replay, rejected = _prepare_recovery_history(
+        [initial, malformed], structured_name="_RetryAnswer"
+    )
+
+    assert replay == [initial]
+    assert rejected == [
+        {
+            "name": "_RetryAnswer",
+            "source": "invalid_tool_calls",
+            "tool_call_id": "structured-malformed-1",
+            "valid": False,
+        }
+    ]
+    assert _message_ref(malformed)["tool_calls"] == rejected
+
+
+def test_recovery_history_refuses_dangling_business_tool_call() -> None:
+    dangling = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "lookup",
+                "args": {},
+                "id": "business-dangling-1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+    with pytest.raises(AgentError, match="cannot be safely replayed"):
+        _prepare_recovery_history([dangling], structured_name="_RetryAnswer")
+
+
+def test_recovery_history_excludes_terminal_invalid_structured_call_without_id() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "_RetryAnswer",
+                "args": "{",
+                "id": None,
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    replay, rejected = _prepare_recovery_history(
+        [HumanMessage(content="answer"), malformed], structured_name="_RetryAnswer"
+    )
+
+    assert len(replay) == 1
+    assert rejected[0]["tool_call_id"] is None
 
 
 def test_tool_events_keep_standard_call_metadata() -> None:

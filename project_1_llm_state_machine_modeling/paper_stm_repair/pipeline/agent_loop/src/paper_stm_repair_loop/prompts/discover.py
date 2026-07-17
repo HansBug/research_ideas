@@ -222,7 +222,11 @@ submission.
    A source-to-fcstm structural difference, lowering/folding choice, richer fcstm
    syntax, or other conversion artifact is not a source behavioral issue unless
    current-run evidence independently identifies a defect in the supplied source
-   model's own behavior. Reject representation-only propositions explicitly.
+   model's own behavior. Reject a representation-only proposition explicitly only
+   when it still has at least one check in the final eligible batch. If its draft
+   was removed before the final `evaluate_checks` call, mention that exclusion in
+   the overall rationale and omit the proposition from `rejected_propositions`;
+   never use an empty check list or an ID from an earlier/superseded batch.
 
 5. **Run batch coverage and zero-root self-check.** Verify that all final checks
    were considered, all confirmed roots cite current-run valid checks/records and

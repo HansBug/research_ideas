@@ -3062,7 +3062,7 @@ class AgentApp:
                         # thinking/reasoning blocks; audit is an academic
                         # behavior record and must not persist hidden CoT.
                         capture = request_capture_by_call.get(current_model_call_id or "")
-                        decision_seq = audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
+                        decision_seq = audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "output_message_ref": _message_ref(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
                         if decision_seq is not None:
                             source_state["latest_decision"] = (decision_seq, "decision")
                             message_source_refs[_message_key(ai)] = (decision_seq, "decision")
@@ -3354,8 +3354,44 @@ class AgentApp:
                     if isinstance(terminal_state, Mapping)
                     else []
                 )
+                replay_messages, rejected_calls = _prepare_recovery_history(
+                    terminal_messages or last_state_messages_snapshot,
+                    structured_name=self.spec.output_schema.__name__,
+                )
+                for rejected_call in rejected_calls:
+                    rejected_record = {
+                        "kind": "structured",
+                        "name": rejected_call.get("name"),
+                        "tool_call_id": rejected_call.get("tool_call_id"),
+                        "arguments": None,
+                        "attempt_id": attempt_id,
+                        "turn": turn,
+                        "status": "rejected",
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                        "finished_at": datetime.now(timezone.utc).isoformat(),
+                        "error": {
+                            "code": "structured_output_invalid",
+                            "message": (
+                                "provider returned a malformed structured-output tool call; "
+                                "the invalid terminal assistant message was excluded from replay"
+                            ),
+                        },
+                    }
+                    tool_calls.append(rejected_record)
+                    audit_write({"record": "action", **rejected_record})
+                if rejected_calls:
+                    audit_write(
+                        {
+                            "record": "context",
+                            "record_type": "context",
+                            "operation": "recovery_history_sanitized",
+                            "status": "completed",
+                            "rejected_calls": rejected_calls,
+                            "retained_message_count": len(replay_messages),
+                        }
+                    )
                 retry_messages = [
-                    *(terminal_messages or last_state_messages_snapshot),
+                    *replay_messages,
                     retry_message,
                 ]
                 if seconds is None:
@@ -3611,7 +3647,7 @@ def _message_ref(
     role = getattr(message, "type", None) or message.__class__.__name__
     identity = getattr(message, "id", None)
     text = _message_text(message)
-    return {
+    ref = {
         "id": str(identity) if identity else None,
         "role": str(role),
         "content_hash": _hash_text(text),
@@ -3619,6 +3655,126 @@ def _message_ref(
         "source_seq": source_seq,
         "source_record": source_record,
     }
+    protocol_calls = _message_protocol_tool_calls(message)
+    if protocol_calls:
+        ref["tool_calls"] = protocol_calls
+    tool_call_id = getattr(message, "tool_call_id", None)
+    if tool_call_id:
+        ref["tool_call_id"] = str(tool_call_id)
+    return ref
+
+
+def _message_protocol_tool_calls(message: Any) -> list[dict[str, Any]]:
+    """Return visible tool-call identities, including provider-invalid calls."""
+
+    descriptors: dict[str, dict[str, Any]] = {}
+
+    def add(call: Mapping[str, Any], *, valid: bool, source: str) -> None:
+        function = call.get("function")
+        function = function if isinstance(function, Mapping) else {}
+        call_id = call.get("id") or call.get("tool_call_id")
+        name = call.get("name") or function.get("name")
+        if call_id is None and name is None:
+            return
+        key = str(call_id) if call_id is not None else f"name:{name}:{len(descriptors)}"
+        current = descriptors.get(key)
+        item = {
+            "tool_call_id": str(call_id) if call_id is not None else None,
+            "name": str(name) if name is not None else None,
+            "valid": bool(valid),
+            "source": source,
+        }
+        if current is None or (valid and not current["valid"]):
+            descriptors[key] = item
+
+    for call in list(getattr(message, "tool_calls", None) or []):
+        if isinstance(call, Mapping):
+            add(call, valid=True, source="tool_calls")
+    for call in list(getattr(message, "invalid_tool_calls", None) or []):
+        if isinstance(call, Mapping):
+            add(call, valid=False, source="invalid_tool_calls")
+    additional = getattr(message, "additional_kwargs", None)
+    raw_calls = additional.get("tool_calls") if isinstance(additional, Mapping) else None
+    for call in list(raw_calls or []):
+        if isinstance(call, Mapping):
+            add(call, valid=False, source="provider_raw_tool_calls")
+    return list(descriptors.values())
+
+
+def _prepare_recovery_history(
+    messages: Sequence[Any],
+    *,
+    structured_name: str,
+) -> tuple[list[Any], list[dict[str, Any]]]:
+    """Validate provider tool-message ordering before replaying terminal state.
+
+    A malformed provider response may survive as ``invalid_tool_calls`` or raw
+    ``additional_kwargs.tool_calls`` even though LangGraph cannot execute it.
+    Replaying that terminal assistant message violates the OpenAI-compatible
+    message protocol. Only a final, invalid call to the configured structured
+    output tool may be excluded and retried. Missing business-tool responses or
+    corruption in the middle of history fail closed.
+    """
+
+    history = list(messages)
+    pending: dict[str, dict[str, Any]] = {}
+    pending_index: int | None = None
+    for index, message in enumerate(history):
+        if pending:
+            if isinstance(message, ToolMessage):
+                response_id = str(getattr(message, "tool_call_id", "") or "")
+                if response_id not in pending:
+                    raise AgentError(
+                        "message_protocol_invalid",
+                        "tool response does not match the preceding assistant tool calls",
+                        details={"tool_call_id": response_id, "pending_tool_call_ids": sorted(pending)},
+                    )
+                pending.pop(response_id)
+                continue
+            raise AgentError(
+                "message_protocol_invalid",
+                "assistant tool calls are not immediately followed by all required tool responses",
+                details={"pending_tool_call_ids": sorted(pending), "message_index": index},
+            )
+
+        calls = _message_protocol_tool_calls(message)
+        calls_without_ids = [item for item in calls if not item.get("tool_call_id")]
+        if calls_without_ids:
+            if (
+                index == len(history) - 1
+                and all(not item["valid"] for item in calls_without_ids)
+                and all(item.get("name") == structured_name for item in calls_without_ids)
+            ):
+                return history[:index], calls_without_ids
+            raise AgentError(
+                "message_protocol_invalid",
+                "tool call without an ID cannot be safely replayed",
+                details={"tool_calls": calls_without_ids, "message_index": index},
+            )
+        calls_with_ids = [item for item in calls if item.get("tool_call_id")]
+        if calls_with_ids:
+            pending = {str(item["tool_call_id"]): item for item in calls_with_ids}
+            pending_index = index
+
+    if not pending:
+        return history, []
+    assert pending_index is not None
+    dangling = list(pending.values())
+    if (
+        pending_index == len(history) - 1
+        and all(not item["valid"] for item in dangling)
+        and all(item.get("name") == structured_name for item in dangling)
+    ):
+        return history[:pending_index], dangling
+    raise AgentError(
+        "message_protocol_invalid",
+        "terminal history contains incomplete tool calls that cannot be safely replayed",
+        details={
+            "pending_tool_calls": dangling,
+            "message_index": pending_index,
+            "structured_output_tool": structured_name,
+        },
+    )
 
 
 def _compact_replacement_projection(messages: Sequence[Any]) -> dict[str, Any]:

@@ -60,7 +60,7 @@ class RootIssue(StrictModel):
     statement: str
     rationale: str
     supporting_record_ids: list[str] = Field(default_factory=list)
-    required_check_ids: list[str] = Field(default_factory=list)
+    required_check_ids: list[str] = Field(min_length=1)
     source_element_refs: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -78,7 +78,7 @@ class RejectedProposition(StrictModel):
     statement: str
     rationale: str
     supporting_record_ids: list[str] = Field(default_factory=list)
-    considered_check_ids: list[str] = Field(default_factory=list)
+    considered_check_ids: list[str] = Field(min_length=1)
     source_element_refs: list[str] = Field(default_factory=list)
 
 
