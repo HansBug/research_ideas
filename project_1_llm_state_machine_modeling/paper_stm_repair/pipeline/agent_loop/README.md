@@ -172,8 +172,10 @@ python -m paper_stm_repair_loop.discover \
 `read_fcstm_guide -> read_task -> evaluate_checks`。如果首次 property batch 在尚未读取
 FBMCQ guide 时提交，下一轮强制 `read_fbmcq_guide`，随后继续强制
 `evaluate_checks`，直至得到一个 `gate.eligible=true` 的完整批次。该策略只选择合同中
-已经标为必用的工具，不生成检查内容、不决定 issue verdict；获得 eligible batch 后，
-Agent 重新自由选择可选 post-batch 工具或提交结构化结果。
+已经标为必用的工具，并在该轮临时把 provider 可见工具面收窄到这一个工具，防止不完整
+的 `tool_choice` 实现绕过必用步骤；它不生成检查内容、不决定 issue verdict。获得
+eligible batch 后，完整工具面与结构化终止面恢复，Agent 重新自由选择可选 post-batch
+工具或提交结构化结果。
 
 `manifest.json.code_provenance` 记录精确 git commit、分支和 tracked-worktree dirty
 状态。未跟踪的 `runs/paper1/` 输出不计入代码 dirty 判定；正式可比较运行仍应使用

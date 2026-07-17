@@ -2190,6 +2190,15 @@ class _ModelOptionsMiddleware(AgentMiddleware):
             return None
         return self.tool_choice_resolver()
 
+    @staticmethod
+    def _request_tool_name(tool: Any) -> str:
+        if isinstance(tool, Mapping):
+            function = tool.get("function")
+            function = function if isinstance(function, Mapping) else {}
+            name = tool.get("name") or function.get("name")
+            return str(name or "")
+        return _tool_name(tool)
+
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
@@ -2202,6 +2211,11 @@ class _ModelOptionsMiddleware(AgentMiddleware):
                 # is present. Temporarily suppress that terminal surface while a
                 # caller-declared mandatory business step is active.
                 overrides["response_format"] = None
+                overrides["tools"] = [
+                    tool
+                    for tool in list(getattr(request, "tools", None) or [])
+                    if self._request_tool_name(tool) == tool_choice
+                ]
         return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
@@ -2212,6 +2226,11 @@ class _ModelOptionsMiddleware(AgentMiddleware):
             overrides["tool_choice"] = tool_choice
             if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
                 overrides["response_format"] = None
+                overrides["tools"] = [
+                    tool
+                    for tool in list(getattr(request, "tools", None) or [])
+                    if self._request_tool_name(tool) == tool_choice
+                ]
         return await handler(request.override(**overrides))
 
 

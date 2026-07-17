@@ -43,6 +43,7 @@ class _MiddlewareRequest:
         self.model_settings = values.pop("model_settings", {})
         self.tool_choice = values.pop("tool_choice", None)
         self.response_format = values.pop("response_format", "structured")
+        self.tools = values.pop("tools", ())
         for key, value in values.items():
             setattr(self, key, value)
 
@@ -51,6 +52,7 @@ class _MiddlewareRequest:
             model_settings=values.get("model_settings", self.model_settings),
             tool_choice=values.get("tool_choice", self.tool_choice),
             response_format=values.get("response_format", self.response_format),
+            tools=values.get("tools", self.tools),
         )
 
 
@@ -59,7 +61,13 @@ def test_dynamic_tool_choice_resolver_is_evaluated_for_each_model_request() -> N
     middleware = _ModelOptionsMiddleware(
         {"temperature": 0}, tool_choice_resolver=lambda: next(choices)
     )
-    request = _MiddlewareRequest()
+    request = _MiddlewareRequest(
+        tools=(
+            {"name": "read_fcstm_guide"},
+            {"name": "read_task"},
+            {"name": "evaluate_checks"},
+        )
+    )
 
     first = middleware.wrap_model_call(request, lambda value: value)
     second = middleware.wrap_model_call(request, lambda value: value)
@@ -71,6 +79,9 @@ def test_dynamic_tool_choice_resolver_is_evaluated_for_each_model_request() -> N
     assert first.response_format is None
     assert second.response_format is None
     assert third.response_format == "structured"
+    assert first.tools == [{"name": "read_fcstm_guide"}]
+    assert second.tools == [{"name": "read_task"}]
+    assert third.tools == request.tools
     assert first.model_settings == {"temperature": 0}
 
 

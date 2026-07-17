@@ -159,8 +159,9 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False,
 当某个方法阶段存在由 Controller 定义、但参数必须由 Agent 生成的必用工具顺序时，
 可以同时传入 `tool_choice_resolver` 与稳定的 `tool_choice_policy_name`。resolver 在每次
 主模型调用前返回一个必用业务工具名或 `None`；返回工具名时 runtime 临时隐藏结构化
-终止 surface，避免 LangChain `ToolStrategy` 把指定工具覆盖成 `tool_choice=any`。
-resolver 返回 `None` 后恢复正常结构化输出。该接口不能用于代替 Agent 生成业务参数或
+终止 surface，并把该轮可见工具面收窄为这一个工具，既避免 LangChain `ToolStrategy`
+把指定工具覆盖成 `tool_choice=any`，也避免 provider 忽略精确工具选择后改调其他工具。
+resolver 返回 `None` 后恢复完整工具面与正常结构化输出。该接口不能用于代替 Agent 生成业务参数或
 裁决结果；policy 名会进入行为指纹和 audit，二者必须同时提供。
 
 官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
