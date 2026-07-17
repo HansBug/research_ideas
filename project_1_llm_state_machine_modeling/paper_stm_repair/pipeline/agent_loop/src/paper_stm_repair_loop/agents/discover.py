@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
+from pydantic import ConfigDict, model_validator
+
 from utils.agent import AgentApp, AgentSpec
 from utils.llm import LLMRegistry, load_llm_registry
 from pyfcstm.config.meta import __VERSION__ as PYFCSTM_SOURCE_VERSION
@@ -50,13 +52,6 @@ AGENT_TOOL_NAMES = (
     "lookup_source_trace",
     "evaluate_checks",
 )
-
-
-class SubmitDiscoveryResponse(DiscoverSubmission):
-    """Submit the complete, evaluated Discover batch exactly once."""
-
-
-SubmitDiscoveryResponse.__name__ = "submit_discovery"
 
 
 def _pyfcstm_commit() -> str:
@@ -382,6 +377,132 @@ def _matching_evaluation(
     return result
 
 
+def _check_outcome_relations(evaluation: Mapping[str, Any]) -> dict[str, str]:
+    """Project deterministic check results to matches/contradicts/inconclusive."""
+
+    relations: dict[str, str] = {}
+    sections = (
+        (evaluation.get("scenarios") or {}).get("scenario_results", []),
+        (evaluation.get("properties") or {}).get("property_results", []),
+        (evaluation.get("static_consistency") or {}).get("static_results", []),
+    )
+    for items in sections:
+        for item in items if isinstance(items, list) else []:
+            if not isinstance(item, Mapping) or not item.get("check_id"):
+                continue
+            relation = item.get("expected_outcome_match_status")
+            if relation not in {"matches", "contradicts", "inconclusive"}:
+                passed = item.get("passed")
+                status = item.get("status")
+                if passed is True or status == "passed":
+                    relation = "matches"
+                elif passed is False or status == "failed":
+                    relation = "contradicts"
+                else:
+                    relation = "inconclusive"
+            relations[str(item["check_id"])] = str(relation)
+    return relations
+
+
+def _check_origins(evaluation: Mapping[str, Any]) -> dict[str, str]:
+    """Return Controller-bound origins for the final executed checks."""
+
+    return {
+        str(item["check_id"]): str(item.get("check_origin") or "unknown")
+        for item in evaluation.get("issue_checks", [])
+        if isinstance(item, Mapping) and item.get("check_id")
+    }
+
+
+def _build_submit_discovery_response(
+    invocation_log: list[dict[str, Any]],
+    *,
+    confirmation_possible: bool,
+) -> type[DiscoverSubmission]:
+    """Build a run-scoped structured-output contract over live tool evidence."""
+
+    class RunSubmitDiscoveryResponse(DiscoverSubmission):
+        model_config = ConfigDict(
+            extra="forbid",
+            strict=True,
+            title="submit_discovery",
+        )
+
+        @model_validator(mode="after")
+        def validate_current_run_evidence(self) -> "RunSubmitDiscoveryResponse":
+            evaluation = _matching_evaluation(self, invocation_log)
+            known_checks = set(
+                str(item) for item in (evaluation.get("gate") or {}).get("executed_check_ids", [])
+            )
+            relations = _check_outcome_relations(evaluation)
+            origins = _check_origins(evaluation)
+
+            node_ids: set[str] = set()
+            considered_checks: set[str] = set()
+            for root in self.root_nodes:
+                if root.node_id in node_ids:
+                    raise ValueError(f"duplicate root node: {root.node_id}")
+                node_ids.add(root.node_id)
+                required = set(root.required_check_ids)
+                if not required.issubset(known_checks):
+                    raise ValueError(f"root {root.node_id} references unknown final checks")
+                matched_nl_checks = sorted(
+                    check_id
+                    for check_id in required
+                    if origins.get(check_id) == "nl_grounded_behavioral_issue"
+                    and relations.get(check_id) == "matches"
+                )
+                if matched_nl_checks:
+                    raise ValueError(
+                        f"root {root.node_id} cites NL-grounded checks that matched their expectations: "
+                        f"{matched_nl_checks}; "
+                        "passing behavior belongs in rejected_propositions, not root_nodes"
+                    )
+                if root.assessment == "confirmed":
+                    if not confirmation_possible:
+                        raise ValueError(
+                            "confirmed roots are impossible because this run lacks deterministic "
+                            "one-to-one source attribution; use candidate_only"
+                        )
+                    noncontradicted_nl_checks = sorted(
+                        check_id
+                        for check_id in required
+                        if origins.get(check_id) == "nl_grounded_behavioral_issue"
+                        and relations.get(check_id) != "contradicts"
+                    )
+                    if noncontradicted_nl_checks:
+                        raise ValueError(
+                            f"confirmed root {root.node_id} has NL-grounded checks without a "
+                            f"contradicted expectation: {noncontradicted_nl_checks}"
+                        )
+                considered_checks.update(required)
+
+            proposition_ids: set[str] = set()
+            for proposition in self.rejected_propositions:
+                if proposition.proposition_id in proposition_ids or proposition.proposition_id in node_ids:
+                    raise ValueError(f"duplicate proposition id: {proposition.proposition_id}")
+                proposition_ids.add(proposition.proposition_id)
+                rejected_checks = set(proposition.considered_check_ids)
+                if not rejected_checks.issubset(known_checks):
+                    raise ValueError(
+                        f"rejected proposition {proposition.proposition_id} references unknown final checks"
+                    )
+                considered_checks.update(rejected_checks)
+
+            if self.no_issue_found != (len(self.root_nodes) == 0):
+                raise ValueError("zero-root flag and root batch disagree")
+            if considered_checks != known_checks:
+                missing = sorted(known_checks - considered_checks)
+                extra = sorted(considered_checks - known_checks)
+                raise ValueError(
+                    f"discovery proposition coverage mismatch: missing={missing}, extra={extra}"
+                )
+            return self
+
+    RunSubmitDiscoveryResponse.__name__ = "submit_discovery"
+    return RunSubmitDiscoveryResponse
+
+
 def _validate_guide_protocol(
     state: GuideAccessState,
     submission: DiscoverSubmission,
@@ -627,11 +748,22 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         audit_dir.mkdir(parents=True, exist_ok=True)
         audit_path = audit_dir / "audit.jsonl"
         result_path = audit_dir / "result.json"
+        identity_source = (
+            case.source_trace.get("relation_policy") == "exact_identity"
+            and case.raw_source_format == "fcstm-identity"
+            and case.raw_source == case.fcstm
+        )
+        confirmation_possible = identity_source or bool(
+            _confirmed_source_refs(case, set())
+        )
         spec = AgentSpec(
             name="paper1-b-discover",
             system_prompt=prompt,
             tools=tools,
-            output_schema=SubmitDiscoveryResponse,
+            output_schema=_build_submit_discovery_response(
+                evaluation_invocations,
+                confirmation_possible=confirmation_possible,
+            ),
             limits=manifest.get("agent_limits") or None,
             require_tool_call=True,
             retry_missing_structured_output=True,

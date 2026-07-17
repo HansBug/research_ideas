@@ -53,7 +53,14 @@ provider；任何悬空业务工具调用或历史中段损坏都直接 fail-clo
 `evaluate_checks` 内部固定调用 `run_scenarios`、`verify_properties`、
 `verify_static_consistency` 和 `validate_discovery_checks`，但不调用 LLM、不修改模型、
 不产生 issue verdict。Controller 在 Agent 结束后要求最终 `check_drafts` 与本 attempt
-中某次 eligible 调用的完整输入一致，然后才发布 method records。每个 Agent 工具的
+中某次 eligible 调用的完整输入一致，然后才发布 method records。结构化输出 schema
+同时绑定本次 run 已发生的 `evaluate_checks` 调用：如果最终 drafts 从未作为完整 batch
+执行、root 引用了最终 batch 之外的 check、root 把
+`expected_outcome_match_status=matches` 的 NL-grounded 通过项写成问题、check 没有被 root 或 rejected
+proposition 完整覆盖，或者在没有任何一对一 source trace 的 run 中声称 `confirmed`，
+provider 会在同一个 `AgentApp.run` 内收到 schema validation error 并重试结构化提交，
+而不是先结束 Agent 再由外层报错。Controller 在 Agent 结束后仍会独立复验 records、
+逐项 source refs、guide 顺序和全部发布门，动态 schema 不是对最终审计的替代。每个 Agent 工具的
 注册后 docstring 都定义 Purpose、Parameters、Returns、Execution、Failure semantics、
 Evidence limitations、Permissions 与 Example，并由合同测试直接检查。
 

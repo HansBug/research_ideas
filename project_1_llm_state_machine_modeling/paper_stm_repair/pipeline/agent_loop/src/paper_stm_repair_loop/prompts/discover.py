@@ -218,6 +218,14 @@ submission.
    Publish confirmed/candidate propositions as `root_nodes`; publish every
    rejected proposition in `rejected_propositions` with its considered check IDs,
    supporting current-run records, source/model refs, statement, and rationale.
+   `root_nodes` contain behavioral issues only. A final
+   `nl_grounded_behavioral_issue` check whose
+   `expected_outcome_match_status=matches` says that the observed behavior agrees
+   with the expectation registered before execution; it cannot support a
+   `confirmed` or `candidate_only` root. If that check tested a defect proposition,
+   publish the proposition under `rejected_propositions` and explain how the
+   passing result defeats it. Do not reinterpret a passing check as evidence that
+   the expected behavior itself is an issue.
    A source-to-fcstm structural difference, lowering/folding choice, richer fcstm
    syntax, or other conversion artifact is not a source behavioral issue unless
    current-run evidence independently identifies a defect in the supplied source
@@ -229,8 +237,10 @@ submission.
 
 5. **Run batch coverage and zero-root self-check.** Verify that all final checks
    were considered, all confirmed roots cite current-run valid checks/records and
-   exact source-attributed refs, and no root depends on reference/gold/future
-   Repair/Confirm information. If no defensible confirmed or candidate root
+   exact source-attributed refs, no NL-grounded check that matched its declared
+   expectation is cited by a root, and no root depends on
+   reference/gold/future Repair/Confirm
+   information. If no defensible confirmed or candidate root
    remains, submit zero roots with
    `no_issue_found=true` and a non-empty reason explaining why the available
    evidence does not justify a confirmed issue. Completion condition: the batch is

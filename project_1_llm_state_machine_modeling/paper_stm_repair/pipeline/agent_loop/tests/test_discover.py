@@ -6,10 +6,17 @@ import re
 from dataclasses import replace
 from pathlib import Path
 
-from paper_stm_repair_loop.agents.discover import run_discover
+import pytest
+from pydantic import ValidationError
+
+from paper_stm_repair_loop.agents.discover import (
+    _build_submit_discovery_response,
+    run_discover,
+)
 from paper_stm_repair_loop.controller import _bind_drafts
 from paper_stm_repair_loop.inputs import load_custom, load_pair, load_run_case, prepare_run_dir
 from paper_stm_repair_loop.pyfcstm_adapter import sha256_text
+from paper_stm_repair_loop.records import sha256_json
 from paper_stm_repair_loop.schemas import CheckDraftSubmission
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
 from paper_stm_repair_loop.tools.run_scenarios import execute as run_scenarios
@@ -33,8 +40,181 @@ def test_discover_runtime_contains_exactly_one_agent_app_run_and_no_controller_a
     assert discover_source.count("result = app.run(") == 1
     assert "prepare_issue_checks" not in discover_source
     assert "retry_missing_structured_output=True" in discover_source
-    assert 'SubmitDiscoveryResponse.__name__ = "submit_discovery"' in discover_source
+    assert 'RunSubmitDiscoveryResponse.__name__ = "submit_discovery"' in discover_source
     assert 'limits=manifest.get("agent_limits") or None' in discover_source
+
+
+def _run_scoped_submission(
+    *,
+    relation: str = "contradicts",
+    confirmation_possible: bool = True,
+    evaluated_draft_id: str = "draft-1",
+    check_origin: str = "nl_grounded_behavioral_issue",
+):
+    nl_grounded = check_origin == "nl_grounded_behavioral_issue"
+    bound_check_id = "CHK-NL-001" if nl_grounded else "CHK-SRC-001"
+    drafts = [
+        {
+            "check_origin": check_origin,
+            "check_id": evaluated_draft_id,
+            "check_kind": "scenario" if nl_grounded else "static_consistency",
+            "statement": "The go event reaches Done." if nl_grounded else "The source facts conflict.",
+            "expected_outcome": (
+                {"target_label": "Done"}
+                if nl_grounded
+                else {"consistency_status": "contradicts"}
+            ),
+            "source_basis": [] if nl_grounded else ["source-a", "source-b"],
+            "nl_basis": (
+                [{"quote": "When go occurs, enter Done.", "role": "requirement"}]
+                if nl_grounded
+                else []
+            ),
+            "executable_spec": (
+                {"event_labels": ["go"]}
+                if nl_grounded
+                else {"kind": "state_declaration", "state_label": "Done", "state_kind": "simple"}
+            ),
+            "binding_refs": [],
+            "required": True,
+        }
+    ]
+    invocation_log = [
+        {
+            "request": drafts,
+            "result": {
+                "execution_status": "completed",
+                "drafts_sha256": sha256_json(drafts),
+                "gate": {"eligible": True, "executed_check_ids": [bound_check_id]},
+                "issue_checks": [
+                    {
+                        "check_id": bound_check_id,
+                        "check_origin": check_origin,
+                    }
+                ],
+                "scenarios": {
+                    "scenario_results": [] if not nl_grounded else [
+                        {
+                            "check_id": bound_check_id,
+                            "status": "passed" if relation == "matches" else "failed",
+                            "passed": relation == "matches",
+                            "expected_outcome_match_status": relation,
+                        }
+                    ]
+                },
+                "properties": {"property_results": []},
+                "static_consistency": {
+                    "static_results": [] if nl_grounded else [
+                        {
+                            "check_id": bound_check_id,
+                            "status": "passed" if relation == "matches" else "failed",
+                            "expected_outcome_match_status": relation,
+                        }
+                    ]
+                },
+            },
+        }
+    ]
+    return (
+        _build_submit_discovery_response(
+            invocation_log,
+            confirmation_possible=confirmation_possible,
+        ),
+        drafts,
+        bound_check_id,
+    )
+
+
+def _submission_payload(
+    drafts: list[dict[str, object]],
+    *,
+    assessment: str = "candidate_only",
+    check_id: str = "CHK-NL-001",
+) -> dict[str, object]:
+    return {
+        "submission_type": "submit_discovery",
+        "assessment_origin": "discover",
+        "check_drafts": drafts,
+        "no_issue_found": False,
+        "root_nodes": [
+            {
+                "node_id": "ISS-001@n0",
+                "issue_id": "ISS-001",
+                "assessment": assessment,
+                "downstream_repair_allowed": assessment == "confirmed",
+                "statement": "The observed behavior contradicts the requirement.",
+                "rationale": "The final deterministic check contradicted its sealed expectation.",
+                "supporting_record_ids": [],
+                "required_check_ids": [check_id],
+                "source_element_refs": ["state:Root.Done"],
+            }
+        ],
+        "rejected_propositions": [],
+        "rationale": "One bounded behavioral issue remains.",
+    }
+
+
+def test_run_scoped_schema_rejects_matched_check_as_issue_root():
+    schema, drafts, check_id = _run_scoped_submission(relation="matches")
+
+    with pytest.raises(ValidationError, match="matched their expectations"):
+        schema.model_validate(_submission_payload(drafts, check_id=check_id))
+
+
+def test_run_scoped_schema_accepts_contradicted_candidate_root():
+    schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
+
+    result = schema.model_validate(_submission_payload(drafts, check_id=check_id))
+
+    assert result.root_nodes[0].assessment == "candidate_only"
+
+
+def test_run_scoped_schema_does_not_treat_raw_static_match_as_semantic_rejection():
+    schema, drafts, check_id = _run_scoped_submission(
+        relation="matches",
+        check_origin="raw_internal_inconsistency",
+    )
+
+    result = schema.model_validate(_submission_payload(drafts, check_id=check_id))
+
+    assert result.root_nodes[0].assessment == "candidate_only"
+
+
+def test_run_scoped_schema_rejects_confirmed_root_without_source_attribution():
+    schema, drafts, check_id = _run_scoped_submission(
+        relation="contradicts",
+        confirmation_possible=False,
+    )
+
+    with pytest.raises(ValidationError, match="one-to-one source attribution"):
+        schema.model_validate(
+            _submission_payload(drafts, assessment="confirmed", check_id=check_id)
+        )
+
+
+def test_run_scoped_schema_rejects_final_drafts_that_were_not_evaluated():
+    schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
+    payload = _submission_payload(drafts, check_id=check_id)
+    payload["check_drafts"] = [
+        {**drafts[0], "check_id": "draft-not-evaluated"}
+    ]
+
+    with pytest.raises(ValidationError, match="were not evaluated"):
+        schema.model_validate(payload)
+
+
+def test_run_scoped_schema_rejects_unknown_and_uncovered_final_check_ids():
+    schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
+    unknown = _submission_payload(drafts, check_id=check_id)
+    unknown["root_nodes"][0]["required_check_ids"] = ["CHK-UNKNOWN"]
+    with pytest.raises(ValidationError, match="unknown final checks"):
+        schema.model_validate(unknown)
+
+    uncovered = _submission_payload(drafts, check_id=check_id)
+    uncovered["root_nodes"] = []
+    uncovered["no_issue_found"] = True
+    with pytest.raises(ValidationError, match="coverage mismatch"):
+        schema.model_validate(uncovered)
 
 
 def test_pair_loader_uses_canonical_nl_and_prepared_fcstm():
