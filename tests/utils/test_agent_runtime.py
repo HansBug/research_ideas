@@ -71,6 +71,18 @@ def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
     assert [record["record"] for record in records] == ["context", "decision", "action", "context", "decision", "context", "finish"]
     assert all("heartbeat" not in record for record in records)
+    decisions = [record for record in records if record["record"] == "decision"]
+    assert all(record["model_call_id"] for record in decisions)
+    assert all(record["started_at_utc"] and record["ended_at_utc"] for record in decisions)
+    assert all(record["duration_seconds"] >= 0 for record in decisions)
+    assert all(record["timing_source"] == "provider_callback" for record in decisions)
+    action = next(record for record in records if record["record"] == "action")
+    assert action["requested_at"] and action["started_at"] and action["finished_at"]
+    assert action["queue_duration_seconds"] >= 0
+    assert action["duration_seconds"] >= 0
+    finish = records[-1]
+    assert finish["duration_seconds"] >= 0
+    assert all(item["model_call_id"] for item in finish["usage"])
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "success"
     assert {"tool_call_id", "status"}.issubset(result.tool_calls[0])
 
@@ -872,6 +884,10 @@ def test_cancelled_run_has_structured_status_and_audit_finish(tmp_path: Path) ->
     records = [json.loads(line) for line in (tmp_path / "cancelled.jsonl").read_text(encoding="utf-8").splitlines()]
     assert records[-1]["record"] == "finish"
     assert records[-1]["status"] == "cancelled"
+    decision = next(record for record in records if record["record"] == "decision")
+    assert decision["usage"]["timing_source"] == "runtime_cancel_fallback"
+    assert decision["usage"]["status"] == "cancelled"
+    assert records[-1]["usage"][0]["timing_source"] == "runtime_cancel_fallback"
 
 
 def test_redaction_preserves_normal_urls_in_model_content() -> None:
@@ -1065,7 +1081,25 @@ def test_rich_renderer_preserves_input_output_tool_timing() -> None:
     now = datetime.now(timezone.utc)
     sequence = [
         AgentEvent("run-order", 1, now, "model_started", {"turn": 1, "prompt": "user input"}),
-        AgentEvent("run-order", 2, now, "model_completed", {"turn": 1, "tool_count": 1}),
+        AgentEvent(
+            "run-order",
+            2,
+            now,
+            "model_completed",
+            {
+                "turn": 1,
+                "tool_count": 1,
+                "tool_requests": [
+                    {
+                        "kind": "business",
+                        "name": "probe",
+                        "arguments": {},
+                        "tool_call_id": "call-1",
+                        "status": "requested",
+                    }
+                ],
+            },
+        ),
         AgentEvent("run-order", 3, now, "tool_started", {"name": "probe", "arguments": {}, "tool_call_id": "call-1"}),
         AgentEvent("run-order", 4, now, "tool_completed", {"name": "probe", "result": {"value": 1}}),
         AgentEvent("run-order", 5, now, "model_started", {"turn": 2, "prompt": "[tool] {\"value\": 1}"}),
@@ -1097,9 +1131,9 @@ def test_rich_renderer_preserves_input_output_tool_timing() -> None:
 
 
 def test_system_prompt_is_forwarded_without_runtime_suffix() -> None:
-    class _CaptureModel(BaseChatModel):
-        captured: list[object] = Field(default_factory=list)
+    captured: list[object] = []
 
+    class _CaptureModel(BaseChatModel):
         @property
         def _llm_type(self) -> str:
             return "capture"
@@ -1108,7 +1142,7 @@ def test_system_prompt_is_forwarded_without_runtime_suffix() -> None:
             return self
 
         def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-            self.captured = list(messages)
+            captured[:] = messages
             return ChatResult(generations=[ChatGeneration(message=AIMessage(content="done"))])
 
     model = _CaptureModel()
@@ -1119,10 +1153,10 @@ def test_system_prompt_is_forwarded_without_runtime_suffix() -> None:
         model,
     ).run("raw task", renderer="quiet")
     assert result.status == "success"
-    system_messages = [message for message in model.captured if getattr(message, "type", "") == "system"]
+    system_messages = [message for message in captured if getattr(message, "type", "") == "system"]
     assert len(system_messages) == 1
     assert system_messages[0].content == system_prompt
-    human_messages = [message for message in model.captured if getattr(message, "type", "") == "human"]
+    human_messages = [message for message in captured if getattr(message, "type", "") == "human"]
     assert len(human_messages) == 1
     assert human_messages[0].content == "raw task"
 
@@ -1388,6 +1422,17 @@ def test_compact_audit_keeps_native_summary_and_call_links(tmp_path: Path) -> No
     completed_event = next(event for event in events if event.kind == "compaction_completed")
     assert completed_event.data["source_refs"]
     assert all(ref.get("source_seq") is not None for ref in completed_event.data["source_refs"])
+    assert completed_event.data["model_call_id"]
+    assert completed_event.data["started_at_utc"] and completed_event.data["ended_at_utc"]
+    assert completed_event.data["duration_seconds"] >= 0
+    assert completed_event.data["timing_source"] == "provider_callback"
+    completed_record = next(
+        record
+        for record in compact_done
+        if record["compaction_id"] == completed_event.data["compaction_id"]
+    )
+    assert completed_record["model_call_id"] == completed_event.data["model_call_id"]
+    assert completed_record["duration_seconds"] == completed_event.data["duration_seconds"]
 
 
 def test_compact_summary_failure_stops_before_next_primary_turn() -> None:

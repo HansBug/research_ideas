@@ -28,6 +28,7 @@ try:
     from langchain.agents import create_agent
     from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
     from langchain.agents.middleware.summarization import DEFAULT_SUMMARY_PROMPT
+    from langchain.agents.structured_output import ToolStrategy
     from langchain_core.language_models import BaseChatModel
     from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage, ToolMessage
     from langchain_core.messages.utils import count_tokens_approximately
@@ -41,6 +42,7 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
     BaseChatModel = AIMessage = AIMessageChunk = BaseMessage = SystemMessage = ToolMessage = object  # type: ignore[assignment,misc]
     ChatGeneration = ChatResult = object  # type: ignore[assignment,misc]
     StructuredTool = object  # type: ignore[assignment,misc]
+    ToolStrategy = object  # type: ignore[assignment,misc]
     SummarizationMiddleware = object  # type: ignore[assignment,misc]
     DEFAULT_SUMMARY_PROMPT = ""  # type: ignore[assignment]
     count_tokens_approximately = None  # type: ignore[assignment]
@@ -281,7 +283,16 @@ def _langchain_tools(tools: Sequence[Any]) -> list[Any]:
             converted.append(tool)
             continue
         description = inspect.getdoc(tool) or _tool_name(tool)
-        converted.append(StructuredTool.from_function(tool, description=description))
+        is_async = inspect.iscoroutinefunction(tool) or inspect.iscoroutinefunction(
+            getattr(tool, "__call__", None)
+        )
+        converted.append(
+            StructuredTool.from_function(
+                coroutine=tool if is_async else None,
+                func=None if is_async else tool,
+                description=description,
+            )
+        )
     return converted
 
 
@@ -1334,13 +1345,21 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
 
 
 def _level_for_event(kind: str) -> int:
-    if kind == "heartbeat":
+    if kind in {"heartbeat", "tool_started"}:
         return logging.DEBUG
     if kind in {"context_failed", "tool_failed", "model_failed", "compaction_failed"}:
         return logging.WARNING
     if kind == "failed":
         return logging.ERROR
     return logging.INFO
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _monotonic() -> float:
+    return time.monotonic()
 
 
 class _Renderer:
@@ -1364,6 +1383,8 @@ class _Renderer:
         self._assistant_live = None
         self._assistant_turn = None
         self._assistant_text = ""
+        self._assistant_model_seconds: float | None = None
+        self._assistant_first_chunk_seconds: float | None = None
         self._output_turn = None
         self._compact_live = None
         self._compact_id = None
@@ -1558,7 +1579,7 @@ class _Renderer:
         strategy = cls._first(
             data.get("structured_output_strategy"),
             data.get("structured_output_mode"),
-            default="langgraph-auto" if output_schema else "none",
+            default="langgraph-tool-strategy" if output_schema else "none",
         )
 
         lines = (
@@ -1699,8 +1720,26 @@ class _Renderer:
             body.append(f"model_call_id: {data.get('model_call_id')}\n", style="dim")
             body.append("status: failed\n", style="bold red")
             body.append(_preview(json.dumps(_safe_json(data.get("error")), ensure_ascii=False, sort_keys=True), 4000), style="red")
-            self.console.print(Panel(body, title="MODEL OUTPUT | FAILED", border_style="red", padding=(0, 1), expand=True))
+            model_seconds = data.get("duration_seconds")
+            first_chunk_seconds = data.get("time_to_first_chunk_seconds")
+            suffix = ""
+            if isinstance(model_seconds, (int, float)):
+                suffix += f" | model={model_seconds:.3f}s"
+            if isinstance(first_chunk_seconds, (int, float)):
+                suffix += f" | first_chunk={first_chunk_seconds:.3f}s"
+            elif isinstance(model_seconds, (int, float)):
+                suffix += " | first_chunk=unavailable"
+            self.console.print(Panel(body, title=f"MODEL OUTPUT | FAILED{suffix}", border_style="red", padding=(0, 1), expand=True))
             return
+        if event.kind == "model_completed" and self._assistant_turn == data.get("turn"):
+            model_seconds = data.get("duration_seconds")
+            first_chunk_seconds = data.get("time_to_first_chunk_seconds")
+            self._assistant_model_seconds = float(model_seconds) if isinstance(model_seconds, (int, float)) else None
+            self._assistant_first_chunk_seconds = (
+                float(first_chunk_seconds)
+                if isinstance(first_chunk_seconds, (int, float))
+                else None
+            )
         if event.kind in {"model_started", "model_completed", "context_usage", "completed", "failed"}:
             self._finish_assistant_text()
         if event.kind == "run_started" and Panel is not None:
@@ -1736,26 +1775,37 @@ class _Renderer:
             self.console.print(Panel(Text(f"compaction_id: {data.get('compaction_id')}\nstatus: started"), title="COMPACTION | START", border_style="yellow", padding=(0, 1), expand=True))
             return
         if event.kind == "compaction_completed" and Panel is not None:
-            self.console.print(Panel(Text(f"compaction_id: {data.get('compaction_id')}\nstatus: completed"), title="COMPACTION | COMPLETE", border_style="green", padding=(0, 1), expand=True))
+            duration = data.get("duration_seconds")
+            suffix = f" | model={duration:.3f}s" if isinstance(duration, (int, float)) else ""
+            self.console.print(Panel(Text(f"compaction_id: {data.get('compaction_id')}\nstatus: completed"), title=f"COMPACTION | COMPLETE{suffix}", border_style="green", padding=(0, 1), expand=True))
             return
         if event.kind == "compaction_failed" and Panel is not None:
-            self.console.print(Panel(Text(f"compaction_id: {data.get('compaction_id')}\nerror: {data.get('error')}"), title="COMPACTION | FAILED", border_style="red", padding=(0, 1), expand=True))
+            duration = data.get("duration_seconds")
+            suffix = f" | model={duration:.3f}s" if isinstance(duration, (int, float)) else ""
+            self.console.print(Panel(Text(f"compaction_id: {data.get('compaction_id')}\nerror: {data.get('error')}"), title=f"COMPACTION | FAILED{suffix}", border_style="red", padding=(0, 1), expand=True))
             return
         if event.kind == "model_started" and Rule is not None:
             self.console.print(Rule(f"TURN {data.get('turn')} | MODEL INPUT", style="cyan"))
             prompt = data.get("prompt")
             if Panel is not None:
+                elapsed = data.get("run_elapsed_seconds")
+                suffix = f" | t=+{elapsed:.3f}s" if isinstance(elapsed, (int, float)) else ""
                 self.console.print(
                     Panel(
                         Text(_preview(str(prompt), 12000) if prompt else "no new messages; history already shown"),
-                        title="MODEL INPUT | MESSAGES",
+                        title=f"MODEL INPUT | MESSAGES{suffix}",
                         border_style="cyan",
                         padding=(0, 1),
                     )
                 )
             return
         if event.kind == "model_completed" and Rule is not None:
-            self._ensure_model_output_boundary(data.get("turn"), data.get("tool_count"))
+            self._ensure_model_output_boundary(
+                data.get("turn"),
+                data.get("tool_count"),
+                model_seconds=data.get("duration_seconds"),
+                first_chunk_seconds=data.get("time_to_first_chunk_seconds"),
+            )
             structured_request = data.get("structured_request")
             if structured_request and Panel is not None:
                 body = Text()
@@ -1766,13 +1816,30 @@ class _Renderer:
                 body.append("arguments:\n", style="bold")
                 body.append(_preview(json.dumps(structured_request.get("arguments", {}), ensure_ascii=False, sort_keys=True, indent=2), 4000))
                 self.console.print(Panel(body, title="MODEL OUTPUT | STRUCTURED CALL", border_style="yellow", padding=(0, 1), expand=True))
+            for request in data.get("tool_requests", ()):
+                if not isinstance(request, Mapping) or request.get("kind") != "business" or Panel is None:
+                    continue
+                body = Text()
+                body.append("kind: business\n", style="dim")
+                body.append(f"name: {request.get('name')}\n", style="bold")
+                body.append(f"tool_call_id: {request.get('tool_call_id')}\n", style="dim")
+                body.append("status: requested\n", style="yellow")
+                body.append("arguments:\n", style="bold")
+                body.append(_preview(json.dumps(_safe_json(request.get("arguments")), ensure_ascii=False, sort_keys=True, indent=2), 4000))
+                model_seconds = request.get("model_duration_seconds")
+                suffix = f" | model={model_seconds:.3f}s" if isinstance(model_seconds, (int, float)) else ""
+                self.console.print(Panel(body, title=f"MODEL OUTPUT | TOOL CALL{suffix}", border_style="yellow", padding=(0, 1), expand=True))
             return
         if event.kind == "completed" and Panel is not None:
             body = Text()
             body.append("status: ", style="bold")
             body.append("SUCCESS\n", style="bold green")
             body.append(f"run_id: {event.run_id}\n", style="dim")
-            body.append(f"model: {data.get('model')}\n\n", style="cyan")
+            body.append(f"model: {data.get('model')}\n", style="cyan")
+            duration = data.get("duration_seconds")
+            if isinstance(duration, (int, float)):
+                body.append(f"duration: {duration:.3f}s\n", style="dim")
+            body.append("\n")
             body.append("result:\n", style="bold")
             # The completion panel is the final operator-facing result view;
             # unlike streaming previews, it must retain the complete payload.
@@ -1791,6 +1858,9 @@ class _Renderer:
             body = Text()
             body.append(f"code: {data.get('code')}\n", style="bold red")
             body.append(f"message: {data.get('message')}")
+            duration = data.get("duration_seconds")
+            if isinstance(duration, (int, float)):
+                body.append(f"\nduration: {duration:.3f}s", style="dim")
             if data.get("details"):
                 body.append("\ndetails:\n", style="bold")
                 body.append(_preview(json.dumps(_safe_json(data["details"]), ensure_ascii=False, sort_keys=True), 4000), style="dim")
@@ -1821,10 +1891,10 @@ class _Renderer:
                     tool_body.append("kind: business\n", style="dim")
                     tool_body.append(f"name: {data.get('name')}\n", style="bold")
                     tool_body.append(f"tool_call_id: {data.get('tool_call_id')}\n", style="dim")
-                    tool_body.append("status: started\n", style="yellow")
+                    tool_body.append("status: started\n", style="dim")
                     tool_body.append("arguments:\n", style="bold")
                     tool_body.append(_preview(json.dumps(_safe_json(data.get("arguments")), ensure_ascii=False, sort_keys=True, indent=2), 4000))
-                    title, border = "MODEL OUTPUT | TOOL CALL", "yellow"
+                    title, border = "TOOL EXECUTION | START", "dim"
                 elif event.kind == "tool_completed":
                     tool_body = Text()
                     tool_body.append("kind: business\n", style="dim")
@@ -1834,7 +1904,14 @@ class _Renderer:
                     tool_body.append(f"arguments: {_preview(json.dumps(_safe_json(data.get('arguments')), ensure_ascii=False, sort_keys=True, indent=2), 4000)}\n")
                     tool_body.append("result:\n", style="bold")
                     tool_body.append(_preview(json.dumps(_safe_json(data.get("result")), ensure_ascii=False, sort_keys=True, indent=2), 4000))
-                    title, border = "TOOL RESULT -> NEXT MODEL INPUT", "green"
+                    queue = data.get("queue_duration_seconds")
+                    execution = data.get("duration_seconds")
+                    timing = ""
+                    if isinstance(queue, (int, float)):
+                        timing += f" | queue={queue:.3f}s"
+                    if isinstance(execution, (int, float)):
+                        timing += f" | execution={execution:.3f}s"
+                    title, border = f"TOOL RESULT -> NEXT MODEL INPUT{timing}", "green"
                 else:
                     tool_body = Text()
                     tool_body.append("kind: business\n", style="dim")
@@ -1842,7 +1919,14 @@ class _Renderer:
                     tool_body.append(f"tool_call_id: {data.get('tool_call_id')}\n", style="dim")
                     tool_body.append("status: failed\n", style="bold red")
                     tool_body.append(f"error: {data.get('error')}", style="red")
-                    title, border = "TOOL ERROR", "red"
+                    queue = data.get("queue_duration_seconds")
+                    execution = data.get("duration_seconds")
+                    timing = ""
+                    if isinstance(queue, (int, float)):
+                        timing += f" | queue={queue:.3f}s"
+                    if isinstance(execution, (int, float)):
+                        timing += f" | execution={execution:.3f}s"
+                    title, border = f"TOOL ERROR{timing}", "red"
                 self.console.print(Panel(tool_body, title=title, border_style=border, padding=(0, 1), expand=True))
                 return
             line = Text(prefix, style=style)
@@ -1870,19 +1954,39 @@ class _Renderer:
             return
         self.logger.log(_level_for_event(event.kind), message)
 
-    def _ensure_model_output_boundary(self, turn: Any, tool_count: Any = None) -> None:
+    def _ensure_model_output_boundary(
+        self,
+        turn: Any,
+        tool_count: Any = None,
+        *,
+        model_seconds: Any = None,
+        first_chunk_seconds: Any = None,
+    ) -> None:
         if self.console is None or self._Rule is None or self._output_turn == turn:
             return
         suffix = f" | tool_count={tool_count}" if tool_count is not None else ""
+        if isinstance(model_seconds, (int, float)):
+            suffix += f" | model={model_seconds:.3f}s"
+        if isinstance(first_chunk_seconds, (int, float)):
+            suffix += f" | first_chunk={first_chunk_seconds:.3f}s"
+        elif first_chunk_seconds is None and model_seconds is not None:
+            suffix += " | first_chunk=unavailable"
         self.console.print(self._Rule(f"TURN {turn} | MODEL OUTPUT{suffix}", style="green"))
         self._output_turn = turn
 
     def _assistant_panel(self) -> Any:
         assert self._Panel is not None
         assert self._Text is not None
+        suffix = ""
+        if self._assistant_model_seconds is not None:
+            suffix += f" | model={self._assistant_model_seconds:.3f}s"
+        if self._assistant_first_chunk_seconds is not None:
+            suffix += f" | first_chunk={self._assistant_first_chunk_seconds:.3f}s"
+        elif self._assistant_model_seconds is not None:
+            suffix += " | first_chunk=unavailable"
         return self._Panel(
             self._Text(_preview(self._assistant_text, 4000)),
-            title="MODEL OUTPUT | ASSISTANT",
+            title=f"MODEL OUTPUT | ASSISTANT{suffix}",
             border_style="cyan",
             padding=(0, 1),
             expand=True,
@@ -1896,6 +2000,8 @@ class _Renderer:
             self._finish_assistant_text()
             self._assistant_turn = turn
             self._assistant_text = ""
+            self._assistant_model_seconds = None
+            self._assistant_first_chunk_seconds = None
         self._assistant_text += str(data.get("text", ""))
         if self._Live is None:
             self.console.print(self._assistant_panel())
@@ -1915,6 +2021,8 @@ class _Renderer:
                 self.console.print()
         self._assistant_turn = None
         self._assistant_text = ""
+        self._assistant_model_seconds = None
+        self._assistant_first_chunk_seconds = None
 
     def _compact_panel(self) -> Any:
         assert self._Panel is not None and self._Text is not None
@@ -2092,6 +2200,8 @@ class _CompactTracker:
         self.before_keys: tuple[str, ...] = ()
         self.last_estimate: int | None = None
         self.reported_usage_enabled = True
+        self.active_compaction_id: str | None = None
+        self.on_trigger: Callable[[Sequence[Any], int], str] | None = None
 
     def token_counter(self, messages: Iterable[Any]) -> int:
         materialized = list(messages)
@@ -2107,6 +2217,11 @@ class _CompactTracker:
         if max(estimate, reported) >= self.threshold and not self.triggered:
             self.triggered = True
             self.before_keys = tuple(_message_key(message) for message in materialized)
+            if self.on_trigger is not None:
+                self.active_compaction_id = self.on_trigger(
+                    materialized,
+                    max(estimate, reported),
+                )
         self.last_estimate = estimate
         return estimate
 
@@ -2115,6 +2230,7 @@ class _CompactTracker:
         self.before_keys = ()
         self.last_estimate = None
         self.reported_usage_enabled = False
+        self.active_compaction_id = None
 
     def primary_completed(self) -> None:
         self.reported_usage_enabled = True
@@ -2126,8 +2242,8 @@ class _CompactPostGuardMiddleware(AgentMiddleware):
     def __init__(
         self,
         tracker: _CompactTracker,
-        on_success: Callable[[int | None], None] | None = None,
-        on_failure: Callable[[AgentError], None] | None = None,
+        on_success: Callable[[str | None, int | None], None] | None = None,
+        on_failure: Callable[[str | None, AgentError], None] | None = None,
     ):
         self.tracker = tracker
         self.on_success = on_success
@@ -2147,13 +2263,15 @@ class _CompactPostGuardMiddleware(AgentMiddleware):
         elif estimate is None or estimate >= self.tracker.threshold:
             error = AgentError("context_budget_exceeded", "compact did not reduce the visible context below its trigger")
         if error is not None:
+            compaction_id = self.tracker.active_compaction_id
             self.tracker.reset()
             if self.on_failure is not None:
-                self.on_failure(error)
+                self.on_failure(compaction_id, error)
             raise error
+        compaction_id = self.tracker.active_compaction_id
         self.tracker.reset()
         if self.on_success is not None:
-            self.on_success(estimate)
+            self.on_success(compaction_id, estimate)
 
     def before_model(self, state: Mapping[str, Any], runtime: Any) -> None:
         self._check(state)
@@ -2204,18 +2322,24 @@ def _request_projection(request: Any) -> dict[str, Any]:
 class _RequestCaptureMiddleware(AgentMiddleware):
     """Capture the effective public ModelRequest after model options are applied."""
 
-    def __init__(self, captures: list[dict[str, Any]]):
+    def __init__(
+        self,
+        captures: list[dict[str, Any]],
+        on_capture: Callable[[Any, dict[str, Any]], None] | None = None,
+    ):
         self.captures = captures
+        self.on_capture = on_capture
 
     def _capture(self, request: Any) -> None:
         projection = _request_projection(request)
-        self.captures.append(
-            {
-                "projection": projection,
-                "rendered_input_hash": _hash_text(json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))),
-                "captured_at_utc": datetime.now(timezone.utc).isoformat(),
-            }
-        )
+        capture = {
+            "projection": projection,
+            "rendered_input_hash": _hash_text(json.dumps(projection, ensure_ascii=False, sort_keys=True, separators=(",", ":"))),
+            "captured_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        self.captures.append(capture)
+        if self.on_capture is not None:
+            self.on_capture(request, capture)
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         self._capture(request)
@@ -2229,21 +2353,29 @@ class _RequestCaptureMiddleware(AgentMiddleware):
 class _RunModelObserver(BaseCallbackHandler):
     """Public callback boundary for streamed model text and terminal usage."""
 
-    def __init__(self, on_start: Callable[[str, Mapping[str, Any]], None], on_token: Callable[[str, str, Any, Mapping[str, Any]], None], on_end: Callable[[str, Any, Mapping[str, Any]], None], on_error: Callable[[str, BaseException, Mapping[str, Any]], None]):
+    def __init__(self, on_start: Callable[[str, Mapping[str, Any], Sequence[Any]], None], on_token: Callable[[str, Any, Any, Mapping[str, Any]], None], on_end: Callable[[str, Any, Mapping[str, Any]], None], on_error: Callable[[str, BaseException, Mapping[str, Any]], None]):
         self._on_start = on_start
         self._on_token = on_token
         self._on_end = on_end
         self._on_error = on_error
+        self._started: set[str] = set()
+
+    def _start(self, run_id: Any, metadata: Mapping[str, Any] | None, inputs: Sequence[Any]) -> None:
+        call_id = str(run_id)
+        if call_id in self._started:
+            return
+        self._started.add(call_id)
+        self._on_start(call_id, dict(metadata or {}), inputs)
 
     def on_chat_model_start(self, serialized: Mapping[str, Any], messages: list[Any], *, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, metadata: Mapping[str, Any] | None = None, **kwargs: Any) -> None:
-        self._on_start(str(run_id), dict(metadata or {}))
+        batch = messages[0] if len(messages) == 1 and isinstance(messages[0], (list, tuple)) else messages
+        self._start(run_id, metadata, list(batch))
 
     def on_llm_start(self, serialized: Mapping[str, Any], prompts: list[str], *, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, metadata: Mapping[str, Any] | None = None, **kwargs: Any) -> None:
-        self._on_start(str(run_id), dict(metadata or {}))
+        self._start(run_id, metadata, list(prompts))
 
-    def on_llm_new_token(self, token: str, *, chunk: Any = None, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, **kwargs: Any) -> None:
-        if token:
-            self._on_token(str(run_id), str(token), chunk, {})
+    def on_llm_new_token(self, token: Any, *, chunk: Any = None, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, **kwargs: Any) -> None:
+        self._on_token(str(run_id), token, chunk, {})
 
     def on_llm_end(self, response: Any, *, run_id: Any, parent_run_id: Any = None, tags: list[str] | None = None, **kwargs: Any) -> None:
         self._on_end(str(run_id), response, {})
@@ -2282,12 +2414,11 @@ class _LegacyModelAdapter(BaseChatModel):
             chunks.append(chunk)
             if run_manager is not None:
                 token = _message_text(chunk)
-                if token:
-                    callback = getattr(run_manager, "on_llm_new_token", None)
-                    if callback is not None:
-                        callback_result = callback(token, chunk=chunk)
-                        if inspect.isawaitable(callback_result):
-                            await callback_result
+                callback = getattr(run_manager, "on_llm_new_token", None)
+                if callback is not None:
+                    callback_result = callback(token, chunk=chunk)
+                    if inspect.isawaitable(callback_result):
+                        await callback_result
         if not chunks:
             message = AIMessage(content="")
         else:
@@ -2440,8 +2571,8 @@ class AgentApp:
         canonical_audit_out, canonical_result_out = _validate_output_paths(Path(audit_out) if audit_out is not None else None, Path(result_out) if result_out is not None else None)
         renderer_obj = _Renderer(renderer, log_level, run_id)
         audit = _AuditWriter(canonical_audit_out, run_id, result_path=canonical_result_out)
-        started = time.monotonic()
-        started_at_utc = datetime.now(timezone.utc)
+        started = _monotonic()
+        started_at_utc = _utc_now()
         ended_at_utc: datetime | None = None
         duration_seconds: float | None = None
         seq = 0
@@ -2454,6 +2585,7 @@ class AgentApp:
         observed_model: str | None = None
         error: dict[str, Any] | None = None
         tool_calls: list[dict[str, Any]] = []
+        tool_records_by_id: dict[str, dict[str, Any]] = {}
         pending_tool_ids: dict[str, list[str]] = {}
         active_tool_records: dict[str, dict[str, Any]] = {}
         failed_tool_call_ids: set[str] = set()
@@ -2466,17 +2598,22 @@ class AgentApp:
         heartbeat_task: asyncio.Task[None] | None = None
         context_meter = _ContextMeter(tools=self.spec.tools, system_prompt=self.spec.system_prompt, output_schema=self.spec.output_schema)
         compact_count = 0
-        last_compaction_id: str | None = None
         compact_tracker = _CompactTracker(context_meter, compact_threshold) if compact_threshold is not None else None
         compaction_summary_info: dict[str, dict[str, Any]] = {}
         compaction_source_refs: dict[str, list[dict[str, Any]]] = {}
         compaction_failure_errors: dict[str, AgentError] = {}
+        compaction_by_model_call: dict[str, str] = {}
+        compaction_by_graph_run: dict[str, str] = {}
+        active_summary_graph_run: str | None = None
         stream_holdbacks: dict[str, _StreamHoldback] = {}
         sensitive_values = _sensitive_inventory(self.config, pages)
         audit.set_sensitive_values(sensitive_values)
-        model_call_started: dict[str, datetime] = {}
+        model_call_timings: dict[str, dict[str, Any]] = {}
         model_call_kinds: dict[str, str] = {}
+        model_call_turns: dict[str, int] = {}
+        model_call_by_turn: dict[int, str] = {}
         context_events_seen: set[int] = set()
+        context_emitted_turns: set[int] = set()
         current_model_call_id: str | None = None
         current_rendered_input_hash: str | None = None
         current_input_messages_snapshot: list[Any] = []
@@ -2487,6 +2624,7 @@ class AgentApp:
         decision_written_turns: set[int] = set()
         callback_usage_ids: set[str] = set()
         callback_summary_ids: set[str] = set()
+        published_model_calls: set[str] = set()
         pending_model_inputs: dict[int, tuple[str, list[Any], str | None]] = {}
         request_captures: list[dict[str, Any]] = []
         request_capture_by_call: dict[str, dict[str, Any]] = {}
@@ -2499,12 +2637,14 @@ class AgentApp:
         }
         initial_context_seq: int | None = None
         started_turns: set[int] = set()
-        compaction_announced_turns: set[int] = set()
         compaction_failure_ids: set[str] = set()
         ledger = _CallLedger((self.spec.limits or {}).get("model_calls"))
         ledger_started_ids: set[str] = set()
         ledger_completed_ids: set[str] = set()
         primary_ledger_calls: dict[int, str] = {}
+        graph_run_turns: dict[str, int] = {}
+        tool_requested_monotonic: dict[str, float] = {}
+        tool_started_monotonic: dict[str, float] = {}
 
         def ledger_start(call_id: str, call_kind: str) -> str | None:
             if call_id in ledger_started_ids:
@@ -2519,15 +2659,110 @@ class AgentApp:
             ledger.complete(call_id)
             ledger_completed_ids.add(call_id)
 
+        def capture_model_timing(call_id: str, timing_source: str) -> dict[str, Any]:
+            timing = model_call_timings.get(call_id)
+            if timing is None:
+                captured_at = _utc_now()
+                timing = {
+                    "started_at_utc": captured_at.isoformat(),
+                    "first_chunk_at_utc": None,
+                    "ended_at_utc": None,
+                    "duration_seconds": None,
+                    "time_to_first_chunk_seconds": None,
+                    "timing_source": timing_source,
+                    "_started_monotonic": _monotonic(),
+                    "_first_chunk_monotonic": None,
+                    "_ended_monotonic": None,
+                }
+                model_call_timings[call_id] = timing
+            return timing
+
+        def capture_first_chunk(call_id: str) -> None:
+            timing = capture_model_timing(call_id, "provider_callback")
+            if timing["first_chunk_at_utc"] is not None:
+                return
+            first_monotonic = _monotonic()
+            timing["first_chunk_at_utc"] = _utc_now().isoformat()
+            timing["_first_chunk_monotonic"] = first_monotonic
+            timing["time_to_first_chunk_seconds"] = max(
+                0.0,
+                first_monotonic - float(timing["_started_monotonic"]),
+            )
+
+        def close_model_timing(call_id: str, timing_source: str | None = None) -> dict[str, Any]:
+            timing = capture_model_timing(call_id, timing_source or "provider_callback")
+            if timing_source is not None:
+                timing["timing_source"] = timing_source
+            if timing["ended_at_utc"] is None:
+                ended_monotonic = _monotonic()
+                timing["ended_at_utc"] = _utc_now().isoformat()
+                timing["_ended_monotonic"] = ended_monotonic
+                timing["duration_seconds"] = max(
+                    0.0,
+                    ended_monotonic - float(timing["_started_monotonic"]),
+                )
+            return timing
+
+        def public_model_timing(call_id: str) -> dict[str, Any]:
+            timing = model_call_timings.get(call_id, {})
+            return {
+                key: timing.get(key)
+                for key in (
+                    "started_at_utc",
+                    "first_chunk_at_utc",
+                    "ended_at_utc",
+                    "duration_seconds",
+                    "time_to_first_chunk_seconds",
+                    "timing_source",
+                )
+            }
+
+        def capture_primary_request(request: Any, capture: dict[str, Any]) -> None:
+            nonlocal turn, system_shown, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot
+            turn += 1
+            call_turn = turn
+            input_messages = list(getattr(request, "messages", None) or [])
+            if call_turn > 1:
+                emit_context_usage(call_turn - 1, input_messages)
+            prompt, system_shown = _prompt_from_messages(
+                input_messages,
+                self.spec.system_prompt,
+                shown_message_keys,
+                system_shown,
+            )
+            capture.update(
+                {
+                    "turn": call_turn,
+                    "prompt": prompt,
+                    "input_messages": input_messages,
+                }
+            )
+            pending_model_inputs[call_turn] = (prompt, input_messages, capture.get("rendered_input_hash"))
+            current_input_messages_snapshot = list(input_messages)
+            last_state_messages_snapshot = list(input_messages)
+            current_rendered_input_hash = capture.get("rendered_input_hash")
+            context_meter.begin_primary(input_messages)
+
         def emit(kind: str, data: Mapping[str, Any]) -> None:
             nonlocal seq
             seq += 1
             event = AgentEvent(
                 run_id,
                 seq,
-                datetime.now(timezone.utc),
+                _utc_now(),
                 kind,
-                _redact_with_inventory(_safe_json(dict(data)), sensitive_values),
+                _redact_with_inventory(
+                    _safe_json(
+                        {
+                            **dict(data),
+                            "run_elapsed_seconds": dict(data).get(
+                                "run_elapsed_seconds",
+                                max(0.0, _monotonic() - started),
+                            ),
+                        }
+                    ),
+                    sensitive_values,
+                ),
             )
             if kind == "context_usage" and isinstance(data.get("turn"), int):
                 context_events_seen.add(int(data["turn"]))
@@ -2550,6 +2785,43 @@ class AgentApp:
             except Exception as exc:
                 audit_ok = False
                 raise AgentError("audit_write_failed", "audit output failed") from exc
+
+        def emit_context_usage(context_turn: int, state_messages: Iterable[Any], *, run_ending: bool = False) -> None:
+            if context_turn in context_emitted_turns:
+                return
+            context_emitted_turns.add(context_turn)
+            estimated, sources = context_meter.count(state_messages)
+            latest = usage[-1] if usage and usage[-1].get("turn") == context_turn and usage[-1].get("call_kind") == "primary" else None
+            input_tokens = latest.get("input_tokens") if latest else None
+            output_tokens = latest.get("output_tokens") if latest else None
+            total_tokens = latest.get("total_tokens") if latest else None
+            cache_read = (latest or {}).get("input_token_details", {}).get("cache_read")
+            reasoning = (latest or {}).get("output_token_details", {}).get("reasoning")
+            if total_tokens is None:
+                first = f"turn {context_turn} · tokens unavailable (provider usage unavailable)"
+            else:
+                first = f"turn {context_turn} · {input_tokens:,} in" if isinstance(input_tokens, (int, float)) else f"turn {context_turn} · ? in"
+                if cache_read is not None:
+                    first += f" · cache={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache={cache_read}"
+                first += f" + {output_tokens:,} out" if isinstance(output_tokens, (int, float)) else " + ? out"
+                if reasoning is not None:
+                    first += f" · reasoning={reasoning:,}" if isinstance(reasoning, (int, float)) else f" · reasoning={reasoning}"
+                first += f" = {total_tokens:,}" if isinstance(total_tokens, (int, float)) else f" = {total_tokens}"
+            if context_window_tokens is None or estimated is None:
+                second = "context unknown · compact unavailable"
+            else:
+                percent = estimated / context_window_tokens * 100
+                marker = "~" if "provider_input" not in sources else ""
+                if compact_threshold is None:
+                    second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact disabled"
+                else:
+                    decision = "run ending" if run_ending else ("REQUIRED" if estimated >= compact_threshold else "not required")
+                    ratio_text = f" ({compact_trigger_ratio * 100:g}%)" if isinstance(compact_trigger_ratio, (int, float)) else ""
+                    second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact@{compact_threshold:,}{ratio_text} {decision}"
+            decision = "run_ending" if run_ending else ("required" if estimated is not None and compact_threshold is not None and estimated >= compact_threshold else "not_required")
+            payload = {"turn": context_turn, "usage": latest, "context_tokens": estimated, "context_basis_tokens": estimated, "context_window_tokens": context_window_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "basis_source": sources, "decision": decision, "lines": [first, second], "estimated": bool(sources and "provider_input" not in sources)}
+            emit("context_usage", payload)
+            audit_write({"record": "context", "record_type": "context", "operation": "turn_context", "model_call_id": (latest or {}).get("model_call_id"), "usage": latest, "context_basis_tokens": estimated, "basis_source": sources, "context_window_tokens": context_window_tokens, "safe_input_tokens": safe_input_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "compact_decision": decision})
 
         def message_ref(message: Any) -> dict[str, Any]:
             source = message_source_refs.get(_message_key(message))
@@ -2578,27 +2850,69 @@ class AgentApp:
         async def heartbeat() -> None:
             while True:
                 await asyncio.sleep(1)
-                emit("heartbeat", {"elapsed_seconds": time.monotonic() - started, "attempt_id": attempt_id})
+                emit("heartbeat", {"elapsed_seconds": _monotonic() - started, "attempt_id": attempt_id})
 
-        def compaction_validated(post_estimate: int | None) -> None:
-            if last_compaction_id is None:
+        def reserve_compaction(source_messages: Sequence[Any], basis: int) -> str:
+            nonlocal compact_count
+            compact_count += 1
+            compaction_id = f"compact-{compact_count}"
+            source_refs = [message_ref(message) for message in source_messages]
+            compaction_source_refs[compaction_id] = source_refs
+            emit(
+                "compaction_started",
+                {
+                    "compaction_id": compaction_id,
+                    "after_turn": turn,
+                    "basis": basis,
+                    "basis_source": ["langgraph_token_counter"],
+                    "threshold": compact_threshold,
+                    "source_refs": source_refs,
+                },
+            )
+            compact_seq = audit_write(
+                {
+                    "record": "context",
+                    "record_type": "context",
+                    "operation": "compact",
+                    "compaction_id": compaction_id,
+                    "after_turn": turn,
+                    "basis": basis,
+                    "basis_source": ["langgraph_token_counter"],
+                    "threshold": compact_threshold,
+                    "source_refs": source_refs,
+                    "status": "started",
+                    "summary_template": "langgraph_default",
+                }
+            )
+            if compact_seq is not None:
+                source_state["latest_compact"] = (compact_seq, "context")
+            return compaction_id
+
+        if compact_tracker is not None:
+            compact_tracker.on_trigger = reserve_compaction
+
+        def compaction_validated(compaction_id: str | None, post_estimate: int | None) -> None:
+            if compaction_id is None:
                 return
-            failure = compaction_failure_errors.get(last_compaction_id)
+            failure = compaction_failure_errors.get(compaction_id)
             if failure is not None:
                 # A failed summary must never be treated as a successful state
                 # replacement, even if the middleware returns an error-shaped
                 # message to the graph.
                 raise AgentError(failure.code, failure.message, details=failure.details)
-            info = compaction_summary_info.get(last_compaction_id, {})
+            info = compaction_summary_info.get(compaction_id, {})
+            model_call_id = info.get("model_call_id")
+            timing = public_model_timing(str(model_call_id)) if model_call_id else {}
             emit(
                 "compaction_completed",
                 {
-                    "compaction_id": last_compaction_id,
-                    "model_call_id": info.get("model_call_id"),
+                    "compaction_id": compaction_id,
+                    "model_call_id": model_call_id,
                     "summary_hash": info.get("summary_hash"),
-                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
+                    "source_refs": compaction_source_refs.get(compaction_id, []),
                     "post_basis": post_estimate,
                     "status": "completed",
+                    **timing,
                 },
             )
             audit_write(
@@ -2606,31 +2920,37 @@ class AgentApp:
                     "record": "context",
                     "record_type": "context",
                     "operation": "compact",
-                    "compaction_id": last_compaction_id,
-                    "model_call_id": info.get("model_call_id"),
+                    "compaction_id": compaction_id,
+                    "model_call_id": model_call_id,
                     "summary": info.get("summary"),
                     "summary_hash": info.get("summary_hash"),
-                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
+                    "source_refs": compaction_source_refs.get(compaction_id, []),
                     "post_basis": post_estimate,
                     "usage": info.get("usage"),
                     "status": "completed",
+                    **timing,
                 }
             )
 
-        def compaction_failed(exc: AgentError) -> None:
-            if last_compaction_id is None:
+        def compaction_failed(compaction_id: str | None, exc: AgentError) -> None:
+            if compaction_id is None:
                 return
-            if last_compaction_id in compaction_failure_ids:
+            if compaction_id in compaction_failure_ids:
                 return
-            compaction_failure_ids.add(last_compaction_id)
-            compaction_failure_errors[last_compaction_id] = exc
+            compaction_failure_ids.add(compaction_id)
+            compaction_failure_errors[compaction_id] = exc
+            info = compaction_summary_info.get(compaction_id, {})
+            model_call_id = info.get("model_call_id")
+            timing = public_model_timing(str(model_call_id)) if model_call_id else {}
             emit(
                 "compaction_failed",
                 {
-                    "compaction_id": last_compaction_id,
-                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
+                    "compaction_id": compaction_id,
+                    "model_call_id": model_call_id,
+                    "source_refs": compaction_source_refs.get(compaction_id, []),
                     "error": {"code": exc.code, "message": exc.message},
                     "status": "failed",
+                    **timing,
                 },
             )
             audit_write(
@@ -2638,13 +2958,16 @@ class AgentApp:
                     "record": "context",
                     "record_type": "context",
                     "operation": "compact",
-                    "compaction_id": last_compaction_id,
-                    "summary": compaction_summary_info.get(last_compaction_id, {}).get("summary"),
-                    "partial_summary": compaction_summary_info.get(last_compaction_id, {}).get("partial_summary"),
-                    "summary_hash": compaction_summary_info.get(last_compaction_id, {}).get("summary_hash"),
-                    "source_refs": compaction_source_refs.get(last_compaction_id, []),
+                    "compaction_id": compaction_id,
+                    "model_call_id": model_call_id,
+                    "summary": info.get("summary"),
+                    "partial_summary": info.get("partial_summary"),
+                    "summary_hash": info.get("summary_hash"),
+                    "source_refs": compaction_source_refs.get(compaction_id, []),
                     "error": {"code": exc.code, "message": exc.message},
                     "status": "failed",
+                    "usage": info.get("usage"),
+                    **timing,
                 }
             )
 
@@ -2670,37 +2993,180 @@ class AgentApp:
                 response_id=response_id,
             )
             item["model_call_id"] = call_id
-            started_at = model_call_started.get(call_id or "")
-            if started_at is not None:
-                item["started_at_utc"] = started_at.isoformat()
-                item["duration_seconds"] = max(0.0, (datetime.now(timezone.utc) - started_at).total_seconds())
+            if call_id:
+                item.update(public_model_timing(call_id))
             usage.append(item)
             if raw_usage or observed_usages:
                 context_meter.record(raw_usage, call_kind=call_kind, observed_usages=observed_usages)
 
-        def callback_start(call_id: str, metadata: Mapping[str, Any]) -> None:
-            nonlocal compact_count, last_compaction_id, current_model_call_id, current_rendered_input_hash
-            model_call_started.setdefault(call_id, datetime.now(timezone.utc))
+        def publish_primary_response(call_id: str, ai: Any) -> None:
+            nonlocal current_model_call_id, current_rendered_input_hash
+            if call_id in published_model_calls:
+                return
+            published_model_calls.add(call_id)
+            call_turn = model_call_turns.get(call_id, turn)
+            current_model_call_id = call_id
+            capture = request_capture_by_call.get(call_id) or next(
+                (item for item in request_captures if item.get("turn") == call_turn),
+                {},
+            )
+            current_rendered_input_hash = capture.get("rendered_input_hash")
+            input_messages = list(capture.get("input_messages") or pending_model_inputs.get(call_turn, ("", [], None))[1])
+            text = _message_text(ai)
+            calls = list(getattr(ai, "tool_calls", None) or [])
+            if text and call_turn not in streamed_turns:
+                emit(
+                    "model_text",
+                    {
+                        "attempt_id": attempt_id,
+                        "turn": call_turn,
+                        "model_call_id": call_id,
+                        "call_kind": "primary",
+                        "text": text,
+                        **public_model_timing(call_id),
+                    },
+                )
+            _mark_message_shown(ai, shown_message_keys)
+            structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
+            requests = [
+                _tool_request(
+                    call,
+                    attempt_id,
+                    call_turn,
+                    kind="structured" if call.get("name") == structured_name else "business",
+                )
+                for call in calls
+            ]
+            timing = model_call_timings.get(call_id, {})
+            requested_at = timing.get("ended_at_utc") or _utc_now().isoformat()
+            requested_monotonic = timing.get("_ended_monotonic")
+            for request in requests:
+                request.update(
+                    {
+                        "model_call_id": call_id,
+                        "status": "requested",
+                        "requested_at": requested_at,
+                        "model_duration_seconds": timing.get("duration_seconds"),
+                    }
+                )
+                tool_call_id = str(request["tool_call_id"])
+                if isinstance(requested_monotonic, (int, float)):
+                    tool_requested_monotonic[tool_call_id] = float(requested_monotonic)
+                if request["kind"] == "business":
+                    pending_tool_ids.setdefault(str(request["name"]), []).append(tool_call_id)
+                tool_calls.append(request)
+                tool_records_by_id[tool_call_id] = request
+            structured_requests = [request for request in requests if request["kind"] == "structured"]
+            emit(
+                "model_completed",
+                {
+                    "attempt_id": attempt_id,
+                    "turn": call_turn,
+                    "model_call_id": call_id,
+                    "call_kind": "primary",
+                    "tool_count": len(calls),
+                    "output": text if not calls else "",
+                    "structured_request": structured_requests[0] if structured_requests else None,
+                    "tool_requests": requests,
+                    **public_model_timing(call_id),
+                },
+            )
+            decision_seq = audit_write(
+                {
+                    "record": "decision",
+                    "record_type": "decision",
+                    "model_call_id": call_id,
+                    "call_kind": "primary",
+                    "status": "completed",
+                    "message": text,
+                    "input_message_refs": [message_ref(item) for item in input_messages],
+                    "reasoning_summary": _visible_reasoning(ai),
+                    "rendered_input_hash": current_rendered_input_hash,
+                    "rendered_input_scope": "langchain_model_request",
+                    "rendered_input_projection": capture.get("projection"),
+                    "usage": next((item for item in reversed(usage) if item.get("model_call_id") == call_id), None),
+                    **public_model_timing(call_id),
+                },
+                turn_value=call_turn,
+            )
+            if decision_seq is not None:
+                source_state["latest_decision"] = (decision_seq, "decision")
+                message_source_refs[_message_key(ai)] = (decision_seq, "decision")
+                if getattr(ai, "id", None):
+                    message_source_by_id[str(ai.id)] = (decision_seq, "decision")
+            decision_written_turns.add(call_turn)
+            unknown_requests = [
+                item
+                for item in requests
+                if item["name"] not in self.spec.tool_names and item["name"] != structured_name
+            ]
+            business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
+            for request in unknown_requests:
+                audit_write(
+                    {
+                        "record": "action",
+                        "kind": "business",
+                        "name": request["name"],
+                        "tool_call_id": request["tool_call_id"],
+                        "arguments": request["arguments"],
+                        "requested_at": request["requested_at"],
+                        "status": "rejected",
+                        "error": {"code": "tool_not_allowed", "message": "tool is not registered"},
+                    },
+                    turn_value=call_turn,
+                )
+            if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
+                for request in business_requests:
+                    audit_write(
+                        {
+                            "record": "action",
+                            "kind": "business",
+                            "name": request["name"],
+                            "tool_call_id": request["tool_call_id"],
+                            "arguments": request["arguments"],
+                            "requested_at": request["requested_at"],
+                            "status": "rejected",
+                            "error": {
+                                "code": "mixed_terminal_tool",
+                                "message": "structured output cannot share a model turn with a business tool",
+                            },
+                        },
+                        turn_value=call_turn,
+                    )
+
+        def callback_start(call_id: str, metadata: Mapping[str, Any], inputs: Sequence[Any]) -> None:
+            nonlocal current_model_call_id, current_rendered_input_hash
             call_kind = "compact" if metadata.get("lc_source") == "summarization" else "primary"
+            capture_model_timing(call_id, "provider_callback")
             reservation_id = None
-            if call_kind == "compact" or turn not in primary_ledger_calls:
+            if call_kind == "compact":
                 reservation_id = ledger_start(call_id, call_kind)
-            if request_captures:
-                capture = request_captures.pop(0)
+            capture = None
+            if call_kind == "primary":
+                capture = next((item for item in request_captures if not item.get("model_call_id")), None)
+            if capture is not None:
                 capture["model_call_id"] = call_id
+                call_turn = int(capture["turn"])
+                model_call_turns[call_id] = call_turn
+                model_call_by_turn[call_turn] = call_id
+                reservation_id = ledger_start(call_id, call_kind)
+                primary_ledger_calls[call_turn] = call_id
                 capture["reservation_id"] = reservation_id
                 request_capture_by_call[call_id] = capture
                 current_rendered_input_hash = capture.get("rendered_input_hash")
             if metadata.get("lc_source") == "summarization":
-                if turn not in compaction_announced_turns:
-                    compact_count += 1
-                    last_compaction_id = f"compact-{compact_count}"
+                compaction_id = compact_tracker.active_compaction_id if compact_tracker is not None else None
+                if compaction_id is None:
+                    compaction_id = reserve_compaction(
+                        list(last_state_messages_snapshot),
+                        context_meter.estimate(last_state_messages_snapshot) or compact_threshold or 0,
+                    )
                 callback_summary_ids.add(call_id)
                 model_call_kinds[call_id] = "compact"
-                compaction_source_refs.setdefault(last_compaction_id or "", [message_ref(message) for message in last_state_messages_snapshot])
-                if turn not in compaction_announced_turns:
-                    compaction_announced_turns.add(turn)
-                    emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "threshold": compact_threshold, "source_refs": compaction_source_refs.get(last_compaction_id or "", [])})
+                model_call_turns[call_id] = turn
+                compaction_by_model_call[call_id] = compaction_id
+                if active_summary_graph_run is not None:
+                    compaction_by_graph_run[active_summary_graph_run] = compaction_id
                 emit(
                     "model_started",
                     {
@@ -2708,8 +3174,10 @@ class AgentApp:
                         "turn": turn,
                         "model_call_id": call_id,
                         "call_kind": "compact",
+                        "compaction_id": compaction_id,
                         "prompt": "[official compact] summarize the prior agent context",
-                        "input_message_refs": [message_ref(message) for message in last_state_messages_snapshot],
+                        "input_message_refs": compaction_source_refs.get(compaction_id, []),
+                        **public_model_timing(call_id),
                     },
                 )
             else:
@@ -2722,48 +3190,57 @@ class AgentApp:
 
         def ensure_primary_started(call_id: str) -> None:
             nonlocal current_model_call_id, current_rendered_input_hash
-            if turn in started_turns:
+            call_turn = model_call_turns.get(call_id, turn)
+            if call_turn in started_turns:
                 return
             current_model_call_id = call_id
             model_call_kinds[call_id] = "primary"
-            prompt, input_messages, rendered_hash = pending_model_inputs.get(turn, ("", [], None))
+            prompt, input_messages, rendered_hash = pending_model_inputs.get(call_turn, ("", [], None))
             capture = request_capture_by_call.get(call_id)
             current_rendered_input_hash = (capture or {}).get("rendered_input_hash") or rendered_hash
-            started_turns.add(turn)
-            emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages]})
+            started_turns.add(call_turn)
+            emit("model_started", {"attempt_id": attempt_id, "turn": call_turn, "model_call_id": call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages], **public_model_timing(call_id)})
 
-        def callback_token(call_id: str, token: str, chunk: Any, metadata: Mapping[str, Any]) -> None:
+        def callback_token(call_id: str, token: Any, chunk: Any, metadata: Mapping[str, Any]) -> None:
+            token_text, semantic = _public_stream_chunk(token, chunk)
+            if semantic:
+                capture_first_chunk(call_id)
+            if not token_text:
+                return
             holdback = stream_holdbacks.setdefault(call_id, _StreamHoldback(sensitive_values))
-            safe_token = holdback.feed(token)
+            safe_token = holdback.feed(token_text)
             if not safe_token:
                 return
             partial_texts[call_id] = partial_texts.get(call_id, "") + safe_token
+            call_turn = model_call_turns.get(call_id, turn)
             if call_id in callback_summary_ids or model_call_kinds.get(call_id) == "compact":
-                emit("compaction_summary", {"compaction_id": last_compaction_id, "model_call_id": call_id, "delta": safe_token})
+                emit("compaction_summary", {"compaction_id": compaction_by_model_call.get(call_id), "model_call_id": call_id, "delta": safe_token})
             else:
                 ensure_primary_started(call_id)
-                streamed_turns.add(turn)
-                emit("model_text", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "text": safe_token})
+                streamed_turns.add(call_turn)
+                emit("model_text", {"attempt_id": attempt_id, "turn": call_turn, "model_call_id": call_id, "call_kind": "primary", "text": safe_token, **public_model_timing(call_id)})
 
         def callback_end(call_id: str, response: Any, metadata: Mapping[str, Any]) -> None:
             nonlocal observed_model
             if call_id in callback_usage_ids:
                 return
+            close_model_timing(call_id)
             callback_usage_ids.add(call_id)
             ledger_complete(call_id)
+            call_kind = model_call_kinds.get(call_id, "primary")
+            call_turn = model_call_turns.get(call_id, turn)
             holdback = stream_holdbacks.get(call_id)
             if holdback is not None:
                 safe_tail = holdback.feed("", final=True)
                 if safe_tail:
                     partial_texts[call_id] = partial_texts.get(call_id, "") + safe_tail
                     if model_call_kinds.get(call_id) == "compact" or call_id in callback_summary_ids:
-                        emit("compaction_summary", {"compaction_id": last_compaction_id, "model_call_id": call_id, "delta": safe_tail})
+                        emit("compaction_summary", {"compaction_id": compaction_by_model_call.get(call_id), "model_call_id": call_id, "delta": safe_tail})
                     else:
                         ensure_primary_started(call_id)
-                        streamed_turns.add(turn)
-                        emit("model_text", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "text": safe_tail})
+                        streamed_turns.add(call_turn)
+                        emit("model_text", {"attempt_id": attempt_id, "turn": call_turn, "model_call_id": call_id, "call_kind": "primary", "text": safe_tail, **public_model_timing(call_id)})
             raw_usage, observed_usages, usage_conflict, model_name = _model_usage_info(response)
-            call_kind = model_call_kinds.get(call_id, "primary")
             if call_kind == "primary":
                 ensure_primary_started(call_id)
             response_id = next(
@@ -2779,41 +3256,50 @@ class AgentApp:
                 raw_usage,
                 call_id,
                 call_kind,
-                turn,
+                call_turn,
                 observed_usages=observed_usages,
                 usage_conflict=usage_conflict,
                 response_id=response_id if isinstance(response_id, str) else None,
             )
             if call_kind == "primary" and compact_tracker is not None:
                 compact_tracker.primary_completed()
+            if call_kind == "primary":
+                output_messages = _model_output_messages(response)
+                ai = next((message for message in reversed(output_messages) if isinstance(message, AIMessage)), None)
+                if ai is not None:
+                    publish_primary_response(call_id, ai)
             if call_kind == "compact":
+                compaction_id = compaction_by_model_call.get(call_id)
                 summary_messages = _model_output_messages(response)
                 summary_text = next(
                     (_message_text(message) for message in summary_messages if _message_text(message)),
                     partial_texts.get(call_id, ""),
                 )
                 summary_hash = _hash_text(summary_text)
-                compaction_summary_info[last_compaction_id or ""] = {
+                compaction_summary_info[compaction_id or ""] = {
                     "model_call_id": call_id,
                     "summary": summary_text,
                     "summary_hash": summary_hash,
-                    "usage": usage[-1] if usage else None,
+                    "usage": next((item for item in reversed(usage) if item.get("model_call_id") == call_id), None),
                 }
                 emit(
                     "model_completed",
                     {
                         "attempt_id": attempt_id,
-                        "turn": turn,
+                        "turn": call_turn,
                         "model_call_id": call_id,
                         "call_kind": "compact",
+                        "compaction_id": compaction_id,
                         "tool_count": 0,
                         "output": summary_text,
+                        **public_model_timing(call_id),
                     },
                 )
             if isinstance(model_name, str):
                 observed_model = observed_model or model_name
 
         def callback_error(call_id: str, exc: BaseException, metadata: Mapping[str, Any]) -> None:
+            close_model_timing(call_id)
             ledger_complete(call_id)
             ledger.cancelled += 1
             holdback = stream_holdbacks.get(call_id)
@@ -2822,19 +3308,23 @@ class AgentApp:
                 if safe_tail:
                     partial_texts[call_id] = partial_texts.get(call_id, "") + safe_tail
                     if model_call_kinds.get(call_id) == "compact" or call_id in callback_summary_ids:
-                        emit("compaction_summary", {"compaction_id": last_compaction_id, "model_call_id": call_id, "delta": safe_tail})
+                        emit("compaction_summary", {"compaction_id": compaction_by_model_call.get(call_id), "model_call_id": call_id, "delta": safe_tail})
                     else:
                         ensure_primary_started(call_id)
                         emit("model_text", {"attempt_id": attempt_id, "turn": turn, "model_call_id": call_id, "call_kind": "primary", "text": safe_tail})
             transport_errors[call_id] = _exception_details(exc)
             call_kind = model_call_kinds.get(call_id, "primary")
+            call_turn = model_call_turns.get(call_id, turn)
             if not any(item.get("model_call_id") == call_id for item in usage):
-                record_transport_usage(None, call_id, call_kind, turn, status="failed")
+                record_transport_usage(None, call_id, call_kind, call_turn, status="failed")
             if call_kind == "compact":
-                info = compaction_summary_info.setdefault(last_compaction_id or "", {})
+                compaction_id = compaction_by_model_call.get(call_id)
+                info = compaction_summary_info.setdefault(compaction_id or "", {})
+                info["model_call_id"] = call_id
                 info["partial_summary"] = partial_texts.get(call_id, "")
-                compaction_failed(AgentError("compact_error", "summary model transport failed"))
-            emit("model_failed", {"model_call_id": call_id, "call_kind": model_call_kinds.get(call_id, "primary"), "turn": turn, "error": transport_errors[call_id]})
+                info["usage"] = next((item for item in reversed(usage) if item.get("model_call_id") == call_id), None)
+                compaction_failed(compaction_id, AgentError("compact_error", "summary model transport failed"))
+            emit("model_failed", {"model_call_id": call_id, "call_kind": model_call_kinds.get(call_id, "primary"), "turn": call_turn, "error": transport_errors[call_id], **public_model_timing(call_id)})
 
         def redaction_report() -> list[dict[str, Any]]:
             return [
@@ -2846,12 +3336,13 @@ class AgentApp:
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
         async def consume(graph: Any) -> dict[str, Any] | None:
-            nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, compact_count, last_compaction_id, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter
+            nonlocal turn, final_text, output, observed_model, business_tool_called, system_shown, tool_error_seen, current_model_call_id, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, failure_context_emitter, active_summary_graph_run
             messages: list[Any] = [{"role": "user", "content": _input_with_context(input_text, pages)}]
             last_state_messages: list[Any] = list(messages)
             current_input_messages: list[Any] = list(messages)
             last_state_messages_snapshot = list(last_state_messages)
-            context_emitted_turns: set[int] = set()
+            graph_turn_counter = 0
+            active_graph_turn = 0
 
             def record_model_usage(
                 raw_usage: Mapping[str, Any] | None,
@@ -2875,50 +3366,11 @@ class AgentApp:
                     response_id=response_id,
                 )
                 item["model_call_id"] = call_id
-                started_at = model_call_started.get(call_id or "")
-                if started_at is not None:
-                    item["started_at_utc"] = started_at.isoformat()
-                    item["duration_seconds"] = max(0.0, (datetime.now(timezone.utc) - started_at).total_seconds())
+                if call_id:
+                    item.update(public_model_timing(call_id))
                 usage.append(item)
                 if raw_usage or observed_usages:
                     context_meter.record(raw_usage, call_kind=call_kind, observed_usages=observed_usages)
-
-            def emit_context_usage(context_turn: int, state_messages: Iterable[Any], *, run_ending: bool = False) -> None:
-                if context_turn in context_emitted_turns:
-                    return
-                context_emitted_turns.add(context_turn)
-                estimated, sources = context_meter.count(state_messages)
-                latest = usage[-1] if usage and usage[-1].get("turn") == context_turn and usage[-1].get("call_kind") == "primary" else None
-                input_tokens = latest.get("input_tokens") if latest else None
-                output_tokens = latest.get("output_tokens") if latest else None
-                total_tokens = latest.get("total_tokens") if latest else None
-                cache_read = (latest or {}).get("input_token_details", {}).get("cache_read")
-                reasoning = (latest or {}).get("output_token_details", {}).get("reasoning")
-                if total_tokens is None:
-                    first = f"turn {context_turn} · tokens unavailable (provider usage unavailable)"
-                else:
-                    first = f"turn {context_turn} · {input_tokens:,} in" if isinstance(input_tokens, (int, float)) else f"turn {context_turn} · ? in"
-                    if cache_read is not None:
-                        first += f" · cache={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache={cache_read}"
-                    first += f" + {output_tokens:,} out" if isinstance(output_tokens, (int, float)) else " + ? out"
-                    if reasoning is not None:
-                        first += f" · reasoning={reasoning:,}" if isinstance(reasoning, (int, float)) else f" · reasoning={reasoning}"
-                    first += f" = {total_tokens:,}" if isinstance(total_tokens, (int, float)) else f" = {total_tokens}"
-                if context_window_tokens is None or estimated is None:
-                    second = "context unknown · compact unavailable"
-                else:
-                    percent = estimated / context_window_tokens * 100
-                    marker = "~" if "provider_input" not in sources else ""
-                    if compact_threshold is None:
-                        second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact disabled"
-                    else:
-                        decision = "run ending" if run_ending else ("REQUIRED" if estimated >= compact_threshold else "not required")
-                        ratio_text = f" ({compact_trigger_ratio * 100:g}%)" if isinstance(compact_trigger_ratio, (int, float)) else ""
-                        second = f"context {marker}{estimated:,}/{context_window_tokens:,} ({percent:.1f}%) · compact@{compact_threshold:,}{ratio_text} {decision}"
-                decision = "run_ending" if run_ending else ("required" if estimated is not None and compact_threshold is not None and estimated >= compact_threshold else "not_required")
-                payload = {"turn": context_turn, "usage": latest, "context_tokens": estimated, "context_basis_tokens": estimated, "context_window_tokens": context_window_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "basis_source": sources, "decision": decision, "lines": [first, second], "estimated": bool(sources and "provider_input" not in sources)}
-                emit("context_usage", payload)
-                audit_write({"record": "context", "record_type": "context", "operation": "turn_context", "model_call_id": (latest or {}).get("model_call_id"), "usage": latest, "context_basis_tokens": estimated, "basis_source": sources, "context_window_tokens": context_window_tokens, "safe_input_tokens": safe_input_tokens, "compact_trigger_ratio": compact_trigger_ratio, "compact_threshold": compact_threshold, "compact_decision": decision})
 
             failure_context_emitter = lambda: emit_context_usage(turn, last_state_messages_snapshot, run_ending=True) if turn > 0 else None
             inputs = {"messages": messages}
@@ -2934,44 +3386,27 @@ class AgentApp:
             if stream_signature is None or "config" in stream_signature.parameters or any(
                 parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in stream_signature.parameters.values()
             ):
-                stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec), "callbacks": [observer]}
-            elif "config" in stream_kwargs:
-                stream_kwargs["config"]["callbacks"] = [observer]
+                stream_kwargs["config"] = {"recursion_limit": _graph_recursion_limit(self.spec)}
             async for event in graph.astream_events(inputs, **stream_kwargs):
                 name = str(event.get("name") or "")
                 kind = str(event.get("event") or "")
                 data = event.get("data") or {}
                 if kind == "on_chain_start" and name == "model":
+                    graph_turn_counter += 1
+                    active_graph_turn = graph_turn_counter
                     incoming_messages = _messages_from_event(data.get("input")) or last_state_messages
-                    if turn > 0:
-                        emit_context_usage(turn, incoming_messages)
-                    turn += 1
-                    model_call_id = str(event.get("run_id") or uuid.uuid4().hex)
-                    primary_ledger_calls[turn] = model_call_id
-                    ledger_start(model_call_id, "primary")
-                    current_model_call_id = None
-                    model_call_started[model_call_id] = datetime.now(timezone.utc)
-                    prompt, system_shown = _prompt_from_messages(data.get("input"), self.spec.system_prompt, shown_message_keys, system_shown)
+                    graph_call_id = str(event.get("run_id") or uuid.uuid4().hex)
+                    graph_run_turns[graph_call_id] = active_graph_turn
+                    capture_model_timing(graph_call_id, "graph_fallback")
+                    current_model_call_id = model_call_by_turn.get(active_graph_turn)
                     current_input_messages = incoming_messages
                     last_state_messages = list(incoming_messages)
                     current_input_messages_snapshot = list(current_input_messages)
-                    context_meter.begin_primary(current_input_messages)
-                    current_rendered_input_hash = _hash_text(json.dumps(_safe_json({"system_prompt": self.spec.system_prompt, "messages": [_message_text(item) for item in current_input_messages], "tools": [_tool_schema(tool) for tool in self.spec.tools], "output_schema": self.spec.output_schema.model_json_schema() if self.spec.output_schema else None, "settings": inference_options}), ensure_ascii=False, sort_keys=True, separators=(",", ":")))
-                    pending_model_inputs[turn] = (prompt, list(current_input_messages), current_rendered_input_hash)
+                    capture = next((item for item in request_captures if item.get("turn") == active_graph_turn), None)
+                    if capture is not None:
+                        current_rendered_input_hash = capture.get("rendered_input_hash")
                 elif kind == "on_chain_start" and name.startswith("SummarizationMiddleware.before_model"):
-                    summary_input_messages = _messages_from_event(data.get("input")) or last_state_messages
-                    estimate, _sources = context_meter.count(summary_input_messages)
-                    summary_messages = _messages_from_event(data.get("input")) or last_state_messages
-                    if compact_threshold is not None and estimate is not None and estimate >= compact_threshold and turn not in compaction_announced_turns:
-                        compact_count += 1
-                        last_compaction_id = f"compact-{compact_count}"
-                        compaction_announced_turns.add(turn)
-                        compact_source_refs = [message_ref(message) for message in summary_messages]
-                        compaction_source_refs[last_compaction_id] = compact_source_refs
-                        emit("compaction_started", {"compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": compact_source_refs})
-                        compact_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "after_turn": turn, "basis": estimate, "basis_source": _sources, "threshold": compact_threshold, "source_refs": compact_source_refs, "status": "started", "summary_template": "langgraph_default"})
-                        if compact_seq is not None:
-                            source_state["latest_compact"] = (compact_seq, "context")
+                    active_summary_graph_run = str(event.get("run_id") or "") or None
                 elif kind == "on_chat_model_start":
                     metadata = data.get("metadata", {}) or {}
                     observed_model = observed_model or metadata.get("model_name")
@@ -2988,96 +3423,125 @@ class AgentApp:
                     # rendered, avoiding duplicate assistant output.
                     continue
                 elif kind == "on_chain_end" and name == "model":
-                    chain_call_id = str(event.get("run_id") or primary_ledger_calls.get(turn) or "")
+                    graph_call_id = str(event.get("run_id") or "")
+                    chain_turn = graph_run_turns.get(graph_call_id, active_graph_turn or turn)
+                    chain_call_id = model_call_by_turn.get(chain_turn) or str(primary_ledger_calls.get(chain_turn) or graph_call_id)
                     if chain_call_id:
-                        ledger_complete(primary_ledger_calls.get(turn, chain_call_id))
+                        if chain_call_id not in model_call_timings:
+                            capture_model_timing(chain_call_id, "graph_fallback")
+                            close_model_timing(chain_call_id, "graph_fallback")
+                        ledger_start(chain_call_id, "primary")
+                        ledger_complete(chain_call_id)
                     messages = _messages_from_event(data.get("output"))
                     if messages:
                         existing_keys = {_message_key(message) for message in last_state_messages}
                         last_state_messages.extend(message for message in messages if _message_key(message) not in existing_keys)
                     last_state_messages_snapshot = list(last_state_messages)
                     context_meter.finish_primary(last_state_messages)
-                    if turn not in started_turns:
-                        prompt, input_messages, rendered_hash = pending_model_inputs.get(turn, ("", [], None))
+                    if chain_turn not in started_turns:
+                        prompt, input_messages, rendered_hash = pending_model_inputs.get(chain_turn, ("", [], None))
                         current_model_call_id = current_model_call_id or str(event.get("run_id") or uuid.uuid4().hex)
+                        model_call_turns[current_model_call_id] = chain_turn
+                        model_call_by_turn[chain_turn] = current_model_call_id
                         current_rendered_input_hash = rendered_hash
-                        started_turns.add(turn)
-                        emit("model_started", {"attempt_id": attempt_id, "turn": turn, "model_call_id": current_model_call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages]})
+                        started_turns.add(chain_turn)
+                        emit("model_started", {"attempt_id": attempt_id, "turn": chain_turn, "model_call_id": current_model_call_id, "call_kind": "primary", "prompt": prompt, "input_message_refs": [message_ref(item) for item in input_messages], **public_model_timing(current_model_call_id)})
                     ai = next((message for message in reversed(messages) if isinstance(message, AIMessage)), None)
                     if ai is not None:
-                        calls = list(getattr(ai, "tool_calls", None) or [])
-                        if _message_text(ai) and not calls and turn not in streamed_turns:
-                            emit("model_text", {"attempt_id": attempt_id, "turn": turn, "text": _message_text(ai)})
-                        _mark_message_shown(ai, shown_message_keys)
-                        structured_name = self.spec.output_schema.__name__ if self.spec.output_schema is not None else None
-                        requests = [
-                            _tool_request(call, attempt_id, turn, kind="structured" if call.get("name") == structured_name else "business")
-                            for call in calls
-                        ]
-                        for request in requests:
-                            request["model_call_id"] = current_model_call_id
-                        structured_requests = [request for request in requests if request["kind"] == "structured"]
-                        emit(
-                            "model_completed",
-                            {
-                                "attempt_id": attempt_id,
-                                "turn": turn,
-                                "model_call_id": current_model_call_id,
-                                "call_kind": "primary",
-                                "tool_count": len(calls),
-                                "output": _message_text(ai) if not calls else "",
-                                "structured_request": structured_requests[0] if structured_requests else None,
-                            },
-                        )
-                        for request in requests:
-                            if request["kind"] == "business":
-                                pending_tool_ids.setdefault(str(request["name"]), []).append(str(request["tool_call_id"]))
-                            else:
-                                tool_calls.append({**request, "status": "requested", "started_at": datetime.now(timezone.utc).isoformat()})
-                        # ``_message_text`` deliberately excludes provider
-                        # thinking/reasoning blocks; audit is an academic
-                        # behavior record and must not persist hidden CoT.
-                        capture = request_capture_by_call.get(current_model_call_id or "")
-                        decision_seq = audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
-                        if decision_seq is not None:
-                            source_state["latest_decision"] = (decision_seq, "decision")
-                            message_source_refs[_message_key(ai)] = (decision_seq, "decision")
-                            if getattr(ai, "id", None):
-                                message_source_by_id[str(ai.id)] = (decision_seq, "decision")
-                        decision_written_turns.add(turn)
-                        unknown_requests = [item for item in requests if item["name"] not in self.spec.tool_names and item["name"] != structured_name]
-                        business_requests = [item for item in requests if item["name"] in self.spec.tool_names]
-                        if unknown_requests:
-                            for request in unknown_requests:
-                                audit_write({"record": "action", "kind": "business", "name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "status": "rejected", "error": {"code": "tool_not_allowed", "message": "tool is not registered"}})
-                        if structured_name and business_requests and any(item["name"] == structured_name for item in requests):
-                            for request in business_requests:
-                                audit_write({"record": "action", "kind": "business", "name": request["name"], "tool_call_id": request["tool_call_id"], "arguments": request["arguments"], "status": "rejected", "error": {"code": "mixed_terminal_tool", "message": "structured output cannot share a model turn with a business tool"}})
+                        if chain_call_id not in published_model_calls:
+                            model_call_turns[chain_call_id] = chain_turn
+                            model_call_by_turn[chain_turn] = chain_call_id
+                            current_model_call_id = chain_call_id
+                            publish_primary_response(chain_call_id, ai)
+                        else:
+                            decision_source = source_state.get("latest_decision")
+                            if decision_source is not None:
+                                message_source_refs[_message_key(ai)] = decision_source
+                                if getattr(ai, "id", None):
+                                    message_source_by_id[str(ai.id)] = decision_source
                     model_usage, observed_usages, usage_conflict, model_name = _model_usage_info(data.get("output"))
                     if model_usage and not any(item.get("turn") == turn and item.get("call_kind") == "primary" and item.get("source") == "provider" for item in usage):
-                        record_model_usage(model_usage, current_model_call_id, "primary", turn, observed_usages=observed_usages, usage_conflict=usage_conflict)
-                    elif not any(item.get("turn") == turn and item.get("call_kind") == "primary" for item in usage):
-                        record_model_usage(None, current_model_call_id, "primary", turn, status="unavailable")
+                        record_model_usage(model_usage, current_model_call_id, "primary", chain_turn, observed_usages=observed_usages, usage_conflict=usage_conflict)
+                    elif not any(item.get("turn") == chain_turn and item.get("call_kind") == "primary" for item in usage):
+                        record_model_usage(None, current_model_call_id, "primary", chain_turn, status="unavailable")
                     observed_model = observed_model or model_name
                 elif kind == "on_tool_start":
                     ids = pending_tool_ids.get(name, [])
-                    call_id = ids.pop(0) if ids else str(event.get("run_id") or uuid.uuid4().hex)
+                    # ToolNode start events do not expose the originating
+                    # tool_call_id.  A single pending request is unambiguous;
+                    # concurrent same-name calls are linked later from the
+                    # official ToolMessage.tool_call_id on completion.
+                    call_id = ids.pop(0) if len(ids) == 1 else None
                     args = data.get("input")
                     name_value = name
-                    record = {"kind": "business", "name": name_value, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(args), "status": "started", "started_at": datetime.now(timezone.utc).isoformat()}
-                    tool_calls.append(record)
-                    active_tool_records[str(event.get("run_id") or call_id)] = record
-                    emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "attempt_id": attempt_id, "turn": turn})
+                    started_monotonic = _monotonic()
+                    started_at = _utc_now().isoformat()
+                    execution = {
+                        "name": name_value,
+                        "tool_call_id": call_id,
+                        "arguments": _safe_json(args),
+                        "started_at": started_at,
+                        "_started_monotonic": started_monotonic,
+                    }
+                    active_tool_records[str(event.get("run_id") or uuid.uuid4().hex)] = execution
+                    record = tool_records_by_id.get(str(call_id)) if call_id is not None else None
+                    queue_duration = None
+                    if record is not None:
+                        requested_monotonic = tool_requested_monotonic.get(str(call_id))
+                        if requested_monotonic is not None:
+                            queue_duration = max(0.0, started_monotonic - requested_monotonic)
+                        record.update(
+                            {
+                                "status": "started",
+                                "started_at": started_at,
+                                "queue_duration_seconds": queue_duration,
+                            }
+                        )
+                    tool_started_monotonic[str(event.get("run_id") or call_id)] = started_monotonic
+                    if call_id is not None:
+                        tool_started_monotonic[str(call_id)] = started_monotonic
+                    emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "started_at": started_at, "queue_duration_seconds": queue_duration, "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
                     execution_id = str(event.get("run_id") or "")
-                    record = active_tool_records.pop(execution_id, None)
+                    execution = active_tool_records.pop(execution_id, None) or {}
+                    output_message = data.get("output")
+                    output_call_id = getattr(output_message, "tool_call_id", None)
+                    call_id = str(output_call_id or execution.get("tool_call_id") or "") or None
+                    record = tool_records_by_id.get(call_id or "")
+                    if call_id is not None:
+                        ids = pending_tool_ids.get(name, [])
+                        if call_id in ids:
+                            ids.remove(call_id)
                     if record is None:
-                        record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
+                        record = {
+                            "kind": "business",
+                            "name": name,
+                            "tool_call_id": call_id,
+                            "attempt_id": attempt_id,
+                            "turn": turn,
+                            "arguments": execution.get("arguments", _safe_json(data.get("input"))),
+                            "requested_at": None,
+                        }
+                        tool_calls.append(record)
+                        if call_id is not None:
+                            tool_records_by_id[call_id] = record
                     if record is not None:
-                        finished_at = datetime.now(timezone.utc)
-                        started_at = datetime.fromisoformat(record["started_at"])
-                        record.update({"status": "completed", "result": _safe_json(result_value), "finished_at": finished_at.isoformat(), "duration_seconds": max(0.0, (finished_at - started_at).total_seconds())})
+                        finished_monotonic = _monotonic()
+                        finished_at = _utc_now().isoformat()
+                        started_monotonic = execution.get("_started_monotonic")
+                        requested_monotonic = tool_requested_monotonic.get(call_id or "")
+                        queue_duration = (
+                            max(0.0, float(started_monotonic) - requested_monotonic)
+                            if isinstance(started_monotonic, (int, float)) and requested_monotonic is not None
+                            else record.get("queue_duration_seconds")
+                        )
+                        duration = (
+                            max(0.0, finished_monotonic - float(started_monotonic))
+                            if isinstance(started_monotonic, (int, float))
+                            else None
+                        )
+                        record.update({"status": "completed", "result": _safe_json(result_value), "started_at": execution.get("started_at", record.get("started_at")), "finished_at": finished_at, "queue_duration_seconds": queue_duration, "duration_seconds": duration})
                         business_tool_called = True
                         action_seq = audit_write({"record": "action", "record_type": "action", **record})
                         if action_seq is not None and isinstance(data.get("output"), BaseMessage):
@@ -3087,7 +3551,7 @@ class AgentApp:
                             message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
                     if isinstance(data.get("output"), BaseMessage):
                         last_state_messages = [*last_state_messages, data["output"]]
-                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
+                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "started_at": record.get("started_at") if record else None, "finished_at": record.get("finished_at") if record else None, "queue_duration_seconds": record.get("queue_duration_seconds") if record else None, "duration_seconds": record.get("duration_seconds") if record else None, "attempt_id": attempt_id, "turn": turn})
                     if not active_tool_records:
                         tool_context_tokens, _tool_sources = context_meter.count(last_state_messages)
                         if compact_threshold is not None and tool_context_tokens is not None and tool_context_tokens >= compact_threshold:
@@ -3099,32 +3563,53 @@ class AgentApp:
                     if isinstance(raw_error, BaseException):
                         safe_error["details"] = _exception_details(raw_error)
                     execution_id = str(event.get("run_id") or "")
-                    record = active_tool_records.pop(execution_id, None)
+                    execution = active_tool_records.pop(execution_id, None) or {}
+                    call_id = str(execution.get("tool_call_id") or "") or None
+                    record = tool_records_by_id.get(call_id or "")
                     if record is None:
-                        record = next((item for item in reversed(tool_calls) if item["name"] == name and item["status"] == "started"), None)
-                    if record is None:
-                        record = {"kind": "business", "name": name, "tool_call_id": event.get("tool_call_id") or event.get("run_id"), "attempt_id": attempt_id, "turn": turn, "arguments": _safe_json(data.get("input")), "status": "failed"}
+                        record = {"kind": "business", "name": name, "tool_call_id": call_id, "attempt_id": attempt_id, "turn": turn, "arguments": execution.get("arguments", _safe_json(data.get("input"))), "requested_at": None, "status": "failed"}
                         tool_calls.append(record)
-                    record.update({"status": "failed", "error": safe_error, "finished_at": datetime.now(timezone.utc).isoformat()})
+                    finished_monotonic = _monotonic()
+                    started_monotonic = execution.get("_started_monotonic")
+                    requested_monotonic = tool_requested_monotonic.get(call_id or "")
+                    record.update({
+                        "status": "failed",
+                        "error": safe_error,
+                        "started_at": execution.get("started_at", record.get("started_at")),
+                        "finished_at": _utc_now().isoformat(),
+                        "queue_duration_seconds": (
+                            max(0.0, float(started_monotonic) - requested_monotonic)
+                            if isinstance(started_monotonic, (int, float)) and requested_monotonic is not None
+                            else record.get("queue_duration_seconds")
+                        ),
+                        "duration_seconds": (
+                            max(0.0, finished_monotonic - float(started_monotonic))
+                            if isinstance(started_monotonic, (int, float))
+                            else None
+                        ),
+                    })
                     failed_tool_call_ids.add(str(record.get("tool_call_id")))
-                    if record.get("started_at"):
-                        finished_at = datetime.fromisoformat(record["finished_at"])
-                        started_at = datetime.fromisoformat(record["started_at"])
-                        record["duration_seconds"] = max(0.0, (finished_at - started_at).total_seconds())
                     action_seq = audit_write({"record": "action", **record})
                     if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                         message_source_refs[_message_key(data["output"])] = (action_seq, "action")
                     if action_seq is not None:
                         source_state["latest_action"] = (action_seq, "action")
                         message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
-                    emit("tool_failed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else None, "error": safe_error, "status": "failed", "attempt_id": attempt_id, "turn": turn})
+                    emit("tool_failed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else None, "error": safe_error, "status": "failed", "started_at": record.get("started_at") if record else None, "finished_at": record.get("finished_at") if record else None, "queue_duration_seconds": record.get("queue_duration_seconds") if record else None, "duration_seconds": record.get("duration_seconds") if record else None, "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_chain_end" and name.startswith("SummarizationMiddleware.before_model"):
+                    graph_run_id = str(event.get("run_id") or "")
+                    compaction_id = compaction_by_graph_run.get(graph_run_id)
+                    if compaction_id is None and compact_tracker is not None:
+                        compaction_id = compact_tracker.active_compaction_id
+                    active_summary_graph_run = None
                     replacement = data.get("output") or {}
                     replacement_messages = _messages_from_event(replacement.get("messages") if isinstance(replacement, Mapping) else replacement)
+                    if compaction_id is None or not replacement_messages:
+                        continue
                     context_meter.invalidate_provider_anchor()
                     replacement_refs = [message_ref(message) for message in replacement_messages]
                     replacement_projection = _compact_replacement_projection(replacement_messages)
-                    replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": last_compaction_id, "replacement": replacement_projection, "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
+                    replacement_seq = audit_write({"record": "context", "record_type": "context", "operation": "compact", "compaction_id": compaction_id, "replacement": replacement_projection, "replacement_refs": replacement_refs, "replacement_hash": _hash_text(json.dumps(replacement_refs, ensure_ascii=False, sort_keys=True)), "status": "replacement_applied"})
                     if replacement_seq is not None:
                         source_state["latest_compact"] = (replacement_seq, "context")
                         for message in replacement_messages:
@@ -3141,7 +3626,7 @@ class AgentApp:
                     structured_record = next((item for item in reversed(tool_calls) if item.get("kind") == "structured" and item.get("status") == "requested"), None)
                     if output is not None:
                         if structured_record is not None:
-                            structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": datetime.now(timezone.utc).isoformat()})
+                            structured_record.update({"status": "completed", "result": _safe_json(output), "finished_at": _utc_now().isoformat()})
                             audit_write({"record": "action", **structured_record})
                         emit("structured_output", {"attempt_id": attempt_id, "turn": turn, "model_call_id": (structured_record or {}).get("model_call_id") or current_model_call_id, "call_kind": "primary", "output": _safe_json(output)})
                     emit_context_usage(turn, messages or last_state_messages, run_ending=True)
@@ -3240,10 +3725,27 @@ class AgentApp:
                 reported_usage_enabled=(lambda: compact_tracker is None or compact_tracker.reported_usage_enabled),
                 counters=counters,
             )
-            primary_model = self.model.with_config(callbacks=[observer]) if hasattr(self.model, "with_config") else self.model
-            middleware: list[Any] = [_ModelOptionsMiddleware(inference_options), _RequestCaptureMiddleware(request_captures), guard]
+            existing_callbacks = list(getattr(self.model, "callbacks", None) or [])
+            if not hasattr(self.model, "model_copy"):
+                raise AgentError("config_error", "chat model does not support run-scoped callback copies")
+            primary_model = self.model.model_copy(
+                deep=False,
+                update={"callbacks": [*existing_callbacks, observer]},
+            )
+            middleware: list[Any] = [
+                _ModelOptionsMiddleware(inference_options),
+                _RequestCaptureMiddleware(request_captures, capture_primary_request),
+                guard,
+            ]
             if compact_threshold is not None and compact_trigger_ratio is not None:
-                summary_model = primary_model.with_config(metadata={"lc_source": "summarization"}) if hasattr(primary_model, "with_config") else primary_model
+                summary_metadata = {
+                    **dict(getattr(primary_model, "metadata", None) or {}),
+                    "lc_source": "summarization",
+                }
+                summary_model = primary_model.model_copy(
+                    deep=False,
+                    update={"metadata": summary_metadata},
+                )
                 summary_model = summary_model.bind(**inference_options) if inference_options else summary_model
                 middleware.append(
                     SummarizationMiddleware(
@@ -3259,14 +3761,23 @@ class AgentApp:
                 model=primary_model,
                 tools=_langchain_tools(self.spec.tools),
                 system_prompt=self.spec.system_prompt,
-                response_format=self.spec.output_schema,
+                # ``with_config`` previously wrapped every model in a
+                # RunnableBinding, so AutoStrategy consistently selected its
+                # official tool-calling path.  The run-scoped model copy keeps
+                # provider profiles visible; pass ToolStrategy explicitly to
+                # preserve that established cross-provider behavior.
+                response_format=(
+                    ToolStrategy(self.spec.output_schema)
+                    if self.spec.output_schema is not None
+                    else None
+                ),
                 middleware=middleware,
                 name=self.spec.name,
             )
             if seconds is None:
                 await consume(graph)
             else:
-                remaining = float(seconds) - (time.monotonic() - started)
+                remaining = float(seconds) - (_monotonic() - started)
                 if remaining <= 0:
                     raise AgentError("limit_exceeded", "seconds limit exceeded")
                 await asyncio.wait_for(consume(graph), timeout=remaining)
@@ -3315,6 +3826,31 @@ class AgentApp:
                 with contextlib.suppress(asyncio.CancelledError):
                     await heartbeat_task
             try:
+                if status == "cancelled" and current_model_call_id is not None:
+                    timing = model_call_timings.get(current_model_call_id)
+                    if timing is not None and timing.get("ended_at_utc") is None:
+                        close_model_timing(current_model_call_id, "runtime_cancel_fallback")
+                        ledger_complete(current_model_call_id)
+                        call_kind = model_call_kinds.get(current_model_call_id, "primary")
+                        call_turn = model_call_turns.get(current_model_call_id, turn)
+                        if not any(item.get("model_call_id") == current_model_call_id for item in usage):
+                            record_transport_usage(
+                                None,
+                                current_model_call_id,
+                                call_kind,
+                                call_turn,
+                                status="cancelled",
+                            )
+                        emit(
+                            "model_failed",
+                            {
+                                "model_call_id": current_model_call_id,
+                                "call_kind": call_kind,
+                                "turn": call_turn,
+                                "error": error,
+                                **public_model_timing(current_model_call_id),
+                            },
+                        )
                 if error is not None and current_model_call_id is not None and turn not in decision_written_turns:
                     capture = request_capture_by_call.get(current_model_call_id, {})
                     audit_write(
@@ -3335,18 +3871,27 @@ class AgentApp:
                     )
                     decision_written_turns.add(turn)
                 ledger.cancel_pending()
-                ended_at_utc = datetime.now(timezone.utc)
-                duration_seconds = max(0.0, time.monotonic() - started)
+                ended_at_utc = _utc_now()
+                duration_seconds = max(0.0, _monotonic() - started)
                 for record in tool_calls:
                     if record.get("status") in {"started", "requested"}:
                         if error is None:
                             error = {"code": "incomplete_tool", "message": "tool execution did not produce a completion event"}
                             status = "failed"
-                        finished_at = datetime.now(timezone.utc)
-                        started_at = datetime.fromisoformat(record["started_at"]) if record.get("started_at") else finished_at
+                        finished_at = _utc_now()
+                        started_monotonic = tool_started_monotonic.get(str(record.get("tool_call_id")))
                         unfinished_status = "cancelled" if error.get("code") in {"tool_error", "provider_error", "cancelled"} else "failed"
-                        record.update({"status": unfinished_status, "error": error, "finished_at": finished_at.isoformat(), "duration_seconds": max(0.0, (finished_at - started_at).total_seconds())})
-                        emit("tool_failed", {"name": record.get("name"), "tool_call_id": record.get("tool_call_id"), "arguments": record.get("arguments"), "error": error, "status": unfinished_status, "attempt_id": record.get("attempt_id"), "turn": record.get("turn")})
+                        record.update({
+                            "status": unfinished_status,
+                            "error": error,
+                            "finished_at": finished_at.isoformat(),
+                            "duration_seconds": (
+                                max(0.0, _monotonic() - started_monotonic)
+                                if started_monotonic is not None
+                                else None
+                            ),
+                        })
+                        emit("tool_failed", {"name": record.get("name"), "tool_call_id": record.get("tool_call_id"), "arguments": record.get("arguments"), "error": error, "status": unfinished_status, "started_at": record.get("started_at"), "finished_at": record.get("finished_at"), "queue_duration_seconds": record.get("queue_duration_seconds"), "duration_seconds": record.get("duration_seconds"), "attempt_id": record.get("attempt_id"), "turn": record.get("turn")})
                         audit_write({"record": "action", **record})
                 if error is not None and turn > 0 and failure_context_emitter is not None and turn not in context_events_seen:
                     failure_context_emitter()
@@ -3456,9 +4001,9 @@ class AgentApp:
             with contextlib.suppress(Exception):
                 _atomic_write(canonical_result_out, result.to_dict(), run_id=run_id)
         if error is None and status == "success":
-            emit("completed", {"model": self.config.model, "profile": self.profile, "output": _safe_json(output), "final_text": final_text, "usage": usage, "academic_eligible": academic_eligible, "eligibility_scope": _ELIGIBILITY_SCOPE})
+            emit("completed", {"model": self.config.model, "profile": self.profile, "output": _safe_json(output), "final_text": final_text, "usage": usage, "duration_seconds": duration_seconds, "academic_eligible": academic_eligible, "eligibility_scope": _ELIGIBILITY_SCOPE})
         else:
-            emit("failed", {**(error or {"code": "runtime_error", "message": "agent run failed"}), "eligibility_scope": _ELIGIBILITY_SCOPE, "academic_eligible": False})
+            emit("failed", {**(error or {"code": "runtime_error", "message": "agent run failed"}), "duration_seconds": duration_seconds, "eligibility_scope": _ELIGIBILITY_SCOPE, "academic_eligible": False})
         renderer_obj.close()
         return result
 
@@ -3610,3 +4155,22 @@ def _visible_reasoning(message: Any) -> str | None:
         value = metadata.get("reasoning_summary") or metadata.get("rationale")
         return value if isinstance(value, str) else None
     return None
+
+
+def _public_stream_chunk(token: Any, chunk: Any) -> tuple[str, bool]:
+    """Return public text and whether a provider chunk has public semantics."""
+
+    message = getattr(chunk, "message", chunk)
+    message_text = _message_text(message) if message is not None else ""
+    # When a public LangChain message is available it is the visibility
+    # boundary.  Some providers reuse ``token`` for raw reasoning deltas whose
+    # message content is empty; those must not leak or establish first chunk.
+    text = message_text or (token if message is None and isinstance(token, str) else "")
+    tool_chunks = list(getattr(message, "tool_call_chunks", None) or []) if message is not None else []
+    has_tool_delta = any(
+        any(call.get(key) not in {None, ""} for key in ("name", "args", "id"))
+        for call in tool_chunks
+        if isinstance(call, Mapping)
+    )
+    visible_reasoning = _visible_reasoning(message) if message is not None else None
+    return text, bool(text or visible_reasoning or has_tool_delta)
