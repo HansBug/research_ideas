@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -400,6 +401,8 @@ def _validate_guide_protocol(
             "fcstm guide-first protocol violated before:"
             + ",".join(str(item.get("tool_name")) for item in early_model_attempts)
         )
+    if state.first_attempt_at("read_task", after=fcstm_read) is None:
+        raise ValueError("read_task was not called after read_fcstm_guide")
 
     property_requested = any(
         draft.check_kind == "property" for draft in submission.check_drafts
@@ -500,9 +503,9 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
 
     Permissions: Controller code may read only manifest-declared current-run
     inputs and invoke configured providers/pyfcstm. The main Agent is read-only
-    and receives only ``read_task``, ``query_model``, ``observe_trace``,
-    ``lookup_source_trace``, and deterministic ``evaluate_checks``; no mutation,
-    arbitrary path/network/shell/Python/Z3,
+    and receives only ``read_fcstm_guide``, ``read_fbmcq_guide``, ``read_task``,
+    ``query_model``, ``observe_trace``, ``lookup_source_trace``, and deterministic
+    ``evaluate_checks``; no mutation, arbitrary path/network/shell/Python/Z3,
     alternate run/case, future-stage, seed/reference/gold, or hidden evaluator
     access is exposed.
 
@@ -602,6 +605,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     if replay_file:
         submission, receipt_ref = _run_replay(run_dir, Path(replay_file))
         read_fcstm_guide.invoke({})
+        read_task.invoke({})
         if any(item.check_kind == "property" for item in submission.check_drafts):
             read_fbmcq_guide.invoke({})
         evaluate_checks.invoke(
@@ -663,9 +667,12 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "guide_access_completed",
             {
                 "schema_version": "paper1.guide_access.v1",
-                "protocol": "fcstm-first;fbmcq-before-property",
+                "protocol": "fcstm-first;read-task-required;fbmcq-before-property",
                 "events": guide_access.events,
                 "fcstm_read_at": guide_access.fcstm_read_at,
+                "read_task_at": guide_access.first_attempt_at(
+                    "read_task", after=guide_access.fcstm_read_at
+                ),
                 "fbmcq_read_at": guide_access.fbmcq_read_at,
             },
         )
@@ -786,6 +793,20 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     return completed
 
 
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
+def _positive_finite_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive finite number")
+    return parsed
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run paper1 B-discover Agent")
     source = parser.add_mutually_exclusive_group(required=True)
@@ -799,10 +820,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--content-language", choices=LANGUAGES, default="zh-CN")
     parser.add_argument("--renderer", choices=("auto", "rich", "jsonl", "quiet"), default="rich")
     parser.add_argument("--formal-profile", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--max-model-calls", type=int)
-    parser.add_argument("--max-tool-calls", type=int)
-    parser.add_argument("--max-turns", type=int)
-    parser.add_argument("--max-seconds", type=float)
+    parser.add_argument("--max-model-calls", type=_positive_int)
+    parser.add_argument("--max-tool-calls", type=_positive_int)
+    parser.add_argument("--max-turns", type=_positive_int)
+    parser.add_argument("--max-seconds", type=_positive_finite_float)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--replay-file", type=Path, help=argparse.SUPPRESS)

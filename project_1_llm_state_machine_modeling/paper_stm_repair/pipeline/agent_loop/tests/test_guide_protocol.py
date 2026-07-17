@@ -77,6 +77,14 @@ def test_scenario_only_submission_requires_fcstm_but_not_fbmcq_guide():
     _validate_guide_protocol(state, _submission("scenario"))
 
 
+def test_submission_requires_read_task_after_fcstm_guide():
+    state = GuideAccessState()
+    _mark(state, "fcstm")
+    state.record_attempt("evaluate_checks", property_batch=False)
+    with pytest.raises(ValueError, match="read_task was not called"):
+        _validate_guide_protocol(state, _submission("scenario"))
+
+
 def test_property_submission_requires_fbmcq_guide_before_property_attempt():
     state = GuideAccessState()
     _mark(state, "fcstm")
@@ -126,6 +134,24 @@ def test_cli_limits_default_to_none_and_can_be_explicit():
     assert explicit.max_tool_calls == 200
     assert explicit.max_turns == 150
     assert explicit.max_seconds == 3600.0
+
+
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [
+        ("--max-model-calls", "0"),
+        ("--max-tool-calls", "-1"),
+        ("--max-turns", "0"),
+        ("--max-seconds", "0"),
+        ("--max-seconds", "nan"),
+        ("--max-seconds", "inf"),
+    ],
+)
+def test_cli_rejects_nonpositive_or_nonfinite_limits(option: str, value: str):
+    with pytest.raises(SystemExit, match="2"):
+        _parser().parse_args(
+            ["--pair-id", "p", "--output-dir", "/tmp/out", option, value]
+        )
 
 
 def test_prepare_run_dir_persists_only_explicit_limits(tmp_path: Path):

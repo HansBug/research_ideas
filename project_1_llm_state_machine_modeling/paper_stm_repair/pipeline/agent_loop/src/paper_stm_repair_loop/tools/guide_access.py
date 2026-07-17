@@ -50,6 +50,18 @@ class GuideAccessState:
             return self.fbmcq_read_at is not None
         raise ValueError(f"unknown guide kind: {guide_kind}")
 
+    def first_attempt_at(self, tool_name: str, *, after: int | None = None) -> int | None:
+        """Return the first matching tool-attempt sequence after an optional gate."""
+
+        sequences = [
+            int(item["sequence"])
+            for item in self.events
+            if item.get("event") == "tool_attempt"
+            and item.get("tool_name") == tool_name
+            and (after is None or int(item["sequence"]) > after)
+        ]
+        return min(sequences) if sequences else None
+
 
 def prerequisite_result(blocked_tool: str, required_tool: str) -> dict[str, Any]:
     return {

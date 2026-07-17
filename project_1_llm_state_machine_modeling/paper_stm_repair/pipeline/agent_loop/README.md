@@ -112,7 +112,8 @@ python -m paper_stm_repair_loop.discover \
   --output-dir runs/paper1/discover/limited-0000
 ```
 
-四个选项彼此独立；未传入的维度保持无限制。显式值会写入
+四个选项彼此独立；未传入的维度保持无限制。显式值必须是正数，
+其中秒数还必须是有限数（拒绝 `NaN` 与正负无穷）。通过校验的值会写入
 `manifest.json.agent_limits`，便于复现实验预算。Make 入口可通过
 `DISCOVER_ARGS="--max-model-calls 24 --max-seconds 1800"` 透传相同选项。
 
