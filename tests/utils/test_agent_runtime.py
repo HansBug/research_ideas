@@ -188,6 +188,53 @@ class _InvalidThenValidStructuredModel(_MissingThenStructuredModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
 
+class _MalformedBusinessThenStructuredModel(_MissingThenStructuredModel):
+    @property
+    def _llm_type(self) -> str:
+        return "malformed-business-then-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                invalid_tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": "{",
+                        "id": "business-malformed-1",
+                        "error": "invalid JSON arguments",
+                        "type": "invalid_tool_call",
+                    }
+                ],
+            )
+        elif self.calls == 2:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.business_tool_name,
+                        "args": {},
+                        "id": "business-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-after-business-retry-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 def test_tool_call_and_academic_audit_are_exported(tmp_path: Path) -> None:
     def lookup(value: str) -> dict[str, str]:
         return {"value": value}
@@ -272,6 +319,59 @@ def test_missing_structured_output_retry_continues_same_audited_run(tmp_path: Pa
     assert retry_roles.count("tool") >= 2
 
 
+def test_missing_output_retry_recovers_malformed_mandatory_business_call(
+    tmp_path: Path,
+) -> None:
+    state = {"lookup_completed": False}
+
+    def lookup() -> str:
+        """Return one fact and satisfy the mandatory step."""
+        state["lookup_completed"] = True
+        return "ok"
+
+    model = _MalformedBusinessThenStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="malformed-business-retry",
+            system_prompt="Call lookup, then return the structured answer.",
+            tools=(lookup,),
+            output_schema=_RetryAnswer,
+            require_tool_call=True,
+            retry_missing_structured_output=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    audit = tmp_path / "malformed-business-retry.jsonl"
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=audit,
+        tool_choice_resolver=(
+            lambda: None if state["lookup_completed"] else "lookup"
+        ),
+        tool_choice_policy_name="test-mandatory-v1",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    assert model.calls == 3
+    malformed = [
+        item
+        for item in result.tool_calls
+        if item.get("error", {}).get("code") == "tool_arguments_invalid"
+    ]
+    assert len(malformed) == 1
+    assert malformed[0]["kind"] == "business"
+    assert malformed[0]["name"] == "lookup"
+    completed = [
+        item
+        for item in result.tool_calls
+        if item.get("kind") == "business" and item.get("status") == "completed"
+    ]
+    assert [item["name"] for item in completed] == ["lookup"]
+
+
 def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:
     model = _InvalidThenValidStructuredModel()
     app = AgentApp._for_test(
@@ -352,6 +452,59 @@ def test_recovery_history_refuses_dangling_business_tool_call() -> None:
 
     with pytest.raises(AgentError, match="cannot be safely replayed"):
         _prepare_recovery_history([dangling], structured_name="_RetryAnswer")
+
+
+def test_recovery_history_excludes_terminal_invalid_registered_business_call() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "lookup",
+                "args": "{",
+                "id": "business-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    replay, rejected = _prepare_recovery_history(
+        [HumanMessage(content="answer"), malformed],
+        structured_name="_RetryAnswer",
+        business_names=("lookup",),
+    )
+
+    assert len(replay) == 1
+    assert rejected == [
+        {
+            "name": "lookup",
+            "source": "invalid_tool_calls",
+            "tool_call_id": "business-malformed-1",
+            "valid": False,
+        }
+    ]
+
+
+def test_recovery_history_refuses_terminal_invalid_unknown_tool_call() -> None:
+    malformed = AIMessage(
+        content="",
+        invalid_tool_calls=[
+            {
+                "name": "unknown_tool",
+                "args": "{",
+                "id": "unknown-malformed-1",
+                "error": "invalid JSON arguments",
+                "type": "invalid_tool_call",
+            }
+        ],
+    )
+
+    with pytest.raises(AgentError, match="cannot be safely replayed"):
+        _prepare_recovery_history(
+            [malformed],
+            structured_name="_RetryAnswer",
+            business_names=("lookup",),
+        )
 
 
 def test_recovery_history_excludes_terminal_invalid_structured_call_without_id() -> None:

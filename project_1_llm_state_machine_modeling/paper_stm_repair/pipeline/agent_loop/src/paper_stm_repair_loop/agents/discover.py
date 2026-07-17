@@ -559,11 +559,18 @@ def _build_submit_discovery_response(
             }
             confirmation_possible = bool(exact_pairs)
 
+            if not self.rationale.strip():
+                raise ValueError("discovery submission requires a non-empty rationale")
+
             node_ids: set[str] = set()
             for root in self.root_nodes:
                 if root.node_id in node_ids:
                     raise ValueError(f"duplicate root node: {root.node_id}")
                 node_ids.add(root.node_id)
+                if not root.statement.strip() or not root.rationale.strip():
+                    raise ValueError(
+                        f"root {root.node_id} requires statement and rationale"
+                    )
                 required = set(root.required_check_ids)
                 if not required.issubset(known_checks):
                     raise ValueError(f"root {root.node_id} references unknown final checks")
@@ -611,6 +618,11 @@ def _build_submit_discovery_response(
                 if proposition.proposition_id in proposition_ids or proposition.proposition_id in node_ids:
                     raise ValueError(f"duplicate proposition id: {proposition.proposition_id}")
                 proposition_ids.add(proposition.proposition_id)
+                if not proposition.statement.strip() or not proposition.rationale.strip():
+                    raise ValueError(
+                        f"rejected proposition {proposition.proposition_id} "
+                        "requires statement and rationale"
+                    )
                 rejected_checks = set(proposition.considered_check_ids)
                 if not rejected_checks.issubset(known_checks):
                     raise ValueError(

@@ -104,7 +104,7 @@ spec = AgentSpec(
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
 
-`require_tool_call=True` 要求整次运行至少成功调用过一个业务工具。对于 provider 偶发以空白或普通文本结束、但方法协议明确要求结构化终止的 Agent，可显式设置 `retry_missing_structured_output=True`：runtime 会保留完整、符合 provider tool-message 协议的可见历史，追加一条带 hash 的恢复上下文，并在这条恢复路径中要求模型选择业务工具或结构化终止工具。如果 provider 把末尾损坏的结构化调用保存在 `invalid_tool_calls` 或原始 `tool_calls` 中，runtime 会把该次失败提交记为 `rejected` 并从回放历史中排除；业务工具调用缺少结果、历史中段损坏或无法归因的悬空调用一律 fail-closed，不会伪造工具结果。该机制只在 graph 已结束且 `structured_response` 缺失时启动一次，不限制整次运行的模型调用、工具调用、时间或 token，也不解析普通文本伪造结构化结果。
+`require_tool_call=True` 要求整次运行至少成功调用过一个业务工具。对于 provider 偶发以空白或普通文本结束、但方法协议明确要求结构化终止的 Agent，可显式设置 `retry_missing_structured_output=True`：runtime 会保留完整、符合 provider tool-message 协议的可见历史，追加一条带 hash 的恢复上下文，并在这条恢复路径中要求模型选择业务工具或结构化终止工具。如果 provider 把末尾损坏的结构化调用保存在 `invalid_tool_calls` 或原始 `tool_calls` 中，runtime 会把该次失败提交记为 `rejected` 并从回放历史中排除。若末尾是参数无法解析、从未执行且名称属于当前 allowlist 的业务工具调用，也允许以相同方式保留拒绝审计并重试；动态 mandatory resolver 仍优先强制当前尚未完成的具体工具。正常业务工具调用缺少结果、未知工具、混合调用、历史中段损坏或无法归因的悬空调用一律 fail-closed，不会伪造工具结果。该机制只在 graph 已结束且 `structured_response` 缺失时启动一次，不限制整次运行的模型调用、工具调用、时间或 token，也不解析普通文本伪造结构化结果。
 
 限制计数是整个 `run` 的累计值；compact summary transport 也计入显式 `model_calls`，但不计业务 turn/tool。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；缺省时把容量交给 provider，不在本地擅自猜测数值。
 

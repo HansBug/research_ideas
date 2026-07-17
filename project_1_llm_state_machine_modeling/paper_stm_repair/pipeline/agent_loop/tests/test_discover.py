@@ -270,6 +270,43 @@ def test_run_scoped_schema_accepts_contradicted_candidate_root():
     assert result.root_nodes[0].assessment == "candidate_only"
 
 
+@pytest.mark.parametrize(
+    ("field_path", "message"),
+    [
+        (("rationale",), "discovery submission requires a non-empty rationale"),
+        (("root_nodes", 0, "statement"), "root ISS-001@n0 requires statement and rationale"),
+        (("root_nodes", 0, "rationale"), "root ISS-001@n0 requires statement and rationale"),
+    ],
+)
+def test_run_scoped_schema_rejects_empty_publish_rationale(field_path, message):
+    schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
+    payload = _submission_payload(drafts, check_id=check_id)
+    target = payload
+    for key in field_path[:-1]:
+        target = target[key]
+    target[field_path[-1]] = ""
+
+    with pytest.raises(ValidationError, match=message):
+        schema.model_validate(payload)
+
+
+@pytest.mark.parametrize("empty_field", ["statement", "rationale"])
+def test_run_scoped_schema_rejects_empty_rejected_proposition_text(empty_field):
+    schema, drafts, check_id = _run_scoped_submission(relation="matches")
+    payload = _rejected_payload(
+        drafts,
+        check_id=check_id,
+        rejection_reason="expectation_matched",
+    )
+    payload["rejected_propositions"][0][empty_field] = ""
+
+    with pytest.raises(
+        ValidationError,
+        match="rejected proposition REJ-001 requires statement and rationale",
+    ):
+        schema.model_validate(payload)
+
+
 def test_run_scoped_schema_accepts_exactly_paired_confirmed_root():
     schema, drafts, check_id = _run_scoped_submission(
         relation="contradicts",

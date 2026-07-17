@@ -3391,7 +3391,12 @@ class AgentApp:
                         "instruction_hash": _hash_text(_message_text(retry_message)),
                     }
                 )
-                model_options_middleware.forced_tool_choice = "required"
+                current_mandatory_choice = (
+                    tool_choice_resolver() if tool_choice_resolver is not None else None
+                )
+                model_options_middleware.forced_tool_choice = (
+                    None if current_mandatory_choice is not None else "required"
+                )
                 terminal_messages = (
                     list(terminal_state.get("messages") or [])
                     if isinstance(terminal_state, Mapping)
@@ -3400,10 +3405,14 @@ class AgentApp:
                 replay_messages, rejected_calls = _prepare_recovery_history(
                     terminal_messages or last_state_messages_snapshot,
                     structured_name=self.spec.output_schema.__name__,
+                    business_names=self.spec.tool_names,
                 )
                 for rejected_call in rejected_calls:
+                    is_structured = (
+                        rejected_call.get("name") == self.spec.output_schema.__name__
+                    )
                     rejected_record = {
-                        "kind": "structured",
+                        "kind": "structured" if is_structured else "business",
                         "name": rejected_call.get("name"),
                         "tool_call_id": rejected_call.get("tool_call_id"),
                         "arguments": None,
@@ -3413,10 +3422,18 @@ class AgentApp:
                         "started_at": datetime.now(timezone.utc).isoformat(),
                         "finished_at": datetime.now(timezone.utc).isoformat(),
                         "error": {
-                            "code": "structured_output_invalid",
+                            "code": (
+                                "structured_output_invalid"
+                                if is_structured
+                                else "tool_arguments_invalid"
+                            ),
                             "message": (
                                 "provider returned a malformed structured-output tool call; "
                                 "the invalid terminal assistant message was excluded from replay"
+                                if is_structured
+                                else "provider returned malformed arguments for a registered "
+                                "business tool that was not executed; the invalid terminal "
+                                "assistant message was excluded from replay"
                             ),
                         },
                     }
@@ -3748,6 +3765,7 @@ def _prepare_recovery_history(
     messages: Sequence[Any],
     *,
     structured_name: str,
+    business_names: Sequence[str] = (),
 ) -> tuple[list[Any], list[dict[str, Any]]]:
     """Validate provider tool-message ordering before replaying terminal state.
 
@@ -3755,11 +3773,13 @@ def _prepare_recovery_history(
     ``additional_kwargs.tool_calls`` even though LangGraph cannot execute it.
     Replaying that terminal assistant message violates the OpenAI-compatible
     message protocol. Only a final, invalid call to the configured structured
-    output tool may be excluded and retried. Missing business-tool responses or
-    corruption in the middle of history fail closed.
+    output tool, or to a registered business tool that was never executable, may
+    be excluded and retried. Missing responses for valid calls, unknown tools,
+    or corruption in the middle of history fail closed.
     """
 
     history = list(messages)
+    recoverable_names = {structured_name, *business_names}
     pending: dict[str, dict[str, Any]] = {}
     pending_index: int | None = None
     for index, message in enumerate(history):
@@ -3786,7 +3806,7 @@ def _prepare_recovery_history(
             if (
                 index == len(history) - 1
                 and all(not item["valid"] for item in calls_without_ids)
-                and all(item.get("name") == structured_name for item in calls_without_ids)
+                and all(item.get("name") in recoverable_names for item in calls_without_ids)
             ):
                 return history[:index], calls_without_ids
             raise AgentError(
@@ -3806,7 +3826,7 @@ def _prepare_recovery_history(
     if (
         pending_index == len(history) - 1
         and all(not item["valid"] for item in dangling)
-        and all(item.get("name") == structured_name for item in dangling)
+        and all(item.get("name") in recoverable_names for item in dangling)
     ):
         return history[:pending_index], dangling
     raise AgentError(

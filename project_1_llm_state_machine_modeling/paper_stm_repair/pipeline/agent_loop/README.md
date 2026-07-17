@@ -47,7 +47,10 @@ Agent 获得七个 bounded 工具：
 tool-message 协议的可见历史，并启用一次可审计恢复路径，要求先补齐遗漏的 mandatory
 business tool，再结构化提交。若末尾 assistant 消息只包含 provider 无法解析的
 `submit_discovery` 调用，该失败提交会作为 `rejected` 证据保留，但不会再次发送给
-provider；任何悬空业务工具调用或历史中段损坏都直接 fail-closed。恢复路径不限制
+provider。若末尾 assistant 消息只包含一个参数无法解析、从未执行且名称属于当前
+allowlist 的业务工具调用，runtime 会同样保留拒绝审计、排除该条畸形消息，并在同一
+Agent run 内继续强制尚未完成的 mandatory 工具；正常业务调用缺少结果、未知工具、
+混合调用或历史中段损坏仍直接 fail-closed。恢复路径不限制
 整次运行的模型调用、工具调用、时间或 token，也不会从普通文本伪造结果或工具结果。
 
 `evaluate_checks` 内部固定调用 `run_scenarios`、`verify_properties`、
