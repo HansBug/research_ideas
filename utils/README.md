@@ -307,6 +307,8 @@ print(answer.summary)
 
 Agent 运行使用 `create_agent(...).astream_events(...)` 或当前依赖版本的等价异步事件流，不能先 `invoke/ainvoke` 再伪造进度。
 
+当前 `utils.agent.demo` 的两个演示工具会各自随机等待 `0.5–3.0` 秒，用于在本地观察强实时 Panel 顺序；这是演示用合成延迟，不代表业务工具或正式实验的性能测量。
+
 启动 provider 请求前立即输出 `run_started`。每次 `arun()` 都用 run-scoped model copy 安装 callback，保留调用方已有 callback，不修改共享 model；该 callback 会穿过官方 `bind_tools()`。request capture 后、transport 前发出 `model_started`；首个公开 chunk 到达即刷新同一个 Rich Live；`on_llm_end` 到达即发出完整 message/tool request；工具 end/error 到达即显示结果。静默期间每秒发送 `heartbeat`（logging DEBUG），实际观察间隔不超过约 1.5 秒。LangGraph event stream 只负责 ToolNode、middleware、state 对账和明确 fallback，不重复输出 callback 已发布的 assistant/tool request。流式脱敏只在检测到已知凭据形态或运行配置中的精确 secret 时短暂保留候选 token，普通文本不会被固定延迟。`audit_out` 是另一条只面向学术分析的行为轨迹通道，`result_out` 保存最终结果。Rich 控制台会连续显示模型文本、工具调用参数、工具返回值、两行 CONTEXT、compact 生命周期和结束状态，不是运行结束后的摘要。
 
 `audit_out` 是可选的 JSONL 文件，不新增审计包装类，也不复制工程事件。它只按 Agent 行为顺序写入四类普通 JSON 记录：`context`、`decision`、`action`、`finish`；compact 作为 `context.operation="compact"`。每条记录都带 `run_id`、`seq/order`、`recorded_at`，工具记录另外带 `tool_call_id`，模型决策带 `model_call_id`。`input_message_refs`/`replacement_refs` 中每条 message ref 都带 `source_seq` 与 `source_record`（初始输入回链 `context`，工具结果回链对应 `action`），从而能重建每轮输入、输出、工具结果、context decision、compact replacement 和最终结束。
