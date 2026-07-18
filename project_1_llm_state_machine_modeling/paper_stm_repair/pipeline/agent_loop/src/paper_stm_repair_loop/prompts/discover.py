@@ -178,7 +178,10 @@ submission.
    Before creating the first property draft, call `read_fbmcq_guide()` and apply
    its property-kind, bound, definedness, model-fact, and vacuity rules. Do not
    use a property surface that the typed `evaluate_checks` contract cannot
-   represent. Keep expected outcomes logically tied to the stated NL/source claim; do not
+   represent. A property is state-only in this stage: if its statement or verified
+   NL basis names an event or a non-target precondition state, encode the behavior
+   as a scenario with complete setup, precondition, and tested event instead.
+   Keep expected outcomes logically tied to the stated NL/source claim; do not
    choose them to reproduce the current model. Completion condition: the batch
    covers every concrete proposition you intend to adjudicate, uses unique draft
    IDs, and contains no structural inventory or representation-only claim.

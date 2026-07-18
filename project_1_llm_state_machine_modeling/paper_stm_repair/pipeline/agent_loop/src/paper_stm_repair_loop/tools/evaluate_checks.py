@@ -143,7 +143,9 @@ def _grounding_rejections(
             mentioned_events = _mentioned_event_labels(
                 [draft.statement, *nl_texts], inspect
             )
-            mentioned_states = _mentioned_state_paths(nl_texts, inspect)
+            mentioned_states = _mentioned_state_paths(
+                [draft.statement, *nl_texts], inspect
+            )
             target_paths = _matching_state_paths(
                 draft.executable_spec.get("target_label"), inspect
             )

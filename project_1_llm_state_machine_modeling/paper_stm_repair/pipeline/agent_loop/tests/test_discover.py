@@ -111,6 +111,60 @@ def test_evaluation_attempt_summary_keeps_rejected_batches_and_selects_final_bat
     assert second["executed_check_ids"] == ["CHK-NL-001"]
 
 
+def test_evaluation_attempt_summary_includes_prerequisite_rejected_call():
+    request = [{"check_id": "draft-property", "check_kind": "property"}]
+    invocations = [
+        {
+            "request": request,
+            "snapshot_sha256": "snapshot-sha",
+            "result": {
+                "execution_status": "completed",
+                "drafts_sha256": "final-sha",
+                "binding_rejections": [],
+                "issue_checks": [{"check_id": "CHK-NL-001"}],
+                "gate": {
+                    "eligible": True,
+                    "reasons": [],
+                    "executed_check_ids": ["CHK-NL-001"],
+                },
+                "limitations": [],
+            },
+        }
+    ]
+    tool_attempts = [
+        {
+            "sequence": 3,
+            "tool_name": "evaluate_checks",
+            "required_tool": "evaluate_checks",
+            "arguments": {"args": [], "kwargs": {"checks": request}},
+            "execution_status": "prerequisite_required",
+            "tool_executed": False,
+        },
+        {
+            "sequence": 5,
+            "tool_name": "evaluate_checks",
+            "required_tool": "evaluate_checks",
+            "arguments": {"args": [], "kwargs": {"checks": request}},
+            "execution_status": "completed",
+            "tool_executed": True,
+        },
+    ]
+
+    summary = _summarize_evaluation_attempts(
+        invocations, "final-sha", tool_attempts
+    )
+
+    assert summary["attempt_count"] == 2
+    first, second = summary["attempts"]
+    assert first["execution_status"] == "prerequisite_required"
+    assert first["tool_executed"] is False
+    assert first["discarded_reason"] == "prerequisite_required_not_executed"
+    assert first["request"] == request
+    assert second["tool_executed"] is True
+    assert second["selected_for_submission"] is True
+    assert summary["selected_attempt_index"] == 2
+
+
 @pytest.mark.parametrize(
     ("worktree_commit", "gitlink_commit"),
     [
@@ -618,6 +672,8 @@ def test_replay_writes_all_outputs_under_one_outdir(tmp_path: Path):
     assert "test replay: `true`" in report_text
     assert "## Controller 必跑结果" in report_text
     assert "evaluate_checks_attempts_completed" in report_text
+    assert '"attempt_count": 2' in report_text
+    assert '"tool_executed": false' in report_text
     assert '"selected_for_submission": true' in report_text
     assert "## 未形成 root 的 proposition" in report_text
     assert "`PROP-ROOT-SHAPE-REJECTED`" in report_text

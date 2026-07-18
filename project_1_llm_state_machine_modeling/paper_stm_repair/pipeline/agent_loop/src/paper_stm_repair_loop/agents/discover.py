@@ -525,8 +525,9 @@ def _matching_evaluation(
 def _summarize_evaluation_attempts(
     invocation_log: list[dict[str, Any]],
     selected_drafts_sha256: str,
+    tool_attempt_log: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    selected_index = next(
+    selected_invocation_index = next(
         (
             index
             for index in range(len(invocation_log) - 1, -1, -1)
@@ -540,11 +541,12 @@ def _summarize_evaluation_attempts(
         ),
         None,
     )
-    attempts: list[dict[str, Any]] = []
+
+    invocation_summaries: list[dict[str, Any]] = []
     for index, invocation in enumerate(invocation_log):
         result = invocation.get("result") or {}
         gate = result.get("gate") or {}
-        selected = index == selected_index
+        selected = index == selected_invocation_index
         if selected:
             discarded_reason = None
         elif result.get("execution_status") != "completed":
@@ -555,9 +557,8 @@ def _summarize_evaluation_attempts(
             discarded_reason = "all_drafts_rejected_or_unbound"
         else:
             discarded_reason = "not_final_submission_batch"
-        attempts.append(
+        invocation_summaries.append(
             {
-                "attempt_index": index + 1,
                 "snapshot_sha256": invocation.get("snapshot_sha256"),
                 "request_sha256": sha256_json(invocation.get("request") or []),
                 "request": invocation.get("request") or [],
@@ -577,12 +578,107 @@ def _summarize_evaluation_attempts(
                 "discarded_reason": discarded_reason,
             }
         )
+
+    evaluate_tool_attempts = [
+        item
+        for item in tool_attempt_log or []
+        if item.get("tool_name") == "evaluate_checks"
+    ]
+    attempts: list[dict[str, Any]] = []
+    invocation_index = 0
+    for tool_attempt in evaluate_tool_attempts:
+        if tool_attempt.get("tool_executed") is True:
+            if invocation_index < len(invocation_summaries):
+                item = dict(invocation_summaries[invocation_index])
+                invocation_index += 1
+            else:
+                item = {
+                    "snapshot_sha256": None,
+                    "request_sha256": None,
+                    "request": [],
+                    "drafts_sha256": None,
+                    "execution_status": tool_attempt.get("execution_status"),
+                    "gate_eligible": False,
+                    "gate_reasons": ["executed_attempt_missing_invocation_record"],
+                    "binding_rejections": [],
+                    "issue_check_ids": [],
+                    "executed_check_ids": [],
+                    "limitations": ["attempt_record_incomplete"],
+                    "selected_for_submission": False,
+                    "discarded_reason": "attempt_record_incomplete",
+                }
+        else:
+            arguments = tool_attempt.get("arguments") or {}
+            kwargs = arguments.get("kwargs") or {}
+            positional = arguments.get("args") or []
+            request = kwargs.get("checks")
+            if request is None and positional:
+                request = positional[0]
+            request = request if isinstance(request, list) else []
+            execution_status = str(
+                tool_attempt.get("execution_status") or "not_executed"
+            )
+            item = {
+                "snapshot_sha256": None,
+                "request_sha256": sha256_json(request),
+                "request": request,
+                "drafts_sha256": sha256_json(request) if request else None,
+                "execution_status": execution_status,
+                "gate_eligible": False,
+                "gate_reasons": [execution_status],
+                "binding_rejections": [],
+                "issue_check_ids": [],
+                "executed_check_ids": [],
+                "limitations": [
+                    "tool_not_executed",
+                    "no_check_evidence_produced",
+                ],
+                "selected_for_submission": False,
+                "discarded_reason": f"{execution_status}_not_executed",
+            }
+        item.update(
+            {
+                "protocol_sequence": tool_attempt.get("sequence"),
+                "required_tool": tool_attempt.get("required_tool"),
+                "tool_executed": bool(tool_attempt.get("tool_executed")),
+            }
+        )
+        attempts.append(item)
+
+    for item in invocation_summaries[invocation_index:]:
+        attempts.append(
+            {
+                **item,
+                "protocol_sequence": None,
+                "required_tool": None,
+                "tool_executed": True,
+            }
+        )
+
+    if not evaluate_tool_attempts:
+        attempts = [
+            {
+                **item,
+                "protocol_sequence": None,
+                "required_tool": None,
+                "tool_executed": True,
+            }
+            for item in invocation_summaries
+        ]
+    for index, item in enumerate(attempts, start=1):
+        item["attempt_index"] = index
+    selected_attempt_index = next(
+        (
+            item["attempt_index"]
+            for item in attempts
+            if item.get("selected_for_submission") is True
+        ),
+        None,
+    )
     return {
         "schema_version": "paper1.evaluate_checks_attempts.v1",
         "selected_drafts_sha256": selected_drafts_sha256,
-        "selected_attempt_index": (
-            selected_index + 1 if selected_index is not None else None
-        ),
+        "selected_attempt_index": selected_attempt_index,
         "attempt_count": len(attempts),
         "attempts": attempts,
     }
@@ -978,6 +1074,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         content_language=manifest["content_language"],
     )
     evaluation_invocations: list[dict[str, Any]] = []
+    tool_attempt_log: list[dict[str, Any]] = []
     investigation_state = PostBatchInvestigationState(evaluation_invocations)
     guide_access = GuideAccessState()
 
@@ -1028,7 +1125,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         require_fbmcq_when=property_batch_requested,
     )
     tools = tuple(
-        enforce_mandatory_tool(tool, mandatory_tool_choice)
+        enforce_mandatory_tool(tool, mandatory_tool_choice, tool_attempt_log)
         for tool in (
             base_read_fcstm_guide,
             base_read_fbmcq_guide,
@@ -1197,7 +1294,9 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "evaluate_checks_attempts_completed",
             {
                 **_summarize_evaluation_attempts(
-                    evaluation_invocations, evaluation["drafts_sha256"]
+                    evaluation_invocations,
+                    evaluation["drafts_sha256"],
+                    tool_attempt_log,
                 ),
                 "agent_attempt_record_id": attempt_record["record_id"],
             },

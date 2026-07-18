@@ -84,6 +84,7 @@ def deterministic_runner(*, events: list[str], max_steps: int | None = None) -> 
 
 def test_mandatory_wrapper_rejects_nonselected_tool_without_executing_it():
     executed = {"value": False}
+    attempt_log: list[dict[str, Any]] = []
 
     def query_model(category: str) -> dict[str, Any]:
         """A test-only query tool."""
@@ -101,6 +102,7 @@ def test_mandatory_wrapper_rejects_nonselected_tool_without_executing_it():
             args_schema=QueryModelInput,
         ),
         lambda: "evaluate_checks",
+        attempt_log,
     )
 
     result = wrapped.invoke({"query_kind": "states"})
@@ -123,6 +125,9 @@ def test_mandatory_wrapper_rejects_nonselected_tool_without_executing_it():
             "no_model_or_query_evidence_produced",
         ],
     }
+    assert attempt_log[0]["tool_name"] == "query_model"
+    assert attempt_log[0]["execution_status"] == "mandatory_tool_rejected"
+    assert attempt_log[0]["tool_executed"] is False
 
 
 def eligible_scenario_payload(check_id: str = "draft-go") -> dict[str, Any]:

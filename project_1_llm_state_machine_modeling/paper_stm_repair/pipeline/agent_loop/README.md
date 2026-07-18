@@ -185,9 +185,10 @@ eligible batch 后，完整工具面与结构化终止面恢复，Agent 重新�
 拒绝这种 draft，并要求改用包含完整 setup、precondition 和 tested event 的 scenario。
 纯状态命题（例如“`Done` 可达”或“`Done` 是 simple state”）仍可使用 property。
 
-每次真实执行的 `evaluate_checks` batch 都会进入 append-only 的
-`evaluate_checks_attempts_completed` record，保留原始 draft、绑定拒绝、gate reason、
-实际执行的 check ID，以及最终是否被 structured submission 选用。确定性 renderer 会把
+每次到达执行边界的 `evaluate_checks` attempt 都会进入 append-only 的
+`evaluate_checks_attempts_completed` record：既包括因指南前置条件而明确未执行的调用，
+也包括真正执行的 batch；后者会保留原始 draft、绑定拒绝、gate reason、实际执行的
+check ID，以及最终是否被 structured submission 选用。确定性 renderer 会把
 这些尝试写入 `loops/discover.md`，因此 zero-root 运行不会只剩 Agent 的笼统自述。
 
 `manifest.json.code_provenance` 记录精确 git commit、分支和 tracked-worktree dirty

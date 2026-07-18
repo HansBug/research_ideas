@@ -360,6 +360,41 @@ def test_evaluate_checks_allows_state_only_reachability_property():
     assert result["issue_checks"][0]["check_kind"] == "property"
 
 
+def test_evaluate_checks_rejects_property_with_statement_only_precondition():
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-statement-precondition",
+                "check_kind": "property",
+                "statement": "Done is reachable from Armed.",
+                "expected_outcome": {"property_satisfied": True},
+                "source_basis": [],
+                "nl_basis": [
+                    {"quote": "Done is reachable.", "role": "requirement"}
+                ],
+                "executable_spec": {
+                    "kind": "reach",
+                    "target_label": "Done",
+                    "bound": 2,
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="Done is reachable.",
+        raw_source="",
+    )
+
+    assert result["execution_status"] == "invalid_arguments"
+    rejection = result["binding_rejections"][0]
+    assert rejection["reason"] == "property_behavior_context_not_encoded"
+    assert rejection["mentioned_precondition_state_paths"] == ["Root.Armed"]
+
+
 def test_evaluate_checks_rejects_source_only_nl_grounded_check():
     result = evaluate_checks(
         model_text=SETUP_MODEL,
