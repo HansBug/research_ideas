@@ -139,6 +139,11 @@ def test_prompt_forbids_closed_world_scope_inference_and_draft_ids_in_final_deci
     assert "does not establish that Q is forbidden outside P" in flat
     assert 'Do not invent an exclusivity, inhibition, or "only in P" requirement' in flat
     assert "An exploratory trace outside the stated precondition cannot by itself" in flat
+    assert "declared precondition must be that state or a hierarchical descendant" in flat
+    assert "Never use an ancestor, sibling, or other broader state" in flat
+    assert "Every `event_labels` entry executes in a separate cycle" in flat
+    assert "Comma-, slash-, or `or`-listed triggers" in flat
+    assert "`and`, `both`, or `simultaneously` denotes a possible same-cycle obligation" in flat
     assert "final `issue_checks` are the sole valid evidence IDs" in flat
     assert "Never put a draft ID in a root's `required_check_ids`" in flat
     assert "copy the corresponding final `issue_checks[].check_id` values exactly" in flat

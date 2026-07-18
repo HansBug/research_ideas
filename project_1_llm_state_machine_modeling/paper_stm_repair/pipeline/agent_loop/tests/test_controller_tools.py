@@ -854,6 +854,194 @@ def test_evaluate_checks_rejects_scenario_scope_invented_outside_positive_nl_con
     ]
 
 
+def test_evaluate_checks_rejects_ancestor_that_widens_explicit_nl_precondition():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    quote = (
+        "transit to human driving mode when receive human steering cmd, "
+        "brake pressed, in (auto final)"
+    )
+    result = evaluate_checks(
+        model_text=case.fcstm,
+        check_result=check_fcstm(case.fcstm),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-autonomous-brake",
+                "check_kind": "scenario",
+                "statement": "BrakePressed returns Autonomous to HumanDriving.",
+                "expected_outcome": {"target_label": "HumanDriving"},
+                "source_basis": [
+                    "!Autonomous -> HumanDriving : BrakePressed;"
+                ],
+                "nl_basis": [{"quote": quote, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": [
+                        "PowerOn",
+                        "Front_Distance_10",
+                        "BrakePressed",
+                    ],
+                    "precondition_state_label": "Autonomous",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=case.nl,
+        raw_source=case.fcstm,
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["issue_checks"] == []
+    assert result["binding_rejections"][0]["reason"] == (
+        "scenario_precondition_conflicts_with_nl_state"
+    )
+    assert result["binding_rejections"][0]["precondition_state_label"] == (
+        "Autonomous"
+    )
+
+
+def test_evaluate_checks_accepts_exact_explicit_nl_precondition():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    quote = (
+        "transit to human driving mode when receive human steering cmd, "
+        "brake pressed, in (auto final)"
+    )
+    result = evaluate_checks(
+        model_text=case.fcstm,
+        check_result=check_fcstm(case.fcstm),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-auto-final-brake",
+                "check_kind": "scenario",
+                "statement": "BrakePressed returns AutoFinal to HumanDriving.",
+                "expected_outcome": {"target_label": "HumanDriving"},
+                "source_basis": [
+                    "!Autonomous -> HumanDriving : BrakePressed;",
+                    "AutoInitial -> AutoFinal : ExitAutonomous;",
+                ],
+                "nl_basis": [{"quote": quote, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": [
+                        "PowerOn",
+                        "Front_Distance_10",
+                        "ExitAutonomous",
+                        "BrakePressed",
+                    ],
+                    "precondition_state_label": "AutoFinal",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=case.nl,
+        raw_source=case.fcstm,
+    )
+
+    assert result["gate"]["eligible"] is True
+    assert result["binding_rejections"] == []
+    scenario = result["scenarios"]["scenario_results"][0]
+    assert scenario["status"] == "passed"
+    assert scenario["expected_outcome_match_status"] == "matches"
+
+
+def test_evaluate_checks_rejects_listed_alternative_trigger_used_as_setup():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    quote = (
+        "transit to human driving mode when receive human steering cmd, "
+        "brake pressed, in (auto final)"
+    )
+    result = evaluate_checks(
+        model_text=case.fcstm,
+        check_result=check_fcstm(case.fcstm),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-steering-then-brake",
+                "check_kind": "scenario",
+                "statement": "HumanSteeringCommand then BrakePressed returns to HumanDriving.",
+                "expected_outcome": {"target_label": "HumanDriving"},
+                "source_basis": [
+                    "!Autonomous -> HumanDriving : HumanSteeringCommand;",
+                    "!Autonomous -> HumanDriving : BrakePressed;",
+                ],
+                "nl_basis": [{"quote": quote, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": [
+                        "PowerOn",
+                        "Front_Distance_10",
+                        "ExitAutonomous",
+                        "HumanSteeringCommand",
+                        "BrakePressed",
+                    ],
+                    "precondition_state_label": "AutoFinal",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=case.nl,
+        raw_source=case.fcstm,
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["issue_checks"] == []
+    assert result["binding_rejections"] == [
+        {
+            "draft_origin": "nl_grounded_behavioral_issue",
+            "draft_check_id": "draft-steering-then-brake",
+            "reason": "scenario_listed_trigger_composed_as_setup",
+            "tested_event_label": "BrakePressed",
+            "listed_setup_event_labels": ["HumanSteeringCommand"],
+            "remediation": (
+                "split comma/or-listed triggers into separate scenarios; "
+                "and/both/simultaneous triggers require a supported same-cycle "
+                "check, while multi-cycle setup requires explicit after/then/before ordering"
+            ),
+        }
+    ]
+
+
+def test_evaluate_checks_accepts_explicitly_ordered_multi_cycle_setup():
+    nl_text = "After arm, fire in Armed enters Done."
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-arm-then-fire",
+                "check_kind": "scenario",
+                "statement": "After arm, fire reaches Done from Armed.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": [
+                    "Idle -> Armed : arm;",
+                    "Armed -> Done : fire;",
+                ],
+                "nl_basis": [{"quote": nl_text, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": ["arm", "fire"],
+                    "precondition_state_label": "Armed",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=nl_text,
+        raw_source=SETUP_MODEL,
+    )
+
+    assert result["gate"]["eligible"] is True
+    assert result["binding_rejections"] == []
+    scenario = result["scenarios"]["scenario_results"][0]
+    assert scenario["status"] == "passed"
+    assert scenario["expected_outcome_match_status"] == "matches"
+
+
 def test_source_drafts_must_prove_a_source_internal_conflict_contract():
     source = CheckDraftSubmission.model_validate(
         {

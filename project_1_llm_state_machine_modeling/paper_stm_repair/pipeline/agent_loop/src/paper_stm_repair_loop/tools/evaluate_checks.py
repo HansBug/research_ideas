@@ -19,6 +19,14 @@ def _normalized_text(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
 
+def _semantic_tokens(value: str) -> list[str]:
+    """Tokenize identifiers/prose with conservative common abbreviations."""
+
+    expanded = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", value).replace("_", " ")
+    aliases = {"cmd": "command", "evt": "event", "msg": "message"}
+    return [aliases.get(token, token) for token in re.findall(r"[a-z0-9]+", expanded.casefold())]
+
+
 def _last_label(value: str) -> str:
     return value.rsplit(".", 1)[-1]
 
@@ -59,6 +67,35 @@ def _state_related(left: str, right: str) -> bool:
     )
 
 
+def _state_within_explicit_scope(declared: str, explicit: str) -> bool:
+    """Return whether a declared precondition stays within an NL-named state."""
+
+    return declared == explicit or declared.startswith(explicit + ".")
+
+
+def _has_explicit_event_sequence(texts: list[str]) -> bool:
+    """Return whether the basis explicitly orders multiple events across cycles."""
+
+    patterns = (
+        r"\bafter\b",
+        r"\bbefore\b",
+        r"\bthen\b",
+        r"\bfollowed\s+by\b",
+        r"\bin\s+sequence\b",
+        r"\bsequentially\b",
+        r"之后",
+        r"随后",
+        r"然后",
+        r"依次",
+        r"先.+再",
+    )
+    return any(
+        re.search(pattern, text, flags=re.IGNORECASE) is not None
+        for text in texts
+        for pattern in patterns
+    )
+
+
 def _mentioned_state_paths(
     texts: list[str],
     inspect: Mapping[str, Any],
@@ -89,14 +126,14 @@ def _mentioned_event_labels(
     texts: list[str],
     inspect: Mapping[str, Any],
 ) -> set[str]:
-    tokenized = [re.findall(r"[a-z0-9]+", text.casefold()) for text in texts]
+    tokenized = [_semantic_tokens(text) for text in texts]
     mentioned: set[str] = set()
     for item in inspect.get("events", []) or []:
         if not isinstance(item, Mapping) or not item.get("qualified_name"):
             continue
         qualified_name = str(item["qualified_name"])
         visible = str(item.get("name") or _last_label(qualified_name))
-        event_tokens = re.findall(r"[a-z0-9]+", visible.casefold())
+        event_tokens = _semantic_tokens(visible)
         found = any(
             tokens[index : index + len(event_tokens)] == event_tokens
             for tokens in tokenized
@@ -230,12 +267,40 @@ def _grounding_rejections(
                     )
                 else:
                     nl_texts = [item.get("quote", "") for item in draft.nl_basis]
+                    mentioned_event_tokens = {
+                        _normalized_text(label)
+                        for label in _mentioned_event_labels(nl_texts, inspect)
+                    }
+                    listed_setup_events = [
+                        str(label)
+                        for label in labels[:-1]
+                        if isinstance(label, str)
+                        and _normalized_text(_last_label(label))
+                        in mentioned_event_tokens
+                    ]
+                    if (
+                        event_token in mentioned_event_tokens
+                        and listed_setup_events
+                        and not _has_explicit_event_sequence(nl_texts)
+                    ):
+                        reason = "scenario_listed_trigger_composed_as_setup"
+                        details.update(
+                            {
+                                "tested_event_label": tested_event,
+                                "listed_setup_event_labels": listed_setup_events,
+                                "remediation": (
+                                    "split comma/or-listed triggers into separate scenarios; "
+                                    "and/both/simultaneous triggers require a supported same-cycle "
+                                    "check, while multi-cycle setup requires explicit after/then/before ordering"
+                                ),
+                            }
+                        )
                     mentioned = _mentioned_state_paths(nl_texts, inspect)
                     precondition_paths = _matching_state_paths(precondition, inspect)
                     target_paths = _matching_state_paths(
                         draft.expected_outcome.get("target_label"), inspect
                     )
-                    if target_paths and not target_paths.intersection(mentioned):
+                    if reason is None and target_paths and not target_paths.intersection(mentioned):
                         reason = "scenario_expected_target_not_explicitly_grounded"
                         details.update(
                             {
@@ -252,7 +317,7 @@ def _grounding_rejections(
                     explicit_preconditions = mentioned - target_paths
                     if reason is None and explicit_preconditions and not all(
                         any(
-                            _state_related(explicit, declared)
+                            _state_within_explicit_scope(declared, explicit)
                             for declared in precondition_paths
                         )
                         for explicit in explicit_preconditions
@@ -565,8 +630,15 @@ def build_tool(
           state explicitly named by the NL quote, not a more specific descendant
           chosen from the current model. If the NL quote explicitly names a
           non-target state, the declared precondition must be that state or one of
-          its ancestors/descendants. Raw source may operationalize a precondition only
+          its descendants; an ancestor would widen the requirement to outside-NL
+          behavior. Raw source may operationalize a precondition only
           when the NL quote itself leaves it implicit.
+          ``event_labels`` execute as separate cycles. A comma-, slash-, or
+          ``or``-listed trigger is not a sequence or conjunction. Another trigger
+          named in the same NL quote may appear in setup only when the quote
+          explicitly orders events with ``after``, ``then``, ``before``, or
+          equivalent wording. ``and``/``both``/``simultaneously`` requires a
+          supported same-cycle check and must not be encoded as sequential labels.
           Property drafts use ``kind`` + ``target_label`` + bounded ``bound``
           only for state-only propositions. If the statement or verified NL basis
           names an event or a non-target precondition state, use a scenario so the

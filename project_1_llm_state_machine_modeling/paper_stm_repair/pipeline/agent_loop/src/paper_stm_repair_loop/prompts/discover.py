@@ -167,7 +167,9 @@ submission.
      the current model's observed target; the deterministic gate rejects such
      over-specific or observation-copied expectations. When the NL quote
      explicitly names a non-target state, the declared precondition must be that
-     state or a hierarchical ancestor/descendant. Use raw/source transition text
+     state or a hierarchical descendant. Never use an ancestor, sibling, or other
+     broader state, because that would widen the requirement outside its stated
+     applicability scope. Use raw/source transition text
      to supply the operational precondition only when the NL leaves it implicit;
      raw/source text never replaces NL grounding. Never test a
      deep-state event as a one-step initial-state
@@ -186,6 +188,14 @@ submission.
      inhibition, or "only in P" requirement unless the frozen NL/source states
      that restriction explicitly. An exploratory trace outside the stated
      precondition cannot by itself turn a matching in-scope check into a root.
+     Every `event_labels` entry executes in a separate cycle. Comma-, slash-, or
+     `or`-listed triggers are alternatives/ambiguous listings, not an implicit
+     conjunction or sequence: split them into separate scenario checks. Include
+     another NL-mentioned trigger in setup only when the basis explicitly orders
+     events with `after`, `then`, `before`, `followed by`, or equivalent wording.
+     `and`, `both`, or `simultaneously` denotes a possible same-cycle obligation,
+     which this sequential scenario surface cannot encode; do not approximate it
+     by placing those triggers in consecutive cycles.
    - `raw_internal_inconsistency` drafts use `static_consistency`, have
      `nl_basis=[]`, cite at least two mutually conflicting source facts, and set
      `expected_outcome.consistency_status=contradicts`. Ordinary declarations,
