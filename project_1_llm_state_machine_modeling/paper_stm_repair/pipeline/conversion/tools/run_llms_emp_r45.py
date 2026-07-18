@@ -42,6 +42,9 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
 from paper_stm_repair_representation.plantuml_source_lowering import (  # noqa: E402
     lower_plantuml_source,
 )
+from paper_stm_repair_representation.plantuml_source_audit import (  # noqa: E402
+    audit_lowered_artifact,
+)
 
 
 PAPER_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair"
@@ -115,19 +118,22 @@ def _summary_markdown(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> s
         f"- raw PlantUML 官方直接接受：`{summary['official_raw_state_diagram']}/60`；其余 `{summary['official_raw_not_state_diagram']}` 条含非官方扩展/伪语法。",
         f"- Java official-validation normalization 后 `StateDiagram`：`{summary['official_validation_state_diagram']}/60`。",
         f"- 官方 internal model links：`{summary['official_validation_links']}`；source transitions：`{summary['source_transitions']}`。唯一 `+1` 来自 `0019` 的 note attachment，不是行为迁移。",
-        f"- source transition：`{summary['source_transitions']}`；映射 `{summary['mapped_transitions']}`，显式 blocked `{summary['blocked_transitions']}`，静默丢失 `{summary['silently_dropped_transitions']}`。",
+        f"- source transition：`{summary['source_transitions']}`；FCSTM macro 映射 `{summary['mapped_transitions']}`，结构 blocked `{summary['blocked_transitions']}`，静默丢失 `{summary['silently_dropped_transitions']}`。",
         f"- final boundary：`{summary['final_transitions_mapped']}/{summary['final_transitions_source']}`。",
-        "- lifecycle action：state-owned `18/18`；另有 `1` 条 root-level owner ambiguity 被显式阻塞。",
+        f"- opaque state body：`{summary['body_lines_mapped']}/{summary['body_lines_source']}`；均保存在 FCSTM display metadata 与 trace，不解释为 timing/guard/action。",
+        f"- lifecycle action：`{summary['lifecycle_actions_mapped']}/{summary['lifecycle_actions_source']}` 结构保存；其中 state-owned `18` 条挂接为 abstract hook（未注册源行为），`1` 条 ownerless 仅保存 metadata。",
         f"- FCSTM parse/inspect：`{summary['fcstm_parse_ok']}/60` / `{summary['fcstm_inspect_ok']}/60`。",
-        f"- R4.5 exact：`{summary['exact_r45_structure']}/60`；blocked_unsupported：`{summary['blocked_unsupported']}/60`。",
+        f"- pyfcstm AST 独立反查：`{summary['ast_audit_ok']}/60`。",
+        f"- R4.5 structural preservation：`{summary['structure_preserved']}/60`；structure blocked：`{summary['structure_blocked']}/60`。",
+        f"- FCSTM execution eligible：`{summary['fcstm_execution_eligible']}/60`；Discover eligible：`{summary['discover_eligible']}/60`。",
         "",
-        "`blocked_unsupported` 不表示 converter 静默失败。它表示 raw source 存在无/多 initial composite、无 owner lifecycle、opaque state body、无标签 fan-out、显式 fork，或无法合法进入 lexical scope 的 transition。所有项都保留 source span 与 reason code，禁止进入 Discover eligibility。",
+        "结构通过不等于行为等价。无/多/非法 initial、ownerless lifecycle、opaque state body、无标签 fan-out 与显式 fork 进入 `operational_debts`；转换器保留这些 source facts，但不推断 guard/effect/timing/concurrency。",
         "",
         "60 例逐例人工/LLM 对读、官方源码逆向结论与真实 PlantUML/FCSTM 例子见 [Issue #161 技术报告](../../../../reports/2026-07-19-issue-161-plantuml-java-frontend.md)。",
         "",
         "## 代表性样例",
         "",
-        "| case | verdict | states | transitions | mapped | blocked | final | lifecycle | raw official | normalized official |",
+        "| case | structural verdict | states | transitions | mapped | blocked | final | lifecycle | raw official | normalized official |",
         "|---|---|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     selected = {"0000", "0022", "0053", "0054", "0058"}
@@ -150,7 +156,7 @@ def _summary_markdown(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> s
             "- `comparison.jsonl`：60 例逐项摘要。",
             "- `canonical/*.json`：Java source canonical + 官方 internal model 快照。",
             "- `fcstm/*.fcstm`：60 个新 FCSTM STM0。",
-            "- `case_reports/*.json`：逐迁移 mapping、blocker、name map 与 parse/inspect 指标。",
+            "- `case_reports/*.json`：逐迁移 mapping、operational debt、name map 与 AST audit。",
             "- `parse_inspect/*.json`：pyfcstm 结构化 inspect 输出。",
             "",
         ]
@@ -189,6 +195,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
     official_rows: list[dict[str, Any]] = []
     verdicts: Counter[str] = Counter()
     blocker_reasons: Counter[str] = Counter()
+    debt_reasons: Counter[str] = Counter()
     totals: Counter[str] = Counter()
     for index, row in enumerate(rows):
         pair_id = row["pair_id"]
@@ -202,6 +209,13 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
         lowered = lower_plantuml_source(canonical)
         model = load_state_machine_from_text(lowered["fcstm"])
         inspect_report = inspect_model(model).to_json()
+        ast_audit = audit_lowered_artifact(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            model=model,
+            inspect_report=inspect_report,
+        )
 
         canonical_path = output_dir / "canonical" / f"{pair_id}.json"
         fcstm_path = output_dir / "fcstm" / f"{pair_id}.fcstm"
@@ -217,7 +231,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
         official_raw = canonical["metadata"]["official_model"]
         official_validation = canonical["metadata"]["official_validation"]
         case_report = {
-            "schema_version": "r4_5.llms_emp_java_case_report.v1",
+            "schema_version": "r4_5.llms_emp_java_case_report.v2",
             "pair_index": index,
             "pair_id": pair_id,
             "case_id": case_id,
@@ -232,6 +246,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
             "fcstm_path": _display(fcstm_path),
             "parse_inspect_path": _display(inspect_path),
             "comparison": comparison,
+            "ast_audit": ast_audit,
             "name_mapping": lowered["name_mapping"],
             "inspect_metrics": inspect_report.get("metrics", {}),
             "inspect_diagnostic_severities": dict(severity_counts),
@@ -252,6 +267,8 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
             "fcstm_sha256": case_report["fcstm_sha256"],
             "verdict": comparison["verdict"],
             "discover_eligible": comparison["discover_eligible"],
+            "fcstm_execution_eligible": comparison["fcstm_execution_eligible"],
+            "operational_status": comparison["operational_status"],
             "source_state_count": comparison["source_state_count"],
             "source_transition_count": comparison["source_transition_count"],
             "mapped_transition_count": comparison["mapped_transition_count"],
@@ -261,6 +278,8 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
             ],
             "final_transition_coverage": comparison["final_transition_coverage"],
             "lifecycle_action_coverage": comparison["lifecycle_action_coverage"],
+            "body_line_coverage": comparison["body_line_coverage"],
+            "ast_audit_status": ast_audit["status"],
             "official_raw_status": official_raw["status"],
             "official_validation_status": official_validation["model"]["status"],
             "official_validation_link_count": official_validation["model"].get("counts", {}).get("links", 0),
@@ -282,16 +301,29 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
         verdicts[comparison["verdict"]] += 1
         for blocker in comparison["blockers"]:
             blocker_reasons[blocker["reason_code"]] += 1
+        for debt in comparison["operational_debts"]:
+            debt_reasons[debt["reason_code"]] += 1
         totals["source_states"] += comparison["source_state_count"]
         totals["source_transitions"] += comparison["source_transition_count"]
         totals["mapped_transitions"] += comparison["mapped_transition_count"]
         totals["blocked_transitions"] += comparison["blocked_transition_count"]
         totals["silent_drops"] += comparison["silently_dropped_transition_count"]
+        body_mapped, body_source = map(int, comparison["body_line_coverage"].split("/"))
+        totals["body_lines_mapped"] += body_mapped
+        totals["body_lines_source"] += body_source
+        lifecycle_mapped, lifecycle_source = map(
+            int, comparison["lifecycle_action_coverage"].split("/")
+        )
+        totals["lifecycle_actions_mapped"] += lifecycle_mapped
+        totals["lifecycle_actions_source"] += lifecycle_source
         final_mapped, final_source = map(int, comparison["final_transition_coverage"].split("/"))
         totals["final_transitions_mapped"] += final_mapped
         totals["final_transitions_source"] += final_source
         totals["parse_ok"] += 1
         totals["inspect_ok"] += severity_counts.get("error", 0) == 0
+        totals["ast_audit_ok"] += ast_audit["status"] == "passed"
+        totals["fcstm_execution_eligible"] += comparison["fcstm_execution_eligible"]
+        totals["discover_eligible"] += comparison["discover_eligible"]
         totals["official_raw_state"] += official_raw["status"] == "state_diagram"
         totals["official_validation_state"] += (
             official_validation["model"]["status"] == "state_diagram"
@@ -309,7 +341,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
         encoding="utf-8",
     )
     manifest = {
-        "schema_version": "r4_5.llms_emp_java_batch.v1",
+        "schema_version": "r4_5.llms_emp_java_batch.v2",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "research_commit": research_commit,
         "research_branch": research_branch,
@@ -334,13 +366,21 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
             "mapped_transitions": totals["mapped_transitions"],
             "blocked_transitions": totals["blocked_transitions"],
             "silently_dropped_transitions": totals["silent_drops"],
+            "body_lines_source": totals["body_lines_source"],
+            "body_lines_mapped": totals["body_lines_mapped"],
+            "lifecycle_actions_source": totals["lifecycle_actions_source"],
+            "lifecycle_actions_mapped": totals["lifecycle_actions_mapped"],
             "final_transitions_source": totals["final_transitions_source"],
             "final_transitions_mapped": totals["final_transitions_mapped"],
             "fcstm_parse_ok": totals["parse_ok"],
             "fcstm_inspect_ok": totals["inspect_ok"],
-            "exact_r45_structure": verdicts["exact_r45_structure"],
-            "blocked_unsupported": verdicts["blocked_unsupported"],
+            "ast_audit_ok": totals["ast_audit_ok"],
+            "structure_preserved": verdicts["structure_preserved"],
+            "structure_blocked": verdicts["structure_blocked"],
+            "fcstm_execution_eligible": totals["fcstm_execution_eligible"],
+            "discover_eligible": totals["discover_eligible"],
             "blocker_reasons": dict(blocker_reasons),
+            "operational_debt_reasons": dict(debt_reasons),
         },
     }
     _write_json(output_dir / "manifest.json", manifest)

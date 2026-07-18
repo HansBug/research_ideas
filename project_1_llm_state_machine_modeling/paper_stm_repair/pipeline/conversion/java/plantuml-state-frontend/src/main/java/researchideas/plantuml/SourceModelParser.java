@@ -38,6 +38,7 @@ final class SourceModelParser {
         String kind;
         String alias;
         boolean explicit;
+        boolean declaredWithBlock;
         final List<Map<String, Object>> declarations = new ArrayList<Map<String, Object>>();
         final List<Map<String, Object>> bodyLines = new ArrayList<Map<String, Object>>();
         final List<Map<String, Object>> lifecycleActions = new ArrayList<Map<String, Object>>();
@@ -66,6 +67,7 @@ final class SourceModelParser {
                     "short_name", shortName,
                     "alias", alias,
                     "explicit_declaration", explicit,
+                    "declared_with_block", declaredWithBlock,
                     "declarations", declarations,
                     "body_lines", bodyLines,
                     "lifecycle_actions", lifecycleActions);
@@ -278,6 +280,7 @@ final class SourceModelParser {
             kind = "choice";
         }
         StateNode state = declareState(shortName, label, currentScope, line, stripped, kind, alias, true);
+        state.declaredWithBlock |= opens;
         if (rest.startsWith(":")) {
             rawBodies.add(new Statement(line, shortName + " " + rest, currentScope));
         } else if (!rest.isEmpty() && !rest.startsWith("<<")) {

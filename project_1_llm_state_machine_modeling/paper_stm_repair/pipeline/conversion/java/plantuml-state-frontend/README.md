@@ -39,4 +39,4 @@ make compile PLANTUML_JAR=/abs/path/plantuml-1.2024.7.jar
 - 带 label 的 initial edge 使用 synthetic wait state，使事件可以跨 cycle 到达，而不要求 composite 在 `init_wait` 中悬空。
 - nested final 使用 completion-hold lowering；root final 才真正终止模型。
 - 无 initial composite、fan-out/concurrency、opaque state body 和 owner 不明 lifecycle 一律 reason-coded fail closed。
-- `exact_r45_structure` 只授予没有任何 blocker 的 case；blocked artifact 只用于审计，禁止进入 Discover input pool。
+- `structural_verdict` 只回答 source facts 是否被 FCSTM + trace 完整保存；`operational_status`、`fcstm_execution_eligible` 与 `discover_eligible` 独立裁决。结构通过不代表行为等价或可进入 Discover。

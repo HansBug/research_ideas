@@ -106,6 +106,16 @@ def test_lifecycle_actions_survive_source_frontend():
     ] == [("do", "Emergency Stop"), ("do", "Send Obstacle Detected")]
 
 
+def test_empty_state_block_remains_explicit_source_syntax_fact():
+    row = _row(4)
+    result = parse_plantuml_source(row["stm0_text"], example_id=row["pair_id"])
+    states = {state["id"]: state for state in result["model"]["states"]}
+
+    assert states["DoorsClosing"]["kind"] == "state"
+    assert states["DoorsClosing"]["attributes"]["declared_with_block"] is True
+    assert states["Stopping"]["attributes"]["declared_with_block"] is False
+
+
 def test_unique_later_nested_state_is_resolved_instead_of_implicitly_duplicated():
     row = _row(7)
     result = parse_plantuml_source(row["stm0_text"], example_id=row["pair_id"])
