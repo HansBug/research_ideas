@@ -185,6 +185,9 @@ def _grounding_rejections(
                 )
         elif draft.check_kind == "scenario":
             spec = draft.executable_spec
+            unsupported_expected_fields = sorted(
+                set(draft.expected_outcome) - {"relation", "target_label"}
+            )
             labels = spec.get("event_labels") or spec.get("events") or []
             precondition = spec.get("precondition_state_label")
             basis_texts = [
@@ -192,7 +195,19 @@ def _grounding_rejections(
                 *draft.source_basis,
             ]
             tested_event = labels[-1] if isinstance(labels, list) and labels else None
-            if not isinstance(precondition, str) or not precondition:
+            if unsupported_expected_fields:
+                reason = "scenario_expected_outcome_contains_internal_accounting"
+                details.update(
+                    {
+                        "unsupported_expected_fields": unsupported_expected_fields,
+                        "allowed_expected_fields": ["relation", "target_label"],
+                        "remediation": (
+                            "state the NL-grounded target_label only; cycle event accounting "
+                            "is observed output and not an Agent-authored scenario expectation"
+                        ),
+                    }
+                )
+            elif not isinstance(precondition, str) or not precondition:
                 reason = "scenario_precondition_basis_missing"
             elif not isinstance(tested_event, str) or not tested_event:
                 reason = "scenario_tested_event_basis_missing"
@@ -524,7 +539,10 @@ def build_tool(
         - ``check_kind``: ``scenario``, ``property``, or ``static_consistency``.
         - ``statement``: precise claim this check tests, in the run language.
         - ``expected_outcome``: typed expectation fixed before reading this tool's
-          execution result. Scenario drafts normally use ``target_label``. For an
+          execution result. Scenario drafts use ``target_label`` plus optional
+          ``relation`` only. They must not prescribe ``input_events``,
+          ``consumed_events``, or ``unconsumed_events``: those fields are runtime
+          accounting, not NL-grounded scenario outcomes. For an
           NL-grounded scenario, that label must resolve to the non-pseudo state
           explicitly named by ``nl_basis``; do not substitute a child entry/final
           state or the current model's observed target. Property drafts use
@@ -576,6 +594,10 @@ def build_tool(
           ``CHK-NL-*``/``CHK-SRC-*`` IDs, bound refs/specs, bases, and expectations.
         - ``validation``: per-check mechanical eligibility and bounded obligations.
         - ``scenarios``: expected/actual finite trace results with event accounting.
+          ``input_events`` records external cycle inputs. ``consumed_events`` is
+          transition-accounting for executed evented transitions, so one event that remains active
+          through a hierarchical transition chain may appear more than once in one
+          cycle. Such repetition alone is not repeated input or an issue verdict.
         - ``properties``: bounded FBMCQ or deterministic state-shape results,
           including witness/replay/status where applicable.
         - ``static_consistency``: deterministic static-shape comparisons.
@@ -609,7 +631,8 @@ def build_tool(
 
         Failure semantics
         -----------------
-        Invalid nested schema, invented/mismatched basis, an expected target copied
+        Invalid nested schema, invented/mismatched basis, Agent-authored scenario
+        event-accounting expectations, an expected target copied
         from observed model behavior instead of the NL, ungrounded scenario
         applicability, or an empty/all-rejected batch returns
         ``invalid_arguments`` with ``gate.eligible=false``. Partial/unbound checks,

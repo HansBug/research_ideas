@@ -174,6 +174,12 @@ submission.
      scenario. If setup cannot establish the declared precondition, the result is
      mechanically ineligible rather than evidence of a model contradiction. Do
      not inventory every state or simply test that existing structure is reachable.
+     A scenario expectation must not prescribe `input_events`, `consumed_events`,
+     or `unconsumed_events`; use the NL-grounded `target_label` only. FCSTM events
+     remain available for the whole cycle, and `consumed_events` is transition
+     accounting: the same external input may appear once for each evented
+     transition executed in a hierarchical chain. Repeated accounting entries in
+     one cycle do not mean repeated input and cannot by themselves support a root.
    - `raw_internal_inconsistency` drafts use `static_consistency`, have
      `nl_basis=[]`, cite at least two mutually conflicting source facts, and set
      `expected_outcome.consistency_status=contradicts`. Ordinary declarations,

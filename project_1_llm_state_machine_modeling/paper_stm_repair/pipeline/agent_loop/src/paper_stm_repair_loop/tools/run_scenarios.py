@@ -162,8 +162,10 @@ def execute(model_text: str, checks: list[dict[str, Any]], model_path: str = "<m
     ``precondition_state``. All events except the last are setup events executed
     from the model initial state; the last event is the event under test.
     ``precondition_state`` declares the state that setup must establish before
-    that final event. Optional ``expected_outcome`` may contain typed fields such
-    as ``current_state`` or ``consumed_events`` for three-valued comparison.
+    that final event. Optional low-level ``expected_outcome`` may contain typed
+    fields for three-valued comparison. Agent-authored NL scenarios are bound to
+    target-state and no-unconsumed-input expectations; they do not prescribe
+    transition-accounting multiplicity.
 
     Returns: ``execution_status``, ``model_sha256``, ``scenario_results``,
     ``errors``, ``not_applicable``, and ``limitations``. Each scenario result
@@ -180,7 +182,11 @@ def execute(model_text: str, checks: list[dict[str, Any]], model_path: str = "<m
     events were consumed and the runtime reached the declared precondition, then
     runs the final tested event. It records every ``CycleResult``, aggregates
     input/consumed/unconsumed events, normalizes the final state, and compares
-    only against the check's own typed expectation. The function does not infer
+    only against the check's own typed expectation. In pyfcstm, an event remains
+    available for the whole cycle, while ``consumed_events`` records each
+    evented transition that executed. A hierarchical chain may therefore record
+    the same single input event more than once without representing repeated
+    input or multiple cycles. The function does not infer
     missing checks, mutate the model, call an LLM, or read mutable state.
 
     Failure semantics: malformed scenario specs produce per-check ``error``
@@ -193,11 +199,13 @@ def execute(model_text: str, checks: list[dict[str, Any]], model_path: str = "<m
     ``timeout``, ``incomplete``, and replay-mismatch-like observations must not be
     upgraded to pass.
 
-    Evidence limitations: one bounded trace, even with all events consumed and a
+    Evidence limitations: one bounded trace, even with no unconsumed input and a
     matching final state, cannot prove global correctness, NL alignment, source
     closure, absence of bugs, property satisfaction, or Confirm acceptance. The
     comparison only answers whether this run matches the check's sealed typed
     expectation; that expectation is not an independent semantic oracle.
+    Repeated names in ``consumed_events`` alone are transition accounting, not an
+    issue verdict.
 
     Permissions: read-only against the controller-bound model and check list; no
     arbitrary paths from an Agent, alternate model/run/case selection, shell,

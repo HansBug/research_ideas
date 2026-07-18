@@ -230,7 +230,6 @@ def _bind_drafts(
                 if state is not None:
                     expected = {
                         "state_in": state,
-                        "consumed_events": list(spec.get("events", [])),
                         "unconsumed_events": [],
                     }
                     target_ref = f"state:{state}"

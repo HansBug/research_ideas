@@ -310,6 +310,8 @@ def test_agent_tool_descriptions_define_parameter_and_result_fields_not_only_sec
             "``properties``",
             "``static_consistency``",
             "``gate``",
+            "transition-accounting",
+            "not repeated input",
             "never alter the expected outcome",
         ],
     }

@@ -38,6 +38,27 @@ SETUP_MODEL = """state Root {
 }
 """
 
+FORCED_TRANSITION_CYCLE_MODEL = """state Root {
+    [*] -> Human;
+
+    state Human;
+    state Autonomous {
+        [*] -> AutoFinal;
+        state AutoFinal;
+    }
+
+    Human -> Autonomous : EnterAutonomous;
+    !Autonomous -> Human : BrakePressed;
+}
+"""
+
+UNHANDLED_EVENT_MODEL = """state Root {
+    event Noise;
+    [*] -> Done;
+    state Done;
+}
+"""
+
 SHORT_STATE_MODEL = """state Root {
     event fire;
     state A;
@@ -137,6 +158,81 @@ def test_run_scenarios_executes_ordered_events_as_separate_cycles():
     assert item["consumed_events"] == ["Root.go"]
     assert item["unconsumed_events"] == ["Root.go"]
     assert item["expected_outcome_match_status"] == "matches"
+
+
+def test_bound_scenario_accepts_one_cycle_forced_transition_accounting_chain():
+    inspect_data = check_fcstm(FORCED_TRANSITION_CYCLE_MODEL)["inspect"]
+    drafts = CheckDraftSubmission.model_validate(
+        {
+            "checks": [
+                {
+                    "check_id": "draft-brake",
+                    "check_kind": "scenario",
+                    "statement": "BrakePressed returns Autonomous to Human.",
+                    "expected_outcome": {"target_label": "Human"},
+                    "nl_basis": [
+                        {
+                            "quote": "In Autonomous, BrakePressed returns to Human.",
+                            "role": "requirement",
+                        }
+                    ],
+                    "executable_spec": {
+                        "event_labels": ["EnterAutonomous", "BrakePressed"],
+                        "precondition_state_label": "AutoFinal",
+                    },
+                }
+            ]
+        }
+    )
+    bound = _bind_drafts(
+        drafts,
+        CheckDraftSubmission(checks=[]),
+        inspect_data,
+    )[0].model_dump(mode="json")
+
+    assert bound["expected_outcome"] == {
+        "state_in": "Root.Human",
+        "unconsumed_events": [],
+    }
+    result = run_scenarios(FORCED_TRANSITION_CYCLE_MODEL, [bound])
+    scenario = result["scenario_results"][0]
+    tested_cycle = scenario["trace"]["cycles"][-1]
+
+    assert scenario["status"] == "passed"
+    assert scenario["expected_outcome_match_status"] == "matches"
+    assert scenario["current_state"] == "Root.Human"
+    assert tested_cycle["input_events"] == ["Root.BrakePressed"]
+    assert tested_cycle["consumed_events"] == [
+        "Root.BrakePressed",
+        "Root.BrakePressed",
+    ]
+    assert tested_cycle["unconsumed_events"] == []
+
+
+def test_scenario_still_fails_when_tested_event_is_unconsumed():
+    result = run_scenarios(
+        UNHANDLED_EVENT_MODEL,
+        [
+            {
+                "check_id": "SC-UNHANDLED",
+                "check_kind": "scenario",
+                "executable_spec": {
+                    "events": ["Root.Noise"],
+                    "precondition_state": "Root.Done",
+                },
+                "expected_outcome": {
+                    "state_in": "Root.Done",
+                    "unconsumed_events": [],
+                },
+            }
+        ],
+    )
+    scenario = result["scenario_results"][0]
+
+    assert scenario["current_state"] == "Root.Done"
+    assert scenario["unconsumed_events"] == ["Root.Noise"]
+    assert scenario["expected_outcome_match_status"] == "contradicts"
+    assert scenario["status"] == "failed"
 
 
 def test_run_scenarios_requires_setup_to_reach_declared_precondition():
@@ -648,11 +744,61 @@ def test_binder_normalizes_typed_scenario_and_property_contracts():
     assert scenario["executable_spec"]["precondition_state"] == "Root.Idle"
     assert scenario["expected_outcome"] == {
         "state_in": "Root.Done",
-        "consumed_events": ["Root.go"],
         "unconsumed_events": [],
     }
     assert prop["executable_spec"]["query"] == 'check reach <= 2: active("Root.Done");'
     assert prop["expected_outcome"] == {"property_satisfied": True}
+
+
+def test_evaluate_checks_rejects_agent_authored_scenario_event_accounting():
+    result = evaluate_checks(
+        model_text=MODEL,
+        check_result=check_fcstm(MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-accounting",
+                "check_kind": "scenario",
+                "statement": "When go occurs in Idle, enter Done.",
+                "expected_outcome": {
+                    "target_label": "Done",
+                    "consumed_events": ["Root.go"],
+                },
+                "source_basis": ["Idle -> Done : go;"],
+                "nl_basis": [
+                    {
+                        "quote": "When go occurs in Idle, enter Done.",
+                        "role": "requirement",
+                    }
+                ],
+                "executable_spec": {
+                    "event_labels": ["go"],
+                    "precondition_state_label": "Idle",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="When go occurs in Idle, enter Done.",
+        raw_source=MODEL,
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["issue_checks"] == []
+    assert result["binding_rejections"] == [
+        {
+            "draft_origin": "nl_grounded_behavioral_issue",
+            "draft_check_id": "draft-accounting",
+            "reason": "scenario_expected_outcome_contains_internal_accounting",
+            "unsupported_expected_fields": ["consumed_events"],
+            "allowed_expected_fields": ["relation", "target_label"],
+            "remediation": (
+                "state the NL-grounded target_label only; cycle event accounting "
+                "is observed output and not an Agent-authored scenario expectation"
+            ),
+        }
+    ]
 
 
 def test_source_drafts_must_prove_a_source_internal_conflict_contract():
