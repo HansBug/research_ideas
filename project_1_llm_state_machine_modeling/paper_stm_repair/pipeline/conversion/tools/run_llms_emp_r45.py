@@ -42,8 +42,6 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
 from paper_stm_repair_representation.plantuml_source_lowering import (  # noqa: E402
     lower_plantuml_source,
 )
-from pyfcstm.diagnostics.inspect import inspect_model  # noqa: E402
-from pyfcstm.model.load import load_state_machine_from_text  # noqa: E402
 
 
 PAPER_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair"
@@ -74,6 +72,32 @@ def _git(*args: str, cwd: Path = REPO_ROOT) -> str:
     return subprocess.run(
         ["git", *args], cwd=cwd, text=True, capture_output=True, check=True
     ).stdout.strip()
+
+
+def _checked_out_pyfcstm_commit() -> str:
+    expected_row = _git("ls-tree", "HEAD", "pyfcstm").split()
+    if len(expected_row) < 3 or expected_row[1] != "commit":
+        raise RuntimeError("pyfcstm gitlink is missing from the research repository")
+    expected_commit = expected_row[2]
+    required_source = PYFCSTM_SRC / "pyfcstm/model/load.py"
+    if not required_source.is_file():
+        raise RuntimeError(
+            "pyfcstm submodule is not initialized; run "
+            "`git submodule update --init --recursive pyfcstm`"
+        )
+    actual_root = Path(
+        _git("rev-parse", "--show-toplevel", cwd=PYFCSTM_SRC)
+    ).resolve()
+    if actual_root != PYFCSTM_SRC.resolve():
+        raise RuntimeError(
+            "pyfcstm path resolved to the parent repository instead of a submodule checkout"
+        )
+    actual_commit = _git("rev-parse", "HEAD", cwd=PYFCSTM_SRC)
+    if actual_commit != expected_commit:
+        raise RuntimeError(
+            f"pyfcstm checkout {actual_commit} does not match gitlink {expected_commit}"
+        )
+    return actual_commit
 
 
 def _display(path: Path) -> str:
@@ -135,6 +159,10 @@ def _summary_markdown(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> s
 
 
 def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, Any]:
+    pyfcstm_commit = _checked_out_pyfcstm_commit()
+    from pyfcstm.diagnostics.inspect import inspect_model
+    from pyfcstm.model.load import load_state_machine_from_text
+
     research_commit = _git("rev-parse", "HEAD")
     research_branch = _git("branch", "--show-current")
     tracked_dirty_before_run = bool(
@@ -286,7 +314,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
         "research_commit": research_commit,
         "research_branch": research_branch,
         "tracked_worktree_dirty_before_run": tracked_dirty_before_run,
-        "pyfcstm_commit": _git("rev-parse", "HEAD", cwd=REPO_ROOT / "pyfcstm"),
+        "pyfcstm_commit": pyfcstm_commit,
         "plantuml_version": PLANTUML_VERSION,
         "plantuml_jar_sha256": PLANTUML_SHA256,
         "pairs_path": _display(pairs_path),

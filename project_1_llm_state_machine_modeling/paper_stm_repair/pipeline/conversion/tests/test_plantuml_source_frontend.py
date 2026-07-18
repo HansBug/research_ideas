@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -24,6 +25,11 @@ PAIRS = (
     / "project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library"
     / "llms-emp-stm-subset/assets/extracted/pairs.jsonl"
 )
+RUNNER = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
+    / "tools/run_llms_emp_r45.py"
+)
 
 
 def _rows() -> list[dict]:
@@ -32,6 +38,14 @@ def _rows() -> list[dict]:
 
 def _row(index: int) -> dict:
     return _rows()[index]
+
+
+def _load_runner_module():
+    spec = importlib.util.spec_from_file_location("run_llms_emp_r45", RUNNER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_scope_resolution_keeps_repeated_children_distinct_and_root_target_rooted():
@@ -198,3 +212,20 @@ def test_wrapper_rejects_wrong_plantuml_jar_identity(tmp_path: Path):
 
     with pytest.raises(RuntimeError, match="identity mismatch"):
         resolve_plantuml_jar(fake_jar)
+
+
+def test_batch_runner_rejects_uninitialized_pyfcstm_submodule(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    runner = _load_runner_module()
+    monkeypatch.setattr(runner, "PYFCSTM_SRC", tmp_path)
+
+    with pytest.raises(RuntimeError, match="submodule is not initialized"):
+        runner._checked_out_pyfcstm_commit()
+
+
+def test_batch_runner_records_checked_out_pyfcstm_gitlink():
+    runner = _load_runner_module()
+    expected_commit = runner._git("ls-tree", "HEAD", "pyfcstm").split()[2]
+
+    assert runner._checked_out_pyfcstm_commit() == expected_commit
