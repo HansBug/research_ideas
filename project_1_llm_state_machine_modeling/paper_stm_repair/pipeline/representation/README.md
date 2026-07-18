@@ -1,5 +1,7 @@
 # R4.5 规范化 STM 到 fcstm 表示桥
 
+> **LLMS-EMP 60 例 active 路线**：Issue #161 后，PlantUML 不再走 `SCXML -> legacy canonical -> lowering.py`。active 路径是 [Java source frontend](../conversion/java/plantuml-state-frontend/README.md) -> `plantuml_source_lowering.py` -> [60 例证据目录](./reports/llms_emp_r45_java_60/SUMMARY.md)。下文四例 R3 smoke 仍保留为历史合同，不得与新 60 例统计混用。
+
 ## 1. 定位
 
 `representation/` 是第一篇论文 R4.5 的内部表示桥工作区，负责把 R3 的 `canonical_stm.json` 降到 pyfcstm 可解析的 `.fcstm` DSL，并同步产出 `name_mapping.json`、`lowering_inventory.json`、`fcstm_export_loss_ledger.jsonl` 与 `parse_inspect_report.json`。
@@ -26,6 +28,7 @@ representation/
 │   ├── __init__.py
 │   ├── cli.py
 │   ├── lowering.py              # canonical view / lowering / .fcstm render / report 主入口
+│   ├── plantuml_source_lowering.py # Java source canonical 的 fail-closed lowering
 │   └── pyfcstm_names.py
 ├── reports/
 │   ├── fcstm_export_report.json
@@ -41,6 +44,8 @@ representation/
     ├── test_r45_name_mapping.py
     └── test_r45_schema_contract.py
 ```
+
+新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing；任何无法证明的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 都产生 blocker，并使 `discover_eligible=false`。
 
 其中 `lowering.py` 是 R4.5 的主实现入口，同时承担 canonical model view、lowering 策略、`.fcstm` 渲染、loss ledger 与 export report 生成；本 PR 未单独拆出 `canonical_to_fcstm.py`。
 
