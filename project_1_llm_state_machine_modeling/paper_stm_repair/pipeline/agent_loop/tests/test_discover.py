@@ -575,6 +575,132 @@ def test_run_scoped_schema_requires_one_decision_owner_per_final_check():
         schema.model_validate(payload)
 
 
+def test_run_scoped_schema_requires_rejection_owner_for_nonexecuted_final_check():
+    drafts = [
+        {
+            "check_origin": "nl_grounded_behavioral_issue",
+            "check_id": "draft-executed",
+            "check_kind": "scenario",
+            "statement": "go reaches Done.",
+            "expected_outcome": {"target_label": "Done"},
+            "source_basis": [],
+            "nl_basis": [{"quote": "go reaches Done.", "role": "requirement"}],
+            "executable_spec": {
+                "event_labels": ["go"],
+                "precondition_state_label": "Done",
+            },
+            "binding_refs": [],
+            "required": True,
+        },
+        {
+            "check_origin": "nl_grounded_behavioral_issue",
+            "check_id": "draft-inconclusive",
+            "check_kind": "scenario",
+            "statement": "fire reaches Done from Armed.",
+            "expected_outcome": {"target_label": "Done"},
+            "source_basis": [],
+            "nl_basis": [
+                {"quote": "fire reaches Done from Armed.", "role": "requirement"}
+            ],
+            "executable_spec": {
+                "event_labels": ["fire"],
+                "precondition_state_label": "Armed",
+            },
+            "binding_refs": [],
+            "required": False,
+        },
+    ]
+    invocation_log = [
+        {
+            "request": drafts,
+            "result": {
+                "execution_status": "completed",
+                "drafts_sha256": sha256_json(drafts),
+                "gate": {
+                    "eligible": True,
+                    "executed_check_ids": ["CHK-NL-001"],
+                },
+                "issue_checks": [
+                    {
+                        "check_id": "CHK-NL-001",
+                        "check_origin": "nl_grounded_behavioral_issue",
+                        "binding_refs": ["state:Root.Done"],
+                    },
+                    {
+                        "check_id": "CHK-NL-002",
+                        "check_origin": "nl_grounded_behavioral_issue",
+                        "binding_refs": ["state:Root.Done"],
+                    },
+                ],
+                "scenarios": {
+                    "scenario_results": [
+                        {
+                            "check_id": "CHK-NL-001",
+                            "expected_outcome_match_status": "contradicts",
+                        },
+                        {
+                            "check_id": "CHK-NL-002",
+                            "expected_outcome_match_status": "inconclusive",
+                            "execution_status": "invalid_precondition",
+                        },
+                    ]
+                },
+                "properties": {"property_results": []},
+                "static_consistency": {"static_results": []},
+            },
+        }
+    ]
+    schema = _build_submit_discovery_response(
+        invocation_log,
+        accepted_model_refs={"state:Root.Done"},
+        available_source_refs=set(),
+        exact_pairs=set(),
+    )
+    payload = {
+        "submission_type": "submit_discovery",
+        "assessment_origin": "discover",
+        "check_drafts": drafts,
+        "no_issue_found": False,
+        "root_nodes": [
+            {
+                "node_id": "ISS-001@n0",
+                "issue_id": "ISS-001",
+                "assessment": "candidate_only",
+                "downstream_repair_allowed": False,
+                "statement": "The executed check contradicts its expectation.",
+                "rationale": "The scenario produced bounded contradictory evidence.",
+                "supporting_record_ids": [],
+                "required_check_ids": ["CHK-NL-001"],
+                "model_element_refs": ["state:Root.Done"],
+                "source_element_refs": [],
+            }
+        ],
+        "rejected_propositions": [],
+        "rationale": "One root and one inconclusive final check remain.",
+    }
+
+    with pytest.raises(ValidationError, match="coverage mismatch"):
+        schema.model_validate(payload)
+
+    payload["rejected_propositions"] = [
+        {
+            "proposition_id": "REJ-002",
+            "assessment": "rejected",
+            "rejection_reason": "insufficient_evidence",
+            "statement": "The second proposition is not executable.",
+            "rationale": "Its setup did not establish the declared precondition.",
+            "supporting_record_ids": [],
+            "considered_check_ids": ["CHK-NL-002"],
+            "model_element_refs": ["state:Root.Done"],
+            "source_element_refs": [],
+        }
+    ]
+    accepted = schema.model_validate(payload)
+    assert accepted.rejected_propositions[0].rejection_reason == (
+        "insufficient_evidence"
+    )
+
+
 def test_run_scoped_schema_binds_rejection_reason_to_nl_outcome_relation():
     matched_schema, matched_drafts, matched_id = _run_scoped_submission(relation="matches")
     matched = matched_schema.model_validate(

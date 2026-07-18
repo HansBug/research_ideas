@@ -410,6 +410,8 @@ def _validate_submission(
             raise ValueError(f"root {root.node_id} references unknown checks")
         if not set(root.supporting_record_ids).issubset(known_records):
             raise ValueError(f"root {root.node_id} references unknown records")
+        if not set(root.required_check_ids).issubset(executed_check_ids):
+            raise ValueError(f"root {root.node_id} references nonexecuted checks")
         _validate_ref_partition(
             root,
             accepted_model_refs=accepted_model_refs,
@@ -420,7 +422,7 @@ def _validate_submission(
         if root.assessment == "confirmed":
             if not root.downstream_repair_allowed:
                 raise ValueError(f"confirmed root {root.node_id} must be repair eligible")
-            if not root.required_check_ids or not set(root.required_check_ids).issubset(executed_check_ids):
+            if not root.required_check_ids:
                 raise ValueError(f"confirmed root {root.node_id} lacks executed checks")
             preparation_records = [
                 records_by_id[record_id]
@@ -743,7 +745,7 @@ def _build_submit_discovery_response(
         @model_validator(mode="after")
         def validate_current_run_evidence(self) -> "RunSubmitDiscoveryResponse":
             evaluation = _matching_evaluation(self, invocation_log)
-            known_checks = set(
+            executed_checks = set(
                 str(item) for item in (evaluation.get("gate") or {}).get("executed_check_ids", [])
             )
             relations = _check_outcome_relations(evaluation)
@@ -752,6 +754,7 @@ def _build_submit_discovery_response(
                 str(check["check_id"]): check
                 for check in evaluation.get("issue_checks", [])
             }
+            known_checks = set(checks_by_id)
             confirmation_possible = bool(exact_pairs)
 
             if not self.rationale.strip():
@@ -769,6 +772,11 @@ def _build_submit_discovery_response(
                 required = set(root.required_check_ids)
                 if not required.issubset(known_checks):
                     raise ValueError(f"root {root.node_id} references unknown final checks")
+                if not required.issubset(executed_checks):
+                    raise ValueError(
+                        f"root {root.node_id} references nonexecuted final checks; "
+                        "use rejected_propositions with insufficient_evidence"
+                    )
                 _validate_ref_partition(
                     root,
                     accepted_model_refs=accepted_model_refs,
