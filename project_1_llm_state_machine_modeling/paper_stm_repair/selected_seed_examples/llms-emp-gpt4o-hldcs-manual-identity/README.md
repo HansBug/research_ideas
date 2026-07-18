@@ -20,10 +20,10 @@ llms_emp_stm_results_0000_manual_identity
 | [nl.txt](./nl.txt) | 与正牌 `0000` 字节一致的原始需求。 |
 | [stm0.puml](./stm0.puml) | 与正牌 `0000` 字节一致的原始 PlantUML，只保留作 provenance，不送入本 pilot 的 Discover source 槽位。 |
 | [model.fcstm](./model.fcstm) | 人工 canonicalization 后的可执行 FCSTM。 |
-| [DECISIONS.md](./DECISIONS.md) | 每个作用域、guard、event、completion 与 priority 裁决的理由和限制。 |
+| [DECISIONS.md](./DECISIONS.md) | 每个作用域、event、completion 与 source-preservation 裁决的理由和限制。 |
 | [source_meta.json](./source_meta.json) | 原始 pair 身份、hash 与 Discover alias。 |
 | [fcstm_meta.json](./fcstm_meta.json) | 人工制品身份、输入策略、pyfcstm 身份和学术不适格声明。 |
-| [verification/](./verification/) | guard、brake、completion、power-off 四个 FBMCQ 回归查询。 |
+| [verification/](./verification/) | distance event、brake、steering、completion、power-off 五个 FBMCQ 回归查询。 |
 
 ## 3. Discover 输入语义
 
@@ -74,14 +74,14 @@ python -m paper_stm_repair_loop.discover \
 当前 `model.fcstm` 已通过 parse、semantic validation 与 inspect，并完成以下运行检查：
 
 1. `PowerOn`：`PoweredOff -> HumanDriving`。
-2. `front_distance=11`：`HumanDriving -> Autonomous.AutoInitial`。
+2. `Front Distance > 10` event：`HumanDriving -> Autonomous.AutoInitial`。
 3. `BrakePressed` / `HumanSteeringCommand`：从 autonomous 任意 active child 返回 `HumanDriving`。
 4. `ExitAutonomous`：`AutoInitial -> AutoFinal -> HumanDriving`。
 5. `PowerOff`：从 `HumanDriving` 进入 terminated boundary。
 
-`front_distance` 被建模为环境变量，模型内部不写入，因此 inspect 保留
-`W_UNWRITTEN_READ_VAR` 与 `W_GUARD_VARS_NEVER_CHANGE`。验证查询使用 FBMCQ
-`havoc + where` 明确环境值，没有把条件重新折叠成 plain event。
+`Front Distance > 10` 按原始 PlantUML / 官方 SCXML 口径保留为 named event。
+A 阶段不利用 NL 将其重构为变量或 guard；这种 condition-like label 的表达债只可
+作为 Discover 的候选触发信号，不能自动升级为 source-level confirmed issue。
 
 ## 6. 学术边界
 

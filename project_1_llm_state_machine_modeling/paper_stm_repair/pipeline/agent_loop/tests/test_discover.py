@@ -783,21 +783,23 @@ def test_manual_identity_pilot_preserves_the_adjudicated_runtime_contract():
         "HighLevelDrivingModule.Autonomous.AutoInitial",
         "HighLevelDrivingModule.Autonomous.AutoFinal",
     ]
-    guard = [
+    distance_transition = [
         item
         for item in result["inspect"]["transitions"]
         if item["from_path"] == "HighLevelDrivingModule.HumanDriving"
         and item["to_path"] == "HighLevelDrivingModule.Autonomous"
     ]
-    assert len(guard) == 1
-    assert guard[0]["event"] is None
-    assert guard[0]["guard"] == "front_distance > 10"
+    assert len(distance_transition) == 1
+    assert (
+        distance_transition[0]["event"]
+        == "HighLevelDrivingModule.Front_Distance_10"
+    )
+    assert distance_transition[0]["guard"] is None
 
     runtime = SimulationRuntime(load_model_for_simulation(case.fcstm))
     runtime.cycle()
     runtime.cycle(["HighLevelDrivingModule.PowerOn"])
-    runtime.vars["front_distance"] = 11
-    runtime.cycle()
+    runtime.cycle(["HighLevelDrivingModule.Front_Distance_10"])
     assert ".".join(runtime.current_state.path) == "HighLevelDrivingModule.Autonomous.AutoInitial"
     runtime.cycle(["HighLevelDrivingModule.BrakePressed"])
     assert ".".join(runtime.current_state.path) == "HighLevelDrivingModule.HumanDriving"
