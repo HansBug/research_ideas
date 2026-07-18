@@ -315,7 +315,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 
 ## 8. 机器验证与对抗用例
 
-最终相关套件：`100 passed`。除正常路径外，audit 必须拒绝：
+最终 conversion + representation + readiness 套件：`108 passed`。除正常路径外，audit 必须拒绝：
 
 - state parent/path、display body 与 pseudo kind 漂移；
 - source/trace endpoint 联合篡改；
