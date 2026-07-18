@@ -133,6 +133,17 @@ def test_prompt_defines_confirmed_candidate_rejected_boundaries_and_zero_root_ba
     assert "never use an empty check list or an ID from an earlier/superseded batch" in _flat(PROMPT_ZH)
 
 
+def test_prompt_forbids_closed_world_scope_inference_and_draft_ids_in_final_decisions():
+    flat = _flat(PROMPT_ZH)
+    assert '"when/in P, Q" establishes the behavior to check when P holds' in flat
+    assert "does not establish that Q is forbidden outside P" in flat
+    assert 'Do not invent an exclusivity, inhibition, or "only in P" requirement' in flat
+    assert "An exploratory trace outside the stated precondition cannot by itself" in flat
+    assert "final `issue_checks` are the sole valid evidence IDs" in flat
+    assert "Never put a draft ID in a root's `required_check_ids`" in flat
+    assert "copy the corresponding final `issue_checks[].check_id` values exactly" in flat
+
+
 def test_prompt_forbids_model_mutation_repair_future_confirm_and_source_closure_claims():
     for text in [
         "do not edit `STM_0`",

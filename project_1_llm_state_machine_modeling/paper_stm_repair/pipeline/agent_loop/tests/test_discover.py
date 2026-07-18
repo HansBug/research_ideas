@@ -569,8 +569,12 @@ def test_run_scoped_schema_rejects_unknown_and_uncovered_final_check_ids():
     schema, drafts, check_id = _run_scoped_submission(relation="contradicts")
     unknown = _submission_payload(drafts, check_id=check_id)
     unknown["root_nodes"][0]["required_check_ids"] = ["CHK-UNKNOWN"]
-    with pytest.raises(ValidationError, match="unknown final checks"):
+    with pytest.raises(ValidationError, match="unknown final checks") as exc_info:
         schema.model_validate(unknown)
+    message = str(exc_info.value)
+    assert "CHK-UNKNOWN" in message
+    assert "valid final check IDs are ['CHK-NL-001']" in message
+    assert "never Agent-authored draft check IDs" in message
 
     uncovered = _submission_payload(drafts, check_id=check_id)
     uncovered["root_nodes"] = []

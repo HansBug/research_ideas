@@ -180,6 +180,12 @@ submission.
      accounting: the same external input may appear once for each evented
      transition executed in a hierarchical chain. Repeated accounting entries in
      one cycle do not mean repeated input and cannot by themselves support a root.
+     Treat positive conditional requirements with ordinary implication semantics:
+     "when/in P, Q" establishes the behavior to check when P holds; it does not
+     establish that Q is forbidden outside P. Do not invent an exclusivity,
+     inhibition, or "only in P" requirement unless the frozen NL/source states
+     that restriction explicitly. An exploratory trace outside the stated
+     precondition cannot by itself turn a matching in-scope check into a root.
    - `raw_internal_inconsistency` drafts use `static_consistency`, have
      `nl_basis=[]`, cite at least two mutually conflicting source facts, and set
      `expected_outcome.consistency_status=contradicts`. Ordinary declarations,
@@ -211,6 +217,12 @@ submission.
    and do not change an expected outcome to make a result pass. Completion
    condition: one invocation matching the intended final drafts
    has `execution_status=completed` and `gate.eligible=true`.
+
+   The `check_id` values in that invocation's final `issue_checks` are the sole
+   valid evidence IDs for final submission. Draft IDs belong only to the Agent's
+   input batch. Never put a draft ID in a root's `required_check_ids` or a rejected
+   proposition's `considered_check_ids`; copy the corresponding final
+   `issue_checks[].check_id` values exactly.
 
    After an eligible batch exists, three consecutive business-tool responses
    that add no evidence (for example duplicate/invalid calls, unavailable tools,

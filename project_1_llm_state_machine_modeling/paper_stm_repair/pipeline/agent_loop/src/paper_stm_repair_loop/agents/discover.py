@@ -799,7 +799,13 @@ def _build_submit_discovery_response(
                     )
                 required = set(root.required_check_ids)
                 if not required.issubset(known_checks):
-                    raise ValueError(f"root {root.node_id} references unknown final checks")
+                    unknown = sorted(required - known_checks)
+                    raise ValueError(
+                        f"root {root.node_id} references unknown final checks {unknown}; "
+                        f"valid final check IDs are {sorted(known_checks)}. Use the "
+                        "final evaluate_checks issue_checks[].check_id values, never "
+                        "Agent-authored draft check IDs"
+                    )
                 if not required.issubset(executed_checks):
                     raise ValueError(
                         f"root {root.node_id} references nonexecuted final checks; "
@@ -856,8 +862,13 @@ def _build_submit_discovery_response(
                     )
                 rejected_checks = set(proposition.considered_check_ids)
                 if not rejected_checks.issubset(known_checks):
+                    unknown = sorted(rejected_checks - known_checks)
                     raise ValueError(
-                        f"rejected proposition {proposition.proposition_id} references unknown final checks"
+                        f"rejected proposition {proposition.proposition_id} references "
+                        f"unknown final checks {unknown}; valid final check IDs are "
+                        f"{sorted(known_checks)}. Use the final evaluate_checks "
+                        "issue_checks[].check_id values, never Agent-authored draft "
+                        "check IDs"
                     )
                 _validate_ref_partition(
                     proposition,

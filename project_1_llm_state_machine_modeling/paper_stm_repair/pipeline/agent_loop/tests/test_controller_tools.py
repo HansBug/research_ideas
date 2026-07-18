@@ -5,6 +5,7 @@ import json
 from typing import Any
 
 from paper_stm_repair_loop.controller import _best_match, _bind_drafts
+from paper_stm_repair_loop.inputs import load_pair
 from paper_stm_repair_loop.schemas import CheckDraftSubmission
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
 from paper_stm_repair_loop.tools.evaluate_checks import execute as evaluate_checks
@@ -797,6 +798,58 @@ def test_evaluate_checks_rejects_agent_authored_scenario_event_accounting():
                 "state the NL-grounded target_label only; cycle event accounting "
                 "is observed output and not an Agent-authored scenario expectation"
             ),
+        }
+    ]
+
+
+def test_evaluate_checks_rejects_scenario_scope_invented_outside_positive_nl_condition():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    quote = (
+        "transit to human driving mode when receive human steering cmd, "
+        "brake pressed, in (auto final)"
+    )
+    result = evaluate_checks(
+        model_text=case.fcstm,
+        check_result=check_fcstm(case.fcstm),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-auto-initial-brake",
+                "check_kind": "scenario",
+                "statement": (
+                    "BrakePressed outside AutoFinal must not return to HumanDriving."
+                ),
+                "expected_outcome": {"target_label": "HumanDriving"},
+                "source_basis": [
+                    "!Autonomous -> HumanDriving : BrakePressed;"
+                ],
+                "nl_basis": [{"quote": quote, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": [
+                        "PowerOn",
+                        "Front_Distance_10",
+                        "BrakePressed",
+                    ],
+                    "precondition_state_label": "AutoInitial",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=case.nl,
+        raw_source=case.fcstm,
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["issue_checks"] == []
+    assert result["binding_rejections"] == [
+        {
+            "draft_origin": "nl_grounded_behavioral_issue",
+            "draft_check_id": "draft-auto-initial-brake",
+            "reason": "scenario_precondition_and_event_not_jointly_grounded",
+            "precondition_state_label": "AutoInitial",
+            "tested_event_label": "BrakePressed",
         }
     ]
 
