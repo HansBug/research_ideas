@@ -396,6 +396,48 @@ def _owned_model_refs(
     }
 
 
+def _required_scenario_refs(
+    check_ids: list[str],
+    checks_by_id: Mapping[str, Mapping[str, Any]],
+) -> set[str]:
+    """Return the tested event, precondition, and target refs for owned scenarios."""
+
+    required: set[str] = set()
+    for check_id in check_ids:
+        check = checks_by_id.get(check_id, {})
+        if check.get("check_kind") != "scenario":
+            continue
+        spec = check.get("executable_spec")
+        expected = check.get("expected_outcome")
+        if isinstance(spec, Mapping):
+            tested_event = spec.get("tested_event")
+            precondition = spec.get("precondition_state")
+            if isinstance(tested_event, str) and tested_event:
+                required.add(f"event:{tested_event}")
+            if isinstance(precondition, str) and precondition:
+                required.add(f"state:{precondition}")
+        if isinstance(expected, Mapping):
+            target = expected.get("state_in")
+            if isinstance(target, str) and target:
+                required.add(f"state:{target}")
+    return required
+
+
+def _validate_required_scenario_refs(
+    item: RootIssue | RejectedProposition,
+    *,
+    required_refs: set[str],
+) -> None:
+    missing = sorted(required_refs - set(item.model_element_refs))
+    if missing:
+        item_id = item.node_id if isinstance(item, RootIssue) else item.proposition_id
+        raise ValueError(
+            f"{item_id} omits scenario semantic-core refs {missing}; each decision "
+            "must cite the final check's tested event, declared precondition, and "
+            "expected target instead of attaching an unrelated proposition"
+        )
+
+
 def _payload_contains_check_id(value: Any, check_id: str) -> bool:
     if isinstance(value, Mapping):
         if value.get("check_id") == check_id:
@@ -447,6 +489,12 @@ def _validate_submission(
             available_source_refs=available_source_refs,
             exact_pairs=exact_pairs,
         )
+        _validate_required_scenario_refs(
+            root,
+            required_refs=_required_scenario_refs(
+                root.required_check_ids, checks_by_id
+            ),
+        )
         if root.assessment == "confirmed":
             if not root.downstream_repair_allowed:
                 raise ValueError(f"confirmed root {root.node_id} must be repair eligible")
@@ -493,6 +541,12 @@ def _validate_submission(
             ),
             available_source_refs=available_source_refs,
             exact_pairs=exact_pairs,
+        )
+        _validate_required_scenario_refs(
+            proposition,
+            required_refs=_required_scenario_refs(
+                proposition.considered_check_ids, checks_by_id
+            ),
         )
     _validate_decision_partition(
         submission,
@@ -820,6 +874,12 @@ def _build_submit_discovery_response(
                     available_source_refs=available_source_refs,
                     exact_pairs=exact_pairs,
                 )
+                _validate_required_scenario_refs(
+                    root,
+                    required_refs=_required_scenario_refs(
+                        root.required_check_ids, checks_by_id
+                    ),
+                )
                 matched_nl_checks = sorted(
                     check_id
                     for check_id in required
@@ -878,6 +938,12 @@ def _build_submit_discovery_response(
                     ),
                     available_source_refs=available_source_refs,
                     exact_pairs=exact_pairs,
+                )
+                _validate_required_scenario_refs(
+                    proposition,
+                    required_refs=_required_scenario_refs(
+                        proposition.considered_check_ids, checks_by_id
+                    ),
                 )
 
             if self.no_issue_found != (len(self.root_nodes) == 0):

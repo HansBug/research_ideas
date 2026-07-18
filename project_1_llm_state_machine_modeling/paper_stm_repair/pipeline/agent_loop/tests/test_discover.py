@@ -331,7 +331,25 @@ def _run_scoped_submission(
                     {
                         "check_id": bound_check_id,
                         "check_origin": check_origin,
-                        "binding_refs": ["state:Root.Done"],
+                        "check_kind": "scenario" if nl_grounded else "static_consistency",
+                        "binding_refs": (
+                            ["event:Root.go", "state:Root.Done"]
+                            if nl_grounded
+                            else ["state:Root.Done"]
+                        ),
+                        "executable_spec": (
+                            {
+                                "tested_event": "Root.go",
+                                "precondition_state": "Root.Done",
+                            }
+                            if nl_grounded
+                            else {"kind": "state_declaration"}
+                        ),
+                        "expected_outcome": (
+                            {"state_in": "Root.Done"}
+                            if nl_grounded
+                            else {"consistency_status": "contradicts"}
+                        ),
                     }
                 ],
                 "scenarios": {
@@ -360,14 +378,17 @@ def _run_scoped_submission(
     return (
         _build_submit_discovery_response(
             invocation_log,
-            accepted_model_refs={"state:Root.Done"} | (extra_model_refs or set()),
+            accepted_model_refs={"state:Root.Done", "event:Root.go"} | (extra_model_refs or set()),
             available_source_refs=(
-                {"source:req"} | (extra_source_refs or set())
+                {"source:req", "source:event"} | (extra_source_refs or set())
                 if confirmation_possible
                 else set()
             ),
             exact_pairs=(
-                {("source:req", "state:Root.Done")}
+                {
+                    ("source:req", "state:Root.Done"),
+                    ("source:event", "event:Root.go"),
+                }
                 | (extra_exact_pairs or set())
                 if confirmation_possible
                 else set()
@@ -399,8 +420,12 @@ def _submission_payload(
                 "rationale": "The final deterministic check contradicted its sealed expectation.",
                 "supporting_record_ids": [],
                 "required_check_ids": [check_id],
-                "model_element_refs": ["state:Root.Done"],
-                "source_element_refs": ["source:req"] if assessment == "confirmed" else [],
+                "model_element_refs": ["state:Root.Done", "event:Root.go"],
+                "source_element_refs": (
+                    ["source:req", "source:event"]
+                    if assessment == "confirmed"
+                    else []
+                ),
             }
         ],
         "rejected_propositions": [],
@@ -429,7 +454,7 @@ def _rejected_payload(
                 "rationale": "The structured reason records why it is rejected.",
                 "supporting_record_ids": [],
                 "considered_check_ids": [check_id],
-                "model_element_refs": ["state:Root.Done"],
+                "model_element_refs": ["state:Root.Done", "event:Root.go"],
                 "source_element_refs": [],
             }
         ],
@@ -499,8 +524,14 @@ def test_run_scoped_schema_accepts_exactly_paired_confirmed_root():
         _submission_payload(drafts, assessment="confirmed", check_id=check_id)
     )
 
-    assert result.root_nodes[0].source_element_refs == ["source:req"]
-    assert result.root_nodes[0].model_element_refs == ["state:Root.Done"]
+    assert result.root_nodes[0].source_element_refs == [
+        "source:req",
+        "source:event",
+    ]
+    assert result.root_nodes[0].model_element_refs == [
+        "state:Root.Done",
+        "event:Root.go",
+    ]
 
 
 def test_run_scoped_schema_rejects_unrelated_exact_identity_ref():
@@ -537,7 +568,9 @@ def test_run_scoped_schema_does_not_treat_raw_static_match_as_semantic_rejection
         check_origin="raw_internal_inconsistency",
     )
 
-    result = schema.model_validate(_submission_payload(drafts, check_id=check_id))
+    payload = _submission_payload(drafts, check_id=check_id)
+    payload["root_nodes"][0]["model_element_refs"] = ["state:Root.Done"]
+    result = schema.model_validate(payload)
 
     assert result.root_nodes[0].assessment == "candidate_only"
 
@@ -581,6 +614,23 @@ def test_run_scoped_schema_rejects_unknown_and_uncovered_final_check_ids():
     uncovered["no_issue_found"] = True
     with pytest.raises(ValidationError, match="coverage mismatch"):
         schema.model_validate(uncovered)
+
+
+def test_run_scoped_schema_rejects_unrelated_proposition_attached_to_scenario_check():
+    schema, drafts, check_id = _run_scoped_submission(relation="matches")
+    payload = _rejected_payload(
+        drafts,
+        check_id=check_id,
+        rejection_reason="expectation_matched",
+    )
+    payload["rejected_propositions"][0]["model_element_refs"] = [
+        "state:Root.Done"
+    ]
+
+    with pytest.raises(ValidationError, match="omits scenario semantic-core refs") as exc_info:
+        schema.model_validate(payload)
+    assert "event:Root.go" in str(exc_info.value)
+    assert "unrelated proposition" in str(exc_info.value)
 
 
 def test_run_scoped_schema_requires_one_decision_owner_per_final_check():

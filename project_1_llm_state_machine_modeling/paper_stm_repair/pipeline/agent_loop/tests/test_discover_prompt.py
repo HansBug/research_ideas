@@ -142,6 +142,8 @@ def test_prompt_forbids_closed_world_scope_inference_and_draft_ids_in_final_deci
     assert "final `issue_checks` are the sole valid evidence IDs" in flat
     assert "Never put a draft ID in a root's `required_check_ids`" in flat
     assert "copy the corresponding final `issue_checks[].check_id` values exactly" in flat
+    assert "tested event, declared precondition state, and expected target state" in flat
+    assert "Never attach a removed/superseded draft's statement or rationale" in flat
 
 
 def test_prompt_forbids_model_mutation_repair_future_confirm_and_source_closure_claims():

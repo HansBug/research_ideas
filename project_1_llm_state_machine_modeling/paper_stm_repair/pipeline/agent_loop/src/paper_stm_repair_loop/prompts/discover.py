@@ -283,6 +283,12 @@ submission.
    Keep `model_element_refs` and `source_element_refs` separate: the former are
    FCSTM inspect/binding refs such as `state:Root.Armed`; the latter are raw/source
    refs from the frozen trace. Never put an FCSTM ref into `source_element_refs`.
+   Every root or rejected proposition that owns a scenario check must include in
+   `model_element_refs` that final check's tested event, declared precondition
+   state, and expected target state. Setup-event refs are optional. Never attach
+   a removed/superseded draft's statement or rationale to an unrelated final
+   check merely to satisfy batch coverage; removed drafts belong only in the
+   overall rationale and immutable attempt history.
    A confirmed root must cite both sides, and every cited pair must have an exact
    one-to-one frozen trace mapping. A proposition's `model_element_refs` may cite
    only refs owned by its own final checks; unrelated inspect elements remain
