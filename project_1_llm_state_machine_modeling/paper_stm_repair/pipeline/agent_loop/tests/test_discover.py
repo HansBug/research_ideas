@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from paper_stm_repair_loop.agents.discover import (
     _build_submit_discovery_response,
+    _post_batch_no_progress,
     _summarize_evaluation_attempts,
     _write_capability_manifest,
     run_discover,
@@ -44,6 +45,21 @@ def test_discover_runtime_contains_exactly_one_agent_app_run_and_no_controller_a
     assert "retry_missing_structured_output=True" in discover_source
     assert 'RunSubmitDiscoveryResponse.__name__ = "submit_discovery"' in discover_source
     assert 'limits=manifest.get("agent_limits") or None' in discover_source
+
+
+def test_post_batch_no_progress_requires_three_consecutive_non_evidence_calls():
+    attempts = [
+        {"execution_status": "completed"},
+        {"execution_status": "invalid_arguments"},
+        {"execution_status": "tool_unavailable"},
+    ]
+    assert _post_batch_no_progress(attempts) is False
+
+    attempts.append({"execution_status": "prerequisite_required"})
+    assert _post_batch_no_progress(attempts) is True
+
+    attempts.append({"execution_status": "completed"})
+    assert _post_batch_no_progress(attempts) is False
 
 
 def test_evaluation_attempt_summary_keeps_rejected_batches_and_selects_final_batch():

@@ -206,6 +206,12 @@ submission.
    condition: one invocation matching the intended final drafts
    has `execution_status=completed` and `gate.eligible=true`.
 
+   After an eligible batch exists, three consecutive business-tool responses
+   that add no evidence (for example duplicate/invalid calls, unavailable tools,
+   or execution failures) close the investigation surface deterministically.
+   The next model turn exposes only `submit_discovery`; use the complete visible
+   history to submit instead of trying more tool-name or argument variants.
+
 4. **Investigate named evidence gaps, then finalize the batch.** Use
    `query_model`, `observe_trace`, or `lookup_source_trace` only when an evaluated
    proposition has a concrete missing structural, exploratory trace, or mapping

@@ -90,6 +90,26 @@ def test_dynamic_tool_choice_resolver_is_evaluated_for_each_model_request() -> N
     assert first.model_settings == {"temperature": 0}
 
 
+def test_dynamic_structured_choice_preserves_response_format() -> None:
+    middleware = _ModelOptionsMiddleware(
+        {},
+        tool_choice_resolver=lambda: "submit_discovery",
+        structured_output_name="submit_discovery",
+    )
+    request = _MiddlewareRequest(
+        tools=(
+            {"name": "query_model"},
+            {"name": "submit_discovery"},
+        )
+    )
+
+    projected = middleware.wrap_model_call(request, lambda value: value)
+
+    assert projected.tool_choice == "submit_discovery"
+    assert projected.response_format == "structured"
+    assert projected.tools == [{"name": "submit_discovery"}]
+
+
 def test_explicit_forced_tool_choice_overrides_dynamic_resolver() -> None:
     middleware = _ModelOptionsMiddleware(
         {},
@@ -415,6 +435,52 @@ def test_missing_output_retry_recovers_malformed_mandatory_business_call(
     assert mandatory_projection["tool_choice"] == "lookup"
     assert [item["name"] for item in mandatory_projection["tools"]] == ["lookup"]
     assert mandatory_projection["response_format"] is None
+
+
+def test_dynamic_resolver_can_force_structured_submission_only(
+    tmp_path: Path,
+) -> None:
+    state = {"lookup_completed": False}
+
+    def lookup() -> str:
+        """Return the mandatory fact before the terminal phase."""
+
+        state["lookup_completed"] = True
+        return "ok"
+
+    model = _MissingThenStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="structured-only-terminal",
+            system_prompt="Return the structured answer.",
+            tools=(lookup,),
+            output_schema=_RetryAnswer,
+            require_tool_call=True,
+            retry_missing_structured_output=True,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+    audit = tmp_path / "structured-only-terminal.jsonl"
+
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=audit,
+        tool_choice_resolver=(
+            lambda: "_RetryAnswer" if state["lookup_completed"] else "lookup"
+        ),
+        tool_choice_policy_name="test-structured-only-v1",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    assert model.calls == 4
+    assert [
+        item
+        for item in result.tool_calls
+        if item.get("kind") == "business" and item.get("status") == "completed"
+    ][0]["name"] == "lookup"
 
 
 def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:

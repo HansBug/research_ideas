@@ -60,6 +60,34 @@ AGENT_TOOL_NAMES = (
     "evaluate_checks",
 )
 
+_POST_BATCH_NO_PROGRESS_LIMIT = 3
+_NO_PROGRESS_EXECUTION_STATUSES = {
+    "execution_error",
+    "incomplete",
+    "invalid_arguments",
+    "mandatory_tool_rejected",
+    "prerequisite_required",
+    "timeout",
+    "tool_unavailable",
+    "unknown",
+}
+
+
+def _post_batch_no_progress(
+    tool_attempt_log: list[dict[str, Any]],
+    *,
+    limit: int = _POST_BATCH_NO_PROGRESS_LIMIT,
+) -> bool:
+    """Return true after a consecutive tail of business calls adds no evidence."""
+
+    if limit < 1 or len(tool_attempt_log) < limit:
+        return False
+    return all(
+        str(item.get("execution_status") or "unknown")
+        in _NO_PROGRESS_EXECUTION_STATUSES
+        for item in tool_attempt_log[-limit:]
+    )
+
 
 def _pyfcstm_commit() -> str:
     completed = subprocess.run(
@@ -1108,6 +1136,8 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             return "read_fbmcq_guide"
         if investigation_state.latest_eligible_batch() is None:
             return "evaluate_checks"
+        if _post_batch_no_progress(tool_attempt_log):
+            return "submit_discovery"
         return None
 
     base_read_fcstm_guide = build_read_fcstm_guide(guide_access)
@@ -1172,8 +1202,11 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "conditional_agent_tool_calls": {
                 "property_batch": ["read_fbmcq_guide"],
             },
-            "tool_choice_policy": "paper1-discover-mandatory-v1",
-            "tool_choice_policy_scope": "mandatory_protocol_steps_only",
+            "tool_choice_policy": "paper1-discover-mandatory-v2",
+            "tool_choice_policy_scope": (
+                "mandatory_protocol_steps_and_post_batch_no_progress_submission"
+            ),
+            "post_batch_no_progress_limit": _POST_BATCH_NO_PROGRESS_LIMIT,
         },
     )
     replay_file = manifest.get("test_replay_file")
@@ -1232,7 +1265,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
                 result_out=result_path,
                 compact_trigger_ratio=0.85,
                 tool_choice_resolver=mandatory_tool_choice,
-                tool_choice_policy_name="paper1-discover-mandatory-v1",
+                tool_choice_policy_name="paper1-discover-mandatory-v2",
             )
             if (
                 result.status != "success"

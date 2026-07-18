@@ -2178,10 +2178,12 @@ class _ModelOptionsMiddleware(AgentMiddleware):
         *,
         forced_tool_choice: Any | None = None,
         tool_choice_resolver: Callable[[], Any | None] | None = None,
+        structured_output_name: str | None = None,
     ):
         self.options = dict(options or {})
         self.forced_tool_choice = forced_tool_choice
         self.tool_choice_resolver = tool_choice_resolver
+        self.structured_output_name = structured_output_name
 
     def _tool_choice(self) -> Any | None:
         if self.forced_tool_choice is not None:
@@ -2206,11 +2208,12 @@ class _ModelOptionsMiddleware(AgentMiddleware):
         if tool_choice is not None:
             overrides["tool_choice"] = tool_choice
             if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
-                # LangChain ToolStrategy otherwise replaces a requested business
-                # tool with ``tool_choice=any`` whenever a structured-output tool
-                # is present. Temporarily suppress that terminal surface while a
-                # caller-declared mandatory business step is active.
-                overrides["response_format"] = None
+                structured_terminal = tool_choice == self.structured_output_name
+                # Suppress ToolStrategy only for a mandatory business step. A
+                # caller may also force the structured terminal itself; that path
+                # must retain response_format so LangGraph validates the payload.
+                if not structured_terminal:
+                    overrides["response_format"] = None
                 overrides["tools"] = [
                     tool
                     for tool in list(getattr(request, "tools", None) or [])
@@ -2225,7 +2228,9 @@ class _ModelOptionsMiddleware(AgentMiddleware):
         if tool_choice is not None:
             overrides["tool_choice"] = tool_choice
             if self.forced_tool_choice is None and self.tool_choice_resolver is not None:
-                overrides["response_format"] = None
+                structured_terminal = tool_choice == self.structured_output_name
+                if not structured_terminal:
+                    overrides["response_format"] = None
                 overrides["tools"] = [
                     tool
                     for tool in list(getattr(request, "tools", None) or [])
@@ -3433,6 +3438,11 @@ class AgentApp:
             model_options_middleware = _ModelOptionsMiddleware(
                 inference_options,
                 tool_choice_resolver=tool_choice_resolver,
+                structured_output_name=(
+                    self.spec.output_schema.__name__
+                    if self.spec.output_schema is not None
+                    else None
+                ),
             )
             middleware: list[Any] = [
                 model_options_middleware,
