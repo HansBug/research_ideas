@@ -2214,11 +2214,11 @@ class _ModelOptionsMiddleware(AgentMiddleware):
                 # must retain response_format so LangGraph validates the payload.
                 if not structured_terminal:
                     overrides["response_format"] = None
-                overrides["tools"] = [
-                    tool
-                    for tool in list(getattr(request, "tools", None) or [])
-                    if self._request_tool_name(tool) == tool_choice
-                ]
+                    overrides["tools"] = [
+                        tool
+                        for tool in list(getattr(request, "tools", None) or [])
+                        if self._request_tool_name(tool) == tool_choice
+                    ]
         return handler(request.override(**overrides))
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
@@ -2231,11 +2231,11 @@ class _ModelOptionsMiddleware(AgentMiddleware):
                 structured_terminal = tool_choice == self.structured_output_name
                 if not structured_terminal:
                     overrides["response_format"] = None
-                overrides["tools"] = [
-                    tool
-                    for tool in list(getattr(request, "tools", None) or [])
-                    if self._request_tool_name(tool) == tool_choice
-                ]
+                    overrides["tools"] = [
+                        tool
+                        for tool in list(getattr(request, "tools", None) or [])
+                        if self._request_tool_name(tool) == tool_choice
+                    ]
         return await handler(request.override(**overrides))
 
 

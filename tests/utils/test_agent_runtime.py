@@ -107,7 +107,7 @@ def test_dynamic_structured_choice_preserves_response_format() -> None:
 
     assert projected.tool_choice == "submit_discovery"
     assert projected.response_format == "structured"
-    assert projected.tools == [{"name": "submit_discovery"}]
+    assert projected.tools == request.tools
 
 
 def test_explicit_forced_tool_choice_overrides_dynamic_resolver() -> None:
