@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -29,6 +31,16 @@ RUNNER = (
     REPO_ROOT
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
     / "tools/run_llms_emp_r45.py"
+)
+EVIDENCE = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
+    / "reports/llms_emp_r45_java_60"
+)
+FCSTM_SET_SHA256 = "591ff856f8a8985b1fcc1682d76193efeaea416be11ae84c64231abf00e17a82"
+MANUAL_ROW_RE = re.compile(
+    r"^\| `(?P<case>\d{4})` \| `(?P<source>[0-9a-f]{64})` \| "
+    r"`(?P<fcstm>[0-9a-f]{64})` \| PASS \| (?P<notes>.+) \|$"
 )
 
 
@@ -239,3 +251,60 @@ def test_batch_runner_records_checked_out_pyfcstm_gitlink():
     expected_commit = runner._git("ls-tree", "HEAD", "pyfcstm").split()[2]
 
     assert runner._checked_out_pyfcstm_commit() == expected_commit
+
+
+def test_batch_runner_refuses_to_overwrite_reviewed_output(tmp_path: Path):
+    runner = _load_runner_module()
+    output_dir = tmp_path / "reviewed-output"
+    output_dir.mkdir()
+    manual_review = output_dir / "MANUAL_REVIEW.md"
+    manual_review.write_text("reviewed\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="reviewed output is frozen"):
+        runner._prepare_output_dir(output_dir)
+
+    assert manual_review.read_text(encoding="utf-8") == "reviewed\n"
+
+
+def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
+    manual_text = (EVIDENCE / "MANUAL_REVIEW.md").read_text(encoding="utf-8")
+    manual_rows = [
+        match.groupdict()
+        for line in manual_text.splitlines()
+        if (match := MANUAL_ROW_RE.fullmatch(line)) is not None
+    ]
+    assert [row["case"] for row in manual_rows] == [f"{index:04d}" for index in range(60)]
+    assert all(row["notes"].strip() for row in manual_rows)
+
+    source_rows = {row["pair_id"][-4:]: row for row in _rows()}
+    comparison_rows = {
+        row["case_id"]: row
+        for row in (
+            json.loads(line)
+            for line in (EVIDENCE / "comparison.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line.strip()
+        )
+    }
+    assert set(source_rows) == set(comparison_rows) == {row["case"] for row in manual_rows}
+
+    for row in manual_rows:
+        case_id = row["case"]
+        fcstm_path = EVIDENCE / "fcstm" / f"llms_emp_stm_results_{case_id}.fcstm"
+        actual_fcstm_sha256 = hashlib.sha256(fcstm_path.read_bytes()).hexdigest()
+        assert row["source"] == source_rows[case_id]["stm0_sha256"]
+        assert row["source"] == comparison_rows[case_id]["source_sha256"]
+        assert row["fcstm"] == comparison_rows[case_id]["fcstm_sha256"]
+        assert row["fcstm"] == actual_fcstm_sha256
+        assert comparison_rows[case_id]["verdict"] == "structure_preserved"
+        assert comparison_rows[case_id]["fcstm_execution_eligible"] is False
+        assert comparison_rows[case_id]["discover_eligible"] is False
+
+    collection_payload = "".join(
+        f"{hashlib.sha256(path.read_bytes()).hexdigest()}  "
+        f"{path.relative_to(REPO_ROOT).as_posix()}\n"
+        for path in sorted((EVIDENCE / "fcstm").glob("*.fcstm"))
+    ).encode("utf-8")
+    assert hashlib.sha256(collection_payload).hexdigest() == FCSTM_SET_SHA256
+    assert "不表示行为等价" in manual_text

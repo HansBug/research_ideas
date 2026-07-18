@@ -315,7 +315,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 
 ## 8. 机器验证与对抗用例
 
-最终 conversion + representation + readiness 套件：`108 passed`。除正常路径外，audit 必须拒绝：
+最终 conversion + representation + readiness 套件：`110 passed`。除正常路径外，audit 必须拒绝：
 
 - state parent/path、display body 与 pseudo kind 漂移；
 - source/trace endpoint 联合篡改；
@@ -329,6 +329,8 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 - multiple initial declaration order改变；
 - transition-specific deep entry 被移动到 default initial 之后；
 - source/synthetic state partition 或 mapping cardinality漂移。
+- 已含 `MANUAL_REVIEW.md` 的冻结 evidence 目录被 batch runner 覆盖。
+- 60 行人工账本中的 source/FCSTM SHA、三轴 verdict 或 FCSTM 集合哈希漂移。
 
 constructed runtime 回归还直接验证：
 

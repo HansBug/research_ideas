@@ -107,6 +107,19 @@ def _display(path: Path) -> str:
     return str(path.resolve().relative_to(REPO_ROOT))
 
 
+def _prepare_output_dir(output_dir: Path) -> None:
+    manual_review = output_dir / "MANUAL_REVIEW.md"
+    if manual_review.is_file():
+        raise RuntimeError(
+            f"reviewed output is frozen by {manual_review}; use --output-dir "
+            "with a fresh replay directory instead of deleting manual evidence"
+        )
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    for name in ("canonical", "fcstm", "case_reports", "parse_inspect"):
+        (output_dir / name).mkdir(parents=True, exist_ok=True)
+
+
 def _summary_markdown(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> str:
     summary = manifest["summary"]
     lines = [
@@ -178,10 +191,7 @@ def run(*, pairs_path: Path, output_dir: Path, plantuml_jar: Path) -> dict[str, 
     allowed_root = (PAPER_ROOT / "pipeline/representation/reports").resolve()
     if output_dir != allowed_root and allowed_root not in output_dir.parents:
         raise ValueError(f"output must stay under {allowed_root}: {output_dir}")
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-    for name in ("canonical", "fcstm", "case_reports", "parse_inspect"):
-        (output_dir / name).mkdir(parents=True, exist_ok=True)
+    _prepare_output_dir(output_dir)
 
     rows = [
         json.loads(line)

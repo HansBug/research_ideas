@@ -27,8 +27,8 @@ representation/
 ├── src/paper_stm_repair_representation/
 │   ├── __init__.py
 │   ├── cli.py
-│   ├── lowering.py              # canonical view / lowering / .fcstm render / report 主入口
-│   ├── plantuml_source_lowering.py # Java source canonical 的 fail-closed lowering
+│   ├── lowering.py              # 历史四例 canonical lowering / .fcstm render / report 入口
+│   ├── plantuml_source_lowering.py # active 60 例的结构保真 lowering 与三轴裁决
 │   └── pyfcstm_names.py
 ├── reports/
 │   ├── fcstm_export_report.json
@@ -45,19 +45,31 @@ representation/
     └── test_r45_schema_contract.py
 ```
 
-新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing；任何无法证明的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 都产生 blocker，并使 `discover_eligible=false`。
+新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing。只有 source fact 无法完整落入 `.fcstm + mandatory trace` 时才产生 structural blocker；可以完整保存、但无法证明运行解释的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 记为 operational debt，并使 `fcstm_execution_eligible=false`、`discover_eligible=false`。因此 `structure_preserved` 不能被解释为行为等价。
 
-其中 `lowering.py` 是 R4.5 的主实现入口，同时承担 canonical model view、lowering 策略、`.fcstm` 渲染、loss ledger 与 export report 生成；本 PR 未单独拆出 `canonical_to_fcstm.py`。
+其中 `lowering.py` 继续承担历史四例 R3 canonical 的 model view、lowering、`.fcstm` 渲染、loss ledger 与 export report；Issue #161 后的 active 60 例由 `plantuml_source_lowering.py` 和 `plantuml_source_audit.py` 承担结构投影与独立 AST 审计。两条统计不得混用，本 PR 未单独拆出 `canonical_to_fcstm.py`。
 
 ## 3. 运行方式
 
-依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。当前 R4.5 contract 以 pyfcstm `v0.4.0`（submodule commit `5f811a0f`）为准；升级 pyfcstm 后必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
+依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。active 60 例证据固定 pyfcstm commit `4ea23c9b153f47e5c4a2125d95b466eee6eed13e`；下文历史四例最初冻结于 `v0.4.0`，仅保留为 legacy contract。任何 gitlink 升级都必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
 
 ```bash
 git submodule update --init --recursive
 pip install -r requirements.txt
 pip install -e ./pyfcstm
 ```
+
+重放 active 60 例时，不得覆盖已经绑定人工审阅的冻结目录。应显式使用新的 replay 目录：
+
+```bash
+make -C project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/java/plantuml-state-frontend fetch compile
+
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/run_llms_emp_r45.py \
+  --output-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60_replay
+```
+
+若默认输出目录已存在 `MANUAL_REVIEW.md`，runner 必须拒绝覆盖。新 replay 只有在重新完成 60 对人工阅读并绑定新哈希后，才能替换冻结证据；机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
 
 导出四个 selected seed examples：
 
@@ -77,8 +89,8 @@ R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability
 运行 R4.5 tests：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
-pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+python -m pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
 ```
 
 ## 4. R5.7.4 裁决样例补充 bundle 已归档
