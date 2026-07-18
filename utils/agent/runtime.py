@@ -4348,12 +4348,17 @@ def _visible_reasoning(message: Any) -> str | None:
 def _public_stream_chunk(token: Any, chunk: Any) -> tuple[str, bool]:
     """Return public text and whether a provider chunk has public semantics."""
 
+    # A bare token without a public LangChain chunk has no visibility
+    # attribution.  Providers may use this callback form for private
+    # reasoning deltas, so never promote it to public text or first-chunk data.
+    if chunk is None:
+        return "", False
     message = getattr(chunk, "message", chunk)
     message_text = _message_text(message) if message is not None else ""
     # When a public LangChain message is available it is the visibility
     # boundary.  Some providers reuse ``token`` for raw reasoning deltas whose
     # message content is empty; those must not leak or establish first chunk.
-    text = message_text or (token if message is None and isinstance(token, str) else "")
+    text = message_text
     tool_chunks = list(getattr(message, "tool_call_chunks", None) or []) if message is not None else []
     has_tool_delta = any(
         any(call.get(key) not in {None, ""} for key in ("name", "args", "id"))

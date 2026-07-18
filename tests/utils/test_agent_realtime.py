@@ -395,6 +395,49 @@ def test_raw_reasoning_content_is_not_public_text_or_first_chunk() -> None:
     assert semantic is True
 
 
+def test_bare_callback_token_without_public_chunk_is_not_visible() -> None:
+    text, semantic = _public_stream_chunk("private chain of thought", None)
+    assert text == ""
+    assert semantic is False
+
+
+def test_bare_callback_token_is_not_emitted_by_full_agent_run(tmp_path: Path) -> None:
+    class BareReasoningModel(BaseChatModel):
+        @property
+        def _llm_type(self) -> str:
+            return "bare-reasoning-test"
+
+        def bind_tools(self, tools: Any, **kwargs: Any) -> "BareReasoningModel":
+            return self
+
+        def _generate(
+            self,
+            messages: list[Any],
+            stop: list[str] | None = None,
+            run_manager: Any = None,
+            **kwargs: Any,
+        ) -> ChatResult:
+            if run_manager is not None:
+                run_manager.on_llm_new_token("PRIVATE_CHAIN_OF_THOUGHT", chunk=None)
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content="visible answer"))])
+
+    events: list[AgentEvent] = []
+    audit = tmp_path / "bare-reasoning.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="bare-reasoning", system_prompt="Answer directly."),
+        LLMConfig(model="bare-reasoning-test"),
+        BareReasoningModel(),
+    ).run("hello", renderer="quiet", on_event=events.append, audit_out=audit)
+
+    assert result.status == "success", result.error
+    model_text = [event.data.get("text", "") for event in events if event.kind == "model_text"]
+    assert all("PRIVATE_CHAIN_OF_THOUGHT" not in text for text in model_text)
+    completed = next(event for event in events if event.kind == "model_completed")
+    assert completed.data["first_chunk_at_utc"] is None
+    assert completed.data["time_to_first_chunk_seconds"] is None
+    assert "PRIVATE_CHAIN_OF_THOUGHT" not in audit.read_text(encoding="utf-8")
+
+
 def test_jsonl_renderer_flushes_each_event() -> None:
     writer = _ProbeWriter()
     renderer = _Renderer("jsonl", "INFO", "flush-run")
