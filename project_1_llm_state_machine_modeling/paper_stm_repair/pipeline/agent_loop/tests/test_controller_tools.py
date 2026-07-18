@@ -48,6 +48,29 @@ SHORT_STATE_MODEL = """state Root {
 }
 """
 
+PSEUDO_STATE_MODEL = """state Root {
+    pseudo state Start;
+    state Idle;
+    state Done;
+    [*] -> Start;
+    Start -> Idle;
+    Idle -> Done;
+}
+"""
+
+HIERARCHICAL_TARGET_MODEL = """state Root {
+    event Exit_Autonomous;
+    state HumanDriving {
+        state InitialState;
+        state FinalState;
+        state Autonomous;
+        [*] -> InitialState;
+        Autonomous -> FinalState : Exit_Autonomous;
+    }
+    [*] -> HumanDriving;
+}
+"""
+
 
 def test_controller_public_callables_have_seven_section_contract_docstrings():
     required = [
@@ -250,6 +273,81 @@ def test_evaluate_checks_rejects_agent_declared_wrong_precondition_grounding():
     assert result["binding_rejections"][0]["reason"] == (
         "scenario_precondition_conflicts_with_nl_state"
     )
+
+
+def test_evaluate_checks_rejects_expected_target_copied_from_model_behavior():
+    nl_text = "From Autonomous, Exit_Autonomous returns to HumanDriving."
+    result = evaluate_checks(
+        model_text=HIERARCHICAL_TARGET_MODEL,
+        check_result=check_fcstm(HIERARCHICAL_TARGET_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-observed-target",
+                "check_kind": "scenario",
+                "statement": "Exit_Autonomous should return to HumanDriving.",
+                "expected_outcome": {"target_label": "FinalState"},
+                "source_basis": [
+                    "Autonomous -> FinalState : Exit_Autonomous;"
+                ],
+                "nl_basis": [{"quote": nl_text, "role": "requirement"}],
+                "executable_spec": {
+                    "event_labels": ["Exit_Autonomous"],
+                    "precondition_state_label": "Autonomous",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=nl_text,
+        raw_source="Autonomous -> FinalState : Exit_Autonomous;",
+    )
+
+    assert result["gate"]["eligible"] is False
+    assert result["issue_checks"] == []
+    rejection = result["binding_rejections"][0]
+    assert rejection["reason"] == (
+        "scenario_expected_target_not_explicitly_grounded"
+    )
+    assert rejection["expected_target_state_paths"] == [
+        "Root.HumanDriving.FinalState"
+    ]
+    assert "Root.HumanDriving" in rejection["nl_mentioned_state_paths"]
+
+
+def test_evaluate_checks_ignores_pseudo_state_as_nl_behavior_context():
+    nl_text = "After users press start, Done remains reachable."
+    result = evaluate_checks(
+        model_text=PSEUDO_STATE_MODEL,
+        check_result=check_fcstm(PSEUDO_STATE_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-pseudo-word",
+                "check_kind": "property",
+                "statement": nl_text,
+                "expected_outcome": {"property_satisfied": True},
+                "source_basis": [],
+                "nl_basis": [{"quote": nl_text, "role": "requirement"}],
+                "executable_spec": {
+                    "kind": "reach",
+                    "target_label": "Done",
+                    "bound": 2,
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text=nl_text,
+        raw_source="",
+    )
+
+    assert result["binding_rejections"] == []
+    assert [check["check_id"] for check in result["issue_checks"]] == [
+        "CHK-NL-001"
+    ]
 
 
 def test_evaluate_checks_rejects_property_that_omits_named_behavior_context():

@@ -68,6 +68,8 @@ def _mentioned_state_paths(
     for item in inspect.get("states", []) or []:
         if not isinstance(item, Mapping) or not item.get("path"):
             continue
+        if bool(item.get("is_pseudo")):
+            continue
         path = str(item["path"])
         visible = str(item.get("name") or _last_label(path))
         token = _normalized_text(visible)
@@ -218,12 +220,22 @@ def _grounding_rejections(
                     target_paths = _matching_state_paths(
                         draft.expected_outcome.get("target_label"), inspect
                     )
-                    explicit_preconditions = {
-                        path
-                        for path in mentioned
-                        if not any(_state_related(path, target) for target in target_paths)
-                    }
-                    if explicit_preconditions and not all(
+                    if target_paths and not target_paths.intersection(mentioned):
+                        reason = "scenario_expected_target_not_explicitly_grounded"
+                        details.update(
+                            {
+                                "expected_target_label": draft.expected_outcome.get(
+                                    "target_label"
+                                ),
+                                "expected_target_state_paths": sorted(target_paths),
+                                "nl_mentioned_state_paths": sorted(mentioned),
+                                "remediation": (
+                                    "use_the_non_pseudo_state_explicitly_named_by_nl_basis"
+                                ),
+                            }
+                        )
+                    explicit_preconditions = mentioned - target_paths
+                    if reason is None and explicit_preconditions and not all(
                         any(
                             _state_related(explicit, declared)
                             for declared in precondition_paths
@@ -512,9 +524,12 @@ def build_tool(
         - ``check_kind``: ``scenario``, ``property``, or ``static_consistency``.
         - ``statement``: precise claim this check tests, in the run language.
         - ``expected_outcome``: typed expectation fixed before reading this tool's
-          execution result. Scenario drafts normally use ``target_label``;
-          property drafts use ``property_satisfied`` or ``satisfied``; source
-          internal contradictions use ``consistency_status=contradicts``.
+          execution result. Scenario drafts normally use ``target_label``. For an
+          NL-grounded scenario, that label must resolve to the non-pseudo state
+          explicitly named by ``nl_basis``; do not substitute a child entry/final
+          state or the current model's observed target. Property drafts use
+          ``property_satisfied`` or ``satisfied``; source internal contradictions
+          use ``consistency_status=contradicts``.
         - ``nl_basis``: non-empty list of
           ``{"quote":"...","role":"requirement"}`` objects for every
           NL-grounded check. Every quote must occur in the frozen NL. It must be
@@ -528,9 +543,11 @@ def build_tool(
           and all preceding events establishing the declared precondition.
           At least one verified NL/source basis item must jointly name that
           precondition and final tested event; separate or invented prose cannot
-          establish applicability. If the NL quote explicitly names a non-target
-          state, the declared precondition must be that state or one of its
-          ancestors/descendants. Raw source may operationalize a precondition only
+          establish applicability. The scenario target must be the non-pseudo
+          state explicitly named by the NL quote, not a more specific descendant
+          chosen from the current model. If the NL quote explicitly names a
+          non-target state, the declared precondition must be that state or one of
+          its ancestors/descendants. Raw source may operationalize a precondition only
           when the NL quote itself leaves it implicit.
           Property drafts use ``kind`` + ``target_label`` + bounded ``bound``
           only for state-only propositions. If the statement or verified NL basis
@@ -570,8 +587,10 @@ def build_tool(
         Execution
         ---------
         1. Validate the complete nested draft schema, verify every basis excerpt
-           against frozen NL/raw source, and require scenario precondition plus
-           tested event to be jointly grounded by one verified basis item.
+           against frozen NL/raw source, require an NL-grounded scenario target to
+           equal a non-pseudo state explicitly named by the NL basis, and require
+           scenario precondition plus tested event to be jointly grounded by one
+           verified basis item.
         2. Reject a state-only property that drops an event or precondition named
            by its statement/NL basis, then bind state/event/transition labels
            against frozen normalized inspect;
@@ -590,7 +609,8 @@ def build_tool(
 
         Failure semantics
         -----------------
-        Invalid nested schema, invented/mismatched basis, ungrounded scenario
+        Invalid nested schema, invented/mismatched basis, an expected target copied
+        from observed model behavior instead of the NL, ungrounded scenario
         applicability, or an empty/all-rejected batch returns
         ``invalid_arguments`` with ``gate.eligible=false``. Partial/unbound checks,
         unsupported specs, unavailable capability, timeout, unknown, incomplete,

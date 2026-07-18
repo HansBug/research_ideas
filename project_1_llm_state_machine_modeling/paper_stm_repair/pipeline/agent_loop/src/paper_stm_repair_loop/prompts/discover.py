@@ -162,6 +162,10 @@ submission.
      `source_basis` item must occur in frozen raw/source `STM_0`. At least one
      such verified basis item must jointly name the declared precondition and
      final tested event; this is the applicability evidence. When the NL quote
+     names the intended target state, set `expected_outcome.target_label` to that
+     exact non-pseudo state. Do not replace it with a child entry/final state or
+     the current model's observed target; the deterministic gate rejects such
+     over-specific or observation-copied expectations. When the NL quote
      explicitly names a non-target state, the declared precondition must be that
      state or a hierarchical ancestor/descendant. Use raw/source transition text
      to supply the operational precondition only when the NL leaves it implicit;
