@@ -1,0 +1,67 @@
+state llms_emp_stm_results_0015 named "llms_emp_stm_results_0015" {
+    event Open_Door named "Open Door";
+    event Cancel named "Cancel";
+    event Close_Door named "Close Door";
+    event Place_Item named "Place Item";
+    event Remove_Item named "Remove Item";
+    event Close_Door_Zero_Time named "Close Door/Zero Time";
+    event Enter_Time named "Enter Time";
+    event Start named "Start";
+    event Cancel_Update_Time named "Cancel/Update Time";
+    event Open_Door_Stop_Timer named "Open Door/Stop Timer";
+    event Timer_Expired named "Timer Expired";
+    state DoorShut named "DoorShut" {
+        state State1 named "State1";
+        state State2 named "State2";
+        [*] -> State1;
+        State1 -> State2 : /Open_Door;
+        State1 -> State1 : /Cancel;
+        State2 -> [*] : /Close_Door;
+    }
+    state DoorOpen named "DoorOpen" {
+        state State1 named "State1";
+        [*] -> State1 : /Remove_Item;
+        [*] -> State1;
+        State1 -> [*] : /Place_Item;
+    }
+    state DoorOpenWithItem named "DoorOpenWithItem" {
+        state State1 named "State1";
+        [*] -> State1;
+        State1 -> [*] : /Close_Door_Zero_Time;
+        State1 -> [*] : /Enter_Time;
+    }
+    state DoorShutWithItem named "DoorShutWithItem" {
+        state State1 named "State1";
+        [*] -> State1;
+        State1 -> [*] : /Open_Door;
+        State1 -> [*] : /Enter_Time;
+    }
+    state ReadytoCook named "ReadytoCook" {
+        state State1 named "State1";
+        [*] -> State1;
+        State1 -> [*] : /Start;
+        State1 -> [*] : /Open_Door;
+        State1 -> [*] : /Cancel_Update_Time;
+    }
+    state Cooking named "Cooking" {
+        state State1 named "State1";
+        [*] -> State1;
+        State1 -> [*] : /Open_Door_Stop_Timer;
+        State1 -> [*] : /Timer_Expired;
+        State1 -> [*] : /Cancel;
+    }
+    [*] -> DoorShut;
+    DoorShut -> DoorOpen : /Close_Door;
+    DoorOpen -> DoorOpenWithItem : /Place_Item;
+    !DoorOpenWithItem -> DoorOpen : /Remove_Item;
+    DoorOpenWithItem -> DoorShutWithItem : /Close_Door_Zero_Time;
+    DoorOpenWithItem -> ReadytoCook : /Enter_Time;
+    DoorShutWithItem -> DoorOpenWithItem : /Open_Door;
+    DoorShutWithItem -> ReadytoCook : /Enter_Time;
+    ReadytoCook -> Cooking : /Start;
+    ReadytoCook -> DoorOpenWithItem : /Open_Door;
+    ReadytoCook -> DoorShutWithItem : /Cancel_Update_Time;
+    Cooking -> DoorOpenWithItem : /Open_Door_Stop_Timer;
+    Cooking -> DoorShutWithItem : /Timer_Expired;
+    Cooking -> ReadytoCook : /Cancel;
+}

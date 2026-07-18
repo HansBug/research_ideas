@@ -1,0 +1,35 @@
+state llms_emp_stm_results_0005 named "llms_emp_stm_results_0005" {
+    event Door_Opened named "Door Opened";
+    event Place_Item_Inside named "Place Item Inside";
+    event Close_Door named "Close Door";
+    event Remove_Item named "Remove Item";
+    event Close_Door_with_Zero_Time named "Close Door with Zero Time";
+    event Enter_Cooking_Time named "Enter Cooking Time";
+    event Open_Door named "Open Door";
+    event Cancel named "Cancel";
+    event Start named "Start";
+    event Timer_Expired named "Timer Expired";
+    state DoorShut named "DoorShut";
+    state DoorOpen named "DoorOpen" {
+        state DoorOpenWithItem named "DoorOpenWithItem";
+        [*] -> DoorOpenWithItem : /Open_Door;
+        ! * -> DoorOpenWithItem : /Place_Item_Inside;
+        DoorOpenWithItem -> [*] : /Close_Door_with_Zero_Time;
+        DoorOpenWithItem -> [*] : /Enter_Cooking_Time;
+    }
+    state DoorShutWithItem named "DoorShutWithItem";
+    state ReadytoCook named "ReadytoCook";
+    state Cooking named "Cooking";
+    [*] -> DoorShut;
+    !DoorOpen -> DoorShut : /Close_Door;
+    DoorOpen -> DoorShutWithItem : /Close_Door_with_Zero_Time;
+    DoorOpen -> ReadytoCook : /Enter_Cooking_Time;
+    DoorShutWithItem -> DoorOpen : /Open_Door;
+    DoorShutWithItem -> ReadytoCook : /Enter_Cooking_Time;
+    ReadytoCook -> DoorShutWithItem : /Cancel;
+    ReadytoCook -> DoorOpen : /Open_Door;
+    ReadytoCook -> Cooking : /Start;
+    Cooking -> DoorOpen : /Open_Door;
+    Cooking -> DoorShutWithItem : /Timer_Expired;
+    Cooking -> ReadytoCook : /Cancel;
+}

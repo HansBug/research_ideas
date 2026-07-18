@@ -187,17 +187,19 @@ PumpState --> MethaneState
 
 口径：`A` 表示 raw 结构在当前 R4.5 边界内可执行且无 blocker；`B` 表示 converter 已正确保留可证明部分并对其余部分失败关闭；`C` 表示仍有 converter defect。最终没有 `C`，但所有 `B` 都不能作为无损转换结果使用。
 
+最终 leaf 复验绑定：converter commit 为 `577f33f95fc4cfe31f3f321399c167f50df3bd73`，`pyfcstm` gitlink/checkout 均为 `4ea23c9b153f47e5c4a2125d95b466eee6eed13e`，固定 PlantUML jar SHA-256 为 `e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24`。本次主 session LLM 按 `0000` 至 `0059` 顺序读取每组完整 raw PlantUML、完整 FCSTM 与 blocker/mapping 摘要；submodule preflight 修复后重跑的 60 个 FCSTM 集合 SHA-256 为 `2eaf969bf34dcee811f6679b82c773a1ee8af4838fc63ab8f02389bb330bac88`，且 canonical/FCSTM 与逐组阅读版本 `60/60` bitwise identical。
+
 | case | 结论 | 人工对读要点 |
 |---|---|---|
-| `0000` | B | 双 scope `InitialState`、三段事件路径与 initial wait 正确；两个 state body 保持 opaque blocker。 |
+| `0000` | B | 双 scope `InitialState`、三段事件路径与 initial wait 正确；三条 state body 保持 opaque blocker。 |
 | `0001` | B | 6 条平面边一致；state description 未执行，blocked。 |
 | `0002` | A | PumpControl 层次、initial 与 4 条事件边一致。 |
 | `0003` | A | Operate composite 与 root start/keyOff 一致。 |
 | `0004` | B | self-initial 非法，1 条 transition blocked；4 条 lifecycle 全保留。 |
-| `0005` | B | 同名 state 按 scope 区分；3 条无 initial composite 入口 blocked。 |
+| `0005` | B | 同名 state 按 scope 区分；1 条非法 self-initial 与 2 条无 initial composite 入口 blocked。 |
 | `0006` | B | 12 条平面边一致；description/slash label 保持 opaque。 |
 | `0007` | B | 三种 collision event 分别进入 Brake/Steer/Alert；nested final 可稳定；body/missing default initial blocked。 |
-| `0008` | B | 27 条边、root final 保留；无标签 fan-out 与时间/概率 label 不推断。 |
+| `0008` | B | 27 条边与 TurnOff nested final 保留；无标签 fan-out 与时间/概率 label 不推断。 |
 | `0009` | A | Highway/Urban 双层 scope、26 条边和独立 CollisionAvoidanceSystem 一致。 |
 | `0010` | B | 8 条边一致；多条 state description/stereotype opaque。 |
 | `0011` | B | 与 `0001` 同构；description blocked。 |
@@ -217,7 +219,7 @@ PumpState --> MethaneState
 | `0025` | A | Microwave 16 条平面边逐条一致。 |
 | `0026` | B | 5 条边与 root final 一致；state descriptions opaque。 |
 | `0027` | B | 三条 initial fan-out 保留并阻塞；不固定声明顺序为语义。 |
-| `0028` | B | 23 条平面边、两个 final 保留；fork-like fan-out/timing body blocked。 |
+| `0028` | B | 23 条平面边与 1 条 root final 保留；fork-like fan-out/timing body blocked。 |
 | `0029` | B | root/nested `FinishState` scope保持；4 条无 initial composite entry blocked。 |
 | `0030` | B | 两条 root initial 原样保留并阻塞；`/ [*]` 只作 opaque label。 |
 | `0031` | B | 6 条平面边一致；description blocked。 |
