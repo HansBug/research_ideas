@@ -191,9 +191,15 @@ submission.
    `issue_checks`, per-kind results, validation, gate reasons, executed check IDs,
    and limitations. If the batch is ineligible because of a schema, ambiguous
    binding, unsupported spec, or missing execution, revise that mechanical defect
-   and evaluate the entire final batch again. Do not delete a difficult required
-   proposition silently and do not change an expected outcome to make a result
-   pass. Completion condition: one invocation matching the intended final drafts
+   and evaluate the entire final batch again. If a scenario setup cannot establish
+   its declared precondition in the frozen model, it cannot remain a required
+   final check: revise the setup; otherwise remove it from the next final batch,
+   or set `required=false` only if you retain it and explicitly reject it as
+   inconclusive/insufficient evidence. Earlier attempts and rejection reasons are
+   already preserved by the immutable attempt record, so this is not silent
+   deletion. Do not call any post-batch microscope before an eligible batch exists,
+   and do not change an expected outcome to make a result pass. Completion
+   condition: one invocation matching the intended final drafts
    has `execution_status=completed` and `gate.eligible=true`.
 
 4. **Investigate named evidence gaps, then finalize the batch.** Use

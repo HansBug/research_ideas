@@ -207,6 +207,11 @@ def test_evaluate_checks_rejects_invalid_scenario_precondition_from_gate():
     assert result["gate"]["eligible"] is False
     assert result["gate"]["executed_check_ids"] == []
     assert result["gate"]["reasons"] == ["required_checks_not_executed:CHK-NL-001"]
+    assert result["gate"]["remediation"] == [
+        "revise_setup_or_remove_nonexecuted_check_from_final_batch",
+        "use_required_false_only_if_the_inconclusive_check_will_be_explicitly_rejected",
+        "do_not_call_post_batch_tools_before_an_eligible_batch_exists",
+    ]
 
 
 def test_evaluate_checks_rejects_agent_declared_wrong_precondition_grounding():

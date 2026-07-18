@@ -69,6 +69,7 @@ def test_evaluation_attempt_summary_keeps_rejected_batches_and_selects_final_bat
                 "gate": {
                     "eligible": False,
                     "reasons": ["issue_check_preparation_empty"],
+                    "remediation": ["revise_or_remove_rejected_drafts_before_final_batch"],
                     "executed_check_ids": [],
                 },
                 "limitations": ["all_drafts_rejected_or_unbound"],
@@ -104,6 +105,9 @@ def test_evaluation_attempt_summary_keeps_rejected_batches_and_selects_final_bat
     assert first["binding_rejections"][0]["reason"] == (
         "property_behavior_context_not_encoded"
     )
+    assert first["gate_remediation"] == [
+        "revise_or_remove_rejected_drafts_before_final_batch"
+    ]
     assert first["request"][0]["check_id"] == "draft-bad"
     assert second["selected_for_submission"] is True
     assert second["discarded_reason"] is None

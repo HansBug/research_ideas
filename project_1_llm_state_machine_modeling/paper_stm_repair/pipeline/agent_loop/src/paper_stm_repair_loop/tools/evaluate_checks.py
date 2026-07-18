@@ -325,11 +325,23 @@ def _gate(
     }
     if missing := sorted(required - executed):
         reasons.append("required_checks_not_executed:" + ",".join(missing))
+    remediation: list[str] = []
+    if any(reason.startswith("required_checks_not_executed:") for reason in reasons):
+        remediation.extend(
+            [
+                "revise_setup_or_remove_nonexecuted_check_from_final_batch",
+                "use_required_false_only_if_the_inconclusive_check_will_be_explicitly_rejected",
+                "do_not_call_post_batch_tools_before_an_eligible_batch_exists",
+            ]
+        )
+    if binding_rejections:
+        remediation.append("revise_or_remove_rejected_drafts_before_final_batch")
     return {
         "execution_status": "completed",
         "eligible": not reasons,
         "reasons": reasons,
         "executed_check_ids": sorted(executed),
+        "remediation": remediation,
     }
 
 
@@ -550,9 +562,9 @@ def build_tool(
         - ``properties``: bounded FBMCQ or deterministic state-shape results,
           including witness/replay/status where applicable.
         - ``static_consistency``: deterministic static-shape comparisons.
-        - ``gate``: ``eligible``, transparent ``reasons``, and
-          ``executed_check_ids``. Eligible means the batch can be adjudicated; it
-          does not mean the model or checks are correct.
+        - ``gate``: ``eligible``, transparent ``reasons``, ``executed_check_ids``,
+          and deterministic ``remediation``. Eligible means the batch can be
+          adjudicated; it does not mean the model or checks are correct.
         - ``limitations``: explicit epistemic boundaries.
 
         Execution
@@ -584,7 +596,11 @@ def build_tool(
         unsupported specs, unavailable capability, timeout, unknown, incomplete,
         invalid scenario precondition, or replay mismatch remain explicit in
         their result sections and make a required batch ineligible where
-        applicable. A scenario/property that
+        applicable. Before any post-batch microscope is available, revise the
+        setup; if the precondition cannot be established in the frozen model,
+        remove that check from the next final batch, or set ``required=false``
+        only when you will explicitly reject it as inconclusive. The immutable
+        attempt record preserves the discarded draft. A scenario/property that
         completes and contradicts its expectation is a normal behavioral result,
         not a tool crash. Revise only the draft/binding mistake; never alter the
         expected outcome merely to match the observed model.

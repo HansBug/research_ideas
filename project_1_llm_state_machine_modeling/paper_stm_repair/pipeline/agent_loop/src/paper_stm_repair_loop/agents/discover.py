@@ -566,6 +566,7 @@ def _summarize_evaluation_attempts(
                 "execution_status": result.get("execution_status"),
                 "gate_eligible": bool(gate.get("eligible")),
                 "gate_reasons": list(gate.get("reasons") or []),
+                "gate_remediation": list(gate.get("remediation") or []),
                 "binding_rejections": list(result.get("binding_rejections") or []),
                 "issue_check_ids": [
                     item.get("check_id")
@@ -600,6 +601,7 @@ def _summarize_evaluation_attempts(
                     "execution_status": tool_attempt.get("execution_status"),
                     "gate_eligible": False,
                     "gate_reasons": ["executed_attempt_missing_invocation_record"],
+                    "gate_remediation": [],
                     "binding_rejections": [],
                     "issue_check_ids": [],
                     "executed_check_ids": [],
@@ -626,6 +628,7 @@ def _summarize_evaluation_attempts(
                 "execution_status": execution_status,
                 "gate_eligible": False,
                 "gate_reasons": [execution_status],
+                "gate_remediation": [],
                 "binding_rejections": [],
                 "issue_check_ids": [],
                 "executed_check_ids": [],
