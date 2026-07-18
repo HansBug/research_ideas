@@ -1,0 +1,52 @@
+state llms_emp_stm_results_0007 named "llms_emp_stm_results_0007" {
+    event Frontend_Collision_Detected named "Frontend Collision Detected";
+    event Rear_End_Collision_Detected named "Rear-End Collision Detected";
+    event Collision_With_Pedestrian_Detected named "Collision With Pedestrian Detected";
+    event Immediate_Action_Required named "Immediate Action Required";
+    event Collision_Avoided named "Collision Avoided";
+    event Collision_Imminent named "Collision Imminent";
+    event Hazard_Passed named "Hazard Passed";
+    event Obstacle_Cleared named "Obstacle Cleared";
+    event No_Collision_Risk named "No Collision Risk";
+    state InitialState named "InitialState" {
+        state DetectionState named "DetectionState";
+        [*] -> DetectionState;
+        DetectionState -> [*] : /Frontend_Collision_Detected;
+        DetectionState -> [*] : /Rear_End_Collision_Detected;
+        DetectionState -> [*] : /Collision_With_Pedestrian_Detected;
+    }
+    state CollisionAvoidance named "CollisionAvoidance" {
+        state BrakingControl named "BrakingControl" {
+            state ActivateABS named "ActivateABS";
+            state ApplyBrakes named "ApplyBrakes";
+            state FinalWaittr_0008 named "Completed final boundary: CollisionAvoidance.BrakingControl.ApplyBrakes";
+            [*] -> ActivateABS;
+            ActivateABS -> ApplyBrakes : /Immediate_Action_Required;
+            ApplyBrakes -> FinalWaittr_0008 : /Collision_Avoided;
+        }
+        state SteeringControl named "SteeringControl" {
+            state ActivateESC named "ActivateESC";
+            state SteerAway named "SteerAway";
+            state FinalWaittr_0011 named "Completed final boundary: CollisionAvoidance.SteeringControl.SteerAway";
+            [*] -> ActivateESC;
+            ActivateESC -> SteerAway : /Collision_Imminent;
+            SteerAway -> FinalWaittr_0011 : /Hazard_Passed;
+        }
+        state AlertSystem named "AlertSystem" {
+            state SendAlert named "SendAlert";
+            state SoundAlarm named "SoundAlarm";
+            state FinalWaittr_0014 named "Completed final boundary: CollisionAvoidance.AlertSystem.SoundAlarm";
+            [*] -> SendAlert;
+            SendAlert -> SoundAlarm;
+            SoundAlarm -> FinalWaittr_0014 : /Obstacle_Cleared;
+        }
+        [*] -> AlertSystem : /Collision_With_Pedestrian_Detected;
+        [*] -> SteeringControl : /Rear_End_Collision_Detected;
+        [*] -> BrakingControl : /Frontend_Collision_Detected;
+    }
+    [*] -> InitialState;
+    InitialState -> CollisionAvoidance : /Frontend_Collision_Detected;
+    InitialState -> CollisionAvoidance : /Rear_End_Collision_Detected;
+    InitialState -> CollisionAvoidance : /Collision_With_Pedestrian_Detected;
+    !CollisionAvoidance -> [*] : /No_Collision_Risk;
+}

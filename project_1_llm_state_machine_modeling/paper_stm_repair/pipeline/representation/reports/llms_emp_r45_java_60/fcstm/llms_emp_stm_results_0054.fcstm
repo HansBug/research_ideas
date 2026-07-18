@@ -1,0 +1,36 @@
+state llms_emp_stm_results_0054 named "llms_emp_stm_results_0054" {
+    event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+    event Approached_Decelerate named "Approached/Decelerate";
+    event Closed_SendDeparted named "Closed/SendDeparted";
+    event Arrived_Stop_Send_Arrived named "Arrived/Stop, Send Arrived";
+    event _obstacle_detected named "[obstacle detected]";
+    state InMotion named "InMotion" {
+        state Accelerating named "Accelerating" {
+            enter abstract Accelerate;
+            state LifecycleActive named "Active body of Accelerating";
+            [*] -> LifecycleActive;
+        }
+        state Approaching named "Approaching" {
+            >> during before abstract Send;
+            state LifecycleActive named "Active body of Approaching";
+            [*] -> LifecycleActive;
+        }
+        state Cruising named "Cruising";
+        [*] -> Accelerating;
+        !Accelerating -> Cruising : /Reached_Cruising_Cruise;
+        !Accelerating -> Approaching : /Approached_Decelerate;
+        Cruising -> Approaching : /Approached_Decelerate;
+    }
+    state EmergencyStopping named "EmergencyStopping" {
+        >> during before abstract EmergencyStop;
+        >> during before abstract SendObstacleDetected;
+        state LifecycleActive named "Active body of EmergencyStopping";
+        [*] -> LifecycleActive;
+    }
+    state DoorsClosing named "DoorsClosing";
+    state Stopping named "Stopping";
+    [*] -> DoorsClosing;
+    DoorsClosing -> InMotion : /Closed_SendDeparted;
+    !InMotion -> Stopping : /Arrived_Stop_Send_Arrived;
+    !InMotion -> EmergencyStopping : /_obstacle_detected;
+}
