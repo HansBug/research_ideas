@@ -11,6 +11,8 @@ from pydantic import ValidationError
 
 from paper_stm_repair_loop.agents.discover import (
     _build_submit_discovery_response,
+    _summarize_evaluation_attempts,
+    _write_capability_manifest,
     run_discover,
 )
 from paper_stm_repair_loop.controller import _bind_drafts
@@ -42,6 +44,111 @@ def test_discover_runtime_contains_exactly_one_agent_app_run_and_no_controller_a
     assert "retry_missing_structured_output=True" in discover_source
     assert 'RunSubmitDiscoveryResponse.__name__ = "submit_discovery"' in discover_source
     assert 'limits=manifest.get("agent_limits") or None' in discover_source
+
+
+def test_evaluation_attempt_summary_keeps_rejected_batches_and_selects_final_batch():
+    invocations = [
+        {
+            "request": [
+                {
+                    "check_id": "draft-bad",
+                    "statement": "fire reaches Done from Armed.",
+                }
+            ],
+            "snapshot_sha256": "snapshot-sha",
+            "result": {
+                "execution_status": "invalid_arguments",
+                "drafts_sha256": "bad-sha",
+                "binding_rejections": [
+                    {
+                        "draft_check_id": "draft-bad",
+                        "reason": "property_behavior_context_not_encoded",
+                    }
+                ],
+                "issue_checks": [],
+                "gate": {
+                    "eligible": False,
+                    "reasons": ["issue_check_preparation_empty"],
+                    "executed_check_ids": [],
+                },
+                "limitations": ["all_drafts_rejected_or_unbound"],
+            },
+        },
+        {
+            "request": [
+                {"check_id": "draft-final", "statement": "Cancel keeps DoorShut."}
+            ],
+            "snapshot_sha256": "snapshot-sha",
+            "result": {
+                "execution_status": "completed",
+                "drafts_sha256": "final-sha",
+                "binding_rejections": [],
+                "issue_checks": [{"check_id": "CHK-NL-001"}],
+                "gate": {
+                    "eligible": True,
+                    "reasons": [],
+                    "executed_check_ids": ["CHK-NL-001"],
+                },
+                "limitations": ["bounded_current_model_evidence_only"],
+            },
+        },
+    ]
+
+    summary = _summarize_evaluation_attempts(invocations, "final-sha")
+
+    assert summary["attempt_count"] == 2
+    assert summary["selected_drafts_sha256"] == "final-sha"
+    first, second = summary["attempts"]
+    assert first["selected_for_submission"] is False
+    assert first["discarded_reason"] == "execution_not_completed"
+    assert first["binding_rejections"][0]["reason"] == (
+        "property_behavior_context_not_encoded"
+    )
+    assert first["request"][0]["check_id"] == "draft-bad"
+    assert second["selected_for_submission"] is True
+    assert second["discarded_reason"] is None
+    assert second["issue_check_ids"] == ["CHK-NL-001"]
+    assert second["executed_check_ids"] == ["CHK-NL-001"]
+
+
+@pytest.mark.parametrize(
+    ("worktree_commit", "gitlink_commit"),
+    [
+        ("deadbeef", "4ea23c9b153f47e5c4a2125d95b466eee6eed13e"),
+        ("unknown", "4ea23c9b153f47e5c4a2125d95b466eee6eed13e"),
+        ("4ea23c9b153f47e5c4a2125d95b466eee6eed13e", "unknown"),
+    ],
+)
+def test_capability_manifest_fails_closed_on_pyfcstm_gitlink_drift_or_unknown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    worktree_commit: str,
+    gitlink_commit: str,
+):
+    import paper_stm_repair_loop.agents.discover as discover_module
+
+    monkeypatch.setattr(discover_module, "_pyfcstm_commit", lambda: worktree_commit)
+    monkeypatch.setattr(
+        discover_module, "_pyfcstm_gitlink_commit", lambda: gitlink_commit
+    )
+
+    with pytest.raises(RuntimeError, match="pyfcstm_gitlink_mismatch"):
+        _write_capability_manifest(tmp_path, {"formal_profile": False})
+
+    capability = json.loads(
+        (tmp_path / "capability_manifest.json").read_text(encoding="utf-8")
+    )
+    assert capability["pyfcstm_git_commit"] == worktree_commit
+    assert capability["pyfcstm_gitlink_commit"] == gitlink_commit
+    assert capability["pyfcstm_git_commit_consistent"] is False
+    failures = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (tmp_path / "records").glob("*/record.json")
+    ]
+    assert failures[-1]["record_type"] == "run_failed"
+    assert failures[-1]["payload"]["failure_reason"] == (
+        "pyfcstm_gitlink_mismatch"
+    )
 
 
 @pytest.mark.parametrize(
@@ -480,6 +587,8 @@ def test_replay_writes_all_outputs_under_one_outdir(tmp_path: Path):
     assert result.agent_academic_eligible is False
     assert result.test_replay is True
     assert result.main_result_eligible is False
+    assert result.main_result_eligibility_owner == "post_loop_experiment_gate"
+    assert "post-loop experiment gate" in result.main_result_eligibility_reason
     assert (tmp_path / "manifest.json").exists()
     capabilities = json.loads((tmp_path / "capability_manifest.json").read_text(encoding="utf-8"))
     required_capability_fields = {
@@ -495,6 +604,8 @@ def test_replay_writes_all_outputs_under_one_outdir(tmp_path: Path):
         "retry_policy",
     }
     assert capabilities["pyfcstm_git_commit"] == "4ea23c9b153f47e5c4a2125d95b466eee6eed13e"
+    assert capabilities["pyfcstm_gitlink_commit"] == capabilities["pyfcstm_git_commit"]
+    assert capabilities["pyfcstm_git_commit_consistent"] is True
     assert all(required_capability_fields.issubset(item) for item in capabilities["tools"].values())
     assert (tmp_path / "inputs/STM_0.fcstm").exists()
     assert (tmp_path / "agent_audit/discover/audit.jsonl").exists()
@@ -506,6 +617,8 @@ def test_replay_writes_all_outputs_under_one_outdir(tmp_path: Path):
     assert "Agent academic eligible: `false`" in report_text
     assert "test replay: `true`" in report_text
     assert "## Controller 必跑结果" in report_text
+    assert "evaluate_checks_attempts_completed" in report_text
+    assert '"selected_for_submission": true' in report_text
     assert "## 未形成 root 的 proposition" in report_text
     assert "`PROP-ROOT-SHAPE-REJECTED`" in report_text
     assert "accepted_fix_count=0" in report_text
@@ -585,6 +698,7 @@ def test_confirmed_root_is_published_with_controller_execution_evidence(tmp_path
         for record_id in completed.root_nodes[0].supporting_record_ids
     }
     assert "issue_check_preparation_completed" in supporting_types
+    assert "evaluate_checks_attempts_completed" in supporting_types
     assert "verify_properties_completed" in supporting_types
     assert "validate_discovery_checks_completed" in supporting_types
     assert "discover_mandatory_preparation_completed" in supporting_types

@@ -14,7 +14,12 @@ from langchain_core.messages import AIMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 from utils.agent import AgentApp, AgentError, AgentEvent, AgentSpec
-from utils.agent.runtime import _ModelOptionsMiddleware, _message_ref, _prepare_recovery_history
+from utils.agent.runtime import (
+    _ModelOptionsMiddleware,
+    _message_ref,
+    _prepare_recovery_history,
+    _tool_completion_status,
+)
 from utils.llm import LLMConfig
 
 
@@ -94,6 +99,26 @@ def test_explicit_forced_tool_choice_overrides_dynamic_resolver() -> None:
     request = middleware.wrap_model_call(_MiddlewareRequest(), lambda value: value)
     assert request.tool_choice == "required"
     assert request.response_format == "structured"
+
+
+def test_mandatory_tool_rejection_is_audited_as_not_executed() -> None:
+    status, error, executed = _tool_completion_status(
+        {
+            "execution_status": "mandatory_tool_rejected",
+            "tool_executed": False,
+            "error": {
+                "code": "mandatory_tool_mismatch",
+                "message": "query_model was not executed.",
+            },
+        }
+    )
+
+    assert status == "rejected"
+    assert executed is False
+    assert error == {
+        "code": "mandatory_tool_mismatch",
+        "message": "query_model was not executed.",
+    }
 
 
 class _RetryAnswer(BaseModel):
@@ -381,6 +406,15 @@ def test_missing_output_retry_recovers_malformed_mandatory_business_call(
         if item.get("kind") == "business" and item.get("status") == "completed"
     ]
     assert [item["name"] for item in completed] == ["lookup"]
+    records = [
+        json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    decisions = [item for item in records if item.get("record") == "decision"]
+    assert decisions
+    mandatory_projection = decisions[0]["rendered_input_projection"]
+    assert mandatory_projection["tool_choice"] == "lookup"
+    assert [item["name"] for item in mandatory_projection["tools"]] == ["lookup"]
+    assert mandatory_projection["response_format"] is None
 
 
 def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Path) -> None:

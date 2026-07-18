@@ -83,6 +83,28 @@ def _mentioned_state_paths(
     return mentioned
 
 
+def _mentioned_event_labels(
+    texts: list[str],
+    inspect: Mapping[str, Any],
+) -> set[str]:
+    tokenized = [re.findall(r"[a-z0-9]+", text.casefold()) for text in texts]
+    mentioned: set[str] = set()
+    for item in inspect.get("events", []) or []:
+        if not isinstance(item, Mapping) or not item.get("qualified_name"):
+            continue
+        qualified_name = str(item["qualified_name"])
+        visible = str(item.get("name") or _last_label(qualified_name))
+        event_tokens = re.findall(r"[a-z0-9]+", visible.casefold())
+        found = any(
+            tokens[index : index + len(event_tokens)] == event_tokens
+            for tokens in tokenized
+            for index in range(len(tokens) - len(event_tokens) + 1)
+        )
+        if event_tokens and found:
+            mentioned.add(visible)
+    return mentioned
+
+
 def _grounding_rejections(
     checks: list[DiscoverCheckDraft],
     *,
@@ -116,6 +138,47 @@ def _grounding_rejections(
         elif invalid_source:
             reason = "source_basis_not_in_frozen_raw_source"
             details["invalid_source_basis"] = invalid_source
+        elif draft.check_kind == "property" and draft.check_origin == "nl_grounded_behavioral_issue":
+            nl_texts = [item.get("quote", "") for item in draft.nl_basis]
+            mentioned_events = _mentioned_event_labels(
+                [draft.statement, *nl_texts], inspect
+            )
+            mentioned_states = _mentioned_state_paths(nl_texts, inspect)
+            target_paths = _matching_state_paths(
+                draft.executable_spec.get("target_label"), inspect
+            )
+            explicit_preconditions = {
+                path
+                for path in mentioned_states
+                if not any(_state_related(path, target) for target in target_paths)
+            }
+            kind = str(draft.executable_spec.get("kind") or "reach")
+            temporal_kinds = {
+                "reach",
+                "cover",
+                "exists_always",
+                "forbid",
+                "invariant",
+                "must_reach",
+            }
+            bound = draft.executable_spec.get("bound", 3)
+            property_shape_valid = kind not in temporal_kinds or (
+                isinstance(bound, int)
+                and not isinstance(bound, bool)
+                and bound > 0
+            )
+            if property_shape_valid and (mentioned_events or explicit_preconditions):
+                reason = "property_behavior_context_not_encoded"
+                details.update(
+                    {
+                        "mentioned_event_labels": sorted(mentioned_events),
+                        "mentioned_precondition_state_paths": sorted(
+                            explicit_preconditions
+                        ),
+                        "target_state_paths": sorted(target_paths),
+                        "suggested_check_kind": "scenario",
+                    }
+                )
         elif draft.check_kind == "scenario":
             spec = draft.executable_spec
             labels = spec.get("event_labels") or spec.get("events") or []
@@ -455,7 +518,10 @@ def build_tool(
           state, the declared precondition must be that state or one of its
           ancestors/descendants. Raw source may operationalize a precondition only
           when the NL quote itself leaves it implicit.
-          Property drafts use ``kind`` + ``target_label`` + bounded ``bound``;
+          Property drafts use ``kind`` + ``target_label`` + bounded ``bound``
+          only for state-only propositions. If the statement or verified NL basis
+          names an event or a non-target precondition state, use a scenario so the
+          executable check encodes the complete setup and tested event;
           static drafts use supported shape labels. Do not pass arbitrary code
           or solver expressions.
         - ``binding_refs``: usually ``[]`` in a draft; deterministic binding fills
@@ -492,7 +558,9 @@ def build_tool(
         1. Validate the complete nested draft schema, verify every basis excerpt
            against frozen NL/raw source, and require scenario precondition plus
            tested event to be jointly grounded by one verified basis item.
-        2. Bind state/event/transition labels against frozen normalized inspect;
+        2. Reject a state-only property that drops an event or precondition named
+           by its statement/NL basis, then bind state/event/transition labels
+           against frozen normalized inspect;
            ambiguous or missing bindings remain rejected/invalid, never guessed.
         3. Execute all bound scenario checks from the model initial state. A
            scenario is evidence-eligible only when its setup prefix is consumed

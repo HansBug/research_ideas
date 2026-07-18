@@ -2245,7 +2245,19 @@ def _request_projection(request: Any) -> dict[str, Any]:
     tools = []
     for tool in list(getattr(request, "tools", None) or []):
         if isinstance(tool, Mapping):
-            tools.append(_safe_json(tool))
+            function = tool.get("function")
+            function = function if isinstance(function, Mapping) else {}
+            tools.append(
+                {
+                    "name": str(tool.get("name") or function.get("name") or ""),
+                    "description": str(
+                        tool.get("description") or function.get("description") or ""
+                    ),
+                    "schema": _safe_json(
+                        tool.get("parameters") or function.get("parameters") or {}
+                    ),
+                }
+            )
         else:
             tools.append({"name": _tool_name(tool), "description": _tool_description(tool), "schema": _tool_schema(tool)})
     system_message = getattr(request, "system_message", None)
@@ -2257,6 +2269,37 @@ def _request_projection(request: Any) -> dict[str, Any]:
         "response_format": _safe_json(response_format),
         "model_settings": _safe_json(dict(getattr(request, "model_settings", None) or {})),
     }
+
+
+def _tool_completion_status(
+    result: Any,
+) -> tuple[str, dict[str, Any] | None, bool]:
+    """Translate an explicit no-execution tool result into audit semantics."""
+
+    if not isinstance(result, Mapping):
+        return "completed", None, True
+    execution_status = result.get("execution_status")
+    if execution_status not in {
+        "mandatory_tool_rejected",
+        "prerequisite_required",
+    }:
+        return "completed", None, True
+    raw_error = result.get("error")
+    if isinstance(raw_error, Mapping):
+        error = {
+            "code": str(raw_error.get("code") or execution_status),
+            "message": str(
+                raw_error.get("message") or "registered tool was not executed"
+            ),
+        }
+    else:
+        error = {
+            "code": str(execution_status),
+            "message": str(
+                result.get("message") or "registered tool was not executed"
+            ),
+        }
+    return "rejected", error, False
 
 
 class _RequestCaptureMiddleware(AgentMiddleware):
@@ -2790,6 +2833,17 @@ class AgentApp:
                 current_model_call_id = call_id
                 ensure_primary_started(call_id)
 
+        def consume_request_capture(call_id: str | None) -> dict[str, Any]:
+            """Bind a middleware capture even when provider callbacks start first."""
+
+            key = call_id or ""
+            capture = request_capture_by_call.get(key)
+            if capture is None and request_captures:
+                capture = request_captures.pop(0)
+                capture["model_call_id"] = call_id
+                request_capture_by_call[key] = capture
+            return capture or {}
+
         def ensure_primary_started(call_id: str) -> None:
             nonlocal current_model_call_id, current_rendered_input_hash
             if turn in started_turns:
@@ -3120,7 +3174,7 @@ class AgentApp:
                         # ``_message_text`` deliberately excludes provider
                         # thinking/reasoning blocks; audit is an academic
                         # behavior record and must not persist hidden CoT.
-                        capture = request_capture_by_call.get(current_model_call_id or "")
+                        capture = consume_request_capture(current_model_call_id)
                         decision_seq = audit_write({"record": "decision", "record_type": "decision", "model_call_id": current_model_call_id, "call_kind": "primary", "status": "completed", "message": _message_text(ai), "output_message_ref": _message_ref(ai), "input_message_refs": [message_ref(item) for item in current_input_messages], "reasoning_summary": _visible_reasoning(ai), "rendered_input_hash": current_rendered_input_hash, "rendered_input_scope": "langchain_model_request", "rendered_input_projection": (capture or {}).get("projection"), "usage": next((item for item in reversed(usage) if item.get("turn") == turn and item.get("call_kind") == "primary"), None)})
                         if decision_seq is not None:
                             source_state["latest_decision"] = (decision_seq, "decision")
@@ -3153,6 +3207,9 @@ class AgentApp:
                     emit("tool_started", {"name": name_value, "tool_call_id": call_id, "arguments": _safe_json(args), "status": "started", "attempt_id": attempt_id, "turn": turn})
                 elif kind == "on_tool_end":
                     result_value = _tool_result_value(data.get("output"))
+                    completion_status, completion_error, tool_executed = (
+                        _tool_completion_status(result_value)
+                    )
                     execution_id = str(event.get("run_id") or "")
                     record = active_tool_records.pop(execution_id, None)
                     if record is None:
@@ -3160,8 +3217,21 @@ class AgentApp:
                     if record is not None:
                         finished_at = datetime.now(timezone.utc)
                         started_at = datetime.fromisoformat(record["started_at"])
-                        record.update({"status": "completed", "result": _safe_json(result_value), "finished_at": finished_at.isoformat(), "duration_seconds": max(0.0, (finished_at - started_at).total_seconds())})
-                        business_tool_called = True
+                        record.update(
+                            {
+                                "status": completion_status,
+                                "result": _safe_json(result_value),
+                                "tool_executed": tool_executed,
+                                "finished_at": finished_at.isoformat(),
+                                "duration_seconds": max(
+                                    0.0, (finished_at - started_at).total_seconds()
+                                ),
+                            }
+                        )
+                        if completion_error is not None:
+                            record["error"] = completion_error
+                        if tool_executed:
+                            business_tool_called = True
                         action_seq = audit_write({"record": "action", "record_type": "action", **record})
                         if action_seq is not None and isinstance(data.get("output"), BaseMessage):
                             message_source_refs[_message_key(data["output"])] = (action_seq, "action")
@@ -3170,7 +3240,20 @@ class AgentApp:
                             message_source_by_id[str(record.get("tool_call_id"))] = (action_seq, "action")
                     if isinstance(data.get("output"), BaseMessage):
                         last_state_messages = [*last_state_messages, data["output"]]
-                    emit("tool_completed", {"name": name, "tool_call_id": record.get("tool_call_id") if record else None, "arguments": record.get("arguments") if record else data.get("input"), "result": _safe_json(result_value), "status": "completed", "attempt_id": attempt_id, "turn": turn})
+                    emit(
+                        "tool_completed" if tool_executed else "tool_rejected",
+                        {
+                            "name": name,
+                            "tool_call_id": record.get("tool_call_id") if record else None,
+                            "arguments": record.get("arguments") if record else data.get("input"),
+                            "result": _safe_json(result_value),
+                            "status": completion_status,
+                            "tool_executed": tool_executed,
+                            "error": completion_error,
+                            "attempt_id": attempt_id,
+                            "turn": turn,
+                        },
+                    )
                     if not active_tool_records:
                         tool_context_tokens, _tool_sources = context_meter.count(last_state_messages)
                         if compact_threshold is not None and tool_context_tokens is not None and tool_context_tokens >= compact_threshold:
@@ -3528,7 +3611,7 @@ class AgentApp:
                     await heartbeat_task
             try:
                 if error is not None and current_model_call_id is not None and turn not in decision_written_turns:
-                    capture = request_capture_by_call.get(current_model_call_id, {})
+                    capture = consume_request_capture(current_model_call_id)
                     audit_write(
                         {
                             "record": "decision",

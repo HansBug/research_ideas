@@ -14,6 +14,7 @@ def _record_directory(record: dict[str, Any]) -> str:
 
 _MANDATORY_RECORD_TYPES = {
     "check_fcstm_completed",
+    "evaluate_checks_attempts_completed",
     "issue_check_preparation_completed",
     "run_scenarios_completed",
     "verify_properties_completed",
@@ -55,6 +56,8 @@ def render_discover(
         f"- Agent academic eligible: `{str(completed.agent_academic_eligible).lower()}`",
         f"- test replay: `{str(completed.test_replay).lower()}`",
         f"- main result eligible: `{str(completed.main_result_eligible).lower()}`",
+        f"- main result eligibility owner: `{completed.main_result_eligibility_owner}`",
+        f"- main result eligibility reason: {completed.main_result_eligibility_reason}",
         f"- root count: `{len(completed.root_nodes)}`",
         f"- no issue found: `{str(completed.no_issue_found).lower()}`",
         "",

@@ -247,6 +247,119 @@ def test_evaluate_checks_rejects_agent_declared_wrong_precondition_grounding():
     )
 
 
+def test_evaluate_checks_rejects_property_that_omits_named_behavior_context():
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-event-as-reach",
+                "check_kind": "property",
+                "statement": "fire reaches Done from Armed.",
+                "expected_outcome": {"property_satisfied": True},
+                "source_basis": [],
+                "nl_basis": [
+                    {
+                        "quote": "When fire occurs in Armed, enter Done.",
+                        "role": "requirement",
+                    }
+                ],
+                "executable_spec": {
+                    "kind": "reach",
+                    "target_label": "Done",
+                    "bound": 2,
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="When fire occurs in Armed, enter Done.",
+        raw_source="",
+    )
+
+    assert result["execution_status"] == "invalid_arguments"
+    assert result["issue_checks"] == []
+    assert result["gate"]["eligible"] is False
+    rejection = result["binding_rejections"][0]
+    assert rejection["reason"] == "property_behavior_context_not_encoded"
+    assert rejection["mentioned_event_labels"] == ["fire"]
+    assert rejection["mentioned_precondition_state_paths"] == ["Root.Armed"]
+    assert rejection["suggested_check_kind"] == "scenario"
+
+
+def test_evaluate_checks_accepts_scenario_that_encodes_named_behavior_context():
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-event-scenario",
+                "check_kind": "scenario",
+                "statement": "fire reaches Done from Armed.",
+                "expected_outcome": {"target_label": "Done"},
+                "source_basis": [],
+                "nl_basis": [
+                    {
+                        "quote": "When fire occurs in Armed, enter Done.",
+                        "role": "requirement",
+                    }
+                ],
+                "executable_spec": {
+                    "event_labels": ["arm", "fire"],
+                    "precondition_state_label": "Armed",
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="When fire occurs in Armed, enter Done.",
+        raw_source="",
+    )
+
+    assert result["execution_status"] == "completed"
+    assert result["binding_rejections"] == []
+    assert result["scenarios"]["scenario_results"][0]["status"] == "passed"
+    assert result["gate"]["eligible"] is True
+
+
+def test_evaluate_checks_allows_state_only_reachability_property():
+    result = evaluate_checks(
+        model_text=SETUP_MODEL,
+        check_result=check_fcstm(SETUP_MODEL),
+        checks=[
+            {
+                "check_origin": "nl_grounded_behavioral_issue",
+                "check_id": "draft-state-reach",
+                "check_kind": "property",
+                "statement": "Done is reachable.",
+                "expected_outcome": {"property_satisfied": True},
+                "source_basis": [],
+                "nl_basis": [
+                    {"quote": "Done is reachable.", "role": "requirement"}
+                ],
+                "executable_spec": {
+                    "kind": "reach",
+                    "target_label": "Done",
+                    "bound": 2,
+                },
+                "binding_refs": [],
+                "required": True,
+            }
+        ],
+        formal_required=False,
+        nl_text="Done is reachable.",
+        raw_source="",
+    )
+
+    assert result["execution_status"] == "completed"
+    assert result["binding_rejections"] == []
+    assert result["issue_checks"][0]["check_kind"] == "property"
+
+
 def test_evaluate_checks_rejects_source_only_nl_grounded_check():
     result = evaluate_checks(
         model_text=SETUP_MODEL,

@@ -30,6 +30,10 @@ class DiscoverCompleted(StrictModel):
     agent_academic_eligible: bool
     test_replay: bool
     main_result_eligible: Literal[False] = False
+    main_result_eligibility_owner: Literal["post_loop_experiment_gate"] = (
+        "post_loop_experiment_gate"
+    )
+    main_result_eligibility_reason: str
     agent_receipt_ref: AgentReceiptRef
     supporting_record_ids: list[str] = Field(default_factory=list)
     completed_record_id: str

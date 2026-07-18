@@ -40,6 +40,7 @@ from ..tools.guide_access import (
     property_batch_requested,
 )
 from ..tools.lookup_source_trace import build_tool as build_lookup_source_trace
+from ..tools.mandatory import enforce_mandatory_tool
 from ..tools.observe_trace import build_tool as build_observe_trace
 from ..tools.post_batch_investigation import PostBatchInvestigationState
 from ..tools.query_model import build_tool as build_query_model
@@ -70,6 +71,16 @@ def _pyfcstm_commit() -> str:
     return completed.stdout.strip() if completed.returncode == 0 else "unknown"
 
 
+def _pyfcstm_gitlink_commit() -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD:pyfcstm"],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return completed.stdout.strip() if completed.returncode == 0 else "unknown"
+
+
 def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> dict[str, Any]:
     try:
         from pyfcstm.entry.bmc import build_bmc_output  # noqa: F401
@@ -81,6 +92,12 @@ def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> di
     distribution_version = importlib.metadata.version("pyfcstm")
     pyfcstm_version = PYFCSTM_SOURCE_VERSION
     pyfcstm_commit = _pyfcstm_commit()
+    pyfcstm_gitlink_commit = _pyfcstm_gitlink_commit()
+    commit_consistent = (
+        pyfcstm_commit != "unknown"
+        and pyfcstm_gitlink_commit != "unknown"
+        and pyfcstm_commit == pyfcstm_gitlink_commit
+    )
     prompt_resources = {
         "fcstm": dict(get_grammar_guide_prompt_metadata_for_llm()),
         "fbmcq": dict(get_fbmcq_language_guide_prompt_metadata_for_llm()),
@@ -99,6 +116,8 @@ def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> di
         "pyfcstm_distribution_version": distribution_version,
         "pyfcstm_version_consistent": version_consistent,
         "pyfcstm_git_commit": pyfcstm_commit,
+        "pyfcstm_gitlink_commit": pyfcstm_gitlink_commit,
+        "pyfcstm_git_commit_consistent": commit_consistent,
         "prompt_resources": prompt_resources,
         "tools": {
             name: {
@@ -142,6 +161,17 @@ def _write_capability_manifest(run_dir: Path, manifest: Mapping[str, Any]) -> di
             },
         )
         raise RuntimeError("pyfcstm_version_mismatch")
+    if not commit_consistent:
+        store = RecordStore(run_dir)
+        store.append(
+            "run_failed",
+            {
+                "failure_reason": "pyfcstm_gitlink_mismatch",
+                "pyfcstm_worktree_commit": pyfcstm_commit,
+                "pyfcstm_gitlink_commit": pyfcstm_gitlink_commit,
+            },
+        )
+        raise RuntimeError("pyfcstm_gitlink_mismatch")
     if formal_required and not bmc_available:
         store = RecordStore(run_dir)
         store.append("run_failed", {"failure_reason": "required_capability_unavailable", "tool_name": "verify_properties"})
@@ -492,6 +522,72 @@ def _matching_evaluation(
     return result
 
 
+def _summarize_evaluation_attempts(
+    invocation_log: list[dict[str, Any]],
+    selected_drafts_sha256: str,
+) -> dict[str, Any]:
+    selected_index = next(
+        (
+            index
+            for index in range(len(invocation_log) - 1, -1, -1)
+            if (invocation_log[index].get("result") or {}).get("drafts_sha256")
+            == selected_drafts_sha256
+            and bool(
+                ((invocation_log[index].get("result") or {}).get("gate") or {}).get(
+                    "eligible"
+                )
+            )
+        ),
+        None,
+    )
+    attempts: list[dict[str, Any]] = []
+    for index, invocation in enumerate(invocation_log):
+        result = invocation.get("result") or {}
+        gate = result.get("gate") or {}
+        selected = index == selected_index
+        if selected:
+            discarded_reason = None
+        elif result.get("execution_status") != "completed":
+            discarded_reason = "execution_not_completed"
+        elif not gate.get("eligible"):
+            discarded_reason = "gate_ineligible"
+        elif not result.get("issue_checks"):
+            discarded_reason = "all_drafts_rejected_or_unbound"
+        else:
+            discarded_reason = "not_final_submission_batch"
+        attempts.append(
+            {
+                "attempt_index": index + 1,
+                "snapshot_sha256": invocation.get("snapshot_sha256"),
+                "request_sha256": sha256_json(invocation.get("request") or []),
+                "request": invocation.get("request") or [],
+                "drafts_sha256": result.get("drafts_sha256"),
+                "execution_status": result.get("execution_status"),
+                "gate_eligible": bool(gate.get("eligible")),
+                "gate_reasons": list(gate.get("reasons") or []),
+                "binding_rejections": list(result.get("binding_rejections") or []),
+                "issue_check_ids": [
+                    item.get("check_id")
+                    for item in result.get("issue_checks") or []
+                    if item.get("check_id")
+                ],
+                "executed_check_ids": list(gate.get("executed_check_ids") or []),
+                "limitations": list(result.get("limitations") or []),
+                "selected_for_submission": selected,
+                "discarded_reason": discarded_reason,
+            }
+        )
+    return {
+        "schema_version": "paper1.evaluate_checks_attempts.v1",
+        "selected_drafts_sha256": selected_drafts_sha256,
+        "selected_attempt_index": (
+            selected_index + 1 if selected_index is not None else None
+        ),
+        "attempt_count": len(attempts),
+        "attempts": attempts,
+    }
+
+
 def _check_outcome_relations(evaluation: Mapping[str, Any]) -> dict[str, str]:
     """Project deterministic check results to matches/contradicts/inconclusive."""
 
@@ -694,7 +790,10 @@ def _validate_guide_protocol(
     if fbmcq_read is None:
         raise ValueError("read_fbmcq_guide was not called before property work")
     early_property_attempts = [
-        item for item in property_attempts if int(item["sequence"]) < fbmcq_read
+        item
+        for item in property_attempts
+        if int(item["sequence"]) < fbmcq_read
+        and item.get("tool_executed") is not False
     ]
     if early_property_attempts:
         raise ValueError("fbmcq guide-first protocol violated before property evaluation")
@@ -881,20 +980,42 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     evaluation_invocations: list[dict[str, Any]] = []
     investigation_state = PostBatchInvestigationState(evaluation_invocations)
     guide_access = GuideAccessState()
-    read_fcstm_guide = build_read_fcstm_guide(guide_access)
-    read_fbmcq_guide = build_read_fbmcq_guide(guide_access)
-    read_task = guard_tool(build_read_task(snapshot), guide_access)
-    query_model = guard_tool(
+
+    def mandatory_tool_choice() -> str | None:
+        """Force protocol steps without choosing Discover content."""
+
+        if not guide_access.has_read("fcstm"):
+            return "read_fcstm_guide"
+        if guide_access.first_attempt_at(
+            "read_task", after=guide_access.fcstm_read_at
+        ) is None:
+            return "read_task"
+        property_attempted = any(
+            item.get("event") == "tool_attempt"
+            and item.get("tool_name") == "evaluate_checks"
+            and item.get("property_batch") is True
+            for item in guide_access.events
+        )
+        if property_attempted and not guide_access.has_read("fbmcq"):
+            return "read_fbmcq_guide"
+        if investigation_state.latest_eligible_batch() is None:
+            return "evaluate_checks"
+        return None
+
+    base_read_fcstm_guide = build_read_fcstm_guide(guide_access)
+    base_read_fbmcq_guide = build_read_fbmcq_guide(guide_access)
+    base_read_task = guard_tool(build_read_task(snapshot), guide_access)
+    base_query_model = guard_tool(
         build_query_model(snapshot, investigation_state), guide_access
     )
-    observe_trace = guard_tool(
+    base_observe_trace = guard_tool(
         build_observe_trace(snapshot, _trace_runner(case), investigation_state),
         guide_access,
     )
-    lookup_source_trace = guard_tool(
+    base_lookup_source_trace = guard_tool(
         build_lookup_source_trace(snapshot, investigation_state), guide_access
     )
-    evaluate_checks = guard_tool(
+    base_evaluate_checks = guard_tool(
         build_evaluate_checks(
             snapshot,
             model_text=case.fcstm,
@@ -906,7 +1027,19 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         guide_access,
         require_fbmcq_when=property_batch_requested,
     )
-    tools = (
+    tools = tuple(
+        enforce_mandatory_tool(tool, mandatory_tool_choice)
+        for tool in (
+            base_read_fcstm_guide,
+            base_read_fbmcq_guide,
+            base_read_task,
+            base_query_model,
+            base_observe_trace,
+            base_lookup_source_trace,
+            base_evaluate_checks,
+        )
+    )
+    (
         read_fcstm_guide,
         read_fbmcq_guide,
         read_task,
@@ -914,7 +1047,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         observe_trace,
         lookup_source_trace,
         evaluate_checks,
-    )
+    ) = tools
     if tuple(tool.name for tool in tools) != AGENT_TOOL_NAMES:
         raise AssertionError("Discover Agent physical tool allowlist drift")
     attempt_record = store.append(
@@ -941,6 +1074,14 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         read_fcstm_guide.invoke({})
         read_task.invoke({})
         if any(item.check_kind == "property" for item in submission.check_drafts):
+            evaluate_checks.invoke(
+                {
+                    "checks": [
+                        item.model_dump(mode="json")
+                        for item in submission.check_drafts
+                    ]
+                }
+            )
             read_fbmcq_guide.invoke({})
         evaluate_checks.invoke(
             {"checks": [item.model_dump(mode="json") for item in submission.check_drafts]}
@@ -973,27 +1114,6 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         )
         result = None
         failure_recorded = False
-
-        def mandatory_tool_choice() -> str | None:
-            """Force only stage-mandatory protocol steps; never choose content."""
-
-            if not guide_access.has_read("fcstm"):
-                return "read_fcstm_guide"
-            if guide_access.first_attempt_at(
-                "read_task", after=guide_access.fcstm_read_at
-            ) is None:
-                return "read_task"
-            property_attempted = any(
-                item.get("event") == "tool_attempt"
-                and item.get("tool_name") == "evaluate_checks"
-                and item.get("property_batch") is True
-                for item in guide_access.events
-            )
-            if property_attempted and not guide_access.has_read("fbmcq"):
-                return "read_fbmcq_guide"
-            if investigation_state.latest_eligible_batch() is None:
-                return "evaluate_checks"
-            return None
 
         try:
             result = app.run(
@@ -1073,6 +1193,15 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             },
         )
         evaluation = _matching_evaluation(submission, evaluation_invocations)
+        attempts_record = store.append(
+            "evaluate_checks_attempts_completed",
+            {
+                **_summarize_evaluation_attempts(
+                    evaluation_invocations, evaluation["drafts_sha256"]
+                ),
+                "agent_attempt_record_id": attempt_record["record_id"],
+            },
+        )
         checks = list(evaluation["issue_checks"])
         preparation_record = store.append(
             "issue_check_preparation_completed",
@@ -1110,6 +1239,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             submission,
             [
                 guide_record["record_id"],
+                attempts_record["record_id"],
                 preparation_record["record_id"],
                 scenario_record["record_id"],
                 property_record["record_id"],
@@ -1169,12 +1299,20 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         "agent_real_llm": bool(result_status.get("real_llm", False)),
         "agent_academic_eligible": bool(result_status.get("academic_eligible", False)),
         "test_replay": bool(result_status.get("test_replay", False)),
+        # B-discover owns bounded issue discovery, not terminal experiment
+        # eligibility. The post-loop experiment gate must make that decision.
         "main_result_eligible": False,
+        "main_result_eligibility_owner": "post_loop_experiment_gate",
+        "main_result_eligibility_reason": (
+            "B-discover is an intermediate method stage; only the post-loop "
+            "experiment gate may admit a complete run into main-result statistics."
+        ),
         "agent_receipt_ref": receipt_ref.model_dump(mode="json"),
         "supporting_record_ids": supporting,
         "preparation_record_ids": [
             check_record["record_id"],
             guide_record["record_id"],
+            attempts_record["record_id"],
             preparation_record["record_id"],
             scenario_record["record_id"],
             property_record["record_id"],

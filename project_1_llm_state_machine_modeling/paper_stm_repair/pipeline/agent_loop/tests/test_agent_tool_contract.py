@@ -10,6 +10,7 @@ import pytest
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
 from paper_stm_repair_loop.tools.evaluate_checks import build_tool as build_evaluate_checks_tool
 from paper_stm_repair_loop.tools.guide_access import GuideAccessState, guard_tool, property_batch_requested
+from paper_stm_repair_loop.tools.mandatory import enforce_mandatory_tool
 from paper_stm_repair_loop.tools.lookup_source_trace import build_tool as build_lookup_source_trace_tool
 from paper_stm_repair_loop.tools.observe_trace import build_tool as build_observe_trace_tool
 from paper_stm_repair_loop.tools.post_batch_investigation import PostBatchInvestigationState
@@ -78,6 +79,49 @@ def deterministic_runner(*, events: list[str], max_steps: int | None = None) -> 
         "unconsumed_events": [],
         "final_configuration": {"current_state": "Root.Done"},
         "diagnostics": [],
+    }
+
+
+def test_mandatory_wrapper_rejects_nonselected_tool_without_executing_it():
+    executed = {"value": False}
+
+    def query_model(category: str) -> dict[str, Any]:
+        """A test-only query tool."""
+
+        executed["value"] = True
+        return {"execution_status": "completed", "category": category}
+
+    from paper_stm_repair_loop.schemas.tools import QueryModelInput, SimpleStructuredTool
+
+    wrapped = enforce_mandatory_tool(
+        SimpleStructuredTool(
+            func=query_model,
+            name="query_model",
+            description=query_model.__doc__ or "query_model",
+            args_schema=QueryModelInput,
+        ),
+        lambda: "evaluate_checks",
+    )
+
+    result = wrapped.invoke({"query_kind": "states"})
+
+    assert executed["value"] is False
+    assert result == {
+        "execution_status": "mandatory_tool_rejected",
+        "tool_executed": False,
+        "requested_tool": "query_model",
+        "required_tool": "evaluate_checks",
+        "error": {
+            "code": "mandatory_tool_mismatch",
+            "message": (
+                "query_model was not executed because evaluate_checks is the "
+                "only allowed tool in this protocol step."
+            ),
+        },
+        "limitations": [
+            "tool_not_executed",
+            "no_model_or_query_evidence_produced",
+        ],
     }
 
 

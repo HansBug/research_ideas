@@ -173,13 +173,28 @@ python -m paper_stm_repair_loop.discover \
 FBMCQ guide 时提交，下一轮强制 `read_fbmcq_guide`，随后继续强制
 `evaluate_checks`，直至得到一个 `gate.eligible=true` 的完整批次。该策略只选择合同中
 已经标为必用的工具，并在该轮临时把 provider 可见工具面收窄到这一个工具，防止不完整
-的 `tool_choice` 实现绕过必用步骤；它不生成检查内容、不决定 issue verdict。获得
+的 `tool_choice` 实现绕过必用步骤。执行入口还会再次核对当前 mandatory tool；即使
+provider 幻觉调用了全局注册但本轮未暴露的其他工具，底层工具逻辑也不会执行，audit 会
+把该动作记录为 `rejected`、`tool_executed=false`。它不生成检查内容、不决定 issue verdict。获得
 eligible batch 后，完整工具面与结构化终止面恢复，Agent 重新自由选择可选 post-batch
 工具或提交结构化结果。
 
+事件条件行为不能降格成只检查目标状态可达的 property。例如“在 `Autonomous` 中收到
+`Human_Steering_Cmd_or_Brake_Pressed` 后回到 `InitialState`”不能只写成
+“`InitialState` 在 3 步内可达”；后者没有编码前置状态和触发事件。Controller 会确定性
+拒绝这种 draft，并要求改用包含完整 setup、precondition 和 tested event 的 scenario。
+纯状态命题（例如“`Done` 可达”或“`Done` 是 simple state”）仍可使用 property。
+
+每次真实执行的 `evaluate_checks` batch 都会进入 append-only 的
+`evaluate_checks_attempts_completed` record，保留原始 draft、绑定拒绝、gate reason、
+实际执行的 check ID，以及最终是否被 structured submission 选用。确定性 renderer 会把
+这些尝试写入 `loops/discover.md`，因此 zero-root 运行不会只剩 Agent 的笼统自述。
+
 `manifest.json.code_provenance` 记录精确 git commit、分支和 tracked-worktree dirty
 状态。未跟踪的 `runs/paper1/` 输出不计入代码 dirty 判定；正式可比较运行仍应使用
-`tracked_worktree_dirty=false` 的提交态。
+`tracked_worktree_dirty=false` 的提交态。capability preflight 还会比较父仓库
+`HEAD:pyfcstm` gitlink 与本地 submodule worktree `HEAD`；任一侧不可读或 commit 不一致时
+写入 `run_failed` 并停止，避免同版本号下的 pyfcstm 语义漂移混入可比较运行。
 
 ## 自定义输入
 

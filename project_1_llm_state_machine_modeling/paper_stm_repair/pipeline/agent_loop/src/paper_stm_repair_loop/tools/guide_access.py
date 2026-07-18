@@ -62,6 +62,19 @@ class GuideAccessState:
         ]
         return min(sequences) if sequences else None
 
+    def mark_attempt_outcome(
+        self,
+        sequence: int,
+        *,
+        execution_status: str,
+        tool_executed: bool,
+    ) -> None:
+        event = next(
+            item for item in self.events if int(item.get("sequence", -1)) == sequence
+        )
+        event["execution_status"] = execution_status
+        event["tool_executed"] = tool_executed
+
 
 def prerequisite_result(blocked_tool: str, required_tool: str) -> dict[str, Any]:
     return {
@@ -95,16 +108,39 @@ def guard_tool(
         property_batch = bool(
             require_fbmcq_when is not None and require_fbmcq_when(args, kwargs)
         )
-        state.record_attempt(tool.name, property_batch=property_batch)
+        sequence = state.record_attempt(tool.name, property_batch=property_batch)
         if require_fcstm and not state.has_read("fcstm"):
-            return prerequisite_result(tool.name, "read_fcstm_guide")
+            result = prerequisite_result(tool.name, "read_fcstm_guide")
+            state.mark_attempt_outcome(
+                sequence,
+                execution_status="prerequisite_required",
+                tool_executed=False,
+            )
+            return result
         if (
             require_fbmcq_when is not None
             and property_batch
             and not state.has_read("fbmcq")
         ):
-            return prerequisite_result(tool.name, "read_fbmcq_guide")
-        return original(*args, **kwargs)
+            result = prerequisite_result(tool.name, "read_fbmcq_guide")
+            state.mark_attempt_outcome(
+                sequence,
+                execution_status="prerequisite_required",
+                tool_executed=False,
+            )
+            return result
+        result = original(*args, **kwargs)
+        execution_status = (
+            str(result.get("execution_status") or "completed")
+            if isinstance(result, dict)
+            else "completed"
+        )
+        state.mark_attempt_outcome(
+            sequence,
+            execution_status=execution_status,
+            tool_executed=True,
+        )
+        return result
 
     description = str(tool.description)
     prerequisite_text = (
