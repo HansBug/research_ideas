@@ -82,13 +82,37 @@ def _read_pairs() -> dict[str, dict[str, Any]]:
 def _selected_dir(pair_id: str) -> Path | None:
     for directory in sorted(p for p in SELECTED_ROOT.iterdir() if p.is_dir()):
         meta_path = directory / "source_meta.json"
-        if meta_path.exists() and json.loads(meta_path.read_text(encoding="utf-8")).get("pair_id") == pair_id:
-            return directory
+        if meta_path.exists():
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            if pair_id in {meta.get("pair_id"), meta.get("discover_pair_id")}:
+                return directory
     return None
 
 
 def _trace_from_selected(directory: Path, meta: dict[str, Any]) -> dict[str, Any]:
     fcstm_meta = json.loads((directory / "fcstm_meta.json").read_text(encoding="utf-8"))
+    if fcstm_meta.get("discover_source_policy") == "fcstm_identity":
+        return {
+            "schema_version": "source_trace_base.v1",
+            "trace_scope": "manual_conversion_safe_smoke",
+            "relation_policy": "exact_identity",
+            "entries": [],
+            "source_traceability": {
+                "source_meta_path": str(directory / "source_meta.json"),
+                "fcstm_meta_path": str(directory / "fcstm_meta.json"),
+                "source_stm0_sha256": fcstm_meta.get("selected_fcstm_sha256"),
+                "fcstm_sha256": fcstm_meta.get("selected_fcstm_sha256"),
+                "original_source_stm0_sha256": meta.get("stm0_sha256"),
+                "closure_claim_allowed": False,
+                "attribution": "manual_canonicalization_identity_smoke",
+                "academic_eligible": False,
+            },
+            "notes": (
+                "The manually adjudicated FCSTM is frozen as both source and intermediate input "
+                "for Discover engineering smoke. The original PlantUML remains in the selected "
+                "example directory for provenance but is not exposed as the run source."
+            ),
+        }
     return {
         "schema_version": "source_trace_base.v1",
         "trace_scope": "pilot_candidate",
@@ -111,14 +135,28 @@ def load_pair(pair_id: str, *, fcstm_file: Path | None = None, source_trace_file
     if fcstm_file is not None or source_trace_file is not None:
         raise ValueError("PAIR_INPUT_OVERRIDE_FORBIDDEN: use custom mode for non-canonical model or trace inputs")
     pairs = _read_pairs()
-    if pair_id not in pairs:
-        raise ValueError(f"unknown pair_id: {pair_id}")
-    row = pairs[pair_id]
     selected = _selected_dir(pair_id)
+    selected_source_meta = (
+        json.loads((selected / "source_meta.json").read_text(encoding="utf-8"))
+        if selected is not None
+        else {}
+    )
+    source_pair_id = str(
+        selected_source_meta.get("source_pair_id")
+        or selected_source_meta.get("pair_id")
+        or pair_id
+    )
+    if source_pair_id not in pairs:
+        raise ValueError(f"unknown pair_id: {pair_id}")
+    row = pairs[source_pair_id]
     if selected is None or not (selected / "model.fcstm").exists():
         raise ValueError(f"PAIR_FCSTM_NOT_PREPARED: {pair_id}; prepare A-stage fcstm before Discover")
     fcstm_file = selected / "model.fcstm"
     fcstm = fcstm_file.read_text(encoding="utf-8")
+    fcstm_meta = json.loads((selected / "fcstm_meta.json").read_text(encoding="utf-8"))
+    discover_source_policy = str(fcstm_meta.get("discover_source_policy") or "raw_source")
+    if discover_source_policy not in {"raw_source", "fcstm_identity"}:
+        raise ValueError(f"PAIR_DISCOVER_SOURCE_POLICY_UNSUPPORTED: {discover_source_policy}")
     trace = _trace_from_selected(selected, row)
     expected_sha = trace.get("source_traceability", {}).get("fcstm_sha256")
     actual_sha = sha256_text(fcstm)
@@ -126,15 +164,30 @@ def load_pair(pair_id: str, *, fcstm_file: Path | None = None, source_trace_file
         raise ValueError("PAIR_FCSTM_TRACE_MISMATCH: source trace must bind the selected fcstm")
     if hashlib.sha256(row["nl_text"].encode("utf-8")).hexdigest() != row["nl_sha256"]:
         raise ValueError(f"pair NL hash mismatch: {pair_id}")
+    metadata = {k: v for k, v in row.items() if k != "reference_plantuml_sha256"}
+    metadata.update(
+        {
+            "discover_pair_id": pair_id,
+            "source_pair_id": source_pair_id,
+            "selected_example_dir": str(selected),
+            "discover_source_policy": discover_source_policy,
+            "academic_eligible": fcstm_meta.get("academic_eligible"),
+            "academic_ineligibility_reason": fcstm_meta.get("academic_ineligibility_reason"),
+        }
+    )
     return PreparedCase(
         case_id=selected.name if selected is not None else pair_id,
         pair_id=pair_id,
         nl=row["nl_text"],
-        raw_source=row["stm0_text"],
-        raw_source_format=row.get("stm_format", "unknown"),
+        raw_source=fcstm if discover_source_policy == "fcstm_identity" else row["stm0_text"],
+        raw_source_format=(
+            "fcstm-identity"
+            if discover_source_policy == "fcstm_identity"
+            else row.get("stm_format", "unknown")
+        ),
         fcstm=fcstm,
         source_trace=trace,
-        metadata={k: v for k, v in row.items() if k != "reference_plantuml_sha256"},
+        metadata=metadata,
         input_mode="pair",
     )
 

@@ -115,7 +115,7 @@ make discover-demo
 默认参数：
 
 ```text
-pair       llms_emp_stm_results_0000
+pair       llms_emp_stm_results_0000_manual_identity
 profile    gpt-5.5
 language   zh-CN
 renderer   rich
@@ -137,7 +137,7 @@ make discover-demo \
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
 python -m paper_stm_repair_loop.discover \
-  --pair-id llms_emp_stm_results_0000 \
+  --pair-id llms_emp_stm_results_0000_manual_identity \
   --profile gpt-5.5 \
   --content-language zh-CN \
   --renderer rich \
@@ -151,7 +151,7 @@ Agent 默认不设置 model call、tool call、turn 或 wall-clock 上限，避�
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
 python -m paper_stm_repair_loop.discover \
-  --pair-id llms_emp_stm_results_0000 \
+  --pair-id llms_emp_stm_results_0000_manual_identity \
   --profile gpt-5.5 \
   --content-language zh-CN \
   --renderer rich \

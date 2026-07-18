@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from pyfcstm.simulate import SimulationRuntime
 
 from paper_stm_repair_loop.agents.discover import (
     _build_submit_discovery_response,
@@ -18,7 +19,7 @@ from paper_stm_repair_loop.agents.discover import (
 )
 from paper_stm_repair_loop.controller import _bind_drafts
 from paper_stm_repair_loop.inputs import load_custom, load_pair, load_run_case, prepare_run_dir
-from paper_stm_repair_loop.pyfcstm_adapter import sha256_text
+from paper_stm_repair_loop.pyfcstm_adapter import load_model_for_simulation, sha256_text
 from paper_stm_repair_loop.records import sha256_json
 from paper_stm_repair_loop.schemas import CheckDraftSubmission
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
@@ -754,6 +755,54 @@ def test_pair_loader_uses_canonical_nl_and_prepared_fcstm():
     assert case.pair_id == "llms_emp_stm_results_0000"
     assert "human driving" in case.nl.lower()
     assert "state llms_emp_gpt4o_hldcs" in case.fcstm
+
+
+def test_pair_loader_supports_manual_identity_discover_pilot():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    assert case.pair_id == "llms_emp_stm_results_0000_manual_identity"
+    assert case.case_id == "llms-emp-gpt4o-hldcs-manual-identity"
+    assert case.raw_source_format == "fcstm-identity"
+    assert case.raw_source == case.fcstm
+    assert case.source_trace["relation_policy"] == "exact_identity"
+    assert case.source_trace["trace_scope"] == "manual_conversion_safe_smoke"
+    assert case.metadata["source_pair_id"] == "llms_emp_stm_results_0000"
+    assert case.metadata["discover_source_policy"] == "fcstm_identity"
+    assert case.metadata["academic_eligible"] is False
+
+
+def test_manual_identity_pilot_preserves_the_adjudicated_runtime_contract():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+    result = check_fcstm(case.fcstm)
+    assert result["executable"] is True
+    assert not [item for item in result["diagnostics"] if item["severity"] == "error"]
+
+    states = {item["path"]: item for item in result["inspect"]["states"]}
+    assert states["HighLevelDrivingModule.HumanDriving"]["is_leaf"] is True
+    assert states["HighLevelDrivingModule.Autonomous"]["is_composite"] is True
+    assert states["HighLevelDrivingModule.Autonomous"]["substates"] == [
+        "HighLevelDrivingModule.Autonomous.AutoInitial",
+        "HighLevelDrivingModule.Autonomous.AutoFinal",
+    ]
+    guard = [
+        item
+        for item in result["inspect"]["transitions"]
+        if item["from_path"] == "HighLevelDrivingModule.HumanDriving"
+        and item["to_path"] == "HighLevelDrivingModule.Autonomous"
+    ]
+    assert len(guard) == 1
+    assert guard[0]["event"] is None
+    assert guard[0]["guard"] == "front_distance > 10"
+
+    runtime = SimulationRuntime(load_model_for_simulation(case.fcstm))
+    runtime.cycle()
+    runtime.cycle(["HighLevelDrivingModule.PowerOn"])
+    runtime.vars["front_distance"] = 11
+    runtime.cycle()
+    assert ".".join(runtime.current_state.path) == "HighLevelDrivingModule.Autonomous.AutoInitial"
+    runtime.cycle(["HighLevelDrivingModule.BrakePressed"])
+    assert ".".join(runtime.current_state.path) == "HighLevelDrivingModule.HumanDriving"
+    runtime.cycle(["HighLevelDrivingModule.PowerOff"])
+    assert runtime.is_ended is True
 
 
 def test_pair_loader_rejects_any_external_model_or_trace_override(tmp_path: Path):

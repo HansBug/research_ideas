@@ -12,7 +12,8 @@
 - `nl.txt` 必须是作者一手资源中参与生成的原始自然语言输入；不能使用本仓库旧缓存、二手 parquet、人工改写摘要或后续复跑时新写的 NL。
 - `stm0.*` 必须是与该 NL 对齐的作者一手生成输出；不能混入 reference model、checking 后结果、人工修正版或本项目后续修正输出。
 - `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式、格式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`generation_actor`、`generation_model_or_method`、`stm_format`、`source_asset_id`、`source_local_path`、`source_locator_type`、`source_locator`、`source_sha256`、`source_pairs_jsonl`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
-- `model.fcstm` 是 R4.5 表示桥从 R3 canonical 生成的 **smoke convenience snapshot**，不是作者一手资源、不是人工修正版、不是 repair 后模型；它必须逐字节同步自 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 对应 `model.fcstm`，并由 `fcstm_meta.json` 记录来源 report、hash、parse/inspect 状态和 loss 归因。
+- 常规样例的 `model.fcstm` 是 R4.5 表示桥从 R3 canonical 生成的 **smoke convenience snapshot**，不是作者一手资源、不是人工修正版、不是 repair 后模型；它必须逐字节同步自 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 对应 `model.fcstm`，并由 `fcstm_meta.json` 记录来源 report、hash、parse/inspect 状态和 loss 归因。
+- 唯一例外是显式命名为 `manual-identity` 的 conversion-safe Discover pilot。此类目录必须与正牌自动转换目录并列而非覆盖，保存完整 `DECISIONS.md`，并在 `fcstm_meta.json` 中固定 `artifact_role=manual_conversion_safe_discover_pilot`、`discover_source_policy=fcstm_identity`、`academic_eligible=false`、`repair_contribution_allowed=false`。它只服务工程 smoke，不能进入 conversion、discovery effectiveness 或 repair effectiveness 统计。
 - 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。若只刷新 R4.5 表示桥，则必须先重新生成 [../representation/reports/fcstm_export_report.json](../pipeline/representation/reports/fcstm_export_report.json)，再同步本目录的 `model.fcstm` / `fcstm_meta.json`。
 
 ## 2. 当前样例清单
@@ -20,6 +21,7 @@
 | 样例 | 原始条目 | NL 文件 | 原始 STM_0 | R4.5 FCSTM | 系统 / 场景 | smoke 用途与限制 |
 |---|---|---|---|---|---|---|
 | [高层驾驶模块 PlantUML](./llms-emp-gpt4o-hldcs/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](./llms-emp-gpt4o-hldcs/stm0.puml) | [model.fcstm](./llms-emp-gpt4o-hldcs/model.fcstm) | 人工驾驶 / 自动驾驶模式切换的高层驾驶模块 | 强相关 LLM + SysML / PlantUML 样例；必须隔离 reference 与 checking 列。 |
+| [高层驾驶模块人工 FCSTM identity pilot](./llms-emp-gpt4o-hldcs-manual-identity/README.md) | [正牌 0000](./llms-emp-gpt4o-hldcs/README.md) | [nl.txt](./llms-emp-gpt4o-hldcs-manual-identity/nl.txt) | [stm0.puml](./llms-emp-gpt4o-hldcs-manual-identity/stm0.puml) | [model.fcstm](./llms-emp-gpt4o-hldcs-manual-identity/model.fcstm) | 同一高层驾驶模块的人工 conversion-safe smoke | Discover 默认工程 pilot；FCSTM identity 输入；`academic_eligible=false`，不得进入正式统计。 |
 | [自助结账系统 Umple](./sefm-ssc7-umple/README.md) | [sefm-llm-state-machine](../corpora/seed_library/sefm-llm-state-machine/) | [nl.txt](./sefm-ssc7-umple/nl.txt) | [stm0.ump](./sefm-ssc7-umple/stm0.ump) | [model.fcstm](./sefm-ssc7-umple/model.fcstm) | 超市自助结账机 SSC7 的交互式 reactive system | 真实长系统描述 + Umple 输出；当前该论文制品中只有 SSC7 有生成输出。 |
 | [微波炉控制 PlantUML](./llms-emp-deepseek-microwave/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-deepseek-microwave/nl.txt) | [stm0.puml](./llms-emp-deepseek-microwave/stm0.puml) | [model.fcstm](./llms-emp-deepseek-microwave/model.fcstm) | 微波炉门、物品、烹饪时间、启动 / 取消 / 计时器到期控制 | EMP empirical 中较复杂的控制系统样例；R3.1 仅在进入官方 SCXML 前去除 PlantUML `stm ...` 标题，raw STM_0 不覆盖，不计 repair gain。 |
 | [自主驾驶与碰撞规避 PlantUML](./llms-emp-kimi-autonomous-collision/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](./llms-emp-kimi-autonomous-collision/stm0.puml) | [model.fcstm](./llms-emp-kimi-autonomous-collision/model.fcstm) | 自动驾驶高速 / 城市模式切换与碰撞规避 | 较高难度 LLM PlantUML 样例；官方 SCXML 可导出，条件标签只作转换/表示桥 smoke，不自动解释为严格 guard。 |
@@ -28,18 +30,18 @@
 
 | 覆盖维度 | 当前覆盖 | 仍需注意的限制 |
 |---|---|---|
-| 来源形态 | 四个可直接回溯的一手 `NL + generated STM_0` 来源 | 不包含只有源码可复跑、但作者未公开生成输出的条目。 |
+| 来源形态 | 四个可直接回溯的一手 `NL + generated STM_0` 来源，另有一个复用正牌 `0000` 的人工 identity pilot | 人工 pilot 不是第五个独立 source case，也不得计入正式样本数。 |
 | STM 方言 | PlantUML、Umple | 尚未覆盖作者一手公开的 FSM JSON / CSV generated pair；TTool XML 暂不进入四例正向 smoke。 |
-| 派生表示 | 四例均有 R4.5 `model.fcstm` 快照与 `fcstm_meta.json`，可直接供 R5 smoke 读取 | `.fcstm` 是派生实现表示，不是原始 seed、不代表最终实验池，也不能作为 repair gain。 |
+| 派生表示 | 四个正牌样例均有 R4.5 `model.fcstm` 快照；人工 pilot 另有独立人工 FCSTM 与裁决记录 | 人工 identity pilot 只用于 Discover 工程 smoke；所有 `.fcstm` 都不能直接作为 repair gain。 |
 | 数据形态 | EMP 1×N 多模型输出、单例长 NL、较复杂微波炉控制、较高难度自动驾驶多条件 PlantUML | 四例只是 smoke 用最小静态样例，不是主实验池规模上限。 |
-| 风险覆盖 | reference/checking 泄漏隔离、长 NL、timer-like 语法、R3.1 pre-SCXML normalization 回灌、层次化 PlantUML、条件标签降级、较高难度多条件 PlantUML | TTool XML 与 Unified synthetic 仍保留在 seed registry / 历史 evidence 中作为后续专项对象，但不再作为当前四例 smoke。 |
+| 风险覆盖 | reference/checking 泄漏隔离、长 NL、timer-like 语法、R3.1 pre-SCXML normalization 回灌、层次化 PlantUML、条件标签降级、较高难度多条件 PlantUML，以及人工 identity pilot 的学术隔离 | TTool XML 与 Unified synthetic 仍保留在 seed registry / 历史 evidence 中作为后续专项对象，但不再作为当前四个正牌 smoke。 |
 
 ## 4. 维护纪律
 
 1. 本目录不复制 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 的全量事实表；每个样例只保存最小可读输入、源文件、R4.5 `.fcstm` smoke 快照和中文解释。
 2. 逐条资源数量、哈希、locator、raw 文件和 validator 结果以 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` 与对应 `assets/README.md` 为准。
 3. 子目录 `README.md` 必须包含：系统说明、NL 文件说明、原始 STM_0 文件说明、R4.5 `model.fcstm` 说明、NL 中文完整翻译、原始论文 PDF / 全文提取 / BibTeX / 文库相对路径、生成关系和 caveat。
-4. `model.fcstm` 只能由 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 同名样例同步而来；若 R4.5 exporter、canonical、loss ledger 或 selected 输入变化，必须同时更新 `model.fcstm`、`fcstm_meta.json` 和相关 report，不允许手工只改 selected copy。
+4. 正牌样例的 `model.fcstm` 只能由 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 同名样例同步而来；若 R4.5 exporter、canonical、loss ledger 或 selected 输入变化，必须同时更新 `model.fcstm`、`fcstm_meta.json` 和相关 report，不允许手工只改 selected copy。`manual-identity` 例外只能通过自己的 [DECISIONS.md](./llms-emp-gpt4o-hldcs-manual-identity/DECISIONS.md) 与 `fcstm_meta.json` 维护，且不得回写覆盖正牌目录。
 5. `fcstm_meta.json` 是 selected copy 与 R4.5 report 的连接件，至少记录 selected / representation 双方 hash、parse/inspect 状态、source NL、原始 STM_0、source meta、canonical、loss count、attribution 和 `repair_contribution_allowed=false`。
 6. 后续真实运行应另建 run record，记录使用的样例版本、输入、输出、错误、工具版本和 eligibility；不要把运行状态写回本目录作为流程台账。
 
@@ -72,9 +74,14 @@ for d in sorted(p for p in base.iterdir() if p.is_dir()):
     assert meta['trace_verified'] is True, d
     fcstm_meta = json.loads((d / 'fcstm_meta.json').read_text())
     assert hashlib.sha256((d / 'model.fcstm').read_bytes()).hexdigest() == fcstm_meta['selected_fcstm_sha256'], d
-    assert fcstm_meta['selected_fcstm_sha256'] == fcstm_meta['synchronized_from_fcstm_sha256'], d
     assert fcstm_meta['repair_contribution_allowed'] is False, d
     assert fcstm_meta['parse_status'] == 'ok' and fcstm_meta['inspect_status'] == 'ok', d
+    if fcstm_meta.get('artifact_role') == 'manual_conversion_safe_discover_pilot':
+        assert fcstm_meta['discover_source_policy'] == 'fcstm_identity', d
+        assert fcstm_meta['academic_eligible'] is False, d
+        assert (d / 'DECISIONS.md').exists(), d
+    else:
+        assert fcstm_meta['selected_fcstm_sha256'] == fcstm_meta['synchronized_from_fcstm_sha256'], d
     print(d.name, stms[0].name, meta['stm_format'], 'fcstm-ok')
 PY
 ```

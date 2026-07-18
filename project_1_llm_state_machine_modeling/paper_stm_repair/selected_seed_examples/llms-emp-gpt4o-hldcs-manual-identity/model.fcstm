@@ -1,0 +1,25 @@
+def int front_distance = 0;
+
+state HighLevelDrivingModule named "high-level driving module" {
+    [*] -> PoweredOff;
+
+    state PoweredOff named "Powered Off";
+    state HumanDriving named "Human Driving";
+
+    state Autonomous named "Autonomous" {
+        [*] -> AutoInitial;
+
+        state AutoInitial named "Autonomous Initial";
+        state AutoFinal named "Autonomous Final";
+
+        AutoInitial -> AutoFinal : ExitAutonomous;
+        AutoFinal -> [*];
+    }
+
+    PoweredOff -> HumanDriving : PowerOn;
+    HumanDriving -> [*] : PowerOff;
+    HumanDriving -> Autonomous : if [front_distance > 10];
+    !Autonomous -> HumanDriving : HumanSteeringCommand;
+    !Autonomous -> HumanDriving : BrakePressed;
+    Autonomous -> HumanDriving;
+}
