@@ -109,7 +109,7 @@ def test_selected_examples_hashes_match_source_meta():
         assert any(json.loads(line).get("pair_id") == meta["pair_id"] for line in source_pairs.read_text(encoding="utf-8").splitlines())
 
 
-def test_cli_regenerates_four_example_report(tmp_path):
+def test_cli_regenerates_five_example_report(tmp_path):
     out = tmp_path / "reports"
     cmd = [
         sys.executable,
@@ -129,17 +129,23 @@ def test_cli_regenerates_four_example_report(tmp_path):
         capture_output=True,
         check=True,
     )
-    assert '"examples": 4' in completed.stdout
+    assert '"examples": 5' in completed.stdout
     report = json.loads((out / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
     by_id = {item["example_id"]: item for item in report["items"]}
     assert set(by_id) == {
         "llms-emp-deepseek-microwave",
         "llms-emp-gpt4o-hldcs",
+        "llms-emp-gpt4o-hldcs-manual-identity",
         "llms-emp-kimi-autonomous-collision",
         "sefm-ssc7-umple",
     }
     assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
     assert by_id["llms-emp-gpt4o-hldcs"]["conversion_source"] == "official_scxml"
+    assert by_id["llms-emp-gpt4o-hldcs-manual-identity"]["status"] == "converted"
+    assert (
+        by_id["llms-emp-gpt4o-hldcs-manual-identity"]["conversion_source"]
+        == "official_scxml"
+    )
     assert by_id["llms-emp-kimi-autonomous-collision"]["status"] == "converted"
     assert by_id["llms-emp-kimi-autonomous-collision"]["conversion_source"] == "official_scxml"
     assert by_id["sefm-ssc7-umple"]["status"] == "partial"
