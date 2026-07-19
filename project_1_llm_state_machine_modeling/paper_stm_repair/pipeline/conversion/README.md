@@ -219,4 +219,4 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conver
 pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests
 ```
 
-LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source/canonical/FCSTM 双向覆盖、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。机器 parse/inspect 通过不能替代逐例语义验收。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。
+LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source-to-canonical-to-FCSTM 结构覆盖、attribution-safe mandatory bundle、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。机器 parse/inspect 通过不能替代逐例语义验收；本路线不主张双向无损。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。

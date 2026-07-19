@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from .pyfcstm_names import NameRegistry
+from .plantuml_working_contract import build_working_contract
 
 
 def _dsl_string(value: str) -> str:
@@ -77,7 +78,9 @@ class _Lowerer:
         self.emitted_state: dict[str, str] = {}
         self.events: dict[str, str] = {}
         self.lines_by_scope: dict[Optional[str], list[str]] = defaultdict(list)
-        self.synthetic_states_by_scope: dict[Optional[str], list[str]] = defaultdict(list)
+        self.synthetic_states_by_scope: dict[Optional[str], list[str]] = defaultdict(
+            list
+        )
         self.mappings: list[_Mapping] = []
         self.blockers: list[dict[str, Any]] = []
         self.operational_debts: list[dict[str, Any]] = []
@@ -92,14 +95,18 @@ class _Lowerer:
         self.concurrent_region_mappings: list[dict[str, Any]] = []
         self.concurrent_region_separator_mappings: list[dict[str, Any]] = []
         self.source_normalization_mappings: list[dict[str, Any]] = []
-        self.initial_by_scope: dict[Optional[str], list[dict[str, Any]]] = defaultdict(list)
+        self.initial_by_scope: dict[Optional[str], list[dict[str, Any]]] = defaultdict(
+            list
+        )
         self.mapped_initial_scopes: set[Optional[str]] = set()
         self.lifecycle_source_count = 0
         self.lifecycle_mapped_count = 0
         self.final_source_count = 0
         self.final_mapped_count = 0
 
-    def add_operational_debt(self, reason_code: str, message: str, **details: Any) -> None:
+    def add_operational_debt(
+        self, reason_code: str, message: str, **details: Any
+    ) -> None:
         self.operational_debts.append(
             {
                 "reason_code": reason_code,
@@ -205,9 +212,14 @@ class _Lowerer:
 
     def reserve_names(self) -> None:
         for state in self.states:
-            parent_scope = self.root_id if state.get("parent") is None else self.emitted_state[state["parent"]]
+            parent_scope = (
+                self.root_id
+                if state.get("parent") is None
+                else self.emitted_state[state["parent"]]
+            )
             self.emitted_state[state["id"]] = self.registry.reserve(
-                raw_text=state["attributes"].get("short_name") or state["id"].rsplit(".", 1)[-1],
+                raw_text=state["attributes"].get("short_name")
+                or state["id"].rsplit(".", 1)[-1],
                 canonical_ref=state.get("raw_ref"),
                 object_type="state",
                 scope=parent_scope,
@@ -241,9 +253,7 @@ class _Lowerer:
         for region in self.concurrent_regions:
             owner_scope = region.get("owner_scope")
             owner_path = (
-                self.root_id
-                if owner_scope is None
-                else self.emitted_path(owner_scope)
+                self.root_id if owner_scope is None else self.emitted_path(owner_scope)
             )
             display_line = self.concurrent_display_lines(owner_scope)[
                 int(region["region_index"])
@@ -263,9 +273,7 @@ class _Lowerer:
         for offset_by_scope, separator in enumerate(self.concurrent_region_separators):
             owner_scope = separator.get("owner_scope")
             owner_path = (
-                self.root_id
-                if owner_scope is None
-                else self.emitted_path(owner_scope)
+                self.root_id if owner_scope is None else self.emitted_path(owner_scope)
             )
             display_lines = self.concurrent_display_lines(owner_scope)
             display_offset = region_count_by_scope.get(owner_scope, 0)
@@ -312,10 +320,14 @@ class _Lowerer:
         ]
 
     def is_composite(self, state_id: str) -> bool:
-        return self.state_by_id[state_id].get("kind") == "composite" or bool(self.children[state_id])
+        return self.state_by_id[state_id].get("kind") == "composite" or bool(
+            self.children[state_id]
+        )
 
     def has_lifecycle_wrapper(self, state_id: str) -> bool:
-        return bool(self.state_by_id[state_id]["attributes"].get("lifecycle_actions")) and not self.is_composite(state_id)
+        return bool(
+            self.state_by_id[state_id]["attributes"].get("lifecycle_actions")
+        ) and not self.is_composite(state_id)
 
     def has_invalid_initial_wrapper(self, state_id: str) -> bool:
         return any(
@@ -364,7 +376,9 @@ class _Lowerer:
         return []
 
     def has_valid_initial(self, scope: str) -> bool:
-        return any(self.initial_target_path(item) for item in self.initial_by_scope[scope])
+        return any(
+            self.initial_target_path(item) for item in self.initial_by_scope[scope]
+        )
 
     def target_entry_compatible(self, target_chain: list[str], common: int) -> bool:
         target_branch = target_chain[common]
@@ -385,7 +399,9 @@ class _Lowerer:
         path: list[str],
     ) -> None:
         for parent_state, child_state in zip(path, path[1:]):
-            line = f"[*] -> {self.emitted_state[child_state]}{self.trigger(transition)};"
+            line = (
+                f"[*] -> {self.emitted_state[child_state]}{self.trigger(transition)};"
+            )
             self.emit_priority_entry(
                 mapping,
                 scope=parent_state,
@@ -433,7 +449,9 @@ class _Lowerer:
             }
         )
 
-    def block_transition(self, transition: dict[str, Any], reason_code: str, message: str) -> None:
+    def block_transition(
+        self, transition: dict[str, Any], reason_code: str, message: str
+    ) -> None:
         mapping = _Mapping(
             transition_id=transition["id"],
             status="blocked_unsupported",
@@ -555,7 +573,9 @@ class _Lowerer:
             )
         else:
             line = f"[*] -> {self.emitted_state[target_path[0]]};"
-        self.emit(mapping, scope=scope, line=line, generated_role="source_initial_transition")
+        self.emit(
+            mapping, scope=scope, line=line, generated_role="source_initial_transition"
+        )
         if len(target_path) > 1:
             for parent_state, child_state in zip(target_path, target_path[1:]):
                 route = f"[*] -> {self.emitted_state[child_state]}{self.trigger(transition)};"
@@ -710,12 +730,22 @@ class _Lowerer:
             prefix = "!" if self.is_operational_composite(current) else ""
             suffix = self.trigger(transition)
             line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-            self.emit(mapping, scope=parent_scope, line=line, generated_role="final_exit_segment")
+            self.emit(
+                mapping,
+                scope=parent_scope,
+                line=line,
+                generated_role="final_exit_segment",
+            )
             current = parent_scope
         prefix = "!" if self.is_operational_composite(current) else ""
         suffix = self.trigger(transition)
         line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-        self.emit(mapping, scope=boundary_scope, line=line, generated_role="source_final_transition")
+        self.emit(
+            mapping,
+            scope=boundary_scope,
+            line=line,
+            generated_role="source_final_transition",
+        )
         self.mappings.append(mapping)
         self.final_mapped_count += 1
 
@@ -736,7 +766,9 @@ class _Lowerer:
             f"{prefix}{self.emitted_state[source]} -> {self.emitted_state[target]}"
             f"{self.trigger(transition)};"
         )
-        self.emit(mapping, scope=scope, line=line, generated_role="source_direct_transition")
+        self.emit(
+            mapping, scope=scope, line=line, generated_role="source_direct_transition"
+        )
         self.mappings.append(mapping)
 
     def render_cross_scope(self, transition: dict[str, Any]) -> None:
@@ -769,7 +801,9 @@ class _Lowerer:
                 target=target,
                 raw_ref=transition.get("raw_ref"),
             )
-            line = f"! * -> {self.emitted_state[target_branch]}{self.trigger(transition)};"
+            line = (
+                f"! * -> {self.emitted_state[target_branch]}{self.trigger(transition)};"
+            )
             self.emit(
                 mapping,
                 scope=source,
@@ -848,7 +882,11 @@ class _Lowerer:
                     generated_role="cross_scope_exit_segment",
                 )
                 current = parent_scope
-        prefix = "!" if source == source_branch and self.is_operational_composite(source) else ""
+        prefix = (
+            "!"
+            if source == source_branch and self.is_operational_composite(source)
+            else ""
+        )
         suffix = self.trigger(transition)
         continuation = (
             f"{prefix}{self.emitted_state[source_branch]} -> {self.emitted_state[target_branch]}"
@@ -938,7 +976,9 @@ class _Lowerer:
                     state_id=state["id"],
                     raw_ref=state.get("raw_ref"),
                 )
-        for item in self.canonical.get("metadata", {}).get("orphan_lifecycle_actions", []):
+        for item in self.canonical.get("metadata", {}).get(
+            "orphan_lifecycle_actions", []
+        ):
             self.add_operational_debt(
                 "R45.DEBT.lifecycle_owner_ambiguous",
                 "Bare root-level lifecycle syntax is preserved as root display metadata because the source does not identify an owning state.",
@@ -984,7 +1024,9 @@ class _Lowerer:
         pad = " " * indent
         pseudo = state.get("kind") in {"fork", "join", "choice", "junction"}
         keyword = "pseudo state" if pseudo else "state"
-        composite = self.is_composite(state_id) or self.has_invalid_initial_wrapper(state_id)
+        composite = self.is_composite(state_id) or self.has_invalid_initial_wrapper(
+            state_id
+        )
         lifecycle = state["attributes"].get("lifecycle_actions", [])
         lifecycle_wrapper = bool(lifecycle) and not composite
         if not composite and not lifecycle:
@@ -1005,7 +1047,9 @@ class _Lowerer:
             if action["kind"] == "do" and (composite or lifecycle_wrapper):
                 lines.append(f"{body_pad}>> during before abstract {action_id};")
             else:
-                keyword_action = {"entry": "enter", "do": "during", "exit": "exit"}[action["kind"]]
+                keyword_action = {"entry": "enter", "do": "during", "exit": "exit"}[
+                    action["kind"]
+                ]
                 lines.append(f"{body_pad}{keyword_action} abstract {action_id};")
             self.lifecycle_mappings.append(
                 {
@@ -1068,7 +1112,9 @@ class _Lowerer:
                     generated_reason="missing_source_initial_fail_closed",
                     raw_ref=None,
                 )
-                lines.append(f"{body_pad}state {synthetic} named \"Unspecified initial\";")
+                lines.append(
+                    f'{body_pad}state {synthetic} named "Unspecified initial";'
+                )
                 placeholder_initial = f"[*] -> {synthetic};"
                 self.lines_by_scope[state_id].append(placeholder_initial)
                 self.record_synthetic_transition(
@@ -1092,7 +1138,9 @@ class _Lowerer:
         self.add_operational_debts()
         self.add_unparsed_blockers()
         root_label = self.model.get("name") or self.canonical["example_id"]
-        for item in self.canonical.get("metadata", {}).get("orphan_lifecycle_actions", []):
+        for item in self.canonical.get("metadata", {}).get(
+            "orphan_lifecycle_actions", []
+        ):
             text = item.get("text") or ""
             root_label += f"\n[Unowned PlantUML {item.get('kind', 'lifecycle')}] {text}"
             self.orphan_lifecycle_mappings.append(
@@ -1136,7 +1184,7 @@ class _Lowerer:
                 generated_reason="missing_source_initial_fail_closed",
                 raw_ref=None,
             )
-            lines.append(f"{pad}state {synthetic} named \"Unspecified initial\";")
+            lines.append(f'{pad}state {synthetic} named "Unspecified initial";')
             placeholder_initial = f"[*] -> {synthetic};"
             self.lines_by_scope[None].append(placeholder_initial)
             self.record_synthetic_transition(
@@ -1165,19 +1213,22 @@ class _Lowerer:
         body_total = sum(
             len(state["attributes"].get("body_lines", [])) for state in self.states
         )
-        structural_verdict = "structure_preserved" if not self.blockers else "structure_blocked"
+        structural_verdict = (
+            "structure_preserved" if not self.blockers else "structure_blocked"
+        )
         operational_status = (
             "within_r45_executable_projection"
             if not self.operational_debts
             else "source_ambiguity_or_unsupported_semantics_preserved"
         )
         comparison = {
-            "schema_version": "r4_5.plantuml_fcstm_comparison.v3",
+            "schema_version": "r4_5.plantuml_fcstm_comparison.v4",
             "example_id": self.canonical["example_id"],
             "verdict": structural_verdict,
             "structural_verdict": structural_verdict,
             "operational_status": operational_status,
-            "fcstm_execution_eligible": not self.operational_debts and not self.blockers,
+            "fcstm_execution_eligible": not self.operational_debts
+            and not self.blockers,
             "discover_eligible": not self.operational_debts and not self.blockers,
             "source_state_count": len(self.states),
             "emitted_state_count": len(self.emitted_state),
@@ -1185,7 +1236,9 @@ class _Lowerer:
             "source_transition_count": len(self.transitions),
             "mapped_transition_count": len(mapped),
             "blocked_transition_count": len(blocked),
-            "silently_dropped_transition_count": len(self.transitions) - len(mapped) - len(blocked),
+            "silently_dropped_transition_count": len(self.transitions)
+            - len(mapped)
+            - len(blocked),
             "transition_coverage": f"{len(mapped) + len(blocked)}/{len(self.transitions)}",
             "final_transition_coverage": f"{self.final_mapped_count}/{self.final_source_count}",
             "lifecycle_action_coverage": f"{lifecycle_structurally_mapped}/{lifecycle_total}",
@@ -1202,7 +1255,9 @@ class _Lowerer:
                 f"{len(self.source_normalization_mappings)}/"
                 f"{len(self.source_normalizations)}"
             ),
-            "opaque_label_count": sum(1 for transition in self.transitions if transition.get("label")),
+            "opaque_label_count": sum(
+                1 for transition in self.transitions if transition.get("label")
+            ),
             "blockers": self.blockers,
             "operational_debts": self.operational_debts,
             "state_mappings": self.state_mappings,
@@ -1227,8 +1282,12 @@ class _Lowerer:
                         ],
                         "source": item.source,
                         "target": item.target,
-                        "raw_label": self.transition_by_id[item.transition_id].get("label"),
-                        "raw_event": self.transition_by_id[item.transition_id].get("event"),
+                        "raw_label": self.transition_by_id[item.transition_id].get(
+                            "label"
+                        ),
+                        "raw_event": self.transition_by_id[item.transition_id].get(
+                            "event"
+                        ),
                         "raw_ref": item.raw_ref,
                         "region_index": self.transition_by_id[item.transition_id][
                             "attributes"
@@ -1245,10 +1304,17 @@ class _Lowerer:
                 for item in self.mappings
             ],
         }
+        working_contract = build_working_contract(
+            canonical=self.canonical,
+            fcstm=fcstm,
+            comparison=comparison,
+        )
         return {
             "fcstm": fcstm,
             "comparison": comparison,
             "name_mapping": self.registry.to_jsonable(),
+            "working_contract": working_contract,
+            "source_trace_base": working_contract["source_trace_base"],
         }
 
 

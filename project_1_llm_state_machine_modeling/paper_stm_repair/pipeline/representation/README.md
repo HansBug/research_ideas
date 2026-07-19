@@ -23,12 +23,16 @@ representation/
 │   ├── fcstm_export_report.schema.json
 │   ├── fcstm_export_loss_ledger.schema.json
 │   ├── lowering_inventory.schema.json
-│   └── name_mapping.schema.json
+│   ├── manual_pair_review.schema.json
+│   ├── name_mapping.schema.json
+│   └── working_fcstm_contract.schema.json
 ├── src/paper_stm_repair_representation/
 │   ├── __init__.py
 │   ├── cli.py
 │   ├── lowering.py              # 历史四例 canonical lowering / .fcstm render / report 入口
 │   ├── plantuml_source_lowering.py # active 60 例的结构保真 lowering 与三轴裁决
+│   ├── plantuml_working_contract.py # ownership/macro/capability/attribution gate
+│   ├── plantuml_working_bundle.py # mandatory loader / Discover view / issue binding gate
 │   └── pyfcstm_names.py
 ├── reports/
 │   ├── fcstm_export_report.json
@@ -40,12 +44,45 @@ representation/
 │       ├── lowering_inventory.json
 │       └── parse_inspect_report.json
 └── tests/
+    ├── test_plantuml_working_bundle.py
     ├── test_r45_export_contract.py
     ├── test_r45_name_mapping.py
     └── test_r45_schema_contract.py
 ```
 
-新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing。只有 source fact 无法完整落入 `.fcstm + mandatory trace` 时才产生 structural blocker；可以完整保存、但无法证明运行解释的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 记为 operational debt，并使 `fcstm_execution_eligible=false`、`discover_eligible=false`。因此 `structure_preserved` 不能被解释为行为等价。
+新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing。只有 source fact 无法完整落入 `.fcstm + mandatory trace` 时才产生 structural blocker；可以完整保存、但无法证明运行解释的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 记为 operational debt。
+
+active 60 例同时保留两层资格：
+
+1. legacy whole-model `fcstm_execution_eligible/discover_eligible` 仍为 false，避免把整例结构 PASS 冒充全局行为等价；
+2. `working_fcstm_contract.v2` 将 working bundle 标为 `discover_input_with_capability_mask`，允许 Discover 对 source-owned semantic roots 做静态分析；baseline 不预授权 inspect diagnostic、simulation、transition trace 或 Repair，它们只能在后续 runtime 取得 confirmed issue binding 与可归因 typed evidence 后按能力重新开放。
+
+本路线不再以双向无损或最小文本修改为目标，而采用两个职责不同的单向投影：
+
+```text
+PlantUML STM0 -> attribution-safe FCSTM working bundle
+final FCSTM working bundle -> fresh canonical PlantUML STM_k
+```
+
+前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；后向投影在未来 source export 阶段消费 `source_owned + agent_created` semantic roots，折叠 compiler macro，重新生成完整 PlantUML，不保留原排版、不追求最小 diff，也不声称通用 round-trip。`.fcstm` 单文件不足以恢复 region、opaque body、normalization 等 attribution facts，因此两端都必须消费 mandatory working contract/trace bundle。
+
+`InitialWait*`、`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 等全部是 compiler-owned/protected。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
+
+下游不得自行打开 `fcstm/*.fcstm` 作为 Discover 输入，必须通过唯一 loader：
+
+```python
+from pathlib import Path
+
+from paper_stm_repair_representation import load_attribution_safe_working_bundle
+
+bundle = load_attribution_safe_working_bundle(
+    Path("project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"),
+    "0000",
+)
+discover_input = bundle.discover_view()
+```
+
+loader 会重验 clean-evidence eligibility、pair pool、manifest inventory、逐文件 hash、working-contract schema、canonical/FCSTM/source-trace/case-report binding 与 capability fail-closed 状态。`discover_view()` 只把 capability allowlist 中的 source-owned 字段暴露为 source facts；完整 FCSTM 只作为带 ownership/macro/exclusion 的工作文本共同出现，不能脱离 bundle 单独消费。`bind_confirmed_issues()` 只为 positive-traced、capability-eligible、明确 `conversion_or_lowering_related=false` 的 confirmed issue 生成待后续 patcher 消费的 binding；本 baseline 仍返回 `repair_authorized=false`，Confirm/final export/main result 均保持 `not_run`。
 
 其中 `lowering.py` 继续承担历史四例 R3 canonical 的 model view、lowering、`.fcstm` 渲染、loss ledger 与 export report；Issue #161 后的 active 60 例由 `plantuml_source_lowering.py` 和 `plantuml_source_audit.py` 承担结构投影与独立 AST 审计。两条统计不得混用，本 PR 未单独拆出 `canonical_to_fcstm.py`。
 
@@ -59,7 +96,7 @@ pip install -r requirements.txt
 pip install -e ./pyfcstm
 ```
 
-重放 active 60 例时，不得覆盖已经绑定人工审阅的冻结目录。应显式使用新的 replay 目录：
+普通重放不得覆盖已经绑定人工审阅的冻结目录，应显式使用新的 replay 目录：
 
 ```bash
 make -C project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/java/plantuml-state-frontend fetch compile
@@ -69,15 +106,16 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion
   --output-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60_replay
 ```
 
-若默认输出目录已存在 `MANUAL_REVIEW.md`，runner 必须拒绝覆盖。新 replay 只有在重新完成 60 对人工阅读并绑定新哈希后，才能替换冻结证据；机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
+若输出目录已存在 `MANUAL_REVIEW.md`、`MANUAL_REVIEW.jsonl` 或 `PUBLICATION_SEAL.json`，runner 必须拒绝覆盖。只有明确执行本轮正式替换时才允许增加 `--replace-reviewed-output`；runner 仍先在 sibling staging 目录完成 60 例，再原子替换，不发布 partial batch。机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
 
 冻结证据完成后，可重新生成面向 GitHub 人工浏览的 60 个 NL/PlantUML/FCSTM 三元组目录：
 
 ```bash
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/build_llms_emp_pair_pages.py
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/build_llms_emp_pair_pages.py \
+  --manual-review-jsonl project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.jsonl
 ```
 
-入口为 [reports/llms_emp_r45_java_60/PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md)。每个目录包含 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 和三合一 `README.md`；生成器会先校验 NL、PlantUML、FCSTM 与 comparison hash，不允许把漂移后的文本写成既有人工结论。
+入口为 [reports/llms_emp_r45_java_60/PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md)。每个目录包含 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 和三合一 `README.md`；页面同时展示 ownership、macro、source-static/simulation/transition capability、至少两条互不重复且绑定 NL/PlantUML/FCSTM/source-root 的 semantic correspondence，以及每个 required risk occurrence 的独立 evidence assessment。生成器必须验证 source/class implementation identity、pair-pool bytes、manifest machine/supporting inventory、实际文件 hash、working contract hash、review-subject hash、60 行顺序、逐例原文锚点和 obligation-level assessment，再通过 sibling staging 原子发布。dirty replay 只能生成显式 `development_only` 页面与 seal；`MANUAL_REVIEW.md` 只是从 `MANUAL_REVIEW.jsonl` 确定性生成的阅读面，不能作为独立事实源。
 
 导出四个 selected seed examples：
 

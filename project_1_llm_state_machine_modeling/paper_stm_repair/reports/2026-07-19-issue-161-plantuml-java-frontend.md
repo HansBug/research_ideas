@@ -37,9 +37,15 @@
 | independent pyfcstm AST audit | `60/60` |
 | structural preservation | `60/60` |
 | FCSTM execution eligible | `0/60` |
-| Discover eligible | `0/60` |
+| legacy whole-model Discover eligible | `0/60` |
+| attribution-scoped Discover input | `60/60` |
+| source-static capability | `60/60 eligible_with_exclusions` |
+| inspect diagnostic capability | `0/60` baseline eligible；逐条归为 `candidate_only` / `insufficient_evidence` / conversion artifact |
+| simulation capability | `0/60` baseline eligible（runtime 无稳定 fired-transition ID，无法证明路径未经过 compiler macro） |
+| transition-level runtime trace | `0/60`（runtime 无稳定 fired transition ID） |
+| baseline Repair / main-result | `0/60`，均为 `not_run`，等待 confirmed issue binding 与真实 loop |
 
-这里的 `60/60` 是 **FCSTM + mandatory trace bundle 的结构保真**，不是 `60/60 semantic equivalence`。`.fcstm` 单文件不包含 raw span、source braces 和 operational debt，不能脱离 case report 单独宣称可逆。
+这里的 `60/60` 是 **FCSTM + mandatory working contract/trace bundle 的结构保真**，不是 `60/60 semantic equivalence`。`.fcstm` 单文件不包含 raw span、ownership、macro、capability 和 operational debt，不能脱离 sidecar 单独进入 Discover，也不能宣称可逆。
 
 ## 2. 官方 SCXML 为什么真的不可靠
 
@@ -182,14 +188,21 @@ Python adapter 不重新解析 PlantUML：
 
 ## 6. 三轴裁决
 
-旧 `exact / blocked` 一维口径无法区分“source fact 保存了”与“行为可证明”。当前每例独立记录：
+旧 `exact / blocked` 一维口径无法区分“source fact 保存了”与“行为可证明”。当前同时保留 legacy whole-model gate 与逐能力合同：
 
 ```json
 {
   "structural_verdict": "structure_preserved",
   "operational_status": "source_ambiguity_or_unsupported_semantics_preserved",
   "fcstm_execution_eligible": false,
-  "discover_eligible": false
+  "discover_eligible": false,
+  "working_bundle_usage_gate": "discover_input_with_capability_mask",
+  "source_static_discovery": "eligible_with_exclusions",
+  "inspect_diagnostics": "ineligible",
+  "simulation": "ineligible",
+  "transition_trace": "ineligible",
+  "repair": "not_run",
+  "main_result": "not_run"
 }
 ```
 
@@ -203,7 +216,19 @@ Python adapter 不重新解析 PlantUML：
 - `95` body、`16` lifecycle、35 final 与 6 条 source normalization 可从 canonical 重建；
 - transition declaration order、multiple initial order、fan-out order和 placeholder priority受审计保护。
 
-运行/Discover eligibility 另行判断。当前所有 60 例至少含一个 opaque transition label 或其他 debt，因此严格结果是 `0/60`，不能把结构 PASS 直接投入 #158。
+legacy whole-model 运行/Discover eligibility 仍另行判断。当前所有 60 例至少含一个 opaque transition label 或其他 debt，因此严格 whole-model 结果仍是 `0/60`。但这不再意味着整例只能废弃：`working_fcstm_contract.v2` 将 source-owned semantic roots、compiler-owned members 和 source-input normalization 分开，允许全部 60 例进入 source-static Discover；baseline inspect diagnostic、simulation、transition trace、Repair 和 main-result 一律 fail closed，不能仅因 parse/inspect 成功而获得 source-level 证据资格。
+
+后续 #158 可以消费 60/60 working bundle，但必须遵守：
+
+1. `InitialWait*`、`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、`LifecycleActive` 和跨层 transition segments 均为 compiler-owned/protected；
+2. compiler-only diagnostic 必须归为 `rejected_conversion_artifact`，不能成为 confirmed issue 或 Repair target；
+3. macro member diagnostic 在有 NL/raw source/typed evidence 前只能 `candidate_only`；
+4. source identity trace 只证明“FCSTM 逻辑 root 对应哪个 PlantUML source element”，所有 baseline entry 均 `behavioral_fidelity=not_assessed`、`closure_claim_allowed=false`；
+5. source-input normalization 单独进入 `conversion_boundary`，不能混入 positive source trace；
+6. confirmed issue 必须同时有 NL 或 raw-internal evidence、raw source fragment、positive source identity trace、capability-eligible typed evidence，并明确 `conversion_or_lowering_related=false`；
+7. main-result conversion artifact 上限固定为 `0`。Discover candidates 可以暴露 conversion artifact，但必须在 Repair 前 fail closed。
+
+这些规则不能只靠调用方自觉。正式 consumer 必须调用 `load_attribution_safe_working_bundle(evidence_dir, case_id)`，由 loader 重验 clean manifest、artifact inventory/hash、working contract、source trace、case report 与原始 pair，再通过 `discover_view()` 取得字段级 capability allowlist。裸 `.fcstm` 只能用于 parse/audit，不是合法 Discover 输入。source issue ledger 只有在 source refs 全部属于 positive-traced source-owned roots、typed evidence 对应 capability eligible 且 conversion boundary 为 false 时才形成 binding；本 PR baseline 的 binding 仍为 `repair_authorized=false`，因为 Repair patcher、Confirm adapter 与 final exporter 不在本 leaf PR 中实现。
 
 ## 7. 真实修复例子
 
@@ -294,7 +319,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 
 ## 8. 机器验证与对抗用例
 
-最终 conversion + representation + readiness + evaluation 套件：`192 passed`。除正常路径外，audit 必须拒绝：
+最终计数以 clean replay 后的全套测试输出为准。除正常路径外，audit 必须拒绝：
 
 - state parent/path、display body 与 pseudo kind 漂移；
 - source/trace endpoint 联合篡改；
@@ -310,6 +335,10 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 - source/synthetic state partition 或 mapping cardinality漂移。
 - 已含 `MANUAL_REVIEW.md` 的冻结 evidence 目录被 batch runner 覆盖。
 - 60 行人工账本中的 source/FCSTM SHA、三轴 verdict 或 FCSTM 集合哈希漂移。
+- field ownership、positive-trace coverage、macro source binding 或 inventory digest 的自洽联合篡改。
+- capability field allowlist 漂移，以及 Repair/Confirm/final-export/main-result 的提前准入。
+- development-only evidence、裸 `.fcstm` consumer、compiler-owned confirmed/Repair target 和 attribution-ineligible typed evidence。
+- 重复 semantic correspondence、`capability_excluded + preserved` 矛盾裁决、risk occurrence 绑定错误元素。
 
 constructed runtime 回归还直接验证：
 
@@ -326,25 +355,11 @@ Outside --> C.Wanted : Go
 
 ## 9. 60 组主 session 人工验收
 
-最终制品冻结后，本轮主 session LLM 按 `0000 -> 0059` 读取了每一组完整 NL、PlantUML STM0、FCSTM STM0 和 normalization/region/identity ledger，并核对 hierarchy、initial/final、全部 transition、body/lifecycle、synthetic state 与 debt；identity remap 和复杂跨层 case 另做逐 transition 复核。
+旧 v3 人工账本已因 working-contract、实现指纹和 review subject 更新而失效，不能继承。正式 v5 制品只能在实现提交后的 clean replay 生成；随后由主 session LLM 按 `0000 -> 0059` 重新完整读取 NL、PlantUML STM0、FCSTM STM0、working contract 与 source trace，并对每个 risk occurrence 按唯一 `obligation_id` 完成绑定同一 subject 的第二遍复核，不能用一条 risk-tag 总结覆盖多个 occurrence。
 
-逐组完整 NL/PlantUML/FCSTM 三元组与原始文件见 [PAIR_INDEX.md](../pipeline/representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)；绑定 source/FCSTM SHA-256 的人工账本见 [MANUAL_REVIEW.md](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.md)。结论为：
+最终逐组三元组、人工账本、publication seal 和证据身份将在 clean replay 与 60/60 主 session 重读完成后由本 PR 的 evidence commit 更新。开发 replay 即使机器 gate 全过，也必须显示 `development_only`，不得成为 READY 证据。
 
-- 60 行均为结构 PASS；
-- 无 state/transition/body/lifecycle/final 静默漏失；
-- 没有任何一行被写成 semantic equivalence；
-- `fcstm_execution_eligible=0/60`，`discover_eligible=0/60`。
-
-证据身份：
-
-- 作者 workbook SHA-256：`17eb4ed2abc5cffbe69128c1ca07614e62b742454375823fd273d165f08240e4`
-- Phase-II final pair pool SHA-256：`0bc133e2a9696a30e53f9422b9d81838c9cf8504d795810b20978ed078e81bdc`
-- 60 行人工账本 SHA-256：`40057581b4ddcb536782d6ccaa024fdec54498ba4866beaf0b328643317d6bab`
-- PlantUML jar SHA-256：`e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24`
-- pyfcstm：`4ea23c9b153f47e5c4a2125d95b466eee6eed13e`
-- clean replay 绑定 research commit：`da66c41c471f37e04c8871164b651a747f46f095`
-- clean replay manifest：`tracked_worktree_dirty_before_run=false`，稳定输出路径为 `pipeline/representation/reports/llms_emp_r45_java_60`
-- clean replay 与人工验收版 FCSTM：`60/60` 逐文件字节一致
+当前 dirty 开发 replay 只证明实现候选能产生 `60/60 structure_preserved`、`757/757` mapped transition、`0` silent drop、`1413` positive identity trace 与 `903` macro；其 `evidence_eligible=false`，不能替代上述正式验收。
 
 ## 10. 最终判断与后续边界
 
@@ -363,7 +378,11 @@ Outside --> C.Wanted : Go
 4. PlantUML fork 在当前单 active-leaf FCSTM runtime 中的行为等价 lowering。
 5. abstract lifecycle hook 的具体动作实现。
 
-因此后续有两条合理路线：
+因此 paper1 采用非对称双投影合同，而不再追求通用双向无损：
 
-- 若 paper1 只需要忠实保存 source artifact，再由 Discover 识别 source ambiguity，则继续使用当前 canonical/trace，但只有 operational debt 闭合后才能进入实验。
-- 若实验要求 60 例全部可执行等价，则必须先冻结受支持的 PlantUML label/fork/timing 子语言规范，或扩展 FCSTM 并发/时钟语义；不能再靠字符串猜测。
+```text
+PlantUML STM0 -> attribution-safe FCSTM working bundle
+final FCSTM working bundle -> fresh canonical PlantUML STM_k
+```
+
+前向阶段允许 Discover 暴露 conversion candidate noise，但 `confirmed`、Repair target、Confirm accepted disposition 与 main-result issue 中的 conversion artifact 上限均为 `0`。operational debt 不再全局阻断 source-static Discover；它只关闭受影响的 inspect/simulation/transition/verification capability。后向阶段由 final working bundle 生成完整、确定性的 PlantUML，不保留原 formatting 或最小 diff；compiler-owned scaffold 全部折叠，只导出 source-owned 与 issue-bound agent-created semantic roots。该后向投影仍必须重新经 pinned PlantUML frontend 解析并做 semantic-root audit，但这只是 final export 验证，不构成 `T_out(T_in(P)) = P` 的 round-trip 主张。

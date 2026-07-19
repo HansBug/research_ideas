@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from paper_stm_repair_conversion.adapters.plantuml_source import parse_plantuml_source
 from paper_stm_repair_representation.plantuml_source_audit import audit_lowered_artifact
 from paper_stm_repair_representation.plantuml_source_lowering import (
     lower_plantuml_source,
+)
+from paper_stm_repair_representation.plantuml_working_contract import (
+    bind_inspect_diagnostics,
+    build_review_obligations,
+    validate_working_contract,
 )
 from pyfcstm.diagnostics.inspect import inspect_model
 from pyfcstm.model.load import load_state_machine_from_text
@@ -29,6 +36,21 @@ PAIRS = (
     / "project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library"
     / "llms-emp-stm-subset/assets/extracted/feedback_final_pairs.jsonl"
 )
+WORKING_CONTRACT_SCHEMA = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
+    / "schemas/working_fcstm_contract.schema.json"
+)
+
+
+def _sha256_json_for_test(value: object) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _rows() -> list[dict]:
@@ -168,7 +190,9 @@ state Active {
     )
     runtime = SimulationRuntime(model)
     runtime.cycle()
-    active = next(state for state in canonical["model"]["states"] if state["id"] == "Active")
+    active = next(
+        state for state in canonical["model"]["states"] if state["id"] == "Active"
+    )
     assert active["kind"] == "composite"
     assert active["attributes"]["lifecycle_actions"][0]["text"] == "Prepare"
     assert lowered["comparison"]["lifecycle_action_coverage"] == "1/1"
@@ -223,6 +247,445 @@ state Idle
     assert len(mapping["emitted"]) == 2
     assert mapping["emitted"][0]["generated_role"] == "source_initial_wait_entry"
     assert "/Power_On" in mapping["emitted"][1]["line"]
+
+
+def test_working_contract_protects_synthetic_states_and_excludes_them_from_positive_trace():
+    canonical, lowered, _, report = _artifact(
+        """@startuml
+[*] --> Human : Power On
+state Human {
+}
+@enduml
+""",
+        example_id="ownership-fixture",
+    )
+    contract = lowered["working_contract"]
+    synthetics = [
+        item for item in contract["elements"] if item["kind"] == "synthetic_state"
+    ]
+
+    assert {item["metadata"]["generated_reason"] for item in synthetics} == {
+        "event_gated_plantuml_initial_wait",
+        "missing_source_initial_fail_closed",
+    }
+    assert all(item["origin"] == "compiler_owned" for item in synthetics)
+    assert all(item["edit_policy"] == "protected" for item in synthetics)
+    positive_refs = {
+        ref
+        for entry in contract["source_trace_base"]["entries"]
+        for ref in entry["intermediate_elements"]
+    }
+    assert not positive_refs.intersection(
+        ref for item in synthetics for ref in item["model_refs"]
+    )
+    assert set(contract["source_trace_base"]["attribution_exclusions"]) >= {
+        item["element_id"] for item in synthetics
+    }
+    assert contract["usage_gate"] == "audit_only"
+    assert contract["artifact_role"] == "structural_projection"
+    assert all(
+        entry["trace_dimension"] == "identity_only"
+        and entry["behavioral_fidelity"] == "not_assessed"
+        and entry["attribution_boundary"]["closure_claim_allowed"] is False
+        for entry in contract["source_trace_base"]["entries"]
+    )
+    validate_working_contract(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        contract=contract,
+    )
+    contract = bind_inspect_diagnostics(
+        fcstm=lowered["fcstm"],
+        inspect_report=report,
+        contract=contract,
+    )
+    assert contract["usage_gate"] == "discover_input_with_capability_mask"
+    assert contract["artifact_role"] == "attribution_scoped_working_model"
+    contract["artifact_bindings"] = {
+        "canonical_path": "project_1_llm_state_machine_modeling/paper_stm_repair/canonical.json",
+        "fcstm_path": "project_1_llm_state_machine_modeling/paper_stm_repair/model.fcstm",
+        "parse_inspect_path": "project_1_llm_state_machine_modeling/paper_stm_repair/inspect.json",
+        "source_trace_path": "project_1_llm_state_machine_modeling/paper_stm_repair/trace.json",
+        "canonical_file_sha256": "a" * 64,
+        "fcstm_file_sha256": "b" * 64,
+        "parse_inspect_file_sha256": "c" * 64,
+        "source_trace_file_sha256": "d" * 64,
+        "comparison_sha256": "e" * 64,
+        "ast_audit_sha256": "f" * 64,
+    }
+    review_obligations = build_review_obligations(
+        comparison=lowered["comparison"],
+        official_identity=canonical["metadata"]["official_identity_reconciliation"],
+        contract=contract,
+    )
+    contract["review_subject"] = {
+        "review_subject_sha256": "1" * 64,
+        "risk_tags": sorted({item["risk_tag"] for item in review_obligations}),
+        "review_obligations": review_obligations,
+        "second_pass_required": bool(review_obligations),
+    }
+    Draft202012Validator(
+        json.loads(WORKING_CONTRACT_SCHEMA.read_text(encoding="utf-8"))
+    ).validate(contract)
+    validate_working_contract(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        contract=contract,
+        inspect_report=report,
+    )
+
+
+def test_cross_scope_transition_is_one_source_macro_with_protected_members():
+    canonical, lowered, _, _ = _artifact(
+        CROSS_SCOPE_SOURCE,
+        example_id="macro-fixture",
+    )
+    contract = lowered["working_contract"]
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["reason_code"] == "R45.MAP.cross_scope_exit_continuation"
+    )
+    macro = next(
+        item
+        for item in contract["macros"]
+        if item["macro_id"] == f"macro:transition:{mapping['transition_id']}"
+    )
+    elements = {item["element_id"]: item for item in contract["elements"]}
+
+    assert len(mapping["emitted"]) == 2
+    assert len(macro["member_element_ids"]) == 2
+    assert macro["rewrite_policy"] == "controller_regenerate_only"
+    assert all(
+        elements[item]["origin"] == "compiler_owned"
+        for item in macro["member_element_ids"]
+    )
+    assert all(
+        elements[item]["edit_policy"] == "protected"
+        for item in macro["member_element_ids"]
+    )
+    trace = next(
+        item
+        for item in contract["source_trace_base"]["entries"]
+        if item["trace_id"] == f"trace:transition:{mapping['transition_id']}"
+    )
+    assert trace["intermediate_elements"] == [macro["macro_id"]]
+    validate_working_contract(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        contract=contract,
+    )
+
+
+def test_capabilities_keep_static_source_analysis_when_runtime_semantics_are_unsupported():
+    _, lowered, _, _ = _artifact(REGION_SOURCE, example_id="capability-fixture")
+    capabilities = lowered["working_contract"]["capability_eligibility"]
+
+    assert capabilities["parse"]["status"] == "eligible"
+    assert capabilities["inspect_structure"]["status"] == "eligible"
+    assert (
+        capabilities["source_static_discovery"]["status"] == "eligible_with_exclusions"
+    )
+    assert capabilities["simulation"]["status"] == "ineligible"
+    assert capabilities["transition_trace"]["status"] == "ineligible"
+    assert (
+        "R45.DEBT.concurrent_region_semantics"
+        in capabilities["simulation"]["reason_codes"]
+    )
+    assert lowered["working_contract"]["usage_gate"] == "audit_only"
+    assert set(capabilities["source_static_discovery"]["eligible_element_ids"])
+
+
+@pytest.mark.parametrize(
+    "mutation, message",
+    [
+        ("synthetic_source_owned", "transition macro contains non-compiler member"),
+        ("partial_macro", "transition macro member drift"),
+        (
+            "compiler_positive_trace",
+            "positive source trace binds a non-source-owned element",
+        ),
+    ],
+)
+def test_working_contract_rejects_attribution_and_partial_macro_tampering(
+    mutation: str, message: str
+):
+    canonical, lowered, _, _ = _artifact(
+        """@startuml
+state Outside
+state Outer {
+  state Inner
+  Inner --> Outside : Leave
+}
+[*] --> Outer : Start
+@enduml
+""",
+        example_id=f"contract-mutation-{mutation}",
+    )
+    contract = copy.deepcopy(lowered["working_contract"])
+    if mutation == "synthetic_source_owned":
+        synthetic = next(
+            item for item in contract["elements"] if item["kind"] == "synthetic_state"
+        )
+        synthetic["origin"] = "source_owned"
+        synthetic["edit_policy"] = "direct_issue_bound"
+    elif mutation == "partial_macro":
+        macro = next(
+            item
+            for item in contract["macros"]
+            if item["macro_kind"] == "R45.MAP.cross_scope_exit_continuation"
+        )
+        macro["member_element_ids"].pop()
+    else:
+        compiler = next(
+            item for item in contract["elements"] if item["origin"] == "compiler_owned"
+        )
+        contract["source_trace_base"]["entries"].append(
+            {
+                "trace_id": "trace:malicious",
+                "trace_class": "source_semantic_identity",
+                "trace_dimension": "identity_only",
+                "source_elements": [compiler["element_id"]],
+                "intermediate_elements": ["macro:malicious"],
+                "trace_relation": "exact",
+                "projection_status": "projectable",
+                "required_for_issue_ids": [],
+                "issue_binding_policy": "discover_must_confirm_source_issue",
+                "behavioral_fidelity": "not_assessed",
+                "attribution_boundary": {
+                    "source_level_claim_allowed": True,
+                    "conversion_or_lowering_related": False,
+                    "representation_related": False,
+                    "closure_claim_allowed": False,
+                    "rationale": "malicious",
+                },
+                "trace_relation_rationale": "malicious",
+                "trace_evidence": [],
+                "reviewer_notes": "malicious",
+            }
+        )
+
+    with pytest.raises(ValueError, match=message):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation,message",
+    [
+        ("field_ownership", "field ownership drift"),
+        ("positive_trace_deletion", "positive source trace coverage drift"),
+        ("macro_wrong_source", "transition macro source binding drift"),
+        ("element_digest", "working contract element digest drift"),
+        ("macro_digest", "working contract macro digest drift"),
+        ("compiler_digest", "working contract compiler-owned digest drift"),
+        ("capability_field", "eligible field projection drift"),
+    ],
+)
+def test_working_contract_recomputes_attribution_invariants_from_source(
+    mutation: str, message: str
+):
+    canonical, lowered, _, _ = _artifact(
+        BASIC_SOURCE,
+        example_id=f"source-recomputed-{mutation}",
+    )
+    contract = copy.deepcopy(lowered["working_contract"])
+    if mutation == "field_ownership":
+        transition = next(
+            item
+            for item in contract["elements"]
+            if item["kind"] == "transition_macro_root"
+        )
+        transition["field_ownership"]["event_interpretation"] = "source_owned"
+        contract["inventory_digests"]["element_set_sha256"] = _sha256_json_for_test(
+            contract["elements"]
+        )
+    elif mutation == "positive_trace_deletion":
+        contract["source_trace_base"]["entries"].pop()
+        contract["summary"]["positive_trace_count"] -= 1
+        contract["inventory_digests"]["source_trace_set_sha256"] = (
+            _sha256_json_for_test(contract["source_trace_base"]["entries"])
+        )
+    elif mutation == "macro_wrong_source":
+        transitions = [
+            item
+            for item in contract["elements"]
+            if item["kind"] == "transition_macro_root"
+        ][:2]
+        first_macro = next(
+            item
+            for item in contract["macros"]
+            if item["macro_id"] == transitions[0]["macro_ids"][0]
+        )
+        second_macro = next(
+            item
+            for item in contract["macros"]
+            if item["macro_id"] == transitions[1]["macro_ids"][0]
+        )
+        transitions[0]["macro_ids"], transitions[1]["macro_ids"] = (
+            transitions[1]["macro_ids"],
+            transitions[0]["macro_ids"],
+        )
+        first_macro["source_element_ids"], second_macro["source_element_ids"] = (
+            second_macro["source_element_ids"],
+            first_macro["source_element_ids"],
+        )
+        contract["inventory_digests"]["element_set_sha256"] = _sha256_json_for_test(
+            contract["elements"]
+        )
+        contract["inventory_digests"]["macro_set_sha256"] = _sha256_json_for_test(
+            contract["macros"]
+        )
+    elif mutation == "element_digest":
+        contract["inventory_digests"]["element_set_sha256"] = "0" * 64
+    elif mutation == "macro_digest":
+        contract["inventory_digests"]["macro_set_sha256"] = "0" * 64
+    elif mutation == "compiler_digest":
+        contract["inventory_digests"]["compiler_owned_set_sha256"] = "0" * 64
+    else:
+        capability = contract["capability_eligibility"]["source_static_discovery"]
+        capability["eligible_field_refs"].pop()
+
+    with pytest.raises(ValueError, match=message):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
+@pytest.mark.parametrize(
+    "capability,status,message",
+    [
+        ("main_result", "eligible", "baseline main_result status is not fail-closed"),
+        (
+            "repair",
+            "eligible_with_exclusions",
+            "baseline repair status is not fail-closed",
+        ),
+        (
+            "final_export",
+            "eligible_with_exclusions",
+            "baseline final_export status is not fail-closed",
+        ),
+        (
+            "confirm",
+            "eligible_with_exclusions",
+            "baseline confirm status is not fail-closed",
+        ),
+        (
+            "simulation",
+            "eligible_with_exclusions",
+            "baseline simulation status is not fail-closed",
+        ),
+    ],
+)
+def test_working_contract_rejects_premature_result_repair_or_simulation_promotion(
+    capability: str, status: str, message: str
+):
+    canonical, lowered, _, _ = _artifact(BASIC_SOURCE, example_id="gate-tamper")
+    contract = copy.deepcopy(lowered["working_contract"])
+    contract["capability_eligibility"][capability]["status"] = status
+
+    with pytest.raises(ValueError, match=message):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
+def test_bound_inspect_diagnostics_never_preconfirm_a_source_issue():
+    canonical, lowered, _, report = _artifact(
+        """@startuml
+[*] --> A
+state A
+state B
+A --> B
+A --> B
+@enduml
+""",
+        example_id="diagnostic-attribution-fixture",
+    )
+    contract = bind_inspect_diagnostics(
+        fcstm=lowered["fcstm"],
+        inspect_report=report,
+        contract=lowered["working_contract"],
+    )
+
+    attribution = contract["diagnostic_attribution"]
+    assert attribution["binding_status"] == "bound"
+    assert len(attribution["records"]) == len(report["diagnostics"])
+    assert {item["outcome"] for item in attribution["records"]}.issubset(
+        {
+            "rejected_conversion_artifact",
+            "candidate_only_until_source_evidence",
+            "insufficient_evidence",
+        }
+    )
+    assert all(
+        item["promotion_ceiling"] in {"candidate_only", "rejected_or_insufficient"}
+        for item in attribution["records"]
+    )
+    diagnostics_capability = contract["capability_eligibility"]["inspect_diagnostics"]
+    assert diagnostics_capability["status"] == "ineligible"
+    assert diagnostics_capability["eligible_element_ids"] == []
+    validate_working_contract(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        contract=contract,
+        inspect_report=report,
+    )
+
+
+def test_source_input_normalization_is_a_conversion_boundary_not_positive_trace():
+    canonical, lowered, _, _ = _artifact(
+        """@startuml
+state S as \"S\"
+@enduml
+""",
+        example_id="normalization-boundary-fixture",
+    )
+    canonical["metadata"]["source_normalizations"] = [
+        {
+            "rule_id": "transport_quote_repair",
+            "raw_ref": "normalization-boundary-fixture.puml:line:2",
+            "before": 'state S as ""S""',
+            "after": 'state S as "S"',
+        }
+    ]
+    lowered = lower_plantuml_source(canonical)
+    contract = lowered["working_contract"]
+
+    assert not [
+        entry
+        for entry in contract["source_trace_base"]["entries"]
+        if entry["source_elements"] == ["source:normalization:1"]
+    ]
+    boundary = contract["source_trace_base"]["boundary_entries"][0]
+    assert boundary["trace_relation"] == "conversion_artifact"
+    assert boundary["attribution_boundary"]["source_level_claim_allowed"] is False
+    assert boundary["attribution_boundary"]["closure_claim_allowed"] is False
+    assert (
+        "source:normalization:1"
+        in contract["source_trace_base"]["attribution_exclusions"]
+    )
+    validate_working_contract(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        contract=contract,
+    )
 
 
 def test_unlabeled_fanout_is_structurally_preserved_with_operational_debt():
@@ -284,7 +747,10 @@ state CollisionAvoidance {
 
     assert mapping["status"] == "mapped"
     assert mapping["reason_code"] == "R45.MAP.initial_boundary"
-    assert "InitialWaittr_0001 -> CollisionAvoidance : /Possible_collision_detected;" in lowered["fcstm"]
+    assert (
+        "InitialWaittr_0001 -> CollisionAvoidance : /Possible_collision_detected;"
+        in lowered["fcstm"]
+    )
     assert 'state UnspecifiedInitial named "Unspecified initial";' in lowered["fcstm"]
 
 
@@ -331,7 +797,9 @@ state DoorsClosing {
     assert mapping["status"] == "mapped"
     assert mapping["reason_code"] == "R45.MAP.invalid_source_initial_surrogate"
     assert mapping["emitted"][0]["generated_role"] == "invalid_source_initial_surrogate"
-    assert "PlantUML initial target outside child scope: DoorsClosing" in lowered["fcstm"]
+    assert (
+        "PlantUML initial target outside child scope: DoorsClosing" in lowered["fcstm"]
+    )
 
 
 def test_invalid_final_scope_is_preserved_as_a_stoppable_surrogate():
@@ -358,8 +826,9 @@ state Container {
         item["emitted"][0]["generated_role"] == "invalid_source_final_surrogate"
         for item in mappings
     )
-    assert "PlantUML final boundary outside source ancestry: @final:Container" in (
-        lowered["fcstm"]
+    assert (
+        "PlantUML final boundary outside source ancestry: @final:Container"
+        in (lowered["fcstm"])
     )
     assert lowered["comparison"]["final_transition_coverage"] == "1/1"
     assert any(
@@ -416,18 +885,23 @@ Merge --> After
 """,
         example_id="junction-fixture",
     )
-    junction = next(state for state in model.root_state.walk_states() if state.name == "Merge")
+    junction = next(
+        state for state in model.root_state.walk_states() if state.name == "Merge"
+    )
 
     assert canonical["model"]["states"][1]["kind"] == "junction"
     assert "pseudo state Merge" in lowered["fcstm"]
     assert junction.is_pseudo
-    assert audit_lowered_artifact(
-        canonical=canonical,
-        fcstm=lowered["fcstm"],
-        comparison=lowered["comparison"],
-        model=model,
-        inspect_report=report,
-    )["status"] == "passed"
+    assert (
+        audit_lowered_artifact(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            model=model,
+            inspect_report=report,
+        )["status"]
+        == "passed"
+    )
 
 
 def test_workbook_transport_normalization_is_hash_bound_and_audited():
@@ -463,9 +937,7 @@ def test_ast_audit_rejects_concurrent_region_membership_tamper():
 def test_ast_audit_rejects_concurrent_separator_tamper():
     canonical, lowered, model, report = _artifact(REGION_SOURCE)
     tampered = copy.deepcopy(lowered["comparison"])
-    tampered["concurrent_region_separator_mappings"][0][
-        "following_region_index"
-    ] = 7
+    tampered["concurrent_region_separator_mappings"][0]["following_region_index"] = 7
 
     with pytest.raises(ValueError, match="concurrent separator trace drift"):
         audit_lowered_artifact(
@@ -522,7 +994,9 @@ def test_ast_audit_independently_rejects_official_reconciliation_count_tamper():
         "transition_identity_alignment_count"
     ] = 0
 
-    with pytest.raises(ValueError, match="official transition reconciliation count drift"):
+    with pytest.raises(
+        ValueError, match="official transition reconciliation count drift"
+    ):
         audit_lowered_artifact(
             canonical=tampered,
             fcstm=lowered["fcstm"],
@@ -593,7 +1067,9 @@ state Active {
         if item["source"] == "@initial:Active"
     ]
 
-    assert all(item["status"] == "mapped" and item["emitted"] for item in initial_mappings)
+    assert all(
+        item["status"] == "mapped" and item["emitted"] for item in initial_mappings
+    )
     assert "[*] -> BrakeControlState;" in lowered["fcstm"]
     assert "[*] -> SteeringControlState;" in lowered["fcstm"]
     assert "[*] -> SensorControlState;" in lowered["fcstm"]
@@ -639,7 +1115,9 @@ def test_ast_audit_rejects_joint_lowering_and_trace_endpoint_drift():
     canonical, lowered, _, _ = _artifact(BASIC_SOURCE)
     tampered = copy.deepcopy(lowered["comparison"])
     mapping = next(
-        item for item in tampered["transition_mappings"] if item["transition_id"] == "tr_0002"
+        item
+        for item in tampered["transition_mappings"]
+        if item["transition_id"] == "tr_0002"
     )
     original = mapping["emitted"][0]["line"]
     rewritten = original.replace("A -> B", "A -> A")
@@ -712,7 +1190,9 @@ def test_ast_audit_rejects_joint_event_binding_drift():
     canonical, lowered, _, _ = _artifact(BASIC_SOURCE)
     tampered = copy.deepcopy(lowered["comparison"])
     mapping = next(
-        item for item in tampered["transition_mappings"] if item["transition_id"] == "tr_0002"
+        item
+        for item in tampered["transition_mappings"]
+        if item["transition_id"] == "tr_0002"
     )
     original = mapping["emitted"][0]["line"]
     rewritten = original.replace("/Go", "/Stop")
@@ -741,7 +1221,9 @@ state B
     canonical, lowered, _, _ = _artifact(source)
     tampered = copy.deepcopy(lowered["comparison"])
     mapping = next(
-        item for item in tampered["transition_mappings"] if item["transition_id"] == "tr_0001"
+        item
+        for item in tampered["transition_mappings"]
+        if item["transition_id"] == "tr_0001"
     )
     main = next(
         item
@@ -755,7 +1237,9 @@ state B
     model = load_state_machine_from_text(tampered_fcstm)
     report = inspect_model(model).to_json()
 
-    with pytest.raises(ValueError, match="initial transition endpoint projection drift"):
+    with pytest.raises(
+        ValueError, match="initial transition endpoint projection drift"
+    ):
         audit_lowered_artifact(
             canonical=canonical,
             fcstm=tampered_fcstm,
@@ -855,7 +1339,9 @@ def test_ast_audit_rejects_multiple_initial_declaration_reordering():
     first = "[*] -> First;"
     second = "[*] -> Second;"
     tampered_fcstm = lowered["fcstm"].replace(first, "<FIRST>", 1)
-    tampered_fcstm = tampered_fcstm.replace(second, first, 1).replace("<FIRST>", second, 1)
+    tampered_fcstm = tampered_fcstm.replace(second, first, 1).replace(
+        "<FIRST>", second, 1
+    )
     model = load_state_machine_from_text(tampered_fcstm)
     report = inspect_model(model).to_json()
 
@@ -1074,7 +1560,10 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
             inspect_report=report,
         )
 
-        assert report["metrics"]["n_states_leaf"] + report["metrics"]["n_states_composite"] > 0
+        assert (
+            report["metrics"]["n_states_leaf"] + report["metrics"]["n_states_composite"]
+            > 0
+        )
         assert not [
             item for item in report["diagnostics"] if item.get("severity") == "error"
         ]
@@ -1089,6 +1578,41 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         assert lowered["comparison"]["silently_dropped_transition_count"] == 0
         assert lowered["comparison"]["fcstm_execution_eligible"] is False
         assert lowered["comparison"]["discover_eligible"] is False
+        contract = bind_inspect_diagnostics(
+            fcstm=lowered["fcstm"],
+            inspect_report=report,
+            contract=lowered["working_contract"],
+        )
+        assert contract["usage_gate"] == "discover_input_with_capability_mask"
+        assert (
+            contract["capability_eligibility"]["source_static_discovery"]["status"]
+            == "eligible_with_exclusions"
+        )
+        assert (
+            contract["attribution_policy"]["main_result_conversion_artifact_limit"] == 0
+        )
+        assert all(
+            entry["attribution_boundary"]["closure_claim_allowed"] is False
+            for entry in contract["source_trace_base"]["entries"]
+        )
+        assert contract["capability_eligibility"]["repair"]["status"] == "not_run"
+        assert contract["capability_eligibility"]["main_result"]["status"] == "not_run"
+        assert (
+            contract["capability_eligibility"]["simulation"]["status"] == "ineligible"
+        )
+        assert (
+            contract["capability_eligibility"]["inspect_diagnostics"][
+                "eligible_element_ids"
+            ]
+            == []
+        )
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+            inspect_report=report,
+        )
         assert all(
             mapping["status"] == "mapped" and mapping["emitted"]
             for mapping in lowered["comparison"]["transition_mappings"]

@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import json
-import re
+import os
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, ValidationError
 
 from paper_stm_repair_conversion.adapters.plantuml_source import (
     parse_plantuml_source,
     resolve_plantuml_jar,
 )
+from paper_stm_repair_conversion.adapters import plantuml_source as plantuml_adapter
 
 
 def _repo_root() -> Path:
@@ -32,6 +35,11 @@ RUNNER = (
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
     / "tools/run_llms_emp_r45.py"
 )
+PAIR_BUILDER = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
+    / "tools/build_llms_emp_pair_pages.py"
+)
 EVIDENCE = (
     REPO_ROOT
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
@@ -39,10 +47,6 @@ EVIDENCE = (
 )
 PAIR_INDEX = EVIDENCE / "PAIR_INDEX.md"
 PAIR_PAGES = EVIDENCE / "pairs"
-MANUAL_ROW_RE = re.compile(
-    r"^\| `(?P<case>\d{4})` \| `(?P<source>[0-9a-f]{64})` \| "
-    r"`(?P<fcstm>[0-9a-f]{64})` \| PASS \| (?P<notes>.+) \|$"
-)
 
 
 def _rows() -> list[dict]:
@@ -59,6 +63,191 @@ def _load_runner_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _load_pair_builder_module():
+    spec = importlib.util.spec_from_file_location(
+        "build_llms_emp_pair_pages", PAIR_BUILDER
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _write_manifest_fixture(
+    *,
+    builder: object,
+    evidence_dir: Path,
+    implementation_sha256: str,
+    java_build: dict,
+) -> None:
+    contracts = evidence_dir / "working_contracts"
+    contracts.mkdir(parents=True)
+    for index in range(60):
+        (contracts / f"llms_emp_feedback_final_{index:04d}.json").write_text(
+            "{}\n", encoding="utf-8"
+        )
+    inventory = [
+        {
+            "path": path.relative_to(evidence_dir).as_posix(),
+            "sha256": builder._sha256_bytes(path.read_bytes()),
+        }
+        for path in sorted(contracts.iterdir())
+    ]
+    supporting_inventory = []
+    for name in (
+        ".gitattributes",
+        "MANUAL_REVIEW_TEMPLATE.jsonl",
+        "MANUAL_REVIEW_TEMPLATE.md",
+        "SUMMARY.md",
+    ):
+        path = evidence_dir / name
+        path.write_text(f"fixture {name}\n", encoding="utf-8")
+        supporting_inventory.append(
+            {"path": name, "sha256": builder._sha256_bytes(path.read_bytes())}
+        )
+    manifest = {
+        "schema_version": "r4_5.llms_emp_java_batch.v5",
+        "evidence_eligible": True,
+        "output_dir": "fixture-evidence",
+        "implementation_tree_sha256": implementation_sha256,
+        "java_frontend_build": java_build,
+        "artifact_inventory": inventory,
+        "artifact_set_sha256": builder._sha256_json(inventory),
+        "working_contract_set_sha256": builder._sha256_json(inventory),
+        "supporting_artifact_inventory": supporting_inventory,
+        "supporting_artifact_set_sha256": builder._sha256_json(supporting_inventory),
+    }
+    (evidence_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _manual_review_fixture(*, second_pass_required: bool = False) -> dict:
+    return {
+        "schema_version": "paper1.manual_pair_review.v3",
+        "case_id": "0000",
+        "pair_id": "llms_emp_feedback_final_0000",
+        "review_subject_sha256": "a" * 64,
+        "working_contract_sha256": "b" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "full_nl_plantuml_fcstm_contract_read",
+        "review_context": {
+            "reviewed_at": "2026-07-20T12:00:00Z",
+            "session_id": "omx-test-session",
+            "model_id": "gpt-5.5",
+        },
+        "reviewed_inputs": {
+            "nl": True,
+            "plantuml": True,
+            "fcstm": True,
+            "working_contract": True,
+            "source_trace": True,
+        },
+        "observations": {
+            "nl_intent": "The requirement explicitly places the controller in Idle mode.",
+            "plantuml_semantics": "The source declares state Idle and selects it as the initial state.",
+            "fcstm_projection": "The FCSTM projection retains state Idle named as a source-owned state.",
+            "attribution_rationale": "Idle is source_owned; the generated wrapper remains compiler_owned.",
+            "capability_rationale": "source_static capability is eligible while runtime evidence stays scoped.",
+            "nl_anchors": ["Idle mode"],
+            "plantuml_anchors": ["state Idle"],
+            "fcstm_anchors": ["state Idle named"],
+        },
+        "semantic_correspondences": [
+            {
+                "nl_anchor": "Idle mode",
+                "plantuml_anchor": "state Idle",
+                "fcstm_anchor": "state Idle named",
+                "source_element_ids": ["source:state:Idle"],
+                "compiler_element_ids": [],
+                "projection_kind": "direct",
+                "assessment": "preserved",
+                "rationale": (
+                    "source:state:Idle binds the requirement's Idle mode to the PlantUML "
+                    "state and the same named FCSTM state."
+                ),
+            },
+            {
+                "nl_anchor": "controller enters",
+                "plantuml_anchor": "state Idle\n@enduml",
+                "fcstm_anchor": 'named "Idle"',
+                "source_element_ids": ["source:state:Idle"],
+                "compiler_element_ids": [],
+                "projection_kind": "direct",
+                "assessment": "preserved",
+                "rationale": (
+                    "source:state:Idle is the positively traced semantic root; the second "
+                    "anchor checks that its authored label survives the FCSTM projection."
+                ),
+            },
+        ],
+        "ownership_verdict": "pass",
+        "macro_verdict": "pass",
+        "capability_verdict": "pass",
+        "second_pass": {
+            "required": second_pass_required,
+            "completed": False,
+            "review_subject_sha256": None,
+            "reviewer_id": None,
+            "review_method": None,
+            "risk_tags_reviewed": [],
+            "risk_assessments": [],
+            "observations": None,
+            "notes": "not required" if not second_pass_required else "pending",
+        },
+        "findings": [],
+        "verdict": "pass",
+        "notes": "Case-specific source and FCSTM projection were read and cross-checked.",
+    }
+
+
+def _review_contract_fixture(
+    *, second_pass_required: bool = False, risk_tags: list[str] | None = None
+) -> dict:
+    tags = risk_tags or []
+    obligations = (
+        [
+            {
+                "obligation_id": "review:synthetic_state:0001:fixture",
+                "risk_tag": "synthetic_state",
+                "element_ids": ["compiler:root:fixture"],
+                "expected_origins": {
+                    "compiler:root:fixture": "compiler_owned",
+                },
+                "source_refs": ["fixture.puml:line:2"],
+                "rationale": "Fixture compiler-owned synthetic-state occurrence.",
+            }
+        ]
+        if second_pass_required
+        else []
+    )
+    return {
+        "review_subject": {
+            "second_pass_required": second_pass_required,
+            "risk_tags": tags,
+            "review_obligations": obligations,
+        },
+        "elements": [
+            {
+                "element_id": "source:state:Idle",
+                "origin": "source_owned",
+            },
+            {
+                "element_id": "compiler:root:fixture",
+                "origin": "compiler_owned",
+            },
+        ],
+        "source_trace_base": {
+            "entries": [
+                {
+                    "source_elements": ["source:state:Idle"],
+                }
+            ]
+        },
+    }
 
 
 def _require_feedback_final_evidence() -> None:
@@ -241,8 +430,7 @@ state Container {
         for item in shared["attributes"]["lifecycle_actions"]
     ] == [("entry", "Prepare")]
     assert any(
-        item["raw"] == "state Shared {"
-        for item in shared["attributes"]["declarations"]
+        item["raw"] == "state Shared {" for item in shared["attributes"]["declarations"]
     )
 
 
@@ -259,8 +447,7 @@ B -up-> A : up layout
     )
 
     assert [
-        (item["source"], item["target"])
-        for item in result["model"]["transitions"]
+        (item["source"], item["target"]) for item in result["model"]["transitions"]
     ] == [("A", "B"), ("B", "A")]
     assert all(
         item["attributes"]["official_link_reversed_for_layout_arrow"] is True
@@ -351,7 +538,9 @@ def test_all_60_pairs_have_complete_source_transition_coverage():
         normalized_official_statuses[normalized_status] = (
             normalized_official_statuses.get(normalized_status, 0) + 1
         )
-        official_links = result["metadata"]["official_validation"]["model"]["counts"]["links"]
+        official_links = result["metadata"]["official_validation"]["model"]["counts"][
+            "links"
+        ]
         official_validation_link_count += official_links
         reconciliation = result["metadata"]["official_identity_reconciliation"]
         assert reconciliation["status"] == "aligned"
@@ -442,14 +631,20 @@ def test_trailing_quote_on_plantuml_delimiter_is_audited_as_format_noise():
     } == {"plantuml_start_marker", "plantuml_end_marker"}
     recoveries = result["metadata"]["source_normalizations"]
     assert len(recoveries) == 6
-    assert sum(
-        item["rule_id"] == "source_input.workbook_doubled_state_quotes"
-        for item in recoveries
-    ) == 5
-    assert sum(
-        item["rule_id"] == "source_input.workbook_trailing_end_quote"
-        for item in recoveries
-    ) == 1
+    assert (
+        sum(
+            item["rule_id"] == "source_input.workbook_doubled_state_quotes"
+            for item in recoveries
+        )
+        == 5
+    )
+    assert (
+        sum(
+            item["rule_id"] == "source_input.workbook_trailing_end_quote"
+            for item in recoveries
+        )
+        == 1
+    )
     states = {item["id"]: item for item in result["model"]["states"]}
     assert "TurnOn.TurnOn_state" in states
     assert states["TurnOn.TurnOn_state"]["attributes"]["body_lines"][0]["text"] == (
@@ -548,6 +743,191 @@ def test_wrapper_rejects_wrong_plantuml_jar_identity(tmp_path: Path):
         resolve_plantuml_jar(fake_jar)
 
 
+def test_java_frontend_rebuilds_changed_source_despite_future_class_mtime(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    java_root = tmp_path / "java-frontend"
+    source = java_root / "src/main/java/example/Frontend.java"
+    class_file = (
+        java_root / "build/classes/researchideas/plantuml/PlantUmlStateFrontend.class"
+    )
+    jar = java_root / "plantuml.jar"
+    source.parent.mkdir(parents=True)
+    class_file.parent.mkdir(parents=True)
+    source.write_text("class Frontend { int version = 1; }\n", encoding="utf-8")
+    class_file.write_bytes(b"old-class")
+    jar.write_bytes(b"pinned-jar")
+    (java_root / "Makefile").write_text("compile:\n\t@true\n", encoding="utf-8")
+    monkeypatch.setattr(plantuml_adapter, "JAVA_ROOT", java_root)
+    monkeypatch.setattr(plantuml_adapter, "resolve_plantuml_jar", lambda _: jar)
+    monkeypatch.setattr(plantuml_adapter, "_javac_version", lambda: "javac fixture")
+    monkeypatch.setattr(plantuml_adapter, "_java_version", lambda: "java fixture")
+
+    old_input = plantuml_adapter._java_compilation_input_identity(jar)
+    old_tree = plantuml_adapter._java_class_tree_identity()
+    plantuml_adapter._write_build_fingerprint(
+        {
+            "schema_version": plantuml_adapter.BUILD_FINGERPRINT_SCHEMA,
+            **old_input,
+            **old_tree,
+        }
+    )
+    source.write_text("class Frontend { int version = 2; }\n", encoding="utf-8")
+    future = 4_102_444_800
+    os.utime(class_file, (future, future))
+    calls = []
+
+    class Completed:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(command: list[str], **_: object) -> Completed:
+        calls.append(command)
+        class_file.parent.mkdir(parents=True, exist_ok=True)
+        class_file.write_bytes(b"new-class")
+        return Completed()
+
+    monkeypatch.setattr(plantuml_adapter.subprocess, "run", fake_run)
+    plantuml_adapter.compile_java_frontend(plantuml_jar=jar)
+
+    assert calls == [["make", "clean", "compile", f"PLANTUML_JAR={jar}"]]
+    fingerprint = plantuml_adapter._read_build_fingerprint()
+    assert fingerprint is not None
+    assert fingerprint["input_sha256"] != old_input["input_sha256"]
+    assert fingerprint["class_tree_sha256"] != old_tree["class_tree_sha256"]
+
+
+def test_java_frontend_force_rebuild_rejects_jointly_forged_class_and_fingerprint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    java_root = tmp_path / "java-frontend"
+    source = java_root / "src/main/java/example/Frontend.java"
+    class_file = (
+        java_root / "build/classes/researchideas/plantuml/PlantUmlStateFrontend.class"
+    )
+    jar = java_root / "plantuml.jar"
+    source.parent.mkdir(parents=True)
+    class_file.parent.mkdir(parents=True)
+    source.write_text("class Frontend {}\n", encoding="utf-8")
+    class_file.write_bytes(b"forged-class")
+    jar.write_bytes(b"pinned-jar")
+    (java_root / "Makefile").write_text("compile:\n\t@true\n", encoding="utf-8")
+    monkeypatch.setattr(plantuml_adapter, "JAVA_ROOT", java_root)
+    monkeypatch.setattr(plantuml_adapter, "resolve_plantuml_jar", lambda _: jar)
+    monkeypatch.setattr(plantuml_adapter, "_javac_version", lambda: "javac fixture")
+    monkeypatch.setattr(plantuml_adapter, "_java_version", lambda: "java fixture")
+    forged_input = plantuml_adapter._java_compilation_input_identity(jar)
+    forged_tree = plantuml_adapter._java_class_tree_identity()
+    plantuml_adapter._write_build_fingerprint(
+        {
+            "schema_version": plantuml_adapter.BUILD_FINGERPRINT_SCHEMA,
+            **forged_input,
+            **forged_tree,
+        }
+    )
+    calls = []
+
+    class Completed:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(command: list[str], **_: object) -> Completed:
+        calls.append(command)
+        class_file.parent.mkdir(parents=True, exist_ok=True)
+        class_file.write_bytes(b"source-derived-class")
+        return Completed()
+
+    monkeypatch.setattr(plantuml_adapter.subprocess, "run", fake_run)
+
+    identity = plantuml_adapter.java_frontend_build_identity(
+        plantuml_jar=jar,
+        force=True,
+    )
+
+    assert calls == [["make", "clean", "compile", f"PLANTUML_JAR={jar}"]]
+    assert identity["class_tree_sha256"] != forged_tree["class_tree_sha256"]
+
+
+def test_formal_runner_and_pair_builder_force_clean_java_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    runner = _load_runner_module()
+    builder = _load_pair_builder_module()
+    calls = []
+
+    def fake_identity(**kwargs: object) -> dict:
+        calls.append(kwargs)
+        return {"schema_version": "fixture"}
+
+    monkeypatch.setattr(runner, "java_frontend_build_identity", fake_identity)
+    monkeypatch.setattr(builder, "java_frontend_build_identity", fake_identity)
+    jar = tmp_path / "plantuml.jar"
+
+    assert runner._formal_java_frontend_build(jar) == {"schema_version": "fixture"}
+    assert builder._current_java_frontend_build() == {"schema_version": "fixture"}
+    assert calls == [
+        {"plantuml_jar": jar, "force": True},
+        {"force": True},
+    ]
+
+
+def test_development_summary_has_non_eligible_banner():
+    runner = _load_runner_module()
+    manifest = {
+        "evidence_eligible": False,
+        "summary": {
+            "source_parse_ok": 60,
+            "official_raw_state_diagram": 59,
+            "official_raw_not_state_diagram": 1,
+            "official_validation_state_diagram": 60,
+            "official_validation_links": 1,
+            "source_transitions": 1,
+            "official_validation_link_delta": 0,
+            "mapped_transitions": 1,
+            "blocked_transitions": 0,
+            "silently_dropped_transitions": 0,
+            "final_transitions_mapped": 0,
+            "final_transitions_source": 0,
+            "body_lines_mapped": 0,
+            "body_lines_source": 0,
+            "lifecycle_actions_mapped": 0,
+            "lifecycle_actions_source": 0,
+            "concurrent_regions_mapped": 0,
+            "concurrent_regions_source": 0,
+            "concurrent_region_separators_mapped": 0,
+            "concurrent_region_separators_source": 0,
+            "source_normalizations_mapped": 0,
+            "source_normalizations_source": 0,
+            "fcstm_parse_ok": 60,
+            "fcstm_inspect_ok": 60,
+            "ast_audit_ok": 60,
+            "official_identity_states_aligned": 1,
+            "source_states": 1,
+            "official_identity_transitions_aligned": 1,
+            "official_identity_state_remaps": 0,
+            "official_identity_transition_remaps": 0,
+            "structure_preserved": 60,
+            "structure_blocked": 0,
+            "fcstm_execution_eligible": 0,
+            "discover_eligible": 0,
+            "working_contracts_validated": 60,
+            "compiler_owned_elements": 1,
+            "agent_created_elements": 0,
+            "attribution_scoped_discover_input": 60,
+            "working_macros": 1,
+            "positive_source_traces": 1,
+        },
+    }
+
+    summary = runner._summary_markdown(manifest, [])
+
+    assert "DEVELOPMENT ONLY" in summary.split("## 结论", 1)[0]
+    manifest["evidence_eligible"] = True
+    assert "DEVELOPMENT ONLY" not in runner._summary_markdown(manifest, [])
+
+
 def test_batch_runner_rejects_uninitialized_pyfcstm_submodule(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -578,16 +958,617 @@ def test_batch_runner_refuses_to_overwrite_reviewed_output(tmp_path: Path):
     assert manual_review.read_text(encoding="utf-8") == "reviewed\n"
 
 
+def test_batch_runner_rejects_dirty_formal_evidence_before_reading_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    runner = _load_runner_module()
+    monkeypatch.setattr(runner, "_checked_out_pyfcstm_commit", lambda: "a" * 40)
+
+    def fake_git(*args: str, **_: object) -> str:
+        if args == ("rev-parse", "HEAD"):
+            return "b" * 40
+        if args == ("branch", "--show-current"):
+            return "paper1/pr-plantuml-fcstm-fix"
+        if args == ("status", "--porcelain", "--untracked-files=no"):
+            return " M converter.py"
+        if args[:3] == ("status", "--porcelain", "--untracked-files=all"):
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(runner, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="requires a clean tracked worktree"):
+        runner.run(
+            pairs_path=tmp_path / "missing.jsonl",
+            output_dir=runner.PAPER_ROOT
+            / "pipeline/representation/reports/dirty-run-test",
+            plantuml_jar=tmp_path / "unused.jar",
+        )
+
+
+def test_batch_runner_rejects_untracked_implementation_before_reading_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    runner = _load_runner_module()
+    monkeypatch.setattr(runner, "_checked_out_pyfcstm_commit", lambda: "a" * 40)
+
+    def fake_git(*args: str, **_: object) -> str:
+        if args == ("rev-parse", "HEAD"):
+            return "b" * 40
+        if args == ("branch", "--show-current"):
+            return "paper1/pr-plantuml-fcstm-fix"
+        if args == ("status", "--porcelain", "--untracked-files=no"):
+            return ""
+        if args[:3] == ("status", "--porcelain", "--untracked-files=all"):
+            return "?? untracked-frontend.java"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(runner, "_git", fake_git)
+    with pytest.raises(RuntimeError, match="untracked implementation files"):
+        runner.run(
+            pairs_path=tmp_path / "missing.jsonl",
+            output_dir=runner.PAPER_ROOT
+            / "pipeline/representation/reports/untracked-run-test",
+            plantuml_jar=tmp_path / "unused.jar",
+        )
+
+
+def test_batch_runner_validates_pair_order_uniqueness_and_hashes():
+    runner = _load_runner_module()
+    rows = [
+        {
+            "pair_id": f"llms_emp_feedback_final_{index:04d}",
+            "nl_text": f"nl-{index}",
+            "nl_sha256": runner._sha256_text(f"nl-{index}"),
+            "stm0_text": f"@startuml\nstate S{index}\n@enduml\n",
+            "stm0_sha256": runner._sha256_text(f"@startuml\nstate S{index}\n@enduml\n"),
+            "selected_stage": "phase_ii_semantic",
+            "selected_stage_cell": f"AE{index + 2}",
+        }
+        for index in range(60)
+    ]
+    runner._validate_input_rows(rows)
+
+    reordered = list(rows)
+    reordered[0], reordered[1] = reordered[1], reordered[0]
+    with pytest.raises(RuntimeError, match="order/identity drift"):
+        runner._validate_input_rows(reordered)
+
+    tampered = [dict(item) for item in rows]
+    tampered[0]["stm0_text"] += "' changed\n"
+    with pytest.raises(RuntimeError, match="PlantUML hash drift"):
+        runner._validate_input_rows(tampered)
+
+
+def test_runner_and_pair_builder_share_the_same_implementation_tree_hash():
+    runner = _load_runner_module()
+    builder = _load_pair_builder_module()
+
+    assert runner._relevant_implementation_sha256() == (
+        builder._current_implementation_sha256()
+    )
+
+
+def test_batch_runner_atomic_publish_replaces_only_after_staging_is_complete(
+    tmp_path: Path,
+):
+    runner = _load_runner_module()
+    output = tmp_path / "evidence"
+    staging = tmp_path / ".evidence.tmp"
+    output.mkdir()
+    staging.mkdir()
+    (output / "old.txt").write_text("old", encoding="utf-8")
+    (staging / "manifest.json").write_text("new", encoding="utf-8")
+
+    runner._atomic_publish(staging, output)
+
+    assert not staging.exists()
+    assert not (output / "old.txt").exists()
+    assert (output / "manifest.json").read_text(encoding="utf-8") == "new"
+
+
+def test_pair_builder_rejects_stale_manual_review_hash():
+    builder = _load_pair_builder_module()
+    schema = json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema)
+    review = _manual_review_fixture()
+    comparison = {"review_subject_sha256": "c" * 64}
+    contract = _review_contract_fixture()
+
+    with pytest.raises(RuntimeError, match="stale manual review subject"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison=comparison,
+            contract=contract,
+            contract_sha256="b" * 64,
+            nl_text="The controller enters Idle mode.",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
+def test_pair_builder_accepts_source_bound_semantic_correspondences():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+
+    builder._validate_review(
+        review=_manual_review_fixture(),
+        case_id="0000",
+        pair_id="llms_emp_feedback_final_0000",
+        comparison={"review_subject_sha256": "a" * 64},
+        contract=_review_contract_fixture(),
+        contract_sha256="b" * 64,
+        nl_text="The controller enters Idle mode.",
+        source_text="@startuml\nstate Idle\n@enduml\n",
+        fcstm_text='state Idle named "Idle";\n',
+        validator=validator,
+    )
+
+
+def test_pair_builder_rejects_incomplete_second_pass_and_blocking_finding():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture(second_pass_required=True)
+    comparison = {"review_subject_sha256": "a" * 64}
+    contract = _review_contract_fixture(
+        second_pass_required=True,
+        risk_tags=["synthetic_state"],
+    )
+    kwargs = {
+        "review": review,
+        "case_id": "0000",
+        "pair_id": "llms_emp_feedback_final_0000",
+        "comparison": comparison,
+        "contract": contract,
+        "contract_sha256": "b" * 64,
+        "nl_text": "The controller enters Idle mode.",
+        "source_text": "@startuml\nstate Idle\n@enduml\n",
+        "fcstm_text": 'state Idle named "Idle";\n',
+        "validator": validator,
+    }
+    with pytest.raises(RuntimeError, match="second pass is incomplete"):
+        builder._validate_review(**kwargs)
+
+    review["second_pass"] = {
+        "required": True,
+        "completed": True,
+        "review_subject_sha256": "c" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "risk_focused_independent_second_pass",
+        "risk_tags_reviewed": ["synthetic_state"],
+        "risk_assessments": [
+            {
+                "obligation_id": "review:synthetic_state:0001:fixture",
+                "risk_tag": "synthetic_state",
+                "plantuml_anchors": ["state Idle"],
+                "fcstm_anchors": ["state Idle named"],
+                "element_ids": ["compiler:root:fixture"],
+                "assessment": "compiler_artifact_excluded",
+                "rationale": (
+                    "review:synthetic_state:0001:fixture synthetic_state was checked "
+                    "against compiler:root:fixture and is not treated as the "
+                    "source:state:Idle repair target."
+                ),
+            }
+        ],
+        "observations": "Second pass independently rechecked the synthetic_state ownership risk.",
+        "notes": "No compiler-owned member was mistaken for a source-owned repair target.",
+    }
+    with pytest.raises(RuntimeError, match="second pass is not evidence-bound"):
+        builder._validate_review(**kwargs)
+
+    review["second_pass"]["review_subject_sha256"] = "a" * 64
+    builder._validate_review(**kwargs)
+    review["findings"] = [{"severity": "I", "code": "I.STALE", "summary": "blocking"}]
+    with pytest.raises(RuntimeError, match="blocking findings"):
+        builder._validate_review(**kwargs)
+
+
+def test_pending_manual_review_template_is_schema_valid():
+    runner = _load_runner_module()
+    schema_path = (
+        REPO_ROOT
+        / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/schemas/manual_pair_review.schema.json"
+    )
+    validator = Draft202012Validator(
+        json.loads(schema_path.read_text(encoding="utf-8"))
+    )
+    row = {
+        "case_id": "0000",
+        "pair_id": "llms_emp_feedback_final_0000",
+        "review_subject_sha256": "a" * 64,
+        "working_contract_sha256": "b" * 64,
+        "second_pass_required": True,
+    }
+    records = [
+        json.loads(line)
+        for line in runner._manual_review_jsonl_template([row]).splitlines()
+        if line.strip()
+    ]
+
+    assert len(records) == 1
+    validator.validate(records[0])
+    assert records[0]["semantic_correspondences"] == []
+    assert records[0]["second_pass"]["risk_assessments"] == []
+
+
+def test_pair_builder_rejects_generic_structured_self_attestation():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    review["observations"] = {
+        "nl_intent": "This generic sentence claims that the requirement was reviewed.",
+        "plantuml_semantics": "This generic sentence claims that the source was reviewed.",
+        "fcstm_projection": "This generic sentence claims that the projection was reviewed.",
+        "attribution_rationale": "This generic conversion sentence claims attribution was reviewed.",
+        "capability_rationale": "This generic capability sentence claims eligibility was reviewed.",
+        "nl_anchors": ["1"],
+        "plantuml_anchors": ["@startuml"],
+        "fcstm_anchors": ["state"],
+    }
+
+    with pytest.raises(RuntimeError, match="nl_anchors are not bound"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text="Requirement 1",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_real_anchors_with_shallow_declared_review():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    for item in review["semantic_correspondences"]:
+        item["rationale"] = (
+            f"{item['source_element_ids'][0]} and the remaining semantics were declared "
+            "reviewed against the supplied anchors without a case-specific assessment."
+        )
+
+    with pytest.raises(RuntimeError, match="shallow attestation"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text="The controller enters Idle mode.",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_duplicate_semantic_correspondence():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    review["semantic_correspondences"][1] = copy.deepcopy(
+        review["semantic_correspondences"][0]
+    )
+
+    with pytest.raises(ValidationError):
+        validator.validate(review)
+
+
+def test_pair_builder_rejects_incompatible_projection_assessment():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    review["semantic_correspondences"][0]["projection_kind"] = "capability_excluded"
+
+    with pytest.raises(RuntimeError, match="overclaims preservation"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text="The controller enters Idle mode.",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_risk_occurrence_bound_to_wrong_elements():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture(second_pass_required=True)
+    review["second_pass"] = {
+        "required": True,
+        "completed": True,
+        "review_subject_sha256": "a" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "risk_focused_independent_second_pass",
+        "risk_tags_reviewed": ["synthetic_state"],
+        "risk_assessments": [
+            {
+                "obligation_id": "review:synthetic_state:0001:fixture",
+                "risk_tag": "synthetic_state",
+                "plantuml_anchors": ["state Idle"],
+                "fcstm_anchors": ["state Idle named"],
+                "element_ids": ["source:state:Idle"],
+                "assessment": "compiler_artifact_excluded",
+                "rationale": (
+                    "review:synthetic_state:0001:fixture synthetic_state was checked "
+                    "against source:state:Idle rather than its required occurrence."
+                ),
+            }
+        ],
+        "observations": (
+            "Second pass independently rechecked the synthetic_state ownership risk."
+        ),
+        "notes": "The occurrence was deliberately misbound for this rejection test.",
+    }
+
+    with pytest.raises(RuntimeError, match="ownership occurrence drift"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(
+                second_pass_required=True,
+                risk_tags=["synthetic_state"],
+            ),
+            contract_sha256="b" * 64,
+            nl_text="The controller enters Idle mode.",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_mixed_or_partial_ordered_batch(tmp_path: Path):
+    builder = _load_pair_builder_module()
+    path = tmp_path / "rows.jsonl"
+    path.write_text(
+        "".join(json.dumps({"case_id": f"{index:04d}"}) + "\n" for index in range(59)),
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="not the ordered 0000..0059 batch"):
+        builder._ordered_rows(path, "case_id")
+
+
+def test_pair_builder_rejects_stale_implementation_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    builder = _load_pair_builder_module()
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    current = builder._current_implementation_sha256()
+    java_build = {"schema_version": "fixture-java-build"}
+    _write_manifest_fixture(
+        builder=builder,
+        evidence_dir=evidence,
+        implementation_sha256="0" * 64,
+        java_build=java_build,
+    )
+    monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
+    monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+
+    with pytest.raises(RuntimeError, match="implementation-tree hash is stale"):
+        builder._validate_manifest(evidence, allow_ineligible=False)
+
+    manifest = json.loads((evidence / "manifest.json").read_text(encoding="utf-8"))
+    manifest["implementation_tree_sha256"] = current
+    (evidence / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    builder._validate_manifest(evidence, allow_ineligible=False)
+
+
+def test_pair_builder_rejects_extra_machine_artifact_not_in_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    builder = _load_pair_builder_module()
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    java_build = {"schema_version": "fixture-java-build"}
+    _write_manifest_fixture(
+        builder=builder,
+        evidence_dir=evidence,
+        implementation_sha256=builder._current_implementation_sha256(),
+        java_build=java_build,
+    )
+    monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
+    monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+    builder._validate_manifest(evidence, allow_ineligible=False)
+
+    canonical = evidence / "canonical"
+    canonical.mkdir()
+    (canonical / "mixed-batch.json").write_text("{}\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="artifact inventory does not match"):
+        builder._validate_manifest(evidence, allow_ineligible=False)
+
+
+def test_pair_builder_rejects_pair_pool_path_or_hash_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    builder = _load_pair_builder_module()
+    pairs = tmp_path / "pairs.jsonl"
+    pairs.write_text('{"pair_id":"fixture"}\n', encoding="utf-8")
+    manifest = {
+        "pairs_path": "fixture/pairs.jsonl",
+        "pairs_sha256": builder._sha256_bytes(pairs.read_bytes()),
+    }
+    monkeypatch.setattr(builder, "_display", lambda _: "fixture/pairs.jsonl")
+    builder._validate_pairs_input(manifest, pairs)
+
+    monkeypatch.setattr(builder, "_display", lambda _: "other/pairs.jsonl")
+    with pytest.raises(RuntimeError, match="pair-pool path"):
+        builder._validate_pairs_input(manifest, pairs)
+
+    monkeypatch.setattr(builder, "_display", lambda _: "fixture/pairs.jsonl")
+    pairs.write_text('{"pair_id":"tampered"}\n', encoding="utf-8")
+    with pytest.raises(RuntimeError, match="pair-pool hash drift"):
+        builder._validate_pairs_input(manifest, pairs)
+
+
+def test_pair_builder_rejects_working_contract_path_and_hash_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    builder = _load_pair_builder_module()
+    evidence = tmp_path / "evidence"
+    pair_id = "llms_emp_feedback_final_0000"
+    paths = {
+        "canonical_path": evidence / "canonical" / f"{pair_id}.json",
+        "fcstm_path": evidence / "fcstm" / f"{pair_id}.fcstm",
+        "parse_inspect_path": evidence / "parse_inspect" / f"{pair_id}.json",
+        "source_trace_path": evidence / "source_traces" / f"{pair_id}.json",
+    }
+    for index, path in enumerate(paths.values()):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"artifact-{index}\n", encoding="utf-8")
+    source_trace = {"entries": []}
+    detailed = {"verdict": "structure_preserved"}
+    case_report = {"ast_audit": {"status": "passed"}}
+    case_report_path = evidence / "case_reports" / f"{pair_id}.json"
+    case_report_path.parent.mkdir(parents=True)
+    case_report_path.write_text(
+        json.dumps(case_report, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(builder, "_display", lambda path: path.name)
+    bindings = {field: path.name for field, path in paths.items()} | {
+        "canonical_file_sha256": builder._sha256_bytes(
+            paths["canonical_path"].read_bytes()
+        ),
+        "fcstm_file_sha256": builder._sha256_bytes(paths["fcstm_path"].read_bytes()),
+        "parse_inspect_file_sha256": builder._sha256_bytes(
+            paths["parse_inspect_path"].read_bytes()
+        ),
+        "source_trace_file_sha256": builder._sha256_bytes(
+            paths["source_trace_path"].read_bytes()
+        ),
+        "comparison_sha256": builder._sha256_json(detailed),
+        "ast_audit_sha256": builder._sha256_json(case_report["ast_audit"]),
+    }
+    contract = {
+        "artifact_bindings": bindings,
+        "source_trace_base": source_trace,
+    }
+    comparison = {
+        "case_report_sha256": builder._sha256_bytes(case_report_path.read_bytes())
+    }
+    kwargs = {
+        "evidence_dir": evidence,
+        "pair_id": pair_id,
+        "case_id": "0000",
+        "comparison": comparison,
+        "detailed": detailed,
+        "case_report": case_report,
+        "case_report_path": case_report_path,
+        "contract": contract,
+        "source_trace": source_trace,
+    }
+    builder._validate_contract_artifact_bindings(**kwargs)
+
+    bindings["canonical_path"] = "wrong.json"
+    with pytest.raises(RuntimeError, match="canonical_path drift"):
+        builder._validate_contract_artifact_bindings(**kwargs)
+    bindings["canonical_path"] = paths["canonical_path"].name
+    bindings["canonical_file_sha256"] = "0" * 64
+    with pytest.raises(RuntimeError, match="canonical_file_sha256 drift"):
+        builder._validate_contract_artifact_bindings(**kwargs)
+
+
+def test_pair_builder_atomic_publish_replaces_complete_directory(tmp_path: Path):
+    builder = _load_pair_builder_module()
+    evidence = tmp_path / "evidence"
+    staging = tmp_path / ".evidence.tmp"
+    evidence.mkdir()
+    staging.mkdir()
+    (evidence / "old.txt").write_text("old", encoding="utf-8")
+    (staging / "PAIR_INDEX.md").write_text("new", encoding="utf-8")
+
+    builder._atomic_publish(staging, evidence)
+
+    assert not staging.exists()
+    assert not (evidence / "old.txt").exists()
+    assert (evidence / "PAIR_INDEX.md").read_text(encoding="utf-8") == "new"
+
+
+def test_pair_builder_check_rejects_extra_file_and_tampered_seal(tmp_path: Path):
+    builder = _load_pair_builder_module()
+    evidence = tmp_path / "evidence"
+    staging = tmp_path / "staging"
+    for root in (evidence, staging):
+        (root / "pairs/0000").mkdir(parents=True)
+        (root / "MANUAL_REVIEW.jsonl").write_text("review\n", encoding="utf-8")
+        (root / "MANUAL_REVIEW.md").write_text("review md\n", encoding="utf-8")
+        (root / "PAIR_INDEX.md").write_text("index\n", encoding="utf-8")
+        (root / "pairs/0000/README.md").write_text("pair\n", encoding="utf-8")
+        (root / "PUBLICATION_SEAL.json").write_text("seal\n", encoding="utf-8")
+    derived = builder._derived_inventory(staging)
+    builder._check_publication(
+        evidence_dir=evidence,
+        staging_dir=staging,
+        derived_inventory=derived,
+    )
+
+    extra = evidence / "pairs/0000/stale.fcstm"
+    extra.write_text("stale\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="publication inventory drift"):
+        builder._check_publication(
+            evidence_dir=evidence,
+            staging_dir=staging,
+            derived_inventory=derived,
+        )
+    extra.unlink()
+    (evidence / "PUBLICATION_SEAL.json").write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="PUBLICATION_SEAL.json"):
+        builder._check_publication(
+            evidence_dir=evidence,
+            staging_dir=staging,
+            derived_inventory=derived,
+        )
+
+
 def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     _require_feedback_final_evidence()
+    manifest = json.loads((EVIDENCE / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == "r4_5.llms_emp_java_batch.v5"
+    assert manifest["evidence_eligible"] is True
     manual_text = (EVIDENCE / "MANUAL_REVIEW.md").read_text(encoding="utf-8")
     manual_rows = [
-        match.groupdict()
-        for line in manual_text.splitlines()
-        if (match := MANUAL_ROW_RE.fullmatch(line)) is not None
+        json.loads(line)
+        for line in (EVIDENCE / "MANUAL_REVIEW.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
     ]
-    assert [row["case"] for row in manual_rows] == [f"{index:04d}" for index in range(60)]
-    assert all(row["notes"].strip() for row in manual_rows)
+    assert [row["case_id"] for row in manual_rows] == [
+        f"{index:04d}" for index in range(60)
+    ]
+    assert all(row["notes"].strip() and row["verdict"] == "pass" for row in manual_rows)
+    assert all(all(row["reviewed_inputs"].values()) for row in manual_rows)
 
     source_rows = {row["pair_id"][-4:]: row for row in _rows()}
     comparison_rows = {
@@ -600,21 +1581,47 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
             if line.strip()
         )
     }
-    assert set(source_rows) == set(comparison_rows) == {row["case"] for row in manual_rows}
+    assert (
+        set(source_rows)
+        == set(comparison_rows)
+        == {row["case_id"] for row in manual_rows}
+    )
 
     for row in manual_rows:
-        case_id = row["case"]
+        case_id = row["case_id"]
         fcstm_path = EVIDENCE / "fcstm" / f"{source_rows[case_id]['pair_id']}.fcstm"
+        contract_path = (
+            EVIDENCE / "working_contracts" / f"{source_rows[case_id]['pair_id']}.json"
+        )
         actual_fcstm_sha256 = hashlib.sha256(fcstm_path.read_bytes()).hexdigest()
-        assert row["source"] == source_rows[case_id]["stm0_sha256"]
-        assert row["source"] == comparison_rows[case_id]["source_sha256"]
-        assert row["fcstm"] == comparison_rows[case_id]["fcstm_sha256"]
-        assert row["fcstm"] == actual_fcstm_sha256
+        actual_contract_sha256 = hashlib.sha256(contract_path.read_bytes()).hexdigest()
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        assert (
+            source_rows[case_id]["stm0_sha256"]
+            == comparison_rows[case_id]["source_sha256"]
+        )
+        assert comparison_rows[case_id]["fcstm_sha256"] == actual_fcstm_sha256
+        assert row["working_contract_sha256"] == actual_contract_sha256
+        assert (
+            row["review_subject_sha256"]
+            == comparison_rows[case_id]["review_subject_sha256"]
+        )
+        assert contract["usage_gate"] == "discover_input_with_capability_mask"
+        assert (
+            contract["attribution_policy"]["main_result_conversion_artifact_limit"] == 0
+        )
+        assert all(
+            entry["attribution_boundary"]["closure_claim_allowed"] is False
+            for entry in contract["source_trace_base"]["entries"]
+        )
         assert comparison_rows[case_id]["verdict"] == "structure_preserved"
         assert comparison_rows[case_id]["fcstm_execution_eligible"] is False
         assert comparison_rows[case_id]["discover_eligible"] is False
 
-    assert "不表示行为等价" in manual_text
+    assert "不表示全局行为等价" in manual_text
+    seal = json.loads((EVIDENCE / "PUBLICATION_SEAL.json").read_text(encoding="utf-8"))
+    assert seal["case_count"] == 60
+    assert seal["status"] == "ready_for_human_review"
 
 
 def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cases():
@@ -634,9 +1641,7 @@ def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cas
         case_dir = PAIR_PAGES / case_id
         page_text = (case_dir / "README.md").read_text(encoding="utf-8")
         case_report = json.loads(
-            (EVIDENCE / "case_reports" / f"{pair_id}.json").read_text(
-                encoding="utf-8"
-            )
+            (EVIDENCE / "case_reports" / f"{pair_id}.json").read_text(encoding="utf-8")
         )
         display_nl = "\n".join(
             line.rstrip() for line in source_row["nl_text"].splitlines()
@@ -647,20 +1652,30 @@ def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cas
         assert f"```text\n{display_nl}{nl_suffix}```" in page_text
         assert f"```plantuml\n{source_row['stm0_text']}{source_suffix}```" in page_text
         assert f"```fcstm\n{fcstm_text}{fcstm_suffix}```" in page_text
-        assert (case_dir / "nl.txt").read_text(encoding="utf-8") == source_row["nl_text"]
-        assert (case_dir / "plantuml.puml").read_text(
-            encoding="utf-8"
-        ) == source_row["stm0_text"]
+        assert (case_dir / "nl.txt").read_text(encoding="utf-8") == source_row[
+            "nl_text"
+        ]
+        assert (case_dir / "plantuml.puml").read_text(encoding="utf-8") == source_row[
+            "stm0_text"
+        ]
         assert (case_dir / "fcstm.fcstm").read_text(encoding="utf-8") == fcstm_text
         assert source_row["nl_sha256"] in page_text
         assert source_row["stm0_sha256"] in page_text
         assert "## Official identity ledger" in page_text
-        assert (
-            case_report["official_identity_reconciliation"]["status"] == "aligned"
-        )
+        assert case_report["official_identity_reconciliation"]["status"] == "aligned"
         assert "official identity states / transitions" in page_text
+        assert (
+            "working bundle usage gate：`discover_input_with_capability_mask`"
+            in page_text
+        )
+        assert "capability source-static / simulation / transition-trace" in page_text
+        assert "main-result conversion artifact limit：`0`" in page_text
         assert f"./pairs/{case_id}/README.md" in index_text
         assert f"./pairs/{case_id}/nl.txt" in index_text
         assert f"./pairs/{case_id}/plantuml.puml" in index_text
         assert f"./pairs/{case_id}/fcstm.fcstm" in index_text
         assert f"../../case_reports/{pair_id}.json" in page_text
+        assert f"../../working_contracts/{pair_id}.json" in page_text
+        assert f"../../source_traces/{pair_id}.json" in page_text
+
+    assert (EVIDENCE / "PUBLICATION_SEAL.json").is_file()
