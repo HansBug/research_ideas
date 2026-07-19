@@ -37,6 +37,8 @@ EVIDENCE = (
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
     / "reports/llms_emp_r45_java_60"
 )
+PAIR_INDEX = EVIDENCE / "PAIR_INDEX.md"
+PAIR_PAGES = EVIDENCE / "pairs"
 FCSTM_SET_SHA256 = "591ff856f8a8985b1fcc1682d76193efeaea416be11ae84c64231abf00e17a82"
 MANUAL_ROW_RE = re.compile(
     r"^\| `(?P<case>\d{4})` \| `(?P<source>[0-9a-f]{64})` \| "
@@ -308,3 +310,41 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     ).encode("utf-8")
     assert hashlib.sha256(collection_payload).hexdigest() == FCSTM_SET_SHA256
     assert "不表示行为等价" in manual_text
+
+
+def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cases():
+    index_text = PAIR_INDEX.read_text(encoding="utf-8")
+    source_rows = {row["pair_id"][-4:]: row for row in _rows()}
+    assert sorted(path.name for path in PAIR_PAGES.iterdir() if path.is_dir()) == [
+        f"{index:04d}" for index in range(60)
+    ]
+    assert list(PAIR_PAGES.glob("[0-9][0-9][0-9][0-9].md")) == []
+
+    for case_id, source_row in source_rows.items():
+        pair_id = source_row["pair_id"]
+        fcstm_text = (EVIDENCE / "fcstm" / f"{pair_id}.fcstm").read_text(
+            encoding="utf-8"
+        )
+        case_dir = PAIR_PAGES / case_id
+        page_text = (case_dir / "README.md").read_text(encoding="utf-8")
+        display_nl = "\n".join(
+            line.rstrip() for line in source_row["nl_text"].splitlines()
+        )
+        nl_suffix = "" if display_nl.endswith("\n") else "\n"
+        source_suffix = "" if source_row["stm0_text"].endswith("\n") else "\n"
+        fcstm_suffix = "" if fcstm_text.endswith("\n") else "\n"
+        assert f"```text\n{display_nl}{nl_suffix}```" in page_text
+        assert f"```plantuml\n{source_row['stm0_text']}{source_suffix}```" in page_text
+        assert f"```fcstm\n{fcstm_text}{fcstm_suffix}```" in page_text
+        assert (case_dir / "nl.txt").read_text(encoding="utf-8") == source_row["nl_text"]
+        assert (case_dir / "plantuml.puml").read_text(
+            encoding="utf-8"
+        ) == source_row["stm0_text"]
+        assert (case_dir / "fcstm.fcstm").read_text(encoding="utf-8") == fcstm_text
+        assert source_row["nl_sha256"] in page_text
+        assert source_row["stm0_sha256"] in page_text
+        assert f"./pairs/{case_id}/README.md" in index_text
+        assert f"./pairs/{case_id}/nl.txt" in index_text
+        assert f"./pairs/{case_id}/plantuml.puml" in index_text
+        assert f"./pairs/{case_id}/fcstm.fcstm" in index_text
+        assert f"../../case_reports/{pair_id}.json" in page_text

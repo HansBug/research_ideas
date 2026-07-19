@@ -1,0 +1,39 @@
+state llms_emp_stm_results_0014 named "llms_emp_stm_results_0014" {
+    event Closed_SendDeparted named "Closed/SendDeparted";
+    event Entry_Accelerate named "Entry/Accelerate";
+    event Reached_Cruising_Cruise named "Reached Cruising/Cruise";
+    event Approached_Decelerate named "Approached/Decelerate";
+    event Send named "Send";
+    event Arrived_Stop_SendArrived named "Arrived/Stop, SendArrived";
+    event Obstacle_Detected named "Obstacle Detected";
+    state UnspecifiedInitial named "Unspecified initial";
+    state InMotion named "InMotion" {
+        state Accelerating named "Accelerating";
+        state Cruising named "Cruising";
+        state Approaching named "Approaching" {
+            state UnspecifiedInitial named "Unspecified initial";
+            state DuringApproaching named "DuringApproaching\n[PlantUML body] Nearing Destination";
+            DuringApproaching -> [*] : /Send;
+            [*] -> UnspecifiedInitial;
+        }
+        state InitialWaittr_0002 named "Awaiting initial event: Entry/Accelerate";
+        [*] -> InitialWaittr_0002;
+        InitialWaittr_0002 -> Accelerating : /Entry_Accelerate;
+        Accelerating -> Cruising : /Reached_Cruising_Cruise;
+        Accelerating -> Approaching : /Approached_Decelerate;
+        Cruising -> Approaching : /Approached_Decelerate;
+        Approaching -> Approaching : /Send;
+    }
+    state Stopping named "Stopping";
+    state EmergencyStopping named "EmergencyStopping" {
+        state UnspecifiedInitial named "Unspecified initial";
+        state Entry named "Entry\n[PlantUML body] Emergency Stop";
+        state DuringEmergencyStopping named "DuringEmergencyStopping\n[PlantUML body] Obstacle Detected";
+        [*] -> UnspecifiedInitial;
+    }
+    state DoorsClosing named "DoorsClosing";
+    DoorsClosing -> InMotion : /Closed_SendDeparted;
+    !InMotion -> Stopping : /Arrived_Stop_SendArrived;
+    !InMotion -> EmergencyStopping : /Obstacle_Detected;
+    [*] -> UnspecifiedInitial;
+}

@@ -71,6 +71,14 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion
 
 若默认输出目录已存在 `MANUAL_REVIEW.md`，runner 必须拒绝覆盖。新 replay 只有在重新完成 60 对人工阅读并绑定新哈希后，才能替换冻结证据；机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
 
+冻结证据完成后，可重新生成面向 GitHub 人工浏览的 60 个 NL/PlantUML/FCSTM 三元组目录：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/build_llms_emp_pair_pages.py
+```
+
+入口为 [reports/llms_emp_r45_java_60/PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md)。每个目录包含 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 和三合一 `README.md`；生成器会先校验 NL、PlantUML、FCSTM 与 comparison hash，不允许把漂移后的文本写成既有人工结论。
+
 导出四个 selected seed examples：
 
 ```bash

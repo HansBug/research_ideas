@@ -1,0 +1,68 @@
+state llms_emp_stm_results_0029 named "AutonomousDriving" {
+    event initial named "initial";
+    event high_way_true named "high_way=true";
+    event urban_way_true named "urban_way=true";
+    event enter_ named "enter";
+    event dist_to_front_25_extra_lane_true named "dist_to_front<25 & extra_lane=true";
+    event dist_to_exit_2 named "dist_to_exit<2";
+    event lane_change_completed named "lane_change_completed";
+    event dist_to_front_15_extra_lane_true named "dist_to_front<15 & extra_lane=true";
+    event road_clear named "road_clear";
+    event intersection_true named "intersection=true";
+    event dist_to_exit_0_7 named "dist_to_exit<0.7";
+    event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_highway_mode_dist_to_front_10_urban_mode named "pedestrian_detected | dist_to_rear<5 & vel>30 | dist_to_front<15 & highway_mode | dist_to_front<10 & urban_mode";
+    event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive & rear_inactive & pedestrian_inactive";
+    event auto_finished_true named "auto_finished=true";
+    state HighwayMode named "HighwayMode" {
+        state UnspecifiedInitial named "Unspecified initial";
+        state enter_hwy named "enter_hwy";
+        state cruise named "cruise";
+        state lane_change named "lane_change";
+        state exit_hwy named "exit_hwy";
+        ! * -> enter_hwy : /enter_;
+        enter_hwy -> cruise : /dist_to_front_25_extra_lane_true;
+        enter_hwy -> lane_change : /dist_to_front_25_extra_lane_true;
+        cruise -> lane_change : /dist_to_front_25_extra_lane_true;
+        cruise -> [*] : /dist_to_exit_2;
+        lane_change -> cruise : /lane_change_completed;
+        lane_change -> exit_hwy : /dist_to_exit_2;
+        [*] -> UnspecifiedInitial;
+    }
+    state UrbanMode named "UrbanMode" {
+        state UnspecifiedInitial named "Unspecified initial";
+        state enter_urban named "enter_urban";
+        state lane_change_urban named "lane_change_urban";
+        state straight named "straight";
+        state intersection named "intersection";
+        state exit_urban named "exit_urban";
+        ! * -> enter_urban : /enter_;
+        enter_urban -> lane_change_urban : /dist_to_front_15_extra_lane_true;
+        enter_urban -> straight : /road_clear;
+        enter_urban -> intersection : /intersection_true;
+        lane_change_urban -> straight : /lane_change_completed;
+        lane_change_urban -> exit_urban : /dist_to_exit_0_7;
+        straight -> intersection : /intersection_true;
+        straight -> lane_change_urban : /dist_to_front_15_extra_lane_true;
+        [*] -> UnspecifiedInitial;
+    }
+    state CollisionAvoidance named "CollisionAvoidance" {
+        state collision_avoidance_deactive named "collision_avoidance_deactive";
+        state collision_avoidance_active named "collision_avoidance_active";
+        [*] -> collision_avoidance_deactive;
+        collision_avoidance_deactive -> collision_avoidance_active : /pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_highway_mode_dist_to_front_10_urban_mode;
+        collision_avoidance_active -> collision_avoidance_deactive : /front_inactive_rear_inactive_pedestrian_inactive;
+    }
+    state AutonomousMode named "AutonomousMode\n[PlantUML body] Autonomous Mode";
+    state InitialState named "InitialState\n[PlantUML body] Initial State";
+    state FinishState named "FinishState\n[PlantUML body] Finish State";
+    [*] -> AutonomousMode;
+    AutonomousMode -> InitialState : /initial;
+    InitialState -> HighwayMode : /high_way_true;
+    InitialState -> UrbanMode : /urban_way_true;
+    HighwayMode -> FinishState : /dist_to_exit_2;
+    !HighwayMode -> UrbanMode : /urban_way_true;
+    !UrbanMode -> HighwayMode : /high_way_true;
+    AutonomousMode -> FinishState : /auto_finished_true;
+    !UrbanMode -> FinishState : /auto_finished_true;
+    !HighwayMode -> FinishState : /auto_finished_true;
+}

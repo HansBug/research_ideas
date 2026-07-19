@@ -1,5 +1,7 @@
 # LLMS-EMP 60 例 Java PlantUML -> FCSTM R4.5 复验
 
+> 逐组人工查看入口：[PAIR_INDEX.md](./PAIR_INDEX.md)。从 `0000` 到 `0059` 每组都提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件，以及一个在同页完整展示 NL + PlantUML + FCSTM 的 `README.md`。
+
 ## 结论
 
 - Java source frontend：`60/60`。

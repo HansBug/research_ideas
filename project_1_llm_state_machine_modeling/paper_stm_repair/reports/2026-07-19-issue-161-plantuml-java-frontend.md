@@ -315,7 +315,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 
 ## 8. 机器验证与对抗用例
 
-最终 conversion + representation + readiness 套件：`110 passed`。除正常路径外，audit 必须拒绝：
+最终 conversion + representation + readiness 套件：`111 passed`。除正常路径外，audit 必须拒绝：
 
 - state parent/path、display body 与 pseudo kind 漂移；
 - source/trace endpoint 联合篡改；
@@ -349,7 +349,7 @@ Outside --> C.Wanted : Go
 
 最终制品冻结后，本轮主 session LLM 按 `0000 -> 0059` 读取了每一组完整、带行号的 PlantUML STM0 和完整 FCSTM STM0，并核对 hierarchy、initial/final、全部 transition、body/lifecycle、synthetic state 与 debt。随后又对 19 个高风险 case 做逐 transition macro 第二遍检查。
 
-完整、逐组绑定 source/FCSTM SHA-256 的账本见 [MANUAL_REVIEW.md](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.md)。结论为：
+逐组完整 NL/PlantUML/FCSTM 三元组与原始文件见 [PAIR_INDEX.md](../pipeline/representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)；绑定 source/FCSTM SHA-256 的人工账本见 [MANUAL_REVIEW.md](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.md)。结论为：
 
 - 60 行均为结构 PASS；
 - 无 state/transition/body/lifecycle/final 静默漏失；

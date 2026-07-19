@@ -1,0 +1,70 @@
+state llms_emp_stm_results_0019 named "llms_emp_stm_results_0019" {
+    event Autonomous_mode_start named "Autonomous mode start";
+    event Start_of_autonomous_driving_mode named "Start of autonomous driving mode";
+    event high_way_true named "high_way=true";
+    event urban_way_true named "urban_way=true";
+    event dist_to_front_25_extra_lane_true named "dist_to_front<25 & extra_lane=true";
+    event dist_to_exit_2 named "dist_to_exit<2";
+    event Lane_change_completed named "Lane change completed";
+    event auto_finished_true named "auto_finished=true";
+    event dist_to_front_15_extra_lane_true named "dist_to_front<15 & extra_lane=true";
+    event Road_ahead_is_clear named "Road ahead is clear";
+    event intersection_true named "intersection=true";
+    event dist_to_exit_0_7 named "dist_to_exit<0.7";
+    event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_hwy_mode_or_10_in_urban_mode named "pedestrian_detected | (dist_to_rear<5 & vel>30) | (dist_to_front<15 in hwy mode or <10 in urban mode)";
+    event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive & rear_inactive & pedestrian_inactive";
+    state InitialWaittr_0001 named "Awaiting initial event: Autonomous mode start";
+    state AutonomousMode named "AutonomousMode" {
+        state HighwayMode named "HighwayMode" {
+            state enter_hwy named "enter_hwy";
+            state cruise named "cruise";
+            state lane_change named "lane_change";
+            state ExitHighway named "ExitHighway";
+            [*] -> enter_hwy;
+            enter_hwy -> cruise : /dist_to_front_25_extra_lane_true;
+            enter_hwy -> lane_change : /dist_to_front_25_extra_lane_true;
+            cruise -> lane_change : /dist_to_front_25_extra_lane_true;
+            cruise -> ExitHighway : /dist_to_exit_2;
+            lane_change -> cruise : /Lane_change_completed;
+            lane_change -> ExitHighway : /dist_to_exit_2;
+            ExitHighway -> [*] : /auto_finished_true;
+        }
+        state UrbanMode named "UrbanMode" {
+            state enter_urban named "enter_urban";
+            state lane_change_urban named "lane_change_urban";
+            state straight named "straight";
+            state intersection named "intersection";
+            state exit_urban named "exit_urban";
+            [*] -> enter_urban;
+            enter_urban -> lane_change_urban : /dist_to_front_15_extra_lane_true;
+            enter_urban -> straight : /Road_ahead_is_clear;
+            enter_urban -> intersection : /intersection_true;
+            lane_change_urban -> straight : /Lane_change_completed;
+            lane_change_urban -> exit_urban : /dist_to_exit_0_7;
+            straight -> intersection : /intersection_true;
+            straight -> lane_change_urban : /dist_to_front_15_extra_lane_true;
+            exit_urban -> [*] : /auto_finished_true;
+        }
+        state InitialState named "InitialState";
+        state FinishState named "FinishState";
+        state InitialWaittr_0002 named "Awaiting initial event: Start of autonomous driving mode";
+        [*] -> InitialWaittr_0002;
+        InitialWaittr_0002 -> InitialState : /Start_of_autonomous_driving_mode;
+        InitialState -> HighwayMode : /high_way_true;
+        InitialState -> UrbanMode : /urban_way_true;
+        HighwayMode -> FinishState : /auto_finished_true;
+        UrbanMode -> FinishState : /auto_finished_true;
+        !HighwayMode -> UrbanMode : /urban_way_true;
+        !UrbanMode -> HighwayMode : /high_way_true;
+    }
+    state CollisionAvoidanceSystem named "CollisionAvoidanceSystem" {
+        state UnspecifiedInitial named "Unspecified initial";
+        state collision_avoidance_deactive named "collision_avoidance_deactive";
+        state collision_avoidance_active named "collision_avoidance_active";
+        collision_avoidance_deactive -> collision_avoidance_active : /pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_hwy_mode_or_10_in_urban_mode;
+        collision_avoidance_active -> collision_avoidance_deactive : /front_inactive_rear_inactive_pedestrian_inactive;
+        [*] -> UnspecifiedInitial;
+    }
+    [*] -> InitialWaittr_0001;
+    InitialWaittr_0001 -> AutonomousMode : /Autonomous_mode_start;
+}

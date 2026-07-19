@@ -1,5 +1,7 @@
 # LLMS-EMP 60 组 PlantUML/FCSTM 主 session 人工验收
 
+逐组完整三元组入口：[PAIR_INDEX.md](./PAIR_INDEX.md)。每个 case 目录提供原始 `nl.txt`、`plantuml.puml`、`fcstm.fcstm`，并在 `README.md` 同页依次展示 NL、原装 PlantUML STM0 与转换后 FCSTM STM0。
+
 ## 验收身份与口径
 
 - 实现提交：`393a1a71c3b959210aa429fbf552ddd0d6e46acc`
