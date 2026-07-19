@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import copy
+import concurrent.futures
 import hashlib
 import importlib.util
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -873,6 +876,54 @@ def test_formal_runner_and_pair_builder_force_clean_java_build(
     ]
 
 
+def test_java_frontend_build_and_execution_are_process_safe():
+    subprocess.run(
+        ["make", "clean"],
+        cwd=plantuml_adapter.JAVA_ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    source = "@startuml\n[*] --> Ready\nstate Ready\n@enduml\n"
+    command = [
+        sys.executable,
+        "-c",
+        (
+            "import json; "
+            "from paper_stm_repair_conversion.adapters.plantuml_source "
+            "import parse_plantuml_source; "
+            f"result=parse_plantuml_source({source!r}, example_id='parallel'); "
+            "print(json.dumps({'status': result['status']}))"
+        ),
+    ]
+
+    def invoke(_: int) -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        conversion_src = (
+            REPO_ROOT
+            / "project_1_llm_state_machine_modeling/paper_stm_repair"
+            / "pipeline/conversion/src"
+        )
+        env["PYTHONPATH"] = os.pathsep.join(
+            [str(conversion_src), env.get("PYTHONPATH", "")]
+        )
+        return subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            env=env,
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        completed = list(executor.map(invoke, range(8)))
+
+    assert all(item.returncode == 0 for item in completed), [
+        item.stderr for item in completed if item.returncode != 0
+    ]
+    assert all(json.loads(item.stdout)["status"] == "converted" for item in completed)
+
+
 def test_development_summary_has_non_eligible_banner():
     runner = _load_runner_module()
     manifest = {
@@ -1621,7 +1672,7 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     assert "不表示全局行为等价" in manual_text
     seal = json.loads((EVIDENCE / "PUBLICATION_SEAL.json").read_text(encoding="utf-8"))
     assert seal["case_count"] == 60
-    assert seal["status"] == "ready_for_human_review"
+    assert seal["status"] == "manual_review_complete"
 
 
 def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cases():

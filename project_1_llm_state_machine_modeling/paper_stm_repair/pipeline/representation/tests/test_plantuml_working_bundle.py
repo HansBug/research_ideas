@@ -265,6 +265,15 @@ def _confirmed_ledger(bundle) -> dict:
         }
         for index, element_id in enumerate(transition_ids, start=1)
     ]
+    consistency_field_refs = [
+        next(
+            field_ref
+            for field_ref in bundle.working_contract["capability_eligibility"]
+            ["source_static_discovery"]["eligible_field_refs"]
+            if field_ref.startswith(f"{element_id}#field:raw_label")
+        )
+        for element_id in transition_ids
+    ]
     return {
         "schema_version": "source_issue_ledger.v0",
         "ledger_id": "fixture.bundle.0000",
@@ -296,7 +305,7 @@ def _confirmed_ledger(bundle) -> dict:
                     {
                         "evidence_id": "BEH1",
                         "evidence_type": "source_internal_consistency_check",
-                        "reference": "same state/event/guard, conflicting effect",
+                        "reference": ";".join(consistency_field_refs),
                         "summary": "Source-static conflict check.",
                     }
                 ],
@@ -322,7 +331,14 @@ def _confirmed_ledger(bundle) -> dict:
 
 def test_loader_exposes_only_capability_filtered_source_fields(tmp_path: Path):
     repo, evidence = _write_bundle_fixture(tmp_path)
-    bundle = load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+    with pytest.raises(WorkingBundleError, match="publication seal"):
+        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+    bundle = load_attribution_safe_working_bundle(
+        evidence,
+        "0000",
+        repo_root=repo,
+        allow_unreviewed=True,
+    )
     view = bundle.discover_view()
 
     assert view["pair_id"] == PAIR_ID
@@ -362,12 +378,22 @@ def test_loader_rejects_development_or_tampered_evidence(tmp_path: Path):
     fcstm = evidence / "fcstm" / f"{PAIR_ID}.fcstm"
     fcstm.write_text(fcstm.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(WorkingBundleError, match="artifact hash drift"):
-        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+        load_attribution_safe_working_bundle(
+            evidence,
+            "0000",
+            repo_root=repo,
+            allow_unreviewed=True,
+        )
 
 
 def test_confirmed_issue_binding_requires_positive_source_owned_roots(tmp_path: Path):
     repo, evidence = _write_bundle_fixture(tmp_path)
-    bundle = load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+    bundle = load_attribution_safe_working_bundle(
+        evidence,
+        "0000",
+        repo_root=repo,
+        allow_unreviewed=True,
+    )
     ledger = _confirmed_ledger(bundle)
     bindings = bundle.bind_confirmed_issues(ledger)
 
@@ -387,12 +413,38 @@ def test_confirmed_issue_binding_requires_positive_source_owned_roots(tmp_path: 
     with pytest.raises(WorkingBundleError, match="eligible positive source root"):
         bundle.bind_confirmed_issues(tampered)
 
+    tampered = copy.deepcopy(ledger)
+    tampered["issues"][0]["source_element_refs"][0]["reference"] = (
+        "compiler:synthetic:not-in-source"
+    )
+    with pytest.raises(WorkingBundleError, match="source reference is not source-bound"):
+        bundle.bind_confirmed_issues(tampered)
+
+    tampered = copy.deepcopy(ledger)
+    tampered["issues"][0]["source_stm_evidence"][0]["reference"] = (
+        "completely fabricated source evidence"
+    )
+    with pytest.raises(WorkingBundleError, match="source STM evidence is not source-bound"):
+        bundle.bind_confirmed_issues(tampered)
+
+    tampered = copy.deepcopy(ledger)
+    tampered["issues"][0]["behavior_evidence"][0]["reference"] = (
+        "compiler-generated projection appears inconsistent"
+    )
+    with pytest.raises(WorkingBundleError, match="capability-eligible typed evidence"):
+        bundle.bind_confirmed_issues(tampered)
+
 
 def test_confirmed_issue_binding_rejects_conversion_or_ineligible_evidence(
     tmp_path: Path,
 ):
     repo, evidence = _write_bundle_fixture(tmp_path)
-    bundle = load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+    bundle = load_attribution_safe_working_bundle(
+        evidence,
+        "0000",
+        repo_root=repo,
+        allow_unreviewed=True,
+    )
     ledger = _confirmed_ledger(bundle)
     ledger["issues"][0]["attribution_boundary"]["conversion_or_lowering_related"] = True
     with pytest.raises(WorkingBundleError, match="attribution contract"):
@@ -406,7 +458,7 @@ def test_confirmed_issue_binding_rejects_conversion_or_ineligible_evidence(
         {
             "evidence_id": "NL1",
             "evidence_type": "nl_requirement",
-            "reference": "valid PIN must not enable alarm",
+            "reference": "valid PIN must not both disable and enable the alarm",
             "summary": "Requirement evidence.",
         }
     ]

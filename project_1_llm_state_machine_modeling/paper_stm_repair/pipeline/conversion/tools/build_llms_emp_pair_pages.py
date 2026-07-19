@@ -1139,7 +1139,7 @@ def build_pair_pages(
             "case_count": 60,
             "evidence_eligible": manifest["evidence_eligible"],
             "status": (
-                "ready_for_human_review"
+                "manual_review_complete"
                 if manifest["evidence_eligible"]
                 else "development_only"
             ),

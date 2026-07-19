@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
 import subprocess
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 PLANTUML_VERSION = "1.2024.7"
@@ -133,6 +135,22 @@ def _write_build_fingerprint(value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def _build_lock_path() -> Path:
+    root_digest = hashlib.sha256(str(JAVA_ROOT.resolve()).encode("utf-8")).hexdigest()
+    return Path(tempfile.gettempdir()) / f"paper1-plantuml-frontend-{root_digest}.lock"
+
+
+@contextmanager
+def _java_frontend_lock() -> Iterator[None]:
+    lock_path = _build_lock_path()
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
 def resolve_plantuml_jar(plantuml_jar: Path | None = None) -> Path:
     candidates = []
     if plantuml_jar is not None:
@@ -163,7 +181,7 @@ def resolve_plantuml_jar(plantuml_jar: Path | None = None) -> Path:
     )
 
 
-def compile_java_frontend(
+def _compile_java_frontend_unlocked(
     *, plantuml_jar: Path | None = None, force: bool = False
 ) -> Path:
     jar = resolve_plantuml_jar(plantuml_jar)
@@ -209,14 +227,28 @@ def compile_java_frontend(
     return jar
 
 
+def compile_java_frontend(
+    *, plantuml_jar: Path | None = None, force: bool = False
+) -> Path:
+    with _java_frontend_lock():
+        return _compile_java_frontend_unlocked(
+            plantuml_jar=plantuml_jar,
+            force=force,
+        )
+
+
 def java_frontend_build_identity(
     *, plantuml_jar: Path | None = None, force: bool = False
 ) -> dict[str, Any]:
-    compile_java_frontend(plantuml_jar=plantuml_jar, force=force)
-    fingerprint = _read_build_fingerprint()
-    if fingerprint is None:
-        raise RuntimeError("Java frontend build fingerprint was not produced")
-    return fingerprint
+    with _java_frontend_lock():
+        _compile_java_frontend_unlocked(
+            plantuml_jar=plantuml_jar,
+            force=force,
+        )
+        fingerprint = _read_build_fingerprint()
+        if fingerprint is None:
+            raise RuntimeError("Java frontend build fingerprint was not produced")
+        return fingerprint
 
 
 def run_java_frontend(
@@ -227,22 +259,28 @@ def run_java_frontend(
     official_source_path: Path | None = None,
     plantuml_jar: Path | None = None,
 ) -> dict[str, Any]:
-    jar = compile_java_frontend(plantuml_jar=plantuml_jar)
-    command = [
-        "java",
-        "-cp",
-        f"{JAVA_ROOT / 'build/classes'}{os.pathsep}{jar}",
-        JAVA_MAIN,
-        "--source",
-        str(source_path.resolve()),
-        "--example-id",
-        example_id,
-        "--source-name",
-        source_name or source_path.name,
-    ]
-    if official_source_path is not None:
-        command.extend(["--official-source", str(official_source_path.resolve())])
-    completed = subprocess.run(command, cwd=REPO_ROOT, text=True, capture_output=True)
+    with _java_frontend_lock():
+        jar = _compile_java_frontend_unlocked(plantuml_jar=plantuml_jar)
+        command = [
+            "java",
+            "-cp",
+            f"{JAVA_ROOT / 'build/classes'}{os.pathsep}{jar}",
+            JAVA_MAIN,
+            "--source",
+            str(source_path.resolve()),
+            "--example-id",
+            example_id,
+            "--source-name",
+            source_name or source_path.name,
+        ]
+        if official_source_path is not None:
+            command.extend(["--official-source", str(official_source_path.resolve())])
+        completed = subprocess.run(
+            command,
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+        )
     if completed.returncode != 0:
         raise RuntimeError(
             f"Java PlantUML frontend failed for {example_id}.\n"

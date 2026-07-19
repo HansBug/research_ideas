@@ -82,7 +82,7 @@ bundle = load_attribution_safe_working_bundle(
 discover_input = bundle.discover_view()
 ```
 
-loader 会重验 clean-evidence eligibility、pair pool、manifest inventory、逐文件 hash、working-contract schema、canonical/FCSTM/source-trace/case-report binding 与 capability fail-closed 状态。`discover_view()` 只把 capability allowlist 中的 source-owned 字段暴露为 source facts；完整 FCSTM 只作为带 ownership/macro/exclusion 的工作文本共同出现，不能脱离 bundle 单独消费。`bind_confirmed_issues()` 只为 positive-traced、capability-eligible、明确 `conversion_or_lowering_related=false` 的 confirmed issue 生成待后续 patcher 消费的 binding；本 baseline 仍返回 `repair_authorized=false`，Confirm/final export/main result 均保持 `not_run`。
+loader 会重验 clean-evidence eligibility、pair pool、manifest inventory、逐文件 hash、working-contract schema、canonical/FCSTM/source-trace/case-report binding、60 行 `MANUAL_REVIEW.jsonl` 与 `PUBLICATION_SEAL.json`，以及 capability fail-closed 状态；未完成人工复核的 replay 默认不能进入 Discover。只有测试/开发代码可以显式传入 `allow_unreviewed=True`，该参数不得用于正式实验。`discover_view()` 只把 capability allowlist 中的 source-owned 字段暴露为 source facts；完整 FCSTM 只作为带 ownership/macro/exclusion 的工作文本共同出现，不能脱离 bundle 单独消费。`bind_confirmed_issues()` 还会把 source refs、source STM fragment、NL anchor 与 typed behavior evidence 绑定到真实 source bytes / eligible field refs，只为 positive-traced、capability-eligible、明确 `conversion_or_lowering_related=false` 的 confirmed issue 生成待后续 patcher 消费的 binding；本 baseline 仍返回 `repair_authorized=false`，Confirm/final export/main result 均保持 `not_run`。
 
 其中 `lowering.py` 继续承担历史四例 R3 canonical 的 model view、lowering、`.fcstm` 渲染、loss ledger 与 export report；Issue #161 后的 active 60 例由 `plantuml_source_lowering.py` 和 `plantuml_source_audit.py` 承担结构投影与独立 AST 审计。两条统计不得混用，本 PR 未单独拆出 `canonical_to_fcstm.py`。
 

@@ -13,6 +13,8 @@ from .plantuml_working_contract import validate_working_contract
 
 
 MANIFEST_SCHEMA_VERSION = "r4_5.llms_emp_java_batch.v5"
+PUBLICATION_SCHEMA_VERSION = "paper1.llms_emp_pair_publication.v1"
+PUBLICATION_READY_STATUS = "main_session_reviewed_ready_for_discover"
 
 
 class WorkingBundleError(ValueError):
@@ -102,6 +104,102 @@ def _artifact_path(evidence_dir: Path, relative: str) -> Path:
     return path
 
 
+def _derived_publication_inventory(evidence_dir: Path) -> list[dict[str, str]]:
+    paths = [
+        evidence_dir / "MANUAL_REVIEW.jsonl",
+        evidence_dir / "MANUAL_REVIEW.md",
+        evidence_dir / "PAIR_INDEX.md",
+        *sorted((evidence_dir / "pairs").rglob("*")),
+    ]
+    inventory: list[dict[str, str]] = []
+    for path in paths:
+        if path.is_symlink():
+            raise WorkingBundleError(
+                f"publication artifact is a symlink: {path.relative_to(evidence_dir)}"
+            )
+        if path.is_file():
+            inventory.append(
+                {
+                    "path": path.relative_to(evidence_dir).as_posix(),
+                    "sha256": _sha256_bytes(path.read_bytes()),
+                }
+            )
+    return inventory
+
+
+def _validate_reviewed_publication(
+    *, evidence_dir: Path, manifest: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    seal_path = evidence_dir / "PUBLICATION_SEAL.json"
+    seal = _read_json(seal_path)
+    if seal.get("schema_version") != PUBLICATION_SCHEMA_VERSION:
+        raise WorkingBundleError("working bundle requires a reviewed publication seal")
+    if seal.get("evidence_eligible") is not True:
+        raise WorkingBundleError("publication seal is not evidence eligible")
+    if seal.get("status") != PUBLICATION_READY_STATUS:
+        raise WorkingBundleError("publication is not main-session reviewed for Discover")
+    if seal.get("manifest_sha256") != _sha256_bytes(
+        (evidence_dir / "manifest.json").read_bytes()
+    ):
+        raise WorkingBundleError("publication seal manifest hash drift")
+    for field in ("artifact_set_sha256", "working_contract_set_sha256"):
+        if not isinstance(manifest.get(field), str) or seal.get(field) != manifest[field]:
+            raise WorkingBundleError(f"publication seal {field} drift")
+
+    manual_path = _artifact_path(evidence_dir, "MANUAL_REVIEW.jsonl")
+    manual_reviews = _read_jsonl(manual_path)
+    case_count = seal.get("case_count")
+    if not isinstance(case_count, int) or case_count < 1 or len(manual_reviews) != case_count:
+        raise WorkingBundleError("publication manual-review case count drift")
+    review_by_case: dict[str, dict[str, Any]] = {}
+    for review in manual_reviews:
+        case_id = review.get("case_id")
+        if not isinstance(case_id, str) or case_id in review_by_case:
+            raise WorkingBundleError("publication manual-review identity drift")
+        if (
+            review.get("reviewer_id") != "main_session_llm"
+            or review.get("verdict") != "pass"
+            or review.get("ownership_verdict") != "pass"
+            or review.get("macro_verdict") != "pass"
+            or review.get("capability_verdict") != "pass"
+        ):
+            raise WorkingBundleError(
+                f"publication contains a non-passing main-session review: {case_id}"
+            )
+        review_by_case[case_id] = review
+    if seal.get("manual_review_file_sha256") != _sha256_bytes(manual_path.read_bytes()):
+        raise WorkingBundleError("publication manual-review file hash drift")
+    if seal.get("manual_review_set_sha256") != _sha256_json(manual_reviews):
+        raise WorkingBundleError("publication manual-review set hash drift")
+
+    derived_inventory = seal.get("derived_artifact_inventory")
+    if not isinstance(derived_inventory, list) or seal.get(
+        "derived_artifact_set_sha256"
+    ) != _sha256_json(derived_inventory):
+        raise WorkingBundleError("publication derived-artifact inventory drift")
+    inventory_paths: set[str] = set()
+    for item in derived_inventory:
+        relative = item.get("path") if isinstance(item, dict) else None
+        sha256 = item.get("sha256") if isinstance(item, dict) else None
+        if (
+            not isinstance(relative, str)
+            or not isinstance(sha256, str)
+            or relative in inventory_paths
+        ):
+            raise WorkingBundleError("publication derived-artifact inventory is malformed")
+        path = _artifact_path(evidence_dir, relative)
+        if _sha256_bytes(path.read_bytes()) != sha256:
+            raise WorkingBundleError(f"publication artifact hash drift: {relative}")
+        inventory_paths.add(relative)
+    required_derived = {"MANUAL_REVIEW.jsonl", "MANUAL_REVIEW.md", "PAIR_INDEX.md"}
+    if not required_derived.issubset(inventory_paths):
+        raise WorkingBundleError("publication is missing reviewed pair artifacts")
+    pair_index = _artifact_path(evidence_dir, "PAIR_INDEX.md")
+    if seal.get("pair_index_sha256") != _sha256_bytes(pair_index.read_bytes()):
+        raise WorkingBundleError("publication pair-index hash drift")
+    return review_by_case
+
+
 @dataclass(frozen=True)
 class ConfirmedIssueBinding:
     issue_id: str
@@ -179,6 +277,7 @@ class AttributionSafeWorkingBundle:
                     "edit_policy": element["edit_policy"],
                 }
             )
+        attribution_policy = self._working_contract["attribution_policy"]
         return {
             "schema_version": "paper1.attribution_safe_discover_view.v1",
             "case_id": self.case_id,
@@ -202,13 +301,38 @@ class AttributionSafeWorkingBundle:
             "capability_eligibility": copy.deepcopy(
                 self._working_contract["capability_eligibility"]
             ),
+            "evidence_binding": {
+                "nl_sha256": _sha256_text(self.nl_text),
+                "nl_reference_policy": "literal_substring_of_frozen_nl",
+                "source_sha256": _sha256_text(self.source_text),
+                "source_reference_inventory": {
+                    item["element_id"]: copy.deepcopy(item["source_refs"])
+                    for item in source_facts
+                },
+                "source_static_field_reference_inventory": sorted(eligible_fields),
+            },
             "attribution_rules": {
-                "compiler_only_diagnostic": "rejected_conversion_artifact",
-                "macro_member_diagnostic": "candidate_only_until_source_evidence",
-                "confirmed_conversion_artifact_limit": 0,
-                "repair_conversion_artifact_limit": 0,
-                "confirm_conversion_artifact_limit": 0,
-                "main_result_conversion_artifact_limit": 0,
+                "compiler_only_diagnostic": attribution_policy[
+                    "compiler_only_diagnostic"
+                ],
+                "macro_member_diagnostic": attribution_policy[
+                    "macro_member_diagnostic"
+                ],
+                "candidate_conversion_artifact_policy": attribution_policy[
+                    "candidate_conversion_artifact_policy"
+                ],
+                "confirmed_conversion_artifact_limit": attribution_policy[
+                    "confirmed_issue_conversion_artifact_limit"
+                ],
+                "repair_conversion_artifact_limit": attribution_policy[
+                    "repair_target_conversion_artifact_limit"
+                ],
+                "confirm_conversion_artifact_limit": attribution_policy[
+                    "confirm_accepted_conversion_artifact_limit"
+                ],
+                "main_result_conversion_artifact_limit": attribution_policy[
+                    "main_result_conversion_artifact_limit"
+                ],
             },
         }
 
@@ -281,10 +405,17 @@ class AttributionSafeWorkingBundle:
                 raise WorkingBundleError(
                     f"confirmed issue lacks an eligible positive source root: {issue['issue_id']}"
                 )
+            self._validate_source_evidence_bindings(
+                issue=issue,
+                source_ids=source_ids,
+                elements=elements,
+                eligible_fields=eligible_fields,
+            )
             evidence_refs = tuple(
                 item["reference"] for item in issue["behavior_evidence"]
             )
-            if not self._has_eligible_typed_evidence(issue):
+            typed_field_refs = self._eligible_typed_evidence_refs(issue)
+            if not typed_field_refs:
                 raise WorkingBundleError(
                     f"confirmed issue lacks capability-eligible typed evidence: {issue['issue_id']}"
                 )
@@ -312,22 +443,92 @@ class AttributionSafeWorkingBundle:
             )
         return tuple(bindings)
 
-    def _has_eligible_typed_evidence(self, issue: dict[str, Any]) -> bool:
-        capabilities = self._working_contract["capability_eligibility"]
-        status_by_evidence = {
-            "source_internal_consistency_check": capabilities[
-                "source_static_discovery"
-            ]["status"],
-            "inspect_diagnostic": capabilities["inspect_diagnostics"]["status"],
-            "simulation_trace": capabilities["simulation"]["status"],
-            "probe_result": capabilities["simulation"]["status"],
-            "verification_counterexample": "not_run",
+    def _validate_source_evidence_bindings(
+        self,
+        *,
+        issue: dict[str, Any],
+        source_ids: tuple[str, ...],
+        elements: dict[str, dict[str, Any]],
+        eligible_fields: set[str],
+    ) -> None:
+        anchors_by_source: dict[str, set[str]] = {}
+        for source_id in source_ids:
+            element = elements[source_id]
+            anchors_by_source[source_id] = {
+                source_id,
+                *element["source_refs"],
+                *(
+                    field_ref
+                    for field_ref in eligible_fields
+                    if field_ref.startswith(f"{source_id}#field:")
+                ),
+            }
+
+        for reference in issue["source_element_refs"]:
+            source_id = reference["element_id"]
+            if reference["reference"] not in anchors_by_source[source_id]:
+                raise WorkingBundleError(
+                    f"confirmed issue source reference is not source-bound: "
+                    f"{issue['issue_id']}:{source_id}"
+                )
+
+        source_fragment_refs = {
+            item["reference"]
+            for item in issue["source_stm_evidence"]
+            if item["evidence_type"] == "source_stm_fragment"
         }
-        return any(
-            status_by_evidence.get(item["evidence_type"])
-            in {"eligible", "eligible_with_exclusions"}
-            for item in issue["behavior_evidence"]
-        )
+        uncovered = [
+            source_id
+            for source_id, anchors in anchors_by_source.items()
+            if not source_fragment_refs.intersection(anchors)
+        ]
+        if uncovered:
+            raise WorkingBundleError(
+                f"confirmed issue source STM evidence is not source-bound: "
+                f"{issue['issue_id']}:{','.join(uncovered)}"
+            )
+
+        if issue["confirmation_evidence_path"] == "nl_grounded_behavioral_issue":
+            nl_refs = [
+                item["reference"]
+                for item in issue["nl_evidence"]
+                if item["evidence_type"] == "nl_requirement"
+            ]
+            if not nl_refs or any(reference not in self.nl_text for reference in nl_refs):
+                raise WorkingBundleError(
+                    f"confirmed issue NL evidence is not source-bound: {issue['issue_id']}"
+                )
+
+    def _eligible_typed_evidence_refs(self, issue: dict[str, Any]) -> tuple[str, ...]:
+        capabilities = self._working_contract["capability_eligibility"]
+        capability_by_evidence = {
+            "source_internal_consistency_check": "source_static_discovery",
+            "inspect_diagnostic": "inspect_diagnostics",
+            "simulation_trace": "simulation",
+            "probe_result": "simulation",
+            "verification_counterexample": "verification",
+        }
+        bound_refs: set[str] = set()
+        for item in issue["behavior_evidence"]:
+            capability_name = capability_by_evidence.get(item["evidence_type"])
+            if capability_name is None:
+                continue
+            capability = capabilities.get(capability_name)
+            if capability is None:
+                continue
+            if capability["status"] not in {"eligible", "eligible_with_exclusions"}:
+                continue
+            if item["evidence_type"] == "source_internal_consistency_check":
+                matching_fields = {
+                    field_ref
+                    for field_ref in capability["eligible_field_refs"]
+                    if field_ref in item["reference"]
+                }
+                if matching_fields:
+                    bound_refs.update(matching_fields)
+            elif item["reference"] in capability["evidence_refs"]:
+                bound_refs.add(item["reference"])
+        return tuple(sorted(bound_refs))
 
     def validate_confirm_acceptance(self, disposition: dict[str, Any]) -> None:
         del disposition
@@ -345,6 +546,7 @@ def load_attribution_safe_working_bundle(
     case_id: str,
     *,
     repo_root: Path | None = None,
+    allow_unreviewed: bool = False,
 ) -> AttributionSafeWorkingBundle:
     repo = (repo_root or _find_repo_root(evidence_dir)).resolve()
     evidence = evidence_dir.resolve()
@@ -387,6 +589,16 @@ def load_attribution_safe_working_bundle(
         raise WorkingBundleError(f"case is not present in pair pool: {case_id}")
     source_row = row_by_case[case_id]
     pair_id = source_row["pair_id"]
+
+    manual_review_by_case: dict[str, dict[str, Any]] = {}
+    if not allow_unreviewed:
+        manual_review_by_case = _validate_publication_seal(
+            repo=repo,
+            evidence=evidence,
+            manifest=manifest,
+            source_case_ids=source_case_ids,
+            source_rows=source_rows,
+        )
 
     relative_paths = {
         "canonical": f"canonical/{pair_id}.json",
@@ -500,6 +712,20 @@ def load_attribution_safe_working_bundle(
         != review_subject_sha256
     ):
         raise WorkingBundleError("review-subject identity drift")
+    if not allow_unreviewed:
+        _validate_selected_manual_review(
+            repo=repo,
+            review=manual_review_by_case[case_id],
+            case_id=case_id,
+            pair_id=pair_id,
+            source_row=source_row,
+            fcstm=fcstm,
+            contract=contract,
+            contract_sha256=_sha256_bytes(
+                (evidence / relative_paths["contract"]).read_bytes()
+            ),
+            review_subject_sha256=review_subject_sha256,
+        )
 
     schema_path = (
         repo
@@ -541,6 +767,142 @@ def load_attribution_safe_working_bundle(
         _case_report=copy.deepcopy(case_report),
         _comparison=copy.deepcopy(comparison_row),
     )
+
+
+def _validate_publication_seal(
+    *,
+    repo: Path,
+    evidence: Path,
+    manifest: dict[str, Any],
+    source_case_ids: list[str],
+    source_rows: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    if not (evidence / "PUBLICATION_SEAL.json").is_file():
+        raise WorkingBundleError("working bundle lacks a completed publication seal")
+    seal = _read_json(evidence / "PUBLICATION_SEAL.json")
+    if (
+        seal.get("schema_version") != "paper1.llms_emp_pair_publication.v1"
+        or seal.get("status") != "manual_review_complete"
+        or seal.get("evidence_eligible") is not True
+        or seal.get("case_count") != len(source_case_ids)
+    ):
+        raise WorkingBundleError("working bundle lacks a completed publication seal")
+    if seal.get("manifest_sha256") != _sha256_bytes(
+        (evidence / "manifest.json").read_bytes()
+    ):
+        raise WorkingBundleError("publication seal manifest binding drift")
+    if (
+        seal.get("artifact_set_sha256") != manifest.get("artifact_set_sha256")
+        or seal.get("working_contract_set_sha256")
+        != manifest.get("working_contract_set_sha256")
+    ):
+        raise WorkingBundleError("publication seal machine-artifact binding drift")
+
+    review_path = evidence / "MANUAL_REVIEW.jsonl"
+    reviews = _read_jsonl(review_path)
+    if seal.get("manual_review_file_sha256") != _sha256_bytes(review_path.read_bytes()):
+        raise WorkingBundleError("publication seal manual-review file binding drift")
+    if seal.get("manual_review_set_sha256") != _sha256_json(reviews):
+        raise WorkingBundleError("publication seal manual-review set binding drift")
+    review_case_ids = [str(item.get("case_id", "")) for item in reviews]
+    review_pair_ids = [str(item.get("pair_id", "")) for item in reviews]
+    if review_case_ids != source_case_ids or review_pair_ids != [
+        str(item["pair_id"]) for item in source_rows
+    ]:
+        raise WorkingBundleError("publication seal review identities drift")
+
+    derived_inventory = _derived_publication_inventory(evidence)
+    if seal.get("derived_artifact_inventory") != derived_inventory or seal.get(
+        "derived_artifact_set_sha256"
+    ) != _sha256_json(derived_inventory):
+        raise WorkingBundleError("publication seal derived-artifact binding drift")
+    pair_index = evidence / "PAIR_INDEX.md"
+    if seal.get("pair_index_sha256") != _sha256_bytes(pair_index.read_bytes()):
+        raise WorkingBundleError("publication seal pair-index binding drift")
+
+    schema_path = (
+        repo
+        / "project_1_llm_state_machine_modeling/paper_stm_repair"
+        / "pipeline/representation/schemas/manual_pair_review.schema.json"
+    )
+    validator = Draft202012Validator(_read_json(schema_path))
+    for review in reviews:
+        try:
+            validator.validate(review)
+        except ValidationError as exc:
+            raise WorkingBundleError(
+                f"manual review schema validation failed: {exc.message}"
+            ) from exc
+        if any(
+            review[field] != "pass"
+            for field in (
+                "ownership_verdict",
+                "macro_verdict",
+                "capability_verdict",
+                "verdict",
+            )
+        ):
+            raise WorkingBundleError(
+                f"manual review is not complete: {review['case_id']}"
+            )
+        if not all(review["reviewed_inputs"].values()):
+            raise WorkingBundleError(
+                f"manual review omitted required inputs: {review['case_id']}"
+            )
+        if any(
+            finding["severity"] in {"C", "I"} for finding in review["findings"]
+        ):
+            raise WorkingBundleError(
+                f"manual review has blocking findings: {review['case_id']}"
+            )
+    return dict(zip(review_case_ids, reviews))
+
+
+def _validate_selected_manual_review(
+    *,
+    repo: Path,
+    review: dict[str, Any],
+    case_id: str,
+    pair_id: str,
+    source_row: dict[str, Any],
+    fcstm: str,
+    contract: dict[str, Any],
+    contract_sha256: str,
+    review_subject_sha256: str,
+) -> None:
+    del repo
+    if (
+        review["case_id"] != case_id
+        or review["pair_id"] != pair_id
+        or review["working_contract_sha256"] != contract_sha256
+        or review["review_subject_sha256"] != review_subject_sha256
+    ):
+        raise WorkingBundleError("selected manual review identity drift")
+    observations = review["observations"]
+    for field, text in (
+        ("nl_anchors", source_row["nl_text"]),
+        ("plantuml_anchors", source_row["stm0_text"]),
+        ("fcstm_anchors", fcstm),
+    ):
+        if not observations[field] or any(
+            anchor not in text for anchor in observations[field]
+        ):
+            raise WorkingBundleError(
+                f"selected manual review {field} are not artifact-bound"
+            )
+    second_pass = review["second_pass"]
+    obligations = contract["review_subject"]["review_obligations"]
+    required = contract["review_subject"]["second_pass_required"]
+    if second_pass["required"] != required or (
+        required
+        and (
+            not second_pass["completed"]
+            or second_pass["review_subject_sha256"] != review_subject_sha256
+            or [item["obligation_id"] for item in second_pass["risk_assessments"]]
+            != [item["obligation_id"] for item in obligations]
+        )
+    ):
+        raise WorkingBundleError("selected manual second-pass binding drift")
 
 
 def _find_repo_root(path: Path) -> Path:

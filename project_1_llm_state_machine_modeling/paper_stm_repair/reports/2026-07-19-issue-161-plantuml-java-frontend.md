@@ -368,7 +368,7 @@ Outside --> C.Wanted : Go
 1. SCXML 路线不适合继续承担 PlantUML statechart canonical。
 2. 旧 converter 确实有重大设计错误，不能把责任全部推给官方工具。
 3. Java source frontend + Python subprocess wrapper 是当前更可审计的路线。
-4. pinned official `Entity/Link` 身份与 raw-source ledger 已共同进入 canonical，60 例 source facts 结构性保存到 FCSTM + trace，并用 AST audit 与主 session 阅读双重验收。
+4. pinned official `Entity/Link` 身份与 raw-source ledger 已共同进入 canonical，当前 v5 clean replay 已完成 AST audit；由于 working contract 与 review subject 已更新，60 例主 session 重读和 publication seal 仍是本轮合入前的强制 gate，不能继承旧账本的 PASS。
 
 ### 仍不能确认
 
@@ -385,4 +385,4 @@ PlantUML STM0 -> attribution-safe FCSTM working bundle
 final FCSTM working bundle -> fresh canonical PlantUML STM_k
 ```
 
-前向阶段允许 Discover 暴露 conversion candidate noise，但 `confirmed`、Repair target、Confirm accepted disposition 与 main-result issue 中的 conversion artifact 上限均为 `0`。operational debt 不再全局阻断 source-static Discover；它只关闭受影响的 inspect/simulation/transition/verification capability。后向阶段由 final working bundle 生成完整、确定性的 PlantUML，不保留原 formatting 或最小 diff；compiler-owned scaffold 全部折叠，只导出 source-owned 与 issue-bound agent-created semantic roots。该后向投影仍必须重新经 pinned PlantUML frontend 解析并做 semantic-root audit，但这只是 final export 验证，不构成 `T_out(T_in(P)) = P` 的 round-trip 主张。
+前向阶段允许 Discover 暴露 conversion candidate noise，但 `confirmed`、Repair target、Confirm accepted disposition 与 main-result issue 中的 conversion artifact 上限均为 `0`。operational debt 不再全局阻断 source-static Discover；它只关闭受影响的 inspect/simulation/transition/verification capability。后向阶段的合同是由 final working bundle 生成完整、确定性的 PlantUML，不保留原 formatting 或最小 diff；compiler-owned scaffold 全部折叠，只导出 source-owned 与 issue-bound agent-created semantic roots。**该 final exporter 当前尚未实现，capability 必须保持 `not_run`。**后续实现后仍必须重新经 pinned PlantUML frontend 解析并做 semantic-root audit，但这只是 final export 验证，不构成 `T_out(T_in(P)) = P` 的 round-trip 主张。
