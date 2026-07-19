@@ -1,6 +1,6 @@
 # Phase-II final 60 组人工/LLM 对读模板
 
-每行必须在完整阅读 NL、作者最终 PlantUML、转换后 FCSTM、normalization/region ledger 后，将 `PENDING` 改为 `PASS`，并填写本组特有的保真判断。结构保真不表示行为等价。
+每行必须在完整阅读 NL、作者最终 PlantUML、转换后 FCSTM、normalization/region ledger 后，将 `PENDING` 改为 `PASS`，并填写本组特有的保真判断。结构保真不等于行为等价。
 
 | case | source SHA-256 | FCSTM SHA-256 | verdict | notes |
 |---|---|---|---|---|

@@ -342,6 +342,9 @@ Outside --> C.Wanted : Go
 - 60 行人工账本 SHA-256：`40057581b4ddcb536782d6ccaa024fdec54498ba4866beaf0b328643317d6bab`
 - PlantUML jar SHA-256：`e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24`
 - pyfcstm：`4ea23c9b153f47e5c4a2125d95b466eee6eed13e`
+- clean replay 绑定 research commit：`da66c41c471f37e04c8871164b651a747f46f095`
+- clean replay manifest：`tracked_worktree_dirty_before_run=false`，稳定输出路径为 `pipeline/representation/reports/llms_emp_r45_java_60`
+- clean replay 与人工验收版 FCSTM：`60/60` 逐文件字节一致
 
 ## 10. 最终判断与后续边界
 
