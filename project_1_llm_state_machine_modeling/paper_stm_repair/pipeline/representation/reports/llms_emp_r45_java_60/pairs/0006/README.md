@@ -4,15 +4,64 @@
 
 - LLM：`GPT-4o`
 - 模型/场景：UAV swarm state machine diagram
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE8`；Excel row：`8`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`3dfdda2a0f6144429bd81717778a05f021bd455cad0efa0f29192f6a041b0952`
 - NL SHA-256：`a01c022f5380700b6c13800497291640b4d64abbadce1d8984be0c14880ebeb3`
-- PlantUML SHA-256：`3dfdda2a0f6144429bd81717778a05f021bd455cad0efa0f29192f6a041b0952`
-- FCSTM SHA-256：`4a1c8fc256e8ee9944712ba58387d41762b8e9b77436b09b9896506c39292d61`
+- PlantUML SHA-256：`ccec84b8ca1817cde5454b29b82b32dd353123b547fea8240e3d438be88fd667`
+- FCSTM SHA-256：`7ce7663fdd2285eb4ade0658c22afa6940efe248d49d0f584682af5ea639ad1f`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`7` / `8`
+- mapped / blocked / silent drop：`8` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `5/5`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`7` / `8`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：UAV flat graph 的 7 state、initial、11 条普通迁移和三个 body 齐。
+- 主 session 对读：完整对读：UAV 搜索、拦截、编队调整和攻击的 7 状态、8 条边与 5 个 body 全保留；根层没有 source initial，FCSTM 明示 UnspecifiedInitial，不自行选择 UAVSwarmStateMachine。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0006.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0006.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0006.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0006.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0006.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0006.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I8` | `true` | `3dfdda2a0f6144429bd81717778a05f021bd455cad0efa0f29192f6a041b0952` | - | - |
+| `phase_ii_format` | `U8` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z8` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE8` | `true` | `ccec84b8ca1817cde5454b29b82b32dd353123b547fea8240e3d438be88fd667` | 1.missing regions<br>2. interaction error | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`7` / `7`
+- aligned transition endpoints：`8`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.missing_explicit_initial` | 1 |
+| `R45.DEBT.opaque_state_body_semantics` | 5 |
+| `R45.DEBT.opaque_transition_label_semantics` | 4 |
 
 ## NL
 
@@ -23,69 +72,68 @@
 4 During flight, if task assignment information is received, it enters the attack state. After completing the attack, the number of UAVs in the swarm decreases accordingly.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-[*] --> Idle
-Idle: Initial State
+state "UAV Swarm State Machine" as UAVSwarmStateMachine {
 
-Idle --> TargetSearch : Mission Start
-TargetSearch : Target Search State
+[*] --> Searching
+Searching : Target Search Task
 
-TargetSearch --> Area1 : Enter Area 1
-TargetSearch --> Area2 : Enter Area 2
-TargetSearch --> Area3 : Enter Area 3
+Searching --> Intercepted : Interception Detected
+Searching --> Attack : Task Assignment Received
 
-Area1 --> TargetSearch : Exit Area 1
-Area2 --> TargetSearch : Exit Area 2
-Area3 --> TargetSearch : Exit Area 3
+state FormationAdjustment {
+[*] --> AdjustingFormation
+AdjustingFormation : Adjusting Formation after Interception
+AdjustingFormation --> Searching : Adjustment Complete
+}
 
-TargetSearch --> FormationAdjustment : Interception Detected
+state Attack {
+[*] --> AttackingTarget
+AttackingTarget : Performing Attack
+AttackingTarget --> Searching : Attack Complete
+}
 
-TargetSearch --> Attack : Task Assignment Received
-Attack : Attack State
-Attack --> Idle : Attack Completed / Decrease UAV Count
+Intercepted : UAV Swarm Intercepted
+Intercepted --> FormationAdjustment
 
-FormationAdjustment --> TargetSearch : Adjustment Complete
-
+Attack : Entered Attack State
+}
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0006 named "llms_emp_stm_results_0006" {
-    event Mission_Start named "Mission Start";
-    event Enter_Area_1 named "Enter Area 1";
-    event Enter_Area_2 named "Enter Area 2";
-    event Enter_Area_3 named "Enter Area 3";
-    event Exit_Area_1 named "Exit Area 1";
-    event Exit_Area_2 named "Exit Area 2";
-    event Exit_Area_3 named "Exit Area 3";
+state llms_emp_feedback_final_0006 named "llms_emp_feedback_final_0006" {
     event Interception_Detected named "Interception Detected";
     event Task_Assignment_Received named "Task Assignment Received";
-    event Attack_Completed_Decrease_UAV_Count named "Attack Completed / Decrease UAV Count";
     event Adjustment_Complete named "Adjustment Complete";
-    state Idle named "Idle\n[PlantUML body] Initial State";
-    state TargetSearch named "TargetSearch\n[PlantUML body] Target Search State";
-    state Attack named "Attack\n[PlantUML body] Attack State";
-    state Area1 named "Area1";
-    state Area2 named "Area2";
-    state Area3 named "Area3";
-    state FormationAdjustment named "FormationAdjustment";
-    [*] -> Idle;
-    Idle -> TargetSearch : /Mission_Start;
-    TargetSearch -> Area1 : /Enter_Area_1;
-    TargetSearch -> Area2 : /Enter_Area_2;
-    TargetSearch -> Area3 : /Enter_Area_3;
-    Area1 -> TargetSearch : /Exit_Area_1;
-    Area2 -> TargetSearch : /Exit_Area_2;
-    Area3 -> TargetSearch : /Exit_Area_3;
-    TargetSearch -> FormationAdjustment : /Interception_Detected;
-    TargetSearch -> Attack : /Task_Assignment_Received;
-    Attack -> Idle : /Attack_Completed_Decrease_UAV_Count;
-    FormationAdjustment -> TargetSearch : /Adjustment_Complete;
+    event Attack_Complete named "Attack Complete";
+    state UnspecifiedInitial named "Unspecified initial";
+    state UAVSwarmStateMachine named "UAV Swarm State Machine" {
+        state FormationAdjustment named "FormationAdjustment" {
+            state AdjustingFormation named "AdjustingFormation\n[PlantUML body] Adjusting Formation after Interception";
+            [*] -> AdjustingFormation;
+            AdjustingFormation -> [*] : /Adjustment_Complete;
+        }
+        state Attack named "Attack\n[PlantUML body] Entered Attack State" {
+            state AttackingTarget named "AttackingTarget\n[PlantUML body] Performing Attack";
+            [*] -> AttackingTarget;
+            AttackingTarget -> [*] : /Attack_Complete;
+        }
+        state Searching named "Searching\n[PlantUML body] Target Search Task";
+        state Intercepted named "Intercepted\n[PlantUML body] UAV Swarm Intercepted";
+        [*] -> Searching;
+        Searching -> Intercepted : /Interception_Detected;
+        Searching -> Attack : /Task_Assignment_Received;
+        FormationAdjustment -> Searching : /Adjustment_Complete;
+        Attack -> Searching : /Attack_Complete;
+        Intercepted -> FormationAdjustment;
+    }
+    [*] -> UnspecifiedInitial;
 }
 ```
 

@@ -1,37 +1,40 @@
 @startuml
 [*] --> DoorShut
 
-state DoorShut {
-    [*] --> DoorShut
-    DoorShut --> DoorOpen : Door Opened
-    DoorShut : Cancel
-}
+DoorShut : Cancel
+DoorShut --> DoorOpen : Door Opened
 
-state DoorOpen {
-    DoorOpen --> DoorOpenWithItem : Place Item Inside
-    DoorOpen --> DoorShut : Close Door
+DoorOpen --> DoorShut : Close Door
+DoorOpen --> DoorOpenWithItem : Place Item Inside
 
-    state DoorOpenWithItem {
-        DoorOpenWithItem --> DoorOpen : Remove Item
-        DoorOpenWithItem --> DoorShutWithItem : Close Door with Zero Time
-        DoorOpenWithItem --> ReadytoCook : Enter Cooking Time
-    }
+state DoorOpenWithItem {
+    [*] --> DoorIdleWithItem
+
+    DoorIdleWithItem --> DoorOpen : Remove Item
+    DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time
+    DoorIdleWithItem --> ReadytoCook : Enter Cooking Time
 }
 
 state DoorShutWithItem {
-    DoorShutWithItem --> DoorOpenWithItem : Open Door
-    DoorShutWithItem --> ReadytoCook : Enter Cooking Time
+    [*] --> ItemInside
+
+    ItemInside --> DoorOpenWithItem : Open Door
+    ItemInside --> ReadytoCook : Enter Cooking Time
 }
 
 state ReadytoCook {
-    ReadytoCook --> DoorShutWithItem : Cancel
-    ReadytoCook --> DoorOpenWithItem : Open Door
-    ReadytoCook --> Cooking : Start
+    [*] --> WaitingToStart
+
+    WaitingToStart --> DoorShutWithItem : Cancel
+    WaitingToStart --> DoorOpenWithItem : Open Door
+    WaitingToStart --> Cooking : Start
 }
 
 state Cooking {
-    Cooking --> DoorOpenWithItem : Open Door
-    Cooking --> DoorShutWithItem : Timer Expired
-    Cooking --> ReadytoCook : Cancel
+    [*] --> ActiveCooking
+
+    ActiveCooking --> DoorOpenWithItem : Open Door
+    ActiveCooking --> DoorShutWithItem : Timer Expired
+    ActiveCooking --> ReadytoCook : Cancel
 }
 @enduml

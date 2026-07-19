@@ -4,15 +4,62 @@
 
 - LLM：`GPT-4o`
 - 模型/场景：Hybrid Sport Utility Vehicle, HSUV
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE5`；Excel row：`5`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`01208d7d90b5c5e8c240e5c4aa9cab0e6ace084afeb752b3dfdb04d17d396150`
 - NL SHA-256：`9fe426ba761d5a52c3b670f35410502a5289bdd9489c4a9bfa983e34d565040c`
-- PlantUML SHA-256：`01208d7d90b5c5e8c240e5c4aa9cab0e6ace084afeb752b3dfdb04d17d396150`
-- FCSTM SHA-256：`a075771dfb2bcc3c4f679da2db427c609c37825601bf3b236ba1754e313e6292`
+- PlantUML SHA-256：`c82a800174e833df461aa14837651ad835a7ae146f84a9939cacac05e643e821`
+- FCSTM SHA-256：`0c94f4db6f3b72b94808da7419808ef1210aade8f1b89c45d37324eaacfdb8fd`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`5` / `8`
+- mapped / blocked / silent drop：`8` / `0` / `0`
+- final / lifecycle / body coverage：`1/1` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`5` / `8`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：`Operate` composite、三条内部边及 root start/keyOff 保留；composite exit 使用 forced macro。
+- 主 session 对读：完整对读：PoweredOff 与 Operate 三子态的 8 条迁移全保留，跨 composite keyOff 使用 forced exit，PoweredOff 的带事件 root final 保持真正终止边。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0003.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0003.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0003.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0003.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0003.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0003.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I5` | `true` | `01208d7d90b5c5e8c240e5c4aa9cab0e6ace084afeb752b3dfdb04d17d396150` | - | - |
+| `phase_ii_format` | `U5` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z5` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE5` | `true` | `c82a800174e833df461aa14837651ad835a7ae146f84a9939cacac05e643e821` | 1. missing final state | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`5` / `5`
+- aligned transition endpoints：`8`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.opaque_transition_label_semantics` | 6 |
 
 ## NL
 
@@ -22,7 +69,7 @@
 3. Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
@@ -37,18 +84,21 @@ state Operate {
 
 PoweredOff --> Operate : start
 Operate --> PoweredOff : keyOff
+PoweredOff --> [*] : end
+
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0003 named "llms_emp_stm_results_0003" {
+state llms_emp_feedback_final_0003 named "llms_emp_feedback_final_0003" {
     event Accelerate_Signal named "Accelerate Signal";
     event Brake_Signal named "Brake Signal";
     event Stop_Signal named "Stop Signal";
     event start named "start";
     event keyOff named "keyOff";
+    event end named "end";
     state Operate named "Operate" {
         state Idle named "Idle";
         state AcceleratingOrCruising named "AcceleratingOrCruising";
@@ -62,6 +112,7 @@ state llms_emp_stm_results_0003 named "llms_emp_stm_results_0003" {
     [*] -> PoweredOff;
     PoweredOff -> Operate : /start;
     !Operate -> PoweredOff : /keyOff;
+    PoweredOff -> [*] : /end;
 }
 ```
 

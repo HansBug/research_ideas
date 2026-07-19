@@ -13,7 +13,8 @@
 - 放弃 `PlantUML -> SCXML -> canonical` 路线；
 - 不放弃 PlantUML source；
 - Java 两遍 source frontend 直接建立 scope-aware canonical；
-- 固定版本的 PlantUML `StateDiagram/Entity/Link` 只作 differential evidence；
+- 固定版本的 PlantUML `StateDiagram/Entity/Link` 作为 qualified state/transition identity oracle；
+- Java raw parser 继续负责 raw span、body/lifecycle、region、normalization 与歧义证据；
 - Python 只通过 subprocess 调 Java，再执行 FCSTM lowering 和审计；
 - 把结构保存、运行语义和下游 eligibility 拆成三个轴。
 
@@ -22,13 +23,16 @@
 | 指标 | 结果 |
 |---|---:|
 | Java source parse | `60/60` |
-| source states | `524` |
-| source transitions | `754` |
-| mapped transition macros | `754/754` |
+| Phase-II final pair pool | `60`（semantic `58` + Phase-I fallback `2`） |
+| raw / normalized official StateDiagram | `59/60` / `60/60` |
+| source / official identity states | `516/516` |
+| source transitions / official endpoints | `757/757` |
+| mapped transition macros | `757/757` |
 | blocked / silent drop | `0 / 0` |
-| final boundary | `36/36` |
-| opaque body line | `96/96` |
-| lifecycle source item | `19/19` |
+| state / endpoint identity remap | `24 / 37` |
+| final boundary | `35/35` |
+| opaque body line | `95/95` |
+| lifecycle source item | `16/16` |
 | FCSTM parse / inspect | `60/60 / 60/60` |
 | independent pyfcstm AST audit | `60/60` |
 | structural preservation | `60/60` |
@@ -52,57 +56,32 @@ e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24
 3. link display label 直接进入 `transition event="..."`，没有 guard/effect/timing grammar。
 4. state `Bodier`、entry/do/exit 与 raw source span 不进入 SCXML 行为制品。
 
-### 2.1 真实 `0000`：short ID 与 scope 信息坍缩
+### 2.1 真实 `0054`：state body 与 lifecycle 不进入 SCXML
 
-PlantUML 原文有两个不同 scope 的 `InitialState`：
+作者最终有效池中的 `0054` 明确包含四个 lifecycle item：
 
 ```plantuml
-state HumanDriving {
-    [*] --> InitialState : Power On
-    InitialState --> Autonomous : Front Distance > 10
-}
-state Autonomous {
-    [*] --> InitialState : Enter Autonomous
-    InitialState --> FinalState : Exit Autonomous
-}
+Accelerating : entry/Accelerate
+Approaching : do/Send
+EmergencyStopping : do/Emergency Stop
+EmergencyStopping : do/Send Obstacle Detected
 ```
 
-仓库归档的官方 SCXML 却只留下一个 `InitialState`，并把两组迁移挂到同一 state；`Autonomous` 还因 forward reference 被嵌入 `HumanDriving`：
-
-```xml
-<state id="HumanDriving">
-  <state id="InitialState">
-    <transition event="Front Distance &gt; 10" target="Autonomous"/>
-    <transition event="Exit Autonomous" target="FinalState"/>
-  </state>
-  <state id="Autonomous">
-    <state id="startAutonomous">
-      <transition event="Enter Autonomous" target="InitialState"/>
-    </state>
-  </state>
-</state>
-```
-
-新 FCSTM 使用 qualified source identity，两个 `InitialState` 保持独立：
+PlantUML SCXML exporter 只遍历 state/link 生成 `<state>` 与 `<transition>`，这四条 `Bodier` 内容没有进入行为输出。旧链路因而无法区分“源中没有 action”和“exporter 已丢 action”。新 frontend 直接从 raw source 提取 owner、kind、action text 与行号，并在 FCSTM 中保留 abstract hook：
 
 ```fcstm
-state HumanDriving {
-    state InitialState;
-    state InitialWaittr_0002;
-    [*] -> InitialWaittr_0002;
-    InitialWaittr_0002 -> InitialState : /Power_On;
-    InitialState -> [*] : /Front_Distance_10;
+state Accelerating {
+    enter abstract Accelerate;
+    state LifecycleActive;
+    [*] -> LifecycleActive;
 }
-state Autonomous {
-    state InitialState;
-    state InitialWaittr_0006;
-    [*] -> InitialWaittr_0006;
-    InitialWaittr_0006 -> InitialState : /Enter_Autonomous;
+state EmergencyStopping {
+    >> during before abstract EmergencyStop;
+    >> during before abstract SendObstacleDetected;
 }
-HumanDriving -> Autonomous : /Front_Distance_10;
 ```
 
-这不是 XML parser 使用不当；损失已经发生在官方 `StateDiagram -> SCXML` export 中。
+这不是 XML parser 使用不当；信息在 `StateDiagram -> SCXML` export 前后已经不对称。
 
 ### 2.2 真实 `0039`：final 变成普通 state，条件变成 event
 
@@ -129,27 +108,28 @@ state FinalWaittr_0009 named "Completed final boundary: AutonomousMode.HighwayMo
 lane_change -> FinalWaittr_0009 : /dist_to_exit_2;
 ```
 
-## 3. 为什么不能直接把官方内部对象当稳定 AST
+## 3. 官方内部对象为什么是 identity oracle，但不是完整稳定 AST
 
 逆向 jar 与阅读官方源码后，PlantUML 的 [`StateDiagram`](https://github.com/plantuml/plantuml/blob/d2b2bcf1722b8705f7f01a556dc96751e7739f7d/src/net/sourceforge/plantuml/statediagram/StateDiagram.java) 确实比 SCXML 丰富：它保留 parent container、qualified `Quark`、`LeafType.CIRCLE_START/CIRCLE_END`、concurrent group、`Entity` 和 `Link`。
 
-但它仍不适合作唯一 canonical：
+它是固定版本下回答“PlantUML 实际创建了哪个 entity、link 端点指向谁”的最强证据，因此当前实现以其 qualified identity 为准。但它仍不能单独承担完整 canonical：
 
 - 这是内部实现对象，不是稳定公开 AST/API。
 - PlantUML state syntax 没有一份可直接生成 parser 的完整官方形式文法；命令类按行匹配并直接修改 `StateDiagram`。
 - 它不保留本研究需要的完整 raw source span 和 source-level ambiguity。
-- 解析是顺序执行的。`0000` 中在 `HumanDriving` 内先引用尚未声明的 `Autonomous`，官方对象会先创建 nested entity；后面的 root declaration不能恢复原始意图。
-- `27/60` raw case 含 `stm` container、bare lifecycle、fork 变体等官方 parser 不能直接接受的输入。
+- 解析是顺序执行的，首次引用可能先创建 entity；这种结果必须被保留，而不能由 lexical parser 猜测覆盖。
+- 当前 Phase-II final pool 有 `1/60` raw case 因 workbook doubled quote / trailing quote 不能直接成为 `StateDiagram`；6 条 transport normalization 后才达到 `60/60`。
 
 因此“直接读官方源码”得到的正确设计不是反射/序列化全部私有字段，而是：
 
 ```text
-raw source canonical（本项目稳定合同）
+raw source facts（span/body/lifecycle/region/normalization）
         +
-pinned official internal snapshot（差分证据）
+pinned official Entity/Link identity oracle
+        -> reconciled canonical（本项目稳定合同）
 ```
 
-官方 snapshot 用于回答“固定版本官方 parser 看到了什么”；source canonical 用于回答“raw 文本实际写了什么、在哪一行、属于哪个 lexical scope”。
+`0047` 是必要性最强的反例：三个 composite 都写了 `Idle/Braking/Clamping`，但 PlantUML `1.2024.7` 把后两组引用复用到 Frontend 首次创建的三个 entity。raw parser 初步得到 9 个状态，official identity 只有 7 个；reconciler 因此执行 2 个 state identity remap 和 6 个 endpoint remap。当前 FCSTM 忠实保留这一官方结果，并把 RearEnd/Pedestrian 的越界 initial 标成 invalid，而不是重新发明三套 lexical-local 状态。
 
 ## 4. 旧转换脚本的重大错误
 
@@ -173,7 +153,8 @@ Issue #161 旧审计发现的 `16` 条 dropped transition、`36` 条 final 失�
 - 两遍收集 explicit state、alias、lexical scope、transition、body 和 lifecycle。
 - 生成 qualified state ID、parent、kind、initial/final boundary、raw label 与 `file:line`。
 - 保留 `declared_with_block`，即使某个 source block 在 FCSTM 运行投影中没有 child。
-- 调用固定 PlantUML `SourceStringReader -> StateDiagram -> Entity/Link` 生成官方差分快照。
+- 调用固定 PlantUML `SourceStringReader -> StateDiagram -> Entity/Link`，以 qualified entity/link 身份校准 provisional source identity。
+- 过滤 note/presentation attachment link；任何 behavior link/state 无法一一对齐即失败关闭。
 - validation-only normalization 不参与 canonical 或 lowering。
 - 局部 `Makefile` 提供 `fetch / verify / compile / run / clean`。
 
@@ -216,54 +197,52 @@ Python adapter 不重新解析 PlantUML：
 
 - source state ID 与 trace ID Counter 完全相等，source state path 单射；
 - output states 恰好等于 source-origin states、allowlisted synthetic states 和 root；
-- `754` 个 source transition ID 逐个有非空 macro；
+- `757` 个 source transition ID 逐个有非空 macro；
 - authored FCSTM transition multiset 与 trace 完全相等，没有 untracked edge；
 - AST endpoint、scope、event、forced、final hold 和 entry priority 可反查；
-- `96` body、`19` lifecycle、36 final 与 orphan fact 可从 canonical 重建；
+- `95` body、`16` lifecycle、35 final 与 6 条 source normalization 可从 canonical 重建；
 - transition declaration order、multiple initial order、fan-out order和 placeholder priority受审计保护。
 
 运行/Discover eligibility 另行判断。当前所有 60 例至少含一个 opaque transition label 或其他 debt，因此严格结果是 `0/60`，不能把结构 PASS 直接投入 #158。
 
 ## 7. 真实修复例子
 
-### 7.1 `0005`：missing initial 不再丢 incoming edge，也不猜 child
+### 7.1 `0005`：官方 first-created identity 不再被 lexical intuition 覆盖
 
 PlantUML：
 
 ```plantuml
-state DoorOpen {
-    DoorOpen --> DoorOpenWithItem : Place Item Inside
-    state DoorOpenWithItem { }
+state DoorOpenWithItem {
+    DoorIdleWithItem --> DoorShutWithItem : Close Door with Zero Time
+    DoorIdleWithItem --> ReadytoCook : Enter Cooking Time
 }
-DoorShutWithItem --> DoorOpenWithItem : Open Door
-ReadytoCook --> DoorOpenWithItem : Open Door
-Cooking --> DoorOpenWithItem : Open Door
+state DoorShutWithItem { ... }
+state ReadytoCook { ... }
+state Cooking { ... }
 ```
 
 FCSTM：
 
 ```fcstm
-state DoorOpen {
-    state UnspecifiedInitial;
-    state DoorOpenWithItem;
-    [*] -> DoorOpenWithItem : /Open_Door;
-    [*] -> DoorOpenWithItem : /Open_Door;
-    [*] -> DoorOpenWithItem : /Open_Door;
-    ! * -> DoorOpenWithItem : /Place_Item_Inside;
-    [*] -> UnspecifiedInitial;
+state DoorOpenWithItem {
+    state DoorShutWithItem { ... }
+    state ReadytoCook {
+        state Cooking { ... }
+    }
+    state DoorIdleWithItem;
 }
 ```
 
-三条 source occurrence 全保留，event-specific route 在 fallback 前；没有 `Open_Door` 时模型停在 `UnspecifiedInitial`。审计包含联合篡改负例：即使同时修改 FCSTM 和 trace，把 placeholder 指向真实 child，也会失败。
+后置 block 在视觉上像 root sibling，但官方 parser 已由前置 link 创建 nested entity；当前 state/transition ledger 记录所有 remap，19 条 source transition occurrence 全保留。转换器不再把自己更“直观”的 lexical 解释冒充 PlantUML 官方语义。
 
 ### 7.2 `0022`：final 恢复为真实终止
 
 ```plantuml
-PoweredOn --> [*]: keyOff
+Operate --> [*] : keyOff
 ```
 
 ```fcstm
-PoweredOn -> [*] : /keyOff;
+!Operate -> [*] : /keyOff;
 ```
 
 runtime probe 发送 `keyOff` 后 `is_ended=true` 且 stack 为空，不再停在 ordinary `end` leaf。
@@ -296,7 +275,7 @@ state EmergencyStopping {
 ### 7.4 `0058`：fork 与 timing 全保存，但不冒充可执行并发/时间语义
 
 ```plantuml
-fork fork1
+state fork1 <<fork>>
 fork1 --> AutoFocus
 fork1 --> DetLight
 fork1 --> choice3
@@ -315,7 +294,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 
 ## 8. 机器验证与对抗用例
 
-最终 conversion + representation + readiness 套件：`111 passed`。除正常路径外，audit 必须拒绝：
+最终 conversion + representation + readiness + evaluation 套件：`192 passed`。除正常路径外，audit 必须拒绝：
 
 - state parent/path、display body 与 pseudo kind 漂移；
 - source/trace endpoint 联合篡改；
@@ -347,7 +326,7 @@ Outside --> C.Wanted : Go
 
 ## 9. 60 组主 session 人工验收
 
-最终制品冻结后，本轮主 session LLM 按 `0000 -> 0059` 读取了每一组完整、带行号的 PlantUML STM0 和完整 FCSTM STM0，并核对 hierarchy、initial/final、全部 transition、body/lifecycle、synthetic state 与 debt。随后又对 19 个高风险 case 做逐 transition macro 第二遍检查。
+最终制品冻结后，本轮主 session LLM 按 `0000 -> 0059` 读取了每一组完整 NL、PlantUML STM0、FCSTM STM0 和 normalization/region/identity ledger，并核对 hierarchy、initial/final、全部 transition、body/lifecycle、synthetic state 与 debt；identity remap 和复杂跨层 case 另做逐 transition 复核。
 
 逐组完整 NL/PlantUML/FCSTM 三元组与原始文件见 [PAIR_INDEX.md](../pipeline/representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)；绑定 source/FCSTM SHA-256 的人工账本见 [MANUAL_REVIEW.md](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.md)。结论为：
 
@@ -358,10 +337,10 @@ Outside --> C.Wanted : Go
 
 证据身份：
 
-- 实现提交：`393a1a71c3b959210aa429fbf552ddd0d6e46acc`
-- 冻结证据提交：`0de936b2b5ac0c93c67d13314601b5666758f850`
-- `tracked_worktree_dirty_before_run=false`
-- FCSTM 集合 SHA-256：`591ff856f8a8985b1fcc1682d76193efeaea416be11ae84c64231abf00e17a82`
+- 作者 workbook SHA-256：`17eb4ed2abc5cffbe69128c1ca07614e62b742454375823fd273d165f08240e4`
+- Phase-II final pair pool SHA-256：`0bc133e2a9696a30e53f9422b9d81838c9cf8504d795810b20978ed078e81bdc`
+- 60 行人工账本 SHA-256：`40057581b4ddcb536782d6ccaa024fdec54498ba4866beaf0b328643317d6bab`
+- PlantUML jar SHA-256：`e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24`
 - pyfcstm：`4ea23c9b153f47e5c4a2125d95b466eee6eed13e`
 
 ## 10. 最终判断与后续边界
@@ -371,7 +350,7 @@ Outside --> C.Wanted : Go
 1. SCXML 路线不适合继续承担 PlantUML statechart canonical。
 2. 旧 converter 确实有重大设计错误，不能把责任全部推给官方工具。
 3. Java source frontend + Python subprocess wrapper 是当前更可审计的路线。
-4. 当前实现已把 60 例 source facts 结构性保存到 FCSTM + trace，并用 AST audit 与主 session 阅读双重验收。
+4. pinned official `Entity/Link` 身份与 raw-source ledger 已共同进入 canonical，60 例 source facts 结构性保存到 FCSTM + trace，并用 AST audit 与主 session 阅读双重验收。
 
 ### 仍不能确认
 

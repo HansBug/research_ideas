@@ -4,15 +4,65 @@
 
 - LLM：`Kimi`
 - 模型/场景： Digital camera state machine diagrams
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE40`；Excel row：`40`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`6a3092862359b6522c285a04a3cf1a796ed9462cda766a7dfe5815f2ce1b3e19`
 - NL SHA-256：`6af3966c8b0e12004a22622cded88b07df6fef9d558534442e3309694543c76d`
-- PlantUML SHA-256：`6a3092862359b6522c285a04a3cf1a796ed9462cda766a7dfe5815f2ce1b3e19`
-- FCSTM SHA-256：`c460602ae931ee4fa9bacde0d6535ad038947f2e02fbfe9c2a6aec18abdcda24`
+- PlantUML SHA-256：`e9585b863a71d041e76349e86e0cfade5a44edbbe9026d865f8cbf0b9befa035`
+- FCSTM SHA-256：`921f384e4f4d00ac8cc3a486c72feee6f38e2db5443ad7009c2560d8886c270f`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`18` / `21`
+- mapped / blocked / silent drop：`21` / `0` / `0`
+- final / lifecycle / body coverage：`1/1` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`18` / `21`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：nested/root 同名实体不合并；24 edge、4 invalid initial surrogate、重复 Junction2 edge 与 placeholders 齐。
+- 主 session 对读：完整对读：数字相机 18 状态、21 边全部对应，fork_state 与三个 join 保留为 pseudo，TurnOff 仍通向 root final；Terminate composite 内自指 initial 以 InvalidInitial 保存，时间/概率标签与两处 fan-out 明确留债。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0038.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0038.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0038.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0038.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0038.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0038.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I40` | `true` | `6a3092862359b6522c285a04a3cf1a796ed9462cda766a7dfe5815f2ce1b3e19` | - | - |
+| `phase_ii_format` | `U40` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z40` | `true` | `bf153e52cf7601b7f5c2d0b9d7ffb2a659a31b5f36ceecd9bc8e3b9938ee65c0` | 1. Composite State error： state TurnOn is nested twice | YES |
+| `phase_ii_semantic` | `AE40` | `true` | `e9585b863a71d041e76349e86e0cfade5a44edbbe9026d865f8cbf0b9befa035` | 1. Missing Junction Pseudostate and Fork Pseudostate<br> | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`18` / `18`
+- aligned transition endpoints：`21`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.ambiguous_unlabeled_fanout` | 2 |
+| `R45.DEBT.explicit_concurrency_pseudostate` | 4 |
+| `R45.DEBT.invalid_source_initial_target` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 8 |
 
 ## NL
 
@@ -30,67 +80,43 @@
 11. In the Fork2 state, which is part of the Join2 substate, the system can either proceed to Junction2 or Flash. If the Flash state is activated, it transitions to Terminate, ending the sequence.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
 [*] --> TurnOn
-state TurnOn {
-state TurnOn {
-[*] --> TurnOn
-TurnOn --> fork1 : after 2s / minimum 2s
-}
-}
+TurnOn --> fork_state : after 2s / minimum 2s
 
-state fork1 {
-[*] --> AutoFocus
-[*] --> DetLight
-}
+state fork_state <<fork>>
+fork_state --> AutoFocus
+fork_state --> DetLight
 
-state AutoFocus {
 AutoFocus --> choice1 : after 2s / minimum 1s
-}
-
-state DetLight {
 DetLight --> choice2 : after 1s / <<GaStep>>{prob=0.4}
-}
 
-fork1 --> choice3
+choice1 --> choice3 : memFull=true
 
 choice3 --> ChargedFlash
-state ChargedFlash {
 ChargedFlash --> Junction3 : after 4s / minimum 2s
-}
 
-state Junction3 {
+state Junction3 <<join>>
 Junction3 --> Join2 : Charged=true
-}
 
-choice3 --> Junction3
+choice2 --> Join2 : sunny=true
 
-choice2 --> Join2
-state Join2 {
+state Join2 <<join>>
 Join2 --> Fork2
-}
 
 Fork2 --> Junction2
 Fork2 --> Flash
 
-state Junction2 {
 Junction2 --> TakePicture
-}
-Junction2 --> TakePicture
-state TakePicture {
+
 TakePicture --> WriteMemory
-}
-
-state WriteMemory {
 WriteMemory --> Junction1 : after 3s / minimum 2s
-}
 
-state Junction1 {
+state Junction1 <<join>>
 Junction1 --> TurnOff
-}
 
 TurnOff --> [*]
 
@@ -99,87 +125,60 @@ Flash --> Terminate
 state Terminate {
 [*] --> Terminate
 }
-
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0038 named "llms_emp_stm_results_0038" {
+state llms_emp_feedback_final_0038 named "llms_emp_feedback_final_0038" {
     event after_2s_minimum_2s named "after 2s / minimum 2s";
     event after_2s_minimum_1s named "after 2s / minimum 1s";
     event after_1s_GaStep_prob_0_4 named "after 1s / <<GaStep>>{prob=0.4}";
+    event memFull_true named "memFull=true";
     event after_4s_minimum_2s named "after 4s / minimum 2s";
     event Charged_true named "Charged=true";
+    event sunny_true named "sunny=true";
     event after_3s_minimum_2s named "after 3s / minimum 2s";
-    state TurnOn named "TurnOn" {
-        state UnspecifiedInitial named "Unspecified initial";
-        state TurnOn named "TurnOn" {
-            state InvalidInitialtr_0002 named "PlantUML initial target outside child scope: TurnOn.TurnOn";
-            [*] -> InvalidInitialtr_0002;
-        }
-        !TurnOn -> [*] : /after_2s_minimum_2s;
-        [*] -> UnspecifiedInitial;
+    pseudo state fork_state named "fork_state";
+    pseudo state Junction3 named "Junction3";
+    pseudo state Join2 named "Join2";
+    pseudo state Junction1 named "Junction1";
+    state Terminate named "Terminate" {
+        state InvalidInitialtr_0021 named "PlantUML initial target outside child scope: Terminate";
+        [*] -> InvalidInitialtr_0021;
     }
-    state fork1 named "fork1" {
-        state InvalidInitialtr_0004 named "PlantUML initial target outside child scope: AutoFocus";
-        state InvalidInitialtr_0005 named "PlantUML initial target outside child scope: DetLight";
-        [*] -> InvalidInitialtr_0004;
-        [*] -> InvalidInitialtr_0005;
-    }
-    state AutoFocus named "AutoFocus" {
-        state UnspecifiedInitial named "Unspecified initial";
-        state choice1 named "choice1";
-        ! * -> choice1 : /after_2s_minimum_1s;
-        [*] -> UnspecifiedInitial;
-    }
-    state DetLight named "DetLight" {
-        state UnspecifiedInitial named "Unspecified initial";
-        state choice2 named "choice2";
-        ! * -> choice2 : /after_1s_GaStep_prob_0_4;
-        [*] -> UnspecifiedInitial;
-    }
+    state TurnOn named "TurnOn";
+    state AutoFocus named "AutoFocus";
+    state DetLight named "DetLight";
+    state choice1 named "choice1";
+    state choice2 named "choice2";
+    state choice3 named "choice3";
     state ChargedFlash named "ChargedFlash";
-    state Junction3 named "Junction3";
-    state Join2 named "Join2" {
-        state UnspecifiedInitial named "Unspecified initial";
-        state Fork2 named "Fork2";
-        ! * -> Fork2;
-        [*] -> UnspecifiedInitial;
-    }
+    state Fork2 named "Fork2";
     state Junction2 named "Junction2";
+    state Flash named "Flash";
     state TakePicture named "TakePicture";
     state WriteMemory named "WriteMemory";
-    state Junction1 named "Junction1" {
-        state UnspecifiedInitial named "Unspecified initial";
-        state TurnOff named "TurnOff";
-        ! * -> TurnOff;
-        [*] -> UnspecifiedInitial;
-    }
-    state Terminate named "Terminate" {
-        state InvalidInitialtr_0024 named "PlantUML initial target outside child scope: Terminate";
-        [*] -> InvalidInitialtr_0024;
-    }
-    state choice3 named "choice3";
-    state choice2 named "choice2";
-    state Fork2 named "Fork2";
-    state Flash named "Flash";
     state TurnOff named "TurnOff";
     [*] -> TurnOn;
-    TurnOn -> fork1 : /after_2s_minimum_2s;
-    !fork1 -> choice3;
+    TurnOn -> fork_state : /after_2s_minimum_2s;
+    fork_state -> AutoFocus;
+    fork_state -> DetLight;
+    AutoFocus -> choice1 : /after_2s_minimum_1s;
+    DetLight -> choice2 : /after_1s_GaStep_prob_0_4;
+    choice1 -> choice3 : /memFull_true;
     choice3 -> ChargedFlash;
     ChargedFlash -> Junction3 : /after_4s_minimum_2s;
     Junction3 -> Join2 : /Charged_true;
-    choice3 -> Junction3;
-    choice2 -> Join2;
+    choice2 -> Join2 : /sunny_true;
+    Join2 -> Fork2;
     Fork2 -> Junction2;
     Fork2 -> Flash;
     Junction2 -> TakePicture;
-    Junction2 -> TakePicture;
     TakePicture -> WriteMemory;
     WriteMemory -> Junction1 : /after_3s_minimum_2s;
+    Junction1 -> TurnOff;
     TurnOff -> [*];
     Flash -> Terminate;
 }

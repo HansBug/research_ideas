@@ -39,6 +39,25 @@ class _Lowerer:
         self.model = canonical["model"]
         self.states = list(self.model["states"])
         self.transitions = list(self.model["transitions"])
+        self.concurrent_regions = list(self.model.get("concurrent_regions", []))
+        self.concurrent_region_separators = list(
+            canonical.get("metadata", {}).get("concurrent_region_separators", [])
+        )
+        self.source_normalizations = list(
+            canonical.get("metadata", {}).get("source_normalizations", [])
+        )
+        self.concurrent_regions_by_scope: dict[Optional[str], list[dict[str, Any]]] = (
+            defaultdict(list)
+        )
+        self.concurrent_separators_by_scope: dict[
+            Optional[str], list[dict[str, Any]]
+        ] = defaultdict(list)
+        for region in self.concurrent_regions:
+            self.concurrent_regions_by_scope[region.get("owner_scope")].append(region)
+        for separator in self.concurrent_region_separators:
+            self.concurrent_separators_by_scope[separator.get("owner_scope")].append(
+                separator
+            )
         self.state_by_id = {state["id"]: state for state in self.states}
         self.transition_by_id = {
             transition["id"]: transition for transition in self.transitions
@@ -70,6 +89,9 @@ class _Lowerer:
         self.body_mappings: list[dict[str, Any]] = []
         self.lifecycle_mappings: list[dict[str, Any]] = []
         self.orphan_lifecycle_mappings: list[dict[str, Any]] = []
+        self.concurrent_region_mappings: list[dict[str, Any]] = []
+        self.concurrent_region_separator_mappings: list[dict[str, Any]] = []
+        self.source_normalization_mappings: list[dict[str, Any]] = []
         self.initial_by_scope: dict[Optional[str], list[dict[str, Any]]] = defaultdict(list)
         self.mapped_initial_scopes: set[Optional[str]] = set()
         self.lifecycle_source_count = 0
@@ -135,11 +157,32 @@ class _Lowerer:
             }
         )
 
-    @staticmethod
-    def state_label_text(state: dict[str, Any]) -> str:
+    def concurrent_display_lines(self, scope: Optional[str]) -> list[str]:
+        lines = []
+        for region in sorted(
+            self.concurrent_regions_by_scope.get(scope, []),
+            key=lambda item: item["region_index"],
+        ):
+            states = ", ".join(region.get("state_ids", [])) or "-"
+            transitions = ", ".join(region.get("transition_ids", [])) or "-"
+            lines.append(
+                f"[PlantUML concurrent region {region['region_index']}] "
+                f"states={states}; transitions={transitions}"
+            )
+        for separator in self.concurrent_separators_by_scope.get(scope, []):
+            lines.append(
+                "[PlantUML concurrent separator] "
+                f"region {separator['preceding_region_index']} -> "
+                f"{separator['following_region_index']} at {separator['raw_ref']}"
+            )
+        return lines
+
+    def state_label_text(self, state: dict[str, Any]) -> str:
         label = state.get("label") or state["id"]
         for body_line in state["attributes"].get("body_lines", []):
             label += f"\n[PlantUML body] {body_line.get('text') or ''}"
+        for line in self.concurrent_display_lines(state["id"]):
+            label += f"\n{line}"
         return label
 
     def state_display_label(self, state: dict[str, Any]) -> str:
@@ -181,6 +224,9 @@ class _Lowerer:
                     "source_declared_with_block": state["attributes"].get(
                         "declared_with_block", False
                     ),
+                    "source_parent_region_indices": state["attributes"].get(
+                        "parent_region_indices", [0]
+                    ),
                     "fcstm_display_name": self.state_label_text(state),
                     "raw_ref": state.get("raw_ref"),
                     "fcstm_id": self.emitted_state[state["id"]],
@@ -192,6 +238,58 @@ class _Lowerer:
                     "fcstm_path": self.emitted_path(state["id"]),
                 }
             )
+        for region in self.concurrent_regions:
+            owner_scope = region.get("owner_scope")
+            owner_path = (
+                self.root_id
+                if owner_scope is None
+                else self.emitted_path(owner_scope)
+            )
+            display_line = self.concurrent_display_lines(owner_scope)[
+                int(region["region_index"])
+            ]
+            self.concurrent_region_mappings.append(
+                {
+                    **region,
+                    "fcstm_owner_path": owner_path,
+                    "display_line": display_line,
+                    "representation": "owner_display_name_and_comparison_trace",
+                }
+            )
+        region_count_by_scope = {
+            scope: len(regions)
+            for scope, regions in self.concurrent_regions_by_scope.items()
+        }
+        for offset_by_scope, separator in enumerate(self.concurrent_region_separators):
+            owner_scope = separator.get("owner_scope")
+            owner_path = (
+                self.root_id
+                if owner_scope is None
+                else self.emitted_path(owner_scope)
+            )
+            display_lines = self.concurrent_display_lines(owner_scope)
+            display_offset = region_count_by_scope.get(owner_scope, 0)
+            prior_same_scope = sum(
+                1
+                for prior in self.concurrent_region_separators[:offset_by_scope]
+                if prior.get("owner_scope") == owner_scope
+            )
+            self.concurrent_region_separator_mappings.append(
+                {
+                    **separator,
+                    "fcstm_owner_path": owner_path,
+                    "display_line": display_lines[display_offset + prior_same_scope],
+                    "representation": "owner_display_name_and_comparison_trace",
+                }
+            )
+        self.source_normalization_mappings = [
+            {
+                **change,
+                "fcstm_owner_path": self.root_id,
+                "representation": "root_display_name_and_comparison_trace",
+            }
+            for change in self.source_normalizations
+        ]
         for transition in self.transitions:
             raw_event = transition.get("event")
             if raw_event and raw_event not in self.events:
@@ -476,10 +574,65 @@ class _Lowerer:
         boundary_scope = transition.get("scope")
         ancestor_scopes = set(self.state_chain(source))
         if boundary_scope is not None and boundary_scope not in ancestor_scopes:
-            self.block_transition(
-                transition,
-                "R45.BLOCKED.final_scope_mismatch",
-                "Final boundary is outside the source state's ancestor scopes.",
+            projection_scope = self.parent[source]
+            owner_scope = (
+                self.root_id
+                if projection_scope is None
+                else self.emitted_state[projection_scope]
+            )
+            surrogate_label = (
+                "PlantUML final boundary outside source ancestry: "
+                f"{transition['target']}"
+            )
+            surrogate = self.registry.reserve(
+                raw_text=f"InvalidFinal{transition['id']}",
+                canonical_ref=transition.get("raw_ref"),
+                object_type="lowering_state",
+                scope=owner_scope,
+                generated_reason="invalid_source_final_scope_surrogate",
+                named_text=surrogate_label,
+            )
+            self.record_synthetic_state(
+                scope=projection_scope,
+                emitted_id=surrogate,
+                display_name=surrogate_label,
+                generated_reason="invalid_source_final_scope_surrogate",
+                raw_ref=transition.get("raw_ref"),
+                source_transition_id=transition["id"],
+            )
+            self.synthetic_states_by_scope[projection_scope].append(
+                f"state {surrogate} named {_dsl_string(surrogate_label)};"
+            )
+            mapping = _Mapping(
+                transition_id=transition["id"],
+                status="mapped",
+                reason_code="R45.MAP.invalid_source_final_surrogate",
+                source=source,
+                target=transition["target"],
+                raw_ref=transition.get("raw_ref"),
+            )
+            prefix = "!" if self.is_operational_composite(source) else ""
+            self.emit(
+                mapping,
+                scope=projection_scope,
+                line=(
+                    f"{prefix}{self.emitted_state[source]} -> {surrogate}"
+                    f"{self.trigger(transition)};"
+                ),
+                generated_role="invalid_source_final_surrogate",
+            )
+            self.mappings.append(mapping)
+            self.final_mapped_count += 1
+            self.add_operational_debt(
+                "R45.DEBT.invalid_source_final_scope",
+                "PlantUML final boundary belongs to a scope outside the source state's ancestry; FCSTM preserves the boundary identity in a stoppable surrogate instead of inventing cross-scope completion semantics.",
+                kind="transition",
+                transition_id=transition["id"],
+                source=transition["source"],
+                target=transition["target"],
+                boundary_scope=_scope_key(boundary_scope),
+                projection_scope=_scope_key(projection_scope),
+                raw_ref=transition.get("raw_ref"),
             )
             return
         mapping = _Mapping(
@@ -791,13 +944,45 @@ class _Lowerer:
                 "Bare root-level lifecycle syntax is preserved as root display metadata because the source does not identify an owning state.",
                 **item,
             )
+        for scope, regions in self.concurrent_regions_by_scope.items():
+            self.add_operational_debt(
+                "R45.DEBT.concurrent_region_semantics",
+                "PlantUML orthogonal-region order and membership are preserved in FCSTM display metadata and trace, but FCSTM has no multi-active-region runtime semantics.",
+                kind="concurrent_regions",
+                scope=_scope_key(scope),
+                region_ids=[item["id"] for item in regions],
+                separator_raw_refs=[
+                    item.get("raw_ref")
+                    for item in self.concurrent_separators_by_scope.get(scope, [])
+                ],
+            )
+        for change in self.source_normalizations:
+            self.add_operational_debt(
+                "R45.DEBT.source_input_normalization",
+                "A narrowly scoped transport repair was applied before parsing; raw and normalized text remain hash-bound in the canonical and comparison trace.",
+                kind="source_normalization",
+                **change,
+            )
+
+    def add_unparsed_blockers(self) -> None:
+        for item in self.canonical.get("metadata", {}).get(
+            "unparsed_semantic_lines", []
+        ):
+            self.blockers.append(
+                {
+                    "kind": "source_line",
+                    "reason_code": "R45.BLOCKED.unparsed_semantic_line",
+                    "message": "A semantic PlantUML source line has no canonical representation.",
+                    **item,
+                }
+            )
 
     def render_state(self, state_id: str, indent: int) -> list[str]:
         state = self.state_by_id[state_id]
         emitted = self.emitted_state[state_id]
         label = self.state_display_label(state)
         pad = " " * indent
-        pseudo = state.get("kind") in {"fork", "join", "choice"}
+        pseudo = state.get("kind") in {"fork", "join", "choice", "junction"}
         keyword = "pseudo state" if pseudo else "state"
         composite = self.is_composite(state_id) or self.has_invalid_initial_wrapper(state_id)
         lifecycle = state["attributes"].get("lifecycle_actions", [])
@@ -905,6 +1090,7 @@ class _Lowerer:
         self.reserve_names()
         self.map_transitions()
         self.add_operational_debts()
+        self.add_unparsed_blockers()
         root_label = self.model.get("name") or self.canonical["example_id"]
         for item in self.canonical.get("metadata", {}).get("orphan_lifecycle_actions", []):
             text = item.get("text") or ""
@@ -917,6 +1103,13 @@ class _Lowerer:
                     "fcstm_path": self.root_id,
                     "representation": "root_display_name",
                 }
+            )
+        for line in self.concurrent_display_lines(None):
+            root_label += f"\n{line}"
+        for change in self.source_normalizations:
+            root_label += (
+                f"\n[PlantUML source normalization {change['rule_id']}] "
+                f"{change['raw_ref']}: {change['before']} -> {change['after']}"
             )
         lines = [f"state {self.root_id} named {_dsl_string(root_label)} {{"]
         pad = " " * 4
@@ -979,7 +1172,7 @@ class _Lowerer:
             else "source_ambiguity_or_unsupported_semantics_preserved"
         )
         comparison = {
-            "schema_version": "r4_5.plantuml_fcstm_comparison.v2",
+            "schema_version": "r4_5.plantuml_fcstm_comparison.v3",
             "example_id": self.canonical["example_id"],
             "verdict": structural_verdict,
             "structural_verdict": structural_verdict,
@@ -998,6 +1191,17 @@ class _Lowerer:
             "lifecycle_action_coverage": f"{lifecycle_structurally_mapped}/{lifecycle_total}",
             "abstract_lifecycle_hook_coverage": f"{self.lifecycle_mapped_count}/{lifecycle_total}",
             "body_line_coverage": f"{len(self.body_mappings)}/{body_total}",
+            "concurrent_region_coverage": (
+                f"{len(self.concurrent_region_mappings)}/{len(self.concurrent_regions)}"
+            ),
+            "concurrent_region_separator_coverage": (
+                f"{len(self.concurrent_region_separator_mappings)}/"
+                f"{len(self.concurrent_region_separators)}"
+            ),
+            "source_normalization_coverage": (
+                f"{len(self.source_normalization_mappings)}/"
+                f"{len(self.source_normalizations)}"
+            ),
             "opaque_label_count": sum(1 for transition in self.transitions if transition.get("label")),
             "blockers": self.blockers,
             "operational_debts": self.operational_debts,
@@ -1008,6 +1212,11 @@ class _Lowerer:
             "body_mappings": self.body_mappings,
             "lifecycle_mappings": self.lifecycle_mappings,
             "orphan_lifecycle_mappings": self.orphan_lifecycle_mappings,
+            "concurrent_region_mappings": self.concurrent_region_mappings,
+            "concurrent_region_separator_mappings": (
+                self.concurrent_region_separator_mappings
+            ),
+            "source_normalization_mappings": self.source_normalization_mappings,
             "transition_mappings": [
                 {
                     "source_transition": {
@@ -1021,6 +1230,9 @@ class _Lowerer:
                         "raw_label": self.transition_by_id[item.transition_id].get("label"),
                         "raw_event": self.transition_by_id[item.transition_id].get("event"),
                         "raw_ref": item.raw_ref,
+                        "region_index": self.transition_by_id[item.transition_id][
+                            "attributes"
+                        ].get("region_index", 0),
                     },
                     "transition_id": item.transition_id,
                     "status": item.status,

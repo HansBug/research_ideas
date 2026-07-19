@@ -87,6 +87,21 @@ NL: 1 The human driving mode is represented by a simple state...
 STM_0: @startuml | [*] --> HumanDriving ...
 ```
 
-## 6. 审计不变量
+## 6. Phase-I seed 与 Phase-II converter 验收池
+
+- [`extracted/pairs.jsonl`](./extracted/pairs.jsonl)：Phase-I 原始 `Generation PlantUML`，用于 seed/实验归因；任何 checking 列不得混入。
+- [`extracted/feedback_final_pairs.jsonl`](./extracted/feedback_final_pairs.jsonl)：作者 Phase-II 顺序反馈后的最终输出，只用于 Issue #161 converter 验收。每行取最后一个非空 checking stage，若该行没有 checking 输出才回退 `Generation PlantUML`。
+- [`extracted/feedback_final_validation_summary.json`](./extracted/feedback_final_validation_summary.json)：冻结 60 行 stage 分布、Phase-I 差异和 source workbook hash。
+
+复跑命令：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/extract_llms_emp_feedback_final.py \
+  --extracted-at 2026-07-19T06:00:00+00:00
+```
+
+## 7. 审计不变量
 
 只有从一手 workbook 读取到的 `Requirement Description + Generation PlantUML`，且能以 sheet / row / column + workbook SHA-256 回溯的行，才能计入 eligible generated seed。旧 parquet 只可写入 `legacy_audit_refs`。Reference `PlantUML` 与检查后结果列必须显式排除，不能混入原始 $STM_0$。
+
+Phase-II checking 结果只有在显式标记为 `author_feedback_final_plantuml` 且用途限定为 conversion validation 时才可使用；不得回写或覆盖 Phase-I seed，也不得计入本研究 repair improvement。

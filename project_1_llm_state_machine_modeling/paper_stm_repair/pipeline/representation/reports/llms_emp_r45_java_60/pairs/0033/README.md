@@ -4,15 +4,65 @@
 
 - LLM：`Kimi`
 - 模型/场景：Pump Control state machine
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE35`；Excel row：`35`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`a885b2b07e8c8761bd81c54e9e326daf3a2ce3138e4cae0c305ee6c9fe8145db`
 - NL SHA-256：`a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1`
-- PlantUML SHA-256：`a885b2b07e8c8761bd81c54e9e326daf3a2ce3138e4cae0c305ee6c9fe8145db`
-- FCSTM SHA-256：`2037af251445e2af5c1cf45ea2a6091558a89058b329cbf86263a2b772adbb8b`
+- PlantUML SHA-256：`2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0`
+- FCSTM SHA-256：`db157da28b5a52f0e9f0eae8911b527c8b1d00246ccfb205b3003c670088512e`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`4` / `10`
+- mapped / blocked / silent drop：`10` / `0` / `0`
+- final / lifecycle / body coverage：`3/3` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`4` / `10`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：`stm PumpControlSystem {}` 作为 model container，四状态七边与 body 齐。
+- 主 session 对读：完整对读：官方认定 PumpState/WaterState/MethaneState 为 root entity，reopened PumpControl 中三组 initial/final 因而越界；4 状态、10 边全在，并以三个 InvalidInitial/InvalidFinal surrogate 忠实保留源缺陷。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0033.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0033.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0033.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0033.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0033.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0033.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I35` | `true` | `a885b2b07e8c8761bd81c54e9e326daf3a2ce3138e4cae0c305ee6c9fe8145db` | - | - |
+| `phase_ii_format` | `U35` | `true` | `5e51641b5f8d11dbdce671c2e5ea1dbb1c7ce494e3850c78268f39677bad7768` | syntax error: stm PumpControlSystem { | YES |
+| `phase_ii_grammar` | `Z35` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE35` | `true` | `2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0` | 1. missing regions | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`4` / `4`
+- aligned transition endpoints：`10`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.invalid_source_final_scope` | 3 |
+| `R45.DEBT.invalid_source_initial_target` | 3 |
+| `R45.DEBT.multiple_initial_fanout` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 7 |
 
 ## NL
 
@@ -24,25 +74,28 @@
 5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-stm PumpControlSystem {
-[*] --> PumpControl
-PumpControl : PumpControl state
-PumpControl --> PumpState : Activate Pump
-PumpControl --> WaterState : Monitor Water Flow
-PumpControl --> MethaneState : Monitor Methane Flow
+[*] -down-> PumpControl : begin
+PumpControl -down-> PumpState : Activate Pump
+PumpControl -down-> WaterState : Monitor Water Flow
+PumpControl -down-> MethaneState : Monitor Methane Flow
 
-PumpState : PumpState
-PumpState --> PumpControl : Pump Deactivated
+state PumpControl {
+[*] --> PumpState
+PumpState --> [*] : Pump Deactivated
+}
 
-WaterState : WaterState
-WaterState --> PumpControl : Water Flow Stabilized
+state PumpControl {
+[*] --> WaterState
+WaterState --> [*] : Water Flow Stabilized
+}
 
-MethaneState : MethaneState
-MethaneState --> PumpControl : Methane Flow Stabilized
+state PumpControl {
+[*] --> MethaneState
+MethaneState --> [*] : Methane Flow Stabilized
 }
 @enduml
 ```
@@ -50,24 +103,37 @@ MethaneState --> PumpControl : Methane Flow Stabilized
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0033 named "PumpControlSystem" {
+state llms_emp_feedback_final_0033 named "llms_emp_feedback_final_0033" {
+    event begin named "begin";
     event Activate_Pump named "Activate Pump";
     event Monitor_Water_Flow named "Monitor Water Flow";
     event Monitor_Methane_Flow named "Monitor Methane Flow";
     event Pump_Deactivated named "Pump Deactivated";
     event Water_Flow_Stabilized named "Water Flow Stabilized";
     event Methane_Flow_Stabilized named "Methane Flow Stabilized";
-    state PumpControl named "PumpControl\n[PlantUML body] PumpControl state";
-    state PumpState named "PumpState\n[PlantUML body] PumpState";
-    state WaterState named "WaterState\n[PlantUML body] WaterState";
-    state MethaneState named "MethaneState\n[PlantUML body] MethaneState";
-    [*] -> PumpControl;
-    PumpControl -> PumpState : /Activate_Pump;
-    PumpControl -> WaterState : /Monitor_Water_Flow;
-    PumpControl -> MethaneState : /Monitor_Methane_Flow;
-    PumpState -> PumpControl : /Pump_Deactivated;
-    WaterState -> PumpControl : /Water_Flow_Stabilized;
-    MethaneState -> PumpControl : /Methane_Flow_Stabilized;
+    state InitialWaittr_0001 named "Awaiting initial event: begin";
+    state InvalidFinaltr_0006 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state InvalidFinaltr_0008 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state InvalidFinaltr_0010 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state PumpControl named "PumpControl" {
+        state InvalidInitialtr_0005 named "PlantUML initial target outside child scope: PumpState";
+        state InvalidInitialtr_0007 named "PlantUML initial target outside child scope: WaterState";
+        state InvalidInitialtr_0009 named "PlantUML initial target outside child scope: MethaneState";
+        [*] -> InvalidInitialtr_0005;
+        [*] -> InvalidInitialtr_0007;
+        [*] -> InvalidInitialtr_0009;
+    }
+    state PumpState named "PumpState";
+    state WaterState named "WaterState";
+    state MethaneState named "MethaneState";
+    [*] -> InitialWaittr_0001;
+    InitialWaittr_0001 -> PumpControl : /begin;
+    !PumpControl -> PumpState : /Activate_Pump;
+    !PumpControl -> WaterState : /Monitor_Water_Flow;
+    !PumpControl -> MethaneState : /Monitor_Methane_Flow;
+    PumpState -> InvalidFinaltr_0006 : /Pump_Deactivated;
+    WaterState -> InvalidFinaltr_0008 : /Water_Flow_Stabilized;
+    MethaneState -> InvalidFinaltr_0010 : /Methane_Flow_Stabilized;
 }
 ```
 

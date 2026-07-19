@@ -13,6 +13,11 @@ final class OfficialValidationNormalizer {
     private static final Pattern BARE_ACTION = Pattern.compile("^(\\s*)(entry|enter|do|during|exit)\\s*/", Pattern.CASE_INSENSITIVE);
     private static final Pattern FORK_JOIN = Pattern.compile("^(\\s*)(fork|join)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern ARROW = Pattern.compile("-(?:left|right|up|down)->|-->|->", Pattern.CASE_INSENSITIVE);
+    private static final Pattern QUOTED_DELIMITER = Pattern.compile(
+            "^(\\s*@(start|end)uml)\\x22+\\s*$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DOUBLED_QUOTED_STATE = Pattern.compile(
+            "^(\\s*state\\s+)\\x22{2}([^\\x22]+)\\x22{2}(\\s+as\\s+[A-Za-z_][A-Za-z0-9_]*.*)$",
+            Pattern.CASE_INSENSITIVE);
 
     static final class Result {
         final String source;
@@ -40,7 +45,16 @@ final class OfficialValidationNormalizer {
             Matcher stmHeading = STM_HEADING.matcher(line);
             Matcher bareAction = BARE_ACTION.matcher(line);
             Matcher forkJoin = FORK_JOIN.matcher(line);
-            if (stmBlock.matches()) {
+            Matcher quotedDelimiter = QUOTED_DELIMITER.matcher(line);
+            Matcher doubledQuotedState = DOUBLED_QUOTED_STATE.matcher(line);
+            if (doubledQuotedState.matches()) {
+                rewritten = doubledQuotedState.group(1) + "\"" + doubledQuotedState.group(2)
+                        + "\"" + doubledQuotedState.group(3);
+                rule = "official_validation.plantuml_state_display_doubled_quotes";
+            } else if (quotedDelimiter.matches()) {
+                rewritten = quotedDelimiter.group(1);
+                rule = "official_validation.plantuml_delimiter_trailing_quote";
+            } else if (stmBlock.matches()) {
                 String alias = "__stm_wrapper_" + lineNumber;
                 String label = stmBlock.group(2).replace("\"", "'");
                 rewritten = stmBlock.group(1) + "state \"" + label + "\" as " + alias + " {";

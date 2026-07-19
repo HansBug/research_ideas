@@ -1,27 +1,24 @@
 @startuml
-stm CameraSystem
-[*] --> TurnOn
-TurnOn: TurnOn, min: 2s, max: 2s
-TurnOn --> fork1: after 2s
-fork1 --> AutoFocus: min: 1s, max: 2s
-fork1 --> DetLight: min: 0s, max: 1s
-fork1 --> choice3:
-AutoFocus --> choice1: memFull=true
-choice1 --> choice3:
-DetLight --> choice2: <<GaStep>>{prob=0.4}
-choice2 --> Join2: sunny=true
-choice2 --> Join1:
-choice3 --> ChargedFlash: min: 2s, max: 4s
-ChargedFlash --> Junction3: Charged=true
-Junction3 --> Join2:
-choice3 --> Junction3:
-Junction2 --> TakePicture: min: 2s, max: 3s
-TakePicture --> WriteMemory:
-WriteMemory --> Junction1:
-Junction1 --> TurnOff:
-TurnOff --> [*]:
-Join2 --> Fork2:
-Fork2 --> Junction2:
-Fork2 --> Flash:
-Flash --> Terminate:
+state DoorShut as "Door Shut" <<initial>>
+state DoorOpen as "Door Open"
+state DoorOpenWithItem as "Door Open with Item"
+state DoorShutWithItem as "Door Shut with Item"
+state ReadytoCook as "Ready to Cook"
+state Cooking as "Cooking"
+
+DoorShut --> DoorOpen : Door Opened
+DoorShut --> DoorShut : Cancel
+DoorOpen --> DoorShut : Door Closed
+DoorOpen --> DoorOpenWithItem : Item Placed
+DoorOpenWithItem --> DoorOpen : Item Removed
+DoorOpenWithItem --> DoorShutWithItem : Door Closed
+DoorOpenWithItem --> ReadytoCook : Cooking Time Entered
+DoorShutWithItem --> DoorOpenWithItem : Door Opened
+DoorShutWithItem --> ReadytoCook : Cooking Time Entered
+ReadytoCook --> DoorShutWithItem : Cancel
+ReadytoCook --> DoorOpenWithItem : Door Opened
+ReadytoCook --> Cooking : Start
+Cooking --> DoorOpenWithItem : Door Opened
+Cooking --> DoorShutWithItem : Timer Expired
+Cooking --> ReadytoCook : Cancel
 @enduml

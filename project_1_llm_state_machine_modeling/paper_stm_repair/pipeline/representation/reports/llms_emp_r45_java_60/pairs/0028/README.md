@@ -4,15 +4,64 @@
 
 - LLM：`Llama`
 - 模型/场景： Digital camera state machine diagrams
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE30`；Excel row：`30`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`ef9eb75e567c05b8516af0e319003e7de3b473791a3b76727595941bb1716d36`
 - NL SHA-256：`6af3966c8b0e12004a22622cded88b07df6fef9d558534442e3309694543c76d`
-- PlantUML SHA-256：`ef9eb75e567c05b8516af0e319003e7de3b473791a3b76727595941bb1716d36`
-- FCSTM SHA-256：`3e59578a7514f1ab184bf6340d2a995e6ab2e03073e85b6f5f33f320fb567dba`
+- PlantUML SHA-256：`57c45db265e62b495d63f22e70b0b2bdaa25a85983874937be0384262621833a`
+- FCSTM SHA-256：`461c518ab66634cd08492103b0e4c114bf2dad60177a1ca4e391f7ab02524921`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`6` / `15`
+- mapped / blocked / silent drop：`15` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `6/6`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`6` / `15`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：Camera 19 state、25 edge 与两个 final 齐；fan-out/timing/body 仅结构保存。
+- 主 session 对读：完整对读：作者使用 `state DoorShut as "Door Shut"` 的非标准 alias 顺序，官方将尾部 alias/`<<initial>>` 当 body；转换保留 6 状态、15 边及全部 body，并以 UnspecifiedInitial 留债而未伪造初态。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0028.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0028.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0028.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0028.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0028.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0028.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I30` | `true` | `ef9eb75e567c05b8516af0e319003e7de3b473791a3b76727595941bb1716d36` | - | - |
+| `phase_ii_format` | `U30` | `true` | `f67f5822ca1241f6e95e9d90361f2610ba8fb61662c13c4245d1c8d358560cc2` | 1.syntax error: stm CameraSystem<br>2. syntax error: TurnOff --> [*] | YES |
+| `phase_ii_grammar` | `Z30` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE30` | `true` | `57c45db265e62b495d63f22e70b0b2bdaa25a85983874937be0384262621833a` | 1. missing transitions<br>2. interaction error | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`6` / `6`
+- aligned transition endpoints：`15`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.missing_explicit_initial` | 1 |
+| `R45.DEBT.opaque_state_body_semantics` | 6 |
+| `R45.DEBT.opaque_transition_label_semantics` | 15 |
 
 ## NL
 
@@ -30,93 +79,70 @@
 11. In the Fork2 state, which is part of the Join2 substate, the system can either proceed to Junction2 or Flash. If the Flash state is activated, it transitions to Terminate, ending the sequence.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-stm CameraSystem
-[*] --> TurnOn
-TurnOn: TurnOn, min: 2s, max: 2s
-TurnOn --> fork1: after 2s
-fork1 --> AutoFocus: min: 1s, max: 2s
-fork1 --> DetLight: min: 0s, max: 1s
-fork1 --> choice3:
-AutoFocus --> choice1: memFull=true
-choice1 --> choice3:
-DetLight --> choice2: <<GaStep>>{prob=0.4}
-choice2 --> Join2: sunny=true
-choice2 --> Join1:
-choice3 --> ChargedFlash: min: 2s, max: 4s
-ChargedFlash --> Junction3: Charged=true
-Junction3 --> Join2:
-choice3 --> Junction3:
-Junction2 --> TakePicture: min: 2s, max: 3s
-TakePicture --> WriteMemory:
-WriteMemory --> Junction1:
-Junction1 --> TurnOff:
-TurnOff --> [*]:
-Join2 --> Fork2:
-Fork2 --> Junction2:
-Fork2 --> Flash:
-Flash --> Terminate:
+state DoorShut as "Door Shut" <<initial>>
+state DoorOpen as "Door Open"
+state DoorOpenWithItem as "Door Open with Item"
+state DoorShutWithItem as "Door Shut with Item"
+state ReadytoCook as "Ready to Cook"
+state Cooking as "Cooking"
+
+DoorShut --> DoorOpen : Door Opened
+DoorShut --> DoorShut : Cancel
+DoorOpen --> DoorShut : Door Closed
+DoorOpen --> DoorOpenWithItem : Item Placed
+DoorOpenWithItem --> DoorOpen : Item Removed
+DoorOpenWithItem --> DoorShutWithItem : Door Closed
+DoorOpenWithItem --> ReadytoCook : Cooking Time Entered
+DoorShutWithItem --> DoorOpenWithItem : Door Opened
+DoorShutWithItem --> ReadytoCook : Cooking Time Entered
+ReadytoCook --> DoorShutWithItem : Cancel
+ReadytoCook --> DoorOpenWithItem : Door Opened
+ReadytoCook --> Cooking : Start
+Cooking --> DoorOpenWithItem : Door Opened
+Cooking --> DoorShutWithItem : Timer Expired
+Cooking --> ReadytoCook : Cancel
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0028 named "CameraSystem" {
-    event after_2s named "after 2s";
-    event min_1s_max_2s named "min: 1s, max: 2s";
-    event min_0s_max_1s named "min: 0s, max: 1s";
-    event memFull_true named "memFull=true";
-    event _GaStep_prob_0_4 named "<<GaStep>>{prob=0.4}";
-    event sunny_true named "sunny=true";
-    event min_2s_max_4s named "min: 2s, max: 4s";
-    event Charged_true named "Charged=true";
-    event min_2s_max_3s named "min: 2s, max: 3s";
-    state TurnOn named "TurnOn\n[PlantUML body] TurnOn, min: 2s, max: 2s";
-    state fork1 named "fork1";
-    state AutoFocus named "AutoFocus";
-    state DetLight named "DetLight";
-    state choice3 named "choice3";
-    state choice1 named "choice1";
-    state choice2 named "choice2";
-    state Join2 named "Join2";
-    state Join1 named "Join1";
-    state ChargedFlash named "ChargedFlash";
-    state Junction3 named "Junction3";
-    state Junction2 named "Junction2";
-    state TakePicture named "TakePicture";
-    state WriteMemory named "WriteMemory";
-    state Junction1 named "Junction1";
-    state TurnOff named "TurnOff";
-    state Fork2 named "Fork2";
-    state Flash named "Flash";
-    state Terminate named "Terminate";
-    [*] -> TurnOn;
-    TurnOn -> fork1 : /after_2s;
-    fork1 -> AutoFocus : /min_1s_max_2s;
-    fork1 -> DetLight : /min_0s_max_1s;
-    fork1 -> choice3;
-    AutoFocus -> choice1 : /memFull_true;
-    choice1 -> choice3;
-    DetLight -> choice2 : /_GaStep_prob_0_4;
-    choice2 -> Join2 : /sunny_true;
-    choice2 -> Join1;
-    choice3 -> ChargedFlash : /min_2s_max_4s;
-    ChargedFlash -> Junction3 : /Charged_true;
-    Junction3 -> Join2;
-    choice3 -> Junction3;
-    Junction2 -> TakePicture : /min_2s_max_3s;
-    TakePicture -> WriteMemory;
-    WriteMemory -> Junction1;
-    Junction1 -> TurnOff;
-    TurnOff -> [*];
-    Join2 -> Fork2;
-    Fork2 -> Junction2;
-    Fork2 -> Flash;
-    Flash -> Terminate;
+state llms_emp_feedback_final_0028 named "llms_emp_feedback_final_0028" {
+    event Door_Opened named "Door Opened";
+    event Cancel named "Cancel";
+    event Door_Closed named "Door Closed";
+    event Item_Placed named "Item Placed";
+    event Item_Removed named "Item Removed";
+    event Cooking_Time_Entered named "Cooking Time Entered";
+    event Start named "Start";
+    event Timer_Expired named "Timer Expired";
+    state UnspecifiedInitial named "Unspecified initial";
+    state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";
+    state DoorOpen named "DoorOpen\n[PlantUML body] as \"Door Open\"";
+    state DoorOpenWithItem named "DoorOpenWithItem\n[PlantUML body] as \"Door Open with Item\"";
+    state DoorShutWithItem named "DoorShutWithItem\n[PlantUML body] as \"Door Shut with Item\"";
+    state ReadytoCook named "ReadytoCook\n[PlantUML body] as \"Ready to Cook\"";
+    state Cooking named "Cooking\n[PlantUML body] as \"Cooking\"";
+    DoorShut -> DoorOpen : /Door_Opened;
+    DoorShut -> DoorShut : /Cancel;
+    DoorOpen -> DoorShut : /Door_Closed;
+    DoorOpen -> DoorOpenWithItem : /Item_Placed;
+    DoorOpenWithItem -> DoorOpen : /Item_Removed;
+    DoorOpenWithItem -> DoorShutWithItem : /Door_Closed;
+    DoorOpenWithItem -> ReadytoCook : /Cooking_Time_Entered;
+    DoorShutWithItem -> DoorOpenWithItem : /Door_Opened;
+    DoorShutWithItem -> ReadytoCook : /Cooking_Time_Entered;
+    ReadytoCook -> DoorShutWithItem : /Cancel;
+    ReadytoCook -> DoorOpenWithItem : /Door_Opened;
+    ReadytoCook -> Cooking : /Start;
+    Cooking -> DoorOpenWithItem : /Door_Opened;
+    Cooking -> DoorShutWithItem : /Timer_Expired;
+    Cooking -> ReadytoCook : /Cancel;
+    [*] -> UnspecifiedInitial;
 }
 ```
 

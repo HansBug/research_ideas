@@ -34,18 +34,40 @@ public final class PlantUmlStateFrontend {
 
         String source = read(sourcePath);
         String officialSource = read(officialPath);
-        OfficialValidationNormalizer.Result normalized = OfficialValidationNormalizer.normalize(officialSource);
+        SourceInputNormalizer.Result sourceNormalized = SourceInputNormalizer.normalize(source, sourceName);
+        String officialSourceName = officialPath.getFileName().toString();
+        SourceInputNormalizer.Result officialInputNormalized = SourceInputNormalizer.normalize(
+                officialSource, officialSourceName);
+        OfficialValidationNormalizer.Result normalized = OfficialValidationNormalizer.normalize(
+                officialInputNormalized.source);
+        Map<String, Object> officialRawModel = inspectOfficial(
+                officialSource, officialPath.getFileName().toString());
+        Map<String, Object> officialValidationModel = inspectOfficial(
+                normalized.source, "normalized:" + officialPath.getFileName().toString());
+        Map<String, Object> canonical = new SourceModelParser(
+                sourceNormalized.source, exampleId, sourceName).parse();
+        OfficialIdentityReconciler.reconcile(canonical, officialValidationModel);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> canonicalMetadata = (Map<String, Object>) canonical.get("metadata");
+        canonicalMetadata.put("source_sha256", SourceModelParser.sha256(source));
+        canonicalMetadata.put("normalized_source_sha256", SourceModelParser.sha256(sourceNormalized.source));
+        canonicalMetadata.put("source_normalizations", sourceNormalized.changes);
         Map<String, Object> output = SourceModelParser.map(
                 "schema_version", "r4_5.plantuml_java_frontend.v1",
                 "tool", SourceModelParser.map(
                         "implementation", PlantUmlStateFrontend.class.getName(),
                         "plantuml_version", Version.versionString(),
                         "java_version", System.getProperty("java.version")),
-                "canonical", new SourceModelParser(source, exampleId, sourceName).parse(),
-                "official_model", inspectOfficial(officialSource, officialPath.getFileName().toString()),
+                "source_normalization", SourceModelParser.map(
+                        "raw_source_sha256", SourceModelParser.sha256(source),
+                        "normalized_source_sha256", SourceModelParser.sha256(sourceNormalized.source),
+                        "changes", sourceNormalized.changes),
+                "canonical", canonical,
+                "official_model", officialRawModel,
                 "official_validation", SourceModelParser.map(
+                        "source_input_normalizations", officialInputNormalized.changes,
                         "normalizations", normalized.changes,
-                        "model", inspectOfficial(normalized.source, "normalized:" + officialPath.getFileName().toString())));
+                        "model", officialValidationModel));
         System.out.println(JsonWriter.write(output));
     }
 

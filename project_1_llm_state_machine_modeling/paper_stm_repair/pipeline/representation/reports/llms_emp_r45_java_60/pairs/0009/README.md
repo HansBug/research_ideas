@@ -4,15 +4,63 @@
 
 - LLM：`GPT-4o`
 - 模型/场景：autonomous mode
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE11`；Excel row：`11`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`false`
+- Phase-I PlantUML SHA-256：`fa210ede8e3af220ab1c96a5504e93dd8bccf4d4e06af68d15c988654c76ef53`
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`fa210ede8e3af220ab1c96a5504e93dd8bccf4d4e06af68d15c988654c76ef53`
-- FCSTM SHA-256：`ef8ba51705b530587ea0843a9faebe27b00a98acfd4f51bd05232afef56cb52b`
+- FCSTM SHA-256：`bcd6a15d891bffd59f0c9024a2206d0d2fb7a07febb97a55e4c12251c42bc268`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`15` / `26`
+- mapped / blocked / silent drop：`26` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`15` / `26`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：Autonomous/Highway/Urban/CollisionAvoidance hierarchy 与 scoped `FinishState`、26 条边一致。
+- 主 session 对读：完整对读：Autonomous/Highway/Urban 与独立 CollisionAvoidanceSystem 的 26 条边全部存在；官方将所有 FinishState 引用统一到 HighwayMode.FinishState，FCSTM 用跨 scope 退出和 target-entry 段保留这一反直觉原语义。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0009.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0009.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0009.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0009.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0009.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0009.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I11` | `true` | `fa210ede8e3af220ab1c96a5504e93dd8bccf4d4e06af68d15c988654c76ef53` | - | - |
+| `phase_ii_format` | `U11` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z11` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE11` | `true` | `fa210ede8e3af220ab1c96a5504e93dd8bccf4d4e06af68d15c988654c76ef53` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`15` / `15`
+- aligned transition endpoints：`26`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.missing_explicit_initial` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 21 |
 
 ## NL
 
@@ -32,7 +80,7 @@
 13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
@@ -100,7 +148,7 @@ state CollisionAvoidanceSystem {
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0009 named "llms_emp_stm_results_0009" {
+state llms_emp_feedback_final_0009 named "llms_emp_feedback_final_0009" {
     event high_way_true named "high_way=true";
     event urban_way_true named "urban_way=true";
     event dist_to_front_25 named "dist_to_front>=25";
@@ -115,12 +163,17 @@ state llms_emp_stm_results_0009 named "llms_emp_stm_results_0009" {
     event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_high_way_true_dist_to_front_10_urban_way_true named "pedestrian_detected || (dist_to_rear<5 && vel>30) || (dist_to_front<15 && high_way=true) || (dist_to_front<10 && urban_way=true)";
     event front_inactive_rear_inactive_pedestrian_inactive named "front_inactive && rear_inactive && pedestrian_inactive";
     state AutonomousMode named "AutonomousMode" {
-        state InitialState named "InitialState";
+        state InitialState named "InitialState" {
+            state UnspecifiedInitial named "Unspecified initial";
+            [*] -> UnspecifiedInitial;
+        }
         state HighwayMode named "HighwayMode" {
             state enter_hwy named "enter_hwy";
             state cruise named "cruise";
             state lane_change named "lane_change";
             state FinishState named "FinishState";
+            [*] -> FinishState : /dist_to_exit_0_7;
+            [*] -> FinishState : /auto_finished_true;
             [*] -> enter_hwy;
             enter_hwy -> cruise : /dist_to_front_25;
             enter_hwy -> lane_change : /dist_to_front_25_extra_lane_true;
@@ -128,28 +181,27 @@ state llms_emp_stm_results_0009 named "llms_emp_stm_results_0009" {
             cruise -> FinishState : /dist_to_exit_2;
             lane_change -> cruise : /lane_change_complete;
             lane_change -> FinishState : /dist_to_exit_2;
+            ! * -> FinishState : /auto_finished_true;
         }
         state UrbanMode named "UrbanMode" {
             state enter_urban named "enter_urban";
             state lane_change_urban named "lane_change_urban";
             state straight named "straight";
             state intersection named "intersection";
-            state FinishState named "FinishState";
             [*] -> enter_urban;
             enter_urban -> lane_change_urban : /dist_to_front_15_extra_lane_true;
             enter_urban -> straight : /road_clear;
             enter_urban -> intersection : /intersection_true;
             lane_change_urban -> straight : /lane_change_complete;
-            lane_change_urban -> FinishState : /dist_to_exit_0_7;
+            lane_change_urban -> [*] : /dist_to_exit_0_7;
             straight -> intersection : /intersection_true;
             straight -> lane_change_urban : /dist_to_front_15_extra_lane_true;
         }
-        state FinishState named "FinishState";
         [*] -> InitialState;
-        InitialState -> HighwayMode : /high_way_true;
-        InitialState -> UrbanMode : /urban_way_true;
-        !HighwayMode -> FinishState : /auto_finished_true;
-        !UrbanMode -> FinishState : /auto_finished_true;
+        !InitialState -> HighwayMode : /high_way_true;
+        !InitialState -> UrbanMode : /urban_way_true;
+        UrbanMode -> HighwayMode : /dist_to_exit_0_7;
+        !UrbanMode -> HighwayMode : /auto_finished_true;
         !HighwayMode -> UrbanMode : /urban_way_true;
         !UrbanMode -> HighwayMode : /high_way_true;
     }

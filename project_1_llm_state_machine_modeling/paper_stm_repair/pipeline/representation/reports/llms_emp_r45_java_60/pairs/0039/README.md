@@ -4,15 +4,63 @@
 
 - LLM：`Kimi`
 - 模型/场景：autonomous mode
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE41`；Excel row：`41`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`false`
+- Phase-I PlantUML SHA-256：`187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391`
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391`
-- FCSTM SHA-256：`782df96661b3a942d8691f1b1e97ab3aa251469ed4980f2317f6abb3785052c0`
+- FCSTM SHA-256：`b08cb9457a167036b218c27aff0df2c4570e4b419f61ce4030603894e90ce540`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`15` / `26`
+- mapped / blocked / silent drop：`26` / `0` / `0`
+- final / lifecycle / body coverage：`2/2` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`15` / `26`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：26 edge、两条 root initial、两个 Highway nested final hold 与 composite-to-descendant forced edge 齐。
+- 主 session 对读：完整对读：Autonomous/Highway/Urban 和 root CollisionAvoidance 双态共 15 状态、26 边全保留；Highway 两个带事件 final 使用独立 wait，root 的 Autonomous 与 collision 双 initial 原样保留并标记 multiple-initial 债。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0039.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0039.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0039.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0039.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0039.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0039.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I41` | `true` | `187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391` | - | - |
+| `phase_ii_format` | `U41` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z41` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE41` | `true` | `187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`15` / `15`
+- aligned transition endpoints：`26`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.multiple_initial_fanout` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 20 |
 
 ## NL
 
@@ -32,7 +80,7 @@
 13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
@@ -90,7 +138,7 @@ collision_avoidance_active --> collision_avoidance_deactive : front_inactive && 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0039 named "llms_emp_stm_results_0039" {
+state llms_emp_feedback_final_0039 named "llms_emp_feedback_final_0039" {
     event high_way_true named "high_way=true";
     event urban_way_true named "urban_way=true";
     event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true";

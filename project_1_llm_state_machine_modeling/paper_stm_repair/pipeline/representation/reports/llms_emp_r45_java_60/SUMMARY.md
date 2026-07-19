@@ -1,19 +1,20 @@
-# LLMS-EMP 60 例 Java PlantUML -> FCSTM R4.5 复验
-
-> 逐组人工查看入口：[PAIR_INDEX.md](./PAIR_INDEX.md)。从 `0000` 到 `0059` 每组都提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件，以及一个在同页完整展示 NL + PlantUML + FCSTM 的 `README.md`。
+# LLMS-EMP Phase-II final 60 例 Java PlantUML -> FCSTM R4.5 复验
 
 ## 结论
 
 - Java source frontend：`60/60`。
-- raw PlantUML 官方直接接受：`33/60`；其余 `27` 条含非官方扩展/伪语法。
+- raw PlantUML 官方直接接受：`59/60`；其余 `1` 条含非官方扩展/伪语法。
 - Java official-validation normalization 后 `StateDiagram`：`60/60`。
-- 官方 internal model links：`755`；source transitions：`754`。唯一 `+1` 来自 `0019` 的 note attachment，不是行为迁移。
-- source transition：`754`；FCSTM macro 映射 `754`，结构 blocked `0`，静默丢失 `0`。
-- final boundary：`36/36`。
-- opaque state body：`96/96`；均保存在 FCSTM display metadata 与 trace，不解释为 timing/guard/action。
-- lifecycle action：`19/19` 结构保存；其中 state-owned `18` 条挂接为 abstract hook（未注册源行为），`1` 条 ownerless 仅保存 metadata。
+- pinned PlantUML internal identity oracle：官方 behavior links `757`，source transitions `757`，差值 `+0`；note/presentation attachment 在 identity reconciliation 前过滤。
+- source transition：`757`；FCSTM macro 映射 `757`，结构 blocked `0`，静默丢失 `0`。
+- final boundary：`35/35`。
+- opaque state body：`95/95`；均保存在 FCSTM display metadata 与 trace，不解释为 timing/guard/action。
+- lifecycle action：`16/16` 结构保存；state-owned action 以 abstract hook 保留，ownerless action 仅保存在 metadata/trace，二者都不冒充已注册行为。
+- PlantUML concurrent region：`29/29`；region separator：`20/20`，仅保留结构与顺序，不声称 FCSTM 已实现正交并发执行。
+- 作者 workbook transport normalization：`6/6`；raw source、normalized source、规则与逐行 before/after 均进入 ledger。
 - FCSTM parse/inspect：`60/60` / `60/60`。
 - pyfcstm AST 独立反查：`60/60`。
+- pinned PlantUML qualified identity：states `516/516`；transition endpoints `757/757`；state remap `24`；endpoint remap `37`。
 - R4.5 structural preservation：`60/60`；structure blocked：`0/60`。
 - FCSTM execution eligible：`0/60`；Discover eligible：`0/60`。
 
@@ -25,11 +26,11 @@
 
 | case | structural verdict | states | transitions | mapped | blocked | final | lifecycle | raw official | normalized official |
 |---|---|---:|---:|---:|---:|---:|---:|---|---|
-| `0000` | `structure_preserved` | 6 | 7 | 7 | 0 | 0/0 | 0/0 | `state_diagram` | `state_diagram` |
-| `0022` | `structure_preserved` | 5 | 9 | 9 | 0 | 1/1 | 0/0 | `not_state_diagram` | `state_diagram` |
-| `0053` | `structure_preserved` | 4 | 6 | 6 | 0 | 0/0 | 0/0 | `state_diagram` | `state_diagram` |
+| `0000` | `structure_preserved` | 5 | 6 | 6 | 0 | 0/0 | 0/0 | `state_diagram` | `state_diagram` |
+| `0022` | `structure_preserved` | 5 | 10 | 10 | 0 | 1/1 | 0/0 | `state_diagram` | `state_diagram` |
+| `0053` | `structure_preserved` | 7 | 4 | 4 | 0 | 0/0 | 0/0 | `state_diagram` | `state_diagram` |
 | `0054` | `structure_preserved` | 7 | 8 | 8 | 0 | 0/0 | 4/4 | `state_diagram` | `state_diagram` |
-| `0058` | `structure_preserved` | 25 | 22 | 22 | 0 | 1/1 | 0/0 | `not_state_diagram` | `state_diagram` |
+| `0058` | `structure_preserved` | 24 | 22 | 22 | 0 | 1/1 | 0/0 | `not_state_diagram` | `state_diagram` |
 
 ## 机器证据入口
 

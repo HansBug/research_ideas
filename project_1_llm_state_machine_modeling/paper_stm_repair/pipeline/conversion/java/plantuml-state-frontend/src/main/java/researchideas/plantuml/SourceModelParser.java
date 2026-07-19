@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 final class SourceModelParser {
     private static final Pattern ARROW = Pattern.compile("-(?:left|right|up|down)->|-->|->", Pattern.CASE_INSENSITIVE);
     private static final Pattern STATE = Pattern.compile(
-            "^state\\s+(?:\"([^\"]+)\"\\s+as\\s+([A-Za-z_][A-Za-z0-9_]*)|([^\\s:{]+))(.*)$",
+            "^state\\s+(?:\"+([^\"]+)\"+\\s+as\\s+([A-Za-z_][A-Za-z0-9_]*)|([^\\s:{]+))(.*)$",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern STM_BLOCK = Pattern.compile("^stm\\s+(.+?)\\s*\\{\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern STM_HEADING = Pattern.compile("^stm\\s+(.+?)\\s*$", Pattern.CASE_INSENSITIVE);
@@ -29,6 +29,8 @@ final class SourceModelParser {
     private static final Pattern PRESENTATION = Pattern.compile(
             "^(?:note\\b|legend\\b|end\\s*legend\\b|title\\b|skinparam\\b|hide\\b|show\\b|scale\\b|left\\s+to\\s+right\\s+direction\\b)",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern START_MARKER = Pattern.compile("^@startuml(?:\\s+(.+?))?\\s*$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern END_MARKER = Pattern.compile("^@enduml\\s*$", Pattern.CASE_INSENSITIVE);
 
     private static final class StateNode {
         final String id;
@@ -39,11 +41,13 @@ final class SourceModelParser {
         String alias;
         boolean explicit;
         boolean declaredWithBlock;
+        final Set<Integer> parentRegionIndices = new LinkedHashSet<Integer>();
         final List<Map<String, Object>> declarations = new ArrayList<Map<String, Object>>();
         final List<Map<String, Object>> bodyLines = new ArrayList<Map<String, Object>>();
         final List<Map<String, Object>> lifecycleActions = new ArrayList<Map<String, Object>>();
 
-        StateNode(String id, String shortName, String label, String parent, String kind, String alias, boolean explicit) {
+        StateNode(String id, String shortName, String label, String parent, String kind, String alias,
+                  boolean explicit, int parentRegionIndex) {
             this.id = id;
             this.shortName = shortName;
             this.label = label;
@@ -51,6 +55,7 @@ final class SourceModelParser {
             this.kind = kind;
             this.alias = alias;
             this.explicit = explicit;
+            this.parentRegionIndices.add(parentRegionIndex);
         }
 
         Set<String> symbols() {
@@ -71,6 +76,7 @@ final class SourceModelParser {
                     "declarations", declarations,
                     "body_lines", bodyLines,
                     "lifecycle_actions", lifecycleActions);
+            attributes.put("parent_region_indices", new ArrayList<Integer>(parentRegionIndices));
             return map(
                     "id", id,
                     "label", label,
@@ -85,11 +91,13 @@ final class SourceModelParser {
         final int line;
         final String text;
         final String scope;
+        final int regionIndex;
 
-        Statement(int line, String text, String scope) {
+        Statement(int line, String text, String scope, int regionIndex) {
             this.line = line;
             this.text = text;
             this.scope = scope;
+            this.regionIndex = regionIndex;
         }
     }
 
@@ -112,6 +120,8 @@ final class SourceModelParser {
     private final List<Map<String, Object>> ignoredPresentation = new ArrayList<Map<String, Object>>();
     private final List<Map<String, Object>> orphanLifecycle = new ArrayList<Map<String, Object>>();
     private final List<Map<String, Object>> unparsed = new ArrayList<Map<String, Object>>();
+    private final List<Map<String, Object>> concurrentRegionSeparators = new ArrayList<Map<String, Object>>();
+    private final Map<String, Integer> currentRegionByScope = new LinkedHashMap<String, Integer>();
     private String currentScope;
 
     SourceModelParser(String text, String exampleId, String sourceName) {
@@ -122,15 +132,16 @@ final class SourceModelParser {
 
     Map<String, Object> parse() {
         collect();
-        resolveBodies();
-        finalizeStateKinds();
         List<Map<String, Object>> transitions = new ArrayList<Map<String, Object>>();
         for (int i = 0; i < rawTransitions.size(); i++) {
             transitions.add(parseTransition(rawTransitions.get(i), i + 1));
         }
+        resolveBodies();
+        finalizeStateKinds();
+        List<Map<String, Object>> concurrentRegions = buildConcurrentRegions(transitions);
         List<Map<String, Object>> stateMaps = new ArrayList<Map<String, Object>>();
         boolean hierarchical = false;
-        boolean concurrent = false;
+        boolean concurrent = !concurrentRegionSeparators.isEmpty();
         for (StateNode state : states.values()) {
             stateMaps.add(state.toMap());
             hierarchical |= state.parent != null;
@@ -150,7 +161,7 @@ final class SourceModelParser {
         String hierarchyLevel = concurrent ? "concurrent" : (hierarchical ? "hierarchical" : "flat");
         String status = unparsed.isEmpty() ? "converted" : "partial";
         String modelName = headings.isEmpty() ? exampleId : String.valueOf(headings.get(0).get("text"));
-        return map(
+        Map<String, Object> result = map(
                 "schema_version", "r4_5.plantuml_source_canonical.v1",
                 "example_id", exampleId,
                 "seed_id", exampleId,
@@ -176,8 +187,13 @@ final class SourceModelParser {
                         "model_headings", headings,
                         "ignored_presentation_lines", ignoredPresentation,
                         "orphan_lifecycle_actions", orphanLifecycle,
+                        "concurrent_region_separators", concurrentRegionSeparators,
                         "unparsed_semantic_lines", unparsed,
                         "label_policy", "preserve_as_opaque_event; do not infer guard/effect/timing"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> model = (Map<String, Object>) result.get("model");
+        model.put("concurrent_regions", concurrentRegions);
+        return result;
     }
 
     private void collect() {
@@ -185,8 +201,25 @@ final class SourceModelParser {
         for (int i = 0; i < lines.length; i++) {
             int lineNumber = i + 1;
             String stripped = lines[i].trim();
-            String lowered = stripped.toLowerCase(Locale.ROOT);
-            if (stripped.isEmpty() || "@startuml".equals(lowered) || "@enduml".equals(lowered)) {
+            if (stripped.isEmpty()) {
+                continue;
+            }
+            Matcher startMarker = START_MARKER.matcher(stripped);
+            if (startMarker.matches()) {
+                ignoredPresentation.add(map(
+                        "line", lineNumber,
+                        "raw", stripped,
+                        "raw_ref", rawRef(lineNumber),
+                        "reason", "plantuml_start_marker",
+                        "diagram_name", emptyToNull(startMarker.group(1) == null ? "" : startMarker.group(1).trim())));
+                continue;
+            }
+            if (END_MARKER.matcher(stripped).matches()) {
+                ignoredPresentation.add(map(
+                        "line", lineNumber,
+                        "raw", stripped,
+                        "raw_ref", rawRef(lineNumber),
+                        "reason", "plantuml_end_marker"));
                 continue;
             }
             if (stripped.startsWith("'") || stripped.startsWith("//")) {
@@ -212,11 +245,29 @@ final class SourceModelParser {
                 continue;
             }
             if (PRESENTATION.matcher(stripped).find()) {
-                ignoredPresentation.add(map("line", lineNumber, "raw", stripped));
+                ignoredPresentation.add(map(
+                        "line", lineNumber,
+                        "raw", stripped,
+                        "raw_ref", rawRef(lineNumber),
+                        "reason", "plantuml_presentation"));
+                continue;
+            }
+            if ("--".equals(stripped)) {
+                int before = currentRegion(currentScope);
+                int after = before + 1;
+                concurrentRegionSeparators.add(map(
+                        "id", String.format(Locale.ROOT, "region_separator_%04d", concurrentRegionSeparators.size() + 1),
+                        "owner_scope", currentScope,
+                        "line", lineNumber,
+                        "raw", stripped,
+                        "raw_ref", rawRef(lineNumber),
+                        "preceding_region_index", before,
+                        "following_region_index", after));
+                currentRegionByScope.put(scopeKey(currentScope), after);
                 continue;
             }
             if (ARROW.matcher(stripped).find()) {
-                rawTransitions.add(new Statement(lineNumber, stripped, currentScope));
+                rawTransitions.add(new Statement(lineNumber, stripped, currentScope, currentRegion(currentScope)));
                 continue;
             }
             Matcher forkJoin = FORK_JOIN.matcher(stripped);
@@ -244,11 +295,7 @@ final class SourceModelParser {
                 continue;
             }
             if (stripped.contains(":")) {
-                rawBodies.add(new Statement(lineNumber, stripped, currentScope));
-                continue;
-            }
-            if ("--".equals(stripped)) {
-                unparsed.add(map("line", lineNumber, "raw", stripped, "reason", "concurrent_region_separator_unsupported"));
+                rawBodies.add(new Statement(lineNumber, stripped, currentScope, currentRegion(currentScope)));
                 continue;
             }
             unparsed.add(map("line", lineNumber, "raw", stripped, "reason", "unrecognized_semantic_line"));
@@ -278,11 +325,13 @@ final class SourceModelParser {
             kind = "join";
         } else if (restLower.contains("<<choice>>")) {
             kind = "choice";
+        } else if (restLower.contains("<<junction>>")) {
+            kind = "junction";
         }
         StateNode state = declareState(shortName, label, currentScope, line, stripped, kind, alias, true);
         state.declaredWithBlock |= opens;
         if (rest.startsWith(":")) {
-            rawBodies.add(new Statement(line, shortName + " " + rest, currentScope));
+            rawBodies.add(new Statement(line, shortName + " " + rest, currentScope, currentRegion(currentScope)));
         } else if (!rest.isEmpty() && !rest.startsWith("<<")) {
             state.bodyLines.add(map("line", line, "text", rest, "raw", stripped, "raw_ref", rawRef(line)));
         }
@@ -290,18 +339,29 @@ final class SourceModelParser {
             state.kind = "composite";
             frames.push(new Frame(currentScope));
             currentScope = state.id;
+            if (!currentRegionByScope.containsKey(scopeKey(currentScope))) {
+                currentRegionByScope.put(scopeKey(currentScope), 0);
+            }
         }
         return true;
     }
 
     private StateNode declareState(String shortName, String label, String parent, int line, String raw,
                                    String kind, String alias, boolean explicit) {
+        return declareState(shortName, label, parent, line, raw, kind, alias, explicit, currentRegion(parent));
+    }
+
+    private StateNode declareState(String shortName, String label, String parent, int line, String raw,
+                                   String kind, String alias, boolean explicit, int parentRegionIndex) {
         String id = qualified(parent, shortName);
         StateNode state = states.get(id);
         if (state == null) {
-            state = new StateNode(id, shortName, label == null ? shortName : label, parent, kind, alias, explicit);
+            state = new StateNode(
+                    id, shortName, label == null ? shortName : label, parent, kind, alias, explicit,
+                    parentRegionIndex);
             states.put(id, state);
         } else {
+            state.parentRegionIndices.add(parentRegionIndex);
             if (label != null && (state.label.equals(state.shortName) || alias != null)) {
                 state.label = label;
             }
@@ -313,7 +373,11 @@ final class SourceModelParser {
                 state.kind = kind;
             }
         }
-        state.declarations.add(map("line", line, "raw", raw, "raw_ref", rawRef(line)));
+        state.declarations.add(map(
+                "line", line,
+                "raw", raw,
+                "raw_ref", rawRef(line),
+                "parent_region_index", parentRegionIndex));
         return state;
     }
 
@@ -338,6 +402,9 @@ final class SourceModelParser {
                 }
             }
             if (state == null) {
+                state = directMatch(name, statement.scope, false);
+            }
+            if (state == null) {
                 List<StateNode> aliasMatches = new ArrayList<StateNode>();
                 for (StateNode candidate : states.values()) {
                     if (candidate.explicit && name.equals(candidate.alias)) {
@@ -349,7 +416,9 @@ final class SourceModelParser {
                 }
             }
             if (state == null) {
-                state = declareState(name, name, statement.scope, statement.line, statement.text, "state", null, false);
+                state = declareState(
+                        name, name, statement.scope, statement.line, statement.text, "state", null, false,
+                        statement.regionIndex);
             }
             Matcher lifecycle = LIFECYCLE.matcher(body);
             if (lifecycle.matches()) {
@@ -359,7 +428,8 @@ final class SourceModelParser {
                         "line", statement.line,
                         "text", body,
                         "raw", statement.text,
-                        "raw_ref", rawRef(statement.line)));
+                        "raw_ref", rawRef(statement.line),
+                        "region_index", statement.regionIndex));
             }
         }
     }
@@ -389,7 +459,8 @@ final class SourceModelParser {
                 "text", actionText.trim(),
                 "line", line,
                 "raw", raw,
-                "raw_ref", rawRef(line)));
+                "raw_ref", rawRef(line),
+                "region_index", currentRegion(currentScope)));
     }
 
     private static String normalizedLifecycleKind(String rawKind) {
@@ -404,6 +475,10 @@ final class SourceModelParser {
     }
 
     private StateNode resolveExplicit(String name, String scope) {
+        StateNode qualified = states.get(name);
+        if (qualified != null && qualified.explicit) {
+            return qualified;
+        }
         if (scope != null) {
             StateNode owner = states.get(scope);
             if (owner != null && owner.symbols().contains(name)) {
@@ -420,8 +495,12 @@ final class SourceModelParser {
         return explicitMatches.size() == 1 ? explicitMatches.get(0) : null;
     }
 
-    private StateNode resolveEndpoint(String rawName, String scope, int line) {
+    private StateNode resolveEndpoint(String rawName, String scope, int line, int regionIndex) {
         String name = cleanEndpoint(rawName);
+        StateNode qualified = states.get(name);
+        if (qualified != null) {
+            return qualified;
+        }
         StateNode explicit = resolveExplicit(name, scope);
         if (explicit != null) {
             return explicit;
@@ -444,8 +523,35 @@ final class SourceModelParser {
                 return descendants.get(0);
             }
         }
-        return declareState(name, name, scope, line, "implicit from transition endpoint " + rawName,
-                "state", null, false);
+        List<StateNode> uniqueMatches = matching(name, false);
+        if (uniqueMatches.size() == 1) {
+            return uniqueMatches.get(0);
+        }
+        return declareState(
+                name, name, scope, line, "implicit from transition endpoint " + rawName,
+                "state", null, false, regionIndex);
+    }
+
+    private StateNode resolveInitialTarget(String rawName, String scope, int line, int regionIndex) {
+        String name = cleanEndpoint(rawName);
+        StateNode qualified = states.get(name);
+        if (qualified != null) {
+            return qualified;
+        }
+        StateNode local = directMatch(name, scope, false);
+        if (local != null) {
+            return local;
+        }
+        StateNode explicit = resolveExplicit(name, scope);
+        if (explicit != null) {
+            return explicit;
+        }
+        if (scope != null) {
+            return declareState(
+                    name, name, scope, line, "implicit from initial transition target " + rawName,
+                    "state", null, false, regionIndex);
+        }
+        return resolveEndpoint(rawName, scope, line, regionIndex);
     }
 
     private List<StateNode> matching(String name, boolean explicitOnly) {
@@ -507,14 +613,16 @@ final class SourceModelParser {
             source = "@initial:" + scopeKey(statement.scope);
             kind = "initial";
         } else {
-            sourceState = resolveEndpoint(sourceRaw, statement.scope, statement.line);
+            sourceState = resolveEndpoint(sourceRaw, statement.scope, statement.line, statement.regionIndex);
             source = sourceState.id;
         }
         if (targetFinal) {
             target = "@final:" + scopeKey(statement.scope);
             kind = "final";
         } else {
-            targetState = resolveEndpoint(targetRaw, statement.scope, statement.line);
+            targetState = sourceInitial
+                    ? resolveInitialTarget(targetRaw, statement.scope, statement.line, statement.regionIndex)
+                    : resolveEndpoint(targetRaw, statement.scope, statement.line, statement.regionIndex);
             target = targetState.id;
         }
         Map<String, Object> attributes = map(
@@ -528,6 +636,7 @@ final class SourceModelParser {
                 "raw_label_present", labelPresent,
                 "raw_label", label,
                 "label_semantics", label == null ? "unlabeled" : "opaque_plantuml_display_label",
+                "region_index", statement.regionIndex,
                 "source_parent", sourceState == null ? statement.scope : sourceState.parent,
                 "target_parent", targetState == null ? statement.scope : targetState.parent);
         return map(
@@ -545,6 +654,68 @@ final class SourceModelParser {
 
     private String rawRef(int line) {
         return sourceName + ":line:" + line;
+    }
+
+    private int currentRegion(String scope) {
+        Integer value = currentRegionByScope.get(scopeKey(scope));
+        return value == null ? 0 : value.intValue();
+    }
+
+    private List<Map<String, Object>> buildConcurrentRegions(List<Map<String, Object>> transitions) {
+        Map<String, String> scopeByKey = new LinkedHashMap<String, String>();
+        Map<String, Integer> lastRegionByKey = new LinkedHashMap<String, Integer>();
+        for (Map<String, Object> separator : concurrentRegionSeparators) {
+            String ownerScope = (String) separator.get("owner_scope");
+            String key = scopeKey(ownerScope);
+            scopeByKey.put(key, ownerScope);
+            lastRegionByKey.put(key, (Integer) separator.get("following_region_index"));
+        }
+        List<Map<String, Object>> regions = new ArrayList<Map<String, Object>>();
+        for (Map.Entry<String, Integer> scopeEntry : lastRegionByKey.entrySet()) {
+            String key = scopeEntry.getKey();
+            String ownerScope = scopeByKey.get(key);
+            for (int regionIndex = 0; regionIndex <= scopeEntry.getValue().intValue(); regionIndex++) {
+                List<String> stateIds = new ArrayList<String>();
+                for (StateNode state : states.values()) {
+                    if (equal(ownerScope, state.parent) && state.parentRegionIndices.contains(regionIndex)) {
+                        stateIds.add(state.id);
+                    }
+                }
+                List<String> transitionIds = new ArrayList<String>();
+                for (Map<String, Object> transition : transitions) {
+                    if (!equal(ownerScope, transition.get("scope"))) {
+                        continue;
+                    }
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> attributes = (Map<String, Object>) transition.get("attributes");
+                    if (((Integer) attributes.get("region_index")).intValue() == regionIndex) {
+                        transitionIds.add((String) transition.get("id"));
+                    }
+                }
+                List<String> separatorBefore = new ArrayList<String>();
+                List<String> separatorAfter = new ArrayList<String>();
+                for (Map<String, Object> separator : concurrentRegionSeparators) {
+                    if (!equal(ownerScope, separator.get("owner_scope"))) {
+                        continue;
+                    }
+                    if (((Integer) separator.get("following_region_index")).intValue() == regionIndex) {
+                        separatorBefore.add((String) separator.get("raw_ref"));
+                    }
+                    if (((Integer) separator.get("preceding_region_index")).intValue() == regionIndex) {
+                        separatorAfter.add((String) separator.get("raw_ref"));
+                    }
+                }
+                regions.add(map(
+                        "id", key + ":region:" + regionIndex,
+                        "owner_scope", ownerScope,
+                        "region_index", regionIndex,
+                        "state_ids", stateIds,
+                        "transition_ids", transitionIds,
+                        "separator_before_raw_refs", separatorBefore,
+                        "separator_after_raw_refs", separatorAfter));
+            }
+        }
+        return regions;
     }
 
     private static String qualified(String parent, String shortName) {
@@ -586,7 +757,7 @@ final class SourceModelParser {
         return value.isEmpty() ? null : value;
     }
 
-    private static String sha256(String value) {
+    static String sha256(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encoded = digest.digest(value.getBytes(StandardCharsets.UTF_8));

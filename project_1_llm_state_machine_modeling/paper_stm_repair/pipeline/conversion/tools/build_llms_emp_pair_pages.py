@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import shutil
+from collections import Counter
 from pathlib import Path
 
 
@@ -19,7 +20,8 @@ REPO_ROOT = _repo_root()
 PAPER_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair"
 PAIRS_PATH = (
     PAPER_ROOT
-    / "corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl"
+    / "corpora/seed_library/llms-emp-stm-subset/assets/extracted"
+    / "feedback_final_pairs.jsonl"
 )
 EVIDENCE_DIR = (
     PAPER_ROOT / "pipeline/representation/reports/llms_emp_r45_java_60"
@@ -45,6 +47,124 @@ def _table_text(value: object) -> str:
 
 def _display_text(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.splitlines())
+
+
+def _stage_lineage_lines(source_row: dict) -> list[str]:
+    lines = [
+        "| stage | output cell | present | output SHA-256 | feedback | resolved |",
+        "|---|---|---|---|---|---|",
+    ]
+    for item in source_row["stage_lineage"]:
+        output = item["output"]
+        feedback = item["feedback"]
+        resolved = item["resolved"]
+        lines.append(
+            "| `{stage}` | `{cell}` | `{present}` | `{sha}` | {feedback} | {resolved} |".format(
+                stage=item["stage_id"],
+                cell=output.get("cell") or "-",
+                present=str(output["present"]).lower(),
+                sha=output.get("sha256") or "-",
+                feedback=_table_text(feedback.get("value")),
+                resolved=_table_text(resolved.get("value")),
+            )
+        )
+    return lines
+
+
+def _normalization_lines(comparison: dict) -> list[str]:
+    mappings = comparison["source_normalization_mappings"]
+    if not mappings:
+        return ["本组没有 source-input normalization。"]
+    lines = [
+        "| raw ref | rule | before | after |",
+        "|---|---|---|---|",
+    ]
+    for item in mappings:
+        lines.append(
+            f"| `{item['raw_ref']}` | `{item['rule_id']}` | "
+            f"`{_table_text(item['before'])}` | `{_table_text(item['after'])}` |"
+        )
+    return lines
+
+
+def _official_identity_lines(reconciliation: dict) -> list[str]:
+    lines = [
+        f"- status：`{reconciliation['status']}`",
+        f"- canonical / official states：`{reconciliation['canonical_state_count_after']}` / `{reconciliation['official_state_count']}`",
+        f"- aligned transition endpoints：`{reconciliation['transition_identity_alignment_count']}`",
+    ]
+    state_remaps = reconciliation["state_identity_remaps"]
+    transition_remaps = reconciliation["transition_endpoint_remaps"]
+    if state_remaps:
+        lines.extend(
+            [
+                "",
+                "| source-parser identity | pinned PlantUML identity | raw ref | reason |",
+                "|---|---|---|---|",
+                *[
+                    f"| `{item['before']}` | `{item['after']}` | `{item['raw_ref']}` | `{item['reason']}` |"
+                    for item in state_remaps
+                ],
+            ]
+        )
+    else:
+        lines.extend(["", "本组 state identity 无需重映射。"])
+    if transition_remaps:
+        lines.extend(
+            [
+                "",
+                "| transition | source before -> after | target before -> after | raw ref |",
+                "|---|---|---|---|",
+                *[
+                    "| `{transition}` | `{source_before}` -> `{source_after}` | "
+                    "`{target_before}` -> `{target_after}` | `{raw_ref}` |".format(
+                        transition=item["transition_id"],
+                        source_before=item["source_before"],
+                        source_after=item["source_after"],
+                        target_before=item["target_before"],
+                        target_after=item["target_after"],
+                        raw_ref=item["raw_ref"],
+                    )
+                    for item in transition_remaps
+                ],
+            ]
+        )
+    else:
+        lines.extend(["", "本组 transition endpoint 无需重映射。"])
+    return lines
+
+
+def _concurrent_region_lines(comparison: dict) -> list[str]:
+    mappings = comparison["concurrent_region_mappings"]
+    if not mappings:
+        return ["本组没有 PlantUML orthogonal/concurrent region separator。"]
+    lines = [
+        "| owner | region | direct states | direct transitions | separator before | separator after |",
+        "|---|---:|---|---|---|---|",
+    ]
+    for item in mappings:
+        lines.append(
+            "| `{owner}` | {region} | {states} | {transitions} | {before} | {after} |".format(
+                owner=item.get("owner_scope") or "__root__",
+                region=item["region_index"],
+                states=_table_text(", ".join(item["state_ids"]) or "-"),
+                transitions=_table_text(", ".join(item["transition_ids"]) or "-"),
+                before=_table_text(", ".join(item["separator_before_raw_refs"]) or "-"),
+                after=_table_text(", ".join(item["separator_after_raw_refs"]) or "-"),
+            )
+        )
+    return lines
+
+
+def _debt_lines(comparison: dict) -> list[str]:
+    reasons = Counter(
+        item["reason_code"] for item in comparison["operational_debts"]
+    )
+    return [
+        "| reason code | count |",
+        "|---|---:|",
+        *[f"| `{reason}` | {count} |" for reason, count in sorted(reasons.items())],
+    ]
 
 
 def build_pair_pages() -> None:
@@ -86,9 +206,9 @@ def build_pair_pages() -> None:
             shutil.rmtree(stale_dir)
 
     index_lines = [
-        "# LLMS-EMP 60 组 NL + PlantUML STM0 + FCSTM STM0",
+        "# LLMS-EMP Phase-II final 60 组 NL + PlantUML STM0 + FCSTM STM0",
         "",
-        "从 `0000` 到 `0059` 逐行点击“3-in-one Markdown”，即可在同一 GitHub 页面完整查看 NL、原装 PlantUML STM0 和转换后 FCSTM STM0。每组目录同时提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件。",
+        "从 `0000` 到 `0059` 逐行点击“3-in-one Markdown”，即可在同一 GitHub 页面完整查看 NL、作者 Phase-II 最终 PlantUML 和转换后 FCSTM。每组目录同时提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件。",
         "",
         "`structure_preserved` 只表示 R4.5 结构保真，不表示行为等价；执行与 Discover 资格仍以每页记录为准。",
         "",
@@ -99,6 +219,13 @@ def build_pair_pages() -> None:
         pair_id = source_row["pair_id"]
         case_id = pair_id[-4:]
         comparison = comparison_rows[case_id]
+        case_report = json.loads(
+            (EVIDENCE_DIR / "case_reports" / f"{pair_id}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        detailed = case_report["comparison"]
+        official_identity = case_report["official_identity_reconciliation"]
         nl_text = source_row["nl_text"]
         source_text = source_row["stm0_text"]
         fcstm_path = EVIDENCE_DIR / "fcstm" / f"{pair_id}.fcstm"
@@ -138,10 +265,24 @@ def build_pair_pages() -> None:
             "",
             f"- LLM：`{source_row.get('llm') or '-'}`",
             f"- 模型/场景：{_table_text(source_row.get('model_name'))}",
+            f"- 作者输出阶段：`{source_row['selected_stage_column']}`",
+            f"- 作者输出单元格：`{source_row['selected_stage_cell']}`；Excel row：`{source_row['source_excel_row']}`",
+            f"- Phase-I fallback：`{str(source_row['is_phase_i_fallback']).lower()}`",
+            f"- 相对 Phase-I 是否变化：`{str(source_row['phase_i_changed']).lower()}`",
+            f"- Phase-I PlantUML SHA-256：`{source_row['phase_i_stm0_sha256']}`",
             f"- NL SHA-256：`{nl_sha256}`",
             f"- PlantUML SHA-256：`{source_sha256}`",
             f"- FCSTM SHA-256：`{fcstm_sha256}`",
             f"- 结构裁决：`{comparison['verdict']}`",
+            f"- source states / transitions：`{comparison['source_state_count']}` / `{comparison['source_transition_count']}`",
+            f"- mapped / blocked / silent drop：`{comparison['mapped_transition_count']}` / `{comparison['blocked_transition_count']}` / `{comparison['silently_dropped_transition_count']}`",
+            f"- final / lifecycle / body coverage：`{comparison['final_transition_coverage']}` / `{comparison['lifecycle_action_coverage']}` / `{comparison['body_line_coverage']}`",
+            f"- concurrent region / separator coverage：`{comparison['concurrent_region_coverage']}` / `{comparison['concurrent_region_separator_coverage']}`",
+            f"- source normalization coverage：`{comparison['source_normalization_coverage']}`",
+            f"- official raw / validation：`{comparison['official_raw_status']}` / `{comparison['official_validation_status']}`",
+            f"- official identity states / transitions：`{comparison['official_identity_state_count']}` / `{comparison['official_identity_transition_count']}`",
+            f"- official identity remaps：state `{comparison['official_identity_state_remap_count']}` / transition endpoint `{comparison['official_identity_transition_remap_count']}`",
+            f"- AST audit：`{comparison['ast_audit_status']}`",
             f"- FCSTM execution eligible：`{str(comparison['fcstm_execution_eligible']).lower()}`",
             f"- Discover eligible：`{str(comparison['discover_eligible']).lower()}`",
             f"- 主 session 对读：{manual_notes[case_id]}",
@@ -153,11 +294,31 @@ def build_pair_pages() -> None:
             f"[case report](../../case_reports/{pair_id}.json) | "
             "[人工总账](../../MANUAL_REVIEW.md)",
             "",
+            "## 作者阶段 lineage",
+            "",
+            *_stage_lineage_lines(source_row),
+            "",
+            "## Official identity ledger",
+            "",
+            *_official_identity_lines(official_identity),
+            "",
+            "## Source normalization ledger",
+            "",
+            *_normalization_lines(detailed),
+            "",
+            "## Concurrent region ledger",
+            "",
+            *_concurrent_region_lines(detailed),
+            "",
+            "## Operational debt",
+            "",
+            *_debt_lines(detailed),
+            "",
             "## NL",
             "",
             _fence("text", _display_text(nl_text)),
             "",
-            "## 原装 PlantUML STM0",
+            "## 作者 Phase-II 最终 PlantUML STM0",
             "",
             _fence("plantuml", source_text),
             "",

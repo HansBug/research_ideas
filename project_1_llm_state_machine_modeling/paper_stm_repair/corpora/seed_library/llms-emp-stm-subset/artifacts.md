@@ -21,3 +21,4 @@
 2. 将 ACT/SD 明确排除，不进入 STM repair seed 统计。
 3. 对每个抽取样例保留需求文本、`Generation PlantUML`、reference PlantUML hash、原始模型类型、来源 case、hash、抽取脚本版本和 eligibility 结果；reference 按 canonical case 为 10 个，但 exact unique reference PlantUML 文本为 11，因一条需求存在两个 reference 文本变体。
 4. 若需要复现 Phase-II repair，需要新建本项目自己的 prompt、PlantUML/SysML checker 与 feedback loop，不能声称使用作者实现。
+5. Issue #161 的 converter 最终验收可消费作者 workbook 中已存在的 Phase-II final 60 作为独立压力集；该用途不等于复现作者 pipeline，也不改变 Phase-I seed 的实验归因边界。

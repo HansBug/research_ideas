@@ -4,15 +4,63 @@
 
 - LLM：`Llama`
 - 模型/场景：high-level driving module
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE22`；Excel row：`22`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`478b8db78f5465f4ced13d2ed7f455bc12bbb5c77b5d1d0b475cdc97d905b8c6`
 - NL SHA-256：`f1c3dc88371b8256352e7ab6ee7eb42424de6e11dfde70d185f224dd1d05a7a8`
-- PlantUML SHA-256：`478b8db78f5465f4ced13d2ed7f455bc12bbb5c77b5d1d0b475cdc97d905b8c6`
-- FCSTM SHA-256：`f36df10020b8fabe70b41f35fa10511873d7470e64a4b7101f4c62227fbd1b2e`
+- PlantUML SHA-256：`155e5f625d96c14b5e5fc83bd3f7468d057d72b6551193b18610bbe89957196f`
+- FCSTM SHA-256：`b33e8569c080212199f2c50787e0383ad0ffb7517516d244de8a170a0a8a1122`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`5` / `9`
+- mapped / blocked / silent drop：`9` / `0` / `0`
+- final / lifecycle / body coverage：`2/2` / `0/0` / `5/5`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`5` / `9`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：`stm` name、Autonomous children、两条 child-to-Human occurrence 与两个 root final 齐。
+- 主 session 对读：完整对读：HumanDrivingMode 与 AutonomousMode 三子态的 9 边和五个 body 均保留；两个内部回人工驾驶边被分段到父层，Human/Autonomous 各自 Power Off final 未混为普通状态。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0020.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0020.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0020.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0020.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0020.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0020.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I22` | `true` | `478b8db78f5465f4ced13d2ed7f455bc12bbb5c77b5d1d0b475cdc97d905b8c6` | - | - |
+| `phase_ii_format` | `U22` | `true` | `155e5f625d96c14b5e5fc83bd3f7468d057d72b6551193b18610bbe89957196f` | syntax error: stm DrivingMode<br> | YES |
+| `phase_ii_grammar` | `Z22` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE22` | `true` | `155e5f625d96c14b5e5fc83bd3f7468d057d72b6551193b18610bbe89957196f` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`5` / `5`
+- aligned transition endpoints：`9`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.opaque_state_body_semantics` | 5 |
+| `R45.DEBT.opaque_transition_label_semantics` | 7 |
 
 ## NL
 
@@ -20,11 +68,10 @@
 1 The human driving mode is represented by a simple state. 2 The autonomous mode has sub-states and is represented by a sub machine state. 3. when power on, the system turn into human driving mode 4when front_distance > 10, auto transport to autonomous state 4. transit to human driving mode when receive human steering cmd, brake pressed, in (auto final) 5 when power off, it will transit to final state
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-stm DrivingMode
 [*] -> HumanDrivingMode
 HumanDrivingMode: Human Driving Mode
 HumanDrivingMode -> AutonomousMode: front_distance > 10
@@ -47,7 +94,7 @@ AutonomousMode -> [*]: Power Off
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0020 named "DrivingMode" {
+state llms_emp_feedback_final_0020 named "llms_emp_feedback_final_0020" {
     event front_distance_10 named "front_distance > 10";
     event Signal_Transmission_Succeeds named "Signal Transmission Succeeds";
     event Mission_Completed named "Mission Completed";

@@ -4,15 +4,63 @@
 
 - LLM：`GPT-4`
 - 模型/场景：autonomous mode
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE21`；Excel row：`21`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`b4c24224cccc1a34efedeafd961ef2b4867aeb0701ce8f8a0ea78691a75c936d`
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
-- PlantUML SHA-256：`b4c24224cccc1a34efedeafd961ef2b4867aeb0701ce8f8a0ea78691a75c936d`
-- FCSTM SHA-256：`5ed44b464818f00aa1438cbb68b78ccd54f541bee11b048e3394b6f799014fc1`
+- PlantUML SHA-256：`6bb3c5c655131a5921877cf44539d859f3dbd27faece819936ad118d48ba4836`
+- FCSTM SHA-256：`c69a10ab212cf8a2ea1efc5e3099dcdb5fc3ba7512e293963318b14dee78a5c5`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`17` / `25`
+- mapped / blocked / silent drop：`25` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`17` / `25`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：note 不混入行为；Autonomous hierarchy 与 25 条行为边齐；CollisionAvoidance 缺 initial fail-closed。
+- 主 session 对读：完整对读：AutonomousMode 的 Highway/Urban 25 条边及 CollisionAvoidance 两边均保留；ExitHighway/exit_urban 跨层进入 FinishState 用分段映射，碰撞子机无 initial 留 UnspecifiedInitial。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0019.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0019.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0019.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0019.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0019.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0019.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I21` | `true` | `b4c24224cccc1a34efedeafd961ef2b4867aeb0701ce8f8a0ea78691a75c936d` | - | - |
+| `phase_ii_format` | `U21` | `true` | `6bb3c5c655131a5921877cf44539d859f3dbd27faece819936ad118d48ba4836` | syntax error: note right: Autonomous driving mode | YES |
+| `phase_ii_grammar` | `Z21` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE21` | `true` | `6bb3c5c655131a5921877cf44539d859f3dbd27faece819936ad118d48ba4836` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`17` / `17`
+- aligned transition endpoints：`25`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.missing_explicit_initial` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 23 |
 
 ## NL
 
@@ -32,14 +80,15 @@
 13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
 [*] --> AutonomousMode: Autonomous mode start
 state AutonomousMode {
+
 [*] --> InitialState: Start of autonomous driving mode
-note right: Autonomous driving mode
+
 InitialState --> HighwayMode: high_way=true
 InitialState --> UrbanMode: urban_way=true
 
@@ -84,7 +133,7 @@ collision_avoidance_active --> collision_avoidance_deactive: front_inactive & re
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0019 named "llms_emp_stm_results_0019" {
+state llms_emp_feedback_final_0019 named "llms_emp_feedback_final_0019" {
     event Autonomous_mode_start named "Autonomous mode start";
     event Start_of_autonomous_driving_mode named "Start of autonomous driving mode";
     event high_way_true named "high_way=true";

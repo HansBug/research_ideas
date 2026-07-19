@@ -4,15 +4,70 @@
 
 - LLM：`Llama`
 - 模型/场景：Collision avoidance sub-machine state diagram
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE29`；Excel row：`29`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`9a0ab14a1252a2c11fb409f770f670f465e72b8fc542f5bb5e2019e476a778c6`
 - NL SHA-256：`49854d044ad99f16a710021500f5e972da93b27635a41144d9b91d32444c0f63`
-- PlantUML SHA-256：`9a0ab14a1252a2c11fb409f770f670f465e72b8fc542f5bb5e2019e476a778c6`
-- FCSTM SHA-256：`d3b6b58b433f45f86dc36f2650bd5d31a2b96d25d29ec359191a35d6baffdc28`
+- PlantUML SHA-256：`2fb8e2efb51eb16d39b43c07e6a24dbb60d2dc09601f795dd6ab67a0ad6bb49e`
+- FCSTM SHA-256：`5ea0ed43ef1be97e2b2a10ede6140076d132e786e2660fd7dba5ea60ae89a52d`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`10` / `10`
+- mapped / blocked / silent drop：`10` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `1/1`
+- concurrent region / separator coverage：`4/4` / `3/3`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`10` / `10`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：三条 ActiveState initial 全保留且顺序未变；multiple-initial debt 阻止宣称运行等价。
+- 主 session 对读：完整对读：Detecting/junction1 与 ActiveState 内三组控制链共 10 状态、10 边全在；三个 `--` 精确形成空 region 0 加三有效 region，三个 initial fan-out 与并发执行债均显式记录。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0027.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0027.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0027.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0027.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0027.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0027.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I29` | `true` | `9a0ab14a1252a2c11fb409f770f670f465e72b8fc542f5bb5e2019e476a778c6` | - | - |
+| `phase_ii_format` | `U29` | `true` | `e2996def21e49dbfdefa922aeaed1395bf013c97455b9d802a0c2ce43b7a84c8` | syntax error: stm CollisionAvoidance | YES |
+| `phase_ii_grammar` | `Z29` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE29` | `true` | `2fb8e2efb51eb16d39b43c07e6a24dbb60d2dc09601f795dd6ab67a0ad6bb49e` | missing regions | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`10` / `10`
+- aligned transition endpoints：`10`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+| owner | region | direct states | direct transitions | separator before | separator after |
+|---|---:|---|---|---|---|
+| `ActiveState` | 0 | - | - | - | llms_emp_feedback_final_0027.puml:line:7 |
+| `ActiveState` | 1 | ActiveState.BrakeControlState, ActiveState.junction2 | tr_0004, tr_0005 | llms_emp_feedback_final_0027.puml:line:7 | llms_emp_feedback_final_0027.puml:line:10 |
+| `ActiveState` | 2 | ActiveState.SteeringControlState, ActiveState.junction3 | tr_0006, tr_0007 | llms_emp_feedback_final_0027.puml:line:10 | llms_emp_feedback_final_0027.puml:line:13 |
+| `ActiveState` | 3 | ActiveState.SensorControlState, ActiveState.junction4, ActiveState.InitialState | tr_0008, tr_0009, tr_0010 | llms_emp_feedback_final_0027.puml:line:13 | - |
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.concurrent_region_semantics` | 1 |
+| `R45.DEBT.multiple_initial_fanout` | 1 |
+| `R45.DEBT.opaque_state_body_semantics` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 1 |
 
 ## NL
 
@@ -22,50 +77,56 @@
 3. The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-stm CollisionAvoidance
 [*] --> DetectingState
 DetectingState: Detecting Collision
-DetectingState --> ActiveState : Frontend Collision or Rear-end Collision or Collision with Pedestrian detected
+DetectingState --> junction1: Frontend Collision or Rear-end Collision or Collision with Pedestrian detected
+junction1 --> ActiveState
 state ActiveState {
+--
 [*] --> BrakeControlState
+BrakeControlState --> junction2
+--
 [*] --> SteeringControlState
+SteeringControlState --> junction3
+--
 [*] --> SensorControlState
-BrakeControlState --> InitialState : Signal Feedback Sent
-SteeringControlState --> InitialState : Signal Feedback Sent
-SensorControlState --> InitialState : Signal Feedback Sent
+SensorControlState --> junction4
+junction4 --> InitialState
 }
-InitialState --> DetectingState : No Collision detected
+
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0027 named "CollisionAvoidance" {
+state llms_emp_feedback_final_0027 named "llms_emp_feedback_final_0027" {
     event Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected named "Frontend Collision or Rear-end Collision or Collision with Pedestrian detected";
-    event Signal_Feedback_Sent named "Signal Feedback Sent";
-    event No_Collision_detected named "No Collision detected";
-    state ActiveState named "ActiveState" {
+    state ActiveState named "ActiveState\n[PlantUML concurrent region 0] states=-; transitions=-\n[PlantUML concurrent region 1] states=ActiveState.BrakeControlState, ActiveState.junction2; transitions=tr_0004, tr_0005\n[PlantUML concurrent region 2] states=ActiveState.SteeringControlState, ActiveState.junction3; transitions=tr_0006, tr_0007\n[PlantUML concurrent region 3] states=ActiveState.SensorControlState, ActiveState.junction4, ActiveState.InitialState; transitions=tr_0008, tr_0009, tr_0010\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0027.puml:line:7\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0027.puml:line:10\n[PlantUML concurrent separator] region 2 -> 3 at llms_emp_feedback_final_0027.puml:line:13" {
         state BrakeControlState named "BrakeControlState";
+        state junction2 named "junction2";
         state SteeringControlState named "SteeringControlState";
+        state junction3 named "junction3";
         state SensorControlState named "SensorControlState";
+        state junction4 named "junction4";
         state InitialState named "InitialState";
         [*] -> BrakeControlState;
+        BrakeControlState -> junction2;
         [*] -> SteeringControlState;
+        SteeringControlState -> junction3;
         [*] -> SensorControlState;
-        BrakeControlState -> InitialState : /Signal_Feedback_Sent;
-        SteeringControlState -> InitialState : /Signal_Feedback_Sent;
-        SensorControlState -> InitialState : /Signal_Feedback_Sent;
+        SensorControlState -> junction4;
+        junction4 -> InitialState;
     }
     state DetectingState named "DetectingState\n[PlantUML body] Detecting Collision";
-    state InitialState named "InitialState";
+    state junction1 named "junction1";
     [*] -> DetectingState;
-    DetectingState -> ActiveState : /Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected;
-    InitialState -> DetectingState : /No_Collision_detected;
+    DetectingState -> junction1 : /Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected;
+    junction1 -> ActiveState;
 }
 ```
 

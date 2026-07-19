@@ -4,15 +4,62 @@
 
 - LLM：`GPT-4`
 - 模型/场景：Microwave Oven Control with entry and <br> exit actions
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE17`；Excel row：`17`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`beba54d00f7620bcc9b14a882183354a7d49a56468c27fda7a0d2fd4c11b1c6b`
 - NL SHA-256：`934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f`
-- PlantUML SHA-256：`beba54d00f7620bcc9b14a882183354a7d49a56468c27fda7a0d2fd4c11b1c6b`
-- FCSTM SHA-256：`6b03cc6b56e8df69b56cf442783adbc1886be3422ca9f63550ccfcd97173199d`
+- PlantUML SHA-256：`ff317db2b2e6a4a6a5031e9b33e7cc3a3262ed22e6229f4bb727034fb846c4e3`
+- FCSTM SHA-256：`041faf850a00ed47b07a9d2be709dc1c63e376caa28d4e9f35a64dfbc77784ca`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`6` / `16`
+- mapped / blocked / silent drop：`16` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`6` / `16`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：六个 scoped `State1` 独立；22 条跨层 macro 齐；`Remove Item` deep entry 优先于默认 initial。
+- 主 session 对读：完整对读：扁平微波炉 6 状态、16 条边一一保留；`-left->` 与 `-up->` 在官方 Link 中反向后已按 raw arrow 恢复作者方向，Cancel 自环和所有返回边均正确。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0015.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0015.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0015.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0015.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0015.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0015.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I17` | `true` | `beba54d00f7620bcc9b14a882183354a7d49a56468c27fda7a0d2fd4c11b1c6b` | - | - |
+| `phase_ii_format` | `U17` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z17` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE17` | `true` | `ff317db2b2e6a4a6a5031e9b33e7cc3a3262ed22e6229f4bb727034fb846c4e3` | 1. no need to use composite state<br>2. interaction error | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`6` / `6`
+- aligned transition endpoints：`16`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.opaque_transition_label_semantics` | 15 |
 
 ## NL
 
@@ -27,122 +74,75 @@
 8. In the Cooking state, opening the door stops the timer and the system transitions to DoorOpenWithItem, while if the timer expires, the system moves to DoorShutWithItem. A Cancel action transitions the system back to ReadytoCook.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
+state DoorShut
+state DoorOpen
+state DoorOpenWithItem
+state DoorShutWithItem
+state ReadytoCook
+state Cooking
 
 [*] -> DoorShut
 
-state DoorShut {
-[*] -> State1
-State1 -down-> State2 : Open Door
-State1 --> State1 : Cancel
-State2 -> DoorOpen: Close Door
-}
+DoorShut -> DoorOpen : Door Opened
+DoorShut -down-> DoorShut : Cancel
 
-state DoorOpen {
-[*] -> State1
-State1 -> DoorOpenWithItem : Place Item
-DoorOpenWithItem --> State1 : Remove Item
-}
+DoorOpen -> DoorShut : Door Closed
+DoorOpen -> DoorOpenWithItem : Item Placed
 
-state DoorOpenWithItem {
-[*] -> State1
-State1 --> DoorShutWithItem : Close Door/Zero Time
-State1 --> ReadytoCook : Enter Time
-}
+DoorOpenWithItem -> DoorOpen : Item Removed
+DoorOpenWithItem -> DoorShutWithItem : Door Closed with 0 time
+DoorOpenWithItem -> ReadytoCook : Time Set
 
-state DoorShutWithItem {
-[*] -> State1
-State1 --> DoorOpenWithItem : Open Door
-State1 --> ReadytoCook : Enter Time
-}
+DoorShutWithItem -left-> DoorOpenWithItem : Door Opened
+DoorShutWithItem -left-> ReadytoCook : Time Set
 
-state ReadytoCook {
-[*] -> State1
-State1 --> Cooking : Start
-State1 --> DoorOpenWithItem : Open Door
-State1 --> DoorShutWithItem : Cancel/Update Time
-}
+ReadytoCook -> DoorShutWithItem : Cancel
+ReadytoCook -> DoorOpenWithItem : Door Opened
+ReadytoCook -right-> Cooking : Start
 
-state Cooking {
-[*] -> State1
-State1 --> DoorOpenWithItem : Open Door/Stop Timer
-State1 --> DoorShutWithItem : Timer Expired
-State1 -> ReadytoCook : Cancel
-}
-
+Cooking -> DoorOpenWithItem : Door Opened
+Cooking -> DoorShutWithItem : Timer Expired
+Cooking -up-> ReadytoCook : Cancel
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0015 named "llms_emp_stm_results_0015" {
-    event Open_Door named "Open Door";
+state llms_emp_feedback_final_0015 named "llms_emp_feedback_final_0015" {
+    event Door_Opened named "Door Opened";
     event Cancel named "Cancel";
-    event Close_Door named "Close Door";
-    event Place_Item named "Place Item";
-    event Remove_Item named "Remove Item";
-    event Close_Door_Zero_Time named "Close Door/Zero Time";
-    event Enter_Time named "Enter Time";
+    event Door_Closed named "Door Closed";
+    event Item_Placed named "Item Placed";
+    event Item_Removed named "Item Removed";
+    event Door_Closed_with_0_time named "Door Closed with 0 time";
+    event Time_Set named "Time Set";
     event Start named "Start";
-    event Cancel_Update_Time named "Cancel/Update Time";
-    event Open_Door_Stop_Timer named "Open Door/Stop Timer";
     event Timer_Expired named "Timer Expired";
-    state DoorShut named "DoorShut" {
-        state State1 named "State1";
-        state State2 named "State2";
-        [*] -> State1;
-        State1 -> State2 : /Open_Door;
-        State1 -> State1 : /Cancel;
-        State2 -> [*] : /Close_Door;
-    }
-    state DoorOpen named "DoorOpen" {
-        state State1 named "State1";
-        [*] -> State1 : /Remove_Item;
-        [*] -> State1;
-        State1 -> [*] : /Place_Item;
-    }
-    state DoorOpenWithItem named "DoorOpenWithItem" {
-        state State1 named "State1";
-        [*] -> State1;
-        State1 -> [*] : /Close_Door_Zero_Time;
-        State1 -> [*] : /Enter_Time;
-    }
-    state DoorShutWithItem named "DoorShutWithItem" {
-        state State1 named "State1";
-        [*] -> State1;
-        State1 -> [*] : /Open_Door;
-        State1 -> [*] : /Enter_Time;
-    }
-    state ReadytoCook named "ReadytoCook" {
-        state State1 named "State1";
-        [*] -> State1;
-        State1 -> [*] : /Start;
-        State1 -> [*] : /Open_Door;
-        State1 -> [*] : /Cancel_Update_Time;
-    }
-    state Cooking named "Cooking" {
-        state State1 named "State1";
-        [*] -> State1;
-        State1 -> [*] : /Open_Door_Stop_Timer;
-        State1 -> [*] : /Timer_Expired;
-        State1 -> [*] : /Cancel;
-    }
+    state DoorShut named "DoorShut";
+    state DoorOpen named "DoorOpen";
+    state DoorOpenWithItem named "DoorOpenWithItem";
+    state DoorShutWithItem named "DoorShutWithItem";
+    state ReadytoCook named "ReadytoCook";
+    state Cooking named "Cooking";
     [*] -> DoorShut;
-    DoorShut -> DoorOpen : /Close_Door;
-    DoorOpen -> DoorOpenWithItem : /Place_Item;
-    !DoorOpenWithItem -> DoorOpen : /Remove_Item;
-    DoorOpenWithItem -> DoorShutWithItem : /Close_Door_Zero_Time;
-    DoorOpenWithItem -> ReadytoCook : /Enter_Time;
-    DoorShutWithItem -> DoorOpenWithItem : /Open_Door;
-    DoorShutWithItem -> ReadytoCook : /Enter_Time;
+    DoorShut -> DoorOpen : /Door_Opened;
+    DoorShut -> DoorShut : /Cancel;
+    DoorOpen -> DoorShut : /Door_Closed;
+    DoorOpen -> DoorOpenWithItem : /Item_Placed;
+    DoorOpenWithItem -> DoorOpen : /Item_Removed;
+    DoorOpenWithItem -> DoorShutWithItem : /Door_Closed_with_0_time;
+    DoorOpenWithItem -> ReadytoCook : /Time_Set;
+    DoorShutWithItem -> DoorOpenWithItem : /Door_Opened;
+    DoorShutWithItem -> ReadytoCook : /Time_Set;
+    ReadytoCook -> DoorShutWithItem : /Cancel;
+    ReadytoCook -> DoorOpenWithItem : /Door_Opened;
     ReadytoCook -> Cooking : /Start;
-    ReadytoCook -> DoorOpenWithItem : /Open_Door;
-    ReadytoCook -> DoorShutWithItem : /Cancel_Update_Time;
-    Cooking -> DoorOpenWithItem : /Open_Door_Stop_Timer;
+    Cooking -> DoorOpenWithItem : /Door_Opened;
     Cooking -> DoorShutWithItem : /Timer_Expired;
     Cooking -> ReadytoCook : /Cancel;
 }

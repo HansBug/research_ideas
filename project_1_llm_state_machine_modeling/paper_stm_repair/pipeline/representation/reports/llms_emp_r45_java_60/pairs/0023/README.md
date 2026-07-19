@@ -4,15 +4,68 @@
 
 - LLM：`Llama`
 - 模型/场景：Pump Control state machine
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE25`；Excel row：`25`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`3237c282856c15de2d2cc794e37cf945b24316694858ba99b94ec69521cc5e2a`
 - NL SHA-256：`a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1`
-- PlantUML SHA-256：`3237c282856c15de2d2cc794e37cf945b24316694858ba99b94ec69521cc5e2a`
-- FCSTM SHA-256：`78894c5e565298f23d94365d53ffe7494467606865ff1dd3861e605fca0eee64`
+- PlantUML SHA-256：`1c4f737b5fbf4f9cde73da5b29313ed59319389a4e00695e2d81aa9362a92601`
+- FCSTM SHA-256：`a591eac6f67541d4d83a205f251a4f1be0931cdea94bfd0432a515e63678172b`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`4` / `4`
+- mapped / blocked / silent drop：`4` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `3/3`
+- concurrent region / separator coverage：`3/3` / `2/2`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`4` / `4`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：PumpControl flat graph、三条 edge 与四条 body 齐。
+- 主 session 对读：完整对读：Pump/Water/Methane 三个 body 与三个 region-local initial 逐项存在；两条 separator 精确划成 3 regions，FCSTM 的三 initial 保留源事实并明确 multiple-initial/concurrency 债。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0023.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0023.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0023.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0023.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0023.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0023.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I25` | `true` | `3237c282856c15de2d2cc794e37cf945b24316694858ba99b94ec69521cc5e2a` | - | - |
+| `phase_ii_format` | `U25` | `true` | `faf9413be7762300a212a594f56043ec6e235af5e20faa66f7f8551da9eb7659` | syntax error: stm PumpControlSystem | YES |
+| `phase_ii_grammar` | `Z25` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE25` | `true` | `1c4f737b5fbf4f9cde73da5b29313ed59319389a4e00695e2d81aa9362a92601` | 1.missing regions<br>2 missing composite states | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`4` / `4`
+- aligned transition endpoints：`4`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+| owner | region | direct states | direct transitions | separator before | separator after |
+|---|---:|---|---|---|---|
+| `PumpControl` | 0 | PumpControl.PumpState | tr_0002 | - | llms_emp_feedback_final_0023.puml:line:5 |
+| `PumpControl` | 1 | PumpControl.WaterState | tr_0003 | llms_emp_feedback_final_0023.puml:line:5 | llms_emp_feedback_final_0023.puml:line:7 |
+| `PumpControl` | 2 | PumpControl.MethaneState | tr_0004 | llms_emp_feedback_final_0023.puml:line:7 | - |
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.concurrent_region_semantics` | 1 |
+| `R45.DEBT.multiple_initial_fanout` | 1 |
+| `R45.DEBT.opaque_state_body_semantics` | 3 |
 
 ## NL
 
@@ -24,37 +77,37 @@
 5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
-stm PumpControlSystem
 [*] --> PumpControl
-PumpControl: Pump Control
-PumpControl --> PumpState: Start Pump
+state PumpControl {
+[*] --> PumpState
+--
+[*] --> WaterState
+--
+[*] --> MethaneState
 PumpState: Pump Activated
-PumpControl --> WaterState: Monitor Water Flow
 WaterState: Water Flow Monitored
-PumpControl --> MethaneState: Monitor Methane Flow
 MethaneState: Methane Flow Monitored
+}
 @enduml
 ```
 
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0023 named "PumpControlSystem" {
-    event Start_Pump named "Start Pump";
-    event Monitor_Water_Flow named "Monitor Water Flow";
-    event Monitor_Methane_Flow named "Monitor Methane Flow";
-    state PumpControl named "PumpControl\n[PlantUML body] Pump Control";
-    state PumpState named "PumpState\n[PlantUML body] Pump Activated";
-    state WaterState named "WaterState\n[PlantUML body] Water Flow Monitored";
-    state MethaneState named "MethaneState\n[PlantUML body] Methane Flow Monitored";
+state llms_emp_feedback_final_0023 named "llms_emp_feedback_final_0023" {
+    state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.PumpState; transitions=tr_0002\n[PlantUML concurrent region 1] states=PumpControl.WaterState; transitions=tr_0003\n[PlantUML concurrent region 2] states=PumpControl.MethaneState; transitions=tr_0004\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0023.puml:line:5\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0023.puml:line:7" {
+        state PumpState named "PumpState\n[PlantUML body] Pump Activated";
+        state WaterState named "WaterState\n[PlantUML body] Water Flow Monitored";
+        state MethaneState named "MethaneState\n[PlantUML body] Methane Flow Monitored";
+        [*] -> PumpState;
+        [*] -> WaterState;
+        [*] -> MethaneState;
+    }
     [*] -> PumpControl;
-    PumpControl -> PumpState : /Start_Pump;
-    PumpControl -> WaterState : /Monitor_Water_Flow;
-    PumpControl -> MethaneState : /Monitor_Methane_Flow;
 }
 ```
 

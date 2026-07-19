@@ -4,15 +4,63 @@
 
 - LLM：`GPT-4`
 - 模型/场景：high-level driving module
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE12`；Excel row：`12`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`false`
+- Phase-I PlantUML SHA-256：`73021d0499bdbbc34299e07733dda58162aefdf297e57bd6aae76da940aaed53`
 - NL SHA-256：`f1c3dc88371b8256352e7ab6ee7eb42424de6e11dfde70d185f224dd1d05a7a8`
 - PlantUML SHA-256：`73021d0499bdbbc34299e07733dda58162aefdf297e57bd6aae76da940aaed53`
-- FCSTM SHA-256：`b638507f16a5b1ff4557a3fbf76f38c0bd24a9c3ea221e050f813a924c8577bb`
+- FCSTM SHA-256：`d3d10565f4aaadcc99f7b97f2d78ff6443ce29be439b229ed041fc9d2b1d9f38`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`5` / `8`
+- mapped / blocked / silent drop：`8` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `6/6`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`5` / `8`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：5 state、8 条 edge 与 body/`<<submachine>>` opaque metadata 齐。
+- 主 session 对读：完整对读：HumanDriving、Autonomous 及 Idle/Active/Final 的 8 条边全对应；`<<submachine>>` 与五条描述行按 opaque body 保留，未擅自把比较条件解释为 guard。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0010.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0010.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0010.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0010.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0010.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0010.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I12` | `true` | `73021d0499bdbbc34299e07733dda58162aefdf297e57bd6aae76da940aaed53` | - | - |
+| `phase_ii_format` | `U12` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z12` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE12` | `true` | `73021d0499bdbbc34299e07733dda58162aefdf297e57bd6aae76da940aaed53` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`5` / `5`
+- aligned transition endpoints：`8`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.opaque_state_body_semantics` | 6 |
+| `R45.DEBT.opaque_transition_label_semantics` | 7 |
 
 ## NL
 
@@ -20,7 +68,7 @@
 1 The human driving mode is represented by a simple state. 2 The autonomous mode has sub-states and is represented by a sub machine state. 3. when power on, the system turn into human driving mode 4when front_distance > 10, auto transport to autonomous state 4. transit to human driving mode when receive human steering cmd, brake pressed, in (auto final) 5 when power off, it will transit to final state
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
@@ -50,7 +98,7 @@ AutonomousFinal : Auto Final State
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0010 named "llms_emp_stm_results_0010" {
+state llms_emp_feedback_final_0010 named "llms_emp_feedback_final_0010" {
     event Power_On named "Power On";
     event Front_Distance_10 named "Front Distance <= 10";
     event Front_Distance_10_2 named "Front Distance > 10";

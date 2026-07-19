@@ -1,6 +1,6 @@
-# LLMS-EMP 60 组 NL + PlantUML STM0 + FCSTM STM0
+# LLMS-EMP Phase-II final 60 组 NL + PlantUML STM0 + FCSTM STM0
 
-从 `0000` 到 `0059` 逐行点击“3-in-one Markdown”，即可在同一 GitHub 页面完整查看 NL、原装 PlantUML STM0 和转换后 FCSTM STM0。每组目录同时提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件。
+从 `0000` 到 `0059` 逐行点击“3-in-one Markdown”，即可在同一 GitHub 页面完整查看 NL、作者 Phase-II 最终 PlantUML 和转换后 FCSTM。每组目录同时提供 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 三个原始文件。
 
 `structure_preserved` 只表示 R4.5 结构保真，不表示行为等价；执行与 Discover 资格仍以每页记录为准。
 

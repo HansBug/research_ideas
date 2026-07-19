@@ -44,6 +44,7 @@
 1. 从一手 Drive workbook `Experiment Results.xlsx` 的 `STM Results` sheet 抽取 STM 样例，构造 `Requirement Description -> Generation PlantUML` 的 R2 seed；只冻结初始 `STM_0`，不要混入 reference `PlantUML` 或作者后续 format/grammar/semantic checking 结果。
 2. reference `PlantUML` 可按 canonical case 计 10 个参考解；exact unique reference PlantUML 文本为 11（其中一条需求存在两个 reference 文本变体），只作评价 / 泄漏风险说明，不计入 `STM_0`。
 3. 使用论文 Table 8-11 的 STM hallucination 与 checking-rule 分类作为 repair 任务的错误类型参考。
+4. 作者 Phase-II final 60 可作为 converter 的独立结构压力集，但必须从 [`assets/extracted/feedback_final_pairs.jsonl`](./assets/extracted/feedback_final_pairs.jsonl) 读取并标记为 postprocessed；它不替代 Phase-I `STM_0`，也不进入本研究 repair gain 统计。
 
 不可直接声称：
 

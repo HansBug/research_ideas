@@ -4,15 +4,62 @@
 
 - LLM：`Claude`
 - 模型/场景：autonomous mode
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE61`；Excel row：`61`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`false`
+- Phase-I PlantUML SHA-256：`8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615`
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615`
-- FCSTM SHA-256：`ecc2f3ef22936dd0caa44d82b8e021e31b378686e9aaafbae07a7813894d733e`
+- FCSTM SHA-256：`9eb5e4ceb40c08fcee737a10728354199d347db382a68f709038bfb4fcdaa8c2`
 - 结构裁决：`structure_preserved`
+- source states / transitions：`17` / `25`
+- mapped / blocked / silent drop：`25` / `0` / `0`
+- final / lifecycle / body coverage：`0/0` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`17` / `25`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
 - FCSTM execution eligible：`false`
 - Discover eligible：`false`
-- 主 session 对读：Autonomous/Highway/Urban/CollisionAvoidance hierarchy、25 条 edge 与 bracket label 原文齐。
+- 主 session 对读：完整对读：AutonomousMode 下 Highway/Urban/FinishState 与独立 CollisionAvoidanceSystem 共 17 状态、25 边全部对应；两模式跨层切换/Finish 边保留，碰撞子机无 root 接入的源事实没有被自动补全。
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_stm_results_0059.json) | [冻结 FCSTM](../../fcstm/llms_emp_stm_results_0059.fcstm) | [case report](../../case_reports/llms_emp_stm_results_0059.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0059.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0059.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0059.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I61` | `true` | `8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615` | - | - |
+| `phase_ii_format` | `U61` | `false` | `-` | - | - |
+| `phase_ii_grammar` | `Z61` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE61` | `true` | `8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615` | None | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`17` / `17`
+- aligned transition endpoints：`25`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.opaque_transition_label_semantics` | 19 |
 
 ## NL
 
@@ -32,7 +79,7 @@
 13. Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`.
 ```
 
-## 原装 PlantUML STM0
+## 作者 Phase-II 最终 PlantUML STM0
 
 ```plantuml
 @startuml
@@ -83,7 +130,7 @@ collision_avoidance_active --> collision_avoidance_deactive : [front_inactive &&
 ## 转换后 FCSTM STM0
 
 ```fcstm
-state llms_emp_stm_results_0059 named "llms_emp_stm_results_0059" {
+state llms_emp_feedback_final_0059 named "llms_emp_feedback_final_0059" {
     event _high_way_true named "[high_way=true]";
     event _urban_way_true named "[urban_way=true]";
     event _dist_to_front_25_extra_lane_true named "[dist_to_front<25 && extra_lane=true]";

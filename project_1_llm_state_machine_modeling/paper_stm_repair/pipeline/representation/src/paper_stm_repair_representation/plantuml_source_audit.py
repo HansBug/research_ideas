@@ -10,6 +10,95 @@ _TRANSITION_RE = re.compile(
     r"->\s*(?P<target>\[\*\]|[A-Za-z_][A-Za-z0-9_]*)"
     r"(?:\s*:\s*/(?P<event>[A-Za-z_][A-Za-z0-9_]*))?;$"
 )
+_OFFICIAL_SYNTHETIC_SCOPE_RE = re.compile(r"^(?:CONC\d+|__stm_wrapper_\d+)$")
+
+
+def _official_identity(value: str | None) -> str:
+    if not value:
+        return ""
+    return ".".join(
+        segment
+        for segment in value.split(".")
+        if segment and not _OFFICIAL_SYNTHETIC_SCOPE_RE.fullmatch(segment)
+    )
+
+
+def _official_endpoint(link: dict[str, Any], side: str) -> str:
+    qualified = link[side]
+    kind = link[f"{side}_kind"]
+    if "CIRCLE_START" in kind or "CIRCLE_END" in kind:
+        parent = qualified.rsplit(".", 1)[0] if "." in qualified else ""
+        boundary = "initial" if "CIRCLE_START" in kind else "final"
+        return f"@{boundary}:{_official_identity(parent) or '__root__'}"
+    return _official_identity(qualified)
+
+
+def _is_behavior_endpoint(kind: str) -> bool:
+    return (
+        kind.startswith("GROUP:")
+        or "STATE" in kind
+        or "CIRCLE_START" in kind
+        or "CIRCLE_END" in kind
+    )
+
+
+def _assert_official_identity_projection(canonical: dict[str, Any]) -> None:
+    metadata = canonical.get("metadata", {})
+    reconciliation = metadata.get("official_identity_reconciliation", {})
+    if reconciliation.get("status") != "aligned":
+        raise ValueError("canonical is missing aligned official identity evidence")
+    official = metadata["official_validation"]["model"]
+    if official.get("status") != "state_diagram":
+        raise ValueError("official identity oracle is not a StateDiagram")
+
+    official_state_ids = {
+        _official_identity(entity["qualified_name"])
+        for entity in official["entities"]
+        if entity.get("qualified_name")
+        and _is_behavior_endpoint(entity["kind"])
+        and "CIRCLE_START" not in entity["kind"]
+        and "CIRCLE_END" not in entity["kind"]
+        and not _OFFICIAL_SYNTHETIC_SCOPE_RE.fullmatch(
+            entity["qualified_name"].rsplit(".", 1)[-1]
+        )
+    }
+    official_state_ids.discard("")
+    canonical_state_ids = {state["id"] for state in canonical["model"]["states"]}
+    if canonical_state_ids != official_state_ids:
+        raise ValueError(
+            "canonical state identities differ from pinned PlantUML: "
+            f"source_only={sorted(canonical_state_ids - official_state_ids)}, "
+            f"official_only={sorted(official_state_ids - canonical_state_ids)}"
+        )
+
+    links = [
+        link
+        for link in official["links"]
+        if _is_behavior_endpoint(link["source_kind"])
+        and _is_behavior_endpoint(link["target_kind"])
+    ]
+    transitions = canonical["model"]["transitions"]
+    if len(links) != len(transitions):
+        raise ValueError("canonical/official behavior-link count differs")
+    for transition, link in zip(transitions, links):
+        raw_arrow = transition["attributes"]["raw_arrow"].lower()
+        reverse = "left" in raw_arrow or "up" in raw_arrow
+        source_side = "target" if reverse else "source"
+        target_side = "source" if reverse else "target"
+        expected = (
+            _official_endpoint(link, source_side),
+            _official_endpoint(link, target_side),
+        )
+        actual = (transition["source"], transition["target"])
+        if actual != expected:
+            raise ValueError(
+                f"official endpoint identity drift for {transition['id']}: "
+                f"{actual} != {expected}"
+            )
+    if reconciliation.get("official_state_count") != len(official_state_ids):
+        raise ValueError("official state reconciliation count drift")
+    if reconciliation.get("transition_identity_alignment_count") != len(links):
+        raise ValueError("official transition reconciliation count drift")
 
 
 def _state_lookup(model: Any) -> dict[str, Any]:
@@ -56,6 +145,67 @@ def _parsed_segments(mapping: dict[str, Any]) -> list[tuple[dict[str, Any], re.M
     return parsed
 
 
+def _concurrent_display_lines(
+    canonical: dict[str, Any], scope: str | None
+) -> list[str]:
+    regions = sorted(
+        [
+            item
+            for item in canonical["model"].get("concurrent_regions", [])
+            if item.get("owner_scope") == scope
+        ],
+        key=lambda item: item["region_index"],
+    )
+    separators = [
+        item
+        for item in canonical.get("metadata", {}).get(
+            "concurrent_region_separators", []
+        )
+        if item.get("owner_scope") == scope
+    ]
+    lines = []
+    for region in regions:
+        states = ", ".join(region.get("state_ids", [])) or "-"
+        transitions = ", ".join(region.get("transition_ids", [])) or "-"
+        lines.append(
+            f"[PlantUML concurrent region {region['region_index']}] "
+            f"states={states}; transitions={transitions}"
+        )
+    for separator in separators:
+        lines.append(
+            "[PlantUML concurrent separator] "
+            f"region {separator['preceding_region_index']} -> "
+            f"{separator['following_region_index']} at {separator['raw_ref']}"
+        )
+    return lines
+
+
+def _state_display(canonical: dict[str, Any], state: dict[str, Any]) -> str:
+    value = state.get("label") or state["id"]
+    for body in state["attributes"].get("body_lines", []):
+        value += f"\n[PlantUML body] {body.get('text') or ''}"
+    for line in _concurrent_display_lines(canonical, state["id"]):
+        value += f"\n{line}"
+    return value
+
+
+def _root_display(canonical: dict[str, Any]) -> str:
+    value = canonical["model"].get("name") or canonical["example_id"]
+    for item in canonical.get("metadata", {}).get("orphan_lifecycle_actions", []):
+        value += (
+            f"\n[Unowned PlantUML {item.get('kind', 'lifecycle')}] "
+            f"{item.get('text') or ''}"
+        )
+    for line in _concurrent_display_lines(canonical, None):
+        value += f"\n{line}"
+    for change in canonical.get("metadata", {}).get("source_normalizations", []):
+        value += (
+            f"\n[PlantUML source normalization {change['rule_id']}] "
+            f"{change['raw_ref']}: {change['before']} -> {change['after']}"
+        )
+    return value
+
+
 def _assert_source_projection(
     *,
     mapping: dict[str, Any],
@@ -93,6 +243,32 @@ def _assert_source_projection(
         ]
         if len(linked) != 1 or transition["target"] not in linked[0]["display_name"]:
             raise ValueError(f"invalid initial surrogate lost target identity: {transition['id']}")
+        return
+
+    if reason == "R45.MAP.invalid_source_final_surrogate":
+        linked = [
+            state
+            for state in synthetic_states
+            if state.get("source_transition_id") == transition["id"]
+            and state["generated_reason"] == "invalid_source_final_scope_surrogate"
+        ]
+        projected = by_role.get("invalid_source_final_surrogate", [])
+        expected_scope = parents[transition["source"]] or "__root__"
+        if (
+            len(linked) != 1
+            or transition["target"] not in linked[0]["display_name"]
+            or len(projected) != 1
+        ):
+            raise ValueError(f"invalid final surrogate lost target identity: {transition['id']}")
+        emitted, match = projected[0]
+        if (
+            emitted["scope"] != expected_scope
+            or match.group("source") != state_ids[transition["source"]]
+            or match.group("target") != linked[0]["fcstm_id"]
+            or bool(match.group("forced"))
+            != state_is_composite[transition["source"]]
+        ):
+            raise ValueError(f"invalid final surrogate endpoint drift: {transition['id']}")
         return
 
     if reason == "R45.MAP.direct_sibling":
@@ -420,6 +596,9 @@ def audit_lowered_artifact(
         raise ValueError("structural verdict is not preserved")
     if comparison["blocked_transition_count"] != 0:
         raise ValueError("blocked source transitions remain")
+    if canonical.get("metadata", {}).get("unparsed_semantic_lines"):
+        raise ValueError("canonical still contains unparsed semantic source lines")
+    _assert_official_identity_projection(canonical)
 
     root_path = inspect_report["root_state_path"]
     actual_states = _state_lookup(model)
@@ -448,6 +627,7 @@ def audit_lowered_artifact(
             source_state.get("kind"),
             source_state.get("label"),
             source_state["attributes"].get("declared_with_block", False),
+            source_state["attributes"].get("parent_region_indices", [0]),
             source_state.get("raw_ref"),
         )
         traced_source = (
@@ -455,13 +635,12 @@ def audit_lowered_artifact(
             mapping["source_kind"],
             mapping["source_label"],
             mapping["source_declared_with_block"],
+            mapping["source_parent_region_indices"],
             mapping["raw_ref"],
         )
         if traced_source != expected_source:
             raise ValueError(f"state trace drift for {mapping['state_id']}")
-        expected_display = source_state.get("label") or source_state["id"]
-        for body in source_state["attributes"].get("body_lines", []):
-            expected_display += f"\n[PlantUML body] {body.get('text') or ''}"
+        expected_display = _state_display(canonical, source_state)
         if mapping["fcstm_display_name"] != expected_display:
             raise ValueError(f"state display trace drift for {mapping['state_id']}")
         path = mapping["fcstm_path"]
@@ -479,7 +658,7 @@ def audit_lowered_artifact(
                 f"mapped source parent mismatch for {path}: "
                 f"expected {mapping['fcstm_parent_path']}, got {actual_parent}"
             )
-        if mapping["source_kind"] in {"fork", "join", "choice"} and not state.is_pseudo:
+        if mapping["source_kind"] in {"fork", "join", "choice", "junction"} and not state.is_pseudo:
             raise ValueError(f"PlantUML pseudo kind was not retained for {path}")
     synthetic_paths: set[str] = set()
     for mapping in comparison["synthetic_state_mappings"]:
@@ -571,12 +750,7 @@ def audit_lowered_artifact(
         if mapping["fcstm_action_id"] not in action_sets[mapping["kind"]]:
             raise ValueError(f"lifecycle action missing from inspect: {mapping['raw_ref']}")
     root_state = actual_states[root_path]
-    expected_root_display = canonical["model"].get("name") or canonical["example_id"]
-    for item in canonical.get("metadata", {}).get("orphan_lifecycle_actions", []):
-        expected_root_display += (
-            f"\n[Unowned PlantUML {item.get('kind', 'lifecycle')}] "
-            f"{item.get('text') or ''}"
-        )
+    expected_root_display = _root_display(canonical)
     if root_state.extra_name != expected_root_display:
         raise ValueError("root display metadata drift")
     for mapping in comparison["orphan_lifecycle_mappings"]:
@@ -594,6 +768,68 @@ def audit_lowered_artifact(
     )
     if traced_orphans != expected_orphans:
         raise ValueError("ownerless lifecycle trace does not reconstruct canonical facts")
+
+    canonical_regions = canonical["model"].get("concurrent_regions", [])
+    traced_regions = comparison["concurrent_region_mappings"]
+    if comparison["concurrent_region_coverage"] != (
+        f"{len(traced_regions)}/{len(canonical_regions)}"
+    ):
+        raise ValueError("concurrent region coverage drift")
+    if len(traced_regions) != len(canonical_regions):
+        raise ValueError("concurrent region trace count drift")
+    for source, traced in zip(canonical_regions, traced_regions):
+        if any(traced.get(key) != value for key, value in source.items()):
+            raise ValueError(f"concurrent region trace drift: {source['id']}")
+        owner_path = root_path if source.get("owner_scope") is None else scope_paths[
+            source["owner_scope"]
+        ]
+        if traced["fcstm_owner_path"] != owner_path:
+            raise ValueError(f"concurrent region owner drift: {source['id']}")
+        if traced["display_line"] not in (actual_states[owner_path].extra_name or ""):
+            raise ValueError(f"concurrent region missing from display: {source['id']}")
+
+    canonical_separators = canonical.get("metadata", {}).get(
+        "concurrent_region_separators", []
+    )
+    traced_separators = comparison["concurrent_region_separator_mappings"]
+    if comparison["concurrent_region_separator_coverage"] != (
+        f"{len(traced_separators)}/{len(canonical_separators)}"
+    ):
+        raise ValueError("concurrent separator coverage drift")
+    if len(traced_separators) != len(canonical_separators):
+        raise ValueError("concurrent separator trace count drift")
+    for source, traced in zip(canonical_separators, traced_separators):
+        if any(traced.get(key) != value for key, value in source.items()):
+            raise ValueError(f"concurrent separator trace drift: {source['id']}")
+        owner_path = root_path if source.get("owner_scope") is None else scope_paths[
+            source["owner_scope"]
+        ]
+        if traced["fcstm_owner_path"] != owner_path:
+            raise ValueError(f"concurrent separator owner drift: {source['id']}")
+        if traced["display_line"] not in (actual_states[owner_path].extra_name or ""):
+            raise ValueError(f"concurrent separator missing from display: {source['id']}")
+
+    canonical_normalizations = canonical.get("metadata", {}).get(
+        "source_normalizations", []
+    )
+    traced_normalizations = comparison["source_normalization_mappings"]
+    if comparison["source_normalization_coverage"] != (
+        f"{len(traced_normalizations)}/{len(canonical_normalizations)}"
+    ):
+        raise ValueError("source normalization coverage drift")
+    if len(traced_normalizations) != len(canonical_normalizations):
+        raise ValueError("source normalization trace count drift")
+    for source, traced in zip(canonical_normalizations, traced_normalizations):
+        if any(traced.get(key) != value for key, value in source.items()):
+            raise ValueError(f"source normalization trace drift: {source['raw_ref']}")
+        rendered = (
+            f"[PlantUML source normalization {source['rule_id']}] "
+            f"{source['raw_ref']}: {source['before']} -> {source['after']}"
+        )
+        if traced["fcstm_owner_path"] != root_path or rendered not in (
+            root_state.extra_name or ""
+        ):
+            raise ValueError(f"source normalization missing from display: {source['raw_ref']}")
 
     emitted_lines = [
         emitted["line"]
@@ -652,8 +888,8 @@ def audit_lowered_artifact(
                 False,
             )
             return [
-                item["transition_index"]
-                for item in inspect_report["transitions"]
+                index
+                for index, item in enumerate(inspect_report["transitions"])
                 if (
                     item["from_path"],
                     item["to_path"],
@@ -681,7 +917,12 @@ def audit_lowered_artifact(
                 if item["from_path"] == source_prefix
                 or item["from_path"].startswith(f"{source_prefix}.")
             ]
-        return [item["transition_index"] for item in candidates]
+        candidate_ids = {id(item) for item in candidates}
+        return [
+            index
+            for index, item in enumerate(inspect_report["transitions"])
+            if id(item) in candidate_ids
+        ]
 
     expected_transition_counts: Counter[tuple[Any, ...]] = Counter()
     forced_authored_counts: Counter[str] = Counter()
@@ -711,6 +952,7 @@ def audit_lowered_artifact(
             "raw_label": source_transition.get("label"),
             "raw_event": source_transition.get("event"),
             "raw_ref": source_transition.get("raw_ref"),
+            "region_index": source_transition["attributes"].get("region_index", 0),
         }
         if mapping["source_transition"] != expected_source_transition:
             raise ValueError(f"transition trace drift for {mapping['transition_id']}")
@@ -936,4 +1178,7 @@ def audit_lowered_artifact(
         "lifecycle_items_verified": (
             int(comparison["lifecycle_action_coverage"].split("/")[0])
         ),
+        "concurrent_regions_verified": len(traced_regions),
+        "concurrent_region_separators_verified": len(traced_separators),
+        "source_normalizations_verified": len(traced_normalizations),
     }

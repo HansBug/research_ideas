@@ -1,37 +1,33 @@
 @startuml
 [*] --> InitialState
 
-state InitialState {
-    [*] --> DetectionState
-    DetectionState : Possible Frontend Collision
-    DetectionState : Rear-End Collision
-    DetectionState : Collision With Pedestrian
-
-    DetectionState --> BrakingControl : Frontend Collision Detected
-    DetectionState --> SteeringControl : Rear-End Collision Detected
-    DetectionState --> AlertSystem : Collision With Pedestrian Detected
+state CollisionDetection {
+    [*] --> PossibleCollision
+    PossibleCollision --> FrontendCollision : Frontend Detected
+    PossibleCollision --> RearendCollision : Rear-end Detected
+    PossibleCollision --> PedestrianCollision : Pedestrian Detected
 }
 
 state CollisionAvoidance {
-    state BrakingControl {
-        [*] --> ActivateABS
-        ActivateABS --> ApplyBrakes : Immediate Action Required
-        ApplyBrakes --> [*] : Collision Avoided
-    }
+  --
+  [*] --> AutomaticBraking : Start Braking
+  AutomaticBraking --> BrakingComplete : Braking Done
 
-    state SteeringControl {
-        [*] --> ActivateESC
-        ActivateESC --> SteerAway : Collision Imminent
-        SteerAway --> [*] : Hazard Passed
-    }
+  --
+  [*] --> SteeringControl : Steering Engaged
+  SteeringControl --> SteeringComplete : Steering Finished
 
-    state AlertSystem {
-        [*] --> SendAlert
-        SendAlert --> SoundAlarm
-        SoundAlarm --> [*] : Obstacle Cleared
-    }
+  --
+  [*] --> AlertSystem : Alerts Activated
+  AlertSystem --> AlertComplete : Alert Process Done
 }
 
-CollisionAvoidance --> [*] : No Collision Risk
+state OperationalControls {
+    [*] --> FeedbackControl : Signal Feedback
+    [*] --> SystemCheck : Health Check
+    [*] --> CommunicationControl : Communicate Control
+}
 
+CollisionDetection -down-> CollisionAvoidance : Collision Mode Active
+CollisionAvoidance --> InitialState : Collision Resolved
 @enduml

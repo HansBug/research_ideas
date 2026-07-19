@@ -1,57 +1,56 @@
 @startuml
-[*] --> TurnOn : 2 sec
-state fork1
+[*] --> TurnOn : Start
+state TurnOn
 TurnOn --> fork1
+state fork1 <<fork>>
+fork1 --> AutoFocus
+fork1 --> DetLight
 
-fork1 --> AutoFocus : 1-2 sec
-state AutoFocus {
-    state choice1
-    AutoFocus -down-> choice1 : memFull=true
-}
+state AutoFocus
+AutoFocus --> choice1 : memFull=true
 
-fork1 --> DetLight : <1 sec
-state DetLight {
-    state choice2
-    DetLight -down-> choice2 : <<GaStep>>{prob=0.4}
-}
+state DetLight
+DetLight --> choice2 : <<GaStep>>{prob=0.4}
 
-fork1 --> choice3
-state choice3 {
-    state ChargedFlash: 2-4 sec
-    choice3 -down-> ChargedFlash
-    ChargedFlash -down-> Junction3 : Charged=true
-    choice3 -down-> Junction3
-}
+state choice1 <<choice>>
+choice1 --> fork2
+choice1 --> ChargedFlash : memFull=true
 
-state Junction3 {
-    state Join2
-    Junction3 --> Join2
-}
-state Join2 {
-    state Fork2
-    Join2 --> Fork2
-    state Join1
-    choice2 --> Join1 when : sunny=true
-    Join1 --> Junction2
-}
+state ChargedFlash
+ChargedFlash --> Junction3 : Charged=true
 
-state Flash {
-    Fork2 --> Flash
-    Flash --> Terminate
-}
+state fork2 <<fork>>
+fork2 --> ChargedFlash
 
-state Junction2 {
-    state TakePicture
-    Junction2 --> TakePicture
-    TakePicture --> WriteMemory : 2-3 sec
-}
+state Junction3 <<junction>>
+Junction3 --> join2
 
-state WriteMemory {
-    state Junction1
-    WriteMemory --> Junction1
-}
+state choice2 <<choice>>
+choice2 --> join2 : sunny=false
+choice2 --> join1 : sunny=true
+
+state join2 <<join>>
+join2 --> Junction2
+join2 --> Flash : activated
+
+state Flash
+Flash --> Terminate
+
+state join1 <<join>>
+join1 --> Junction2
+
+state Junction2 <<junction>>
+Junction2 --> TakePicture
+
+state TakePicture
+TakePicture --> WriteMemory
+
+state WriteMemory
+WriteMemory --> Junction1
+
+state Junction1 <<junction>>
+Junction1 --> TurnOff : end
 
 state TurnOff
-Junction1 --> TurnOff
-TurnOff -left->[*]
+TurnOff --> [*]
 @enduml
