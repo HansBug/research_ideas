@@ -78,6 +78,9 @@ class _Lowerer:
         self.emitted_state: dict[str, str] = {}
         self.events: dict[str, str] = {}
         self.lines_by_scope: dict[Optional[str], list[str]] = defaultdict(list)
+        self.line_records_by_scope: dict[
+            Optional[str], list[dict[str, Any]]
+        ] = defaultdict(list)
         self.synthetic_states_by_scope: dict[Optional[str], list[str]] = defaultdict(
             list
         )
@@ -151,18 +154,22 @@ class _Lowerer:
         line: str,
         generated_reason: str,
         owner_state_id: Optional[str],
+        position: Optional[int] = None,
     ) -> None:
-        self.synthetic_transition_mappings.append(
-            {
-                "emitted_object_id": (
-                    f"synthetic:segment:{len(self.synthetic_transition_mappings) + 1}"
-                ),
-                "scope": _scope_key(scope),
-                "line": line,
-                "generated_reason": generated_reason,
-                "owner_state_id": owner_state_id,
-            }
-        )
+        record = {
+            "emitted_object_id": (
+                f"synthetic:segment:{len(self.synthetic_transition_mappings) + 1}"
+            ),
+            "scope": _scope_key(scope),
+            "line": line,
+            "generated_reason": generated_reason,
+            "owner_state_id": owner_state_id,
+        }
+        self.synthetic_transition_mappings.append(record)
+        if position is None:
+            self.line_records_by_scope[scope].append(record)
+        else:
+            self.line_records_by_scope[scope].insert(position, record)
 
     def concurrent_display_lines(self, scope: Optional[str]) -> list[str]:
         lines = []
@@ -418,17 +425,17 @@ class _Lowerer:
         generated_role: str,
     ) -> None:
         position = self.priority_entry_count_by_scope[scope]
+        record = {
+            "emitted_object_id": f"{mapping.transition_id}:segment:{len(mapping.emitted) + 1}",
+            "scope": _scope_key(scope),
+            "line": line,
+            "generated_role": generated_role,
+            "source_transition_id": mapping.transition_id,
+        }
         self.lines_by_scope[scope].insert(position, line)
+        self.line_records_by_scope[scope].insert(position, record)
         self.priority_entry_count_by_scope[scope] += 1
-        mapping.emitted.append(
-            {
-                "emitted_object_id": f"{mapping.transition_id}:segment:{len(mapping.emitted) + 1}",
-                "scope": _scope_key(scope),
-                "line": line,
-                "generated_role": generated_role,
-                "source_transition_id": mapping.transition_id,
-            }
-        )
+        mapping.emitted.append(record)
 
     def emit(
         self,
@@ -438,16 +445,16 @@ class _Lowerer:
         line: str,
         generated_role: str,
     ) -> None:
+        record = {
+            "emitted_object_id": f"{mapping.transition_id}:segment:{len(mapping.emitted) + 1}",
+            "scope": _scope_key(scope),
+            "line": line,
+            "generated_role": generated_role,
+            "source_transition_id": mapping.transition_id,
+        }
         self.lines_by_scope[scope].append(line)
-        mapping.emitted.append(
-            {
-                "emitted_object_id": f"{mapping.transition_id}:segment:{len(mapping.emitted) + 1}",
-                "scope": _scope_key(scope),
-                "line": line,
-                "generated_role": generated_role,
-                "source_transition_id": mapping.transition_id,
-            }
-        )
+        self.line_records_by_scope[scope].append(record)
+        mapping.emitted.append(record)
 
     def block_transition(
         self, transition: dict[str, Any], reason_code: str, message: str
@@ -1089,6 +1096,7 @@ class _Lowerer:
                 line=active_initial,
                 generated_reason="lifecycle_only_state_active_leaf",
                 owner_state_id=state_id,
+                position=0,
             )
         if composite:
             if state_id not in self.mapped_initial_scopes:
@@ -1201,6 +1209,16 @@ class _Lowerer:
             lines.append(f"{pad}{line}")
         lines.append("}")
         fcstm = "\n".join(lines) + "\n"
+        for scope, emitted_lines in self.lines_by_scope.items():
+            records = self.line_records_by_scope[scope]
+            if len(records) != len(emitted_lines):
+                raise RuntimeError(
+                    f"FCSTM emitted-line ownership drift in scope {_scope_key(scope)}"
+                )
+            occurrence_by_text: dict[str, int] = defaultdict(int)
+            for line, record in zip(emitted_lines, records):
+                occurrence_by_text[line] += 1
+                record["scope_line_occurrence"] = occurrence_by_text[line]
 
         mapped = [mapping for mapping in self.mappings if mapping.status == "mapped"]
         blocked = [mapping for mapping in self.mappings if mapping.status != "mapped"]

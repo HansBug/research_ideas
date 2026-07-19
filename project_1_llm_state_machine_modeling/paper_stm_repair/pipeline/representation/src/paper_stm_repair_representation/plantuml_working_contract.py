@@ -676,6 +676,7 @@ def build_working_contract(
                     metadata={
                         "scope": emitted["scope"],
                         "line": emitted["line"],
+                        "scope_line_occurrence": emitted["scope_line_occurrence"],
                         "generated_role": emitted["generated_role"],
                         "source_transition_id": transition_id,
                     },
@@ -741,6 +742,7 @@ def build_working_contract(
                 metadata={
                     "scope": item["scope"],
                     "line": item["line"],
+                    "scope_line_occurrence": item["scope_line_occurrence"],
                     "generated_reason": item["generated_reason"],
                     "owner_state_id": item.get("owner_state_id"),
                 },
@@ -1491,6 +1493,24 @@ def validate_working_contract(
         ):
             raise ValueError(
                 f"transition macro contains non-compiler member: {mapping['transition_id']}"
+            )
+        for emitted in mapping["emitted"]:
+            member_id = _compiler_id(
+                "transition_segment", emitted["emitted_object_id"]
+            )
+            if elements_by_id[member_id].get("metadata", {}).get(
+                "scope_line_occurrence"
+            ) != emitted.get("scope_line_occurrence"):
+                raise ValueError(
+                    f"transition occurrence binding drift: {emitted['emitted_object_id']}"
+                )
+    for item in comparison["synthetic_transition_mappings"]:
+        element_id = _compiler_id("synthetic_transition", item["emitted_object_id"])
+        if elements_by_id[element_id].get("metadata", {}).get(
+            "scope_line_occurrence"
+        ) != item.get("scope_line_occurrence"):
+            raise ValueError(
+                f"synthetic transition occurrence binding drift: {item['emitted_object_id']}"
             )
     for macro_id, macro in macros_by_id.items():
         expected_sources = sorted(

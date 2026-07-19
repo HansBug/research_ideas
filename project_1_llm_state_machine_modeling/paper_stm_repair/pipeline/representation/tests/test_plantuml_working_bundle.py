@@ -20,6 +20,12 @@ from paper_stm_repair_representation.plantuml_source_audit import audit_lowered_
 from paper_stm_repair_representation.plantuml_source_lowering import (
     lower_plantuml_source,
 )
+from paper_stm_repair_representation.manual_pair_review import (
+    RISK_ASSESSMENT_BY_TAG,
+    _fcstm_anchor_matches_element,
+    fcstm_evidence_anchors,
+    plantuml_evidence_anchor,
+)
 from paper_stm_repair_representation.plantuml_working_bundle import (
     WorkingBundleError,
     load_attribution_safe_working_bundle,
@@ -59,6 +65,96 @@ FORMAL_EVIDENCE = (
 PUBLICATION_READY_STATUS = "main_session_reviewed_ready_for_discover"
 
 
+def _exact_anchor_fixture() -> tuple[
+    str, dict[str, dict], dict[str, dict]
+]:
+    fcstm = """state Root {
+    state Left {
+        state Idle named "Idle";
+    }
+    state Right {
+        state Idle named "Idle";
+    }
+    state Ready named "Ready";
+    Idle -> Ready : /Enter_Cooking_Time;
+    Idle -> Ready : /Enter_Cooking_Time;
+}
+"""
+    elements = [
+        {
+            "element_id": "source:state:Left.Idle",
+            "origin": "source_owned",
+            "model_refs": ["state:Root.Left.Idle"],
+            "macro_ids": [],
+            "metadata": {},
+        },
+        {
+            "element_id": "source:state:Right.Idle",
+            "origin": "source_owned",
+            "model_refs": ["state:Root.Right.Idle"],
+            "macro_ids": [],
+            "metadata": {},
+        },
+        {
+            "element_id": "source:transition:tr_0001",
+            "origin": "source_owned",
+            "model_refs": ["macro:transition:tr_0001"],
+            "macro_ids": ["macro:transition:tr_0001"],
+            "metadata": {},
+        },
+        {
+            "element_id": "source:transition:tr_0002",
+            "origin": "source_owned",
+            "model_refs": ["macro:transition:tr_0002"],
+            "macro_ids": ["macro:transition:tr_0002"],
+            "metadata": {},
+        },
+        {
+            "element_id": "compiler:transition_segment:tr_0001:segment:1",
+            "origin": "compiler_owned",
+            "model_refs": [],
+            "macro_ids": ["macro:transition:tr_0001"],
+            "metadata": {
+                "scope": "",
+                "line": "Idle -> Ready : /Enter_Cooking_Time;",
+                "scope_line_occurrence": 1,
+            },
+        },
+        {
+            "element_id": "compiler:transition_segment:tr_0002:segment:1",
+            "origin": "compiler_owned",
+            "model_refs": [],
+            "macro_ids": ["macro:transition:tr_0002"],
+            "metadata": {
+                "scope": "",
+                "line": "Idle -> Ready : /Enter_Cooking_Time;",
+                "scope_line_occurrence": 2,
+            },
+        },
+    ]
+    macros = [
+        {
+            "macro_id": "macro:transition:tr_0001",
+            "source_element_ids": ["source:transition:tr_0001"],
+            "member_element_ids": [
+                "compiler:transition_segment:tr_0001:segment:1"
+            ],
+        },
+        {
+            "macro_id": "macro:transition:tr_0002",
+            "source_element_ids": ["source:transition:tr_0002"],
+            "member_element_ids": [
+                "compiler:transition_segment:tr_0002:segment:1"
+            ],
+        },
+    ]
+    return (
+        fcstm,
+        {item["element_id"]: item for item in elements},
+        {item["macro_id"]: item for item in macros},
+    )
+
+
 def _sha_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -71,6 +167,320 @@ def _sha_json(value: object) -> str:
     return _sha_text(
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     )
+
+
+def test_exact_anchor_distinguishes_duplicate_transition_occurrences():
+    fcstm, elements, macros = _exact_anchor_fixture()
+    first = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:transition:tr_0001"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+    second = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:transition:tr_0002"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+    assert len(first) == len(second) == 1
+    assert "@line:9|" in first[0]
+    assert "@line:10|" in second[0]
+    assert not _fcstm_anchor_matches_element(
+        fcstm_text=fcstm,
+        anchor=first[0],
+        element_id="source:transition:tr_0002",
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+    reversed_elements = dict(reversed(list(elements.items())))
+    assert fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:transition:tr_0001"],
+        elements_by_id=reversed_elements,
+        macros_by_id=macros,
+    ) == first
+
+
+def test_exact_anchor_distinguishes_same_named_states_by_scope():
+    fcstm, elements, macros = _exact_anchor_fixture()
+    left = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:state:Left.Idle"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )[0]
+    right = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:state:Right.Idle"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )[0]
+
+    assert "@line:3|" in left
+    assert "@line:6|" in right
+    assert not _fcstm_anchor_matches_element(
+        fcstm_text=fcstm,
+        anchor=left,
+        element_id="source:state:Right.Idle",
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+
+def test_exact_anchor_rejects_suffix_only_body_scope_match():
+    fcstm = '''state Root {
+    state Outer {
+        state Idle named "Idle\\n[PlantUML body] active";
+    }
+}
+'''
+    element_id = "source:body:Idle:1"
+    elements = {
+        element_id: {
+            "element_id": element_id,
+            "origin": "source_owned",
+            "kind": "state_body_text",
+            "model_refs": [],
+            "macro_ids": [],
+            "metadata": {"state_id": "Idle", "text": "active"},
+            "semantic_fields": {"text": "active"},
+        }
+    }
+
+    assert fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=[element_id],
+        elements_by_id=elements,
+        macros_by_id={},
+    ) == []
+
+
+def test_exact_anchor_matches_json_escaped_body_text():
+    fcstm = '''state Root {
+    state DoorOpen named "DoorOpen\\n[PlantUML body] as \\"Door Open\\"";
+}
+'''
+    element_id = "source:body:DoorOpen:1"
+    elements = {
+        element_id: {
+            "element_id": element_id,
+            "origin": "source_owned",
+            "kind": "state_body_text",
+            "model_refs": [],
+            "macro_ids": [],
+            "metadata": {"state_id": "DoorOpen", "text": 'as "Door Open"'},
+            "semantic_fields": {"text": 'as "Door Open"'},
+        }
+    }
+
+    assert fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=[element_id],
+        elements_by_id=elements,
+        macros_by_id={},
+    ) == [
+        'element-ref:source:body:DoorOpen:1@line:2|state DoorOpen named '
+        '"DoorOpen\\n[PlantUML body] as \\"Door Open\\"";'
+    ]
+
+
+def test_exact_anchor_distinguishes_lifecycle_kind_and_occurrence():
+    fcstm = '''state Root {
+    state Running {
+        enter abstract Tick;
+        exit abstract Tick;
+        enter abstract Tick;
+    }
+}
+'''
+    source_ids = [
+        "source:lifecycle:Running:1",
+        "source:lifecycle:Running:2",
+        "source:lifecycle:Running:3",
+    ]
+    member_ids = [
+        "compiler:lifecycle_action:Running:1:Tick",
+        "compiler:lifecycle_action:Running:2:Tick",
+        "compiler:lifecycle_action:Running:3:Tick",
+    ]
+    kinds = ["entry", "exit", "entry"]
+    elements: dict[str, dict] = {}
+    macros: dict[str, dict] = {}
+    for occurrence, (source_id, member_id, lifecycle_kind) in enumerate(
+        zip(source_ids, member_ids, kinds), start=1
+    ):
+        macro_id = f"macro:lifecycle_projection:Running:{occurrence}"
+        elements[source_id] = {
+            "element_id": source_id,
+            "origin": "source_owned",
+            "kind": "lifecycle_action",
+            "model_refs": [macro_id],
+            "macro_ids": [macro_id],
+            "metadata": {
+                "state_id": "Running",
+                "lifecycle_kind": lifecycle_kind,
+                "text": "Tick",
+            },
+        }
+        elements[member_id] = {
+            "element_id": member_id,
+            "origin": "compiler_owned",
+            "kind": "abstract_lifecycle_projection",
+            "model_refs": ["action:Tick"],
+            "macro_ids": [macro_id],
+            "metadata": {},
+        }
+        macros[macro_id] = {
+            "macro_id": macro_id,
+            "source_element_ids": [source_id],
+            "member_element_ids": [member_id],
+        }
+
+    anchors = [
+        fcstm_evidence_anchors(
+            fcstm_text=fcstm,
+            element_ids=[source_id],
+            elements_by_id=elements,
+            macros_by_id=macros,
+        )[0]
+        for source_id in source_ids
+    ]
+
+    assert [anchor.split("@line:", 1)[1].split("|", 1)[0] for anchor in anchors] == [
+        "3",
+        "4",
+        "5",
+    ]
+    assert not _fcstm_anchor_matches_element(
+        fcstm_text=fcstm,
+        anchor=anchors[0],
+        element_id=source_ids[1],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+
+def test_exact_anchor_rejects_wrong_element_id_with_correct_line():
+    fcstm, elements, macros = _exact_anchor_fixture()
+    anchor = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:state:Left.Idle"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )[0]
+    forged = anchor.replace(
+        "element-ref:source:state:Left.Idle",
+        "element-ref:source:state:Right.Idle",
+    )
+
+    assert not _fcstm_anchor_matches_element(
+        fcstm_text=fcstm,
+        anchor=forged,
+        element_id="source:state:Left.Idle",
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+
+def test_exact_anchor_rejects_wrong_line_number_with_correct_element():
+    fcstm, elements, macros = _exact_anchor_fixture()
+    anchor = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=["source:state:Left.Idle"],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )[0]
+    forged = anchor.replace("@line:3|", "@line:6|")
+
+    assert not _fcstm_anchor_matches_element(
+        fcstm_text=fcstm,
+        anchor=forged,
+        element_id="source:state:Left.Idle",
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+
+def test_exact_anchor_maps_root_scope_transition_macro():
+    fcstm = """state Root {
+    !Operate -> [*] : /keyOff;
+}
+"""
+    source_id = "source:transition:tr_final"
+    member_id = "compiler:transition_segment:tr_final:segment:1"
+    macro_id = "macro:transition:tr_final"
+    elements = {
+        source_id: {
+            "element_id": source_id,
+            "origin": "source_owned",
+            "model_refs": [macro_id],
+            "macro_ids": [macro_id],
+            "metadata": {},
+        },
+        member_id: {
+            "element_id": member_id,
+            "origin": "compiler_owned",
+            "model_refs": [],
+            "macro_ids": [macro_id],
+            "metadata": {
+                "scope": "__root__",
+                "line": "!Operate -> [*] : /keyOff;",
+                "scope_line_occurrence": 1,
+            },
+        },
+    }
+    macros = {
+        macro_id: {
+            "macro_id": macro_id,
+            "source_element_ids": [source_id],
+            "member_element_ids": [member_id],
+        }
+    }
+
+    anchors = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=[source_id, member_id],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )
+
+    assert anchors == [
+        "element-ref:compiler:transition_segment:tr_final:segment:1@line:2|"
+        "!Operate -> [*] : /keyOff;"
+    ]
+
+
+def test_exact_anchor_maps_root_concurrent_region_metadata():
+    fcstm = r"""state Root named "Root\n[PlantUML concurrent region 0] states=A" {
+    state A;
+}
+"""
+    element_id = "source:region:__root__:region:0"
+    elements = {
+        element_id: {
+            "element_id": element_id,
+            "origin": "source_owned",
+            "kind": "concurrent_region",
+            "model_refs": ["macro:region_projection:__root__:region:0"],
+            "macro_ids": ["macro:region_projection:__root__:region:0"],
+            "metadata": {"owner_scope": None, "region_index": 0},
+        }
+    }
+
+    anchors = fcstm_evidence_anchors(
+        fcstm_text=fcstm,
+        element_ids=[element_id],
+        elements_by_id=elements,
+        macros_by_id={},
+    )
+
+    assert anchors == [
+        'element-ref:source:region:__root__:region:0@line:1|state Root named '
+        '"Root\\n[PlantUML concurrent region 0] states=A" {'
+    ]
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -139,45 +549,63 @@ def _write_reviewed_publication(
         (evidence / "working_contracts" / f"{PAIR_ID}.json").read_bytes()
     )
     nl_anchor = "same valid PIN"
-    correspondence_specs = (
-        (
-            "state Locked",
-            'state Locked named "Locked";',
-            "source:state:Locked",
-        ),
-        (
-            "state Unlocked",
-            'state Unlocked named "Unlocked";',
-            "source:state:Unlocked",
-        ),
-    )
+    elements_by_id = {item["element_id"]: item for item in contract["elements"]}
+    macros_by_id = {item["macro_id"]: item for item in contract["macros"]}
+    correspondence_specs = []
+    for source_id in ("source:state:Locked", "source:state:Unlocked"):
+        source_ref = elements_by_id[source_id]["source_refs"][0]
+        source_anchor = plantuml_evidence_anchor(
+            source_text=SOURCE,
+            source_ref=source_ref,
+        )
+        output_anchors = fcstm_evidence_anchors(
+            fcstm_text=fcstm,
+            element_ids=[source_id],
+            elements_by_id=elements_by_id,
+            macros_by_id=macros_by_id,
+        )
+        assert output_anchors
+        correspondence_specs.append((source_anchor, output_anchors[0], source_id))
     reviews: list[dict] = []
     index_lines = ["# Fixture pairs", ""]
     for index, pair_row in enumerate(pair_rows):
         case_id = f"{index:04d}"
         pair_id = pair_row["pair_id"]
-        risk_assessments = [
-            {
-                "obligation_id": obligation["obligation_id"],
-                "risk_tag": obligation["risk_tag"],
-                "plantuml_anchors": [
-                    "Locked --> Unlocked : unlock [pin_ok] / alarm=false"
-                ],
-                "fcstm_anchors": [
-                    "Locked -> Unlocked : /unlock_pin_ok_alarm_false;"
-                ],
-                "element_ids": obligation["element_ids"],
-                "assessment": "requires_source_confirmation",
-                "rationale": (
-                    f"{obligation['risk_tag']} {obligation['obligation_id']} remains "
-                    f"bound to its exact source/compiler ownership occurrence in fixture {case_id}."
-                ),
-            }
-            for obligation in obligations
-        ]
+        risk_assessments = []
+        for obligation in obligations:
+            risk_tag = obligation["risk_tag"]
+            risk_assessments.append(
+                {
+                    "obligation_id": obligation["obligation_id"],
+                    "risk_tag": risk_tag,
+                    "plantuml_anchors": [
+                        plantuml_evidence_anchor(
+                            source_text=SOURCE,
+                            source_ref=source_ref,
+                        )
+                        for source_ref in obligation["source_refs"]
+                    ],
+                    "fcstm_anchors": (
+                        []
+                        if risk_tag == "source_normalization"
+                        else fcstm_evidence_anchors(
+                            fcstm_text=fcstm,
+                            element_ids=obligation["element_ids"],
+                            elements_by_id=elements_by_id,
+                            macros_by_id=macros_by_id,
+                        )
+                    ),
+                    "element_ids": obligation["element_ids"],
+                    "assessment": RISK_ASSESSMENT_BY_TAG[risk_tag],
+                    "rationale": (
+                        f"{risk_tag} {obligation['obligation_id']} remains bound to its "
+                        f"exact source/compiler ownership occurrence in fixture {case_id}."
+                    ),
+                }
+            )
         risk_tags = sorted({obligation["risk_tag"] for obligation in obligations})
         review = {
-            "schema_version": "paper1.manual_pair_review.v3",
+            "schema_version": "paper1.manual_pair_review.v4",
             "case_id": case_id,
             "pair_id": pair_id,
             "review_subject_sha256": review_subject_sha256,
@@ -202,12 +630,14 @@ def _write_reviewed_publication(
                     "excludes contradictory alarm outcomes."
                 ),
                 "plantuml_semantics": (
-                    f"Fixture {case_id}: state Locked and state Unlocked remain explicit "
-                    "source states with two authored unlock outcomes."
+                    f"Fixture {case_id}: {correspondence_specs[0][0].split('|', 1)[1]} "
+                    f"and {correspondence_specs[1][0].split('|', 1)[1]} remain explicit "
+                    "source state occurrences."
                 ),
                 "fcstm_projection": (
-                    f"Fixture {case_id}: state Locked named \"Locked\"; and state "
-                    "Unlocked named \"Unlocked\"; remain direct FCSTM projections."
+                    f"Fixture {case_id}: {correspondence_specs[0][1].split('|', 1)[1]} "
+                    f"and {correspondence_specs[1][1].split('|', 1)[1]} remain direct "
+                    "FCSTM projections."
                 ),
                 "attribution_rationale": (
                     f"Fixture {case_id}: both correspondences bind source_owned roots; "
@@ -815,6 +1245,84 @@ def test_loader_rejects_macro_correspondence_with_unrelated_compiler_member(
     _refresh_publication_seal(evidence)
 
     with pytest.raises(WorkingBundleError, match="not source-macro-bound"):
+        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+
+
+def test_loader_rejects_direct_correspondence_anchored_to_undeclared_macro_member(
+    tmp_path: Path,
+):
+    repo, evidence = _write_bundle_fixture(tmp_path)
+    review_path = evidence / "MANUAL_REVIEW.jsonl"
+    reviews = [
+        json.loads(line)
+        for line in review_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    contract = json.loads(
+        (evidence / "working_contracts" / f"{PAIR_ID}.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    elements = {item["element_id"]: item for item in contract["elements"]}
+    macros = {item["macro_id"]: item for item in contract["macros"]}
+    source_id = next(
+        item["element_id"]
+        for item in contract["elements"]
+        if item["origin"] == "source_owned" and item["kind"] == "transition_macro_root"
+    )
+    member_id = macros[elements[source_id]["macro_ids"][0]]["member_element_ids"][0]
+    source_text = (evidence / "pairs/0000/plantuml.puml").read_text(encoding="utf-8")
+    fcstm_text = (evidence / "pairs/0000/fcstm.fcstm").read_text(encoding="utf-8")
+    plantuml_anchor = plantuml_evidence_anchor(
+        source_text=source_text,
+        source_ref=elements[source_id]["source_refs"][0],
+    )
+    fcstm_anchor = fcstm_evidence_anchors(
+        fcstm_text=fcstm_text,
+        element_ids=[member_id],
+        elements_by_id=elements,
+        macros_by_id=macros,
+    )[0]
+
+    correspondence = reviews[0]["semantic_correspondences"][0]
+    old_plantuml_anchor = correspondence["plantuml_anchor"]
+    old_fcstm_anchor = correspondence["fcstm_anchor"]
+    correspondence.update(
+        {
+            "plantuml_anchor": plantuml_anchor,
+            "fcstm_anchor": fcstm_anchor,
+            "source_element_ids": [source_id],
+            "compiler_element_ids": [],
+            "projection_kind": "direct",
+            "assessment": "preserved",
+            "rationale": (
+                f"{source_id} deliberately hides compiler-owned macro member {member_id} "
+                "behind a direct projection claim to exercise the ownership gate."
+            ),
+        }
+    )
+    observations = reviews[0]["observations"]
+    observations["plantuml_anchors"] = [
+        plantuml_anchor if anchor == old_plantuml_anchor else anchor
+        for anchor in observations["plantuml_anchors"]
+    ]
+    observations["fcstm_anchors"] = [
+        fcstm_anchor if anchor == old_fcstm_anchor else anchor
+        for anchor in observations["fcstm_anchors"]
+    ]
+    observations["plantuml_semantics"] += (
+        f" Exact transition occurrence: {plantuml_anchor.split('|', 1)[1]}"
+    )
+    observations["fcstm_projection"] += (
+        f" Exact compiler line: {fcstm_anchor.split('|', 1)[1]}"
+    )
+    review_path.write_text(
+        "".join(json.dumps(review, sort_keys=True) + "\n" for review in reviews),
+        encoding="utf-8",
+    )
+    _refresh_publication_seal(evidence)
+
+    with pytest.raises(WorkingBundleError, match="anchor ownership is undeclared"):
         load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
 
 

@@ -33,6 +33,55 @@ RISK_ASSESSMENT_BY_TAG = {
     "source_normalization": "compiler_artifact_excluded",
     "synthetic_state": "compiler_artifact_excluded",
 }
+SOURCE_ANCHOR_PREFIX = "source-ref:"
+FCSTM_ANCHOR_PREFIX = "element-ref:"
+CAPABILITY_EXCLUDED_STATE_KINDS = {
+    "choice",
+    "fork",
+    "join",
+    "junction",
+}
+SOURCE_PROJECTION_RULES = {
+    "state": {
+        "allowed": {("direct", "preserved")},
+        "compiler_policy": "forbidden",
+    },
+    "capability_excluded_state": {
+        "allowed": {
+            ("capability_excluded", "preserved_with_exclusions"),
+            ("capability_excluded", "source_issue_visible"),
+        },
+        "compiler_policy": "forbidden",
+    },
+    "transition_macro_root": {
+        "allowed": {
+            ("macro", "preserved_with_exclusions"),
+            ("macro", "source_issue_visible"),
+        },
+        "compiler_policy": "required",
+    },
+    "state_body_text": {
+        "allowed": {
+            ("metadata", "preserved_with_exclusions"),
+            ("metadata", "source_issue_visible"),
+        },
+        "compiler_policy": "forbidden",
+    },
+    "concurrent_region": {
+        "allowed": {
+            ("capability_excluded", "preserved_with_exclusions"),
+            ("capability_excluded", "source_issue_visible"),
+        },
+        "compiler_policy": "forbidden",
+    },
+    "lifecycle_action": {
+        "allowed": {
+            ("capability_excluded", "preserved_with_exclusions"),
+            ("capability_excluded", "source_issue_visible"),
+        },
+        "compiler_policy": "required",
+    },
+}
 
 
 def _sha256_json(value: Any) -> str:
@@ -77,88 +126,368 @@ def _source_line_for_ref(source_text: str, reference: str) -> str | None:
     lines = source_text.splitlines()
     if line_number < 1 or line_number > len(lines):
         return None
-    return lines[line_number - 1]
+    return lines[line_number - 1].strip()
+
+
+def _parse_exact_anchor(anchor: str, *, prefix: str) -> tuple[str, str] | None:
+    if not anchor.startswith(prefix) or "|" not in anchor:
+        return None
+    reference, payload = anchor[len(prefix) :].split("|", 1)
+    if (
+        not reference
+        or not payload
+        or reference != reference.strip()
+        or payload != payload.strip()
+        or "\n" in reference
+        or "\r" in reference
+        or "\n" in payload
+        or "\r" in payload
+    ):
+        return None
+    return reference, payload
+
+
+def plantuml_evidence_anchor(*, source_text: str, source_ref: str) -> str:
+    line = _source_line_for_ref(source_text, source_ref)
+    if not line:
+        raise ValueError(f"PlantUML source ref has no non-empty line: {source_ref}")
+    return f"{SOURCE_ANCHOR_PREFIX}{source_ref}|{line}"
 
 
 def _plantuml_anchor_matches_refs(
     *, source_text: str, anchor: str, source_refs: list[str]
 ) -> bool:
-    lines = [
-        line
-        for reference in source_refs
-        if (line := _source_line_for_ref(source_text, reference)) is not None
-    ]
-    return bool(lines) and any(anchor in line or line.strip() in anchor for line in lines)
+    parsed = _parse_exact_anchor(anchor, prefix=SOURCE_ANCHOR_PREFIX)
+    if parsed is None:
+        return False
+    reference, payload = parsed
+    return (
+        reference in source_refs
+        and _source_line_for_ref(source_text, reference) == payload
+    )
 
 
-def _projection_evidence(
+def _path_matches(actual: str, expected: str) -> bool:
+    if actual == expected:
+        return True
+    _, separator, unwrapped = actual.partition(".")
+    return bool(separator) and unwrapped == expected
+
+
+def _scope_key(scope: str | None) -> str:
+    return "" if scope in {None, "__root__"} else scope
+
+
+def _fcstm_line_refs_by_element(
     *,
-    element_id: str,
+    fcstm_text: str,
     elements_by_id: dict[str, dict[str, Any]],
     macros_by_id: dict[str, dict[str, Any]],
-) -> tuple[set[str], set[str]]:
-    literals: set[str] = set()
-    identifiers: set[str] = set()
-    visited: set[str] = set()
+) -> dict[str, set[tuple[int, str]]]:
+    state_pattern = re.compile(
+        r"^(?:pseudo )?state ([A-Za-z_][A-Za-z0-9_]*)(?:\s+named\s+.*)?(?:\s+\{|;)$"
+    )
+    event_pattern = re.compile(
+        r"^event ([A-Za-z_][A-Za-z0-9_]*)(?:\s+named\s+.*)?;$"
+    )
+    action_pattern = re.compile(
+        r"^(enter abstract|exit abstract|>> during before abstract) "
+        r"([A-Za-z_][A-Za-z0-9_]*);$"
+    )
+    lifecycle_kind_by_prefix = {
+        "enter abstract": "entry",
+        "exit abstract": "exit",
+        ">> during before abstract": "do",
+    }
+    stack: list[str] = []
+    records: list[tuple[int, str, str]] = []
+    states: dict[str, tuple[int, str]] = {}
+    events: dict[str, tuple[int, str]] = {}
+    actions: dict[tuple[str, str, str], list[tuple[int, str]]] = {}
+    for line_number, raw_line in enumerate(fcstm_text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line == "}":
+            if stack:
+                stack.pop()
+            continue
+        scope = ".".join(stack)
+        records.append((line_number, line, ".".join(stack[1:])))
+        state_match = state_pattern.fullmatch(line)
+        if state_match is not None:
+            identifier = state_match.group(1)
+            path = ".".join([*stack, identifier])
+            states[path] = (line_number, line)
+            if line.endswith("{"):
+                stack.append(identifier)
+            continue
+        event_match = event_pattern.fullmatch(line)
+        if event_match is not None:
+            events[".".join([*stack, event_match.group(1)])] = (line_number, line)
+            continue
+        action_match = action_pattern.fullmatch(line)
+        if action_match is not None:
+            lifecycle_kind = lifecycle_kind_by_prefix[action_match.group(1)]
+            actions.setdefault(
+                (scope, lifecycle_kind, action_match.group(2)), []
+            ).append((line_number, line))
 
-    def visit(current_id: str) -> None:
-        if current_id in visited or current_id not in elements_by_id:
-            return
-        visited.add(current_id)
-        element = elements_by_id[current_id]
-        metadata = element.get("metadata", {})
-        semantic_fields = element.get("semantic_fields", {})
-        line = metadata.get("line")
-        if isinstance(line, str) and line.strip():
-            literals.add(line.strip())
-        for field in ("text", "raw_label"):
-            value = metadata.get(field) or semantic_fields.get(field)
-            if isinstance(value, str) and len(value.strip()) >= 4:
-                literals.add(value.strip())
-        raw_ref = metadata.get("raw_ref")
-        if isinstance(raw_ref, str) and raw_ref.strip():
-            literals.add(raw_ref.strip())
-        if element.get("kind") == "concurrent_region":
-            region_index = metadata.get("region_index")
-            if isinstance(region_index, int):
-                literals.add(f"[PlantUML concurrent region {region_index}]")
-        for field in ("fcstm_identifier", "fcstm_path"):
-            value = semantic_fields.get(field) or metadata.get(field)
-            if isinstance(value, str) and value.strip():
-                identifiers.add(value.rsplit(".", 1)[-1])
+    result: dict[str, set[tuple[int, str]]] = {
+        element_id: set() for element_id in elements_by_id
+    }
+    for element_id, element in elements_by_id.items():
         for model_ref in element.get("model_refs", []):
             if not isinstance(model_ref, str) or ":" not in model_ref:
                 continue
             kind, value = model_ref.split(":", 1)
-            if kind in {"state", "event"} and value:
-                identifiers.add(value.rsplit(".", 1)[-1])
-        for macro_id in element.get("macro_ids", []):
-            macro = macros_by_id.get(macro_id, {})
-            for member_id in macro.get("member_element_ids", []):
-                visit(member_id)
+            if kind == "state" and value in states:
+                result[element_id].add(states[value])
+            elif kind == "event" and value in events:
+                result[element_id].add(events[value])
 
-    visit(element_id)
-    return literals, identifiers
+        metadata = element.get("metadata", {})
+        kind = element.get("kind")
+        if kind == "state_body_text":
+            state_id = metadata.get("state_id")
+            text = metadata.get("text") or element.get("semantic_fields", {}).get(
+                "text"
+            )
+            marker = (
+                json.dumps(
+                    f"[PlantUML body] {text}",
+                    ensure_ascii=False,
+                )[1:-1]
+                if isinstance(text, str)
+                else None
+            )
+            result[element_id].update(
+                line_ref
+                for path, line_ref in states.items()
+                if isinstance(state_id, str)
+                and _path_matches(path, state_id)
+                and marker
+                and marker in line_ref[1]
+            )
+        elif kind == "concurrent_region":
+            owner_scope = metadata.get("owner_scope")
+            region_index = metadata.get("region_index")
+            marker = (
+                f"[PlantUML concurrent region {region_index}]"
+                if isinstance(region_index, int)
+                else None
+            )
+            result[element_id].update(
+                line_ref
+                for path, line_ref in states.items()
+                if (
+                    (
+                        isinstance(owner_scope, str)
+                        and _path_matches(path, owner_scope)
+                    )
+                    or (owner_scope is None and "." not in path)
+                )
+                and marker
+                and marker in line_ref[1]
+            )
+
+    action_elements: dict[tuple[str, str, str], list[str]] = {}
+    for element_id, element in elements_by_id.items():
+        action_ids = [
+            value
+            for model_ref in element.get("model_refs", [])
+            if isinstance(model_ref, str)
+            and model_ref.startswith("action:")
+            for value in [model_ref.split(":", 1)[1]]
+        ]
+        if not action_ids:
+            continue
+        source_lifecycle_elements = [
+            source_element
+            for macro_id in element.get("macro_ids", [])
+            for source_id in macros_by_id.get(macro_id, {}).get(
+                "source_element_ids", []
+            )
+            for source_element in [elements_by_id.get(source_id, {})]
+            if source_element.get("kind") == "lifecycle_action"
+        ]
+        for source_element in source_lifecycle_elements:
+            metadata = source_element.get("metadata", {})
+            state_id = metadata.get("state_id")
+            lifecycle_kind = metadata.get("lifecycle_kind")
+            if not isinstance(state_id, str) or lifecycle_kind not in {
+                "entry",
+                "do",
+                "exit",
+            }:
+                continue
+            matching_scopes = {
+                scope
+                for scope, kind, action_id in actions
+                if kind == lifecycle_kind
+                and action_id in action_ids
+                and _path_matches(scope, state_id)
+            }
+            for scope in matching_scopes:
+                for action_id in action_ids:
+                    key = (scope, lifecycle_kind, action_id)
+                    if key in actions:
+                        action_elements.setdefault(key, []).append(element_id)
+    for key, element_ids in action_elements.items():
+        line_refs = actions.get(key, [])
+        if len(line_refs) == len(element_ids):
+            for element_id, line_ref in zip(element_ids, line_refs):
+                result[element_id].add(line_ref)
+
+    emitted_elements: dict[tuple[str, str], list[str]] = {}
+    for element_id, element in elements_by_id.items():
+        metadata = element.get("metadata", {})
+        line = metadata.get("line")
+        scope = metadata.get("scope")
+        if isinstance(line, str) and isinstance(scope, str):
+            emitted_elements.setdefault((_scope_key(scope), line.strip()), []).append(
+                element_id
+            )
+    emitted_lines: dict[tuple[str, str], list[tuple[int, str]]] = {}
+    for line_number, line, scope in records:
+        emitted_lines.setdefault((scope, line), []).append((line_number, line))
+    for key, element_ids in emitted_elements.items():
+        line_refs = emitted_lines.get(key, [])
+        occurrences = {
+            element_id: elements_by_id[element_id]
+            .get("metadata", {})
+            .get("scope_line_occurrence")
+            for element_id in element_ids
+        }
+        if (
+            len(line_refs) == len(element_ids)
+            and set(occurrences.values()) == set(range(1, len(line_refs) + 1))
+        ):
+            for element_id, occurrence in occurrences.items():
+                result[element_id].add(line_refs[occurrence - 1])
+    return result
+
+
+def _parse_fcstm_anchor(anchor: str) -> tuple[str, int, str] | None:
+    parsed = _parse_exact_anchor(anchor, prefix=FCSTM_ANCHOR_PREFIX)
+    if parsed is None:
+        return None
+    bound_ref, payload = parsed
+    marker = "@line:"
+    if marker not in bound_ref:
+        return None
+    element_id, line_text = bound_ref.rsplit(marker, 1)
+    if not element_id or not line_text.isdigit() or int(line_text) < 1:
+        return None
+    return element_id, int(line_text), payload
+
+
+def _fcstm_anchor_ids_for_element(
+    *,
+    element_id: str,
+    elements_by_id: dict[str, dict[str, Any]],
+    macros_by_id: dict[str, dict[str, Any]],
+) -> set[str]:
+    if element_id not in elements_by_id:
+        return set()
+    allowed = {element_id}
+    element = elements_by_id[element_id]
+    if element.get("origin") == "source_owned":
+        allowed.update(
+            member_id
+            for macro_id in element.get("macro_ids", [])
+            for member_id in macros_by_id.get(macro_id, {}).get(
+                "member_element_ids", []
+            )
+        )
+    return allowed
+
+
+def fcstm_evidence_anchors(
+    *,
+    fcstm_text: str,
+    element_ids: list[str],
+    elements_by_id: dict[str, dict[str, Any]],
+    macros_by_id: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Return a deterministic minimal exact-line cover for review elements."""
+
+    uncovered = set(element_ids)
+    candidates: dict[str, set[str]] = {}
+    line_refs = _fcstm_line_refs_by_element(
+        fcstm_text=fcstm_text,
+        elements_by_id=elements_by_id,
+        macros_by_id=macros_by_id,
+    )
+    for target_id in element_ids:
+        for anchor_id in _fcstm_anchor_ids_for_element(
+            element_id=target_id,
+            elements_by_id=elements_by_id,
+            macros_by_id=macros_by_id,
+        ):
+            for line_number, line in line_refs.get(anchor_id, set()):
+                anchor = (
+                    f"{FCSTM_ANCHOR_PREFIX}{anchor_id}@line:{line_number}|{line}"
+                )
+                candidates.setdefault(anchor, set()).add(target_id)
+
+    selected: list[str] = []
+    while uncovered:
+        ranked = sorted(
+            (
+                (-len(covered & uncovered), anchor, covered)
+                for anchor, covered in candidates.items()
+                if covered & uncovered
+            )
+        )
+        if not ranked:
+            break
+        _, anchor, covered = ranked[0]
+        selected.append(anchor)
+        uncovered -= covered
+    return selected
 
 
 def _fcstm_anchor_matches_element(
     *,
+    fcstm_text: str,
     anchor: str,
     element_id: str,
     elements_by_id: dict[str, dict[str, Any]],
     macros_by_id: dict[str, dict[str, Any]],
 ) -> bool:
-    literals, identifiers = _projection_evidence(
+    parsed = _parse_fcstm_anchor(anchor)
+    if parsed is None:
+        return False
+    anchor_id, line_number, payload = parsed
+    if anchor_id not in _fcstm_anchor_ids_for_element(
         element_id=element_id,
         elements_by_id=elements_by_id,
         macros_by_id=macros_by_id,
-    )
-    if any(literal in anchor or anchor in literal for literal in literals):
-        return True
-    return any(
-        re.search(rf"(?<![A-Za-z0-9_]){re.escape(identifier)}(?![A-Za-z0-9_])", anchor)
-        for identifier in identifiers
-    )
+    ):
+        return False
+    return (line_number, payload) in _fcstm_line_refs_by_element(
+        fcstm_text=fcstm_text,
+        elements_by_id=elements_by_id,
+        macros_by_id=macros_by_id,
+    ).get(anchor_id, set())
+
+
+def _anchor_payload(anchor: str, *, prefix: str) -> str | None:
+    if prefix == FCSTM_ANCHOR_PREFIX:
+        parsed_fcstm = _parse_fcstm_anchor(anchor)
+        return parsed_fcstm[2] if parsed_fcstm is not None else None
+    parsed = _parse_exact_anchor(anchor, prefix=prefix)
+    return parsed[1] if parsed is not None else None
+
+
+def _source_projection_rule(element: dict[str, Any]) -> dict[str, Any] | None:
+    kind = element.get("kind")
+    if kind == "state" and element.get("semantic_fields", {}).get(
+        "kind"
+    ) in CAPABILITY_EXCLUDED_STATE_KINDS:
+        return SOURCE_PROJECTION_RULES["capability_excluded_state"]
+    return SOURCE_PROJECTION_RULES.get(kind)
 
 
 def validate_manual_pair_review(
@@ -208,27 +537,32 @@ def validate_manual_pair_review(
         narrative_fields
     ):
         raise ValueError(f"manual review observations are duplicated for {case_id}")
-    for field, text in (
-        ("nl_anchors", nl_text),
-        ("plantuml_anchors", source_text),
-        ("fcstm_anchors", fcstm_text),
+    nl_anchors = observations["nl_anchors"]
+    if not nl_anchors or any(
+        len(anchor.strip()) < 4
+        or anchor.strip() in GENERIC_REVIEW_ANCHORS
+        or anchor not in nl_text
+        for anchor in nl_anchors
     ):
-        anchors = observations[field]
-        if not anchors or any(
-            len(anchor.strip()) < 4
-            or anchor.strip() in GENERIC_REVIEW_ANCHORS
-            or anchor not in text
-            for anchor in anchors
-        ):
-            raise ValueError(f"manual review {field} are not bound for {case_id}")
+        raise ValueError(f"manual review nl_anchors are not bound for {case_id}")
     for anchor_field, narrative_field, label in (
         ("nl_anchors", "nl_intent", "NL"),
         ("plantuml_anchors", "plantuml_semantics", "PlantUML"),
         ("fcstm_anchors", "fcstm_projection", "FCSTM"),
     ):
-        if not any(
-            anchor in observations[narrative_field]
+        prefix = (
+            SOURCE_ANCHOR_PREFIX
+            if anchor_field == "plantuml_anchors"
+            else FCSTM_ANCHOR_PREFIX
+            if anchor_field == "fcstm_anchors"
+            else None
+        )
+        payloads = [
+            _anchor_payload(anchor, prefix=prefix) if prefix else anchor
             for anchor in observations[anchor_field]
+        ]
+        if not payloads or not any(
+            payload and payload in observations[narrative_field] for payload in payloads
         ):
             raise ValueError(
                 f"manual review {label} narrative is not anchor-bound for {case_id}"
@@ -266,6 +600,31 @@ def validate_manual_pair_review(
         for entry in contract.get("source_trace_base", {}).get("entries", [])
         for source_id in entry.get("source_elements", [])
     }
+    for anchor in observations["plantuml_anchors"]:
+        if not any(
+            _plantuml_anchor_matches_refs(
+                source_text=source_text,
+                anchor=anchor,
+                source_refs=elements_by_id[source_id].get("source_refs", []),
+            )
+            for source_id in positive_trace_sources
+            if source_id in elements_by_id
+        ):
+            raise ValueError(
+                f"manual review plantuml_anchors are not bound for {case_id}"
+            )
+    for anchor in observations["fcstm_anchors"]:
+        if not any(
+            _fcstm_anchor_matches_element(
+                fcstm_text=fcstm_text,
+                anchor=anchor,
+                element_id=element_id,
+                elements_by_id=elements_by_id,
+                macros_by_id=macros_by_id,
+            )
+            for element_id in elements_by_id
+        ):
+            raise ValueError(f"manual review fcstm_anchors are not bound for {case_id}")
     correspondences = review["semantic_correspondences"]
     if len(correspondences) < 2:
         raise ValueError(
@@ -285,6 +644,17 @@ def validate_manual_pair_review(
     ]
     if len(identities) != len(set(identities)):
         raise ValueError(f"manual review repeats a semantic correspondence for {case_id}")
+    occurrence_identities = [
+        (
+            item["plantuml_anchor"],
+            tuple(item["source_element_ids"]),
+        )
+        for item in correspondences
+    ]
+    if len(occurrence_identities) != len(set(occurrence_identities)):
+        raise ValueError(
+            f"manual review repeats a source semantic occurrence for {case_id}"
+        )
     correspondence_anchors = {
         "nl": {item["nl_anchor"] for item in correspondences},
         "plantuml": {item["plantuml_anchor"] for item in correspondences},
@@ -302,13 +672,9 @@ def validate_manual_pair_review(
                 f"manual review {label} anchors lack semantic correspondence for {case_id}"
             )
     for index, item in enumerate(correspondences):
-        if any(
-            anchor.strip() in GENERIC_REVIEW_ANCHORS or anchor not in text
-            for anchor, text in (
-                (item["nl_anchor"], nl_text),
-                (item["plantuml_anchor"], source_text),
-                (item["fcstm_anchor"], fcstm_text),
-            )
+        if (
+            item["nl_anchor"].strip() in GENERIC_REVIEW_ANCHORS
+            or item["nl_anchor"] not in nl_text
         ):
             raise ValueError(
                 f"semantic correspondence {index} is not source-bound for {case_id}"
@@ -357,8 +723,21 @@ def validate_manual_pair_review(
                 f"semantic correspondence {index} compiler members are not source-macro-bound "
                 f"for {case_id}"
             )
+        parsed_anchor = _parse_fcstm_anchor(item["fcstm_anchor"])
+        if parsed_anchor is None:
+            raise ValueError(
+                f"semantic correspondence {index} has invalid FCSTM anchor for {case_id}"
+            )
+        anchor_id = parsed_anchor[0]
+        declared_anchor_ids = set(source_ids) | set(compiler_ids)
+        if anchor_id not in declared_anchor_ids:
+            raise ValueError(
+                f"semantic correspondence {index} FCSTM anchor ownership is undeclared "
+                f"for {case_id}"
+            )
         if any(
             not _fcstm_anchor_matches_element(
+                fcstm_text=fcstm_text,
                 anchor=item["fcstm_anchor"],
                 element_id=element_id,
                 elements_by_id=elements_by_id,
@@ -372,17 +751,42 @@ def validate_manual_pair_review(
             )
         projection = item["projection_kind"]
         assessment = item["assessment"]
-        if projection == "direct" and compiler_ids:
+        if assessment == "blocked":
             raise ValueError(
-                f"direct semantic correspondence {index} exposes compiler members for {case_id}"
+                f"blocked semantic correspondence {index} cannot support PASS for {case_id}"
             )
-        if projection == "macro" and not compiler_ids:
+        source_rules = [
+            _source_projection_rule(elements_by_id[element_id])
+            for element_id in source_ids
+        ]
+        if any(rule is None for rule in source_rules):
             raise ValueError(
-                f"macro semantic correspondence {index} lacks compiler members for {case_id}"
+                f"semantic correspondence {index} has an unsupported source kind for {case_id}"
             )
-        if projection == "capability_excluded" and assessment == "preserved":
+        allowed_pairs = set.intersection(
+            *(set(rule["allowed"]) for rule in source_rules if rule is not None)
+        )
+        if (projection, assessment) not in allowed_pairs:
             raise ValueError(
-                f"capability-excluded correspondence {index} overclaims preservation for {case_id}"
+                f"semantic correspondence {index} projection/assessment contradicts "
+                f"source kind or capability for {case_id}"
+            )
+        compiler_policies = {
+            rule["compiler_policy"] for rule in source_rules if rule is not None
+        }
+        if len(compiler_policies) != 1:
+            raise ValueError(
+                f"semantic correspondence {index} mixes incompatible source kinds for {case_id}"
+            )
+        compiler_policy = next(iter(compiler_policies))
+        if compiler_policy == "required" and not compiler_ids:
+            raise ValueError(
+                f"semantic correspondence {index} requires a compiler projection for {case_id}"
+            )
+        if compiler_policy == "forbidden" and compiler_ids:
+            raise ValueError(
+                f"semantic correspondence {index} exposes an inapplicable compiler "
+                f"projection for {case_id}"
             )
         rationale = item["rationale"]
         if not any(element_id in rationale for element_id in source_ids):
@@ -462,17 +866,46 @@ def validate_manual_pair_review(
                     f"second-pass PlantUML evidence is occurrence-misaligned for {case_id}: "
                     f"{item['obligation_id']}"
                 )
-            if any(
-                not any(
-                    _fcstm_anchor_matches_element(
-                        anchor=anchor,
-                        element_id=element_id,
-                        elements_by_id=elements_by_id,
-                        macros_by_id=macros_by_id,
-                    )
-                    for anchor in item["fcstm_anchors"]
+            fcstm_not_applicable = item["risk_tag"] == "source_normalization"
+            if fcstm_not_applicable and item["fcstm_anchors"]:
+                raise ValueError(
+                    f"second-pass FCSTM evidence must be empty for source normalization "
+                    f"in {case_id}: {item['obligation_id']}"
                 )
-                for element_id in item["element_ids"]
+            if fcstm_not_applicable:
+                normalization_elements = [
+                    elements_by_id[element_id]
+                    for element_id in item["element_ids"]
+                    if element_id in elements_by_id
+                ]
+                if any(
+                    element.get("kind") != "source_normalization"
+                    or any(
+                        not isinstance(element.get("metadata", {}).get(field), str)
+                        or element["metadata"][field] not in item["rationale"]
+                        for field in ("rule_id", "before", "after")
+                    )
+                    for element in normalization_elements
+                ):
+                    raise ValueError(
+                        f"second-pass normalization evidence lacks exact rule/before/after "
+                        f"binding for {case_id}: {item['obligation_id']}"
+                    )
+            if not fcstm_not_applicable and (
+                not item["fcstm_anchors"]
+                or any(
+                    not any(
+                        _fcstm_anchor_matches_element(
+                            fcstm_text=fcstm_text,
+                            anchor=anchor,
+                            element_id=element_id,
+                            elements_by_id=elements_by_id,
+                            macros_by_id=macros_by_id,
+                        )
+                        for anchor in item["fcstm_anchors"]
+                    )
+                    for element_id in item["element_ids"]
+                )
             ):
                 raise ValueError(
                     f"second-pass FCSTM evidence is occurrence-misaligned for {case_id}: "

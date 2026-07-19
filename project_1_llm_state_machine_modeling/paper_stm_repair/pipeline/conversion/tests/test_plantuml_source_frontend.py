@@ -18,6 +18,11 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (
     resolve_plantuml_jar,
 )
 from paper_stm_repair_conversion.adapters import plantuml_source as plantuml_adapter
+from paper_stm_repair_representation.manual_pair_review import (
+    _fcstm_anchor_matches_element,
+    fcstm_evidence_anchors,
+    plantuml_evidence_anchor,
+)
 
 
 def _repo_root() -> Path:
@@ -129,9 +134,40 @@ def _write_manifest_fixture(
     )
 
 
+REVIEW_NL = "The controller enters Idle mode and can advance to Ready mode."
+REVIEW_SOURCE = (
+    "@startuml\n"
+    "state Idle\n"
+    "state Ready\n"
+    "BodyState : note\n"
+    "--\n"
+    "state Fork <<fork>>\n"
+    "Running : entry / Tick\n"
+    "@enduml\n"
+)
+REVIEW_FCSTM = (
+    'state Idle named "Idle";\n'
+    'state Ready named "Ready";\n'
+    'state BodyState named "BodyState\\n[PlantUML body] note";\n'
+    'state Regions named "Regions\\n[PlantUML concurrent region 0]";\n'
+    'pseudo state Fork named "Fork";\n'
+    "state Running {\n"
+    "    enter abstract Tick;\n"
+    "}\n"
+)
+
+
 def _manual_review_fixture(*, second_pass_required: bool = False) -> dict:
+    idle_plantuml_anchor = "source-ref:fixture.puml:line:2|state Idle"
+    idle_fcstm_anchor = (
+        'element-ref:source:state:Idle@line:1|state Idle named "Idle";'
+    )
+    ready_plantuml_anchor = "source-ref:fixture.puml:line:3|state Ready"
+    ready_fcstm_anchor = (
+        'element-ref:source:state:Ready@line:2|state Ready named "Ready";'
+    )
     return {
-        "schema_version": "paper1.manual_pair_review.v3",
+        "schema_version": "paper1.manual_pair_review.v4",
         "case_id": "0000",
         "pair_id": "llms_emp_feedback_final_0000",
         "review_subject_sha256": "a" * 64,
@@ -151,20 +187,29 @@ def _manual_review_fixture(*, second_pass_required: bool = False) -> dict:
             "source_trace": True,
         },
         "observations": {
-            "nl_intent": "The requirement explicitly places the controller in Idle mode.",
-            "plantuml_semantics": "The source declares state Idle and selects it as the initial state.",
-            "fcstm_projection": "The FCSTM projection retains state Idle named as a source-owned state.",
+            "nl_intent": (
+                "The requirement places the controller in Idle mode and names Ready mode "
+                "as a distinct subsequent condition."
+            ),
+            "plantuml_semantics": (
+                "The source declares both state Idle and state Ready as distinct authored "
+                "semantic occurrences."
+            ),
+            "fcstm_projection": (
+                'The FCSTM retains state Idle named "Idle"; and state Ready named '
+                '"Ready"; as distinct source-owned states.'
+            ),
             "attribution_rationale": "Idle is source_owned; the generated wrapper remains compiler_owned.",
             "capability_rationale": "source_static capability is eligible while runtime evidence stays scoped.",
-            "nl_anchors": ["Idle mode"],
-            "plantuml_anchors": ["state Idle"],
-            "fcstm_anchors": ["state Idle named"],
+            "nl_anchors": ["Idle mode", "Ready mode"],
+            "plantuml_anchors": [idle_plantuml_anchor, ready_plantuml_anchor],
+            "fcstm_anchors": [idle_fcstm_anchor, ready_fcstm_anchor],
         },
         "semantic_correspondences": [
             {
                 "nl_anchor": "Idle mode",
-                "plantuml_anchor": "state Idle",
-                "fcstm_anchor": "state Idle named",
+                "plantuml_anchor": idle_plantuml_anchor,
+                "fcstm_anchor": idle_fcstm_anchor,
                 "source_element_ids": ["source:state:Idle"],
                 "compiler_element_ids": [],
                 "projection_kind": "direct",
@@ -175,16 +220,16 @@ def _manual_review_fixture(*, second_pass_required: bool = False) -> dict:
                 ),
             },
             {
-                "nl_anchor": "controller enters",
-                "plantuml_anchor": "state Idle\n@enduml",
-                "fcstm_anchor": 'named "Idle"',
-                "source_element_ids": ["source:state:Idle"],
+                "nl_anchor": "Ready mode",
+                "plantuml_anchor": ready_plantuml_anchor,
+                "fcstm_anchor": ready_fcstm_anchor,
+                "source_element_ids": ["source:state:Ready"],
                 "compiler_element_ids": [],
                 "projection_kind": "direct",
                 "assessment": "preserved",
                 "rationale": (
-                    "source:state:Idle is the positively traced semantic root; the second "
-                    "anchor checks that its authored label survives the FCSTM projection."
+                    "source:state:Ready is the second positively traced semantic root; its "
+                    "authored label survives as a distinct FCSTM projection."
                 ),
             },
         ],
@@ -238,27 +283,138 @@ def _review_contract_fixture(
             {
                 "element_id": "source:state:Idle",
                 "origin": "source_owned",
+                "kind": "state",
                 "source_refs": ["fixture.puml:line:2"],
-                "model_refs": ["state:fixture.Idle"],
+                "model_refs": ["state:Idle"],
                 "macro_ids": [],
                 "metadata": {"fcstm_path": "fixture.Idle"},
-                "semantic_fields": {"fcstm_identifier": "fixture.Idle"},
+                "semantic_fields": {
+                    "fcstm_identifier": "fixture.Idle",
+                    "kind": "state",
+                },
+            },
+            {
+                "element_id": "source:state:Ready",
+                "origin": "source_owned",
+                "kind": "state",
+                "source_refs": ["fixture.puml:line:3"],
+                "model_refs": ["state:Ready"],
+                "macro_ids": [],
+                "metadata": {"fcstm_path": "fixture.Ready"},
+                "semantic_fields": {
+                    "fcstm_identifier": "fixture.Ready",
+                    "kind": "state",
+                },
+            },
+            {
+                "element_id": "source:body:BodyState:1",
+                "origin": "source_owned",
+                "kind": "state_body_text",
+                "source_refs": ["fixture.puml:line:4"],
+                "model_refs": ["macro:body_projection:BodyState:1"],
+                "macro_ids": ["macro:body_projection:BodyState:1"],
+                "metadata": {"state_id": "BodyState", "text": "note"},
+                "semantic_fields": {
+                    "display_encoding": "state_display_metadata",
+                    "text": "note",
+                },
+            },
+            {
+                "element_id": "source:region:Regions:region:0",
+                "origin": "source_owned",
+                "kind": "concurrent_region",
+                "source_refs": ["fixture.puml:line:5"],
+                "model_refs": ["macro:region_projection:Regions:region:0"],
+                "macro_ids": ["macro:region_projection:Regions:region:0"],
+                "metadata": {"owner_scope": "Regions", "region_index": 0},
+                "semantic_fields": {
+                    "execution": "orthogonal_runtime_unsupported",
+                    "owner_scope": "Regions",
+                    "region_index": 0,
+                },
+            },
+            {
+                "element_id": "source:state:Fork",
+                "origin": "source_owned",
+                "kind": "state",
+                "source_refs": ["fixture.puml:line:6"],
+                "model_refs": ["state:Fork"],
+                "macro_ids": [],
+                "metadata": {"fcstm_path": "fixture.Fork"},
+                "semantic_fields": {
+                    "fcstm_identifier": "fixture.Fork",
+                    "kind": "fork",
+                },
+            },
+            {
+                "element_id": "source:lifecycle:Running:1",
+                "origin": "source_owned",
+                "kind": "lifecycle_action",
+                "source_refs": ["fixture.puml:line:7"],
+                "model_refs": ["macro:lifecycle_projection:Running:1"],
+                "macro_ids": ["macro:lifecycle_projection:Running:1"],
+                "metadata": {
+                    "state_id": "Running",
+                    "lifecycle_kind": "entry",
+                    "text": "Tick",
+                },
+                "semantic_fields": {
+                    "execution": "abstract_action_not_execution_evidence",
+                    "kind": "entry",
+                    "text": "Tick",
+                },
+            },
+            {
+                "element_id": "compiler:lifecycle_action:Running:1:Tick",
+                "origin": "compiler_owned",
+                "kind": "abstract_lifecycle_projection",
+                "source_refs": ["fixture.puml:line:7"],
+                "model_refs": ["action:Tick"],
+                "macro_ids": ["macro:lifecycle_projection:Running:1"],
+                "metadata": {"representation": "abstract_lifecycle_action"},
+                "semantic_fields": {},
             },
             {
                 "element_id": "compiler:root:fixture",
                 "origin": "compiler_owned",
+                "kind": "root_wrapper",
                 "source_refs": ["fixture.puml:line:2"],
-                "model_refs": ["state:fixture.Idle"],
+                "model_refs": ["state:Idle"],
                 "macro_ids": [],
                 "metadata": {},
                 "semantic_fields": {},
             },
         ],
-        "macros": [],
+        "macros": [
+            {
+                "macro_id": "macro:body_projection:BodyState:1",
+                "source_element_ids": ["source:body:BodyState:1"],
+                "member_element_ids": [],
+            },
+            {
+                "macro_id": "macro:region_projection:Regions:region:0",
+                "source_element_ids": ["source:region:Regions:region:0"],
+                "member_element_ids": [],
+            },
+            {
+                "macro_id": "macro:lifecycle_projection:Running:1",
+                "source_element_ids": ["source:lifecycle:Running:1"],
+                "member_element_ids": [
+                    "compiler:lifecycle_action:Running:1:Tick"
+                ],
+            },
+        ],
         "source_trace_base": {
             "entries": [
                 {
-                    "source_elements": ["source:state:Idle"],
+                    "source_elements": [
+                        "source:state:Idle",
+                        "source:state:Ready",
+                        "source:body:BodyState:1",
+                        "source:region:Regions:region:0",
+                        "source:state:Fork",
+                        "source:lifecycle:Running:1",
+                    ],
                 }
             ]
         },
@@ -1188,9 +1344,9 @@ def test_pair_builder_rejects_stale_manual_review_hash():
             comparison=comparison,
             contract=contract,
             contract_sha256="b" * 64,
-            nl_text="The controller enters Idle mode.",
-            source_text="@startuml\nstate Idle\n@enduml\n",
-            fcstm_text='state Idle named "Idle";\n',
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
             validator=validator,
         )
 
@@ -1208,9 +1364,9 @@ def test_pair_builder_accepts_source_bound_semantic_correspondences():
         comparison={"review_subject_sha256": "a" * 64},
         contract=_review_contract_fixture(),
         contract_sha256="b" * 64,
-        nl_text="The controller enters Idle mode.",
-        source_text="@startuml\nstate Idle\n@enduml\n",
-        fcstm_text='state Idle named "Idle";\n',
+        nl_text=REVIEW_NL,
+        source_text=REVIEW_SOURCE,
+        fcstm_text=REVIEW_FCSTM,
         validator=validator,
     )
 
@@ -1233,9 +1389,9 @@ def test_pair_builder_rejects_incomplete_second_pass_and_blocking_finding():
         "comparison": comparison,
         "contract": contract,
         "contract_sha256": "b" * 64,
-        "nl_text": "The controller enters Idle mode.",
-        "source_text": "@startuml\nstate Idle\n@enduml\n",
-        "fcstm_text": 'state Idle named "Idle";\n',
+        "nl_text": REVIEW_NL,
+        "source_text": REVIEW_SOURCE,
+        "fcstm_text": REVIEW_FCSTM,
         "validator": validator,
     }
     with pytest.raises(RuntimeError, match="second pass is incomplete"):
@@ -1252,8 +1408,12 @@ def test_pair_builder_rejects_incomplete_second_pass_and_blocking_finding():
             {
                 "obligation_id": "review:synthetic_state:0001:fixture",
                 "risk_tag": "synthetic_state",
-                "plantuml_anchors": ["state Idle"],
-                "fcstm_anchors": ["state Idle named"],
+                "plantuml_anchors": [
+                    "source-ref:fixture.puml:line:2|state Idle"
+                ],
+                "fcstm_anchors": [
+                    'element-ref:compiler:root:fixture@line:1|state Idle named "Idle";'
+                ],
                 "element_ids": ["compiler:root:fixture"],
                 "assessment": "compiler_artifact_excluded",
                 "rationale": (
@@ -1318,6 +1478,7 @@ def test_pair_builder_rejects_generic_structured_self_attestation():
         json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
     )
     review = _manual_review_fixture()
+    exact = _manual_review_fixture()["observations"]
     review["observations"] = {
         "nl_intent": "This generic sentence claims that the requirement was reviewed.",
         "plantuml_semantics": "This generic sentence claims that the source was reviewed.",
@@ -1325,8 +1486,8 @@ def test_pair_builder_rejects_generic_structured_self_attestation():
         "attribution_rationale": "This generic conversion sentence claims attribution was reviewed.",
         "capability_rationale": "This generic capability sentence claims eligibility was reviewed.",
         "nl_anchors": ["1"],
-        "plantuml_anchors": ["@startuml"],
-        "fcstm_anchors": ["state"],
+        "plantuml_anchors": exact["plantuml_anchors"],
+        "fcstm_anchors": exact["fcstm_anchors"],
     }
 
     with pytest.raises(RuntimeError, match="nl_anchors are not bound"):
@@ -1364,9 +1525,9 @@ def test_pair_builder_rejects_real_anchors_with_shallow_declared_review():
             comparison={"review_subject_sha256": "a" * 64},
             contract=_review_contract_fixture(),
             contract_sha256="b" * 64,
-            nl_text="The controller enters Idle mode.",
-            source_text="@startuml\nstate Idle\n@enduml\n",
-            fcstm_text='state Idle named "Idle";\n',
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
             validator=validator,
         )
 
@@ -1385,6 +1546,68 @@ def test_pair_builder_rejects_duplicate_semantic_correspondence():
         validator.validate(review)
 
 
+def test_pair_builder_rejects_duplicate_source_occurrence_with_different_nl_anchor():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    first = review["semantic_correspondences"][0]
+    second = review["semantic_correspondences"][1]
+    second.update(
+        {
+            "plantuml_anchor": first["plantuml_anchor"],
+            "fcstm_anchor": first["fcstm_anchor"],
+            "source_element_ids": first["source_element_ids"],
+            "compiler_element_ids": first["compiler_element_ids"],
+            "rationale": (
+                "source:state:Idle is deliberately repeated under another valid NL phrase "
+                "to prove that one source occurrence cannot satisfy the two-item minimum."
+            ),
+        }
+    )
+    observations = review["observations"]
+    observations["plantuml_anchors"] = [first["plantuml_anchor"]]
+    observations["fcstm_anchors"] = [first["fcstm_anchor"]]
+
+    with pytest.raises(RuntimeError, match="repeats a source semantic occurrence"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_blocked_correspondence_in_pass_review():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture()
+    review["semantic_correspondences"][0]["assessment"] = "blocked"
+
+    with pytest.raises(RuntimeError, match="cannot support PASS"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+
 def test_pair_builder_rejects_incompatible_projection_assessment():
     builder = _load_pair_builder_module()
     validator = Draft202012Validator(
@@ -1393,7 +1616,10 @@ def test_pair_builder_rejects_incompatible_projection_assessment():
     review = _manual_review_fixture()
     review["semantic_correspondences"][0]["projection_kind"] = "capability_excluded"
 
-    with pytest.raises(RuntimeError, match="overclaims preservation"):
+    with pytest.raises(
+        RuntimeError,
+        match="projection/assessment contradicts source kind or capability",
+    ):
         builder._validate_review(
             review=review,
             case_id="0000",
@@ -1401,9 +1627,240 @@ def test_pair_builder_rejects_incompatible_projection_assessment():
             comparison={"review_subject_sha256": "a" * 64},
             contract=_review_contract_fixture(),
             contract_sha256="b" * 64,
-            nl_text="The controller enters Idle mode.",
-            source_text="@startuml\nstate Idle\n@enduml\n",
-            fcstm_text='state Idle named "Idle";\n',
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+
+def _replace_first_correspondence_for_projection(
+    *,
+    source_id: str,
+    plantuml_anchor: str,
+    fcstm_anchor: str,
+    projection_kind: str,
+    assessment: str,
+    compiler_element_ids: list[str] | None = None,
+) -> dict:
+    review = _manual_review_fixture()
+    correspondence = review["semantic_correspondences"][0]
+    old_plantuml_anchor = correspondence["plantuml_anchor"]
+    old_fcstm_anchor = correspondence["fcstm_anchor"]
+    correspondence.update(
+        {
+            "plantuml_anchor": plantuml_anchor,
+            "fcstm_anchor": fcstm_anchor,
+            "source_element_ids": [source_id],
+            "compiler_element_ids": compiler_element_ids or [],
+            "projection_kind": projection_kind,
+            "assessment": assessment,
+            "rationale": (
+                f"{source_id} is reviewed using the exact source occurrence and its "
+                "declared FCSTM projection under the fixture capability contract."
+            ),
+        }
+    )
+    observations = review["observations"]
+    observations["plantuml_anchors"] = [
+        plantuml_anchor if anchor == old_plantuml_anchor else anchor
+        for anchor in observations["plantuml_anchors"]
+    ]
+    observations["fcstm_anchors"] = [
+        fcstm_anchor if anchor == old_fcstm_anchor else anchor
+        for anchor in observations["fcstm_anchors"]
+    ]
+    observations["plantuml_semantics"] += (
+        f" Exact reviewed occurrence: {plantuml_anchor.split('|', 1)[1]}"
+    )
+    observations["fcstm_projection"] += (
+        f" Exact reviewed projection: {fcstm_anchor.split('|', 1)[1]}"
+    )
+    return review
+
+
+@pytest.mark.parametrize(
+    (
+        "source_id",
+        "plantuml_anchor",
+        "fcstm_anchor",
+        "projection_kind",
+        "assessment",
+        "compiler_element_ids",
+    ),
+    [
+        (
+            "source:body:BodyState:1",
+            "source-ref:fixture.puml:line:4|BodyState : note",
+            'element-ref:source:body:BodyState:1@line:3|state BodyState named "BodyState\\n[PlantUML body] note";',
+            "metadata",
+            "preserved_with_exclusions",
+            [],
+        ),
+        (
+            "source:region:Regions:region:0",
+            "source-ref:fixture.puml:line:5|--",
+            'element-ref:source:region:Regions:region:0@line:4|state Regions named "Regions\\n[PlantUML concurrent region 0]";',
+            "capability_excluded",
+            "preserved_with_exclusions",
+            [],
+        ),
+        (
+            "source:state:Fork",
+            "source-ref:fixture.puml:line:6|state Fork <<fork>>",
+            'element-ref:source:state:Fork@line:5|pseudo state Fork named "Fork";',
+            "capability_excluded",
+            "preserved_with_exclusions",
+            [],
+        ),
+        (
+            "source:lifecycle:Running:1",
+            "source-ref:fixture.puml:line:7|Running : entry / Tick",
+            "element-ref:compiler:lifecycle_action:Running:1:Tick@line:7|enter abstract Tick;",
+            "capability_excluded",
+            "preserved_with_exclusions",
+            ["compiler:lifecycle_action:Running:1:Tick"],
+        ),
+    ],
+)
+def test_pair_builder_accepts_projection_matrix_combinations(
+    source_id: str,
+    plantuml_anchor: str,
+    fcstm_anchor: str,
+    projection_kind: str,
+    assessment: str,
+    compiler_element_ids: list[str],
+):
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _replace_first_correspondence_for_projection(
+        source_id=source_id,
+        plantuml_anchor=plantuml_anchor,
+        fcstm_anchor=fcstm_anchor,
+        projection_kind=projection_kind,
+        assessment=assessment,
+        compiler_element_ids=compiler_element_ids,
+    )
+
+    builder._validate_review(
+        review=review,
+        case_id="0000",
+        pair_id="llms_emp_feedback_final_0000",
+        comparison={"review_subject_sha256": "a" * 64},
+        contract=_review_contract_fixture(),
+        contract_sha256="b" * 64,
+        nl_text=REVIEW_NL,
+        source_text=REVIEW_SOURCE,
+        fcstm_text=REVIEW_FCSTM,
+        validator=validator,
+    )
+
+
+@pytest.mark.parametrize(
+    (
+        "source_id",
+        "plantuml_anchor",
+        "fcstm_anchor",
+        "projection_kind",
+        "assessment",
+        "compiler_element_ids",
+    ),
+    [
+        (
+            "source:body:BodyState:1",
+            "source-ref:fixture.puml:line:4|BodyState : note",
+            'element-ref:source:body:BodyState:1@line:3|state BodyState named "BodyState\\n[PlantUML body] note";',
+            "direct",
+            "preserved",
+            [],
+        ),
+        (
+            "source:region:Regions:region:0",
+            "source-ref:fixture.puml:line:5|--",
+            'element-ref:source:region:Regions:region:0@line:4|state Regions named "Regions\\n[PlantUML concurrent region 0]";',
+            "direct",
+            "preserved",
+            [],
+        ),
+        (
+            "source:state:Fork",
+            "source-ref:fixture.puml:line:6|state Fork <<fork>>",
+            'element-ref:source:state:Fork@line:5|pseudo state Fork named "Fork";',
+            "direct",
+            "preserved",
+            [],
+        ),
+        (
+            "source:lifecycle:Running:1",
+            "source-ref:fixture.puml:line:7|Running : entry / Tick",
+            "element-ref:compiler:lifecycle_action:Running:1:Tick@line:7|enter abstract Tick;",
+            "macro",
+            "preserved_with_exclusions",
+            ["compiler:lifecycle_action:Running:1:Tick"],
+        ),
+    ],
+)
+def test_pair_builder_rejects_projection_matrix_overclaims(
+    source_id: str,
+    plantuml_anchor: str,
+    fcstm_anchor: str,
+    projection_kind: str,
+    assessment: str,
+    compiler_element_ids: list[str],
+):
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _replace_first_correspondence_for_projection(
+        source_id=source_id,
+        plantuml_anchor=plantuml_anchor,
+        fcstm_anchor=fcstm_anchor,
+        projection_kind=projection_kind,
+        assessment=assessment,
+        compiler_element_ids=compiler_element_ids,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="projection/assessment contradicts source kind or capability",
+    ):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=_review_contract_fixture(),
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+
+def test_pair_builder_rejects_unknown_source_projection_kind():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    contract = _review_contract_fixture()
+    contract["elements"][0]["kind"] = "unsupported_fixture_kind"
+    review = _manual_review_fixture()
+
+    with pytest.raises(RuntimeError, match="unsupported source kind"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=contract,
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
             validator=validator,
         )
 
@@ -1425,8 +1882,12 @@ def test_pair_builder_rejects_risk_occurrence_bound_to_wrong_elements():
             {
                 "obligation_id": "review:synthetic_state:0001:fixture",
                 "risk_tag": "synthetic_state",
-                "plantuml_anchors": ["state Idle"],
-                "fcstm_anchors": ["state Idle named"],
+                "plantuml_anchors": [
+                    "source-ref:fixture.puml:line:2|state Idle"
+                ],
+                "fcstm_anchors": [
+                    'element-ref:compiler:root:fixture@line:1|state Idle named "Idle";'
+                ],
                 "element_ids": ["source:state:Idle"],
                 "assessment": "compiler_artifact_excluded",
                 "rationale": (
@@ -1452,9 +1913,9 @@ def test_pair_builder_rejects_risk_occurrence_bound_to_wrong_elements():
                 risk_tags=["synthetic_state"],
             ),
             contract_sha256="b" * 64,
-            nl_text="The controller enters Idle mode.",
-            source_text="@startuml\nstate Idle\n@enduml\n",
-            fcstm_text='state Idle named "Idle";\n',
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
             validator=validator,
         )
 
@@ -1476,8 +1937,12 @@ def test_pair_builder_rejects_risk_occurrence_with_unrelated_global_anchors():
             {
                 "obligation_id": "review:synthetic_state:0001:fixture",
                 "risk_tag": "synthetic_state",
-                "plantuml_anchors": ["state Idle"],
-                "fcstm_anchors": ["state Idle named"],
+                "plantuml_anchors": [
+                    "source-ref:fixture.puml:line:2|state Idle"
+                ],
+                "fcstm_anchors": [
+                    'element-ref:compiler:root:fixture@line:1|state Idle named "Idle";'
+                ],
                 "element_ids": ["compiler:root:fixture"],
                 "assessment": "compiler_artifact_excluded",
                 "rationale": (
@@ -1507,11 +1972,193 @@ def test_pair_builder_rejects_risk_occurrence_with_unrelated_global_anchors():
             comparison={"review_subject_sha256": "a" * 64},
             contract=contract,
             contract_sha256="b" * 64,
-            nl_text="The controller enters Idle mode.",
-            source_text="@startuml\nstate Idle\n@enduml\n",
-            fcstm_text='state Idle named "Idle";\n',
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
             validator=validator,
         )
+
+
+def test_pair_builder_rejects_fcstm_anchor_for_source_normalization():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture(second_pass_required=True)
+    review["second_pass"] = {
+        "required": True,
+        "completed": True,
+        "review_subject_sha256": "a" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "risk_focused_independent_second_pass",
+        "risk_tags_reviewed": ["source_normalization"],
+        "risk_assessments": [
+            {
+                "obligation_id": "review:source_normalization:0001:fixture",
+                "risk_tag": "source_normalization",
+                "plantuml_anchors": [
+                    "source-ref:fixture.puml:line:2|state Idle"
+                ],
+                "fcstm_anchors": [
+                    'element-ref:source:state:Idle@line:1|state Idle named "Idle";'
+                ],
+                "element_ids": ["source:normalization:1"],
+                "assessment": "compiler_artifact_excluded",
+                "rationale": (
+                    "review:source_normalization:0001:fixture source_normalization "
+                    "deliberately supplies an FCSTM projection that must be rejected."
+                ),
+            }
+        ],
+        "observations": (
+            "Second pass independently rechecked the source_normalization boundary."
+        ),
+        "notes": "Transport normalization has no legitimate FCSTM occurrence anchor.",
+    }
+    contract = _review_contract_fixture()
+    contract["elements"].append(
+        {
+            "element_id": "source:normalization:1",
+            "origin": "source_owned",
+            "source_refs": ["fixture.puml:line:2"],
+            "model_refs": ["macro:normalization:1"],
+            "macro_ids": ["macro:normalization:1"],
+            "metadata": {},
+            "semantic_fields": {},
+        }
+    )
+    contract["review_subject"] = {
+        "second_pass_required": True,
+        "risk_tags": ["source_normalization"],
+        "review_obligations": [
+            {
+                "obligation_id": "review:source_normalization:0001:fixture",
+                "risk_tag": "source_normalization",
+                "element_ids": ["source:normalization:1"],
+                "expected_origins": {
+                    "source:normalization:1": "source_owned",
+                },
+                "source_refs": ["fixture.puml:line:2"],
+                "rationale": "Fixture transport-only source normalization occurrence.",
+            }
+        ],
+    }
+
+    with pytest.raises(RuntimeError, match="must be empty for source normalization"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=contract,
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+
+def test_pair_builder_requires_exact_normalization_rule_before_after_binding():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    obligation_id = "review:source_normalization:0001:fixture"
+    review = _manual_review_fixture(second_pass_required=True)
+    review["second_pass"] = {
+        "required": True,
+        "completed": True,
+        "review_subject_sha256": "a" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "risk_focused_independent_second_pass",
+        "risk_tags_reviewed": ["source_normalization"],
+        "risk_assessments": [
+            {
+                "obligation_id": obligation_id,
+                "risk_tag": "source_normalization",
+                "plantuml_anchors": [
+                    "source-ref:fixture.puml:line:2|state Idle"
+                ],
+                "fcstm_anchors": [],
+                "element_ids": ["source:normalization:1"],
+                "assessment": "compiler_artifact_excluded",
+                "rationale": (
+                    f"{obligation_id} source_normalization was reviewed only generically "
+                    "without spelling out its exact transformation."
+                ),
+            }
+        ],
+        "observations": (
+            "Second pass independently rechecked the source_normalization boundary."
+        ),
+        "notes": "The fixture deliberately omits exact normalization transformation facts.",
+    }
+    contract = _review_contract_fixture()
+    contract["elements"].append(
+        {
+            "element_id": "source:normalization:1",
+            "origin": "source_owned",
+            "kind": "source_normalization",
+            "source_refs": ["fixture.puml:line:2"],
+            "model_refs": ["macro:normalization:1"],
+            "macro_ids": ["macro:normalization:1"],
+            "metadata": {
+                "rule_id": "source_input.fixture_rule",
+                "before": "state Idle",
+                "after": "state Idle normalized",
+            },
+            "semantic_fields": {},
+        }
+    )
+    contract["review_subject"] = {
+        "second_pass_required": True,
+        "risk_tags": ["source_normalization"],
+        "review_obligations": [
+            {
+                "obligation_id": obligation_id,
+                "risk_tag": "source_normalization",
+                "element_ids": ["source:normalization:1"],
+                "expected_origins": {
+                    "source:normalization:1": "source_owned",
+                },
+                "source_refs": ["fixture.puml:line:2"],
+                "rationale": "Fixture transport-only source normalization occurrence.",
+            }
+        ],
+    }
+
+    with pytest.raises(RuntimeError, match="lacks exact rule/before/after binding"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=contract,
+            contract_sha256="b" * 64,
+            nl_text=REVIEW_NL,
+            source_text=REVIEW_SOURCE,
+            fcstm_text=REVIEW_FCSTM,
+            validator=validator,
+        )
+
+    assessment = review["second_pass"]["risk_assessments"][0]
+    assessment["rationale"] = (
+        f"{obligation_id} source_normalization binds source_input.fixture_rule exactly: "
+        "state Idle -> state Idle normalized."
+    )
+    builder._validate_review(
+        review=review,
+        case_id="0000",
+        pair_id="llms_emp_feedback_final_0000",
+        comparison={"review_subject_sha256": "a" * 64},
+        contract=contract,
+        contract_sha256="b" * 64,
+        nl_text=REVIEW_NL,
+        source_text=REVIEW_SOURCE,
+        fcstm_text=REVIEW_FCSTM,
+        validator=validator,
+    )
 
 
 def test_pair_builder_rejects_mixed_or_partial_ordered_batch(tmp_path: Path):
@@ -1720,6 +2367,64 @@ def test_pair_builder_check_rejects_extra_file_and_tampered_seal(tmp_path: Path)
             staging_dir=staging,
             derived_inventory=derived,
         )
+
+
+def test_frozen_60_review_obligations_have_exact_occurrence_evidence():
+    _require_feedback_final_evidence()
+    source_rows = {row["pair_id"]: row for row in _rows()}
+    obligation_count = 0
+    covered_element_count = 0
+    normalization_count = 0
+
+    for pair_id, source_row in source_rows.items():
+        contract = json.loads(
+            (EVIDENCE / "working_contracts" / f"{pair_id}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        fcstm_text = (EVIDENCE / "fcstm" / f"{pair_id}.fcstm").read_text(
+            encoding="utf-8"
+        )
+        source_text = source_row["stm0_text"]
+        elements = {item["element_id"]: item for item in contract["elements"]}
+        macros = {item["macro_id"]: item for item in contract["macros"]}
+        for obligation in contract["review_subject"]["review_obligations"]:
+            obligation_count += 1
+            assert obligation["source_refs"]
+            for source_ref in obligation["source_refs"]:
+                anchor = plantuml_evidence_anchor(
+                    source_text=source_text,
+                    source_ref=source_ref,
+                )
+                assert anchor.startswith(f"source-ref:{source_ref}|")
+
+            anchors = fcstm_evidence_anchors(
+                fcstm_text=fcstm_text,
+                element_ids=obligation["element_ids"],
+                elements_by_id=elements,
+                macros_by_id=macros,
+            )
+            if obligation["risk_tag"] == "source_normalization":
+                normalization_count += 1
+                assert anchors == []
+                continue
+            assert anchors
+            for element_id in obligation["element_ids"]:
+                covered_element_count += 1
+                assert any(
+                    _fcstm_anchor_matches_element(
+                        fcstm_text=fcstm_text,
+                        anchor=anchor,
+                        element_id=element_id,
+                        elements_by_id=elements,
+                        macros_by_id=macros,
+                    )
+                    for anchor in anchors
+                )
+
+    assert obligation_count == 358
+    assert normalization_count == 6
+    assert covered_element_count == 773
 
 
 def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():

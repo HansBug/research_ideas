@@ -370,6 +370,8 @@ def _manual_review_template(rows: list[dict[str, Any]]) -> str:
         "",
         "每行必须完整阅读 NL、作者最终 PlantUML、转换后 FCSTM、working contract 和 source trace，并填写本组特有的 NL/PlantUML/FCSTM 锚点、ownership/macro/capability 判断。存在 review obligation 的 case 还必须按每个 occurrence 的唯一 obligation_id 完成绑定同一 review subject 的第二遍复核。结构保真不等于行为等价。",
         "",
+        "锚点必须使用精确 occurrence 格式：PlantUML 写成 `source-ref:<raw_ref>|<完整 trimmed 源行>`；FCSTM 写成 `element-ref:<element_id>@line:<n>|<完整 trimmed FCSTM 行>`。裸 label、裸 identifier、子串和错误 scope/行号均无效；`source_normalization` 没有 FCSTM projection，其第二遍 `fcstm_anchors` 必须为空。",
+        "",
         "| case | review subject SHA-256 | working contract SHA-256 | verdict | notes |",
         "|---|---|---|---|---|",
     ]
@@ -387,7 +389,7 @@ def _manual_review_jsonl_template(rows: list[dict[str, Any]]) -> str:
     for row in rows:
         records.append(
             {
-                "schema_version": "paper1.manual_pair_review.v3",
+                "schema_version": "paper1.manual_pair_review.v4",
                 "case_id": row["case_id"],
                 "pair_id": row["pair_id"],
                 "review_subject_sha256": row["review_subject_sha256"],
