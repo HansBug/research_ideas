@@ -244,6 +244,26 @@ def _artifact_inventory(output_dir: Path) -> list[dict[str, str]]:
     return rows
 
 
+def _require_stable_replay_identity(
+    *,
+    start_identity: dict[str, Any],
+    end_identity: dict[str, Any],
+    staging_dir: Path,
+) -> None:
+    if end_identity == start_identity:
+        return
+    shutil.rmtree(staging_dir, ignore_errors=True)
+    changed = sorted(
+        key
+        for key in set(start_identity) | set(end_identity)
+        if start_identity.get(key) != end_identity.get(key)
+    )
+    raise RuntimeError(
+        "formal replay inputs changed while the 60-case batch was running: "
+        + ", ".join(changed)
+    )
+
+
 def _supporting_artifact_inventory(output_dir: Path) -> list[dict[str, str]]:
     rows = []
     for name in (
@@ -436,9 +456,10 @@ def run(
 
     research_commit = _git("rev-parse", "HEAD")
     research_branch = _git("branch", "--show-current")
-    tracked_dirty_before_run = bool(
-        _git("status", "--porcelain", "--untracked-files=no")
+    tracked_status_before_run = _git(
+        "status", "--porcelain", "--untracked-files=no"
     )
+    tracked_dirty_before_run = bool(tracked_status_before_run)
     untracked_implementation_before_run = _untracked_implementation_entries()
     if (
         tracked_dirty_before_run or untracked_implementation_before_run
@@ -450,7 +471,9 @@ def run(
         )
     # Formal evidence must bind bytecode rebuilt from the tracked source tree, not
     # an ignored class tree plus a jointly forged cache fingerprint.
+    implementation_tree_sha256 = _relevant_implementation_sha256()
     java_build = _formal_java_frontend_build(plantuml_jar)
+    pairs_sha256 = _sha256_bytes(pairs_path.read_bytes())
     publication_dir = output_dir.resolve()
     allowed_root = (PAPER_ROOT / "pipeline/representation/reports").resolve()
     if publication_dir != allowed_root and allowed_root not in publication_dir.parents:
@@ -826,6 +849,34 @@ def run(
         for item in artifact_inventory
         if item["path"].startswith("working_contracts/")
     ]
+    end_identity = {
+        "research_commit": _git("rev-parse", "HEAD"),
+        "research_branch": _git("branch", "--show-current"),
+        "tracked_status": _git("status", "--porcelain", "--untracked-files=no"),
+        "untracked_implementation": _untracked_implementation_entries(),
+        "implementation_tree_sha256": _relevant_implementation_sha256(),
+        "java_frontend_build": java_frontend_build_identity(
+            plantuml_jar=plantuml_jar,
+            force=False,
+        ),
+        "pyfcstm_commit": _checked_out_pyfcstm_commit(),
+        "pairs_sha256": _sha256_bytes(pairs_path.read_bytes()),
+    }
+    start_identity = {
+        "research_commit": research_commit,
+        "research_branch": research_branch,
+        "tracked_status": tracked_status_before_run,
+        "untracked_implementation": untracked_implementation_before_run,
+        "implementation_tree_sha256": implementation_tree_sha256,
+        "java_frontend_build": java_build,
+        "pyfcstm_commit": pyfcstm_commit,
+        "pairs_sha256": pairs_sha256,
+    }
+    _require_stable_replay_identity(
+        start_identity=start_identity,
+        end_identity=end_identity,
+        staging_dir=staging_dir,
+    )
     manifest = {
         "schema_version": "r4_5.llms_emp_java_batch.v5",
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -838,13 +889,13 @@ def run(
         "evidence_eligible": not (
             tracked_dirty_before_run or untracked_implementation_before_run
         ),
-        "implementation_tree_sha256": _relevant_implementation_sha256(),
+        "implementation_tree_sha256": implementation_tree_sha256,
         "java_frontend_build": java_build,
         "pyfcstm_commit": pyfcstm_commit,
         "plantuml_version": PLANTUML_VERSION,
         "plantuml_jar_sha256": PLANTUML_SHA256,
         "pairs_path": _display(pairs_path),
-        "pairs_sha256": _sha256_bytes(pairs_path.read_bytes()),
+        "pairs_sha256": pairs_sha256,
         "output_dir": _display(publication_dir),
         "attribution": "representation_conversion_not_repair",
         "r4_5_boundary": "preserve source structure, boundaries, labels, and lifecycle; do not infer guard/effect/timing/concurrency",

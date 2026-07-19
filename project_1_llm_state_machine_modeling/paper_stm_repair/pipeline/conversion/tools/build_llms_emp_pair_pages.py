@@ -5,13 +5,14 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 import sys
 import uuid
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, ValidationError
 
 
 def _repo_root() -> Path:
@@ -24,13 +25,19 @@ def _repo_root() -> Path:
 REPO_ROOT = _repo_root()
 PAPER_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair"
 CONVERSION_SRC = PAPER_ROOT / "pipeline/conversion/src"
+REPRESENTATION_SRC = PAPER_ROOT / "pipeline/representation/src"
 sys.path.insert(0, str(CONVERSION_SRC))
+sys.path.insert(0, str(REPRESENTATION_SRC))
 
 from paper_stm_repair_conversion.evidence_integrity import (  # noqa: E402
     relevant_implementation_sha256,
 )
 from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
     java_frontend_build_identity,
+)
+from paper_stm_repair_representation.manual_pair_review import (  # noqa: E402
+    manual_review_observation_digest,
+    validate_manual_pair_review,
 )
 
 DEFAULT_PAIRS_PATH = (
@@ -45,21 +52,6 @@ MANUAL_REVIEW_SCHEMA = (
     PAPER_ROOT / "pipeline/representation/schemas/manual_pair_review.schema.json"
 )
 EXPECTED_CASES = [f"{index:04d}" for index in range(60)]
-GENERIC_REVIEW_ANCHORS = {
-    "[*]",
-    "--",
-    "->",
-    "@enduml",
-    "@startuml",
-    "event",
-    "state",
-}
-SHALLOW_REVIEW_PHRASES = {
-    "declared reviewed",
-    "remaining semantics",
-    "reviewed as required",
-    "all semantics were reviewed",
-}
 
 
 def _sha256_text(text: str) -> str:
@@ -280,6 +272,19 @@ def _current_java_frontend_build() -> dict[str, Any]:
     return java_frontend_build_identity(force=True)
 
 
+def _current_pyfcstm_commit() -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(REPO_ROOT / "pyfcstm"), "rev-parse", "HEAD"],
+        text=True,
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "pyfcstm commit identity is unavailable: " + completed.stderr.strip()
+        )
+    return completed.stdout.strip()
+
+
 def _safe_artifact_path(evidence_dir: Path, relative: str) -> Path:
     if relative.startswith("/") or ".." in Path(relative).parts:
         raise RuntimeError(f"unsafe artifact path: {relative}")
@@ -317,6 +322,10 @@ def _validate_manifest(evidence_dir: Path, *, allow_ineligible: bool) -> dict[st
         raise RuntimeError(
             "manifest Java frontend build identity is stale; rerun the 60-case "
             "machine evidence with the current executable class tree"
+        )
+    if manifest.get("pyfcstm_commit") != _current_pyfcstm_commit():
+        raise RuntimeError(
+            "manifest pyfcstm commit is stale; rerun the 60-case machine evidence"
         )
     inventory = manifest.get("artifact_inventory", [])
     if manifest.get("artifact_set_sha256") != _sha256_json(inventory):
@@ -417,304 +426,27 @@ def _validate_review(
     fcstm_text: str,
     validator: Draft202012Validator,
 ) -> None:
-    validator.validate(review)
-    if review["case_id"] != case_id or review["pair_id"] != pair_id:
-        raise RuntimeError(f"manual review identity drift for {case_id}")
-    if review["review_subject_sha256"] != comparison["review_subject_sha256"]:
-        raise RuntimeError(f"stale manual review subject for {case_id}")
-    if review["working_contract_sha256"] != contract_sha256:
-        raise RuntimeError(f"stale manual working-contract hash for {case_id}")
-    if not all(review["reviewed_inputs"].values()):
-        raise RuntimeError(
-            f"manual review did not read all required inputs for {case_id}"
+    try:
+        validate_manual_pair_review(
+            review=review,
+            case_id=case_id,
+            pair_id=pair_id,
+            review_subject_sha256=comparison["review_subject_sha256"],
+            contract=contract,
+            contract_sha256=contract_sha256,
+            nl_text=nl_text,
+            source_text=source_text,
+            fcstm_text=fcstm_text,
+            validator=validator,
         )
-    context = review["review_context"]
-    if not all(
-        isinstance(context[field], str) and context[field].strip() for field in context
-    ):
-        raise RuntimeError(f"manual review context is incomplete for {case_id}")
-    if not context["session_id"].startswith("omx-") or not context[
-        "model_id"
-    ].startswith("gpt-"):
-        raise RuntimeError(f"manual review context identity is invalid for {case_id}")
-    observations = review["observations"]
-    narrative_fields = (
-        "nl_intent",
-        "plantuml_semantics",
-        "fcstm_projection",
-        "attribution_rationale",
-        "capability_rationale",
-    )
-    if any(len(observations[field].strip()) < 20 for field in narrative_fields):
-        raise RuntimeError(f"manual review observations are too generic for {case_id}")
-    if len({observations[field].strip() for field in narrative_fields}) != len(
-        narrative_fields
-    ):
-        raise RuntimeError(f"manual review observations are duplicated for {case_id}")
-    for field, text in (
-        ("nl_anchors", nl_text),
-        ("plantuml_anchors", source_text),
-        ("fcstm_anchors", fcstm_text),
-    ):
-        anchors = observations[field]
-        if not anchors or any(
-            len(anchor.strip()) < 4
-            or anchor.strip() in GENERIC_REVIEW_ANCHORS
-            or anchor not in text
-            for anchor in anchors
-        ):
-            raise RuntimeError(f"manual review {field} are not bound for {case_id}")
-    if not any(
-        anchor in observations["nl_intent"] for anchor in observations["nl_anchors"]
-    ):
-        raise RuntimeError(
-            f"manual review NL narrative is not anchor-bound for {case_id}"
-        )
-    if not any(
-        anchor in observations["plantuml_semantics"]
-        for anchor in observations["plantuml_anchors"]
-    ):
-        raise RuntimeError(
-            f"manual review PlantUML narrative is not anchor-bound for {case_id}"
-        )
-    if not any(
-        anchor in observations["fcstm_projection"]
-        for anchor in observations["fcstm_anchors"]
-    ):
-        raise RuntimeError(
-            f"manual review FCSTM narrative is not anchor-bound for {case_id}"
-        )
-    if not any(
-        token in observations["attribution_rationale"]
-        for token in ("source_owned", "compiler_owned", "macro", "conversion")
-    ):
-        raise RuntimeError(
-            f"manual review attribution rationale is not contract-specific for {case_id}"
-        )
-    if not any(
-        token in observations["capability_rationale"]
-        for token in (
-            "capability",
-            "eligible",
-            "ineligible",
-            "simulation",
-            "source_static",
-            "transition_trace",
-        )
-    ):
-        raise RuntimeError(
-            f"manual review capability rationale is not contract-specific for {case_id}"
-        )
-    elements_by_id = {item["element_id"]: item for item in contract.get("elements", [])}
-    positive_trace_sources = {
-        source_id
-        for entry in contract.get("source_trace_base", {}).get("entries", [])
-        for source_id in entry.get("source_elements", [])
-    }
-    correspondences = review["semantic_correspondences"]
-    correspondence_identities = [
-        (
-            item["nl_anchor"],
-            item["plantuml_anchor"],
-            item["fcstm_anchor"],
-            tuple(item["source_element_ids"]),
-            tuple(item["compiler_element_ids"]),
-            item["projection_kind"],
-            item["assessment"],
-        )
-        for item in correspondences
-    ]
-    if len(correspondence_identities) != len(set(correspondence_identities)):
-        raise RuntimeError(
-            f"manual review repeats a semantic correspondence for {case_id}"
-        )
-    correspondence_anchors = {
-        "nl": {item["nl_anchor"] for item in correspondences},
-        "plantuml": {item["plantuml_anchor"] for item in correspondences},
-        "fcstm": {item["fcstm_anchor"] for item in correspondences},
-    }
-    if not set(observations["nl_anchors"]).issubset(correspondence_anchors["nl"]):
-        raise RuntimeError(
-            f"manual review NL anchors lack semantic correspondence for {case_id}"
-        )
-    if not set(observations["plantuml_anchors"]).issubset(
-        correspondence_anchors["plantuml"]
-    ):
-        raise RuntimeError(
-            f"manual review PlantUML anchors lack semantic correspondence for {case_id}"
-        )
-    if not set(observations["fcstm_anchors"]).issubset(correspondence_anchors["fcstm"]):
-        raise RuntimeError(
-            f"manual review FCSTM anchors lack semantic correspondence for {case_id}"
-        )
-    for index, item in enumerate(correspondences):
-        anchors = (
-            (item["nl_anchor"], nl_text),
-            (item["plantuml_anchor"], source_text),
-            (item["fcstm_anchor"], fcstm_text),
-        )
-        if any(
-            anchor.strip() in GENERIC_REVIEW_ANCHORS or anchor not in text
-            for anchor, text in anchors
-        ):
-            raise RuntimeError(
-                f"semantic correspondence {index} is not source-bound for {case_id}"
-            )
-        source_ids = item["source_element_ids"]
-        compiler_ids = item["compiler_element_ids"]
-        if any(
-            element_id not in elements_by_id
-            or elements_by_id[element_id].get("origin") != "source_owned"
-            or element_id not in positive_trace_sources
-            for element_id in source_ids
-        ):
-            raise RuntimeError(
-                f"semantic correspondence {index} lacks positive source identity for {case_id}"
-            )
-        if any(
-            element_id not in elements_by_id
-            or elements_by_id[element_id].get("origin") != "compiler_owned"
-            for element_id in compiler_ids
-        ):
-            raise RuntimeError(
-                f"semantic correspondence {index} has invalid compiler ownership for {case_id}"
-            )
-        projection = item["projection_kind"]
-        assessment = item["assessment"]
-        if projection == "direct" and compiler_ids:
-            raise RuntimeError(
-                f"direct semantic correspondence {index} exposes compiler members for {case_id}"
-            )
-        if projection == "macro" and not compiler_ids:
-            raise RuntimeError(
-                f"macro semantic correspondence {index} lacks compiler members for {case_id}"
-            )
-        if projection == "capability_excluded" and assessment == "preserved":
-            raise RuntimeError(
-                f"capability-excluded correspondence {index} overclaims preservation for {case_id}"
-            )
-        rationale = item["rationale"]
-        if not any(element_id in rationale for element_id in source_ids):
-            raise RuntimeError(
-                f"semantic correspondence {index} rationale lacks source identity for {case_id}"
-            )
-        if any(phrase in rationale.lower() for phrase in SHALLOW_REVIEW_PHRASES):
-            raise RuntimeError(
-                f"semantic correspondence {index} is a shallow attestation for {case_id}"
-            )
-    if any(
-        review[field] != "pass"
-        for field in (
-            "ownership_verdict",
-            "macro_verdict",
-            "capability_verdict",
-            "verdict",
-        )
-    ):
-        raise RuntimeError(f"manual review is not PASS for {case_id}")
-    required_second_pass = contract["review_subject"]["second_pass_required"]
-    if review["second_pass"]["required"] != required_second_pass:
-        raise RuntimeError(f"manual second-pass requirement drift for {case_id}")
-    if required_second_pass and not review["second_pass"]["completed"]:
-        raise RuntimeError(f"required second pass is incomplete for {case_id}")
-    second_pass = review["second_pass"]
-    if required_second_pass:
-        risk_tags = contract["review_subject"]["risk_tags"]
-        obligations = contract["review_subject"]["review_obligations"]
-        risk_assessments = second_pass["risk_assessments"]
-        if (
-            second_pass["review_subject_sha256"] != review["review_subject_sha256"]
-            or second_pass["reviewer_id"] != "main_session_llm"
-            or second_pass["review_method"] != "risk_focused_independent_second_pass"
-            or second_pass["risk_tags_reviewed"] != risk_tags
-            or [item["obligation_id"] for item in risk_assessments]
-            != [item["obligation_id"] for item in obligations]
-            or not isinstance(second_pass["observations"], str)
-            or len(second_pass["observations"].strip()) < 20
-            or any(tag not in second_pass["observations"] for tag in risk_tags)
-            or len(second_pass["notes"].strip()) < 20
-        ):
-            raise RuntimeError(
-                f"required second pass is not evidence-bound for {case_id}"
-            )
-        for item, obligation in zip(risk_assessments, obligations):
-            if item["risk_tag"] != obligation["risk_tag"]:
-                raise RuntimeError(
-                    f"second-pass risk-tag binding drift for {case_id}: "
-                    f"{item['obligation_id']}"
-                )
-            if item["element_ids"] != obligation["element_ids"]:
-                raise RuntimeError(
-                    f"second-pass ownership occurrence drift for {case_id}: "
-                    f"{item['obligation_id']}"
-                )
-            if any(anchor not in source_text for anchor in item["plantuml_anchors"]):
-                raise RuntimeError(
-                    f"second-pass PlantUML evidence is not bound for {case_id}: {item['risk_tag']}"
-                )
-            if any(anchor not in fcstm_text for anchor in item["fcstm_anchors"]):
-                raise RuntimeError(
-                    f"second-pass FCSTM evidence is not bound for {case_id}: {item['risk_tag']}"
-                )
-            if any(
-                element_id not in elements_by_id for element_id in item["element_ids"]
-            ):
-                raise RuntimeError(
-                    f"second-pass ownership evidence is not bound for {case_id}: {item['risk_tag']}"
-                )
-            if (
-                item["risk_tag"] not in item["rationale"]
-                or item["obligation_id"] not in item["rationale"]
-                or any(
-                    phrase in item["rationale"].lower()
-                    for phrase in SHALLOW_REVIEW_PHRASES
-                )
-            ):
-                raise RuntimeError(
-                    f"second-pass rationale is shallow for {case_id}: {item['risk_tag']}"
-                )
-    elif (
-        second_pass["completed"]
-        or any(
-            second_pass[field] is not None
-            for field in (
-                "review_subject_sha256",
-                "reviewer_id",
-                "review_method",
-                "observations",
-            )
-        )
-        or (not required_second_pass and second_pass["risk_tags_reviewed"])
-        or (not required_second_pass and second_pass["risk_assessments"])
-    ):
-        raise RuntimeError(f"unexpected second-pass evidence for {case_id}")
-    blocking = [
-        finding for finding in review["findings"] if finding["severity"] in {"C", "I"}
-    ]
-    if blocking:
-        raise RuntimeError(
-            f"manual review has blocking findings for {case_id}: {blocking}"
-        )
+    except (ValueError, ValidationError) as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
 
 
 def _observation_digest(review: dict[str, Any]) -> str:
-    observations = review["observations"]
-    return _sha256_json(
-        {
-            "narratives": {
-                field: observations[field]
-                for field in (
-                    "nl_intent",
-                    "plantuml_semantics",
-                    "fcstm_projection",
-                    "attribution_rationale",
-                    "capability_rationale",
-                )
-            },
-            "semantic_correspondences": review["semantic_correspondences"],
-            "risk_assessments": review["second_pass"]["risk_assessments"],
-        }
-    )
+    return manual_review_observation_digest(review)
 
 
 def _validate_contract_artifact_bindings(
@@ -1139,7 +871,7 @@ def build_pair_pages(
             "case_count": 60,
             "evidence_eligible": manifest["evidence_eligible"],
             "status": (
-                "manual_review_complete"
+                "main_session_reviewed_ready_for_discover"
                 if manifest["evidence_eligible"]
                 else "development_only"
             ),

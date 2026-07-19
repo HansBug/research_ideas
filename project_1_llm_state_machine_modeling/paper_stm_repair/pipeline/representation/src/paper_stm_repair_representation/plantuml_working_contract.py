@@ -200,6 +200,20 @@ def build_review_obligations(
         for item in contract["elements"]
         if item.get("origin") == "source_owned" and item.get("kind") == "state"
     }
+    root_source_state_ids = sorted(
+        item["element_id"]
+        for item in contract["elements"]
+        if item.get("origin") == "source_owned"
+        and item.get("kind") == "state"
+        and item.get("metadata", {}).get("source_parent") is None
+    )
+    root_fcstm_paths = {
+        item["metadata"]["fcstm_path"].rsplit(".", 1)[0]
+        for item in contract["elements"]
+        if item.get("origin") == "source_owned"
+        and item.get("kind") == "state"
+        and item.get("metadata", {}).get("source_parent") is None
+    }
     obligations: list[dict[str, Any]] = []
 
     def add(
@@ -214,6 +228,11 @@ def build_review_obligations(
             raise ValueError(
                 f"review obligation lacks owned elements: {risk_tag}:{occurrence_key}"
             )
+        bound_source_refs = {
+            item for item in source_refs if item
+        }
+        for element_id in normalized:
+            bound_source_refs.update(elements[element_id].get("source_refs", []))
         obligations.append(
             {
                 "obligation_id": (
@@ -224,7 +243,7 @@ def build_review_obligations(
                 "expected_origins": {
                     item: elements[item]["origin"] for item in normalized
                 },
-                "source_refs": sorted(set(item for item in source_refs if item)),
+                "source_refs": sorted(bound_source_refs),
                 "rationale": rationale,
             }
         )
@@ -279,6 +298,11 @@ def build_review_obligations(
             owner = source_state_by_fcstm_path.get(item.get("fcstm_parent_path"))
             if owner:
                 element_ids.append(owner)
+            elif item.get("fcstm_parent_path") in root_fcstm_paths:
+                # A root-level missing initial is an absence fact. Bind its review
+                # obligation to the complete set of declared top-level source states
+                # so the reviewer inspects the actual PlantUML root scope.
+                element_ids.extend(root_source_state_ids)
         add(
             "synthetic_state",
             f"{index:03d}-{item['fcstm_id']}",
@@ -873,12 +897,18 @@ def build_working_contract(
     for item in comparison["concurrent_region_mappings"]:
         element_id = _source_id("region", item["id"])
         macro_id = _macro_id("region_projection", item["id"])
+        region_source_refs = sorted(
+            {
+                *item.get("separator_before_raw_refs", []),
+                *item.get("separator_after_raw_refs", []),
+            }
+        )
         elements.append(
             _element(
                 element_id=element_id,
                 kind="concurrent_region",
                 origin="source_owned",
-                source_refs=[item["raw_ref"]] if item.get("raw_ref") else [],
+                source_refs=region_source_refs,
                 model_refs=[macro_id],
                 edit_policy="macro_issue_bound",
                 macro_ids=[macro_id],
@@ -989,6 +1019,7 @@ def build_working_contract(
         for item in elements
         if item["origin"] == "source_owned"
         and item["edit_policy"] in {"direct_issue_bound", "macro_issue_bound"}
+        and item["source_refs"]
     )
     attribution_exclusions = sorted(
         item["element_id"]
@@ -1006,17 +1037,23 @@ def build_working_contract(
     capabilities = {
         "contract_integrity": _capability(
             status="eligible" if structure_ok else "ineligible",
-            eligible=source_ids if structure_ok else [],
-            excluded=[] if structure_ok else source_ids,
+            eligible=[],
+            excluded=sorted(element_ids),
             reasons=[item["reason_code"] for item in blockers],
-            claim_boundary="Contract validity proves trace/accounting integrity, not source behavioral correctness.",
+            claim_boundary=(
+                "Artifact-level contract validity proves trace/accounting integrity only; it "
+                "authorizes no source semantic element."
+            ),
         ),
         "parse": _capability(
             status="eligible" if structure_ok else "ineligible",
-            eligible=source_ids if structure_ok else [],
-            excluded=[] if structure_ok else source_ids,
+            eligible=[],
+            excluded=sorted(element_ids),
             reasons=[item["reason_code"] for item in blockers],
-            claim_boundary="FCSTM parseability only.",
+            claim_boundary=(
+                "Artifact-level FCSTM parseability only; parse success authorizes no source "
+                "semantic element or behavioral claim."
+            ),
         ),
         "inspect_structure": _capability(
             status="eligible" if structure_ok else "ineligible",
@@ -1151,6 +1188,12 @@ def build_working_contract(
             "compiler_only_diagnostic": "rejected_conversion_artifact",
             "macro_member_diagnostic": "candidate_only_until_source_evidence",
             "unresolved_diagnostic": "insufficient_evidence",
+            "candidate_conversion_artifact_policy": (
+                "allowed_only_as_explicitly_classified_non_repairable_noise"
+            ),
+            "source_internal_consistency_check_policy": (
+                "manifest_bound_executed_checker_artifact_required"
+            ),
             "confirmed_issue_requirements": [
                 "nl_or_raw_internal_evidence",
                 "raw_source_fragment",
@@ -1159,6 +1202,9 @@ def build_working_contract(
                 "conversion_or_lowering_related_false",
             ],
             "repair_target_policy": "source_or_issue_bound_agent_root_only",
+            "confirmed_issue_conversion_artifact_limit": 0,
+            "repair_target_conversion_artifact_limit": 0,
+            "confirm_accepted_conversion_artifact_limit": 0,
             "main_result_conversion_artifact_limit": 0,
         },
         "diagnostic_attribution": _unbound_diagnostic_attribution(),
@@ -1761,13 +1807,36 @@ def validate_working_contract(
         raise ValueError("baseline inspect diagnostics authorize source issue evidence")
     if set(diagnostic_capability.get("excluded_element_ids", [])) != all_element_ids:
         raise ValueError("inspect diagnostic capability exclusion inventory drift")
-    if (
-        contract.get("attribution_policy", {}).get(
-            "main_result_conversion_artifact_limit"
-        )
-        != 0
+    for capability_name in ("contract_integrity", "parse"):
+        capability = capabilities[capability_name]
+        if capability.get("eligible_element_ids") or capability.get(
+            "eligible_field_refs"
+        ):
+            raise ValueError(
+                f"artifact-scoped {capability_name} authorizes semantic elements"
+            )
+        if set(capability.get("excluded_element_ids", [])) != all_element_ids:
+            raise ValueError(
+                f"artifact-scoped {capability_name} exclusion inventory drift"
+            )
+    attribution_policy = contract.get("attribution_policy", {})
+    expected_attribution_limits = {
+        "confirmed_issue_conversion_artifact_limit": 0,
+        "repair_target_conversion_artifact_limit": 0,
+        "confirm_accepted_conversion_artifact_limit": 0,
+        "main_result_conversion_artifact_limit": 0,
+    }
+    for field, expected in expected_attribution_limits.items():
+        if attribution_policy.get(field) != expected:
+            raise ValueError(f"{field} drift")
+    if attribution_policy.get("candidate_conversion_artifact_policy") != (
+        "allowed_only_as_explicitly_classified_non_repairable_noise"
     ):
-        raise ValueError("main-result conversion artifact limit drift")
+        raise ValueError("candidate conversion artifact policy drift")
+    if attribution_policy.get("source_internal_consistency_check_policy") != (
+        "manifest_bound_executed_checker_artifact_required"
+    ):
+        raise ValueError("source internal consistency checker policy drift")
     if contract.get("usage_gate") == "discover_input_with_capability_mask":
         if binding_status != "bound":
             raise ValueError(

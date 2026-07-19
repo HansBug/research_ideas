@@ -13,6 +13,7 @@ IMPLEMENTATION_ROOTS = (
     "pipeline/representation/src/paper_stm_repair_representation",
     "pipeline/representation/schemas/working_fcstm_contract.schema.json",
     "pipeline/representation/schemas/manual_pair_review.schema.json",
+    "pipeline/evaluation/schemas/source_issue_ledger.schema.json",
     "pipeline/conversion/tools/run_llms_emp_r45.py",
     "pipeline/conversion/tools/build_llms_emp_pair_pages.py",
 )

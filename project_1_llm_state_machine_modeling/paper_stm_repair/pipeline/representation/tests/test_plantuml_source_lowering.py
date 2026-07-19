@@ -604,6 +604,54 @@ def test_working_contract_rejects_premature_result_repair_or_simulation_promotio
         )
 
 
+@pytest.mark.parametrize(
+    "field,value,message",
+    [
+        (
+            "candidate_conversion_artifact_policy",
+            "allow_unclassified_noise",
+            "candidate conversion artifact policy drift",
+        ),
+        (
+            "confirmed_issue_conversion_artifact_limit",
+            1,
+            "confirmed_issue_conversion_artifact_limit drift",
+        ),
+        (
+            "repair_target_conversion_artifact_limit",
+            1,
+            "repair_target_conversion_artifact_limit drift",
+        ),
+        (
+            "confirm_accepted_conversion_artifact_limit",
+            1,
+            "confirm_accepted_conversion_artifact_limit drift",
+        ),
+        (
+            "main_result_conversion_artifact_limit",
+            1,
+            "main_result_conversion_artifact_limit drift",
+        ),
+    ],
+)
+def test_working_contract_rejects_relaxed_conversion_contamination_policy(
+    field: str, value: object, message: str
+):
+    canonical, lowered, _, _ = _artifact(
+        BASIC_SOURCE, example_id=f"attribution-policy-{field}"
+    )
+    contract = copy.deepcopy(lowered["working_contract"])
+    contract["attribution_policy"][field] = value
+
+    with pytest.raises(ValueError, match=message):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
 def test_bound_inspect_diagnostics_never_preconfirm_a_source_issue():
     canonical, lowered, _, report = _artifact(
         """@startuml
@@ -726,6 +774,37 @@ Closed --> Open : Door Opened
     assert 'state UnspecifiedInitial named "Unspecified initial";' in lowered["fcstm"]
     debts = {item["reason_code"] for item in lowered["comparison"]["operational_debts"]}
     assert "R45.DEBT.missing_explicit_initial" in debts
+
+
+def test_root_missing_initial_review_obligation_is_bound_to_source_scope():
+    lowered = _lower_text(
+        """@startuml
+state Controller {
+  state Idle
+}
+@enduml
+""",
+        example_id="root-missing-initial-fixture",
+    )
+    obligations = build_review_obligations(
+        comparison=lowered["comparison"],
+        official_identity={
+            "state_identity_remaps": [],
+            "transition_endpoint_remaps": [],
+        },
+        contract=lowered["working_contract"],
+    )
+    obligation = next(
+        item
+        for item in obligations
+        if item["risk_tag"] == "synthetic_state"
+        and any("UnspecifiedInitial" in element_id for element_id in item["element_ids"])
+    )
+
+    assert obligation["source_refs"] == [
+        "stm0.puml:line:2"
+    ]
+    assert "source:state:Controller" in obligation["element_ids"]
 
 
 def test_initial_to_composite_without_child_initial_is_structurally_preserved():
@@ -1583,6 +1662,14 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
             inspect_report=report,
             contract=lowered["working_contract"],
         )
+        review_obligations = build_review_obligations(
+            comparison=lowered["comparison"],
+            official_identity=canonical["metadata"][
+                "official_identity_reconciliation"
+            ],
+            contract=contract,
+        )
+        assert all(obligation["source_refs"] for obligation in review_obligations)
         assert contract["usage_gate"] == "discover_input_with_capability_mask"
         assert (
             contract["capability_eligibility"]["source_static_discovery"]["status"]

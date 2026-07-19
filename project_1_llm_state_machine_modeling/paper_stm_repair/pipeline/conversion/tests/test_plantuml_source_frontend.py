@@ -116,6 +116,7 @@ def _write_manifest_fixture(
         "output_dir": "fixture-evidence",
         "implementation_tree_sha256": implementation_sha256,
         "java_frontend_build": java_build,
+        "pyfcstm_commit": "c" * 40,
         "artifact_inventory": inventory,
         "artifact_set_sha256": builder._sha256_json(inventory),
         "working_contract_set_sha256": builder._sha256_json(inventory),
@@ -237,12 +238,23 @@ def _review_contract_fixture(
             {
                 "element_id": "source:state:Idle",
                 "origin": "source_owned",
+                "source_refs": ["fixture.puml:line:2"],
+                "model_refs": ["state:fixture.Idle"],
+                "macro_ids": [],
+                "metadata": {"fcstm_path": "fixture.Idle"},
+                "semantic_fields": {"fcstm_identifier": "fixture.Idle"},
             },
             {
                 "element_id": "compiler:root:fixture",
                 "origin": "compiler_owned",
+                "source_refs": ["fixture.puml:line:2"],
+                "model_refs": ["state:fixture.Idle"],
+                "macro_ids": [],
+                "metadata": {},
+                "semantic_fields": {},
             },
         ],
+        "macros": [],
         "source_trace_base": {
             "entries": [
                 {
@@ -1099,6 +1111,49 @@ def test_runner_and_pair_builder_share_the_same_implementation_tree_hash():
     )
 
 
+@pytest.mark.parametrize(
+    "changed_key",
+    [
+        "research_commit",
+        "research_branch",
+        "tracked_status",
+        "untracked_implementation",
+        "implementation_tree_sha256",
+        "java_frontend_build",
+        "pyfcstm_commit",
+        "pairs_sha256",
+    ],
+)
+def test_batch_runner_rejects_any_mid_run_identity_drift(
+    tmp_path: Path, changed_key: str
+):
+    runner = _load_runner_module()
+    staging = tmp_path / f"staging-{changed_key}"
+    staging.mkdir()
+    (staging / "partial.txt").write_text("partial", encoding="utf-8")
+    start = {
+        "research_commit": "a" * 40,
+        "research_branch": "paper1/pr-plantuml-fcstm-fix",
+        "tracked_status": "",
+        "untracked_implementation": "",
+        "implementation_tree_sha256": "b" * 64,
+        "java_frontend_build": {"source_tree_sha256": "c" * 64},
+        "pyfcstm_commit": "d" * 40,
+        "pairs_sha256": "e" * 64,
+    }
+    end = copy.deepcopy(start)
+    end[changed_key] = "changed"
+
+    with pytest.raises(RuntimeError, match=changed_key):
+        runner._require_stable_replay_identity(
+            start_identity=start,
+            end_identity=end,
+            staging_dir=staging,
+        )
+
+    assert not staging.exists()
+
+
 def test_batch_runner_atomic_publish_replaces_only_after_staging_is_complete(
     tmp_path: Path,
 ):
@@ -1216,6 +1271,14 @@ def test_pair_builder_rejects_incomplete_second_pass_and_blocking_finding():
 
     review["second_pass"]["review_subject_sha256"] = "a" * 64
     builder._validate_review(**kwargs)
+    review["second_pass"]["risk_assessments"][0]["assessment"] = (
+        "source_fact_preserved"
+    )
+    with pytest.raises(RuntimeError, match="incompatible with risk occurrence"):
+        builder._validate_review(**kwargs)
+    review["second_pass"]["risk_assessments"][0]["assessment"] = (
+        "compiler_artifact_excluded"
+    )
     review["findings"] = [{"severity": "I", "code": "I.STALE", "summary": "blocking"}]
     with pytest.raises(RuntimeError, match="blocking findings"):
         builder._validate_review(**kwargs)
@@ -1396,6 +1459,61 @@ def test_pair_builder_rejects_risk_occurrence_bound_to_wrong_elements():
         )
 
 
+def test_pair_builder_rejects_risk_occurrence_with_unrelated_global_anchors():
+    builder = _load_pair_builder_module()
+    validator = Draft202012Validator(
+        json.loads(builder.MANUAL_REVIEW_SCHEMA.read_text(encoding="utf-8"))
+    )
+    review = _manual_review_fixture(second_pass_required=True)
+    review["second_pass"] = {
+        "required": True,
+        "completed": True,
+        "review_subject_sha256": "a" * 64,
+        "reviewer_id": "main_session_llm",
+        "review_method": "risk_focused_independent_second_pass",
+        "risk_tags_reviewed": ["synthetic_state"],
+        "risk_assessments": [
+            {
+                "obligation_id": "review:synthetic_state:0001:fixture",
+                "risk_tag": "synthetic_state",
+                "plantuml_anchors": ["state Idle"],
+                "fcstm_anchors": ["state Idle named"],
+                "element_ids": ["compiler:root:fixture"],
+                "assessment": "compiler_artifact_excluded",
+                "rationale": (
+                    "review:synthetic_state:0001:fixture synthetic_state deliberately "
+                    "uses anchors from another source line for occurrence binding rejection."
+                ),
+            }
+        ],
+        "observations": (
+            "Second pass independently rechecked the synthetic_state ownership risk."
+        ),
+        "notes": "This fixture deliberately uses unrelated occurrence evidence.",
+    }
+    contract = _review_contract_fixture(
+        second_pass_required=True,
+        risk_tags=["synthetic_state"],
+    )
+    contract["review_subject"]["review_obligations"][0]["source_refs"] = [
+        "fixture.puml:line:3"
+    ]
+
+    with pytest.raises(RuntimeError, match="occurrence-misaligned"):
+        builder._validate_review(
+            review=review,
+            case_id="0000",
+            pair_id="llms_emp_feedback_final_0000",
+            comparison={"review_subject_sha256": "a" * 64},
+            contract=contract,
+            contract_sha256="b" * 64,
+            nl_text="The controller enters Idle mode.",
+            source_text="@startuml\nstate Idle\n@enduml\n",
+            fcstm_text='state Idle named "Idle";\n',
+            validator=validator,
+        )
+
+
 def test_pair_builder_rejects_mixed_or_partial_ordered_batch(tmp_path: Path):
     builder = _load_pair_builder_module()
     path = tmp_path / "rows.jsonl"
@@ -1423,6 +1541,7 @@ def test_pair_builder_rejects_stale_implementation_manifest(
     )
     monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
     monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+    monkeypatch.setattr(builder, "_current_pyfcstm_commit", lambda: "c" * 40)
 
     with pytest.raises(RuntimeError, match="implementation-tree hash is stale"):
         builder._validate_manifest(evidence, allow_ineligible=False)
@@ -1451,6 +1570,7 @@ def test_pair_builder_rejects_extra_machine_artifact_not_in_manifest(
     )
     monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
     monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+    monkeypatch.setattr(builder, "_current_pyfcstm_commit", lambda: "c" * 40)
     builder._validate_manifest(evidence, allow_ineligible=False)
 
     canonical = evidence / "canonical"
@@ -1604,6 +1724,8 @@ def test_pair_builder_check_rejects_extra_file_and_tampered_seal(tmp_path: Path)
 
 def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     _require_feedback_final_evidence()
+    if not (EVIDENCE / "PUBLICATION_SEAL.json").is_file():
+        pytest.skip("main-session pair review has not been published yet")
     manifest = json.loads((EVIDENCE / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == "r4_5.llms_emp_java_batch.v5"
     assert manifest["evidence_eligible"] is True
@@ -1672,11 +1794,13 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     assert "不表示全局行为等价" in manual_text
     seal = json.loads((EVIDENCE / "PUBLICATION_SEAL.json").read_text(encoding="utf-8"))
     assert seal["case_count"] == 60
-    assert seal["status"] == "manual_review_complete"
+    assert seal["status"] == "main_session_reviewed_ready_for_discover"
 
 
 def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cases():
     _require_feedback_final_evidence()
+    if not (EVIDENCE / "PUBLICATION_SEAL.json").is_file():
+        pytest.skip("main-session pair review has not been published yet")
     index_text = PAIR_INDEX.read_text(encoding="utf-8")
     source_rows = {row["pair_id"][-4:]: row for row in _rows()}
     assert sorted(path.name for path in PAIR_PAGES.iterdir() if path.is_dir()) == [
