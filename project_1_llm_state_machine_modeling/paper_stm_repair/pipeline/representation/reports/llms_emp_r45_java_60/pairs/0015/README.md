@@ -12,8 +12,8 @@
 - NL SHA-256：`934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f`
 - PlantUML SHA-256：`ff317db2b2e6a4a6a5031e9b33e7cc3a3262ed22e6229f4bb727034fb846c4e3`
 - FCSTM SHA-256：`041faf850a00ed47b07a9d2be709dc1c63e376caa28d4e9f35a64dfbc77784ca`
-- review subject SHA-256：`20f880cde350fead6637f5280ee44e9ff18e819b8d4339c29401e9abc16d623c`
-- working contract SHA-256：`2279aaccb2177739be10d144b31f768f223f9b630a743e2a68d82476a02c61e1`
+- review subject SHA-256：`037a08efbf1f5fe050d526a2cdd6d7321092f143df73f64869be85e7358108cd`
+- working contract SHA-256：`b2a94ba54f9c36772bf6611b61fbb6cd333fc41b1c5227c6af4d3a3f4bec7cc4`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `16`
 - mapped / blocked / silent drop：`16` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`16` / `22` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0015 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0015 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0015.puml:line:2\|state DoorShut, source-ref:llms_emp_feedback_final_0015.puml:line:11\|DoorShut -> DoorOpen : Door Opened`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut";, element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0015.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0015.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0015.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0015.json) | [source trace](../../source_traces/llms_emp_feedback_final_0015.json) | [人工总账](../../MANUAL_REVIEW.md)
@@ -39,8 +39,8 @@
 
 | projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
 |---|---|---|---|---|---|---|---|
-| `direct` | `preserved` | DoorShut | source-ref:llms_emp_feedback_final_0015.puml:line:2\|state DoorShut | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut"; | source:state:DoorShut | - | Case 0015 binds source:state:DoorShut to the exact authored occurrence 'state DoorShut'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
-| `macro` | `preserved_with_exclusions` | Door Opened | source-ref:llms_emp_feedback_final_0015.puml:line:11\|DoorShut -> DoorOpen : Door Opened | element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0015 binds source:transition:tr_0002 to the exact authored occurrence 'DoorShut -> DoorOpen : Door Opened'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+| `direct` | `preserved` | DoorShut | source-ref:llms_emp_feedback_final_0015.puml:line:2\|state DoorShut | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut"; | source:state:DoorShut | - | Case 0015 binds source:state:DoorShut to authored PlantUML occurrence 'state DoorShut' and current FCSTM occurrence 'state DoorShut named "DoorShut";'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+| `macro` | `preserved_with_exclusions` | Door Opened | source-ref:llms_emp_feedback_final_0015.puml:line:11\|DoorShut -> DoorOpen : Door Opened | element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0015 binds source:transition:tr_0002 to authored PlantUML occurrence 'DoorShut -> DoorOpen : Door Opened' and current FCSTM occurrence 'DoorShut -> DoorOpen : /Door_Opened;'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
 
 ## Risk occurrence 第二遍复核
 

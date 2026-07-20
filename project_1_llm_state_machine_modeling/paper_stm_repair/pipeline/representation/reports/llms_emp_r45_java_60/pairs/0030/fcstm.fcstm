@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0030 named "llms_emp_feedback_final_0030" {
     event Power_On named "Power On";
     event Park_Request named "Park Request";
@@ -5,21 +6,18 @@ state llms_emp_feedback_final_0030 named "llms_emp_feedback_final_0030" {
     event front_distance_10 named "front_distance > 10";
     event Human_Steering_Cmd_Brake_Pressed named "Human Steering Cmd / Brake Pressed / [*]";
     event Power_Off named "Power Off";
-    state InitialWaittr_0001 named "Awaiting initial event: Power On";
-    state HumanDriving named "HumanDriving" {
-        state UnspecifiedInitial named "Unspecified initial";
-        [*] -> UnspecifiedInitial;
-    }
+    state HumanDriving named "HumanDriving";
     state Autonomous named "Autonomous" {
         state Navigating named "Navigating";
         state Parking named "Parking";
         [*] -> Navigating;
         Navigating -> Parking : /Park_Request;
         Parking -> Navigating : /Parking_Complete;
+        Navigating -> [*] : /Human_Steering_Cmd_Brake_Pressed effect { R45RouteToken = 6; };
+        Parking -> [*] : /Human_Steering_Cmd_Brake_Pressed effect { R45RouteToken = 6; };
     }
-    [*] -> InitialWaittr_0001;
-    InitialWaittr_0001 -> HumanDriving : /Power_On;
-    !HumanDriving -> Autonomous : /front_distance_10;
-    !Autonomous -> HumanDriving : /Human_Steering_Cmd_Brake_Pressed;
-    !HumanDriving -> [*] : /Power_Off;
+    Autonomous -> HumanDriving : if [R45RouteToken == 6] effect { R45RouteToken = 0; };
+    [*] -> HumanDriving : /Power_On;
+    HumanDriving -> Autonomous : /front_distance_10;
+    HumanDriving -> [*] : /Power_Off;
 }

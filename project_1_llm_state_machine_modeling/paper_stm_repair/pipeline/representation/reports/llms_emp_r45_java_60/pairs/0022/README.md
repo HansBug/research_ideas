@@ -11,9 +11,9 @@
 - Phase-I PlantUML SHA-256：`8ea7e01c4cf73f562b0c55fed76f8f318797aa06f9ee043170e79385f326f7c5`
 - NL SHA-256：`9fe426ba761d5a52c3b670f35410502a5289bdd9489c4a9bfa983e34d565040c`
 - PlantUML SHA-256：`245204b8393136d7b1e0394710457dd5505e7f00d03d3bceb467b7e6c7c343b0`
-- FCSTM SHA-256：`a93e9c0821fb0c0630905aa71c685297ec60bc50245a7c0c9cffd195d77e761d`
-- review subject SHA-256：`007d8037868666abd610eaabe09638934482407c1036dbcfecee34632ae3ef8e`
-- working contract SHA-256：`0e92de6b81831c7bf28f9ec0ff15f5d0566857827fcb953804e3f5b6060a3e5e`
+- FCSTM SHA-256：`825992778cb4e7ec94b151b78a6ddb1e671c19dbc4d2f7a18880eaa8c8f9e915`
+- review subject SHA-256：`ef9aaea9423eddb64ee7ab83701de3b96e0b63d8b4eb9f127c9dcf6a6bfb163a`
+- working contract SHA-256：`dbbd7e8f31d1ed3ddb868aa43b4c9d0e8a32bf4221fd8ed97d0dae998a7b17f2`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -26,12 +26,12 @@
 - AST audit：`passed`
 - legacy whole-model FCSTM execution / Discover：`false` / `false`
 - working bundle usage gate：`discover_input_with_capability_mask`
-- ownership source / compiler / agent：`15` / `16` / `0`
+- ownership source / compiler / agent：`15` / `20` / `0`
 - source macro / positive identity trace / conversion boundary trace：`10` / `15` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0022 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The authored Operate-to-final keyOff transition is retained as a termination macro; the FCSTM !Operate notation is compiler projection syntax, not a source defect. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
-- source anchors：`source-ref:llms_emp_feedback_final_0022.puml:line:4\|state Operate {, source-ref:llms_emp_feedback_final_0022.puml:line:3\|PoweredOn --> Operate: start`；FCSTM anchors：`element-ref:source:state:Operate@line:7\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:21\|PoweredOn -> Operate : /start;`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0022 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
+- source anchors：`source-ref:llms_emp_feedback_final_0022.puml:line:4\|state Operate {, source-ref:llms_emp_feedback_final_0022.puml:line:3\|PoweredOn --> Operate: start`；FCSTM anchors：`element-ref:source:state:Operate@line:8\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:26\|PoweredOn -> Operate : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0022.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0022.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0022.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0022.json) | [source trace](../../source_traces/llms_emp_feedback_final_0022.json) | [人工总账](../../MANUAL_REVIEW.md)
 
@@ -39,14 +39,16 @@
 
 | projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
 |---|---|---|---|---|---|---|---|
-| `direct` | `preserved` | Operate | source-ref:llms_emp_feedback_final_0022.puml:line:4\|state Operate { | element-ref:source:state:Operate@line:7\|state Operate named "Operate" { | source:state:Operate | - | Case 0022 binds source:state:Operate to the exact authored occurrence 'state Operate {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
-| `macro` | `preserved_with_exclusions` | Operate | source-ref:llms_emp_feedback_final_0022.puml:line:3\|PoweredOn --> Operate: start | element-ref:compiler:transition_segment:tr_0002:segment:1@line:21\|PoweredOn -> Operate : /start; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0022 binds source:transition:tr_0002 to the exact authored occurrence 'PoweredOn --> Operate: start'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+| `direct` | `preserved` | Operate | source-ref:llms_emp_feedback_final_0022.puml:line:4\|state Operate { | element-ref:source:state:Operate@line:8\|state Operate named "Operate" { | source:state:Operate | - | Case 0022 binds source:state:Operate to authored PlantUML occurrence 'state Operate {' and current FCSTM occurrence 'state Operate named "Operate" {'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+| `macro` | `preserved_with_exclusions` | Operate | source-ref:llms_emp_feedback_final_0022.puml:line:3\|PoweredOn --> Operate: start | element-ref:compiler:transition_segment:tr_0002:segment:1@line:26\|PoweredOn -> Operate : /start; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0022 binds source:transition:tr_0002 to authored PlantUML occurrence 'PoweredOn --> Operate: start' and current FCSTM occurrence 'PoweredOn -> Operate : /start;'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
 
 ## Risk occurrence 第二遍复核
 
 | obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
 |---|---|---|---|---|---|---|
-| `review:final_boundary:0001:tr_0010` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0022.puml:line:13\|Operate --> [*] : keyOff | element-ref:compiler:transition_segment:tr_0010:segment:1@line:22\|!Operate -> [*] : /keyOff; | compiler:transition_segment:tr_0010:segment:1, source:transition:tr_0010 | Case 0022 risk final_boundary occurrence review:final_boundary:0001:tr_0010: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
+| `review:multi_segment_macro:0001:tr_0010` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0022.puml:line:13\|Operate --> [*] : keyOff | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0010:segment:1@line:19\|Idle -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:2@line:20\|AcceleratingOrCruising -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:3@line:21\|Braking -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:4@line:24\|Operate -> [*] : if [R45RouteToken == 10] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010 | Case 0022 multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0010 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010. All emitted segments collapse to one source transition root; no segment is promoted as a separate authored transition or editable issue target. |
+| `review:route_controller:0002:tr_0010` | `route_controller` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0022.puml:line:13\|Operate --> [*] : keyOff | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0010:segment:1@line:19\|Idle -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:2@line:20\|AcceleratingOrCruising -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:3@line:21\|Braking -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:4@line:24\|Operate -> [*] : if [R45RouteToken == 10] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010 | Case 0022 route_controller occurrence review:route_controller:0002:tr_0010 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010. R45RouteToken and routed segments remain compiler_owned, protected, and excluded from confirmed issues, Repair, Confirm acceptance, and main results. |
+| `review:final_boundary:0003:tr_0010` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0022.puml:line:13\|Operate --> [*] : keyOff | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0010:segment:1@line:19\|Idle -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:2@line:20\|AcceleratingOrCruising -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:3@line:21\|Braking -> [*] : /keyOff effect { R45RouteToken = 10; };, element-ref:compiler:transition_segment:tr_0010:segment:4@line:24\|Operate -> [*] : if [R45RouteToken == 10] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010 | Case 0022 final_boundary occurrence review:final_boundary:0003:tr_0010 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0010:segment:1, compiler:transition_segment:tr_0010:segment:2, compiler:transition_segment:tr_0010:segment:3, compiler:transition_segment:tr_0010:segment:4, source:transition:tr_0010. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
 
 ## 作者阶段 lineage
 
@@ -79,6 +81,7 @@
 
 | reason code | count |
 |---|---:|
+| `R45.DEBT.composite_source_activation_dispatch` | 1 |
 | `R45.DEBT.opaque_transition_label_semantics` | 8 |
 
 ## NL
@@ -111,6 +114,7 @@ Operate --> [*] : keyOff
 ## 转换后 FCSTM STM0
 
 ```fcstm
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0022 named "llms_emp_feedback_final_0022" {
     event start named "start";
     event user_accelerating_or_cruising named "user accelerating or cruising";
@@ -128,11 +132,14 @@ state llms_emp_feedback_final_0022 named "llms_emp_feedback_final_0022" {
         AcceleratingOrCruising -> Braking : /user_braking;
         Braking -> Idle : /user_idle;
         Braking -> AcceleratingOrCruising : /user_accelerating_or_cruising;
+        Idle -> [*] : /keyOff effect { R45RouteToken = 10; };
+        AcceleratingOrCruising -> [*] : /keyOff effect { R45RouteToken = 10; };
+        Braking -> [*] : /keyOff effect { R45RouteToken = 10; };
     }
     state PoweredOn named "PoweredOn";
+    Operate -> [*] : if [R45RouteToken == 10] effect { R45RouteToken = 0; };
     [*] -> PoweredOn;
     PoweredOn -> Operate : /start;
-    !Operate -> [*] : /keyOff;
 }
 ```
 

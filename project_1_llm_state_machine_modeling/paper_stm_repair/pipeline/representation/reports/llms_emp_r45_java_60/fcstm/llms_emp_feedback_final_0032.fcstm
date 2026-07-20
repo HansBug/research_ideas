@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0032 named "llms_emp_feedback_final_0032" {
     event start named "start";
     event Accelerate named "Accelerate";
@@ -7,32 +8,55 @@ state llms_emp_feedback_final_0032 named "llms_emp_feedback_final_0032" {
     event keyOff named "keyOff";
     state OperateState named "OperateState\n[PlantUML body] Operate" {
         state IdleRegion named "IdleRegion" {
-            state UnspecifiedInitial named "Unspecified initial";
             state IdleState named "IdleState\n[PlantUML body] Idle";
+            state UnspecifiedInitial named "Unspecified initial";
             [*] -> UnspecifiedInitial;
+            IdleState -> [*] : /Accelerate effect { R45RouteToken = 4; };
+            IdleState -> [*] : /Brake effect { R45RouteToken = 5; };
+            IdleState -> [*] : /keyOff effect { R45RouteToken = 10; };
+            UnspecifiedInitial -> [*] : /Accelerate effect { R45RouteToken = 4; };
+            UnspecifiedInitial -> [*] : /Brake effect { R45RouteToken = 5; };
+            UnspecifiedInitial -> [*] : /keyOff effect { R45RouteToken = 10; };
         }
         state AccelerateRegion named "AccelerateRegion" {
-            state UnspecifiedInitial named "Unspecified initial";
             state CruisingState named "CruisingState\n[PlantUML body] Cruising";
             state AcceleratingState named "AcceleratingState\n[PlantUML body] Accelerating";
-            ! * -> CruisingState : /Reach_Speed;
-            CruisingState -> [*] : /Brake;
+            state UnspecifiedInitial named "Unspecified initial";
+            [*] -> CruisingState : if [R45RouteToken == 6] effect { R45RouteToken = 0; };
             [*] -> UnspecifiedInitial;
+            CruisingState -> [*] : /Reach_Speed effect { R45RouteToken = 6; };
+            AcceleratingState -> [*] : /Reach_Speed effect { R45RouteToken = 6; };
+            CruisingState -> [*] : /Brake effect { R45RouteToken = 7; };
+            AcceleratingState -> [*] : /Brake effect { R45RouteToken = 7; };
+            CruisingState -> [*] : /Brake effect { R45RouteToken = 8; };
+            CruisingState -> [*] : /keyOff effect { R45RouteToken = 10; };
+            AcceleratingState -> [*] : /keyOff effect { R45RouteToken = 10; };
+            UnspecifiedInitial -> [*] : /Reach_Speed effect { R45RouteToken = 6; };
+            UnspecifiedInitial -> [*] : /Brake effect { R45RouteToken = 7; };
+            UnspecifiedInitial -> [*] : /keyOff effect { R45RouteToken = 10; };
         }
         state BrakeRegion named "BrakeRegion" {
-            state UnspecifiedInitial named "Unspecified initial";
             state BrakingState named "BrakingState\n[PlantUML body] Braking";
+            state UnspecifiedInitial named "Unspecified initial";
             [*] -> UnspecifiedInitial;
+            BrakingState -> [*] : /Stop effect { R45RouteToken = 9; };
+            BrakingState -> [*] : /keyOff effect { R45RouteToken = 10; };
+            UnspecifiedInitial -> [*] : /Stop effect { R45RouteToken = 9; };
+            UnspecifiedInitial -> [*] : /keyOff effect { R45RouteToken = 10; };
         }
+        IdleRegion -> AccelerateRegion : if [R45RouteToken == 4] effect { R45RouteToken = 0; };
+        IdleRegion -> BrakeRegion : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+        AccelerateRegion -> AccelerateRegion : if [R45RouteToken == 6];
+        AccelerateRegion -> BrakeRegion : if [R45RouteToken == 7] effect { R45RouteToken = 0; };
+        AccelerateRegion -> BrakeRegion : if [R45RouteToken == 8] effect { R45RouteToken = 0; };
+        BrakeRegion -> IdleRegion : if [R45RouteToken == 9] effect { R45RouteToken = 0; };
+        IdleRegion -> [*] : if [R45RouteToken == 10];
+        AccelerateRegion -> [*] : if [R45RouteToken == 10];
+        BrakeRegion -> [*] : if [R45RouteToken == 10];
         [*] -> IdleRegion;
-        !IdleRegion -> AccelerateRegion : /Accelerate;
-        !IdleRegion -> BrakeRegion : /Brake;
-        !AccelerateRegion -> BrakeRegion : /Brake;
-        AccelerateRegion -> BrakeRegion : /Brake;
-        !BrakeRegion -> IdleRegion : /Stop;
     }
     state OffState named "OffState\n[PlantUML body] Off";
+    OperateState -> OffState : if [R45RouteToken == 10] effect { R45RouteToken = 0; };
     [*] -> OffState;
     OffState -> OperateState : /start;
-    !OperateState -> OffState : /keyOff;
 }

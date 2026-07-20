@@ -1,31 +1,49 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0048 named "llms_emp_feedback_final_0048" {
     event _memFull_true named "[memFull=true]";
     event _GaStep_prob_0_4 named "<<GaStep>>{prob=0.4}";
     event _Charged_true named "[Charged=true]";
     event _sunny_true named "[sunny=true]";
     state fork1 named "fork1" {
-        state UnspecifiedInitial named "Unspecified initial";
         state AutoFocus named "AutoFocus\n[PlantUML body] max=2s, min=1s";
         state DetLight named "DetLight\n[PlantUML body] max=1s, min=0s";
-        ! * -> AutoFocus;
-        ! * -> DetLight;
-        AutoFocus -> [*] : /_memFull_true;
-        DetLight -> [*] : /_GaStep_prob_0_4;
+        state UnspecifiedInitial named "Unspecified initial";
+        [*] -> AutoFocus : if [R45RouteToken == 3] effect { R45RouteToken = 0; };
+        [*] -> DetLight : if [R45RouteToken == 4] effect { R45RouteToken = 0; };
         [*] -> UnspecifiedInitial;
+        AutoFocus -> [*] effect { R45RouteToken = 3; };
+        DetLight -> [*] effect { R45RouteToken = 3; };
+        AutoFocus -> [*] effect { R45RouteToken = 4; };
+        DetLight -> [*] effect { R45RouteToken = 4; };
+        AutoFocus -> [*] : /_memFull_true effect { R45RouteToken = 5; };
+        DetLight -> [*] : /_GaStep_prob_0_4 effect { R45RouteToken = 6; };
+        AutoFocus -> [*] effect { R45RouteToken = 7; };
+        DetLight -> [*] effect { R45RouteToken = 7; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 3; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 4; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 7; };
     }
     state Join2 named "Join2" {
-        state UnspecifiedInitial named "Unspecified initial";
         state Join1 named "Join1";
-        ! * -> Join1;
-        Join1 -> [*];
+        state UnspecifiedInitial named "Unspecified initial";
+        [*] -> Join1 : if [R45RouteToken == 13] effect { R45RouteToken = 0; };
         [*] -> UnspecifiedInitial;
+        Join1 -> [*] effect { R45RouteToken = 13; };
+        Join1 -> [*] effect { R45RouteToken = 14; };
+        Join1 -> [*] effect { R45RouteToken = 20; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 13; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 20; };
     }
     state Fork2 named "Fork2" {
-        state UnspecifiedInitial named "Unspecified initial";
         state Flash named "Flash";
-        ! * -> Flash;
-        Flash -> [*];
+        state UnspecifiedInitial named "Unspecified initial";
+        [*] -> Flash : if [R45RouteToken == 22] effect { R45RouteToken = 0; };
         [*] -> UnspecifiedInitial;
+        Flash -> [*] effect { R45RouteToken = 21; };
+        Flash -> [*] effect { R45RouteToken = 22; };
+        Flash -> [*] effect { R45RouteToken = 23; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 21; };
+        UnspecifiedInitial -> [*] effect { R45RouteToken = 22; };
     }
     state TurnOn named "TurnOn\n[PlantUML body] max=2s, min=2s";
     state choice1 named "choice1";
@@ -39,24 +57,28 @@ state llms_emp_feedback_final_0048 named "llms_emp_feedback_final_0048" {
     state Junction1 named "Junction1";
     state TurnOff named "TurnOff";
     state Terminate named "Terminate";
+    fork1 -> fork1 : if [R45RouteToken == 3];
+    fork1 -> fork1 : if [R45RouteToken == 4];
+    fork1 -> choice1 : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    fork1 -> choice2 : if [R45RouteToken == 6] effect { R45RouteToken = 0; };
+    fork1 -> choice3 : if [R45RouteToken == 7] effect { R45RouteToken = 0; };
+    Join2 -> Join2 : if [R45RouteToken == 13];
+    Join2 -> Junction2 : if [R45RouteToken == 14] effect { R45RouteToken = 0; };
+    Join2 -> Fork2 : if [R45RouteToken == 20] effect { R45RouteToken = 0; };
+    Fork2 -> Junction2 : if [R45RouteToken == 21] effect { R45RouteToken = 0; };
+    Fork2 -> Fork2 : if [R45RouteToken == 22];
+    Fork2 -> Terminate : if [R45RouteToken == 23] effect { R45RouteToken = 0; };
     [*] -> TurnOn;
     TurnOn -> fork1;
-    fork1 -> choice1 : /_memFull_true;
-    fork1 -> choice2 : /_GaStep_prob_0_4;
-    !fork1 -> choice3;
     choice3 -> ChargedFlash;
     ChargedFlash -> Junction3 : /_Charged_true;
     choice3 -> Junction3;
     Junction3 -> Join2;
     choice2 -> Join2 : /_sunny_true;
-    Join2 -> Junction2;
     Junction2 -> TakePicture;
     TakePicture -> WriteMemory;
     WriteMemory -> Junction1;
     Junction1 -> TurnOff;
     TurnOff -> [*];
-    !Join2 -> Fork2;
-    !Fork2 -> Junction2;
-    Fork2 -> Terminate;
     Terminate -> [*];
 }

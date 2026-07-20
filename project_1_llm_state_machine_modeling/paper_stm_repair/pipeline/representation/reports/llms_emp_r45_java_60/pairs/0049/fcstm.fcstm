@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0049 named "llms_emp_feedback_final_0049" {
     event high_way_true named "high_way=true";
     event urban_way_true named "urban_way=true";
@@ -18,9 +19,9 @@ state llms_emp_feedback_final_0049 named "llms_emp_feedback_final_0049" {
             state cruise named "cruise";
             state lane_change named "lane_change";
             state FinishState named "FinishState";
-            [*] -> FinishState : /auto_finished_true;
-            [*] -> FinishState : /auto_finished_true;
-            [*] -> FinishState : /auto_finished_true;
+            [*] -> FinishState : if [R45RouteToken == 21] effect { R45RouteToken = 0; };
+            [*] -> FinishState : if [R45RouteToken == 23] effect { R45RouteToken = 0; };
+            [*] -> FinishState : if [R45RouteToken == 29] effect { R45RouteToken = 0; };
             [*] -> enter_hwy;
             enter_hwy -> cruise : /dist_to_front_25;
             enter_hwy -> lane_change : /dist_to_front_25_extra_lane_true;
@@ -29,6 +30,14 @@ state llms_emp_feedback_final_0049 named "llms_emp_feedback_final_0049" {
             cruise -> lane_change : /dist_to_front_25_extra_lane_true;
             cruise -> FinishState : /dist_to_exit_2;
             cruise -> FinishState : /auto_finished_true;
+            enter_hwy -> [*] : /urban_way_true effect { R45RouteToken = 24; };
+            cruise -> [*] : /urban_way_true effect { R45RouteToken = 24; };
+            lane_change -> [*] : /urban_way_true effect { R45RouteToken = 24; };
+            FinishState -> [*] : /urban_way_true effect { R45RouteToken = 24; };
+            enter_hwy -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            cruise -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            lane_change -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            FinishState -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
         }
         state UrbanMode named "UrbanMode" {
             state enter_urban named "enter_urban";
@@ -44,19 +53,32 @@ state llms_emp_feedback_final_0049 named "llms_emp_feedback_final_0049" {
             lane_change_urban -> exit_urban : /dist_to_exit_0_7;
             straight -> intersection : /intersection_true;
             straight -> lane_change_urban : /dist_to_front_15_extra_lane_true;
-            straight -> [*] : /auto_finished_true;
+            straight -> [*] : /auto_finished_true effect { R45RouteToken = 21; };
             intersection -> straight : /road_clear;
-            intersection -> [*] : /auto_finished_true;
+            intersection -> [*] : /auto_finished_true effect { R45RouteToken = 23; };
+            enter_urban -> [*] : /high_way_true effect { R45RouteToken = 25; };
+            lane_change_urban -> [*] : /high_way_true effect { R45RouteToken = 25; };
+            straight -> [*] : /high_way_true effect { R45RouteToken = 25; };
+            intersection -> [*] : /high_way_true effect { R45RouteToken = 25; };
+            exit_urban -> [*] : /high_way_true effect { R45RouteToken = 25; };
+            enter_urban -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            lane_change_urban -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            straight -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            intersection -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
+            exit_urban -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
         }
         state InitialState named "InitialState";
+        UrbanMode -> HighwayMode : if [R45RouteToken == 21];
+        UrbanMode -> HighwayMode : if [R45RouteToken == 23];
+        HighwayMode -> UrbanMode : if [R45RouteToken == 24] effect { R45RouteToken = 0; };
+        UrbanMode -> HighwayMode : if [R45RouteToken == 25] effect { R45RouteToken = 0; };
+        HighwayMode -> [*] : if [R45RouteToken == 29];
+        UrbanMode -> [*] : if [R45RouteToken == 29];
+        [*] -> HighwayMode : if [R45RouteToken == 29];
         [*] -> InitialState;
         InitialState -> HighwayMode : /high_way_true;
         InitialState -> UrbanMode : /urban_way_true;
-        UrbanMode -> HighwayMode : /auto_finished_true;
-        UrbanMode -> HighwayMode : /auto_finished_true;
-        !HighwayMode -> UrbanMode : /urban_way_true;
-        !UrbanMode -> HighwayMode : /high_way_true;
-        ! * -> HighwayMode : /auto_finished_true;
+        InitialState -> [*] : /auto_finished_true effect { R45RouteToken = 29; };
     }
     state CollisionAvoidance named "CollisionAvoidance" {
         state collision_avoidance_deactive named "collision_avoidance_deactive";
@@ -65,5 +87,6 @@ state llms_emp_feedback_final_0049 named "llms_emp_feedback_final_0049" {
         collision_avoidance_deactive -> collision_avoidance_active : /pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_HighwayMode_dist_to_front_10_in_UrbanMode;
         collision_avoidance_active -> collision_avoidance_deactive : /front_inactive_rear_inactive_pedestrian_inactive;
     }
+    AutonomousMode -> AutonomousMode : if [R45RouteToken == 29];
     [*] -> AutonomousMode;
 }

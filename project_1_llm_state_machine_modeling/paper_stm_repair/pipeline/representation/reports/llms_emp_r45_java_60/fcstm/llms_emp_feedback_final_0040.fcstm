@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0040 named "llms_emp_feedback_final_0040" {
     event Power_On named "Power On";
     event front_distance_10 named "front_distance > 10";
@@ -5,19 +6,17 @@ state llms_emp_feedback_final_0040 named "llms_emp_feedback_final_0040" {
     event Auto_Process_Complete named "Auto Process Complete";
     event human_steering_cmd_brake_pressed_in_AutoFinal named "human_steering_cmd || brake_pressed || in (AutoFinal)";
     event Power_Off named "Power Off";
-    state InitialWaittr_0001 named "Awaiting initial event: Power On";
     state Autonomous named "Autonomous" {
         state AutoInitial named "AutoInitial";
         state AutoFinal named "AutoFinal\n[PlantUML body] Auto Final State";
-        state InitialWaittr_0003 named "Awaiting initial event: Enter Autonomous Mode";
-        [*] -> InitialWaittr_0003;
-        InitialWaittr_0003 -> AutoInitial : /Enter_Autonomous_Mode;
+        [*] -> AutoInitial : /Enter_Autonomous_Mode;
         AutoInitial -> AutoFinal : /Auto_Process_Complete;
+        AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
+        AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
     }
     state HumanDriving named "HumanDriving\n[PlantUML body] Human Driving Mode";
-    [*] -> InitialWaittr_0001;
-    InitialWaittr_0001 -> HumanDriving : /Power_On;
+    Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    [*] -> HumanDriving : /Power_On;
     HumanDriving -> Autonomous : /front_distance_10;
-    !Autonomous -> HumanDriving : /human_steering_cmd_brake_pressed_in_AutoFinal;
     HumanDriving -> [*] : /Power_Off;
 }

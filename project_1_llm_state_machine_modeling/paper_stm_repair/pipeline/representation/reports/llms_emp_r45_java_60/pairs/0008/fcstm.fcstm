@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0008 named "llms_emp_feedback_final_0008" {
     event After_2_s named "After (2 s)";
     event when_memFull_true named "when (memFull=true)";
@@ -7,23 +8,20 @@ state llms_emp_feedback_final_0008 named "llms_emp_feedback_final_0008" {
     event when_Charged_true named "when (Charged=true)";
     state TurnOn named "TurnOn" {
         state fork1 named "fork1";
-        state InitialWaittr_0002 named "Awaiting initial event: After (2 s)";
-        [*] -> InitialWaittr_0002;
-        InitialWaittr_0002 -> fork1 : /After_2_s;
-        ! * -> fork1;
-        fork1 -> [*];
-        fork1 -> [*];
-        fork1 -> [*];
+        [*] -> fork1 : if [R45RouteToken == 3] effect { R45RouteToken = 0; };
+        [*] -> fork1 : /After_2_s;
+        fork1 -> [*] effect { R45RouteToken = 3; };
+        fork1 -> [*] effect { R45RouteToken = 4; };
+        fork1 -> [*] effect { R45RouteToken = 5; };
+        fork1 -> [*] effect { R45RouteToken = 11; };
     }
     state AutoFocus named "AutoFocus" {
         state choice1 named "choice1";
         state Junction3 named "Junction3";
-        state InitialWaittr_0006 named "Awaiting initial event: After (2 s)";
-        [*] -> Junction3 : /when_Charged_true;
-        [*] -> InitialWaittr_0006;
-        InitialWaittr_0006 -> choice1 : /After_2_s;
+        [*] -> Junction3 : if [R45RouteToken == 13] effect { R45RouteToken = 0; };
+        [*] -> choice1 : /After_2_s;
         choice1 -> Junction3 : /when_memFull_true;
-        Junction3 -> [*];
+        Junction3 -> [*] effect { R45RouteToken = 14; };
     }
     state DetLight named "DetLight" {
         state Join2 named "Join2" {
@@ -34,39 +32,38 @@ state llms_emp_feedback_final_0008 named "llms_emp_feedback_final_0008" {
                 [*] -> TakePicture;
                 TakePicture -> WriteMemory;
                 WriteMemory -> Junction1;
-                Junction1 -> [*];
+                Junction1 -> [*] effect { R45RouteToken = 23; };
             }
             state Fork2 named "Fork2";
             state Flash named "Flash";
             state Terminate named "Terminate";
-            [*] -> Junction2;
+            [*] -> Junction2 : if [R45RouteToken == 19] effect { R45RouteToken = 0; };
+            Junction2 -> [*] : if [R45RouteToken == 23];
             [*] -> Fork2;
             Fork2 -> Junction2;
             Fork2 -> Flash;
             Flash -> Terminate;
-            !Junction2 -> [*];
         }
         state choice2 named "choice2";
         state Join1 named "Join1";
-        state InitialWaittr_0008 named "Awaiting initial event: After (1 s)";
-        [*] -> Join2;
-        [*] -> InitialWaittr_0008;
-        InitialWaittr_0008 -> choice2 : /After_1_s;
+        [*] -> Join2 : if [R45RouteToken == 14] effect { R45RouteToken = 0; };
+        Join2 -> [*] : if [R45RouteToken == 23];
+        [*] -> choice2 : /After_1_s;
         choice2 -> Join2 : /_GaStep_prob_0_4;
         choice2 -> Join1 : /_sunny_true;
-        Join1 -> Join2;
-        !Join2 -> [*];
+        Join1 -> Join2 effect { R45RouteToken = 19; };
     }
     state choice3 named "choice3";
     state ChargedFlash named "ChargedFlash";
     state TurnOff named "TurnOff";
+    TurnOn -> TurnOn : if [R45RouteToken == 3];
+    TurnOn -> AutoFocus : if [R45RouteToken == 4] effect { R45RouteToken = 0; };
+    TurnOn -> DetLight : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    TurnOn -> choice3 : if [R45RouteToken == 11] effect { R45RouteToken = 0; };
+    AutoFocus -> DetLight : if [R45RouteToken == 14];
+    DetLight -> TurnOff : if [R45RouteToken == 23] effect { R45RouteToken = 0; };
     [*] -> TurnOn;
-    TurnOn -> AutoFocus;
-    TurnOn -> DetLight;
-    TurnOn -> choice3;
     choice3 -> ChargedFlash;
-    ChargedFlash -> AutoFocus : /when_Charged_true;
-    AutoFocus -> DetLight;
-    DetLight -> TurnOff;
+    ChargedFlash -> AutoFocus : /when_Charged_true effect { R45RouteToken = 13; };
     TurnOff -> [*];
 }

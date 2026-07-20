@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0005 named "llms_emp_feedback_final_0005" {
     event Door_Opened named "Door Opened";
     event Close_Door named "Close Door";
@@ -13,47 +14,47 @@ state llms_emp_feedback_final_0005 named "llms_emp_feedback_final_0005" {
         state DoorShutWithItem named "DoorShutWithItem" {
             state ItemInside named "ItemInside";
             [*] -> ItemInside;
-            ItemInside -> [*] : /Open_Door;
-            ItemInside -> [*] : /Enter_Cooking_Time;
+            ItemInside -> [*] : /Open_Door effect { R45RouteToken = 10; };
+            ItemInside -> [*] : /Enter_Cooking_Time effect { R45RouteToken = 11; };
         }
         state ReadytoCook named "ReadytoCook" {
             state Cooking named "Cooking" {
                 state ActiveCooking named "ActiveCooking";
                 [*] -> ActiveCooking;
-                ActiveCooking -> [*] : /Open_Door;
-                ActiveCooking -> [*] : /Timer_Expired;
-                ActiveCooking -> [*] : /Cancel;
+                ActiveCooking -> [*] : /Open_Door effect { R45RouteToken = 17; };
+                ActiveCooking -> [*] : /Timer_Expired effect { R45RouteToken = 18; };
+                ActiveCooking -> [*] : /Cancel effect { R45RouteToken = 19; };
             }
             state WaitingToStart named "WaitingToStart";
+            Cooking -> [*] : if [R45RouteToken == 17];
+            Cooking -> [*] : if [R45RouteToken == 18];
+            Cooking -> [*] : if [R45RouteToken == 19];
             [*] -> WaitingToStart;
-            WaitingToStart -> [*] : /Cancel;
-            WaitingToStart -> [*] : /Open_Door;
+            WaitingToStart -> [*] : /Cancel effect { R45RouteToken = 13; };
+            WaitingToStart -> [*] : /Open_Door effect { R45RouteToken = 14; };
             WaitingToStart -> Cooking : /Start;
-            !Cooking -> [*] : /Open_Door;
-            !Cooking -> [*] : /Timer_Expired;
-            !Cooking -> [*] : /Cancel;
         }
         state DoorIdleWithItem named "DoorIdleWithItem";
+        DoorShutWithItem -> [*] : if [R45RouteToken == 10];
+        DoorShutWithItem -> ReadytoCook : if [R45RouteToken == 11] effect { R45RouteToken = 0; };
+        ReadytoCook -> DoorShutWithItem : if [R45RouteToken == 13] effect { R45RouteToken = 0; };
+        ReadytoCook -> [*] : if [R45RouteToken == 14];
+        ReadytoCook -> [*] : if [R45RouteToken == 17];
+        ReadytoCook -> DoorShutWithItem : if [R45RouteToken == 18] effect { R45RouteToken = 0; };
+        ReadytoCook -> ReadytoCook : if [R45RouteToken == 19] effect { R45RouteToken = 0; };
         [*] -> DoorIdleWithItem;
-        DoorIdleWithItem -> [*] : /Remove_Item;
+        DoorIdleWithItem -> [*] : /Remove_Item effect { R45RouteToken = 6; };
         DoorIdleWithItem -> DoorShutWithItem : /Close_Door_with_Zero_Time;
         DoorIdleWithItem -> ReadytoCook : /Enter_Cooking_Time;
-        !DoorShutWithItem -> [*] : /Open_Door;
-        DoorShutWithItem -> ReadytoCook : /Enter_Cooking_Time;
-        ReadytoCook -> DoorShutWithItem : /Cancel;
-        !ReadytoCook -> [*] : /Open_Door;
-        !ReadytoCook -> [*] : /Open_Door;
-        ReadytoCook -> DoorShutWithItem : /Timer_Expired;
-        ReadytoCook -> ReadytoCook : /Cancel;
     }
     state DoorShut named "DoorShut\n[PlantUML body] Cancel";
     state DoorOpen named "DoorOpen";
+    DoorOpenWithItem -> DoorOpen : if [R45RouteToken == 6] effect { R45RouteToken = 0; };
+    DoorOpenWithItem -> DoorOpenWithItem : if [R45RouteToken == 10] effect { R45RouteToken = 0; };
+    DoorOpenWithItem -> DoorOpenWithItem : if [R45RouteToken == 14] effect { R45RouteToken = 0; };
+    DoorOpenWithItem -> DoorOpenWithItem : if [R45RouteToken == 17] effect { R45RouteToken = 0; };
     [*] -> DoorShut;
     DoorShut -> DoorOpen : /Door_Opened;
     DoorOpen -> DoorShut : /Close_Door;
     DoorOpen -> DoorOpenWithItem : /Place_Item_Inside;
-    DoorOpenWithItem -> DoorOpen : /Remove_Item;
-    DoorOpenWithItem -> DoorOpenWithItem : /Open_Door;
-    DoorOpenWithItem -> DoorOpenWithItem : /Open_Door;
-    DoorOpenWithItem -> DoorOpenWithItem : /Open_Door;
 }

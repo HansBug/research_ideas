@@ -1,26 +1,22 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0000 named "llms_emp_feedback_final_0000" {
     event Power_On named "Power On";
     event Condition_Met named "Condition Met";
     event front_distance_10 named "front_distance > 10";
     event Human_Steering_Cmd_Brake_Pressed_in_AutoFinal named "Human Steering Cmd, Brake Pressed, in (AutoFinal)";
     event Power_Off named "Power Off";
-    state InitialWaittr_0001 named "Awaiting initial event: Power On";
-    state InitialWaittr_0006 named "Awaiting initial event: Power Off";
-    state HumanDrivingMode named "HumanDrivingMode" {
-        state UnspecifiedInitial named "Unspecified initial";
-        [*] -> UnspecifiedInitial;
-    }
+    state HumanDrivingMode named "HumanDrivingMode";
     state AutonomousMode named "AutonomousMode" {
         state AutoNavigating named "AutoNavigating";
         state AutoFinal named "AutoFinal";
         [*] -> AutoNavigating;
         AutoNavigating -> AutoFinal : /Condition_Met;
+        AutoNavigating -> [*] : /Human_Steering_Cmd_Brake_Pressed_in_AutoFinal effect { R45RouteToken = 5; };
+        AutoFinal -> [*] : /Human_Steering_Cmd_Brake_Pressed_in_AutoFinal effect { R45RouteToken = 5; };
     }
     state FinalState named "FinalState";
-    [*] -> InitialWaittr_0001;
-    InitialWaittr_0001 -> HumanDrivingMode : /Power_On;
-    !HumanDrivingMode -> AutonomousMode : /front_distance_10;
-    !AutonomousMode -> HumanDrivingMode : /Human_Steering_Cmd_Brake_Pressed_in_AutoFinal;
-    [*] -> InitialWaittr_0006;
-    InitialWaittr_0006 -> FinalState : /Power_Off;
+    AutonomousMode -> HumanDrivingMode : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    [*] -> HumanDrivingMode : /Power_On;
+    HumanDrivingMode -> AutonomousMode : /front_distance_10;
+    [*] -> FinalState : /Power_Off;
 }

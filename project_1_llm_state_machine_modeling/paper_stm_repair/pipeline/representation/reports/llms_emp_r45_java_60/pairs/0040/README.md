@@ -11,9 +11,9 @@
 - Phase-I PlantUML SHA-256：`42acdd25b7fad2ff8a9502db8169a3ff849a3ba164e3381d70467c97e615cf7e`
 - NL SHA-256：`f1c3dc88371b8256352e7ab6ee7eb42424de6e11dfde70d185f224dd1d05a7a8`
 - PlantUML SHA-256：`7a96af160f5a1c2a7e4ee172c5bdb24ea8008542b6be9fba5a5d5d77ae28a7e4`
-- FCSTM SHA-256：`0308430881eca78099e6c318d6d375cfa3475bba33908b1f547ac1d097bd25bc`
-- review subject SHA-256：`a8d01a175feaea2270bd75f894c86dab79406b951713ff4dc634fa8ff63a5962`
-- working contract SHA-256：`2a6d61657e484f9e3ac12985bea8d3303397f70dbd3938a72648bd76e2d22eb8`
+- FCSTM SHA-256：`c579c02a617c296eda99b3b343c775e3fb3916eeed20a0da1597269ecc6423a3`
+- review subject SHA-256：`3f44a05fd0c58885bca7e158b9c50dca0c52ff9b9e7520f967b90a529a816724`
+- working contract SHA-256：`52c1e41bdb3779023ec7ce42de280add2d20c51eb14ef7e0f15b62b979c58a3b`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `6`
 - mapped / blocked / silent drop：`6` / `0` / `0`
@@ -26,11 +26,11 @@
 - AST audit：`passed`
 - legacy whole-model FCSTM execution / Discover：`false` / `false`
 - working bundle usage gate：`discover_input_with_capability_mask`
-- ownership source / compiler / agent：`12` / `17` / `0`
+- ownership source / compiler / agent：`12` / `16` / `0`
 - source macro / positive identity trace / conversion boundary trace：`8` / `12` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0040 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0040 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0040.puml:line:6\|state Autonomous {, source-ref:llms_emp_feedback_final_0040.puml:line:5\|HumanDriving --> Autonomous : front_distance > 10`；FCSTM anchors：`element-ref:source:state:Autonomous@line:9\|state Autonomous named "Autonomous" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:20\|HumanDriving -> Autonomous : /front_distance_10;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0040.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0040.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0040.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0040.json) | [source trace](../../source_traces/llms_emp_feedback_final_0040.json) | [人工总账](../../MANUAL_REVIEW.md)
@@ -39,18 +39,16 @@
 
 | projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
 |---|---|---|---|---|---|---|---|
-| `direct` | `preserved` | autonomous | source-ref:llms_emp_feedback_final_0040.puml:line:6\|state Autonomous { | element-ref:source:state:Autonomous@line:9\|state Autonomous named "Autonomous" { | source:state:Autonomous | - | Case 0040 binds source:state:Autonomous to the exact authored occurrence 'state Autonomous {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
-| `macro` | `preserved_with_exclusions` | front_distance > 10 | source-ref:llms_emp_feedback_final_0040.puml:line:5\|HumanDriving --> Autonomous : front_distance > 10 | element-ref:compiler:transition_segment:tr_0002:segment:1@line:20\|HumanDriving -> Autonomous : /front_distance_10; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0040 binds source:transition:tr_0002 to the exact authored occurrence 'HumanDriving --> Autonomous : front_distance > 10'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+| `direct` | `preserved` | autonomous | source-ref:llms_emp_feedback_final_0040.puml:line:6\|state Autonomous { | element-ref:source:state:Autonomous@line:9\|state Autonomous named "Autonomous" { | source:state:Autonomous | - | Case 0040 binds source:state:Autonomous to authored PlantUML occurrence 'state Autonomous {' and current FCSTM occurrence 'state Autonomous named "Autonomous" {'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+| `macro` | `preserved_with_exclusions` | front_distance > 10 | source-ref:llms_emp_feedback_final_0040.puml:line:5\|HumanDriving --> Autonomous : front_distance > 10 | element-ref:compiler:transition_segment:tr_0002:segment:1@line:20\|HumanDriving -> Autonomous : /front_distance_10; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0040 binds source:transition:tr_0002 to authored PlantUML occurrence 'HumanDriving --> Autonomous : front_distance > 10' and current FCSTM occurrence 'HumanDriving -> Autonomous : /front_distance_10;'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
 
 ## Risk occurrence 第二遍复核
 
 | obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
 |---|---|---|---|---|---|---|
-| `review:multi_segment_macro:0001:tr_0001` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:2\|[*] --> HumanDriving : Power On | element-ref:compiler:state:llms_emp_feedback_final_0040.InitialWaittr_0001@line:8\|state InitialWaittr_0001 named "Awaiting initial event: Power On";, element-ref:compiler:transition_segment:tr_0001:segment:1@line:18\|[*] -> InitialWaittr_0001;, element-ref:compiler:transition_segment:tr_0001:segment:2@line:19\|InitialWaittr_0001 -> HumanDriving : /Power_On; | compiler:state:llms_emp_feedback_final_0040.InitialWaittr_0001, compiler:transition_segment:tr_0001:segment:1, compiler:transition_segment:tr_0001:segment:2, source:transition:tr_0001 | Case 0040 risk multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0001: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
-| `review:multi_segment_macro:0002:tr_0003` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:7\|[*] --> AutoInitial : Enter Autonomous Mode | element-ref:compiler:state:llms_emp_feedback_final_0040.Autonomous.InitialWaittr_0003@line:12\|state InitialWaittr_0003 named "Awaiting initial event: Enter Autonomous Mode";, element-ref:compiler:transition_segment:tr_0003:segment:1@line:13\|[*] -> InitialWaittr_0003;, element-ref:compiler:transition_segment:tr_0003:segment:2@line:14\|InitialWaittr_0003 -> AutoInitial : /Enter_Autonomous_Mode; | compiler:state:llms_emp_feedback_final_0040.Autonomous.InitialWaittr_0003, compiler:transition_segment:tr_0003:segment:1, compiler:transition_segment:tr_0003:segment:2, source:transition:tr_0003 | Case 0040 risk multi_segment_macro occurrence review:multi_segment_macro:0002:tr_0003: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
-| `review:final_boundary:0003:tr_0006` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0040.puml:line:13\|HumanDriving --> [*] : Power Off | element-ref:compiler:transition_segment:tr_0006:segment:1@line:22\|HumanDriving -> [*] : /Power_Off; | compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006 | Case 0040 risk final_boundary occurrence review:final_boundary:0003:tr_0006: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
-| `review:synthetic_state:0004:001-InitialWaittr_0001` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:2\|[*] --> HumanDriving : Power On | element-ref:compiler:state:llms_emp_feedback_final_0040.InitialWaittr_0001@line:8\|state InitialWaittr_0001 named "Awaiting initial event: Power On"; | compiler:state:llms_emp_feedback_final_0040.InitialWaittr_0001, source:transition:tr_0001 | Case 0040 risk synthetic_state occurrence review:synthetic_state:0004:001-InitialWaittr_0001: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
-| `review:synthetic_state:0005:002-InitialWaittr_0003` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:7\|[*] --> AutoInitial : Enter Autonomous Mode | element-ref:compiler:state:llms_emp_feedback_final_0040.Autonomous.InitialWaittr_0003@line:12\|state InitialWaittr_0003 named "Awaiting initial event: Enter Autonomous Mode"; | compiler:state:llms_emp_feedback_final_0040.Autonomous.InitialWaittr_0003, source:transition:tr_0003 | Case 0040 risk synthetic_state occurrence review:synthetic_state:0005:002-InitialWaittr_0003: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:multi_segment_macro:0001:tr_0005` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:12\|Autonomous --> HumanDriving : human_steering_cmd \|\| brake_pressed \|\| in (AutoFinal) | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0005:segment:1@line:14\|AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:2@line:15\|AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:3@line:18\|Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005 | Case 0040 multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0005 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005. All emitted segments collapse to one source transition root; no segment is promoted as a separate authored transition or editable issue target. |
+| `review:route_controller:0002:tr_0005` | `route_controller` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:12\|Autonomous --> HumanDriving : human_steering_cmd \|\| brake_pressed \|\| in (AutoFinal) | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0005:segment:1@line:14\|AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:2@line:15\|AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:3@line:18\|Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005 | Case 0040 route_controller occurrence review:route_controller:0002:tr_0005 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005. R45RouteToken and routed segments remain compiler_owned, protected, and excluded from confirmed issues, Repair, Confirm acceptance, and main results. |
+| `review:final_boundary:0003:tr_0006` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0040.puml:line:13\|HumanDriving --> [*] : Power Off | element-ref:compiler:transition_segment:tr_0006:segment:1@line:21\|HumanDriving -> [*] : /Power_Off; | compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006 | Case 0040 final_boundary occurrence review:final_boundary:0003:tr_0006 binds exact source refs to working-contract elements compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
 
 ## 作者阶段 lineage
 
@@ -83,6 +81,7 @@
 
 | reason code | count |
 |---|---:|
+| `R45.DEBT.composite_source_activation_dispatch` | 1 |
 | `R45.DEBT.opaque_state_body_semantics` | 2 |
 | `R45.DEBT.opaque_transition_label_semantics` | 6 |
 
@@ -114,6 +113,7 @@ HumanDriving --> [*] : Power Off
 ## 转换后 FCSTM STM0
 
 ```fcstm
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0040 named "llms_emp_feedback_final_0040" {
     event Power_On named "Power On";
     event front_distance_10 named "front_distance > 10";
@@ -121,20 +121,18 @@ state llms_emp_feedback_final_0040 named "llms_emp_feedback_final_0040" {
     event Auto_Process_Complete named "Auto Process Complete";
     event human_steering_cmd_brake_pressed_in_AutoFinal named "human_steering_cmd || brake_pressed || in (AutoFinal)";
     event Power_Off named "Power Off";
-    state InitialWaittr_0001 named "Awaiting initial event: Power On";
     state Autonomous named "Autonomous" {
         state AutoInitial named "AutoInitial";
         state AutoFinal named "AutoFinal\n[PlantUML body] Auto Final State";
-        state InitialWaittr_0003 named "Awaiting initial event: Enter Autonomous Mode";
-        [*] -> InitialWaittr_0003;
-        InitialWaittr_0003 -> AutoInitial : /Enter_Autonomous_Mode;
+        [*] -> AutoInitial : /Enter_Autonomous_Mode;
         AutoInitial -> AutoFinal : /Auto_Process_Complete;
+        AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
+        AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
     }
     state HumanDriving named "HumanDriving\n[PlantUML body] Human Driving Mode";
-    [*] -> InitialWaittr_0001;
-    InitialWaittr_0001 -> HumanDriving : /Power_On;
+    Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    [*] -> HumanDriving : /Power_On;
     HumanDriving -> Autonomous : /front_distance_10;
-    !Autonomous -> HumanDriving : /human_steering_cmd_brake_pressed_in_AutoFinal;
     HumanDriving -> [*] : /Power_Off;
 }
 ```

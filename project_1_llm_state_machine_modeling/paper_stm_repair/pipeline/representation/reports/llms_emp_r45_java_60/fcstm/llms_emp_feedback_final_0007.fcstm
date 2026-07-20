@@ -1,3 +1,4 @@
+def int R45RouteToken = 0;
 state llms_emp_feedback_final_0007 named "llms_emp_feedback_final_0007" {
     event Frontend_Detected named "Frontend Detected";
     event Rear_end_Detected named "Rear-end Detected";
@@ -22,6 +23,10 @@ state llms_emp_feedback_final_0007 named "llms_emp_feedback_final_0007" {
         PossibleCollision -> FrontendCollision : /Frontend_Detected;
         PossibleCollision -> RearendCollision : /Rear_end_Detected;
         PossibleCollision -> PedestrianCollision : /Pedestrian_Detected;
+        PossibleCollision -> [*] : /Collision_Mode_Active effect { R45RouteToken = 15; };
+        FrontendCollision -> [*] : /Collision_Mode_Active effect { R45RouteToken = 15; };
+        RearendCollision -> [*] : /Collision_Mode_Active effect { R45RouteToken = 15; };
+        PedestrianCollision -> [*] : /Collision_Mode_Active effect { R45RouteToken = 15; };
     }
     state CollisionAvoidance named "CollisionAvoidance\n[PlantUML concurrent region 0] states=-; transitions=-\n[PlantUML concurrent region 1] states=CollisionAvoidance.AutomaticBraking, CollisionAvoidance.BrakingComplete; transitions=tr_0006, tr_0007\n[PlantUML concurrent region 2] states=CollisionAvoidance.SteeringControl, CollisionAvoidance.SteeringComplete; transitions=tr_0008, tr_0009\n[PlantUML concurrent region 3] states=CollisionAvoidance.AlertSystem, CollisionAvoidance.AlertComplete; transitions=tr_0010, tr_0011\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0007.puml:line:12\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0007.puml:line:16\n[PlantUML concurrent separator] region 2 -> 3 at llms_emp_feedback_final_0007.puml:line:20" {
         state AutomaticBraking named "AutomaticBraking";
@@ -30,35 +35,29 @@ state llms_emp_feedback_final_0007 named "llms_emp_feedback_final_0007" {
         state SteeringComplete named "SteeringComplete";
         state AlertSystem named "AlertSystem";
         state AlertComplete named "AlertComplete";
-        state InitialWaittr_0006 named "Awaiting initial event: Start Braking";
-        state InitialWaittr_0008 named "Awaiting initial event: Steering Engaged";
-        state InitialWaittr_0010 named "Awaiting initial event: Alerts Activated";
-        [*] -> InitialWaittr_0006;
-        InitialWaittr_0006 -> AutomaticBraking : /Start_Braking;
+        [*] -> AutomaticBraking : /Start_Braking;
         AutomaticBraking -> BrakingComplete : /Braking_Done;
-        [*] -> InitialWaittr_0008;
-        InitialWaittr_0008 -> SteeringControl : /Steering_Engaged;
+        [*] -> SteeringControl : /Steering_Engaged;
         SteeringControl -> SteeringComplete : /Steering_Finished;
-        [*] -> InitialWaittr_0010;
-        InitialWaittr_0010 -> AlertSystem : /Alerts_Activated;
+        [*] -> AlertSystem : /Alerts_Activated;
         AlertSystem -> AlertComplete : /Alert_Process_Done;
+        AutomaticBraking -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
+        BrakingComplete -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
+        SteeringControl -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
+        SteeringComplete -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
+        AlertSystem -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
+        AlertComplete -> [*] : /Collision_Resolved effect { R45RouteToken = 16; };
     }
     state OperationalControls named "OperationalControls" {
         state FeedbackControl named "FeedbackControl";
         state SystemCheck named "SystemCheck";
         state CommunicationControl named "CommunicationControl";
-        state InitialWaittr_0012 named "Awaiting initial event: Signal Feedback";
-        state InitialWaittr_0013 named "Awaiting initial event: Health Check";
-        state InitialWaittr_0014 named "Awaiting initial event: Communicate Control";
-        [*] -> InitialWaittr_0012;
-        InitialWaittr_0012 -> FeedbackControl : /Signal_Feedback;
-        [*] -> InitialWaittr_0013;
-        InitialWaittr_0013 -> SystemCheck : /Health_Check;
-        [*] -> InitialWaittr_0014;
-        InitialWaittr_0014 -> CommunicationControl : /Communicate_Control;
+        [*] -> FeedbackControl : /Signal_Feedback;
+        [*] -> SystemCheck : /Health_Check;
+        [*] -> CommunicationControl : /Communicate_Control;
     }
     state InitialState named "InitialState";
+    CollisionDetection -> CollisionAvoidance : if [R45RouteToken == 15] effect { R45RouteToken = 0; };
+    CollisionAvoidance -> InitialState : if [R45RouteToken == 16] effect { R45RouteToken = 0; };
     [*] -> InitialState;
-    !CollisionDetection -> CollisionAvoidance : /Collision_Mode_Active;
-    !CollisionAvoidance -> InitialState : /Collision_Resolved;
 }
