@@ -12,6 +12,8 @@
 - NL SHA-256：`934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f`
 - PlantUML SHA-256：`d419cd364edc48e03ceff9e07cad9c5f51c7656a86dc05ba40c9684f95bafa9e`
 - FCSTM SHA-256：`51a66dd724f5b185fa075eccffc9c70e8841646bc90d2f1a39b8dd6ebf1fa3a7`
+- review subject SHA-256：`c6d68adfdbd6114152eb113aa54491a3c7eb07afe45eea2022eaf363fadec898`
+- working contract SHA-256：`64a92b6a1efd20a8edc62dd92b57537adcc14924af63f64685ac6341e7b1b5a4`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `16`
 - mapped / blocked / silent drop：`16` / `0` / `0`
@@ -22,11 +24,27 @@
 - official identity states / transitions：`6` / `16`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：带标准前置 alias 的扁平微波炉 6 状态、16 边逐一对应；Door Closed 的 `[zero time set]` 与全部标签保持整体 opaque，初态、自环和 Cooking 三出口均未改向。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`22` / `26` / `0`
+- source macro / positive identity trace / conversion boundary trace：`16` / `22` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0045 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0045.puml:line:3\|state "DoorShut" as DoorShut, source-ref:llms_emp_feedback_final_0045.puml:line:12\|DoorShut --> DoorOpen : Door Opened`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut";, element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0045.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0045.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0045.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0045.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0045.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0045.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0045.json) | [source trace](../../source_traces/llms_emp_feedback_final_0045.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | DoorShut | source-ref:llms_emp_feedback_final_0045.puml:line:3\|state "DoorShut" as DoorShut | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut"; | source:state:DoorShut | - | Case 0045 binds source:state:DoorShut to the exact authored occurrence 'state "DoorShut" as DoorShut'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | Door Opened | source-ref:llms_emp_feedback_final_0045.puml:line:12\|DoorShut --> DoorOpen : Door Opened | element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0045 binds source:transition:tr_0002 to the exact authored occurrence 'DoorShut --> DoorOpen : Door Opened'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+本组不要求 risk-tag 第二遍复核。
 
 ## 作者阶段 lineage
 

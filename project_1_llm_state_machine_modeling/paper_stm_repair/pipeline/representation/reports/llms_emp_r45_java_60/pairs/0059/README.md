@@ -12,6 +12,8 @@
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615`
 - FCSTM SHA-256：`9eb5e4ceb40c08fcee737a10728354199d347db382a68f709038bfb4fcdaa8c2`
+- review subject SHA-256：`ff8d372d6142b3154302caa9edd73c77600a92395625d52cef762c26f05aa081`
+- working contract SHA-256：`c0ac0c9013ce623ad18fee34bacaff314ab941f4a1e42ec8535d6ee05df68837`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`17` / `25`
 - mapped / blocked / silent drop：`25` / `0` / `0`
@@ -22,11 +24,27 @@
 - official identity states / transitions：`17` / `25`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：AutonomousMode 下 Highway/Urban/FinishState 与独立 CollisionAvoidanceSystem 共 17 状态、25 边全部对应；两模式跨层切换/Finish 边保留，碰撞子机无 root 接入的源事实没有被自动补全。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`42` / `38` / `0`
+- source macro / positive identity trace / conversion boundary trace：`25` / `42` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0059 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0059.puml:line:5\|state AutonomousMode {, source-ref:llms_emp_feedback_final_0059.puml:line:7\|InitialState --> HighwayMode : [high_way=true]`；FCSTM anchors：`element-ref:source:state:AutonomousMode@line:14\|state AutonomousMode named "AutonomousMode" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:45\|InitialState -> HighwayMode : /_high_way_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0059.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0059.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0059.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0059.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0059.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0059.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0059.json) | [source trace](../../source_traces/llms_emp_feedback_final_0059.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | AutonomousMode | source-ref:llms_emp_feedback_final_0059.puml:line:5\|state AutonomousMode { | element-ref:source:state:AutonomousMode@line:14\|state AutonomousMode named "AutonomousMode" { | source:state:AutonomousMode | - | Case 0059 binds source:state:AutonomousMode to the exact authored occurrence 'state AutonomousMode {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | InitialState | source-ref:llms_emp_feedback_final_0059.puml:line:7\|InitialState --> HighwayMode : [high_way=true] | element-ref:compiler:transition_segment:tr_0003:segment:1@line:45\|InitialState -> HighwayMode : /_high_way_true; | source:transition:tr_0003 | compiler:transition_segment:tr_0003:segment:1 | Case 0059 binds source:transition:tr_0003 to the exact authored occurrence 'InitialState --> HighwayMode : [high_way=true]'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+本组不要求 risk-tag 第二遍复核。
 
 ## 作者阶段 lineage
 

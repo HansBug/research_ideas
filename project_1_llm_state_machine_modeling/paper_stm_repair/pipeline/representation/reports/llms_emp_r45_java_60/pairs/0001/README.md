@@ -12,6 +12,8 @@
 - NL SHA-256：`abb20a2187c100d7c75a3038df101c91b369df70a07dfafd6eafc72da859fc99`
 - PlantUML SHA-256：`a609a81454607877775487b2b020a85ab1e4ad859a7dc98f20e2df0a93104c12`
 - FCSTM SHA-256：`d202de9244076a3b91d919a7e3e189b51949ec7fd598fd6bdcf653a230fc10d5`
+- review subject SHA-256：`97324eac6a64ba8cdeee02ef1a773b7172d770952f62c73f7696912bb1bbaea1`
+- working contract SHA-256：`568ff874c5e0d79aee5bd9ed5ae20faa976881be49c203f0f7894567bd263026`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `7`
 - mapped / blocked / silent drop：`7` / `0` / `0`
@@ -22,11 +24,27 @@
 - official identity states / transitions：`5` / `7`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：制动、运行、夹紧与夹紧松开 5 状态、7 条边逐一对应，三个 state body 作为 PlantUML body metadata 保留，重复 Signal Feedback 事件未合并掉任一来源边。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`15` / `13` / `0`
+- source macro / positive identity trace / conversion boundary trace：`10` / `15` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0001 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0001.puml:line:2\|[*] --> InitialState, source-ref:llms_emp_feedback_final_0001.puml:line:6\|InitialState --> OperationalState : Signal Transmission Fails`；FCSTM anchors：`element-ref:source:state:InitialState@line:7\|state InitialState named "InitialState\n[PlantUML body] Initial State";, element-ref:compiler:transition_segment:tr_0003:segment:1@line:14\|InitialState -> OperationalState : /Signal_Transmission_Fails;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0001.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0001.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0001.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0001.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0001.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0001.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0001.json) | [source trace](../../source_traces/llms_emp_feedback_final_0001.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | 1 This state machine model represents the train's basic braking device, which serves as the final execution unit for | source-ref:llms_emp_feedback_final_0001.puml:line:2\|[*] --> InitialState | element-ref:source:state:InitialState@line:7\|state InitialState named "InitialState\n[PlantUML body] Initial State"; | source:state:InitialState | - | Case 0001 binds source:state:InitialState to the exact authored occurrence '[*] --> InitialState'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | signal transmission fails | source-ref:llms_emp_feedback_final_0001.puml:line:6\|InitialState --> OperationalState : Signal Transmission Fails | element-ref:compiler:transition_segment:tr_0003:segment:1@line:14\|InitialState -> OperationalState : /Signal_Transmission_Fails; | source:transition:tr_0003 | compiler:transition_segment:tr_0003:segment:1 | Case 0001 binds source:transition:tr_0003 to the exact authored occurrence 'InitialState --> OperationalState : Signal Transmission Fails'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+本组不要求 risk-tag 第二遍复核。
 
 ## 作者阶段 lineage
 

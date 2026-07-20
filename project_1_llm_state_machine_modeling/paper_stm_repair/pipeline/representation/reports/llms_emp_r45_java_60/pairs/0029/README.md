@@ -12,6 +12,8 @@
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`2edfafb6df737f010d3b53ca3bffca7bd52cd3ea9bd00629283443edd094f4ea`
 - FCSTM SHA-256：`78376582a2c53dc3ef5042e180083fb450826cfc2be5f02ecdb7a2c1ba6845ad`
+- review subject SHA-256：`05bd2d27f0c11f09cd285b54011d6ae59f1f1b716cb6fbe55622f3dcf351026b`
+- working contract SHA-256：`b0c10e15f1a3af9e28961698c6996406d9d6b6e9b0fe8cd0d4fa4d79875da2be`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`17` / `27`
 - mapped / blocked / silent drop：`27` / `0` / `0`
@@ -22,11 +24,33 @@
 - official identity states / transitions：`17` / `27`
 - official identity remaps：state `1` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：Autonomous/Highway/Urban/CollisionAvoidance 共 17 个官方实体、27 条边全映射；root FinishState 声明按官方身份归入 HighwayMode，三条跨 scope Finish 边分段保留，Highway/Urban 缺显式 initial 均留债。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`47` / `48` / `0`
+- source macro / positive identity trace / conversion boundary trace：`30` / `47` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0029 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0029.puml:line:10\|state HighwayMode {, source-ref:llms_emp_feedback_final_0029.puml:line:4\|AutonomousMode --> InitialState : initial`；FCSTM anchors：`element-ref:source:state:HighwayMode@line:16\|state HighwayMode named "HighwayMode" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:62\|AutonomousMode -> InitialState : /initial;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0029.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0029.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0029.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0029.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0029.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0029.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0029.json) | [source trace](../../source_traces/llms_emp_feedback_final_0029.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | HighwayMode | source-ref:llms_emp_feedback_final_0029.puml:line:10\|state HighwayMode { | element-ref:source:state:HighwayMode@line:16\|state HighwayMode named "HighwayMode" { | source:state:HighwayMode | - | Case 0029 binds source:state:HighwayMode to the exact authored occurrence 'state HighwayMode {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | AutonomousMode | source-ref:llms_emp_feedback_final_0029.puml:line:4\|AutonomousMode --> InitialState : initial | element-ref:compiler:transition_segment:tr_0002:segment:1@line:62\|AutonomousMode -> InitialState : /initial; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0029 binds source:transition:tr_0002 to the exact authored occurrence 'AutonomousMode --> InitialState : initial'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:official_identity_remap:0001:state-001` | `official_identity_remap` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0029.puml:line:41\|FinishState: Finish State | element-ref:source:state:HighwayMode.FinishState@line:21\|state FinishState named "FinishState\n[PlantUML body] Finish State"; | source:state:HighwayMode.FinishState | Case 0029 risk official_identity_remap occurrence review:official_identity_remap:0001:state-001: The occurrence follows the pinned PlantUML qualified Entity/Link identity result, including the recorded remap, instead of substituting a lexical guess. |
+| `review:multi_segment_macro:0002:tr_0025` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0029.puml:line:40\|AutonomousMode --> FinishState : auto_finished=true | element-ref:compiler:transition_segment:tr_0025:segment:1@line:67\|AutonomousMode -> HighwayMode : /auto_finished_true;, element-ref:compiler:transition_segment:tr_0025:segment:2@line:23\|[*] -> FinishState : /auto_finished_true; | compiler:transition_segment:tr_0025:segment:1, compiler:transition_segment:tr_0025:segment:2, source:transition:tr_0025 | Case 0029 risk multi_segment_macro occurrence review:multi_segment_macro:0002:tr_0025: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
+| `review:multi_segment_macro:0003:tr_0026` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0029.puml:line:43\|UrbanMode --> FinishState : auto_finished=true | element-ref:compiler:transition_segment:tr_0026:segment:1@line:68\|!UrbanMode -> HighwayMode : /auto_finished_true;, element-ref:compiler:transition_segment:tr_0026:segment:2@line:24\|[*] -> FinishState : /auto_finished_true; | compiler:transition_segment:tr_0026:segment:1, compiler:transition_segment:tr_0026:segment:2, source:transition:tr_0026 | Case 0029 risk multi_segment_macro occurrence review:multi_segment_macro:0003:tr_0026: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
+| `review:synthetic_state:0004:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0029.puml:line:10\|state HighwayMode { | element-ref:compiler:state:llms_emp_feedback_final_0029.HighwayMode.UnspecifiedInitial@line:17\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:HighwayMode@line:16\|state HighwayMode named "HighwayMode" { | compiler:state:llms_emp_feedback_final_0029.HighwayMode.UnspecifiedInitial, source:state:HighwayMode | Case 0029 risk synthetic_state occurrence review:synthetic_state:0004:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0005:002-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0029.puml:line:20\|state UrbanMode { | element-ref:compiler:state:llms_emp_feedback_final_0029.UrbanMode.UnspecifiedInitial@line:36\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:UrbanMode@line:35\|state UrbanMode named "UrbanMode" { | compiler:state:llms_emp_feedback_final_0029.UrbanMode.UnspecifiedInitial, source:state:UrbanMode | Case 0029 risk synthetic_state occurrence review:synthetic_state:0005:002-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

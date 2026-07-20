@@ -1,66 +1,68 @@
 # Phase-II final 60 组人工/LLM 对读模板
 
-每行必须在完整阅读 NL、作者最终 PlantUML、转换后 FCSTM、normalization/region ledger 后，将 `PENDING` 改为 `PASS`，并填写本组特有的保真判断。结构保真不等于行为等价。
+每行必须完整阅读 NL、作者最终 PlantUML、转换后 FCSTM、working contract 和 source trace，并填写本组特有的 NL/PlantUML/FCSTM 锚点、ownership/macro/capability 判断。存在 review obligation 的 case 还必须按每个 occurrence 的唯一 obligation_id 完成绑定同一 review subject 的第二遍复核。结构保真不等于行为等价。
 
-| case | source SHA-256 | FCSTM SHA-256 | verdict | notes |
+锚点必须使用精确 occurrence 格式：PlantUML 写成 `source-ref:<raw_ref>|<完整 trimmed 源行>`；FCSTM 写成 `element-ref:<element_id>@line:<n>|<完整 trimmed FCSTM 行>`。裸 label、裸 identifier、子串和错误 scope/行号均无效；`source_normalization` 没有 FCSTM projection，其第二遍 `fcstm_anchors` 必须为空。
+
+| case | review subject SHA-256 | working contract SHA-256 | verdict | notes |
 |---|---|---|---|---|
-| `0000` | `4fe07b05bdcfaac1c961d1176fb099d8240818160caa6edfb57928c6be2efc8a` | `87acd20f3d0a1e1cf5a69fc11b198644d126fa8b56d80ad355fd6949c12cc0e2` | PENDING | 待逐组对读 |
-| `0001` | `a609a81454607877775487b2b020a85ab1e4ad859a7dc98f20e2df0a93104c12` | `d202de9244076a3b91d919a7e3e189b51949ec7fd598fd6bdcf653a230fc10d5` | PENDING | 待逐组对读 |
-| `0002` | `3a8e81a4a5a1e54e3994af300fcbd1913073547b8069288bbe57e61d989c3d43` | `99acbb59aea2f1d1a77893225fa165541d2a3aba901fd03cba09a76243d5b213` | PENDING | 待逐组对读 |
-| `0003` | `c82a800174e833df461aa14837651ad835a7ae146f84a9939cacac05e643e821` | `0c94f4db6f3b72b94808da7419808ef1210aade8f1b89c45d37324eaacfdb8fd` | PENDING | 待逐组对读 |
-| `0004` | `188bebba5631b87c315e966d8cd0f993630182d74f9b9bd677e1452198e458cb` | `5247f3fbb6272d8bc99d80d20ce9a22d587511cd01737de2bf4129aa025d34b9` | PENDING | 待逐组对读 |
-| `0005` | `6dfdab20dd467253efdd23ee3b8973eaeb9296ef2502fd01d3287f84e10a2511` | `1fdefe68e0fce642781c6db42dd7948a9c7c1b702b9f22cbd4e3577e76ed6dfd` | PENDING | 待逐组对读 |
-| `0006` | `ccec84b8ca1817cde5454b29b82b32dd353123b547fea8240e3d438be88fd667` | `7ce7663fdd2285eb4ade0658c22afa6940efe248d49d0f584682af5ea639ad1f` | PENDING | 待逐组对读 |
-| `0007` | `b703cade3844700c2705caa20001f515b16438ca308f973c7e4caf2f263478f4` | `6f0614a94965b4aa2b00efa13598575809eb6fca5396ae4d38624eeb9b4fbf1d` | PENDING | 待逐组对读 |
-| `0008` | `01fce990814405ed944d0e2bda2c16813832aaf0bf3b46d4493fa3f316165dca` | `441442b513777c4033ea47df40f4f61dbfe76872428c921e2bc0520da960e55a` | PENDING | 待逐组对读 |
-| `0009` | `fa210ede8e3af220ab1c96a5504e93dd8bccf4d4e06af68d15c988654c76ef53` | `bcd6a15d891bffd59f0c9024a2206d0d2fb7a07febb97a55e4c12251c42bc268` | PENDING | 待逐组对读 |
-| `0010` | `73021d0499bdbbc34299e07733dda58162aefdf297e57bd6aae76da940aaed53` | `d3d10565f4aaadcc99f7b97f2d78ff6443ce29be439b229ed041fc9d2b1d9f38` | PENDING | 待逐组对读 |
-| `0011` | `a609a81454607877775487b2b020a85ab1e4ad859a7dc98f20e2df0a93104c12` | `80bc87148fdeef46a1b69f22f9cb71c060030bf763cdbf90614579b051f8a078` | PENDING | 待逐组对读 |
-| `0012` | `780040c1be8a0ce29cc3e2373d8634e4b5819020097c04e0ac33ab4fcea5b9e8` | `ba25b8f96a8b4b99a75caa97a0ba8707e6032dfc3d67521510c8a929059f79ab` | PENDING | 待逐组对读 |
-| `0013` | `4cdfc6b394c6b326b42313921f0333bcee75481947d3dc70318c2f3689242fc4` | `87f2149a1afbd4f27209f3850c06dd47e46bf2a20a74b4ddb06548c48d7d4bd4` | PENDING | 待逐组对读 |
-| `0014` | `36f37fba4bcf46ac2f33879309c90543d30aef033d1e692c83272858bbf45876` | `11c39b60937cace57632d6cb9ac9d6aef1c439b7fbee8ce0c1b9e11af832115d` | PENDING | 待逐组对读 |
-| `0015` | `ff317db2b2e6a4a6a5031e9b33e7cc3a3262ed22e6229f4bb727034fb846c4e3` | `041faf850a00ed47b07a9d2be709dc1c63e376caa28d4e9f35a64dfbc77784ca` | PENDING | 待逐组对读 |
-| `0016` | `a7bb3b61e3f044807c5a94d619979c859c49b36e852f429c58a4aae0d979b422` | `29a755f894244cb9928eaba8fddbd1a4a92a1763fb1be4aab296e4180c187959` | PENDING | 待逐组对读 |
-| `0017` | `45ffb4fb63359ba7da949bdcbcf8dbd9bcfb802ec7612c989ad06381f2544151` | `71e620ffbc2bced122a1e7ddabc28e30acdf655ed138bab86dfea3fa93d127b3` | PENDING | 待逐组对读 |
-| `0018` | `fffdc9e44b50f80c97cb0886d363b536a96da1fed84402be80ea8987859fbab3` | `b348a2473850107c98f0395a33a8462fe6423d43b52f57915042bec91a48b8bf` | PENDING | 待逐组对读 |
-| `0019` | `6bb3c5c655131a5921877cf44539d859f3dbd27faece819936ad118d48ba4836` | `c69a10ab212cf8a2ea1efc5e3099dcdb5fc3ba7512e293963318b14dee78a5c5` | PENDING | 待逐组对读 |
-| `0020` | `155e5f625d96c14b5e5fc83bd3f7468d057d72b6551193b18610bbe89957196f` | `b33e8569c080212199f2c50787e0383ad0ffb7517516d244de8a170a0a8a1122` | PENDING | 待逐组对读 |
-| `0021` | `92e74f3ea7f9a71f4e8e7bcb9ddcd39d96afdccbfc1d2e2d3edacbed6eeda802` | `e88b7acd55d456350741d519399ebaaa55e3ed4ccccd3c0d6189428dd4c0e58b` | PENDING | 待逐组对读 |
-| `0022` | `245204b8393136d7b1e0394710457dd5505e7f00d03d3bceb467b7e6c7c343b0` | `a93e9c0821fb0c0630905aa71c685297ec60bc50245a7c0c9cffd195d77e761d` | PENDING | 待逐组对读 |
-| `0023` | `1c4f737b5fbf4f9cde73da5b29313ed59319389a4e00695e2d81aa9362a92601` | `a591eac6f67541d4d83a205f251a4f1be0931cdea94bfd0432a515e63678172b` | PENDING | 待逐组对读 |
-| `0024` | `5900a03e9a58e6079bacd2857c82133e549809bb532a33c62ecbbe3077cb5745` | `2ac55a187d25d8d141b62d0a8bd639a248aeb7d5b681313417d9c074dbb4ab17` | PENDING | 待逐组对读 |
-| `0025` | `7069ab0f96ebdb394eed23d1b456826e28bc64442709ed91d92a2922552ce35a` | `9d37610483a4f2718979f2226a769a5c1c2d278fcc28bcdf00a99740d844df98` | PENDING | 待逐组对读 |
-| `0026` | `4e8aa62819044c4101795fc1a2ab172f3564f0d0c1b8819ed6e76857b9dde324` | `c3c0d2954ce3d44d4d70abeaa37b3ad580879e1f35e84814692b0032d8ce249f` | PENDING | 待逐组对读 |
-| `0027` | `2fb8e2efb51eb16d39b43c07e6a24dbb60d2dc09601f795dd6ab67a0ad6bb49e` | `5ea0ed43ef1be97e2b2a10ede6140076d132e786e2660fd7dba5ea60ae89a52d` | PENDING | 待逐组对读 |
-| `0028` | `57c45db265e62b495d63f22e70b0b2bdaa25a85983874937be0384262621833a` | `461c518ab66634cd08492103b0e4c114bf2dad60177a1ca4e391f7ab02524921` | PENDING | 待逐组对读 |
-| `0029` | `2edfafb6df737f010d3b53ca3bffca7bd52cd3ea9bd00629283443edd094f4ea` | `78376582a2c53dc3ef5042e180083fb450826cfc2be5f02ecdb7a2c1ba6845ad` | PENDING | 待逐组对读 |
-| `0030` | `3a57437b4affea98105ee794349865f92f42e01865786658aeeaf6529c76237a` | `b8c4c02d4b8e6d1ecc53e5d9bd442aba3a0dbc24eeeccf34a9362d66f1b7ea8a` | PENDING | 待逐组对读 |
-| `0031` | `770e5856fd0cbd0f82e77a3dff6cbad7966537eae3acaf6187b1036551989af0` | `8b557bab8cb693b38a976e8d89fd8cc176673f818cab1fcb94c02915c7590124` | PENDING | 待逐组对读 |
-| `0032` | `27c46de7026a1e17808669ce36edee7d2d59b9033435581d56b1f0237dde7d92` | `55595caa46d6021a48d22c080a611db4e7866e5ae1496162aca73d305d406b8b` | PENDING | 待逐组对读 |
-| `0033` | `2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0` | `db157da28b5a52f0e9f0eae8911b527c8b1d00246ccfb205b3003c670088512e` | PENDING | 待逐组对读 |
-| `0034` | `7b8702713b8df8f9d419d808632d39871052f2f9d179f3fbfd01f3d133856d11` | `603cbd9f06b3ce7e91bf30a9410cffde846e2dae0da2eda8c794844b7601105d` | PENDING | 待逐组对读 |
-| `0035` | `c16d76cb6627900d53a4d241695d00ef9d0986e7374bf9c1786279032db51594` | `b24ae4c657aad172783fdbacc31d613c5f2a6b481489b1ccdd0e5424dc8378a8` | PENDING | 待逐组对读 |
-| `0036` | `40269ab0cd2880edbb34aab10a8713971f4c7238530bdb249f19ec4745f02d46` | `14e370fd444c97d4950844ba035ea5c47d85d9003b25fa0312f765840003e3a2` | PENDING | 待逐组对读 |
-| `0037` | `a6d5ba5080c30a4440845cc3e16259e0d82a4fe29d0aa4708111765563c41a76` | `03dc2942dd81003a1144d3ddae692ad5bceea0ab5644ca0c070ebfe08d5a4b3e` | PENDING | 待逐组对读 |
-| `0038` | `e9585b863a71d041e76349e86e0cfade5a44edbbe9026d865f8cbf0b9befa035` | `921f384e4f4d00ac8cc3a486c72feee6f38e2db5443ad7009c2560d8886c270f` | PENDING | 待逐组对读 |
-| `0039` | `187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391` | `b08cb9457a167036b218c27aff0df2c4570e4b419f61ce4030603894e90ce540` | PENDING | 待逐组对读 |
-| `0040` | `7a96af160f5a1c2a7e4ee172c5bdb24ea8008542b6be9fba5a5d5d77ae28a7e4` | `0308430881eca78099e6c318d6d375cfa3475bba33908b1f547ac1d097bd25bc` | PENDING | 待逐组对读 |
-| `0041` | `e574376ae58008bc3a246f72be7d4a125ae6846baa8d18045aeadf606839e1a4` | `9ca8bbb255d959d2b7d4142ed0d3d2fd48f0a12437ad6e68137142b5df5cd422` | PENDING | 待逐组对读 |
-| `0042` | `070fde750a28a8620c28503a159f148cb3b7adaf236037ca45a7b4af5f5522c7` | `2b67953d14172679c54c1bb96efd0f0a7f5f5f0d4e4e1c48f6a943b8ffbe2ecb` | PENDING | 待逐组对读 |
-| `0043` | `8bc45430d366c7bb9ac30e65bd644f947f805ea11e5d359480fe55053b846baa` | `dedab1ad7f3f03a0871a1648e094c7688833ad9b7fc702f4117d3fc30323ff4b` | PENDING | 待逐组对读 |
-| `0044` | `38ba184ccbb3ed5d77a9cf48493190fd87c83374219d033194248984f2410fe3` | `fee93bc0feff0dca7e8cf38872fe6c5c70a1045c81db1c7f7ca5d4e9871044cb` | PENDING | 待逐组对读 |
-| `0045` | `d419cd364edc48e03ceff9e07cad9c5f51c7656a86dc05ba40c9684f95bafa9e` | `51a66dd724f5b185fa075eccffc9c70e8841646bc90d2f1a39b8dd6ebf1fa3a7` | PENDING | 待逐组对读 |
-| `0046` | `de64704c2571b8915067365e1dfe1b336b93228e5776eeca7fcf92a9a29d9ddc` | `01ea38a2c439aea4a06d866dee2ca8fd52cee5c1120de6d88b3db1da8d8492a5` | PENDING | 待逐组对读 |
-| `0047` | `4e161360e5cf8af9da41402e70a5c58505252226c290cc1e7cabf4a95acf61a0` | `bc79e2a4617ea93f8eeb79c0bc369533e5baef9f93d7389ba0a7ff2543a49a86` | PENDING | 待逐组对读 |
-| `0048` | `a1de42bed4d559454458b8b096b06dfbebcb660775f1e864fdc87f6980ffcdfb` | `c5e9af79be0eb85505af5b7b84474d748425b366dbed75cc5f86b574e28d3d31` | PENDING | 待逐组对读 |
-| `0049` | `85f000271f03ab4d83260494bfe73b053111cfaf660a9f3d79c7ea912063ded6` | `0468915fa40bca52d92cab287b36a62e4f26e7cf867e86843c3921ac1fbb26d0` | PENDING | 待逐组对读 |
-| `0050` | `317f517490d7ed5d6520fc8f56045625d4d9c9b870a058e6a0f1d2c21a1e24e4` | `e177a0ff8af9e12db063c42b377b8615e99f9fd4b1825ab51ee71d7e3364f8a4` | PENDING | 待逐组对读 |
-| `0051` | `2e9acbd193d890e5d0f600256e74d7d5bed336fdf9360e3a30f6d7f0dc06ef3f` | `ffe0a959d6617f73ffb0ff2438f325139483f5875d63dea9f8b75d9d8439780e` | PENDING | 待逐组对读 |
-| `0052` | `bb6d78c3c2529f9a5e6b852f33e3b1731b827b6f8eb79c2dfa02c10bfcbcf7c1` | `164347c6c5a96a5487ee5a95aa418aae9ce8191bb96922843e67ffadcb285f59` | PENDING | 待逐组对读 |
-| `0053` | `b153279f857c7cd61ea92a60e3970d39454d2199a56f999942f4647031b81211` | `4195bbf7a4a9a9e9862b98640ffaf1c36e3db51dafc5a90bd67be91bab45a604` | PENDING | 待逐组对读 |
-| `0054` | `096e925ebe77027797d115e656538bc942eb62e77b1e3dc426f51ae457533d14` | `9aab3f42e6d79cf52fa3ce5e13a973bc378a839d1c9a6bf2cef357db3c13d83a` | PENDING | 待逐组对读 |
-| `0055` | `322a51f31a2fe5f946fa71caf2f1e44a4d2c7ffe089b2ca987de2ae7d009abe6` | `facdd1f183fae45eb7f1f6877adf922651be5404f24e50f7be6673ba3e14a9ea` | PENDING | 待逐组对读 |
-| `0056` | `5021744139f603fe986abdb886eb4dae03c71911218a4d7880a494f3455bd816` | `fd7db3768259ed25a603f87bed193b2bbbfa16d4c1a8c18907dd04227cd6df6c` | PENDING | 待逐组对读 |
-| `0057` | `dad4f00d0dfce1ab40970f524ea2c95d2c8c9b1e1480b91287c5a009e2662c3c` | `2ef295e6a539dd6a406ba83e12356c94f8d9c14057e9059f437b6d912797da57` | PENDING | 待逐组对读 |
-| `0058` | `3b3e1b803602348b22a8678535a3d38ce339c1a53c4893a24a1add541daf6ac6` | `c3671ebab588509a1cb44d9b1f0239dd8de66e8369b29e58547a193d10e95939` | PENDING | 待逐组对读 |
-| `0059` | `8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615` | `9eb5e4ceb40c08fcee737a10728354199d347db382a68f709038bfb4fcdaa8c2` | PENDING | 待逐组对读 |
+| `0000` | `8c40455bfdb2cfa75954abd5289213b9e9d6903aebb5bdeab83ec1290da16f2b` | `ddd077c8b008bb2f7c22071c76730b52c01f5add3bd6dbb91eb5645467da79bf` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0001` | `97324eac6a64ba8cdeee02ef1a773b7172d770952f62c73f7696912bb1bbaea1` | `568ff874c5e0d79aee5bd9ed5ae20faa976881be49c203f0f7894567bd263026` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0002` | `6e0fe1a12ac509e7a17b22310778b0ed913c1004c21410c74b8038b2b404200f` | `f526a97aaab6cbcd5a9216244cbe49f9421129db62d6a11b8c082e71b655537e` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0003` | `8219b2d0672651990952a7478bd8f04ed6336178722b920fff814d06d694fa2f` | `4ce639243a209d377cf7e89001eca527751e67d1f984beab73834d784c478477` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0004` | `f8a60e145bb15ad83720de6349669e10f08239f84bf12f39523713ad9054fc61` | `de91cc1527087902fabe8ee14353f2d42b681dd7c98af5f68ff3d8668b0de02f` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0005` | `e19cbe55eeca2d8b18cf23a0652e77262ad20bfde2ed709af8189c7a701c33bc` | `21ae607d4768c0b9992bb2f323ff8fd3ed7c14166e070349be42e3ddc24bd5db` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0006` | `2e892c20bcf1471422078729b10410350a36e4bc3861ec1f52fbcc84a33daae8` | `6a2510df99c74db3580d41a3ac680bdc7eeffa86e8f44cb598e0806d6f848aa9` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0007` | `d2283e40bc3ff4f691399bf1c785376f544d9376b2125f61c3792d93692fe25a` | `8edb66844fb74fa309a4386c08f3761f6a801ff2794b577b1a81b9f6c3f7bcc6` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0008` | `be8362a96529e8ab5b1755dc76eeb9bcf13bedbe1c229f39d7410087b2f795da` | `24cfd149eed906f0005f762bd1b8c9ea29089028ded93b74bb4a9b7f6c2c0f8c` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0009` | `2ed7b00b25f152a42980cce69f0ad76baf1862bc4ec78c4415c3ba47d9d07a0e` | `e9bdf234c932274a05cb36cfe8147b9836b1821e0d0d373e4f7f87a9949ffd36` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0010` | `69cf1a3da87360d753fc325325c6d103f5e4cde1cfb90a2d55b18163e7c447ad` | `22335a3b221d0b4d30f3f270fb87ecf5667e9b92e7155aecb23afe370cac05b3` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0011` | `142d605ff34bc8438cb92dbcd957c39dbb25c23f74e1977e0c1796592e3c1f46` | `51e06c3e8bbc18f4da515828a973b7cc4172a4cee9ae1230ddc3bace408f60cf` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0012` | `d379b17978948c310268650942c78e89ade83e87d7b909154ae5d3710dc1931e` | `76a9938d67ea025282403c2ab8a36dc545bf1bdbefd25a430f5b3be47315269e` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0013` | `a8ba59336316a24da4b79572ef3bb306d94c3ddbc3714fec0c9b45fd882ca157` | `cb820a94ef20aa151298a7dcd3621814bdb89bdb2b3447f41ba83c7a8ce63b9c` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0014` | `531a165c061ac679c4fa399b1f3c3dd4a6be0c6118ea16fd42a6e35b7a1c6ca7` | `c30306adc0948e55fce48ee85e818037d103618e76616b72a57ec8d69e89704e` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0015` | `20f880cde350fead6637f5280ee44e9ff18e819b8d4339c29401e9abc16d623c` | `6ee5ac1b90472f04cfb9b2a7407fe1a5e91bebdab1ebbb256efe3dc89c845ffe` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0016` | `70d87f995697ea07cdde28095edf6ebb8380975ab2fe5e3d5dcddca1c5a5a86e` | `97e49e326d6e0bdee252c0cac204ecbbcfbe78c737b22bb72c0fdd7c71d7eb35` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0017` | `2cf55979aa98b716b0f7c55c0bcd98cb267c2aba139ce87d7ba383eceafc0b86` | `d0e6c4b889f207b33ea09ce4814006dbc230350388e7363ab3f80afe63d72b8e` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0018` | `374fa113f128bcfdabfb55c789c13298855d06a90170fa5cf54062589361b109` | `6a943223c467289d167a9fce99aba1d75f3b749419a77e6698b30b8908d32fc4` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0019` | `580b4757e16b2fb950ff8085d35740a1f663e340b7c8f8c4b95264a61e64bc7b` | `86c116c805c134a9ed4cbca9910bd8c76138c35296e6d331d0dbf2db972a28e1` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0020` | `a9ae7d5c857e382e949180d49b420ae83ca9cda95d78aab7394c6008554acd2b` | `fc88b100ae5e22121779c26cbee554c4d097aae1e3e2c2118caef8b5367bfd23` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0021` | `5f2138c5064fce6cc4cbae8a6b2ff843f6cf4e51d24e9bf2400c9437fd402d20` | `3ac8d818baebae6ea19998d59f1482e58588ae8618f3abeff145dba96421d2b7` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0022` | `007d8037868666abd610eaabe09638934482407c1036dbcfecee34632ae3ef8e` | `e76dde804d6fe009128ed262e9354e8441443e19b2ebefbdeffa6fe406228a4f` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0023` | `226521385197d27629587e14f097d08a794f72d55c1f7cae3371fa2448b2ebfa` | `6886e7279b1f19d9a0ac6c25fb46471643a249b31846e3922a58f47933909c3b` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0024` | `b70c2aa8cba5d64797dc8f2dafa2d43ffd7c974ab960be19bf39d0497f21d9ee` | `592e4be47720c9a7bc0d8f190a2532c057f36de35fbe07b868a2a1850a9d98ad` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0025` | `cc7c28c2f9f196271f6761a29d19f2e6beba3364f899c6b060a7fddb819550c5` | `df0f6c78d09e3e26ca4dc61f4fe82b9918130c10eb9bf8573c76da26b5d0a377` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0026` | `8de6eefdc01ec526a86f215acc08d44da9fab078f30ca4353bd6975e1199c9d1` | `b372b9c77c599cf6df9b3cb5bd63a470c0aaf61d6878b13a192ed6bc2b93c503` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0027` | `8ce3efebe032ebdba7f8fb010342496e5de3739aa3ad656e72d9490d32292fdc` | `93c5d940c34edc011d3507310db2e823e9c540dcf455c181cde715ee967c7959` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0028` | `a5890bc4af94c1e6e75a5f9a607b9ac5c39b1bec7392f58b1a1fc38019701140` | `4388cdb78bae80b60a8e5a533b82f0d1993b4b5e57a760e46fcc2eeb2eb20a80` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0029` | `05bd2d27f0c11f09cd285b54011d6ae59f1f1b716cb6fbe55622f3dcf351026b` | `b0c10e15f1a3af9e28961698c6996406d9d6b6e9b0fe8cd0d4fa4d79875da2be` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0030` | `28fbd0eb49957fd0bd7cd939eba45bc24b3aa3053513cb258620bade78bcd6ea` | `da20f7129163b2a4ee561618ccda480b7133ff9f6edc55c03dec465cf17363c5` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0031` | `15d6817bdcf9c8cb268dfe0c94dda485002304e0c21416b8d8bc12b09b520a74` | `f88c242f0dae5a22a6899bc463cb8184850eaedaff00d27125425a02bc2c13d3` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0032` | `7dd5c07d51088b8bb92c768577436f393f35ac78a1acedf25ba0c207c68c25e8` | `b0717978e802b270b51497050e5da35c47bc358bf3edc4b98c6cbe058b6d074d` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0033` | `d869c69bf81f1b5aef1a576784142e6d9b8145e6a3fd8786fd11ca579e4d432d` | `c411914e0467e79f5c8cee9d026c495c031a64e086fe1718e72c75dfde5dda8f` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0034` | `eb4242a26f545717ffff244d93d1857d81b9a105536f6c7993df70d15cf87cab` | `9305f5e279885921a1aa335958415c4cc2607bcdd5838bcf728b04b5dd25bb63` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0035` | `b4cf36b91880a3fe07125811d28f4cd6e023e3b9125d3457c905a3ffc3ecf2a4` | `8dde89675a80c3eca2722dcaced0f875f9480d5ce1beea98abce6f6461429b7f` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0036` | `313f2940026f43f2ca49c8c77fd17711ee4872eb6552b384139874fed16ab0f1` | `660fe7d4339891fe7ba12b18cc95bc1a5df9ffffb6ab1126fffffbd6960d89b2` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0037` | `3fee53a8038a8952b219c1bb928b217936ba16c7f43f47a3f9f225900c280982` | `84128c1d52650829d2ea3104894e90e7cc67d545038dbe02b838d332a1624b49` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0038` | `dee3e732fbc6dd40b821cc2a7b41d32dd66dc5d69c05c7e016ef182360f5047c` | `dac7c81179825db9c92b0ca09ce4440f7750fa73dd3775f6f85c8cac583fcba4` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0039` | `2eeb169de2d28a284680426da60451a5430d45d27810a3411857f4c253fa5998` | `71e8c0192f3df4d8910b271f04d94be55661e16aa66fa680c2ee5f14593f0b53` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0040` | `a8d01a175feaea2270bd75f894c86dab79406b951713ff4dc634fa8ff63a5962` | `a1951a16b8cfb9c1bfef85cbda8c9eb2cb2956a5d7678504c0fb52e6b964df46` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0041` | `9bb4a90db43246fad84de236eb311ac72ae90b98040a3d966c521dfd3aeab2b2` | `a41d3c71b1dd78d3dd0e4e9f4a4cb276c1e9c9e70028477a22f364c5ea1763de` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0042` | `ed755b3246447e2916eb8a747b6f01fe8bd88a44a0b7dcbfba908c71ac6cf74a` | `e8f8d38c310d2a87f8e64d3857aa0557a93c1ae76e3d5f8b82aa7df655516fc3` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0043` | `7c4c56b54d00c14b12825a6aaccd1a6c7a35b156cb63fcf8b3084bdbd8833c0c` | `6bda71bb3a79dec67cece81d35e6fd7e21258ba566b1da9cc3debda2d487c468` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0044` | `88a1e1dee7901eeb358f35765f526401d82ada4ec044df3f0c84649367f4db1d` | `18f58b1d3274deadcf06beb977983d54654676473eed026479cadf308f73f7ae` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0045` | `c6d68adfdbd6114152eb113aa54491a3c7eb07afe45eea2022eaf363fadec898` | `64a92b6a1efd20a8edc62dd92b57537adcc14924af63f64685ac6341e7b1b5a4` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0046` | `4b6ad1c16fe3f9af1fcef278c2d4dfbb5ae45d31fbde325be2459e74a8384a7a` | `cf32dc7dcb75a451ecde7e98613137323d5cd31b84f3c8d42acf28911160af85` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0047` | `4623ec62d88ee7cdf07f8fb9efb507ea998d875bca3e5c203ab8dfc12c20847b` | `7abc3bd191e1871d10aef826223b3b5c804f80bc8d36b4aea1c37555f6c60def` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0048` | `95eb7e8d28f712b6950a940c30b283b00824a85ef8b1f05437bc4b4876c6c081` | `93249a2d509cd1b5d91b6b58c279f917ed381ee6015235e6144c10624a32469a` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0049` | `1d98df5c08a26698496f8a2bff58052249b50285fa1906a44fe335ae6662be6c` | `c949e4cead2e62d88fbac7de047c4bf351e2e023833e0b909ad5d1b1940beb01` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0050` | `ec9c8600cecdef753271fc081055ec7b6e79c58998d99f92ab107fa6fc39f3b5` | `5c6623b026f4db2845044bdc175c069d6004e443043529e52d87355cf5fcfddc` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0051` | `c39b789e502ec132df8339db290d54ae01599cb1c9964305c30cfea7b3c38db7` | `71cf98e7d7b2dc7b1c251155960123b4fe36d487d46207fe065b8a0d2a1d60d1` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0052` | `a40c100674aabaec42d0aa0bf12dbafd3cf2c9ad4064ce005b1b6126189945f4` | `5fe7894cfb06f12dfea539b87ae0aa803faa47afd4ce3cab42e9bf08932d2678` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0053` | `fbf24e016157c879f18f1d5f13cdfa25cdc2e885a8368c4b75096675a07e040f` | `075ebf408e1274171ff8a175d76ef0312b80432d300801c18af59a1e64701e3d` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0054` | `5e5ac531b1f680243539ffd3d6e532e77b2fc9646f05ff7ec952a21b9b6195bd` | `b57812811fb8951b6c8422d0d6b3673d7d2822b53938df5c5cf59ad1a324ab91` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0055` | `62e9174ac1282022823711b26da4fee7404cfe8ce1da0340eba50d598c378cc2` | `97fa1dcedc50319a4dc3534d1f724176bc249ee4b15ad399fd907942a81c9dfb` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0056` | `94d7c7f422e15210dc40322b8b5f4209deb3c87aa4a1eb516507def3bad0fa15` | `e23a550d0cb9f39fb5dffdb5436944a2f067e54ada1f9089ba89656c048d9cbd` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0057` | `0ddce51e4229947e16fe37d98fcbd3c8888f9efeac89e5988c317bbdea83237c` | `7c28032620af012fc9ace10b007c1bcc5484f2baaa5f244adcc99be05fff5f47` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0058` | `883b74b2e0906bcc730992056e9e9ea2b773f6f42506ddf56df45516d2e196d6` | `285987e443e9b0d0ab1bc2b8ada8e91cc402626dae5c0afb27719f4b66bc9e7c` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |
+| `0059` | `ff8d372d6142b3154302caa9edd73c77600a92395625d52cef762c26f05aa081` | `c0ac0c9013ce623ad18fee34bacaff314ab941f4a1e42ec8535d6ee05df68837` | PENDING | 待逐组对读 ownership、macro、capability 与三元组 |

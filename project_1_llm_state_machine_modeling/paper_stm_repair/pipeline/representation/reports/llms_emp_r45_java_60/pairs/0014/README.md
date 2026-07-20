@@ -12,6 +12,8 @@
 - NL SHA-256：`3110cbcf15bfb507f0326965970888eada5541b791b5fa661698dfc74e82c2ce`
 - PlantUML SHA-256：`36f37fba4bcf46ac2f33879309c90543d30aef033d1e692c83272858bbf45876`
 - FCSTM SHA-256：`11c39b60937cace57632d6cb9ac9d6aef1c439b7fbee8ce0c1b9e11af832115d`
+- review subject SHA-256：`531a165c061ac679c4fa399b1f3c3dd4a6be0c6118ea16fd42a6e35b7a1c6ca7`
+- working contract SHA-256：`c30306adc0948e55fce48ee85e818037d103618e76616b72a57ec8d69e89704e`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`8` / `7`
 - mapped / blocked / silent drop：`7` / `0` / `0`
@@ -22,11 +24,33 @@
 - official identity states / transitions：`8` / `7`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：InMotion 带事件 initial、三运动子态和两个跨层出口均保存；根层无 source initial 留 UnspecifiedInitial，`Entry: Emergency Stop` 按官方解析为 Entry state/body而非伪造 lifecycle。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`19` / `22` / `0`
+- source macro / positive identity trace / conversion boundary trace：`11` / `19` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0014 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0014.puml:line:2\|state DoorsClosing, source-ref:llms_emp_feedback_final_0014.puml:line:4\|DoorsClosing --> InMotion: Closed/SendDeparted`；FCSTM anchors：`element-ref:source:state:DoorsClosing@line:9\|state DoorsClosing named "DoorsClosing";, element-ref:compiler:transition_segment:tr_0001:segment:1@line:30\|DoorsClosing -> InMotion : /Closed_SendDeparted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0014.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0014.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0014.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0014.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0014.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0014.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0014.json) | [source trace](../../source_traces/llms_emp_feedback_final_0014.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | DoorsClosing | source-ref:llms_emp_feedback_final_0014.puml:line:2\|state DoorsClosing | element-ref:source:state:DoorsClosing@line:9\|state DoorsClosing named "DoorsClosing"; | source:state:DoorsClosing | - | Case 0014 binds source:state:DoorsClosing to the exact authored occurrence 'state DoorsClosing'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | Closed/SendDeparted | source-ref:llms_emp_feedback_final_0014.puml:line:4\|DoorsClosing --> InMotion: Closed/SendDeparted | element-ref:compiler:transition_segment:tr_0001:segment:1@line:30\|DoorsClosing -> InMotion : /Closed_SendDeparted; | source:transition:tr_0001 | compiler:transition_segment:tr_0001:segment:1 | Case 0014 binds source:transition:tr_0001 to the exact authored occurrence 'DoorsClosing --> InMotion: Closed/SendDeparted'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:multi_segment_macro:0001:tr_0002` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0014.puml:line:7\|[*] --> Accelerating : Entry/Accelerate | element-ref:compiler:state:llms_emp_feedback_final_0014.InMotion.InitialWaittr_0002@line:17\|state InitialWaittr_0002 named "Awaiting initial event: Entry/Accelerate";, element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|[*] -> InitialWaittr_0002;, element-ref:compiler:transition_segment:tr_0002:segment:2@line:19\|InitialWaittr_0002 -> Accelerating : /Entry_Accelerate; | compiler:state:llms_emp_feedback_final_0014.InMotion.InitialWaittr_0002, compiler:transition_segment:tr_0002:segment:1, compiler:transition_segment:tr_0002:segment:2, source:transition:tr_0002 | Case 0014 risk multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0002: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
+| `review:synthetic_state:0002:001-InitialWaittr_0002` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0014.puml:line:7\|[*] --> Accelerating : Entry/Accelerate | element-ref:compiler:state:llms_emp_feedback_final_0014.InMotion.InitialWaittr_0002@line:17\|state InitialWaittr_0002 named "Awaiting initial event: Entry/Accelerate"; | compiler:state:llms_emp_feedback_final_0014.InMotion.InitialWaittr_0002, source:transition:tr_0002 | Case 0014 risk synthetic_state occurrence review:synthetic_state:0002:001-InitialWaittr_0002: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0003:002-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0014.puml:line:2\|state DoorsClosing, source-ref:llms_emp_feedback_final_0014.puml:line:23\|state Stopping, source-ref:llms_emp_feedback_final_0014.puml:line:24\|state EmergencyStopping {, source-ref:llms_emp_feedback_final_0014.puml:line:6\|state InMotion { | element-ref:compiler:state:llms_emp_feedback_final_0014.UnspecifiedInitial@line:8\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:DoorsClosing@line:9\|state DoorsClosing named "DoorsClosing";, element-ref:source:state:EmergencyStopping@line:25\|state EmergencyStopping named "EmergencyStopping\n[PlantUML body] Obstacle Detected" {, element-ref:source:state:InMotion@line:10\|state InMotion named "InMotion" {, element-ref:source:state:Stopping@line:24\|state Stopping named "Stopping"; | compiler:state:llms_emp_feedback_final_0014.UnspecifiedInitial, source:state:DoorsClosing, source:state:EmergencyStopping, source:state:InMotion, source:state:Stopping | Case 0014 risk synthetic_state occurrence review:synthetic_state:0003:002-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0004:003-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0014.puml:line:14\|state Approaching { | element-ref:compiler:state:llms_emp_feedback_final_0014.InMotion.Approaching.UnspecifiedInitial@line:14\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:InMotion.Approaching@line:13\|state Approaching named "Approaching\n[PlantUML body] Nearing Destination\n[PlantUML body] Ready to Stop/Decelerate" { | compiler:state:llms_emp_feedback_final_0014.InMotion.Approaching.UnspecifiedInitial, source:state:InMotion.Approaching | Case 0014 risk synthetic_state occurrence review:synthetic_state:0004:003-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0005:004-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0014.puml:line:24\|state EmergencyStopping { | element-ref:compiler:state:llms_emp_feedback_final_0014.EmergencyStopping.UnspecifiedInitial@line:26\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:EmergencyStopping@line:25\|state EmergencyStopping named "EmergencyStopping\n[PlantUML body] Obstacle Detected" { | compiler:state:llms_emp_feedback_final_0014.EmergencyStopping.UnspecifiedInitial, source:state:EmergencyStopping | Case 0014 risk synthetic_state occurrence review:synthetic_state:0005:004-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

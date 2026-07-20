@@ -12,6 +12,8 @@
 - NL SHA-256：`9fe426ba761d5a52c3b670f35410502a5289bdd9489c4a9bfa983e34d565040c`
 - PlantUML SHA-256：`27c46de7026a1e17808669ce36edee7d2d59b9033435581d56b1f0237dde7d92`
 - FCSTM SHA-256：`55595caa46d6021a48d22c080a611db4e7866e5ae1496162aca73d305d406b8b`
+- review subject SHA-256：`7dd5c07d51088b8bb92c768577436f393f35ac78a1acedf25ba0c207c68c25e8`
+- working contract SHA-256：`b0717978e802b270b51497050e5da35c47bc358bf3edc4b98c6cbe058b6d074d`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`9` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -22,11 +24,35 @@
 - official identity states / transitions：`9` / `10`
 - official identity remaps：state `1` / transition endpoint `2`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：Operate/Idle/Accelerate/Brake 层次及 10 条边、6 个 body 全保留；官方把后置 CruisingState 绑定到 AccelerateRegion，跨层 Cruise/Brake 使用分段映射，三个空 region 缺 initial 均留债。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`25` / `24` / `0`
+- source macro / positive identity trace / conversion boundary trace：`16` / `25` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0032 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0032.puml:line:7\|state OperateState {, source-ref:llms_emp_feedback_final_0032.puml:line:4\|OffState --> OperateState : start`；FCSTM anchors：`element-ref:source:state:OperateState@line:8\|state OperateState named "OperateState\n[PlantUML body] Operate" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:36\|OffState -> OperateState : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0032.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0032.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0032.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0032.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0032.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0032.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0032.json) | [source trace](../../source_traces/llms_emp_feedback_final_0032.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions | source-ref:llms_emp_feedback_final_0032.puml:line:7\|state OperateState { | element-ref:source:state:OperateState@line:8\|state OperateState named "OperateState\n[PlantUML body] Operate" { | source:state:OperateState | - | Case 0032 binds source:state:OperateState to the exact authored occurrence 'state OperateState {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | start | source-ref:llms_emp_feedback_final_0032.puml:line:4\|OffState --> OperateState : start | element-ref:compiler:transition_segment:tr_0002:segment:1@line:36\|OffState -> OperateState : /start; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0032 binds source:transition:tr_0002 to the exact authored occurrence 'OffState --> OperateState : start'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:official_identity_remap:0001:state-001` | `official_identity_remap` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0032.puml:line:15\|CruisingState : Cruising, source-ref:llms_emp_feedback_final_0032.puml:line:24\|AccelerateRegion --> CruisingState : Reach Speed | element-ref:source:state:OperateState.AccelerateRegion.CruisingState@line:16\|state CruisingState named "CruisingState\n[PlantUML body] Cruising"; | source:state:OperateState.AccelerateRegion.CruisingState | Case 0032 risk official_identity_remap occurrence review:official_identity_remap:0001:state-001: The occurrence follows the pinned PlantUML qualified Entity/Link identity result, including the recorded remap, instead of substituting a lexical guess. |
+| `review:official_identity_remap:0002:transition-001-tr_0006` | `official_identity_remap` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0032.puml:line:24\|AccelerateRegion --> CruisingState : Reach Speed | element-ref:compiler:transition_segment:tr_0006:segment:1@line:18\|! * -> CruisingState : /Reach_Speed; | source:transition:tr_0006 | Case 0032 risk official_identity_remap occurrence review:official_identity_remap:0002:transition-001-tr_0006: The occurrence follows the pinned PlantUML qualified Entity/Link identity result, including the recorded remap, instead of substituting a lexical guess. |
+| `review:official_identity_remap:0003:transition-002-tr_0008` | `official_identity_remap` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0032.puml:line:26\|CruisingState --> BrakeRegion : Brake | element-ref:compiler:transition_segment:tr_0008:segment:1@line:19\|CruisingState -> [*] : /Brake; | source:transition:tr_0008 | Case 0032 risk official_identity_remap occurrence review:official_identity_remap:0003:transition-002-tr_0008: The occurrence follows the pinned PlantUML qualified Entity/Link identity result, including the recorded remap, instead of substituting a lexical guess. |
+| `review:multi_segment_macro:0004:tr_0008` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0032.puml:line:26\|CruisingState --> BrakeRegion : Brake | element-ref:compiler:transition_segment:tr_0008:segment:1@line:19\|CruisingState -> [*] : /Brake;, element-ref:compiler:transition_segment:tr_0008:segment:2@line:31\|AccelerateRegion -> BrakeRegion : /Brake; | compiler:transition_segment:tr_0008:segment:1, compiler:transition_segment:tr_0008:segment:2, source:transition:tr_0008 | Case 0032 risk multi_segment_macro occurrence review:multi_segment_macro:0004:tr_0008: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
+| `review:synthetic_state:0005:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0032.puml:line:9\|state IdleRegion { | element-ref:compiler:state:llms_emp_feedback_final_0032.OperateState.IdleRegion.UnspecifiedInitial@line:10\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:OperateState.IdleRegion@line:9\|state IdleRegion named "IdleRegion" { | compiler:state:llms_emp_feedback_final_0032.OperateState.IdleRegion.UnspecifiedInitial, source:state:OperateState.IdleRegion | Case 0032 risk synthetic_state occurrence review:synthetic_state:0005:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0006:002-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0032.puml:line:13\|state AccelerateRegion { | element-ref:compiler:state:llms_emp_feedback_final_0032.OperateState.AccelerateRegion.UnspecifiedInitial@line:15\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:OperateState.AccelerateRegion@line:14\|state AccelerateRegion named "AccelerateRegion" { | compiler:state:llms_emp_feedback_final_0032.OperateState.AccelerateRegion.UnspecifiedInitial, source:state:OperateState.AccelerateRegion | Case 0032 risk synthetic_state occurrence review:synthetic_state:0006:002-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0007:003-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0032.puml:line:18\|state BrakeRegion { | element-ref:compiler:state:llms_emp_feedback_final_0032.OperateState.BrakeRegion.UnspecifiedInitial@line:23\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:OperateState.BrakeRegion@line:22\|state BrakeRegion named "BrakeRegion" { | compiler:state:llms_emp_feedback_final_0032.OperateState.BrakeRegion.UnspecifiedInitial, source:state:OperateState.BrakeRegion | Case 0032 risk synthetic_state occurrence review:synthetic_state:0007:003-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

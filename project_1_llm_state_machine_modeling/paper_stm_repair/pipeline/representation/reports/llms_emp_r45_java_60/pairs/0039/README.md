@@ -12,6 +12,8 @@
 - NL SHA-256：`b7425c44960b36c3534f118279e347786d4074191efea7bf9a7c5ba032c9e82c`
 - PlantUML SHA-256：`187fb536bf88351c12f83f63d5b5d2bf1c096b0a99aa9089ce722ba07f2a0391`
 - FCSTM SHA-256：`b08cb9457a167036b218c27aff0df2c4570e4b419f61ce4030603894e90ce540`
+- review subject SHA-256：`2eeb169de2d28a284680426da60451a5430d45d27810a3411857f4c253fa5998`
+- working contract SHA-256：`71e8c0192f3df4d8910b271f04d94be55661e16aa66fa680c2ee5f14593f0b53`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`15` / `26`
 - mapped / blocked / silent drop：`26` / `0` / `0`
@@ -22,11 +24,33 @@
 - official identity states / transitions：`15` / `26`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：Autonomous/Highway/Urban 和 root CollisionAvoidance 双态共 15 状态、26 边全保留；Highway 两个带事件 final 使用独立 wait，root 的 Autonomous 与 collision 双 initial 原样保留并标记 multiple-initial 债。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`41` / `42` / `0`
+- source macro / positive identity trace / conversion boundary trace：`26` / `41` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0039 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0039.puml:line:4\|state AutonomousMode {, source-ref:llms_emp_feedback_final_0039.puml:line:7\|InitialState --> HighwayMode : high_way=true`；FCSTM anchors：`element-ref:source:state:AutonomousMode@line:15\|state AutonomousMode named "AutonomousMode" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:48\|InitialState -> HighwayMode : /high_way_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0039.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0039.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0039.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0039.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0039.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0039.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0039.json) | [source trace](../../source_traces/llms_emp_feedback_final_0039.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | AutonomousMode | source-ref:llms_emp_feedback_final_0039.puml:line:4\|state AutonomousMode { | element-ref:source:state:AutonomousMode@line:15\|state AutonomousMode named "AutonomousMode" { | source:state:AutonomousMode | - | Case 0039 binds source:state:AutonomousMode to the exact authored occurrence 'state AutonomousMode {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | high_way=true | source-ref:llms_emp_feedback_final_0039.puml:line:7\|InitialState --> HighwayMode : high_way=true | element-ref:compiler:transition_segment:tr_0003:segment:1@line:48\|InitialState -> HighwayMode : /high_way_true; | source:transition:tr_0003 | compiler:transition_segment:tr_0003:segment:1 | Case 0039 binds source:transition:tr_0003 to the exact authored occurrence 'InitialState --> HighwayMode : high_way=true'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:final_boundary:0001:tr_0009` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0039.puml:line:16\|lane_change --> [*] : dist_to_exit<2 | element-ref:compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0009@line:20\|state FinalWaittr_0009 named "Completed final boundary: AutonomousMode.HighwayMode.lane_change";, element-ref:compiler:transition_segment:tr_0009:segment:1@line:26\|lane_change -> FinalWaittr_0009 : /dist_to_exit_2; | compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0009, compiler:transition_segment:tr_0009:segment:1, source:transition:tr_0009 | Case 0039 risk final_boundary occurrence review:final_boundary:0001:tr_0009: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
+| `review:final_boundary:0002:tr_0010` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0039.puml:line:18\|cruise --> [*] : dist_to_exit<2 | element-ref:compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0010@line:21\|state FinalWaittr_0010 named "Completed final boundary: AutonomousMode.HighwayMode.cruise";, element-ref:compiler:transition_segment:tr_0010:segment:1@line:27\|cruise -> FinalWaittr_0010 : /dist_to_exit_2; | compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0010, compiler:transition_segment:tr_0010:segment:1, source:transition:tr_0010 | Case 0039 risk final_boundary occurrence review:final_boundary:0002:tr_0010: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
+| `review:synthetic_state:0003:001-FinalWaittr_0009` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0039.puml:line:16\|lane_change --> [*] : dist_to_exit<2 | element-ref:compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0009@line:20\|state FinalWaittr_0009 named "Completed final boundary: AutonomousMode.HighwayMode.lane_change"; | compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0009, source:transition:tr_0009 | Case 0039 risk synthetic_state occurrence review:synthetic_state:0003:001-FinalWaittr_0009: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:synthetic_state:0004:002-FinalWaittr_0010` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0039.puml:line:18\|cruise --> [*] : dist_to_exit<2 | element-ref:compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0010@line:21\|state FinalWaittr_0010 named "Completed final boundary: AutonomousMode.HighwayMode.cruise"; | compiler:state:llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.FinalWaittr_0010, source:transition:tr_0010 | Case 0039 risk synthetic_state occurrence review:synthetic_state:0004:002-FinalWaittr_0010: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:explicit_concurrency:0005:001-multiple_initial_fanout` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0039.puml:line:2\|[*] --> AutonomousMode, source-ref:llms_emp_feedback_final_0039.puml:line:44\|[*] --> collision_avoidance_deactive | element-ref:compiler:transition_segment:tr_0001:segment:1@line:57\|[*] -> AutonomousMode;, element-ref:compiler:transition_segment:tr_0024:segment:1@line:58\|[*] -> collision_avoidance_deactive; | source:transition:tr_0001, source:transition:tr_0024 | Case 0039 risk explicit_concurrency occurrence review:explicit_concurrency:0005:001-multiple_initial_fanout: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
 
 ## 作者阶段 lineage
 

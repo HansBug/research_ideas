@@ -12,6 +12,8 @@
 - NL SHA-256：`6af3966c8b0e12004a22622cded88b07df6fef9d558534442e3309694543c76d`
 - PlantUML SHA-256：`57c45db265e62b495d63f22e70b0b2bdaa25a85983874937be0384262621833a`
 - FCSTM SHA-256：`461c518ab66634cd08492103b0e4c114bf2dad60177a1ca4e391f7ab02524921`
+- review subject SHA-256：`a5890bc4af94c1e6e75a5f9a607b9ac5c39b1bec7392f58b1a1fc38019701140`
+- working contract SHA-256：`4388cdb78bae80b60a8e5a533b82f0d1993b4b5e57a760e46fcc2eeb2eb20a80`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `15`
 - mapped / blocked / silent drop：`15` / `0` / `0`
@@ -22,11 +24,29 @@
 - official identity states / transitions：`6` / `15`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：作者使用 `state DoorShut as "Door Shut"` 的非标准 alias 顺序，官方将尾部 alias/`<<initial>>` 当 body；转换保留 6 状态、15 边及全部 body，并以 UnspecifiedInitial 留债而未伪造初态。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`27` / `26` / `0`
+- source macro / positive identity trace / conversion boundary trace：`21` / `27` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0028 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The NL describes a digital-camera workflow while the authored PlantUML contains a microwave topology; that source-level mismatch remains visible for Discover.
+- source anchors：`source-ref:llms_emp_feedback_final_0028.puml:line:2\|state DoorShut as "Door Shut" <<initial>>, source-ref:llms_emp_feedback_final_0028.puml:line:20\|ReadytoCook --> Cooking : Start`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";, element-ref:compiler:transition_segment:tr_0012:segment:1@line:28\|ReadytoCook -> Cooking : /Start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0028.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0028.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0028.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0028.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0028.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0028.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0028.json) | [source trace](../../source_traces/llms_emp_feedback_final_0028.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | The system begins in the TurnOn state, which has two possible execution times, with a maximum of 2 seconds and a | source-ref:llms_emp_feedback_final_0028.puml:line:2\|state DoorShut as "Door Shut" <<initial>> | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>"; | source:state:DoorShut | - | Case 0028 binds source:state:DoorShut to the exact authored occurrence 'state DoorShut as "Door Shut" <<initial>>'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | start | source-ref:llms_emp_feedback_final_0028.puml:line:20\|ReadytoCook --> Cooking : Start | element-ref:compiler:transition_segment:tr_0012:segment:1@line:28\|ReadytoCook -> Cooking : /Start; | source:transition:tr_0012 | compiler:transition_segment:tr_0012:segment:1 | Case 0028 binds source:transition:tr_0012 to the exact authored occurrence 'ReadytoCook --> Cooking : Start'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:synthetic_state:0001:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0028.puml:line:2\|state DoorShut as "Door Shut" <<initial>>, source-ref:llms_emp_feedback_final_0028.puml:line:3\|state DoorOpen as "Door Open", source-ref:llms_emp_feedback_final_0028.puml:line:4\|state DoorOpenWithItem as "Door Open with Item", source-ref:llms_emp_feedback_final_0028.puml:line:5\|state DoorShutWithItem as "Door Shut with Item", source-ref:llms_emp_feedback_final_0028.puml:line:6\|state ReadytoCook as "Ready to Cook", source-ref:llms_emp_feedback_final_0028.puml:line:7\|state Cooking as "Cooking" | element-ref:compiler:state:llms_emp_feedback_final_0028.UnspecifiedInitial@line:10\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:Cooking@line:16\|state Cooking named "Cooking\n[PlantUML body] as \"Cooking\"";, element-ref:source:state:DoorOpen@line:12\|state DoorOpen named "DoorOpen\n[PlantUML body] as \"Door Open\"";, element-ref:source:state:DoorOpenWithItem@line:13\|state DoorOpenWithItem named "DoorOpenWithItem\n[PlantUML body] as \"Door Open with Item\"";, element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";, element-ref:source:state:DoorShutWithItem@line:14\|state DoorShutWithItem named "DoorShutWithItem\n[PlantUML body] as \"Door Shut with Item\"";, element-ref:source:state:ReadytoCook@line:15\|state ReadytoCook named "ReadytoCook\n[PlantUML body] as \"Ready to Cook\""; | compiler:state:llms_emp_feedback_final_0028.UnspecifiedInitial, source:state:Cooking, source:state:DoorOpen, source:state:DoorOpenWithItem, source:state:DoorShut, source:state:DoorShutWithItem, source:state:ReadytoCook | Case 0028 risk synthetic_state occurrence review:synthetic_state:0001:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

@@ -12,6 +12,8 @@
 - NL SHA-256：`6af3966c8b0e12004a22622cded88b07df6fef9d558534442e3309694543c76d`
 - PlantUML SHA-256：`e9585b863a71d041e76349e86e0cfade5a44edbbe9026d865f8cbf0b9befa035`
 - FCSTM SHA-256：`921f384e4f4d00ac8cc3a486c72feee6f38e2db5443ad7009c2560d8886c270f`
+- review subject SHA-256：`dee3e732fbc6dd40b821cc2a7b41d32dd66dc5d69c05c7e016ef182360f5047c`
+- working contract SHA-256：`dac7c81179825db9c92b0ca09ce4440f7750fa73dd3775f6f85c8cac583fcba4`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`18` / `21`
 - mapped / blocked / silent drop：`21` / `0` / `0`
@@ -22,11 +24,36 @@
 - official identity states / transitions：`18` / `21`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：数字相机 18 状态、21 边全部对应，fork_state 与三个 join 保留为 pseudo，TurnOff 仍通向 root final；Terminate composite 内自指 initial 以 InvalidInitial 保存，时间/概率标签与两处 fan-out 明确留债。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`39` / `31` / `0`
+- source macro / positive identity trace / conversion boundary trace：`21` / `39` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0038 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0038.puml:line:40\|state Terminate {, source-ref:llms_emp_feedback_final_0038.puml:line:12\|choice1 --> choice3 : memFull=true`；FCSTM anchors：`element-ref:source:state:Terminate@line:14\|state Terminate named "Terminate" {, element-ref:compiler:transition_segment:tr_0007:segment:1@line:37\|choice1 -> choice3 : /memFull_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0038.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0038.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0038.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0038.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0038.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0038.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0038.json) | [source trace](../../source_traces/llms_emp_feedback_final_0038.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | Terminate | source-ref:llms_emp_feedback_final_0038.puml:line:40\|state Terminate { | element-ref:source:state:Terminate@line:14\|state Terminate named "Terminate" { | source:state:Terminate | - | Case 0038 binds source:state:Terminate to the exact authored occurrence 'state Terminate {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | memFull=true | source-ref:llms_emp_feedback_final_0038.puml:line:12\|choice1 --> choice3 : memFull=true | element-ref:compiler:transition_segment:tr_0007:segment:1@line:37\|choice1 -> choice3 : /memFull_true; | source:transition:tr_0007 | compiler:transition_segment:tr_0007:segment:1 | Case 0038 binds source:transition:tr_0007 to the exact authored occurrence 'choice1 --> choice3 : memFull=true'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:final_boundary:0001:tr_0019` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0038.puml:line:36\|TurnOff --> [*] | element-ref:compiler:transition_segment:tr_0019:segment:1@line:49\|TurnOff -> [*]; | compiler:transition_segment:tr_0019:segment:1, source:transition:tr_0019 | Case 0038 risk final_boundary occurrence review:final_boundary:0001:tr_0019: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
+| `review:synthetic_state:0002:001-InvalidInitialtr_0021` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:41\|[*] --> Terminate | element-ref:compiler:state:llms_emp_feedback_final_0038.Terminate.InvalidInitialtr_0021@line:15\|state InvalidInitialtr_0021 named "PlantUML initial target outside child scope: Terminate"; | compiler:state:llms_emp_feedback_final_0038.Terminate.InvalidInitialtr_0021, source:transition:tr_0021 | Case 0038 risk synthetic_state occurrence review:synthetic_state:0002:001-InvalidInitialtr_0021: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:explicit_concurrency:0003:001-ambiguous_unlabeled_fanout` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:5\|state fork_state <<fork>>, source-ref:llms_emp_feedback_final_0038.puml:line:6\|fork_state --> AutoFocus, source-ref:llms_emp_feedback_final_0038.puml:line:7\|fork_state --> DetLight | element-ref:compiler:transition_segment:tr_0003:segment:1@line:33\|fork_state -> AutoFocus;, element-ref:compiler:transition_segment:tr_0004:segment:1@line:34\|fork_state -> DetLight;, element-ref:source:state:fork_state@line:10\|pseudo state fork_state named "fork_state"; | source:state:fork_state, source:transition:tr_0003, source:transition:tr_0004 | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0003:001-ambiguous_unlabeled_fanout: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
+| `review:explicit_concurrency:0004:002-ambiguous_unlabeled_fanout` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:23\|Join2 --> Fork2, source-ref:llms_emp_feedback_final_0038.puml:line:25\|Fork2 --> Junction2, source-ref:llms_emp_feedback_final_0038.puml:line:26\|Fork2 --> Flash | element-ref:compiler:transition_segment:tr_0013:segment:1@line:43\|Fork2 -> Junction2;, element-ref:compiler:transition_segment:tr_0014:segment:1@line:44\|Fork2 -> Flash;, element-ref:source:state:Fork2@line:25\|state Fork2 named "Fork2"; | source:state:Fork2, source:transition:tr_0013, source:transition:tr_0014 | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0004:002-ambiguous_unlabeled_fanout: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
+| `review:explicit_concurrency:0005:003-explicit_concurrency_pseudostate` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:5\|state fork_state <<fork>> | element-ref:source:state:fork_state@line:10\|pseudo state fork_state named "fork_state"; | source:state:fork_state | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0005:003-explicit_concurrency_pseudostate: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
+| `review:explicit_concurrency:0006:004-explicit_concurrency_pseudostate` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:17\|state Junction3 <<join>> | element-ref:source:state:Junction3@line:11\|pseudo state Junction3 named "Junction3"; | source:state:Junction3 | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0006:004-explicit_concurrency_pseudostate: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
+| `review:explicit_concurrency:0007:005-explicit_concurrency_pseudostate` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:22\|state Join2 <<join>> | element-ref:source:state:Join2@line:12\|pseudo state Join2 named "Join2"; | source:state:Join2 | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0007:005-explicit_concurrency_pseudostate: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
+| `review:explicit_concurrency:0008:006-explicit_concurrency_pseudostate` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0038.puml:line:33\|state Junction1 <<join>> | element-ref:source:state:Junction1@line:13\|pseudo state Junction1 named "Junction1"; | source:state:Junction1 | Case 0038 risk explicit_concurrency occurrence review:explicit_concurrency:0008:006-explicit_concurrency_pseudostate: The authored concurrency occurrence remains visible, but the FCSTM projection does not claim fork/join product semantics and is excluded from runtime evidence. |
 
 ## 作者阶段 lineage
 

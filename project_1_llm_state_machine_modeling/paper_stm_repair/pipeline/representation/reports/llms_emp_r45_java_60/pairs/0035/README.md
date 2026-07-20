@@ -12,6 +12,8 @@
 - NL SHA-256：`934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f`
 - PlantUML SHA-256：`c16d76cb6627900d53a4d241695d00ef9d0986e7374bf9c1786279032db51594`
 - FCSTM SHA-256：`b24ae4c657aad172783fdbacc31d613c5f2a6b481489b1ccdd0e5424dc8378a8`
+- review subject SHA-256：`b4cf36b91880a3fe07125811d28f4cd6e023e3b9125d3457c905a3ffc3ecf2a4`
+- working contract SHA-256：`8dde89675a80c3eca2722dcaced0f875f9480d5ce1beea98abce6f6461429b7f`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `15`
 - mapped / blocked / silent drop：`15` / `0` / `0`
@@ -22,11 +24,29 @@
 - official identity states / transitions：`6` / `15`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：微波炉 6 状态、15 条作者实际边全对应，包括 DoorOpen 的 Item Removed 自环；非标准 `state DoorShut as ... <<initial>>` 保留为 body，root 无真实 initial 因而使用 UnspecifiedInitial。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`22` / `26` / `0`
+- source macro / positive identity trace / conversion boundary trace：`16` / `22` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0035 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0035.puml:line:2\|state DoorShut as "Door Shut" <<initial>>, source-ref:llms_emp_feedback_final_0035.puml:line:3\|DoorShut --> DoorShut : Cancel`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";, element-ref:compiler:transition_segment:tr_0001:segment:1@line:17\|DoorShut -> DoorShut : /Cancel;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0035.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0035.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0035.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0035.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0035.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0035.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0035.json) | [source trace](../../source_traces/llms_emp_feedback_final_0035.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | DoorShut | source-ref:llms_emp_feedback_final_0035.puml:line:2\|state DoorShut as "Door Shut" <<initial>> | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>"; | source:state:DoorShut | - | Case 0035 binds source:state:DoorShut to the exact authored occurrence 'state DoorShut as "Door Shut" <<initial>>'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | DoorShut | source-ref:llms_emp_feedback_final_0035.puml:line:3\|DoorShut --> DoorShut : Cancel | element-ref:compiler:transition_segment:tr_0001:segment:1@line:17\|DoorShut -> DoorShut : /Cancel; | source:transition:tr_0001 | compiler:transition_segment:tr_0001:segment:1 | Case 0035 binds source:transition:tr_0001 to the exact authored occurrence 'DoorShut --> DoorShut : Cancel'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:synthetic_state:0001:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0035.puml:line:14\|ReadytoCook --> Cooking : Start, source-ref:llms_emp_feedback_final_0035.puml:line:2\|state DoorShut as "Door Shut" <<initial>>, source-ref:llms_emp_feedback_final_0035.puml:line:4\|DoorShut --> DoorOpen : Door Opened, source-ref:llms_emp_feedback_final_0035.puml:line:6\|DoorOpen --> DoorOpenWithItem : Item Placed, source-ref:llms_emp_feedback_final_0035.puml:line:8\|DoorOpenWithItem --> DoorShutWithItem : Door Closed, source-ref:llms_emp_feedback_final_0035.puml:line:9\|DoorOpenWithItem --> ReadytoCook : Cooking Time Entered | element-ref:compiler:state:llms_emp_feedback_final_0035.UnspecifiedInitial@line:10\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:Cooking@line:16\|state Cooking named "Cooking";, element-ref:source:state:DoorOpen@line:12\|state DoorOpen named "DoorOpen";, element-ref:source:state:DoorOpenWithItem@line:13\|state DoorOpenWithItem named "DoorOpenWithItem";, element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";, element-ref:source:state:DoorShutWithItem@line:14\|state DoorShutWithItem named "DoorShutWithItem";, element-ref:source:state:ReadytoCook@line:15\|state ReadytoCook named "ReadytoCook"; | compiler:state:llms_emp_feedback_final_0035.UnspecifiedInitial, source:state:Cooking, source:state:DoorOpen, source:state:DoorOpenWithItem, source:state:DoorShut, source:state:DoorShutWithItem, source:state:ReadytoCook | Case 0035 risk synthetic_state occurrence review:synthetic_state:0001:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

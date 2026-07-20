@@ -12,6 +12,8 @@
 - NL SHA-256：`934e19bd4ae2a793c334fdcf486092d3aa20858f09ae892753ef87698feb061f`
 - PlantUML SHA-256：`322a51f31a2fe5f946fa71caf2f1e44a4d2c7ffe089b2ca987de2ae7d009abe6`
 - FCSTM SHA-256：`facdd1f183fae45eb7f1f6877adf922651be5404f24e50f7be6673ba3e14a9ea`
+- review subject SHA-256：`62e9174ac1282022823711b26da4fee7404cfe8ce1da0340eba50d598c378cc2`
+- working contract SHA-256：`97fa1dcedc50319a4dc3534d1f724176bc249ee4b15ad399fd907942a81c9dfb`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `16`
 - mapped / blocked / silent drop：`16` / `0` / `0`
@@ -22,11 +24,27 @@
 - official identity states / transitions：`6` / `16`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：该行同样无 checking regeneration，按合同回退 Phase-I；扁平微波炉 6 状态、16 边与 root initial 全部一一对应，time=0 条件作为完整 opaque 标签保存。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`22` / `26` / `0`
+- source macro / positive identity trace / conversion boundary trace：`16` / `22` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0055 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0055.puml:line:3\|[*] --> DoorShut, source-ref:llms_emp_feedback_final_0055.puml:line:5\|DoorShut --> DoorShut : Cancel`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut";, element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorShut : /Cancel;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0055.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0055.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0055.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0055.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0055.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0055.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0055.json) | [source trace](../../source_traces/llms_emp_feedback_final_0055.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | DoorShut | source-ref:llms_emp_feedback_final_0055.puml:line:3\|[*] --> DoorShut | element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut"; | source:state:DoorShut | - | Case 0055 binds source:state:DoorShut to the exact authored occurrence '[*] --> DoorShut'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | DoorShut | source-ref:llms_emp_feedback_final_0055.puml:line:5\|DoorShut --> DoorShut : Cancel | element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorShut : /Cancel; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0055 binds source:transition:tr_0002 to the exact authored occurrence 'DoorShut --> DoorShut : Cancel'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+本组不要求 risk-tag 第二遍复核。
 
 ## 作者阶段 lineage
 

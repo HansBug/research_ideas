@@ -12,6 +12,8 @@
 - NL SHA-256：`a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1`
 - PlantUML SHA-256：`b153279f857c7cd61ea92a60e3970d39454d2199a56f999942f4647031b81211`
 - FCSTM SHA-256：`4195bbf7a4a9a9e9862b98640ffaf1c36e3db51dafc5a90bd67be91bab45a604`
+- review subject SHA-256：`fbf24e016157c879f18f1d5f13cdfa25cdc2e885a8368c4b75096675a07e040f`
+- working contract SHA-256：`075ebf408e1274171ff8a175d76ef0312b80432d300801c18af59a1e64701e3d`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `4`
 - mapped / blocked / silent drop：`4` / `0` / `0`
@@ -22,11 +24,29 @@
 - official identity states / transitions：`7` / `4`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：PumpControl 下 Pump/Water/Methane 三个普通 nested composite、各自 leaf 与 initial 共 7 状态、4 边、3 个 body 均保留；源无 `--` separator，未虚构正交 region，owner 缺 initial 明确留债。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`14` / `7` / `0`
+- source macro / positive identity trace / conversion boundary trace：`7` / `14` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0053 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0053.puml:line:5\|state PumpControl {, source-ref:llms_emp_feedback_final_0053.puml:line:3\|[*] --> PumpControl`；FCSTM anchors：`element-ref:source:state:PumpControl@line:2\|state PumpControl named "PumpControl" {, element-ref:compiler:transition_segment:tr_0001:segment:1@line:18\|[*] -> PumpControl;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0053.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0053.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0053.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0053.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0053.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0053.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0053.json) | [source trace](../../source_traces/llms_emp_feedback_final_0053.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | PumpControl | source-ref:llms_emp_feedback_final_0053.puml:line:5\|state PumpControl { | element-ref:source:state:PumpControl@line:2\|state PumpControl named "PumpControl" { | source:state:PumpControl | - | Case 0053 binds source:state:PumpControl to the exact authored occurrence 'state PumpControl {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | PumpControl | source-ref:llms_emp_feedback_final_0053.puml:line:3\|[*] --> PumpControl | element-ref:compiler:transition_segment:tr_0001:segment:1@line:18\|[*] -> PumpControl; | source:transition:tr_0001 | compiler:transition_segment:tr_0001:segment:1 | Case 0053 binds source:transition:tr_0001 to the exact authored occurrence '[*] --> PumpControl'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:synthetic_state:0001:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0053.puml:line:5\|state PumpControl { | element-ref:compiler:state:llms_emp_feedback_final_0053.PumpControl.UnspecifiedInitial@line:3\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:PumpControl@line:2\|state PumpControl named "PumpControl" { | compiler:state:llms_emp_feedback_final_0053.PumpControl.UnspecifiedInitial, source:state:PumpControl | Case 0053 risk synthetic_state occurrence review:synthetic_state:0001:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
 
 ## 作者阶段 lineage
 

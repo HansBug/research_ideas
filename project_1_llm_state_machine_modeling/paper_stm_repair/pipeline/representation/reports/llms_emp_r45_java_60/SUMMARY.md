@@ -17,6 +17,9 @@
 - pinned PlantUML qualified identity：states `516/516`；transition endpoints `757/757`；state remap `24`；endpoint remap `37`。
 - R4.5 structural preservation：`60/60`；structure blocked：`0/60`。
 - FCSTM execution eligible：`0/60`；Discover eligible：`0/60`。
+- attribution-safe working contract：`60/60`；compiler-owned elements `1456`；agent-created baseline elements `0`。
+- attribution-scoped Discover input：`60/60`；每个工具仍必须遵守逐元素 capability mask，legacy whole-model Discover eligible 不因此改写。
+- source macro roots：`903`；positive source traces：`1413`；compiler members 不进入 positive trace。
 
 结构通过不等于行为等价。无/多/非法 initial、ownerless lifecycle、opaque state body、无标签 fan-out 与显式 fork 进入 `operational_debts`；转换器保留这些 source facts，但不推断 guard/effect/timing/concurrency。
 
@@ -40,3 +43,5 @@
 - `fcstm/*.fcstm`：60 个新 FCSTM STM0。
 - `case_reports/*.json`：逐迁移 mapping、operational debt、name map 与 AST audit。
 - `parse_inspect/*.json`：pyfcstm 结构化 inspect 输出。
+- `working_contracts/*.json`：source/compiler ownership、macro、capability 与 artifact hash binding。
+- `source_traces/*.json`：只暴露 source-owned semantic root 的 Discover positive trace；compiler members 进入 attribution exclusions。

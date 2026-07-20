@@ -12,6 +12,8 @@
 - NL SHA-256：`a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1`
 - PlantUML SHA-256：`8bc45430d366c7bb9ac30e65bd644f947f805ea11e5d359480fe55053b846baa`
 - FCSTM SHA-256：`dedab1ad7f3f03a0871a1648e094c7688833ad9b7fc702f4117d3fc30323ff4b`
+- review subject SHA-256：`7c4c56b54d00c14b12825a6aaccd1a6c7a35b156cb63fcf8b3084bdbd8833c0c`
+- working contract SHA-256：`6bda71bb3a79dec67cece81d35e6fd7e21258ba566b1da9cc3debda2d487c468`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`8` / `9`
 - mapped / blocked / silent drop：`9` / `0` / `0`
@@ -22,11 +24,31 @@
 - official identity states / transitions：`8` / `9`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：PumpControl 下 Region1 三态与 Region2 双态共 8 状态、9 边完整；单个 separator 精确记录两正交 region，各自 initial 保留，owner 不伪造并发入口而以 UnspecifiedInitial 与 concurrency 债 fail-closed。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`19` / `18` / `0`
+- source macro / positive identity trace / conversion boundary trace：`11` / `19` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0043 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0043.puml:line:4\|state PumpControl {, source-ref:llms_emp_feedback_final_0043.puml:line:7\|PumpState --> WaterState : [Water Flow Detected]`；FCSTM anchors：`element-ref:source:state:PumpControl@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.Region1; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.Region2; transitions=-\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0043.puml:line:12" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:15\|PumpState -> WaterState : /_Water_Flow_Detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0043.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0043.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0043.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0043.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0043.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0043.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0043.json) | [source trace](../../source_traces/llms_emp_feedback_final_0043.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | PumpControl | source-ref:llms_emp_feedback_final_0043.puml:line:4\|state PumpControl { | element-ref:source:state:PumpControl@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.Region1; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.Region2; transitions=-\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0043.puml:line:12" { | source:state:PumpControl | - | Case 0043 binds source:state:PumpControl to the exact authored occurrence 'state PumpControl {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | WaterState | source-ref:llms_emp_feedback_final_0043.puml:line:7\|PumpState --> WaterState : [Water Flow Detected] | element-ref:compiler:transition_segment:tr_0003:segment:1@line:15\|PumpState -> WaterState : /_Water_Flow_Detected; | source:transition:tr_0003 | compiler:transition_segment:tr_0003:segment:1 | Case 0043 binds source:transition:tr_0003 to the exact authored occurrence 'PumpState --> WaterState : [Water Flow Detected]'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:synthetic_state:0001:001-UnspecifiedInitial` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0043.puml:line:4\|state PumpControl { | element-ref:compiler:state:llms_emp_feedback_final_0043.PumpControl.UnspecifiedInitial@line:9\|state UnspecifiedInitial named "Unspecified initial";, element-ref:source:state:PumpControl@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.Region1; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.Region2; transitions=-\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0043.puml:line:12" { | compiler:state:llms_emp_feedback_final_0043.PumpControl.UnspecifiedInitial, source:state:PumpControl | Case 0043 risk synthetic_state occurrence review:synthetic_state:0001:001-UnspecifiedInitial: The helper state is a protected compiler-owned projection for a source structural fact; diagnostics on the helper itself are conversion artifacts. |
+| `review:concurrent_region:0002:PumpControl:region:0` | `concurrent_region` | `capability_excluded` | source-ref:llms_emp_feedback_final_0043.puml:line:12\|-- | element-ref:source:region:PumpControl:region:0@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.Region1; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.Region2; transitions=-\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0043.puml:line:12" { | source:region:PumpControl:region:0 | Case 0043 risk concurrent_region occurrence review:concurrent_region:0002:PumpControl:region:0: The authored region occurrence and its FCSTM metadata projection are present, while executable orthogonal-region semantics remain capability-excluded. |
+| `review:concurrent_region:0003:PumpControl:region:1` | `concurrent_region` | `capability_excluded` | source-ref:llms_emp_feedback_final_0043.puml:line:12\|-- | element-ref:source:region:PumpControl:region:1@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=PumpControl.Region1; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.Region2; transitions=-\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0043.puml:line:12" { | source:region:PumpControl:region:1 | Case 0043 risk concurrent_region occurrence review:concurrent_region:0003:PumpControl:region:1: The authored region occurrence and its FCSTM metadata projection are present, while executable orthogonal-region semantics remain capability-excluded. |
 
 ## 作者阶段 lineage
 

@@ -12,6 +12,8 @@
 - NL SHA-256：`9fe426ba761d5a52c3b670f35410502a5289bdd9489c4a9bfa983e34d565040c`
 - PlantUML SHA-256：`c82a800174e833df461aa14837651ad835a7ae146f84a9939cacac05e643e821`
 - FCSTM SHA-256：`0c94f4db6f3b72b94808da7419808ef1210aade8f1b89c45d37324eaacfdb8fd`
+- review subject SHA-256：`8219b2d0672651990952a7478bd8f04ed6336178722b920fff814d06d694fa2f`
+- working contract SHA-256：`4ce639243a209d377cf7e89001eca527751e67d1f984beab73834d784c478477`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `8`
 - mapped / blocked / silent drop：`8` / `0` / `0`
@@ -22,11 +24,29 @@
 - official identity states / transitions：`5` / `8`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：PoweredOff 与 Operate 三子态的 8 条迁移全保留，跨 composite keyOff 使用 forced exit，PoweredOff 的带事件 root final 保持真正终止边。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`13` / `15` / `0`
+- source macro / positive identity trace / conversion boundary trace：`8` / `13` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0003 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0003.puml:line:4\|state Operate {, source-ref:llms_emp_feedback_final_0003.puml:line:11\|PoweredOff --> Operate : start`；FCSTM anchors：`element-ref:source:state:Operate@line:8\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0006:segment:1@line:19\|PoweredOff -> Operate : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0003.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0003.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0003.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0003.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0003.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0003.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0003.json) | [source trace](../../source_traces/llms_emp_feedback_final_0003.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | Operate | source-ref:llms_emp_feedback_final_0003.puml:line:4\|state Operate { | element-ref:source:state:Operate@line:8\|state Operate named "Operate" { | source:state:Operate | - | Case 0003 binds source:state:Operate to the exact authored occurrence 'state Operate {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | Operate | source-ref:llms_emp_feedback_final_0003.puml:line:11\|PoweredOff --> Operate : start | element-ref:compiler:transition_segment:tr_0006:segment:1@line:19\|PoweredOff -> Operate : /start; | source:transition:tr_0006 | compiler:transition_segment:tr_0006:segment:1 | Case 0003 binds source:transition:tr_0006 to the exact authored occurrence 'PoweredOff --> Operate : start'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:final_boundary:0001:tr_0008` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0003.puml:line:13\|PoweredOff --> [*] : end | element-ref:compiler:transition_segment:tr_0008:segment:1@line:21\|PoweredOff -> [*] : /end; | compiler:transition_segment:tr_0008:segment:1, source:transition:tr_0008 | Case 0003 risk final_boundary occurrence review:final_boundary:0001:tr_0008: The authored PlantUML final boundary is preserved by the bound FCSTM termination macro rather than being converted into an ordinary user state. |
 
 ## 作者阶段 lineage
 

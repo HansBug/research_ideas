@@ -12,6 +12,8 @@
 - NL SHA-256：`3110cbcf15bfb507f0326965970888eada5541b791b5fa661698dfc74e82c2ce`
 - PlantUML SHA-256：`5900a03e9a58e6079bacd2857c82133e549809bb532a33c62ecbbe3077cb5745`
 - FCSTM SHA-256：`2ac55a187d25d8d141b62d0a8bd639a248aeb7d5b681313417d9c074dbb4ab17`
+- review subject SHA-256：`b70c2aa8cba5d64797dc8f2dafa2d43ffd7c974ab960be19bf39d0497f21d9ee`
+- working contract SHA-256：`592e4be47720c9a7bc0d8f190a2532c057f36de35fbe07b868a2a1850a9d98ad`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -22,11 +24,29 @@
 - official identity states / transitions：`7` / `10`
 - official identity remaps：state `0` / transition endpoint `0`
 - AST audit：`passed`
-- FCSTM execution eligible：`false`
-- Discover eligible：`false`
-- 主 session 对读：完整对读：DoorsClosing、InMotion 三子态、Stopping/EmergencyStopping 的 10 条边和五个 body 均在；Approaching 到 owner InMotion 被编码为子层退出加父层自迁移，事件原文未丢。
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`22` / `19` / `0`
+- source macro / positive identity trace / conversion boundary trace：`15` / `22` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0024 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- source anchors：`source-ref:llms_emp_feedback_final_0024.puml:line:5\|state InMotion {, source-ref:llms_emp_feedback_final_0024.puml:line:4\|DoorsClosing --> InMotion: Closed/SendDeparted`；FCSTM anchors：`element-ref:source:state:InMotion@line:9\|state InMotion named "InMotion" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:23\|DoorsClosing -> InMotion : /Closed_SendDeparted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
-- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0024.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0024.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0024.json) | [人工总账](../../MANUAL_REVIEW.md)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0024.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0024.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0024.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0024.json) | [source trace](../../source_traces/llms_emp_feedback_final_0024.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | InMotion | source-ref:llms_emp_feedback_final_0024.puml:line:5\|state InMotion { | element-ref:source:state:InMotion@line:9\|state InMotion named "InMotion" { | source:state:InMotion | - | Case 0024 binds source:state:InMotion to the exact authored occurrence 'state InMotion {'; it is present as a direct FCSTM state projection with the same source identity and parent relation. |
+| `macro` | `preserved_with_exclusions` | Closed/SendDeparted | source-ref:llms_emp_feedback_final_0024.puml:line:4\|DoorsClosing --> InMotion: Closed/SendDeparted | element-ref:compiler:transition_segment:tr_0002:segment:1@line:23\|DoorsClosing -> InMotion : /Closed_SendDeparted; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0024 binds source:transition:tr_0002 to the exact authored occurrence 'DoorsClosing --> InMotion: Closed/SendDeparted'; it is present as a source-owned transition root whose cited FCSTM line belongs to a protected compiler macro; the raw label remains opaque. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:multi_segment_macro:0001:tr_0007` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0024.puml:line:14\|Approaching --> InMotion:exit/Send | element-ref:compiler:transition_segment:tr_0007:segment:1@line:17\|Approaching -> [*] : /exit_Send;, element-ref:compiler:transition_segment:tr_0007:segment:2@line:24\|InMotion -> InMotion : /exit_Send; | compiler:transition_segment:tr_0007:segment:1, compiler:transition_segment:tr_0007:segment:2, source:transition:tr_0007 | Case 0024 risk multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0007: The single authored transition remains one source-owned semantic root; all bound FCSTM segments are protected compiler artifacts and cannot become repair targets. |
 
 ## 作者阶段 lineage
 
