@@ -116,11 +116,14 @@ def _write_manifest_fixture(
             {"path": name, "sha256": builder._sha256_bytes(path.read_bytes())}
         )
     manifest = {
-        "schema_version": "r4_5.llms_emp_java_batch.v5",
+        "schema_version": "r4_5.llms_emp_java_batch.v6",
         "evidence_eligible": True,
         "output_dir": "fixture-evidence",
         "implementation_tree_sha256": implementation_sha256,
         "java_frontend_build": java_build,
+        "java_frontend_source_identity": builder.java_frontend_source_identity(
+            java_build
+        ),
         "pyfcstm_commit": "c" * 40,
         "artifact_inventory": inventory,
         "artifact_set_sha256": builder._sha256_json(inventory),
@@ -132,6 +135,31 @@ def _write_manifest_fixture(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _fixture_java_build_identity() -> dict:
+    return {
+        "schema_version": "paper1.plantuml_java_build.v1",
+        "plantuml_version": "1.2024.7",
+        "plantuml_jar_sha256": "a" * 64,
+        "java_version": "openjdk fixture",
+        "javac_version": "javac fixture",
+        "makefile_sha256": "b" * 64,
+        "source_inventory": [
+            {
+                "path": "src/main/java/researchideas/plantuml/Fixture.java",
+                "sha256": "c" * 64,
+            }
+        ],
+        "input_sha256": "d" * 64,
+        "class_inventory": [
+            {
+                "path": "researchideas/plantuml/Fixture.class",
+                "sha256": "e" * 64,
+            }
+        ],
+        "class_tree_sha256": "f" * 64,
+    }
 
 
 REVIEW_NL = "The controller enters Idle mode and can advance to Ready mode."
@@ -1042,6 +1070,43 @@ def test_formal_runner_and_pair_builder_force_clean_java_build(
         {"plantuml_jar": jar, "force": True},
         {"force": True},
     ]
+
+
+def test_java_frontend_source_identity_is_portable_across_jdk_builds():
+    producer = _fixture_java_build_identity()
+    consumer = copy.deepcopy(producer)
+    consumer["java_version"] = "openjdk consumer"
+    consumer["javac_version"] = "javac consumer"
+    consumer["class_inventory"][0]["sha256"] = "0" * 64
+    consumer["class_tree_sha256"] = "1" * 64
+
+    assert plantuml_adapter.java_frontend_source_identity(
+        producer
+    ) == plantuml_adapter.java_frontend_source_identity(consumer)
+
+    consumer["source_inventory"][0]["sha256"] = "2" * 64
+    assert plantuml_adapter.java_frontend_source_identity(
+        producer
+    ) != plantuml_adapter.java_frontend_source_identity(consumer)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda build: build.update(schema_version="fixture.unsupported"),
+        lambda build: build["source_inventory"].append(
+            copy.deepcopy(build["source_inventory"][0])
+        ),
+        lambda build: build["source_inventory"][0].update(path="../Fixture.java"),
+        lambda build: build["source_inventory"][0].update(sha256="not-a-sha256"),
+    ],
+)
+def test_java_frontend_source_identity_rejects_malformed_producer_build(mutation):
+    producer = _fixture_java_build_identity()
+    mutation(producer)
+
+    with pytest.raises(RuntimeError):
+        plantuml_adapter.java_frontend_source_identity(producer)
 
 
 def test_java_frontend_build_and_execution_are_process_safe():
@@ -2179,7 +2244,7 @@ def test_pair_builder_rejects_stale_implementation_manifest(
     evidence = tmp_path / "evidence"
     evidence.mkdir()
     current = builder._current_implementation_sha256()
-    java_build = {"schema_version": "fixture-java-build"}
+    java_build = _fixture_java_build_identity()
     _write_manifest_fixture(
         builder=builder,
         evidence_dir=evidence,
@@ -2188,6 +2253,11 @@ def test_pair_builder_rejects_stale_implementation_manifest(
     )
     monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
     monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+    monkeypatch.setattr(
+        builder,
+        "_current_java_frontend_source_identity",
+        lambda: builder.java_frontend_source_identity(java_build),
+    )
     monkeypatch.setattr(builder, "_current_pyfcstm_commit", lambda: "c" * 40)
 
     with pytest.raises(RuntimeError, match="implementation-tree hash is stale"):
@@ -2208,7 +2278,7 @@ def test_pair_builder_rejects_extra_machine_artifact_not_in_manifest(
     builder = _load_pair_builder_module()
     evidence = tmp_path / "evidence"
     evidence.mkdir()
-    java_build = {"schema_version": "fixture-java-build"}
+    java_build = _fixture_java_build_identity()
     _write_manifest_fixture(
         builder=builder,
         evidence_dir=evidence,
@@ -2217,6 +2287,11 @@ def test_pair_builder_rejects_extra_machine_artifact_not_in_manifest(
     )
     monkeypatch.setattr(builder, "_display", lambda _: "fixture-evidence")
     monkeypatch.setattr(builder, "_current_java_frontend_build", lambda: java_build)
+    monkeypatch.setattr(
+        builder,
+        "_current_java_frontend_source_identity",
+        lambda: builder.java_frontend_source_identity(java_build),
+    )
     monkeypatch.setattr(builder, "_current_pyfcstm_commit", lambda: "c" * 40)
     builder._validate_manifest(evidence, allow_ineligible=False)
 
@@ -2432,7 +2507,7 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     if not (EVIDENCE / "PUBLICATION_SEAL.json").is_file():
         pytest.skip("main-session pair review has not been published yet")
     manifest = json.loads((EVIDENCE / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["schema_version"] == "r4_5.llms_emp_java_batch.v5"
+    assert manifest["schema_version"] == "r4_5.llms_emp_java_batch.v6"
     assert manifest["evidence_eligible"] is True
     manual_text = (EVIDENCE / "MANUAL_REVIEW.md").read_text(encoding="utf-8")
     manual_rows = [

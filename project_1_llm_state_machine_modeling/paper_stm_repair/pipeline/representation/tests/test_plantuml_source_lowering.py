@@ -391,6 +391,10 @@ def test_capabilities_keep_static_source_analysis_when_runtime_semantics_are_uns
     )
     assert capabilities["simulation"]["status"] == "ineligible"
     assert capabilities["transition_trace"]["status"] == "ineligible"
+    assert capabilities["verification"]["status"] == "not_run"
+    assert capabilities["verification"]["reason_codes"] == [
+        "verification_adapter_not_implemented"
+    ]
     assert (
         "R45.DEBT.concurrent_region_semantics"
         in capabilities["simulation"]["reason_codes"]
@@ -585,6 +589,16 @@ def test_working_contract_recomputes_attribution_invariants_from_source(
             "simulation",
             "eligible_with_exclusions",
             "baseline simulation status is not fail-closed",
+        ),
+        (
+            "transition_trace",
+            "eligible_with_exclusions",
+            "baseline transition_trace status is not fail-closed",
+        ),
+        (
+            "verification",
+            "eligible_with_exclusions",
+            "baseline verification status is not fail-closed",
         ),
     ],
 )

@@ -34,6 +34,7 @@ from paper_stm_repair_conversion.evidence_integrity import (  # noqa: E402
 )
 from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
     java_frontend_build_identity,
+    java_frontend_source_identity,
 )
 from paper_stm_repair_representation.manual_pair_review import (  # noqa: E402
     manual_review_observation_digest,
@@ -272,6 +273,10 @@ def _current_java_frontend_build() -> dict[str, Any]:
     return java_frontend_build_identity(force=True)
 
 
+def _current_java_frontend_source_identity() -> dict[str, Any]:
+    return java_frontend_source_identity(_current_java_frontend_build())
+
+
 def _current_pyfcstm_commit() -> str:
     completed = subprocess.run(
         ["git", "-C", str(REPO_ROOT / "pyfcstm"), "rev-parse", "HEAD"],
@@ -303,8 +308,8 @@ def _safe_artifact_path(evidence_dir: Path, relative: str) -> Path:
 def _validate_manifest(evidence_dir: Path, *, allow_ineligible: bool) -> dict[str, Any]:
     manifest_path = evidence_dir / "manifest.json"
     manifest = _read_json(manifest_path)
-    if manifest.get("schema_version") != "r4_5.llms_emp_java_batch.v5":
-        raise RuntimeError("pair pages require the v5 attribution-scoped manifest")
+    if manifest.get("schema_version") != "r4_5.llms_emp_java_batch.v6":
+        raise RuntimeError("pair pages require the v6 attribution-scoped manifest")
     if not manifest.get("evidence_eligible") and not allow_ineligible:
         raise RuntimeError(
             "pair pages require clean evidence; development replay is ineligible"
@@ -318,10 +323,18 @@ def _validate_manifest(evidence_dir: Path, *, allow_ineligible: bool) -> dict[st
             "manifest implementation-tree hash is stale; rerun the 60-case machine "
             "evidence with the current implementation before publishing pair pages"
         )
-    if manifest.get("java_frontend_build") != _current_java_frontend_build():
+    try:
+        frozen_java_source_identity = java_frontend_source_identity(
+            manifest.get("java_frontend_build")
+        )
+    except RuntimeError as exc:
+        raise RuntimeError("manifest Java frontend producer build is invalid") from exc
+    if manifest.get("java_frontend_source_identity") != frozen_java_source_identity:
+        raise RuntimeError("manifest Java frontend source identity is inconsistent")
+    if frozen_java_source_identity != _current_java_frontend_source_identity():
         raise RuntimeError(
-            "manifest Java frontend build identity is stale; rerun the 60-case "
-            "machine evidence with the current executable class tree"
+            "manifest Java frontend source identity is stale; rerun the 60-case "
+            "machine evidence with the current source tree and pinned jar"
         )
     if manifest.get("pyfcstm_commit") != _current_pyfcstm_commit():
         raise RuntimeError(

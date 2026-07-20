@@ -15,6 +15,7 @@ PLANTUML_VERSION = "1.2024.7"
 PLANTUML_SHA256 = "e34c12bbe9944f1f338ca3d88c9b116b86300cc8e90b35c4086b825b5ae96d24"
 JAVA_MAIN = "researchideas.plantuml.PlantUmlStateFrontend"
 BUILD_FINGERPRINT_SCHEMA = "paper1.plantuml_java_build.v1"
+SOURCE_IDENTITY_SCHEMA = "paper1.plantuml_java_source.v1"
 
 
 def _repo_root() -> Path:
@@ -249,6 +250,80 @@ def java_frontend_build_identity(
         if fingerprint is None:
             raise RuntimeError("Java frontend build fingerprint was not produced")
         return fingerprint
+
+
+def java_frontend_source_identity(
+    build_identity: dict[str, Any] | None = None,
+    *,
+    plantuml_jar: Path | None = None,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Return the cross-JDK identity of the pinned Java frontend sources.
+
+    Java and javac versions plus class-file bytes remain in the producer build
+    record, but they are not portable evidence identity: different conforming
+    JDKs can emit different bytecode for the same reviewed source tree.
+    """
+
+    build = build_identity
+    if build is None:
+        build = java_frontend_build_identity(
+            plantuml_jar=plantuml_jar,
+            force=force,
+        )
+    if build.get("schema_version") != BUILD_FINGERPRINT_SCHEMA:
+        raise RuntimeError("Java frontend build identity has an unsupported schema")
+    required = {
+        "plantuml_version",
+        "plantuml_jar_sha256",
+        "makefile_sha256",
+        "source_inventory",
+    }
+    missing = sorted(required - set(build))
+    if missing:
+        raise RuntimeError(
+            f"Java frontend build identity lacks portable source fields: {missing}"
+        )
+    source_inventory = build["source_inventory"]
+    if not isinstance(source_inventory, list) or not source_inventory:
+        raise RuntimeError("Java frontend source inventory is empty")
+    normalized_inventory: list[dict[str, str]] = []
+    seen_paths: set[str] = set()
+    for row in source_inventory:
+        if not isinstance(row, dict):
+            raise RuntimeError("Java frontend source inventory is malformed")
+        path = row.get("path")
+        sha256 = row.get("sha256")
+        if (
+            not isinstance(path, str)
+            or not path.startswith("src/main/java/")
+            or Path(path).is_absolute()
+            or ".." in Path(path).parts
+            or path in seen_paths
+            or not isinstance(sha256, str)
+            or len(sha256) != 64
+            or any(character not in "0123456789abcdef" for character in sha256)
+        ):
+            raise RuntimeError("Java frontend source inventory is malformed")
+        seen_paths.add(path)
+        normalized_inventory.append({"path": path, "sha256": sha256})
+    if normalized_inventory != sorted(normalized_inventory, key=lambda row: row["path"]):
+        raise RuntimeError("Java frontend source inventory is not canonically ordered")
+    identity = {
+        "schema_version": SOURCE_IDENTITY_SCHEMA,
+        "plantuml_version": build["plantuml_version"],
+        "plantuml_jar_sha256": build["plantuml_jar_sha256"],
+        "makefile_sha256": build["makefile_sha256"],
+        "source_inventory": normalized_inventory,
+    }
+    identity["source_tree_sha256"] = _sha256_json(
+        {
+            "makefile_sha256": identity["makefile_sha256"],
+            "source_inventory": identity["source_inventory"],
+        }
+    )
+    identity["identity_sha256"] = _sha256_json(identity)
+    return identity
 
 
 def run_java_frontend(

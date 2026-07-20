@@ -1106,6 +1106,17 @@ def build_working_contract(
             reasons=["runtime_has_no_stable_fired_transition_id"],
             claim_boundary="State observations cannot be promoted to transition-level attribution.",
         ),
+        "verification": _capability(
+            status="not_run",
+            eligible=[],
+            excluded=sorted(element_ids),
+            reasons=["verification_adapter_not_implemented"],
+            claim_boundary=(
+                "No verification result or counterexample is attribution evidence until a "
+                "versioned adapter binds the checked property, source elements, model identity, "
+                "and counterexample artifact."
+            ),
+        ),
         "repair": _capability(
             status="not_run",
             eligible=[],
@@ -1759,6 +1770,7 @@ def validate_working_contract(
         "source_static_discovery",
         "simulation",
         "transition_trace",
+        "verification",
         "repair",
         "confirm",
         "final_export",
@@ -1803,6 +1815,7 @@ def validate_working_contract(
     for capability_name, expected_status in {
         "simulation": "ineligible",
         "transition_trace": "ineligible",
+        "verification": "not_run",
         "repair": "not_run",
         "confirm": "not_run",
         "final_export": "not_run",

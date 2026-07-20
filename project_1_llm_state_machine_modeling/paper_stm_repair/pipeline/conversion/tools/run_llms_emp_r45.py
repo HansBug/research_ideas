@@ -40,6 +40,7 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
     PLANTUML_SHA256,
     PLANTUML_VERSION,
     java_frontend_build_identity,
+    java_frontend_source_identity,
     parse_plantuml_source,
     resolve_plantuml_jar,
 )
@@ -880,7 +881,7 @@ def run(
         staging_dir=staging_dir,
     )
     manifest = {
-        "schema_version": "r4_5.llms_emp_java_batch.v5",
+        "schema_version": "r4_5.llms_emp_java_batch.v6",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "research_commit": research_commit,
         "research_branch": research_branch,
@@ -893,6 +894,7 @@ def run(
         ),
         "implementation_tree_sha256": implementation_tree_sha256,
         "java_frontend_build": java_build,
+        "java_frontend_source_identity": java_frontend_source_identity(java_build),
         "pyfcstm_commit": pyfcstm_commit,
         "plantuml_version": PLANTUML_VERSION,
         "plantuml_jar_sha256": PLANTUML_SHA256,

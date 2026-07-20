@@ -9,8 +9,10 @@ from pathlib import Path
 
 import pytest
 
+import paper_stm_repair_representation.plantuml_working_bundle as working_bundle_module
 from paper_stm_repair_conversion.adapters.plantuml_source import (
     java_frontend_build_identity,
+    java_frontend_source_identity,
     parse_plantuml_source,
 )
 from paper_stm_repair_conversion.evidence_integrity import (
@@ -973,7 +975,7 @@ def _write_bundle_fixture(
         for path in sorted(artifact_paths)
     ]
     manifest = {
-        "schema_version": "r4_5.llms_emp_java_batch.v5",
+        "schema_version": "r4_5.llms_emp_java_batch.v6",
         "evidence_eligible": evidence_eligible,
         "output_dir": rel(evidence),
         "pairs_path": rel(pair_path),
@@ -992,6 +994,9 @@ def _write_bundle_fixture(
             paper_root=repo / PAPER_REL,
         ),
         "java_frontend_build": java_frontend_build_identity(force=False),
+        "java_frontend_source_identity": java_frontend_source_identity(
+            java_frontend_build_identity(force=False)
+        ),
         "pyfcstm_commit": pyfcstm_commit,
     }
     _write_json(evidence / "manifest.json", manifest)
@@ -1355,15 +1360,77 @@ def test_loader_rejects_stale_java_build_identity(tmp_path: Path):
     repo, evidence = _write_bundle_fixture(tmp_path)
     manifest_path = evidence / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["java_frontend_build"] = {
-        **manifest["java_frontend_build"],
-        "source_tree_sha256": "0" * 64,
-    }
+    manifest["java_frontend_build"]["source_inventory"][0]["sha256"] = "0" * 64
+    manifest["java_frontend_source_identity"] = java_frontend_source_identity(
+        manifest["java_frontend_build"]
+    )
     _write_json(manifest_path, manifest)
     _refresh_publication_seal(evidence)
 
-    with pytest.raises(WorkingBundleError, match="Java frontend build is stale"):
+    with pytest.raises(WorkingBundleError, match="Java frontend source identity is stale"):
         load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+
+
+def test_loader_rejects_inconsistent_java_source_identity(tmp_path: Path):
+    repo, evidence = _write_bundle_fixture(tmp_path)
+    manifest_path = evidence / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["java_frontend_source_identity"]["identity_sha256"] = "0" * 64
+    _write_json(manifest_path, manifest)
+    _refresh_publication_seal(evidence)
+
+    with pytest.raises(
+        WorkingBundleError,
+        match="Java frontend source identity is inconsistent",
+    ):
+        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+
+
+def test_loader_accepts_same_java_sources_compiled_by_another_jdk(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    repo, evidence = _write_bundle_fixture(tmp_path)
+    manifest_path = evidence / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    consumer_build = copy.deepcopy(manifest["java_frontend_build"])
+    consumer_build["java_version"] = "openjdk version fixture-consumer"
+    consumer_build["javac_version"] = "javac fixture-consumer"
+    consumer_build["class_inventory"] = [
+        {
+            "path": "researchideas/plantuml/PlantUmlStateFrontend.class",
+            "sha256": "1" * 64,
+        }
+    ]
+    consumer_build["class_tree_sha256"] = _sha_json(
+        consumer_build["class_inventory"]
+    )
+    consumer_build["input_sha256"] = _sha_json(
+        {
+            key: consumer_build[key]
+            for key in (
+                "plantuml_version",
+                "plantuml_jar_sha256",
+                "java_version",
+                "javac_version",
+                "makefile_sha256",
+                "source_inventory",
+            )
+        }
+    )
+    monkeypatch.setattr(
+        working_bundle_module,
+        "_current_java_frontend_build",
+        lambda: consumer_build,
+    )
+
+    bundle = load_attribution_safe_working_bundle(
+        evidence,
+        "0000",
+        repo_root=repo,
+    )
+
+    assert bundle.case_id == "0000"
 
 
 def test_loader_rejects_stale_pyfcstm_commit(tmp_path: Path):
@@ -1463,6 +1530,33 @@ def test_confirmed_issue_binding_rejects_conversion_or_ineligible_evidence(
         bundle.bind_confirmed_issues(ledger)
 
     ledger = _confirmed_ledger(bundle)
+    issue = ledger["issues"][0]
+    issue["issue_family"] = "guard_condition_mismatch"
+    issue["confirmation_evidence_path"] = "nl_grounded_behavioral_issue"
+    issue["nl_evidence"] = [
+        {
+            "evidence_id": "NL1",
+            "evidence_type": "nl_requirement",
+            "reference": "valid PIN must not both disable and enable the alarm",
+            "summary": "Requirement evidence.",
+        }
+    ]
+    issue["behavior_evidence"] = [
+        {
+            "evidence_id": "BEH-VERIFY",
+            "evidence_type": "verification_counterexample",
+            "reference": "verification:fixture",
+            "summary": "No versioned verification adapter has bound this counterexample.",
+        }
+    ]
+    issue["confirmation_rationale"] = "NL and source appear inconsistent."
+    with pytest.raises(
+        WorkingBundleError,
+        match=r"capability-ineligible: ISSUE\.INTERNAL\.001:verification",
+    ):
+        bundle.bind_confirmed_issues(ledger)
+
+    ledger = _confirmed_ledger(bundle)
     ledger["issues"][0]["behavior_evidence"].append(
         {
             "evidence_id": "BEH-CONVERSION",
@@ -1477,10 +1571,10 @@ def test_confirmed_issue_binding_rejects_conversion_or_ineligible_evidence(
 
 def test_committed_60_cases_are_loadable_only_through_attribution_safe_view():
     manifest = _read_json_fixture(FORMAL_EVIDENCE / "manifest.json")
-    if manifest.get("schema_version") != "r4_5.llms_emp_java_batch.v5":
-        pytest.skip("formal v5 evidence has not been replayed yet")
+    if manifest.get("schema_version") != "r4_5.llms_emp_java_batch.v6":
+        pytest.skip("formal v6 evidence has not been replayed yet")
     if not (FORMAL_EVIDENCE / "PUBLICATION_SEAL.json").is_file():
-        pytest.skip("formal v5 evidence has not completed main-session review")
+        pytest.skip("formal v6 evidence has not completed main-session review")
     assert manifest["evidence_eligible"] is True
 
     for index in range(60):

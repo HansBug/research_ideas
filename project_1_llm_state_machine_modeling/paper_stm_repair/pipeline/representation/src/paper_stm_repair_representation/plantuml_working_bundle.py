@@ -18,7 +18,7 @@ from .manual_pair_review import (
 from .plantuml_working_contract import validate_working_contract
 
 
-MANIFEST_SCHEMA_VERSION = "r4_5.llms_emp_java_batch.v5"
+MANIFEST_SCHEMA_VERSION = "r4_5.llms_emp_java_batch.v6"
 PUBLICATION_SCHEMA_VERSION = "paper1.llms_emp_pair_publication.v1"
 PUBLICATION_READY_STATUS = "main_session_reviewed_ready_for_discover"
 EXPECTED_CASE_IDS = [f"{index:04d}" for index in range(60)]
@@ -122,6 +122,16 @@ def _current_java_frontend_build() -> dict[str, Any]:
     except ImportError as exc:
         raise WorkingBundleError("PlantUML Java frontend package is unavailable") from exc
     return java_frontend_build_identity(force=False)
+
+
+def _current_java_frontend_source_identity() -> dict[str, Any]:
+    try:
+        from paper_stm_repair_conversion.adapters.plantuml_source import (
+            java_frontend_source_identity,
+        )
+    except ImportError as exc:
+        raise WorkingBundleError("PlantUML Java frontend package is unavailable") from exc
+    return java_frontend_source_identity(_current_java_frontend_build())
 
 
 def _current_pyfcstm_commit(repo_root: Path) -> str:
@@ -537,7 +547,7 @@ def load_attribution_safe_working_bundle(
     evidence = evidence_dir.resolve()
     manifest = _read_json(evidence / "manifest.json")
     if manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION:
-        raise WorkingBundleError("working bundle requires the v5 manifest")
+        raise WorkingBundleError("working bundle requires the v6 manifest")
     if manifest.get("evidence_eligible") is not True:
         raise WorkingBundleError("development-only evidence cannot enter Discover")
     if manifest.get("output_dir") != _repo_relative(repo, evidence):
@@ -548,9 +558,23 @@ def load_attribution_safe_working_bundle(
         raise WorkingBundleError(
             "manifest implementation-tree hash is stale; replay and review are required"
         )
-    if manifest.get("java_frontend_build") != _current_java_frontend_build():
+    try:
+        from paper_stm_repair_conversion.adapters.plantuml_source import (
+            java_frontend_source_identity,
+        )
+
+        frozen_java_source_identity = java_frontend_source_identity(
+            manifest.get("java_frontend_build")
+        )
+    except (ImportError, RuntimeError) as exc:
         raise WorkingBundleError(
-            "manifest Java frontend build is stale; replay and review are required"
+            "manifest Java frontend producer build is invalid"
+        ) from exc
+    if manifest.get("java_frontend_source_identity") != frozen_java_source_identity:
+        raise WorkingBundleError("manifest Java frontend source identity is inconsistent")
+    if frozen_java_source_identity != _current_java_frontend_source_identity():
+        raise WorkingBundleError(
+            "manifest Java frontend source identity is stale; replay and review are required"
         )
     if manifest.get("pyfcstm_commit") != _current_pyfcstm_commit(repo):
         raise WorkingBundleError(
@@ -741,7 +765,13 @@ def load_attribution_safe_working_bundle(
     )
     if contract.get("usage_gate") != "discover_input_with_capability_mask":
         raise WorkingBundleError("working contract is not an attributed Discover input")
-    for capability in ("repair", "confirm", "final_export", "main_result"):
+    for capability in (
+        "verification",
+        "repair",
+        "confirm",
+        "final_export",
+        "main_result",
+    ):
         if contract["capability_eligibility"][capability]["status"] != "not_run":
             raise WorkingBundleError(
                 f"baseline bundle prematurely authorizes {capability}"
