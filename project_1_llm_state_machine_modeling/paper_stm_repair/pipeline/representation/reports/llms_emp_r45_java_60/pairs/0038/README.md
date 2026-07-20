@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`e9585b863a71d041e76349e86e0cfade5a44edbbe9026d865f8cbf0b9befa035`
 - FCSTM SHA-256：`921f384e4f4d00ac8cc3a486c72feee6f38e2db5443ad7009c2560d8886c270f`
 - review subject SHA-256：`dee3e732fbc6dd40b821cc2a7b41d32dd66dc5d69c05c7e016ef182360f5047c`
-- working contract SHA-256：`dac7c81179825db9c92b0ca09ce4440f7750fa73dd3775f6f85c8cac583fcba4`
+- working contract SHA-256：`ce053d37e2d54fc7c27074f5d28a3c2ad11e96cf036df89f21c9443c85f4f260`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`18` / `21`
 - mapped / blocked / silent drop：`21` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`21` / `39` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0038 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0038 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0038.puml:line:40\|state Terminate {, source-ref:llms_emp_feedback_final_0038.puml:line:12\|choice1 --> choice3 : memFull=true`；FCSTM anchors：`element-ref:source:state:Terminate@line:14\|state Terminate named "Terminate" {, element-ref:compiler:transition_segment:tr_0007:segment:1@line:37\|choice1 -> choice3 : /memFull_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0038.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0038.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0038.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0038.json) | [source trace](../../source_traces/llms_emp_feedback_final_0038.json) | [人工总账](../../MANUAL_REVIEW.md)

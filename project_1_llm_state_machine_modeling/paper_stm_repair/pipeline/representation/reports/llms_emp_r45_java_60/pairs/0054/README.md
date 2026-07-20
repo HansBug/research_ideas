@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`096e925ebe77027797d115e656538bc942eb62e77b1e3dc426f51ae457533d14`
 - FCSTM SHA-256：`9aab3f42e6d79cf52fa3ce5e13a973bc378a839d1c9a6bf2cef357db3c13d83a`
 - review subject SHA-256：`5e5ac531b1f680243539ffd3d6e532e77b2fc9646f05ff7ec952a21b9b6195bd`
-- working contract SHA-256：`b57812811fb8951b6c8422d0d6b3673d7d2822b53938df5c5cf59ad1a324ab91`
+- working contract SHA-256：`11607ed6055ac576cb7158907f8a4717a3f38319d482261ca35292643fe7eeb9`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `8`
 - mapped / blocked / silent drop：`8` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`12` / `19` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0054 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. All four authored lifecycle declarations retain owner/kind/action identity, while LifecycleActive and abstract hooks remain compiler-owned/runtime-excluded.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0054 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. All four authored lifecycle declarations retain owner/kind/action identity, while LifecycleActive and abstract hooks remain compiler-owned/runtime-excluded. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0054.puml:line:4\|state InMotion {, source-ref:llms_emp_feedback_final_0054.puml:line:7\|Accelerating --> Cruising : Reached Cruising/Cruise`；FCSTM anchors：`element-ref:source:state:InMotion@line:7\|state InMotion named "InMotion" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:20\|!Accelerating -> Cruising : /Reached_Cruising_Cruise;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0054.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0054.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0054.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0054.json) | [source trace](../../source_traces/llms_emp_feedback_final_0054.json) | [人工总账](../../MANUAL_REVIEW.md)

@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`a7bb3b61e3f044807c5a94d619979c859c49b36e852f429c58a4aae0d979b422`
 - FCSTM SHA-256：`29a755f894244cb9928eaba8fddbd1a4a92a1763fb1be4aab296e4180c187959`
 - review subject SHA-256：`70d87f995697ea07cdde28095edf6ebb8380975ab2fe5e3d5dcddca1c5a5a86e`
-- working contract SHA-256：`97e49e326d6e0bdee252c0cac204ecbbcfbe78c737b22bb72c0fdd7c71d7eb35`
+- working contract SHA-256：`daf2c89993be636dc8516ad4cbea0948f81a5cc7b392b89c98d34de2c53a4dff`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`9` / `14`
 - mapped / blocked / silent drop：`14` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`14` / `23` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0016 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. Repeated unqualified Search identities and the invalid nested final remain visible as authored/official-identity outcomes rather than being silently repaired.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0016 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. Repeated unqualified Search identities and the invalid nested final remain visible as authored/official-identity outcomes rather than being silently repaired. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0016.puml:line:4\|state SearchMission {, source-ref:llms_emp_feedback_final_0016.puml:line:9\|Search --> Region2 : Finished Region1 Search`；FCSTM anchors：`element-ref:source:state:SearchMission@line:11\|state SearchMission named "SearchMission" {, element-ref:compiler:transition_segment:tr_0004:segment:1@line:25\|Search -> Region2 : /Finished_Region1_Search;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0016.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0016.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0016.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0016.json) | [source trace](../../source_traces/llms_emp_feedback_final_0016.json) | [人工总账](../../MANUAL_REVIEW.md)

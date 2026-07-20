@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`5021744139f603fe986abdb886eb4dae03c71911218a4d7880a494f3455bd816`
 - FCSTM SHA-256：`fd7db3768259ed25a603f87bed193b2bbbfa16d4c1a8c18907dd04227cd6df6c`
 - review subject SHA-256：`94d7c7f422e15210dc40322b8b5f4209deb3c87aa4a1eb516507def3bad0fa15`
-- working contract SHA-256：`e23a550d0cb9f39fb5dffdb5436944a2f067e54ada1f9089ba89656c048d9cbd`
+- working contract SHA-256：`eea8d744a386739876c1b8ddb7c009cfe2340c259e739b36e133d4ff67339b8d`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`8` / `13`
 - mapped / blocked / silent drop：`13` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`15` / `23` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0056 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0056 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0056.puml:line:5\|state SearchState {, source-ref:llms_emp_feedback_final_0056.puml:line:12\|NoIntercept --> Intercepted : Intercepted`；FCSTM anchors：`element-ref:source:state:SearchState@line:8\|state SearchState named "SearchState\n[PlantUML concurrent region 0] states=SearchState.Area1, SearchState.Area2, SearchState.Area3; transitions=tr_0002, tr_0003, tr_0004, tr_0005\n[PlantUML concurrent region 1] states=SearchState.NoIntercept, SearchState.Intercepted; transitions=tr_0006, tr_0007, tr_0008\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0056.puml:line:10" {, element-ref:compiler:transition_segment:tr_0007:segment:1@line:19\|NoIntercept -> Intercepted : /Intercepted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0056.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0056.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0056.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0056.json) | [source trace](../../source_traces/llms_emp_feedback_final_0056.json) | [人工总账](../../MANUAL_REVIEW.md)

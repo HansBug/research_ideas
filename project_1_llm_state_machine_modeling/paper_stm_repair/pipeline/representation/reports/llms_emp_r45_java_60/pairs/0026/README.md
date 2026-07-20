@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`4e8aa62819044c4101795fc1a2ab172f3564f0d0c1b8819ed6e76857b9dde324`
 - FCSTM SHA-256：`c3c0d2954ce3d44d4d70abeaa37b3ad580879e1f35e84814692b0032d8ce249f`
 - review subject SHA-256：`8de6eefdc01ec526a86f215acc08d44da9fab078f30ca4353bd6975e1199c9d1`
-- working contract SHA-256：`b372b9c77c599cf6df9b3cb5bd63a470c0aaf61d6878b13a192ed6bc2b93c503`
+- working contract SHA-256：`6cf3f9a93eaf5546a3abb87ab94e05551e0f98352e3dffc29bc038e4b1cc107c`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `6`
 - mapped / blocked / silent drop：`6` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`9` / `13` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0026 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0026 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0026.puml:line:3\|state SearchingState {, source-ref:llms_emp_feedback_final_0026.puml:line:7\|TargetSearchingState --> FormationAdjustmentState : Intercepted`；FCSTM anchors：`element-ref:source:state:SearchingState@line:6\|state SearchingState named "SearchingState" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:12\|TargetSearchingState -> FormationAdjustmentState : /Intercepted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0026.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0026.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0026.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0026.json) | [source trace](../../source_traces/llms_emp_feedback_final_0026.json) | [人工总账](../../MANUAL_REVIEW.md)

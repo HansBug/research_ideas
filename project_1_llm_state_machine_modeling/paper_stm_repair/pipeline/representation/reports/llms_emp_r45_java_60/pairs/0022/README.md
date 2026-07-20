@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`245204b8393136d7b1e0394710457dd5505e7f00d03d3bceb467b7e6c7c343b0`
 - FCSTM SHA-256：`a93e9c0821fb0c0630905aa71c685297ec60bc50245a7c0c9cffd195d77e761d`
 - review subject SHA-256：`007d8037868666abd610eaabe09638934482407c1036dbcfecee34632ae3ef8e`
-- working contract SHA-256：`e76dde804d6fe009128ed262e9354e8441443e19b2ebefbdeffa6fe406228a4f`
+- working contract SHA-256：`0e92de6b81831c7bf28f9ec0ff15f5d0566857827fcb953804e3f5b6060a3e5e`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`10` / `15` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0022 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The authored Operate-to-final keyOff transition is retained as a termination macro; the FCSTM !Operate notation is compiler projection syntax, not a source defect.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0022 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The authored Operate-to-final keyOff transition is retained as a termination macro; the FCSTM !Operate notation is compiler projection syntax, not a source defect. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0022.puml:line:4\|state Operate {, source-ref:llms_emp_feedback_final_0022.puml:line:3\|PoweredOn --> Operate: start`；FCSTM anchors：`element-ref:source:state:Operate@line:7\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:21\|PoweredOn -> Operate : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0022.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0022.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0022.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0022.json) | [source trace](../../source_traces/llms_emp_feedback_final_0022.json) | [人工总账](../../MANUAL_REVIEW.md)

@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`45ffb4fb63359ba7da949bdcbcf8dbd9bcfb802ec7612c989ad06381f2544151`
 - FCSTM SHA-256：`71e620ffbc2bced122a1e7ddabc28e30acdf655ed138bab86dfea3fa93d127b3`
 - review subject SHA-256：`2cf55979aa98b716b0f7c55c0bcd98cb267c2aba139ce87d7ba383eceafc0b86`
-- working contract SHA-256：`d0e6c4b889f207b33ea09ce4814006dbc230350388e7363ab3f80afe63d72b8e`
+- working contract SHA-256：`69f5c3c9827189270a9656e090e41e08e337d49478018e14bbf0943952eb1784`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `6`
 - mapped / blocked / silent drop：`6` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`10` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0017 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0017 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0017.puml:line:2\|state Collision_Avoidance_Active_Mode {, source-ref:llms_emp_feedback_final_0017.puml:line:4\|[*] --> F : collision detected`；FCSTM anchors：`element-ref:source:state:Collision_Avoidance_Active_Mode@line:5\|state Collision_Avoidance_Active_Mode named "Collision_Avoidance_Active_Mode\n[PlantUML concurrent region 0] states=-; transitions=-\n[PlantUML concurrent region 1] states=Collision_Avoidance_Active_Mode.F; transitions=tr_0001, tr_0002\n[PlantUML concurrent region 2] states=Collision_Avoidance_Active_Mode.R; transitions=tr_0003, tr_0004\n[PlantUML concurrent region 3] states=Collision_Avoidance_Active_Mode.P; transitions=tr_0005, tr_0006\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0017.puml:line:3\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0017.puml:line:8\n[PlantUML concurrent separator] region 2 -> 3 at llms_emp_feedback_final_0017.puml:line:13" {, element-ref:compiler:state:llms_emp_feedback_final_0017.Collision_Avoidance_Active_Mode.InitialWaittr_0001@line:9\|state InitialWaittr_0001 named "Awaiting initial event: collision detected";`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0017.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0017.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0017.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0017.json) | [source trace](../../source_traces/llms_emp_feedback_final_0017.json) | [人工总账](../../MANUAL_REVIEW.md)

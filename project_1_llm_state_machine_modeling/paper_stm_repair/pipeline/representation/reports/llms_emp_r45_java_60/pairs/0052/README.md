@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`bb6d78c3c2529f9a5e6b852f33e3b1731b827b6f8eb79c2dfa02c10bfcbcf7c1`
 - FCSTM SHA-256：`164347c6c5a96a5487ee5a95aa418aae9ce8191bb96922843e67ffadcb285f59`
 - review subject SHA-256：`a40c100674aabaec42d0aa0bf12dbafd3cf2c9ad4064ce005b1b6126189945f4`
-- working contract SHA-256：`5fe7894cfb06f12dfea539b87ae0aa803faa47afd4ce3cab42e9bf08932d2678`
+- working contract SHA-256：`6e286979576d9c0c0b34bb391a9c78cfa0155ad4fbca06de43c67575050ac03b`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `9`
 - mapped / blocked / silent drop：`9` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`9` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0052 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0052 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0052.puml:line:6\|state Operate {, source-ref:llms_emp_feedback_final_0052.puml:line:10\|Braking --> Idle : stop`；FCSTM anchors：`element-ref:source:state:Operate@line:8\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0006:segment:1@line:15\|Braking -> Idle : /stop;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0052.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0052.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0052.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0052.json) | [source trace](../../source_traces/llms_emp_feedback_final_0052.json) | [人工总账](../../MANUAL_REVIEW.md)

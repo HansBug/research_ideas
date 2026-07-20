@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`4cdfc6b394c6b326b42313921f0333bcee75481947d3dc70318c2f3689242fc4`
 - FCSTM SHA-256：`87f2149a1afbd4f27209f3850c06dd47e46bf2a20a74b4ddb06548c48d7d4bd4`
 - review subject SHA-256：`a8ba59336316a24da4b79572ef3bb306d94c3ddbc3714fec0c9b45fd882ca157`
-- working contract SHA-256：`cb820a94ef20aa151298a7dcd3621814bdb89bdb2b3447f41ba83c7a8ce63b9c`
+- working contract SHA-256：`e6c7deed07054cb34afb5c91de3adcbbf06692685e5c7ce6cbc89a9f7a5da0a2`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`8` / `14`
 - mapped / blocked / silent drop：`14` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`18` / `26` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0013 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0013 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0013.puml:line:4\|state PumpControl {, source-ref:llms_emp_feedback_final_0013.puml:line:12\|PumpState --> WaterState : Water Flow Detected`；FCSTM anchors：`element-ref:source:state:PumpControl@line:8\|state PumpControl named "PumpControl\n[PlantUML concurrent region 0] states=-; transitions=-\n[PlantUML concurrent region 1] states=PumpControl.PumpState, PumpControl.WaterState, PumpControl.MethaneState; transitions=tr_0002, tr_0003, tr_0004, tr_0005, tr_0006, tr_0007, tr_0008\n[PlantUML concurrent region 2] states=PumpControl.PumpStateA, PumpControl.WaterStateA; transitions=tr_0009, tr_0010, tr_0011\n[PlantUML concurrent region 3] states=PumpControl.PumpStateB, PumpControl.MethaneStateB; transitions=tr_0012, tr_0013, tr_0014\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0013.puml:line:5\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0013.puml:line:21\n[PlantUML concurrent separator] region 2 -> 3 at llms_emp_feedback_final_0013.puml:line:30" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:17\|PumpState -> WaterState : /Water_Flow_Detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0013.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0013.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0013.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0013.json) | [source trace](../../source_traces/llms_emp_feedback_final_0013.json) | [人工总账](../../MANUAL_REVIEW.md)

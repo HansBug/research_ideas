@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`40269ab0cd2880edbb34aab10a8713971f4c7238530bdb249f19ec4745f02d46`
 - FCSTM SHA-256：`14e370fd444c97d4950844ba035ea5c47d85d9003b25fa0312f765840003e3a2`
 - review subject SHA-256：`313f2940026f43f2ca49c8c77fd17711ee4872eb6552b384139874fed16ab0f1`
-- working contract SHA-256：`660fe7d4339891fe7ba12b18cc95bc1a5df9ffffb6ab1126fffffbd6960d89b2`
+- working contract SHA-256：`af369db7cbaeb9038276d01530246cba7b282b0075b56997eb45a156a48d5b9d`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `7`
 - mapped / blocked / silent drop：`7` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`15` / `22` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0036 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0036 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0036.puml:line:7\|state Region1 {, source-ref:llms_emp_feedback_final_0036.puml:line:23\|AttackReady --> Attack : Task Assignment Received`；FCSTM anchors：`element-ref:source:state:Region1@line:6\|state Region1 named "Region1" {, element-ref:compiler:transition_segment:tr_0006:segment:1@line:17\|AttackReady -> Attack : /Task_Assignment_Received;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0036.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0036.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0036.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0036.json) | [source trace](../../source_traces/llms_emp_feedback_final_0036.json) | [人工总账](../../MANUAL_REVIEW.md)

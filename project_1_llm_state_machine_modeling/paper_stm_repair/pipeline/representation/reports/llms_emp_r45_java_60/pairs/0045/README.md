@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`d419cd364edc48e03ceff9e07cad9c5f51c7656a86dc05ba40c9684f95bafa9e`
 - FCSTM SHA-256：`51a66dd724f5b185fa075eccffc9c70e8841646bc90d2f1a39b8dd6ebf1fa3a7`
 - review subject SHA-256：`c6d68adfdbd6114152eb113aa54491a3c7eb07afe45eea2022eaf363fadec898`
-- working contract SHA-256：`64a92b6a1efd20a8edc62dd92b57537adcc14924af63f64685ac6341e7b1b5a4`
+- working contract SHA-256：`a7ac83bb68bb395a5ff365a3da4e41260b415c0bec9ce4e010079ed6ff900413`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `16`
 - mapped / blocked / silent drop：`16` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`16` / `22` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0045 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0045 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0045.puml:line:3\|state "DoorShut" as DoorShut, source-ref:llms_emp_feedback_final_0045.puml:line:12\|DoorShut --> DoorOpen : Door Opened`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut";, element-ref:compiler:transition_segment:tr_0002:segment:1@line:18\|DoorShut -> DoorOpen : /Door_Opened;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0045.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0045.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0045.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0045.json) | [source trace](../../source_traces/llms_emp_feedback_final_0045.json) | [人工总账](../../MANUAL_REVIEW.md)

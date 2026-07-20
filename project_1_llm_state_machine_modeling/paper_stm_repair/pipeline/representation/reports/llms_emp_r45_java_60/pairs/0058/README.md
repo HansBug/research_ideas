@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`3b3e1b803602348b22a8678535a3d38ce339c1a53c4893a24a1add541daf6ac6`
 - FCSTM SHA-256：`c3671ebab588509a1cb44d9b1f0239dd8de66e8369b29e58547a193d10e95939`
 - review subject SHA-256：`883b74b2e0906bcc730992056e9e9ea2b773f6f42506ddf56df45516d2e196d6`
-- working contract SHA-256：`285987e443e9b0d0ab1bc2b8ada8e91cc402626dae5c0afb27719f4b66bc9e7c`
+- working contract SHA-256：`a3e2bc79ea985438e904d47e5479c52f41837b9caa02648af37adbd3afb83b4c`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`24` / `22`
 - mapped / blocked / silent drop：`22` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`33` / `51` / `6`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0058 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. Five doubled-quote repairs and the trailing end-marker quote are isolated as input normalizations; fork/timing facts remain visible but runtime-excluded.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0058 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. Five doubled-quote repairs and the trailing end-marker quote are isolated as input normalizations; fork/timing facts remain visible but runtime-excluded. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0058.puml:line:3\|state TurnOn {, source-ref:llms_emp_feedback_final_0058.puml:line:43\|choice2 --> Join1 : [sunny=true]`；FCSTM anchors：`element-ref:source:state:TurnOn@line:6\|state TurnOn named "TurnOn" {, element-ref:compiler:transition_segment:tr_0013:segment:1@line:70\|choice2 -> Join1 : /_sunny_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0058.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0058.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0058.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0058.json) | [source trace](../../source_traces/llms_emp_feedback_final_0058.json) | [人工总账](../../MANUAL_REVIEW.md)

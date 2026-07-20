@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`dad4f00d0dfce1ab40970f524ea2c95d2c8c9b1e1480b91287c5a009e2662c3c`
 - FCSTM SHA-256：`2ef295e6a539dd6a406ba83e12356c94f8d9c14057e9059f437b6d912797da57`
 - review subject SHA-256：`0ddce51e4229947e16fe37d98fcbd3c8888f9efeac89e5988c317bbdea83237c`
-- working contract SHA-256：`7c28032620af012fc9ace10b007c1bcc5484f2baaa5f244adcc99be05fff5f47`
+- working contract SHA-256：`94699a7871cc995439206ec02dd135e3789aed4b1420e606a672278cf246df45`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`10` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`10` / `20` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0057 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0057 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0057.puml:line:2\|state "Collision Avoidance" as CA {, source-ref:llms_emp_feedback_final_0057.puml:line:5\|FCIdle --> FCActive : Frontend collision detected`；FCSTM anchors：`element-ref:source:state:CA@line:8\|state CA named "Collision Avoidance" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:14\|FCIdle -> FCActive : /Frontend_collision_detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0057.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0057.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0057.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0057.json) | [source trace](../../source_traces/llms_emp_feedback_final_0057.json) | [人工总账](../../MANUAL_REVIEW.md)

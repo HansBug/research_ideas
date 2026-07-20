@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`c82a800174e833df461aa14837651ad835a7ae146f84a9939cacac05e643e821`
 - FCSTM SHA-256：`0c94f4db6f3b72b94808da7419808ef1210aade8f1b89c45d37324eaacfdb8fd`
 - review subject SHA-256：`8219b2d0672651990952a7478bd8f04ed6336178722b920fff814d06d694fa2f`
-- working contract SHA-256：`4ce639243a209d377cf7e89001eca527751e67d1f984beab73834d784c478477`
+- working contract SHA-256：`5adccfd2624f9b5a2b56c35553718045128a9b63f60a9ccfd50935b8c8e928f5`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `8`
 - mapped / blocked / silent drop：`8` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`8` / `13` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0003 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0003 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0003.puml:line:4\|state Operate {, source-ref:llms_emp_feedback_final_0003.puml:line:11\|PoweredOff --> Operate : start`；FCSTM anchors：`element-ref:source:state:Operate@line:8\|state Operate named "Operate" {, element-ref:compiler:transition_segment:tr_0006:segment:1@line:19\|PoweredOff -> Operate : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0003.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0003.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0003.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0003.json) | [source trace](../../source_traces/llms_emp_feedback_final_0003.json) | [人工总账](../../MANUAL_REVIEW.md)

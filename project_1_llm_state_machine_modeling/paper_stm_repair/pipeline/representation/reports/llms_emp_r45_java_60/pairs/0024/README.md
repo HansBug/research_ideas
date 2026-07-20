@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`5900a03e9a58e6079bacd2857c82133e549809bb532a33c62ecbbe3077cb5745`
 - FCSTM SHA-256：`2ac55a187d25d8d141b62d0a8bd639a248aeb7d5b681313417d9c074dbb4ab17`
 - review subject SHA-256：`b70c2aa8cba5d64797dc8f2dafa2d43ffd7c974ab960be19bf39d0497f21d9ee`
-- working contract SHA-256：`592e4be47720c9a7bc0d8f190a2532c057f36de35fbe07b868a2a1850a9d98ad`
+- working contract SHA-256：`716ef19af2d57b347421c09299fcaaecdf49ab76ebbb2ccab601cc4c9a86b45b`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`15` / `22` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0024 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0024 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0024.puml:line:5\|state InMotion {, source-ref:llms_emp_feedback_final_0024.puml:line:4\|DoorsClosing --> InMotion: Closed/SendDeparted`；FCSTM anchors：`element-ref:source:state:InMotion@line:9\|state InMotion named "InMotion" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:23\|DoorsClosing -> InMotion : /Closed_SendDeparted;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0024.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0024.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0024.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0024.json) | [source trace](../../source_traces/llms_emp_feedback_final_0024.json) | [人工总账](../../MANUAL_REVIEW.md)

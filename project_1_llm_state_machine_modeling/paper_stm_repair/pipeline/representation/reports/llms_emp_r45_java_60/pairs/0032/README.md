@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`27c46de7026a1e17808669ce36edee7d2d59b9033435581d56b1f0237dde7d92`
 - FCSTM SHA-256：`55595caa46d6021a48d22c080a611db4e7866e5ae1496162aca73d305d406b8b`
 - review subject SHA-256：`7dd5c07d51088b8bb92c768577436f393f35ac78a1acedf25ba0c207c68c25e8`
-- working contract SHA-256：`b0717978e802b270b51497050e5da35c47bc358bf3edc4b98c6cbe058b6d074d`
+- working contract SHA-256：`93dfb63bb29eb7ca419667692ccc3bf6e174c8247e8767988854c61dbd1c5c10`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`9` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`16` / `25` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0032 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0032 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0032.puml:line:7\|state OperateState {, source-ref:llms_emp_feedback_final_0032.puml:line:4\|OffState --> OperateState : start`；FCSTM anchors：`element-ref:source:state:OperateState@line:8\|state OperateState named "OperateState\n[PlantUML body] Operate" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:36\|OffState -> OperateState : /start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0032.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0032.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0032.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0032.json) | [source trace](../../source_traces/llms_emp_feedback_final_0032.json) | [人工总账](../../MANUAL_REVIEW.md)

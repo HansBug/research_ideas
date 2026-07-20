@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0`
 - FCSTM SHA-256：`db157da28b5a52f0e9f0eae8911b527c8b1d00246ccfb205b3003c670088512e`
 - review subject SHA-256：`d869c69bf81f1b5aef1a576784142e6d9b8145e6a3fd8786fd11ca579e4d432d`
-- working contract SHA-256：`c411914e0467e79f5c8cee9d026c495c031a64e086fe1718e72c75dfde5dda8f`
+- working contract SHA-256：`ccbf5e30f8cfc0f51050f44aa5b97d88878d90de41497710865c586fcfa13c9d`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`10` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0033 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0033 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0033.puml:line:7\|state PumpControl {, source-ref:llms_emp_feedback_final_0033.puml:line:2\|[*] -down-> PumpControl : begin`；FCSTM anchors：`element-ref:source:state:PumpControl@line:13\|state PumpControl named "PumpControl" {, element-ref:compiler:state:llms_emp_feedback_final_0033.InitialWaittr_0001@line:9\|state InitialWaittr_0001 named "Awaiting initial event: begin";`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0033.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0033.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0033.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0033.json) | [source trace](../../source_traces/llms_emp_feedback_final_0033.json) | [人工总账](../../MANUAL_REVIEW.md)

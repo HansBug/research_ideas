@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`8ea3054bc9bc969094c2ad7f2fba4172c9234ac153608390878acf3c94425615`
 - FCSTM SHA-256：`9eb5e4ceb40c08fcee737a10728354199d347db382a68f709038bfb4fcdaa8c2`
 - review subject SHA-256：`ff8d372d6142b3154302caa9edd73c77600a92395625d52cef762c26f05aa081`
-- working contract SHA-256：`c0ac0c9013ce623ad18fee34bacaff314ab941f4a1e42ec8535d6ee05df68837`
+- working contract SHA-256：`fbc24fd90d4c25f58b1ead47959e9bb7511dcc3929b2c51f94c85a7a4d05c1d7`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`17` / `25`
 - mapped / blocked / silent drop：`25` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`25` / `42` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0059 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0059 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0059.puml:line:5\|state AutonomousMode {, source-ref:llms_emp_feedback_final_0059.puml:line:7\|InitialState --> HighwayMode : [high_way=true]`；FCSTM anchors：`element-ref:source:state:AutonomousMode@line:14\|state AutonomousMode named "AutonomousMode" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:45\|InitialState -> HighwayMode : /_high_way_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0059.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0059.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0059.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0059.json) | [source trace](../../source_traces/llms_emp_feedback_final_0059.json) | [人工总账](../../MANUAL_REVIEW.md)

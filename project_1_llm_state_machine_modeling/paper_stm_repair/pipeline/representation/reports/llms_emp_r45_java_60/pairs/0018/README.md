@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`fffdc9e44b50f80c97cb0886d363b536a96da1fed84402be80ea8987859fbab3`
 - FCSTM SHA-256：`b348a2473850107c98f0395a33a8462fe6423d43b52f57915042bec91a48b8bf`
 - review subject SHA-256：`374fa113f128bcfdabfb55c789c13298855d06a90170fa5cf54062589361b109`
-- working contract SHA-256：`6a943223c467289d167a9fce99aba1d75f3b749419a77e6698b30b8908d32fc4`
+- working contract SHA-256：`da419d133687da3814f42cc8fcc93b468d9c128b7a4b60f844ae9c06d2dd7ade`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`18` / `22`
 - mapped / blocked / silent drop：`22` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`22` / `40` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0018 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0018 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0018.puml:line:3\|state TurnOn, source-ref:llms_emp_feedback_final_0018.puml:line:10\|AutoFocus --> choice1 : memFull=true`；FCSTM anchors：`element-ref:source:state:TurnOn@line:11\|state TurnOn named "TurnOn";, element-ref:compiler:transition_segment:tr_0005:segment:1@line:34\|AutoFocus -> choice1 : /memFull_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0018.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0018.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0018.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0018.json) | [source trace](../../source_traces/llms_emp_feedback_final_0018.json) | [人工总账](../../MANUAL_REVIEW.md)

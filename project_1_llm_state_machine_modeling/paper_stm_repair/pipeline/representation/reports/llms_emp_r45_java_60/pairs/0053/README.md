@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`b153279f857c7cd61ea92a60e3970d39454d2199a56f999942f4647031b81211`
 - FCSTM SHA-256：`4195bbf7a4a9a9e9862b98640ffaf1c36e3db51dafc5a90bd67be91bab45a604`
 - review subject SHA-256：`fbf24e016157c879f18f1d5f13cdfa25cdc2e885a8368c4b75096675a07e040f`
-- working contract SHA-256：`075ebf408e1274171ff8a175d76ef0312b80432d300801c18af59a1e64701e3d`
+- working contract SHA-256：`4103f93008a4c2f79e6e87b3ad87d2cb2ad277417c01646ac6d01a54e6969e79`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `4`
 - mapped / blocked / silent drop：`4` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`7` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0053 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0053 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0053.puml:line:5\|state PumpControl {, source-ref:llms_emp_feedback_final_0053.puml:line:3\|[*] --> PumpControl`；FCSTM anchors：`element-ref:source:state:PumpControl@line:2\|state PumpControl named "PumpControl" {, element-ref:compiler:transition_segment:tr_0001:segment:1@line:18\|[*] -> PumpControl;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0053.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0053.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0053.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0053.json) | [source trace](../../source_traces/llms_emp_feedback_final_0053.json) | [人工总账](../../MANUAL_REVIEW.md)

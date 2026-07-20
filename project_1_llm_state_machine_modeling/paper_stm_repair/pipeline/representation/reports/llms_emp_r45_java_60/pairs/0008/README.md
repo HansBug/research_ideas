@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`01fce990814405ed944d0e2bda2c16813832aaf0bf3b46d4493fa3f316165dca`
 - FCSTM SHA-256：`441442b513777c4033ea47df40f4f61dbfe76872428c921e2bc0520da960e55a`
 - review subject SHA-256：`be8362a96529e8ab5b1755dc76eeb9bcf13bedbe1c229f39d7410087b2f795da`
-- working contract SHA-256：`24cfd149eed906f0005f762bd1b8c9ea29089028ded93b74bb4a9b7f6c2c0f8c`
+- working contract SHA-256：`c4bc0f4bb74379c5da038446ef14016c1d9b8d0edb84ae6f78704d9bd9acb3fd`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`19` / `24`
 - mapped / blocked / silent drop：`24` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`24` / `43` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0008 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0008 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0008.puml:line:4\|state TurnOn {, source-ref:llms_emp_feedback_final_0008.puml:line:14\|choice1 --> Junction3: when (memFull=true)`；FCSTM anchors：`element-ref:source:state:TurnOn@line:8\|state TurnOn named "TurnOn" {, element-ref:compiler:transition_segment:tr_0007:segment:1@line:25\|choice1 -> Junction3 : /when_memFull_true;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0008.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0008.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0008.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0008.json) | [source trace](../../source_traces/llms_emp_feedback_final_0008.json) | [人工总账](../../MANUAL_REVIEW.md)

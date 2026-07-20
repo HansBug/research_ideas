@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`2fb8e2efb51eb16d39b43c07e6a24dbb60d2dc09601f795dd6ab67a0ad6bb49e`
 - FCSTM SHA-256：`5ea0ed43ef1be97e2b2a10ede6140076d132e786e2660fd7dba5ea60ae89a52d`
 - review subject SHA-256：`8ce3efebe032ebdba7f8fb010342496e5de3739aa3ad656e72d9490d32292fdc`
-- working contract SHA-256：`93c5d940c34edc011d3507310db2e823e9c540dcf455c181cde715ee967c7959`
+- working contract SHA-256：`e19d2b39db5398084b7e3a2debf985a61c103edc9bce9c059f9af2b9d8937338`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`10` / `10`
 - mapped / blocked / silent drop：`10` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`15` / `25` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0027 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0027 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0027.puml:line:6\|state ActiveState {, source-ref:llms_emp_feedback_final_0027.puml:line:4\|DetectingState --> junction1: Frontend Collision or Rear-end Collision or Collision with Pedestrian detected`；FCSTM anchors：`element-ref:source:state:ActiveState@line:3\|state ActiveState named "ActiveState\n[PlantUML concurrent region 0] states=-; transitions=-\n[PlantUML concurrent region 1] states=ActiveState.BrakeControlState, ActiveState.junction2; transitions=tr_0004, tr_0005\n[PlantUML concurrent region 2] states=ActiveState.SteeringControlState, ActiveState.junction3; transitions=tr_0006, tr_0007\n[PlantUML concurrent region 3] states=ActiveState.SensorControlState, ActiveState.junction4, ActiveState.InitialState; transitions=tr_0008, tr_0009, tr_0010\n[PlantUML concurrent separator] region 0 -> 1 at llms_emp_feedback_final_0027.puml:line:7\n[PlantUML concurrent separator] region 1 -> 2 at llms_emp_feedback_final_0027.puml:line:10\n[PlantUML concurrent separator] region 2 -> 3 at llms_emp_feedback_final_0027.puml:line:13" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:22\|DetectingState -> junction1 : /Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0027.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0027.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0027.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0027.json) | [source trace](../../source_traces/llms_emp_feedback_final_0027.json) | [人工总账](../../MANUAL_REVIEW.md)

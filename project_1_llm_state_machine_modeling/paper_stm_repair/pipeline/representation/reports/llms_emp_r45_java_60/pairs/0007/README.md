@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`b703cade3844700c2705caa20001f515b16438ca308f973c7e4caf2f263478f4`
 - FCSTM SHA-256：`6f0614a94965b4aa2b00efa13598575809eb6fca5396ae4d38624eeb9b4fbf1d`
 - review subject SHA-256：`d2283e40bc3ff4f691399bf1c785376f544d9376b2125f61c3792d93692fe25a`
-- working contract SHA-256：`8edb66844fb74fa309a4386c08f3761f6a801ff2794b577b1a81b9f6c3f7bcc6`
+- working contract SHA-256：`aaec5a12e15cba5f16297c64c543542691c8a1649f0ecf57ba7aff701f95eec8`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`17` / `16`
 - mapped / blocked / silent drop：`16` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`20` / `37` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0007 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0007 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0007.puml:line:4\|state CollisionDetection {, source-ref:llms_emp_feedback_final_0007.puml:line:6\|PossibleCollision --> FrontendCollision : Frontend Detected`；FCSTM anchors：`element-ref:source:state:CollisionDetection@line:16\|state CollisionDetection named "CollisionDetection" {, element-ref:compiler:transition_segment:tr_0003:segment:1@line:22\|PossibleCollision -> FrontendCollision : /Frontend_Detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0007.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0007.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0007.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0007.json) | [source trace](../../source_traces/llms_emp_feedback_final_0007.json) | [人工总账](../../MANUAL_REVIEW.md)

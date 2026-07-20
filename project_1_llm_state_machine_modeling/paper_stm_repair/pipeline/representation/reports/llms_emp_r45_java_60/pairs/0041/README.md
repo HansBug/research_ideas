@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`e574376ae58008bc3a246f72be7d4a125ae6846baa8d18045aeadf606839e1a4`
 - FCSTM SHA-256：`9ca8bbb255d959d2b7d4142ed0d3d2fd48f0a12437ad6e68137142b5df5cd422`
 - review subject SHA-256：`9bb4a90db43246fad84de236eb311ac72ae90b98040a3d966c521dfd3aeab2b2`
-- working contract SHA-256：`a41d3c71b1dd78d3dd0e4e9f4a4cb276c1e9c9e70028477a22f364c5ea1763de`
+- working contract SHA-256：`3ba351024a9fd725cd47de49eb112229dab702a31171aee22be238840aa5c237`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `8`
 - mapped / blocked / silent drop：`8` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`10` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0041 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0041 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0041.puml:line:2\|[*] --> InitialState, source-ref:llms_emp_feedback_final_0041.puml:line:6\|InitialState --> OperationalState : Signal Transmission Fails`；FCSTM anchors：`element-ref:source:state:InitialState@line:8\|state InitialState named "InitialState\n[PlantUML body] Initial State";, element-ref:compiler:transition_segment:tr_0003:segment:1@line:14\|InitialState -> OperationalState : /Signal_Transmission_Fails;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0041.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0041.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0041.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0041.json) | [source trace](../../source_traces/llms_emp_feedback_final_0041.json) | [人工总账](../../MANUAL_REVIEW.md)

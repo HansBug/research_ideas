@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`317f517490d7ed5d6520fc8f56045625d4d9c9b870a058e6a0f1d2c21a1e24e4`
 - FCSTM SHA-256：`e177a0ff8af9e12db063c42b377b8615e99f9fd4b1825ab51ee71d7e3364f8a4`
 - review subject SHA-256：`ec9c8600cecdef753271fc081055ec7b6e79c58998d99f92ab107fa6fc39f3b5`
-- working contract SHA-256：`5c6623b026f4db2845044bdc175c069d6004e443043529e52d87355cf5fcfddc`
+- working contract SHA-256：`b1cd197e143186fe5e18a7ed4d6ca6d5f67b6dcf2d1a5a1d2865fdfd5a07066c`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`5` / `9`
 - mapped / blocked / silent drop：`9` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`9` / `14` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0050 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0050 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0050.puml:line:5\|state HumanDrivingMode {, source-ref:llms_emp_feedback_final_0050.puml:line:3\|[*] --> HumanDrivingMode : Power On`；FCSTM anchors：`element-ref:source:state:HumanDrivingMode@line:7\|state HumanDrivingMode named "HumanDrivingMode" {, element-ref:compiler:state:llms_emp_feedback_final_0050.InitialWaittr_0001@line:6\|state InitialWaittr_0001 named "Awaiting initial event: Power On";`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0050.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0050.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0050.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0050.json) | [source trace](../../source_traces/llms_emp_feedback_final_0050.json) | [人工总账](../../MANUAL_REVIEW.md)

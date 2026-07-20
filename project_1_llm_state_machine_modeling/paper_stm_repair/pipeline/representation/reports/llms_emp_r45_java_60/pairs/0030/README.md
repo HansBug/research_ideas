@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`3a57437b4affea98105ee794349865f92f42e01865786658aeeaf6529c76237a`
 - FCSTM SHA-256：`b8c4c02d4b8e6d1ecc53e5d9bd442aba3a0dbc24eeeccf34a9362d66f1b7ea8a`
 - review subject SHA-256：`28fbd0eb49957fd0bd7cd939eba45bc24b3aa3053513cb258620bade78bcd6ea`
-- working contract SHA-256：`da20f7129163b2a4ee561618ccda480b7133ff9f6edc55c03dec465cf17363c5`
+- working contract SHA-256：`21a5dac1d5342985e099eb9f6be203d786788d65c461cefe4889d7d07258fac2`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`4` / `7`
 - mapped / blocked / silent drop：`7` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`7` / `11` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0030 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0030 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0030.puml:line:4\|state HumanDriving {, source-ref:llms_emp_feedback_final_0030.puml:line:15\|HumanDriving --> Autonomous : front_distance > 10`；FCSTM anchors：`element-ref:source:state:HumanDriving@line:9\|state HumanDriving named "HumanDriving" {, element-ref:compiler:transition_segment:tr_0005:segment:1@line:22\|!HumanDriving -> Autonomous : /front_distance_10;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0030.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0030.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0030.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0030.json) | [source trace](../../source_traces/llms_emp_feedback_final_0030.json) | [人工总账](../../MANUAL_REVIEW.md)

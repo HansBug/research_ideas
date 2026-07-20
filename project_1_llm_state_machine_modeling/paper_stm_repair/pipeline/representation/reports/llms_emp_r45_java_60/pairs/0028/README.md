@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`57c45db265e62b495d63f22e70b0b2bdaa25a85983874937be0384262621833a`
 - FCSTM SHA-256：`461c518ab66634cd08492103b0e4c114bf2dad60177a1ca4e391f7ab02524921`
 - review subject SHA-256：`a5890bc4af94c1e6e75a5f9a607b9ac5c39b1bec7392f58b1a1fc38019701140`
-- working contract SHA-256：`4388cdb78bae80b60a8e5a533b82f0d1993b4b5e57a760e46fcc2eeb2eb20a80`
+- working contract SHA-256：`fc755bdd91437abe2b0851802955d54d663e6e478eda76b03d3d924232f93a73`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`6` / `15`
 - mapped / blocked / silent drop：`15` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`21` / `27` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0028 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The NL describes a digital-camera workflow while the authored PlantUML contains a microwave topology; that source-level mismatch remains visible for Discover.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0028 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The NL describes a digital-camera workflow while the authored PlantUML contains a microwave topology; that source-level mismatch remains visible for Discover. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0028.puml:line:2\|state DoorShut as "Door Shut" <<initial>>, source-ref:llms_emp_feedback_final_0028.puml:line:20\|ReadytoCook --> Cooking : Start`；FCSTM anchors：`element-ref:source:state:DoorShut@line:11\|state DoorShut named "DoorShut\n[PlantUML body] as \"Door Shut\" <<initial>>";, element-ref:compiler:transition_segment:tr_0012:segment:1@line:28\|ReadytoCook -> Cooking : /Start;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0028.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0028.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0028.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0028.json) | [source trace](../../source_traces/llms_emp_feedback_final_0028.json) | [人工总账](../../MANUAL_REVIEW.md)

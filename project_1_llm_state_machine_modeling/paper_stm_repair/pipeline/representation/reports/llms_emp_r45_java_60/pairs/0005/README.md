@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`6dfdab20dd467253efdd23ee3b8973eaeb9296ef2502fd01d3287f84e10a2511`
 - FCSTM SHA-256：`1fdefe68e0fce642781c6db42dd7948a9c7c1b702b9f22cbd4e3577e76ed6dfd`
 - review subject SHA-256：`e19cbe55eeca2d8b18cf23a0652e77262ad20bfde2ed709af8189c7a701c33bc`
-- working contract SHA-256：`21ae607d4768c0b9992bb2f323ff8fd3ed7c14166e070349be42e3ddc24bd5db`
+- working contract SHA-256：`b3fd92ce1cff13bef87ce712e1b6f6c3a00c36757a7337a3aabc84c6a64ce6eb`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`10` / `19`
 - mapped / blocked / silent drop：`19` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`20` / `30` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0005 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The unusual nested microwave identities follow PlantUML first-created entity resolution; the converter does not replace them with a more intuitive hierarchy.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0005 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. The unusual nested microwave identities follow PlantUML first-created entity resolution; the converter does not replace them with a more intuitive hierarchy. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0005.puml:line:10\|state DoorOpenWithItem {, source-ref:llms_emp_feedback_final_0005.puml:line:5\|DoorShut --> DoorOpen : Door Opened`；FCSTM anchors：`element-ref:source:state:DoorOpenWithItem@line:12\|state DoorOpenWithItem named "DoorOpenWithItem" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:52\|DoorShut -> DoorOpen : /Door_Opened;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0005.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0005.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0005.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0005.json) | [source trace](../../source_traces/llms_emp_feedback_final_0005.json) | [人工总账](../../MANUAL_REVIEW.md)

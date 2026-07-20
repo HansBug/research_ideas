@@ -13,7 +13,7 @@
 - PlantUML SHA-256：`ccec84b8ca1817cde5454b29b82b32dd353123b547fea8240e3d438be88fd667`
 - FCSTM SHA-256：`7ce7663fdd2285eb4ade0658c22afa6940efe248d49d0f584682af5ea639ad1f`
 - review subject SHA-256：`2e892c20bcf1471422078729b10410350a36e4bc3861ec1f52fbcc84a33daae8`
-- working contract SHA-256：`6a2510df99c74db3580d41a3ac680bdc7eeffa86e8f44cb598e0806d6f848aa9`
+- working contract SHA-256：`acbfedbfa41e1f48e72b2a6654d665c12a5b2d946beb87b37a09d70c6afe49da`
 - 结构裁决：`structure_preserved`
 - source states / transitions：`7` / `8`
 - mapped / blocked / silent drop：`8` / `0` / `0`
@@ -30,7 +30,7 @@
 - source macro / positive identity trace / conversion boundary trace：`13` / `20` / `0`
 - capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
 - compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
-- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0006 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences.
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0006 passes conversion-attribution review. This does not assert NL/PlantUML correctness or runtime equivalence; authored defects remain eligible for later source-grounded Discover. No conversion-specific blocker was found in the exact reviewed occurrences. Fresh v6 main-session review re-read NL, PlantUML, FCSTM, working contract, and source trace after the portable Java identity change; source/FCSTM/trace bytes are unchanged and verification remains fail-closed.
 - source anchors：`source-ref:llms_emp_feedback_final_0006.puml:line:2\|state "UAV Swarm State Machine" as UAVSwarmStateMachine {, source-ref:llms_emp_feedback_final_0006.puml:line:7\|Searching --> Intercepted : Interception Detected`；FCSTM anchors：`element-ref:source:state:UAVSwarmStateMachine@line:7\|state UAVSwarmStateMachine named "UAV Swarm State Machine" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:21\|Searching -> Intercepted : /Interception_Detected;`
 - 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
 - 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0006.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0006.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0006.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0006.json) | [source trace](../../source_traces/llms_emp_feedback_final_0006.json) | [人工总账](../../MANUAL_REVIEW.md)
