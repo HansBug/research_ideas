@@ -24,19 +24,36 @@ class CoverageReviewFinding(StrictReviewModel):
     related_source_fact_ids: list[str] = Field(default_factory=list)
     related_root_ids: list[str] = Field(default_factory=list)
     related_assertion_chain_ids: list[str] = Field(default_factory=list)
-    problem: str = Field(min_length=20)
-    missed_behavior_risk: str = Field(min_length=20)
-    recommended_action: str = Field(min_length=20)
-    recommended_tools: list[Literal[
-        "query_model",
-        "observe_trace",
-        "lookup_source_trace",
-        "read_fbmcq_guide",
-        "register_coverage_plan",
-        "revise_assertion",
-        "eval_assert",
-    ]] = Field(min_length=1)
-    pass_criteria: str = Field(min_length=20)
+    problem: str = Field(
+        min_length=20,
+        description="Evidence-grounded review finding, not a generic opinion.",
+    )
+    missed_behavior_risk: str = Field(
+        min_length=20,
+        description="Concrete false-negative or false-positive risk if left unresolved.",
+    )
+    recommended_action: str = Field(
+        min_length=20,
+        description=(
+            "Executable next checks or assertion changes, including what additional "
+            "behavior, path, condition, or evidence dimension they will cover."
+        ),
+    )
+    recommended_tools: list[
+        Literal[
+            "query_model",
+            "observe_trace",
+            "lookup_source_trace",
+            "read_fbmcq_guide",
+            "register_coverage_plan",
+            "revise_assertion",
+            "eval_assert",
+        ]
+    ] = Field(min_length=1)
+    pass_criteria: str = Field(
+        min_length=20,
+        description="Observable criteria proving that the coverage gap is closed.",
+    )
     record_language: str = "zh-CN"
 
     @model_validator(mode="after")
@@ -50,7 +67,9 @@ class CoverageReviewFinding(StrictReviewModel):
                 self.related_assertion_chain_ids,
             )
         ):
-            raise ValueError("coverage review finding must reference a current ledger ID")
+            raise ValueError(
+                "coverage review finding must reference a current ledger ID"
+            )
         return self
 
 

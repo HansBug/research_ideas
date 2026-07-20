@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Protocol
 
+from .. import assertion_policy as assertion_contract
 from ..assertion_policy import validate_assertion_semantic_policy
 from ..eval_env import EvalEnvironment
 
@@ -1412,7 +1413,7 @@ def _assertion_directly_verifies_source_fact(
     """Require a fact-specific executable predicate, not a cited fact ID alone."""
 
     kind = str(fact.get("fact_kind") or "")
-    if not (declared_families & SOURCE_FACT_EVIDENCE_FAMILIES.get(kind, frozenset())):
+    if not (declared_families & _source_fact_evidence_families(fact)):
         return False
     try:
         tree = ast.parse(expression, mode="eval")
@@ -1555,7 +1556,7 @@ def _registration_required_actions(
                     "fact_kind": fact_kind,
                     "fact_snapshot": _deepcopy_jsonish(fact),
                     "compatible_function_families": sorted(
-                        SOURCE_FACT_EVIDENCE_FAMILIES.get(fact_kind, frozenset())
+                        _source_fact_evidence_families(fact)
                     ),
                     "accepted_predicate_examples": _source_fact_predicate_examples(fact),
                     "recommended_tools": ["query_model", "register_coverage_plan"],
@@ -1569,6 +1570,15 @@ def _registration_required_actions(
                         "with a compatible family and no weaker wildcard predicate."
                     ),
                 }
+            )
+            continue
+        if error.startswith("assertion_semantic_policy:"):
+            actions.append(
+                _semantic_policy_required_action(
+                    error,
+                    ordinal=ordinal,
+                    coverage_requirements=coverage_requirements,
+                )
             )
             continue
         if error.startswith("coverage_requirement_evidence_family_unsatisfied:"):
@@ -1614,6 +1624,119 @@ def _registration_required_actions(
             }
         )
     return actions
+
+
+def _source_fact_evidence_families(fact: Mapping[str, Any]) -> frozenset[str]:
+    """Return the executable family that can prove this exact fact shape."""
+
+    kind = str(fact.get("fact_kind") or "")
+    if kind in {"transition", "forced_transition"} and _fact_value(fact, "source") == "[*]":
+        return frozenset({"structure"})
+    return SOURCE_FACT_EVIDENCE_FAMILIES.get(kind, frozenset())
+
+
+def _semantic_policy_required_action(
+    error: str,
+    *,
+    ordinal: int,
+    coverage_requirements: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Explain one semantic-policy rejection as an executable coverage repair."""
+
+    parts = error.split(":")
+    chain_id = parts[1] if len(parts) > 1 else "unknown"
+    code = parts[2] if len(parts) > 2 else "unknown"
+    requirement_id = parts[3] if len(parts) > 3 else ""
+    requirement = coverage_requirements.get(requirement_id, {})
+    templates: dict[str, tuple[list[str], str, list[str], str]] = {
+        assertion_contract.ERROR_SYNTAX_INVALID: (
+            ["register_coverage_plan"],
+            "Rewrite the named assertion as one valid Python expression before resubmitting the complete plan.",
+            ["len(states(name='Root.Searching')) == 1"],
+            "The named assertion parses in eval mode and the complete plan preserves every obligation.",
+        ),
+        assertion_contract.ERROR_SIMULATE_FIRST_CYCLE_REQUIRED: (
+            ["observe_trace", "register_coverage_plan"],
+            "Start every simulate(cycles=...) setup with an explicit empty cycle. The empty cycle performs deterministic initialization before any external event is supplied.",
+            ["simulate(cycles=[[], ['Root.Start']]).final.is_active('Root.Active')"],
+            "Every simulate call in the assertion begins with [] and still checks the original proposition.",
+        ),
+        assertion_contract.ERROR_EFFECTS_BOOL_SUBSTITUTE: (
+            ["query_model", "register_coverage_plan"],
+            "Do not treat bool(effects(...)) as proof of a directional update. Replace it with an exact variable-specific effect_delta comparison.",
+            ["(effect_delta(source='Root.Attack', event='Root.Done', variable='count') or 0) < 0"],
+            "The assertion checks the required variable and update direction, rather than effect presence alone.",
+        ),
+        assertion_contract.ERROR_EFFECT_DELTA_DIRECTION_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Add an effect_delta comparison whose sign matches the NL cue: use < 0 for a decrease and > 0 for an increase, bound to the exact source, event, and variable.",
+            ["(effect_delta(source='Root.Attack', event='Root.Done', variable='count') or 0) < 0"],
+            "The named assertion contains an exact direction-sensitive delta predicate for the implicated requirement.",
+        ),
+        assertion_contract.ERROR_CONTINUITY_EVIDENCE_REQUIRED: (
+            ["observe_trace", "read_fbmcq_guide", "register_coverage_plan"],
+            "Strengthen this single assertion with a continuity matrix. Put at least two distinct initialized progress paths in the same expression, each using simulate(cycles=[[], ...]) with at least two cycles; alternatively, combine at least two distinct FBMCQ response checks in the same expression. Splitting one path per assertion does not satisfy this per-assertion gate.",
+            [
+                "all([simulate(cycles=[[], ['Root.Path_A']]).final.is_active('Root.Searching'), simulate(cycles=[[], ['Root.Path_B']]).final.is_active('Root.Searching')])",
+                "all([fbmcq('check response <= 4: trigger event(\"Root.Path_A\", current) -> within 2 active(\"Root.Searching\");').holds is True, fbmcq('check response <= 4: trigger event(\"Root.Path_B\", current) -> within 2 active(\"Root.Searching\");').holds is True])",
+            ],
+            "The named assertion itself contains at least two distinct initialized simulation paths or at least two response properties and preserves the full continuity obligation.",
+        ),
+        assertion_contract.ERROR_CONTINUITY_EXISTENTIAL_FORMAL_TOO_WEAK: (
+            ["read_fbmcq_guide", "register_coverage_plan"],
+            "Replace exists_always with path-sensitive response obligations. Existential survival on one path cannot prove continuity across the relevant progress paths.",
+            ["all([fbmcq('check response <= 4: trigger event(\"Root.Path_A\", current) -> within 2 active(\"Root.Searching\");').holds is True, fbmcq('check response <= 4: trigger event(\"Root.Path_B\", current) -> within 2 active(\"Root.Searching\");').holds is True])"],
+            "The assertion uses non-existential response evidence covering the relevant progress paths.",
+        ),
+        assertion_contract.ERROR_CARDINALITY_COMPARISON_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Use a direct len(states(...)) comparison with the exact number and direction stated by the NL, and set recursive=False when counting direct children.",
+            ["len(states(parent='Root.Searching', recursive=False)) == 3"],
+            "The assertion performs the required exact, lower-bound, or upper-bound structural count without counting descendants accidentally.",
+        ),
+        assertion_contract.ERROR_TRANSITION_TARGET_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Bind the transition check to both an exact source and target; include the event when the NL provides a trigger.",
+            ["transition_exists(source='Root.Searching', event='Root.Start', target='Root.Active')"],
+            "The assertion checks the intended source-to-target behavior rather than event presence alone.",
+        ),
+        assertion_contract.ERROR_CONDITION_TRIGGER_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Bind the condition to its executable trigger: include the exact event in a transition query, an event-bearing simulation cycle, or an equivalent formal response trigger.",
+            ["transition_exists(source='Root.Searching', event='Root.Start', target='Root.Active')"],
+            "The assertion explicitly connects the NL condition or trigger to the checked behavior.",
+        ),
+    }
+    tools, action, examples, criteria = templates.get(
+        code,
+        (
+            ["register_coverage_plan"],
+            "Correct the named semantic-policy violation without deleting or weakening the implicated obligation.",
+            [],
+            "The next complete registration no longer returns this exact error and preserves all frozen obligations.",
+        ),
+    )
+    related_ids = [chain_id]
+    if requirement_id:
+        related_ids.append(requirement_id)
+    return {
+        "action_id": f"REG-ACTION-{ordinal:03d}",
+        "error": error,
+        "related_ids": related_ids,
+        "problem": (
+            f"Assertion {chain_id} does not provide the evidence strength required "
+            f"by {requirement_id or 'its linked requirement'}."
+        ),
+        "requirement_snapshot": _deepcopy_jsonish(requirement),
+        "recommended_tools": tools,
+        "recommended_action": action,
+        "accepted_predicate_examples": examples,
+        "coverage_improvement": (
+            "Following this action adds direct evidence for the implicated semantic "
+            "dimension instead of merely changing wording or deleting a hard case."
+        ),
+        "pass_criteria": criteria,
+    }
 
 
 def _source_fact_predicate_examples(fact: Mapping[str, Any]) -> list[str]:

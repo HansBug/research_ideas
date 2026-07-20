@@ -7,6 +7,7 @@ from paper_stm_repair_loop.schemas.coverage import InputSegment
 from paper_stm_repair_loop.tools.coverage_registry import (
     CoverageRegistry,
     _assertion_directly_verifies_source_fact,
+    _registration_required_actions,
 )
 
 
@@ -150,9 +151,7 @@ def test_every_non_meta_clause_and_repeated_cue_gets_a_hard_row():
     assert len({item.clause_id for item in requirements}) == 2
     assert len([item for item in requirements if item.dimension == "behavior"]) == 2
     assert {
-        item.cue_text.lower()
-        for item in requirements
-        if item.dimension == "transition"
+        item.cue_text.lower() for item in requirements if item.dimension == "transition"
     } == {"close", "open"}
     assert len([item for item in requirements if item.dimension == "condition"]) == 2
 
@@ -257,7 +256,10 @@ def test_requirement_must_be_direct_assertion_basis_not_only_unit_metadata():
     plan["logical_assertions"][0]["basis_ids"] = ["SEG-NL-001"]
     rejected = registry.register_plan(plan, reason="Omit requirement basis.")
     assert rejected["accepted"] is False
-    assert f"coverage_requirement_assertion_basis_missing:{requirement_id}" in rejected["errors"]
+    assert (
+        f"coverage_requirement_assertion_basis_missing:{requirement_id}"
+        in rejected["errors"]
+    )
 
 
 def test_behavior_source_fact_requires_direct_compatible_assertion_binding():
@@ -316,8 +318,7 @@ def test_direct_fact_audit_accepts_equivalent_state_hierarchy_and_eventless_form
         hierarchy,
     )
     assert _assertion_directly_verifies_source_fact(
-        "len(states(parent='Root', recursive=False, "
-        "name='Root.Searching')) == 1",
+        "len(states(parent='Root', recursive=False, name='Root.Searching')) == 1",
         {"structure"},
         hierarchy,
     )
@@ -327,6 +328,66 @@ def test_direct_fact_audit_accepts_equivalent_state_hierarchy_and_eventless_form
         {"relation"},
         eventless,
     )
+
+
+def test_initial_transition_guidance_uses_structure_family_consistently():
+    fact = {
+        "fact_id": "FACT-TRANSITION-001",
+        "fact_kind": "transition",
+        "qualified_refs": ["transition:0"],
+        "source": "[*]",
+        "event": None,
+        "target": "Root.Searching",
+    }
+
+    actions = _registration_required_actions(
+        ["source_fact_not_directly_verified:FACT-TRANSITION-001"],
+        source_fact_details={"FACT-TRANSITION-001": fact},
+        coverage_requirements={},
+    )
+
+    assert actions[0]["compatible_function_families"] == ["structure"]
+    assert actions[0]["accepted_predicate_examples"] == [
+        "initial_child('Root') == 'Root.Searching'"
+    ]
+    assert _assertion_directly_verifies_source_fact(
+        "initial_child('Root') == 'Root.Searching'",
+        {"structure"},
+        fact,
+    )
+
+
+def test_continuity_rejection_explains_how_to_increase_coverage():
+    requirement_id = "REQ-002-01-CONTINUITY-03"
+    error = (
+        "assertion_semantic_policy:ASSERT-CONTINUITY:"
+        f"ASSERT_CONTINUITY_EVIDENCE_REQUIRED:{requirement_id}"
+    )
+
+    actions = _registration_required_actions(
+        [error],
+        source_fact_details={},
+        coverage_requirements={
+            requirement_id: {
+                "requirement_id": requirement_id,
+                "dimension": "continuity",
+                "cue_text": "continuously",
+            }
+        },
+    )
+
+    action = actions[0]
+    assert action["related_ids"] == ["ASSERT-CONTINUITY", requirement_id]
+    assert action["recommended_tools"] == [
+        "observe_trace",
+        "read_fbmcq_guide",
+        "register_coverage_plan",
+    ]
+    assert "same expression" in action["recommended_action"]
+    assert "Splitting one path per assertion" in action["recommended_action"]
+    assert len(action["accepted_predicate_examples"]) == 2
+    assert action["coverage_improvement"]
+    assert action["pass_criteria"]
 
 
 def test_revision_cannot_weaken_a_direct_source_fact_predicate():

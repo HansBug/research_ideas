@@ -70,7 +70,7 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 6. matches 只说明一条断言为 True，不说明断言写对了；contradicts 只说明一条正向命题为 False，不自动说明 issue 归因正确。必须审查命题方向和 issue projection。
 7. 仿真只证明给定轨迹，局部关系只证明局部事实，有界形式化只证明其边界和性质。证据强度不足时必须失败。
 8. passed=true 仅允许在不存在任何语义漏项、未审计模型行为、弱/错向断言、潜在漏报、潜在误报、证据缺口或错误 issue projection 时返回。
-9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个当前台账 ID，并给出具体风险、可执行的 recommended_action、现有 recommended_tools 和明确 pass_criteria，以便主 Agent 直接补查后复审。禁止只写泛泛建议或虚构 ID。
+9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个当前台账 ID，并给出具体风险、可执行的 recommended_action、现有 recommended_tools 和明确 pass_criteria，以便主 Agent 直接补查后复审。recommended_action 不得只是重复审查意见，必须说明新增检查覆盖哪条行为、路径、条件或证据维度，以及怎样修改当前断言或补充探索。禁止只写泛泛建议或虚构 ID。
 10. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账是否足以支持“本次 Discover 已全覆盖”的结论。
 """
 
@@ -101,9 +101,7 @@ class LLMCoverageReviewRunner:
         review_dir.mkdir(parents=True, exist_ok=False)
         spec = AgentSpec(
             name=f"paper1-discover-{review_kind}-reviewer",
-            system_prompt=_review_system_prompt(
-                review_kind, self.content_language
-            ),
+            system_prompt=_review_system_prompt(review_kind, self.content_language),
             tools=(),
             output_schema=CoverageReviewVerdict,
             limits=self.limits or None,
@@ -228,9 +226,7 @@ class CoverageReviewGate:
             "controller_projection_before_review": projection,
             "review_contract": {
                 "required_segment_ids": sorted(self.registry.input_segment_ids),
-                "required_requirement_ids": sorted(
-                    self.registry.coverage_requirements
-                ),
+                "required_requirement_ids": sorted(self.registry.coverage_requirements),
                 "required_source_fact_ids": sorted(self.registry.source_fact_ids),
                 "required_root_ids": sorted(self.registry.roots),
                 "required_assertion_chain_ids": sorted(self.registry.chains),
@@ -248,9 +244,7 @@ class CoverageReviewGate:
             "adversarial_falsification",
         ):
             self.attempt_count += 1
-            verdicts.append(
-                self.runner(review_kind, payload, self.attempt_count)
-            )
+            verdicts.append(self.runner(review_kind, payload, self.attempt_count))
 
         expected = {
             "segment": self.registry.input_segment_ids,
@@ -382,7 +376,9 @@ def _review_prerequisite_actions(errors: list[str]) -> list[dict[str, Any]]:
             criteria = "register_coverage_plan returns accepted=true."
         elif error == "latest_required_assertions_not_executed":
             tools = ["eval_assert"]
-            action = "Execute every missing latest required assertion exactly as registered."
+            action = (
+                "Execute every missing latest required assertion exactly as registered."
+            )
             criteria = "No latest required assertion remains without an evaluation."
         else:
             tools = ["revise_assertion", "eval_assert"]
@@ -390,7 +386,9 @@ def _review_prerequisite_actions(errors: list[str]) -> list[dict[str, Any]]:
                 "Revise each inconclusive latest assertion without weakening its "
                 "obligation, then execute every new latest version."
             )
-            criteria = "Every latest required assertion has a terminal evidence-backed bool."
+            criteria = (
+                "Every latest required assertion has a terminal evidence-backed bool."
+            )
         actions.append(
             {
                 "action_id": f"REVIEW-PREREQ-{ordinal:03d}",
@@ -469,7 +467,6 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
     return SimpleStructuredTool(
         func=review_discovery_coverage,
         name="review_discovery_coverage",
-        description=review_discovery_coverage.__doc__
-        or "review_discovery_coverage",
+        description=review_discovery_coverage.__doc__ or "review_discovery_coverage",
         args_schema=ReviewDiscoveryCoverageInput,
     )

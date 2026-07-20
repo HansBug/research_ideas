@@ -59,9 +59,12 @@ def _ready_controller(tmp_path):
     registry = controller.require_registry()
     assert registry.register_plan(plan, reason="注册完整测试计划。")["accepted"]
     for expression in expressions_from_plan(plan):
-        assert registry.eval_assert(
-            expression, reason="逐条执行当前最新断言。"
-        )["match_status"] == "matches"
+        assert (
+            registry.eval_assert(expression, reason="逐条执行当前最新断言。")[
+                "match_status"
+            ]
+            == "matches"
+        )
     return controller, registry, plan
 
 
@@ -107,6 +110,13 @@ def test_failed_review_finding_requires_a_ledger_id():
             recommended_tools=["query_model"],
             pass_criteria="至少绑定一个当前台账 ID，并给出该对象可机械复核的通过条件。",
         )
+
+
+def test_review_schema_tells_reviewer_to_propose_coverage_improvements():
+    schema = CoverageReviewFinding.model_json_schema()["properties"]
+
+    assert "what additional" in schema["recommended_action"]["description"]
+    assert "coverage gap is closed" in schema["pass_criteria"]["description"]
 
 
 def test_review_rejects_finding_that_invents_unknown_ledger_ids(tmp_path):
