@@ -31,6 +31,8 @@ class _Mapping:
     source: str
     target: str
     raw_ref: Optional[str]
+    route_code: Optional[int] = None
+    route_trigger_count: int = 0
     emitted: list[dict[str, Any]] = field(default_factory=list)
 
 
@@ -84,12 +86,16 @@ class _Lowerer:
         self.synthetic_states_by_scope: dict[Optional[str], list[str]] = defaultdict(
             list
         )
+        self.missing_initial_helpers: dict[Optional[str], str] = {}
         self.mappings: list[_Mapping] = []
         self.blockers: list[dict[str, Any]] = []
         self.operational_debts: list[dict[str, Any]] = []
         self.state_mappings: list[dict[str, Any]] = []
         self.synthetic_state_mappings: list[dict[str, Any]] = []
         self.synthetic_transition_mappings: list[dict[str, Any]] = []
+        self.route_variable_id: Optional[str] = None
+        self.route_transition_codes: dict[str, int] = {}
+        self.route_source_refs: dict[str, Optional[str]] = {}
         self.priority_entry_count_by_scope: dict[Optional[str], int] = defaultdict(int)
         self.event_mappings: list[dict[str, Any]] = []
         self.body_mappings: list[dict[str, Any]] = []
@@ -137,6 +143,7 @@ class _Lowerer:
         scope_path = self.root_id if scope is None else self.emitted_path(scope)
         self.synthetic_state_mappings.append(
             {
+                "source_scope": scope,
                 "fcstm_id": emitted_id,
                 "fcstm_parent_path": scope_path,
                 "fcstm_path": f"{scope_path}.{emitted_id}",
@@ -146,6 +153,56 @@ class _Lowerer:
                 "source_transition_id": source_transition_id,
             }
         )
+
+    def index_initial_transitions(self) -> None:
+        for transition in self.transitions:
+            if transition["attributes"]["transition_kind"] == "initial":
+                self.initial_by_scope[transition.get("scope")].append(transition)
+
+    def prepare_missing_initial_helpers(self) -> None:
+        candidate_scopes: list[Optional[str]] = [None]
+        candidate_scopes.extend(
+            state["id"]
+            for state in self.states
+            if self.is_operational_composite(state["id"])
+        )
+        for scope in candidate_scopes:
+            if self.initial_by_scope.get(scope):
+                continue
+            owner_scope = self.root_id if scope is None else self.emitted_state[scope]
+            canonical_scope = "__root__" if scope is None else scope
+            self.add_operational_debt(
+                "R45.DEBT.missing_explicit_initial",
+                "The source scope has no explicit PlantUML initial transition; FCSTM enters a visible stoppable placeholder instead of guessing a child.",
+                kind="scope",
+                scope=canonical_scope,
+            )
+            synthetic = self.registry.reserve(
+                raw_text="UnspecifiedInitial",
+                canonical_ref=f"canonical:{canonical_scope}:missing_initial",
+                object_type="lowering_state",
+                scope=owner_scope,
+                generated_reason="missing_source_initial_fail_closed",
+            )
+            self.record_synthetic_state(
+                scope=scope,
+                emitted_id=synthetic,
+                display_name="Unspecified initial",
+                generated_reason="missing_source_initial_fail_closed",
+                raw_ref=None,
+            )
+            self.synthetic_states_by_scope[scope].append(
+                f'state {synthetic} named "Unspecified initial";'
+            )
+            placeholder_initial = f"[*] -> {synthetic};"
+            self.lines_by_scope[scope].append(placeholder_initial)
+            self.record_synthetic_transition(
+                scope=scope,
+                line=placeholder_initial,
+                generated_reason="missing_source_initial_fail_closed",
+                owner_state_id=scope,
+            )
+            self.missing_initial_helpers[scope] = synthetic
 
     def record_synthetic_transition(
         self,
@@ -344,6 +401,46 @@ class _Lowerer:
         raw_event = transition.get("event")
         return f" : /{self.events[raw_event]}" if raw_event else ""
 
+    def route_code(self, mapping: _Mapping, transition: dict[str, Any]) -> int:
+        if self.route_variable_id is None:
+            self.route_variable_id = self.registry.reserve(
+                raw_text="R45RouteToken",
+                canonical_ref="canonical:compiler:route_token",
+                object_type="lowering_variable",
+                scope="",
+                generated_reason="protected_cross_scope_route_token",
+                named_text="PlantUML lowering route token",
+            )
+        code = self.route_transition_codes.setdefault(
+            transition["id"],
+            self.transitions.index(transition) + 1,
+        )
+        self.route_source_refs[transition["id"]] = transition.get("raw_ref")
+        mapping.route_code = code
+        return code
+
+    def route_trigger(
+        self,
+        mapping: _Mapping,
+        transition: dict[str, Any],
+        code: int,
+    ) -> str:
+        if self.route_variable_id is None:
+            raise RuntimeError("route token is unavailable")
+        mapping.route_trigger_count += 1
+        return (
+            f"{self.trigger(transition)} effect "
+            f"{{ {self.route_variable_id} = {code}; }}"
+        )
+
+    def route_guard(self, code: int, *, reset: bool = False) -> str:
+        if self.route_variable_id is None:
+            raise RuntimeError("route token is unavailable")
+        suffix = f" : if [{self.route_variable_id} == {code}]"
+        if reset:
+            suffix += f" effect {{ {self.route_variable_id} = 0; }}"
+        return suffix
+
     def state_chain(self, state_id: str) -> list[str]:
         chain = [state_id]
         current = self.parent[state_id]
@@ -351,6 +448,160 @@ class _Lowerer:
             chain.append(current)
             current = self.parent[current]
         return list(reversed(chain))
+
+    def source_leaf_descendants(self, state_id: str) -> list[str]:
+        children = self.children[state_id]
+        if not children:
+            return [state_id]
+        leaves: list[str] = []
+        for child in children:
+            leaves.extend(self.source_leaf_descendants(child))
+        return leaves
+
+    def emit_composite_leaf_exit_routes(
+        self,
+        *,
+        mapping: _Mapping,
+        transition: dict[str, Any],
+        source: str,
+        route_code: int,
+    ) -> None:
+        emitted_guards: set[tuple[Optional[str], str]] = set()
+        for leaf in self.source_leaf_descendants(source):
+            current = leaf
+            first = True
+            while current != source:
+                parent_scope = self.parent[current]
+                suffix = (
+                    self.route_trigger(mapping, transition, route_code)
+                    if first
+                    else self.route_guard(route_code)
+                )
+                line = f"{self.emitted_state[current]} -> [*]{suffix};"
+                if first:
+                    self.emit(
+                        mapping,
+                        scope=parent_scope,
+                        line=line,
+                        generated_role="composite_source_leaf_trigger",
+                    )
+                elif (parent_scope, line) not in emitted_guards:
+                    self.emit_priority_entry(
+                        mapping,
+                        scope=parent_scope,
+                        line=line,
+                        generated_role="composite_source_guarded_exit",
+                    )
+                    emitted_guards.add((parent_scope, line))
+                first = False
+                current = parent_scope
+
+    def emit_source_route_to_scope(
+        self,
+        *,
+        mapping: _Mapping,
+        transition: dict[str, Any],
+        source: str,
+        stop_scope: Optional[str],
+    ) -> tuple[str, int, bool]:
+        route_code = self.route_code(mapping, transition)
+        triggered = False
+        current = source
+        if self.is_operational_composite(source):
+            if self.has_source_children(source):
+                self.emit_composite_leaf_exit_routes(
+                    mapping=mapping,
+                    transition=transition,
+                    source=source,
+                    route_code=route_code,
+                )
+            triggered = True
+        while self.parent[current] != stop_scope:
+            parent_scope = self.parent[current]
+            suffix = (
+                self.route_guard(route_code)
+                if triggered
+                else self.route_trigger(mapping, transition, route_code)
+            )
+            emitter = self.emit_priority_entry if triggered else self.emit
+            emitter(
+                mapping,
+                scope=parent_scope,
+                line=f"{self.emitted_state[current]} -> [*]{suffix};",
+                generated_role="source_route_exit_segment",
+            )
+            triggered = True
+            current = parent_scope
+        return current, route_code, triggered
+
+    def complete_composite_route_synthetic_triggers(self) -> None:
+        for mapping in self.mappings:
+            if (
+                mapping.route_code is None
+                or not self.is_operational_composite(mapping.source)
+            ):
+                continue
+            transition = self.transition_by_id[mapping.transition_id]
+            existing = {
+                (item["scope"], item["line"])
+                for item in mapping.emitted
+            }
+            for synthetic in self.synthetic_state_mappings:
+                scope = synthetic.get("source_scope")
+                if scope is None:
+                    continue
+                if scope != mapping.source and mapping.source not in self.state_chain(scope):
+                    continue
+                line = (
+                    f"{synthetic['fcstm_id']} -> [*]"
+                    f"{self.route_trigger(mapping, transition, mapping.route_code)};"
+                )
+                key = (_scope_key(scope), line)
+                self.emit(
+                    mapping,
+                    scope=scope,
+                    line=line,
+                    generated_role="composite_source_synthetic_leaf_trigger",
+                )
+                existing.add(key)
+                current = scope
+                while current != mapping.source:
+                    parent_scope = self.parent[current]
+                    guard_line = (
+                        f"{self.emitted_state[current]} -> [*]"
+                        f"{self.route_guard(mapping.route_code)};"
+                    )
+                    guard_key = (_scope_key(parent_scope), guard_line)
+                    if guard_key not in existing:
+                        self.emit_priority_entry(
+                            mapping,
+                            scope=parent_scope,
+                            line=guard_line,
+                            generated_role="composite_source_guarded_exit",
+                        )
+                        existing.add(guard_key)
+                    current = parent_scope
+
+    def emit_composite_descendant_target_route(
+        self,
+        *,
+        mapping: _Mapping,
+        source: str,
+        path: list[str],
+        route_code: int,
+    ) -> None:
+        scoped_targets = [(source, path[0]), *list(zip(path, path[1:]))]
+        for index, (scope, child) in enumerate(scoped_targets):
+            line = (
+                f"[*] -> {self.emitted_state[child]}"
+                f"{self.route_guard(route_code, reset=index == len(scoped_targets) - 1)};"
+            )
+            self.emit_priority_entry(
+                mapping,
+                scope=scope,
+                line=line,
+                generated_role="composite_source_target_entry_segment",
+            )
 
     def direct_initial_targets(self, scope: Optional[str]) -> list[str]:
         child_ids = set(self.children[scope])
@@ -393,13 +644,14 @@ class _Lowerer:
     def emit_target_route(
         self,
         mapping: _Mapping,
-        transition: dict[str, Any],
         path: list[str],
+        route_code: int,
     ) -> None:
-        for parent_state, child_state in zip(path, path[1:]):
+        pairs = list(zip(path, path[1:]))
+        for index, (parent_state, child_state) in enumerate(pairs):
             line = (
                 f"[*] -> {self.emitted_state[child_state]}"
-                f"{self.trigger(transition)};"
+                f"{self.route_guard(route_code, reset=index == len(pairs) - 1)};"
             )
             self.emit_priority_entry(
                 mapping,
@@ -537,18 +789,24 @@ class _Lowerer:
             target=transition["target"],
             raw_ref=transition.get("raw_ref"),
         )
-        line = (
-            f"[*] -> {self.emitted_state[target_path[0]]}"
-            f"{self.trigger(transition)};"
+        route_code = (
+            self.route_code(mapping, transition) if len(target_path) > 1 else None
         )
+        suffix = (
+            self.route_trigger(mapping, transition, route_code)
+            if route_code is not None
+            else self.trigger(transition)
+        )
+        line = f"[*] -> {self.emitted_state[target_path[0]]}{suffix};"
         self.emit(
             mapping, scope=scope, line=line, generated_role="source_initial_transition"
         )
-        if len(target_path) > 1:
-            for parent_state, child_state in zip(target_path, target_path[1:]):
+        if route_code is not None:
+            pairs = list(zip(target_path, target_path[1:]))
+            for index, (parent_state, child_state) in enumerate(pairs):
                 route = (
                     f"[*] -> {self.emitted_state[child_state]}"
-                    f"{self.trigger(transition)};"
+                    f"{self.route_guard(route_code, reset=index == len(pairs) - 1)};"
                 )
                 self.emit_priority_entry(
                     mapping,
@@ -602,16 +860,36 @@ class _Lowerer:
                 target=transition["target"],
                 raw_ref=transition.get("raw_ref"),
             )
-            prefix = "!" if self.is_operational_composite(source) else ""
-            self.emit(
-                mapping,
-                scope=projection_scope,
-                line=(
-                    f"{prefix}{self.emitted_state[source]} -> {surrogate}"
-                    f"{self.trigger(transition)};"
-                ),
-                generated_role="invalid_source_final_surrogate",
-            )
+            if self.has_source_children(source):
+                current, route_code, triggered = self.emit_source_route_to_scope(
+                    mapping=mapping,
+                    transition=transition,
+                    source=source,
+                    stop_scope=projection_scope,
+                )
+                if not triggered:
+                    raise RuntimeError("composite final route lacks a source trigger")
+                line = (
+                    f"{self.emitted_state[current]} -> {surrogate}"
+                    f"{self.route_guard(route_code, reset=True)};"
+                )
+                self.emit_priority_entry(
+                    mapping,
+                    scope=projection_scope,
+                    line=line,
+                    generated_role="invalid_source_final_surrogate",
+                )
+            else:
+                prefix = "!" if self.is_operational_composite(source) else ""
+                self.emit(
+                    mapping,
+                    scope=projection_scope,
+                    line=(
+                        f"{prefix}{self.emitted_state[source]} -> {surrogate}"
+                        f"{self.trigger(transition)};"
+                    ),
+                    generated_role="invalid_source_final_surrogate",
+                )
             self.mappings.append(mapping)
             self.final_mapped_count += 1
             self.add_operational_debt(
@@ -655,7 +933,10 @@ class _Lowerer:
             self.synthetic_states_by_scope[boundary_scope].append(
                 f"state {wait_state} named {_dsl_string(wait_label)};"
             )
-            if self.parent[source] == boundary_scope:
+            if (
+                self.parent[source] == boundary_scope
+                and not self.has_source_children(source)
+            ):
                 prefix = "!" if self.is_operational_composite(source) else ""
                 line = (
                     f"{prefix}{self.emitted_state[source]} -> {wait_state}"
@@ -668,24 +949,19 @@ class _Lowerer:
                     generated_role="nested_final_completion_hold",
                 )
             else:
-                current = source
-                while self.parent[current] != boundary_scope:
-                    parent_scope = self.parent[current]
-                    prefix = "!" if self.is_operational_composite(current) else ""
-                    suffix = self.trigger(transition)
-                    line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-                    self.emit(
-                        mapping,
-                        scope=parent_scope,
-                        line=line,
-                        generated_role="nested_final_exit_segment",
-                    )
-                    current = parent_scope
+                current, route_code, triggered = self.emit_source_route_to_scope(
+                    mapping=mapping,
+                    transition=transition,
+                    source=source,
+                    stop_scope=boundary_scope,
+                )
+                if not triggered:
+                    raise RuntimeError("nested final route lacks a source trigger")
                 continuation = (
                     f"{self.emitted_state[current]} -> {wait_state}"
-                    f"{self.trigger(transition)};"
+                    f"{self.route_guard(route_code, reset=True)};"
                 )
-                self.emit(
+                self.emit_priority_entry(
                     mapping,
                     scope=boundary_scope,
                     line=continuation,
@@ -695,28 +971,41 @@ class _Lowerer:
             self.final_mapped_count += 1
             return
 
-        current = source
-        while self.parent[current] != boundary_scope:
-            parent_scope = self.parent[current]
-            prefix = "!" if self.is_operational_composite(current) else ""
-            suffix = self.trigger(transition)
-            line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
+        if (
+            self.parent[source] == boundary_scope
+            and not self.has_source_children(source)
+        ):
+            prefix = "!" if self.is_operational_composite(source) else ""
+            line = (
+                f"{prefix}{self.emitted_state[source]} -> [*]"
+                f"{self.trigger(transition)};"
+            )
             self.emit(
                 mapping,
-                scope=parent_scope,
+                scope=boundary_scope,
                 line=line,
-                generated_role="final_exit_segment",
+                generated_role="source_final_transition",
             )
-            current = parent_scope
-        prefix = "!" if self.is_operational_composite(current) else ""
-        suffix = self.trigger(transition)
-        line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-        self.emit(
-            mapping,
-            scope=boundary_scope,
-            line=line,
-            generated_role="source_final_transition",
-        )
+        else:
+            current, route_code, triggered = self.emit_source_route_to_scope(
+                mapping=mapping,
+                transition=transition,
+                source=source,
+                stop_scope=boundary_scope,
+            )
+            if not triggered:
+                raise RuntimeError("root final route lacks a source trigger")
+            suffix = self.route_guard(route_code, reset=True)
+            line = (
+                f"{self.emitted_state[current]} -> [*]"
+                f"{suffix};"
+            )
+            self.emit_priority_entry(
+                mapping,
+                scope=boundary_scope,
+                line=line,
+                generated_role="source_final_transition",
+            )
         self.mappings.append(mapping)
         self.final_mapped_count += 1
 
@@ -727,19 +1016,46 @@ class _Lowerer:
         mapping = _Mapping(
             transition_id=transition["id"],
             status="mapped",
-            reason_code="R45.MAP.direct_sibling",
+            reason_code=(
+                "R45.MAP.composite_source_routed_sibling"
+                if self.has_source_children(source)
+                else "R45.MAP.direct_sibling"
+            ),
             source=source,
             target=target,
             raw_ref=transition.get("raw_ref"),
         )
-        prefix = "!" if self.is_operational_composite(source) else ""
-        line = (
-            f"{prefix}{self.emitted_state[source]} -> {self.emitted_state[target]}"
-            f"{self.trigger(transition)};"
-        )
-        self.emit(
-            mapping, scope=scope, line=line, generated_role="source_direct_transition"
-        )
+        if self.has_source_children(source):
+            current, route_code, triggered = self.emit_source_route_to_scope(
+                mapping=mapping,
+                transition=transition,
+                source=source,
+                stop_scope=scope,
+            )
+            if not triggered:
+                raise RuntimeError("composite sibling route lacks a source trigger")
+            line = (
+                f"{self.emitted_state[current]} -> {self.emitted_state[target]}"
+                f"{self.route_guard(route_code, reset=True)};"
+            )
+            self.emit_priority_entry(
+                mapping,
+                scope=scope,
+                line=line,
+                generated_role="composite_source_sibling_continuation",
+            )
+        else:
+            prefix = "!" if self.is_operational_composite(source) else ""
+            line = (
+                f"{prefix}{self.emitted_state[source]} -> {self.emitted_state[target]}"
+                f"{self.trigger(transition)};"
+            )
+            self.emit(
+                mapping,
+                scope=scope,
+                line=line,
+                generated_role="source_direct_transition",
+            )
         self.mappings.append(mapping)
 
     def render_cross_scope(self, transition: dict[str, Any]) -> None:
@@ -763,26 +1079,49 @@ class _Lowerer:
                     "Composite-to-descendant target does not follow an explicit initial entry path.",
                 )
                 return
-            target_branch = path_inside_source[0]
             mapping = _Mapping(
                 transition_id=transition["id"],
                 status="mapped",
-                reason_code="R45.MAP.composite_to_descendant_forced",
+                reason_code="R45.MAP.composite_to_descendant_routed_reentry",
                 source=source,
                 target=target,
                 raw_ref=transition.get("raw_ref"),
             )
-            line = (
-                f"! * -> {self.emitted_state[target_branch]}"
-                f"{self.trigger(transition)};"
+            parent_scope = self.parent[source]
+            current, route_code, triggered = self.emit_source_route_to_scope(
+                mapping=mapping,
+                transition=transition,
+                source=source,
+                stop_scope=parent_scope,
             )
-            self.emit(
+            if not triggered or current != source:
+                raise RuntimeError("composite descendant route lacks leaf triggers")
+            continuation = (
+                f"{self.emitted_state[source]} -> {self.emitted_state[source]}"
+                f"{self.route_guard(route_code)};"
+            )
+            self.emit_priority_entry(
                 mapping,
-                scope=source,
-                line=line,
-                generated_role="composite_source_forced_descendant_entry",
+                scope=parent_scope,
+                line=continuation,
+                generated_role="composite_source_guarded_reentry",
             )
-            self.emit_target_route(mapping, transition, path_inside_source)
+            self.emit_composite_descendant_target_route(
+                mapping=mapping,
+                source=source,
+                path=path_inside_source,
+                route_code=route_code,
+            )
+            self.add_operational_debt(
+                "R45.DEBT.composite_source_external_reentry",
+                "A PlantUML transition from a composite source to its descendant is expanded over source leaf activations and re-enters the composite through a protected route token. PlantUML does not define executable local-versus-external transition semantics, so this controller cannot support a source behavior claim.",
+                kind="transition_macro",
+                transition_id=transition["id"],
+                source=source,
+                target=target,
+                leaf_source_ids=self.source_leaf_descendants(source),
+                raw_ref=transition.get("raw_ref"),
+            )
             self.mappings.append(mapping)
             return
         if common == len(target_chain):
@@ -794,23 +1133,20 @@ class _Lowerer:
                 target=target,
                 raw_ref=transition.get("raw_ref"),
             )
-            current = source
-            while self.parent[current] != target:
-                parent_scope = self.parent[current]
-                prefix = "!" if self.is_operational_composite(current) else ""
-                suffix = self.trigger(transition)
-                line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-                self.emit(
-                    mapping,
-                    scope=parent_scope,
-                    line=line,
-                    generated_role="ancestor_reentry_exit_segment",
-                )
-                current = parent_scope
-            prefix = "!" if self.is_operational_composite(current) else ""
-            suffix = self.trigger(transition)
-            exit_line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-            self.emit(
+            current, route_code, triggered = self.emit_source_route_to_scope(
+                mapping=mapping,
+                transition=transition,
+                source=source,
+                stop_scope=target,
+            )
+            exit_suffix = (
+                self.route_guard(route_code)
+                if triggered
+                else self.route_trigger(mapping, transition, route_code)
+            )
+            exit_line = f"{self.emitted_state[current]} -> [*]{exit_suffix};"
+            exit_emitter = self.emit_priority_entry if triggered else self.emit
+            exit_emitter(
                 mapping,
                 scope=target,
                 line=exit_line,
@@ -818,9 +1154,9 @@ class _Lowerer:
             )
             reentry = (
                 f"{self.emitted_state[target]} -> {self.emitted_state[target]}"
-                f"{self.trigger(transition)};"
+                f"{self.route_guard(route_code, reset=True)};"
             )
-            self.emit(
+            self.emit_priority_entry(
                 mapping,
                 scope=self.parent[target],
                 line=reentry,
@@ -840,43 +1176,56 @@ class _Lowerer:
             target=target,
             raw_ref=transition.get("raw_ref"),
         )
-        if source != source_branch:
-            current = source
-            while self.parent[current] != lca_scope:
-                parent_scope = self.parent[current]
-                prefix = "!" if self.is_operational_composite(current) else ""
-                suffix = self.trigger(transition)
-                line = f"{prefix}{self.emitted_state[current]} -> [*]{suffix};"
-                self.emit(
-                    mapping,
-                    scope=parent_scope,
-                    line=line,
-                    generated_role="cross_scope_exit_segment",
+        target_path = target_chain[common:]
+        needs_route = (
+            self.has_source_children(source)
+            or source != source_branch
+            or len(target_path) > 1
+        )
+        if needs_route:
+            current, route_code, triggered = self.emit_source_route_to_scope(
+                mapping=mapping,
+                transition=transition,
+                source=source,
+                stop_scope=lca_scope,
+            )
+            if current != source_branch:
+                raise RuntimeError("cross-scope route did not reach its source branch")
+            continuation_suffix = (
+                self.route_guard(
+                    route_code,
+                    reset=len(target_path) == 1,
                 )
-                current = parent_scope
-        prefix = (
-            "!"
-            if source == source_branch and self.is_operational_composite(source)
-            else ""
-        )
-        suffix = self.trigger(transition)
-        continuation = (
-            f"{prefix}{self.emitted_state[source_branch]} -> {self.emitted_state[target_branch]}"
-            f"{suffix};"
-        )
-        self.emit(
-            mapping,
-            scope=lca_scope,
-            line=continuation,
-            generated_role="cross_scope_parent_continuation",
-        )
-        self.emit_target_route(mapping, transition, target_chain[common:])
+                if triggered
+                else self.route_trigger(mapping, transition, route_code)
+            )
+            continuation = (
+                f"{self.emitted_state[current]} -> "
+                f"{self.emitted_state[target_branch]}{continuation_suffix};"
+            )
+            continuation_emitter = self.emit_priority_entry if triggered else self.emit
+            continuation_emitter(
+                mapping,
+                scope=lca_scope,
+                line=continuation,
+                generated_role="cross_scope_parent_continuation",
+            )
+            if len(target_path) > 1:
+                self.emit_target_route(mapping, target_path, route_code)
+        else:
+            continuation = (
+                f"{self.emitted_state[source_branch]} -> "
+                f"{self.emitted_state[target_branch]}{self.trigger(transition)};"
+            )
+            self.emit(
+                mapping,
+                scope=lca_scope,
+                line=continuation,
+                generated_role="cross_scope_parent_continuation",
+            )
         self.mappings.append(mapping)
 
     def map_transitions(self) -> None:
-        for transition in self.transitions:
-            if transition["attributes"]["transition_kind"] == "initial":
-                self.initial_by_scope[transition.get("scope")].append(transition)
         for transition in self.transitions:
             kind = transition["attributes"]["transition_kind"]
             if kind == "initial":
@@ -896,6 +1245,22 @@ class _Lowerer:
         }
         for transition in self.transitions:
             kind = transition["attributes"]["transition_kind"]
+            mapping = mappings_by_transition.get(transition["id"])
+            if (
+                mapping is not None
+                and mapping.route_code is not None
+                and mapping.route_trigger_count > 1
+            ):
+                self.add_operational_debt(
+                    "R45.DEBT.composite_source_activation_dispatch",
+                    "A composite-source transition is represented by FCSTM single-active dispatch alternatives that share one protected route code. This does not claim that authored PlantUML orthogonal regions are mutually exclusive; concurrency remains capability-excluded. The dispatch remains compiler-owned and cannot be treated as multiple source transitions.",
+                    kind="transition_macro",
+                    transition_id=transition["id"],
+                    raw_ref=transition.get("raw_ref"),
+                    raw_label=transition.get("label"),
+                    route_code=mapping.route_code,
+                    alternative_trigger_count=mapping.route_trigger_count,
+                )
             if transition.get("label"):
                 self.add_operational_debt(
                     "R45.DEBT.opaque_transition_label_semantics",
@@ -907,8 +1272,20 @@ class _Lowerer:
                     fcstm_event_id=self.events.get(transition.get("event")),
                     representation="opaque_named_event",
                 )
-                mapping = mappings_by_transition.get(transition["id"])
-                if mapping is not None and len(mapping.emitted) > 1:
+                event_id = self.events.get(transition.get("event"))
+                event_segment_count = (
+                    sum(
+                        f"/{event_id}" in emitted["line"]
+                        for emitted in mapping.emitted
+                    )
+                    if mapping is not None and event_id
+                    else 0
+                )
+                if (
+                    mapping is not None
+                    and mapping.route_code is None
+                    and event_segment_count > 1
+                ):
                     self.add_operational_debt(
                         "R45.DEBT.multi_segment_event_replay",
                         "One source transition is represented by multiple FCSTM routing segments that repeat the same opaque event to preserve deep/cross-scope target selection. Runtime event-consumption counts from this macro are conversion behavior and cannot support a source issue.",
@@ -917,6 +1294,7 @@ class _Lowerer:
                         raw_ref=transition.get("raw_ref"),
                         raw_label=transition.get("label"),
                         segment_count=len(mapping.emitted),
+                        event_segment_count=event_segment_count,
                     )
             if kind == "normal" and not transition.get("event"):
                 unlabeled_by_source[transition["source"]].append(transition)
@@ -1046,39 +1424,6 @@ class _Lowerer:
                 }
             )
             self.lifecycle_mapped_count += 1
-        if composite:
-            if state_id not in self.mapped_initial_scopes:
-                self.add_operational_debt(
-                    "R45.DEBT.missing_explicit_initial",
-                    "Composite source state has no explicit PlantUML child initial; FCSTM enters a visible stoppable placeholder instead of guessing a child.",
-                    kind="scope",
-                    scope=state_id,
-                )
-                synthetic = self.registry.reserve(
-                    raw_text="UnspecifiedInitial",
-                    canonical_ref=f"canonical:{state_id}:missing_initial",
-                    object_type="lowering_state",
-                    scope=emitted,
-                    generated_reason="missing_source_initial_fail_closed",
-                )
-                self.record_synthetic_state(
-                    scope=state_id,
-                    emitted_id=synthetic,
-                    display_name="Unspecified initial",
-                    generated_reason="missing_source_initial_fail_closed",
-                    raw_ref=None,
-                )
-                lines.append(
-                    f'{body_pad}state {synthetic} named "Unspecified initial";'
-                )
-                placeholder_initial = f"[*] -> {synthetic};"
-                self.lines_by_scope[state_id].append(placeholder_initial)
-                self.record_synthetic_transition(
-                    scope=state_id,
-                    line=placeholder_initial,
-                    generated_reason="missing_source_initial_fail_closed",
-                    owner_state_id=state_id,
-                )
         for child in self.children[state_id]:
             lines.extend(self.render_state(child, body_indent))
         for line in self.synthetic_states_by_scope[state_id]:
@@ -1090,7 +1435,10 @@ class _Lowerer:
 
     def render(self) -> dict[str, Any]:
         self.reserve_names()
+        self.index_initial_transitions()
+        self.prepare_missing_initial_helpers()
         self.map_transitions()
+        self.complete_composite_route_synthetic_triggers()
         self.add_operational_debts()
         self.add_unparsed_blockers()
         root_label = self.model.get("name") or self.canonical["example_id"]
@@ -1115,40 +1463,13 @@ class _Lowerer:
                 f"\n[PlantUML source normalization {change['rule_id']}] "
                 f"{change['raw_ref']}: {change['before']} -> {change['after']}"
             )
-        lines = [f"state {self.root_id} named {_dsl_string(root_label)} {{"]
+        lines = []
+        if self.route_variable_id is not None:
+            lines.append(f"def int {self.route_variable_id} = 0;")
+        lines.append(f"state {self.root_id} named {_dsl_string(root_label)} {{")
         pad = " " * 4
         for raw_event, event_id in self.events.items():
             lines.append(f"{pad}event {event_id} named {_dsl_string(raw_event)};")
-        if None not in self.mapped_initial_scopes:
-            self.add_operational_debt(
-                "R45.DEBT.missing_explicit_initial",
-                "Root source model has no explicit PlantUML initial transition; FCSTM enters a visible stoppable placeholder instead of guessing a state.",
-                kind="scope",
-                scope="__root__",
-            )
-            synthetic = self.registry.reserve(
-                raw_text="UnspecifiedInitial",
-                canonical_ref="canonical:__root__:missing_initial",
-                object_type="lowering_state",
-                scope=self.root_id,
-                generated_reason="missing_source_initial_fail_closed",
-            )
-            self.record_synthetic_state(
-                scope=None,
-                emitted_id=synthetic,
-                display_name="Unspecified initial",
-                generated_reason="missing_source_initial_fail_closed",
-                raw_ref=None,
-            )
-            lines.append(f'{pad}state {synthetic} named "Unspecified initial";')
-            placeholder_initial = f"[*] -> {synthetic};"
-            self.lines_by_scope[None].append(placeholder_initial)
-            self.record_synthetic_transition(
-                scope=None,
-                line=placeholder_initial,
-                generated_reason="missing_source_initial_fail_closed",
-                owner_state_id=None,
-            )
         for line in self.synthetic_states_by_scope[None]:
             lines.append(f"{pad}{line}")
         for child in self.children[None]:
@@ -1238,6 +1559,19 @@ class _Lowerer:
                 self.concurrent_region_separator_mappings
             ),
             "source_normalization_mappings": self.source_normalization_mappings,
+            "route_control": (
+                {
+                    "fcstm_variable_id": self.route_variable_id,
+                    "initial_value": 0,
+                    "transition_route_codes": dict(
+                        sorted(self.route_transition_codes.items())
+                    ),
+                    "transition_source_refs": dict(sorted(self.route_source_refs.items())),
+                    "policy": "single_event_consumption_guarded_continuation.v1",
+                }
+                if self.route_variable_id is not None
+                else None
+            ),
             "transition_mappings": [
                 {
                     "source_transition": {
@@ -1265,6 +1599,8 @@ class _Lowerer:
                     "source": item.source,
                     "target": item.target,
                     "raw_ref": item.raw_ref,
+                    "route_code": item.route_code,
+                    "route_trigger_count": item.route_trigger_count,
                     "emitted": item.emitted,
                 }
                 for item in self.mappings

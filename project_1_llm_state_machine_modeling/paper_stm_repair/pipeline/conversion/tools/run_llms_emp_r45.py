@@ -320,6 +320,7 @@ def _summary_markdown(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> s
         f"- attribution-safe working contract：`{summary['working_contracts_validated']}/60`；compiler-owned elements `{summary['compiler_owned_elements']}`；agent-created baseline elements `{summary['agent_created_elements']}`。",
         f"- attribution-scoped Discover input：`{summary['attribution_scoped_discover_input']}/60`；每个工具仍必须遵守逐元素 capability mask，legacy whole-model Discover eligible 不因此改写。",
         f"- source macro roots：`{summary['working_macros']}`；positive source traces：`{summary['positive_source_traces']}`；compiler members 不进入 positive trace。",
+        f"- protected route controller：routed source transitions `{summary['route_mappings']}`；FCSTM single-active dispatch alternatives `{summary['route_trigger_alternatives']}`；routed forced segments `{summary['routed_forced_segments']}`；sequential event replay debt `{summary['sequential_event_replay_debts']}`。PlantUML authored concurrency 仍由 capability contract 排除 runtime claim。",
         "",
         "结构通过不等于行为等价。无/多/非法 initial、ownerless lifecycle、opaque state body、无标签 fan-out 与显式 fork 进入 `operational_debts`；转换器保留这些 source facts，但不推断 guard/effect/timing/concurrency。",
         "",
@@ -695,6 +696,21 @@ def run(
                 "source_static_discovery_status"
             ],
             "simulation_status": working_contract["summary"]["simulation_status"],
+            "route_mapping_count": sum(
+                mapping.get("route_code") is not None
+                for mapping in comparison["transition_mappings"]
+            ),
+            "route_trigger_alternative_count": sum(
+                mapping.get("route_trigger_count", 0)
+                for mapping in comparison["transition_mappings"]
+                if mapping.get("route_code") is not None
+            ),
+            "routed_forced_segment_count": sum(
+                emitted["line"].lstrip().startswith("!")
+                for mapping in comparison["transition_mappings"]
+                if mapping.get("route_code") is not None
+                for emitted in mapping["emitted"]
+            ),
             "review_risk_tags": risk_tags,
             "review_obligation_count": len(review_obligations),
             "second_pass_required": bool(review_obligations),
@@ -809,6 +825,13 @@ def run(
         totals["working_macros"] += working_contract["summary"]["macro_count"]
         totals["positive_source_traces"] += working_contract["summary"][
             "positive_trace_count"
+        ]
+        totals["route_mappings"] += summary_row["route_mapping_count"]
+        totals["route_trigger_alternatives"] += summary_row[
+            "route_trigger_alternative_count"
+        ]
+        totals["routed_forced_segments"] += summary_row[
+            "routed_forced_segment_count"
         ]
         for capability, item in working_contract["capability_eligibility"].items():
             capability_statuses.setdefault(capability, Counter())[item["status"]] += 1
@@ -960,6 +983,12 @@ def run(
             "agent_created_elements": totals["agent_created_elements"],
             "working_macros": totals["working_macros"],
             "positive_source_traces": totals["positive_source_traces"],
+            "route_mappings": totals["route_mappings"],
+            "route_trigger_alternatives": totals["route_trigger_alternatives"],
+            "routed_forced_segments": totals["routed_forced_segments"],
+            "sequential_event_replay_debts": debt_reasons[
+                "R45.DEBT.multi_segment_event_replay"
+            ],
             "capability_statuses": {
                 key: dict(sorted(value.items()))
                 for key, value in sorted(capability_statuses.items())

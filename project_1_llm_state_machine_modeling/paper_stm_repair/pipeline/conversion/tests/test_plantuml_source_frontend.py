@@ -1202,6 +1202,10 @@ def test_development_summary_has_non_eligible_banner():
             "attribution_scoped_discover_input": 60,
             "working_macros": 1,
             "positive_source_traces": 1,
+            "route_mappings": 0,
+            "route_trigger_alternatives": 0,
+            "routed_forced_segments": 0,
+            "sequential_event_replay_debts": 0,
         },
     }
 
@@ -2504,8 +2508,7 @@ def test_frozen_60_review_obligations_have_exact_occurrence_evidence():
 
 def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
     _require_feedback_final_evidence()
-    if not (EVIDENCE / "PUBLICATION_SEAL.json").is_file():
-        pytest.skip("main-session pair review has not been published yet")
+    assert (EVIDENCE / "PUBLICATION_SEAL.json").is_file()
     manifest = json.loads((EVIDENCE / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == "r4_5.llms_emp_java_batch.v6"
     assert manifest["evidence_eligible"] is True
@@ -2579,8 +2582,7 @@ def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():
 
 def test_committed_pair_pages_show_complete_nl_plantuml_and_fcstm_for_all_60_cases():
     _require_feedback_final_evidence()
-    if not (EVIDENCE / "PUBLICATION_SEAL.json").is_file():
-        pytest.skip("main-session pair review has not been published yet")
+    assert (EVIDENCE / "PUBLICATION_SEAL.json").is_file()
     index_text = PAIR_INDEX.read_text(encoding="utf-8")
     source_rows = {row["pair_id"][-4:]: row for row in _rows()}
     assert sorted(path.name for path in PAIR_PAGES.iterdir() if path.is_dir()) == [

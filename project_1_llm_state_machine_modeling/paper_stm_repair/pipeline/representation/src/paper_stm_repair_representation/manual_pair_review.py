@@ -30,6 +30,7 @@ RISK_ASSESSMENT_BY_TAG = {
     "lifecycle": "capability_excluded",
     "multi_segment_macro": "compiler_artifact_excluded",
     "official_identity_remap": "source_fact_preserved",
+    "route_controller": "compiler_artifact_excluded",
     "source_normalization": "compiler_artifact_excluded",
     "synthetic_state": "compiler_artifact_excluded",
 }
@@ -190,6 +191,9 @@ def _fcstm_line_refs_by_element(
     event_pattern = re.compile(
         r"^event ([A-Za-z_][A-Za-z0-9_]*)(?:\s+named\s+.*)?;$"
     )
+    variable_pattern = re.compile(
+        r"^def (?:int|float) ([A-Za-z_][A-Za-z0-9_]*)\s*=.*;$"
+    )
     action_pattern = re.compile(
         r"^(enter abstract|during abstract|exit abstract|>> during before abstract) "
         r"([A-Za-z_][A-Za-z0-9_]*);$"
@@ -204,6 +208,7 @@ def _fcstm_line_refs_by_element(
     records: list[tuple[int, str, str]] = []
     states: dict[str, tuple[int, str]] = {}
     events: dict[str, tuple[int, str]] = {}
+    variables: dict[str, tuple[int, str]] = {}
     actions: dict[tuple[str, str, str], list[tuple[int, str]]] = {}
     for line_number, raw_line in enumerate(fcstm_text.splitlines(), start=1):
         line = raw_line.strip()
@@ -227,6 +232,10 @@ def _fcstm_line_refs_by_element(
         if event_match is not None:
             events[".".join([*stack, event_match.group(1)])] = (line_number, line)
             continue
+        variable_match = variable_pattern.fullmatch(line)
+        if variable_match is not None:
+            variables[variable_match.group(1)] = (line_number, line)
+            continue
         action_match = action_pattern.fullmatch(line)
         if action_match is not None:
             lifecycle_kind = lifecycle_kind_by_prefix[action_match.group(1)]
@@ -246,6 +255,8 @@ def _fcstm_line_refs_by_element(
                 result[element_id].add(states[value])
             elif kind == "event" and value in events:
                 result[element_id].add(events[value])
+            elif kind == "variable" and value in variables:
+                result[element_id].add(variables[value])
 
         metadata = element.get("metadata", {})
         kind = element.get("kind")

@@ -8,7 +8,9 @@ from typing import Any
 _TRANSITION_RE = re.compile(
     r"^(?P<forced>!\s*)?(?P<source>\*|\[\*\]|[A-Za-z_][A-Za-z0-9_]*)\s*"
     r"->\s*(?P<target>\[\*\]|[A-Za-z_][A-Za-z0-9_]*)"
-    r"(?:\s*:\s*/(?P<event>[A-Za-z_][A-Za-z0-9_]*))?;$"
+    r"(?:\s*:\s*(?:/(?P<event>[A-Za-z_][A-Za-z0-9_]*)|"
+    r"if\s*\[(?P<guard>[^\]]+)\]))?"
+    r"(?:\s+effect\s*\{\s*(?P<effect>[^}]*)\s*\})?;$"
 )
 _OFFICIAL_SYNTHETIC_SCOPE_RE = re.compile(r"^(?:CONC\d+|__stm_wrapper_\d+)$")
 
@@ -145,6 +147,67 @@ def _parsed_segments(mapping: dict[str, Any]) -> list[tuple[dict[str, Any], re.M
     return parsed
 
 
+def _assert_route_projection(
+    *,
+    mapping: dict[str, Any],
+    segments: list[tuple[dict[str, Any], re.Match[str]]],
+    transition: dict[str, Any],
+    route_control: dict[str, Any] | None,
+    expected_event: str | None,
+) -> None:
+    route_code = mapping.get("route_code")
+    if route_code is None:
+        if mapping.get("route_trigger_count", 0) != 0:
+            raise ValueError(
+                f"non-route transition declares route triggers: {transition['id']}"
+            )
+        if any(match.group("guard") or match.group("effect") for _, match in segments):
+            raise ValueError(
+                f"non-route transition contains controller syntax: {transition['id']}"
+            )
+        if any(match.group("event") != expected_event for _, match in segments):
+            raise ValueError(f"transition event projection drift: {transition['id']}")
+        return
+    if route_control is None:
+        raise ValueError(f"route transition lacks controller: {transition['id']}")
+    variable_id = route_control["fcstm_variable_id"]
+    if route_control["transition_route_codes"].get(transition["id"]) != route_code:
+        raise ValueError(f"route code binding drift: {transition['id']}")
+    expected_set = f"{variable_id} = {route_code};"
+    expected_reset = f"{variable_id} = 0;"
+    expected_guard = f"{variable_id} == {route_code}"
+    trigger_count = mapping.get("route_trigger_count", 0)
+    if not isinstance(trigger_count, int) or trigger_count < 1:
+        raise ValueError(f"route trigger count is invalid: {transition['id']}")
+    event_count = sum(match.group("event") is not None for _, match in segments)
+    set_count = sum(
+        (match.group("effect") or "").strip() == expected_set
+        for _, match in segments
+    )
+    reset_count = sum(
+        (match.group("effect") or "").strip() == expected_reset
+        for _, match in segments
+    )
+    if event_count != (trigger_count if expected_event else 0):
+        raise ValueError(f"route event-consumption projection drift: {transition['id']}")
+    if set_count != trigger_count or reset_count != 1:
+        raise ValueError(f"route set/reset projection drift: {transition['id']}")
+    for _, match in segments:
+        event = match.group("event")
+        guard = (match.group("guard") or "").strip()
+        effect = (match.group("effect") or "").strip()
+        if match.group("forced"):
+            raise ValueError(f"route macro contains forced transition: {transition['id']}")
+        if effect == expected_set:
+            if event != expected_event or guard:
+                raise ValueError(f"route trigger projection drift: {transition['id']}")
+        else:
+            if event is not None or guard != expected_guard:
+                raise ValueError(f"route continuation projection drift: {transition['id']}")
+            if effect not in {"", expected_reset}:
+                raise ValueError(f"route effect projection drift: {transition['id']}")
+
+
 def _concurrent_display_lines(
     canonical: dict[str, Any], scope: str | None
 ) -> list[str]:
@@ -206,6 +269,137 @@ def _root_display(canonical: dict[str, Any]) -> str:
     return value
 
 
+def _source_children(parents: dict[str, str | None], state_id: str) -> list[str]:
+    return [child for child, parent in parents.items() if parent == state_id]
+
+
+def _source_leaf_descendants(
+    parents: dict[str, str | None], state_id: str
+) -> list[str]:
+    children = _source_children(parents, state_id)
+    if not children:
+        return [state_id]
+    leaves: list[str] = []
+    for child in children:
+        leaves.extend(_source_leaf_descendants(parents, child))
+    return leaves
+
+
+def _scope_is_within(
+    *, scope: str | None, ancestor: str, parents: dict[str, str | None]
+) -> bool:
+    current = scope
+    while current is not None:
+        if current == ancestor:
+            return True
+        current = parents[current]
+    return False
+
+
+def _assert_routed_source_dispatch(
+    *,
+    mapping: dict[str, Any],
+    transition: dict[str, Any],
+    by_role: dict[str, list[tuple[dict[str, Any], re.Match[str]]]],
+    state_ids: dict[str, str],
+    parents: dict[str, str | None],
+    synthetic_states: list[dict[str, Any]],
+    state_is_composite: dict[str, bool],
+) -> None:
+    if mapping.get("route_code") is None:
+        return
+    source = transition["source"]
+    trigger_rows = by_role.get("composite_source_leaf_trigger", [])
+    synthetic_rows = by_role.get("composite_source_synthetic_leaf_trigger", [])
+    if source not in state_is_composite:
+        if trigger_rows or synthetic_rows or mapping.get("route_trigger_count") != 1:
+            raise ValueError(f"boundary route trigger inventory drift: {transition['id']}")
+        return
+    source_children = _source_children(parents, source)
+    if state_is_composite[source]:
+        expected_source_leaves = (
+            _source_leaf_descendants(parents, source) if source_children else []
+        )
+        actual_source_leaves = [
+            next(
+                state_id
+                for state_id, emitted_id in state_ids.items()
+                if emitted_id == match.group("source")
+            )
+            for _, match in trigger_rows
+        ]
+        if actual_source_leaves != expected_source_leaves:
+            raise ValueError(
+                f"composite source trigger inventory drift: {transition['id']}"
+            )
+        expected_synthetic = [
+            item
+            for item in synthetic_states
+            if _scope_is_within(
+                scope=item.get("source_scope"),
+                ancestor=source,
+                parents=parents,
+            )
+        ]
+        actual_synthetic_ids = [match.group("source") for _, match in synthetic_rows]
+        if actual_synthetic_ids != [item["fcstm_id"] for item in expected_synthetic]:
+            raise ValueError(
+                f"composite synthetic trigger inventory drift: {transition['id']}"
+            )
+        if mapping.get("route_trigger_count") != (
+            len(expected_source_leaves) + len(expected_synthetic)
+        ):
+            raise ValueError(f"composite route trigger count drift: {transition['id']}")
+    elif trigger_rows or synthetic_rows or mapping.get("route_trigger_count") != 1:
+        raise ValueError(f"leaf route trigger inventory drift: {transition['id']}")
+
+    for emitted, match in trigger_rows + synthetic_rows:
+        if (
+            match.group("target") != "[*]"
+            or match.group("forced")
+            or match.group("guard")
+        ):
+            raise ValueError(f"route trigger endpoint drift: {transition['id']}")
+        if match.group("source") in state_ids.values():
+            source_id = next(
+                state_id
+                for state_id, emitted_id in state_ids.items()
+                if emitted_id == match.group("source")
+            )
+            if emitted["scope"] != (parents[source_id] or "__root__"):
+                raise ValueError(f"route trigger scope drift: {transition['id']}")
+        else:
+            synthetic = next(
+                (
+                    item
+                    for item in synthetic_states
+                    if item["fcstm_id"] == match.group("source")
+                    and (item.get("source_scope") or "__root__") == emitted["scope"]
+                ),
+                None,
+            )
+            if synthetic is None:
+                raise ValueError(f"route trigger scope drift: {transition['id']}")
+
+    for role in ("composite_source_guarded_exit", "source_route_exit_segment"):
+        for emitted, match in by_role.get(role, []):
+            source_id = next(
+                (
+                    state_id
+                    for state_id, emitted_id in state_ids.items()
+                    if emitted_id == match.group("source")
+                ),
+                None,
+            )
+            if (
+                source_id is None
+                or emitted["scope"] != (parents[source_id] or "__root__")
+                or match.group("target") != "[*]"
+                or match.group("forced")
+            ):
+                raise ValueError(f"route exit projection drift: {transition['id']}")
+
+
 def _assert_source_projection(
     *,
     mapping: dict[str, Any],
@@ -215,17 +409,31 @@ def _assert_source_projection(
     synthetic_states: list[dict[str, Any]],
     event_ids: dict[str, str],
     state_is_composite: dict[str, bool],
+    route_control: dict[str, Any] | None,
 ) -> None:
     segments = _parsed_segments(mapping)
     expected_event = (
         event_ids[transition["event"]] if transition.get("event") else None
     )
-    for _, match in segments:
-        if match.group("event") != expected_event:
-            raise ValueError(f"transition event projection drift: {transition['id']}")
+    _assert_route_projection(
+        mapping=mapping,
+        segments=segments,
+        transition=transition,
+        route_control=route_control,
+        expected_event=expected_event,
+    )
     by_role: dict[str, list[tuple[dict[str, Any], re.Match[str]]]] = {}
     for emitted, match in segments:
         by_role.setdefault(emitted["generated_role"], []).append((emitted, match))
+    _assert_routed_source_dispatch(
+        mapping=mapping,
+        transition=transition,
+        by_role=by_role,
+        state_ids=state_ids,
+        parents=parents,
+        synthetic_states=synthetic_states,
+        state_is_composite=state_is_composite,
+    )
     reason = mapping["reason_code"]
 
     if reason == "R45.MAP.invalid_source_initial_surrogate":
@@ -260,7 +468,11 @@ def _assert_source_projection(
             or match.group("source") != state_ids[transition["source"]]
             or match.group("target") != linked[0]["fcstm_id"]
             or bool(match.group("forced"))
-            != state_is_composite[transition["source"]]
+            != (
+                state_is_composite[transition["source"]]
+                if mapping.get("route_code") is None
+                else False
+            )
         ):
             raise ValueError(f"invalid final surrogate endpoint drift: {transition['id']}")
         return
@@ -279,6 +491,23 @@ def _assert_source_projection(
             != state_is_composite[transition["source"]]
         ):
             raise ValueError(f"direct transition endpoint projection drift: {transition['id']}")
+        return
+
+    if reason == "R45.MAP.composite_source_routed_sibling":
+        continuation = by_role.get("composite_source_sibling_continuation", [])
+        expected_scope = parents[transition["source"]] or "__root__"
+        if len(continuation) != 1:
+            raise ValueError(f"composite sibling macro shape drift: {transition['id']}")
+        emitted, match = continuation[0]
+        if (
+            emitted["scope"] != expected_scope
+            or match.group("source") != state_ids[transition["source"]]
+            or match.group("target") != state_ids[transition["target"]]
+            or match.group("forced")
+        ):
+            raise ValueError(
+                f"composite sibling endpoint projection drift: {transition['id']}"
+            )
         return
 
     if transition["attributes"]["transition_kind"] == "initial":
@@ -338,7 +567,9 @@ def _assert_source_projection(
                     parents[state_id] or "__root__",
                     state_ids[state_id],
                     "[*]",
-                    state_is_composite[state_id],
+                    state_is_composite[state_id]
+                    if mapping.get("route_code") is None
+                    else False,
                 )
                 for state_id in exit_states
             ]
@@ -347,7 +578,9 @@ def _assert_source_projection(
                 "__root__",
                 state_ids[source_chain[0]],
                 "[*]",
-                state_is_composite[source_chain[0]],
+                state_is_composite[source_chain[0]]
+                if mapping.get("route_code") is None
+                else False,
             )
             actual_terminal = [
                 (
@@ -358,7 +591,12 @@ def _assert_source_projection(
                 )
                 for emitted, match in terminal
             ]
-            if actual_exits != expected_exits or actual_terminal != [expected_terminal]:
+            exits_match = (
+                True
+                if mapping.get("route_code") is not None
+                else actual_exits == expected_exits
+            )
+            if not exits_match or actual_terminal != [expected_terminal]:
                 raise ValueError(f"root final boundary projection drift: {transition['id']}")
         else:
             linked = [
@@ -385,7 +623,9 @@ def _assert_source_projection(
                     parents[state_id] or "__root__",
                     state_ids[state_id],
                     "[*]",
-                    state_is_composite[state_id],
+                    state_is_composite[state_id]
+                    if mapping.get("route_code") is None
+                    else False,
                 )
                 for state_id in exit_states
             ]
@@ -409,9 +649,18 @@ def _assert_source_projection(
                 boundary_scope,
                 state_ids[terminal_source],
                 linked[0]["fcstm_id"],
-                state_is_composite[terminal_source] if len(path) == 1 else False,
+                (
+                    state_is_composite[terminal_source]
+                    if len(path) == 1 and mapping.get("route_code") is None
+                    else False
+                ),
             )
-            if actual_exits != expected_exits or actual_terminal != [expected_terminal]:
+            exits_match = (
+                True
+                if mapping.get("route_code") is not None
+                else actual_exits == expected_exits
+            )
+            if not exits_match or actual_terminal != [expected_terminal]:
                 raise ValueError(f"nested final boundary projection drift: {transition['id']}")
         return
 
@@ -425,19 +674,21 @@ def _assert_source_projection(
     ):
         common += 1
 
-    if reason == "R45.MAP.composite_to_descendant_forced":
-        forced = by_role.get("composite_source_forced_descendant_entry", [])
+    if reason == "R45.MAP.composite_to_descendant_routed_reentry":
         path = target_chain[common:]
+        continuation = by_role.get("composite_source_guarded_reentry", [])
+        source_id = state_ids[transition["source"]]
         if (
-            len(forced) != 1
-            or forced[0][0]["scope"] != transition["source"]
-            or forced[0][1].group("source") != "*"
-            or not forced[0][1].group("forced")
-            or not path
-            or forced[0][1].group("target") != state_ids[path[0]]
+            not path
+            or len(continuation) != 1
+            or continuation[0][0]["scope"]
+            != (parents[transition["source"]] or "__root__")
+            or continuation[0][1].group("source") != source_id
+            or continuation[0][1].group("target") != source_id
+            or continuation[0][1].group("forced")
         ):
             raise ValueError(f"composite descendant projection drift: {transition['id']}")
-        entries = by_role.get("cross_scope_target_entry_segment", [])
+        entries = by_role.get("composite_source_target_entry_segment", [])
         actual_entries = [
             (
                 emitted["scope"],
@@ -449,7 +700,10 @@ def _assert_source_projection(
         ]
         expected_entries = [
             (parent_state, "[*]", state_ids[child_state], False)
-            for parent_state, child_state in zip(path, path[1:])
+            for parent_state, child_state in [
+                (transition["source"], path[0]),
+                *list(zip(path, path[1:])),
+            ]
         ]
         if actual_entries != expected_entries:
             raise ValueError(f"deep target projection drift: {transition['id']}")
@@ -458,29 +712,19 @@ def _assert_source_projection(
     if reason == "R45.MAP.descendant_to_ancestor_reentry":
         continuation = by_role.get("ancestor_reentry_parent_continuation", [])
         target_id = state_ids[transition["target"]]
-        exit_segments = by_role.get("ancestor_reentry_exit_segment", []) + by_role.get(
-            "ancestor_reentry_child_exit", []
-        )
-        exit_states = list(reversed(source_chain[len(target_chain) :]))
-        actual_exits = [
-            (
-                emitted["scope"],
-                match.group("source"),
-                match.group("target"),
-                bool(match.group("forced")),
-            )
-            for emitted, match in exit_segments
-        ]
-        expected_exits = [
-            (
-                parents[state_id] or "__root__",
-                state_ids[state_id],
-                "[*]",
-                state_is_composite[state_id],
-            )
-            for state_id in exit_states
-        ]
-        if actual_exits != expected_exits:
+        child_exit = by_role.get("ancestor_reentry_child_exit", [])
+        expected_child = source_chain[len(target_chain)]
+        if len(child_exit) != 1 or (
+            child_exit[0][0]["scope"],
+            child_exit[0][1].group("source"),
+            child_exit[0][1].group("target"),
+            bool(child_exit[0][1].group("forced")),
+        ) != (
+            transition["target"],
+            state_ids[expected_child],
+            "[*]",
+            False,
+        ):
             raise ValueError(f"ancestor reentry exit projection drift: {transition['id']}")
         expected_continuation_scope = parents[transition["target"]] or "__root__"
         if len(continuation) != 1 or (
@@ -507,6 +751,7 @@ def _assert_source_projection(
         expected_continuation_forced = (
             transition["source"] == source_branch
             and state_is_composite[transition["source"]]
+            and mapping.get("route_code") is None
         )
         if bool(continuation[0][1].group("forced")) != expected_continuation_forced:
             raise ValueError(f"cross-scope continuation force drift: {transition['id']}")
@@ -526,11 +771,13 @@ def _assert_source_projection(
                 parents[state_id] or "__root__",
                 state_ids[state_id],
                 "[*]",
-                state_is_composite[state_id],
+                state_is_composite[state_id]
+                if mapping.get("route_code") is None
+                else False,
             )
             for state_id in exit_states
         ]
-        if actual_exits != expected_exits:
+        if mapping.get("route_code") is None and actual_exits != expected_exits:
             raise ValueError(f"cross-scope exit projection drift: {transition['id']}")
         entries = by_role.get("cross_scope_target_entry_segment", [])
         actual_entries = [
@@ -673,6 +920,30 @@ def audit_lowered_artifact(
         event = actual_events[mapping["fcstm_id"]]
         if event.extra_name != mapping["raw_label"]:
             raise ValueError(f"opaque event label drift for {mapping['fcstm_path']}")
+
+    route_control = comparison.get("route_control")
+    routed_mappings = {
+        mapping["transition_id"]: mapping["route_code"]
+        for mapping in comparison["transition_mappings"]
+        if mapping.get("route_code") is not None
+    }
+    if route_control is None:
+        if routed_mappings:
+            raise ValueError("route mappings exist without a route controller")
+    else:
+        variable_id = route_control["fcstm_variable_id"]
+        declaration = f"def int {variable_id} = {route_control['initial_value']};"
+        if fcstm.splitlines().count(declaration) != 1:
+            raise ValueError("route controller declaration drift")
+        if route_control["initial_value"] != 0:
+            raise ValueError("route controller initial value drift")
+        if route_control["transition_route_codes"] != routed_mappings:
+            raise ValueError("route controller transition inventory drift")
+        codes = list(routed_mappings.values())
+        if any(not isinstance(code, int) or code <= 0 for code in codes) or len(
+            codes
+        ) != len(set(codes)):
+            raise ValueError("route controller codes are not unique positive integers")
 
     for mapping in comparison["body_mappings"]:
         state = actual_states.get(mapping["fcstm_path"])
@@ -937,6 +1208,7 @@ def audit_lowered_artifact(
             synthetic_states=comparison["synthetic_state_mappings"],
             event_ids=event_ids,
             state_is_composite=state_is_composite,
+            route_control=comparison.get("route_control"),
         )
         for emitted in mapping["emitted"]:
             line = emitted["line"]
@@ -1068,6 +1340,7 @@ def audit_lowered_artifact(
                     emitted["line"]
                 )
                 if emitted["generated_role"] in {
+                    "composite_source_target_entry_segment",
                     "cross_scope_target_entry_segment",
                     "source_initial_nested_entry_segment",
                 }:

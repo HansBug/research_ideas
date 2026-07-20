@@ -101,6 +101,16 @@ Operate --> Off : Shutdown
 @enduml
 """
 
+SYNTHETIC_ROUTE_SOURCE = """@startuml
+state Operate {
+  state Idle
+}
+state Off
+[*] --> Operate
+Operate --> Off : Shutdown
+@enduml
+"""
+
 NESTED_FINAL_SOURCE = """@startuml
 state Area {
   [*] --> Active
@@ -390,7 +400,15 @@ def test_cross_scope_transition_is_one_source_macro_with_protected_members():
     elements = {item["element_id"]: item for item in contract["elements"]}
 
     assert len(mapping["emitted"]) == 2
-    assert len(macro["member_element_ids"]) == 2
+    assert len(macro["member_element_ids"]) == 3
+    route_members = [
+        item
+        for item in macro["member_element_ids"]
+        if item.startswith("compiler:route_control:")
+    ]
+    assert len(route_members) == 1
+    route_element_id = route_members[0]
+    assert elements[route_element_id]["kind"] == "route_control_variable"
     assert macro["rewrite_policy"] == "controller_regenerate_only"
     assert all(
         elements[item]["origin"] == "compiler_owned"
@@ -406,12 +424,67 @@ def test_cross_scope_transition_is_one_source_macro_with_protected_members():
         if item["trace_id"] == f"trace:transition:{mapping['transition_id']}"
     )
     assert trace["intermediate_elements"] == [macro["macro_id"]]
+    assert route_element_id not in contract["capability_eligibility"][
+        "source_static_discovery"
+    ]["eligible_element_ids"]
+    assert route_element_id not in contract["repair_gate"][
+        "potential_source_target_ids"
+    ]
+    assert all(
+        route_element_id not in entry["intermediate_elements"]
+        for entry in contract["source_trace_base"]["entries"]
+    )
+    for capability in ("repair", "confirm", "main_result"):
+        assert contract["capability_eligibility"][capability]["status"] == "not_run"
+        assert contract["capability_eligibility"][capability][
+            "eligible_element_ids"
+        ] == []
+    route_obligation = next(
+        item
+        for item in build_review_obligations(
+            comparison=lowered["comparison"],
+            official_identity=canonical["metadata"][
+                "official_identity_reconciliation"
+            ],
+            contract=contract,
+        )
+        if item["risk_tag"] == "route_controller"
+        and item["obligation_id"].endswith(mapping["transition_id"])
+    )
+    assert route_element_id in route_obligation["element_ids"]
+    assert str(mapping["route_trigger_count"]) in route_obligation["rationale"]
+    assert "FCSTM single-active" in route_obligation["rationale"]
+    assert "orthogonal regions are mutually exclusive" in route_obligation["rationale"]
+    assert "concurrency remains capability-excluded" in route_obligation["rationale"]
     validate_working_contract(
         canonical=canonical,
         fcstm=lowered["fcstm"],
         comparison=lowered["comparison"],
         contract=contract,
     )
+
+
+def test_ast_audit_rejects_route_controller_initial_value_tamper():
+    canonical, lowered, _, _ = _artifact(CROSS_SCOPE_SOURCE)
+    route_control = lowered["comparison"]["route_control"]
+    variable_id = route_control["fcstm_variable_id"]
+    original = f"def int {variable_id} = 0;"
+    tampered_fcstm = lowered["fcstm"].replace(
+        original,
+        f"def int {variable_id} = 1;",
+        1,
+    )
+    model = load_state_machine_from_text(tampered_fcstm)
+    report = inspect_model(model).to_json()
+
+    with pytest.raises(ValueError, match="route controller declaration drift"):
+        audit_lowered_artifact(
+            canonical=canonical,
+            fcstm=tampered_fcstm,
+            comparison=lowered["comparison"],
+            model=model,
+            inspect_report=report,
+        )
 
 
 def test_capabilities_keep_static_source_analysis_when_runtime_semantics_are_unsupported():
@@ -1277,14 +1350,14 @@ def test_ast_audit_rejects_cross_scope_exit_retargeted_inside_scope():
         item
         for item in tampered["transition_mappings"]
         if any(
-            emitted["generated_role"] == "cross_scope_exit_segment"
+            emitted["generated_role"] == "source_route_exit_segment"
             for emitted in item["emitted"]
         )
     )
     exit_segment = next(
         item
         for item in mapping["emitted"]
-        if item["generated_role"] == "cross_scope_exit_segment"
+        if item["generated_role"] == "source_route_exit_segment"
     )
     original = exit_segment["line"]
     rewritten = original.replace("-> [*]", "-> Inner")
@@ -1293,7 +1366,7 @@ def test_ast_audit_rejects_cross_scope_exit_retargeted_inside_scope():
     model = load_state_machine_from_text(tampered_fcstm)
     report = inspect_model(model).to_json()
 
-    with pytest.raises(ValueError, match="cross-scope exit projection drift"):
+    with pytest.raises(ValueError, match="route exit projection drift"):
         audit_lowered_artifact(
             canonical=canonical,
             fcstm=tampered_fcstm,
@@ -1383,23 +1456,214 @@ state B
         )
 
 
-def test_ast_audit_rejects_composite_force_loss():
+def test_ast_audit_rejects_composite_route_continuation_drift():
     canonical, lowered, _, _ = _artifact(COMPOSITE_SOURCE)
     tampered = copy.deepcopy(lowered["comparison"])
     mapping = next(
         item
         for item in tampered["transition_mappings"]
-        if item["emitted"][0]["line"].startswith("!Operate -> Off")
+        if item["reason_code"] == "R45.MAP.composite_source_routed_sibling"
     )
-    original = mapping["emitted"][0]["line"]
-    assert original.startswith("!")
-    rewritten = original[1:]
-    mapping["emitted"][0]["line"] = rewritten
+    continuation = next(
+        item
+        for item in mapping["emitted"]
+        if item["generated_role"] == "composite_source_sibling_continuation"
+    )
+    original = continuation["line"]
+    rewritten = original.replace("-> Off", "-> Operate")
+    continuation["line"] = rewritten
     tampered_fcstm = lowered["fcstm"].replace(original, rewritten, 1)
     model = load_state_machine_from_text(tampered_fcstm)
     report = inspect_model(model).to_json()
 
-    with pytest.raises(ValueError, match="endpoint projection drift"):
+    with pytest.raises(ValueError, match="composite sibling endpoint projection drift"):
+        audit_lowered_artifact(
+            canonical=canonical,
+            fcstm=tampered_fcstm,
+            comparison=tampered,
+            model=model,
+            inspect_report=report,
+        )
+
+
+def test_composite_source_sibling_consumes_event_once_from_each_source_leaf():
+    canonical, lowered, model, report = _artifact(
+        """@startuml
+state Operate {
+  [*] --> Idle
+  state Idle
+  state Active
+}
+state Off
+[*] --> Operate
+Operate --> Off : Shutdown
+@enduml
+""",
+        example_id="composite_sibling_route",
+    )
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["reason_code"] == "R45.MAP.composite_source_routed_sibling"
+    )
+    route_control = lowered["comparison"]["route_control"]
+    route_var = route_control["fcstm_variable_id"]
+    assert mapping["route_trigger_count"] == 2
+    assert not any(item["line"].lstrip().startswith("!") for item in mapping["emitted"])
+    assert sum("/Shutdown" in item["line"] for item in mapping["emitted"]) == 2
+
+    for leaf in ("Idle", "Active"):
+        runtime = SimulationRuntime(
+            model,
+            initial_state=f"composite_sibling_route.Operate.{leaf}",
+            initial_vars={route_var: 0},
+        )
+        result = runtime.cycle([f"{model.root_state.name}.Shutdown"])
+        assert runtime.current_state.path[-1] == "Off"
+        assert result.consumed_events == (f"{model.root_state.name}.Shutdown",)
+        assert runtime.vars[route_var] == 0
+
+    audit_lowered_artifact(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        model=model,
+        inspect_report=report,
+    )
+
+
+@pytest.mark.parametrize(
+    "example_id,source,setup_event,route_event,synthetic_prefix",
+    [
+        (
+            "missing_initial_route",
+            SYNTHETIC_ROUTE_SOURCE,
+            None,
+            "Shutdown",
+            "UnspecifiedInitial",
+        ),
+        (
+            "invalid_initial_route",
+            """@startuml
+state Operate {
+  [*] --> Operate
+  state Idle
+}
+state Off
+[*] --> Operate
+Operate --> Off : Shutdown
+@enduml
+""",
+            None,
+            "Shutdown",
+            "InvalidInitial",
+        ),
+        (
+            "deep_final_route",
+            """@startuml
+state Area {
+  [*] --> Section
+  state Section {
+    [*] --> Active
+    state Active
+    Active --> [*] : Done
+  }
+}
+state Off
+[*] --> Area
+Area --> Off : Close
+@enduml
+""",
+            "Done",
+            "Close",
+            "FinalWait",
+        ),
+    ],
+)
+def test_composite_route_from_active_synthetic_leaf_consumes_once_and_resets(
+    example_id: str,
+    source: str,
+    setup_event: str | None,
+    route_event: str,
+    synthetic_prefix: str,
+):
+    canonical, lowered, model, report = _artifact(source, example_id=example_id)
+    route_var = lowered["comparison"]["route_control"]["fcstm_variable_id"]
+    runtime = SimulationRuntime(model, initial_vars={route_var: 0})
+    runtime.cycle()
+    if setup_event is not None:
+        setup_result = runtime.cycle([f"{model.root_state.name}.{setup_event}"])
+        assert setup_result.consumed_events == (
+            f"{model.root_state.name}.{setup_event}",
+        )
+    assert runtime.current_state.name.startswith(synthetic_prefix)
+
+    result = runtime.cycle([f"{model.root_state.name}.{route_event}"])
+
+    assert runtime.current_state.path[-1] == "Off"
+    assert result.consumed_events == (f"{model.root_state.name}.{route_event}",)
+    assert runtime.vars[route_var] == 0
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["source_transition"].get("raw_label") == route_event
+    )
+    synthetic_triggers = [
+        item
+        for item in mapping["emitted"]
+        if item["generated_role"] == "composite_source_synthetic_leaf_trigger"
+    ]
+    assert any(synthetic_prefix in item["line"] for item in synthetic_triggers)
+    assert not any(item["line"].lstrip().startswith("!") for item in mapping["emitted"])
+    assert sum(f"/{route_event}" in item["line"] for item in mapping["emitted"]) == (
+        mapping["route_trigger_count"]
+    )
+    audit_lowered_artifact(
+        canonical=canonical,
+        fcstm=lowered["fcstm"],
+        comparison=lowered["comparison"],
+        model=model,
+        inspect_report=report,
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation,error",
+    [
+        ("delete", "composite synthetic trigger inventory drift"),
+        ("rescope", "route trigger scope drift"),
+    ],
+)
+def test_ast_audit_rejects_missing_or_mis_scoped_synthetic_route_trigger(
+    mutation: str,
+    error: str,
+):
+    canonical, lowered, _, _ = _artifact(
+        SYNTHETIC_ROUTE_SOURCE,
+        example_id=f"synthetic_route_{mutation}",
+    )
+    tampered = copy.deepcopy(lowered["comparison"])
+    mapping = next(
+        item
+        for item in tampered["transition_mappings"]
+        if item["source_transition"].get("raw_label") == "Shutdown"
+    )
+    trigger = next(
+        item
+        for item in mapping["emitted"]
+        if item["generated_role"] == "composite_source_synthetic_leaf_trigger"
+    )
+    tampered_fcstm = lowered["fcstm"]
+    if mutation == "delete":
+        mapping["emitted"].remove(trigger)
+        mapping["route_trigger_count"] -= 1
+        tampered_fcstm = tampered_fcstm.replace(f"        {trigger['line']}\n", "", 1)
+    else:
+        trigger["scope"] = "__root__"
+    model = load_state_machine_from_text(tampered_fcstm)
+    report = inspect_model(model).to_json()
+
+    with pytest.raises(ValueError, match=error):
         audit_lowered_artifact(
             canonical=canonical,
             fcstm=tampered_fcstm,
@@ -1503,9 +1767,19 @@ Outside --> C.Wanted : Go
 """
     canonical = parse_plantuml_source(source, example_id="priority_probe")
     lowered = lower_plantuml_source(canonical)
-    assert lowered["fcstm"].index("[*] -> Wanted : /Go;") < lowered["fcstm"].index(
-        "[*] -> Default;"
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["source_transition"]["raw_label"] == "Go"
     )
+    wanted = next(
+        item["line"]
+        for item in mapping["emitted"]
+        if item["generated_role"] == "cross_scope_target_entry_segment"
+    )
+    assert "[*] -> Wanted : if [" in wanted
+    assert "/Go" not in wanted
+    assert lowered["fcstm"].index(wanted) < lowered["fcstm"].index("[*] -> Default;")
     model = load_state_machine_from_text(lowered["fcstm"])
     report = inspect_model(model).to_json()
     audit_lowered_artifact(
@@ -1515,7 +1789,6 @@ Outside --> C.Wanted : Go
         model=model,
         inspect_report=report,
     )
-    wanted = "[*] -> Wanted : /Go;"
     default = "[*] -> Default;"
     tampered_fcstm = lowered["fcstm"].replace(wanted, "<WANTED>", 1)
     tampered_fcstm = tampered_fcstm.replace(default, wanted, 1).replace(
@@ -1549,9 +1822,18 @@ state C {
 """
     canonical = parse_plantuml_source(source, example_id="deep_initial_priority_probe")
     lowered = lower_plantuml_source(canonical)
-    assert lowered["fcstm"].index("[*] -> Wanted;") < lowered["fcstm"].index(
-        "[*] -> Default;"
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["source"] == "@initial:__root__"
     )
+    wanted = next(
+        item["line"]
+        for item in mapping["emitted"]
+        if item["generated_role"] == "source_initial_nested_entry_segment"
+    )
+    assert "[*] -> Wanted : if [" in wanted
+    assert lowered["fcstm"].index(wanted) < lowered["fcstm"].index("[*] -> Default;")
     model = load_state_machine_from_text(lowered["fcstm"])
     runtime = SimulationRuntime(model)
     runtime.cycle()
@@ -1659,7 +1941,7 @@ Outside --> Modes.Steering : Steer
         assert runtime.current_state.path[-1] == expected_branch
 
 
-def test_deep_event_initial_replays_the_label_only_on_one_source_macro():
+def test_deep_event_initial_consumes_the_label_once_via_protected_route_token():
     _, lowered, model, _ = _artifact(
         """@startuml
 state Outer {
@@ -1679,22 +1961,60 @@ state Outer {
         if item["transition_id"] == "tr_0001"
     )
     assert len(mapping["emitted"]) == 3
-    assert sum("/Boot" in item["line"] for item in mapping["emitted"]) == 3
-    assert mapping["emitted"][0]["line"] == "[*] -> Outer : /Boot;"
-    assert all("/Boot" in item["line"] for item in mapping["emitted"][1:])
-    replay_debt = next(
-        item
+    assert sum("/Boot" in item["line"] for item in mapping["emitted"]) == 1
+    assert "effect" in mapping["emitted"][0]["line"]
+    assert all("if [" in item["line"] for item in mapping["emitted"][1:])
+    assert mapping["route_code"] > 0
+    assert not any(
+        item["reason_code"] == "R45.DEBT.multi_segment_event_replay"
+        and item.get("transition_id") == "tr_0001"
         for item in lowered["comparison"]["operational_debts"]
-        if item["reason_code"] == "R45.DEBT.multi_segment_event_replay"
     )
-    assert replay_debt["transition_id"] == "tr_0001"
-    assert replay_debt["segment_count"] == 3
+    route_control = lowered["comparison"]["route_control"]
+    assert route_control["fcstm_variable_id"] in lowered["fcstm"]
+    assert route_control["initial_value"] == 0
 
     runtime = SimulationRuntime(model)
     runtime.cycle()
     result = runtime.cycle([f"{model.root_state.name}.Boot"])
     assert runtime.current_state.path[-3:] == ("Outer", "Inner", "Ready")
-    assert set(result.consumed_events) == {f"{model.root_state.name}.Boot"}
+    assert result.consumed_events == (f"{model.root_state.name}.Boot",)
+    assert runtime.vars[route_control["fcstm_variable_id"]] == 0
+
+
+def test_llms_emp_0005_cross_scope_cancel_reaches_source_target_without_replay():
+    row = next(
+        item
+        for item in _rows()
+        if item["pair_id"] == "llms_emp_feedback_final_0005"
+    )
+    _, lowered, model, _ = _artifact(
+        row["stm0_text"],
+        example_id="llms_emp_feedback_final_0005",
+    )
+    route_control = lowered["comparison"]["route_control"]
+    route_var = route_control["fcstm_variable_id"]
+    runtime = SimulationRuntime(
+        model,
+        initial_state=(
+            "llms_emp_feedback_final_0005."
+            "DoorOpenWithItem.ReadytoCook.Cooking.ActiveCooking"
+        ),
+        initial_vars={route_var: 0},
+    )
+
+    result = runtime.cycle([f"{model.root_state.name}.Cancel"])
+
+    assert runtime.current_state.path[-2:] == ("ReadytoCook", "WaitingToStart")
+    assert result.consumed_events == (f"{model.root_state.name}.Cancel",)
+    assert runtime.vars[route_var] == 0
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["transition_id"] == "tr_0019"
+    )
+    assert sum("/Cancel" in item["line"] for item in mapping["emitted"]) == 1
+    assert not any(item["line"].lstrip().startswith("!") for item in mapping["emitted"])
 
 
 def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
@@ -1722,6 +2042,9 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         "missing_initial_helpers": 0,
         "nested_final_helpers": 0,
         "invalid_scope_helpers": 0,
+        "route_mappings": 0,
+        "route_trigger_alternatives": 0,
+        "routed_forced_segments": 0,
     }
     debt_reasons: dict[str, int] = {}
     for row in rows:
@@ -1807,6 +2130,20 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
             for mapping in lowered["comparison"]["transition_mappings"]
             for emitted in mapping["emitted"]
         )
+        routed_mappings = [
+            mapping
+            for mapping in lowered["comparison"]["transition_mappings"]
+            if mapping["route_code"] is not None
+        ]
+        totals["route_mappings"] += len(routed_mappings)
+        totals["route_trigger_alternatives"] += sum(
+            mapping["route_trigger_count"] for mapping in routed_mappings
+        )
+        totals["routed_forced_segments"] += sum(
+            emitted["line"].lstrip().startswith("!")
+            for mapping in routed_mappings
+            for emitted in mapping["emitted"]
+        )
         assert "InitialWait" not in lowered["fcstm"]
         assert "LifecycleActive" not in lowered["fcstm"]
         for synthetic in lowered["comparison"]["synthetic_state_mappings"]:
@@ -1883,11 +2220,14 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         "missing_initial_helpers": 28,
         "nested_final_helpers": 10,
         "invalid_scope_helpers": 13,
+        "route_mappings": 114,
+        "route_trigger_alternatives": 328,
+        "routed_forced_segments": 0,
     }
     assert {
         "R45.DEBT.concurrent_region_semantics",
+        "R45.DEBT.composite_source_activation_dispatch",
         "R45.DEBT.invalid_source_final_scope",
         "R45.DEBT.source_input_normalization",
-        "R45.DEBT.multi_segment_event_replay",
     } <= set(debt_reasons)
-    assert debt_reasons["R45.DEBT.multi_segment_event_replay"] == 35
+    assert debt_reasons.get("R45.DEBT.multi_segment_event_replay", 0) == 0

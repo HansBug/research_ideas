@@ -1571,10 +1571,8 @@ def test_confirmed_issue_binding_rejects_conversion_or_ineligible_evidence(
 
 def test_committed_60_cases_are_loadable_only_through_attribution_safe_view():
     manifest = _read_json_fixture(FORMAL_EVIDENCE / "manifest.json")
-    if manifest.get("schema_version") != "r4_5.llms_emp_java_batch.v6":
-        pytest.skip("formal v6 evidence has not been replayed yet")
-    if not (FORMAL_EVIDENCE / "PUBLICATION_SEAL.json").is_file():
-        pytest.skip("formal v6 evidence has not completed main-session review")
+    assert manifest.get("schema_version") == "r4_5.llms_emp_java_batch.v6"
+    assert (FORMAL_EVIDENCE / "PUBLICATION_SEAL.json").is_file()
     assert manifest["evidence_eligible"] is True
 
     for index in range(60):

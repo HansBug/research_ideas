@@ -281,6 +281,21 @@ def build_review_obligations(
                 [mapping.get("raw_ref")],
                 "One source transition is lowered into multiple protected FCSTM members.",
             )
+        if mapping.get("route_code") is not None:
+            add(
+                "route_controller",
+                transition_id,
+                element_ids,
+                [mapping.get("raw_ref")],
+                (
+                    "A protected route code dispatches "
+                    f"{mapping.get('route_trigger_count', 0)} FCSTM single-active "
+                    "alternatives, carries no event on continuation segments, and resets "
+                    "exactly once at the stable target. This is not a claim that authored "
+                    "PlantUML orthogonal regions are mutually exclusive; concurrency remains "
+                    "capability-excluded."
+                ),
+            )
         if mapping["source_transition"].get("kind") == "final":
             add(
                 "final_boundary",
@@ -748,6 +763,52 @@ def build_working_contract(
                 },
             )
         )
+
+    route_control = comparison.get("route_control")
+    if route_control is not None:
+        route_variable_id = route_control["fcstm_variable_id"]
+        route_transition_ids = sorted(route_control["transition_route_codes"])
+        route_macro_ids = [transition_macro_ids[item] for item in route_transition_ids]
+        route_element_id = _compiler_id("route_control", route_variable_id)
+        route_line = f"def int {route_variable_id} = {route_control['initial_value']};"
+        elements.append(
+            _element(
+                element_id=route_element_id,
+                kind="route_control_variable",
+                origin="compiler_owned",
+                source_refs=sorted(
+                    {
+                        source_ref
+                        for source_ref in route_control[
+                            "transition_source_refs"
+                        ].values()
+                        if source_ref
+                    }
+                ),
+                model_refs=[f"variable:{route_variable_id}"],
+                edit_policy="protected",
+                macro_ids=route_macro_ids,
+                metadata={
+                    "generated_reason": "protected_cross_scope_route_token",
+                    "line": route_line,
+                    "initial_value": route_control["initial_value"],
+                    "policy": route_control["policy"],
+                },
+            )
+        )
+        macros_by_id = {item["macro_id"]: item for item in macros}
+        for transition_id in route_transition_ids:
+            macro = macros_by_id[transition_macro_ids[transition_id]]
+            macro["member_element_ids"] = sorted(
+                [*macro["member_element_ids"], route_element_id]
+            )
+            macro["member_digest"] = _sha256_json(macro["member_element_ids"])
+            macro["capability_effects"] = sorted(
+                [
+                    *macro["capability_effects"],
+                    "protected_single_consumption_route_controller",
+                ]
+            )
 
     transitions_by_event: dict[str, list[dict[str, Any]]] = {}
     for transition in canonical["model"]["transitions"]:
@@ -1490,6 +1551,18 @@ def validate_working_contract(
             for item in comparison["synthetic_state_mappings"]
             if item.get("source_transition_id") == mapping["transition_id"]
         )
+        route_control = comparison.get("route_control")
+        if mapping.get("route_code") is not None:
+            if route_control is None:
+                raise ValueError(
+                    f"route macro lacks controller: {mapping['transition_id']}"
+                )
+            expected_members.add(
+                _compiler_id(
+                    "route_control",
+                    route_control["fcstm_variable_id"],
+                )
+            )
         if set(macro["member_element_ids"]) != expected_members:
             raise ValueError(
                 f"transition macro member drift: {mapping['transition_id']}"
