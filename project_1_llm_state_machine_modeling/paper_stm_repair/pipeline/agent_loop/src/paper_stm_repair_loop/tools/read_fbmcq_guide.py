@@ -30,21 +30,32 @@ def execute() -> dict[str, Any]:
 
 
 def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
-    """Build the attempt-local zero-argument FBMCQ guide reader."""
+    """Build the attempt-local FBMCQ guide reader with one required reason."""
 
     served_metadata: dict[str, Any] | None = None
 
-    def read_fbmcq_guide() -> dict[str, Any]:
+    def read_fbmcq_guide(reason: str) -> dict[str, Any]:
         """Purpose
         -------
         Read pyfcstm's packaged, integrity-checked FBMCQ authoring guide before
         the first attempt to read, write, revise, or request execution of an FBMCQ
         property in this Agent attempt.
 
+        When to use
+        -----------
+        Use before composing, registering, revising, or interpreting the first
+        assertion containing ``fbmcq(...)``.
+
+        When not to use
+        ----------------
+        Do not call when the coverage plan has no formal assertion, and do not
+        use guide text as proof that a property holds.
+
         Parameters
         ----------
-        None. The strict input is exactly ``{}``; no query, path, model, run/case,
-        URL, shell, Python/Z3, or reference/gold selector is accepted.
+        Exactly one non-empty ``reason`` string in the run content language. No
+        query, path, model, run/case, URL, shell, Python/Z3, or reference/gold
+        selector is accepted.
 
         Returns
         -------
@@ -57,16 +68,16 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         ---------
         Calls ``pyfcstm.llm.get_fbmcq_language_guide_prompt_for_llm`` and its
         metadata API. pyfcstm verifies the packaged SHA-256 sidecar. Only a
-        successful result marks the guide as read; ``evaluate_checks`` then permits
-        a batch containing ``check_kind=property``. The full guide is returned
+        successful result marks the guide as read; coverage registration/revision
+        then permits an expression containing ``fbmcq(...)``. The full guide is returned
         once; a repeated call returns only the same metadata and
         ``execution_status=no_new_guide_fact``.
 
         Failure semantics
         -----------------
-        Resource or checksum failure leaves property execution locked. A property
-        batch submitted first receives ``execution_status=prerequisite_required``;
-        the Agent must read this guide and resubmit the unchanged intended batch.
+        Resource or checksum failure leaves formal assertion registration locked.
+        A registration/revision attempted first is rejected with a prerequisite;
+        the Agent must read this guide and resubmit the same intended obligation.
 
         Evidence limitations
         --------------------
@@ -79,11 +90,9 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         Read-only packaged-resource access. No arbitrary paths, filesystem scan,
         network, provider call, mutation, shell/Python/Z3, or reference/gold data.
 
-        Example
-        -------
-        The first input ``{}`` returns the full guide and SHA-256. Call it before
-        the first ``evaluate_checks`` request whose batch contains a property
-        draft. Repeated input returns only metadata and a
+        Examples
+        --------
+        The first input ``{"reason":"Read official FBMCQ syntax before registering a bounded assertion."}`` returns the full guide and SHA-256. Repeated input returns only metadata and a
         ``no_new_guide_fact`` limitation.
         """
 
@@ -93,6 +102,7 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
                 "execution_status": "no_new_guide_fact",
                 "guide_kind": "fbmcq",
                 **served_metadata,
+                "reason": reason,
                 "limitations": [
                     "duplicate_guide_read_not_replayed",
                     "no_new_guide_fact",
@@ -100,6 +110,7 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
                 ],
             }
         result = execute()
+        result["reason"] = reason
         result["guide_access_sequence"] = state.mark_read("fbmcq", result)
         served_metadata = {
             key: result.get(key)

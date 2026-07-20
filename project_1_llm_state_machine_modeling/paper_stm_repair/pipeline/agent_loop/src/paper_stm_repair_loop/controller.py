@@ -1,290 +1,450 @@
 from __future__ import annotations
 
-import re
-from typing import Any, Iterable
+import copy
+from dataclasses import dataclass
+from typing import Any, Mapping
 
-from .records import sha256_json
-from .schemas import CheckDraftSubmission, DiscoverCheckDraft, IssueCheck
-
-
-def _normal(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", value.lower())
-
-
-def _event_tokens(value: str) -> set[str]:
-    aliases = {
-        "auto": "autonomous",
-        "final": "exit",
-        "greater": "",
-        "less": "",
-        "than": "",
-    }
-    ignored = {"gt", "lt", "gte", "lte", "ge", "le", "eq", "ne", "or", "event"}
-    tokens: set[str] = set()
-    for token in re.findall(r"[a-z0-9]+", value.lower()):
-        token = aliases.get(token, token)
-        if token and token not in ignored:
-            tokens.add(token)
-    return tokens
+from .context import freeze_task_snapshot, validate_reference_blind
+from .coverage_requirements import (
+    COVERAGE_REQUIREMENT_VERSION,
+    build_coverage_requirements,
+)
+from .eval_env import EvalEnvironment
+from .inputs import PreparedCase
+from .nl_segmenter import SegmenterResult, segment_nl
+from .records import RecordStore, sha256_json
+from .schemas.coverage import CoverageRequirement, InputSegment, SourceFact
+from .source_inventory import build_source_inventory
+from .tools.coverage_registry import (
+    SOURCE_FACT_EVIDENCE_FAMILIES,
+    CoverageRegistry,
+    DirectEvalRuntime,
+)
+from .tools.guide_access import GuideAccessState
 
 
-def _best_match(
-    label: str,
-    candidates: Iterable[tuple[str, str]],
-    *,
-    event_semantics: bool = False,
-) -> str | None:
-    wanted = _normal(label)
-    if not wanted:
-        return None
-    ranked: list[tuple[int, str]] = []
-    wanted_tokens = _event_tokens(label) if event_semantics else set()
-    for identifier, visible in candidates:
-        forms = {_normal(identifier), _normal(identifier.rsplit(".", 1)[-1]), _normal(visible)}
-        if wanted in forms:
-            ranked.append((0, identifier))
-        elif any(wanted in form or form in wanted for form in forms if form):
-            ranked.append((1, identifier))
-        elif wanted_tokens:
-            candidate_tokens = _event_tokens(identifier.rsplit(".", 1)[-1]) | _event_tokens(visible)
-            if wanted_tokens == candidate_tokens:
-                ranked.append((2, identifier))
-            elif wanted_tokens.issubset(candidate_tokens) or candidate_tokens.issubset(wanted_tokens):
-                ranked.append((3, identifier))
-    if not ranked:
-        return None
-    best_rank = min(rank for rank, _identifier in ranked)
-    best_matches = sorted({identifier for rank, identifier in ranked if rank == best_rank})
-    return best_matches[0] if len(best_matches) == 1 else None
+@dataclass(frozen=True)
+class FrozenDiscoverInputs:
+    """Controller-owned deterministic inputs for one B-discover attempt."""
+
+    segmenter: SegmenterResult
+    input_segments: tuple[InputSegment, ...]
+    coverage_requirements: tuple[CoverageRequirement, ...]
+    source_facts: tuple[SourceFact, ...]
+    source_inventory_sha256: str
+    source_mappings: tuple[dict[str, Any], ...]
 
 
-def _bind_drafts(
-    nl_drafts: CheckDraftSubmission,
-    source_drafts: CheckDraftSubmission,
-    inspect: dict[str, Any],
-    *,
-    binding_rejections: list[dict[str, Any]] | None = None,
-) -> list[IssueCheck]:
-    states = [(item["path"], item.get("name", item["path"])) for item in inspect.get("states", []) if item.get("path")]
-    events = [(item["qualified_name"], item["qualified_name"].rsplit(".", 1)[-1]) for item in inspect.get("events", []) if item.get("qualified_name")]
-    transitions = list(inspect.get("transitions", []))
-    state_items = [item for item in inspect.get("states", []) if isinstance(item, dict) and item.get("path")]
-    state_by_path = {str(item["path"]): item for item in state_items}
-    forced_transitions = [item for item in inspect.get("forced_transitions", []) if isinstance(item, dict)]
-    output: list[IssueCheck] = []
-    grouped = (("nl_grounded_behavioral_issue", nl_drafts.checks), ("raw_internal_inconsistency", source_drafts.checks))
-    for origin, drafts in grouped:
-        for index, draft in enumerate(drafts, start=1):
-            spec = dict(draft.executable_spec)
-            if origin == "raw_internal_inconsistency":
-                consistency_status = draft.expected_outcome.get("consistency_status")
-                if len(draft.source_basis) < 2 or consistency_status != "contradicts" or draft.nl_basis:
-                    if binding_rejections is not None:
-                        binding_rejections.append(
-                            {
-                                "draft_origin": "raw_internal_inconsistency",
-                                "draft_check_id": draft.check_id,
-                                "reason": "source_internal_conflict_contract_unsatisfied",
-                                "required_source_basis_min": 2,
-                                "observed_source_basis_count": len(draft.source_basis),
-                                "required_consistency_status": "contradicts",
-                                "observed_consistency_status": consistency_status,
-                            }
-                        )
-                    continue
-            refs: list[str] = []
-            if draft.check_kind == "scenario":
-                labels = spec.pop("event_labels", None) or spec.get("events") or ([spec["event"]] if spec.get("event") else [])
-                precondition_label = spec.pop("precondition_state_label", None)
-                precondition_state = (
-                    _best_match(str(precondition_label), states)
-                    if isinstance(precondition_label, str) and precondition_label
-                    else None
-                )
-                bound_events = [_best_match(str(label), events, event_semantics=True) for label in labels]
-                missing_labels = [str(label) for label, bound in zip(labels, bound_events) if bound is None]
-                bound_events = [item for item in bound_events if item is not None]
-                spec = {
-                    "events": bound_events,
-                    "setup_events": bound_events[:-1],
-                    "tested_event": bound_events[-1] if bound_events else None,
-                    "requested_event_labels": [str(label) for label in labels],
-                    "unbound_event_labels": missing_labels,
-                    "precondition_state": precondition_state,
-                    "requested_precondition_state_label": precondition_label,
-                    "unbound_precondition_state_label": (
-                        precondition_label if precondition_state is None else None
-                    ),
-                }
-                refs = [f"event:{item}" for item in bound_events]
-                if precondition_state is not None:
-                    refs.append(f"state:{precondition_state}")
-            elif draft.check_kind == "property":
-                target_label = str(spec.pop("target_label", ""))
-                state = _best_match(target_label, states)
-                kind = str(spec.get("kind") or "reach")
-                temporal_kinds = {
-                    "reach",
-                    "cover",
-                    "exists_always",
-                    "forbid",
-                    "invariant",
-                    "must_reach",
-                }
-                bound = 0
-                if kind in temporal_kinds:
-                    raw_bound = spec.get("bound", 3)
-                    if (
-                        isinstance(raw_bound, bool)
-                        or not isinstance(raw_bound, int)
-                        or raw_bound <= 0
-                    ):
-                        if binding_rejections is not None:
-                            binding_rejections.append(
-                                {
-                                    "draft_origin": origin,
-                                    "draft_check_id": draft.check_id,
-                                    "reason": "property_bound_must_be_positive_integer",
-                                    "observed_type": type(raw_bound).__name__,
-                                }
-                            )
-                        continue
-                    bound = raw_bound
-                if state:
-                    if kind in temporal_kinds:
-                        predicate = f'active("{state}")'
-                        spec = {"query": f"check {kind} <= {bound}: {predicate};", "kind": kind, "bound": bound}
-                    elif kind == "has_substates":
-                        spec = {"kind": "state_shape", "state": state, "expect": {"is_composite": True, "substates_min": 1}}
-                    elif kind == "simple_state":
-                        spec = {"kind": "state_shape", "state": state, "expect": {"is_leaf": True, "is_composite": False}}
-                    refs = [f"state:{state}"]
-            else:
-                static_kind = spec.get("kind")
-                if static_kind == "transition_shape":
-                    source = _best_match(str(spec.get("source_label", "")), states)
-                    target = _best_match(str(spec.get("target_label", "")), states)
-                    event = _best_match(str(spec.get("event_label", "")), events, event_semantics=True) if spec.get("event_label") else None
-                    target_candidates = {target} if target else set()
-                    if target and target in state_by_path:
-                        target_candidates.update(
-                            str(item["target"])
-                            for item in state_by_path[target].get("initial_targets", [])
-                            if isinstance(item, dict) and item.get("target")
-                        )
-                    transition = next(
-                        (
-                            item
-                            for item in transitions
-                            if (source is None or item.get("from_path") == source)
-                            and (not target_candidates or item.get("to_path") in target_candidates)
-                            and (event is None or item.get("event") == event)
-                        ),
-                        None,
-                    )
-                    if transition is not None:
-                        expected = {"from_path": transition.get("from_path"), "to_path": transition.get("to_path"), "event": transition.get("event")}
-                        spec = {"kind": "transition_shape", "transition_index": transition["transition_index"], "expect": expected}
-                        refs = [f"transition:{transition['transition_index']}"]
-                    else:
-                        forced = next(
-                            (
-                                item
-                                for item in forced_transitions
-                                if (source is None or item.get("state_path") == source)
-                                and (not target_candidates or item.get("to_path") in target_candidates)
-                                and (event is None or item.get("event") == event)
-                            ),
-                            None,
-                        )
-                        if forced is not None:
-                            expected = {
-                                "state_path": forced.get("state_path"),
-                                "to_path": forced.get("to_path"),
-                                "event": forced.get("event"),
-                                "original_raw": forced.get("original_raw"),
-                            }
-                            spec = {"kind": "forced_transition_shape", "expect": expected}
-                            refs = [f"forced_transition:{forced.get('original_raw')}"]
-                elif static_kind == "state_declaration":
-                    state = _best_match(str(spec.get("state_label", "")), states)
-                    if state is not None:
-                        expected = {"is_composite": spec.get("state_kind") == "composite"}
-                        spec = {"kind": "state_shape", "state_path": state, "expect": expected}
-                        refs = [f"state:{state}"]
-                elif static_kind == "label_reuse":
-                    label = _normal(str(spec.get("state_label", "")))
-                    matching = [item for item in state_items if _normal(str(item.get("name") or item["path"].rsplit(".", 1)[-1])) == label]
-                    if matching:
-                        state_paths = [str(item["path"]) for item in matching]
-                        spec = {
-                            "kind": "state_label_scopes",
-                            "state_paths": state_paths,
-                            "expected_scope_labels": [str(item) for item in spec.get("scopes", [])],
-                        }
-                        refs = [f"state:{path}" for path in state_paths]
-            check_id = f"CHK-{'NL' if origin.startswith('nl_') else 'SRC'}-{index:03d}"
-            expected = dict(draft.expected_outcome)
-            if draft.check_kind == "scenario" and isinstance(expected.get("target_label"), str):
-                state = _best_match(expected["target_label"], states)
-                if state is not None:
-                    expected = {
-                        "state_in": state,
-                        "unconsumed_events": [],
-                    }
-                    target_ref = f"state:{state}"
-                    if target_ref not in refs:
-                        refs.append(target_ref)
-            elif draft.check_kind == "property" and "property_satisfied" not in expected and isinstance(expected.get("satisfied"), bool):
-                expected = {"property_satisfied": expected["satisfied"]}
-            output.append(
-                IssueCheck(
-                    check_id=check_id,
-                    check_origin=origin,
-                    check_kind=draft.check_kind,
-                    statement=draft.statement,
-                    expected_outcome=expected,
-                    basis_hashes={
-                        "nl_basis": sha256_json(draft.nl_basis),
-                        "source_basis": sha256_json(draft.source_basis),
-                        "expected_outcome": sha256_json(expected),
-                    },
-                    source_basis=draft.source_basis,
-                    nl_basis=draft.nl_basis,
-                    executable_spec=spec,
-                    binding_refs=refs,
-                    required=draft.required,
-                )
-            )
-    return output
+class DiscoverController:
+    """Deterministic boundary around the single B-discover LLM Agent.
 
+    Purpose
+    -------
+    Freeze current-run inputs, mechanically segment NL, inventory structured
+    source/FCSTM facts, own the append-only coverage/assertion registry, execute
+    registered assertions in one frozen eval environment, and project the final
+    runtime outcome.  This class is not an Agent and never interprets NL.
 
-def bind_discover_drafts(
-    drafts: list[DiscoverCheckDraft],
-    inspect: dict[str, Any],
-    *,
-    binding_rejections: list[dict[str, Any]] | None = None,
-) -> list[IssueCheck]:
-    """Bind one single-Agent Discover draft batch to normalized FCSTM facts.
+    Parameters
+    ----------
+    ``case`` is the immutable prepared input pair, ``manifest`` is the immutable
+    run manifest, ``check_result`` is the current pyfcstm structured preflight,
+    and ``store`` is the single-writer append-only run record store.
 
-    This function is deterministic and contains no provider call. Drafts are
-    partitioned by ``check_origin`` only to reuse the established NL/source
-    binding rules; their order within each origin is preserved. Any source draft
-    that does not establish a source-internal contradiction is recorded in
-    ``binding_rejections`` and omitted from the executable check set.
+    Returns
+    -------
+    ``prepare`` returns the frozen deterministic input bundle; ``task_snapshot``
+    returns the six-field Agent context; ``registry`` exposes only the registered
+    coverage/eval workflow used by Agent-facing tools; ``projection`` returns the
+    deterministic Root/run outcome.
+
+    Execution
+    ---------
+    The Controller uses syntax-only NL segmentation and public structured
+    pyfcstm/source-trace data.  It never creates CoverageUnits, semantic roles,
+    Roots, or assertion expressions.  Those are declared by the single Agent and
+    accepted only after reference/cardinality/coverage gates pass.
+
+    Failure semantics
+    -----------------
+    Invalid FCSTM, malformed frozen facts, reference leakage, registry mismatch,
+    missing latest assertions, or inconsistent submission fails closed.  No
+    partial success is published.
+
+    Evidence limitations
+    --------------------
+    Controller closure proves all frozen NL cue/dimension requirements,
+    behavior-relevant source facts, and latest assertion executions have closed.
+    It does not define a defect taxonomy or predict which obligations are issues.
+
+    Permissions
+    -----------
+    Read-only access to current-run frozen inputs and deterministic pyfcstm
+    evaluation; append-only writes below the current run directory. No alternate
+    case, hidden gold/reference, Repair, Confirm, or model edit.
+
+    Examples
+    --------
+    ``DiscoverController(case, manifest, checked, store).prepare()`` creates the
+    exact InputSegments/SourceFacts used by one subsequent ``AgentApp.run``.
     """
 
-    nl_checks = []
-    source_checks = []
-    for draft in drafts:
-        payload = draft.model_dump(mode="json", exclude={"check_origin"})
-        if draft.check_origin == "nl_grounded_behavioral_issue":
-            nl_checks.append(payload)
-        else:
-            source_checks.append(payload)
-    return _bind_drafts(
-        CheckDraftSubmission.model_validate({"checks": nl_checks}),
-        CheckDraftSubmission.model_validate({"checks": source_checks}),
-        inspect,
-        binding_rejections=binding_rejections,
-    )
+    def __init__(
+        self,
+        case: PreparedCase,
+        manifest: Mapping[str, Any],
+        check_result: Mapping[str, Any],
+        store: RecordStore,
+        *,
+        guide_access: GuideAccessState | None = None,
+    ) -> None:
+        self.case = case
+        self.manifest = copy.deepcopy(dict(manifest))
+        self.check_result = copy.deepcopy(dict(check_result))
+        self.store = store
+        self.guide_access = guide_access or GuideAccessState()
+        self.frozen: FrozenDiscoverInputs | None = None
+        self.registry: CoverageRegistry | None = None
+        self.snapshot: dict[str, Any] | None = None
+
+    def prepare(self) -> FrozenDiscoverInputs:
+        if self.frozen is not None:
+            return self.frozen
+        if not self.check_result.get("executable"):
+            raise RuntimeError("fcstm_not_executable")
+
+        source_language = str(self.case.metadata.get("nl_language") or "en-US")
+        segmented = segment_nl(self.case.nl, language=source_language)
+        segments = tuple(InputSegment.model_validate(item) for item in segmented.segments)
+        requirements = build_coverage_requirements(segments)
+
+        initial_inventory = build_source_inventory(
+            self.check_result,
+            source_trace_base=self.case.source_trace,
+            relation_policy=None,
+            producer_version=self._pyfcstm_version(),
+        )
+        identity_rows = self._identity_rows(initial_inventory["facts"])
+        inventory = build_source_inventory(
+            self.check_result,
+            source_trace_base=self.case.source_trace,
+            relation_policy=self.case.source_trace.get("relation_policy"),
+            identity_refs=identity_rows,
+            producer_version=self._pyfcstm_version(),
+        )
+        facts = tuple(SourceFact.model_validate(item) for item in inventory["facts"])
+        mappings = tuple(self._mapping_rows(identity_rows))
+        self.frozen = FrozenDiscoverInputs(
+            segmenter=segmented,
+            input_segments=segments,
+            coverage_requirements=requirements,
+            source_facts=facts,
+            source_inventory_sha256=str(inventory["inventory_sha256"]),
+            source_mappings=mappings,
+        )
+
+        self.store.append(
+            "inputs_frozen",
+            {
+                "nl_raw_sha256": segmented.raw_sha256,
+                "nl_normalized_sha256": segmented.normalized_sha256,
+                "model_sha256": self.case.fcstm_sha256,
+                "raw_source_sha256": sha256_json(self.case.raw_source),
+                "source_trace_sha256": sha256_json(self.case.source_trace),
+                "manifest_input_sha256": self.manifest.get("input_sha256", {}),
+            },
+        )
+        self.store.append(
+            "input_segments_created",
+            {
+                "schema_version": "paper1.input_segments.v1",
+                "segmenter_version": segmented.segmenter_version,
+                "raw_sha256": segmented.raw_sha256,
+                "normalized_sha256": segmented.normalized_sha256,
+                "offset_map": segmented.offset_map,
+                "segments": [item.model_dump(mode="json") for item in segments],
+            },
+        )
+        self.store.append(
+            "coverage_requirements_created",
+            {
+                "schema_version": COVERAGE_REQUIREMENT_VERSION,
+                "requirements": [
+                    item.model_dump(mode="json") for item in requirements
+                ],
+            },
+        )
+        self.store.append(
+            "source_inventory_created",
+            {
+                "schema_version": "paper1.source_inventory.v1",
+                "inventory_sha256": inventory["inventory_sha256"],
+                "facts": [item.model_dump(mode="json") for item in facts],
+                "behavior_relevant_fact_ids": [
+                    item.fact_id for item in facts if item.behavior_relevant
+                ],
+            },
+        )
+        self.store.append(
+            "operationalizability_preflight_completed",
+            {
+                "operationalizable": True,
+                "model_sha256": self.case.fcstm_sha256,
+                "parse_status": self.check_result.get("parse_status"),
+                "semantic_status": self.check_result.get("semantic_status"),
+                "inspect_status": self.check_result.get("inspect_status"),
+                "limitations": [
+                    "fcstm_executable_only",
+                    "semantic_obligations_must_close_controller_requirements",
+                ],
+            },
+        )
+
+        environment = EvalEnvironment(
+            model_text=self.case.fcstm,
+            model_path="inputs/STM_0.fcstm",
+            inspect=self.check_result.get("inspect") or {},
+            source_mappings=list(mappings),
+            timeout_seconds=int(self.manifest.get("eval_timeout_seconds") or 2),
+        )
+        relevant = [item for item in facts if item.behavior_relevant]
+        self.registry = CoverageRegistry(
+            input_segment_ids=[item.segment_id for item in segments],
+            coverage_requirements={
+                item.requirement_id: item.model_dump(mode="json")
+                for item in requirements
+            },
+            source_fact_ids=[item.fact_id for item in relevant],
+            known_source_fact_ids=[item.fact_id for item in facts],
+            source_fact_refs={item.fact_id: item.qualified_refs for item in facts},
+            source_fact_kinds={item.fact_id: item.fact_kind for item in facts},
+            source_fact_details={
+                item.fact_id: item.model_dump(mode="json") for item in facts
+            },
+            eval_runtime=DirectEvalRuntime(environment),
+            model_sha256=self.case.fcstm_sha256,
+            record_sink=lambda record_type, payload: self.store.append(
+                record_type, payload
+            ),
+            issue_assessment_resolver=self._resolve_issue_assessment,
+            fbmcq_guide_read=lambda: self.guide_access.has_read("fbmcq"),
+        )
+        self.snapshot = self._build_task_snapshot()
+        validate_reference_blind(self.snapshot)
+        return self.frozen
+
+    def task_snapshot(self) -> dict[str, Any]:
+        self.prepare()
+        assert self.snapshot is not None
+        return copy.deepcopy(self.snapshot)
+
+    def projection(self) -> dict[str, Any]:
+        registry = self.require_registry()
+        gate = registry.assert_submit_allowed()
+        if not gate.get("submit_allowed"):
+            raise RuntimeError("discover_submit_not_allowed")
+        return copy.deepcopy(gate["projection"])
+
+    def require_registry(self) -> CoverageRegistry:
+        self.prepare()
+        assert self.registry is not None
+        return self.registry
+
+    def _build_task_snapshot(self) -> dict[str, Any]:
+        assert self.frozen is not None
+        current_records = {
+            "nl": {
+                "content": self.case.nl,
+                "raw_sha256": self.frozen.segmenter.raw_sha256,
+                "normalized_content": self.frozen.segmenter.normalized_text,
+                "normalized_sha256": self.frozen.segmenter.normalized_sha256,
+            },
+            "raw_source": {
+                "format": self.case.raw_source_format,
+                "content": self.case.raw_source,
+                "sha256": sha256_json(self.case.raw_source),
+            },
+            "source_trace": copy.deepcopy(self.case.source_trace),
+            "input_segments": [
+                item.model_dump(mode="json") for item in self.frozen.input_segments
+            ],
+            "coverage_requirements": [
+                item.model_dump(mode="json")
+                for item in self.frozen.coverage_requirements
+            ],
+            "strict_coverage_policy": {
+                "schema_version": COVERAGE_REQUIREMENT_VERSION,
+                "success_requires": [
+                    "all_input_segments_closed",
+                    "all_coverage_requirements_closed",
+                    "all_behavior_source_facts_closed",
+                    "all_latest_required_assertions_terminal",
+                    "no_incomplete_roots",
+                    "current_semantic_coverage_review_passed",
+                ],
+                "issue_taxonomy_policy": (
+                    "Open-world: the Agent discovers issue categories; no fixed "
+                    "defect family is Controller-owned or completeness-gating."
+                ),
+                "requirement_assertion_link_policy": (
+                    "Each requirement ID must occur in at least one required "
+                    "same-unit assertion basis with a permitted evidence route."
+                ),
+                "source_fact_direct_evidence_families": {
+                    kind: sorted(families)
+                    for kind, families in SOURCE_FACT_EVIDENCE_FAMILIES.items()
+                },
+                "source_fact_assertion_link_policy": (
+                    "Each behavior-relevant SourceFact ID must occur in at least "
+                    "one required assertion basis whose compatible executable "
+                    "predicate directly binds that fact's exact fields."
+                ),
+            },
+            "source_inventory": {
+                "inventory_sha256": self.frozen.source_inventory_sha256,
+                "facts": [
+                    item.model_dump(mode="json") for item in self.frozen.source_facts
+                ],
+            },
+            "eval_contract": {
+                "positive_bool_principle": (
+                    "True means the registered Root obligation is satisfied; "
+                    "False means it is contradicted."
+                ),
+                "function_families": [
+                    "structure",
+                    "relation",
+                    "effect",
+                    "simulation",
+                    "formal",
+                    "mapping",
+                ],
+                "functions": [
+                    "states",
+                    "events",
+                    "variables",
+                    "initial_child",
+                    "transitions",
+                    "transition_exists",
+                    "guards_overlap",
+                    "effects",
+                    "effect_delta",
+                    "simulate",
+                    "fbmcq",
+                    "mapped_source_refs",
+                    "mapped_fcstm_refs",
+                    "bound_model_refs",
+                ],
+                "pure_builtins": [
+                    "abs",
+                    "all",
+                    "any",
+                    "bool",
+                    "float",
+                    "int",
+                    "iter",
+                    "len",
+                    "list",
+                    "max",
+                    "min",
+                    "round",
+                    "set",
+                    "sorted",
+                    "str",
+                    "sum",
+                    "tuple",
+                ],
+            },
+            "run_policy": {
+                "formal_profile": bool(self.manifest.get("formal_profile", True)),
+                "agent_limits": copy.deepcopy(self.manifest.get("agent_limits") or {}),
+                "max_observe_trace_calls_per_root": 2,
+                "max_cycles_per_observe_trace_call": 16,
+                "eval_timeout_seconds": int(
+                    self.manifest.get("eval_timeout_seconds") or 2
+                ),
+            },
+        }
+        return freeze_task_snapshot(
+            model_text=self.case.fcstm,
+            model_sha256=self.case.fcstm_sha256,
+            normalized_inspect=self.check_result.get("inspect") or {},
+            current_records=current_records,
+        )
+
+    def _identity_rows(self, facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if not (
+            self.case.source_trace.get("relation_policy") == "exact_identity"
+            and self.case.raw_source_format == "fcstm-identity"
+            and self.case.raw_source == self.case.fcstm
+        ):
+            return []
+        refs = sorted(
+            {
+                str(ref)
+                for fact in facts
+                if fact.get("behavior_relevant")
+                for ref in fact.get("qualified_refs", [])
+                if ref
+            }
+        )
+        return [
+            {
+                "source_ref": ref,
+                "model_ref": ref,
+                "source_refs": [ref],
+                "model_refs": [ref],
+                "relation_policy": "exact_identity",
+                "confidence": "exact",
+                "producer": "paper1.controller",
+            }
+            for ref in refs
+        ]
+
+    def _mapping_rows(
+        self, identity_rows: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        rows = [
+            copy.deepcopy(item)
+            for item in self.case.source_trace.get("entries", [])
+            if isinstance(item, dict)
+        ]
+        rows.extend(copy.deepcopy(identity_rows))
+        return rows
+
+    def _resolve_issue_assessment(self, root: dict[str, Any]) -> tuple[str, bool]:
+        registry = self.require_registry()
+        unit = registry.coverage_units.get(str(root.get("coverage_unit_id")), {})
+        has_explicit_basis = bool(unit.get("segment_ids") or unit.get("source_fact_ids"))
+        model_refs = [str(item) for item in root.get("model_element_refs", []) if item]
+        if not has_explicit_basis:
+            return "candidate_only", False
+        if (
+            self.case.source_trace.get("relation_policy") == "exact_identity"
+            and self.case.raw_source_format == "fcstm-identity"
+            and self.case.raw_source == self.case.fcstm
+        ):
+            return "confirmed", True
+
+        if not model_refs:
+            return "candidate_only", False
+
+        mappings = list(self.frozen.source_mappings if self.frozen else ())
+        mapped = {
+            str(row.get("model_ref"))
+            for row in mappings
+            if row.get("model_ref") and row.get("source_ref")
+        }
+        if model_refs and all(ref in mapped for ref in model_refs):
+            return "confirmed", True
+        return "candidate_only", False
+
+    def _pyfcstm_version(self) -> str | None:
+        capability = self.store.latest("capability_manifest")
+        if capability:
+            value = capability.get("payload", {}).get("pyfcstm_version")
+            return str(value) if value else None
+        return None
+
+
+__all__ = ["DiscoverController", "FrozenDiscoverInputs"]

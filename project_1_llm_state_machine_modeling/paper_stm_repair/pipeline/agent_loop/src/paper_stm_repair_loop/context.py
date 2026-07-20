@@ -14,6 +14,15 @@ REFERENCE_MARKERS = (
     "gold_binding",
     "gold_repair",
     "gold_stm",
+    "gold_ref",
+    "evaluator_gold",
+    "evaluator_reference",
+    "negative_twin",
+    "expected_issue",
+    "expected_positive_status",
+    "expected_negative_status",
+    "positive_assertion",
+    "negative_assertion",
     "expected_issue_id",
 )
 
@@ -28,6 +37,10 @@ def validate_reference_blind(value: Any, *, path: str = "$") -> None:
     elif isinstance(value, (list, tuple)):
         for index, item in enumerate(value):
             validate_reference_blind(item, path=f"{path}[{index}]")
+    elif isinstance(value, str):
+        lowered = value.lower()
+        if any(marker in lowered for marker in REFERENCE_MARKERS):
+            raise ValueError(f"reference_content_forbidden:{path}")
 
 
 def freeze_task_snapshot(

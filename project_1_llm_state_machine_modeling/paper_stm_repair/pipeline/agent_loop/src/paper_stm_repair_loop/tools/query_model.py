@@ -6,7 +6,6 @@ import json
 from typing import Any
 
 from ..schemas.tools import ModelQueryResult, QueryModelInput, SimpleStructuredTool
-from .post_batch_investigation import PostBatchInvestigationState
 
 _QUERY_KINDS = {"states", "events", "transitions", "variables", "diagnostics"}
 _LIMITATIONS = [
@@ -125,7 +124,14 @@ def execute(
     model_sha256 = _model_sha256_from(inspect)
     try:
         params = QueryModelInput.model_validate(
-            {"query_kind": query_kind, "name_contains": name_contains, "offset": offset, "limit": limit}
+            {
+                "query_kind": query_kind,
+                "name_contains": name_contains,
+                "offset": offset,
+                "limit": limit,
+                "root_node_ids": [],
+                "reason": "controller-internal deterministic inspect query",
+            }
         )
     except Exception as exc:
         safe_kind = query_kind if query_kind in _QUERY_KINDS else "states"
@@ -186,16 +192,12 @@ def execute(
 
 def build_tool(
     snapshot: dict[str, Any],
-    investigation_state: PostBatchInvestigationState | None = None,
 ) -> SimpleStructuredTool:
     """Purpose: create the ``query_model`` tool bound to one frozen inspect.
 
     Parameters: ``snapshot`` is the controller-captured attempt snapshot or
     normalized inspect object.  It is closed over before provider dispatch;
     Agents only provide the strict ``QueryModelInput`` fields.
-    ``investigation_state`` is the Controller-bound post-batch protocol state.
-    When supplied, structural queries are unavailable until one complete
-    ``evaluate_checks`` batch has finished with ``gate.eligible=true``.
 
     Returns: a ``StructuredTool`` named ``query_model`` with strict Pydantic input
     schema and ``ModelQueryResult`` output semantics.
@@ -204,9 +206,8 @@ def build_tool(
     snapshot/inspect and therefore remains bound to the current attempt's model
     hash.  No cache refresh or latest-state lookup is performed.
 
-    Failure semantics: when no eligible full-batch evaluation exists, return
-    ``prerequisite_required`` with ``required_tool=evaluate_checks``. Bad Agent
-    arguments return structured ``invalid_arguments``; missing inspect returns
+    Failure semantics: bad Agent arguments return structured
+    ``invalid_arguments``; missing inspect returns
     ``tool_unavailable``; no bare exception text is treated as model evidence.
 
     Evidence limitations: the tool exposes structure only, never a quality,
@@ -232,6 +233,8 @@ def build_tool(
         name_contains: str | None = None,
         offset: int = 0,
         limit: int = 50,
+        root_node_ids: list[str] | None = None,
+        reason: str = "",
     ) -> dict[str, Any]:
         """Purpose
         -------
@@ -240,6 +243,16 @@ def build_tool(
         checking an event's qualified name, inspecting a transition shape, or
         reviewing a diagnostic. This tool returns facts only; it does not create
         checks, assess propositions, or issue a quality/repair verdict.
+
+        When to use
+        -----------
+        Use for one named structural gap while designing or revising a Root's
+        assertion, especially when the full inventory is too large to scan.
+
+        When not to use
+        ----------------
+        Do not enumerate the model, duplicate `read_task`, or use query results
+        directly as a Root verdict; the final proposition must use `eval_assert`.
 
         Parameters
         ----------
@@ -251,6 +264,10 @@ def build_tool(
         ``offset`` (integer, default 0): zero-based index in the filtered result;
         must be at least 0.
         ``limit`` (integer, default 50): maximum page size; must be 1 through 500.
+        ``root_node_ids`` (list of strings): Roots whose named evidence gap
+        motivates this query; use ``[]`` only before Root IDs are registered.
+        ``reason`` (non-empty string): the concrete structural question and why
+        this query is needed, written in the run content language.
         The strict JSON input accepts no additional fields.
 
         Returns
@@ -270,11 +287,8 @@ def build_tool(
 
         Execution
         ---------
-        1. Require one complete eligible ``evaluate_checks`` batch when the
-           Controller supplied post-batch protocol state. Before that point,
-           return ``execution_status=prerequisite_required`` and direct the
-           Agent to ``evaluate_checks`` without exposing another structural fact.
-        2. Validate the strict enum, filter type, offset, and limit. Reject an
+        1. Validate the strict enum, filter type, offset, limit, Root IDs and
+           reason. Reject an
            exact duplicate request. If an unfiltered page from offset 0 already
            returned the complete category with ``truncated=false``, reject later
            requests for that same frozen category because no new fact can appear.
@@ -290,9 +304,7 @@ def build_tool(
 
         Failure semantics
         -----------------
-        A query before an eligible full-batch evaluation returns
-        ``prerequisite_required`` with ``required_tool=evaluate_checks``. Invalid
-        enum/type/range, an exact duplicate, a query that yields no new structural
+        Invalid enum/type/range, an exact duplicate, a query that yields no new structural
         fact, or a query against a category already returned in full returns
         ``invalid_arguments`` with an empty page and limitation code.
         Missing/non-structural inspect category returns
@@ -314,36 +326,20 @@ def build_tool(
         run/case selectors, network, shell, Python/Z3, custom predicates, writes,
         future stage data, or hidden reference/gold assets.
 
-        Example
-        -------
-        Input ``{"query_kind":"states","name_contains":"Idle","offset":0,"limit":10}``
-        returns ``{"execution_status":"completed","query_kind":"states","matched_items":[{"path":"Root.Idle","_index":0}],"total_matches":1,"offset":0,"limit":10,"truncated":false,"model_sha256":"...","limitations":[...]}``.
+        Examples
+        --------
+        Input ``{"query_kind":"states","name_contains":"Idle","offset":0,"limit":10,"root_node_ids":["ROOT-001"],"reason":"Locate exact state refs for ROOT-001."}``
+        returns ``{"execution_status":"completed","query_kind":"states","matched_items":[{"path":"Root.Idle","_index":0}],"total_matches":1,"offset":0,"limit":10,"truncated":false,"model_sha256":"...","root_node_ids":["ROOT-001"],"reason":"Locate exact state refs for ROOT-001.","limitations":[...]}``.
         """
 
-        if (
-            investigation_state is not None
-            and investigation_state.latest_eligible_batch() is None
-        ):
-            return {
-                "execution_status": "prerequisite_required",
-                "blocked_tool": "query_model",
-                "required_tool": "evaluate_checks",
-                "message": (
-                    "Submit one complete check-draft batch to evaluate_checks and "
-                    "obtain gate.eligible=true before post-batch structural investigation."
-                ),
-                "model_sha256": _model_sha256_from(frozen),
-                "limitations": [
-                    *_LIMITATIONS,
-                    "tool_not_executed",
-                    "eligible_evaluate_checks_required_first",
-                    "no_new_structural_fact_produced",
-                ],
-            }
+        root_node_ids = list(root_node_ids or [])
+
+        def finalize(result: dict[str, Any]) -> dict[str, Any]:
+            return {**result, "root_node_ids": root_node_ids, "reason": reason}
 
         request_key = (query_kind, name_contains, offset, limit)
         if request_key in completed_requests:
-            return ModelQueryResult(
+            return finalize(ModelQueryResult(
                 execution_status="invalid_arguments",
                 query_kind=query_kind,  # type: ignore[arg-type]
                 matched_items=[],
@@ -353,9 +349,9 @@ def build_tool(
                 truncated=False,
                 model_sha256=_model_sha256_from(frozen),
                 limitations=[*_LIMITATIONS, "duplicate_query_not_executed"],
-            ).model_dump(mode="json")
+            ).model_dump(mode="json"))
         if query_kind in fully_returned_categories:
-            return ModelQueryResult(
+            return finalize(ModelQueryResult(
                 execution_status="invalid_arguments",
                 query_kind=query_kind,  # type: ignore[arg-type]
                 matched_items=[],
@@ -368,7 +364,7 @@ def build_tool(
                     *_LIMITATIONS,
                     "category_already_returned_untruncated",
                 ],
-            ).model_dump(mode="json")
+            ).model_dump(mode="json"))
         result = execute(frozen, query_kind, name_contains, offset, limit)
         if result.get("execution_status") == "completed":
             completed_requests.add(request_key)
@@ -380,7 +376,7 @@ def build_tool(
             previously_seen = seen_item_hashes.setdefault(query_kind, set())
             new_hashes = page_hashes - previously_seen
             if not new_hashes and previously_seen:
-                return ModelQueryResult(
+                return finalize(ModelQueryResult(
                     execution_status="invalid_arguments",
                     query_kind=query_kind,  # type: ignore[arg-type]
                     matched_items=[],
@@ -390,7 +386,7 @@ def build_tool(
                     truncated=False,
                     model_sha256=_model_sha256_from(frozen),
                     limitations=[*_LIMITATIONS, "no_new_structural_fact"],
-                ).model_dump(mode="json")
+                ).model_dump(mode="json"))
             previously_seen.update(new_hashes)
             category_size = len(_items_for(_inspect_from(frozen), query_kind))
             if (
@@ -398,6 +394,6 @@ def build_tool(
                 or len(previously_seen) >= category_size
             ):
                 fully_returned_categories.add(query_kind)
-        return result
+        return finalize(result)
 
     return SimpleStructuredTool(func=query_model, name="query_model", description=query_model.__doc__ or "query_model", args_schema=QueryModelInput)

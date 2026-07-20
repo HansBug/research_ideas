@@ -15,209 +15,147 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
-def _index_all(prompt: str, needles: list[str]) -> list[int]:
-    positions = []
-    for needle in needles:
-        pos = prompt.find(needle)
-        assert pos >= 0, f"missing prompt marker: {needle}"
-        positions.append(pos)
-    return positions
+def _ordered(prompt: str, markers: list[str]) -> None:
+    positions = [prompt.find(marker) for marker in markers]
+    assert min(positions) >= 0, [m for m, p in zip(markers, positions) if p < 0]
+    assert positions == sorted(positions)
 
 
-def test_prompt_is_executable_protocol_not_toolbox_and_orders_the_workflow():
-    markers = [
-        "## Mandatory working protocol and completion conditions",
-        "1. **Read the FCSTM guide, then freeze orientation.",
-        "2. **Construct one complete check-draft batch.",
-        "3. **Evaluate the whole batch.",
-        "4. **Investigate named evidence gaps, then finalize the batch.",
-        "5. **Run batch coverage and zero-root self-check.",
-        "6. **Submit once.",
-    ]
-    assert _index_all(PROMPT_ZH, markers) == sorted(_index_all(PROMPT_ZH, markers))
-    assert "Completion condition:" in PROMPT_ZH
-    assert "immutable run identity" in PROMPT_ZH
-    assert "Controller has prepared the immutable run identity" in _flat(PROMPT_ZH)
-    assert "This protocol is the work to perform" in _flat(PROMPT_ZH)
-    assert "complete all six reasoning and coverage steps even when no optional tool call is needed" in _flat(PROMPT_ZH)
-    assert "Optional tool use never replaces comparison, adjudication, coverage, or submission" in _flat(PROMPT_ZH)
+def test_prompt_keeps_one_top_level_agent_and_controller_issue_agnostic():
+    flat = _flat(PROMPT_ZH)
+    assert "only top-level LLM Agent" in flat
+    assert "one `AgentApp.run`" in flat
+    assert "Controller never predicts an issue" in flat
+    assert "never supplies a fixed defect taxonomy" in flat
+    assert "never edits `STM_0`" in flat
+    assert "loop stays on FCSTM" in flat
+    assert "Issue categories are open-world" in flat
+    assert "Do not invent, require, or organize the run around D01-D12" in flat
 
 
-def test_prompt_requires_attempt_frozen_six_field_context_and_single_agent_run():
-    assert "one and only `AgentApp.run`" in PROMPT_ZH
-    assert "No other Agent or producer has generated checks or verdicts" in _flat(PROMPT_ZH)
-    assert "You are the only LLM Agent in B-discover" in _flat(PROMPT_ZH)
-    assert "attempt-frozen six-field working set" in PROMPT_ZH
-    assert "initial user message" in PROMPT_ZH
-    assert "content-free landing descriptor" in PROMPT_ZH
-    for field in ["`stage`", "`loop_no`", "`model`", "`targets`", "`current_records`", "`readable_history`"]:
-        assert field in PROMPT_ZH
-    assert "never reads a newer mutable state" in _flat(PROMPT_ZH)
-    assert "targets=[]" in PROMPT_ZH
-    assert "readable_history=[]" in PROMPT_ZH
-
-
-def test_prompt_tool_whitelist_has_guides_investigation_tools_and_mandatory_evaluation():
-    whitelist_line = next(line for line in PROMPT_ZH.splitlines() if "only Agent-callable tools are exactly" in line)
-    tools = re.findall(r"`([a-z_]+)`", whitelist_line)
+def test_prompt_exposes_review_as_peer_tool_and_forbids_hidden_surfaces():
+    line = next(
+        line
+        for line in PROMPT_ZH.splitlines()
+        if "only Agent-callable tools are exactly" in line
+    )
+    tools = re.findall(r"`([a-z_]+)`", line)
     assert tools == [
         "read_fcstm_guide",
         "read_fbmcq_guide",
         "read_task",
+        "register_coverage_plan",
+        "revise_assertion",
         "query_model",
+        "eval_assert",
         "observe_trace",
         "lookup_source_trace",
-        "evaluate_checks",
+        "review_discovery_coverage",
     ]
-    assert "is optional" in PROMPT_ZH
-    assert "only when an evaluated proposition has a concrete missing structural" in _flat(PROMPT_ZH)
-    assert "`evaluate_checks(checks)` is mandatory for the final batch" in PROMPT_ZH
-    assert "`read_fcstm_guide()` is mandatory and must be the first business tool call" in _flat(PROMPT_ZH)
-    assert "`read_fbmcq_guide()` is conditionally mandatory" in PROMPT_ZH
-    assert "property-bearing batch is rejected" in _flat(PROMPT_ZH)
-    assert "gate.eligible=true" in PROMPT_ZH
-    assert "No other capability is part of your tool surface" in PROMPT_ZH
-
-
-def test_prompt_forbids_trace_enumeration_and_prioritizes_batch_evaluation():
     flat = _flat(PROMPT_ZH)
-    assert "diagnostic microscope, not a coverage engine" in flat
-    assert "never enumerate event permutations" in flat
-    assert "do not call `observe_trace` merely to duplicate those results" in flat
-    assert "use the shortest distinguishing event sequence" in flat
-    assert "do not repeat an already observed sequence or prefix family" in flat
-    assert "## Tool-efficiency invariant" in PROMPT_ZH
-    assert "Prefer this shortest evidence-complete path" in flat
-    assert "do not keep probing in an attempt to force `confirmed`" in flat
+    assert "peer business tool, at the same level as `eval_assert`" in flat
+    assert "There is no shell, arbitrary Python" in flat
+    assert "hidden reference/gold" in flat
 
 
-def test_prompt_does_not_require_controller_tools_or_tool_call_termination():
-    forbidden_required_phrases = [
-        "Call `check_fcstm`",
-        "call `check_fcstm`",
-        "Call `run_scenarios`",
-        "call `run_scenarios`",
-        "Call `verify_properties`",
-        "call `verify_properties`",
-        "require_tool_call",
-        "required tool call",
-        "fifth business tool",
-        "extra tool call",
-    ]
-    for phrase in forbidden_required_phrases:
-        assert phrase not in PROMPT_ZH
-    for forbidden_tool in ["`check_fcstm`", "`run_scenarios`", "`verify_properties`", "`validate_discovery_checks`", "`verify_static_consistency`"]:
-        assert forbidden_tool not in PROMPT_ZH
-
-
-def test_prompt_defines_confirmed_candidate_rejected_boundaries_and_zero_root_batch_coverage():
-    for marker in ["`confirmed`", "`candidate_only`", "`rejected`"]:
-        assert marker in PROMPT_ZH
-    assert "all final checks were considered" in _flat(PROMPT_ZH)
-    assert "zero roots" in PROMPT_ZH
-    assert "no_issue_found=true" in PROMPT_ZH
-    assert "non-empty reason" in PROMPT_ZH
-    assert "all-or-nothing" in PROMPT_ZH
-    flattened = _flat(PROMPT_ZH)
-    assert "all confirmed roots cite current-run valid checks/records" in flattened
-    assert "exact one-to-one grounding" in flattened
-    assert "merely existing in inspect or a check binding is not source attribution" in flattened
-    assert "if the frozen trace has `entries=[]`" in flattened
-    assert "`closure_claim_allowed=false`" in flattened
-    assert "`confirmed` is impossible in this run" in flattened
-    assert "Free-text `source_basis`" in flattened
-    assert "no defensible confirmed or candidate root remains" in flattened
-    assert "Publish confirmed/candidate propositions as `root_nodes`" in _flat(PROMPT_ZH)
-    assert "`rejected_propositions`" in PROMPT_ZH
-    assert "union of root `required_check_ids` and rejected `considered_check_ids`" in _flat(PROMPT_ZH)
-    assert "never use an empty check list or an ID from an earlier/superseded batch" in _flat(PROMPT_ZH)
-
-
-def test_prompt_forbids_closed_world_scope_inference_and_draft_ids_in_final_decisions():
+def test_prompt_separates_controller_worklist_units_roots_and_assertions():
     flat = _flat(PROMPT_ZH)
-    assert '"when/in P, Q" establishes the behavior to check when P holds' in flat
-    assert "does not establish that Q is forbidden outside P" in flat
-    assert 'Do not invent an exclusivity, inhibition, or "only in P" requirement' in flat
-    assert "An exploratory trace outside the stated precondition cannot by itself" in flat
-    assert "declared precondition must be that state or a hierarchical descendant" in flat
-    assert "Never use an ancestor, sibling, or other broader state" in flat
-    assert "Every `event_labels` entry executes in a separate cycle" in flat
-    assert "Comma-, slash-, or `or`-listed triggers" in flat
-    assert "`and`, `both`, or `simultaneously` denotes a possible same-cycle obligation" in flat
-    assert "final `issue_checks` are the sole valid evidence IDs" in flat
-    assert "Never put a draft ID in a root's `required_check_ids`" in flat
-    assert "copy the corresponding final `issue_checks[].check_id` values exactly" in flat
-    assert "tested event, declared precondition state, and expected target state" in flat
-    assert "Never attach a removed/superseded draft's statement or rationale" in flat
+    for marker in (
+        "`InputSegment` is a deterministic NL slice",
+        "`CoverageRequirement` is a hard positive obligation",
+        "Create exactly one atomic NL `CoverageUnit`",
+        "exactly one positive `PropositionRootNode`",
+        "one or more required `LogicalAssertion` chains",
+    ):
+        assert marker in flat
+    assert "Every behavior-relevant SourceFact" in flat
+    assert "citing an ID or broad inventory count is not inspection" in flat
+    assert "context_only" in PROMPT_ZH
+    assert "representation_boundary" in PROMPT_ZH
 
 
-def test_prompt_forbids_model_mutation_repair_future_confirm_and_source_closure_claims():
-    for text in [
-        "do not edit `STM_0`",
-        "do not propose Repair actions",
-        "do not make Confirm or source-closure claims",
-        "do not modify or restate `STM_0` as a patch",
-        "not source closure",
-        "future Repair/Confirm",
-        "Never claim model completeness",
-        "scientific success",
-    ]:
-        assert text in _flat(PROMPT_ZH)
-
-
-def test_prompt_rejects_representation_artifacts_bounded_overclaiming_and_duplicate_roots():
+def test_prompt_orders_review_gated_workflow():
+    _ordered(
+        PROMPT_ZH,
+        [
+            "1. **Read semantics and frozen task.",
+            "2. **Explore both directions.",
+            "3. **Build the complete atomic plan.",
+            "4. **Register once.",
+            "5. **Execute all latest assertions.",
+            "6. **Revise inconclusive or weak assertions.",
+            "7. **Run the independent coverage review.",
+            "8. **Inspect final projection and attribution.",
+            "9. **Submit exactly once.",
+        ],
+    )
     flat = _flat(PROMPT_ZH)
-    assert "source-to-fcstm structural difference" in flat
-    assert "conversion artifact is not a source behavioral issue" in flat
-    assert "Reject a representation-only proposition explicitly only" in flat
-    assert "bounded `unsat`, `not_observed_within_bound`" in flat
-    assert "cannot independently establish unbounded unreachability" in flat
-    assert "one underlying source-model defect should cite one root" in flat
-    assert "Do not inflate the issue count" in flat
+    assert "Do not stop after finding the first issue" in flat
+    assert "read every `required_action`" in flat
+    assert "call the review tool again" in flat
+    assert "Only after Controller closure and current review pass" in flat
 
 
-def test_prompt_requires_single_structured_output_not_prose_or_split_batches():
-    assert "one provider-native/Pydantic structured output" in PROMPT_ZH
-    assert "semantic name" in PROMPT_ZH and "`submit_discovery`" in PROMPT_ZH
-    assert "Submit once" in PROMPT_ZH
-    assert "Return exactly one complete `submit_discovery` structured" in PROMPT_ZH
-    assert "do not publish partial batches" in PROMPT_ZH
-    assert "do not add prose alternatives" in _flat(PROMPT_ZH)
+def test_prompt_requires_same_strength_positive_assertions():
+    flat = _flat(PROMPT_ZH)
+    assert "`True` means the model satisfies the Root" in flat
+    assert "`False` means it contradicts the Root" in flat
+    assert "Preserve source, trigger, guard/condition, target, quantity" in flat
+    assert "Event existence alone cannot prove a destination" in flat
+    assert "Do not strengthen" in flat
+    assert "do not weaken it to `bool(effects(...))`" in flat
+    assert "at least two distinct initialized progressing simulations" in flat
+    assert "One invariant or existential `exists_always` path" in flat
 
 
-def test_prompt_language_policy_keeps_schema_english_and_free_text_in_requested_language():
-    assert "Run content language: `zh-CN`" in PROMPT_ZH
-    assert "in `zh-CN` only" in PROMPT_ZH
-    assert "Run content language: `en-US`" in PROMPT_EN
-    assert "in `en-US` only" in PROMPT_EN
-    for prompt in [PROMPT_ZH, PROMPT_EN]:
-        assert "Keep every schema key, enum, identifier" in prompt
-        assert "in English" in prompt
+def test_prompt_preserves_cycle_and_fbmcq_semantics():
+    flat = _flat(PROMPT_ZH)
+    assert "Every literal `simulate(cycles=...)` begins with `[]`" in flat
+    assert "Reusing an event in a later cycle is legal" in flat
+    assert "consumed-event accounting is not a one-use rule" in flat
+    assert "call `read_fbmcq_guide`" in flat
+    assert "replay-mismatched results are inconclusive" in flat
 
 
-def test_system_prompt_rejects_unknown_language():
+def test_prompt_makes_review_pass_current_and_actionable():
+    flat = _flat(PROMPT_ZH)
+    assert "current `review_discovery_coverage` result with `passed=true`" in flat
+    assert "mandatory again after any subsequent revision/evaluation" in flat
+    assert "required_actions" in PROMPT_ZH
+    assert "related IDs, risk, recommended tools, concrete changes" in flat
+    assert "independently reviews every Segment, Requirement, behavior SourceFact" in flat
+    assert "reviewed_state_fingerprint" in PROMPT_ZH
+    assert "There is no Agent-declared partial-success path" in flat
+
+
+def test_prompt_language_policy_and_unknown_language():
+    assert "Run content language is `zh-CN`" in _flat(PROMPT_ZH)
+    assert "in `zh-CN`" in _flat(PROMPT_ZH)
+    assert "Run content language is `en-US`" in _flat(PROMPT_EN)
+    assert "in `en-US`" in _flat(PROMPT_EN)
+    for prompt in (PROMPT_ZH, PROMPT_EN):
+        assert "Keep schema keys, enum values, IDs" in _flat(prompt)
+        assert "in English" in _flat(prompt)
     with pytest.raises(ValueError, match="unsupported Discover content language"):
         system_prompt("fr-FR")
 
 
-def test_user_prompt_is_read_only_and_requests_one_structured_result():
+def test_user_prompt_withholds_content_and_requires_review_pass():
     text = user_prompt(
         {
             "stage": "B-discover",
             "loop_no": 0,
-            "model": {"model_id": "STM_0", "content": "secret fcstm", "model_sha256": "abc"},
+            "model": {
+                "model_id": "STM_0",
+                "content": "secret fcstm",
+                "model_sha256": "abc",
+            },
             "current_records": {"nl": {"content": "secret nl"}},
         }
     )
-    assert "Discover task landing descriptor" in text
-    assert "FCSTM content withheld" in text
+    assert "task content withheld" in text
     assert "secret fcstm" not in text
     assert "secret nl" not in text
-    assert "read_fcstm_guide -> read_task" in text
-    assert "first business tool call must be read_fcstm_guide" in text
-    assert "return one structured submit_discovery result" in text
-
-
-def test_prompt_stops_duplicate_frozen_resource_reads():
-    assert "execution_status=no_new_task_fact" in PROMPT_ZH
-    assert "no_new_*_fact" in PROMPT_ZH
+    assert "read_fcstm_guide first, then read_task" in text
+    assert "review_discovery_coverage repeatedly until it passes" in text
+    assert "returning submit_discovery" in text

@@ -1,13 +1,41 @@
-from .common import CheckDraftSubmission, DiscoverCheckDraft, DiscoverSubmission, IssueCheck, RejectedProposition, RootIssue
-from .discover import AgentReceiptRef, DiscoverCompleted
+"""Canonical Issue #164 B-discover schemas."""
+
+from .assertions import (
+    EvalAssertResult,
+    EvidenceScope,
+    FunctionFamily,
+    LogicalAssertion,
+    LogicalAssertionRegistration,
+)
+from .coverage import (
+    CoveragePlan,
+    CoverageUnit,
+    FactDisposition,
+    InputSegment,
+    SegmentDisposition,
+    SourceFact,
+)
+from .discovery import AgentReceiptRef, DiscoverCompleted, DiscoverOutcome, DiscoverSubmission
+from .roots import PropositionRootNode, PropositionRootRegistration
+from .tool_reason import EvalAssertInput
 
 __all__ = [
     "AgentReceiptRef",
-    "CheckDraftSubmission",
+    "CoveragePlan",
+    "CoverageUnit",
     "DiscoverCompleted",
-    "DiscoverCheckDraft",
+    "DiscoverOutcome",
     "DiscoverSubmission",
-    "IssueCheck",
-    "RejectedProposition",
-    "RootIssue",
+    "EvalAssertInput",
+    "EvalAssertResult",
+    "EvidenceScope",
+    "FactDisposition",
+    "FunctionFamily",
+    "InputSegment",
+    "LogicalAssertion",
+    "LogicalAssertionRegistration",
+    "PropositionRootNode",
+    "PropositionRootRegistration",
+    "SegmentDisposition",
+    "SourceFact",
 ]

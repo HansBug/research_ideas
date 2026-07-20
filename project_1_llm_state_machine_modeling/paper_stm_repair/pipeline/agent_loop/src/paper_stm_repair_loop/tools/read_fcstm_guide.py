@@ -30,21 +30,30 @@ def execute() -> dict[str, Any]:
 
 
 def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
-    """Build the attempt-local zero-argument FCSTM guide reader."""
+    """Build the attempt-local FCSTM guide reader with one required reason."""
 
     served_metadata: dict[str, Any] | None = None
 
-    def read_fcstm_guide() -> dict[str, Any]:
+    def read_fcstm_guide(reason: str) -> dict[str, Any]:
         """Purpose
         -------
         Read pyfcstm's packaged, integrity-checked FCSTM grammar and runtime
         semantics guide before the first attempt to read, inspect, execute, write,
         or modify FCSTM content in this Agent attempt.
 
+        When to use
+        -----------
+        Use as the first business tool call of every Discover attempt.
+
+        When not to use
+        ----------------
+        Do not repeat it to refresh context or use it as model evidence.
+
         Parameters
         ----------
-        None. The strict tool input is exactly ``{}``; no path, model, run/case,
-        URL, shell, Python/Z3, or reference/gold selector is accepted.
+        Exactly one non-empty ``reason`` string in the run content language. No
+        path, model, run/case, URL, shell, Python/Z3, or reference/gold selector
+        is accepted.
 
         Returns
         -------
@@ -82,9 +91,9 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         Read-only packaged-resource access. No arbitrary paths, filesystem scan,
         network, provider call, mutation, shell/Python/Z3, or reference/gold data.
 
-        Example
-        -------
-        The first input ``{}`` returns the full guide with a stable SHA-256. A
+        Examples
+        --------
+        The first input ``{"reason":"Read official FCSTM semantics before inspecting STM_0."}`` returns the full guide with a stable SHA-256. A
         successful response must precede the first ``read_task`` call. A repeated
         input returns only metadata and a ``no_new_guide_fact`` limitation.
         """
@@ -95,6 +104,7 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
                 "execution_status": "no_new_guide_fact",
                 "guide_kind": "fcstm",
                 **served_metadata,
+                "reason": reason,
                 "limitations": [
                     "duplicate_guide_read_not_replayed",
                     "no_new_guide_fact",
@@ -102,6 +112,7 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
                 ],
             }
         result = execute()
+        result["reason"] = reason
         result["guide_access_sequence"] = state.mark_read("fcstm", result)
         served_metadata = {
             key: result.get(key)

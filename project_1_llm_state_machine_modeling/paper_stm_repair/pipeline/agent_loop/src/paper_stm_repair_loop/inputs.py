@@ -231,6 +231,9 @@ def prepare_run_dir(
     formal_profile: bool = True,
     replay_file: Path | None = None,
     agent_limits: Mapping[str, int | float] | None = None,
+    coverage_review_profile: str | None = None,
+    falsification_review_profile: str | None = None,
+    reviewer_limits: Mapping[str, int | float] | None = None,
 ) -> None:
     """Materialize the immutable Stage API input boundary for one new run."""
 
@@ -256,6 +259,16 @@ def prepare_run_dir(
         raise ValueError(f"unknown Agent limit keys: {sorted(set(limits) - allowed_limits)}")
     if any(not isinstance(value, (int, float)) or value <= 0 for value in limits.values()):
         raise ValueError("Agent limits must be positive numbers")
+    review_limits = dict(reviewer_limits or {})
+    if set(review_limits) - allowed_limits:
+        raise ValueError(
+            f"unknown reviewer limit keys: {sorted(set(review_limits) - allowed_limits)}"
+        )
+    if any(
+        not isinstance(value, (int, float)) or value <= 0
+        for value in review_limits.values()
+    ):
+        raise ValueError("reviewer limits must be positive numbers")
     manifest = {
         "schema_version": "paper1.discover.manifest.v1",
         "run_id": run_dir.name,
@@ -269,6 +282,9 @@ def prepare_run_dir(
         "renderer": renderer,
         "formal_profile": formal_profile,
         "agent_limits": limits,
+        "coverage_review_profile": coverage_review_profile or profile,
+        "falsification_review_profile": falsification_review_profile or profile,
+        "reviewer_limits": review_limits,
         "code_provenance": _code_provenance(),
         "main_result_eligible": False,
         "reference_assets_visible": False,

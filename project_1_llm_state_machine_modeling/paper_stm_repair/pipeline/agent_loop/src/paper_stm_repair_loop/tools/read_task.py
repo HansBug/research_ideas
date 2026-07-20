@@ -58,7 +58,8 @@ def execute(snapshot: dict[str, Any]) -> dict[str, Any]:
     ``stage``, ``loop_no``, ``model``, ``targets``, ``current_records``, and
     ``readable_history``.  ``model`` carries the frozen fcstm content/hash and, if
     available, the ``context_snapshot_head`` hash.  ``current_records`` expands
-    the NL/source/model trace/check/tool facts available to this attempt rather
+    the NL/source/model trace/check/tool facts, Controller CoverageRequirements,
+    issue-agnostic coverage policy, and eval contract available to this attempt rather
     than returning mutable filesystem locations or opaque IDs only.
 
     Execution: the function deep-copies the controller-captured object, filters
@@ -73,9 +74,10 @@ def execute(snapshot: dict[str, Any]) -> dict[str, Any]:
     dispatch rather than exposing a partial task.  This tool never converts an
     exception message into evidence about the STM.
 
-    Evidence limitations: the returned snapshot defines the evidence boundary for
-    Discover only.  It does not prove that checks are semantically complete, that
-    warnings are issues, that the model is correct, or that source closure holds.
+    Evidence limitations: the returned snapshot defines the complete frozen
+    clause/cue/source-fact worklist that Discover must cover. Reading it does not itself
+    execute assertions or establish issue attribution; those require the later
+    registration, eval, and projection gates.
 
     Permissions: the Agent-facing callable produced by ``build_tool`` accepts no
     parameters at all; it cannot read arbitrary paths, choose another run/case,
@@ -90,11 +92,12 @@ def execute(snapshot: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
-    """Purpose: create the zero-argument ``read_task`` tool for one frozen attempt.
+    """Purpose: create the single-reason ``read_task`` tool for one frozen attempt.
 
     Parameters: ``snapshot`` is the controller-captured attempt snapshot described
     by ``execute``; it is closed over by this factory and is never supplied by the
-    Agent.  The resulting tool input schema is ``ReadTaskInput`` with no fields.
+    Agent.  The resulting tool input schema is ``ReadTaskInput`` with exactly one
+    required natural-language ``reason`` field.
 
     Returns: a LangChain ``StructuredTool`` named ``read_task`` whose output is a
     ``FrozenTaskSnapshot`` JSON object with exactly six top-level keys.
@@ -123,7 +126,7 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     snapshot_sha256 = sha256_json(frozen_payload)
     served = False
 
-    def read_task() -> dict[str, Any]:
+    def read_task(reason: str) -> dict[str, Any]:
         """Purpose
         -------
         Read the canonical, immutable working context for this exact
@@ -131,10 +134,20 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         It is not a general record reader and never observes facts appended after
         the attempt snapshot was frozen.
 
+        When to use
+        -----------
+        Use exactly once immediately after a successful ``read_fcstm_guide``.
+
+        When not to use
+        ----------------
+        Do not repeat it to refresh data, select another case, or recover hidden
+        information; the attempt snapshot is immutable.
+
         Parameters
         ----------
-        None. The tool-call JSON object must be exactly ``{}``. Unknown keys are
-        rejected by the strict input schema. In particular, there is no ``path``,
+        Exactly one non-empty ``reason`` string in the run content language.
+        Unknown keys are rejected by the strict input schema. In particular,
+        there is no ``path``,
         ``run_id``, ``case_id``, ``model``, ``record_id``, or refresh flag.
 
         Returns
@@ -148,8 +161,9 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
           SHA-256, and normalized inspect facts supplied to this attempt.
         - ``targets``: frozen target list; ordinary Discover currently uses ``[]``.
         - ``current_records``: expanded current-run NL, raw/source model,
-          source-trace, prepared checks, Controller results, record IDs, hashes,
-          statuses, and limitations available when the attempt began.
+          source-trace, InputSegments, Controller CoverageRequirements, SourceFact
+          inventory, eval contract, run policy, record IDs, hashes, statuses, and
+          limitations available when the attempt began.
         - ``readable_history``: immutable prior-stage/loop history exposed to this
           attempt; initial Discover currently uses ``[]``.
 
@@ -179,11 +193,11 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
 
         Evidence limitations
         --------------------
-        The result identifies what evidence exists and which artifact/hash it
-        belongs to. It does not prove NL alignment, check completeness, source
-        closure, model correctness, absence of missed issues, or that a diagnostic
-        is a behavioral defect. Record presence is not proof of its conclusion;
-        inspect each record's status and limitations.
+        The result identifies the complete Controller-frozen coverage universe and
+        its artifact hashes. It does not by itself prove any Root; the Agent must
+        map every requirement and behavior fact, execute every registered
+        assertion, and pass ``review_discovery_coverage``. Record presence alone
+        is not a verdict.
 
         Permissions
         -----------
@@ -191,11 +205,11 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         model/run/case selectors, network, shell, Python/Z3, writes, refresh,
         future Repair/Confirm state, or hidden reference/gold inputs are allowed.
 
-        Example
-        -------
-        The first input ``{}`` returns a value shaped as
+        Examples
+        --------
+        The first input ``{"reason":"Read the frozen NL, segments, facts, model and eval contract."}`` returns a value shaped as
         ``{"stage":"B-discover","loop_no":0,"model":{"model_id":"STM_0","content":"...","model_sha256":"..."},"targets":[],"current_records":{"nl":{...}},"readable_history":[]}``.
-        A second input ``{}`` returns
+        A second input ``{"reason":"Confirm no mutable task refresh occurred."}`` returns
         ``{"execution_status":"no_new_task_fact","snapshot_sha256":"...","model_sha256":"..."}``.
         """
 
@@ -203,6 +217,7 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         if served:
             return {
                 "execution_status": "no_new_task_fact",
+                "reason": reason,
                 "snapshot_sha256": snapshot_sha256,
                 "model_sha256": frozen.model.get("model_sha256") or frozen.model.get("fcstm_sha256"),
                 "context_snapshot_head": frozen.model.get("context_snapshot_head"),

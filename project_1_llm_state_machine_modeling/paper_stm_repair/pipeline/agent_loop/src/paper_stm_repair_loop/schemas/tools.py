@@ -6,9 +6,6 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Literal
 
-from .common import DiscoverCheckDraft
-
-
 class StrictToolModel(BaseModel):
     """Base class for Agent-facing tool schemas: strict types and no extras."""
 
@@ -24,6 +21,7 @@ ExecutionStatus = Literal[
     "unknown",
     "timeout",
     "incomplete",
+    "inconclusive",
 ]
 
 
@@ -37,11 +35,11 @@ class FrozenTaskSnapshot(StrictToolModel):
 
 
 class ReadTaskInput(StrictToolModel):
-    pass
+    reason: str = Field(min_length=1)
 
 
 class ReadGuideInput(StrictToolModel):
-    pass
+    reason: str = Field(min_length=1)
 
 
 class QueryModelInput(StrictToolModel):
@@ -49,6 +47,8 @@ class QueryModelInput(StrictToolModel):
     name_contains: str | None = None
     offset: int = 0
     limit: int = 50
+    root_node_ids: list[str] = Field(default_factory=list)
+    reason: str = Field(min_length=1)
 
 
 class ModelQueryResult(StrictToolModel):
@@ -60,34 +60,34 @@ class ModelQueryResult(StrictToolModel):
     limit: int = Field(default=50, ge=1)
     truncated: bool = False
     model_sha256: str
+    root_node_ids: list[str] = Field(default_factory=list)
+    reason: str = ""
     limitations: list[str] = Field(default_factory=list)
 
 
 class ObserveTraceInput(StrictToolModel):
-    events: list[str]
-    max_steps: int | None = None
+    question: str = Field(min_length=1)
+    root_node_ids: list[str] = Field(min_length=1)
+    cycles: list[list[str]] = Field(min_length=1)
+    reason: str = Field(min_length=1)
 
 
 class TraceObservation(StrictToolModel):
     execution_status: ExecutionStatus
+    question: str
+    root_node_ids: list[str] = Field(min_length=1)
+    requested_cycles: list[list[str]] = Field(min_length=1)
+    cycles: list[dict[str, Any]] = Field(default_factory=list)
+    final: dict[str, Any] = Field(default_factory=dict)
     model_sha256: str
-    requested_events: list[str] = Field(default_factory=list)
-    cycles: int = Field(default=0, ge=0)
-    input_events: list[str] = Field(default_factory=list)
-    consumed_events: list[str] = Field(default_factory=list)
-    unconsumed_events: list[str] = Field(default_factory=list)
-    final_configuration: dict[str, Any] = Field(default_factory=dict)
-    diagnostics: list[dict[str, Any]] = Field(default_factory=list)
+    reason: str = ""
     limitations: list[str] = Field(default_factory=list)
 
 
 class LookupSourceTraceInput(StrictToolModel):
     element_refs: list[str]
     direction: Literal["source_to_fcstm", "fcstm_to_source"] = "fcstm_to_source"
-
-
-class EvaluateChecksInput(StrictToolModel):
-    checks: list[DiscoverCheckDraft] = Field(min_length=1)
+    reason: str = Field(min_length=1)
 
 
 class SourceTraceLookupResult(StrictToolModel):
@@ -98,12 +98,12 @@ class SourceTraceLookupResult(StrictToolModel):
     ambiguous_matches: list[dict[str, Any]] = Field(default_factory=list)
     untraceable_refs: list[str] = Field(default_factory=list)
     trace_sha256: str
+    reason: str = ""
     limitations: list[str] = Field(default_factory=list)
 
 
 __all__ = [
     "ExecutionStatus",
-    "EvaluateChecksInput",
     "FrozenTaskSnapshot",
     "LookupSourceTraceInput",
     "ModelQueryResult",
