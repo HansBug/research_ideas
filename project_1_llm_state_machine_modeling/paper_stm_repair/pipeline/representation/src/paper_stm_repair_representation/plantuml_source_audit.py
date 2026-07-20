@@ -220,14 +220,8 @@ def _assert_source_projection(
     expected_event = (
         event_ids[transition["event"]] if transition.get("event") else None
     )
-    for emitted, match in segments:
-        segment_expected_event = (
-            None
-            if emitted["generated_role"]
-            in {"source_initial_wait_entry", "invalid_source_initial_surrogate"}
-            else expected_event
-        )
-        if match.group("event") != segment_expected_event:
+    for _, match in segments:
+        if match.group("event") != expected_event:
             raise ValueError(f"transition event projection drift: {transition['id']}")
     by_role: dict[str, list[tuple[dict[str, Any], re.Match[str]]]] = {}
     for emitted, match in segments:
@@ -298,34 +292,13 @@ def _assert_source_projection(
             path = []
         main = by_role.get("source_initial_transition", [])
         expected_scope = scope or "__root__"
-        waits = [
-            state
-            for state in synthetic_states
-            if state.get("source_transition_id") == transition["id"]
-            and state["generated_reason"] == "event_gated_plantuml_initial_wait"
-        ]
-        wait_entries = by_role.get("source_initial_wait_entry", [])
-        if transition.get("event"):
-            valid_main_source = len(waits) == 1 and main and (
-                main[0][1].group("source") == waits[0]["fcstm_id"]
-            )
-            valid_wait = len(wait_entries) == 1 and (
-                wait_entries[0][0]["scope"] == expected_scope
-                and wait_entries[0][1].group("source") == "[*]"
-                and wait_entries[0][1].group("target") == waits[0]["fcstm_id"]
-                and not wait_entries[0][1].group("forced")
-            )
-        else:
-            valid_main_source = not waits and main and main[0][1].group("source") == "[*]"
-            valid_wait = not wait_entries
         if (
             not path
             or len(main) != 1
             or main[0][0]["scope"] != expected_scope
+            or main[0][1].group("source") != "[*]"
             or main[0][1].group("target") != state_ids[path[0]]
             or bool(main[0][1].group("forced"))
-            or not valid_main_source
-            or not valid_wait
         ):
             raise ValueError(f"initial transition endpoint projection drift: {transition['id']}")
         nested = by_role.get("source_initial_nested_entry_segment", [])
@@ -984,10 +957,7 @@ def audit_lowered_artifact(
                 )
             ] += 1
 
-    synthetic_initial_reasons = {
-        "lifecycle_only_state_active_leaf",
-        "missing_source_initial_fail_closed",
-    }
+    synthetic_initial_reasons = {"missing_source_initial_fail_closed"}
     expected_synthetic_initial_targets = Counter(
         (
             state["fcstm_parent_path"],

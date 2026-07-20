@@ -326,15 +326,8 @@ class _Lowerer:
             for raw_event, event_id in self.events.items()
         ]
 
-    def is_composite(self, state_id: str) -> bool:
-        return self.state_by_id[state_id].get("kind") == "composite" or bool(
-            self.children[state_id]
-        )
-
-    def has_lifecycle_wrapper(self, state_id: str) -> bool:
-        return bool(
-            self.state_by_id[state_id]["attributes"].get("lifecycle_actions")
-        ) and not self.is_composite(state_id)
+    def has_source_children(self, state_id: str) -> bool:
+        return bool(self.children[state_id])
 
     def has_invalid_initial_wrapper(self, state_id: str) -> bool:
         return any(
@@ -343,10 +336,8 @@ class _Lowerer:
         )
 
     def is_operational_composite(self, state_id: str) -> bool:
-        return (
-            self.is_composite(state_id)
-            or self.has_lifecycle_wrapper(state_id)
-            or self.has_invalid_initial_wrapper(state_id)
+        return self.has_source_children(state_id) or self.has_invalid_initial_wrapper(
+            state_id
         )
 
     def trigger(self, transition: dict[str, Any]) -> str:
@@ -407,7 +398,8 @@ class _Lowerer:
     ) -> None:
         for parent_state, child_state in zip(path, path[1:]):
             line = (
-                f"[*] -> {self.emitted_state[child_state]}{self.trigger(transition)};"
+                f"[*] -> {self.emitted_state[child_state]}"
+                f"{self.trigger(transition)};"
             )
             self.emit_priority_entry(
                 mapping,
@@ -518,7 +510,10 @@ class _Lowerer:
             self.emit(
                 mapping,
                 scope=scope,
-                line=f"[*] -> {surrogate};",
+                line=(
+                    f"[*] -> {surrogate}"
+                    f"{self.trigger(transition)};"
+                ),
                 generated_role="invalid_source_initial_surrogate",
             )
             self.mappings.append(mapping)
@@ -542,50 +537,19 @@ class _Lowerer:
             target=transition["target"],
             raw_ref=transition.get("raw_ref"),
         )
-        # PlantUML accepts labels on initial edges and its SCXML exporter carries
-        # the complete label as an event. FCSTM composite entry cannot stabilize
-        # at an event-gated initial marker, so use an explicit wait state before
-        # consuming the opaque event and entering the real source child.
-        if transition.get("event"):
-            owner_scope = self.root_id if scope is None else self.emitted_state[scope]
-            wait_label = f"Awaiting initial event: {transition['event']}"
-            wait_state = self.registry.reserve(
-                raw_text=f"InitialWait{transition['id']}",
-                canonical_ref=transition.get("raw_ref"),
-                object_type="lowering_state",
-                scope=owner_scope,
-                generated_reason="event_gated_plantuml_initial_wait",
-                named_text=wait_label,
-            )
-            self.record_synthetic_state(
-                scope=scope,
-                emitted_id=wait_state,
-                display_name=wait_label,
-                generated_reason="event_gated_plantuml_initial_wait",
-                raw_ref=transition.get("raw_ref"),
-                source_transition_id=transition["id"],
-            )
-            self.synthetic_states_by_scope[scope].append(
-                f"state {wait_state} named {_dsl_string(wait_label)};"
-            )
-            self.emit(
-                mapping,
-                scope=scope,
-                line=f"[*] -> {wait_state};",
-                generated_role="source_initial_wait_entry",
-            )
-            line = (
-                f"{wait_state} -> {self.emitted_state[target_path[0]]}"
-                f"{self.trigger(transition)};"
-            )
-        else:
-            line = f"[*] -> {self.emitted_state[target_path[0]]};"
+        line = (
+            f"[*] -> {self.emitted_state[target_path[0]]}"
+            f"{self.trigger(transition)};"
+        )
         self.emit(
             mapping, scope=scope, line=line, generated_role="source_initial_transition"
         )
         if len(target_path) > 1:
             for parent_state, child_state in zip(target_path, target_path[1:]):
-                route = f"[*] -> {self.emitted_state[child_state]}{self.trigger(transition)};"
+                route = (
+                    f"[*] -> {self.emitted_state[child_state]}"
+                    f"{self.trigger(transition)};"
+                )
                 self.emit_priority_entry(
                     mapping,
                     scope=parent_state,
@@ -809,7 +773,8 @@ class _Lowerer:
                 raw_ref=transition.get("raw_ref"),
             )
             line = (
-                f"! * -> {self.emitted_state[target_branch]}{self.trigger(transition)};"
+                f"! * -> {self.emitted_state[target_branch]}"
+                f"{self.trigger(transition)};"
             )
             self.emit(
                 mapping,
@@ -926,6 +891,9 @@ class _Lowerer:
     def add_operational_debts(self) -> None:
         unlabeled_by_source: dict[str, list[dict[str, Any]]] = defaultdict(list)
         initial_by_scope: dict[Optional[str], list[dict[str, Any]]] = defaultdict(list)
+        mappings_by_transition = {
+            mapping.transition_id: mapping for mapping in self.mappings
+        }
         for transition in self.transitions:
             kind = transition["attributes"]["transition_kind"]
             if transition.get("label"):
@@ -939,6 +907,17 @@ class _Lowerer:
                     fcstm_event_id=self.events.get(transition.get("event")),
                     representation="opaque_named_event",
                 )
+                mapping = mappings_by_transition.get(transition["id"])
+                if mapping is not None and len(mapping.emitted) > 1:
+                    self.add_operational_debt(
+                        "R45.DEBT.multi_segment_event_replay",
+                        "One source transition is represented by multiple FCSTM routing segments that repeat the same opaque event to preserve deep/cross-scope target selection. Runtime event-consumption counts from this macro are conversion behavior and cannot support a source issue.",
+                        kind="transition_macro",
+                        transition_id=transition["id"],
+                        raw_ref=transition.get("raw_ref"),
+                        raw_label=transition.get("label"),
+                        segment_count=len(mapping.emitted),
+                    )
             if kind == "normal" and not transition.get("event"):
                 unlabeled_by_source[transition["source"]].append(transition)
             elif kind == "initial":
@@ -1031,11 +1010,8 @@ class _Lowerer:
         pad = " " * indent
         pseudo = state.get("kind") in {"fork", "join", "choice", "junction"}
         keyword = "pseudo state" if pseudo else "state"
-        composite = self.is_composite(state_id) or self.has_invalid_initial_wrapper(
-            state_id
-        )
+        composite = self.is_operational_composite(state_id)
         lifecycle = state["attributes"].get("lifecycle_actions", [])
-        lifecycle_wrapper = bool(lifecycle) and not composite
         if not composite and not lifecycle:
             return [f"{pad}{keyword} {emitted} named {_dsl_string(label)};"]
         lines = [f"{pad}{keyword} {emitted} named {_dsl_string(label)} {{"]
@@ -1051,7 +1027,7 @@ class _Lowerer:
                 generated_reason="plantuml_lifecycle_abstract_action",
                 named_text=action["text"],
             )
-            if action["kind"] == "do" and (composite or lifecycle_wrapper):
+            if action["kind"] == "do" and composite:
                 lines.append(f"{body_pad}>> during before abstract {action_id};")
             else:
                 keyword_action = {"entry": "enter", "do": "during", "exit": "exit"}[
@@ -1070,34 +1046,6 @@ class _Lowerer:
                 }
             )
             self.lifecycle_mapped_count += 1
-        if lifecycle_wrapper:
-            active_state = self.registry.reserve(
-                raw_text="LifecycleActive",
-                canonical_ref=state.get("raw_ref"),
-                object_type="lowering_state",
-                scope=emitted,
-                generated_reason="lifecycle_only_state_active_leaf",
-                named_text=f"Active body of {label}",
-            )
-            self.record_synthetic_state(
-                scope=state_id,
-                emitted_id=active_state,
-                display_name=f"Active body of {label}",
-                generated_reason="lifecycle_only_state_active_leaf",
-                raw_ref=state.get("raw_ref"),
-            )
-            self.synthetic_states_by_scope[state_id].append(
-                f"state {active_state} named {_dsl_string(f'Active body of {label}')};"
-            )
-            active_initial = f"[*] -> {active_state};"
-            self.lines_by_scope[state_id].insert(0, active_initial)
-            self.record_synthetic_transition(
-                scope=state_id,
-                line=active_initial,
-                generated_reason="lifecycle_only_state_active_leaf",
-                owner_state_id=state_id,
-                position=0,
-            )
         if composite:
             if state_id not in self.mapped_initial_scopes:
                 self.add_operational_debt(

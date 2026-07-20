@@ -66,7 +66,7 @@ final FCSTM working bundle -> fresh canonical PlantUML STM_k
 
 前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；后向投影在未来 source export 阶段消费 `source_owned + agent_created` semantic roots，折叠 compiler macro，重新生成完整 PlantUML，不保留原排版、不追求最小 diff，也不声称通用 round-trip。`.fcstm` 单文件不足以恢复 region、opaque body、normalization 等 attribution facts，因此两端都必须消费 mandatory working contract/trace bundle。
 
-`InitialWait*`、`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 等全部是 compiler-owned/protected。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
+`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 等必要支架全部是 compiler-owned/protected。`InitialWait*` 与 `LifecycleActive` 已被禁止：FCSTM 原生支持带事件的 initial edge 和 leaf lifecycle action，继续生成这两类 helper 会分别改变初态选择与层次结构。多段深层/跨层路由当前会在同一 source macro 内重放 opaque event，以保持不同目标可区分；该行为显式记录为 `R45.DEBT.multi_segment_event_replay`，不能支持事件消费次数或其他 source-level 行为结论。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
 
 下游不得自行打开 `fcstm/*.fcstm` 作为 Discover 输入，必须通过唯一 loader：
 

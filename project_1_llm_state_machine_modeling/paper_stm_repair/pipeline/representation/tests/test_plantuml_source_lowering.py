@@ -177,7 +177,7 @@ state InMotion {
     assert lowered["comparison"]["lifecycle_action_coverage"] == "3/3"
 
 
-def test_lifecycle_only_empty_composite_preserves_hook_without_inventing_a_leaf():
+def test_lifecycle_only_empty_block_preserves_hook_as_leaf_without_helper_state():
     canonical, lowered, model, _ = _artifact(
         """@startuml
 [*] --> Active
@@ -196,8 +196,9 @@ state Active {
     assert active["kind"] == "composite"
     assert active["attributes"]["lifecycle_actions"][0]["text"] == "Prepare"
     assert lowered["comparison"]["lifecycle_action_coverage"] == "1/1"
-    assert runtime.current_state.path[-2] == "Active"
-    assert runtime.current_state.path[-1].startswith("UnspecifiedInitial")
+    assert runtime.current_state.path[-1] == "Active"
+    assert "LifecycleActive" not in lowered["fcstm"]
+    assert "UnspecifiedInitial" not in lowered["fcstm"]
 
 
 def test_scope_exit_and_parent_continuation_reach_autonomous_initial_state():
@@ -227,7 +228,7 @@ Human --> Autonomous : Switch
 
 
 def test_initial_transition_label_is_preserved_as_opaque_event():
-    lowered = _lower_text(
+    _, lowered, model, _ = _artifact(
         """@startuml
 [*] --> Idle : Power On
 state Idle
@@ -236,17 +237,49 @@ state Idle
         example_id="event-initial-fixture",
     )
 
-    assert 'named "Awaiting initial event: Power On"' in lowered["fcstm"]
-    assert "-> Idle : /Power_On;" in lowered["fcstm"]
+    assert "InitialWait" not in lowered["fcstm"]
+    assert "[*] -> Idle : /Power_On;" in lowered["fcstm"]
     mapping = next(
         item
         for item in lowered["comparison"]["transition_mappings"]
         if item["transition_id"] == "tr_0001"
     )
     assert mapping["status"] == "mapped"
-    assert len(mapping["emitted"]) == 2
-    assert mapping["emitted"][0]["generated_role"] == "source_initial_wait_entry"
-    assert "/Power_On" in mapping["emitted"][1]["line"]
+    assert len(mapping["emitted"]) == 1
+    assert mapping["emitted"][0]["generated_role"] == "source_initial_transition"
+    assert "/Power_On" in mapping["emitted"][0]["line"]
+
+    runtime = SimulationRuntime(model)
+    runtime.cycle()
+    assert runtime.current_state.path == (model.root_state.name,)
+    result = runtime.cycle([f"{model.root_state.name}.Power_On"])
+    assert runtime.current_state.path[-1] == "Idle"
+    assert result.consumed_events == (f"{model.root_state.name}.Power_On",)
+
+
+def test_event_labeled_multiple_initials_remain_event_distinguished_without_wait_helpers():
+    _, lowered, model, _ = _artifact(
+        """@startuml
+[*] --> Human : Power On
+[*] --> Off : Power Off
+state Human
+state Off
+@enduml
+""",
+        example_id="multiple-event-initial-fixture",
+    )
+
+    assert "InitialWait" not in lowered["fcstm"]
+    assert "[*] -> Human : /Power_On;" in lowered["fcstm"]
+    assert "[*] -> Off : /Power_Off;" in lowered["fcstm"]
+    for event_name, target in (("Power_On", "Human"), ("Power_Off", "Off")):
+        runtime = SimulationRuntime(model)
+        runtime.cycle()
+        result = runtime.cycle([f"{model.root_state.name}.{event_name}"])
+        assert runtime.current_state.path[-1] == target
+        assert result.consumed_events == (
+            f"{model.root_state.name}.{event_name}",
+        )
 
 
 def test_working_contract_protects_synthetic_states_and_excludes_them_from_positive_trace():
@@ -254,6 +287,7 @@ def test_working_contract_protects_synthetic_states_and_excludes_them_from_posit
         """@startuml
 [*] --> Human : Power On
 state Human {
+  state Ready
 }
 @enduml
 """,
@@ -265,9 +299,9 @@ state Human {
     ]
 
     assert {item["metadata"]["generated_reason"] for item in synthetics} == {
-        "event_gated_plantuml_initial_wait",
-        "missing_source_initial_fail_closed",
+        "missing_source_initial_fail_closed"
     }
+    assert "InitialWait" not in lowered["fcstm"]
     assert all(item["origin"] == "compiler_owned" for item in synthetics)
     assert all(item["edit_policy"] == "protected" for item in synthetics)
     positive_refs = {
@@ -406,7 +440,7 @@ def test_capabilities_keep_static_source_analysis_when_runtime_semantics_are_uns
 @pytest.mark.parametrize(
     "mutation, message",
     [
-        ("synthetic_source_owned", "transition macro contains non-compiler member"),
+        ("macro_member_source_owned", "transition macro contains non-compiler member"),
         ("partial_macro", "transition macro member drift"),
         (
             "compiler_positive_trace",
@@ -430,12 +464,18 @@ state Outer {
         example_id=f"contract-mutation-{mutation}",
     )
     contract = copy.deepcopy(lowered["working_contract"])
-    if mutation == "synthetic_source_owned":
-        synthetic = next(
-            item for item in contract["elements"] if item["kind"] == "synthetic_state"
+    if mutation == "macro_member_source_owned":
+        macro = next(
+            item
+            for item in contract["macros"]
+            if item["macro_kind"] == "R45.MAP.cross_scope_exit_continuation"
         )
-        synthetic["origin"] = "source_owned"
-        synthetic["edit_policy"] = "direct_issue_bound"
+        member_id = macro["member_element_ids"][0]
+        member = next(
+            item for item in contract["elements"] if item["element_id"] == member_id
+        )
+        member["origin"] = "source_owned"
+        member["edit_policy"] = "direct_issue_bound"
     elif mutation == "partial_macro":
         macro = next(
             item
@@ -841,9 +881,10 @@ state CollisionAvoidance {
     assert mapping["status"] == "mapped"
     assert mapping["reason_code"] == "R45.MAP.initial_boundary"
     assert (
-        "InitialWaittr_0001 -> CollisionAvoidance : /Possible_collision_detected;"
+        "[*] -> CollisionAvoidance : /Possible_collision_detected;"
         in lowered["fcstm"]
     )
+    assert "InitialWait" not in lowered["fcstm"]
     assert 'state UnspecifiedInitial named "Unspecified initial";' in lowered["fcstm"]
 
 
@@ -1618,6 +1659,44 @@ Outside --> Modes.Steering : Steer
         assert runtime.current_state.path[-1] == expected_branch
 
 
+def test_deep_event_initial_replays_the_label_only_on_one_source_macro():
+    _, lowered, model, _ = _artifact(
+        """@startuml
+state Outer {
+  state Inner {
+    state Ready
+  }
+}
+[*] --> Outer.Inner.Ready : Boot
+@enduml
+""",
+        example_id="deep-event-initial-fixture",
+    )
+
+    mapping = next(
+        item
+        for item in lowered["comparison"]["transition_mappings"]
+        if item["transition_id"] == "tr_0001"
+    )
+    assert len(mapping["emitted"]) == 3
+    assert sum("/Boot" in item["line"] for item in mapping["emitted"]) == 3
+    assert mapping["emitted"][0]["line"] == "[*] -> Outer : /Boot;"
+    assert all("/Boot" in item["line"] for item in mapping["emitted"][1:])
+    replay_debt = next(
+        item
+        for item in lowered["comparison"]["operational_debts"]
+        if item["reason_code"] == "R45.DEBT.multi_segment_event_replay"
+    )
+    assert replay_debt["transition_id"] == "tr_0001"
+    assert replay_debt["segment_count"] == 3
+
+    runtime = SimulationRuntime(model)
+    runtime.cycle()
+    result = runtime.cycle([f"{model.root_state.name}.Boot"])
+    assert runtime.current_state.path[-3:] == ("Outer", "Inner", "Ready")
+    assert set(result.consumed_events) == {f"{model.root_state.name}.Boot"}
+
+
 def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
     rows = _rows()
     assert len(rows) == 60
@@ -1638,6 +1717,11 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         "regions_mapped": 0,
         "normalizations_source": 0,
         "normalizations_mapped": 0,
+        "initial_wait_helpers": 0,
+        "lifecycle_helpers": 0,
+        "missing_initial_helpers": 0,
+        "nested_final_helpers": 0,
+        "invalid_scope_helpers": 0,
     }
     debt_reasons: dict[str, int] = {}
     for row in rows:
@@ -1723,6 +1807,26 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
             for mapping in lowered["comparison"]["transition_mappings"]
             for emitted in mapping["emitted"]
         )
+        assert "InitialWait" not in lowered["fcstm"]
+        assert "LifecycleActive" not in lowered["fcstm"]
+        for synthetic in lowered["comparison"]["synthetic_state_mappings"]:
+            reason = synthetic["generated_reason"]
+            totals["initial_wait_helpers"] += (
+                reason == "event_gated_plantuml_initial_wait"
+            )
+            totals["lifecycle_helpers"] += (
+                reason == "lifecycle_only_state_active_leaf"
+            )
+            totals["missing_initial_helpers"] += (
+                reason == "missing_source_initial_fail_closed"
+            )
+            totals["nested_final_helpers"] += (
+                reason == "nested_plantuml_final_completion_hold"
+            )
+            totals["invalid_scope_helpers"] += reason in {
+                "invalid_source_initial_target_surrogate",
+                "invalid_source_final_scope_surrogate",
+            }
         assert lowered["comparison"]["state_coverage"] == (
             f"{len(canonical['model']['states'])}/{len(canonical['model']['states'])}"
         )
@@ -1774,9 +1878,16 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         "regions_mapped": 29,
         "normalizations_source": 6,
         "normalizations_mapped": 6,
+        "initial_wait_helpers": 0,
+        "lifecycle_helpers": 0,
+        "missing_initial_helpers": 28,
+        "nested_final_helpers": 10,
+        "invalid_scope_helpers": 13,
     }
     assert {
         "R45.DEBT.concurrent_region_semantics",
         "R45.DEBT.invalid_source_final_scope",
         "R45.DEBT.source_input_normalization",
+        "R45.DEBT.multi_segment_event_replay",
     } <= set(debt_reasons)
+    assert debt_reasons["R45.DEBT.multi_segment_event_replay"] == 35

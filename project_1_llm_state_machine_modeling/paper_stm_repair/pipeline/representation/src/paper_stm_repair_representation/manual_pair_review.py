@@ -191,11 +191,12 @@ def _fcstm_line_refs_by_element(
         r"^event ([A-Za-z_][A-Za-z0-9_]*)(?:\s+named\s+.*)?;$"
     )
     action_pattern = re.compile(
-        r"^(enter abstract|exit abstract|>> during before abstract) "
+        r"^(enter abstract|during abstract|exit abstract|>> during before abstract) "
         r"([A-Za-z_][A-Za-z0-9_]*);$"
     )
     lifecycle_kind_by_prefix = {
         "enter abstract": "entry",
+        "during abstract": "do",
         "exit abstract": "exit",
         ">> during before abstract": "do",
     }
