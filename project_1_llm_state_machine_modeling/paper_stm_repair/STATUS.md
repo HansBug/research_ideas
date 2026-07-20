@@ -16,7 +16,7 @@ paper1 处于 **方法合同已讨论、阶段 Agent 即将纵向实现** 的阶
 | 历史 R5.7 Better STM reports | 已迁入 cold archive | [archive/r5_7_better_stm_snapshot/reports/](./archive/r5_7_better_stm_snapshot/reports/) |
 | story reset | 当前已转为 source-level issue lifecycle 口径 | [story/](./story/) |
 | 最小 issue ledger v0 | 已定义；覆盖 candidate / confirmed / rejected / out-of-scope / insufficient evidence 与 Q11=A raw-internal path | [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/), [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json), [pipeline/evaluation/tests/test_source_issue_ledger_schema.py](./pipeline/evaluation/tests/test_source_issue_ledger_schema.py) |
-| 最小 source trace v0 | 已定义；覆盖 exact / normalized / split / ambiguous / untraceable / conversion_artifact 与 #150 issue fixture coverage | [experiment_design/source_trace/](./experiment_design/source_trace/), [pipeline/evaluation/schemas/source_trace.schema.json](./pipeline/evaluation/schemas/source_trace.schema.json), [pipeline/evaluation/tests/test_source_trace_schema.py](./pipeline/evaluation/tests/test_source_trace_schema.py) |
+| 最小 source trace v0 | 已定义为 legacy migration fixture；覆盖 exact / normalized / split / ambiguous / untraceable / conversion_artifact 与 #150 issue fixture coverage，不授权 active PlantUML Repair/export/closure | [experiment_design/source_trace/](./experiment_design/source_trace/), [pipeline/evaluation/schemas/source_trace.schema.json](./pipeline/evaluation/schemas/source_trace.schema.json), [pipeline/evaluation/tests/test_source_trace_schema.py](./pipeline/evaluation/tests/test_source_trace_schema.py) |
 
 ## 3. 尚未完成事实
 
@@ -66,6 +66,7 @@ paper1 处于 **方法合同已讨论、阶段 Agent 即将纵向实现** 的阶
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-20 14:06:13 | 明确 source trace v0 仅作 legacy migration fixture；active PlantUML ingress 使用 identity-only、closure-false 的 `source_trace_base.v1`。 |
 | 2026-07-17 00:32:36 | 对齐 Issue #152 与伞 PR #100：状态表改为完整 Discover/Repair/Confirm Agent + 确定性 loop controller；动态 subPR 状态只链接 #100，不再保留旧 slug。 |
 | 2026-07-08 14:03:59 | STATUS 同步 `PR-source-trace`：最小 source trace v0 已定义，negative trace gate / reverse index / partial projection 均有 schema 与 tests，但尚未接入真实 loop。 |
 | 2026-07-08 10:15:00 | STATUS 同步 `PR-issue-ledger`：最小 source issue ledger v0 已定义，但尚未接入真实 discovery / repair / closure loop。 |

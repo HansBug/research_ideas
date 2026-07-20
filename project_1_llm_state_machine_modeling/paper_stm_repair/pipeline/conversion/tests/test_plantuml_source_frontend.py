@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,10 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (
     resolve_plantuml_jar,
 )
 from paper_stm_repair_conversion.adapters import plantuml_source as plantuml_adapter
+from paper_stm_repair_conversion.evidence_integrity import (
+    IMPLEMENTATION_ROOTS,
+    relevant_implementation_sha256,
+)
 from paper_stm_repair_representation.manual_pair_review import (
     _fcstm_anchor_matches_element,
     fcstm_evidence_anchors,
@@ -55,6 +60,12 @@ EVIDENCE = (
 )
 PAIR_INDEX = EVIDENCE / "PAIR_INDEX.md"
 PAIR_PAGES = EVIDENCE / "pairs"
+PLANTUML_SOURCE_CANONICAL_SCHEMA = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
+    / "schemas/plantuml_source_canonical.schema.json"
+)
+COMMITTED_CANONICALS = EVIDENCE / "canonical"
 
 
 def _rows() -> list[dict]:
@@ -453,6 +464,130 @@ def _require_feedback_final_evidence() -> None:
     first_pair = _rows()[0]["pair_id"]
     if not (EVIDENCE / "fcstm" / f"{first_pair}.fcstm").is_file():
         pytest.skip("Phase-II final frozen evidence has not been regenerated yet")
+
+
+def _plantuml_source_canonical_schema() -> dict:
+    return json.loads(
+        PLANTUML_SOURCE_CANONICAL_SCHEMA.read_text(encoding="utf-8")
+    )
+
+
+def _committed_canonicals() -> list[dict]:
+    paths = sorted(COMMITTED_CANONICALS.glob("*.json"))
+    assert len(paths) == 60
+    return [json.loads(path.read_text(encoding="utf-8")) for path in paths]
+
+
+def test_plantuml_source_canonical_schema_is_valid_draft_2020_12():
+    Draft202012Validator.check_schema(_plantuml_source_canonical_schema())
+
+
+def test_all_60_committed_plantuml_source_canonicals_satisfy_machine_schema():
+    validator = Draft202012Validator(_plantuml_source_canonical_schema())
+
+    for canonical in _committed_canonicals():
+        validator.validate(canonical)
+
+
+def test_plantuml_source_canonical_schema_rejects_missing_transition_kind():
+    canonical = next(
+        item for item in _committed_canonicals() if item["model"]["transitions"]
+    )
+    del canonical["model"]["transitions"][0]["attributes"]["transition_kind"]
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
+def test_plantuml_source_canonical_schema_rejects_unknown_fields():
+    canonical = _committed_canonicals()[0]
+    canonical["metadata"]["unreviewed_extension"] = True
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
+def test_run_java_frontend_rejects_malformed_canonical_before_return(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    canonical = next(
+        item for item in _committed_canonicals() if item["model"]["transitions"]
+    )
+    del canonical["model"]["transitions"][0]["attributes"]["transition_kind"]
+    envelope = {
+        "canonical": canonical,
+        "official_model": canonical["metadata"]["official_model"],
+        "official_validation": canonical["metadata"]["official_validation"],
+        "tool": canonical["metadata"]["frontend_tool"],
+    }
+    monkeypatch.setattr(
+        plantuml_adapter,
+        "_compile_java_frontend_unlocked",
+        lambda **_: tmp_path / "plantuml.jar",
+    )
+    monkeypatch.setattr(
+        plantuml_adapter.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(envelope),
+            stderr="",
+        ),
+    )
+    source_path = tmp_path / "fixture.puml"
+    source_path.write_text("@startuml\nstate A\n@enduml\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="transition_kind"):
+        plantuml_adapter.run_java_frontend(source_path, example_id="malformed")
+
+
+def test_parse_plantuml_source_rejects_malformed_monkeypatched_frontend(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    canonical = next(
+        item for item in _committed_canonicals() if item["model"]["transitions"]
+    )
+    del canonical["model"]["transitions"][0]["attributes"]["transition_kind"]
+    monkeypatch.setattr(
+        plantuml_adapter,
+        "run_java_frontend",
+        lambda *args, **kwargs: {"canonical": canonical},
+    )
+
+    with pytest.raises(RuntimeError, match="transition_kind"):
+        parse_plantuml_source(
+            "@startuml\nstate A\n@enduml\n",
+            example_id="malformed",
+        )
+
+
+def test_canonical_schema_is_part_of_implementation_tree_identity(tmp_path: Path):
+    schema_relative = "pipeline/conversion/schemas/plantuml_source_canonical.schema.json"
+    assert schema_relative in IMPLEMENTATION_ROOTS
+
+    repo_root = tmp_path / "repo"
+    paper_root = repo_root / "paper"
+    schema_path = paper_root / schema_relative
+    schema_path.parent.mkdir(parents=True)
+    schema_path.write_text('{"version": 1}\n', encoding="utf-8")
+    first = relevant_implementation_sha256(
+        repo_root=repo_root,
+        paper_root=paper_root,
+    )
+
+    schema_path.write_text('{"version": 2}\n', encoding="utf-8")
+    second = relevant_implementation_sha256(
+        repo_root=repo_root,
+        paper_root=paper_root,
+    )
+    schema_path.unlink()
+    deleted = relevant_implementation_sha256(
+        repo_root=repo_root,
+        paper_root=paper_root,
+    )
+
+    assert first != second
+    assert second != deleted
 
 
 def test_scope_resolution_uses_official_first_created_qualified_identity():
@@ -2501,9 +2636,9 @@ def test_frozen_60_review_obligations_have_exact_occurrence_evidence():
                     for anchor in anchors
                 )
 
-    assert obligation_count == 358
+    assert obligation_count == 460
     assert normalization_count == 6
-    assert covered_element_count == 773
+    assert covered_element_count == 1865
 
 
 def test_committed_60_pair_manual_review_matches_frozen_sources_and_fcstm():

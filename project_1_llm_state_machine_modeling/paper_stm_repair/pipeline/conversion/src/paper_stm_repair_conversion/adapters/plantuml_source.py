@@ -7,8 +7,11 @@ import os
 import subprocess
 import tempfile
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterator
+
+from jsonschema import Draft202012Validator, ValidationError
 
 
 PLANTUML_VERSION = "1.2024.7"
@@ -34,6 +37,37 @@ JAVA_ROOT = (
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
     / "java/plantuml-state-frontend"
 )
+PLANTUML_SOURCE_CANONICAL_SCHEMA = (
+    REPO_ROOT
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion"
+    / "schemas/plantuml_source_canonical.schema.json"
+)
+
+
+@lru_cache(maxsize=1)
+def _plantuml_source_canonical_validator() -> Draft202012Validator:
+    try:
+        schema = json.loads(
+            PLANTUML_SOURCE_CANONICAL_SCHEMA.read_text(encoding="utf-8")
+        )
+        Draft202012Validator.check_schema(schema)
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(
+            "PlantUML source canonical schema is unavailable or invalid: "
+            f"{PLANTUML_SOURCE_CANONICAL_SCHEMA}: {error}"
+        ) from error
+    return Draft202012Validator(schema)
+
+
+def validate_plantuml_source_canonical(canonical: dict[str, Any]) -> None:
+    try:
+        _plantuml_source_canonical_validator().validate(canonical)
+    except ValidationError as error:
+        location = "/".join(str(item) for item in error.absolute_path) or "<root>"
+        raise RuntimeError(
+            "Java PlantUML source canonical violates its machine schema at "
+            f"{location}: {error.message}"
+        ) from error
 
 
 def _sha256_file(path: Path) -> str:
@@ -372,6 +406,14 @@ def run_java_frontend(
         raise RuntimeError(
             f"Unexpected PlantUML runtime version: {result.get('tool', {}).get('plantuml_version')}"
         )
+    canonical = result.get("canonical")
+    metadata = canonical.get("metadata") if isinstance(canonical, dict) else None
+    if not isinstance(metadata, dict):
+        raise RuntimeError("Java PlantUML frontend omitted canonical metadata")
+    metadata["official_model"] = result.get("official_model")
+    metadata["official_validation"] = result.get("official_validation")
+    metadata["frontend_tool"] = result.get("tool")
+    validate_plantuml_source_canonical(canonical)
     return result
 
 
@@ -395,7 +437,5 @@ def parse_plantuml_source(
             plantuml_jar=plantuml_jar,
         )
     canonical = result["canonical"]
-    canonical["metadata"]["official_model"] = result["official_model"]
-    canonical["metadata"]["official_validation"] = result["official_validation"]
-    canonical["metadata"]["frontend_tool"] = result["tool"]
+    validate_plantuml_source_canonical(canonical)
     return canonical

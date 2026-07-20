@@ -23,6 +23,7 @@ conversion/
 │   ├── conversion_report.schema.json
 │   ├── loss_ledger.schema.json
 │   ├── normalization_ledger.schema.json
+│   ├── plantuml_source_canonical.schema.json
 │   └── recovery_report.schema.json
 ├── artifacts/
 │   └── plantuml_recovery/r3_1_committed/
@@ -219,4 +220,4 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conver
 pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests
 ```
 
-LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source-to-canonical-to-FCSTM 结构覆盖、attribution-safe mandatory bundle、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。机器 parse/inspect 通过不能替代逐例语义验收；本路线不主张双向无损。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。
+LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source-to-canonical-to-FCSTM 结构覆盖、attribution-safe mandatory bundle、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。Java subprocess 返回的 `r4_5.plantuml_source_canonical.v1` 必须在 Python wrapper 内通过 [plantuml_source_canonical.schema.json](./schemas/plantuml_source_canonical.schema.json) 的 Draft 2020-12 校验后才能进入 lowering；缺字段、未知字段或非法 transition/metadata 必须 fail-closed。该 schema 也进入 implementation-tree hash，不能在不使 frozen evidence 失效的情况下静默变化。机器 parse/inspect 通过不能替代逐例语义验收；本路线不主张双向无损。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。

@@ -1,5 +1,7 @@
 # source_trace/ — raw/source ↔ intermediate trace 合同入口
 
+> **Legacy migration boundary**：本目录的 `source_trace.v0` 是 2026-07-08 冻结的 synthetic migration contract，不是 Issue #161 后 PlantUML active ingress 的运行合同。active 60 例使用 [R4.5 `source_trace_base.v1`](../../pipeline/representation/README.md)，其中 identity trace 只支持 source localization，统一 `behavioral_fidelity=not_assessed`、`closure_claim_allowed=false`，不能由 v0 的 `projection_status=projectable` 推导 Repair、raw patch、final export 或 closure 能力。
+
 ## 1. 一句话定位
 
 本目录定义 paper1 的最小 **source trace** 合同：把 `PR-issue-ledger` 已确认的 source-level behavioral issue，从 raw/source `STM_0` 元素追踪到中间可执行语义表示中的元素，并记录该对应关系是否能支持后续 raw/source patch projection 与 closure / regression 审计。
@@ -70,5 +72,6 @@ source trace 是证据链和归因边界，不是 paper1 的 headline contributi
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-20 14:06:13 | 明确 v0 仅作 legacy migration fixture；active PlantUML ingress 以 `source_trace_base.v1` 的 identity-only、closure-false 合同为准。 |
 | 2026-07-17 00:32:36 | 删除旧 loop-io 动态路由，改为稳定阶段能力与 #100 动态施工入口。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 初始化 source trace 合同入口、v0 relation 口径和 machine schema / fixture / tests 指针。 |

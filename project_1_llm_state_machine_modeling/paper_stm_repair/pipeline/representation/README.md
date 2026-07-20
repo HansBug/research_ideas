@@ -68,6 +68,8 @@ final FCSTM working bundle -> fresh canonical PlantUML STM_k
 
 `FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 与 `R45RouteToken` 等必要支架全部是 compiler-owned/protected。`InitialWait*` 与 `LifecycleActive` 已被禁止：FCSTM 原生支持带事件的 initial edge 和 leaf lifecycle action，继续生成这两类 helper 会分别改变初态选择与层次结构。深层/跨层路由在 FCSTM 的单活动分派候选（包括 fail-closed compiler leaf）上消费一次 opaque event 并写入唯一 route code；这不表示 PlantUML 正交 region 的源活动互斥，凡 authored concurrency 仍由 capability contract 排除 runtime claim。后续退出、跨层 continuation 与目标 entry 只能读取同一 guard，稳定到达后恰好 reset 一次。routed macro 禁止 forced segment，`R45.DEBT.multi_segment_event_replay` 必须为 `0`；多个 trigger 只记录为 `R45.DEBT.composite_source_activation_dispatch`，不能被误读成多个 source transition。composite-to-descendant 的 local/external 语义仍以 `R45.DEBT.composite_source_external_reentry` fail-close，不开放 runtime claim。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
 
+当前 `source_trace_base.v1` 中沿用的 `projection_status=projectable` 是 legacy 字段名，只表示 source identity 能稳定定位到 intermediate root；它与同一 entry 的 `trace_dimension=identity_only`、`behavioral_fidelity=not_assessed`、`closure_claim_allowed=false` 联合解释。该字段不能被单独消费为 raw/source exporter 已实现、可做最小 patch 或可证明闭合的证据；final export 只能由未来独立的 post-Confirm semantic-root contract 授权。
+
 下游不得自行打开 `fcstm/*.fcstm` 作为 Discover 输入，必须通过唯一 loader：
 
 ```python
