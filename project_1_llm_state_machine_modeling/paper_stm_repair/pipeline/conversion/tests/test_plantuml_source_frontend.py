@@ -489,6 +489,113 @@ def test_all_60_committed_plantuml_source_canonicals_satisfy_machine_schema():
         validator.validate(canonical)
 
 
+def test_plantuml_source_canonical_schema_accepts_typed_partial_evidence():
+    canonical = parse_plantuml_source(
+        """@startuml
+[*] --> Idle
+this is not PlantUML state syntax
+@enduml
+""",
+        example_id="partial-canonical-schema",
+    )
+
+    Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+    assert canonical["status"] == "partial"
+    assert canonical["status_reason_code"] == "R45.SOURCE.partial_unparsed_lines"
+    assert canonical["metadata"]["unparsed_semantic_lines"] == [
+        {
+            "line": 3,
+            "raw": "this is not PlantUML state syntax",
+            "reason": "unrecognized_semantic_line",
+        }
+    ]
+
+
+def test_plantuml_source_canonical_schema_accepts_typed_ownerless_lifecycle_debt():
+    canonical = parse_plantuml_source(
+        """@startuml
+[*] --> Idle
+state Idle
+exit/Send Obstacle Detected
+@enduml
+""",
+        example_id="ownerless-lifecycle-canonical-schema",
+    )
+
+    Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+    assert canonical["status"] == "converted"
+    assert canonical["metadata"]["orphan_lifecycle_actions"] == [
+        {
+            "line": 4,
+            "raw": "exit/Send Obstacle Detected",
+            "kind": "exit",
+            "text": "Send Obstacle Detected",
+            "raw_ref": "stm0.puml:line:4",
+            "mapping_status": "blocked_ambiguous_owner",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("status", "reason_code"),
+    [
+        ("converted", "R45.SOURCE.partial_unparsed_lines"),
+        ("partial", "R45.SOURCE.converted"),
+    ],
+)
+def test_plantuml_source_canonical_schema_rejects_status_reason_mismatch(
+    status: str, reason_code: str
+):
+    canonical = parse_plantuml_source(
+        """@startuml
+[*] --> Idle
+this is not PlantUML state syntax
+@enduml
+""",
+        example_id="status-reason-schema",
+    )
+    canonical["status"] = status
+    canonical["status_reason_code"] = reason_code
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
+def test_plantuml_source_canonical_schema_rejects_empty_partial_debt():
+    canonical = copy.deepcopy(_committed_canonicals()[0])
+    canonical["status"] = "partial"
+    canonical["status_reason_code"] = "R45.SOURCE.partial_unparsed_lines"
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
+def test_plantuml_source_canonical_schema_rejects_aligned_state_without_official_identity():
+    canonical = copy.deepcopy(_committed_canonicals()[0])
+    del canonical["model"]["states"][0]["attributes"]["official_identity_aligned"]
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
+def test_plantuml_source_canonical_schema_rejects_unknown_orphan_mapping_status():
+    canonical = parse_plantuml_source(
+        """@startuml
+[*] --> Idle
+state Idle
+exit/Send Obstacle Detected
+@enduml
+""",
+        example_id="ownerless-lifecycle-invalid-schema",
+    )
+    canonical["metadata"]["orphan_lifecycle_actions"][0]["mapping_status"] = (
+        "silently_assigned_to_root"
+    )
+
+    with pytest.raises(ValidationError):
+        Draft202012Validator(_plantuml_source_canonical_schema()).validate(canonical)
+
+
 def test_plantuml_source_canonical_schema_rejects_missing_transition_kind():
     canonical = next(
         item for item in _committed_canonicals() if item["model"]["transitions"]
