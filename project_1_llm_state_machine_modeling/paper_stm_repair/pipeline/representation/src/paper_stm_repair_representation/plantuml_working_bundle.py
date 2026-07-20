@@ -622,7 +622,7 @@ def load_attribution_safe_working_bundle(
     ]
     if source_pair_ids != expected_pair_ids:
         raise WorkingBundleError("pair pool identities are not the formal Phase-II batch")
-    expected_machine_paths = {"comparison.jsonl"}
+    expected_machine_paths = {"comparison.jsonl", "official_models.jsonl"}
     for pair_id in source_pair_ids:
         expected_machine_paths.update(
             {

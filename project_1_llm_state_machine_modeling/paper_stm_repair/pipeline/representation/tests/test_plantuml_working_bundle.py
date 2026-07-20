@@ -793,7 +793,7 @@ def _refresh_machine_manifest(evidence: Path) -> None:
         )
         for path in (evidence / directory).iterdir()
         if path.is_file()
-    ] + [evidence / "comparison.jsonl"]
+    ] + [evidence / "comparison.jsonl", evidence / "official_models.jsonl"]
     inventory = [
         {
             "path": path.relative_to(evidence).as_posix(),
@@ -990,6 +990,22 @@ def _write_bundle_fixture(
         ),
         encoding="utf-8",
     )
+    official_models_path = evidence / "official_models.jsonl"
+    official_models_path.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "case_id": f"{index:04d}",
+                    "pair_id": f"llms_emp_feedback_final_{index:04d}",
+                    "status": "fixture",
+                },
+                sort_keys=True,
+            )
+            + "\n"
+            for index in range(60)
+        ),
+        encoding="utf-8",
+    )
     artifact_paths = [
         path
         for directory in (
@@ -1002,7 +1018,7 @@ def _write_bundle_fixture(
         )
         for path in (evidence / directory).iterdir()
         if path.is_file()
-    ] + [comparison_path]
+    ] + [comparison_path, official_models_path]
     inventory = [
         {
             "path": path.relative_to(evidence).as_posix(),
