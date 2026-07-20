@@ -80,7 +80,7 @@ GitHub `key comments` 只包括改变战略事实、关闭 / supersede 旧源、
 | `PR-loop-io` | A-014--A-016, A-019 | 冻结最小 stage IO、run record、failure/partial 状态与 secret redaction。 |
 | `PR-discover-confirm` | A-017, A-019; A-011 as archive/negative reference only | 实现 discovery + strict confirmation 时复用 source / runtime 入口；旧 Better STM gate 只作反例，不能作为 active endpoint。 |
 | `PR-repair-runner` | A-014, A-015, A-019 | 实现 issue-grounded repair 时保留 conversion / representation / runtime 的非贡献归因，不把修复写成 generic Better STM generation。 |
-| `PR-raw-export` | A-014, A-015, A-019 | 输出 raw/source-level patch bundle 或 raw STM_k 时必须保留 source trace 与 unsupported projection 记录。 |
+| `PR-raw-export` | A-014, A-015, A-019 | 未来由独立 post-Confirm semantic-root bundle 全量生成 fresh canonical raw/source `STM_k`；必须保留 accepted change、semantic-root correspondence 与 unsupported export 记录，不采用 textual minimal patch。 |
 | `PR-loop-pilot` | A-016, A-017, A-024 | 用 readiness / provenance 与本 ledger 作为 pilot 输入选择和风险清单；pilot 只作 calibration，不作 headline result。 |
 | `PR-eval-rubric` | A-007, A-008, A-011, A-012, A-013 as archive references only | 基于 pilot 真实输出重新冻结 closure/regression rubric；旧 prompt 只作反例 / calibration source。 |
 | `PR-baseline-contract` | A-018; A-020, A-022 as historical/negative references only | 等 pilot 后冻结三层 baseline；旧 eval / paper_v1 只说明哪些 hard comparison 或 judge 口径不应复用。 |

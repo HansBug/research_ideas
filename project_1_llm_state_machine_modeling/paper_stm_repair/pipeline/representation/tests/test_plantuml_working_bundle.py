@@ -778,6 +778,42 @@ def _refresh_publication_seal(evidence: Path) -> None:
     _write_json(evidence / "PUBLICATION_SEAL.json", seal)
 
 
+def _refresh_machine_manifest(evidence: Path) -> None:
+    manifest_path = evidence / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    artifact_paths = [
+        path
+        for directory in (
+            "canonical",
+            "fcstm",
+            "parse_inspect",
+            "working_contracts",
+            "source_traces",
+            "case_reports",
+        )
+        for path in (evidence / directory).iterdir()
+        if path.is_file()
+    ] + [evidence / "comparison.jsonl"]
+    inventory = [
+        {
+            "path": path.relative_to(evidence).as_posix(),
+            "sha256": _sha_bytes(path.read_bytes()),
+        }
+        for path in sorted(artifact_paths)
+    ]
+    manifest["artifact_inventory"] = inventory
+    manifest["artifact_set_sha256"] = _sha_json(inventory)
+    manifest["working_contract_set_sha256"] = _sha_json(
+        [
+            item
+            for item in inventory
+            if item["path"].startswith("working_contracts/")
+        ]
+    )
+    _write_json(manifest_path, manifest)
+    _refresh_publication_seal(evidence)
+
+
 
 
 def _write_bundle_fixture(
@@ -1337,6 +1373,29 @@ def test_loader_rejects_resealed_publication_with_missing_pair_file(tmp_path: Pa
     _refresh_publication_seal(evidence)
 
     with pytest.raises(WorkingBundleError, match="exactly 60 complete pair pages"):
+        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+
+
+def test_loader_rejects_rehashed_manifest_with_missing_nonselected_machine_artifact(
+    tmp_path: Path,
+):
+    repo, evidence = _write_bundle_fixture(tmp_path)
+    (evidence / "canonical/llms_emp_feedback_final_0059.json").unlink()
+    _refresh_machine_manifest(evidence)
+
+    with pytest.raises(WorkingBundleError, match="exact 60-case batch"):
+        load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
+
+
+def test_loader_rejects_rehashed_reordered_comparison_batch(tmp_path: Path):
+    repo, evidence = _write_bundle_fixture(tmp_path)
+    comparison_path = evidence / "comparison.jsonl"
+    rows = comparison_path.read_text(encoding="utf-8").splitlines()
+    rows[0], rows[1] = rows[1], rows[0]
+    comparison_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    _refresh_machine_manifest(evidence)
+
+    with pytest.raises(WorkingBundleError, match="ordered formal 0000..0059 batch"):
         load_attribution_safe_working_bundle(evidence, "0000", repo_root=repo)
 
 

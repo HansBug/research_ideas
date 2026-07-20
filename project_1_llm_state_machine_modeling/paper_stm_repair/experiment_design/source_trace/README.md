@@ -4,7 +4,7 @@
 
 ## 1. 一句话定位
 
-本目录定义 paper1 的最小 **source trace** 合同：把 `PR-issue-ledger` 已确认的 source-level behavioral issue，从 raw/source `STM_0` 元素追踪到中间可执行语义表示中的元素，并记录该对应关系是否能支持后续 raw/source patch projection 与 closure / regression 审计。
+本目录定义 paper1 的最小 **source trace** migration 合同：把 `PR-issue-ledger` 已确认的 source-level behavioral issue，从 raw/source `STM_0` 元素追踪到中间可执行语义表示中的元素，并记录 legacy projection relation。该 v0 relation 只作迁移输入；active PlantUML 最终输出必须由未来独立 post-Confirm semantic-root export bundle 全量生成 fresh canonical `STM_k`。
 
 ```text
 confirmed issue
@@ -12,7 +12,7 @@ confirmed issue
   -> source trace ledger
   -> intermediate semantic elements
   -> later repair/change ledger
-  -> raw/source patch bundle / closure evidence
+  -> future post-Confirm semantic-root export bundle / closure evidence
 ```
 
 source trace 是证据链和归因边界，不是 paper1 的 headline contribution；paper1 的贡献仍是 feedback-driven LLM refinement loop 与 diagnostics / simulation / formal-verification feedback integration。
@@ -23,7 +23,7 @@ source trace 是证据链和归因边界，不是 paper1 的 headline contributi
 
 1. 这个 issue 指向 raw/source STM 里的哪个 state / transition / guard / effect / variable？
 2. 转换为中间表示后，对应哪个 transition / guard / effect？
-3. 如果中间表示被修复，这个变化能不能回投为 raw/source patch？
+3. 如果中间表示被修复，accepted semantic delta 能否进入独立 post-Confirm export bundle，并在 fresh canonical raw/source `STM_k` 中找到唯一 correspondence？
 4. 如果 trace 是 ambiguous / untraceable / conversion artifact，是否必须禁止它进入 source-level closure 主结论？
 
 没有 source trace，后续很容易把 conversion / normalization / lowering 造成的变化误算成 repair gain，破坏论文证据链。

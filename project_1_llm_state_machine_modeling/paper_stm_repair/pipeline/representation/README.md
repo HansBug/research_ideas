@@ -61,10 +61,10 @@ active 60 例同时保留两层资格：
 
 ```text
 PlantUML STM0 -> attribution-safe FCSTM working bundle
-final FCSTM working bundle -> fresh canonical PlantUML STM_k
+validated post-Confirm semantic-root export bundle -> fresh canonical PlantUML STM_k
 ```
 
-前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；后向投影在未来 source export 阶段消费 `source_owned + agent_created` semantic roots，折叠 compiler macro，重新生成完整 PlantUML，不保留原排版、不追求最小 diff，也不声称通用 round-trip。`.fcstm` 单文件不足以恢复 region、opaque body、normalization 等 attribution facts，因此两端都必须消费 mandatory working contract/trace bundle。
+前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；它消费当前 attribution-safe working bundle。后向投影属于未来独立 source-export PR：只有通过 B-final 与 Confirm 的 post-Confirm semantic-root export bundle 才能授权输出，它消费 `source_owned + issue-bound agent_created` semantic roots、accepted disposition/change ledger、region/body/lifecycle/order 信息与 deletion tombstone，折叠 compiler macro 后重新生成完整 PlantUML。后向投影不消费裸 `.fcstm`，也不把当前 `working_fcstm_contract.v2` 当作可逆制品；它不保留原排版、不追求最小 diff、不声称通用 round-trip 或全局 behavior equivalence。
 
 `FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 与 `R45RouteToken` 等必要支架全部是 compiler-owned/protected。`InitialWait*` 与 `LifecycleActive` 已被禁止：FCSTM 原生支持带事件的 initial edge 和 leaf lifecycle action，继续生成这两类 helper 会分别改变初态选择与层次结构。深层/跨层路由在 FCSTM 的单活动分派候选（包括 fail-closed compiler leaf）上消费一次 opaque event 并写入唯一 route code；这不表示 PlantUML 正交 region 的源活动互斥，凡 authored concurrency 仍由 capability contract 排除 runtime claim。后续退出、跨层 continuation 与目标 entry 只能读取同一 guard，稳定到达后恰好 reset 一次。routed macro 禁止 forced segment，`R45.DEBT.multi_segment_event_replay` 必须为 `0`；多个 trigger 只记录为 `R45.DEBT.composite_source_activation_dispatch`，不能被误读成多个 source transition。composite-to-descendant 的 local/external 语义仍以 `R45.DEBT.composite_source_external_reentry` fail-close，不开放 runtime claim。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
 

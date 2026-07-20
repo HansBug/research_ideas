@@ -616,6 +616,32 @@ def load_attribution_safe_working_bundle(
     source_case_ids = [str(row.get("pair_id", ""))[-4:] for row in source_rows]
     if source_case_ids != EXPECTED_CASE_IDS:
         raise WorkingBundleError("pair pool is not the ordered 0000..0059 batch")
+    source_pair_ids = [str(row.get("pair_id", "")) for row in source_rows]
+    expected_pair_ids = [
+        f"llms_emp_feedback_final_{case_id}" for case_id in EXPECTED_CASE_IDS
+    ]
+    if source_pair_ids != expected_pair_ids:
+        raise WorkingBundleError("pair pool identities are not the formal Phase-II batch")
+    expected_machine_paths = {"comparison.jsonl"}
+    for pair_id in source_pair_ids:
+        expected_machine_paths.update(
+            {
+                f"canonical/{pair_id}.json",
+                f"fcstm/{pair_id}.fcstm",
+                f"parse_inspect/{pair_id}.json",
+                f"working_contracts/{pair_id}.json",
+                f"source_traces/{pair_id}.json",
+                f"case_reports/{pair_id}.json",
+            }
+        )
+    actual_machine_paths = set(inventory_by_path)
+    if actual_machine_paths != expected_machine_paths:
+        missing = sorted(expected_machine_paths - actual_machine_paths)
+        extra = sorted(actual_machine_paths - expected_machine_paths)
+        raise WorkingBundleError(
+            "manifest machine artifact inventory is not the exact 60-case batch: "
+            f"missing={missing}; extra={extra}"
+        )
     row_by_case = dict(zip(source_case_ids, source_rows))
     if case_id not in row_by_case:
         raise WorkingBundleError(f"case is not present in pair pool: {case_id}")
@@ -655,6 +681,12 @@ def load_attribution_safe_working_bundle(
     source_trace = _read_json(evidence / relative_paths["trace"])
     case_report = _read_json(evidence / relative_paths["case_report"])
     comparison_rows = _read_jsonl(evidence / "comparison.jsonl")
+    if [item.get("case_id") for item in comparison_rows] != EXPECTED_CASE_IDS or [
+        item.get("pair_id") for item in comparison_rows
+    ] != source_pair_ids:
+        raise WorkingBundleError(
+            "comparison ledger is not the ordered formal 0000..0059 batch"
+        )
     comparison_row = next(
         (item for item in comparison_rows if item.get("case_id") == case_id), None
     )

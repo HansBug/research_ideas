@@ -47,7 +47,7 @@ paper1 当前 contribution 口径限定为：
 
 **Q：这是不是在定义什么是 better specification？**
 
-不是。Better STM 主框架已经 superseded。当前问题是 issue lifecycle：Discover 初始化哪些 source-level behavioral issue roots 与 checks，Repair 如何逐项 `fix/reject`，Confirm 如何接受处置或追加 successor，以及最终 source projection 是否闭合问题、是否引入 regression。
+不是。Better STM 主框架已经 superseded。当前问题是 issue lifecycle：Discover 初始化哪些 source-level behavioral issue roots 与 checks，Repair 如何逐项 `fix/reject`，Confirm 如何接受处置或追加 successor，以及 fresh canonical source export 是否闭合问题、是否引入 regression。
 
 详细模型范围和行为表达边界见 [model_scope.md](./model_scope.md)。
 

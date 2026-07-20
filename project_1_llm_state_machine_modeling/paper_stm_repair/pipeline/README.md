@@ -14,7 +14,7 @@ R4/R5.7 的 Better STM evaluation gate 已整体迁入 cold archive：[../archiv
 | R4 historical evaluation | [../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) | R3 canonical JSON、四例 `<NL, STM_0>` | archived diagnostic / scenario / eligibility / Better STM checklist schema 与 dry-run | cold archive；不作为 active evaluation gate。 |
 | R4.5 表示桥 | [representation/](./representation/) | R3 canonical JSON | `.fcstm`、name mapping、lowering inventory、parse/inspect report | 将 canonical JSON 降到 pyfcstm 可机检表示；loss 必须入账，`fcstm` 只是 intermediate executable semantic medium。 |
 | R5 冒烟与摸排 | [readiness_audit/](./readiness_audit/) | 四例静态样例、seed library registry、R3/R4/R4.5 制品 | 四例冒烟 report、seed sweep report、handoff JSON、R5.5 `llms-emp` 深度画像 | 复验当前数据池中哪些样本可进入后续 pilot；仍不执行修正循环。 |
-| future evaluation | [evaluation/](./evaluation/) | confirmed issues、repair/change ledger、source patch bundle、closure / regression evidence | future source-level closure / regression schema | placeholder；不得继承 archived Better STM gate。 |
+| future evaluation | [evaluation/](./evaluation/) | confirmed issues、repair/change ledger、fresh canonical source artifact、semantic change/correspondence ledger、closure / regression evidence | future source-level closure / regression schema | placeholder；不得继承 archived Better STM gate。 |
 
 ## 2. 数据流
 

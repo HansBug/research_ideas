@@ -78,8 +78,6 @@ PlantUML SCXML exporter 只遍历 state/link 生成 `<state>` 与 `<transition>`
 ```fcstm
 state Accelerating {
     enter abstract Accelerate;
-    state LifecycleActive;
-    [*] -> LifecycleActive;
 }
 state EmergencyStopping {
     >> during before abstract EmergencyStop;
@@ -176,13 +174,13 @@ Python adapter 不重新解析 PlantUML：
 
 ### 5.3 FCSTM lowering
 
-- event-labeled initial 使用 `InitialWait*`，避免进入 composite 时事件丢失。
+- event-labeled initial 直接使用 FCSTM 原生带事件 initial edge；禁止再生成 `InitialWait*`，避免 helper 改变初态选择和层次结构。
 - root final 直接发出 `X -> [*]`；nested final 使用 `FinalWait*` completion hold。
 - leaf cross-scope transition 拆成 child exit、parent continuation、target entry，全部绑定同一 source transition ID。
 - transition-specific deep entry 排在普通/default initial 与 `UnspecifiedInitial` 之前；source order和 duplicate occurrence不去重。
 - missing initial 使用可见、可停止的 `UnspecifiedInitial`，绝不猜 child。
 - invalid/non-direct initial 使用保留 raw target identity 的 surrogate。
-- lifecycle 挂为 abstract hook；这只证明结构位置和 action ID，不证明源动作行为已注册执行。
+- lifecycle 直接挂到原 leaf/composite 的 abstract hook；禁止再生成 `LifecycleActive` 子状态。这只证明结构位置和 action ID，不证明源动作行为已注册执行。
 - generic state body 与 ownerless lifecycle 进入 display metadata + trace。
 - multiple initial、unlabeled fan-out、explicit fork 的所有边都发出，但 case 保持 execution-ineligible。
 
@@ -220,7 +218,7 @@ legacy whole-model 运行/Discover eligibility 仍另行判断。当前所有 60
 
 后续 #158 可以消费 60/60 working bundle，但必须遵守：
 
-1. `InitialWait*`、`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、`LifecycleActive` 和跨层 transition segments 均为 compiler-owned/protected；
+1. `FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、`R45RouteToken` 和跨层 transition segments 均为 compiler-owned/protected；`InitialWait*` 与 `LifecycleActive` 被明确禁止；
 2. compiler-only diagnostic 必须归为 `rejected_conversion_artifact`，不能成为 confirmed issue 或 Repair target；
 3. macro member diagnostic 在有 NL/raw source/typed evidence 前只能 `candidate_only`；
 4. source identity trace 只证明“FCSTM 逻辑 root 对应哪个 PlantUML source element”，所有 baseline entry 均 `behavioral_fidelity=not_assessed`、`closure_claim_allowed=false`；
@@ -284,14 +282,10 @@ EmergencyStopping : do/Send Obstacle Detected
 ```fcstm
 state Accelerating {
     enter abstract Accelerate;
-    state LifecycleActive;
-    [*] -> LifecycleActive;
 }
 state EmergencyStopping {
     >> during before abstract EmergencyStop;
     >> during before abstract SendObstacleDetected;
-    state LifecycleActive;
-    [*] -> LifecycleActive;
 }
 ```
 
@@ -325,7 +319,7 @@ state TurnOn_state named "TurnOn\n[PlantUML body] {max=2s, min=2s}";
 - source/trace endpoint 联合篡改；
 - event binding 被换成另一事件；
 - untracked extra edge；
-- event initial wait 与 main segment 断开；
+- event-labeled initial 被错误拆成 helper state，或与原 initial source root 失去绑定；
 - composite forced marker 丢失；
 - nested final target/hold 被改写；
 - cross-scope exit 从 `-> [*]` 改成内部 child；
@@ -355,11 +349,11 @@ Outside --> C.Wanted : Go
 
 ## 9. 60 组主 session 人工验收
 
-旧 v3 人工账本已因 working-contract、实现指纹和 review subject 更新而失效，不能继承。正式 v5 制品只能在实现提交后的 clean replay 生成；随后由主 session LLM 按 `0000 -> 0059` 重新完整读取 NL、PlantUML STM0、FCSTM STM0、working contract 与 source trace，并对每个 risk occurrence 按唯一 `obligation_id` 完成绑定同一 subject 的第二遍复核，不能用一条 risk-tag 总结覆盖多个 occurrence。
+旧 v3 人工账本已因 working-contract、实现指纹和 review subject 更新而失效，不能继承。正式 v6 batch 制品（逐例 case report schema 为 v5）只能在实现提交后的 clean replay 生成；随后由主 session LLM 按 `0000 -> 0059` 重新完整读取 NL、PlantUML STM0、FCSTM STM0、working contract 与 source trace，并对每个 risk occurrence 按唯一 `obligation_id` 完成绑定同一 subject 的第二遍复核，不能用一条 risk-tag 总结覆盖多个 occurrence。
 
-最终逐组三元组、人工账本、publication seal 和证据身份将在 clean replay 与 60/60 主 session 重读完成后由本 PR 的 evidence commit 更新。开发 replay 即使机器 gate 全过，也必须显示 `development_only`，不得成为 READY 证据。
+最终逐组三元组、人工账本、publication seal 和证据身份只能在 clean replay 与 60/60 主 session 重读完成后由本 PR 的 evidence commit 更新。开发 replay 即使机器 gate 全过，也必须显示 `development_only`，不得成为 READY 证据。
 
-当前 dirty 开发 replay 只证明实现候选能产生 `60/60 structure_preserved`、`757/757` mapped transition、`0` silent drop、`1413` positive identity trace 与 `903` macro；其 `evidence_eligible=false`，不能替代上述正式验收。
+当前已在 clean detached worktree 完成绑定实现提交的 machine replay，得到 `60/60 structure_preserved`、`757/757` mapped transition、`0` silent drop、`1413` positive identity trace、`903` macro、`114` 个 protected route mapping 与 `0` sequential event replay debt。主 session 随后完成当前 review subject 下的 `60/60` 三元组重读、`120` 条独立语义对应和 `460` 个逐 occurrence obligation 复核，结果为 `60/60 pass`、`0` findings。新 [MANUAL_REVIEW.jsonl](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.jsonl)、[PAIR_INDEX.md](../pipeline/representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md) 与 [PUBLICATION_SEAL.json](../pipeline/representation/reports/llms_emp_r45_java_60/PUBLICATION_SEAL.json) 已绑定当前 manifest、working-contract set 与逐文件 hash；seal 状态为 `main_session_reviewed_ready_for_discover`、`evidence_eligible=true`。
 
 ## 10. 最终判断与后续边界
 
@@ -368,7 +362,7 @@ Outside --> C.Wanted : Go
 1. SCXML 路线不适合继续承担 PlantUML statechart canonical。
 2. 旧 converter 确实有重大设计错误，不能把责任全部推给官方工具。
 3. Java source frontend + Python subprocess wrapper 是当前更可审计的路线。
-4. pinned official `Entity/Link` 身份与 raw-source ledger 已共同进入 canonical，当前 v5 clean replay 已完成 AST audit；由于 working contract 与 review subject 已更新，60 例主 session 重读和 publication seal 仍是本轮合入前的强制 gate，不能继承旧账本的 PASS。
+4. pinned official `Entity/Link` 身份与 raw-source ledger 已共同进入 canonical；当前 v6 batch clean replay（v5 case report）、60 例主 session 重读与 publication seal 均已完成。旧账本 PASS 没有被继承，新 seal 只绑定当前实现和当前 review subject。
 
 ### 仍不能确认
 
@@ -382,7 +376,7 @@ Outside --> C.Wanted : Go
 
 ```text
 PlantUML STM0 -> attribution-safe FCSTM working bundle
-final FCSTM working bundle -> fresh canonical PlantUML STM_k
+validated post-Confirm semantic-root export bundle -> fresh canonical PlantUML STM_k
 ```
 
-前向阶段允许 Discover 暴露 conversion candidate noise，但 `confirmed`、Repair target、Confirm accepted disposition 与 main-result issue 中的 conversion artifact 上限均为 `0`。operational debt 不再全局阻断 source-static Discover；它只关闭受影响的 inspect/simulation/transition/verification capability。后向阶段的合同是由 final working bundle 生成完整、确定性的 PlantUML，不保留原 formatting 或最小 diff；compiler-owned scaffold 全部折叠，只导出 source-owned 与 issue-bound agent-created semantic roots。**该 final exporter 当前尚未实现，capability 必须保持 `not_run`。**后续实现后仍必须重新经 pinned PlantUML frontend 解析并做 semantic-root audit，但这只是 final export 验证，不构成 `T_out(T_in(P)) = P` 的 round-trip 主张。
+前向阶段允许 Discover 暴露 conversion candidate noise，但 `confirmed`、Repair target、Confirm accepted disposition 与 main-result issue 中的 conversion artifact 上限均为 `0`。operational debt 不再全局阻断 source-static Discover；它只关闭受影响的 inspect/simulation/transition/verification capability。后向阶段必须由未来独立的 post-Confirm semantic-root export bundle 生成完整、确定性的 PlantUML，不保留原 formatting 或最小 diff；compiler-owned scaffold 全部折叠，只导出 source-owned 与 issue-bound agent-created semantic roots。裸 `.fcstm` 和当前 baseline working bundle 都不能授权该操作。**该 post-Confirm contract 与 final exporter 当前尚未实现，capability 必须保持 `not_run`。**后续实现后仍必须重新经 pinned PlantUML frontend 解析并做 semantic-root audit，但这只是 final export 验证，不构成 `T_out(T_in(P)) = P` 的 round-trip 主张。
