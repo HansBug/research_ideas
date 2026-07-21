@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 from concurrent.futures import ThreadPoolExecutor
 
+from paper_stm_repair_loop.config import SELECTED_ROOT
 from paper_stm_repair_loop.eval_env import EvalEnvironment
 from paper_stm_repair_loop.eval_env.runtime import (
     ALLOWED_FUNCTION_FAMILIES,
@@ -220,6 +221,34 @@ def test_simulate_exposes_terminal_state_without_reading_current_state():
     assert result.result == RESULT_TRUE
     assert result.match_status == "matches"
     direct = env.simulation.simulate(cycles=[[], ["Root.stop"]])
+    assert direct.final.is_ended is True
+    assert direct.final.active_states == ()
+
+
+def test_manual_0000_power_off_reaches_top_level_final():
+    model_path = (
+        SELECTED_ROOT
+        / "llms-emp-gpt4o-hldcs-manual-identity"
+        / "model.fcstm"
+    )
+    env = EvalEnvironment(model_text=model_path.read_text(encoding="utf-8"))
+
+    result = env.eval_assert(
+        "simulate(cycles=[[], ['HighLevelDrivingModule.PowerOn'], "
+        "['HighLevelDrivingModule.PowerOff']]).final.is_ended is True",
+        "manual 0000 PowerOff should terminate the top-level machine",
+        required_function_families=["simulation"],
+    )
+
+    assert result.result == RESULT_TRUE
+    assert result.match_status == "matches"
+    direct = env.simulation.simulate(
+        cycles=[
+            [],
+            ["HighLevelDrivingModule.PowerOn"],
+            ["HighLevelDrivingModule.PowerOff"],
+        ]
+    )
     assert direct.final.is_ended is True
     assert direct.final.active_states == ()
 

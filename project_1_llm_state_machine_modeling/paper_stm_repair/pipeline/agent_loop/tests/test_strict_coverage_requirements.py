@@ -6,6 +6,7 @@ from paper_stm_repair_loop.schemas.assertions import EvalAssertResult
 from paper_stm_repair_loop.schemas.coverage import InputSegment
 from paper_stm_repair_loop.tools.coverage_registry import (
     CoverageRegistry,
+    DefaultEvalRuntime,
     _assertion_directly_verifies_source_fact,
     _registration_required_actions,
 )
@@ -16,6 +17,17 @@ def _requirements(text: str):
         InputSegment.model_validate(item) for item in segment_nl(text).segments
     )
     return segments, build_coverage_requirements(segments)
+
+
+def test_default_eval_runtime_accepts_public_terminal_observation_attribute():
+    runtime = DefaultEvalRuntime(funcs={"simulate": lambda **_: None})
+
+    ok, rejections, _ = runtime._audit(
+        "simulate(cycles=[[], ['Root.stop']]).final.is_ended is True"
+    )
+
+    assert ok is True
+    assert rejections == []
 
 
 def _plan(requirement_id: str, *, family: str = "effect"):

@@ -52,6 +52,7 @@ ALLOWED_OBSERVATION_ATTRIBUTES = {
     "final",
     "model_sha256",
     "index",
+    "is_ended",
     "active_states",
     "variables",
     "input_events",
