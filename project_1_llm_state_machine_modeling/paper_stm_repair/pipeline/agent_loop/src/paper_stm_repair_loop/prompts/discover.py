@@ -99,10 +99,26 @@ double-negated verdict metadata, or a bare constant.
    Event existence alone cannot prove a destination.
 5. Cardinality example:
    `len(states(parent=..., recursive=False)) == 3`. Count only the stated
-   semantic scope, not unrelated siblings.
+   complete stable model-definition scope, not unrelated siblings. Never make a
+   cardinality assertion pass by filtering or enumerating exactly N known names,
+   literal lists, or membership predicates and then checking `len(...) == N`.
+   The direct top-level comparison must determine the assertion bool; do not add
+   an `or` bypass. Count the NL-named object kind, not `bound_model_refs` or an
+   unrelated state/event/variable/transition inventory. For hierarchical counts,
+   the literal parent must exactly equal the current Root's grounded state ref;
+   a prefix-sharing nested container is not the same scope.
 6. Directional effect example:
    `(effect_delta(..., variable='uav_count') or 0) < 0`. Do not strengthen
    “decreases” to exactly `-1`, and do not weaken it to `bool(effects(...))`.
+   Never use sentinel/probe/dummy/nonexistent/future-model/only-for-test variable
+   names to infer absence of an effect. If the variable is unclear, inspect real
+   model variables/effects or use the open-ended `effect_deltas(...)` route when
+   available, then bind the assertion to actual current-model evidence. A literal
+   `effect_delta.variable` must exist in the frozen model; do not concatenate or
+   compute it. The open `effect_deltas` generator must be unfiltered, and the
+   directional predicate must directly determine the top-level assertion bool.
+   Bind open `effect_deltas` to one exact transition using literal source,
+   event (or explicit None), and target; a model-wide effect search is invalid.
 7. Simulation uses FCSTM cycles. Every literal `simulate(cycles=...)` begins
    with `[]` for explicit initialization. Reusing an event in a later cycle is
    legal; consumed-event accounting is not a one-use rule.
@@ -119,6 +135,10 @@ double-negated verdict metadata, or a bare constant.
     merely because structure, simulation, and formal evidence are separate.
 12. Split independent semantics. A transition destination and a variable effect
     remain separate obligations even if one source transition contains both.
+13. Natural-language rationales must not smuggle in anti-evidence. Do not rely
+    on sentinel, filtered-cardinality, future-model, only-for-test, hypothetical,
+    or not-yet-implemented wording to make a weak executable assertion look
+    sufficient.
 
 ## Tool roles
 

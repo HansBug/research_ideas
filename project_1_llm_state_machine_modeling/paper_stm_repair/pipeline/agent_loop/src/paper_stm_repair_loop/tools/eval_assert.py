@@ -82,7 +82,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     Controller-registered frozen views explicitly listed by ``read_task`` may be
     referenced. Functions are ``states``, ``events``,
     ``variables``, ``transitions``, ``effects``, ``initial_child``,
-    ``transition_exists``, ``guards_overlap``, ``effect_delta``, ``simulate``,
+    ``transition_exists``, ``guards_overlap``, ``effect_delta``,
+    ``effect_deltas``, ``simulate``,
     ``fbmcq``, ``mapped_source_refs``, ``mapped_fcstm_refs``, and
     ``bound_model_refs``. Pure builtins are exactly ``abs/all/any/bool/float/int/
     iter/len/list/max/min/round/set/sorted/str/sum/tuple``.
@@ -192,10 +193,22 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           an empty tuple can become the final non-bool result through Python
           short-circuit semantics.
         - ``effect_delta(source=None, event=None, target=None, variable=<name>)
-          -> int | float | None``. ``None`` means no matching assignment; one
-          ambiguous transition, missing/ambiguous variable, nonnumeric initial
-          value, or a complex effect expression is unsupported. If NL says only
-          “decreases”, use ``(effect_delta(...) or 0) < 0``; use an exact delta
+          -> int | float | None``. Compatibility helper for one named variable.
+          ``None`` means no matching assignment; one ambiguous transition,
+          missing/ambiguous variable, nonnumeric initial value, or a complex
+          effect expression is unsupported. Keep this only when the variable name
+          is explicitly grounded in the frozen source/model facts.
+        - ``effect_deltas(source=None, event=None, target=None) ->
+          tuple[(variable, delta), ...]``. Open effect-evidence helper for all
+          parseable numeric assignments on matching transitions. It returns an
+          empty tuple for stable absence (no matching transition, no effect, no
+          assignments, or no variables to report) and never requires a sentinel
+          or invented variable-name probe. For NL that says “some count/resource
+          decreases” and does not ground one exact variable name, prefer
+          ``any(delta < 0 for _, delta in effect_deltas(...))``. Because the
+          helper itself is registered as the ``effect`` family, this expression
+          still leaves effect evidence in the runtime call trace even when the
+          tuple is empty and ``any(...)`` returns ``False``. Use an exact delta
           only when the source explicitly requires that amount.
         - ``simulate(cycles=<list[list[str]]>) -> SimulationObservation``.
           Every outer item is exactly one FCSTM cycle; each inner list is the
@@ -244,10 +257,18 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Literal candidate names must come from the frozen NL/source terminology or
         actual ``variables()`` inventory and the assertion rationale must explain
         the binding. Do not add unrelated aliases merely to make a missing-effect
-        assertion return the desired value. For a stable missing variable/effect,
-        ``effect_delta(...)`` returns ``None`` and ``(delta or 0) < 0`` returns
-        strict ``False``; ambiguous transitions or unsupported expressions remain
-        inconclusive.
+        assertion return the desired value. For open directional effects, prefer
+        ``effect_deltas(...)`` over a fabricated ``effect_delta(..., variable=...)``
+        probe. ``effect_delta.variable`` must be one exact literal name from the
+        frozen model inventory; concatenated/computed probes are rejected. An open
+        ``effect_deltas`` generator must not filter a hand-picked variable and must
+        bind one exact literal source/event/target transition. For
+        stable missing variables/effects, ``effect_deltas(...)``
+        returns ``()`` so ``any(delta < 0 for _, delta in effect_deltas(...))``
+        is strict ``False`` while the ``effect`` family is still traced; the
+        legacy ``effect_delta(...)`` returns ``None`` and ``(delta or 0) < 0`` is
+        also strict ``False`` for grounded variable-specific assertions.
+        Ambiguous transitions or unsupported expressions remain inconclusive.
 
         Expression design principles
         ----------------------------
@@ -256,7 +277,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         obligation”; ``False`` must mean contradiction. Do not use a bare
         constant, model/name coincidence, mapping count, ``expected`` field,
         batch/list of assertions, multiple Roots joined by ``and``, or an
-        exploratory trace result as the verdict. Multiple complementary
+        exploratory trace result as the verdict. Cardinality and directional
+        effect assertions must be direct top-level positive predicates; an ``or``
+        branch cannot provide a second way to make the assertion pass. Cardinality
+        must count the NL-named model object, never ``bound_model_refs`` or an
+        unrelated inventory. Multiple complementary
         assertions for one Root are allowed, but register and execute each one
         separately.
 
@@ -270,7 +295,10 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           event='Root.Open_Door')``;
         - exactly three direct areas:
           ``len(states(parent='Root.Searching', recursive=False)) == 3``;
-        - decrement without invented amount:
+        - open decrement without a variable-name probe:
+          ``any(delta < 0 for _, delta in effect_deltas(source='Root.Attack',
+          event='Root.Attack_Complete', target='Root.Searching'))``;
+        - grounded variable-specific decrement:
           ``(effect_delta(source='Root.Attack', event='Root.Attack_Complete',
           variable='uav_count') or 0) < 0``;
         - bounded cycle path:

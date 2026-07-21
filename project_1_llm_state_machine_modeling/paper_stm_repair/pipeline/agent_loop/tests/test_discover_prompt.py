@@ -108,6 +108,17 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "One invariant or existential `exists_always` path" in flat
 
 
+def test_prompt_forbids_deterministic_anti_gaming_patterns():
+    flat = _flat(PROMPT_ZH)
+    assert "complete stable model-definition scope" in flat
+    assert "filtering or enumerating exactly N known names" in flat
+    assert "literal lists, or membership predicates" in flat
+    assert "sentinel/probe/dummy/nonexistent/future-model/only-for-test" in flat
+    assert "open-ended `effect_deltas(...)` route" in flat
+    assert "Natural-language rationales must not smuggle in anti-evidence" in flat
+    assert "filtered-cardinality" in flat
+
+
 def test_prompt_preserves_cycle_and_fbmcq_semantics():
     flat = _flat(PROMPT_ZH)
     assert "Every literal `simulate(cycles=...)` begins with `[]`" in flat

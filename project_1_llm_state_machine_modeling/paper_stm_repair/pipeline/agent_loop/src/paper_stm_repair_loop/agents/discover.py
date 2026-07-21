@@ -132,6 +132,7 @@ def _write_capability_manifest(
             "guards_overlap",
             "effects",
             "effect_delta",
+            "effect_deltas",
             "simulate",
             "fbmcq",
             "mapped_source_refs",
@@ -237,15 +238,20 @@ def _build_tools(
             return "eval_assert"
         if registry.plan_registered and registry.incomplete_latest_required_assertions():
             return "revise_assertion"
+        latest_review = review_gate.latest_result or {}
         if (
             registry.plan_registered
             and not registry.missing_latest_required_assertions()
             and not registry.incomplete_latest_required_assertions()
+            and not review_gate.has_terminal_failure()
             and not review_gate.current_passed()
             and (
                 review_gate.latest_result is None
-                or review_gate.latest_result.get("reviewed_state_fingerprint")
+                or latest_review.get("reviewed_state_fingerprint")
                 != review_gate.state_fingerprint()
+                or latest_review.get("execution_status")
+                == "retryable_reviewer_failure"
+                or bool(latest_review.get("programmatic_errors"))
             )
         ):
             return "review_discovery_coverage"

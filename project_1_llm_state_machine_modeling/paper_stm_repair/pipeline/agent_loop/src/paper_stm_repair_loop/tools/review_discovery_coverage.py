@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
@@ -16,6 +17,18 @@ from .coverage_registry import CoverageRegistry
 
 
 ReviewRunner = Callable[[str, Mapping[str, Any], int], CoverageReviewVerdict]
+
+
+class CoverageReviewerError(RuntimeError):
+    """Base error for one isolated coverage reviewer invocation."""
+
+
+class RetryableCoverageReviewerError(CoverageReviewerError):
+    """Transient provider/transport failure that permits same-fingerprint retry."""
+
+
+class CoverageReviewerContractError(CoverageReviewerError):
+    """Non-transient reviewer/schema failure that terminates this Discover attempt."""
 
 
 class ReviewDiscoveryCoverageInput(StrictToolModel):
@@ -69,9 +82,21 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 5. SourceFact 被 Unit 引用并不等于已探索。必须检查它是否被相关断言、模型查询、仿真、形式化性质或 source-trace 证据实际考虑；遗漏模型行为必须失败。
 6. matches 只说明一条断言为 True，不说明断言写对了；contradicts 只说明一条正向命题为 False，不自动说明 issue 归因正确。必须审查命题方向和 issue projection。
 7. 仿真只证明给定轨迹，局部关系只证明局部事实，有界形式化只证明其边界和性质。证据强度不足时必须失败。
-8. passed=true 仅允许在不存在任何语义漏项、未审计模型行为、弱/错向断言、潜在漏报、潜在误报、证据缺口或错误 issue projection 时返回。
-9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个当前台账 ID，并给出具体风险、可执行的 recommended_action、现有 recommended_tools 和明确 pass_criteria，以便主 Agent 直接补查后复审。recommended_action 不得只是重复审查意见，必须说明新增检查覆盖哪条行为、路径、条件或证据维度，以及怎样修改当前断言或补充探索。禁止只写泛泛建议或虚构 ID。
-10. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账是否足以支持“本次 Discover 已全覆盖”的结论。
+8. passed=true 仅允许在不存在任何语义漏项、未审计模型行为、弱/错向断言、潜在漏报、潜在误报、证据缺口、anti-gaming 风险或错误 issue projection 时返回。
+9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个 review_contract 当前台账 ID，且不得引用 review_contract 之外的 ID。
+10. 每个 finding 必须同时说明新增 coverage_dimensions、recommended_tools、recommended_steps、recommended_action 和 pass_criteria：recommended_action 必须逐字点名至少一个 recommended_tools 中的工具、至少一个 related_*_ids 中的当前台账 ID，并说明具体检查对象/路径/条件；recommended_steps 必须逐工具给出关联 ID、目标、符合真实工具输入 schema 的 suggested_arguments 和预期观察，且工具集合与 recommended_tools 完全一致；pass_criteria 必须写可观察的台账或模型结果，不能只说“复审通过”。不得让主 Agent 直接改 Controller projection / runtime_issue_assessment / confirmed 状态；不得把 FBMCQ 或 read_fbmcq_guide 当作解释 NL / 自然语言语义的工具。
+11. NL 明确 in-scope 的行为若在当前模型中没有表达，应按模型行为缺口或断言缺口处理；不得凭空降级为“抽象层差异”。但也不得把 NL 强化成原文没有的 only / every-state / future-model 义务。
+12. 必须主动攻击哨兵变量、硬编码候选名、只检查少数命名变体、过滤后凑基数、以及把弱映射/命名巧合当覆盖证据等 anti-gaming 模式；发现时用 category=anti_gaming_risk，coverage_dimensions 包含 anti_gaming，并给出可执行补查。
+13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账是否足以支持“本次 Discover 已全覆盖”的结论。
+
+recommended_steps.suggested_arguments 必须遵守以下真实工具输入合同；示例值应替换成当前台账中的真实 ID、表达式和模型元素：
+- query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}；query_kind 只允许 states/events/transitions/variables/diagnostics。
+- observe_trace: {{"question":"...","root_node_ids":["ROOT-..."],"cycles":[[],["Root.Event"]],"reason":"..."}}
+- lookup_source_trace: {{"element_refs":["state:Root.Target"],"direction":"fcstm_to_source","reason":"..."}}；direction 只允许 fcstm_to_source/source_to_fcstm。
+- read_fbmcq_guide: {{"reason":"..."}}
+- register_coverage_plan: {{"plan":{{"segment_dispositions":[],"fact_dispositions":[],"coverage_units":[],"proposition_roots":[],"logical_assertions":[],"rationale":"..."}},"reason":"..."}}；实际建议必须在 plan 中给出保留全部既有义务并完成所述修订的完整 CoveragePlan，不能只写 delta/plan_change。
+- revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"一个完整正向 Python bool 表达式","reason":"..."}}
+- eval_assert: {{"assert":"与 latest assertion 完全一致的表达式","reason":"..."}}
 """
 
 
@@ -114,27 +139,115 @@ class LLMCoverageReviewRunner:
             profile=profile,
             model_options={"streaming": True, "stream_usage": False, "max_retries": 0},
         )
-        result = app.run(
-            json.dumps(payload, ensure_ascii=False, sort_keys=True),
-            renderer="quiet",
-            log_level="INFO",
-            audit_out=review_dir / "audit.jsonl",
-            result_out=review_dir / "result.json",
-            compact_trigger_ratio=0.85,
-        )
-        if result.status != "success" or not result.real_llm:
-            raise RuntimeError(
-                f"coverage_reviewer_failed:{review_kind}:"
-                f"{result.error or result.status}"
+        try:
+            result = app.run(
+                json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                renderer="quiet",
+                log_level="INFO",
+                audit_out=review_dir / "audit.jsonl",
+                result_out=review_dir / "result.json",
+                compact_trigger_ratio=0.85,
             )
-        verdict = result.require_output()
-        if not isinstance(verdict, CoverageReviewVerdict):
-            verdict = CoverageReviewVerdict.model_validate(verdict)
+        except Exception as exc:  # noqa: BLE001 - normalize provider/runtime drift
+            _raise_classified_reviewer_error(review_kind, exc)
+        if result.status != "success" or not result.real_llm:
+            _raise_classified_reviewer_error(
+                review_kind,
+                result.error or result.status,
+            )
+        try:
+            verdict = result.require_output()
+            if not isinstance(verdict, CoverageReviewVerdict):
+                verdict = CoverageReviewVerdict.model_validate(verdict)
+        except Exception as exc:  # noqa: BLE001 - schema failure is non-transient
+            raise CoverageReviewerContractError(
+                f"coverage_reviewer_contract_failed:{review_kind}:{exc}"
+            ) from exc
         if verdict.review_kind != review_kind:
-            raise ValueError(
+            raise CoverageReviewerContractError(
                 f"coverage_reviewer_kind_mismatch:{review_kind}:{verdict.review_kind}"
             )
         return verdict
+
+
+def _raise_classified_reviewer_error(review_kind: str, error: Any) -> None:
+    rendered = json.dumps(error, ensure_ascii=False, sort_keys=True, default=str)
+    structured_tokens = _structured_error_tokens(error)
+    contract_markers = (
+        "schema",
+        "validation",
+        "structured_output",
+        "response_format",
+        "review_kind",
+        "contract",
+        "invalid_json",
+    )
+    transient_markers = (
+        "provider_error",
+        "remoteprotocolerror",
+        "timeout",
+        "rate_limit",
+        "connection_error",
+        "transport_error",
+        "http_429",
+        "http_500",
+        "http_502",
+        "http_503",
+        "http_504",
+    )
+    if any(marker in token for token in structured_tokens for marker in contract_markers):
+        error_type: type[CoverageReviewerError] = CoverageReviewerContractError
+    elif any(
+        marker in token for token in structured_tokens for marker in transient_markers
+    ):
+        error_type = RetryableCoverageReviewerError
+    else:
+        exception_type_name = type(error).__name__.lower()
+        transient_exception_types = {
+            "connectionerror",
+            "connecterror",
+            "connecttimeout",
+            "readtimeout",
+            "writetimeout",
+            "pooltimeout",
+            "remoteprotocolerror",
+            "networkerror",
+            "transporterror",
+        }
+        fallback = f"{type(error).__name__}:{error}".lower()
+        precise_transient_patterns = (
+            r"remoteprotocolerror",
+            r"(?:read|connect|pool)timeout",
+            r"connection (?:reset|refused|aborted)",
+            r"rate limit",
+            r"status code (?:429|50[0234])",
+            r"incomplete chunked read",
+            r"temporarily unavailable",
+            r"service unavailable",
+        )
+        is_retryable_exception = exception_type_name in transient_exception_types
+        is_retryable_message = any(
+            re.search(pattern, fallback) for pattern in precise_transient_patterns
+        )
+        error_type = (
+            RetryableCoverageReviewerError
+            if is_retryable_exception or is_retryable_message
+            else CoverageReviewerContractError
+        )
+    raise error_type(f"coverage_reviewer_failed:{review_kind}:{rendered}")
+
+
+def _structured_error_tokens(value: Any) -> tuple[str, ...]:
+    tokens: list[str] = []
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if str(key).lower() in {"code", "type", "status", "source", "category"}:
+                tokens.append(str(item).lower())
+            tokens.extend(_structured_error_tokens(item))
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            tokens.extend(_structured_error_tokens(item))
+    return tuple(tokens)
 
 
 class CoverageReviewGate:
@@ -152,6 +265,7 @@ class CoverageReviewGate:
         self.runner = runner
         self.attempt_count = 0
         self.latest_result: dict[str, Any] | None = None
+        self.terminal_failure = False
 
     def state_fingerprint(self) -> str:
         latest_evaluations: dict[str, Any] = {}
@@ -191,7 +305,12 @@ class CoverageReviewGate:
             == self.state_fingerprint()
         )
 
+    def has_terminal_failure(self) -> bool:
+        return self.terminal_failure
+
     def review(self, *, reason: str) -> dict[str, Any]:
+        if self.terminal_failure and self.latest_result is not None:
+            return json.loads(json.dumps(self.latest_result, ensure_ascii=False))
         if not self.registry.plan_registered:
             return self._reject(reason, ["coverage_plan_not_registered"])
         missing = self.registry.missing_latest_required_assertions()
@@ -244,7 +363,24 @@ class CoverageReviewGate:
             "adversarial_falsification",
         ):
             self.attempt_count += 1
-            verdicts.append(self.runner(review_kind, payload, self.attempt_count))
+            try:
+                verdicts.append(self.runner(review_kind, payload, self.attempt_count))
+            except RetryableCoverageReviewerError as exc:
+                return self._reviewer_retry_required(
+                    reason=reason,
+                    fingerprint=fingerprint,
+                    review_kind=review_kind,
+                    error=exc,
+                    completed_verdicts=verdicts,
+                )
+            except Exception as exc:  # noqa: BLE001 - fail closed on bad review contracts
+                return self._reviewer_contract_failed(
+                    reason=reason,
+                    fingerprint=fingerprint,
+                    review_kind=review_kind,
+                    error=exc,
+                    completed_verdicts=verdicts,
+                )
 
         expected = {
             "segment": self.registry.input_segment_ids,
@@ -290,6 +426,14 @@ class CoverageReviewGate:
                             f"{verdict.review_kind}_finding_unknown_{label}_ids:"
                             f"finding={finding.finding_id}:unknown={','.join(unknown)}"
                         )
+                if _finding_strengthens_frozen_nl(
+                    finding,
+                    _finding_nl_scopes(finding, self.task_snapshot),
+                ):
+                    programmatic_errors.append(
+                        f"{verdict.review_kind}_finding_nl_strengthening:"
+                        f"finding={finding.finding_id}"
+                    )
 
         passed = not programmatic_errors and all(item.passed for item in verdicts)
         finding_actions = [
@@ -318,6 +462,140 @@ class CoverageReviewGate:
         self.registry.latest_projection = None
         return result
 
+    def _reviewer_retry_required(
+        self,
+        *,
+        reason: str,
+        fingerprint: str,
+        review_kind: str,
+        error: Exception,
+        completed_verdicts: list[CoverageReviewVerdict],
+    ) -> dict[str, Any]:
+        """Return a structured retry action instead of crashing the top-level Agent.
+
+        Provider streaming failures and transient reviewer runtime errors are
+        infrastructure failures, not evidence that the current ledger passed or
+        failed semantically.  The gate therefore appends a failed review record,
+        preserves the assertion/plan ledger, and asks the Agent to retry the same
+        `review_discovery_coverage` call against the unchanged fingerprint.
+        """
+
+        error_type = type(error).__name__
+        error_message = str(error)
+        result = {
+            "execution_status": "retryable_reviewer_failure",
+            "passed": False,
+            "reviewed_state_fingerprint": fingerprint,
+            "failed_review_kind": review_kind,
+            "completed_review_verdicts": [
+                item.model_dump(mode="json") for item in completed_verdicts
+            ],
+            "errors": [f"coverage_reviewer_retryable_failure:{review_kind}:{error_type}"],
+            "required_actions": [
+                {
+                    "action_id": "REVIEW-INFRA-RETRY-001",
+                    "action_kind": "reviewer_infrastructure_retry",
+                    "reviewed_state_fingerprint": fingerprint,
+                    "failed_review_kind": review_kind,
+                    "coverage_dimensions": ["reviewer_infrastructure"],
+                    "problem": (
+                        "Independent coverage reviewer failed before returning a "
+                        "structured verdict; the semantic ledger has not been "
+                        "accepted as covered."
+                    ),
+                    "missed_behavior_risk": (
+                        "Treating a provider or streaming interruption as a tool "
+                        "exception aborts the top-level Agent and loses the chance "
+                        "to retry without changing the evidence ledger."
+                    ),
+                    "recommended_tools": ["review_discovery_coverage"],
+                    "recommended_action": (
+                        "Keep the coverage plan, latest assertions, and evaluations "
+                        "unchanged, then call review_discovery_coverage again for "
+                        "the same reviewed_state_fingerprint. Do not revise "
+                        "assertions unless a later successful reviewer returns "
+                        "semantic findings."
+                    ),
+                    "pass_criteria": (
+                        "A later review_discovery_coverage call on the same current "
+                        "fingerprint returns execution_status=completed with both "
+                        "reviewers producing structured verdicts and no retryable "
+                        "reviewer failure."
+                    ),
+                    "record_language": "en-US",
+                    "error_type": error_type,
+                    "error_message": error_message,
+                }
+            ],
+            "reason": reason,
+            "limitations": [
+                "semantic_coverage_review_failed",
+                "reviewer_infrastructure_retry_required",
+            ],
+        }
+        record = self.registry.append_record(
+            "discovery_coverage_review_retry_required", result
+        )
+        result["record_id"] = record["record_id"]
+        self.latest_result = json.loads(json.dumps(result, ensure_ascii=False))
+        return result
+
+    def _reviewer_contract_failed(
+        self,
+        *,
+        reason: str,
+        fingerprint: str,
+        review_kind: str,
+        error: Exception,
+        completed_verdicts: list[CoverageReviewVerdict],
+    ) -> dict[str, Any]:
+        result = {
+            "execution_status": "reviewer_contract_failure",
+            "passed": False,
+            "reviewed_state_fingerprint": fingerprint,
+            "failed_review_kind": review_kind,
+            "completed_review_verdicts": [
+                item.model_dump(mode="json") for item in completed_verdicts
+            ],
+            "errors": [
+                f"coverage_reviewer_contract_failure:{review_kind}:"
+                f"{type(error).__name__}"
+            ],
+            "required_actions": [
+                {
+                    "action_id": "REVIEW-INFRA-STOP-001",
+                    "action_kind": "reviewer_contract_failure",
+                    "reviewed_state_fingerprint": fingerprint,
+                    "failed_review_kind": review_kind,
+                    "recommended_tools": [],
+                    "recommended_action": (
+                        "Stop the current Discover attempt and preserve its audit "
+                        "artifacts. This deterministic reviewer/schema failure cannot "
+                        "be repaired by changing the semantic ledger or repeatedly "
+                        "calling review_discovery_coverage."
+                    ),
+                    "pass_criteria": (
+                        "A later clean run uses a corrected reviewer contract and both "
+                        "reviewers return valid structured verdicts."
+                    ),
+                    "error_type": type(error).__name__,
+                    "error_message": str(error),
+                }
+            ],
+            "reason": reason,
+            "limitations": [
+                "semantic_coverage_review_failed",
+                "reviewer_contract_failure",
+            ],
+        }
+        record = self.registry.append_record(
+            "discovery_coverage_review_contract_failed", result
+        )
+        result["record_id"] = record["record_id"]
+        self.latest_result = json.loads(json.dumps(result, ensure_ascii=False))
+        self.terminal_failure = True
+        return result
+
     def _reject(self, reason: str, errors: list[str]) -> dict[str, Any]:
         result = {
             "execution_status": "prerequisite_required",
@@ -331,18 +609,75 @@ class CoverageReviewGate:
         return result
 
 
+def _finding_strengthens_frozen_nl(
+    finding: Any,
+    frozen_nl_scopes: tuple[str, ...],
+) -> bool:
+    action = "\n".join([finding.recommended_action, finding.pass_criteria]).lower()
+    quantifier_groups = (
+        (
+            (r"\bonly\b", r"只能", r"仅允许"),
+            (r"\bonly\b", r"只能", r"仅允许"),
+        ),
+        (
+            (
+                r"\b(?:all|every|each)[- ]states?\b",
+                r"(?:所有|全部|每个|任意)状态",
+            ),
+            (
+                r"\b(?:all|every|each)[- ]states?\b",
+                r"(?:所有|全部|每个|任意)状态",
+            ),
+        ),
+        (
+            (r"future[- ]model", r"未来模型"),
+            (r"future[- ]model", r"未来模型"),
+        ),
+    )
+    for action_patterns, nl_patterns in quantifier_groups:
+        action_uses_quantifier = any(
+            re.search(pattern, action, re.I) for pattern in action_patterns
+        )
+        every_scope_authorizes = bool(frozen_nl_scopes) and all(
+            any(re.search(pattern, scope, re.I) for pattern in nl_patterns)
+            for scope in frozen_nl_scopes
+        )
+        if action_uses_quantifier and not every_scope_authorizes:
+            return True
+    return False
+
+
+def _finding_nl_scopes(
+    finding: Any, task_snapshot: Mapping[str, Any]
+) -> tuple[str, ...]:
+    current_records = task_snapshot.get("current_records", {})
+    if not isinstance(current_records, Mapping):
+        return ()
+    selected: list[str] = []
+    requirement_ids = set(finding.related_requirement_ids)
+    for requirement in current_records.get("coverage_requirements", []):
+        if not isinstance(requirement, Mapping):
+            continue
+        if str(requirement.get("requirement_id", "")) in requirement_ids:
+            selected.append(str(requirement.get("clause_text", "")))
+    if not selected:
+        segment_ids = set(finding.related_segment_ids)
+        for segment in current_records.get("input_segments", []):
+            if not isinstance(segment, Mapping):
+                continue
+            if str(segment.get("segment_id", "")) in segment_ids:
+                selected.append(str(segment.get("text", "")))
+    return tuple(item for item in selected if item)
+
+
 def _programmatic_review_actions(errors: list[str]) -> list[dict[str, Any]]:
     """Give the main Agent a concrete recovery path for reviewer ID omissions."""
 
     return [
         {
-            "finding_id": f"REVIEW-CONTRACT-{ordinal:03d}",
-            "category": "evidence_gap",
-            "related_segment_ids": [],
-            "related_requirement_ids": [],
-            "related_source_fact_ids": [],
-            "related_root_ids": [],
-            "related_assertion_chain_ids": [],
+            "action_id": f"REVIEW-CONTRACT-{ordinal:03d}",
+            "action_kind": "reviewer_contract_retry",
+            "coverage_dimensions": ["reviewer_infrastructure"],
             "problem": error,
             "missed_behavior_risk": (
                 "The independent reviewer did not explicitly close the complete "
@@ -428,9 +763,10 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         Returns
         -------
         ``passed``、台账指纹、两个完整结构化 verdict、程序化 ID 闭包错误、
-        ``required_actions`` 和 record ID。每个 required action 都包含关联 ID、当前
+        ``required_actions`` 和 record ID。每个语义 finding 都包含关联台账 ID、当前
         缺口、漏报风险、建议调用的现有工具、具体补查动作和明确通过判据，可直接
-        指导主 Agent 增强覆盖后再次调用本工具。
+        指导主 Agent 增强覆盖后再次调用本工具。reviewer 基础设施 action 改为绑定
+        fingerprint 和 review kind，不伪造语义台账 ID。
 
         Execution
         ---------
@@ -444,8 +780,24 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         -----------------
         未注册计划、仍有未执行或 inconclusive 断言时 fail closed；任一
         reviewer 报告缺口、漏掉任何必须审查的 Segment/Requirement/SourceFact/Root
-        ID，或审查后台账发生 revision/eval 变化，均不能沿用旧 pass。不得把失败
-        review 当作终态结果；必须按 required_actions 补查并重新 review。
+        ID，或审查后台账发生 revision/eval 变化，均不能沿用旧 pass。provider/stream
+        临时失败不会抛出到顶层 Agent；工具会保留同轮已完成 verdict，并 append 一个 passed=false、
+        execution_status=retryable_reviewer_failure 的结构化记录，要求在不修改
+        当前 coverage plan / assertion / evaluation 台账的情况下重试 review。不得把失败
+        review 当作终态结果；必须按 required_actions 补查或重试并重新 review。
+        schema-invalid verdict、错误 review kind 等确定性合同失败返回
+        reviewer_contract_failure，终止当前 Discover attempt，不得冒充临时 provider
+        故障反复重试。
+
+        Method-boundary calibration
+        ---------------------------
+        reviewer 的建议必须可由现有工具执行，逐字点名建议工具和至少一个关联台账 ID，
+        并在 recommended_steps 中逐工具说明目标、参数/模型范围和预期观察，再给出新增覆盖
+        维度、总体动作和可观察通过条件。不得建议用 FBMCQ 解释 NL，不得要求主 Agent 直接修改 Controller
+        projection 状态，不得引用 review_contract 之外 ID。NL 明确 in-scope 的行为若
+        模型无表达，应视作模型行为/断言缺口；不得凭空降级为抽象层差异，也不得
+        把 NL 强化成 only/every-state/future-model 义务。reviewer 必须攻击哨兵变量、
+        硬编码候选名和过滤后凑基数等 anti-gaming 覆盖。
 
         Evidence limitations
         --------------------

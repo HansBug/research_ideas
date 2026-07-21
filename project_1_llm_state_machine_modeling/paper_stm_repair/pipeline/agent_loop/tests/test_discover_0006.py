@@ -219,7 +219,7 @@ def _plan(controller: DiscoverController) -> CoveragePlan:
             "ASSERT-004",
             "ROOT-004",
             "CU-004",
-            "(effect_delta(source='Root.Attack', event='Root.Attack_Complete', variable='uav_count') or 0) < 0",
+            "any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Attack_Complete', target='Root.Searching'))",
             "effect",
             [
                 segments[4],
@@ -265,9 +265,9 @@ def _plan(controller: DiscoverController) -> CoveragePlan:
     )
 
 
-def test_0006_strict_coverage_assertions_find_two_issues(tmp_path):
+def _controller(tmp_path) -> DiscoverController:
     case = _case()
-    controller = DiscoverController(
+    return DiscoverController(
         case,
         {
             "run_id": "0006",
@@ -280,6 +280,30 @@ def test_0006_strict_coverage_assertions_find_two_issues(tmp_path):
         check_fcstm(case.fcstm, "inputs/STM_0.fcstm"),
         RecordStore(tmp_path),
     )
+
+
+def test_0006_cardinality_parent_must_exactly_match_root_ref(tmp_path):
+    controller = _controller(tmp_path)
+    plan = _plan(controller).model_dump(mode="json", by_alias=True)
+    plan["logical_assertions"][0]["assert"] = (
+        "len(states(parent='Root.Searching.Unrelated', recursive=False)) == 3"
+    )
+
+    rejected = controller.require_registry().register_plan(
+        plan, reason="拒绝仅共享前缀的错误 cardinality parent。"
+    )
+
+    assert any(
+        error.startswith(
+            "assertion_cardinality_parent_not_grounded_by_root:"
+            "ASSERT-001:Root.Searching.Unrelated:ROOT-001"
+        )
+        for error in rejected["errors"]
+    )
+
+
+def test_0006_strict_coverage_assertions_find_two_issues(tmp_path):
+    controller = _controller(tmp_path)
     plan = _plan(controller)
     registered = controller.require_registry().register_plan(
         plan.model_dump(mode="json", by_alias=True), reason="注册 0006 六项严格覆盖义务。"

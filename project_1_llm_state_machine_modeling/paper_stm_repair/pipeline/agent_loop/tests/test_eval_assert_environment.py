@@ -204,9 +204,49 @@ def test_effect_delta_reuses_structured_effects_and_missing_effect_is_false_with
 
     expr = "(effect_delta(source='Root.Attack', event='Root.Attack_Complete', variable='uav_count') or 0) < 0"
 
-    good_result = good.eval_assert(expr, "decrement expected", required_function_families=["effect"])
-    missing_result = missing.eval_assert(expr, "missing decrement should be false", required_function_families=["effect"])
+    good_result = good.eval_assert(
+        expr, "decrement expected", required_function_families=["effect"]
+    )
+    missing_result = missing.eval_assert(
+        expr,
+        "missing decrement should be false",
+        required_function_families=["effect"],
+    )
 
     assert good_result.result == RESULT_TRUE
     assert missing_result.result == RESULT_FALSE
     assert good_result.actual_function_families == ("effect",)
+
+
+def test_effect_deltas_open_interface_traces_effect_family_without_variable_probe():
+    good = EvalEnvironment(model_text=EFFECT_MODEL)
+    missing_effect = EvalEnvironment(model_text=NO_EFFECT_MODEL)
+    no_variables = EvalEnvironment(model_text=MODEL)
+    expr = (
+        "any(delta < 0 for _, delta in "
+        "effect_deltas(source='Root.Attack', event='Root.Attack_Complete', target='Root.Searching'))"
+    )
+
+    good_result = good.eval_assert(
+        expr, "some matching effect decrements", required_function_families=["effect"]
+    )
+    missing_result = missing_effect.eval_assert(
+        expr,
+        "missing effect is a contradiction",
+        required_function_families=["effect"],
+    )
+    no_variables_result = no_variables.eval_assert(
+        expr,
+        "no variables/effects is stable absence",
+        required_function_families=["effect"],
+    )
+
+    assert good.effects.effect_deltas(
+        source="Root.Attack", event="Root.Attack_Complete", target="Root.Searching"
+    ) == (("uav_count", -1),)
+    assert good_result.result == RESULT_TRUE
+    assert missing_result.result == RESULT_FALSE
+    assert no_variables_result.result == RESULT_FALSE
+    for result in (good_result, missing_result, no_variables_result):
+        assert result.actual_function_families == ("effect",)
+        assert [call.function for call in result.function_call_trace] == ["effect_deltas"]

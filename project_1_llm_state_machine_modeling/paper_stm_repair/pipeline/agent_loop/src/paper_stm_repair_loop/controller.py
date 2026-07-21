@@ -329,6 +329,7 @@ class DiscoverController:
                     "guards_overlap",
                     "effects",
                     "effect_delta",
+                    "effect_deltas",
                     "simulate",
                     "fbmcq",
                     "mapped_source_refs",

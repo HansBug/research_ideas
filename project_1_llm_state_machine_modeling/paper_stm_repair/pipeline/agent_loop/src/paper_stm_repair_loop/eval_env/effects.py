@@ -15,19 +15,23 @@ class EffectAPI:
     Parameters: ``structure`` is the frozen ``StructureAPI`` bound to the current
     model inspect.
 
-    Returns: ``effect_delta`` returns a numeric delta when an assignment has a
-    simple parseable before/after relation, ``None`` when the selected transition
-    has no assignment for that variable, and raises ``UnsupportedEvidence`` when
-    the relevant transition/effect is ambiguous or not parseable.
+    Returns: ``effect_deltas`` returns a stable tuple of ``(variable, delta)``
+    pairs for all parseable numeric assignments on matching transitions, and an
+    empty tuple when no matching transition/effect/assignment exists.
+    ``effect_delta`` remains the variable-specific compatibility helper: it
+    returns one numeric delta, ``None`` when the selected transition has no
+    assignment for that variable, and raises ``UnsupportedEvidence`` when the
+    relevant transition/effect is ambiguous or not parseable.
 
     Execution: reuses pyfcstm structured transition inspect ``effect`` strings
     and ``variables`` initial values.  It does not parse exception text, execute
     arbitrary code, call an LLM, mutate variables, or infer hidden semantics.
 
-    Failure semantics: no matching transition yields ``None`` for stable absence;
-    multiple matching transitions or unsupported effect expressions raise
-    ``UnsupportedEvidence`` so the assertion becomes ``unsupported`` rather than
-    guessed.
+    Failure semantics: no matching transition/effect yields ``()`` from
+    ``effect_deltas`` and ``None`` from ``effect_delta`` for stable absence.
+    ``effect_delta`` still requires exactly one matching transition; unsupported
+    effect expressions raise ``UnsupportedEvidence`` so the assertion becomes
+    ``unsupported`` rather than guessed.
 
     Evidence limitations: only simple assignments such as ``x = x - 1`` or
     ``x = 1`` with numeric variable initial values are interpreted.  Complex
@@ -37,15 +41,45 @@ class EffectAPI:
     Permissions: read-only in-memory inspect access; no paths, shell, imports,
     environment, network, mutation, or reference/gold data.
 
-    Example: ``(effect_delta(source="Root.A", event="Root.done",
-    variable="count") or 0) < 0`` returns ``False`` for a missing decrement and
-    ``True`` for ``count = count - 1``.
+    Example: ``any(delta < 0 for _, delta in effect_deltas(source="Root.A",
+    event="Root.done", target="Root.B"))`` returns ``False`` for missing
+    variables/effects and ``True`` for ``count = count - 1`` without inventing a
+    variable-name probe.  The legacy ``(effect_delta(..., variable="count") or
+    0) < 0`` form remains supported.
     """
 
     family = "effect"
 
     def __init__(self, structure: StructureAPI) -> None:
         self.structure = structure
+
+    def effect_deltas(
+        self,
+        *,
+        source: str | None = None,
+        event: str | None = None,
+        target: str | None = None,
+    ) -> tuple[tuple[str, int | float], ...]:
+        """Return parseable assignment deltas for matching transitions.
+
+        Absence is represented by an empty tuple, not by a sentinel variable or
+        invented probe.  This makes expressions such as ``any(delta < 0 for _,
+        delta in effect_deltas(...))`` deterministically ``False`` when the
+        model has no variables, no matching effects, or no assignments.
+        """
+
+        deltas: list[tuple[str, int | float]] = []
+        for transition in self.structure.transitions(
+            source=source, event=event, target=target
+        ):
+            effect = str(transition.effect or "")
+            if not effect:
+                continue
+            for variable, expr in _assignments(effect):
+                before = self._initial_value(variable)
+                after = self._eval_simple_expr(expr, variable=variable, before=before)
+                deltas.append((variable, after - before))
+        return tuple(deltas)
 
     def effect_delta(
         self,
@@ -63,7 +97,7 @@ class EffectAPI:
         effect = transitions[0].effect
         if not effect:
             return None
-        assignments = [(m.group("var"), m.group("expr").strip()) for m in _ASSIGNMENT_RE.finditer(str(effect))]
+        assignments = _assignments(str(effect))
         matches = [expr for var, expr in assignments if var == variable]
         if not matches:
             return None
@@ -91,8 +125,7 @@ class EffectAPI:
             if not effect:
                 continue
             if variable is not None and not any(
-                assigned == variable
-                for assigned, _expr in _ASSIGNMENT_RE.findall(effect)
+                assigned == variable for assigned, _expr in _assignments(effect)
             ):
                 continue
             matches.append(transition)
@@ -111,7 +144,10 @@ class EffectAPI:
             raise UnsupportedEvidence("effect_assigns requires an unambiguous transition")
         if not transitions:
             return False
-        return any(var == variable for var, _expr in _ASSIGNMENT_RE.findall(str(transitions[0].effect or "")))
+        return any(
+            var == variable
+            for var, _expr in _assignments(str(transitions[0].effect or ""))
+        )
 
     def _initial_value(self, variable: str) -> int | float:
         matches = self.structure.variables(name=variable)
@@ -147,6 +183,14 @@ class EffectAPI:
             raise UnsupportedEvidence(f"unsupported effect expression: {expr}")
 
         return walk(tree)
+
+
+
+def _assignments(effect: str) -> list[tuple[str, str]]:
+    return [
+        (match.group("var"), match.group("expr").strip())
+        for match in _ASSIGNMENT_RE.finditer(effect)
+    ]
 
 
 __all__ = ["EffectAPI"]

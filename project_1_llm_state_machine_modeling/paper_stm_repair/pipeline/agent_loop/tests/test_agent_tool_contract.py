@@ -35,6 +35,7 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         "states",
         "transition_exists",
         "effect_delta",
+        "effect_deltas",
         "simulate",
         "fbmcq",
         "mapped_source_refs",

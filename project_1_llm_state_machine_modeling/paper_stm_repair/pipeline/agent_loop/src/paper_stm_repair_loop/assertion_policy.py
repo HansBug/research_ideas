@@ -5,19 +5,36 @@ import re
 from typing import Any, Iterable
 
 ERROR_SYNTAX_INVALID = "ASSERT_SYNTAX_INVALID"
+ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED = "ASSERT_DIRECT_POSITIVE_SHAPE_REQUIRED"
 ERROR_SIMULATE_FIRST_CYCLE_REQUIRED = "ASSERT_SIMULATE_FIRST_CYCLE_REQUIRED"
 ERROR_EFFECT_DELTA_DIRECTION_REQUIRED = "ASSERT_EFFECT_DELTA_DIRECTION_REQUIRED"
+ERROR_EFFECT_DELTA_SENTINEL_VARIABLE = "ASSERT_EFFECT_DELTA_SENTINEL_VARIABLE"
+ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED = (
+    "ASSERT_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED"
+)
+ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED = (
+    "ASSERT_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED"
+)
 ERROR_EFFECTS_BOOL_SUBSTITUTE = "ASSERT_EFFECTS_BOOL_SUBSTITUTE"
 ERROR_CONTINUITY_EVIDENCE_REQUIRED = "ASSERT_CONTINUITY_EVIDENCE_REQUIRED"
 ERROR_CONTINUITY_EXISTENTIAL_FORMAL_TOO_WEAK = (
     "ASSERT_CONTINUITY_EXISTENTIAL_FORMAL_TOO_WEAK"
 )
 ERROR_CARDINALITY_COMPARISON_REQUIRED = "ASSERT_CARDINALITY_COMPARISON_REQUIRED"
+ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED = "ASSERT_CARDINALITY_OBJECT_SCOPE_REQUIRED"
+ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED = "ASSERT_CARDINALITY_STABLE_SCOPE_REQUIRED"
 ERROR_TRANSITION_TARGET_REQUIRED = "ASSERT_TRANSITION_TARGET_REQUIRED"
 ERROR_CONDITION_TRIGGER_REQUIRED = "ASSERT_CONDITION_TRIGGER_REQUIRED"
 
 _STRUCTURE_FUNCTIONS = frozenset(
     {"states", "events", "variables", "transitions", "bound_model_refs"}
+)
+_CARDINALITY_SCOPE_FUNCTIONS = frozenset(
+    {"states", "events", "variables", "transitions"}
+)
+_SENTINEL_VARIABLE_RE = re.compile(
+    r"(?:sentinel|probe|dummy|placeholder|non[-_ ]?existent|does[-_ ]?not[-_ ]?exist|missing|future[-_ ]?model|only[-_ ]?for[-_ ]?test)",
+    re.I,
 )
 _DECREASE_RE = re.compile(r"\b(?:decrease|decreases|decreased|decrement|decrements|decremented)\b|(?:减少|递减)", re.I)
 _INCREASE_RE = re.compile(r"\b(?:increase|increases|increased|increment|increments|incremented)\b|(?:增加|递增)", re.I)
@@ -84,7 +101,38 @@ def validate_assertion_semantic_policy(
             if direction:
                 if _uses_bool_effects_substitute(tree):
                     _add_error(errors, _format_error(ERROR_EFFECTS_BOOL_SUBSTITUTE, requirement_id))
-                if not _has_effect_delta_zero_compare(tree, direction):
+                if _uses_sentinel_effect_delta_variable(tree):
+                    _add_error(
+                        errors,
+                        _format_error(ERROR_EFFECT_DELTA_SENTINEL_VARIABLE, requirement_id),
+                    )
+                if not _effect_delta_calls_use_literal_variables(calls):
+                    _add_error(
+                        errors,
+                        _format_error(
+                            ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED,
+                            requirement_id,
+                        ),
+                    )
+                if not _effect_deltas_calls_are_transition_bound(calls):
+                    _add_error(
+                        errors,
+                        _format_error(
+                            ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED,
+                            requirement_id,
+                        ),
+                    )
+                if _has_effect_delta_zero_compare(
+                    tree, direction
+                ) and not _has_direct_effect_direction_expression(tree, direction):
+                    _add_error(
+                        errors,
+                        _format_error(
+                            ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED,
+                            requirement_id,
+                        ),
+                    )
+                elif not _has_effect_delta_zero_compare(tree, direction):
                     _add_error(
                         errors,
                         _format_error(ERROR_EFFECT_DELTA_DIRECTION_REQUIRED, requirement_id),
@@ -113,11 +161,66 @@ def validate_assertion_semantic_policy(
 
         if dimension == "cardinality":
             target = _parse_cardinality_target(cue)
-            if target is not None and not _has_cardinality_compare(tree, cue, target):
-                _add_error(
-                    errors,
-                    _format_error(ERROR_CARDINALITY_COMPARISON_REQUIRED, requirement_id),
-                )
+            if target is not None:
+                if not _has_cardinality_compare(tree, cue, target):
+                    _add_error(
+                        errors,
+                        _format_error(ERROR_CARDINALITY_COMPARISON_REQUIRED, requirement_id),
+                    )
+                elif not isinstance(tree.body, ast.Compare):
+                    _add_error(
+                        errors,
+                        _format_error(
+                            ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED,
+                            requirement_id,
+                        ),
+                    )
+                else:
+                    actual_object = _direct_cardinality_scope_function(
+                        tree.body, cue, target
+                    )
+                    cardinality_text = "\n".join(
+                        [
+                            str(requirement.get("clause_text", "")),
+                            cue,
+                        ]
+                    )
+                    expected_object = _cardinality_object_function(cardinality_text)
+                    if actual_object is None:
+                        _add_error(
+                            errors,
+                            _format_error(
+                                ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED,
+                                requirement_id,
+                            ),
+                        )
+                    elif (
+                        expected_object is None
+                        or actual_object not in _CARDINALITY_SCOPE_FUNCTIONS
+                        or actual_object != expected_object
+                    ):
+                        _add_error(
+                            errors,
+                            _format_error(
+                                ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED,
+                                requirement_id,
+                            ),
+                        )
+                    elif (
+                        not _has_stable_cardinality_scope_compare(tree, cue, target)
+                        or (
+                            expected_object == "states"
+                            and _cardinality_requires_parent_scope(cardinality_text)
+                            and not _direct_cardinality_states_parent_bound(tree.body)
+                        )
+                    ):
+                        _add_error(
+                            errors,
+                            _format_error(
+                                ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED,
+                                requirement_id,
+                            ),
+                        )
 
         if dimension == "transition" and not _has_transition_target_evidence(
             tree, calls, simulate_calls
@@ -208,6 +311,107 @@ def _node_parent_context(tree: ast.AST, target: ast.AST) -> str | None:
     return None
 
 
+def _uses_sentinel_effect_delta_variable(tree: ast.AST) -> bool:
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or _call_name(node) != "effect_delta":
+            continue
+        variable = _call_keyword_constant_string(node, "variable")
+        if variable is not None and _SENTINEL_VARIABLE_RE.search(variable):
+            return True
+    return False
+
+
+def _effect_delta_calls_use_literal_variables(calls: list[ast.Call]) -> bool:
+    for call in calls:
+        if _call_name(call) != "effect_delta":
+            continue
+        if _call_keyword_constant_string(call, "variable") is None:
+            return False
+    return True
+
+
+def _effect_deltas_calls_are_transition_bound(calls: list[ast.Call]) -> bool:
+    for call in calls:
+        if _call_name(call) != "effect_deltas":
+            continue
+        if not _call_has_nonempty_string_keyword(call, "source"):
+            return False
+        if not _call_has_nonempty_string_keyword(call, "target"):
+            return False
+        event = next(
+            (keyword.value for keyword in call.keywords if keyword.arg == "event"),
+            None,
+        )
+        if event is None:
+            return False
+        if not (
+            _is_none_literal(event)
+            or (isinstance(event, ast.Constant) and isinstance(event.value, str) and event.value)
+        ):
+            return False
+    return True
+
+
+def _has_direct_effect_direction_expression(tree: ast.Expression, direction: str) -> bool:
+    body = tree.body
+    if isinstance(body, ast.Compare) and len(body.ops) == len(body.comparators) == 1:
+        left, right = body.left, body.comparators[0]
+        op = body.ops[0]
+        if _is_effect_delta_value(left) and _is_numeric_literal(right, 0):
+            return _operator_matches_direction(op, direction)
+        if _is_numeric_literal(left, 0) and _is_effect_delta_value(right):
+            return _operator_matches_direction(_reverse_op(op), direction)
+        return False
+    return _is_direct_open_effect_any(body, direction)
+
+
+def _is_effect_delta_value(node: ast.AST) -> bool:
+    if isinstance(node, ast.Call) and _call_name(node) == "effect_delta":
+        return True
+    if not isinstance(node, ast.BoolOp) or not isinstance(node.op, ast.Or):
+        return False
+    if len(node.values) != 2:
+        return False
+    first, second = node.values
+    return (
+        isinstance(first, ast.Call)
+        and _call_name(first) == "effect_delta"
+        and _is_numeric_literal(second, 0)
+    )
+
+
+def _is_direct_open_effect_any(node: ast.AST, direction: str) -> bool:
+    if not isinstance(node, ast.Call) or _call_name(node) != "any":
+        return False
+    if len(node.args) != 1 or node.keywords:
+        return False
+    comprehension = node.args[0]
+    if not isinstance(comprehension, ast.GeneratorExp):
+        return False
+    if len(comprehension.generators) != 1:
+        return False
+    generator = comprehension.generators[0]
+    if generator.ifs or generator.is_async:
+        return False
+    if not isinstance(generator.iter, ast.Call):
+        return False
+    if _call_name(generator.iter) != "effect_deltas":
+        return False
+    if not isinstance(generator.target, (ast.Tuple, ast.List)):
+        return False
+    names = [
+        item.id for item in generator.target.elts if isinstance(item, ast.Name)
+    ]
+    if len(names) != 2:
+        return False
+    return _has_named_direction_compare(
+        comprehension.elt,
+        {names[1]},
+        direction,
+        direct_only=True,
+    )
+
+
 def _has_effect_delta_zero_compare(tree: ast.AST, direction: str) -> bool:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Compare):
@@ -221,6 +425,58 @@ def _has_effect_delta_zero_compare(tree: ast.AST, direction: str) -> bool:
             if left_effect and right_zero and _operator_matches_direction(op, direction):
                 return True
             if left_zero and right_effect and _operator_matches_direction(_reverse_op(op), direction):
+                return True
+            left = right
+    return _has_effect_deltas_zero_compare(tree, direction)
+
+
+def _has_effect_deltas_zero_compare(tree: ast.AST, direction: str) -> bool:
+    """Recognize a directional comparison over tuple-unpacked effect_deltas."""
+
+    for comprehension in ast.walk(tree):
+        if not isinstance(comprehension, (ast.GeneratorExp, ast.ListComp)):
+            continue
+        delta_names: set[str] = set()
+        for generator in comprehension.generators:
+            if not _contains_call(generator.iter, "effect_deltas"):
+                continue
+            if isinstance(generator.target, (ast.Tuple, ast.List)):
+                names = [
+                    item.id
+                    for item in generator.target.elts
+                    if isinstance(item, ast.Name)
+                ]
+                if len(names) >= 2:
+                    delta_names.add(names[-1])
+        if delta_names and _has_named_direction_compare(
+            comprehension.elt, delta_names, direction
+        ):
+            return True
+    return False
+
+
+def _has_named_direction_compare(
+    node: ast.AST,
+    names: set[str],
+    direction: str,
+    *,
+    direct_only: bool = False,
+) -> bool:
+    comparisons = [node] if direct_only else ast.walk(node)
+    for comparison in comparisons:
+        if not isinstance(comparison, ast.Compare):
+            continue
+        left = comparison.left
+        for op, right in zip(comparison.ops, comparison.comparators):
+            left_name = isinstance(left, ast.Name) and left.id in names
+            right_name = isinstance(right, ast.Name) and right.id in names
+            left_zero = _is_numeric_literal(left, 0)
+            right_zero = _is_numeric_literal(right, 0)
+            if left_name and right_zero and _operator_matches_direction(op, direction):
+                return True
+            if left_zero and right_name and _operator_matches_direction(
+                _reverse_op(op), direction
+            ):
                 return True
             left = right
     return False
@@ -334,6 +590,13 @@ def _has_condition_trigger_evidence(
     )
 
 
+def _call_keyword_constant_string(call: ast.Call, name: str) -> str | None:
+    for keyword in call.keywords:
+        if keyword.arg == name and isinstance(keyword.value, ast.Constant):
+            return keyword.value.value if isinstance(keyword.value.value, str) else None
+    return None
+
+
 def _call_has_nonempty_string_keyword(call: ast.Call, name: str) -> bool:
     return any(
         keyword.arg == name
@@ -413,6 +676,145 @@ def _has_cardinality_compare(tree: ast.AST, cue: str, target: int) -> bool:
     return False
 
 
+def _has_stable_cardinality_scope_compare(tree: ast.AST, cue: str, target: int) -> bool:
+    direction = _cardinality_direction(cue)
+    node = tree.body if isinstance(tree, ast.Expression) else tree
+    if not isinstance(node, ast.Compare):
+        return False
+    if len(node.ops) != 1 or len(node.comparators) != 1:
+        return False
+    left, right = node.left, node.comparators[0]
+    op = node.ops[0]
+    if (
+        _is_stable_cardinality_count(left)
+        and _is_numeric_literal(right, target)
+        and _cardinality_op_matches(op, direction)
+    ):
+        return True
+    if (
+        _is_numeric_literal(left, target)
+        and _is_stable_cardinality_count(right)
+        and _cardinality_op_matches(_reverse_op(op), direction)
+    ):
+        return True
+    return False
+
+
+def _direct_cardinality_scope_function(
+    node: ast.Compare, cue: str, target: int
+) -> str | None:
+    direction = _cardinality_direction(cue)
+    if len(node.ops) != 1 or len(node.comparators) != 1:
+        return None
+    left, right = node.left, node.comparators[0]
+    op = node.ops[0]
+    if _is_numeric_literal(right, target) and _cardinality_op_matches(op, direction):
+        return _cardinality_count_function(left)
+    if _is_numeric_literal(left, target) and _cardinality_op_matches(
+        _reverse_op(op), direction
+    ):
+        return _cardinality_count_function(right)
+    return None
+
+
+def _cardinality_count_function(node: ast.AST) -> str | None:
+    if not isinstance(node, ast.Call) or _call_name(node) != "len":
+        return None
+    if len(node.args) != 1 or node.keywords:
+        return None
+    counted = node.args[0]
+    if not isinstance(counted, ast.Call):
+        return None
+    return _call_name(counted)
+
+
+def _cardinality_object_function(text: str) -> str | None:
+    lowered = text.lower()
+    if re.search(r"\bstate[- ]transitions?\b", lowered):
+        return "transitions"
+    candidates: set[str] = set()
+    patterns = {
+        "states": (
+            r"\b(?:states?|sub[- ]?states?|areas?|regions?|modes?|phases?|branches?)\b",
+            r"(?:状态|子状态|区域|模式|阶段|分支)",
+        ),
+        "events": (r"\b(?:events?|signals?|triggers?)\b", r"(?:事件|信号|触发器)"),
+        "variables": (
+            r"\b(?:variables?|counters?|registers?)\b",
+            r"(?:变量|计数器|寄存器)",
+        ),
+        "transitions": (
+            r"\b(?:transitions?|edges?|arcs?)\b",
+            r"(?:迁移|转移|边)",
+        ),
+    }
+    for function_name, alternatives in patterns.items():
+        if any(re.search(pattern, lowered, re.I) for pattern in alternatives):
+            candidates.add(function_name)
+    return next(iter(candidates)) if len(candidates) == 1 else None
+
+
+def _cardinality_requires_parent_scope(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:sub[- ]?states?|areas?|regions?|modes?|phases?|branches?)\b|"
+            r"(?:子状态|区域|模式|阶段|分支)",
+            text,
+            re.I,
+        )
+    )
+
+
+def _direct_cardinality_states_parent_bound(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Compare) or len(node.comparators) != 1:
+        return False
+    candidates = (node.left, node.comparators[0])
+    for candidate in candidates:
+        if not isinstance(candidate, ast.Call) or _call_name(candidate) != "len":
+            continue
+        if len(candidate.args) != 1 or not isinstance(candidate.args[0], ast.Call):
+            continue
+        states_call = candidate.args[0]
+        if _call_name(states_call) != "states":
+            continue
+        if _call_has_nonempty_string_keyword(
+            states_call, "parent"
+        ) and _call_keyword_constant_bool(states_call, "recursive") is False:
+            return True
+    return False
+
+
+def _is_stable_cardinality_count(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Call) or _call_name(node) != "len" or len(node.args) != 1:
+        return False
+    counted = node.args[0]
+    if any(
+        isinstance(child, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp))
+        for child in ast.walk(counted)
+    ):
+        return False
+    if not isinstance(counted, ast.Call):
+        return False
+    function_name = _call_name(counted)
+    if function_name not in _STRUCTURE_FUNCTIONS:
+        return False
+    if (
+        function_name in {"states", "events", "variables"}
+        and _call_keyword_constant_string(counted, "name") is not None
+    ):
+        return False
+    if function_name == "states" and _call_keyword_constant_string(counted, "parent") is not None:
+        return _call_keyword_constant_bool(counted, "recursive") is False
+    return True
+
+
+def _call_keyword_constant_bool(call: ast.Call, name: str) -> bool | None:
+    for keyword in call.keywords:
+        if keyword.arg == name and isinstance(keyword.value, ast.Constant):
+            return keyword.value.value if isinstance(keyword.value.value, bool) else None
+    return None
+
+
 def _cardinality_op_matches(op: ast.cmpop, direction: str) -> bool:
     if direction == "at_least":
         return isinstance(op, (ast.Gt, ast.GtE, ast.Eq))
@@ -439,12 +841,22 @@ def _is_numeric_literal(node: ast.AST, value: int) -> bool:
     return isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and node.value == value
 
 
+def _is_none_literal(node: ast.AST) -> bool:
+    return isinstance(node, ast.Constant) and node.value is None
+
+
 __all__ = [
+    "ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED",
     "ERROR_CARDINALITY_COMPARISON_REQUIRED",
+    "ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED",
+    "ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED",
     "ERROR_CONDITION_TRIGGER_REQUIRED",
     "ERROR_CONTINUITY_EVIDENCE_REQUIRED",
     "ERROR_CONTINUITY_EXISTENTIAL_FORMAL_TOO_WEAK",
     "ERROR_EFFECTS_BOOL_SUBSTITUTE",
+    "ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED",
+    "ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED",
+    "ERROR_EFFECT_DELTA_SENTINEL_VARIABLE",
     "ERROR_EFFECT_DELTA_DIRECTION_REQUIRED",
     "ERROR_SIMULATE_FIRST_CYCLE_REQUIRED",
     "ERROR_SYNTAX_INVALID",

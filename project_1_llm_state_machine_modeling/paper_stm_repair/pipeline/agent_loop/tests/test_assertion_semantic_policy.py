@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from paper_stm_repair_loop.assertion_policy import (
+    ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED,
     ERROR_CARDINALITY_COMPARISON_REQUIRED,
+    ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED,
+    ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED,
     ERROR_CONTINUITY_EVIDENCE_REQUIRED,
     ERROR_CONTINUITY_EXISTENTIAL_FORMAL_TOO_WEAK,
     ERROR_EFFECTS_BOOL_SUBSTITUTE,
+    ERROR_EFFECT_DELTA_SENTINEL_VARIABLE,
+    ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED,
+    ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED,
     ERROR_EFFECT_DELTA_DIRECTION_REQUIRED,
     ERROR_SIMULATE_FIRST_CYCLE_REQUIRED,
     ERROR_CONDITION_TRIGGER_REQUIRED,
@@ -105,6 +111,52 @@ def test_continuity_requires_formal_or_two_simulations():
     ) == []
 
 
+def test_open_effect_deltas_supports_direction_without_a_variable_probe():
+    decrease = [_req("REQ-EFFECT", "effect", "decreases")]
+    expression = (
+        "any(delta < 0 for _, delta in effect_deltas("
+        "source='Root.Attack', event='Root.Done', target='Root.Searching'))"
+    )
+
+    assert validate_assertion_semantic_policy(expression, decrease) == []
+
+
+def test_effect_direction_rejects_disjunctive_bypass_and_dynamic_variable_probe():
+    decrease = [_req("REQ-EFFECT", "effect", "decreases")]
+
+    bypass = validate_assertion_semantic_policy(
+        "any(delta < 0 for _, delta in effect_deltas(source='A', event='done')) "
+        "or (effect_delta(source='A', event='done', "
+        "variable='__sentinel_' + 'missing__') or 0) == 0",
+        decrease,
+    )
+    assert ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED in _codes(bypass)
+    assert ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED in _codes(bypass)
+
+
+def test_open_effect_deltas_rejects_filtered_generator_scope():
+    decrease = [_req("REQ-EFFECT", "effect", "decreases")]
+
+    errors = validate_assertion_semantic_policy(
+        "any(delta < 0 for variable, delta in effect_deltas("
+        "source='A', event='done', target='B') if variable == 'chosen_count')",
+        decrease,
+    )
+
+    assert _codes(errors) == {ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED}
+
+
+def test_open_effect_deltas_requires_exact_transition_binding():
+    decrease = [_req("REQ-EFFECT", "effect", "decreases")]
+
+    errors = validate_assertion_semantic_policy(
+        "any(delta < 0 for _, delta in effect_deltas())",
+        decrease,
+    )
+
+    assert _codes(errors) == {ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED}
+
+
 def test_continuity_rejects_existential_path_as_exhaustive_evidence():
     reqs = [_req("REQ-CONT", "continuity", "continuously")]
 
@@ -154,6 +206,82 @@ def test_cardinality_requires_structural_function_number_and_direction():
         )
         == []
     )
+
+
+def test_cardinality_rejects_filtered_or_enumerated_name_scope():
+    reqs = [_req("REQ-CARD", "cardinality", "three different areas")]
+
+    filtered = validate_assertion_semantic_policy(
+        "len([s for s in states(parent='Root.Searching', recursive=False) "
+        "if s.name in {'Root.Searching.Area1', 'Root.Searching.Area2', "
+        "'Root.Searching.Area3'}]) == 3",
+        reqs,
+    )
+    assert _codes(filtered) == {ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED}
+
+    named_singletons = validate_assertion_semantic_policy(
+        "len(states(name='Root.Searching.Area1')) + "
+        "len(states(name='Root.Searching.Area2')) + "
+        "len(states(name='Root.Searching.Area3')) == 3",
+        reqs,
+    )
+    assert _codes(named_singletons) == {ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED}
+
+    assert validate_assertion_semantic_policy(
+        "len(states(parent='Root.Searching', recursive=False)) == 3",
+        reqs,
+    ) == []
+
+
+def test_cardinality_rejects_disjunctive_bypass_and_wrong_model_object():
+    reqs = [
+        {
+            **_req("REQ-CARD", "cardinality", "three"),
+            "clause_text": "The swarm searches three different areas.",
+        }
+    ]
+
+    bypass = validate_assertion_semantic_policy(
+        "len(states(parent='Root.Searching', recursive=False)) == 3 or "
+        "len([s for s in states(parent='Root.Searching', recursive=False) "
+        "if s in {'Area1', 'Area2', 'Area3'}]) == 3",
+        reqs,
+    )
+    assert ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED in _codes(bypass)
+
+    for expression in (
+        "len(bound_model_refs('CU-001', fact_kind='state')) == 3",
+        "len(events()) == 3",
+        "len(transitions(source='Root.Searching')) == 3",
+    ):
+        errors = validate_assertion_semantic_policy(expression, reqs)
+        assert ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED in _codes(errors)
+
+    ambiguous = [
+        {
+            **_req("REQ-CARD", "cardinality", "three"),
+            "clause_text": "The model contains three state transitions.",
+        }
+    ]
+    assert ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED in _codes(
+        validate_assertion_semantic_policy("len(events()) == 3", ambiguous)
+    )
+
+    assert ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED in _codes(
+        validate_assertion_semantic_policy("len(states()) == 3", reqs)
+    )
+
+
+def test_effect_delta_rejects_sentinel_variable_probe():
+    reqs = [_req("REQ-EFFECT", "effect", "decreases")]
+
+    errors = validate_assertion_semantic_policy(
+        "(effect_delta(source='A', event='done', variable='__sentinel_missing__') "
+        "or 0) < 0",
+        reqs,
+    )
+
+    assert _codes(errors) == {ERROR_EFFECT_DELTA_SENTINEL_VARIABLE}
 
 
 def test_transition_requirement_rejects_event_only_relation():

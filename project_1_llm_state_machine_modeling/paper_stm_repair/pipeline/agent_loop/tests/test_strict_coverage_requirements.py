@@ -90,7 +90,12 @@ def _strict_registry_and_plan():
                 "target": "Root.Searching",
                 "guard": None,
                 "effects": [],
-            }
+            },
+            "FACT-VARIABLE-UAV-COUNT": {
+                "fact_id": "FACT-VARIABLE-UAV-COUNT",
+                "fact_kind": "variable",
+                "qualified_refs": ["variable:Root.uav_count"],
+            },
         },
         eval_funcs={
             "effect_delta": lambda **_: -1,
@@ -388,6 +393,113 @@ def test_continuity_rejection_explains_how_to_increase_coverage():
     assert len(action["accepted_predicate_examples"]) == 2
     assert action["coverage_improvement"]
     assert action["pass_criteria"]
+
+
+def test_registration_rejects_literal_effect_variable_absent_from_model():
+    registry, plan, _ = _strict_registry_and_plan()
+    plan["logical_assertions"][0]["assert"] = (
+        "(effect_delta(source='Root.Attack', event='Root.Attack_Complete', "
+        "variable='made_up_count') or 0) < 0"
+    )
+
+    rejected = registry.register_plan(plan, reason="Reject invented effect probe.")
+
+    error = "assertion_effect_variable_not_in_model:ASSERT-001:made_up_count"
+    assert error in rejected["errors"]
+    action = next(item for item in rejected["required_actions"] if item["error"] == error)
+    assert "effect_deltas" in action["recommended_action"]
+    assert "effect_deltas" in action["accepted_predicate_examples"][0]
+
+
+def test_registration_accepts_open_effect_deltas_without_model_variables():
+    registry, plan, _ = _strict_registry_and_plan()
+    registry.source_fact_details.pop("FACT-VARIABLE-UAV-COUNT")
+    plan["logical_assertions"][0]["assert"] = (
+        "any(delta < 0 for _, delta in effect_deltas("
+        "source='Root.Attack', event='Root.Attack_Complete', "
+        "target='Root.Searching'))"
+    )
+    registry.eval_runtime.funcs["effect_deltas"] = lambda **_: ()
+
+    accepted = registry.register_plan(plan, reason="Use open effect inventory.")
+
+    assert accepted["accepted"] is True
+
+
+def test_registration_rejects_open_effect_bound_to_unrelated_transition():
+    registry, plan, _ = _strict_registry_and_plan()
+    plan["logical_assertions"][0]["assert"] = (
+        "any(delta < 0 for _, delta in effect_deltas("
+        "source='Root.Other', event='Root.Other_Done', target='Root.Idle'))"
+    )
+    registry.eval_runtime.funcs["effect_deltas"] = lambda **_: (("count", -1),)
+
+    rejected = registry.register_plan(
+        plan, reason="Reject unrelated exact transition binding."
+    )
+
+    error = next(
+        item
+        for item in rejected["errors"]
+        if item.startswith(
+            "assertion_effect_transition_not_grounded_by_unit_facts:ASSERT-001"
+        )
+    )
+    action = next(item for item in rejected["required_actions"] if item["error"] == error)
+    assert "unrelated decrement" in action["coverage_improvement"]
+    assert "same CoverageUnit" in action["pass_criteria"]
+
+
+def test_uncovered_requirement_action_explains_coverage_expansion_and_pass_condition():
+    requirement_id = "REQ-NL-001-CARDINALITY-01"
+
+    actions = _registration_required_actions(
+        [f"uncovered_coverage_requirements:{requirement_id}"],
+        source_fact_details={},
+        coverage_requirements={
+            requirement_id: {
+                "requirement_id": requirement_id,
+                "dimension": "cardinality",
+                "cue_text": "three states",
+                "required_function_family_options": [["structure"]],
+            }
+        },
+    )
+
+    action = actions[0]
+    assert action["related_ids"] == [requirement_id]
+    assert action["recommended_tools"] == ["query_model", "register_coverage_plan"]
+    assert "Expand the complete plan" in action["recommended_action"]
+    assert "exactly one same-clause CoverageUnit" in action["recommended_action"]
+    assert "positive assertions" in action["coverage_improvement"]
+    assert "exactly once at Unit level" in action["pass_criteria"]
+    assert "basis/evidence route" in action["pass_criteria"]
+
+
+def test_semantic_actions_for_anti_gaming_have_concrete_pass_conditions():
+    requirement_id = "REQ-NL-001-EFFECT-01"
+    actions = _registration_required_actions(
+        [
+            "assertion_semantic_policy:ASSERT-EFFECT:"
+            f"ASSERT_EFFECT_DELTA_SENTINEL_VARIABLE:{requirement_id}",
+            "assertion_semantic_policy:ASSERT-CARD:"
+            f"ASSERT_CARDINALITY_STABLE_SCOPE_REQUIRED:{requirement_id}",
+        ],
+        source_fact_details={},
+        coverage_requirements={
+            requirement_id: {
+                "requirement_id": requirement_id,
+                "dimension": "effect",
+                "cue_text": "decreases",
+            }
+        },
+    )
+
+    effect_action, cardinality_action = actions
+    assert "open-ended effect_deltas" in effect_action["recommended_action"]
+    assert "actual current-model variable" in effect_action["pass_criteria"]
+    assert "filtering or enumerating exactly" in cardinality_action["recommended_action"]
+    assert "complete stable scope" in cardinality_action["pass_criteria"]
 
 
 def test_revision_cannot_weaken_a_direct_source_fact_predicate():

@@ -110,6 +110,32 @@ Repair 或模型修改参数。每个 Agent-facing tool 的注册 docstring 必�
 When to use、When not to use、Parameters、Returns、Execution、Failure semantics、
 Evidence limitations、Permissions 和 Example，并由合同测试读取真实注册 description。
 
+`eval_assert` 的受限环境额外提供开放式 `effect_deltas(source=..., event=...,
+target=...)`。它返回当前匹配迁移上全部可解析的 `(variable, delta)`，无变量或无 effect 时
+返回空 tuple。对于“某动作使某个计数减少”但当前模型根本没有对应变量的 NL 义务，Agent
+可写 `any(delta < 0 for _, delta in effect_deltas(...))`，从而让缺失行为稳定得到 `False`，
+而不需要虚构 `dummy`、`sentinel` 或不存在的变量名。已知且可追溯的真实变量仍可使用
+`effect_delta(..., variable=...)`。
+
+注册门禁同时拒绝两类已经在真实运行中观察到的 coverage gaming：
+
+- 用不存在的哨兵变量调用 `effect_delta`，再把 `None` 当作“已检查完整 effect”的证据；
+- 先按三个已知名称过滤状态，再用 `len(...) == 3` 冒充对“包含三个区域”的完整基数检查。
+
+基数断言必须比较一个完整、稳定、由模型定义的范围，例如
+`len(states(parent='Root.Searching', recursive=False)) == 3`；不能用候选名枚举、成员过滤或
+字面量列表把结果凑成目标数，也不能通过 `or` 附加一个会独立返回 `True` 的旁路。数量对象
+必须与 NL 一致：areas/modes/regions 计 `states`，events 计 `events`，variables/counters
+计 `variables`，明确的 transitions 才计 `transitions`；不能用 plan-derived
+`bound_model_refs` 或无关 inventory 代替。areas/modes/regions 等层级数量还要求
+`states(parent=..., recursive=False)` 的 parent 与同一 Root 的 `state:<parent>` model ref
+精确一致；共享前缀的嵌套无关容器不能通过。
+
+方向 effect 断言同样必须直接决定顶层布尔值。`effect_delta.variable` 只能是冻结模型中真实
+存在的单一字符串字面量，不能在表达式中拼接或动态选择；开放式 `effect_deltas` 只能使用
+无过滤 generator，并必须用 literal source、event（或显式 `None`）和 target 绑定一条确定
+迁移，不能先挑中一个有利变量或搜索全模型无关 effect，再声称已经检查当前义务。
+
 ## 5. 独立覆盖审查
 
 `review_discovery_coverage` 只允许在完整 plan 已注册，且所有 latest required assertions
@@ -138,7 +164,9 @@ Controller 对 ID 集合做精确相等校验。failed finding 还必须至少�
 problem
 missed_behavior_risk
 related_*_ids
+coverage_dimensions
 recommended_tools
+recommended_steps
 recommended_action
 pass_criteria
 ```
@@ -147,8 +175,34 @@ pass_criteria
 哪些现有工具、如何补强断言，以及什么条件下才可复审通过。程序化 ID mismatch 和过早调用
 review 也会生成确定性 `required_actions`。
 
+`coverage_dimensions` 明确指出建议将增加或重查哪一类覆盖，例如 `nl_semantics`、
+`model_behavior`、`source_trace_grounding`、`assertion_strength`、
+`issue_projection_evidence` 或 `anti_gaming`。`recommended_action` 不能只写“继续检查”或
+“提高覆盖率”，必须说明要检查的具体行为、路径、条件或 evidence dimension；
+`pass_criteria` 必须给出下一次 review 可观察、可判定的闭合条件。建议只能使用当前 Discover
+已有工具，不能要求 Agent 直接改 Controller projection，也不能用 FBMCQ 解释 NL，或把 NL
+加强成原文没有的 `only`、every-state、future-model 义务。为避免“建议继续检查”这类无法
+执行的口号，`recommended_action` 必须逐字点名至少一个 `recommended_tools` 中的工具，
+以及至少一个 `related_*_ids` 中的当前台账 ID，
+`recommended_steps` 必须为每个推荐工具分别写出关联 ID、检查目标、参数/模型范围和预期证据，
+其中 `suggested_arguments` 按工具合同至少给出 `query_kind`、`cycles`、`element_refs`、
+`assertion_chain_id/assert` 或完整 `plan` 等相应键，并复用真实工具 Pydantic 输入合同校验
+enum、列表层级、必填字段和额外字段；
+`pass_criteria` 必须点明 terminal bool、具体 state/transition/effect/trace/ID 闭合等可观察
+结果。全称量词是否越界由持有冻结 NL 的 gate 判断；原文明确写了 `all states` 时不会被关键词
+门禁误拒。
+
 审查通过绑定 `reviewed_state_fingerprint`。任何后续 `eval_assert` 或 assertion revision
 都会改变 fingerprint，使旧 pass 立即失效；必须重新执行双审查。
+
+如果 reviewer provider、stream 或结构化输出链路临时失败，工具返回
+`execution_status=retryable_reviewer_failure` 和 `passed=false`，保留当前台账并写入
+append-only record。主 Agent 必须在不改动当前 fingerprint 的情况下重试；基础设施失败
+既不能被视为覆盖通过，也不能被伪装成某个 source-level issue。
+
+只有 provider/transport 类临时故障允许上述重试；schema-invalid verdict、错误 review kind
+等确定性合同故障返回 `execution_status=reviewer_contract_failure`，保留同轮已完成 reviewer
+verdict 和失败审计，并终止当前 Discover attempt。它们不能通过反复调用同一工具被掩盖。
 
 ## 6. Issue 投影与归因
 

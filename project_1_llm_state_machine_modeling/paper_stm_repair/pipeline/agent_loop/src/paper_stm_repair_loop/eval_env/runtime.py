@@ -196,6 +196,7 @@ class EvalEnvironment:
             "guards_overlap": ("relation", self.relations.guards_overlap),
             "effects": ("effect", self.effects.effects),
             "effect_delta": ("effect", self.effects.effect_delta),
+            "effect_deltas": ("effect", self.effects.effect_deltas),
             "simulate": ("simulation", self.simulation.simulate),
             "fbmcq": ("formal", self.fbmcq_api.fbmcq),
             "mapped_source_refs": ("mapping", self.mapping.mapped_source_refs),

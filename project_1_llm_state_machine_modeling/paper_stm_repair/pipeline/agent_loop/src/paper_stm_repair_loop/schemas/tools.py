@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from typing_extensions import Literal
 
 class StrictToolModel(BaseModel):
     """Base class for Agent-facing tool schemas: strict types and no extras."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
+
+
+NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 ExecutionStatus = Literal[
@@ -45,9 +48,9 @@ class ReadGuideInput(StrictToolModel):
 class QueryModelInput(StrictToolModel):
     query_kind: Literal["states", "events", "transitions", "variables", "diagnostics"]
     name_contains: str | None = None
-    offset: int = 0
-    limit: int = 50
-    root_node_ids: list[str] = Field(default_factory=list)
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=50, ge=1, le=500)
+    root_node_ids: list[NonBlankString] = Field(default_factory=list)
     reason: str = Field(min_length=1)
 
 
@@ -67,8 +70,8 @@ class ModelQueryResult(StrictToolModel):
 
 class ObserveTraceInput(StrictToolModel):
     question: str = Field(min_length=1)
-    root_node_ids: list[str] = Field(min_length=1)
-    cycles: list[list[str]] = Field(min_length=1)
+    root_node_ids: list[NonBlankString] = Field(min_length=1)
+    cycles: list[list[NonBlankString]] = Field(min_length=1)
     reason: str = Field(min_length=1)
 
 
@@ -85,7 +88,7 @@ class TraceObservation(StrictToolModel):
 
 
 class LookupSourceTraceInput(StrictToolModel):
-    element_refs: list[str]
+    element_refs: list[NonBlankString] = Field(min_length=1)
     direction: Literal["source_to_fcstm", "fcstm_to_source"] = "fcstm_to_source"
     reason: str = Field(min_length=1)
 

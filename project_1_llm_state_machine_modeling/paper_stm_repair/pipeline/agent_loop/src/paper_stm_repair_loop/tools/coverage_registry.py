@@ -23,6 +23,7 @@ FUNCTION_FAMILIES: dict[str, str] = {
     "guards_overlap": "relation",
     "effects": "effect",
     "effect_delta": "effect",
+    "effect_deltas": "effect",
     "simulate": "simulation",
     "fbmcq": "formal",
     "mapped_source_refs": "mapping",
@@ -653,6 +654,16 @@ class CoverageRegistry:
             )
             for root in roots
         }
+        root_model_refs_by_id = {
+            str(root.get("node_id") or root.get("root_node_id")): {
+                str(ref) for ref in root.get("model_element_refs", []) if ref
+            }
+            for root in roots
+        }
+        units_by_id = {
+            str(unit.get("coverage_unit_id") or unit.get("unit_id")): unit
+            for unit in units
+        }
         expression_sha_by_chain: dict[str, str] = {}
         expression_texts: dict[str, str] = {}
         chain_ids: set[str] = set()
@@ -735,23 +746,58 @@ class CoverageRegistry:
                 )
             if "fbmcq(" in expr and not self.fbmcq_guide_read():
                 errors.append(f"fbmcq_guide_required_before_registration:{chain_id}")
+            linked_requirements = [
+                requirement
+                for requirement in unit_requirements_by_id.get(unit_id, [])
+                if str(requirement.get("requirement_id")) in assertion_basis
+            ]
             policy_errors = validate_assertion_semantic_policy(
                 expr,
-                [
-                    requirement
-                    for requirement in unit_requirements_by_id.get(unit_id, [])
-                    if str(requirement.get("requirement_id")) in assertion_basis
-                ],
+                linked_requirements,
             )
             errors.extend(
                 f"assertion_semantic_policy:{chain_id}:{error}"
                 for error in policy_errors
             )
+            if any(
+                str(requirement.get("dimension")) == "cardinality"
+                for requirement in linked_requirements
+            ):
+                for parent in _cardinality_state_parent_bindings(expr):
+                    if f"state:{parent}" not in root_model_refs_by_id.get(
+                        root_id, set()
+                    ):
+                        errors.append(
+                            "assertion_cardinality_parent_not_grounded_by_root:"
+                            f"{chain_id}:{parent}:{root_id}"
+                        )
+            if self.source_fact_details:
+                model_variables = _model_variable_names(self.source_fact_details)
+                for variable in sorted(
+                    _literal_effect_delta_variables(expr) - model_variables
+                ):
+                    errors.append(
+                        f"assertion_effect_variable_not_in_model:{chain_id}:{variable}"
+                    )
+                unit_fact_ids = {
+                    str(item)
+                    for item in units_by_id.get(unit_id, {}).get(
+                        "source_fact_ids", []
+                    )
+                }
+                for source, event, target in _effect_deltas_transition_bindings(expr):
+                    if not _unit_facts_contain_transition_binding(
+                        unit_fact_ids,
+                        self.source_fact_details,
+                        source=source,
+                        event=event,
+                        target=target,
+                    ):
+                        errors.append(
+                            "assertion_effect_transition_not_grounded_by_unit_facts:"
+                            f"{chain_id}:{source}:{event}:{target}"
+                        )
         if self.source_fact_details:
-            units_by_id = {
-                str(unit.get("coverage_unit_id") or unit.get("unit_id")): unit
-                for unit in units
-            }
             for root in roots:
                 root_id = str(root.get("node_id") or root.get("root_node_id") or "")
                 unit_id = str(root.get("coverage_unit_id") or "")
@@ -1572,6 +1618,38 @@ def _registration_required_actions(
                 }
             )
             continue
+        if error.startswith("uncovered_coverage_requirements:"):
+            requirement_ids = [item for item in error.split(":", 1)[-1].split(",") if item]
+            actions.append(
+                {
+                    "action_id": f"REG-ACTION-{ordinal:03d}",
+                    "error": error,
+                    "related_ids": requirement_ids,
+                    "problem": "One or more frozen coverage requirements are absent from the registered Unit/Root/assertion coverage.",
+                    "requirement_snapshots": [
+                        _deepcopy_jsonish(coverage_requirements.get(requirement_id, {}))
+                        for requirement_id in requirement_ids
+                    ],
+                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_action": (
+                        "Expand the complete plan: for each listed requirement, add it "
+                        "to exactly one same-clause CoverageUnit, include it in that "
+                        "Unit's dimensions/statement, and cite the requirement ID in "
+                        "at least one required same-Unit assertion basis whose evidence "
+                        "family satisfies the requirement options."
+                    ),
+                    "coverage_improvement": (
+                        "This increases hard NL/cue coverage by converting omitted "
+                        "frozen requirements into executable positive assertions."
+                    ),
+                    "pass_criteria": (
+                        "The next complete registration covers every listed requirement "
+                        "exactly once at Unit level and has at least one required same-Unit "
+                        "assertion basis/evidence route for each listed ID."
+                    ),
+                }
+            )
+            continue
         if error.startswith("assertion_semantic_policy:"):
             actions.append(
                 _semantic_policy_required_action(
@@ -1579,6 +1657,100 @@ def _registration_required_actions(
                     ordinal=ordinal,
                     coverage_requirements=coverage_requirements,
                 )
+            )
+            continue
+        if error.startswith("assertion_effect_variable_not_in_model:"):
+            _, chain_id, variable = error.split(":", 2)
+            actions.append(
+                {
+                    "action_id": f"REG-ACTION-{ordinal:03d}",
+                    "error": error,
+                    "related_ids": [chain_id],
+                    "problem": (
+                        f"Assertion {chain_id} probes literal variable {variable!r}, "
+                        "which is absent from the frozen model inventory."
+                    ),
+                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_action": (
+                        "Remove the invented literal variable. If the frozen model "
+                        "contains a source-grounded variable, use its exact name with "
+                        "effect_delta; otherwise use effect_deltas over the exact "
+                        "source/event/target tuple so absence remains a traced False."
+                    ),
+                    "accepted_predicate_examples": [
+                        "any(delta < 0 for _, delta in effect_deltas("
+                        "source='Root.Attack', event='Root.Done', target='Root.Searching'))"
+                    ],
+                    "coverage_improvement": (
+                        "The revised assertion covers the complete observed effect "
+                        "inventory instead of manufacturing evidence through a probe name."
+                    ),
+                    "pass_criteria": (
+                        "Every literal effect_delta variable exists in the frozen model, "
+                        "or the assertion uses effect_deltas without a variable-name probe."
+                    ),
+                }
+            )
+            continue
+        if error.startswith(
+            "assertion_effect_transition_not_grounded_by_unit_facts:"
+        ):
+            _, chain_id, source, event, target = error.split(":", 4)
+            actions.append(
+                {
+                    "action_id": f"REG-ACTION-{ordinal:03d}",
+                    "error": error,
+                    "related_ids": [chain_id],
+                    "problem": (
+                        f"Assertion {chain_id} queries effect deltas on transition "
+                        f"{source} / {event} / {target}, but that exact transition "
+                        "is absent from the CoverageUnit's frozen SourceFacts."
+                    ),
+                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_action": (
+                        "Use query_model to identify the exact transition implementing "
+                        "the linked NL obligation. Bind effect_deltas to that literal "
+                        "source/event/target tuple and include its transition/effect "
+                        "SourceFact in the same CoverageUnit before registering again."
+                    ),
+                    "coverage_improvement": (
+                        "This prevents an unrelated decrement elsewhere in the model "
+                        "from satisfying the current effect Root."
+                    ),
+                    "pass_criteria": (
+                        "The queried effect_deltas tuple exactly matches one transition "
+                        "or effect SourceFact in the same CoverageUnit."
+                    ),
+                }
+            )
+            continue
+        if error.startswith("assertion_cardinality_parent_not_grounded_by_root:"):
+            _, chain_id, parent, root_id = error.split(":", 3)
+            actions.append(
+                {
+                    "action_id": f"REG-ACTION-{ordinal:03d}",
+                    "error": error,
+                    "related_ids": [chain_id, root_id],
+                    "problem": (
+                        f"Assertion {chain_id} counts direct children under {parent}, "
+                        f"but Root {root_id} does not exactly ground state:{parent}."
+                    ),
+                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_action": (
+                        "Use query_model to identify the exact parent state denoted by "
+                        "the NL cardinality obligation. Count its complete direct child "
+                        "scope and bind the same exact state ref in the Root; do not use "
+                        "a prefix-sharing or nested unrelated parent."
+                    ),
+                    "coverage_improvement": (
+                        "This aligns the counted hierarchy scope with the Root's frozen "
+                        "model element instead of relying on substring coincidence."
+                    ),
+                    "pass_criteria": (
+                        f"The assertion parent is exactly one state ref in {root_id}, "
+                        "with recursive=False and no name filter."
+                    ),
+                }
             )
             continue
         if error.startswith("coverage_requirement_evidence_family_unsatisfied:"):
@@ -1615,7 +1787,14 @@ def _registration_required_actions(
                 "recommended_tools": ["register_coverage_plan"],
                 "recommended_action": (
                     "Correct the named contract violation in the complete plan; do "
-                    "not delete the implicated requirement, fact, Unit, Root, or chain."
+                    "not delete the implicated requirement, fact, Unit, Root, or chain. "
+                    "If the error names omitted IDs, expand the plan with same-clause "
+                    "Units, positive Roots, required assertion bases, and compatible "
+                    "evidence instead of narrowing scope."
+                ),
+                "coverage_improvement": (
+                    "The correction must add or repair executable coverage for the "
+                    "implicated frozen obligation; pure wording changes or deletion do not count."
                 ),
                 "pass_criteria": (
                     "The next complete registration no longer returns this exact "
@@ -1649,6 +1828,12 @@ def _semantic_policy_required_action(
     requirement_id = parts[3] if len(parts) > 3 else ""
     requirement = coverage_requirements.get(requirement_id, {})
     templates: dict[str, tuple[list[str], str, list[str], str]] = {
+        assertion_contract.ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Replace the disjunctive, filtered, or nested bypass with one direct positive proposition whose top-level bool is determined by the implicated cardinality/effect check. Split unrelated alternatives into separate Roots instead of joining them with or.",
+            ["len(states(parent='Root.Searching', recursive=False)) == 3"],
+            "The revised assertion has one direct top-level positive comparison (or one unfiltered open effect any-expression), so no unrelated branch can make it pass.",
+        ),
         assertion_contract.ERROR_SYNTAX_INVALID: (
             ["register_coverage_plan"],
             "Rewrite the named assertion as one valid Python expression before resubmitting the complete plan.",
@@ -1669,9 +1854,27 @@ def _semantic_policy_required_action(
         ),
         assertion_contract.ERROR_EFFECT_DELTA_DIRECTION_REQUIRED: (
             ["query_model", "register_coverage_plan"],
-            "Add an effect_delta comparison whose sign matches the NL cue: use < 0 for a decrease and > 0 for an increase, bound to the exact source, event, and variable.",
-            ["(effect_delta(source='Root.Attack', event='Root.Done', variable='count') or 0) < 0"],
-            "The named assertion contains an exact direction-sensitive delta predicate for the implicated requirement.",
+            "Add an effect_delta comparison whose sign matches the NL cue: use < 0 for a decrease and > 0 for an increase, bound to the exact source, event, and real model variable. If the variable is unclear, query the model/effect inventory first; prefer the open-ended effect_deltas route when available instead of probing made-up variable names.",
+            ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
+            "The named assertion contains a direction-sensitive predicate over the complete observed effect inventory for the implicated requirement.",
+        ),
+        assertion_contract.ERROR_EFFECT_DELTA_SENTINEL_VARIABLE: (
+            ["query_model", "register_coverage_plan"],
+            "Remove literal sentinel/probe variables from effect_delta. First inspect real model variables or use open-ended effect_deltas to enumerate observed deltas, then bind the assertion to an actual variable that exists in the current model.",
+            ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
+            "The revised assertion no longer probes a made-up variable and its effect evidence is bound to an actual current-model variable or an open-ended observed delta.",
+        ),
+        assertion_contract.ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Do not compute, concatenate, or indirectly select effect_delta.variable. Use one exact literal variable name returned by the frozen model inventory, or replace the probe with an unfiltered effect_deltas expression.",
+            ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
+            "Every effect_delta call uses one exact literal current-model variable, or the direct assertion uses unfiltered effect_deltas without a variable selector.",
+        ),
+        assertion_contract.ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Bind every open effect_deltas call to one exact frozen transition using literal source and target plus a literal event (or explicit event=None for an eventless transition). An unqualified model-wide effect search cannot prove the current Root.",
+            ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
+            "The open effect assertion names one exact source/event/target transition and no unrelated model effect can make it pass.",
         ),
         assertion_contract.ERROR_CONTINUITY_EVIDENCE_REQUIRED: (
             ["observe_trace", "read_fbmcq_guide", "register_coverage_plan"],
@@ -1692,7 +1895,19 @@ def _semantic_policy_required_action(
             ["query_model", "register_coverage_plan"],
             "Use a direct len(states(...)) comparison with the exact number and direction stated by the NL, and set recursive=False when counting direct children.",
             ["len(states(parent='Root.Searching', recursive=False)) == 3"],
-            "The assertion performs the required exact, lower-bound, or upper-bound structural count without counting descendants accidentally.",
+            "The assertion performs the required exact, lower-bound, or upper-bound structural count over the implicated model scope.",
+        ),
+        assertion_contract.ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Do not make cardinality pass by filtering or enumerating exactly the expected names. Count one complete stable model-definition scope, such as direct child states under one parent with recursive=False, and compare that full scope to the NL quantity.",
+            ["len(states(parent='Root.Searching', recursive=False)) == 3"],
+            "The assertion counts the complete stable scope that the NL quantity ranges over; it does not use name filters, literal lists, set membership filters, or hand-picked known elements to force len(...) to equal the expected number.",
+        ),
+        assertion_contract.ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED: (
+            ["query_model", "register_coverage_plan"],
+            "Bind the quantity to the model object named by the frozen NL clause: areas/modes/regions map to states, events to events, variables/counters to variables, and explicit transitions to transitions. Do not count bound_model_refs or a different object kind.",
+            ["len(states(parent='Root.Searching', recursive=False)) == 3"],
+            "The direct len(...) operand is the complete model-definition collection for the NL-named object kind, not a plan-derived binding set or an unrelated inventory.",
         ),
         assertion_contract.ERROR_TRANSITION_TARGET_REQUIRED: (
             ["query_model", "register_coverage_plan"],
@@ -1737,6 +1952,96 @@ def _semantic_policy_required_action(
         ),
         "pass_criteria": criteria,
     }
+
+
+def _model_variable_names(
+    source_fact_details: Mapping[str, Mapping[str, Any]],
+) -> set[str]:
+    names: set[str] = set()
+    for fact in source_fact_details.values():
+        if str(fact.get("fact_kind") or "") != "variable":
+            continue
+        ref = _qualified_ref_body(fact, "variable:")
+        if ref:
+            names.update({ref, ref.rsplit(".", 1)[-1]})
+    return names
+
+
+def _literal_effect_delta_variables(expression: str) -> set[str]:
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return set()
+    return {
+        value
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call) and _call_name(call) == "effect_delta"
+        if (value := _call_kw_string(call, "variable")) is not None
+    }
+
+
+def _effect_deltas_transition_bindings(
+    expression: str,
+) -> tuple[tuple[str, str | None, str], ...]:
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return ()
+    bindings: list[tuple[str, str | None, str]] = []
+    for call in ast.walk(tree):
+        if not isinstance(call, ast.Call) or _call_name(call) != "effect_deltas":
+            continue
+        source = _call_kw_string(call, "source")
+        target = _call_kw_string(call, "target")
+        event = _call_kw_string(call, "event")
+        event_is_none = any(
+            keyword.arg == "event"
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value is None
+            for keyword in call.keywords
+        )
+        if source and target and (event is not None or event_is_none):
+            bindings.append((source, event, target))
+    return tuple(bindings)
+
+
+def _cardinality_state_parent_bindings(expression: str) -> tuple[str, ...]:
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return ()
+    parents = {
+        parent
+        for call in ast.walk(tree)
+        if isinstance(call, ast.Call) and _call_name(call) == "states"
+        if (parent := _call_kw_string(call, "parent")) is not None
+    }
+    return tuple(sorted(parents))
+
+
+def _unit_facts_contain_transition_binding(
+    fact_ids: set[str],
+    source_fact_details: Mapping[str, Mapping[str, Any]],
+    *,
+    source: str,
+    event: str | None,
+    target: str,
+) -> bool:
+    for fact_id in fact_ids:
+        fact = source_fact_details.get(fact_id, {})
+        if str(fact.get("fact_kind", "")) not in {
+            "transition",
+            "forced_transition",
+            "effect",
+        }:
+            continue
+        if (
+            _fact_value(fact, "source") == source
+            and _fact_value(fact, "event") == event
+            and _fact_value(fact, "target") == target
+        ):
+            return True
+    return False
 
 
 def _source_fact_predicate_examples(fact: Mapping[str, Any]) -> list[str]:
