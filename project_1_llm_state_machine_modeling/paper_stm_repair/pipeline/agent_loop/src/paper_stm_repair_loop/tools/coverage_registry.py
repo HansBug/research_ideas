@@ -422,6 +422,15 @@ class CoverageRegistry:
     def latest_by_expression(self, expression: str) -> list[AssertionVersion]:
         return [version for version in self.latest_versions() if version.assert_text == expression]
 
+    def selected_source_fact_ids(self) -> set[str]:
+        """Return SourceFacts explicitly selected as executable assertion evidence."""
+
+        return {
+            fact_id
+            for fact_id, chain_ids in self.source_fact_assertion_chains.items()
+            if chain_ids
+        }
+
     def _make_reason_context(self, version: AssertionVersion) -> dict[str, Any]:
         return {
             "phase": "assertion_execution",
@@ -587,10 +596,6 @@ class CoverageRegistry:
             errors.append(
                 "unknown_disposition_facts:" + ",".join(unknown_disposition_facts)
             )
-        if self.source_fact_ids:
-            missing_facts = sorted(self.source_fact_ids - fact_covered - disposition_facts)
-            if missing_facts:
-                errors.append("uncovered_source_facts:" + ",".join(missing_facts))
         disposed_behavior_facts = sorted(disposition_facts & self.source_fact_ids)
         if disposed_behavior_facts:
             errors.append(
@@ -862,7 +867,12 @@ class CoverageRegistry:
             verified_fact_chains: dict[str, set[str]] = {
                 fact_id: set() for fact_id in self.source_fact_ids
             }
-            for fact_id in sorted(self.source_fact_ids):
+            cited_fact_ids = {
+                fact_id
+                for fact_id, chain_ids in source_fact_assertion_chains.items()
+                if chain_ids
+            }
+            for fact_id in sorted(cited_fact_ids):
                 fact = self.source_fact_details.get(fact_id)
                 if fact is None:
                     errors.append(f"source_fact_detail_missing:{fact_id}")
@@ -941,7 +951,7 @@ class CoverageRegistry:
             "accepted": True,
             "coverage_plan_accepted": True,
             "registered_reference_closure": True,
-            "registered_coverage_complete": False,
+            "registered_worklist_complete": False,
             "coverage_unit_count": len(self.coverage_units),
             "root_count": len(self.roots),
             "assertion_chain_count": len(self.chains),
@@ -1009,6 +1019,11 @@ class CoverageRegistry:
             for fact_id in latest.basis_ids
             if fact_id in self.source_fact_ids
             and fact_id in self.source_fact_details
+            and _assertion_directly_verifies_source_fact(
+                latest.assert_text,
+                set(latest.required_function_families),
+                self.source_fact_details.get(fact_id, {}),
+            )
             and not _assertion_directly_verifies_source_fact(
                 assert_text,
                 set(latest.required_function_families),
@@ -1285,7 +1300,6 @@ class CoverageRegistry:
                 not self.strict_coverage_enabled
                 or (
                     terminal_requirement_ids == set(self.coverage_requirements)
-                    and terminal_source_fact_ids == self.source_fact_ids
                 )
             )
         )
@@ -1301,12 +1315,12 @@ class CoverageRegistry:
             if incomplete_roots
             else "issues_found"
             if issue_roots
-            else "complete_coverage_zero_issue"
+            else "reviewer_accepted_zero_issue"
         )
         payload = {
             "run_outcome": run_outcome,
-            "registered_coverage_complete": registered_complete,
-            "semantic_coverage_assurance": (
+            "registered_worklist_complete": registered_complete,
+            "major_behavior_coverage_assurance": (
                 "controller_closed_dual_llm_reviewed"
                 if self.strict_coverage_enabled
                 else "agent_declared"
@@ -1315,14 +1329,21 @@ class CoverageRegistry:
                 "total": len(self.input_segment_ids),
                 "covered": len(self.input_segment_ids),
             },
-            "source_fact_coverage": {
-                "total": len(self.source_fact_ids),
+            "selected_source_fact_evidence_coverage": {
+                "total": len(self.selected_source_fact_ids()),
                 "covered": len(terminal_source_fact_ids),
                 "fact_ids": sorted(terminal_source_fact_ids),
+                "scope": "source_facts_selected_as_assertion_evidence",
             },
             "coverage_requirement_coverage": {
                 "total": len(self.coverage_requirements),
                 "covered": len(terminal_requirement_ids),
+                "ratio": (
+                    len(terminal_requirement_ids) / len(self.coverage_requirements)
+                    if self.coverage_requirements
+                    else 1.0
+                ),
+                "scope": "controller_generated_major_behavior_obligations",
                 "requirement_ids": sorted(terminal_requirement_ids),
             },
             "assertion_execution_coverage": {
@@ -1342,7 +1363,7 @@ class CoverageRegistry:
                     ]
                 ),
             },
-            "semantic_coverage_review": {
+            "major_behavior_coverage_review": {
                 "required": True,
                 "passed": review_passed,
                 "reviewed_state_fingerprint": (
@@ -1389,7 +1410,7 @@ class CoverageRegistry:
             return None
         return latest
 
-    def assert_submit_allowed(self) -> dict[str, Any]:
+    def assert_submit_allowed(self, *, record: bool = True) -> dict[str, Any]:
         missing = self.missing_latest_required_assertions()
         if missing:
             result = {
@@ -1432,7 +1453,8 @@ class CoverageRegistry:
                         else ["current_semantic_coverage_review_must_pass"]
                     ),
                 }
-        self.append_record("discovery_submit_gate_checked", result)
+        if record:
+            self.append_record("discovery_submit_gate_checked", result)
         return result
 
 
@@ -1801,6 +1823,12 @@ def _registration_required_actions(
                     "error and preserves all frozen obligations."
                 ),
             }
+        )
+    for action in actions:
+        action.setdefault(
+            "coverage_improvement",
+            "Following this action turns the named rejected obligation into "
+            "executable evidence without narrowing the major-behavior scope.",
         )
     return actions
 

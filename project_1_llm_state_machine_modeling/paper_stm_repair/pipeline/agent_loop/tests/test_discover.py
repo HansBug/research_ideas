@@ -60,7 +60,7 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
     )
     completed = run_discover(run_dir, object())
     assert completed.schema_version == "paper1.discover_completed.v2"
-    assert completed.outcome.run_outcome == "complete_coverage_zero_issue"
+    assert completed.outcome.run_outcome == "reviewer_accepted_zero_issue"
     assert completed.test_replay is True
     assert completed.agent_real_llm is False
 

@@ -182,11 +182,11 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
         store.append(
             "root_projection_completed",
             {
-                "run_outcome": "complete_coverage_zero_issue",
-                "registered_coverage_complete": True,
-                "semantic_coverage_assurance": "agent_declared",
+                "run_outcome": "reviewer_accepted_zero_issue",
+                "registered_worklist_complete": True,
+                "major_behavior_coverage_assurance": "agent_declared",
                 "input_segment_coverage": {"total": 2, "covered": 2},
-                "source_fact_coverage": {"total": 1, "covered": 1},
+                "selected_source_fact_evidence_coverage": {"total": 1, "covered": 1},
                 "assertion_execution_coverage": {"total_required": 1, "completed_latest": 1},
                 "proposition_roots": [
                     {

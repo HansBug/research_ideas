@@ -69,7 +69,7 @@ Controller 冻结三类基础对象：
 |---|---|---|
 | `InputSegment` | NL 的机械片段 | 任何片段必须进入 Unit 或得到非行为 disposition。 |
 | `CoverageRequirement` | clause 基础行为义务和实际 cue 行 | 每个 ID 必须进入同 clause Unit，并由同强度 required assertion 直接引用。 |
-| `SourceFact` | state/event/variable/transition/guard/effect/initial/hierarchy/region 等结构化事实 | 每个 behavior-relevant fact 必须进入 Unit，并由兼容的事实特定谓词直接检查。 |
+| `SourceFact` | state/event/variable/transition/guard/effect/initial/hierarchy/region 等结构化事实 | 完整 inventory 用于双向探索；被选作 assertion evidence 的事实必须进入 Unit，并由兼容的事实特定谓词直接检查。 |
 
 Agent 注册：
 
@@ -154,8 +154,10 @@ target=...)`。它返回当前匹配迁移上全部可解析的 `(variable, delt
 2. `adversarial_falsification`：主动构造可能让当前断言错误通过的路径、guard、effect、
    hierarchy、initialization、timing、issue projection 等反例。
 
-每个 reviewer 必须显式枚举全部 required Segment、Requirement、SourceFact 和 Root ID。
-Controller 对 ID 集合做精确相等校验。failed finding 还必须至少关联一个当前真实台账 ID；
+每个 reviewer 必须显式枚举全部 required Segment、Requirement、Root，以及当前计划选作
+断言证据的 SourceFact ID；完整 SourceFact inventory 仍提供给 reviewer 用于攻击会推翻主要
+结论的明显漏项，但不机械要求逐事实断言。Controller 对 required ID 集合做精确相等校验。
+failed finding 还必须至少关联一个当前真实台账 ID；
 虚构 ID、泛泛评论或无关联建议均失败关闭。
 
 每条失败意见同时包含：
@@ -223,23 +225,32 @@ verdict 和失败审计，并终止当前 Discover attempt。它们不能通过�
 System prompt 要求同一个 Discover run 完成：
 
 1. `read_fcstm_guide -> read_task`。
-2. 对每个 NL clause/cue 找到模型实现，对每个模型 behavior fact 反查 NL/source 授权。
+2. 对每个主要 NL clause/cue 找到模型实现，并使用完整 SourceFact inventory 探索会实质影响这些义务的模型交互；不机械地为每个事实单独建断言。
 3. 必要时调用 query/trace/source-trace；涉及 FBMCQ 时先读 guide。
 4. 注册完整计划；被拒后必须按 `required_actions` 修正完整计划，不能删除困难义务。
 5. 对每条 latest required assertion 分别调用 `eval_assert`。
 6. 对 inconclusive 或审查指出的弱命题调用 `revise_assertion`，再执行新版本。
-7. 调用 `review_discovery_coverage`；按每条建议补查并重复审查，直至当前 fingerprint pass。
+7. 调用 `review_discovery_coverage`；一次 failed review 返回多条行动时，先完成该轮全部
+   `required_actions/recommended_steps` 及其 pass criteria，再重复审查，直至当前 fingerprint pass。
 8. 核对 attribution 和最终 projection。
 9. 仅提交一次与 Controller projection 一致的 `submit_discovery`。
 
-成功没有 partial 分支。`issues_found` 与 `complete_coverage_zero_issue` 都必须同时满足：
+业务工具的拒绝与失败由本次 Agent 自行消化，不再由外部 controller 猜测下一项语义动作。
+每个非完成返回都必须提供错误对象、`required_actions`、建议工具、具体修正动作和可观察的
+pass criteria；system prompt 要求 Agent 先产生真实的 payload、证据或台账变化，再重试原 gate。
+只有 reviewer 明确标记为基础设施瞬态失败时，才允许对未变 fingerprint 做一次原样重试。
+外部运行监控只负责在 provider/contract 已不可恢复时保留失败证据，不参与问题发现或命题修订。
 
-- 所有 frozen behavior Segment/Requirement 闭合；
-- 所有 behavior SourceFact 被直接审计；
+成功没有 partial 分支。`issues_found` 与 `reviewer_accepted_zero_issue` 都必须同时满足：
+
+- Controller 生成的主要行为 Segment/Requirement worklist 闭合，并报告 `covered / total / ratio`；
+- 所有被选作 assertion evidence 的 SourceFact 被直接审计，完整 inventory 中没有明显遗漏会推翻主要结论；
 - 所有 latest required assertions terminal；
 - 无 incomplete Root；
-- 两个 reviewer 均审查完整 ID 集且无 finding；
+- 两个 reviewer 均审查合同要求的完整 ID 集，且没有影响主要结论的阻塞 finding；
 - 当前 fingerprint 的 `review_discovery_coverage.passed=true`。
+
+这里的 worklist ratio 只描述本次运行内部的过程覆盖。论文实验中的问题发现覆盖率/召回率必须在运行后使用不暴露给 Agent 的人工标注或 reference issue 集计算，并与误报一同报告；不得把 worklist 的 `100%` 写成全语义、全性质或全路径覆盖。
 
 ## 8. 真实运行
 
@@ -312,7 +323,9 @@ outdir/
 ```
 
 `records/` 是方法事实源，每笔记录按 sequence 和 hash chain 追加，写后不改。Agent audit
-保留主 Agent 和内部 reviewer 的逐 turn/model/structured-output 证据。`loops/discover.md`
+保留主 Agent 和内部 reviewer 各自的逐 turn/model/structured-output 证据；内部 reviewer
+使用隔离 callback context，不得污染主 Agent 的 turn、tool lifecycle 或 model-call 计数。
+`loops/discover.md`
 由确定性 Python renderer 从 records 生成，支持 `zh-CN/en-US`，LLM 不直接写报告结构。
 
 失败 run 可以保留用于审计，但不得进入正式结果。正式实验必须使用 clean tracked commit，

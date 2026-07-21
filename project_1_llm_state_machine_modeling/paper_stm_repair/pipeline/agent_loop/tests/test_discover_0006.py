@@ -348,7 +348,7 @@ def test_0006_strict_coverage_assertions_find_two_issues(tmp_path):
         runner=passing_reviewer,
     )
     registry.semantic_review_gate = review_gate
-    assert review_gate.review(reason="审查 0006 全覆盖台账。")["passed"] is True
+    assert review_gate.review(reason="审查 0006 主要行为覆盖台账。")["passed"] is True
     outcome = DiscoverOutcome.model_validate(controller.projection())
     gold = json.loads((FIXTURE / "evaluator_gold.json").read_text(encoding="utf-8"))
     assert outcome.run_outcome == "issues_found"
@@ -367,8 +367,9 @@ def test_0006_strict_coverage_assertions_find_two_issues(tmp_path):
         gold["expected_ok_obligations"]
     )
     assert outcome.coverage_requirement_coverage["covered"] == outcome.coverage_requirement_coverage["total"]
-    assert outcome.source_fact_coverage["covered"] == outcome.source_fact_coverage["total"]
-    assert outcome.semantic_coverage_review["passed"] is True
+    selected_facts = outcome.selected_source_fact_evidence_coverage
+    assert selected_facts["covered"] == selected_facts["total"]
+    assert outcome.major_behavior_coverage_review["passed"] is True
     assert {
         dimension
         for unit in plan.coverage_units

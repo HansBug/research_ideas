@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from pydantic import Field
 
 from ..schemas.coverage import CoveragePlan
@@ -37,15 +39,14 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     Successful calls return ``execution_status=completed``, counts for units,
     roots, assertion chains, the accepted latest assertion records, and
     ``registered_reference_closure=true`` and
-    ``registered_coverage_complete=false`` until execution closes. Rejected calls
+    ``registered_worklist_complete=false`` until execution closes. Rejected calls
     return ``execution_status=invalid_arguments`` plus machine-readable errors.
 
-    Execution: the tool validates the two-way coverage contract before accepting
+    Execution: the tool validates the major-behavior coverage contract before accepting
     the plan: every frozen clause requirement must map to exactly one shared
     clause Unit and to at least one same-unit required assertion basis; every
-    behavior-relevant fact must be covered by a Unit, may not be dispositioned,
-    and must be directly verified by a fact-specific compatible assertion whose
-    basis includes that fact ID; every CoverageRequirement must carry the same
+    SourceFact selected as assertion evidence must be directly verified by a
+    fact-specific compatible assertion whose basis includes that fact ID; every CoverageRequirement must carry the same
     segment/dimension and an allowed evidence-family route;
     each in-scope CoverageUnit has exactly one Root, each Root has at least one
     required assertion, and latest assertion expressions/SHA values are unique
@@ -56,15 +57,16 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
 
     Failure semantics: Agent-supplied ``input_segments``/``coverage_requirements``/
     ``source_facts``, malformed references, uncovered frozen segments,
-    requirements, defect-family rows, or facts,
+    requirements or defect-family rows,
     unit/root-cardinality violations, roots without required assertions,
     duplicate latest expressions, or a repeated registration reject the whole
     plan and preserve the previous registry state. Rejection records are still
     appended for audit.
 
     Evidence limitations: registration proves reference closure over the
-    Controller-frozen clause/cue worklist, source facts, assertion routes, and
-    assertion-shape policy. Final exhaustive coverage still requires subsequent
+    Controller-generated major clause/cue worklist, selected source evidence,
+    assertion routes, and assertion-shape policy. It does not prove 100% coverage
+    over every possible model property or path. Final accepted coverage requires subsequent
     terminal deterministic evaluation, no incomplete Root, and a current
     passing ``review_discovery_coverage`` result.
 
@@ -93,7 +95,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         When to use
         -----------
         Use after ``read_task`` and before any ``eval_assert`` call, when every
-        frozen CoverageRequirement and behavior-relevant segment/fact has a valid
+        frozen CoverageRequirement and its relevant grounding facts have a valid
         route and every in-scope unit has one Root plus required assertions.
 
         When not to use
@@ -116,7 +118,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
 
         Execution
         ---------
-        The Controller checks frozen clause/requirement/fact closure, direct
+        The Controller checks frozen clause/requirement closure, direct
         requirement-to-assertion and fact-to-executable-predicate links, all
         requirement-to-evidence-family compatibility and semantic assertion
         shape, CoverageUnit<->Root
@@ -134,9 +136,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
 
         Evidence limitations
         --------------------
-        Registration certifies the frozen exhaustive matrix is fully referenced.
-        It does not mark final coverage complete and does not replace assertion
-        execution or source attribution.
+        Registration certifies that the generated major-behavior worklist is fully
+        referenced. It is not a 100% semantic-coverage claim and does not replace
+        assertion execution, reviewer judgment, or source attribution.
 
         Permissions
         -----------
@@ -152,9 +154,72 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
             plan = CoveragePlan.model_validate(plan)
         return execute(registry, plan, reason)
 
+    def validation_guidance(exc: Exception) -> str:
+        errors = [
+            str(item.get("msg") or item)
+            for item in getattr(exc, "errors", lambda: [])()
+        ] or [str(exc)]
+        duplicate_assertions = any(
+            "duplicate logical_assertion.assert" in error for error in errors
+        )
+        if duplicate_assertions:
+            problem = (
+                "Two or more assertion chains use the same executable expression; "
+                "the error names every affected chain, Root, and CoverageUnit."
+            )
+            recommended_action = (
+                "Use the chain/root/unit IDs embedded in the error. For duplicate "
+                "chains under the same Root that represent one proposition, keep one "
+                "chain and union the necessary basis IDs into it. For different Roots "
+                "or genuinely different obligations, replace the duplicates with "
+                "distinct positive predicates that directly test each obligation's "
+                "own semantic dimension, such as leafness versus state existence or "
+                "transition target. Preserve every frozen requirement and selected "
+                "SourceFact. Do not change only whitespace, parentheses, rationale, "
+                "or irrelevant filters. Before resubmitting, scan all assert strings "
+                "for exact duplicates. Do not call review_discovery_coverage before "
+                "registration is accepted."
+            )
+            pass_criteria = (
+                "Every logical_assertion.assert string is unique, every frozen "
+                "requirement remains in a same-Unit required assertion basis, and "
+                "each revised predicate directly preserves its obligation strength; "
+                "register_coverage_plan returns accepted=true."
+            )
+        else:
+            problem = "The plan payload did not satisfy the tool schema."
+            recommended_action = (
+                "Correct the named schema fields while preserving the full "
+                "major-behavior plan, then call register_coverage_plan again. "
+                "Do not call review_discovery_coverage before registration is accepted."
+            )
+            pass_criteria = "register_coverage_plan returns accepted=true."
+        result = {
+            "execution_status": "invalid_arguments",
+            "accepted": False,
+            "errors": errors,
+            "required_actions": [
+                {
+                    "action_id": "REG-SCHEMA-ACTION-001",
+                    "problem": problem,
+                    "recommended_tools": ["register_coverage_plan"],
+                    "recommended_action": recommended_action,
+                    "coverage_improvement": (
+                        "A schema-valid complete plan lets the Controller evaluate the "
+                        "actual semantic coverage instead of stopping at transport validation."
+                    ),
+                    "pass_criteria": pass_criteria,
+                }
+            ],
+            "limitations": ["coverage_plan_schema_rejected", "registry_unchanged"],
+        }
+        registry.append_record("coverage_plan_schema_rejected", result)
+        return json.dumps(result, ensure_ascii=False, sort_keys=True)
+
     return SimpleStructuredTool(
         func=register_coverage_plan,
         name="register_coverage_plan",
         description=register_coverage_plan.__doc__ or "register_coverage_plan",
         args_schema=RegisterCoveragePlanInput,
+        handle_validation_error=validation_guidance,
     )

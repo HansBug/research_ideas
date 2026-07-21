@@ -253,11 +253,26 @@ class CoveragePlan(StrictContractModel):
         if roots_without_assertions:
             raise ValueError(f"roots without required assertions: {sorted(roots_without_assertions)}")
 
-        assert_texts = [
-            assertion.assert_
-            for assertion in self.logical_assertions
+        assertions_by_text: dict[str, list[LogicalAssertionRegistration]] = {}
+        for assertion in self.logical_assertions:
+            assertions_by_text.setdefault(assertion.assert_, []).append(assertion)
+        duplicate_assertion_groups = [
+            {
+                "expression": expression,
+                "chain_ids": [item.assertion_chain_id for item in assertions],
+                "root_ids": [item.root_node_id for item in assertions],
+                "coverage_unit_ids": [
+                    item.coverage_unit_id for item in assertions
+                ],
+            }
+            for expression, assertions in assertions_by_text.items()
+            if len(assertions) > 1
         ]
-        _reject_duplicates("logical_assertion.assert", assert_texts)
+        if duplicate_assertion_groups:
+            raise ValueError(
+                "duplicate logical_assertion.assert groups: "
+                f"{duplicate_assertion_groups}"
+            )
         _reject_duplicates(
             "logical_assertion.assertion_chain_id",
             [assertion.assertion_chain_id for assertion in self.logical_assertions],

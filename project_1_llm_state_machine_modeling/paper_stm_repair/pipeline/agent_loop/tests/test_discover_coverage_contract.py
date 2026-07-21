@@ -94,7 +94,7 @@ def test_register_plan_gates_segment_fact_unit_root_required_and_unique_latest_e
     assert accepted["execution_status"] == "completed"
     assert accepted["coverage_plan_accepted"] is True
     assert accepted["registered_reference_closure"] is True
-    assert accepted["registered_coverage_complete"] is False
+    assert accepted["registered_worklist_complete"] is False
     assert accepted["coverage_unit_count"] == 1
     assert accepted["root_count"] == 1
     assert accepted["assertion_chain_count"] == 1
@@ -219,7 +219,7 @@ def test_controller_projection_prioritizes_incomplete_and_only_confirms_via_reso
     outcome = registry.project_roots()
 
     assert outcome["run_outcome"] == "coverage_incomplete"
-    assert outcome["registered_coverage_complete"] is False
+    assert outcome["registered_worklist_complete"] is False
     assert outcome["proposition_roots"][0]["status"] == "incomplete"
     assert outcome["issue_root_projection"] == []
     assert outcome["incomplete_root_projection"][0]["node_id"] == "ROOT-001"

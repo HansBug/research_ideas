@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any, Callable
@@ -82,12 +83,138 @@ def prerequisite_result(blocked_tool: str, required_tool: str) -> dict[str, Any]
         "blocked_tool": blocked_tool,
         "required_tool": required_tool,
         "message": f"Call {required_tool} successfully before the first attempt to use {blocked_tool}.",
+        "required_actions": [
+            {
+                "action_id": "GUIDE-PREREQUISITE-ACTION-001",
+                "problem": (
+                    f"{blocked_tool} cannot execute before the required semantics "
+                    f"resource {required_tool} has been read."
+                ),
+                "recommended_tools": [required_tool],
+                "recommended_action": (
+                    f"Do not repeat {blocked_tool}. Call {required_tool} with a "
+                    "non-empty reason, inspect the returned guide metadata and "
+                    "content, then retry the blocked workflow step only if still needed."
+                ),
+                "coverage_improvement": (
+                    "Reading the required guide supplies the exact semantics needed "
+                    "to compose a valid subsequent tool call."
+                ),
+                "pass_criteria": (
+                    f"{required_tool} returns execution_status=completed and a later "
+                    f"{blocked_tool} call is no longer blocked by this prerequisite."
+                ),
+            }
+        ],
         "limitations": [
             "tool_not_executed",
             "no_model_or_query_evidence_produced",
             "guide_first_protocol_is_fail_closed",
         ],
     }
+
+
+def _with_recovery_guidance(
+    tool_name: str, result: dict[str, Any]
+) -> dict[str, Any]:
+    status = str(result.get("execution_status") or "completed")
+    if status in {"completed", "no_new_task_fact", "no_new_guide_fact"}:
+        return result
+    if result.get("required_actions"):
+        return result
+
+    if tool_name == "eval_assert" and (
+        status == "inconclusive" or result.get("match_status") == "inconclusive"
+    ):
+        recommended_tools = ["revise_assertion"]
+        action = (
+            "Inspect inconclusive_reason, limitations, exception, and function_calls. "
+            "Call revise_assertion for the affected latest assertion chain with a "
+            "semantically equivalent but executable positive predicate, then evaluate "
+            "that new exact expression. Do not repeat the unchanged eval_assert call."
+        )
+        criteria = (
+            "revise_assertion accepts a new version and eval_assert returns "
+            "execution_status=completed with match_status=matches or contradicts."
+        )
+    elif tool_name == "eval_assert":
+        recommended_tools = ["eval_assert"]
+        action = (
+            "Use the missing_latest_required_assertions or registered plan to copy one "
+            "latest assertion expression exactly, then call eval_assert with that exact "
+            "string and a non-empty reason. Do not revise a registered assertion merely "
+            "because this call supplied an unknown or stale expression."
+        )
+        criteria = (
+            "eval_assert matches exactly one latest registered expression and executes "
+            "it, returning its assertion_chain_id and match_status."
+        )
+    elif tool_name == "revise_assertion" and (
+        status == "prerequisite_required"
+        and "read_fbmcq_guide_before_registering_or_revising_fbmcq"
+        in set(result.get("limitations") or [])
+    ):
+        recommended_tools = ["read_fbmcq_guide"]
+        action = (
+            "Do not repeat revise_assertion yet. Call read_fbmcq_guide, inspect the "
+            "official grammar and semantic metadata, then submit the FBMCQ revision "
+            "again only if it still preserves the Root obligation."
+        )
+        criteria = (
+            "read_fbmcq_guide returns execution_status=completed and the subsequent "
+            "revise_assertion call is no longer blocked by the FBMCQ prerequisite."
+        )
+    elif tool_name == "observe_trace":
+        recommended_tools = ["observe_trace", "revise_assertion"]
+        action = (
+            "Inspect limitations and any execution error, then correct qualified event "
+            "names, explicit initialization, and cycle structure before one new "
+            "observe_trace call. If the requested behavior is not observable with this "
+            "bounded trace, use revise_assertion to select a compatible evidence route. "
+            "Do not repeat unchanged cycles."
+        )
+        criteria = (
+            "A corrected observe_trace call completes with a new bounded observation, "
+            "or revise_assertion accepts a compatible evidence route that is then evaluated."
+        )
+    elif tool_name == "lookup_source_trace":
+        recommended_tools = ["query_model", "lookup_source_trace"]
+        action = (
+            "Inspect limitations, use query_model or the frozen read_task inventory to "
+            "obtain exact element refs, then call lookup_source_trace with corrected "
+            "non-empty refs and direction. Do not repeat the unchanged lookup."
+        )
+        criteria = (
+            "lookup_source_trace returns execution_status=completed for exact current-model "
+            "refs; ambiguous or untraceable mappings remain explicit domain evidence."
+        )
+    else:
+        recommended_tools = [tool_name]
+        action = (
+            f"Inspect the {tool_name} error and limitations, correct the named input or "
+            "payload fields according to this tool's documented schema, and call it "
+            "again only with a materially changed request."
+        )
+        criteria = f"{tool_name} returns execution_status=completed or accepted=true."
+
+    enriched = dict(result)
+    enriched["required_actions"] = [
+        {
+            "action_id": f"{tool_name.upper()}-RECOVERY-ACTION-001",
+            "problem": (
+                f"{tool_name} returned execution_status={status}; this call did not "
+                "produce terminal usable evidence."
+            ),
+            "recommended_tools": recommended_tools,
+            "recommended_action": action,
+            "coverage_improvement": (
+                "The corrected call or assertion revision produces new evidence instead "
+                "of repeating the same non-progressing request."
+            ),
+            "pass_criteria": criteria,
+        }
+    ]
+    return enriched
 
 
 def guard_tool(
@@ -102,6 +229,43 @@ def guard_tool(
     from ..schemas.tools import SimpleStructuredTool
 
     original = tool.func
+
+    def validation_guidance(exc: Exception) -> str:
+        errors = [
+            str(item.get("msg") or item)
+            for item in getattr(exc, "errors", lambda: [])()
+        ] or [str(exc)]
+        return json.dumps(
+            {
+                "execution_status": "invalid_arguments",
+                "tool_executed": False,
+                "errors": errors,
+                "required_actions": [
+                    {
+                        "action_id": f"{tool.name.upper()}-SCHEMA-ACTION-001",
+                        "problem": f"{tool.name} input did not satisfy its strict schema.",
+                        "recommended_tools": [tool.name],
+                        "recommended_action": (
+                            f"Read the named validation errors and {tool.name} parameter "
+                            "contract, correct every missing, extra, or mistyped field, "
+                            "then call the tool with a materially changed payload. Do not "
+                            "repeat the rejected JSON unchanged."
+                        ),
+                        "coverage_improvement": (
+                            "A schema-valid call allows the intended evidence operation "
+                            "to execute instead of failing at transport validation."
+                        ),
+                        "pass_criteria": (
+                            f"{tool.name} accepts the corrected schema and executes its "
+                            "business logic."
+                        ),
+                    }
+                ],
+                "limitations": ["tool_input_schema_rejected", "tool_not_executed"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
 
     @wraps(original)
     def guarded(*args: Any, **kwargs: Any) -> Any:
@@ -130,6 +294,8 @@ def guard_tool(
             )
             return result
         result = original(*args, **kwargs)
+        if isinstance(result, dict):
+            result = _with_recovery_guidance(tool.name, result)
         execution_status = (
             str(result.get("execution_status") or "completed")
             if isinstance(result, dict)
@@ -154,11 +320,13 @@ def guard_tool(
             "successful ``read_fbmcq_guide`` call."
         )
     guarded.__doc__ = description + prerequisite_text
+    validation_handler = tool.handle_validation_error or validation_guidance
     return SimpleStructuredTool(
         func=guarded,
         name=tool.name,
         description=guarded.__doc__,
         args_schema=tool.args_schema,
+        handle_validation_error=validation_handler,
     )
 
 

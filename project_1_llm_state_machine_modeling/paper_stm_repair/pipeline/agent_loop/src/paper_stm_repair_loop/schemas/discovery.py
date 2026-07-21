@@ -15,19 +15,19 @@ class StrictContractModel(BaseModel):
 class DiscoverOutcome(StrictContractModel):
     run_outcome: Literal[
         "issues_found",
-        "complete_coverage_zero_issue",
+        "reviewer_accepted_zero_issue",
     ]
-    registered_coverage_complete: Literal[True]
-    semantic_coverage_assurance: Literal[
+    registered_worklist_complete: Literal[True]
+    major_behavior_coverage_assurance: Literal[
         "controller_closed_dual_llm_reviewed",
         "evaluator_checked",
         "preregistered_holdout_checked",
     ] = "controller_closed_dual_llm_reviewed"
     input_segment_coverage: dict[str, Any] = Field(default_factory=dict)
-    source_fact_coverage: dict[str, Any] = Field(default_factory=dict)
+    selected_source_fact_evidence_coverage: dict[str, Any] = Field(default_factory=dict)
     coverage_requirement_coverage: dict[str, Any] = Field(default_factory=dict)
     assertion_execution_coverage: dict[str, Any] = Field(default_factory=dict)
-    semantic_coverage_review: dict[str, Any] = Field(default_factory=dict)
+    major_behavior_coverage_review: dict[str, Any] = Field(default_factory=dict)
     proposition_roots: list[PropositionRootNode] = Field(default_factory=list)
     issue_root_projection: list[PropositionRootNode] = Field(default_factory=list)
     regression_guard_projection: list[PropositionRootNode] = Field(default_factory=list)

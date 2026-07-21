@@ -22,19 +22,30 @@ _META_ONLY = re.compile(
     r"(?:describes|represents|shows|presents)\b",
     re.IGNORECASE,
 )
+_LEADING_ORDINAL = re.compile(r"^\s*\d+(?:[.)]\s*|\s+)")
 _CLAUSE_BOUNDARY = re.compile(
     r";|；|,(?=\s*(?:during\s+which|where(?:by|in)?|while|whereas|and\s+(?:it|the|this|that|they|he|she)\b))"
     r"|\band\b(?=\s+(?:it|the|this|that|they|he|she)\b)"
+    r"|(?<![\w.])\d{1,3}[.)]?\s*(?=(?:when|if|unless|upon|after|before|transit(?:ion|s|ed|ing)?|enter|move|return|switch|reach|go|open|close|stop|start|activate|deactivate)\b)"
     r"|，(?=(?:期间|其中|同时|而|并且|且))|(?:并且|且)(?=(?:系统|模型|控制器|它|其))",
     re.IGNORECASE,
 )
 
 _RULES: tuple[CueRule, ...] = (
     CueRule("structure", (r"\b(?:sub[- ]?states?|regions?|areas?|phases?|modes?|branches?|hierarch(?:y|ical))\b", r"(?:子状态|区域|阶段|模式|分支|层次)"), (("structure",),)),
-    CueRule("cardinality", (r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|multiple|different)\b", r"\b(?:at\s+least|at\s+most|exactly|no\s+more\s+than|no\s+fewer\s+than)\b", r"(?<![A-Za-z])\d+(?![A-Za-z])", r"(?:至少|至多|恰好|不同|多个|不少于|不多于|[零一二三四五六七八九十]+个)"), (("structure",),)),
+    CueRule(
+        "cardinality",
+        (
+            r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|multiple|different)\b",
+            r"\b(?:at\s+least|at\s+most|exactly|no\s+more\s+than|no\s+fewer\s+than)\b",
+            r"\b\d+\s+(?:different\s+)?(?:states?|sub[- ]?states?|regions?|areas?|phases?|modes?|branches?|events?|transitions?|variables?|paths?)\b",
+            r"(?:至少|至多|恰好|不同|多个|不少于|不多于|[零一二三四五六七八九十]+个)",
+        ),
+        (("structure",),),
+    ),
     CueRule("initialization", (r"\b(?:initially|initial|starts?|begins?|at\s+startup|on\s+startup)\b", r"(?:初始|初始化|启动时|开始时)"), (("structure",), ("simulation",))),
-    CueRule("transition", (r"\b(?:transitions?|enters?|moves?|returns?|switches?|reaches?|goes?|opens?|closes?|stops?|starts?|activates?|deactivates?)\b", r"(?:转移|进入|移动到|返回|切换|到达|打开|关闭|停止|启动|激活|停用)"), (("relation",), ("simulation",), ("formal",))),
-    CueRule("condition", (r"\b(?:when|if|unless|upon|on|whenever|provided\s+that|under)\b", r"(?:当|如果|若|除非|一旦|条件为|收到|发生时)"), (("relation",), ("simulation",), ("formal",), ("effect",))),
+    CueRule("transition", (r"\b(?:transit(?:s|ed|ing)?|transitions?|enters?|moves?|returns?|switches?|reaches?|goes?|opens?|closes?|stops?|starts?|activates?|deactivates?)\b", r"(?:转移|进入|移动到|返回|切换|到达|打开|关闭|停止|启动|激活|停用)"), (("relation",), ("simulation",), ("formal",))),
+    CueRule("condition", (r"\b(?:when|if|unless|upon|whenever|provided\s+that|under)\b", r"(?:当|如果|若|除非|一旦|条件为|收到|发生时)"), (("relation",), ("simulation",), ("formal",), ("effect",))),
     CueRule("effect", (r"\b(?:decreases?|decrements?|increases?|increments?|updates?|sets?|assigns?|resets?|adds?|removes?)\b", r"(?:减少|递减|增加|递增|更新|设置|赋值|重置|添加|移除)"), (("effect",),)),
     CueRule("ordering", (r"\b(?:after|before|then|following|once|subsequently)\b", r"(?:之后|以前|之前|随后|然后|完成后|一旦)"), (("relation",), ("effect",), ("simulation",), ("formal",))),
     CueRule("continuity", (r"\b(?:continuously|always|remains?|stays?|keeps?|continues?|until)\b", r"(?:持续|始终|保持|一直|继续|直到)"), (("simulation",), ("formal",))),
@@ -51,7 +62,7 @@ def build_coverage_requirements(
     for segment in segments:
         if _META_ONLY.search(segment.text.strip()):
             continue
-        ordinal_prefix = re.match(r"^\s*\d+\s+", segment.text)
+        ordinal_prefix = _LEADING_ORDINAL.match(segment.text)
         content_start = ordinal_prefix.end() if ordinal_prefix else 0
         for clause_ordinal, (clause_start, clause_end) in enumerate(
             _clause_spans(segment.text, start=content_start), start=1

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextvars
+
 import pytest
 
 from paper_stm_repair_loop.schemas.coverage_review import (
@@ -10,6 +12,7 @@ from paper_stm_repair_loop.schemas.coverage_review import (
 from paper_stm_repair_loop.tools.review_discovery_coverage import (
     CoverageReviewerContractError,
     CoverageReviewGate,
+    LLMCoverageReviewRunner,
     RetryableCoverageReviewerError,
     _raise_classified_reviewer_error,
 )
@@ -136,6 +139,78 @@ def _ready_controller(tmp_path):
             == "matches"
         )
     return controller, registry, plan
+
+
+def test_nested_llm_reviewer_runs_in_fresh_callback_context(monkeypatch, tmp_path):
+    marker = contextvars.ContextVar("parent_agent_callback", default="isolated")
+    token = marker.set("outer-agent")
+    observed: list[str] = []
+    verdict = CoverageReviewVerdict(
+        review_kind="semantic_coverage",
+        passed=True,
+        coverage_analysis=(
+            "已逐项检查当前主要行为义务、断言与执行证据；此测试只验证嵌套 reviewer "
+            "不会继承外层 Agent callback context，避免污染外层工具生命周期。"
+        ),
+        rationale="独立 reviewer 上下文必须与外层 Agent 审计上下文隔离。",
+    )
+
+    class FakeResult:
+        status = "success"
+        real_llm = True
+        error = None
+
+        def require_output(self):
+            return verdict
+
+    class FakeApp:
+        def run(self, *_args, **_kwargs):
+            observed.append(marker.get())
+            return FakeResult()
+
+    monkeypatch.setattr(
+        "paper_stm_repair_loop.tools.review_discovery_coverage.AgentApp.from_registry",
+        lambda *_args, **_kwargs: FakeApp(),
+    )
+    runner = LLMCoverageReviewRunner(
+        llm_registry=object(),
+        profiles={"semantic_coverage": "fake"},
+        audit_root=tmp_path,
+        content_language="zh-CN",
+    )
+    try:
+        assert runner("semantic_coverage", {}, 1) == verdict
+        assert observed == ["isolated"]
+        assert marker.get() == "outer-agent"
+    finally:
+        marker.reset(token)
+
+
+def test_review_verdict_cannot_pass_with_actionable_findings():
+    finding = CoverageReviewFinding(
+        finding_id="REVIEW-GAP-PASS-CONFLICT",
+        category="possible_false_negative",
+        related_requirement_ids=["REQ-001"],
+        coverage_dimensions=["nl_semantics"],
+        problem="当前主要行为义务仍有一个会影响结论的语义覆盖缺口。",
+        missed_behavior_risk="若该缺口未补查，零问题结论会出现实质性的潜在漏报。",
+        recommended_action="使用 query_model 补查 REQ-001 对应的精确模型行为。",
+        recommended_tools=["query_model"],
+        recommended_steps=_steps(["query_model"], "REQ-001"),
+        pass_criteria="query_model 返回精确模型事实且后续断言产生 terminal bool 记录。",
+    )
+
+    with pytest.raises(ValueError, match="passed review cannot contain blocking findings"):
+        CoverageReviewVerdict(
+            review_kind="semantic_coverage",
+            passed=True,
+            findings=[finding],
+            coverage_analysis=(
+                "已检查主要行为及其证据链，但该结构化输出故意同时声明 passed "
+                "并保留一个会影响主要结论的 finding，用于验证一致性门禁必须拒绝这种矛盾结果。"
+            ),
+            rationale="存在 actionable finding 时不得发布 reviewer-accepted coverage。",
+        )
 
 
 def test_dual_review_failure_blocks_submit_and_returns_actionable_guidance(tmp_path):
@@ -309,6 +384,30 @@ def test_provider_failure_returns_retry_action_without_raising(tmp_path):
     assert gate.current_passed() is False
     assert gate.state_fingerprint() == before_fingerprint
     assert registry.records[-1]["record_type"] == "discovery_coverage_review_retry_required"
+
+
+def test_second_retryable_reviewer_failure_terminates_same_fingerprint(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+
+    def flaky_runner(kind, _payload, _attempt):
+        raise RetryableCoverageReviewerError(
+            f"coverage_reviewer_failed:{kind}:RemoteProtocolError"
+        )
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=flaky_runner,
+    )
+    registry.semantic_review_gate = gate
+
+    first = gate.review(reason="第一次 provider 中断允许同指纹重试。")
+    second = gate.review(reason="第二次同指纹中断必须终止当前 attempt。")
+
+    assert first["execution_status"] == "retryable_reviewer_failure"
+    assert second["execution_status"] == "reviewer_contract_failure"
+    assert gate.has_terminal_failure() is True
+    assert second["required_actions"][0]["recommended_tools"] == []
 
 
 def test_review_finding_rejects_fbmcq_as_nl_interpreter():
@@ -569,6 +668,26 @@ def test_reviewer_cannot_pass_while_omitting_any_controller_required_id(tmp_path
     assert registry.assert_submit_allowed()["submit_allowed"] is False
 
 
+def test_repeated_programmatic_id_mismatch_terminates_same_fingerprint(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=lambda kind, payload, _attempt: _verdict(
+            kind, payload, omit_requirement=True
+        ),
+    )
+    registry.semantic_review_gate = gate
+
+    first = gate.review(reason="第一次 reviewer ID 集不完整时允许复审。")
+    second = gate.review(reason="第二次相同 ID mismatch 必须终止当前 attempt。")
+
+    assert first["execution_status"] == "completed"
+    assert first["programmatic_errors"]
+    assert second["execution_status"] == "reviewer_contract_failure"
+    assert gate.has_terminal_failure() is True
+
+
 def test_nonretryable_reviewer_contract_failure_is_not_mislabeled_transient(tmp_path):
     controller, registry, _plan = _ready_controller(tmp_path)
 
@@ -677,18 +796,13 @@ def test_review_rejects_nonterminal_or_unregistered_ledger_without_llm_call(tmp_
 
     before_plan = gate.review(reason="尚未注册时不得审查。")
     assert before_plan["execution_status"] == "prerequisite_required"
-    assert before_plan["required_actions"] == [
-        {
-            "action_id": "REVIEW-PREREQ-001",
-            "error": "coverage_plan_not_registered",
-            "recommended_tools": ["register_coverage_plan"],
-            "recommended_action": (
-                "Register the complete coverage plan, preserving every frozen NL "
-                "obligation and behavior SourceFact, before requesting review."
-            ),
-            "pass_criteria": "register_coverage_plan returns accepted=true.",
-        }
-    ]
+    action = before_plan["required_actions"][0]
+    assert action["action_id"] == "REVIEW-PREREQ-001"
+    assert action["error"] == "coverage_plan_not_registered"
+    assert action["recommended_tools"] == ["register_coverage_plan"]
+    assert "Do not call review_discovery_coverage again" in action["recommended_action"]
+    assert action["coverage_improvement"]
+    assert action["pass_criteria"] == "register_coverage_plan returns accepted=true."
     assert calls == []
 
     plan = make_plan(controller)

@@ -195,7 +195,7 @@ def _build_submit_schema(controller: DiscoverController) -> type[DiscoverSubmiss
     class SubmitDiscoveryResponse(DiscoverSubmission):
         @model_validator(mode="after")
         def validate_against_controller(self) -> "SubmitDiscoveryResponse":
-            projection = controller.projection()
+            projection = controller.projection(record_gate=False)
             submitted = self.outcome.model_dump(mode="json")
             if _without_rationale(submitted) != _without_rationale(projection):
                 raise ValueError(
@@ -234,6 +234,8 @@ def _build_tools(
             return "read_fcstm_guide"
         if state.first_attempt_at("read_task", after=state.fcstm_read_at) is None:
             return "read_task"
+        if review_gate.has_terminal_failure():
+            raise RuntimeError("discover_reviewer_contract_failure")
         if registry.plan_registered and registry.missing_latest_required_assertions():
             return "eval_assert"
         if registry.plan_registered and registry.incomplete_latest_required_assertions():
@@ -247,11 +249,14 @@ def _build_tools(
             and not review_gate.current_passed()
             and (
                 review_gate.latest_result is None
-                or latest_review.get("reviewed_state_fingerprint")
-                != review_gate.state_fingerprint()
                 or latest_review.get("execution_status")
                 == "retryable_reviewer_failure"
                 or bool(latest_review.get("programmatic_errors"))
+                or (
+                    latest_review.get("passed") is True
+                    and latest_review.get("reviewed_state_fingerprint")
+                    != review_gate.state_fingerprint()
+                )
             )
         ):
             return "review_discovery_coverage"

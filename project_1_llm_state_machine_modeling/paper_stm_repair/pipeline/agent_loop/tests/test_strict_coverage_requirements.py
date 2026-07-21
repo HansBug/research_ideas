@@ -149,6 +149,27 @@ def test_0006_style_atomizer_detects_compound_dimensions_without_taxonomy():
     assert all("defect_family_ids" not in item.model_dump() for item in requirements)
 
 
+def test_inline_numbering_and_numeric_thresholds_do_not_become_cardinality():
+    text = (
+        "1 The human driving mode is represented by a simple state. "
+        "2 The autonomous mode has sub-states. 3. when power on, enter human mode "
+        "4when front_distance > 10, transit to autonomous state 4. "
+        "transit to human mode when brake pressed 5 when power off, transit to final"
+    )
+    _, requirements = _requirements(text)
+
+    assert not [item for item in requirements if item.dimension == "cardinality"]
+    assert not any(item.clause_text == "3." for item in requirements)
+    behavior_clauses = {
+        item.clause_text
+        for item in requirements
+        if item.dimension == "behavior"
+    }
+    assert "when power on, enter human mode" in behavior_clauses
+    assert any(clause.startswith("when front_distance > 10") for clause in behavior_clauses)
+    assert "when power off, transit to final" in behavior_clauses
+
+
 def test_every_non_meta_clause_and_repeated_cue_gets_a_hard_row():
     _, requirements = _requirements(
         "When Alarm occurs, the valve shall close; when Reset occurs, the valve shall open."
@@ -254,6 +275,29 @@ def test_behavior_source_fact_cannot_be_closed_by_disposition_only():
         item.startswith("behavior_source_facts_cannot_be_dispositioned:")
         for item in rejected["errors"]
     )
+
+
+def test_unselected_inventory_fact_does_not_force_model_wide_audit():
+    registry, plan, _ = _strict_registry_and_plan()
+    registry.source_fact_ids.add("FACT-UNRELATED-001")
+    registry.known_source_fact_ids.add("FACT-UNRELATED-001")
+    registry.source_fact_details["FACT-UNRELATED-001"] = {
+        "fact_id": "FACT-UNRELATED-001",
+        "fact_kind": "transition",
+        "qualified_refs": ["transition:99"],
+        "source": "Root.Unrelated",
+        "event": "Root.Other",
+        "target": "Root.UnrelatedDone",
+        "guard": None,
+        "effects": [],
+    }
+
+    accepted = registry.register_plan(
+        plan,
+        reason="只选择与主要 NL 行为直接相关的 SourceFact 作为证据。",
+    )
+    assert accepted["accepted"] is True
+    assert registry.selected_source_fact_ids() == {"FACT-TRANSITION-001"}
 
 
 def test_requirement_must_be_direct_assertion_basis_not_only_unit_metadata():
@@ -519,3 +563,22 @@ def test_revision_cannot_weaken_a_direct_source_fact_predicate():
     assert rejected["errors"] == [
         "source_fact_direct_evidence_weakened:FACT-TRANSITION-001"
     ]
+
+
+def test_revision_does_not_invent_direct_evidence_for_shared_basis_fact():
+    registry, plan, _ = _strict_registry_and_plan()
+    plan["logical_assertions"][0]["basis_ids"].append("FACT-TRANSITION-001")
+    assert registry.register_plan(
+        plan,
+        reason="共享 SourceFact 只提供上下文，另一个断言负责直接验证它.",
+    )["accepted"]
+
+    revised = registry.revise_assertion(
+        "ASSERT-001",
+        "((effect_delta(source='Root.Attack', event='Root.Attack_Complete', "
+        "variable='uav_count') or 0) < 0)",
+        reason="保持原有 effect 证据，仅规范化表达式括号.",
+    )
+
+    assert revised["accepted"] is True, revised
+    assert revised["assertion_version_id"] == "ASSERT-001@v2"

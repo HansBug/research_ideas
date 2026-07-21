@@ -73,9 +73,9 @@ class DiscoverController:
 
     Evidence limitations
     --------------------
-    Controller closure proves all frozen NL cue/dimension requirements,
-    behavior-relevant source facts, and latest assertion executions have closed.
-    It does not define a defect taxonomy or predict which obligations are issues.
+    Controller closure proves the generated major NL cue/dimension worklist and
+    its selected evidence have been executed. It does not prove 100% semantic or
+    path coverage, define a defect taxonomy, or predict which obligations are issues.
 
     Permissions
     -----------
@@ -238,9 +238,9 @@ class DiscoverController:
         assert self.snapshot is not None
         return copy.deepcopy(self.snapshot)
 
-    def projection(self) -> dict[str, Any]:
+    def projection(self, *, record_gate: bool = True) -> dict[str, Any]:
         registry = self.require_registry()
-        gate = registry.assert_submit_allowed()
+        gate = registry.assert_submit_allowed(record=record_gate)
         if not gate.get("submit_allowed"):
             raise RuntimeError("discover_submit_not_allowed")
         return copy.deepcopy(gate["projection"])
@@ -277,7 +277,7 @@ class DiscoverController:
                 "success_requires": [
                     "all_input_segments_closed",
                     "all_coverage_requirements_closed",
-                    "all_behavior_source_facts_closed",
+                    "major_nl_behaviors_grounded_by_relevant_source_facts",
                     "all_latest_required_assertions_terminal",
                     "no_incomplete_roots",
                     "current_semantic_coverage_review_passed",
@@ -295,9 +295,15 @@ class DiscoverController:
                     for kind, families in SOURCE_FACT_EVIDENCE_FAMILIES.items()
                 },
                 "source_fact_assertion_link_policy": (
-                    "Each behavior-relevant SourceFact ID must occur in at least "
-                    "one required assertion basis whose compatible executable "
-                    "predicate directly binds that fact's exact fields."
+                    "The complete SourceFact inventory is an exploration pool, not "
+                    "a model-wide checklist. Each SourceFact explicitly cited as "
+                    "assertion evidence must be directly verified by a compatible "
+                    "predicate, and every major NL Root must have relevant grounding."
+                ),
+                "coverage_claim_boundary": (
+                    "Closure means the Controller-generated major behavior worklist "
+                    "was executed and reviewer-accepted. It is not a claim of 100% "
+                    "coverage over every possible state-machine property or path."
                 ),
             },
             "source_inventory": {

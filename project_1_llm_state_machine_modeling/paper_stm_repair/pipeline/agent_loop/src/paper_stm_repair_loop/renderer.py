@@ -252,13 +252,13 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
     if projection_payload:
         for key in (
             "run_outcome",
-            "registered_coverage_complete",
-            "semantic_coverage_assurance",
+            "registered_worklist_complete",
+            "major_behavior_coverage_assurance",
             "input_segment_coverage",
-            "source_fact_coverage",
+            "selected_source_fact_evidence_coverage",
             "coverage_requirement_coverage",
             "assertion_execution_coverage",
-            "semantic_coverage_review",
+            "major_behavior_coverage_review",
             "issue_root_projection",
             "regression_guard_projection",
             "incomplete_root_projection",
@@ -294,14 +294,17 @@ def render_discover(
     if language == "zh-CN":
         title, boundary, roots_title = "B-discover 阶段报告", "方法边界", "发现结果"
         trace_title, mandatory_title = "A 阶段 source trace", "Controller 与执行审计"
-        boundary_text = "本报告发布 Controller 对冻结 NL 子句、全部 cue 行、行为 source facts 与逐条断言执行形成的闭包，以及独立语义覆盖审查结果；Controller 不预设缺陷分类，也不把表示语言或审计基础设施单独作为论文贡献。"
-        no_root = "本次穷尽覆盖矩阵没有发布 confirmed 或 candidate root issue。"
+        boundary_text = "本报告发布 Controller 对冻结 NL 主要行为 worklist、所选 SourceFact 证据与逐条断言执行形成的闭包，以及独立覆盖审查结果；该闭包不等于 100% 语义、性质或路径覆盖。Controller 不预设缺陷分类，也不把表示语言或审计基础设施单独作为论文贡献。"
+        no_root = "本次 reviewer 接受的主要行为覆盖没有发布 confirmed 或 candidate root issue；这不代表所有可能性质或路径均已穷尽。"
         zero_metrics = "zero-root 固定记账：`accepted_fix_count=0`、`closure_numerator=0`、`repair_gain=0`。"
     else:
         title, boundary, roots_title = "B-discover stage report", "Method boundary", "Discovery result"
         trace_title, mandatory_title = "A-stage source trace", "Controller and execution audit"
-        boundary_text = "This report publishes Controller closure over frozen NL clauses, cue rows, behavior source facts, assertion execution, and the independent semantic-coverage review. The Controller does not predefine defect categories or promote the representation/audit infrastructure as a paper contribution."
-        no_root = "This exhaustive-matrix run published no confirmed or candidate root issue."
+        boundary_text = "This report publishes Controller closure over the frozen major-behavior worklist, selected SourceFact evidence, assertion execution, and independent coverage review. This closure is not 100% semantic, property, or path coverage. The Controller does not predefine defect categories or promote the representation/audit infrastructure as a paper contribution."
+        no_root = (
+            "This reviewer-accepted major-behavior run published no confirmed or "
+            "candidate root issue; it does not claim 100% property/path coverage."
+        )
         zero_metrics = "Zero-root accounting is fixed to `accepted_fix_count=0`, `closure_numerator=0`, and `repair_gain=0`."
 
     completed_outcome = _get(completed, "outcome")

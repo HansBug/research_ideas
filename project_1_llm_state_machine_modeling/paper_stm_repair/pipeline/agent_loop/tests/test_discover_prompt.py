@@ -68,8 +68,9 @@ def test_prompt_separates_controller_worklist_units_roots_and_assertions():
         "one or more required `LogicalAssertion` chains",
     ):
         assert marker in flat
-    assert "Every behavior-relevant SourceFact" in flat
-    assert "citing an ID or broad inventory count is not inspection" in flat
+    assert "SourceFact inventory is an exploration pool" in flat
+    assert "not a requirement to create one assertion per model fact" in flat
+    assert "not a claim of 100% coverage" in flat
     assert "context_only" in PROMPT_ZH
     assert "representation_boundary" in PROMPT_ZH
 
@@ -79,9 +80,9 @@ def test_prompt_orders_review_gated_workflow():
         PROMPT_ZH,
         [
             "1. **Read semantics and frozen task.",
-            "2. **Explore both directions.",
+            "2. **Explore the major behavior surface.",
             "3. **Build the complete atomic plan.",
-            "4. **Register once.",
+            "4. **Register the plan.",
             "5. **Execute all latest assertions.",
             "6. **Revise inconclusive or weak assertions.",
             "7. **Run the independent coverage review.",
@@ -92,7 +93,8 @@ def test_prompt_orders_review_gated_workflow():
     flat = _flat(PROMPT_ZH)
     assert "Do not stop after finding the first issue" in flat
     assert "read every `required_action`" in flat
-    assert "call the review tool again" in flat
+    assert "complete every listed `recommended_step`" in flat
+    assert "before calling the review tool again" in flat
     assert "Only after Controller closure and current review pass" in flat
 
 
@@ -106,6 +108,9 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "do not weaken it to `bool(effects(...))`" in flat
     assert "at least two distinct initialized progressing simulations" in flat
     assert "One invariant or existential `exists_always` path" in flat
+    assert "exact `assert` string -> chain/Root/Unit map" in flat
+    assert "semantically distinct direct predicates" in flat
+    assert "Never evade uniqueness with whitespace" in flat
 
 
 def test_prompt_forbids_deterministic_anti_gaming_patterns():
@@ -139,6 +144,15 @@ def test_prompt_makes_review_pass_current_and_actionable():
     assert "There is no Agent-declared partial-success path" in flat
 
 
+def test_prompt_requires_feedback_driven_progress_without_external_takeover():
+    flat = _flat(PROMPT_ZH)
+    assert "No external controller will invent" in flat
+    assert "Never repeat the same tool with semantically unchanged arguments" in flat
+    assert "For `mandatory_tool_rejected`, call the returned `required_tool`" in flat
+    assert "Do not disguise repetition with whitespace" in flat
+    assert "close every item" in flat
+
+
 def test_prompt_language_policy_and_unknown_language():
     assert "Run content language is `zh-CN`" in _flat(PROMPT_ZH)
     assert "in `zh-CN`" in _flat(PROMPT_ZH)
@@ -168,5 +182,6 @@ def test_user_prompt_withholds_content_and_requires_review_pass():
     assert "secret fcstm" not in text
     assert "secret nl" not in text
     assert "read_fcstm_guide first, then read_task" in text
-    assert "review_discovery_coverage repeatedly until it passes" in text
+    assert "review_discovery_coverage after its prerequisites are closed" in text
+    assert "Follow actionable findings until it passes" in text
     assert "returning submit_discovery" in text

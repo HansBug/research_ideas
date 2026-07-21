@@ -90,8 +90,8 @@ def test_strict_schema_rejects_extra_fields_and_requires_bool_semantics():
     outcome = discovery.DiscoverOutcome.model_validate(
         {
             "run_outcome": "issues_found",
-            "registered_coverage_complete": True,
-            "semantic_coverage_assurance": "controller_closed_dual_llm_reviewed",
+            "registered_worklist_complete": True,
+            "major_behavior_coverage_assurance": "controller_closed_dual_llm_reviewed",
             "proposition_roots": [root.model_dump(mode="json")],
             "issue_root_projection": [root.model_dump(mode="json")],
         }
@@ -101,16 +101,16 @@ def test_strict_schema_rejects_extra_fields_and_requires_bool_semantics():
         discovery.DiscoverOutcome.model_validate(
             {
                 "run_outcome": "coverage_incomplete",
-                "registered_coverage_complete": False,
-                "semantic_coverage_assurance": "controller_closed_dual_llm_reviewed",
+                "registered_worklist_complete": False,
+                "major_behavior_coverage_assurance": "controller_closed_dual_llm_reviewed",
             }
         )
     with pytest.raises(ValidationError):
         discovery.DiscoverOutcome.model_validate(
             {
-                "run_outcome": "complete_coverage_zero_issue",
-                "registered_coverage_complete": True,
-                "semantic_coverage_assurance": "agent_declared",
+                "run_outcome": "reviewer_accepted_zero_issue",
+                "registered_worklist_complete": True,
+                "major_behavior_coverage_assurance": "agent_declared",
             }
         )
 

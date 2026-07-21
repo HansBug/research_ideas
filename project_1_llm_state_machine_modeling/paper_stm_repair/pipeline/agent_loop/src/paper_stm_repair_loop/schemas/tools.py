@@ -129,6 +129,7 @@ class SimpleStructuredTool:
         name: str,
         description: str,
         args_schema: type[BaseModel],
+        handle_validation_error: Any = False,
     ) -> Any:
         from langchain_core.tools import StructuredTool
 
@@ -137,6 +138,7 @@ class SimpleStructuredTool:
             name=name,
             description=inspect.cleandoc(description),
             args_schema=args_schema,
+            handle_validation_error=handle_validation_error,
         )
 
 __all__.append("SimpleStructuredTool")

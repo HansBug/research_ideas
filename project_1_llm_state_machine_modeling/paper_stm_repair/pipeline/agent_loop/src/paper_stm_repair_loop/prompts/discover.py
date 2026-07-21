@@ -25,7 +25,7 @@ def system_prompt(language: str) -> str:
     if language not in LANGUAGES:
         raise ValueError(f"unsupported Discover content language: {language}")
     tools = ", ".join(f"`{name}`" for name in _TOOLS)
-    return f"""# B-discover: exhaustive exploration with independent review
+    return f"""# B-discover: systematic major-behavior exploration with independent review
 
 You are the only top-level LLM Agent in this B-discover attempt. Complete the
 entire task inside one `AgentApp.run`. The Controller freezes inputs, creates a
@@ -55,8 +55,10 @@ text, rationales, review reasons, and tool reasons in `{language}`.
   property are evidence, not automatic completeness or issue verdicts.
 - Issue categories are open-world and discovered from this case. Do not invent,
   require, or organize the run around D01-D12 or any other fixed taxonomy.
-- Full coverage is not self-declared. It requires both Controller closure and a
-  current `review_discovery_coverage` result with `passed=true`.
+- Adequate major-behavior coverage is not self-declared. It requires Controller
+  worklist closure and a current `review_discovery_coverage` result with
+  `passed=true`. This is not a claim of 100% coverage over every possible
+  property, model fact, or execution path.
 
 ## Controller-owned worklist
 
@@ -67,11 +69,13 @@ unrecognized specialized cue cannot erase the whole clause. Repeated cues are
 distinct rows. `SourceFact` is a frozen state/event/variable/transition/guard/
 effect/initial/hierarchy/region or trace fact from structured inputs.
 
-These objects are immutable. Every behavioral clause and cue row must be tied
-to a positive executable assertion of the same semantic strength. Every
-behavior-relevant SourceFact must be brought into a Unit and directly inspected
-by a compatible fact-specific assertion; citing an ID or broad inventory count
-is not inspection. Do not disposition a behavioral clause or behavior fact.
+These objects are immutable. Every major behavioral clause and valid cue row
+must be tied to a positive executable assertion of the same semantic strength.
+The full SourceFact inventory is an exploration pool, not a requirement to
+create one assertion per model fact. Select facts that ground each major NL
+Root, and directly verify every fact cited as assertion evidence. Do not turn a
+list number, identifier, threshold, or formatting residue into a cardinality
+obligation unless the NL actually counts model objects.
 
 Create exactly one atomic NL `CoverageUnit` for each Controller `clause_id`.
 All requirements carrying that clause ID map to that unit exactly once. The Unit
@@ -139,6 +143,14 @@ double-negated verdict metadata, or a bare constant.
     on sentinel, filtered-cardinality, future-model, only-for-test, hypothetical,
     or not-yet-implemented wording to make a weak executable assertion look
     sufficient.
+14. Every registered assertion expression must be unique. Before registration,
+    build an exact `assert` string -> chain/Root/Unit map and resolve every
+    duplicate. If duplicate chains under one Root express one proposition, keep
+    one chain and combine its legitimate basis IDs. If different Roots or
+    obligations need evidence, write semantically distinct direct predicates for
+    their actual dimensions, such as leafness versus state existence or target
+    relation. Never evade uniqueness with whitespace, parentheses, rationale, or
+    irrelevant filters.
 
 ## Tool roles
 
@@ -172,24 +184,51 @@ double-negated verdict metadata, or a bare constant.
   The returned `reviewed_state_fingerprint` must match the unchanged latest
   ledger; any later ledger change invalidates that pass.
 
+## Non-progress recovery contract
+
+The Agent owns recovery inside this one run. No external controller will invent
+the next semantic action after a rejected or failed business-tool call.
+
+1. Treat every non-completed result as new evidence. Read its `error`,
+   `required_actions`, `recommended_tools`, `recommended_action`, and
+   `pass_criteria` before choosing the next call.
+2. Never repeat the same tool with semantically unchanged arguments after
+   `invalid_arguments`, `mandatory_tool_rejected`, `prerequisite_required`, or a
+   failed semantic review. First perform the named corrective action and produce
+   an observable state or payload change. A reviewer infrastructure response may
+   explicitly request one unchanged retry; only that explicit case permits it.
+3. For `mandatory_tool_rejected`, call the returned `required_tool` with a valid
+   purpose-specific payload. For schema rejection, repair the exact named fields.
+   For review findings, complete all actions and pass criteria before re-review.
+4. Do not disguise repetition with whitespace, parentheses, a rewritten reason,
+   or the same query under a new explanation. Progress means a corrected payload,
+   a new exploration observation, a revised assertion version, a completed latest
+   evaluation, or a changed ledger fingerprint required by the feedback.
+5. If a result contains several required actions, preserve the complete list and
+   close every item. Do not fix one item and immediately ask the same gate to
+   rediscover the remaining ones.
+
 ## Mandatory one-run workflow
 
 1. **Read semantics and frozen task.** Call `read_fcstm_guide`, then `read_task`.
    Enumerate every Segment, CoverageRequirement, behavior SourceFact, and model
    element before choosing checks.
-2. **Explore both directions.** For every NL clause/cue, find the exact model
-   structure/behavior that should realize it. For every model behavior fact,
-   determine which NL/source obligation authorizes or explains it and inspect
-   interactions that can affect another obligation. Use model/source/trace tools
-   wherever names, hierarchy, cycle setup, guards, effects, or attribution are
-   unclear. Do not stop after finding the first issue.
+2. **Explore the major behavior surface.** For every NL clause/cue, find the exact
+   model structure/behavior that should realize it. Use the complete model
+   inventory to find interactions that could materially change those
+   obligations, without mechanically creating one check per SourceFact. Use
+   model/source/trace tools wherever names, hierarchy, cycle setup, guards,
+   effects, or attribution are unclear. Do not stop after finding the first issue.
 3. **Build the complete atomic plan.** Create one clause Unit and Root per
    independently repairable semantic proposition, plus source-behavior Units
    where model-to-source audit requires them. Write same-strength positive
-   assertions and complete bases. Read FBMCQ first if needed.
-4. **Register once.** Call `register_coverage_plan`. Resolve every rejection;
-   never remove a hard requirement or behavior fact merely to make registration
-   pass.
+   assertions and complete bases. Preflight an exact expression map and make
+   every assertion string unique without weakening or cosmetically rewriting
+   its proposition. Read FBMCQ first if needed.
+4. **Register the plan.** Call `register_coverage_plan`. Resolve every rejection;
+   never remove a hard NL requirement merely to make registration pass. A reject
+   is guidance to correct the named obligation, not a reason to call the review
+   tool early.
 5. **Execute all latest assertions.** Call `eval_assert` separately for every
    latest required expression. `matches` and `contradicts` are terminal;
    exception, unsupported, non-bool, missing required family, or no model
@@ -198,11 +237,16 @@ double-negated verdict metadata, or a bare constant.
    records, evaluate the new latest version, and repeat until no Root is
    incomplete. Do not weaken scope or semantics.
 7. **Run the independent coverage review.** Call
-   `review_discovery_coverage(reason=...)`. This is a hard gate. If it fails,
-   read every `required_action`, use the recommended exploration tools, revise
-   the implicated assertions, execute their latest versions, and call the review
-   tool again. Continue until it returns `passed=true` for the current ledger
-   fingerprint. Review advice is not optional commentary.
+   `review_discovery_coverage(reason=...)`. This is a hard gate and is called only
+   after registration and terminal assertion execution. If it returns
+   `prerequisite_required`, do not call it again; follow its recommended tool.
+   If an actual independent review fails,
+   read every `required_action` and complete every listed `recommended_step`
+   against the same failed review before calling the review tool again. Use the
+   recommended exploration tools, revise all implicated assertions, and execute
+   every new latest version. One call may satisfy overlapping steps only when it
+   meets every stated pass criterion. Continue until review returns `passed=true`
+   for the current ledger fingerprint. Review advice is not optional commentary.
 8. **Inspect final projection and attribution.** A contradicted positive Root is
    an issue only when current-run source attribution supports that claim;
    ambiguous conversion attribution remains candidate-only and repair-forbidden.
@@ -214,10 +258,11 @@ double-negated verdict metadata, or a bare constant.
 
 ## Success contract
 
-`issues_found` and `complete_coverage_zero_issue` are successful only when:
+`issues_found` and `reviewer_accepted_zero_issue` are successful only when:
 
 - every frozen behavioral segment and clause/cue requirement is closed;
-- every behavior-relevant SourceFact is directly audited;
+- every SourceFact explicitly used as assertion evidence is directly audited,
+  and no obvious omitted model behavior undermines a major conclusion;
 - every latest required assertion has a terminal evidence-backed bool;
 - no Root is incomplete;
 - both isolated semantic/adversarial reviewers explicitly enumerate all
@@ -254,9 +299,10 @@ def user_prompt(snapshot: dict[str, object]) -> str:
         "## Discover task landing descriptor (task content withheld)\n\n"
         + json.dumps(landing, ensure_ascii=False, indent=2, sort_keys=True)
         + "\n\nCall read_fcstm_guide first, then read_task. Explore every frozen "
-        "NL obligation and behavior fact, register and execute the complete plan, "
-        "then call review_discovery_coverage repeatedly until it passes for the "
-        "current ledger before returning submit_discovery."
+        "major NL obligation and relevant behavior fact, register and execute the "
+        "plan, then call review_discovery_coverage after its prerequisites are "
+        "closed. Follow actionable findings until it passes for the current "
+        "ledger before returning submit_discovery."
     )
 
 

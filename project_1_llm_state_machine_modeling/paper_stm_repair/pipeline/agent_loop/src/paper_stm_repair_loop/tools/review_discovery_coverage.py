@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
 import re
@@ -62,7 +63,7 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
         else "Write explanations in English; keep IDs, enum values, tool names, and code in English."
     )
     focus = (
-        "逐条核对 NL 原子子句和 cue 义务是否被同强度的正向命题覆盖，并逐条核对全部行为相关 SourceFact 是否真正进入探索范围。"
+        "逐条核对 NL 的主要行为子句和有效 cue 义务是否被同强度的正向命题覆盖，并检查未被选作证据的模型行为是否会实质影响主要结论。"
         if review_kind == "semantic_coverage"
         else "主动构造能让现有断言错误通过的反例，寻找漏掉的路径、条件、guard、effect、层次、初始化、时序、完成语义以及错误 issue 投影。"
     )
@@ -76,18 +77,18 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 
 硬规则：
 1. 必须从输入中读取完整 NL、FCSTM、raw source、source trace、InputSegments、CoverageRequirements、全部行为相关 SourceFacts、CoverageUnits、Roots、每条最新断言及其真实执行记录。
-2. 必须在 reviewed_segment_ids、reviewed_requirement_ids、reviewed_source_fact_ids、reviewed_root_ids 中逐项列出本次实际审查的全部 ID。不得只写数量，不得省略看似无关的元素。
+2. 必须在 reviewed_segment_ids、reviewed_requirement_ids、reviewed_source_fact_ids、reviewed_root_ids 中逐项列出 review_contract 要求的全部 ID。SourceFact 只要求枚举计划明确选作断言证据的事实；完整 inventory 仍用于判断是否存在会影响主要 NL 行为结论的明显漏项。
 3. 不得使用预设缺陷分类表，不得要求 D01-D12 或其他固定 taxonomy。问题类别只能从本例证据中开放式发现。
 4. CoverageRequirement 被 assertion basis 引用并不等于语义覆盖。必须判断断言是否保持了原文的对象、触发条件、源状态、目标状态、数量、方向、顺序、持续性、完成范围和时间界限；弱命题必须失败。
-5. SourceFact 被 Unit 引用并不等于已探索。必须检查它是否被相关断言、模型查询、仿真、形式化性质或 source-trace 证据实际考虑；遗漏模型行为必须失败。
+5. SourceFact 被 Unit 引用并不等于已探索。对明确选作断言证据的事实，必须检查其是否被实际执行的断言直接支撑；对其余 inventory，只有遗漏会实质改变主要 NL 行为或 issue 结论时才作为阻塞 finding，不做模型全事实穷举验收。
 6. matches 只说明一条断言为 True，不说明断言写对了；contradicts 只说明一条正向命题为 False，不自动说明 issue 归因正确。必须审查命题方向和 issue projection。
 7. 仿真只证明给定轨迹，局部关系只证明局部事实，有界形式化只证明其边界和性质。证据强度不足时必须失败。
-8. passed=true 仅允许在不存在任何语义漏项、未审计模型行为、弱/错向断言、潜在漏报、潜在误报、证据缺口、anti-gaming 风险或错误 issue projection 时返回。
+8. passed=true 仅允许在不存在会影响主要行为结论的语义漏项、弱/错向断言、潜在漏报、潜在误报、关键证据缺口或错误 issue projection 时返回。非关键 hardening 建议写入 coverage_analysis，不得为了面面俱到阻塞研究运行。
 9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个 review_contract 当前台账 ID，且不得引用 review_contract 之外的 ID。
 10. 每个 finding 必须同时说明新增 coverage_dimensions、recommended_tools、recommended_steps、recommended_action 和 pass_criteria：recommended_action 必须逐字点名至少一个 recommended_tools 中的工具、至少一个 related_*_ids 中的当前台账 ID，并说明具体检查对象/路径/条件；recommended_steps 必须逐工具给出关联 ID、目标、符合真实工具输入 schema 的 suggested_arguments 和预期观察，且工具集合与 recommended_tools 完全一致；pass_criteria 必须写可观察的台账或模型结果，不能只说“复审通过”。不得让主 Agent 直接改 Controller projection / runtime_issue_assessment / confirmed 状态；不得把 FBMCQ 或 read_fbmcq_guide 当作解释 NL / 自然语言语义的工具。
 11. NL 明确 in-scope 的行为若在当前模型中没有表达，应按模型行为缺口或断言缺口处理；不得凭空降级为“抽象层差异”。但也不得把 NL 强化成原文没有的 only / every-state / future-model 义务。
-12. 必须主动攻击哨兵变量、硬编码候选名、只检查少数命名变体、过滤后凑基数、以及把弱映射/命名巧合当覆盖证据等 anti-gaming 模式；发现时用 category=anti_gaming_risk，coverage_dimensions 包含 anti_gaming，并给出可执行补查。
-13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账是否足以支持“本次 Discover 已全覆盖”的结论。
+12. 必须检查会直接制造错误主要结论的哨兵变量、硬编码候选名、过滤后凑基数和弱映射等 anti-gaming 模式；仅属理论极端而不影响本例结论的风险写入 coverage_analysis 作为改进建议。
+13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账的主要行为覆盖是否足以支持本次 Discover 结论，并在 coverage_analysis 中说明覆盖边界和可选增强方向；不得宣称绝对 100% 覆盖。
 
 recommended_steps.suggested_arguments 必须遵守以下真实工具输入合同；示例值应替换成当前台账中的真实 ID、表达式和模型元素：
 - query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}；query_kind 只允许 states/events/transitions/variables/diagnostics。
@@ -140,7 +141,8 @@ class LLMCoverageReviewRunner:
             model_options={"streaming": True, "stream_usage": False, "max_retries": 0},
         )
         try:
-            result = app.run(
+            result = contextvars.Context().run(
+                app.run,
                 json.dumps(payload, ensure_ascii=False, sort_keys=True),
                 renderer="quiet",
                 log_level="INFO",
@@ -346,7 +348,9 @@ class CoverageReviewGate:
             "review_contract": {
                 "required_segment_ids": sorted(self.registry.input_segment_ids),
                 "required_requirement_ids": sorted(self.registry.coverage_requirements),
-                "required_source_fact_ids": sorted(self.registry.source_fact_ids),
+                "required_source_fact_ids": sorted(
+                    self.registry.selected_source_fact_ids()
+                ),
                 "required_root_ids": sorted(self.registry.roots),
                 "required_assertion_chain_ids": sorted(self.registry.chains),
                 "pass_requires": [
@@ -385,7 +389,7 @@ class CoverageReviewGate:
         expected = {
             "segment": self.registry.input_segment_ids,
             "requirement": set(self.registry.coverage_requirements),
-            "source_fact": self.registry.source_fact_ids,
+            "source_fact": self.registry.selected_source_fact_ids(),
             "root": set(self.registry.roots),
         }
         programmatic_errors: list[str] = []
@@ -441,6 +445,23 @@ class CoverageReviewGate:
             for verdict in verdicts
             for finding in verdict.findings
         ]
+        previous = self.latest_result or {}
+        if (
+            programmatic_errors
+            and previous.get("execution_status") == "completed"
+            and previous.get("reviewed_state_fingerprint") == fingerprint
+            and previous.get("programmatic_errors") == programmatic_errors
+        ):
+            return self._reviewer_contract_failed(
+                reason=reason,
+                fingerprint=fingerprint,
+                review_kind="programmatic_contract",
+                error=CoverageReviewerContractError(
+                    "repeated_programmatic_review_mismatch:"
+                    + "|".join(programmatic_errors)
+                ),
+                completed_verdicts=verdicts,
+            )
         result = {
             "execution_status": "completed",
             "passed": passed,
@@ -479,6 +500,22 @@ class CoverageReviewGate:
         preserves the assertion/plan ledger, and asks the Agent to retry the same
         `review_discovery_coverage` call against the unchanged fingerprint.
         """
+
+        previous = self.latest_result or {}
+        if (
+            previous.get("execution_status") == "retryable_reviewer_failure"
+            and previous.get("reviewed_state_fingerprint") == fingerprint
+        ):
+            return self._reviewer_contract_failed(
+                reason=reason,
+                fingerprint=fingerprint,
+                review_kind=review_kind,
+                error=CoverageReviewerContractError(
+                    "repeated_reviewer_infrastructure_failure:"
+                    f"previous={previous.get('failed_review_kind')}:current={review_kind}"
+                ),
+                completed_verdicts=completed_verdicts,
+            )
 
         error_type = type(error).__name__
         error_message = str(error)
@@ -705,8 +742,11 @@ def _review_prerequisite_actions(errors: list[str]) -> list[dict[str, Any]]:
         if error == "coverage_plan_not_registered":
             tools = ["register_coverage_plan"]
             action = (
-                "Register the complete coverage plan, preserving every frozen NL "
-                "obligation and behavior SourceFact, before requesting review."
+                "Do not call review_discovery_coverage again. Read the latest "
+                "register_coverage_plan required_actions, correct the complete plan "
+                "while preserving every frozen NL obligation, and call "
+                "register_coverage_plan. Use only the SourceFacts relevant to the "
+                "major NL behavior being checked."
             )
             criteria = "register_coverage_plan returns accepted=true."
         elif error == "latest_required_assertions_not_executed":
@@ -728,8 +768,16 @@ def _review_prerequisite_actions(errors: list[str]) -> list[dict[str, Any]]:
             {
                 "action_id": f"REVIEW-PREREQ-{ordinal:03d}",
                 "error": error,
+                "problem": (
+                    "The independent reviewers cannot run because a required "
+                    "Discover prerequisite is not yet closed."
+                ),
                 "recommended_tools": tools,
                 "recommended_action": action,
+                "coverage_improvement": (
+                    "Following this action closes the actual prerequisite instead "
+                    "of repeating a review call that cannot inspect the ledger."
+                ),
                 "pass_criteria": criteria,
             }
         )
@@ -742,7 +790,7 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
     def review_discovery_coverage(reason: str) -> dict[str, Any]:
         """Purpose
         -------
-        独立审查当前 Discover 台账能否支持“全覆盖”结论。
+        独立审查当前 Discover 台账的主要行为覆盖是否足以支持本次结论。
 
         When to use
         -----------
