@@ -38,6 +38,29 @@ def test_frozen_extra_view_allows_registered_field_and_rejects_unregistered_fiel
     assert any(issue["code"] == "unregistered_object_attribute" for issue in rejected.audit["issues"])
 
 
+def test_public_structure_view_fields_are_accepted_through_function_results():
+    env = EvalEnvironment(model_text=MODEL)
+
+    leaf = env.eval_assert(
+        "states(name='Root.Idle')[0].is_leaf is True and "
+        "states(name='Root.Idle')[0].is_composite is False and "
+        "states(name='Root.Idle')[0].parent_path == 'Root'",
+        "Use the documented public State view fields.",
+        required_function_families=["structure"],
+    )
+    transition = env.eval_assert(
+        "transitions(source='Root.Idle')[0].transition_index == 1 and "
+        "transitions(source='Root.Idle')[0].is_forced is False",
+        "Use the documented public Transition view fields.",
+        required_function_families=["relation"],
+    )
+
+    assert leaf.result == RESULT_TRUE
+    assert leaf.audit["ok"] is True
+    assert transition.result == RESULT_TRUE
+    assert transition.audit["ok"] is True
+
+
 def test_call_trace_records_actual_exception_and_unsupported_dependency():
     def unsupported() -> bool:
         raise UnsupportedEvidence("public API not available")

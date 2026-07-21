@@ -10,12 +10,12 @@ from typing import Any, Callable
 from ..pyfcstm_adapter import check_fcstm, sha256_text
 from .effects import EffectAPI
 from .exceptions import UnsupportedEvidence
-from .fbmcq import FBMCQAPI
+from .fbmcq import FBMCQAPI, FBMCQ_FIELDS
 from .provenance import SAFE_BUILTINS, AuditReport, audit_expression
 from .relations import RelationAPI
-from .simulation import SIM_METHODS, SimulationAPI
-from .source_mapping import SourceMappingAPI
-from .structure import StructureAPI
+from .simulation import CYCLE_FIELDS, SIM_FIELDS, SIM_METHODS, SimulationAPI
+from .source_mapping import MAPPING_FIELDS, SourceMappingAPI
+from .structure import STRUCTURE_FIELDS, StructureAPI
 from .views import FrozenView, UntrackedDependency, stable_hash
 
 
@@ -228,36 +228,17 @@ class EvalEnvironment:
         }
         self.allowed_names = set(self.locals) | set(SAFE_BUILTINS)
         self.registered_objects = {name: value for name, value in self.locals.items() if isinstance(value, FrozenView)}
-        self.registered_view_attrs = {
-            "final",
-            "cycles",
-            "model_sha256",
-            "index",
-            "active_states",
-            "variables",
-            "input_events",
-            "consumed_events",
-            "unconsumed_events",
-            "fired_transitions",
-            "limitations",
-            "path",
-            "name",
-            "parent_path",
-            "qualified_name",
-            "from_path",
-            "to_path",
-            "event",
-            "guard",
-            "effect",
-            "canonical_query",
-            "status",
-            "holds",
-            "bound",
-            "witness",
-            "replay_status",
-            "relation_policy",
-            *SIM_METHODS,
-        }
+        # Derive provenance from the exact public FrozenView contracts. A
+        # hand-maintained subset silently rejected valid fields such as
+        # ``State.is_leaf`` even though the view and Agent tool documented them.
+        self.registered_view_attrs = set().union(
+            STRUCTURE_FIELDS,
+            CYCLE_FIELDS,
+            SIM_FIELDS,
+            FBMCQ_FIELDS,
+            MAPPING_FIELDS,
+            SIM_METHODS,
+        )
 
     @property
     def function_registry_hash(self) -> str:

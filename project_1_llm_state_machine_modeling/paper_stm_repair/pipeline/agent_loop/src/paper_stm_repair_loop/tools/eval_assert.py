@@ -237,11 +237,26 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           CoverageUnit. It may support a binding explanation but must not be the
           sole or primary truth condition for a behavioral Root.
 
-        Immutable ``State/Event/Variable/Transition`` views expose only fields
-        documented in ``read_task`` and this tool, including ``path/name/
-        parent_path/qualified_name/from_path/to_path/event/guard/effect/
-        transition_index`` where applicable. Unknown fields, methods, dunder
-        access, imports and unregistered names are rejected before eval.
+        Immutable views expose the following exact public field families. A field
+        that is valid for the view contract but absent from one concrete record
+        evaluates as ``None``; an unlisted field is rejected before eval.
+
+        - State: ``path/name/parent_path/is_leaf/is_pseudo/is_composite/substates/
+          initial_targets``.
+        - Event: ``qualified_name/name/scope/used_by/is_declared/is_used``.
+        - Variable: ``qualified_name/name/type/init_value/read_in_states/
+          written_in_states/read_in_guards/written_in_effects``.
+        - Transition: ``from_path/to_path/event/event_scope/guard/effect/
+          effect_self_assigns/is_forced/forced_origin/transition_index``.
+        - Simulation and formal observations use only the fields listed in their
+          function entries above; source mappings expose ``source_ref/model_ref/
+          relation_policy/confidence/producer/raw``.
+
+        Unknown fields, methods, dunder access, imports and unregistered names
+        are rejected before eval. Prefer direct function filters when they express
+        the same proposition more simply, but public view fields such as
+        ``states(name='Root.Idle')[0].is_leaf`` are supported evidence rather than
+        an unsupported workaround.
 
         Pure builtins are exactly ``abs/all/any/bool/float/int/iter/len/list/
         max/min/round/set/sorted/str/sum/tuple``. They are composition helpers,
