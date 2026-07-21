@@ -231,8 +231,6 @@ def prepare_run_dir(
     formal_profile: bool = True,
     replay_file: Path | None = None,
     agent_limits: Mapping[str, int | float] | None = None,
-    coverage_review_profile: str | None = None,
-    falsification_review_profile: str | None = None,
     reviewer_limits: Mapping[str, int | float] | None = None,
 ) -> None:
     """Materialize the immutable Stage API input boundary for one new run."""
@@ -282,8 +280,6 @@ def prepare_run_dir(
         "renderer": renderer,
         "formal_profile": formal_profile,
         "agent_limits": limits,
-        "coverage_review_profile": coverage_review_profile or profile,
-        "falsification_review_profile": falsification_review_profile or profile,
         "reviewer_limits": review_limits,
         "code_provenance": _code_provenance(),
         "main_result_eligible": False,

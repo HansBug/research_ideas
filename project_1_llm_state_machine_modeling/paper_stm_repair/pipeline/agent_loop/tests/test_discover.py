@@ -58,6 +58,10 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
         replay_file=replay,
         agent_limits={},
     )
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["profile"] == "test"
+    assert "coverage_review_profile" not in manifest
+    assert "falsification_review_profile" not in manifest
     completed = run_discover(run_dir, object())
     assert completed.schema_version == "paper1.discover_completed.v2"
     assert completed.outcome.run_outcome == "reviewer_accepted_zero_issue"

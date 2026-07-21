@@ -269,12 +269,14 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_
 python -m paper_stm_repair_loop.discover \
   --pair-id llms_emp_stm_results_0000_manual_identity \
   --profile gpt-5.5 \
-  --coverage-review-profile claude-opus-4-7 \
-  --falsification-review-profile deepseek-v4-pro \
   --content-language zh-CN \
   --renderer rich \
   --output-dir runs/paper1/discover/manual-0000
 ```
+
+`--profile` 是本次运行唯一的模型选择入口。Discover 主 Agent、语义覆盖
+reviewer 和对抗性漏报 reviewer 必须使用同一个 profile；两个 reviewer 只分离
+角色、system prompt、上下文和审计目录，不允许切换到其他模型。
 
 自定义 identity 输入：
 

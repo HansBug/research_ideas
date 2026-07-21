@@ -169,19 +169,26 @@ def test_nested_llm_reviewer_runs_in_fresh_callback_context(monkeypatch, tmp_pat
             observed.append(marker.get())
             return FakeResult()
 
+    selected_profiles: list[str] = []
+
+    def fake_from_registry(*_args, **kwargs):
+        selected_profiles.append(kwargs["profile"])
+        return FakeApp()
+
     monkeypatch.setattr(
         "paper_stm_repair_loop.tools.review_discovery_coverage.AgentApp.from_registry",
-        lambda *_args, **_kwargs: FakeApp(),
+        fake_from_registry,
     )
     runner = LLMCoverageReviewRunner(
         llm_registry=object(),
-        profiles={"semantic_coverage": "fake"},
+        profile="fake",
         audit_root=tmp_path,
         content_language="zh-CN",
     )
     try:
         assert runner("semantic_coverage", {}, 1) == verdict
         assert observed == ["isolated"]
+        assert selected_profiles == ["fake"]
         assert marker.get() == "outer-agent"
     finally:
         marker.reset(token)

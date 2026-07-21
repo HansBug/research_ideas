@@ -110,13 +110,13 @@ class LLMCoverageReviewRunner:
         self,
         *,
         llm_registry: LLMRegistry,
-        profiles: Mapping[str, str],
+        profile: str,
         audit_root: Path,
         content_language: str,
         limits: Mapping[str, int | float] | None = None,
     ) -> None:
         self.llm_registry = llm_registry
-        self.profiles = dict(profiles)
+        self.profile = profile
         self.audit_root = audit_root
         self.content_language = content_language
         self.limits = dict(limits or {})
@@ -124,7 +124,6 @@ class LLMCoverageReviewRunner:
     def __call__(
         self, review_kind: str, payload: Mapping[str, Any], attempt_no: int
     ) -> CoverageReviewVerdict:
-        profile = self.profiles[review_kind]
         review_dir = self.audit_root / f"review-{attempt_no:03d}-{review_kind}"
         review_dir.mkdir(parents=True, exist_ok=False)
         spec = AgentSpec(
@@ -139,7 +138,7 @@ class LLMCoverageReviewRunner:
         app = AgentApp.from_registry(
             spec,
             self.llm_registry,
-            profile=profile,
+            profile=self.profile,
             model_options={"streaming": True, "stream_usage": False, "max_retries": 0},
         )
         try:

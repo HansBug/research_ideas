@@ -584,14 +584,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     attempt_log: list[dict[str, Any]] = []
     review_runner = LLMCoverageReviewRunner(
         llm_registry=registry,
-        profiles={
-            "semantic_coverage": manifest.get("coverage_review_profile")
-            or manifest["profile"],
-            "adversarial_falsification": manifest.get(
-                "falsification_review_profile"
-            )
-            or manifest["profile"],
-        },
+        profile=manifest["profile"],
         audit_root=run_dir / "agent_audit" / "discover" / "coverage_reviews",
         content_language=manifest["content_language"],
         limits=manifest.get("reviewer_limits") or None,
@@ -819,8 +812,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--raw-source-file", type=Path)
     parser.add_argument("--source-trace-file", type=Path)
     parser.add_argument("--profile", default="gpt-5.5")
-    parser.add_argument("--coverage-review-profile")
-    parser.add_argument("--falsification-review-profile")
     parser.add_argument("--content-language", choices=LANGUAGES, default="zh-CN")
     parser.add_argument(
         "--renderer", choices=("auto", "rich", "jsonl", "quiet"), default="rich"
@@ -871,8 +862,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         llm_registry = load_llm_registry(args.config)
         llm_registry.require(args.profile)
-        llm_registry.require(args.coverage_review_profile or args.profile)
-        llm_registry.require(args.falsification_review_profile or args.profile)
         case = _case_from_args(args)
         prepare_run_dir(
             args.output_dir,
@@ -892,8 +881,6 @@ def main(argv: list[str] | None = None) -> int:
                 }.items()
                 if value is not None
             },
-            coverage_review_profile=args.coverage_review_profile,
-            falsification_review_profile=args.falsification_review_profile,
             reviewer_limits={
                 key: value
                 for key, value in {

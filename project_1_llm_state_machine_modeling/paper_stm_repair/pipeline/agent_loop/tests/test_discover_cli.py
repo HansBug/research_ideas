@@ -102,7 +102,23 @@ def test_cli_defaults_leave_agent_and_reviewer_limits_unset(
     )
     assert captured["agent_limits"] == {}
     assert captured["reviewer_limits"] == {}
+    assert captured["profile"] == "gpt-5.5"
+    assert "coverage_review_profile" not in captured
+    assert "falsification_review_profile" not in captured
     capsys.readouterr()
+
+
+def test_cli_exposes_only_one_profile_selector():
+    parser = discover._parser()
+    option_strings = {
+        option
+        for action in parser._actions
+        for option in action.option_strings
+    }
+
+    assert "--profile" in option_strings
+    assert "--coverage-review-profile" not in option_strings
+    assert "--falsification-review-profile" not in option_strings
 
 
 def test_cli_custom_mode_missing_files_returns_two(monkeypatch, tmp_path, capsys):
