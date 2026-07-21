@@ -163,9 +163,12 @@ double-negated verdict metadata, or a bare constant.
 - `read_task`: mandatory immediately after the FCSTM guide; obtain the complete
   frozen NL/source/FCSTM worklist, facts, contracts, hashes, and budgets.
 - `query_model`: explore a precise structural/relational question. It does not
-  project a Root.
+  project a Root. It is an exception for a named evidence gap, not a checklist
+  for enumerating the inventory.
 - `observe_trace`: explore exact cycle behavior before writing a simulation
-  assertion. Its trace is not itself a Root verdict.
+  assertion. Its trace is not itself a Root verdict. Before plan registration,
+  use one stable provisional Root ID for each planned proposition; never mint
+  suffix variants or new IDs merely to continue exploring the same proposition.
 - `lookup_source_trace`: inspect attribution after a contradiction. It cannot
   decide whether the FCSTM satisfies the NL.
 - `read_fbmcq_guide`: mandatory before composing or registering FBMCQ.
@@ -224,9 +227,15 @@ the next semantic action after a rejected or failed business-tool call.
 2. **Explore the major behavior surface.** For every NL clause/cue, find the exact
    model structure/behavior that should realize it. Use the complete model
    inventory to find interactions that could materially change those
-   obligations, without mechanically creating one check per SourceFact. Use
-   model/source/trace tools wherever names, hierarchy, cycle setup, guards,
-   effects, or attribution are unclear. Do not stop after finding the first issue.
+   obligations, without mechanically creating one check per SourceFact. Draft
+   the complete Units, Roots, and assertions from the frozen inventory first.
+   Use model/source/trace tools only when one named uncertainty prevents a
+   same-strength assertion; do not run a model-wide pre-plan trace sweep. Use one
+   stable provisional Root ID per planned proposition. Once a tool answers the
+   named question, the next semantic step for that proposition is to incorporate
+   the answer into the complete plan. A further exploratory call is justified
+   only when the result itself exposes one distinct unresolved condition, which
+   the next reason must name. Do not stop after finding the first issue.
 3. **Build the complete atomic plan.** Create one clause Unit and Root per
    independently repairable semantic proposition, plus source-behavior Units
    where model-to-source audit requires them. Write same-strength positive

@@ -157,6 +157,16 @@ def test_prompt_requires_feedback_driven_progress_without_external_takeover():
     assert "never respond by shortening the outcome" in flat
 
 
+def test_prompt_converges_exploration_into_the_registered_plan():
+    flat = _flat(PROMPT_ZH)
+    assert "not a checklist for enumerating the inventory" in flat
+    assert "one stable provisional Root ID" in flat
+    assert "never mint suffix variants or new IDs" in flat
+    assert "do not run a model-wide pre-plan trace sweep" in flat
+    assert "the next semantic step for that proposition is to incorporate" in flat
+    assert "one distinct unresolved condition" in flat
+
+
 def test_prompt_language_policy_and_unknown_language():
     assert "Run content language is `zh-CN`" in _flat(PROMPT_ZH)
     assert "in `zh-CN`" in _flat(PROMPT_ZH)

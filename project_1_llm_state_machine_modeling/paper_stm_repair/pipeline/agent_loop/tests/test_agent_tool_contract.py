@@ -76,3 +76,48 @@ def test_tool_input_fields_match_issue164_contract(tmp_path):
         "lookup_source_trace": {"element_refs", "direction", "reason"},
         "review_discovery_coverage": {"reason"},
     }
+
+
+def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_path):
+    _controller, tools = _tools(tmp_path)
+    tools["read_fcstm_guide"].invoke(
+        {"reason": "Read the required FCSTM guide before the tool contract test."}
+    )
+    tools["read_task"].invoke(
+        {"reason": "Read the frozen task before the tool contract test."}
+    )
+    description = tools["observe_trace"].description
+    assert "one stable provisional Root ID" in description
+    assert "never mint suffix variants or new IDs" in description
+    assert "model-wide pre-plan trace sweep" in description
+
+    result = tools["observe_trace"].invoke(
+        {
+            "question": "Does Power_Off move Active to Off?",
+            "root_node_ids": ["ROOT-001"],
+            "cycles": [[], ["Root.Power_Off"]],
+            "reason": "Resolve the exact cycle setup before registration.",
+        }
+    )
+
+    assert result["execution_status"] == "completed"
+    assert result["recommended_tools"] == [
+        "register_coverage_plan",
+        "revise_assertion",
+        "eval_assert",
+    ]
+    assert "Do not enumerate unrelated" in result["recommended_action"]
+    assert "same stable Root ID" in result["pass_criteria"]
+
+    duplicate = tools["observe_trace"].invoke(
+        {
+            "question": "Does Power_Off move Active to Off?",
+            "root_node_ids": ["ROOT-001"],
+            "cycles": [[], ["Root.Power_Off"]],
+            "reason": "Do not repeat an already completed trace.",
+        }
+    )
+    assert duplicate["execution_status"] == "invalid_arguments"
+    assert duplicate["limitations"] == ["duplicate_trace_request_not_executed"]
+    assert "Do not repeat" in duplicate["recommended_action"]
+    assert duplicate["pass_criteria"]

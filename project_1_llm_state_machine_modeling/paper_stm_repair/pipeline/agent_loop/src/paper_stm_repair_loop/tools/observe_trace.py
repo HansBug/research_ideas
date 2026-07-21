@@ -39,6 +39,25 @@ def execute(
         "final": observation.final.to_json()["data"],
         "model_sha256": observation.model_sha256,
         "reason": reason,
+        "recommended_tools": [
+            "register_coverage_plan",
+            "revise_assertion",
+            "eval_assert",
+        ],
+        "recommended_action": (
+            "Use this observation immediately in the current workflow phase: "
+            "before registration, incorporate it into the complete coverage plan "
+            "and call register_coverage_plan; after a review finding, revise the "
+            "implicated assertion and execute its latest version. Do not enumerate "
+            "unrelated event/state combinations or mint a new Root ID to continue "
+            "the same proposition."
+        ),
+        "pass_criteria": (
+            "The next semantic action either registers the complete plan or "
+            "revises and evaluates the implicated assertion. Another exploratory "
+            "call is justified only when this result exposes one distinct unresolved "
+            "condition for the same stable Root ID and the next reason names it."
+        ),
         "limitations": [
             "exploratory_trace_only",
             "cannot_project_root",
@@ -76,14 +95,21 @@ def build_tool(
         Use only when the frozen inventory does not reveal the exact explicit
         setup cycles needed by a named Root, especially around hierarchy,
         eventless transitions, or a deep state. Use the shortest distinguishing
-        sequence and stop once the question is answered.
+        sequence and stop once the question is answered. Before registration,
+        assign one stable provisional Root ID to each planned proposition and
+        reuse it; never mint suffix variants or new IDs to prolong exploration.
 
         When not to use
         ----------------
         Do not enumerate event permutations, replay every requirement, duplicate
         an already registered `simulate(...)` assertion, search for any failure,
-        or treat a successful/failed trace as a Root verdict. Final evidence must
-        still be a registered latest expression executed through `eval_assert`.
+        perform a model-wide pre-plan trace sweep, or treat a successful/failed
+        trace as a Root verdict. When the result answers the named question, the
+        next semantic action must incorporate it into `register_coverage_plan`,
+        or after review into `revise_assertion` followed by `eval_assert`. Another
+        trace is justified only by one distinct unresolved condition exposed by
+        the result for the same stable Root ID. Final evidence must still be a
+        registered latest expression executed through `eval_assert`.
 
         Parameters
         ----------
@@ -101,6 +127,7 @@ def build_tool(
         A structured result containing `execution_status`, the original question
         and Root IDs, requested cycles, one immutable observation per cycle,
         final observation, frozen `model_sha256`, original reason, and
+        explicit `recommended_tools`, `recommended_action`, `pass_criteria`, and
         limitations. Each cycle includes index, terminal-safe ``is_ended``,
         active states, variables, input/consumed/unconsumed events,
         fired-transition field, and limitations. A completed top-level machine
@@ -149,6 +176,15 @@ def build_tool(
                 "root_node_ids": root_node_ids,
                 "model_sha256": model_sha256,
                 "reason": reason,
+                "recommended_tools": ["observe_trace"],
+                "recommended_action": (
+                    "Shorten the sequence to the minimum cycles that distinguish "
+                    "the named question, then retry with the same stable Root ID."
+                ),
+                "pass_criteria": (
+                    f"The corrected request has at most {max_cycles_per_call} cycles "
+                    "and tests only the named uncertainty."
+                ),
                 "limitations": ["max_cycles_per_observe_exceeded"],
             }
         exhausted = sorted(
@@ -163,6 +199,20 @@ def build_tool(
                 "root_node_ids": root_node_ids,
                 "model_sha256": model_sha256,
                 "reason": reason,
+                "recommended_tools": [
+                    "register_coverage_plan",
+                    "revise_assertion",
+                    "eval_assert",
+                ],
+                "recommended_action": (
+                    "Do not mint a replacement Root ID. Use the observations already "
+                    "collected for this proposition to register the complete plan, or "
+                    "after review to revise and evaluate the implicated assertion."
+                ),
+                "pass_criteria": (
+                    "The next semantic action advances the existing stable Root into "
+                    "registered or revised executable evidence without another trace."
+                ),
                 "limitations": ["max_observe_trace_calls_per_root_exceeded", *exhausted],
             }
         identity = hashlib.sha256(
@@ -175,6 +225,19 @@ def build_tool(
                 "root_node_ids": root_node_ids,
                 "model_sha256": model_sha256,
                 "reason": reason,
+                "recommended_tools": [
+                    "register_coverage_plan",
+                    "revise_assertion",
+                    "eval_assert",
+                ],
+                "recommended_action": (
+                    "Do not repeat or cosmetically rewrite this request. Incorporate "
+                    "the existing observation into the plan or latest assertion."
+                ),
+                "pass_criteria": (
+                    "The next semantic action changes the ledger by registration, "
+                    "assertion revision, or latest assertion execution."
+                ),
                 "limitations": ["duplicate_trace_request_not_executed"],
             }
         try:
@@ -193,6 +256,17 @@ def build_tool(
                 "model_sha256": model_sha256,
                 "reason": reason,
                 "error": {"type": type(exc).__name__, "message": str(exc)},
+                "recommended_tools": ["observe_trace", "query_model"],
+                "recommended_action": (
+                    "Use the error details to correct the exact event name or cycle "
+                    "setup. Retry the same stable Root only if the named uncertainty "
+                    "remains; otherwise inspect the precise model relation and proceed "
+                    "to plan registration."
+                ),
+                "pass_criteria": (
+                    "A corrected request completes with a relevant observation, or a "
+                    "precise model query resolves the same named evidence gap."
+                ),
                 "limitations": ["trace_not_observed", "cannot_project_root"],
             }
         completed_requests.add(identity)
