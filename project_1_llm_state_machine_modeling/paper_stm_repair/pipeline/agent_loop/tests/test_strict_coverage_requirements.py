@@ -336,7 +336,7 @@ def test_behavior_source_fact_requires_direct_compatible_assertion_binding():
         for item in rejected["required_actions"]
         if item["related_ids"] == ["FACT-TRANSITION-001"]
     )
-    assert action["recommended_tools"] == ["query_model", "register_coverage_plan"]
+    assert action["recommended_tools"] == ["register_coverage_plan"]
     assert action["accepted_predicate_examples"] == [
         "transition_exists(source='Root.Attack', "
         "event='Root.Attack_Complete', target='Root.Searching')"
@@ -440,7 +440,6 @@ def test_continuity_rejection_explains_how_to_increase_coverage():
     action = actions[0]
     assert action["related_ids"] == ["ASSERT-CONTINUITY", requirement_id]
     assert action["recommended_tools"] == [
-        "observe_trace",
         "read_fbmcq_guide",
         "register_coverage_plan",
     ]
@@ -524,12 +523,49 @@ def test_uncovered_requirement_action_explains_coverage_expansion_and_pass_condi
 
     action = actions[0]
     assert action["related_ids"] == [requirement_id]
-    assert action["recommended_tools"] == ["query_model", "register_coverage_plan"]
+    assert action["recommended_tools"] == ["register_coverage_plan"]
     assert "Expand the complete plan" in action["recommended_action"]
     assert "exactly one same-clause CoverageUnit" in action["recommended_action"]
     assert "positive assertions" in action["coverage_improvement"]
     assert "exactly once at Unit level" in action["pass_criteria"]
     assert "basis/evidence route" in action["pass_criteria"]
+
+
+def test_registration_recovery_never_recommends_preplan_exploration():
+    requirement_id = "REQ-NL-001-CONTINUITY-01"
+    fact_id = "FACT-TRANSITION-001"
+    actions = _registration_required_actions(
+        [
+            f"source_fact_not_directly_verified:{fact_id}",
+            f"uncovered_coverage_requirements:{requirement_id}",
+            "assertion_semantic_policy:ASSERT-SIM:"
+            f"ASSERT_SIMULATE_FIRST_CYCLE_REQUIRED:{requirement_id}",
+            "assertion_semantic_policy:ASSERT-CONTINUITY:"
+            f"ASSERT_CONTINUITY_EVIDENCE_REQUIRED:{requirement_id}",
+        ],
+        source_fact_details={
+            fact_id: {
+                "fact_id": fact_id,
+                "fact_kind": "transition",
+                "source": "Root.Idle",
+                "event": "Root.go",
+                "target": "Root.Done",
+            }
+        },
+        coverage_requirements={
+            requirement_id: {
+                "requirement_id": requirement_id,
+                "dimension": "continuity",
+                "cue_text": "continuously",
+                "required_function_family_options": [["simulation"]],
+            }
+        },
+    )
+
+    assert actions
+    for action in actions:
+        assert not {"query_model", "observe_trace"} & set(action["recommended_tools"])
+        assert "register_coverage_plan" in action["recommended_tools"]
 
 
 def test_semantic_actions_for_anti_gaming_have_concrete_pass_conditions():

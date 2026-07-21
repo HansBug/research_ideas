@@ -14,6 +14,7 @@ from paper_stm_repair_loop.tools.review_discovery_coverage import (
     CoverageReviewGate,
     LLMCoverageReviewRunner,
     RetryableCoverageReviewerError,
+    _finding_strengthens_frozen_nl,
     _raise_classified_reviewer_error,
     _review_system_prompt,
 )
@@ -140,6 +141,51 @@ def _ready_controller(tmp_path):
             == "matches"
         )
     return controller, registry, plan
+
+
+def test_review_payload_keeps_unevaluated_optional_assertion_without_crashing(tmp_path):
+    controller = make_controller(tmp_path)
+    plan = make_plan(controller)
+    plan["logical_assertions"][-1]["required"] = False
+    registry = controller.require_registry()
+    assert registry.register_plan(plan, reason="注册含一条可选断言的测试计划。")[
+        "accepted"
+    ]
+    for assertion in plan["logical_assertions"]:
+        if assertion["required"]:
+            assert (
+                registry.eval_assert(
+                    assertion["assert"], reason="只执行全部必需断言。"
+                )["match_status"]
+                == "matches"
+            )
+
+    observed_payloads = []
+
+    def runner(kind, payload, _attempt):
+        observed_payloads.append(payload)
+        return _verdict(kind, payload)
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=runner,
+    )
+    registry.semantic_review_gate = gate
+
+    reviewed = gate.review(reason="可选断言未执行不得让 review gate 崩溃。")
+
+    assert reviewed["passed"] is True
+    optional_version_id = next(
+        version.assertion_version_id
+        for version in registry.latest_versions()
+        if not version.required
+    )
+    assert observed_payloads
+    assert all(
+        payload["latest_evaluations"][optional_version_id] is None
+        for payload in observed_payloads
+    )
 
 
 def test_nested_llm_reviewer_runs_in_fresh_callback_context(monkeypatch, tmp_path):
@@ -582,6 +628,39 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "True 表示现有 Root 得到满足" in prompt
 
 
+def test_explanatory_negation_does_not_create_a_negative_obligation():
+    finding = CoverageReviewFinding(
+        finding_id="REVIEW-POSITIVE-TARGET",
+        category="weak_or_misdirected_assertion",
+        related_requirement_ids=["REQ-001"],
+        related_assertion_chain_ids=["ASSERT-001"],
+        coverage_dimensions=["assertion_strength"],
+        problem="当前断言只检查一个中间目标，没有直接保持需求声明的最终正向目标。",
+        missed_behavior_risk="如果只证明中间目标，弱断言可能错误通过并掩盖真实的最终目标缺口。",
+        recommended_action=(
+            "针对 REQ-001 / ASSERT-001 使用 revise_assertion 检查需求中的完整正向最终目标，"
+            "而不是只检查中间目标。"
+        ),
+        recommended_tools=["revise_assertion"],
+        recommended_steps=[
+            CoverageImprovementStep(
+                tool="revise_assertion",
+                related_ids=["ASSERT-001"],
+                objective="把当前弱关系断言修订为直接保持需求中的完整正向最终目标。",
+                suggested_arguments={
+                    "assertion_chain_id": "ASSERT-001",
+                    "assert": "transition_exists(source='Root.A', event='Root.go', target='Root.B')",
+                    "reason": "直接检查最终目标。",
+                },
+                expected_observation="修订后的完整正向目标断言得到可审计的 terminal bool 结果。",
+            )
+        ],
+        pass_criteria="最新正向断言必须直接证明完整目标得到满足，而不是只证明一个中间关系。",
+    )
+
+    assert _finding_strengthens_frozen_nl(finding, ("A go 后进入 B。",)) is False
+
+
 def test_review_gate_filters_unlicensed_negative_obligation(tmp_path):
     controller, registry, _plan = _ready_controller(tmp_path)
 
@@ -873,12 +952,24 @@ def test_reviewer_cannot_pass_while_omitting_any_controller_required_id(tmp_path
 
 def test_repeated_programmatic_id_mismatch_terminates_same_fingerprint(tmp_path):
     controller, registry, _plan = _ready_controller(tmp_path)
+
+    attempts = 0
+
+    def changing_mismatch_runner(kind, payload, _attempt):
+        nonlocal attempts
+        attempts += 1
+        verdict = _verdict(kind, payload)
+        requirement_ids = list(verdict.reviewed_requirement_ids)
+        if attempts <= 2:
+            verdict.reviewed_requirement_ids = requirement_ids[1:]
+        else:
+            verdict.reviewed_requirement_ids = requirement_ids[:-1]
+        return verdict
+
     gate = CoverageReviewGate(
         registry=registry,
         task_snapshot=controller.task_snapshot(),
-        runner=lambda kind, payload, _attempt: _verdict(
-            kind, payload, omit_requirement=True
-        ),
+        runner=changing_mismatch_runner,
     )
     registry.semantic_review_gate = gate
 

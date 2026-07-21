@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 
 import pytest
 
@@ -123,7 +124,24 @@ def test_agent_tool_reasons_trim_surrounding_whitespace(tmp_path):
     assert parsed.reason == "Read the frozen FCSTM guide."
 
 
-def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_path):
+def test_tool_validation_feedback_names_missing_field(tmp_path):
+    _controller, tools = _tools(tmp_path)
+
+    result = json.loads(
+        tools["revise_assertion"].invoke(
+            {
+                "assertion_chain_id": "ASSERT-001",
+                "reason": "Revise the registered assertion from review feedback.",
+            }
+        )
+    )
+
+    assert result["execution_status"] == "invalid_arguments"
+    assert result["missing_fields"] == ["assert"]
+    assert result["errors"] == ["assert: Field required (missing)"]
+
+
+def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path):
     _controller, tools = _tools(tmp_path)
     tools["read_fcstm_guide"].invoke(
         {"reason": "Read the required FCSTM guide before the tool contract test."}
@@ -132,26 +150,23 @@ def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_p
         {"reason": "Read the frozen task before the tool contract test."}
     )
     description = tools["observe_trace"].description
-    assert "one stable provisional Root ID" in description
-    assert "never mint suffix variants or new IDs" in description
-    assert "model-wide pre-plan trace sweep" in description
+    assert "only after successful plan registration" in description
+    assert "exact registered Root ID" in description
+    assert "use this tool before registration" in description
+    assert "provisional Root" not in description
 
     result = tools["observe_trace"].invoke(
         {
             "question": "Does Power_Off move Active to Off?",
             "root_node_ids": ["ROOT-CLAUSE-001-01"],
             "cycles": [[], ["Root.Power_Off"]],
-            "reason": "Resolve the exact cycle setup before registration.",
+            "reason": "Resolve the exact review-directed cycle setup.",
         }
     )
 
     assert result["execution_status"] == "completed"
-    assert result["recommended_tools"] == [
-        "register_coverage_plan",
-        "revise_assertion",
-        "eval_assert",
-    ]
-    assert "Do not enumerate unrelated" in result["recommended_action"]
+    assert result["recommended_tools"] == ["revise_assertion", "eval_assert"]
+    assert "post-registration observation" in result["recommended_action"]
     assert "same stable Root ID" in result["pass_criteria"]
 
     duplicate = tools["observe_trace"].invoke(
@@ -180,11 +195,11 @@ def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_p
         "unstable_or_unknown_root_id",
         "ROOT-CLAUSE-001-01B",
     ]
-    assert suffixed["allowed_provisional_root_ids"] == ["ROOT-CLAUSE-001-01"]
+    assert suffixed["allowed_root_ids"] == ["ROOT-CLAUSE-001-01"]
     assert "Do not add a suffix" in suffixed["recommended_action"]
 
 
-def test_query_model_guides_completed_and_rejected_calls_toward_progress(tmp_path):
+def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):
     _controller, tools = _tools(tmp_path)
     tools["read_fcstm_guide"].invoke(
         {"reason": "Read the required FCSTM guide before the tool contract test."}
@@ -192,24 +207,29 @@ def test_query_model_guides_completed_and_rejected_calls_toward_progress(tmp_pat
     tools["read_task"].invoke(
         {"reason": "Read the frozen task before the tool contract test."}
     )
+    description = tools["query_model"].description
+    assert "only after successful plan registration" in description
+    assert "Do not use this tool before registration" in description
+    assert "use ``[]`` only before Root IDs are registered" not in description
     arguments = {
         "query_kind": "transitions",
         "name_contains": "Power_Off",
         "offset": 0,
         "limit": 50,
         "root_node_ids": ["ROOT-CLAUSE-001-01"],
-        "reason": "Resolve the exact transition before registration.",
+        "reason": "Resolve the exact transition named by a failed review.",
     }
 
     completed = tools["query_model"].invoke(arguments)
     assert completed["execution_status"] == "completed"
-    assert "Do not issue adjacent" in completed["recommended_action"]
+    assert completed["recommended_tools"] == ["revise_assertion", "eval_assert"]
+    assert "registered assertion" in completed["recommended_action"]
     assert completed["pass_criteria"]
 
     duplicate = tools["query_model"].invoke(arguments)
     assert duplicate["execution_status"] == "invalid_arguments"
     assert "duplicate_query_not_executed" in duplicate["limitations"]
-    assert "proceed to plan registration" in duplicate["recommended_action"]
+    assert "revise/evaluate the registered assertion" in duplicate["recommended_action"]
 
 
 def test_fbmcq_guide_does_not_encourage_unnecessary_formal_assertions(tmp_path):

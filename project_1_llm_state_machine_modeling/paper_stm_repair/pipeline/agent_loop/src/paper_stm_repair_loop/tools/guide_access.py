@@ -231,15 +231,26 @@ def guard_tool(
     original = tool.func
 
     def validation_guidance(exc: Exception) -> str:
-        errors = [
-            str(item.get("msg") or item)
-            for item in getattr(exc, "errors", lambda: [])()
-        ] or [str(exc)]
+        error_items = getattr(exc, "errors", lambda: [])()
+        errors: list[str] = []
+        missing_fields: list[str] = []
+        for item in error_items:
+            location = ".".join(str(part) for part in item.get("loc", ()))
+            message = str(item.get("msg") or item)
+            error_type = str(item.get("type") or "validation_error")
+            errors.append(
+                f"{location}: {message} ({error_type})" if location else f"{message} ({error_type})"
+            )
+            if error_type == "missing" and location:
+                missing_fields.append(location)
+        if not errors:
+            errors = [str(exc)]
         return json.dumps(
             {
                 "execution_status": "invalid_arguments",
                 "tool_executed": False,
                 "errors": errors,
+                "missing_fields": missing_fields,
                 "required_actions": [
                     {
                         "action_id": f"{tool.name.upper()}-SCHEMA-ACTION-001",

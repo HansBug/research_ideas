@@ -246,15 +246,18 @@ def build_tool(
 
         When to use
         -----------
-        Use for one named structural gap while designing or revising a Root's
-        assertion, especially when the full inventory is too large to scan.
+        Use only after successful plan registration for one named structural gap
+        while revising a Root's assertion. The gap must come from an inconclusive
+        latest evaluation or a failed coverage review that explicitly names this
+        tool and the affected registered Root.
 
         When not to use
         ----------------
-        Do not enumerate the model, duplicate `read_task`, or use query results
+        Do not use this tool before registration, enumerate the model, duplicate
+        `read_task`, or use query results
         directly as a Root verdict; the final proposition must use `eval_assert`.
-        Once a query answers its named gap, incorporate the result into the plan
-        or assertion instead of issuing adjacent inventory queries.
+        Once a query answers its named gap, incorporate the result into the
+        registered assertion instead of issuing adjacent inventory queries.
 
         Parameters
         ----------
@@ -266,8 +269,8 @@ def build_tool(
         ``offset`` (integer, default 0): zero-based index in the filtered result;
         must be at least 0.
         ``limit`` (integer, default 50): maximum page size; must be 1 through 500.
-        ``root_node_ids`` (list of strings): Roots whose named evidence gap
-        motivates this query; use ``[]`` only before Root IDs are registered.
+        ``root_node_ids`` (non-empty list of strings): exact registered Roots whose
+        named evidence gap motivates this query.
         ``reason`` (non-empty string): the concrete structural question and why
         this query is needed, written in the run content language.
         The strict JSON input accepts no additional fields.
@@ -343,32 +346,28 @@ def build_tool(
             completed = result.get("execution_status") == "completed"
             if completed:
                 recommended_tools = [
-                    "register_coverage_plan",
                     "revise_assertion",
                     "eval_assert",
                 ]
                 recommended_action = (
-                    "Incorporate these structural facts into the complete plan, "
-                    "or after review into the implicated assertion and its latest "
+                    "Incorporate these structural facts into the implicated registered assertion and its latest "
                     "evaluation. Do not issue adjacent inventory queries when the "
                     "named gap is already resolved."
                 )
                 pass_criteria = (
-                    "The next semantic action registers the complete plan or "
-                    "changes executable assertion evidence for the named Root."
+                    "The next semantic actions revise and evaluate executable assertion evidence for the named Root."
                 )
             else:
-                recommended_tools = ["query_model", "register_coverage_plan"]
+                recommended_tools = ["query_model", "revise_assertion", "eval_assert"]
                 recommended_action = (
                     "Read the limitation code. Correct an invalid filter/page only "
                     "when the named structural gap remains; for duplicate, fully "
                     "returned, or no-new-fact results, use the facts already exposed "
-                    "and proceed to plan registration instead of retrying."
+                    "and revise/evaluate the registered assertion instead of retrying."
                 )
                 pass_criteria = (
                     "The next call either supplies a corrected query that can expose "
-                    "a specifically missing fact or advances the existing evidence "
-                    "into the complete plan."
+                    "a specifically missing fact or advances the existing evidence into a revised latest assertion."
                 )
             return {
                 **result,

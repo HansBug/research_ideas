@@ -1628,7 +1628,7 @@ def _registration_required_actions(
                         _source_fact_evidence_families(fact)
                     ),
                     "accepted_predicate_examples": _source_fact_predicate_examples(fact),
-                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_tools": ["register_coverage_plan"],
                     "recommended_action": (
                         "Add the fact ID to one required assertion basis and use an "
                         "exact predicate matching the frozen fact tuple; keep the "
@@ -1653,7 +1653,7 @@ def _registration_required_actions(
                         _deepcopy_jsonish(coverage_requirements.get(requirement_id, {}))
                         for requirement_id in requirement_ids
                     ],
-                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_tools": ["register_coverage_plan"],
                     "recommended_action": (
                         "Expand the complete plan: for each listed requirement, add it "
                         "to exactly one same-clause CoverageUnit, include it in that "
@@ -1693,7 +1693,7 @@ def _registration_required_actions(
                         f"Assertion {chain_id} probes literal variable {variable!r}, "
                         "which is absent from the frozen model inventory."
                     ),
-                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_tools": ["register_coverage_plan"],
                     "recommended_action": (
                         "Remove the invented literal variable. If the frozen model "
                         "contains a source-grounded variable, use its exact name with "
@@ -1729,9 +1729,9 @@ def _registration_required_actions(
                         f"{source} / {event} / {target}, but that exact transition "
                         "is absent from the CoverageUnit's frozen SourceFacts."
                     ),
-                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_tools": ["register_coverage_plan"],
                     "recommended_action": (
-                        "Use query_model to identify the exact transition implementing "
+                        "Use the frozen SourceFact snapshot and read_task inventory to identify the exact transition implementing "
                         "the linked NL obligation. Bind effect_deltas to that literal "
                         "source/event/target tuple and include its transition/effect "
                         "SourceFact in the same CoverageUnit before registering again."
@@ -1758,9 +1758,9 @@ def _registration_required_actions(
                         f"Assertion {chain_id} counts direct children under {parent}, "
                         f"but Root {root_id} does not exactly ground state:{parent}."
                     ),
-                    "recommended_tools": ["query_model", "register_coverage_plan"],
+                    "recommended_tools": ["register_coverage_plan"],
                     "recommended_action": (
-                        "Use query_model to identify the exact parent state denoted by "
+                        "Use the frozen requirement and SourceFact inventory to identify the exact parent state denoted by "
                         "the NL cardinality obligation. Count its complete direct child "
                         "scope and bind the same exact state ref in the Root; do not use "
                         "a prefix-sharing or nested unrelated parent."
@@ -1858,7 +1858,7 @@ def _semantic_policy_required_action(
     requirement = coverage_requirements.get(requirement_id, {})
     templates: dict[str, tuple[list[str], str, list[str], str]] = {
         assertion_contract.ERROR_ASSERTION_DIRECT_SHAPE_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Replace the disjunctive, filtered, or nested bypass with one direct positive proposition whose top-level bool is determined by the implicated cardinality/effect check. Split unrelated alternatives into separate Roots instead of joining them with or.",
             ["len(states(parent='Root.Searching', recursive=False)) == 3"],
             "The revised assertion has one direct top-level positive comparison (or one unfiltered open effect any-expression), so no unrelated branch can make it pass.",
@@ -1870,43 +1870,43 @@ def _semantic_policy_required_action(
             "The named assertion parses in eval mode and the complete plan preserves every obligation.",
         ),
         assertion_contract.ERROR_SIMULATE_FIRST_CYCLE_REQUIRED: (
-            ["observe_trace", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Start every simulate(cycles=...) setup with an explicit empty cycle. The empty cycle performs deterministic initialization before any external event is supplied.",
             ["simulate(cycles=[[], ['Root.Start']]).final.is_active('Root.Active')"],
             "Every simulate call in the assertion begins with [] and still checks the original proposition.",
         ),
         assertion_contract.ERROR_EFFECTS_BOOL_SUBSTITUTE: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Do not treat bool(effects(...)) as proof of a directional update. Replace it with an exact variable-specific effect_delta comparison.",
             ["(effect_delta(source='Root.Attack', event='Root.Done', variable='count') or 0) < 0"],
             "The assertion checks the required variable and update direction, rather than effect presence alone.",
         ),
         assertion_contract.ERROR_EFFECT_DELTA_DIRECTION_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Add an effect_delta comparison whose sign matches the NL cue: use < 0 for a decrease and > 0 for an increase, bound to the exact source, event, and real model variable. If the variable is unclear, query the model/effect inventory first; prefer the open-ended effect_deltas route when available instead of probing made-up variable names.",
             ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
             "The named assertion contains a direction-sensitive predicate over the complete observed effect inventory for the implicated requirement.",
         ),
         assertion_contract.ERROR_EFFECT_DELTA_SENTINEL_VARIABLE: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Remove literal sentinel/probe variables from effect_delta. First inspect real model variables or use open-ended effect_deltas to enumerate observed deltas, then bind the assertion to an actual variable that exists in the current model.",
             ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
             "The revised assertion no longer probes a made-up variable and its effect evidence is bound to an actual current-model variable or an open-ended observed delta.",
         ),
         assertion_contract.ERROR_EFFECT_DELTA_LITERAL_VARIABLE_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Do not compute, concatenate, or indirectly select effect_delta.variable. Use one exact literal variable name returned by the frozen model inventory, or replace the probe with an unfiltered effect_deltas expression.",
             ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
             "Every effect_delta call uses one exact literal current-model variable, or the direct assertion uses unfiltered effect_deltas without a variable selector.",
         ),
         assertion_contract.ERROR_EFFECT_DELTAS_TRANSITION_BINDING_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Bind every open effect_deltas call to one exact frozen transition using literal source and target plus a literal event (or explicit event=None for an eventless transition). An unqualified model-wide effect search cannot prove the current Root.",
             ["any(delta < 0 for _, delta in effect_deltas(source='Root.Attack', event='Root.Done', target='Root.Searching'))"],
             "The open effect assertion names one exact source/event/target transition and no unrelated model effect can make it pass.",
         ),
         assertion_contract.ERROR_CONTINUITY_EVIDENCE_REQUIRED: (
-            ["observe_trace", "read_fbmcq_guide", "register_coverage_plan"],
+            ["read_fbmcq_guide", "register_coverage_plan"],
             "Strengthen this single assertion with a continuity matrix. Put at least two distinct initialized progress paths in the same expression, each using simulate(cycles=[[], ...]) with at least two cycles; alternatively, combine at least two distinct FBMCQ response checks in the same expression. Splitting one path per assertion does not satisfy this per-assertion gate.",
             [
                 "all([simulate(cycles=[[], ['Root.Path_A']]).final.is_active('Root.Searching'), simulate(cycles=[[], ['Root.Path_B']]).final.is_active('Root.Searching')])",
@@ -1921,31 +1921,31 @@ def _semantic_policy_required_action(
             "The assertion uses non-existential response evidence covering the relevant progress paths.",
         ),
         assertion_contract.ERROR_CARDINALITY_COMPARISON_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Use a direct len(states(...)) comparison with the exact number and direction stated by the NL, and set recursive=False when counting direct children.",
             ["len(states(parent='Root.Searching', recursive=False)) == 3"],
             "The assertion performs the required exact, lower-bound, or upper-bound structural count over the implicated model scope.",
         ),
         assertion_contract.ERROR_CARDINALITY_STABLE_SCOPE_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Do not make cardinality pass by filtering or enumerating exactly the expected names. Count one complete stable model-definition scope, such as direct child states under one parent with recursive=False, and compare that full scope to the NL quantity.",
             ["len(states(parent='Root.Searching', recursive=False)) == 3"],
             "The assertion counts the complete stable scope that the NL quantity ranges over; it does not use name filters, literal lists, set membership filters, or hand-picked known elements to force len(...) to equal the expected number.",
         ),
         assertion_contract.ERROR_CARDINALITY_OBJECT_SCOPE_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Bind the quantity to the model object named by the frozen NL clause: areas/modes/regions map to states, events to events, variables/counters to variables, and explicit transitions to transitions. Do not count bound_model_refs or a different object kind.",
             ["len(states(parent='Root.Searching', recursive=False)) == 3"],
             "The direct len(...) operand is the complete model-definition collection for the NL-named object kind, not a plan-derived binding set or an unrelated inventory.",
         ),
         assertion_contract.ERROR_TRANSITION_TARGET_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Bind the transition check to both an exact source and target; include the event when the NL provides a trigger.",
             ["transition_exists(source='Root.Searching', event='Root.Start', target='Root.Active')"],
             "The assertion checks the intended source-to-target behavior rather than event presence alone.",
         ),
         assertion_contract.ERROR_CONDITION_TRIGGER_REQUIRED: (
-            ["query_model", "register_coverage_plan"],
+            ["register_coverage_plan"],
             "Bind the condition to its executable trigger: include the exact event in a transition query, an event-bearing simulation cycle, or an equivalent formal response trigger.",
             ["transition_exists(source='Root.Searching', event='Root.Start', target='Root.Active')"],
             "The assertion explicitly connects the NL condition or trigger to the checked behavior.",

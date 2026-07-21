@@ -57,21 +57,17 @@ def execute(
         "model_sha256": observation.model_sha256,
         "reason": reason,
         "recommended_tools": [
-            "register_coverage_plan",
             "revise_assertion",
             "eval_assert",
         ],
         "recommended_action": (
-            "Use this observation immediately in the current workflow phase: "
-            "before registration, incorporate it into the complete coverage plan "
-            "and call register_coverage_plan; after a review finding, revise the "
-            "implicated assertion and execute its latest version. Do not enumerate "
+            "Use this post-registration observation immediately to revise the "
+            "implicated registered assertion and execute its latest version. Do not enumerate "
             "unrelated event/state combinations or mint a new Root ID to continue "
             "the same proposition."
         ),
         "pass_criteria": (
-            "The next semantic action either registers the complete plan or "
-            "revises and evaluates the implicated assertion. Another exploratory "
+            "The next semantic actions revise and evaluate the implicated assertion. Another exploratory "
             "call is justified only when this result exposes one distinct unresolved "
             "condition for the same stable Root ID and the next reason names it."
         ),
@@ -105,27 +101,25 @@ def build_tool(
     ) -> dict[str, Any]:
         """Purpose
         -------
-        Explore one named FCSTM cycle/setup question against the frozen STM_0 so
-        the Agent can design or repair a registered simulation assertion. This is
+        Diagnose one named FCSTM cycle/setup gap against the frozen STM_0 so the
+        Agent can repair a registered simulation assertion. This is
         a diagnostic microscope, not the formal Root-evaluation path.
 
         When to use
         -----------
-        Use only when the frozen inventory does not reveal the exact explicit
-        setup cycles needed by a named Root, especially around hierarchy,
-        eventless transitions, or a deep state. Use the shortest distinguishing
-        sequence and stop once the question is answered. Before registration,
-        assign one stable provisional Root ID to each planned proposition and
-        reuse it; never mint suffix variants or new IDs to prolong exploration.
+        Use only after successful plan registration, and only when a latest
+        registered evaluation is inconclusive or a failed coverage review explicitly
+        names this tool and one exact trace gap. Use the shortest distinguishing
+        sequence and stop once the question is answered. Reuse the exact registered
+        Root ID; never mint suffix variants or new IDs to prolong exploration.
 
         When not to use
         ----------------
         Do not enumerate event permutations, replay every requirement, duplicate
         an already registered `simulate(...)` assertion, search for any failure,
-        perform a model-wide pre-plan trace sweep, or treat a successful/failed
+        perform a model-wide trace sweep, use this tool before registration, or treat a successful/failed
         trace as a Root verdict. When the result answers the named question, the
-        next semantic action must incorporate it into `register_coverage_plan`,
-        or after review into `revise_assertion` followed by `eval_assert`. Another
+        next semantic actions must be `revise_assertion` followed by `eval_assert`. Another
         trace is justified only by one distinct unresolved condition exposed by
         the result for the same stable Root ID. Final evidence must still be a
         registered latest expression executed through `eval_assert`.
@@ -133,15 +127,13 @@ def build_tool(
         Parameters
         ----------
         `question` is one concrete evidence gap, not a generic request to inspect
-        the model. `root_node_ids` is a non-empty list of affected registered or
-        planned Root IDs. `cycles` is a non-empty `list[list[str]]`: each outer
+        the model. `root_node_ids` is a non-empty list of affected registered Root
+        IDs. `cycles` is a non-empty `list[list[str]]`: each outer
         item is exactly one FCSTM cycle and each inner list is the complete event
         set supplied in that cycle; `[]` is an explicit eventless/init cycle.
         `reason` explains why this exact bounded trace is necessary in the run
         content language. No paths, model text, arbitrary code, or expected
-        outcome are accepted. Before plan registration, a Root ID must be the
-        deterministic ROOT-<clause_id> exposed by read_task. After registration,
-        the exact registered Root IDs are also valid. Suffix variants such as
+        outcome are accepted. Use the exact registered Root ID. Suffix variants such as
         ROOT-CLAUSE-005-01B are rejected rather than treated as a new proposition.
 
         Returns
@@ -187,10 +179,10 @@ def build_tool(
 
         Examples
         --------
-        `{"question":"Does the eventless transition after interception require an explicit empty cycle?","root_node_ids":["ROOT-002"],"cycles":[[],["Root.Interception_Detected"],[]],"reason":"Determine the shortest setup before registering ROOT-002's simulation assertion."}`
+        `{"question":"Does the eventless transition after interception require an explicit empty cycle?","root_node_ids":["ROOT-002"],"cycles":[[],["Root.Interception_Detected"],[]],"reason":"Resolve the failed review's setup gap before revising ROOT-002's simulation assertion."}`
 
         For a top-level final target use a terminal-safe sequence such as
-        `{"question":"Does stop terminate the machine?","root_node_ids":["ROOT-003"],"cycles":[[],["Root.stop"]],"reason":"Observe the final cycle's is_ended flag before registering the completion assertion."}`.
+        `{"question":"Does stop terminate the machine?","root_node_ids":["ROOT-003"],"cycles":[[],["Root.stop"]],"reason":"Observe the final cycle's is_ended flag before revising the registered completion assertion."}`.
         """
 
         allowed_root_ids = set(provisional_root_ids)
@@ -204,19 +196,16 @@ def build_tool(
                 "root_node_ids": root_node_ids,
                 "model_sha256": model_sha256,
                 "reason": reason,
-                "allowed_provisional_root_ids": sorted(provisional_root_ids),
-                "recommended_tools": ["register_coverage_plan"],
+                "allowed_root_ids": sorted(allowed_root_ids),
+                "recommended_tools": ["observe_trace"],
                 "recommended_action": (
-                    "Use the exact ROOT-<clause_id> from read_task for a pre-plan "
-                    "proposition, or an exact registered Root ID. Do not add a "
-                    "suffix or mint a replacement ID to bypass prior exploration; "
-                    "incorporate the observations already collected into the "
-                    "complete coverage plan."
+                    "Use the exact registered Root ID named by the inconclusive "
+                    "evaluation or failed review. Do not add a suffix or mint a "
+                    "replacement ID to bypass prior exploration."
                 ),
                 "pass_criteria": (
                     "The next semantic action uses an allowed stable Root ID and "
-                    "advances to complete plan registration without replaying the "
-                    "same proposition under a new identity."
+                    "answers the named post-registration gap without replaying the same proposition under a new identity."
                 ),
                 "limitations": ["unstable_or_unknown_root_id", *invalid_root_ids],
             }
@@ -252,18 +241,15 @@ def build_tool(
                 "model_sha256": model_sha256,
                 "reason": reason,
                 "recommended_tools": [
-                    "register_coverage_plan",
                     "revise_assertion",
                     "eval_assert",
                 ],
                 "recommended_action": (
                     "Do not mint a replacement Root ID. Use the observations already "
-                    "collected for this proposition to register the complete plan, or "
-                    "after review to revise and evaluate the implicated assertion."
+                    "collected for this proposition to revise and evaluate the implicated assertion."
                 ),
                 "pass_criteria": (
-                    "The next semantic action advances the existing stable Root into "
-                    "registered or revised executable evidence without another trace."
+                    "The next semantic action advances the existing stable Root into revised executable evidence without another trace."
                 ),
                 "limitations": ["max_observe_trace_calls_per_root_exceeded", *exhausted],
             }
@@ -278,17 +264,15 @@ def build_tool(
                 "model_sha256": model_sha256,
                 "reason": reason,
                 "recommended_tools": [
-                    "register_coverage_plan",
                     "revise_assertion",
                     "eval_assert",
                 ],
                 "recommended_action": (
                     "Do not repeat or cosmetically rewrite this request. Incorporate "
-                    "the existing observation into the plan or latest assertion."
+                    "the existing observation into the latest registered assertion."
                 ),
                 "pass_criteria": (
-                    "The next semantic action changes the ledger by registration, "
-                    "assertion revision, or latest assertion execution."
+                    "The next semantic action changes the ledger by assertion revision or latest assertion execution."
                 ),
                 "limitations": ["duplicate_trace_request_not_executed"],
             }
@@ -312,8 +296,7 @@ def build_tool(
                 "recommended_action": (
                     "Use the error details to correct the exact event name or cycle "
                     "setup. Retry the same stable Root only if the named uncertainty "
-                    "remains; otherwise inspect the precise model relation and proceed "
-                    "to plan registration."
+                    "remains; otherwise inspect the precise model relation and revise the registered assertion."
                 ),
                 "pass_criteria": (
                     "A corrected request completes with a relevant observation, or a "

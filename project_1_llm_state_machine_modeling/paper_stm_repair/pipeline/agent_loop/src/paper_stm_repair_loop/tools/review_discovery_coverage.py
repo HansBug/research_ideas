@@ -340,9 +340,11 @@ class CoverageReviewGate:
                 ],
             },
             "latest_evaluations": {
-                version.assertion_version_id: self.registry.evaluations[
-                    version.assertion_version_id
-                ][-1]
+                version.assertion_version_id: (
+                    self.registry.evaluations[version.assertion_version_id][-1]
+                    if self.registry.evaluations.get(version.assertion_version_id)
+                    else None
+                )
                 for version in self.registry.latest_versions()
             },
             "controller_projection_before_review": projection,
@@ -480,7 +482,7 @@ class CoverageReviewGate:
             programmatic_errors
             and previous.get("execution_status") == "completed"
             and previous.get("reviewed_state_fingerprint") == fingerprint
-            and previous.get("programmatic_errors") == programmatic_errors
+            and previous.get("programmatic_errors")
         ):
             return self._reviewer_contract_failed(
                 reason=reason,
@@ -744,8 +746,14 @@ def _finding_strengthens_frozen_nl(
         r"禁止",
         r"不允许",
     )
+    suggested_assertions = "\n".join(
+        str(arguments.get("assert", ""))
+        for arguments in suggested_arguments
+        if isinstance(arguments, Mapping)
+    ).lower()
     action_adds_negative_obligation = any(
-        re.search(pattern, action, re.I) for pattern in negative_action_patterns
+        re.search(pattern, suggested_assertions, re.I)
+        for pattern in negative_action_patterns
     )
     every_scope_authorizes_negative = bool(frozen_nl_scopes) and all(
         any(re.search(pattern, scope, re.I) for pattern in negative_nl_patterns)
