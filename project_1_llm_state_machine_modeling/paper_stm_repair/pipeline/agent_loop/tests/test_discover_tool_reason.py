@@ -111,7 +111,7 @@ def test_new_agent_facing_tools_have_required_docstring_sections_and_reason_para
     assert set(tools[2].args_schema.model_json_schema()["properties"]) == {"assert", "reason"}
 
 
-def test_tool_reasons_are_saved_verbatim_and_eval_exports_machine_reason_context():
+def test_tool_reasons_are_saved_and_eval_exports_machine_reason_context():
     registry = _registry()
     register_reason = "Register the only behavior unit without rewriting Controller-owned facts."
     revision_reason = "Revise expression while inheriting relation family and basis."

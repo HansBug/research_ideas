@@ -38,11 +38,11 @@ class FrozenTaskSnapshot(StrictToolModel):
 
 
 class ReadTaskInput(StrictToolModel):
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class ReadGuideInput(StrictToolModel):
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class QueryModelInput(StrictToolModel):
@@ -51,7 +51,7 @@ class QueryModelInput(StrictToolModel):
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=50, ge=1, le=500)
     root_node_ids: list[NonBlankString] = Field(default_factory=list)
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class ModelQueryResult(StrictToolModel):
@@ -72,7 +72,7 @@ class ObserveTraceInput(StrictToolModel):
     question: str = Field(min_length=1)
     root_node_ids: list[NonBlankString] = Field(min_length=1)
     cycles: list[list[NonBlankString]] = Field(min_length=1)
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class TraceObservation(StrictToolModel):
@@ -90,7 +90,7 @@ class TraceObservation(StrictToolModel):
 class LookupSourceTraceInput(StrictToolModel):
     element_refs: list[NonBlankString] = Field(min_length=1)
     direction: Literal["source_to_fcstm", "fcstm_to_source"] = "fcstm_to_source"
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class SourceTraceLookupResult(StrictToolModel):

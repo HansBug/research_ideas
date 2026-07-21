@@ -5,6 +5,8 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Literal
 
+from .tools import NonBlankString
+
 
 class StrictContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True, strict=True)
@@ -68,7 +70,7 @@ class LogicalAssertionRegistration(StrictContractModel):
 
 class EvalAssertToolInput(StrictContractModel):
     assert_: str = Field(alias="assert", min_length=1)
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class EvalAssertResult(StrictContractModel):

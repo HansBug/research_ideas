@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import inspect
 
+import pytest
+
 from paper_stm_repair_loop.agents.discover import AGENT_TOOL_NAMES, _build_tools
 from paper_stm_repair_loop.tools.coverage_registry import callable_docstring_has_required_sections
 
-from v2_helpers import make_controller
+from v2_helpers import make_controller, make_plan
 
 
 def _tools(tmp_path):
@@ -76,6 +78,49 @@ def test_tool_input_fields_match_issue164_contract(tmp_path):
         "lookup_source_trace": {"element_refs", "direction", "reason"},
         "review_discovery_coverage": {"reason"},
     }
+
+
+def test_all_agent_tool_reasons_reject_whitespace_only_input(tmp_path):
+    controller, tools = _tools(tmp_path)
+    payloads = {
+        "read_fcstm_guide": {"reason": "   "},
+        "read_fbmcq_guide": {"reason": "   "},
+        "read_task": {"reason": "   "},
+        "register_coverage_plan": {"plan": make_plan(controller), "reason": "   "},
+        "revise_assertion": {
+            "assertion_chain_id": "ASSERT-001",
+            "assert": "transition_exists(source='Root.Active', event='Root.Power_Off')",
+            "reason": "   ",
+        },
+        "query_model": {"query_kind": "states", "reason": "   "},
+        "eval_assert": {"assert": "states()", "reason": "   "},
+        "observe_trace": {
+            "question": "Observe one path.",
+            "root_node_ids": ["ROOT-001"],
+            "cycles": [[]],
+            "reason": "   ",
+        },
+        "lookup_source_trace": {
+            "element_refs": ["state:Root.Active"],
+            "reason": "   ",
+        },
+        "review_discovery_coverage": {"reason": "   "},
+    }
+
+    assert set(payloads) == set(tools)
+    for name, payload in payloads.items():
+        with pytest.raises(ValueError, match="at least 1 character"):
+            tools[name].args_schema.model_validate(payload)
+
+
+def test_agent_tool_reasons_trim_surrounding_whitespace(tmp_path):
+    _controller, tools = _tools(tmp_path)
+
+    parsed = tools["read_fcstm_guide"].args_schema.model_validate(
+        {"reason": "  Read the frozen FCSTM guide.  "}
+    )
+
+    assert parsed.reason == "Read the frozen FCSTM guide."
 
 
 def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_path):

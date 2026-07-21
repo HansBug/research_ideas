@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Literal
 
 from .roots import PropositionRootNode
+from .tools import NonBlankString
 
 
 class StrictContractModel(BaseModel):
@@ -64,7 +65,7 @@ class DiscoverOutcome(StrictContractModel):
 class DiscoverSubmission(StrictContractModel):
     submission_type: Literal["submit_discovery"] = "submit_discovery"
     outcome: DiscoverOutcome
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class AgentReceiptRef(StrictContractModel):

@@ -7,13 +7,11 @@ import re
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from pydantic import Field
-
 from utils.agent import AgentApp, AgentSpec
 from utils.llm import LLMRegistry
 
 from ..schemas.coverage_review import CoverageReviewVerdict
-from ..schemas.tools import SimpleStructuredTool, StrictToolModel
+from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
 
@@ -33,7 +31,7 @@ class CoverageReviewerContractError(CoverageReviewerError):
 
 
 class ReviewDiscoveryCoverageInput(StrictToolModel):
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 def _stable_sha256(value: Any) -> str:

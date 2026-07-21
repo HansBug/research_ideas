@@ -5,10 +5,11 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Literal
 
-from .tool_reason import EvalAssertInput
 from .coverage import CoveragePlan
+from .tool_reason import EvalAssertInput
 from .tools import (
     LookupSourceTraceInput,
+    NonBlankString,
     ObserveTraceInput,
     QueryModelInput,
     ReadGuideInput,
@@ -32,13 +33,13 @@ CoverageReviewToolName = Literal[
 
 class RegisterCoveragePlanArguments(StrictReviewModel):
     plan: CoveragePlan
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class ReviseAssertionArguments(StrictReviewModel):
     assertion_chain_id: str = Field(min_length=1)
     assert_: str = Field(alias="assert", min_length=1)
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 class CoverageImprovementStep(StrictReviewModel):

@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import Field, create_model
 
-from ..schemas.tools import SimpleStructuredTool, StrictToolModel
+from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
 
@@ -13,7 +13,7 @@ EvalAssertInput = create_model(
     __base__=StrictToolModel,
     **{
         "assert": (str, Field(min_length=1)),
-        "reason": (str, Field(min_length=1)),
+        "reason": (NonBlankString, ...),
     },
 )
 
@@ -129,7 +129,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         ----------
         Public schema fields are exactly ``assert`` and ``reason``. ``assert`` is
         the complete Python expression and must exactly match one unique latest
-        registered assertion expression. ``reason`` is saved verbatim.
+        registered assertion expression. ``reason`` is trimmed and saved.
 
         Returns
         -------

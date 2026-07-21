@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import json
 
-from pydantic import Field
-
 from ..schemas.coverage import CoveragePlan
-from ..schemas.tools import SimpleStructuredTool, StrictToolModel
+from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
 
 class RegisterCoveragePlanInput(StrictToolModel):
     plan: CoveragePlan
-    reason: str = Field(min_length=1)
+    reason: NonBlankString
 
 
 def execute(registry: CoverageRegistry, plan: CoveragePlan, reason: str) -> dict[str, object]:
@@ -29,11 +27,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     IDs. The Agent-facing
     input schema has exactly ``plan`` and ``reason``. ``plan`` may contain only
     Agent-declared ``coverage_units``, ``segment_dispositions``, optional
-    ``fact_dispositions``, ``proposition_roots``/``roots``, and
-    ``logical_assertions``/``assertions``; it must not submit or overwrite
+    ``fact_dispositions``, ``proposition_roots``, and
+    ``logical_assertions``; it must not submit or overwrite
     ``input_segments``, ``coverage_requirements``, or ``source_facts``. ``reason`` is the natural-language
-    rationale for freezing this exact coverage analysis; it is saved verbatim and
-    is not parsed for IDs.
+    rationale for freezing this exact coverage analysis; surrounding whitespace
+    is removed before it is saved, and it is not parsed for IDs.
 
     Returns: a LangChain ``StructuredTool`` named ``register_coverage_plan``.
     Successful calls return ``execution_status=completed``, counts for units,
@@ -109,7 +107,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Unit supplies ``requirement_ids`` and ``dimensions`` exactly as returned
         by ``read_task``.
         Frozen InputSegments/CoverageRequirements/SourceFacts are Controller
-        inputs, not Agent-writable fields. ``reason`` is saved verbatim.
+        inputs, not Agent-writable fields. ``reason`` is trimmed and saved.
 
         Returns
         -------

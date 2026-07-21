@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import Field, create_model
 
-from ..schemas.tools import SimpleStructuredTool, StrictToolModel
+from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
 
@@ -14,7 +14,7 @@ ReviseAssertionInput = create_model(
     **{
         "assertion_chain_id": (str, Field(min_length=1)),
         "assert": (str, Field(min_length=1)),
-        "reason": (str, Field(min_length=1)),
+        "reason": (NonBlankString, ...),
     },
 )
 
@@ -31,7 +31,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     Parameters: ``registry`` is the Controller-owned append-only
     ``CoverageRegistry``. The public input fields are ``assertion_chain_id``,
     ``assert`` (internally ``assert_text`` because ``assert`` is a Python
-    keyword), and ``reason``. ``reason`` is stored verbatim as the revision
+    keyword), and ``reason``. ``reason`` is trimmed and stored as the revision
     rationale and is not trusted for Root/Unit matching.
 
     Returns: a ``StructuredTool`` named ``revise_assertion``. Accepted revisions
@@ -90,7 +90,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Parameters
         ----------
         ``assertion_chain_id`` names one existing chain. ``assert`` is one Python
-        expression string. ``reason`` is required natural language saved verbatim.
+        expression string. ``reason`` is required natural language; surrounding
+        whitespace is removed before it is saved.
 
         Returns
         -------
