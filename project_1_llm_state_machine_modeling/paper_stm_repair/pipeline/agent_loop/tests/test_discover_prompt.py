@@ -151,6 +151,8 @@ def test_prompt_requires_feedback_driven_progress_without_external_takeover():
     assert "For `mandatory_tool_rejected`, call the returned `required_tool`" in flat
     assert "Do not disguise repetition with whitespace" in flat
     assert "close every item" in flat
+    assert "`submit_discovery` schema validation returns `field_mismatches`" in flat
+    assert "never respond by shortening the outcome" in flat
 
 
 def test_prompt_language_policy_and_unknown_language():
