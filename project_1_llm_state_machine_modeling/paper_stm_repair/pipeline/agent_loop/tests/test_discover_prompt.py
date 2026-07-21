@@ -129,6 +129,8 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "Every literal `simulate(cycles=...)` begins with `[]`" in flat
     assert "Reusing an event in a later cycle is legal" in flat
     assert "consumed-event accounting is not a one-use rule" in flat
+    assert "`simulate(...).final.is_ended is True`" in flat
+    assert "do not call `is_active` after the terminating event" in flat
     assert "call `read_fbmcq_guide`" in flat
     assert "replay-mismatched results are inconclusive" in flat
 

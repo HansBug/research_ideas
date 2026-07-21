@@ -88,8 +88,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     ``bound_model_refs``. Pure builtins are exactly ``abs/all/any/bool/float/int/
     iter/len/list/max/min/round/set/sorted/str/sum/tuple``.
     ``SimulationObservation`` exposes ``cycles/final/
-    model_sha256``; ``CycleObservation`` exposes ``index/active_states/variables/
-    input_events/consumed_events/unconsumed_events/fired_transitions/is_active``;
+    model_sha256``; ``CycleObservation`` exposes ``index/is_ended/active_states/
+    variables/input_events/consumed_events/unconsumed_events/
+    fired_transitions/is_active``. Use ``.final.is_ended is True`` for an NL
+    top-level final/completion obligation; after termination there is no active
+    state to query.
     ``FBMCQObservation`` exposes ``canonical_query/status/holds/bound/witness/
     replay_status``.
 
@@ -216,11 +219,15 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           cycle. No hidden initialization cycle is inserted, and every registered
           simulation assertion must begin with ``[]``. Inspect
           ``.cycles`` or ``.final``; a CycleObservation exposes ``.index``,
-          ``.active_states``, ``.variables``, ``.input_events``,
+          ``.is_ended``, ``.active_states``, ``.variables``, ``.input_events``,
           ``.consumed_events``, ``.unconsumed_events``,
           ``.fired_transitions``, ``.limitations`` and
-          ``.is_active(state)``. Reusing an external event in a later cycle is
-          legal; consumed-event accounting is not a one-use scenario rule.
+          ``.is_active(state)``. For an NL top-level final/completion result,
+          assert ``simulate(...).final.is_ended is True``; a terminated runtime
+          has no active state, so do not call ``is_active`` after termination or
+          append a diagnostic cycle after the terminating event. Reusing an
+          external event in a later non-terminal cycle is legal; consumed-event
+          accounting is not a one-use scenario rule.
         - ``fbmcq(query) -> FBMCQObservation``. ``query`` is one complete
           official FBMCQ string with the bound inside it, for example
           ``check reach <= 8: active("Root.Attack");``. Read
@@ -318,6 +325,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           variable='uav_count') or 0) < 0``;
         - bounded cycle path:
           ``simulate(cycles=[[], ['Root.go']]).final.is_active('Root.Done')``;
+        - top-level completion:
+          ``simulate(cycles=[[], ['Root.stop']]).final.is_ended is True``;
         - bounded formal property:
           ``fbmcq('check reach <= 8: active("Root.Done");').holds is True``.
 

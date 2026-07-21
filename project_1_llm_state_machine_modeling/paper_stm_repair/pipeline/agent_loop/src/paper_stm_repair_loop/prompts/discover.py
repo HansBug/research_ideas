@@ -126,6 +126,10 @@ double-negated verdict metadata, or a bare constant.
 7. Simulation uses FCSTM cycles. Every literal `simulate(cycles=...)` begins
    with `[]` for explicit initialization. Reusing an event in a later cycle is
    legal; consumed-event accounting is not a one-use rule.
+   For a top-level final/completion obligation, directly assert
+   `simulate(...).final.is_ended is True`. A terminated runtime has no active
+   state, so do not call `is_active` after the terminating event or append a
+   diagnostic cycle after termination.
 8. Continuity/persistence requires all applicable paths. Use at least two
    distinct initialized progressing simulations or at least two path-specific
    FBMCQ response properties when there are multiple return paths. One invariant

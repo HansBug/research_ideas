@@ -9,8 +9,9 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
     Parameters: ``cycle`` is a public pyfcstm cycle result and ``index`` is the
     controller-assigned cycle number.
 
-    Returns: a JSON-like record with cycle index, active-state ancestry,
-    variables, input/consumed/unconsumed events, and the public raw result.
+    Returns: a JSON-like record with cycle index, terminal status, active-state
+    ancestry, variables, input/consumed/unconsumed events, and the public raw
+    result.
 
     Execution: converts public ``to_json``/``model_dump``/``__dict__`` payloads
     without parsing exception strings or inferring semantic verdicts.
@@ -30,13 +31,20 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
     """
 
     raw = _jsonable(cycle)
-    current_path = ".".join(runtime.current_state.path)
-    parts = current_path.split(".")
-    active_states = [".".join(parts[:index]) for index in range(1, len(parts) + 1)]
+    is_ended = bool(runtime.is_ended)
+    if is_ended:
+        active_states: list[str] = []
+    else:
+        current_path = ".".join(runtime.current_state.path)
+        parts = current_path.split(".")
+        active_states = [
+            ".".join(parts[:depth]) for depth in range(1, len(parts) + 1)
+        ]
     variables = _jsonable(getattr(runtime, "vars", {}))
     if isinstance(raw, dict):
         return {
             "index": index,
+            "is_ended": is_ended,
             "active_states": active_states,
             "variables": variables,
             "input_events": list(raw.get("input_events") or []),
@@ -48,6 +56,7 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
         }
     return {
         "index": index,
+        "is_ended": is_ended,
         "active_states": active_states,
         "variables": variables,
         "input_events": [],
@@ -62,7 +71,9 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
     }
 
 
-def execute_cycles(model: Any, cycles: list[list[str]]) -> tuple[str, list[dict[str, Any]]]:
+def execute_cycles(
+    model: Any, cycles: list[list[str]]
+) -> tuple[str | None, list[dict[str, Any]]]:
     """Run event cycles with pyfcstm cycle semantics.
 
     Parameters: ``model`` is the controller-bound parsed FCSTM model and
@@ -70,8 +81,9 @@ def execute_cycles(model: Any, cycles: list[list[str]]) -> tuple[str, list[dict[
     event names.  Empty lists are explicit eventless stabilization cycles.
 
     Returns: ``(current_state, trace_cycles)`` where ``current_state`` is the
-    final dotted active state path and ``trace_cycles`` contains exactly one
-    observation for every caller-provided outer cycle.
+    final dotted active state path or ``None`` after model termination, and
+    ``trace_cycles`` contains exactly one observation for every caller-provided
+    outer cycle. Every observation includes the terminal-safe ``is_ended`` fact.
 
     Execution: creates one fresh ``SimulationRuntime`` and invokes
     ``SimulationRuntime.cycle`` exactly once for each requested outer cycle. It
@@ -102,7 +114,8 @@ def execute_cycles(model: Any, cycles: list[list[str]]) -> tuple[str, list[dict[
     for index, events in enumerate(cycles):
         result = runtime.cycle(events=list(events))
         trace.append(cycle_accounting(result, runtime, index))
-    return ".".join(runtime.current_state.path), trace
+    current_state = None if runtime.is_ended else ".".join(runtime.current_state.path)
+    return current_state, trace
 
 
 def _jsonable(value: Any) -> Any:

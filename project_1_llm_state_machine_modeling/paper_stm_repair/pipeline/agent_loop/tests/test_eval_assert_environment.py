@@ -52,6 +52,15 @@ state Root {
 """
 
 
+TERMINATING_MODEL = """state Root {
+    event stop;
+    state Running;
+    [*] -> Running;
+    Running -> [*] : stop;
+}
+"""
+
+
 def test_eval_environment_public_docstring_declares_contract_sections():
     doc = inspect.getdoc(EvalEnvironment) or ""
     for marker in [
@@ -195,7 +204,24 @@ def test_simulate_uses_cycle_semantics_and_final_view_method():
     assert direct.cycles[1].index == 1
     assert direct.cycles[1].input_events == ("Root.go",)
     assert direct.cycles[1].is_active("Root.Done") is True
+    assert direct.cycles[1].is_ended is False
     assert direct.model_sha256
+
+
+def test_simulate_exposes_terminal_state_without_reading_current_state():
+    env = EvalEnvironment(model_text=TERMINATING_MODEL)
+
+    result = env.eval_assert(
+        "simulate(cycles=[[], ['Root.stop']]).final.is_ended is True",
+        "stop should terminate the root machine",
+        required_function_families=["simulation"],
+    )
+
+    assert result.result == RESULT_TRUE
+    assert result.match_status == "matches"
+    direct = env.simulation.simulate(cycles=[[], ["Root.stop"]])
+    assert direct.final.is_ended is True
+    assert direct.final.active_states == ()
 
 
 def test_effect_delta_reuses_structured_effects_and_missing_effect_is_false_with_contract_expression():

@@ -101,8 +101,12 @@ def build_tool(
         A structured result containing `execution_status`, the original question
         and Root IDs, requested cycles, one immutable observation per cycle,
         final observation, frozen `model_sha256`, original reason, and
-        limitations. Each cycle includes index, active states, variables,
-        input/consumed/unconsumed events, fired-transition field, and limitations.
+        limitations. Each cycle includes index, terminal-safe ``is_ended``,
+        active states, variables, input/consumed/unconsumed events,
+        fired-transition field, and limitations. A completed top-level machine
+        is reported as ``is_ended=true`` with empty active states; do not append
+        another cycle after termination or infer completion by querying an
+        active state that no longer exists.
 
         Execution
         ---------
@@ -133,6 +137,9 @@ def build_tool(
         Examples
         --------
         `{"question":"Does the eventless transition after interception require an explicit empty cycle?","root_node_ids":["ROOT-002"],"cycles":[[],["Root.Interception_Detected"],[]],"reason":"Determine the shortest setup before registering ROOT-002's simulation assertion."}`
+
+        For a top-level final target use a terminal-safe sequence such as
+        `{"question":"Does stop terminate the machine?","root_node_ids":["ROOT-003"],"cycles":[[],["Root.stop"]],"reason":"Observe the final cycle's is_ended flag before registering the completion assertion."}`.
         """
 
         if len(cycles) > max_cycles_per_call:

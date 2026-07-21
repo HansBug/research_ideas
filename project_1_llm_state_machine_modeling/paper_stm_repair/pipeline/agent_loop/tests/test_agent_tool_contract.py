@@ -41,6 +41,7 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         "mapped_source_refs",
         "is_leaf",
         "is_composite",
+        "is_ended",
         "transition_index",
         "Positive bool principle",
         "required function families",

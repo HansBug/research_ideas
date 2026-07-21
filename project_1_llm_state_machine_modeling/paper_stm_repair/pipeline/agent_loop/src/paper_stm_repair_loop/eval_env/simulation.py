@@ -15,6 +15,7 @@ FINAL_METHODS = {"is_active": _is_active}
 CYCLE_FIELDS = frozenset(
     {
         "index",
+        "is_ended",
         "active_states",
         "variables",
         "input_events",
@@ -37,8 +38,11 @@ class SimulationAPI:
 
     Returns: ``simulate(cycles=[...])`` returns an immutable observation with
     ``cycles``, ``final``, and ``model_sha256``. Every cycle exposes its index,
-    active-state ancestry, variables, input/consumed/unconsumed events, fired
-    transition field, limitations, and ``is_active(state)`` method.
+    terminal-safe ``is_ended`` boolean, active-state ancestry, variables,
+    input/consumed/unconsumed events, fired transition field, limitations, and
+    ``is_active(state)`` method. A terminated cycle has ``is_ended=True`` and an
+    empty ``active_states`` tuple; use ``is_ended`` instead of calling
+    ``is_active`` to prove top-level completion.
 
     Execution: parses the frozen model through the existing pyfcstm adapter and
     uses ``SimulationRuntime.cycle`` exactly once for each requested cycle. It
@@ -59,7 +63,8 @@ class SimulationAPI:
 
     Example: ``simulate(cycles=[[], ["Root.go"]]).final.is_active("Root.Done")``
     checks the final active state after an explicit empty cycle and one event
-    cycle.
+    cycle. ``simulate(cycles=[[], ["Root.stop"]]).final.is_ended is True`` checks
+    an explicit top-level termination result without reading ``current_state``.
     """
 
     family = "simulation"
