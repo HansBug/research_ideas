@@ -165,3 +165,25 @@ def test_query_model_guides_completed_and_rejected_calls_toward_progress(tmp_pat
     assert duplicate["execution_status"] == "invalid_arguments"
     assert "duplicate_query_not_executed" in duplicate["limitations"]
     assert "proceed to plan registration" in duplicate["recommended_action"]
+
+
+def test_fbmcq_guide_does_not_encourage_unnecessary_formal_assertions(tmp_path):
+    _controller, tools = _tools(tmp_path)
+    tools["read_fcstm_guide"].invoke(
+        {"reason": "Read FCSTM semantics before the optional FBMCQ guide."}
+    )
+    tools["read_task"].invoke(
+        {"reason": "Read the frozen task before deciding whether FBMCQ is needed."}
+    )
+    result = tools["read_fbmcq_guide"].invoke(
+        {
+            "reason": (
+                "Read the bounded-property syntax only after identifying a "
+                "necessary temporal obligation."
+            )
+        }
+    )
+
+    assert result["execution_status"] == "completed"
+    assert "minimum sufficient plan" in result["recommended_action"]
+    assert "explicit bounded temporal obligation" in result["pass_criteria"]

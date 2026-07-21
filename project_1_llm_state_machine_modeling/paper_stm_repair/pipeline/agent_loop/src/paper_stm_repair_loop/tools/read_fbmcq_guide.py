@@ -21,6 +21,22 @@ def execute() -> dict[str, Any]:
         "guide_kind": "fbmcq",
         **metadata,
         "content": content,
+        "recommended_tools": [
+            "register_coverage_plan",
+            "revise_assertion",
+            "eval_assert",
+        ],
+        "recommended_action": (
+            "Use FBMCQ only for a necessary bounded temporal proposition that "
+            "cannot be expressed at the required strength by direct relation or "
+            "simulation evidence. If no such proposition remains, do not add a "
+            "formal assertion; proceed with the minimum sufficient plan."
+        ),
+        "pass_criteria": (
+            "Any registered FBMCQ assertion is tied to one explicit bounded "
+            "temporal obligation with exact model refs and a justified bound; "
+            "otherwise the complete plan proceeds without FBMCQ."
+        ),
         "limitations": [
             "query_authoring_reference_only",
             "does_not_prove_nl_alignment_or_coverage",
@@ -61,8 +77,9 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         -------
         A JSON object with ``execution_status=completed``, ``guide_kind=fbmcq``,
         complete Markdown ``content``, upstream version/SHA-256/size/chapter
-        metadata, and limitations. The guide covers model facts, property kinds,
-        frames/steps/bounds, definedness, response windows, and vacuity avoidance.
+        metadata, minimum-sufficient-evidence guidance, and limitations. The guide
+        covers model facts, property kinds, frames/steps/bounds, definedness,
+        response windows, and vacuity avoidance.
 
         Execution
         ---------

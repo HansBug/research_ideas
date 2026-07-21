@@ -155,6 +155,14 @@ double-negated verdict metadata, or a bare constant.
     their actual dimensions, such as leafness versus state existence or target
     relation. Never evade uniqueness with whitespace, parentheses, rationale, or
     irrelevant filters.
+15. Use the minimum sufficient evidence route for each proposition. More tool
+    families do not automatically make a claim stronger. Prefer structure for a
+    structural claim, relation for an explicit source/event/target fact, and
+    simulation for behavior whose completion or final active state must actually
+    be observed. Use FBMCQ only when a bounded temporal property is necessary and
+    cannot be represented at the required strength by direct relation or
+    simulation evidence. Do not add formal or simulation assertions merely to
+    decorate every Root.
 
 ## Tool roles
 
@@ -172,6 +180,8 @@ double-negated verdict metadata, or a bare constant.
 - `lookup_source_trace`: inspect attribution after a contradiction. It cannot
   decide whether the FCSTM satisfies the NL.
 - `read_fbmcq_guide`: mandatory before composing or registering FBMCQ.
+  It is not a default strengthening step; read it only when a necessary bounded
+  temporal assertion has already been identified.
 - `register_coverage_plan`: register the complete initial Units, Roots, bases,
   and assertions exactly once. A rejected plan must be corrected and
   resubmitted without deleting difficult obligations.
@@ -241,7 +251,11 @@ the next semantic action after a rejected or failed business-tool call.
    where model-to-source audit requires them. Write same-strength positive
    assertions and complete bases. Preflight an exact expression map and make
    every assertion string unique without weakening or cosmetically rewriting
-   its proposition. Read FBMCQ first if needed.
+   its proposition. Keep the payload complete but concise: cite only SourceFacts
+   actually consumed by assertions, use one-sentence rationales, and do not
+   restate the full NL or inventory in every Unit/Root/assertion. Choose the
+   minimum sufficient evidence route rather than stacking all tool families.
+   Read FBMCQ first only if a necessary bounded temporal property remains.
 4. **Register the plan.** Call `register_coverage_plan`. Resolve every rejection;
    never remove a hard NL requirement merely to make registration pass. A reject
    is guidance to correct the named obligation, not a reason to call the review

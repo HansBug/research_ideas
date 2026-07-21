@@ -111,6 +111,10 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "exact `assert` string -> chain/Root/Unit map" in flat
     assert "semantically distinct direct predicates" in flat
     assert "Never evade uniqueness with whitespace" in flat
+    assert "minimum sufficient evidence route" in flat
+    assert "More tool families do not automatically make a claim stronger" in flat
+    assert "Use FBMCQ only when a bounded temporal property is necessary" in flat
+    assert "Do not add formal or simulation assertions merely to decorate" in flat
 
 
 def test_prompt_forbids_deterministic_anti_gaming_patterns():
@@ -165,6 +169,9 @@ def test_prompt_converges_exploration_into_the_registered_plan():
     assert "do not run a model-wide pre-plan trace sweep" in flat
     assert "the next semantic step for that proposition is to incorporate" in flat
     assert "one distinct unresolved condition" in flat
+    assert "Keep the payload complete but concise" in flat
+    assert "cite only SourceFacts actually consumed by assertions" in flat
+    assert "use one-sentence rationales" in flat
 
 
 def test_prompt_language_policy_and_unknown_language():
