@@ -189,6 +189,65 @@ def _without_rationale(value: Any) -> Any:
     return value
 
 
+def _projection_mismatches(
+    expected: Any,
+    actual: Any,
+    *,
+    path: str = "outcome",
+    limit: int = 24,
+) -> list[str]:
+    """Return bounded field-level guidance for a rejected terminal projection."""
+
+    mismatches: list[str] = []
+
+    def preview(value: Any) -> str:
+        rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
+        return rendered if len(rendered) <= 240 else rendered[:237] + "..."
+
+    def compare(expected_value: Any, actual_value: Any, current_path: str) -> None:
+        if len(mismatches) >= limit:
+            return
+        if isinstance(expected_value, dict) and isinstance(actual_value, dict):
+            expected_keys = set(expected_value)
+            actual_keys = set(actual_value)
+            for key in sorted(expected_keys - actual_keys):
+                if len(mismatches) >= limit:
+                    return
+                mismatches.append(
+                    f"{current_path}.{key}: missing; expected="
+                    f"{preview(expected_value[key])}"
+                )
+            for key in sorted(actual_keys - expected_keys):
+                if len(mismatches) >= limit:
+                    return
+                mismatches.append(
+                    f"{current_path}.{key}: unexpected; actual="
+                    f"{preview(actual_value[key])}"
+                )
+            for key in sorted(expected_keys & actual_keys):
+                compare(expected_value[key], actual_value[key], f"{current_path}.{key}")
+            return
+        if isinstance(expected_value, list) and isinstance(actual_value, list):
+            if len(expected_value) != len(actual_value):
+                mismatches.append(
+                    f"{current_path}: list length actual={len(actual_value)}; "
+                    f"expected={len(expected_value)}"
+                )
+            for index, (expected_item, actual_item) in enumerate(
+                zip(expected_value, actual_value)
+            ):
+                compare(expected_item, actual_item, f"{current_path}[{index}]")
+            return
+        if expected_value != actual_value:
+            mismatches.append(
+                f"{current_path}: actual={preview(actual_value)}; "
+                f"expected={preview(expected_value)}"
+            )
+
+    compare(expected, actual, path)
+    return mismatches
+
+
 def _build_submit_schema(controller: DiscoverController) -> type[DiscoverSubmission]:
     """Create the provider-native terminal schema tied to Controller state."""
 
@@ -197,9 +256,16 @@ def _build_submit_schema(controller: DiscoverController) -> type[DiscoverSubmiss
         def validate_against_controller(self) -> "SubmitDiscoveryResponse":
             projection = controller.projection(record_gate=False)
             submitted = self.outcome.model_dump(mode="json")
-            if _without_rationale(submitted) != _without_rationale(projection):
+            expected = _without_rationale(projection)
+            actual = _without_rationale(submitted)
+            if actual != expected:
+                mismatches = _projection_mismatches(expected, actual)
                 raise ValueError(
-                    "submit_discovery outcome must match the Controller projection"
+                    "submit_discovery outcome must match the Controller projection; "
+                    f"field_mismatches={json.dumps(mismatches, ensure_ascii=False)}; "
+                    "corrective_action=copy every named expected value into the next "
+                    "submit_discovery outcome, preserve all unmentioned Controller "
+                    "fields, and do not submit a shortened projection"
                 )
             return self
 

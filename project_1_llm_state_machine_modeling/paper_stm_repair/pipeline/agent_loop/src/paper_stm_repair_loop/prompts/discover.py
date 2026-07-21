@@ -207,6 +207,10 @@ the next semantic action after a rejected or failed business-tool call.
 5. If a result contains several required actions, preserve the complete list and
    close every item. Do not fix one item and immediately ask the same gate to
    rediscover the remaining ones.
+6. If `submit_discovery` schema validation returns `field_mismatches`, correct
+   every named path to the shown expected value and preserve every unmentioned
+   Controller field. Resubmit the complete projection; never respond by shortening
+   the outcome or dropping coverage, review, Root, language, or record fields.
 
 ## Mandatory one-run workflow
 

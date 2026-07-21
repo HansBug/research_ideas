@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import copy
+
+import pytest
+from pydantic import ValidationError
+
 from paper_stm_repair_loop.agents.discover import _build_submit_schema
 from paper_stm_repair_loop.schemas.discovery import DiscoverOutcome
 
@@ -69,6 +74,23 @@ def test_structured_submission_validation_does_not_append_duplicate_gate_records
         assert schema.model_validate(payload).outcome.run_outcome == (
             "reviewer_accepted_zero_issue"
         )
+
+    shortened_projection = copy.deepcopy(projection)
+    shortened_projection.pop("coverage_requirement_coverage")
+    shortened_projection["major_behavior_coverage_review"].pop("required")
+    with pytest.raises(ValidationError) as exc_info:
+        schema.model_validate(
+            {
+                **payload,
+                "outcome": shortened_projection,
+            }
+        )
+    error_message = str(exc_info.value)
+    assert "field_mismatches=" in error_message
+    assert "outcome.coverage_requirement_coverage" in error_message
+    assert "outcome.major_behavior_coverage_review.required" in error_message
+    assert "expected=true" in error_message
+    assert "do not submit a shortened projection" in error_message
 
     gate_records_after = sum(
         item["record_type"] == "discovery_submit_gate_checked"
