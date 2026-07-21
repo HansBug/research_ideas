@@ -336,7 +336,13 @@ def _build_tools(
         guard_tool(build_revise_assertion(registry), state),
         guard_tool(build_query_model(snapshot), state),
         guard_tool(build_eval_assert(registry), state),
-        guard_tool(build_observe_trace(snapshot), state),
+        guard_tool(
+            build_observe_trace(
+                snapshot,
+                registered_root_ids=lambda: set(registry.roots),
+            ),
+            state,
+        ),
         guard_tool(build_lookup_source_trace(snapshot), state),
         guard_tool(build_review_discovery_coverage(review_gate), state),
     )

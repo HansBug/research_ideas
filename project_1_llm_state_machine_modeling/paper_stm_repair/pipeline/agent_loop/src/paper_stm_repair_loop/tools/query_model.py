@@ -253,6 +253,8 @@ def build_tool(
         ----------------
         Do not enumerate the model, duplicate `read_task`, or use query results
         directly as a Root verdict; the final proposition must use `eval_assert`.
+        Once a query answers its named gap, incorporate the result into the plan
+        or assertion instead of issuing adjacent inventory queries.
 
         Parameters
         ----------
@@ -284,6 +286,9 @@ def build_tool(
         - ``truncated``: true when another page exists after this page.
         - ``model_sha256``: frozen model identity; compare it with ``read_task``.
         - ``limitations``: machine-readable evidence-boundary/status notes.
+        - ``recommended_tools`` / ``recommended_action`` / ``pass_criteria``:
+          phase-aware guidance for incorporating a completed fact page or
+          correcting a rejected request without repeating it.
 
         Execution
         ---------
@@ -335,7 +340,44 @@ def build_tool(
         root_node_ids = list(root_node_ids or [])
 
         def finalize(result: dict[str, Any]) -> dict[str, Any]:
-            return {**result, "root_node_ids": root_node_ids, "reason": reason}
+            completed = result.get("execution_status") == "completed"
+            if completed:
+                recommended_tools = [
+                    "register_coverage_plan",
+                    "revise_assertion",
+                    "eval_assert",
+                ]
+                recommended_action = (
+                    "Incorporate these structural facts into the complete plan, "
+                    "or after review into the implicated assertion and its latest "
+                    "evaluation. Do not issue adjacent inventory queries when the "
+                    "named gap is already resolved."
+                )
+                pass_criteria = (
+                    "The next semantic action registers the complete plan or "
+                    "changes executable assertion evidence for the named Root."
+                )
+            else:
+                recommended_tools = ["query_model", "register_coverage_plan"]
+                recommended_action = (
+                    "Read the limitation code. Correct an invalid filter/page only "
+                    "when the named structural gap remains; for duplicate, fully "
+                    "returned, or no-new-fact results, use the facts already exposed "
+                    "and proceed to plan registration instead of retrying."
+                )
+                pass_criteria = (
+                    "The next call either supplies a corrected query that can expose "
+                    "a specifically missing fact or advances the existing evidence "
+                    "into the complete plan."
+                )
+            return {
+                **result,
+                "root_node_ids": root_node_ids,
+                "reason": reason,
+                "recommended_tools": recommended_tools,
+                "recommended_action": recommended_action,
+                "pass_criteria": pass_criteria,
+            }
 
         request_key = (query_kind, name_contains, offset, limit)
         if request_key in completed_requests:

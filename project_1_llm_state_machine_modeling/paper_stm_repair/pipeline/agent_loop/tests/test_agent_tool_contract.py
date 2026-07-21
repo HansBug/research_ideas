@@ -94,7 +94,7 @@ def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_p
     result = tools["observe_trace"].invoke(
         {
             "question": "Does Power_Off move Active to Off?",
-            "root_node_ids": ["ROOT-001"],
+            "root_node_ids": ["ROOT-CLAUSE-001-01"],
             "cycles": [[], ["Root.Power_Off"]],
             "reason": "Resolve the exact cycle setup before registration.",
         }
@@ -112,7 +112,7 @@ def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_p
     duplicate = tools["observe_trace"].invoke(
         {
             "question": "Does Power_Off move Active to Off?",
-            "root_node_ids": ["ROOT-001"],
+            "root_node_ids": ["ROOT-CLAUSE-001-01"],
             "cycles": [[], ["Root.Power_Off"]],
             "reason": "Do not repeat an already completed trace.",
         }
@@ -121,3 +121,47 @@ def test_observe_trace_guides_the_agent_back_to_plan_or_assertion_progress(tmp_p
     assert duplicate["limitations"] == ["duplicate_trace_request_not_executed"]
     assert "Do not repeat" in duplicate["recommended_action"]
     assert duplicate["pass_criteria"]
+
+    suffixed = tools["observe_trace"].invoke(
+        {
+            "question": "Try to bypass the stable Root identity.",
+            "root_node_ids": ["ROOT-CLAUSE-001-01B"],
+            "cycles": [[], ["Root.Power_Off"]],
+            "reason": "A suffix must not create a fresh exploration budget.",
+        }
+    )
+    assert suffixed["execution_status"] == "invalid_arguments"
+    assert suffixed["limitations"] == [
+        "unstable_or_unknown_root_id",
+        "ROOT-CLAUSE-001-01B",
+    ]
+    assert suffixed["allowed_provisional_root_ids"] == ["ROOT-CLAUSE-001-01"]
+    assert "Do not add a suffix" in suffixed["recommended_action"]
+
+
+def test_query_model_guides_completed_and_rejected_calls_toward_progress(tmp_path):
+    _controller, tools = _tools(tmp_path)
+    tools["read_fcstm_guide"].invoke(
+        {"reason": "Read the required FCSTM guide before the tool contract test."}
+    )
+    tools["read_task"].invoke(
+        {"reason": "Read the frozen task before the tool contract test."}
+    )
+    arguments = {
+        "query_kind": "transitions",
+        "name_contains": "Power_Off",
+        "offset": 0,
+        "limit": 50,
+        "root_node_ids": ["ROOT-CLAUSE-001-01"],
+        "reason": "Resolve the exact transition before registration.",
+    }
+
+    completed = tools["query_model"].invoke(arguments)
+    assert completed["execution_status"] == "completed"
+    assert "Do not issue adjacent" in completed["recommended_action"]
+    assert completed["pass_criteria"]
+
+    duplicate = tools["query_model"].invoke(arguments)
+    assert duplicate["execution_status"] == "invalid_arguments"
+    assert "duplicate_query_not_executed" in duplicate["limitations"]
+    assert "proceed to plan registration" in duplicate["recommended_action"]

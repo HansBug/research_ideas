@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any
 
 from ..eval_env.simulation import SimulationAPI
@@ -17,6 +18,22 @@ def _model_from_snapshot(snapshot: dict[str, Any]) -> tuple[str, str]:
     if not isinstance(digest, str) or not digest:
         digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     return text, digest
+
+
+def _provisional_root_ids(snapshot: dict[str, Any]) -> set[str]:
+    current = snapshot.get("current_records")
+    if not isinstance(current, dict):
+        return set()
+    requirements = current.get("coverage_requirements")
+    if not isinstance(requirements, list):
+        return set()
+    return {
+        f"ROOT-{item['clause_id']}"
+        for item in requirements
+        if isinstance(item, dict)
+        and isinstance(item.get("clause_id"), str)
+        and item["clause_id"]
+    }
 
 
 def execute(
@@ -71,10 +88,12 @@ def build_tool(
     *,
     max_calls_per_root: int = 2,
     max_cycles_per_call: int = 16,
+    registered_root_ids: Callable[[], set[str]] | None = None,
 ) -> SimpleStructuredTool:
     """Build the bounded exploratory ``observe_trace`` tool."""
 
     model_text, model_sha256 = _model_from_snapshot(snapshot)
+    provisional_root_ids = _provisional_root_ids(snapshot)
     calls_by_root: dict[str, int] = defaultdict(int)
     completed_requests: set[str] = set()
 
@@ -120,7 +139,10 @@ def build_tool(
         set supplied in that cycle; `[]` is an explicit eventless/init cycle.
         `reason` explains why this exact bounded trace is necessary in the run
         content language. No paths, model text, arbitrary code, or expected
-        outcome are accepted.
+        outcome are accepted. Before plan registration, a Root ID must be the
+        deterministic ROOT-<clause_id> exposed by read_task. After registration,
+        the exact registered Root IDs are also valid. Suffix variants such as
+        ROOT-CLAUSE-005-01B are rejected rather than treated as a new proposition.
 
         Returns
         -------
@@ -137,7 +159,7 @@ def build_tool(
 
         Execution
         ---------
-        Validate budgets and duplicate identity, then call pyfcstm
+        Validate stable Root identity, budgets, and duplicate identity, then call pyfcstm
         `SimulationRuntime.cycle` exactly once for every caller-provided outer
         cycle. The wrapper inserts no hidden initialization or stabilization
         cycle. It records public structured cycle results and never parses an
@@ -145,9 +167,11 @@ def build_tool(
 
         Failure semantics
         -----------------
-        Empty/malformed cycles, unknown event names, runtime errors, duplicate
-        requests, more than the configured calls per Root, or too many cycles
-        fail closed. They do not create an assertion result or Root verdict.
+        Empty/malformed cycles, unknown or suffixed Root IDs, unknown event names,
+        runtime errors, duplicate requests, more than the configured calls per
+        Root, or too many cycles fail closed. They do not create an assertion
+        result or Root verdict. Every failure returns a corrective action and pass
+        criterion; minting a new Root ID is never a valid recovery.
 
         Evidence limitations
         --------------------
@@ -168,6 +192,34 @@ def build_tool(
         For a top-level final target use a terminal-safe sequence such as
         `{"question":"Does stop terminate the machine?","root_node_ids":["ROOT-003"],"cycles":[[],["Root.stop"]],"reason":"Observe the final cycle's is_ended flag before registering the completion assertion."}`.
         """
+
+        allowed_root_ids = set(provisional_root_ids)
+        if registered_root_ids is not None:
+            allowed_root_ids.update(registered_root_ids())
+        invalid_root_ids = sorted(set(root_node_ids) - allowed_root_ids)
+        if invalid_root_ids:
+            return {
+                "execution_status": "invalid_arguments",
+                "question": question,
+                "root_node_ids": root_node_ids,
+                "model_sha256": model_sha256,
+                "reason": reason,
+                "allowed_provisional_root_ids": sorted(provisional_root_ids),
+                "recommended_tools": ["register_coverage_plan"],
+                "recommended_action": (
+                    "Use the exact ROOT-<clause_id> from read_task for a pre-plan "
+                    "proposition, or an exact registered Root ID. Do not add a "
+                    "suffix or mint a replacement ID to bypass prior exploration; "
+                    "incorporate the observations already collected into the "
+                    "complete coverage plan."
+                ),
+                "pass_criteria": (
+                    "The next semantic action uses an allowed stable Root ID and "
+                    "advances to complete plan registration without replaying the "
+                    "same proposition under a new identity."
+                ),
+                "limitations": ["unstable_or_unknown_root_id", *invalid_root_ids],
+            }
 
         if len(cycles) > max_cycles_per_call:
             return {
