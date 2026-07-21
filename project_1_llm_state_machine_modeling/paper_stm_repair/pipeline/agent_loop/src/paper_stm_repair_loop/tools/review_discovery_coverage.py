@@ -89,6 +89,10 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 11. NL 明确 in-scope 的行为若在当前模型中没有表达，应按模型行为缺口或断言缺口处理；不得凭空降级为“抽象层差异”。但也不得把 NL 强化成原文没有的 only / every-state / future-model 义务。
 12. 必须检查会直接制造错误主要结论的哨兵变量、硬编码候选名、过滤后凑基数和弱映射等 anti-gaming 模式；仅属理论极端而不影响本例结论的风险写入 coverage_analysis 作为改进建议。
 13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账的主要行为覆盖是否足以支持本次 Discover 结论，并在 coverage_analysis 中说明覆盖边界和可选增强方向；不得宣称绝对 100% 覆盖。
+14. 正向条件义务不自动产生排他性负义务。“在状态 S 收到 E 时到达 T”要求检查该条件成立时的行为；除非同一关联 NL 明确出现 only、must not、不得、禁止等排他措辞，不得进一步要求其他状态收到 E 时不能到达 T，也不得建议包含 is False 或 not(...) 的负半句来制造 issue。
+15. 按 FCSTM 层次语义解释无事件迁移：复合状态的 event=None 出边可能是子机到达 final 后的 completion transition，不等于每个普通 cycle 都立即无条件触发。I_TRANSITION_NEVER_EVENT_TRIGGERED 只说明该边不由事件触发。若要声称它导致提前退出，必须引用已执行 simulation/formal 证据；结构存在本身不足以支持该结论。
+16. 当前 review 发生在完整计划已经注册之后。现有工具只能 revise 已注册 assertion chain，不能新增 CoverageUnit、Root 或 assertion chain，也不能重新注册完整计划。每个 revise_assertion step 的 assertion_chain_id 必须来自 review_contract.required_assertion_chain_ids；若当前工具无法实现某建议，不得把它作为 finding 返回。
+17. 建议的断言仍必须遵循正向布尔原则：True 表示现有 Root 得到满足。若 NL 明确禁止某行为，表达式应在该行为不存在时为 True；不得把“不希望存在的边确实存在”写成 True 后仍声称它会投影为 issue。
 
 recommended_steps.suggested_arguments 必须遵守以下真实工具输入合同；示例值应替换成当前台账中的真实 ID、表达式和模型元素：
 - query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}；query_kind 只允许 states/events/transitions/variables/diagnostics。
@@ -393,6 +397,7 @@ class CoverageReviewGate:
             "root": set(self.registry.roots),
         }
         programmatic_errors: list[str] = []
+        invalid_finding_ids: set[str] = set()
         for verdict in verdicts:
             actual = {
                 "segment": set(verdict.reviewed_segment_ids),
@@ -426,6 +431,7 @@ class CoverageReviewGate:
                 for label, ids in finding_ids.items():
                     unknown = sorted(ids - known_ids[label])
                     if unknown:
+                        invalid_finding_ids.add(finding.finding_id)
                         programmatic_errors.append(
                             f"{verdict.review_kind}_finding_unknown_{label}_ids:"
                             f"finding={finding.finding_id}:unknown={','.join(unknown)}"
@@ -434,8 +440,18 @@ class CoverageReviewGate:
                     finding,
                     _finding_nl_scopes(finding, self.task_snapshot),
                 ):
+                    invalid_finding_ids.add(finding.finding_id)
                     programmatic_errors.append(
                         f"{verdict.review_kind}_finding_nl_strengthening:"
+                        f"finding={finding.finding_id}"
+                    )
+                for error in _finding_step_contract_errors(
+                    finding,
+                    known_assertion_chain_ids=set(self.registry.chains),
+                ):
+                    invalid_finding_ids.add(finding.finding_id)
+                    programmatic_errors.append(
+                        f"{verdict.review_kind}_{error}:"
                         f"finding={finding.finding_id}"
                     )
 
@@ -444,6 +460,7 @@ class CoverageReviewGate:
             finding.model_dump(mode="json")
             for verdict in verdicts
             for finding in verdict.findings
+            if finding.finding_id not in invalid_finding_ids
         ]
         previous = self.latest_result or {}
         if (
@@ -650,7 +667,16 @@ def _finding_strengthens_frozen_nl(
     finding: Any,
     frozen_nl_scopes: tuple[str, ...],
 ) -> bool:
-    action = "\n".join([finding.recommended_action, finding.pass_criteria]).lower()
+    suggested_arguments = [
+        step.suggested_arguments for step in finding.recommended_steps
+    ]
+    action = "\n".join(
+        [
+            finding.recommended_action,
+            finding.pass_criteria,
+            json.dumps(suggested_arguments, ensure_ascii=False, sort_keys=True),
+        ]
+    ).lower()
     quantifier_groups = (
         (
             (r"\bonly\b", r"只能", r"仅允许"),
@@ -681,7 +707,61 @@ def _finding_strengthens_frozen_nl(
         )
         if action_uses_quantifier and not every_scope_authorizes:
             return True
-    return False
+    negative_action_patterns = (
+        r"\bis\s+false\b",
+        r"\bmust\s+not\b",
+        r"\bshall\s+not\b",
+        r"\bnever\b",
+        r"\bnot\s+(?:transition_exists|simulate|fbmcq|effects|guards_overlap)\b",
+        r"不应",
+        r"不得",
+        r"禁止",
+        r"不允许",
+    )
+    negative_nl_patterns = (
+        r"\bonly\b",
+        r"\bmust\s+not\b",
+        r"\bshall\s+not\b",
+        r"\bnever\b",
+        r"\bnot\b",
+        r"只能",
+        r"仅允许",
+        r"不应",
+        r"不得",
+        r"禁止",
+        r"不允许",
+    )
+    action_adds_negative_obligation = any(
+        re.search(pattern, action, re.I) for pattern in negative_action_patterns
+    )
+    every_scope_authorizes_negative = bool(frozen_nl_scopes) and all(
+        any(re.search(pattern, scope, re.I) for pattern in negative_nl_patterns)
+        for scope in frozen_nl_scopes
+    )
+    return action_adds_negative_obligation and not every_scope_authorizes_negative
+
+
+def _finding_step_contract_errors(
+    finding: Any,
+    *,
+    known_assertion_chain_ids: set[str],
+) -> list[str]:
+    errors: list[str] = []
+    if "register_coverage_plan" in set(finding.recommended_tools):
+        errors.append("finding_cannot_reregister_plan_after_review")
+    for step in finding.recommended_steps:
+        if step.tool == "register_coverage_plan":
+            errors.append("finding_cannot_reregister_plan_after_review")
+            continue
+        if step.tool != "revise_assertion":
+            continue
+        assertion_chain_id = step.suggested_arguments.get("assertion_chain_id")
+        if assertion_chain_id not in known_assertion_chain_ids:
+            errors.append(
+                "finding_unknown_revise_assertion_chain:"
+                f"unknown={assertion_chain_id}"
+            )
+    return sorted(set(errors))
 
 
 def _finding_nl_scopes(
@@ -844,8 +924,11 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         维度、总体动作和可观察通过条件。不得建议用 FBMCQ 解释 NL，不得要求主 Agent 直接修改 Controller
         projection 状态，不得引用 review_contract 之外 ID。NL 明确 in-scope 的行为若
         模型无表达，应视作模型行为/断言缺口；不得凭空降级为抽象层差异，也不得
-        把 NL 强化成 only/every-state/future-model 义务。reviewer 必须攻击哨兵变量、
-        硬编码候选名和过滤后凑基数等 anti-gaming 覆盖。
+        把 NL 强化成 only/every-state/future-model 或未授权负义务。复合状态的
+        event=None 出边按 completion transition 校准，不能仅凭结构存在声称它会在
+        普通 cycle 立即触发。review 后只能修订现有 assertion chain，不能建议新增
+        Unit、Root、chain 或重新注册计划；程序化无效 finding 不会转发给主 Agent。
+        reviewer 必须攻击哨兵变量、硬编码候选名和过滤后凑基数等 anti-gaming 覆盖。
 
         Evidence limitations
         --------------------

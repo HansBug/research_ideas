@@ -15,6 +15,7 @@ from paper_stm_repair_loop.tools.review_discovery_coverage import (
     LLMCoverageReviewRunner,
     RetryableCoverageReviewerError,
     _raise_classified_reviewer_error,
+    _review_system_prompt,
 )
 from paper_stm_repair_loop.tools.register_coverage_plan import (
     RegisterCoveragePlanInput,
@@ -53,7 +54,7 @@ def _steps(tools, related_id):
             "reason": f"闭合 {related_id}。",
         },
         "revise_assertion": {
-            "assertion_chain_id": "ASSERT-TO-RESOLVE",
+            "assertion_chain_id": "ASSERT-001",
             "assert": "transition_exists(source='Root.A', event='Root.go', target='Root.B')",
             "reason": f"加强 {related_id} 的正向命题。",
         },
@@ -562,6 +563,201 @@ def test_review_gate_rejects_nl_strengthening_but_allows_explicit_universal_nl(
     gate = CoverageReviewGate(registry=registry, task_snapshot=snapshot, runner=runner)
     allowed = gate.review(reason="关联 requirement 子句明示全称量词。")
     assert not any("finding_nl_strengthening" in item for item in allowed["programmatic_errors"])
+
+
+def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics():
+    prompt = _review_system_prompt("semantic_coverage", "zh-CN")
+    assert "正向条件义务不自动产生排他性负义务" in prompt
+    assert "不得建议包含 is False" in prompt
+    assert "completion transition" in prompt
+    assert "不等于每个普通 cycle 都立即无条件触发" in prompt
+    assert "只能 revise 已注册 assertion chain" in prompt
+    assert "True 表示现有 Root 得到满足" in prompt
+
+
+def test_review_gate_filters_unlicensed_negative_obligation(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+
+    def runner(kind, payload, _attempt):
+        contract = payload["review_contract"]
+        requirement_id = contract["required_requirement_ids"][0]
+        root_id = contract["required_root_ids"][0]
+        expression = (
+            "simulate(cycles=[[], ['Root.Power_Off']])."
+            "final.is_active('Root.Off') is False"
+        )
+        finding = CoverageReviewFinding(
+            finding_id="REVIEW-UNLICENSED-NEGATIVE",
+            category="possible_false_negative",
+            related_requirement_ids=[requirement_id],
+            related_root_ids=[root_id],
+            related_assertion_chain_ids=["ASSERT-001"],
+            coverage_dimensions=["nl_semantics", "assertion_strength"],
+            problem="审查意见把一个正向条件扩大成了其他上下文不得发生的负义务。",
+            missed_behavior_risk="若执行该建议，会把满足原文的模型误报为 source-level issue。",
+            recommended_action=(
+                f"使用 revise_assertion 修订 ASSERT-001，要求 {requirement_id} "
+                "在当前路径不应到达 Root.Off，再用 eval_assert 执行。"
+            ),
+            recommended_tools=["revise_assertion", "eval_assert"],
+            recommended_steps=[
+                CoverageImprovementStep(
+                    tool="revise_assertion",
+                    related_ids=["ASSERT-001", requirement_id],
+                    objective=(
+                        "向现有正向 Root 添加原文并未授权的排他性负向路径义务。"
+                    ),
+                    suggested_arguments={
+                        "assertion_chain_id": "ASSERT-001",
+                        "assert": expression,
+                        "reason": "要求未授权上下文不应到达目标状态。",
+                    },
+                    expected_observation=(
+                        "revise_assertion 返回 accepted=true 并保存该负向表达式。"
+                    ),
+                ),
+                CoverageImprovementStep(
+                    tool="eval_assert",
+                    related_ids=["ASSERT-001", root_id],
+                    objective="执行新增的负向义务并产生一条可审计的 latest 结果。",
+                    suggested_arguments={
+                        "assert": expression,
+                        "reason": "执行 latest 负向断言。",
+                    },
+                    expected_observation=(
+                        "eval_assert 返回 completed 和 terminal bool 的执行记录。"
+                    ),
+                ),
+            ],
+            pass_criteria="latest assertion 包含 is False 且 eval_assert 完成执行。",
+        )
+        return CoverageReviewVerdict(
+            review_kind=kind,
+            passed=False,
+            reviewed_segment_ids=contract["required_segment_ids"],
+            reviewed_requirement_ids=contract["required_requirement_ids"],
+            reviewed_source_fact_ids=contract["required_source_fact_ids"],
+            reviewed_root_ids=contract["required_root_ids"],
+            findings=[finding],
+            coverage_analysis=(
+                "已逐项审查全部冻结 Segment、Requirement、SourceFact、Root、"
+                "latest assertion 和真实执行记录，并故意提出未授权负义务，"
+                "用于验证程序化 gate 会阻止 reviewer 强化正向 NL。"
+            ),
+            rationale="程序化 gate 应过滤该 finding。",
+        )
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=runner,
+    )
+    reviewed = gate.review(reason="拒绝把正向条件强化成排他负义务。")
+
+    assert any(
+        "finding_nl_strengthening" in error
+        for error in reviewed["programmatic_errors"]
+    )
+    assert all(
+        action.get("finding_id") != "REVIEW-UNLICENSED-NEGATIVE"
+        for action in reviewed["required_actions"]
+    )
+    assert all(
+        action["recommended_tools"] == ["review_discovery_coverage"]
+        for action in reviewed["required_actions"]
+    )
+
+
+def test_review_gate_filters_revision_of_unknown_assertion_chain(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+
+    def runner(kind, payload, _attempt):
+        contract = payload["review_contract"]
+        requirement_id = contract["required_requirement_ids"][0]
+        root_id = contract["required_root_ids"][0]
+        expression = (
+            "transition_exists(source='Root.Active', "
+            "event='Root.Power_Off', target='Root.Off')"
+        )
+        finding = CoverageReviewFinding(
+            finding_id="REVIEW-UNKNOWN-CHAIN",
+            category="evidence_gap",
+            related_requirement_ids=[requirement_id],
+            related_root_ids=[root_id],
+            related_assertion_chain_ids=["ASSERT-001"],
+            coverage_dimensions=["assertion_strength"],
+            problem="审查意见要求 revise 一个没有注册的 assertion chain。",
+            missed_behavior_risk="主 Agent 无法执行该建议，会在同一 finding 上反复失败。",
+            recommended_action=(
+                f"使用 revise_assertion 修改 ASSERT-NEW-CHAIN 以覆盖 {requirement_id}，"
+                "再使用 eval_assert 执行。"
+            ),
+            recommended_tools=["revise_assertion", "eval_assert"],
+            recommended_steps=[
+                CoverageImprovementStep(
+                    tool="revise_assertion",
+                    related_ids=["ASSERT-001", requirement_id],
+                    objective=(
+                        "尝试使用 revise_assertion 修改当前计划中不存在的 chain。"
+                    ),
+                    suggested_arguments={
+                        "assertion_chain_id": "ASSERT-NEW-CHAIN",
+                        "assert": expression,
+                        "reason": "测试 unknown chain 校验。",
+                        },
+                        expected_observation=(
+                            "revise_assertion 返回 accepted=true 和新的 assertion_version_id。"
+                        ),
+                ),
+                CoverageImprovementStep(
+                    tool="eval_assert",
+                    related_ids=["ASSERT-001", root_id],
+                    objective="尝试执行尚未形成合法 latest 版本的建议表达式。",
+                    suggested_arguments={
+                        "assert": expression,
+                        "reason": "测试 unknown chain 校验。",
+                    },
+                    expected_observation=(
+                        "只有 revision 指向已注册 chain 时才可能形成 latest 执行记录。"
+                    ),
+                ),
+            ],
+            pass_criteria=(
+                "revise_assertion 对 ASSERT-NEW-CHAIN 返回 accepted=true，随后 "
+                "eval_assert 返回 execution_status=completed 和 terminal bool。"
+            ),
+        )
+        return CoverageReviewVerdict(
+            review_kind=kind,
+            passed=False,
+            reviewed_segment_ids=contract["required_segment_ids"],
+            reviewed_requirement_ids=contract["required_requirement_ids"],
+            reviewed_source_fact_ids=contract["required_source_fact_ids"],
+            reviewed_root_ids=contract["required_root_ids"],
+            findings=[finding],
+            coverage_analysis=(
+                "已逐项审查全部冻结 Segment、Requirement、SourceFact、Root、"
+                "latest assertion 和真实执行记录，并故意让建议引用不存在的"
+                " assertion chain，用于验证程序化 gate 会过滤不可执行动作。"
+            ),
+            rationale="程序化 gate 应过滤该 finding。",
+        )
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=runner,
+    )
+    reviewed = gate.review(reason="拒绝不可执行的新 chain 建议。")
+
+    assert any(
+        "finding_unknown_revise_assertion_chain" in error
+        for error in reviewed["programmatic_errors"]
+    )
+    assert all(
+        action.get("finding_id") != "REVIEW-UNKNOWN-CHAIN"
+        for action in reviewed["required_actions"]
+    )
 
 
 def test_anti_gaming_finding_requires_anti_gaming_dimension():
