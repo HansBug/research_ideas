@@ -362,11 +362,27 @@ class CoverageReviewGate:
                 ],
             },
         }
+        reusable_verdicts: dict[str, CoverageReviewVerdict] = {}
+        previous = self.latest_result or {}
+        if (
+            previous.get("execution_status") == "retryable_reviewer_failure"
+            and previous.get("reviewed_state_fingerprint") == fingerprint
+        ):
+            reusable_verdicts = {
+                verdict.review_kind: verdict
+                for verdict in (
+                    CoverageReviewVerdict.model_validate(item)
+                    for item in previous.get("completed_review_verdicts", [])
+                )
+            }
         verdicts: list[CoverageReviewVerdict] = []
         for review_kind in (
             "semantic_coverage",
             "adversarial_falsification",
         ):
+            if review_kind in reusable_verdicts:
+                verdicts.append(reusable_verdicts[review_kind])
+                continue
             self.attempt_count += 1
             try:
                 verdicts.append(self.runner(review_kind, payload, self.attempt_count))
@@ -906,8 +922,9 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         未注册计划、仍有未执行或 inconclusive 断言时 fail closed；任一
         reviewer 报告缺口、漏掉任何必须审查的 Segment/Requirement/SourceFact/Root
         ID，或审查后台账发生 revision/eval 变化，均不能沿用旧 pass。provider/stream
-        临时失败不会抛出到顶层 Agent；工具会保留同轮已完成 verdict，并 append 一个 passed=false、
-        execution_status=retryable_reviewer_failure 的结构化记录，要求在不修改
+        临时失败先由 Agent runtime 对同一 profile 和同一请求透明重发最多两次；重发耗尽后
+        不会把 provider 故障冒充语义 verdict。工具会保留同轮已完成 verdict，并 append 一个
+        passed=false、execution_status=retryable_reviewer_failure 的结构化记录，要求在不修改
         当前 coverage plan / assertion / evaluation 台账的情况下重试 review。不得把失败
         review 当作终态结果；必须按 required_actions 补查或重试并重新 review。
         schema-invalid verdict、错误 review kind 等确定性合同失败返回

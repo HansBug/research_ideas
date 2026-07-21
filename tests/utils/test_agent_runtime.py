@@ -18,6 +18,8 @@ from utils.agent.runtime import (
     _ModelOptionsMiddleware,
     _message_ref,
     _prepare_recovery_history,
+    _provider_retry_after_seconds,
+    _retryable_transport_error,
     _tool_completion_status,
 )
 from utils.llm import LLMConfig
@@ -1451,6 +1453,20 @@ def test_provider_timeout_is_not_reported_as_agent_budget() -> None:
     assert result.status == "failed"
     assert result.error is not None
     assert result.error["code"] == "provider_error"
+
+
+def test_transport_retry_classifier_separates_transient_and_auth_errors() -> None:
+    class RetryableProviderError(Exception):
+        status_code = 502
+        body = {"retry_after": 60}
+
+    class AuthenticationError(Exception):
+        status_code = 401
+
+    transient = RetryableProviderError("origin unavailable")
+    assert _retryable_transport_error(transient) is True
+    assert _provider_retry_after_seconds(transient) == 60
+    assert _retryable_transport_error(AuthenticationError("unauthorized")) is False
 
 
 def test_cancelled_run_has_structured_status_and_audit_finish(tmp_path: Path) -> None:

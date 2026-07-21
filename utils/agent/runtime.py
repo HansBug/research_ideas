@@ -56,6 +56,40 @@ except Exception:  # pragma: no cover - import errors are reported at constructi
 T = TypeVar("T")
 _MODEL_OPTIONS = frozenset({"streaming", "stream_usage", "timeout", "max_retries"})
 _MODEL_CALL_OPTIONS = frozenset({"temperature", "top_p", "max_tokens", "stop", "seed", "verbosity"})
+_TRANSPORT_RETRY_DELAYS = (5.0, 20.0)
+_RETRYABLE_TRANSPORT_STATUS_CODES = frozenset({408, 409, 429, 500, 502, 503, 504})
+_RETRYABLE_TRANSPORT_EXCEPTION_NAMES = frozenset(
+    {
+        "apiconnectionerror",
+        "apitimeouterror",
+        "connectionabortederror",
+        "connectionerror",
+        "connectionreseterror",
+        "connecterror",
+        "connecttimeout",
+        "networkerror",
+        "pooltimeout",
+        "readerror",
+        "readtimeout",
+        "remoteprotocolerror",
+        "transporterror",
+        "writeerror",
+        "writetimeout",
+    }
+)
+_RETRYABLE_TRANSPORT_MESSAGE_MARKERS = (
+    "incomplete chunked read",
+    "peer closed connection",
+    "server disconnected",
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "connection error",
+    "read timed out",
+    "connect timed out",
+    "temporarily unavailable",
+    "service unavailable",
+)
 _IDENTITY_KEYS = frozenset(
     {"model", "base_url", "api_key", "headers", "authorization", "openai_api_key", "default_headers"}
 )
@@ -1135,6 +1169,69 @@ def _exception_details(exc: BaseException) -> dict[str, Any]:
     return details
 
 
+def _exception_chain(exc: BaseException) -> tuple[BaseException, ...]:
+    """Return one finite provider exception chain without duplicate objects."""
+
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return tuple(chain)
+
+
+def _retryable_transport_error(exc: BaseException) -> bool:
+    """Classify only transient provider transport failures as replay-safe."""
+
+    for item in _exception_chain(exc):
+        status_code = getattr(item, "status_code", None)
+        if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
+            return True
+        if isinstance(item, AgentError):
+            status_code = item.details.get("status_code")
+            if status_code in _RETRYABLE_TRANSPORT_STATUS_CODES:
+                return True
+            detail_type = str(item.details.get("type") or "").lower()
+            detail_message = str(item.details.get("message") or "").lower()
+            if detail_type in _RETRYABLE_TRANSPORT_EXCEPTION_NAMES:
+                return True
+            if any(marker in detail_message for marker in _RETRYABLE_TRANSPORT_MESSAGE_MARKERS):
+                return True
+        if type(item).__name__.lower() in _RETRYABLE_TRANSPORT_EXCEPTION_NAMES:
+            return True
+        message = str(item).lower()
+        if any(marker in message for marker in _RETRYABLE_TRANSPORT_MESSAGE_MARKERS):
+            return True
+    return False
+
+
+def _provider_retry_after_seconds(exc: BaseException) -> float | None:
+    """Read a numeric Retry-After hint from a provider exception when present."""
+
+    for item in _exception_chain(exc):
+        response = getattr(item, "response", None)
+        headers = getattr(response, "headers", None) or getattr(item, "headers", None)
+        if isinstance(headers, Mapping):
+            value = headers.get("retry-after") or headers.get("Retry-After")
+            try:
+                seconds = float(value)
+            except (TypeError, ValueError):
+                seconds = 0.0
+            if seconds > 0:
+                return seconds
+        body = getattr(item, "body", None)
+        if isinstance(body, Mapping):
+            try:
+                seconds = float(body.get("retry_after"))
+            except (TypeError, ValueError):
+                seconds = 0.0
+            if seconds > 0:
+                return seconds
+    return None
+
+
 def _atomic_write(path: Path, payload: Mapping[str, Any], *, run_id: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     suffix = f".{run_id}" if run_id else ""
@@ -1355,7 +1452,14 @@ def _validate_output_paths(audit_path: Path | None, result_path: Path | None) ->
 def _level_for_event(kind: str) -> int:
     if kind in {"heartbeat", "tool_started"}:
         return logging.DEBUG
-    if kind in {"context_failed", "tool_failed", "model_failed", "compaction_failed"}:
+    if kind in {
+        "context_failed",
+        "tool_failed",
+        "model_failed",
+        "compaction_failed",
+        "transport_retry_scheduled",
+        "transport_retry_exhausted",
+    }:
         return logging.WARNING
     if kind == "failed":
         return logging.ERROR
@@ -1445,6 +1549,19 @@ class _Renderer:
             "model_started": f"\n================ TURN {data.get('turn')} | MODEL INPUT ================\n" + (f"input messages:\n{_preview(str(data.get('prompt', '')), 12000)}" if data.get("prompt") else ""),
             "model_text": "MODEL OUTPUT | ASSISTANT",
             "model_completed": f"TURN {data.get('turn')} | MODEL OUTPUT | tool_count={data.get('tool_count')}",
+            "transport_retry_scheduled": (
+                "MODEL TRANSPORT RETRY | "
+                f"attempt={data.get('attempt_no')} -> {data.get('next_attempt_no')} "
+                f"wait={data.get('retry_after_seconds')}s"
+            ),
+            "transport_retry_recovered": (
+                "MODEL TRANSPORT RECOVERED | "
+                f"attempt={data.get('attempt_no')}"
+            ),
+            "transport_retry_exhausted": (
+                "MODEL TRANSPORT RETRY EXHAUSTED | "
+                f"attempts={data.get('max_attempts')}"
+            ),
             "tool_started": f"MODEL OUTPUT | TOOL CALL name={data.get('name')} id={data.get('tool_call_id')}",
             "tool_completed": f"TOOL RESULT -> NEXT MODEL INPUT name={data.get('name')} id={data.get('tool_call_id')}",
             "tool_failed": f"TOOL ERROR name={data.get('name')}",
@@ -1593,7 +1710,7 @@ class _Renderer:
         lines = (
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
-            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · retries={cls._setting(option('max_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
+            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
             f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
@@ -1738,6 +1855,66 @@ class _Renderer:
             elif isinstance(model_seconds, (int, float)):
                 suffix += " | first_chunk=unavailable"
             self.console.print(Panel(body, title=f"MODEL OUTPUT | FAILED{suffix}", border_style="red", padding=(0, 1), expand=True))
+            return
+        if event.kind in {
+            "transport_retry_scheduled",
+            "transport_retry_recovered",
+            "transport_retry_exhausted",
+        } and Panel is not None:
+            body = Text()
+            body.append(
+                f"logical_model_call_id: {data.get('logical_model_call_id')}\n",
+                style="dim",
+            )
+            body.append(f"turn: {data.get('turn')}\n", style="dim")
+            body.append(
+                f"attempt: {data.get('attempt_no')}/{data.get('max_attempts')}\n",
+                style="bold",
+            )
+            if event.kind == "transport_retry_scheduled":
+                body.append(
+                    f"next attempt after: {data.get('retry_after_seconds')}s\n",
+                    style="yellow",
+                )
+                body.append("partial response: discarded\n", style="yellow")
+                body.append(
+                    _preview(
+                        json.dumps(
+                            _safe_json(data.get("error")),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                        4000,
+                    ),
+                    style="yellow",
+                )
+                title, border = "MODEL TRANSPORT | RETRY SCHEDULED", "yellow"
+            elif event.kind == "transport_retry_recovered":
+                body.append("status: recovered with the unchanged request", style="green")
+                title, border = "MODEL TRANSPORT | RECOVERED", "green"
+            else:
+                body.append("status: retry attempts exhausted\n", style="red")
+                body.append(
+                    _preview(
+                        json.dumps(
+                            _safe_json(data.get("error")),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                        ),
+                        4000,
+                    ),
+                    style="red",
+                )
+                title, border = "MODEL TRANSPORT | RETRIES EXHAUSTED", "red"
+            self.console.print(
+                Panel(
+                    body,
+                    title=title,
+                    border_style=border,
+                    padding=(0, 1),
+                    expand=True,
+                )
+            )
             return
         if event.kind == "model_completed" and self._assistant_turn == data.get("turn"):
             model_seconds = data.get("duration_seconds")
@@ -2395,6 +2572,146 @@ def _request_projection(request: Any) -> dict[str, Any]:
     }
 
 
+class _TransportRetryMiddleware(AgentMiddleware):
+    """Replay one unchanged model request after a transient transport failure."""
+
+    def __init__(
+        self,
+        ledger: _CallLedger,
+        *,
+        delays: Sequence[float] = _TRANSPORT_RETRY_DELAYS,
+        on_retry: Callable[[Mapping[str, Any]], None] | None = None,
+        on_recovered: Callable[[Mapping[str, Any]], None] | None = None,
+        on_exhausted: Callable[[Mapping[str, Any]], None] | None = None,
+    ) -> None:
+        self.ledger = ledger
+        self.delays = tuple(float(value) for value in delays)
+        self.on_retry = on_retry
+        self.on_recovered = on_recovered
+        self.on_exhausted = on_exhausted
+
+    @staticmethod
+    def _request_fingerprint(request: Any) -> str:
+        projection = _request_projection(request)
+        return _hash_text(
+            json.dumps(
+                projection,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+
+    def _failure_payload(
+        self,
+        *,
+        logical_call_id: str,
+        request_fingerprint: str,
+        attempt_no: int,
+        exc: BaseException,
+    ) -> dict[str, Any]:
+        return {
+            "logical_model_call_id": logical_call_id,
+            "request_fingerprint": request_fingerprint,
+            "attempt_no": attempt_no,
+            "max_attempts": len(self.delays) + 1,
+            "error": _exception_details(exc),
+            "partial_response_discarded": True,
+        }
+
+    def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        logical_call_id = f"transport-{uuid.uuid4().hex}"
+        request_fingerprint = self._request_fingerprint(request)
+        attempt_no = 1
+        while True:
+            try:
+                response = handler(request)
+            except Exception as exc:
+                payload = self._failure_payload(
+                    logical_call_id=logical_call_id,
+                    request_fingerprint=request_fingerprint,
+                    attempt_no=attempt_no,
+                    exc=exc,
+                )
+                retry_index = attempt_no - 1
+                if not _retryable_transport_error(exc):
+                    raise
+                if retry_index >= len(self.delays):
+                    if self.on_exhausted is not None:
+                        self.on_exhausted(payload)
+                    raise
+                self.ledger.reserve(1)
+                delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
+                payload.update(
+                    {
+                        "next_attempt_no": attempt_no + 1,
+                        "retry_after_seconds": delay,
+                    }
+                )
+                if self.on_retry is not None:
+                    self.on_retry(payload)
+                time.sleep(delay)
+                attempt_no += 1
+                continue
+            if attempt_no > 1 and self.on_recovered is not None:
+                self.on_recovered(
+                    {
+                        "logical_model_call_id": logical_call_id,
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_no": attempt_no,
+                        "max_attempts": len(self.delays) + 1,
+                        "recovered": True,
+                    }
+                )
+            return response
+
+    async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
+        logical_call_id = f"transport-{uuid.uuid4().hex}"
+        request_fingerprint = self._request_fingerprint(request)
+        attempt_no = 1
+        while True:
+            try:
+                response = await handler(request)
+            except Exception as exc:
+                payload = self._failure_payload(
+                    logical_call_id=logical_call_id,
+                    request_fingerprint=request_fingerprint,
+                    attempt_no=attempt_no,
+                    exc=exc,
+                )
+                retry_index = attempt_no - 1
+                if not _retryable_transport_error(exc):
+                    raise
+                if retry_index >= len(self.delays):
+                    if self.on_exhausted is not None:
+                        self.on_exhausted(payload)
+                    raise
+                self.ledger.reserve(1)
+                delay = _provider_retry_after_seconds(exc) or self.delays[retry_index]
+                payload.update(
+                    {
+                        "next_attempt_no": attempt_no + 1,
+                        "retry_after_seconds": delay,
+                    }
+                )
+                if self.on_retry is not None:
+                    self.on_retry(payload)
+                await asyncio.sleep(delay)
+                attempt_no += 1
+                continue
+            if attempt_no > 1 and self.on_recovered is not None:
+                self.on_recovered(
+                    {
+                        "logical_model_call_id": logical_call_id,
+                        "request_fingerprint": request_fingerprint,
+                        "attempt_no": attempt_no,
+                        "max_attempts": len(self.delays) + 1,
+                        "recovered": True,
+                    }
+                )
+            return response
+
+
 def _tool_completion_status(
     result: Any,
 ) -> tuple[str, dict[str, Any] | None, bool]:
@@ -2652,6 +2969,8 @@ class AgentApp:
             "reasoning_effort": inference_options.get("reasoning_effort"),
             "stream_usage": getattr(self.model, "stream_usage", None),
             "max_retries": getattr(self.model, "max_retries", None),
+            "transport_retries": len(_TRANSPORT_RETRY_DELAYS),
+            "transport_retry_delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
             "tool_choice_policy": tool_choice_policy_name,
         }
@@ -2700,6 +3019,11 @@ class AgentApp:
                 "context_manifest_hash": manifest,
                 "compact": {"ratio": compact_trigger_ratio, "threshold": compact_threshold},
                 "tool_choice_policy": tool_choice_policy_name,
+                "transport_retry": {
+                    "max_retries": len(_TRANSPORT_RETRY_DELAYS),
+                    "delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
+                    "profile": self.profile,
+                },
             }
         )
         canonical_audit_out, canonical_result_out = _validate_output_paths(Path(audit_out) if audit_out is not None else None, Path(result_out) if result_out is not None else None)
@@ -2751,6 +3075,7 @@ class AgentApp:
         context_events_seen: set[int] = set()
         context_emitted_turns: set[int] = set()
         current_model_call_id: str | None = None
+        pending_transport_retry_turn: int | None = None
         current_rendered_input_hash: str | None = None
         current_input_messages_snapshot: list[Any] = []
         last_state_messages_snapshot: list[Any] = []
@@ -2857,18 +3182,26 @@ class AgentApp:
             }
 
         def capture_primary_request(request: Any, capture: dict[str, Any]) -> None:
-            nonlocal turn, system_shown, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot
-            turn += 1
-            call_turn = turn
+            nonlocal turn, system_shown, current_rendered_input_hash, current_input_messages_snapshot, last_state_messages_snapshot, pending_transport_retry_turn
+            retrying = pending_transport_retry_turn is not None
+            if retrying:
+                call_turn = int(pending_transport_retry_turn)
+                pending_transport_retry_turn = None
+            else:
+                turn += 1
+                call_turn = turn
             input_messages = list(getattr(request, "messages", None) or [])
-            if call_turn > 1:
+            if not retrying and call_turn > 1:
                 emit_context_usage(call_turn - 1, input_messages)
-            prompt, system_shown = _prompt_from_messages(
-                input_messages,
-                self.spec.system_prompt,
-                shown_message_keys,
-                system_shown,
-            )
+            if retrying:
+                prompt = pending_model_inputs.get(call_turn, ("", [], None))[0]
+            else:
+                prompt, system_shown = _prompt_from_messages(
+                    input_messages,
+                    self.spec.system_prompt,
+                    shown_message_keys,
+                    system_shown,
+                )
             capture.update(
                 {
                     "turn": call_turn,
@@ -3499,6 +3832,96 @@ class AgentApp:
 
         observer = _RunModelObserver(callback_start, callback_token, callback_end, callback_error)
 
+        def transport_retry_scheduled(payload: Mapping[str, Any]) -> None:
+            nonlocal pending_transport_retry_turn
+            failed_call_id = current_model_call_id
+            call_turn = model_call_turns.get(failed_call_id or "", turn)
+            pending_transport_retry_turn = call_turn
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "failed_model_call_id": failed_call_id,
+                "turn": call_turn,
+                "partial_response_observed": bool(
+                    failed_call_id
+                    and (
+                        partial_texts.get(failed_call_id)
+                        or model_call_timings.get(failed_call_id, {}).get(
+                            "first_chunk_at_utc"
+                        )
+                    )
+                ),
+                "usage": next(
+                    (
+                        item
+                        for item in reversed(usage)
+                        if item.get("model_call_id") == failed_call_id
+                    ),
+                    None,
+                ),
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "scheduled",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_scheduled", data)
+
+        def transport_retry_recovered(payload: Mapping[str, Any]) -> None:
+            successful_call_id = current_model_call_id
+            call_turn = model_call_turns.get(successful_call_id or "", turn)
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "successful_model_call_id": successful_call_id,
+                "turn": call_turn,
+                "usage": next(
+                    (
+                        item
+                        for item in reversed(usage)
+                        if item.get("model_call_id") == successful_call_id
+                    ),
+                    None,
+                ),
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "recovered",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_recovered", data)
+
+        def transport_retry_exhausted(payload: Mapping[str, Any]) -> None:
+            failed_call_id = current_model_call_id
+            call_turn = model_call_turns.get(failed_call_id or "", turn)
+            data = {
+                **dict(payload),
+                "profile": self.profile,
+                "model": self.config.model,
+                "failed_model_call_id": failed_call_id,
+                "turn": call_turn,
+            }
+            audit_write(
+                {
+                    "record": "transport_retry",
+                    "record_type": "transport_retry",
+                    "operation": "exhausted",
+                    **data,
+                },
+                turn_value=call_turn,
+            )
+            emit("transport_retry_exhausted", data)
+
         def pending_tool_candidates(name: str, arguments: Any) -> list[dict[str, Any]]:
             normalized = _safe_json(arguments)
             candidates = [
@@ -4050,6 +4473,13 @@ class AgentApp:
             )
             middleware: list[Any] = [
                 model_options_middleware,
+                _TransportRetryMiddleware(
+                    ledger,
+                    delays=_TRANSPORT_RETRY_DELAYS,
+                    on_retry=transport_retry_scheduled,
+                    on_recovered=transport_retry_recovered,
+                    on_exhausted=transport_retry_exhausted,
+                ),
                 _RequestCaptureMiddleware(request_captures, capture_primary_request),
                 guard,
             ]

@@ -963,6 +963,42 @@ def test_retry_record_keeps_any_completed_reviewer_verdict(tmp_path):
     assert reviewed["completed_review_verdicts"][0]["review_kind"] == "semantic_coverage"
 
 
+def test_same_fingerprint_retry_only_reruns_failed_reviewer(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+    calls = []
+    adversarial_attempts = 0
+
+    def runner(kind, payload, _attempt):
+        nonlocal adversarial_attempts
+        calls.append(kind)
+        if kind == "semantic_coverage":
+            return _verdict(kind, payload)
+        adversarial_attempts += 1
+        if adversarial_attempts == 1:
+            raise RetryableCoverageReviewerError(
+                "RemoteProtocolError: incomplete read"
+            )
+        return _verdict(kind, payload)
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=runner,
+    )
+
+    first = gate.review(reason="保留成功的语义 reviewer，重试失败的对抗 reviewer。")
+    second = gate.review(reason="同一指纹只重跑失败的对抗 reviewer。")
+
+    assert first["execution_status"] == "retryable_reviewer_failure"
+    assert second["execution_status"] == "completed"
+    assert second["passed"] is True
+    assert calls == [
+        "semantic_coverage",
+        "adversarial_falsification",
+        "adversarial_falsification",
+    ]
+
+
 def test_review_pass_is_invalidated_by_any_later_evaluation(tmp_path):
     controller, registry, plan = _ready_controller(tmp_path)
     gate = CoverageReviewGate(
