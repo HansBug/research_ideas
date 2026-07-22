@@ -104,6 +104,9 @@ def build_tool(
         Diagnose one named FCSTM cycle/setup gap against the frozen STM_0 so the
         Agent can repair a registered simulation assertion. This is
         a diagnostic microscope, not the formal Root-evaluation path.
+        Use this microscope when runtime behavior is the proposition and a
+        static relation alone cannot show the final state, especially across
+        composite, forced, completion, or pseudostate semantics.
 
         When to use
         -----------
@@ -112,6 +115,9 @@ def build_tool(
         names this tool and one exact trace gap. Use the shortest distinguishing
         sequence and stop once the question is answered. Reuse the exact registered
         Root ID; never mint suffix variants or new IDs to prolong exploration.
+        The resulting trace repairs the setup for a registered ``simulate(...)``
+        assertion; it does not authorize replacing a behavioral outcome with a
+        flattened direct-edge assertion.
 
         When not to use
         ----------------

@@ -253,6 +253,42 @@ def test_manual_0000_power_off_reaches_top_level_final():
     assert direct.final.active_states == ()
 
 
+def test_manual_0000_autofinal_takeover_is_runtime_behavior_not_direct_edge():
+    model_path = (
+        SELECTED_ROOT
+        / "llms-emp-gpt4o-hldcs-manual-identity"
+        / "model.fcstm"
+    )
+    env = EvalEnvironment(model_text=model_path.read_text(encoding="utf-8"))
+
+    for event in (
+        "HighLevelDrivingModule.HumanSteeringCommand",
+        "HighLevelDrivingModule.BrakePressed",
+    ):
+        direct_edge = env.eval_assert(
+            "transition_exists("
+            "source='HighLevelDrivingModule.Autonomous.AutoFinal', "
+            f"event='{event}', "
+            "target='HighLevelDrivingModule.HumanDriving')",
+            "A flattened AutoFinal direct edge is not the hierarchical runtime behavior.",
+            required_function_families=["relation"],
+        )
+        runtime_behavior = env.eval_assert(
+            "'HighLevelDrivingModule.HumanDriving' in simulate(cycles=[[], "
+            "['HighLevelDrivingModule.PowerOn'], "
+            "['HighLevelDrivingModule.Front_Distance_10'], "
+            "['HighLevelDrivingModule.Autonomous.ExitAutonomous'], "
+            f"['{event}']]).final.active_states",
+            "From AutoFinal, takeover must be judged by the final runtime state.",
+            required_function_families=["simulation"],
+        )
+
+        assert direct_edge.result == RESULT_FALSE
+        assert direct_edge.match_status == "contradicts"
+        assert runtime_behavior.result == RESULT_TRUE
+        assert runtime_behavior.match_status == "matches"
+
+
 def test_effect_delta_reuses_structured_effects_and_missing_effect_is_false_with_contract_expression():
     good = EvalEnvironment(model_text=EFFECT_MODEL)
     missing = EvalEnvironment(model_text=NO_EFFECT_MODEL)

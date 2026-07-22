@@ -183,7 +183,12 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         - ``transition_exists(source=None, event=None, target=None) -> bool``.
           Use this for required or forbidden transition relations. Include
           ``target`` whenever the NL constrains the destination; event existence
-          alone is a weaker and invalid substitute.
+          alone is a weaker and invalid substitute. This proves only a static
+          source/event/target relation. It does not by itself prove the final
+          runtime state when execution crosses composite, forced, completion, or
+          pseudostate semantics. Use it as sole primary evidence only when the NL
+          explicitly requires the direct relation itself or that stable-level
+          relation is the complete proposition.
         - ``guards_overlap(left_ref, right_ref) -> bool`` where refs are
           ``transition:T<n>`` or ``transition:<n>``. It decides missing/equal
           guards only; distinct non-empty guards are unsupported rather than
@@ -227,7 +232,12 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           has no active state, so do not call ``is_active`` after termination or
           append a diagnostic cycle after the terminating event. Reusing an
           external event in a later non-terminal cycle is legal; consumed-event
-          accounting is not a one-use scenario rule.
+          accounting is not a one-use scenario rule. When runtime behavior is the
+          proposition and execution involves composite, forced, completion, or
+          pseudostate semantics, use a registered `simulate(...)` expression to
+          assert the final active state or termination result. A static relation
+          may be combined as grounding, but it cannot replace this runtime
+          observation.
         - ``fbmcq(query) -> FBMCQObservation``. ``query`` is one complete
           official FBMCQ string with the bound inside it, for example
           ``check reach <= 8: active("Root.Attack");``. Read
@@ -306,6 +316,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         unrelated inventory. Multiple complementary
         assertions for one Root are allowed, but register and execute each one
         separately.
+        Classify the proposition before selecting functions: direct model
+        structure/relations use structure/relation evidence, while an NL runtime
+        outcome mediated by hierarchy requires simulation (or same-strength
+        formal evidence). Do not turn “event E in state S eventually enters T”
+        into a requirement for one flattened ``S -> T`` edge.
 
         Correct examples include:
 

@@ -122,8 +122,8 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "Never evade uniqueness with whitespace" in flat
     assert "minimum sufficient evidence route" in flat
     assert "More tool families do not automatically make a claim stronger" in flat
-    assert "single-step source + event/condition + target obligation" in flat
-    assert "those words alone do not justify FBMCQ" in flat
+    assert "Surface wording such as source + event/condition + target" in flat
+    assert "does not by itself decide between relation and simulation" in flat
     assert "Use FBMCQ only when an explicit bounded temporal property" in flat
     assert "the frozen NL itself states a step/time bound" in flat
     assert "never invent bounded reachability or liveness" in flat
@@ -151,6 +151,17 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "do not call `is_active` after the terminating event" in flat
     assert "call `read_fbmcq_guide`" in flat
     assert "replay-mismatched results are inconclusive" in flat
+
+
+def test_prompt_requires_runtime_evidence_for_hierarchical_behavior_outcomes():
+    flat = _flat(PROMPT_ZH)
+
+    assert "classify the NL proposition before choosing an evidence family" in flat
+    assert "explicitly requires a direct model relation" in flat
+    assert "composite state, forced transition, completion transition, or pseudostate" in flat
+    assert "relation evidence may ground the path but cannot replace the runtime outcome" in flat
+    assert "relation + simulation" in flat
+    assert "A single-step source + event/condition + target obligation stays relational" not in flat
 
 
 def test_prompt_makes_review_pass_current_and_actionable():

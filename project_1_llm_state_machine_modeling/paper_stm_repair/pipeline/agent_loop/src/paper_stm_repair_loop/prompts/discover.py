@@ -233,13 +233,20 @@ double-negated verdict metadata, or a bare constant.
     their actual dimensions, such as leafness versus state existence or target
     relation. Never evade uniqueness with whitespace, parentheses, rationale, or
     irrelevant filters.
-15. Use the minimum sufficient evidence route for each proposition. More tool
+15. Use the minimum sufficient evidence route for each proposition. First
+    classify the NL proposition before choosing an evidence family: is it a
+    required model structure/relation, or a runtime behavioral outcome? More tool
     families do not automatically make a claim stronger. Prefer structure for a
-    structural claim, relation for an explicit source/event/target fact, and
-    simulation for behavior whose completion or final active state must actually
-    be observed. A single-step source + event/condition + target obligation stays
-    relational even when the NL says “when”, “after”, or “in state”; those words
-    alone do not justify FBMCQ. Use FBMCQ only when an explicit bounded temporal
+    structural claim. Use relation as the sole primary evidence only when the NL
+    explicitly requires a direct model relation, or when that exact stable-level
+    relation is itself the complete proposition. If the NL requires the system to
+    reach a runtime state after a trigger, and realization crosses a composite
+    state, forced transition, completion transition, or pseudostate, relation
+    evidence may ground the path but cannot replace the runtime outcome. Register
+    a simulation assertion for that outcome; relation + simulation is appropriate
+    when both the declared relation and executed behavior matter. Surface wording
+    such as source + event/condition + target, “when”, “after”, or “in state” does
+    not by itself decide between relation and simulation. Use FBMCQ only when an explicit bounded temporal
     property is necessary and cannot be represented at the required strength by
     direct relation or simulation evidence. “Explicit bounded” means the frozen
     NL itself states a step/time bound, deadline, timeout, or response window;
@@ -263,7 +270,10 @@ double-negated verdict metadata, or a bare constant.
 - `observe_trace`: diagnose exact cycle behavior only after successful plan
   registration and only when an inconclusive latest evaluation or failed review
   explicitly names the trace evidence gap. Its trace is not itself a Root
-  verdict. Use the exact registered Root ID; never mint suffix variants, borrow
+  verdict. For a runtime behavioral proposition mediated by composite, forced,
+  completion, or pseudostate semantics, use it to repair the cycle setup of a
+  registered simulation assertion rather than replacing behavior with a direct
+  relation query. Use the exact registered Root ID; never mint suffix variants, borrow
   another Root's identity or budget, or create new IDs to continue an inquiry.
 - `lookup_source_trace`: inspect attribution only after a latest registered
   assertion has evaluated to a contradiction. It cannot decide whether the

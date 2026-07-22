@@ -154,6 +154,9 @@ def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path
     assert "exact registered Root ID" in description
     assert "use this tool before registration" in description
     assert "provisional Root" not in description
+    assert "runtime behavior is the proposition" in description
+    assert "static relation alone" in description
+    assert "composite, forced, completion, or pseudostate" in description
 
     result = tools["observe_trace"].invoke(
         {
@@ -197,6 +200,17 @@ def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path
     ]
     assert suffixed["allowed_root_ids"] == ["ROOT-CLAUSE-001-01"]
     assert "Do not add a suffix" in suffixed["recommended_action"]
+
+
+def test_eval_assert_explains_relation_vs_runtime_behavior_evidence(tmp_path):
+    _controller, tools = _tools(tmp_path)
+    description = " ".join(tools["eval_assert"].description.split())
+
+    assert "static source/event/target relation" in description
+    assert "does not by itself prove the final runtime state" in description
+    assert "composite, forced, completion, or pseudostate" in description
+    assert "registered `simulate(...)` expression" in description
+    assert "NL explicitly requires the direct relation itself" in description
 
 
 def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):

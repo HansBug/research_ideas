@@ -143,6 +143,16 @@ def _ready_controller(tmp_path):
     return controller, registry, plan
 
 
+def test_reviewer_prompt_rejects_relation_only_hierarchical_behavior_claims():
+    prompt = _review_system_prompt("adversarial_falsification", "zh-CN")
+
+    assert "NL 要求的是运行后到达某状态" in prompt
+    assert "静态直接边" in prompt
+    assert "composite、forced、completion 或 pseudostate" in prompt
+    assert "relation + simulation" in prompt
+    assert "错误 issue projection" in prompt
+
+
 def test_review_payload_keeps_unevaluated_optional_assertion_without_crashing(tmp_path):
     controller = make_controller(tmp_path)
     plan = make_plan(controller)
