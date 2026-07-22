@@ -633,6 +633,9 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "does not fire unconditionally in every ordinary cycle" in prompt
     assert "may only revise an existing assertion chain" in prompt
     assert "True means the existing Root is satisfied" in prompt
+    assert "frozen scope of the positive obligation" in prompt
+    assert "Do not broaden a source-state-specific Root to every state" in prompt
+    assert "Require all-state behavior only" in prompt
     assert "exclusive allowed ID universe" in prompt
     assert "When it is empty" in prompt
     assert "every finding's `related_source_fact_ids` must be empty lists" in prompt
