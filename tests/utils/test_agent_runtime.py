@@ -285,6 +285,56 @@ class _InvalidThenValidStructuredModel(_MissingThenStructuredModel):
         return ChatResult(generations=[ChatGeneration(message=message)])
 
 
+class _MalformedThenValidStructuredModel(_MissingThenStructuredModel):
+    observed_requests: list[list[object]] = Field(default_factory=list)
+
+    @property
+    def _llm_type(self) -> str:
+        return "malformed-then-valid-structured"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self.calls += 1
+        self.observed_requests.append(list(messages))
+        if self.calls == 1:
+            message = AIMessage(
+                content="",
+                additional_kwargs={
+                    "tool_calls": [
+                        {
+                            "id": "structured-malformed-1",
+                            "type": "function",
+                            "function": {
+                                "name": self.structured_tool_name,
+                                "arguments": "{",
+                            },
+                        }
+                    ]
+                },
+                invalid_tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": "{",
+                        "id": "structured-malformed-1",
+                        "error": "invalid JSON arguments",
+                        "type": "invalid_tool_call",
+                    }
+                ],
+            )
+        else:
+            message = AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": self.structured_tool_name,
+                        "args": {"answer": "ok"},
+                        "id": "structured-valid-1",
+                        "type": "tool_call",
+                    }
+                ],
+            )
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+
 class _MalformedBusinessThenStructuredModel(_MissingThenStructuredModel):
     @property
     def _llm_type(self) -> str:
@@ -559,6 +609,45 @@ def test_schema_retry_does_not_leave_an_incomplete_structured_tool(tmp_path: Pat
     assert [item["status"] for item in structured] == ["rejected", "completed"]
     assert structured[0]["error"]["code"] == "structured_output_invalid"
     assert structured[1]["result"] == {"answer": "ok"}
+
+
+def test_malformed_structured_retry_balances_tool_call_before_next_request(
+    tmp_path: Path,
+) -> None:
+    model = _MalformedThenValidStructuredModel()
+    app = AgentApp._for_test(
+        AgentSpec(
+            name="malformed-structured-retry",
+            system_prompt="Return the structured answer.",
+            output_schema=_RetryAnswer,
+        ),
+        LLMConfig(model="gpt-5.5"),
+        model,
+    )
+
+    result = app.run(
+        "answer",
+        renderer="quiet",
+        audit_out=tmp_path / "malformed-structured-retry.jsonl",
+    )
+
+    assert result.status == "success"
+    assert result.require_output().answer == "ok"
+    retry_messages = model.observed_requests[1]
+    malformed_index = next(
+        index
+        for index, message in enumerate(retry_messages)
+        if isinstance(message, AIMessage)
+        and any(
+            call.get("id") == "structured-malformed-1"
+            for call in message.invalid_tool_calls
+        )
+    )
+    protocol_reply = retry_messages[malformed_index + 1]
+    assert isinstance(protocol_reply, ToolMessage)
+    assert protocol_reply.tool_call_id == "structured-malformed-1"
+    assert protocol_reply.name == "_RetryAnswer"
+    assert "valid JSON arguments" in str(protocol_reply.content)
 
 
 def test_recovery_history_excludes_only_malformed_terminal_structured_call() -> None:

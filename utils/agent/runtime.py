@@ -2507,6 +2507,57 @@ class _CompactPostGuardMiddleware(AgentMiddleware):
         self._check(state)
 
 
+def _balance_invalid_structured_tool_calls(
+    messages: Sequence[Any], structured_output_name: str | None
+) -> tuple[list[Any], bool]:
+    """Add protocol replies for malformed synthetic structured-output calls."""
+
+    if not structured_output_name:
+        return list(messages), False
+    balanced: list[Any] = []
+    changed = False
+    for index, message in enumerate(messages):
+        balanced.append(message)
+        if not isinstance(message, AIMessage):
+            continue
+        invalid_calls = [
+            call
+            for call in _message_protocol_tool_calls(message)
+            if not call.get("valid")
+            and call.get("name") == structured_output_name
+            and call.get("tool_call_id")
+        ]
+        if not invalid_calls:
+            continue
+        response_ids: set[str] = set()
+        following_index = index + 1
+        while following_index < len(messages) and isinstance(
+            messages[following_index], ToolMessage
+        ):
+            response_id = getattr(messages[following_index], "tool_call_id", None)
+            if response_id:
+                response_ids.add(str(response_id))
+            following_index += 1
+        for call in invalid_calls:
+            call_id = str(call["tool_call_id"])
+            if call_id in response_ids:
+                continue
+            balanced.append(
+                ToolMessage(
+                    content=(
+                        f"Error: The {structured_output_name} structured-output call "
+                        "could not be parsed as valid JSON. Return exactly one complete "
+                        f"{structured_output_name} object with valid JSON arguments that "
+                        "match the schema."
+                    ),
+                    tool_call_id=call_id,
+                    name=structured_output_name,
+                )
+            )
+            changed = True
+    return balanced, changed
+
+
 class _ModelOptionsMiddleware(AgentMiddleware):
     """Apply per-inference model settings without changing profile identity."""
 
@@ -2542,6 +2593,12 @@ class _ModelOptionsMiddleware(AgentMiddleware):
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
+        balanced_messages, messages_changed = _balance_invalid_structured_tool_calls(
+            list(getattr(request, "messages", None) or []),
+            self.structured_output_name,
+        )
+        if messages_changed:
+            overrides["messages"] = balanced_messages
         tool_choice = self._tool_choice()
         if tool_choice is not None:
             overrides["tool_choice"] = tool_choice
@@ -2562,6 +2619,12 @@ class _ModelOptionsMiddleware(AgentMiddleware):
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
         settings = {**(request.model_settings or {}), **self.options}
         overrides: dict[str, Any] = {"model_settings": settings}
+        balanced_messages, messages_changed = _balance_invalid_structured_tool_calls(
+            list(getattr(request, "messages", None) or []),
+            self.structured_output_name,
+        )
+        if messages_changed:
+            overrides["messages"] = balanced_messages
         tool_choice = self._tool_choice()
         if tool_choice is not None:
             overrides["tool_choice"] = tool_choice
