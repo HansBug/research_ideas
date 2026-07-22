@@ -416,7 +416,8 @@ class CoverageReviewGate:
             "root": set(self.registry.roots),
         }
         programmatic_errors: list[str] = []
-        invalid_finding_ids: set[str] = set()
+        invalid_finding_keys: set[tuple[str, str]] = set()
+        scope_filtered_finding_keys: set[tuple[str, str]] = set()
         for verdict in verdicts:
             actual = {
                 "segment": set(verdict.reviewed_segment_ids),
@@ -440,6 +441,7 @@ class CoverageReviewGate:
                 "assertion_chain": set(self.registry.chains),
             }
             for finding in verdict.findings:
+                finding_key = (verdict.review_kind, finding.finding_id)
                 finding_ids = {
                     "segment": set(finding.related_segment_ids),
                     "requirement": set(finding.related_requirement_ids),
@@ -450,7 +452,7 @@ class CoverageReviewGate:
                 for label, ids in finding_ids.items():
                     unknown = sorted(ids - known_ids[label])
                     if unknown:
-                        invalid_finding_ids.add(finding.finding_id)
+                        invalid_finding_keys.add(finding_key)
                         programmatic_errors.append(
                             f"{verdict.review_kind}_finding_unknown_{label}_ids:"
                             f"finding={finding.finding_id}:unknown={','.join(unknown)}"
@@ -459,27 +461,44 @@ class CoverageReviewGate:
                     finding,
                     _finding_nl_scopes(finding, self.task_snapshot),
                 ):
-                    invalid_finding_ids.add(finding.finding_id)
-                    programmatic_errors.append(
-                        f"{verdict.review_kind}_finding_nl_strengthening:"
-                        f"finding={finding.finding_id}"
-                    )
+                    invalid_finding_keys.add(finding_key)
+                    scope_filtered_finding_keys.add(finding_key)
                 for error in _finding_step_contract_errors(
                     finding,
                     known_assertion_chain_ids=set(self.registry.chains),
                 ):
-                    invalid_finding_ids.add(finding.finding_id)
+                    invalid_finding_keys.add(finding_key)
                     programmatic_errors.append(
                         f"{verdict.review_kind}_{error}:"
                         f"finding={finding.finding_id}"
                     )
 
-        passed = not programmatic_errors and all(item.passed for item in verdicts)
+        def verdict_effectively_passed(verdict: CoverageReviewVerdict) -> bool:
+            valid_findings = [
+                finding
+                for finding in verdict.findings
+                if (verdict.review_kind, finding.finding_id)
+                not in invalid_finding_keys
+            ]
+            if valid_findings:
+                return False
+            if verdict.passed:
+                return True
+            return bool(verdict.findings) and all(
+                (verdict.review_kind, finding.finding_id)
+                in scope_filtered_finding_keys
+                for finding in verdict.findings
+            )
+
+        passed = not programmatic_errors and all(
+            verdict_effectively_passed(item) for item in verdicts
+        )
         finding_actions = [
             finding.model_dump(mode="json")
             for verdict in verdicts
             for finding in verdict.findings
-            if finding.finding_id not in invalid_finding_ids
+            if (verdict.review_kind, finding.finding_id)
+            not in invalid_finding_keys
         ]
         previous = self.latest_result or {}
         if (

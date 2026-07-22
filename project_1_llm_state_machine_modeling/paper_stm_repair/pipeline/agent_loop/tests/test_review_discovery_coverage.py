@@ -558,7 +558,7 @@ def test_review_finding_rejects_generic_non_executable_guidance():
         )
 
 
-def test_review_gate_rejects_nl_strengthening_but_allows_explicit_universal_nl(
+def test_review_gate_filters_nl_strengthening_but_keeps_explicit_universal_nl(
     tmp_path,
 ):
     controller, registry, _plan = _ready_controller(tmp_path)
@@ -601,23 +601,29 @@ def test_review_gate_rejects_nl_strengthening_but_allows_explicit_universal_nl(
     snapshot = controller.task_snapshot()
     gate = CoverageReviewGate(registry=registry, task_snapshot=snapshot, runner=runner)
     rejected = gate.review(reason="原文没有全称量词。")
-    assert any("finding_nl_strengthening" in item for item in rejected["programmatic_errors"])
+    assert rejected["passed"] is True
+    assert rejected["programmatic_errors"] == []
+    assert rejected["required_actions"] == []
 
     snapshot["current_records"]["nl"]["content"] = (
         "All states shall handle Power_Off. Another clause contains the reviewed behavior."
     )
     gate = CoverageReviewGate(registry=registry, task_snapshot=snapshot, runner=runner)
     unrelated = gate.review(reason="无关子句的全称量词不得授权当前 finding。")
-    assert any(
-        "finding_nl_strengthening" in item
-        for item in unrelated["programmatic_errors"]
-    )
+    assert unrelated["passed"] is True
+    assert unrelated["programmatic_errors"] == []
+    assert unrelated["required_actions"] == []
 
     first_requirement = snapshot["current_records"]["coverage_requirements"][0]
     first_requirement["clause_text"] = "All states shall handle Power_Off."
     gate = CoverageReviewGate(registry=registry, task_snapshot=snapshot, runner=runner)
     allowed = gate.review(reason="关联 requirement 子句明示全称量词。")
-    assert not any("finding_nl_strengthening" in item for item in allowed["programmatic_errors"])
+    assert allowed["passed"] is False
+    assert allowed["programmatic_errors"] == []
+    assert [item["finding_id"] for item in allowed["required_actions"]] == [
+        "REVIEW-STRENGTHEN-ALL",
+        "REVIEW-STRENGTHEN-ALL",
+    ]
 
 
 def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics():
@@ -763,16 +769,11 @@ def test_review_gate_filters_unlicensed_negative_obligation(tmp_path):
     )
     reviewed = gate.review(reason="拒绝把正向条件强化成排他负义务。")
 
-    assert any(
-        "finding_nl_strengthening" in error
-        for error in reviewed["programmatic_errors"]
-    )
+    assert reviewed["passed"] is True
+    assert reviewed["programmatic_errors"] == []
+    assert reviewed["required_actions"] == []
     assert all(
         action.get("finding_id") != "REVIEW-UNLICENSED-NEGATIVE"
-        for action in reviewed["required_actions"]
-    )
-    assert all(
-        action["recommended_tools"] == ["review_discovery_coverage"]
         for action in reviewed["required_actions"]
     )
 
