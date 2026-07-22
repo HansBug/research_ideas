@@ -151,6 +151,9 @@ def test_reviewer_prompt_rejects_relation_only_hierarchical_behavior_claims():
     assert "composite、forced、completion 或 pseudostate" in prompt
     assert "relation + simulation" in prompt
     assert "错误 issue projection" in prompt
+    assert "observed_function_families / function_calls 确实包含 simulation" in prompt
+    assert "``relation or simulation``" in prompt
+    assert "先到达 NL 指定源状态" in prompt
 
 
 def test_review_payload_keeps_unevaluated_optional_assertion_without_crashing(tmp_path):

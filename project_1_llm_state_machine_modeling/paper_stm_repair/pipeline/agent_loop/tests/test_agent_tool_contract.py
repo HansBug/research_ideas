@@ -211,6 +211,9 @@ def test_eval_assert_explains_relation_vs_runtime_behavior_evidence(tmp_path):
     assert "composite, forced, completion, or pseudostate" in description
     assert "registered `simulate(...)` expression" in description
     assert "NL explicitly requires the direct relation itself" in description
+    assert "reach the NL-stated source state" in description
+    assert "actual function-call trace" in description
+    assert "transition_exists(...) or simulate(...)" in description
 
 
 def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):

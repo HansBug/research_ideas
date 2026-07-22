@@ -89,7 +89,7 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账的主要行为覆盖是否足以支持本次 Discover 结论，并在 coverage_analysis 中说明覆盖边界和可选增强方向；不得宣称绝对 100% 覆盖。
 14. 正向条件义务不自动产生排他性负义务。“在状态 S 收到 E 时到达 T”要求检查该条件成立时的行为；除非同一关联 NL 明确出现 only、must not、不得、禁止等排他措辞，不得进一步要求其他状态收到 E 时不能到达 T，也不得建议包含 is False 或 not(...) 的负半句来制造 issue。
 15. 按 FCSTM 层次语义解释无事件迁移：复合状态的 event=None 出边可能是子机到达 final 后的 completion transition，不等于每个普通 cycle 都立即无条件触发。I_TRANSITION_NEVER_EVENT_TRIGGERED 只说明该边不由事件触发。若要声称它导致提前退出，必须引用已执行 simulation/formal 证据；结构存在本身不足以支持该结论。
-16. 若 NL 要求的是运行后到达某状态，而当前实现涉及 composite、forced、completion 或 pseudostate，静态直接边只证明局部关系，不能单独证明最终行为。必须检查当前台账是否用 relation + simulation（或同强度 formal evidence）验证真实运行结果；若只因扁平 direct edge 不存在就投影 issue，必须以弱/错向断言和错误 issue projection 返回阻塞 finding，不得通过。反之，若 NL 明确要求的就是直接模型关系本身，不得无条件强加 simulation。
+16. 若 NL 要求的是运行后到达某状态，而非明确要求直接模型关系，必须优先检查真实运行结果；只要存在可到达源状态的有界执行 setup，就应使用 simulation，涉及 composite、forced、completion 或 pseudostate 时更不得仅靠静态直接边。检查 simulation 的 cycles 是否先到达 NL 指定源状态、再在后续 cycle 施加触发、最后断言正确目标或终止。必须核对 latest evaluation 的 observed_function_families / function_calls 确实包含 simulation；表达式中出现 simulate 文本不算执行证据。``relation or simulation`` 会在 relation 为真时短路，必须按弱/错向断言阻塞；relation + simulation 应使用会实际执行两者的 ``and``，或拆成同 Root 下独立 required 断言。若只因扁平 direct edge 不存在就投影 issue，同样必须以错误 issue projection 阻塞。反之，若 NL 明确要求的就是直接模型关系本身，不得无条件强加 simulation。
 17. 当前 review 发生在完整计划已经注册之后。现有工具只能 revise 已注册 assertion chain，不能新增 CoverageUnit、Root 或 assertion chain，也不能重新注册完整计划。每个 revise_assertion step 的 assertion_chain_id 必须来自 review_contract.required_assertion_chain_ids；若当前工具无法实现某建议，不得把它作为 finding 返回。
 18. 建议的断言仍必须遵循正向布尔原则：True 表示现有 Root 得到满足。若 NL 明确禁止某行为，表达式应在该行为不存在时为 True；不得把“不希望存在的边确实存在”写成 True 后仍声称它会投影为 issue。
 

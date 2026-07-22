@@ -107,6 +107,10 @@ def build_tool(
         Use this microscope when runtime behavior is the proposition and a
         static relation alone cannot show the final state, especially across
         composite, forced, completion, or pseudostate semantics.
+        For an “in S, on E, reach T” proposition, the requested cycles must make
+        S active before the later cycle that supplies E; a trace from a different
+        descendant or an event injected before S is reached answers another
+        proposition.
 
         When to use
         -----------
@@ -117,7 +121,8 @@ def build_tool(
         Root ID; never mint suffix variants or new IDs to prolong exploration.
         The resulting trace repairs the setup for a registered ``simulate(...)``
         assertion; it does not authorize replacing a behavioral outcome with a
-        flattened direct-edge assertion.
+        flattened direct-edge assertion or hiding simulation behind a truthy
+        short-circuit branch.
 
         When not to use
         ----------------

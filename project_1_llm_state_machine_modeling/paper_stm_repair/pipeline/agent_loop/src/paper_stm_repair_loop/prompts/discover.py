@@ -238,15 +238,21 @@ double-negated verdict metadata, or a bare constant.
     required model structure/relation, or a runtime behavioral outcome? More tool
     families do not automatically make a claim stronger. Prefer structure for a
     structural claim. Use relation as the sole primary evidence only when the NL
-    explicitly requires a direct model relation, or when that exact stable-level
-    relation is itself the complete proposition. If the NL requires the system to
-    reach a runtime state after a trigger, and realization crosses a composite
-    state, forced transition, completion transition, or pseudostate, relation
-    evidence may ground the path but cannot replace the runtime outcome. Register
-    a simulation assertion for that outcome; relation + simulation is appropriate
-    when both the declared relation and executed behavior matter. Surface wording
-    such as source + event/condition + target, “when”, “after”, or “in state” does
-    not by itself decide between relation and simulation. Use FBMCQ only when an explicit bounded temporal
+    explicitly requires a direct model relation itself. If the NL describes what
+    the system does after a trigger, register simulation as the runtime verdict
+    whenever a bounded executable setup can reach the stated source state; a
+    relation may accompany it as grounding but cannot replace it. The simulation
+    must first reach the NL-stated source state, then apply the trigger in a later
+    cycle, and assert the resulting target state or termination. This is mandatory
+    when realization crosses a composite state, forced transition, completion
+    transition, or pseudostate. Required evidence must actually execute: never use
+    ``relation or simulation`` or another truthy short-circuit branch that can make
+    the assertion pass without calling ``simulate``. Use relation + simulation,
+    normally joined by ``and`` or as separate required assertions, when both the
+    declared relation and executed behavior matter. Surface wording such as source
+    + event/condition + target, “when”, “after”, or “in state” does not by itself
+    decide between relation and simulation and does not make the proposition a
+    direct model-relation requirement. Use FBMCQ only when an explicit bounded temporal
     property is necessary and cannot be represented at the required strength by
     direct relation or simulation evidence. “Explicit bounded” means the frozen
     NL itself states a step/time bound, deadline, timeout, or response window;
@@ -273,7 +279,8 @@ double-negated verdict metadata, or a bare constant.
   verdict. For a runtime behavioral proposition mediated by composite, forced,
   completion, or pseudostate semantics, use it to repair the cycle setup of a
   registered simulation assertion rather than replacing behavior with a direct
-  relation query. Use the exact registered Root ID; never mint suffix variants, borrow
+  relation query. Its cycles must demonstrate that the NL-stated source state is
+  active immediately before the trigger cycle. Use the exact registered Root ID; never mint suffix variants, borrow
   another Root's identity or budget, or create new IDs to continue an inquiry.
 - `lookup_source_trace`: inspect attribution only after a latest registered
   assertion has evaluated to a contradiction. It cannot decide whether the

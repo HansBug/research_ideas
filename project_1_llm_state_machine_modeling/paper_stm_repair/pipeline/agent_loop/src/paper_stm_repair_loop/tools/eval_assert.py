@@ -187,8 +187,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           source/event/target relation. It does not by itself prove the final
           runtime state when execution crosses composite, forced, completion, or
           pseudostate semantics. Use it as sole primary evidence only when the NL
-          explicitly requires the direct relation itself or that stable-level
-          relation is the complete proposition.
+          explicitly requires the direct relation itself. A behavioral statement
+          such as “when E occurs, the system enters T” requires runtime evidence
+          whenever a bounded executable setup can reach its source state.
         - ``guards_overlap(left_ref, right_ref) -> bool`` where refs are
           ``transition:T<n>`` or ``transition:<n>``. It decides missing/equal
           guards only; distinct non-empty guards are unsupported rather than
@@ -237,7 +238,12 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           pseudostate semantics, use a registered `simulate(...)` expression to
           assert the final active state or termination result. A static relation
           may be combined as grounding, but it cannot replace this runtime
-          observation.
+          observation. The cycle sequence must reach the NL-stated source state
+          before applying the trigger in a later cycle. Required simulation must
+          appear in the actual function-call trace: never write
+          ``transition_exists(...) or simulate(...)`` because a true relation
+          short-circuits Python evaluation and hides an unexecuted or invalid
+          simulation branch.
         - ``fbmcq(query) -> FBMCQObservation``. ``query`` is one complete
           official FBMCQ string with the bound inside it, for example
           ``check reach <= 8: active("Root.Attack");``. Read
@@ -318,9 +324,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         separately.
         Classify the proposition before selecting functions: direct model
         structure/relations use structure/relation evidence, while an NL runtime
-        outcome mediated by hierarchy requires simulation (or same-strength
-        formal evidence). Do not turn “event E in state S eventually enters T”
-        into a requirement for one flattened ``S -> T`` edge.
+        outcome uses simulation whenever a bounded setup can reach its source
+        state, and always when mediated by hierarchy (or use same-strength formal
+        evidence). Do not turn “event E in state S eventually enters T” into a
+        requirement for one flattened ``S -> T`` edge. Do not use ``or`` to make
+        a relation result bypass a required simulation call.
 
         Correct examples include:
 

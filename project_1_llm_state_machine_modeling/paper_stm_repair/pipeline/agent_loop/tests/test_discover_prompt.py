@@ -159,8 +159,12 @@ def test_prompt_requires_runtime_evidence_for_hierarchical_behavior_outcomes():
     assert "classify the NL proposition before choosing an evidence family" in flat
     assert "explicitly requires a direct model relation" in flat
     assert "composite state, forced transition, completion transition, or pseudostate" in flat
-    assert "relation evidence may ground the path but cannot replace the runtime outcome" in flat
+    assert "a relation may accompany it as grounding but cannot replace it" in flat
     assert "relation + simulation" in flat
+    assert "first reach the NL-stated source state" in flat
+    assert "never use ``relation or simulation``" in flat
+    assert "without calling ``simulate``" in flat
+    assert "that exact stable-level relation is itself the complete proposition" not in flat
     assert "A single-step source + event/condition + target obligation stays relational" not in flat
 
 
