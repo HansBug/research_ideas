@@ -1,5 +1,7 @@
 # source_trace/GUIDE.md — source trace 合同维护规范
 
+> 本 GUIDE 维护的是 legacy `source_trace.v0` synthetic fixtures。Issue #161 后 active PlantUML working bundle 的 identity trace 由 [R4.5 representation contract](../../pipeline/representation/README.md) 约束；两者同名的 `projection_status` 不得跨合同解释。active identity trace 不授权 Repair、final export 或 closure。
+
 ## 1. 默认阅读顺序
 
 处理 source trace 相关任务时，默认按以下顺序阅读：
@@ -92,4 +94,5 @@ reviewer 至少检查：
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-20 14:06:13 | 标明 v0 与 active `source_trace_base.v1` 的合同边界，禁止把 identity localization 误作 raw projection/closure 能力。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace 维护规范，固定 v0 relation、reverse index 与 negative attribution gate。 |

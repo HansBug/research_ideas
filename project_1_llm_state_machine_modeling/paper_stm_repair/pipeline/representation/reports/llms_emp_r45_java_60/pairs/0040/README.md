@@ -1,0 +1,140 @@
+# Pair `0040`：NL + PlantUML STM0 + FCSTM STM0
+
+[上一组 `0039`](../0039/README.md) | [返回 60 组索引](../../PAIR_INDEX.md) | [下一组 `0041`](../0041/README.md)
+
+- LLM：`DeepSeek`
+- 模型/场景：high-level driving module
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE42`；Excel row：`42`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`42acdd25b7fad2ff8a9502db8169a3ff849a3ba164e3381d70467c97e615cf7e`
+- NL SHA-256：`f1c3dc88371b8256352e7ab6ee7eb42424de6e11dfde70d185f224dd1d05a7a8`
+- PlantUML SHA-256：`7a96af160f5a1c2a7e4ee172c5bdb24ea8008542b6be9fba5a5d5d77ae28a7e4`
+- FCSTM SHA-256：`c579c02a617c296eda99b3b343c775e3fb3916eeed20a0da1597269ecc6423a3`
+- review subject SHA-256：`3f44a05fd0c58885bca7e158b9c50dca0c52ff9b9e7520f967b90a529a816724`
+- working contract SHA-256：`52c1e41bdb3779023ec7ce42de280add2d20c51eb14ef7e0f15b62b979c58a3b`
+- 结构裁决：`structure_preserved`
+- source states / transitions：`4` / `6`
+- mapped / blocked / silent drop：`6` / `0` / `0`
+- final / lifecycle / body coverage：`1/1` / `0/0` / `2/2`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`4` / `6`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`12` / `16` / `0`
+- source macro / positive identity trace / conversion boundary trace：`8` / `12` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0040 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
+- source anchors：`source-ref:llms_emp_feedback_final_0040.puml:line:6\|state Autonomous {, source-ref:llms_emp_feedback_final_0040.puml:line:5\|HumanDriving --> Autonomous : front_distance > 10`；FCSTM anchors：`element-ref:source:state:Autonomous@line:9\|state Autonomous named "Autonomous" {, element-ref:compiler:transition_segment:tr_0002:segment:1@line:20\|HumanDriving -> Autonomous : /front_distance_10;`
+- 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0040.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0040.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0040.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0040.json) | [source trace](../../source_traces/llms_emp_feedback_final_0040.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | autonomous | source-ref:llms_emp_feedback_final_0040.puml:line:6\|state Autonomous { | element-ref:source:state:Autonomous@line:9\|state Autonomous named "Autonomous" { | source:state:Autonomous | - | Case 0040 binds source:state:Autonomous to authored PlantUML occurrence 'state Autonomous {' and current FCSTM occurrence 'state Autonomous named "Autonomous" {'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+| `macro` | `preserved_with_exclusions` | front_distance > 10 | source-ref:llms_emp_feedback_final_0040.puml:line:5\|HumanDriving --> Autonomous : front_distance > 10 | element-ref:compiler:transition_segment:tr_0002:segment:1@line:20\|HumanDriving -> Autonomous : /front_distance_10; | source:transition:tr_0002 | compiler:transition_segment:tr_0002:segment:1 | Case 0040 binds source:transition:tr_0002 to authored PlantUML occurrence 'HumanDriving --> Autonomous : front_distance > 10' and current FCSTM occurrence 'HumanDriving -> Autonomous : /front_distance_10;'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:multi_segment_macro:0001:tr_0005` | `multi_segment_macro` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:12\|Autonomous --> HumanDriving : human_steering_cmd \|\| brake_pressed \|\| in (AutoFinal) | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0005:segment:1@line:14\|AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:2@line:15\|AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:3@line:18\|Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005 | Case 0040 multi_segment_macro occurrence review:multi_segment_macro:0001:tr_0005 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005. All emitted segments collapse to one source transition root; no segment is promoted as a separate authored transition or editable issue target. |
+| `review:route_controller:0002:tr_0005` | `route_controller` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0040.puml:line:12\|Autonomous --> HumanDriving : human_steering_cmd \|\| brake_pressed \|\| in (AutoFinal) | element-ref:compiler:route_control:R45RouteToken@line:1\|def int R45RouteToken = 0;, element-ref:compiler:transition_segment:tr_0005:segment:1@line:14\|AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:2@line:15\|AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };, element-ref:compiler:transition_segment:tr_0005:segment:3@line:18\|Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; }; | compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005 | Case 0040 route_controller occurrence review:route_controller:0002:tr_0005 binds exact source refs to working-contract elements compiler:route_control:R45RouteToken, compiler:transition_segment:tr_0005:segment:1, compiler:transition_segment:tr_0005:segment:2, compiler:transition_segment:tr_0005:segment:3, source:transition:tr_0005. R45RouteToken and routed segments remain compiler_owned, protected, and excluded from confirmed issues, Repair, Confirm acceptance, and main results. |
+| `review:final_boundary:0003:tr_0006` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0040.puml:line:13\|HumanDriving --> [*] : Power Off | element-ref:compiler:transition_segment:tr_0006:segment:1@line:21\|HumanDriving -> [*] : /Power_Off; | compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006 | Case 0040 final_boundary occurrence review:final_boundary:0003:tr_0006 binds exact source refs to working-contract elements compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I42` | `true` | `42acdd25b7fad2ff8a9502db8169a3ff849a3ba164e3381d70467c97e615cf7e` | - | - |
+| `phase_ii_format` | `U42` | `true` | `9f27e155dbe01adcbc936599932bcd8f0556944a6e013a5ec7ccf8767738eda9` | syntax error：stm DrivingSystem [Driving System State Machine] | YES |
+| `phase_ii_grammar` | `Z42` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE42` | `true` | `7a96af160f5a1c2a7e4ee172c5bdb24ea8008542b6be9fba5a5d5d77ae28a7e4` | 1. Duplicated composite state. | - |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`4` / `4`
+- aligned transition endpoints：`6`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.composite_source_activation_dispatch` | 1 |
+| `R45.DEBT.opaque_state_body_semantics` | 2 |
+| `R45.DEBT.opaque_transition_label_semantics` | 6 |
+
+## NL
+
+```text
+1 The human driving mode is represented by a simple state. 2 The autonomous mode has sub-states and is represented by a sub machine state. 3. when power on, the system turn into human driving mode 4when front_distance > 10, auto transport to autonomous state 4. transit to human driving mode when receive human steering cmd, brake pressed, in (auto final) 5 when power off, it will transit to final state
+```
+
+## 作者 Phase-II 最终 PlantUML STM0
+
+```plantuml
+@startuml
+[*] --> HumanDriving : Power On
+HumanDriving : Human Driving Mode
+
+HumanDriving --> Autonomous : front_distance > 10
+state Autonomous {
+[*] --> AutoInitial : Enter Autonomous Mode
+AutoInitial --> AutoFinal : Auto Process Complete
+AutoFinal : Auto Final State
+}
+
+Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)
+HumanDriving --> [*] : Power Off
+@enduml
+```
+
+## 转换后 FCSTM STM0
+
+```fcstm
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0040 named "llms_emp_feedback_final_0040" {
+    event Power_On named "Power On";
+    event front_distance_10 named "front_distance > 10";
+    event Enter_Autonomous_Mode named "Enter Autonomous Mode";
+    event Auto_Process_Complete named "Auto Process Complete";
+    event human_steering_cmd_brake_pressed_in_AutoFinal named "human_steering_cmd || brake_pressed || in (AutoFinal)";
+    event Power_Off named "Power Off";
+    state Autonomous named "Autonomous" {
+        state AutoInitial named "AutoInitial";
+        state AutoFinal named "AutoFinal\n[PlantUML body] Auto Final State";
+        [*] -> AutoInitial : /Enter_Autonomous_Mode;
+        AutoInitial -> AutoFinal : /Auto_Process_Complete;
+        AutoInitial -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
+        AutoFinal -> [*] : /human_steering_cmd_brake_pressed_in_AutoFinal effect { R45RouteToken = 5; };
+    }
+    state HumanDriving named "HumanDriving\n[PlantUML body] Human Driving Mode";
+    Autonomous -> HumanDriving : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+    [*] -> HumanDriving : /Power_On;
+    HumanDriving -> Autonomous : /front_distance_10;
+    HumanDriving -> [*] : /Power_Off;
+}
+```
+
+[上一组 `0039`](../0039/README.md) | [返回 60 组索引](../../PAIR_INDEX.md) | [下一组 `0041`](../0041/README.md)

@@ -1,0 +1,31 @@
+def int R45RouteToken = 0;
+state llms_emp_feedback_final_0050 named "llms_emp_feedback_final_0050" {
+    event Power_On named "Power On";
+    event _front_distance_10 named "[front_distance > 10]";
+    event human_steering_cmd_nor_brake_pressed_nor_in_auto_final named "human steering cmd\\nor brake pressed\\nor in (auto final)";
+    event Power_Off named "Power Off";
+    state HumanDrivingMode named "HumanDrivingMode";
+    state AutonomousMode named "AutonomousMode" {
+        state SubState1 named "SubState1";
+        state SubState2 named "SubState2";
+        state SubState3 named "SubState3";
+        state FinalWaittr_0005 named "Completed final boundary: AutonomousMode.SubState3";
+        [*] -> SubState1;
+        SubState1 -> SubState2;
+        SubState2 -> SubState3;
+        SubState3 -> FinalWaittr_0005;
+        SubState1 -> [*] : /human_steering_cmd_nor_brake_pressed_nor_in_auto_final effect { R45RouteToken = 7; };
+        SubState2 -> [*] : /human_steering_cmd_nor_brake_pressed_nor_in_auto_final effect { R45RouteToken = 7; };
+        SubState3 -> [*] : /human_steering_cmd_nor_brake_pressed_nor_in_auto_final effect { R45RouteToken = 7; };
+        SubState1 -> [*] : /Power_Off effect { R45RouteToken = 9; };
+        SubState2 -> [*] : /Power_Off effect { R45RouteToken = 9; };
+        SubState3 -> [*] : /Power_Off effect { R45RouteToken = 9; };
+        FinalWaittr_0005 -> [*] : /human_steering_cmd_nor_brake_pressed_nor_in_auto_final effect { R45RouteToken = 7; };
+        FinalWaittr_0005 -> [*] : /Power_Off effect { R45RouteToken = 9; };
+    }
+    AutonomousMode -> HumanDrivingMode : if [R45RouteToken == 7] effect { R45RouteToken = 0; };
+    AutonomousMode -> [*] : if [R45RouteToken == 9] effect { R45RouteToken = 0; };
+    [*] -> HumanDrivingMode : /Power_On;
+    HumanDrivingMode -> AutonomousMode : /_front_distance_10;
+    HumanDrivingMode -> [*] : /Power_Off;
+}

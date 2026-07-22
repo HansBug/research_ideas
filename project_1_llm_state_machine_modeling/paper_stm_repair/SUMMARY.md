@@ -42,8 +42,8 @@ paper1 当前已经完成战略转向后的资产清账，并将 active 主线�
 1. 已完成的 issue ledger v0 与 source trace v0 是 runtime v1 的迁移输入，后续实现不得绕过其 attribution / negative gate，但也不得把 v0 直接冒充真实 loop 输出。
 2. 先交付完整 Discover Agent，同时落下最小 shared kernel、schema-safe pyfcstm adapter、records/context/renderer、工具、prompt、runner、CLI 与 stage smoke。
 3. 再依次交付完整 Repair Agent 与 Confirm Agent；Repair 处理当前全部 pending nodes，Confirm 审查全部 dispositions，reject 只追加 successor 并回 Repair。
-4. 三个阶段完成后，由无顶层 Agent/prompt、只按 typed stage result 转移的确定性 controller 组织闭环，再进入一次性 source projection 与 closure audit。
-5. 动态 subPR slug、状态和前置依赖只维护在 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)；pilot 产出真实 raw/source `STM_k` 或 patch bundle 后，才能冻结 final rubric 与 baseline contract。
+4. 三个阶段完成后，由无顶层 Agent/prompt、只按 typed stage result 转移的确定性 controller 组织闭环，再由独立 post-Confirm semantic-root export bundle 一次性生成 fresh canonical raw/source `STM_k` 并执行 closure audit。
+5. 动态 subPR slug、状态和前置依赖只维护在 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)；pilot 产出真实 canonical raw/source `STM_k`、semantic change/correspondence ledger 与 closure audit 后，才能冻结 final rubric 与 baseline contract。
 
 ## 5. 禁止误读
 

@@ -48,7 +48,7 @@ and attribution_boundary.source_level_claim_allowed == true
 1. Discover 不能把 candidate 直接当 confirmed；folded event / expression debt 默认只能 candidate，除非同一 Discover assessment 有足够 source-level behavior evidence 支撑重分类。
 2. Repair 不能对没有 `confirmed issue_id` 的泛化目标执行 `fix`；对不可 fix 的 pending root 必须给出可审计 reject 理由。
 3. Confirm 只审查本轮 disposition 与已发布模型；不能回 Discover、修改旧记录或把 B-confirm accept 直接当 source closure。
-4. source export 必须能把 change / patch 回指到 issue chain 与 disposition。
+4. canonical source export 必须能把每个 exported semantic root 与 accepted change 回指到 issue chain 和 disposition；不允许从裸 `.fcstm` 反推或用 textual minimal patch 替代 correspondence ledger。
 5. C closure audit 必须保留 closed / partial / not closed / regression / unjudgeable，而不能删除失败项。
 
 ## 6. 更新日志

@@ -6,7 +6,7 @@
 
 ```text
 Input:  <NL, raw/source STM_0>
-Output: <Discover roots/checks, Repair-Confirm issue chains, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
+Output: <Discover roots/checks, Repair-Confirm issue chains, fresh canonical raw/source STM_k, semantic change/correspondence ledger, closure/regression ledger>
 ```
 
 方法目标是在已有状态机制品中执行一次问题发现、多轮修复-确认，并最终闭合 source-level behavioral issues。
@@ -26,7 +26,7 @@ Output: <Discover roots/checks, Repair-Confirm issue chains, raw/source patch bu
 |---|---|---|
 | Discover roots/checks | 记录工具 / LLM 发现的问题、`confirmed/candidate_only` assessment、repair eligibility 与 immutable checks。 | 不能由 folded event / diagnostic alone 自动生成 repair-eligible root。 |
 | Repair-Confirm issue chains | 记录每个 node 的 `fix/reject`、已发布模型/diff、`accept/reject`、理由、证据和 successor。 | 不能泛泛重写整个模型，不能修改旧节点或回到 Discover。 |
-| raw/source patch bundle or final raw/source `STM_k` | 回到源层的补丁、diff、解释或完整候选模型。 | 无法投影的中间修改不能算 closure。 |
+| fresh canonical raw/source `STM_k` | 由 validated post-Confirm semantic-root export bundle 全量生成的源层候选模型；semantic change/correspondence ledger 负责把 accepted disposition 与最终元素对应起来。 | 不消费裸 `.fcstm`，不要求原文件 formatting 或最小文本 diff；无法进入 export bundle 的中间修改不能算 closure。 |
 | closure/regression ledger | 记录 closed / partially closed / not closed / over-repaired / regression-introduced / unjudgeable。 | 不得静默删除未闭合或新引入的问题。 |
 
 ## 4. 方法内外边界
@@ -40,7 +40,7 @@ Output: <Discover roots/checks, Repair-Confirm issue chains, raw/source patch bu
 5. 多轮 B-repair：整批 `fix/reject` 与原子模型发布。
 6. 多轮 B-confirm：整批 `accept/reject` 与 successor 追加。
 7. B-final evidence gate。
-8. 一次 raw/source patch/projection。
+8. 一次 post-Confirm semantic-root bundle 构造与 fresh canonical raw/source `STM_k` export。
 9. C closure / regression audit。
 
 ### 方法外

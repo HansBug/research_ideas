@@ -1,5 +1,7 @@
 # Source Trace Contract v0
 
+> **状态：legacy migration contract。** 本合同只约束已冻结 synthetic fixtures，不直接约束 Issue #161 后的 PlantUML 60 例 working bundle。active ingress 使用 `source_trace_base.v1`：即使 source identity 可稳定定位，也必须保持 `behavioral_fidelity=not_assessed` 与 `closure_claim_allowed=false`。因此本合同的 `projectable` 不能被 active Discover/Repair/Confirm/C-stage consumer 当作 exporter、最小 patch 或 closure 已授权。
+
 ## 1. 合同目标
 
 Source Trace Contract v0 定义 raw/source STM 元素与中间可执行语义表示元素之间的最小追踪记录。它服务于后续：
@@ -66,7 +68,7 @@ v0 明确不支持 `merged` / `inferred`。原因是它们在没有真实 pilot 
 | `unprojectable` | 不能可靠投影。 | 用于 `ambiguous` / `untraceable`。 |
 | `not_applicable` | 投影问题不适用。 | v0 用于 `conversion_artifact`。 |
 
-`partially_projectable` 是一个保守状态。它可帮助定位 issue，但后续 closure audit 只能把它作为 partial / candidate evidence；full closure 必须另有 raw/source patch evidence 与独立 C-stage source audit 证据，不能用 B-confirm accept 或 post-repair rediscovery 代替。
+`partially_projectable` 是 legacy v0 的保守状态。它可帮助定位 issue，但后续 closure audit 只能把它作为 partial / candidate evidence；active PlantUML full closure 必须另有 validated post-Confirm semantic-root export bundle、fresh canonical raw/source `STM_k`、semantic-root correspondence 与独立 C-stage source audit 证据，不能用 B-confirm accept、当前 working bundle 或 post-repair rediscovery 代替。
 
 ## 6. attribution boundary
 
@@ -163,4 +165,5 @@ v0 synthetic fixtures 位于 [../../pipeline/evaluation/fixtures/source_trace/](
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-07-20 14:06:13 | 将 v0 明确降为 legacy migration contract，禁止覆盖 active PlantUML identity-only trace 的 closure-false 边界。 |
 | 2026-07-08 14:03:59 | 定义 Source Trace Contract v0，收紧 plan review 指出的 `merged/inferred`、reverse index、negative attribution、conversion artifact 和 partial projection 风险。 |

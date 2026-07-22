@@ -12,7 +12,7 @@
 | Repair dispositions / change ledger | 尚未实现；每轮必须覆盖全部 pending nodes，并对每项 `fix/reject` 给出理由 | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
 | Confirm decisions / successor chains | 尚未实现；每轮必须覆盖全部 dispositions，reject 只追加 successor 并回 Repair | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
 | deterministic B loop / B-final | 尚未实现；顶层不新增 Agent/prompt，只按 typed results 控制循环 | [Issue #152](https://github.com/HansBug/research_ideas/issues/152) |
-| raw/source patch bundle or final raw/source `STM_k` | source trace v0 已定义；导出 / patch bundle 协议尚未实现 | [source_trace/](./source_trace/), [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
+| post-Confirm semantic-root export bundle + fresh canonical raw/source `STM_k` | source trace v0 已定义；独立 export bundle / canonical exporter 尚未实现，不采用 textual minimal patch | [source_trace/](./source_trace/), [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
 | closure / regression audit | 尚未定义；只在 B-final 后进入一次性 C 阶段 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
 | final metrics / baseline / judge prompt | pilot 前不得冻结 | pilot 后路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) |
 
@@ -24,7 +24,7 @@
 | [GUIDE.md](./GUIDE.md) | 后续协议设计纪律。 | 不把 archived Better STM gate 迁回 active guardrail。 |
 | [metrics/README.md](./metrics/README.md) | future metrics placeholder。 | pilot 前不冻结 final metric / baseline / judge prompt。 |
 | [issue_lifecycle/README.md](./issue_lifecycle/README.md) | source issue ledger v0 合同入口。 | 只定义 issue status / evidence gate，不运行 repair、不生成实验结果。 |
-| [source_trace/README.md](./source_trace/README.md) | source trace v0 合同入口。 | 只定义 trace / projection / attribution gate，不生成真实 patch 或 closure 结果。 |
+| [source_trace/README.md](./source_trace/README.md) | source trace v0 合同入口。 | 只定义 legacy trace / projection / attribution gate，不授权当前 working bundle 生成 canonical source output 或 closure 结果。 |
 
 ## 3. 历史 R5.7 快照
 

@@ -1,5 +1,7 @@
 # R4.5 规范化 STM 到 fcstm 表示桥
 
+> **LLMS-EMP 60 例 active 路线**：Issue #161 后，PlantUML 不再走 `SCXML -> legacy canonical -> lowering.py`。active 路径是 [Java source frontend](../conversion/java/plantuml-state-frontend/README.md) -> `plantuml_source_lowering.py` -> [60 例证据目录](./reports/llms_emp_r45_java_60/SUMMARY.md)。下文四例 R3 smoke 仍保留为历史合同，不得与新 60 例统计混用。
+
 ## 1. 定位
 
 `representation/` 是第一篇论文 R4.5 的内部表示桥工作区，负责把 R3 的 `canonical_stm.json` 降到 pyfcstm 可解析的 `.fcstm` DSL，并同步产出 `name_mapping.json`、`lowering_inventory.json`、`fcstm_export_loss_ledger.jsonl` 与 `parse_inspect_report.json`。
@@ -21,11 +23,16 @@ representation/
 │   ├── fcstm_export_report.schema.json
 │   ├── fcstm_export_loss_ledger.schema.json
 │   ├── lowering_inventory.schema.json
-│   └── name_mapping.schema.json
+│   ├── manual_pair_review.schema.json
+│   ├── name_mapping.schema.json
+│   └── working_fcstm_contract.schema.json
 ├── src/paper_stm_repair_representation/
 │   ├── __init__.py
 │   ├── cli.py
-│   ├── lowering.py              # canonical view / lowering / .fcstm render / report 主入口
+│   ├── lowering.py              # 历史四例 canonical lowering / .fcstm render / report 入口
+│   ├── plantuml_source_lowering.py # active 60 例的结构保真 lowering 与三轴裁决
+│   ├── plantuml_working_contract.py # ownership/macro/capability/attribution gate
+│   ├── plantuml_working_bundle.py # mandatory loader / Discover view / issue binding gate
 │   └── pyfcstm_names.py
 ├── reports/
 │   ├── fcstm_export_report.json
@@ -37,22 +44,80 @@ representation/
 │       ├── lowering_inventory.json
 │       └── parse_inspect_report.json
 └── tests/
+    ├── test_plantuml_working_bundle.py
     ├── test_r45_export_contract.py
     ├── test_r45_name_mapping.py
     └── test_r45_schema_contract.py
 ```
 
-其中 `lowering.py` 是 R4.5 的主实现入口，同时承担 canonical model view、lowering 策略、`.fcstm` 渲染、loss ledger 与 export report 生成；本 PR 未单独拆出 `canonical_to_fcstm.py`。
+新路线的 Python 层不解析 PlantUML，只校验 jar、调用 Java、读取 JSON、执行 FCSTM lowering 与 pyfcstm parse/inspect/runtime 验证。当前边界是结构与 raw text 可追溯，不把 opaque label 自动拆成 guard/effect/timing。只有 source fact 无法完整落入 `.fcstm + mandatory trace` 时才产生 structural blocker；可以完整保存、但无法证明运行解释的 composite entry、fan-out、concurrency、state body 或 lifecycle owner 记为 operational debt。
+
+active 60 例同时保留两层资格：
+
+1. legacy whole-model `fcstm_execution_eligible/discover_eligible` 仍为 false，避免把整例结构 PASS 冒充全局行为等价；
+2. `working_fcstm_contract.v2` 将 working bundle 标为 `discover_input_with_capability_mask`，允许 Discover 对 source-owned semantic roots 做静态分析；baseline 不预授权 inspect diagnostic、simulation、transition trace 或 Repair，它们只能在后续 runtime 取得 confirmed issue binding 与可归因 typed evidence 后按能力重新开放。
+
+本路线不再以双向无损或最小文本修改为目标，而采用两个职责不同的单向投影：
+
+```text
+PlantUML STM0 -> attribution-safe FCSTM working bundle
+validated post-Confirm semantic-root export bundle -> fresh canonical PlantUML STM_k
+```
+
+前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；它消费当前 attribution-safe working bundle。后向投影属于未来独立 source-export PR：只有通过 B-final 与 Confirm 的 post-Confirm semantic-root export bundle 才能授权输出，它消费 `source_owned + issue-bound agent_created` semantic roots、accepted disposition/change ledger、region/body/lifecycle/order 信息与 deletion tombstone，折叠 compiler macro 后重新生成完整 PlantUML。后向投影不消费裸 `.fcstm`，也不把当前 `working_fcstm_contract.v2` 当作可逆制品；它不保留原排版、不追求最小 diff、不声称通用 round-trip 或全局 behavior equivalence。
+
+`FinalWait*`、`UnspecifiedInitial`、`InvalidInitial*`、跨层 transition segment 与 `R45RouteToken` 等必要支架全部是 compiler-owned/protected。`InitialWait*` 与 `LifecycleActive` 已被禁止：FCSTM 原生支持带事件的 initial edge 和 leaf lifecycle action，继续生成这两类 helper 会分别改变初态选择与层次结构。深层/跨层路由在 FCSTM 的单活动分派候选（包括 fail-closed compiler leaf）上消费一次 opaque event 并写入唯一 route code；这不表示 PlantUML 正交 region 的源活动互斥，凡 authored concurrency 仍由 capability contract 排除 runtime claim。后续退出、跨层 continuation 与目标 entry 只能读取同一 guard，稳定到达后恰好 reset 一次。routed macro 禁止 forced segment，`R45.DEBT.multi_segment_event_replay` 必须为 `0`；多个 trigger 只记录为 `R45.DEBT.composite_source_activation_dispatch`，不能被误读成多个 source transition。composite-to-descendant 的 local/external 语义仍以 `R45.DEBT.composite_source_external_reentry` fail-close，不开放 runtime claim。每条 inspect diagnostic 都绑定结构化 span：compiler-only 必须 `rejected_conversion_artifact`，macro-member 在有独立 source evidence 前只能 `candidate_only`，无法唯一绑定则 `insufficient_evidence`。confirmed issue 和 Repair target 必须回指 source-owned root；baseline `repair/main_result=not_run`。identity trace 只证明源元素身份，没有任何 baseline trace 预授权 behavior equivalence、Repair 或 closure。
+
+当前 `source_trace_base.v1` 中沿用的 `projection_status=projectable` 是 legacy 字段名，只表示 source identity 能稳定定位到 intermediate root；它与同一 entry 的 `trace_dimension=identity_only`、`behavioral_fidelity=not_assessed`、`closure_claim_allowed=false` 联合解释。该字段不能被单独消费为 raw/source exporter 已实现、可做最小 patch 或可证明闭合的证据；final export 只能由未来独立的 post-Confirm semantic-root contract 授权。
+
+下游不得自行打开 `fcstm/*.fcstm` 作为 Discover 输入，必须通过唯一 loader：
+
+```python
+from pathlib import Path
+
+from paper_stm_repair_representation import load_attribution_safe_working_bundle
+
+bundle = load_attribution_safe_working_bundle(
+    Path("project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"),
+    "0000",
+)
+discover_input = bundle.discover_view()
+```
+
+loader 会重验 clean-evidence eligibility、pair pool、manifest inventory、逐文件 hash、working-contract schema、canonical/FCSTM/source-trace/case-report binding、60 行 `MANUAL_REVIEW.jsonl` 与 `PUBLICATION_SEAL.json`，以及 capability fail-closed 状态；未完成人工复核的 replay 不能进入 Discover，production API 不提供跳过 publication gate 的参数。人工审阅中的每条 semantic correspondence 必须同时命中所列 source root 的精确 PlantUML source line和该 root / macro member 的 FCSTM projection；PlantUML 锚点固定为 `source-ref:<raw_ref>|<完整 trimmed 源行>`，FCSTM 锚点固定为 `element-ref:<element_id>@line:<n>|<完整 trimmed FCSTM 行>`，裸 label、裸 identifier、子串、错误 scope 或错误行号均无效。第二遍 risk assessment 还必须逐 occurrence 覆盖 obligation 的全部 source refs、元素投影和 risk-specific assessment；`source_normalization` 没有 FCSTM projection，其 `fcstm_anchors` 必须为空；不能用同一组全局字符串或重新计算 seal 来伪造 `60/60 PASS`。`discover_view()` 只把 capability allowlist 中的 source-owned 字段暴露为 source facts；完整 FCSTM 只作为带 ownership/macro/exclusion 的工作文本共同出现，不能脱离 bundle 单独消费。`bind_confirmed_issues()` 会逐条把 source refs、source STM fragment、NL anchor 与 typed behavior evidence 精确绑定到真实 source bytes / eligible field refs；任何额外的伪造 source fragment、conversion report、unsupported evidence 或 capability-ineligible evidence 都使整个 confirmed binding 失败，不能依靠另一条合法证据掩盖。`source_internal_consistency_check` 还必须绑定真实执行过且进入 manifest 的 checker artifact；当前 baseline 没有该 checker，因此这一路径只能保持 candidate，不能用一组合法 field refs 自证 confirmed。只有 positive-traced、capability-eligible、明确 `conversion_or_lowering_related=false` 的 confirmed issue 才能形成 binding，且可修改字段范围收窄到 typed evidence 实际覆盖的 source-owned fields；本 baseline 仍返回 `repair_authorized=false`，Confirm/final export/main result 均保持 `not_run`。
+
+其中 `lowering.py` 继续承担历史四例 R3 canonical 的 model view、lowering、`.fcstm` 渲染、loss ledger 与 export report；Issue #161 后的 active 60 例由 `plantuml_source_lowering.py` 和 `plantuml_source_audit.py` 承担结构投影与独立 AST 审计。两条统计不得混用，本 PR 未单独拆出 `canonical_to_fcstm.py`。
 
 ## 3. 运行方式
 
-依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。当前 R4.5 contract 以 pyfcstm `v0.4.0`（submodule commit `5f811a0f`）为准；升级 pyfcstm 后必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
+依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。active 60 例证据固定 pyfcstm commit `4ea23c9b153f47e5c4a2125d95b466eee6eed13e`；下文历史四例最初冻结于 `v0.4.0`，仅保留为 legacy contract。任何 gitlink 升级都必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
 
 ```bash
 git submodule update --init --recursive
 pip install -r requirements.txt
 pip install -e ./pyfcstm
 ```
+
+普通重放不得覆盖已经绑定人工审阅的冻结目录，应显式使用新的 replay 目录：
+
+```bash
+make -C project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/java/plantuml-state-frontend fetch compile
+
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/run_llms_emp_r45.py \
+  --output-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60_replay
+```
+
+若输出目录已存在 `MANUAL_REVIEW.md`、`MANUAL_REVIEW.jsonl` 或 `PUBLICATION_SEAL.json`，runner 必须拒绝覆盖。只有明确执行本轮正式替换时才允许增加 `--replace-reviewed-output`；runner 仍先在 sibling staging 目录完成 60 例，再原子替换，不发布 partial batch。机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
+
+冻结证据完成后，可重新生成面向 GitHub 人工浏览的 60 个 NL/PlantUML/FCSTM 三元组目录：
+
+```bash
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/build_llms_emp_pair_pages.py \
+  --manual-review-jsonl project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.jsonl
+```
+
+入口为 [reports/llms_emp_r45_java_60/PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md)。每个目录包含 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 和三合一 `README.md`；页面同时展示 ownership、macro、source-static/simulation/transition capability、至少两条互不重复且绑定 NL/PlantUML/FCSTM/source-root 的 semantic correspondence，以及每个 required risk occurrence 的独立 evidence assessment。生成器必须验证 source/class implementation identity、pair-pool bytes、manifest machine/supporting inventory、实际文件 hash、working contract hash、review-subject hash、60 行顺序、逐例原文锚点和 obligation-level assessment，再通过 sibling staging 原子发布。dirty replay 只能生成显式 `development_only` 页面与 seal；`MANUAL_REVIEW.md` 只是从 `MANUAL_REVIEW.jsonl` 确定性生成的阅读面，不能作为独立事实源。
 
 导出四个 selected seed examples：
 
@@ -72,8 +137,8 @@ R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability
 运行 R4.5 tests：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
-pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+python -m pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
 ```
 
 ## 4. R5.7.4 裁决样例补充 bundle 已归档

@@ -7,7 +7,7 @@
 ```text
 输入：<NL, raw/source STM_0>
 中间：<intermediate executable semantic representation, diagnostics, simulation/probe, verification/check feedback>
-输出：<discover roots/checks, repair-confirm issue chains, final fcstm STM_k, raw/source patch bundle or final raw/source STM_k, closure/regression ledger>
+输出：<discover roots/checks, repair-confirm issue chains, final fcstm STM_k, fresh canonical raw/source STM_k, semantic change/correspondence ledger, closure/regression ledger>
 ```
 
 `NL -> STM` 一轮式生成不是本文主贡献；`fcstm` / `pyfcstm` 只是中间语义执行表示与可执行反馈介质，不是 paper1 的建模语言贡献。conversion / normalization / lowering 只属于输入准备和表示桥，不能计为 method gain。issue / repair / closure / regression ledger 是评价和可复现证据链，不是 headline contribution。
@@ -20,7 +20,7 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 
 1. 面向已有 `NL + raw/source STM_0` 的 feedback-driven LLM refinement loop：一次 Discover 初始化问题与检查项，多轮 Repair-Confirm 处理问题并形成可审计闭环。
 2. 将 diagnostics / inspect、simulation / probe、formal verification / check feedback 接入 agent loop 的 executable-feedback integration。
-3. 修复结果回到 raw/source 层表达，并围绕 issue discovery / closure / regression 与 direct raw/source LLM baseline 设计后续实验。
+3. 修复结果由独立 post-Confirm semantic-root export bundle 全量生成 fresh canonical raw/source `STM_k`，并围绕 issue discovery / closure / regression 与 direct raw/source LLM baseline 设计后续实验；不要求原文件 formatting 或最小文本 diff。
 
 当前只能写成方法或评价纪律、不能写成主贡献的内容：
 
@@ -51,9 +51,9 @@ paper1 的贡献必须回到 2026-07-07 导师讨论确认的主线：**loop + s
 当前尚未完成的事实：
 
 1. 已定义最小 source issue ledger v0：见 [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/) 与 [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json)；但尚未接入真实 discovery / repair loop。
-2. 已定义 raw/source 到中间表示的最小 source trace v0；但尚未接入真实 loop、repair/change ledger 或 raw/source patch export。
+2. 已定义 raw/source 到中间表示的最小 source trace v0；但尚未接入真实 loop、repair/change ledger 或 post-Confirm canonical source export。
 3. [Issue #152](https://github.com/HansBug/research_ideas/issues/152) 已定义 A/B/C、一次 Discover、多轮 Repair-Confirm、append-only records、任务/历史读取与双语报告合同；具体 stage IO / runtime schema 尚未实现。
-4. 尚未实现完整 Discover Agent、Repair Agent、Confirm Agent、确定性顶层 loop、raw/source export 与 closure/regression audit。
+4. 尚未实现完整 Discover Agent、Repair Agent、Confirm Agent、确定性顶层 loop、post-Confirm semantic-root export bundle、canonical raw/source exporter 与 closure/regression audit。
 5. 尚未运行 pilot；因此尚未冻结 final evaluation rubric、baseline contract 或正式实验协议。
 6. 尚未执行真实 repair loop；archived constructed `STM_k` dry-run 不能作为 method effectiveness evidence。
 
@@ -68,7 +68,7 @@ flowchart TD
   M --> C["Confirm all dispositions<br/>accept or add successor"]
   C -->|successor nodes| R
   C -->|all chains closed| F["B-final evidence gate"]
-  F --> X["C: one-time source projection<br/>closure and regression audit"]
+  F --> X["C: one-time canonical source export<br/>closure and regression audit"]
 ```
 
 Discover 中的 `confirmed/candidate_only` 是 root assessment，不是 Repair 前另设一个 Confirm Agent；B-confirm 只审查本轮 `fix/reject` disposition 及其对已发布 `STM_{i+1}` 的结果。Confirm reject 只追加 successor 并回到 Repair，不回 Discover、不回滚模型。这张图描述长期方法链路，不是当前 PR 施工状态；动态施工状态仍以 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) body / comment 为准。

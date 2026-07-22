@@ -13,7 +13,7 @@
 | 初始问题评估 | root assessment | Discover 内判断 root 是否 repair-eligible；不是独立的 pre-repair Confirm stage。 |
 | 问题绑定修复 | issue-grounded repair | repair 必须绑定 `issue_id`。 |
 | 处置确认 | B-confirm / disposition confirmation | Repair 后逐项审查 `fix/reject`，输出 `accept/reject` 与理由；reject 追加 successor 并回 Repair。 |
-| 源层补丁包 | source-level patch bundle | 可回投到 raw/source 层的 patch / diff / explanation。 |
+| 规范化源层导出 | canonical source export | 由 validated post-Confirm semantic-root export bundle 全量生成 fresh raw/source `STM_k`；配套 semantic change/correspondence ledger，不承诺 textual minimal patch。 |
 | 闭合审计 | closure audit | 判断原 issue 是否 closed / partially closed / not closed / over-repaired / unjudgeable。 |
 | 回归审计 | regression audit | 判断是否引入新 source-level issue。 |
 | 无法投影 | untraceable / unsupported projection | 中间修改无法可靠回到 source 层。 |
@@ -36,7 +36,7 @@
 
 | 避免写法 | 推荐写法 |
 |---|---|
-| 生成更好的 `STM_k` | 发现并闭合 source-level behavioral issues，输出 source-level patch bundle 或 final raw/source `STM_k`。 |
+| 生成更好的 `STM_k` | 发现并闭合 source-level behavioral issues，输出 fresh canonical raw/source `STM_k` 与 semantic change/correspondence ledger。 |
 | 通过 fcstm 改进模型 | 使用中间可执行语义表示获得工具反馈，并将修复证据回投到 source 层。 |
 | folded event 是错误 | folded event 是 candidate symptom，需经 `NL + source + behavior evidence` 确认。 |
 | Better STM gate | closure / regression audit。 |
