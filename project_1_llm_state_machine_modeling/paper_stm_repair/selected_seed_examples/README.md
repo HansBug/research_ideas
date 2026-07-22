@@ -12,7 +12,7 @@
 - `source_meta.json`：默认 pair、workbook cell、Phase-I/Phase-II lineage、source hash 与审阅入口；
 - `fcstm_meta.json`：FCSTM hash、canonical/case report/source trace/working contract/parse-inspect/publication seal 绑定。
 
-目录名、`source_meta.json.pair_id` 和 `pairs.jsonl.pair_id` 必须相同。`load_pair()` 读取 `pairs.jsonl` 的 NL 与 PlantUML，并读取本目录的 `model.fcstm`；不得把 report 目录、manual identity 或 custom mode 当作默认输入替代品。
+目录名、`source_meta.json.pair_id` 和 `pairs.jsonl.pair_id` 必须相同。`load_pair()` 读取 `pairs.jsonl` 的 NL 与 PlantUML，并读取本目录的 `model.fcstm`；不得把 report 目录、manual identity 或 custom mode 当作默认输入替代品。pair schema 中 `generation_context=author_phase_ii_checking_feedback` 与 `stm0_role=author_feedback_final_plantuml` 是池级标签；逐例实际来源以 `selected_stage`、`selected_stage_column` 和 `is_phase_i_fallback` 为准，`0054/0055` 的 `attribution` 必须明确禁止将其写成作者 checking 或本研究 Repair 的产物。
 
 ## 学术边界
 
