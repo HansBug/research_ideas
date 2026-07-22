@@ -139,10 +139,6 @@ def test_tool_validation_feedback_names_missing_field(tmp_path):
     assert result["execution_status"] == "invalid_arguments"
     assert result["missing_fields"] == ["assert"]
     assert result["errors"] == ["assert: Field required (missing)"]
-    action = result["required_actions"][0]["recommended_action"]
-    assert "separate top-level JSON keys" in action
-    assert '`"assert"` field' in action
-    assert "do not place the expression only in `reason`" in action
 
 
 def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path):
@@ -158,9 +154,6 @@ def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path
     assert "exact registered Root ID" in description
     assert "use this tool before registration" in description
     assert "provisional Root" not in description
-    assert "runtime behavior is the proposition" in description
-    assert "static relation alone" in description
-    assert "composite, forced, completion, or pseudostate" in description
 
     result = tools["observe_trace"].invoke(
         {
@@ -210,14 +203,10 @@ def test_eval_assert_explains_relation_vs_runtime_behavior_evidence(tmp_path):
     _controller, tools = _tools(tmp_path)
     description = " ".join(tools["eval_assert"].description.split())
 
-    assert "static source/event/target relation" in description
-    assert "does not by itself prove the final runtime state" in description
-    assert "composite, forced, completion, or pseudostate" in description
-    assert "registered `simulate(...)` expression" in description
-    assert "NL explicitly requires the direct relation itself" in description
-    assert "reach the NL-stated source state" in description
-    assert "actual function-call trace" in description
-    assert "transition_exists(...) or simulate(...)" in description
+    assert "static model relation" in description
+    assert "does not by itself observe the final runtime state" in description
+    assert "Use simulation instead" in description
+    assert "NL asks what behavior occurs after a trigger" in description
 
 
 def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):

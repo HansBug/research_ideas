@@ -122,8 +122,8 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "Never evade uniqueness with whitespace" in flat
     assert "minimum sufficient evidence route" in flat
     assert "More tool families do not automatically make a claim stronger" in flat
-    assert "Surface wording such as source + event/condition + target" in flat
-    assert "does not by itself decide between relation and simulation" in flat
+    assert "distinguish a required model structure/relation" in flat
+    assert "from a runtime behavioral outcome" in flat
     assert "Use FBMCQ only when an explicit bounded temporal property" in flat
     assert "the frozen NL itself states a step/time bound" in flat
     assert "never invent bounded reachability or liveness" in flat
@@ -153,19 +153,14 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "replay-mismatched results are inconclusive" in flat
 
 
-def test_prompt_requires_runtime_evidence_for_hierarchical_behavior_outcomes():
+def test_prompt_prefers_simulation_for_runtime_behavior_outcomes():
     flat = _flat(PROMPT_ZH)
 
-    assert "classify the NL proposition before choosing an evidence family" in flat
-    assert "explicitly requires a direct model relation" in flat
-    assert "composite state, forced transition, completion transition, or pseudostate" in flat
-    assert "a relation may accompany it as grounding but cannot replace it" in flat
-    assert "relation + simulation" in flat
-    assert "first reach the NL-stated source state" in flat
-    assert "never use ``relation or simulation``" in flat
-    assert "without calling ``simulate``" in flat
-    assert "that exact stable-level relation is itself the complete proposition" not in flat
-    assert "A single-step source + event/condition + target obligation stays relational" not in flat
+    assert "when the NL explicitly requires a direct source/event/target relation" in flat
+    assert "what the system does after a trigger" in flat
+    assert "prefer simulation when a short bounded setup can exercise that behavior" in flat
+    assert "especially across hierarchical states" in flat
+    assert "does not by itself observe the final runtime state" in flat
 
 
 def test_prompt_makes_review_pass_current_and_actionable():
@@ -199,9 +194,6 @@ def test_prompt_requires_feedback_driven_progress_without_external_takeover():
     assert "never respond by shortening the outcome" in flat
     assert "corrective workflow feedback, not as semantic evidence" in flat
     assert "intentional failure, budget probe" in flat
-    assert "separate top-level JSON keys" in flat
-    assert "complete Python expression in the top-level `assert` field" in flat
-    assert "copy every key from its `suggested_arguments`" in flat
 
 
 def test_prompt_converges_exploration_into_the_registered_plan():

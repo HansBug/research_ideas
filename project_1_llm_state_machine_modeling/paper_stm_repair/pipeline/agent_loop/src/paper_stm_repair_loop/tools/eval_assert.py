@@ -183,13 +183,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         - ``transition_exists(source=None, event=None, target=None) -> bool``.
           Use this for required or forbidden transition relations. Include
           ``target`` whenever the NL constrains the destination; event existence
-          alone is a weaker and invalid substitute. This proves only a static
-          source/event/target relation. It does not by itself prove the final
-          runtime state when execution crosses composite, forced, completion, or
-          pseudostate semantics. Use it as sole primary evidence only when the NL
-          explicitly requires the direct relation itself. A behavioral statement
-          such as “when E occurs, the system enters T” requires runtime evidence
-          whenever a bounded executable setup can reach its source state.
+          alone is a weaker and invalid substitute. This checks a static model
+          relation; it does not by itself observe the final runtime state across
+          hierarchical execution. Use simulation instead when the NL proposition
+          is about the behavior produced after a trigger and a short bounded setup
+          can exercise it.
         - ``guards_overlap(left_ref, right_ref) -> bool`` where refs are
           ``transition:T<n>`` or ``transition:<n>``. It decides missing/equal
           guards only; distinct non-empty guards are unsupported rather than
@@ -233,17 +231,10 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           has no active state, so do not call ``is_active`` after termination or
           append a diagnostic cycle after the terminating event. Reusing an
           external event in a later non-terminal cycle is legal; consumed-event
-          accounting is not a one-use scenario rule. When runtime behavior is the
-          proposition and execution involves composite, forced, completion, or
-          pseudostate semantics, use a registered `simulate(...)` expression to
-          assert the final active state or termination result. A static relation
-          may be combined as grounding, but it cannot replace this runtime
-          observation. The cycle sequence must reach the NL-stated source state
-          before applying the trigger in a later cycle. Required simulation must
-          appear in the actual function-call trace: never write
-          ``transition_exists(...) or simulate(...)`` because a true relation
-          short-circuits Python evaluation and hides an unexecuted or invalid
-          simulation branch.
+          accounting is not a one-use scenario rule. Prefer this function when
+          the NL asks what behavior occurs after a trigger; assert the resulting
+          active state or termination rather than inferring it from one static
+          transition relation.
         - ``fbmcq(query) -> FBMCQObservation``. ``query`` is one complete
           official FBMCQ string with the bound inside it, for example
           ``check reach <= 8: active("Root.Attack");``. Read
@@ -322,13 +313,6 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         unrelated inventory. Multiple complementary
         assertions for one Root are allowed, but register and execute each one
         separately.
-        Classify the proposition before selecting functions: direct model
-        structure/relations use structure/relation evidence, while an NL runtime
-        outcome uses simulation whenever a bounded setup can reach its source
-        state, and always when mediated by hierarchy (or use same-strength formal
-        evidence). Do not turn “event E in state S eventually enters T” into a
-        requirement for one flattened ``S -> T`` edge. Do not use ``or`` to make
-        a relation result bypass a required simulation call.
 
         Correct examples include:
 

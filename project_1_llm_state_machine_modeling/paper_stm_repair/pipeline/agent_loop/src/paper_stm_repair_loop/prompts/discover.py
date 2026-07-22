@@ -234,25 +234,14 @@ double-negated verdict metadata, or a bare constant.
     relation. Never evade uniqueness with whitespace, parentheses, rationale, or
     irrelevant filters.
 15. Use the minimum sufficient evidence route for each proposition. First
-    classify the NL proposition before choosing an evidence family: is it a
-    required model structure/relation, or a runtime behavioral outcome? More tool
-    families do not automatically make a claim stronger. Prefer structure for a
-    structural claim. Use relation as the sole primary evidence only when the NL
-    explicitly requires a direct model relation itself. If the NL describes what
-    the system does after a trigger, register simulation as the runtime verdict
-    whenever a bounded executable setup can reach the stated source state; a
-    relation may accompany it as grounding but cannot replace it. The simulation
-    must first reach the NL-stated source state, then apply the trigger in a later
-    cycle, and assert the resulting target state or termination. This is mandatory
-    when realization crosses a composite state, forced transition, completion
-    transition, or pseudostate. Required evidence must actually execute: never use
-    ``relation or simulation`` or another truthy short-circuit branch that can make
-    the assertion pass without calling ``simulate``. Use relation + simulation,
-    normally joined by ``and`` or as separate required assertions, when both the
-    declared relation and executed behavior matter. Surface wording such as source
-    + event/condition + target, “when”, “after”, or “in state” does not by itself
-    decide between relation and simulation and does not make the proposition a
-    direct model-relation requirement. Use FBMCQ only when an explicit bounded temporal
+    distinguish a required model structure/relation from a runtime behavioral
+    outcome. More tool families do not automatically make a claim stronger.
+    Prefer structure for a structural claim and relation when the NL explicitly
+    requires a direct source/event/target relation. When the NL instead describes
+    what the system does after a trigger, prefer simulation when a short bounded
+    setup can exercise that behavior, especially across hierarchical states; a
+    static relation may help ground the path but does not by itself observe the
+    final runtime state. Use FBMCQ only when an explicit bounded temporal
     property is necessary and cannot be represented at the required strength by
     direct relation or simulation evidence. “Explicit bounded” means the frozen
     NL itself states a step/time bound, deadline, timeout, or response window;
@@ -276,11 +265,7 @@ double-negated verdict metadata, or a bare constant.
 - `observe_trace`: diagnose exact cycle behavior only after successful plan
   registration and only when an inconclusive latest evaluation or failed review
   explicitly names the trace evidence gap. Its trace is not itself a Root
-  verdict. For a runtime behavioral proposition mediated by composite, forced,
-  completion, or pseudostate semantics, use it to repair the cycle setup of a
-  registered simulation assertion rather than replacing behavior with a direct
-  relation query. Its cycles must demonstrate that the NL-stated source state is
-  active immediately before the trigger cycle. Use the exact registered Root ID; never mint suffix variants, borrow
+  verdict. Use the exact registered Root ID; never mint suffix variants, borrow
   another Root's identity or budget, or create new IDs to continue an inquiry.
 - `lookup_source_trace`: inspect attribution only after a latest registered
   assertion has evaluated to a contradiction. It cannot decide whether the
@@ -330,13 +315,7 @@ the next semantic action after a rejected or failed business-tool call.
    explicitly request one unchanged retry; only that explicit case permits it.
 3. For `mandatory_tool_rejected`, call the returned `required_tool` with a valid
    purpose-specific payload. For schema rejection, repair the exact named fields.
-   Missing fields must be separate top-level JSON keys; writing a value inside
-   `reason` does not supply it. In particular, `revise_assertion` and
-   `eval_assert` require the complete Python expression in the top-level
-   `assert` field. When following a review `recommended_step`, copy every key
-   from its `suggested_arguments` into the next tool call rather than paraphrasing
-   or moving values into `reason`. For review findings, complete all actions and
-   pass criteria before re-review.
+   For review findings, complete all actions and pass criteria before re-review.
 4. Do not disguise repetition with whitespace, parentheses, a rewritten reason,
    or the same query under a new explanation. Progress means a corrected payload,
    a blocker-resolving observation permitted by the finite phase contract, a
