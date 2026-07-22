@@ -86,6 +86,51 @@ def test_registered_assertions_are_forced_one_by_one(tmp_path):
     assert resolver() is None
 
 
+def test_inconclusive_eval_finishes_missing_worklist_before_revision(tmp_path):
+    controller = make_controller(tmp_path)
+    tools, resolver = _build_tools(controller, controller.task_snapshot(), [])
+    tools = {tool.name: tool for tool in tools}
+    tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
+    tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    plan = make_plan(controller)
+    first = plan["logical_assertions"][0]
+    first["required_function_families"] = ["relation", "structure"]
+    assert tools["register_coverage_plan"].invoke(
+        {"plan": plan, "reason": "注册含一个证据家族不足断言的完整计划。"}
+    )["accepted"]
+
+    first_result = tools["eval_assert"].invoke(
+        {"assert": first["assert"], "reason": "首次执行后应为 inconclusive。"}
+    )
+    assert first_result["match_status"] == "inconclusive"
+    assert resolver() == "eval_assert"
+    action = first_result["required_actions"][0]
+    assert action["recommended_tools"] == ["eval_assert"]
+    assert "Do not repeat" in action["recommended_action"]
+    assert plan["logical_assertions"][1]["assert"] in action["recommended_action"]
+    assert "will select revise_assertion" in action["recommended_action"]
+
+    for item in plan["logical_assertions"][1:]:
+        result = tools["eval_assert"].invoke(
+            {"assert": item["assert"], "reason": "完成剩余断言的首次执行。"}
+        )
+        assert result["match_status"] in {"matches", "contradicts"}
+    assert resolver() == "revise_assertion"
+
+    revised_expression = (
+        "states(name='Root.Active')[0].is_leaf is True and " + str(first["assert"])
+    )
+    revised = tools["revise_assertion"].invoke(
+        {
+            "assertion_chain_id": first["assertion_chain_id"],
+            "assert": revised_expression,
+            "reason": "补齐缺失的 structure 证据家族。",
+        }
+    )
+    assert revised["accepted"] is True
+    assert resolver() == "eval_assert"
+
+
 def test_review_prerequisite_rejection_guides_registration_without_resolver_takeover(
     tmp_path,
 ):

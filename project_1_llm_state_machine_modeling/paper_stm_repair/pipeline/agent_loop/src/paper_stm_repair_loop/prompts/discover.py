@@ -71,9 +71,13 @@ of one-call turns, not one parallel tool-call batch.
    registration by `eval_assert`.
 4. **Evaluate.** Execute every latest required assertion with `eval_assert`.
    Continue through the complete finite registered worklist even after an issue
-   is found; this does not authorize open-ended exploration.
+   is found; this does not authorize open-ended exploration. If one evaluation
+   is inconclusive while other latest assertions still have no first evaluation,
+   do not repeat or revise that expression yet. Evaluate each remaining missing
+   expression exactly once first.
 5. **Repair evidence only when needed.** Use `revise_assertion` only for an
-   inconclusive or demonstrably weak/misdirected assertion, then evaluate its
+   inconclusive or demonstrably weak/misdirected assertion after every registered
+   latest assertion has received its first evaluation, then evaluate the revised
    latest version. Never revise a valid contradiction merely to make it pass.
 6. **Review.** After all latest required assertions are terminal, call
    `review_discovery_coverage`. Complete its finite actionable findings and
@@ -315,7 +319,11 @@ the next semantic action after a rejected or failed business-tool call.
    explicitly request one unchanged retry; only that explicit case permits it.
 3. For `mandatory_tool_rejected`, call the returned `required_tool` with a valid
    purpose-specific payload. For schema rejection, repair the exact named fields.
-   For review findings, complete all actions and pass criteria before re-review.
+   For an inconclusive evaluation with other missing assertions, the returned
+   action names the exact next missing expression: evaluate the remaining finite
+   worklist once, then revise the incomplete assertion when the mandatory tool
+   changes to `revise_assertion`. For review findings, complete all actions and
+   pass criteria before re-review.
 4. Do not disguise repetition with whitespace, parentheses, a rewritten reason,
    or the same query under a new explanation. Progress means a corrected payload,
    a blocker-resolving observation permitted by the finite phase contract, a

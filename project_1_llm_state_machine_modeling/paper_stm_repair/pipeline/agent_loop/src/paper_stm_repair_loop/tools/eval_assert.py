@@ -52,9 +52,13 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     untracked dependencies, no model evidence, and missing required function
     families fail closed. Invalid public schema calls do not execute. Runtime
     failures become inconclusive assertion records rather than confirmed issues.
-    An inconclusive latest required assertion blocks terminal submission and the
-    Controller forces ``revise_assertion`` until the same obligation has a stable
-    ``matches`` or ``contradicts`` result; no partial-success output is allowed.
+    An inconclusive latest required assertion blocks terminal submission. If
+    other latest assertions still have no first evaluation, the returned action
+    names the exact next missing expression so the finite initial worklist is
+    completed without repeating the inconclusive expression. Once no latest
+    assertion is missing, the Controller forces ``revise_assertion`` until the
+    same obligation has a stable ``matches`` or ``contradicts`` result; no
+    partial-success output is allowed.
 
     Evidence limitations: ``True`` only means the registered positive assertion
     matched current frozen evidence; ``False`` only means that assertion
@@ -149,7 +153,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Unknown/non-unique latest expression, schema extras, non-bool return,
         exception, untracked/dunder dependency, no model evidence, or missing
         family fails closed. Failed eval is inconclusive; invalid match does not
-        execute.
+        execute. When later registered assertions are still missing, recovery
+        feedback identifies the exact next missing expression and postpones
+        revision until every latest assertion has received one first evaluation.
 
         Evidence limitations
         --------------------

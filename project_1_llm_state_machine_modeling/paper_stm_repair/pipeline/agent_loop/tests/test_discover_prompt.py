@@ -91,11 +91,20 @@ def test_prompt_orders_review_gated_workflow():
     )
     flat = _flat(PROMPT_ZH)
     assert "Continue through the complete finite registered worklist" in flat
+    assert "Evaluate each remaining missing expression exactly once first" in flat
+    assert "after every registered latest assertion has received its first evaluation" in flat
     assert "does not authorize open-ended exploration" in flat
     assert "read every `required_action`" in flat
     assert "complete every listed `recommended_step`" in flat
     assert "before calling the review tool again" in flat
     assert "Only after Controller closure and current review pass" in flat
+
+
+def test_prompt_orders_inconclusive_recovery_without_repeating_eval():
+    flat = _flat(PROMPT_ZH)
+    assert "do not repeat or revise that expression yet" in flat
+    assert "the returned action names the exact next missing expression" in flat
+    assert "then revise the incomplete assertion" in flat
 
 
 def test_prompt_requires_sequential_single_tool_turns():

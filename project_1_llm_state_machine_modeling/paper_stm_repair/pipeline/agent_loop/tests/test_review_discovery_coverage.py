@@ -633,11 +633,18 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "does not fire unconditionally in every ordinary cycle" in prompt
     assert "may only revise an existing assertion chain" in prompt
     assert "True means the existing Root is satisfied" in prompt
+    assert "exclusive allowed ID universe" in prompt
+    assert "When it is empty" in prompt
+    assert "every finding's `related_source_fact_ids` must be empty lists" in prompt
+    assert "never copy their inventory IDs" in prompt
     assert "Write all explanations" in prompt
     assert "in Simplified Chinese" in prompt
     assert re.search(r"[\u4e00-\u9fff]", prompt) is None
 
     tool = build_review_tool(object())
+    assert "only IDs in" in tool.description
+    assert "required_source_fact_ids" in tool.description
+    assert "both output fields must remain empty" in tool.description
     assert re.search(r"[\u4e00-\u9fff]", tool.description) is None
 
 

@@ -126,17 +126,39 @@ def _with_recovery_guidance(
     if tool_name == "eval_assert" and (
         status == "inconclusive" or result.get("match_status") == "inconclusive"
     ):
-        recommended_tools = ["revise_assertion"]
-        action = (
-            "Inspect inconclusive_reason, limitations, exception, and function_calls. "
-            "Call revise_assertion for the affected latest assertion chain with a "
-            "semantically equivalent but executable positive predicate, then evaluate "
-            "that new exact expression. Do not repeat the unchanged eval_assert call."
-        )
-        criteria = (
-            "revise_assertion accepts a new version and eval_assert returns "
-            "execution_status=completed with match_status=matches or contradicts."
-        )
+        missing = list(result.get("missing_latest_required_assertions") or [])
+        if missing:
+            next_expression = str(missing[0].get("assert") or "")
+            current_version = str(result.get("assertion_version_id") or "current assertion")
+            recommended_tools = ["eval_assert"]
+            action = (
+                f"Do not repeat {current_version} and do not revise it yet. Other "
+                "registered latest assertions still have no first evaluation, so the "
+                "mandatory protocol must finish that finite worklist before opening "
+                "revision. Call eval_assert next with the exact first expression in "
+                "missing_latest_required_assertions: "
+                f"{json.dumps(next_expression, ensure_ascii=False)}. Continue once "
+                "through each remaining missing expression. After the missing list is "
+                "empty, the mandatory protocol will select revise_assertion for this "
+                "inconclusive version."
+            )
+            criteria = (
+                "missing_latest_required_assertions becomes empty without another "
+                f"evaluation of {current_version}, after which revise_assertion is the "
+                "required tool for the incomplete latest assertion."
+            )
+        else:
+            recommended_tools = ["revise_assertion"]
+            action = (
+                "Inspect inconclusive_reason, limitations, exception, and function_calls. "
+                "Call revise_assertion for the affected latest assertion chain with a "
+                "semantically equivalent but executable positive predicate, then evaluate "
+                "that new exact expression. Do not repeat the unchanged eval_assert call."
+            )
+            criteria = (
+                "revise_assertion accepts a new version and eval_assert returns "
+                "execution_status=completed with match_status=matches or contradicts."
+            )
     elif tool_name == "eval_assert":
         recommended_tools = ["eval_assert"]
         action = (
