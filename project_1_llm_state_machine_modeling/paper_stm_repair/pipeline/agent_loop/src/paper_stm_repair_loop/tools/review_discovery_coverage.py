@@ -47,59 +47,62 @@ def _stable_sha256(value: Any) -> str:
 def _review_system_prompt(review_kind: str, language: str) -> str:
     chinese = language == "zh-CN"
     role = (
-        "语义覆盖审计员" if review_kind == "semantic_coverage" else "对抗性漏报审计员"
+        "semantic coverage auditor"
+        if review_kind == "semantic_coverage"
+        else "adversarial false-negative auditor"
     )
-    if not chinese:
-        role = (
-            "semantic coverage auditor"
-            if review_kind == "semantic_coverage"
-            else "adversarial false-negative auditor"
-        )
     language_rule = (
-        "所有解释、问题、风险、建议和通过判据必须使用简体中文；ID、枚举值、工具名和代码保持英文。"
+        "Write all explanations, problems, risks, recommendations, and pass criteria in Simplified Chinese. Keep IDs, enum values, tool names, and code in English."
         if chinese
         else "Write explanations in English; keep IDs, enum values, tool names, and code in English."
     )
     focus = (
-        "逐条核对 NL 的主要行为子句和有效 cue 义务是否被同强度的正向命题覆盖，并检查未被选作证据的模型行为是否会实质影响主要结论。"
+        "Check clause by clause whether every major NL behavior and valid cue obligation is covered by an equally strong positive proposition, and whether unselected model behavior materially changes the main conclusion."
         if review_kind == "semantic_coverage"
-        else "主动构造能让现有断言错误通过的反例，寻找漏掉的路径、条件、guard、effect、层次、初始化、时序、完成语义以及错误 issue 投影。"
+        else "Actively construct counterexamples that could make the current assertions pass incorrectly. Look for missed paths, conditions, guards, effects, hierarchy, initialization, temporal or completion semantics, and incorrect issue projection."
     )
-    return f"""你是独立的{role}。你不参与 Discover 主 Agent 的推理，也不得信任其自称完整。
+    return f"""You are an independent {role}. You do not participate in the Discover main Agent's reasoning and must not trust its claim of completeness.
 
 {language_rule}
 
-审查目标：{focus}
+Review objective: {focus}
 
-结构化输出中的 `review_kind` 必须精确等于 `{review_kind}`。
+The `review_kind` field in the structured output must equal `{review_kind}` exactly.
 
-硬规则：
-1. 必须从输入中读取完整 NL、FCSTM、raw source、source trace、InputSegments、CoverageRequirements、全部行为相关 SourceFacts、CoverageUnits、Roots、每条最新断言及其真实执行记录。
-2. 必须在 reviewed_segment_ids、reviewed_requirement_ids、reviewed_source_fact_ids、reviewed_root_ids 中逐项列出 review_contract 要求的全部 ID。SourceFact 只要求枚举计划明确选作断言证据的事实；完整 inventory 仍用于判断是否存在会影响主要 NL 行为结论的明显漏项。
-3. 不得使用预设缺陷分类表，不得要求 D01-D12 或其他固定 taxonomy。问题类别只能从本例证据中开放式发现。
-4. CoverageRequirement 被 assertion basis 引用并不等于语义覆盖。必须判断断言是否保持了原文的对象、触发条件、源状态、目标状态、数量、方向、顺序、持续性、完成范围和时间界限；弱命题必须失败。
-5. SourceFact 被 Unit 引用并不等于已探索。对明确选作断言证据的事实，必须检查其是否被实际执行的断言直接支撑；对其余 inventory，只有遗漏会实质改变主要 NL 行为或 issue 结论时才作为阻塞 finding，不做模型全事实穷举验收。
-6. matches 只说明一条断言为 True，不说明断言写对了；contradicts 只说明一条正向命题为 False，不自动说明 issue 归因正确。必须审查命题方向和 issue projection。
-7. 仿真只证明给定轨迹，局部关系只证明局部事实，有界形式化只证明其边界和性质。证据强度不足时必须失败。
-8. passed=true 仅允许在不存在会影响主要行为结论的语义漏项、弱/错向断言、潜在漏报、潜在误报、关键证据缺口或错误 issue projection 时返回。非关键 hardening 建议写入 coverage_analysis，不得为了面面俱到阻塞研究运行。
-9. passed=false 时每个 finding 必须在 related_segment_ids / related_requirement_ids / related_source_fact_ids / related_root_ids / related_assertion_chain_ids 中至少给出一个 review_contract 当前台账 ID，且不得引用 review_contract 之外的 ID。
-10. 每个 finding 必须同时说明新增 coverage_dimensions、recommended_tools、recommended_steps、recommended_action 和 pass_criteria：recommended_action 必须逐字点名至少一个 recommended_tools 中的工具、至少一个 related_*_ids 中的当前台账 ID，并说明具体检查对象/路径/条件；recommended_steps 必须逐工具给出关联 ID、目标、符合真实工具输入 schema 的 suggested_arguments 和预期观察，且工具集合与 recommended_tools 完全一致；pass_criteria 必须写可观察的台账或模型结果，不能只说“复审通过”。不得让主 Agent 直接改 Controller projection / runtime_issue_assessment / confirmed 状态；不得把 FBMCQ 或 read_fbmcq_guide 当作解释 NL / 自然语言语义的工具。
-11. NL 明确 in-scope 的行为若在当前模型中没有表达，应按模型行为缺口或断言缺口处理；不得凭空降级为“抽象层差异”。但也不得把 NL 强化成原文没有的 only / every-state / future-model 义务。
-12. 必须检查会直接制造错误主要结论的哨兵变量、硬编码候选名、过滤后凑基数和弱映射等 anti-gaming 模式；仅属理论极端而不影响本例结论的风险写入 coverage_analysis 作为改进建议。
-13. 不得访问 reference/gold、不得修改模型、不得替主 Agent 修复问题。你只审查当前台账的主要行为覆盖是否足以支持本次 Discover 结论，并在 coverage_analysis 中说明覆盖边界和可选增强方向；不得宣称绝对 100% 覆盖。
-14. 正向条件义务不自动产生排他性负义务。“在状态 S 收到 E 时到达 T”要求检查该条件成立时的行为；除非同一关联 NL 明确出现 only、must not、不得、禁止等排他措辞，不得进一步要求其他状态收到 E 时不能到达 T，也不得建议包含 is False 或 not(...) 的负半句来制造 issue。
-15. 按 FCSTM 层次语义解释无事件迁移：复合状态的 event=None 出边可能是子机到达 final 后的 completion transition，不等于每个普通 cycle 都立即无条件触发。I_TRANSITION_NEVER_EVENT_TRIGGERED 只说明该边不由事件触发。若要声称它导致提前退出，必须引用已执行 simulation/formal 证据；结构存在本身不足以支持该结论。
-16. 当前 review 发生在完整计划已经注册之后。现有工具只能 revise 已注册 assertion chain，不能新增 CoverageUnit、Root 或 assertion chain，也不能重新注册完整计划。每个 revise_assertion step 的 assertion_chain_id 必须来自 review_contract.required_assertion_chain_ids；若当前工具无法实现某建议，不得把它作为 finding 返回。
-17. 建议的断言仍必须遵循正向布尔原则：True 表示现有 Root 得到满足。若 NL 明确禁止某行为，表达式应在该行为不存在时为 True；不得把“不希望存在的边确实存在”写成 True 后仍声称它会投影为 issue。
+You have no callable tools. Your only valid response is one direct
+`CoverageReviewVerdict` structured object. Never emit `query_model`,
+`observe_trace`, `revise_assertion`, or any other function/tool call. Tool names
+and argument contracts below are literal data for findings that the Discover
+main Agent may execute after this review returns. They are not available to this
+reviewer, and you must not call or pre-validate them.
 
-recommended_steps.suggested_arguments 必须遵守以下真实工具输入合同；示例值应替换成当前台账中的真实 ID、表达式和模型元素：
-- query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}；query_kind 只允许 states/events/transitions/variables/diagnostics。
+Hard rules:
+1. Read the complete NL, FCSTM, raw source, source trace, InputSegments, CoverageRequirements, all behavior-relevant SourceFacts, CoverageUnits, Roots, every latest assertion, and its actual execution record from the input.
+2. Enumerate every ID required by `review_contract` in `reviewed_segment_ids`, `reviewed_requirement_ids`, `reviewed_source_fact_ids`, and `reviewed_root_ids`. For SourceFacts, enumerate only facts explicitly selected by the plan as assertion evidence. Still inspect the complete inventory for obvious omissions that materially affect the main NL behavior conclusion.
+3. Do not use a predefined defect taxonomy and do not request D01-D12 or any other fixed taxonomy. Discover problem categories openly from this case's evidence.
+4. A CoverageRequirement appearing in an assertion basis does not establish semantic coverage. Check whether the assertion preserves the original object, trigger, source state, target state, quantity, direction, order, persistence, completion scope, and time bound. Fail weak propositions.
+5. A SourceFact referenced by a Unit has not necessarily been explored. For facts explicitly selected as assertion evidence, check that an executed assertion directly supports each fact. For the remaining inventory, create a blocking finding only when the omission materially changes a major NL behavior or issue conclusion. Do not require exhaustive validation of every model fact.
+6. `matches` means only that one assertion is True, not that it was written correctly. `contradicts` means only that one positive proposition is False, not that issue attribution is correct. Review proposition direction and issue projection.
+7. Simulation proves only the supplied trace, a local relation proves only a local fact, and bounded formal evidence proves only its stated property within its bounds. Fail evidence that is too weak for the claim.
+8. Return `passed=true` only when no semantic omission, weak or misdirected assertion, material false-negative or false-positive risk, critical evidence gap, or incorrect issue projection can affect the main behavior conclusion. Put non-blocking hardening suggestions in `coverage_analysis`; do not block a research run merely to pursue exhaustive perfection.
+9. When `passed=false`, every finding must cite at least one current ledger ID from `review_contract` in `related_segment_ids`, `related_requirement_ids`, `related_source_fact_ids`, `related_root_ids`, or `related_assertion_chain_ids`. Never cite an ID outside `review_contract`.
+10. Every finding must provide `coverage_dimensions`, `recommended_tools`, `recommended_steps`, `recommended_action`, and `pass_criteria`. `recommended_action` must literally name at least one entry in `recommended_tools`, at least one current ledger ID from a `related_*_ids` field, and the exact object, path, or condition to inspect. For every recommended tool, `recommended_steps` must provide related IDs, an objective, `suggested_arguments` that match the real tool schema, and an expected observation; its tool set must exactly equal `recommended_tools`. `pass_criteria` must name an observable ledger or model result, not merely say that review passes. Never ask the main Agent to edit Controller projection, `runtime_issue_assessment`, or confirmed status directly. Never use FBMCQ or `read_fbmcq_guide` to interpret NL semantics.
+11. If an explicitly in-scope NL behavior is absent from the current model, treat it as a model behavior gap or assertion gap rather than inventing an abstraction-level excuse. Do not strengthen the NL into `only`, every-state, or future-model obligations that the source does not state.
+12. Check anti-gaming patterns that can directly create an incorrect main conclusion, including sentinel variables, hard-coded candidate names, cardinality after filtering, and weak mappings. Put merely theoretical edge cases that do not affect this case in `coverage_analysis` as optional improvements.
+13. Do not access reference/gold data, modify the model, or repair findings for the main Agent. Review only whether the current ledger's major-behavior coverage supports this Discover conclusion. State the coverage boundary and optional improvements in `coverage_analysis`; never claim absolute 100% coverage.
+14. A positive conditional obligation does not automatically create an exclusive negative obligation. "When state S receives E it reaches T" requires checking behavior when that condition holds. Unless the same related NL explicitly uses exclusive wording such as `only` or `must not`, do not require that other states receiving E cannot reach T and do not recommend an `is False` or `not(...)` conjunct merely to manufacture an issue.
+15. Interpret event-free transitions using FCSTM hierarchical semantics. An `event=None` edge from a composite state may be a completion transition after its submachine reaches final; it does not fire unconditionally in every ordinary cycle. `I_TRANSITION_NEVER_EVENT_TRIGGERED` says only that an event does not trigger the edge. A claim of premature exit must cite executed simulation or formal evidence; structural presence alone is insufficient.
+16. This review runs after the complete plan is registered. The Discover main Agent's later tools may only revise an existing assertion chain; they cannot add a CoverageUnit, Root, or assertion chain or register a new complete plan. Every `revise_assertion` step must use an `assertion_chain_id` from `review_contract.required_assertion_chain_ids`. Do not return a finding whose recommendation the main Agent's existing tools cannot implement.
+17. Recommended assertions must preserve the positive-bool principle: True means the existing Root is satisfied. If the NL explicitly prohibits behavior, the expression must be True when the prohibited behavior is absent. Never encode the unwanted edge's presence as True and still claim it should project to an issue.
+
+The following are literal data contracts for `recommended_steps.suggested_arguments` inside a finding, not tools available to this reviewer. Replace example values with real IDs, expressions, and model elements from the current ledger:
+- query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}; `query_kind` must be one of states/events/transitions/variables/diagnostics.
 - observe_trace: {{"question":"...","root_node_ids":["ROOT-..."],"cycles":[[],["Root.Event"]],"reason":"..."}}
-- lookup_source_trace: {{"element_refs":["state:Root.Target"],"direction":"fcstm_to_source","reason":"..."}}；direction 只允许 fcstm_to_source/source_to_fcstm。
+- lookup_source_trace: {{"element_refs":["state:Root.Target"],"direction":"fcstm_to_source","reason":"..."}}; `direction` must be one of fcstm_to_source/source_to_fcstm.
 - read_fbmcq_guide: {{"reason":"..."}}
-- register_coverage_plan: {{"plan":{{"segment_dispositions":[],"fact_dispositions":[],"coverage_units":[],"proposition_roots":[],"logical_assertions":[],"rationale":"..."}},"reason":"..."}}；实际建议必须在 plan 中给出保留全部既有义务并完成所述修订的完整 CoveragePlan，不能只写 delta/plan_change。
-- revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"一个完整正向 Python bool 表达式","reason":"..."}}
-- eval_assert: {{"assert":"与 latest assertion 完全一致的表达式","reason":"..."}}
+- register_coverage_plan: {{"plan":{{"segment_dispositions":[],"fact_dispositions":[],"coverage_units":[],"proposition_roots":[],"logical_assertions":[],"rationale":"..."}},"reason":"..."}}; a real recommendation must provide a complete CoveragePlan that preserves all existing obligations and applies the requested revision, not a delta or `plan_change`.
+- revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"one complete positive Python bool expression","reason":"..."}}
+- eval_assert: {{"assert":"the exact latest assertion expression","reason":"..."}}
 """
 
 
@@ -891,80 +894,106 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
     def review_discovery_coverage(reason: str) -> dict[str, Any]:
         """Purpose
         -------
-        独立审查当前 Discover 台账的主要行为覆盖是否足以支持本次结论。
+        Independently review whether the current Discover ledger covers the
+        major behaviors well enough to support this run's conclusion.
 
         When to use
         -----------
-        与 ``eval_assert`` 同级的业务工具。所有最新 required assertion
-        已执行并得到 terminal bool 后必须调用；只有返回 ``passed=true``，且返回的
-        ``reviewed_state_fingerprint`` 仍对应当前最新台账，才允许最终提交。
+        This is a peer business tool at the same level as ``eval_assert``.
+        Call it after every latest required assertion has been executed to a
+        terminal bool. Final submission is allowed only when it returns
+        ``passed=true`` and its ``reviewed_state_fingerprint`` still matches
+        the current ledger.
 
         When not to use
         ----------------
-        不得在 coverage plan 注册前、仍有未执行/inconclusive 断言时调用，也不得
-        用旧 pass 覆盖后续 revision/eval 产生的新台账。
+        Do not call it before coverage-plan registration or while any latest
+        assertion is unexecuted or inconclusive. Never reuse an old pass after
+        a later revision or evaluation changes the ledger.
 
         Parameters
         ----------
-        ``reason`` 是本次发起复审的自然语言理由，将原样写入 append-only
-        record。无路径、模型、ID 列表或 verdict 输入，避免主 Agent 篡改审查范围。
+        ``reason`` is the natural-language rationale for starting this review
+        and is copied verbatim into an append-only record. There are no path,
+        model, ID-list, or verdict inputs, so the main Agent cannot alter the
+        review scope.
 
         Returns
         -------
-        ``passed``、台账指纹、两个完整结构化 verdict、程序化 ID 闭包错误、
-        ``required_actions`` 和 record ID。每个语义 finding 都包含关联台账 ID、当前
-        缺口、漏报风险、建议调用的现有工具、具体补查动作和明确通过判据，可直接
-        指导主 Agent 增强覆盖后再次调用本工具。reviewer 基础设施 action 改为绑定
-        fingerprint 和 review kind，不伪造语义台账 ID。
+        Returns ``passed``, the ledger fingerprint, two complete structured
+        verdicts, programmatic ID-closure errors, ``required_actions``, and the
+        record ID. Every semantic finding contains related ledger IDs, the
+        current gap, false-negative risk, existing recommended tools, concrete
+        follow-up steps, and observable pass criteria. Reviewer-infrastructure
+        actions are bound to the fingerprint and review kind and never invent
+        semantic ledger IDs.
 
         Execution
         ---------
-        工具把完整 NL、FCSTM、raw source、source trace、全部
-        InputSegments/CoverageRequirements/SourceFacts、CoverageUnits/Roots、最新断言、
-        真实执行 trace 和 Controller projection 交给两个隔离上下文、无其他工具的
-        LLM reviewer。第一个逐条审计语义覆盖，第二个主动构造漏报/误报反例。
-        Controller 不向 reviewer 提供固定缺陷 taxonomy，也不预设问题。
+        The tool sends the complete NL, FCSTM, raw source, source trace, all
+        InputSegments, CoverageRequirements, SourceFacts, CoverageUnits, Roots,
+        latest assertions, actual execution traces, and Controller projection
+        to two isolated LLM reviewers with no callable tools. One audits
+        semantic coverage clause by clause; the other actively constructs
+        false-negative and false-positive counterexamples. The Controller
+        supplies neither a fixed defect taxonomy nor predefined issues.
 
         Failure semantics
         -----------------
-        未注册计划、仍有未执行或 inconclusive 断言时 fail closed；任一
-        reviewer 报告缺口、漏掉任何必须审查的 Segment/Requirement/SourceFact/Root
-        ID，或审查后台账发生 revision/eval 变化，均不能沿用旧 pass。provider/stream
-        临时失败先由 Agent runtime 对同一 profile 和同一请求透明重发最多两次；重发耗尽后
-        不会把 provider 故障冒充语义 verdict。工具会保留同轮已完成 verdict，并 append 一个
-        passed=false、execution_status=retryable_reviewer_failure 的结构化记录，要求在不修改
-        当前 coverage plan / assertion / evaluation 台账的情况下重试 review。不得把失败
-        review 当作终态结果；必须按 required_actions 补查或重试并重新 review。
-        schema-invalid verdict、错误 review kind 等确定性合同失败返回
-        reviewer_contract_failure，终止当前 Discover attempt，不得冒充临时 provider
-        故障反复重试。
+        Fail closed when no plan is registered or any latest assertion is
+        unexecuted or inconclusive. An old pass is invalid if either reviewer
+        reports a gap, omits a required Segment, Requirement, SourceFact, or
+        Root ID, or the ledger changes through revision or evaluation after the
+        review. The Agent runtime transparently retries a temporary provider or
+        stream failure at most twice with the same profile and request. If all
+        retries fail, the tool preserves any verdict completed in that round
+        and appends a structured record with ``passed=false`` and
+        ``execution_status=retryable_reviewer_failure``. Retry the review without
+        changing the current coverage-plan, assertion, or evaluation ledger.
+        A failed review is not a terminal result: complete its
+        ``required_actions`` or retry, then review again. Deterministic contract
+        failures such as a schema-invalid verdict or wrong review kind return
+        ``reviewer_contract_failure`` and terminate the current Discover attempt;
+        do not misclassify and repeatedly retry them as temporary provider
+        failures.
 
         Method-boundary calibration
         ---------------------------
-        reviewer 的建议必须可由现有工具执行，逐字点名建议工具和至少一个关联台账 ID，
-        并在 recommended_steps 中逐工具说明目标、参数/模型范围和预期观察，再给出新增覆盖
-        维度、总体动作和可观察通过条件。不得建议用 FBMCQ 解释 NL，不得要求主 Agent 直接修改 Controller
-        projection 状态，不得引用 review_contract 之外 ID。NL 明确 in-scope 的行为若
-        模型无表达，应视作模型行为/断言缺口；不得凭空降级为抽象层差异，也不得
-        把 NL 强化成 only/every-state/future-model 或未授权负义务。复合状态的
-        event=None 出边按 completion transition 校准，不能仅凭结构存在声称它会在
-        普通 cycle 立即触发。review 后只能修订现有 assertion chain，不能建议新增
-        Unit、Root、chain 或重新注册计划；程序化无效 finding 不会转发给主 Agent。
-        reviewer 必须攻击哨兵变量、硬编码候选名和过滤后凑基数等 anti-gaming 覆盖。
+        Every recommendation must be executable with existing tools, literally
+        name a recommended tool and at least one related ledger ID, and provide
+        per-tool objectives, arguments or model scope, expected observations,
+        added coverage dimensions, an overall action, and observable pass
+        criteria. Do not recommend FBMCQ for interpreting NL, ask the main Agent
+        to edit Controller projection state, or cite IDs outside
+        ``review_contract``. If an explicitly in-scope NL behavior is absent
+        from the model, treat it as a model-behavior or assertion gap rather
+        than inventing an abstraction-level excuse. Do not strengthen the NL
+        into ``only``, every-state, future-model, or unauthorized negative
+        obligations. Calibrate event-free edges from composite states as
+        completion transitions; structural presence alone does not prove that
+        an edge fires immediately in an ordinary cycle. After review, only an
+        existing assertion chain may be revised. Do not recommend adding Units,
+        Roots, or chains or registering a new plan. Programmatically invalid
+        findings are not forwarded to the main Agent. Reviewers must attack
+        anti-gaming coverage based on sentinel variables, hard-coded candidate
+        names, or cardinality after filtering.
 
         Evidence limitations
         --------------------
-        reviewer pass 只对应输入中完整、当前的冻结任务与证据台账；任何后续台账
-        变化都会使其过期。它不访问隐藏 gold，也不替代下游实验评价。
+        A reviewer pass applies only to the complete current frozen task and
+        evidence ledger supplied as input. Any later ledger change invalidates
+        it. The review does not access hidden gold data and does not replace
+        downstream experimental evaluation.
 
         Permissions
         -----------
-        只读取当前运行冻结输入和 append-only Discover 台账；内部 reviewer
-        不具备工具、文件、网络、reference/gold、Repair、Confirm 或模型修改权限。
+        Read only the current run's frozen inputs and append-only Discover
+        ledger. Internal reviewers have no tools, files, network,
+        reference/gold, Repair, Confirm, or model-mutation access.
 
         Examples
         --------
-        ``{"reason":"全部最新断言已稳定执行，请独立攻击漏项和弱证据并给出补查建议。"}``
+        ``{"reason":"All latest assertions are terminal; independently attack omissions and weak evidence and recommend concrete follow-up checks."}``
         """
 
         return gate.review(reason=reason)

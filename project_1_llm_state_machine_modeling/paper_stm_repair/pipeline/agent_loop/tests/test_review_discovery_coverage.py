@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextvars
+import re
 
 import pytest
 
@@ -17,6 +18,7 @@ from paper_stm_repair_loop.tools.review_discovery_coverage import (
     _finding_strengthens_frozen_nl,
     _raise_classified_reviewer_error,
     _review_system_prompt,
+    build_tool as build_review_tool,
 )
 from paper_stm_repair_loop.tools.register_coverage_plan import (
     RegisterCoveragePlanInput,
@@ -620,12 +622,23 @@ def test_review_gate_rejects_nl_strengthening_but_allows_explicit_universal_nl(
 
 def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics():
     prompt = _review_system_prompt("semantic_coverage", "zh-CN")
-    assert "正向条件义务不自动产生排他性负义务" in prompt
-    assert "不得建议包含 is False" in prompt
+    assert "You have no callable tools" in prompt
+    assert "only valid response" in prompt
+    assert "Never emit `query_model`" in prompt
+    assert "literal data for findings" in prompt
+    assert "not tools available to this reviewer" in prompt
+    assert "does not automatically create an exclusive negative obligation" in prompt
+    assert "do not recommend an `is False`" in prompt
     assert "completion transition" in prompt
-    assert "不等于每个普通 cycle 都立即无条件触发" in prompt
-    assert "只能 revise 已注册 assertion chain" in prompt
-    assert "True 表示现有 Root 得到满足" in prompt
+    assert "does not fire unconditionally in every ordinary cycle" in prompt
+    assert "may only revise an existing assertion chain" in prompt
+    assert "True means the existing Root is satisfied" in prompt
+    assert "Write all explanations" in prompt
+    assert "in Simplified Chinese" in prompt
+    assert re.search(r"[\u4e00-\u9fff]", prompt) is None
+
+    tool = build_review_tool(object())
+    assert re.search(r"[\u4e00-\u9fff]", tool.description) is None
 
 
 def test_explanatory_negation_does_not_create_a_negative_obligation():
