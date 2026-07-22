@@ -330,7 +330,13 @@ the next semantic action after a rejected or failed business-tool call.
    explicitly request one unchanged retry; only that explicit case permits it.
 3. For `mandatory_tool_rejected`, call the returned `required_tool` with a valid
    purpose-specific payload. For schema rejection, repair the exact named fields.
-   For review findings, complete all actions and pass criteria before re-review.
+   Missing fields must be separate top-level JSON keys; writing a value inside
+   `reason` does not supply it. In particular, `revise_assertion` and
+   `eval_assert` require the complete Python expression in the top-level
+   `assert` field. When following a review `recommended_step`, copy every key
+   from its `suggested_arguments` into the next tool call rather than paraphrasing
+   or moving values into `reason`. For review findings, complete all actions and
+   pass criteria before re-review.
 4. Do not disguise repetition with whitespace, parentheses, a rewritten reason,
    or the same query under a new explanation. Progress means a corrected payload,
    a blocker-resolving observation permitted by the finite phase contract, a

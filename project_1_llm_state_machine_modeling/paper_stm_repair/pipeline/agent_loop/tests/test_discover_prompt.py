@@ -199,6 +199,9 @@ def test_prompt_requires_feedback_driven_progress_without_external_takeover():
     assert "never respond by shortening the outcome" in flat
     assert "corrective workflow feedback, not as semantic evidence" in flat
     assert "intentional failure, budget probe" in flat
+    assert "separate top-level JSON keys" in flat
+    assert "complete Python expression in the top-level `assert` field" in flat
+    assert "copy every key from its `suggested_arguments`" in flat
 
 
 def test_prompt_converges_exploration_into_the_registered_plan():

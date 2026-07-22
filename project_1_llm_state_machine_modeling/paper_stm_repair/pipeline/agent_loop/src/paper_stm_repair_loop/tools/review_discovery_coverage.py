@@ -92,6 +92,7 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 16. 若 NL 要求的是运行后到达某状态，而非明确要求直接模型关系，必须优先检查真实运行结果；只要存在可到达源状态的有界执行 setup，就应使用 simulation，涉及 composite、forced、completion 或 pseudostate 时更不得仅靠静态直接边。检查 simulation 的 cycles 是否先到达 NL 指定源状态、再在后续 cycle 施加触发、最后断言正确目标或终止。必须核对 latest evaluation 的 observed_function_families / function_calls 确实包含 simulation；表达式中出现 simulate 文本不算执行证据。``relation or simulation`` 会在 relation 为真时短路，必须按弱/错向断言阻塞；relation + simulation 应使用会实际执行两者的 ``and``，或拆成同 Root 下独立 required 断言。若只因扁平 direct edge 不存在就投影 issue，同样必须以错误 issue projection 阻塞。反之，若 NL 明确要求的就是直接模型关系本身，不得无条件强加 simulation。
 17. 当前 review 发生在完整计划已经注册之后。现有工具只能 revise 已注册 assertion chain，不能新增 CoverageUnit、Root 或 assertion chain，也不能重新注册完整计划。每个 revise_assertion step 的 assertion_chain_id 必须来自 review_contract.required_assertion_chain_ids；若当前工具无法实现某建议，不得把它作为 finding 返回。
 18. 建议的断言仍必须遵循正向布尔原则：True 表示现有 Root 得到满足。若 NL 明确禁止某行为，表达式应在该行为不存在时为 True；不得把“不希望存在的边确实存在”写成 True 后仍声称它会投影为 issue。
+19. 这是一次无工具、一次性结构化审查。完成输入审计后必须立即返回一个符合 CoverageReviewVerdict schema 的结构化结果并结束；不得返回空消息、普通 prose、分步自我讨论或重复多轮尝试。无阻塞问题时令 findings=[]、passed=true；有阻塞问题时只保留真正可执行的 findings。coverage_analysis 应简洁说明证据与边界，不得复述完整输入或 schema。
 
 recommended_steps.suggested_arguments 必须遵守以下真实工具输入合同；示例值应替换成当前台账中的真实 ID、表达式和模型元素：
 - query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}；query_kind 只允许 states/events/transitions/variables/diagnostics。
