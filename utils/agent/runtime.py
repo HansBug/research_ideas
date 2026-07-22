@@ -358,16 +358,36 @@ def _validate_model_call_options(options: Mapping[str, Any] | None) -> None:
             raise ValueError(f"model_call_options_invalid: {key} must be a positive integer")
 
 
+def _validate_adapter_call_options(config: LLMConfig, options: Mapping[str, Any] | None) -> None:
+    if config.adapter != "anthropic":
+        return
+    unsupported = set(options or {}) & {"seed", "verbosity"}
+    if unsupported:
+        raise ValueError(
+            f"model_call_options_not_supported: adapter=anthropic options={sorted(unsupported)}"
+        )
+
+
 def _is_deepseek_config(config: LLMConfig) -> bool:
-    host = (urlsplit(config.base_url or "").hostname or "").lower()
-    return host.endswith("deepseek.com") or config.model.lower().startswith("deepseek-")
+    return config.adapter == "deepseek"
+
+
+def _default_stream_usage(config: LLMConfig) -> bool:
+    """Return the adapter transport's safe default for streamed usage metadata."""
+
+    if config.adapter == "anthropic":
+        return True
+    if config.adapter == "deepseek":
+        return False
+    host = (urlsplit(config.base_url or "https://api.openai.com").hostname or "").lower()
+    return host == "api.openai.com"
 
 
 def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     """Identify OpenAI reasoning model IDs whose official API accepts ``none``."""
 
     model = config.model.lower()
-    return not _is_deepseek_config(config) and model.startswith(("gpt-5", "o1", "o3", "o4"))
+    return config.adapter == "openai" and model.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
 def _resolve_inference_options(
@@ -392,6 +412,11 @@ def _resolve_inference_options(
             raise ValueError("reasoning_effort was supplied twice with different values")
         options["reasoning_effort"] = reasoning_effort
 
+    if config.adapter == "anthropic" and think_mode:
+        raise ValueError(
+            "anthropic_thinking_not_supported: provider-neutral forced-tool semantics require think_mode=False"
+        )
+
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
     if not think_mode and _is_openai_reasoning_model(config):
@@ -413,7 +438,16 @@ def _hash_text(text: str) -> str:
 
 
 def _dependency_versions() -> dict[str, str | None]:
-    names = ("python", "langchain", "langgraph", "langchain-openai", "langchain-deepseek", "openai")
+    names = (
+        "python",
+        "langchain",
+        "langgraph",
+        "langchain-openai",
+        "langchain-anthropic",
+        "langchain-deepseek",
+        "openai",
+        "anthropic",
+    )
     result: dict[str, str | None] = {"python": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}"}
     for name in names[1:]:
         try:
@@ -850,6 +884,7 @@ def _effective_model_base_url(model: Any, config: LLMConfig | None = None) -> An
     root_client = getattr(model, "root_client", None)
     return (
         getattr(model, "openai_api_base", None)
+        or getattr(model, "anthropic_api_url", None)
         or getattr(model, "base_url", None)
         or getattr(root_client, "base_url", None)
         or (config.base_url if config is not None else None)
@@ -1149,7 +1184,14 @@ def _redact_exception_text(value: str) -> str:
 
 def _exception_details(exc: BaseException) -> dict[str, Any]:
     module = type(exc).__module__.lower()
-    source = "provider" if getattr(exc, "status_code", None) is not None or "openai" in module or "httpx" in module else "runtime"
+    source = (
+        "provider"
+        if getattr(exc, "status_code", None) is not None
+        or "openai" in module
+        or "anthropic" in module
+        or "httpx" in module
+        else "runtime"
+    )
     details: dict[str, Any] = {"source": source, "type": type(exc).__name__}
     if message := str(exc):
         details["message"] = _redact_exception_text(message)
@@ -2885,9 +2927,13 @@ class AgentApp:
         self.real_llm = real_llm
         self.profile = profile
         self.adapter_name = (
-            "langchain-deepseek/chat-completions"
-            if type(model).__module__.split(".", 1)[0] == "langchain_deepseek"
-            else ("test/model" if not real_llm else "langchain-openai/chat-completions")
+            "test/model"
+            if not real_llm
+            else {
+                "openai": "langchain-openai/chat-completions",
+                "anthropic": "langchain-anthropic/messages",
+                "deepseek": "langchain-deepseek/chat-completions",
+            }[config.adapter]
         )
 
     @classmethod
@@ -2900,20 +2946,33 @@ class AgentApp:
         _validate_model_options(model_options)
         if config.api_key is None:
             raise AgentError("config_error", "api_key is required for a real model run")
-        deepseek = _is_deepseek_config(config)
+        adapter = config.adapter
         try:
-            if deepseek:
+            if adapter == "deepseek":
                 from langchain_deepseek import ChatDeepSeek as ChatModel
+            elif adapter == "anthropic":
+                from langchain_anthropic import ChatAnthropic as ChatModel
             else:
                 from langchain_openai import ChatOpenAI as ChatModel
         except ImportError as exc:  # pragma: no cover
-            package = "langchain-deepseek" if deepseek else "langchain-openai"
+            package = {
+                "openai": "langchain-openai",
+                "anthropic": "langchain-anthropic",
+                "deepseek": "langchain-deepseek",
+            }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
         if config.max_output_tokens is not None:
-            kwargs["max_tokens" if deepseek else "max_completion_tokens"] = config.max_output_tokens
-        kwargs["use_responses_api"] = False
-        kwargs.update({"streaming": True, "stream_usage": True, "max_retries": 0})
+            kwargs["max_completion_tokens" if adapter == "openai" else "max_tokens"] = config.max_output_tokens
+        if adapter == "openai":
+            kwargs["use_responses_api"] = False
+        kwargs.update(
+            {
+                "streaming": True,
+                "stream_usage": _default_stream_usage(config),
+                "max_retries": 0,
+            }
+        )
         kwargs.update(dict(model_options or {}))
         try:
             model = ChatModel(**kwargs)
@@ -2956,6 +3015,7 @@ class AgentApp:
         if tool_choice_policy_name is not None and not tool_choice_policy_name.strip():
             raise ValueError("tool_choice_policy_name must be non-empty")
         _validate_model_call_options(model_call_options)
+        _validate_adapter_call_options(self.config, model_call_options)
         compact_trigger_ratio = _validate_compact_trigger_ratio(compact_trigger_ratio)
         inference_options, effective_think_mode = _resolve_inference_options(
             self.config,

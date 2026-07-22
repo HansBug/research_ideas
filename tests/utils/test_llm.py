@@ -41,6 +41,25 @@ def test_config_rejects_unknown_provider_field() -> None:
         LLMConfig.model_validate({"model": "gpt-5.5", "provider": "openai"})
 
 
+def test_config_adapter_defaults_to_openai_and_is_public() -> None:
+    config = LLMConfig(model="claude-opus-4-7")
+
+    assert config.adapter == "openai"
+    assert config.public_dict()["adapter"] == "openai"
+
+
+@pytest.mark.parametrize("adapter", ["openai", "anthropic", "deepseek"])
+def test_config_accepts_supported_adapters(adapter: str) -> None:
+    config = LLMConfig.model_validate({"model": "test-model", "adapter": adapter})
+
+    assert config.adapter == adapter
+
+
+def test_config_rejects_unknown_adapter() -> None:
+    with pytest.raises(ValueError):
+        LLMConfig.model_validate({"model": "gpt-5.5", "adapter": "openai-compatible"})
+
+
 def test_config_rejects_userinfo_in_base_url() -> None:
     with pytest.raises(ValueError, match="userinfo"):
         LLMConfig(model="gpt-5.5", base_url="https://user:password@example.invalid/v1")

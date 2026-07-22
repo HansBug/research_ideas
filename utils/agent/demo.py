@@ -6,7 +6,6 @@ import math
 import operator
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import click
@@ -153,16 +152,11 @@ def cli(
         limits=limits or None,
         require_tool_call=True,
     )
-    endpoint_host = (urlsplit(selected.base_url or "https://api.openai.com").hostname or "").lower()
-    # The framework default is stream_usage=True.  Known OpenAI-compatible
-    # proxies/DeepSeek endpoints may reject stream_options, so the real demo
-    # explicitly opts out for those transports while retaining streaming.
-    stream_usage = endpoint_host == "api.openai.com"
     app = AgentApp.from_config(
         spec,
         selected,
         profile=profile,
-        model_options={"streaming": True, "stream_usage": stream_usage, "max_retries": 0},
+        model_options={"streaming": True, "max_retries": 0},
     )
     compact_value: float | None
     if compact_trigger_ratio.strip().lower() in {"none", "0"}:
