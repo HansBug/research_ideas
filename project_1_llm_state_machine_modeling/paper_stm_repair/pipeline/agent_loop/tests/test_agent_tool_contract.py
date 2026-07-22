@@ -4,6 +4,8 @@ import inspect
 import json
 
 import pytest
+from langchain_anthropic.chat_models import convert_to_anthropic_tool
+from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from paper_stm_repair_loop.agents.discover import AGENT_TOOL_NAMES, _build_tools
 from paper_stm_repair_loop.tools.coverage_registry import callable_docstring_has_required_sections
@@ -79,6 +81,27 @@ def test_tool_input_fields_match_issue164_contract(tmp_path):
         "lookup_source_trace": {"element_refs", "direction", "reason"},
         "review_discovery_coverage": {"reason"},
     }
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "expected_fields"),
+    [
+        ("eval_assert", {"assert", "reason"}),
+        ("revise_assertion", {"assertion_chain_id", "assert", "reason"}),
+    ],
+)
+def test_provider_schemas_preserve_keyword_named_assert_field(
+    tmp_path, tool_name, expected_fields
+):
+    _controller, tools = _tools(tmp_path)
+    tool = tools[tool_name]
+
+    openai_schema = convert_to_openai_tool(tool)["function"]["parameters"]
+    anthropic_schema = convert_to_anthropic_tool(tool)["input_schema"]
+
+    for schema in (openai_schema, anthropic_schema):
+        assert set(schema["properties"]) == expected_fields
+        assert set(schema["required"]) == expected_fields
 
 
 def test_all_agent_tool_reasons_reject_whitespace_only_input(tmp_path):

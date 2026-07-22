@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import keyword
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -119,6 +120,33 @@ __all__ = [
     "TraceObservation",
 ]
 
+def _structured_tool_from_function(**kwargs: Any) -> Any:
+    """Create a LangChain tool without dropping keyword-named public fields."""
+
+    from langchain_core.tools import StructuredTool
+
+    class ExactKeywordSchemaTool(StructuredTool):
+        @property
+        def tool_call_schema(self) -> Any:
+            schema = super().tool_call_schema
+            args_schema = self.args_schema
+            if not isinstance(args_schema, type) or not issubclass(args_schema, BaseModel):
+                return schema
+
+            full_schema = args_schema.model_json_schema()
+            full_properties = full_schema.get("properties", {})
+            if isinstance(schema, dict):
+                exposed_properties = schema.get("properties", {})
+            else:
+                exposed_properties = schema.model_json_schema().get("properties", {})
+            omitted = set(full_properties) - set(exposed_properties)
+            if omitted and all(keyword.iskeyword(name) for name in omitted):
+                return {**full_schema, "description": self.description}
+            return schema
+
+    return ExactKeywordSchemaTool.from_function(**kwargs)
+
+
 class SimpleStructuredTool:
     """Compatibility constructor that returns a real LangChain StructuredTool."""
 
@@ -131,9 +159,7 @@ class SimpleStructuredTool:
         args_schema: type[BaseModel],
         handle_validation_error: Any = False,
     ) -> Any:
-        from langchain_core.tools import StructuredTool
-
-        return StructuredTool.from_function(
+        return _structured_tool_from_function(
             func=func,
             name=name,
             description=inspect.cleandoc(description),
