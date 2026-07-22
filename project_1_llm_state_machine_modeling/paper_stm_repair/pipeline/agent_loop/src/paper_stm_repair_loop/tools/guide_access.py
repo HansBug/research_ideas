@@ -245,6 +245,14 @@ def guard_tool(
                 missing_fields.append(location)
         if not errors:
             errors = [str(exc)]
+        missing_hint = ""
+        if missing_fields:
+            missing_hint = (
+                f" Supply each missing field as its own top-level JSON key: {missing_fields}."
+                " Text placed inside `reason` does not fill another field."
+            )
+        if "assert" in missing_fields:
+            missing_hint += " Put the complete expression in the top-level `assert` key."
         return json.dumps(
             {
                 "execution_status": "invalid_arguments",
@@ -260,7 +268,7 @@ def guard_tool(
                             f"Read the named validation errors and {tool.name} parameter "
                             "contract, correct every missing, extra, or mistyped field, "
                             "then call the tool with a materially changed payload. Do not "
-                            "repeat the rejected JSON unchanged."
+                            f"repeat the rejected JSON unchanged.{missing_hint}"
                         ),
                         "coverage_improvement": (
                             "A schema-valid call allows the intended evidence operation "

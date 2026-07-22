@@ -139,6 +139,10 @@ def test_tool_validation_feedback_names_missing_field(tmp_path):
     assert result["execution_status"] == "invalid_arguments"
     assert result["missing_fields"] == ["assert"]
     assert result["errors"] == ["assert: Field required (missing)"]
+    action = result["required_actions"][0]["recommended_action"]
+    assert "top-level JSON key" in action
+    assert "inside `reason` does not fill another field" in action
+    assert "top-level `assert` key" in action
 
 
 def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path):
