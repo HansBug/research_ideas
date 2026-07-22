@@ -1,4 +1,4 @@
-# Discover 默认 Phase-II final 60 资源
+# Discover 默认作者 feedback-final 选择池 60 资源
 
 本目录是 `paper_stm_repair_loop.inputs.load_pair()` 的默认 FCSTM 资源集合。它不再维护四例 smoke 子集，也不提供 manual、compat 或临时旁路；目录中的 60 个子目录与默认 [`pairs.jsonl`](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) 一一对应。
 
@@ -7,7 +7,7 @@
 每个 `llms_emp_feedback_final_NNNN/` 目录固定包含：
 
 - `nl.txt`：作者 workbook 中对应行的 requirement description；
-- `stm0.puml`：作者 Phase-II checking/regeneration 链最后一个非空 PlantUML 输出；
+- `stm0.puml`：按作者 feedback-final 选择策略得到的 PlantUML；58 例取 Phase-II semantic checking 输出，`0054/0055` 因没有 checking 输出而回退 Phase-I generation；
 - `model.fcstm`：Issue #161 Java frontend 与 R4.5 表示桥生成的 FCSTM working artifact；
 - `source_meta.json`：默认 pair、workbook cell、Phase-I/Phase-II lineage、source hash 与审阅入口；
 - `fcstm_meta.json`：FCSTM hash、canonical/case report/source trace/working contract/parse-inspect/publication seal 绑定。
@@ -20,7 +20,7 @@
 - `model.fcstm` 是 representation conversion，不是 Repair 输出；`repair_contribution_allowed=false`。
 - confirmed source issue 必须回到 positive source trace、原 PlantUML fragment 与 NL/typed evidence；compiler-owned element 不得升级为作者缺陷。
 - 每例 `closure_claim_allowed=false`。不支持的 initial、concurrency、opaque label/body、lifecycle 等语义继续由 working contract capability exclusion 约束。
-- Phase-II 作者 checking/regeneration 的收益不能归因给本研究 Discover/Repair/Confirm。
+- 58 例 Phase-II 作者 checking/regeneration 的收益不能归因给本研究 Discover/Repair/Confirm；`0054/0055` 是 Phase-I fallback，不得写成作者 feedback 修复后的输出。
 
 ## 审阅入口
 
@@ -36,4 +36,4 @@
 2. 本目录恰好包含 60 个 pair 子目录，不允许额外 manual/compat 目录。
 3. 每例 NL、PlantUML、FCSTM hash 与 `source_meta.json` / `fcstm_meta.json` 一致。
 4. 每例 meta 引用的 case report、source trace、working contract、canonical、parse-inspect、三元审阅页和 publication seal 均存在且 hash 闭合。
-5. 在未修改的 PR-discover `load_pair()` 上 60/60 加载成功，`raw_source_format=plantuml`，且 `raw_source` / `fcstm` 分别等于当前 Phase-II PlantUML / R4.5 FCSTM。
+5. 在未修改的 PR-discover `load_pair()` 上 60/60 加载成功，`raw_source_format=plantuml`，且 `raw_source` / `fcstm` 分别等于当前 selected PlantUML / R4.5 FCSTM。
