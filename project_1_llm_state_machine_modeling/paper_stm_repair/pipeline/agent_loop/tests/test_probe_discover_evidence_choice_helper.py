@@ -83,6 +83,19 @@ def test_rubric_accepts_expected_choices_without_sequence_assertions() -> None:
     )
     assert s4_semantic_synonyms["passed"] is True
 
+    s4_analysis_bound_wording = helper.evaluate_rubric(
+        cases["S4"],
+        ["check_fbmcq", "simulate_concrete"],
+        {
+            "selected_evidence": ["check_fbmcq", "simulate_concrete"],
+            "limitations": [
+                "The formal result is verified only up to analysis bound 6.",
+                "The simulation is a single witness, not a universal proof.",
+            ],
+        },
+    )
+    assert s4_analysis_bound_wording["passed"] is True
+
 
 def test_rubric_rejects_semantic_mismatches() -> None:
     cases = {case.case_id: case for case in helper.CASES}

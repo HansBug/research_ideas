@@ -27,7 +27,7 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "seconds": 180,
 }
 LIMITATION_MARKERS: Dict[str, tuple] = {
-    "bounded": ("bounded", "analysis_bound", "finite bound", "finite horizon"),
+    "bounded": ("bound", "finite horizon"),
     "concrete": (
         "concrete",
         "single execution",
@@ -36,6 +36,7 @@ LIMITATION_MARKERS: Dict[str, tuple] = {
         "one trace",
         "simulation trace",
         "execution witness",
+        "single witness",
     ),
 }
 
