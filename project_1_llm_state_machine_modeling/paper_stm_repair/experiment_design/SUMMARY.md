@@ -10,10 +10,10 @@
 |---|---|---|
 | candidate issue ledger | v0 已定义 | 字段、证据和 confirmation status 见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md) 与 schema。 |
 | confirmed issue ledger | v0 已定义 | 只允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path；folded event 默认仍 candidate。 |
-| source trace / patch projection | source trace v0 已定义；patch projection 未实现 | [source_trace/](./source_trace/) 已定义 raw/source ↔ intermediate trace、projection status 与 attribution gate；真实 patch bundle 仍由 `PR-raw-export` 接管。 |
+| source trace / canonical export | source trace v0 已定义；post-Confirm semantic-root export bundle 与 canonical exporter 未实现 | [source_trace/](./source_trace/) 已定义 legacy raw/source ↔ intermediate trace、projection status 与 attribution gate；当前 PlantUML working bundle 只授权 input attribution，未来独立 export PR 负责 fresh canonical source output。 |
 | stage runtime / run record | Issue #152 已定义稳定语义，尚未实现 | 必须由完整 Discover/Repair/Confirm 阶段纵向落地 input/output、失败态、append-only records、context 与 redaction，不能再拆空 IO PR。 |
-| closure / regression audit | 未定义 | 需要基于真实 Repair-Confirm issue chains、最终 source projection 与隐藏审计资产设计，不能用 post-repair rediscovery 代替。 |
-| final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 raw/source patch bundle 或 final raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）后再冻结。 |
+| closure / regression audit | 未定义 | 需要基于真实 Repair-Confirm issue chains、fresh canonical source output、semantic change/correspondence ledger 与隐藏审计资产设计，不能用 post-repair rediscovery 代替。 |
+| final metrics / baseline / judge prompt | 未冻结 | 必须等 pilot 产出真实 fresh canonical raw/source repaired STM（暂称 `STM_final`，不是 archived constructed `STM_k`）与 export audit 后再冻结。 |
 
 ## 3. R5.7 archive 状态
 

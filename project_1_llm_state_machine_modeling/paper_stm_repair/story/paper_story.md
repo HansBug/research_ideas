@@ -10,7 +10,7 @@ We study feedback-driven source-level behavioral issue discovery and closure for
 
 - Inputs: `NL` and existing raw/source `STM_0`.
 - Intermediate artifacts: source trace, intermediate executable semantic representation, diagnostics / inspect / simulation / verification feedback, Discover roots/checks, Repair dispositions, Confirm decisions/successors, and immutable run records.
-- Outputs: final fcstm `STM_k`, issue-grounded repair/change chains, raw/source patch bundle or final raw/source `STM_k`, and closure/regression ledger.
+- Outputs: final fcstm `STM_k`, issue-grounded repair/change chains, a fresh canonical raw/source `STM_k`, a semantic change/correspondence ledger, and a closure/regression ledger.
 - Supported settings: discrete control-oriented FSM / HSM / statechart-like models with states, transitions, events, guard-like conditions, variables, actions/effects, and hierarchy when traceable.
 - Out-of-scope settings: one-shot `NL -> STM` generation as the main contribution, modeling-language superiority claims, arbitrary UML/SysML coverage, timed/hybrid automata headline claims, and constructed `STM_k` adjudication as method evidence.
 
@@ -29,7 +29,7 @@ The gap is therefore not “which state-machine representation is better”. The
 
 ## Method Insight
 
-Separate semantic reasoning from source-level accountability. The intermediate representation is used because diagnostics, simulation/probe, and formal-verification/check feedback need executable semantics. However, the contribution is not the representation itself; the contribution is the feedback-driven refinement loop that injects these executable feedback signals into LLM-based issue discovery and repair, then projects repair evidence back to the raw/source artifact.
+Separate semantic reasoning from source-level accountability. The intermediate representation is used because diagnostics, simulation/probe, and formal-verification/check feedback need executable semantics. However, the contribution is not the representation itself; the contribution is the feedback-driven refinement loop that injects these executable feedback signals into LLM-based issue discovery and repair, then materializes accepted semantic roots as a fresh canonical raw/source artifact with explicit correspondence evidence.
 
 ## System / Method Stages
 
@@ -37,8 +37,8 @@ Separate semantic reasoning from source-level accountability. The intermediate r
 2. **B-discover once**: derive issue checks, use executable feedback and LLM reasoning to publish the complete initial root batch with `confirmed/candidate_only` assessments, or publish zero-root.
 3. **B-repair**: process every pending node in one batch with a reasoned `fix` or `reject`, then atomically publish the complete fcstm `STM_{i+1}` and model diff.
 4. **B-confirm**: inspect every disposition on the published model, issue a reasoned `accept` or `reject`, and append successor nodes for rejected dispositions; successors return only to Repair until all chains close.
-5. **B-final**: deterministically validate record integrity, evidence coverage, and accepted-fix support; this gate only establishes eligibility to attempt source projection.
-6. **C: raw/source export and closure/regression audit**: project once to a raw/source patch bundle or final raw/source `STM_k`, then classify source-level closure, partial closure, non-closure, over-repair, regression, or unjudgeable outcomes.
+5. **B-final**: deterministically validate record integrity, evidence coverage, and accepted-fix support; this gate only establishes eligibility to build a post-Confirm semantic-root export bundle.
+6. **C: canonical raw/source export and closure/regression audit**: validate the export bundle, generate a complete fresh canonical raw/source `STM_k`, and then classify source-level closure, partial closure, non-closure, over-repair, regression, or unjudgeable outcomes. The exporter does not preserve original formatting or minimize textual diff.
 
 ## Contributions
 
@@ -46,7 +46,7 @@ Current contribution wording must follow the 2026-07-07 mentor guidance: paper1 
 
 1. **Feedback-driven LLM refinement loop for existing STM artifacts**: formulate and implement a loop over `NL + raw/source STM_0` with one Discover stage, iterative Repair-Confirm rounds over issue-linked dispositions, and final source-level closure/regression assessment.
 2. **Executable-feedback integration into the loop**: use an intermediate executable semantic representation to bring diagnostics / inspect output, simulation/probe results, and formal-verification/check feedback into the LLM refinement process, so that the loop is not only free-form textual rewriting.
-3. **Source-level repair output and evaluation setup**: require repair evidence to be projected back to raw/source-level patches, diffs, or final raw/source `STM_k`, and set up the eventual evaluation around issue discovery, issue closure, partial closure, non-closure, regression / over-repair, and direct raw/source LLM baselines.
+3. **Source-level repair output and evaluation setup**: require a validated post-Confirm semantic-root bundle, a fresh canonical raw/source `STM_k`, and semantic change/correspondence evidence; set up the eventual evaluation around issue discovery, issue closure, partial closure, non-closure, regression / over-repair, and direct raw/source LLM baselines.
 
 The following are important method and evaluation disciplines, but they must not be written as main contribution bullets: candidate/confirmed issue ledgers, attribution boundary, traceability records, closure/regression audit tables, run-record evidence, and the post-pilot timing of final metric / baseline / judge-prompt freeze.
 
@@ -75,7 +75,7 @@ Do not position the paper as a PlantUML-vs-fcstm or SysML-vs-fcstm language pape
 - We study source-level behavioral issue discovery and closure for existing state-machine artifacts.
 - We use an intermediate executable semantic representation to enable diagnostics, simulation/probe, and verification/check feedback.
 - We separate Discover-time root assessment, post-repair disposition confirmation, and final source-level closure assessment.
-- We require repairs to be issue-grounded and auditable through source-level patch / projection evidence.
+- We require repairs to be issue-grounded and auditable through accepted semantic deltas, canonical source export, and semantic-root correspondence evidence.
 - We defer final rubric and baseline contract until pilot outputs reveal the actual raw/source output shape.
 
 ## Claims to Be Careful About

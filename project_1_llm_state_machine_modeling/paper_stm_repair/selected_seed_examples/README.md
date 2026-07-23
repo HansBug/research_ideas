@@ -1,87 +1,39 @@
-# smoke 用代表性种子样例迷你文库
+# Discover 默认作者 feedback-final 选择池 60 资源
 
-本目录从 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 已登记的一手资源中抽取少量代表性 `<NL, STM_0>` 样例，供后续转换器、诊断器、修正循环和评价协议做 **smoke / 最小连通性自检**。这里维护的是可长期复用的静态输入样例与 R4.5 `.fcstm` 派生快照，不是 PR 进度表，不是 seed registry 全量事实源，也不是最终实验集合或主结果样本上限。
+本目录是 `paper_stm_repair_loop.inputs.load_pair()` 的默认 FCSTM 资源集合。它不再维护四例 smoke 子集，也不提供 manual、compat 或临时旁路；目录中的 60 个子目录与默认 [`pairs.jsonl`](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) 一一对应。
 
-换言之：本目录回答“后续工具链先拿哪几个静态样例做最小跑通检查，以及对应的当前可机检 `.fcstm` 快照在哪里”；最终实验池规模、抽样策略、纳入 / 排除统计和主结论仍以 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)、后续实验协议和 run record 为准。
+## 资源合同
 
-## 1. 边界
+每个 `llms_emp_feedback_final_NNNN/` 目录固定包含：
 
-- 本目录位于 `paper_stm_repair/` 根路径下，故意不放在 `corpora/seed_library/` 内；`seed_library` 继续只负责上游 seed 方法 / 来源事实总账，本目录只负责 smoke 用静态样例。
-- 每个子目录只保存一个已经选中的样例。
-- 每个样例必须至少包含：`README.md`、`nl.txt`、一个 `stm0.*` 源文件、`source_meta.json`、R4.5 派生快照 `model.fcstm` 与 `fcstm_meta.json`。
-- `nl.txt` 必须是作者一手资源中参与生成的原始自然语言输入；不能使用本仓库旧缓存、二手 parquet、人工改写摘要或后续复跑时新写的 NL。
-- `stm0.*` 必须是与该 NL 对齐的作者一手生成输出；不能混入 reference model、checking 后结果、人工修正版或本项目后续修正输出。
-- `source_meta.json` 必须保存从原始 `pairs.jsonl` 抽出的定位、哈希、生成方式、格式和 trace 字段，便于自动核验；至少包含 `pair_id`、`pair_set_id`、`seed_id`、`generation_actor`、`generation_model_or_method`、`stm_format`、`source_asset_id`、`source_local_path`、`source_locator_type`、`source_locator`、`source_sha256`、`source_pairs_jsonl`、`source_nl_sha256`、`source_stm0_sha256`、`nl_sha256`、`stm0_sha256`、`eligibility_state`、`trace_verified` 和 `hash_scope`。其中 `nl_sha256` 与 `stm0_sha256` 必须能直接校验本目录内 `nl.txt` 与 `stm0.*` 的 UTF-8 字节；`source_nl_sha256` 与 `source_stm0_sha256` 记录来源 `pairs.jsonl` 的原文哈希。若二者不同，必须仅限于 Git 清洁所需的空白规范化，并在 `hash_scope` 中明示，不能发生语义编辑。
-- 常规样例的 `model.fcstm` 是 R4.5 表示桥从 R3 canonical 生成的 **smoke convenience snapshot**，不是作者一手资源、不是人工修正版、不是 repair 后模型；它必须逐字节同步自 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 对应 `model.fcstm`，并由 `fcstm_meta.json` 记录来源 report、hash、parse/inspect 状态和 loss 归因。
-- 唯一例外是显式命名为 `manual-identity` 的 conversion-safe Discover pilot。此类目录必须与正牌自动转换目录并列而非覆盖，保存完整 `DECISIONS.md`，并在 `fcstm_meta.json` 中固定 `artifact_role=manual_conversion_safe_discover_pilot`、`discover_source_policy=fcstm_identity`、`academic_eligible=false`、`repair_contribution_allowed=false`。它只服务工程 smoke，不能进入 conversion、discovery effectiveness 或 repair effectiveness 统计。
-- 如果某个样例后续被替换，必须优先在对应一手条目的 `assets/` 与 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 中修正证据，再同步本目录；不得静默替换文件内容。若只刷新 R4.5 表示桥，则必须先重新生成 [../representation/reports/fcstm_export_report.json](../pipeline/representation/reports/fcstm_export_report.json)，再同步本目录的 `model.fcstm` / `fcstm_meta.json`。
+- `nl.txt`：作者 workbook 中对应行的 requirement description；
+- `stm0.puml`：按作者 feedback-final 选择策略得到的 PlantUML；58 例取 Phase-II semantic checking 输出，`0054/0055` 因没有 checking 输出而回退 Phase-I generation；
+- `model.fcstm`：Issue #161 Java frontend 与 R4.5 表示桥生成的 FCSTM working artifact；
+- `source_meta.json`：默认 pair、workbook cell、Phase-I/Phase-II lineage、source hash 与审阅入口；
+- `fcstm_meta.json`：FCSTM hash、canonical/case report/source trace/working contract/parse-inspect/publication seal 绑定。
 
-## 2. 当前样例清单
+目录名、`source_meta.json.pair_id` 和 `pairs.jsonl.pair_id` 必须相同。`load_pair()` 读取 `pairs.jsonl` 的 NL 与 PlantUML，并读取本目录的 `model.fcstm`；不得把 report 目录、manual identity 或 custom mode 当作默认输入替代品。pair schema 中 `generation_context=author_phase_ii_checking_feedback` 与 `stm0_role=author_feedback_final_plantuml` 是池级标签；逐例实际来源以 `selected_stage`、`selected_stage_column` 和 `is_phase_i_fallback` 为准，`0054/0055` 的 `attribution` 必须明确禁止将其写成作者 checking 或本研究 Repair 的产物。
 
-| 样例 | 原始条目 | NL 文件 | 原始 STM_0 | R4.5 FCSTM | 系统 / 场景 | smoke 用途与限制 |
-|---|---|---|---|---|---|---|
-| [高层驾驶模块 PlantUML](./llms-emp-gpt4o-hldcs/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](./llms-emp-gpt4o-hldcs/stm0.puml) | [model.fcstm](./llms-emp-gpt4o-hldcs/model.fcstm) | 人工驾驶 / 自动驾驶模式切换的高层驾驶模块 | 强相关 LLM + SysML / PlantUML 样例；必须隔离 reference 与 checking 列。 |
-| [高层驾驶模块人工 FCSTM identity pilot](./llms-emp-gpt4o-hldcs-manual-identity/README.md) | [正牌 0000](./llms-emp-gpt4o-hldcs/README.md) | [nl.txt](./llms-emp-gpt4o-hldcs-manual-identity/nl.txt) | [stm0.puml](./llms-emp-gpt4o-hldcs-manual-identity/stm0.puml) | [model.fcstm](./llms-emp-gpt4o-hldcs-manual-identity/model.fcstm) | 同一高层驾驶模块的人工 conversion-safe smoke | Discover 默认工程 pilot；FCSTM identity 输入；`academic_eligible=false`，不得进入正式统计。 |
-| [自助结账系统 Umple](./sefm-ssc7-umple/README.md) | [sefm-llm-state-machine](../corpora/seed_library/sefm-llm-state-machine/) | [nl.txt](./sefm-ssc7-umple/nl.txt) | [stm0.ump](./sefm-ssc7-umple/stm0.ump) | [model.fcstm](./sefm-ssc7-umple/model.fcstm) | 超市自助结账机 SSC7 的交互式 reactive system | 真实长系统描述 + Umple 输出；当前该论文制品中只有 SSC7 有生成输出。 |
-| [微波炉控制 PlantUML](./llms-emp-deepseek-microwave/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-deepseek-microwave/nl.txt) | [stm0.puml](./llms-emp-deepseek-microwave/stm0.puml) | [model.fcstm](./llms-emp-deepseek-microwave/model.fcstm) | 微波炉门、物品、烹饪时间、启动 / 取消 / 计时器到期控制 | EMP empirical 中较复杂的控制系统样例；R3.1 仅在进入官方 SCXML 前去除 PlantUML `stm ...` 标题，raw STM_0 不覆盖，不计 repair gain。 |
-| [自主驾驶与碰撞规避 PlantUML](./llms-emp-kimi-autonomous-collision/README.md) | [llms-emp-stm-subset](../corpora/seed_library/llms-emp-stm-subset/) | [nl.txt](./llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](./llms-emp-kimi-autonomous-collision/stm0.puml) | [model.fcstm](./llms-emp-kimi-autonomous-collision/model.fcstm) | 自动驾驶高速 / 城市模式切换与碰撞规避 | 较高难度 LLM PlantUML 样例；官方 SCXML 可导出，条件标签只作转换/表示桥 smoke，不自动解释为严格 guard。 |
+## 学术边界
 
-## 3. 覆盖关系
+- 60 例均允许 attribution-scoped source-static Discover；这不等于 whole-model behavior equivalence、simulation eligibility 或最终主结果 eligibility。
+- `model.fcstm` 是 representation conversion，不是 Repair 输出；`repair_contribution_allowed=false`。
+- confirmed source issue 必须回到 positive source trace、原 PlantUML fragment 与 NL/typed evidence；compiler-owned element 不得升级为作者缺陷。
+- 每例 `closure_claim_allowed=false`。不支持的 initial、concurrency、opaque label/body、lifecycle 等语义继续由 working contract capability exclusion 约束。
+- 58 例 Phase-II 作者 checking/regeneration 的收益不能归因给本研究 Discover/Repair/Confirm；`0054/0055` 是 Phase-I fallback，不得写成作者 feedback 修复后的输出。
 
-| 覆盖维度 | 当前覆盖 | 仍需注意的限制 |
-|---|---|---|
-| 来源形态 | 四个可直接回溯的一手 `NL + generated STM_0` 来源，另有一个复用正牌 `0000` 的人工 identity pilot | 人工 pilot 不是第五个独立 source case，也不得计入正式样本数。 |
-| STM 方言 | PlantUML、Umple | 尚未覆盖作者一手公开的 FSM JSON / CSV generated pair；TTool XML 暂不进入四例正向 smoke。 |
-| 派生表示 | 四个正牌样例均有 R4.5 `model.fcstm` 快照；人工 pilot 另有独立人工 FCSTM 与裁决记录 | 人工 identity pilot 只用于 Discover 工程 smoke；所有 `.fcstm` 都不能直接作为 repair gain。 |
-| 数据形态 | EMP 1×N 多模型输出、单例长 NL、较复杂微波炉控制、较高难度自动驾驶多条件 PlantUML | 四例只是 smoke 用最小静态样例，不是主实验池规模上限。 |
-| 风险覆盖 | reference/checking 泄漏隔离、长 NL、timer-like 语法、R3.1 pre-SCXML normalization 回灌、层次化 PlantUML、条件标签降级、较高难度多条件 PlantUML，以及人工 identity pilot 的学术隔离 | TTool XML 与 Unified synthetic 仍保留在 seed registry / 历史 evidence 中作为后续专项对象，但不再作为当前四个正牌 smoke。 |
+## 审阅入口
 
-## 4. 维护纪律
+- [60 组三元组索引](../pipeline/representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)
+- [60 行人工/LLM审阅总账](../pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.md)
+- [R4.5 汇总](../pipeline/representation/reports/llms_emp_r45_java_60/SUMMARY.md)
+- [publication seal](../pipeline/representation/reports/llms_emp_r45_java_60/PUBLICATION_SEAL.json)
+- [Issue #161 技术报告](../reports/2026-07-19-issue-161-plantuml-java-frontend.md)
 
-1. 本目录不复制 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md) 的全量事实表；每个样例只保存最小可读输入、源文件、R4.5 `.fcstm` smoke 快照和中文解释。
-2. 逐条资源数量、哈希、locator、raw 文件和 validator 结果以 [corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)、单条目 `seed_resource_registry.json` 与对应 `assets/README.md` 为准。
-3. 子目录 `README.md` 必须包含：系统说明、NL 文件说明、原始 STM_0 文件说明、R4.5 `model.fcstm` 说明、NL 中文完整翻译、原始论文 PDF / 全文提取 / BibTeX / 文库相对路径、生成关系和 caveat。
-4. 正牌样例的 `model.fcstm` 只能由 [../representation/reports/fcstm_exports/](../pipeline/representation/reports/fcstm_exports/) 同名样例同步而来；若 R4.5 exporter、canonical、loss ledger 或 selected 输入变化，必须同时更新 `model.fcstm`、`fcstm_meta.json` 和相关 report，不允许手工只改 selected copy。`manual-identity` 例外只能通过自己的 [DECISIONS.md](./llms-emp-gpt4o-hldcs-manual-identity/DECISIONS.md) 与 `fcstm_meta.json` 维护，且不得回写覆盖正牌目录。
-5. `fcstm_meta.json` 是 selected copy 与 R4.5 report 的连接件，至少记录 selected / representation 双方 hash、parse/inspect 状态、source NL、原始 STM_0、source meta、canonical、loss count、attribution 和 `repair_contribution_allowed=false`。
-6. 后续真实运行应另建 run record，记录使用的样例版本、输入、输出、错误、工具版本和 eligibility；不要把运行状态写回本目录作为流程台账。
+## 最小验收
 
-## 5. 结构与哈希一致性自检
-
-维护者新增或替换样例后，至少应执行下列检查，确认每个样例具备必需文件，且 `source_meta.json` 中的 hash 能直接校验当前 `nl.txt` / `stm0.*`：
-
-```bash
-# 请在仓库根目录运行。
-python - <<'PY'
-from pathlib import Path
-import hashlib, json
-base = Path('project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples')
-for d in sorted(p for p in base.iterdir() if p.is_dir()):
-    for name in ['README.md', 'nl.txt', 'source_meta.json']:
-        assert (d / name).exists(), f'{d}: missing {name}'
-    stms = [p for p in d.iterdir() if p.name.startswith('stm0.')]
-    assert len(stms) == 1, f'{d}: expected exactly one stm0.* file, got {stms}'
-    assert (d / 'model.fcstm').exists(), f'{d}: missing model.fcstm'
-    assert (d / 'fcstm_meta.json').exists(), f'{d}: missing fcstm_meta.json'
-    meta = json.loads((d / 'source_meta.json').read_text())
-    assert hashlib.sha256((d / 'nl.txt').read_bytes()).hexdigest() == meta['nl_sha256'], d
-    assert hashlib.sha256(stms[0].read_bytes()).hexdigest() == meta['stm0_sha256'], d
-    for field in ['generation_actor', 'generation_model_or_method', 'stm_format', 'source_pairs_jsonl', 'source_local_path']:
-        assert meta.get(field), f'{d}: missing {field}'
-    source_pairs = (d / meta['source_pairs_jsonl']).resolve()
-    assert source_pairs.exists(), f'{d}: missing source pairs {source_pairs}'
-    assert any(json.loads(line).get('pair_id') == meta['pair_id'] for line in source_pairs.read_text().splitlines()), \
-        f'{d}: pair_id not found in {source_pairs}'
-    assert meta['trace_verified'] is True, d
-    fcstm_meta = json.loads((d / 'fcstm_meta.json').read_text())
-    assert hashlib.sha256((d / 'model.fcstm').read_bytes()).hexdigest() == fcstm_meta['selected_fcstm_sha256'], d
-    assert fcstm_meta['repair_contribution_allowed'] is False, d
-    assert fcstm_meta['parse_status'] == 'ok' and fcstm_meta['inspect_status'] == 'ok', d
-    if fcstm_meta.get('artifact_role') == 'manual_conversion_safe_discover_pilot':
-        assert fcstm_meta['discover_source_policy'] == 'fcstm_identity', d
-        assert fcstm_meta['academic_eligible'] is False, d
-        assert (d / 'DECISIONS.md').exists(), d
-    else:
-        assert fcstm_meta['selected_fcstm_sha256'] == fcstm_meta['synchronized_from_fcstm_sha256'], d
-    print(d.name, stms[0].name, meta['stm_format'], 'fcstm-ok')
-PY
-```
+1. 默认 `pairs.jsonl` 恰好包含 60 个唯一 pair ID。
+2. 本目录恰好包含 60 个 pair 子目录，不允许额外 manual/compat 目录。
+3. 每例 NL、PlantUML、FCSTM hash 与 `source_meta.json` / `fcstm_meta.json` 一致。
+4. 每例 meta 引用的 case report、source trace、working contract、canonical、parse-inspect、三元审阅页和 publication seal 均存在且 hash 闭合。
+5. 在未修改的 PR-discover `load_pair()` 上 60/60 加载成功，`raw_source_format=plantuml`，且 `raw_source` / `fcstm` 分别等于当前 selected PlantUML / R4.5 FCSTM。

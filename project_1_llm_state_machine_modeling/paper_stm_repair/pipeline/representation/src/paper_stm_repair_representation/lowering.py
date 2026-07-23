@@ -53,18 +53,15 @@ class RenderedTransition:
 
 
 def _schema_safe(obj: Any) -> Any:
-    """Recursively convert pyfcstm inspection objects into JSON-safe values.
-
-    pyfcstm diagnostics now embed structured dataclasses such as ``Span``.
-    Downstream R4.5 reports need those fields preserved as schema data rather
-    than collapsed through ``str(diagnostic)`` or left as unserializable Python
-    objects.
-    """
+    """Recursively preserve inspection objects as JSON-safe schema data."""
 
     if obj is None or isinstance(obj, (str, int, float, bool)):
         return obj
     if is_dataclass(obj) and not isinstance(obj, type):
-        return {field.name: _schema_safe(getattr(obj, field.name)) for field in fields(obj)}
+        return {
+            field.name: _schema_safe(getattr(obj, field.name))
+            for field in fields(obj)
+        }
     if isinstance(obj, dict):
         return {str(key): _schema_safe(value) for key, value in obj.items()}
     if isinstance(obj, (list, tuple)):
@@ -795,7 +792,11 @@ class FCSTMExporter:
         lines.extend(self.render_scope(None, 0))
         fcstm = "\n".join(lines) + "\n"
         inventory = self.build_inventory()
-        blocked = [_schema_safe(rt) for rt in self.rendered_transitions if rt.status == "blocked"]
+        blocked = [
+            _schema_safe(rt)
+            for rt in self.rendered_transitions
+            if rt.status == "blocked"
+        ]
         status = "converted" if not blocked else "partial"
         return {
             "status": status,

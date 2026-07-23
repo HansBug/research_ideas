@@ -6,7 +6,8 @@
 
 ```text
 Discover roots/checks -> Repair dispositions/model diff -> Confirm decisions/successors
-  -> B-final -> source projection -> closure/regression
+  -> B-final -> post-Confirm semantic-root bundle -> fresh canonical source export
+  -> closure/regression
 ```
 
 ## 当前状态

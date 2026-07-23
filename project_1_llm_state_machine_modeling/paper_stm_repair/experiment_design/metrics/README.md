@@ -12,7 +12,7 @@
 | baseline contract | 未冻结 |
 | LLM / human judge prompt | 未冻结 |
 
-冻结这些内容的前置条件是：pilot 至少产出真实 issue ledger、repair/change ledger、raw/source patch bundle 或 final raw/source `STM_k`，并完成 closure / regression audit 的最小 dry-run。
+冻结这些内容的前置条件是：pilot 至少产出真实 issue ledger、repair/change ledger、validated post-Confirm semantic-root export bundle、fresh canonical raw/source `STM_k` 与 semantic change/correspondence ledger，并完成 closure / regression audit 的最小 dry-run。
 
 ## 2. 未来指标方向（候选，不是冻结协议）
 
@@ -21,8 +21,8 @@
 1. issue discovery coverage / precision：Discover roots 是否有足够 NL/source/behavior 或 source-internal evidence 支撑其 assessment，且 candidate-only 不被误计为 repair-eligible。
 2. confirmed issue closure：每个 confirmed issue 是否被修复、部分闭合、未闭合或 unknown。
 3. regression：修复后是否引入新的 source-level behavioral issue。
-4. source projection success：中间表示修复是否能回到 raw/source patch bundle。
-5. trace completeness：issue、change、patch、closure 之间是否有可审计链路。
+4. canonical source export success：accepted semantic roots 是否被完整生成到 fresh raw/source `STM_k`，且 compiler-owned scaffold 为 `0`。
+5. trace completeness：issue、accepted change、exported semantic root、closure 之间是否有可审计链路。
 6. cost / stability：迭代次数、失败率、provider drift、人工仲裁负担等辅助指标。
 
 这些只是设计方向，不能提前写成实验结论。

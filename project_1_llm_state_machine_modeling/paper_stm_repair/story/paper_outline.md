@@ -30,7 +30,7 @@
 
 ```text
 Input:  NL + raw/source STM_0
-Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle or final raw/source STM_k + closure/regression ledger
+Output: confirmed issue ledger + repair/change ledger + fresh canonical raw/source STM_k + semantic change/correspondence ledger + closure/regression ledger
 ```
 
 必须区分：
@@ -51,7 +51,7 @@ Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle 
 4. B-repair: full-batch `fix/reject` and atomic model publication
 5. B-confirm: full-batch `accept/reject` and successor chains
 6. Deterministic loop control and B-final evidence gate
-7. One-time raw/source patch bundle or final raw/source `STM_k`
+7. One-time post-Confirm semantic-root bundle and fresh canonical raw/source `STM_k` export
 8. Source-level closure and regression audit
 9. Run record and eligibility discipline
 
@@ -69,7 +69,7 @@ Output: confirmed issue ledger + repair/change ledger + raw/source patch bundle 
 
 建议实验层次：
 
-1. Pilot feasibility：小规模跑通 issue ledger、trace、repair、raw export、closure audit。
+1. Pilot feasibility：小规模跑通 issue ledger、trace、repair、post-Confirm semantic-root export、canonical raw/source `STM_k` 与 closure audit。
 2. Post-pilot rubric freeze：基于真实 output shape 冻结 closure / partial / regression / unjudgeable 判据。
 3. Baseline contract：三层 baseline 可在 pilot 后定义：
    - issue discovery；

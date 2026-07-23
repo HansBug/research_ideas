@@ -1,5 +1,7 @@
 # R3 转换合同与转换器 v0
 
+> **R4.5 PlantUML override（Issue #161）**：本 README 下文的“PlantUML canonical 必须来自官方 SCXML”只适用于历史 R3 四例 smoke。LLMS-EMP 60 例的 active PlantUML 路线已改为 [Java source frontend](./java/plantuml-state-frontend/README.md)：raw source canonical 是语义主路径，PlantUML `StateDiagram/Entity/Link` 是差分证据，SCXML 只保留为历史/附件，不能再作为 PlantUML canonical 真源。
+
 本目录是第一篇论文 `paper_stm_repair` 的 R3 转换层：把 [selected_seed_examples/](../../selected_seed_examples/) 中四个静态 `<NL, STM_0>` 冒烟样例转换、部分转换或阻塞裁决到 R3 规范化 STM JSON，并生成 conversion report 与 loss ledger。
 
 ## 1. 定位
@@ -21,6 +23,7 @@ conversion/
 │   ├── conversion_report.schema.json
 │   ├── loss_ledger.schema.json
 │   ├── normalization_ledger.schema.json
+│   ├── plantuml_source_canonical.schema.json
 │   └── recovery_report.schema.json
 ├── artifacts/
 │   └── plantuml_recovery/r3_1_committed/
@@ -35,6 +38,10 @@ conversion/
 │   ├── schema.py
 │   ├── toolchain.py
 │   └── adapters/
+├── java/plantuml-state-frontend/
+│   ├── Makefile
+│   └── src/main/java/researchideas/plantuml/
+├── tools/run_llms_emp_r45.py
 ├── tests/
 └── reports/
 ```
@@ -212,3 +219,5 @@ python -m paper_stm_repair_conversion.cli convert-selected
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
 pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests
 ```
+
+LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source-to-canonical-to-FCSTM 结构覆盖、attribution-safe mandatory bundle、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。Java subprocess 返回的 `r4_5.plantuml_source_canonical.v1` 必须在 Python wrapper 内通过 [plantuml_source_canonical.schema.json](./schemas/plantuml_source_canonical.schema.json) 的 Draft 2020-12 校验后才能进入 lowering；缺字段、未知字段或非法 transition/metadata 必须 fail-closed。该 schema 也进入 implementation-tree hash，不能在不使 frozen evidence 失效的情况下静默变化。机器 parse/inspect 通过不能替代逐例语义验收；本路线不主张双向无损。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。

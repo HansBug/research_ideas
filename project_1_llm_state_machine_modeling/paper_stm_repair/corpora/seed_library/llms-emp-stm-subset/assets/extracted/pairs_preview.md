@@ -1,8 +1,9 @@
-# pairs_preview
+# Phase-I pairs preview
 
 - raw workbook：`assets/raw/drive_download/Experiment Results.xlsx`
 - sheet：`STM Results`
-- 可回溯生成 pair：60
+- 对应资源：[`phase_i_pairs.jsonl`](./phase_i_pairs.jsonl)
+- 可回溯 Phase-I generation pair：60
 - LLM 分布：Claude=10、DeepSeek=10、GPT-4=10、GPT-4o=10、Kimi=10、Llama=10
 
 ## 示例 0

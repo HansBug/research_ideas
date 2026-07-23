@@ -15,8 +15,8 @@
 | repair/change | 本轮对每个 pending node 做了 `fix` 还是 `reject`，理由与实际改动是什么？ | 完整 disposition batch、change ledger、source trace、输入输出 hash、模型 diff、LLM / deterministic step 记录。 |
 | B-confirm | 本轮每个 disposition 是否可接受；若不可接受，如何在同一 issue chain 上追加 successor？ | typed expected-outcome match、当前模型检查结果、完整自然语言理由、successor linkage 与因果记录。 |
 | source trace | confirmed issue 的 raw/source 元素如何对应到中间表示元素？ | [source_trace/source_trace_contract.md](./source_trace/source_trace_contract.md)、trace ledger、negative attribution gate。 |
-| source projection | 修复如何回到 raw/source 层？ | patch bundle、projection note、unsupported projection 记录。 |
-| closure / regression | B-final 后回投 source 层时，问题是否闭合，是否引入新问题？ | final source projection、隐藏/独立审计、失败 / unknown 入账；B-confirm accept 不能单独冒充 source closure。 |
+| canonical source export | accepted repair 如何进入 validated post-Confirm semantic-root bundle，并全量生成 fresh raw/source `STM_k`？ | accepted semantic delta、root correspondence、region/body/lifecycle/order、deletion tombstone、unsupported export 记录；不消费裸 `.fcstm`。 |
+| closure / regression | B-final 后生成 canonical source artifact 时，问题是否闭合，是否引入新问题？ | final raw/source `STM_k`、semantic change/correspondence ledger、隐藏/独立审计、失败 / unknown 入账；B-confirm accept 不能单独冒充 source closure。 |
 
 ## 3. 禁止直接继承的 archived 内容
 
@@ -24,7 +24,7 @@
 |---|---|---|
 | Better STM gate / `can_claim_better_stm` | endpoint 已被战略校准覆盖。 | 在 `PR-eval-rubric` 重新定义为 issue closure / regression verdict。 |
 | repair target taxonomy | 旧 taxonomy 面向 Better STM target，不等同 confirmed source-level issue。 | 已由 [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md) 重建为 v0 issue status / family；后续 pilot 后再扩展。 |
-| objective metric framework | 旧指标围绕 Better STM gate。 | pilot 后基于真实 patch bundle / closure ledger 重建。 |
+| objective metric framework | 旧指标围绕 Better STM gate。 | pilot 后基于真实 canonical source export / closure ledger 重建。 |
 | constructed `STM_k` suite | 候选是人工 / 确定性构造，不是真实 repair-loop 输出。 | 只能作 leakage / anti-gaming calibration 参考。 |
 | blind adjudication prompt / schema | 旧 prompt 裁决 Better STM，不裁决 source-level issue closure。 | 若需要 LLM judge，必须另建 source-level closure prompt 并做 blind / leakage 审计。 |
 | `pipeline/evaluation/` schemas | 旧 schema 混合 R4/R5.7 gate。 | 若 diagnostic / scenario 字段仍有价值，必须在新 schema 中改名和重定义。 |

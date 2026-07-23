@@ -1,0 +1,167 @@
+# Pair `0033`：NL + PlantUML STM0 + FCSTM STM0
+
+[上一组 `0032`](../0032/README.md) | [返回 60 组索引](../../PAIR_INDEX.md) | [下一组 `0034`](../0034/README.md)
+
+- LLM：`Kimi`
+- 模型/场景：Pump Control state machine
+- 作者输出阶段：`Result with Semantic Checking`
+- 作者输出单元格：`AE35`；Excel row：`35`
+- Phase-I fallback：`false`
+- 相对 Phase-I 是否变化：`true`
+- Phase-I PlantUML SHA-256：`a885b2b07e8c8761bd81c54e9e326daf3a2ce3138e4cae0c305ee6c9fe8145db`
+- NL SHA-256：`a391765dba935d89e6d2467c97b218c0136d106ea9c00bac91e6525e28ac04f1`
+- PlantUML SHA-256：`2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0`
+- FCSTM SHA-256：`4ba796db0836c805d604e989f1eca0c9da5bb77dbef85053440377d1dd2aaab6`
+- review subject SHA-256：`0bec6f4215a1557cfa16a1d5fe96f8db2b8e3e61bde9abc54169cb4692de3a39`
+- working contract SHA-256：`9cde7260663205dcbcfd8f68f0a9f714be1dfe940c35b5acbd06fbef443af831`
+- 结构裁决：`structure_preserved`
+- source states / transitions：`4` / `10`
+- mapped / blocked / silent drop：`10` / `0` / `0`
+- final / lifecycle / body coverage：`3/3` / `0/0` / `0/0`
+- concurrent region / separator coverage：`0/0` / `0/0`
+- source normalization coverage：`0/0`
+- official raw / validation：`state_diagram` / `state_diagram`
+- official identity states / transitions：`4` / `10`
+- official identity remaps：state `0` / transition endpoint `0`
+- AST audit：`passed`
+- legacy whole-model FCSTM execution / Discover：`false` / `false`
+- working bundle usage gate：`discover_input_with_capability_mask`
+- ownership source / compiler / agent：`14` / `24` / `0`
+- source macro / positive identity trace / conversion boundary trace：`10` / `14` / `0`
+- capability source-static / simulation / transition-trace：`eligible_with_exclusions` / `ineligible` / `ineligible`
+- compiler-only diagnostic policy：`rejected_conversion_artifact`；main-result conversion artifact limit：`0`
+- 主 session 对读：`pass`；ownership/macro/capability 均为 `pass`；Case 0033 passes the current attribution-safe forward review; this does not assert global behavior equivalence, and unsupported runtime semantics remain fail-closed.
+- source anchors：`source-ref:llms_emp_feedback_final_0033.puml:line:7\|state PumpControl {, source-ref:llms_emp_feedback_final_0033.puml:line:2\|[*] -down-> PumpControl : begin`；FCSTM anchors：`element-ref:source:state:PumpControl@line:12\|state PumpControl named "PumpControl" {, element-ref:compiler:transition_segment:tr_0001:segment:1@line:23\|[*] -> PumpControl : /begin;`
+- 三个原始文件：[NL](./nl.txt) | [PlantUML](./plantuml.puml) | [FCSTM](./fcstm.fcstm)
+- 审计入口：[canonical](../../canonical/llms_emp_feedback_final_0033.json) | [冻结 FCSTM](../../fcstm/llms_emp_feedback_final_0033.fcstm) | [case report](../../case_reports/llms_emp_feedback_final_0033.json) | [working contract](../../working_contracts/llms_emp_feedback_final_0033.json) | [source trace](../../source_traces/llms_emp_feedback_final_0033.json) | [人工总账](../../MANUAL_REVIEW.md)
+
+## 主 session 三方语义对应
+
+| projection | assessment | NL anchor | PlantUML anchor | FCSTM anchor | source roots | compiler members | rationale |
+|---|---|---|---|---|---|---|---|
+| `direct` | `preserved` | PumpControl | source-ref:llms_emp_feedback_final_0033.puml:line:7\|state PumpControl { | element-ref:source:state:PumpControl@line:12\|state PumpControl named "PumpControl" { | source:state:PumpControl | - | Case 0033 binds source:state:PumpControl to authored PlantUML occurrence 'state PumpControl {' and current FCSTM occurrence 'state PumpControl named "PumpControl" {'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+| `macro` | `preserved_with_exclusions` | PumpControl | source-ref:llms_emp_feedback_final_0033.puml:line:2\|[*] -down-> PumpControl : begin | element-ref:compiler:transition_segment:tr_0001:segment:1@line:23\|[*] -> PumpControl : /begin; | source:transition:tr_0001 | compiler:transition_segment:tr_0001:segment:1 | Case 0033 binds source:transition:tr_0001 to authored PlantUML occurrence '[*] -down-> PumpControl : begin' and current FCSTM occurrence '[*] -> PumpControl : /begin;'; the source semantic root remains attributable while any compiler-owned projection stays protected and cannot become an independent Repair target. |
+
+## Risk occurrence 第二遍复核
+
+| obligation | risk tag | assessment | PlantUML evidence | FCSTM evidence | ownership evidence | rationale |
+|---|---|---|---|---|---|---|
+| `review:final_boundary:0001:tr_0006` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0033.puml:line:9\|PumpState --> [*] : Pump Deactivated | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006@line:9\|state InvalidFinaltr_0006 named "PlantUML final boundary outside source ancestry: @final:PumpControl";, element-ref:compiler:transition_segment:tr_0006:segment:1@line:27\|PumpState -> InvalidFinaltr_0006 : /Pump_Deactivated; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006, compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006 | Case 0033 final_boundary occurrence review:final_boundary:0001:tr_0006 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006, compiler:transition_segment:tr_0006:segment:1, source:transition:tr_0006. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
+| `review:final_boundary:0002:tr_0008` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0033.puml:line:14\|WaterState --> [*] : Water Flow Stabilized | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008@line:10\|state InvalidFinaltr_0008 named "PlantUML final boundary outside source ancestry: @final:PumpControl";, element-ref:compiler:transition_segment:tr_0008:segment:1@line:28\|WaterState -> InvalidFinaltr_0008 : /Water_Flow_Stabilized; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008, compiler:transition_segment:tr_0008:segment:1, source:transition:tr_0008 | Case 0033 final_boundary occurrence review:final_boundary:0002:tr_0008 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008, compiler:transition_segment:tr_0008:segment:1, source:transition:tr_0008. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
+| `review:final_boundary:0003:tr_0010` | `final_boundary` | `source_fact_preserved` | source-ref:llms_emp_feedback_final_0033.puml:line:19\|MethaneState --> [*] : Methane Flow Stabilized | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010@line:11\|state InvalidFinaltr_0010 named "PlantUML final boundary outside source ancestry: @final:PumpControl";, element-ref:compiler:transition_segment:tr_0010:segment:1@line:29\|MethaneState -> InvalidFinaltr_0010 : /Methane_Flow_Stabilized; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010, compiler:transition_segment:tr_0010:segment:1, source:transition:tr_0010 | Case 0033 final_boundary occurrence review:final_boundary:0003:tr_0010 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010, compiler:transition_segment:tr_0010:segment:1, source:transition:tr_0010. The authored final occurrence remains visible through its source root; any completion holder or routing segment is excluded from source-level claims. |
+| `review:synthetic_state:0004:001-InvalidInitialtr_0005` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:8\|[*] --> PumpState | element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0005@line:13\|state InvalidInitialtr_0005 named "PlantUML initial target outside child scope: PumpState"; | compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0005, source:transition:tr_0005 | Case 0033 synthetic_state occurrence review:synthetic_state:0004:001-InvalidInitialtr_0005 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0005, source:transition:tr_0005. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:synthetic_state:0005:002-InvalidFinaltr_0006` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:9\|PumpState --> [*] : Pump Deactivated | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006@line:9\|state InvalidFinaltr_0006 named "PlantUML final boundary outside source ancestry: @final:PumpControl"; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006, source:transition:tr_0006 | Case 0033 synthetic_state occurrence review:synthetic_state:0005:002-InvalidFinaltr_0006 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0006, source:transition:tr_0006. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:synthetic_state:0006:003-InvalidInitialtr_0007` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:13\|[*] --> WaterState | element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0007@line:14\|state InvalidInitialtr_0007 named "PlantUML initial target outside child scope: WaterState"; | compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0007, source:transition:tr_0007 | Case 0033 synthetic_state occurrence review:synthetic_state:0006:003-InvalidInitialtr_0007 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0007, source:transition:tr_0007. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:synthetic_state:0007:004-InvalidFinaltr_0008` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:14\|WaterState --> [*] : Water Flow Stabilized | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008@line:10\|state InvalidFinaltr_0008 named "PlantUML final boundary outside source ancestry: @final:PumpControl"; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008, source:transition:tr_0008 | Case 0033 synthetic_state occurrence review:synthetic_state:0007:004-InvalidFinaltr_0008 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0008, source:transition:tr_0008. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:synthetic_state:0008:005-InvalidInitialtr_0009` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:18\|[*] --> MethaneState | element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0009@line:15\|state InvalidInitialtr_0009 named "PlantUML initial target outside child scope: MethaneState"; | compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0009, source:transition:tr_0009 | Case 0033 synthetic_state occurrence review:synthetic_state:0008:005-InvalidInitialtr_0009 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0009, source:transition:tr_0009. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:synthetic_state:0009:006-InvalidFinaltr_0010` | `synthetic_state` | `compiler_artifact_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:19\|MethaneState --> [*] : Methane Flow Stabilized | element-ref:compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010@line:11\|state InvalidFinaltr_0010 named "PlantUML final boundary outside source ancestry: @final:PumpControl"; | compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010, source:transition:tr_0010 | Case 0033 synthetic_state occurrence review:synthetic_state:0009:006-InvalidFinaltr_0010 binds exact source refs to working-contract elements compiler:state:llms_emp_feedback_final_0033.InvalidFinaltr_0010, source:transition:tr_0010. The placeholder makes the authored missing, invalid, or final boundary visible while the synthetic state itself remains a non-repairable compiler artifact. |
+| `review:explicit_concurrency:0010:001-multiple_initial_fanout` | `explicit_concurrency` | `capability_excluded` | source-ref:llms_emp_feedback_final_0033.puml:line:13\|[*] --> WaterState, source-ref:llms_emp_feedback_final_0033.puml:line:18\|[*] --> MethaneState, source-ref:llms_emp_feedback_final_0033.puml:line:8\|[*] --> PumpState | element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0005@line:13\|state InvalidInitialtr_0005 named "PlantUML initial target outside child scope: PumpState";, element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0007@line:14\|state InvalidInitialtr_0007 named "PlantUML initial target outside child scope: WaterState";, element-ref:compiler:state:llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0009@line:15\|state InvalidInitialtr_0009 named "PlantUML initial target outside child scope: MethaneState"; | source:transition:tr_0005, source:transition:tr_0007, source:transition:tr_0009 | Case 0033 explicit_concurrency occurrence review:explicit_concurrency:0010:001-multiple_initial_fanout binds exact source refs to working-contract elements source:transition:tr_0005, source:transition:tr_0007, source:transition:tr_0009. The authored fork, join, or fan-out occurrence remains source-visible, while unsupported concurrent execution is capability_excluded rather than guessed. |
+
+## 作者阶段 lineage
+
+| stage | output cell | present | output SHA-256 | feedback | resolved |
+|---|---|---|---|---|---|
+| `phase_i_generation` | `I35` | `true` | `a885b2b07e8c8761bd81c54e9e326daf3a2ce3138e4cae0c305ee6c9fe8145db` | - | - |
+| `phase_ii_format` | `U35` | `true` | `5e51641b5f8d11dbdce671c2e5ea1dbb1c7ce494e3850c78268f39677bad7768` | syntax error: stm PumpControlSystem { | YES |
+| `phase_ii_grammar` | `Z35` | `false` | `-` | - | - |
+| `phase_ii_semantic` | `AE35` | `true` | `2404401116a5260b2f403016514c6c1a82cf79ed05ff8de1c92830b926dee2b0` | 1. missing regions | 1.0 |
+
+## Official identity ledger
+
+- status：`aligned`
+- canonical / official states：`4` / `4`
+- aligned transition endpoints：`10`
+
+本组 state identity 无需重映射。
+
+本组 transition endpoint 无需重映射。
+
+## Source normalization ledger
+
+本组没有 source-input normalization。
+
+## Concurrent region ledger
+
+本组没有 PlantUML orthogonal/concurrent region separator。
+
+## Operational debt
+
+| reason code | count |
+|---|---:|
+| `R45.DEBT.invalid_source_final_scope` | 3 |
+| `R45.DEBT.invalid_source_initial_target` | 3 |
+| `R45.DEBT.multiple_initial_fanout` | 1 |
+| `R45.DEBT.opaque_transition_label_semantics` | 7 |
+
+## NL
+
+```text
+1. The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions.
+2. Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.
+3. The system first transitions to the PumpState substate, where the pump is activated or controlled.
+4. The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow.
+5. Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow.
+```
+
+## 作者 Phase-II 最终 PlantUML STM0
+
+```plantuml
+@startuml
+[*] -down-> PumpControl : begin
+PumpControl -down-> PumpState : Activate Pump
+PumpControl -down-> WaterState : Monitor Water Flow
+PumpControl -down-> MethaneState : Monitor Methane Flow
+
+state PumpControl {
+[*] --> PumpState
+PumpState --> [*] : Pump Deactivated
+}
+
+state PumpControl {
+[*] --> WaterState
+WaterState --> [*] : Water Flow Stabilized
+}
+
+state PumpControl {
+[*] --> MethaneState
+MethaneState --> [*] : Methane Flow Stabilized
+}
+@enduml
+```
+
+## 转换后 FCSTM STM0
+
+```fcstm
+state llms_emp_feedback_final_0033 named "llms_emp_feedback_final_0033" {
+    event begin named "begin";
+    event Activate_Pump named "Activate Pump";
+    event Monitor_Water_Flow named "Monitor Water Flow";
+    event Monitor_Methane_Flow named "Monitor Methane Flow";
+    event Pump_Deactivated named "Pump Deactivated";
+    event Water_Flow_Stabilized named "Water Flow Stabilized";
+    event Methane_Flow_Stabilized named "Methane Flow Stabilized";
+    state InvalidFinaltr_0006 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state InvalidFinaltr_0008 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state InvalidFinaltr_0010 named "PlantUML final boundary outside source ancestry: @final:PumpControl";
+    state PumpControl named "PumpControl" {
+        state InvalidInitialtr_0005 named "PlantUML initial target outside child scope: PumpState";
+        state InvalidInitialtr_0007 named "PlantUML initial target outside child scope: WaterState";
+        state InvalidInitialtr_0009 named "PlantUML initial target outside child scope: MethaneState";
+        [*] -> InvalidInitialtr_0005;
+        [*] -> InvalidInitialtr_0007;
+        [*] -> InvalidInitialtr_0009;
+    }
+    state PumpState named "PumpState";
+    state WaterState named "WaterState";
+    state MethaneState named "MethaneState";
+    [*] -> PumpControl : /begin;
+    !PumpControl -> PumpState : /Activate_Pump;
+    !PumpControl -> WaterState : /Monitor_Water_Flow;
+    !PumpControl -> MethaneState : /Monitor_Methane_Flow;
+    PumpState -> InvalidFinaltr_0006 : /Pump_Deactivated;
+    WaterState -> InvalidFinaltr_0008 : /Water_Flow_Stabilized;
+    MethaneState -> InvalidFinaltr_0010 : /Methane_Flow_Stabilized;
+}
+```
+
+[上一组 `0032`](../0032/README.md) | [返回 60 组索引](../../PAIR_INDEX.md) | [下一组 `0034`](../0034/README.md)

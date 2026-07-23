@@ -32,7 +32,7 @@ NL + raw/source STM_0
   -> B-confirm: accept or reject every disposition
   -> successor nodes return only to B-repair until all chains close
   -> B-final evidence gate
-  -> C: one-time source projection + closure / regression audit
+  -> C: one-time canonical source export + closure / regression audit
 ```
 
 Discover 内的 `confirmed/candidate_only` 是初始 root assessment，不是 Repair 前另设 Confirm 阶段。Confirm Agent 发生在模型修改已经发布之后，核对已知问题是否被本轮处置、是否出现回归或证据矛盾；它不 rediscover、不回滚模型、不在运行时引入人类裁决。
@@ -64,7 +64,7 @@ candidate / confirmed issue ledger、trace、attribution boundary、closure / re
 | confirmed source-level behavioral issue | v0 默认通过 `NL + raw/source element + behavior evidence` 确认；另允许 `raw_internal_inconsistency` 第二路径，但必须有 source 内部冲突证据、typed internal-consistency evidence、NL 不强制的 rationale 和 attribution boundary。 | 不把 folded event / ugly expression 自动当确认问题；不把 conversion / lowering artifact 当 source-level issue。 |
 | issue-grounded repair | 绑定 `issue_id` 的修复或 refinement。 | 不允许泛泛重写整个模型来声称变好。 |
 | source trace | raw/source 元素与中间表示元素之间的追踪关系，见 [experiment_design/source_trace/](./experiment_design/source_trace/)。 | 不把 ambiguous / untraceable / conversion artifact trace 当作 closure 主证据。 |
-| source-level patch bundle | 可回投到 raw/source 层解释的补丁、diff 或说明。 | 不把无法投影的中间改动算 closure。 |
+| canonical source export | 由 validated post-Confirm semantic-root export bundle 全量生成的 fresh raw/source `STM_k`，并配套 semantic change/correspondence ledger。 | 不消费裸 `.fcstm`，不要求原 formatting 或最小文本 diff，也不把无法导出的中间改动算 closure。 |
 | B-confirm | 对当前轮全部 `fix/reject` dispositions 作 `accept/reject`，并为 reject 追加 successor node。 | 不等同于 source-level closure；不回 Discover、不修改或回滚已发布模型。 |
 | closure audit | B-final 后在 source 层判断原 issue closed / partially closed / not closed / over-repaired / unjudgeable。 | 不用单一 LLM 偏好判断替代证据链。 |
 | regression audit | 在最终 source output 上检查修复是否引入新的 source-level issue。 | 不因 B-confirm accept 或原 issue 闭合就忽略新问题。 |
@@ -114,7 +114,7 @@ rg -n "Better STM|BetterSTM|which STM is better|relatively better|can_claim_bett
   project_1_llm_state_machine_modeling/paper_stm_repair/GUIDE.md \
   project_1_llm_state_machine_modeling/paper_stm_repair/story || true
 
-rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-grounded|patch bundle|intermediate .*semantic" \
+rg -n "source-level|candidate issue|confirmed issue|closure|regression|issue-grounded|canonical source export|intermediate .*semantic" \
   project_1_llm_state_machine_modeling/paper_stm_repair/README.md \
   project_1_llm_state_machine_modeling/paper_stm_repair/SUMMARY.md \
   project_1_llm_state_machine_modeling/paper_stm_repair/STATUS.md \
