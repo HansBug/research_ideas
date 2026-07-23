@@ -174,6 +174,11 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "entry obligations, or default initialization behavior" in flat
     assert "Reusing an event in a later cycle is legal" in flat
     assert "consumed-event accounting is not a one-use rule" in flat
+    assert 'For a local "while in S, event E leads to T" proposition' in flat
+    assert "put E in the first caller cycle" in flat
+    assert "E is consumed rather than unconsumed" in flat
+    assert "completion/event-free transition leave S before E" in flat
+    assert "a matching final state alone does not establish" in flat
     assert "`simulate(...).final.is_ended is True`" in flat
     assert "do not call `is_active` after the terminating event" in flat
     assert "call `read_fbmcq_guide`" in flat

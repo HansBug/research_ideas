@@ -74,6 +74,12 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         "is_leaf",
         "is_composite",
         "is_ended",
+        "requested_initialization",
+        "effective_initialization",
+        "first hot-start caller cycle",
+        "consumed_events",
+        "unconsumed_events",
+        "final-state coincidence",
         "transition_index",
         "Positive bool principle",
         "required function families",
@@ -102,6 +108,7 @@ def test_tool_input_fields_match_issue165_contract(tmp_path):
             "formal_bound",
             "formal_bound_origin",
             "formal_assumption_basis_ids",
+            "required_function_families",
             "reason",
         },
         "query_model": {
@@ -163,9 +170,10 @@ def test_tool_input_fields_match_issue165_contract(tmp_path):
                 "assert",
                 "formal_property_kind",
                 "formal_bound",
-                "formal_bound_origin",
-                "formal_assumption_basis_ids",
-                "reason",
+                    "formal_bound_origin",
+                    "formal_assumption_basis_ids",
+                    "required_function_families",
+                    "reason",
             },
             {"assertion_chain_id", "assert", "reason"},
         ),
@@ -264,6 +272,10 @@ def test_observe_trace_supports_targeted_pre_registration_investigation(tmp_path
     description = tools["observe_trace"].description
     assert "targeted provisional clause Root" in description
     assert "before registration" in description
+    assert "A complete hot start does not" in description
+    assert "put E in the first hot-start" in description
+    assert "Final-state equality alone does not prove" in description
+    assert "input/consumed/unconsumed events" in description
 
     result = tools["observe_trace"].invoke(
         {

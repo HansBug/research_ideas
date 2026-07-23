@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import Field, create_model
 
-from ..schemas.assertions import FormalBoundOrigin, FormalPropertyKind
+from ..schemas.assertions import FormalBoundOrigin, FormalPropertyKind, FunctionFamily
 from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
@@ -22,6 +22,10 @@ ReviseAssertionInput = create_model(
             list[str],
             Field(default_factory=list),
         ),
+        "required_function_families": (
+            list[FunctionFamily] | None,
+            Field(default=None, min_length=1),
+        ),
         "reason": (NonBlankString, ...),
     },
 )
@@ -37,6 +41,7 @@ def execute(
     formal_bound: int | None = None,
     formal_bound_origin: str | None = None,
     formal_assumption_basis_ids: list[str] | None = None,
+    required_function_families: list[str] | None = None,
 ) -> dict[str, object]:
     """Append a new latest assertion version in the controller registry."""
 
@@ -48,6 +53,7 @@ def execute(
         formal_bound=formal_bound,
         formal_bound_origin=formal_bound_origin,
         formal_assumption_basis_ids=formal_assumption_basis_ids,
+        required_function_families=required_function_families,
     )
 
 
@@ -62,16 +68,20 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     trusted for Root/Unit matching.
 
     Returns: a ``StructuredTool`` named ``revise_assertion``. Accepted revisions
-    return the new ``assertion_version_id``, ``assert_sha256``, inherited
-    Root/Unit/required/basis/evidence-scope/function-family metadata, and
+    return the new ``assertion_version_id``, ``assert_sha256``, preserved
+    Root/Unit/required/basis/evidence-scope metadata, the current version's
+    explicit function-family route, and
     append-only limitations. Rejections return ``invalid_arguments`` and preserve
     the old latest version.
 
     Execution: the tool appends one new version to an existing assertion chain.
     It never mutates old versions or old results. The revision inherits
-    ``required``, Root, CoverageUnit, basis IDs, evidence scope, and required
-    function families from the previous latest version, so the public API cannot
-    weaken them. A revised FBMCQ expression must resubmit property kind, bound,
+    ``required``, Root, CoverageUnit, basis IDs, and evidence scope from the
+    previous latest version. Omit ``required_function_families`` to inherit the
+    previous route; when the revised expression changes evidence route, submit
+    the complete non-empty current family list so the runtime authenticity gate
+    checks what this version actually claims to use. This metadata is not a tool
+    quota. A revised FBMCQ expression must resubmit property kind, bound,
     bound origin, and assumption basis; the Controller reparses the exact query
     and rejects any mismatch. The new expression/SHA must not duplicate another
     chain's latest active expression.
@@ -93,7 +103,7 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     dependency, evidence, or expression-shape problems and must be replaced by a
     new expression for the same Root/Unit obligation.
 
-    When not to use: do not use to add a new Root, change basis/family/scope,
+    When not to use: do not use to add a new Root, change basis/scope,
     downgrade a required assertion, batch multiple chains, or execute evidence.
 
     Examples: ``{"assertion_chain_id":"ASSERT-003","assert":"(effect_delta(source='Root.Attack', event='Root.Attack_Complete', variable='uav_count') or 0) < 0","reason":"Keep the same quantity-decrease obligation but avoid the prior ambiguous helper."}``.
@@ -113,8 +123,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         When not to use
         ----------------
         Do not use to change Root, CoverageUnit, required status, basis,
-        evidence scope, required function families, or to add a different
-        semantic obligation.
+        evidence scope, or to add a different semantic obligation. Change
+        ``required_function_families`` only when the expression's evidence route
+        changes for the same obligation.
 
         Parameters
         ----------
@@ -127,6 +138,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         explain why that horizon fits the proposition. Every assumption basis ID
         must already be a frozen ID in the inherited assertion ``basis_ids``;
         arbitrary profile-like IDs are not accepted without a frozen registry.
+        ``required_function_families`` is optional: omit it to inherit the prior
+        route, or provide the complete non-empty route for this new version.
 
         Returns
         -------
@@ -136,7 +149,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Execution
         ---------
         The Controller checks chain existence and latest expression uniqueness,
-        then appends ``@vN`` with inherited required/root/unit/basis/scope/family.
+        then appends ``@vN`` with inherited required/root/unit/basis/scope and
+        either inherited or explicitly replaced function-family metadata.
 
         Failure semantics
         -----------------

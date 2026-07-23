@@ -63,6 +63,20 @@ def execute(
             model_sha256=model_sha256,
             exc=exc,
         )
+    cycle_records = [cycle.to_json()["data"] for cycle in observation.cycles]
+    unconsumed_inputs = [
+        event
+        for cycle in cycle_records
+        for event in cycle.get("unconsumed_events", [])
+    ]
+    causality_guidance = (
+        " One or more supplied events were unconsumed. Do not attribute the final "
+        "state to those events; for a local hot-start event proposition, put the "
+        "event in the first caller cycle and verify source state, event consumption, "
+        "and target state in order."
+        if unconsumed_inputs
+        else ""
+    )
     return {
         "execution_status": "completed",
         "question": question,
@@ -70,7 +84,7 @@ def execute(
         "requested_cycles": cycles,
         "requested_initialization": observation.requested_initialization.to_json()["data"],
         "effective_initialization": observation.effective_initialization.to_json()["data"],
-        "cycles": [cycle.to_json()["data"] for cycle in observation.cycles],
+        "cycles": cycle_records,
         "final": observation.final.to_json()["data"],
         "model_sha256": observation.model_sha256,
         "reason": reason,
@@ -82,12 +96,14 @@ def execute(
             "Use this post-registration observation immediately to revise the "
             "implicated registered assertion and execute its latest version. Do not enumerate "
             "unrelated event/state combinations or mint a new Root ID to continue "
-            "the same proposition."
+            f"the same proposition.{causality_guidance}"
         ),
         "pass_criteria": (
             "The next semantic actions revise and evaluate the implicated assertion. Another exploratory "
             "call is justified only when this result exposes one distinct unresolved "
-            "condition for the same stable Root ID and the next reason names it."
+            "condition for the same stable Root ID and the next reason names it. "
+            "If the proposition attributes a state change to an event, the recorded "
+            "source state, consumed event, and resulting target state must align."
         ),
         "limitations": [
             "exploratory_trace_only",
@@ -208,6 +224,10 @@ def build_tool(
         Optional `initial_state` plus `initial_vars` requests a hot start from one
         exact dotted state path; hot start requires every declared persistent
         variable value. Omitting both fields preserves the cold-start contract.
+        A cold start needs a leading `[]`. A complete hot start does not. For a
+        local "while in S, E leads to T" question, put E in the first hot-start
+        caller cycle and verify that E is consumed and T follows that cycle;
+        otherwise an event-free/completion transition may leave S before E.
         `reason` explains why this exact bounded trace is necessary in the run
         content language. No filesystem paths, model text, arbitrary code, or
         expected outcome are accepted. Use the exact registered Root ID. Suffix
@@ -237,6 +257,15 @@ def build_tool(
         is delegated to pyfcstm only after the exact state and complete variable
         request has been sealed. It records public structured cycle results and
         never parses an exception message as a behavior fact.
+
+        Event-causality interpretation
+        ------------------------------
+        Final-state equality alone does not prove that an input event caused the
+        transition. Compare effective initialization and prior cycle state with
+        the event cycle's input/consumed/unconsumed events and resulting active
+        states. If the event is unconsumed or the target was reached earlier,
+        treat the trace as insufficient for that causal proposition and follow
+        the returned corrective guidance.
 
         Failure semantics
         -----------------

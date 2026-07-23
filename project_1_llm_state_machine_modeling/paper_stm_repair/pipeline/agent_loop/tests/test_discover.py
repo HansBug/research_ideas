@@ -6,7 +6,7 @@ from pathlib import Path
 from paper_stm_repair_loop.agents.discover import run_discover
 from paper_stm_repair_loop.controller import DiscoverController
 from paper_stm_repair_loop.inputs import prepare_run_dir
-from paper_stm_repair_loop.records import RecordStore
+from paper_stm_repair_loop.records import RecordStore, sha256_json
 from paper_stm_repair_loop.tools.check_fcstm import execute as check_fcstm
 
 from v2_helpers import expressions_from_plan, make_case, make_manifest, make_plan
@@ -97,6 +97,26 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
     assert "ROOT-001" in report
     assert "ASSERT-001" in report
     assert "transition_exists" in report
+    capability = next(
+        record["payload"]
+        for record in records
+        if record["record_type"] == "capability_manifest"
+    )
+    for schema_name in (
+        "RegisterCoveragePlanInput",
+        "ReviseAssertionInput",
+        "ReviewDiscoveryCoverageInput",
+        "LookupSourceTraceInput",
+    ):
+        assert schema_name in capability["schema_hashes"]
+    evaluation = next(
+        record["payload"]
+        for record in records
+        if record["record_type"] == "eval_assert_completed"
+    )
+    assert evaluation["check"]["tool_schema_hash"] == sha256_json(
+        capability["schema_hashes"]
+    )
 
 
 def test_run_discover_rejects_non_fresh_record_prefix(tmp_path):

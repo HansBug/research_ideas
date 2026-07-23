@@ -228,6 +228,27 @@ class DiscoverController:
             "fbmcq_limits": fbmcq_limits,
             "tool_choice": "proposition_quantification_v1",
         }
+        capability_record = self.store.latest("capability_manifest")
+        capability_payload = (
+            capability_record.get("payload", {})
+            if isinstance(capability_record, Mapping)
+            else {}
+        )
+        schema_hashes = (
+            capability_payload.get("schema_hashes", {})
+            if isinstance(capability_payload, Mapping)
+            else {}
+        )
+        check_evidence_context = {
+            "check_result_sha256": sha256_json(self.check_result),
+            "check_record_id": self.check_result.get("record_id"),
+            "model_sha256": self.case.fcstm_sha256,
+            "tool_hash": environment.function_registry_hash,
+        }
+        if isinstance(schema_hashes, Mapping) and schema_hashes:
+            check_evidence_context["tool_schema_hash"] = sha256_json(
+                dict(schema_hashes)
+            )
         relevant = [item for item in facts if item.behavior_relevant]
         self.registry = CoverageRegistry(
             input_segment_ids=[item.segment_id for item in segments],
@@ -250,12 +271,7 @@ class DiscoverController:
             issue_assessment_resolver=self._resolve_issue_assessment,
             fbmcq_guide_read=lambda: self.guide_access.has_read("fbmcq"),
             evidence_context={
-                "check": {
-                    "check_result_sha256": sha256_json(self.check_result),
-                    "check_record_id": self.check_result.get("record_id"),
-                    "model_sha256": self.case.fcstm_sha256,
-                    "tool_hash": environment.function_registry_hash,
-                },
+                "check": check_evidence_context,
                 "policy": {
                     **evidence_policy,
                     "policy_hash": sha256_json(evidence_policy),

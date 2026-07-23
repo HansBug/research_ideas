@@ -711,6 +711,10 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "do not recommend an `is False`" in prompt
     assert "completion transition" in prompt
     assert "does not fire unconditionally in every ordinary cycle" in prompt
+    assert "attributes S -> T to event E" in prompt
+    assert "E must be supplied and consumed rather than unconsumed" in prompt
+    assert "final-state coincidence is not event-causality evidence" in prompt
+    assert "E in the first caller cycle" in prompt
     assert "may only revise an existing assertion chain" in prompt
     assert "True means the existing Root is satisfied" in prompt
     assert "frozen scope of the positive obligation" in prompt
@@ -747,6 +751,10 @@ def test_reviewer_prompt_checks_scope_hot_start_bounded_topology_and_inspect_onl
         "bounded-formal overclaim",
         "topology positive-path overclaim",
         "requested and effective initialization",
+        "ordered simulation record",
+        "event-causality evidence",
+        "leading empty cycle",
+        "supplied and consumed rather than unconsumed",
         "analysis_bound",
         "positive paths are guard-agnostic connectivity facts",
     ):

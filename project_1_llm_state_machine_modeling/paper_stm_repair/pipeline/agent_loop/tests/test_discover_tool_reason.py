@@ -100,6 +100,7 @@ def test_new_agent_facing_tools_have_required_docstring_sections_and_reason_para
         "formal_bound",
         "formal_bound_origin",
         "formal_assumption_basis_ids",
+        "required_function_families",
         "reason",
     }
     assert set(tools[2].args_schema.model_json_schema()["properties"]) == {"assert", "reason"}

@@ -50,9 +50,13 @@ class SimulationAPI:
     uses ``SimulationRuntime.cycle`` exactly once for each requested cycle. It
     supports default cold starts and optional exact-state hot starts with complete
     persistent variable values. It inserts no hidden initialization/stabilization
-    cycle. Eventless
-    initialization or stabilization is represented explicitly by ``[]`` in the
-    caller-provided cycle list and preserved in the result.
+    cycle. Cold initialization is represented explicitly by a leading ``[]``.
+    A complete hot start is already initialized and does not require ``[]``.
+    For a local event-causality check, put the event in the first hot-start
+    caller cycle and inspect source-state initialization, consumed/unconsumed
+    events, and the resulting active state. A leading empty cycle may fire a
+    completion transition before the event and make a final-state-only check
+    pass for the wrong reason.
 
     Failure semantics: missing model text, malformed cycle specs, or incomplete
     hot-start variables raise ``UnsupportedEvidence`` or pyfcstm ``ValueError``.
@@ -68,9 +72,12 @@ class SimulationAPI:
     import, environment, time/random, network, mutation, or reference/gold data.
 
     Example: ``simulate(cycles=[[], ["Root.go"]]).final.is_active("Root.Done")``
-    checks the final active state after an explicit empty cycle and one event
-    cycle. ``simulate(cycles=[[], ["Root.stop"]]).final.is_ended is True`` checks
-    an explicit top-level termination result without reading ``current_state``.
+    checks one cold-start path. ``simulate(initial_state="Root.Idle",
+    initial_vars={}, cycles=[["Root.go"]])`` checks the event directly from a
+    complete hot start; confirm ``Root.go`` appears in cycle 0
+    ``consumed_events`` before attributing the target state to that event.
+    ``simulate(cycles=[[], ["Root.stop"]]).final.is_ended is True`` checks an
+    explicit top-level termination result without reading ``current_state``.
     """
 
     family = "simulation"

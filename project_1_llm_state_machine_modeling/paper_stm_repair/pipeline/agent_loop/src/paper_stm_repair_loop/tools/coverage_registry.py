@@ -1088,6 +1088,7 @@ class CoverageRegistry:
         formal_bound: int | None = None,
         formal_bound_origin: str | None = None,
         formal_assumption_basis_ids: list[str] | None = None,
+        required_function_families: list[str] | None = None,
     ) -> dict[str, Any]:
         if assertion_chain_id not in self.chains:
             result = {
@@ -1098,6 +1099,45 @@ class CoverageRegistry:
             self.append_record("assertion_revision_rejected", {**result, "assertion_chain_id": assertion_chain_id, "reason": reason})
             return result
         latest = self.chains[assertion_chain_id][-1]
+        next_function_families = tuple(
+            sorted(
+                str(item)
+                for item in (
+                    required_function_families
+                    if required_function_families is not None
+                    else latest.required_function_families
+                )
+            )
+        )
+        family_errors: list[str] = []
+        if not next_function_families:
+            family_errors.append(
+                f"assertion_requires_function_family:{assertion_chain_id}"
+            )
+        invalid_families = sorted(
+            set(next_function_families) - ALLOWED_FUNCTION_FAMILY_VALUES
+        )
+        if invalid_families:
+            family_errors.append(
+                "invalid_required_function_family:"
+                f"{assertion_chain_id}:{','.join(invalid_families)}"
+            )
+        if family_errors:
+            result = {
+                "execution_status": "invalid_arguments",
+                "accepted": False,
+                "assertion_chain_id": assertion_chain_id,
+                "latest_preserved_assertion_version_id": latest.assertion_version_id,
+                "errors": family_errors,
+                "limitations": [
+                    "function_family_route_rejected",
+                    "old_latest_preserved",
+                ],
+            }
+            self.append_record(
+                "assertion_revision_rejected", {**result, "reason": reason}
+            )
+            return result
         unit = self.coverage_units.get(latest.coverage_unit_id, {})
         policy_errors = validate_assertion_semantic_policy(
             assert_text,
@@ -1124,7 +1164,7 @@ class CoverageRegistry:
             return result
         formal_metadata = {
             "basis_ids": list(latest.basis_ids),
-            "required_function_families": list(latest.required_function_families),
+            "required_function_families": list(next_function_families),
             "formal_property_kind": formal_property_kind,
             "formal_bound": formal_bound,
             "formal_bound_origin": formal_bound_origin,
@@ -1242,7 +1282,7 @@ class CoverageRegistry:
             assert_sha256=digest,
             basis_ids=latest.basis_ids,
             obligation_signature=latest.obligation_signature,
-            required_function_families=latest.required_function_families,
+            required_function_families=next_function_families,
             evidence_scope=_deepcopy_jsonish(latest.evidence_scope),
             rationale=reason,
             record_language=latest.record_language,
@@ -1267,6 +1307,13 @@ class CoverageRegistry:
                 "basis_ids": list(version.basis_ids),
                 "evidence_scope": _deepcopy_jsonish(version.evidence_scope),
                 "required_function_families": list(version.required_function_families),
+                "previous_required_function_families": list(
+                    latest.required_function_families
+                ),
+                "required_function_families_changed": (
+                    version.required_function_families
+                    != latest.required_function_families
+                ),
                 "formal_property_kind": version.formal_property_kind,
                 "formal_bound": version.formal_bound,
                 "formal_bound_origin": version.formal_bound_origin,
@@ -2059,9 +2106,12 @@ def _semantic_policy_required_action(
         ),
         assertion_contract.ERROR_SIMULATE_FIRST_CYCLE_REQUIRED: (
             ["register_coverage_plan"],
-            "Start every simulate(cycles=...) setup with an explicit empty cycle. The empty cycle performs deterministic initialization before any external event is supplied.",
-            ["simulate(cycles=[[], ['Root.Start']]).final.is_active('Root.Active')"],
-            "Every simulate call in the assertion begins with [] and still checks the original proposition.",
+            "Use one complete simulation setup: a cold start begins with an explicit empty initialization cycle, while a hot start supplies one exact literal initial_state and complete literal initial_vars and needs no leading empty cycle. For a local event-causality proposition, put the event in the first hot-start caller cycle so completion cannot leave the source state before the event.",
+            [
+                "simulate(cycles=[[], ['Root.Start']]).final.is_active('Root.Active')",
+                "simulate(initial_state='Root.Idle', initial_vars={}, cycles=[['Root.Start']]).final.is_active('Root.Active')",
+            ],
+            "Every simulate call uses either a valid cold initialization or a complete exact hot start, and a local event-causality check does not insert an empty cycle before its tested event.",
         ),
         assertion_contract.ERROR_EFFECTS_BOOL_SUBSTITUTE: (
             ["register_coverage_plan"],

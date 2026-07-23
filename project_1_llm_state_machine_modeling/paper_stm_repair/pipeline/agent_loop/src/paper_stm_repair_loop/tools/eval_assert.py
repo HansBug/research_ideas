@@ -92,7 +92,8 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     ``bound_model_refs``. Pure builtins are exactly ``abs/all/any/bool/float/int/
     iter/len/list/max/min/round/set/sorted/str/sum/tuple``.
     ``SimulationObservation`` exposes ``cycles/final/
-    model_sha256``; ``CycleObservation`` exposes ``index/is_ended/active_states/
+    model_sha256/requested_initialization/effective_initialization``;
+    ``CycleObservation`` exposes ``index/is_ended/active_states/
     variables/input_events/consumed_events/unconsumed_events/
     fired_transitions/is_active``. Use ``.final.is_ended is True`` for an NL
     top-level final/completion obligation; after termination there is no active
@@ -223,12 +224,22 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           still leaves effect evidence in the runtime call trace even when the
           tuple is empty and ``any(...)`` returns ``False``. Use an exact delta
           only when the source explicitly requires that amount.
-        - ``simulate(cycles=<list[list[str]]>) -> SimulationObservation``.
+        - ``simulate(cycles=<list[list[str]]>, initial_state=None,
+          initial_vars=None) -> SimulationObservation``.
           Every outer item is exactly one FCSTM cycle; each inner list is the
           complete event set for that cycle. ``[]`` is an explicit eventless
-          cycle. No hidden initialization cycle is inserted, and every registered
-          simulation assertion must begin with ``[]``. Inspect
-          ``.cycles`` or ``.final``; a CycleObservation exposes ``.index``,
+          cycle. No hidden initialization cycle is inserted. Cold starts must
+          begin with ``[]``. A hot start requires one exact ``initial_state`` and
+          a complete literal ``initial_vars`` mapping and is already initialized,
+          so it does not require a leading ``[]``. For a local "while in S, E
+          leads to T" proposition, put E in the first hot-start caller cycle and
+          verify that the effective initialization is in S, E appears in that
+          cycle's ``consumed_events`` rather than ``unconsumed_events``, and T is
+          active after that cycle. A leading empty cycle may leave S through a
+          completion transition before E; final-state coincidence alone is not
+          event-causality evidence. A SimulationObservation exposes
+          ``.requested_initialization``, ``.effective_initialization``,
+          ``.cycles``, and ``.final``; a CycleObservation exposes ``.index``,
           ``.is_ended``, ``.active_states``, ``.variables``, ``.input_events``,
           ``.consumed_events``, ``.unconsumed_events``,
           ``.fired_transitions``, ``.limitations`` and
@@ -338,6 +349,11 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           variable='uav_count') or 0) < 0``;
         - bounded cycle path:
           ``simulate(cycles=[[], ['Root.go']]).final.is_active('Root.Done')``;
+        - local hot-start event behavior:
+          ``simulate(initial_state='Root.Idle', initial_vars={},
+          cycles=[['Root.go']]).final.is_active('Root.Done')``; inspect the same
+          recorded call's cycle-0 consumed/unconsumed events during coverage
+          review before attributing the target state to ``Root.go``;
         - top-level completion:
           ``simulate(cycles=[[], ['Root.stop']]).final.is_ended is True``;
         - bounded formal property:

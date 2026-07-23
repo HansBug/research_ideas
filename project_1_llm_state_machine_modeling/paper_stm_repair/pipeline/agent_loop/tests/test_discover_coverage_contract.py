@@ -130,6 +130,58 @@ def test_revision_is_append_only_inherits_scope_and_failed_revision_preserves_ol
     assert registry.chains["ASSERT-001"][-1].assertion_version_id == "ASSERT-001@v2"
 
 
+def test_revision_can_replace_function_family_route_without_changing_obligation():
+    registry = CoverageRegistry(
+        input_segment_ids=["SEG-NL-001"],
+        source_fact_ids=["FACT-TRANSITION-001"],
+        eval_funcs=_relation_env(),
+    )
+    assert registry.register_plan(_plan(), reason="Initial relation route.")[
+        "accepted"
+    ] is True
+
+    revised = registry.revise_assertion(
+        "ASSERT-001",
+        "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done', guard=None)",
+        reason="Use a structure-backed revision for the same frozen obligation.",
+        required_function_families=["structure"],
+    )
+
+    assert revised["accepted"] is True
+    assert revised["inherited"]["previous_required_function_families"] == [
+        "relation"
+    ]
+    assert revised["inherited"]["required_function_families"] == ["structure"]
+    assert revised["inherited"]["required_function_families_changed"] is True
+    latest = registry.chains["ASSERT-001"][-1]
+    assert latest.required_function_families == ("structure",)
+
+
+def test_revision_rejects_empty_or_invalid_function_family_route():
+    registry = CoverageRegistry(
+        input_segment_ids=["SEG-NL-001"],
+        source_fact_ids=["FACT-TRANSITION-001"],
+        eval_funcs=_relation_env(),
+    )
+    assert registry.register_plan(_plan(), reason="Initial relation route.")[
+        "accepted"
+    ] is True
+
+    for families, expected in (
+        ([], "assertion_requires_function_family:ASSERT-001"),
+        (["invented"], "invalid_required_function_family:ASSERT-001:invented"),
+    ):
+        rejected = registry.revise_assertion(
+            "ASSERT-001",
+            "transition_exists(source='Root.Idle', target='Root.Done')",
+            reason="Reject an invalid revised evidence route.",
+            required_function_families=families,
+        )
+        assert rejected["accepted"] is False
+        assert expected in rejected["errors"]
+        assert registry.chains["ASSERT-001"][-1].assertion_version_id == "ASSERT-001@v1"
+
+
 def test_submit_gate_blocks_until_every_latest_required_assertion_is_evaluated():
     registry = CoverageRegistry(input_segment_ids=["SEG-NL-001"], source_fact_ids=["FACT-TRANSITION-001"], eval_funcs=_relation_env())
     assert registry.register_plan(_plan(), reason="Initial registration.")["execution_status"] == "completed"

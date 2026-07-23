@@ -24,6 +24,20 @@ state Root {
 }
 """
 
+EVENT_CAUSALITY_MODEL = """state Root {
+    event Brake;
+    state Human;
+    state Auto {
+        state Final;
+        [*] -> Final;
+        Final -> [*];
+    }
+    [*] -> Auto;
+    !Auto -> Human : Brake;
+    Auto -> Human;
+}
+"""
+
 
 def _inspect() -> dict:
     checked = check_fcstm(MODEL)
@@ -339,6 +353,56 @@ def test_simulate_supports_exact_hot_start_with_complete_variables():
     assert observed.effective_initialization.active_states == ("Root", "Root.Work", "Root.Work.A")
     assert observed.cycles[0].variables["count"] == 5
     assert observed.final.is_active("Root.Work.B")
+
+
+def test_hot_start_event_causality_is_not_replaced_by_leading_empty_cycle():
+    sim = SimulationAPI(EVENT_CAUSALITY_MODEL)
+
+    direct = sim.simulate(
+        initial_state="Root.Auto.Final",
+        initial_vars={},
+        cycles=[["Root.Brake"]],
+    )
+    misleading = sim.simulate(
+        initial_state="Root.Auto.Final",
+        initial_vars={},
+        cycles=[[], ["Root.Brake"]],
+    )
+
+    assert direct.effective_initialization.active_states == (
+        "Root",
+        "Root.Auto",
+        "Root.Auto.Final",
+    )
+    assert direct.cycles[0].is_active("Root.Human")
+    assert "Root.Brake" in direct.cycles[0].consumed_events
+    assert direct.cycles[0].unconsumed_events == ()
+
+    assert misleading.cycles[0].is_active("Root.Human")
+    assert misleading.cycles[1].is_active("Root.Human")
+    assert misleading.cycles[1].consumed_events == ()
+    assert misleading.cycles[1].unconsumed_events == ("Root.Brake",)
+
+
+def test_observe_trace_guides_recovery_from_unconsumed_event_causality():
+    result = observe_trace.execute(
+        EVENT_CAUSALITY_MODEL,
+        question="Does Brake cause Auto.Final to enter Human?",
+        root_node_ids=["ROOT-001"],
+        cycles=[[], ["Root.Brake"]],
+        reason="Expose the event-causality ordering gap.",
+        initial_state="Root.Auto.Final",
+        initial_vars={},
+    )
+
+    assert result["execution_status"] == "completed"
+    assert result["cycles"][1]["consumed_events"] == []
+    assert result["cycles"][1]["unconsumed_events"] == ["Root.Brake"]
+    assert "were unconsumed" in result["recommended_action"]
+    assert "Do not attribute the final state" in result["recommended_action"]
+    assert "source state, consumed event, and resulting target state" in result[
+        "pass_criteria"
+    ]
 
 
 def test_simulate_rejects_hot_start_without_complete_exact_variables():

@@ -240,6 +240,12 @@ double-negated verdict metadata, or a bare constant.
    behavior; prove those with a cold simulation or another suitable evidence
    route. Reusing an event in a later cycle is legal; consumed-event accounting
    is not a one-use rule.
+   For a local "while in S, event E leads to T" proposition, put E in the first
+   caller cycle of the complete hot start. Verify from the recorded trace that S
+   is active before that cycle, E is consumed rather than unconsumed, and T is
+   active after it. Do not prepend `[]` when it lets a completion/event-free
+   transition leave S before E; a matching final state alone does not establish
+   that E caused the transition.
    For a top-level final/completion obligation, directly assert
    `simulate(...).final.is_ended is True`. A terminated runtime has no active
    state, so do not call `is_active` after the terminating event or append a
@@ -347,9 +353,12 @@ keep the first three fields null and the basis list empty.
   the next chain in a later response. Inspect actual function calls, provenance,
   limitations, and stable bool result. Never batch multiple `eval_assert` calls.
 - `revise_assertion`: append a new expression version for an inconclusive or
-  demonstrably weak/misdirected chain while inheriting Root, Unit, basis,
-  required status, evidence scope, and required families. Never revise a valid
-  `False` merely to make it pass.
+  demonstrably weak/misdirected chain while preserving Root, Unit, basis,
+  required status, and evidence scope. Omit `required_function_families` to
+  inherit the prior evidence route; if the revised expression changes route,
+  submit its complete non-empty family list so the authenticity gate follows the
+  new version. This is evidence provenance, not a tool quota. Never revise a
+  valid `False` merely to make it pass.
 - `review_discovery_coverage`: mandatory after all latest required assertions
   are terminal and mandatory again after any subsequent revision/evaluation.
   It independently reviews every Segment, Requirement, behavior SourceFact,

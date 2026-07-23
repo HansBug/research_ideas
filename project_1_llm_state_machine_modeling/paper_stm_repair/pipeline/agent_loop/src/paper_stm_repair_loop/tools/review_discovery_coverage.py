@@ -155,14 +155,16 @@ Hard rules:
 20. For simulation evidence, compare requested and effective initialization. A hot start is sufficient only for local behavior whose precondition is already being in that state with the recorded variables; it cannot prove startup reachability, initial descent, or skipped entry actions. Missing persistent variables or unexplained defaults are scope gaps when they can affect guards or effects.
 21. For formal evidence, check property kind, assumptions, finite bound, and bound origin. A `requirement_bound` may support a bounded NL requirement; an `analysis_bound` must remain a finite-horizon limitation. Never let a bounded pass become an unbounded proof.
 22. For topology/path evidence, remember that positive paths are guard-agnostic connectivity facts. They can support structure or localization, but they cannot by themselves prove executable runtime reachability, event availability, transition priority, or variable evolution.
+23. For a proposition that attributes S -> T to event E, inspect the ordered simulation record rather than only its final bool/state. S must hold before the event cycle, E must be supplied and consumed rather than unconsumed in that cycle, and T must hold after it. Reject a trace where a leading empty cycle or completion/event-free transition reaches T before E; final-state coincidence is not event-causality evidence. Recommend a complete hot start with E in the first caller cycle, or another equal-strength route, and state these observable conditions in the pass criterion.
 
 The following are literal data contracts for `recommended_steps.suggested_arguments` inside a finding, not tools available to this reviewer. Replace example values with real IDs, expressions, and model elements from the current ledger:
 - query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}; `query_kind` must be one of states/events/transitions/variables/diagnostics.
-- observe_trace: {{"question":"...","root_node_ids":["ROOT-..."],"cycles":[[],["Root.Event"]],"reason":"..."}}
+- observe_trace cold start: {{"question":"...","root_node_ids":["ROOT-..."],"cycles":[[],["Root.Event"]],"initial_state":null,"initial_vars":null,"reason":"..."}}
+- observe_trace local hot start: {{"question":"...","root_node_ids":["ROOT-..."],"cycles":[["Root.Event"]],"initial_state":"Root.Source","initial_vars":{{}},"reason":"..."}}
 - lookup_source_trace: {{"element_refs":["state:Root.Target"],"direction":"fcstm_to_source","reason":"..."}}; `direction` must be one of fcstm_to_source/source_to_fcstm.
 - read_fbmcq_guide: {{"reason":"..."}}
 - register_coverage_plan: {{"plan":{{"segment_dispositions":[],"fact_dispositions":[],"coverage_units":[],"proposition_roots":[],"logical_assertions":[],"rationale":"..."}},"reason":"..."}}; a real recommendation must provide a complete CoveragePlan that preserves all existing obligations and applies the requested revision, not a delta or `plan_change`.
-- revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"one complete positive Python bool expression","reason":"..."}}
+- revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"one complete positive Python bool expression","required_function_families":["simulation"],"reason":"..."}}; omit `required_function_families` only when the evidence route is unchanged, otherwise provide the complete current route rather than a quota.
 - eval_assert: {{"assert":"the exact latest assertion expression","reason":"..."}}
 
 A blocking finding should be shaped around semantic scope first, for example:
@@ -1069,7 +1071,9 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         ``reviewed_source_fact_ids`` or a finding's ``related_source_fact_ids``;
         if that required list is empty, both output fields must remain empty.
         Reviewers must also check inspect-only projection, hot-start bypass,
-        bounded-formal overclaim, and topology/path overclaim.
+        event-causality ordering and consumption, bounded-formal overclaim, and
+        topology/path overclaim. A matching final state reached before an
+        unconsumed input event cannot prove that the event caused the transition.
 
         Evidence limitations
         --------------------

@@ -45,6 +45,7 @@ from ..schemas.coverage_review import CoverageReviewVerdict
 from ..schemas.inspect import InspectModelInput, InspectModelResult
 from ..schemas.tool_reason import EvalAssertInput
 from ..schemas.tools import (
+    LookupSourceTraceInput,
     ObserveTraceInput,
     QueryModelInput,
     ReadGuideInput,
@@ -62,13 +63,20 @@ from ..tools.query_model import build_tool as build_query_model
 from ..tools.read_fbmcq_guide import build_tool as build_read_fbmcq_guide
 from ..tools.read_fcstm_guide import build_tool as build_read_fcstm_guide
 from ..tools.read_task import build_tool as build_read_task
-from ..tools.register_coverage_plan import build_tool as build_register_coverage_plan
+from ..tools.register_coverage_plan import (
+    RegisterCoveragePlanInput,
+    build_tool as build_register_coverage_plan,
+)
 from ..tools.review_discovery_coverage import (
     CoverageReviewGate,
     LLMCoverageReviewRunner,
+    ReviewDiscoveryCoverageInput,
     build_tool as build_review_discovery_coverage,
 )
-from ..tools.revise_assertion import build_tool as build_revise_assertion
+from ..tools.revise_assertion import (
+    ReviseAssertionInput,
+    build_tool as build_revise_assertion,
+)
 
 
 AGENT_TOOL_NAMES = (
@@ -128,7 +136,11 @@ def _schema_hashes() -> dict[str, str]:
         "ReadTaskInput": ReadTaskInput,
         "QueryModelInput": QueryModelInput,
         "ObserveTraceInput": ObserveTraceInput,
+        "LookupSourceTraceInput": LookupSourceTraceInput,
         "EvalAssertInput": EvalAssertInput,
+        "RegisterCoveragePlanInput": RegisterCoveragePlanInput,
+        "ReviseAssertionInput": ReviseAssertionInput,
+        "ReviewDiscoveryCoverageInput": ReviewDiscoveryCoverageInput,
     }
     return {
         name: sha256_json(model.model_json_schema())
