@@ -9,7 +9,7 @@ import pytest
 
 import paper_stm_repair_loop.inputs as input_module
 from paper_stm_repair_loop.agents import discover
-from paper_stm_repair_loop.inputs import load_custom
+from paper_stm_repair_loop.inputs import load_custom, load_pair
 
 
 class _Registry:
@@ -55,6 +55,51 @@ def test_manual_identity_demo_uses_explicit_custom_fixture():
     assert case.raw_source_format == "fcstm-identity"
     assert case.raw_source == case.fcstm
     assert case.source_trace["relation_policy"] == "exact_identity"
+
+
+def test_manual_identity_manifest_separates_input_and_main_result_eligibility(tmp_path):
+    case = load_custom(
+        "llms_emp_stm_results_0000_manual_identity",
+        MANUAL_IDENTITY_DIR / "nl.txt",
+        MANUAL_IDENTITY_DIR / "STM_0.fcstm",
+    )
+    input_module.prepare_run_dir(
+        tmp_path / "run",
+        case,
+        profile="gpt-5.5",
+        content_language="zh-CN",
+        renderer="quiet",
+    )
+
+    manifest = json.loads((tmp_path / "run/manifest.json").read_text(encoding="utf-8"))
+    assert manifest["input_academic_eligible"] is False
+    assert (
+        manifest["input_academic_ineligibility_reason"]
+        == "custom_input_not_admitted_by_corpus_gate"
+    )
+    assert manifest["main_result_eligible"] is False
+
+
+def test_formal_pair_manifest_preserves_selected_input_eligibility(tmp_path):
+    case = load_pair("llms_emp_feedback_final_0000")
+    input_module.prepare_run_dir(
+        tmp_path / "run",
+        case,
+        profile="gpt-5.5",
+        content_language="zh-CN",
+        renderer="quiet",
+    )
+
+    manifest = json.loads((tmp_path / "run/manifest.json").read_text(encoding="utf-8"))
+    assert manifest["pair_id"] == "llms_emp_feedback_final_0000"
+    assert manifest["input_mode"] == "pair"
+    assert manifest["input_academic_eligible"] is (
+        case.metadata["academic_eligible"] is True
+    )
+    assert manifest["input_academic_ineligibility_reason"] == case.metadata[
+        "academic_ineligibility_reason"
+    ]
+    assert manifest["main_result_eligible"] is False
 
 
 def test_pair_loader_rejects_duplicate_selected_directories(monkeypatch, tmp_path):

@@ -152,6 +152,11 @@ class DiscoverController:
         self.store.append(
             "inputs_frozen",
             {
+                "run_id": self.manifest.get("run_id"),
+                "case_id": self.case.case_id,
+                "pair_id": self.case.pair_id,
+                "input_mode": self.case.input_mode,
+                "raw_source_format": self.case.raw_source_format,
                 "nl_raw_sha256": input_sha256["nl"],
                 "nl_normalized_sha256": segmented.normalized_sha256,
                 "model_sha256": input_sha256["model"],
@@ -159,6 +164,21 @@ class DiscoverController:
                 "source_trace_sha256": input_sha256["source_trace"],
                 "case_metadata_sha256": input_sha256["case_metadata"],
                 "manifest_input_sha256": input_sha256,
+                "input_academic_eligible": bool(
+                    self.manifest.get("input_academic_eligible", False)
+                ),
+                "input_academic_ineligibility_reason": self.manifest.get(
+                    "input_academic_ineligibility_reason"
+                ),
+                "scope_boundary": {
+                    "stage": "B-discover",
+                    "agent_trace_eligibility_scope": "agent_behavior_trace",
+                    "input_academic_eligible": bool(
+                        self.manifest.get("input_academic_eligible", False)
+                    ),
+                    "main_result_eligible": False,
+                    "main_result_eligibility_owner": "post_loop_experiment_gate",
+                },
             },
         )
         self.store.append(

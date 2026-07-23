@@ -741,6 +741,7 @@ def _run_replay(
         "status": "success",
         "real_llm": False,
         "academic_eligible": False,
+        "eligibility_scope": "agent_behavior_trace",
         "test_replay": True,
     }
 
@@ -975,6 +976,10 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "discover_submission_accepted",
         }
     ]
+    agent_trace_eligible = bool(result_status.get("academic_eligible", False))
+    agent_trace_eligibility_scope = str(
+        result_status.get("eligibility_scope") or "agent_behavior_trace"
+    )
     completed_payload = {
         "schema_version": "paper1.discover_completed.v2",
         "run_id": manifest["run_id"],
@@ -993,9 +998,15 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         "coverage_plan": coverage_plan,
         "outcome": outcome.model_dump(mode="json"),
         "agent_real_llm": bool(result_status.get("real_llm", False)),
-        "agent_academic_eligible": bool(
-            result_status.get("academic_eligible", False)
+        "agent_trace_eligible": agent_trace_eligible,
+        "agent_trace_eligibility_scope": agent_trace_eligibility_scope,
+        "input_academic_eligible": bool(
+            manifest.get("input_academic_eligible", False)
         ),
+        "input_academic_ineligibility_reason": manifest.get(
+            "input_academic_ineligibility_reason"
+        ),
+        "agent_academic_eligible": agent_trace_eligible,
         "test_replay": bool(result_status.get("test_replay", False)),
         "main_result_eligible": False,
         "main_result_eligibility_owner": "post_loop_experiment_gate",

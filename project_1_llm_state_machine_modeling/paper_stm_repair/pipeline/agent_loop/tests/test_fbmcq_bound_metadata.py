@@ -1,14 +1,22 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
 from paper_stm_repair_loop.eval_env.exceptions import UnsupportedEvidence
 from paper_stm_repair_loop.eval_env.fbmcq import FBMCQAPI
+from paper_stm_repair_loop.eval_env.runtime import EvalEnvironment
+from paper_stm_repair_loop.inputs import PreparedCase
+from paper_stm_repair_loop.records import RecordStore
+from paper_stm_repair_loop.renderer import render_discover
 from paper_stm_repair_loop.schemas.assertions import EvalAssertResult
-from paper_stm_repair_loop.tools.coverage_registry import CoverageRegistry
+from paper_stm_repair_loop.tools.coverage_registry import (
+    CoverageRegistry,
+    DirectEvalRuntime,
+)
 
 
 MODEL = """state Root {
@@ -49,6 +57,11 @@ def test_fbmcq_exposes_strong_bound_origin_and_assumption_metadata():
     assert obs.query_origin == "exact_agent_query"
     assert obs.assumption_basis == ()
     assert obs.holds is True
+    assert set(obs.limitations) == {
+        "finite_horizon_only",
+        "exact_query_and_assumptions_only",
+        "does_not_establish_unbounded_correctness",
+    }
     assert seen_kwargs["json_output"] is True
     assert "timeout_ms" not in seen_kwargs
     assert "max_bound" not in seen_kwargs
@@ -248,6 +261,99 @@ def test_registry_reparses_exact_fbmcq_and_rejects_declared_bound_mismatch():
         error.startswith("formal_bound_mismatch:ASSERT-1")
         for error in rejected["errors"]
     )
+
+
+def test_completed_fbmcq_record_preserves_bounded_limitations_at_every_layer(
+    tmp_path,
+):
+    def runner(*_args, **_kwargs):
+        return _stable_report(), 0
+
+    store = RecordStore(tmp_path)
+    environment = EvalEnvironment(model_text=MODEL, bmc_runner=runner)
+    registry = CoverageRegistry(
+        input_segment_ids=["SEG-1"],
+        fbmcq_guide_read=lambda: True,
+        eval_runtime=DirectEvalRuntime(environment),
+        record_sink=lambda record_type, payload: store.append(record_type, payload),
+        evidence_context={
+            "check": {
+                "check_record_id": "REC-CHECK",
+                "check_result_sha256": "check-sha",
+                "model_sha256": "model-sha",
+                "tool_hash": "tool-hash",
+                "tool_schema_hash": "tool-schema-sha",
+            },
+            "policy": {
+                "policy_hash": "policy-sha",
+                "evidence_policy_fingerprint": "policy-sha",
+            },
+        },
+    )
+    plan = _formal_plan()
+    assert registry.register_plan(plan, reason="Register exact formal evidence.")[
+        "accepted"
+    ]
+
+    evaluated = registry.eval_assert(
+        plan["logical_assertions"][0]["assert"],
+        reason="Execute exact bounded formal evidence.",
+    )
+
+    required = {
+        "finite_horizon_only",
+        "exact_query_and_assumptions_only",
+        "does_not_establish_unbounded_correctness",
+    }
+    assert evaluated["match_status"] == "matches"
+    assert required.issubset(set(evaluated["limitations"]))
+    assert required.issubset(set(evaluated["formal"]["calls"][0]["limitations"]))
+    record = store.latest("eval_assert_completed")
+    assert record is not None
+    assert required.issubset(set(record["payload"]["limitations"]))
+    assert record["payload"]["formal"]["formal_bound_origin"] == "analysis_bound"
+
+    case = PreparedCase(
+        case_id="formal-renderer",
+        pair_id=None,
+        nl="Done is reachable within the finite analysis horizon.",
+        raw_source=MODEL,
+        raw_source_format="fcstm-identity",
+        fcstm=MODEL,
+        source_trace={"schema_version": "source_trace_base.v1"},
+        metadata={},
+        input_mode="custom",
+    )
+    completed = SimpleNamespace(
+        run_id="formal-renderer",
+        model_id="STM_0",
+        model_sha256="model-sha",
+        agent_real_llm=True,
+        agent_trace_eligible=True,
+        agent_trace_eligibility_scope="agent_behavior_trace",
+        input_academic_eligible=False,
+        input_academic_ineligibility_reason="custom_input_not_admitted_by_corpus_gate",
+        test_replay=False,
+        main_result_eligible=False,
+        main_result_eligibility_owner="post_loop_experiment_gate",
+        main_result_eligibility_reason="B-discover is intermediate.",
+        outcome=None,
+    )
+    report = render_discover(tmp_path, case, completed, store.all(), "en-US")
+    report_text = report.read_text(encoding="utf-8")
+    for expected in (
+        "canonical_query",
+        "formal_property_kind",
+        "formal_bound",
+        "formal_bound_origin",
+        "finite_horizon_only",
+        "exact_query_and_assumptions_only",
+        "does_not_establish_unbounded_correctness",
+        "check_result_sha256",
+        "tool_schema_hash",
+        "evidence_policy_fingerprint",
+    ):
+        assert expected in report_text
 
 
 def _formal_requirement_plan(*, assumption_basis_ids=None, assertion_basis_ids=None, expression=None):

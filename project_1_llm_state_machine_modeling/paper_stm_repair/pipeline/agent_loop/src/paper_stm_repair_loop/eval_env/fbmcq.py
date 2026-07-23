@@ -29,8 +29,15 @@ FBMCQ_FIELDS = frozenset(
         "process_isolation",
         "witness",
         "replay_status",
+        "limitations",
         "raw",
     }
+)
+
+FBMCQ_LIMITATIONS = (
+    "finite_horizon_only",
+    "exact_query_and_assumptions_only",
+    "does_not_establish_unbounded_correctness",
 )
 
 
@@ -96,8 +103,9 @@ class FBMCQAPI:
 
     Returns: ``fbmcq(query)`` returns an immutable observation with exactly
     ``canonical_query``, solver ``status``, strict bool ``holds``, parsed
-    ``bound``, structured ``witness``, ``replay_status``, and raw structured
-    report. Stable results can be asserted as ``fbmcq('...').holds is True``.
+    ``bound``, structured ``witness``, ``replay_status``, stable ``limitations``,
+    and raw structured report. Stable results can be asserted as
+    ``fbmcq('...').holds is True``.
 
     Execution: parse the complete query with pyfcstm, write Controller-owned
     temporary model/query files, call ``build_bmc_output(..., json_output=True)``,
@@ -334,6 +342,7 @@ class FBMCQAPI:
             "process_isolation": process_metadata.get("process_isolation"),
             "witness": report.get("witness"),
             "replay_status": replay_status,
+            "limitations": FBMCQ_LIMITATIONS,
             "raw": report,
         }
         return FrozenView("fbmcq", data, allowed_fields=FBMCQ_FIELDS)
@@ -416,4 +425,10 @@ class FBMCQAPI:
         )
 
 
-__all__ = ["FBMCQAPI", "FBMCQ_FIELDS", "FBMCQTimeoutError", "FBMCQUnsupportedEvidence"]
+__all__ = [
+    "FBMCQAPI",
+    "FBMCQ_FIELDS",
+    "FBMCQ_LIMITATIONS",
+    "FBMCQTimeoutError",
+    "FBMCQUnsupportedEvidence",
+]

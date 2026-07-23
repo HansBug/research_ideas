@@ -56,11 +56,23 @@ def make_manifest() -> dict[str, Any]:
 
 def make_controller(root: Path) -> DiscoverController:
     case = make_case()
+    store = RecordStore(root)
+    checked = check_fcstm(case.fcstm, "inputs/STM_0.fcstm")
+    check_record = store.append("check_fcstm_completed", checked)
+    checked = {
+        **checked,
+        "record_id": check_record["record_id"],
+        "record_sha256": check_record["record_sha256"],
+    }
+    store.append(
+        "capability_manifest",
+        {"schema_hashes": {"test_fixture": "test-schema-v1"}},
+    )
     return DiscoverController(
         case,
         make_manifest(),
-        check_fcstm(case.fcstm, "inputs/STM_0.fcstm"),
-        RecordStore(root),
+        checked,
+        store,
     )
 
 

@@ -387,6 +387,18 @@ def load_custom(case_id: str, nl_file: Path, fcstm_file: Path, *, raw_source_fil
     )
 
 
+def _input_academic_eligibility(case: PreparedCase) -> tuple[bool, str | None]:
+    eligible = case.metadata.get("academic_eligible") is True
+    if eligible:
+        return True, None
+    reason = case.metadata.get("academic_ineligibility_reason")
+    if isinstance(reason, str) and reason.strip():
+        return False, reason.strip()
+    if case.input_mode == "custom":
+        return False, "custom_input_not_admitted_by_corpus_gate"
+    return False, "input_academic_eligibility_not_established"
+
+
 def prepare_run_dir(
     run_dir: Path,
     case: PreparedCase,
@@ -450,6 +462,9 @@ def prepare_run_dir(
         for value in formal_limits.values()
     ):
         raise ValueError("FBMCQ limits must be positive numbers")
+    input_academic_eligible, input_academic_ineligibility_reason = (
+        _input_academic_eligibility(case)
+    )
     manifest = {
         "schema_version": "paper1.discover.manifest.v1",
         "run_id": run_dir.name,
@@ -466,6 +481,8 @@ def prepare_run_dir(
         "reviewer_limits": review_limits,
         "fbmcq_limits": formal_limits,
         "code_provenance": _code_provenance(),
+        "input_academic_eligible": input_academic_eligible,
+        "input_academic_ineligibility_reason": input_academic_ineligibility_reason,
         "main_result_eligible": False,
         "reference_assets_visible": False,
         "input_files": {name: str(path.relative_to(run_dir)) for name, path in files.items()},

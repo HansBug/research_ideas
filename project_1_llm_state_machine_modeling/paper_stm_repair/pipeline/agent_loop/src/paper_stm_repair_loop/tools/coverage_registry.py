@@ -172,7 +172,11 @@ class DirectEvalRuntime:
                     "effective": (item.get("result") or {})
                     .get("data", {})
                     .get("effective_initialization"),
-                    "cycles": (item.get("kwargs") or {}).get("cycles"),
+                    "cycles": (
+                        (item.get("kwargs") or {}).get("cycles")
+                        if "cycles" in (item.get("kwargs") or {})
+                        else ((item.get("args") or [None])[0])
+                    ),
                     "final": (item.get("result") or {}).get("data", {}).get("final"),
                 }
                 for item in simulation_calls
@@ -190,6 +194,16 @@ class DirectEvalRuntime:
             ]
         }
         completed = raw.match_status in {"matches", "contradicts"}
+        observed_limitations: set[str] = set()
+        for item in function_calls:
+            result = item.get("result")
+            data = result.get("data") if isinstance(result, Mapping) else None
+            limitations = data.get("limitations") if isinstance(data, Mapping) else None
+            if isinstance(limitations, (list, tuple)):
+                observed_limitations.update(str(item) for item in limitations)
+        evidence_limitations = sorted(observed_limitations)
+        if not completed:
+            evidence_limitations.append(raw.result)
         return {
             "execution_status": "completed" if completed else "inconclusive",
             "python_value_type": "bool" if isinstance(raw.value, bool) else None,
@@ -198,7 +212,7 @@ class DirectEvalRuntime:
             "inconclusive_reason": None if completed else raw.result,
             "function_calls": function_calls,
             "observed_function_families": payload["actual_function_families"],
-            "limitations": [] if completed else [raw.result],
+            "limitations": evidence_limitations,
             "exception": raw.error,
             "producer_versions": {},
             "model_sha256": sha256_text(self.environment.model_text or ""),

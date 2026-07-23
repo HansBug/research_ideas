@@ -59,6 +59,8 @@ def execute(
             question=question,
             root_node_ids=root_node_ids,
             cycles=cycles,
+            initial_state=initial_state,
+            initial_vars=initial_vars,
             reason=reason,
             model_sha256=model_sha256,
             exc=exc,
@@ -126,6 +128,8 @@ def _recoverable_inconclusive_failure(
     question: str,
     root_node_ids: list[str],
     cycles: list[list[str]],
+    initial_state: str | None,
+    initial_vars: dict[str, int | float] | None,
     reason: str,
     model_sha256: str,
     exc: Exception,
@@ -136,6 +140,11 @@ def _recoverable_inconclusive_failure(
         "question": question,
         "root_node_ids": list(root_node_ids),
         "requested_cycles": cycles,
+        "requested_initialization": {
+            "mode": "hot" if initial_state is not None else "cold",
+            "state": initial_state,
+            "variables": dict(initial_vars or {}),
+        },
         "model_sha256": model_sha256,
         "reason": reason,
         "error": {
@@ -406,9 +415,9 @@ def build_tool(
                 question=question,
                 root_node_ids=root_node_ids,
                 cycles=cycles,
-                reason=reason,
                 initial_state=initial_state,
                 initial_vars=initial_vars,
+                reason=reason,
             )
         except Exception as exc:
             return _recoverable_inconclusive_failure(
@@ -416,6 +425,8 @@ def build_tool(
                 question=question,
                 root_node_ids=root_node_ids,
                 cycles=cycles,
+                initial_state=initial_state,
+                initial_vars=initial_vars,
                 reason=reason,
                 model_sha256=model_sha256,
                 exc=exc,

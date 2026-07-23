@@ -9,6 +9,11 @@ import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
+from .schemas.records import (
+    DiscoverEligibilityRecordPayload,
+    EvalAssertCompletedPayload,
+)
+
 
 def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -96,6 +101,15 @@ class RecordStore:
         logical_loop_index: int = 0,
         artifact_paths: Mapping[str, Path] | None = None,
     ) -> dict[str, Any]:
+        normalized_payload = dict(payload)
+        if record_type == "eval_assert_completed":
+            normalized_payload = EvalAssertCompletedPayload.model_validate(
+                normalized_payload
+            ).model_dump(mode="json")
+        elif record_type == "discover_completed":
+            normalized_payload = DiscoverEligibilityRecordPayload.model_validate(
+                normalized_payload
+            ).model_dump(mode="json")
         existing = self.all()
         sequence = len(existing) + 1
         previous = existing[-1] if existing else None
@@ -118,7 +132,7 @@ class RecordStore:
             "loop_id": "discover" if logical_loop_index == 0 else f"loop-{logical_loop_index:03d}",
             "previous_record_id": previous["record_id"] if previous else None,
             "previous_record_sha256": previous["record_sha256"] if previous else None,
-            "payload": dict(payload),
+            "payload": normalized_payload,
             "artifact_refs": artifacts,
         }
         body["record_sha256"] = sha256_json(body)

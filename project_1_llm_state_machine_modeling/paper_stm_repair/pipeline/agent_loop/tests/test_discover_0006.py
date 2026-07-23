@@ -267,6 +267,18 @@ def _plan(controller: DiscoverController) -> CoveragePlan:
 
 def _controller(tmp_path) -> DiscoverController:
     case = _case()
+    store = RecordStore(tmp_path)
+    checked = check_fcstm(case.fcstm, "inputs/STM_0.fcstm")
+    check_record = store.append("check_fcstm_completed", checked)
+    checked = {
+        **checked,
+        "record_id": check_record["record_id"],
+        "record_sha256": check_record["record_sha256"],
+    }
+    store.append(
+        "capability_manifest",
+        {"schema_hashes": {"test_fixture": "test-schema-v1"}},
+    )
     return DiscoverController(
         case,
         {
@@ -277,8 +289,8 @@ def _controller(tmp_path) -> DiscoverController:
             "agent_limits": {},
             "input_sha256": {},
         },
-        check_fcstm(case.fcstm, "inputs/STM_0.fcstm"),
-        RecordStore(tmp_path),
+        checked,
+        store,
     )
 
 

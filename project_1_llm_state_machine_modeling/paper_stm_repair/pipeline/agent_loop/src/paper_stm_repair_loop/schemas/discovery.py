@@ -90,7 +90,13 @@ class DiscoverCompleted(StrictContractModel):
     coverage_plan: dict[str, Any]
     outcome: DiscoverOutcome
     agent_real_llm: bool
-    agent_academic_eligible: bool
+    agent_trace_eligible: bool
+    agent_trace_eligibility_scope: Literal["agent_behavior_trace"]
+    input_academic_eligible: bool
+    input_academic_ineligibility_reason: str | None = None
+    agent_academic_eligible: bool = Field(
+        description="Legacy alias for agent_trace_eligible; not input or result eligibility."
+    )
     test_replay: bool = False
     main_result_eligible: Literal[False] = False
     main_result_eligibility_owner: Literal["post_loop_experiment_gate"] = (
@@ -101,3 +107,11 @@ class DiscoverCompleted(StrictContractModel):
     supporting_record_ids: list[str] = Field(default_factory=list)
     completed_record_id: str
     completed_record_sha256: str
+
+    @model_validator(mode="after")
+    def validate_legacy_trace_alias(self) -> "DiscoverCompleted":
+        if self.agent_academic_eligible != self.agent_trace_eligible:
+            raise ValueError(
+                "agent_academic_eligible must equal agent_trace_eligible"
+            )
+        return self

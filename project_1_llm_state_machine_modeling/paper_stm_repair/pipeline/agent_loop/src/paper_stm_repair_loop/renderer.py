@@ -111,6 +111,23 @@ def _append_json_record(lines: list[str], record: Mapping[str, Any]) -> None:
     )
 
 
+def _validate_completed_eligibility_consistency(
+    completed: Any, records: list[dict[str, Any]]
+) -> None:
+    payload = _latest_payload(records, "discover_completed")
+    if not payload:
+        return
+    for field in (
+        "agent_trace_eligible",
+        "agent_trace_eligibility_scope",
+        "input_academic_eligible",
+        "input_academic_ineligibility_reason",
+        "main_result_eligible",
+    ):
+        if field in payload and payload[field] != _get(completed, field):
+            raise ValueError(f"discover_completed eligibility mismatch: {field}")
+
+
 def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) -> None:
     if not any(record.get("record_type") in _V2_RECORD_TYPES for record in records):
         return
@@ -133,12 +150,19 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
             in {
                 "run_id",
                 "case_id",
+                "pair_id",
+                "input_mode",
+                "raw_source_format",
                 "nl_sha256",
+                "nl_raw_sha256",
                 "normalized_nl_sha256",
+                "nl_normalized_sha256",
                 "raw_source_sha256",
                 "fcstm_sha256",
                 "source_trace_sha256",
                 "model_sha256",
+                "case_metadata_sha256",
+                "manifest_input_sha256",
                 "segmenter_version",
                 "pyfcstm_version",
                 "relation_policy",
@@ -150,6 +174,8 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
                 "policy_hash",
                 "evidence_policy_fingerprint",
                 "scope_boundary",
+                "input_academic_eligible",
+                "input_academic_ineligibility_reason",
                 "eligibility",
             }
         }
@@ -308,11 +334,20 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
 
     lines.extend(["### Eligibility and scope boundary", ""])
     eligibility = {
+        "agent_trace_eligible": completed_payload.get("agent_trace_eligible"),
+        "agent_trace_eligibility_scope": completed_payload.get(
+            "agent_trace_eligibility_scope"
+        ),
+        "input_academic_eligible": completed_payload.get(
+            "input_academic_eligible"
+        ),
+        "input_academic_ineligibility_reason": completed_payload.get(
+            "input_academic_ineligibility_reason"
+        ),
         "main_result_eligible": completed_payload.get("main_result_eligible"),
         "main_result_eligibility_owner": completed_payload.get("main_result_eligibility_owner"),
         "main_result_eligibility_reason": completed_payload.get("main_result_eligibility_reason"),
         "agent_real_llm": completed_payload.get("agent_real_llm"),
-        "agent_academic_eligible": completed_payload.get("agent_academic_eligible"),
         "test_replay": completed_payload.get("test_replay"),
         "scope_boundary": inputs.get("scope_boundary") or completed_payload.get("scope_boundary"),
     }
@@ -327,6 +362,8 @@ def render_discover(
     language: str,
 ) -> Path:
     """Render the immutable human view deterministically from method facts."""
+
+    _validate_completed_eligibility_consistency(completed, records)
 
     if language == "zh-CN":
         title, boundary, roots_title = "B-discover 阶段报告", "方法边界", "发现结果"
@@ -358,10 +395,16 @@ def render_discover(
         "",
         f"- run: `{_get(completed, 'run_id')}`",
         f"- case: `{case.case_id}`",
+        f"- pair: `{case.pair_id}`",
+        f"- input mode: `{case.input_mode}`",
+        f"- raw source format: `{case.raw_source_format}`",
         f"- model: `{_get(completed, 'model_id')}` / `{_get(completed, 'model_sha256')}`",
         f"- language: `{language}`",
         f"- Agent real LLM: `{str(_get(completed, 'agent_real_llm')).lower()}`",
-        f"- Agent academic eligible: `{str(_get(completed, 'agent_academic_eligible')).lower()}`",
+        f"- Agent trace eligible: `{str(_get(completed, 'agent_trace_eligible')).lower()}`",
+        f"- Agent trace eligibility scope: `{_get(completed, 'agent_trace_eligibility_scope')}`",
+        f"- input academic eligible: `{str(_get(completed, 'input_academic_eligible')).lower()}`",
+        f"- input academic ineligibility reason: `{_get(completed, 'input_academic_ineligibility_reason')}`",
         f"- test replay: `{str(_get(completed, 'test_replay')).lower()}`",
         f"- main result eligible: `{str(_get(completed, 'main_result_eligible')).lower()}`",
         f"- main result eligibility owner: `{_get(completed, 'main_result_eligibility_owner')}`",

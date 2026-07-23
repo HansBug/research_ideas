@@ -494,6 +494,11 @@ def test_observe_trace_invalid_hot_start_is_recoverable_inconclusive_evidence():
 
     assert result["execution_status"] == "invalid_arguments"
     assert result["evidence_status"] == "inconclusive"
+    assert result["requested_initialization"] == {
+        "mode": "hot",
+        "state": "Root.Work.A",
+        "variables": {"count": 1},
+    }
     assert result["error"]["status"] == "recoverable"
     assert "complete exact initial_vars" in result["error"]["message"]
     assert "inconclusive_evidence" in result["limitations"]
@@ -521,6 +526,11 @@ def test_observe_trace_tool_invalid_runtime_failure_does_not_consume_budget_or_v
     )
     assert bad["execution_status"] in {"invalid_arguments", "execution_error"}
     assert bad["evidence_status"] == "inconclusive"
+    assert bad["requested_initialization"] == {
+        "mode": "hot",
+        "state": "Root.Work.Missing",
+        "variables": {"count": 1, "flag": 0},
+    }
     assert bad["error"]["status"] == "recoverable"
     assert "no_root_verdict" in bad["limitations"]
     assert "root_verdict" not in bad
@@ -535,3 +545,37 @@ def test_observe_trace_tool_invalid_runtime_failure_does_not_consume_budget_or_v
     )
     assert good["execution_status"] == "completed"
     assert good["final"]["variables"]["count"] == 2
+
+
+def test_observe_trace_wrapper_unexpected_failure_preserves_requested_initialization(
+    monkeypatch,
+):
+    snapshot = {
+        "model": {"content": MODEL},
+        "current_records": {"coverage_requirements": [{"clause_id": "001"}]},
+    }
+
+    def fail_execute(*_args, **_kwargs):
+        raise RuntimeError("forced unexpected wrapper failure")
+
+    monkeypatch.setattr(observe_trace, "execute", fail_execute)
+    tool = observe_trace.build_tool(
+        snapshot, registered_root_ids=lambda: {"ROOT-001"}
+    )
+    result = tool.func(
+        question="Preserve the exact hot-start request on unexpected failure.",
+        root_node_ids=["ROOT-001"],
+        cycles=[["Root.Work.go"]],
+        reason="Verify wrapper-level recoverable evidence metadata.",
+        initial_state="Root.Work.A",
+        initial_vars={"count": 1, "flag": 0},
+    )
+
+    assert result["execution_status"] == "execution_error"
+    assert result["evidence_status"] == "inconclusive"
+    assert result["requested_initialization"] == {
+        "mode": "hot",
+        "state": "Root.Work.A",
+        "variables": {"count": 1, "flag": 0},
+    }
+    assert result["error"]["message"] == "forced unexpected wrapper failure"

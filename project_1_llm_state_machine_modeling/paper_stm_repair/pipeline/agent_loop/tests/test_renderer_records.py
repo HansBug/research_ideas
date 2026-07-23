@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from paper_stm_repair_loop.inputs import PreparedCase
 from paper_stm_repair_loop.records import RecordStore
@@ -28,7 +31,11 @@ def _completed() -> SimpleNamespace:
         model_id="STM_0",
         model_sha256="fcstm-sha",
         agent_real_llm=True,
-        agent_academic_eligible=False,
+        agent_trace_eligible=True,
+        agent_trace_eligibility_scope="agent_behavior_trace",
+        input_academic_eligible=False,
+        input_academic_ineligibility_reason="custom_input_not_admitted_by_corpus_gate",
+        agent_academic_eligible=True,
         test_replay=False,
         main_result_eligible=False,
         main_result_eligibility_owner="post_loop_experiment_gate",
@@ -49,6 +56,9 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
             {
                 "run_id": "run-renderer-v2",
                 "case_id": "renderer-v2-case",
+                "pair_id": None,
+                "input_mode": "custom",
+                "raw_source_format": "plantuml",
                 "nl_sha256": "raw-nl-sha",
                 "normalized_nl_sha256": "norm-nl-sha",
                 "fcstm_sha256": "fcstm-sha",
@@ -61,6 +71,8 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
                 "policy_hash": "policy-sha",
                 "evidence_policy_fingerprint": "evidence-policy-sha",
                 "scope_boundary": {"stage": "B-discover", "repair": False},
+                "input_academic_eligible": False,
+                "input_academic_ineligibility_reason": "custom_input_not_admitted_by_corpus_gate",
             },
         )
     )
@@ -145,7 +157,7 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
             {
                 "assertion_chain_id": "ASSERT-001",
                 "assertion_version_id": "ASSERT-001@v2",
-                "assert": "transition_exists(source='Root.Idle', target='Root.Done')",
+                "assert": "simulate(cycles=[[]]).final.state == 'Root.Idle' and fbmcq('check reach <= 20: active(\"Root.Done\");').holds is True",
                 "assert_sha256": "assert-v2-sha",
                 "limitations": ["append_only_revision"],
             },
@@ -179,24 +191,63 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
                 "match_status": "matches",
                 "python_return": True,
                 "initialization": {
-                    "initialization_mode": "hot",
-                    "requested_initial_state": "Root.Idle",
-                    "effective_initial_state": "Root.Idle",
-                    "requested_initial_vars": {"speed": 20},
-                    "effective_initial_vars": {"speed": 20, "brake": 0},
+                    "calls": [
+                        {
+                            "requested": {
+                                "mode": "hot",
+                                "state": "Root.Idle",
+                                "variables": {"speed": 20, "brake": 0},
+                            },
+                            "effective": {
+                                "mode": "hot",
+                                "state": "Root.Idle",
+                                "variables": {"speed": 20, "brake": 0},
+                            },
+                            "cycles": [[]],
+                            "final": {
+                                "state": "Root.Idle",
+                                "variables": {"speed": 20, "brake": 0},
+                            },
+                        }
+                    ]
                 },
                 "formal": {
-                    "canonical_query": "A[] not brake_and_accel",
-                    "property_kind": "safety",
+                    "calls": [
+                        {
+                            "query": "check reach <= 20: active(\"Root.Done\");",
+                            "canonical_query": "check reach <= 20: active(\"Root.Done\");",
+                            "formal_property_kind": "reach",
+                            "formal_bound": 20,
+                            "limitations": [
+                                "finite_horizon_only",
+                                "exact_query_and_assumptions_only",
+                                "does_not_establish_unbounded_correctness",
+                            ],
+                        }
+                    ],
+                    "formal_property_kind": "reach",
                     "formal_bound": 20,
                     "formal_bound_origin": "analysis_bound",
                     "formal_assumption_basis_ids": ["REQ-001"],
                 },
-                "check": {"check_result_sha256": "check-sha", "tool_schema_hash": "tool-schema-sha"},
+                "check": {
+                    "check_record_id": "REC-CHECK",
+                    "check_result_sha256": "check-sha",
+                    "model_sha256": "fcstm-sha",
+                    "tool_hash": "tool-hash",
+                    "tool_schema_hash": "tool-schema-sha",
+                },
                 "policy": {"policy_hash": "policy-sha", "evidence_policy_fingerprint": "evidence-policy-sha"},
-                "function_call_trace": [{"family": "relation", "function": "transition_exists"}],
+                "function_call_trace": [
+                    {"family": "simulation", "function": "simulate"},
+                    {"family": "formal", "function": "fbmcq"},
+                ],
                 "witness": {"transition": "Root.Idle --go--> Root.Done"},
-                "limitations": [],
+                "limitations": [
+                    "finite_horizon_only",
+                    "exact_query_and_assumptions_only",
+                    "does_not_establish_unbounded_correctness",
+                ],
             },
         )
     )
@@ -240,7 +291,11 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
                 "main_result_eligibility_owner": "post_loop_experiment_gate",
                 "main_result_eligibility_reason": "B-discover is intermediate.",
                 "agent_real_llm": True,
-                "agent_academic_eligible": False,
+                "agent_trace_eligible": True,
+                "agent_trace_eligibility_scope": "agent_behavior_trace",
+                "input_academic_eligible": False,
+                "input_academic_ineligibility_reason": "custom_input_not_admitted_by_corpus_gate",
+                "agent_academic_eligible": True,
                 "test_replay": False,
             },
         )
@@ -276,12 +331,17 @@ def test_record_store_accepts_v2_record_types_append_only_and_renderer_links_the
     assert "function_call_trace" in text
     assert "Root.Idle --go--> Root.Done" in text
     assert "formal_profile_guide_read_once" in text
-    assert "requested_initial_vars" in text
+    assert '"requested": {' in text
+    assert '"effective": {' in text
     assert "formal_bound_origin" in text
+    assert "finite_horizon_only" in text
     assert "check_result_sha256" in text
     assert "evidence_policy_fingerprint" in text
     assert "#### regression_guard_projection" in text
     assert "post_loop_experiment_gate" in text
+    assert "Agent trace eligible: `true`" in text
+    assert "input academic eligible: `false`" in text
+    assert "custom_input_not_admitted_by_corpus_gate" in text
     assert '"stage": "B-discover"' in text
 
     for record_type in (
@@ -301,3 +361,122 @@ def test_record_store_accepts_v2_record_types_append_only_and_renderer_links_the
     for record in store.all():
         directory = f"L{record['logical_loop_index']:03d}-{record['sequence']:06d}-{record['record_type'].replace('_', '-')}"
         assert (tmp_path / "records" / directory / "record.json").is_file()
+
+
+def test_eval_assert_completed_fails_closed_before_partial_record_is_written(tmp_path: Path):
+    store = RecordStore(tmp_path)
+
+    with pytest.raises(ValueError, match="validation error"):
+        store.append(
+            "eval_assert_completed",
+            {
+                "initialization": {"calls": []},
+                "formal": {"calls": []},
+                "check": {},
+                "policy": {},
+                "limitations": [],
+            },
+        )
+
+    assert store.all() == []
+
+
+def _valid_formal_eval_payload() -> dict[str, object]:
+    limitations = [
+        "finite_horizon_only",
+        "exact_query_and_assumptions_only",
+        "does_not_establish_unbounded_correctness",
+    ]
+    return {
+        "initialization": {"calls": []},
+        "formal": {
+            "calls": [
+                {
+                    "query": "check reach <= 3: true;",
+                    "canonical_query": "check reach <= 3: true;",
+                    "formal_property_kind": "reach",
+                    "formal_bound": 3,
+                    "limitations": limitations,
+                }
+            ],
+            "formal_property_kind": "reach",
+            "formal_bound": 3,
+            "formal_bound_origin": "analysis_bound",
+            "formal_assumption_basis_ids": [],
+        },
+        "check": {
+            "check_record_id": "REC-CHECK",
+            "check_result_sha256": "check-sha",
+            "model_sha256": "model-sha",
+            "tool_hash": "tool-hash",
+            "tool_schema_hash": "schema-sha",
+        },
+        "policy": {
+            "policy_hash": "policy-sha",
+            "evidence_policy_fingerprint": "policy-sha",
+        },
+        "limitations": limitations,
+    }
+
+
+@pytest.mark.parametrize(
+    "invalid_kind",
+    ["missing_call_limitation", "missing_record_limitation", "missing_bound_origin"],
+)
+def test_formal_evidence_scope_fails_closed_before_write(
+    tmp_path: Path, invalid_kind: str
+):
+    payload = copy.deepcopy(_valid_formal_eval_payload())
+    if invalid_kind == "missing_call_limitation":
+        payload["formal"]["calls"][0]["limitations"].remove(
+            "does_not_establish_unbounded_correctness"
+        )
+    elif invalid_kind == "missing_record_limitation":
+        payload["limitations"].remove("finite_horizon_only")
+    else:
+        payload["formal"]["formal_bound_origin"] = None
+    store = RecordStore(tmp_path / invalid_kind)
+
+    with pytest.raises(ValueError):
+        store.append("eval_assert_completed", payload)
+
+    assert store.all() == []
+
+
+def test_discover_completed_eligibility_alias_fails_closed_before_write(tmp_path: Path):
+    store = RecordStore(tmp_path)
+
+    with pytest.raises(ValueError, match="must equal agent_trace_eligible"):
+        store.append(
+            "discover_completed",
+            {
+                "agent_trace_eligible": True,
+                "agent_trace_eligibility_scope": "agent_behavior_trace",
+                "input_academic_eligible": False,
+                "input_academic_ineligibility_reason": "custom_input",
+                "agent_academic_eligible": False,
+                "main_result_eligible": False,
+            },
+        )
+
+    assert store.all() == []
+
+
+def test_renderer_rejects_completed_object_record_eligibility_mismatch(tmp_path: Path):
+    store = RecordStore(tmp_path)
+    store.append(
+        "discover_completed",
+        {
+            "agent_trace_eligible": False,
+            "agent_trace_eligibility_scope": "agent_behavior_trace",
+            "input_academic_eligible": False,
+            "input_academic_ineligibility_reason": "custom_input_not_admitted_by_corpus_gate",
+            "agent_academic_eligible": False,
+            "main_result_eligible": False,
+        },
+    )
+
+    with pytest.raises(
+        ValueError, match="discover_completed eligibility mismatch: agent_trace_eligible"
+    ):
+        render_discover(tmp_path, _case(), _completed(), store.all(), "en-US")

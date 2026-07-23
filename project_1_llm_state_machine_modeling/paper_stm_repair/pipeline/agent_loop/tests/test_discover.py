@@ -67,6 +67,14 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
     assert completed.outcome.run_outcome == "reviewer_accepted_zero_issue"
     assert completed.test_replay is True
     assert completed.agent_real_llm is False
+    assert completed.agent_trace_eligible is False
+    assert completed.agent_trace_eligibility_scope == "agent_behavior_trace"
+    assert completed.input_academic_eligible is False
+    assert (
+        completed.input_academic_ineligibility_reason
+        == "custom_input_not_admitted_by_corpus_gate"
+    )
+    assert completed.main_result_eligible is False
 
     records = RecordStore(run_dir).all()
     record_types = [record["record_type"] for record in records]
@@ -93,6 +101,11 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
     assert frozen_inputs["raw_source_sha256"] == manifest["input_sha256"]["raw_source"]
     assert frozen_inputs["source_trace_sha256"] == manifest["input_sha256"]["source_trace"]
     assert frozen_inputs["case_metadata_sha256"] == manifest["input_sha256"]["case_metadata"]
+    assert frozen_inputs["case_id"] == case.case_id
+    assert frozen_inputs["pair_id"] == case.pair_id
+    assert frozen_inputs["input_mode"] == case.input_mode
+    assert frozen_inputs["raw_source_format"] == case.raw_source_format
+    assert frozen_inputs["input_academic_eligible"] is False
     report = (run_dir / "loops/discover.md").read_text(encoding="utf-8")
     assert "ROOT-001" in report
     assert "ASSERT-001" in report
