@@ -26,6 +26,10 @@ FORMAL_SELECTED_SEED_DIR = Path(
     "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/"
     "llms_emp_feedback_final_0000"
 )
+FORMAL_EVIDENCE_DIR = Path(
+    "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/"
+    "representation/reports/llms_emp_r45_java_60"
+)
 SELECTED_FEEDBACK_FINAL_STM_SHA256 = (
     "4fe07b05bdcfaac1c961d1176fb099d8240818160caa6edfb57928c6be2efc8a"
 )
@@ -92,6 +96,19 @@ def test_manual_identity_source_meta_uses_feedback_final_selected_seed_bytes():
 
     assert _sha256(MANUAL_IDENTITY_DIR / "stm0.puml") == formal_meta["stm0_sha256"]
     assert _sha256(MANUAL_IDENTITY_DIR / "stm0.puml") == SELECTED_FEEDBACK_FINAL_STM_SHA256
+
+
+def test_manual_identity_source_meta_binds_current_formal_manifest_and_seal():
+    manual_meta = json.loads(
+        (MANUAL_IDENTITY_DIR / "source_meta.json").read_text(encoding="utf-8")
+    )
+
+    assert manual_meta["conversion_manifest_sha256"] == _sha256(
+        FORMAL_EVIDENCE_DIR / "manifest.json"
+    )
+    assert manual_meta["publication_seal_sha256"] == _sha256(
+        FORMAL_EVIDENCE_DIR / "PUBLICATION_SEAL.json"
+    )
 
 
 def test_manual_identity_phase_i_generation_is_derivation_only_provenance():
