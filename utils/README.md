@@ -156,7 +156,7 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False,
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；允许的键为 `temperature`、`top_p`、`stop`、`seed`、`verbosity` 与 `max_tokens`，其中只有 `max_tokens` 可以覆盖单次 output reserve。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。Anthropic adapter 还会在底座层自动安装官方 `AnthropicPromptCachingMiddleware`，以 5 分钟 ephemeral cache 标记静态 system prompt、工具定义和可缓存消息前缀；业务 Agent、prompt 和工具不感知 provider 细节。每次调用的 `input_tokens`、`output_tokens`、`total_tokens`、`cache_read`、`cache_creation` 以及可用时的 `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 都写入 audit/result；原始 Anthropic usage 仅提供未缓存输入量时，runtime 会把缓存读取和写入量补回真实 input/total 口径。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
 
 当某个方法阶段存在由 Controller 定义、但参数必须由 Agent 生成的必用工具顺序时，
 可以同时传入 `tool_choice_resolver` 与稳定的 `tool_choice_policy_name`。resolver 在每次
@@ -195,7 +195,7 @@ result = app.run("分析这些事实", context=context, renderer="rich")
 每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel，保持高信号而不重复历史：
 
 ```text
-turn 2 · 487 in + 96 out = 583 · cache=320 · reasoning=0
+turn 2 · 487 in + 96 out = 583 · cache_read=320 · cache_creation=0 · reasoning=0
 context ~1,240/1,050,000 tokens (0.1%) · compact@892,500 (85%) not required
 ```
 

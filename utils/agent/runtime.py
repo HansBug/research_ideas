@@ -383,6 +383,32 @@ def _default_stream_usage(config: LLMConfig) -> bool:
     return host == "api.openai.com"
 
 
+def _prompt_cache_policy(config: LLMConfig) -> dict[str, Any]:
+    if config.adapter == "anthropic":
+        return {"mode": "anthropic-ephemeral", "enabled": True, "ttl": "5m"}
+    return {"mode": "provider-default", "enabled": None, "ttl": None}
+
+
+def _adapter_prompt_cache_middleware(config: LLMConfig) -> list[Any]:
+    """Return adapter-owned prompt caching without exposing it to business code."""
+
+    if config.adapter != "anthropic":
+        return []
+    try:
+        from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
+    except ImportError as exc:  # pragma: no cover - adapter construction checks the dependency
+        raise AgentError(
+            "config_error", "langchain-anthropic prompt caching middleware is required"
+        ) from exc
+    return [
+        AnthropicPromptCachingMiddleware(
+            ttl="5m",
+            min_messages_to_cache=0,
+            unsupported_model_behavior="raise",
+        )
+    ]
+
+
 def _is_openai_reasoning_model(config: LLMConfig) -> bool:
     """Identify OpenAI reasoning model IDs whose official API accepts ``none``."""
 
@@ -619,27 +645,19 @@ def _model_usage_info(value: Any) -> tuple[dict[str, Any] | None, list[dict[str,
     # Cache and reasoning details are part of provider usage too.  Comparing
     # only input/output/total lets two contradictory observations look equal.
     def usage_signature(item_usage: Mapping[str, Any]) -> tuple[int | None, ...]:
-        input_details = item_usage.get("input_token_details")
+        cache_details = _usage_input_token_details(item_usage)
         output_details = item_usage.get("output_token_details")
-        input_details = input_details if isinstance(input_details, Mapping) else {}
         output_details = output_details if isinstance(output_details, Mapping) else {}
-
-        def first_number(*values: int | None) -> int | None:
-            return next((value for value in values if value is not None), None)
 
         return (
             _usage_number(item_usage, "input_tokens", "prompt_tokens"),
             _usage_number(item_usage, "output_tokens", "completion_tokens"),
             _usage_number(item_usage, "total_tokens"),
-            first_number(
-                _usage_number(input_details, "cache_read", "cached_tokens", "cache_read_input_tokens"),
-                _usage_number(item_usage, "cache_read", "cached_tokens", "cache_read_input_tokens"),
-            ),
-            first_number(
-                _usage_number(input_details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
-                _usage_number(item_usage, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
-            ),
-            first_number(
+            cache_details["cache_read"],
+            cache_details["cache_creation"],
+            cache_details["ephemeral_5m_input_tokens"],
+            cache_details["ephemeral_1h_input_tokens"],
+            _first_usage_number(
                 _usage_number(output_details, "reasoning", "reasoning_tokens"),
                 _usage_number(item_usage, "reasoning", "reasoning_tokens"),
             ),
@@ -682,6 +700,58 @@ def _usage_number(usage: Mapping[str, Any] | None, *keys: str) -> int | None:
     return None
 
 
+def _first_usage_number(*values: int | None) -> int | None:
+    return next((value for value in values if value is not None), None)
+
+
+def _usage_input_token_details(usage: Mapping[str, Any] | None) -> dict[str, int | None]:
+    """Normalize OpenAI and Anthropic cache usage without losing TTL details."""
+
+    if not isinstance(usage, Mapping):
+        return {
+            "cache_read": None,
+            "cache_creation": None,
+            "ephemeral_5m_input_tokens": None,
+            "ephemeral_1h_input_tokens": None,
+        }
+    details = usage.get("input_token_details")
+    details = details if isinstance(details, Mapping) else {}
+    raw_creation = usage.get("cache_creation")
+    raw_creation = raw_creation if isinstance(raw_creation, Mapping) else {}
+    cache_read = _first_usage_number(
+        _usage_number(details, "cache_read", "cached_tokens", "cache_read_input_tokens"),
+        _usage_number(usage, "cache_read", "cached_tokens", "cache_read_input_tokens", "prompt_cache_hit_tokens"),
+    )
+    creation_5m = _first_usage_number(
+        _usage_number(details, "ephemeral_5m_input_tokens"),
+        _usage_number(raw_creation, "ephemeral_5m_input_tokens"),
+        _usage_number(usage, "ephemeral_5m_input_tokens"),
+    )
+    creation_1h = _first_usage_number(
+        _usage_number(details, "ephemeral_1h_input_tokens"),
+        _usage_number(raw_creation, "ephemeral_1h_input_tokens"),
+        _usage_number(usage, "ephemeral_1h_input_tokens"),
+    )
+    generic_creation = _first_usage_number(
+        _usage_number(details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens"),
+        _usage_number(usage, "cache_creation_input_tokens", "cache_write_tokens", "prompt_cache_miss_tokens"),
+        _usage_number(usage, "cache_creation") if not raw_creation else None,
+    )
+    specific_values = [value for value in (creation_5m, creation_1h) if value is not None]
+    specific_total = sum(specific_values) if specific_values else None
+    cache_creation = (
+        specific_total
+        if specific_total is not None and (generic_creation is None or generic_creation == 0)
+        else generic_creation
+    )
+    return {
+        "cache_read": cache_read,
+        "cache_creation": cache_creation,
+        "ephemeral_5m_input_tokens": creation_5m,
+        "ephemeral_1h_input_tokens": creation_1h,
+    }
+
+
 def _normalize_usage(
     usage: Mapping[str, Any] | None,
     *,
@@ -697,18 +767,24 @@ def _normalize_usage(
 
     input_tokens = _usage_number(usage, "input_tokens", "prompt_tokens")
     output_tokens = _usage_number(usage, "output_tokens", "completion_tokens")
+    cache_details = _usage_input_token_details(usage)
+    raw_anthropic_usage = isinstance(usage, Mapping) and any(
+        key in usage
+        for key in (
+            "cache_read_input_tokens",
+            "cache_creation_input_tokens",
+            "cache_creation",
+        )
+    ) and not isinstance(usage.get("input_token_details"), Mapping)
+    if raw_anthropic_usage and input_tokens is not None:
+        input_tokens += (cache_details["cache_read"] or 0) + (
+            cache_details["cache_creation"] or 0
+        )
     total_tokens = _usage_number(usage, "total_tokens")
     if total_tokens is None and input_tokens is not None and output_tokens is not None:
         total_tokens = input_tokens + output_tokens
-    input_details = dict(usage.get("input_token_details") or {}) if isinstance(usage, Mapping) and isinstance(usage.get("input_token_details"), Mapping) else {}
     output_details = dict(usage.get("output_token_details") or {}) if isinstance(usage, Mapping) and isinstance(usage.get("output_token_details"), Mapping) else {}
-    cache_read = _usage_number(input_details, "cache_read", "cached_tokens", "cache_read_input_tokens")
-    cache_creation = _usage_number(input_details, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens")
     reasoning = _usage_number(output_details, "reasoning", "reasoning_tokens")
-    if cache_read is None:
-        cache_read = _usage_number(usage, "cache_read", "cached_tokens", "prompt_cache_hit_tokens")
-    if cache_creation is None:
-        cache_creation = _usage_number(usage, "cache_creation", "cache_creation_input_tokens", "cache_write_tokens", "prompt_cache_miss_tokens")
     if reasoning is None:
         reasoning = _usage_number(usage, "reasoning", "reasoning_tokens")
     return {
@@ -723,7 +799,7 @@ def _normalize_usage(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
-        "input_token_details": {"cache_read": cache_read, "cache_creation": cache_creation},
+        "input_token_details": cache_details,
         "output_token_details": {"reasoning": reasoning},
         "source": "provider" if usage else "unavailable",
         "unavailable_reason": None if usage else "adapter_did_not_expose_provider_usage",
@@ -1679,6 +1755,7 @@ class _Renderer:
             tool_names = "none"
 
         sampling = cls._mapping(option("sampling", default={}))
+        prompt_cache = cls._mapping(option("prompt_cache", default={}))
 
         def sampling_value(key: str, value: Any) -> Any:
             if key != "stop":
@@ -1752,7 +1829,7 @@ class _Renderer:
         lines = (
             f"run       id={event.run_id} · agent={cls._setting(cls._first(data.get('agent'), data.get('agent_name'), data.get('name')))} · profile={cls._setting(data.get('profile'), default='direct')} · model={cls._setting(data.get('model'))} · real={cls._setting(data.get('real_llm'))}",
             f"model     adapter={cls._setting(data.get('adapter'), default='unknown')} · config={config_fingerprint} · endpoint={endpoint_fingerprint} · stream={cls._setting(option('streaming'))} · usage={cls._setting(option('stream_usage'))}",
-            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')}",
+            f"inference think={cls._setting(option('think_mode'), default='false')} · effort={cls._setting(option('reasoning_effort'), default='none')} · sampling={sampling_text} · sdk_retries={cls._setting(option('max_retries'), default='unknown')} · transport_retries={cls._setting(option('transport_retries'), default='unknown')} · timeout={cls._setting(option('timeout'), default='default')} · cache_policy={cls._setting(prompt_cache.get('mode'), default='provider-default')} · cache_ttl={cls._setting(prompt_cache.get('ttl'), default='provider-default')}",
             f"behavior  system={cls._fingerprint(data.get('system_prompt_hash'))} · tools={cls._fingerprint(data.get('tools_hash'))} · input={cls._fingerprint(data.get('input_hash'))} · context={cls._fingerprint(data.get('context_manifest_hash'))}",
             f"inputs    system_chars={cls._number(data.get('system_chars'))} · task_chars={cls._number(data.get('input_chars'))} · context_pages={cls._number(data.get('context_pages'))}",
             f"tools     count={cls._number(data.get('tool_count', len(tool_names.split(', ')) if tool_names != 'none' else 0))} · allowlist={tool_names} · required={cls._setting(cls._first(data.get('require_tool_call'), data.get('required_tool')), default='false')} · multiple=allowed",
@@ -1778,6 +1855,11 @@ class _Renderer:
         cache_read = cls._first(
             input_details.get("cache_read"), input_details.get("cached_tokens"), usage.get("cached_tokens")
         )
+        cache_creation = cls._first(
+            input_details.get("cache_creation"),
+            input_details.get("cache_creation_input_tokens"),
+            usage.get("cache_creation_input_tokens"),
+        )
         reasoning = cls._first(output_details.get("reasoning"), output_details.get("reasoning_tokens"))
         if total_tokens is None and isinstance(input_tokens, (int, float)) and isinstance(output_tokens, (int, float)):
             total_tokens = input_tokens + output_tokens
@@ -1791,7 +1873,9 @@ class _Renderer:
         else:
             first_line = f"turn {turn} · {cls._number(input_tokens)} in + {cls._number(output_tokens)} out = {cls._number(total_tokens)}"
             if cache_read is not None:
-                first_line += f" · cache={cls._number(cache_read)}"
+                first_line += f" · cache_read={cls._number(cache_read)}"
+            if cache_creation is not None:
+                first_line += f" · cache_creation={cls._number(cache_creation)}"
             if reasoning is not None:
                 first_line += f" · reasoning={cls._number(reasoning)}"
 
@@ -3086,6 +3170,7 @@ class AgentApp:
             think_mode=think_mode,
             reasoning_effort=reasoning_effort,
         )
+        prompt_cache_policy = _prompt_cache_policy(self.config)
         inference_summary = {
             "streaming": getattr(self.model, "streaming", None),
             "think_mode": effective_think_mode,
@@ -3096,6 +3181,7 @@ class AgentApp:
             "transport_retry_delays_seconds": list(_TRANSPORT_RETRY_DELAYS),
             "timeout": getattr(self.model, "request_timeout", None) or getattr(self.model, "timeout", None),
             "tool_choice_policy": tool_choice_policy_name,
+            "prompt_cache": prompt_cache_policy,
         }
         max_output_override = None
         if model_call_options:
@@ -3134,6 +3220,7 @@ class AgentApp:
                 "endpoint_fingerprint": endpoint_fingerprint,
                 "capacity": {"context_window_tokens": context_window_tokens, "max_output_tokens": max_output_tokens, "safe_input_tokens": safe_input_tokens, "capacity_source": capacity_source},
                 "inference": inference_options,
+                "prompt_cache": prompt_cache_policy,
                 "limits": dict(self.spec.limits or {}),
                 "tools_hash": _behavior_fingerprint({"tools": [_tool_schema(tool) for tool in self.spec.tools]}),
                 "output_schema_hash": _behavior_fingerprint(self.spec.output_schema.model_json_schema()) if self.spec.output_schema else None,
@@ -3401,13 +3488,16 @@ class AgentApp:
             output_tokens = latest.get("output_tokens") if latest else None
             total_tokens = latest.get("total_tokens") if latest else None
             cache_read = (latest or {}).get("input_token_details", {}).get("cache_read")
+            cache_creation = (latest or {}).get("input_token_details", {}).get("cache_creation")
             reasoning = (latest or {}).get("output_token_details", {}).get("reasoning")
             if total_tokens is None:
                 first = f"turn {context_turn} · tokens unavailable (provider usage unavailable)"
             else:
                 first = f"turn {context_turn} · {input_tokens:,} in" if isinstance(input_tokens, (int, float)) else f"turn {context_turn} · ? in"
                 if cache_read is not None:
-                    first += f" · cache={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache={cache_read}"
+                    first += f" · cache_read={cache_read:,}" if isinstance(cache_read, (int, float)) else f" · cache_read={cache_read}"
+                if cache_creation is not None:
+                    first += f" · cache_creation={cache_creation:,}" if isinstance(cache_creation, (int, float)) else f" · cache_creation={cache_creation}"
                 first += f" + {output_tokens:,} out" if isinstance(output_tokens, (int, float)) else " + ? out"
                 if reasoning is not None:
                     first += f" · reasoning={reasoning:,}" if isinstance(reasoning, (int, float)) else f" · reasoning={reasoning}"
@@ -4596,6 +4686,7 @@ class AgentApp:
             )
             middleware: list[Any] = [
                 model_options_middleware,
+                *_adapter_prompt_cache_middleware(self.config),
                 _TransportRetryMiddleware(
                     ledger,
                     delays=_TRANSPORT_RETRY_DELAYS,

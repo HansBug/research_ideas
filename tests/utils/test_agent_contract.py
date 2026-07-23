@@ -6,6 +6,7 @@ import pytest
 
 from utils.agent import AgentSpec
 from utils.agent.runtime import (
+    _adapter_prompt_cache_middleware,
     _build_context_manifest,
     _default_stream_usage,
     _normalize_context,
@@ -165,6 +166,17 @@ def test_anthropic_profiles_use_the_official_langchain_adapter() -> None:
     assert app.model.streaming is True
     assert app.model.max_tokens == 128_000
     assert app.model.anthropic_api_url == "https://api.anthropic.com"
+
+    middleware = _adapter_prompt_cache_middleware(app.config)
+    assert len(middleware) == 1
+    assert type(middleware[0]).__name__ == "AnthropicPromptCachingMiddleware"
+    assert middleware[0].ttl == "5m"
+    assert middleware[0].min_messages_to_cache == 0
+    assert middleware[0].unsupported_model_behavior == "raise"
+
+
+def test_non_anthropic_adapters_do_not_install_anthropic_prompt_cache() -> None:
+    assert _adapter_prompt_cache_middleware(LLMConfig(model="gpt-5.5")) == []
 
 
 @pytest.mark.parametrize(

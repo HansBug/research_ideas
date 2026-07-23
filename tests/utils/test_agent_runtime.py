@@ -1360,6 +1360,58 @@ def test_usage_conflict_includes_cache_and_reasoning_details() -> None:
     assert conflict is True
 
 
+def test_anthropic_usage_preserves_cache_creation_ttl_details() -> None:
+    from utils.agent.runtime import _normalize_usage
+
+    normalized = _normalize_usage(
+        {
+            "input_tokens": 140,
+            "output_tokens": 12,
+            "total_tokens": 152,
+            "input_token_details": {
+                "cache_read": 40,
+                "cache_creation": 0,
+                "ephemeral_5m_input_tokens": 60,
+                "ephemeral_1h_input_tokens": 20,
+            },
+        },
+        model="claude-opus-4-7",
+        call_kind="primary",
+        turn=1,
+    )
+
+    assert normalized["input_tokens"] == 140
+    assert normalized["total_tokens"] == 152
+    assert normalized["input_token_details"] == {
+        "cache_read": 40,
+        "cache_creation": 80,
+        "ephemeral_5m_input_tokens": 60,
+        "ephemeral_1h_input_tokens": 20,
+    }
+
+
+def test_raw_anthropic_usage_adds_cached_tokens_to_true_input_total() -> None:
+    from utils.agent.runtime import _normalize_usage
+
+    normalized = _normalize_usage(
+        {
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "cache_read_input_tokens": 20,
+            "cache_creation": {"ephemeral_5m_input_tokens": 30},
+        },
+        model="claude-opus-4-7",
+        call_kind="primary",
+        turn=1,
+    )
+
+    assert normalized["input_tokens"] == 60
+    assert normalized["output_tokens"] == 2
+    assert normalized["total_tokens"] == 62
+    assert normalized["input_token_details"]["cache_read"] == 20
+    assert normalized["input_token_details"]["cache_creation"] == 30
+
+
 def test_model_usage_and_observed_model_are_read_from_chat_model_end() -> None:
     class _UsageModel(BaseChatModel):
         @property
