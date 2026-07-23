@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -12,6 +13,7 @@ from .coverage_requirements import (
 from .eval_env import EvalEnvironment
 from .inputs import PreparedCase
 from .nl_segmenter import SegmenterResult, segment_nl
+from .pyfcstm_adapter import sha256_text
 from .records import RecordStore, sha256_json
 from .schemas.coverage import CoverageRequirement, InputSegment, SourceFact
 from .source_inventory import build_source_inventory
@@ -143,15 +145,20 @@ class DiscoverController:
             source_mappings=mappings,
         )
 
+        input_sha256 = {
+            role: self._input_sha256(role)
+            for role in ("nl", "raw_source", "model", "source_trace", "case_metadata")
+        }
         self.store.append(
             "inputs_frozen",
             {
-                "nl_raw_sha256": segmented.raw_sha256,
+                "nl_raw_sha256": input_sha256["nl"],
                 "nl_normalized_sha256": segmented.normalized_sha256,
-                "model_sha256": self.case.fcstm_sha256,
-                "raw_source_sha256": sha256_json(self.case.raw_source),
-                "source_trace_sha256": sha256_json(self.case.source_trace),
-                "manifest_input_sha256": self.manifest.get("input_sha256", {}),
+                "model_sha256": input_sha256["model"],
+                "raw_source_sha256": input_sha256["raw_source"],
+                "source_trace_sha256": input_sha256["source_trace"],
+                "case_metadata_sha256": input_sha256["case_metadata"],
+                "manifest_input_sha256": input_sha256,
             },
         )
         self.store.append(
@@ -299,7 +306,7 @@ class DiscoverController:
             "raw_source": {
                 "format": self.case.raw_source_format,
                 "content": self.case.raw_source,
-                "sha256": sha256_json(self.case.raw_source),
+                "sha256": self._input_sha256("raw_source"),
             },
             "source_trace": copy.deepcopy(self.case.source_trace),
             "input_segments": [
@@ -416,6 +423,38 @@ class DiscoverController:
             normalized_inspect=self.check_result.get("inspect") or {},
             current_records=current_records,
         )
+
+    def _input_sha256(self, role: str) -> str:
+        manifest_hashes = self.manifest.get("input_sha256")
+        if manifest_hashes:
+            value = manifest_hashes.get(role)
+            if not isinstance(value, str) or len(value) != 64:
+                raise ValueError(f"run manifest input hash missing or invalid: {role}")
+            return value
+
+        serialized = {
+            "nl": self.case.nl,
+            "raw_source": self.case.raw_source,
+            "model": self.case.fcstm,
+            "source_trace": json.dumps(
+                self.case.source_trace,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            "case_metadata": json.dumps(
+                self.case.metadata,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+        }
+        try:
+            return sha256_text(serialized[role])
+        except KeyError as exc:
+            raise ValueError(f"unknown run input hash role: {role}") from exc
 
     def _identity_rows(self, facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not (

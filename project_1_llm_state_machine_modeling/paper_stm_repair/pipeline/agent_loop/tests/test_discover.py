@@ -84,6 +84,15 @@ def test_v2_replay_runs_controller_tools_records_and_renderer_end_to_end(tmp_pat
         assert required in record_types
     assert "evaluate_checks_attempts_completed" not in record_types
     RecordStore(run_dir).validate_chain()
+    frozen_inputs = next(
+        record["payload"] for record in records if record["record_type"] == "inputs_frozen"
+    )
+    assert frozen_inputs["manifest_input_sha256"] == manifest["input_sha256"]
+    assert frozen_inputs["nl_raw_sha256"] == manifest["input_sha256"]["nl"]
+    assert frozen_inputs["model_sha256"] == manifest["input_sha256"]["model"]
+    assert frozen_inputs["raw_source_sha256"] == manifest["input_sha256"]["raw_source"]
+    assert frozen_inputs["source_trace_sha256"] == manifest["input_sha256"]["source_trace"]
+    assert frozen_inputs["case_metadata_sha256"] == manifest["input_sha256"]["case_metadata"]
     report = (run_dir / "loops/discover.md").read_text(encoding="utf-8")
     assert "ROOT-001" in report
     assert "ASSERT-001" in report
