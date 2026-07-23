@@ -195,6 +195,15 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           hierarchical execution. Use simulation instead when the NL proposition
           is about the behavior produced after a trigger and a short bounded setup
           can exercise it.
+          For forced-transition SourceFacts, inspect the frozen payload fields
+          ``forced_expansion_role``, ``forced_declaration_source``, and
+          ``forced_declaration_target``. A descendant
+          ``inherited_exit_relay`` with target ``[*]`` is the local exit half of
+          hierarchical forced execution and must not be interpreted as top-level
+          termination or as the authored business target. If relation grounding
+          is needed, assert the exact descendant relay and declaring forced edge
+          together with ``and``; use simulation or formal evidence for the
+          resulting event-causal behavior.
         - ``guards_overlap(left_ref, right_ref) -> bool`` where refs are
           ``transition:T<n>`` or ``transition:<n>``. It decides missing/equal
           guards only; distinct non-empty guards are unsupported rather than

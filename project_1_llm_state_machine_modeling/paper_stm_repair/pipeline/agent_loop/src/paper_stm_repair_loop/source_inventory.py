@@ -35,6 +35,7 @@ def build_source_inventory(
     producer_version: str | None = None,
 ) -> dict[str, Any]:
     inspect = _resolve_inspect(check_fcstm_result)
+    forced_declarations = _items(inspect, "forced_transitions")
     counters: dict[str, int] = defaultdict(int)
     facts: list[dict[str, Any]] = []
 
@@ -103,6 +104,12 @@ def build_source_inventory(
         transition_ref = _transition_ref(transition, source, event, target)
         guard = _first(transition, "guard", "condition")
         effects = _effects(transition)
+        transition_payload = transition
+        if fact_kind == "forced_transition":
+            transition_payload = _with_forced_declaration(
+                transition,
+                forced_declarations,
+            )
         facts.append(
             _fact(
                 counters,
@@ -115,7 +122,7 @@ def build_source_inventory(
                 target=target,
                 guard=guard,
                 effects=effects,
-                payload=transition,
+                payload=transition_payload,
             )
         )
         if guard:
@@ -267,6 +274,57 @@ def _effects(transition: dict[str, Any]) -> list[str]:
     if isinstance(effects, list):
         return [str(effect) for effect in effects]
     return [str(effects)]
+
+
+def _with_forced_declaration(
+    transition: dict[str, Any],
+    declarations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Attach declaration-level semantics to one expanded forced edge."""
+
+    origin = _first(transition, "forced_origin")
+    source = _first(transition, "from_path", "source", "from", "source_state")
+    event = _first(transition, "event", "trigger", "event_name")
+    target = _first(transition, "to_path", "target", "to", "target_state")
+    candidates = [
+        item
+        for item in declarations
+        if origin is not None and _first(item, "original_raw") == origin
+    ]
+    if len(candidates) > 1:
+        candidates = [
+            item
+            for item in candidates
+            if _first(item, "event") == event
+            and _forced_source_covers(_first(item, "from_path"), source)
+        ]
+    if len(candidates) != 1:
+        return dict(transition)
+
+    declaration = candidates[0]
+    declared_source = _first(declaration, "from_path")
+    declared_target = _first(declaration, "to_path")
+    if source == declared_source and target == declared_target:
+        role = "declaring_edge"
+    elif target == "[*]" and _forced_source_covers(declared_source, source):
+        role = "inherited_exit_relay"
+    else:
+        role = "expanded_edge"
+    return {
+        **transition,
+        "forced_declaration": declaration,
+        "forced_declaration_source": declared_source,
+        "forced_declaration_target": declared_target,
+        "forced_expansion_role": role,
+    }
+
+
+def _forced_source_covers(declared_source: Any, expanded_source: Any) -> bool:
+    if declared_source is None or expanded_source is None:
+        return False
+    declared = str(declared_source)
+    expanded = str(expanded_source)
+    return expanded == declared or expanded.startswith(declared + ".")
 
 
 def _transition_ref(transition: dict[str, Any], source: Any, event: Any, target: Any) -> str:

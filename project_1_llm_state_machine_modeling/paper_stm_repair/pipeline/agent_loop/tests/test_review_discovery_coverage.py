@@ -719,6 +719,12 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "not a one-use resource counter" in prompt
     assert "Never require `consumed_events.count(E) == 1`" in prompt
     assert "duplicate consumed labels alone" in prompt
+    assert "`forced_expansion_role=inherited_exit_relay`" in prompt
+    assert "local child-to-parent exit relay" in prompt
+    assert "not the authored business target or top-level termination" in prompt
+    assert "`forced_declaration_source` and `forced_declaration_target`" in prompt
+    assert "must not be projected as a model issue" in prompt
+    assert "Never recommend an `or` that treats the relay `[*]`" in prompt
     assert "final-state coincidence is not event-causality evidence" in prompt
     assert "E in the first caller cycle" in prompt
     assert "must not be narrowed to static edge existence" in prompt

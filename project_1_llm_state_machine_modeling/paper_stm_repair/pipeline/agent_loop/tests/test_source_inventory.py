@@ -101,3 +101,63 @@ def test_source_inventory_does_not_parse_exception_text_as_facts():
         }
     )
     assert inventory["facts"] == []
+
+
+def test_source_inventory_labels_inherited_forced_exit_relays_with_declaration_target():
+    inventory_mod = load_inventory()
+    origin = "! Autonomous -> HumanDriving : BrakePressed;"
+    inventory = inventory_mod.build_source_inventory(
+        {
+            "inspect": {
+                "forced_transitions": [
+                    {
+                        "state_path": "Root",
+                        "from_path": "Root.Autonomous",
+                        "to_path": "Root.HumanDriving",
+                        "event": "Root.BrakePressed",
+                        "event_scope": "chain",
+                        "guard": None,
+                        "original_raw": origin,
+                        "expansion_count": 1,
+                    }
+                ],
+                "transitions": [
+                    {
+                        "transition_index": 1,
+                        "from_path": "Root.Autonomous",
+                        "to_path": "Root.HumanDriving",
+                        "event": "Root.BrakePressed",
+                        "is_forced": True,
+                        "forced_origin": origin,
+                    },
+                    {
+                        "transition_index": 9,
+                        "from_path": "Root.Autonomous.AutoFinal",
+                        "to_path": "[*]",
+                        "event": "Root.BrakePressed",
+                        "is_forced": True,
+                        "forced_origin": origin,
+                    },
+                ],
+            }
+        },
+        producer_version="0.6.0",
+    )
+
+    facts = {
+        fact["payload"]["transition_index"]: fact
+        for fact in inventory["facts"]
+        if fact["fact_kind"] == "forced_transition"
+    }
+    declaring = facts[1]["payload"]
+    relay = facts[9]["payload"]
+
+    assert declaring["forced_expansion_role"] == "declaring_edge"
+    assert relay["forced_expansion_role"] == "inherited_exit_relay"
+    for payload in (declaring, relay):
+        assert payload["forced_declaration_source"] == "Root.Autonomous"
+        assert payload["forced_declaration_target"] == "Root.HumanDriving"
+        assert payload["forced_declaration"]["original_raw"] == origin
+
+    assert facts[9]["target"] == "[*]"
+    assert relay["forced_declaration_target"] != facts[9]["target"]

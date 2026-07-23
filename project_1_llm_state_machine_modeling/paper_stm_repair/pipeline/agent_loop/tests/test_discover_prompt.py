@@ -193,6 +193,17 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "replay-mismatched results are inconclusive" in flat
 
 
+def test_prompt_preserves_inherited_forced_transition_semantics():
+    flat = _flat(PROMPT_ZH)
+    assert "`forced_expansion_role=inherited_exit_relay`" in flat
+    assert "local hierarchical exit relay" in flat
+    assert "not the authored business target or top-level termination" in flat
+    assert "`forced_declaration_source` and `forced_declaration_target`" in flat
+    assert "verify both the exact descendant relay and the declaring forced edge" in flat
+    assert "Never join the relay `[*]` and the NL target with `or`" in flat
+    assert "runtime result takes precedence" in flat
+
+
 def test_prompt_prefers_simulation_for_runtime_behavior_outcomes():
     flat = _flat(PROMPT_ZH)
 

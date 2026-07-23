@@ -219,6 +219,18 @@ double-negated verdict metadata, or a bare constant.
    causes, enters, exits, or transitions to a state, that behavioral obligation
    must not be weakened to edge existence: use ordered simulation or an
    equal-strength formal route, and use relation evidence only as grounding.
+   For a forced-transition SourceFact, read the structured payload before
+   interpreting one expanded edge. A descendant edge with
+   `forced_expansion_role=inherited_exit_relay` and `to_path='[*]'` is a local
+   hierarchical exit relay, not the authored business target or top-level
+   termination. Its payload exposes `forced_declaration_source` and
+   `forced_declaration_target`. If static grounding is useful, verify both the
+   exact descendant relay and the declaring forced edge with separate calls
+   joined by `and`, then use simulation or formal evidence for the event-causal
+   runtime result. Never join the relay `[*]` and the NL target with `or` as
+   interchangeable destinations, and never project an issue from the relay
+   shape alone. For behavior after an event, the recorded runtime result takes
+   precedence over an isolated local relay edge.
 5. Cardinality example:
    `len(states(parent=..., recursive=False)) == 3`. Count only the stated
    complete stable model-definition scope, not unrelated siblings. Never make a

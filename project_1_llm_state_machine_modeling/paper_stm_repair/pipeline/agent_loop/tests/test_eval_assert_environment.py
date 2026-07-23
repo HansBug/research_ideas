@@ -263,12 +263,22 @@ def test_manual_0000_autofinal_takeover_is_runtime_behavior_not_direct_edge():
         "HighLevelDrivingModule.HumanSteeringCommand",
         "HighLevelDrivingModule.BrakePressed",
     ):
-        direct_edge = env.eval_assert(
+        flattened_edge = env.eval_assert(
             "transition_exists("
             "source='HighLevelDrivingModule.Autonomous.AutoFinal', "
             f"event='{event}', "
             "target='HighLevelDrivingModule.HumanDriving')",
-            "A flattened AutoFinal direct edge is not the hierarchical runtime behavior.",
+            "A flattened AutoFinal direct edge is absent by construction.",
+            required_function_families=["relation"],
+        )
+        forced_chain = env.eval_assert(
+            "transition_exists("
+            "source='HighLevelDrivingModule.Autonomous.AutoFinal', "
+            f"event='{event}', target='[*]') and transition_exists("
+            "source='HighLevelDrivingModule.Autonomous', "
+            f"event='{event}', "
+            "target='HighLevelDrivingModule.HumanDriving')",
+            "The child exit relay and declaring forced edge form one hierarchy-aware chain.",
             required_function_families=["relation"],
         )
         runtime_behavior = env.eval_assert(
@@ -281,10 +291,25 @@ def test_manual_0000_autofinal_takeover_is_runtime_behavior_not_direct_edge():
             required_function_families=["simulation"],
         )
 
-        assert direct_edge.result == RESULT_FALSE
-        assert direct_edge.match_status == "contradicts"
+        assert flattened_edge.result == RESULT_FALSE
+        assert forced_chain.result == RESULT_TRUE
+        assert forced_chain.match_status == "matches"
         assert runtime_behavior.result == RESULT_TRUE
         assert runtime_behavior.match_status == "matches"
+        observation = env.simulation.simulate(
+            cycles=[
+                [],
+                ["HighLevelDrivingModule.PowerOn"],
+                ["HighLevelDrivingModule.Front_Distance_10"],
+                ["HighLevelDrivingModule.Autonomous.ExitAutonomous"],
+                [event],
+            ]
+        )
+        event_cycle = observation.cycles[-1]
+        assert event_cycle.consumed_events.count(event) > 1
+        assert event_cycle.unconsumed_events == ()
+        assert observation.final.is_active("HighLevelDrivingModule.HumanDriving")
+        assert observation.final.is_ended is False
 
 
 def test_effect_delta_reuses_structured_effects_and_missing_effect_is_false_with_contract_expression():

@@ -60,6 +60,11 @@ def test_eval_assert_public_schema_is_strict_assert_reason_only():
     with pytest.raises(Exception):
         tool.invoke({"batch": [ASSERT_TEXT], "reason": "No batch."})
 
+    description = " ".join(tool.description.split())
+    assert "inherited_exit_relay" in description
+    assert "forced_declaration_target" in description
+    assert "must not be interpreted as top-level termination" in description
+
 
 def test_eval_assert_matches_exactly_one_unique_latest_expression_and_exports_reason_context():
     registry = _registered_registry(relation_value=False)
