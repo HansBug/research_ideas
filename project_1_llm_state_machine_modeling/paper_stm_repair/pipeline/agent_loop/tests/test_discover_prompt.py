@@ -43,6 +43,7 @@ def test_prompt_exposes_review_as_peer_tool_and_forbids_hidden_surfaces():
     assert tools == [
         "read_fcstm_guide",
         "read_task",
+        "inspect_model",
         "register_coverage_plan",
         "eval_assert",
         "revise_assertion",
@@ -56,6 +57,18 @@ def test_prompt_exposes_review_as_peer_tool_and_forbids_hidden_surfaces():
     assert "peer business tool, at the same level as `eval_assert`" in flat
     assert "There is no shell, arbitrary Python" in flat
     assert "hidden reference/gold" in flat
+
+
+def test_non_formal_prompt_matches_hidden_formal_capability():
+    prompt = system_prompt("en-US", formal_profile=False)
+    line = next(
+        item
+        for item in prompt.splitlines()
+        if "only Agent-callable tools are exactly" in item
+    )
+    assert "`read_fbmcq_guide`" not in line
+    assert "read_fbmcq_guide and fbmcq are unavailable" in prompt
+    assert "Do not compose, register, or recommend formal assertions" in prompt
 
 
 def test_prompt_separates_controller_worklist_units_roots_and_assertions():
@@ -81,7 +94,7 @@ def test_prompt_orders_review_gated_workflow():
         [
             "1. **Read once.",
             "2. **Plan from the frozen task.",
-            "3. **Register.",
+            "3. **Register or perform targeted pre-plan investigation.",
             "4. **Evaluate.",
             "5. **Repair evidence only when needed.",
             "6. **Review.",
@@ -130,14 +143,14 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "semantically distinct direct predicates" in flat
     assert "Never evade uniqueness with whitespace" in flat
     assert "minimum sufficient evidence route" in flat
-    assert "More tool families do not automatically make a claim stronger" in flat
-    assert "distinguish a required model structure/relation" in flat
-    assert "from a runtime behavioral outcome" in flat
-    assert "Use FBMCQ only when an explicit bounded temporal property" in flat
-    assert "the frozen NL itself states a step/time bound" in flat
-    assert "never invent bounded reachability or liveness" in flat
-    assert "Do not split one NL proposition into separate assertions" in flat
-    assert "Do not add formal or simulation assertions merely to decorate" in flat
+    assert "All evidence families are first-class capabilities" in flat
+    assert "Do not follow a fixed tool order" in flat
+    assert "First identify what the proposition quantifies over" in flat
+    assert "Use simulation for one explicit initialized state" in flat
+    assert "Use FBMCQ/formal evidence when the proposition ranges over" in flat
+    assert "An explicit NL bound is not required" in flat
+    assert "requirement_bound" in flat
+    assert "analysis_bound" in flat
 
 
 def test_prompt_forbids_deterministic_anti_gaming_patterns():
@@ -153,7 +166,12 @@ def test_prompt_forbids_deterministic_anti_gaming_patterns():
 
 def test_prompt_preserves_cycle_and_fbmcq_semantics():
     flat = _flat(PROMPT_ZH)
-    assert "Every literal `simulate(cycles=...)` begins with `[]`" in flat
+    assert "A cold simulation from model entry must make initialization explicit" in flat
+    assert "using a leading empty cycle `[]`" in flat
+    assert "A hot-start simulation with both an exact `initial_state` and complete `initial_vars`" in flat
+    assert "does not require a leading `[]`" in flat
+    assert "Do not use a hot-start result as proof of cold reachability" in flat
+    assert "entry obligations, or default initialization behavior" in flat
     assert "Reusing an event in a later cycle is legal" in flat
     assert "consumed-event accounting is not a one-use rule" in flat
     assert "`simulate(...).final.is_ended is True`" in flat
@@ -165,11 +183,11 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
 def test_prompt_prefers_simulation_for_runtime_behavior_outcomes():
     flat = _flat(PROMPT_ZH)
 
-    assert "when the NL explicitly requires a direct source/event/target relation" in flat
-    assert "what the system does after a trigger" in flat
-    assert "prefer simulation when a short bounded setup can exercise that behavior" in flat
-    assert "especially across hierarchical states" in flat
-    assert "does not by itself observe the final runtime state" in flat
+    assert "structure, relation, effect, simulation, formal, mapping" in flat
+    assert "Use simulation for one explicit initialized state" in flat
+    assert "a valid concrete counterexample may refute a universal requirement" in flat
+    assert "a passing trace does not establish all-path correctness" in flat
+    assert "Use source mapping only for attribution" in flat
 
 
 def test_prompt_makes_review_pass_current_and_actionable():
@@ -208,9 +226,9 @@ def test_prompt_requires_feedback_driven_progress_without_external_takeover():
 def test_prompt_converges_exploration_into_the_registered_plan():
     flat = _flat(PROMPT_ZH)
     assert "not a checklist for enumerating or corroborating" in flat
-    assert "forbidden before successful plan registration" in flat
+    assert "targeted pre-plan" in flat
     assert "inconclusive latest evaluation or failed review" in flat
-    assert "Use the exact registered Root ID" in flat
+    assert "Use the exact registered or provisional Root ID" in flat
     assert "never mint suffix variants, borrow another Root's identity or budget" in flat
     assert "These tools are never a parallel truth path around `eval_assert`" in flat
     assert "Keep the payload complete but concise" in flat
@@ -220,7 +238,7 @@ def test_prompt_converges_exploration_into_the_registered_plan():
 
 def test_prompt_separates_plan_registration_from_truth_evaluation():
     flat = _flat(PROMPT_ZH)
-    assert "default and preferred next business call after `read_task`" in flat
+    assert "default and preferred next business call after required reads" in flat
     assert "Registration commits what will be checked" in flat
     assert "it is not a truth verdict" in flat
     assert "does not require knowing whether any assertion will evaluate" in flat
@@ -238,18 +256,18 @@ def test_prompt_forbids_preplan_probing_and_speculative_attribution():
         "do not add or rename Root IDs",
         "do not make confidence-only corroboration calls",
         "forbidden before that evaluated contradiction",
-        "only after one concrete necessary bounded temporal assertion",
+        "one required guide read is owned by profile wiring",
     ):
         assert marker in flat
     assert "Before the first successful plan registration" in flat
-    assert "`query_model`, `observe_trace`, and `lookup_source_trace` are forbidden" in flat
-    assert "`read_fbmcq_guide` is the only permitted intervening business call" in flat
-    assert "must be followed immediately by `register_coverage_plan`" in flat
-    assert "do not explore to pre-prove the plan" in flat
-    assert "Never reread either resource to confirm a hash, fingerprint" in flat
+    assert "`lookup_source_trace` remains forbidden" in flat
+    assert "targeted pre-plan `query_model` or `observe_trace` call is allowed" in flat
+    assert "after that answer, register the plan" in flat
+    assert "do not explore to pre-prove truth" in flat
+    assert "Never reread any guide or task resource" in flat
     assert "Do not call `read_fbmcq_guide` to decide whether FBMCQ is needed" in flat
     assert "to confirm it is unnecessary, just in case" in flat
-    assert "why structure, relation, or simulation cannot express" in flat
+    assert "Choose FBMCQ by semantic fit" in flat
 
 
 def test_prompt_language_policy_and_unknown_language():
@@ -262,6 +280,19 @@ def test_prompt_language_policy_and_unknown_language():
         assert "in English" in _flat(prompt)
     with pytest.raises(ValueError, match="unsupported Discover content language"):
         system_prompt("fr-FR")
+
+
+
+def test_prompt_makes_all_evidence_families_first_class_and_allows_targeted_preplan():
+    flat = _flat(PROMPT_ZH)
+    assert "All evidence families are first-class capabilities" in flat
+    assert "profile-exposed topology or inspect facts" in flat
+    assert "inspect facts only as diagnostics and hypothesis leads" in flat
+    assert "targeted pre-plan" in flat
+    assert "one concrete object/initialization/event-sequence question" in flat
+    assert "An explicit NL bound is not required" in flat
+    assert "formal-profile syntax/capability guide" in flat
+    assert "never implies that FBMCQ must be used" in flat
 
 
 def test_user_prompt_withholds_content_and_requires_review_pass():
@@ -284,8 +315,9 @@ def test_user_prompt_withholds_content_and_requires_review_pass():
     assert "complete frozen planning inventory" in text
     assert "default next business call is register_coverage_plan" in text
     assert "does not require knowing assertion truth in advance" in text
-    assert "Do not call query_model, observe_trace, or lookup_source_trace" in text
-    assert "Do not reread either guide/task resource" in text
+    assert "A targeted pre-plan query_model or observe_trace call is allowed" in text
+    assert "Do not call lookup_source_trace before an evaluated contradiction" in text
+    assert "Do not reread any guide/task resource" in text
     assert "read the FBMCQ guide merely to decide whether it is needed" in text
     assert "Emit exactly one business tool call per model response" in text
     assert "wait for its result before the next call" in text

@@ -4,6 +4,7 @@ import argparse
 import importlib.metadata
 import json
 import math
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +22,7 @@ from utils.llm import LLMRegistry, load_llm_registry
 
 from ..config import LANGUAGES, REPO_ROOT
 from ..context import publish_context, validate_reference_blind
+from ..eval_env import EvalEnvironment
 from ..controller import DiscoverController
 from ..inputs import (
     PreparedCase,
@@ -30,13 +32,29 @@ from ..inputs import (
     prepare_run_dir,
 )
 from ..prompts.discover import system_prompt, user_prompt
-from ..records import RecordStore, sha256_file
+from ..records import RecordStore, sha256_file, sha256_json
 from ..renderer import render_discover
-from ..schemas import AgentReceiptRef, DiscoverCompleted, DiscoverOutcome, DiscoverSubmission
+from ..schemas import (
+    AgentReceiptRef,
+    DiscoverCompleted,
+    DiscoverOutcome,
+    DiscoverSubmission,
+)
+from ..schemas.coverage import CoverageRequirement, InputSegment, SourceFact
 from ..schemas.coverage_review import CoverageReviewVerdict
+from ..schemas.inspect import InspectModelInput, InspectModelResult
+from ..schemas.tool_reason import EvalAssertInput
+from ..schemas.tools import (
+    ObserveTraceInput,
+    QueryModelInput,
+    ReadGuideInput,
+    ReadTaskInput,
+)
 from ..tools.check_fcstm import execute as check_fcstm
+from ..tools.inspect_model import project_check_result
 from ..tools.eval_assert import build_tool as build_eval_assert
 from ..tools.guide_access import GuideAccessState, guard_tool
+from ..tools.inspect_model import build_tool as build_inspect_model
 from ..tools.lookup_source_trace import build_tool as build_lookup_source_trace
 from ..tools.mandatory import enforce_mandatory_tool
 from ..tools.observe_trace import build_tool as build_observe_trace
@@ -57,6 +75,7 @@ AGENT_TOOL_NAMES = (
     "read_fcstm_guide",
     "read_fbmcq_guide",
     "read_task",
+    "inspect_model",
     "register_coverage_plan",
     "revise_assertion",
     "query_model",
@@ -65,6 +84,12 @@ AGENT_TOOL_NAMES = (
     "lookup_source_trace",
     "review_discovery_coverage",
 )
+
+
+def _agent_tool_names(*, formal_profile: bool) -> tuple[str, ...]:
+    if formal_profile:
+        return AGENT_TOOL_NAMES
+    return tuple(name for name in AGENT_TOOL_NAMES if name != "read_fbmcq_guide")
 
 
 def _pyfcstm_commit() -> str:
@@ -87,8 +112,69 @@ def _pyfcstm_gitlink_commit() -> str:
     return completed.stdout.strip() if completed.returncode == 0 else "unknown"
 
 
+def _schema_hashes() -> dict[str, str]:
+    """Return stable hashes for the Agent-visible Issue #165 contract schemas."""
+
+    models = {
+        "DiscoverOutcome": DiscoverOutcome,
+        "DiscoverSubmission": DiscoverSubmission,
+        "CoverageRequirement": CoverageRequirement,
+        "InputSegment": InputSegment,
+        "SourceFact": SourceFact,
+        "CoverageReviewVerdict": CoverageReviewVerdict,
+        "InspectModelInput": InspectModelInput,
+        "InspectModelResult": InspectModelResult,
+        "ReadGuideInput": ReadGuideInput,
+        "ReadTaskInput": ReadTaskInput,
+        "QueryModelInput": QueryModelInput,
+        "ObserveTraceInput": ObserveTraceInput,
+        "EvalAssertInput": EvalAssertInput,
+    }
+    return {
+        name: sha256_json(model.model_json_schema())
+        for name, model in sorted(models.items())
+    }
+
+
+def _diagnostic_registry_identity(check_result: Mapping[str, Any]) -> dict[str, Any]:
+    try:
+        from pyfcstm.diagnostics import CODE_REGISTRY
+
+        codes = {
+            str(code): {
+                "severity": str(getattr(spec, "severity", "")),
+                "description_sha256": sha256_json(
+                    str(getattr(spec, "description", ""))
+                ),
+            }
+            for code, spec in sorted(CODE_REGISTRY.items())
+        }
+        status = "available"
+    except Exception as exc:
+        codes = {}
+        status = f"unavailable:{type(exc).__name__}"
+    observed = sorted(
+        {
+            str(item.get("code"))
+            for item in check_result.get("diagnostics", [])
+            if isinstance(item, Mapping) and item.get("code")
+        }
+    )
+    return {
+        "schema_version": "pyfcstm.diagnostic_registry_identity.v1",
+        "status": status,
+        "registry_size": len(codes),
+        "registry_sha256": sha256_json(codes),
+        "observed_codes": observed,
+        "observed_codes_sha256": sha256_json(observed),
+    }
+
+
 def _write_capability_manifest(
-    run_dir: Path, manifest: Mapping[str, Any]
+    run_dir: Path,
+    manifest: Mapping[str, Any],
+    case: PreparedCase,
+    check_result: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Freeze pyfcstm/tool capability identity before Agent dispatch."""
 
@@ -111,8 +197,36 @@ def _write_capability_manifest(
         for item in prompt_resources.values()
     )
     commit_consistent = commit != "unknown" and commit == gitlink
+    fbmcq_limits = dict(manifest.get("fbmcq_limits") or {})
+    evidence_policy = {
+        "policy_id": "paper1-discover-issue165-v1",
+        "formal_profile": formal_required,
+        "fbmcq_limits": fbmcq_limits,
+        "tool_choice": "proposition_quantification_v1",
+    }
+    try:
+        env = EvalEnvironment(
+            model_text=case.fcstm if check_result.get("executable") else None,
+            model_path="inputs/STM_0.fcstm",
+            inspect=check_result.get("inspect") or {},
+            source_mappings=case.source_trace.get("entries") or [],
+            timeout_seconds=None,
+            formal_verification_enabled=formal_required,
+            fbmcq_solver_timeout_ms=fbmcq_limits.get("solver_timeout_ms"),
+            fbmcq_max_bound=fbmcq_limits.get("max_bound"),
+            fbmcq_process_wall_seconds=fbmcq_limits.get("process_wall_seconds"),
+        )
+        topology_path_available = "topology" in env.locals and "path" in env.locals
+        function_registry_hash = env.function_registry_hash
+    except Exception:
+        topology_path_available = False
+        function_registry_hash = "unavailable"
+    inspect_projection = project_check_result(
+        check_result, reason="Capability manifest freezes inspect_model result schema."
+    )
     capabilities = {
-        "schema_version": "paper1.capability_manifest.v2",
+        "schema_version": "paper1.capability_manifest.v3",
+        "issue_contract_ref": "Issue #165 §11.2",
         "experiment_profile": "full" if formal_required else "non-formal-ablation",
         "pyfcstm_version": PYFCSTM_SOURCE_VERSION,
         "pyfcstm_distribution_version": distribution_version,
@@ -120,8 +234,24 @@ def _write_capability_manifest(
         "pyfcstm_git_commit": commit,
         "pyfcstm_gitlink_commit": gitlink,
         "pyfcstm_git_commit_consistent": commit_consistent,
+        "schema_hashes": _schema_hashes(),
         "prompt_resources": prompt_resources,
-        "agent_tools": list(AGENT_TOOL_NAMES),
+        "prompt_evidence_policy_fingerprint": sha256_json(
+            {
+                "system_prompt": system_prompt(
+                    str(manifest.get("content_language") or "zh-CN"),
+                    formal_profile=formal_required,
+                ),
+                "prompt_resources": prompt_resources,
+                "evidence_policy": evidence_policy,
+            }
+        ),
+        "evidence_policy": {
+            **evidence_policy,
+            "policy_hash": sha256_json(evidence_policy),
+            "evidence_policy_fingerprint": sha256_json(evidence_policy),
+        },
+        "agent_tools": list(_agent_tool_names(formal_profile=formal_required)),
         "eval_functions": [
             "states",
             "events",
@@ -133,17 +263,62 @@ def _write_capability_manifest(
             "effects",
             "effect_delta",
             "effect_deltas",
+            "topology",
+            "path",
             "simulate",
-            "fbmcq",
             "mapped_source_refs",
             "mapped_fcstm_refs",
             "bound_model_refs",
-        ],
-        "formal_verification_available": bmc_available,
+        ]
+        + (["fbmcq"] if formal_required else []),
+        "hot_start_capability": {
+            "available": True,
+            "mode": "exact_state_and_complete_variables",
+            "missing_or_partial_initial_vars_policy": "fail_closed",
+        },
+        "topology_path_backend": {
+            "available": topology_path_available,
+            "backend": "paper_stm_repair_loop.eval_env.topology.TopologyAPI",
+            "source": "controller_frozen_inspect_plus_pyfcstm_topology",
+            "function_registry_hash": function_registry_hash,
+        },
+        "process_isolation_policy": {
+            "fbmcq_backend": "multiprocessing_spawn",
+            "result_transport": "private_temporary_json_file",
+            "fallback_for_unpickleable_test_seam": "direct_unpickleable_test_seam",
+            "process_wall_seconds": fbmcq_limits.get("process_wall_seconds"),
+            "timeout_policy": "terminate_then_kill_fail_closed",
+        },
+        "cli_resource_profile": {
+            "agent_limits": dict(manifest.get("agent_limits") or {}),
+            "reviewer_limits": dict(manifest.get("reviewer_limits") or {}),
+            "fbmcq_limits": fbmcq_limits,
+            "python_executable": sys.executable,
+            "process_id": os.getpid(),
+        },
+        "frozen_check_result": {
+            "check_result_sha256": sha256_json(dict(check_result)),
+            "check_record_id": check_result.get("record_id"),
+            "check_record_sha256": check_result.get("record_sha256"),
+            "model_sha256": case.fcstm_sha256,
+            "parse_status": check_result.get("parse_status"),
+            "semantic_status": check_result.get("semantic_status"),
+            "inspect_status": check_result.get("inspect_status"),
+            "executable": bool(check_result.get("executable", False)),
+        },
+        "diagnostic_schema_code_registry_identity": _diagnostic_registry_identity(
+            check_result
+        ),
+        "inspect_model_result_schema_hash": sha256_json(
+            InspectModelResult.model_json_schema()
+        ),
+        "inspect_model_result_sha256": sha256_json(inspect_projection),
+        "bmc_backend_available": bmc_available,
+        "formal_verification_available": formal_required and bmc_available,
         "formal_claim_eligible": formal_required and bmc_available,
     }
-    RecordStore(run_dir).write_immutable_json("capability_manifest.json", capabilities)
     store = RecordStore(run_dir)
+    store.write_immutable_json("capability_manifest.json", capabilities)
     store.append("capability_manifest", capabilities)
     if not version_consistent:
         store.append(
@@ -300,6 +475,10 @@ def _build_tools(
             return "read_fcstm_guide"
         if state.first_attempt_at("read_task", after=state.fcstm_read_at) is None:
             return "read_task"
+        if bool(controller.manifest.get("formal_profile", True)) and not state.has_read(
+            "fbmcq"
+        ):
+            return "read_fbmcq_guide"
         if review_gate.has_terminal_failure():
             raise RuntimeError("discover_reviewer_contract_failure")
         if registry.plan_registered and registry.missing_latest_required_assertions():
@@ -332,9 +511,16 @@ def _build_tools(
     fbmcq_guide = build_read_fbmcq_guide(state)
     guarded = (
         guard_tool(build_read_task(snapshot), state),
+        guard_tool(build_inspect_model(controller.check_result), state),
         guard_tool(build_register_coverage_plan(registry), state),
         guard_tool(build_revise_assertion(registry), state),
-        guard_tool(build_query_model(snapshot), state),
+        guard_tool(
+            build_query_model(
+                snapshot,
+                registered_root_ids=lambda: set(registry.roots),
+            ),
+            state,
+        ),
         guard_tool(build_eval_assert(registry), state),
         guard_tool(
             build_observe_trace(
@@ -346,12 +532,19 @@ def _build_tools(
         guard_tool(build_lookup_source_trace(snapshot), state),
         guard_tool(build_review_discovery_coverage(review_gate), state),
     )
-    physical = (fcstm_guide, fbmcq_guide, *guarded)
+    physical = (
+        (fcstm_guide, fbmcq_guide, *guarded)
+        if bool(controller.manifest.get("formal_profile", True))
+        else (fcstm_guide, *guarded)
+    )
     tools = tuple(
         enforce_mandatory_tool(tool, mandatory_tool_choice, attempt_log)
         for tool in physical
     )
-    if tuple(tool.name for tool in tools) != AGENT_TOOL_NAMES:
+    expected_names = _agent_tool_names(
+        formal_profile=bool(controller.manifest.get("formal_profile", True))
+    )
+    if tuple(tool.name for tool in tools) != expected_names:
         raise AssertionError("Discover Agent physical tool allowlist drift")
     return tools, mandatory_tool_choice
 
@@ -363,6 +556,9 @@ def _validate_guide_protocol(controller: DiscoverController) -> None:
     read_task_at = state.first_attempt_at("read_task", after=state.fcstm_read_at)
     if read_task_at is None:
         raise ValueError("read_task_not_called_after_fcstm_guide")
+    if bool(controller.manifest.get("formal_profile", True)):
+        if state.fbmcq_read_at is None or state.fbmcq_read_at <= read_task_at:
+            raise ValueError("fbmcq_guide_not_read_after_task")
     registry = controller.require_registry()
     if any(
         "fbmcq(" in version.assert_text for version in registry.latest_versions()
@@ -434,9 +630,9 @@ def _run_replay(
     by_name["read_task"].invoke(
         {"reason": "Replay the immutable task read after the FCSTM guide."}
     )
-    if payload.get("read_fbmcq_guide"):
+    if bool(controller.manifest.get("formal_profile", True)):
         by_name["read_fbmcq_guide"].invoke(
-            {"reason": "Replay the FBMCQ prerequisite before registration."}
+            {"reason": "Replay the full-formal guide normalization before planning."}
         )
     plan_call = by_name["register_coverage_plan"].invoke(
         {"plan": payload["coverage_plan"], "reason": payload["plan_reason"]}
@@ -521,7 +717,7 @@ def _run_replay(
 
 
 def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
-    """Run one complete Issue #164 B-discover attempt with one AgentApp.run.
+    """Run one complete Issue #165 B-discover attempt with one AgentApp.run.
 
     The deterministic Controller owns input freezing, mechanical segmentation,
     source/FCSTM inventory, registered-coverage gates, direct assertion eval,
@@ -552,9 +748,14 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             "bridge_attribution": "representation_lowering_not_repair",
         },
     )
-    _write_capability_manifest(run_dir, manifest)
     checked = check_fcstm(case.fcstm, "inputs/STM_0.fcstm")
     check_record = store.append("check_fcstm_completed", checked)
+    checked = {
+        **checked,
+        "record_id": check_record["record_id"],
+        "record_sha256": check_record["record_sha256"],
+    }
+    _write_capability_manifest(run_dir, manifest, case, checked)
     if not checked.get("executable"):
         store.append(
             "run_failed",
@@ -572,7 +773,10 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
     frozen = controller.prepare()
     snapshot = controller.task_snapshot()
     validate_reference_blind(snapshot)
-    prompt = system_prompt(manifest["content_language"])
+    prompt = system_prompt(
+        manifest["content_language"],
+        formal_profile=bool(manifest.get("formal_profile", True)),
+    )
     attempt_id = "discover-attempt-001"
     context_manifest = publish_context(
         store,
@@ -603,18 +807,25 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
         {
             "attempt_id": attempt_id,
             "context_snapshot_head": context_manifest["context_snapshot_head"],
-            "allowed_tools": list(AGENT_TOOL_NAMES),
+            "allowed_tools": list(
+                _agent_tool_names(
+                    formal_profile=bool(manifest.get("formal_profile", True))
+                )
+            ),
             "required_agent_tool_calls": [
                 "read_fcstm_guide",
                 "read_task",
+                *(
+                    ["read_fbmcq_guide"]
+                    if bool(manifest.get("formal_profile", True))
+                    else []
+                ),
                 "register_coverage_plan",
                 "eval_assert:each_latest_required_assertion",
                 "review_discovery_coverage:must_pass_current_ledger",
             ],
-            "conditional_agent_tool_calls": {
-                "fbmcq_assertion": ["read_fbmcq_guide"]
-            },
-            "tool_choice_policy": "paper1-discover-issue164-v1",
+            "conditional_agent_tool_calls": {},
+            "tool_choice_policy": "paper1-discover-issue165-v1",
         },
     )
 
@@ -653,7 +864,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
                 result_out=result_path,
                 compact_trigger_ratio=0.85,
                 tool_choice_resolver=mandatory_tool_choice,
-                tool_choice_policy_name="paper1-discover-issue164-v1",
+                tool_choice_policy_name="paper1-discover-issue165-v1",
             )
             if result.status != "success" or not result.real_llm:
                 raise RuntimeError(
@@ -826,6 +1037,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--review-max-model-calls", type=_positive_int)
     parser.add_argument("--review-max-turns", type=_positive_int)
     parser.add_argument("--review-max-seconds", type=_positive_finite_float)
+    parser.add_argument(
+        "--fbmcq-process-wall-seconds", type=_positive_finite_float
+    )
+    parser.add_argument("--fbmcq-solver-timeout-ms", type=_positive_int)
+    parser.add_argument("--fbmcq-max-bound", type=_positive_int)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--config", type=Path)
     parser.add_argument("--replay-file", type=Path, help=argparse.SUPPRESS)
@@ -887,6 +1103,15 @@ def main(argv: list[str] | None = None) -> int:
                     "model_calls": args.review_max_model_calls,
                     "turns": args.review_max_turns,
                     "seconds": args.review_max_seconds,
+                }.items()
+                if value is not None
+            },
+            fbmcq_limits={
+                key: value
+                for key, value in {
+                    "process_wall_seconds": args.fbmcq_process_wall_seconds,
+                    "solver_timeout_ms": args.fbmcq_solver_timeout_ms,
+                    "max_bound": args.fbmcq_max_bound,
                 }.items()
                 if value is not None
             },

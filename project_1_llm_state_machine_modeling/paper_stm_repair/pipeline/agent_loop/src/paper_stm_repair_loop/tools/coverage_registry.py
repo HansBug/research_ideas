@@ -11,6 +11,7 @@ from typing import Any, Callable, Mapping, Protocol
 from .. import assertion_policy as assertion_contract
 from ..assertion_policy import validate_assertion_semantic_policy
 from ..eval_env import EvalEnvironment
+from pyfcstm.bmc.parse import parse_bmc_query
 
 
 FUNCTION_FAMILIES: dict[str, str] = {
@@ -24,6 +25,8 @@ FUNCTION_FAMILIES: dict[str, str] = {
     "effects": "effect",
     "effect_delta": "effect",
     "effect_deltas": "effect",
+    "topology": "structure",
+    "path": "structure",
     "simulate": "simulation",
     "fbmcq": "formal",
     "mapped_source_refs": "mapping",
@@ -65,6 +68,31 @@ ALLOWED_OBSERVATION_ATTRIBUTES = {
     "bound",
     "witness",
     "replay_status",
+    "requested_initialization",
+    "effective_initialization",
+    "mode",
+    "state",
+    "initial_closure",
+    "unreachable_leaves",
+    "strongly_connected_components",
+    "dead_ends",
+    "root_exit_reachable",
+    "topological_finite",
+    "topological_inevitable_terminator",
+    "guard_agnostic",
+    "limitations",
+    "exists",
+    "nodes",
+    "hop_count",
+    "transition_refs",
+    "source_macro_refs",
+    "compiler_owned_nodes",
+    "formal_property_kind",
+    "formal_bound",
+    "controller_max_bound",
+    "query_origin",
+    "assumption_basis",
+    "process_isolation",
 }
 ALLOWED_OBSERVATION_METHODS = {"is_active"}
 
@@ -122,6 +150,45 @@ class DirectEvalRuntime:
             required_function_families=sorted(required_function_families),
         )
         payload = raw.to_json()
+        function_calls = payload["function_call_trace"]
+        simulation_calls = [
+            item
+            for item in function_calls
+            if item.get("function") == "simulate"
+            and item.get("status") == "completed"
+        ]
+        formal_calls = [
+            item
+            for item in function_calls
+            if item.get("function") == "fbmcq"
+            and item.get("status") == "completed"
+        ]
+        initialization = {
+            "calls": [
+                {
+                    "requested": (item.get("result") or {})
+                    .get("data", {})
+                    .get("requested_initialization"),
+                    "effective": (item.get("result") or {})
+                    .get("data", {})
+                    .get("effective_initialization"),
+                    "cycles": (item.get("kwargs") or {}).get("cycles"),
+                    "final": (item.get("result") or {}).get("data", {}).get("final"),
+                }
+                for item in simulation_calls
+            ]
+        }
+        formal = {
+            "calls": [
+                {
+                    "query": (item.get("args") or [None])[0]
+                    if item.get("args")
+                    else (item.get("kwargs") or {}).get("query"),
+                    **((item.get("result") or {}).get("data") or {}),
+                }
+                for item in formal_calls
+            ]
+        }
         completed = raw.match_status in {"matches", "contradicts"}
         return {
             "execution_status": "completed" if completed else "inconclusive",
@@ -129,7 +196,7 @@ class DirectEvalRuntime:
             "python_value": raw.value,
             "match_status": raw.match_status,
             "inconclusive_reason": None if completed else raw.result,
-            "function_calls": payload["function_call_trace"],
+            "function_calls": function_calls,
             "observed_function_families": payload["actual_function_families"],
             "limitations": [] if completed else [raw.result],
             "exception": raw.error,
@@ -141,6 +208,8 @@ class DirectEvalRuntime:
             "function_registry_hash": raw.function_registry_hash,
             "reason": reason,
             "reason_context": reason_context,
+            "initialization": initialization,
+            "formal": formal,
         }
 
 
@@ -159,6 +228,10 @@ class AssertionVersion:
     evidence_scope: dict[str, Any] = field(default_factory=dict)
     rationale: str = ""
     record_language: str | None = None
+    formal_property_kind: str | None = None
+    formal_bound: int | None = None
+    formal_bound_origin: str | None = None
+    formal_assumption_basis_ids: tuple[str, ...] = ()
     supersedes_version_id: str | None = None
     accepted: bool = True
 
@@ -177,6 +250,12 @@ class AssertionVersion:
             "evidence_scope": _deepcopy_jsonish(self.evidence_scope),
             "rationale": self.rationale,
             "record_language": self.record_language,
+            "formal_property_kind": self.formal_property_kind,
+            "formal_bound": self.formal_bound,
+            "formal_bound_origin": self.formal_bound_origin,
+            "formal_assumption_basis_ids": list(
+                self.formal_assumption_basis_ids
+            ),
             "supersedes_version_id": self.supersedes_version_id,
             "accepted": self.accepted,
         }
@@ -362,6 +441,7 @@ class CoverageRegistry:
         record_sink: Callable[[str, Mapping[str, Any]], Mapping[str, Any]] | None = None,
         issue_assessment_resolver: Callable[[dict[str, Any]], tuple[str, bool]] | None = None,
         fbmcq_guide_read: Callable[[], bool] | None = None,
+        evidence_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.input_segment_ids = set(input_segment_ids or [])
         self.strict_coverage_enabled = coverage_requirements is not None
@@ -390,6 +470,7 @@ class CoverageRegistry:
         self.record_sink = record_sink
         self.issue_assessment_resolver = issue_assessment_resolver
         self.fbmcq_guide_read = fbmcq_guide_read or (lambda: False)
+        self.evidence_context = _deepcopy_jsonish(dict(evidence_context or {}))
         self.plan_registered = False
         self.coverage_units: dict[str, dict[str, Any]] = {}
         self.semantic_review_gate: Any | None = None
@@ -752,6 +833,15 @@ class CoverageRegistry:
                 )
             if "fbmcq(" in expr and not self.fbmcq_guide_read():
                 errors.append(f"fbmcq_guide_required_before_registration:{chain_id}")
+            errors.extend(
+                _formal_metadata_errors(
+                    assertion,
+                    expression=expr,
+                    coverage_requirements=self.coverage_requirements,
+                    known_basis_ids=known_basis_ids,
+                    assertion_basis_ids=assertion_basis,
+                )
+            )
             linked_requirements = [
                 requirement
                 for requirement in unit_requirements_by_id.get(unit_id, [])
@@ -927,6 +1017,13 @@ class CoverageRegistry:
                 evidence_scope=_deepcopy_jsonish(assertion.get("evidence_scope", {})),
                 rationale=str(assertion.get("rationale", "")),
                 record_language=assertion.get("record_language"),
+                formal_property_kind=assertion.get("formal_property_kind"),
+                formal_bound=assertion.get("formal_bound"),
+                formal_bound_origin=assertion.get("formal_bound_origin"),
+                formal_assumption_basis_ids=tuple(
+                    str(item)
+                    for item in assertion.get("formal_assumption_basis_ids", [])
+                ),
             )
             self.chains[chain_id] = [version]
         self.plan_registered = True
@@ -981,7 +1078,17 @@ class CoverageRegistry:
         self.append_record("coverage_plan_registered", {**result, "reason": reason})
         return result
 
-    def revise_assertion(self, assertion_chain_id: str, assert_text: str, *, reason: str) -> dict[str, Any]:
+    def revise_assertion(
+        self,
+        assertion_chain_id: str,
+        assert_text: str,
+        *,
+        reason: str,
+        formal_property_kind: str | None = None,
+        formal_bound: int | None = None,
+        formal_bound_origin: str | None = None,
+        formal_assumption_basis_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
         if assertion_chain_id not in self.chains:
             result = {
                 "execution_status": "invalid_arguments",
@@ -1014,6 +1121,44 @@ class CoverageRegistry:
                 ],
             }
             self.append_record("assertion_revision_rejected", {**result, "reason": reason})
+            return result
+        formal_metadata = {
+            "basis_ids": list(latest.basis_ids),
+            "required_function_families": list(latest.required_function_families),
+            "formal_property_kind": formal_property_kind,
+            "formal_bound": formal_bound,
+            "formal_bound_origin": formal_bound_origin,
+            "formal_assumption_basis_ids": list(
+                formal_assumption_basis_ids or []
+            ),
+            "rationale": reason,
+        }
+        formal_errors = _formal_metadata_errors(
+            formal_metadata,
+            expression=assert_text,
+            coverage_requirements=self.coverage_requirements,
+            known_basis_ids=(
+                self.input_segment_ids
+                | set(self.coverage_requirements)
+                | self.known_source_fact_ids
+            ),
+            assertion_basis_ids=set(latest.basis_ids),
+        )
+        if formal_errors:
+            result = {
+                "execution_status": "invalid_arguments",
+                "accepted": False,
+                "assertion_chain_id": assertion_chain_id,
+                "latest_preserved_assertion_version_id": latest.assertion_version_id,
+                "errors": formal_errors,
+                "limitations": [
+                    "formal_metadata_rejected",
+                    "old_latest_preserved",
+                ],
+            }
+            self.append_record(
+                "assertion_revision_rejected", {**result, "reason": reason}
+            )
             return result
         weakened_fact_ids = [
             fact_id
@@ -1101,6 +1246,10 @@ class CoverageRegistry:
             evidence_scope=_deepcopy_jsonish(latest.evidence_scope),
             rationale=reason,
             record_language=latest.record_language,
+            formal_property_kind=formal_property_kind,
+            formal_bound=formal_bound,
+            formal_bound_origin=formal_bound_origin,
+            formal_assumption_basis_ids=tuple(formal_assumption_basis_ids or []),
             supersedes_version_id=latest.assertion_version_id,
         )
         self.chains[assertion_chain_id].append(version)
@@ -1118,6 +1267,12 @@ class CoverageRegistry:
                 "basis_ids": list(version.basis_ids),
                 "evidence_scope": _deepcopy_jsonish(version.evidence_scope),
                 "required_function_families": list(version.required_function_families),
+                "formal_property_kind": version.formal_property_kind,
+                "formal_bound": version.formal_bound,
+                "formal_bound_origin": version.formal_bound_origin,
+                "formal_assumption_basis_ids": list(
+                    version.formal_assumption_basis_ids
+                ),
             },
             "limitations": ["append_only_revision", "semantic_weakening_not_automatically_proven"],
         }
@@ -1150,6 +1305,18 @@ class CoverageRegistry:
                 "assertion_version_id": version.assertion_version_id,
                 "assert_sha256": version.assert_sha256,
                 "assert": version.assert_text,
+                "formal_property_kind": version.formal_property_kind,
+                "formal_bound": version.formal_bound,
+                "formal_bound_origin": version.formal_bound_origin,
+                "formal_assumption_basis_ids": list(
+                    version.formal_assumption_basis_ids
+                ),
+                "check": _deepcopy_jsonish(
+                    self.evidence_context.get("check") or {}
+                ),
+                "policy": _deepcopy_jsonish(
+                    self.evidence_context.get("policy") or {}
+                ),
                 "reason": reason,
                 "reason_context": reason_context,
             },
@@ -1171,8 +1338,29 @@ class CoverageRegistry:
             "root_node_id": version.root_node_id,
             "coverage_unit_id": version.coverage_unit_id,
             "prepared_record_id": prepared["record_id"],
+            "formal_property_kind": version.formal_property_kind,
+            "formal_bound": version.formal_bound,
+            "formal_bound_origin": version.formal_bound_origin,
+            "formal_assumption_basis_ids": list(
+                version.formal_assumption_basis_ids
+            ),
             **runtime_result,
         }
+        result["formal"] = {
+            **_deepcopy_jsonish(result.get("formal") or {}),
+            "formal_property_kind": version.formal_property_kind,
+            "formal_bound": version.formal_bound,
+            "formal_bound_origin": version.formal_bound_origin,
+            "formal_assumption_basis_ids": list(
+                version.formal_assumption_basis_ids
+            ),
+        }
+        result["check"] = _deepcopy_jsonish(
+            self.evidence_context.get("check") or {}
+        )
+        result["policy"] = _deepcopy_jsonish(
+            self.evidence_context.get("policy") or {}
+        )
         record = self.append_record("eval_assert_completed", result)
         result["record_id"] = record["record_id"]
         self.evaluations.setdefault(version.assertion_version_id, []).append(result)
@@ -2247,12 +2435,200 @@ def _call_result_checks_eventless(tree: ast.AST, call: ast.Call) -> bool:
         if not any(
             isinstance(member, ast.Attribute)
             and member.attr == "event"
+            and _attribute_owner_contains_call(member, call)
+            or (
+                isinstance(member, ast.Attribute)
+                and member.attr == "event"
+                and _attribute_owner_is_comprehension_item_from_call(
+                    tree, node, member, call
+                )
+            )
             for member in members
         ):
             continue
         if any(isinstance(member, ast.Constant) and member.value is None for member in members):
             return True
     return False
+
+
+def _attribute_owner_contains_call(attribute: ast.Attribute, call: ast.Call) -> bool:
+    """Return True when ``attribute`` reads ``.event`` from this exact call result.
+
+    This deliberately does not accept arbitrary ``something.event is None``
+    elsewhere in the expression: eventless SourceFact grounding must come from
+    the same source/target-bound transition/effect call currently being checked.
+    """
+
+    return any(node is call for node in ast.walk(attribute.value))
+
+
+def _attribute_owner_is_comprehension_item_from_call(
+    tree: ast.AST,
+    comparison: ast.Compare,
+    attribute: ast.Attribute,
+    call: ast.Call,
+) -> bool:
+    """Bind ``item.event`` to this call's comprehension iterator."""
+
+    if not isinstance(attribute.value, ast.Name):
+        return False
+    owner = attribute.value.id
+    for node in ast.walk(tree):
+        if not isinstance(
+            node,
+            (ast.GeneratorExp, ast.ListComp, ast.SetComp, ast.DictComp),
+        ):
+            continue
+        if not any(member is comparison for member in ast.walk(node)):
+            continue
+        for generator in node.generators:
+            target_names = {
+                member.id
+                for member in ast.walk(generator.target)
+                if isinstance(member, ast.Name)
+            }
+            if owner not in target_names:
+                continue
+            if any(member is call for member in ast.walk(generator.iter)):
+                return True
+    return False
+
+
+def _formal_metadata_errors(
+    assertion: Mapping[str, Any],
+    *,
+    expression: str,
+    coverage_requirements: Mapping[str, Mapping[str, Any]],
+    known_basis_ids: set[str],
+    assertion_basis_ids: set[str] | None = None,
+) -> list[str]:
+    """Validate the one-FBMCQ-per-assertion contract from Issue #165."""
+
+    chain_id = str(assertion.get("assertion_chain_id") or "unknown")
+    fields = {
+        "formal_property_kind": assertion.get("formal_property_kind"),
+        "formal_bound": assertion.get("formal_bound"),
+        "formal_bound_origin": assertion.get("formal_bound_origin"),
+    }
+    basis_ids = [
+        str(item)
+        for item in assertion.get("formal_assumption_basis_ids", [])
+        if item
+    ]
+    assertion_basis = {
+        str(item)
+        for item in (
+            assertion_basis_ids
+            if assertion_basis_ids is not None
+            else assertion.get("basis_ids", [])
+        )
+        if item
+    }
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return []
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and _call_name(node) == "fbmcq"
+    ]
+    if not calls:
+        errors = [
+            f"formal_metadata_without_fbmcq:{chain_id}:{name}"
+            for name, value in fields.items()
+            if value is not None
+        ]
+        if basis_ids:
+            errors.append(f"formal_basis_without_fbmcq:{chain_id}")
+        return errors
+    if len(calls) != 1:
+        return [f"formal_fbmcq_call_cardinality:{chain_id}:{len(calls)}"]
+    call = calls[0]
+    if len(call.args) != 1 or call.keywords:
+        return [f"formal_fbmcq_exact_query_required:{chain_id}"]
+    query_node = call.args[0]
+    if not isinstance(query_node, ast.Constant) or not isinstance(
+        query_node.value, str
+    ):
+        return [f"formal_fbmcq_literal_query_required:{chain_id}"]
+    missing = [name for name, value in fields.items() if value is None]
+    errors = [f"formal_metadata_missing:{chain_id}:{name}" for name in missing]
+    if "formal" not in {
+        str(item) for item in assertion.get("required_function_families", [])
+    }:
+        errors.append(f"formal_function_family_missing:{chain_id}")
+    try:
+        parsed = parse_bmc_query(query_node.value)
+        prop = parsed.property
+        parsed_kind = str(prop.kind)
+        parsed_bound = int(prop.bound)
+        assumptions = tuple(getattr(parsed, "assumptions", ()) or ())
+    except Exception as exc:
+        errors.append(
+            f"formal_query_parse_failed:{chain_id}:{type(exc).__name__}"
+        )
+        return errors
+    if fields["formal_property_kind"] != parsed_kind:
+        errors.append(
+            f"formal_property_kind_mismatch:{chain_id}:"
+            f"declared={fields['formal_property_kind']}:parsed={parsed_kind}"
+        )
+    if fields["formal_bound"] != parsed_bound:
+        errors.append(
+            f"formal_bound_mismatch:{chain_id}:"
+            f"declared={fields['formal_bound']}:parsed={parsed_bound}"
+        )
+    unknown_basis = sorted(
+        item
+        for item in basis_ids
+        if item not in known_basis_ids
+    )
+    if unknown_basis:
+        errors.append(
+            f"formal_assumption_basis_unknown:{chain_id}:"
+            + ",".join(unknown_basis)
+        )
+    out_of_assertion_basis = sorted(set(basis_ids) - assertion_basis)
+    if out_of_assertion_basis:
+        errors.append(
+            f"formal_assumption_basis_not_in_assertion_basis:{chain_id}:"
+            + ",".join(out_of_assertion_basis)
+        )
+    if assumptions and not basis_ids:
+        errors.append(f"formal_assumption_basis_missing:{chain_id}")
+    origin = fields["formal_bound_origin"]
+    if origin == "requirement_bound":
+        requirement_ids = [
+            item for item in basis_ids if item in coverage_requirements
+        ]
+        matching = [
+            item
+            for item in requirement_ids
+            if str(coverage_requirements[item].get("dimension")) == "timing"
+            and re.search(
+                rf"(?<!\d){parsed_bound}(?!\d)",
+                " ".join(
+                    str(coverage_requirements[item].get(key) or "")
+                    for key in ("clause_text", "cue_text")
+                ),
+            )
+        ]
+        if not matching:
+            errors.append(
+                f"formal_requirement_bound_not_grounded:{chain_id}:{parsed_bound}"
+            )
+    elif origin == "analysis_bound":
+        rationale = str(assertion.get("rationale") or "")
+        if str(parsed_bound) not in rationale or not re.search(
+            r"\b(?:analysis|bound|finite|horizon)\b", rationale, re.IGNORECASE
+        ):
+            errors.append(
+                f"formal_analysis_bound_rationale_missing:{chain_id}:{parsed_bound}"
+            )
+    elif origin is not None:
+        errors.append(f"formal_bound_origin_invalid:{chain_id}:{origin}")
+    return errors
 
 
 def _as_list(value: Any) -> list[dict[str, Any]]:

@@ -1,20 +1,6 @@
 from __future__ import annotations
 
-import sys
-import types
-
 import pytest
-
-if "utils.agent" not in sys.modules:
-    utils_pkg = types.ModuleType("utils")
-    utils_pkg.__path__ = []
-    agent_mod = types.ModuleType("utils.agent")
-    agent_mod.AgentApp = object
-    agent_mod.AgentSpec = object
-    llm_mod = types.ModuleType("utils.llm")
-    llm_mod.LLMRegistry = object
-    llm_mod.load_llm_registry = lambda *_, **__: None
-    sys.modules.update({"utils": utils_pkg, "utils.agent": agent_mod, "utils.llm": llm_mod})
 
 from paper_stm_repair_loop.tools.coverage_registry import CoverageRegistry
 from paper_stm_repair_loop.tools.eval_assert import build_tool as build_eval_assert_tool

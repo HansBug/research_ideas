@@ -48,7 +48,33 @@ class ReadGuideInput(StrictToolModel):
 
 class QueryModelInput(StrictToolModel):
     query_kind: Literal["states", "events", "transitions", "variables", "diagnostics"]
+    operation: Literal["entities", "topology", "path"] = "entities"
     name_contains: str | None = None
+    exact: bool = False
+    path: str | None = None
+    within: str | None = None
+    parent: str | None = None
+    recursive: bool = True
+    kind: Literal["leaf", "composite", "pseudo"] | None = None
+    name: str | None = None
+    scope: str | None = None
+    declared: bool | None = None
+    used: bool | None = None
+    variable_type: str | None = None
+    read_in: str | None = None
+    written_in: str | None = None
+    source: str | None = None
+    event: str | None = None
+    target: str | None = None
+    has_event: bool | None = None
+    has_guard: bool | None = None
+    has_effect: bool | None = None
+    forced: bool | None = None
+    self_loop: bool | None = None
+    source_within: str | None = None
+    target_within: str | None = None
+    avoid: list[NonBlankString] = Field(default_factory=list)
+    max_hops: int | None = Field(default=None, ge=0, le=256)
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=50, ge=1, le=500)
     root_node_ids: list[NonBlankString] = Field(default_factory=list)
@@ -66,6 +92,11 @@ class ModelQueryResult(StrictToolModel):
     model_sha256: str
     root_node_ids: list[str] = Field(default_factory=list)
     reason: str = ""
+    operation: Literal["entities", "topology", "path"] = "entities"
+    requested_filters: dict[str, Any] = Field(default_factory=dict)
+    effective_filters: dict[str, Any] = Field(default_factory=dict)
+    topology: dict[str, Any] = Field(default_factory=dict)
+    paths: list[dict[str, Any]] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
 
 
@@ -73,6 +104,8 @@ class ObserveTraceInput(StrictToolModel):
     question: str = Field(min_length=1)
     root_node_ids: list[NonBlankString] = Field(min_length=1)
     cycles: list[list[NonBlankString]] = Field(min_length=1)
+    initial_state: str | None = None
+    initial_vars: dict[str, int | float] | None = None
     reason: NonBlankString
 
 
@@ -81,6 +114,8 @@ class TraceObservation(StrictToolModel):
     question: str
     root_node_ids: list[str] = Field(min_length=1)
     requested_cycles: list[list[str]] = Field(min_length=1)
+    requested_initialization: dict[str, Any] = Field(default_factory=dict)
+    effective_initialization: dict[str, Any] = Field(default_factory=dict)
     cycles: list[dict[str, Any]] = Field(default_factory=list)
     final: dict[str, Any] = Field(default_factory=dict)
     model_sha256: str

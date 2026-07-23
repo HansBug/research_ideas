@@ -49,7 +49,16 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     each in-scope CoverageUnit has exactly one Root, each Root has at least one
     required assertion, and latest assertion expressions/SHA values are unique
     across chains. Required function families must be one of exactly
-    ``structure/relation/effect/simulation/formal/mapping``. Acceptance is
+    ``structure/relation/effect/simulation/formal/mapping``. Every assertion
+    containing exactly one literal ``fbmcq(...)``
+    must declare matching ``formal_property_kind``, ``formal_bound``,
+    ``formal_bound_origin`` and ``formal_assumption_basis_ids``; non-formal
+    assertions keep those fields null/empty. Each assumption basis ID must be a
+    frozen Segment, Requirement, or SourceFact ID already present in that
+    assertion's ``basis_ids``; arbitrary profile-like IDs are rejected because
+    this stage has no frozen experiment-profile registry. The Controller reparses
+    the exact query and rejects mismatched, ungrounded requirement bounds or
+    unexplained analysis bounds. Acceptance is
     append-only and freezes the initial v1 assertion versions; a second
     registration is rejected.
 
@@ -124,6 +133,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         assertion per Root, and unique latest
         assertion expression/SHA across chains. Function family values are
         restricted to ``structure/relation/effect/simulation/formal/mapping``.
+        A formal assertion has one literal FBMCQ query whose parsed kind/bound
+        match its declared formal metadata and whose bound origin and assumption
+        basis remain auditable.
         Accepted data is append-only.
 
         Failure semantics

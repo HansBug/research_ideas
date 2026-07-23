@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 
 import pytest
 from langchain_anthropic.chat_models import convert_to_anthropic_tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from paper_stm_repair_loop.agents.discover import AGENT_TOOL_NAMES, _build_tools
+from paper_stm_repair_loop.prompts.discover import system_prompt
 from paper_stm_repair_loop.tools.coverage_registry import callable_docstring_has_required_sections
 
 from v2_helpers import make_controller, make_plan
@@ -20,7 +22,7 @@ def _tools(tmp_path):
     return controller, {tool.name: tool for tool in tools}
 
 
-def test_agent_exposes_only_issue164_tools_with_strict_docstrings(tmp_path):
+def test_agent_exposes_only_issue165_tools_with_strict_docstrings(tmp_path):
     _controller, tools = _tools(tmp_path)
     assert tuple(tools) == AGENT_TOOL_NAMES
     assert "evaluate_checks" not in tools
@@ -29,6 +31,31 @@ def test_agent_exposes_only_issue164_tools_with_strict_docstrings(tmp_path):
         assert inspect.getdoc(tool.func) == tool.description
         assert tool.args_schema.model_json_schema().get("additionalProperties") is False
         assert "reference/gold" in tool.description
+
+
+def test_all_model_visible_protocol_text_remains_english(tmp_path):
+    cjk = re.compile(r"[\u3400-\u9fff]")
+    _controller, tools = _tools(tmp_path)
+
+    assert cjk.search(system_prompt("zh-CN")) is None
+    assert cjk.search(system_prompt("en-US")) is None
+    assert all(cjk.search(tool.description) is None for tool in tools.values())
+
+
+def test_non_formal_profile_hides_guide_and_fbmcq_runtime(tmp_path):
+    controller = make_controller(tmp_path)
+    controller.manifest["formal_profile"] = False
+    controller.prepare()
+    tools, resolver = _build_tools(controller, controller.task_snapshot(), [])
+    names = tuple(tool.name for tool in tools)
+
+    assert "read_fbmcq_guide" not in names
+    environment = controller.require_registry().eval_runtime.environment
+    assert "fbmcq" not in environment.locals
+    by_name = {tool.name: tool for tool in tools}
+    by_name["read_fcstm_guide"].invoke({"reason": "Read FCSTM semantics."})
+    by_name["read_task"].invoke({"reason": "Read the frozen non-formal task."})
+    assert resolver() is None
 
 
 def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
@@ -56,7 +83,7 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         assert marker in description
 
 
-def test_tool_input_fields_match_issue164_contract(tmp_path):
+def test_tool_input_fields_match_issue165_contract(tmp_path):
     _controller, tools = _tools(tmp_path)
     fields = {
         name: set(tool.args_schema.model_json_schema()["properties"])
@@ -66,32 +93,86 @@ def test_tool_input_fields_match_issue164_contract(tmp_path):
         "read_fcstm_guide": {"reason"},
         "read_fbmcq_guide": {"reason"},
         "read_task": {"reason"},
+        "inspect_model": {"reason"},
         "register_coverage_plan": {"plan", "reason"},
-        "revise_assertion": {"assertion_chain_id", "assert", "reason"},
+        "revise_assertion": {
+            "assertion_chain_id",
+            "assert",
+            "formal_property_kind",
+            "formal_bound",
+            "formal_bound_origin",
+            "formal_assumption_basis_ids",
+            "reason",
+        },
         "query_model": {
             "query_kind",
+            "operation",
             "name_contains",
+            "exact",
+            "path",
+            "within",
+            "parent",
+            "recursive",
+            "kind",
+            "name",
+            "scope",
+            "declared",
+            "used",
+            "variable_type",
+            "read_in",
+            "written_in",
+            "source",
+            "event",
+            "target",
+            "has_event",
+            "has_guard",
+            "has_effect",
+            "forced",
+            "self_loop",
+            "source_within",
+            "target_within",
+            "avoid",
+            "max_hops",
             "offset",
             "limit",
             "root_node_ids",
             "reason",
         },
         "eval_assert": {"assert", "reason"},
-        "observe_trace": {"question", "root_node_ids", "cycles", "reason"},
+        "observe_trace": {
+            "question",
+            "root_node_ids",
+            "cycles",
+            "initial_state",
+            "initial_vars",
+            "reason",
+        },
         "lookup_source_trace": {"element_refs", "direction", "reason"},
         "review_discovery_coverage": {"reason"},
     }
 
 
 @pytest.mark.parametrize(
-    ("tool_name", "expected_fields"),
+    ("tool_name", "expected_fields", "required_fields"),
     [
-        ("eval_assert", {"assert", "reason"}),
-        ("revise_assertion", {"assertion_chain_id", "assert", "reason"}),
+        ("eval_assert", {"assert", "reason"}, {"assert", "reason"}),
+        (
+            "revise_assertion",
+            {
+                "assertion_chain_id",
+                "assert",
+                "formal_property_kind",
+                "formal_bound",
+                "formal_bound_origin",
+                "formal_assumption_basis_ids",
+                "reason",
+            },
+            {"assertion_chain_id", "assert", "reason"},
+        ),
     ],
 )
 def test_provider_schemas_preserve_keyword_named_assert_field(
-    tmp_path, tool_name, expected_fields
+    tmp_path, tool_name, expected_fields, required_fields
 ):
     _controller, tools = _tools(tmp_path)
     tool = tools[tool_name]
@@ -101,7 +182,7 @@ def test_provider_schemas_preserve_keyword_named_assert_field(
 
     for schema in (openai_schema, anthropic_schema):
         assert set(schema["properties"]) == expected_fields
-        assert set(schema["required"]) == expected_fields
+        assert set(schema["required"]) == required_fields
 
 
 def test_all_agent_tool_reasons_reject_whitespace_only_input(tmp_path):
@@ -110,6 +191,7 @@ def test_all_agent_tool_reasons_reject_whitespace_only_input(tmp_path):
         "read_fcstm_guide": {"reason": "   "},
         "read_fbmcq_guide": {"reason": "   "},
         "read_task": {"reason": "   "},
+        "inspect_model": {"reason": "   "},
         "register_coverage_plan": {"plan": make_plan(controller), "reason": "   "},
         "revise_assertion": {
             "assertion_chain_id": "ASSERT-001",
@@ -168,7 +250,7 @@ def test_tool_validation_feedback_names_missing_field(tmp_path):
     assert "top-level `assert` key" in action
 
 
-def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path):
+def test_observe_trace_supports_targeted_pre_registration_investigation(tmp_path):
     _controller, tools = _tools(tmp_path)
     tools["read_fcstm_guide"].invoke(
         {"reason": "Read the required FCSTM guide before the tool contract test."}
@@ -176,11 +258,12 @@ def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path
     tools["read_task"].invoke(
         {"reason": "Read the frozen task before the tool contract test."}
     )
+    tools["read_fbmcq_guide"].invoke(
+        {"reason": "Read formal capability before planning."}
+    )
     description = tools["observe_trace"].description
-    assert "only after successful plan registration" in description
-    assert "exact registered Root ID" in description
-    assert "use this tool before registration" in description
-    assert "provisional Root" not in description
+    assert "targeted provisional clause Root" in description
+    assert "before registration" in description
 
     result = tools["observe_trace"].invoke(
         {
@@ -192,9 +275,9 @@ def test_observe_trace_describes_only_post_registration_evidence_repair(tmp_path
     )
 
     assert result["execution_status"] == "completed"
-    assert result["recommended_tools"] == ["revise_assertion", "eval_assert"]
-    assert "post-registration observation" in result["recommended_action"]
-    assert "same stable Root ID" in result["pass_criteria"]
+    assert result["recommended_tools"] == ["register_coverage_plan"]
+    assert "pre-registration observation" in result["recommended_action"]
+    assert "complete plan" in result["pass_criteria"]
 
     duplicate = tools["observe_trace"].invoke(
         {
@@ -236,7 +319,7 @@ def test_eval_assert_explains_relation_vs_runtime_behavior_evidence(tmp_path):
     assert "NL asks what behavior occurs after a trigger" in description
 
 
-def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):
+def test_query_model_supports_targeted_pre_registration_investigation(tmp_path):
     _controller, tools = _tools(tmp_path)
     tools["read_fcstm_guide"].invoke(
         {"reason": "Read the required FCSTM guide before the tool contract test."}
@@ -244,10 +327,12 @@ def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):
     tools["read_task"].invoke(
         {"reason": "Read the frozen task before the tool contract test."}
     )
+    tools["read_fbmcq_guide"].invoke(
+        {"reason": "Read formal capability before planning."}
+    )
     description = tools["query_model"].description
-    assert "only after successful plan registration" in description
-    assert "Do not use this tool before registration" in description
-    assert "use ``[]`` only before Root IDs are registered" not in description
+    assert "targeted" in description
+    assert "provisional clause/Root" in description
     arguments = {
         "query_kind": "transitions",
         "name_contains": "Power_Off",
@@ -259,8 +344,8 @@ def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):
 
     completed = tools["query_model"].invoke(arguments)
     assert completed["execution_status"] == "completed"
-    assert completed["recommended_tools"] == ["revise_assertion", "eval_assert"]
-    assert "registered assertion" in completed["recommended_action"]
+    assert completed["recommended_tools"] == ["register_coverage_plan"]
+    assert "pre-registration fact" in completed["recommended_action"]
     assert completed["pass_criteria"]
 
     duplicate = tools["query_model"].invoke(arguments)
@@ -269,7 +354,7 @@ def test_query_model_describes_only_post_registration_evidence_repair(tmp_path):
     assert "revise/evaluate the registered assertion" in duplicate["recommended_action"]
 
 
-def test_fbmcq_guide_does_not_encourage_unnecessary_formal_assertions(tmp_path):
+def test_fbmcq_guide_normalizes_capability_without_tool_quota(tmp_path):
     _controller, tools = _tools(tmp_path)
     tools["read_fcstm_guide"].invoke(
         {"reason": "Read FCSTM semantics before the optional FBMCQ guide."}
@@ -287,5 +372,5 @@ def test_fbmcq_guide_does_not_encourage_unnecessary_formal_assertions(tmp_path):
     )
 
     assert result["execution_status"] == "completed"
-    assert "minimum sufficient plan" in result["recommended_action"]
-    assert "explicit bounded temporal obligation" in result["pass_criteria"]
+    assert "An explicit NL bound is not required" in result["recommended_action"]
+    assert "does not require later FBMCQ use" in tools["read_fbmcq_guide"].description

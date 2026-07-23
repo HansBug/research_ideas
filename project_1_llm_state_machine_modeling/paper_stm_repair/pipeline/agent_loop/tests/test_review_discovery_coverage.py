@@ -27,6 +27,10 @@ from paper_stm_repair_loop.tools.register_coverage_plan import (
 from v2_helpers import expressions_from_plan, make_controller, make_plan
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def _steps(tools, related_id):
     suggested_arguments = {
         "query_model": {
@@ -80,6 +84,31 @@ def _steps(tools, related_id):
     ]
 
 
+def _finding(**overrides):
+    data = {
+        "finding_id": "REVIEW-GAP-001",
+        "category": "possible_false_negative",
+        "related_requirement_ids": ["REQ-001"],
+        "required_scope": "REQ-001 requires the full semantic obligation across all admissible model behavior.",
+        "observed_scope": "Current ledger evidence observes only one narrow structural or assertion slice for REQ-001.",
+        "scope_gap": "The observed evidence scope does not yet match the required semantic scope for REQ-001.",
+        "risk": "The incomplete scope can publish a false negative or false positive coverage conclusion for REQ-001.",
+        "routes": [
+            "Use the named tool route to add model or assertion evidence for REQ-001, then record the resulting ledger update."
+        ],
+        "pass_criterion": "REQ-001 has terminal assertion or recorded model evidence whose scope matches the required obligation.",
+        "coverage_dimensions": ["assertion_strength"],
+        "problem": "当前 REQ-001 的证据范围不足，无法支持完整覆盖结论。",
+        "missed_behavior_risk": "若该范围缺口未补查，REQ-001 可能产生漏报或误报结论。",
+        "recommended_action": "使用 query_model 补查 REQ-001 的精确模型证据并回写断言。",
+        "recommended_tools": [],
+        "recommended_steps": [],
+        "pass_criteria": "query_model 返回 REQ-001 的精确模型事实且断言记录终态结果。",
+    }
+    data.update(overrides)
+    return CoverageReviewFinding(**data)
+
+
 def _verdict(kind, payload, *, passed=True, omit_requirement=False):
     contract = payload["review_contract"]
     requirement_ids = list(contract["required_requirement_ids"])
@@ -88,7 +117,7 @@ def _verdict(kind, payload, *, passed=True, omit_requirement=False):
     findings = []
     if not passed:
         findings = [
-            CoverageReviewFinding(
+            _finding(
                 finding_id="REVIEW-GAP-001",
                 category="possible_false_negative",
                 related_requirement_ids=requirement_ids[:1],
@@ -243,7 +272,7 @@ def test_nested_llm_reviewer_runs_in_fresh_callback_context(monkeypatch, tmp_pat
 
 
 def test_review_verdict_cannot_pass_with_actionable_findings():
-    finding = CoverageReviewFinding(
+    finding = _finding(
         finding_id="REVIEW-GAP-PASS-CONFLICT",
         category="possible_false_negative",
         related_requirement_ids=["REQ-001"],
@@ -302,9 +331,10 @@ def test_failed_review_finding_requires_a_ledger_id():
         ValueError,
         match="coverage review finding must reference a current ledger ID",
     ):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-GAP-UNGROUNDED",
             category="evidence_gap",
+            related_requirement_ids=[],
             coverage_dimensions=["assertion_strength"],
             problem="当前审查声称存在缺口，但没有指出台账中的任何受影响对象。",
             missed_behavior_risk="这种泛化意见无法指导补查，也无法证明漏报风险来自当前任务。",
@@ -316,12 +346,56 @@ def test_failed_review_finding_requires_a_ledger_id():
 
 
 def test_review_schema_tells_reviewer_to_propose_coverage_improvements():
-    schema = CoverageReviewFinding.model_json_schema()["properties"]
+    model_schema = CoverageReviewFinding.model_json_schema()
+    schema = model_schema["properties"]
 
     assert "what additional" in schema["recommended_action"]["description"]
     assert "coverage gap is closed" in schema["pass_criteria"]["description"]
     assert "sentinel variables" in schema["coverage_dimensions"]["description"]
-    assert "Every recommended tool" in schema["recommended_steps"]["description"]
+    assert "not create one step per tool as a quota" in schema["recommended_steps"]["description"]
+    for key in ("required_scope", "observed_scope", "scope_gap", "risk", "routes", "pass_criterion"):
+        assert key in schema
+        assert key in model_schema["required"]
+
+
+def test_review_finding_rejects_legacy_problem_only_scope_backfill():
+    payload = _finding().model_dump(mode="json")
+    for key in ("required_scope", "observed_scope", "scope_gap", "risk", "routes", "pass_criterion"):
+        payload.pop(key)
+
+    with pytest.raises(ValueError) as exc_info:
+        CoverageReviewFinding.model_validate(payload)
+
+    missing_locations = {tuple(error["loc"]) for error in exc_info.value.errors()}
+    assert ("required_scope",) in missing_locations
+    assert ("observed_scope",) in missing_locations
+    assert ("scope_gap",) in missing_locations
+    assert ("risk",) in missing_locations
+    assert ("routes",) in missing_locations
+    assert ("pass_criterion",) in missing_locations
+
+
+def test_review_finding_scope_first_contract_allows_semantic_route_without_tools():
+    finding = _finding(
+        finding_id="REVIEW-SCOPE-GAP",
+        category="weak_or_misdirected_assertion",
+        related_root_ids=["ROOT-004"],
+        required_scope="all admissible bounded completion paths from AutomaticDriving",
+        observed_scope="one recorded initialization and one concrete completion event sequence",
+        scope_gap="unexamined completion branches may violate the Root while the current assertion passes",
+        risk="the run may publish a false zero-issue conclusion for a universal Root",
+        routes=[
+            "Use equal-strength formal evidence with a recorded bound origin, or accept an admissible concrete counterexample as contradiction evidence."
+        ],
+        pass_criterion="latest assertion records show terminal evidence whose assumptions and bound match ROOT-004",
+        pass_criteria="latest assertion records show terminal evidence whose assumptions and bound match ROOT-004",
+        coverage_dimensions=["assertion_strength"],
+        recommended_action="Revise ROOT-004 evidence so its ledger scope matches all admissible bounded completion paths.",
+    )
+
+    assert finding.recommended_tools == []
+    assert finding.recommended_steps == []
+    assert finding.pass_criteria == finding.pass_criterion
 
 
 @pytest.mark.parametrize(
@@ -468,7 +542,7 @@ def test_second_retryable_reviewer_failure_terminates_same_fingerprint(tmp_path)
 
 def test_review_finding_rejects_fbmcq_as_nl_interpreter():
     with pytest.raises(ValueError, match="natural-language interpreter"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-FBMCQ-NL",
             category="unsupported_issue_projection",
             related_requirement_ids=["REQ-001"],
@@ -482,7 +556,7 @@ def test_review_finding_rejects_fbmcq_as_nl_interpreter():
         )
 
     with pytest.raises(ValueError, match="natural-language interpreter"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-FBMCQ-NL-REVERSED",
             category="unsupported_issue_projection",
             related_requirement_ids=["REQ-001"],
@@ -498,7 +572,7 @@ def test_review_finding_rejects_fbmcq_as_nl_interpreter():
 
 def test_review_finding_rejects_direct_projection_state_mutation():
     with pytest.raises(ValueError, match="projection state directly"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-PROJECTION-MUTATION",
             category="unsupported_issue_projection",
             related_root_ids=["ROOT-001"],
@@ -512,7 +586,7 @@ def test_review_finding_rejects_direct_projection_state_mutation():
         )
 
     with pytest.raises(ValueError, match="projection state directly"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-PROJECTION-MUTATION-REVERSED",
             category="unsupported_issue_projection",
             related_root_ids=["ROOT-001"],
@@ -531,7 +605,7 @@ def test_review_finding_rejects_direct_projection_state_mutation():
 
 def test_review_finding_rejects_generic_non_executable_guidance():
     with pytest.raises(ValueError, match="mechanically observable result"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-GENERIC",
             category="evidence_gap",
             related_requirement_ids=["REQ-001"],
@@ -565,7 +639,7 @@ def test_review_gate_filters_nl_strengthening_but_keeps_explicit_universal_nl(
 
     def runner(kind, payload, _attempt):
         contract = payload["review_contract"]
-        finding = CoverageReviewFinding(
+        finding = _finding(
             finding_id="REVIEW-STRENGTHEN-ALL",
             category="missing_semantic_obligation",
             related_requirement_ids=contract["required_requirement_ids"][:1],
@@ -657,8 +731,158 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert re.search(r"[\u4e00-\u9fff]", tool.description) is None
 
 
+
+def test_reviewer_prompt_checks_scope_hot_start_bounded_topology_and_inspect_only():
+    prompt = _review_system_prompt("adversarial_falsification", "en-US")
+    flat = _flat(prompt)
+    for marker in (
+        "required_scope",
+        "observed_scope",
+        "scope_gap",
+        "risk",
+        "routes",
+        "pass_criterion",
+        "inspect-only issue projection",
+        "hot-start bypass",
+        "bounded-formal overclaim",
+        "topology positive-path overclaim",
+        "requested and effective initialization",
+        "analysis_bound",
+        "positive paths are guard-agnostic connectivity facts",
+    ):
+        assert marker in flat
+    assert "optional route aids, not quotas" in flat
+    assert "hidden reviewer model switch" in flat
+
+
+
+def test_revise_assertion_reviewer_arguments_reject_unknown_formal_kind():
+    with pytest.raises(ValueError, match="invalid suggested_arguments for revise_assertion"):
+        CoverageImprovementStep(
+            tool="revise_assertion",
+            related_ids=["ASSERT-001"],
+            objective="验证 coverage reviewer 的 revise_assertion 参数会复用 formal enum 并拒绝未知类型。",
+            suggested_arguments={
+                "assertion_chain_id": "ASSERT-001",
+                "assert": "fbmcq('reach[<=20] Root.Target')",
+                "formal_property_kind": "invented_kind",
+                "formal_bound": 20,
+                "formal_bound_origin": "analysis_bound",
+                "formal_assumption_basis_ids": ["REQ-001"],
+                "reason": "验证未知 formal kind 会被 schema 拒绝。",
+            },
+            expected_observation="revise_assertion 参数校验返回可审计的 invalid_arguments 记录。",
+        )
+
+
+def test_review_gate_keeps_formal_fbmcq_inconclusive_revision_metadata(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+    expected_requirement_id = controller.task_snapshot()["current_records"][
+        "coverage_requirements"
+    ][0]["requirement_id"]
+
+    def runner(kind, payload, _attempt):
+        contract = payload["review_contract"]
+        requirement_id = contract["required_requirement_ids"][0]
+        root_id = contract["required_root_ids"][0]
+        expression = "fbmcq('reach[<=20] Root.Target')"
+        finding = _finding(
+            finding_id="REVIEW-FORMAL-FBMCQ-BOUND-GAP",
+            category="weak_or_misdirected_assertion",
+            related_requirement_ids=[requirement_id],
+            related_root_ids=[root_id],
+            related_assertion_chain_ids=["ASSERT-001"],
+            coverage_dimensions=["assertion_strength", "model_behavior"],
+            problem=(
+                "当前 formal FBMCQ 断言只产生 inconclusive 或使用过小 analysis_bound，"
+                "不足以覆盖需求声明的目标可达范围。"
+            ),
+            missed_behavior_risk=(
+                "若把 inconclusive 或范围不足当成已覆盖，会把真实的可达性漏检伪装成已验证。"
+            ),
+            recommended_action=(
+                f"针对 {requirement_id} / ASSERT-001 使用 revise_assertion 改写 formal FBMCQ "
+                "断言，显式提交 formal_property_kind、formal_bound、formal_bound_origin 和 "
+                "formal_assumption_basis_ids，然后再用 eval_assert 执行 latest 版本。"
+            ),
+            recommended_tools=["revise_assertion", "eval_assert"],
+            recommended_steps=[
+                CoverageImprovementStep(
+                    tool="revise_assertion",
+                    related_ids=["ASSERT-001", requirement_id],
+                    objective="把 inconclusive 或范围不足的 formal FBMCQ 断言修订为有明确边界元数据的可达性断言。",
+                    suggested_arguments={
+                        "assertion_chain_id": "ASSERT-001",
+                        "assert": expression,
+                        "formal_property_kind": "reach",
+                        "formal_bound": 20,
+                        "formal_bound_origin": "analysis_bound",
+                        "formal_assumption_basis_ids": [requirement_id],
+                        "reason": "用记录的 analysis_bound=20 覆盖该需求的可达性检查范围。",
+                    },
+                    expected_observation=(
+                        "revise_assertion 返回 accepted=true 并记录新的 formal assertion 元数据。"
+                    ),
+                ),
+                CoverageImprovementStep(
+                    tool="eval_assert",
+                    related_ids=["ASSERT-001", root_id],
+                    objective="执行修订后的 latest formal FBMCQ 断言并记录 terminal 或 inconclusive 结果。",
+                    suggested_arguments={
+                        "assert": expression,
+                        "reason": "执行 latest formal FBMCQ 断言以确认范围是否闭合。",
+                    },
+                    expected_observation=(
+                        "eval_assert 返回 completed 或 inconclusive，并写入 assertion 执行记录。"
+                    ),
+                ),
+            ],
+            pass_criteria=(
+                "latest assertion 记录 formal_property_kind=reach、formal_bound=20、"
+                "formal_bound_origin=analysis_bound，且 eval_assert 返回可审计记录。"
+            ),
+        )
+        return CoverageReviewVerdict(
+            review_kind=kind,
+            passed=False,
+            reviewed_segment_ids=contract["required_segment_ids"],
+            reviewed_requirement_ids=contract["required_requirement_ids"],
+            reviewed_source_fact_ids=contract["required_source_fact_ids"],
+            reviewed_root_ids=contract["required_root_ids"],
+            findings=[finding],
+            coverage_analysis=(
+                "已逐项审查全部冻结 Segment、Requirement、SourceFact、Root、latest assertion "
+                "和真实执行记录，发现 formal FBMCQ inconclusive 或 analysis_bound 范围不足，"
+                "需要通过带元数据的 revise_assertion 恢复。"
+            ),
+            rationale="formal FBMCQ 需要显式边界元数据后才能重新执行并关闭覆盖缺口。",
+        )
+
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=runner,
+    )
+    reviewed = gate.review(reason="保留 formal FBMCQ inconclusive/范围不足恢复建议。")
+
+    assert reviewed["execution_status"] == "completed"
+    assert reviewed["passed"] is False
+    assert reviewed["programmatic_errors"] == []
+    assert [item["finding_id"] for item in reviewed["required_actions"]] == [
+        "REVIEW-FORMAL-FBMCQ-BOUND-GAP",
+        "REVIEW-FORMAL-FBMCQ-BOUND-GAP",
+    ]
+    revise_args = reviewed["required_actions"][0]["recommended_steps"][0][
+        "suggested_arguments"
+    ]
+    assert revise_args["formal_property_kind"] == "reach"
+    assert revise_args["formal_bound"] == 20
+    assert revise_args["formal_bound_origin"] == "analysis_bound"
+    assert revise_args["formal_assumption_basis_ids"] == [expected_requirement_id]
+
+
 def test_explanatory_negation_does_not_create_a_negative_obligation():
-    finding = CoverageReviewFinding(
+    finding = _finding(
         finding_id="REVIEW-POSITIVE-TARGET",
         category="weak_or_misdirected_assertion",
         related_requirement_ids=["REQ-001"],
@@ -701,7 +925,7 @@ def test_review_gate_filters_unlicensed_negative_obligation(tmp_path):
             "simulate(cycles=[[], ['Root.Power_Off']])."
             "final.is_active('Root.Off') is False"
         )
-        finding = CoverageReviewFinding(
+        finding = _finding(
             finding_id="REVIEW-UNLICENSED-NEGATIVE",
             category="possible_false_negative",
             related_requirement_ids=[requirement_id],
@@ -789,7 +1013,7 @@ def test_review_gate_filters_revision_of_unknown_assertion_chain(tmp_path):
             "transition_exists(source='Root.Active', "
             "event='Root.Power_Off', target='Root.Off')"
         )
-        finding = CoverageReviewFinding(
+        finding = _finding(
             finding_id="REVIEW-UNKNOWN-CHAIN",
             category="evidence_gap",
             related_requirement_ids=[requirement_id],
@@ -872,7 +1096,7 @@ def test_review_gate_filters_revision_of_unknown_assertion_chain(tmp_path):
 
 def test_anti_gaming_finding_requires_anti_gaming_dimension():
     with pytest.raises(ValueError, match="anti_gaming coverage_dimensions"):
-        CoverageReviewFinding(
+        _finding(
             finding_id="REVIEW-SENTINEL",
             category="anti_gaming_risk",
             related_assertion_chain_ids=["ASSERT-001"],
@@ -905,7 +1129,7 @@ def test_review_rejects_finding_that_invents_unknown_ledger_ids(tmp_path):
             reviewed_source_fact_ids=contract["required_source_fact_ids"],
             reviewed_root_ids=contract["required_root_ids"],
             findings=[
-                CoverageReviewFinding(
+                _finding(
                     finding_id="REVIEW-GAP-UNKNOWN",
                     category="evidence_gap",
                     related_requirement_ids=["REQ-NOT-IN-LEDGER"],
@@ -1112,6 +1336,38 @@ def test_same_fingerprint_retry_only_reruns_failed_reviewer(tmp_path):
         "adversarial_falsification",
         "adversarial_falsification",
     ]
+
+
+
+def test_review_fingerprint_changes_when_evidence_scope_metadata_changes(tmp_path):
+    controller, registry, _plan = _ready_controller(tmp_path)
+    gate = CoverageReviewGate(
+        registry=registry,
+        task_snapshot=controller.task_snapshot(),
+        runner=lambda kind, payload, _attempt: _verdict(kind, payload),
+    )
+    before = gate.state_fingerprint()
+    latest_version = next(iter(registry.evaluations))
+    registry.evaluations[latest_version][-1]["initialization"] = {
+        "initialization_mode": "hot",
+        "requested_initial_state": "Root.A",
+        "effective_initial_state": "Root.A",
+        "effective_initial_vars": {"speed": 20},
+    }
+    registry.evaluations[latest_version][-1]["formal"] = {
+        "canonical_query": "A[] not bad",
+        "property_kind": "safety",
+        "formal_bound": 20,
+        "formal_bound_origin": "analysis_bound",
+    }
+    registry.evaluations[latest_version][-1]["check"] = {
+        "check_result_sha256": "check-sha"
+    }
+    registry.evaluations[latest_version][-1]["policy"] = {
+        "evidence_policy_fingerprint": "policy-sha"
+    }
+
+    assert gate.state_fingerprint() != before
 
 
 def test_review_pass_is_invalidated_by_any_later_evaluation(tmp_path):

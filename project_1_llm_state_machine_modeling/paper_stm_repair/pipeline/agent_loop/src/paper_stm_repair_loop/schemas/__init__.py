@@ -1,4 +1,4 @@
-"""Canonical Issue #164 B-discover schemas."""
+"""Canonical Issue #165 B-discover schemas."""
 
 from .assertions import (
     EvalAssertResult,
@@ -16,6 +16,7 @@ from .coverage import (
     SourceFact,
 )
 from .discovery import AgentReceiptRef, DiscoverCompleted, DiscoverOutcome, DiscoverSubmission
+from .inspect import InspectModelInput, InspectModelResult
 from .roots import PropositionRootNode, PropositionRootRegistration
 from .tool_reason import EvalAssertInput
 
@@ -32,6 +33,8 @@ __all__ = [
     "FactDisposition",
     "FunctionFamily",
     "InputSegment",
+    "InspectModelInput",
+    "InspectModelResult",
     "LogicalAssertion",
     "LogicalAssertionRegistration",
     "PropositionRootNode",

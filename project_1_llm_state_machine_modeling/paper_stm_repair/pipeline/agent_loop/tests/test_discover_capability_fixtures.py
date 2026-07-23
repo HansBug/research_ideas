@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from pyfcstm.bmc.parse import parse_bmc_query
+
 from paper_stm_repair_loop.eval_env import EvalEnvironment
 from paper_stm_repair_loop.eval_env.runtime import ALLOWED_FUNCTION_FAMILIES
 from paper_stm_repair_loop.pyfcstm_adapter import check_fcstm
@@ -25,10 +27,13 @@ def _case_dirs():
     return sorted(path for path in FIXTURES.iterdir() if path.is_dir() and path.name.startswith("D"))
 
 
-def _fake_bmc_runner(*_args, **_kwargs):
+def _fake_bmc_runner(_model_path, query_path, **_kwargs):
+    parsed = parse_bmc_query(Path(query_path).read_text(encoding="utf-8"))
     return (
         '{"result":{"status":"sat","property_satisfied":true,"outcome":"property_satisfied"},'
-        '"property":{"kind":"reach","bound":4,"polarity":"exists"},"replay":{"ok":true}}',
+        f'"property":{{"kind":"{parsed.property.kind}",'
+        f'"bound":{parsed.property.bound},"polarity":"exists"}},'
+        '"replay":{"ok":true}}',
         0,
     )
 
@@ -179,3 +184,62 @@ def test_a_stage_boundary_families_are_not_mixed_into_d_fixtures():
     all_text = "\n".join(path.read_text(encoding="utf-8") for path in FIXTURES.rglob("*.json"))
     assert "input_not_operationalizable" not in all_text
     assert "A01" not in all_text and "A02" not in all_text and "A03" not in all_text
+
+
+def test_runtime_capability_manifest_freezes_issue165_nonformal_metadata_before_dispatch(tmp_path):
+    from paper_stm_repair_loop.agents.discover import _write_capability_manifest
+    from paper_stm_repair_loop.records import RecordStore, sha256_json
+    from paper_stm_repair_loop.tools.check_fcstm import execute as runtime_check_fcstm
+
+    from v2_helpers import make_case, make_manifest
+
+    case = make_case()
+    manifest = make_manifest()
+    manifest.update(
+        {
+            "formal_profile": False,
+            "agent_limits": {"turns": 1},
+            "reviewer_limits": {"turns": 1},
+            "fbmcq_limits": {"max_bound": 4, "solver_timeout_ms": 1000},
+        }
+    )
+    store = RecordStore(tmp_path)
+    checked = runtime_check_fcstm(case.fcstm, "inputs/STM_0.fcstm")
+    check_record = store.append("check_fcstm_completed", checked)
+    frozen_check = {
+        **checked,
+        "record_id": check_record["record_id"],
+        "record_sha256": check_record["record_sha256"],
+    }
+
+    capability = _write_capability_manifest(tmp_path, manifest, case, frozen_check)
+
+    assert capability["schema_version"] == "paper1.capability_manifest.v3"
+    assert capability["issue_contract_ref"] == "Issue #165 §11.2"
+    assert capability["formal_verification_available"] is False
+    assert isinstance(capability["bmc_backend_available"], bool)
+    assert capability["formal_claim_eligible"] is False
+    assert "fbmcq" not in capability["eval_functions"]
+    assert "read_fbmcq_guide" not in capability["agent_tools"]
+    assert capability["frozen_check_result"]["check_record_id"] == check_record["record_id"]
+    assert capability["frozen_check_result"]["check_result_sha256"] == sha256_json(frozen_check)
+    assert capability["schema_hashes"]["InspectModelResult"] == capability["inspect_model_result_schema_hash"]
+    assert capability["hot_start_capability"]["missing_or_partial_initial_vars_policy"] == "fail_closed"
+    assert capability["topology_path_backend"]["available"] is True
+    assert capability["process_isolation_policy"]["fbmcq_backend"] == "multiprocessing_spawn"
+    assert (
+        capability["process_isolation_policy"]["result_transport"]
+        == "private_temporary_json_file"
+    )
+    assert capability["cli_resource_profile"]["fbmcq_limits"] == manifest["fbmcq_limits"]
+    assert capability["prompt_evidence_policy_fingerprint"]
+    assert capability["evidence_policy"]["evidence_policy_fingerprint"]
+    assert capability["diagnostic_schema_code_registry_identity"]["registry_size"] > 0
+    assert capability["inspect_model_result_sha256"]
+
+    records = store.all()
+    assert [record["record_type"] for record in records] == [
+        "check_fcstm_completed",
+        "capability_manifest",
+    ]
+    assert _read_json(tmp_path / "capability_manifest.json") == capability

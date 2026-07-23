@@ -43,6 +43,24 @@ def _coerce_frozen_snapshot(snapshot: dict[str, Any]) -> FrozenTaskSnapshot:
     return FrozenTaskSnapshot.model_validate(six_field_view)
 
 
+def _llm_safe_task_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    safe = copy.deepcopy(payload)
+    model = safe.get("model")
+    if isinstance(model, dict):
+        normalized_inspect = model.pop("normalized_inspect", None)
+        if isinstance(normalized_inspect, dict):
+            model.setdefault(
+                "normalized_inspect_sha256", sha256_json(normalized_inspect)
+            )
+    current_records = safe.get("current_records")
+    if isinstance(current_records, dict):
+        for key in ("inspect", "normalized_inspect", "diagnostics", "check_result"):
+            value = current_records.pop(key, None)
+            if value is not None:
+                current_records.setdefault(f"{key}_sha256", sha256_json(value))
+    return safe
+
+
 def execute(snapshot: dict[str, Any]) -> dict[str, Any]:
     """Purpose: return the Discover Agent's attempt-frozen six-field task snapshot.
 
@@ -88,7 +106,9 @@ def execute(snapshot: dict[str, Any]) -> dict[str, Any]:
     returns ``{"stage":"B-discover","loop_no":0,"model":{"fcstm":"state Root {}","fcstm_sha256":"abc"},"targets":[],"current_records":{"checks":[]},"readable_history":[]}``.
     """
 
-    return _coerce_frozen_snapshot(snapshot).model_dump(mode="json")
+    return _llm_safe_task_payload(
+        _coerce_frozen_snapshot(snapshot).model_dump(mode="json")
+    )
 
 
 def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
@@ -122,7 +142,7 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
     """
 
     frozen = _coerce_frozen_snapshot(snapshot)
-    frozen_payload = frozen.model_dump(mode="json")
+    frozen_payload = _llm_safe_task_payload(frozen.model_dump(mode="json"))
     snapshot_sha256 = sha256_json(frozen_payload)
     served = False
 
@@ -158,7 +178,7 @@ def build_tool(snapshot: dict[str, Any]) -> SimpleStructuredTool:
         - ``stage``: string stage identifier; here it must be ``B-discover``.
         - ``loop_no``: integer logical loop number; Discover uses ``0``.
         - ``model``: the complete frozen ``STM_0`` content, model identifier,
-          SHA-256, and normalized inspect facts supplied to this attempt.
+          SHA-256, and normalized inspect hash supplied to this attempt.
         - ``targets``: frozen target list; ordinary Discover currently uses ``[]``.
         - ``current_records``: expanded current-run NL, raw/source model,
           source-trace, InputSegments, Controller CoverageRequirements, SourceFact

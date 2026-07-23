@@ -43,15 +43,33 @@ def execute(
     root_node_ids: list[str],
     cycles: list[list[str]],
     reason: str,
+    initial_state: str | None = None,
+    initial_vars: dict[str, int | float] | None = None,
 ) -> dict[str, Any]:
     """Execute one exploratory cycle sequence against the frozen model."""
 
-    observation = SimulationAPI(model_text).simulate(cycles=cycles)
+    model_sha256 = hashlib.sha256(model_text.encode("utf-8")).hexdigest()
+    try:
+        observation = SimulationAPI(model_text).simulate(
+            cycles=cycles, initial_state=initial_state, initial_vars=initial_vars
+        )
+    except Exception as exc:
+        return _recoverable_inconclusive_failure(
+            execution_status=_execution_status_for_exception(exc),
+            question=question,
+            root_node_ids=root_node_ids,
+            cycles=cycles,
+            reason=reason,
+            model_sha256=model_sha256,
+            exc=exc,
+        )
     return {
         "execution_status": "completed",
         "question": question,
         "root_node_ids": list(root_node_ids),
         "requested_cycles": cycles,
+        "requested_initialization": observation.requested_initialization.to_json()["data"],
+        "effective_initialization": observation.effective_initialization.to_json()["data"],
         "cycles": [cycle.to_json()["data"] for cycle in observation.cycles],
         "final": observation.final.to_json()["data"],
         "model_sha256": observation.model_sha256,
@@ -75,6 +93,59 @@ def execute(
             "exploratory_trace_only",
             "cannot_project_root",
             "formal_assertion_still_requires_registered_eval_assert",
+            "hot_start_requires_exact_state_and_complete_variables",
+        ],
+    }
+
+
+def _execution_status_for_exception(exc: Exception) -> str:
+    if isinstance(exc, ValueError):
+        return "invalid_arguments"
+    return "execution_error"
+
+
+def _recoverable_inconclusive_failure(
+    *,
+    execution_status: str,
+    question: str,
+    root_node_ids: list[str],
+    cycles: list[list[str]],
+    reason: str,
+    model_sha256: str,
+    exc: Exception,
+) -> dict[str, Any]:
+    return {
+        "execution_status": execution_status,
+        "evidence_status": "inconclusive",
+        "question": question,
+        "root_node_ids": list(root_node_ids),
+        "requested_cycles": cycles,
+        "model_sha256": model_sha256,
+        "reason": reason,
+        "error": {
+            "status": "recoverable",
+            "type": type(exc).__name__,
+            "message": str(exc),
+        },
+        "recommended_tools": ["observe_trace", "query_model"],
+        "recommended_action": (
+            "Treat this as recoverable inconclusive trace evidence, not a Root "
+            "verdict. Correct the exact hot-start state/complete variables, event "
+            "name, or cycle setup using the error details; query the frozen model "
+            "when the exact state, variable, or event spelling is uncertain, then "
+            "retry only the same stable Root if the named evidence gap remains."
+        ),
+        "pass_criteria": (
+            "A corrected request completes with one relevant observation, or a "
+            "precise model query resolves the same setup gap before revising and "
+            "evaluating the registered assertion."
+        ),
+        "limitations": [
+            "inconclusive_evidence",
+            "recoverable_failure",
+            "trace_not_observed",
+            "cannot_project_root",
+            "no_root_verdict",
         ],
     }
 
@@ -82,8 +153,8 @@ def execute(
 def build_tool(
     snapshot: dict[str, Any],
     *,
-    max_calls_per_root: int = 2,
-    max_cycles_per_call: int = 16,
+    max_calls_per_root: int | None = None,
+    max_cycles_per_call: int | None = None,
     registered_root_ids: Callable[[], set[str]] | None = None,
 ) -> SimpleStructuredTool:
     """Build the bounded exploratory ``observe_trace`` tool."""
@@ -98,6 +169,8 @@ def build_tool(
         root_node_ids: list[str],
         cycles: list[list[str]],
         reason: str,
+        initial_state: str | None = None,
+        initial_vars: dict[str, int | float] | None = None,
     ) -> dict[str, Any]:
         """Purpose
         -------
@@ -107,17 +180,18 @@ def build_tool(
 
         When to use
         -----------
-        Use only after successful plan registration, and only when a latest
-        registered evaluation is inconclusive or a failed coverage review explicitly
-        names this tool and one exact trace gap. Use the shortest distinguishing
-        sequence and stop once the question is answered. Reuse the exact registered
-        Root ID; never mint suffix variants or new IDs to prolong exploration.
+        After the mandatory guide/task read phase, use it either once for a
+        targeted provisional clause Root to determine exact initialization/events
+        before registration, or after registration when an inconclusive result or
+        coverage finding names one exact trace gap. Use the shortest distinguishing
+        sequence and stop once the question is answered. Reuse the stable Root ID;
+        never mint suffix variants or new IDs to prolong exploration.
 
         When not to use
         ----------------
         Do not enumerate event permutations, replay every requirement, duplicate
         an already registered `simulate(...)` assertion, search for any failure,
-        perform a model-wide trace sweep, use this tool before registration, or treat a successful/failed
+        perform a model-wide trace sweep, use it before reading the frozen task, or treat a successful/failed
         trace as a Root verdict. When the result answers the named question, the
         next semantic actions must be `revise_assertion` followed by `eval_assert`. Another
         trace is justified only by one distinct unresolved condition exposed by
@@ -131,18 +205,23 @@ def build_tool(
         IDs. `cycles` is a non-empty `list[list[str]]`: each outer
         item is exactly one FCSTM cycle and each inner list is the complete event
         set supplied in that cycle; `[]` is an explicit eventless/init cycle.
+        Optional `initial_state` plus `initial_vars` requests a hot start from one
+        exact dotted state path; hot start requires every declared persistent
+        variable value. Omitting both fields preserves the cold-start contract.
         `reason` explains why this exact bounded trace is necessary in the run
-        content language. No paths, model text, arbitrary code, or expected
-        outcome are accepted. Use the exact registered Root ID. Suffix variants such as
-        ROOT-CLAUSE-005-01B are rejected rather than treated as a new proposition.
+        content language. No filesystem paths, model text, arbitrary code, or
+        expected outcome are accepted. Use the exact registered Root ID. Suffix
+        variants such as ROOT-CLAUSE-005-01B are rejected rather than treated as a
+        new proposition.
 
         Returns
         -------
         A structured result containing `execution_status`, the original question
-        and Root IDs, requested cycles, one immutable observation per cycle,
-        final observation, frozen `model_sha256`, original reason, and
-        explicit `recommended_tools`, `recommended_action`, `pass_criteria`, and
-        limitations. Each cycle includes index, terminal-safe ``is_ended``,
+        and Root IDs, requested cycles, requested/effective initialization
+        records, one immutable observation per cycle, final observation, frozen
+        `model_sha256`, original reason, and explicit `recommended_tools`,
+        `recommended_action`, `pass_criteria`, and limitations. Each cycle
+        includes index, terminal-safe ``is_ended``,
         active states, variables, input/consumed/unconsumed events,
         fired-transition field, and limitations. A completed top-level machine
         is reported as ``is_ended=true`` with empty active states; do not append
@@ -154,8 +233,10 @@ def build_tool(
         Validate stable Root identity, budgets, and duplicate identity, then call pyfcstm
         `SimulationRuntime.cycle` exactly once for every caller-provided outer
         cycle. The wrapper inserts no hidden initialization or stabilization
-        cycle. It records public structured cycle results and never parses an
-        exception message as a behavior fact.
+        cycle. Cold initialization remains default-compatible; hot initialization
+        is delegated to pyfcstm only after the exact state and complete variable
+        request has been sealed. It records public structured cycle results and
+        never parses an exception message as a behavior fact.
 
         Failure semantics
         -----------------
@@ -169,7 +250,9 @@ def build_tool(
         --------------------
         One finite trace supports only the supplied sequence. It cannot establish
         absence of another behavior, global correctness, NL completeness, source
-        attribution, formal proof, or Repair eligibility.
+        attribution, formal proof, or Repair eligibility. Hot starts skip entry
+        boundary actions by pyfcstm design and are setup evidence, not proof that
+        the model can reach that state from cold initialization.
 
         Permissions
         -----------
@@ -210,7 +293,7 @@ def build_tool(
                 "limitations": ["unstable_or_unknown_root_id", *invalid_root_ids],
             }
 
-        if len(cycles) > max_cycles_per_call:
+        if max_cycles_per_call is not None and len(cycles) > max_cycles_per_call:
             return {
                 "execution_status": "invalid_arguments",
                 "question": question,
@@ -231,7 +314,8 @@ def build_tool(
         exhausted = sorted(
             root_id
             for root_id in root_node_ids
-            if calls_by_root[root_id] >= max_calls_per_root
+            if max_calls_per_root is not None
+            and calls_by_root[root_id] >= max_calls_per_root
         )
         if exhausted:
             return {
@@ -254,7 +338,7 @@ def build_tool(
                 "limitations": ["max_observe_trace_calls_per_root_exceeded", *exhausted],
             }
         identity = hashlib.sha256(
-            repr((question, tuple(root_node_ids), cycles)).encode("utf-8")
+            repr((question, tuple(root_node_ids), cycles, initial_state, initial_vars)).encode("utf-8")
         ).hexdigest()
         if identity in completed_requests:
             return {
@@ -283,30 +367,36 @@ def build_tool(
                 root_node_ids=root_node_ids,
                 cycles=cycles,
                 reason=reason,
+                initial_state=initial_state,
+                initial_vars=initial_vars,
             )
         except Exception as exc:
-            return {
-                "execution_status": "execution_error",
-                "question": question,
-                "root_node_ids": root_node_ids,
-                "model_sha256": model_sha256,
-                "reason": reason,
-                "error": {"type": type(exc).__name__, "message": str(exc)},
-                "recommended_tools": ["observe_trace", "query_model"],
-                "recommended_action": (
-                    "Use the error details to correct the exact event name or cycle "
-                    "setup. Retry the same stable Root only if the named uncertainty "
-                    "remains; otherwise inspect the precise model relation and revise the registered assertion."
-                ),
-                "pass_criteria": (
-                    "A corrected request completes with a relevant observation, or a "
-                    "precise model query resolves the same named evidence gap."
-                ),
-                "limitations": ["trace_not_observed", "cannot_project_root"],
-            }
+            return _recoverable_inconclusive_failure(
+                execution_status=_execution_status_for_exception(exc),
+                question=question,
+                root_node_ids=root_node_ids,
+                cycles=cycles,
+                reason=reason,
+                model_sha256=model_sha256,
+                exc=exc,
+            )
+        if result.get("execution_status") != "completed":
+            return result
         completed_requests.add(identity)
         for root_id in root_node_ids:
             calls_by_root[root_id] += 1
+        registered = registered_root_ids() if registered_root_ids is not None else set()
+        if not (set(root_node_ids) & registered):
+            result["recommended_tools"] = ["register_coverage_plan"]
+            result["recommended_action"] = (
+                "Use this targeted pre-registration observation to finish the "
+                "same provisional Root's positive assertion, then register the "
+                "complete coverage plan. Do not expand into an inventory sweep."
+            )
+            result["pass_criteria"] = (
+                "The complete plan registers one stable Root and an assertion whose "
+                "initialization and event sequence match this observation."
+            )
         return result
 
     return SimpleStructuredTool(

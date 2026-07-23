@@ -27,15 +27,16 @@ def execute() -> dict[str, Any]:
             "eval_assert",
         ],
         "recommended_action": (
-            "Use FBMCQ only for a necessary bounded temporal proposition that "
-            "cannot be expressed at the required strength by direct relation or "
-            "simulation evidence. If no such proposition remains, do not add a "
-            "formal assertion; proceed with the minimum sufficient plan."
+            "Choose FBMCQ whenever the proposition ranges over multiple allowed "
+            "executions, valuations, paths, safety, persistence, absence, or "
+            "eventual response. An explicit NL bound is not required: record the "
+            "finite horizon as requirement_bound or analysis_bound. Do not call "
+            "FBMCQ merely to decorate a structural or concrete-trace proposition."
         ),
         "pass_criteria": (
-            "Any registered FBMCQ assertion is tied to one explicit bounded "
-            "temporal obligation with exact model refs and a justified bound; "
-            "otherwise the complete plan proceeds without FBMCQ."
+            "Any registered FBMCQ assertion contains one exact query whose parsed "
+            "property kind and bound match its declared formal metadata, whose "
+            "assumptions are grounded, and whose finite limitation is explicit."
         ),
         "limitations": [
             "query_authoring_reference_only",
@@ -55,17 +56,21 @@ def build_tool(state: GuideAccessState) -> SimpleStructuredTool:
         -------
         Read pyfcstm's packaged, integrity-checked FBMCQ authoring guide before
         the first attempt to read, write, revise, or request execution of an FBMCQ
-        property in this Agent attempt.
+        property in this Agent attempt. Full-formal Discover always reads this
+        guide once after ``read_task`` so all providers receive the same capability
+        description; reading it does not require later FBMCQ use.
 
         When to use
         -----------
-        Use before composing, registering, revising, or interpreting the first
-        assertion containing ``fbmcq(...)``.
+        In the full-formal profile, use exactly once immediately after
+        ``read_task`` and before planning/investigation. In a non-formal ablation
+        this tool is not exposed.
 
         When not to use
         ----------------
-        Do not call when the coverage plan has no formal assertion, and do not
-        use guide text as proof that a property holds.
+        Do not call it repeatedly and do not use guide text as proof that a
+        property holds. Reading the guide is capability normalization, not a
+        quota requiring a formal assertion.
 
         Parameters
         ----------

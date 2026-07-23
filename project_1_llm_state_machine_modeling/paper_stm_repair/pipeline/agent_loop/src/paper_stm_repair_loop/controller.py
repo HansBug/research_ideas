@@ -200,13 +200,27 @@ class DiscoverController:
             },
         )
 
+        fbmcq_limits = dict(self.manifest.get("fbmcq_limits") or {})
+        formal_profile = bool(self.manifest.get("formal_profile", True))
         environment = EvalEnvironment(
             model_text=self.case.fcstm,
             model_path="inputs/STM_0.fcstm",
             inspect=self.check_result.get("inspect") or {},
             source_mappings=list(mappings),
-            timeout_seconds=int(self.manifest.get("eval_timeout_seconds") or 2),
+            timeout_seconds=None,
+            formal_verification_enabled=formal_profile,
+            fbmcq_solver_timeout_ms=fbmcq_limits.get("solver_timeout_ms"),
+            fbmcq_max_bound=fbmcq_limits.get("max_bound"),
+            fbmcq_process_wall_seconds=fbmcq_limits.get(
+                "process_wall_seconds"
+            ),
         )
+        evidence_policy = {
+            "policy_id": "paper1-discover-issue165-v1",
+            "formal_profile": formal_profile,
+            "fbmcq_limits": fbmcq_limits,
+            "tool_choice": "proposition_quantification_v1",
+        }
         relevant = [item for item in facts if item.behavior_relevant]
         self.registry = CoverageRegistry(
             input_segment_ids=[item.segment_id for item in segments],
@@ -228,6 +242,21 @@ class DiscoverController:
             ),
             issue_assessment_resolver=self._resolve_issue_assessment,
             fbmcq_guide_read=lambda: self.guide_access.has_read("fbmcq"),
+            evidence_context={
+                "check": {
+                    "check_result_sha256": sha256_json(self.check_result),
+                    "check_record_id": self.check_result.get("record_id"),
+                    "model_sha256": self.case.fcstm_sha256,
+                    "tool_hash": environment.function_registry_hash,
+                },
+                "policy": {
+                    **evidence_policy,
+                    "policy_hash": sha256_json(evidence_policy),
+                    "evidence_policy_fingerprint": sha256_json(
+                        evidence_policy
+                    ),
+                },
+            },
         )
         self.snapshot = self._build_task_snapshot()
         validate_reference_blind(self.snapshot)
@@ -252,6 +281,14 @@ class DiscoverController:
 
     def _build_task_snapshot(self) -> dict[str, Any]:
         assert self.frozen is not None
+        formal_profile = bool(self.manifest.get("formal_profile", True))
+        fbmcq_limits = dict(self.manifest.get("fbmcq_limits") or {})
+        evidence_policy = {
+            "policy_id": "paper1-discover-issue165-v1",
+            "formal_profile": formal_profile,
+            "fbmcq_limits": fbmcq_limits,
+            "tool_choice": "proposition_quantification_v1",
+        }
         current_records = {
             "nl": {
                 "content": self.case.nl,
@@ -336,12 +373,14 @@ class DiscoverController:
                     "effects",
                     "effect_delta",
                     "effect_deltas",
+                    "topology",
+                    "path",
                     "simulate",
-                    "fbmcq",
                     "mapped_source_refs",
                     "mapped_fcstm_refs",
                     "bound_model_refs",
-                ],
+                ]
+                + (["fbmcq"] if formal_profile else []),
                 "pure_builtins": [
                     "abs",
                     "all",
@@ -365,11 +404,10 @@ class DiscoverController:
             "run_policy": {
                 "formal_profile": bool(self.manifest.get("formal_profile", True)),
                 "agent_limits": copy.deepcopy(self.manifest.get("agent_limits") or {}),
-                "max_observe_trace_calls_per_root": 2,
-                "max_cycles_per_observe_trace_call": 16,
-                "eval_timeout_seconds": int(
-                    self.manifest.get("eval_timeout_seconds") or 2
-                ),
+                "fbmcq_limits": fbmcq_limits,
+                "eval_timeout_seconds": None,
+                "check_result_sha256": sha256_json(self.check_result),
+                "evidence_policy": evidence_policy,
             },
         }
         return freeze_task_snapshot(

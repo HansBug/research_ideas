@@ -3,6 +3,25 @@ from __future__ import annotations
 from typing import Any
 
 
+def runtime_observation(runtime: Any, *, mode: str, state: str | None = None) -> dict[str, Any]:
+    """Return terminal-safe active-state and variable facts for a runtime."""
+
+    is_ended = bool(runtime.is_ended)
+    if is_ended:
+        active_states: list[str] = []
+    else:
+        current_path = ".".join(runtime.current_state.path)
+        parts = current_path.split(".")
+        active_states = [".".join(parts[:depth]) for depth in range(1, len(parts) + 1)]
+    return {
+        "mode": mode,
+        "state": state,
+        "is_ended": is_ended,
+        "active_states": active_states,
+        "variables": _jsonable(getattr(runtime, "vars", {})),
+    }
+
+
 def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
     """Normalize one pyfcstm ``SimulationRuntime.cycle`` result.
 
@@ -72,18 +91,24 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
 
 
 def execute_cycles(
-    model: Any, cycles: list[list[str]]
-) -> tuple[str | None, list[dict[str, Any]]]:
+    model: Any,
+    cycles: list[list[str]],
+    *,
+    initial_state: str | None = None,
+    initial_vars: dict[str, int | float] | None = None,
+) -> tuple[str | None, list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     """Run event cycles with pyfcstm cycle semantics.
 
     Parameters: ``model`` is the controller-bound parsed FCSTM model and
     ``cycles`` is an ordered list of outer cycles, each containing zero or more
     event names.  Empty lists are explicit eventless stabilization cycles.
 
-    Returns: ``(current_state, trace_cycles)`` where ``current_state`` is the
-    final dotted active state path or ``None`` after model termination, and
+    Returns: ``(current_state, trace_cycles, requested_initialization, effective_initialization)`` where ``current_state`` is the
+    final dotted active state path or ``None`` after model termination,
     ``trace_cycles`` contains exactly one observation for every caller-provided
-    outer cycle. Every observation includes the terminal-safe ``is_ended`` fact.
+    outer cycle, and initialization records show requested/effective cold or hot
+    start state and variables. Every observation includes the terminal-safe
+    ``is_ended`` fact.
 
     Execution: creates one fresh ``SimulationRuntime`` and invokes
     ``SimulationRuntime.cycle`` exactly once for each requested outer cycle. It
@@ -109,13 +134,39 @@ def execute_cycles(
 
     if not isinstance(cycles, list) or not cycles:
         raise ValueError("cycles must contain at least one explicit cycle")
-    runtime = SimulationRuntime(model, abstract_error_mode="log")
+    if (initial_state is None) != (initial_vars is None):
+        raise ValueError(
+            "hot start requires both exact initial_state and complete initial_vars"
+        )
+    mode = "hot" if initial_state is not None else "cold"
+    requested_initialization = {
+        "mode": mode,
+        "state": initial_state,
+        "variables": _jsonable(initial_vars or {}),
+    }
+    if mode == "hot":
+        declared = set(getattr(model, "defines", {}).keys())
+        provided = set((initial_vars or {}).keys())
+        missing = sorted(declared - provided)
+        extra = sorted(provided - declared)
+        if missing or extra:
+            raise ValueError(
+                "hot start requires complete exact initial_vars; "
+                f"missing={missing}, extra={extra}"
+            )
+    runtime = SimulationRuntime(
+        model,
+        abstract_error_mode="log",
+        initial_state=initial_state,
+        initial_vars=initial_vars,
+    )
+    effective_initialization = runtime_observation(runtime, mode=mode, state=initial_state)
     trace = []
     for index, events in enumerate(cycles):
         result = runtime.cycle(events=list(events))
         trace.append(cycle_accounting(result, runtime, index))
     current_state = None if runtime.is_ended else ".".join(runtime.current_state.path)
-    return current_state, trace
+    return current_state, trace, requested_initialization, effective_initialization
 
 
 def _jsonable(value: Any) -> Any:

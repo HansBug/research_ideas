@@ -2,8 +2,9 @@
 
 ## 1. 定位
 
-本目录复用正牌 `0000` 的原始 NL 与 PlantUML，但使用一份逐项记录人工裁决的
-FCSTM，专门解除 `PR-discover` 的工程 smoke 阻塞。它与
+本目录复用正式 selected seed `llms_emp_feedback_final_0000` 的原始 NL 与最终
+PlantUML source pair metadata，但使用一份逐项记录人工裁决的 FCSTM，专门解除
+`PR-discover` 的工程 smoke 阻塞。它与
 [正牌 0000 自动转换快照](../llms-emp-gpt4o-hldcs/README.md) 并列保存，不覆盖原目录，
 也不替代 PlantUML -> FCSTM 系统转换器的修复。
 
@@ -18,7 +19,8 @@ llms_emp_stm_results_0000_manual_identity
 | 文件 | 说明 |
 | --- | --- |
 | [nl.txt](./nl.txt) | 与正牌 `0000` 字节一致的原始需求。 |
-| [stm0.puml](./stm0.puml) | 与正牌 `0000` 字节一致的原始 PlantUML，只保留作 provenance，不送入本 pilot 的 Discover source 槽位。 |
+| [stm0.puml](./stm0.puml) | 与正式 selected seed `llms_emp_feedback_final_0000` 字节一致的 feedback-final PlantUML；hash 必须为 `4fe07b05bdcfaac1c961d1176fb099d8240818160caa6edfb57928c6be2efc8a`。 |
+| [phase_i_generation_provenance.puml](./phase_i_generation_provenance.puml) | 人工 FCSTM authoring 实际参考过的 phase-I Generation PlantUML derivation provenance；hash 为 `8fd2f71b338836488e2e29fe19c4e58c4992d4186367f43efc121fae6c36db7f`，不作为 loaded source pair。 |
 | [model.fcstm](./model.fcstm) | 人工 canonicalization 后的可执行 FCSTM。 |
 | [DECISIONS.md](./DECISIONS.md) | 每个作用域、event、completion 与 source-preservation 裁决的理由和限制。 |
 | [source_meta.json](./source_meta.json) | 原始 pair 身份、hash 与 Discover alias。 |
@@ -37,16 +39,21 @@ discover_source_policy = fcstm_identity
 因此一次运行冻结的输入为：
 
 ```text
-NL             = 原始 0000 NL
+NL             = llms_emp_feedback_final_0000 NL
 raw/source     = model.fcstm
 intermediate   = model.fcstm
 relation       = exact_identity
-original PUML  = 仅在本目录保留，不进入 Agent 上下文
+source PUML    = stm0.puml，即 llms_emp_feedback_final_0000 selected feedback-final PlantUML
+derivation PUML= phase_i_generation_provenance.puml，仅记录人工 authoring provenance
 ```
 
 这样可以继续验证 Discover Agent 的 guide、tool、scenario/property、structured
 submission 与 append-only record 链，同时确定性排除 PlantUML lowering difference
 成为 candidate issue。代价是本 pilot 不能回答“是否发现了原始 PlantUML 的问题”。
+
+注意：`source_meta.json` 中的 source pair、locator、selected stage 与 `stm0_sha256`
+必须跟正式 selected seed `llms_emp_feedback_final_0000` 保持一致；`8fd2...` 只允许
+出现在 phase-I derivation provenance 字段/文件中，不能再被同一路径 `stm0.puml` 声称。
 
 ## 4. 运行
 
@@ -79,7 +86,7 @@ python -m paper_stm_repair_loop.discover \
 4. `ExitAutonomous`：`AutoInitial -> AutoFinal -> HumanDriving`。
 5. `PowerOff`：从 `HumanDriving` 进入 terminated boundary。
 
-`Front Distance > 10` 按原始 PlantUML / 官方 SCXML 口径保留为 named event。
+`Front Distance > 10` 按正式 selected seed PlantUML / 官方 SCXML 口径保留为 named event。
 A 阶段不利用 NL 将其重构为变量或 guard；这种 condition-like label 的表达债只可
 作为 Discover 的候选触发信号，不能自动升级为 source-level confirmed issue。
 

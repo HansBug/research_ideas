@@ -90,15 +90,16 @@ CoverageUnit
 反馈包含完整事实快照、兼容 evidence family、可接受谓词示例、推荐工具、具体动作和通过
 判据。这样严格门禁不会退化为要求 Agent 猜测内部 AST 规则。
 
-## 4. 十项 Agent 工具
+## 4. 十一项 Agent 工具
 
 | 工具 | 状态 | 作用 |
 |---|---|---|
 | `read_fcstm_guide` | 必用 | 第一次业务调用；读取 `pyfcstm.llm` FCSTM guide、版本与 SHA。 |
 | `read_task` | 必用 | guide 后读取完整冻结任务；重复调用只返回稳定身份信息。 |
-| `read_fbmcq_guide` | 条件必用 | 首次撰写或注册 `fbmcq(...)` 前读取官方指南。 |
-| `query_model` | 可用 | 对 states/events/variables/transitions 等 structured inspect 做精确查询。 |
-| `observe_trace` | 可用 | 按 FCSTM cycle 语义探索一条明确有限轨迹，不单独形成 Root verdict。 |
+| `read_fbmcq_guide` | full formal profile 必用 | `read_task` 后固定读取一次官方指南，只表示能力已知，不强制调用 FBMCQ；non-formal ablation 不暴露该工具。 |
+| `inspect_model` | 可用 | 读取 Controller 冻结的 parse/semantic/inspect/diagnostics/metrics，只生成弱线索，不直接产生 issue verdict。 |
+| `query_model` | 可用 | 以 strict `entities/topology/path` operation 查询结构与 guard-agnostic 拓扑事实；正向路径不等于 runtime 可执行。 |
+| `observe_trace` | 可用 | 按 FCSTM cycle 语义探索一条明确有限轨迹；支持 cold 或 exact-state + complete-vars hot start，不单独支撑普遍性结论。 |
 | `lookup_source_trace` | 可用 | 查询 source/FCSTM 映射，只支持归因，不决定 NL 是否满足。 |
 | `register_coverage_plan` | 必用 | 原子化注册 Units、Roots、bases 和所有 initial assertions。 |
 | `eval_assert` | 必用 | 每次只执行一条已注册 latest assertion，并记录真实调用与结果。 |
@@ -110,9 +111,21 @@ Repair 或模型修改参数。每个 Agent-facing tool 的注册 docstring 必�
 When to use、When not to use、Parameters、Returns、Execution、Failure semantics、
 Evidence limitations、Permissions 和 Example，并由合同测试读取真实注册 description。
 
-`eval_assert` 的受限环境额外提供开放式 `effect_deltas(source=..., event=...,
-target=...)`。它返回当前匹配迁移上全部可解析的 `(variable, delta)`，无变量或无 effect 时
-返回空 tuple。对于“某动作使某个计数减少”但当前模型根本没有对应变量的 NL 义务，Agent
+`eval_assert` 的受限环境把 structure/relation/effect、simulation 和 bounded formal
+verification 作为同等地位的证据能力，由 Agent 根据命题量化范围选择，不按固定阶梯调用。
+其中：
+
+- `simulate(cycles, initial_state=None, initial_vars=None)` 支持 cold/hot start；hot start 的
+  第一个 cycle 直接从冻结初始状态执行，不要求前置 `[]`，但不能证明 cold
+  reachability 或被跳过的 entry action；
+- `topology()` / `path()` 回答 guard-agnostic 结构可达与路径问题；正向结果只是
+  runtime 可行性的 over-approximation；
+- `fbmcq(...)` 可用 NL 明示的 `requirement_bound`，也可以使用诚实记录有限
+  horizon 的 `analysis_bound`；bounded result 不得写成无界证明。
+
+环境另提供开放式 `effect_deltas(source=..., event=..., target=...)`。它返回当前
+匹配迁移上全部可解析的 `(variable, delta)`，无变量或无 effect 时返回空 tuple。对于
+“某动作使某个计数减少”但当前模型根本没有对应变量的 NL 义务，Agent
 可写 `any(delta < 0 for _, delta in effect_deltas(...))`，从而让缺失行为稳定得到 `False`，
 而不需要虚构 `dummy`、`sentinel` 或不存在的变量名。已知且可追溯的真实变量仍可使用
 `effect_delta(..., variable=...)`。
@@ -164,35 +177,37 @@ failed finding 还必须至少关联一个当前真实台账 ID；
 
 ```text
 problem
-missed_behavior_risk
+required_scope
+observed_scope
+scope_gap
+risk
 related_*_ids
 coverage_dimensions
-recommended_tools
-recommended_steps
+routes
+recommended_tools        # 可选；只有语义不可替代时才 mandatory
+recommended_steps        # 可选恢复路线，不是工具配额
 recommended_action
-pass_criteria
+pass_criterion
 ```
 
-因此 review 不是只给裁决。它必须告诉主 Agent 漏掉了什么、为什么影响召回或误报、应调用
-哪些现有工具、如何补强断言，以及什么条件下才可复审通过。程序化 ID mismatch 和过早调用
-review 也会生成确定性 `required_actions`。
+因此 review 不是只给裁决。它必须先说清命题要求什么范围、当前证据真正覆盖了什么、
+两者的语义缺口及风险，再给出一条或多条等强恢复路线和可观察通过条件。
+`required_function_families` 只证明某证据 family 真实调用，不证明证据范围已足够；
+reviewer 也不能因未调用某工具就机械拒绝。程序化 ID mismatch 和过早调用 review
+仍会生成确定性 `required_actions`。
 
 `coverage_dimensions` 明确指出建议将增加或重查哪一类覆盖，例如 `nl_semantics`、
 `model_behavior`、`source_trace_grounding`、`assertion_strength`、
 `issue_projection_evidence` 或 `anti_gaming`。`recommended_action` 不能只写“继续检查”或
 “提高覆盖率”，必须说明要检查的具体行为、路径、条件或 evidence dimension；
-`pass_criteria` 必须给出下一次 review 可观察、可判定的闭合条件。建议只能使用当前 Discover
-已有工具，不能要求 Agent 直接改 Controller projection，也不能用 FBMCQ 解释 NL，或把 NL
-加强成原文没有的 `only`、every-state、future-model 义务。为避免“建议继续检查”这类无法
-执行的口号，`recommended_action` 必须逐字点名至少一个 `recommended_tools` 中的工具，
-以及至少一个 `related_*_ids` 中的当前台账 ID，
-`recommended_steps` 必须为每个推荐工具分别写出关联 ID、检查目标、参数/模型范围和预期证据，
-其中 `suggested_arguments` 按工具合同至少给出 `query_kind`、`cycles`、`element_refs`、
-`assertion_chain_id/assert` 或完整 `plan` 等相应键，并复用真实工具 Pydantic 输入合同校验
-enum、列表层级、必填字段和额外字段；
-`pass_criteria` 必须点明 terminal bool、具体 state/transition/effect/trace/ID 闭合等可观察
-结果。全称量词是否越界由持有冻结 NL 的 gate 判断；原文明确写了 `all states` 时不会被关键词
-门禁误拒。
+`pass_criterion` / 兼容字段 `pass_criteria` 必须给出下一次 review 可观察、可判定的闭合条件。
+建议只能使用当前 Discover 已暴露的能力，不能要求 Agent 直接改 Controller projection，
+也不能用 FBMCQ 解释 NL，或把 NL 加强成原文没有的 `only`、every-state、future-model 义务。
+`recommended_action` 必须点名至少一个 `related_*_ids` 中的当前台账 ID 和具体检查对象；
+只有 `recommended_tools` 非空、表示某工具语义不可替代时，action 才必须点名相应工具。
+`recommended_steps` 若存在，其工具必须属于 `recommended_tools`，related IDs 必须属于当前 finding，
+`suggested_arguments` 继续复用真实工具 Pydantic 输入合同校验。全称量词是否越界由持有冻结 NL
+的 gate 判断；原文明确写了 `all states` 时不会被关键词门禁误拒。
 
 审查通过绑定 `reviewed_state_fingerprint`。任何后续 `eval_assert` 或 assertion revision
 都会改变 fingerprint，使旧 pass 立即失效；必须重新执行双审查。
@@ -224,9 +239,13 @@ verdict 和失败审计，并终止当前 Discover attempt。它们不能通过�
 
 System prompt 要求同一个 Discover run 完成：
 
-1. `read_fcstm_guide -> read_task`。
+1. full formal profile 固定执行 `read_fcstm_guide -> read_task -> read_fbmcq_guide`；
+   non-formal ablation 只执行前两步且不暴露 formal 工具。读 guide 只表示能力已知，
+   不强制对所有 Root 使用 FBMCQ。
 2. 对每个主要 NL clause/cue 找到模型实现，并使用完整 SourceFact inventory 探索会实质影响这些义务的模型交互；不机械地为每个事实单独建断言。
-3. 必要时调用 query/trace/source-trace；涉及 FBMCQ 时先读 guide。
+3. 根据命题是结构事实、单个具体工况还是多 execution/valuation/path 性质，选择
+   structure/effect、simulation 或 FBMCQ；可选 `inspect_model` 只用于找线索。注册前只允许一次
+   绑定明确 proposition 的定向 query/trace，source trace 仍只在真实矛盾后用于归因。
 4. 注册完整计划；被拒后必须按 `required_actions` 修正完整计划，不能删除困难义务。
 5. 对每条 latest required assertion 分别调用 `eval_assert`。
 6. 对 inconclusive 或审查指出的弱命题调用 `revise_assertion`，再执行新版本。
@@ -301,10 +320,14 @@ make discover-custom \
 --review-max-model-calls
 --review-max-turns
 --review-max-seconds
+--fbmcq-process-wall-seconds
+--fbmcq-solver-timeout-ms
+--fbmcq-max-bound
 ```
 
 所有显式限制必须为正数，秒数必须有限。主 Agent、两个 reviewer 的精确 profile 和预算
-写入 manifest；不允许把临时 smoke 限额静默当成正式实验条件。
+写入 manifest；FBMCQ 的 process wall time、solver timeout 与 max bound 也只在 CLI 显式给出时
+生效并记录。默认正式运行不设隐藏资源限制，不允许把临时 smoke 限额静默当成正式实验条件。
 
 ## 9. 输出与证据链
 
@@ -347,3 +370,33 @@ ruff check \
 
 Development fixtures 和 evaluator gold 只用于测试/验收，不进入 Agent 或 reviewer context。
 它们证明已声明能力上的回归，不允许被写进 prompt、coverage rows、plan gate 或运行结果。
+
+真实 provider 的 S1-S4 证据选择 smoke 是显式 opt-in，不进入默认 pytest：
+
+```bash
+source .env
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests/helpers/probe_discover_evidence_choice.py \
+  --run-real \
+  --profile gpt-5.5 \
+  --profile claude-opus-4-7 \
+  --out runs/paper1/discover/evidence-choice-<git-head>.jsonl
+```
+
+该 helper 为 S1-S4 分别启动独立 `AgentApp.run`，输出精确 profile/model/adapter、prompt
+hash、实际工具调用、structured decision、usage/cache、限制、rubric 结果，并区分
+provider/transport 基础设施失败和语义选择失败。默认 smoke 限制固定为 Issue #165 的
+`4 model calls / 3 tool calls / 4 turns / 180s`，只约束该小型 smoke，不改变正式 Discover
+默认无隐藏资源限制的合同。
+
+PR #162 的 60 例 FCSTM 资产可用以下 helper 做显式 opt-in FBMCQ 性能探测；`--limit`
+存在时只是小型 smoke，省略时才执行严格的 60/60 ID 集合 preflight 和全量 probe：
+
+```bash
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
+python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests/helpers/probe_discover_fbmcq.py \
+  --fcstm-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/fcstm \
+  --bounds 5,20,50 \
+  --output runs/paper1/discover/fbmcq-probe-<git-head>.jsonl
+```
+
+两类 helper 都使用排他创建，拒绝覆盖已有输出；`runs/` 只保留本地审计证据，不提交。

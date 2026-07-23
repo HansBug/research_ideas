@@ -46,6 +46,9 @@ def test_guide_first_and_task_second_are_runtime_enforced(tmp_path):
         "current_records",
         "readable_history",
     )
+    assert resolver() == "read_fbmcq_guide"
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
+    assert resolver() is None
 
 
 def test_registered_assertions_are_forced_one_by_one(tmp_path):
@@ -55,6 +58,7 @@ def test_registered_assertions_are_forced_one_by_one(tmp_path):
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     accepted = tools["register_coverage_plan"].invoke(
         {"plan": plan, "reason": "注册完整计划。"}
@@ -92,6 +96,7 @@ def test_inconclusive_eval_finishes_missing_worklist_before_revision(tmp_path):
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     first = plan["logical_assertions"][0]
     first["required_function_families"] = ["relation", "structure"]
@@ -142,6 +147,7 @@ def test_review_prerequisite_rejection_guides_registration_without_resolver_take
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
 
     rejected = tools["review_discovery_coverage"].invoke(
         {"reason": "错误地在计划注册前发起审查。"}
@@ -162,6 +168,7 @@ def test_agent_tool_schema_and_domain_rejections_return_recovery_guidance(tmp_pa
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     assert resolver() is None
 
     schema_rejected = json.loads(
@@ -207,6 +214,7 @@ def test_unknown_eval_expression_guides_exact_retry_not_assertion_revision(tmp_p
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     assert tools["register_coverage_plan"].invoke(
         {"plan": plan, "reason": "注册完整计划。"}
@@ -233,6 +241,7 @@ def test_failed_review_allows_all_actions_before_next_review(tmp_path):
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     assert tools["register_coverage_plan"].invoke(
         {"plan": plan, "reason": "注册完整计划。"}
@@ -290,6 +299,7 @@ def test_terminal_reviewer_failure_stops_before_another_model_turn(tmp_path):
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     accepted = tools["register_coverage_plan"].invoke(
         {"plan": plan, "reason": "注册完整计划。"}
@@ -319,6 +329,7 @@ def test_registration_schema_reject_explains_how_to_recover(tmp_path):
     tools = {tool.name: tool for tool in tools}
     tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
     tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
     plan = make_plan(controller)
     duplicate = dict(plan["logical_assertions"][0])
     duplicate["assertion_chain_id"] = "ASSERT-DUPLICATE"

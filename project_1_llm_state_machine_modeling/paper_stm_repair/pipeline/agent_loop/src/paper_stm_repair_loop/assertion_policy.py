@@ -87,7 +87,7 @@ def validate_assertion_semantic_policy(
     simulate_calls = [call for call in calls if _call_name(call) == "simulate"]
 
     for call in simulate_calls:
-        if not _simulate_has_empty_first_cycle(call):
+        if _simulate_has_invalid_hot_start_request(call) or not _simulate_has_empty_first_cycle(call):
             _add_error(errors, ERROR_SIMULATE_FIRST_CYCLE_REQUIRED)
 
     requirements = list(coverage_requirements)
@@ -259,6 +259,8 @@ def _call_name(call: ast.Call) -> str | None:
 
 
 def _simulate_has_empty_first_cycle(call: ast.Call) -> bool:
+    if _simulate_has_exact_hot_start_literal_request(call):
+        return True
     cycles: ast.AST | None = None
     for keyword in call.keywords:
         if keyword.arg == "cycles":
@@ -274,6 +276,58 @@ def _simulate_has_empty_first_cycle(call: ast.Call) -> bool:
         return False
     first = cycles.elts[0]
     return isinstance(first, (ast.List, ast.Tuple)) and not first.elts
+
+
+def _simulate_has_exact_hot_start_literal_request(call: ast.Call) -> bool:
+    initial_state, initial_vars = _simulate_hot_start_keywords(call)
+    return _is_nonempty_string_literal(initial_state) and _is_literal_initial_vars_dict(
+        initial_vars
+    )
+
+
+def _simulate_has_invalid_hot_start_request(call: ast.Call) -> bool:
+    initial_state, initial_vars = _simulate_hot_start_keywords(call)
+    if initial_state is None and initial_vars is None:
+        return False
+    return not _simulate_has_exact_hot_start_literal_request(call)
+
+
+def _simulate_hot_start_keywords(call: ast.Call) -> tuple[ast.AST | None, ast.AST | None]:
+    initial_state = None
+    initial_vars = None
+    for keyword in call.keywords:
+        if keyword.arg == "initial_state":
+            initial_state = keyword.value
+        if keyword.arg == "initial_vars":
+            initial_vars = keyword.value
+    return initial_state, initial_vars
+
+
+def _is_nonempty_string_literal(node: ast.AST | None) -> bool:
+    return (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and bool(node.value.strip())
+    )
+
+
+def _is_literal_initial_vars_dict(node: ast.AST | None) -> bool:
+    if not isinstance(node, ast.Dict):
+        return False
+    for key, value in zip(node.keys, node.values):
+        if not _is_nonempty_string_literal(key):
+            return False
+        if not _is_literal_initial_var_number(value):
+            return False
+    return True
+
+
+def _is_literal_initial_var_number(node: ast.AST) -> bool:
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, (int, float)) and not isinstance(node.value, bool)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        return _is_literal_initial_var_number(node.operand)
+    return False
 
 
 def _effect_direction(cue: str) -> str | None:

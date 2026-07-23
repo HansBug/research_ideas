@@ -1,19 +1,5 @@
 from __future__ import annotations
 
-import sys
-import types
-
-if "utils.agent" not in sys.modules:
-    utils_pkg = types.ModuleType("utils")
-    utils_pkg.__path__ = []
-    agent_mod = types.ModuleType("utils.agent")
-    agent_mod.AgentApp = object
-    agent_mod.AgentSpec = object
-    llm_mod = types.ModuleType("utils.llm")
-    llm_mod.LLMRegistry = object
-    llm_mod.load_llm_registry = lambda *_, **__: None
-    sys.modules.update({"utils": utils_pkg, "utils.agent": agent_mod, "utils.llm": llm_mod})
-
 from paper_stm_repair_loop.tools.coverage_registry import CoverageRegistry
 from paper_stm_repair_loop.tools.eval_assert import build_tool as build_eval_assert_tool
 from paper_stm_repair_loop.tools.register_coverage_plan import build_tool as build_register_coverage_plan_tool
@@ -107,7 +93,15 @@ def test_new_agent_facing_tools_have_required_docstring_sections_and_reason_para
         assert "reason" in schema["properties"]
 
     assert set(tools[0].args_schema.model_json_schema()["properties"]) == {"plan", "reason"}
-    assert set(tools[1].args_schema.model_json_schema()["properties"]) == {"assertion_chain_id", "assert", "reason"}
+    assert set(tools[1].args_schema.model_json_schema()["properties"]) == {
+        "assertion_chain_id",
+        "assert",
+        "formal_property_kind",
+        "formal_bound",
+        "formal_bound_origin",
+        "formal_assumption_basis_ids",
+        "reason",
+    }
     assert set(tools[2].args_schema.model_json_schema()["properties"]) == {"assert", "reason"}
 
 

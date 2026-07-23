@@ -47,6 +47,28 @@ def test_simulate_literal_cycles_must_start_with_empty_cycle():
     )
 
 
+
+def test_simulate_first_cycle_policy_allows_only_complete_hot_start_without_leading_empty():
+    assert (
+        validate_assertion_semantic_policy(
+            "simulate(initial_state='Root.Work.A', initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+            [],
+        )
+        == []
+    )
+
+    for expression in (
+        "simulate(initial_state='Root.Work.A', cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+        "simulate(initial_state='Root.Work.A', cycles=[[], ['Root.Work.go']]).final.is_active('Root.Work.B')",
+        "simulate(initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+        "simulate(initial_vars={'count': 1, 'flag': 0}, cycles=[[], ['Root.Work.go']]).final.is_active('Root.Work.B')",
+        "simulate(initial_state=state_name, initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+        "simulate(initial_state='Root.Work.A', initial_vars=dict(count=1, flag=0), cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+    ):
+        assert _codes(validate_assertion_semantic_policy(expression, [])) == {
+            ERROR_SIMULATE_FIRST_CYCLE_REQUIRED
+        }
+
 def test_decrease_effect_requires_negative_effect_delta_not_bool_effects():
     reqs = [_req("REQ-EFFECT", "effect", "decreases")]
     errors = validate_assertion_semantic_policy(

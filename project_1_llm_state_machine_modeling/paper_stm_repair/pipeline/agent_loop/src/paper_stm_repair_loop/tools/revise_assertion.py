@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import Field, create_model
 
+from ..schemas.assertions import FormalBoundOrigin, FormalPropertyKind
 from ..schemas.tools import NonBlankString, SimpleStructuredTool, StrictToolModel
 from .coverage_registry import CoverageRegistry
 
@@ -14,15 +15,40 @@ ReviseAssertionInput = create_model(
     **{
         "assertion_chain_id": (str, Field(min_length=1)),
         "assert": (str, Field(min_length=1)),
+        "formal_property_kind": (FormalPropertyKind | None, None),
+        "formal_bound": (int | None, Field(default=None, ge=1)),
+        "formal_bound_origin": (FormalBoundOrigin | None, None),
+        "formal_assumption_basis_ids": (
+            list[str],
+            Field(default_factory=list),
+        ),
         "reason": (NonBlankString, ...),
     },
 )
 
 
-def execute(registry: CoverageRegistry, assertion_chain_id: str, assert_text: str, reason: str) -> dict[str, object]:
+def execute(
+    registry: CoverageRegistry,
+    assertion_chain_id: str,
+    assert_text: str,
+    reason: str,
+    *,
+    formal_property_kind: str | None = None,
+    formal_bound: int | None = None,
+    formal_bound_origin: str | None = None,
+    formal_assumption_basis_ids: list[str] | None = None,
+) -> dict[str, object]:
     """Append a new latest assertion version in the controller registry."""
 
-    return registry.revise_assertion(assertion_chain_id, assert_text, reason=reason)
+    return registry.revise_assertion(
+        assertion_chain_id,
+        assert_text,
+        reason=reason,
+        formal_property_kind=formal_property_kind,
+        formal_bound=formal_bound,
+        formal_bound_origin=formal_bound_origin,
+        formal_assumption_basis_ids=formal_assumption_basis_ids,
+    )
 
 
 def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
@@ -31,8 +57,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     Parameters: ``registry`` is the Controller-owned append-only
     ``CoverageRegistry``. The public input fields are ``assertion_chain_id``,
     ``assert`` (internally ``assert_text`` because ``assert`` is a Python
-    keyword), and ``reason``. ``reason`` is trimmed and stored as the revision
-    rationale and is not trusted for Root/Unit matching.
+    keyword), the nullable Issue #165 formal metadata fields, and ``reason``.
+    ``reason`` is trimmed and stored as the revision rationale and is not
+    trusted for Root/Unit matching.
 
     Returns: a ``StructuredTool`` named ``revise_assertion``. Accepted revisions
     return the new ``assertion_version_id``, ``assert_sha256``, inherited
@@ -44,8 +71,10 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
     It never mutates old versions or old results. The revision inherits
     ``required``, Root, CoverageUnit, basis IDs, evidence scope, and required
     function families from the previous latest version, so the public API cannot
-    weaken them. The new expression/SHA must not duplicate another chain's latest
-    active expression.
+    weaken them. A revised FBMCQ expression must resubmit property kind, bound,
+    bound origin, and assumption basis; the Controller reparses the exact query
+    and rejects any mismatch. The new expression/SHA must not duplicate another
+    chain's latest active expression.
 
     Failure semantics: unknown chain IDs, same-expression revisions, or duplicate
     latest expression/SHA collisions are rejected and recorded; the previous
@@ -90,8 +119,14 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         Parameters
         ----------
         ``assertion_chain_id`` names one existing chain. ``assert`` is one Python
-        expression string. ``reason`` is required natural language; surrounding
-        whitespace is removed before it is saved.
+        expression string. For a single ``fbmcq(...)`` call, provide matching
+        ``formal_property_kind``, ``formal_bound``, ``formal_bound_origin`` and
+        ``formal_assumption_basis_ids``. For a non-formal expression, leave the
+        first three null and the basis list empty. ``reason`` is required natural
+        language; an ``analysis_bound`` rationale must name the finite bound and
+        explain why that horizon fits the proposition. Every assumption basis ID
+        must already be a frozen ID in the inherited assertion ``basis_ids``;
+        arbitrary profile-like IDs are not accepted without a frozen registry.
 
         Returns
         -------
@@ -123,7 +158,18 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
         ``{"assertion_chain_id":"ASSERT-1","assert":"transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')","reason":"Revise to an exact target relation while inheriting ROOT-1."}``
         """
 
-        return execute(registry, kwargs["assertion_chain_id"], kwargs["assert"], kwargs["reason"])
+        return execute(
+            registry,
+            kwargs["assertion_chain_id"],
+            kwargs["assert"],
+            kwargs["reason"],
+            formal_property_kind=kwargs.get("formal_property_kind"),
+            formal_bound=kwargs.get("formal_bound"),
+            formal_bound_origin=kwargs.get("formal_bound_origin"),
+            formal_assumption_basis_ids=kwargs.get(
+                "formal_assumption_basis_ids"
+            ),
+        )
 
     return SimpleStructuredTool(
         func=revise_assertion,

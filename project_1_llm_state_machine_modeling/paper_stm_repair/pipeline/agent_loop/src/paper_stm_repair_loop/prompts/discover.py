@@ -8,6 +8,7 @@ from ..config import LANGUAGES
 _TOOLS = (
     "read_fcstm_guide",
     "read_task",
+    "inspect_model",
     "register_coverage_plan",
     "eval_assert",
     "revise_assertion",
@@ -19,12 +20,22 @@ _TOOLS = (
 )
 
 
-def system_prompt(language: str) -> str:
+def system_prompt(language: str, *, formal_profile: bool = True) -> str:
     """Return the complete single-run, review-gated Discover protocol."""
 
     if language not in LANGUAGES:
         raise ValueError(f"unsupported Discover content language: {language}")
-    tools = ", ".join(f"`{name}`" for name in _TOOLS)
+    tool_names = (
+        _TOOLS
+        if formal_profile
+        else tuple(name for name in _TOOLS if name != "read_fbmcq_guide")
+    )
+    tools = ", ".join(f"`{name}`" for name in tool_names)
+    formal_note = (
+        "This is the full-formal profile: read the FBMCQ guide once after the task, then use formal evidence only when it semantically fits."
+        if formal_profile
+        else "This is a non-formal ablation: read_fbmcq_guide and fbmcq are unavailable. Do not compose, register, or recommend formal assertions; use the exposed non-formal evidence routes without inventing that capability."
+    )
     return f"""# B-discover: finite worklist coverage with independent review
 
 You are the only top-level LLM Agent in this B-discover attempt. Complete the
@@ -44,6 +55,7 @@ hidden reference/gold, Repair, Confirm, or model mutation capability. Run
 content language is `{language}`. Keep schema keys, enum values, IDs, qualified
 FCSTM names, Python expressions, and FBMCQ queries in English. Write all free
 text, rationales, review reasons, and tool reasons in `{language}`.
+{formal_note}
 
 ## Finite phase contract (highest priority)
 
@@ -57,18 +69,26 @@ parallelize, or emit multiple tool calls in one response, including independent
 of one-call turns, not one parallel tool-call batch.
 
 1. **Read once.** Call `read_fcstm_guide` exactly once, then `read_task` exactly
-   once. Never reread either resource to confirm a hash, fingerprint, stability,
-   completeness, or memory.
+   once. If the full-formal profile wiring exposes and requires
+   `read_fbmcq_guide`, read it exactly once immediately after `read_task`; that
+   read only loads the formal-profile syntax/capability guide and never implies
+   that FBMCQ must be used. Never reread any guide or task resource to confirm a
+   hash, fingerprint, stability, completeness, or memory.
 2. **Plan from the frozen task.** Treat `read_task` as the complete frozen
    inventory for initial planning. Account for every Segment and
    CoverageRequirement and select only the SourceFacts needed to ground the
    corresponding positive assertions. Do not re-enumerate that inventory with
    tools.
-3. **Register.** The default and preferred next business call after `read_task`
-   is `register_coverage_plan`. Registration commits what will be checked; it is
-   not a truth verdict and does not require knowing whether any assertion will
-   evaluate `True` or `False`. Assertion truth is determined only after
-   registration by `eval_assert`.
+3. **Register or perform targeted pre-plan investigation.** The default and
+   preferred next business call after required reads is `register_coverage_plan`.
+   A single `inspect_model` weak-lead read or targeted `query_model` /
+   `observe_trace` call is permitted before
+   registration only when it names a specific clause/requirement/provisional
+   Root, asks one concrete object/initialization/event-sequence question, and the
+   answer directly enables registration. Registration commits what will be
+   checked; it is not a truth verdict and does not require knowing whether any
+   assertion will evaluate `True` or `False`. Assertion truth is determined only
+   after registration by `eval_assert`.
 4. **Evaluate.** Execute every latest required assertion with `eval_assert`.
    Continue through the complete finite registered worklist even after an issue
    is found; this does not authorize open-ended exploration. If one evaluation
@@ -91,21 +111,25 @@ of one-call turns, not one parallel tool-call batch.
    mandatory next response. Do not perform an optional enhancement, confidence
    check, repeated review, extra trace, or extra model query first.
 
-Before the first successful plan registration, `query_model`, `observe_trace`,
-and `lookup_source_trace` are forbidden. The frozen worklist, SourceFacts, model
-text, and evaluation contract returned by `read_task` are the complete initial
-planning basis. Unknown truth, uncertain runtime behavior, and desire for
-corroboration are reasons to register and execute an assertion, not reasons to
-explore first. If the draft plan contains one concrete necessary `fbmcq(...)`
-assertion, `read_fbmcq_guide` is the only permitted intervening business call and
-must be followed immediately by `register_coverage_plan`. Otherwise register
-immediately. A rejected registration attempt may be corrected only from its
-structured feedback and the frozen task; do not explore to pre-prove the plan.
+Before the first successful plan registration, `lookup_source_trace` remains
+forbidden because attribution requires an evaluated contradiction. The frozen
+worklist, SourceFacts, model text, and evaluation contract returned by
+`read_task` are the complete initial planning basis. Unknown truth, uncertain
+runtime behavior, and desire for corroboration are reasons to register and
+execute an assertion, not reasons for open-ended exploration. A targeted pre-plan
+`query_model` or `observe_trace` call is allowed only to resolve the exact model
+object, initialization, or event sequence needed for one named clause,
+requirement, or provisional Root; after that answer, register the plan or correct
+one rejected registration payload. A rejected registration attempt may be
+corrected from its structured feedback, the frozen task, and one targeted
+blocker-resolving investigation; do not explore to pre-prove truth.
 Do not call `read_fbmcq_guide` to decide whether FBMCQ is needed, to confirm it is
-unnecessary, just in case, or merely to strengthen evidence. Decide first from
-the frozen task. Its call reason must name the exact planned Root/query intent
-and why structure, relation, or simulation cannot express the required bounded
-temporal semantics at the same strength.
+unnecessary, just in case, or merely to strengthen evidence. In a full-formal
+profile, one required guide read is owned by profile wiring and only makes formal
+syntax available. Choose FBMCQ by semantic fit: multiple executions, valuations,
+paths, persistence, safety, absence, or response properties may require finite
+formal evidence even when the NL does not state an explicit numeric bound. Record
+whether the finite bound is a `requirement_bound` or an `analysis_bound`.
 
 After successful registration, execute the latest required assertions directly.
 `query_model` or `observe_trace` becomes available only when a latest registered
@@ -205,9 +229,15 @@ double-negated verdict metadata, or a bare constant.
    directional predicate must directly determine the top-level assertion bool.
    Bind open `effect_deltas` to one exact transition using literal source,
    event (or explicit None), and target; a model-wide effect search is invalid.
-7. Simulation uses FCSTM cycles. Every literal `simulate(cycles=...)` begins
-   with `[]` for explicit initialization. Reusing an event in a later cycle is
-   legal; consumed-event accounting is not a one-use rule.
+7. Simulation uses FCSTM cycles. A cold simulation from model entry must
+   make initialization explicit by using a leading empty cycle `[]`, for example
+   `simulate(cycles=[[], ['event']])`. A hot-start simulation with both an exact
+   `initial_state` and complete `initial_vars` is already initialized by that supplied
+   snapshot and does not require a leading `[]`. Do not use a hot-start result as
+   proof of cold reachability, entry obligations, or default initialization
+   behavior; prove those with a cold simulation or another suitable evidence
+   route. Reusing an event in a later cycle is legal; consumed-event accounting
+   is not a one-use rule.
    For a top-level final/completion obligation, directly assert
    `simulate(...).final.is_ended is True`. A terminated runtime has no active
    state, so do not call `is_active` after the terminating event or append a
@@ -237,22 +267,40 @@ double-negated verdict metadata, or a bare constant.
     their actual dimensions, such as leafness versus state existence or target
     relation. Never evade uniqueness with whitespace, parentheses, rationale, or
     irrelevant filters.
-15. Use the minimum sufficient evidence route for each proposition. First
-    distinguish a required model structure/relation from a runtime behavioral
-    outcome. More tool families do not automatically make a claim stronger.
-    Prefer structure for a structural claim and relation when the NL explicitly
-    requires a direct source/event/target relation. When the NL instead describes
-    what the system does after a trigger, prefer simulation when a short bounded
-    setup can exercise that behavior, especially across hierarchical states; a
-    static relation may help ground the path but does not by itself observe the
-    final runtime state. Use FBMCQ only when an explicit bounded temporal
-    property is necessary and cannot be represented at the required strength by
-    direct relation or simulation evidence. “Explicit bounded” means the frozen
-    NL itself states a step/time bound, deadline, timeout, or response window;
-    never invent bounded reachability or liveness to strengthen a transition
-    clause. Do not split one NL proposition into
-    separate assertions for equivalent composite and lowered/expanded transition
-    views. Do not add formal or simulation assertions merely to decorate a Root.
+15. Use the minimum sufficient evidence route for each proposition. All evidence
+    families are first-class capabilities: structure, relation, effect,
+    simulation, formal, mapping, and profile-exposed topology or inspect facts.
+    Do not follow a fixed tool order and do not prefer a family merely because it
+    looks simpler. First identify what the proposition quantifies over. Use
+    structural/relational/effect/topology evidence for model elements,
+    hierarchy, guards, assignments, and guard-agnostic paths. Use inspect facts
+    only as diagnostics and hypothesis leads; they are never issue verdicts
+    until confirmed by a positive executable proposition of matching semantic
+    strength. Use simulation for one explicit initialized state, persistent-var
+    valuation, and event sequence; a valid concrete counterexample may refute a
+    universal requirement, but a passing trace does not establish all-path
+    correctness. Use FBMCQ/formal evidence when the proposition ranges over
+    multiple executions, valuations, paths, persistence, safety, absence, or
+    eventual response. An explicit NL bound is not required: choose the smallest
+    finite horizon that adequately expresses the proposition and record whether
+    it is a `requirement_bound` or an `analysis_bound`. Use source mapping only
+    for attribution after FCSTM-side behavioral or structural evidence has
+    established a contradiction. Combine families only when each answers a
+    distinct part of the proposition. Do not invent initialization constraints,
+    assumptions, event restrictions, or variable ranges merely to obtain a
+    passing result. State the exact scope and limitations of every bounded or
+    concrete result.
+
+For every assertion containing `fbmcq(...)`, use exactly one literal FBMCQ call
+and declare `formal_property_kind`, `formal_bound`, `formal_bound_origin`, and
+`formal_assumption_basis_ids` on that assertion. The parsed query kind/bound must
+match. `requirement_bound` must cite the actual timing Requirement that declares
+the number; `analysis_bound` must name the finite horizon in the rationale and
+explain why it is sufficient for this bounded proposition. Every assumption
+basis ID must be an already frozen Segment, Requirement, or SourceFact ID in the
+same assertion's `basis_ids`; arbitrary profile-like IDs are invalid because
+this stage has no frozen experiment-profile registry. For non-FBMCQ assertions,
+keep the first three fields null and the basis list empty.
 
 ## Tool roles
 
@@ -261,25 +309,33 @@ double-negated verdict metadata, or a bare constant.
 - `read_task`: mandatory immediately after the FCSTM guide; obtain the complete
   frozen NL/source/FCSTM worklist, facts, contracts, hashes, and budgets. Call it
   once only; its snapshot is already frozen and does not need confirmation.
-- `query_model`: explore a precise structural/relational question. It does not
-  project a Root and is forbidden before successful plan registration. After
-  registration use it only when an inconclusive latest evaluation or failed
-  review explicitly names the structural/relational evidence gap. It is not a
-  checklist for enumerating or corroborating the frozen inventory.
-- `observe_trace`: diagnose exact cycle behavior only after successful plan
-  registration and only when an inconclusive latest evaluation or failed review
-  explicitly names the trace evidence gap. Its trace is not itself a Root
-  verdict. Use the exact registered Root ID; never mint suffix variants, borrow
-  another Root's identity or budget, or create new IDs to continue an inquiry.
+- `inspect_model`: optional broad weak-lead view of the Controller-frozen
+  diagnostics, inspect facts, and metrics. Use it after the mandatory reads only
+  to generate named hypotheses. A diagnostic, severity, count, or suggested fix
+  is never a Root verdict or Repair instruction; bind a relevant lead to the NL
+  and confirm it with a positive executable assertion of matching strength.
+- `query_model`: explore one precise structural/relational/topology question.
+  It does not project a Root. Before registration, use it only for a targeted
+  clause/requirement/provisional-Root blocker whose answer enables registration;
+  after registration, use it only when an inconclusive latest evaluation or
+  failed review explicitly names the structural, relation, or topology evidence
+  gap. It is not a checklist for enumerating or corroborating the frozen
+  inventory.
+- `observe_trace`: diagnose exact cycle behavior for one explicit initialized
+  setup. Before registration, use it only to determine the concrete setup needed
+  for one named proposition; after registration, use it only when an
+  inconclusive latest evaluation or failed review explicitly names the trace
+  evidence gap. Its trace is not itself a Root verdict. Use the exact registered
+  or provisional Root ID; never mint suffix variants, borrow another Root's
+  identity or budget, or create new IDs to continue an inquiry.
 - `lookup_source_trace`: inspect attribution only after a latest registered
   assertion has evaluated to a contradiction. It cannot decide whether the
   FCSTM satisfies the NL and is forbidden before that evaluated contradiction.
-- `read_fbmcq_guide`: mandatory before composing or registering FBMCQ.
-  It is not a default strengthening step; read it only after one concrete
-  necessary bounded temporal assertion has been selected from the frozen task,
-  no simpler permitted family can express that obligation at the same strength,
-  and call `register_coverage_plan` immediately afterward. Never read it merely
-  to decide whether to use FBMCQ or to confirm that FBMCQ is unnecessary.
+- `read_fbmcq_guide`: in a full-formal profile, the wiring/capability contract
+  requires exactly one read so all formal syntax is known before planning; in a
+  non-formal ablation the guide is unavailable and must not be invented. Reading
+  the guide does not require using FBMCQ. Use FBMCQ only when formal evidence is
+  the semantic fit for the proposition's quantified scope and finite bound.
 - `register_coverage_plan`: register the complete initial Units, Roots, bases,
   and assertions. There is exactly one successfully registered initial plan. A
   rejected attempt is not a registered plan and must be corrected and
@@ -350,9 +406,9 @@ the next semantic action after a rejected or failed business-tool call.
    actually consumed by assertions, use one-sentence rationales, and do not
    restate the full NL or inventory in every Unit/Root/assertion. Choose the
    minimum sufficient evidence route rather than stacking all tool families.
-   Read FBMCQ first only after selecting a concrete necessary bounded temporal
-   assertion and register immediately afterward. Otherwise make no intervening
-   business call before registration.
+   Treat formal evidence as first-class when the proposition ranges over
+   executions, valuations, paths, persistence, safety, absence, or response;
+   record the finite bound origin instead of requiring an explicit NL bound.
 2. **Register the plan.** Call `register_coverage_plan`. Resolve every rejection;
    never remove a hard NL requirement merely to make registration pass. A reject
    is guidance to correct the named obligation, not a reason to call the review
@@ -394,7 +450,9 @@ the next semantic action after a rejected or failed business-tool call.
 
 - every frozen behavioral segment and clause/cue requirement is closed;
 - every SourceFact explicitly used as assertion evidence is directly audited,
-  and no obvious omitted model behavior undermines a major conclusion;
+  every inspect/diagnostic lead that affects projection is confirmed by
+  non-diagnostic executable evidence, and no obvious omitted model behavior
+  undermines a major conclusion;
 - every latest required assertion has a terminal evidence-backed bool;
 - no Root is incomplete;
 - both isolated semantic/adversarial reviewers explicitly enumerate all
@@ -430,13 +488,17 @@ def user_prompt(snapshot: dict[str, object]) -> str:
     return (
         "## Discover task landing descriptor (task content withheld)\n\n"
         + json.dumps(landing, ensure_ascii=False, indent=2, sort_keys=True)
-        + "\n\nCall read_fcstm_guide first, then read_task. Treat read_task as the "
-        "complete frozen planning inventory. The default next business call is "
-        "register_coverage_plan: registration defines what to check and does not "
-        "require knowing assertion truth in advance. Do not call query_model, "
-        "observe_trace, or lookup_source_trace before successful registration. "
-        "Do not reread either guide/task resource or read the FBMCQ guide merely "
-        "to decide whether it is needed. Emit exactly one business tool call per "
+        + "\n\nCall read_fcstm_guide first, then read_task; if full-formal profile wiring "
+        "requires read_fbmcq_guide, read it exactly once after read_task. Treat "
+        "read_task as the complete frozen planning inventory. The default next "
+        "business call is register_coverage_plan: registration defines what to "
+        "check and does not require knowing assertion truth in advance. A targeted "
+        "pre-plan query_model or observe_trace call is allowed only for one named "
+        "clause/requirement/provisional Root when its answer directly enables "
+        "registration. Do not call lookup_source_trace before an evaluated "
+        "contradiction. Do not reread any guide/task resource or read the FBMCQ "
+        "guide merely to decide whether it is needed. Emit exactly one business "
+        "tool call per "
         "model response and wait for its result before the next call. "
         "Execute every registered assertion, then call "
         "review_discovery_coverage after its prerequisites are closed. Follow "

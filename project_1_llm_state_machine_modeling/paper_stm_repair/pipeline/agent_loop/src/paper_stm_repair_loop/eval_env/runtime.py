@@ -8,14 +8,22 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from ..pyfcstm_adapter import check_fcstm, sha256_text
+from ..pyfcstm_adapter import load_model_for_simulation
 from .effects import EffectAPI
 from .exceptions import UnsupportedEvidence
 from .fbmcq import FBMCQAPI, FBMCQ_FIELDS
 from .provenance import SAFE_BUILTINS, AuditReport, audit_expression
 from .relations import RelationAPI
-from .simulation import CYCLE_FIELDS, SIM_FIELDS, SIM_METHODS, SimulationAPI
+from .simulation import (
+    CYCLE_FIELDS,
+    INIT_FIELDS,
+    SIM_FIELDS,
+    SIM_METHODS,
+    SimulationAPI,
+)
 from .source_mapping import MAPPING_FIELDS, SourceMappingAPI
 from .structure import STRUCTURE_FIELDS, StructureAPI
+from .topology import PATH_FIELDS, TOPOLOGY_FIELDS, TopologyAPI
 from .views import FrozenView, UntrackedDependency, stable_hash
 
 
@@ -44,6 +52,18 @@ TERMINAL_RESULTS = {
 }
 
 
+def _audit_value(value: Any) -> Any:
+    if isinstance(value, FrozenView):
+        return value.to_json()
+    if isinstance(value, dict):
+        return {str(key): _audit_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_audit_value(item) for item in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return repr(value)
+
+
 @dataclass(frozen=True)
 class FunctionCallRecord:
     function: str
@@ -52,6 +72,9 @@ class FunctionCallRecord:
     kwargs_hash: str
     status: str
     result_hash: str | None = None
+    args: Any = None
+    kwargs: dict[str, Any] = field(default_factory=dict)
+    result: Any = None
     exception_type: str | None = None
     exception_message: str | None = None
 
@@ -164,8 +187,12 @@ class EvalEnvironment:
         coverage_bindings: dict[str, list[str]] | None = None,
         extra_vars: dict[str, Any] | None = None,
         extra_functions: dict[str, tuple[str, Callable[..., Any]]] | None = None,
-        timeout_seconds: int | None = 2,
+        timeout_seconds: int | None = None,
         bmc_runner: Callable[..., tuple[str, int]] | None = None,
+        formal_verification_enabled: bool = True,
+        fbmcq_solver_timeout_ms: int | None = None,
+        fbmcq_max_bound: int | None = None,
+        fbmcq_process_wall_seconds: float | None = None,
     ) -> None:
         self.model_text = model_text
         self.model_path = model_path
@@ -181,7 +208,21 @@ class EvalEnvironment:
         self.relations = RelationAPI(self.structure)
         self.effects = EffectAPI(self.structure)
         self.simulation = SimulationAPI(model_text, model_path)
-        self.fbmcq_api = FBMCQAPI(model_text, bmc_runner=bmc_runner)
+        machine = (
+            load_model_for_simulation(model_text, model_path)
+            if isinstance(model_text, str) and model_text.strip()
+            else None
+        )
+        self.topology_api = (
+            TopologyAPI(self.inspect, machine) if machine is not None else None
+        )
+        self.fbmcq_api = FBMCQAPI(
+            model_text,
+            timeout_ms=fbmcq_solver_timeout_ms,
+            max_bound=fbmcq_max_bound,
+            process_wall_seconds=fbmcq_process_wall_seconds,
+            bmc_runner=bmc_runner,
+        )
         self.mapping = SourceMappingAPI(
             self.source_mappings, bindings=coverage_bindings
         )
@@ -198,11 +239,19 @@ class EvalEnvironment:
             "effect_delta": ("effect", self.effects.effect_delta),
             "effect_deltas": ("effect", self.effects.effect_deltas),
             "simulate": ("simulation", self.simulation.simulate),
-            "fbmcq": ("formal", self.fbmcq_api.fbmcq),
             "mapped_source_refs": ("mapping", self.mapping.mapped_source_refs),
             "mapped_fcstm_refs": ("mapping", self.mapping.mapped_fcstm_refs),
             "bound_model_refs": ("mapping", self.mapping.bound_model_refs),
         }
+        if self.topology_api is not None:
+            functions.update(
+                {
+                    "topology": ("structure", self.topology_api.topology),
+                    "path": ("structure", self.topology_api.path),
+                }
+            )
+        if formal_verification_enabled:
+            functions["fbmcq"] = ("formal", self.fbmcq_api.fbmcq)
         if extra_functions:
             functions.update(extra_functions)
         invalid_registry_families = {
@@ -233,11 +282,14 @@ class EvalEnvironment:
         # ``State.is_leaf`` even though the view and Agent tool documented them.
         self.registered_view_attrs = set().union(
             STRUCTURE_FIELDS,
+            INIT_FIELDS,
             CYCLE_FIELDS,
             SIM_FIELDS,
             FBMCQ_FIELDS,
             MAPPING_FIELDS,
             SIM_METHODS,
+            TOPOLOGY_FIELDS,
+            PATH_FIELDS,
         )
 
     @property
@@ -321,9 +373,9 @@ class EvalEnvironment:
         try:
             value = self._eval_with_timeout(assert_text)
         except TimeoutError as exc:
-            return self._result(RESULT_TIMEOUT, assert_text=assert_text, reason=reason, audit=audit, before=before, after=self.vars_hash, error={"type": type(exc).__name__, "message": str(exc)}, required=required)
+            return self._result(RESULT_TIMEOUT, assert_text=assert_text, reason=reason, audit=audit, before=before, after=self.vars_hash, error={"type": type(exc).__name__, "message": str(exc), "metadata": copy.deepcopy(getattr(exc, "metadata", None))}, required=required)
         except UnsupportedEvidence as exc:
-            return self._result(RESULT_UNSUPPORTED, assert_text=assert_text, reason=reason, audit=audit, before=before, after=self.vars_hash, error={"type": type(exc).__name__, "message": str(exc)}, required=required)
+            return self._result(RESULT_UNSUPPORTED, assert_text=assert_text, reason=reason, audit=audit, before=before, after=self.vars_hash, error={"type": type(exc).__name__, "message": str(exc), "metadata": copy.deepcopy(getattr(exc, "metadata", None))}, required=required)
         except UntrackedDependency as exc:
             return self._result(RESULT_UNTRACKED, assert_text=assert_text, reason=reason, audit=audit, before=before, after=self.vars_hash, error={"type": type(exc).__name__, "message": str(exc)}, required=required)
         except Exception as exc:
@@ -374,6 +426,9 @@ class EvalEnvironment:
                         kwargs_hash=stable_hash(kwargs),
                         status="completed",
                         result_hash=stable_hash(value),
+                        args=_audit_value(args),
+                        kwargs=_audit_value(kwargs),
+                        result=_audit_value(value),
                     )
                 )
                 return value
@@ -385,6 +440,8 @@ class EvalEnvironment:
                         args_hash=stable_hash(args),
                         kwargs_hash=stable_hash(kwargs),
                         status="exception",
+                        args=_audit_value(args),
+                        kwargs=_audit_value(kwargs),
                         exception_type=type(exc).__name__,
                         exception_message=str(exc),
                     )

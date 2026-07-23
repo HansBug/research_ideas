@@ -5,6 +5,7 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Literal
 
+from .assertions import FormalBoundOrigin, FormalPropertyKind
 from .coverage import CoveragePlan
 from .tool_reason import EvalAssertInput
 from .tools import (
@@ -39,6 +40,10 @@ class RegisterCoveragePlanArguments(StrictReviewModel):
 class ReviseAssertionArguments(StrictReviewModel):
     assertion_chain_id: str = Field(min_length=1)
     assert_: str = Field(alias="assert", min_length=1)
+    formal_property_kind: FormalPropertyKind | None = None
+    formal_bound: int | None = Field(default=None, ge=1)
+    formal_bound_origin: FormalBoundOrigin | None = None
+    formal_assumption_basis_ids: list[str] = Field(default_factory=list)
     reason: NonBlankString
 
 
@@ -107,6 +112,52 @@ class CoverageReviewFinding(StrictReviewModel):
     related_source_fact_ids: list[str] = Field(default_factory=list)
     related_root_ids: list[str] = Field(default_factory=list)
     related_assertion_chain_ids: list[str] = Field(default_factory=list)
+    required_scope: str = Field(
+        min_length=20,
+        description=(
+            "Semantic scope required by the related NL/source proposition, "
+            "including quantified objects, paths, valuations, initialization, "
+            "events, and bounds when relevant."
+        ),
+    )
+    observed_scope: str = Field(
+        min_length=20,
+        description=(
+            "Evidence scope actually observed in the current ledger: concrete "
+            "model objects, initialization, variables, cycles, assumptions, paths, "
+            "function families, and bound origin."
+        ),
+    )
+    scope_gap: str = Field(
+        min_length=20,
+        description=(
+            "Specific mismatch between required semantic scope and observed "
+            "evidence scope. Describe the assumption narrowing or overclaim, not "
+            "a missing tool quota."
+        ),
+    )
+    risk: str = Field(
+        min_length=20,
+        description=(
+            "Concrete false-negative or false-positive risk if this scope gap is "
+            "left unresolved."
+        ),
+    )
+    routes: list[str] = Field(
+        min_length=1,
+        description=(
+            "One or more equal-strength recovery routes. Name mandatory tools only "
+            "when their semantic capability is indispensable; otherwise describe "
+            "the evidence route and the ledger change it must produce."
+        ),
+    )
+    pass_criterion: str = Field(
+        min_length=20,
+        description=(
+            "Observable semantic criterion proving the required scope is matched "
+            "by the evidence scope; this is not a statement that review should pass."
+        ),
+    )
     problem: str = Field(
         min_length=20,
         description="Evidence-grounded review finding, not a generic opinion.",
@@ -138,17 +189,19 @@ class CoverageReviewFinding(StrictReviewModel):
         description=(
             "Executable next checks or assertion changes, including what additional "
             "behavior, path, condition, or evidence dimension they will cover. The "
-            "action must literally name at least one entry from recommended_tools "
-            "and at least one related ledger ID, be performable with those tools, "
-            "and must not ask the Agent to edit Controller projection state directly."
+            "action must name at least one related ledger ID, be performable with "
+            "the exposed capabilities, and must not ask the Agent to edit "
+            "Controller projection state directly. Tool names are optional unless "
+            "a route has an indispensable semantic tool."
         ),
     )
-    recommended_tools: list[CoverageReviewToolName] = Field(min_length=1)
+    recommended_tools: list[CoverageReviewToolName] = Field(default_factory=list)
     recommended_steps: list[CoverageImprovementStep] = Field(
-        min_length=1,
+        default_factory=list,
         description=(
-            "Ordered executable coverage-improvement steps. Every recommended tool "
-            "must have a step bound to current related ledger IDs."
+            "Optional executable coverage-improvement steps for mandatory tool-bound "
+            "routes. Do not create one step per tool as a quota; include steps only "
+            "when concrete arguments materially help close the semantic scope gap."
         ),
     )
     pass_criteria: str = Field(
@@ -223,12 +276,12 @@ class CoverageReviewFinding(StrictReviewModel):
                 "reviewer action must not ask the Agent to mutate Controller projection state directly"
             )
 
-        if not any(
+        if self.recommended_tools and not any(
             re.search(rf"\b{re.escape(tool)}\b", self.recommended_action)
             for tool in self.recommended_tools
         ):
             raise ValueError(
-                "recommended_action must name at least one recommended tool"
+                "recommended_action must name at least one recommended tool when tools are mandatory"
             )
 
         related_ids = [
@@ -244,9 +297,10 @@ class CoverageReviewFinding(StrictReviewModel):
             )
 
         step_tools = {step.tool for step in self.recommended_steps}
-        if step_tools != set(self.recommended_tools):
+        unknown_step_tools = step_tools - set(self.recommended_tools)
+        if self.recommended_tools and unknown_step_tools:
             raise ValueError(
-                "recommended_steps must cover exactly every recommended tool"
+                "recommended_steps cannot introduce tools absent from recommended_tools"
             )
         known_related_ids = set(related_ids)
         for step in self.recommended_steps:
@@ -255,6 +309,7 @@ class CoverageReviewFinding(StrictReviewModel):
                     "recommended step related_ids must belong to the finding"
                 )
 
+        criterion_text = "\n".join([self.pass_criterion, self.pass_criteria])
         observable_criteria = re.compile(
             r"(?:\b(?:true|false|terminal|accepted|returns?|missing|unknown|"
             r"segment|requirement|sourcefact|root|assertion|trace|transition|"
@@ -263,9 +318,9 @@ class CoverageReviewFinding(StrictReviewModel):
             r"轨迹|台账|闭合|终态|记录|编号)",
             re.I,
         )
-        if not observable_criteria.search(self.pass_criteria):
+        if not observable_criteria.search(criterion_text):
             raise ValueError(
-                "pass_criteria must name an observable ledger or model outcome"
+                "pass_criterion must name an observable ledger or model outcome"
             )
 
         if (

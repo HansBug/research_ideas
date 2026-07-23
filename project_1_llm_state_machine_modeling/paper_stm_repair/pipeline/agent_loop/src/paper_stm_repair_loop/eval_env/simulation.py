@@ -12,6 +12,7 @@ def _is_active(view: FrozenView, state: str) -> bool:
 
 
 FINAL_METHODS = {"is_active": _is_active}
+INIT_FIELDS = frozenset({"mode", "state", "is_ended", "active_states", "variables"})
 CYCLE_FIELDS = frozenset(
     {
         "index",
@@ -25,7 +26,7 @@ CYCLE_FIELDS = frozenset(
         "limitations",
     }
 )
-SIM_FIELDS = frozenset({"cycles", "final", "model_sha256"})
+SIM_FIELDS = frozenset({"cycles", "final", "model_sha256", "requested_initialization", "effective_initialization"})
 SIM_METHODS = frozenset({"is_active"})
 
 
@@ -37,7 +38,8 @@ class SimulationAPI:
     or alternate model text.
 
     Returns: ``simulate(cycles=[...])`` returns an immutable observation with
-    ``cycles``, ``final``, and ``model_sha256``. Every cycle exposes its index,
+    ``cycles``, ``final``, ``model_sha256``, ``requested_initialization``, and
+    ``effective_initialization``. Every cycle exposes its index,
     terminal-safe ``is_ended`` boolean, active-state ancestry, variables,
     input/consumed/unconsumed events, fired transition field, limitations, and
     ``is_active(state)`` method. A terminated cycle has ``is_ended=True`` and an
@@ -46,17 +48,21 @@ class SimulationAPI:
 
     Execution: parses the frozen model through the existing pyfcstm adapter and
     uses ``SimulationRuntime.cycle`` exactly once for each requested cycle. It
-    inserts no hidden initialization/stabilization cycle. Eventless
+    supports default cold starts and optional exact-state hot starts with complete
+    persistent variable values. It inserts no hidden initialization/stabilization
+    cycle. Eventless
     initialization or stabilization is represented explicitly by ``[]`` in the
     caller-provided cycle list and preserved in the result.
 
-    Failure semantics: missing model text or malformed cycle specs raise
-    ``UnsupportedEvidence``.  Runtime exceptions propagate to direct eval as
+    Failure semantics: missing model text, malformed cycle specs, or incomplete
+    hot-start variables raise ``UnsupportedEvidence`` or pyfcstm ``ValueError``.
+    Runtime exceptions propagate to direct eval as
     exceptions; they are not parsed as domain facts.
 
     Evidence limitations: simulation is one bounded trace under pyfcstm cycle
-    semantics.  It cannot prove global correctness, source closure, or semantic
-    coverage outside the asserted trace.
+    semantics. Hot-start traces are setup evidence and do not prove the hot state
+    is reachable from cold initialization. It cannot prove global correctness,
+    source closure, or semantic coverage outside the asserted trace.
 
     Permissions: read-only in-memory simulation; no arbitrary paths, shell,
     import, environment, time/random, network, mutation, or reference/gold data.
@@ -73,7 +79,13 @@ class SimulationAPI:
         self.model_text = model_text
         self.model_path = model_path
 
-    def simulate(self, *, cycles: list[list[str]]) -> FrozenView:
+    def simulate(
+        self,
+        *,
+        cycles: list[list[str]],
+        initial_state: str | None = None,
+        initial_vars: dict[str, int | float] | None = None,
+    ) -> FrozenView:
         if not isinstance(self.model_text, str) or not self.model_text.strip():
             raise UnsupportedEvidence("simulation requires frozen model_text")
         if (
@@ -87,7 +99,9 @@ class SimulationAPI:
         ):
             raise UnsupportedEvidence("cycles must be a non-empty list[list[str]]")
         model = load_model_for_simulation(self.model_text, self.model_path)
-        _current_state, trace = execute_cycles(model, cycles)
+        _current_state, trace, requested_initialization, effective_initialization = execute_cycles(
+            model, cycles, initial_state=initial_state, initial_vars=initial_vars
+        )
         cycle_views = tuple(
             FrozenView(
                 "simulation.cycle",
@@ -104,10 +118,20 @@ class SimulationAPI:
                 "cycles": cycle_views,
                 "final": cycle_views[-1],
                 "model_sha256": hashlib.sha256(self.model_text.encode("utf-8")).hexdigest(),
+                "requested_initialization": FrozenView(
+                    "simulation.initialization",
+                    requested_initialization,
+                    allowed_fields=INIT_FIELDS,
+                ),
+                "effective_initialization": FrozenView(
+                    "simulation.initialization",
+                    effective_initialization,
+                    allowed_fields=INIT_FIELDS,
+                ),
             },
             allowed_fields=SIM_FIELDS,
             allowed_methods=frozenset(),
         )
 
 
-__all__ = ["CYCLE_FIELDS", "SIM_FIELDS", "SIM_METHODS", "SimulationAPI"]
+__all__ = ["CYCLE_FIELDS", "INIT_FIELDS", "SIM_FIELDS", "SIM_METHODS", "SimulationAPI"]

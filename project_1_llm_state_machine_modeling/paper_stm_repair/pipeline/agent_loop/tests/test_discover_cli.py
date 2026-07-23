@@ -1,15 +1,101 @@
 from __future__ import annotations
 
+import hashlib
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 from paper_stm_repair_loop.agents import discover
+from paper_stm_repair_loop.inputs import load_pair
 
 
 class _Registry:
     def require(self, profile: str) -> object:
         assert profile == "gpt-5.5"
         return object()
+
+
+MANUAL_IDENTITY_DIR = Path(
+    "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/"
+    "llms-emp-gpt4o-hldcs-manual-identity"
+)
+FORMAL_SELECTED_SEED_DIR = Path(
+    "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/"
+    "llms_emp_feedback_final_0000"
+)
+SELECTED_FEEDBACK_FINAL_STM_SHA256 = (
+    "4fe07b05bdcfaac1c961d1176fb099d8240818160caa6edfb57928c6be2efc8a"
+)
+PHASE_I_GENERATION_STM_SHA256 = (
+    "8fd2f71b338836488e2e29fe19c4e58c4992d4186367f43efc121fae6c36db7f"
+)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_default_manual_identity_pair_resolves_against_feedback_final_pool():
+    case = load_pair("llms_emp_stm_results_0000_manual_identity")
+
+    assert case.pair_id == "llms_emp_stm_results_0000_manual_identity"
+    assert case.metadata["source_pair_id"] == "llms_emp_feedback_final_0000"
+    assert case.metadata["discover_source_policy"] == "fcstm_identity"
+    assert case.raw_source == case.fcstm
+    assert case.metadata["academic_eligible"] is False
+    assert (
+        case.source_trace["source_traceability"]["original_source_stm0_sha256"]
+        == SELECTED_FEEDBACK_FINAL_STM_SHA256
+    )
+
+
+def test_manual_identity_source_meta_uses_feedback_final_selected_seed_bytes():
+    manual_meta = json.loads(
+        (MANUAL_IDENTITY_DIR / "source_meta.json").read_text(encoding="utf-8")
+    )
+    formal_meta = json.loads(
+        (FORMAL_SELECTED_SEED_DIR / "source_meta.json").read_text(encoding="utf-8")
+    )
+
+    assert manual_meta["discover_pair_id"] == "llms_emp_stm_results_0000_manual_identity"
+    for field in (
+        "pair_id",
+        "source_pair_id",
+        "source_locator_type",
+        "source_locator",
+        "source_locator_data",
+        "selected_stage",
+        "selected_stage_column",
+        "selected_stage_cell",
+        "stm0_sha256",
+        "source_stm0_sha256",
+    ):
+        assert manual_meta[field] == formal_meta[field]
+
+    assert _sha256(MANUAL_IDENTITY_DIR / "stm0.puml") == formal_meta["stm0_sha256"]
+    assert _sha256(MANUAL_IDENTITY_DIR / "stm0.puml") == SELECTED_FEEDBACK_FINAL_STM_SHA256
+
+
+def test_manual_identity_phase_i_generation_is_derivation_only_provenance():
+    source_meta = json.loads(
+        (MANUAL_IDENTITY_DIR / "source_meta.json").read_text(encoding="utf-8")
+    )
+    fcstm_meta = json.loads(
+        (MANUAL_IDENTITY_DIR / "fcstm_meta.json").read_text(encoding="utf-8")
+    )
+    provenance_path = MANUAL_IDENTITY_DIR / "phase_i_generation_provenance.puml"
+
+    assert _sha256(provenance_path) == PHASE_I_GENERATION_STM_SHA256
+    assert (
+        source_meta["manual_derivation_provenance"]["sha256"]
+        == PHASE_I_GENERATION_STM_SHA256
+    )
+    assert (
+        fcstm_meta["phase_i_generation_provenance_sha256"]
+        == PHASE_I_GENERATION_STM_SHA256
+    )
+    assert source_meta["stm0_sha256"] != PHASE_I_GENERATION_STM_SHA256
+    assert fcstm_meta["source_stm0_sha256"] != PHASE_I_GENERATION_STM_SHA256
 
 
 def test_cli_custom_mode_emits_machine_readable_success(monkeypatch, tmp_path, capsys):

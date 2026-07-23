@@ -3,8 +3,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from collections.abc import Callable
 from typing import Any
 
+from ..eval_env.topology import TopologyIndex, is_within, ref_matches
+from ..pyfcstm_adapter import load_model_for_simulation
 from ..schemas.tools import ModelQueryResult, QueryModelInput, SimpleStructuredTool
 
 _QUERY_KINDS = {"states", "events", "transitions", "variables", "diagnostics"}
@@ -48,6 +51,14 @@ def _inspect_from(snapshot_or_inspect: dict[str, Any]) -> dict[str, Any]:
     return snapshot_or_inspect
 
 
+def _model_text_from(snapshot: dict[str, Any]) -> str | None:
+    model = snapshot.get("model")
+    if not isinstance(model, dict):
+        return None
+    value = model.get("content") or model.get("fcstm")
+    return value if isinstance(value, str) and value.strip() else None
+
+
 def _items_for(inspect_data: dict[str, Any], query_kind: str) -> list[dict[str, Any]]:
     raw = inspect_data.get(query_kind, [])
     if isinstance(raw, dict):
@@ -67,12 +78,205 @@ def _items_for(inspect_data: dict[str, Any], query_kind: str) -> list[dict[str, 
     return items
 
 
+def _requested_filters(
+    *,
+    name_contains: str | None,
+    exact: bool,
+    path: str | None,
+    within: str | None,
+    source: str | None,
+    event: str | None,
+    target: str | None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "name_contains": name_contains,
+        "exact": exact,
+        "path": path,
+        "within": within,
+        "source": source,
+        "event": event,
+        "target": target,
+        **(extra or {}),
+    }
+
+
+def _unsupported_operation_filters(params: QueryModelInput) -> list[str]:
+    """Return filters that this non-entity operation would otherwise ignore."""
+
+    values = params.model_dump(mode="json")
+    common = {
+        "query_kind",
+        "operation",
+        "offset",
+        "limit",
+        "root_node_ids",
+        "reason",
+        "recursive",
+    }
+    supported = {
+        "topology": {"within"},
+        "path": {"source", "target", "event", "within", "exact", "avoid", "max_hops"},
+    }.get(params.operation, set())
+    unsupported: list[str] = []
+    for key, value in values.items():
+        if key in common or key in supported:
+            continue
+        if value not in (None, False, [], ""):
+            unsupported.append(key)
+    return unsupported
+
+
+def _filter_entities(
+    items: list[dict[str, Any]],
+    query_kind: str,
+    *,
+    name_contains: str | None,
+    exact: bool,
+    path: str | None,
+    within: str | None,
+    source: str | None,
+    event: str | None,
+    target: str | None,
+    parent: str | None,
+    recursive: bool,
+    kind: str | None,
+    name: str | None,
+    scope: str | None,
+    declared: bool | None,
+    used: bool | None,
+    variable_type: str | None,
+    read_in: str | None,
+    written_in: str | None,
+    has_event: bool | None,
+    has_guard: bool | None,
+    has_effect: bool | None,
+    forced: bool | None,
+    self_loop: bool | None,
+    source_within: str | None,
+    target_within: str | None,
+) -> list[dict[str, Any]]:
+    out = items
+    if path is not None:
+        key = "path" if query_kind == "states" else "qualified_name"
+        out = [item for item in out if ref_matches(str(item.get(key)) if item.get(key) is not None else None, path, exact=exact)]
+    if within is not None:
+        if query_kind == "transitions":
+            out = [item for item in out if is_within(item.get("from_path"), within) or is_within(item.get("to_path"), within)]
+        else:
+            key = "path" if query_kind == "states" else "qualified_name"
+            out = [item for item in out if is_within(str(item.get(key)) if item.get(key) is not None else None, within)]
+    if query_kind == "transitions":
+        if source is not None:
+            out = [item for item in out if ref_matches(item.get("from_path"), source, exact=exact)]
+        if event is not None:
+            out = [item for item in out if ref_matches(item.get("event"), event, exact=exact)]
+        if target is not None:
+            out = [item for item in out if ref_matches(item.get("to_path"), target, exact=exact)]
+        if has_event is not None:
+            out = [item for item in out if bool(item.get("event")) is has_event]
+        if has_guard is not None:
+            out = [item for item in out if bool(item.get("guard")) is has_guard]
+        if has_effect is not None:
+            out = [item for item in out if bool(item.get("effect")) is has_effect]
+        if forced is not None:
+            out = [item for item in out if bool(item.get("is_forced")) is forced]
+        if self_loop is not None:
+            out = [
+                item
+                for item in out
+                if (item.get("from_path") == item.get("to_path")) is self_loop
+            ]
+        if source_within is not None:
+            out = [item for item in out if is_within(item.get("from_path"), source_within)]
+        if target_within is not None:
+            out = [item for item in out if is_within(item.get("to_path"), target_within)]
+    elif query_kind == "states":
+        if name is not None:
+            out = [item for item in out if item.get("name") == name]
+        if parent is not None:
+            if recursive:
+                out = [item for item in out if is_within(item.get("path"), parent, include_self=False)]
+            else:
+                out = [item for item in out if ref_matches(item.get("parent_path"), parent, exact=exact)]
+        if kind is not None:
+            flag = {"leaf": "is_leaf", "composite": "is_composite", "pseudo": "is_pseudo"}[kind]
+            out = [item for item in out if bool(item.get(flag))]
+    elif query_kind == "events":
+        if name is not None:
+            out = [item for item in out if item.get("name") == name]
+        if scope is not None:
+            out = [item for item in out if ref_matches(item.get("scope"), scope, exact=exact)]
+        if declared is not None:
+            out = [item for item in out if bool(item.get("is_declared")) is declared]
+        if used is not None:
+            out = [item for item in out if bool(item.get("is_used")) is used]
+    elif query_kind == "variables":
+        if name is not None:
+            out = [item for item in out if item.get("name") == name]
+        if variable_type is not None:
+            out = [item for item in out if item.get("type") == variable_type]
+        if read_in is not None:
+            out = [
+                item
+                for item in out
+                if any(
+                    ref_matches(str(ref), read_in, exact=exact)
+                    for key in ("read_in_states", "read_in_guards")
+                    for ref in (item.get(key) or [])
+                )
+            ]
+        if written_in is not None:
+            out = [
+                item
+                for item in out
+                if any(
+                    ref_matches(str(ref), written_in, exact=exact)
+                    for key in ("written_in_states", "written_in_effects")
+                    for ref in (item.get(key) or [])
+                )
+            ]
+    if name_contains:
+        needle = name_contains.casefold()
+        out = [item for item in out if needle in json.dumps(item, ensure_ascii=False, sort_keys=True).casefold()]
+    return out
+
+
 def execute(
     inspect: dict[str, Any],
     query_kind: str = "states",
     name_contains: str | None = None,
     offset: int = 0,
     limit: int = 50,
+    *,
+    operation: str = "entities",
+    exact: bool = False,
+    path: str | None = None,
+    within: str | None = None,
+    parent: str | None = None,
+    recursive: bool = True,
+    kind: str | None = None,
+    name: str | None = None,
+    scope: str | None = None,
+    declared: bool | None = None,
+    used: bool | None = None,
+    variable_type: str | None = None,
+    read_in: str | None = None,
+    written_in: str | None = None,
+    source: str | None = None,
+    event: str | None = None,
+    target: str | None = None,
+    has_event: bool | None = None,
+    has_guard: bool | None = None,
+    has_effect: bool | None = None,
+    forced: bool | None = None,
+    self_loop: bool | None = None,
+    source_within: str | None = None,
+    target_within: str | None = None,
+    avoid: list[str] | None = None,
+    max_hops: int | None = None,
+    reason: str = "controller-internal deterministic inspect query",
+    root_node_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Purpose: query paginated structural facts from frozen normalized inspect.
 
@@ -89,13 +293,13 @@ def execute(
     Returns: ``ModelQueryResult`` with ``execution_status``, ``query_kind``,
     ``matched_items``, ``total_matches``, ``offset``, ``limit``, ``truncated``,
     ``model_sha256``, and ``limitations``.  ``matched_items`` contains only the
-    requested page; ``total_matches`` counts all filtered matches before paging.
+    requested page; ``total_matches`` counts all filtered entity matches before paging; for ``operation=path`` it counts only returned path records with ``exists=true`` while preserving absence sentinels under ``paths``.
 
-    Execution: the function extracts the already normalized inspect payload,
-    selects the requested category, applies the optional substring filter, slices
-    by ``offset``/``limit``, and validates the result with strict Pydantic output
-    schema.  It does not parse/reload the model, call an LLM, run simulation, run
-    verification, or infer behavior.
+    Execution: entity queries use the already normalized inspect payload.
+    Topology/path queries load only the same Controller-frozen FCSTM text through
+    the existing adapter and call public pyfcstm topology algorithms plus a
+    deterministic BFS. The function never accepts alternate model input, calls
+    an LLM, runs simulation/formal verification, or infers a behavior verdict.
 
     Failure semantics: invalid enum, negative offset, nonpositive/oversized limit,
     or non-string filter returns ``execution_status=invalid_arguments`` with an
@@ -126,11 +330,37 @@ def execute(
         params = QueryModelInput.model_validate(
             {
                 "query_kind": query_kind,
+                "operation": operation,
                 "name_contains": name_contains,
+                "exact": exact,
+                "path": path,
+                "within": within,
+                "parent": parent,
+                "recursive": recursive,
+                "kind": kind,
+                "name": name,
+                "scope": scope,
+                "declared": declared,
+                "used": used,
+                "variable_type": variable_type,
+                "read_in": read_in,
+                "written_in": written_in,
+                "source": source,
+                "event": event,
+                "target": target,
+                "has_event": has_event,
+                "has_guard": has_guard,
+                "has_effect": has_effect,
+                "forced": forced,
+                "self_loop": self_loop,
+                "source_within": source_within,
+                "target_within": target_within,
+                "avoid": avoid or [],
+                "max_hops": max_hops,
                 "offset": offset,
                 "limit": limit,
-                "root_node_ids": [],
-                "reason": "controller-internal deterministic inspect query",
+                "root_node_ids": root_node_ids or [],
+                "reason": reason,
             }
         )
     except Exception as exc:
@@ -144,6 +374,8 @@ def execute(
             limit=50 if not isinstance(limit, int) or limit <= 0 else limit,
             truncated=False,
             model_sha256=model_sha256,
+            operation=operation if operation in {"entities", "topology", "path"} else "entities",
+            requested_filters=_requested_filters(name_contains=name_contains if isinstance(name_contains, str) else None, exact=bool(exact), path=path if isinstance(path, str) else None, within=within if isinstance(within, str) else None, source=source if isinstance(source, str) else None, event=event if isinstance(event, str) else None, target=target if isinstance(target, str) else None, extra={"max_hops": max_hops, "avoid": avoid or []}),
             limitations=[*_LIMITATIONS, "invalid_arguments", type(exc).__name__],
         ).model_dump(mode="json")
     if params.offset < 0 or params.limit < 1 or params.limit > 500:
@@ -156,6 +388,8 @@ def execute(
             limit=50 if params.limit < 1 or params.limit > 500 else params.limit,
             truncated=False,
             model_sha256=model_sha256,
+            operation=params.operation,
+            requested_filters=_requested_filters(name_contains=params.name_contains, exact=params.exact, path=params.path, within=params.within, source=params.source, event=params.event, target=params.target, extra={"max_hops": params.max_hops, "avoid": list(params.avoid)}),
             limitations=[*_LIMITATIONS, "offset_or_limit_out_of_range"],
         ).model_dump(mode="json")
     inspect_data = _inspect_from(inspect)
@@ -169,29 +403,211 @@ def execute(
             limit=params.limit,
             truncated=False,
             model_sha256=model_sha256,
+            operation=params.operation,
+            requested_filters=_requested_filters(name_contains=params.name_contains, exact=params.exact, path=params.path, within=params.within, source=params.source, event=params.event, target=params.target, extra={"max_hops": params.max_hops, "avoid": list(params.avoid)}),
             limitations=[*_LIMITATIONS, "normalized_inspect_category_unavailable"],
         ).model_dump(mode="json")
-    items = _items_for(inspect_data, params.query_kind)
-    if params.name_contains:
-        needle = params.name_contains.casefold()
-        items = [item for item in items if needle in json.dumps(item, ensure_ascii=False, sort_keys=True).casefold()]
+    requested_filters = _requested_filters(
+        name_contains=params.name_contains,
+        exact=params.exact,
+        path=params.path,
+        within=params.within,
+        source=params.source,
+        event=params.event,
+        target=params.target,
+        extra={
+            key: value
+            for key, value in params.model_dump(mode="json").items()
+            if key
+            not in {
+                "query_kind",
+                "operation",
+                "name_contains",
+                "exact",
+                "path",
+                "within",
+                "source",
+                "event",
+                "target",
+                "offset",
+                "limit",
+                "root_node_ids",
+                "reason",
+            }
+        },
+    )
+    effective_filters = {key: value for key, value in requested_filters.items() if value not in (None, False)}
+    if params.operation == "topology":
+        unsupported_filters = _unsupported_operation_filters(params)
+        if unsupported_filters:
+            return ModelQueryResult(
+                execution_status="invalid_arguments",
+                query_kind=params.query_kind,
+                operation=params.operation,
+                matched_items=[],
+                total_matches=0,
+                offset=params.offset,
+                limit=params.limit,
+                truncated=False,
+                model_sha256=model_sha256,
+                root_node_ids=list(params.root_node_ids),
+                reason=params.reason,
+                requested_filters=requested_filters,
+                effective_filters=effective_filters,
+                limitations=[
+                    *_LIMITATIONS,
+                    "unsupported_topology_filters",
+                    *[f"unsupported_filter:{name}" for name in unsupported_filters],
+                ],
+            ).model_dump(mode="json")
+        model_text = _model_text_from(inspect)
+        machine = (
+            load_model_for_simulation(model_text, "inputs/STM_0.fcstm")
+            if model_text is not None
+            else None
+        )
+        topology = TopologyIndex(inspect_data, machine).topology(within=params.within)
+        return ModelQueryResult(
+            execution_status="completed",
+            query_kind=params.query_kind,
+            operation=params.operation,
+            matched_items=[],
+            total_matches=len(topology.get("states", [])) + len(topology.get("transitions", [])),
+            offset=params.offset,
+            limit=params.limit,
+            truncated=False,
+            model_sha256=model_sha256,
+            root_node_ids=list(params.root_node_ids),
+            reason=params.reason,
+            requested_filters=requested_filters,
+            effective_filters=effective_filters,
+            topology=topology,
+            limitations=[*_LIMITATIONS, "static_topology_only", "guards_and_effects_not_evaluated"],
+        ).model_dump(mode="json")
+    if params.operation == "path":
+        unsupported_filters = _unsupported_operation_filters(params)
+        if unsupported_filters:
+            return ModelQueryResult(
+                execution_status="invalid_arguments",
+                query_kind=params.query_kind,
+                operation=params.operation,
+                matched_items=[],
+                total_matches=0,
+                offset=params.offset,
+                limit=params.limit,
+                truncated=False,
+                model_sha256=model_sha256,
+                root_node_ids=list(params.root_node_ids),
+                reason=params.reason,
+                requested_filters=requested_filters,
+                effective_filters=effective_filters,
+                limitations=[
+                    *_LIMITATIONS,
+                    "unsupported_path_filters",
+                    *[f"unsupported_filter:{name}" for name in unsupported_filters],
+                ],
+            ).model_dump(mode="json")
+        if not params.source or not params.target:
+            return ModelQueryResult(
+                execution_status="invalid_arguments",
+                query_kind=params.query_kind,
+                operation=params.operation,
+                matched_items=[],
+                total_matches=0,
+                offset=params.offset,
+                limit=params.limit,
+                truncated=False,
+                model_sha256=model_sha256,
+                root_node_ids=list(params.root_node_ids),
+                reason=params.reason,
+                requested_filters=requested_filters,
+                effective_filters=effective_filters,
+                limitations=[*_LIMITATIONS, "path_operation_requires_source_and_target"],
+            ).model_dump(mode="json")
+        model_text = _model_text_from(inspect)
+        machine = (
+            load_model_for_simulation(model_text, "inputs/STM_0.fcstm")
+            if model_text is not None
+            else None
+        )
+        paths = TopologyIndex(inspect_data, machine).path(
+            source=params.source,
+            target=params.target,
+            event=params.event,
+            within=params.within,
+            max_depth=params.max_hops,
+            exact=params.exact,
+            avoid=tuple(params.avoid),
+        )
+        return ModelQueryResult(
+            execution_status="completed",
+            query_kind=params.query_kind,
+            operation=params.operation,
+            matched_items=[],
+            total_matches=sum(1 for path_record in paths if path_record.get("exists") is True),
+            offset=params.offset,
+            limit=params.limit,
+            truncated=False,
+            model_sha256=model_sha256,
+            root_node_ids=list(params.root_node_ids),
+            reason=params.reason,
+            requested_filters=requested_filters,
+            effective_filters=effective_filters,
+            paths=paths,
+            limitations=[*_LIMITATIONS, "static_path_only", "guards_and_effects_not_evaluated"],
+        ).model_dump(mode="json")
+    items = _filter_entities(
+        _items_for(inspect_data, params.query_kind),
+        params.query_kind,
+        name_contains=params.name_contains,
+        exact=params.exact,
+        path=params.path,
+        within=params.within,
+        source=params.source,
+        event=params.event,
+        target=params.target,
+        parent=params.parent,
+        recursive=params.recursive,
+        kind=params.kind,
+        name=params.name,
+        scope=params.scope,
+        declared=params.declared,
+        used=params.used,
+        variable_type=params.variable_type,
+        read_in=params.read_in,
+        written_in=params.written_in,
+        has_event=params.has_event,
+        has_guard=params.has_guard,
+        has_effect=params.has_effect,
+        forced=params.forced,
+        self_loop=params.self_loop,
+        source_within=params.source_within,
+        target_within=params.target_within,
+    )
     total = len(items)
     page = items[params.offset : params.offset + params.limit]
     return ModelQueryResult(
         execution_status="completed",
         query_kind=params.query_kind,
+        operation=params.operation,
         matched_items=page,
         total_matches=total,
         offset=params.offset,
         limit=params.limit,
         truncated=params.offset + params.limit < total,
         model_sha256=model_sha256,
+        root_node_ids=list(params.root_node_ids),
+        reason=params.reason,
+        requested_filters=requested_filters,
+        effective_filters=effective_filters,
         limitations=list(_LIMITATIONS),
     ).model_dump(mode="json")
 
 
 def build_tool(
     snapshot: dict[str, Any],
+    *,
+    registered_root_ids: Callable[[], set[str]] | None = None,
 ) -> SimpleStructuredTool:
     """Purpose: create the ``query_model`` tool bound to one frozen inspect.
 
@@ -220,7 +636,7 @@ def build_tool(
     """
 
     frozen = copy.deepcopy(snapshot)
-    completed_requests: set[tuple[str, str | None, int, int]] = set()
+    completed_requests: set[tuple[Any, ...]] = set()
     fully_returned_categories: set[str] = set()
     seen_item_hashes: dict[str, set[str]] = {}
 
@@ -231,6 +647,32 @@ def build_tool(
     def query_model(
         query_kind: str,
         name_contains: str | None = None,
+        operation: str = "entities",
+        exact: bool = False,
+        path: str | None = None,
+        within: str | None = None,
+        parent: str | None = None,
+        recursive: bool = True,
+        kind: str | None = None,
+        name: str | None = None,
+        scope: str | None = None,
+        declared: bool | None = None,
+        used: bool | None = None,
+        variable_type: str | None = None,
+        read_in: str | None = None,
+        written_in: str | None = None,
+        source: str | None = None,
+        event: str | None = None,
+        target: str | None = None,
+        has_event: bool | None = None,
+        has_guard: bool | None = None,
+        has_effect: bool | None = None,
+        forced: bool | None = None,
+        self_loop: bool | None = None,
+        source_within: str | None = None,
+        target_within: str | None = None,
+        avoid: list[str] | None = None,
+        max_hops: int | None = None,
         offset: int = 0,
         limit: int = 50,
         root_node_ids: list[str] | None = None,
@@ -246,15 +688,15 @@ def build_tool(
 
         When to use
         -----------
-        Use only after successful plan registration for one named structural gap
-        while revising a Root's assertion. The gap must come from an inconclusive
-        latest evaluation or a failed coverage review that explicitly names this
-        tool and the affected registered Root.
+        After the mandatory guide/task read phase, use it either for one targeted
+        provisional clause/Root question needed to register an exact assertion,
+        or after registration for one named structural gap from an inconclusive
+        evaluation or coverage finding.
 
         When not to use
         ----------------
-        Do not use this tool before registration, enumerate the model, duplicate
-        `read_task`, or use query results
+        Do not use this tool before reading the frozen task, enumerate the model,
+        duplicate `read_task`, or use query results
         directly as a Root verdict; the final proposition must use `eval_assert`.
         Once a query answers its named gap, incorporate the result into the
         registered assertion instead of issuing adjacent inventory queries.
@@ -263,9 +705,19 @@ def build_tool(
         ----------
         ``query_kind`` (required string enum): exactly one of ``states``,
         ``events``, ``transitions``, ``variables``, or ``diagnostics``.
+        ``operation`` (optional enum, default ``entities``): ``entities`` returns
+        paginated inspect rows, ``topology`` returns a deterministic static
+        state/edge slice, and ``path`` returns a shortest declared path using the
+        shared topology backend.
         ``name_contains`` (optional string or null, default null): case-insensitive
         substring matched against each item's canonical JSON; it is not a regex,
-        query language, state predicate, or solver expression.
+        query language, state predicate, or solver expression. ``exact`` switches
+        path/source/event/target filters from legacy suffix-compatible matching to
+        exact dotted-reference matching. ``path`` filters exact entity refs,
+        ``within`` restricts dotted topology scope, and ``source``/``event``/
+        ``target`` and the documented entity filters narrow structural rows.
+        ``avoid`` and ``max_hops`` bound only the static path query; they are not
+        NL timing semantics.
         ``offset`` (integer, default 0): zero-based index in the filtered result;
         must be at least 0.
         ``limit`` (integer, default 50): maximum page size; must be 1 through 500.
@@ -284,7 +736,7 @@ def build_tool(
         - ``query_kind``: normalized requested category.
         - ``matched_items``: only the requested page; each item preserves inspect
           fields and includes deterministic ``_index`` when absent.
-        - ``total_matches``: filtered count before pagination.
+        - ``total_matches``: filtered count before pagination for entity queries; for ``operation=path`` this counts only paths with ``exists=true`` and does not count the preserved ``exists=false`` absence sentinel.
         - ``offset`` / ``limit``: effective page arguments.
         - ``truncated``: true when another page exists after this page.
         - ``model_sha256``: frozen model identity; compare it with ``read_task``.
@@ -300,15 +752,17 @@ def build_tool(
            exact duplicate request. If an unfiltered page from offset 0 already
            returned the complete category with ``truncated=false``, reject later
            requests for that same frozen category because no new fact can appear.
-        3. Read only the normalized inspect category closed over before dispatch.
-        4. Normalize items, apply the substring filter, count matches, and slice
-           ``[offset:offset+limit]`` deterministically.
+        3. Read only the normalized inspect and frozen FCSTM closed over before
+           dispatch.
+        4. Normalize items, apply exact/path/within/source/event/target filters,
+           or derive topology/path records from the shared deterministic backend,
+           then count matches and slice ``[offset:offset+limit]`` deterministically.
         5. Compare returned item hashes with facts already exposed for this
            category. A query that adds no new structural fact is rejected; once
            the union covers the frozen category, mark it fully returned.
         6. Return a strict schema tied to the same frozen ``model_sha256``. No
-           model parsing/reload, simulation, BMC, LLM call, cache refresh, or
-           latest-state lookup occurs.
+           no alternate model lookup, simulation, BMC, LLM call, cache refresh,
+           or latest-state lookup occurs.
 
         Failure semantics
         -----------------
@@ -325,8 +779,10 @@ def build_tool(
         Use results to ground element refs or decide whether another bounded trace
         or source mapping is needed. A matched/missing item, diagnostic, or page
         count cannot alone confirm an issue, prove behavior, prove NL alignment,
-        establish source closure, justify Repair, or prove completeness. If
-        ``truncated=true``, fetch the required next page before claiming absence.
+        establish source closure, justify Repair, or prove completeness. Static
+        topology/path results do not evaluate guards, effects, event availability,
+        or lifecycle initialization. If ``truncated=true``, fetch the required next
+        page before claiming absence.
 
         Permissions
         -----------
@@ -336,7 +792,7 @@ def build_tool(
 
         Examples
         --------
-        Input ``{"query_kind":"states","name_contains":"Idle","offset":0,"limit":10,"root_node_ids":["ROOT-001"],"reason":"Locate exact state refs for ROOT-001."}``
+        Input ``{"query_kind":"states","operation":"entities","path":"Root.Idle","exact":true,"offset":0,"limit":10,"root_node_ids":["ROOT-001"],"reason":"Locate exact state refs for ROOT-001."}``
         returns ``{"execution_status":"completed","query_kind":"states","matched_items":[{"path":"Root.Idle","_index":0}],"total_matches":1,"offset":0,"limit":10,"truncated":false,"model_sha256":"...","root_node_ids":["ROOT-001"],"reason":"Locate exact state refs for ROOT-001.","limitations":[...]}``.
         """
 
@@ -345,18 +801,33 @@ def build_tool(
         def finalize(result: dict[str, Any]) -> dict[str, Any]:
             completed = result.get("execution_status") == "completed"
             if completed:
-                recommended_tools = [
-                    "revise_assertion",
-                    "eval_assert",
-                ]
-                recommended_action = (
-                    "Incorporate these structural facts into the implicated registered assertion and its latest "
-                    "evaluation. Do not issue adjacent inventory queries when the "
-                    "named gap is already resolved."
+                registered = (
+                    registered_root_ids()
+                    if registered_root_ids is not None
+                    else set()
                 )
-                pass_criteria = (
-                    "The next semantic actions revise and evaluate executable assertion evidence for the named Root."
-                )
+                if not (set(root_node_ids) & registered):
+                    recommended_tools = ["register_coverage_plan"]
+                    recommended_action = (
+                        "Use this targeted pre-registration fact to finish the "
+                        "same provisional Root's positive assertion, then register "
+                        "the complete coverage plan. Do not expand into an inventory sweep."
+                    )
+                    pass_criteria = (
+                        "The complete plan registers the stable Root and an exact "
+                        "assertion grounded by this structural result."
+                    )
+                else:
+                    recommended_tools = ["revise_assertion", "eval_assert"]
+                    recommended_action = (
+                        "Incorporate these structural facts into the implicated "
+                        "registered assertion and its latest evaluation. Do not "
+                        "issue adjacent inventory queries when the named gap is resolved."
+                    )
+                    pass_criteria = (
+                        "The next semantic actions revise and evaluate executable "
+                        "assertion evidence for the named Root."
+                    )
             else:
                 recommended_tools = ["query_model", "revise_assertion", "eval_assert"]
                 recommended_action = (
@@ -378,7 +849,43 @@ def build_tool(
                 "pass_criteria": pass_criteria,
             }
 
-        request_key = (query_kind, name_contains, offset, limit)
+        request_key = (
+            query_kind,
+            operation,
+            json.dumps(
+                {
+                    "name_contains": name_contains,
+                    "exact": exact,
+                    "path": path,
+                    "within": within,
+                    "parent": parent,
+                    "recursive": recursive,
+                    "kind": kind,
+                    "name": name,
+                    "scope": scope,
+                    "declared": declared,
+                    "used": used,
+                    "variable_type": variable_type,
+                    "read_in": read_in,
+                    "written_in": written_in,
+                    "source": source,
+                    "event": event,
+                    "target": target,
+                    "has_event": has_event,
+                    "has_guard": has_guard,
+                    "has_effect": has_effect,
+                    "forced": forced,
+                    "self_loop": self_loop,
+                    "source_within": source_within,
+                    "target_within": target_within,
+                    "avoid": avoid or [],
+                    "max_hops": max_hops,
+                    "offset": offset,
+                    "limit": limit,
+                },
+                sort_keys=True,
+            ),
+        )
         if request_key in completed_requests:
             return finalize(ModelQueryResult(
                 execution_status="invalid_arguments",
@@ -391,7 +898,7 @@ def build_tool(
                 model_sha256=_model_sha256_from(frozen),
                 limitations=[*_LIMITATIONS, "duplicate_query_not_executed"],
             ).model_dump(mode="json"))
-        if query_kind in fully_returned_categories:
+        if operation == "entities" and query_kind in fully_returned_categories:
             return finalize(ModelQueryResult(
                 execution_status="invalid_arguments",
                 query_kind=query_kind,  # type: ignore[arg-type]
@@ -406,9 +913,45 @@ def build_tool(
                     "category_already_returned_untruncated",
                 ],
             ).model_dump(mode="json"))
-        result = execute(frozen, query_kind, name_contains, offset, limit)
+        result = execute(
+            frozen,
+            query_kind,
+            name_contains,
+            offset,
+            limit,
+            operation=operation,
+            exact=exact,
+            path=path,
+            within=within,
+            parent=parent,
+            recursive=recursive,
+            kind=kind,
+            name=name,
+            scope=scope,
+            declared=declared,
+            used=used,
+            variable_type=variable_type,
+            read_in=read_in,
+            written_in=written_in,
+            source=source,
+            event=event,
+            target=target,
+            has_event=has_event,
+            has_guard=has_guard,
+            has_effect=has_effect,
+            forced=forced,
+            self_loop=self_loop,
+            source_within=source_within,
+            target_within=target_within,
+            avoid=avoid,
+            max_hops=max_hops,
+            reason=reason,
+            root_node_ids=root_node_ids,
+        )
         if result.get("execution_status") == "completed":
             completed_requests.add(request_key)
+            if operation != "entities":
+                return finalize(result)
             page_hashes = {
                 item_hash(item)
                 for item in result.get("matched_items", [])
@@ -430,10 +973,36 @@ def build_tool(
                 ).model_dump(mode="json"))
             previously_seen.update(new_hashes)
             category_size = len(_items_for(_inspect_from(frozen), query_kind))
-            if (
-                (name_contains is None and offset == 0 and result.get("truncated") is False)
-                or len(previously_seen) >= category_size
-            ):
+            entity_filters = {
+                "name_contains": name_contains,
+                "path": path,
+                "within": within,
+                "parent": parent,
+                "kind": kind,
+                "name": name,
+                "scope": scope,
+                "declared": declared,
+                "used": used,
+                "variable_type": variable_type,
+                "read_in": read_in,
+                "written_in": written_in,
+                "source": source,
+                "event": event,
+                "target": target,
+                "has_event": has_event,
+                "has_guard": has_guard,
+                "has_effect": has_effect,
+                "forced": forced,
+                "self_loop": self_loop,
+                "source_within": source_within,
+                "target_within": target_within,
+            }
+            unfiltered_complete_page = (
+                not any(value is not None for value in entity_filters.values())
+                and offset == 0
+                and result.get("truncated") is False
+            )
+            if unfiltered_complete_page or len(previously_seen) >= category_size:
                 fully_returned_categories.add(query_kind)
         return finalize(result)
 

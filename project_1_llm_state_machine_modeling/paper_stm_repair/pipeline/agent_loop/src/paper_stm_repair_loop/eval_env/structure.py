@@ -4,6 +4,7 @@ import copy
 from typing import Any
 
 from .exceptions import UnsupportedEvidence
+from .topology import event_ref, is_within, items as _topology_items, ref_matches
 from .views import FrozenView
 
 
@@ -43,22 +44,11 @@ STRUCTURE_FIELDS = frozenset(
 
 
 def _items(inspect: dict[str, Any], kind: str) -> list[dict[str, Any]]:
-    raw = inspect.get(kind, [])
-    if isinstance(raw, dict):
-        values = raw.values()
-    elif isinstance(raw, list):
-        values = raw
-    else:
-        values = []
-    return [copy.deepcopy(item) for item in values if isinstance(item, dict)]
+    return _topology_items(inspect, kind)
 
 
-def _matches_path(actual: str | None, expected: str | None) -> bool:
-    if expected is None:
-        return True
-    if actual is None:
-        return False
-    return actual == expected or actual.endswith("." + expected)
+def _matches_path(actual: str | None, expected: str | None, *, exact: bool = False) -> bool:
+    return ref_matches(actual, expected, exact=exact)
 
 
 class StructureAPI:
@@ -94,33 +84,91 @@ class StructureAPI:
     def __init__(self, inspect: dict[str, Any]) -> None:
         self.inspect = copy.deepcopy(inspect)
 
-    def states(self, *, parent: str | None = None, recursive: bool = True, name: str | None = None) -> tuple[FrozenView, ...]:
+    def states(
+        self,
+        *,
+        parent: str | None = None,
+        recursive: bool = True,
+        name: str | None = None,
+        path: str | None = None,
+        within: str | None = None,
+        kind: str | None = None,
+        exact: bool = False,
+    ) -> tuple[FrozenView, ...]:
         rows = _items(self.inspect, "states")
         out: list[FrozenView] = []
         for row in rows:
-            path = row.get("path")
-            if name is not None and row.get("name") != name and not _matches_path(path, name):
+            row_path = row.get("path")
+            if path is not None and not _matches_path(row_path, path, exact=exact):
+                continue
+            if name is not None:
+                name_ok = row.get("name") == name
+                path_ok = _matches_path(row_path, name, exact=exact)
+                if not name_ok and not path_ok:
+                    continue
+            if within is not None and not is_within(row_path, within):
+                continue
+            if kind == "leaf" and not bool(row.get("is_leaf")):
+                continue
+            if kind == "composite" and not bool(row.get("is_composite")):
+                continue
+            if kind == "pseudo" and not bool(row.get("is_pseudo")):
                 continue
             if parent is not None:
                 if recursive:
-                    if not isinstance(path, str) or not path.startswith(parent + "."):
+                    if exact:
+                        if not is_within(row_path, parent, include_self=False):
+                            continue
+                    elif not isinstance(row_path, str) or not row_path.startswith(parent + "."):
                         continue
-                elif not _matches_path(row.get("parent_path"), parent):
+                elif not _matches_path(row.get("parent_path"), parent, exact=exact):
                     continue
             out.append(FrozenView("state", row, allowed_fields=STRUCTURE_FIELDS))
         return tuple(out)
 
-    def events(self, *, name: str | None = None) -> tuple[FrozenView, ...]:
+    def events(
+        self,
+        *,
+        name: str | None = None,
+        path: str | None = None,
+        within: str | None = None,
+        scope: str | None = None,
+        declared: bool | None = None,
+        used: bool | None = None,
+        exact: bool = False,
+    ) -> tuple[FrozenView, ...]:
         rows = _items(self.inspect, "events")
         out = []
         for row in rows:
-            qn = row.get("qualified_name")
-            if name is not None and row.get("name") != name and not _matches_path(qn, name):
+            ref = event_ref(row)
+            if path is not None and not _matches_path(ref, path, exact=exact):
+                continue
+            if name is not None and row.get("name") != name and not _matches_path(ref, name, exact=exact):
+                continue
+            if within is not None and not is_within(ref, within):
+                continue
+            if scope is not None and not _matches_path(
+                row.get("scope"), scope, exact=exact
+            ):
+                continue
+            if declared is not None and bool(row.get("is_declared")) is not declared:
+                continue
+            if used is not None and bool(row.get("is_used")) is not used:
                 continue
             out.append(FrozenView("event", row, allowed_fields=STRUCTURE_FIELDS))
         return tuple(out)
 
-    def variables(self, *, name: str | None = None) -> tuple[FrozenView, ...]:
+    def variables(
+        self,
+        *,
+        name: str | None = None,
+        path: str | None = None,
+        within: str | None = None,
+        type: str | None = None,
+        read_in: str | None = None,
+        written_in: str | None = None,
+        exact: bool = False,
+    ) -> tuple[FrozenView, ...]:
         rows = _items(self.inspect, "variables")
         out = []
         for row in rows:
@@ -128,7 +176,25 @@ class StructureAPI:
             visible = row.get("name") or (
                 str(qualified).rsplit(".", 1)[-1] if qualified else None
             )
-            if name is not None and visible != name and qualified != name:
+            if path is not None and not _matches_path(str(qualified) if qualified else None, path, exact=exact):
+                continue
+            if name is not None and visible != name and not _matches_path(str(qualified) if qualified else None, name, exact=exact):
+                continue
+            if within is not None and not is_within(str(qualified) if qualified else None, within):
+                continue
+            if type is not None and row.get("type") != type:
+                continue
+            if read_in is not None and not any(
+                _matches_path(str(ref), read_in, exact=exact)
+                for key in ("read_in_states", "read_in_guards")
+                for ref in (row.get(key) or [])
+            ):
+                continue
+            if written_in is not None and not any(
+                _matches_path(str(ref), written_in, exact=exact)
+                for key in ("written_in_states", "written_in_effects")
+                for ref in (row.get(key) or [])
+            ):
                 continue
             out.append(FrozenView("variable", row, allowed_fields=STRUCTURE_FIELDS))
         return tuple(out)
@@ -140,23 +206,59 @@ class StructureAPI:
         event: str | None = None,
         target: str | None = None,
         forced: bool | None = None,
+        within: str | None = None,
+        has_event: bool | None = None,
+        has_guard: bool | None = None,
+        has_effect: bool | None = None,
+        self_loop: bool | None = None,
+        source_within: str | None = None,
+        target_within: str | None = None,
+        exact: bool = False,
     ) -> tuple[FrozenView, ...]:
         rows = _items(self.inspect, "transitions") + _items(self.inspect, "forced_transitions")
         out = []
         for row in rows:
-            if source is not None and not _matches_path(row.get("from_path"), source):
+            if source is not None and not _matches_path(row.get("from_path"), source, exact=exact):
                 continue
-            if event is not None and not _matches_path(row.get("event"), event):
+            if event is not None and not _matches_path(row.get("event"), event, exact=exact):
                 continue
-            if target is not None and not _matches_path(row.get("to_path"), target):
+            if target is not None and not _matches_path(row.get("to_path"), target, exact=exact):
+                continue
+            if within is not None and not (is_within(row.get("from_path"), within) or is_within(row.get("to_path"), within)):
+                continue
+            if source_within is not None and not is_within(
+                row.get("from_path"), source_within
+            ):
+                continue
+            if target_within is not None and not is_within(
+                row.get("to_path"), target_within
+            ):
+                continue
+            if has_event is not None and bool(row.get("event")) is not has_event:
+                continue
+            if has_guard is not None and bool(row.get("guard")) is not has_guard:
+                continue
+            if has_effect is not None and bool(row.get("effect")) is not has_effect:
+                continue
+            if self_loop is not None and (
+                row.get("from_path") == row.get("to_path")
+            ) is not self_loop:
                 continue
             if forced is not None and bool(row.get("is_forced")) is not forced:
                 continue
             out.append(FrozenView("transition", row, allowed_fields=STRUCTURE_FIELDS))
         return tuple(out)
 
-    def transition_exists(self, *, source: str | None = None, event: str | None = None, target: str | None = None) -> bool:
-        return bool(self.transitions(source=source, event=event, target=target))
+    def transition_exists(
+        self,
+        *,
+        source: str | None = None,
+        event: str | None = None,
+        target: str | None = None,
+        within: str | None = None,
+        exact: bool = False,
+    ) -> bool:
+        return bool(self.transitions(source=source, event=event, target=target, within=within, exact=exact))
 
     def initial_child(self, state: str) -> str | None:
         """Return one structured initial target for a composite, or ``None``."""

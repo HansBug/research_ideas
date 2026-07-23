@@ -142,6 +142,13 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
                 "segmenter_version",
                 "pyfcstm_version",
                 "relation_policy",
+                "formal_verification_available",
+                "formal_profile_guide_read_once",
+                "check_result_sha256",
+                "tool_schema_hash",
+                "tool_hash",
+                "policy_hash",
+                "evidence_policy_fingerprint",
                 "scope_boundary",
                 "eligibility",
             }
@@ -238,10 +245,40 @@ def _append_v2_records_section(lines: list[str], records: list[dict[str, Any]]) 
                 lines.append(f"- raw reason: {payload['reason']}")
             if "assert" in payload:
                 lines.extend(["- assert text:", "", "```python", str(payload["assert"]), "```"])
-            for key in ("function_calls", "function_call_trace", "call_trace", "trace", "witness", "evidence_refs", "limitations"):
+            for key in (
+                "initialization",
+                "formal",
+                "check",
+                "policy",
+                "function_calls",
+                "function_call_trace",
+                "call_trace",
+                "trace",
+                "witness",
+                "evidence_refs",
+                "limitations",
+            ):
                 if key in payload:
                     lines.extend([f"- {key}:", "", "```json", _json(payload[key]), "```"])
-            for key in ("python_return", "return_value", "exception", "match_status", "execution_status"):
+            for key in (
+                "initialization_mode",
+                "requested_initial_state",
+                "effective_initial_state",
+                "formal_bound",
+                "formal_bound_origin",
+                "property_kind",
+                "canonical_query",
+                "check_result_sha256",
+                "tool_schema_hash",
+                "tool_hash",
+                "policy_hash",
+                "evidence_policy_fingerprint",
+                "python_return",
+                "return_value",
+                "exception",
+                "match_status",
+                "execution_status",
+            ):
                 if key in payload:
                     lines.append(f"- {key}: `{payload[key]}`")
             lines.append("")

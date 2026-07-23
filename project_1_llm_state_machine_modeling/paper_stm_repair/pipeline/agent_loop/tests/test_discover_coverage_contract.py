@@ -1,19 +1,5 @@
 from __future__ import annotations
 
-import sys
-import types
-
-if "utils.agent" not in sys.modules:
-    utils_pkg = types.ModuleType("utils")
-    utils_pkg.__path__ = []
-    agent_mod = types.ModuleType("utils.agent")
-    agent_mod.AgentApp = object
-    agent_mod.AgentSpec = object
-    llm_mod = types.ModuleType("utils.llm")
-    llm_mod.LLMRegistry = object
-    llm_mod.load_llm_registry = lambda *_, **__: None
-    sys.modules.update({"utils": utils_pkg, "utils.agent": agent_mod, "utils.llm": llm_mod})
-
 from paper_stm_repair_loop.tools.coverage_registry import CoverageRegistry
 
 
@@ -263,3 +249,113 @@ def test_supporting_fact_disposition_is_known_but_not_mandatory():
     ]
     result = registry.register_plan(plan, reason="Register known supporting fact.")
     assert result["accepted"] is True
+
+
+def _eventless_registry():
+    return CoverageRegistry(
+        input_segment_ids=["SEG-NL-001"],
+        coverage_requirements={
+            "REQ-TRANSITION-001": {
+                "requirement_id": "REQ-TRANSITION-001",
+                "segment_id": "SEG-NL-001",
+                "dimension": "transition",
+                "clause_text": "Root.A moves to Root.B without an event.",
+                "cue_text": "eventless transition",
+                "required_function_family_options": [["relation"]],
+            }
+        },
+        source_fact_ids=["FACT-EVENTLESS-001"],
+        known_source_fact_ids=["FACT-EVENTLESS-001"],
+        source_fact_refs={"FACT-EVENTLESS-001": ["transition:Root.A->Root.B"]},
+        source_fact_details={
+            "FACT-EVENTLESS-001": {
+                "fact_id": "FACT-EVENTLESS-001",
+                "fact_kind": "transition",
+                "source": "Root.A",
+                "event": None,
+                "target": "Root.B",
+                "qualified_refs": ["transition:Root.A->Root.B"],
+            }
+        },
+        eval_funcs=_relation_env(),
+    )
+
+
+def _eventless_plan(assertion: str):
+    return {
+        "segment_dispositions": [],
+        "fact_dispositions": [],
+        "coverage_units": [
+            {
+                "coverage_unit_id": "CU-EVENTLESS",
+                "unit_kind": "behavior_obligation",
+                "segment_ids": ["SEG-NL-001"],
+                "source_fact_ids": ["FACT-EVENTLESS-001"],
+                "requirement_ids": ["REQ-TRANSITION-001"],
+                "dimensions": ["transition"],
+                "statement": "A reaches B without an event.",
+                "rationale": "Eventless transition coverage unit.",
+            }
+        ],
+        "proposition_roots": [
+            {
+                "node_id": "ROOT-EVENTLESS",
+                "coverage_unit_id": "CU-EVENTLESS",
+                "statement": "Root.A has an eventless transition to Root.B.",
+                "model_element_refs": ["transition:Root.A->Root.B"],
+                "rationale": "Ground the exact eventless transition.",
+            }
+        ],
+        "logical_assertions": [
+            {
+                "assertion_chain_id": "ASSERT-EVENTLESS",
+                "root_node_id": "ROOT-EVENTLESS",
+                "coverage_unit_id": "CU-EVENTLESS",
+                "required": True,
+                "assert": assertion,
+                "basis_ids": ["SEG-NL-001", "REQ-TRANSITION-001", "FACT-EVENTLESS-001"],
+                "obligation_signature": "a-eventless-b",
+                "required_function_families": ["relation"],
+                "evidence_scope": {"claim_strength": "transition_fact"},
+                "rationale": "Directly verifies the exact source/target eventless transition.",
+            }
+        ],
+        "rationale": "Eventless SourceFact plan.",
+    }
+
+
+def test_eventless_source_fact_rejects_unrelated_event_none_call_as_proof():
+    assertion = (
+        "transitions(source='Root.A', target='Root.B') and "
+        "transitions(source='Root.X', target='Root.Y')[0].event is None"
+    )
+    rejected = _eventless_registry().register_plan(
+        _eventless_plan(assertion),
+        reason="Unrelated event None checks must not ground the cited SourceFact.",
+    )
+
+    assert rejected["accepted"] is False
+    assert "source_fact_not_directly_verified:FACT-EVENTLESS-001" in rejected["errors"]
+
+
+def test_eventless_source_fact_accepts_same_call_event_none_result_check():
+    assertion = "transitions(source='Root.A', target='Root.B')[0].event is None"
+    accepted = _eventless_registry().register_plan(
+        _eventless_plan(assertion),
+        reason="Same call result event None grounds the eventless SourceFact.",
+    )
+
+    assert accepted["accepted"] is True
+
+
+def test_eventless_source_fact_accepts_same_call_comprehension_item():
+    assertion = (
+        "any(t.event is None for t in "
+        "transitions(source='Root.A', target='Root.B'))"
+    )
+    accepted = _eventless_registry().register_plan(
+        _eventless_plan(assertion),
+        reason="The event attribute is bound to the same filtered call iterator.",
+    )
+
+    assert accepted["accepted"] is True

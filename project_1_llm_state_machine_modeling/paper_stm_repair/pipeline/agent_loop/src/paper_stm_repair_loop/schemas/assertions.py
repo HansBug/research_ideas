@@ -21,6 +21,17 @@ FunctionFamily = Literal[
     "mapping",
 ]
 
+FormalPropertyKind = Literal[
+    "reach",
+    "forbid",
+    "invariant",
+    "must_reach",
+    "exists_always",
+    "cover",
+    "response",
+]
+FormalBoundOrigin = Literal["requirement_bound", "analysis_bound"]
+
 
 class EvidenceScope(StrictContractModel):
     semantic_profile: str
@@ -44,6 +55,10 @@ class LogicalAssertion(StrictContractModel):
     evidence_scope: EvidenceScope
     rationale: str = Field(min_length=1)
     record_language: str = "zh-CN"
+    formal_property_kind: FormalPropertyKind | None = None
+    formal_bound: int | None = Field(default=None, ge=1)
+    formal_bound_origin: FormalBoundOrigin | None = None
+    formal_assumption_basis_ids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_assertion_basis(self) -> "LogicalAssertion":
@@ -66,6 +81,10 @@ class LogicalAssertionRegistration(StrictContractModel):
     evidence_scope: EvidenceScope
     rationale: str = Field(min_length=1)
     record_language: str = "zh-CN"
+    formal_property_kind: FormalPropertyKind | None = None
+    formal_bound: int | None = Field(default=None, ge=1)
+    formal_bound_origin: FormalBoundOrigin | None = None
+    formal_assumption_basis_ids: list[str] = Field(default_factory=list)
 
 
 class EvalAssertToolInput(StrictContractModel):
@@ -106,6 +125,14 @@ class EvalAssertResult(StrictContractModel):
     )
     submit_allowed: bool = False
     controller_projection: dict[str, Any] | None = None
+    formal_property_kind: FormalPropertyKind | None = None
+    formal_bound: int | None = Field(default=None, ge=1)
+    formal_bound_origin: FormalBoundOrigin | None = None
+    formal_assumption_basis_ids: list[str] = Field(default_factory=list)
+    initialization: dict[str, Any] = Field(default_factory=dict)
+    formal: dict[str, Any] = Field(default_factory=dict)
+    check: dict[str, Any] = Field(default_factory=dict)
+    policy: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_status_value(self) -> "EvalAssertResult":

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import stat
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,9 +31,92 @@ class PreparedCase:
         return sha256_text(self.fcstm)
 
 
-def _code_provenance() -> dict[str, Any]:
-    """Capture tracked repository identity without treating run outputs as code."""
+def _hash_paths(paths: list[str]) -> str:
+    payload = json.dumps(
+        paths,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8", "surrogateescape")
+    return hashlib.sha256(payload).hexdigest()
 
+
+def _hash_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _hash_json(value: Any) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8", "surrogateescape")
+    return _hash_bytes(payload)
+
+
+def _decode_git_path(raw_path: bytes) -> str:
+    return raw_path.decode("utf-8", "surrogateescape")
+
+
+def _untracked_content_manifest(repo_root: Path, paths: list[str]) -> list[dict[str, Any]]:
+    manifest: list[dict[str, Any]] = []
+    for relative_path in paths:
+        path = repo_root / relative_path
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode):
+            file_type = "symlink"
+            git_mode = "120000"
+            symlink_target = os.readlink(path)
+            content = os.fsencode(symlink_target)
+        elif stat.S_ISREG(metadata.st_mode):
+            file_type = "regular_file"
+            git_mode = "100755" if metadata.st_mode & 0o111 else "100644"
+            symlink_target = None
+            content = path.read_bytes()
+        else:
+            raise ValueError(
+                f"unsupported untracked file type for provenance: {relative_path}"
+            )
+        manifest.append(
+            {
+                "path": relative_path,
+                "file_type": file_type,
+                "git_mode": git_mode,
+                "lstat_mode_octal": format(stat.S_IMODE(metadata.st_mode), "04o"),
+                "size_bytes": metadata.st_size,
+                "content_sha256": _hash_bytes(content),
+                "symlink_target": symlink_target,
+            }
+        )
+    return manifest
+
+
+def _code_provenance() -> dict[str, Any]:
+    """Capture repository code identity while excluding only ``runs/**`` outputs."""
+
+    excluded_pathspecs = ["runs/**"]
+    unavailable = {
+        "status": "unavailable",
+        "git_commit": None,
+        "git_branch": None,
+        "tracked_worktree_dirty": None,
+        "tracked_dirty_paths": [],
+        "tracked_dirty_count": None,
+        "tracked_dirty_paths_sha256": None,
+        "canonical_git_diff_binary_head_sha256": None,
+        "canonical_git_diff_binary_head_empty": None,
+        "reproducible_tracked_head": None,
+        "code_state_reproducible": None,
+        "reproducible_code_head": None,
+        "non_run_untracked_paths": [],
+        "non_run_untracked_count": None,
+        "non_run_untracked_paths_sha256": None,
+        "non_run_untracked_content_manifest": [],
+        "non_run_untracked_content_manifest_sha256": None,
+        "non_run_untracked_content_complete": None,
+        "untracked_run_outputs_excluded": True,
+        "excluded_pathspecs": excluded_pathspecs,
+    }
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -47,29 +132,97 @@ def _code_provenance() -> dict[str, Any]:
             capture_output=True,
             text=True,
         )
-        diff_result = subprocess.run(
-            ["git", "diff", "--quiet", "HEAD", "--"],
+        status_result = subprocess.run(
+            [
+                "git",
+                "status",
+                "--porcelain=v2",
+                "-z",
+                "--untracked-files=all",
+                "--",
+                ".",
+                ":(exclude)runs/**",
+            ],
             cwd=REPO_ROOT,
-            check=False,
+            check=True,
+            capture_output=True,
         )
-        if diff_result.returncode not in {0, 1}:
-            raise RuntimeError("git diff returned an unsupported status")
+        tracked_worktree_dirty = False
+        untracked_paths: list[str] = []
+        for record in status_result.stdout.split(b"\0"):
+            if not record:
+                continue
+            if record.startswith((b"1 ", b"2 ", b"u ")):
+                tracked_worktree_dirty = True
+            elif record.startswith(b"? "):
+                untracked_paths.append(_decode_git_path(record[2:]))
+        tracked_dirty_result = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--name-only",
+                "-z",
+                "HEAD",
+                "--",
+                ".",
+                ":(exclude)runs/**",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+        )
+        canonical_diff_result = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--binary",
+                "HEAD",
+                "--",
+                ".",
+                ":(exclude)runs/**",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+        )
+        untracked_paths = sorted(untracked_paths)
+        tracked_dirty_paths = sorted(
+            _decode_git_path(path)
+            for path in tracked_dirty_result.stdout.split(b"\0")
+            if path
+        )
+        canonical_diff = canonical_diff_result.stdout
+        tracked_worktree_dirty = bool(tracked_dirty_paths)
+        untracked_manifest = _untracked_content_manifest(REPO_ROOT, untracked_paths)
+        code_state_reproducible = not tracked_worktree_dirty and not untracked_paths
         return {
             "status": "completed",
             "git_commit": commit,
             "git_branch": branch_result.stdout.strip() or None,
-            "tracked_worktree_dirty": diff_result.returncode == 1,
+            "tracked_worktree_dirty": tracked_worktree_dirty,
+            "tracked_dirty_paths": tracked_dirty_paths,
+            "tracked_dirty_count": len(tracked_dirty_paths),
+            "tracked_dirty_paths_sha256": _hash_paths(tracked_dirty_paths),
+            "canonical_git_diff_binary_head_sha256": _hash_bytes(canonical_diff),
+            "canonical_git_diff_binary_head_empty": canonical_diff == b"",
+            "reproducible_tracked_head": None if tracked_worktree_dirty else commit,
+            "code_state_reproducible": code_state_reproducible,
+            "reproducible_code_head": commit if code_state_reproducible else None,
+            "non_run_untracked_paths": untracked_paths,
+            "non_run_untracked_count": len(untracked_paths),
+            "non_run_untracked_paths_sha256": _hash_paths(untracked_paths),
+            "non_run_untracked_content_manifest": untracked_manifest,
+            "non_run_untracked_content_manifest_sha256": _hash_json(
+                untracked_manifest
+            ),
+            "non_run_untracked_content_complete": True,
             "untracked_run_outputs_excluded": True,
+            "excluded_pathspecs": excluded_pathspecs,
         }
     except Exception as exc:
-        return {
-            "status": "unavailable",
-            "git_commit": None,
-            "git_branch": None,
-            "tracked_worktree_dirty": None,
-            "untracked_run_outputs_excluded": True,
-            "reason": type(exc).__name__,
-        }
+        result = dict(unavailable)
+        result["reason"] = type(exc).__name__
+        return result
 
 
 def _read_pairs() -> dict[str, dict[str, Any]]:
@@ -90,6 +243,9 @@ def _selected_dir(pair_id: str) -> Path | None:
 
 
 def _trace_from_selected(directory: Path, meta: dict[str, Any]) -> dict[str, Any]:
+    source_meta = json.loads(
+        (directory / "source_meta.json").read_text(encoding="utf-8")
+    )
     fcstm_meta = json.loads((directory / "fcstm_meta.json").read_text(encoding="utf-8"))
     if fcstm_meta.get("discover_source_policy") == "fcstm_identity":
         return {
@@ -102,7 +258,11 @@ def _trace_from_selected(directory: Path, meta: dict[str, Any]) -> dict[str, Any
                 "fcstm_meta_path": str(directory / "fcstm_meta.json"),
                 "source_stm0_sha256": fcstm_meta.get("selected_fcstm_sha256"),
                 "fcstm_sha256": fcstm_meta.get("selected_fcstm_sha256"),
-                "original_source_stm0_sha256": meta.get("stm0_sha256"),
+                "original_source_stm0_sha256": (
+                    source_meta.get("source_stm0_sha256")
+                    or source_meta.get("stm0_sha256")
+                    or meta.get("stm0_sha256")
+                ),
                 "closure_claim_allowed": False,
                 "attribution": "manual_canonicalization_identity_smoke",
                 "academic_eligible": False,
@@ -232,6 +392,7 @@ def prepare_run_dir(
     replay_file: Path | None = None,
     agent_limits: Mapping[str, int | float] | None = None,
     reviewer_limits: Mapping[str, int | float] | None = None,
+    fbmcq_limits: Mapping[str, int | float] | None = None,
 ) -> None:
     """Materialize the immutable Stage API input boundary for one new run."""
 
@@ -267,6 +428,22 @@ def prepare_run_dir(
         for value in review_limits.values()
     ):
         raise ValueError("reviewer limits must be positive numbers")
+    formal_limits = dict(fbmcq_limits or {})
+    allowed_formal_limits = {
+        "process_wall_seconds",
+        "solver_timeout_ms",
+        "max_bound",
+    }
+    if set(formal_limits) - allowed_formal_limits:
+        raise ValueError(
+            "unknown FBMCQ limit keys: "
+            f"{sorted(set(formal_limits) - allowed_formal_limits)}"
+        )
+    if any(
+        not isinstance(value, (int, float)) or value <= 0
+        for value in formal_limits.values()
+    ):
+        raise ValueError("FBMCQ limits must be positive numbers")
     manifest = {
         "schema_version": "paper1.discover.manifest.v1",
         "run_id": run_dir.name,
@@ -281,6 +458,7 @@ def prepare_run_dir(
         "formal_profile": formal_profile,
         "agent_limits": limits,
         "reviewer_limits": review_limits,
+        "fbmcq_limits": formal_limits,
         "code_provenance": _code_provenance(),
         "main_result_eligible": False,
         "reference_assets_visible": False,

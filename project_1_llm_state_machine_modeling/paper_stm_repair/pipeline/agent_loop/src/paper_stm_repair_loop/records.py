@@ -22,6 +22,34 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+
+EVIDENCE_SCOPE_METADATA_KEYS: tuple[str, ...] = (
+    "initialization",
+    "formal",
+    "check",
+    "policy",
+    "initialization_mode",
+    "requested_initial_state",
+    "effective_initial_state",
+    "requested_initial_vars",
+    "effective_initial_vars",
+    "formal_bound",
+    "formal_bound_origin",
+    "formal_assumption_basis_ids",
+    "check_result_sha256",
+    "tool_schema_hash",
+    "tool_hash",
+    "policy_hash",
+    "evidence_policy_fingerprint",
+)
+
+
+def evidence_scope_metadata(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Return reviewer-visible initialization/formal/check/policy payload fields."""
+
+    return {key: payload[key] for key in EVIDENCE_SCOPE_METADATA_KEYS if key in payload}
+
+
 def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "record"
 

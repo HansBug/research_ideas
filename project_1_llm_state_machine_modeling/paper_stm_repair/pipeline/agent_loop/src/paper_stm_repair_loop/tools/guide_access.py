@@ -210,6 +210,19 @@ def _with_recovery_guidance(
             "lookup_source_trace returns execution_status=completed for exact current-model "
             "refs; ambiguous or untraceable mappings remain explicit domain evidence."
         )
+    elif tool_name == "inspect_model" and status == "no_new_fact":
+        recommended_tools = ["query_model", "register_coverage_plan", "eval_assert"]
+        action = (
+            "Stop repeating inspect_model for the same fingerprint. Use the already "
+            "returned inspect facts and read_task SourceFacts. If one named model gap "
+            "still blocks a Root, call query_model with bounded filters; if facts are "
+            "sufficient, call register_coverage_plan; after registration, call "
+            "eval_assert for the latest registered assertions."
+        )
+        criteria = (
+            "The next call produces new evidence or commits/evaluates the registered "
+            "worklist; no further inspect_model call is made for this fingerprint."
+        )
     else:
         recommended_tools = [tool_name]
         action = (

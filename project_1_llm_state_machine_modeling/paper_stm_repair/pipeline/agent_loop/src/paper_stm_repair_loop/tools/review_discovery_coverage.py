@@ -44,6 +44,60 @@ def _stable_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+
+
+def _evidence_scope_fingerprint_material(
+    latest_evaluations: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Extract evidence-scope metadata that must invalidate old review passes.
+
+    The full latest evaluation payload is already fingerprinted. This explicit
+    projection makes the contract reviewable and keeps future schema additions
+    for initialization/formal/check/policy metadata visible to tests and audits.
+    """
+
+    watched_keys = (
+        "initialization",
+        "initialization_mode",
+        "requested_initial_state",
+        "effective_initial_state",
+        "requested_initial_vars",
+        "effective_initial_vars",
+        "formal",
+        "formal_bound",
+        "formal_bound_origin",
+        "formal_assumption_basis_ids",
+        "property_kind",
+        "canonical_query",
+        "check",
+        "check_result_sha256",
+        "tool_schema_hash",
+        "tool_hash",
+        "policy",
+        "policy_hash",
+        "evidence_policy_fingerprint",
+    )
+    material: dict[str, Any] = {}
+    for version_id, evaluation in latest_evaluations.items():
+        if not isinstance(evaluation, Mapping):
+            continue
+        selected = {key: evaluation[key] for key in watched_keys if key in evaluation}
+        call_metadata: list[Any] = []
+        for key in ("function_calls", "function_call_trace", "call_trace", "trace"):
+            calls = evaluation.get(key)
+            if not isinstance(calls, list):
+                continue
+            for call in calls:
+                if isinstance(call, Mapping):
+                    picked = {watch: call[watch] for watch in watched_keys if watch in call}
+                    if picked:
+                        call_metadata.append(picked)
+        if call_metadata:
+            selected["call_metadata"] = call_metadata
+        if selected:
+            material[str(version_id)] = selected
+    return material
+
 def _review_system_prompt(review_kind: str, language: str) -> str:
     chinese = language == "zh-CN"
     role = (
@@ -67,6 +121,8 @@ def _review_system_prompt(review_kind: str, language: str) -> str:
 
 Review objective: {focus}
 
+Keep the current main Agent profile/adapter/provider identity as a wiring constraint outside this prompt. Do not request or imply a hidden reviewer model switch.
+
 The `review_kind` field in the structured output must equal `{review_kind}` exactly.
 
 You have no callable tools. Your only valid response is one direct
@@ -86,15 +142,19 @@ Hard rules:
 7. Simulation proves only the supplied trace, a local relation proves only a local fact, and bounded formal evidence proves only its stated property within its bounds. Fail evidence that is too weak for the claim.
 8. Return `passed=true` only when no semantic omission, weak or misdirected assertion, material false-negative or false-positive risk, critical evidence gap, or incorrect issue projection can affect the main behavior conclusion. Put non-blocking hardening suggestions in `coverage_analysis`; do not block a research run merely to pursue exhaustive perfection.
 9. When `passed=false`, every finding must cite at least one current ledger ID from `review_contract` in `related_segment_ids`, `related_requirement_ids`, `related_source_fact_ids`, `related_root_ids`, or `related_assertion_chain_ids`. Every non-empty related ID field must be a subset of its corresponding required ID list in `review_contract`; never cite an ID merely because it appears in the full inventory.
-10. Every finding must provide `coverage_dimensions`, `recommended_tools`, `recommended_steps`, `recommended_action`, and `pass_criteria`. `recommended_action` must literally name at least one entry in `recommended_tools`, at least one current ledger ID from a `related_*_ids` field, and the exact object, path, or condition to inspect. For every recommended tool, `recommended_steps` must provide related IDs, an objective, `suggested_arguments` that match the real tool schema, and an expected observation; its tool set must exactly equal `recommended_tools`. `pass_criteria` must name an observable ledger or model result, not merely say that review passes. Never ask the main Agent to edit Controller projection, `runtime_issue_assessment`, or confirmed status directly. Never use FBMCQ or `read_fbmcq_guide` to interpret NL semantics.
+10. Every finding must first state `required_scope`, `observed_scope`, `scope_gap`, `risk`, `routes`, and `pass_criterion`. Explain the semantic scope mismatch before any tool recommendation. `recommended_tools` and `recommended_steps` are optional route aids, not quotas. Use a mandatory tool only when its semantic capability is indispensable; do not fail a ledger merely because a family/tool was not called. `recommended_action` must name at least one current ledger ID from a `related_*_ids` field and the exact object, path, initialization, variable valuation, bound, or condition to inspect. `pass_criterion` / `pass_criteria` must name an observable ledger or model result, not merely say that review passes. Never ask the main Agent to edit Controller projection, `runtime_issue_assessment`, or confirmed status directly. Never use FBMCQ or `read_fbmcq_guide` to interpret NL semantics.
 11. If an explicitly in-scope NL behavior is absent from the current model, treat it as a model behavior gap or assertion gap rather than inventing an abstraction-level excuse. Do not strengthen the NL into `only`, every-state, or future-model obligations that the source does not state.
-12. Check anti-gaming patterns that can directly create an incorrect main conclusion, including sentinel variables, hard-coded candidate names, cardinality after filtering, and weak mappings. Put merely theoretical edge cases that do not affect this case in `coverage_analysis` as optional improvements.
+12. Check anti-gaming patterns that can directly create an incorrect main conclusion, including sentinel variables, hard-coded candidate names, cardinality after filtering, weak mappings, inspect-only issue projection, hot-start bypass of required root reachability or entry semantics, bounded-formal overclaim as unbounded proof, and topology positive-path overclaim as executable runtime behavior. Put merely theoretical edge cases that do not affect this case in `coverage_analysis` as optional improvements.
 13. Do not access reference/gold data, modify the model, or repair findings for the main Agent. Review only whether the current ledger's major-behavior coverage supports this Discover conclusion. State the coverage boundary and optional improvements in `coverage_analysis`; never claim absolute 100% coverage.
 14. A positive conditional obligation does not automatically create an exclusive negative obligation. "When state S receives E it reaches T" requires checking behavior when that condition holds. Unless the same related NL explicitly uses exclusive wording such as `only` or `must not`, do not require that other states receiving E cannot reach T and do not recommend an `is False` or `not(...)` conjunct merely to manufacture an issue.
 15. Interpret event-free transitions using FCSTM hierarchical semantics. An `event=None` edge from a composite state may be a completion transition after its submachine reaches final; it does not fire unconditionally in every ordinary cycle. `I_TRANSITION_NEVER_EVENT_TRIGGERED` says only that an event does not trigger the edge. A claim of premature exit must cite executed simulation or formal evidence; structural presence alone is insufficient.
 16. This review runs after the complete plan is registered. The Discover main Agent's later tools may only revise an existing assertion chain; they cannot add a CoverageUnit, Root, or assertion chain or register a new complete plan. Every `revise_assertion` step must use an `assertion_chain_id` from `review_contract.required_assertion_chain_ids`. Do not return a finding whose recommendation the main Agent's existing tools cannot implement.
 17. Recommended assertions must preserve the positive-bool principle: True means the existing Root is satisfied. If the NL explicitly prohibits behavior, the expression must be True when the prohibited behavior is absent. Never encode the unwanted edge's presence as True and still claim it should project to an issue.
 18. Treat each Controller Root and its same-clause CoverageRequirements as the frozen scope of the positive obligation. Do not broaden a source-state-specific Root to every state merely because the NL uses a pronoun such as `it` or `the system`, or because it does not restate the source state in the same sentence. Require all-state behavior only when the related NL explicitly supplies a universal quantifier. Never recommend adding a Unit, Root, or assertion chain to express an inferred broader scope.
+19. Inspect-only evidence is never enough to project an issue. If a Root relies only on diagnostics, severity, counts, suggested fixes, mapping coincidence, or an inconclusive confirmation, fail it unless there is a terminal non-diagnostic executable assertion tied to real NL/source scope.
+20. For simulation evidence, compare requested and effective initialization. A hot start is sufficient only for local behavior whose precondition is already being in that state with the recorded variables; it cannot prove startup reachability, initial descent, or skipped entry actions. Missing persistent variables or unexplained defaults are scope gaps when they can affect guards or effects.
+21. For formal evidence, check property kind, assumptions, finite bound, and bound origin. A `requirement_bound` may support a bounded NL requirement; an `analysis_bound` must remain a finite-horizon limitation. Never let a bounded pass become an unbounded proof.
+22. For topology/path evidence, remember that positive paths are guard-agnostic connectivity facts. They can support structure or localization, but they cannot by themselves prove executable runtime reachability, event availability, transition priority, or variable evolution.
 
 The following are literal data contracts for `recommended_steps.suggested_arguments` inside a finding, not tools available to this reviewer. Replace example values with real IDs, expressions, and model elements from the current ledger:
 - query_model: {{"query_kind":"transitions","name_contains":null,"offset":0,"limit":50,"root_node_ids":["ROOT-..."],"reason":"..."}}; `query_kind` must be one of states/events/transitions/variables/diagnostics.
@@ -104,6 +164,9 @@ The following are literal data contracts for `recommended_steps.suggested_argume
 - register_coverage_plan: {{"plan":{{"segment_dispositions":[],"fact_dispositions":[],"coverage_units":[],"proposition_roots":[],"logical_assertions":[],"rationale":"..."}},"reason":"..."}}; a real recommendation must provide a complete CoveragePlan that preserves all existing obligations and applies the requested revision, not a delta or `plan_change`.
 - revise_assertion: {{"assertion_chain_id":"ASSERT-...","assert":"one complete positive Python bool expression","reason":"..."}}
 - eval_assert: {{"assert":"the exact latest assertion expression","reason":"..."}}
+
+A blocking finding should be shaped around semantic scope first, for example:
+{{"finding_id":"REVIEW-GAP-001","category":"weak_or_misdirected_assertion","related_root_ids":["ROOT-..."],"required_scope":"all admissible bounded completion paths from the named state","observed_scope":"one recorded initialization and one event sequence","scope_gap":"unexamined completion branches may violate the Root while the current assertion passes","risk":"the run may publish a false zero-issue conclusion for a universal Root","routes":["Use a formal response property with a recorded requirement_bound or analysis_bound, or accept any admissible concrete counterexample as sufficient contradiction evidence."],"pass_criterion":"latest records show terminal evidence whose assumptions and bound match the Root scope"}}
 """
 
 
@@ -289,6 +352,9 @@ class CoverageReviewGate:
                     item.to_record() for item in self.registry.latest_versions()
                 ],
                 "latest_evaluations": latest_evaluations,
+                "evidence_scope_metadata": _evidence_scope_fingerprint_material(
+                    latest_evaluations
+                ),
                 "requirement_assertion_chains": {
                     key: sorted(value)
                     for key, value in sorted(
@@ -979,11 +1045,12 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
 
         Method-boundary calibration
         ---------------------------
-        Every recommendation must be executable with existing tools, literally
-        name a recommended tool and at least one related ledger ID, and provide
-        per-tool objectives, arguments or model scope, expected observations,
-        added coverage dimensions, an overall action, and observable pass
-        criteria. Do not recommend FBMCQ for interpreting NL, ask the main Agent
+        Every finding must be executable with existing capabilities and must
+        first state required semantic scope, observed evidence scope, the scope
+        gap, risk, equal-strength recovery routes, and observable pass criteria.
+        Tool recommendations are optional route aids, not quotas; require a
+        tool only when its semantic capability is indispensable. Do not recommend
+        FBMCQ for interpreting NL, ask the main Agent
         to edit Controller projection state, or cite IDs outside
         ``review_contract``. If an explicitly in-scope NL behavior is absent
         from the model, treat it as a model-behavior or assertion gap rather
@@ -1001,6 +1068,8 @@ def build_tool(gate: CoverageReviewGate) -> SimpleStructuredTool:
         ``review_contract.required_source_fact_ids`` may appear in
         ``reviewed_source_fact_ids`` or a finding's ``related_source_fact_ids``;
         if that required list is empty, both output fields must remain empty.
+        Reviewers must also check inspect-only projection, hot-start bypass,
+        bounded-formal overclaim, and topology/path overclaim.
 
         Evidence limitations
         --------------------

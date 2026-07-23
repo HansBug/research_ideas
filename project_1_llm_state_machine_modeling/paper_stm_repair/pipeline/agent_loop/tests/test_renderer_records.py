@@ -54,6 +54,12 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
                 "fcstm_sha256": "fcstm-sha",
                 "segmenter_version": "paper1.nl_segmenter.v1",
                 "relation_policy": "exact_identity",
+                "formal_verification_available": True,
+                "formal_profile_guide_read_once": True,
+                "check_result_sha256": "check-sha",
+                "tool_schema_hash": "tool-schema-sha",
+                "policy_hash": "policy-sha",
+                "evidence_policy_fingerprint": "evidence-policy-sha",
                 "scope_boundary": {"stage": "B-discover", "repair": False},
             },
         )
@@ -172,6 +178,22 @@ def _append_v2_records(store: RecordStore) -> list[dict[str, object]]:
                 "execution_status": "completed",
                 "match_status": "matches",
                 "python_return": True,
+                "initialization": {
+                    "initialization_mode": "hot",
+                    "requested_initial_state": "Root.Idle",
+                    "effective_initial_state": "Root.Idle",
+                    "requested_initial_vars": {"speed": 20},
+                    "effective_initial_vars": {"speed": 20, "brake": 0},
+                },
+                "formal": {
+                    "canonical_query": "A[] not brake_and_accel",
+                    "property_kind": "safety",
+                    "formal_bound": 20,
+                    "formal_bound_origin": "analysis_bound",
+                    "formal_assumption_basis_ids": ["REQ-001"],
+                },
+                "check": {"check_result_sha256": "check-sha", "tool_schema_hash": "tool-schema-sha"},
+                "policy": {"policy_hash": "policy-sha", "evidence_policy_fingerprint": "evidence-policy-sha"},
                 "function_call_trace": [{"family": "relation", "function": "transition_exists"}],
                 "witness": {"transition": "Root.Idle --go--> Root.Done"},
                 "limitations": [],
@@ -253,6 +275,11 @@ def test_record_store_accepts_v2_record_types_append_only_and_renderer_links_the
     assert "Keep this exact raw reason from the agent." in text
     assert "function_call_trace" in text
     assert "Root.Idle --go--> Root.Done" in text
+    assert "formal_profile_guide_read_once" in text
+    assert "requested_initial_vars" in text
+    assert "formal_bound_origin" in text
+    assert "check_result_sha256" in text
+    assert "evidence_policy_fingerprint" in text
     assert "#### regression_guard_projection" in text
     assert "post_loop_experiment_gate" in text
     assert '"stage": "B-discover"' in text
