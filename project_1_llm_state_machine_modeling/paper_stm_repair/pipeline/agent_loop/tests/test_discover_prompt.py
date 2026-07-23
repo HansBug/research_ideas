@@ -192,6 +192,8 @@ def test_prompt_prefers_simulation_for_runtime_behavior_outcomes():
     assert "Use simulation for one explicit initialized state" in flat
     assert "a valid concrete counterexample may refute a universal requirement" in flat
     assert "a passing trace does not establish all-path correctness" in flat
+    assert "A static transition relation cannot by itself prove event-causal runtime behavior" in flat
+    assert "must not be weakened to edge existence" in flat
     assert "Use source mapping only for attribution" in flat
 
 

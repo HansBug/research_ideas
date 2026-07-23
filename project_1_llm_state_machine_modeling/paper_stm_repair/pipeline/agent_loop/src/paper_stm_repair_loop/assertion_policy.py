@@ -671,9 +671,12 @@ def _simulate_has_nonempty_event_cycle(call: ast.Call) -> bool:
         cycles = call.args[0]
     if not isinstance(cycles, (ast.List, ast.Tuple)):
         return False
+    first_event_cycle = (
+        0 if _simulate_has_exact_hot_start_literal_request(call) else 1
+    )
     return any(
         isinstance(cycle, (ast.List, ast.Tuple)) and bool(cycle.elts)
-        for cycle in cycles.elts[1:]
+        for cycle in cycles.elts[first_event_cycle:]
     )
 
 

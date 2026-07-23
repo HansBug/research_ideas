@@ -715,6 +715,8 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "E must be supplied and consumed rather than unconsumed" in prompt
     assert "final-state coincidence is not event-causality evidence" in prompt
     assert "E in the first caller cycle" in prompt
+    assert "must not be narrowed to static edge existence" in prompt
+    assert "Relation-only evidence is insufficient" in prompt
     assert "may only revise an existing assertion chain" in prompt
     assert "True means the existing Root is satisfied" in prompt
     assert "frozen scope of the positive obligation" in prompt

@@ -183,6 +183,9 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
             formal_assumption_basis_ids=kwargs.get(
                 "formal_assumption_basis_ids"
             ),
+            required_function_families=kwargs.get(
+                "required_function_families"
+            ),
         )
 
     return SimpleStructuredTool(

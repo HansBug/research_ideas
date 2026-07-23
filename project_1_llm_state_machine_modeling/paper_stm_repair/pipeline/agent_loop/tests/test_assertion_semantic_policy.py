@@ -334,3 +334,20 @@ def test_condition_requirement_rejects_unbound_bare_relation():
         "transition_exists(source='Root.Off', event='Root.Power_On', target='Root.Ready')",
         reqs,
     ) == []
+
+
+def test_condition_requirement_accepts_event_in_first_complete_hot_start_cycle():
+    reqs = [_req("REQ-CONDITION", "condition", "when")]
+
+    assert validate_assertion_semantic_policy(
+        "simulate(initial_state='Root.Off', initial_vars={}, "
+        "cycles=[['Root.Power_On']]).final.is_active('Root.Ready')",
+        reqs,
+    ) == []
+
+    errors = validate_assertion_semantic_policy(
+        "simulate(initial_state='Root.Off', initial_vars={}, "
+        "cycles=[[]]).final.is_active('Root.Ready')",
+        reqs,
+    )
+    assert _codes(errors) == {ERROR_CONDITION_TRIGGER_REQUIRED}

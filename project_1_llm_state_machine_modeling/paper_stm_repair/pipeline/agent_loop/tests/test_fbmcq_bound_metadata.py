@@ -418,3 +418,47 @@ def test_formal_revision_payload_inherits_basis_and_families_and_accepts_real_me
     assert evaluated["formal_property_kind"] == "reach"
     assert evaluated["formal_bound_origin"] == "requirement_bound"
     assert evaluated["formal_assumption_basis_ids"] == ["REQ-TIME-3"]
+
+
+def test_formal_revision_accepts_named_analysis_bound_and_reports_real_chain_id():
+    class FormalObservation:
+        holds = True
+
+    registry = CoverageRegistry(
+        input_segment_ids=["SEG-1"],
+        coverage_requirements={"REQ-TIME-3": _timing_requirements()["REQ-TIME-3"]},
+        fbmcq_guide_read=lambda: True,
+        eval_funcs={"fbmcq": lambda _query: FormalObservation()},
+    )
+    accepted = registry.register_plan(
+        _formal_requirement_plan(
+            assumption_basis_ids=[],
+            expression="fbmcq('check reach <= 3: active(\"Root.Done\");').holds is True",
+        ),
+        reason="Register the initial formal assertion.",
+    )
+    assert accepted["accepted"] is True
+
+    expression = "fbmcq('check reach <= 4: active(\"Root.Done\");').holds is True"
+    rejected = registry.revise_assertion(
+        "ASSERT-REQ",
+        expression,
+        reason="将参数修改为数值 4。",
+        formal_property_kind="reach",
+        formal_bound=4,
+        formal_bound_origin="analysis_bound",
+        formal_assumption_basis_ids=[],
+    )
+    assert rejected["accepted"] is False
+    assert "formal_analysis_bound_rationale_missing:ASSERT-REQ:4" in rejected["errors"]
+
+    revised = registry.revise_assertion(
+        "ASSERT-REQ",
+        expression,
+        reason="analysis_bound=4 是该命题的有限观察窗口。",
+        formal_property_kind="reach",
+        formal_bound=4,
+        formal_bound_origin="analysis_bound",
+        formal_assumption_basis_ids=[],
+    )
+    assert revised["accepted"] is True

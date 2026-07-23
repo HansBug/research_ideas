@@ -1163,6 +1163,7 @@ class CoverageRegistry:
             self.append_record("assertion_revision_rejected", {**result, "reason": reason})
             return result
         formal_metadata = {
+            "assertion_chain_id": assertion_chain_id,
             "basis_ids": list(latest.basis_ids),
             "required_function_families": list(next_function_families),
             "formal_property_kind": formal_property_kind,
@@ -2671,7 +2672,10 @@ def _formal_metadata_errors(
     elif origin == "analysis_bound":
         rationale = str(assertion.get("rationale") or "")
         if str(parsed_bound) not in rationale or not re.search(
-            r"\b(?:analysis|bound|finite|horizon)\b", rationale, re.IGNORECASE
+            r"\b(?:analysis|bound|finite|horizon)\b|analysis_bound|"
+            r"(?:分析界|有限界|有限范围|观察窗口|响应窗口|周期)",
+            rationale,
+            re.IGNORECASE,
         ):
             errors.append(
                 f"formal_analysis_bound_rationale_missing:{chain_id}:{parsed_bound}"

@@ -208,7 +208,12 @@ double-negated verdict metadata, or a bare constant.
    the expected tool family with a weaker proposition is invalid.
 4. Required target example:
    `transition_exists(source=..., event=..., target=...)`.
-   Event existence alone cannot prove a destination.
+   This proves only the declared static edge relation. Event existence alone
+   cannot prove a destination. A static transition relation cannot by itself
+   prove event-causal runtime behavior. When the NL says that receiving an event
+   causes, enters, exits, or transitions to a state, that behavioral obligation
+   must not be weakened to edge existence: use ordered simulation or an
+   equal-strength formal route, and use relation evidence only as grounding.
 5. Cardinality example:
    `len(states(parent=..., recursive=False)) == 3`. Count only the stated
    complete stable model-definition scope, not unrelated siblings. Never make a

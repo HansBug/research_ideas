@@ -139,3 +139,30 @@ def test_tool_reasons_are_saved_and_eval_exports_machine_reason_context():
     assert evaluated["reason_context"]["related_root_node_ids"] == ["ROOT-001"]
     assert evaluated["reason_context"]["related_assertion_chain_ids"] == ["ASSERT-001"]
     assert evaluated["reason_context"]["assert_sha256"] == revised["assert_sha256"]
+
+
+def test_revise_assertion_tool_forwards_replacement_function_families():
+    registry = _registry()
+    build_register_coverage_plan_tool(registry).invoke(
+        {"plan": _plan(), "reason": "Register the fixture."}
+    )
+    revised = build_revise_assertion_tool(registry).invoke(
+        {
+            "assertion_chain_id": "ASSERT-001",
+            "assert": (
+                "transition_exists(source='Root.Idle', event='Root.go', "
+                "target='Root.Done') and "
+                "simulate(initial_state='Root.Idle', initial_vars={}, "
+                "cycles=[['Root.go']]).final.is_active('Root.Done')"
+            ),
+            "required_function_families": ["relation", "simulation"],
+            "reason": "Replace the static-only route with runtime evidence.",
+        }
+    )
+
+    assert revised["accepted"] is True
+    assert revised["inherited"]["required_function_families"] == [
+        "relation",
+        "simulation",
+    ]
+    assert revised["inherited"]["required_function_families_changed"] is True
