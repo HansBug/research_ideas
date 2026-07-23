@@ -727,6 +727,9 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "True means the existing Root is satisfied" in prompt
     assert "frozen scope of the positive obligation" in prompt
     assert "Do not broaden a source-state-specific Root to every state" in prompt
+    assert "parenthesized state qualifier must remain that exact source scope" in prompt
+    assert "replaces it with an ancestor composite" in prompt
+    assert "even when the current model happens to satisfy the broader behavior" in prompt
     assert "Require all-state behavior only" in prompt
     assert "exclusive allowed ID universe" in prompt
     assert "When it is empty" in prompt
@@ -738,6 +741,9 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
 
     tool = build_review_tool(object())
     assert "only IDs in" in tool.description
+    assert "parenthesized NL state remains the exact Root source scope" in tool.description
+    assert "blocking strengthening" in tool.description
+    assert "all descendants" in tool.description
     assert "required_source_fact_ids" in tool.description
     assert "both output fields must remain empty" in tool.description
     assert re.search(r"[\u4e00-\u9fff]", tool.description) is None

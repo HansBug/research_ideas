@@ -205,7 +205,12 @@ double-negated verdict metadata, or a bare constant.
    assertion using one permitted evidence-family route.
 3. Preserve source, trigger, guard/condition, target, quantity, direction,
    ordering, continuity, completion scope, and timing bound from the NL. Calling
-   the expected tool family with a weaker proposition is invalid.
+   the expected tool family with a weaker proposition is invalid. An explicitly
+   named state or parenthesized state qualifier fixes the Root's source scope at
+   that exact state. Never lift it to an ancestor composite, every descendant,
+   or sibling state merely because the current model exposes a broader forced
+   transition. Broader model behavior may be inspected as extra evidence, but it
+   is not an NL obligation unless the NL itself supplies that broader scope.
 4. Required target example:
    `transition_exists(source=..., event=..., target=...)`.
    This proves only the declared static edge relation. Event existence alone

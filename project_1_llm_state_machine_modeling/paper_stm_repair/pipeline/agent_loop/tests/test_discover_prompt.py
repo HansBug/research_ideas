@@ -134,6 +134,9 @@ def test_prompt_requires_same_strength_positive_assertions():
     assert "`True` means the model satisfies the Root" in flat
     assert "`False` means it contradicts the Root" in flat
     assert "Preserve source, trigger, guard/condition, target, quantity" in flat
+    assert "parenthesized state qualifier fixes the Root's source scope" in flat
+    assert "Never lift it to an ancestor composite" in flat
+    assert "not an NL obligation unless the NL itself supplies" in flat
     assert "Event existence alone cannot prove a destination" in flat
     assert "Do not strengthen" in flat
     assert "do not weaken it to `bool(effects(...))`" in flat
