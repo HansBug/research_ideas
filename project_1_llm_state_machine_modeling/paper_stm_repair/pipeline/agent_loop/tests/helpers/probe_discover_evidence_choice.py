@@ -26,6 +26,18 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "turns": 4,
     "seconds": 180,
 }
+LIMITATION_MARKERS: Dict[str, tuple] = {
+    "bounded": ("bounded", "analysis_bound", "finite bound", "finite horizon"),
+    "concrete": (
+        "concrete",
+        "single execution",
+        "one execution",
+        "single trace",
+        "one trace",
+        "simulation trace",
+        "execution witness",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -285,7 +297,8 @@ def evaluate_rubric(case: ProbeCase, actual_names: List[str], decision: Optional
         if any(term in decision_text for term in universal_markers) and "not" not in decision_text:
             failures.append("simulation result risks claiming universality")
     for token in case.required_limitations:
-        if token.lower() not in limitations_text:
+        markers = LIMITATION_MARKERS.get(token, (token.lower(),))
+        if not any(marker in limitations_text for marker in markers):
             failures.append(f"missing limitation marker: {token}")
     if case.case_id == "S4" and "query_structure" in evidence:
         # Structure is allowed only as extra grounding; the required evidence above remains formal plus simulation.

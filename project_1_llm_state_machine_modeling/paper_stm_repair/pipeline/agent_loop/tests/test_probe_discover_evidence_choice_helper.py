@@ -70,6 +70,19 @@ def test_rubric_accepts_expected_choices_without_sequence_assertions() -> None:
     )
     assert s4["passed"] is True
 
+    s4_semantic_synonyms = helper.evaluate_rubric(
+        cases["S4"],
+        ["check_fbmcq", "simulate_concrete"],
+        {
+            "selected_evidence": ["check_fbmcq", "simulate_concrete"],
+            "limitations": [
+                "The analysis has a finite horizon of six steps.",
+                "The simulation is a single execution witness, not a universal proof.",
+            ],
+        },
+    )
+    assert s4_semantic_synonyms["passed"] is True
+
 
 def test_rubric_rejects_semantic_mismatches() -> None:
     cases = {case.case_id: case for case in helper.CASES}
