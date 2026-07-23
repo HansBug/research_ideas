@@ -712,7 +712,11 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "completion transition" in prompt
     assert "does not fire unconditionally in every ordinary cycle" in prompt
     assert "attributes S -> T to event E" in prompt
-    assert "E must be supplied and consumed rather than unconsumed" in prompt
+    assert "`E in consumed_events`" in prompt
+    assert "`E not in unconsumed_events`" in prompt
+    assert "not a one-use resource counter" in prompt
+    assert "Never require `consumed_events.count(E) == 1`" in prompt
+    assert "duplicate consumed labels alone" in prompt
     assert "final-state coincidence is not event-causality evidence" in prompt
     assert "E in the first caller cycle" in prompt
     assert "must not be narrowed to static edge existence" in prompt

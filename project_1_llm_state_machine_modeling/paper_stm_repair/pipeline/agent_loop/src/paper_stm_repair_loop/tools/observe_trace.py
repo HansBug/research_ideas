@@ -228,6 +228,12 @@ def build_tool(
         local "while in S, E leads to T" question, put E in the first hot-start
         caller cycle and verify that E is consumed and T follows that cycle;
         otherwise an event-free/completion transition may leave S before E.
+        In hierarchical FCSTM execution, the same supplied event may appear
+        more than once in one cycle's ``consumed_events`` while nested and
+        ancestor-level forced transitions process it. Use membership in
+        ``consumed_events`` plus absence from ``unconsumed_events``; never
+        require an exact count of one or treat duplicate labels alone as an
+        issue.
         `reason` explains why this exact bounded trace is necessary in the run
         content language. No filesystem paths, model text, arbitrary code, or
         expected outcome are accepted. Use the exact registered Root ID. Suffix
@@ -265,7 +271,9 @@ def build_tool(
         the event cycle's input/consumed/unconsumed events and resulting active
         states. If the event is unconsumed or the target was reached earlier,
         treat the trace as insufficient for that causal proposition and follow
-        the returned corrective guidance.
+        the returned corrective guidance. Duplicate entries for one supplied
+        event do not by themselves prove repeated external consumption or a
+        model issue.
 
         Failure semantics
         -----------------

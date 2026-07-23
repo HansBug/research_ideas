@@ -56,7 +56,11 @@ class SimulationAPI:
     caller cycle and inspect source-state initialization, consumed/unconsumed
     events, and the resulting active state. A leading empty cycle may fire a
     completion transition before the event and make a final-state-only check
-    pass for the wrong reason.
+    pass for the wrong reason. In hierarchical execution the same supplied
+    event may appear more than once in one cycle's ``consumed_events`` while
+    nested and ancestor-level forced transitions process it. Check membership
+    in ``consumed_events`` and absence from ``unconsumed_events``; do not require
+    a count of exactly one or treat duplicate labels alone as a model issue.
 
     Failure semantics: missing model text, malformed cycle specs, or incomplete
     hot-start variables raise ``UnsupportedEvidence`` or pyfcstm ``ValueError``.

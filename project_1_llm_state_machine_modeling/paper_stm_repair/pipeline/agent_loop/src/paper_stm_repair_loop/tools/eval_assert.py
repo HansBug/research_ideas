@@ -248,7 +248,12 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           has no active state, so do not call ``is_active`` after termination or
           append a diagnostic cycle after the terminating event. Reusing an
           external event in a later non-terminal cycle is legal; consumed-event
-          accounting is not a one-use scenario rule. Prefer this function when
+          accounting is not a one-use scenario rule. In hierarchical FCSTM
+          execution the same supplied event may appear more than once in one
+          cycle's ``consumed_events`` while nested and ancestor-level forced
+          transitions process it. Check membership and absence from
+          ``unconsumed_events``; never require a count of exactly one or treat
+          duplicate labels alone as an issue. Prefer this function when
           the NL asks what behavior occurs after a trigger; assert the resulting
           active state or termination rather than inferring it from one static
           transition relation.

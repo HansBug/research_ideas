@@ -244,7 +244,13 @@ double-negated verdict metadata, or a bare constant.
    proof of cold reachability, entry obligations, or default initialization
    behavior; prove those with a cold simulation or another suitable evidence
    route. Reusing an event in a later cycle is legal; consumed-event accounting
-   is not a one-use rule.
+   is not a one-use rule. In hierarchical FCSTM execution, one supplied event
+   may appear more than once in one cycle's `consumed_events` observation while
+   nested and ancestor-level forced transitions process that same caller input.
+   Treat `E in consumed_events` together with `E not in unconsumed_events` as
+   consumption evidence. Never require `consumed_events.count(E) == 1`, and do
+   not interpret duplicate labels alone as repeated external consumption or a
+   model issue.
    For a local "while in S, event E leads to T" proposition, put E in the first
    caller cycle of the complete hot start. Verify from the recorded trace that S
    is active before that cycle, E is consumed rather than unconsumed, and T is

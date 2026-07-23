@@ -79,6 +79,8 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         "first hot-start caller cycle",
         "consumed_events",
         "unconsumed_events",
+        "same supplied event may appear more than once",
+        "count of exactly one",
         "final-state coincidence",
         "transition_index",
         "Positive bool principle",

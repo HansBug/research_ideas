@@ -174,6 +174,9 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     assert "entry obligations, or default initialization behavior" in flat
     assert "Reusing an event in a later cycle is legal" in flat
     assert "consumed-event accounting is not a one-use rule" in flat
+    assert "may appear more than once in one cycle's `consumed_events`" in flat
+    assert "Never require `consumed_events.count(E) == 1`" in flat
+    assert "duplicate labels alone" in flat
     assert 'For a local "while in S, event E leads to T" proposition' in flat
     assert "put E in the first caller cycle" in flat
     assert "E is consumed rather than unconsumed" in flat
