@@ -223,7 +223,10 @@ def build_tool(
         set supplied in that cycle; `[]` is an explicit eventless/init cycle.
         Optional `initial_state` plus `initial_vars` requests a hot start from one
         exact dotted state path; hot start requires every declared persistent
-        variable value. Omitting both fields preserves the cold-start contract.
+        variable value. With `initial_state=None`, optional partial `initial_vars`
+        overrides only named declared variables while omitted variables retain
+        declaration initializers; effective full values are returned. Omitting
+        both fields preserves the default cold-start contract.
         A cold start needs a leading `[]`. A complete hot start does not. For a
         local "while in S, E leads to T" question, put E in the first hot-start
         caller cycle and verify that E is consumed and T follows that cycle;

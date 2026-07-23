@@ -168,6 +168,8 @@ def test_prompt_preserves_cycle_and_fbmcq_semantics():
     flat = _flat(PROMPT_ZH)
     assert "A cold simulation from model entry must make initialization explicit" in flat
     assert "using a leading empty cycle `[]`" in flat
+    assert "literal `initial_vars` may override only the named subset" in flat
+    assert "omitted variables retain their declaration initializers" in flat
     assert "A hot-start simulation with both an exact `initial_state` and complete `initial_vars`" in flat
     assert "does not require a leading `[]`" in flat
     assert "Do not use a hot-start result as proof of cold reachability" in flat

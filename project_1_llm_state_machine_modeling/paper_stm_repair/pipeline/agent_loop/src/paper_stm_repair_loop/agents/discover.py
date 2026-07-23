@@ -288,6 +288,12 @@ def _write_capability_manifest(
             "mode": "exact_state_and_complete_variables",
             "missing_or_partial_initial_vars_policy": "fail_closed",
         },
+        "cold_start_capability": {
+            "available": True,
+            "mode": "default_state_with_optional_partial_variable_overrides",
+            "omitted_variable_policy": "use_declaration_initializers",
+            "leading_empty_cycle_required": True,
+        },
         "topology_path_backend": {
             "available": topology_path_available,
             "backend": "paper_stm_repair_loop.eval_env.topology.TopologyAPI",

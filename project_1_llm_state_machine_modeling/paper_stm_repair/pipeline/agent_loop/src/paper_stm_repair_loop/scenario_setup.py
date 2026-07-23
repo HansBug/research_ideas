@@ -115,7 +115,9 @@ def execute_cycles(
     never inserts an initialization or stabilization cycle. Callers must include
     an explicit leading ``[]`` when initialization is required. Events remain
     available for the whole cycle according to pyfcstm semantics; repeated
-    consumed event names are transition accounting, not repeated inputs.
+    consumed event names are transition accounting, not repeated inputs. Cold
+    starts may override a subset of declared variables through ``initial_vars``;
+    hot starts require an exact state and all declared variables.
 
     Failure semantics: pyfcstm load/runtime exceptions propagate to the caller so
     direct eval can return ``exception``/``unsupported`` precisely.
@@ -134,9 +136,9 @@ def execute_cycles(
 
     if not isinstance(cycles, list) or not cycles:
         raise ValueError("cycles must contain at least one explicit cycle")
-    if (initial_state is None) != (initial_vars is None):
+    if initial_state is not None and initial_vars is None:
         raise ValueError(
-            "hot start requires both exact initial_state and complete initial_vars"
+            "hot start requires exact initial_state with complete initial_vars"
         )
     mode = "hot" if initial_state is not None else "cold"
     requested_initialization = {
@@ -153,6 +155,14 @@ def execute_cycles(
             raise ValueError(
                 "hot start requires complete exact initial_vars; "
                 f"missing={missing}, extra={extra}"
+            )
+    elif initial_vars is not None:
+        declared = set(getattr(model, "defines", {}).keys())
+        extra = sorted(set(initial_vars) - declared)
+        if extra:
+            raise ValueError(
+                "cold-start initial_vars may override only declared variables; "
+                f"extra={extra}"
             )
     runtime = SimulationRuntime(
         model,

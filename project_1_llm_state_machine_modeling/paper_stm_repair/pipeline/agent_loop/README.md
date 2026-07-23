@@ -115,9 +115,10 @@ Evidence limitations、Permissions 和 Example，并由合同测试读取真实�
 verification 作为同等地位的证据能力，由 Agent 根据命题量化范围选择，不按固定阶梯调用。
 其中：
 
-- `simulate(cycles, initial_state=None, initial_vars=None)` 支持 cold/hot start；hot start 的
-  第一个 cycle 直接从冻结初始状态执行，不要求前置 `[]`，但不能证明 cold
-  reachability 或被跳过的 entry action；
+- `simulate(cycles, initial_state=None, initial_vars=None)` 支持 cold/hot start；cold start
+  可用 partial `initial_vars` 覆盖部分声明变量，其余使用 declaration initializer，仍需显式
+  前置 `[]`；hot start 的第一个 cycle 直接从冻结初始状态执行，不要求前置 `[]`，但不能
+  证明 cold reachability 或被跳过的 entry action；
 - `topology()` / `path()` 回答 guard-agnostic 结构可达与路径问题；正向结果只是
   runtime 可行性的 over-approximation；
 - `fbmcq(...)` 可用 NL 明示的 `requirement_bound`，也可以使用诚实记录有限

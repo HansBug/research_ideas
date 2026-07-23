@@ -287,9 +287,20 @@ def _simulate_has_exact_hot_start_literal_request(call: ast.Call) -> bool:
 
 def _simulate_has_invalid_hot_start_request(call: ast.Call) -> bool:
     initial_state, initial_vars = _simulate_hot_start_keywords(call)
-    if initial_state is None and initial_vars is None:
-        return False
-    return not _simulate_has_exact_hot_start_literal_request(call)
+    if _is_absent_or_none_literal(initial_state):
+        return not (
+            _is_absent_or_none_literal(initial_vars)
+            or _is_literal_initial_vars_dict(initial_vars)
+        )
+    if _is_nonempty_string_literal(initial_state):
+        return not _is_literal_initial_vars_dict(initial_vars)
+    return True
+
+
+def _is_absent_or_none_literal(node: ast.AST | None) -> bool:
+    return node is None or (
+        isinstance(node, ast.Constant) and node.value is None
+    )
 
 
 def _simulate_hot_start_keywords(call: ast.Call) -> tuple[ast.AST | None, ast.AST | None]:

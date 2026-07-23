@@ -225,6 +225,12 @@ def test_runtime_capability_manifest_freezes_issue165_nonformal_metadata_before_
     assert capability["frozen_check_result"]["check_result_sha256"] == sha256_json(frozen_check)
     assert capability["schema_hashes"]["InspectModelResult"] == capability["inspect_model_result_schema_hash"]
     assert capability["hot_start_capability"]["missing_or_partial_initial_vars_policy"] == "fail_closed"
+    assert capability["cold_start_capability"] == {
+        "available": True,
+        "mode": "default_state_with_optional_partial_variable_overrides",
+        "omitted_variable_policy": "use_declaration_initializers",
+        "leading_empty_cycle_required": True,
+    }
     assert capability["topology_path_backend"]["available"] is True
     assert capability["process_isolation_policy"]["fbmcq_backend"] == "multiprocessing_spawn"
     assert (

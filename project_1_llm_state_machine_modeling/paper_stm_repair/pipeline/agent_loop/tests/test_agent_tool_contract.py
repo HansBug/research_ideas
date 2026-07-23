@@ -76,6 +76,8 @@ def test_eval_assert_public_schema_and_supported_surface_are_exact(tmp_path):
         "is_ended",
         "requested_initialization",
         "effective_initialization",
+        "literal partial",
+        "declaration initializers",
         "first hot-start caller cycle",
         "consumed_events",
         "unconsumed_events",

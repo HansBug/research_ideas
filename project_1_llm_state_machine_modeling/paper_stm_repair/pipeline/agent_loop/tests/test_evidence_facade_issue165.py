@@ -355,6 +355,26 @@ def test_simulate_supports_exact_hot_start_with_complete_variables():
     assert observed.final.is_active("Root.Work.B")
 
 
+def test_simulate_supports_cold_partial_variable_overrides():
+    sim = SimulationAPI(MODEL)
+
+    observed = sim.simulate(
+        initial_vars={"count": 4},
+        cycles=[[], ["Root.go"]],
+    )
+
+    assert observed.requested_initialization.mode == "cold"
+    assert observed.requested_initialization.state is None
+    assert observed.requested_initialization.to_json()["data"]["variables"] == {
+        "count": 4
+    }
+    assert observed.effective_initialization.to_json()["data"]["variables"] == {
+        "count": 4,
+        "flag": 0,
+    }
+    assert observed.final.is_active("Root.Work.A")
+
+
 def test_hot_start_event_causality_is_not_replaced_by_leading_empty_cycle():
     sim = SimulationAPI(EVENT_CAUSALITY_MODEL)
 
@@ -416,16 +436,19 @@ def test_simulate_rejects_hot_start_without_complete_exact_variables():
     else:
         raise AssertionError("missing hot-start variables must fail closed")
 
-    for partial in (
-        {"initial_state": "Root.Work.A", "initial_vars": None},
-        {"initial_state": None, "initial_vars": {"count": 1, "flag": 0}},
-    ):
-        try:
-            sim.simulate(cycles=[[]], **partial)
-        except ValueError as exc:
-            assert "both exact initial_state and complete initial_vars" in str(exc)
-        else:
-            raise AssertionError("partial hot-start contract must fail closed")
+    try:
+        sim.simulate(initial_state="Root.Work.A", initial_vars=None, cycles=[[]])
+    except ValueError as exc:
+        assert "exact initial_state with complete initial_vars" in str(exc)
+    else:
+        raise AssertionError("hot start without variables must fail closed")
+
+    try:
+        sim.simulate(initial_vars={"missing": 1}, cycles=[[]])
+    except ValueError as exc:
+        assert "only declared variables" in str(exc)
+    else:
+        raise AssertionError("unknown cold-start variable override must fail closed")
 
 
 def test_observe_trace_accepts_cold_and_hot_initialization_records():
@@ -435,10 +458,13 @@ def test_observe_trace_accepts_cold_and_hot_initialization_records():
         root_node_ids=["ROOT-001"],
         cycles=[[], ["Root.go"]],
         reason="Check cold initialization record.",
+        initial_vars={"count": 7},
     )
     assert cold["execution_status"] == "completed"
     assert cold["requested_initialization"]["mode"] == "cold"
     assert cold["effective_initialization"]["mode"] == "cold"
+    assert cold["requested_initialization"]["variables"] == {"count": 7}
+    assert cold["effective_initialization"]["variables"] == {"count": 7, "flag": 0}
 
     hot = observe_trace.execute(
         MODEL,

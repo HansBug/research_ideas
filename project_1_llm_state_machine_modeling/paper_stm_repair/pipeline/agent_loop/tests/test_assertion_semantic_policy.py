@@ -48,10 +48,17 @@ def test_simulate_literal_cycles_must_start_with_empty_cycle():
 
 
 
-def test_simulate_first_cycle_policy_allows_only_complete_hot_start_without_leading_empty():
+def test_simulate_first_cycle_policy_allows_complete_hot_start_and_explicit_cold_override():
     assert (
         validate_assertion_semantic_policy(
             "simulate(initial_state='Root.Work.A', initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
+            [],
+        )
+        == []
+    )
+    assert (
+        validate_assertion_semantic_policy(
+            "simulate(initial_vars={'count': 1}, cycles=[[], ['Root.go']]).final.is_active('Root.Work.A')",
             [],
         )
         == []
@@ -61,7 +68,6 @@ def test_simulate_first_cycle_policy_allows_only_complete_hot_start_without_lead
         "simulate(initial_state='Root.Work.A', cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
         "simulate(initial_state='Root.Work.A', cycles=[[], ['Root.Work.go']]).final.is_active('Root.Work.B')",
         "simulate(initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
-        "simulate(initial_vars={'count': 1, 'flag': 0}, cycles=[[], ['Root.Work.go']]).final.is_active('Root.Work.B')",
         "simulate(initial_state=state_name, initial_vars={'count': 1, 'flag': 0}, cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
         "simulate(initial_state='Root.Work.A', initial_vars=dict(count=1, flag=0), cycles=[['Root.Work.go']]).final.is_active('Root.Work.B')",
     ):

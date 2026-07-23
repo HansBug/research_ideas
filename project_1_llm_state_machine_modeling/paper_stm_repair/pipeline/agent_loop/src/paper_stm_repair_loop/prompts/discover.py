@@ -238,7 +238,10 @@ double-negated verdict metadata, or a bare constant.
    event (or explicit None), and target; a model-wide effect search is invalid.
 7. Simulation uses FCSTM cycles. A cold simulation from model entry must
    make initialization explicit by using a leading empty cycle `[]`, for example
-   `simulate(cycles=[[], ['event']])`. A hot-start simulation with both an exact
+   `simulate(cycles=[[], ['event']])`. With `initial_state=None`, optional
+   literal `initial_vars` may override only the named subset of declared
+   variables; omitted variables retain their declaration initializers and the
+   effective complete values are recorded. A hot-start simulation with both an exact
    `initial_state` and complete `initial_vars` is already initialized by that supplied
    snapshot and does not require a leading `[]`. Do not use a hot-start result as
    proof of cold reachability, entry obligations, or default initialization

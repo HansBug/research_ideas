@@ -229,7 +229,10 @@ def build_tool(registry: CoverageRegistry) -> SimpleStructuredTool:
           Every outer item is exactly one FCSTM cycle; each inner list is the
           complete event set for that cycle. ``[]`` is an explicit eventless
           cycle. No hidden initialization cycle is inserted. Cold starts must
-          begin with ``[]``. A hot start requires one exact ``initial_state`` and
+          begin with ``[]``. With ``initial_state=None``, a literal partial
+          ``initial_vars`` mapping may override named declared variables; omitted
+          variables keep their declaration initializers and the effective full
+          mapping is recorded. A hot start requires one exact ``initial_state`` and
           a complete literal ``initial_vars`` mapping and is already initialized,
           so it does not require a leading ``[]``. For a local "while in S, E
           leads to T" proposition, put E in the first hot-start caller cycle and

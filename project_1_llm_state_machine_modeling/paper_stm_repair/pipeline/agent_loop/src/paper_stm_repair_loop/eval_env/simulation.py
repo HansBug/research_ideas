@@ -51,7 +51,10 @@ class SimulationAPI:
     supports default cold starts and optional exact-state hot starts with complete
     persistent variable values. It inserts no hidden initialization/stabilization
     cycle. Cold initialization is represented explicitly by a leading ``[]``.
-    A complete hot start is already initialized and does not require ``[]``.
+    With ``initial_state=None``, a partial ``initial_vars`` mapping overrides
+    only those declared variables; omitted variables keep declaration
+    initializers and appear in ``effective_initialization``. A complete hot start
+    is already initialized and does not require ``[]``.
     For a local event-causality check, put the event in the first hot-start
     caller cycle and inspect source-state initialization, consumed/unconsumed
     events, and the resulting active state. A leading empty cycle may fire a

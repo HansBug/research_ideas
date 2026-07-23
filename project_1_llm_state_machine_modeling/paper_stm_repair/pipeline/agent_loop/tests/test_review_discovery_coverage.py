@@ -707,6 +707,8 @@ def test_reviewer_prompt_calibrates_positive_conditions_and_completion_semantics
     assert "Never emit `query_model`" in prompt
     assert "literal data for findings" in prompt
     assert "not tools available to this reviewer" in prompt
+    assert "A cold start may provide partial `initial_vars` overrides" in prompt
+    assert "do not demand a complete requested mapping" in prompt
     assert "does not automatically create an exclusive negative obligation" in prompt
     assert "do not recommend an `is False`" in prompt
     assert "completion transition" in prompt
