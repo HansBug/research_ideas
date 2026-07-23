@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import inspect
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
-from paper_stm_repair_loop.config import SELECTED_ROOT
 from paper_stm_repair_loop.eval_env import EvalEnvironment
 from paper_stm_repair_loop.eval_env.runtime import (
     ALLOWED_FUNCTION_FAMILIES,
@@ -227,9 +227,8 @@ def test_simulate_exposes_terminal_state_without_reading_current_state():
 
 def test_manual_0000_power_off_reaches_top_level_final():
     model_path = (
-        SELECTED_ROOT
-        / "llms-emp-gpt4o-hldcs-manual-identity"
-        / "model.fcstm"
+        Path(__file__).resolve().parents[1]
+        / "fixtures/discover_integrated/0000_hldcs_manual_identity/STM_0.fcstm"
     )
     env = EvalEnvironment(model_text=model_path.read_text(encoding="utf-8"))
 
@@ -255,9 +254,8 @@ def test_manual_0000_power_off_reaches_top_level_final():
 
 def test_manual_0000_autofinal_takeover_is_runtime_behavior_not_direct_edge():
     model_path = (
-        SELECTED_ROOT
-        / "llms-emp-gpt4o-hldcs-manual-identity"
-        / "model.fcstm"
+        Path(__file__).resolve().parents[1]
+        / "fixtures/discover_integrated/0000_hldcs_manual_identity/STM_0.fcstm"
     )
     env = EvalEnvironment(model_text=model_path.read_text(encoding="utf-8"))
 

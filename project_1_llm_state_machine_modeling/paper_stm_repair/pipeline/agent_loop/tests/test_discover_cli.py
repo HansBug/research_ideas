@@ -5,8 +5,11 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+import paper_stm_repair_loop.inputs as input_module
 from paper_stm_repair_loop.agents import discover
-from paper_stm_repair_loop.inputs import load_pair
+from paper_stm_repair_loop.inputs import load_custom
 
 
 class _Registry:
@@ -16,8 +19,8 @@ class _Registry:
 
 
 MANUAL_IDENTITY_DIR = Path(
-    "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/"
-    "llms-emp-gpt4o-hldcs-manual-identity"
+    "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/"
+    "fixtures/discover_integrated/0000_hldcs_manual_identity"
 )
 FORMAL_SELECTED_SEED_DIR = Path(
     "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/"
@@ -35,18 +38,33 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_default_manual_identity_pair_resolves_against_feedback_final_pool():
-    case = load_pair("llms_emp_stm_results_0000_manual_identity")
-
-    assert case.pair_id == "llms_emp_stm_results_0000_manual_identity"
-    assert case.metadata["source_pair_id"] == "llms_emp_feedback_final_0000"
-    assert case.metadata["discover_source_policy"] == "fcstm_identity"
-    assert case.raw_source == case.fcstm
-    assert case.metadata["academic_eligible"] is False
-    assert (
-        case.source_trace["source_traceability"]["original_source_stm0_sha256"]
-        == SELECTED_FEEDBACK_FINAL_STM_SHA256
+def test_manual_identity_demo_uses_explicit_custom_fixture():
+    case = load_custom(
+        "llms_emp_stm_results_0000_manual_identity",
+        MANUAL_IDENTITY_DIR / "nl.txt",
+        MANUAL_IDENTITY_DIR / "STM_0.fcstm",
     )
+
+    assert case.pair_id is None
+    assert case.case_id == "llms_emp_stm_results_0000_manual_identity"
+    assert case.input_mode == "custom"
+    assert case.raw_source_format == "fcstm-identity"
+    assert case.raw_source == case.fcstm
+    assert case.source_trace["relation_policy"] == "exact_identity"
+
+
+def test_pair_loader_rejects_duplicate_selected_directories(monkeypatch, tmp_path):
+    for name in ("a", "b"):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "source_meta.json").write_text(
+            json.dumps({"pair_id": "llms_emp_feedback_final_0000"}),
+            encoding="utf-8",
+        )
+    monkeypatch.setattr(input_module, "SELECTED_ROOT", tmp_path)
+
+    with pytest.raises(ValueError, match="PAIR_SELECTED_DIRECTORY_AMBIGUOUS"):
+        input_module.load_pair("llms_emp_feedback_final_0000")
 
 
 def test_manual_identity_source_meta_uses_feedback_final_selected_seed_bytes():

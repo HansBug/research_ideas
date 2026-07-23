@@ -285,14 +285,14 @@ make discover-demo
 Demo 只有真实 provider 模式，并使用与 `utils.agent.demo` 相同的 Rich 交互输出。直接运行：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
-python -m paper_stm_repair_loop.discover \
-  --pair-id llms_emp_stm_results_0000_manual_identity \
-  --profile gpt-5.5 \
-  --content-language zh-CN \
-  --renderer rich \
-  --output-dir runs/paper1/discover/manual-0000
+make discover-demo \
+  DISCOVER_PROFILE=gpt-5.5 \
+  DISCOVER_OUT=runs/paper1/discover/manual-0000
 ```
+
+`discover-demo` 使用隔离在 `fixtures/discover_integrated/0000_hldcs_manual_identity/`
+下的人工 FCSTM identity 工程样例，不占用正式 60 例 `selected_seed_examples/`。需要
+运行正式 pair 时使用 `make discover-pair DISCOVER_PAIR=llms_emp_feedback_final_NNNN`。
 
 `--profile` 是本次运行唯一的模型选择入口。Discover 主 Agent、语义覆盖
 reviewer 和对抗性漏报 reviewer 必须使用同一个 profile；两个 reviewer 只分离
@@ -399,5 +399,11 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop
   --bounds 5,20,50 \
   --output runs/paper1/discover/fbmcq-probe-<git-head>.jsonl
 ```
+
+正式全量模式还会 fail closed 检查：输入必须是唯一的
+`feedback_final_pairs.jsonl` 与 `llms_emp_r45_java_60/fcstm/`；PR #162 资产提交
+`ef73e4bf` 和 report `manifest.json.research_commit` 都必须是当前 HEAD 的祖先。
+路径、lineage、数量、ID 集合或 provenance 任一不符均返回
+`input_asset_preflight_failed`，不会搜索或降级到其他旧资产。
 
 两类 helper 都使用排他创建，拒绝覆盖已有输出；`runs/` 只保留本地审计证据，不提交。

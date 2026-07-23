@@ -2,12 +2,12 @@
 
 > **R4.5 PlantUML override（Issue #161）**：本 README 下文的“PlantUML canonical 必须来自官方 SCXML”只适用于历史 R3 四例 smoke。LLMS-EMP 60 例的 active PlantUML 路线已改为 [Java source frontend](./java/plantuml-state-frontend/README.md)：raw source canonical 是语义主路径，PlantUML `StateDiagram/Entity/Link` 是差分证据，SCXML 只保留为历史/附件，不能再作为 PlantUML canonical 真源。
 
-本目录是第一篇论文 `paper_stm_repair` 的 R3 转换层：把 [selected_seed_examples/](../../selected_seed_examples/) 中四个静态 `<NL, STM_0>` 冒烟样例转换、部分转换或阻塞裁决到 R3 规范化 STM JSON，并生成 conversion report 与 loss ledger。
+本目录是第一篇论文 `paper_stm_repair` 的 R3 转换层：把隔离在 [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) 中的四个历史静态 `<NL, STM_0>` 冒烟样例转换、部分转换或阻塞裁决到 R3 规范化 STM JSON，并生成 conversion report 与 loss ledger。
 
 ## 1. 定位
 
 - R3 是 **开发 / 审计级最小转换链路 v0**，只服务四例冒烟集合、R4/R4.5/R5 dry-run 与 schema/ledger 接口验证。
-- [selected_seed_examples/](../../selected_seed_examples/) 是 smoke 迷你文库，不是最终实验集合、样本上限或论文主结果集合。
+- [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) 是历史 smoke fixture，不是最终实验集合、样本上限或论文主结果集合；active [selected_seed_examples/](../../selected_seed_examples/) 专属 PR #162 冻结的 60 例正式 Discover 输入，不得再混入这四个 legacy fixture。
 - R3 不是通用 UML / SysML / PlantUML / Umple / TTool 转换器；TTool XML 已从当前四例 selected smoke 中移除，只保留为未来 / 补充 adapter 方向。
 - R3 committed report 只是 reviewer 固化样例 / contract evidence，不是 R7/R8 experiment-grade conversion，也不是主实验结果。
 - 转换收益、人工规范化和后续修正循环收益必须分离；loss ledger 中所有 `repair_contribution_allowed` 均为 `false`。
@@ -87,8 +87,8 @@ R3 需要真实外部工具链。缺少这些工具时会直接失败并给出�
 | 工具 | 何时需要 | 配置方式 | 复验命令 |
 |---|---|---|---|
 | Java runtime | PlantUML jar / Umple jar | 安装 JRE/JDK，确保 `java -version` 可用 | `java -version` |
-| PlantUML | 转换 `.puml` 冒烟样例 | 推荐 `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或安装 PATH 中的 `plantuml`；或放到 `tools/plantuml.jar` | `java -jar $PLANTUML_JAR -version`；`java -jar $PLANTUML_JAR -checkonly project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml`；`java -jar $PLANTUML_JAR -tscxml .../stm0.puml` |
-| Umple | 转换 `.ump` 冒烟样例 | 推荐 `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到 `tools/umple.jar` | `java -jar $UMPLE_JAR --version`；`java -jar $UMPLE_JAR -g Nothing project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/sefm-ssc7-umple/stm0.ump`；`java -jar $UMPLE_JAR -g Scxml .../stm0.ump` |
+| PlantUML | 转换 `.puml` 冒烟样例 | 推荐 `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或安装 PATH 中的 `plantuml`；或放到 `tools/plantuml.jar` | `java -jar $PLANTUML_JAR -version`；`java -jar $PLANTUML_JAR -checkonly project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml`；`java -jar $PLANTUML_JAR -tscxml .../stm0.puml` |
+| Umple | 转换 `.ump` 冒烟样例 | 推荐 `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到 `tools/umple.jar` | `java -jar $UMPLE_JAR --version`；`java -jar $UMPLE_JAR -g Nothing project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/stm0.ump`；`java -jar $UMPLE_JAR -g Scxml .../stm0.ump` |
 
 官方下载入口：
 
@@ -172,11 +172,11 @@ export UMPLE_JAR=/path/to/umple.jar
 
 ## 9. 当前四例冒烟与历史 TTool 边界
 
-当前 selected smoke 四例固定为：`llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`。它们只是 smoke 迷你文库，用于验证转换、表示桥和评价门接口，不是最终实验集合。
+当前历史 R3 smoke fixture 四例固定为：`llms-emp-deepseek-microwave`、`llms-emp-gpt4o-hldcs`、`llms-emp-kimi-autonomous-collision`、`sefm-ssc7-umple`。它们只用于验证旧转换、表示桥和评价门接口，不属于 active `selected_seed_examples/` 或最终实验集合。
 
 `llms-emp-deepseek-microwave` 的当前 `converted` 依赖 R3.1 pre-SCXML normalization replay：normalization 发生在 PlantUML `-tscxml` 之前，随后仍以官方 SCXML 作为 canonical 来源。必须保留以下边界：
 
-1. [../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 是一手 raw 输入，不得覆盖。
+1. [fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml](./fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) 是一手 raw 输入，不得覆盖。
 2. normalized candidate / official SCXML 是 run/report artifact，不得回写替换 raw `stm0.puml`。
 3. 该例的 conversion / 规范化收益只能归入 conversion attribution，不能计入 source-level 修正收益、issue closure 或模型修复收益。
 
@@ -188,7 +188,7 @@ R3.1 在本目录下新增 [normalization/](./normalization/) 微型工作区，
 
 关键纪律：
 
-1. normalization 只生成 run/report 路径中的候选 `.puml`，不覆盖 seed library assets、`pairs.jsonl` 或 [selected_seed_examples/](../../selected_seed_examples/)。
+1. normalization 只生成 run/report 路径中的候选 `.puml`，不覆盖 seed library assets、`pairs.jsonl`、[fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) 或 active [selected_seed_examples/](../../selected_seed_examples/)。
 2. recovered 判定仍必须来自官方 PlantUML `-checkonly` / `-tscxml` 产物；normalizer 不直接生成 canonical STM。
 3. 恢复率必须同时报告 `technical_scxml_pass_all_rules`、`low_risk_scxml_pass`、`main_eligibility_included`；论文主张 只能使用低风险 / 主 eligibility 口径。
 4. 高风险 action/guard/hierarchy/concurrency/pseudo-state loss 默认不得进入主 repair eligibility；`fork_join_decl_to_state` 必须标 `concurrency_degraded=true`，endpoint 内嵌 `[*]` 伪状态标记必须作为 supplementary / manual-review。

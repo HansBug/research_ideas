@@ -52,6 +52,13 @@ def _write_report_manifest(fcstm_dir: Path) -> None:
     )
 
 
+def _configure_formal_paths(helper, monkeypatch, pairs: Path, fcstm_dir: Path) -> None:
+    monkeypatch.setattr(helper, "FORMAL_PAIRS_PATH", pairs)
+    monkeypatch.setattr(helper, "FORMAL_FCSTM_DIR", fcstm_dir)
+    monkeypatch.setattr(helper, "FORMAL_REPORT_DIR", fcstm_dir.parent)
+    monkeypatch.setattr(helper, "_git_is_ancestor", lambda commit: (True, None))
+
+
 def test_formal_probe_preflights_exact_60_assets_and_writes_report_provenance(
     tmp_path: Path, monkeypatch
 ):
@@ -64,6 +71,7 @@ def test_formal_probe_preflights_exact_60_assets_and_writes_report_provenance(
     _write_pairs(pairs, pair_ids)
     _write_fcstm_dir(fcstm_dir, pair_ids)
     _write_report_manifest(fcstm_dir)
+    _configure_formal_paths(helper, monkeypatch, pairs, fcstm_dir)
 
     def fake_row(
         pair_id: str,
@@ -108,6 +116,11 @@ def test_formal_probe_preflights_exact_60_assets_and_writes_report_provenance(
         "pairs_sha256": "pairs-sha",
         "artifact_set_sha256": "artifacts-sha",
         "implementation_tree_sha256": "impl-sha",
+        "formal_pairs_path": str(pairs.resolve()),
+        "formal_fcstm_dir": str(fcstm_dir.resolve()),
+        "required_ancestor_commit": "ef73e4bf",
+        "required_ancestor_verified": True,
+        "report_research_commit_ancestor_verified": True,
     }
     assert rows[0]["probe_contract"] == {
         "issue": "165",
@@ -119,7 +132,7 @@ def test_formal_probe_preflights_exact_60_assets_and_writes_report_provenance(
 
 
 def test_formal_probe_fails_with_clear_preflight_reason_on_count_or_stem_mismatch(
-    tmp_path: Path, capsys
+    tmp_path: Path, capsys, monkeypatch
 ):
     helper = _load_helper()
     pairs = tmp_path / "pairs.jsonl"
@@ -130,6 +143,7 @@ def test_formal_probe_fails_with_clear_preflight_reason_on_count_or_stem_mismatc
     _write_pairs(pairs, pair_ids)
     _write_fcstm_dir(fcstm_dir, stems)
     _write_report_manifest(fcstm_dir)
+    _configure_formal_paths(helper, monkeypatch, pairs, fcstm_dir)
 
     rc = helper.main(
         [
@@ -151,6 +165,86 @@ def test_formal_probe_fails_with_clear_preflight_reason_on_count_or_stem_mismatc
     assert any("pair_fcstm_id_mismatch" in reason for reason in failure["reasons"])
     assert any("case_0059" in reason for reason in failure["reasons"])
     assert any("unexpected_extra_case" in reason for reason in failure["reasons"])
+
+
+def test_formal_probe_rejects_noncanonical_asset_paths(
+    tmp_path: Path, capsys, monkeypatch
+):
+    helper = _load_helper()
+    pair_ids = [f"case_{idx:04d}" for idx in range(60)]
+    expected_pairs = tmp_path / "expected" / "feedback_final_pairs.jsonl"
+    expected_fcstm = tmp_path / "expected" / "report" / "fcstm"
+    supplied_pairs = tmp_path / "supplied" / "pairs.jsonl"
+    supplied_fcstm = tmp_path / "supplied" / "report" / "fcstm"
+    output = tmp_path / "probe.jsonl"
+    supplied_pairs.parent.mkdir(parents=True)
+    _write_pairs(supplied_pairs, pair_ids)
+    _write_fcstm_dir(supplied_fcstm, pair_ids)
+    _write_report_manifest(supplied_fcstm)
+    monkeypatch.setattr(helper, "FORMAL_PAIRS_PATH", expected_pairs)
+    monkeypatch.setattr(helper, "FORMAL_FCSTM_DIR", expected_fcstm)
+    monkeypatch.setattr(helper, "_git_is_ancestor", lambda commit: (True, None))
+
+    rc = helper.main(
+        [
+            "--pairs",
+            str(supplied_pairs),
+            "--fcstm-dir",
+            str(supplied_fcstm),
+            "--output",
+            str(output),
+        ]
+    )
+
+    failure = json.loads(capsys.readouterr().err)
+    assert rc == 2
+    assert not output.exists()
+    assert any("formal_pairs_path_mismatch" in reason for reason in failure["reasons"])
+    assert any("formal_fcstm_dir_mismatch" in reason for reason in failure["reasons"])
+
+
+def test_formal_probe_rejects_wrong_required_or_report_commit_lineage(
+    tmp_path: Path, capsys, monkeypatch
+):
+    helper = _load_helper()
+    pair_ids = [f"case_{idx:04d}" for idx in range(60)]
+    pairs = tmp_path / "feedback_final_pairs.jsonl"
+    fcstm_dir = tmp_path / "report" / "fcstm"
+    output = tmp_path / "probe.jsonl"
+    _write_pairs(pairs, pair_ids)
+    _write_fcstm_dir(fcstm_dir, pair_ids)
+    _write_report_manifest(fcstm_dir)
+    monkeypatch.setattr(helper, "FORMAL_PAIRS_PATH", pairs)
+    monkeypatch.setattr(helper, "FORMAL_FCSTM_DIR", fcstm_dir)
+    monkeypatch.setattr(helper, "FORMAL_ANCESTOR_COMMIT", "required-ancestor")
+    monkeypatch.setattr(
+        helper,
+        "_git_is_ancestor",
+        lambda commit: (False, None),
+    )
+
+    rc = helper.main(
+        [
+            "--pairs",
+            str(pairs),
+            "--fcstm-dir",
+            str(fcstm_dir),
+            "--output",
+            str(output),
+        ]
+    )
+
+    failure = json.loads(capsys.readouterr().err)
+    assert rc == 2
+    assert not output.exists()
+    assert any(
+        "formal_required_ancestor_missing: required-ancestor" in reason
+        for reason in failure["reasons"]
+    )
+    assert any(
+        "report_research_commit_not_in_current_lineage: abc123" in reason
+        for reason in failure["reasons"]
+    )
 
 
 def test_limit_is_explicit_smoke_and_does_not_require_60_cases(tmp_path: Path, monkeypatch):

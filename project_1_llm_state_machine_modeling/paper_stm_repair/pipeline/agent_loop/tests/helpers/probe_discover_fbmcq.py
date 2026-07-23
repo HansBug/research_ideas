@@ -3,14 +3,26 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any
 
-from paper_stm_repair_loop.config import PAIRS_JSONL
+from paper_stm_repair_loop.config import PAPER_ROOT, REPO_ROOT
 
 FORMAL_CASE_COUNT = 60
+FORMAL_ANCESTOR_COMMIT = "ef73e4bf"
+FORMAL_PAIRS_PATH = (
+    PAPER_ROOT
+    / "corpora/seed_library/llms-emp-stm-subset/assets/extracted/"
+    "feedback_final_pairs.jsonl"
+)
+FORMAL_REPORT_DIR = (
+    PAPER_ROOT
+    / "pipeline/representation/reports/llms_emp_r45_java_60"
+)
+FORMAL_FCSTM_DIR = FORMAL_REPORT_DIR / "fcstm"
 PROVENANCE_KEYS = (
     "research_commit",
     "pairs_sha256",
@@ -95,6 +107,22 @@ def _load_report_provenance(fcstm_dir: Path) -> tuple[dict[str, Any], list[str]]
     return provenance, reasons
 
 
+def _git_is_ancestor(commit: str) -> tuple[bool, str | None]:
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return True, None
+    if completed.returncode == 1:
+        return False, None
+    detail = (completed.stderr or completed.stdout).strip()
+    return False, detail or f"git exited with status {completed.returncode}"
+
+
 def _preflight_assets(
     *, pairs_path: Path, fcstm_dir: Path, formal_60_case: bool
 ) -> tuple[list[str], dict[str, Path], dict[str, Any], list[str]]:
@@ -105,6 +133,32 @@ def _preflight_assets(
     reasons.extend(provenance_reasons)
 
     if formal_60_case:
+        if pairs_path.resolve() != FORMAL_PAIRS_PATH.resolve():
+            reasons.append(
+                "formal_pairs_path_mismatch: "
+                f"expected {FORMAL_PAIRS_PATH.resolve()}, got {pairs_path.resolve()}"
+            )
+        if fcstm_dir.resolve() != FORMAL_FCSTM_DIR.resolve():
+            reasons.append(
+                "formal_fcstm_dir_mismatch: "
+                f"expected {FORMAL_FCSTM_DIR.resolve()}, got {fcstm_dir.resolve()}"
+            )
+        ancestor_ok, ancestor_error = _git_is_ancestor(FORMAL_ANCESTOR_COMMIT)
+        if not ancestor_ok:
+            suffix = f": {ancestor_error}" if ancestor_error else ""
+            reasons.append(
+                "formal_required_ancestor_missing: "
+                f"{FORMAL_ANCESTOR_COMMIT} is not an ancestor of HEAD{suffix}"
+            )
+        report_commit = provenance.get("research_commit")
+        if isinstance(report_commit, str) and report_commit:
+            report_commit_ok, report_commit_error = _git_is_ancestor(report_commit)
+            if not report_commit_ok:
+                suffix = f": {report_commit_error}" if report_commit_error else ""
+                reasons.append(
+                    "report_research_commit_not_in_current_lineage: "
+                    f"{report_commit} is not an ancestor of HEAD{suffix}"
+                )
         if len(pair_ids) != FORMAL_CASE_COUNT:
             reasons.append(
                 f"pairs_manifest_count_mismatch: expected {FORMAL_CASE_COUNT}, got {len(pair_ids)}"
@@ -121,6 +175,24 @@ def _preflight_assets(
                 "pair_fcstm_id_mismatch: "
                 f"missing_fcstm_for_pair_ids={missing_fcstm}; extra_fcstm_stems={extra_fcstm}"
             )
+        provenance.update(
+            {
+                "formal_pairs_path": str(FORMAL_PAIRS_PATH.resolve()),
+                "formal_fcstm_dir": str(FORMAL_FCSTM_DIR.resolve()),
+                "required_ancestor_commit": FORMAL_ANCESTOR_COMMIT,
+                "required_ancestor_verified": ancestor_ok,
+                "report_research_commit_ancestor_verified": bool(
+                    isinstance(report_commit, str)
+                    and report_commit
+                    and not any(
+                        reason.startswith(
+                            "report_research_commit_not_in_current_lineage:"
+                        )
+                        for reason in reasons
+                    )
+                ),
+            }
+        )
     return pair_ids, fcstm_by_stem, provenance, reasons
 
 
@@ -196,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Opt-in Issue #165 FBMCQ performance probe over frozen pairs."
     )
-    parser.add_argument("--pairs", type=Path, default=PAIRS_JSONL)
+    parser.add_argument("--pairs", type=Path, default=FORMAL_PAIRS_PATH)
     parser.add_argument("--fcstm-dir", type=Path, required=True)
     parser.add_argument("--bounds", type=_bounds, default=(5, 20, 50))
     parser.add_argument("--wall-seconds", type=float)

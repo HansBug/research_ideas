@@ -12,7 +12,7 @@
 R3 规范化 STM JSON -> R4.5 .fcstm / pyfcstm inspect report -> R5 确定性 smoke
 ```
 
-R4.5 不是论文主贡献，不调用 LLM，不读取 `.env`，不生成 `STM_k`，也不执行修正循环。所有 lowering / loss / approximation 都归入 representation / conversion attribution，不能计入 source-level repair gain、issue closure 或方法效果。当前 [../../selected_seed_examples/](../../selected_seed_examples/) 是 smoke 迷你文库，不是最终实验集合。
+R4.5 不是论文主贡献，不调用 LLM，不读取 `.env`，不生成 `STM_k`，也不执行修正循环。所有 lowering / loss / approximation 都归入 representation / conversion attribution，不能计入 source-level repair gain、issue closure 或方法效果。当前 [../../selected_seed_examples/](../../selected_seed_examples/) 专属 PR #162 冻结的 60 例正式 Discover 输入；历史 R3/R4.5 四例只保留在 [../conversion/fixtures/r3_selected_seed_examples/](../conversion/fixtures/r3_selected_seed_examples/) 作为 legacy contract。
 
 ## 2. 路径结构
 
@@ -90,7 +90,7 @@ loader 会重验 clean-evidence eligibility、pair pool、manifest inventory、�
 
 ## 3. 运行方式
 
-依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。active 60 例证据固定 pyfcstm commit `4ea23c9b153f47e5c4a2125d95b466eee6eed13e`；下文历史四例最初冻结于 `v0.4.0`，仅保留为 legacy contract。任何 gitlink 升级都必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
+依赖仓库根目录已有 Python 环境和 `pyfcstm` submodule。active 60 例证据已在 pyfcstm commit `901f30e981c29eb8e304b33d61985652d2e85b2e` 重放并重封；下文历史四例最初冻结于 `v0.4.0`，仅保留为 legacy contract。任何 gitlink 升级都必须复跑本目录测试并检查 committed reports 是否发生命名/inspect 漂移。新环境应先在仓库根目录执行：
 
 ```bash
 git submodule update --init --recursive
@@ -156,10 +156,10 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 
 | example_id | 上游 NL | 原始 STM_0 | R4.5 状态 | 输出 |
 |---|---|---|---|---|
-| `llms-emp-deepseek-microwave` | [nl.txt](../../selected_seed_examples/llms-emp-deepseek-microwave/nl.txt) | [stm0.puml](../../selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) | `converted` | R4.5 消费 R3.1 pre-SCXML normalization replay 后得到的 canonical，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-deepseek-microwave/model.fcstm)；raw `stm0.puml` 不覆盖，normalization / 表示转换收益不计入修正收益。 |
-| `llms-emp-gpt4o-hldcs` | [nl.txt](../../selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](../../selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml) | `converted` | 保留 HSM 层次，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm) 与 inspect report。 |
-| `llms-emp-kimi-autonomous-collision` | [nl.txt](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) | `converted` | Kimi 自动驾驶 / 碰撞规避 EMPirical 样例替代 TTool 进入当前 selected smoke，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-kimi-autonomous-collision/model.fcstm) 与 inspect report。 |
-| `sefm-ssc7-umple` | [nl.txt](../../selected_seed_examples/sefm-ssc7-umple/nl.txt) | [stm0.ump](../../selected_seed_examples/sefm-ssc7-umple/stm0.ump) | `converted` | event+guard 通过 pseudo relay，bool guard 降为 int guard，action 降为 flag；R3 timing loss 继续只作 caveat，输出 [model.fcstm](./reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)。 |
+| `llms-emp-deepseek-microwave` | [nl.txt](../conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/nl.txt) | [stm0.puml](../conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/stm0.puml) | `converted` | R4.5 消费 R3.1 pre-SCXML normalization replay 后得到的 canonical，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-deepseek-microwave/model.fcstm)；raw `stm0.puml` 不覆盖，normalization / 表示转换收益不计入修正收益。 |
+| `llms-emp-gpt4o-hldcs` | [nl.txt](../conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/nl.txt) | [stm0.puml](../conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml) | `converted` | 保留 HSM 层次，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-gpt4o-hldcs/model.fcstm) 与 inspect report。 |
+| `llms-emp-kimi-autonomous-collision` | [nl.txt](../conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/nl.txt) | [stm0.puml](../conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/stm0.puml) | `converted` | Kimi 自动驾驶 / 碰撞规避 EMPirical 样例作为历史四例 fixture 保留，输出 [model.fcstm](./reports/fcstm_exports/llms-emp-kimi-autonomous-collision/model.fcstm) 与 inspect report。 |
+| `sefm-ssc7-umple` | [nl.txt](../conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/nl.txt) | [stm0.ump](../conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/stm0.ump) | `converted` | event+guard 通过 pseudo relay，bool guard 降为 int guard，action 降为 flag；R3 timing loss 继续只作 caveat，输出 [model.fcstm](./reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)。 |
 
 ## 6. 维护纪律
 

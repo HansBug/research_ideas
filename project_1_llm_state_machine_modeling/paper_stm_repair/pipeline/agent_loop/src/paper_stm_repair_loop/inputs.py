@@ -233,13 +233,19 @@ def _read_pairs() -> dict[str, dict[str, Any]]:
 
 
 def _selected_dir(pair_id: str) -> Path | None:
+    matches: list[Path] = []
     for directory in sorted(p for p in SELECTED_ROOT.iterdir() if p.is_dir()):
         meta_path = directory / "source_meta.json"
         if meta_path.exists():
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             if pair_id in {meta.get("pair_id"), meta.get("discover_pair_id")}:
-                return directory
-    return None
+                matches.append(directory)
+    if len(matches) > 1:
+        raise ValueError(
+            "PAIR_SELECTED_DIRECTORY_AMBIGUOUS: "
+            f"{pair_id} resolves to {[path.name for path in matches]}"
+        )
+    return matches[0] if matches else None
 
 
 def _trace_from_selected(directory: Path, meta: dict[str, Any]) -> dict[str, Any]:

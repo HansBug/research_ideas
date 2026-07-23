@@ -19,7 +19,11 @@ REPO = repo_root()
 SRC = ROOT / "src"
 REPORTS = ROOT / "reports"
 CONVERSION_CANONICAL = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/reports/canonical"
-SELECTED = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples"
+SELECTED = (
+    REPO
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/"
+    "pipeline/conversion/fixtures/r3_selected_seed_examples"
+)
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
@@ -341,7 +345,10 @@ def test_committed_selected_seed_examples_include_synced_fcstm_snapshots():
         assert selected_fcstm.read_text(encoding="utf-8") == source_fcstm.read_text(encoding="utf-8")
         assert meta["schema_version"] == "selected_seed_examples.fcstm_snapshot.v0"
         assert meta["artifact_role"] == "r4_5_smoke_converted_fcstm_snapshot"
-        assert meta["selected_fcstm_path"] == f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}/model.fcstm"
+        assert meta["selected_fcstm_path"] == (
+            "project_1_llm_state_machine_modeling/paper_stm_repair/"
+            f"pipeline/conversion/fixtures/r3_selected_seed_examples/{example_id}/model.fcstm"
+        )
         assert meta["selected_fcstm_sha256"] == sha256(selected_fcstm)
         assert meta["synchronized_from_fcstm_path"] == item["fcstm_path"]
         assert meta["synchronized_from_fcstm_sha256"] == sha256(source_fcstm)

@@ -16,7 +16,11 @@ def repo_root() -> Path:
 
 
 REPO = repo_root()
-SELECTED = REPO / "project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples"
+SELECTED = (
+    REPO
+    / "project_1_llm_state_machine_modeling/paper_stm_repair/"
+    "pipeline/conversion/fixtures/r3_selected_seed_examples"
+)
 REPORTS = ROOT / "reports"
 SRC = ROOT / "src"
 
@@ -109,7 +113,7 @@ def test_selected_examples_hashes_match_source_meta():
         assert any(json.loads(line).get("pair_id") == meta["pair_id"] for line in source_pairs.read_text(encoding="utf-8").splitlines())
 
 
-def test_cli_regenerates_five_example_report(tmp_path):
+def test_cli_regenerates_four_example_report(tmp_path):
     out = tmp_path / "reports"
     cmd = [
         sys.executable,
@@ -129,23 +133,17 @@ def test_cli_regenerates_five_example_report(tmp_path):
         capture_output=True,
         check=True,
     )
-    assert '"examples": 5' in completed.stdout
+    assert '"examples": 4' in completed.stdout
     report = json.loads((out / "selected_seed_examples_conversion_report.json").read_text(encoding="utf-8"))
     by_id = {item["example_id"]: item for item in report["items"]}
     assert set(by_id) == {
         "llms-emp-deepseek-microwave",
         "llms-emp-gpt4o-hldcs",
-        "llms-emp-gpt4o-hldcs-manual-identity",
         "llms-emp-kimi-autonomous-collision",
         "sefm-ssc7-umple",
     }
     assert by_id["llms-emp-gpt4o-hldcs"]["status"] == "converted"
     assert by_id["llms-emp-gpt4o-hldcs"]["conversion_source"] == "official_scxml"
-    assert by_id["llms-emp-gpt4o-hldcs-manual-identity"]["status"] == "converted"
-    assert (
-        by_id["llms-emp-gpt4o-hldcs-manual-identity"]["conversion_source"]
-        == "official_scxml"
-    )
     assert by_id["llms-emp-kimi-autonomous-collision"]["status"] == "converted"
     assert by_id["llms-emp-kimi-autonomous-collision"]["conversion_source"] == "official_scxml"
     assert by_id["sefm-ssc7-umple"]["status"] == "partial"
@@ -157,7 +155,10 @@ def test_cli_regenerates_five_example_report(tmp_path):
     assert "R3.R31.NORMALIZED_SCXML_REPLAY_USED" in microwave_codes
     assert all("tool_preflight" in item for item in report["items"])
     for example_id, item in by_id.items():
-        selected = f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}"
+        selected = (
+            "project_1_llm_state_machine_modeling/paper_stm_repair/"
+            f"pipeline/conversion/fixtures/r3_selected_seed_examples/{example_id}"
+        )
         assert item["source_nl_path"] == f"{selected}/nl.txt"
         assert item["source_stm0_path"].startswith(f"{selected}/stm0.")
         assert item["source_meta_path"] == f"{selected}/source_meta.json"
@@ -225,7 +226,10 @@ def test_committed_report_keeps_r3_smoke_boundary_and_losses():
     }
     assert all(item["eligibility"] == "r3_smoke_fixture_only_not_main_experiment" for item in report["items"])
     for example_id, item in by_id.items():
-        selected = f"project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples/{example_id}"
+        selected = (
+            "project_1_llm_state_machine_modeling/paper_stm_repair/"
+            f"pipeline/conversion/fixtures/r3_selected_seed_examples/{example_id}"
+        )
         assert item["source_nl_path"] == f"{selected}/nl.txt"
         assert item["source_stm0_path"].startswith(f"{selected}/stm0.")
         assert item["source_meta_path"] == f"{selected}/source_meta.json"

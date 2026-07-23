@@ -879,7 +879,11 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
             write_json(example_dir / "parse_inspect_report.json", parse_report)
         result["lowering_inventory"]["counts"].update(fcstm_metrics_from_parse_report(parse_report))
         source_locator = item.get("source_locator")
-        selected_example_dir = PAPER_ROOT / "selected_seed_examples" / example_id
+        selected_example_dir = (
+            PAPER_ROOT
+            / "pipeline/conversion/fixtures/r3_selected_seed_examples"
+            / example_id
+        )
         source_nl_path = selected_example_dir / "nl.txt"
         source_stm0_path = PAPER_ROOT / source_locator if source_locator else None
         source_meta_path = selected_example_dir / "source_meta.json"
@@ -935,7 +939,9 @@ def export_selected(reports_dir: Path, conversion_reports_dir: Path = CONVERSION
 def sync_selected_fcstm_snapshots(
     *,
     reports_dir: Path = PIPELINE_ROOT / "representation/reports",
-    selected_dir: Path = PAPER_ROOT / "selected_seed_examples",
+    selected_dir: Path = (
+        PAPER_ROOT / "pipeline/conversion/fixtures/r3_selected_seed_examples"
+    ),
 ) -> Dict[str, Any]:
     """Copy R4.5 ``model.fcstm`` exports into selected smoke examples.
 

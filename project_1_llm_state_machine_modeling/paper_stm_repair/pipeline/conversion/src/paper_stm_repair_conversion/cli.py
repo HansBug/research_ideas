@@ -15,7 +15,10 @@ from .toolchain import ToolchainSetupError, preflight_for_format, run_plantuml_o
 from .normalization.archive import build_recovery_workdir_archive
 from .normalization.recovery import run_recovery
 
-REPO_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples")
+REPO_REL_BASE = Path(
+    "project_1_llm_state_machine_modeling/paper_stm_repair/"
+    "pipeline/conversion/fixtures/r3_selected_seed_examples"
+)
 CONVERSION_REL_BASE = Path("project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion")
 RECOVERY_ARTIFACT_REL_BASE = CONVERSION_REL_BASE / "artifacts" / "plantuml_recovery" / "r3_1_committed"
 

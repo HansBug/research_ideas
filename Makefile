@@ -4,14 +4,18 @@ DISCOVER_SRC := project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/a
 DISCOVER_ROOT := $(CURDIR)/project_1_llm_state_machine_modeling
 DISCOVER_PYTHONPATH := $(DISCOVER_SRC):$(DISCOVER_ROOT):$(CURDIR)
 DISCOVER_OUT ?= runs/paper1/discover/demo
-DISCOVER_PAIR ?= llms_emp_stm_results_0000_manual_identity
+DISCOVER_PAIR ?= llms_emp_feedback_final_0000
 DISCOVER_PROFILE ?= gpt-5.5
 DISCOVER_LANGUAGE ?= zh-CN
 DISCOVER_RENDERER ?= rich
+DISCOVER_DEMO_ROOT := project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity
+DISCOVER_CASE ?= llms_emp_stm_results_0000_manual_identity
+DISCOVER_NL ?= $(DISCOVER_DEMO_ROOT)/nl.txt
+DISCOVER_FCSTM ?= $(DISCOVER_DEMO_ROOT)/STM_0.fcstm
 
 # Real provider demo. The caller must run `source .env` first; the application
 # fails before provider dispatch when the selected profile is not configured.
-discover-demo: discover-pair
+discover-demo: discover-custom
 
 discover-pair:
 	PYTHONPATH=$(DISCOVER_PYTHONPATH) python -m paper_stm_repair_loop.discover \
