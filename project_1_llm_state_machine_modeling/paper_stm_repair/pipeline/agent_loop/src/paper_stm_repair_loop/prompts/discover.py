@@ -85,7 +85,9 @@ of one-call turns, not one parallel tool-call batch.
    `observe_trace` call is permitted before
    registration only when it names a specific clause/requirement/provisional
    Root, asks one concrete object/initialization/event-sequence question, and the
-   answer directly enables registration. Registration commits what will be
+   answer directly enables registration. After that single call, the runtime
+   requires `register_coverage_plan`; do not reread a guide or make a second
+   investigation call. Registration commits what will be
    checked; it is not a truth verdict and does not require knowing whether any
    assertion will evaluate `True` or `False`. Assertion truth is determined only
    after registration by `eval_assert`.

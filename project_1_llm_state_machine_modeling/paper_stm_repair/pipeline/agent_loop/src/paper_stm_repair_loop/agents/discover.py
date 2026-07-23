@@ -479,6 +479,17 @@ def _build_tools(
             "fbmcq"
         ):
             return "read_fbmcq_guide"
+        required_read_count = (
+            3 if bool(controller.manifest.get("formal_profile", True)) else 2
+        )
+        executed_attempt_count = sum(
+            1 for item in attempt_log if item.get("tool_executed") is True
+        )
+        if (
+            not registry.plan_registered
+            and executed_attempt_count > required_read_count
+        ):
+            return "register_coverage_plan"
         if review_gate.has_terminal_failure():
             raise RuntimeError("discover_reviewer_contract_failure")
         if registry.plan_registered and registry.missing_latest_required_assertions():
@@ -852,7 +863,7 @@ def run_discover(run_dir: Path, registry: LLMRegistry) -> DiscoverCompleted:
             spec,
             registry,
             profile=manifest["profile"],
-            model_options={"streaming": True, "stream_usage": False, "max_retries": 0},
+            model_options={"streaming": True, "max_retries": 0},
         )
         result = None
         try:

@@ -162,6 +162,36 @@ def test_review_prerequisite_rejection_guides_registration_without_resolver_take
     assert action["pass_criteria"] == "register_coverage_plan returns accepted=true."
 
 
+def test_one_preplan_investigation_makes_plan_registration_mandatory(tmp_path):
+    controller = make_controller(tmp_path)
+    attempt_log = []
+    tools, resolver = _build_tools(
+        controller, controller.task_snapshot(), attempt_log
+    )
+    tools = {tool.name: tool for tool in tools}
+    tools["read_fcstm_guide"].invoke({"reason": "先读取官方语法。"})
+    tools["read_task"].invoke({"reason": "读取冻结任务。"})
+    tools["read_fbmcq_guide"].invoke({"reason": "读取完整形式化能力。"})
+    assert resolver() is None
+
+    inspected = tools["inspect_model"].invoke(
+        {"reason": "对一个命名义务读取一次广域弱线索后立即注册计划。"}
+    )
+    assert inspected["execution_status"] == "completed"
+    assert resolver() == "register_coverage_plan"
+
+    blocked = tools["observe_trace"].invoke(
+        {
+            "question": "不要执行第二次注册前调查。",
+            "root_node_ids": ["ROOT-PROVISIONAL-001"],
+            "cycles": [[]],
+            "reason": "验证第二次注册前调查被有限阶段门禁拒绝。",
+        }
+    )
+    assert blocked["execution_status"] == "mandatory_tool_rejected"
+    assert blocked["required_tool"] == "register_coverage_plan"
+
+
 def test_agent_tool_schema_and_domain_rejections_return_recovery_guidance(tmp_path):
     controller = make_controller(tmp_path)
     tools, resolver = _build_tools(controller, controller.task_snapshot(), [])
@@ -199,13 +229,11 @@ def test_agent_tool_schema_and_domain_rejections_return_recovery_guidance(tmp_pa
     }
     assert tools["query_model"].invoke(request)["execution_status"] == "completed"
     domain_rejected = tools["query_model"].invoke(request)
-    assert domain_rejected["execution_status"] == "invalid_arguments"
+    assert domain_rejected["execution_status"] == "mandatory_tool_rejected"
     assert domain_rejected["required_actions"][0]["recommended_tools"] == [
-        "query_model"
+        "register_coverage_plan"
     ]
-    assert "materially changed request" in domain_rejected["required_actions"][0][
-        "recommended_action"
-    ]
+    assert domain_rejected["required_tool"] == "register_coverage_plan"
 
 
 def test_unknown_eval_expression_guides_exact_retry_not_assertion_revision(tmp_path):

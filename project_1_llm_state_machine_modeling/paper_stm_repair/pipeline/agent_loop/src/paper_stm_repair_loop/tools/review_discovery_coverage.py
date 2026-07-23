@@ -206,7 +206,7 @@ class LLMCoverageReviewRunner:
             spec,
             self.llm_registry,
             profile=self.profile,
-            model_options={"streaming": True, "stream_usage": False, "max_retries": 0},
+            model_options={"streaming": True, "max_retries": 0},
         )
         try:
             result = contextvars.Context().run(

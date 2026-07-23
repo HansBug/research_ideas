@@ -287,12 +287,24 @@ def test_observe_trace_supports_targeted_pre_registration_investigation(tmp_path
             "reason": "Do not repeat an already completed trace.",
         }
     )
-    assert duplicate["execution_status"] == "invalid_arguments"
-    assert duplicate["limitations"] == ["duplicate_trace_request_not_executed"]
-    assert "Do not repeat" in duplicate["recommended_action"]
-    assert duplicate["pass_criteria"]
+    assert duplicate["execution_status"] == "mandatory_tool_rejected"
+    assert duplicate["required_tool"] == "register_coverage_plan"
+    assert duplicate["required_actions"][0]["recommended_tools"] == [
+        "register_coverage_plan"
+    ]
+    assert duplicate["required_actions"][0]["pass_criteria"]
 
-    suffixed = tools["observe_trace"].invoke(
+    _controller2, tools2 = _tools(tmp_path / "unstable-root")
+    tools2["read_fcstm_guide"].invoke(
+        {"reason": "Read the required FCSTM guide before checking Root identity."}
+    )
+    tools2["read_task"].invoke(
+        {"reason": "Read the frozen task before checking Root identity."}
+    )
+    tools2["read_fbmcq_guide"].invoke(
+        {"reason": "Read formal capability before checking Root identity."}
+    )
+    suffixed = tools2["observe_trace"].invoke(
         {
             "question": "Try to bypass the stable Root identity.",
             "root_node_ids": ["ROOT-CLAUSE-001-01B"],
@@ -349,9 +361,11 @@ def test_query_model_supports_targeted_pre_registration_investigation(tmp_path):
     assert completed["pass_criteria"]
 
     duplicate = tools["query_model"].invoke(arguments)
-    assert duplicate["execution_status"] == "invalid_arguments"
-    assert "duplicate_query_not_executed" in duplicate["limitations"]
-    assert "revise/evaluate the registered assertion" in duplicate["recommended_action"]
+    assert duplicate["execution_status"] == "mandatory_tool_rejected"
+    assert duplicate["required_tool"] == "register_coverage_plan"
+    assert duplicate["required_actions"][0]["recommended_tools"] == [
+        "register_coverage_plan"
+    ]
 
 
 def test_fbmcq_guide_normalizes_capability_without_tool_quota(tmp_path):

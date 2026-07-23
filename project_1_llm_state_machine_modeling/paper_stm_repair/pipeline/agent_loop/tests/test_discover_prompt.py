@@ -290,6 +290,7 @@ def test_prompt_makes_all_evidence_families_first_class_and_allows_targeted_prep
     assert "inspect facts only as diagnostics and hypothesis leads" in flat
     assert "targeted pre-plan" in flat
     assert "one concrete object/initialization/event-sequence question" in flat
+    assert "After that single call, the runtime requires `register_coverage_plan`" in flat
     assert "An explicit NL bound is not required" in flat
     assert "formal-profile syntax/capability guide" in flat
     assert "never implies that FBMCQ must be used" in flat
