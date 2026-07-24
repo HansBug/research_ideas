@@ -255,6 +255,55 @@ def test_converter_contract_reject_routes_existing_script_back_with_feedback() -
     assert out["node_execution_records"][0].status == "failed"
 
 
+def test_effect_requirement_rejects_relation_only_evidence() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input())
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "When go occurs, the system shall enter Done.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    current = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "current relation check",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-01] relation",
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    state = {
+        "_input": _input("effect-contract"),
+        "frozen_inputs": frozen,
+        "requirement_set": requirements,
+        "assertion_script": current,
+        "_assertion_feedback": RevisionFeedback(
+            target="assertions", reason="review requested a revision"
+        ),
+    }
+    out = nodes.convert_assertions(
+        state,
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: current.model_copy(
+                update={"revision": 2}
+            )
+        ),
+    )
+    assert "failure" not in out
+    assert "simulation or fbmcq" in out["_assertion_conversion_contract_feedback"].findings[0]
+
+
 def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
     from paper_stm_feedback_loop.discover.graph import run_discover_state
 
@@ -349,6 +398,10 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "True/False" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "do not define functions or classes" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "public_check.script_hash" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "behavioral requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "checkability classification" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "at least one `simulation` or `fbmcq`" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "only evidence is static relation" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
 def test_cli_main_writes_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

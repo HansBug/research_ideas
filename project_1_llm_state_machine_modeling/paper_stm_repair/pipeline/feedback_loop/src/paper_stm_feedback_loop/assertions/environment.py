@@ -17,6 +17,11 @@ ASSERTION EXECUTION CONTRACT
 - Every expression must call the evidence family declared by evidence_family. Do not return a constant or rely only on prefix-computed constants.
 - Helpers are read-only and return tuples, scalars, or frozen attribute views. No imports, paths, mutation, network, hidden cases, or gold data.
 
+EVIDENCE SELECTION
+- A structural requirement may use structure/relation/effect/topology facts.
+- A requirement that states runtime behavior under a condition or event must include simulation or FBMCQ evidence; static transition existence alone is only complementary evidence.
+- Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect. Use FBMCQ for a bounded universal or counterexample claim and state its bound.
+
 STRUCTURE / RELATION
 states(*, parent=None, recursive=True, name=None, path=None, within=None, kind=None, exact=False) -> tuple[state]
   state fields include path, name, parent_path, is_leaf, is_composite, is_pseudo, substates, initial_targets.

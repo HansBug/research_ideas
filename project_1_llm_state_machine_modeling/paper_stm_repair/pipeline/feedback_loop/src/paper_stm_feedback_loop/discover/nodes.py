@@ -643,6 +643,20 @@ def convert_assertions(
                     f"assertion {assertion.assertion_id} failure_message must start with {expected_prefix}"
                 )
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
+        assertions_by_id = {item.assertion_id: item for item in output.assertions}
+        for requirement in requirements.requirements:
+            if requirement.checkability != "effect":
+                continue
+            evidence_families = {
+                assertions_by_id[assertion_id].evidence_family
+                for assertion_id in mapped_by_assertions[requirement.requirement_id]
+            }
+            if not evidence_families.intersection({"simulation", "fbmcq"}):
+                raise ValueError(
+                    f"effect requirement {requirement.requirement_id} requires "
+                    "at least one simulation or fbmcq assertion; relation-only evidence "
+                    "is complementary, not sufficient"
+                )
         if any(not ids for ids in mapped_by_assertions.values()):
             missing = sorted(req_id for req_id, ids in mapped_by_assertions.items() if not ids)
             raise ValueError(f"every requirement needs an assertion; missing: {missing}")
