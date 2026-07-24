@@ -14,7 +14,11 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from paper_stm_feedback_loop.discover import prompts, renderer  # noqa: E402
-from paper_stm_feedback_loop.discover.graph import build_discover_graph, run_discover  # noqa: E402
+from paper_stm_feedback_loop.discover.graph import (  # noqa: E402
+    build_discover_graph,
+    run_discover,
+    run_discover_state,
+)
 from paper_stm_feedback_loop.discover.schemas import (  # noqa: E402
     AssertionReview,
     AssertionResult,
@@ -24,10 +28,12 @@ from paper_stm_feedback_loop.discover.schemas import (  # noqa: E402
     DiscoverAdjudication,
     DiscoverInput,
     RequirementReview,
+    Requirement,
     RequirementSet,
     RevisionFeedback,
 )
 from paper_stm_feedback_loop.discover.utils import sha256_data  # noqa: E402
+from paper_stm_feedback_loop.discover.nodes import default_fake_responder  # noqa: E402
 
 MODEL = """state Root {
     event go;
@@ -65,6 +71,42 @@ def _input(run_id: str = "r") -> DiscoverInput:
 
 def test_fake_stategraph_runs_complete_without_old_agent_loop_import() -> None:
     assert "paper_stm_repair_loop" not in sys.modules
+
+
+def test_ambiguous_segment_is_disposed_not_missing() -> None:
+    """Ambiguity is a recorded disposition, not an uncovered NL segment."""
+    discover_input = _input().model_copy(
+        update={"natural_language": "After go, Done shall become active.\nThe mode wording is ambiguous."}
+    )
+
+    def responder(role: str, schema: type[BaseModel], _: str, __: str) -> BaseModel:
+        if schema is RequirementSet:
+            return RequirementSet(
+                revision=1,
+                requirements=(
+                    Requirement(
+                        requirement_id="REQ-001",
+                        statement="The system enters Idle.",
+                        source_segment_ids=("NL-L001",),
+                        checkability="structure",
+                    ),
+                ),
+                segment_disposition={
+                    "NL-L001": "covered",
+                    "NL-L002": "ambiguous",
+                },
+            )
+        if schema is RequirementReview:
+            return RequirementReview(
+                decision="accept",
+                reviewed_revision=1,
+                rationale="The ambiguous segment is explicitly retained for audit.",
+            )
+        return default_fake_responder(role, schema, _, __)
+
+    state = run_discover_state(discover_input, responder)
+    assert state["requirement_coverage"].missing_segment_ids == ()
+    assert state["requirement_set"].segment_disposition["NL-L002"] == "ambiguous"
     completed = run_discover(
         _input("pair-0000")
     )

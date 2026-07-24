@@ -467,16 +467,7 @@ def split_requirements(
             missing_segment_ids=tuple(
                 sorted(
                     set(frozen.nl_segments)
-                    - {
-                        sid
-                        for sid, disposition in output.segment_disposition.items()
-                        if disposition in {"covered", "context", "out_of_scope"}
-                    }
-                    | {
-                        sid
-                        for sid, disposition in output.segment_disposition.items()
-                        if disposition == "ambiguous"
-                    }
+                    - set(output.segment_disposition)
                 )
             ),
         )
