@@ -932,8 +932,16 @@ def precheck_and_seal(
                         "required_function_families", []
                     ),
                     "pass_criterion": (
-                        "The full prefix plus this assertion must execute without "
-                        "exception and return strict bool using the declared evidence family."
+                        "Replace every undefined Python name with a quoted complete "
+                        "state/event path, or define the alias in the same shared "
+                        "prefix; then the full prefix plus this assertion must "
+                        "execute without exception and return strict bool using "
+                        "the declared evidence family."
+                        if isinstance(detail.get("error"), dict)
+                        and detail["error"].get("type") == "NameError"
+                        else "The full prefix plus this assertion must execute "
+                        "without exception and return strict bool using the "
+                        "declared evidence family."
                     ),
                 }
                 public_executions.append(
