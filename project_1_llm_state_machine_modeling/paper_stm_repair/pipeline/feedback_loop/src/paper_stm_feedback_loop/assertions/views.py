@@ -76,6 +76,11 @@ class FrozenView:
     no arbitrary paths, shell, import, environment, network, mutation, or hidden
     reference/gold data.
 
+    Mapping-shaped nested fields additionally support read-only ``in``, iteration,
+    ``keys()``, ``items()``, ``values()``, and ``get()``. They never expose fields
+    outside the frozen mapping and never permit mutation. Integer indexing is not
+    supported; use the documented string key for a variable path.
+
     Example: ``FrozenView("state", {"path": "Root.Idle"}, {"path"}, {})`` allows
     ``view.path`` and rejects ``view.__class__`` or ``view.secret``.
     """
@@ -125,6 +130,40 @@ class FrozenView:
             raise UntrackedDependency(f"unregistered field for {self._kind}: {key}")
         return self._wrap(self._data.get(key))
 
+    def __contains__(self, key: object) -> bool:
+        """Support membership checks against the frozen mapping's field names."""
+
+        return isinstance(key, str) and key in self._allowed_fields
+
+    def __iter__(self):
+        """Iterate over stable, read-only field names."""
+
+        return iter(sorted(self._allowed_fields))
+
+    def keys(self) -> tuple[str, ...]:
+        """Return stable field names without exposing the backing mapping."""
+
+        return tuple(sorted(self._allowed_fields))
+
+    def items(self) -> tuple[tuple[str, Any], ...]:
+        """Return stable, recursively frozen field/value pairs."""
+
+        return tuple((key, self._wrap(self._data.get(key))) for key in self.keys())
+
+    def values(self) -> tuple[Any, ...]:
+        """Return stable, recursively frozen field values."""
+
+        return tuple(value for _, value in self.items())
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Return a frozen field value or ``default`` for an absent string key."""
+
+        if not isinstance(key, str) or key.startswith("__"):
+            raise UntrackedDependency(f"unregistered item access: {key!r}")
+        if key not in self._allowed_fields:
+            return copy.deepcopy(default)
+        return self._wrap(self._data.get(key))
+
     def __getattr__(self, name: str) -> Any:
         if name.startswith("__"):
             raise UntrackedDependency(f"dunder attribute rejected: {name}")
@@ -145,6 +184,13 @@ class FrozenView:
                 f"{self._kind}.field",
                 value,
                 allowed_fields=set(str(k) for k in value.keys()),
+                allowed_methods={"keys", "items", "values", "get"},
+                methods={
+                    "keys": lambda view: view.keys(),
+                    "items": lambda view: view.items(),
+                    "values": lambda view: view.values(),
+                    "get": lambda view, key, default=None: view.get(key, default),
+                },
             )
         if isinstance(value, list):
             return tuple(self._wrap(item) for item in value)

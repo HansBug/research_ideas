@@ -643,11 +643,11 @@ def convert_assertions(
                 assertions_by_id[assertion_id].evidence_family
                 for assertion_id in mapped_by_assertions[requirement.requirement_id]
             }
-            if not evidence_families.intersection({"simulation", "fbmcq"}):
+            if not evidence_families.intersection({"effect", "simulation", "fbmcq"}):
                 raise ValueError(
                     f"effect requirement {requirement.requirement_id} requires "
-                    "at least one simulation or fbmcq assertion; relation-only evidence "
-                    "is complementary, not sufficient"
+                    "at least one effect, simulation, or fbmcq assertion; relation- "
+                    "and topology-only evidence is complementary, not sufficient"
                 )
         if any(not ids for ids in mapped_by_assertions.values()):
             missing = sorted(req_id for req_id, ids in mapped_by_assertions.items() if not ids)

@@ -288,6 +288,7 @@ class EvalEnvironment:
             FBMCQ_FIELDS,
             MAPPING_FIELDS,
             SIM_METHODS,
+            {"keys", "items", "values", "get"},
             TOPOLOGY_FIELDS,
             PATH_FIELDS,
         )

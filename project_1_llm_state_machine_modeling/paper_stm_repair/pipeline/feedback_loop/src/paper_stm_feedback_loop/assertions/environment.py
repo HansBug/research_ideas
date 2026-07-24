@@ -19,7 +19,7 @@ ASSERTION EXECUTION CONTRACT
 
 EVIDENCE SELECTION
 - A structural requirement may use structure/relation/effect/topology facts.
-- A requirement that states runtime behavior under a condition or event must include simulation or FBMCQ evidence; static transition existence alone is only complementary evidence.
+- An effect requirement must use direct structured-effect evidence (`effects`, `effect_delta`, or `effect_deltas`), simulation, or FBMCQ; static transition existence alone is only complementary evidence. Do not invent a variable when the model has no corresponding declaration. An exact effect query may therefore return strict False for a missing typed effect. Use simulation or FBMCQ when the claim specifically requires runtime response or bounded universal/counterexample evidence.
 - A cold-start simulation covers only one initialization path. For a state-agnostic behavior claim, use explicit hot-start initialization for relevant state(s), or use FBMCQ for a bounded universal/counterexample claim and state its bound.
 - Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect.
 
@@ -39,7 +39,7 @@ guards_overlap(left_ref: str, right_ref: str) -> bool; both refs must identify u
 
 EFFECT
 effects(*, source=None, event=None, target=None, variable=None) -> tuple[transition carrying effects]
-effect_deltas(*, source=None, event=None, target=None) -> tuple[(variable, numeric_delta)]
+effect_deltas(*, source=None, event=None, target=None, variable=None) -> tuple[(variable, numeric_delta)]
 effect_delta(*, source=None, event=None, target=None, variable: str) -> number | None; requires one unambiguous transition.
 Prefer `any(delta < 0 for _, delta in effect_deltas(...))` when NL constrains an effect but not a variable name.
 
@@ -47,7 +47,7 @@ SIMULATION
 simulate(*, cycles: list[list[str]], initial_state: str | None = None, initial_vars: dict[str, number] | None = None) -> simulation
   simulation fields: cycles, final, requested_initialization, effective_initialization, model_sha256.
   each cycle/final fields: index, is_ended, active_states, variables, input_events, consumed_events, unconsumed_events, fired_transitions, limitations; method is_active(state).
-  ``initial_vars`` keys must be the exact declaration names accepted by pyfcstm (for example ``"counter"``), not qualified state-machine paths. This is different from the result view: ``cycle.variables`` is a mapping-like frozen view keyed by complete variable path, so use cycle.variables["Root.counter"], never cycle.variables[0]. active_states, consumed_events, and unconsumed_events are tuples of complete event/state paths.
+  ``initial_vars`` keys must be the exact declaration names accepted by pyfcstm (for example ``"counter"``), not qualified state-machine paths. The result view uses the exact variable keys exposed by the pyfcstm cycle result, normally the same declaration names; do not assume a qualified path such as ``"Root.counter"``. Use ``cycle.variables["counter"]`` when known, or ``keys()``/``items()`` to inspect keys. The read-only view supports string-key lookup, ``in``, iteration, ``keys()``, ``items()``, ``values()``, and ``get()``, never integer indexing. active_states, consumed_events, and unconsumed_events are tuples of complete event/state paths.
   Cold start: include an explicit leading [] cycle when initialization must run, and put an initialization-triggering event in a later cycle; this is a finite initial-path witness, not a global claim. Hot start: supply exact initial_state and every declared variable in initial_vars using declaration names, then place the causal event in cycle 0. Check event membership in consumed_events plus resulting state/effect; never assume an event is consumed exactly once in hierarchical execution.
 
 BOUNDED FORMAL CHECKING

@@ -57,9 +57,11 @@ class SimulationAPI:
     Omitted variables keep declaration initializers and appear in
     ``effective_initialization``. A complete hot start is already initialized
     and does not require ``[]``.
-    ``cycle.variables`` is a mapping-like frozen view keyed by the complete
-    variable path; access it with ``cycle.variables["Root.counter"]`` or the
-    documented variable path, never with an integer index.  ``active_states``,
+    ``cycle.variables`` is a read-only mapping-like frozen view. Its keys are the
+    exact variable keys exposed by the pyfcstm cycle result, normally the
+    declaration names such as ``"counter"``; do not assume a qualified state
+    path such as ``"Root.counter"``. Use ``keys()`` or ``items()`` when the key
+    is not already known, and never use integer indexing. ``active_states``,
     ``consumed_events``, and ``unconsumed_events`` are tuples of strings.
 
     For a local event-causality check, put the event in the first hot-start

@@ -234,10 +234,10 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
     )
-    store = InMemorySealedStore()
     checker = AssertionChecker(
         EvalEnvironment(model_text=MODEL, bmc_runner=fake_bmc_runner)
     )
+    store = InMemorySealedStore()
     checked = nodes.precheck_and_seal(
         {
             "_input": discover_input,
@@ -523,7 +523,127 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
         ),
     )
     assert "failure" not in out
-    assert "simulation or fbmcq" in out["_assertion_conversion_contract_feedback"].findings[0]
+    assert "effect, simulation, or fbmcq" in out["_assertion_conversion_contract_feedback"].findings[0]
+
+
+def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation() -> None:
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
+    from paper_stm_feedback_loop.discover import nodes
+
+    model = (
+        ROOT / "fixtures/selected_models/0006/STM_0.fcstm"
+    ).read_text(encoding="utf-8")
+    discover_input = _input("effect-only").model_copy(
+        update={
+            "natural_language": (
+                "After Attack_Complete, the UAV quantity shall decrease."
+            ),
+            "stm_text": model,
+        }
+    )
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "After Attack_Complete, the UAV quantity shall decrease.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "The named quantity has no typed decrement effect.",
+                "expression": (
+                    "any(delta < 0 for _, delta in effect_deltas("
+                    "source='Root.Attack', event='Root.Attack_Complete', "
+                    "target='Root.Searching', variable='UAV_Quantity'))"
+                ),
+                "failure_message": (
+                    "[REQ-001][AST-REQ-001-01] UAV_Quantity does not decrease "
+                    "on Attack_Complete"
+                ),
+                "evidence_family": "effect",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    store = InMemorySealedStore()
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=model)),
+    )
+
+    assert checked["assertion_check_public"].status == "executable"
+    released = store.release(checked["sealed_assertion_results"].sealed_hash)
+    assert len(released) == 1
+    assert released[0].truth_value is False
+    assert released[0].evidence_family == "effect"
+
+
+def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxation() -> None:
+    """The new effect exception is narrow: relation remains insufficient."""
+
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input())
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "When go occurs, the system shall enter Done.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    relation_only = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "Only a transition relation is checked.",
+                "expression": (
+                    "transition_exists(source='Root.Idle', event='Root.go', "
+                    "target='Root.Done')"
+                ),
+                "failure_message": "[REQ-001][AST-REQ-001-01] effect missing",
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.convert_assertions(
+        {
+            "_input": _input("relation-only-after-relaxation"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: relation_only
+        ),
+    )
+
+    assert out["_assertion_conversion_contract_feedback"].findings
+    assert "effect, simulation, or fbmcq" in out[
+        "_assertion_conversion_contract_feedback"
+    ].findings[0]
 
 
 def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
@@ -566,7 +686,7 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
     assert "failure" not in out
     assert out["assertion_script"].revision == 1
     assert out["_assertion_contract_repair_count"] == 1
-    assert "simulation or fbmcq" in out["_assertion_feedback"].findings[0]
+    assert "effect, simulation, or fbmcq" in out["_assertion_feedback"].findings[0]
     assert route_after_convert(out) == "convert_assertions"
 
 
@@ -709,7 +829,7 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "public_check.script_hash" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "behavioral requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "checkability classification" in prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "at least one `simulation` or `fbmcq`" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "at least one `effect`, `simulation`, or `fbmcq`" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "only evidence is static relation" in prompts.ASSERTION_REVIEWER_PROMPT
 
 

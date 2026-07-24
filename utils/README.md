@@ -47,7 +47,19 @@ git check-ignore -v .llmconfig.yml
 ### 2.1 `utils.llm`
 
 ```python
-from utils.llm import LLMConfig, LLMRegistry, load_llm_registry
+from utils.llm import (
+    LLMConfig,
+    LLMModelFactoryError,
+    LLMRegistry,
+    adapter_name,
+    collect_usage_sources,
+    create_chat_model,
+    default_stream_usage,
+    load_llm_registry,
+    model_kwargs,
+    normalize_model_output_usage,
+    normalize_usage,
+)
 ```
 
 ```python

@@ -90,6 +90,21 @@ def test_lambda_local_binding_can_reuse_one_read_only_simulation_result():
     assert result.actual_function_families == ("simulation",)
 
 
+def test_nested_frozen_mapping_supports_read_only_mapping_access() -> None:
+    model = "def int counter = 0;\n" + MODEL
+    checker = AssertionChecker(EvalEnvironment(model_text=model))
+    result = checker.check(
+        "assert (lambda sim: ('counter' in sim.final.variables) and "
+        "any(key == 'counter' and value == 0 for key, value in "
+        "sim.final.variables.items()))(simulate(cycles=[['Root.go']], "
+        "initial_state='Root.Idle', initial_vars={'counter': 0})), "
+        "'[REQ-001][AST-001-02] variable mapping access failed'",
+        required_function_families=["simulation"],
+    )
+    assert result.outcome == "valid"
+    assert result.actual_function_families == ("simulation",)
+
+
 def test_environment_docs_list_readable_api_surface():
     for needle in [
         "terminal expression must evaluate to a strict `bool`",
@@ -101,6 +116,7 @@ def test_environment_docs_list_readable_api_surface():
         "mapped_source_refs",
         "exact declaration names",
         "qualified state-machine paths",
+        "items()",
         "Evidence-family mapping",
     ]:
         assert needle in ASSERTION_ENVIRONMENT_API_DOCS

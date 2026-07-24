@@ -17,7 +17,10 @@ class EffectAPI:
 
     Returns: ``effect_deltas`` returns a stable tuple of ``(variable, delta)``
     pairs for all parseable numeric assignments on matching transitions, and an
-    empty tuple when no matching transition/effect/assignment exists.
+    empty tuple when no matching transition/effect/assignment exists. When
+    ``variable`` is supplied, only assignments to that exact declaration name
+    are considered; absence remains an empty tuple rather than an invented
+    variable probe.
     ``effect_delta`` remains the variable-specific compatibility helper: it
     returns one numeric delta, ``None`` when the selected transition has no
     assignment for that variable, and raises ``UnsupportedEvidence`` when the
@@ -59,13 +62,16 @@ class EffectAPI:
         source: str | None = None,
         event: str | None = None,
         target: str | None = None,
+        variable: str | None = None,
     ) -> tuple[tuple[str, int | float], ...]:
         """Return parseable assignment deltas for matching transitions.
 
         Absence is represented by an empty tuple, not by a sentinel variable or
         invented probe.  This makes expressions such as ``any(delta < 0 for _,
         delta in effect_deltas(...))`` deterministically ``False`` when the
-        model has no variables, no matching effects, or no assignments.
+        model has no variables, no matching effects, or no assignments. Supplying
+        ``variable=`` keeps the query tied to the named declaration instead of
+        treating a different variable's effect as a match.
         """
 
         deltas: list[tuple[str, int | float]] = []
@@ -75,10 +81,14 @@ class EffectAPI:
             effect = str(transition.effect or "")
             if not effect:
                 continue
-            for variable, expr in _assignments(effect):
-                before = self._initial_value(variable)
-                after = self._eval_simple_expr(expr, variable=variable, before=before)
-                deltas.append((variable, after - before))
+            for variable_name, expr in _assignments(effect):
+                if variable is not None and variable_name != variable:
+                    continue
+                before = self._initial_value(variable_name)
+                after = self._eval_simple_expr(
+                    expr, variable=variable_name, before=before
+                )
+                deltas.append((variable_name, after - before))
         return tuple(deltas)
 
     def effect_delta(
