@@ -77,6 +77,16 @@ def test_strict_false_is_sealed_but_assertionerror_and_non_bool_are_invalid():
     assert non_bool.sealed.error["type"] == "NonBoolTerminalAssert"
 
 
+def test_lambda_local_binding_can_reuse_one_read_only_simulation_result():
+    checker = AssertionChecker(EvalEnvironment(model_text=MODEL))
+    result = checker.check(
+        "assert (lambda sim: bool(sim.final.is_active('Root.Done')))(simulate(cycles=[['Root.go']], initial_state='Root.Idle', initial_vars={})), '[REQ-001][AST-001-01] Done did not become active'",
+        required_function_families=["simulation"],
+    )
+    assert result.outcome == "valid"
+    assert result.actual_function_families == ("simulation",)
+
+
 def test_environment_docs_list_readable_api_surface():
     for needle in [
         "terminal expression must evaluate to a strict `bool`",

@@ -755,7 +755,22 @@ def precheck_and_seal(
                     )
                 )
             else:
-                error_payload = checked.to_json().get("error") or {}
+                detail = checked.to_json()
+                error_payload = {
+                    "assertion_id": assertion.assertion_id,
+                    "error": detail.get("error"),
+                    "audit_issues": (detail.get("audit") or {}).get("issues", []),
+                    "actual_function_families": detail.get(
+                        "actual_function_families", []
+                    ),
+                    "required_function_families": detail.get(
+                        "required_function_families", []
+                    ),
+                    "pass_criterion": (
+                        "The full prefix plus this assertion must execute without "
+                        "exception and return strict bool using the declared evidence family."
+                    ),
+                }
                 public_executions.append(
                     AssertionExecutionPublic(
                         assertion_id=assertion.assertion_id,

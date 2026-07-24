@@ -68,7 +68,6 @@ FORBIDDEN_NODES = (
     ast.Global,
     ast.Import,
     ast.ImportFrom,
-    ast.Lambda,
     ast.Nonlocal,
     ast.Try,
     ast.While,
@@ -170,12 +169,23 @@ def audit_expression(
 
     local_bindings: set[str] = set()
     for node in ast.walk(tree):
-        if not isinstance(node, ast.comprehension):
-            continue
-        targets = node.target.elts if isinstance(node.target, (ast.Tuple, ast.List)) else [node.target]
-        local_bindings.update(
-            target.id for target in targets if isinstance(target, ast.Name)
-        )
+        if isinstance(node, ast.comprehension):
+            targets = (
+                node.target.elts
+                if isinstance(node.target, (ast.Tuple, ast.List))
+                else [node.target]
+            )
+            local_bindings.update(
+                target.id for target in targets if isinstance(target, ast.Name)
+            )
+        elif isinstance(node, ast.Lambda):
+            local_bindings.update(arg.arg for arg in node.args.args)
+            local_bindings.update(arg.arg for arg in node.args.posonlyargs)
+            local_bindings.update(arg.arg for arg in node.args.kwonlyargs)
+            if node.args.vararg is not None:
+                local_bindings.add(node.args.vararg.arg)
+            if node.args.kwarg is not None:
+                local_bindings.add(node.args.kwarg.arg)
 
     for node in ast.walk(tree):
         if isinstance(node, FORBIDDEN_NODES):
