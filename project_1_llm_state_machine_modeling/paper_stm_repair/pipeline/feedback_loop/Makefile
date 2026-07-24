@@ -5,7 +5,7 @@ REPO_ROOT := $(abspath ../../../..)
 SRC := $(CURDIR)/src
 RUN_PYTHONPATH := $(SRC):$(REPO_ROOT)
 PROFILE ?= gpt-5.5
-LANGUAGE ?= zh-CN
+CONTENT_LANGUAGE ?= zh-CN
 PAIR_ID ?= llms_emp_feedback_final_0000
 OUT ?= $(REPO_ROOT)/runs/paper1/feedback-loop/discover
 RUN_STAMP ?= $(shell date -u +%Y%m%dT%H%M%SZ)
@@ -20,20 +20,20 @@ discover-demo:
 		--nl-file $(FIXTURE)/nl.txt \
 		--fcstm-file $(FIXTURE)/STM_0.fcstm \
 		--source-trace-file $(FIXTURE)/source_trace.json \
-		--profile $(PROFILE) --content-language $(LANGUAGE) \
+		--profile $(PROFILE) --content-language $(CONTENT_LANGUAGE) \
 		--output-dir $(OUT)/manual-0000-identity-$(PROFILE)-$(RUN_STAMP) $(ARGS)
 
 discover-pair:
 	PYTHONPATH=$(RUN_PYTHONPATH) $(PYTHON) -m paper_stm_feedback_loop.discover \
 		--pair-id $(PAIR_ID) --profile $(PROFILE) \
-		--content-language $(LANGUAGE) \
+		--content-language $(CONTENT_LANGUAGE) \
 		--output-dir $(OUT)/$(PAIR_ID)-$(PROFILE)-$(RUN_STAMP) $(ARGS)
 
 discover-custom:
 	PYTHONPATH=$(RUN_PYTHONPATH) $(PYTHON) -m paper_stm_feedback_loop.discover \
 		--case-id $(CASE_ID) --nl-file $(NL_FILE) --fcstm-file $(FCSTM_FILE) \
 		$(if $(SOURCE_TRACE_FILE),--source-trace-file $(SOURCE_TRACE_FILE),) \
-		--profile $(PROFILE) --content-language $(LANGUAGE) \
+		--profile $(PROFILE) --content-language $(CONTENT_LANGUAGE) \
 		--output-dir $(OUT)/$(CASE_ID)-$(PROFILE)-$(RUN_STAMP) $(ARGS)
 
 test:
