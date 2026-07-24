@@ -705,8 +705,7 @@ def convert_assertions(
         message = f"{type(exc).__name__}: {exc}"
         repair_count = state.get("_assertion_contract_repair_count", 0)
         can_revise_contract = (
-            current is not None
-            and output is not None
+            output is not None
             and "no-progress gate" not in message
             and repair_count < 3
         )
@@ -742,6 +741,7 @@ def convert_assertions(
                 output=output,
             )
             return {
+                "assertion_script": output,
                 "_assertion_feedback": contract_feedback,
                 "_assertion_conversion_contract_feedback": contract_feedback,
                 "_assertion_contract_repair_count": repair_count + 1,

@@ -440,6 +440,50 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
     assert "simulation or fbmcq" in out["_assertion_conversion_contract_feedback"].findings[0]
 
 
+def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+    from paper_stm_feedback_loop.discover.graph import route_after_convert
+
+    frozen = nodes._fallback_prepare(_input())
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "When go occurs, the system shall enter Done.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    invalid = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "relation only",
+                "expression": "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')",
+                "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.convert_assertions(
+        {
+            "_input": _input("initial-contract"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(lambda *_args: invalid),
+    )
+    assert "failure" not in out
+    assert out["assertion_script"].revision == 1
+    assert out["_assertion_contract_repair_count"] == 1
+    assert "simulation or fbmcq" in out["_assertion_feedback"].findings[0]
+    assert route_after_convert(out) == "convert_assertions"
+
+
 def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
     from paper_stm_feedback_loop.discover.graph import run_discover_state
 
