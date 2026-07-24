@@ -37,6 +37,19 @@ def test_load_feedback_loop_inputs_from_representation_pair() -> None:
     assert summary["source_trace_entries"] == bundle.source_trace.entry_count
 
 
+def test_cli_formal_pair_default_root_is_independent_of_cwd() -> None:
+    from paper_stm_feedback_loop.discover.cli import REPORT_ROOT, _formal_pair, build_parser
+
+    args = build_parser().parse_args(
+        ["--pair-id", "0000", "--profile", "test-profile", "--output-dir", "out"]
+    )
+    bundle = _formal_pair(args)
+
+    assert bundle.report_root == REPORT_ROOT
+    assert bundle.pair_id == "llms_emp_feedback_final_0000"
+    assert bundle.fcstm.path.name == "fcstm.fcstm"
+
+
 def test_load_feedback_loop_inputs_from_custom_files(tmp_path: Path) -> None:
     nl = tmp_path / "nl.txt"
     fcstm = tmp_path / "model.fcstm"

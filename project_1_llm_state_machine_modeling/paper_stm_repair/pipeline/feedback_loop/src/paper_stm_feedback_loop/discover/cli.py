@@ -17,9 +17,14 @@ from .responder import DirectStructuredResponder
 from .schemas import DiscoverInput, LLMCallRecord, NodeExecutionRecord
 from .utils import sha256_data
 
-REPORT_ROOT = Path(
-    "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/"
-    "representation/reports/llms_emp_r45_java_60"
+# Resolve from the pipeline location, not the process working directory. This
+# keeps ``make -C .../feedback_loop discover-pair`` and direct module execution
+# on the same representation input root.
+REPORT_ROOT = (
+    Path(__file__).resolve().parents[4]
+    / "representation"
+    / "reports"
+    / "llms_emp_r45_java_60"
 )
 
 
