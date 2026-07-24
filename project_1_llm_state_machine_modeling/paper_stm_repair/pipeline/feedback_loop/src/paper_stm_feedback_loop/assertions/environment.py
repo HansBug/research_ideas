@@ -29,12 +29,17 @@ transitions/transition_exists/guards_overlap are ``relation``. The declared
 evidence_family must match the family of the function actually called.
 states(*, parent=None, recursive=True, name=None, path=None, within=None, kind=None, exact=False) -> tuple[state]
   state fields include path, name, parent_path, is_leaf, is_composite, is_pseudo, substates, initial_targets.
+  ``initial_targets`` is a tuple of read-only mapping views; each mapping stores keys such as
+  ``target`` and optional ``event``/``guard``. Do not iterate it as if it were a tuple of target
+  strings (``'Child' in t`` checks mapping keys, not the target value). For the common single
+  initial-child check, use ``initial_child('Root.Composite') == 'Root.Composite.Child'``.
 events(*, name=None, path=None, within=None, scope=None, declared=None, used=None, exact=False) -> tuple[event]
 variables(*, name=None, path=None, within=None, type=None, read_in=None, written_in=None, exact=False) -> tuple[variable]
 transitions(*, source=None, event=None, target=None, forced=None, within=None, has_event=None, has_guard=None, has_effect=None, self_loop=None, source_within=None, target_within=None, exact=False) -> tuple[transition]
   transition fields include from_path, to_path, event, guard, effect, is_forced, transition_index.
 transition_exists(*, source=None, event=None, target=None, within=None, exact=False) -> bool
 initial_child(state: str) -> str | None
+  Returns the exact target path for a composite with one structured initial target, or ``None``.
 guards_overlap(left_ref: str, right_ref: str) -> bool; both refs must identify unambiguous transitions.
 
 EFFECT

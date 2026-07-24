@@ -76,7 +76,9 @@ class StructureAPI:
     imports, environment, mutation, network, or reference/gold data.
 
     Example: ``len(api.states(parent="Root", recursive=False)) >= 2`` checks
-    direct child-state structure.
+    direct child-state structure. ``initial_targets`` on a returned state is a
+    tuple of mapping views, not a tuple of target strings; use
+    ``initial_child("Root.Composite")`` for a single initial child.
     """
 
     family = "structure"

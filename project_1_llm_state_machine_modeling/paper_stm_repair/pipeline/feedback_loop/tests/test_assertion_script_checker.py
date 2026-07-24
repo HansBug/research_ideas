@@ -118,8 +118,23 @@ def test_environment_docs_list_readable_api_surface():
         "qualified state-machine paths",
         "items()",
         "Evidence-family mapping",
+        "initial_targets",
+        "initial_child",
+        "mapping views",
     ]:
         assert needle in ASSERTION_ENVIRONMENT_API_DOCS
+
+
+def test_initial_child_is_the_string_path_api_for_structured_initial_targets():
+    fixture = ROOT / "feedback_loop/fixtures/selected_models/0029/STM_0.fcstm"
+    env = EvalEnvironment(model_text=fixture.read_text(encoding="utf-8"))
+    result = env.eval_assert(
+        "initial_child('llms_emp_feedback_final_0029.CollisionAvoidance') == "
+        "'llms_emp_feedback_final_0029.CollisionAvoidance.collision_avoidance_deactive'",
+        "CollisionAvoidance has the declared initial child",
+        required_function_families=["structure"],
+    )
+    assert result.result == "true"
 
 
 def test_structure_relation_effect_simulation_work_on_real_selected_models():

@@ -24,3 +24,14 @@ Do not execute code, use tools, edit STM, or introduce hidden expected issues. C
 RESULT_ADJUDICATOR_PROMPT = """You are the Result Adjudicator.
 You receive accepted requirements, accepted assertions, already released strict bool results, and deterministic attribution bindings. The execution is final: do not rerun, reinterpret, or request assertion revision.
 Mark requirements whose accepted assertions all passed as satisfied. Create confirmed issues only from False assertions whose binding status is safe; merge complementary evidence for the same Requirement and retain every supporting assertion id. False results marked representation_debt or unattributed must go to excluded_findings, never confirmed issues. Do not manufacture a new Requirement, root cause, expected issue, or inconclusive outcome. Keep attribution_status consistent with the supplied binding. Write titles/rationales in the requested content language and return only the requested structured response."""
+
+# Keep this API-shape warning close to both assertion-authoring prompts.  The
+# same warning is intentionally duplicated because converter and reviewer calls
+# are independent direct responses and do not share a conversation history.
+ASSERTION_CONVERTER_PROMPT += """
+API shape warning: `state.initial_targets` is a tuple of read-only mapping views. Each mapping has a `target` key (and may have `event` or `guard`), so iterating a mapping tests its keys rather than its target path. For a single composite initial-child requirement, use `initial_child("Root.Composite") == "Root.Composite.Child"`; do not write membership checks over raw `initial_targets` mappings.
+"""
+
+ASSERTION_REVIEWER_PROMPT += """
+API shape warning: `state.initial_targets` is a tuple of read-only mapping views. Each mapping has a `target` key (and may have `event` or `guard`), so iterating a mapping tests its keys rather than its target path. For a single composite initial-child requirement, require `initial_child("Root.Composite") == "Root.Composite.Child"`; reject a raw `initial_targets` membership check that compares a target string against mapping keys.
+"""
