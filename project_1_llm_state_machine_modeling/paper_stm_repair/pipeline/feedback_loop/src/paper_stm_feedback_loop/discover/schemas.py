@@ -4,13 +4,23 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Literal, TypedDict
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    field_validator,
+    model_validator,
+)
 
 SCHEMA_VERSION = "v1"
 
 
 class StrictBaseModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    # JSON arrays are the wire representation of immutable tuple fields. Keep
+    # extra-field rejection/frozen outputs while using StrictBool explicitly at
+    # the truth-bearing method boundaries.
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class NodeName(str, Enum):
@@ -199,7 +209,7 @@ class AssertionCheckPublic(StrictBaseModel):
 class AssertionResult(StrictBaseModel):
     assertion_id: str
     requirement_id: str
-    truth_value: bool
+    truth_value: StrictBool
     script_hash: str
     tool_env_hash: str
     evidence_family: str = Field(min_length=1)
@@ -260,7 +270,7 @@ class AttributionBinding(StrictBaseModel):
     source_refs: tuple[str, ...] = Field(default_factory=tuple)
     trace_entry_ids: tuple[str, ...] = Field(default_factory=tuple)
     exclusion_refs: tuple[str, ...] = Field(default_factory=tuple)
-    source_level_claim_allowed: bool = False
+    source_level_claim_allowed: StrictBool = False
     rationale: str = Field(min_length=1)
 
 
@@ -282,7 +292,7 @@ class AdjudicatedIssue(StrictBaseModel):
 class DiscoverAdjudication(StrictBaseModel):
     schema_name: Literal["DiscoverAdjudication"] = "DiscoverAdjudication"
     schema_version: Literal["v1"] = SCHEMA_VERSION
-    has_confirmed_issues: bool
+    has_confirmed_issues: StrictBool
     issues: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
     satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
     excluded_findings: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
