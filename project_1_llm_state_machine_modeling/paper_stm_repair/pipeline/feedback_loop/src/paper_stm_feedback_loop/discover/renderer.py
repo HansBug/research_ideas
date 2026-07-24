@@ -42,6 +42,7 @@ def render_requirement_review_input(
     frozen: FrozenDiscoverInputs,
     requirements: RequirementSet,
     coverage: RequirementCoverageProjection,
+    previous_feedback: RevisionFeedback | None = None,
 ) -> str:
     return canonical_json(
         {
@@ -50,6 +51,11 @@ def render_requirement_review_input(
             "stm_text": frozen.stm_text,
             "requirements": requirements.model_dump(mode="json"),
             "coverage_projection": coverage.model_dump(mode="json"),
+            "previous_revision_feedback": (
+                previous_feedback.model_dump(mode="json")
+                if previous_feedback is not None
+                else None
+            ),
             "content_language": frozen.language,
         }
     )

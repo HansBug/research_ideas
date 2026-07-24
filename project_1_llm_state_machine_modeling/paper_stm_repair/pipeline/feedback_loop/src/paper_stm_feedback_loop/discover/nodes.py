@@ -511,7 +511,10 @@ def review_requirements(
         requirements = state["requirement_set"]
         coverage = state["requirement_coverage"]
         payload = renderer.render_requirement_review_input(
-            frozen, requirements, coverage
+            frozen,
+            requirements,
+            coverage,
+            state.get("_requirement_feedback"),
         )
         output = responder.invoke_structured(
             role="requirement_reviewer",

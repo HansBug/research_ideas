@@ -209,6 +209,17 @@ def main(argv: list[str] | None = None) -> int:
             assertion_checker=AssertionChecker(environment),
             on_update=on_update,
         )
+    except KeyboardInterrupt:
+        records.append(
+            "discover-run-interrupted",
+            {
+                "schema_name": "DiscoverRunInterrupted",
+                "schema_version": "v1",
+                "run_id": run_id,
+                "reason": "operator_interrupt_after_observed_no_progress",
+            },
+        )
+        raise
     except Exception as exc:
         records.append(
             "discover-run-failed",
