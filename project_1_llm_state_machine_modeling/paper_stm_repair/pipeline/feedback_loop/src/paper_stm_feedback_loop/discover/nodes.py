@@ -867,7 +867,11 @@ def precheck_and_seal(
                     formal_causality_error = (
                         "effect requirement FBMCQ evidence must connect the bounded "
                         "property to an explicit event/condition or initialization; "
-                        "a bare reach target is not causal evidence. "
+                        "a bare reach target is not causal evidence. Replace it with "
+                        "a response query such as `check response <= 5: trigger "
+                        "event(\"Root.Go\", current) -> within 3 active(\"Root.Done\");`, "
+                        "a positive event assumption plus reach, an explicit `init "
+                        "state(\"Root.Idle\");` query, or a hot-start simulation. "
                         + " ".join(details)
                     )
             if (
@@ -965,9 +969,28 @@ def precheck_and_seal(
             "sealed_assertion_results": receipt,
         }
         if status == "invalid":
+            invalid_signature = sha256_data(
+                tuple(
+                    sorted(
+                        (item.assertion_id, item.error or "")
+                        for item in public.executions
+                        if item.status == "invalid"
+                    )
+                )
+            )
+            previous_signatures = state.get("_assertion_invalid_signatures", ())
+            update["_assertion_invalid_signatures"] = (
+                *previous_signatures,
+                invalid_signature,
+            )
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
-                reason="Assertion precheck found non-executable expressions.",
+                reason=(
+                    "Assertion precheck found non-executable expressions. Fix every "
+                    "listed assertion; do not return the same failing expression. "
+                    "If a formal query cannot encode the stated causal condition, "
+                    "replace it with an executable hot-start simulation instead."
+                ),
                 findings=tuple(
                     e.error or e.assertion_id
                     for e in public_executions
@@ -984,6 +1007,33 @@ def precheck_and_seal(
             started_at=started_at,
             start_ns=start_ns,
         )
+        if status == "invalid" and invalid_signature in previous_signatures:
+            message = (
+                "no-progress gate: the same assertion invalid-signature was observed "
+                "again; stopping instead of repeating an unchanged revision request"
+            )
+            failure = RunFailure(
+                run_id=_run_id(state), node_name="precheck_and_seal", message=message
+            )
+            failed_record = _record_node(
+                state,
+                node_name="precheck_and_seal",
+                revision=script.revision,
+                kind="deterministic",
+                input_value={
+                    "script_hash": script_hash,
+                    "invalid_signature": invalid_signature,
+                },
+                output_value=public,
+                started_at=started_at,
+                start_ns=start_ns,
+                failure=message,
+            )
+            update["failure"] = failure
+            update["node_execution_records"] = _append_records(
+                state, failed_record
+            )
+            return update
         update["node_execution_records"] = _append_records(state, record)
         return update
     except Exception as exc:

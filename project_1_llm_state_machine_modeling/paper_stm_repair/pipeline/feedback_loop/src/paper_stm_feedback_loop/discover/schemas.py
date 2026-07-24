@@ -418,6 +418,7 @@ class DiscoverGraphState(TypedDict, total=False):
     llm_call_records: list[LLMCallRecord]
     requirement_fingerprints: tuple[str, ...]
     assertion_fingerprints: tuple[str, ...]
+    _assertion_invalid_signatures: tuple[str, ...]
     _input: DiscoverInput
     _requirement_feedback: RevisionFeedback
     _assertion_feedback: RevisionFeedback

@@ -184,6 +184,10 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
     )
+    store = InMemorySealedStore()
+    checker = AssertionChecker(
+        EvalEnvironment(model_text=MODEL, bmc_runner=fake_bmc_runner)
+    )
     checked = nodes.precheck_and_seal(
         {
             "_input": discover_input,
@@ -191,16 +195,26 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
             "requirement_set": requirements,
             "assertion_script": script,
         },
-        sealed_store=InMemorySealedStore(),
-        assertion_checker=AssertionChecker(
-            EvalEnvironment(model_text=MODEL, bmc_runner=fake_bmc_runner)
-        ),
+        sealed_store=store,
+        assertion_checker=checker,
     )
 
     assert checked["assertion_check_public"].status == "invalid"
     assert "bare reach target is not causal evidence" in (
         checked["assertion_check_public"].executions[0].error or ""
     )
+    repeated = nodes.precheck_and_seal(
+        {
+            **checked,
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+        assertion_checker=checker,
+    )
+    assert "no-progress gate" in repeated["failure"].message
 
 
 def test_strict_schemas_reject_inconclusive_and_bad_review_shapes() -> None:
