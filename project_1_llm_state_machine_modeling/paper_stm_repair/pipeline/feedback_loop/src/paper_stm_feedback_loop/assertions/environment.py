@@ -20,7 +20,8 @@ ASSERTION EXECUTION CONTRACT
 EVIDENCE SELECTION
 - A structural requirement may use structure/relation/effect/topology facts.
 - A requirement that states runtime behavior under a condition or event must include simulation or FBMCQ evidence; static transition existence alone is only complementary evidence.
-- Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect. Use FBMCQ for a bounded universal or counterexample claim and state its bound.
+- A cold-start simulation covers only one initialization path. For a state-agnostic behavior claim, use explicit hot-start initialization for relevant state(s), or use FBMCQ for a bounded universal/counterexample claim and state its bound.
+- Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect.
 
 STRUCTURE / RELATION
 states(*, parent=None, recursive=True, name=None, path=None, within=None, kind=None, exact=False) -> tuple[state]

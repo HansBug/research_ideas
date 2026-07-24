@@ -382,6 +382,50 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
     assert sealed[0].truth_value is True
 
 
+def test_effect_simulation_precheck_requires_hot_start() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+    from paper_stm_feedback_loop.assertions import InMemorySealedStore
+
+    frozen = nodes._fallback_prepare(_input())
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "When go occurs, Done shall become active.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "cold behavior witness",
+                "expression": (
+                    "simulate(cycles=[[], ['go']]).final.is_active('Root.Done')"
+                ),
+                "failure_message": "[REQ-001][AST-REQ-001-01] Done was not reached",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.precheck_and_seal(
+        {
+            "_input": _input("hot-start-policy"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+    )
+    assert out["assertion_check_public"].status == "invalid"
+    assert "hot-start" in out["assertion_check_public"].executions[0].error
+
+
 def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     all_prompts = "\n".join(
         [

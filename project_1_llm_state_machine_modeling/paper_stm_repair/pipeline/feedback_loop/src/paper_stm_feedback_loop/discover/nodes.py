@@ -794,6 +794,20 @@ def precheck_and_seal(
             "fbmcq": "formal",
             "provenance": "mapping",
         }
+        requirement_set = state.get("requirement_set")
+        requirement_by_id = (
+            {
+                requirement.requirement_id: requirement
+                for requirement in requirement_set.requirements
+            }
+            if requirement_set is not None
+            else {}
+        )
+        assertion_families_by_requirement: dict[str, set[str]] = {}
+        for item in script.assertions:
+            assertion_families_by_requirement.setdefault(item.requirement_id, set()).add(
+                item.evidence_family
+            )
         for assertion in script.assertions:
             source = (
                 f"{script.prefix.rstrip()}\nassert ({assertion.expression}), "
@@ -806,7 +820,31 @@ def precheck_and_seal(
                 reason=assertion.description,
                 required_function_families=[family_map[assertion.evidence_family]],
             )
-            if checked.outcome in {"valid", "sealed_false"} and type(checked.value) is bool:
+            hot_start_policy_error: str | None = None
+            requirement = requirement_by_id.get(assertion.requirement_id)
+            if (
+                requirement is not None
+                and requirement.checkability == "effect"
+                and assertion.evidence_family == "simulation"
+                and "fbmcq"
+                not in assertion_families_by_requirement.get(assertion.requirement_id, set())
+            ):
+                has_hot_start = any(
+                    call.function == "simulate"
+                    and call.kwargs.get("initial_state") is not None
+                    for call in checked.function_call_trace
+                )
+                if not has_hot_start:
+                    hot_start_policy_error = (
+                        "effect requirement simulation must use an explicit hot-start "
+                        "initial_state, or the requirement must include a bounded fbmcq "
+                        "assertion; a cold-start trace is not global behavior evidence"
+                    )
+            if (
+                hot_start_policy_error is None
+                and checked.outcome in {"valid", "sealed_false"}
+                and type(checked.value) is bool
+            ):
                 public_executions.append(
                     AssertionExecutionPublic(
                         assertion_id=assertion.assertion_id,
@@ -846,7 +884,7 @@ def precheck_and_seal(
                 detail = checked.to_json()
                 error_payload = {
                     "assertion_id": assertion.assertion_id,
-                    "error": detail.get("error"),
+                    "error": hot_start_policy_error or detail.get("error"),
                     "audit_issues": (detail.get("audit") or {}).get("issues", []),
                     "actual_function_families": detail.get(
                         "actual_function_families", []
