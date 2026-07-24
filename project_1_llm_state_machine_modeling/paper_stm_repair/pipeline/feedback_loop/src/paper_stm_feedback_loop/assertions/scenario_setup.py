@@ -117,7 +117,8 @@ def execute_cycles(
     available for the whole cycle according to pyfcstm semantics; repeated
     consumed event names are transition accounting, not repeated inputs. Cold
     starts may override a subset of declared variables through ``initial_vars``;
-    hot starts require an exact state and all declared variables.
+    its keys must be exact declaration names, not qualified state-machine paths.
+    Hot starts require an exact state and all declared variables.
 
     Failure semantics: pyfcstm load/runtime exceptions propagate to the caller so
     direct eval can return ``exception``/``unsupported`` precisely.

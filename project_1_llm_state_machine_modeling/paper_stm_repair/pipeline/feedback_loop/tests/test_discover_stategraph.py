@@ -42,8 +42,15 @@ MODEL = """state Root {
 def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_scope() -> None:
     assert "shared prepositional qualifiers" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "unconditional global requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "joint trigger" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "shared qualifiers" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "independent triggers" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "invent a universal quantifier" in prompts.REQUIREMENT_REVIEWER_PROMPT
+
+
+def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> None:
+    assert "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "declaration names rather than qualified state-machine paths" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
 def _input(run_id: str = "r") -> DiscoverInput:

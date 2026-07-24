@@ -44,8 +44,8 @@ SIMULATION
 simulate(*, cycles: list[list[str]], initial_state: str | None = None, initial_vars: dict[str, number] | None = None) -> simulation
   simulation fields: cycles, final, requested_initialization, effective_initialization, model_sha256.
   each cycle/final fields: index, is_ended, active_states, variables, input_events, consumed_events, unconsumed_events, fired_transitions, limitations; method is_active(state).
-  cycle.variables is a mapping-like frozen view keyed by complete variable path: use cycle.variables["Root.counter"], never cycle.variables[0]. active_states, consumed_events, and unconsumed_events are tuples of complete event/state paths.
-  Cold start: include an explicit leading [] cycle when initialization must run. Hot start: supply exact initial_state and complete relevant initial_vars, then place the causal event in cycle 0. Check event membership in consumed_events plus resulting state/effect; never assume an event is consumed exactly once in hierarchical execution.
+  ``initial_vars`` keys must be the exact declaration names accepted by pyfcstm (for example ``"counter"``), not qualified state-machine paths. This is different from the result view: ``cycle.variables`` is a mapping-like frozen view keyed by complete variable path, so use cycle.variables["Root.counter"], never cycle.variables[0]. active_states, consumed_events, and unconsumed_events are tuples of complete event/state paths.
+  Cold start: include an explicit leading [] cycle when initialization must run. Hot start: supply exact initial_state and every declared variable in initial_vars using declaration names, then place the causal event in cycle 0. Check event membership in consumed_events plus resulting state/effect; never assume an event is consumed exactly once in hierarchical execution.
 
 BOUNDED FORMAL CHECKING
 fbmcq(query: str) -> formal observation with fields canonical_query, status, holds, bound, formal_property_kind, formal_bound, assumption_basis, witness, replay_status, limitations.

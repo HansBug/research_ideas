@@ -52,9 +52,11 @@ class SimulationAPI:
     persistent variable values. It inserts no hidden initialization/stabilization
     cycle. Cold initialization is represented explicitly by a leading ``[]``.
     With ``initial_state=None``, a partial ``initial_vars`` mapping overrides
-    only those declared variables; omitted variables keep declaration
-    initializers and appear in ``effective_initialization``. A complete hot start
-    is already initialized and does not require ``[]``.
+    only those declared variables; the keys are exact pyfcstm declaration names
+    such as ``"counter"``, not qualified paths such as ``"Root.counter"``.
+    Omitted variables keep declaration initializers and appear in
+    ``effective_initialization``. A complete hot start is already initialized
+    and does not require ``[]``.
     ``cycle.variables`` is a mapping-like frozen view keyed by the complete
     variable path; access it with ``cycle.variables["Root.counter"]`` or the
     documented variable path, never with an integer index.  ``active_states``,

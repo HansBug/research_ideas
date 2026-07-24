@@ -99,6 +99,8 @@ def test_environment_docs_list_readable_api_surface():
         "simulate",
         "fbmcq",
         "mapped_source_refs",
+        "exact declaration names",
+        "qualified state-machine paths",
     ]:
         assert needle in ASSERTION_ENVIRONMENT_API_DOCS
 
