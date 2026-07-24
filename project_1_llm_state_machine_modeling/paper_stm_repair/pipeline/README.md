@@ -1,6 +1,6 @@
 # pipeline 阶段链路入口
 
-本目录是第一篇论文 `paper_stm_repair` 的阶段链路路径，用于保存 conversion、intermediate representation、readiness audit 以及后续 loop I/O / source trace / evaluation placeholder 等机器制品。当前 active pipeline 不执行真实 repair / fix loop，不生成真实 `STM_k`，不调用真实 LLM，也不读取 `.env`。
+本目录是第一篇论文 `paper_stm_repair` 的阶段链路路径，用于保存 conversion、intermediate representation、readiness audit、可执行 feedback loop 与 evaluation placeholder 等机器制品。除 [feedback_loop/](./feedback_loop/) 的显式真实 LLM 入口外，其余 preparation pipeline 不读取 `.env` 或调用 provider；当前 feedback loop 只实现 Discover，不生成真实 `STM_k`。
 
 所有 conversion、normalization、representation lowering 带来的可解析性改善，都必须作为 pipeline 准备度收益单独归因，不能计入后续修正循环收益或 source-level issue closure。
 
@@ -14,6 +14,7 @@ R4/R5.7 的 Better STM evaluation gate 已整体迁入 cold archive：[../archiv
 | R4 historical evaluation | [../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) | R3 canonical JSON、四例 `<NL, STM_0>` | archived diagnostic / scenario / eligibility / Better STM checklist schema 与 dry-run | cold archive；不作为 active evaluation gate。 |
 | R4.5 表示桥 | [representation/](./representation/) | R3 canonical JSON | `.fcstm`、name mapping、lowering inventory、parse/inspect report | 将 canonical JSON 降到 pyfcstm 可机检表示；loss 必须入账，`fcstm` 只是 intermediate executable semantic medium。 |
 | R5 冒烟与摸排 | [readiness_audit/](./readiness_audit/) | 四例静态样例、seed library registry、R3/R4/R4.5 制品 | 四例冒烟 report、seed sweep report、handoff JSON、R5.5 `llms-emp` 深度画像 | 复验当前数据池中哪些样本可进入后续 pilot；仍不执行修正循环。 |
+| B-discover | [feedback_loop/](./feedback_loop/) | 冻结 NL、FCSTM `STM_0`、source trace 与 provider profile | reviewed Requirements、executable assertions、attribution-scoped issues、immutable records 与 telemetry | 新的独立 Requirement-to-Assertion Discover StateGraph；真实 LLM 必须显式运行且先 `source .env`。 |
 | future evaluation | [evaluation/](./evaluation/) | confirmed issues、repair/change ledger、fresh canonical source artifact、semantic change/correspondence ledger、closure / regression evidence | future source-level closure / regression schema | placeholder；不得继承 archived Better STM gate。 |
 
 ## 2. 数据流
