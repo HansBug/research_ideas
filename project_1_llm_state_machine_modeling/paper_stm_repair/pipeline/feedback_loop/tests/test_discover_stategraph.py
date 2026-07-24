@@ -273,6 +273,49 @@ def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
     assert "declaration name" in error
 
 
+def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
+    from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("initial-cold-effect")
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "After go, Done shall become active.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "Explicit initialization path.",
+                "expression": "(lambda s: 'Root.go' in s.cycles[1].consumed_events and s.cycles[1].is_active('Root.Done'))(simulate(cycles=[[], ['Root.go']]))",
+                "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
+    )
+    assert checked["assertion_check_public"].status == "executable"
+
+
 def test_strict_schemas_reject_inconclusive_and_bad_review_shapes() -> None:
     with pytest.raises(ValidationError):
         DiscoverAdjudication.model_validate(
@@ -563,7 +606,7 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
     assert sealed[0].truth_value is True
 
 
-def test_effect_simulation_precheck_requires_hot_start() -> None:
+def test_effect_simulation_precheck_allows_explicit_cold_path() -> None:
     from paper_stm_feedback_loop.discover import nodes
     from paper_stm_feedback_loop.assertions import InMemorySealedStore
 
@@ -584,9 +627,9 @@ def test_effect_simulation_precheck_requires_hot_start() -> None:
             {
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
-                "description": "cold behavior witness",
+                "description": "explicit initialization cold-path witness",
                 "expression": (
-                    "simulate(cycles=[[], ['go']]).final.is_active('Root.Done')"
+                    "(lambda s: 'Root.go' in s.cycles[1].consumed_events and s.cycles[1].is_active('Root.Done'))(simulate(cycles=[[], ['Root.go']]))"
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done was not reached",
                 "evidence_family": "simulation",
@@ -603,8 +646,7 @@ def test_effect_simulation_precheck_requires_hot_start() -> None:
         },
         sealed_store=InMemorySealedStore(),
     )
-    assert out["assertion_check_public"].status == "invalid"
-    assert "hot-start" in out["assertion_check_public"].executions[0].error
+    assert out["assertion_check_public"].status == "executable"
 
 
 def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:

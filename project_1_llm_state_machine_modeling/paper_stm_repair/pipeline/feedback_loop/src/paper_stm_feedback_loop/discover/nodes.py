@@ -836,11 +836,22 @@ def precheck_and_seal(
                     and call.kwargs.get("initial_state") is not None
                     for call in checked.function_call_trace
                 )
-                if not has_hot_start:
+                has_explicit_initial_cold_path = any(
+                    call.function == "simulate"
+                    and call.kwargs.get("initial_state") is None
+                    and isinstance(call.kwargs.get("cycles"), list)
+                    and bool(call.kwargs["cycles"])
+                    and call.kwargs["cycles"][0] == []
+                    and any(bool(cycle) for cycle in call.kwargs["cycles"][1:])
+                    for call in checked.function_call_trace
+                )
+                if not has_hot_start and not has_explicit_initial_cold_path:
                     hot_start_policy_error = (
                         "effect requirement simulation must use an explicit hot-start "
-                        "initial_state, or the requirement must include a bounded fbmcq "
-                        "assertion; a cold-start trace is not global behavior evidence"
+                        "initial_state, or an explicit initialization cold path "
+                        "cycles=[[], [causal_event]]; otherwise include a bounded "
+                        "fbmcq assertion. A cold-start trace without an explicit empty "
+                        "initialization cycle is not sufficient behavior evidence"
                     )
             if (
                 requirement is not None
@@ -923,9 +934,11 @@ def precheck_and_seal(
                         "as an explicit hot start with initial_state=<exact state "
                         "path> and initial_vars={<exact declaration name>: value}; "
                         "use declaration names, not qualified state-machine paths, "
-                        "and put the causal event in cycle 0. Alternatively replace "
-                        "it with a causal bounded FBMCQ query. The full assertion "
-                        "must then execute without exception and return strict bool."
+                        "and put the causal event in cycle 0. For an initialization "
+                        "claim, an explicit cold path cycles=[[], [causal_event]] is "
+                        "also valid. Alternatively replace it with a causal bounded "
+                        "FBMCQ query. The full assertion must then execute without "
+                        "exception and return strict bool."
                     )
                 elif formal_causality_error is not None:
                     if "parse failed" in str(formal_causality_error):
