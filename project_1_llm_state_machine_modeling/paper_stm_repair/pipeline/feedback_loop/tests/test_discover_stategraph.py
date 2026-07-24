@@ -181,6 +181,20 @@ def test_create_revise_pairs_and_no_progress_gate_are_enforced() -> None:
     assert "pair" in out["failure"].message
 
 
+def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
+    from paper_stm_feedback_loop.discover.graph import run_discover_state
+
+    def fail_splitter(
+        _role: str, schema: type[BaseModel], _system: str, _input_text: str
+    ) -> BaseModel:
+        if schema is RequirementSet:
+            raise RuntimeError("splitter transport failed")
+        raise AssertionError("downstream reviewer must not be called")
+
+    with pytest.raises(RuntimeError, match="split_requirements.*splitter transport failed"):
+        run_discover_state(_input("split-failure"), fail_splitter)
+
+
 def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
     from paper_stm_feedback_loop.discover import nodes
 

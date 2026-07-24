@@ -18,6 +18,7 @@ from .utils import sha256_data
 
 Route = Literal[
     "split_requirements",
+    "review_requirements",
     "convert_assertions",
     "precheck_and_seal",
     "review_assertions",
@@ -56,6 +57,22 @@ def route_after_assertion_review(state: DiscoverGraphState) -> Route:
 
 def route_after_linear_node(state: DiscoverGraphState, next_node: Route) -> Route:
     return "run_failed" if "failure" in state else next_node
+
+
+def route_after_split(state: DiscoverGraphState) -> Route:
+    return route_after_linear_node(state, "review_requirements")
+
+
+def route_after_convert(state: DiscoverGraphState) -> Route:
+    return route_after_linear_node(state, "precheck_and_seal")
+
+
+def route_after_release(state: DiscoverGraphState) -> Route:
+    return route_after_linear_node(state, "bind_attribution")
+
+
+def route_after_attribution(state: DiscoverGraphState) -> Route:
+    return route_after_linear_node(state, "adjudicate_results")
 
 
 class _HashPatchingResponder:
@@ -164,13 +181,13 @@ def build_discover_graph(
     graph.add_node("run_failed", _run_failed)
     graph.add_edge(START, "prepare")
     graph.add_conditional_edges("prepare", route_after_prepare)
-    graph.add_edge("split_requirements", "review_requirements")
+    graph.add_conditional_edges("split_requirements", route_after_split)
     graph.add_conditional_edges("review_requirements", route_after_requirement_review)
-    graph.add_edge("convert_assertions", "precheck_and_seal")
+    graph.add_conditional_edges("convert_assertions", route_after_convert)
     graph.add_conditional_edges("precheck_and_seal", route_after_assertion_check)
     graph.add_conditional_edges("review_assertions", route_after_assertion_review)
-    graph.add_edge("release_results", "bind_attribution")
-    graph.add_edge("bind_attribution", "adjudicate_results")
+    graph.add_conditional_edges("release_results", route_after_release)
+    graph.add_conditional_edges("bind_attribution", route_after_attribution)
     graph.add_conditional_edges(
         "adjudicate_results", lambda state: route_after_linear_node(state, "publish")
     )

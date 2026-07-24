@@ -34,6 +34,24 @@ def _jsonable(value: Any) -> Any:
     return repr(value)
 
 
+def _status_code(exc: Exception) -> int | None:
+    value = getattr(exc, "status_code", None)
+    if isinstance(value, int):
+        return value
+    response = getattr(exc, "response", None)
+    value = getattr(response, "status_code", None)
+    return value if isinstance(value, int) else None
+
+
+def _retryable_error(exc: Exception) -> bool:
+    if isinstance(exc, (ValueError, TypeError)):
+        return False
+    status = _status_code(exc)
+    if status is None:
+        return True
+    return status in {408, 409, 425, 429} or status >= 500
+
+
 @dataclass(frozen=True)
 class LLMObservation:
     llm_call_id: str
@@ -116,7 +134,15 @@ class DirectStructuredResponder:
             attempt_start_ns = time.perf_counter_ns()
             raw: Any = None
             try:
-                structured = self.model.with_structured_output(schema, include_raw=True)
+                structured_options: dict[str, Any] = {"include_raw": True}
+                if self.config.adapter in {"openai", "openai-responses"}:
+                    # Function calling accepts Pydantic defaults/unions that the
+                    # stricter OpenAI response_format JSON-schema subset rejects.
+                    # This is still one direct model response, not a business-tool loop.
+                    structured_options["method"] = "function_calling"
+                structured = self.model.with_structured_output(
+                    schema, **structured_options
+                )
                 response = structured.invoke(
                     [SystemMessage(system_prompt), HumanMessage(user_input)]
                 )
@@ -170,7 +196,15 @@ class DirectStructuredResponder:
                 return output
             except Exception as exc:
                 last_error = exc
-                retryable = not isinstance(exc, (ValueError, TypeError))
+                retryable = _retryable_error(exc)
+                status = _status_code(exc)
+                failure_phase = (
+                    "structured_validation"
+                    if isinstance(exc, (ValueError, TypeError))
+                    else "provider_response"
+                    if status is not None
+                    else "transport"
+                )
                 attempts.append(
                     {
                         "attempt_index": attempt_index,
@@ -178,11 +212,7 @@ class DirectStructuredResponder:
                         "finished_at": _utc_now().isoformat(),
                         "elapsed_ms": (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
                         "status": "failed",
-                        "failure_phase": (
-                            "structured_validation"
-                            if isinstance(exc, (ValueError, TypeError))
-                            else "transport"
-                        ),
+                        "failure_phase": failure_phase,
                         "retryable": retryable,
                         "error_category": type(exc).__name__,
                         "error_message": str(exc),

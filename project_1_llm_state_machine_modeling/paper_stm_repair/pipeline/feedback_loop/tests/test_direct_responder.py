@@ -42,8 +42,9 @@ class _Structured:
 
 
 class _Model:
-    def with_structured_output(self, schema, include_raw=False):
+    def with_structured_output(self, schema, include_raw=False, method=None):
         assert include_raw is True
+        assert method == "function_calling"
         return _Structured(schema)
 
 
