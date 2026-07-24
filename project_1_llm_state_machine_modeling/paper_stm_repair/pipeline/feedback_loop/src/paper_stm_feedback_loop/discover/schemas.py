@@ -421,6 +421,8 @@ class DiscoverGraphState(TypedDict, total=False):
     _assertion_invalid_signatures: tuple[str, ...]
     _input: DiscoverInput
     _requirement_feedback: RevisionFeedback
+    _requirement_review_repair_count: int
     _assertion_feedback: RevisionFeedback
+    _assertion_review_repair_count: int
     _assertion_conversion_contract_feedback: RevisionFeedback | None
     _assertion_contract_repair_count: int

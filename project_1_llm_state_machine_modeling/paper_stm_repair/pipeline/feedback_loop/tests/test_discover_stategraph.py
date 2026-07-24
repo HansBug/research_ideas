@@ -20,6 +20,7 @@ from paper_stm_feedback_loop.discover.graph import (  # noqa: E402
     run_discover_state,
 )
 from paper_stm_feedback_loop.discover.schemas import (  # noqa: E402
+    AssertionCheckPublic,
     AssertionReview,
     AssertionResult,
     AssertionScript,
@@ -644,6 +645,95 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
     assert "effect, simulation, or fbmcq" in out[
         "_assertion_conversion_contract_feedback"
     ].findings[0]
+
+
+def test_assertion_reviewer_has_a_bounded_revision_gate() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("bounded-review"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "Done shall become active after go.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "bounded check",
+                "expression": (
+                    "simulate(cycles=[['Root.go']], initial_state='Root.Idle', "
+                    "initial_vars={}).final.is_active('Root.Done')"
+                ),
+                "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    public_check = AssertionCheckPublic(
+        script_hash=sha256_data(script),
+        tool_env_hash=frozen.tool_env_hash,
+        status="executable",
+        executions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "status": "executable",
+            },
+        ),
+    )
+
+    def always_revise(
+        _role: str, schema: type[BaseModel], _system: str, _payload: str
+    ) -> BaseModel:
+        assert schema is AssertionReview
+        return AssertionReview(
+            decision="revise",
+            reviewed_script_hash=sha256_data(script),
+            findings=(
+                {
+                    "assertion_id": "AST-REQ-001-01",
+                    "requirement_id": "REQ-001",
+                    "severity": "important",
+                    "message": "repeatable review finding",
+                    "required_change": "make a material change",
+                },
+            ),
+            rationale="repeatable review",
+        )
+
+    base_state = {
+        "_input": _input("bounded-review"),
+        "frozen_inputs": frozen,
+        "requirement_set": requirements,
+        "assertion_script": script,
+        "assertion_check_public": public_check,
+    }
+    responder = nodes.CallableStructuredResponder(always_revise)
+    for count in range(nodes.MAX_ASSERTION_REVIEW_REPAIRS):
+        out = nodes.review_assertions(
+            {**base_state, "_assertion_review_repair_count": count}, responder
+        )
+        assert "failure" not in out
+        assert out["_assertion_review_repair_count"] == count + 1
+
+    out = nodes.review_assertions(
+        {
+            **base_state,
+            "_assertion_review_repair_count": nodes.MAX_ASSERTION_REVIEW_REPAIRS,
+        },
+        responder,
+    )
+    assert "failure" in out
+    assert "bounded review gate" in out["failure"].message
 
 
 def test_initial_converter_contract_violation_enters_bounded_revision() -> None:

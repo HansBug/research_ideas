@@ -45,6 +45,9 @@ from .utils import sha256_data, sha256_text
 
 T = TypeVar("T", bound=BaseModel)
 
+MAX_REQUIREMENT_REVIEW_REPAIRS = 3
+MAX_ASSERTION_REVIEW_REPAIRS = 3
+
 
 class StructuredResponder(Protocol):
     def invoke_structured(
@@ -541,12 +544,14 @@ def review_requirements(
                 "RequirementReview reviewed_revision must match current RequirementSet"
             )
         update: DiscoverGraphState = {"requirement_review": output}
+        review_repair_count = state.get("_requirement_review_repair_count", 0)
         if output.decision == "revise":
             update["_requirement_feedback"] = RevisionFeedback(
                 target="requirements",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
             )
+            update["_requirement_review_repair_count"] = review_repair_count + 1
         record = _record_node(
             state,
             node_name="review_requirements",
@@ -569,6 +574,33 @@ def review_requirements(
         )
         update["node_execution_records"] = _append_records(state, record)
         update["llm_call_records"] = [*state.get("llm_call_records", []), llm_record]
+        if (
+            output.decision == "revise"
+            and review_repair_count >= MAX_REQUIREMENT_REVIEW_REPAIRS
+        ):
+            message = (
+                "bounded review gate: Requirement Reviewer requested more than "
+                f"{MAX_REQUIREMENT_REVIEW_REPAIRS} revisions; preserving the latest "
+                "review and stopping instead of looping without a stable contract"
+            )
+            update["failure"] = RunFailure(
+                run_id=_run_id(state), node_name="review_requirements", message=message
+            )
+            failed_record = _record_node(
+                state,
+                node_name="review_requirements",
+                revision=requirements.revision,
+                kind="llm",
+                input_value=payload,
+                output_value=output,
+                started_at=started_at,
+                start_ns=start_ns,
+                failure=message,
+            )
+            update["node_execution_records"] = [
+                *update["node_execution_records"],
+                failed_record,
+            ]
         return update
     except Exception as exc:
         return _fail_state(
@@ -1141,12 +1173,14 @@ def review_assertions(
                 "AssertionReview reviewed_script_hash must match current script"
             )
         update: DiscoverGraphState = {"assertion_review": output}
+        review_repair_count = state.get("_assertion_review_repair_count", 0)
         if output.decision == "revise":
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
             )
+            update["_assertion_review_repair_count"] = review_repair_count + 1
         record = _record_node(
             state,
             node_name="review_assertions",
@@ -1169,6 +1203,33 @@ def review_assertions(
         )
         update["node_execution_records"] = _append_records(state, record)
         update["llm_call_records"] = [*state.get("llm_call_records", []), llm_record]
+        if (
+            output.decision == "revise"
+            and review_repair_count >= MAX_ASSERTION_REVIEW_REPAIRS
+        ):
+            message = (
+                "bounded review gate: Assertion Reviewer requested more than "
+                f"{MAX_ASSERTION_REVIEW_REPAIRS} revisions; preserving the latest "
+                "review and stopping instead of looping without a stable contract"
+            )
+            update["failure"] = RunFailure(
+                run_id=_run_id(state), node_name="review_assertions", message=message
+            )
+            failed_record = _record_node(
+                state,
+                node_name="review_assertions",
+                revision=script.revision,
+                kind="llm",
+                input_value=payload,
+                output_value=output,
+                started_at=started_at,
+                start_ns=start_ns,
+                failure=message,
+            )
+            update["node_execution_records"] = [
+                *update["node_execution_records"],
+                failed_record,
+            ]
         return update
     except Exception as exc:
         return _fail_state(
