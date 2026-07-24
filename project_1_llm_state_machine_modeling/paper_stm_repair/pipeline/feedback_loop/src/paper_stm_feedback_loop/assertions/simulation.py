@@ -55,6 +55,11 @@ class SimulationAPI:
     only those declared variables; omitted variables keep declaration
     initializers and appear in ``effective_initialization``. A complete hot start
     is already initialized and does not require ``[]``.
+    ``cycle.variables`` is a mapping-like frozen view keyed by the complete
+    variable path; access it with ``cycle.variables["Root.counter"]`` or the
+    documented variable path, never with an integer index.  ``active_states``,
+    ``consumed_events``, and ``unconsumed_events`` are tuples of strings.
+
     For a local event-causality check, put the event in the first hot-start
     caller cycle and inspect source-state initialization, consumed/unconsumed
     events, and the resulting active state. A leading empty cycle may fire a
