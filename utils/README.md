@@ -52,7 +52,7 @@ from utils.llm import LLMConfig, LLMRegistry, load_llm_registry
 
 ```python
 class LLMConfig(BaseModel):
-    adapter: Literal["openai", "anthropic", "deepseek"] = "openai"
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str
@@ -60,7 +60,7 @@ class LLMConfig(BaseModel):
     max_output_tokens: int | None = None
 ```
 
-只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 选择 LangChain ChatModel 集成，不表示实际 provider 或 endpoint：`openai`、`anthropic`、`deepseek` 分别对应 `ChatOpenAI`、`ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测 adapter。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
+只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 显式选择 LangChain client 与传输协议，不表示实际 provider 或 endpoint：`openai` 与 `openai-responses` 都使用 `ChatOpenAI`，但分别固定走 Chat Completions 与 Responses；`anthropic`、`deepseek` 分别对应 `ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测传输协议。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
 
 ```python
 registry = load_llm_registry()
@@ -156,7 +156,7 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False,
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；允许的键为 `temperature`、`top_p`、`stop`、`seed`、`verbosity` 与 `max_tokens`，其中只有 `max_tokens` 可以覆盖单次 output reserve。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。Anthropic adapter 还会在底座层自动安装官方 `AnthropicPromptCachingMiddleware`，以 5 分钟 ephemeral cache 标记静态 system prompt、工具定义和可缓存消息前缀；业务 Agent、prompt 和工具不感知 provider 细节。每次调用的 `input_tokens`、`output_tokens`、`total_tokens`、`cache_read`、`cache_creation` 以及可用时的 `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 都写入 audit/result；原始 Anthropic usage 仅提供未缓存输入量时，runtime 会把缓存读取和写入量补回真实 input/total 口径。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。`openai-responses` adapter 在 think-off 时统一发送 `reasoning_effort=none`，不按模型名或 endpoint 猜测；因此只应给接受该 Responses reasoning 合同的 profile 使用。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。Anthropic adapter 还会在底座层自动安装官方 `AnthropicPromptCachingMiddleware`，以 5 分钟 ephemeral cache 标记静态 system prompt、工具定义和可缓存消息前缀；业务 Agent、prompt 和工具不感知 provider 细节。每次调用的 `input_tokens`、`output_tokens`、`total_tokens`、`cache_read`、`cache_creation` 以及可用时的 `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 都写入 audit/result；原始 Anthropic usage 仅提供未缓存输入量时，runtime 会把缓存读取和写入量补回真实 input/total 口径。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
 
 当某个方法阶段存在由 Controller 定义、但参数必须由 Agent 生成的必用工具顺序时，
 可以同时传入 `tool_choice_resolver` 与稳定的 `tool_choice_policy_name`。resolver 在每次
@@ -166,9 +166,9 @@ await app.arun(input_text, context=context, renderer="auto", think_mode=False,
 resolver 返回 `None` 后恢复完整工具面与正常结构化输出。该接口不能用于代替 Agent 生成业务参数或
 裁决结果；policy 名会进入行为指纹和 audit，二者必须同时提供。
 
-官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
+官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；Z.AI [GLM-5.2](https://docs.z.ai/guides/llm/glm-5.2) 与 [Thinking Mode](https://docs.z.ai/guides/capabilities/thinking-mode)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
 
-`adapter: openai` 使用 `langchain-openai` 的 `ChatOpenAI` 与 Chat Completions；`adapter: anthropic` 使用 `langchain-anthropic` 的 `ChatAnthropic` 与原生 Messages API；`adapter: deepseek` 使用 `langchain-deepseek` 的 `ChatDeepSeek`。DeepSeek 虽兼容 OpenAI Chat Completions，但专用 adapter 会保留 `reasoning_content`、DeepSeek model profile 和 tool/structured-output 兼容语义，因此不降级为普通 `ChatOpenAI`。Anthropic `base_url` 必须是 API 根地址，例如 `https://api.anthropic.com` 或中转站根地址，由 SDK 追加 `/v1/messages`。三条路径保持 `streaming=True`、LangGraph `ToolStrategy`、同一 Rich 事件顺序和同一 audit 契约，不在 runtime 手写 provider 消息转换或 JSON 后处理。
+`adapter: openai` 使用 `langchain-openai` 的 `ChatOpenAI` 与 Chat Completions；`adapter: openai-responses` 使用同一官方集成的 Responses transport，适用于 Codex/Responses-compatible endpoint。`adapter: anthropic` 使用 `langchain-anthropic` 的 `ChatAnthropic` 与原生 Messages API；`adapter: deepseek` 使用 `langchain-deepseek` 的 `ChatDeepSeek`。DeepSeek 虽兼容 OpenAI Chat Completions，但专用 adapter 会保留 `reasoning_content`、DeepSeek model profile 和 tool/structured-output 兼容语义，因此不降级为普通 `ChatOpenAI`。Anthropic `base_url` 必须是 API 根地址，例如 `https://api.anthropic.com` 或中转站根地址，由 SDK 追加 `/v1/messages`。各路径保持 `streaming=True`、LangGraph `ToolStrategy`、同一 Rich 事件顺序和同一 audit 契约，不在 runtime 手写 provider 消息转换或 JSON 后处理。
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages，并在 provider transport 开始前立即显示；`MODEL OUTPUT` 是流式 assistant 文本、完整 tool call 或结构化 call，完整 tool call 在 ToolNode 进入工具函数前已经显示；工具返回后立即显示 `TOOL RESULT -> NEXT MODEL INPUT`，下一轮 input 再把它作为 `[tool]` message 交给模型。`CONTEXT` 只保留两行消耗摘要，结构化最终结果只在 `AGENT COMPLETE` 中完整展示一次。同步和异步 callable 都由 LangChain `StructuredTool` / LangGraph ToolNode 执行，运行时不自行调度或 await 业务工具。
 

@@ -445,9 +445,10 @@ def _resolve_inference_options(
 
     deepseek = _is_deepseek_config(config)
     effective_think_mode = think_mode
-    if not think_mode and _is_openai_reasoning_model(config):
-        # OpenAI documents gpt-5.5's default as medium.  Pin ``none`` for the
-        # framework's explicit think-off default instead of relying on a
+    if not think_mode and (
+        _is_openai_reasoning_model(config) or config.adapter == "openai-responses"
+    ):
+        # Pin the adapter's explicit think-off value instead of relying on a
         # provider default that would change the experiment semantics.
         options["reasoning_effort"] = "none"
     if deepseek and effective_think_mode is not None:
@@ -3078,6 +3079,7 @@ class AgentApp:
             if not real_llm
             else {
                 "openai": "langchain-openai/chat-completions",
+                "openai-responses": "langchain-openai/responses",
                 "anthropic": "langchain-anthropic/messages",
                 "deepseek": "langchain-deepseek/chat-completions",
             }[config.adapter]
@@ -3104,15 +3106,20 @@ class AgentApp:
         except ImportError as exc:  # pragma: no cover
             package = {
                 "openai": "langchain-openai",
+                "openai-responses": "langchain-openai",
                 "anthropic": "langchain-anthropic",
                 "deepseek": "langchain-deepseek",
             }[adapter]
             raise AgentError("config_error", f"{package} is required") from exc
         kwargs = config.connection_kwargs()
         if config.max_output_tokens is not None:
-            kwargs["max_completion_tokens" if adapter == "openai" else "max_tokens"] = config.max_output_tokens
-        if adapter == "openai":
-            kwargs["use_responses_api"] = False
+            kwargs[
+                "max_completion_tokens"
+                if adapter in {"openai", "openai-responses"}
+                else "max_tokens"
+            ] = config.max_output_tokens
+        if adapter in {"openai", "openai-responses"}:
+            kwargs["use_responses_api"] = adapter == "openai-responses"
         kwargs.update(
             {
                 "streaming": True,

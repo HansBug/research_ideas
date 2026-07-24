@@ -3,8 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from utils.agent import AgentSpec
+from utils.agent.demo import DemoAnswer
 from utils.agent.runtime import (
     _adapter_prompt_cache_middleware,
     _build_context_manifest,
@@ -85,6 +87,29 @@ def test_missing_structured_output_retry_needs_output_schema() -> None:
         )
 
 
+def test_demo_answer_requires_timezone_aware_iso_timestamps() -> None:
+    valid = DemoAnswer.model_validate(
+        {
+            "summary": "done",
+            "base_time": "2026-07-24T03:19:20-04:00",
+            "offset_hours": 51.25,
+            "target_time": "2026-07-26T06:34:20-04:00",
+            "evidence_ids": ["system-time-001", "math-expression-001"],
+        }
+    )
+    assert valid.base_time.tzinfo is not None
+    assert valid.target_time.tzinfo is not None
+
+    for field, value in (
+        ("base_time", "2026-07-24T03:19:20-04:00 (EDT)"),
+        ("target_time", "2026-07-26T06:34:20"),
+    ):
+        payload = valid.model_dump(mode="json")
+        payload[field] = value
+        with pytest.raises(ValidationError):
+            DemoAnswer.model_validate(payload)
+
+
 def test_think_off_pins_official_reasoning_defaults() -> None:
     from utils.agent.runtime import _resolve_inference_options
 
@@ -111,6 +136,29 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
     )
     assert enabled is False
     assert options["extra_body"] == {"thinking": {"type": "disabled"}}
+
+    responses_config = LLMConfig(
+        model="relay-model",
+        adapter="openai-responses",
+        base_url="https://relay.example/v1",
+    )
+    options, enabled = _resolve_inference_options(
+        responses_config,
+        model_call_options=None,
+        think_mode=False,
+        reasoning_effort=None,
+    )
+    assert enabled is False
+    assert options == {"reasoning_effort": "none"}
+
+    options, enabled = _resolve_inference_options(
+        responses_config,
+        model_call_options=None,
+        think_mode=True,
+        reasoning_effort="max",
+    )
+    assert enabled is True
+    assert options == {"reasoning_effort": "max"}
 
     with pytest.raises(ValueError, match="reasoning_effort requires think_mode=True"):
         _resolve_inference_options(
@@ -144,6 +192,27 @@ def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     assert max_output == 384_000
     assert safe_input == 1_000_000
     assert sources == {"context_window": "official_profile", "max_output": "official_profile"}
+
+
+def test_openai_responses_profiles_use_the_responses_transport() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="responses", system_prompt="answer"),
+        LLMConfig(
+            model="glm-5.2",
+            adapter="openai-responses",
+            base_url="https://relay.example/v1",
+            api_key="test-key",
+            max_output_tokens=128_000,
+        ),
+        profile="glm-5.2",
+    )
+
+    assert type(app.model).__module__.split(".", 1)[0] == "langchain_openai"
+    assert app.adapter_name == "langchain-openai/responses"
+    assert app.model.use_responses_api is True
+    assert app.model.max_tokens == 128_000
 
 
 def test_anthropic_profiles_use_the_official_langchain_adapter() -> None:

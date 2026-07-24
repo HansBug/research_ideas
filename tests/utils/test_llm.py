@@ -48,7 +48,9 @@ def test_config_adapter_defaults_to_openai_and_is_public() -> None:
     assert config.public_dict()["adapter"] == "openai"
 
 
-@pytest.mark.parametrize("adapter", ["openai", "anthropic", "deepseek"])
+@pytest.mark.parametrize(
+    "adapter", ["openai", "openai-responses", "anthropic", "deepseek"]
+)
 def test_config_accepts_supported_adapters(adapter: str) -> None:
     config = LLMConfig.model_validate({"model": "test-model", "adapter": adapter})
 
