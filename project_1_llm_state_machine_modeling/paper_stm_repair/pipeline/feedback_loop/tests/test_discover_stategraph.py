@@ -316,6 +316,55 @@ def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
     assert "declaration name" in error
 
 
+def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy() -> None:
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("invalid-effect-script"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "After go, Done shall become active.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "The converter omitted a closing list bracket.",
+                "expression": "simulate(cycles=[['Root.go'])",
+                "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.precheck_and_seal(
+        {
+            "_input": _input("invalid-effect-script"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
+    )
+
+    error = out["assertion_check_public"].executions[0].error or ""
+    assert "AssertionScriptSyntaxError" in error
+    assert "hot-start" not in error
+
+
 def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
     from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
     from paper_stm_feedback_loop.discover import nodes

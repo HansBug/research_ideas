@@ -851,6 +851,8 @@ def precheck_and_seal(
                 requirement is not None
                 and requirement.checkability == "effect"
                 and assertion.evidence_family == "simulation"
+                and checked.outcome in {"valid", "sealed_false"}
+                and type(checked.value) is bool
                 and "fbmcq"
                 not in assertion_families_by_requirement.get(assertion.requirement_id, set())
             ):
@@ -880,6 +882,8 @@ def precheck_and_seal(
                 requirement is not None
                 and requirement.checkability == "effect"
                 and assertion.evidence_family == "fbmcq"
+                and checked.outcome in {"valid", "sealed_false"}
+                and type(checked.value) is bool
             ):
                 formal_calls = [
                     call
