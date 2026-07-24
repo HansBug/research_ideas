@@ -376,8 +376,12 @@ class LLMCallRecord(StrictBaseModel):
     output_hash: str | None = None
     system_prompt: str
     user_prompt: str
+    system_prompt_sha256: str | None = None
+    user_prompt_sha256: str | None = None
     parsed_output: dict[str, Any] | None = None
     raw_response: dict[str, Any] | None = None
+    parsed_output_sha256: str | None = None
+    raw_response_sha256: str | None = None
     system_prompt_chars: int = Field(ge=0)
     user_prompt_chars: int = Field(ge=0)
     output_chars: int | None = Field(default=None, ge=0)
@@ -417,3 +421,5 @@ class DiscoverGraphState(TypedDict, total=False):
     _input: DiscoverInput
     _requirement_feedback: RevisionFeedback
     _assertion_feedback: RevisionFeedback
+    _assertion_conversion_contract_feedback: RevisionFeedback | None
+    _assertion_contract_repair_count: int

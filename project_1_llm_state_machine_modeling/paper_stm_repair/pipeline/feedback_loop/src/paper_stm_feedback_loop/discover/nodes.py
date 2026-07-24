@@ -145,7 +145,10 @@ def _llm_call_record(
             output_hash=node_record.output_hash,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
+            system_prompt_sha256=sha256_text(system_prompt),
+            user_prompt_sha256=sha256_text(user_prompt),
             parsed_output=output.model_dump(mode="json"),
+            parsed_output_sha256=sha256_data(output),
             system_prompt_chars=len(system_prompt),
             user_prompt_chars=len(user_prompt),
             output_chars=len(output.model_dump_json()),
@@ -183,8 +186,20 @@ def _llm_call_record(
         output_hash=node_record.output_hash,
         system_prompt=observation.system_prompt,
         user_prompt=observation.user_prompt,
+        system_prompt_sha256=sha256_text(observation.system_prompt),
+        user_prompt_sha256=sha256_text(observation.user_prompt),
         parsed_output=observation.parsed_output,
         raw_response=observation.raw_response,
+        parsed_output_sha256=(
+            sha256_data(observation.parsed_output)
+            if observation.parsed_output is not None
+            else None
+        ),
+        raw_response_sha256=(
+            sha256_data(observation.raw_response)
+            if observation.raw_response is not None
+            else None
+        ),
         system_prompt_chars=len(observation.system_prompt),
         user_prompt_chars=len(observation.user_prompt),
         output_chars=(
@@ -274,8 +289,15 @@ def _fail_state(
                     output_hash=None,
                     system_prompt=observation.system_prompt,
                     user_prompt=observation.user_prompt,
+                    system_prompt_sha256=sha256_text(observation.system_prompt),
+                    user_prompt_sha256=sha256_text(observation.user_prompt),
                     parsed_output=None,
                     raw_response=observation.raw_response,
+                    raw_response_sha256=(
+                        sha256_data(observation.raw_response)
+                        if observation.raw_response is not None
+                        else None
+                    ),
                     system_prompt_chars=len(observation.system_prompt),
                     user_prompt_chars=len(observation.user_prompt),
                     input_tokens=usage.get("input_tokens"),
@@ -579,6 +601,7 @@ def convert_assertions(
     started_at, start_ns = _now(), time.perf_counter_ns()
     current = state.get("assertion_script")
     feedback = state.get("_assertion_feedback")
+    output: AssertionScript | None = None
     try:
         _validate_revision_pair(current, feedback)
         frozen = state["frozen_inputs"]
@@ -658,10 +681,61 @@ def convert_assertions(
                 *state.get("assertion_fingerprints", ()),
                 fingerprint,
             ),
+            "_assertion_conversion_contract_feedback": None,
+            "_assertion_contract_repair_count": 0,
             "node_execution_records": _append_records(state, record),
             "llm_call_records": [*state.get("llm_call_records", []), llm_record],
         }
     except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        repair_count = state.get("_assertion_contract_repair_count", 0)
+        can_revise_contract = (
+            current is not None
+            and output is not None
+            and "no-progress gate" not in message
+            and repair_count < 3
+        )
+        if can_revise_contract:
+            contract_feedback = RevisionFeedback(
+                target="assertions",
+                reason=(
+                    "The previous Assertion Converter response violated the deterministic "
+                    "script contract. Revise the existing script instead of changing the "
+                    "requirements."
+                ),
+                findings=(message,),
+            )
+            record = _record_node(
+                state,
+                node_name="convert_assertions",
+                revision=output.revision,
+                kind="llm",
+                input_value=locals().get("payload", state),
+                output_value=output,
+                started_at=started_at,
+                start_ns=start_ns,
+                failure=message,
+            )
+            llm_record = _llm_call_record(
+                state,
+                responder=responder,
+                node_record=record,
+                role="assertion_converter",
+                revision=output.revision,
+                system_prompt=prompts.ASSERTION_CONVERTER_PROMPT,
+                user_prompt=locals().get("payload", ""),
+                output=output,
+            )
+            return {
+                "_assertion_feedback": contract_feedback,
+                "_assertion_conversion_contract_feedback": contract_feedback,
+                "_assertion_contract_repair_count": repair_count + 1,
+                "node_execution_records": _append_records(state, record),
+                "llm_call_records": [
+                    *state.get("llm_call_records", []),
+                    llm_record,
+                ],
+            }
         return _fail_state(
             state,
             "convert_assertions",
@@ -1078,15 +1152,43 @@ def _flatten_strings(value: Any) -> tuple[str, ...]:
 
 
 def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
-    ref_tail = reference.split(":", 2)[-1]
+    """Match exact structured references, never leaf-name suffixes.
+
+    Source traces may qualify a model reference with a producer namespace
+    (for example ``compiler:state:Root.Done``), while assertion call traces
+    usually expose the bare full path (``Root.Done``).  The kind and complete
+    path are therefore normalized before comparison.  A leaf-only or suffix
+    match would incorrectly bind unrelated regions such as ``Other.Idle`` or
+    ``NotIdle``.
+    """
+
+    kinds = {"event", "state", "transition", "variable", "effect", "guard"}
+
+    def identity(value: str) -> tuple[str | None, str]:
+        text = value.strip()
+        parts = text.split(":")
+        if len(parts) >= 2 and parts[-2] in kinds:
+            return parts[-2], parts[-1]
+        return None, text
+
+    ref_kind, ref_path = identity(reference)
     for value in observed:
         text = value.strip()
         if not text:
             continue
-        if text == reference or ref_tail.endswith(text) or text.endswith(ref_tail):
+        if text == reference:
             return True
-        leaf = text.rsplit(".", 1)[-1]
-        if len(leaf) >= 3 and ref_tail.endswith(f".{leaf}"):
+        observed_kind, observed_path = identity(text)
+        if ref_kind is not None and observed_kind is not None:
+            if ref_kind == observed_kind and ref_path == observed_path:
+                return True
+        elif ref_kind is not None and observed_kind is None:
+            if ref_path == observed_path:
+                return True
+        elif ref_kind is None and observed_kind is not None:
+            if ref_path == observed_path:
+                return True
+        elif ref_path == observed_path:
             return True
     return False
 
@@ -1127,20 +1229,94 @@ def adjudicate_results(
             for binding in attribution.bindings
             if binding.status == "safe"
         }
+        binding_by_assertion = {
+            binding.assertion_id: binding for binding in attribution.bindings
+        }
+        requirement_by_assertion = {
+            assertion.assertion_id: assertion.requirement_id
+            for assertion in script.assertions
+        }
+        false_by_assertion = {
+            result.assertion_id: result for result in released.results
+            if result.truth_value is False
+        }
+        safe_false_assertions = set(false_by_assertion) & safe_assertions
+        unsafe_false_assertions = set(false_by_assertion) - safe_false_assertions
+        issue_assertions: set[str] = set()
+        excluded_assertions: set[str] = set()
         for issue in output.issues:
-            if not set(issue.assertion_ids).issubset(false_assertions):
+            issue_ids = set(issue.assertion_ids)
+            if not issue_ids.issubset(false_assertions):
                 raise ValueError(
                     "adjudicated issues may only reference False assertions"
                 )
-            if issue.attribution_status != "safe" or not set(
-                issue.assertion_ids
-            ).issubset(safe_assertions):
+            if issue.attribution_status != "safe" or not issue_ids.issubset(
+                safe_assertions
+            ):
                 raise ValueError(
                     "confirmed issues may only reference attribution-safe False assertions"
                 )
+            if issue_ids & issue_assertions:
+                raise ValueError("confirmed issue assertion groups must be disjoint")
+            issue_assertions.update(issue_ids)
+            expected_requirements = {
+                requirement_by_assertion[assertion_id]
+                for assertion_id in issue_ids
+            }
+            if issue.requirement_id not in expected_requirements or len(
+                expected_requirements
+            ) != 1:
+                raise ValueError(
+                    "confirmed issue requirement_id must match all referenced assertions"
+                )
         for excluded in output.excluded_findings:
+            excluded_ids = set(excluded.assertion_ids)
+            if not excluded_ids.issubset(false_assertions):
+                raise ValueError("excluded findings may only reference False assertions")
             if excluded.attribution_status == "safe":
                 raise ValueError("excluded findings must not be attribution-safe")
+            if excluded_ids & excluded_assertions:
+                raise ValueError("excluded finding assertion groups must be disjoint")
+            excluded_assertions.update(excluded_ids)
+            expected_requirements = {
+                requirement_by_assertion[assertion_id]
+                for assertion_id in excluded_ids
+            }
+            if excluded.requirement_id not in expected_requirements or len(
+                expected_requirements
+            ) != 1:
+                raise ValueError(
+                    "excluded finding requirement_id must match all referenced assertions"
+                )
+            expected_statuses = {
+                binding_by_assertion[assertion_id].status for assertion_id in excluded_ids
+            }
+            if len(expected_statuses) != 1 or excluded.attribution_status not in expected_statuses:
+                raise ValueError(
+                    "excluded finding attribution_status must match its bindings"
+                )
+        if issue_assertions != safe_false_assertions:
+            raise ValueError(
+                "adjudication must account for every attribution-safe False assertion"
+            )
+        if excluded_assertions != unsafe_false_assertions:
+            raise ValueError(
+                "adjudication must account for every non-safe False assertion"
+            )
+        result_by_requirement: dict[str, list[bool]] = {}
+        for result in released.results:
+            result_by_requirement.setdefault(result.requirement_id, []).append(
+                result.truth_value
+            )
+        expected_satisfied = {
+            requirement_id
+            for requirement_id, values in result_by_requirement.items()
+            if all(values)
+        }
+        if set(output.satisfied_requirement_ids) != expected_satisfied:
+            raise ValueError(
+                "satisfied_requirement_ids must exactly match all-True requirements"
+            )
         record = _record_node(
             state,
             node_name="adjudicate_results",
@@ -1283,6 +1459,7 @@ def default_fake_responder(
     if schema is DiscoverAdjudication:
         return DiscoverAdjudication(
             has_confirmed_issues=False,
+            satisfied_requirement_ids=("REQ-001",),
             rationale="All executable assertions passed in the fake smoke path.",
         )
     raise TypeError(f"unsupported fake schema {schema}")

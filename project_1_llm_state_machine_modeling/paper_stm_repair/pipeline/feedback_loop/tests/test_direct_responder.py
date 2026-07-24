@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import time
+from datetime import datetime, timezone
+
 from langchain_core.messages import AIMessage
 
 from utils.llm import LLMConfig
 
 from paper_stm_feedback_loop.discover import responder as responder_module
+from paper_stm_feedback_loop.discover import nodes
 from paper_stm_feedback_loop.discover.responder import DirectStructuredResponder
-from paper_stm_feedback_loop.discover.schemas import RequirementReview
+from paper_stm_feedback_loop.discover.schemas import DiscoverInput, RequirementReview
 
 
 class _Registry:
@@ -77,3 +81,45 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert observation.usage["input_tokens"] == 120
     assert observation.usage["cache_read_input_tokens"] == 20
     assert len(observation.attempts) == 1
+
+    state = {
+        "_input": DiscoverInput(
+            run_id="record-hash",
+            natural_language="A requirement.",
+            stm_text="state Root { }",
+            profile="unit-profile",
+            language="en-US",
+        )
+    }
+    state["frozen_inputs"] = nodes._fallback_prepare(state["_input"])
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+    started = datetime.now(timezone.utc)
+    node_record = nodes._record_node(
+        state,
+        node_name="unit",
+        revision=1,
+        kind="llm",
+        input_value="user",
+        output_value=output,
+        started_at=started,
+        start_ns=time.perf_counter_ns(),
+    )
+    llm_record = nodes._llm_call_record(
+        state,
+        responder=responder,
+        node_record=node_record,
+        role="requirement_reviewer",
+        revision=1,
+        system_prompt="system",
+        user_prompt="user",
+        output=output,
+    )
+    assert llm_record.system_prompt_sha256
+    assert llm_record.user_prompt_sha256
+    assert llm_record.parsed_output_sha256
+    assert llm_record.raw_response_sha256

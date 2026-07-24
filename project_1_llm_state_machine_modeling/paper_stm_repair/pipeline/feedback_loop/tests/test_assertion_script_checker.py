@@ -101,13 +101,12 @@ def test_environment_docs_list_readable_api_surface():
 
 
 def test_structure_relation_effect_simulation_work_on_real_selected_models():
-    fixture_root = ROOT / "agent_loop/fixtures/discover_integrated"
-    representation_root = ROOT / "representation/reports/llms_emp_r45_java_60/fcstm"
+    fixture_root = ROOT / "feedback_loop/fixtures/selected_models"
     cases = {
-        "0000": fixture_root / "0000_hldcs_manual_identity/STM_0.fcstm",
-        "0006": fixture_root / "0006_uav/STM_0.fcstm",
-        "0029": representation_root / "llms_emp_feedback_final_0029.fcstm",
-        "0050": representation_root / "llms_emp_feedback_final_0050.fcstm",
+        "0000": fixture_root / "0000/STM_0.fcstm",
+        "0006": fixture_root / "0006/STM_0.fcstm",
+        "0029": fixture_root / "0029/STM_0.fcstm",
+        "0050": fixture_root / "0050/STM_0.fcstm",
     }
 
     env0000 = EvalEnvironment(model_text=cases["0000"].read_text(encoding="utf-8"))

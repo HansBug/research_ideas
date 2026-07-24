@@ -17,11 +17,15 @@ from paper_stm_feedback_loop.discover import prompts, renderer  # noqa: E402
 from paper_stm_feedback_loop.discover.graph import build_discover_graph, run_discover  # noqa: E402
 from paper_stm_feedback_loop.discover.schemas import (  # noqa: E402
     AssertionReview,
+    AssertionResult,
     AssertionScript,
+    AttributionProjection,
+    ReleasedAssertionResults,
     DiscoverAdjudication,
     DiscoverInput,
     RequirementReview,
     RequirementSet,
+    RevisionFeedback,
 )
 from paper_stm_feedback_loop.discover.utils import sha256_data  # noqa: E402
 
@@ -33,6 +37,13 @@ MODEL = """state Root {
     Idle -> Done : go;
 }
 """
+
+
+def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_scope() -> None:
+    assert "shared prepositional qualifiers" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "unconditional global requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "shared qualifiers" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "invent a universal quantifier" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
 def _input(run_id: str = "r") -> DiscoverInput:
@@ -181,6 +192,69 @@ def test_create_revise_pairs_and_no_progress_gate_are_enforced() -> None:
     assert "pair" in out["failure"].message
 
 
+def test_converter_contract_reject_routes_existing_script_back_with_feedback() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+    from paper_stm_feedback_loop.discover.graph import route_after_convert
+
+    frozen = nodes._fallback_prepare(_input())
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "Done shall become active after go.",
+                "checkability": "structure",
+            },
+        ),
+    )
+    current = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "current",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-01] current",
+                "evidence_family": "structure",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    invalid_revision = current.model_copy(
+        update={
+            "revision": 2,
+            "assertions": (
+                current.assertions[0].model_copy(
+                    update={
+                        "failure_message": "[REQ-WRONG][AST-REQ-001-01] wrong owner",
+                    }
+                ),
+            ),
+        }
+    )
+    state = {
+        "_input": _input("converter-contract"),
+        "frozen_inputs": frozen,
+        "requirement_set": requirements,
+        "assertion_script": current,
+        "_assertion_feedback": RevisionFeedback(
+            target="assertions", reason="review requested a revision", findings=("scope",)
+        ),
+    }
+    out = nodes.convert_assertions(
+        state,
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: invalid_revision
+        ),
+    )
+    assert "failure" not in out
+    assert out["_assertion_conversion_contract_feedback"].findings
+    assert out["_assertion_contract_repair_count"] == 1
+    assert route_after_convert(out) == "convert_assertions"
+    assert out["node_execution_records"][0].status == "failed"
+
+
 def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
     from paper_stm_feedback_loop.discover.graph import run_discover_state
 
@@ -273,6 +347,8 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "AgentApp" not in all_prompts
     assert "sealed-result-blind" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "True/False" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "do not define functions or classes" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "public_check.script_hash" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
 def test_cli_main_writes_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -455,3 +531,103 @@ def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> No
     binding = attributed["attribution_projection"].bindings[0]
     assert binding.status == "representation_debt"
     assert binding.source_level_claim_allowed is False
+
+
+def test_attribution_matching_requires_exact_structured_path() -> None:
+    from paper_stm_feedback_loop.discover.nodes import _reference_matches_observed
+
+    assert _reference_matches_observed(
+        "state:case.Controller.Idle", {"case.Controller.Idle"}
+    )
+    assert not _reference_matches_observed(
+        "state:case.Controller.Idle", {"case.OtherRegion.Idle"}
+    )
+    assert not _reference_matches_observed(
+        "state:case.Controller.Idle", {"case.Controller.NotIdle"}
+    )
+    assert not _reference_matches_observed(
+        "state:case.Controller.Idle", {"event:case.Controller.Idle"}
+    )
+
+
+def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("adjudication-closure"))
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "A deliberately contradicted requirement.",
+                "expression": "False",
+                "failure_message": "[REQ-001][AST-REQ-001-01] requirement failed",
+                "evidence_family": "structure",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-01",
+                requirement_id="REQ-001",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="structure",
+            ),
+        ),
+    )
+    attribution = AttributionProjection(
+        bindings=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "status": "safe",
+                "source_refs": ("state:Root.Done",),
+                "trace_entry_ids": ("trace-1",),
+                "source_level_claim_allowed": True,
+                "rationale": "source-owned",
+            },
+        )
+    )
+
+    def omit_false(
+        _role: str, schema: type[BaseModel], _system: str, _input_text: str
+    ) -> BaseModel:
+        assert schema is DiscoverAdjudication
+        return DiscoverAdjudication(
+            has_confirmed_issues=False,
+            issues=(),
+            satisfied_requirement_ids=(),
+            excluded_findings=(),
+            rationale="omitted false assertion",
+        )
+
+    out = nodes.adjudicate_results(
+        {
+            "_input": _input("adjudication-closure"),
+            "frozen_inputs": frozen,
+            "requirement_set": RequirementSet(
+                revision=1,
+                requirements=(
+                    {
+                        "requirement_id": "REQ-001",
+                        "statement": "A",
+                        "checkability": "structure",
+                    },
+                ),
+            ),
+            "assertion_script": script,
+            "released_assertion_results": released,
+            "attribution_projection": attribution,
+        },
+        nodes.CallableStructuredResponder(omit_false),
+    )
+    assert out["failure"].node_name == "adjudicate_results"
+    assert "every attribution-safe False assertion" in out["failure"].message
