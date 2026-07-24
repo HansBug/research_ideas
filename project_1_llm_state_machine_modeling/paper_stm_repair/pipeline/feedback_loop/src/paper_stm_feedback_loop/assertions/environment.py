@@ -24,6 +24,9 @@ EVIDENCE SELECTION
 - Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect.
 
 STRUCTURE / RELATION
+Evidence-family mapping: states/events/variables/initial_child are ``structure``;
+transitions/transition_exists/guards_overlap are ``relation``. The declared
+evidence_family must match the family of the function actually called.
 states(*, parent=None, recursive=True, name=None, path=None, within=None, kind=None, exact=False) -> tuple[state]
   state fields include path, name, parent_path, is_leaf, is_composite, is_pseudo, substates, initial_targets.
 events(*, name=None, path=None, within=None, scope=None, declared=None, used=None, exact=False) -> tuple[event]

@@ -51,6 +51,7 @@ def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_s
 def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> None:
     assert "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "declaration names rather than qualified state-machine paths" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "documented FBMCQ grammar" in prompts.ASSERTION_CONVERTER_PROMPT
 
 
 def _input(run_id: str = "r") -> DiscoverInput:
@@ -210,7 +211,7 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
     assert "bare reach target is not causal evidence" in (
         checked["assertion_check_public"].executions[0].error or ""
     )
-    assert "causal bounded FBMCQ" in (
+    assert "hot-start simulation" in (
         checked["assertion_check_public"].executions[0].error or ""
     )
     repeated = nodes.precheck_and_seal(

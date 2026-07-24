@@ -101,6 +101,7 @@ def test_environment_docs_list_readable_api_surface():
         "mapped_source_refs",
         "exact declaration names",
         "qualified state-machine paths",
+        "Evidence-family mapping",
     ]:
         assert needle in ASSERTION_ENVIRONMENT_API_DOCS
 

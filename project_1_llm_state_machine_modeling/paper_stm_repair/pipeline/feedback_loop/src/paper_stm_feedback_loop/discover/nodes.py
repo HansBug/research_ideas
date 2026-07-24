@@ -917,6 +917,64 @@ def precheck_and_seal(
                 )
             else:
                 detail = checked.to_json()
+                if hot_start_policy_error is not None:
+                    pass_criterion = (
+                        "Rewrite every simulation call for this effect requirement "
+                        "as an explicit hot start with initial_state=<exact state "
+                        "path> and initial_vars={<exact declaration name>: value}; "
+                        "use declaration names, not qualified state-machine paths, "
+                        "and put the causal event in cycle 0. Alternatively replace "
+                        "it with a causal bounded FBMCQ query. The full assertion "
+                        "must then execute without exception and return strict bool."
+                    )
+                elif formal_causality_error is not None:
+                    if "parse failed" in str(formal_causality_error):
+                        pass_criterion = (
+                            "Use only the documented FBMCQ grammar. Replace the "
+                            "parse-invalid query with a syntactically valid causal "
+                            "query, preferably `init state(\"Root.Idle\"); check "
+                            "reach <= 5: active(\"Root.Done\");`, or use an explicit "
+                            "hot-start simulation; the full assertion must execute "
+                            "without exception and return strict bool."
+                        )
+                    else:
+                        pass_criterion = (
+                            "Replace a bare reach query with a causal bounded FBMCQ "
+                            "query containing an event assumption, response trigger, "
+                            "or explicit initialization; alternatively use an explicit "
+                            "hot-start simulation. The full assertion must execute "
+                            "without exception and return strict bool."
+                        )
+                elif (
+                    isinstance(detail.get("error"), dict)
+                    and detail["error"].get("type") == "RequiredFamilyMissing"
+                ):
+                    pass_criterion = (
+                        "Change evidence_family to match the function actually "
+                        "called: states/events/variables/initial_child are "
+                        "structure, while transitions/transition_exists/"
+                        "guards_overlap are relation. Or replace the expression "
+                        "with a call from the declared family; then the full "
+                        "assertion must execute without exception and return "
+                        "strict bool."
+                    )
+                elif (
+                    isinstance(detail.get("error"), dict)
+                    and detail["error"].get("type") == "NameError"
+                ):
+                    pass_criterion = (
+                        "Replace every undefined Python name with a quoted complete "
+                        "state/event path, or define the alias in the same shared "
+                        "prefix; then the full prefix plus this assertion must "
+                        "execute without exception and return strict bool using "
+                        "the declared evidence family."
+                    )
+                else:
+                    pass_criterion = (
+                        "The full prefix plus this assertion must execute without "
+                        "exception and return strict bool using the declared "
+                        "evidence family."
+                    )
                 error_payload = {
                     "assertion_id": assertion.assertion_id,
                     "error": (
@@ -931,34 +989,7 @@ def precheck_and_seal(
                     "required_function_families": detail.get(
                         "required_function_families", []
                     ),
-                    "pass_criterion": (
-                        "Rewrite every simulation call for this effect requirement "
-                        "as an explicit hot start with initial_state=<exact state "
-                        "path> and initial_vars={<exact declaration name>: value}; "
-                        "use declaration names, not qualified state-machine paths, "
-                        "and put the causal event in cycle 0. Alternatively replace "
-                        "it with a causal bounded FBMCQ query. The full assertion "
-                        "must then execute without exception and return strict bool."
-                        if hot_start_policy_error is not None
-                        else "Replace a bare reach query with a causal bounded FBMCQ "
-                        "query containing an event assumption, response trigger, "
-                        "or explicit initialization; alternatively use an explicit "
-                        "hot-start simulation. The full assertion must execute "
-                        "without exception and return strict bool."
-                        if formal_causality_error is not None
-                        else (
-                            "Replace every undefined Python name with a quoted complete "
-                            "state/event path, or define the alias in the same shared "
-                            "prefix; then the full prefix plus this assertion must "
-                            "execute without exception and return strict bool using "
-                            "the declared evidence family."
-                            if isinstance(detail.get("error"), dict)
-                            and detail["error"].get("type") == "NameError"
-                            else "The full prefix plus this assertion must execute "
-                            "without exception and return strict bool using the "
-                            "declared evidence family."
-                        )
-                    ),
+                    "pass_criterion": pass_criterion,
                 }
                 public_executions.append(
                     AssertionExecutionPublic(
