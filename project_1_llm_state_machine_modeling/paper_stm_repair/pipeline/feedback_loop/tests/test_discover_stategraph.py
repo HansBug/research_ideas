@@ -365,6 +365,58 @@ def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy(
     assert "hot-start" not in error
 
 
+def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("invalid-alias"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "After go, Done shall become active.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "The assertion uses an undefined state alias.",
+                "expression": (
+                    "simulate(cycles=[['Root.go']], initial_state=human, "
+                    "initial_vars={}).final.is_active('Root.Done')"
+                ),
+                "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.precheck_and_seal(
+        {
+            "_input": _input("invalid-alias"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
+    )
+
+    error = out["assertion_check_public"].executions[0].error or ""
+    assert "Do not rename an undefined alias" in error
+    assert "quoted complete state/event path" in error
+
+
 def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
     from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
     from paper_stm_feedback_loop.discover import nodes

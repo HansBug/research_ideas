@@ -1000,14 +1000,27 @@ def precheck_and_seal(
                     )
                 elif (
                     isinstance(detail.get("error"), dict)
-                    and detail["error"].get("type") == "NameError"
+                    and (
+                        detail["error"].get("type") == "NameError"
+                        or (
+                            detail["error"].get("type") == "AuditRejected"
+                            and any(
+                                issue.get("code") == "unknown_name"
+                                for issue in detail.get("audit", {}).get("issues", [])
+                                if isinstance(issue, dict)
+                            )
+                        )
+                    )
                 ):
                     pass_criterion = (
-                        "Replace every undefined Python name with a quoted complete "
-                        "state/event path, or define the alias in the same shared "
-                        "prefix; then the full prefix plus this assertion must "
-                        "execute without exception and return strict bool using "
-                        "the declared evidence family."
+                        "Do not rename an undefined alias or convert it to an "
+                        "uppercase token. Remove bare aliases by writing a quoted "
+                        "complete state/event path directly in every path, event, "
+                        "initial_state, and cycle argument. Only keep an alias when "
+                        "the same script prefix explicitly assigns that exact name; "
+                        "then the full prefix plus this assertion must execute "
+                        "without exception and return strict bool using the declared "
+                        "evidence family."
                     )
                 else:
                     pass_criterion = (
