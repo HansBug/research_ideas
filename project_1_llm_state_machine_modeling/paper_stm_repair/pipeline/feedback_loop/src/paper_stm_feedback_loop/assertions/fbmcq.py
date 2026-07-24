@@ -41,6 +41,80 @@ FBMCQ_LIMITATIONS = (
 )
 
 
+def formal_query_causality(query: str) -> dict[str, Any]:
+    """Classify whether a bounded ``reach`` query carries causal context.
+
+    A bare reachability query only says that the target is reachable on some
+    bounded path.  For an effect/behavior requirement it does not say that the
+    NL-specified event or initial mode caused that target.  This deterministic
+    classifier parses the exact query and checks only for explicit causal
+    context already present in the query; it never runs a solver or consults
+    pair ids, expected issues, or reference data.
+
+    The causal context may be a positive event assumption, an event atom in the
+    property, an explicit state/terminated initialization, or a response
+    property. Other property kinds are left to their own formal semantics; the
+    policy rejects only a *bare* ``reach`` used as effect evidence.
+    """
+
+    try:
+        parsed = parse_bmc_query(query)
+        canonical = parsed.to_canonical()
+    except Exception as exc:
+        return {
+            "causal": False,
+            "property_kind": None,
+            "has_event_assumption": False,
+            "has_event_atom": False,
+            "has_explicit_initialization": False,
+            "reason": f"query parse failed: {type(exc).__name__}: {exc}",
+        }
+
+    property_data = canonical.get("property") or {}
+    initial_data = canonical.get("initial") or {}
+    assumptions = canonical.get("assumptions") or []
+
+    def contains_event(value: Any) -> bool:
+        if isinstance(value, dict):
+            if value.get("node") == "event":
+                return True
+            return any(contains_event(item) for item in value.values())
+        if isinstance(value, (list, tuple)):
+            return any(contains_event(item) for item in value)
+        return False
+
+    has_event_assumption = any(
+        isinstance(item, dict)
+        and item.get("node") == "event_assumption"
+        and item.get("expected") is True
+        for item in assumptions
+    )
+    has_event_atom = contains_event(property_data)
+    has_explicit_initialization = initial_data.get("mode") in {"state", "terminated"}
+    property_kind = property_data.get("kind")
+    has_causal_context = (
+        has_event_assumption
+        or has_event_atom
+        or has_explicit_initialization
+        or property_kind == "response"
+    )
+    causal = property_kind != "reach" or has_causal_context
+    reason = (
+        "query contains explicit causal context or is not a bare reach query"
+        if causal
+        else "bare reach query has no positive event assumption, event atom, "
+        "response trigger, or explicit initial state"
+    )
+    return {
+        "causal": causal,
+        "property_kind": property_kind,
+        "has_event_assumption": has_event_assumption,
+        "has_event_atom": has_event_atom,
+        "has_explicit_initialization": has_explicit_initialization,
+        "reason": reason,
+    }
+
+
 class FBMCQTimeoutError(TimeoutError):
     """FBMCQ wall-clock timeout with structured inconclusive metadata."""
 
@@ -431,4 +505,5 @@ __all__ = [
     "FBMCQ_LIMITATIONS",
     "FBMCQTimeoutError",
     "FBMCQUnsupportedEvidence",
+    "formal_query_causality",
 ]

@@ -12,6 +12,7 @@ from paper_stm_feedback_loop.assertions import (
     InMemorySealedStore,
     build_eval_environment,
 )
+from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 
 from . import prompts, renderer
@@ -821,6 +822,7 @@ def precheck_and_seal(
                 required_function_families=[family_map[assertion.evidence_family]],
             )
             hot_start_policy_error: str | None = None
+            formal_causality_error: str | None = None
             requirement = requirement_by_id.get(assertion.requirement_id)
             if (
                 requirement is not None
@@ -841,7 +843,36 @@ def precheck_and_seal(
                         "assertion; a cold-start trace is not global behavior evidence"
                     )
             if (
+                requirement is not None
+                and requirement.checkability == "effect"
+                and assertion.evidence_family == "fbmcq"
+            ):
+                formal_calls = [
+                    call
+                    for call in checked.function_call_trace
+                    if call.function == "fbmcq" and call.status == "completed"
+                ]
+                causality_checks = [
+                    formal_query_causality(call.kwargs.get("query", ""))
+                    for call in formal_calls
+                ]
+                if not formal_calls or any(
+                    not check["causal"] for check in causality_checks
+                ):
+                    details = [
+                        check["reason"]
+                        for check in causality_checks
+                        if not check["causal"]
+                    ]
+                    formal_causality_error = (
+                        "effect requirement FBMCQ evidence must connect the bounded "
+                        "property to an explicit event/condition or initialization; "
+                        "a bare reach target is not causal evidence. "
+                        + " ".join(details)
+                    )
+            if (
                 hot_start_policy_error is None
+                and formal_causality_error is None
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
             ):
@@ -884,7 +915,11 @@ def precheck_and_seal(
                 detail = checked.to_json()
                 error_payload = {
                     "assertion_id": assertion.assertion_id,
-                    "error": hot_start_policy_error or detail.get("error"),
+                    "error": (
+                        hot_start_policy_error
+                        or formal_causality_error
+                        or detail.get("error")
+                    ),
                     "audit_issues": (detail.get("audit") or {}).get("issues", []),
                     "actual_function_families": detail.get(
                         "actual_function_families", []

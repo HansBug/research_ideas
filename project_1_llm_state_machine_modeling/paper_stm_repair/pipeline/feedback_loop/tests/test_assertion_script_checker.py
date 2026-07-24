@@ -12,7 +12,10 @@ if str(SRC) not in sys.path:
 from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment  # noqa: E402
 from paper_stm_feedback_loop.assertions.checker import PORTED_SOURCE_COMMIT  # noqa: E402
 from paper_stm_feedback_loop.assertions.environment import ASSERTION_ENVIRONMENT_API_DOCS  # noqa: E402
-from paper_stm_feedback_loop.assertions.fbmcq import FBMCQAPI  # noqa: E402
+from paper_stm_feedback_loop.assertions.fbmcq import (  # noqa: E402
+    FBMCQAPI,
+    formal_query_causality,
+)
 
 MODEL = """state Root {
     event go;
@@ -159,3 +162,27 @@ def test_fbmcq_structured_query_uses_formal_family_with_fake_backend():
     assert result.actual_function_families == ("formal",)
     assert obs.query_origin == "exact_agent_query"
     assert obs.formal_bound == 3
+
+
+def test_formal_query_causality_rejects_bare_reach_but_accepts_context():
+    bare = formal_query_causality(
+        'check reach <= 5: active("Root.Done");'
+    )
+    event_assumption = formal_query_causality(
+        'assume event("Root.go", 0) == true;\n'
+        'check reach <= 5: active("Root.Done");'
+    )
+    hot_start = formal_query_causality(
+        'init state("Root.Idle");\n'
+        'check reach <= 5: active("Root.Done");'
+    )
+    response = formal_query_causality(
+        'check response <= 5:\n'
+        'trigger event("Root.go", current)\n'
+        '-> within 3 active("Root.Done");'
+    )
+
+    assert bare["causal"] is False
+    assert event_assumption["causal"] is True
+    assert hot_start["causal"] is True
+    assert response["causal"] is True
