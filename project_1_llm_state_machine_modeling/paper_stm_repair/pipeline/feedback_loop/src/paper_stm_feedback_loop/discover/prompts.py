@@ -35,3 +35,14 @@ API shape warning: `state.initial_targets` is a tuple of read-only mapping views
 ASSERTION_REVIEWER_PROMPT += """
 API shape warning: `state.initial_targets` is a tuple of read-only mapping views. Each mapping has a `target` key (and may have `event` or `guard`), so iterating a mapping tests its keys rather than its target path. For a single composite initial-child requirement, require `initial_child("Root.Composite") == "Root.Composite.Child"`; reject a raw `initial_targets` membership check that compares a target string against mapping keys.
 """
+
+# Cardinality words often describe a scoped set rather than the complete set of
+# top-level states.  Keep this generic so the reviewer does not oscillate
+# between incompatible thresholds or invent a pair-specific state allowlist.
+ASSERTION_CONVERTER_PROMPT += """
+Cardinality and scope: when the NL gives a number of areas/states but does not name the members or say that the entire state machine contains exactly that number, use a transparent scoped structural proxy (for example, at least N distinct non-pseudo states in the declared scope) and state the limitation. Do not turn the claim into an exact count of all top-level states or invent member names solely from the current model. If a finite named set is directly grounded in the requirement or its declared scope, it may be checked; otherwise preserve the source-supported count without overclaiming completeness.
+"""
+
+ASSERTION_REVIEWER_PROMPT += """
+Cardinality and scope: when the NL gives a number of areas/states but does not name the members or say that the entire state machine contains exactly that number, accept a transparent scoped structural proxy (for example, at least N distinct non-pseudo states in the declared scope) with an explicit limitation. Do not alternately demand >=N, exactly N, and an invented exact-name allowlist across revisions. Reject only when the chosen proxy changes the stated scope or can materially change issue validity.
+"""

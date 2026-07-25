@@ -1333,6 +1333,9 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         entries = entries if isinstance(entries, list) else []
         exclusions = frozen.source_trace.get("attribution_exclusions", [])
         exclusions = exclusions if isinstance(exclusions, list) else []
+        simulation_is_ineligible = _working_contract_simulation_is_ineligible(
+            frozen.working_contract
+        )
         bindings = []
         for result in released.results:
             if result.truth_value:
@@ -1357,6 +1360,15 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             debt_refs = tuple(
                 sorted(ref for ref in exclusions if _reference_matches_observed(str(ref), observed))
             )
+            if result.evidence_family == "simulation" and simulation_is_ineligible:
+                debt_refs = tuple(
+                    sorted(
+                        {
+                            *debt_refs,
+                            "contract:capability_eligibility.simulation",
+                        }
+                    )
+                )
             safe_entries = [
                 entry
                 for entry in matched
@@ -1365,7 +1377,14 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 and entry["attribution_boundary"].get("representation_related") is not True
                 and entry["attribution_boundary"].get("conversion_or_lowering_related") is not True
             ]
-            if debt_refs:
+            if result.evidence_family == "simulation" and simulation_is_ineligible:
+                status = "representation_debt"
+                rationale = (
+                    "The working contract marks simulation evidence ineligible "
+                    "for source-level attribution; the False result is retained "
+                    "but cannot become a confirmed issue."
+                )
+            elif debt_refs:
                 status = "representation_debt"
                 rationale = "Assertion evidence touches compiler-owned or lowering-excluded elements."
             elif safe_entries and refs:
@@ -1423,6 +1442,24 @@ def _flatten_strings(value: Any) -> tuple[str, ...]:
         for item in value:
             values.extend(_flatten_strings(item))
     return tuple(values)
+
+
+def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool:
+    """Return whether the frozen contract explicitly excludes simulation attribution.
+
+    The representation contract is intentionally treated as capability metadata,
+    not as a source of expected issues.  Only an explicit ``ineligible`` status
+    blocks promotion; missing or ``not_run`` metadata must not silently change
+    the existing source-trace policy.
+    """
+
+    capability_eligibility = contract.get("capability_eligibility", {})
+    if isinstance(capability_eligibility, dict):
+        simulation = capability_eligibility.get("simulation", {})
+        if isinstance(simulation, dict) and simulation.get("status") == "ineligible":
+            return True
+    summary = contract.get("summary", {})
+    return isinstance(summary, dict) and summary.get("simulation_status") == "ineligible"
 
 
 def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
