@@ -1340,6 +1340,23 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         for result in released.results:
             if result.truth_value:
                 continue
+            actual_families = {
+                str(family)
+                for family in (
+                    result.evidence_scope.get("actual_function_families", [])
+                    if isinstance(result.evidence_scope, dict)
+                    else []
+                )
+            }
+            detail_families = result.check_detail.get(
+                "actual_function_families", []
+            )
+            if isinstance(detail_families, (list, tuple, set)):
+                actual_families.update(str(family) for family in detail_families)
+            uses_simulation = (
+                result.evidence_family == "simulation"
+                or "simulation" in actual_families
+            )
             observed = set(_flatten_strings(result.check_detail.get("function_call_trace", [])))
             matched = [entry for entry in entries if _trace_entry_matches(entry, observed)]
             matched_ids = tuple(
@@ -1360,7 +1377,7 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             debt_refs = tuple(
                 sorted(ref for ref in exclusions if _reference_matches_observed(str(ref), observed))
             )
-            if result.evidence_family == "simulation" and simulation_is_ineligible:
+            if uses_simulation and simulation_is_ineligible:
                 debt_refs = tuple(
                     sorted(
                         {
@@ -1377,7 +1394,7 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 and entry["attribution_boundary"].get("representation_related") is not True
                 and entry["attribution_boundary"].get("conversion_or_lowering_related") is not True
             ]
-            if result.evidence_family == "simulation" and simulation_is_ineligible:
+            if uses_simulation and simulation_is_ineligible:
                 status = "representation_debt"
                 rationale = (
                     "The working contract marks simulation evidence ineligible "

@@ -1317,6 +1317,72 @@ def test_simulation_false_without_ineligible_contract_keeps_source_trace_policy(
     assert binding.status == "safe"
 
 
+def test_mixed_effect_assertion_using_simulation_respects_ineligible_gate() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("mixed-simulation-ineligible").model_copy(
+        update={
+            "manifest": {
+                "working_contract": {
+                    "capability_eligibility": {
+                        "simulation": {"status": "ineligible"}
+                    }
+                }
+            },
+            "source_trace": {
+                "entries": [
+                    {
+                        "trace_id": "trace:state:Root.Done",
+                        "intermediate_elements": ["Root.Done"],
+                        "source_elements": ["source:state:Done"],
+                        "attribution_boundary": {
+                            "source_level_claim_allowed": True,
+                            "representation_related": False,
+                            "conversion_or_lowering_related": False,
+                        },
+                    }
+                ],
+                "attribution_exclusions": [],
+            },
+        }
+    )
+    frozen = nodes._fallback_prepare(discover_input)
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-01",
+                requirement_id="REQ-001",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="effect",
+                evidence_scope={
+                    "actual_function_families": ["effect", "simulation"]
+                },
+                check_detail={
+                    "actual_function_families": ["effect", "simulation"],
+                    "function_call_trace": [{"args": ["Root.Done"]}],
+                },
+            ),
+        ),
+    )
+
+    attributed = nodes.bind_attribution(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "released_assertion_results": released,
+        }
+    )
+    binding = attributed["attribution_projection"].bindings[0]
+    assert binding.status == "representation_debt"
+    assert binding.source_level_claim_allowed is False
+    assert "contract:capability_eligibility.simulation" in binding.exclusion_refs
+
+
 def test_attribution_matching_requires_exact_structured_path() -> None:
     from paper_stm_feedback_loop.discover.nodes import _reference_matches_observed
 
