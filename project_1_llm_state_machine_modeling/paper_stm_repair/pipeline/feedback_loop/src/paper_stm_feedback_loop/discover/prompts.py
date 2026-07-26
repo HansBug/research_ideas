@@ -147,5 +147,5 @@ Binding v2 evidence review: verify every non-quarantined Requirement has complet
 """
 
 RESULT_ADJUDICATOR_PROMPT += """
-Binding v2 adjudication contract: only `primary` False assertions with safe attribution may create confirmed issues. A supporting False is retained as an excluded diagnostic observation even when its attribution is safe; it never creates or enlarges a Repair issue. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
+Binding v2 adjudication contract: only `primary` False assertions with safe attribution may create confirmed issues. A supporting False is retained only in `excluded_observations` with disposition `supporting_false`, even when its attribution is safe; do not place a supporting assertion in `issues` or `excluded_findings`, and never use disposition `quarantined` for an executed False. `excluded_findings` is reserved for primary False assertions whose attribution is `representation_debt` or `unattributed`. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
 """

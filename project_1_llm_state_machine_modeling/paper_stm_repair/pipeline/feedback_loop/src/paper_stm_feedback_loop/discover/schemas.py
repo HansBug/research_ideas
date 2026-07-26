@@ -457,12 +457,9 @@ class DiscoverAdjudication(StrictBaseModel):
             raise ValueError("has_confirmed_issues must match issues emptiness")
         if any(issue.attribution_status != "safe" for issue in self.issues):
             raise ValueError("confirmed issues must be attribution-safe")
-        if any(
-            finding.attribution_status == "safe" for finding in self.excluded_findings
-        ):
-            raise ValueError(
-                "excluded findings must be representation debt or unattributed"
-            )
+        # Supporting False observations can arrive in excluded_findings from
+        # the structured LLM response. The deterministic adjudication node
+        # removes them before enforcing primary-only issue/exclusion closure.
         return self
 
 

@@ -2749,7 +2749,25 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
             lambda _role, _schema, _system, _payload: DiscoverAdjudication(
                 has_confirmed_issues=False,
                 issues=(),
-                excluded_findings=(),
+                excluded_findings=(
+                    {
+                        "issue_id": "ISSUE-REQ-001-SUPPORT",
+                        "requirement_id": "REQ-001",
+                        "assertion_ids": ("AST-REQ-001-SUPPORT",),
+                        "title": "Supporting observation",
+                        "rationale": "The LLM temporarily classified it here.",
+                        "attribution_status": "safe",
+                    },
+                ),
+                excluded_observations=(
+                    {
+                        "assertion_id": "AST-REQ-001-SUPPORT",
+                        "requirement_id": "REQ-001",
+                        "role": "supporting",
+                        "disposition": "quarantined",
+                        "rationale": "Raw structured response before normalization.",
+                    },
+                ),
                 satisfied_requirement_ids=("REQ-001",),
                 rationale="Primary coverage is satisfied.",
             )
@@ -2761,6 +2779,10 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
     assert out["adjudication"].satisfied_requirement_ids == ("REQ-001",)
     assert out["adjudication"].excluded_observations[0].assertion_id == (
         "AST-REQ-001-SUPPORT"
+    )
+    assert (
+        out["adjudication"].excluded_observations[0].disposition
+        == "supporting_false"
     )
 
 
