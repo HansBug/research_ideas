@@ -258,7 +258,10 @@ def test_failed_transition_query_records_same_trigger_wrong_target() -> None:
     Cruise -> Finish : leave;
 }
 """
-    env = EvalEnvironment(model_text=model)
+    env = EvalEnvironment(
+        model_text=model,
+        source_exclusions=["compiler:event_projection:Root.leave"],
+    )
     result = env.eval_assert(
         "transition_exists(source='Root.Cruise', event='Root.leave', target='Root.Exit')",
         "the local exit should not finish the whole machine",
@@ -268,6 +271,35 @@ def test_failed_transition_query_records_same_trigger_wrong_target() -> None:
     assert result.result == "false"
     refs = set(result.function_call_trace[0].model_refs)
     assert {"Root.Cruise", "Root.leave", "Root.Finish"} <= refs
+    assert "compiler:event_projection:Root.leave" not in refs
+
+
+def test_failed_transition_query_marks_different_projected_event_near_miss() -> None:
+    model = """state Root {
+    event pedestrian_or_distance;
+    state Idle;
+    state Active;
+    [*] -> Idle;
+    Idle -> Active : pedestrian_or_distance;
+}
+"""
+    env = EvalEnvironment(
+        model_text=model,
+        source_exclusions=[
+            "compiler:event_projection:Root.pedestrian_or_distance"
+        ],
+    )
+    result = env.eval_assert(
+        "transition_exists(source='Root.Idle', event='Root.pedestrian', target='Root.Active')",
+        "an invented atomic event must not replace a combined projection",
+        required_function_families=["relation"],
+    )
+
+    assert result.result == "false"
+    assert (
+        "compiler:event_projection:Root.pedestrian_or_distance"
+        in result.function_call_trace[0].model_refs
+    )
 
 
 def test_structure_relation_effect_simulation_work_on_real_selected_models():

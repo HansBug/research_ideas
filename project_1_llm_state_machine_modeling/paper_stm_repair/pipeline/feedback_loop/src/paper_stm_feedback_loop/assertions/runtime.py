@@ -507,8 +507,10 @@ class EvalEnvironment:
                 transitions = self.structure.transitions(**filters)
             except Exception:
                 transitions = ()
+            used_near_miss = False
             if name == "transition_exists" and value is False and not transitions:
                 transitions = self._near_miss_transitions(filters)
+                used_near_miss = bool(transitions)
             for transition in transitions:
                 for key in ("from_path", "to_path", "event"):
                     ref = getattr(transition, key, None)
@@ -519,6 +521,18 @@ class EvalEnvironment:
                     refs.add(f"transition:{index}")
                 for variable in self._route_control_variables(transition):
                     refs.add(f"route_control:{variable}")
+                actual_event = getattr(transition, "event", None)
+                requested_event = filters.get("event")
+                if (
+                    used_near_miss
+                    and requested_event
+                    and isinstance(actual_event, str)
+                    and actual_event
+                    and actual_event != requested_event
+                ):
+                    projection_ref = f"compiler:event_projection:{actual_event}"
+                    if projection_ref in self.source_exclusions:
+                        refs.add(projection_ref)
         return tuple(sorted(refs))
 
     def _near_miss_transitions(

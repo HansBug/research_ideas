@@ -13,6 +13,7 @@ from .schemas import (
     RequirementCoverageProjection,
     RequirementSet,
     RevisionFeedback,
+    RevisionLedgerEvent,
 )
 from .utils import canonical_json, sha256_data
 
@@ -71,10 +72,30 @@ def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
     }
 
 
+def _revision_ledger_payload(
+    events: tuple[RevisionLedgerEvent, ...], current_revision: int | None
+) -> list[dict[str, Any]]:
+    """Render reconstructable history without duplicating the current artifact."""
+
+    payload = []
+    for event in events:
+        item = event.model_dump(mode="json")
+        if (
+            event.event in {"artifact_created", "artifact_rejected"}
+            and event.revision == current_revision
+        ):
+            item["artifact_delta"] = {
+                "omitted": "current artifact is supplied in full beside this ledger"
+            }
+        payload.append(item)
+    return payload
+
+
 def render_requirement_split_input(
     frozen: FrozenDiscoverInputs,
     current_result: RequirementSet | None = None,
     revision_feedback: RevisionFeedback | None = None,
+    revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
 ) -> str:
     payload: dict[str, Any] = {
         "natural_language": frozen.natural_language,
@@ -84,6 +105,10 @@ def render_requirement_split_input(
         "source_context": _source_context(frozen),
         "mode": "revise" if current_result else "create",
         "content_language": frozen.language,
+        "revision_ledger": _revision_ledger_payload(
+            revision_ledger,
+            current_result.revision if current_result is not None else None,
+        ),
     }
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")
@@ -98,6 +123,7 @@ def render_requirement_review_input(
     requirements: RequirementSet,
     coverage: RequirementCoverageProjection,
     previous_feedback: RevisionFeedback | None = None,
+    revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
 ) -> str:
     return canonical_json(
         {
@@ -113,6 +139,9 @@ def render_requirement_review_input(
                 else None
             ),
             "content_language": frozen.language,
+            "revision_ledger": _revision_ledger_payload(
+                revision_ledger, requirements.revision
+            ),
         }
     )
 
@@ -122,7 +151,7 @@ def render_assertion_conversion_input(
     requirements: RequirementSet,
     current_result: AssertionScript | None = None,
     revision_feedback: RevisionFeedback | None = None,
-    feedback_history: tuple[RevisionFeedback, ...] = (),
+    revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
 ) -> str:
     payload: dict[str, Any] = {
         "accepted_requirements": requirements.model_dump(mode="json"),
@@ -132,7 +161,10 @@ def render_assertion_conversion_input(
         "evidence_api": get_assertion_environment_api_docs(),
         "mode": "revise" if current_result else "create",
         "content_language": frozen.language,
-        "feedback_history": [item.model_dump(mode="json") for item in feedback_history],
+        "revision_ledger": _revision_ledger_payload(
+            revision_ledger,
+            current_result.revision if current_result is not None else None,
+        ),
     }
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")
@@ -147,7 +179,7 @@ def render_assertion_review_input(
     requirements: RequirementSet,
     script: AssertionScript,
     public_check: AssertionCheckPublic,
-    feedback_history: tuple[RevisionFeedback, ...] = (),
+    revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
 ) -> str:
     # This payload intentionally excludes sealed and released assertion results.
     return canonical_json(
@@ -160,7 +192,9 @@ def render_assertion_review_input(
             "public_check": public_check.model_dump(mode="json"),
             "evidence_api": get_assertion_environment_api_docs(),
             "content_language": frozen.language,
-            "feedback_history": [item.model_dump(mode="json") for item in feedback_history],
+            "revision_ledger": _revision_ledger_payload(
+                revision_ledger, script.revision
+            ),
         }
     )
 

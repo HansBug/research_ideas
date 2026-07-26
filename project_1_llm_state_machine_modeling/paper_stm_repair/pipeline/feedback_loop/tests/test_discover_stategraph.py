@@ -29,10 +29,12 @@ from paper_stm_feedback_loop.discover.schemas import (  # noqa: E402
     ReleasedAssertionResults,
     DiscoverAdjudication,
     DiscoverInput,
+    RequirementCoverageProjection,
     RequirementReview,
     Requirement,
     RequirementSet,
     RevisionFeedback,
+    RevisionLedgerEvent,
 )
 from paper_stm_feedback_loop.discover.utils import sha256_data  # noqa: E402
 from paper_stm_feedback_loop.discover.nodes import default_fake_responder  # noqa: E402
@@ -119,6 +121,14 @@ def test_requirement_prompts_do_not_treat_missing_discriminator_as_nondeterminis
     assert "global guard mutual exclusion" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
+def test_revision_ledger_prompts_forbid_review_oscillation_and_truth_inference() -> None:
+    assert "complete revision_ledger" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "Do not reverse" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "every prior artifact delta" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Do not repeat resolved findings" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "never contains sealed True/False" in prompts.ASSERTION_REVIEWER_PROMPT
+
+
 def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -> None:
     assert "Hierarchical completion distinction" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Hierarchical completion review" in prompts.ASSERTION_REVIEWER_PROMPT
@@ -185,6 +195,20 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
     state = run_discover_state(discover_input, responder)
     assert state["requirement_coverage"].missing_segment_ids == ()
     assert state["requirement_set"].segment_disposition["NL-L002"] == "ambiguous"
+    assert [
+        event.event for event in state["_requirement_revision_ledger"]
+    ] == ["artifact_created", "review_completed"]
+    assert [event.event for event in state["_assertion_revision_ledger"]] == [
+        "artifact_created",
+        "check_completed",
+        "review_completed",
+    ]
+    assert "truth_value" not in json.dumps(
+        [
+            event.model_dump(mode="json")
+            for event in state["_assertion_revision_ledger"]
+        ]
+    )
     completed = run_discover(
         _input("pair-0000")
     )
@@ -216,6 +240,123 @@ def test_review_payload_hides_sealed_and_released_truth_values() -> None:
     dumped = json.dumps(review_event["review_assertions"], default=str).lower()
     assert "truth_value" not in dumped
     assert "_sealed_payload" not in dumped
+
+
+def test_revision_ledger_is_rendered_for_both_revision_loops() -> None:
+    from paper_stm_feedback_loop.discover.nodes import _fallback_prepare
+
+    frozen = _fallback_prepare(_input("ledger-render"))
+    requirements = RequirementSet(
+        revision=2,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "After go, Done shall become active.",
+                "source_segment_ids": ("NL-L001",),
+                "checkability": "effect",
+            },
+        ),
+        segment_disposition={"NL-L001": "covered"},
+    )
+    script = AssertionScript(
+        revision=2,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "event response",
+                "expression": "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')",
+                "failure_message": "[REQ-001][AST-REQ-001-01] response missing",
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    requirement_ledger = (
+        RevisionLedgerEvent(
+            sequence=1,
+            loop="requirements",
+            event="artifact_created",
+            revision=1,
+            artifact_hash="req-v1",
+            status="created",
+            artifact_delta={"added": [{"requirement_id": "REQ-OLD"}]},
+        ),
+        RevisionLedgerEvent(
+            sequence=2,
+            loop="requirements",
+            event="review_completed",
+            revision=1,
+            artifact_hash="req-v1",
+            status="revise",
+            findings=("Preserve source scope.",),
+        ),
+    )
+    assertion_ledger = (
+        RevisionLedgerEvent(
+            sequence=1,
+            loop="assertions",
+            event="artifact_created",
+            revision=1,
+            artifact_hash="ast-v1",
+            status="created",
+            artifact_delta={"added": [{"assertion_id": "AST-OLD"}]},
+        ),
+        RevisionLedgerEvent(
+            sequence=2,
+            loop="assertions",
+            event="review_completed",
+            revision=1,
+            artifact_hash="ast-v1",
+            status="revise",
+            findings=("Use the source-compatible hot start.",),
+        ),
+    )
+    public = AssertionCheckPublic(
+        script_hash=sha256_data(script),
+        tool_env_hash=frozen.tool_env_hash,
+        status="executable",
+        executions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "status": "executable",
+            },
+        ),
+    )
+
+    requirement_payloads = (
+        renderer.render_requirement_split_input(
+            frozen, requirements, revision_ledger=requirement_ledger
+        ),
+        renderer.render_requirement_review_input(
+            frozen,
+            requirements,
+            RequirementCoverageProjection(
+                covered_requirement_ids=("REQ-001",), missing_segment_ids=()
+            ),
+            revision_ledger=requirement_ledger,
+        ),
+    )
+    assertion_payloads = (
+        renderer.render_assertion_conversion_input(
+            frozen,
+            requirements,
+            script,
+            revision_ledger=assertion_ledger,
+        ),
+        renderer.render_assertion_review_input(
+            frozen, requirements, script, public, assertion_ledger
+        ),
+    )
+
+    for payload in requirement_payloads:
+        assert "revision_ledger" in payload
+        assert "Preserve source scope." in payload
+    for payload in assertion_payloads:
+        assert "revision_ledger" in payload
+        assert "Use the source-compatible hot start." in payload
+        assert "truth_value" not in payload
 
 
 def test_runtime_callback_path_consumes_stream_updates_to_completion() -> None:
@@ -1929,9 +2070,13 @@ def test_attribution_matching_requires_exact_structured_path() -> None:
     assert _reference_matches_observed(
         "compiler:route_control:R45RouteToken", {"R45RouteToken"}
     )
-    assert _reference_matches_observed(
+    assert not _reference_matches_observed(
         "compiler:event_projection:Root.pedestrian_or_distance",
         {"Root.pedestrian_or_distance"},
+    )
+    assert _reference_matches_observed(
+        "compiler:event_projection:Root.pedestrian_or_distance",
+        {"compiler:event_projection:Root.pedestrian_or_distance"},
     )
 
 

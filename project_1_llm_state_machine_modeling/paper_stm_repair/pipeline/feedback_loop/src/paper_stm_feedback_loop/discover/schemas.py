@@ -47,6 +47,25 @@ class RevisionFeedback(StrictBaseModel):
     ] = "assertion_review"
 
 
+class RevisionLedgerEvent(StrictBaseModel):
+    """Append-only public history for one producer/reviewer revision loop."""
+
+    sequence: int = Field(ge=1)
+    loop: Literal["requirements", "assertions"]
+    event: Literal[
+        "artifact_created",
+        "artifact_rejected",
+        "check_completed",
+        "review_completed",
+    ]
+    revision: int = Field(ge=1)
+    artifact_hash: str | None = None
+    status: str = Field(min_length=1)
+    artifact_delta: dict[str, Any] = Field(default_factory=dict)
+    rationale: str | None = None
+    findings: tuple[str, ...] = Field(default_factory=tuple)
+
+
 class DiscoverInput(StrictBaseModel):
     schema_name: Literal["DiscoverInput"] = "DiscoverInput"
     schema_version: Literal["v1"] = SCHEMA_VERSION
@@ -432,9 +451,11 @@ class DiscoverGraphState(TypedDict, total=False):
     _assertion_invalid_signatures: tuple[str, ...]
     _input: DiscoverInput
     _requirement_feedback: RevisionFeedback
+    _requirement_revision_ledger: tuple[RevisionLedgerEvent, ...]
     _requirement_review_repair_count: int
     _assertion_feedback: RevisionFeedback | None
     _assertion_feedback_history: tuple[RevisionFeedback, ...]
+    _assertion_revision_ledger: tuple[RevisionLedgerEvent, ...]
     _assertion_review_repair_count: int
     _assertion_conversion_contract_feedback: RevisionFeedback | None
     _assertion_contract_repair_count: int

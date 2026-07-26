@@ -38,6 +38,7 @@ from .schemas import (
     RequirementReview,
     RequirementSet,
     RevisionFeedback,
+    RevisionLedgerEvent,
     RunFailure,
     SealedAssertionReceipt,
 )
@@ -85,6 +86,110 @@ def _append_feedback(
     """Keep every revision request available to later nodes and renderers."""
 
     return (*state.get("_assertion_feedback_history", ()), feedback)
+
+
+def _revision_delta(
+    previous: RequirementSet | AssertionScript | None,
+    current: RequirementSet | AssertionScript,
+) -> dict[str, Any]:
+    """Return a compact deterministic delta that can reconstruct prior versions."""
+
+    if isinstance(current, RequirementSet):
+        current_items = {
+            item.requirement_id: item.model_dump(mode="json")
+            for item in current.requirements
+        }
+        previous_items = (
+            {
+                item.requirement_id: item.model_dump(mode="json")
+                for item in previous.requirements
+            }
+            if isinstance(previous, RequirementSet)
+            else {}
+        )
+        metadata_before = (
+            previous.segment_disposition
+            if isinstance(previous, RequirementSet)
+            else {}
+        )
+        metadata_after = current.segment_disposition
+    else:
+        current_items = {
+            item.assertion_id: item.model_dump(mode="json")
+            for item in current.assertions
+        }
+        previous_items = (
+            {
+                item.assertion_id: item.model_dump(mode="json")
+                for item in previous.assertions
+            }
+            if isinstance(previous, AssertionScript)
+            else {}
+        )
+        metadata_before = (
+            {
+                "prefix": previous.prefix,
+                "requirement_mapping": previous.requirement_mapping,
+            }
+            if isinstance(previous, AssertionScript)
+            else {}
+        )
+        metadata_after = {
+            "prefix": current.prefix,
+            "requirement_mapping": current.requirement_mapping,
+        }
+    common = set(previous_items) & set(current_items)
+    changed = [
+        {
+            "id": item_id,
+            "before": previous_items[item_id],
+            "after": current_items[item_id],
+        }
+        for item_id in sorted(common)
+        if previous_items[item_id] != current_items[item_id]
+    ]
+    delta: dict[str, Any] = {
+        "from_revision": previous.revision if previous is not None else None,
+        "to_revision": current.revision,
+        "added": [
+            current_items[item_id]
+            for item_id in sorted(set(current_items) - set(previous_items))
+        ],
+        "removed": sorted(set(previous_items) - set(current_items)),
+        "changed": changed,
+    }
+    if metadata_before != metadata_after:
+        delta["metadata_before"] = metadata_before
+        delta["metadata_after"] = metadata_after
+    return delta
+
+
+def _append_revision_event(
+    state: DiscoverGraphState,
+    *,
+    field: str,
+    loop: str,
+    event: str,
+    revision: int,
+    artifact_hash: str | None,
+    status: str,
+    artifact_delta: dict[str, Any] | None = None,
+    rationale: str | None = None,
+    findings: tuple[str, ...] = (),
+) -> tuple[RevisionLedgerEvent, ...]:
+    history = tuple(state.get(cast(Any, field), ()))
+    entry = RevisionLedgerEvent(
+        sequence=len(history) + 1,
+        loop=cast(Any, loop),
+        event=cast(Any, event),
+        revision=revision,
+        artifact_hash=artifact_hash,
+        status=status,
+        artifact_delta=artifact_delta or {},
+        rationale=rationale,
+        findings=findings,
+    )
+    return (*history, entry)
 
 
 def _record_node(
@@ -493,7 +598,12 @@ def split_requirements(
     try:
         _validate_revision_pair(current, feedback)
         frozen = state["frozen_inputs"]
-        payload = renderer.render_requirement_split_input(frozen, current, feedback)
+        payload = renderer.render_requirement_split_input(
+            frozen,
+            current,
+            feedback,
+            tuple(state.get("_requirement_revision_ledger", ())),
+        )
         output = responder.invoke_structured(
             role="requirement_splitter",
             schema=RequirementSet,
@@ -581,9 +691,20 @@ def split_requirements(
             user_prompt=payload,
             output=output,
         )
+        revision_ledger = _append_revision_event(
+            state,
+            field="_requirement_revision_ledger",
+            loop="requirements",
+            event="artifact_created",
+            revision=output.revision,
+            artifact_hash=sha256_data(output),
+            status="created",
+            artifact_delta=_revision_delta(current, output),
+        )
         return {
             "requirement_set": output,
             "requirement_coverage": coverage,
+            "_requirement_revision_ledger": revision_ledger,
             "requirement_fingerprints": (
                 *state.get("requirement_fingerprints", ()),
                 fingerprint,
@@ -619,6 +740,7 @@ def review_requirements(
             requirements,
             coverage,
             state.get("_requirement_feedback"),
+            tuple(state.get("_requirement_revision_ledger", ())),
         )
         output = responder.invoke_structured(
             role="requirement_reviewer",
@@ -631,6 +753,17 @@ def review_requirements(
                 "RequirementReview reviewed_revision must match current RequirementSet"
             )
         update: DiscoverGraphState = {"requirement_review": output}
+        update["_requirement_revision_ledger"] = _append_revision_event(
+            state,
+            field="_requirement_revision_ledger",
+            loop="requirements",
+            event="review_completed",
+            revision=requirements.revision,
+            artifact_hash=sha256_data(requirements),
+            status=output.decision,
+            rationale=output.rationale,
+            findings=tuple(f.message for f in output.findings),
+        )
         review_repair_count = state.get("_requirement_review_repair_count", 0)
         if output.decision == "revise":
             update["_requirement_feedback"] = RevisionFeedback(
@@ -723,7 +856,7 @@ def convert_assertions(
             requirements,
             current,
             feedback,
-            tuple(state.get("_assertion_feedback_history", ())),
+            tuple(state.get("_assertion_revision_ledger", ())),
         )
         output = responder.invoke_structured(
             role="assertion_converter",
@@ -807,9 +940,20 @@ def convert_assertions(
             user_prompt=payload,
             output=output,
         )
+        revision_ledger = _append_revision_event(
+            state,
+            field="_assertion_revision_ledger",
+            loop="assertions",
+            event="artifact_created",
+            revision=output.revision,
+            artifact_hash=sha256_data(output),
+            status="created",
+            artifact_delta=_revision_delta(current, output),
+        )
         return {
             "assertion_script": output,
             "_assertion_feedback": None,
+            "_assertion_revision_ledger": revision_ledger,
             "assertion_fingerprints": (
                 *state.get("assertion_fingerprints", ()),
                 fingerprint,
@@ -898,6 +1042,18 @@ def convert_assertions(
                 "_assertion_conversion_contract_feedback": contract_feedback,
                 "_assertion_contract_repair_count": repair_count + 1,
                 "_assertion_feedback_history": _append_feedback(state, contract_feedback),
+                "_assertion_revision_ledger": _append_revision_event(
+                    state,
+                    field="_assertion_revision_ledger",
+                    loop="assertions",
+                    event="artifact_rejected",
+                    revision=output.revision,
+                    artifact_hash=sha256_data(output),
+                    status="contract_invalid",
+                    artifact_delta=_revision_delta(current, output),
+                    rationale=contract_feedback.reason,
+                    findings=contract_feedback.findings,
+                ),
                 "_assertion_contract_failure_signatures": (
                     *state.get("_assertion_contract_failure_signatures", ()),
                     *((contract_failure_signature,) if contract_failure_signature else ()),
@@ -1239,6 +1395,25 @@ def precheck_and_seal(
         update: DiscoverGraphState = {
             "assertion_check_public": public,
             "sealed_assertion_results": receipt,
+            "_assertion_revision_ledger": _append_revision_event(
+                state,
+                field="_assertion_revision_ledger",
+                loop="assertions",
+                event="check_completed",
+                revision=script.revision,
+                artifact_hash=script_hash,
+                status=public.status,
+                rationale=(
+                    "Every assertion is executable under the public check contract."
+                    if public.status == "executable"
+                    else "Public precheck found non-executable assertions."
+                ),
+                findings=tuple(
+                    execution.error or execution.assertion_id
+                    for execution in public.executions
+                    if execution.status == "invalid"
+                ),
+            ),
         }
         if status == "invalid":
             invalid_signature = sha256_data(
@@ -1359,7 +1534,7 @@ def review_assertions(
             requirements,
             script,
             public_check,
-            tuple(state.get("_assertion_feedback_history", ())),
+            tuple(state.get("_assertion_revision_ledger", ())),
         )
         # Guard the explicit truth-label hiding contract before the LLM call.
         sealed_hash = (
@@ -1381,6 +1556,17 @@ def review_assertions(
                 "AssertionReview reviewed_script_hash must match current script"
             )
         update: DiscoverGraphState = {"assertion_review": output}
+        update["_assertion_revision_ledger"] = _append_revision_event(
+            state,
+            field="_assertion_revision_ledger",
+            loop="assertions",
+            event="review_completed",
+            revision=script.revision,
+            artifact_hash=script_hash,
+            status=output.decision,
+            rationale=output.rationale,
+            findings=tuple(f.message for f in output.findings),
+        )
         review_repair_count = state.get("_assertion_review_repair_count", 0)
         if output.decision == "revise":
             update["_assertion_feedback"] = RevisionFeedback(
@@ -1692,7 +1878,6 @@ def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
         "variable",
         "effect",
         "guard",
-        "event_projection",
         "route_control",
     }
 
