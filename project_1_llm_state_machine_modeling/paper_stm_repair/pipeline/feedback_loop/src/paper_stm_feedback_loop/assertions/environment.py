@@ -19,7 +19,7 @@ ASSERTION EXECUTION CONTRACT
 
 EVIDENCE SELECTION
 - A structural requirement may use structure/relation/effect/topology facts.
-- An effect requirement must use direct structured-effect evidence (`effects`, `effect_delta`, or `effect_deltas`), simulation, or FBMCQ; static transition existence alone is only complementary evidence. Do not invent a variable when the model has no corresponding declaration. An exact effect query may therefore return strict False for a missing typed effect. Use simulation or FBMCQ when the claim specifically requires runtime response or bounded universal/counterexample evidence.
+- An effect requirement must use direct structured-effect evidence (`effects`, `effect_delta`, or `effect_deltas`), simulation, or FBMCQ; static transition existence alone is only complementary evidence. Use `variable=...` only when NL or source evidence supplies that exact identifier. When NL describes a semantic quantity without naming its model variable, use an event/source/target-scoped `effect_deltas(...)` query without `variable=`; compiler route-control variables frozen in source exclusions are omitted automatically. Use simulation or FBMCQ when the claim specifically requires runtime response or bounded universal/counterexample evidence.
 - A cold-start simulation covers only one initialization path. For a state-agnostic behavior claim, use explicit hot-start initialization for relevant state(s), or use FBMCQ for a bounded universal/counterexample claim and state its bound.
 - Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect.
 
@@ -37,16 +37,25 @@ events(*, name=None, path=None, within=None, scope=None, declared=None, used=Non
 variables(*, name=None, path=None, within=None, type=None, read_in=None, written_in=None, exact=False) -> tuple[variable]
 transitions(*, source=None, event=None, target=None, forced=None, within=None, has_event=None, has_guard=None, has_effect=None, self_loop=None, source_within=None, target_within=None, exact=False) -> tuple[transition]
   transition fields include from_path, to_path, event, guard, effect, is_forced, transition_index.
+  A pseudo-initial source is exposed as the exact path ``"[*]"``. It is not the
+  enclosing root/composite path and must not be rewritten as that path. An event
+  transition from ``"[*]"`` is initialization-only source placement.
 transition_exists(*, source=None, event=None, target=None, within=None, exact=False) -> bool
 initial_child(state: str) -> str | None
   Returns the exact target path for a composite with one structured initial target, or ``None``.
 guards_overlap(left_ref: str, right_ref: str) -> bool; both refs must identify unambiguous transitions.
+conflicting_targets(*, source: str, event: str) -> bool
+  Returns True only when the same source/event has different targets whose empty or
+  identical guards are provably overlapping. A single target returns False. Distinct
+  non-empty guards that this facade cannot decide raise UnsupportedEvidence rather
+  than being guessed.
 
 EFFECT
 effects(*, source=None, event=None, target=None, variable=None) -> tuple[transition carrying effects]
 effect_deltas(*, source=None, event=None, target=None, variable=None) -> tuple[(variable, numeric_delta)]
 effect_delta(*, source=None, event=None, target=None, variable: str) -> number | None; requires one unambiguous transition.
 Prefer `any(delta < 0 for _, delta in effect_deltas(...))` when NL constrains an effect but not a variable name.
+Compiler route-control variables listed by frozen source trace are excluded from effect evidence.
 
 SIMULATION
 simulate(*, cycles: list[list[str]], initial_state: str | None = None, initial_vars: dict[str, number] | None = None) -> simulation

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from collections.abc import Callable
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -44,12 +46,49 @@ def _status_code(exc: Exception) -> int | None:
 
 
 def _retryable_error(exc: Exception) -> bool:
+    if isinstance(exc, IncompleteStructuredStreamError):
+        return True
     if isinstance(exc, (ValueError, TypeError)):
         return False
     status = _status_code(exc)
     if status is None:
         return True
     return status in {408, 409, 425, 429} or status >= 500
+
+
+class IncompleteStructuredStreamError(RuntimeError):
+    """The provider ended a structured stream before its tool-call JSON closed."""
+
+
+def _validate_complete_structured_stream(raw: Any) -> None:
+    """Reject partial tool-call payloads that LangChain may parse with defaults.
+
+    Structured streaming can expose a partially accumulated ``tool_call_chunks``
+    payload while the parsed Pydantic object already exists.  The latter is not
+    sufficient evidence that the provider response was complete: omitted fields
+    may have been filled from schema defaults.  Validate the accumulated raw
+    arguments before accepting the parsed value.
+    """
+
+    invalid_tool_calls = getattr(raw, "invalid_tool_calls", None)
+    if invalid_tool_calls:
+        raise IncompleteStructuredStreamError(
+            "provider returned invalid structured tool-call chunks"
+        )
+    tool_call_chunks = getattr(raw, "tool_call_chunks", None)
+    if not tool_call_chunks:
+        return
+    for index, chunk in enumerate(tool_call_chunks):
+        if not isinstance(chunk, dict):
+            continue
+        args = chunk.get("args")
+        if isinstance(args, str):
+            try:
+                json.loads(args)
+            except json.JSONDecodeError as exc:
+                raise IncompleteStructuredStreamError(
+                    f"structured tool-call arguments are incomplete at chunk {index}"
+                ) from exc
 
 
 @dataclass(frozen=True)
@@ -90,6 +129,7 @@ class DirectStructuredResponder:
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
         transport_retries: int = 2,
+        on_stream_chunk: Callable[[str, int, float], None] | None = None,
     ) -> None:
         registry = load_llm_registry(registry_path)
         self.profile = profile
@@ -106,10 +146,11 @@ class DirectStructuredResponder:
         self.model = create_chat_model(
             self.config,
             model_options=model_options,
-            streaming=False,
+            streaming=True,
             max_retries=0,
         )
         self.transport_retries = max(0, transport_retries)
+        self._on_stream_chunk = on_stream_chunk
         self._last_observation: LLMObservation | None = None
 
     def take_last_observation(self) -> LLMObservation | None:
@@ -143,15 +184,28 @@ class DirectStructuredResponder:
                 structured = self.model.with_structured_output(
                     schema, **structured_options
                 )
-                response = structured.invoke(
+                response = None
+                chunk_count = 0
+                for chunk in structured.stream(
                     [SystemMessage(system_prompt), HumanMessage(user_input)]
-                )
+                ):
+                    chunk_count += 1
+                    response = chunk if response is None else response + chunk
+                    if self._on_stream_chunk is not None:
+                        self._on_stream_chunk(
+                            role,
+                            chunk_count,
+                            (time.perf_counter_ns() - attempt_start_ns) / 1_000_000,
+                        )
+                if response is None:
+                    raise RuntimeError("structured stream produced no response")
                 if not isinstance(response, dict):
                     raise TypeError("include_raw structured response must be a mapping")
                 raw = response.get("raw")
                 parsing_error = response.get("parsing_error")
                 if parsing_error is not None:
                     raise ValueError(f"structured validation failed: {parsing_error}")
+                _validate_complete_structured_stream(raw)
                 parsed = response.get("parsed")
                 output = parsed if isinstance(parsed, schema) else schema.model_validate(parsed)
                 usage = normalize_model_output_usage(raw)
@@ -199,6 +253,9 @@ class DirectStructuredResponder:
                 retryable = _retryable_error(exc)
                 status = _status_code(exc)
                 failure_phase = (
+                    "structured_stream"
+                    if isinstance(exc, IncompleteStructuredStreamError)
+                    else
                     "structured_validation"
                     if isinstance(exc, (ValueError, TypeError))
                     else "provider_response"

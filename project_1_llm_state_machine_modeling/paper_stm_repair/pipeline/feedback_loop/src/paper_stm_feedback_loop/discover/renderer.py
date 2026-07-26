@@ -17,6 +17,60 @@ from .schemas import (
 from .utils import canonical_json, sha256_data
 
 
+def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
+    """Return a compact, input-derived source-scope view for LLM nodes."""
+
+    trace = frozen.source_trace if isinstance(frozen.source_trace, dict) else {}
+    raw_entries = trace.get("entries", [])
+    entries = raw_entries if isinstance(raw_entries, list) else []
+    projected_entries = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        boundary = entry.get("attribution_boundary")
+        boundary = boundary if isinstance(boundary, dict) else {}
+        projected_entries.append(
+            {
+                "trace_id": entry.get("trace_id"),
+                "intermediate_elements": entry.get("intermediate_elements", []),
+                "source_elements": entry.get("source_elements", []),
+                "source_level_claim_allowed": boundary.get(
+                    "source_level_claim_allowed"
+                ),
+                "representation_related": boundary.get("representation_related"),
+                "conversion_or_lowering_related": boundary.get(
+                    "conversion_or_lowering_related"
+                ),
+            }
+        )
+    contract = frozen.working_contract if isinstance(frozen.working_contract, dict) else {}
+    contract_summary = contract.get("summary", {})
+    contract_summary = contract_summary if isinstance(contract_summary, dict) else {}
+    raw_exclusions = trace.get("attribution_exclusions", [])
+    exclusions = raw_exclusions if isinstance(raw_exclusions, list) else []
+    return {
+        "trace_scope": trace.get("trace_scope"),
+        "schema_version": trace.get("schema_version"),
+        "entry_count": len(entries),
+        "attribution_exclusion_count": len(exclusions),
+        "closure_claim_allowed": (
+            (trace.get("source_traceability") or {}).get("closure_claim_allowed")
+            if isinstance(trace.get("source_traceability"), dict)
+            else None
+        ),
+        "entries": projected_entries,
+        "working_contract_summary": {
+            key: contract_summary.get(key)
+            for key in (
+                "simulation_status",
+                "source_static_discovery_status",
+                "diagnostic_binding_status",
+            )
+            if key in contract_summary
+        },
+    }
+
+
 def render_requirement_split_input(
     frozen: FrozenDiscoverInputs,
     current_result: RequirementSet | None = None,
@@ -27,6 +81,7 @@ def render_requirement_split_input(
         "nl_segments": frozen.nl_segments,
         "stm_text": frozen.stm_text,
         "inspect_digest": frozen.inspect_digest,
+        "source_context": _source_context(frozen),
         "mode": "revise" if current_result else "create",
         "content_language": frozen.language,
     }
@@ -51,6 +106,7 @@ def render_requirement_review_input(
             "stm_text": frozen.stm_text,
             "requirements": requirements.model_dump(mode="json"),
             "coverage_projection": coverage.model_dump(mode="json"),
+            "source_context": _source_context(frozen),
             "previous_revision_feedback": (
                 previous_feedback.model_dump(mode="json")
                 if previous_feedback is not None
@@ -66,14 +122,17 @@ def render_assertion_conversion_input(
     requirements: RequirementSet,
     current_result: AssertionScript | None = None,
     revision_feedback: RevisionFeedback | None = None,
+    feedback_history: tuple[RevisionFeedback, ...] = (),
 ) -> str:
     payload: dict[str, Any] = {
         "accepted_requirements": requirements.model_dump(mode="json"),
         "stm_text": frozen.stm_text,
         "inspect_digest": frozen.inspect_digest,
+        "source_context": _source_context(frozen),
         "evidence_api": get_assertion_environment_api_docs(),
         "mode": "revise" if current_result else "create",
         "content_language": frozen.language,
+        "feedback_history": [item.model_dump(mode="json") for item in feedback_history],
     }
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")
@@ -88,6 +147,7 @@ def render_assertion_review_input(
     requirements: RequirementSet,
     script: AssertionScript,
     public_check: AssertionCheckPublic,
+    feedback_history: tuple[RevisionFeedback, ...] = (),
 ) -> str:
     # This payload intentionally excludes sealed and released assertion results.
     return canonical_json(
@@ -100,6 +160,7 @@ def render_assertion_review_input(
             "public_check": public_check.model_dump(mode="json"),
             "evidence_api": get_assertion_environment_api_docs(),
             "content_language": frozen.language,
+            "feedback_history": [item.model_dump(mode="json") for item in feedback_history],
         }
     )
 

@@ -54,6 +54,39 @@ class RelationAPI:
             "current structured public API"
         )
 
+    def conflicting_targets(self, *, source: str, event: str) -> bool:
+        """Return whether one trigger has multiple indistinguishable targets.
+
+        The check returns ``True`` when matching transitions have different
+        targets and their guards are empty or identical. Distinct non-empty
+        guards are not guessed: the query raises ``UnsupportedEvidence`` because
+        this facade cannot prove their overlap. A single target, or no matching
+        transition, returns ``False``.
+        """
+
+        transitions = self.transitions(source=source, event=event)
+        if len({str(item.to_path) for item in transitions}) <= 1:
+            return False
+        undecidable = False
+        for index, left in enumerate(transitions):
+            for right in transitions[index + 1 :]:
+                if str(left.to_path) == str(right.to_path):
+                    continue
+                try:
+                    if self.guards_overlap(
+                        f"transition:{left.transition_index}",
+                        f"transition:{right.transition_index}",
+                    ):
+                        return True
+                except UnsupportedEvidence:
+                    undecidable = True
+        if undecidable:
+            raise UnsupportedEvidence(
+                "conflicting_targets cannot decide whether all distinct guarded "
+                "targets overlap with the current structured public API"
+            )
+        return False
+
     def _transition_by_ref(self, ref: str):
         normalized = ref.removeprefix("transition:").removeprefix("T")
         for transition in self.transitions():

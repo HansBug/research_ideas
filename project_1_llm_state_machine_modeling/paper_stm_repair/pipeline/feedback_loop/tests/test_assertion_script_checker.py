@@ -121,6 +121,7 @@ def test_environment_docs_list_readable_api_surface():
         "initial_targets",
         "initial_child",
         "mapping views",
+        'pseudo-initial source is exposed as the exact path ``"[*]"``',
     ]:
         assert needle in ASSERTION_ENVIRONMENT_API_DOCS
 
@@ -135,6 +136,138 @@ def test_initial_child_is_the_string_path_api_for_structured_initial_targets():
         required_function_families=["structure"],
     )
     assert result.result == "true"
+
+
+def test_conflicting_targets_distinguishes_same_trigger_targets() -> None:
+    model = """state Root {
+    event go;
+    state A;
+    state B;
+    state C;
+    [*] -> A;
+    A -> B : go;
+    A -> C : go;
+}
+"""
+    env = EvalEnvironment(model_text=model)
+    result = env.eval_assert(
+        "conflicting_targets(source='Root.A', event='Root.go') is True",
+        "the same trigger has two unguarded targets",
+        required_function_families=["relation"],
+    )
+    assert result.result == "true"
+
+
+def test_effect_call_records_frozen_transition_scope() -> None:
+    model = """def int semantic_count = 3;
+state Root {
+    event completed;
+    state Active;
+    state Done;
+    [*] -> Active;
+    Active -> Done : completed;
+}
+"""
+    env = EvalEnvironment(model_text=model)
+    result = env.eval_assert(
+        "effect_delta(event='Root.completed', variable='semantic_count') is None",
+        "the scoped transition does not declare the semantic effect",
+        required_function_families=["effect"],
+    )
+    assert result.result == "true"
+    assert len(result.function_call_trace) == 1
+    refs = set(result.function_call_trace[0].model_refs)
+    assert "Root.Active" in refs
+    assert "Root.completed" in refs
+    assert "transition:1" in refs
+
+
+def test_variable_only_effect_probe_does_not_claim_all_transition_refs() -> None:
+    model = """def int counter = 0;
+state Root {
+    event tick;
+    state A;
+    state B;
+    [*] -> A;
+    A -> B : tick effect { counter = counter + 1; };
+}
+"""
+    env = EvalEnvironment(model_text=model)
+    result = env.eval_assert(
+        "any(delta < 0 for _, delta in effect_deltas(variable='counter'))",
+        "counter should decrease somewhere",
+        required_function_families=["effect"],
+    )
+    assert result.result == "false"
+    assert result.function_call_trace[0].model_refs == ()
+
+
+def test_event_scoped_effect_probe_excludes_compiler_route_control() -> None:
+    model = """def int R45RouteToken = 0;
+state Root {
+    event completed;
+    state Active;
+    state Done;
+    [*] -> Active;
+    Active -> Done : completed effect { R45RouteToken = R45RouteToken - 1; };
+}
+"""
+    env = EvalEnvironment(
+        model_text=model,
+        source_exclusions=["compiler:route_control:R45RouteToken"],
+    )
+    result = env.eval_assert(
+        "any(delta < 0 for _, delta in effect_deltas(event='Root.completed'))",
+        "a compiler route token is not the requested semantic quantity",
+        required_function_families=["effect"],
+    )
+    assert result.result == "false"
+    assert result.function_call_trace[0].result == []
+
+
+def test_relation_call_records_compiler_route_control_from_guard() -> None:
+    model = """def int R45RouteToken = 0;
+state Root {
+    state Entry;
+    [*] -> Entry : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+}
+"""
+    env = EvalEnvironment(
+        model_text=model,
+        source_exclusions=["compiler:route_control:R45RouteToken"],
+    )
+    result = env.eval_assert(
+        "any(t.guard is None for t in transitions(source='[*]', target='Root.Entry'))",
+        "the initial relation should be unconditional",
+        required_function_families=["relation"],
+    )
+
+    assert result.result == "false"
+    refs = set(result.function_call_trace[0].model_refs)
+    assert "route_control:R45RouteToken" in refs
+    assert "Root.Entry" in refs
+
+
+def test_failed_transition_query_records_same_trigger_wrong_target() -> None:
+    model = """state Root {
+    event leave;
+    state Cruise;
+    state Exit;
+    state Finish;
+    [*] -> Cruise;
+    Cruise -> Finish : leave;
+}
+"""
+    env = EvalEnvironment(model_text=model)
+    result = env.eval_assert(
+        "transition_exists(source='Root.Cruise', event='Root.leave', target='Root.Exit')",
+        "the local exit should not finish the whole machine",
+        required_function_families=["relation"],
+    )
+
+    assert result.result == "false"
+    refs = set(result.function_call_trace[0].model_refs)
+    assert {"Root.Cruise", "Root.leave", "Root.Finish"} <= refs
 
 
 def test_structure_relation_effect_simulation_work_on_real_selected_models():

@@ -46,7 +46,8 @@ from .utils import sha256_data, sha256_text
 T = TypeVar("T", bound=BaseModel)
 
 MAX_REQUIREMENT_REVIEW_REPAIRS = 3
-MAX_ASSERTION_REVIEW_REPAIRS = 3
+MAX_ASSERTION_REVIEW_REPAIRS = 5
+MAX_ASSERTION_CONTRACT_REPAIRS = 5
 
 
 class StructuredResponder(Protocol):
@@ -75,6 +76,15 @@ def _append_records(
     state: DiscoverGraphState, *records: NodeExecutionRecord
 ) -> list[NodeExecutionRecord]:
     return [*state.get("node_execution_records", []), *records]
+
+
+def _append_feedback(
+    state: DiscoverGraphState,
+    feedback: RevisionFeedback,
+) -> tuple[RevisionFeedback, ...]:
+    """Keep every revision request available to later nodes and renderers."""
+
+    return (*state.get("_assertion_feedback_history", ()), feedback)
 
 
 def _record_node(
@@ -333,6 +343,52 @@ def _validate_revision_pair(
         )
 
 
+def _canonicalize_trace_entry_ids(
+    context: dict[str, Any], known_trace_ids: set[str]
+) -> dict[str, Any]:
+    """Canonicalize a uniquely resolvable leaf-only trace reference.
+
+    LLMs sometimes copy ``trace:state:Child`` from a full source id such as
+    ``trace:state:Mode.Child``.  This is safe to normalize only
+    when the kind prefix and final path component identify exactly one frozen
+    trace entry; ambiguous or unknown references remain hard errors.
+    """
+
+    raw_ids = context.get("trace_entry_ids", [])
+    if not isinstance(raw_ids, (list, tuple)):
+        raise ValueError("source_context.trace_entry_ids must be a list")
+    canonical_ids: list[str] = []
+    unknown: list[str] = []
+    for raw_id in raw_ids:
+        reference = str(raw_id)
+        if reference in known_trace_ids:
+            canonical_ids.append(reference)
+            continue
+        prefix, separator, leaf = reference.rpartition(":")
+        if not separator:
+            unknown.append(reference)
+            continue
+        leaf_name = leaf.rsplit(".", 1)[-1]
+        candidates = sorted(
+            trace_id
+            for trace_id in known_trace_ids
+            if trace_id.rpartition(":")[0] == prefix
+            and trace_id.rpartition(":")[2].rsplit(".", 1)[-1] == leaf_name
+        )
+        if len(candidates) != 1:
+            unknown.append(reference)
+            continue
+        canonical_ids.append(candidates[0])
+    if unknown:
+        raise ValueError(
+            "source_context.trace_entry_ids contains unknown or ambiguous references: "
+            f"{sorted(unknown)}"
+        )
+    if canonical_ids == list(raw_ids):
+        return context
+    return {**context, "trace_entry_ids": canonical_ids}
+
+
 def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
     started_at, start_ns = _now(), time.perf_counter_ns()
     discover_input = state["_input"]
@@ -378,10 +434,13 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         raise ValueError(f"FCSTM input is not executable: {inspected.get('error') or inspected.get('diagnostics')}")
     source_entries = discover_input.source_trace.get("entries", [])
     source_entries = source_entries if isinstance(source_entries, list) else []
+    source_exclusions = discover_input.source_trace.get("attribution_exclusions", [])
+    source_exclusions = source_exclusions if isinstance(source_exclusions, list) else []
     environment = build_eval_environment(
         model_text=discover_input.stm_text,
         inspect=inspected.get("inspect"),
         source_mappings=source_entries,
+        source_exclusions=source_exclusions,
     )
     segments = {
         f"NL-L{index:03d}": line.strip()
@@ -446,6 +505,23 @@ def split_requirements(
         if current is not None:
             if output.revision <= current.revision:
                 raise ValueError("revised RequirementSet revision must increase")
+        known_trace_ids = {
+            str(entry.get("trace_id"))
+            for entry in frozen.source_trace.get("entries", [])
+            if isinstance(entry, dict) and entry.get("trace_id")
+        }
+        normalized_requirements = tuple(
+            requirement.model_copy(
+                update={
+                    "source_context": _canonicalize_trace_entry_ids(
+                        requirement.source_context, known_trace_ids
+                    )
+                }
+            )
+            for requirement in output.requirements
+        )
+        if normalized_requirements != output.requirements:
+            output = output.model_copy(update={"requirements": normalized_requirements})
         fingerprint = sha256_data(
             output.model_dump(mode="json", exclude={"revision"})
         )
@@ -462,6 +538,17 @@ def split_requirements(
             if unknown:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} references unknown NL segments: {sorted(unknown)}"
+                )
+            context = requirement.source_context
+            trace_ids = context.get("trace_entry_ids", [])
+            if not isinstance(trace_ids, (list, tuple)):
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} source_context.trace_entry_ids must be a list"
+                )
+            unknown_trace_ids = set(str(item) for item in trace_ids) - known_trace_ids
+            if unknown_trace_ids:
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} references unknown source trace entries: {sorted(unknown_trace_ids)}"
                 )
         coverage = RequirementCoverageProjection(
             covered_requirement_ids=tuple(
@@ -550,6 +637,7 @@ def review_requirements(
                 target="requirements",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
+                origin="requirement_review",
             )
             update["_requirement_review_repair_count"] = review_repair_count + 1
         record = _record_node(
@@ -631,7 +719,11 @@ def convert_assertions(
         frozen = state["frozen_inputs"]
         requirements = state["requirement_set"]
         payload = renderer.render_assertion_conversion_input(
-            frozen, requirements, current, feedback
+            frozen,
+            requirements,
+            current,
+            feedback,
+            tuple(state.get("_assertion_feedback_history", ())),
         )
         output = responder.invoke_structured(
             role="assertion_converter",
@@ -669,18 +761,20 @@ def convert_assertions(
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
         assertions_by_id = {item.assertion_id: item for item in output.assertions}
         for requirement in requirements.requirements:
-            if requirement.checkability != "effect":
-                continue
-            evidence_families = {
-                assertions_by_id[assertion_id].evidence_family
+            owned_assertions = tuple(
+                assertions_by_id[assertion_id]
                 for assertion_id in mapped_by_assertions[requirement.requirement_id]
-            }
-            if not evidence_families.intersection({"effect", "simulation", "fbmcq"}):
-                raise ValueError(
-                    f"effect requirement {requirement.requirement_id} requires "
-                    "at least one effect, simulation, or fbmcq assertion; relation- "
-                    "and topology-only evidence is complementary, not sufficient"
-                )
+            )
+            if requirement.checkability == "effect":
+                evidence_families = {
+                    assertion.evidence_family for assertion in owned_assertions
+                }
+                if not evidence_families.intersection({"effect", "simulation", "fbmcq"}):
+                    raise ValueError(
+                        f"effect requirement {requirement.requirement_id} requires "
+                        "at least one effect, simulation, or fbmcq assertion; relation- "
+                        "and topology-only evidence is complementary, not sufficient"
+                    )
         if any(not ids for ids in mapped_by_assertions.values()):
             missing = sorted(req_id for req_id, ids in mapped_by_assertions.items() if not ids)
             raise ValueError(f"every requirement needs an assertion; missing: {missing}")
@@ -715,6 +809,7 @@ def convert_assertions(
         )
         return {
             "assertion_script": output,
+            "_assertion_feedback": None,
             "assertion_fingerprints": (
                 *state.get("assertion_fingerprints", ()),
                 fingerprint,
@@ -727,14 +822,48 @@ def convert_assertions(
     except Exception as exc:
         message = f"{type(exc).__name__}: {exc}"
         repair_count = state.get("_assertion_contract_repair_count", 0)
+        contract_failure_signature = (
+            sha256_data(
+                {
+                    "script": output.model_dump(mode="json", exclude={"revision"}),
+                    "failure": message,
+                }
+            )
+            if output is not None
+            else None
+        )
+        repeated_contract_failure = (
+            contract_failure_signature is not None
+            and contract_failure_signature
+            in state.get("_assertion_contract_failure_signatures", ())
+        )
         can_revise_contract = (
             output is not None
             and "no-progress gate" not in message
-            and repair_count < 3
+            and not repeated_contract_failure
+            and repair_count < MAX_ASSERTION_CONTRACT_REPAIRS
         )
+        if repeated_contract_failure:
+            failure_message = (
+                "no-progress gate rejected repeated contract-invalid "
+                "AssertionScript semantics"
+            )
+            return _fail_state(
+                state,
+                "convert_assertions",
+                ValueError(failure_message),
+                started_at=started_at,
+                start_ns=start_ns,
+                input_value=locals().get("payload", state),
+                revision=output.revision if output is not None else 0,
+                kind="llm",
+                responder=responder,
+                role="assertion_converter",
+            )
         if can_revise_contract:
             contract_feedback = RevisionFeedback(
                 target="assertions",
+                origin="assertion_contract",
                 reason=(
                     "The previous Assertion Converter response violated the deterministic "
                     "script contract. Revise the existing script instead of changing the "
@@ -768,6 +897,11 @@ def convert_assertions(
                 "_assertion_feedback": contract_feedback,
                 "_assertion_conversion_contract_feedback": contract_feedback,
                 "_assertion_contract_repair_count": repair_count + 1,
+                "_assertion_feedback_history": _append_feedback(state, contract_feedback),
+                "_assertion_contract_failure_signatures": (
+                    *state.get("_assertion_contract_failure_signatures", ()),
+                    *((contract_failure_signature,) if contract_failure_signature else ()),
+                ),
                 "node_execution_records": _append_records(state, record),
                 "llm_call_records": [
                     *state.get("llm_call_records", []),
@@ -803,10 +937,13 @@ def precheck_and_seal(
         sealed_results: list[AssertionResult] = []
         source_entries = frozen.source_trace.get("entries", [])
         source_entries = source_entries if isinstance(source_entries, list) else []
+        source_exclusions = frozen.source_trace.get("attribution_exclusions", [])
+        source_exclusions = source_exclusions if isinstance(source_exclusions, list) else []
         checker = assertion_checker or AssertionChecker(
             build_eval_environment(
                 model_text=frozen.stm_text,
                 source_mappings=source_entries,
+                source_exclusions=source_exclusions,
             )
         )
         family_map = {
@@ -870,13 +1007,36 @@ def precheck_and_seal(
                     and any(bool(cycle) for cycle in call.kwargs["cycles"][1:])
                     for call in checked.function_call_trace
                 )
-                if not has_hot_start and not has_explicit_initial_cold_path:
+                source_context = requirement.source_context
+                is_initial_configuration = (
+                    isinstance(source_context, dict)
+                    and source_context.get("behavior_phase") == "initialization"
+                )
+                has_initial_configuration_cold_path = any(
+                    call.function == "simulate"
+                    and call.kwargs.get("initial_state") is None
+                    and isinstance(call.kwargs.get("cycles"), list)
+                    and bool(call.kwargs["cycles"])
+                    and all(not cycle for cycle in call.kwargs["cycles"])
+                    for call in checked.function_call_trace
+                )
+                if (
+                    not has_hot_start
+                    and not has_explicit_initial_cold_path
+                    and not (
+                        is_initial_configuration
+                        and has_initial_configuration_cold_path
+                    )
+                ):
                     hot_start_policy_error = (
                         "effect requirement simulation must use an explicit hot-start "
                         "initial_state, or an explicit initialization cold path "
-                        "cycles=[[], [causal_event]]; otherwise include a bounded "
-                        "fbmcq assertion. A cold-start trace without an explicit empty "
-                        "initialization cycle is not sufficient behavior evidence"
+                        "cycles=[[], [causal_event]]. A pure initial-configuration "
+                        "requirement marked behavior_phase=initialization may instead "
+                        "use one or more empty cold-start cycles. Otherwise include a bounded "
+                        "fbmcq assertion. A cold-start "
+                        "trace without an explicit empty initialization cycle is not "
+                        "sufficient behavior evidence"
                     )
             if (
                 requirement is not None
@@ -907,9 +1067,10 @@ def precheck_and_seal(
                         "property to an explicit event/condition or initialization; "
                         "a bare reach target is not causal evidence. Replace it with "
                         "a response query such as `check response <= 5: trigger "
-                        "event(\"Root.Go\", current) -> within 3 active(\"Root.Done\");`, "
+                        "event(\"<declared_event_path>\", current) -> within 3 "
+                        "active(\"<target_state_path>\");`, "
                         "a positive event assumption plus reach, an explicit `init "
-                        "state(\"Root.Idle\");` query, or a hot-start simulation. "
+                        "state(\"<exact_initial_state_path>\");` query, or a hot-start simulation. "
                         + " ".join(details)
                     )
             if (
@@ -961,19 +1122,22 @@ def precheck_and_seal(
                         "as an explicit hot start with initial_state=<exact state "
                         "path> and initial_vars={<exact declaration name>: value}; "
                         "use declaration names, not qualified state-machine paths, "
-                        "and put the causal event in cycle 0. For an initialization "
-                        "claim, an explicit cold path cycles=[[], [causal_event]] is "
-                        "also valid. Alternatively replace it with a causal bounded "
-                        "FBMCQ query. The full assertion must then execute without "
-                        "exception and return strict bool."
+                        "and put the causal event in cycle 0. For a causal initialization "
+                        "claim, use an explicit cold path cycles=[[], [causal_event]]. "
+                        "For a pure initial-configuration claim explicitly marked "
+                        "behavior_phase=initialization, use one or more empty cold-start "
+                        "cycles and inspect the initialized state. Alternatively replace "
+                        "it with a causal bounded FBMCQ query. "
+                        "The full assertion must then execute without exception and "
+                        "return strict bool."
                     )
                 elif formal_causality_error is not None:
                     if "parse failed" in str(formal_causality_error):
                         pass_criterion = (
                             "Use only the documented FBMCQ grammar. Replace the "
                             "parse-invalid query with a syntactically valid causal "
-                            "query, preferably `init state(\"Root.Idle\"); check "
-                            "reach <= 5: active(\"Root.Done\");`, or use an explicit "
+                            "query, preferably `init state(\"<exact_initial_state_path>\"); check "
+                            "reach <= 5: active(\"<target_state_path>\");`, or use an explicit "
                             "hot-start simulation; the full assertion must execute "
                             "without exception and return strict bool."
                         )
@@ -1086,6 +1250,25 @@ def precheck_and_seal(
                     )
                 )
             )
+            # The same invalid assertion can legitimately remain while the
+            # converter repairs other assertions in a materially new script.
+            # Scope the no-progress signature to the script revision so one
+            # unchanged error does not discard otherwise useful progress.
+            invalid_expressions = {
+                item.assertion_id: item.expression
+                for item in script.assertions
+                if item.assertion_id in {
+                    execution.assertion_id
+                    for execution in public.executions
+                    if execution.status == "invalid"
+                }
+            }
+            invalid_signature = sha256_data(
+                {
+                    "invalid_signature": invalid_signature,
+                    "invalid_expressions": invalid_expressions,
+                }
+            )
             previous_signatures = state.get("_assertion_invalid_signatures", ())
             update["_assertion_invalid_signatures"] = (
                 *previous_signatures,
@@ -1093,6 +1276,7 @@ def precheck_and_seal(
             )
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
+                origin="assertion_precheck",
                 reason=(
                     "Assertion precheck found non-executable expressions. Fix every "
                     "listed assertion; do not return the same failing expression. "
@@ -1104,6 +1288,9 @@ def precheck_and_seal(
                     for e in public_executions
                     if e.status == "invalid"
                 ),
+            )
+            update["_assertion_feedback_history"] = _append_feedback(
+                state, update["_assertion_feedback"]
             )
         record = _record_node(
             state,
@@ -1168,7 +1355,11 @@ def review_assertions(
         script = state["assertion_script"]
         public_check = state["assertion_check_public"]
         payload = renderer.render_assertion_review_input(
-            frozen, requirements, script, public_check
+            frozen,
+            requirements,
+            script,
+            public_check,
+            tuple(state.get("_assertion_feedback_history", ())),
         )
         # Guard the explicit truth-label hiding contract before the LLM call.
         sealed_hash = (
@@ -1194,10 +1385,14 @@ def review_assertions(
         if output.decision == "revise":
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
+                origin="assertion_review",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
             )
             update["_assertion_review_repair_count"] = review_repair_count + 1
+            update["_assertion_feedback_history"] = _append_feedback(
+                state, update["_assertion_feedback"]
+            )
         record = _record_node(
             state,
             node_name="review_assertions",
@@ -1490,7 +1685,15 @@ def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
     ``NotIdle``.
     """
 
-    kinds = {"event", "state", "transition", "variable", "effect", "guard"}
+    kinds = {
+        "event",
+        "state",
+        "transition",
+        "variable",
+        "effect",
+        "guard",
+        "route_control",
+    }
 
     def identity(value: str) -> tuple[str | None, str]:
         text = value.strip()
@@ -1641,9 +1844,27 @@ def adjudicate_results(
             for requirement_id, values in result_by_requirement.items()
             if all(values)
         }
-        if set(output.satisfied_requirement_ids) != expected_satisfied:
-            raise ValueError(
-                "satisfied_requirement_ids must exactly match all-True requirements"
+        reported_satisfied = set(output.satisfied_requirement_ids)
+        reconciliation = {
+            "normalization_applied": reported_satisfied != expected_satisfied,
+            "reported_satisfied_requirement_ids": tuple(
+                sorted(reported_satisfied)
+            ),
+            "deterministic_satisfied_requirement_ids": tuple(
+                sorted(expected_satisfied)
+            ),
+            "basis": "released_assertion_results.all_truth_values_true",
+        }
+        if reported_satisfied != expected_satisfied:
+            # This field is a deterministic ledger projection, not a semantic
+            # judgment.  Keep the LLM's issue/exclusion decisions strict, but
+            # do not discard an otherwise complete adjudication because the
+            # model copied a requirement with a False assertion into this
+            # derived list.
+            output = output.model_copy(
+                update={
+                    "satisfied_requirement_ids": tuple(sorted(expected_satisfied))
+                }
             )
         record = _record_node(
             state,
@@ -1667,6 +1888,7 @@ def adjudicate_results(
         )
         return {
             "adjudication": output,
+            "_adjudication_reconciliation": reconciliation,
             "node_execution_records": _append_records(state, record),
             "llm_call_records": [*state.get("llm_call_records", []), llm_record],
         }
@@ -1708,6 +1930,9 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
             released_results_hash=sha256_data(released),
             adjudication=adjudication,
             issues=adjudication.issues,
+            adjudication_reconciliation=state.get(
+                "_adjudication_reconciliation", {}
+            ),
             regression_guards=guards,
             telemetry_summary=telemetry_summary(
                 state.get("node_execution_records", []),

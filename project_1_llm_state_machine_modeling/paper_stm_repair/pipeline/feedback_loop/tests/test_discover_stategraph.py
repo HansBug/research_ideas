@@ -16,6 +16,7 @@ if str(SRC) not in sys.path:
 from paper_stm_feedback_loop.discover import prompts, renderer  # noqa: E402
 from paper_stm_feedback_loop.discover.graph import (  # noqa: E402
     build_discover_graph,
+    route_after_convert,
     run_discover,
     run_discover_state,
 )
@@ -53,12 +54,77 @@ def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_s
     assert "shared qualifiers" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "independent triggers" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "invent a universal quantifier" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "Operational context" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "Containment language" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "source mode/state" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
 def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> None:
     assert "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "declaration names rather than qualified state-machine paths" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "documented FBMCQ grammar" in prompts.ASSERTION_CONVERTER_PROMPT
+
+
+def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -> None:
+    for prompt in (prompts.ASSERTION_CONVERTER_PROMPT, prompts.ASSERTION_REVIEWER_PROMPT):
+        assert "source" in prompt
+        assert "trigger" in prompt
+        assert "destination" in prompt
+        assert "conflicting_targets" in prompt
+        assert "completion-holder" in prompt
+    assert "Context and proxy discipline" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Convergence rule" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "Mandatory event-response gate" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Mandatory event-response review gate" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "source-trigger-destination" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "behavior_phase" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert 'pseudo-initial source is exactly `"[*]"`' in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "must not demand an invented direct edge" in prompts.ASSERTION_CONVERTER_PROMPT
+
+
+def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
+    assert "never invent or enumerate candidate variable names" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "without `variable=`" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "reject every invented identifier" in prompts.ASSERTION_REVIEWER_PROMPT
+
+
+def test_prompts_merge_one_repair_unit_and_preserve_attributable_mismatch() -> None:
+    assert "Repair-unit atomicity" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "same misplaced state" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "Do not leave a repair-relevant destination mismatch" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Attribution-preserving mismatch gate" in prompts.ASSERTION_REVIEWER_PROMPT
+
+
+def test_prompts_enforce_positive_conflict_assertion_direction() -> None:
+    assert "positive distinguishability obligation" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "positive distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "not conflicting_targets" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Reject bare `conflicting_targets" in prompts.ASSERTION_REVIEWER_PROMPT
+
+
+def test_requirement_prompts_distinguish_local_exit_from_completion() -> None:
+    assert "Local-exit grounding" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "Local-exit review" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "separate completion/termination target" in prompts.REQUIREMENT_SPLITTER_PROMPT
+
+
+def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -> None:
+    assert "Hierarchical completion distinction" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Hierarchical completion review" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "genuine wrong direct target" in prompts.ASSERTION_CONVERTER_PROMPT
+    for prompt in (prompts.ASSERTION_CONVERTER_PROMPT, prompts.ASSERTION_REVIEWER_PROMPT):
+        assert "Limitation non-waiver" in prompt
+        assert "cannot" in prompt or "may not" in prompt
+        assert "Cardinality evidence gate" in prompt
+        assert "Multi-step response gate" in prompt
+    for benchmark_token in ("exit_hwy", "FinishState", "Power_Off", "R45RouteToken"):
+        assert benchmark_token not in prompts.ASSERTION_CONVERTER_PROMPT
+        assert benchmark_token not in prompts.ASSERTION_REVIEWER_PROMPT
+
+
+def test_requirements_do_not_expose_benchmark_issue_taxonomy() -> None:
+    assert "semantic_tags" not in Requirement.model_fields
+    assert "hidden issue taxonomy" in prompts.REQUIREMENT_SPLITTER_PROMPT
 
 
 def _input(run_id: str = "r") -> DiscoverInput:
@@ -139,6 +205,31 @@ def test_review_payload_hides_sealed_and_released_truth_values() -> None:
     dumped = json.dumps(review_event["review_assertions"], default=str).lower()
     assert "truth_value" not in dumped
     assert "_sealed_payload" not in dumped
+
+
+def test_runtime_callback_path_consumes_stream_updates_to_completion() -> None:
+    updates: list[str] = []
+    state = run_discover_state(
+        _input("stream-callback"),
+        on_update=lambda node_name, _update: updates.append(node_name),
+    )
+    assert updates[0] == "prepare"
+    assert "adjudicate_results" in updates
+    assert updates[-1] == "publish"
+    assert state["final_output"].status == "completed"
+
+
+def test_convert_failure_terminates_even_with_stale_contract_feedback() -> None:
+    state = {
+        "failure": object(),
+        "_assertion_conversion_contract_feedback": RevisionFeedback(
+            target="assertions",
+            origin="assertion_contract",
+            reason="Revise the invalid script.",
+        ),
+    }
+
+    assert route_after_convert(state) == "run_failed"  # type: ignore[arg-type]
 
 
 def test_renderer_assertion_review_input_has_no_truth_labels() -> None:
@@ -269,6 +360,86 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
         assertion_checker=checker,
     )
     assert "no-progress gate" in repeated["failure"].message
+
+
+def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("changed-invalid-script")
+    frozen = nodes._fallback_prepare(discover_input)
+
+    def make_script(description: str, expression: str) -> AssertionScript:
+        return AssertionScript(
+            revision=1,
+            assertions=(
+                {
+                    "assertion_id": "AST-REQ-001-01",
+                    "requirement_id": "REQ-001",
+                    "description": description,
+                    "expression": expression,
+                    "failure_message": "[REQ-001][AST-REQ-001-01] helper failure",
+                    "evidence_family": "structure",
+                },
+            ),
+            requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+        )
+
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "A structure check.",
+                "checkability": "structure",
+            },
+        ),
+    )
+    checker = AssertionChecker(
+        EvalEnvironment(
+            model_text=MODEL,
+            extra_functions={
+                "broken_helper": (
+                    "structure",
+                    lambda: (_ for _ in ()).throw(AssertionError("backend failed")),
+                ),
+                "revised_helper": (
+                    "structure",
+                    lambda: (_ for _ in ()).throw(AssertionError("backend failed again")),
+                ),
+            },
+        )
+    )
+    store = InMemorySealedStore()
+    first = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": make_script("first version", "broken_helper()"),
+        },
+        sealed_store=store,
+        assertion_checker=checker,
+    )
+    second = nodes.precheck_and_seal(
+        {
+            **first,
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": make_script(
+                "materially revised version", "revised_helper()"
+            ),
+        },
+        sealed_store=store,
+        assertion_checker=checker,
+    )
+    assert "failure" not in second
+    assert second["assertion_check_public"].status == "invalid"
 
 
 def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
@@ -442,6 +613,98 @@ def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
                 "description": "Explicit initialization path.",
                 "expression": "(lambda s: 'Root.go' in s.cycles[1].consumed_events and s.cycles[1].is_active('Root.Done'))(simulate(cycles=[[], ['Root.go']]))",
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
+    )
+    assert checked["assertion_check_public"].status == "executable"
+
+
+def test_initialization_wording_does_not_bypass_effect_simulation_contract() -> None:
+    from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("initial-only-observation")
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "The system shall begin in the Root.Idle state.",
+                    "checkability": "effect",
+                },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "No-event initial-state observation.",
+                "expression": "simulate(cycles=[[]]).final.is_active('Root.Idle')",
+                "failure_message": "[REQ-001][AST-REQ-001-01] Root.Idle is not initially active",
+                "evidence_family": "simulation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+        },
+        sealed_store=InMemorySealedStore(),
+        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
+    )
+    assert checked["assertion_check_public"].status == "invalid"
+    assert "hot-start" in str(checked["_assertion_feedback"].findings[0])
+
+
+def test_pure_initial_configuration_allows_empty_cold_start_cycles() -> None:
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("initial-configuration")
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "The system shall begin in the Root.Idle state.",
+                "checkability": "effect",
+                "source_context": {"behavior_phase": "initialization"},
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "Finite cold-start initial configuration.",
+                "expression": "simulate(cycles=[[], []]).final.is_active('Root.Idle')",
+                "failure_message": "[REQ-001][AST-REQ-001-01] Root.Idle is not initially active",
                 "evidence_family": "simulation",
             },
         ),
@@ -881,6 +1144,69 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
     assert route_after_convert(out) == "convert_assertions"
 
 
+def test_repeated_contract_invalid_script_stops_without_five_duplicate_calls() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("repeat-contract"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "When go occurs, the system shall enter Done.",
+                "checkability": "effect",
+            },
+        ),
+    )
+    invalid = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "relation only",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    revisions = iter((1, 2))
+    responder = nodes.CallableStructuredResponder(
+        lambda _role, _schema, _system, _payload: invalid.model_copy(
+            update={"revision": next(revisions)}
+        )
+    )
+    first = nodes.convert_assertions(
+        {
+            "_input": _input("repeat-contract"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        responder,
+    )
+    assert "failure" not in first
+    second = nodes.convert_assertions(
+        {
+            "_input": _input("repeat-contract"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": first["assertion_script"],
+            "_assertion_feedback": first["_assertion_feedback"],
+            "_assertion_contract_failure_signatures": first[
+                "_assertion_contract_failure_signatures"
+            ],
+            "_assertion_contract_repair_count": first[
+                "_assertion_contract_repair_count"
+            ],
+        },
+        responder,
+    )
+    assert "failure" in second
+    assert "repeated contract-invalid" in second["failure"].message
+
+
 def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
     from paper_stm_feedback_loop.discover.graph import run_discover_state
 
@@ -1070,6 +1396,45 @@ def test_cli_main_writes_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert list((output / "records").glob("L000-*-discover-completed/record.json"))
 
 
+def test_cli_failure_writes_auditable_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from paper_stm_feedback_loop.discover import cli
+
+    nl = tmp_path / "nl.txt"
+    stm = tmp_path / "STM_0.fcstm"
+    trace = tmp_path / "source_trace.json"
+    nl.write_text("After go, Done shall become active.", encoding="utf-8")
+    stm.write_text(MODEL, encoding="utf-8")
+    trace.write_text('{"entries": [], "attribution_exclusions": []}', encoding="utf-8")
+    monkeypatch.setattr(cli, "DirectStructuredResponder", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        cli,
+        "run_discover_state",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("bounded review gate")),
+    )
+    output = tmp_path / "failed-run"
+    with pytest.raises(RuntimeError, match="bounded review gate"):
+        cli.main(
+            [
+                "--case-id",
+                "custom-failure",
+                "--nl-file",
+                str(nl),
+                "--fcstm-file",
+                str(stm),
+                "--source-trace-file",
+                str(trace),
+                "--profile",
+                "test-profile",
+                "--output-dir",
+                str(output),
+            ]
+        )
+    failure = json.loads((output / "discover-failed.json").read_text(encoding="utf-8"))
+    assert failure["status"] == "failed"
+    assert "bounded review gate" in failure["error_message"]
+    assert "records/" in (output / "loops" / "discover-failed.md").read_text(encoding="utf-8")
+
+
 def test_assertion_review_hash_must_match_current_script() -> None:
     from paper_stm_feedback_loop.discover import nodes
 
@@ -1204,6 +1569,158 @@ def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> No
     binding = attributed["attribution_projection"].bindings[0]
     assert binding.status == "representation_debt"
     assert binding.source_level_claim_allowed is False
+
+
+def test_route_control_guarded_relation_is_representation_debt() -> None:
+    from paper_stm_feedback_loop.assertions import InMemorySealedStore
+    from paper_stm_feedback_loop.discover import nodes
+
+    model = """def int R45RouteToken = 0;
+state Root {
+    state Entry;
+    [*] -> Entry : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
+}
+"""
+    discover_input = _input("route-control-relation").model_copy(
+        update={
+            "stm_text": model,
+            "source_trace": {
+                "entries": [],
+                "attribution_exclusions": [
+                    "compiler:route_control:R45RouteToken"
+                ],
+            },
+        }
+    )
+    frozen = nodes._fallback_prepare(discover_input)
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "The initial relation should be unconditional.",
+                "expression": (
+                    "any(t.guard is None for t in "
+                    "transitions(source='[*]', target='Root.Entry'))"
+                ),
+                "failure_message": (
+                    "[REQ-001][AST-REQ-001-01] initial relation is guarded"
+                ),
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    store = InMemorySealedStore()
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+    )
+    released = nodes.release_results(
+        {
+            **checked,
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+    )
+    attributed = nodes.bind_attribution(
+        {**released, "_input": discover_input, "frozen_inputs": frozen}
+    )
+
+    binding = attributed["attribution_projection"].bindings[0]
+    assert binding.status == "representation_debt"
+    assert "compiler:route_control:R45RouteToken" in binding.exclusion_refs
+
+
+def test_wrong_target_near_miss_remains_source_attributable() -> None:
+    from paper_stm_feedback_loop.assertions import InMemorySealedStore
+    from paper_stm_feedback_loop.discover import nodes
+
+    model = """state Root {
+    event leave;
+    state Cruise;
+    state Exit;
+    state Finish;
+    [*] -> Cruise;
+    Cruise -> Finish : leave;
+}
+"""
+    discover_input = _input("wrong-target-near-miss").model_copy(
+        update={
+            "stm_text": model,
+            "source_trace": {
+                "entries": [
+                    {
+                        "trace_id": "trace:wrong-target",
+                        "intermediate_elements": [
+                            "Root.Cruise",
+                            "Root.leave",
+                            "Root.Finish",
+                        ],
+                        "source_elements": ["source:transition:wrong-target"],
+                        "attribution_boundary": {
+                            "source_level_claim_allowed": True,
+                            "representation_related": False,
+                            "conversion_or_lowering_related": False,
+                        },
+                    }
+                ],
+                "attribution_exclusions": [],
+            },
+        }
+    )
+    frozen = nodes._fallback_prepare(discover_input)
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "The local exit must reach Exit.",
+                "expression": (
+                    "transition_exists(source='Root.Cruise', "
+                    "event='Root.leave', target='Root.Exit')"
+                ),
+                "failure_message": (
+                    "[REQ-001][AST-REQ-001-01] local exit reaches wrong target"
+                ),
+                "evidence_family": "relation",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    store = InMemorySealedStore()
+    checked = nodes.precheck_and_seal(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+    )
+    released = nodes.release_results(
+        {
+            **checked,
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "assertion_script": script,
+        },
+        sealed_store=store,
+    )
+    attributed = nodes.bind_attribution(
+        {**released, "_input": discover_input, "frozen_inputs": frozen}
+    )
+
+    binding = attributed["attribution_projection"].bindings[0]
+    assert binding.status == "safe"
+    assert binding.source_refs == ("source:transition:wrong-target",)
 
 
 def test_simulation_false_on_ineligible_contract_is_representation_debt() -> None:
@@ -1398,6 +1915,9 @@ def test_attribution_matching_requires_exact_structured_path() -> None:
     assert not _reference_matches_observed(
         "state:case.Controller.Idle", {"event:case.Controller.Idle"}
     )
+    assert _reference_matches_observed(
+        "compiler:route_control:R45RouteToken", {"R45RouteToken"}
+    )
 
 
 def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
@@ -1481,3 +2001,114 @@ def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
     )
     assert out["failure"].node_name == "adjudicate_results"
     assert "every attribution-safe False assertion" in out["failure"].message
+
+
+def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("adjudication-reconcile"))
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "A contradicted requirement.",
+                "expression": "False",
+                "failure_message": "[REQ-001][AST-REQ-001-01] requirement failed",
+                "evidence_family": "structure",
+            },
+            {
+                "assertion_id": "AST-REQ-002-01",
+                "requirement_id": "REQ-002",
+                "description": "A satisfied requirement.",
+                "expression": "True",
+                "failure_message": "[REQ-002][AST-REQ-002-01] requirement failed",
+                "evidence_family": "structure",
+            },
+        ),
+        requirement_mapping={
+            "REQ-001": ("AST-REQ-001-01",),
+            "REQ-002": ("AST-REQ-002-01",),
+        },
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-01",
+                requirement_id="REQ-001",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="structure",
+            ),
+            AssertionResult(
+                assertion_id="AST-REQ-002-01",
+                requirement_id="REQ-002",
+                truth_value=True,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="structure",
+            ),
+        ),
+    )
+    attribution = AttributionProjection(
+        bindings=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "status": "safe",
+                "source_refs": ("state:Root.Done",),
+                "trace_entry_ids": ("trace-1",),
+                "source_level_claim_allowed": True,
+                "rationale": "source-owned",
+            },
+        )
+    )
+
+    def overreports_satisfied(
+        _role: str, schema: type[BaseModel], _system: str, _input_text: str
+    ) -> BaseModel:
+        assert schema is DiscoverAdjudication
+        return DiscoverAdjudication(
+            has_confirmed_issues=True,
+            issues=(
+                {
+                    "issue_id": "ISSUE-REQ-001",
+                    "requirement_id": "REQ-001",
+                    "assertion_ids": ("AST-REQ-001-01",),
+                    "title": "Requirement failed",
+                    "rationale": "The safe assertion is false.",
+                    "attribution_status": "safe",
+                },
+            ),
+            # Deliberately include the false requirement: this is a derived
+            # bookkeeping error that deterministic closure can correct.
+            satisfied_requirement_ids=("REQ-001", "REQ-002"),
+            rationale="The issue is retained and the satisfied list is provisional.",
+        )
+
+    out = nodes.adjudicate_results(
+        {
+            "_input": _input("adjudication-reconcile"),
+            "frozen_inputs": frozen,
+            "requirement_set": RequirementSet(
+                revision=1,
+                requirements=(
+                    {"requirement_id": "REQ-001", "statement": "A", "checkability": "structure"},
+                    {"requirement_id": "REQ-002", "statement": "B", "checkability": "structure"},
+                ),
+            ),
+            "assertion_script": script,
+            "released_assertion_results": released,
+            "attribution_projection": attribution,
+        },
+        nodes.CallableStructuredResponder(overreports_satisfied),
+    )
+    assert "failure" not in out
+    assert out["adjudication"].satisfied_requirement_ids == ("REQ-002",)
+    assert out["adjudication"].issues[0].assertion_ids == ("AST-REQ-001-01",)
+    assert out["_adjudication_reconciliation"]["normalization_applied"] is True

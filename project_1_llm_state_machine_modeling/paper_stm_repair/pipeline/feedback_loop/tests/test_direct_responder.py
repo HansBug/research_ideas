@@ -3,7 +3,9 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 
-from langchain_core.messages import AIMessage
+import pytest
+from langchain_core.messages import AIMessage, AIMessageChunk
+from langchain_core.runnables.utils import AddableDict
 
 from utils.llm import LLMConfig
 
@@ -26,7 +28,7 @@ class _Structured:
     def __init__(self, schema):
         self.schema = schema
 
-    def invoke(self, _messages):
+    def stream(self, _messages):
         parsed = self.schema(
             decision="accept",
             reviewed_revision=1,
@@ -42,14 +44,67 @@ class _Structured:
             },
             response_metadata={"model_name": "observed-unit-model"},
         )
-        return {"raw": raw, "parsed": parsed, "parsing_error": None}
+        yield AddableDict(raw=raw)
+        yield AddableDict(parsed=parsed)
+        yield AddableDict(parsing_error=None)
 
 
 class _Model:
+    def __init__(self):
+        self.structured_options = None
+
     def with_structured_output(self, schema, include_raw=False, method=None):
         assert include_raw is True
         assert method == "function_calling"
+        self.structured_options = {
+            "include_raw": include_raw,
+            "method": method,
+        }
         return _Structured(schema)
+
+
+class _IncompleteStructured:
+    def stream(self, _messages):
+        raw = AIMessageChunk(
+            content="",
+            tool_call_chunks=[
+                {
+                    "name": "RequirementReview",
+                    "args": (
+                        '{"decision":"accept","reviewed_revision":1,'
+                        '"rationale":'
+                    ),
+                    "id": "incomplete-call",
+                    "index": 0,
+                }
+            ],
+        )
+        parsed = RequirementReview(
+            decision="accept",
+            reviewed_revision=1,
+            rationale="The requirement set is complete.",
+        )
+        yield AddableDict(raw=raw)
+        yield AddableDict(parsed=parsed)
+        yield AddableDict(parsing_error=None)
+
+
+class _IncompleteModel:
+    def with_structured_output(self, _schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        return _IncompleteStructured()
+
+
+class _RecoveringIncompleteModel:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def with_structured_output(self, schema, include_raw=False, method=None):
+        assert include_raw is True
+        assert method == "function_calling"
+        self.calls += 1
+        return _IncompleteStructured() if self.calls == 1 else _Structured(schema)
 
 
 def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> None:
@@ -61,10 +116,24 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     monkeypatch.setattr(
         responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
     )
-    monkeypatch.setattr(
-        responder_module, "create_chat_model", lambda *_args, **_kwargs: _Model()
+    created = {}
+
+    def create_model(*_args, **kwargs):
+        created.update(kwargs)
+        model = _Model()
+        created["model"] = model
+        return model
+
+    monkeypatch.setattr(responder_module, "create_chat_model", create_model)
+    stream_updates = []
+    responder = DirectStructuredResponder(
+        "unit-profile",
+        on_stream_chunk=lambda role, chunks, elapsed_ms: stream_updates.append(
+            (role, chunks, elapsed_ms)
+        ),
     )
-    responder = DirectStructuredResponder("unit-profile")
+    assert created["streaming"] is True
+    assert created["max_retries"] == 0
     output = responder.invoke_structured(
         role="requirement_reviewer",
         schema=RequirementReview,
@@ -81,6 +150,12 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert observation.usage["input_tokens"] == 120
     assert observation.usage["cache_read_input_tokens"] == 20
     assert len(observation.attempts) == 1
+    assert [(role, chunks) for role, chunks, _ in stream_updates] == [
+        ("requirement_reviewer", 1),
+        ("requirement_reviewer", 2),
+        ("requirement_reviewer", 3),
+    ]
+    assert all(elapsed_ms >= 0 for _, _, elapsed_ms in stream_updates)
 
     state = {
         "_input": DiscoverInput(
@@ -123,3 +198,73 @@ def test_direct_responder_records_same_profile_model_and_usage(monkeypatch) -> N
     assert llm_record.user_prompt_sha256
     assert llm_record.parsed_output_sha256
     assert llm_record.raw_response_sha256
+
+
+def test_direct_responder_rejects_incomplete_structured_stream(monkeypatch) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: _IncompleteModel(),
+    )
+    responder = DirectStructuredResponder("unit-profile", transport_retries=0)
+
+    with pytest.raises(RuntimeError, match="structured tool-call arguments are incomplete"):
+        responder.invoke_structured(
+            role="requirement_reviewer",
+            schema=RequirementReview,
+            system_prompt="system",
+            user_input="user",
+        )
+
+    observation = responder.take_last_observation()
+    assert observation is not None
+    assert observation.status == "failed"
+    assert len(observation.attempts) == 1
+    assert observation.attempts[0]["failure_phase"] == "structured_stream"
+    assert observation.attempts[0]["retryable"] is True
+
+
+def test_direct_responder_retries_incomplete_stream_without_business_revision(
+    monkeypatch,
+) -> None:
+    config = LLMConfig(
+        adapter="openai",
+        model="configured-unit-model",
+        api_key="unit-test-key",
+    )
+    monkeypatch.setattr(
+        responder_module, "load_llm_registry", lambda _path=None: _Registry(config)
+    )
+    model = _RecoveringIncompleteModel()
+    monkeypatch.setattr(
+        responder_module,
+        "create_chat_model",
+        lambda *_args, **_kwargs: model,
+    )
+    responder = DirectStructuredResponder("unit-profile", transport_retries=1)
+
+    output = responder.invoke_structured(
+        role="requirement_reviewer",
+        schema=RequirementReview,
+        system_prompt="system",
+        user_input="user",
+    )
+
+    observation = responder.take_last_observation()
+    assert output.decision == "accept"
+    assert observation is not None
+    assert observation.status == "completed"
+    assert model.calls == 2
+    assert [attempt["status"] for attempt in observation.attempts] == [
+        "failed",
+        "completed",
+    ]
+    assert observation.attempts[0]["failure_phase"] == "structured_stream"

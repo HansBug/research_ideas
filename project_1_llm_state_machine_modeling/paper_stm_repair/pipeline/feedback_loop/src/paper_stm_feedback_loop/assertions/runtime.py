@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import signal
 import threading
 import traceback
@@ -75,6 +76,7 @@ class FunctionCallRecord:
     args: Any = None
     kwargs: dict[str, Any] = field(default_factory=dict)
     result: Any = None
+    model_refs: tuple[str, ...] = field(default_factory=tuple)
     exception_type: str | None = None
     exception_message: str | None = None
 
@@ -184,6 +186,7 @@ class EvalEnvironment:
         model_path: str = "<memory>",
         inspect: dict[str, Any] | None = None,
         source_mappings: list[dict[str, Any]] | None = None,
+        source_exclusions: list[str] | tuple[str, ...] | None = None,
         coverage_bindings: dict[str, list[str]] | None = None,
         extra_vars: dict[str, Any] | None = None,
         extra_functions: dict[str, tuple[str, Callable[..., Any]]] | None = None,
@@ -201,12 +204,22 @@ class EvalEnvironment:
             inspect = checked.get("inspect") if checked.get("inspect_status") == "ok" else {}
         self.inspect = copy.deepcopy(inspect or {})
         self.source_mappings = copy.deepcopy(source_mappings or [])
+        self.source_exclusions = tuple(str(item) for item in (source_exclusions or ()))
         self.timeout_seconds = timeout_seconds
         self.call_trace: list[FunctionCallRecord] = []
 
         self.structure = StructureAPI(self.inspect)
         self.relations = RelationAPI(self.structure)
-        self.effects = EffectAPI(self.structure)
+        route_control_prefix = "compiler:route_control:"
+        excluded_variables = {
+            item.removeprefix(route_control_prefix)
+            for item in self.source_exclusions
+            if item.startswith(route_control_prefix)
+        }
+        self.effects = EffectAPI(
+            self.structure,
+            excluded_variables=excluded_variables,
+        )
         self.simulation = SimulationAPI(model_text, model_path)
         machine = (
             load_model_for_simulation(model_text, model_path)
@@ -235,6 +248,7 @@ class EvalEnvironment:
             "transitions": ("relation", self.relations.transitions),
             "transition_exists": ("relation", self.relations.transition_exists),
             "guards_overlap": ("relation", self.relations.guards_overlap),
+            "conflicting_targets": ("relation", self.relations.conflicting_targets),
             "effects": ("effect", self.effects.effects),
             "effect_delta": ("effect", self.effects.effect_delta),
             "effect_deltas": ("effect", self.effects.effect_deltas),
@@ -308,6 +322,7 @@ class EvalEnvironment:
                 "model_sha256": sha256_text(self.model_text or ""),
                 "inspect": self.inspect,
                 "source_mappings": self.source_mappings,
+                "source_exclusions": self.source_exclusions,
                 "registered_vars": {
                     key: value.to_json() if isinstance(value, FrozenView) else repr(value)
                     for key, value in sorted(self.locals.items())
@@ -430,6 +445,7 @@ class EvalEnvironment:
                         args=_audit_value(args),
                         kwargs=_audit_value(kwargs),
                         result=_audit_value(value),
+                        model_refs=self._model_refs(name, kwargs, value),
                     )
                 )
                 return value
@@ -451,6 +467,122 @@ class EvalEnvironment:
 
         wrapped.__name__ = name
         return wrapped
+
+    def _model_refs(
+        self, name: str, kwargs: dict[str, Any], value: Any
+    ) -> tuple[str, ...]:
+        """Preserve model scope beside compact assertion return values.
+
+        Some public APIs intentionally return compact values, such as
+        ``effect_deltas() -> (variable, delta)``. The compact result is useful
+        to assertion authors but is insufficient for later source attribution.
+        Re-querying the already-frozen inspect facts here records the matching
+        transition identity without changing the public API or executing new
+        model behavior.
+        """
+
+        refs: set[str] = set()
+        effect_functions = {
+            "effects",
+            "effect_deltas",
+            "effect_delta",
+            "effect_assigns",
+        }
+        if name in {
+            "transitions",
+            "transition_exists",
+            "conflicting_targets",
+            *effect_functions,
+        }:
+            filters = {
+                key: kwargs[key]
+                for key in ("source", "event", "target")
+                if isinstance(kwargs.get(key), str)
+            }
+            # A variable-only effect probe is intentionally model-wide. Do not
+            # attach every transition and manufacture source attribution.
+            if name in effect_functions and not filters:
+                return ()
+            try:
+                transitions = self.structure.transitions(**filters)
+            except Exception:
+                transitions = ()
+            if name == "transition_exists" and value is False and not transitions:
+                transitions = self._near_miss_transitions(filters)
+            for transition in transitions:
+                for key in ("from_path", "to_path", "event"):
+                    ref = getattr(transition, key, None)
+                    if isinstance(ref, str) and ref:
+                        refs.add(ref)
+                index = getattr(transition, "transition_index", None)
+                if isinstance(index, int):
+                    refs.add(f"transition:{index}")
+                for variable in self._route_control_variables(transition):
+                    refs.add(f"route_control:{variable}")
+        return tuple(sorted(refs))
+
+    def _near_miss_transitions(
+        self, filters: dict[str, str]
+    ) -> tuple[FrozenView, ...]:
+        """Return the closest actual relation for a failed exact query.
+
+        A negative ``transition_exists`` result otherwise has no model identity
+        to bind.  Prefer the same source and trigger so a wrong destination is
+        still attributable; then try the remaining two-field projections.  A
+        single-field fallback is used only when the query itself supplies fewer
+        than three fields.  This records evidence scope, not a semantic guess.
+        """
+
+        preferred = (
+            ("source", "event"),
+            ("source", "target"),
+            ("event", "target"),
+        )
+        candidates = [
+            {key: filters[key] for key in keys}
+            for keys in preferred
+            if all(key in filters for key in keys) and len(keys) < len(filters)
+        ]
+        if len(filters) <= 2:
+            candidates.extend(
+                {key: filters[key]}
+                for key in ("source", "event", "target")
+                if key in filters
+            )
+        for candidate in candidates:
+            try:
+                transitions = self.structure.transitions(**candidate)
+            except Exception:
+                continue
+            if transitions:
+                return transitions
+        return ()
+
+    def _route_control_variables(self, transition: FrozenView) -> tuple[str, ...]:
+        """Return excluded compiler route variables referenced by a transition."""
+
+        if not self.source_exclusions:
+            return ()
+        text = " ".join(
+            str(value)
+            for value in (
+                getattr(transition, "guard", None),
+                getattr(transition, "effect", None),
+            )
+            if value is not None
+        )
+        if not text:
+            return ()
+        prefix = "compiler:route_control:"
+        return tuple(
+            sorted(
+                variable
+                for exclusion in self.source_exclusions
+                if exclusion.startswith(prefix)
+                for variable in (exclusion.removeprefix(prefix),)
+                if re.search(rf"(?<![A-Za-z0-9_]){re.escape(variable)}(?![A-Za-z0-9_])", text)
+            )
+        )
 
     def _result(
         self,

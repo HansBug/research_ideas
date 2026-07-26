@@ -84,6 +84,7 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
     released = state["released_assertion_results"]
     attribution = state["attribution_projection"]
     adjudication = state["adjudication"]
+    adjudication_reconciliation = state.get("_adjudication_reconciliation", {})
     nodes = state.get("node_execution_records", [])
     calls = state.get("llm_call_records", [])
     summary = telemetry_summary(nodes, calls)
@@ -109,12 +110,12 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
         "",
         "## Requirements",
         "",
-        "| ID | Checkability | Statement | Rationale |",
-        "| --- | --- | --- | --- |",
+        "| ID | Checkability | Statement | Source context | Rationale |",
+        "| --- | --- | --- | --- | --- |",
     ]
     for item in requirements.requirements:
         lines.append(
-            f"| `{item.requirement_id}` | `{item.checkability}` | {_cell(item.statement)} | {_cell(item.rationale)} |"
+            f"| `{item.requirement_id}` | `{item.checkability}` | {_cell(item.statement)} | {_cell(_json(item.source_context))} | {_cell(item.rationale)} |"
         )
     lines.extend(
         [
@@ -178,6 +179,12 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
             "",
             "```json",
             _json(adjudication),
+            "```",
+            "",
+            "### Deterministic Adjudication Reconciliation",
+            "",
+            "```json",
+            _json(adjudication_reconciliation),
             "```",
             "",
             "## Telemetry",

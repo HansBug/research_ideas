@@ -64,9 +64,11 @@ def route_after_split(state: DiscoverGraphState) -> Route:
 
 
 def route_after_convert(state: DiscoverGraphState) -> Route:
+    if "failure" in state:
+        return "run_failed"
     if state.get("_assertion_conversion_contract_feedback") is not None:
         return "convert_assertions"
-    return route_after_linear_node(state, "precheck_and_seal")
+    return "precheck_and_seal"
 
 
 def route_after_release(state: DiscoverGraphState) -> Route:

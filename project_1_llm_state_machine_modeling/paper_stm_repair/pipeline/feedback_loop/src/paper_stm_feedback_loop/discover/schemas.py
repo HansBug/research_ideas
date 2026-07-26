@@ -15,7 +15,6 @@ from pydantic import (
 
 SCHEMA_VERSION = "v1"
 
-
 class StrictBaseModel(BaseModel):
     # JSON arrays are the wire representation of immutable tuple fields. Keep
     # extra-field rejection/frozen outputs while using StrictBool explicitly at
@@ -40,6 +39,12 @@ class RevisionFeedback(StrictBaseModel):
     target: Literal["requirements", "assertions"]
     reason: str = Field(min_length=1)
     findings: tuple[str, ...] = Field(default_factory=tuple)
+    origin: Literal[
+        "requirement_review",
+        "assertion_contract",
+        "assertion_precheck",
+        "assertion_review",
+    ] = "assertion_review"
 
 
 class DiscoverInput(StrictBaseModel):
@@ -82,6 +87,9 @@ class Requirement(StrictBaseModel):
     statement: str = Field(min_length=1)
     rationale: str = Field(default="")
     source_segment_ids: tuple[str, ...] = Field(default_factory=tuple)
+    # Lightweight, input-derived scope ledger.  It may record explicit or
+    # carefully qualified inferred source context, but never evaluator gold.
+    source_context: dict[str, Any] = Field(default_factory=dict)
     checkability: Literal[
         "structure",
         "relation",
@@ -323,6 +331,7 @@ class DiscoverCompleted(StrictBaseModel):
     released_results_hash: str
     adjudication: DiscoverAdjudication
     issues: tuple[AdjudicatedIssue, ...]
+    adjudication_reconciliation: dict[str, Any] = Field(default_factory=dict)
     regression_guards: tuple[str, ...] = Field(default_factory=tuple)
     telemetry_summary: dict[str, Any] = Field(default_factory=dict)
     content_language: Literal["zh-CN", "en-US"] = "zh-CN"
@@ -412,17 +421,20 @@ class DiscoverGraphState(TypedDict, total=False):
     released_assertion_results: ReleasedAssertionResults
     attribution_projection: AttributionProjection
     adjudication: DiscoverAdjudication
+    _adjudication_reconciliation: dict[str, Any]
     final_output: DiscoverCompleted
     failure: RunFailure
     node_execution_records: list[NodeExecutionRecord]
     llm_call_records: list[LLMCallRecord]
     requirement_fingerprints: tuple[str, ...]
     assertion_fingerprints: tuple[str, ...]
+    _assertion_contract_failure_signatures: tuple[str, ...]
     _assertion_invalid_signatures: tuple[str, ...]
     _input: DiscoverInput
     _requirement_feedback: RevisionFeedback
     _requirement_review_repair_count: int
-    _assertion_feedback: RevisionFeedback
+    _assertion_feedback: RevisionFeedback | None
+    _assertion_feedback_history: tuple[RevisionFeedback, ...]
     _assertion_review_repair_count: int
     _assertion_conversion_contract_feedback: RevisionFeedback | None
     _assertion_contract_repair_count: int

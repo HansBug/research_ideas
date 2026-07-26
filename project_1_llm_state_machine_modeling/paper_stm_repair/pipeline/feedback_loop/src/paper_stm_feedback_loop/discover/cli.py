@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -127,6 +128,53 @@ def _prepare_output(path: str) -> Path:
     return root
 
 
+def _write_failure_artifacts(
+    output_root: Path,
+    *,
+    run_id: str,
+    profile: str,
+    content_language: str,
+    error_type: str,
+    error_message: str,
+) -> None:
+    """Persist a deterministic failure receipt without rewriting records.
+
+    A failed revision loop is still an auditable experiment outcome.  The
+    immutable node/LLM/transport records are the detailed source; this small
+    receipt makes the terminal failure discoverable without pretending that a
+    partial run produced a completed Discover result.
+    """
+
+    loops = output_root / "loops"
+    loops.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_name": "DiscoverRunFailure",
+        "schema_version": "v1",
+        "run_id": run_id,
+        "status": "failed",
+        "profile": profile,
+        "content_language": content_language,
+        "error_type": error_type,
+        "error_message": error_message,
+        "records_dir": "records",
+    }
+    with (output_root / "discover-failed.json").open("x", encoding="utf-8") as stream:
+        json.dump(payload, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
+    with (loops / "discover-failed.md").open("x", encoding="utf-8") as stream:
+        stream.write("# Discover 运行失败记录\n\n")
+        stream.write("本文件由确定性 CLI 生成；运行失败不等于问题不存在。\n\n")
+        stream.write(f"- `run_id`: `{run_id}`\n")
+        stream.write(f"- `profile`: `{profile}`\n")
+        stream.write("- `status`: `failed`\n")
+        stream.write(f"- `error_type`: `{error_type}`\n")
+        stream.write(f"- `error_message`: {error_message}\n\n")
+        stream.write(
+            "所有已产生的 node、LLM、transport attempt 和 revision feedback "
+            "仍保存在 [`records/`](../records/)；该失败收据不把部分结果伪装成 completed。\n"
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.profile == "fake":
@@ -140,9 +188,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     source_entries = bundle.source_trace.data.get("entries", [])
     source_entries = source_entries if isinstance(source_entries, list) else []
+    source_exclusions = bundle.source_trace.data.get("attribution_exclusions", [])
+    source_exclusions = (
+        source_exclusions if isinstance(source_exclusions, list) else []
+    )
     environment = build_eval_environment(
         model_text=bundle.fcstm_text,
         source_mappings=source_entries,
+        source_exclusions=source_exclusions,
         timeout_seconds=args.assertion_timeout_seconds,
         fbmcq_solver_timeout_ms=args.fbmcq_solver_timeout_ms,
         fbmcq_max_bound=args.fbmcq_max_bound,
@@ -175,21 +228,42 @@ def main(argv: list[str] | None = None) -> int:
             "tool_env_hash": tool_env_hash,
         },
     )
+    last_stream_heartbeat: dict[str, float] = {}
+
+    def on_stream_chunk(role: str, chunk_count: int, elapsed_ms: float) -> None:
+        now = time.monotonic()
+        previous = last_stream_heartbeat.get(role)
+        if chunk_count != 1 and previous is not None and now - previous < 5.0:
+            return
+        print(
+            f"[discover] {role} stream chunk={chunk_count} "
+            f"elapsed={elapsed_ms / 1000:.1f}s",
+            flush=True,
+        )
+        last_stream_heartbeat[role] = now
+
     responder = DirectStructuredResponder(
         args.profile,
         registry_path=args.llm_config,
         max_output_tokens=args.max_output_tokens,
         transport_retries=args.transport_retries,
+        on_stream_chunk=on_stream_chunk,
     )
     seen_nodes: set[str] = set()
     seen_calls: set[str] = set()
 
     def on_update(node_name: str, update: dict[str, Any]) -> None:
-        print(f"[discover] {node_name}", flush=True)
+        emitted_node_record = False
         for record in update.get("node_execution_records", []):
             if record.node_call_id not in seen_nodes:
+                print(
+                    f"[discover] {record.node_name} revision={record.revision} "
+                    f"status={record.status} call={record.node_call_id}",
+                    flush=True,
+                )
                 records.append(f"{record.node_name}-{record.status}", record)
                 seen_nodes.add(record.node_call_id)
+                emitted_node_record = True
         for call in update.get("llm_call_records", []):
             if call.llm_call_id not in seen_calls:
                 records.append(f"{call.role}-llm-call-{call.status}", call)
@@ -199,6 +273,8 @@ def main(argv: list[str] | None = None) -> int:
                         attempt,
                     )
                 seen_calls.add(call.llm_call_id)
+        if not emitted_node_record:
+            print(f"[discover] {node_name} state-update", flush=True)
         snapshot = {
             key: value
             for key, value in update.items()
@@ -224,6 +300,14 @@ def main(argv: list[str] | None = None) -> int:
                 "reason": "operator_interrupt_after_observed_no_progress",
             },
         )
+        _write_failure_artifacts(
+            output_root,
+            run_id=run_id,
+            profile=args.profile,
+            content_language=args.content_language,
+            error_type="KeyboardInterrupt",
+            error_message="operator interrupt after observed no progress",
+        )
         raise
     except Exception as exc:
         records.append(
@@ -235,6 +319,14 @@ def main(argv: list[str] | None = None) -> int:
                 "error_type": type(exc).__name__,
                 "error_message": str(exc),
             },
+        )
+        _write_failure_artifacts(
+            output_root,
+            run_id=run_id,
+            profile=args.profile,
+            content_language=args.content_language,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
         )
         raise
 

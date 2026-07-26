@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Iterable
 from .exceptions import UnsupportedEvidence
 from .structure import StructureAPI
 
@@ -53,8 +54,14 @@ class EffectAPI:
 
     family = "effect"
 
-    def __init__(self, structure: StructureAPI) -> None:
+    def __init__(
+        self,
+        structure: StructureAPI,
+        *,
+        excluded_variables: Iterable[str] = (),
+    ) -> None:
         self.structure = structure
+        self.excluded_variables = frozenset(excluded_variables)
 
     def effect_deltas(
         self,
@@ -82,6 +89,8 @@ class EffectAPI:
             if not effect:
                 continue
             for variable_name, expr in _assignments(effect):
+                if variable_name in self.excluded_variables:
+                    continue
                 if variable is not None and variable_name != variable:
                     continue
                 before = self._initial_value(variable_name)
@@ -106,6 +115,8 @@ class EffectAPI:
             raise UnsupportedEvidence("effect_delta requires exactly one matching transition")
         effect = transitions[0].effect
         if not effect:
+            return None
+        if variable in self.excluded_variables:
             return None
         assignments = _assignments(str(effect))
         matches = [expr for var, expr in assignments if var == variable]
@@ -134,9 +145,14 @@ class EffectAPI:
             effect = str(transition.effect or "")
             if not effect:
                 continue
-            if variable is not None and not any(
-                assigned == variable for assigned, _expr in _assignments(effect)
-            ):
+            assignments = [
+                assigned
+                for assigned, _expr in _assignments(effect)
+                if assigned not in self.excluded_variables
+            ]
+            if not assignments:
+                continue
+            if variable is not None and variable not in assignments:
                 continue
             matches.append(transition)
         return tuple(matches)
@@ -153,6 +169,8 @@ class EffectAPI:
         if len(transitions) > 1:
             raise UnsupportedEvidence("effect_assigns requires an unambiguous transition")
         if not transitions:
+            return False
+        if variable in self.excluded_variables:
             return False
         return any(
             var == variable
