@@ -290,7 +290,6 @@ def test_v2_converter_path_rejects_legacy_inferred_assertion_fields() -> None:
         ("behavior", "simulation", True),
         ("property", "fbmcq", True),
         ("structure", "simulation", False),
-        ("behavior", "relation", False),
         ("property", "simulation", False),
     ],
 )
@@ -350,6 +349,92 @@ def test_primary_family_matrix_is_enforced(
         assert "invalid primary families" in out[
             "_assertion_conversion_contract_feedback"
         ].findings[0]
+
+
+@pytest.mark.parametrize(
+    ("verification_kind", "mandatory_family", "complementary_family"),
+    [
+        ("behavior", "simulation", "relation"),
+        ("behavior", "simulation", "effect"),
+        ("property", "fbmcq", "relation"),
+        ("property", "fbmcq", "structure"),
+        ("property", "fbmcq", "effect"),
+    ],
+)
+def test_complementary_primary_requires_mandatory_family(
+    verification_kind: str,
+    mandatory_family: str,
+    complementary_family: str,
+) -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("complementary-primary"))
+    requirements = RequirementSet.model_validate(
+        {
+            "revision": 1,
+            "requirements": [
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "A typed requirement.",
+                    "verification_kind": verification_kind,
+                }
+            ],
+        }
+    )
+
+    def script(*families: str) -> AssertionScript:
+        assertions = [
+            {
+                "assertion_id": f"AST-REQ-001-{index}",
+                "requirement_id": "REQ-001",
+                "description": f"Primary {family} evidence.",
+                "expression": "True",
+                "failure_message": f"[REQ-001][AST-REQ-001-{index}] failed",
+                "evidence_family": family,
+                "role": "primary",
+                "coverage_key": f"REQ-001:{family}:{index}",
+                "aggregation_group": "REQ-001:all",
+            }
+            for index, family in enumerate(families, start=1)
+        ]
+        return AssertionScript.model_validate(
+            {
+                "revision": 1,
+                "assertions": assertions,
+                "requirement_mapping": {
+                    "REQ-001": [item["assertion_id"] for item in assertions]
+                },
+            }
+        )
+
+    missing = nodes.convert_assertions(
+        {
+            "_input": _input("complementary-primary-missing"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: script(complementary_family)
+        ),
+    )
+    assert "missing mandatory primary evidence families" in missing[
+        "_assertion_conversion_contract_feedback"
+    ].findings[0]
+
+    accepted = nodes.convert_assertions(
+        {
+            "_input": _input("complementary-primary-accepted"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: script(
+                mandatory_family, complementary_family
+            )
+        ),
+    )
+    assert "failure" not in accepted
+    assert accepted.get("_assertion_conversion_contract_feedback") is None
 
 
 def test_requirement_with_only_supporting_assertions_is_rejected() -> None:
@@ -2783,6 +2868,157 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
     assert (
         out["adjudication"].excluded_observations[0].disposition
         == "supporting_false"
+    )
+
+
+def test_safe_relation_primary_can_confirm_behavior_issue_when_simulation_has_debt() -> (
+    None
+):
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("behavior-complementary-primary"))
+    requirements = RequirementSet.model_validate(
+        {
+            "revision": 1,
+            "requirements": [
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "PowerOff shall reach Final.",
+                    "verification_kind": "behavior",
+                }
+            ],
+        }
+    )
+    script = AssertionScript.model_validate(
+        {
+            "revision": 1,
+            "assertions": [
+                {
+                    "assertion_id": "AST-REQ-001-SIM",
+                    "requirement_id": "REQ-001",
+                    "description": "Runtime response.",
+                    "expression": "False",
+                    "failure_message": "[REQ-001][AST-REQ-001-SIM] runtime mismatch",
+                    "evidence_family": "simulation",
+                    "role": "primary",
+                    "coverage_key": "runtime:PowerOff",
+                    "aggregation_group": "REQ-001:all",
+                },
+                {
+                    "assertion_id": "AST-REQ-001-REL",
+                    "requirement_id": "REQ-001",
+                    "description": "Exact source-event-target relation.",
+                    "expression": "False",
+                    "failure_message": "[REQ-001][AST-REQ-001-REL] relation mismatch",
+                    "evidence_family": "relation",
+                    "role": "primary",
+                    "coverage_key": "relation:PowerOff:Final",
+                    "aggregation_group": "REQ-001:all",
+                },
+            ],
+            "requirement_mapping": {
+                "REQ-001": ["AST-REQ-001-SIM", "AST-REQ-001-REL"]
+            },
+        }
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-SIM",
+                requirement_id="REQ-001",
+                role="primary",
+                coverage_key="runtime:PowerOff",
+                aggregation_group="REQ-001:all",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="simulation",
+            ),
+            AssertionResult(
+                assertion_id="AST-REQ-001-REL",
+                requirement_id="REQ-001",
+                role="primary",
+                coverage_key="relation:PowerOff:Final",
+                aggregation_group="REQ-001:all",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="relation",
+            ),
+        ),
+    )
+    attribution = AttributionProjection.model_validate(
+        {
+            "bindings": [
+                {
+                    "assertion_id": "AST-REQ-001-SIM",
+                    "requirement_id": "REQ-001",
+                    "status": "representation_debt",
+                    "source_refs": [],
+                    "trace_entry_ids": [],
+                    "exclusion_refs": ["contract:simulation"],
+                    "source_level_claim_allowed": False,
+                    "rationale": "Simulation is excluded by the frozen contract.",
+                },
+                {
+                    "assertion_id": "AST-REQ-001-REL",
+                    "requirement_id": "REQ-001",
+                    "status": "safe",
+                    "source_refs": ["transition:Root.Active->Root.Final"],
+                    "trace_entry_ids": ["trace-1"],
+                    "exclusion_refs": [],
+                    "source_level_claim_allowed": True,
+                    "rationale": "The exact relation is source-owned.",
+                },
+            ]
+        }
+    )
+
+    out = nodes.adjudicate_results(
+        {
+            "_input": _input("behavior-complementary-primary"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+            "released_assertion_results": released,
+            "attribution_projection": attribution,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: DiscoverAdjudication(
+                has_confirmed_issues=True,
+                issues=(
+                    {
+                        "issue_id": "ISSUE-REQ-001-REL",
+                        "requirement_id": "REQ-001",
+                        "assertion_ids": ("AST-REQ-001-REL",),
+                        "title": "PowerOff relation is absent",
+                        "rationale": "The source-owned exact relation is False.",
+                        "attribution_status": "safe",
+                    },
+                ),
+                excluded_findings=(
+                    {
+                        "issue_id": "ISSUE-REQ-001-SIM-DEBT",
+                        "requirement_id": "REQ-001",
+                        "assertion_ids": ("AST-REQ-001-SIM",),
+                        "title": "Simulation mismatch is excluded",
+                        "rationale": "The simulation touches representation debt.",
+                        "attribution_status": "representation_debt",
+                    },
+                ),
+                satisfied_requirement_ids=(),
+                rationale="The safe exact mismatch confirms the issue.",
+            )
+        ),
+    )
+
+    assert "failure" not in out
+    assert out["adjudication"].issues[0].assertion_ids == ("AST-REQ-001-REL",)
+    assert out["adjudication"].excluded_findings[0].assertion_ids == (
+        "AST-REQ-001-SIM",
     )
 
 

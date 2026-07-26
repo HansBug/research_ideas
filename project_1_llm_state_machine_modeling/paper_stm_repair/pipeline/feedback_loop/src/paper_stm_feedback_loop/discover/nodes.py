@@ -53,8 +53,14 @@ MAX_ASSERTION_REVIEW_REPAIRS = 5
 MAX_ASSERTION_CONTRACT_REPAIRS = 5
 MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
 
-PRIMARY_EVIDENCE_FAMILIES = {
+ALLOWED_PRIMARY_EVIDENCE_FAMILIES = {
     "structure": {"structure", "relation", "effect", "topology", "provenance"},
+    "behavior": {"simulation", "relation", "effect"},
+    "property": {"fbmcq", "structure", "relation", "effect"},
+}
+
+MANDATORY_PRIMARY_EVIDENCE_FAMILIES = {
+    "structure": set(),
     "behavior": {"simulation"},
     "property": {"fbmcq"},
 }
@@ -1065,7 +1071,7 @@ def convert_assertions(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion"
                 )
-            allowed_primary_families = PRIMARY_EVIDENCE_FAMILIES[
+            allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
             invalid_primary_families = sorted(
@@ -1081,6 +1087,22 @@ def convert_assertions(
                     f"{requirement.requirement_id} requires primary evidence from "
                     f"{sorted(allowed_primary_families)}; invalid primary families: "
                     f"{invalid_primary_families}. Weaker evidence must be supporting"
+                )
+            present_primary_families = {
+                assertion.evidence_family for assertion in primary_assertions
+            }
+            missing_mandatory_families = sorted(
+                MANDATORY_PRIMARY_EVIDENCE_FAMILIES[
+                    requirement.verification_kind
+                ]
+                - present_primary_families
+            )
+            if missing_mandatory_families:
+                raise ValueError(
+                    f"{requirement.verification_kind} requirement "
+                    f"{requirement.requirement_id} is missing mandatory primary "
+                    f"evidence families: {missing_mandatory_families}. Additional "
+                    "exact primary evidence may complement but cannot replace them"
                 )
             coverage_keys = [assertion.coverage_key for assertion in primary_assertions]
             if len(coverage_keys) != len(set(coverage_keys)):
