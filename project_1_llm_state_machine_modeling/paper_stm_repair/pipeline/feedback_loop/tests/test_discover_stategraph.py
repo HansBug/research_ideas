@@ -2770,11 +2770,23 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                 "coverage_key": "support:route",
                 "aggregation_group": "REQ-001:all",
             },
+            {
+                "assertion_id": "AST-REQ-001-SUPPORT-TRUE",
+                "requirement_id": "REQ-001",
+                "description": "Passing supporting locator.",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-SUPPORT-TRUE] locator",
+                "evidence_family": "relation",
+                "role": "supporting",
+                "coverage_key": "support:passing-route",
+                "aggregation_group": "REQ-001:all",
+            },
         ),
         requirement_mapping={
             "REQ-001": (
                 "AST-REQ-001-PRIMARY",
                 "AST-REQ-001-SUPPORT",
+                "AST-REQ-001-SUPPORT-TRUE",
             )
         },
     )
@@ -2801,6 +2813,17 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                 coverage_key="support:route",
                 aggregation_group="REQ-001:all",
                 truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="relation",
+            ),
+            AssertionResult(
+                assertion_id="AST-REQ-001-SUPPORT-TRUE",
+                requirement_id="REQ-001",
+                role="supporting",
+                coverage_key="support:passing-route",
+                aggregation_group="REQ-001:all",
+                truth_value=True,
                 script_hash="script",
                 tool_env_hash="env",
                 evidence_family="relation",
@@ -2852,6 +2875,13 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                         "disposition": "quarantined",
                         "rationale": "Raw structured response before normalization.",
                     },
+                    {
+                        "assertion_id": "AST-REQ-001-SUPPORT-TRUE",
+                        "requirement_id": "REQ-001",
+                        "role": "supporting",
+                        "disposition": "supporting_false",
+                        "rationale": "A spurious observation for a True result.",
+                    },
                 ),
                 satisfied_requirement_ids=("REQ-001",),
                 rationale="Primary coverage is satisfied.",
@@ -2862,6 +2892,7 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
     assert "failure" not in out
     assert out["adjudication"].issues == ()
     assert out["adjudication"].satisfied_requirement_ids == ("REQ-001",)
+    assert len(out["adjudication"].excluded_observations) == 1
     assert out["adjudication"].excluded_observations[0].assertion_id == (
         "AST-REQ-001-SUPPORT"
     )

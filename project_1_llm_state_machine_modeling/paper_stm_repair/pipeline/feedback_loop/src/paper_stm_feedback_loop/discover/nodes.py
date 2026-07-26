@@ -2398,24 +2398,14 @@ def adjudicate_results(
             )
             for assertion_id in sorted(supporting_false_assertions)
         )
-        observation_by_assertion = {
-            observation.assertion_id: observation
-            for observation in output.excluded_observations
-        }
-        observation_by_assertion.update(
-            {
-                observation.assertion_id: observation
-                for observation in supporting_observations
-            }
-        )
         output = output.model_copy(
             update={
                 "issues": tuple(normalized_issues),
                 "excluded_findings": tuple(normalized_excluded),
-                "excluded_observations": tuple(
-                    observation_by_assertion[key]
-                    for key in sorted(observation_by_assertion)
-                ),
+                # This projection is derived from released execution truth, not
+                # copied from the semantic adjudicator.  A model-written True
+                # observation must never be relabelled as supporting_false.
+                "excluded_observations": supporting_observations,
                 "has_confirmed_issues": bool(normalized_issues),
             }
         )
