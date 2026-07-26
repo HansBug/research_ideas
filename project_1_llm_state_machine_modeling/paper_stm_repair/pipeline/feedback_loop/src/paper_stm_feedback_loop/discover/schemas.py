@@ -13,13 +13,43 @@ from pydantic import (
     model_validator,
 )
 
-SCHEMA_VERSION = "v1"
+SCHEMA_VERSION = "v2"
+
 
 class StrictBaseModel(BaseModel):
     # JSON arrays are the wire representation of immutable tuple fields. Keep
     # extra-field rejection/frozen outputs while using StrictBool explicitly at
     # the truth-bearing method boundaries.
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+VerificationKind = Literal["structure", "behavior", "property"]
+EvidenceFamily = Literal[
+    "structure",
+    "relation",
+    "effect",
+    "simulation",
+    "fbmcq",
+    "topology",
+    "provenance",
+]
+AssertionRole = Literal["primary", "supporting"]
+
+
+class CoverageObligation(StrictBaseModel):
+    domain: str = Field(default="requirement", min_length=1)
+    partition_by: str | None = None
+    aggregation: Literal["all", "any", "exactly_one", "custom"] = "all"
+    custom_policy_id: str | None = None
+    limitations: tuple[str, ...] = Field(default_factory=tuple)
+
+    @model_validator(mode="after")
+    def _custom_policy_is_named(self) -> "CoverageObligation":
+        if self.aggregation == "custom" and not self.custom_policy_id:
+            raise ValueError("custom coverage aggregation requires custom_policy_id")
+        if self.aggregation != "custom" and self.custom_policy_id is not None:
+            raise ValueError("custom_policy_id is only valid for custom aggregation")
+        return self
 
 
 class NodeName(str, Enum):
@@ -39,6 +69,8 @@ class RevisionFeedback(StrictBaseModel):
     target: Literal["requirements", "assertions"]
     reason: str = Field(min_length=1)
     findings: tuple[str, ...] = Field(default_factory=tuple)
+    target_item_ids: tuple[str, ...] = Field(default_factory=tuple)
+    recovery_seed: dict[str, Any] | None = None
     origin: Literal[
         "requirement_review",
         "assertion_contract",
@@ -55,6 +87,7 @@ class RevisionLedgerEvent(StrictBaseModel):
     event: Literal[
         "artifact_created",
         "artifact_rejected",
+        "artifact_quarantined",
         "check_completed",
         "review_completed",
     ]
@@ -64,11 +97,13 @@ class RevisionLedgerEvent(StrictBaseModel):
     artifact_delta: dict[str, Any] = Field(default_factory=dict)
     rationale: str | None = None
     findings: tuple[str, ...] = Field(default_factory=tuple)
+    item_ids: tuple[str, ...] = Field(default_factory=tuple)
+    budget_counters: dict[str, int] = Field(default_factory=dict)
 
 
 class DiscoverInput(StrictBaseModel):
     schema_name: Literal["DiscoverInput"] = "DiscoverInput"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str = Field(min_length=1)
     natural_language: str = Field(min_length=1)
     stm_text: str = Field(min_length=1)
@@ -87,7 +122,7 @@ class DiscoverRunIdentity(StrictBaseModel):
 
 class FrozenDiscoverInputs(StrictBaseModel):
     schema_name: Literal["FrozenDiscoverInputs"] = "FrozenDiscoverInputs"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str = Field(min_length=1)
     natural_language: str = Field(min_length=1)
     stm_text: str = Field(min_length=1)
@@ -109,20 +144,51 @@ class Requirement(StrictBaseModel):
     # Lightweight, input-derived scope ledger.  It may record explicit or
     # carefully qualified inferred source context, but never evaluator gold.
     source_context: dict[str, Any] = Field(default_factory=dict)
-    checkability: Literal[
-        "structure",
-        "relation",
-        "effect",
-        "simulation",
-        "fbmcq",
-        "topology",
-        "provenance",
-    ]
+    verification_kind: VerificationKind
+    quantifier: str = Field(default="unspecified", min_length=1)
+    trigger: str | None = None
+    expected_outcome: str | None = None
+    timing: str | None = None
+    coverage_obligation: CoverageObligation = Field(default_factory=CoverageObligation)
+    limitations: tuple[str, ...] = Field(default_factory=tuple)
+    # Read-only compatibility for v1 fixtures and historical artifacts. New
+    # producer prompts must emit verification_kind and leave this field absent.
+    checkability: (
+        Literal[
+            "structure",
+            "relation",
+            "effect",
+            "simulation",
+            "fbmcq",
+            "topology",
+            "provenance",
+        ]
+        | None
+    ) = Field(default=None, exclude=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upgrade_v1_checkability(cls, value: Any) -> Any:
+        if not isinstance(value, dict) or value.get("verification_kind"):
+            return value
+        legacy = value.get("checkability")
+        mapping = {
+            "structure": "structure",
+            "relation": "structure",
+            "topology": "structure",
+            "provenance": "structure",
+            "effect": "behavior",
+            "simulation": "behavior",
+            "fbmcq": "property",
+        }
+        if legacy in mapping:
+            return {**value, "verification_kind": mapping[legacy]}
+        return value
 
 
 class RequirementSet(StrictBaseModel):
     schema_name: Literal["RequirementSet"] = "RequirementSet"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     revision: int = Field(ge=1)
     requirements: tuple[Requirement, ...] = Field(min_length=1)
     segment_disposition: dict[
@@ -143,6 +209,41 @@ class RequirementSet(StrictBaseModel):
 class RequirementCoverageProjection(StrictBaseModel):
     covered_requirement_ids: tuple[str, ...]
     missing_segment_ids: tuple[str, ...] = Field(default_factory=tuple)
+    accepted_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
+    quarantined_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
+
+
+class CoverageGap(StrictBaseModel):
+    gap_id: str = Field(pattern=r"^GAP-[A-Za-z0-9_.-]+$", min_length=5)
+    stage: Literal["requirement_split", "assertion_conversion", "assertion_review"]
+    requirement_id: str | None = None
+    assertion_ids: tuple[str, ...] = Field(default_factory=tuple)
+    source_segment_ids: tuple[str, ...] = Field(default_factory=tuple)
+    reason_code: Literal[
+        "no_progress",
+        "revision_budget_exhausted",
+        "contract_invalid",
+        "review_unresolved",
+    ]
+    reason: str = Field(min_length=1)
+    last_revision: int = Field(ge=0)
+    last_feedback: str | None = None
+    history_refs: tuple[str, ...] = Field(default_factory=tuple)
+    coverage_impact: str = Field(min_length=1)
+    blocks_full_coverage: StrictBool
+
+
+class ExcludedObservation(StrictBaseModel):
+    assertion_id: str
+    requirement_id: str
+    role: AssertionRole
+    disposition: Literal[
+        "supporting_false",
+        "quarantined",
+        "representation_debt",
+        "unattributed",
+    ]
+    rationale: str = Field(min_length=1)
 
 
 class RequirementReviewFinding(StrictBaseModel):
@@ -154,7 +255,7 @@ class RequirementReviewFinding(StrictBaseModel):
 
 class RequirementReview(StrictBaseModel):
     schema_name: Literal["RequirementReview"] = "RequirementReview"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     decision: Literal["accept", "revise"]
     reviewed_revision: int = Field(ge=1)
     findings: tuple[RequirementReviewFinding, ...] = Field(default_factory=tuple)
@@ -175,20 +276,37 @@ class AssertionSpec(StrictBaseModel):
     description: str = Field(min_length=1)
     expression: str = Field(min_length=1)
     failure_message: str = Field(min_length=1)
-    evidence_family: Literal[
-        "structure",
-        "relation",
-        "effect",
-        "simulation",
-        "fbmcq",
-        "topology",
-        "provenance",
-    ]
+    evidence_family: EvidenceFamily
+    role: AssertionRole | None = None
+    coverage_key: str | None = None
+    aggregation_group: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upgrade_v1_assertion_role(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        assertion_id = value.get("assertion_id")
+        requirement_id = value.get("requirement_id")
+        if not assertion_id or not requirement_id:
+            return value
+        return {
+            **value,
+            "coverage_key": value.get("coverage_key") or f"legacy:{assertion_id}",
+            "aggregation_group": value.get("aggregation_group")
+            or f"legacy-group:{requirement_id}",
+        }
+
+    @model_validator(mode="after")
+    def _coverage_fields_present(self) -> "AssertionSpec":
+        if not self.coverage_key or not self.aggregation_group:
+            raise ValueError("assertions require coverage_key and aggregation_group")
+        return self
 
 
 class AssertionScript(StrictBaseModel):
     schema_name: Literal["AssertionScript"] = "AssertionScript"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     revision: int = Field(ge=1)
     prefix: str = ""
     assertions: tuple[AssertionSpec, ...] = Field(min_length=1)
@@ -208,13 +326,15 @@ class AssertionScript(StrictBaseModel):
 class AssertionExecutionPublic(StrictBaseModel):
     assertion_id: str
     requirement_id: str
+    role: AssertionRole = "primary"
+    coverage_key: str | None = None
     status: Literal["executable", "invalid"]
     error: str | None = None
 
 
 class AssertionCheckPublic(StrictBaseModel):
     schema_name: Literal["AssertionCheckPublic"] = "AssertionCheckPublic"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     script_hash: str = Field(min_length=1)
     tool_env_hash: str = Field(min_length=1)
     status: Literal["executable", "invalid"]
@@ -236,6 +356,9 @@ class AssertionCheckPublic(StrictBaseModel):
 class AssertionResult(StrictBaseModel):
     assertion_id: str
     requirement_id: str
+    role: AssertionRole = "primary"
+    coverage_key: str | None = None
+    aggregation_group: str | None = None
     truth_value: StrictBool
     script_hash: str
     tool_env_hash: str
@@ -248,7 +371,7 @@ class AssertionResult(StrictBaseModel):
 
 class SealedAssertionReceipt(StrictBaseModel):
     schema_name: Literal["SealedAssertionReceipt"] = "SealedAssertionReceipt"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     script_hash: str = Field(min_length=1)
     tool_env_hash: str = Field(min_length=1)
     sealed_hash: str = Field(min_length=1)
@@ -266,7 +389,7 @@ class AssertionReviewFinding(StrictBaseModel):
 
 class AssertionReview(StrictBaseModel):
     schema_name: Literal["AssertionReview"] = "AssertionReview"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     decision: Literal["accept", "revise"]
     reviewed_script_hash: str = Field(min_length=1)
     findings: tuple[AssertionReviewFinding, ...] = Field(default_factory=tuple)
@@ -283,7 +406,7 @@ class AssertionReview(StrictBaseModel):
 
 class ReleasedAssertionResults(StrictBaseModel):
     schema_name: Literal["ReleasedAssertionResults"] = "ReleasedAssertionResults"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     script_hash: str
     tool_env_hash: str
     sealed_hash: str
@@ -303,7 +426,7 @@ class AttributionBinding(StrictBaseModel):
 
 class AttributionProjection(StrictBaseModel):
     schema_name: Literal["AttributionProjection"] = "AttributionProjection"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     bindings: tuple[AttributionBinding, ...]
 
 
@@ -318,11 +441,14 @@ class AdjudicatedIssue(StrictBaseModel):
 
 class DiscoverAdjudication(StrictBaseModel):
     schema_name: Literal["DiscoverAdjudication"] = "DiscoverAdjudication"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     has_confirmed_issues: StrictBool
     issues: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
     satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
     excluded_findings: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
+    excluded_observations: tuple[ExcludedObservation, ...] = Field(
+        default_factory=tuple
+    )
     rationale: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -332,16 +458,17 @@ class DiscoverAdjudication(StrictBaseModel):
         if any(issue.attribution_status != "safe" for issue in self.issues):
             raise ValueError("confirmed issues must be attribution-safe")
         if any(
-            finding.attribution_status == "safe"
-            for finding in self.excluded_findings
+            finding.attribution_status == "safe" for finding in self.excluded_findings
         ):
-            raise ValueError("excluded findings must be representation debt or unattributed")
+            raise ValueError(
+                "excluded findings must be representation debt or unattributed"
+            )
         return self
 
 
 class DiscoverCompleted(StrictBaseModel):
     schema_name: Literal["DiscoverCompleted"] = "DiscoverCompleted"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str
     status: Literal["completed"] = "completed"
     input_hashes: dict[str, str]
@@ -350,6 +477,12 @@ class DiscoverCompleted(StrictBaseModel):
     released_results_hash: str
     adjudication: DiscoverAdjudication
     issues: tuple[AdjudicatedIssue, ...]
+    coverage_status: Literal["full", "partial"] = "full"
+    coverage_gaps: tuple[CoverageGap, ...] = Field(default_factory=tuple)
+    satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
+    excluded_observations: tuple[ExcludedObservation, ...] = Field(
+        default_factory=tuple
+    )
     adjudication_reconciliation: dict[str, Any] = Field(default_factory=dict)
     regression_guards: tuple[str, ...] = Field(default_factory=tuple)
     telemetry_summary: dict[str, Any] = Field(default_factory=dict)
@@ -358,7 +491,7 @@ class DiscoverCompleted(StrictBaseModel):
 
 class RunFailure(StrictBaseModel):
     schema_name: Literal["RunFailure"] = "RunFailure"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str
     node_name: str
     message: str = Field(min_length=1)
@@ -367,7 +500,7 @@ class RunFailure(StrictBaseModel):
 
 class NodeExecutionRecord(StrictBaseModel):
     schema_name: Literal["NodeExecutionRecord"] = "NodeExecutionRecord"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str
     node_call_id: str
     node_name: str
@@ -380,11 +513,12 @@ class NodeExecutionRecord(StrictBaseModel):
     finished_at: datetime
     elapsed_ms: float = Field(ge=0)
     failure: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class LLMCallRecord(StrictBaseModel):
     schema_name: Literal["LLMCallRecord"] = "LLMCallRecord"
-    schema_version: Literal["v1"] = SCHEMA_VERSION
+    schema_version: Literal["v2"] = SCHEMA_VERSION
     run_id: str
     llm_call_id: str
     node_call_id: str
@@ -440,6 +574,7 @@ class DiscoverGraphState(TypedDict, total=False):
     released_assertion_results: ReleasedAssertionResults
     attribution_projection: AttributionProjection
     adjudication: DiscoverAdjudication
+    coverage_gaps: tuple[CoverageGap, ...]
     _adjudication_reconciliation: dict[str, Any]
     final_output: DiscoverCompleted
     failure: RunFailure
@@ -459,3 +594,6 @@ class DiscoverGraphState(TypedDict, total=False):
     _assertion_review_repair_count: int
     _assertion_conversion_contract_feedback: RevisionFeedback | None
     _assertion_contract_repair_count: int
+    _assertion_no_progress_recovery_count: int
+    _last_executable_assertion_script: AssertionScript
+    _quarantined_assertion_ids: tuple[str, ...]

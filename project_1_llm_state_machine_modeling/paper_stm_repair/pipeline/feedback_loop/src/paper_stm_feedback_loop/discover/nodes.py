@@ -31,6 +31,8 @@ from .schemas import (
     DiscoverInput,
     DiscoverRunIdentity,
     FrozenDiscoverInputs,
+    CoverageGap,
+    ExcludedObservation,
     LLMCallRecord,
     NodeExecutionRecord,
     ReleasedAssertionResults,
@@ -46,9 +48,16 @@ from .utils import sha256_data, sha256_text
 
 T = TypeVar("T", bound=BaseModel)
 
-MAX_REQUIREMENT_REVIEW_REPAIRS = 3
+MAX_REQUIREMENT_REVIEW_REPAIRS = 5
 MAX_ASSERTION_REVIEW_REPAIRS = 5
 MAX_ASSERTION_CONTRACT_REPAIRS = 5
+MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
+
+PRIMARY_EVIDENCE_FAMILIES = {
+    "structure": {"structure", "relation", "effect", "topology", "provenance"},
+    "behavior": {"simulation"},
+    "property": {"fbmcq"},
+}
 
 
 class StructuredResponder(Protocol):
@@ -108,9 +117,7 @@ def _revision_delta(
             else {}
         )
         metadata_before = (
-            previous.segment_disposition
-            if isinstance(previous, RequirementSet)
-            else {}
+            previous.segment_disposition if isinstance(previous, RequirementSet) else {}
         )
         metadata_after = current.segment_disposition
     else:
@@ -176,6 +183,8 @@ def _append_revision_event(
     artifact_delta: dict[str, Any] | None = None,
     rationale: str | None = None,
     findings: tuple[str, ...] = (),
+    item_ids: tuple[str, ...] = (),
+    budget_counters: dict[str, int] | None = None,
 ) -> tuple[RevisionLedgerEvent, ...]:
     history = tuple(state.get(cast(Any, field), ()))
     entry = RevisionLedgerEvent(
@@ -188,8 +197,63 @@ def _append_revision_event(
         artifact_delta=artifact_delta or {},
         rationale=rationale,
         findings=findings,
+        item_ids=item_ids,
+        budget_counters=budget_counters or {},
     )
     return (*history, entry)
+
+
+def _append_coverage_gaps(
+    state: DiscoverGraphState, *gaps: CoverageGap
+) -> tuple[CoverageGap, ...]:
+    existing = {gap.gap_id: gap for gap in state.get("coverage_gaps", ())}
+    for gap in gaps:
+        existing[gap.gap_id] = gap
+    return tuple(existing[key] for key in sorted(existing))
+
+
+def _filter_assertion_script(
+    script: AssertionScript, accepted_ids: set[str]
+) -> AssertionScript:
+    assertions = tuple(
+        item for item in script.assertions if item.assertion_id in accepted_ids
+    )
+    if not assertions:
+        raise ValueError("soft isolation cannot publish an empty AssertionScript")
+    mapping = {
+        requirement_id: tuple(
+            assertion_id
+            for assertion_id in assertion_ids
+            if assertion_id in accepted_ids
+        )
+        for requirement_id, assertion_ids in script.requirement_mapping.items()
+    }
+    mapping = {
+        requirement_id: assertion_ids
+        for requirement_id, assertion_ids in mapping.items()
+        if assertion_ids
+    }
+    return script.model_copy(
+        update={"assertions": assertions, "requirement_mapping": mapping}
+    )
+
+
+def _requirement_primary_truth(
+    requirement: Any,
+    values: list[bool],
+) -> bool:
+    if not values:
+        return False
+    aggregation = requirement.coverage_obligation.aggregation
+    if aggregation == "all":
+        return all(values)
+    if aggregation == "any":
+        return any(values)
+    if aggregation == "exactly_one":
+        return sum(values) == 1
+    # Custom policies are frozen by id but not executable in this first v2
+    # slice; fail closed instead of silently treating them as all/any.
+    return False
 
 
 def _record_node(
@@ -203,6 +267,7 @@ def _record_node(
     started_at: datetime,
     start_ns: int,
     failure: str | None = None,
+    details: dict[str, Any] | None = None,
 ) -> NodeExecutionRecord:
     finished_at = _now()
     run_id = _run_id(state)
@@ -220,6 +285,7 @@ def _record_node(
         finished_at=finished_at,
         elapsed_ms=(time.perf_counter_ns() - start_ns) / 1_000_000,
         failure=failure,
+        details=details or {},
     )
 
 
@@ -322,7 +388,9 @@ def _llm_call_record(
         system_prompt_chars=len(observation.system_prompt),
         user_prompt_chars=len(observation.user_prompt),
         output_chars=(
-            len(output.model_dump_json()) if observation.parsed_output is not None else None
+            len(output.model_dump_json())
+            if observation.parsed_output is not None
+            else None
         ),
         input_tokens=usage.get("input_tokens"),
         output_tokens=usage.get("output_tokens"),
@@ -423,7 +491,9 @@ def _fail_state(
                     output_tokens=usage.get("output_tokens"),
                     total_tokens=usage.get("total_tokens"),
                     cache_read_input_tokens=usage.get("cache_read_input_tokens"),
-                    cache_creation_input_tokens=usage.get("cache_creation_input_tokens"),
+                    cache_creation_input_tokens=usage.get(
+                        "cache_creation_input_tokens"
+                    ),
                     ephemeral_5m_input_tokens=usage.get("ephemeral_5m_input_tokens"),
                     ephemeral_1h_input_tokens=usage.get("ephemeral_1h_input_tokens"),
                     reasoning_tokens=usage.get("reasoning_tokens"),
@@ -536,7 +606,9 @@ def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
 def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
     inspected = check_fcstm(discover_input.stm_text, "<discover-input>")
     if not inspected.get("executable"):
-        raise ValueError(f"FCSTM input is not executable: {inspected.get('error') or inspected.get('diagnostics')}")
+        raise ValueError(
+            f"FCSTM input is not executable: {inspected.get('error') or inspected.get('diagnostics')}"
+        )
     source_entries = discover_input.source_trace.get("entries", [])
     source_entries = source_entries if isinstance(source_entries, list) else []
     source_exclusions = discover_input.source_trace.get("attribution_exclusions", [])
@@ -549,7 +621,9 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
     )
     segments = {
         f"NL-L{index:03d}": line.strip()
-        for index, line in enumerate(discover_input.natural_language.splitlines(), start=1)
+        for index, line in enumerate(
+            discover_input.natural_language.splitlines(), start=1
+        )
         if line.strip()
     } or {"NL-ALL": discover_input.natural_language.strip()}
     return FrozenDiscoverInputs(
@@ -615,6 +689,17 @@ def split_requirements(
         if current is not None:
             if output.revision <= current.revision:
                 raise ValueError("revised RequirementSet revision must increase")
+        for requirement in output.requirements:
+            if requirement.checkability is not None:
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} uses legacy "
+                    "checkability; emit verification_kind and coverage_obligation"
+                )
+            if "coverage_obligation" not in requirement.model_fields_set:
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} must explicitly emit "
+                    "coverage_obligation in the v2 producer path"
+                )
         known_trace_ids = {
             str(entry.get("trace_id"))
             for entry in frozen.source_trace.get("entries", [])
@@ -632,9 +717,7 @@ def split_requirements(
         )
         if normalized_requirements != output.requirements:
             output = output.model_copy(update={"requirements": normalized_requirements})
-        fingerprint = sha256_data(
-            output.model_dump(mode="json", exclude={"revision"})
-        )
+        fingerprint = sha256_data(output.model_dump(mode="json", exclude={"revision"}))
         if fingerprint in state.get("requirement_fingerprints", ()):
             raise ValueError(
                 "no-progress gate rejected repeated RequirementSet semantics"
@@ -664,11 +747,11 @@ def split_requirements(
             covered_requirement_ids=tuple(
                 req.requirement_id for req in output.requirements
             ),
+            accepted_requirement_ids=tuple(
+                req.requirement_id for req in output.requirements
+            ),
             missing_segment_ids=tuple(
-                sorted(
-                    set(frozen.nl_segments)
-                    - set(output.segment_disposition)
-                )
+                sorted(set(frozen.nl_segments) - set(output.segment_disposition))
             ),
         )
         record = _record_node(
@@ -766,10 +849,20 @@ def review_requirements(
         )
         review_repair_count = state.get("_requirement_review_repair_count", 0)
         if output.decision == "revise":
+            targeted_requirement_ids = tuple(
+                sorted(
+                    {
+                        finding.requirement_id
+                        for finding in output.findings
+                        if finding.requirement_id is not None
+                    }
+                )
+            )
             update["_requirement_feedback"] = RevisionFeedback(
                 target="requirements",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
+                target_item_ids=targeted_requirement_ids,
                 origin="requirement_review",
             )
             update["_requirement_review_repair_count"] = review_repair_count + 1
@@ -799,29 +892,74 @@ def review_requirements(
             output.decision == "revise"
             and review_repair_count >= MAX_REQUIREMENT_REVIEW_REPAIRS
         ):
-            message = (
-                "bounded review gate: Requirement Reviewer requested more than "
-                f"{MAX_REQUIREMENT_REVIEW_REPAIRS} revisions; preserving the latest "
-                "review and stopping instead of looping without a stable contract"
+            targeted = set(targeted_requirement_ids)
+            retained = tuple(
+                requirement
+                for requirement in requirements.requirements
+                if requirement.requirement_id not in targeted
             )
-            update["failure"] = RunFailure(
-                run_id=_run_id(state), node_name="review_requirements", message=message
-            )
-            failed_record = _record_node(
-                state,
-                node_name="review_requirements",
-                revision=requirements.revision,
-                kind="llm",
-                input_value=payload,
-                output_value=output,
-                started_at=started_at,
-                start_ns=start_ns,
-                failure=message,
-            )
-            update["node_execution_records"] = [
-                *update["node_execution_records"],
-                failed_record,
-            ]
+            if targeted and retained:
+                quarantined = tuple(
+                    requirement
+                    for requirement in requirements.requirements
+                    if requirement.requirement_id in targeted
+                )
+                update["requirement_set"] = requirements.model_copy(
+                    update={"requirements": retained}
+                )
+                update["requirement_review"] = RequirementReview(
+                    decision="accept",
+                    reviewed_revision=requirements.revision,
+                    rationale=(
+                        "Remaining requirements accepted after item-local quarantine "
+                        "of review-unresolved requirements."
+                    ),
+                )
+                update["requirement_coverage"] = coverage.model_copy(
+                    update={
+                        "accepted_requirement_ids": tuple(
+                            item.requirement_id for item in retained
+                        ),
+                        "quarantined_requirement_ids": tuple(sorted(targeted)),
+                    }
+                )
+                gaps = tuple(
+                    CoverageGap(
+                        gap_id=f"GAP-{item.requirement_id}-REVIEW",
+                        stage="requirement_split",
+                        requirement_id=item.requirement_id,
+                        source_segment_ids=item.source_segment_ids,
+                        reason_code="revision_budget_exhausted",
+                        reason=(
+                            "Requirement Reviewer still requested revision after "
+                            f"{MAX_REQUIREMENT_REVIEW_REPAIRS} item repairs."
+                        ),
+                        last_revision=requirements.revision,
+                        last_feedback=output.rationale,
+                        history_refs=tuple(
+                            f"requirement-ledger:{event.sequence}"
+                            for event in state.get("_requirement_revision_ledger", ())
+                        ),
+                        coverage_impact=(
+                            "The source segments for this requirement were not "
+                            "converted into accepted assertions."
+                        ),
+                        blocks_full_coverage=True,
+                    )
+                    for item in quarantined
+                )
+                update["coverage_gaps"] = _append_coverage_gaps(state, *gaps)
+                update["_requirement_feedback"] = None
+            else:
+                message = (
+                    "bounded review gate could not isolate unresolved Requirement "
+                    "items without emptying the accepted RequirementSet"
+                )
+                update["failure"] = RunFailure(
+                    run_id=_run_id(state),
+                    node_name="review_requirements",
+                    message=message,
+                )
         return update
     except Exception as exc:
         return _fail_state(
@@ -869,24 +1007,43 @@ def convert_assertions(
         if current is not None:
             if output.revision <= current.revision:
                 raise ValueError("revised AssertionScript revision must increase")
-        fingerprint = sha256_data(
-            output.model_dump(mode="json", exclude={"revision"})
-        )
+        fingerprint = sha256_data(output.model_dump(mode="json", exclude={"revision"}))
         if fingerprint in state.get("assertion_fingerprints", ()):
-            raise ValueError(
-                "no-progress gate rejected repeated AssertionScript semantics"
-            )
+            prior_check = state.get("assertion_check_public")
+            feedback_origin = feedback.origin if feedback is not None else None
+            if not (
+                prior_check is not None
+                and prior_check.status == "invalid"
+                and feedback_origin == "assertion_precheck"
+            ):
+                raise ValueError(
+                    "no-progress gate rejected repeated AssertionScript semantics"
+                )
         req_ids = {r.requirement_id for r in requirements.requirements}
         assertion_ids = {item.assertion_id for item in output.assertions}
-        mapped_by_assertions: dict[str, set[str]] = {req_id: set() for req_id in req_ids}
+        legacy_assertion_ids = tuple(
+            sorted(
+                item.assertion_id
+                for item in output.assertions
+                if item.role is None
+                or str(item.coverage_key).startswith("legacy:")
+                or str(item.aggregation_group).startswith("legacy-group:")
+            )
+        )
+        if legacy_assertion_ids:
+            raise ValueError(
+                "v2 assertions must explicitly emit role, coverage_key, and "
+                f"aggregation_group; legacy-inferred items: {legacy_assertion_ids}"
+            )
+        mapped_by_assertions: dict[str, set[str]] = {
+            req_id: set() for req_id in req_ids
+        }
         for assertion in output.assertions:
             if assertion.requirement_id not in req_ids:
                 raise ValueError(
                     f"assertion {assertion.assertion_id} maps to unknown requirement"
                 )
-            expected_prefix = (
-                f"[{assertion.requirement_id}][{assertion.assertion_id}]"
-            )
+            expected_prefix = f"[{assertion.requirement_id}][{assertion.assertion_id}]"
             if not assertion.failure_message.startswith(expected_prefix):
                 raise ValueError(
                     f"assertion {assertion.assertion_id} failure_message must start with {expected_prefix}"
@@ -898,28 +1055,59 @@ def convert_assertions(
                 assertions_by_id[assertion_id]
                 for assertion_id in mapped_by_assertions[requirement.requirement_id]
             )
-            if requirement.checkability == "effect":
-                evidence_families = {
-                    assertion.evidence_family for assertion in owned_assertions
+            primary_assertions = tuple(
+                assertion
+                for assertion in owned_assertions
+                if assertion.role == "primary"
+            )
+            if not primary_assertions:
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} requires at least one "
+                    "primary assertion"
+                )
+            allowed_primary_families = PRIMARY_EVIDENCE_FAMILIES[
+                requirement.verification_kind
+            ]
+            invalid_primary_families = sorted(
+                {
+                    assertion.evidence_family
+                    for assertion in primary_assertions
+                    if assertion.evidence_family not in allowed_primary_families
                 }
-                if not evidence_families.intersection({"effect", "simulation", "fbmcq"}):
-                    raise ValueError(
-                        f"effect requirement {requirement.requirement_id} requires "
-                        "at least one effect, simulation, or fbmcq assertion; relation- "
-                        "and topology-only evidence is complementary, not sufficient"
-                    )
+            )
+            if invalid_primary_families:
+                raise ValueError(
+                    f"{requirement.verification_kind} requirement "
+                    f"{requirement.requirement_id} requires primary evidence from "
+                    f"{sorted(allowed_primary_families)}; invalid primary families: "
+                    f"{invalid_primary_families}. Weaker evidence must be supporting"
+                )
+            coverage_keys = [assertion.coverage_key for assertion in primary_assertions]
+            if len(coverage_keys) != len(set(coverage_keys)):
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} contains duplicate "
+                    "primary coverage_key values"
+                )
         if any(not ids for ids in mapped_by_assertions.values()):
-            missing = sorted(req_id for req_id, ids in mapped_by_assertions.items() if not ids)
-            raise ValueError(f"every requirement needs an assertion; missing: {missing}")
+            missing = sorted(
+                req_id for req_id, ids in mapped_by_assertions.items() if not ids
+            )
+            raise ValueError(
+                f"every requirement needs an assertion; missing: {missing}"
+            )
         if set(output.requirement_mapping) != req_ids:
-            raise ValueError("requirement_mapping keys must exactly match RequirementSet ids")
+            raise ValueError(
+                "requirement_mapping keys must exactly match RequirementSet ids"
+            )
         for req_id, mapped_ids in output.requirement_mapping.items():
             if set(mapped_ids) != mapped_by_assertions[req_id]:
                 raise ValueError(
                     f"requirement_mapping for {req_id} does not match assertion ownership"
                 )
             if not set(mapped_ids).issubset(assertion_ids):
-                raise ValueError(f"requirement_mapping for {req_id} references unknown assertion")
+                raise ValueError(
+                    f"requirement_mapping for {req_id} references unknown assertion"
+                )
         record = _record_node(
             state,
             node_name="convert_assertions",
@@ -1041,7 +1229,9 @@ def convert_assertions(
                 "_assertion_feedback": contract_feedback,
                 "_assertion_conversion_contract_feedback": contract_feedback,
                 "_assertion_contract_repair_count": repair_count + 1,
-                "_assertion_feedback_history": _append_feedback(state, contract_feedback),
+                "_assertion_feedback_history": _append_feedback(
+                    state, contract_feedback
+                ),
                 "_assertion_revision_ledger": _append_revision_event(
                     state,
                     field="_assertion_revision_ledger",
@@ -1056,7 +1246,11 @@ def convert_assertions(
                 ),
                 "_assertion_contract_failure_signatures": (
                     *state.get("_assertion_contract_failure_signatures", ()),
-                    *((contract_failure_signature,) if contract_failure_signature else ()),
+                    *(
+                        (contract_failure_signature,)
+                        if contract_failure_signature
+                        else ()
+                    ),
                 ),
                 "node_execution_records": _append_records(state, record),
                 "llm_call_records": [
@@ -1094,7 +1288,9 @@ def precheck_and_seal(
         source_entries = frozen.source_trace.get("entries", [])
         source_entries = source_entries if isinstance(source_entries, list) else []
         source_exclusions = frozen.source_trace.get("attribution_exclusions", [])
-        source_exclusions = source_exclusions if isinstance(source_exclusions, list) else []
+        source_exclusions = (
+            source_exclusions if isinstance(source_exclusions, list) else []
+        )
         checker = assertion_checker or AssertionChecker(
             build_eval_environment(
                 model_text=frozen.stm_text,
@@ -1122,9 +1318,9 @@ def precheck_and_seal(
         )
         assertion_families_by_requirement: dict[str, set[str]] = {}
         for item in script.assertions:
-            assertion_families_by_requirement.setdefault(item.requirement_id, set()).add(
-                item.evidence_family
-            )
+            assertion_families_by_requirement.setdefault(
+                item.requirement_id, set()
+            ).add(item.evidence_family)
         for assertion in script.assertions:
             source = (
                 f"{script.prefix.rstrip()}\nassert ({assertion.expression}), "
@@ -1142,12 +1338,14 @@ def precheck_and_seal(
             requirement = requirement_by_id.get(assertion.requirement_id)
             if (
                 requirement is not None
-                and requirement.checkability == "effect"
+                and requirement.verification_kind == "behavior"
                 and assertion.evidence_family == "simulation"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
                 and "fbmcq"
-                not in assertion_families_by_requirement.get(assertion.requirement_id, set())
+                not in assertion_families_by_requirement.get(
+                    assertion.requirement_id, set()
+                )
             ):
                 has_hot_start = any(
                     call.function == "simulate"
@@ -1180,12 +1378,11 @@ def precheck_and_seal(
                     not has_hot_start
                     and not has_explicit_initial_cold_path
                     and not (
-                        is_initial_configuration
-                        and has_initial_configuration_cold_path
+                        is_initial_configuration and has_initial_configuration_cold_path
                     )
                 ):
                     hot_start_policy_error = (
-                        "effect requirement simulation must use an explicit hot-start "
+                        "behavior requirement simulation must use an explicit hot-start "
                         "initial_state, or an explicit initialization cold path "
                         "cycles=[[], [causal_event]]. A pure initial-configuration "
                         "requirement marked behavior_phase=initialization may instead "
@@ -1196,7 +1393,7 @@ def precheck_and_seal(
                     )
             if (
                 requirement is not None
-                and requirement.checkability == "effect"
+                and requirement.verification_kind == "behavior"
                 and assertion.evidence_family == "fbmcq"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
@@ -1219,14 +1416,14 @@ def precheck_and_seal(
                         if not check["causal"]
                     ]
                     formal_causality_error = (
-                        "effect requirement FBMCQ evidence must connect the bounded "
+                        "behavior requirement FBMCQ evidence must connect the bounded "
                         "property to an explicit event/condition or initialization; "
                         "a bare reach target is not causal evidence. Replace it with "
                         "a response query such as `check response <= 5: trigger "
-                        "event(\"<declared_event_path>\", current) -> within 3 "
-                        "active(\"<target_state_path>\");`, "
+                        'event("<declared_event_path>", current) -> within 3 '
+                        'active("<target_state_path>");`, '
                         "a positive event assumption plus reach, an explicit `init "
-                        "state(\"<exact_initial_state_path>\");` query, or a hot-start simulation. "
+                        'state("<exact_initial_state_path>");` query, or a hot-start simulation. '
                         + " ".join(details)
                     )
             if (
@@ -1239,6 +1436,8 @@ def precheck_and_seal(
                     AssertionExecutionPublic(
                         assertion_id=assertion.assertion_id,
                         requirement_id=assertion.requirement_id,
+                        role=cast(Any, assertion.role or "primary"),
+                        coverage_key=assertion.coverage_key,
                         status="executable",
                     )
                 )
@@ -1246,12 +1445,17 @@ def precheck_and_seal(
                     AssertionResult(
                         assertion_id=assertion.assertion_id,
                         requirement_id=assertion.requirement_id,
+                        role=cast(Any, assertion.role or "primary"),
+                        coverage_key=assertion.coverage_key,
+                        aggregation_group=assertion.aggregation_group,
                         truth_value=checked.value,
                         script_hash=script_hash,
                         tool_env_hash=frozen.tool_env_hash,
                         evidence_family=assertion.evidence_family,
                         failure_message=(
-                            assertion.failure_message if checked.value is False else None
+                            assertion.failure_message
+                            if checked.value is False
+                            else None
                         ),
                         evidence_scope={
                             "required_function_families": list(
@@ -1274,7 +1478,7 @@ def precheck_and_seal(
                 detail = checked.to_json()
                 if hot_start_policy_error is not None:
                     pass_criterion = (
-                        "Rewrite every simulation call for this effect requirement "
+                        "Rewrite every simulation call for this behavior requirement "
                         "as an explicit hot start with initial_state=<exact state "
                         "path> and initial_vars={<exact declaration name>: value}; "
                         "use declaration names, not qualified state-machine paths, "
@@ -1292,8 +1496,8 @@ def precheck_and_seal(
                         pass_criterion = (
                             "Use only the documented FBMCQ grammar. Replace the "
                             "parse-invalid query with a syntactically valid causal "
-                            "query, preferably `init state(\"<exact_initial_state_path>\"); check "
-                            "reach <= 5: active(\"<target_state_path>\");`, or use an explicit "
+                            'query, preferably `init state("<exact_initial_state_path>"); check '
+                            'reach <= 5: active("<target_state_path>");`, or use an explicit '
                             "hot-start simulation; the full assertion must execute "
                             "without exception and return strict bool."
                         )
@@ -1318,17 +1522,14 @@ def precheck_and_seal(
                         "assertion must execute without exception and return "
                         "strict bool."
                     )
-                elif (
-                    isinstance(detail.get("error"), dict)
-                    and (
-                        detail["error"].get("type") == "NameError"
-                        or (
-                            detail["error"].get("type") == "AuditRejected"
-                            and any(
-                                issue.get("code") == "unknown_name"
-                                for issue in detail.get("audit", {}).get("issues", [])
-                                if isinstance(issue, dict)
-                            )
+                elif isinstance(detail.get("error"), dict) and (
+                    detail["error"].get("type") == "NameError"
+                    or (
+                        detail["error"].get("type") == "AuditRejected"
+                        and any(
+                            issue.get("code") == "unknown_name"
+                            for issue in detail.get("audit", {}).get("issues", [])
+                            if isinstance(issue, dict)
                         )
                     )
                 ):
@@ -1368,6 +1569,8 @@ def precheck_and_seal(
                     AssertionExecutionPublic(
                         assertion_id=assertion.assertion_id,
                         requirement_id=assertion.requirement_id,
+                        role=cast(Any, assertion.role or "primary"),
+                        coverage_key=assertion.coverage_key,
                         status="invalid",
                         error=str(error_payload),
                     )
@@ -1416,6 +1619,13 @@ def precheck_and_seal(
             ),
         }
         if status == "invalid":
+            invalid_ids = tuple(
+                sorted(
+                    item.assertion_id
+                    for item in public_executions
+                    if item.status == "invalid"
+                )
+            )
             invalid_signature = sha256_data(
                 tuple(
                     sorted(
@@ -1432,7 +1642,8 @@ def precheck_and_seal(
             invalid_expressions = {
                 item.assertion_id: item.expression
                 for item in script.assertions
-                if item.assertion_id in {
+                if item.assertion_id
+                in {
                     execution.assertion_id
                     for execution in public.executions
                     if execution.status == "invalid"
@@ -1463,10 +1674,14 @@ def precheck_and_seal(
                     for e in public_executions
                     if e.status == "invalid"
                 ),
+                target_item_ids=invalid_ids,
             )
             update["_assertion_feedback_history"] = _append_feedback(
                 state, update["_assertion_feedback"]
             )
+        else:
+            update["_last_executable_assertion_script"] = script
+            update["_assertion_no_progress_recovery_count"] = 0
         record = _record_node(
             state,
             node_name="precheck_and_seal",
@@ -1476,33 +1691,165 @@ def precheck_and_seal(
             output_value=public,
             started_at=started_at,
             start_ns=start_ns,
+            details={
+                "status": public.status,
+                "invalid_assertion_ids": [
+                    item.assertion_id
+                    for item in public.executions
+                    if item.status == "invalid"
+                ],
+            },
         )
         if status == "invalid" and invalid_signature in previous_signatures:
-            message = (
-                "no-progress gate: the same assertion invalid-signature was observed "
-                "again; stopping instead of repeating an unchanged revision request"
+            recovery_count = state.get("_assertion_no_progress_recovery_count", 0)
+            if recovery_count < MAX_ASSERTION_NO_PROGRESS_RECOVERIES:
+                last_executable = state.get("_last_executable_assertion_script")
+                seed_assertions = (
+                    {
+                        item.assertion_id: item.model_dump(mode="json")
+                        for item in last_executable.assertions
+                        if item.assertion_id in invalid_ids
+                    }
+                    if last_executable is not None
+                    else {}
+                )
+                recovery_feedback = RevisionFeedback(
+                    target="assertions",
+                    origin="assertion_precheck",
+                    reason=(
+                        "Targeted no-progress recovery: repair only the listed "
+                        "assertions. Start from the last deterministic-executable "
+                        "version when supplied, preserve all unresolved Reviewer "
+                        "findings, and do not modify unrelated accepted assertions."
+                    ),
+                    findings=tuple(
+                        e.error or e.assertion_id
+                        for e in public_executions
+                        if e.status == "invalid"
+                    ),
+                    target_item_ids=invalid_ids,
+                    recovery_seed={
+                        "last_executable_assertions": seed_assertions,
+                        "unresolved_feedback": [
+                            item.model_dump(mode="json")
+                            for item in state.get("_assertion_feedback_history", ())
+                        ],
+                    },
+                )
+                update["_assertion_feedback"] = recovery_feedback
+                update["_assertion_feedback_history"] = _append_feedback(
+                    state, recovery_feedback
+                )
+                update["_assertion_no_progress_recovery_count"] = recovery_count + 1
+                update["node_execution_records"] = _append_records(state, record)
+                return update
+
+            accepted_ids = {
+                item.assertion_id
+                for item in public_executions
+                if item.status == "executable"
+            }
+            filtered_script = _filter_assertion_script(script, accepted_ids)
+            filtered_script_hash = sha256_data(filtered_script)
+            filtered_executions = tuple(
+                item for item in public_executions if item.status == "executable"
             )
-            failure = RunFailure(
-                run_id=_run_id(state), node_name="precheck_and_seal", message=message
+            filtered_public = AssertionCheckPublic(
+                script_hash=filtered_script_hash,
+                tool_env_hash=frozen.tool_env_hash,
+                status="executable",
+                executions=filtered_executions,
             )
-            failed_record = _record_node(
-                state,
-                node_name="precheck_and_seal",
+            filtered_results = tuple(
+                result.model_copy(update={"script_hash": filtered_script_hash})
+                for result in sealed_results
+                if result.assertion_id in accepted_ids
+            )
+            filtered_sealed_hash = sha256_data(filtered_results)
+            filtered_sealed_ref = sealed_store.put(
+                filtered_sealed_hash, filtered_results
+            )
+            filtered_receipt = SealedAssertionReceipt(
+                script_hash=filtered_script_hash,
+                tool_env_hash=frozen.tool_env_hash,
+                sealed_hash=filtered_sealed_hash,
+                result_count=len(filtered_results),
+                sealed_payload_ref=filtered_sealed_ref,
+            )
+            spec_by_id = {item.assertion_id: item for item in script.assertions}
+            requirement_by_id = {
+                item.requirement_id: item
+                for item in state["requirement_set"].requirements
+            }
+            gaps = tuple(
+                CoverageGap(
+                    gap_id=f"GAP-{assertion_id}-NO-PROGRESS",
+                    stage="assertion_conversion",
+                    requirement_id=spec_by_id[assertion_id].requirement_id,
+                    assertion_ids=(assertion_id,),
+                    source_segment_ids=requirement_by_id[
+                        spec_by_id[assertion_id].requirement_id
+                    ].source_segment_ids,
+                    reason_code="no_progress",
+                    reason=(
+                        "The assertion repeated the same deterministic invalid "
+                        "signature after one targeted recovery."
+                    ),
+                    last_revision=script.revision,
+                    last_feedback=update["_assertion_feedback"].reason,
+                    history_refs=tuple(
+                        f"assertion-ledger:{event.sequence}"
+                        for event in state.get("_assertion_revision_ledger", ())
+                    ),
+                    coverage_impact=(
+                        f"Coverage key {spec_by_id[assertion_id].coverage_key} "
+                        "was not released."
+                    ),
+                    blocks_full_coverage=(
+                        (spec_by_id[assertion_id].role or "primary") == "primary"
+                    ),
+                )
+                for assertion_id in invalid_ids
+            )
+            ledger = tuple(update["_assertion_revision_ledger"])
+            quarantine_event = RevisionLedgerEvent(
+                sequence=len(ledger) + 1,
+                loop="assertions",
+                event="artifact_quarantined",
                 revision=script.revision,
-                kind="deterministic",
-                input_value={
-                    "script_hash": script_hash,
-                    "invalid_signature": invalid_signature,
-                },
-                output_value=public,
-                started_at=started_at,
-                start_ns=start_ns,
-                failure=message,
+                artifact_hash=script_hash,
+                status="quarantined",
+                rationale=(
+                    "Repeated invalid assertions were isolated after targeted "
+                    "recovery; executable assertions continue."
+                ),
+                findings=tuple(gap.reason for gap in gaps),
+                item_ids=invalid_ids,
+                budget_counters={"no_progress_targeted_recovery": recovery_count},
             )
-            update["failure"] = failure
-            update["node_execution_records"] = _append_records(
-                state, failed_record
+            update.update(
+                {
+                    "assertion_script": filtered_script,
+                    "assertion_check_public": filtered_public,
+                    "sealed_assertion_results": filtered_receipt,
+                    "coverage_gaps": _append_coverage_gaps(state, *gaps),
+                    "_quarantined_assertion_ids": tuple(
+                        sorted(
+                            {
+                                *state.get("_quarantined_assertion_ids", ()),
+                                *invalid_ids,
+                            }
+                        )
+                    ),
+                    "_assertion_revision_ledger": (
+                        *ledger,
+                        quarantine_event,
+                    ),
+                    "_assertion_feedback": None,
+                    "_last_executable_assertion_script": filtered_script,
+                }
             )
+            update["node_execution_records"] = _append_records(state, record)
             return update
         update["node_execution_records"] = _append_records(state, record)
         return update
@@ -1535,6 +1882,7 @@ def review_assertions(
             script,
             public_check,
             tuple(state.get("_assertion_revision_ledger", ())),
+            state.get("coverage_gaps", ()),
         )
         # Guard the explicit truth-label hiding contract before the LLM call.
         sealed_hash = (
@@ -1569,11 +1917,21 @@ def review_assertions(
         )
         review_repair_count = state.get("_assertion_review_repair_count", 0)
         if output.decision == "revise":
+            targeted_assertion_ids = tuple(
+                sorted(
+                    {
+                        finding.assertion_id
+                        for finding in output.findings
+                        if finding.assertion_id is not None
+                    }
+                )
+            )
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
                 origin="assertion_review",
                 reason=output.rationale,
                 findings=tuple(f.message for f in output.findings),
+                target_item_ids=targeted_assertion_ids,
             )
             update["_assertion_review_repair_count"] = review_repair_count + 1
             update["_assertion_feedback_history"] = _append_feedback(
@@ -1729,21 +2087,21 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                     else []
                 )
             }
-            detail_families = result.check_detail.get(
-                "actual_function_families", []
-            )
+            detail_families = result.check_detail.get("actual_function_families", [])
             if isinstance(detail_families, (list, tuple, set)):
                 actual_families.update(str(family) for family in detail_families)
             uses_simulation = (
                 result.evidence_family == "simulation"
                 or "simulation" in actual_families
             )
-            observed = set(_flatten_strings(result.check_detail.get("function_call_trace", [])))
-            matched = [entry for entry in entries if _trace_entry_matches(entry, observed)]
+            observed = set(
+                _flatten_strings(result.check_detail.get("function_call_trace", []))
+            )
+            matched = [
+                entry for entry in entries if _trace_entry_matches(entry, observed)
+            ]
             matched_ids = tuple(
-                str(entry.get("trace_id"))
-                for entry in matched
-                if entry.get("trace_id")
+                str(entry.get("trace_id")) for entry in matched if entry.get("trace_id")
             )
             refs = tuple(
                 sorted(
@@ -1756,7 +2114,11 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 )
             )
             debt_refs = tuple(
-                sorted(ref for ref in exclusions if _reference_matches_observed(str(ref), observed))
+                sorted(
+                    ref
+                    for ref in exclusions
+                    if _reference_matches_observed(str(ref), observed)
+                )
             )
             if uses_simulation and simulation_is_ineligible:
                 debt_refs = tuple(
@@ -1771,9 +2133,12 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 entry
                 for entry in matched
                 if isinstance(entry.get("attribution_boundary"), dict)
-                and entry["attribution_boundary"].get("source_level_claim_allowed") is True
-                and entry["attribution_boundary"].get("representation_related") is not True
-                and entry["attribution_boundary"].get("conversion_or_lowering_related") is not True
+                and entry["attribution_boundary"].get("source_level_claim_allowed")
+                is True
+                and entry["attribution_boundary"].get("representation_related")
+                is not True
+                and entry["attribution_boundary"].get("conversion_or_lowering_related")
+                is not True
             ]
             if uses_simulation and simulation_is_ineligible:
                 status = "representation_debt"
@@ -1857,7 +2222,9 @@ def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool
         if isinstance(simulation, dict) and simulation.get("status") == "ineligible":
             return True
     summary = contract.get("summary", {})
-    return isinstance(summary, dict) and summary.get("simulation_status") == "ineligible"
+    return (
+        isinstance(summary, dict) and summary.get("simulation_status") == "ineligible"
+    )
 
 
 def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
@@ -1930,7 +2297,11 @@ def adjudicate_results(
         attribution = state["attribution_projection"]
         # Pydantic already enforces strict bool in ReleasedAssertionResults/AssertionResult.
         payload = renderer.render_adjudicator_input(
-            requirements, script, released, attribution
+            requirements,
+            script,
+            released,
+            attribution,
+            state.get("coverage_gaps", ()),
         )
         output = responder.invoke_structured(
             role="result_adjudicator",
@@ -1938,9 +2309,19 @@ def adjudicate_results(
             system_prompt=prompts.RESULT_ADJUDICATOR_PROMPT,
             user_input=payload,
         )
+        assertion_by_id = {
+            assertion.assertion_id: assertion for assertion in script.assertions
+        }
+        primary_assertion_ids = {
+            assertion.assertion_id
+            for assertion in script.assertions
+            if (assertion.role or "primary") == "primary"
+        }
         false_assertions = {
             r.assertion_id for r in released.results if r.truth_value is False
         }
+        false_primary_assertions = false_assertions & primary_assertion_ids
+        supporting_false_assertions = false_assertions - primary_assertion_ids
         safe_assertions = {
             binding.assertion_id
             for binding in attribution.bindings
@@ -1954,18 +2335,75 @@ def adjudicate_results(
             for assertion in script.assertions
         }
         false_by_assertion = {
-            result.assertion_id: result for result in released.results
+            result.assertion_id: result
+            for result in released.results
             if result.truth_value is False
         }
-        safe_false_assertions = set(false_by_assertion) & safe_assertions
-        unsafe_false_assertions = set(false_by_assertion) - safe_false_assertions
+        safe_false_assertions = false_primary_assertions & safe_assertions
+        unsafe_false_assertions = false_primary_assertions - safe_false_assertions
+        normalized_issues = []
+        for issue in output.issues:
+            primary_ids = tuple(
+                assertion_id
+                for assertion_id in issue.assertion_ids
+                if assertion_id in primary_assertion_ids
+            )
+            if primary_ids:
+                normalized_issues.append(
+                    issue.model_copy(update={"assertion_ids": primary_ids})
+                )
+        normalized_excluded = []
+        for finding in output.excluded_findings:
+            primary_ids = tuple(
+                assertion_id
+                for assertion_id in finding.assertion_ids
+                if assertion_id in primary_assertion_ids
+            )
+            if primary_ids:
+                normalized_excluded.append(
+                    finding.model_copy(update={"assertion_ids": primary_ids})
+                )
+        supporting_observations = tuple(
+            ExcludedObservation(
+                assertion_id=assertion_id,
+                requirement_id=assertion_by_id[assertion_id].requirement_id,
+                role="supporting",
+                disposition="supporting_false",
+                rationale=(
+                    "Supporting evidence evaluated False. It is retained for "
+                    "diagnosis but cannot create a Repair issue."
+                ),
+            )
+            for assertion_id in sorted(supporting_false_assertions)
+        )
+        observation_by_assertion = {
+            observation.assertion_id: observation
+            for observation in output.excluded_observations
+        }
+        observation_by_assertion.update(
+            {
+                observation.assertion_id: observation
+                for observation in supporting_observations
+            }
+        )
+        output = output.model_copy(
+            update={
+                "issues": tuple(normalized_issues),
+                "excluded_findings": tuple(normalized_excluded),
+                "excluded_observations": tuple(
+                    observation_by_assertion[key]
+                    for key in sorted(observation_by_assertion)
+                ),
+                "has_confirmed_issues": bool(normalized_issues),
+            }
+        )
         issue_assertions: set[str] = set()
         excluded_assertions: set[str] = set()
         for issue in output.issues:
             issue_ids = set(issue.assertion_ids)
-            if not issue_ids.issubset(false_assertions):
+            if not issue_ids.issubset(false_primary_assertions):
                 raise ValueError(
-                    "adjudicated issues may only reference False assertions"
+                    "adjudicated issues may only reference primary False assertions"
                 )
             if issue.attribution_status != "safe" or not issue_ids.issubset(
                 safe_assertions
@@ -1977,38 +2415,44 @@ def adjudicate_results(
                 raise ValueError("confirmed issue assertion groups must be disjoint")
             issue_assertions.update(issue_ids)
             expected_requirements = {
-                requirement_by_assertion[assertion_id]
-                for assertion_id in issue_ids
+                requirement_by_assertion[assertion_id] for assertion_id in issue_ids
             }
-            if issue.requirement_id not in expected_requirements or len(
-                expected_requirements
-            ) != 1:
+            if (
+                issue.requirement_id not in expected_requirements
+                or len(expected_requirements) != 1
+            ):
                 raise ValueError(
                     "confirmed issue requirement_id must match all referenced assertions"
                 )
         for excluded in output.excluded_findings:
             excluded_ids = set(excluded.assertion_ids)
-            if not excluded_ids.issubset(false_assertions):
-                raise ValueError("excluded findings may only reference False assertions")
+            if not excluded_ids.issubset(false_primary_assertions):
+                raise ValueError(
+                    "excluded findings may only reference primary False assertions"
+                )
             if excluded.attribution_status == "safe":
                 raise ValueError("excluded findings must not be attribution-safe")
             if excluded_ids & excluded_assertions:
                 raise ValueError("excluded finding assertion groups must be disjoint")
             excluded_assertions.update(excluded_ids)
             expected_requirements = {
-                requirement_by_assertion[assertion_id]
-                for assertion_id in excluded_ids
+                requirement_by_assertion[assertion_id] for assertion_id in excluded_ids
             }
-            if excluded.requirement_id not in expected_requirements or len(
-                expected_requirements
-            ) != 1:
+            if (
+                excluded.requirement_id not in expected_requirements
+                or len(expected_requirements) != 1
+            ):
                 raise ValueError(
                     "excluded finding requirement_id must match all referenced assertions"
                 )
             expected_statuses = {
-                binding_by_assertion[assertion_id].status for assertion_id in excluded_ids
+                binding_by_assertion[assertion_id].status
+                for assertion_id in excluded_ids
             }
-            if len(expected_statuses) != 1 or excluded.attribution_status not in expected_statuses:
+            if (
+                len(expected_statuses) != 1
+                or excluded.attribution_status not in expected_statuses
+            ):
                 raise ValueError(
                     "excluded finding attribution_status must match its bindings"
                 )
@@ -2022,24 +2466,37 @@ def adjudicate_results(
             )
         result_by_requirement: dict[str, list[bool]] = {}
         for result in released.results:
+            if result.role != "primary":
+                continue
             result_by_requirement.setdefault(result.requirement_id, []).append(
                 result.truth_value
             )
+        blocking_gap_requirements = {
+            gap.requirement_id
+            for gap in state.get("coverage_gaps", ())
+            if gap.blocks_full_coverage and gap.requirement_id is not None
+        }
+        requirement_by_id = {
+            requirement.requirement_id: requirement
+            for requirement in requirements.requirements
+        }
         expected_satisfied = {
             requirement_id
             for requirement_id, values in result_by_requirement.items()
-            if all(values)
+            if requirement_id not in blocking_gap_requirements
+            and _requirement_primary_truth(requirement_by_id[requirement_id], values)
         }
         reported_satisfied = set(output.satisfied_requirement_ids)
         reconciliation = {
             "normalization_applied": reported_satisfied != expected_satisfied,
-            "reported_satisfied_requirement_ids": tuple(
-                sorted(reported_satisfied)
-            ),
+            "reported_satisfied_requirement_ids": tuple(sorted(reported_satisfied)),
             "deterministic_satisfied_requirement_ids": tuple(
                 sorted(expected_satisfied)
             ),
-            "basis": "released_assertion_results.all_truth_values_true",
+            "basis": (
+                "released primary assertion results aggregated by frozen "
+                "coverage_obligation; blocking gaps excluded"
+            ),
         }
         if reported_satisfied != expected_satisfied:
             # This field is a deterministic ledger projection, not a semantic
@@ -2048,9 +2505,7 @@ def adjudicate_results(
             # model copied a requirement with a False assertion into this
             # derived list.
             output = output.model_copy(
-                update={
-                    "satisfied_requirement_ids": tuple(sorted(expected_satisfied))
-                }
+                update={"satisfied_requirement_ids": tuple(sorted(expected_satisfied))}
             )
         record = _record_node(
             state,
@@ -2103,6 +2558,12 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
         script = state["assertion_script"]
         released = state["released_assertion_results"]
         adjudication = state["adjudication"]
+        coverage_gaps = state.get("coverage_gaps", ())
+        coverage_status = (
+            "partial"
+            if any(gap.blocks_full_coverage for gap in coverage_gaps)
+            else "full"
+        )
         guards = tuple(
             f"{result.assertion_id}:{result.truth_value}" for result in released.results
         )
@@ -2116,9 +2577,11 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
             released_results_hash=sha256_data(released),
             adjudication=adjudication,
             issues=adjudication.issues,
-            adjudication_reconciliation=state.get(
-                "_adjudication_reconciliation", {}
-            ),
+            coverage_status=cast(Any, coverage_status),
+            coverage_gaps=coverage_gaps,
+            satisfied_requirement_ids=adjudication.satisfied_requirement_ids,
+            excluded_observations=adjudication.excluded_observations,
+            adjudication_reconciliation=state.get("_adjudication_reconciliation", {}),
             regression_guards=guards,
             telemetry_summary=telemetry_summary(
                 state.get("node_execution_records", []),
@@ -2162,7 +2625,11 @@ def default_fake_responder(
                     "requirement_id": "REQ-001",
                     "statement": "The STM must satisfy the supplied natural-language requirement.",
                     "source_segment_ids": ("NL-L001",),
-                    "checkability": "structure",
+                    "verification_kind": "structure",
+                    "coverage_obligation": {
+                        "domain": "model",
+                        "aggregation": "all",
+                    },
                 },
             ),
             segment_disposition={"NL-L001": "covered"},
@@ -2184,6 +2651,9 @@ def default_fake_responder(
                     "expression": "len(states()) > 0",
                     "failure_message": "[REQ-001][AST-REQ-001-01] The frozen STM exposes no state.",
                     "evidence_family": "structure",
+                    "role": "primary",
+                    "coverage_key": "model:states",
+                    "aggregation_group": "REQ-001:all",
                 },
             ),
             requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},

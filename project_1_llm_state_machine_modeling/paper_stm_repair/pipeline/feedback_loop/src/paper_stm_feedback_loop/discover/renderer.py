@@ -8,6 +8,7 @@ from .schemas import (
     AssertionCheckPublic,
     AssertionScript,
     AttributionProjection,
+    CoverageGap,
     FrozenDiscoverInputs,
     ReleasedAssertionResults,
     RequirementCoverageProjection,
@@ -44,7 +45,9 @@ def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
                 ),
             }
         )
-    contract = frozen.working_contract if isinstance(frozen.working_contract, dict) else {}
+    contract = (
+        frozen.working_contract if isinstance(frozen.working_contract, dict) else {}
+    )
     contract_summary = contract.get("summary", {})
     contract_summary = contract_summary if isinstance(contract_summary, dict) else {}
     raw_exclusions = trace.get("attribution_exclusions", [])
@@ -180,6 +183,7 @@ def render_assertion_review_input(
     script: AssertionScript,
     public_check: AssertionCheckPublic,
     revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
+    coverage_gaps: tuple[CoverageGap, ...] = (),
 ) -> str:
     # This payload intentionally excludes sealed and released assertion results.
     return canonical_json(
@@ -192,6 +196,9 @@ def render_assertion_review_input(
             "public_check": public_check.model_dump(mode="json"),
             "evidence_api": get_assertion_environment_api_docs(),
             "content_language": frozen.language,
+            "coverage_gaps": [
+                gap.model_dump(mode="json") for gap in coverage_gaps
+            ],
             "revision_ledger": _revision_ledger_payload(
                 revision_ledger, script.revision
             ),
@@ -204,6 +211,7 @@ def render_adjudicator_input(
     script: AssertionScript,
     released: ReleasedAssertionResults,
     attribution: AttributionProjection,
+    coverage_gaps: tuple[CoverageGap, ...] = (),
 ) -> str:
     return canonical_json(
         {
@@ -211,5 +219,6 @@ def render_adjudicator_input(
             "assertion_script": script.model_dump(mode="json"),
             "strict_bool_results": released.model_dump(mode="json"),
             "safe_attribution": attribution.model_dump(mode="json"),
+            "coverage_gaps": [gap.model_dump(mode="json") for gap in coverage_gaps],
         }
     )

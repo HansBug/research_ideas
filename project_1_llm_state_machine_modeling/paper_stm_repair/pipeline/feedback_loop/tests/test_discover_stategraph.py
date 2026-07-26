@@ -49,7 +49,9 @@ MODEL = """state Root {
 """
 
 
-def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_scope() -> None:
+def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_scope() -> (
+    None
+):
     assert "shared prepositional qualifiers" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "unconditional global requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "joint trigger" in prompts.REQUIREMENT_SPLITTER_PROMPT
@@ -61,14 +63,24 @@ def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_s
     assert "source mode/state" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
-def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> None:
-    assert "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
-    assert "declaration names rather than qualified state-machine paths" in prompts.ASSERTION_REVIEWER_PROMPT
+def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> (
+    None
+):
+    assert (
+        "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
+    )
+    assert (
+        "declaration names rather than qualified state-machine paths"
+        in prompts.ASSERTION_REVIEWER_PROMPT
+    )
     assert "documented FBMCQ grammar" in prompts.ASSERTION_CONVERTER_PROMPT
 
 
 def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -> None:
-    for prompt in (prompts.ASSERTION_CONVERTER_PROMPT, prompts.ASSERTION_REVIEWER_PROMPT):
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
         assert "source" in prompt
         assert "trigger" in prompt
         assert "destination" in prompt
@@ -80,12 +92,19 @@ def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -
     assert "Mandatory event-response review gate" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "source-trigger-destination" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "behavior_phase" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert 'pseudo-initial source is exactly `"[*]"`' in prompts.ASSERTION_REVIEWER_PROMPT
-    assert "must not demand an invented direct edge" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert (
+        'pseudo-initial source is exactly `"[*]"`' in prompts.ASSERTION_REVIEWER_PROMPT
+    )
+    assert (
+        "must not demand an invented direct edge" in prompts.ASSERTION_CONVERTER_PROMPT
+    )
 
 
 def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
-    assert "never invent or enumerate candidate variable names" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert (
+        "never invent or enumerate candidate variable names"
+        in prompts.ASSERTION_CONVERTER_PROMPT
+    )
     assert "without `variable=`" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "reject every invented identifier" in prompts.ASSERTION_REVIEWER_PROMPT
 
@@ -93,13 +112,20 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
 def test_prompts_merge_one_repair_unit_and_preserve_attributable_mismatch() -> None:
     assert "Repair-unit atomicity" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "same misplaced state" in prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "Do not leave a repair-relevant destination mismatch" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert (
+        "Do not leave a repair-relevant destination mismatch"
+        in prompts.ASSERTION_CONVERTER_PROMPT
+    )
     assert "Attribution-preserving mismatch gate" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
 def test_prompts_enforce_positive_conflict_assertion_direction() -> None:
-    assert "positive distinguishability obligation" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "positive distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert (
+        "positive distinguishability obligation" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    )
+    assert (
+        "positive distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    )
     assert "not conflicting_targets" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Reject bare `conflicting_targets" in prompts.ASSERTION_REVIEWER_PROMPT
 
@@ -107,21 +133,32 @@ def test_prompts_enforce_positive_conflict_assertion_direction() -> None:
 def test_requirement_prompts_distinguish_local_exit_from_completion() -> None:
     assert "Local-exit grounding" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "Local-exit review" in prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "separate completion/termination target" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert (
+        "separate completion/termination target" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    )
 
 
-def test_requirement_prompts_do_not_treat_missing_discriminator_as_nondeterminism() -> None:
+def test_requirement_prompts_do_not_treat_missing_discriminator_as_nondeterminism() -> (
+    None
+):
     assert "Missing discriminator text" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "only an explicit statement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "absence of an explicit ban" in prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "separate distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert (
+        "separate distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    )
     assert "undifferentiated condition set" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "different target-specific condition clauses" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert (
+        "different target-specific condition clauses"
+        in prompts.REQUIREMENT_SPLITTER_PROMPT
+    )
     assert "binding normalization" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "global guard mutual exclusion" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
-def test_revision_ledger_prompts_forbid_review_oscillation_and_truth_inference() -> None:
+def test_revision_ledger_prompts_forbid_review_oscillation_and_truth_inference() -> (
+    None
+):
     assert "complete revision_ledger" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "Do not reverse" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "every prior artifact delta" in prompts.ASSERTION_CONVERTER_PROMPT
@@ -133,7 +170,10 @@ def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -
     assert "Hierarchical completion distinction" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Hierarchical completion review" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "genuine wrong direct target" in prompts.ASSERTION_CONVERTER_PROMPT
-    for prompt in (prompts.ASSERTION_CONVERTER_PROMPT, prompts.ASSERTION_REVIEWER_PROMPT):
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
         assert "Limitation non-waiver" in prompt
         assert "cannot" in prompt or "may not" in prompt
         assert "Cardinality evidence gate" in prompt
@@ -146,6 +186,217 @@ def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -
 def test_requirements_do_not_expose_benchmark_issue_taxonomy() -> None:
     assert "semantic_tags" not in Requirement.model_fields
     assert "hidden issue taxonomy" in prompts.REQUIREMENT_SPLITTER_PROMPT
+
+
+def test_v2_prompts_freeze_requirement_kind_and_assertion_role() -> None:
+    assert "Binding v2 Requirement contract" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "structure`, `behavior`, or `property" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "Binding v2 review gate" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "Binding v2 Assertion contract" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "`primary` assertion" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Supporting evidence" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "supporting False is retained" in prompts.RESULT_ADJUDICATOR_PROMPT
+
+
+def test_requirement_requires_v2_kind_without_legacy_field() -> None:
+    with pytest.raises(ValidationError, match="verification_kind"):
+        Requirement.model_validate(
+            {"requirement_id": "REQ-001", "statement": "A requirement."}
+        )
+
+
+def test_v2_splitter_path_rejects_legacy_requirement_upgrade() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("legacy-requirement")
+    frozen = nodes._fallback_prepare(discover_input)
+    legacy = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "Legacy shape.",
+                "checkability": "structure",
+            },
+        ),
+        segment_disposition={"NL-L001": "covered"},
+    )
+    out = nodes.split_requirements(
+        {"_input": discover_input, "frozen_inputs": frozen},
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: legacy
+        ),
+    )
+
+    assert out["failure"].node_name == "split_requirements"
+    assert "uses legacy checkability" in out["failure"].message
+
+
+def test_v2_converter_path_rejects_legacy_inferred_assertion_fields() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("legacy-assertion")
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "A structure fact.",
+                "verification_kind": "structure",
+                "coverage_obligation": {
+                    "domain": "model",
+                    "aggregation": "all",
+                },
+            },
+        ),
+    )
+    legacy = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "Legacy shape.",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-01] failed",
+                "evidence_family": "structure",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.convert_assertions(
+        {
+            "_input": discover_input,
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: legacy
+        ),
+    )
+
+    assert "failure" not in out
+    assert "legacy-inferred items" in out[
+        "_assertion_conversion_contract_feedback"
+    ].findings[0]
+
+
+@pytest.mark.parametrize(
+    ("verification_kind", "evidence_family", "accepted"),
+    [
+        ("structure", "structure", True),
+        ("structure", "relation", True),
+        ("behavior", "simulation", True),
+        ("property", "fbmcq", True),
+        ("structure", "simulation", False),
+        ("behavior", "relation", False),
+        ("property", "simulation", False),
+    ],
+)
+def test_primary_family_matrix_is_enforced(
+    verification_kind: str, evidence_family: str, accepted: bool
+) -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("primary-family"))
+    requirements = RequirementSet.model_validate(
+        {
+            "revision": 1,
+            "requirements": [
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "A typed requirement.",
+                    "verification_kind": verification_kind,
+                }
+            ],
+        }
+    )
+    script = AssertionScript.model_validate(
+        {
+            "revision": 1,
+            "assertions": [
+                {
+                    "assertion_id": "AST-REQ-001-01",
+                    "requirement_id": "REQ-001",
+                    "description": "Typed primary evidence.",
+                    "expression": "True",
+                    "failure_message": "[REQ-001][AST-REQ-001-01] failed",
+                    "evidence_family": evidence_family,
+                    "role": "primary",
+                    "coverage_key": "REQ-001:key",
+                    "aggregation_group": "REQ-001:all",
+                }
+            ],
+            "requirement_mapping": {"REQ-001": ["AST-REQ-001-01"]},
+        }
+    )
+    out = nodes.convert_assertions(
+        {
+            "_input": _input("primary-family"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: script
+        ),
+    )
+
+    if accepted:
+        assert "failure" not in out
+        assert out.get("_assertion_conversion_contract_feedback") is None
+    else:
+        assert out["_assertion_conversion_contract_feedback"] is not None
+        assert "invalid primary families" in out[
+            "_assertion_conversion_contract_feedback"
+        ].findings[0]
+
+
+def test_requirement_with_only_supporting_assertions_is_rejected() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("supporting-only"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "A structure fact.",
+                "verification_kind": "structure",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-01",
+                "requirement_id": "REQ-001",
+                "description": "Supporting only.",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-01] failed",
+                "evidence_family": "structure",
+                "role": "supporting",
+                "coverage_key": "support:key",
+                "aggregation_group": "REQ-001:all",
+            },
+        ),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+    )
+    out = nodes.convert_assertions(
+        {
+            "_input": _input("supporting-only"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: script
+        ),
+    )
+
+    assert "requires at least one primary assertion" in out[
+        "_assertion_conversion_contract_feedback"
+    ].findings[0]
 
 
 def _input(run_id: str = "r") -> DiscoverInput:
@@ -161,10 +412,109 @@ def test_fake_stategraph_runs_complete_without_old_agent_loop_import() -> None:
     assert "paper_stm_repair_loop" not in sys.modules
 
 
+def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial() -> None:
+    assertion_revision = 0
+
+    def responder(
+        _role: str, schema: type[BaseModel], _system: str, _payload: str
+    ) -> BaseModel:
+        nonlocal assertion_revision
+        if schema is RequirementSet:
+            return RequirementSet(
+                revision=1,
+                requirements=(
+                    {
+                        "requirement_id": "REQ-001",
+                        "statement": "Done shall be structurally present.",
+                        "verification_kind": "structure",
+                        "coverage_obligation": {
+                            "domain": "state:Done",
+                            "aggregation": "all",
+                        },
+                    },
+                ),
+                segment_disposition={"NL-L001": "covered"},
+            )
+        if schema is RequirementReview:
+            return RequirementReview(
+                decision="accept",
+                reviewed_revision=1,
+                rationale="The typed requirement is complete.",
+            )
+        if schema is AssertionScript:
+            assertion_revision += 1
+            return AssertionScript(
+                revision=assertion_revision,
+                assertions=(
+                    {
+                        "assertion_id": "AST-REQ-001-PRIMARY",
+                        "requirement_id": "REQ-001",
+                        "description": "Repeated invalid primary.",
+                        "expression": "len(states(",
+                        "failure_message": "[REQ-001][AST-REQ-001-PRIMARY] invalid",
+                        "evidence_family": "structure",
+                        "role": "primary",
+                        "coverage_key": "state:Done",
+                        "aggregation_group": "REQ-001:all",
+                    },
+                    {
+                        "assertion_id": "AST-REQ-001-SUPPORT",
+                        "requirement_id": "REQ-001",
+                        "description": "Executable supporting locator.",
+                        "expression": "len(states()) > 0",
+                        "failure_message": "[REQ-001][AST-REQ-001-SUPPORT] no states",
+                        "evidence_family": "structure",
+                        "role": "supporting",
+                        "coverage_key": "support:states",
+                        "aggregation_group": "REQ-001:all",
+                    },
+                ),
+                requirement_mapping={
+                    "REQ-001": (
+                        "AST-REQ-001-PRIMARY",
+                        "AST-REQ-001-SUPPORT",
+                    )
+                },
+            )
+        if schema is AssertionReview:
+            review_payload = json.loads(_payload)
+            assert review_payload["coverage_gaps"][0]["gap_id"] == (
+                "GAP-AST-REQ-001-PRIMARY-NO-PROGRESS"
+            )
+            return AssertionReview(
+                decision="accept",
+                reviewed_script_hash="TO_BE_PATCHED",
+                rationale="The remaining executable evidence is reviewable.",
+            )
+        if schema is DiscoverAdjudication:
+            return DiscoverAdjudication(
+                has_confirmed_issues=False,
+                issues=(),
+                satisfied_requirement_ids=(),
+                excluded_findings=(),
+                rationale="No released primary False assertion exists.",
+            )
+        raise AssertionError(schema)
+
+    completed = run_discover(_input("soft-isolation-e2e"), responder)
+
+    assert completed.status == "completed"
+    assert completed.coverage_status == "partial"
+    assert completed.issues == ()
+    assert completed.satisfied_requirement_ids == ()
+    assert len(completed.coverage_gaps) == 1
+    assert completed.coverage_gaps[0].assertion_ids == (
+        "AST-REQ-001-PRIMARY",
+    )
+    assert completed.coverage_gaps[0].blocks_full_coverage is True
+
+
 def test_ambiguous_segment_is_disposed_not_missing() -> None:
     """Ambiguity is a recorded disposition, not an uncovered NL segment."""
     discover_input = _input().model_copy(
-        update={"natural_language": "After go, Done shall become active.\nThe mode wording is ambiguous."}
+        update={
+            "natural_language": "After go, Done shall become active.\nThe mode wording is ambiguous."
+        }
     )
 
     def responder(role: str, schema: type[BaseModel], _: str, __: str) -> BaseModel:
@@ -176,7 +526,11 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
                         requirement_id="REQ-001",
                         statement="The system enters Idle.",
                         source_segment_ids=("NL-L001",),
-                        checkability="structure",
+                        verification_kind="structure",
+                        coverage_obligation={
+                            "domain": "state:Idle",
+                            "aggregation": "all",
+                        },
                     ),
                 ),
                 segment_disposition={
@@ -195,23 +549,19 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
     state = run_discover_state(discover_input, responder)
     assert state["requirement_coverage"].missing_segment_ids == ()
     assert state["requirement_set"].segment_disposition["NL-L002"] == "ambiguous"
-    assert [
-        event.event for event in state["_requirement_revision_ledger"]
-    ] == ["artifact_created", "review_completed"]
+    assert [event.event for event in state["_requirement_revision_ledger"]] == [
+        "artifact_created",
+        "review_completed",
+    ]
     assert [event.event for event in state["_assertion_revision_ledger"]] == [
         "artifact_created",
         "check_completed",
         "review_completed",
     ]
     assert "truth_value" not in json.dumps(
-        [
-            event.model_dump(mode="json")
-            for event in state["_assertion_revision_ledger"]
-        ]
+        [event.model_dump(mode="json") for event in state["_assertion_revision_ledger"]]
     )
-    completed = run_discover(
-        _input("pair-0000")
-    )
+    completed = run_discover(_input("pair-0000"))
     assert completed.status == "completed"
     assert completed.run_id == "pair-0000"
     assert completed.adjudication.has_confirmed_issues is False
@@ -222,14 +572,14 @@ def test_review_payload_hides_sealed_and_released_truth_values() -> None:
     completed_states: list[dict[str, Any]] = []
     graph = build_discover_graph()
     for event in graph.stream(
-        {
-            "_input": _input("truth-hide")
-        },
+        {"_input": _input("truth-hide")},
         stream_mode="updates",
     ):
         completed_states.append(event)
     release_index = next(
-        index for index, item in enumerate(completed_states) if "release_results" in item
+        index
+        for index, item in enumerate(completed_states)
+        if "release_results" in item
     )
     pre_release = completed_states[:release_index]
     assert pre_release
@@ -387,9 +737,7 @@ def test_convert_failure_terminates_even_with_stale_contract_feedback() -> None:
 def test_renderer_assertion_review_input_has_no_truth_labels() -> None:
     from paper_stm_feedback_loop.discover.nodes import _fallback_prepare
 
-    frozen = _fallback_prepare(
-        _input()
-    )
+    frozen = _fallback_prepare(_input())
     reqs = RequirementSet(
         revision=1,
         requirements=(
@@ -511,7 +859,87 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
         sealed_store=store,
         assertion_checker=checker,
     )
-    assert "no-progress gate" in repeated["failure"].message
+    assert "failure" not in repeated
+    assert repeated["_assertion_no_progress_recovery_count"] == 1
+    assert repeated["_assertion_feedback"].recovery_seed is not None
+    assert repeated["_assertion_feedback"].target_item_ids == ("AST-REQ-001-01",)
+
+
+def test_repeated_invalid_assertion_is_quarantined_without_discarding_peer() -> None:
+    from paper_stm_feedback_loop.assertions import InMemorySealedStore
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("soft-isolation")
+    frozen = nodes._fallback_prepare(discover_input)
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "The model exposes at least one state.",
+                "verification_kind": "structure",
+                "coverage_obligation": {"domain": "model", "aggregation": "all"},
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-PRIMARY",
+                "requirement_id": "REQ-001",
+                "description": "Repeated invalid primary.",
+                "expression": "len(states(",
+                "failure_message": "[REQ-001][AST-REQ-001-PRIMARY] invalid",
+                "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "model:states",
+                "aggregation_group": "REQ-001:all",
+            },
+            {
+                "assertion_id": "AST-REQ-001-SUPPORT",
+                "requirement_id": "REQ-001",
+                "description": "Executable supporting locator.",
+                "expression": "len(states()) > 0",
+                "failure_message": "[REQ-001][AST-REQ-001-SUPPORT] no states",
+                "evidence_family": "structure",
+                "role": "supporting",
+                "coverage_key": "support:model:states",
+                "aggregation_group": "REQ-001:all",
+            },
+        ),
+        requirement_mapping={
+            "REQ-001": (
+                "AST-REQ-001-PRIMARY",
+                "AST-REQ-001-SUPPORT",
+            )
+        },
+    )
+    store = InMemorySealedStore()
+    base = {
+        "_input": discover_input,
+        "frozen_inputs": frozen,
+        "requirement_set": requirements,
+        "assertion_script": script,
+    }
+    first = nodes.precheck_and_seal(base, sealed_store=store)
+    second = nodes.precheck_and_seal(
+        {**base, **first, "assertion_script": script}, sealed_store=store
+    )
+    third = nodes.precheck_and_seal(
+        {**base, **first, **second, "assertion_script": script},
+        sealed_store=store,
+    )
+
+    assert "failure" not in third
+    assert third["assertion_check_public"].status == "executable"
+    assert [item.assertion_id for item in third["assertion_script"].assertions] == [
+        "AST-REQ-001-SUPPORT"
+    ]
+    assert third["_quarantined_assertion_ids"] == ("AST-REQ-001-PRIMARY",)
+    assert len(third["coverage_gaps"]) == 1
+    assert third["coverage_gaps"][0].reason_code == "no_progress"
+    assert third["coverage_gaps"][0].blocks_full_coverage is True
 
 
 def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
@@ -561,7 +989,9 @@ def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
                 ),
                 "revised_helper": (
                     "structure",
-                    lambda: (_ for _ in ()).throw(AssertionError("backend failed again")),
+                    lambda: (_ for _ in ()).throw(
+                        AssertionError("backend failed again")
+                    ),
                 ),
             },
         )
@@ -595,7 +1025,11 @@ def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
 
 
 def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
-    from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
     from paper_stm_feedback_loop.discover import nodes
 
     discover_input = _input("cold-effect")
@@ -639,7 +1073,9 @@ def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
     assert "declaration name" in error
 
 
-def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy() -> None:
+def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy() -> (
+    None
+):
     from paper_stm_feedback_loop.assertions import (
         AssertionChecker,
         EvalEnvironment,
@@ -741,7 +1177,11 @@ def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
 
 
 def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
-    from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
     from paper_stm_feedback_loop.discover import nodes
 
     discover_input = _input("initial-cold-effect")
@@ -784,7 +1224,11 @@ def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
 
 
 def test_initialization_wording_does_not_bypass_effect_simulation_contract() -> None:
-    from paper_stm_feedback_loop.assertions import AssertionChecker, EvalEnvironment, InMemorySealedStore
+    from paper_stm_feedback_loop.assertions import (
+        AssertionChecker,
+        EvalEnvironment,
+        InMemorySealedStore,
+    )
     from paper_stm_feedback_loop.discover import nodes
 
     discover_input = _input("initial-only-observation")
@@ -792,11 +1236,11 @@ def test_initialization_wording_does_not_bypass_effect_simulation_contract() -> 
     requirements = RequirementSet(
         revision=1,
         requirements=(
-                {
-                    "requirement_id": "REQ-001",
-                    "statement": "The system shall begin in the Root.Idle state.",
-                    "checkability": "effect",
-                },
+            {
+                "requirement_id": "REQ-001",
+                "statement": "The system shall begin in the Root.Idle state.",
+                "checkability": "effect",
+            },
         ),
     )
     script = AssertionScript(
@@ -899,9 +1343,7 @@ def test_strict_schemas_reject_inconclusive_and_bad_review_shapes() -> None:
 def test_create_revise_pairs_and_no_progress_gate_are_enforced() -> None:
     from paper_stm_feedback_loop.discover import nodes
 
-    frozen = nodes._fallback_prepare(
-        _input()
-    )
+    frozen = nodes._fallback_prepare(_input())
     current = RequirementSet(
         revision=1,
         requirements=(
@@ -978,7 +1420,9 @@ def test_converter_contract_reject_routes_existing_script_back_with_feedback() -
         "requirement_set": requirements,
         "assertion_script": current,
         "_assertion_feedback": RevisionFeedback(
-            target="assertions", reason="review requested a revision", findings=("scope",)
+            target="assertions",
+            reason="review requested a revision",
+            findings=("scope",),
         ),
     }
     out = nodes.convert_assertions(
@@ -1001,10 +1445,14 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
     requirements = RequirementSet(
         revision=1,
         requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "When go occurs, the system shall enter Done.",
-                "checkability": "effect",
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "When go occurs, the system shall enter Done.",
+                    "verification_kind": "behavior",
+                    "coverage_obligation": {
+                        "domain": "response:go",
+                        "aggregation": "all",
+                    },
             },
         ),
     )
@@ -1016,8 +1464,11 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
                 "requirement_id": "REQ-001",
                 "description": "current relation check",
                 "expression": "True",
-                "failure_message": "[REQ-001][AST-REQ-001-01] relation",
-                "evidence_family": "relation",
+                    "failure_message": "[REQ-001][AST-REQ-001-01] relation",
+                    "evidence_family": "relation",
+                    "role": "primary",
+                    "coverage_key": "response:go",
+                    "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1040,10 +1491,18 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
         ),
     )
     assert "failure" not in out
-    assert "effect, simulation, or fbmcq" in out["_assertion_conversion_contract_feedback"].findings[0]
+    assert (
+        "behavior requirement"
+        in out["_assertion_conversion_contract_feedback"].findings[0]
+    )
+    assert (
+        "['simulation']" in out["_assertion_conversion_contract_feedback"].findings[0]
+    )
 
 
-def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation() -> None:
+def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation() -> (
+    None
+):
     from paper_stm_feedback_loop.assertions import (
         AssertionChecker,
         EvalEnvironment,
@@ -1051,9 +1510,9 @@ def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation
     )
     from paper_stm_feedback_loop.discover import nodes
 
-    model = (
-        ROOT / "fixtures/selected_models/0006/STM_0.fcstm"
-    ).read_text(encoding="utf-8")
+    model = (ROOT / "fixtures/selected_models/0006/STM_0.fcstm").read_text(
+        encoding="utf-8"
+    )
     discover_input = _input("effect-only").model_copy(
         update={
             "natural_language": (
@@ -1113,7 +1572,9 @@ def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation
     assert released[0].evidence_family == "effect"
 
 
-def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxation() -> None:
+def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxation() -> (
+    None
+):
     """The new effect exception is narrow: relation remains insufficient."""
 
     from paper_stm_feedback_loop.discover import nodes
@@ -1122,10 +1583,14 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
     requirements = RequirementSet(
         revision=1,
         requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "When go occurs, the system shall enter Done.",
-                "checkability": "effect",
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "When go occurs, the system shall enter Done.",
+                    "verification_kind": "behavior",
+                    "coverage_obligation": {
+                        "domain": "response:go",
+                        "aggregation": "all",
+                    },
             },
         ),
     )
@@ -1140,8 +1605,11 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
                     "transition_exists(source='Root.Idle', event='Root.go', "
                     "target='Root.Done')"
                 ),
-                "failure_message": "[REQ-001][AST-REQ-001-01] effect missing",
-                "evidence_family": "relation",
+                    "failure_message": "[REQ-001][AST-REQ-001-01] effect missing",
+                    "evidence_family": "relation",
+                    "role": "primary",
+                    "coverage_key": "response:go",
+                    "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1158,9 +1626,10 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
     )
 
     assert out["_assertion_conversion_contract_feedback"].findings
-    assert "effect, simulation, or fbmcq" in out[
-        "_assertion_conversion_contract_feedback"
-    ].findings[0]
+    assert (
+        "behavior requirement"
+        in out["_assertion_conversion_contract_feedback"].findings[0]
+    )
 
 
 def test_assertion_reviewer_has_a_bounded_revision_gate() -> None:
@@ -1260,10 +1729,14 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
     requirements = RequirementSet(
         revision=1,
         requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "When go occurs, the system shall enter Done.",
-                "checkability": "effect",
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "When go occurs, the system shall enter Done.",
+                    "verification_kind": "behavior",
+                    "coverage_obligation": {
+                        "domain": "response:go",
+                        "aggregation": "all",
+                    },
             },
         ),
     )
@@ -1275,8 +1748,11 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
                 "requirement_id": "REQ-001",
                 "description": "relation only",
                 "expression": "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')",
-                "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
-                "evidence_family": "relation",
+                    "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
+                    "evidence_family": "relation",
+                    "role": "primary",
+                    "coverage_key": "response:go",
+                    "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1292,7 +1768,7 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
     assert "failure" not in out
     assert out["assertion_script"].revision == 1
     assert out["_assertion_contract_repair_count"] == 1
-    assert "effect, simulation, or fbmcq" in out["_assertion_feedback"].findings[0]
+    assert "behavior requirement" in out["_assertion_feedback"].findings[0]
     assert route_after_convert(out) == "convert_assertions"
 
 
@@ -1359,7 +1835,9 @@ def test_repeated_contract_invalid_script_stops_without_five_duplicate_calls() -
     assert "repeated contract-invalid" in second["failure"].message
 
 
-def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> None:
+def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> (
+    None
+):
     from paper_stm_feedback_loop.discover.graph import run_discover_state
 
     def fail_splitter(
@@ -1369,16 +1847,16 @@ def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking
             raise RuntimeError("splitter transport failed")
         raise AssertionError("downstream reviewer must not be called")
 
-    with pytest.raises(RuntimeError, match="split_requirements.*splitter transport failed"):
+    with pytest.raises(
+        RuntimeError, match="split_requirements.*splitter transport failed"
+    ):
         run_discover_state(_input("split-failure"), fail_splitter)
 
 
 def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
     from paper_stm_feedback_loop.discover import nodes
 
-    frozen = nodes._fallback_prepare(
-        _input()
-    )
+    frozen = nodes._fallback_prepare(_input())
     script = AssertionScript(
         revision=1,
         assertions=(
@@ -1498,11 +1976,16 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "public_check.script_hash" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "behavioral requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "checkability classification" in prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "at least one `effect`, `simulation`, or `fbmcq`" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert (
+        "at least one `effect`, `simulation`, or `fbmcq`"
+        in prompts.ASSERTION_CONVERTER_PROMPT
+    )
     assert "only evidence is static relation" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
-def test_cli_main_writes_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_main_writes_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from paper_stm_feedback_loop.discover.cli import main
     from paper_stm_feedback_loop.discover import cli, nodes
 
@@ -1548,7 +2031,9 @@ def test_cli_main_writes_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert list((output / "records").glob("L000-*-discover-completed/record.json"))
 
 
-def test_cli_failure_writes_auditable_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_failure_writes_auditable_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from paper_stm_feedback_loop.discover import cli
 
     nl = tmp_path / "nl.txt"
@@ -1557,11 +2042,15 @@ def test_cli_failure_writes_auditable_receipt(tmp_path: Path, monkeypatch: pytes
     nl.write_text("After go, Done shall become active.", encoding="utf-8")
     stm.write_text(MODEL, encoding="utf-8")
     trace.write_text('{"entries": [], "attribution_exclusions": []}', encoding="utf-8")
-    monkeypatch.setattr(cli, "DirectStructuredResponder", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        cli, "DirectStructuredResponder", lambda *_args, **_kwargs: object()
+    )
     monkeypatch.setattr(
         cli,
         "run_discover_state",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("bounded review gate")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("bounded review gate")
+        ),
     )
     output = tmp_path / "failed-run"
     with pytest.raises(RuntimeError, match="bounded review gate"):
@@ -1584,15 +2073,15 @@ def test_cli_failure_writes_auditable_receipt(tmp_path: Path, monkeypatch: pytes
     failure = json.loads((output / "discover-failed.json").read_text(encoding="utf-8"))
     assert failure["status"] == "failed"
     assert "bounded review gate" in failure["error_message"]
-    assert "records/" in (output / "loops" / "discover-failed.md").read_text(encoding="utf-8")
+    assert "records/" in (output / "loops" / "discover-failed.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_assertion_review_hash_must_match_current_script() -> None:
     from paper_stm_feedback_loop.discover import nodes
 
-    frozen = nodes._fallback_prepare(
-        _input()
-    )
+    frozen = nodes._fallback_prepare(_input())
     reqs = RequirementSet(
         revision=1,
         requirements=(
@@ -1738,9 +2227,7 @@ state Root {
             "stm_text": model,
             "source_trace": {
                 "entries": [],
-                "attribution_exclusions": [
-                    "compiler:route_control:R45RouteToken"
-                ],
+                "attribution_exclusions": ["compiler:route_control:R45RouteToken"],
             },
         }
     )
@@ -1882,9 +2369,7 @@ def test_simulation_false_on_ineligible_contract_is_representation_debt() -> Non
         update={
             "manifest": {
                 "working_contract": {
-                    "capability_eligibility": {
-                        "simulation": {"status": "ineligible"}
-                    }
+                    "capability_eligibility": {"simulation": {"status": "ineligible"}}
                 }
             },
             "source_trace": {
@@ -1935,7 +2420,9 @@ def test_simulation_false_on_ineligible_contract_is_representation_debt() -> Non
     assert "contract:capability_eligibility.simulation" in binding.exclusion_refs
 
 
-def test_simulation_false_without_ineligible_contract_keeps_source_trace_policy() -> None:
+def test_simulation_false_without_ineligible_contract_keeps_source_trace_policy() -> (
+    None
+):
     from paper_stm_feedback_loop.discover import nodes
 
     discover_input = _input("simulation-eligible").model_copy(
@@ -1993,9 +2480,7 @@ def test_mixed_effect_assertion_using_simulation_respects_ineligible_gate() -> N
         update={
             "manifest": {
                 "working_contract": {
-                    "capability_eligibility": {
-                        "simulation": {"status": "ineligible"}
-                    }
+                    "capability_eligibility": {"simulation": {"status": "ineligible"}}
                 }
             },
             "source_trace": {
@@ -2028,9 +2513,7 @@ def test_mixed_effect_assertion_using_simulation_respects_ineligible_gate() -> N
                 script_hash="script",
                 tool_env_hash="env",
                 evidence_family="effect",
-                evidence_scope={
-                    "actual_function_families": ["effect", "simulation"]
-                },
+                evidence_scope={"actual_function_families": ["effect", "simulation"]},
                 check_detail={
                     "actual_function_families": ["effect", "simulation"],
                     "function_call_trace": [{"args": ["Root.Done"]}],
@@ -2163,7 +2646,127 @@ def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
     assert "every attribution-safe False assertion" in out["failure"].message
 
 
-def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings() -> None:
+def test_supporting_false_is_retained_without_creating_issue() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("supporting-false"))
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "Done is structurally present.",
+                "verification_kind": "structure",
+            },
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            {
+                "assertion_id": "AST-REQ-001-PRIMARY",
+                "requirement_id": "REQ-001",
+                "description": "Primary structure fact.",
+                "expression": "True",
+                "failure_message": "[REQ-001][AST-REQ-001-PRIMARY] missing",
+                "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "state:Done",
+                "aggregation_group": "REQ-001:all",
+            },
+            {
+                "assertion_id": "AST-REQ-001-SUPPORT",
+                "requirement_id": "REQ-001",
+                "description": "Supporting locator.",
+                "expression": "False",
+                "failure_message": "[REQ-001][AST-REQ-001-SUPPORT] locator",
+                "evidence_family": "relation",
+                "role": "supporting",
+                "coverage_key": "support:route",
+                "aggregation_group": "REQ-001:all",
+            },
+        ),
+        requirement_mapping={
+            "REQ-001": (
+                "AST-REQ-001-PRIMARY",
+                "AST-REQ-001-SUPPORT",
+            )
+        },
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-PRIMARY",
+                requirement_id="REQ-001",
+                role="primary",
+                coverage_key="state:Done",
+                aggregation_group="REQ-001:all",
+                truth_value=True,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="structure",
+            ),
+            AssertionResult(
+                assertion_id="AST-REQ-001-SUPPORT",
+                requirement_id="REQ-001",
+                role="supporting",
+                coverage_key="support:route",
+                aggregation_group="REQ-001:all",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="relation",
+            ),
+        ),
+    )
+    attribution = AttributionProjection(
+        bindings=(
+            {
+                "assertion_id": "AST-REQ-001-SUPPORT",
+                "requirement_id": "REQ-001",
+                "status": "safe",
+                "source_refs": ("transition:Root.Idle->Root.Done",),
+                "trace_entry_ids": ("trace-1",),
+                "source_level_claim_allowed": True,
+                "rationale": "source-owned",
+            },
+        )
+    )
+
+    out = nodes.adjudicate_results(
+        {
+            "_input": _input("supporting-false"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+            "released_assertion_results": released,
+            "attribution_projection": attribution,
+        },
+        nodes.CallableStructuredResponder(
+            lambda _role, _schema, _system, _payload: DiscoverAdjudication(
+                has_confirmed_issues=False,
+                issues=(),
+                excluded_findings=(),
+                satisfied_requirement_ids=("REQ-001",),
+                rationale="Primary coverage is satisfied.",
+            )
+        ),
+    )
+
+    assert "failure" not in out
+    assert out["adjudication"].issues == ()
+    assert out["adjudication"].satisfied_requirement_ids == ("REQ-001",)
+    assert out["adjudication"].excluded_observations[0].assertion_id == (
+        "AST-REQ-001-SUPPORT"
+    )
+
+
+def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings() -> (
+    None
+):
     from paper_stm_feedback_loop.discover import nodes
 
     frozen = nodes._fallback_prepare(_input("adjudication-reconcile"))
@@ -2258,8 +2861,16 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
             "requirement_set": RequirementSet(
                 revision=1,
                 requirements=(
-                    {"requirement_id": "REQ-001", "statement": "A", "checkability": "structure"},
-                    {"requirement_id": "REQ-002", "statement": "B", "checkability": "structure"},
+                    {
+                        "requirement_id": "REQ-001",
+                        "statement": "A",
+                        "checkability": "structure",
+                    },
+                    {
+                        "requirement_id": "REQ-002",
+                        "statement": "B",
+                        "checkability": "structure",
+                    },
                 ),
             ),
             "assertion_script": script,

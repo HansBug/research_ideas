@@ -25,7 +25,9 @@ def telemetry_summary(
         "cache_creation_input_tokens",
         "reasoning_tokens",
     ):
-        observed = [getattr(call, field) for call in calls if getattr(call, field) is not None]
+        observed = [
+            getattr(call, field) for call in calls if getattr(call, field) is not None
+        ]
         totals[field] = sum(observed) if observed else None
     for record in nodes:
         node_elapsed[record.node_name] += record.elapsed_ms
@@ -84,6 +86,10 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
     released = state["released_assertion_results"]
     attribution = state["attribution_projection"]
     adjudication = state["adjudication"]
+    coverage_gaps = state.get("coverage_gaps", ())
+    coverage_status = (
+        "partial" if any(gap.blocks_full_coverage for gap in coverage_gaps) else "full"
+    )
     adjudication_reconciliation = state.get("_adjudication_reconciliation", {})
     nodes = state.get("node_execution_records", [])
     calls = state.get("llm_call_records", [])
@@ -93,7 +99,11 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
     lines = [
         f"# {title}",
         "",
-        ("本文件由确定性 Python renderer 从不可变运行记录生成，未调用 LLM。" if zh else "This file was rendered deterministically from immutable run records without an LLM."),
+        (
+            "本文件由确定性 Python renderer 从不可变运行记录生成，未调用 LLM。"
+            if zh
+            else "This file was rendered deterministically from immutable run records without an LLM."
+        ),
         "",
         "## Run Identity",
         "",
@@ -101,6 +111,7 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
         f"- `profile`: `{frozen.profile}`",
         f"- `content_language`: `{frozen.language}`",
         f"- `tool_env_hash`: `{frozen.tool_env_hash}`",
+        f"- `coverage_status`: `{coverage_status}`",
         "",
         "### Input Hashes",
         "",
@@ -110,12 +121,12 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
         "",
         "## Requirements",
         "",
-        "| ID | Checkability | Statement | Source context | Rationale |",
-        "| --- | --- | --- | --- | --- |",
+        "| ID | Kind | Quantifier | Statement | Coverage obligation | Source context | Rationale |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for item in requirements.requirements:
         lines.append(
-            f"| `{item.requirement_id}` | `{item.checkability}` | {_cell(item.statement)} | {_cell(_json(item.source_context))} | {_cell(item.rationale)} |"
+            f"| `{item.requirement_id}` | `{item.verification_kind}` | `{item.quantifier}` | {_cell(item.statement)} | {_cell(_json(item.coverage_obligation))} | {_cell(_json(item.source_context))} | {_cell(item.rationale)} |"
         )
     lines.extend(
         [
@@ -152,13 +163,13 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
             "",
             "## Released Results And Evidence",
             "",
-            "| Assertion | Requirement | Result | Family | Failure Message | Evidence Calls |",
-            "| --- | --- | --- | --- | --- | ---: |",
+            "| Assertion | Requirement | Role | Coverage key | Result | Family | Failure Message | Evidence Calls |",
+            "| --- | --- | --- | --- | --- | --- | --- | ---: |",
         ]
     )
     for result in released.results:
         lines.append(
-            f"| `{result.assertion_id}` | `{result.requirement_id}` | `{result.truth_value}` | `{result.evidence_family}` | {_cell(result.failure_message or '')} | {len(result.evidence_record_ids)} |"
+            f"| `{result.assertion_id}` | `{result.requirement_id}` | `{result.role}` | `{result.coverage_key}` | `{result.truth_value}` | `{result.evidence_family}` | {_cell(result.failure_message or '')} | {len(result.evidence_record_ids)} |"
         )
     lines.extend(
         [
@@ -167,6 +178,12 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
             "",
             "```json",
             _json([result.model_dump(mode="json") for result in released.results]),
+            "```",
+            "",
+            "## Coverage Gaps",
+            "",
+            "```json",
+            _json([gap.model_dump(mode="json") for gap in coverage_gaps]),
             "```",
             "",
             "## Attribution",
@@ -208,7 +225,9 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
             str(call.input_tokens) if call.input_tokens is not None else "null",
             str(call.output_tokens) if call.output_tokens is not None else "null",
             str(call.total_tokens) if call.total_tokens is not None else "null",
-            str(call.cache_read_input_tokens) if call.cache_read_input_tokens is not None else "null",
+            str(call.cache_read_input_tokens)
+            if call.cache_read_input_tokens is not None
+            else "null",
             f"{call.elapsed_ms:.1f}",
             str(len(call.transport_attempts)),
         ]

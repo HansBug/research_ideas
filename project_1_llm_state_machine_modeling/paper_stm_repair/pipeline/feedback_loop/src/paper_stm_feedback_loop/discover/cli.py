@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from paper_stm_feedback_loop.assertions import AssertionChecker, build_eval_environment
-from paper_stm_feedback_loop.common.inputs import FeedbackLoopInputs, load_feedback_loop_inputs
+from paper_stm_feedback_loop.common.inputs import (
+    FeedbackLoopInputs,
+    load_feedback_loop_inputs,
+)
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
 from .graph import run_discover_state
@@ -149,7 +152,7 @@ def _write_failure_artifacts(
     loops.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_name": "DiscoverRunFailure",
-        "schema_version": "v1",
+        "schema_version": "v2",
         "run_id": run_id,
         "status": "failed",
         "profile": profile,
@@ -189,9 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     source_entries = bundle.source_trace.data.get("entries", [])
     source_entries = source_entries if isinstance(source_entries, list) else []
     source_exclusions = bundle.source_trace.data.get("attribution_exclusions", [])
-    source_exclusions = (
-        source_exclusions if isinstance(source_exclusions, list) else []
-    )
+    source_exclusions = source_exclusions if isinstance(source_exclusions, list) else []
     environment = build_eval_environment(
         model_text=bundle.fcstm_text,
         source_mappings=source_entries,
@@ -220,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         "discover-run-started",
         {
             "schema_name": "DiscoverRunStarted",
-            "schema_version": "v1",
+            "schema_version": "v2",
             "run_id": run_id,
             "profile": args.profile,
             "content_language": args.content_language,
@@ -295,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
             "discover-run-interrupted",
             {
                 "schema_name": "DiscoverRunInterrupted",
-                "schema_version": "v1",
+                "schema_version": "v2",
                 "run_id": run_id,
                 "reason": "operator_interrupt_after_observed_no_progress",
             },
@@ -314,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
             "discover-run-failed",
             {
                 "schema_name": "DiscoverRunFailed",
-                "schema_version": "v1",
+                "schema_version": "v2",
                 "run_id": run_id,
                 "error_type": type(exc).__name__,
                 "error_message": str(exc),
@@ -343,7 +344,9 @@ def main(argv: list[str] | None = None) -> int:
     records.append("discover-completed", completed)
     final_json = output_root / "discover-completed.json"
     with final_json.open("x", encoding="utf-8") as stream:
-        json.dump(completed.model_dump(mode="json"), stream, ensure_ascii=False, indent=2)
+        json.dump(
+            completed.model_dump(mode="json"), stream, ensure_ascii=False, indent=2
+        )
         stream.write("\n")
     write_discover_markdown(state, output_root / "loops" / "discover.md")
     print(f"[discover] completed: {output_root}", flush=True)

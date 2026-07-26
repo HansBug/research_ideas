@@ -10,7 +10,16 @@
 - 可以直接使用根级 `utils.llm`、pyfcstm 公共 API、LangGraph、LangChain Core、Pydantic 和标准库。
 - Issue #166 的 taxonomy、expected issue、描述和 gold assertion 只允许在 graph terminal 后用于 evaluator-side 审计，禁止进入 runtime。
 
-完整节点、遥测、密封结果与学术边界合同见 [Issue #167](https://github.com/HansBug/research_ideas/issues/167)，施工状态见 [PR #168](https://github.com/HansBug/research_ideas/pull/168)。
+完整节点、遥测、密封结果与学术边界合同见 [Issue #167](https://github.com/HansBug/research_ideas/issues/167)，当前 v2 施工状态见 [PR #169](https://github.com/HansBug/research_ideas/pull/169)，直接上游实现 PR 为 [PR #168](https://github.com/HansBug/research_ideas/pull/168)。
+
+## Discover v2 合同
+
+- Splitter 为每条 Requirement 冻结 `verification_kind=structure/behavior/property`、量词、触发、结果、时序和 coverage obligation。
+- Controller 对 primary evidence 做确定性门禁：structure 使用静态结构/关系/effect/topology/provenance，behavior 使用 simulation，property 使用 FBMCQ。
+- Assertion 显式区分 `primary/supporting`，并记录 `coverage_key` 与 `aggregation_group`；只有 attribution-safe primary False 能创建 confirmed issue。
+- producer 小循环重复 invalid 时先做一次定向恢复；仍无进展则只隔离坏 item，保留可执行 peers，并发布 append-only coverage gap。
+- `DiscoverCompleted@v2` 始终包含 `coverage_status=full/partial`、`coverage_gaps`、confirmed issues、satisfied requirements 和 excluded observations。`partial + 0 issue` 不是完整 E0 success。
+- 旧 v1 `checkability` 与缺省 Assertion role 仅为历史 fixture/read compatibility；真实 provider prompt 和新运行记录使用 v2 字段。
 
 ## 目录
 
@@ -43,7 +52,7 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedba
 python -m paper_stm_feedback_loop.discover --help
 ```
 
-资源限制只允许调用者显式传入；默认不设置业务预算。每次运行必须保存所有 node/LLM/transport attempt 的时间与 usage，并从 immutable records 确定性渲染报告。
+provider token、assertion timeout 与 FBMCQ bound 等资源限制只允许调用者显式传入；默认不设置。Discover producer 的 item repair/no-progress 配额属于方法终止合同，不是 provider 资源限制。每次运行必须保存所有 node/LLM/transport attempt 的时间与 usage，并从 immutable records 确定性渲染报告。
 
 ## 预注册 pilot
 

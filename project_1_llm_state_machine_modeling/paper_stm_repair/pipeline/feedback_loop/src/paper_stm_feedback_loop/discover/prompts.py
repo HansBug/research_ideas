@@ -127,3 +127,25 @@ Multi-step response gate: reject a one-cycle simulation when structured inspect 
 
 Attribution-preserving mismatch gate: reject a script when a false simulation is the only failing assertion for an NL-grounded source-trigger-target Requirement even though the structured relation API can test the expected target directly. Require a complementary exact positive relation assertion mapped to that same Requirement. This keeps the behavioral witness and the source-attributable mismatch together; it does not turn every composed final outcome into a direct-edge requirement when the accepted target is reached only through declared follow-up transitions.
 """
+
+# Binding v2 contract. These suffixes deliberately override the older
+# checkability terminology retained above for historical readability.
+REQUIREMENT_SPLITTER_PROMPT += """
+Binding v2 Requirement contract: do not emit or reason in terms of the legacy `checkability` field. Every Requirement must emit exactly one `verification_kind`: `structure`, `behavior`, or `property`. Use `structure` only when the NL directly constrains model facts such as containment, initial relations, source-event-target transitions, guards, or declared actions/effects. Use `behavior` for one explicit initialization/source context plus an input/event and expected runtime response. Use `property` for all/any/always/never/until or claims quantified across states, valuations, or paths. Split independently violable mixed modalities into separate Requirements. Preserve `quantifier`, `trigger`, `expected_outcome`, `timing`, `limitations`, and a concrete `coverage_obligation` with `domain`, optional `partition_by`, and `aggregation`. Do not hard-code benchmark-specific partitions or expected issues.
+"""
+
+REQUIREMENT_REVIEWER_PROMPT += """
+Binding v2 review gate: reject any Requirement that lacks `verification_kind`, quantifier/scope preservation, or an operational coverage obligation. Verify the deterministic order: direct model-fact claim -> structure; explicit finite runtime response -> behavior; quantified cross-state/valuation/path claim -> property. The current FCSTM cannot be used to weaken the NL or change the kind. A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical; otherwise require distinct coverage obligations or an explicit limitation.
+"""
+
+ASSERTION_CONVERTER_PROMPT += """
+Binding v2 Assertion contract: every assertion must declare `role`, `coverage_key`, and `aggregation_group`. Each Requirement needs at least one `primary` assertion. Primary evidence is mandatory by `verification_kind`: structure -> structure/relation/effect/topology/provenance; behavior -> hot/cold-start simulation with explicit initialization; property -> FBMCQ bounded formal evidence. Any weaker locator, witness, near-miss, or explanatory check must be `supporting`. Supporting evidence has equal diagnostic value but cannot substitute for mandatory primary evidence and cannot independently create an issue. Primary coverage keys must be unique within a Requirement and must implement its frozen coverage obligation. On revision, change only targeted items, consume the complete revision ledger, and use `revision_feedback.recovery_seed` only as a repair starting point; it is not an accepted artifact and unresolved Reviewer findings remain binding.
+"""
+
+ASSERTION_REVIEWER_PROMPT += """
+Binding v2 evidence review: verify every non-quarantined Requirement has complete mandatory primary coverage for its frozen `verification_kind`, unique `coverage_key` values, and one `aggregation_group` per primary obligation. Reject behavior primary evidence that avoids simulation, property primary evidence that avoids FBMCQ, or structure primary evidence unrelated to the stated model fact. Supporting assertions may locate or explain a mismatch, but a supporting False cannot create a Repair issue. `coverage_gaps` are immutable deterministic quarantine facts: do not request restoration of an assertion already named there and do not reject otherwise valid peers merely because a quarantined primary makes overall coverage partial. Review the current executable artifact only; a recovery seed never bypasses this review.
+"""
+
+RESULT_ADJUDICATOR_PROMPT += """
+Binding v2 adjudication contract: only `primary` False assertions with safe attribution may create confirmed issues. A supporting False is retained as an excluded diagnostic observation even when its attribution is safe; it never creates or enlarges a Repair issue. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
+"""
