@@ -113,6 +113,10 @@ def test_requirement_prompts_do_not_treat_missing_discriminator_as_nondeterminis
     assert "only an explicit statement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "absence of an explicit ban" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "separate distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "undifferentiated condition set" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "different target-specific condition clauses" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "binding normalization" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "global guard mutual exclusion" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
 def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -> None:
