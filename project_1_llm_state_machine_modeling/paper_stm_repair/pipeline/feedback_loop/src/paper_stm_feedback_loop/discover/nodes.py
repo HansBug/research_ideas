@@ -1692,6 +1692,7 @@ def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
         "variable",
         "effect",
         "guard",
+        "event_projection",
         "route_control",
     }
 

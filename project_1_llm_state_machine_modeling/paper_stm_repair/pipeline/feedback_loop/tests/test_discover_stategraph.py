@@ -108,6 +108,13 @@ def test_requirement_prompts_distinguish_local_exit_from_completion() -> None:
     assert "separate completion/termination target" in prompts.REQUIREMENT_SPLITTER_PROMPT
 
 
+def test_requirement_prompts_do_not_treat_missing_discriminator_as_nondeterminism() -> None:
+    assert "Missing discriminator text" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "only an explicit statement" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "absence of an explicit ban" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "separate distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
+
+
 def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -> None:
     assert "Hierarchical completion distinction" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Hierarchical completion review" in prompts.ASSERTION_REVIEWER_PROMPT
@@ -1917,6 +1924,10 @@ def test_attribution_matching_requires_exact_structured_path() -> None:
     )
     assert _reference_matches_observed(
         "compiler:route_control:R45RouteToken", {"R45RouteToken"}
+    )
+    assert _reference_matches_observed(
+        "compiler:event_projection:Root.pedestrian_or_distance",
+        {"Root.pedestrian_or_distance"},
     )
 
 
