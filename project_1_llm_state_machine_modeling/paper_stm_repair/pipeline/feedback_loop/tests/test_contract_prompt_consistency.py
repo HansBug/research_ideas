@@ -110,3 +110,24 @@ def test_splitter_payload_puts_the_specification_before_the_model_facts() -> Non
     assert keys[0] == "natural_language"
     assert keys.index("natural_language") < keys.index("inspect_digest")
     assert keys.index("nl_segments") < keys.index("stm_text")
+
+
+def test_binding_output_contract_is_the_last_thing_each_producer_reads() -> None:
+    """Long authoritative appendices must not bury the output schema.
+
+    Three Claude cells in matrix v3-r2 emitted the removed legacy
+    `checkability` field when the v2 contract sat mid-prompt behind a 16 KB
+    grammar guide.  The schema rule has to be the final instruction.
+    """
+
+    tails = {
+        "splitter": prompts.REQUIREMENT_SPLITTER_PROMPT[-1500:],
+        "reviewer": prompts.REQUIREMENT_REVIEWER_PROMPT[-1500:],
+        "converter": prompts.ASSERTION_CONVERTER_PROMPT[-1500:],
+    }
+    assert "There is no `checkability` field" in tails["splitter"]
+    assert "verification_kind" in tails["splitter"]
+    assert "legacy `checkability` field" in tails["reviewer"]
+    assert "`role`" in tails["converter"] and "`coverage_key`" in tails["converter"]
+    for name, tail in tails.items():
+        assert "overrides anything above" in tail, name

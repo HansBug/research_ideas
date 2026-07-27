@@ -225,3 +225,26 @@ REQUIREMENT_SPLITTER_PROMPT += (
     "\n\n=== FCSTM grammar guide (authoritative, orientation only) ===\n"
     + FCSTM_GRAMMAR_GUIDE
 )
+
+
+# The language guides above are long.  Restate the binding output contract last
+# so the final thing each producer reads is the schema it must satisfy: three
+# Claude cells emitted the removed legacy `checkability` field when this rule
+# sat mid-prompt behind a 16 KB grammar appendix.
+REQUIREMENT_SPLITTER_PROMPT += """
+
+=== Binding output contract (final, overrides anything above) ===
+Emit `verification_kind` on every Requirement, with exactly one of `structure`, `behavior`, `property`. There is no `checkability` field; emitting one is a contract violation. Apply the ordered decision: a claim the model's declarations settle -- containment, initial relations, source-event-target transitions, guard overlap or distinguishability, transition cardinality, declared effects -- is `structure`, even when phrased with a quantifier. Otherwise an explicit finite runtime response is `behavior`. Otherwise a claim quantified across states, valuations or paths that neither a structural query nor a finite run can settle is `property`. Also emit `quantifier` and a concrete `coverage_obligation` with `domain` and `aggregation`.
+"""
+
+REQUIREMENT_REVIEWER_PROMPT += """
+
+=== Binding review contract (final, overrides anything above) ===
+Reject any Requirement lacking `verification_kind`, and any that emits a legacy `checkability` field. Apply the same ordered decision, first match wins: model-declaration claims (including guard overlap/distinguishability) are `structure`; explicit finite runtime responses are `behavior`; only genuinely unsettleable quantified claims are `property`.
+"""
+
+ASSERTION_CONVERTER_PROMPT += """
+
+=== Binding output contract (final, overrides anything above) ===
+Every assertion must declare `role` (`primary`/`supporting`), `coverage_key`, `aggregation_group`, `evidence_family`, and a `failure_message` beginning with `[REQ-...][AST-...]`. Every Requirement needs at least one `primary`. Do not emit a bounded formal query whose truth value cannot change when the defect is present.
+"""
