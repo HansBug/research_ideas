@@ -53,6 +53,26 @@ TERMINAL_RESULTS = {
 }
 
 
+def _view_get(view: Any, key: str) -> Any:
+    """Read a field from a frozen view without tripping its access guard.
+
+    ``FrozenView.__getattr__`` raises ``UntrackedDependency`` for unregistered
+    fields, which is the correct behaviour for assertion authors but wrong for
+    audit-metadata collection: a probe for an optional field must be allowed to
+    come back empty.  ``FrozenView.get`` has exactly that contract.
+    """
+
+    if view is None:
+        return None
+    getter = getattr(view, "get", None)
+    if callable(getter):
+        try:
+            return getter(key, None)
+        except Exception:
+            return None
+    return None
+
+
 def _audit_value(value: Any) -> Any:
     if isinstance(value, FrozenView):
         return value.to_json()
@@ -207,6 +227,7 @@ class EvalEnvironment:
         self.source_exclusions = tuple(str(item) for item in (source_exclusions or ()))
         self.timeout_seconds = timeout_seconds
         self.call_trace: list[FunctionCallRecord] = []
+        self._known_paths_cache: frozenset[str] | None = None
 
         self.structure = StructureAPI(self.inspect)
         self.relations = RelationAPI(self.structure)
@@ -220,7 +241,15 @@ class EvalEnvironment:
             self.structure,
             excluded_variables=excluded_variables,
         )
-        self.simulation = SimulationAPI(model_text, model_path)
+        inspect_transitions = self.inspect.get("transitions")
+        self.simulation = SimulationAPI(
+            model_text,
+            model_path,
+            transitions=(
+                inspect_transitions if isinstance(inspect_transitions, list) else None
+            ),
+            excluded_refs=self.source_exclusions,
+        )
         machine = (
             load_model_for_simulation(model_text, model_path)
             if isinstance(model_text, str) and model_text.strip()
@@ -471,6 +500,21 @@ class EvalEnvironment:
     def _model_refs(
         self, name: str, kwargs: dict[str, Any], value: Any
     ) -> tuple[str, ...]:
+        """Audit metadata only -- a failure here must never change an outcome.
+
+        The reference set feeds attribution, not evaluation.  Letting an
+        exception escape would turn a completed call into an exception record and
+        silently change the assertion's verdict, so collection is guarded.
+        """
+
+        try:
+            return self._collect_model_refs(name, kwargs, value)
+        except Exception:
+            return ()
+
+    def _collect_model_refs(
+        self, name: str, kwargs: dict[str, Any], value: Any
+    ) -> tuple[str, ...]:
         """Preserve model scope beside compact assertion return values.
 
         Some public APIs intentionally return compact values, such as
@@ -482,6 +526,10 @@ class EvalEnvironment:
         """
 
         refs: set[str] = set()
+        if name == "simulate":
+            return self._simulation_refs(value)
+        if name == "fbmcq":
+            return self._formal_refs(value)
         effect_functions = {
             "effects",
             "effect_deltas",
@@ -552,6 +600,120 @@ class EvalEnvironment:
                     if projection_ref in self.source_exclusions:
                         refs.add(projection_ref)
         return tuple(sorted(refs))
+
+    def _simulation_refs(self, value: Any) -> tuple[str, ...]:
+        """Report the path a simulation actually took, not the states it observed.
+
+        A state observation alone is not attribution evidence: knowing the run
+        ended in ``Root.Done`` says nothing about whether the path there crossed
+        compiler-owned lowering.  Reporting the derived fired transitions puts
+        every element of the path into the reference set, so the shared exclusion
+        matcher can taint it exactly as it taints a static relation query.
+
+        Two cases need explicit handling rather than an empty result:
+
+        ``ambiguous``  the derivation is not unique and candidates disagree, so
+                       an unresolved segment may be tainted.  Reporting only the
+                       resolved prefix would present a possibly-dirty path as
+                       clean, so a blocking marker is emitted instead.
+        ``no_path``    nothing fired.  The injected event being ignored *is* the
+                       defect, and it has no path to bind, so the transitions
+                       declared for that event are reported as a near miss --
+                       the same rule ``_near_miss_transitions`` applies to a
+                       failed static query.
+        """
+
+        cycles = _view_get(value, "cycles")
+        if not isinstance(cycles, (list, tuple)):
+            return ()
+        refs: set[str] = set()
+        ambiguous = False
+        for cycle in cycles:
+            for item in _view_get(cycle, "path_refs") or ():
+                if isinstance(item, str) and item:
+                    refs.add(item)
+            if _view_get(cycle, "path_taint") == "ambiguous":
+                ambiguous = True
+            fired = _view_get(cycle, "fired_transitions") or ()
+            unconsumed = _view_get(cycle, "unconsumed_events") or ()
+            if not fired and unconsumed:
+                refs.update(self._ignored_event_refs(unconsumed))
+        if ambiguous:
+            # Blocks promotion in bind_attribution; see W6 in issue #170.
+            refs.add("simulation:path_taint:ambiguous")
+        return tuple(sorted(refs))
+
+    def _ignored_event_refs(self, events: Any) -> set[str]:
+        """Return the declared carriers of events the runtime never consumed."""
+
+        refs: set[str] = set()
+        for event in events:
+            if not isinstance(event, str) or not event:
+                continue
+            refs.add(event)
+            try:
+                transitions = self.structure.transitions(event=event)
+            except Exception:
+                continue
+            for transition in transitions:
+                for key in ("from_path", "to_path"):
+                    ref = getattr(transition, key, None)
+                    if isinstance(ref, str) and ref and ref != "[*]":
+                        refs.add(ref)
+                index = getattr(transition, "transition_index", None)
+                if isinstance(index, int):
+                    refs.add(f"transition:{index}")
+        return refs
+
+    def _formal_refs(self, value: Any) -> tuple[str, ...]:
+        """Report the model elements a bounded-model-checking answer rests on.
+
+        A refuted property yields a counterexample, and the states on that trace
+        are what the answer is about.  An unrefuted reachability query has no
+        trace by definition, so only the elements the query itself named can be
+        reported -- read back from the canonical query text, the one place they
+        are recorded.  Those are marked ``examined_only`` so attribution does not
+        read the absence of a counterexample as an exhibited source defect.
+        """
+
+        refs: set[str] = set()
+        witness = _view_get(value, "witness")
+        if witness is not None:
+            # A counterexample records the configuration per frame and the events
+            # consumed per step; together they are the trace the answer rests on.
+            for frame in _view_get(witness, "frames") or ():
+                state = _view_get(frame, "state")
+                if isinstance(state, str) and state:
+                    refs.add(state)
+            for step in _view_get(witness, "steps") or ():
+                for item in _view_get(step, "consumed_events") or ():
+                    if isinstance(item, str) and item:
+                        refs.add(item)
+            if refs:
+                return tuple(sorted(refs))
+        query = _view_get(value, "canonical_query")
+        if isinstance(query, str) and query:
+            known = self._known_model_paths()
+            for token in re.findall(r'"([^"]+)"', query):
+                if token in known:
+                    refs.add(token)
+        if refs:
+            refs.add("formal:examined_only")
+        return tuple(sorted(refs))
+
+    def _known_model_paths(self) -> frozenset[str]:
+        """Return declared state and event paths, so query text is not trusted."""
+
+        if self._known_paths_cache is None:
+            paths: set[str] = set()
+            for key in ("states", "events"):
+                for item in self.inspect.get(key, []) or []:
+                    if isinstance(item, dict):
+                        path = item.get("path")
+                        if isinstance(path, str) and path:
+                            paths.add(path)
+            self._known_paths_cache = frozenset(paths)
+        return self._known_paths_cache
 
     def _near_miss_transitions(
         self, filters: dict[str, str]

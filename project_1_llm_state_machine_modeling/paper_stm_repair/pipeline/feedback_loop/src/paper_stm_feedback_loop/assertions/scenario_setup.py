@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from .fired_trace import derive_fired_transitions
+
+
+def _active_ancestry(runtime: Any) -> list[str]:
+    """Return the active leaf and its ancestors, empty after termination."""
+
+    if bool(runtime.is_ended):
+        return []
+    parts = ".".join(runtime.current_state.path).split(".")
+    return [".".join(parts[:depth]) for depth in range(1, len(parts) + 1)]
+
 
 def runtime_observation(runtime: Any, *, mode: str, state: str | None = None) -> dict[str, Any]:
     """Return terminal-safe active-state and variable facts for a runtime."""
@@ -22,11 +33,24 @@ def runtime_observation(runtime: Any, *, mode: str, state: str | None = None) ->
     }
 
 
-def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
+def cycle_accounting(
+    cycle: Any,
+    runtime: Any,
+    index: int,
+    *,
+    active_before: list[str] | None = None,
+    transitions: list[dict[str, Any]] | None = None,
+    excluded_refs: tuple[str, ...] = (),
+) -> dict[str, Any]:
     """Normalize one pyfcstm ``SimulationRuntime.cycle`` result.
 
     Parameters: ``cycle`` is a public pyfcstm cycle result and ``index`` is the
-    controller-assigned cycle number.
+    controller-assigned cycle number.  ``active_before`` is the active ancestry
+    captured before the cycle ran and ``transitions`` is the frozen inspect
+    transition table; together they let the controller reconstruct which
+    transitions fired, because the pyfcstm cycle result does not report them.
+    ``excluded_refs`` is the frozen ``attribution_exclusions`` table, used to
+    classify path taint.
 
     Returns: a JSON-like record with cycle index, terminal status, active-state
     ancestry, variables, input/consumed/unconsumed events, and the public raw
@@ -51,43 +75,69 @@ def cycle_accounting(cycle: Any, runtime: Any, index: int) -> dict[str, Any]:
 
     raw = _jsonable(cycle)
     is_ended = bool(runtime.is_ended)
-    if is_ended:
-        active_states: list[str] = []
-    else:
-        current_path = ".".join(runtime.current_state.path)
-        parts = current_path.split(".")
-        active_states = [
-            ".".join(parts[:depth]) for depth in range(1, len(parts) + 1)
-        ]
+    active_states = _active_ancestry(runtime)
     variables = _jsonable(getattr(runtime, "vars", {}))
-    if isinstance(raw, dict):
+    if not isinstance(raw, dict):
         return {
             "index": index,
             "is_ended": is_ended,
             "active_states": active_states,
             "variables": variables,
-            "input_events": list(raw.get("input_events") or []),
-            "consumed_events": list(raw.get("consumed_events") or []),
-            "unconsumed_events": list(raw.get("unconsumed_events") or []),
+            "input_events": [],
+            "consumed_events": [],
+            "unconsumed_events": [],
             "fired_transitions": [],
-            "limitations": ["fired_transitions_not_exposed_by_pyfcstm_cycle_result"],
+            "path_refs": [],
+            "path_taint": "ambiguous",
+            "limitations": [
+                "cycle_result_shape_unsupported",
+                "fired_transitions_not_derivable_from_unsupported_cycle_result",
+            ],
             "raw": raw,
         }
-    return {
+    consumed = list(raw.get("consumed_events") or [])
+    record = {
         "index": index,
         "is_ended": is_ended,
         "active_states": active_states,
         "variables": variables,
-        "input_events": [],
-        "consumed_events": [],
-        "unconsumed_events": [],
-        "fired_transitions": [],
-        "limitations": [
-            "cycle_result_shape_unsupported",
-            "fired_transitions_not_exposed_by_pyfcstm_cycle_result",
-        ],
+        "input_events": list(raw.get("input_events") or []),
+        "consumed_events": consumed,
+        "unconsumed_events": list(raw.get("unconsumed_events") or []),
         "raw": raw,
     }
+    if transitions is None:
+        # No frozen transition table was bound, so transition identity is not
+        # recoverable and the path cannot be attributed.  Say so explicitly
+        # rather than reporting an empty, clean-looking path.
+        record.update(
+            {
+                "fired_transitions": [],
+                "path_refs": [],
+                "path_taint": "ambiguous",
+                "limitations": ["fired_transitions_require_frozen_transition_table"],
+            }
+        )
+        return record
+    derived = derive_fired_transitions(
+        transitions=transitions,
+        active_before=active_before or [],
+        active_after=active_states,
+        consumed_events=consumed,
+        is_ended=is_ended,
+        excluded=excluded_refs,
+    )
+    record.update(
+        {
+            "fired_transitions": list(derived["fired_transitions"]),
+            "path_refs": list(derived["path_refs"]),
+            "path_taint": derived["path_taint"],
+            "limitations": list(derived["limitations"]),
+        }
+    )
+    if derived["candidates"]:
+        record["fired_transition_candidates"] = derived["candidates"]
+    return record
 
 
 def execute_cycles(
@@ -96,6 +146,8 @@ def execute_cycles(
     *,
     initial_state: str | None = None,
     initial_vars: dict[str, int | float] | None = None,
+    transitions: list[dict[str, Any]] | None = None,
+    excluded_refs: tuple[str, ...] = (),
 ) -> tuple[str | None, list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     """Run event cycles with pyfcstm cycle semantics.
 
@@ -174,8 +226,20 @@ def execute_cycles(
     effective_initialization = runtime_observation(runtime, mode=mode, state=initial_state)
     trace = []
     for index, events in enumerate(cycles):
+        # Captured before the cycle runs: the derivation needs both endpoints and
+        # the runtime only exposes the post-cycle configuration.
+        active_before = _active_ancestry(runtime)
         result = runtime.cycle(events=list(events))
-        trace.append(cycle_accounting(result, runtime, index))
+        trace.append(
+            cycle_accounting(
+                result,
+                runtime,
+                index,
+                active_before=active_before,
+                transitions=transitions,
+                excluded_refs=excluded_refs,
+            )
+        )
     current_state = None if runtime.is_ended else ".".join(runtime.current_state.path)
     return current_state, trace, requested_initialization, effective_initialization
 

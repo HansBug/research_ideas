@@ -23,6 +23,9 @@ CYCLE_FIELDS = frozenset(
         "consumed_events",
         "unconsumed_events",
         "fired_transitions",
+        "fired_transition_candidates",
+        "path_refs",
+        "path_taint",
         "limitations",
     }
 )
@@ -98,9 +101,22 @@ class SimulationAPI:
 
     family = "simulation"
 
-    def __init__(self, model_text: str | None, model_path: str = "<memory>") -> None:
+    def __init__(
+        self,
+        model_text: str | None,
+        model_path: str = "<memory>",
+        *,
+        transitions: list[dict[str, object]] | None = None,
+        excluded_refs: tuple[str, ...] = (),
+    ) -> None:
         self.model_text = model_text
         self.model_path = model_path
+        # The frozen inspect transition table and exclusion table are bound here
+        # so each cycle can report which transitions fired and whether the path
+        # touched compiler-owned elements.  Without them a state observation
+        # carries no path identity and cannot be attributed.
+        self.transitions = transitions
+        self.excluded_refs = excluded_refs
 
     def simulate(
         self,
@@ -123,7 +139,12 @@ class SimulationAPI:
             raise UnsupportedEvidence("cycles must be a non-empty list[list[str]]")
         model = load_model_for_simulation(self.model_text, self.model_path)
         _current_state, trace, requested_initialization, effective_initialization = execute_cycles(
-            model, cycles, initial_state=initial_state, initial_vars=initial_vars
+            model,
+            cycles,
+            initial_state=initial_state,
+            initial_vars=initial_vars,
+            transitions=self.transitions,
+            excluded_refs=self.excluded_refs,
         )
         cycle_views = tuple(
             FrozenView(

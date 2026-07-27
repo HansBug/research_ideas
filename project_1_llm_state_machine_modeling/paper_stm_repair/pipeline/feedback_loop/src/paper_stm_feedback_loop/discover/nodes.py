@@ -15,6 +15,7 @@ from paper_stm_feedback_loop.assertions import (
 )
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
+from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
 from .capability import (
@@ -73,6 +74,13 @@ NO_PROGRESS_SEMANTIC_REPEATS = 3
 #: Hard backstop on the precheck<->convert loop.  With the per-item budget this
 #: is unreachable in practice; it exists so the edge is bounded by construction.
 MAX_PRECHECK_ROUNDS = 12
+#: Emitted by the evidence layer when a fired-transition derivation is not unique
+#: and the candidates disagree on taint.  Attribution must not promote such a
+#: result: the unresolved segment may touch compiler-owned elements.
+PATH_TAINT_AMBIGUOUS_REF = "simulation:path_taint:ambiguous"
+#: Emitted when a bounded model-checking answer rests on the absence of a
+#: counterexample rather than on an exhibited defective trace.
+FORMAL_EXAMINED_ONLY_REF = "formal:examined_only"
 
 
 def _classify_reviewed_hash(reviewed: str, expected: str) -> tuple[str, str]:
@@ -2631,12 +2639,31 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 and entry["attribution_boundary"].get("conversion_or_lowering_related")
                 is not True
             ]
+            # A derived path that is not unique may hide a tainted segment, so
+            # the resolved prefix must not be presented as a clean path.  The
+            # marker is emitted by the evidence layer, not inferred here.
+            path_ambiguous = PATH_TAINT_AMBIGUOUS_REF in observed
+            examined_only = FORMAL_EXAMINED_ONLY_REF in observed
             if uses_simulation and simulation_is_ineligible:
                 status = "representation_debt"
                 rationale = (
                     "The working contract marks simulation evidence ineligible "
                     "for source-level attribution; the False result is retained "
                     "but cannot become a confirmed issue."
+                )
+            elif path_ambiguous:
+                status = "unattributed"
+                rationale = (
+                    "The fired-transition derivation is not unique and the "
+                    "candidates disagree on path taint, so an unresolved segment "
+                    "may touch compiler-owned elements."
+                )
+            elif examined_only:
+                status = "unattributed"
+                rationale = (
+                    "The bounded model-checking answer rests on the absence of a "
+                    "counterexample within the bound, which examines the named "
+                    "elements without exhibiting a defective trace."
                 )
             elif debt_refs:
                 status = "representation_debt"
@@ -2719,53 +2746,9 @@ def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool
 
 
 def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
-    """Match exact structured references, never leaf-name suffixes.
+    """Delegate to the single shared matcher; see ``common.refs``."""
 
-    Source traces may qualify a model reference with a producer namespace
-    (for example ``compiler:state:Root.Done``), while assertion call traces
-    usually expose the bare full path (``Root.Done``).  The kind and complete
-    path are therefore normalized before comparison.  A leaf-only or suffix
-    match would incorrectly bind unrelated regions such as ``Other.Idle`` or
-    ``NotIdle``.
-    """
-
-    kinds = {
-        "event",
-        "state",
-        "transition",
-        "variable",
-        "effect",
-        "guard",
-        "route_control",
-    }
-
-    def identity(value: str) -> tuple[str | None, str]:
-        text = value.strip()
-        parts = text.split(":")
-        if len(parts) >= 2 and parts[-2] in kinds:
-            return parts[-2], parts[-1]
-        return None, text
-
-    ref_kind, ref_path = identity(reference)
-    for value in observed:
-        text = value.strip()
-        if not text:
-            continue
-        if text == reference:
-            return True
-        observed_kind, observed_path = identity(text)
-        if ref_kind is not None and observed_kind is not None:
-            if ref_kind == observed_kind and ref_path == observed_path:
-                return True
-        elif ref_kind is not None and observed_kind is None:
-            if ref_path == observed_path:
-                return True
-        elif ref_kind is None and observed_kind is not None:
-            if ref_path == observed_path:
-                return True
-        elif ref_path == observed_path:
-            return True
-    return False
+    return reference_matches(reference, observed)
 
 
 def _trace_entry_matches(entry: Any, observed: set[str]) -> bool:
