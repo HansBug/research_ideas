@@ -295,3 +295,117 @@ def test_action_declared_predicate_is_executable(state, field, expected):
     )
     assert result.outcome in {"valid", "sealed_false"}
     assert result.value is expected
+
+
+# --------------------------------------------------------------------------
+# W6 + W9 terminal acceptance: does a simulation-only False become promotable,
+# and does a tainted path still refuse to be?
+# --------------------------------------------------------------------------
+
+
+def _bind_one(case: str, source: str, family: str):
+    """Run one assertion on a real pair and return its attribution binding."""
+
+    from paper_stm_feedback_loop.discover import nodes
+    from paper_stm_feedback_loop.discover.schemas import (
+        AssertionResult,
+        FrozenDiscoverInputs,
+        ReleasedAssertionResults,
+    )
+
+    pair = f"llms_emp_feedback_final_{case}"
+    trace = json.loads((REPORTS / f"source_traces/{pair}.json").read_text())
+    contract = json.loads((REPORTS / f"working_contracts/{pair}.json").read_text())
+    env = build_eval_environment(
+        model_text=(REPORTS / f"pairs/{case}/fcstm.fcstm").read_text(),
+        source_mappings=trace.get("entries", []),
+        source_exclusions=trace.get("attribution_exclusions", []),
+        timeout_seconds=25,
+        formal_verification_enabled=False,
+    )
+    payload = AssertionChecker(environment=env).check(
+        source, "AST-X-01", required_function_families=(family,)
+    ).to_json()
+    assert payload["value"] is False, "the fixture must produce a False to attribute"
+    released = ReleasedAssertionResults(
+        results=(
+            AssertionResult(
+                assertion_id="AST-X-01",
+                requirement_id="REQ-X",
+                role="primary",
+                coverage_key="k",
+                truth_value=False,
+                evidence_family=family,
+                script_hash="0" * 64,
+                tool_env_hash="0" * 64,
+                evidence_scope={
+                    "actual_function_families": payload["actual_function_families"]
+                },
+                check_detail={
+                    "function_call_trace": payload["function_call_trace"],
+                    "actual_function_families": payload["actual_function_families"],
+                },
+            ),
+        ),
+        script_hash="0" * 64,
+        tool_env_hash="0" * 64,
+        sealed_hash="0" * 64,
+    )
+    out = nodes.bind_attribution(
+        {
+            "frozen_inputs": FrozenDiscoverInputs(
+                run_id="probe",
+                natural_language="probe",
+                stm_text="probe",
+                source_trace=trace,
+                working_contract=contract,
+                input_hashes={"nl": "0" * 64},
+                tool_env_hash="0" * 64,
+                profile="probe",
+                language="zh-CN",
+            ),
+            "released_assertion_results": released,
+            "node_execution_records": (),
+        }
+    )
+    return out["attribution_projection"].bindings[0]
+
+
+def test_simulation_only_false_can_now_be_promoted():
+    """The terminal acceptance of the attribution line (issue #170 §7.4)."""
+
+    binding = _bind_one(
+        "0000",
+        f'assert simulate(cycles=[[], ["{PAIR}.Power_Off"]])'
+        f'.final.is_active("{PAIR}.FinalState") is False, "[R][A] m"',
+        "simulation",
+    )
+    assert binding.status == "safe"
+    assert binding.source_level_claim_allowed is True
+
+
+def test_tainted_simulation_path_is_still_refused():
+    """The guard against over-opening: granting the family is not granting the path."""
+
+    binding = _bind_one(
+        "0000",
+        f'assert simulate(cycles=[[], ["{PAIR}.Power_On"], ["{PAIR}.front_distance_10"], '
+        f'["{PAIR}.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal"]])'
+        f'.final.is_active("{PAIR}.HumanDrivingMode") is False, "[R][A] m"',
+        "simulation",
+    )
+    assert binding.status == "representation_debt"
+    assert binding.source_level_claim_allowed is False
+    assert "compiler:route_control:R45RouteToken" in binding.exclusion_refs
+
+
+def test_ignored_event_false_is_attributable_through_near_miss():
+    binding = _bind_one(
+        "0000",
+        f'assert simulate(initial_state="{PAIR}.HumanDrivingMode", '
+        f'initial_vars={{"R45RouteToken": 0}}, cycles=[["{PAIR}.Condition_Met"]])'
+        f'.final.is_active("{PAIR}.AutonomousMode") is True, "[R][A] m"',
+        "simulation",
+    )
+    assert binding.status == "safe"
+    assert binding.source_refs
