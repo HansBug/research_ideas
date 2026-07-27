@@ -520,7 +520,25 @@ class EvalEnvironment:
                 if isinstance(index, int):
                     refs.add(f"transition:{index}")
                 for variable in self._route_control_variables(transition):
-                    refs.add(f"route_control:{variable}")
+                    if name in effect_functions:
+                        # The effect API already dropped this variable from the
+                        # answer (see EffectAPI.excluded_variables), so the
+                        # result does not rest on it in any way.  Reporting it
+                        # as a touched reference made attribution mark the whole
+                        # finding `representation_debt`: on pair 0006 the only
+                        # effect on the Attack_Complete transition is the
+                        # compiler's `R45RouteToken`, so the very query that
+                        # proves "no semantic decrement exists" was disqualified
+                        # for having looked at the thing it filtered out.  Keep
+                        # the audit trail under a distinct kind that attribution
+                        # does not read as compiler ownership.
+                        refs.add(f"filtered_route_control:{variable}")
+                    else:
+                        # For relation/topology queries the token's presence is
+                        # genuine evidence of converter lowering (a composite
+                        # exit split into `-> [*]` plus a token-guarded parent
+                        # transition), so it must keep signalling debt.
+                        refs.add(f"route_control:{variable}")
                 actual_event = getattr(transition, "event", None)
                 requested_event = filters.get("event")
                 if (
