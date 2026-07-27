@@ -18,8 +18,10 @@ from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 
 from . import prompts, renderer
 from .capability import (
+    SOURCE_SENSITIVE_PHASES,
     fbmcq_non_vacuity_findings,
     mandatory_waiver,
+    source_omitting_relation_calls,
     unresolved_model_references,
 )
 from .schemas import (
@@ -1433,6 +1435,23 @@ def convert_assertions(
                     assertion.expression, known_paths
                 )
             )
+            phase = str(
+                (requirement.source_context or {}).get("behavior_phase", "")
+            ).lower()
+            if phase in SOURCE_SENSITIVE_PHASES:
+                source_blind = tuple(
+                    f"{assertion.assertion_id}: {call}(event=..., target=...) omits "
+                    "source"
+                    for assertion in primary_assertions
+                    for call in source_omitting_relation_calls(assertion.expression)
+                )
+                if source_blind:
+                    raise ValueError(
+                        f"{phase}-phase requirement {requirement.requirement_id} has "
+                        f"source-blind primary relation evidence: {list(source_blind)}. "
+                        "A match carried only by the pseudo-initial source '[*]' is "
+                        "initialization-only evidence; pin the exact source"
+                    )
             if unresolved:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} references model "

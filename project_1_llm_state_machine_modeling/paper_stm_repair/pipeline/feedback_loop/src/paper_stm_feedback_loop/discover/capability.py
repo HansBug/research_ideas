@@ -48,6 +48,8 @@ __all__ = [
     "vacuous_sibling_conjunction",
     "bare_reachability_probe",
     "unresolved_model_references",
+    "source_omitting_relation_calls",
+    "SOURCE_SENSITIVE_PHASES",
     "BOUND_PATH_KWARGS",
     "EVIDENCE_CAPABILITY",
     "DECISIVE_COMPLETENESS",
@@ -346,4 +348,42 @@ def unresolved_model_references(
             if not text or text == PSEUDO_INITIAL or text in known_paths:
                 continue
             bad.append(f"{keyword.arg}={text!r}")
+    return tuple(dict.fromkeys(bad))
+
+
+#: Lifecycle phases where an event's *source placement* decides satisfaction.
+SOURCE_SENSITIVE_PHASES = frozenset({"operation", "termination"})
+
+
+def source_omitting_relation_calls(expression: str) -> tuple[str, ...]:
+    """Return `transition_exists` calls that pin event/target but not source.
+
+    The converter and reviewer prompts already state this twice: for an
+    operation or termination event, a match attached only to the pseudo-initial
+    `"[*]"` is initialization-only evidence, so `transition_exists(event=...,
+    target=...)` with no `source` cannot decide the requirement.  It was still
+    only prose.  On pair 0000 Claude used exactly that form for the Power-Off
+    termination requirement; the `[*] -> FinalState : /Power_Off` edge made it
+    True and EXP-0000-IT-001 was reported satisfied.
+
+    :param expression: the assertion's terminal Python expression.
+    :return: offending call names, empty when none.
+    """
+
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return ()
+    bad: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = node.func.id if isinstance(node.func, ast.Name) else None
+        if name not in {"transition_exists", "transitions"}:
+            continue
+        kwargs = {keyword.arg for keyword in node.keywords}
+        if "source" in kwargs:
+            continue
+        if {"event", "target"} & kwargs:
+            bad.append(name)
     return tuple(dict.fromkeys(bad))

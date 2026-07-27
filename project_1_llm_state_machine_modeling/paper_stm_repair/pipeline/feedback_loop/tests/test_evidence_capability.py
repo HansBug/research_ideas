@@ -553,3 +553,77 @@ def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -
             ),
             responder,
         )
+
+
+def test_source_blind_relation_evidence_is_detected() -> None:
+    from paper_stm_feedback_loop.discover.capability import (
+        source_omitting_relation_calls,
+    )
+
+    # Exactly the form Claude used for pair 0000's Power-Off termination
+    # requirement; the `[*] -> FinalState : /Power_Off` edge made it True.
+    blind = "transition_exists(event='Power_Off', target='Root.FinalState')"
+    assert source_omitting_relation_calls(blind) == ("transition_exists",)
+    pinned = (
+        "transition_exists(source='Root.HumanDrivingMode', event='Power_Off', "
+        "target='Root.FinalState')"
+    )
+    assert source_omitting_relation_calls(pinned) == ()
+    assert source_omitting_relation_calls(CONFLICT_EXPR) == ()
+
+
+def test_termination_requirement_rejects_source_blind_primary() -> None:
+    def responder(
+        role: str, schema: type[BaseModel], system: str, payload: str
+    ) -> BaseModel:
+        if schema is RequirementSet:
+            return RequirementSet(
+                revision=1,
+                requirements=(
+                    {
+                        "requirement_id": "REQ-001",
+                        "statement": "On pick the system shall reach Done.",
+                        "verification_kind": "structure",
+                        "source_context": {
+                            "basis": "explicit_nl",
+                            "behavior_phase": "termination",
+                        },
+                        "coverage_obligation": {
+                            "domain": "termination",
+                            "aggregation": "all",
+                        },
+                    },
+                ),
+                segment_disposition={"NL-L001": "covered"},
+            )
+        if schema is AssertionScript:
+            return AssertionScript(
+                revision=1,
+                assertions=(
+                    {
+                        "assertion_id": "AST-REQ-001-01",
+                        "requirement_id": "REQ-001",
+                        "description": "Presence-only, source omitted.",
+                        "expression": 'transition_exists(event="Root.pick", target="Root.Done")',
+                        "failure_message": "[REQ-001][AST-REQ-001-01] missing edge",
+                        "evidence_family": "relation",
+                        "role": "primary",
+                        "coverage_key": "termination:pick",
+                        "aggregation_group": "REQ-001:all",
+                    },
+                ),
+                requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+            )
+        return _responder_property_closed_by_relation(role, schema, system, payload)
+
+    with pytest.raises(RuntimeError):
+        run_discover_state(
+            DiscoverInput(
+                run_id="source-blind",
+                natural_language="On pick the system shall reach Done.",
+                stm_text=FIXTURE_MODEL,
+                language="en-US",
+                source_trace=SOURCE_TRACE,
+            ),
+            responder,
+        )
