@@ -19,6 +19,29 @@ from .schemas import (
 from .utils import prompt_json, sha256_data
 
 
+def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
+    """Hand the producers the exact declared paths they must bind against.
+
+    They previously received only the raw FCSTM text plus diagnostics, so every
+    state and event name had to be re-derived by reading the DSL.  A single
+    mistyped event makes an assertion vacuously true rather than failing loudly,
+    which is how pair 0029 lost a real defect.  Listing the vocabulary removes
+    the need to guess.
+    """
+
+    vocabulary = frozen.model_vocabulary or {}
+    return {
+        "note": (
+            "Exact declared paths. predicate_bindings and assertion expressions "
+            "must use these verbatim; a name absent from these lists does not "
+            "exist in the model."
+        ),
+        "states": list(vocabulary.get("states") or ()),
+        "events": list(vocabulary.get("events") or ()),
+        "variables": list(vocabulary.get("variables") or ()),
+    }
+
+
 def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
     """Return a compact, input-derived source-scope view for LLM nodes."""
 
@@ -105,6 +128,7 @@ def render_requirement_split_input(
         "nl_segments": frozen.nl_segments,
         "stm_text": frozen.stm_text,
         "inspect_digest": frozen.inspect_digest,
+        "declared_model_vocabulary": _model_vocabulary(frozen),
         "source_context": _source_context(frozen),
         "mode": "revise" if current_result else "create",
         "content_language": frozen.language,
@@ -135,6 +159,9 @@ def render_requirement_review_input(
             "stm_text": frozen.stm_text,
             "requirements": requirements.model_dump(mode="json"),
             "coverage_projection": coverage.model_dump(mode="json"),
+            # The reviewer is asked to reject bindings that do not name declared
+            # paths, so it needs the same vocabulary the splitter was given.
+            "declared_model_vocabulary": _model_vocabulary(frozen),
             "source_context": _source_context(frozen),
             "previous_revision_feedback": (
                 previous_feedback.model_dump(mode="json")
@@ -160,6 +187,7 @@ def render_assertion_conversion_input(
         "accepted_requirements": requirements.model_dump(mode="json"),
         "stm_text": frozen.stm_text,
         "inspect_digest": frozen.inspect_digest,
+        "declared_model_vocabulary": _model_vocabulary(frozen),
         "source_context": _source_context(frozen),
         "evidence_api": get_assertion_environment_api_docs(),
         "mode": "revise" if current_result else "create",

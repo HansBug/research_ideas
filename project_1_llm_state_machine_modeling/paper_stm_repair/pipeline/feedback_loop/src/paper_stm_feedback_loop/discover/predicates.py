@@ -62,9 +62,12 @@ class Predicate:
     proves: str
     #: Required binding names.  The splitter must supply all of them.
     bindings: tuple[str, ...]
-    #: The evidence call that decides it.  Checked against what the converter
-    #: actually wrote, so an easier query cannot close a harder claim.
+    #: The evidence call that decides it, as prose for the producer to read.
     procedure: str
+    #: The bare function name inside ``procedure``.  The prose form is for the
+    #: prompt; this is what the gate compares against the assertion's parsed
+    #: call names, so an easier query cannot close a harder claim.
+    procedure_function: str
     #: Optional weaker evidence, allowed only as ``supporting``.
     locators: tuple[str, ...] = ()
     #: Honest statement of what the current infrastructure cannot do.
@@ -80,6 +83,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "missing or spurious state; a composite written as a leaf",
         ("state", "kind"),
         "states(path=..., exact=True)",
+        "states",
     ),
     Predicate(
         "containment",
@@ -88,6 +92,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "misplaced substate; a region attached to the wrong parent",
         ("parent", "child"),
         "states(parent=..., recursive=False)",
+        "states",
     ),
     Predicate(
         "initial_target",
@@ -96,6 +101,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "wrong or missing initial child; entry lands in the wrong mode",
         ("composite", "child"),
         "initial_child(...)",
+        "initial_child",
     ),
     Predicate(
         "edge_declared",
@@ -104,6 +110,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a missing or wrongly-targeted declared transition",
         ("source", "trigger", "target"),
         "transition_exists(source=..., event=..., target=...)",
+        "transition_exists",
         caveat=(
             "Use this only when the NL speaks about the model containing an "
             "edge.  'When X happens the system moves to Y' is a runtime claim: "
@@ -118,6 +125,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a missing or wrong-signed declared effect",
         ("source", "trigger", "variable", "sign"),
         "effect_deltas(source=..., event=...)",
+        "effect_deltas",
         locators=("effects(...)",),
     ),
     Predicate(
@@ -127,6 +135,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a missing declared action; an action attached to the wrong phase",
         ("state", "phase"),
         "states(path=..., exact=True)",
+        "states",
         caveat=(
             "Requires the action fields to be exposed by the structure API; see "
             "issue #170 C0."
@@ -139,6 +148,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "non-determinism: overlapping or absent discriminating guards",
         ("source", "trigger"),
         "conflicting_targets(source=..., event=...)",
+        "conflicting_targets",
         locators=("guards_overlap(...)",),
     ),
     Predicate(
@@ -148,6 +158,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a missing or duplicated mode in an enumerated set",
         ("scope", "count"),
         "states(...)",
+        "states",
     ),
     # ---- Family B: runtime behaviour ------------------------------------
     Predicate(
@@ -158,6 +169,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "edge that is guard-blocked or unreachable at runtime",
         ("source", "trigger", "target"),
         "simulate(...).final.is_active(...)",
+        "simulate",
         locators=("transition_exists(...)", "path(...)"),
     ),
     Predicate(
@@ -168,6 +180,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "the state where the NL requires a response",
         ("source", "trigger"),
         "simulate(...).cycles[...].consumed_events",
+        "simulate",
         caveat=(
             "There is no static substitute: an event being declared does not "
             "mean any configuration accepts it."
@@ -181,6 +194,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "self-loop is missing",
         ("source", "trigger"),
         "simulate(...) consumed_events and final.is_active(source)",
+        "simulate",
     ),
     Predicate(
         "variable_delta_after",
@@ -190,6 +204,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "declaration and runtime disagree",
         ("source", "trigger", "variable", "sign"),
         "simulate(...).cycles[...].variables",
+        "simulate",
         locators=("effect_deltas(...)",),
     ),
     Predicate(
@@ -199,6 +214,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "an unreachable target: a broken chain or dead branch",
         ("source", "target", "within_cycles"),
         "simulate(...) multi-cycle",
+        "simulate",
         locators=("path(...)",),
         caveat=(
             "path() is guard-blind and only accepts leaf targets, so it may "
@@ -213,6 +229,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "or the path to it is guard-blocked",
         ("scope",),
         "simulate(...).final.is_ended",
+        "simulate",
         locators=("topology(...)",),
     ),
     # ---- Family P: quantified properties --------------------------------
@@ -224,6 +241,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "never/always constraint",
         ("scope", "condition", "bound"),
         "fbmcq('check invariant <= k: ...')",
+        "fbmcq",
         caveat=(
             "Writing !(active(A) && active(B)) for siblings of one sequential "
             "region is a tautology and proves nothing.  Only holds is False is "
@@ -237,6 +255,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a missing or conditional response to a mandatory trigger",
         ("trigger", "response", "bound"),
         "fbmcq('check response <= k: ...')",
+        "fbmcq",
     ),
     Predicate(
         "persists_until",
@@ -245,6 +264,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "premature exit from a state that must persist",
         ("state", "release", "bound"),
         "fbmcq('check exists_always <= k: ...')",
+        "fbmcq",
         caveat=(
             "Infeasible on the pairs where formula construction exceeds budget; "
             "expand into B-family claims when the domain is enumerable."
@@ -253,6 +273,7 @@ PREDICATES: tuple[Predicate, ...] = (
 )
 
 PREDICATE_BY_NAME = {item.name: item for item in PREDICATES}
+_ALL_PROCEDURE_FUNCTIONS = frozenset(item.procedure_function for item in PREDICATES)
 PREDICATE_NAMES = frozenset(PREDICATE_BY_NAME)
 
 
@@ -309,6 +330,88 @@ def vocabulary_prompt() -> str:
     return "\n".join(lines)
 
 
+def procedure_mismatch(
+    predicate: str, called_functions: frozenset[str] | set[str]
+) -> tuple[str, str] | None:
+    """Return ``(required, note)`` when a primary assertion dodges the procedure.
+
+    The gate exists because a locator answers a neighbouring, *easier* question.
+    ``transition_exists`` says an edge is declared; ``occupancy_after`` asks
+    whether the system actually gets there.  Closing the second with the first
+    reports "satisfied" for a model whose declared edge is unreachable or
+    guard-blocked, and reports a violation for a model that reaches the target
+    through declared follow-up transitions.  Pair 0006's false positive was
+    exactly this substitution.
+
+    Returns ``None`` when the predicate is unknown or absent -- an unnamed claim
+    keeps the pre-predicate behaviour rather than being rejected, so v1/v2
+    artifacts and producers that have not adopted the vocabulary still run.
+
+    :param predicate: the Requirement's declared predicate name.
+    :param called_functions: evidence functions parsed from the assertion.
+    :return: ``None`` when acceptable, else the required function and a note.
+    """
+
+    entry = PREDICATE_BY_NAME.get(predicate)
+    if entry is None:
+        return None
+    if entry.procedure_function in called_functions:
+        return None
+    used = sorted(called_functions & _ALL_PROCEDURE_FUNCTIONS)
+    locators = ", ".join(entry.locators) or "none"
+    return (
+        entry.procedure_function,
+        (
+            f"predicate {predicate!r} is decided by {entry.procedure}, so its "
+            f"primary assertion must call {entry.procedure_function}(); it called "
+            f"{used or 'no evidence function'} instead. Listed locators "
+            f"({locators}) may only carry role=supporting, because they answer a "
+            f"weaker question than the predicate asks."
+        ),
+    )
+
+
+def unmodelled_claim_paths(
+    *,
+    statement: str,
+    bindings: dict[str, str],
+    expressions: tuple[str, ...],
+    known_paths: frozenset[str],
+) -> tuple[str, ...]:
+    """Return declared model paths the statement names but nothing tests.
+
+    Pair 0029 carried a requirement asserting two things at once -- that a state
+    is contained in a parent *and* that entering the parent starts there -- and
+    only the second half was asserted.  The requirement was then reported
+    satisfied, because nothing noticed the first half had no evidence.
+
+    Detecting that in general needs to read the sentence, which is not something
+    to do deterministically.  What *is* deterministic is weaker and still useful:
+    the statement names declared model paths that appear in neither the
+    predicate's bindings nor any primary expression.  Each one is a candidate
+    untested claim.
+
+    This is reported, never enforced.  A statement legitimately names context
+    paths, so a hard gate here would reject valid work; the point is to make the
+    residue visible and measurable before deciding whether it needs a gate.
+
+    :param statement: the requirement statement text.
+    :param bindings: the requirement's ``predicate_bindings``.
+    :param expressions: primary assertion expressions for that requirement.
+    :param known_paths: declared state/event paths from the frozen inspect.
+    :return: sorted paths named by the statement but covered nowhere.
+    """
+
+    covered = " ".join([*bindings.values(), *expressions])
+    return tuple(
+        sorted(
+            path
+            for path in known_paths
+            if path and path in statement and path not in covered
+        )
+    )
+
+
 def procedure_prompt() -> str:
     """Render only predicate -> procedure, for the assertion-writing stages.
 
@@ -340,6 +443,7 @@ __all__ = [
     "Predicate",
     "family_of",
     "verification_kind_of",
+    "procedure_mismatch",
     "procedure_prompt",
     "vocabulary_prompt",
 ]

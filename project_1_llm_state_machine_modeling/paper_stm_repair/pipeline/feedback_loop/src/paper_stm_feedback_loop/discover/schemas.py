@@ -144,6 +144,11 @@ class FrozenDiscoverInputs(StrictBaseModel):
     # Every state and event path the frozen model declares, so a relation query
     # over a non-existent element can be rejected instead of silently passing.
     known_model_paths: tuple[str, ...] = Field(default_factory=tuple)
+    #: Declared paths grouped by kind, handed to the producers so they can bind a
+    #: predicate to exact model terms instead of guessing them from the raw DSL.
+    #: A guessed event name makes an assertion vacuously true, which is how pair
+    #: 0029 lost a real defect to a one-character typo.
+    model_vocabulary: dict[str, tuple[str, ...]] = Field(default_factory=dict)
 
 
 class Requirement(StrictBaseModel):

@@ -20,11 +20,13 @@ from paper_stm_feedback_loop.common.refs import reference_matches
 from . import prompts, renderer
 from .capability import (
     SOURCE_SENSITIVE_PHASES,
+    called_evidence_functions,
     fbmcq_non_vacuity_findings,
     mandatory_waiver,
     source_omitting_relation_calls,
     unresolved_model_references,
 )
+from .predicates import procedure_mismatch, unmodelled_claim_paths
 from .schemas import (
     AdjudicatedIssue,
     AssertionCheckPublic,
@@ -814,6 +816,35 @@ def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
         )
 
 
+def _model_vocabulary(inspected: dict[str, Any]) -> dict[str, tuple[str, ...]]:
+    """Return the declared state and event paths, under their real field names.
+
+    States carry ``path``; events carry ``qualified_name``.  Reading ``path`` for
+    both silently dropped every event, which made ``unresolved_model_references``
+    unable to catch a fabricated event reference -- the pair-0029 ``event="/pick"``
+    defect class.  One builder, so producers and gates see the same vocabulary.
+    """
+
+    def _paths(group: str, field: str) -> tuple[str, ...]:
+        return tuple(
+            sorted(
+                {
+                    str(item[field])
+                    for item in (inspected.get(group) or [])
+                    if isinstance(item, dict) and item.get(field)
+                }
+            )
+        )
+
+    # Three groups, three different field names.  Assuming one of them for all
+    # three is what silently emptied this list; keep them explicit.
+    return {
+        "states": _paths("states", "path"),
+        "events": _paths("events", "qualified_name"),
+        "variables": _paths("variables", "name"),
+    }
+
+
 def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
     inspected = check_fcstm(discover_input.stm_text, "<discover-input>")
     if not inspected.get("executable"):
@@ -850,6 +881,18 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
             "metrics": inspected.get("metrics", {}),
             "model_type": inspected.get("model_type"),
         },
+        known_model_paths=tuple(
+            sorted(
+                {
+                    path
+                    for paths in _model_vocabulary(
+                        inspected.get("inspect") or {}
+                    ).values()
+                    for path in paths
+                }
+            )
+        ),
+        model_vocabulary=_model_vocabulary(inspected.get("inspect") or {}),
         source_trace=discover_input.source_trace,
         working_contract=discover_input.manifest.get("working_contract", {})
         if isinstance(discover_input.manifest.get("working_contract"), dict)
@@ -860,16 +903,6 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         resource_options=discover_input.manifest.get("resource_options", {})
         if isinstance(discover_input.manifest.get("resource_options"), dict)
         else {},
-        known_model_paths=tuple(
-            sorted(
-                {
-                    str(item.get("path"))
-                    for group in ("states", "events")
-                    for item in (inspected.get(group) or [])
-                    if isinstance(item, dict) and item.get("path")
-                }
-            )
-        ),
         input_hashes={
             "natural_language": sha256_text(discover_input.natural_language),
             "stm_text": sha256_text(discover_input.stm_text),
@@ -1336,6 +1369,7 @@ def convert_assertions(
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
         assertions_by_id = {item.assertion_id: item for item in output.assertions}
         mandatory_waivers: list[dict[str, Any]] = []
+        untested_claim_paths: list[dict[str, Any]] = []
         for requirement in requirements.requirements:
             owned_assertions = tuple(
                 assertions_by_id[assertion_id]
@@ -1351,6 +1385,44 @@ def convert_assertions(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion"
                 )
+            # Gate D (issue #170 C3): the named predicate fixes which procedure
+            # decides it, and a locator answers a weaker question.  Without this
+            # check a `transition_exists` probe can close an `occupancy_after`
+            # obligation, which is how pair 0006 produced a false positive while
+            # every other gate passed.  Requirements with no predicate keep the
+            # pre-vocabulary behaviour so v1/v2 artifacts still run.
+            if requirement.predicate:
+                called = frozenset[str]().union(
+                    *(
+                        called_evidence_functions(assertion.expression)
+                        for assertion in primary_assertions
+                    )
+                )
+                mismatch = procedure_mismatch(requirement.predicate, called)
+                if mismatch is not None:
+                    raise ValueError(
+                        f"requirement {requirement.requirement_id}: {mismatch[1]}"
+                    )
+                # Reported, never enforced: a statement legitimately names
+                # context paths, so rejecting here would refuse valid work.  The
+                # residue is recorded so pair-0029-style half-verification is
+                # measurable before deciding whether it needs a gate (#170 C2).
+                residue = unmodelled_claim_paths(
+                    statement=requirement.statement,
+                    bindings=requirement.predicate_bindings,
+                    expressions=tuple(
+                        assertion.expression for assertion in primary_assertions
+                    ),
+                    known_paths=frozenset(frozen.known_model_paths),
+                )
+                if residue:
+                    untested_claim_paths.append(
+                        {
+                            "requirement_id": requirement.requirement_id,
+                            "predicate": requirement.predicate,
+                            "paths": list(residue),
+                        }
+                    )
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -1508,9 +1580,15 @@ def convert_assertions(
             started_at=started_at,
             start_ns=start_ns,
             details=(
-                {"mandatory_evidence_waivers": mandatory_waivers}
-                if mandatory_waivers
-                else None
+                {
+                    key: value
+                    for key, value in (
+                        ("mandatory_evidence_waivers", mandatory_waivers),
+                        ("untested_claim_paths", untested_claim_paths),
+                    )
+                    if value
+                }
+                or None
             ),
         )
         llm_record = _llm_call_record(

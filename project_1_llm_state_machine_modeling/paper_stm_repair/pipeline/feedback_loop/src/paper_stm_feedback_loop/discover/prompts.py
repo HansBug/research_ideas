@@ -137,7 +137,7 @@ Binding v3 Requirement contract: classify by naming the claim, not by weighing t
 
 Emit on every Requirement:
 - `predicate`: exactly one name from the closed vocabulary below.
-- `predicate_bindings`: the concrete model terms that predicate requires, as an object. Use exact declared paths.
+- `predicate_bindings`: the concrete model terms that predicate requires, as an object. Copy the paths verbatim from `declared_model_vocabulary` in your input, which lists every declared state, event and variable path. Do not retype them from the FCSTM text and do not abbreviate them. A name that is absent from those lists does not exist in the model: if the NL requires something the model does not declare, bind the closest declared term the sentence does name and record the absence in `limitations` -- that absence is usually the defect itself, and it must stay visible rather than being smuggled into a binding as a guessed path. A mistyped event name is worse than a missing requirement, because the resulting check passes for the wrong reason instead of failing loudly.
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
 How to choose the predicate. Read what the sentence asserts, then pick the predicate whose meaning matches it.
@@ -158,7 +158,7 @@ Binding v3 review gate: reject any Requirement that lacks `predicate`, `predicat
 Check the predicate against the sentence, not against the current model:
 - Reject a Family S predicate (`edge_declared`, `state_declared`, `containment`, ...) where the NL describes an operational scenario -- a trigger arriving and the system responding. That belongs to Family B, and closing it with a declaration query would pass a model whose declared edge is unreachable or guard-blocked. Name the behavioural predicate you expect instead.
 - Reject a Family P predicate whose obligation an exact structural or relational query already decides, and say which query.
-- Reject `predicate_bindings` that do not use exact declared model paths, or that omit a required binding.
+- Reject `predicate_bindings` whose values do not appear verbatim in `declared_model_vocabulary`, and any that omit a required binding. Name the offending value and the closest declared path. A binding that names a nonexistent element makes the downstream check vacuous, so this is not a cosmetic objection.
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
 
@@ -168,6 +168,8 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 """
 
 ASSERTION_CONVERTER_PROMPT += """
+Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write in an expression must come from those lists verbatim, and every value in a Requirement's `predicate_bindings` must appear in the expression that tests it. A fabricated or mistyped path does not raise -- it silently makes the assertion true for the wrong reason.
+
 Binding v3 predicate procedure: each Requirement names a `predicate`, and the vocabulary below fixes the procedure that decides it. The `primary` assertion for that Requirement must call that procedure with the Requirement's `predicate_bindings`. The listed locators are weaker evidence and may appear only as `supporting`.
 
 This is not bookkeeping. A locator answers a neighbouring, easier question: `transition_exists` says an edge is declared, while `occupancy_after` asks whether the system actually gets there. Using the locator as primary reports "satisfied" for a model whose declared edge is unreachable or guard-blocked, which is a false negative on a real defect -- and, in the other direction, reports a violation for a model that reaches the target through declared follow-up transitions. Call the procedure the predicate names.
