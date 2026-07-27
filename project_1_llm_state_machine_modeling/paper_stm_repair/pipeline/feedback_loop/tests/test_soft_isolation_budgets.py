@@ -373,3 +373,69 @@ def test_unresolved_assertion_review_isolates_instead_of_failing_the_run() -> No
     assert {
         r.assertion_id for r in state["released_assertion_results"].results
     } == {"AST-GOOD"}
+
+
+# --------------------------------------------------------------------------
+# A 64-char hash transcription slip must not destroy a research run
+# --------------------------------------------------------------------------
+
+
+def test_reviewed_hash_classification() -> None:
+    expected = "155cfff68c26a59c54262af4beb0c442ec7bb508c39913f3dde807509aabbccd"
+    assert nodes._classify_reviewed_hash(expected, expected)[0] == "exact"
+    # What GPT-5.5 actually returned on pair 0029: correct prefix, then a
+    # repeated middle fragment.
+    slipped = "155cfff68c26a59c54262af4beb0c44262af4beb0c442ec7bb508c39913f3dde807509"
+    assert nodes._classify_reviewed_hash(slipped, expected)[0] == "prefix"
+    assert nodes._classify_reviewed_hash("deadbeef", expected)[0] == "mismatch"
+    assert nodes._classify_reviewed_hash(expected.upper(), expected)[0] == "exact"
+
+
+def test_hash_transcription_slip_does_not_fail_the_run() -> None:
+    def responder(
+        _role: str, schema: type[BaseModel], _system: str, _payload: str
+    ) -> BaseModel:
+        if schema is RequirementSet:
+            return _requirements()
+        if schema is RequirementReview:
+            return RequirementReview(
+                decision="accept", reviewed_revision=1, rationale="ok"
+            )
+        if schema is AssertionScript:
+            return _script(
+                1,
+                'transition_exists(source="Root.Idle", event="Root.go", target="Root.Done")',
+                bad_family="relation",
+            )
+        if schema is AssertionReview:
+            # Deliberately wrong: a plausible but non-matching transcription.
+            return AssertionReview(
+                decision="accept",
+                reviewed_script_hash="0" * 64,
+                rationale="Reviewed the current script.",
+            )
+        if schema is DiscoverAdjudication:
+            return DiscoverAdjudication(
+                has_confirmed_issues=False,
+                satisfied_requirement_ids=("REQ-GOOD", "REQ-BAD"),
+                rationale="All released assertions passed.",
+            )
+        raise TypeError(f"unsupported schema {schema}")
+
+    state = run_discover_state(
+        DiscoverInput(
+            run_id="hash-slip",
+            natural_language="Idle shall reach Done on go.",
+            stm_text=MODEL,
+            language="en-US",
+        ),
+        responder,
+    )
+    assert "failure" not in state
+    assert state["final_output"].status == "completed"
+    notes = [
+        (r.details or {}).get("reviewed_hash_binding")
+        for r in state["node_execution_records"]
+        if r.node_name == "review_assertions"
+    ]
+    assert "mismatch" in notes, "the discrepancy must still be recorded for audit"

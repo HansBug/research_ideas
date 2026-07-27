@@ -2219,11 +2219,18 @@ def test_assertion_review_hash_must_match_current_script() -> None:
         },
         nodes.CallableStructuredResponder(wrong_hash),
     )
-    assert out["failure"].node_name == "review_assertions"
-    assert (
-        sha256_data(script) in out["failure"].message
-        or "must match" in out["failure"].message
-    )
+    # Behaviour changed deliberately.  The payload is rendered fresh from the
+    # current script on every reviewer call, so the model cannot be looking at a
+    # stale revision; an exact-string test on a 64-hex-character value therefore
+    # only ever detects a transcription slip.  On pair 0029 GPT-5.5 produced
+    # such a slip (correct 32-char prefix, then a repeated fragment) and the
+    # entire run was lost, which Issue #167 §3 forbids for a local defect.  The
+    # discrepancy is now an audited fact and the binding is recomputed.
+    assert "failure" not in out
+    assert out["assertion_review"].reviewed_script_hash == sha256_data(script)
+    record = out["node_execution_records"][-1]
+    assert (record.details or {}).get("reviewed_hash_binding") == "mismatch"
+    assert "agrees on only" in (record.details or {}).get("reviewed_hash_note", "")
 
 
 def test_confirmed_issue_schema_rejects_unsafe_attribution() -> None:

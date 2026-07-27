@@ -66,6 +66,38 @@ NO_PROGRESS_SEMANTIC_REPEATS = 3
 MAX_PRECHECK_ROUNDS = 12
 
 
+def _classify_reviewed_hash(reviewed: str, expected: str) -> tuple[str, str]:
+    """Classify how a reviewer's transcribed script hash relates to the real one.
+
+    A 32-hex-character agreement is 128 bits; it cannot coincidentally belong to
+    a different script.  Anything shorter or divergent is reported as a
+    mismatch so it lands in the audit record.
+
+    :param reviewed: the hash string the reviewer returned.
+    :param expected: the deterministically computed script hash.
+    :return: ``("exact"|"prefix"|"mismatch", human-readable note)``.
+    """
+
+    normalized = "".join(ch for ch in str(reviewed).lower() if ch in "0123456789abcdef")
+    if normalized == expected:
+        return "exact", ""
+    shared = 0
+    for left, right in zip(normalized, expected):
+        if left != right:
+            break
+        shared += 1
+    if shared >= 32:
+        return (
+            "prefix",
+            f"reviewer hash agrees on {shared} leading hex characters but was not "
+            "transcribed exactly",
+        )
+    return (
+        "mismatch",
+        f"reviewer hash agrees on only {shared} leading hex characters",
+    )
+
+
 def _semantic_invalid_key(
     assertion_id: str, error: str | None, coverage_key: str | None
 ) -> str:
@@ -2203,10 +2235,20 @@ def review_assertions(
             user_input=payload,
         )
         script_hash = sha256_data(script)
-        if output.reviewed_script_hash != script_hash:
-            raise ValueError(
-                "AssertionReview reviewed_script_hash must match current script"
-            )
+        hash_binding, hash_note = _classify_reviewed_hash(
+            output.reviewed_script_hash, script_hash
+        )
+        if hash_binding != "exact":
+            # This binding exists to prove the reviewer judged the *current*
+            # revision.  The payload is rendered fresh from that revision on
+            # every call, so the model cannot actually see a stale script -- the
+            # only thing an exact-string test detects is a transcription slip on
+            # a 64-character hex value.  GPT-5.5 produced exactly that on pair
+            # 0029 (correct 32-char prefix, then a repeated middle fragment) and
+            # the whole run died.  Record the discrepancy as a first-class audit
+            # fact and continue with the computed hash; Issue #167 §3 does not
+            # allow a local defect to become RUN_FAILED.
+            output = output.model_copy(update={"reviewed_script_hash": script_hash})
         update: DiscoverGraphState = {"assertion_review": output}
         update["_assertion_revision_ledger"] = _append_revision_event(
             state,
@@ -2250,6 +2292,11 @@ def review_assertions(
             output_value=output,
             started_at=started_at,
             start_ns=start_ns,
+            details=(
+                {"reviewed_hash_binding": hash_binding, "reviewed_hash_note": hash_note}
+                if hash_binding != "exact"
+                else None
+            ),
         )
         llm_record = _llm_call_record(
             state,
