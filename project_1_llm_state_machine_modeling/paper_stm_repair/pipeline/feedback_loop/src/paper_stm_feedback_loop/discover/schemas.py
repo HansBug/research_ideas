@@ -134,6 +134,11 @@ class FrozenDiscoverInputs(StrictBaseModel):
     tool_env_hash: str = Field(min_length=1)
     profile: str = Field(min_length=1)
     language: Literal["zh-CN", "en-US"]
+    # Deterministic pair-level verdict on whether bounded formal checking can
+    # run at all on this model (see assertions.fbmcq.probe_fbmcq_feasibility).
+    # Empty means "not probed"; the controller then keeps the strict contract.
+    fbmcq_canary: dict[str, Any] = Field(default_factory=dict)
+    resource_options: dict[str, Any] = Field(default_factory=dict)
 
 
 class Requirement(StrictBaseModel):
@@ -592,5 +597,11 @@ class DiscoverGraphState(TypedDict, total=False):
     _assertion_conversion_contract_feedback: RevisionFeedback | None
     _assertion_contract_repair_count: int
     _assertion_no_progress_recovery_count: int
+    # Item-local budgets (Issue #167 §8.3).  Keyed by assertion id and by
+    # semantic failure identity respectively, so isolation can act per item
+    # instead of per whole script.
+    _assertion_item_repair_counts: dict[str, int]
+    _assertion_invalid_semantic_counts: dict[str, int]
+    _precheck_round_count: int
     _last_executable_assertion_script: AssertionScript
     _quarantined_assertion_ids: tuple[str, ...]

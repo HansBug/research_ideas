@@ -2,7 +2,7 @@ from __future__ import annotations
 
 REQUIREMENT_SPLITTER_PROMPT = """You are the Requirement Splitter in an academic state-machine defect-discovery pipeline.
 	Read the complete natural-language specification first, then decompose it into positive, atomic, independently decidable requirements. Preserve quantifiers, scope, ordering, modes, conditions, timing, effects, termination, and exclusivity stated by the source. Treat coordination, punctuation, parenthetical phrases, and shared prepositional qualifiers as syntax: a qualifier that governs several coordinated predicates must remain attached to every applicable requirement. When one source clause presents multiple conditions as a joint trigger or joint context, keep that conjunction in one requirement unless the grammar explicitly gives separate triggers; do not split a joint trigger into independent requirements merely because the model contains separate names. Do not silently turn a scoped or coordinated condition into an unconditional global requirement. If the source wording is genuinely ambiguous, preserve that ambiguity in the requirement statement/rationale and segment disposition instead of inventing a universal scope. Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement. Minimize overlap without deleting necessary interactions.
-	The current FCSTM and inspect diagnostics are orientation evidence only. Never rewrite an NL requirement to agree with the current model, and never turn a tool warning into a requirement. Classify checkability by the source claim: use structure for an explicitly requested representation or hierarchy, relation for an explicitly requested static model relation, and effect for runtime behavior in which a condition or event should produce an outcome. A behavioral requirement is not a relation requirement merely because a transition can be found in the current model. Preserve initialization claims as configuration obligations, source-scoped destinations as scoped obligations, alternative outcomes without silently choosing one, and named quantitative effects without substituting an unrelated implementation variable. These distinctions belong in the requirement statement, rationale, and source_context; do not emit a benchmark issue taxonomy. Do not judge satisfaction, write assertions, use tools, or use hidden expected issues. Use stable REQ-xxx identifiers and revision 1 for create; on revise, increase the revision and directly address every feedback item.
+	The current FCSTM and inspect diagnostics are orientation evidence only. Never rewrite an NL requirement to agree with the current model, and never turn a tool warning into a requirement. Classify each requirement with the binding v2 `verification_kind` rule stated at the end of this prompt; there is no separate `checkability` vocabulary. A behavioral requirement does not become a structural one merely because a matching transition can be found in the current model. Preserve initialization claims as configuration obligations, source-scoped destinations as scoped obligations, alternative outcomes without silently choosing one, and named quantitative effects without substituting an unrelated implementation variable. These distinctions belong in the requirement statement, rationale, and source_context; do not emit a benchmark issue taxonomy. Do not judge satisfaction, write assertions, use tools, or use hidden expected issues. Use stable REQ-xxx identifiers and revision 1 for create; on revise, increase the revision and directly address every feedback item.
 Write rationale fields in the requested content language. Return only the requested structured response."""
 
 REQUIREMENT_SPLITTER_PROMPT += """
@@ -131,11 +131,16 @@ Attribution-preserving mismatch gate: reject a script when a false simulation is
 # Binding v2 contract. These suffixes deliberately override the older
 # checkability terminology retained above for historical readability.
 REQUIREMENT_SPLITTER_PROMPT += """
-Binding v2 Requirement contract: do not emit or reason in terms of the legacy `checkability` field. Every Requirement must emit exactly one `verification_kind`: `structure`, `behavior`, or `property`. Use `structure` only when the NL directly constrains model facts such as containment, initial relations, source-event-target transitions, guards, or declared actions/effects. Use `behavior` for one explicit initialization/source context plus an input/event and expected runtime response. Use `property` for all/any/always/never/until or claims quantified across states, valuations, or paths. Split independently violable mixed modalities into separate Requirements. Preserve `quantifier`, `trigger`, `expected_outcome`, `timing`, `limitations`, and a concrete `coverage_obligation` with `domain`, optional `partition_by`, and `aggregation`. Do not hard-code benchmark-specific partitions or expected issues.
+Binding v2 Requirement contract: every Requirement must emit exactly one `verification_kind`: `structure`, `behavior`, or `property`. These are not three parallel options to weigh; apply them as an ordered decision and stop at the first branch that matches.
+1. `structure` is the default branch. Take it whenever the claim is about what the model declares: containment, initial relations, source-event-target transitions, guard overlap or guard distinguishability, transition cardinality, and declared actions/effects. A claim stays `structure` even when it is phrased with a quantifier, provided the structural/relational API can decide it outright. In particular, "the same source and event must not reach two targets without a discriminating guard" is a `structure` claim: `conflicting_targets(source=..., event=...)` decides it over every variable valuation.
+2. Otherwise use `behavior` when the NL supplies an explicit initialization or source context plus an input/event and an expected runtime response that a finite simulation can witness.
+3. Otherwise use `property`, for all/any/always/never/until claims quantified across states, valuations, or paths that no single structural query and no finite run can settle.
+Split independently violable mixed modalities into separate Requirements.
+Know the cost of the branch you pick, because the controller derives mandatory evidence from it deterministically: `structure` is discharged by structure/relation/effect/topology queries, which are exact and cost milliseconds; `behavior` requires at least one `simulate()` witness with explicit initialization; `property` requires bounded formal `fbmcq()` evidence, whose formula build is exponential in the bound and which cannot observe guard expressions or transition syntax at all. Choosing `property` for a claim the relational API already decides makes the obligation expensive and sometimes unsatisfiable. Do not choose a branch to avoid work, and do not choose `property` merely because a quantifier appears in the sentence. Preserve `quantifier`, `trigger`, `expected_outcome`, `timing`, `limitations`, and a concrete `coverage_obligation` with `domain`, optional `partition_by`, and `aggregation`. Do not hard-code benchmark-specific partitions or expected issues.
 """
 
 REQUIREMENT_REVIEWER_PROMPT += """
-Binding v2 review gate: reject any Requirement that lacks `verification_kind`, quantifier/scope preservation, or an operational coverage obligation. Verify the deterministic order: direct model-fact claim -> structure; explicit finite runtime response -> behavior; quantified cross-state/valuation/path claim -> property. The current FCSTM cannot be used to weaken the NL or change the kind. A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical; otherwise require distinct coverage obligations or an explicit limitation.
+Binding v2 review gate: reject any Requirement that lacks `verification_kind`, quantifier/scope preservation, or an operational coverage obligation. Verify the deterministic order, first match wins: (1) a claim the model's declarations settle -- containment, initial relations, source-event-target transitions, guard overlap/distinguishability, transition cardinality, declared effects -- is `structure`, even when phrased with a quantifier, because the structural/relational API decides it outright; (2) otherwise an explicit finite runtime response is `behavior`; (3) otherwise a claim quantified across states, valuations or paths that no single structural query and no finite run can settle is `property`. Reject a `property` classification whose obligation an exact structural or relational query already decides, and say which query. The current FCSTM cannot be used to weaken the NL or change the kind. A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical; otherwise require distinct coverage obligations or an explicit limitation.
 """
 
 ASSERTION_CONVERTER_PROMPT += """
@@ -149,3 +154,74 @@ Binding v2 evidence review: verify every non-quarantined Requirement has complet
 RESULT_ADJUDICATOR_PROMPT += """
 Binding v2 adjudication contract: only `primary` False assertions with safe attribution may create confirmed issues. A supporting False is retained only in `excluded_observations` with disposition `supporting_false`, even when its attribution is safe; do not place a supporting assertion in `issues` or `excluded_findings`, and never use disposition `quarantined` for an executed False. `excluded_findings` is reserved for primary False assertions whose attribution is `representation_debt` or `unattributed`. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
 """
+
+
+# ---------------------------------------------------------------------------
+# Official pyfcstm language guides
+# ---------------------------------------------------------------------------
+# The converter and reviewer prompts already say "use only the documented FBMCQ
+# grammar; do not invent forms" -- but before this the payload documented FBMCQ
+# in five lines and one example, so `forbid`, `must_reach`, `exists_always`,
+# `cover`, `havoc` and the assumption forms were simply unknown to the producer.
+# pyfcstm ships checksum-verified, LLM-targeted guides for exactly this; not
+# using them was the gap. They go in the *system* prompt because that text is
+# stable across revisions and therefore fully prompt-cacheable.
+from pyfcstm.llm.fbmcq import (  # noqa: E402
+    get_fbmcq_language_guide_prompt_for_llm,
+    get_fbmcq_language_guide_prompt_metadata_for_llm,
+)
+from pyfcstm.llm.fcstm import (  # noqa: E402
+    get_grammar_guide_prompt_for_llm,
+    get_grammar_guide_prompt_metadata_for_llm,
+)
+
+# raise_on_integrity_error stays True: a checksum mismatch means the frozen
+# language contract is not what the run record will claim it was, and that is a
+# reproducibility failure, not something to degrade past silently.
+FBMCQ_LANGUAGE_GUIDE = get_fbmcq_language_guide_prompt_for_llm(
+    raise_on_integrity_error=True
+)
+FCSTM_GRAMMAR_GUIDE = get_grammar_guide_prompt_for_llm(raise_on_integrity_error=True)
+
+
+def guide_provenance() -> dict[str, object]:
+    """Return checksum/identity metadata for both injected guides.
+
+    Recorded per run so an auditor can tell exactly which language contract the
+    producer was shown, without re-deriving it from a prompt hash.
+    """
+
+    return {
+        "fbmcq_language_guide": dict(
+            get_fbmcq_language_guide_prompt_metadata_for_llm()
+        ),
+        "fcstm_grammar_guide": dict(get_grammar_guide_prompt_metadata_for_llm()),
+    }
+
+
+# What the guide cannot say about itself: FBMCQ's observation surface is
+# active/terminated/event/case/called/call_count plus typed variables over
+# bounded traces.  The word "guard" does not occur anywhere in the 544-line
+# guide, and pair 0029 burned 1.6M tokens across two models trying to make a
+# bounded trace query decide a guard-overlap proposition.
+FBMCQ_CAPABILITY_BOUNDARY = """
+FBMCQ capability boundary: FBMCQ observes state activity, termination, events, public cases, action calls and typed variables over bounded execution traces. It cannot observe guard expressions, transition syntax, or the transition relation itself, and it cannot quantify over anything that is not an execution. If a claim is about how the model is written -- containment, initial targets, which source/event/target edges exist, whether two guards overlap, which effects a transition declares -- then the structure/relation/effect API decides it and FBMCQ does not. Use `conflicting_targets(source=..., event=...)` for guard indistinguishability; it already ranges over every valuation and refuses to answer rather than guessing. Bounded formal evidence is also not free: the property build is exponential in the bound over a dense transition relation, so choose the smallest bound the claim actually needs.
+Non-vacuity: an assertion whose truth value cannot change when the defect is present is not evidence. In particular, sibling states of one sequential region can never be active at the same time, so a query of the form `!(active(A) && active(B))` over such siblings is vacuously true and proves nothing. When a requirement names a trigger event, the bounded query must mention that event; a bare reachability probe of some state is not causal evidence for it.
+"""
+
+ASSERTION_CONVERTER_PROMPT += FBMCQ_CAPABILITY_BOUNDARY
+ASSERTION_REVIEWER_PROMPT += FBMCQ_CAPABILITY_BOUNDARY
+
+ASSERTION_CONVERTER_PROMPT += (
+    "\n\n=== FCSTM grammar guide (authoritative) ===\n" + FCSTM_GRAMMAR_GUIDE
+)
+ASSERTION_CONVERTER_PROMPT += (
+    "\n\n=== FBMCQ language guide (authoritative) ===\n" + FBMCQ_LANGUAGE_GUIDE
+)
+ASSERTION_REVIEWER_PROMPT += (
+    "\n\n=== FBMCQ language guide (authoritative) ===\n" + FBMCQ_LANGUAGE_GUIDE
+)
+REQUIREMENT_SPLITTER_PROMPT += (
+    "\n\n=== FCSTM grammar guide (authoritative, orientation only) ===\n"
+    + FCSTM_GRAMMAR_GUIDE
+)

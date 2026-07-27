@@ -4,10 +4,12 @@ import json
 import hashlib
 import multiprocessing as mp
 import pickle
+import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable
 
+from pyfcstm.bmc.binding import bind_bmc_query_structure
 from pyfcstm.bmc.parse import parse_bmc_query
 from pyfcstm.entry.bmc import build_bmc_output
 
@@ -255,6 +257,22 @@ class FBMCQAPI:
                 origin="exact_agent_query",
                 canonical_query=canonical_query,
             )
+        # Structural binding is a sub-millisecond static check that rejects
+        # references to states/events/variables the frozen model does not have.
+        # Doing it here keeps a hallucinated path from reaching the exponential
+        # compile+solve stage, where the same mistake costs minutes.
+        try:
+            bind_bmc_query_structure(parsed)
+        except Exception as exc:
+            raise _unsupported(
+                "fbmcq query failed structural binding",
+                inconclusive_kind="malformed_query",
+                origin="exact_agent_query",
+                canonical_query=canonical_query,
+                binding_exception_type=type(exc).__name__,
+                binding_exception_message=str(exc)[:400],
+            ) from exc
+
         assumption_basis = tuple(str(item) for item in getattr(parsed, "assumptions", ()) or ())
         base_metadata = {
             "query_origin": "exact_agent_query",
@@ -507,3 +525,95 @@ __all__ = [
     "FBMCQUnsupportedEvidence",
     "formal_query_causality",
 ]
+
+
+def probe_fbmcq_feasibility(
+    model_text: str,
+    *,
+    bound: int = 3,
+    wall_seconds: float = 60.0,
+) -> dict[str, Any]:
+    """Decide whether bounded formal checking is usable on one frozen model.
+
+    ``compile_bmc_query`` builds the property formula before any solver runs, and
+    that build is exponential in the bound over a dense transition relation.  On
+    pilot pair 0029 (20 states / 70 transitions) the same trivial reachability
+    query compiles in 10 ms at ``bound=1`` and does not return within 120 s at
+    ``bound>=2``, while pairs 0000/0006/0050 compile in 32-122 ms.  Without this
+    probe the pipeline discovers that only by hanging inside a per-assertion
+    precheck, which is what forced both 0029 runs to be killed by hand.
+
+    The probe is deliberately query-independent: it asks the cheapest possible
+    question so that a negative answer means "this model", not "that query".
+
+    :param model_text: frozen FCSTM source.
+    :param bound: probe bound; must be >= 2, since bound 1 passes even on models
+        where every useful query is infeasible.
+    :param wall_seconds: budget for the compile step.
+    :return: a JSON-safe verdict dict suitable for the run record.
+    """
+
+    import multiprocessing as mp
+
+    if bound < 2:
+        raise ValueError("fbmcq canary bound must be >= 2 to be discriminating")
+
+    started = time.perf_counter()
+    ctx = mp.get_context("spawn")
+    queue: Any = ctx.Queue()
+    process = ctx.Process(target=_fbmcq_canary_child, args=(queue, model_text, bound))
+    process.start()
+    process.join(wall_seconds)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    if process.is_alive():
+        process.terminate()
+        process.join(1.0)
+        if process.is_alive():
+            process.kill()
+            process.join(1.0)
+        return {
+            "feasible": False,
+            "reason": "compile_timeout",
+            "bound": bound,
+            "wall_seconds": wall_seconds,
+            "elapsed_ms": round(elapsed_ms, 2),
+        }
+    try:
+        outcome = queue.get_nowait()
+    except Exception:  # pragma: no cover - child died without reporting
+        outcome = {"ok": False, "error": "canary child exited without a result"}
+    return {
+        "feasible": bool(outcome.get("ok")),
+        "reason": "compiled" if outcome.get("ok") else str(outcome.get("error"))[:200],
+        "bound": bound,
+        "wall_seconds": wall_seconds,
+        "elapsed_ms": round(elapsed_ms, 2),
+    }
+
+
+def _fbmcq_canary_child(queue: Any, model_text: str, bound: int) -> None:
+    """Compile one trivial bounded query in an isolated process."""
+
+    try:
+        from pyfcstm.bmc import compile_bmc_query, parse_bmc_query
+
+        from .pyfcstm_adapter import parse_and_inspect
+
+        model, doc = parse_and_inspect(model_text)
+        target = next(
+            (
+                str(state.get("path"))
+                for state in (doc.get("states") or [])
+                if state.get("is_leaf") and not state.get("is_pseudo")
+            ),
+            None,
+        )
+        if target is None:
+            queue.put({"ok": False, "error": "no leaf state to probe"})
+            return
+        compile_bmc_query(
+            model, parse_bmc_query(f'check reach <= {bound}: active("{target}");')
+        )
+        queue.put({"ok": True})
+    except Exception as exc:  # pragma: no cover - defensive
+        queue.put({"ok": False, "error": f"{type(exc).__name__}: {exc}"})

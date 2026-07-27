@@ -17,8 +17,18 @@ SECRET_KEY_RE = re.compile(
     r"(api[_-]?key|authorization|bearer|(?:access|auth|proxy|refresh)[_-]?token|secret|password|credential)",
     re.I,
 )
+# The JWT alternative is anchored on the `eyJ` header prefix (base64url of the
+# opening `{"` of every JWT header).  Without that anchor the three-segment
+# shape also matches ordinary dotted FCSTM state paths -- in the pair-0029 run
+# record it silently destroyed the model paths of 23 of 55 assertions, which
+# makes the artifact unreplayable and unreadable as evidence.  Redaction must
+# not damage the research record it is protecting.
 SECRET_VALUE_RE = re.compile(
-    r"(?i)(sk-[A-Za-z0-9_\-]{12,}|Bearer\s+[A-Za-z0-9._\-]{12,}|[A-Za-z0-9_\-]{24,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{12,})"
+    r"(?i)("
+    r"sk-[A-Za-z0-9_\-]{12,}"
+    r"|Bearer\s+[A-Za-z0-9._\-]{12,}"
+    r"|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{12,}"
+    r")"
 )
 
 

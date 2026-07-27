@@ -16,7 +16,7 @@ from .schemas import (
     RevisionFeedback,
     RevisionLedgerEvent,
 )
-from .utils import canonical_json, sha256_data
+from .utils import prompt_json, sha256_data
 
 
 def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
@@ -118,7 +118,7 @@ def render_requirement_split_input(
         payload["revision_feedback"] = (
             revision_feedback.model_dump(mode="json") if revision_feedback else None
         )
-    return canonical_json(payload)
+    return prompt_json(payload)
 
 
 def render_requirement_review_input(
@@ -128,7 +128,7 @@ def render_requirement_review_input(
     previous_feedback: RevisionFeedback | None = None,
     revision_ledger: tuple[RevisionLedgerEvent, ...] = (),
 ) -> str:
-    return canonical_json(
+    return prompt_json(
         {
             "natural_language": frozen.natural_language,
             "nl_segments": frozen.nl_segments,
@@ -174,7 +174,7 @@ def render_assertion_conversion_input(
         payload["revision_feedback"] = (
             revision_feedback.model_dump(mode="json") if revision_feedback else None
         )
-    return canonical_json(payload)
+    return prompt_json(payload)
 
 
 def render_assertion_review_input(
@@ -186,7 +186,7 @@ def render_assertion_review_input(
     coverage_gaps: tuple[CoverageGap, ...] = (),
 ) -> str:
     # This payload intentionally excludes sealed and released assertion results.
-    return canonical_json(
+    return prompt_json(
         {
             "natural_language": frozen.natural_language,
             "stm_text": frozen.stm_text,
@@ -213,7 +213,7 @@ def render_adjudicator_input(
     attribution: AttributionProjection,
     coverage_gaps: tuple[CoverageGap, ...] = (),
 ) -> str:
-    return canonical_json(
+    return prompt_json(
         {
             "accepted_requirements": requirements.model_dump(mode="json"),
             "assertion_script": script.model_dump(mode="json"),

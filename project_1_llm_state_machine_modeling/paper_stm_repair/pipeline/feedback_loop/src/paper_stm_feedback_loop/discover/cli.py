@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from paper_stm_feedback_loop.assertions import AssertionChecker, build_eval_environment
+from paper_stm_feedback_loop.assertions.fbmcq import probe_fbmcq_feasibility
 from paper_stm_feedback_loop.common.inputs import (
     FeedbackLoopInputs,
     load_feedback_loop_inputs,
@@ -55,9 +56,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--llm-config")
     parser.add_argument("--max-output-tokens", type=int)
     parser.add_argument("--assertion-timeout-seconds", type=int)
-    parser.add_argument("--fbmcq-solver-timeout-ms", type=int)
-    parser.add_argument("--fbmcq-max-bound", type=int)
-    parser.add_argument("--fbmcq-process-wall-seconds", type=float)
+    # Bounded formal checking has no natural termination guarantee: the formula
+    # build alone is exponential in the bound over a dense transition relation.
+    # Leaving these unset made process.join(None) block forever, which is what
+    # turned one bad assertion in pair 0029 into a 495-second precheck and an
+    # operator kill.  Defaults are policy, so they are also recorded per run.
+    parser.add_argument("--fbmcq-solver-timeout-ms", type=int, default=30_000)
+    parser.add_argument("--fbmcq-max-bound", type=int, default=8)
+    parser.add_argument("--fbmcq-process-wall-seconds", type=float, default=60.0)
+    parser.add_argument("--fbmcq-canary-bound", type=int, default=3)
+    parser.add_argument("--fbmcq-canary-wall-seconds", type=float, default=45.0)
+    parser.add_argument("--skip-fbmcq-canary", action="store_true")
     parser.add_argument("--transport-retries", type=int, default=2)
     return parser
 
@@ -98,12 +107,30 @@ def _custom_pair(args: argparse.Namespace) -> FeedbackLoopInputs:
     )
 
 
+def _pyfcstm_version() -> str:
+    """Best-effort pyfcstm identity for the run record's evidence chain."""
+
+    try:
+        import importlib.metadata as _md
+
+        return _md.version("pyfcstm")
+    except Exception:
+        try:
+            import pyfcstm
+
+            return str(getattr(pyfcstm, "__version__", "unknown"))
+        except Exception:
+            return "unknown"
+
+
 def _discover_input(
     bundle: FeedbackLoopInputs,
     profile: str,
     content_language: str,
     run_id: str,
     tool_env_hash: str,
+    fbmcq_canary: dict[str, Any] | None = None,
+    resource_options: dict[str, Any] | None = None,
 ) -> DiscoverInput:
     manifest: dict[str, Any] = {
         "input_summary": bundle.summary(),
@@ -111,6 +138,8 @@ def _discover_input(
             bundle.working_contract.data if bundle.working_contract is not None else {}
         ),
         "tool_env_hash": tool_env_hash,
+        "fbmcq_canary": fbmcq_canary or {},
+        "resource_options": resource_options or {},
     }
     return DiscoverInput(
         run_id=run_id,
@@ -202,6 +231,14 @@ def main(argv: list[str] | None = None) -> int:
         fbmcq_max_bound=args.fbmcq_max_bound,
         fbmcq_process_wall_seconds=args.fbmcq_process_wall_seconds,
     )
+    resource_options = {
+        "assertion_timeout_seconds": args.assertion_timeout_seconds,
+        "fbmcq_solver_timeout_ms": args.fbmcq_solver_timeout_ms,
+        "fbmcq_max_bound": args.fbmcq_max_bound,
+        "fbmcq_process_wall_seconds": args.fbmcq_process_wall_seconds,
+        "fbmcq_canary_bound": args.fbmcq_canary_bound,
+        "fbmcq_canary_wall_seconds": args.fbmcq_canary_wall_seconds,
+    }
     tool_env_hash = sha256_data(
         {
             "vars_hash": environment.vars_hash,
@@ -214,8 +251,24 @@ def main(argv: list[str] | None = None) -> int:
             },
         }
     )
+    # Probe once, before any LLM call, whether bounded formal checking can run
+    # on this model at all.  Cheap on healthy pairs (<1 s) and decisive on the
+    # ones where it would otherwise hang inside a per-assertion precheck.
+    fbmcq_canary: dict[str, Any] = {}
+    if not args.skip_fbmcq_canary:
+        fbmcq_canary = probe_fbmcq_feasibility(
+            bundle.fcstm_text,
+            bound=args.fbmcq_canary_bound,
+            wall_seconds=args.fbmcq_canary_wall_seconds,
+        )
     discover_input = _discover_input(
-        bundle, args.profile, args.content_language, run_id, tool_env_hash
+        bundle,
+        args.profile,
+        args.content_language,
+        run_id,
+        tool_env_hash,
+        fbmcq_canary=fbmcq_canary,
+        resource_options=resource_options,
     )
     records.append(
         "discover-run-started",
@@ -227,6 +280,11 @@ def main(argv: list[str] | None = None) -> int:
             "content_language": args.content_language,
             "inputs": bundle.summary(),
             "tool_env_hash": tool_env_hash,
+            # Self-contained evidence chain: never make an auditor reverse a hash
+            # to learn which resource limits a run actually used.
+            "resource_options": resource_options,
+            "fbmcq_canary": fbmcq_canary,
+            "pyfcstm_version": _pyfcstm_version(),
         },
     )
     last_stream_heartbeat: dict[str, float] = {}

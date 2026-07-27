@@ -154,7 +154,9 @@ def build_discover_graph(
 
     def _review_assertions(state: DiscoverGraphState) -> DiscoverGraphState:
         patching_responder.current_script_hash = sha256_data(state["assertion_script"])
-        return nodes.review_assertions(state, patching_responder)
+        return nodes.review_assertions(
+            state, patching_responder, sealed_store=sealed_store
+        )
 
     def _release(state: DiscoverGraphState) -> DiscoverGraphState:
         return nodes.release_results(state, sealed_store=sealed_store)

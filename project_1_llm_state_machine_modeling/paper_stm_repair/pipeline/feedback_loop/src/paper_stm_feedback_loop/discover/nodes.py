@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 
 from . import prompts, renderer
+from .capability import fbmcq_non_vacuity_findings, mandatory_waiver
 from .schemas import (
     AdjudicatedIssue,
     AssertionCheckPublic,
@@ -52,6 +54,42 @@ MAX_REQUIREMENT_REVIEW_REPAIRS = 5
 MAX_ASSERTION_REVIEW_REPAIRS = 5
 MAX_ASSERTION_CONTRACT_REPAIRS = 5
 MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
+#: Per-assertion precheck repairs before that item is isolated.  Issue #167 §8.3
+#: specifies a *per-item* budget; before this it was only ever a whole-script
+#: scalar, which is why one bad assertion could hold 54 good ones hostage.
+MAX_ASSERTION_PRECHECK_REPAIRS = 5
+#: How many times the same semantic failure identity may recur before the item
+#: counts as making no progress, regardless of how the expression text churns.
+NO_PROGRESS_SEMANTIC_REPEATS = 3
+#: Hard backstop on the precheck<->convert loop.  With the per-item budget this
+#: is unreachable in practice; it exists so the edge is bounded by construction.
+MAX_PRECHECK_ROUNDS = 12
+
+
+def _semantic_invalid_key(
+    assertion_id: str, error: str | None, coverage_key: str | None
+) -> str:
+    """Build a churn-resistant identity for one precheck failure.
+
+    Keyed on *what failed and why*, never on the expression text or the error
+    message body: a producer that rewrites its query every revision would
+    otherwise present a fresh signature each round and never look stuck.
+
+    :param assertion_id: stable assertion id.
+    :param error: the raw precheck error payload, if any.
+    :param coverage_key: the assertion's coverage key.
+    :return: a stable ``id|error_type|coverage_key`` string.
+    """
+
+    error_type = "unknown"
+    if error:
+        match = re.search(r"['\"]type['\"]\s*:\s*['\"]([A-Za-z_][\w.]*)['\"]", error)
+        if match:
+            error_type = match.group(1)
+        else:
+            head = str(error).strip().split(":", 1)[0]
+            error_type = head[:64] or "unknown"
+    return f"{assertion_id}|{error_type}|{coverage_key or ''}"
 
 ALLOWED_PRIMARY_EVIDENCE_FAMILIES = {
     "structure": {"structure", "relation", "effect", "topology", "provenance"},
@@ -216,6 +254,124 @@ def _append_coverage_gaps(
     for gap in gaps:
         existing[gap.gap_id] = gap
     return tuple(existing[key] for key in sorted(existing))
+
+
+def _quarantine_reviewed_assertions(
+    state: DiscoverGraphState,
+    *,
+    script: AssertionScript,
+    quarantined_ids: tuple[str, ...],
+    rationale: str,
+    findings: tuple[str, ...],
+    sealed_store: InMemorySealedStore,
+) -> dict[str, Any]:
+    """Isolate review-unresolved assertions and re-seal the surviving script.
+
+    Issue #167 §3 forbids escalating one unresolved local review finding into
+    ``RUN_FAILED``.  This drops only the targeted assertions, re-seals the rest
+    so ``release_results`` still sees matching script/public/receipt hashes, and
+    writes one :class:`CoverageGap` per isolated item.
+
+    :param quarantined_ids: assertion ids the reviewer never accepted.
+    :param sealed_store: store holding the already-executed truth payload.
+    :return: a state update dict ready to merge into the node's update.
+    """
+
+    frozen = state["frozen_inputs"]
+    public = state["assertion_check_public"]
+    receipt = state["sealed_assertion_results"]
+    quarantined = set(quarantined_ids)
+    retained = {
+        item.assertion_id
+        for item in script.assertions
+        if item.assertion_id not in quarantined
+    }
+
+    filtered_script = _filter_assertion_script(script, retained)
+    filtered_script_hash = sha256_data(filtered_script)
+    filtered_public = AssertionCheckPublic(
+        script_hash=filtered_script_hash,
+        tool_env_hash=frozen.tool_env_hash,
+        status="executable",
+        executions=tuple(
+            item for item in public.executions if item.assertion_id in retained
+        ),
+    )
+    payload = tuple(sealed_store.release(receipt.sealed_hash))
+    filtered_results = tuple(
+        result.model_copy(update={"script_hash": filtered_script_hash})
+        for result in payload
+        if result.assertion_id in retained
+    )
+    filtered_sealed_hash = sha256_data(filtered_results)
+    filtered_receipt = SealedAssertionReceipt(
+        script_hash=filtered_script_hash,
+        tool_env_hash=frozen.tool_env_hash,
+        sealed_hash=filtered_sealed_hash,
+        result_count=len(filtered_results),
+        sealed_payload_ref=sealed_store.put(filtered_sealed_hash, filtered_results),
+    )
+
+    spec_by_id = {item.assertion_id: item for item in script.assertions}
+    requirement_by_id = {
+        item.requirement_id: item for item in state["requirement_set"].requirements
+    }
+    gaps = tuple(
+        CoverageGap(
+            gap_id=f"GAP-{assertion_id}-REVIEW",
+            stage="assertion_review",
+            requirement_id=spec_by_id[assertion_id].requirement_id,
+            assertion_ids=(assertion_id,),
+            source_segment_ids=requirement_by_id[
+                spec_by_id[assertion_id].requirement_id
+            ].source_segment_ids,
+            reason_code="review_unresolved",
+            reason=(
+                "The Assertion Reviewer still requested revision after "
+                f"{MAX_ASSERTION_REVIEW_REPAIRS} item repairs."
+            ),
+            last_revision=script.revision,
+            last_feedback=rationale,
+            history_refs=tuple(
+                f"assertion-ledger:{event.sequence}"
+                for event in state.get("_assertion_revision_ledger", ())
+            ),
+            coverage_impact=(
+                f"Coverage key {spec_by_id[assertion_id].coverage_key} was not released."
+            ),
+            blocks_full_coverage=(
+                (spec_by_id[assertion_id].role or "primary") == "primary"
+            ),
+        )
+        for assertion_id in quarantined_ids
+    )
+    ledger = tuple(state.get("_assertion_revision_ledger", ()))
+    quarantine_event = RevisionLedgerEvent(
+        sequence=len(ledger) + 1,
+        loop="assertions",
+        event="artifact_quarantined",
+        revision=script.revision,
+        artifact_hash=sha256_data(script),
+        status="quarantined",
+        rationale=(
+            "Review-unresolved assertions were isolated; accepted assertions "
+            "continue to release."
+        ),
+        findings=findings or tuple(gap.reason for gap in gaps),
+        item_ids=quarantined_ids,
+        budget_counters={"review_repairs": MAX_ASSERTION_REVIEW_REPAIRS},
+    )
+    return {
+        "assertion_script": filtered_script,
+        "assertion_check_public": filtered_public,
+        "sealed_assertion_results": filtered_receipt,
+        "coverage_gaps": _append_coverage_gaps(state, *gaps),
+        "_quarantined_assertion_ids": tuple(
+            sorted({*state.get("_quarantined_assertion_ids", ()), *quarantined_ids})
+        ),
+        "_assertion_revision_ledger": (*ledger, quarantine_event),
+        "_last_executable_assertion_script": filtered_script,
+    }
 
 
 def _filter_assertion_script(
@@ -649,6 +805,12 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         working_contract=discover_input.manifest.get("working_contract", {})
         if isinstance(discover_input.manifest.get("working_contract"), dict)
         else {},
+        fbmcq_canary=discover_input.manifest.get("fbmcq_canary", {})
+        if isinstance(discover_input.manifest.get("fbmcq_canary"), dict)
+        else {},
+        resource_options=discover_input.manifest.get("resource_options", {})
+        if isinstance(discover_input.manifest.get("resource_options"), dict)
+        else {},
         input_hashes={
             "natural_language": sha256_text(discover_input.natural_language),
             "stm_text": sha256_text(discover_input.stm_text),
@@ -1014,10 +1176,24 @@ def convert_assertions(
             if output.revision <= current.revision:
                 raise ValueError("revised AssertionScript revision must increase")
         fingerprint = sha256_data(output.model_dump(mode="json", exclude={"revision"}))
+        review_exhausted_by_repeat = False
         if fingerprint in state.get("assertion_fingerprints", ()):
             prior_check = state.get("assertion_check_public")
             feedback_origin = feedback.origin if feedback is not None else None
-            if not (
+            if (
+                feedback_origin == "assertion_review"
+                and feedback is not None
+                and feedback.target_item_ids
+                and prior_check is not None
+                and prior_check.status == "executable"
+            ):
+                # The producer has nothing further to offer for the items the
+                # reviewer flagged.  Issue #167 §3 says that is a local
+                # no-progress condition, not a run-level failure: let the script
+                # through and mark the review budget spent so review_assertions
+                # isolates exactly those items on its next verdict.
+                review_exhausted_by_repeat = True
+            elif not (
                 prior_check is not None
                 and prior_check.status == "invalid"
                 and feedback_origin == "assertion_precheck"
@@ -1056,6 +1232,7 @@ def convert_assertions(
                 )
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
         assertions_by_id = {item.assertion_id: item for item in output.assertions}
+        mandatory_waivers: list[dict[str, Any]] = []
         for requirement in requirements.requirements:
             owned_assertions = tuple(
                 assertions_by_id[assertion_id]
@@ -1098,11 +1275,67 @@ def convert_assertions(
                 - present_primary_families
             )
             if missing_mandatory_families:
+                # A mandatory family exists to stop *weaker* evidence from
+                # standing in for what the requirement needs.  It must not also
+                # block *stronger* evidence.  When a primary assertion already
+                # calls a decision procedure that settles the proposition over
+                # the whole quantified domain (see discover/capability.py), the
+                # mandatory family adds no information and demanding it can make
+                # the obligation unsatisfiable -- pair 0029 is the worked case.
+                waiver = mandatory_waiver(
+                    requirement.verification_kind,
+                    tuple(item.expression for item in primary_assertions),
+                )
+                if (
+                    waiver is None
+                    and missing_mandatory_families == ["fbmcq"]
+                    and frozen.fbmcq_canary
+                    and frozen.fbmcq_canary.get("feasible") is False
+                ):
+                    # Bounded formal checking does not run on this model at all
+                    # (deterministic pair-level canary, recorded in the run
+                    # record).  Demanding it would make the obligation
+                    # unsatisfiable no matter what the producer writes, so the
+                    # requirement falls back to its strongest available primary
+                    # and the limitation is published instead of hidden.
+                    waiver = (
+                        "fbmcq_canary",
+                        "Pair-level FBMCQ canary reported "
+                        f"{frozen.fbmcq_canary.get('reason')} at bound "
+                        f"{frozen.fbmcq_canary.get('bound')} after "
+                        f"{frozen.fbmcq_canary.get('elapsed_ms')} ms; bounded "
+                        "formal evidence is not obtainable on this model.",
+                    )
+                if waiver is None:
+                    raise ValueError(
+                        f"{requirement.verification_kind} requirement "
+                        f"{requirement.requirement_id} is missing mandatory primary "
+                        f"evidence families: {missing_mandatory_families}. Additional "
+                        "exact primary evidence may complement but cannot replace them"
+                    )
+                mandatory_waivers.append(
+                    {
+                        "requirement_id": requirement.requirement_id,
+                        "verification_kind": requirement.verification_kind,
+                        "waived_families": missing_mandatory_families,
+                        "decisive_function": waiver[0],
+                        "justification": waiver[1],
+                    }
+                )
+            # Non-vacuity is a contract property, not a style preference: a
+            # query whose truth value cannot change when the defect is present
+            # is not evidence at all.  The prompts already say so; enforcing it
+            # here turns a wasted LLM round trip into an immediate, specific
+            # finding.
+            vacuity_findings = tuple(
+                f"{assertion.assertion_id}: {finding}"
+                for assertion in primary_assertions
+                for finding in fbmcq_non_vacuity_findings(assertion.expression)
+            )
+            if vacuity_findings:
                 raise ValueError(
-                    f"{requirement.verification_kind} requirement "
-                    f"{requirement.requirement_id} is missing mandatory primary "
-                    f"evidence families: {missing_mandatory_families}. Additional "
-                    "exact primary evidence may complement but cannot replace them"
+                    f"requirement {requirement.requirement_id} has non-evidential "
+                    f"bounded formal primaries: {list(vacuity_findings)}"
                 )
             coverage_keys = [assertion.coverage_key for assertion in primary_assertions]
             if len(coverage_keys) != len(set(coverage_keys)):
@@ -1139,6 +1372,11 @@ def convert_assertions(
             output_value=output,
             started_at=started_at,
             start_ns=start_ns,
+            details=(
+                {"mandatory_evidence_waivers": mandatory_waivers}
+                if mandatory_waivers
+                else None
+            ),
         )
         llm_record = _llm_call_record(
             state,
@@ -1169,7 +1407,15 @@ def convert_assertions(
                 fingerprint,
             ),
             "_assertion_conversion_contract_feedback": None,
-            "_assertion_contract_repair_count": 0,
+            **(
+                {"_assertion_review_repair_count": MAX_ASSERTION_REVIEW_REPAIRS}
+                if review_exhausted_by_repeat
+                else {}
+            ),
+            # NOTE: _assertion_contract_repair_count is deliberately NOT reset
+            # here.  Resetting on every success let a fail/succeed/fail producer
+            # cycle past MAX_ASSERTION_CONTRACT_REPAIRS indefinitely (pair 0029
+            # burned six resets).  The budget is per run, not per streak.
             "node_execution_records": _append_records(state, record),
             "llm_call_records": [*state.get("llm_call_records", []), llm_record],
         }
@@ -1640,6 +1886,8 @@ def precheck_and_seal(
                 ),
             ),
         }
+        precheck_rounds = state.get("_precheck_round_count", 0) + 1
+        update["_precheck_round_count"] = precheck_rounds
         if status == "invalid":
             invalid_ids = tuple(
                 sorted(
@@ -1648,39 +1896,56 @@ def precheck_and_seal(
                     if item.status == "invalid"
                 )
             )
-            invalid_signature = sha256_data(
-                tuple(
-                    sorted(
-                        (item.assertion_id, item.error or "")
-                        for item in public.executions
-                        if item.status == "invalid"
-                    )
-                )
-            )
-            # The same invalid assertion can legitimately remain while the
-            # converter repairs other assertions in a materially new script.
-            # Scope the no-progress signature to the script revision so one
-            # unchanged error does not discard otherwise useful progress.
-            invalid_expressions = {
-                item.assertion_id: item.expression
-                for item in script.assertions
-                if item.assertion_id
-                in {
-                    execution.assertion_id
-                    for execution in public.executions
-                    if execution.status == "invalid"
-                }
+            # Progress is "this item got closer to executable", not "the text
+            # changed".  A byte-level signature over (expression, error) never
+            # repeats against a producer that rewrites its query every round --
+            # in the pair-0029 runs it fired once in twelve revisions for GPT
+            # and never for Claude, so nothing was ever quarantined.  Key on the
+            # *semantic* failure identity instead, and additionally bound each
+            # item so churn alone cannot buy unlimited revisions.
+            coverage_key_by_id = {
+                item.assertion_id: item.coverage_key for item in script.assertions
             }
-            invalid_signature = sha256_data(
-                {
-                    "invalid_signature": invalid_signature,
-                    "invalid_expressions": invalid_expressions,
-                }
+            semantic_keys = {
+                item.assertion_id: _semantic_invalid_key(
+                    item.assertion_id,
+                    item.error,
+                    coverage_key_by_id.get(item.assertion_id),
+                )
+                for item in public_executions
+                if item.status == "invalid"
+            }
+            semantic_counts = dict(state.get("_assertion_invalid_semantic_counts", {}))
+            item_repairs = dict(state.get("_assertion_item_repair_counts", {}))
+            for assertion_id, key in semantic_keys.items():
+                semantic_counts[key] = semantic_counts.get(key, 0) + 1
+                item_repairs[assertion_id] = item_repairs.get(assertion_id, 0) + 1
+            update["_assertion_invalid_semantic_counts"] = semantic_counts
+            update["_assertion_item_repair_counts"] = item_repairs
+
+            exhausted_ids = tuple(
+                assertion_id
+                for assertion_id in invalid_ids
+                if item_repairs.get(assertion_id, 0) >= MAX_ASSERTION_PRECHECK_REPAIRS
+                or semantic_counts.get(semantic_keys[assertion_id], 0)
+                >= NO_PROGRESS_SEMANTIC_REPEATS
             )
+            no_progress_ids = tuple(
+                assertion_id
+                for assertion_id in invalid_ids
+                if semantic_counts.get(semantic_keys[assertion_id], 0) >= 2
+            )
+            # Only isolate once every still-invalid item has run out of budget;
+            # a repairable neighbour must keep its remaining revisions.  The
+            # round backstop makes the precheck<->convert edge bounded even if
+            # a future change breaks the per-item accounting.
+            quarantine_now = (
+                bool(exhausted_ids) and set(exhausted_ids) == set(invalid_ids)
+            ) or precheck_rounds >= MAX_PRECHECK_ROUNDS
             previous_signatures = state.get("_assertion_invalid_signatures", ())
             update["_assertion_invalid_signatures"] = (
                 *previous_signatures,
-                invalid_signature,
+                *sorted(semantic_keys.values()),
             )
             update["_assertion_feedback"] = RevisionFeedback(
                 target="assertions",
@@ -1702,6 +1967,9 @@ def precheck_and_seal(
                 state, update["_assertion_feedback"]
             )
         else:
+            quarantine_now = False
+            no_progress_ids = ()
+            exhausted_ids = ()
             update["_last_executable_assertion_script"] = script
             update["_assertion_no_progress_recovery_count"] = 0
         record = _record_node(
@@ -1720,11 +1988,13 @@ def precheck_and_seal(
                     for item in public.executions
                     if item.status == "invalid"
                 ],
+                "no_progress_assertion_ids": list(no_progress_ids),
+                "budget_exhausted_assertion_ids": list(exhausted_ids),
             },
         )
-        if status == "invalid" and invalid_signature in previous_signatures:
+        if status == "invalid" and (quarantine_now or no_progress_ids):
             recovery_count = state.get("_assertion_no_progress_recovery_count", 0)
-            if recovery_count < MAX_ASSERTION_NO_PROGRESS_RECOVERIES:
+            if not quarantine_now and recovery_count < MAX_ASSERTION_NO_PROGRESS_RECOVERIES:
                 last_executable = state.get("_last_executable_assertion_script")
                 seed_assertions = (
                     {
@@ -1812,10 +2082,19 @@ def precheck_and_seal(
                     source_segment_ids=requirement_by_id[
                         spec_by_id[assertion_id].requirement_id
                     ].source_segment_ids,
-                    reason_code="no_progress",
+                    reason_code=(
+                        "revision_budget_exhausted"
+                        if item_repairs.get(assertion_id, 0)
+                        >= MAX_ASSERTION_PRECHECK_REPAIRS
+                        else "no_progress"
+                    ),
                     reason=(
-                        "The assertion repeated the same deterministic invalid "
-                        "signature after one targeted recovery."
+                        "The assertion exhausted its item-local precheck budget "
+                        f"({item_repairs.get(assertion_id, 0)}/"
+                        f"{MAX_ASSERTION_PRECHECK_REPAIRS} repairs) or repeated the "
+                        "same semantic failure identity "
+                        f"({semantic_counts.get(semantic_keys.get(assertion_id, ''), 0)}"
+                        f"/{NO_PROGRESS_SEMANTIC_REPEATS}) despite expression churn."
                     ),
                     last_revision=script.revision,
                     last_feedback=update["_assertion_feedback"].reason,
@@ -1890,7 +2169,10 @@ def precheck_and_seal(
 
 
 def review_assertions(
-    state: DiscoverGraphState, responder: StructuredResponder
+    state: DiscoverGraphState,
+    responder: StructuredResponder,
+    *,
+    sealed_store: InMemorySealedStore | None = None,
 ) -> DiscoverGraphState:
     started_at, start_ns = _now(), time.perf_counter_ns()
     try:
@@ -1985,10 +2267,55 @@ def review_assertions(
             output.decision == "revise"
             and review_repair_count >= MAX_ASSERTION_REVIEW_REPAIRS
         ):
+            # Issue #167 §3: an unresolved *local* review finding must not
+            # escalate into RUN_FAILED.  Isolate the assertions the reviewer is
+            # still unhappy with, publish everything else, and record the gap.
+            # Only ids still present in the script can be isolated; a reviewer
+            # may keep naming an item that a previous round already quarantined.
+            present_ids = {item.assertion_id for item in script.assertions}
+            targeted = set(targeted_assertion_ids) & present_ids
+            retained_ids = present_ids - targeted
+            if targeted and retained_ids and sealed_store is not None:
+                update.update(
+                    _quarantine_reviewed_assertions(
+                        state,
+                        script=script,
+                        quarantined_ids=tuple(sorted(targeted)),
+                        rationale=output.rationale,
+                        findings=tuple(f.message for f in output.findings),
+                        sealed_store=sealed_store,
+                    )
+                )
+                update["_assertion_feedback"] = None
+                update["assertion_review"] = output.model_copy(
+                    update={
+                        "decision": "accept",
+                        "rationale": (
+                            "Remaining assertions accepted after item-local "
+                            "quarantine of review-unresolved assertions."
+                        ),
+                    }
+                )
+                return update
+            if not targeted and retained_ids:
+                # Every named item was already quarantined in an earlier round;
+                # the reviewer is repeating a resolved finding.  Accept what is
+                # left instead of failing the run over a stale objection.
+                update["_assertion_feedback"] = None
+                update["assertion_review"] = output.model_copy(
+                    update={
+                        "decision": "accept",
+                        "rationale": (
+                            "Remaining assertions accepted; every flagged item was "
+                            "already isolated and recorded as a coverage gap."
+                        ),
+                    }
+                )
+                return update
             message = (
                 "bounded review gate: Assertion Reviewer requested more than "
-                f"{MAX_ASSERTION_REVIEW_REPAIRS} revisions; preserving the latest "
-                "review and stopping instead of looping without a stable contract"
+                f"{MAX_ASSERTION_REVIEW_REPAIRS} revisions and no assertion could "
+                "be isolated while retaining a non-empty script"
             )
             update["failure"] = RunFailure(
                 run_id=_run_id(state), node_name="review_assertions", message=message
