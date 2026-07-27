@@ -137,7 +137,9 @@ Binding v3 Requirement contract: classify by naming the claim, not by weighing t
 
 Emit on every Requirement:
 - `predicate`: exactly one name from the closed vocabulary below.
-- `predicate_bindings`: the concrete model terms that predicate requires, as an object. Copy the paths verbatim from `declared_model_vocabulary` in your input, which lists every declared state, event and variable path. Do not retype them from the FCSTM text and do not abbreviate them. A name that is absent from those lists does not exist in the model: if the NL requires something the model does not declare, bind the closest declared term the sentence does name and record the absence in `limitations` -- that absence is usually the defect itself, and it must stay visible rather than being smuggled into a binding as a guessed path. A mistyped event name is worse than a missing requirement, because the resulting check passes for the wrong reason instead of failing loudly.
+- `predicate_bindings`: the concrete model terms that predicate requires, as an object. Copy the paths verbatim from `declared_model_vocabulary` in your input, which lists every declared state, event and variable path. Do not retype them from the FCSTM text and do not abbreviate them. A mistyped name is worse than a missing requirement, because the resulting check passes for the wrong reason instead of failing loudly.
+
+When the NL requires a term the model does not declare, there is exactly one correct move: write the literal string `<undeclared>` as that binding's value, and add a `limitations` entry naming what the NL asked for. Do not substitute a different declared term that happens to be available -- binding "the number of UAVs" to an unrelated route-control variable changes the requirement into a different one, and the substitution hides the very gap that matters. Do not invent a path either. `<undeclared>` is the honest encoding: it says the NL imposed an obligation the model has no term for, which is usually the defect itself.
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
 How to choose the predicate. Read what the sentence asserts, then pick the predicate whose meaning matches it.
@@ -158,7 +160,8 @@ Binding v3 review gate: reject any Requirement that lacks `predicate`, `predicat
 Check the predicate against the sentence, not against the current model:
 - Reject a Family S predicate (`edge_declared`, `state_declared`, `containment`, ...) where the NL describes an operational scenario -- a trigger arriving and the system responding. That belongs to Family B, and closing it with a declaration query would pass a model whose declared edge is unreachable or guard-blocked. Name the behavioural predicate you expect instead.
 - Reject a Family P predicate whose obligation an exact structural or relational query already decides, and say which query.
-- Reject `predicate_bindings` whose values do not appear verbatim in `declared_model_vocabulary`, and any that omit a required binding. Name the offending value and the closest declared path. A binding that names a nonexistent element makes the downstream check vacuous, so this is not a cosmetic objection.
+- Reject `predicate_bindings` whose values neither appear verbatim in `declared_model_vocabulary` nor equal the literal `<undeclared>`, and any that omit a required binding. Name the offending value and the closest declared path. A binding that names a nonexistent element makes the downstream check vacuous, so this is not a cosmetic objection.
+- **Accept `<undeclared>`** when it is paired with a `limitations` entry naming what the NL required. Do not ask the Splitter to replace it with a declared term: that is the substitution this encoding exists to prevent, and demanding it produces an unresolvable review loop. Conversely, do reject a binding that substitutes a semantically different declared term for something the NL named (for example an unrelated counter standing in for a quantity the model never declares) -- require `<undeclared>` plus the limitation instead.
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
 
@@ -168,7 +171,9 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 """
 
 ASSERTION_CONVERTER_PROMPT += """
-Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write in an expression must come from those lists verbatim, and every value in a Requirement's `predicate_bindings` must appear in the expression that tests it. A fabricated or mistyped path does not raise -- it silently makes the assertion true for the wrong reason.
+Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write in an expression must come from those lists verbatim. A fabricated or mistyped path does not raise -- it silently makes the assertion true for the wrong reason.
+
+A Requirement whose `predicate_bindings` contain the literal `<undeclared>` has no executable primary check by construction: the model declares no term to bind. Do not invent a substitute and do not write a primary assertion that tests something adjacent. Emit only `supporting` evidence that documents the absence (for example the declared variable list, or the transitions that do exist for that trigger), and state in the rationale that the primary obligation is unassertable because the model declares no matching term.
 
 Binding v3 predicate procedure: each Requirement names a `predicate`, and the vocabulary below fixes the procedure that decides it. The `primary` assertion for that Requirement must call that procedure with the Requirement's `predicate_bindings`. The listed locators are weaker evidence and may appear only as `supporting`.
 

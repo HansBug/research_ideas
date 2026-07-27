@@ -158,3 +158,39 @@ def test_binding_output_contract_is_the_last_thing_each_producer_reads() -> None
     assert "`role`" in tails["converter"] and "`coverage_key`" in tails["converter"]
     for name, tail in tails.items():
         assert "overrides anything above" in tail, name
+
+
+def test_undeclared_binding_rule_is_consistent_across_producers() -> None:
+    """Splitter, reviewer and converter must agree on the same encoding.
+
+    Pair 0006-gpt deadlocked because two instructions contradicted each other:
+    bindings had to appear verbatim in the declared vocabulary, *and* a term the
+    NL required but the model did not declare had to be bound to the closest
+    declared term.  The splitter obeyed the second, the reviewer enforced the
+    first, and the loop ran five revisions until the growing ledger payload broke
+    the provider's streamed tool call.  A contradiction between two prompts fails
+    like a transport fault, so pin the agreement.
+    """
+
+    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+
+    for name, text in (
+        ("splitter", splitter),
+        ("reviewer", reviewer),
+        ("converter", converter),
+    ):
+        assert "`<undeclared>`" in text, name
+
+    # The splitter must be told to use it instead of substituting a declared term.
+    assert "Do not substitute a different declared term" in splitter
+    # The reviewer must be told to accept it, or the loop cannot converge.
+    assert "Accept `<undeclared>`" in reviewer
+    assert "unresolvable review loop" in reviewer
+    # The converter must not manufacture a primary for an unassertable claim.
+    assert "no executable primary check" in converter
+    assert "only `supporting`" in converter
+
+    # And the old contradictory sentence must be gone.
+    assert "bind the closest declared term the sentence does name" not in splitter
