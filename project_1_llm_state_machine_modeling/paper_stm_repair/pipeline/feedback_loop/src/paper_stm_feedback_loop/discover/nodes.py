@@ -3013,6 +3013,7 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
             coverage_status=cast(Any, coverage_status),
             coverage_gaps=coverage_gaps,
             satisfied_requirement_ids=adjudication.satisfied_requirement_ids,
+            excluded_findings=adjudication.excluded_findings,
             excluded_observations=adjudication.excluded_observations,
             adjudication_reconciliation=state.get("_adjudication_reconciliation", {}),
             regression_guards=guards,

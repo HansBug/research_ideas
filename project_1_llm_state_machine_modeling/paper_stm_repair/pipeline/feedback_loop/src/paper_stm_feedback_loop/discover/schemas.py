@@ -482,6 +482,13 @@ class DiscoverCompleted(StrictBaseModel):
     coverage_status: Literal["full", "partial"] = "full"
     coverage_gaps: tuple[CoverageGap, ...] = Field(default_factory=tuple)
     satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
+    # Primary False assertions the adjudicator kept out of `issues` because
+    # their attribution is representation_debt or unattributed.  These were
+    # recorded in the adjudication but never surfaced in the published
+    # artifact, so a reader of discover-completed.json could not tell "no
+    # evidence was produced" from "False evidence could not be attributed" --
+    # on pair 0006 that hid the entire EXP-0006-EA-001 observation.
+    excluded_findings: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
     excluded_observations: tuple[ExcludedObservation, ...] = Field(
         default_factory=tuple
     )

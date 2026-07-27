@@ -476,3 +476,21 @@ def test_anchored_queries_and_non_fbmcq_evidence_are_left_alone() -> None:
     )
     assert fbmcq_non_vacuity_findings(anchored) == ()
     assert fbmcq_non_vacuity_findings(CONFLICT_EXPR) == ()
+
+
+def test_published_artifact_carries_excluded_primary_findings() -> None:
+    """A non-attributable primary False must remain visible after publication.
+
+    On pair 0006 the adjudicator correctly filed EXP-0006-EA-001's False effect
+    assertion under `excluded_findings / representation_debt`, but the published
+    `DiscoverCompleted` had no such field, so the observation vanished from the
+    only artifact a downstream audit reads.
+    """
+
+    from paper_stm_feedback_loop.discover.schemas import DiscoverCompleted
+
+    assert "excluded_findings" in DiscoverCompleted.model_fields
+    source = (
+        SRC / "paper_stm_feedback_loop" / "discover" / "nodes.py"
+    ).read_text()
+    assert "excluded_findings=adjudication.excluded_findings" in source
