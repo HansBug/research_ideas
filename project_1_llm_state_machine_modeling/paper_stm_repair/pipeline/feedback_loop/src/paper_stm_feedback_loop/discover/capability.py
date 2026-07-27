@@ -47,6 +47,8 @@ __all__ = [
     "fbmcq_non_vacuity_findings",
     "vacuous_sibling_conjunction",
     "bare_reachability_probe",
+    "unresolved_model_references",
+    "BOUND_PATH_KWARGS",
     "EVIDENCE_CAPABILITY",
     "DECISIVE_COMPLETENESS",
     "called_evidence_functions",
@@ -294,3 +296,54 @@ def fbmcq_non_vacuity_findings(expression: str) -> tuple[str, ...]:
                 "triggered requirement"
             )
     return tuple(findings)
+
+
+# ---------------------------------------------------------------------------
+# Model-reference binding for structural/relational evidence
+# ---------------------------------------------------------------------------
+# A relation query over elements the model does not contain matches nothing and
+# therefore returns a *passing* answer.  On pair 0029 Claude wrote
+# `event="/dist_to_front_25_extra_lane_true"` -- FCSTM transition syntax rather
+# than the event path -- so `conflicting_targets` matched no transitions,
+# returned False, and `not False` marked the guard-conflict requirement
+# satisfied.  A typo silently turns a defect into a pass, so unresolvable
+# references must be rejected before execution, exactly as bounded formal
+# queries are rejected by structural binding.
+
+#: Keyword arguments whose string value must name an existing model element.
+BOUND_PATH_KWARGS = frozenset({"source", "target", "event"})
+#: The relation API exposes the pseudo-initial source under this exact literal.
+PSEUDO_INITIAL = "[*]"
+
+
+def unresolved_model_references(
+    expression: str, known_paths: frozenset[str]
+) -> tuple[str, ...]:
+    """Return path-like arguments that no model element can satisfy.
+
+    :param expression: the assertion's terminal Python expression.
+    :param known_paths: every state and event path the frozen model declares.
+    :return: offending ``kwarg=value`` strings; empty when all resolve.
+    """
+
+    if not known_paths:
+        return ()
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError:
+        return ()
+    bad: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        for keyword in node.keywords:
+            if keyword.arg not in BOUND_PATH_KWARGS:
+                continue
+            value = keyword.value
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                continue
+            text = value.value
+            if not text or text == PSEUDO_INITIAL or text in known_paths:
+                continue
+            bad.append(f"{keyword.arg}={text!r}")
+    return tuple(dict.fromkeys(bad))

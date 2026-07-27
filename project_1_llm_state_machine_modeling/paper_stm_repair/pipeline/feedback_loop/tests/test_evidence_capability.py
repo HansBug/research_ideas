@@ -494,3 +494,62 @@ def test_published_artifact_carries_excluded_primary_findings() -> None:
         SRC / "paper_stm_feedback_loop" / "discover" / "nodes.py"
     ).read_text()
     assert "excluded_findings=adjudication.excluded_findings" in source
+
+
+# --------------------------------------------------------------------------
+# A relation query over a non-existent element must not pass silently
+# --------------------------------------------------------------------------
+
+
+def test_unresolved_model_reference_is_detected() -> None:
+    from paper_stm_feedback_loop.discover.capability import unresolved_model_references
+
+    known = frozenset({"Root.Hub.Entry", "Root.pick"})
+    # Exactly what Claude wrote on pair 0029: FCSTM transition syntax in place
+    # of the event path, which made the guard-conflict check vacuously true.
+    bad = 'not conflicting_targets(source="Root.Hub.Entry", event="/pick")'
+    assert unresolved_model_references(bad, known) == ("event='/pick'",)
+    assert unresolved_model_references(CONFLICT_EXPR, frozenset()) == ()
+    good = 'not conflicting_targets(source="Root.Hub.Entry", event="Root.pick")'
+    assert unresolved_model_references(good, known) == ()
+    pseudo = 'transition_exists(source="[*]", event="Root.pick")'
+    assert unresolved_model_references(pseudo, known) == ()
+
+
+def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -> None:
+    """End-to-end: the vacuous form must never reach execution."""
+
+    def responder(
+        role: str, schema: type[BaseModel], system: str, payload: str
+    ) -> BaseModel:
+        if schema is AssertionScript:
+            return AssertionScript(
+                revision=1,
+                assertions=(
+                    {
+                        "assertion_id": "AST-REQ-001-01",
+                        "requirement_id": "REQ-001",
+                        "description": "Distinguishability, but with a mistyped event path.",
+                        "expression": 'not conflicting_targets(source="Root.Hub.Entry", event="/pick")',
+                        "failure_message": "[REQ-001][AST-REQ-001-01] indistinguishable",
+                        "evidence_family": "relation",
+                        "role": "primary",
+                        "coverage_key": "distinguishability:Entry-pick",
+                        "aggregation_group": "REQ-001:all",
+                    },
+                ),
+                requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+            )
+        return _responder_property_closed_by_relation(role, schema, system, payload)
+
+    with pytest.raises(RuntimeError):
+        run_discover_state(
+            DiscoverInput(
+                run_id="unresolved-ref",
+                natural_language="Alpha or Beta must be distinguishable.",
+                stm_text=FIXTURE_MODEL,
+                language="en-US",
+                source_trace=SOURCE_TRACE,
+            ),
+            responder,
+        )

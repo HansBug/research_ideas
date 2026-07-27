@@ -17,7 +17,11 @@ from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 
 from . import prompts, renderer
-from .capability import fbmcq_non_vacuity_findings, mandatory_waiver
+from .capability import (
+    fbmcq_non_vacuity_findings,
+    mandatory_waiver,
+    unresolved_model_references,
+)
 from .schemas import (
     AdjudicatedIssue,
     AssertionCheckPublic,
@@ -846,6 +850,16 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         resource_options=discover_input.manifest.get("resource_options", {})
         if isinstance(discover_input.manifest.get("resource_options"), dict)
         else {},
+        known_model_paths=tuple(
+            sorted(
+                {
+                    str(item.get("path"))
+                    for group in ("states", "events")
+                    for item in (inspected.get(group) or [])
+                    if isinstance(item, dict) and item.get("path")
+                }
+            )
+        ),
         input_hashes={
             "natural_language": sha256_text(discover_input.natural_language),
             "stm_text": sha256_text(discover_input.stm_text),
@@ -1411,6 +1425,21 @@ def convert_assertions(
                 for assertion in primary_assertions
                 for finding in fbmcq_non_vacuity_findings(assertion.expression)
             )
+            known_paths = frozenset(frozen.known_model_paths)
+            unresolved = tuple(
+                f"{assertion.assertion_id}: unresolved model reference {ref}"
+                for assertion in owned_assertions
+                for ref in unresolved_model_references(
+                    assertion.expression, known_paths
+                )
+            )
+            if unresolved:
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} references model "
+                    f"elements the frozen STM does not declare: {list(unresolved)}. "
+                    "A relation query over a non-existent element matches nothing "
+                    "and passes, hiding the defect it was meant to test"
+                )
             if vacuity_findings:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} has non-evidential "

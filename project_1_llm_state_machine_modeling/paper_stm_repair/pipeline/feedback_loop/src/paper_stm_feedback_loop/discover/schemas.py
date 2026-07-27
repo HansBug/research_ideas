@@ -139,6 +139,9 @@ class FrozenDiscoverInputs(StrictBaseModel):
     # Empty means "not probed"; the controller then keeps the strict contract.
     fbmcq_canary: dict[str, Any] = Field(default_factory=dict)
     resource_options: dict[str, Any] = Field(default_factory=dict)
+    # Every state and event path the frozen model declares, so a relation query
+    # over a non-existent element can be rejected instead of silently passing.
+    known_model_paths: tuple[str, ...] = Field(default_factory=tuple)
 
 
 class Requirement(StrictBaseModel):
