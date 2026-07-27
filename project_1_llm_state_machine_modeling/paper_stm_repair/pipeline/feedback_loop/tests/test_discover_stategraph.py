@@ -189,9 +189,11 @@ def test_requirements_do_not_expose_benchmark_issue_taxonomy() -> None:
 
 
 def test_v2_prompts_freeze_requirement_kind_and_assertion_role() -> None:
-    assert "Binding v2 Requirement contract" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "structure`, `behavior`, or `property" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "Binding v2 review gate" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    # v3 replaced the prose ordered decision with a named predicate whose family
+    # derives the kind; the downstream role/evidence contract is unchanged.
+    assert "Binding v3 Requirement contract" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "`predicate`" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "Binding v3 review gate" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert "Binding v2 Assertion contract" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "`primary` assertion" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Supporting evidence" in prompts.ASSERTION_CONVERTER_PROMPT

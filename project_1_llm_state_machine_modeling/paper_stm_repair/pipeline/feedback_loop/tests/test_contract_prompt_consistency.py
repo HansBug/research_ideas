@@ -25,6 +25,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from paper_stm_feedback_loop.discover import prompts, renderer  # noqa: E402
+from paper_stm_feedback_loop.discover.predicates import PREDICATES  # noqa: E402
 from paper_stm_feedback_loop.discover.nodes import _fallback_prepare  # noqa: E402
 from paper_stm_feedback_loop.discover.schemas import DiscoverInput  # noqa: E402
 
@@ -44,31 +45,73 @@ def _splitter_head() -> str:
     return prompts.REQUIREMENT_SPLITTER_PROMPT.split("=== FCSTM grammar guide")[0]
 
 
-def test_splitter_states_the_ordered_decision_not_three_parallel_options() -> None:
+def test_every_vocabulary_predicate_reaches_the_splitter() -> None:
+    """The prompt is rendered from the table, so the two cannot drift apart.
+
+    Under v2 the classification rule was hand-written prose that had to be kept
+    in sync with the design by hand; it was not, and two models then classified
+    the same requirement wrongly but defensibly.  A predicate that exists in the
+    table but not in the prompt would recreate exactly that gap.
+    """
+
     head = _splitter_head()
-    assert "ordered decision" in head
-    assert "stop at the first branch that matches" in head
-    for ordinal in ("1. `structure`", "2. Otherwise use `behavior`", "3. Otherwise use `property`"):
-        assert ordinal in head, ordinal
+    for item in PREDICATES:
+        assert f"`{item.name}`" in head, item.name
+        assert item.meaning in head, item.name
 
 
-def test_structure_is_presented_as_the_default_branch() -> None:
+def test_splitter_is_given_the_contain_versus_do_distinction() -> None:
+    """The single highest-value piece of guidance, with a worked pair."""
+
     head = _splitter_head()
-    assert "`structure` is the default branch" in head
-    assert "Use `structure` only when" not in head, (
-        "restrictive phrasing biases the producer away from the default branch"
-    )
+    assert "what the model *contains* or about what the model *does*" in head
+    assert "`edge_declared`" in head and "`occupancy_after`" in head
+    assert "unreachable, guard-blocked" in head
 
 
 def test_guard_distinguishability_precedent_reaches_the_splitter() -> None:
-    """Issue #167 §5.3 lists guard overlap under `structure`; so must the prompt."""
+    """Issue #167 §5.3 puts guard overlap under structural evidence; so must the prompt."""
 
     head = _splitter_head()
-    assert "guard overlap" in head or "guard distinguishability" in head
+    assert "guard_distinguishable" in head
     assert "conflicting_targets" in head, (
         "the worked precedent must name the deciding query, not just the category"
     )
-    assert "stays `structure` even when it is phrased with a quantifier" in head
+
+
+def test_splitter_is_told_what_each_family_costs_and_cannot_do() -> None:
+    """The node that fixes the family must see the obligation it creates."""
+
+    head = _splitter_head()
+    for marker in ("simulate()", "fbmcq()"):
+        assert marker in head, marker
+    # The caveats are the honest part: a predicate whose infrastructure is
+    # partial must say so where the producer will read it.
+    assert "tautology" in head, "the vacuous-invariant trap must be stated"
+    assert "guard-blind" in head, "path() over-approximation must be stated"
+
+
+def test_family_is_derived_not_chosen() -> None:
+    head = _splitter_head()
+    assert "derived from the predicate" in head
+    assert "you do not choose it" in head
+
+
+def test_requirement_reviewer_applies_the_predicate_gate() -> None:
+    reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "Reject a Family S predicate" in reviewer
+    assert "Reject a Family P predicate whose obligation an exact" in reviewer
+    assert "name the predicates it should be split into" in reviewer
+
+
+def test_assertion_stages_receive_the_procedure_binding() -> None:
+    """A locator must never be able to close a claim it does not decide."""
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        assert "Predicate procedures" in text, name
+        assert "`occupancy_after` -> primary MUST call `simulate(...)" in text, name
+        assert "locators (supporting only)" in text, name
 
 
 def test_splitter_no_longer_carries_a_competing_taxonomy() -> None:
@@ -77,22 +120,6 @@ def test_splitter_no_longer_carries_a_competing_taxonomy() -> None:
     head = _splitter_head()
     assert "Classify checkability by the source claim" not in head
     assert "relation for an explicitly requested static model relation" not in head
-
-
-def test_splitter_is_told_what_each_branch_costs_downstream() -> None:
-    """The node that freezes the kind must see the obligation it creates."""
-
-    head = _splitter_head()
-    for marker in ("simulate()", "fbmcq()", "exponential in the bound"):
-        assert marker in head, marker
-    assert "cannot observe guard expressions" in head
-
-
-def test_requirement_reviewer_applies_the_same_ordered_rule() -> None:
-    reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
-    assert "first match wins" in reviewer
-    assert "guard overlap/distinguishability" in reviewer
-    assert "Reject a `property` classification whose obligation an exact" in reviewer
 
 
 def test_splitter_payload_puts_the_specification_before_the_model_facts() -> None:

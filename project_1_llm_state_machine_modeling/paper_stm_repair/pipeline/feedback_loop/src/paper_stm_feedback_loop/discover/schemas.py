@@ -13,6 +13,8 @@ from pydantic import (
     model_validator,
 )
 
+from .predicates import PREDICATE_BY_NAME, PREDICATE_NAMES, verification_kind_of
+
 SCHEMA_VERSION = "v2"
 
 
@@ -152,6 +154,16 @@ class Requirement(StrictBaseModel):
     # Lightweight, input-derived scope ledger.  It may record explicit or
     # carefully qualified inferred source context, but never evaluator gold.
     source_context: dict[str, Any] = Field(default_factory=dict)
+    # The named claim shape, from the closed vocabulary in ``discover.predicates``.
+    # When present it *derives* verification_kind: the family, and therefore the
+    # mandatory evidence, is a table lookup rather than a per-sentence judgement.
+    # That judgement is exactly what two models used to answer differently for
+    # the same requirement.  Optional so v1/v2 fixtures stay readable.
+    predicate: str | None = None
+    #: Concrete arguments for the predicate, e.g. {"source": ..., "trigger": ...}.
+    #: They give the converter the terms to bind and let a later gate check that
+    #: the assertion tests this claim rather than an easier neighbouring one.
+    predicate_bindings: dict[str, str] = Field(default_factory=dict)
     verification_kind: VerificationKind
     quantifier: str = Field(default="unspecified", min_length=1)
     trigger: str | None = None
@@ -173,6 +185,41 @@ class Requirement(StrictBaseModel):
         ]
         | None
     ) = Field(default=None, exclude=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _derive_kind_from_predicate(cls, value: Any) -> Any:
+        """Let the named predicate settle the family, and reject unknown names.
+
+        The predicate is authoritative on purpose.  If a producer names
+        ``occupancy_after`` but labels the requirement ``structure``, honouring
+        the label would let a declaration check close a runtime claim -- the
+        false-positive shape this vocabulary exists to prevent.  So the label is
+        overwritten, not merely validated.
+        """
+
+        if not isinstance(value, dict):
+            return value
+        predicate = value.get("predicate")
+        if predicate is None:
+            return value
+        if not isinstance(predicate, str) or predicate not in PREDICATE_NAMES:
+            raise ValueError(
+                f"unknown predicate {predicate!r}; use one of the closed "
+                f"vocabulary: {', '.join(sorted(PREDICATE_NAMES))}"
+            )
+        entry = PREDICATE_BY_NAME[predicate]
+        missing = [
+            name
+            for name in entry.bindings
+            if not str((value.get("predicate_bindings") or {}).get(name) or "").strip()
+        ]
+        if missing:
+            raise ValueError(
+                f"predicate {predicate!r} requires bindings {list(entry.bindings)}; "
+                f"missing or empty: {missing}"
+            )
+        return {**value, "verification_kind": verification_kind_of(predicate)}
 
     @model_validator(mode="before")
     @classmethod
