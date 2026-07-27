@@ -9,6 +9,13 @@ from typing import Any
 
 SCHEMA_VERSION = "paper1.working_fcstm_contract.v2"
 
+#: Recorded on the ``simulation`` capability once the producer knows the
+#: controller reconstructs fired-transition identity per cycle.  Its presence is
+#: what allows ``simulation`` and ``transition_trace`` to leave the fail-closed
+#: baseline; a contract written without it stays unconditionally ineligible, so
+#: older artifacts cannot be read as authorizing runtime attribution.
+SIMULATION_TAINT_REASON = "runtime_fired_transition_ids_derived_by_controller"
+
 
 def _sha256_json(value: Any) -> str:
     payload = json.dumps(
@@ -1096,7 +1103,16 @@ def build_working_contract(
         comparison["structural_verdict"] == "structure_preserved" and not blockers
     )
     source_static_status = "eligible_with_exclusions" if structure_ok else "ineligible"
-    simulation_status = "ineligible"
+    # Simulation used to be unconditionally ineligible because a runtime state
+    # observation carried no path identity: knowing the run reached `Root.Done`
+    # did not prove the path there avoided compiler-owned lowering.  The
+    # controller now reconstructs the fired transitions of each cycle from the
+    # before/after active ancestry plus the consumed events, and classifies the
+    # resulting path as clean, tainted, no_path or ambiguous.  With the path
+    # expressed as model references, simulation is checked against the very same
+    # exclusion table and matcher as static analysis, so it receives the same
+    # authority table rather than a blanket veto.  See issue #170 W7.
+    simulation_status = "eligible_with_exclusions" if structure_ok else "ineligible"
     capabilities = {
         "contract_integrity": _capability(
             status="eligible" if structure_ok else "ineligible",
@@ -1147,25 +1163,31 @@ def build_working_contract(
         ),
         "simulation": _capability(
             status=simulation_status,
-            eligible=[],
-            excluded=sorted(element_ids),
+            eligible=source_semantic_ids if structure_ok else [],
+            excluded=attribution_exclusions,
             reasons=debt_codes
             + [
-                "runtime_has_no_stable_fired_transition_id",
-                "runtime_path_taint_not_computable",
+                SIMULATION_TAINT_REASON,
+                "runtime_path_taint_computed_per_assertion",
             ],
             claim_boundary=(
-                "Baseline simulation is not attribution evidence: runtime history lacks "
-                "stable fired-transition IDs, so a state observation cannot prove that its "
-                "path avoided compiler macros or unsupported source semantics."
+                "Simulation may attribute an observation only when the controller reports a "
+                "clean path taint for it: every transition reconstructed on the witnessed "
+                "path resolves to a positively traced source transition. Observations whose "
+                "path is tainted, ambiguous, or absent remain non-attributable, and the "
+                "bounded trace still proves neither global correctness nor NL coverage."
             ),
         ),
         "transition_trace": _capability(
-            status="ineligible",
-            eligible=[],
-            excluded=source_ids + compiler_ids,
-            reasons=["runtime_has_no_stable_fired_transition_id"],
-            claim_boundary="State observations cannot be promoted to transition-level attribution.",
+            status=simulation_status,
+            eligible=source_semantic_ids if structure_ok else [],
+            excluded=attribution_exclusions,
+            reasons=debt_codes + [SIMULATION_TAINT_REASON],
+            claim_boundary=(
+                "Transition-level attribution is available only through the reconstructed "
+                "fired-transition sequence, and only for observations whose path taint is "
+                "clean. A state observation on its own is still not promotable."
+            ),
         ),
         "verification": _capability(
             status="not_run",
@@ -1885,15 +1907,53 @@ def validate_working_contract(
             raise ValueError(
                 f"working contract excluded field projection drift: {capability_name}"
             )
-    for capability_name, expected_status in {
-        "simulation": "ineligible",
-        "transition_trace": "ineligible",
+    # ``simulation`` and ``transition_trace`` may leave the fail-closed baseline,
+    # but only when the contract itself records that the controller reconstructs
+    # fired-transition identity.  Without that reason code the original
+    # unconditional check applies, so a contract produced before this capability
+    # existed can never be read as authorizing runtime attribution.  The
+    # downstream stages stay unconditionally fail-closed.  See issue #170 W8.
+    runtime_capabilities = ("simulation", "transition_trace")
+    unconditional = {
         "verification": "not_run",
         "repair": "not_run",
         "confirm": "not_run",
         "final_export": "not_run",
         "main_result": "not_run",
-    }.items():
+    }
+    for capability_name in runtime_capabilities:
+        capability = capabilities[capability_name]
+        if SIMULATION_TAINT_REASON in set(capability.get("reason_codes", [])):
+            if capability.get("status") not in {
+                "eligible_with_exclusions",
+                "ineligible",
+            }:
+                raise ValueError(
+                    f"derived-path {capability_name} status is not a bounded grant"
+                )
+            if capability.get("status") == "eligible_with_exclusions":
+                expected_exclusions = set(
+                    capabilities["source_static_discovery"].get(
+                        "excluded_element_ids", []
+                    )
+                )
+                if set(capability.get("excluded_element_ids", [])) != expected_exclusions:
+                    raise ValueError(
+                        f"derived-path {capability_name} does not reuse the static "
+                        "attribution exclusion table"
+                    )
+                if set(capability.get("eligible_element_ids", [])) != set(
+                    capabilities["source_static_discovery"].get(
+                        "eligible_element_ids", []
+                    )
+                ):
+                    raise ValueError(
+                        f"derived-path {capability_name} authority table diverges from "
+                        "static discovery"
+                    )
+            continue
+        unconditional[capability_name] = "ineligible"
+    for capability_name, expected_status in unconditional.items():
         capability = capabilities[capability_name]
         if capability.get("status") != expected_status:
             raise ValueError(f"baseline {capability_name} status is not fail-closed")

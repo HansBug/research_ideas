@@ -496,8 +496,19 @@ def test_capabilities_keep_static_source_analysis_when_runtime_semantics_are_uns
     assert (
         capabilities["source_static_discovery"]["status"] == "eligible_with_exclusions"
     )
-    assert capabilities["simulation"]["status"] == "ineligible"
-    assert capabilities["transition_trace"]["status"] == "ineligible"
+    # Simulation now carries the same authority table as static discovery: the
+    # controller reconstructs fired-transition identity, so the path is checked
+    # element by element instead of vetoed as a family.  Issue #170 W7.
+    assert capabilities["simulation"]["status"] == "eligible_with_exclusions"
+    assert capabilities["transition_trace"]["status"] == "eligible_with_exclusions"
+    assert (
+        capabilities["simulation"]["eligible_element_ids"]
+        == capabilities["source_static_discovery"]["eligible_element_ids"]
+    )
+    assert (
+        "runtime_fired_transition_ids_derived_by_controller"
+        in capabilities["simulation"]["reason_codes"]
+    )
     assert capabilities["verification"]["status"] == "not_run"
     assert capabilities["verification"]["reason_codes"] == [
         "verification_adapter_not_implemented"
@@ -699,16 +710,6 @@ def test_working_contract_recomputes_attribution_invariants_from_source(
             "baseline confirm status is not fail-closed",
         ),
         (
-            "simulation",
-            "eligible_with_exclusions",
-            "baseline simulation status is not fail-closed",
-        ),
-        (
-            "transition_trace",
-            "eligible_with_exclusions",
-            "baseline transition_trace status is not fail-closed",
-        ),
-        (
             "verification",
             "eligible_with_exclusions",
             "baseline verification status is not fail-closed",
@@ -723,6 +724,62 @@ def test_working_contract_rejects_premature_result_repair_or_simulation_promotio
     contract["capability_eligibility"][capability]["status"] = status
 
     with pytest.raises(ValueError, match=message):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
+@pytest.mark.parametrize("capability", ["simulation", "transition_trace"])
+def test_runtime_capability_grant_requires_the_derivation_reason_code(capability: str):
+    """A contract that omits the derivation claim must stay fail-closed.
+
+    ``simulation`` and ``transition_trace`` may be granted a bounded authority
+    table, but only because the producer records that the controller
+    reconstructs fired-transition identity.  An artifact written before that
+    capability existed carries no such reason code, and must not be readable as
+    authorizing runtime attribution.  Issue #170 W8.
+    """
+
+    canonical, lowered, _, _ = _artifact(BASIC_SOURCE, example_id="grant-gate")
+    contract = copy.deepcopy(lowered["working_contract"])
+    entry = contract["capability_eligibility"][capability]
+    entry["reason_codes"] = [
+        code
+        for code in entry["reason_codes"]
+        if code != "runtime_fired_transition_ids_derived_by_controller"
+    ]
+
+    with pytest.raises(
+        ValueError, match=f"baseline {capability} status is not fail-closed"
+    ):
+        validate_working_contract(
+            canonical=canonical,
+            fcstm=lowered["fcstm"],
+            comparison=lowered["comparison"],
+            contract=contract,
+        )
+
+
+@pytest.mark.parametrize("capability", ["simulation", "transition_trace"])
+def test_runtime_capability_must_reuse_the_static_authority_table(capability: str):
+    """A granted runtime capability may not widen the element set it authorizes.
+
+    The grant is sound only because the path is checked against the same
+    exclusion table static analysis uses.  Authorizing anything more would make
+    simulation a weaker check wearing the same name.  Issue #170 W8.
+    """
+
+    canonical, lowered, _, _ = _artifact(BASIC_SOURCE, example_id="grant-widen")
+    contract = copy.deepcopy(lowered["working_contract"])
+    contract["capability_eligibility"][capability]["excluded_element_ids"] = []
+
+    with pytest.raises(
+        ValueError,
+        match=f"derived-path {capability} does not reuse the static",
+    ):
         validate_working_contract(
             canonical=canonical,
             fcstm=lowered["fcstm"],
@@ -2106,7 +2163,12 @@ def test_all_60_outputs_preserve_every_source_element_and_parse_inspect():
         assert contract["capability_eligibility"]["repair"]["status"] == "not_run"
         assert contract["capability_eligibility"]["main_result"]["status"] == "not_run"
         assert (
-            contract["capability_eligibility"]["simulation"]["status"] == "ineligible"
+            contract["capability_eligibility"]["simulation"]["status"]
+            == "eligible_with_exclusions"
+        )
+        assert (
+            "runtime_fired_transition_ids_derived_by_controller"
+            in contract["capability_eligibility"]["simulation"]["reason_codes"]
         )
         assert (
             contract["capability_eligibility"]["inspect_diagnostics"][
