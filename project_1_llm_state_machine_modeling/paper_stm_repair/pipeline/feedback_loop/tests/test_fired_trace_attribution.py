@@ -249,3 +249,49 @@ def test_formal_refs_separate_counterexample_from_bounded_absence(query, expect_
     assert result.value is False
     assert refs, "a refuted formal query must expose the elements it rests on"
     assert ("formal:examined_only" in refs) is expect_marker
+
+
+# --------------------------------------------------------------------------
+# C0: the action fields the `action_declared` predicate needs
+# --------------------------------------------------------------------------
+
+ACTION_MODEL = """def int c = 0;
+state Root {
+    event go;
+    state Idle {
+        enter { c = 1; }
+        exit { c = 0; }
+    }
+    state Done;
+    [*] -> Idle;
+    Idle -> Done : /go;
+}
+"""
+
+
+@pytest.mark.parametrize(
+    "state, field, expected",
+    [
+        ("Root.Idle", "entry_actions", True),
+        ("Root.Idle", "exit_actions", True),
+        ("Root.Idle", "during_actions", False),
+        ("Root.Done", "entry_actions", False),
+    ],
+)
+def test_action_declared_predicate_is_executable(state, field, expected):
+    """Without these fields the predicate is advertised but cannot be checked."""
+
+    env = build_eval_environment(
+        model_text=ACTION_MODEL,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=10,
+        formal_verification_enabled=False,
+    )
+    result = AssertionChecker(environment=env).check(
+        f'assert bool(states(path="{state}", exact=True)[0].{field}) is True, "[R][A] m"',
+        "a1",
+        required_function_families=("structure",),
+    )
+    assert result.outcome in {"valid", "sealed_false"}
+    assert result.value is expected

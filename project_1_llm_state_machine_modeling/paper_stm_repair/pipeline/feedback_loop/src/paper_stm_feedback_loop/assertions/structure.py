@@ -39,6 +39,16 @@ STRUCTURE_FIELDS = frozenset(
         "is_forced",
         "forced_origin",
         "transition_index",
+        # Declared actions per lifecycle stage.  pyfcstm has always reported
+        # these on each state; they were simply absent from this whitelist, so
+        # the frozen view rejected them and the `action_declared` predicate had
+        # no way to be checked at all.  Issue #170 C0.
+        "entry_actions",
+        "exit_actions",
+        "during_actions",
+        "has_abstract_action",
+        "aspect_before",
+        "aspect_after",
     }
 )
 
