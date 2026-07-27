@@ -45,8 +45,36 @@ def _status_code(exc: Exception) -> int | None:
     return value if isinstance(value, int) else None
 
 
+def _empty_structured_output(exc: Exception) -> bool:
+    """True when validation failed because nothing was assembled at all.
+
+    A streamed tool call whose ``partial_json`` never gets merged surfaces as a
+    pydantic ``model_type`` error against ``None`` rather than as an incomplete
+    stream.  That is a transport symptom, not the model violating the schema --
+    on pair 0006 the provider had in fact emitted a well-formed RequirementSet.
+    Treating it as a permanent contract error killed the whole run on attempt 1.
+    """
+
+    errors = getattr(exc, "errors", None)
+    if not callable(errors):
+        return False
+    try:
+        items = errors()
+    except Exception:  # pragma: no cover - defensive
+        return False
+    return any(
+        item.get("type") == "model_type"
+        and item.get("input") is None
+        and not item.get("loc")
+        for item in items
+        if isinstance(item, dict)
+    )
+
+
 def _retryable_error(exc: Exception) -> bool:
     if isinstance(exc, IncompleteStructuredStreamError):
+        return True
+    if _empty_structured_output(exc):
         return True
     if isinstance(exc, (ValueError, TypeError)):
         return False

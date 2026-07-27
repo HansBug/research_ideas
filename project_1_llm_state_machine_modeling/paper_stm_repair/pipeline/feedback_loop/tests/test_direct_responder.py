@@ -268,3 +268,38 @@ def test_direct_responder_retries_incomplete_stream_without_business_revision(
         "completed",
     ]
     assert observation.attempts[0]["failure_phase"] == "structured_stream"
+
+
+def test_empty_structured_output_is_retryable_but_schema_violations_are_not() -> None:
+    """A tool call whose streamed JSON never assembled must be retried.
+
+    Pair 0006 died on attempt 1 with `model_type / input=None` even though the
+    provider had emitted a well-formed RequirementSet: the streamed
+    `partial_json` was simply never merged.  That is a transport symptom, and
+    marking it permanent threw away an otherwise healthy run.
+    """
+
+    import sys
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    from pydantic import BaseModel, ValidationError
+
+    from paper_stm_feedback_loop.discover.responder import _retryable_error
+
+    class Shape(BaseModel):
+        value: int
+
+    try:
+        Shape.model_validate(None)
+    except ValidationError as exc:
+        assert _retryable_error(exc) is True
+
+    try:
+        Shape.model_validate({"value": "not-an-int"})
+    except ValidationError as exc:
+        assert _retryable_error(exc) is False, (
+            "a genuine schema violation must reach the contract loop, not be retried"
+        )
