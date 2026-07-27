@@ -384,7 +384,16 @@ class TopologyIndex:
                 candidate_path_set.add(path)
         candidate_paths = sorted(candidate_path_set)
         if self.machine is not None and event is None and within is None:
-            candidate_paths = sorted(build_leaf_level_macro_graph(self.machine).nodes)
+            # Traversal happens on the leaf-level macro graph, but *resolution*
+            # must still see composites: resolving against leaves only made a
+            # composite target unresolvable, so `target="R.Formation"` answered
+            # False while `target="R.Formation.Adjusting"` answered True for the
+            # same question.  Keep declared composites resolvable here and let
+            # _public_graph_path accept any leaf beneath the requested target.
+            candidate_paths = sorted(
+                set(candidate_paths)
+                | set(build_leaf_level_macro_graph(self.machine).nodes)
+            )
         resolved_source = self._resolve_path(source, candidate_paths, exact=exact)
         resolved_target = self._resolve_path(target, candidate_paths, exact=exact)
         if resolved_source is None or resolved_target is None:
@@ -520,6 +529,38 @@ class TopologyIndex:
             queue.extend(edges.get(node, ()))
         return False
 
+    def _macro_edge_transition_refs(
+        self, macro_refs: list[dict[str, Any]]
+    ) -> list[str]:
+        """Map each macro hop back to the declared transitions that could carry it.
+
+        The macro graph collapses hierarchy, so one hop may correspond to several
+        declared transitions and the mapping is a superset, not the executed
+        edge.  That is enough for a locator -- it gives attribution something to
+        bind -- and it is why the result keeps ``guard_agnostic`` set.
+        """
+
+        refs: list[str] = []
+        for hop in macro_refs:
+            left, right = hop.get("source"), hop.get("target")
+            for row in self.transitions:
+                src = row.get("from_path") or row.get("source")
+                dst = row.get("to_path") or row.get("target")
+                if not isinstance(src, str) or not isinstance(dst, str):
+                    continue
+                covers_left = src == left or (
+                    isinstance(left, str) and left.startswith(f"{src}.")
+                )
+                covers_right = dst == right or (
+                    isinstance(right, str) and right.startswith(f"{dst}.")
+                )
+                index = row.get("transition_index")
+                if covers_left and covers_right and isinstance(index, int):
+                    ref = f"transition:{index}"
+                    if ref not in refs:
+                        refs.append(ref)
+        return refs
+
     def _public_graph_path(
         self,
         *,
@@ -532,11 +573,21 @@ class TopologyIndex:
         blocked = set(avoid)
         if source in blocked or target in blocked:
             return self._empty_path(source, target, "source_or_target_explicitly_avoided")
+        # The macro graph has leaf nodes only, so a composite target used to be
+        # unreachable by construction: `path(... target="R.Formation")` returned
+        # False while `path(... target="R.Formation.Adjusting")` returned True for
+        # the same question.  Entering a composite means occupying one of its
+        # leaves, so accept any leaf under the requested target.
+        accepted = {target} | {
+            node
+            for node in graph.nodes
+            if isinstance(node, str) and node.startswith(f"{target}.")
+        }
         queue = deque([(source, (source,))])
         seen = {source}
         while queue:
             node, nodes = queue.popleft()
-            if node == target:
+            if node in accepted:
                 macro_refs = [
                     {"source": left, "target": right}
                     for left, right in zip(nodes, nodes[1:])
@@ -545,7 +596,9 @@ class TopologyIndex:
                     "exists": True,
                     "nodes": list(nodes),
                     "hop_count": len(nodes) - 1,
-                    "transition_refs": [],
+                    # Was always empty, so a positive path had no model identity
+                    # and could not be bound by attribution even as a locator.
+                    "transition_refs": self._macro_edge_transition_refs(macro_refs),
                     "source_macro_refs": macro_refs,
                     "compiler_owned_nodes": [
                         item for item in nodes if item == EXIT_ROOT_SINK

@@ -250,3 +250,67 @@ def test_every_producer_payload_carries_the_vocabulary(renderer_name):
     vocabulary = json.loads(payload)["declared_model_vocabulary"]
     assert vocabulary["states"], renderer_name
     assert vocabulary["events"], renderer_name
+
+
+# --------------------------------------------------------------------------
+# C4: path() as a usable locator for `reaches`
+# --------------------------------------------------------------------------
+
+PATH_MODEL = """state Root {
+    event go;
+    event next;
+    state Start;
+    state Outer {
+        state Inner;
+        [*] -> Inner;
+    }
+    [*] -> Start;
+    Start -> Outer : /go;
+}
+"""
+
+
+def _path_api():
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+
+    env = build_eval_environment(
+        model_text=PATH_MODEL,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=10,
+        formal_verification_enabled=False,
+    )
+    return env.globals["path"]
+
+
+def test_composite_and_leaf_targets_agree():
+    """Entering a composite means occupying a leaf inside it.
+
+    Resolving against leaf-level nodes only made a composite target
+    unreachable by construction, so the same question got opposite answers
+    depending on how the target was spelled.
+    """
+
+    path = _path_api()
+    composite = path(source="Root.Start", target="Root.Outer")
+    leaf = path(source="Root.Start", target="Root.Outer.Inner")
+    assert composite.exists is True
+    assert leaf.exists is True
+    assert composite.exists == leaf.exists
+
+
+def test_positive_path_carries_transition_identity():
+    """An empty transition_refs left a positive path with nothing to bind."""
+
+    path = _path_api()
+    result = path(source="Root.Start", target="Root.Outer")
+    assert list(result.transition_refs), "a positive path must name its transitions"
+    assert all(str(r).startswith("transition:") for r in result.transition_refs)
+
+
+def test_path_still_declares_itself_guard_blind():
+    """The over-approximation must stay visible; it may locate, never close."""
+
+    path = _path_api()
+    result = path(source="Root.Start", target="Root.Outer")
+    assert result.guard_agnostic is True
