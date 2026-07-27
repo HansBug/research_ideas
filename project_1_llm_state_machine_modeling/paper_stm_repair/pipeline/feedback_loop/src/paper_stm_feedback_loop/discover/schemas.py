@@ -590,6 +590,8 @@ class DiscoverGraphState(TypedDict, total=False):
     _requirement_feedback: RevisionFeedback
     _requirement_revision_ledger: tuple[RevisionLedgerEvent, ...]
     _requirement_review_repair_count: int
+    _requirement_contract_repair_count: int
+    _requirement_split_contract_feedback: RevisionFeedback | None
     _assertion_feedback: RevisionFeedback | None
     _assertion_feedback_history: tuple[RevisionFeedback, ...]
     _assertion_revision_ledger: tuple[RevisionLedgerEvent, ...]

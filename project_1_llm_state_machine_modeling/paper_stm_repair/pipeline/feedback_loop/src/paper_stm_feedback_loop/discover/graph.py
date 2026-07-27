@@ -60,7 +60,14 @@ def route_after_linear_node(state: DiscoverGraphState, next_node: Route) -> Rout
 
 
 def route_after_split(state: DiscoverGraphState) -> Route:
-    return route_after_linear_node(state, "review_requirements")
+    if "failure" in state:
+        return "run_failed"
+    # A deterministic contract violation is handed straight back to the producer
+    # instead of ending the run; the rejected artifact rides along as the thing
+    # to revise, exactly as convert_assertions already does.
+    if state.get("_requirement_split_contract_feedback") is not None:
+        return "split_requirements"
+    return "review_requirements"
 
 
 def route_after_convert(state: DiscoverGraphState) -> Route:

@@ -228,8 +228,48 @@ def test_v2_splitter_path_rejects_legacy_requirement_upgrade() -> None:
         ),
     )
 
-    assert out["failure"].node_name == "split_requirements"
-    assert "uses legacy checkability" in out["failure"].message
+    # The rejection itself is unchanged; what changed is that a producer
+    # contract violation is now handed back for repair instead of ending the
+    # run.  Three of eight cells in matrix v3-final died at this node on a
+    # single malformed field, which Issue #167 §3 forbids for a local defect.
+    assert "failure" not in out
+    feedback = out["_requirement_split_contract_feedback"]
+    assert feedback is not None
+    assert "uses legacy checkability" in feedback.findings[0]
+    assert out["_requirement_contract_repair_count"] == 1
+
+
+def test_splitter_contract_repairs_are_bounded() -> None:
+    """The repair loop must terminate even against a stubborn producer."""
+
+    from paper_stm_feedback_loop.discover import nodes
+
+    discover_input = _input("legacy-forever")
+    frozen = nodes._fallback_prepare(discover_input)
+    legacy = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "Legacy shape.",
+                "checkability": "structure",
+            },
+        ),
+        segment_disposition={"NL-L001": "covered"},
+    )
+    state: dict = {"_input": discover_input, "frozen_inputs": frozen}
+    for _ in range(nodes.MAX_REQUIREMENT_CONTRACT_REPAIRS + 2):
+        out = nodes.split_requirements(
+            {**state},
+            nodes.CallableStructuredResponder(
+                lambda _role, _schema, _system, _payload: legacy
+            ),
+        )
+        state.update(out)
+        if "failure" in out:
+            break
+    assert "failure" in state, "an unrepairable contract violation must still stop"
+    assert state["failure"].node_name == "split_requirements"
 
 
 def test_v2_converter_path_rejects_legacy_inferred_assertion_fields() -> None:

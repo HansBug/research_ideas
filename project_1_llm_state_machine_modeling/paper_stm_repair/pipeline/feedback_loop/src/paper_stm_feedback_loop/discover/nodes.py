@@ -51,6 +51,9 @@ from .utils import sha256_data, sha256_text
 T = TypeVar("T", bound=BaseModel)
 
 MAX_REQUIREMENT_REVIEW_REPAIRS = 5
+#: Deterministic RequirementSet contract violations the splitter may repair
+#: before the run gives up.  Mirrors MAX_ASSERTION_CONTRACT_REPAIRS.
+MAX_REQUIREMENT_CONTRACT_REPAIRS = 5
 MAX_ASSERTION_REVIEW_REPAIRS = 5
 MAX_ASSERTION_CONTRACT_REPAIRS = 5
 MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
@@ -994,8 +997,52 @@ def split_requirements(
             ),
             "node_execution_records": _append_records(state, record),
             "llm_call_records": [*state.get("llm_call_records", []), llm_record],
+            "_requirement_split_contract_feedback": None,
         }
     except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        repair_count = state.get("_requirement_contract_repair_count", 0)
+        # The Assertion Converter has had a contract-feedback loop since v2; the
+        # Requirement Splitter did not, so one malformed `source_context` or
+        # `segment_disposition` ended the entire run.  Issue #167 §3 does not
+        # allow a local producer defect to become RUN_FAILED, and three of eight
+        # cells in matrix v3-final died exactly this way.  Hand the deterministic
+        # contract error straight back and let the producer repair it.
+        rejected = locals().get("output")
+        can_revise = (
+            rejected is not None
+            and "no-progress gate" not in message
+            and repair_count < MAX_REQUIREMENT_CONTRACT_REPAIRS
+        )
+        if can_revise:
+            contract_feedback = RevisionFeedback(
+                target="requirements",
+                origin="requirement_review",
+                reason=(
+                    "The previous Requirement Splitter response violated the "
+                    "deterministic RequirementSet contract. Repair exactly the "
+                    "reported problem and keep every other requirement unchanged."
+                ),
+                findings=(message,),
+            )
+            record = _record_node(
+                state,
+                node_name="split_requirements",
+                revision=(current.revision + 1) if current is not None else 1,
+                kind="llm",
+                input_value=locals().get("payload", state),
+                output_value=None,
+                started_at=started_at,
+                start_ns=start_ns,
+                failure=message,
+            )
+            return {
+                "requirement_set": rejected,
+                "_requirement_feedback": contract_feedback,
+                "_requirement_split_contract_feedback": contract_feedback,
+                "_requirement_contract_repair_count": repair_count + 1,
+                "node_execution_records": _append_records(state, record),
+            }
         return _fail_state(
             state,
             "split_requirements",
