@@ -216,3 +216,245 @@ def test_the_chain_extends_past_one_level():
     assert execs["AST-REQ-001-2"].status == "blocked", (
         "a dependent of a blocked assertion must not run either"
     )
+
+
+# --------------------------------------------------------------------------
+# Verdict: every assertion must be explicitly satisfied (issue #170 §11.5)
+# --------------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------------
+# Verdict: every assertion must be explicitly satisfied (issue #170 §11.5)
+# --------------------------------------------------------------------------
+
+
+def _adjudicate(
+    *,
+    results,
+    executions,
+    satisfied_claim,
+    requirement_aggregation="all",
+    excluded=(),
+):
+    """Drive `adjudicate_results` over canned results and a canned check.
+
+    The LLM's own answer is supplied verbatim so the test observes the
+    deterministic normalisation rather than a model's judgement.
+    """
+
+    from paper_stm_feedback_loop.discover.schemas import (
+        AssertionCheckPublic,
+        AttributionProjection,
+        DiscoverAdjudication,
+        DiscoverInput,
+        ReleasedAssertionResults,
+    )
+
+    frozen = nodes._fallback_prepare(
+        DiscoverInput(
+            run_id="verdict",
+            natural_language="After go the unit count decreases.",
+            stm_text=MODEL,
+            language="en-US",
+        )
+    )
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            Requirement(
+                requirement_id="REQ-001",
+                statement="After go the unit count decreases.",
+                predicate="variable_delta_after",
+                predicate_bindings={
+                    "source": "Root.Idle",
+                    "trigger": "Root.go",
+                    "variable": "units",
+                    "sign": "negative",
+                },
+                verification_kind="behavior",
+                coverage_obligation={"aggregation": requirement_aggregation},
+            ),
+        ),
+    )
+    specs = PAIR()
+    script = AssertionScript(
+        revision=1,
+        assertions=specs,
+        requirement_mapping={"REQ-001": tuple(a.assertion_id for a in specs)},
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script", tool_env_hash="env", sealed_hash="sealed", results=results
+    )
+    out = nodes.adjudicate_results(
+        {
+            "_input": DiscoverInput(
+                run_id="verdict",
+                natural_language="After go the unit count decreases.",
+                stm_text=MODEL,
+                language="en-US",
+            ),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+            "released_assertion_results": released,
+            # `bind_attribution` produces one binding per released result, so a
+            # fixture that omits them is not a shape the graph can reach.
+            "attribution_projection": AttributionProjection(
+                bindings=tuple(
+                    {
+                        "assertion_id": r.assertion_id,
+                        "requirement_id": r.requirement_id,
+                        "status": "unattributed",
+                        "source_refs": (),
+                        "trace_entry_ids": (),
+                        "source_level_claim_allowed": False,
+                        "rationale": "fixture",
+                    }
+                    for r in results
+                )
+            ),
+            "assertion_check_public": AssertionCheckPublic(
+                script_hash="s" * 8,
+                tool_env_hash="e" * 8,
+                status="executable",
+                executions=executions,
+            ),
+        },
+        nodes.CallableStructuredResponder(
+            lambda _r, _s, _sys, _p: DiscoverAdjudication(
+                has_confirmed_issues=False,
+                issues=(),
+                excluded_findings=excluded,
+                excluded_observations=(),
+                satisfied_requirement_ids=satisfied_claim,
+                rationale="canned",
+            )
+        ),
+    )
+    if "failure" in out:
+        raise AssertionError(f"adjudicate_results failed: {out['failure'].message}")
+    return out["adjudication"]
+
+
+def _result(aid, role, value, family="structure"):
+    from paper_stm_feedback_loop.discover.schemas import AssertionResult
+
+    return AssertionResult(
+        assertion_id=aid,
+        requirement_id="REQ-001",
+        role=role,
+        coverage_key=f"key-{aid}",
+        aggregation_group="REQ-001:all",
+        truth_value=value,
+        script_hash="script",
+        tool_env_hash="env",
+        evidence_family=family,
+    )
+
+
+def _execution(aid, role, status):
+    from paper_stm_feedback_loop.discover.schemas import AssertionExecutionPublic
+
+    return AssertionExecutionPublic(
+        assertion_id=aid, requirement_id="REQ-001", role=role, status=status
+    )
+
+
+def test_a_requirement_whose_premise_failed_is_not_satisfied():
+    """The primary was blocked, so it sealed nothing.
+
+    Aggregating only over primaries would leave an empty list, and `any` over an
+    empty list is vacuously true -- the requirement would be reported satisfied
+    while its premise is on record as False.  Counting the precondition closes it.
+    """
+
+    adjudication = _adjudicate(
+        results=(_result("AST-REQ-001-0", "precondition", False),),
+        executions=(
+            _execution("AST-REQ-001-0", "precondition", "executable"),
+            _execution("AST-REQ-001-1", "primary", "blocked"),
+        ),
+        satisfied_claim=("REQ-001",),  # the model wrongly claims satisfaction
+        requirement_aggregation="any",
+        # A False precondition must be accounted for -- the node rejects an
+        # adjudication that leaves any non-safe False unexplained, and a missing
+        # element now qualifies as one.  That rejection is itself the property
+        # §11.4 asks for: the finding cannot be silently dropped.
+        excluded=(
+            {
+                "issue_id": "ISSUE-REQ-001-PREMISE",
+                "requirement_id": "REQ-001",
+                "assertion_ids": ("AST-REQ-001-0",),
+                "title": "模型未声明承载数量的变量",
+                "rationale": "canned",
+                "attribution_status": "unattributed",
+            },
+        ),
+    )
+    assert "REQ-001" not in adjudication.satisfied_requirement_ids
+
+
+def test_a_blocked_primary_alone_disqualifies_the_requirement():
+    """Even when every sealed verdict is True.
+
+    A precondition that passed plus a primary that never ran is not a satisfied
+    requirement: the claim the requirement actually makes was never evaluated.
+    """
+
+    adjudication = _adjudicate(
+        results=(_result("AST-REQ-001-0", "precondition", True),),
+        executions=(
+            _execution("AST-REQ-001-0", "precondition", "executable"),
+            _execution("AST-REQ-001-1", "primary", "blocked"),
+        ),
+        satisfied_claim=("REQ-001",),
+    )
+    assert "REQ-001" not in adjudication.satisfied_requirement_ids
+
+
+def test_both_green_is_satisfied():
+    """Control: the rule is "all explicitly satisfied", not "never satisfied"."""
+
+    adjudication = _adjudicate(
+        results=(
+            _result("AST-REQ-001-0", "precondition", True),
+            _result("AST-REQ-001-1", "primary", True, "simulation"),
+        ),
+        executions=(
+            _execution("AST-REQ-001-0", "precondition", "executable"),
+            _execution("AST-REQ-001-1", "primary", "executable"),
+        ),
+        satisfied_claim=("REQ-001",),
+    )
+    assert "REQ-001" in adjudication.satisfied_requirement_ids
+
+
+def test_a_false_precondition_sinks_the_requirement_even_with_a_true_primary():
+    """Should the primary somehow run and pass, the failed premise still counts.
+
+    `supporting` is excluded from this aggregate on purpose -- corroboration may
+    legitimately be False -- but a premise may not.
+    """
+
+    adjudication = _adjudicate(
+        results=(
+            _result("AST-REQ-001-0", "precondition", False),
+            _result("AST-REQ-001-1", "primary", True, "simulation"),
+        ),
+        executions=(
+            _execution("AST-REQ-001-0", "precondition", "executable"),
+            _execution("AST-REQ-001-1", "primary", "executable"),
+        ),
+        satisfied_claim=("REQ-001",),
+        excluded=(
+            {
+                "issue_id": "ISSUE-REQ-001-PREMISE",
+                "requirement_id": "REQ-001",
+                "assertion_ids": ("AST-REQ-001-0",),
+                "title": "模型未声明承载数量的变量",
+                "rationale": "canned",
+                "attribution_status": "unattributed",
+            },
+        ),
+    )
+    assert "REQ-001" not in adjudication.satisfied_requirement_ids

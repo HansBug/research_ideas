@@ -3079,10 +3079,15 @@ def adjudicate_results(
         assertion_by_id = {
             assertion.assertion_id: assertion for assertion in script.assertions
         }
+        # A `precondition` may become an issue too (issue #170 §11.4): a missing
+        # model element is a real defect, and it is the *only* thing reportable
+        # when the primary that needed it was blocked.  Excluding it here would
+        # reinstate the loss §11.2 removes -- the finding would exist in the
+        # execution record and never reach the issue list.
         primary_assertion_ids = {
             assertion.assertion_id
             for assertion in script.assertions
-            if (assertion.role or "primary") == "primary"
+            if (assertion.role or "primary") in {"primary", "precondition"}
         }
         false_assertions = {
             r.assertion_id for r in released.results if r.truth_value is False
@@ -3223,7 +3228,11 @@ def adjudicate_results(
             )
         result_by_requirement: dict[str, list[bool]] = {}
         for result in released.results:
-            if result.role != "primary":
+            # `precondition` counts toward satisfaction: a requirement whose
+            # premise failed is not satisfied, whatever happened to the primary
+            # (which will have been blocked).  `supporting` still does not --
+            # it is corroboration, and a False there is normal.
+            if result.role not in {"primary", "precondition"}:
                 continue
             result_by_requirement.setdefault(result.requirement_id, []).append(
                 result.truth_value
@@ -3233,6 +3242,17 @@ def adjudicate_results(
             for gap in state.get("coverage_gaps", ())
             if gap.blocks_full_coverage and gap.requirement_id is not None
         }
+        # A blocked assertion produces no sealed result, so aggregation alone
+        # cannot see it -- and a requirement whose only primary was blocked would
+        # aggregate over an empty list and, for `any`, come out satisfied.  Every
+        # assertion must be *explicitly* satisfied (§11.5), so treat a blocked one
+        # as disqualifying its requirement.
+        public_check = state.get("assertion_check_public")
+        blocked_requirements = {
+            execution.requirement_id
+            for execution in (public_check.executions if public_check else ())
+            if execution.status == "blocked"
+        }
         requirement_by_id = {
             requirement.requirement_id: requirement
             for requirement in requirements.requirements
@@ -3241,6 +3261,7 @@ def adjudicate_results(
             requirement_id
             for requirement_id, values in result_by_requirement.items()
             if requirement_id not in blocking_gap_requirements
+            and requirement_id not in blocked_requirements
             and _requirement_primary_truth(requirement_by_id[requirement_id], values)
         }
         reported_satisfied = set(output.satisfied_requirement_ids)
