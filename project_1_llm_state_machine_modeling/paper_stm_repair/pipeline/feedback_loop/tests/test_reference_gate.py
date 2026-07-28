@@ -248,3 +248,40 @@ def test_the_closure_ignores_a_dangling_reference():
     assert dependency_closure(script) == {"A1": frozenset({"A0"}), "A0": frozenset()}
     # And the gate still exempts the name the surviving precondition proposes.
     assert unresolved_reference_findings(script, KNOWN) == ()
+
+
+# --------------------------------------------------------------------------
+# The keyword gate that has to run before the reference gates
+
+
+def test_an_unaccepted_keyword_is_named_with_the_bindings_that_are_accepted():
+    """Because the reference gates cannot see a value bound under a keyword they
+    do not know, and then blame the wrong assertion.
+
+    Replayed from the real pair-0006 script: its precondition proposed
+    `uav_count` under a `name=` keyword, so the proposed name was invisible, the
+    exemption never applied, and the gate reported the *dependent* assertion as
+    holding an unresolved reference.  The producer was told to fix a correct name
+    in a correct assertion while the typo sat one line above.
+    """
+
+    from paper_stm_feedback_loop.discover.predicates import (
+        accepted_bindings,
+        misspelled_binding_findings,
+    )
+
+    findings = misspelled_binding_findings('variable_declared(name="uav_count") is True')
+    assert len(findings) == 1
+    assert "does not accept ['name']" in findings[0]
+    assert "['variable']" in findings[0], "the right spelling has to be in the message"
+
+    assert misspelled_binding_findings(EXISTS) == ()
+    # An optional binding is accepted even though it is not a required one.
+    assert accepted_bindings("response_within") >= {"trigger", "response", "bound", "source"}
+    assert misspelled_binding_findings(
+        'response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, '
+        'source="Sys.ModeA") is True'
+    ) == ()
+    # Builtins and unknown callables are not this gate's business.
+    assert misspelled_binding_findings("all([len(x) > 0])") == ()
+    assert misspelled_binding_findings("state_declared(") == ()

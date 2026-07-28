@@ -37,7 +37,11 @@ from .capability import (
     source_omitting_response_calls,
     unresolved_reference_findings,
 )
-from .predicates import procedure_mismatch, unmodelled_claim_paths
+from .predicates import (
+    misspelled_binding_findings,
+    procedure_mismatch,
+    unmodelled_claim_paths,
+)
 from .schemas import (
     AdjudicatedIssue,
     AssertionCheckPublic,
@@ -1409,6 +1413,14 @@ def convert_assertions(
             if not assertion.failure_message.startswith(expected_prefix):
                 raise ValueError(
                     f"assertion {assertion.assertion_id} failure_message must start with {expected_prefix}"
+                )
+            misspelled = misspelled_binding_findings(assertion.expression)
+            if misspelled:
+                raise ValueError(
+                    f"assertion {assertion.assertion_id} passes unaccepted "
+                    f"keywords: {list(misspelled)}. Checked before the reference "
+                    "gates on purpose: a keyword they cannot read hides the value "
+                    "bound under it, and they then report the wrong assertion"
                 )
             placeholders = placeholder_bindings(assertion.expression)
             if placeholders:

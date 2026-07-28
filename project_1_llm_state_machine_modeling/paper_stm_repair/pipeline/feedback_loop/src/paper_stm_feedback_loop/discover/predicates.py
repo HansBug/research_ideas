@@ -595,6 +595,63 @@ def signature_of(name: str) -> str:
     return f"{name}({', '.join(args)}) -> bool"
 
 
+def accepted_bindings(name: str) -> frozenset[str]:
+    """Every keyword one predicate accepts: required bindings plus its options."""
+
+    entry = PREDICATE_BY_NAME[name]
+    optional = {
+        opt.split(":")[0].strip() for opt in PREDICATE_OPTIONS.get(name, ())
+    }
+    return frozenset(entry.bindings) | optional
+
+
+def misspelled_binding_findings(expression: str) -> tuple[str, ...]:
+    """Return predicate calls that pass a keyword the predicate does not accept.
+
+    At runtime this is a `TypeError`, which the controller cannot dispatch on --
+    but the static gates run first, and they mis-diagnose it.  `variable_declared`
+    was briefly spelled with a `name=` keyword; a script written that way had its
+    proposed name invisible to the reference gate, which then reported the
+    *dependent* assertion as holding an unresolved reference.  The producer was
+    told to fix a name that was correct, in an assertion that was correct, while
+    the actual typo sat one line above.
+
+    Naming the accepted keywords turns that into one round.
+
+    :param expression: the assertion's terminal Python expression.
+    :return: one finding per offending call; empty when every keyword is accepted.
+    """
+
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
+        return ()
+    findings: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        called = node.func.id
+        if called not in PREDICATE_BY_NAME:
+            continue
+        allowed = accepted_bindings(called)
+        unknown = sorted(
+            str(keyword.arg)
+            for keyword in node.keywords
+            if keyword.arg is not None and keyword.arg not in allowed
+        )
+        if unknown:
+            findings.append(
+                f"{called} does not accept {unknown}; its bindings are "
+                f"{sorted(allowed)}"
+            )
+    return tuple(dict.fromkeys(findings))
+
+
 def binding_examples(name: str) -> tuple[tuple[str, str], ...]:
     """Re-emit each worked call of ``name`` as the JSON binding dict.
 
@@ -880,6 +937,8 @@ def unmodelled_claim_paths(
 
 
 __all__ = [
+    "accepted_bindings",
+    "misspelled_binding_findings",
     "FAMILY_BEHAVIOR",
     "FAMILY_PROPERTY",
     "FAMILY_STRUCTURE",
