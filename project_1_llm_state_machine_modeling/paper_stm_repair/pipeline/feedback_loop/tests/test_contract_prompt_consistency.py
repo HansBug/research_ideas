@@ -16,6 +16,7 @@ vocabulary.
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -196,3 +197,87 @@ def test_undeclared_binding_rule_is_consistent_across_producers() -> None:
 
     # And the old contradictory sentence must be gone.
     assert "bind the closest declared term the sentence does name" not in splitter
+
+
+def test_multi_field_outputs_are_shown_not_described() -> None:
+    """Every multi-field structured output needs at least three worked objects.
+
+    Prose is not enough.  The converter prompt named `role`, `coverage_key` and
+    `aggregation_group` three separate times, and producers still emitted the
+    first two and dropped the third; the controller back-filled it, a gate
+    rejected the back-fill as legacy, every assertion in the script was isolated
+    and three of eight matrix cells died with an empty script.  A field seen
+    filled in three complete examples does not get dropped.
+    """
+
+    cases = [
+        (
+            "ASSERTION_CONVERTER_PROMPT",
+            ("assertion_id", "role", "coverage_key", "aggregation_group", "evidence_family"),
+        ),
+        (
+            "REQUIREMENT_SPLITTER_PROMPT",
+            ("requirement_id", "predicate", "predicate_bindings", "coverage_obligation"),
+        ),
+    ]
+    for name, fields in cases:
+        text = getattr(prompts, name)
+        for field in fields:
+            shown = text.count(f'"{field}":')
+            assert shown >= 3, f"{name} shows {field} in only {shown} worked objects"
+
+
+def test_prompts_do_not_leak_benchmark_identifiers() -> None:
+    """No prompt may name an element of the evaluation corpus.
+
+    A producer whose system prompt contains identifiers from the 60 evaluated
+    pairs is not solving the task blind, and the result would be challenged.
+    """
+
+    corpus = (
+        ROOT.parent / "representation/reports/llms_emp_r45_java_60/pairs"
+    )
+    leaked: list[str] = []
+    # Only the text this repository authors is checked.  The appended pyfcstm
+    # grammar guide is upstream documentation with its own worked examples, and
+    # one of its illustrative names (`EmergencyStop`) happens to also occur in
+    # the corpus.  That is coincidence, not leakage, and it is not ours to edit;
+    # scoping the check to our own prose keeps it meaningful instead of noisy.
+    def authored(name: str) -> str:
+        text = getattr(prompts, name)
+        for guide in ("\n\n=== FCSTM grammar guide", "\n\n=== FBMCQ language guide"):
+            head, _, _ = text.partition(guide)
+            text = head
+        return text
+
+    prompt_texts = {
+        name: authored(name)
+        for name in (
+            "REQUIREMENT_SPLITTER_PROMPT",
+            "REQUIREMENT_REVIEWER_PROMPT",
+            "ASSERTION_CONVERTER_PROMPT",
+            "ASSERTION_REVIEWER_PROMPT",
+            "RESULT_ADJUDICATOR_PROMPT",
+        )
+    }
+    # Only multi-word identifiers are checked.  A single English word such as
+    # `Condition` or `Transition` appears in ordinary prose, so matching those
+    # reports the prompt's own vocabulary as a leak.  A CamelCase compound of
+    # two or more words, or a snake_case compound, is corpus-specific enough
+    # that a coincidental match is implausible.
+    pattern = re.compile(
+        r"\b(?:[A-Z][a-z]{2,}){2,}\b|\b[a-z]{3,}(?:_[a-z0-9]{2,}){2,}\b"
+    )
+    seen: set[str] = set()
+    for case in sorted(corpus.iterdir())[:60]:
+        fcstm = case / "fcstm.fcstm"
+        if not fcstm.exists():
+            continue
+        for token in pattern.findall(fcstm.read_text()):
+            if token in seen or len(token) < 10:
+                continue
+            seen.add(token)
+            for name, text in prompt_texts.items():
+                if token in text:
+                    leaked.append(f"{name}: {token}")
+    assert not leaked, f"benchmark identifiers reached the prompts: {sorted(set(leaked))[:10]}"

@@ -285,53 +285,41 @@ def test_splitter_contract_repairs_are_bounded() -> None:
 
 
 def test_v2_converter_path_rejects_legacy_inferred_assertion_fields() -> None:
-    from paper_stm_feedback_loop.discover import nodes
+    """The three coverage fields are schema-required, not back-filled.
 
-    discover_input = _input("legacy-assertion")
-    frozen = nodes._fallback_prepare(discover_input)
-    requirements = RequirementSet(
-        revision=1,
-        requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "A structure fact.",
-                "verification_kind": "structure",
-                "coverage_obligation": {
-                    "domain": "model",
-                    "aggregation": "all",
-                },
-            },
-        ),
-    )
-    legacy = AssertionScript(
-        revision=1,
-        assertions=(
-            {
-                "assertion_id": "AST-REQ-001-01",
-                "requirement_id": "REQ-001",
-                "description": "Legacy shape.",
-                "expression": "True",
-                "failure_message": "[REQ-001][AST-REQ-001-01] failed",
-                "evidence_family": "structure",
-            },
-        ),
-        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
-    )
-    out = nodes.convert_assertions(
-        {
-            "_input": discover_input,
-            "frozen_inputs": frozen,
-            "requirement_set": requirements,
-        },
-        nodes.CallableStructuredResponder(
-            lambda _role, _schema, _system, _payload: legacy
-        ),
-    )
+    They used to be optional with a validator that substituted
+    `legacy:<id>` / `legacy-group:<id>`.  The object then validated and a
+    downstream gate rejected it *for being legacy*, so one omitted field
+    isolated every assertion and killed the cell with an empty script -- three
+    of eight matrix cells died that way.  Rejecting at the schema costs one
+    repair round instead of a run.
+    """
 
-    assert "failure" not in out
-    assert "legacy-inferred items" in out[
-        "_assertion_conversion_contract_feedback"
-    ].findings[0]
+    from pydantic import ValidationError
+
+    from paper_stm_feedback_loop.discover.schemas import AssertionSpec
+
+    complete = {
+        "assertion_id": "AST-REQ-001-1",
+        "requirement_id": "REQ-001",
+        "description": "d",
+        "expression": 'state_declared(state="Root.Idle", kind="leaf")',
+        "failure_message": "[REQ-001][AST-REQ-001-1] m",
+        "evidence_family": "structure",
+        "role": "primary",
+        "coverage_key": "state_declared:Root.Idle",
+        "aggregation_group": "REQ-001:all",
+    }
+    assert AssertionSpec.model_validate(complete).aggregation_group == "REQ-001:all"
+
+    for omitted in ("role", "coverage_key", "aggregation_group"):
+        partial = {k: v for k, v in complete.items() if k != omitted}
+        with pytest.raises(ValidationError, match=omitted):
+            AssertionSpec.model_validate(partial)
+
+    # And no value is silently manufactured from the ids any more.
+    schema = AssertionSpec.model_json_schema()
+    assert {"role", "coverage_key", "aggregation_group"} <= set(schema["required"])
 
 
 @pytest.mark.parametrize(
@@ -794,6 +782,9 @@ def test_revision_ledger_is_rendered_for_both_revision_loops() -> None:
                 "expression": "edge_declared(source='Root.Idle', trigger='Root.go', target='Root.Done')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] response missing",
                 "evidence_family": "relation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -935,6 +926,9 @@ def test_renderer_assertion_review_input_has_no_truth_labels() -> None:
                 "expression": "False",
                 "failure_message": "[REQ-001][AST-REQ-001-01] requirement failed",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
     )
@@ -1010,6 +1004,9 @@ def test_effect_noncausal_formal_evidence_is_rejected_before_sealing() -> None:
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not reached",
                 "evidence_family": "fbmcq",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1152,6 +1149,9 @@ def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
                     "expression": expression,
                     "failure_message": "[REQ-001][AST-REQ-001-01] helper failure",
                     "evidence_family": "structure",
+                    "role": "primary",
+                    "coverage_key": "AST-REQ-001-01",
+                    "aggregation_group": "REQ-001:all",
                 },
             ),
             requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1243,6 +1243,9 @@ def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy(
                 "expression": "occupancy_after(source='Root.Idle', trigger='Root.go'",
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1295,6 +1298,9 @@ def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1351,6 +1357,9 @@ def test_behavior_simulation_predicate_is_accepted_by_the_precheck() -> None:
                 "expression": "occupancy_after(source='Root.Idle', trigger='Root.go', target='Root.Done')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1447,6 +1456,9 @@ def test_converter_contract_reject_routes_existing_script_back_with_feedback() -
                 "expression": "True",
                 "failure_message": "[REQ-001][AST-REQ-001-01] current",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1598,6 +1610,9 @@ def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation
                     "on Attack_Complete"
                 ),
                 "evidence_family": "effect",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1708,6 +1723,9 @@ def test_assertion_reviewer_has_a_bounded_revision_gate() -> None:
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1845,6 +1863,9 @@ def test_repeated_contract_invalid_script_stops_without_five_duplicate_calls() -
                 "expression": "True",
                 "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
                 "evidence_family": "relation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1916,6 +1937,9 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
                 "expression": "state_declared(state='Root.Idle', kind='leaf')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] no states",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
             {
                 "assertion_id": "AST-REQ-001-02",
@@ -1924,6 +1948,9 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
                 "expression": "broken_helper()",
                 "failure_message": "[REQ-001][AST-REQ-001-02] helper failure",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-02",
+                "aggregation_group": "REQ-001:all",
             },
         ),
     )
@@ -2106,6 +2133,9 @@ def test_assertion_review_hash_must_match_current_script() -> None:
                 "expression": "state_declared(state='Root.Idle', kind='leaf')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] no states",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
     )
@@ -2193,6 +2223,9 @@ def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> No
                 "expression": "edge_declared(source='Root.Done', trigger='Root.go', target='Root.Idle')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] reverse transition is absent",
                 "evidence_family": "relation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2263,6 +2296,9 @@ state Root {
                     "[REQ-001][AST-REQ-001-01] initial relation is guarded"
                 ),
                 "evidence_family": "relation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2347,6 +2383,9 @@ def test_wrong_target_near_miss_remains_source_attributable() -> None:
                     "[REQ-001][AST-REQ-001-01] local exit reaches wrong target"
                 ),
                 "evidence_family": "relation",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2593,6 +2632,9 @@ def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
                 "expression": "False",
                 "failure_message": "[REQ-001][AST-REQ-001-01] requirement failed",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -3000,6 +3042,9 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
                 "expression": "False",
                 "failure_message": "[REQ-001][AST-REQ-001-01] requirement failed",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-001-01",
+                "aggregation_group": "REQ-001:all",
             },
             {
                 "assertion_id": "AST-REQ-002-01",
@@ -3008,6 +3053,9 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
                 "expression": "True",
                 "failure_message": "[REQ-002][AST-REQ-002-01] requirement failed",
                 "evidence_family": "structure",
+                "role": "primary",
+                "coverage_key": "AST-REQ-002-01",
+                "aggregation_group": "REQ-002:all",
             },
         ),
         requirement_mapping={

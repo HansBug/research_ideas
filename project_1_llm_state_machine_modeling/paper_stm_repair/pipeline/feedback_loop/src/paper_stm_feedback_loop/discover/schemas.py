@@ -367,31 +367,18 @@ class AssertionSpec(StrictBaseModel):
     expression: str = Field(min_length=1)
     failure_message: str = Field(min_length=1)
     evidence_family: EvidenceFamily
-    role: AssertionRole | None = None
-    coverage_key: str | None = None
-    aggregation_group: str | None = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def _upgrade_v1_assertion_role(cls, value: Any) -> Any:
-        if not isinstance(value, dict):
-            return value
-        assertion_id = value.get("assertion_id")
-        requirement_id = value.get("requirement_id")
-        if not assertion_id or not requirement_id:
-            return value
-        return {
-            **value,
-            "coverage_key": value.get("coverage_key") or f"legacy:{assertion_id}",
-            "aggregation_group": value.get("aggregation_group")
-            or f"legacy-group:{requirement_id}",
-        }
-
-    @model_validator(mode="after")
-    def _coverage_fields_present(self) -> "AssertionSpec":
-        if not self.coverage_key or not self.aggregation_group:
-            raise ValueError("assertions require coverage_key and aggregation_group")
-        return self
+    # Required in the schema, not merely in the prompt.  These used to be
+    # optional with a validator that back-filled a missing value as
+    # `legacy:<id>` / `legacy-group:<id>`; the object then validated, and a
+    # downstream gate rejected it *for being legacy*.  One omitted field
+    # therefore isolated every assertion in the script and killed the cell with
+    # "soft isolation cannot publish an empty AssertionScript" -- three of eight
+    # matrix cells died exactly this way.  Requiring them puts the failure where
+    # it belongs: in the provider's own structured-output validation, one repair
+    # round instead of a dead run.
+    role: AssertionRole
+    coverage_key: str = Field(min_length=1)
+    aggregation_group: str = Field(min_length=1)
 
 
 class AssertionScript(StrictBaseModel):

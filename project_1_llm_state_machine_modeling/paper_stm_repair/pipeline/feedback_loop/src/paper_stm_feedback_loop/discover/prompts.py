@@ -291,6 +291,73 @@ REQUIREMENT_SPLITTER_PROMPT += (
 # Claude cells emitted the removed legacy `checkability` field when this rule
 # sat mid-prompt behind a 16 KB grammar appendix.
 REQUIREMENT_SPLITTER_PROMPT += """
+=== Worked Requirement objects (copy the shape, not the values) ===
+Three examples, one per family, every field present in each. A field described
+only in prose gets dropped; a field seen filled in three times does not.
+
+Example 1 -- Family S:
+{
+  "requirement_id": "REQ-001",
+  "statement": "ModeA shall be modelled as a simple (leaf) state.",
+  "rationale": "NL-L001 names ModeA as a single operating mode with no substructure.",
+  "source_segment_ids": ["NL-L001"],
+  "predicate": "state_declared",
+  "predicate_bindings": {"state": "Sys.ModeA", "kind": "leaf"},
+  "verification_kind": "structure",
+  "quantifier": "single",
+  "trigger": null,
+  "expected_outcome": "ModeA is declared as a leaf state",
+  "coverage_obligation": {"domain": "state_declaration", "aggregation": "all"},
+  "limitations": []
+}
+
+Example 2 -- Family B, an operational scenario:
+{
+  "requirement_id": "REQ-002",
+  "statement": "When evt occurs in ModeA, the system shall move to ModeB.",
+  "rationale": "NL-L002 states the response; this is a runtime claim, not a claim about which edges exist.",
+  "source_segment_ids": ["NL-L002"],
+  "predicate": "occupancy_after",
+  "predicate_bindings": {"source": "Sys.ModeA", "trigger": "Sys.evt", "target": "Sys.ModeB"},
+  "verification_kind": "behavior",
+  "quantifier": "single",
+  "trigger": "Sys.evt",
+  "expected_outcome": "the system occupies ModeB",
+  "coverage_obligation": {"domain": "event_response", "aggregation": "all"},
+  "limitations": []
+}
+
+Example 3 -- Family P, and the `<undeclared>` case in one object:
+{
+  "requirement_id": "REQ-003",
+  "statement": "The system shall never enter Fault while operating.",
+  "rationale": "NL-L003 forbids Fault for the whole operating phase, so the claim is quantified over runs.",
+  "source_segment_ids": ["NL-L003"],
+  "predicate": "invariant",
+  "predicate_bindings": {"scope": "Sys.ModeA", "condition": "!active(\"Sys.Fault\")", "bound": "4"},
+  "verification_kind": "property",
+  "quantifier": "always",
+  "trigger": null,
+  "expected_outcome": "Fault is never active within the bound",
+  "coverage_obligation": {"domain": "safety_invariant", "aggregation": "all"},
+  "limitations": ["checked up to bound 4 only"]
+}
+{
+  "requirement_id": "REQ-004",
+  "statement": "Completing the task shall decrease the number of active units.",
+  "rationale": "NL-L004 requires a quantity the model declares no variable for; the absence is recorded rather than bound to an unrelated variable.",
+  "source_segment_ids": ["NL-L004"],
+  "predicate": "variable_delta_after",
+  "predicate_bindings": {"source": "Sys.ModeA", "trigger": "Sys.done", "variable": "<undeclared>", "sign": "negative"},
+  "verification_kind": "behavior",
+  "quantifier": "single",
+  "trigger": "Sys.done",
+  "expected_outcome": "the unit count decreases",
+  "coverage_obligation": {"domain": "quantitative_effect", "aggregation": "all"},
+  "limitations": ["the model declares no variable for the number of active units"]
+}
+"""
+REQUIREMENT_SPLITTER_PROMPT += """
 
 === Binding output contract (final, overrides anything above) ===
 Emit on every Requirement: `predicate` (exactly one name from the closed vocabulary above), `predicate_bindings` (every binding that predicate requires), `quantifier`, and a concrete `coverage_obligation` with `domain` and `aggregation`. Also emit `verification_kind`, but it is *derived from the predicate and overwritten*; do not reason about it.
@@ -311,7 +378,77 @@ Binding values you must accept: a path copied verbatim from `declared_model_voca
 """
 
 ASSERTION_CONVERTER_PROMPT += """
+=== Worked assertion objects (copy the shape, not the values) ===
+Prose alone was not enough: producers emitted `role` and `coverage_key` and
+silently dropped `aggregation_group`, which the controller then back-filled as
+`legacy-group:...`, rejected as legacy-inferred, and the whole cell died with an
+empty script. Every field below appears in every example on purpose.
+
+Example 1 -- Family S, one primary:
+{
+  "assertion_id": "AST-REQ-001-1",
+  "requirement_id": "REQ-001",
+  "description": "ModeA must be declared as a leaf state.",
+  "expression": "assert state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True, \"[REQ-001][AST-REQ-001-1] ModeA is not a leaf state\"",
+  "failure_message": "[REQ-001][AST-REQ-001-1] ModeA is not a leaf state",
+  "evidence_family": "structure",
+  "role": "primary",
+  "coverage_key": "state_declared:Sys.ModeA:leaf",
+  "aggregation_group": "REQ-001:all"
+}
+
+Example 2 -- Family B primary plus a supporting locator, same requirement:
+{
+  "assertion_id": "AST-REQ-002-1",
+  "requirement_id": "REQ-002",
+  "description": "After evt in ModeA the system must occupy ModeB.",
+  "expression": "assert occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True, \"[REQ-002][AST-REQ-002-1] evt does not reach ModeB\"",
+  "failure_message": "[REQ-002][AST-REQ-002-1] evt does not reach ModeB",
+  "evidence_family": "simulation",
+  "role": "primary",
+  "coverage_key": "occupancy_after:Sys.ModeA:Sys.evt:Sys.ModeB",
+  "aggregation_group": "REQ-002:all"
+}
+{
+  "assertion_id": "AST-REQ-002-2",
+  "requirement_id": "REQ-002",
+  "description": "Locate the declared edge that should carry evt.",
+  "expression": "assert edge_declared(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True, \"[REQ-002][AST-REQ-002-2] no declared edge carries evt\"",
+  "failure_message": "[REQ-002][AST-REQ-002-2] no declared edge carries evt",
+  "evidence_family": "relation",
+  "role": "supporting",
+  "coverage_key": "edge_declared:Sys.ModeA:Sys.evt:Sys.ModeB",
+  "aggregation_group": "REQ-002:all"
+}
+
+Example 3 -- Family P, and a claim over several named elements folded with all():
+{
+  "assertion_id": "AST-REQ-003-1",
+  "requirement_id": "REQ-003",
+  "description": "Within the bound the system never occupies Fault.",
+  "expression": "assert invariant(scope=\"Sys.ModeA\", condition=\"!active(\\\"Sys.Fault\\\")\", bound=4) is True, \"[REQ-003][AST-REQ-003-1] Fault is reachable within the bound\"",
+  "failure_message": "[REQ-003][AST-REQ-003-1] Fault is reachable within the bound",
+  "evidence_family": "fbmcq",
+  "role": "primary",
+  "coverage_key": "invariant:Sys.ModeA:no-Fault:4",
+  "aggregation_group": "REQ-003:all"
+}
+{
+  "assertion_id": "AST-REQ-004-1",
+  "requirement_id": "REQ-004",
+  "description": "Power-off must reach Final from every operating mode the NL names.",
+  "expression": "assert all([occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.off\", target=\"Sys.Final\"), occupancy_after(source=\"Sys.ModeB\", trigger=\"Sys.off\", target=\"Sys.Final\")]) is True, \"[REQ-004][AST-REQ-004-1] off does not reach Final from every mode\"",
+  "failure_message": "[REQ-004][AST-REQ-004-1] off does not reach Final from every mode",
+  "evidence_family": "simulation",
+  "role": "primary",
+  "coverage_key": "occupancy_after:off:Sys.Final:all-modes",
+  "aggregation_group": "REQ-004:all"
+}
+"""
+ASSERTION_CONVERTER_PROMPT += """
 
 === Binding output contract (final, overrides anything above) ===
 Every assertion must declare `role` (`primary`/`supporting`), `coverage_key`, `aggregation_group`, `evidence_family`, and a `failure_message` beginning with `[REQ-...][AST-...]`. Every Requirement needs at least one `primary`. Do not emit a bounded formal query whose truth value cannot change when the defect is present.
 """
+
+
