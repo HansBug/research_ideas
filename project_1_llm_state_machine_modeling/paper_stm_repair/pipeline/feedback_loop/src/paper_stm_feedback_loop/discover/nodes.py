@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections.abc import Callable
@@ -15,7 +16,10 @@ from paper_stm_feedback_loop.assertions import (
 )
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
-from paper_stm_feedback_loop.assertions.predicate_api import UNDECLARED
+from paper_stm_feedback_loop.assertions.predicate_api import (
+    PREDICATE_FAMILIES,
+    UNDECLARED,
+)
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
@@ -1829,49 +1833,38 @@ def precheck_and_seal(
                     assertion.requirement_id, set()
                 )
             ):
+                # The producer no longer calls `simulate`; it calls a Family B
+                # predicate, and the predicate hot-starts the configuration its
+                # `source` binding names.  Scanning the trace for a `simulate`
+                # kwarg therefore matched nothing and rejected every behavior
+                # assertion, taking the runtime half of the loop dark.  The
+                # property still worth enforcing is the same one: the claim must
+                # be pinned to a named configuration rather than to wherever a
+                # cold start happens to land.
+                behaviour_calls = [
+                    call
+                    for call in checked.function_call_trace
+                    if PREDICATE_FAMILIES.get(call.function, ("", ""))[0] == "simulation"
+                ]
                 has_hot_start = any(
-                    call.function == "simulate"
-                    and call.kwargs.get("initial_state") is not None
-                    for call in checked.function_call_trace
-                )
-                has_explicit_initial_cold_path = any(
-                    call.function == "simulate"
-                    and call.kwargs.get("initial_state") is None
-                    and isinstance(call.kwargs.get("cycles"), list)
-                    and bool(call.kwargs["cycles"])
-                    and call.kwargs["cycles"][0] == []
-                    and any(bool(cycle) for cycle in call.kwargs["cycles"][1:])
-                    for call in checked.function_call_trace
+                    isinstance(call.kwargs.get("source"), str)
+                    and call.kwargs["source"].strip()
+                    for call in behaviour_calls
                 )
                 source_context = requirement.source_context
                 is_initial_configuration = (
                     isinstance(source_context, dict)
                     and source_context.get("behavior_phase") == "initialization"
                 )
-                has_initial_configuration_cold_path = any(
-                    call.function == "simulate"
-                    and call.kwargs.get("initial_state") is None
-                    and isinstance(call.kwargs.get("cycles"), list)
-                    and bool(call.kwargs["cycles"])
-                    and all(not cycle for cycle in call.kwargs["cycles"])
-                    for call in checked.function_call_trace
-                )
-                if (
-                    not has_hot_start
-                    and not has_explicit_initial_cold_path
-                    and not (
-                        is_initial_configuration and has_initial_configuration_cold_path
-                    )
-                ):
+                if behaviour_calls and not has_hot_start and not is_initial_configuration:
                     hot_start_policy_error = (
-                        "behavior requirement simulation must use an explicit hot-start "
-                        "initial_state, or an explicit initialization cold path "
-                        "cycles=[[], [causal_event]]. A pure initial-configuration "
-                        "requirement marked behavior_phase=initialization may instead "
-                        "use one or more empty cold-start cycles. Otherwise include a bounded "
-                        "fbmcq assertion. A cold-start "
-                        "trace without an explicit empty initialization cycle is not "
-                        "sufficient behavior evidence"
+                        "a behavior requirement must pin its claim to a named "
+                        "configuration: pass the Requirement's `source` binding to "
+                        "the predicate. Only a requirement whose source_context "
+                        "declares behavior_phase=initialization may leave `source` "
+                        "empty, because there the initial configuration is the "
+                        "claim. An unpinned observation is about wherever a cold "
+                        "start happened to land, not about the state the NL names"
                     )
             if (
                 requirement is not None
@@ -1883,7 +1876,8 @@ def precheck_and_seal(
                 formal_calls = [
                     call
                     for call in checked.function_call_trace
-                    if call.function == "fbmcq" and call.status == "completed"
+                    if PREDICATE_FAMILIES.get(call.function, ("", ""))[0] == "formal"
+                    and call.status == "completed"
                 ]
                 causality_checks = [
                     formal_query_causality(call.kwargs.get("query", ""))
@@ -3171,6 +3165,23 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
         )
 
 
+def _fake_state(payload: str) -> str:
+    """Pick a declared state path out of the rendered payload.
+
+    The fake used to assert `len(states()) > 0`, which was model-agnostic.  No
+    predicate is: they all name real elements.  So the fake has to read one out
+    of the vocabulary it was handed, or the smoke path asserts about a state
+    that does not exist and the run dies in the repair loop.
+    """
+
+    try:
+        vocabulary = json.loads(payload).get("declared_model_vocabulary") or {}
+        states = vocabulary.get("states") or []
+    except Exception:
+        states = []
+    return str(states[0]) if states else "Root"
+
+
 def default_fake_responder(
     role: str, schema: type[BaseModel], _system_prompt: str, _user_input: str
 ) -> BaseModel:
@@ -3205,7 +3216,9 @@ def default_fake_responder(
                     "assertion_id": "AST-REQ-001-01",
                     "requirement_id": "REQ-001",
                     "description": "Fake smoke assertion.",
-                    "expression": "len(states()) > 0",
+                    "expression": (
+                        f'state_declared(state="{_fake_state(payload)}", kind="any")'
+                    ),
                     "failure_message": "[REQ-001][AST-REQ-001-01] The frozen STM exposes no state.",
                     "evidence_family": "structure",
                     "role": "primary",

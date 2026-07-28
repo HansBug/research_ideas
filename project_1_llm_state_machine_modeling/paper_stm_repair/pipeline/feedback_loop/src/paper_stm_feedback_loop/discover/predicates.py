@@ -435,18 +435,20 @@ def procedure_mismatch(
     entry = PREDICATE_BY_NAME.get(predicate)
     if entry is None:
         return None
-    if entry.procedure_function in called_functions:
+    # The predicate is itself the callable now, so the check is exact: the
+    # primary assertion must call *this* predicate.  Checking only the underlying
+    # primitive was the weaker form -- it could not tell whether the call asked
+    # the right question, which is how a tautological bounded query passed.
+    if predicate in called_functions:
         return None
-    used = sorted(called_functions & _ALL_PROCEDURE_FUNCTIONS)
-    locators = ", ".join(entry.locators) or "none"
+    used = sorted(called_functions & PREDICATE_NAMES)
     return (
-        entry.procedure_function,
+        predicate,
         (
-            f"predicate {predicate!r} is decided by {entry.procedure}, so its "
-            f"primary assertion must call {entry.procedure_function}(); it called "
-            f"{used or 'no evidence function'} instead. Listed locators "
-            f"({locators}) may only carry role=supporting, because they answer a "
-            f"weaker question than the predicate asks."
+            f"predicate {predicate!r} must be discharged by calling "
+            f"{signature_of(predicate)}; the primary assertion called "
+            f"{used or 'no predicate'} instead. Another predicate answers a "
+            f"different question, so it cannot close this claim."
         ),
     )
 

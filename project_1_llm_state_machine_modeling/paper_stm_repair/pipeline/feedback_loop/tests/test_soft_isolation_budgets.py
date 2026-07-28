@@ -46,14 +46,14 @@ MODEL = """state Root {
 # Each entry is broken, but in a different way, so neither the expression text
 # nor the error type is stable across revisions.
 CHURNING_BROKEN_EXPRESSIONS = [
-    "len(states(",
-    "len(states((",
-    "len(states(((",
-    "len(states((((",
-    "len(states(((((",
-    "len(states((((((",
-    "len(states(((((((",
-    "len(states((((((((",
+    "len(state_declared(",
+    "len(state_declared((",
+    "len(state_declared(((",
+    "len(state_declared((((",
+    "len(state_declared(((((",
+    "len(state_declared((((((",
+    "len(state_declared(((((((",
+    "len(state_declared((((((((",
 ]
 
 
@@ -88,7 +88,7 @@ def _script(
                 "assertion_id": "AST-GOOD",
                 "requirement_id": "REQ-GOOD",
                 "description": "A permanently executable check.",
-                "expression": 'transition_exists(source="Root.Idle", event="Root.go", target="Root.Done")',
+                "expression": 'edge_declared(source="Root.Idle", trigger="Root.go", target="Root.Done")',
                 "failure_message": "[REQ-GOOD][AST-GOOD] Idle does not reach Done on go.",
                 "evidence_family": "relation",
                 "role": "primary",
@@ -231,13 +231,13 @@ def test_contract_repair_budget_is_not_reset_by_an_intervening_success() -> None
 # --------------------------------------------------------------------------
 
 ALTERNATING_BROKEN_EXPRESSIONS = [
-    "len(states(",            # syntax error
+    "len(state_declared(",            # syntax error
     "undefined_helper()",     # unregistered name -> audit rejection
     "42",                     # non-bool terminal
-    "len(states((",           # syntax error again, different text
+    "len(state_declared((",           # syntax error again, different text
     "another_unknown()",      # unregistered name again, different text
     "3.5",                    # non-bool again
-    "len(states(((",
+    "len(state_declared(((",
     "yet_another_unknown()",
 ]
 
@@ -327,7 +327,7 @@ def test_unresolved_assertion_review_isolates_instead_of_failing_the_run() -> No
             revision += 1
             return _script(
                 revision,
-                'transition_exists(source="Root.Idle", event="Root.go", target="Root.Idle")',
+                'edge_declared(source="Root.Idle", trigger="Root.go", target="Root.Idle")',
                 bad_family="relation",
             )
         if schema is AssertionReview:
@@ -404,7 +404,7 @@ def test_hash_transcription_slip_does_not_fail_the_run() -> None:
         if schema is AssertionScript:
             return _script(
                 1,
-                'transition_exists(source="Root.Idle", event="Root.go", target="Root.Done")',
+                'edge_declared(source="Root.Idle", trigger="Root.go", target="Root.Done")',
                 bad_family="relation",
             )
         if schema is AssertionReview:

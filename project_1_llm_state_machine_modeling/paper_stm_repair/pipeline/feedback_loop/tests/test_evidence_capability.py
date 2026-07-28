@@ -63,7 +63,7 @@ FIXTURE_MODEL = """state Root {
 }
 """
 
-CONFLICT_EXPR = 'not conflicting_targets(source="Root.Hub.Entry", event="Root.pick")'
+CONFLICT_EXPR = 'guard_distinguishable(source="Root.Hub.Entry", trigger="Root.pick")'
 
 # Minimal author-level trace so the False result can bind to a safe attribution,
 # mirroring the real pair traces where these two edges are author-authored.
@@ -115,9 +115,9 @@ def test_conflicting_targets_decides_the_shared_event_conflict_offline() -> None
 
 def test_called_evidence_functions_reads_plain_and_attribute_calls() -> None:
     assert called_evidence_functions(CONFLICT_EXPR) == frozenset(
-        {"conflicting_targets"}
+        {"guard_distinguishable"}
     )
-    assert "fbmcq" in called_evidence_functions('fbmcq("check reach <= 1: x;").holds')
+    assert "invariant" in called_evidence_functions('invariant(scope="R", condition="x", bound=1)')
     assert called_evidence_functions("len(states(") == frozenset()
 
 
@@ -125,13 +125,13 @@ def test_decisive_static_procedure_waives_property_mandatory_family() -> None:
     waiver = mandatory_waiver("property", (CONFLICT_EXPR,))
     assert waiver is not None
     function_name, justification = waiver
-    assert function_name == "conflicting_targets"
+    assert function_name == "guard_distinguishable"
     assert justification, "a waiver must carry an auditable justification"
 
 
 def test_witness_evidence_never_waives_anything() -> None:
     assert mandatory_waiver("property", ('simulate(cycles=[["Root.pick"]])',)) is None
-    assert mandatory_waiver("property", ('transition_exists(event="Root.pick")',)) is None
+    assert mandatory_waiver("property", ('edge_declared(source="Root.Hub.Entry", trigger="Root.pick", target="Root.Hub.Alpha")',)) is None
 
 
 def test_behavior_is_never_waived_by_static_evidence() -> None:
@@ -261,7 +261,7 @@ def test_property_requirement_closes_on_decisive_relation_evidence() -> None:
     assert len(waivers) == 1, "the waiver must be recorded for audit"
     assert waivers[0]["requirement_id"] == "REQ-001"
     assert waivers[0]["waived_families"] == ["fbmcq"]
-    assert waivers[0]["decisive_function"] == "conflicting_targets"
+    assert waivers[0]["decisive_function"] == "guard_distinguishable"
 
 
 def test_property_requirement_without_decisive_evidence_still_requires_fbmcq() -> None:
@@ -278,7 +278,7 @@ def test_property_requirement_without_decisive_evidence_still_requires_fbmcq() -
                         "assertion_id": "AST-REQ-001-01",
                         "requirement_id": "REQ-001",
                         "description": "Presence-only locator offered as primary.",
-                        "expression": 'transition_exists(event="Root.pick")',
+                        "expression": 'edge_declared(source="Root.Hub.Entry", trigger="Root.pick", target="Root.Hub.Alpha")',
                         "failure_message": "[REQ-001][AST-REQ-001-01] missing edge",
                         "evidence_family": "relation",
                         "role": "primary",
@@ -326,7 +326,7 @@ def _responder_property_with_locator_primary(
                     "assertion_id": "AST-REQ-001-01",
                     "requirement_id": "REQ-001",
                     "description": "Locator-strength evidence, not a decision procedure.",
-                    "expression": 'transition_exists(source="Root.Hub.Entry", event="Root.pick", target="Root.Hub.Alpha")',
+                    "expression": 'edge_declared(source="Root.Hub.Entry", trigger="Root.pick", target="Root.Hub.Alpha")',
                     "failure_message": "[REQ-001][AST-REQ-001-01] the edge is absent",
                     "evidence_family": "relation",
                     "role": "primary",
@@ -426,9 +426,16 @@ def test_fbmcq_structural_binding_rejects_unknown_paths_before_the_solver() -> N
 def test_official_pyfcstm_guides_are_injected_with_provenance() -> None:
     from paper_stm_feedback_loop.discover import prompts
 
+    # The FBMCQ query language is intentionally withheld from the assertion
+    # stages: bounded queries are constructed inside the predicates, so there is
+    # no function an assertion could hand a query string to.  Showing a producer
+    # a language it cannot reach only invites it to write one -- pair 0006's
+    # hand-rolled `exists_always <= 1` tautology is what that produced.
     for marker in ("must_reach", "exists_always", "forbid", "havoc"):
-        assert marker in prompts.ASSERTION_CONVERTER_PROMPT, marker
-        assert marker in prompts.ASSERTION_REVIEWER_PROMPT, marker
+        assert marker not in prompts.ASSERTION_CONVERTER_PROMPT, marker
+        assert marker not in prompts.ASSERTION_REVIEWER_PROMPT, marker
+    # The grammar guide stays: assertions still name model paths, and
+    # `invariant(condition=...)` takes an FCSTM expression.
     assert "FCSTM grammar guide" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "FCSTM grammar guide" in prompts.REQUIREMENT_SPLITTER_PROMPT
 
@@ -437,13 +444,15 @@ def test_official_pyfcstm_guides_are_injected_with_provenance() -> None:
         assert provenance[key]["sha256"] == provenance[key]["expected_sha256"], key
 
 
-def test_capability_boundary_tells_the_producer_what_fbmcq_cannot_see() -> None:
+def test_capability_boundary_tells_the_producer_what_the_evidence_cannot_see() -> None:
     from paper_stm_feedback_loop.discover import prompts
 
-    boundary = prompts.FBMCQ_CAPABILITY_BOUNDARY
+    boundary = prompts.PREDICATE_EVIDENCE_BOUNDARY
     assert "cannot observe guard expressions" in boundary
-    assert "conflicting_targets" in boundary
+    assert "guard_distinguishable" in boundary
     assert "exponential in the bound" in boundary
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        assert boundary in getattr(prompts, name), name
 
 
 P0029 = "llms_emp_feedback_final_0029"
@@ -507,13 +516,13 @@ def test_unresolved_model_reference_is_detected() -> None:
     known = frozenset({"Root.Hub.Entry", "Root.pick"})
     # Exactly what Claude wrote on pair 0029: FCSTM transition syntax in place
     # of the event path, which made the guard-conflict check vacuously true.
-    bad = 'not conflicting_targets(source="Root.Hub.Entry", event="/pick")'
-    assert unresolved_model_references(bad, known) == ("event='/pick'",)
+    bad = 'guard_distinguishable(source="Root.Hub.Entry", trigger="/pick")'
+    assert unresolved_model_references(bad, known) == ("trigger='/pick'",)
     assert unresolved_model_references(CONFLICT_EXPR, frozenset()) == ()
-    good = 'not conflicting_targets(source="Root.Hub.Entry", event="Root.pick")'
+    good = 'guard_distinguishable(source="Root.Hub.Entry", trigger="Root.pick")'
     assert unresolved_model_references(good, known) == ()
-    pseudo = 'transition_exists(source="[*]", event="Root.pick")'
-    assert unresolved_model_references(pseudo, known) == ()
+    pseudo = 'edge_declared(source="[*]", trigger="Root.pick", target="Root.Hub.Alpha")'
+    assert unresolved_model_references(pseudo, known) == ("target='Root.Hub.Alpha'",)
 
 
 def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -> None:
@@ -530,7 +539,7 @@ def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -
                         "assertion_id": "AST-REQ-001-01",
                         "requirement_id": "REQ-001",
                         "description": "Distinguishability, but with a mistyped event path.",
-                        "expression": 'not conflicting_targets(source="Root.Hub.Entry", event="/pick")',
+                        "expression": 'guard_distinguishable(source="Root.Hub.Entry", trigger="/pick")',
                         "failure_message": "[REQ-001][AST-REQ-001-01] indistinguishable",
                         "evidence_family": "relation",
                         "role": "primary",

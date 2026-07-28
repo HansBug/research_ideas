@@ -109,9 +109,9 @@ def test_assertion_stages_receive_the_procedure_binding() -> None:
 
     for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
         text = getattr(prompts, name)
-        assert "Predicate procedures" in text, name
-        assert "`occupancy_after` -> primary MUST call `simulate(...)" in text, name
-        assert "locators (supporting only)" in text, name
+        assert "Callable predicate reference" in text, name
+        assert "occupancy_after(source: str, trigger: str, target: str" in text, name
+        assert "ONLY evidence functions that exist" in text, name
 
 
 def test_splitter_no_longer_carries_a_competing_taxonomy() -> None:

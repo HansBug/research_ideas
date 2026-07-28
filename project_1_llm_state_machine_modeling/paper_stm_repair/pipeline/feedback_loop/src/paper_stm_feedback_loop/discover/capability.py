@@ -85,7 +85,7 @@ class EvidenceCapability:
 
 EVIDENCE_CAPABILITY: dict[str, EvidenceCapability] = {
     # --- universally quantified static decision procedures -------------------
-    "conflicting_targets": EvidenceCapability(
+    "guard_distinguishable": EvidenceCapability(
         decides="guard_indistinguishability",
         completeness="decisive",
         quantification="universal_static",
@@ -98,17 +98,7 @@ EVIDENCE_CAPABILITY: dict[str, EvidenceCapability] = {
             "quantification a distinguishability property asks for."
         ),
     ),
-    "guards_overlap": EvidenceCapability(
-        decides="guard_overlap",
-        completeness="decisive",
-        quantification="universal_static",
-        waives_mandatory_for=frozenset({"property"}),
-        justification=(
-            "Same decision procedure as conflicting_targets at the level of two "
-            "named transitions; refuses to decide rather than approximating."
-        ),
-    ),
-    "initial_child": EvidenceCapability(
+    "initial_target": EvidenceCapability(
         decides="initial_target",
         completeness="decisive",
         quantification="universal_static",
@@ -120,7 +110,7 @@ EVIDENCE_CAPABILITY: dict[str, EvidenceCapability] = {
         ),
     ),
     # --- static queries that are decisive but only over their own domain -----
-    "effect_deltas": EvidenceCapability(
+    "effect_declared": EvidenceCapability(
         decides="declared_effect",
         completeness="decisive",
         quantification="declared_effect_set",
@@ -129,46 +119,86 @@ EVIDENCE_CAPABILITY: dict[str, EvidenceCapability] = {
             "quantify over paths, so it never waives a property obligation."
         ),
     ),
-    "effect_delta": EvidenceCapability(
-        decides="declared_effect",
-        completeness="decisive",
-        quantification="declared_effect_set",
-    ),
-    "effects": EvidenceCapability(
-        decides="declared_effect",
-        completeness="decisive",
-        quantification="declared_effect_set",
-    ),
-    "states": EvidenceCapability(
+    "state_declared": EvidenceCapability(
         decides="declared_state_set",
         completeness="decisive",
         quantification="declared_state_set",
     ),
     # --- weaker evidence ------------------------------------------------------
-    "fbmcq": EvidenceCapability(
+    "invariant": EvidenceCapability(
         decides="trace_property",
         completeness="bounded_decisive",
         quantification="all_traces_up_to_bound",
     ),
-    "simulate": EvidenceCapability(
+    "occupancy_after": EvidenceCapability(
         decides="run_outcome",
         completeness="witness",
         quantification="one_configuration",
     ),
-    "transition_exists": EvidenceCapability(
+    "edge_declared": EvidenceCapability(
         decides="edge_presence",
         completeness="locator",
         quantification="single_edge",
     ),
-    "transitions": EvidenceCapability(
-        decides="edge_set",
-        completeness="locator",
-        quantification="matching_edges",
+    "terminates": EvidenceCapability(
+        decides="run_termination",
+        completeness="witness",
+        quantification="one_configuration",
     ),
-    "topology": EvidenceCapability(
-        decides="reachability_shape",
-        completeness="locator",
-        quantification="static_graph",
+    "containment": EvidenceCapability(
+        decides="declared_containment",
+        completeness="decisive",
+        quantification="declared_state_set",
+        waives_mandatory_for=frozenset({"property"}),
+        justification=(
+            "Direct substate membership is a closed declared set; the answer "
+            "holds for every execution by construction."
+        ),
+    ),
+    "action_declared": EvidenceCapability(
+        decides="declared_action",
+        completeness="decisive",
+        quantification="declared_action_set",
+    ),
+    "cardinality": EvidenceCapability(
+        decides="declared_state_count",
+        completeness="decisive",
+        quantification="declared_state_set",
+        waives_mandatory_for=frozenset({"property"}),
+        justification=(
+            "Counting the declared non-pseudo substates of a scope ranges over "
+            "the whole scope by construction, so a bounded trace adds nothing."
+        ),
+    ),
+    "event_consumed": EvidenceCapability(
+        decides="run_event_acceptance",
+        completeness="witness",
+        quantification="one_configuration",
+    ),
+    "stays_in": EvidenceCapability(
+        decides="run_stability",
+        completeness="witness",
+        quantification="one_configuration",
+    ),
+    "variable_delta_after": EvidenceCapability(
+        decides="run_variable_delta",
+        completeness="witness",
+        quantification="one_configuration",
+    ),
+    "reaches": EvidenceCapability(
+        decides="bounded_reachability",
+        completeness="witness",
+        quantification="one_configuration",
+    ),
+    "response_within": EvidenceCapability(
+        decides="bounded_response",
+        completeness="bounded_decisive",
+        quantification="all_traces_up_to_bound",
+    ),
+    "persists_until": EvidenceCapability(
+        decides="bounded_persistence",
+        completeness="bounded_decisive",
+        quantification="all_traces_up_to_bound",
     ),
 }
 
@@ -313,7 +343,24 @@ def fbmcq_non_vacuity_findings(expression: str) -> tuple[str, ...]:
 # queries are rejected by structural binding.
 
 #: Keyword arguments whose string value must name an existing model element.
-BOUND_PATH_KWARGS = frozenset({"source", "target", "event"})
+# Predicate bindings that name a declared model element.  `trigger` is the
+# predicate spelling of what the old relation API called `event`; missing it
+# meant a fabricated event path -- pair 0029's `"/pick"` -- sailed through the
+# unresolved-reference gate and made the check vacuously true.
+BOUND_PATH_KWARGS = frozenset(
+    {
+        "source",
+        "target",
+        "event",
+        "trigger",
+        "state",
+        "parent",
+        "child",
+        "composite",
+        "scope",
+        "variable",
+    }
+)
 #: The relation API exposes the pseudo-initial source under this exact literal.
 PSEUDO_INITIAL = "[*]"
 

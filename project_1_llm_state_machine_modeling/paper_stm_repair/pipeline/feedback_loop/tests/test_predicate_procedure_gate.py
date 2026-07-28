@@ -20,9 +20,9 @@ from paper_stm_feedback_loop.discover.predicates import (
     procedure_mismatch,
 )
 
-DECLARED = 'transition_exists(source="R.A", event="R.e", target="R.B") is True'
-SIMULATED = 'simulate(cycles=[[], ["R.e"]]).final.is_active("R.B") is True'
-FORMAL = 'fbmcq(\'check invariant <= 3: active("R.B");\').holds is True'
+DECLARED = 'edge_declared(source="R.A", trigger="R.e", target="R.B") is True'
+SIMULATED = 'occupancy_after(source="R.A", trigger="R.e", target="R.B") is True'
+FORMAL = 'invariant(scope="R.A", condition=\'active("R.B")\', bound=3) is True'
 
 
 def _check(predicate: str, expression: str):
@@ -34,9 +34,9 @@ def test_declaration_query_cannot_close_a_runtime_claim():
 
     mismatch = _check("occupancy_after", DECLARED)
     assert mismatch is not None
-    assert mismatch[0] == "simulate"
-    assert "must call simulate()" in mismatch[1]
-    assert "transition_exists" in mismatch[1]
+    assert mismatch[0] == "occupancy_after"
+    assert "must be discharged by calling occupancy_after" in mismatch[1]
+    assert "edge_declared" in mismatch[1]
 
 
 def test_runtime_claim_closed_by_simulation_passes():
@@ -67,8 +67,7 @@ def test_every_predicate_accepts_its_own_procedure(predicate):
 
     from paper_stm_feedback_loop.discover.predicates import PREDICATE_BY_NAME
 
-    entry = PREDICATE_BY_NAME[predicate]
-    assert procedure_mismatch(predicate, frozenset({entry.procedure_function})) is None
+    assert procedure_mismatch(predicate, frozenset({predicate})) is None
 
 
 @pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
@@ -80,6 +79,16 @@ def test_no_predicate_lists_its_own_procedure_as_a_locator(predicate):
     entry = PREDICATE_BY_NAME[predicate]
     for locator in entry.locators:
         assert not locator.startswith(f"{entry.procedure_function}("), locator
+
+
+@pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
+def test_no_other_predicate_can_close_this_claim(predicate):
+    """Every predicate asks a different question; none may substitute."""
+
+    for other in (p.name for p in PREDICATES):
+        if other == predicate:
+            continue
+        assert procedure_mismatch(predicate, frozenset({other})) is not None
 
 
 def test_gate_runs_inside_convert_assertions_and_names_the_requirement():
@@ -152,7 +161,7 @@ def test_gate_runs_inside_convert_assertions_and_names_the_requirement():
     # The gate reports through the node's repair channel rather than crashing the
     # run, so assert on the recorded reason.
     blob = repr(out)
-    assert "must call simulate" in blob, blob[:600]
+    assert "must be discharged by calling occupancy_after" in blob, blob[:600]
 
 
 # --------------------------------------------------------------------------
@@ -253,8 +262,8 @@ def test_every_producer_payload_carries_the_vocabulary(renderer_name):
 
 
 # --------------------------------------------------------------------------
-# C4: path() as a usable locator for `reaches`
-# --------------------------------------------------------------------------
+# C4: path() as a locator, now reachable only through the topology facade
+# (it is deliberately not in the assertion namespace any more)
 
 PATH_MODEL = """state Root {
     event go;
@@ -271,16 +280,15 @@ PATH_MODEL = """state Root {
 
 
 def _path_api():
-    from paper_stm_feedback_loop.assertions import build_eval_environment
-
-    env = build_eval_environment(
-        model_text=PATH_MODEL,
-        source_mappings=[],
-        source_exclusions=[],
-        timeout_seconds=10,
-        formal_verification_enabled=False,
+    from paper_stm_feedback_loop.assertions.pyfcstm_adapter import (
+        check_fcstm,
+        load_model_for_simulation,
     )
-    return env.globals["path"]
+    from paper_stm_feedback_loop.assertions.topology import TopologyAPI
+
+    inspect = check_fcstm(PATH_MODEL, "<test>").get("inspect") or {}
+    machine = load_model_for_simulation(PATH_MODEL, "<test>")
+    return TopologyAPI(inspect, machine).path
 
 
 def test_composite_and_leaf_targets_agree():
@@ -314,3 +322,65 @@ def test_path_still_declares_itself_guard_blind():
     path = _path_api()
     result = path(source="Root.Start", target="Root.Outer")
     assert result.guard_agnostic is True
+
+
+# --------------------------------------------------------------------------
+# Every predicate must be executable.  A predicate that can only ever raise is
+# worse than a missing one: requirements routed to it land as `unsupported`
+# while the vocabulary advertises that the claim is checkable.
+# --------------------------------------------------------------------------
+
+EXEC_MODEL = """def int c = 0;
+state Root {
+    event go;
+    event stop;
+    state Idle;
+    state Busy { enter { c = 1; } }
+    state Done;
+    [*] -> Idle;
+    Idle -> Busy : /go effect { c = c + 1; };
+    Busy -> Done : /stop;
+}
+"""
+
+EXEC_ARGS = {
+    "state_declared": dict(state="Root.Idle", kind="leaf"),
+    "containment": dict(parent="Root", child="Root.Idle"),
+    "initial_target": dict(composite="Root", child="Root.Idle"),
+    "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),
+    "effect_declared": dict(
+        source="Root.Idle", trigger="Root.go", variable="c", sign="positive"
+    ),
+    "action_declared": dict(state="Root.Busy", phase="entry"),
+    "guard_distinguishable": dict(source="Root.Idle", trigger="Root.go"),
+    "cardinality": dict(scope="Root", count=3),
+    "occupancy_after": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),
+    "event_consumed": dict(source="Root.Idle", trigger="Root.go"),
+    "stays_in": dict(source="Root.Idle", trigger="Root.stop"),
+    "variable_delta_after": dict(
+        source="Root.Idle", trigger="Root.go", variable="c", sign="positive"
+    ),
+    "reaches": dict(source="Root.Idle", target="Root.Done", within_cycles=3),
+    "terminates": dict(scope="Root.Busy", trigger="Root.stop"),
+    "invariant": dict(scope="Root.Idle", condition='active("Root.Idle")', bound=2),
+    "response_within": dict(trigger="Root.go", response="Root.Busy", bound=3),
+    "persists_until": dict(state="Root.Idle", release='active("Root.Busy")', bound=2),
+}
+
+
+@pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
+def test_every_predicate_returns_a_verdict_on_a_real_model(predicate):
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+
+    assert predicate in EXEC_ARGS, f"{predicate} has no executability fixture"
+    env = build_eval_environment(
+        model_text=EXEC_MODEL,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=30,
+        fbmcq_solver_timeout_ms=30_000,
+        fbmcq_max_bound=6,
+        fbmcq_process_wall_seconds=40.0,
+    )
+    value = env.globals[predicate](**EXEC_ARGS[predicate])
+    assert isinstance(value, bool), f"{predicate} returned {value!r}, not a strict bool"

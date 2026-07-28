@@ -82,8 +82,8 @@ def _refs(expression: str, families: tuple[str, ...]) -> set[str]:
 
 def test_effect_query_still_detects_the_missing_quantity() -> None:
     result = _checker().check(
-        'assert any(d < 0 for _, d in effect_deltas(source="Root.Working.Busy", '
-        'event="Root.done")), "[REQ-001][AST-001] no decrement"',
+        'assert effect_declared(source="Root.Working.Busy", trigger="Root.done", '
+        'variable="counter", sign="negative") is True, "[REQ-001][AST-001] no decrement"',
         "probe",
         required_function_families=("effect",),
     )
@@ -93,7 +93,7 @@ def test_effect_query_still_detects_the_missing_quantity() -> None:
 
 def test_effect_query_does_not_report_the_variable_it_filtered_as_touched() -> None:
     refs = _refs(
-        'any(d < 0 for _, d in effect_deltas(source="Root.Working.Busy", event="Root.done"))',
+        'effect_declared(source="Root.Working.Busy", trigger="Root.done", variable="counter", sign="negative")',
         ("effect",),
     )
     assert "route_control:R45RouteToken" not in refs
@@ -119,7 +119,7 @@ def test_relation_queries_still_signal_converter_lowering() -> None:
     """
 
     refs = _refs(
-        'transition_exists(source="Root.Working", target="Root.Idle")',
+        'edge_declared(source="Root.Working", trigger="Root.done", target="Root.Idle")',
         ("relation",),
     )
     assert "route_control:R45RouteToken" in refs

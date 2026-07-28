@@ -285,6 +285,7 @@ class EvalEnvironment:
             simulation=self.simulation,
             topology=self.topology_api,
             formal=self.fbmcq_api if formal_verification_enabled else None,
+            source_exclusions=self.source_exclusions,
         )
         functions: dict[str, tuple[str, Callable[..., Any]]] = {
             name: (family, getattr(self.predicates, method))

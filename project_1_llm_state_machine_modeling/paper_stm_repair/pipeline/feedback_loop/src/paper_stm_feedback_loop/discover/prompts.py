@@ -173,7 +173,7 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 ASSERTION_CONVERTER_PROMPT += """
 How to write an assertion now. The evidence layer no longer exposes primitives. There is no `simulate`, no `fbmcq`, no `states`, no `transition_exists`. An assertion is a call to the predicate its Requirement names, with that Requirement's `predicate_bindings` as arguments:
 
-    assert occupancy_after(source="R.HumanDrivingMode", trigger="R.Power_Off", target="R.FinalState") is True, "[REQ-006][AST-REQ-006-1] ..."
+    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-006][AST-REQ-006-1] ..."
 
 Besides the predicates you may use only plain Python builtins -- `len`, `all`, `any`, `bool`, `int`, `str`, `sorted`, `sum`, `min`, `max`, `set`, `list`, `tuple`, `abs`, `round`, `float`, `iter`. Anything else is not in the namespace and the assertion will be rejected before it runs. Do not write lambdas over evidence objects; there are no evidence objects to write them over.
 

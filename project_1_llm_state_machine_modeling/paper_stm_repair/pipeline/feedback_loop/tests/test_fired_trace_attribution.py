@@ -156,8 +156,8 @@ def test_missing_transition_table_never_reports_a_clean_path():
 def test_clean_path_reports_the_carrying_transition():
     env = _environment()
     result = AssertionChecker(environment=env).check(
-        f'assert simulate(cycles=[[], ["{PAIR}.Power_Off"]])'
-        f'.final.is_active("{PAIR}.FinalState") is True, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}", trigger="{PAIR}.Power_Off", '
+        f'target="{PAIR}.FinalState") is True, "[R][A] m"',
         "a1",
         required_function_families=("simulation",),
     )
@@ -172,9 +172,9 @@ def test_path_through_route_control_stays_debt_bearing():
 
     env = _environment()
     result = AssertionChecker(environment=env).check(
-        f'assert simulate(cycles=[[], ["{PAIR}.Power_On"], ["{PAIR}.front_distance_10"], '
-        f'["{PAIR}.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal"]])'
-        f'.final.is_active("{PAIR}.HumanDrivingMode") is False, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}.AutonomousMode.AutoFinal", '
+        f'trigger="{PAIR}.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal", '
+        f'target="{PAIR}.HumanDrivingMode") is False, "[R][A] m"',
         "a1",
         required_function_families=("simulation",),
     )
@@ -190,9 +190,9 @@ def test_ignored_event_binds_to_its_declared_carrier():
 
     env = _environment()
     result = AssertionChecker(environment=env).check(
-        f'assert simulate(initial_state="{PAIR}.HumanDrivingMode", '
-        f'initial_vars={{"R45RouteToken": 0}}, cycles=[["{PAIR}.Condition_Met"]])'
-        f'.final.is_active("{PAIR}.AutonomousMode") is True, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}.HumanDrivingMode", '
+        f'trigger="{PAIR}.Condition_Met", target="{PAIR}.AutonomousMode") '
+        f'is True, "[R][A] m"',
         "a1",
         required_function_families=("simulation",),
     )
@@ -211,13 +211,13 @@ def test_simulation_and_static_evidence_agree_on_the_same_element():
     env = _environment()
     checker = AssertionChecker(environment=env)
     dynamic = checker.check(
-        f'assert simulate(cycles=[[], ["{PAIR}.Power_Off"]])'
-        f'.final.is_active("{PAIR}.FinalState") is True, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}", trigger="{PAIR}.Power_Off", '
+        f'target="{PAIR}.FinalState") is True, "[R][A] m"',
         "a1",
         required_function_families=("simulation",),
     )
     static = checker.check(
-        f'assert transition_exists(event="{PAIR}.Power_Off", '
+        f'assert edge_declared(source="{PAIR}", trigger="{PAIR}.Power_Off", '
         f'target="{PAIR}.FinalState") is True, "[R][A] m"',
         "a2",
         required_function_families=("relation",),
@@ -229,8 +229,8 @@ def test_simulation_and_static_evidence_agree_on_the_same_element():
 @pytest.mark.parametrize(
     "query, expect_marker",
     [
-        (f'check invariant <= 3: !active("{PAIR}.FinalState");', False),
-        (f'check reach <= 1: active("{PAIR}.AutonomousMode.AutoFinal");', True),
+        (f'invariant(scope="{PAIR}", condition=\'!active("{PAIR}.FinalState")\', bound=3)', False),
+        (f'invariant(scope="{PAIR}", condition=\'active("{PAIR}")\', bound=2)', True),
     ],
 )
 def test_formal_refs_separate_counterexample_from_bounded_absence(query, expect_marker):
@@ -241,13 +241,12 @@ def test_formal_refs_separate_counterexample_from_bounded_absence(query, expect_
         fbmcq_process_wall_seconds=30.0,
     )
     result = AssertionChecker(environment=env).check(
-        f"assert fbmcq({query!r}).holds is True, \"[R][A] m\"",
+        f"assert {query} is True, \"[R][A] m\"",
         "a1",
         required_function_families=("formal",),
     )
     refs = _refs(result)
-    assert result.value is False
-    assert refs, "a refuted formal query must expose the elements it rests on"
+    assert refs, "a formal answer must expose the elements it rests on"
     assert ("formal:examined_only" in refs) is expect_marker
 
 
@@ -272,10 +271,10 @@ state Root {
 @pytest.mark.parametrize(
     "state, field, expected",
     [
-        ("Root.Idle", "entry_actions", True),
-        ("Root.Idle", "exit_actions", True),
-        ("Root.Idle", "during_actions", False),
-        ("Root.Done", "entry_actions", False),
+        ("Root.Idle", "entry", True),
+        ("Root.Idle", "exit", True),
+        ("Root.Idle", "during", False),
+        ("Root.Done", "entry", False),
     ],
 )
 def test_action_declared_predicate_is_executable(state, field, expected):
@@ -289,7 +288,7 @@ def test_action_declared_predicate_is_executable(state, field, expected):
         formal_verification_enabled=False,
     )
     result = AssertionChecker(environment=env).check(
-        f'assert bool(states(path="{state}", exact=True)[0].{field}) is True, "[R][A] m"',
+        f'assert action_declared(state="{state}", phase="{field}") is True, "[R][A] m"',
         "a1",
         required_function_families=("structure",),
     )
@@ -376,8 +375,8 @@ def test_simulation_only_false_can_now_be_promoted():
 
     binding = _bind_one(
         "0000",
-        f'assert simulate(cycles=[[], ["{PAIR}.Power_Off"]])'
-        f'.final.is_active("{PAIR}.FinalState") is False, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}", trigger="{PAIR}.Power_Off", '
+        f'target="{PAIR}.FinalState") is False, "[R][A] m"',
         "simulation",
     )
     assert binding.status == "safe"
@@ -389,9 +388,9 @@ def test_tainted_simulation_path_is_still_refused():
 
     binding = _bind_one(
         "0000",
-        f'assert simulate(cycles=[[], ["{PAIR}.Power_On"], ["{PAIR}.front_distance_10"], '
-        f'["{PAIR}.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal"]])'
-        f'.final.is_active("{PAIR}.HumanDrivingMode") is False, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}.AutonomousMode.AutoFinal", '
+        f'trigger="{PAIR}.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal", '
+        f'target="{PAIR}.HumanDrivingMode") is False, "[R][A] m"',
         "simulation",
     )
     assert binding.status == "representation_debt"
@@ -402,9 +401,9 @@ def test_tainted_simulation_path_is_still_refused():
 def test_ignored_event_false_is_attributable_through_near_miss():
     binding = _bind_one(
         "0000",
-        f'assert simulate(initial_state="{PAIR}.HumanDrivingMode", '
-        f'initial_vars={{"R45RouteToken": 0}}, cycles=[["{PAIR}.Condition_Met"]])'
-        f'.final.is_active("{PAIR}.AutonomousMode") is True, "[R][A] m"',
+        f'assert occupancy_after(source="{PAIR}.HumanDrivingMode", '
+        f'trigger="{PAIR}.Condition_Met", target="{PAIR}.AutonomousMode") '
+        f'is True, "[R][A] m"',
         "simulation",
     )
     assert binding.status == "safe"

@@ -89,6 +89,7 @@ class PredicateAPI:
         simulation: Any,
         topology: Any = None,
         formal: Any = None,
+        source_exclusions: tuple[str, ...] = (),
     ) -> None:
         self.structure = structure
         self.relations = relations
@@ -96,6 +97,7 @@ class PredicateAPI:
         self.simulation = simulation
         self.topology_api = topology
         self.formal = formal
+        self.source_exclusions = tuple(source_exclusions)
         # Attribution needs to know which model elements a call rested on.  The
         # predicate is the only thing that knows: it chose the query.  Refs are
         # collected per call and consumed by the runtime's audit wrapper, so the
@@ -155,6 +157,17 @@ class PredicateAPI:
                 self._note(ref)
             if getattr(cycle, "path_taint", None) == "ambiguous":
                 ambiguous = True
+            # "Nothing happened" is often the defect itself, and it leaves no
+            # path to attribute.  Anchor it to the transitions that declare the
+            # ignored event, exactly as a failed structural query anchors to its
+            # near miss -- otherwise a real finding lands as `unattributed`.
+            fired = getattr(cycle, "fired_transitions", ()) or ()
+            unconsumed = getattr(cycle, "unconsumed_events", ()) or ()
+            if not fired and unconsumed:
+                for event in unconsumed:
+                    if isinstance(event, str) and event:
+                        self._note(event)
+                        self._note_transitions(event=event)
         if ambiguous:
             self._note("simulation:path_taint:ambiguous")
 
@@ -173,15 +186,31 @@ class PredicateAPI:
                         out[name] = 0
         return out
 
-    def _note_transitions(self, **filters: Any) -> None:
-        """Record the declared transitions a relational query matched."""
+    def _note_transitions(self, *, filtered_route_control: bool = False, **filters: Any) -> None:
+        """Record the declared transitions a relational query matched.
+
+        Three details carry over from the pre-predicate attribution path and must
+        not be lost.  A route-control variable in a matched guard or effect is
+        genuine evidence of converter lowering, so it keeps signalling debt.  A
+        query that matches nothing still needs an anchor: without a near miss a
+        negative structural answer has no model identity to attribute, which is
+        how a real defect ends up merely `unattributed`.  And a near miss that
+        differs only in the converter's event projection is itself the finding's
+        cause, so the projection is reported under its qualified name.
+        """
 
         clean = {k: v for k, v in filters.items() if isinstance(v, str) and v}
         try:
             rows = self.structure.transitions(**clean)
         except Exception:
             return
+        used_near_miss = False
+        if not rows:
+            rows = self._near_miss(clean)
+            used_near_miss = bool(rows)
         for row in rows:
+            if used_near_miss:
+                self._note_event_projection(row, requested=clean.get("event"))
             for key in ("from_path", "to_path", "event"):
                 value = getattr(row, key, None)
                 if isinstance(value, str) and value and value != "[*]":
@@ -189,6 +218,73 @@ class PredicateAPI:
             index = getattr(row, "transition_index", None)
             if isinstance(index, int):
                 self._note(f"transition:{index}")
+            text = " ".join(
+                str(getattr(row, k, "") or "") for k in ("guard", "effect")
+            )
+            for item in self.source_exclusions:
+                prefix = "compiler:route_control:"
+                if item.startswith(prefix):
+                    variable = item.removeprefix(prefix)
+                    if not variable or variable not in text:
+                        continue
+                    # EffectAPI already dropped this variable from the answer, so
+                    # the result does not rest on it.  Reporting it as touched
+                    # made attribution mark the finding `representation_debt`:
+                    # on pair 0006 the only effect on the Attack_Complete
+                    # transition is the compiler's own route token, so the query
+                    # proving "no semantic decrement exists" was disqualified for
+                    # having looked at the thing it filtered out.
+                    self._note(
+                        f"filtered_route_control:{variable}"
+                        if filtered_route_control
+                        else f"route_control:{variable}"
+                    )
+
+    def _note_event_projection(self, row: Any, *, requested: str | None) -> None:
+        """Report a near miss that differs only by the converter's projection.
+
+        When the converter folds a combined condition into a single event, an
+        assertion that names the atomic event the NL used fails for a
+        representation reason, not an authoring one.  The exclusion table names
+        that event with its full ``compiler:event_projection:`` qualifier and the
+        shared matcher in ``common.refs`` compares complete references, so the
+        bare event path this method's caller already recorded does not intersect
+        it.  Without the qualified form the finding is booked against the source
+        author.
+        """
+
+        actual = getattr(row, "event", None)
+        if not requested or not isinstance(actual, str) or not actual:
+            return
+        if actual == requested:
+            return
+        reference = f"compiler:event_projection:{actual}"
+        if reference in self.source_exclusions:
+            self._note(reference)
+
+    def _near_miss(self, filters: dict[str, str]) -> tuple[Any, ...]:
+        """Return the closest actual relation for a query that matched nothing."""
+
+        for keys in (("source", "event"), ("source", "target"), ("event", "target")):
+            if not all(k in filters for k in keys) or len(keys) >= len(filters):
+                continue
+            try:
+                rows = self.structure.transitions(**{k: filters[k] for k in keys})
+            except Exception:
+                continue
+            if rows:
+                return rows
+        if len(filters) <= 2:
+            for key in ("source", "event", "target"):
+                if key not in filters:
+                    continue
+                try:
+                    rows = self.structure.transitions(**{key: filters[key]})
+                except Exception:
+                    continue
+                if rows:
+                    return rows
+        return ()
 
     @staticmethod
     def _active(view: Any) -> tuple[str, ...]:
@@ -257,7 +353,9 @@ class PredicateAPI:
 
         _require_declared(source=source, trigger=trigger, variable=variable)
         self._note(source, trigger, variable)
-        self._note_transitions(source=source, event=trigger)
+        self._note_transitions(
+            source=source, event=trigger, filtered_route_control=True
+        )
         want = str(sign).strip().lower()
         if want not in {"negative", "positive"}:
             raise UnsupportedEvidence(f"sign must be negative or positive, got {sign!r}")
@@ -414,9 +512,13 @@ class PredicateAPI:
         """Every occurrence of this trigger is answered within the bound."""
 
         _require_declared(trigger=trigger, response=response)
+        # The response arm needs its own `within`; without it the grammar rejects
+        # the query and the predicate can only ever raise.  No test executed this
+        # predicate, which is how a dead one shipped.
         query = (
             f"check response <= {int(bound)}: "
-            f'trigger event("{trigger}", current) -> active("{response}");'
+            f'trigger event("{trigger}", current) -> '
+            f'within {int(bound)} active("{response}");'
         )
         return self._formal_holds(query)
 

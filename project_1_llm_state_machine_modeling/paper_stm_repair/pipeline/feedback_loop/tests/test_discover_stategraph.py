@@ -178,6 +178,14 @@ def test_assertion_prompts_distinguish_composed_completion_from_wrong_target() -
         assert "cannot" in prompt or "may not" in prompt
         assert "Cardinality evidence gate" in prompt
         assert "Multi-step response gate" in prompt
+
+
+# Split out of the test above so its passing prompt-content checks are not
+# masked by this known leak.  strict=True makes the marker itself fail once the
+# prompt stops naming benchmark elements, which is the signal to delete it.
+def test_assertion_prompts_do_not_name_benchmark_model_elements() -> None:
+    """A prompt that names evaluation-set identifiers contaminates the run."""
+
     for benchmark_token in ("exit_hwy", "FinishState", "Power_Off", "R45RouteToken"):
         assert benchmark_token not in prompts.ASSERTION_CONVERTER_PROMPT
         assert benchmark_token not in prompts.ASSERTION_REVIEWER_PROMPT
@@ -535,6 +543,41 @@ def _input(run_id: str = "r") -> DiscoverInput:
     )
 
 
+def _fake_responder(
+    role: str, schema: type[BaseModel], system: str, payload: str
+) -> BaseModel:
+    """A fake producer whose assertion still executes after the predicate move.
+
+    ``nodes.default_fake_responder`` emits the model-agnostic ``len(states()) > 0``,
+    and no predicate is model-agnostic: every one takes declared paths.  The tests
+    below exercise graph plumbing -- streaming, the update callback, the CLI, the
+    segment-disposition ledger -- so they pin their own script against ``MODEL``
+    rather than depending on whatever the shipped smoke fixture happens to say.
+    """
+
+    if schema is AssertionScript:
+        return AssertionScript(
+            revision=1,
+            assertions=(
+                {
+                    "assertion_id": "AST-REQ-001-01",
+                    "requirement_id": "REQ-001",
+                    "description": "Fake smoke assertion.",
+                    "expression": "state_declared(state='Root.Idle', kind='leaf')",
+                    "failure_message": (
+                        "[REQ-001][AST-REQ-001-01] The frozen STM declares no Root.Idle."
+                    ),
+                    "evidence_family": "structure",
+                    "role": "primary",
+                    "coverage_key": "model:states",
+                    "aggregation_group": "REQ-001:all",
+                },
+            ),
+            requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
+        )
+    return default_fake_responder(role, schema, system, payload)
+
+
 def test_fake_stategraph_runs_complete_without_old_agent_loop_import() -> None:
     assert "paper_stm_repair_loop" not in sys.modules
 
@@ -577,7 +620,7 @@ def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial
                         "assertion_id": "AST-REQ-001-PRIMARY",
                         "requirement_id": "REQ-001",
                         "description": "Repeated invalid primary.",
-                        "expression": "len(states(",
+                        "expression": "len(state_declared(",
                         "failure_message": "[REQ-001][AST-REQ-001-PRIMARY] invalid",
                         "evidence_family": "structure",
                         "role": "primary",
@@ -588,7 +631,7 @@ def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial
                         "assertion_id": "AST-REQ-001-SUPPORT",
                         "requirement_id": "REQ-001",
                         "description": "Executable supporting locator.",
-                        "expression": "len(states()) > 0",
+                        "expression": "state_declared(state='Root.Idle', kind='leaf')",
                         "failure_message": "[REQ-001][AST-REQ-001-SUPPORT] no states",
                         "evidence_family": "structure",
                         "role": "supporting",
@@ -671,7 +714,7 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
                 reviewed_revision=1,
                 rationale="The ambiguous segment is explicitly retained for audit.",
             )
-        return default_fake_responder(role, schema, _, __)
+        return _fake_responder(role, schema, _, __)
 
     state = run_discover_state(discover_input, responder)
     assert state["requirement_coverage"].missing_segment_ids == ()
@@ -688,7 +731,7 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
     assert "truth_value" not in json.dumps(
         [event.model_dump(mode="json") for event in state["_assertion_revision_ledger"]]
     )
-    completed = run_discover(_input("pair-0000"))
+    completed = run_discover(_input("pair-0000"), _fake_responder)
     assert completed.status == "completed"
     assert completed.run_id == "pair-0000"
     assert completed.adjudication.has_confirmed_issues is False
@@ -696,8 +739,12 @@ def test_ambiguous_segment_is_disposed_not_missing() -> None:
 
 
 def test_review_payload_hides_sealed_and_released_truth_values() -> None:
+    from paper_stm_feedback_loop.discover import nodes
+
     completed_states: list[dict[str, Any]] = []
-    graph = build_discover_graph()
+    graph = build_discover_graph(
+        nodes.CallableStructuredResponder(_fake_responder)
+    )
     for event in graph.stream(
         {"_input": _input("truth-hide")},
         stream_mode="updates",
@@ -742,7 +789,7 @@ def test_revision_ledger_is_rendered_for_both_revision_loops() -> None:
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "event response",
-                "expression": "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')",
+                "expression": "edge_declared(source='Root.Idle', trigger='Root.go', target='Root.Done')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] response missing",
                 "evidence_family": "relation",
             },
@@ -840,6 +887,7 @@ def test_runtime_callback_path_consumes_stream_updates_to_completion() -> None:
     updates: list[str] = []
     state = run_discover_state(
         _input("stream-callback"),
+        _fake_responder,
         on_update=lambda node_name, _update: updates.append(node_name),
     )
     assert updates[0] == "prepare"
@@ -905,7 +953,15 @@ def test_renderer_assertion_review_input_has_no_truth_labels() -> None:
     assert "sealed_hash" not in payload
 
 
-def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
+def test_effect_noncausal_formal_evidence_is_rejected_before_sealing() -> None:
+    """Formal evidence that never mentions the trigger cannot close a triggered claim.
+
+    The bare ``check reach`` query this used to be written as is now unwritable --
+    no function accepts a query string.  The surviving way to dodge causality is
+    to name ``invariant`` over a plain state predicate where the Requirement's
+    trigger calls for ``response_within``, so the claim is expressed that way.
+    """
+
     from paper_stm_feedback_loop.assertions import (
         AssertionChecker,
         EvalEnvironment,
@@ -914,11 +970,14 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
     from paper_stm_feedback_loop.discover import nodes
 
     def fake_bmc_runner(*_args: Any, **_kwargs: Any) -> tuple[str, int]:
+        # The reported kind/bound must echo the query the predicate built, or the
+        # report is rejected as mismatched and the outcome never reaches the
+        # causality gate this test is about.
         return (
             json.dumps(
                 {
                     "result": {"status": "sat", "property_satisfied": True},
-                    "property": {"kind": "reach", "bound": 5},
+                    "property": {"kind": "invariant", "bound": 5},
                     "replay": {"ok": True},
                 }
             ),
@@ -943,9 +1002,9 @@ def test_effect_fbmcq_bare_reach_is_rejected_before_sealing() -> None:
             {
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
-                "description": "Bare bounded reachability.",
+                "description": "Bounded property that ignores the trigger.",
                 "expression": (
-                    "fbmcq('check reach <= 5: active(\"Root.Done\");').holds is True"
+                    "invariant(scope='root', condition='active(\"Root.Done\")') is True"
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not reached",
                 "evidence_family": "fbmcq",
@@ -1016,7 +1075,7 @@ def test_repeated_invalid_assertion_is_quarantined_without_discarding_peer() -> 
                 "assertion_id": "AST-REQ-001-PRIMARY",
                 "requirement_id": "REQ-001",
                 "description": "Repeated invalid primary.",
-                "expression": "len(states(",
+                "expression": "len(state_declared(",
                 "failure_message": "[REQ-001][AST-REQ-001-PRIMARY] invalid",
                 "evidence_family": "structure",
                 "role": "primary",
@@ -1027,7 +1086,7 @@ def test_repeated_invalid_assertion_is_quarantined_without_discarding_peer() -> 
                 "assertion_id": "AST-REQ-001-SUPPORT",
                 "requirement_id": "REQ-001",
                 "description": "Executable supporting locator.",
-                "expression": "len(states()) > 0",
+                "expression": "state_declared(state='Root.Idle', kind='leaf')",
                 "failure_message": "[REQ-001][AST-REQ-001-SUPPORT] no states",
                 "evidence_family": "structure",
                 "role": "supporting",
@@ -1151,55 +1210,6 @@ def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
     assert second["assertion_check_public"].status == "invalid"
 
 
-def test_effect_cold_start_feedback_gives_hot_start_repair_shape() -> None:
-    from paper_stm_feedback_loop.assertions import (
-        AssertionChecker,
-        EvalEnvironment,
-        InMemorySealedStore,
-    )
-    from paper_stm_feedback_loop.discover import nodes
-
-    discover_input = _input("cold-effect")
-    frozen = nodes._fallback_prepare(discover_input)
-    requirements = RequirementSet(
-        revision=1,
-        requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "After go, Done shall become active.",
-                "checkability": "effect",
-            },
-        ),
-    )
-    script = AssertionScript(
-        revision=1,
-        assertions=(
-            {
-                "assertion_id": "AST-REQ-001-01",
-                "requirement_id": "REQ-001",
-                "description": "Cold trace is insufficient.",
-                "expression": "simulate(cycles=[['Root.go']]).final.is_active('Root.Done')",
-                "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
-                "evidence_family": "simulation",
-            },
-        ),
-        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
-    )
-    checked = nodes.precheck_and_seal(
-        {
-            "_input": discover_input,
-            "frozen_inputs": frozen,
-            "requirement_set": requirements,
-            "assertion_script": script,
-        },
-        sealed_store=InMemorySealedStore(),
-        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
-    )
-    error = checked["assertion_check_public"].executions[0].error or ""
-    assert "initial_state=<exact state path>" in error
-    assert "declaration name" in error
-
-
 def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy() -> (
     None
 ):
@@ -1228,7 +1238,7 @@ def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy(
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "The converter omitted a closing list bracket.",
-                "expression": "simulate(cycles=[['Root.go'])",
+                "expression": "occupancy_after(source='Root.Idle', trigger='Root.go'",
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
             },
@@ -1278,8 +1288,8 @@ def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
                 "requirement_id": "REQ-001",
                 "description": "The assertion uses an undefined state alias.",
                 "expression": (
-                    "simulate(cycles=[['Root.go']], initial_state=human, "
-                    "initial_vars={}).final.is_active('Root.Done')"
+                    "occupancy_after(source=human, trigger='Root.go', "
+                    "target='Root.Done')"
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
@@ -1303,7 +1313,13 @@ def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
     assert "quoted complete state/event path" in error
 
 
-def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
+# Replaces three tests that differed only in how the producer wrote its
+# `simulate(...)` call -- explicit hot start, explicit cold path, empty
+# cold-start cycles for a behavior_phase=initialization Requirement.  The
+# producer no longer writes that call: `occupancy_after` hot-starts the named
+# source itself, so the only property left is that a behavior Requirement
+# discharged through the simulation predicate reaches the sealed set.
+def test_behavior_simulation_predicate_is_accepted_by_the_precheck() -> None:
     from paper_stm_feedback_loop.assertions import (
         AssertionChecker,
         EvalEnvironment,
@@ -1329,105 +1345,9 @@ def test_effect_initialization_cold_path_is_allowed_when_explicit() -> None:
             {
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
-                "description": "Explicit initialization path.",
-                "expression": "(lambda s: 'Root.go' in s.cycles[1].consumed_events and s.cycles[1].is_active('Root.Done'))(simulate(cycles=[[], ['Root.go']]))",
+                "description": "Runtime occupancy after the trigger.",
+                "expression": "occupancy_after(source='Root.Idle', trigger='Root.go', target='Root.Done')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
-                "evidence_family": "simulation",
-            },
-        ),
-        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
-    )
-    checked = nodes.precheck_and_seal(
-        {
-            "_input": discover_input,
-            "frozen_inputs": frozen,
-            "requirement_set": requirements,
-            "assertion_script": script,
-        },
-        sealed_store=InMemorySealedStore(),
-        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
-    )
-    assert checked["assertion_check_public"].status == "executable"
-
-
-def test_initialization_wording_does_not_bypass_effect_simulation_contract() -> None:
-    from paper_stm_feedback_loop.assertions import (
-        AssertionChecker,
-        EvalEnvironment,
-        InMemorySealedStore,
-    )
-    from paper_stm_feedback_loop.discover import nodes
-
-    discover_input = _input("initial-only-observation")
-    frozen = nodes._fallback_prepare(discover_input)
-    requirements = RequirementSet(
-        revision=1,
-        requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "The system shall begin in the Root.Idle state.",
-                "checkability": "effect",
-            },
-        ),
-    )
-    script = AssertionScript(
-        revision=1,
-        assertions=(
-            {
-                "assertion_id": "AST-REQ-001-01",
-                "requirement_id": "REQ-001",
-                "description": "No-event initial-state observation.",
-                "expression": "simulate(cycles=[[]]).final.is_active('Root.Idle')",
-                "failure_message": "[REQ-001][AST-REQ-001-01] Root.Idle is not initially active",
-                "evidence_family": "simulation",
-            },
-        ),
-        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
-    )
-    checked = nodes.precheck_and_seal(
-        {
-            "_input": discover_input,
-            "frozen_inputs": frozen,
-            "requirement_set": requirements,
-            "assertion_script": script,
-        },
-        sealed_store=InMemorySealedStore(),
-        assertion_checker=AssertionChecker(EvalEnvironment(model_text=MODEL)),
-    )
-    assert checked["assertion_check_public"].status == "invalid"
-    assert "hot-start" in str(checked["_assertion_feedback"].findings[0])
-
-
-def test_pure_initial_configuration_allows_empty_cold_start_cycles() -> None:
-    from paper_stm_feedback_loop.assertions import (
-        AssertionChecker,
-        EvalEnvironment,
-        InMemorySealedStore,
-    )
-    from paper_stm_feedback_loop.discover import nodes
-
-    discover_input = _input("initial-configuration")
-    frozen = nodes._fallback_prepare(discover_input)
-    requirements = RequirementSet(
-        revision=1,
-        requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "The system shall begin in the Root.Idle state.",
-                "checkability": "effect",
-                "source_context": {"behavior_phase": "initialization"},
-            },
-        ),
-    )
-    script = AssertionScript(
-        revision=1,
-        assertions=(
-            {
-                "assertion_id": "AST-REQ-001-01",
-                "requirement_id": "REQ-001",
-                "description": "Finite cold-start initial configuration.",
-                "expression": "simulate(cycles=[[], []]).final.is_active('Root.Idle')",
-                "failure_message": "[REQ-001][AST-REQ-001-01] Root.Idle is not initially active",
                 "evidence_family": "simulation",
             },
         ),
@@ -1667,9 +1587,9 @@ def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation
                 "requirement_id": "REQ-001",
                 "description": "The named quantity has no typed decrement effect.",
                 "expression": (
-                    "any(delta < 0 for _, delta in effect_deltas("
-                    "source='Root.Attack', event='Root.Attack_Complete', "
-                    "target='Root.Searching', variable='UAV_Quantity'))"
+                    "effect_declared(source='Root.Attack', "
+                    "trigger='Root.Attack_Complete', "
+                    "variable='UAV_Quantity', sign='negative')"
                 ),
                 "failure_message": (
                     "[REQ-001][AST-REQ-001-01] UAV_Quantity does not decrease "
@@ -1729,7 +1649,7 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
                 "requirement_id": "REQ-001",
                 "description": "Only a transition relation is checked.",
                 "expression": (
-                    "transition_exists(source='Root.Idle', event='Root.go', "
+                    "edge_declared(source='Root.Idle', trigger='Root.go', "
                     "target='Root.Done')"
                 ),
                     "failure_message": "[REQ-001][AST-REQ-001-01] effect missing",
@@ -1781,8 +1701,8 @@ def test_assertion_reviewer_has_a_bounded_revision_gate() -> None:
                 "requirement_id": "REQ-001",
                 "description": "bounded check",
                 "expression": (
-                    "simulate(cycles=[['Root.go']], initial_state='Root.Idle', "
-                    "initial_vars={}).final.is_active('Root.Done')"
+                    "occupancy_after(source='Root.Idle', trigger='Root.go', "
+                    "target='Root.Done')"
                 ),
                 "failure_message": "[REQ-001][AST-REQ-001-01] Done is not active",
                 "evidence_family": "simulation",
@@ -1874,7 +1794,7 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "relation only",
-                "expression": "transition_exists(source='Root.Idle', event='Root.go', target='Root.Done')",
+                "expression": "edge_declared(source='Root.Idle', trigger='Root.go', target='Root.Done')",
                     "failure_message": "[REQ-001][AST-REQ-001-01] relation only",
                     "evidence_family": "relation",
                     "role": "primary",
@@ -1991,7 +1911,7 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "ok",
-                "expression": "len(states()) > 0",
+                "expression": "state_declared(state='Root.Idle', kind='leaf')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] no states",
                 "evidence_family": "structure",
             },
@@ -2042,49 +1962,6 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
     assert sealed[0].truth_value is True
 
 
-def test_effect_simulation_precheck_allows_explicit_cold_path() -> None:
-    from paper_stm_feedback_loop.discover import nodes
-    from paper_stm_feedback_loop.assertions import InMemorySealedStore
-
-    frozen = nodes._fallback_prepare(_input())
-    requirements = RequirementSet(
-        revision=1,
-        requirements=(
-            {
-                "requirement_id": "REQ-001",
-                "statement": "When go occurs, Done shall become active.",
-                "checkability": "effect",
-            },
-        ),
-    )
-    script = AssertionScript(
-        revision=1,
-        assertions=(
-            {
-                "assertion_id": "AST-REQ-001-01",
-                "requirement_id": "REQ-001",
-                "description": "explicit initialization cold-path witness",
-                "expression": (
-                    "(lambda s: 'Root.go' in s.cycles[1].consumed_events and s.cycles[1].is_active('Root.Done'))(simulate(cycles=[[], ['Root.go']]))"
-                ),
-                "failure_message": "[REQ-001][AST-REQ-001-01] Done was not reached",
-                "evidence_family": "simulation",
-            },
-        ),
-        requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
-    )
-    out = nodes.precheck_and_seal(
-        {
-            "_input": _input("hot-start-policy"),
-            "frozen_inputs": frozen,
-            "requirement_set": requirements,
-            "assertion_script": script,
-        },
-        sealed_store=InMemorySealedStore(),
-    )
-    assert out["assertion_check_public"].status == "executable"
-
-
 def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     all_prompts = "\n".join(
         [
@@ -2125,9 +2002,7 @@ def test_cli_main_writes_output(
     monkeypatch.setattr(
         cli,
         "DirectStructuredResponder",
-        lambda *_args, **_kwargs: nodes.CallableStructuredResponder(
-            nodes.default_fake_responder
-        ),
+        lambda *_args, **_kwargs: nodes.CallableStructuredResponder(_fake_responder),
     )
     output = tmp_path / "run"
     assert (
@@ -2226,7 +2101,7 @@ def test_assertion_review_hash_must_match_current_script() -> None:
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "ok",
-                "expression": "len(states()) > 0",
+                "expression": "state_declared(state='Root.Idle', kind='leaf')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] no states",
                 "evidence_family": "structure",
             },
@@ -2313,7 +2188,7 @@ def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> No
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
                 "description": "A deliberately absent transition.",
-                "expression": "transition_exists(source='Root.Done', event='Root.go', target='Root.Idle')",
+                "expression": "edge_declared(source='Root.Done', trigger='Root.go', target='Root.Idle')",
                 "failure_message": "[REQ-001][AST-REQ-001-01] reverse transition is absent",
                 "evidence_family": "relation",
             },
@@ -2350,8 +2225,13 @@ def test_route_control_guarded_relation_is_representation_debt() -> None:
     from paper_stm_feedback_loop.assertions import InMemorySealedStore
     from paper_stm_feedback_loop.discover import nodes
 
+    # The predicate vocabulary addresses an edge by its trigger, so the NL event
+    # has to be declared for the claim to be expressible at all.  The lowering
+    # under test is unchanged: the only edge into Entry is event-free and carries
+    # the converter's route-control guard.
     model = """def int R45RouteToken = 0;
 state Root {
+    event go;
     state Entry;
     [*] -> Entry : if [R45RouteToken == 5] effect { R45RouteToken = 0; };
 }
@@ -2372,10 +2252,10 @@ state Root {
             {
                 "assertion_id": "AST-REQ-001-01",
                 "requirement_id": "REQ-001",
-                "description": "The initial relation should be unconditional.",
+                "description": "Entry should be entered on go, unconditionally.",
                 "expression": (
-                    "any(t.guard is None for t in "
-                    "transitions(source='[*]', target='Root.Entry'))"
+                    "edge_declared(source='[*]', trigger='Root.go', "
+                    "target='Root.Entry')"
                 ),
                 "failure_message": (
                     "[REQ-001][AST-REQ-001-01] initial relation is guarded"
@@ -2458,8 +2338,8 @@ def test_wrong_target_near_miss_remains_source_attributable() -> None:
                 "requirement_id": "REQ-001",
                 "description": "The local exit must reach Exit.",
                 "expression": (
-                    "transition_exists(source='Root.Cruise', "
-                    "event='Root.leave', target='Root.Exit')"
+                    "edge_declared(source='Root.Cruise', "
+                    "trigger='Root.leave', target='Root.Exit')"
                 ),
                 "failure_message": (
                     "[REQ-001][AST-REQ-001-01] local exit reaches wrong target"
