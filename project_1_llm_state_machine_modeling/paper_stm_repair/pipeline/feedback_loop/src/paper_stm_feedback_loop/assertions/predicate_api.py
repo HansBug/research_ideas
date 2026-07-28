@@ -60,6 +60,42 @@ DEFAULT_BOUND = 5
 #: Cycles a termination probe drives before concluding the model cannot finish.
 TERMINATION_CYCLES = 6
 
+#: Hard ceiling on any caller-supplied cycle or step budget.  `reaches` builds
+#: one plan entry per cycle, so `within_cycles=10**9` allocated a billion of them
+#: and exhausted the machine's memory before any check ran.  A producer can write
+#: that number by accident -- nothing in the prompt bounds it -- and an OOM kill
+#: mid-run leaves a partial record indistinguishable from a model that produced
+#: nothing.  Refuse instead: a budget this large is not a claim anyone can check.
+MAX_BUDGET = 64
+
+
+def _budget(value: Any, name: str, default: int) -> int:
+    """Coerce a caller-supplied cycle or step budget, or refuse it.
+
+    Refusing rather than clamping, because a clamped budget answers a *different*
+    question than the one asked and returns a plain bool with no sign that it
+    happened -- the failure mode this layer exists to avoid.
+    """
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise UnsupportedEvidence(
+            f"{name} must be an integer, got {value!r}"
+        ) from exc
+    if parsed < 1:
+        raise UnsupportedEvidence(
+            f"{name} must be at least 1, got {parsed}: a zero or negative budget "
+            "checks nothing"
+        )
+    if parsed > MAX_BUDGET:
+        raise UnsupportedEvidence(
+            f"{name}={parsed} exceeds the {MAX_BUDGET}-step ceiling; a bounded "
+            "check that large is not decidable here. State the obligation over a "
+            "smaller horizon."
+        )
+    return parsed
+
 
 #: Which declaration table decides whether a binding's `<undeclared>` is provable.
 #: A binding absent from this map has no table to check against, so it can never
@@ -213,6 +249,23 @@ class PredicateAPI:
         literal-valued ones -- can never take the first branch: a boolean
         expression has no declaration list to be absent from.
         """
+
+        # Type-check the path-shaped bindings here rather than leaving it to
+        # whichever facade happens to touch the value first.  `effect_declared`
+        # passed an int straight through to the effect facade, which concatenated
+        # it and raised `TypeError: can only concatenate str` -- an error type the
+        # controller has no repair branch for, so the producer got generic advice
+        # and burned its budget on the same mistake.  Every binding in the table
+        # is a path, so one check covers all of them.
+        for name in BINDING_DECLARATION_TABLE:
+            if name not in bindings:
+                continue
+            # An *absent* optional binding is fine and simply is not passed in;
+            # a binding that is present with a `None` value is not the same
+            # thing, and letting it through reached the effect facade as an
+            # unregistered item access -- another exception type with no repair
+            # branch behind it.
+            _need(bindings[name], name)
 
         missing = tuple(sorted(k for k, v in bindings.items() if v == UNDECLARED))
         if not missing:
@@ -673,7 +726,11 @@ class PredicateAPI:
         """
 
         self._require_declared(source=source, trigger=trigger, target=target)
-        view = self._simulate(source=source, trigger=trigger, cycles=int(within_cycles))
+        view = self._simulate(
+            source=source,
+            trigger=trigger,
+            cycles=_budget(within_cycles, "within_cycles", DEFAULT_CYCLES),
+        )
         # The claim is "this trigger takes the system there".  A completion
         # transition can reach the target on its own while the trigger is never
         # consumed; crediting the trigger for that is the false-positive shape
@@ -729,9 +786,10 @@ class PredicateAPI:
             # A completion transition may have moved the variable; that is not
             # evidence that *this* trigger does.
             return False
-        cycles = getattr(view, "cycles", ()) or ()
-        if not cycles:
-            return False
+        # `_consumed` reads the events off `view.cycles`, so reaching this line
+        # already means there is at least one cycle -- an `if not cycles` guard
+        # here was dead code, and dead code implies a case that cannot happen.
+        cycles = view.cycles
         before = getattr(getattr(view, "effective_initialization", None), "variables", None)
         start = _read_var(before, variable)
         end = _read_var(getattr(cycles[-1], "variables", None), variable)
@@ -750,7 +808,11 @@ class PredicateAPI:
         # -- a fabricated defect on the most common shape in this corpus.  Offer
         # the whole declared alphabet each cycle and let the model take what it
         # can; that is the bounded over-approximation this predicate is for.
-        return self._reaches_within(source=source, target=target, cycles=int(within_cycles))
+        return self._reaches_within(
+            source=source,
+            target=target,
+            cycles=_budget(within_cycles, "within_cycles", 3),
+        )
 
     def _reaches_within(self, *, source: str, target: str, cycles: int) -> bool:
         alphabet = [
@@ -783,7 +845,10 @@ class PredicateAPI:
     def terminates(self, *, scope: str, trigger: str | None = None) -> bool:
         """The model actually finishes."""
 
-        self._require_declared(scope=scope, trigger=trigger)
+        # `trigger=None` means "offer every declared event", so it is an absent
+        # binding rather than a malformed one and must not be handed to the guard.
+        optional = {"trigger": trigger} if trigger is not None else {}
+        self._require_declared(scope=scope, **optional)
         # One cycle only ever saw the first step, so a final state two events
         # away was reported unreachable.  Drive the declared alphabet for a
         # bounded number of cycles instead: termination is a reachability
@@ -842,13 +907,16 @@ class PredicateAPI:
         was a constant False.
         """
 
-        self._require_declared(trigger=trigger, response=response, source=source)
+        # `source=None` means "no configuration was named"; only a value that is
+        # present can be malformed.
+        optional = {"source": source} if source is not None else {}
+        self._require_declared(trigger=trigger, response=response, **optional)
         # Two things were wrong.  The response arm needs its own `within` or the
         # grammar rejects the query outright.  And with `within == bound` only
         # step 0 carries a complete obligation, so every later step lands in the
         # incomplete formula and the answer is a constant False.  Give the
         # response a window strictly inside the horizon.
-        horizon = max(2, int(bound))
+        horizon = max(2, _budget(bound, "bound", DEFAULT_BOUND))
         window = max(1, horizon - 1)
         # `[*]` means the cold start, and the caller said so deliberately.
         # Falling through to `_default_init()` there would answer about whatever
@@ -888,7 +956,7 @@ class PredicateAPI:
         head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
         query = (
             f"{head}"
-            f"check invariant <= {int(bound)}: "
+            f"check invariant <= {_budget(bound, 'bound', DEFAULT_BOUND)}: "
             f'({release}) || active("{state}");'
         )
         return self._formal_holds(query)
@@ -942,7 +1010,7 @@ class PredicateAPI:
 
         pinned = self._hot_startable(scope)
         head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
-        return f"{head}check {kind} <= {int(bound)}: {condition};"
+        return f"{head}check {kind} <= {_budget(bound, 'bound', DEFAULT_BOUND)}: {condition};"
 
     def _formal_holds(self, query: str) -> bool:
         if self.formal is None:

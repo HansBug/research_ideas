@@ -114,10 +114,40 @@ HOSTILE_NUMBERS = [
     ("none", None),
 ]
 
+class _StubSolver:
+    """A bounded-check stand-in that answers instantly and spawns nothing.
+
+    The real solver runs in a `multiprocessing` child per call.  This file makes
+    a few hundred Family P calls, so using it meant a few hundred children --
+    the box went to 59 GB resident and started swapping.  And it buys nothing
+    here: these tests are about what the *predicate layer* does with a hostile
+    binding, which is decided before any query is built, and the two outcomes
+    that matter downstream (a terminal verdict, a refusal) are both reachable
+    from a stub.  `test_predicate_behaviour_spec.py` exercises the real solver
+    against real models, which is where that belongs.
+    """
+
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    def fbmcq(self, query: str):
+        self.queries.append(query)
+        return {"status": "ok", "holds": True, "witness": None}
+
+
+class _StubResult(dict):
+    """`_formal_holds` reads `.status` / `.holds`, so expose both shapes."""
+
+    status = "ok"
+    holds = True
+
+
 _ENV = None
 
 
 def env():
+    """One environment, real facades, stubbed solver."""
+
     global _ENV
     if _ENV is None:
         _ENV = build_eval_environment(
@@ -125,10 +155,13 @@ def env():
             source_mappings=[],
             source_exclusions=[],
             timeout_seconds=30,
-            fbmcq_solver_timeout_ms=15_000,
-            fbmcq_max_bound=6,
-            fbmcq_process_wall_seconds=25.0,
+            fbmcq_solver_timeout_ms=4_000,
+            fbmcq_max_bound=2,
+            fbmcq_process_wall_seconds=8.0,
         )
+        stub = _StubSolver()
+        stub.fbmcq = lambda query: _StubResult()  # type: ignore[assignment]
+        _ENV.predicates.formal = stub
     return _ENV
 
 

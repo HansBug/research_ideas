@@ -400,3 +400,368 @@ def test_the_undeclared_literal_is_never_recorded_as_a_model_reference():
     subject.begin_call()
     subject._note("<undeclared>", "", None, "Root.A")
     assert subject.consume_refs() == ("Root.A",)
+
+
+# --------------------------------------------------------------------------
+# The prefix audit: which scripts the checker will even run
+# --------------------------------------------------------------------------
+#
+# These branches decide whether an assertion is accepted at all.  A false
+# rejection costs the item a repair round for something the producer did
+# correctly; a false acceptance lets a script reach names the environment never
+# froze, and every result derived from it is unattributable.  None of them had a
+# test, which is why `checker.py` sat at 74% branch coverage while the rest of
+# the layer was near-complete.
+
+
+def _audit(source: str, *, allowed=("occupancy_after", "len")):
+    import ast
+
+    from paper_stm_feedback_loop.assertions.checker import _assigned_names, _audit_prefix_ast
+
+    tree = ast.parse(source, mode="exec")
+    local = _assigned_names(tree)
+    return _audit_prefix_ast(tree, allowed_names=set(allowed) | local)
+
+
+def _codes(report):
+    return sorted(issue.code for issue in report.issues)
+
+
+def test_a_clean_prefix_is_accepted():
+    report = _audit("limit = 3\nrows = occupancy_after")
+    assert report.ok, _codes(report)
+
+
+def test_a_prefix_may_bind_and_then_use_its_own_name():
+    """`_assigned_names` exists for this; without it every binding is unknown."""
+
+    report = _audit("threshold = 2\ndoubled = threshold + threshold")
+    assert report.ok, _codes(report)
+
+
+def test_a_function_or_class_definition_in_the_prefix_is_a_bound_name():
+    """Defined names must count as assigned, or the definition rejects itself."""
+
+    report = _audit("def helper():\n    return 1\nvalue = helper")
+    assert "unknown_name" not in _codes(report), _codes(report)
+
+
+def test_an_assert_in_the_prefix_is_rejected():
+    """Only the terminal assert carries the verdict.
+
+    A second assert would decide the outcome before the evidence call the
+    controller records, so the sealed result would not correspond to the claim.
+    """
+
+    assert "prefix_assert_forbidden" in _codes(_audit("assert True"))
+
+
+def test_a_forbidden_ast_node_is_rejected():
+    report = _audit("import os")
+    assert "forbidden_ast_node" in _codes(report), _codes(report)
+
+
+def test_a_dunder_attribute_is_rejected():
+    report = _audit("leak = occupancy_after.__globals__")
+    assert "dunder_attribute" in _codes(report), _codes(report)
+
+
+def test_a_dunder_call_is_rejected():
+    report = _audit("leak = occupancy_after.__reduce__()")
+    assert "dunder_call" in _codes(report), _codes(report)
+
+
+def test_a_forbidden_name_is_rejected():
+    from paper_stm_feedback_loop.assertions.provenance import FORBIDDEN_NAMES
+
+    name = sorted(FORBIDDEN_NAMES)[0]
+    report = _audit(f"leak = {name}")
+    assert "forbidden_name" in _codes(report), _codes(report)
+
+
+def test_a_forbidden_call_is_rejected():
+    from paper_stm_feedback_loop.assertions.provenance import FORBIDDEN_NAMES
+
+    name = sorted(FORBIDDEN_NAMES)[0]
+    report = _audit(f"leak = {name}()")
+    assert "forbidden_call" in _codes(report), _codes(report)
+
+
+def test_an_unknown_name_is_rejected():
+    """A name the environment never froze cannot be evidence.
+
+    The controller has a dedicated repair branch for this, keyed on the code, so
+    it has to be reported as `unknown_name` and not folded into something else.
+    """
+
+    assert "unknown_name" in _codes(_audit("value = mystery_helper"))
+
+
+def test_an_unknown_call_is_rejected():
+    assert "unknown_call" in _codes(_audit("value = mystery_helper()"))
+
+
+def test_a_method_call_on_a_bound_view_is_allowed():
+    """Views are frozen and their non-dunder methods are the intended surface."""
+
+    report = _audit("rows = occupancy_after\nfirst = rows.count()")
+    assert "dunder_call" not in _codes(report), _codes(report)
+
+
+def test_an_unusable_required_family_is_rejected_before_anything_runs():
+    """A misspelled family is a contract error, not a model finding."""
+
+    result = _checker_for_audit().check(
+        'assert state_declared(state="Root.Idle", kind="any") is True, '
+        '"[REQ-001][AST-REQ-001-1] x"',
+        reason="bad family",
+        required_function_families=("not_a_family",),
+    )
+    assert result.sealed.outcome == "invalid"
+    assert result.sealed.error["type"] == "InvalidFunctionFamily"
+
+
+def _checker_for_audit():
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+    from paper_stm_feedback_loop.assertions.checker import AssertionChecker
+
+    return AssertionChecker(
+        environment=build_eval_environment(
+            model_text="state Root {\n    event go;\n    state Idle;\n    [*] -> Idle;\n}\n",
+            source_mappings=[],
+            source_exclusions=[],
+            timeout_seconds=30,
+            fbmcq_solver_timeout_ms=15_000,
+            fbmcq_max_bound=4,
+            fbmcq_process_wall_seconds=20.0,
+        )
+    )
+
+
+# --------------------------------------------------------------------------
+# The namespace snapshot feeds the before/after hash the seal rests on
+# --------------------------------------------------------------------------
+
+
+def test_the_namespace_snapshot_serialises_every_value_kind():
+    """A value it cannot serialise would break the hash the sealed result cites.
+
+    The hash is what proves the script did not mutate the frozen namespace, so
+    an unserialisable local must degrade to a repr rather than raising.
+    """
+
+    from paper_stm_feedback_loop.assertions.checker import _namespace_snapshot
+
+    class Opaque:
+        def __repr__(self):
+            return "<opaque>"
+
+    snapshot = _namespace_snapshot(
+        {
+            "__hidden": "skipped",
+            "a_function": lambda: None,
+            "text": "s",
+            "number": 3,
+            "real": 1.5,
+            "flag": True,
+            "nothing": None,
+            "listy": [1, 2],
+            "tuply": (1,),
+            "setty": {1},
+            "dicty": {"k": "v"},
+            "opaque": Opaque(),
+        },
+        {"a_function"},
+    )
+    assert "__hidden" not in snapshot, "dunder locals must not enter the hash"
+    assert "a_function" not in snapshot, "registered functions are not namespace state"
+    assert snapshot["text"] == "s" and snapshot["number"] == 3
+    assert snapshot["flag"] is True and snapshot["nothing"] is None
+    assert snapshot["listy"] == "[1, 2]" and snapshot["dicty"] == "{'k': 'v'}"
+    assert snapshot["opaque"] == "<opaque>"
+
+
+# --------------------------------------------------------------------------
+# Rows and views that are shaped wrongly must be skipped, not crash
+# --------------------------------------------------------------------------
+#
+# The facades come from an external tool (pyfcstm) across a version boundary.  A
+# field that goes missing or changes type in an upgrade must degrade a predicate
+# to "cannot answer", never to a wrong bool and never to an exception type the
+# controller cannot dispatch on.  These are the guards that make that true.
+
+
+def test_a_non_string_unconsumed_event_is_skipped():
+    subject = api(structure=Structure(transitions=[]))
+    subject.begin_call()
+    subject._note_simulation(
+        View(cycles=[Cycle(fired_transitions=(), unconsumed_events=(None, 7, "", "Root.go"))])
+    )
+    assert subject.consume_refs() == ("Root.go",)
+
+
+def test_a_variable_row_without_a_usable_name_is_skipped():
+    subject = api(
+        structure=Structure(
+            variables=[Row(name=None, init_value="1"), Row(init_value="2"), Row(name="ok", init_value="4")]
+        )
+    )
+    assert subject._all_vars() == {"ok": 4}
+
+
+def test_a_transition_row_without_an_integer_index_contributes_no_anchor():
+    """The anchor is `transition:<index>`; a non-int index cannot form one."""
+
+    subject = api(
+        structure=Structure(transitions=[Row(to_path="Root.B", transition_index="tr_1")])
+    )
+    subject.begin_call()
+    subject._note_transitions(source="Root.A")
+    assert not any(r.startswith("transition:") for r in subject.consume_refs())
+
+
+def test_a_non_string_consumed_event_does_not_count_as_consumed():
+    """`stays_in` and friends verify consumption; a malformed entry must not pass."""
+
+    subject = api()
+    consumed = subject._consumed(
+        View(cycles=[Cycle(consumed_events=(None, 3, "Root.go"))])
+    )
+    assert consumed == {"Root.go"}
+
+
+def test_state_declared_answers_for_a_pseudo_state():
+    """The `pseudo` kind had no test, so the branch was never exercised.
+
+    A model's initial and final markers are declared states of a distinct kind,
+    and a requirement can legitimately ask about one.
+    """
+
+    subject = api(
+        structure=Structure(
+            states=[Row(path="Root.Init", is_leaf=True, is_pseudo=True, is_composite=False)]
+        )
+    )
+    assert subject.state_declared(state="Root.Init", kind="pseudo") is True
+    assert subject.state_declared(state="Root.Init", kind="leaf") is False
+    assert subject.state_declared(state="Root.Init", kind="composite") is False
+    assert subject.state_declared(state="Root.Init", kind="any") is True
+
+
+def test_state_declared_answers_for_a_composite():
+    subject = api(
+        structure=Structure(
+            states=[Row(path="Root.Outer", is_leaf=False, is_pseudo=False, is_composite=True)]
+        )
+    )
+    assert subject.state_declared(state="Root.Outer", kind="composite") is True
+    assert subject.state_declared(state="Root.Outer", kind="leaf") is False
+
+
+def test_a_witness_without_a_mapping_interface_yields_no_refs():
+    """A solver whose counterexample shape changed must not break attribution."""
+
+    from paper_stm_feedback_loop.assertions.predicate_api import _witness_refs
+
+    assert _witness_refs(object()) == []
+    assert _witness_refs("not a mapping") == []
+
+
+def test_a_witness_step_with_a_malformed_event_is_skipped():
+    from paper_stm_feedback_loop.assertions.predicate_api import _witness_refs
+
+    witness = {"steps": [{"consumed_events": (None, 5, "", "Root.go")}]}
+    assert "Root.go" in _witness_refs(witness)
+    assert None not in _witness_refs(witness)
+
+
+def test_reading_a_variable_from_nothing_is_none_not_zero():
+    """`None` means "not observed"; 0 would be a value the run never saw.
+
+    `variable_delta_after` subtracts these, so conflating the two would report a
+    delta of zero -- "the variable did not change" -- for a variable the trace
+    never reported at all.
+    """
+
+    from paper_stm_feedback_loop.assertions.predicate_api import _read_var
+
+    assert _read_var(None, "units") is None
+
+
+def test_duplicate_targets_among_three_branches_are_skipped_not_compared():
+    """Two rows to the same state are one alternative; only the third is a choice.
+
+    With just the two duplicates the count short-circuits before the comparison,
+    so the skip only becomes reachable once a genuinely different target is also
+    present -- which is the shape a combo lowering with a repeated branch has.
+    """
+
+    subject = api(relations=Relations(overlap=False))
+    rows = [
+        Row(to_path="Root.A", transition_index=0),
+        Row(to_path="Root.A", transition_index=1),
+        Row(to_path="Root.B", transition_index=2),
+    ]
+    assert subject._indistinguishable(rows) is False
+    # And when the guards do overlap, the distinct pair is still found.
+    overlapping = api(relations=Relations(overlap=True))
+    assert overlapping._indistinguishable(rows) is True
+
+
+def test_a_trace_with_no_cycles_cannot_show_a_delta():
+    """An empty trace is "not observed", so the claim is unmet rather than met."""
+
+    class Simulation:
+        @staticmethod
+        def simulate(**_kwargs):
+            return View(cycles=[])
+
+    subject = api(
+        structure=Structure(
+            variables=[Row(name="units", init_value="5")],
+            events=[Row(qualified_name="Root.go")],
+            transitions=[Row(to_path="Root.B", transition_index=0)],
+        ),
+        simulation=Simulation(),
+    )
+    # `_consumed` sees nothing, so the trigger is treated as not having fired.
+    assert (
+        subject.variable_delta_after(
+            source="Root.A", trigger="Root.go", variable="units", sign="negative"
+        )
+        is False
+    )
+
+
+def test_a_frozen_view_in_the_namespace_is_serialised_structurally():
+    """Views carry model facts, so the hash must cover their content, not their id."""
+
+    from paper_stm_feedback_loop.assertions.checker import _namespace_snapshot
+    from paper_stm_feedback_loop.assertions.views import FrozenView
+
+    view = FrozenView("state", {"path": "Root.Idle"}, allowed_fields=("path",))
+    snapshot = _namespace_snapshot({"row": view}, set())
+    assert snapshot["row"] == view.to_json()
+    assert "object at 0x" not in str(snapshot["row"]), "a repr would not pin the content"
+
+
+def test_a_non_dunder_method_call_in_the_prefix_is_recorded_and_allowed():
+    """Frozen views expose ordinary methods; the audit must let them through."""
+
+    report = _audit("rows = occupancy_after\nfirst = rows.count()")
+    assert report.ok, _codes(report)
+
+
+def test_a_call_through_a_subscript_is_recorded_without_a_name():
+    """`fns[0]()` has neither a Name nor an Attribute as its callee.
+
+    The audit still has to walk past it rather than assume one of the two
+    shapes; a producer that indexes a list of predicates is unusual but legal
+    Python, and an unhandled shape in the gate that decides whether scripts run
+    at all would be an unhandled exception rather than a finding.
+    """
+
+    report = _audit("fns = [occupancy_after]\nfirst = fns[0]()")
+    assert "dunder_call" not in _codes(report), _codes(report)
+    assert "forbidden_call" not in _codes(report), _codes(report)

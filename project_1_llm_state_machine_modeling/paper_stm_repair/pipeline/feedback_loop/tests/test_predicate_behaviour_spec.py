@@ -714,3 +714,44 @@ def test_every_undeclared_binding_reaches_the_guard():
     ):
         with pytest.raises(UnsupportedEvidence, match=r"<undeclared>"):
             call(RICH, predicate, **kwargs)
+
+
+def test_variable_delta_after_requires_the_trigger_to_have_fired():
+    """A completion transition may move the variable; that is not this trigger.
+
+    `Outer -> Hub` is unlabelled, so a run from `Outer` changes configuration
+    without consuming anything.  Crediting whatever the variable did to the
+    trigger the caller named would report an effect the model does not declare on
+    that transition.
+    """
+
+    # `done` is consumed inside Outer and moves nothing at the top level, so the
+    # named trigger did fire and the answer is about it.
+    assert (
+        call(RICH, "variable_delta_after", source="Root.Idle", trigger="Root.go",
+             variable="units", sign="negative")
+        is True
+    )
+    # `fin` is not consumed in Idle, so no delta can be attributed to it even
+    # though the run is otherwise identical.
+    assert (
+        call(RICH, "variable_delta_after", source="Root.Idle", trigger="Root.fin",
+             variable="units", sign="negative")
+        is False
+    )
+
+
+def test_effect_declared_and_variable_delta_after_can_disagree():
+    """One reads the declaration, the other runs the model; that is the point.
+
+    A declared effect on an unreachable or guard-blocked transition shows up in
+    `effect_declared` and not in `variable_delta_after`.  Collapsing them would
+    lose the distinction the two families exist to draw.
+    """
+
+    common = dict(source="Root.Idle", trigger="Root.go", variable="units", sign="negative")
+    assert call(RICH, "effect_declared", **common) is True
+    assert call(RICH, "variable_delta_after", **common) is True
+    # And on the flawed model both flip, because the declaration is what changed.
+    assert call(FLAWED_EFFECT, "effect_declared", **common) is False
+    assert call(FLAWED_EFFECT, "variable_delta_after", **common) is False
