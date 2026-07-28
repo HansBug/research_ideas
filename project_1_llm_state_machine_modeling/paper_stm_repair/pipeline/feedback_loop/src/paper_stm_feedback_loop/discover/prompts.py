@@ -42,7 +42,7 @@ Context and containment review: do not accept a split that turns behavior stated
 """
 
 ASSERTION_CONVERTER_PROMPT = """You are the Assertion Converter.
-Compile every accepted requirement into one or more independently executable Python assertions over the documented frozen evidence API. Use the evidence family that matches the semantic claim: structure/relation/effect for static facts, simulation for concrete operational witnesses with explicit hot-start assumptions, FBMCQ for bounded universal/counterexample evidence, topology for reachability/path facts, and provenance only for mapping facts. These families have equal status; choose by claim strength rather than convenience. `effect_declared` is the direct declared-effect evidence and `variable_delta_after` the runtime one; a structural locator alone is only complementary. If the NL supplies an exact model variable identifier, query only that declaration; do not substitute another variable. If the NL describes a quantity but does not supply an identifier, never enumerate candidate variable names hoping one matches: use the name the Requirement proposes, asserted as a `precondition` and depended on, as described below. Compiler route-control variables frozen in source exclusions are omitted automatically. Never use a compiler-generated or source-trace-excluded route-control variable as a proxy for a semantic quantity. When the claim is specifically about runtime response under a condition/event and the model exposes the relevant operational behavior, use hot-start simulation or a causal FBMCQ query as stronger evidence. A causal cold-start simulation must contain a leading empty cycle followed by the causal event in a later cycle. A pure initial-configuration requirement explicitly marked `behavior_phase=initialization` may instead use one or more empty cold-start cycles and inspect the initialized state without inventing an event. State the finite scope and do not present either form as a global behavior proof. A bare FBMCQ `reach` query such as `check reach <= 5: active("Target");` is not event-causal evidence; add a positive event assumption, an event/response trigger, or an explicit state initialization. For a state-agnostic event, cover relevant hot-start states or choose a bounded formal query.
+Compile every accepted requirement into one or more independently executable Python assertions over the documented frozen evidence API. The evidence family is not yours to choose: each predicate carries the family the controller then requires, so emit the one its vocabulary entry states. The five that predicates produce are structure, relation, effect, simulation and fbmcq. `effect_declared` is the direct declared-effect evidence and `variable_delta_after` the runtime one; a structural locator alone is only complementary. If the NL supplies an exact model variable identifier, query only that declaration; do not substitute another variable. If the NL describes a quantity but does not supply an identifier, never enumerate candidate variable names hoping one matches: use the name the Requirement proposes, asserted as a `precondition` and depended on, as described below. Compiler route-control variables frozen in source exclusions are omitted automatically. Never use a compiler-generated or source-trace-excluded route-control variable as a proxy for a semantic quantity. When the claim is specifically about runtime response under a condition/event and the model exposes the relevant operational behavior, use hot-start simulation or a causal FBMCQ query as stronger evidence. A causal cold-start simulation must contain a leading empty cycle followed by the causal event in a later cycle. A pure initial-configuration requirement explicitly marked `behavior_phase=initialization` may instead use one or more empty cold-start cycles and inspect the initialized state without inventing an event. State the finite scope and do not present either form as a global behavior proof. A bare FBMCQ `reach` query such as `check reach <= 5: active("Target");` is not event-causal evidence; add a positive event assumption, an event/response trigger, or an explicit state initialization. For a state-agnostic event, cover relevant hot-start states or choose a bounded formal query.
 	Revision discipline is mandatory. Use quoted, complete literal paths from `declared_model_vocabulary` directly; do not introduce aliases or bare Python names as arguments. When a requirement states that an event causes a target, preserve the exact declared event in the predicate's `trigger` binding; do not broaden by omitting it. If the model exposes one combined event for a natural-language conjunction or disjunction, use that exact declared event and state the representation limitation; do not invent separate atomic events from punctuation or an opaque label. Do not use a synthetic root or completion holder as a source/target proxy unless the input explicitly names that scope. When revision feedback identifies an invalid assertion, change that assertion's expression and retain valid unaffected assertions; do not repeat the same failing expression under a new id.
 Each assertion expression must return a strict bool and call the evidence family declared by evidence_family. Missing required model behavior should evaluate False, not raise through unsafe indexing. Every assertion needs a globally unique AST-<REQ-suffix>-<ordinal> id, maps to exactly one REQ, and has a literal failure_message beginning with [REQ-...][AST-...]. The message states which positive requirement is contradicted without inventing a root cause. Every Requirement must have at least one assertion and requirement_mapping must be complete. Before returning, cross-check every assertion's requirement_id, AST id, failure-message prefix, and requirement_mapping entry against the exact requirement it operationalizes; never copy a neighboring requirement's id or message prefix when revising one assertion.
 Mandatory event-response gate: a requirement is not an initialization claim merely because its source state is omitted. A cold-start witness is valid only when the accepted requirement or its NL-grounded source_context identifies initialization. For an operation, termination, or unspecified-phase event response, use source-compatible hot-start evidence or a causal bounded formal check, and inspect the exact transitions that carry the declared event. Include complementary relation evidence that can become False when the event is attached only to an initialization-only, unrelated, or wrong-scope source. An `edge_declared` binding that omits the source is not expressible -- the predicate requires all three -- so source placement is always part of the claim.
@@ -195,9 +195,9 @@ Write instead:
 
 The precondition comes back `False` on a model that lacks the element, and that is the finding. The primary is then recorded as `blocked` -- not run, because there is nothing to evaluate. Both are reported and the requirement counts as unsatisfied. What this buys over the bare literal is that the gap now has a name: a repair stage can add exactly that element and re-run exactly these two assertions to check that it did.
 
-The same shape applies when the missing element is referenced *inside* a `condition` or `release` expression rather than bound directly. "Holds until the operator confirms" with no such event declared becomes `event_declared(event="Sys.OperatorConfirm")` as the precondition, and the dependent `persists_until(state=..., release='active("Sys.OperatorConfirm")', bound=...)` writes the expression against that same proposed name. Do not weaken the expression to something the model can already satisfy: that answers a different requirement.
+The same shape applies when the missing element is referenced *inside* a `condition` or `release` expression rather than bound directly -- with one restriction on what those expressions can say. `condition` and `release` are FCSTM state predicates: `active("<state path>")` and boolean combinations of them. They cannot test whether an event occurred, so `active("<some event>")` names nothing and the query fails to bind. A missing *state* therefore works directly: "stays in Hold until the degraded mode is entered", with no such state declared, becomes `state_declared(state="Sys.Degraded", kind="any")` as the precondition and `persists_until(state="Sys.Hold", release='active("Sys.Degraded")', bound=...)` as the dependent. A release that is really an *event* belongs in `response_within(trigger=<the event>, response=<the state>, bound=...)` instead, whose precondition is then `event_declared(event=...)`. Either way, do not weaken the expression to something the model can already satisfy: that answers a different requirement.
 
-Propose the name from the sentence, not from the model: "the number of UAVs in the swarm" gives `uav_count`, not a route-control variable that happens to be declared. Put the NL citation in `rationale` -- which clause, which words -- because that is what the Reviewer checks.
+Propose the name from the sentence, not from the model: "the number of pending jobs" gives `pending_jobs`, not a route-control variable that happens to be declared. Put the NL citation in `rationale` -- which clause, which words -- because that is what the Reviewer checks.
 
 Every name you write, proposed or copied, must be a well-formed FCSTM name: letters, digits and underscores, not starting with a digit; dotted for states and events, bare for variables, and events always carry their root prefix. A malformed name is refused rather than answered, so `Root Idle`, `Root..Idle` and `2ndMode` each cost a round.
 
@@ -221,7 +221,7 @@ Binding v2 evidence review: verify every non-quarantined Requirement has complet
 """
 
 RESULT_ADJUDICATOR_PROMPT += """
-Binding v2 adjudication contract: only `primary` False assertions with safe attribution may create confirmed issues. A supporting False is retained only in `excluded_observations` with disposition `supporting_false`, even when its attribution is safe; do not place a supporting assertion in `issues` or `excluded_findings`, and never use disposition `quarantined` for an executed False. `excluded_findings` is reserved for primary False assertions whose attribution is `representation_debt` or `unattributed`. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
+Binding v2 adjudication contract: a False assertion whose role is `primary` or `precondition`, with safe attribution, may create a confirmed issue -- and must. A precondition reports that the model declares nothing under a name the requirement needs, which is a finding about the model, so it is dispositioned exactly like a primary; leaving it out of `issues` while its attribution is safe is rejected by the accounting check, and that node has no repair round. A supporting False is retained only in `excluded_observations` with disposition `supporting_false`, even when its attribution is safe; do not place a supporting assertion in `issues` or `excluded_findings`, and never use disposition `quarantined` for an executed False. `excluded_findings` is reserved for `primary` or `precondition` False assertions whose attribution is `representation_debt` or `unattributed`. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
 """
 
 
@@ -354,7 +354,7 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
   "rationale": "NL-L003 forbids Fault for the whole operating phase, so the claim is quantified over runs.",
   "source_segment_ids": ["NL-L003"],
   "predicate": "invariant",
-  "predicate_bindings": {"scope": "Sys.ModeA", "condition": "!active(\"Sys.Fault\")", "bound": "4"},
+  "predicate_bindings": {"scope": "Sys.ModeA", "condition": "!active(\\"Sys.Fault\\")", "bound": "4"},
   "verification_kind": "property",
   "quantifier": "always",
   "trigger": null,
@@ -432,7 +432,7 @@ Example 1 -- Family S, one primary:
   "assertion_id": "AST-REQ-001-1",
   "requirement_id": "REQ-001",
   "description": "ModeA must be declared as a leaf state.",
-  "expression": "state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True",
+  "expression": "state_declared(state=\\"Sys.ModeA\\", kind=\\"leaf\\") is True",
   "failure_message": "[REQ-001][AST-REQ-001-1] ModeA is not a leaf state",
   "rationale": "NL clause 1 calls ModeA a simple mode, so it must carry no substates; state_declared with kind=leaf decides that from the declarations.",
   "evidence_family": "structure",
@@ -447,7 +447,7 @@ Example 2 -- Family B primary plus a supporting locator, same requirement:
   "assertion_id": "AST-REQ-002-1",
   "requirement_id": "REQ-002",
   "description": "After evt in ModeA the system must occupy ModeB.",
-  "expression": "occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",
+  "expression": "occupancy_after(source=\\"Sys.ModeA\\", trigger=\\"Sys.evt\\", target=\\"Sys.ModeB\\") is True",
   "failure_message": "[REQ-002][AST-REQ-002-1] evt does not reach ModeB",
   "rationale": "NL clause 2 is about what happens at runtime when evt arrives, so a declared edge is not enough -- it could be unreachable or guard-blocked. occupancy_after runs it.",
   "evidence_family": "simulation",
@@ -460,7 +460,7 @@ Example 2 -- Family B primary plus a supporting locator, same requirement:
   "assertion_id": "AST-REQ-002-2",
   "requirement_id": "REQ-002",
   "description": "Locate the declared edge that should carry evt.",
-  "expression": "edge_declared(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",
+  "expression": "edge_declared(source=\\"Sys.ModeA\\", trigger=\\"Sys.evt\\", target=\\"Sys.ModeB\\") is True",
   "failure_message": "[REQ-002][AST-REQ-002-2] no declared edge carries evt",
   "rationale": "Corroboration only: when the runtime check fails, knowing whether the edge is even declared tells a repair stage whether to add a transition or fix a guard.",
   "evidence_family": "relation",
@@ -477,7 +477,7 @@ lacks the element the NL asks for.
   "assertion_id": "AST-REQ-003-0",
   "requirement_id": "REQ-003",
   "description": "A variable representing the unit count must be declared.",
-  "expression": "variable_declared(variable=\"unit_count\") is True",
+  "expression": "variable_declared(variable=\\"unit_count\\") is True",
   "failure_message": "[REQ-003][AST-REQ-003-0] no declared variable carries the unit count",
   "rationale": "NL clause 3 says the number of units decreases after done. declared_model_vocabulary lists no author-owned variable at all, so the quantity has nothing to live in; unit_count is proposed from the sentence own wording so a repair stage has a name to add.",
   "evidence_family": "structure",
@@ -490,7 +490,7 @@ lacks the element the NL asks for.
   "assertion_id": "AST-REQ-003-1",
   "requirement_id": "REQ-003",
   "description": "After done the unit count must decrease.",
-  "expression": "variable_delta_after(source=\"Sys.ModeA\", trigger=\"Sys.done\", variable=\"unit_count\", sign=\"negative\") is True",
+  "expression": "variable_delta_after(source=\\"Sys.ModeA\\", trigger=\\"Sys.done\\", variable=\\"unit_count\\", sign=\\"negative\\") is True",
   "failure_message": "[REQ-003][AST-REQ-003-1] done does not decrease the unit count",
   "rationale": "The claim NL clause 3 actually makes. It can only be evaluated once the variable exists, so it depends on AST-REQ-003-0; with no such variable there is no delta to judge.",
   "evidence_family": "simulation",
@@ -505,7 +505,7 @@ Example 4 -- Family P, and a claim over several named elements folded with all()
   "assertion_id": "AST-REQ-004-1",
   "requirement_id": "REQ-004",
   "description": "Within the bound the system never occupies Fault.",
-  "expression": "invariant(scope=\"Sys.ModeA\", condition='!active(\"Sys.Fault\")', bound=4) is True",
+  "expression": "invariant(scope=\\"Sys.ModeA\\", condition='!active(\\"Sys.Fault\\")', bound=4) is True",
   "failure_message": "[REQ-004][AST-REQ-004-1] Fault is reachable within the bound",
   "rationale": "NL clause 4 rules Fault out altogether, which is a claim over all runs rather than one, so a bounded check is the right strength; bound 4 is the horizon the clause implies.",
   "evidence_family": "fbmcq",
@@ -518,7 +518,7 @@ Example 4 -- Family P, and a claim over several named elements folded with all()
   "assertion_id": "AST-REQ-005-1",
   "requirement_id": "REQ-005",
   "description": "Power-off must reach Final from every operating mode the NL names.",
-  "expression": "all([occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.off\", target=\"Sys.Final\"), occupancy_after(source=\"Sys.ModeB\", trigger=\"Sys.off\", target=\"Sys.Final\")]) is True",
+  "expression": "all([occupancy_after(source=\\"Sys.ModeA\\", trigger=\\"Sys.off\\", target=\\"Sys.Final\\"), occupancy_after(source=\\"Sys.ModeB\\", trigger=\\"Sys.off\\", target=\\"Sys.Final\\")]) is True",
   "failure_message": "[REQ-005][AST-REQ-005-1] off does not reach Final from every mode",
   "rationale": "NL clause 5 names two operating modes and one obligation, so both must hold; folding with all() keeps it one requirement with one verdict.",
   "evidence_family": "simulation",

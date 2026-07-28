@@ -514,3 +514,72 @@ def test_the_name_shape_rule_reaches_the_producer() -> None:
     assert "bare for variables" in converter
     assert "events always carry their root prefix" in converter
     assert "refused rather than answered" in converter
+
+
+def test_every_worked_example_object_parses_and_validates() -> None:
+    """A worked example the schema rejects is a guaranteed wasted revision round.
+
+    This has cost a whole matrix once already: the `expression` examples were
+    written as complete `assert` statements, producers copied the shape, and the
+    controller wrapped them into `assert (assert ...), "..."` -- a syntax error on
+    every assertion, every item quarantined, three of eight cells dead.  The
+    prompt's own preamble concedes prose failed twice here, so the examples are
+    the contract, and an example that cannot be parsed is not one.
+
+    The same class then recurred quietly: seven of the eight objects carried
+    unescaped inner double quotes, so a producer copying them verbatim emits JSON
+    that does not parse.  Reading the prompt does not catch that -- parsing it
+    does, which is why this is a test and not a review item.
+    """
+
+    import json
+
+    from paper_stm_feedback_loop.discover.schemas import AssertionSpec, Requirement
+
+    def objects(text: str, discriminator: str) -> list[str]:
+        """Blocks holding ``discriminator``, found from the key outward.
+
+        Scanning forward for a bare `{` does not survive prose: one unbalanced
+        brace anywhere above swallows the rest of the prompt into a block that
+        never closes, and the extractor silently reports zero examples -- which
+        looks exactly like a prompt that has none.
+        """
+
+        lines = text.splitlines()
+        found: list[str] = []
+        for index, line in enumerate(lines):
+            if f'"{discriminator}"' not in line:
+                continue
+            start = next(
+                (i for i in range(index, -1, -1) if lines[i].strip() == "{"), None
+            )
+            if start is None:
+                continue
+            depth = 0
+            for end in range(start, len(lines)):
+                depth += lines[end].count("{") - lines[end].count("}")
+                if depth <= 0:
+                    found.append("\n".join(lines[start : end + 1]))
+                    break
+        return found
+
+    cases = (
+        ("ASSERTION_CONVERTER_PROMPT", "assertion_id", AssertionSpec),
+        ("REQUIREMENT_SPLITTER_PROMPT", "predicate_bindings", Requirement),
+    )
+    for name, discriminator, schema in cases:
+        checked = 0
+        for block in objects(getattr(prompts, name), discriminator):
+            try:
+                payload = json.loads(block)
+            except json.JSONDecodeError as exc:
+                raise AssertionError(
+                    f"{name}: a worked object is not parseable JSON ({exc}); a "
+                    f"producer copying it emits the same: {block[:160]}"
+                ) from exc
+            schema.model_validate(payload)
+            checked += 1
+        assert checked >= 3, (
+            f"{name} shows only {checked} complete worked objects; three is the "
+            "floor a field needs before producers stop dropping it"
+        )
