@@ -568,27 +568,49 @@ def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -
         )
 
 
-def test_source_blind_relation_evidence_is_detected() -> None:
+def test_source_blind_response_evidence_is_detected() -> None:
+    """The gate must name a call that exists in the environment.
+
+    It used to look for `transition_exists` and `transitions`, which the
+    predicate vocabulary removed -- so it matched nothing and protected nothing
+    while still reading as an active check.  `response_within` is the only
+    predicate whose `source` is optional, so it is the only one that can still
+    express pair 0000's mistake: from the initial configuration Power_Off does
+    reach FinalState, and the requirement was reported satisfied while
+    HumanDrivingMode could not reach it at all.
+    """
+
     from paper_stm_feedback_loop.discover.capability import (
-        source_omitting_relation_calls,
+        source_omitting_response_calls,
     )
 
-    # Exactly the form Claude used for pair 0000's Power-Off termination
-    # requirement; the `[*] -> FinalState : /Power_Off` edge made it True.
-    blind = "transition_exists(event='Power_Off', target='Root.FinalState')"
-    assert source_omitting_relation_calls(blind) == ("transition_exists",)
+    blind = "response_within(trigger='Root.Power_Off', response='Root.FinalState', bound=5)"
+    assert source_omitting_response_calls(blind) == ("response_within",)
     pinned = (
-        "transition_exists(source='Root.HumanDrivingMode', event='Power_Off', "
-        "target='Root.FinalState')"
+        "response_within(trigger='Root.Power_Off', response='Root.FinalState', "
+        "bound=5, source='Root.HumanDrivingMode')"
     )
-    assert source_omitting_relation_calls(pinned) == ()
-    assert source_omitting_relation_calls(CONFLICT_EXPR) == ()
+    assert source_omitting_response_calls(pinned) == ()
+    assert source_omitting_response_calls(CONFLICT_EXPR) == ()
+    assert source_omitting_response_calls("response_within(") == ()
 
 
 def test_termination_requirement_rejects_source_blind_primary() -> None:
+    """And the rejection must be *this* gate, named in the message.
+
+    The fixture used `transition_exists`, which the predicate vocabulary removed.
+    A bare `pytest.raises(RuntimeError)` then went on passing while a different
+    gate did the rejecting -- so the source-blind rule had no integration cover at
+    all, which is how it stayed dead through a whole redesign.
+    """
+
+    payloads: list[str] = []
+    attempts = {"script": 0}
+
     def responder(
         role: str, schema: type[BaseModel], system: str, payload: str
     ) -> BaseModel:
+        payloads.append(payload)
         if schema is RequirementSet:
             return RequirementSet(
                 revision=1,
@@ -596,7 +618,13 @@ def test_termination_requirement_rejects_source_blind_primary() -> None:
                     {
                         "requirement_id": "REQ-001",
                         "statement": "On pick the system shall reach Done.",
-                        "verification_kind": "structure",
+                        "predicate": "response_within",
+                        "predicate_bindings": {
+                            "trigger": "Root.pick",
+                            "response": "Root.Done",
+                            "bound": "3",
+                            "source": "Root.Idle",
+                        },
                         "source_context": {
                             "basis": "explicit_nl",
                             "behavior_phase": "termination",
@@ -610,16 +638,28 @@ def test_termination_requirement_rejects_source_blind_primary() -> None:
                 segment_disposition={"NL-L001": "covered"},
             )
         if schema is AssertionScript:
+            attempts["script"] += 1
+            # First attempt omits `source`; later attempts pin it.  A responder
+            # that never changes would end at the no-progress gate, and the
+            # message under test would be buried behind that one.
+            blind = attempts["script"] == 1
             return AssertionScript(
-                revision=1,
+                revision=attempts["script"],
                 assertions=(
                     {
                         "assertion_id": "AST-REQ-001-01",
                         "requirement_id": "REQ-001",
-                        "description": "Presence-only, source omitted.",
-                        "expression": 'transition_exists(event="Root.pick", target="Root.Done")',
-                        "failure_message": "[REQ-001][AST-REQ-001-01] missing edge",
-                        "evidence_family": "relation",
+                        "description": "Bounded response.",
+                        "expression": (
+                            'response_within(trigger="Root.pick", '
+                            'response="Root.Done", bound=3) is True'
+                            if blind
+                            else 'response_within(trigger="Root.pick", '
+                            'response="Root.Done", bound=3, '
+                            'source="Root.Idle") is True'
+                        ),
+                        "failure_message": "[REQ-001][AST-REQ-001-01] pick does not reach Done",
+                        "evidence_family": "fbmcq",
                         "role": "primary",
                         "coverage_key": "termination:pick",
                         "aggregation_group": "REQ-001:all",
@@ -630,7 +670,7 @@ def test_termination_requirement_rejects_source_blind_primary() -> None:
             )
         return _responder_property_closed_by_relation(role, schema, system, payload)
 
-    with pytest.raises(RuntimeError):
+    try:
         run_discover_state(
             DiscoverInput(
                 run_id="source-blind",
@@ -641,3 +681,59 @@ def test_termination_requirement_rejects_source_blind_primary() -> None:
             ),
             responder,
         )
+    except RuntimeError:
+        # Whether the run recovers depends on the rest of the fixture; what this
+        # test owns is that the gate fired and said why.
+        pass
+    assert attempts["script"] >= 2, "the source-blind script was accepted"
+    assert any("source-blind primary evidence" in text for text in payloads), (
+        "the gate rejected the script but its reason never reached the producer"
+    )
+
+
+def test_a_qualified_call_is_still_recognised_as_the_predicate_it_names() -> None:
+    """`env.occupancy_after(...)` is the same call with a prefix.
+
+    Producers do write it that way.  Reading only bare names would leave the
+    procedure gate seeing no predicate at all, and it would report "called nothing"
+    for a script that called the right thing -- advice the producer cannot act on.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import called_evidence_functions
+
+    assert called_evidence_functions(
+        'env.occupancy_after(source="Root.Idle", trigger="Root.go", target="Root.Busy")'
+    ) == frozenset({"occupancy_after"})
+    assert called_evidence_functions("occupancy_after()") == frozenset(
+        {"occupancy_after"}
+    )
+    # Two of them, so the scan is exercised past the first qualified call.
+    assert called_evidence_functions(
+        'all([env.state_declared(state="Root.Idle", kind="leaf"), env.edge_declared()])'
+    ) == frozenset({"all", "state_declared", "edge_declared"})
+    assert called_evidence_functions("not python at all (") == frozenset()
+    # A call whose callee is neither a name nor an attribute names no predicate.
+    # It must yield nothing rather than raise: the procedure gate then reports
+    # "called no predicate", which is the accurate and actionable message.
+    assert called_evidence_functions("funcs[0]()") == frozenset()
+
+
+def test_a_self_conjunction_and_a_cross_region_pair_are_not_vacuous() -> None:
+    """Only two siblings of one region can never hold together.
+
+    `active(A) && active(A)` is redundant but satisfiable, and two states in
+    different regions can be active at once in a concurrent model.  Reporting
+    either as vacuous would reject a query whose truth value does change when the
+    defect is present.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        vacuous_sibling_conjunction,
+    )
+
+    assert vacuous_sibling_conjunction(
+        'active("Root.R.A") && active("Root.R.B")'
+    ) == ("Root.R.A", "Root.R.B")
+    assert vacuous_sibling_conjunction('active("Root.R.A") && active("Root.R.A")') is None
+    assert vacuous_sibling_conjunction('active("Alpha") && active("Beta")') is None
+    assert vacuous_sibling_conjunction('active("Root.R.A")') is None

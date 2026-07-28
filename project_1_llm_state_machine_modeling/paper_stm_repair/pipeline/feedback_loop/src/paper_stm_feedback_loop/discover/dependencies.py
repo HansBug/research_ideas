@@ -149,6 +149,41 @@ def orphan_preconditions(assertions: Iterable[_Spec]) -> tuple[str, ...]:
     )
 
 
+def dependency_closure(assertions: Iterable[_Spec]) -> dict[str, frozenset[str]]:
+    """Every assertion's transitive prerequisites, keyed by assertion id.
+
+    The reference gate needs this: a primary may bind a name the frozen model
+    does not declare only when a precondition it depends on proposes that name.
+    One hop is not enough -- an existence check can itself rest on another
+    (the variable exists *and* the state that owns it exists), and reading only
+    direct `depends_on` would refuse that chain.
+
+    Assumes the graph is acyclic; call `dependency_cycles` first.
+    """
+
+    items = tuple(assertions)
+    direct = {item.assertion_id: tuple(item.depends_on) for item in items}
+    resolved: dict[str, frozenset[str]] = {}
+
+    def walk(node: str, seen: frozenset[str]) -> frozenset[str]:
+        cached = resolved.get(node)
+        if cached is not None:
+            return cached
+        if node in seen:  # pragma: no cover - the cycle gate runs first
+            return frozenset()
+        acc: set[str] = set()
+        for ref in direct.get(node, ()):
+            if ref not in direct:  # dangling; its own gate reports it
+                continue
+            acc.add(ref)
+            acc |= walk(ref, seen | {node})
+        found = frozenset(acc)
+        resolved[node] = found
+        return found
+
+    return {item.assertion_id: walk(item.assertion_id, frozenset()) for item in items}
+
+
 def execution_order(assertions: Iterable[_Spec]) -> tuple[str, ...]:
     """Assertion ids in an order where every dependency precedes its dependent.
 
@@ -195,6 +230,7 @@ def blocked_by(
 __all__ = [
     "blocked_by",
     "cross_requirement_dependencies",
+    "dependency_closure",
     "dependency_cycles",
     "execution_order",
     "missing_dependency_references",

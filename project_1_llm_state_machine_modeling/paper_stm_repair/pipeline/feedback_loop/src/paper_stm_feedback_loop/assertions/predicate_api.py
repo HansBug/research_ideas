@@ -1,4 +1,4 @@
-"""The 17 predicates of issue #170, as the only evidence calls an assertion may make.
+"""The 19 predicates of issue #170, as the only evidence calls an assertion may make.
 
 Why this layer exists
 ---------------------
@@ -31,9 +31,11 @@ raises :class:`UnsupportedEvidence`; the checker turns that into an unsupported
 outcome rather than a truth value, which is what keeps an unanswerable claim out
 of the satisfied set.
 
-``UNDECLARED`` is the binding value the splitter uses when the NL requires a term
-the model does not declare.  Any predicate handed it raises immediately: the
-absence is the finding, and no check can stand in for it.
+Bindings name model elements, and a name that is not shaped like one is refused
+outright rather than answered.  A placeholder such as ``<undeclared>`` is not a
+name, so no predicate can be handed one: the requirement it stands for needs a
+proposed name and a `precondition`, which is a decision for the producer, not a
+truth value this layer can invent.
 """
 
 from __future__ import annotations
@@ -42,9 +44,6 @@ import re
 from typing import Any
 
 from .exceptions import UnsupportedEvidence
-
-#: Written by the splitter when the NL names something the model never declares.
-UNDECLARED = "<undeclared>"
 
 #: The pseudo-initial source, spelled exactly as FCSTM spells it.  A behaviour
 #: claim about power-on or first entry has no named source state, and without a
@@ -98,12 +97,13 @@ def _budget(value: Any, name: str, default: int) -> int:
     return parsed
 
 
-#: Which declaration table decides whether a binding's `<undeclared>` is provable.
-#: A binding absent from this map has no table to check against, so it can never
-#: be proved absent -- only refused.
+#: The declaration table each binding's name must be shaped for.  A binding
+#: absent from this map is not a name at all -- `condition` and `release` carry
+#: FCSTM expressions -- so no identifier shape applies to it.
 BINDING_DECLARATION_TABLE = {
     "variable": "variables",
     "trigger": "events",
+    "event": "events",
     "state": "states",
     "source": "states",
     "target": "states",
@@ -131,6 +131,21 @@ _DOTTED_PATH = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*"
 #: producer reaching for it is not making a typo -- it is expressing something real
 #: and needs to be told where that belongs (issue #170 §11.2).
 _PLACEHOLDER = re.compile(r"^<.*>$")
+
+
+def is_placeholder_name(value: str) -> bool:
+    """Whether a binding value is a placeholder rather than an element name.
+
+    The static conversion gate needs the same test the runtime applies, so both
+    live off this one predicate: two copies of the pattern would eventually
+    disagree about what counts as a name, and the gate that was more permissive
+    would pass work to the layer that refuses it.
+
+    :param value: the raw bound value.
+    :return: ``True`` when the value only stands in for a name.
+    """
+
+    return bool(_PLACEHOLDER.match(value.strip()))
 
 
 def _require_identifier(
@@ -162,7 +177,7 @@ def _require_identifier(
             "declared_model_vocabulary. A bare name matches nothing, and the "
             "`False` that would follow reads as a missing event."
         )
-    if _PLACEHOLDER.match(stripped):
+    if is_placeholder_name(stripped):
         raise UnsupportedEvidence(
             f"predicate binding {binding!r} is a placeholder, not a name: "
             f"{text!r}. An assertion cannot evaluate one. If the NL requires a "
@@ -234,7 +249,7 @@ class PredicateAPI:
 
     def _note(self, *refs: Any) -> None:
         for ref in refs:
-            if isinstance(ref, str) and ref and ref != UNDECLARED:
+            if isinstance(ref, str) and ref:
                 self._refs.append(ref)
 
     #: Bindings for which `[*]` is meaningless.  Each asks about a property of a
@@ -249,6 +264,8 @@ class PredicateAPI:
         "cardinality": ("scope",),
         "action_declared": ("state",),
         "persists_until": ("state",),
+        "variable_declared": ("variable",),
+        "event_declared": ("event",),
     }
 
     def _reject_pseudo_initial(self, predicate: str, **bindings: Any) -> None:
@@ -310,7 +327,7 @@ class PredicateAPI:
                 # to itself it reaches the solver and comes back "fbmcq query parse
                 # failed", which is true and useless: the producer cannot tell from
                 # it that the problem is the binding rather than the query builder.
-                if isinstance(value, str) and _PLACEHOLDER.match(value.strip()):
+                if isinstance(value, str) and is_placeholder_name(value):
                     _require_identifier(value, binding, dotted=True)
                 continue
             # `None` is not skipped.  An optional binding that is absent is simply
@@ -550,7 +567,7 @@ class PredicateAPI:
             f"unknown state kind {kind!r}; use leaf / composite / pseudo / any"
         )
 
-    def variable_declared(self, *, name: str) -> bool:
+    def variable_declared(self, *, variable: str) -> bool:
         """The model declares a variable of its own under this name.
 
         Existence in its own right, which the vocabulary previously had only for
@@ -565,10 +582,9 @@ class PredicateAPI:
         promise evidence no other call can deliver.
         """
 
-        # Without this the literal would be looked up as an ordinary name, not
-        # found, and answered `False` -- reinstating the manufactured-defect
-        # channel §11.1 records, through the very predicates added to replace it.
-        wanted = _require_identifier(name, "name", dotted=False)
+        self._reject_pseudo_initial("variable_declared", variable=variable)
+        self._require_well_formed_names(variable=variable)
+        wanted = _need(variable, "variable").strip()
         self._note(wanted)
         owned = {
             item.removeprefix("compiler:route_control:")
@@ -581,13 +597,12 @@ class PredicateAPI:
             return wanted not in owned
         return False
 
-    def event_declared(self, *, name: str) -> bool:
+    def event_declared(self, *, event: str) -> bool:
         """The model declares an event at this qualified path."""
 
-        # Without this the literal would be looked up as an ordinary name, not
-        # found, and answered `False` -- reinstating the manufactured-defect
-        # channel §11.1 records, through the very predicates added to replace it.
-        wanted = _require_identifier(name, "name", dotted=True, min_segments=2)
+        self._reject_pseudo_initial("event_declared", event=event)
+        self._require_well_formed_names(event=event)
+        wanted = _need(event, "event").strip()
         self._note(wanted)
         for row in self.structure.events():
             if str(getattr(row, "qualified_name", "") or "") == wanted:
@@ -1216,4 +1231,10 @@ PREDICATE_FAMILIES: dict[str, tuple[str, str]] = {
     "persists_until": ("formal", "persists_until"),
 }
 
-__all__ = ["DEFAULT_BOUND", "DEFAULT_CYCLES", "PREDICATE_FAMILIES", "PredicateAPI", "UNDECLARED"]
+__all__ = [
+    "DEFAULT_BOUND",
+    "DEFAULT_CYCLES",
+    "PREDICATE_FAMILIES",
+    "PredicateAPI",
+    "is_placeholder_name",
+]

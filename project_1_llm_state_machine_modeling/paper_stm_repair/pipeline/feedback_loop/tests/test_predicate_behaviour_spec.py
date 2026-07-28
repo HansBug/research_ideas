@@ -498,8 +498,8 @@ def test_response_within_separates_answered_from_unanswered():
 #: A call for each predicate that is well-formed against the RICH model.
 WELL_FORMED = {
     "state_declared": dict(state="Root.Idle", kind="leaf"),
-    "variable_declared": dict(name="units"),
-    "event_declared": dict(name="Root.go"),
+    "variable_declared": dict(variable="units"),
+    "event_declared": dict(event="Root.go"),
     "containment": dict(parent="Root.Outer", child="Root.Outer.First"),
     "initial_target": dict(composite="Root.Outer", child="Root.Outer.First"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Outer"),
@@ -857,11 +857,11 @@ def test_variable_declared_separates_declared_from_absent():
     had to be smuggled through as `<undeclared>`.
     """
 
-    assert call(RICH, "variable_declared", name="units") is True
-    assert call(RICH, "variable_declared", name="other") is True
-    assert call(RICH, "variable_declared", name="uav_count") is False
+    assert call(RICH, "variable_declared", variable="units") is True
+    assert call(RICH, "variable_declared", variable="other") is True
+    assert call(RICH, "variable_declared", variable="uav_count") is False
     # A model with no variables at all answers False rather than refusing.
-    assert call(NO_VARIABLES, "variable_declared", name="units") is False
+    assert call(NO_VARIABLES, "variable_declared", variable="units") is False
 
 
 def test_variable_declared_does_not_count_a_route_control_variable():
@@ -882,15 +882,15 @@ def test_variable_declared_does_not_count_a_route_control_variable():
         fbmcq_max_bound=4,
         fbmcq_process_wall_seconds=20.0,
     )
-    assert env_with_exclusion.globals["variable_declared"](name="units") is False
+    assert env_with_exclusion.globals["variable_declared"](variable="units") is False
     # The author's other variable is unaffected.
-    assert env_with_exclusion.globals["variable_declared"](name="other") is True
+    assert env_with_exclusion.globals["variable_declared"](variable="other") is True
 
 
 def test_event_declared_separates_declared_from_absent():
-    assert call(RICH, "event_declared", name="Root.go") is True
-    assert call(RICH, "event_declared", name="Root.tick") is True
-    assert call(RICH, "event_declared", name="Root.nosuchevent") is False
+    assert call(RICH, "event_declared", event="Root.go") is True
+    assert call(RICH, "event_declared", event="Root.tick") is True
+    assert call(RICH, "event_declared", event="Root.nosuchevent") is False
 
 
 def test_the_two_name_shapes_are_enforced_rather_than_answered():
@@ -904,9 +904,9 @@ def test_the_two_name_shapes_are_enforced_rather_than_answered():
     """
 
     with pytest.raises(UnsupportedEvidence, match="bare identifier"):
-        call(RICH, "variable_declared", name="Root.units")
+        call(RICH, "variable_declared", variable="Root.units")
     with pytest.raises(UnsupportedEvidence, match="at least 2 path segments"):
-        call(RICH, "event_declared", name="go")
+        call(RICH, "event_declared", event="go")
 
 
 def test_the_existence_predicates_are_structure_family():
@@ -954,13 +954,13 @@ def test_a_malformed_state_path_is_refused_not_answered(label, value):
 @pytest.mark.parametrize("label,value", MALFORMED, ids=[c[0] for c in MALFORMED])
 def test_a_malformed_variable_name_is_refused_not_answered(label, value):
     with pytest.raises(UnsupportedEvidence):
-        call(RICH, "variable_declared", name=value)
+        call(RICH, "variable_declared", variable=value)
 
 
 @pytest.mark.parametrize("label,value", MALFORMED, ids=[c[0] for c in MALFORMED])
 def test_a_malformed_event_path_is_refused_not_answered(label, value):
     with pytest.raises(UnsupportedEvidence):
-        call(RICH, "event_declared", name=value)
+        call(RICH, "event_declared", event=value)
 
 
 def test_a_placeholder_gets_a_diagnosis_naming_the_replacement():
@@ -972,7 +972,7 @@ def test_a_placeholder_gets_a_diagnosis_naming_the_replacement():
     """
 
     with pytest.raises(UnsupportedEvidence, match="placeholder, not a name") as caught:
-        call(RICH, "variable_declared", name="<undeclared>")
+        call(RICH, "variable_declared", variable="<undeclared>")
     message = str(caught.value)
     assert "proposed name" in message
     assert "precondition" in message
@@ -987,8 +987,8 @@ def test_a_well_formed_absent_name_still_answers_false():
     """
 
     assert call(RICH, "state_declared", state="Root.NoSuchState", kind="any") is False
-    assert call(RICH, "variable_declared", name="no_such_variable") is False
-    assert call(RICH, "event_declared", name="Root.no_such_event") is False
+    assert call(RICH, "variable_declared", variable="no_such_variable") is False
+    assert call(RICH, "event_declared", event="Root.no_such_event") is False
 
 
 def test_every_real_corpus_name_shape_is_accepted():
@@ -1001,5 +1001,5 @@ def test_every_real_corpus_name_shape_is_accepted():
 
     assert call(RICH, "state_declared", state="Root", kind="composite") is True
     assert call(RICH, "state_declared", state="Root.Outer.First", kind="leaf") is True
-    assert call(RICH, "variable_declared", name="units") is True
-    assert call(RICH, "event_declared", name="Root.go") is True
+    assert call(RICH, "variable_declared", variable="units") is True
+    assert call(RICH, "event_declared", event="Root.go") is True

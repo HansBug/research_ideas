@@ -16,10 +16,7 @@ from paper_stm_feedback_loop.assertions import (
 )
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
-from paper_stm_feedback_loop.assertions.predicate_api import (
-    PREDICATE_FAMILIES,
-    UNDECLARED,
-)
+from paper_stm_feedback_loop.assertions.predicate_api import PREDICATE_FAMILIES
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
@@ -36,8 +33,9 @@ from .capability import (
     called_evidence_functions,
     fbmcq_non_vacuity_findings,
     mandatory_waiver,
-    source_omitting_relation_calls,
-    unresolved_model_references,
+    placeholder_bindings,
+    source_omitting_response_calls,
+    unresolved_reference_findings,
 )
 from .predicates import procedure_mismatch, unmodelled_claim_paths
 from .schemas import (
@@ -850,8 +848,9 @@ def _model_vocabulary(
     names.  Listing them as ordinary variables contradicted all three: on pairs
     0000 and 0006 the *only* entry under ``variables`` was a route token, so a
     producer reading the vocabulary saw a variable available where the model has
-    none.  Pair 0006's expected defect is exactly that absence, and it is far
-    easier to state as `<undeclared>` when the vocabulary says so plainly.
+    none.  Pair 0006's expected defect is exactly that absence, and a producer
+    can only propose a name for it if the vocabulary says plainly that the model
+    declares nothing of its own.
     """
 
     def _paths(group: str, field: str) -> tuple[str, ...]:
@@ -1411,13 +1410,14 @@ def convert_assertions(
                 raise ValueError(
                     f"assertion {assertion.assertion_id} failure_message must start with {expected_prefix}"
                 )
-            if UNDECLARED in assertion.expression:
+            placeholders = placeholder_bindings(assertion.expression)
+            if placeholders:
                 raise ValueError(
-                    f"assertion {assertion.assertion_id} binds {UNDECLARED!r}. That "
-                    "literal states a fact about the requirement, not a check: give "
-                    "the missing element a proposed name, assert its existence as a "
-                    "`precondition`, and have this assertion depend on it (issue "
-                    "#170 §11.2)"
+                    f"assertion {assertion.assertion_id} binds {list(placeholders)}. A "
+                    "placeholder states a fact about the requirement, not a check: "
+                    "nothing can be looked up under it. Give the missing element a "
+                    "proposed name, assert its existence as a `precondition`, and "
+                    "have this assertion depend on it (issue #170 §11.2)"
                 )
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
         assertions_by_id = {item.assertion_id: item for item in output.assertions}
@@ -1454,6 +1454,20 @@ def convert_assertions(
                 "are, or drop them: unreferenced, the dependent runs anyway, raises "
                 "on the element it needs, and enters the repair loop while the "
                 "precondition already reports that same defect"
+            )
+        unresolved = unresolved_reference_findings(
+            output.assertions, frozenset(frozen.known_model_paths)
+        )
+        if unresolved:
+            raise ValueError(
+                f"assertions reference model elements the frozen STM does not "
+                f"declare: {list(unresolved)}. A relation query over a non-existent "
+                "element matches nothing and passes, hiding the defect it was meant "
+                "to test. If the requirement genuinely needs an element this model "
+                "lacks, do not drop it and do not rename it to something that happens "
+                "to exist: assert the missing element's existence in a `precondition` "
+                "under the same proposed name, and list that precondition in the "
+                "depends_on of every assertion that needs it"
             )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
@@ -1601,38 +1615,24 @@ def convert_assertions(
                 for assertion in primary_assertions
                 for finding in fbmcq_non_vacuity_findings(assertion.expression)
             )
-            known_paths = frozenset(frozen.known_model_paths)
-            unresolved = tuple(
-                f"{assertion.assertion_id}: unresolved model reference {ref}"
-                for assertion in owned_assertions
-                for ref in unresolved_model_references(
-                    assertion.expression, known_paths
-                )
-            )
             phase = str(
                 (requirement.source_context or {}).get("behavior_phase", "")
             ).lower()
             if phase in SOURCE_SENSITIVE_PHASES:
                 source_blind = tuple(
-                    f"{assertion.assertion_id}: {call}(event=..., target=...) omits "
-                    "source"
+                    f"{assertion.assertion_id}: {call}(...) omits source"
                     for assertion in primary_assertions
-                    for call in source_omitting_relation_calls(assertion.expression)
+                    for call in source_omitting_response_calls(assertion.expression)
                 )
                 if source_blind:
                     raise ValueError(
                         f"{phase}-phase requirement {requirement.requirement_id} has "
-                        f"source-blind primary relation evidence: {list(source_blind)}. "
-                        "A match carried only by the pseudo-initial source '[*]' is "
-                        "initialization-only evidence; pin the exact source"
+                        f"source-blind primary evidence: {list(source_blind)}. "
+                        "Without `source` the claim is only about the initial "
+                        "configuration, which for an operation or termination event is "
+                        "initialization-only evidence. Pin the exact source, one "
+                        "assertion per source the requirement ranges over"
                     )
-            if unresolved:
-                raise ValueError(
-                    f"requirement {requirement.requirement_id} references model "
-                    f"elements the frozen STM does not declare: {list(unresolved)}. "
-                    "A relation query over a non-existent element matches nothing "
-                    "and passes, hiding the defect it was meant to test"
-                )
             if vacuity_findings:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} has non-evidential "
@@ -2275,11 +2275,9 @@ def precheck_and_seal(
 
             # A bounded query the model is too large for is not repairable by
             # rewriting it, and each retry costs ~25s of wall clock, so stop
-            # after the first.  `<undeclared>` used to be listed here too; it is
-            # now decided as a plain false by the checker, so it never reaches
-            # this branch and no longer consumes a repair budget.
+            # after the first.
             unrepairable_markers = ("exceeded its budget on this model",)
-            undeclared_ids = tuple(
+            unrepairable_ids = tuple(
                 item.assertion_id
                 for item in public_executions
                 if item.status == "invalid"
@@ -2288,7 +2286,7 @@ def precheck_and_seal(
             exhausted_ids = tuple(
                 assertion_id
                 for assertion_id in invalid_ids
-                if assertion_id in undeclared_ids
+                if assertion_id in unrepairable_ids
                 or item_repairs.get(assertion_id, 0) >= MAX_ASSERTION_PRECHECK_REPAIRS
                 or semantic_counts.get(semantic_keys[assertion_id], 0)
                 >= NO_PROGRESS_SEMANTIC_REPEATS

@@ -389,12 +389,33 @@ def test_the_pseudo_initial_is_never_a_hot_start():
     assert PredicateAPI._hot_startable("Root.A") == "Root.A"
 
 
-def test_the_undeclared_literal_is_never_recorded_as_a_model_reference():
-    """It names nothing, so attributing a finding to it would be meaningless."""
+def test_a_placeholder_cannot_reach_the_reference_trail():
+    """Because the predicate refuses it before doing any work.
+
+    The trail used to filter `<undeclared>` by name.  That guarded against a
+    value the shape check makes unreachable, and pinning it kept a special case
+    alive for one literal while `<missing_var>` would have sailed past.  The
+    guarantee worth testing is the one callers depend on: ask about a placeholder
+    and you get a refusal, so there is no call whose refs could contain one.
+    """
 
     subject = api()
     subject.begin_call()
-    subject._note("<undeclared>", "", None, "Root.A")
+    with pytest.raises(UnsupportedEvidence):
+        subject.state_declared(state="<undeclared>", kind="leaf")
+    assert subject.consume_refs() == ()
+    subject.begin_call()
+    with pytest.raises(UnsupportedEvidence):
+        subject.variable_declared(variable="<missing_var>")
+    assert subject.consume_refs() == ()
+
+
+def test_empty_and_none_refs_are_dropped_from_the_trail():
+    """Attribution needs names; a blank string points at nothing."""
+
+    subject = api()
+    subject.begin_call()
+    subject._note("", None, "Root.A")
     assert subject.consume_refs() == ("Root.A",)
 
 

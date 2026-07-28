@@ -42,15 +42,20 @@ RETURN CONTRACT
 Every predicate returns a strict bool, so you never need to coerce or guard a
 call.  A predicate that cannot answer raises instead of returning a value:
 
-- a binding equal to `<undeclared>` -- the NL requires a term the model does not
-  declare.  The predicate reads the matching declaration table.  If that table
-  is empty of the author's own entries, the absence is established and the call
-  comes back False: the obligation cannot be met, and that is the finding.  If
-  the table has entries, the claim is refused instead -- an element exists and
-  the assertion must name which one.  `condition` and `release` are expressions
-  with no table, so `<undeclared>` there is always refused.
+- a binding whose value is not shaped like a model element name: letters, digits
+  and underscores, not starting with a digit, dotted for states and events and
+  bare for variables.  Such a value could never have named anything, so
+  answering "the model does not declare it" would report a defect the model does
+  not have.
 - a variable that is not observable, or a bounded check that returned no
   terminal verdict.  A non-terminal status is never a False.
+
+A name the model does not declare is a different matter: it is answerable.  The
+existence predicates -- `state_declared`, `variable_declared`, `event_declared`
+-- return False for it, which is what lets a claim about an element the model
+lacks be checked at all.  Assert that existence as a `precondition` and have the
+claim resting on it declare `depends_on`, so an absent element is reported once
+and the dependent claim is recorded as blocked rather than answered.
 
 EVIDENCE FAMILY
 

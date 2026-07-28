@@ -95,7 +95,7 @@ ILLEGAL = [
     'occupancy_after(source="<undeclared>", trigger="Root.go", target="Root.Busy")',
     'edge_declared(source="Root.Idle", trigger="<undeclared>", target="Root.Busy")',
     'persists_until(state="Root.Idle", release="<undeclared>", bound=2)',
-    'variable_declared(name="<undeclared>")',
+    'variable_declared(variable="<undeclared>")',
 ]
 
 
@@ -150,7 +150,7 @@ def test_the_replacement_shape_works_on_that_same_model():
     """
 
     exists = _checker(MODEL_WITH_VARS, ["compiler:route_control:c"]).check(
-        _script('variable_declared(name="uav_count")'),
+        _script('variable_declared(variable="uav_count")'),
         reason="existence",
         required_function_families=(),
     )

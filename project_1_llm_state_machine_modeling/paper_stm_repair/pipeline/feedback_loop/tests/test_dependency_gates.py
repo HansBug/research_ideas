@@ -320,7 +320,7 @@ def _spec(aid, role, expr, depends_on=(), family="structure"):
     )
 
 
-EXISTS = 'variable_declared(name="uav_count") is True'
+EXISTS = 'variable_declared(variable="uav_count") is True'
 DELTA = (
     'variable_delta_after(source="R.Attack", trigger="R.Attack_Complete", '
     'variable="uav_count", sign="negative") is True'

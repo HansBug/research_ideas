@@ -343,8 +343,8 @@ state Root {
 
 EXEC_ARGS = {
     "state_declared": dict(state="Root.Idle", kind="leaf"),
-    "variable_declared": dict(name="c"),
-    "event_declared": dict(name="Root.go"),
+    "variable_declared": dict(variable="c"),
+    "event_declared": dict(event="Root.go"),
     "containment": dict(parent="Root", child="Root.Idle"),
     "initial_target": dict(composite="Root", child="Root.Idle"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),
@@ -651,8 +651,13 @@ def test_a_literal_primary_is_rejected_and_the_message_names_the_exit():
 
     Rejecting that is correct -- a literal calls no predicate, so it asserts a
     defect on no evidence at all.  But the producer had nowhere left to go, and
-    the run died at `convert_assertions`.  The legal move existed (emit no
-    primary; the controller records a coverage gap) and nothing told it so.
+    the run died at `convert_assertions`.  So the message has to name the move
+    that is legal.
+
+    That move is no longer "emit no primary and take a coverage gap": a gap says
+    "not checked", which loses the finding, and the controller no longer has that
+    state.  It is the two-assertion shape, which ends with a named element and a
+    verdict on it.
     """
 
     mismatch = procedure_mismatch("persists_until", frozenset())
@@ -660,8 +665,9 @@ def test_a_literal_primary_is_rejected_and_the_message_names_the_exit():
     message = mismatch[1]
     assert "no predicate at all" in message
     assert "`False`" in message, "the literal shape has to be named"
-    assert "emit no primary" in message, "the exit has to be named"
-    assert "coverage gap" in message
+    assert "`precondition`" in message, "the exit has to be named"
+    assert "depends_on" in message
+    assert "coverage gap" not in message, "the retired exit must not be offered"
 
 
 def test_calling_the_wrong_predicate_still_gets_the_substitution_message():
@@ -691,3 +697,64 @@ def test_the_converter_prompt_states_the_two_assertion_shape():
     assert "under a name you propose from" in converter
     assert "recorded as `blocked`" in converter
     assert "re-run exactly these two" in converter
+
+
+def test_every_named_binding_is_known_to_both_reference_tables():
+    """Otherwise a binding is validated by nobody, and the gates disagree.
+
+    `variable_declared` and `event_declared` shipped with a parameter called
+    `name`, which neither table listed.  Two holes opened at once.  The runtime
+    fell through to the no-table branch, so an event path was never held to its
+    `<root>.<event>` shape.  Worse, the static reference gate could not see the
+    binding at all -- so the name a `precondition` proposes was invisible to it,
+    the dependent primary's identical name looked like an unresolved reference,
+    and pair 0006 deadlocked for six revisions between that refusal and the
+    placeholder refusal until its repair budget ran out.
+
+    `response_within(response=...)` had the same hole on the static side alone: a
+    response naming no declared state was looked up, not found, and answered
+    False -- a defect reported against a model that never had it.
+
+    So this is not a naming preference.  A binding that names a model element has
+    to be known to the shape table (which decides what a legal name looks like)
+    and to the path table (which decides whether the model declares it).
+    """
+
+    import inspect
+
+    from paper_stm_feedback_loop.assertions.predicate_api import (
+        BINDING_DECLARATION_TABLE,
+        PredicateAPI,
+    )
+    from paper_stm_feedback_loop.discover.capability import BOUND_PATH_KWARGS
+    from paper_stm_feedback_loop.discover.predicates import PREDICATES
+
+    # Bindings that are values, not names: no element is looked up for them.
+    literal_bindings = {
+        "kind",
+        "sign",
+        "phase",
+        "count",
+        "bound",
+        "within_cycles",
+        "condition",
+        "release",
+    }
+    for item in PREDICATES:
+        signature = inspect.signature(getattr(PredicateAPI, item.name))
+        parameters = {n for n in signature.parameters if n != "self"}
+        # The vocabulary and the implementation must agree on the binding names,
+        # or the prompt documents a call the runtime rejects.
+        assert set(item.bindings) <= parameters, (
+            f"{item.name} declares bindings {item.bindings} the implementation "
+            f"does not accept: {signature}"
+        )
+        for binding in parameters - literal_bindings:
+            assert binding in BINDING_DECLARATION_TABLE, (
+                f"{item.name}({binding}=...) has no shape rule; it would skip "
+                "identifier validation entirely"
+            )
+            assert binding in BOUND_PATH_KWARGS, (
+                f"{item.name}({binding}=...) is invisible to the static reference "
+                "gate, so neither absent names nor proposed names are seen there"
+            )

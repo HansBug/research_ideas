@@ -48,14 +48,16 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         # and needs to know why they are not on the list above.  An empty
         # `variables` next to a populated one of these is the honest statement
         # that the model has no variable of the author's own -- which for a
-        # quantity the NL names is the finding, encoded as `<undeclared>`.
+        # quantity the NL names is the finding.
         payload["compiler_owned_variables"] = compiler_owned
         payload["compiler_owned_variables_note"] = (
             "Created by the converter for its own routing, not by the model's "
             "author. The evidence layer drops them from every effect answer, so "
             "binding one proves nothing about a quantity the NL names. If the NL "
-            "requires a quantity and `variables` above is empty, the correct "
-            "binding is `<undeclared>`."
+            "requires a quantity and `variables` above is empty, this model has no "
+            "variable of its own to carry it: name the variable it should have "
+            "declared and assert that name's existence, rather than binding one of "
+            "these."
         )
     return payload
 

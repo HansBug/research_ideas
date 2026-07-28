@@ -41,6 +41,14 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
+from typing import Iterable, Protocol
+
+from paper_stm_feedback_loop.assertions.predicate_api import (
+    PSEUDO_INITIAL,
+    is_placeholder_name,
+)
+
+from .dependencies import dependency_closure
 
 __all__ = [
     "EvidenceCapability",
@@ -48,7 +56,9 @@ __all__ = [
     "vacuous_sibling_conjunction",
     "bare_reachability_probe",
     "unresolved_model_references",
-    "source_omitting_relation_calls",
+    "unresolved_reference_findings",
+    "placeholder_bindings",
+    "source_omitting_response_calls",
     "SOURCE_SENSITIVE_PHASES",
     "BOUND_PATH_KWARGS",
     "EVIDENCE_CAPABILITY",
@@ -368,12 +378,86 @@ BOUND_PATH_KWARGS = frozenset(
         "composite",
         "scope",
         "variable",
+        # `response_within(response=...)` names the state the response must
+        # reach.  Left out, the reference gate never checked it, so a response
+        # naming no declared state was looked up, not found, and answered
+        # False -- a defect reported against a model that never had it.
+        "response",
     }
 )
-#: The relation API exposes the pseudo-initial source under this exact literal.
-PSEUDO_INITIAL = "[*]"
-#: Sanctioned stand-in for a term the NL requires but the model never declares.
-UNDECLARED = "<undeclared>"
+def _path_bindings(expression: str) -> tuple[tuple[str, str], ...]:
+    """Return every ``(kwarg, value)`` binding that is meant to name an element.
+
+    One parse serves both reference policies below -- what is absent from the
+    model, and what is not a name at all -- so they cannot disagree about which
+    bindings they are talking about.
+
+    :param expression: the assertion's terminal Python expression.
+    :return: deduplicated ``(kwarg, value)`` pairs, in source order.
+    """
+
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
+        return ()
+    found: list[tuple[str, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        for keyword in node.keywords:
+            if keyword.arg not in BOUND_PATH_KWARGS:
+                continue
+            value = keyword.value
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                continue
+            found.append((str(keyword.arg), value.value))
+    return tuple(dict.fromkeys(found))
+
+
+def _absent_path_bindings(
+    expression: str, known_paths: frozenset[str]
+) -> tuple[tuple[str, str], ...]:
+    """Return the bindings that name no element the frozen model declares."""
+
+    if not known_paths:
+        return ()
+    return tuple(
+        (arg, text)
+        for arg, text in _path_bindings(expression)
+        if text
+        and text != PSEUDO_INITIAL
+        and text not in known_paths
+        # A placeholder is refused by `placeholder_bindings`, whose message
+        # explains the precondition route; reporting it here too would pre-empt
+        # that with the less useful "no such element".
+        and not is_placeholder_name(text)
+    )
+
+
+def placeholder_bindings(expression: str) -> tuple[str, ...]:
+    """Return bindings whose value stands in for a name instead of being one.
+
+    A producer writes one when the NL requires an element the model never
+    declares.  That is a real observation, but it is not a check: nothing can be
+    looked up, so the runtime refuses it.  Catching it here instead turns a
+    wasted round trip into a specific instruction (issue #170 §11.2).
+
+    :param expression: the assertion's terminal Python expression.
+    :return: offending ``kwarg=value`` strings; empty when every value is a name.
+    """
+
+    return tuple(
+        dict.fromkeys(
+            f"{arg}={text!r}"
+            for arg, text in _path_bindings(expression)
+            if is_placeholder_name(text)
+        )
+    )
 
 
 def unresolved_model_references(
@@ -386,60 +470,91 @@ def unresolved_model_references(
     :return: offending ``kwarg=value`` strings; empty when all resolve.
     """
 
-    if not known_paths:
-        return ()
-    tree = None
-    for mode in ("eval", "exec"):
-        try:
-            tree = ast.parse(expression, mode=mode)
-            break
-        except SyntaxError:
+    return tuple(
+        dict.fromkeys(
+            f"{arg}={text!r}"
+            for arg, text in _absent_path_bindings(expression, known_paths)
+        )
+    )
+
+
+class _ScriptAssertion(Protocol):
+    """The fields of an ``AssertionSpec`` the script-level reference gate reads."""
+
+    assertion_id: str
+    requirement_id: str
+    role: str | None
+    expression: str
+    depends_on: tuple[str, ...]
+
+
+def unresolved_reference_findings(
+    assertions: Iterable[_ScriptAssertion], known_paths: frozenset[str]
+) -> tuple[str, ...]:
+    """Return findings for bindings naming an element the frozen model lacks.
+
+    An absent name is legal in exactly one shape: a `precondition` proposes the
+    name of an element the model should have declared, and every assertion that
+    needs that element depends on it.  A missing element then makes the
+    precondition false, its dependents are blocked rather than run, and blocked
+    never counts as satisfied -- so nothing passes vacuously, and the repair
+    stage receives a named target to add (issue #170 §11.2).
+
+    Every other absent name is refused, because unlinked it still runs, still
+    matches nothing, and still passes: the defect-hiding vacuous pass this gate
+    exists to stop.
+
+    The two halves have to be decided in one place.  Enforcing only the second
+    deadlocked pair 0006 for six revisions -- the proposed name a precondition
+    needs is absent by construction, so the gate rejected the one legal move and
+    the run died with its repair budget spent.
+
+    :param assertions: every assertion in the script.
+    :param known_paths: every state and event path the frozen model declares.
+    :return: one finding per offending binding; empty when all resolve.
+    """
+
+    items = tuple(assertions)
+    closures = dependency_closure(items)
+    proposed_by: dict[str, set[str]] = {}
+    for item in items:
+        if item.role != "precondition":
             continue
-    if tree is None:
-        return ()
-    bad: list[str] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        for keyword in node.keywords:
-            if keyword.arg not in BOUND_PATH_KWARGS:
-                continue
-            value = keyword.value
-            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
-                continue
-            text = value.value
-            # `<undeclared>` is the sanctioned way to say "the NL requires a
-            # term this model never declares".  Rejecting it here left the
-            # requirement with no legal move at all: the literal was refused,
-            # any substitute is fabricated, and omitting the primary trips the
-            # "at least one primary" rule -- a three-way deadlock that burned
-            # the whole repair budget.  Let it through so precheck can turn it
-            # into a coverage gap, which is the honest outcome.
-            if (
-                not text
-                or text == PSEUDO_INITIAL
-                or text == UNDECLARED
-                or text in known_paths
-            ):
-                continue
-            bad.append(f"{keyword.arg}={text!r}")
-    return tuple(dict.fromkeys(bad))
+        for _, name in _absent_path_bindings(item.expression, known_paths):
+            proposed_by.setdefault(name, set()).add(item.assertion_id)
+    findings: list[str] = []
+    for item in items:
+        allowed = {item.assertion_id} | closures[item.assertion_id]
+        exempt = {
+            name for name, owners in proposed_by.items() if owners & allowed
+        }
+        findings.extend(
+            f"{item.requirement_id}/{item.assertion_id}: "
+            f"unresolved model reference {arg}={text!r}"
+            for arg, text in _absent_path_bindings(item.expression, known_paths)
+            if text not in exempt
+        )
+    return tuple(findings)
 
 
 #: Lifecycle phases where an event's *source placement* decides satisfaction.
 SOURCE_SENSITIVE_PHASES = frozenset({"operation", "termination"})
 
 
-def source_omitting_relation_calls(expression: str) -> tuple[str, ...]:
-    """Return `transition_exists` calls that pin event/target but not source.
+def source_omitting_response_calls(expression: str) -> tuple[str, ...]:
+    """Return `response_within` calls that leave `source` unbound.
 
-    The converter and reviewer prompts already state this twice: for an
-    operation or termination event, a match attached only to the pseudo-initial
-    `"[*]"` is initialization-only evidence, so `transition_exists(event=...,
-    target=...)` with no `source` cannot decide the requirement.  It was still
-    only prose.  On pair 0000 Claude used exactly that form for the Power-Off
-    termination requirement; the `[*] -> FinalState : /Power_Off` edge made it
-    True and EXP-0000-IT-001 was reported satisfied.
+    `source` is the one optional binding in the whole vocabulary, and leaving it
+    out means "from the initial configuration".  For an operation or termination
+    event that is initialization-only evidence: on pair 0000 the
+    `[*] -> FinalState : /Power_Off` edge makes "Power_Off reaches FinalState"
+    true from power-on while saying nothing about whether HumanDrivingMode can
+    reach it at all -- which was the defect, and it was reported satisfied.
+
+    This gate used to name `transition_exists` and `transitions`.  Neither is in
+    the assertion environment any more, so it matched nothing and protected
+    nothing while still reading as an active check.  The predicate era narrows
+    the rule to the one call that can still express the mistake.
 
     :param expression: the assertion's terminal Python expression.
     :return: offending call names, empty when none.
@@ -454,16 +569,12 @@ def source_omitting_relation_calls(expression: str) -> tuple[str, ...]:
             continue
     if tree is None:
         return ()
-    bad: list[str] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        name = node.func.id if isinstance(node.func, ast.Name) else None
-        if name not in {"transition_exists", "transitions"}:
-            continue
-        kwargs = {keyword.arg for keyword in node.keywords}
-        if "source" in kwargs:
-            continue
-        if {"event", "target"} & kwargs:
-            bad.append(name)
+    bad = [
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "response_within"
+        and "source" not in {keyword.arg for keyword in node.keywords}
+    ]
     return tuple(dict.fromkeys(bad))

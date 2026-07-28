@@ -492,12 +492,13 @@ class EvalEnvironment:
                         kwargs=_audit_value(kwargs),
                         exception_type=type(exc).__name__,
                         exception_message=str(exc),
-                        # A raise can still carry evidence.  An `<undeclared>`
-                        # binding whose declaration table is empty notes the
-                        # table it read, and that note is the only thing backing
-                        # the sealed verdict the checker derives from this
-                        # exception -- dropped here, the run record would assert
-                        # an absence with nothing behind it.
+                        # A raise can still carry evidence.  A predicate that
+                        # refuses partway -- `guard_distinguishable` on two
+                        # distinct non-empty guards, say -- has already noted the
+                        # elements it read, and those refs are what let the run
+                        # record show which part of the model the refusal is
+                        # about.  Dropped here, an unsupported outcome would be
+                        # unattributable.
                         model_refs=self._model_refs(name, kwargs, None),
                     )
                 )

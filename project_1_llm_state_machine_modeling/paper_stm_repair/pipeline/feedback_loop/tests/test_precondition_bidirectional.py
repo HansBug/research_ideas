@@ -80,7 +80,7 @@ def test_the_proposed_name_existence_check_reports_the_0006_gap():
     a real query over the declaration table rather than on a literal.
     """
 
-    result = _check("0006", 'variable_declared(name="uav_count") is True')
+    result = _check("0006", 'variable_declared(variable="uav_count") is True')
     assert result.sealed.outcome == "sealed_false", result.sealed.metadata
     assert result.sealed.value is False
 
@@ -88,7 +88,7 @@ def test_the_proposed_name_existence_check_reports_the_0006_gap():
 def test_the_route_control_variable_is_not_offered_as_the_authors_own():
     """Naming it would let a producer close the requirement on the wrong evidence."""
 
-    result = _check("0006", 'variable_declared(name="R45RouteToken") is True')
+    result = _check("0006", 'variable_declared(variable="R45RouteToken") is True')
     assert result.sealed.outcome == "sealed_false"
     assert result.sealed.value is False
 
@@ -158,7 +158,7 @@ def test_a_proposed_name_on_pair_0000_still_answers_but_needs_an_nl_citation():
     than assumed.
     """
 
-    result = _check("0000", 'variable_declared(name="some_count") is True')
+    result = _check("0000", 'variable_declared(variable="some_count") is True')
     assert result.sealed.outcome == "sealed_false"
     assert result.sealed.value is False
 

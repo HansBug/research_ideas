@@ -72,7 +72,7 @@ def _spec(aid, role, expr, depends_on=(), family="structure"):
     )
 
 
-EXISTS = 'variable_declared(name="units") is True'
+EXISTS = 'variable_declared(variable="units") is True'
 DELTA = (
     'variable_delta_after(source="Root.Idle", trigger="Root.go", '
     'variable="units", sign="negative") is True'
@@ -207,7 +207,7 @@ def test_the_chain_extends_past_one_level():
         _spec(
             "AST-REQ-001-2",
             "supporting",
-            'event_declared(name="Root.go") is True',
+            'event_declared(event="Root.go") is True',
             ("AST-REQ-001-1",),
         ),
     )

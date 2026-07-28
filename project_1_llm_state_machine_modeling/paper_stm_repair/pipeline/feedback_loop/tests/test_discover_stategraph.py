@@ -104,10 +104,16 @@ def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -
 
 def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
     assert (
-        "never invent or enumerate candidate variable names"
+        "never enumerate candidate variable names hoping one matches"
         in prompts.ASSERTION_CONVERTER_PROMPT
     )
-    assert "variable=\"<undeclared>\"" in prompts.ASSERTION_CONVERTER_PROMPT
+    # Not guessing is only half the rule: the producer still owes a check, so the
+    # prompt has to say where the name comes from instead.  Left at "do not
+    # guess", the item has no legal move and burns its repair budget.
+    assert (
+        "use the name the Requirement proposes, asserted as a `precondition`"
+        in prompts.ASSERTION_CONVERTER_PROMPT
+    )
     # Case-insensitive: the sentence moved and its first word is now capitalised.
     # The rule is what matters, not where in the paragraph it sits.
     assert (

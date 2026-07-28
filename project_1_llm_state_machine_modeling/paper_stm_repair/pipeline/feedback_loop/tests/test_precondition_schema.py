@@ -34,7 +34,7 @@ def spec(**overrides):
         assertion_id="AST-REQ-001-1",
         requirement_id="REQ-001",
         description="检查模型是否声明了表示机群数量的变量",
-        expression='variable_declared(name="uav_count") is True',
+        expression='variable_declared(variable="uav_count") is True',
         failure_message="[REQ-001][AST-REQ-001-1] 模型未声明承载机群数量的变量",
         evidence_family="structure",
         role="precondition",

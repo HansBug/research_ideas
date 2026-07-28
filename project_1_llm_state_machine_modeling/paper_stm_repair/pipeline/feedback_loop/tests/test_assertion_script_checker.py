@@ -153,7 +153,9 @@ def test_environment_docs_list_readable_api_surface():
         "EVIDENCE FAMILY",
         "The family is derived from the predicate, never declared by you",
         "Family B -> `simulation`. Family P -> `fbmcq`",
-        "`<undeclared>`",
+        # The doc must say what to do about an element the model lacks, since
+        # that is the case a producer cannot resolve on its own.
+        "Assert that existence as a `precondition`",
         "Allowed pure builtins:",
     ]:
         assert needle in unwrapped, needle

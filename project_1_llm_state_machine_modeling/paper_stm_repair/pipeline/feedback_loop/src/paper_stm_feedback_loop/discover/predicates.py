@@ -85,7 +85,8 @@ class Predicate:
     field_specs: tuple[tuple[str, str], ...] = ()
     #: At least three worked calls per predicate, covering the shapes that
     #: actually occur: the typical case, a literal or special-binding variant,
-    #: and the case where the term is undeclared or the answer is expected False.
+    #: and a case whose answer is False -- often a name the model does not
+    #: declare, since that is the shape a precondition is written for.
     examples: tuple[str, ...] = ()
 
 
@@ -115,7 +116,7 @@ PREDICATES: tuple[Predicate, ...] = (
         FAMILY_STRUCTURE,
         "the model declares a variable of the author's own under this name",
         "a quantity the NL requires that the model has no variable for",
-        ("name",),
+        ("variable",),
         "decides the declaration outright",
         "variables(name=...)",
         "variables",
@@ -126,16 +127,18 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
         field_specs=(
             (
-                "name",
+                "variable",
                 'the BARE variable name, with no state-path prefix -- variables are '
-                'declared outside the state tree. Copy it from the `variables` list '
-                'in declared_model_vocabulary; a dotted name is refused, not answered',
+                'declared outside the state tree. Either a name copied from the '
+                '`variables` list in declared_model_vocabulary, or the name the '
+                'Requirement proposes for a variable the model should have declared; '
+                'a dotted name is refused, not answered',
             ),
         ),
         examples=(
-            'variable_declared(name="units")  # True when the author declared it',
-            'variable_declared(name="uav_count")  # False when the model has no such variable',
-            'variable_declared(name="Sys.units")  # raises: variables take no path prefix',
+            'variable_declared(variable="units")  # True when the author declared it',
+            'variable_declared(variable="uav_count")  # False when the model declares no such variable',
+            'variable_declared(variable="Sys.units")  # raises: variables take no path prefix',
         ),
     ),
     Predicate(
@@ -143,22 +146,23 @@ PREDICATES: tuple[Predicate, ...] = (
         FAMILY_STRUCTURE,
         "the model declares an event at this qualified path",
         "an event the NL names that the model never declares",
-        ("name",),
+        ("event",),
         "decides the declaration outright",
         "events(path=...)",
         "events",
         field_specs=(
             (
-                "name",
-                'the FULLY QUALIFIED event path, as `<root>.<event>` -- copy it from '
-                'the `events` list in declared_model_vocabulary; a bare name with no '
-                'dot is refused, not answered',
+                "event",
+                'the FULLY QUALIFIED event path, as `<root>.<event>` -- either copied '
+                'from the `events` list in declared_model_vocabulary, or the path the '
+                'Requirement proposes for an event the model should have declared; a '
+                'bare name with no dot is refused, not answered',
             ),
         ),
         examples=(
-            'event_declared(name="Sys.evt")  # True when the author declared it',
-            'event_declared(name="Sys.missing")  # False when the model has no such event',
-            'event_declared(name="evt")  # raises: events take the qualified path',
+            'event_declared(event="Sys.evt")  # True when the author declared it',
+            'event_declared(event="Sys.missing")  # False when the model declares no such event',
+            'event_declared(event="evt")  # raises: events take the qualified path',
         ),
     ),
     Predicate(
@@ -238,13 +242,13 @@ PREDICATES: tuple[Predicate, ...] = (
         field_specs=(
             ('source', 'the declared source state of the transition carrying the effect'),
             ('trigger', 'the declared event path'),
-            ('variable', 'the declared variable name, or "<undeclared>" when the NL names a quantity the model has no variable for'),
+            ('variable', "the variable's BARE name, with no state-path prefix -- either copied from the `variables` list in declared_model_vocabulary, or the name the Requirement proposes for a variable the model should have declared"),
             ('sign', '"negative" for a decrease, "positive" for an increase'),
         ),
         examples=(
             'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
             'effect_declared(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
-            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative")  # False when the model declares no variable of its own',
+            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative")  # False when the model declares no variable under that name',
         ),
     ),
     Predicate(
@@ -391,13 +395,13 @@ PREDICATES: tuple[Predicate, ...] = (
         field_specs=(
             ('source', 'the configuration the run starts from'),
             ('trigger', 'the declared event path; the predicate verifies it was consumed'),
-            ('variable', 'the declared variable name, or "<undeclared>"'),
+            ('variable', "the variable's BARE name -- declared, or proposed by the Requirement"),
             ('sign', '"negative" or "positive"'),
         ),
         examples=(
             'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
             'variable_delta_after(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
-            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative")  # False when the model declares no variable of its own',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative")  # False when the model declares no variable under that name',
         ),
     ),
     Predicate(
@@ -638,10 +642,14 @@ def vocabulary_prompt() -> str:
         '  occupancy_after  -> {"source": "Sys.ModeA", "trigger": "Sys.evt", "target": "Sys.ModeB"}',
         '  invariant        -> {"scope": "Sys.ModeA", "condition": "!active(\\"Sys.Fault\\")", "bound": "4"}',
         "",
-        "Every binding the predicate lists must be present. Values that name a "
-        "model element are copied verbatim from `declared_model_vocabulary`; "
-        '"[*]" is the initial configuration and "<undeclared>" is a term the NL '
-        "requires that the model never declares. The remaining bindings take one "
+        "Every binding the predicate lists must be present, and every value that "
+        "names a model element is a name: copied verbatim from "
+        "`declared_model_vocabulary` when the model declares it, or -- when the "
+        "sentence requires an element this model does not declare -- the name that "
+        "element should have, taken from the sentence's own wording, together with "
+        "a `limitations` entry recording that the model declares nothing under it. "
+        'Do not substitute a different declared element that happens to fit the '
+        'slot. "[*]" is the initial configuration. The remaining bindings take one '
         "of the literal values shown in the signature.",
     ]
     for family, title in (
@@ -692,17 +700,15 @@ def callable_prompt() -> str:
         "the assertion environment. Each returns a strict bool and raises when it "
         "cannot answer, so you never guard a call.",
         "",
-        "Arguments that name a model element must be copied verbatim from "
-        "`declared_model_vocabulary`. Three literals are also accepted wherever an "
-        "element is expected: `[*]` for the initial configuration (use it when the "
-        "claim is about power-on or first entry and has no named source state), and "
-        "`<undeclared>` when the NL requires a term the model never declares. That "
-        "one is checked, not waved through: the predicate reads the matching "
-        "declaration table, answers False when the table holds nothing of the "
-        "author's own, and refuses when it does hold something -- name the "
-        "element instead. `condition` and `release` are expressions with no "
-        "table, so `<undeclared>` there is always refused. Arguments shown with "
-        "a value list take one of those values.",
+        "Arguments that name a model element take that element's name: copied "
+        "verbatim from `declared_model_vocabulary` when the model declares it, or "
+        "the name the Requirement proposes when it does not -- the existence "
+        "predicates answer which of the two it is, so both are ordinary values "
+        "here. `[*]` is also accepted wherever a source is expected, for the "
+        "initial configuration: use it when the claim is about power-on or first "
+        "entry and has no named source state. `condition` and `release` are FCSTM "
+        "expressions rather than names. Arguments shown with a value list take one "
+        "of those values.",
         "",
         "The `expression` field holds a bare boolean EXPRESSION. Do not write "
         "`assert`, do not append a message, do not end with a semicolon: the "
@@ -738,13 +744,15 @@ def callable_prompt() -> str:
         '    response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA") is True',
         '    persists_until(state="Sys.Hold", release=\'active("Sys.Done")\', bound=4) is True',
         "",
-        "A claim over several named elements folds with all(). A claim the model "
-        "has no term for binds `<undeclared>` and must stand alone -- folded in, "
-        "one raising arm would decide arms that never evaluated, so a fold "
-        "containing it is rejected:",
+        "A claim over several named elements folds with all(). An existence check "
+        "is the one thing that never folds into the claim resting on it: a single "
+        "verdict cannot distinguish an element that is missing from one that is "
+        "present and behaves wrongly, and those take different repairs. Keep those "
+        "two as separate assertions linked by depends_on:",
         '    all([occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
         '         occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final")]) is True',
-        '    variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative") is True',
+        '    variable_declared(variable="unit_count") is True    # precondition',
+        '    variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative") is True    # depends_on it',
         "",
         "Besides these you may use only plain builtins: len, all, any, bool, int, "
         "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "
@@ -822,11 +830,10 @@ def procedure_mismatch(
             f"predicate {predicate!r} must be discharged by calling "
             f"{signature_of(predicate)}; the primary assertion called no "
             "predicate at all. A literal such as `False` asserts a defect on no "
-            "evidence and can never be accepted. If the obligation genuinely "
-            "cannot be expressed against this model -- a `condition` or "
-            "`release` bound to `<undeclared>` is the usual case -- then emit no "
-            "primary for this requirement at all: supporting evidence plus a "
-            "rationale, and the controller records an honest coverage gap."
+            "evidence and can never be accepted. If the claim needs a model "
+            "element this model does not declare, name that element: assert its "
+            "existence as a `precondition` under the name it should have, and "
+            "have this primary list that precondition in depends_on."
         )
     return (predicate, note)
 
