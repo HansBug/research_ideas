@@ -342,6 +342,8 @@ state Root {
 
 EXEC_ARGS = {
     "state_declared": dict(state="Root.Idle", kind="leaf"),
+    "variable_declared": dict(name="c"),
+    "event_declared": dict(name="Root.go"),
     "containment": dict(parent="Root", child="Root.Idle"),
     "initial_target": dict(composite="Root", child="Root.Idle"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),

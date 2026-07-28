@@ -61,6 +61,8 @@ state Root {
 #: A well-formed call per predicate, used as the base each hostile value mutates.
 BASE = {
     "state_declared": dict(state="Root.Idle", kind="leaf"),
+    "variable_declared": dict(name="units"),
+    "event_declared": dict(name="Root.go"),
     "containment": dict(parent="Root", child="Root.Idle"),
     "initial_target": dict(composite="Root", child="Root.Idle"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),

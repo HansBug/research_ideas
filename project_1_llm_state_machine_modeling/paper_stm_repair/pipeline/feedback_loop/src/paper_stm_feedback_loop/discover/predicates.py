@@ -111,6 +111,57 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
     ),
     Predicate(
+        "variable_declared",
+        FAMILY_STRUCTURE,
+        "the model declares a variable of the author's own under this name",
+        "a quantity the NL requires that the model has no variable for",
+        ("name",),
+        "decides the declaration outright",
+        "variables(name=...)",
+        "variables",
+        caveat=(
+            "Route-control variables the converter generated are not counted: the "
+            "effect facade drops them from every answer, so reporting one as "
+            "declared would promise evidence no other call can deliver."
+        ),
+        field_specs=(
+            (
+                "name",
+                'the BARE variable name, with no state-path prefix -- variables are '
+                'declared outside the state tree. Copy it from the `variables` list '
+                'in declared_model_vocabulary; a dotted name is refused, not answered',
+            ),
+        ),
+        examples=(
+            'variable_declared(name="units")  # True when the author declared it',
+            'variable_declared(name="uav_count")  # False when the model has no such variable',
+            'variable_declared(name="Sys.units")  # raises: variables take no path prefix',
+        ),
+    ),
+    Predicate(
+        "event_declared",
+        FAMILY_STRUCTURE,
+        "the model declares an event at this qualified path",
+        "an event the NL names that the model never declares",
+        ("name",),
+        "decides the declaration outright",
+        "events(path=...)",
+        "events",
+        field_specs=(
+            (
+                "name",
+                'the FULLY QUALIFIED event path, as `<root>.<event>` -- copy it from '
+                'the `events` list in declared_model_vocabulary; a bare name with no '
+                'dot is refused, not answered',
+            ),
+        ),
+        examples=(
+            'event_declared(name="Sys.evt")  # True when the author declared it',
+            'event_declared(name="Sys.missing")  # False when the model has no such event',
+            'event_declared(name="evt")  # raises: events take the qualified path',
+        ),
+    ),
+    Predicate(
         "containment",
         FAMILY_STRUCTURE,
         "this child is (or is not) a substate of this parent",

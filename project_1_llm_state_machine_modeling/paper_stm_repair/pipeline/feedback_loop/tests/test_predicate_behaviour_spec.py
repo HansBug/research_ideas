@@ -498,6 +498,8 @@ def test_response_within_separates_answered_from_unanswered():
 #: A call for each predicate that is well-formed against the RICH model.
 WELL_FORMED = {
     "state_declared": dict(state="Root.Idle", kind="leaf"),
+    "variable_declared": dict(name="units"),
+    "event_declared": dict(name="Root.go"),
     "containment": dict(parent="Root.Outer", child="Root.Outer.First"),
     "initial_target": dict(composite="Root.Outer", child="Root.Outer.First"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Outer"),
@@ -839,3 +841,78 @@ def test_two_unconditional_entries_are_refused_as_genuinely_ambiguous():
 """
     with pytest.raises(UnsupportedEvidence, match="unconditional initial"):
         call(ambiguous, "initial_target", composite="Root.Mode", child="Root.Mode.A")
+
+
+# --------------------------------------------------------------------------
+# The two existence predicates (issue #170 §11.3)
+# --------------------------------------------------------------------------
+
+
+def test_variable_declared_separates_declared_from_absent():
+    """Existence in its own right -- the vocabulary had this only for states.
+
+    `variable` used to appear solely inside `effect_declared` and
+    `variable_delta_after`, always relationally.  That asymmetry is why "the NL
+    requires a quantity this model has no variable for" had no checkable form and
+    had to be smuggled through as `<undeclared>`.
+    """
+
+    assert call(RICH, "variable_declared", name="units") is True
+    assert call(RICH, "variable_declared", name="other") is True
+    assert call(RICH, "variable_declared", name="uav_count") is False
+    # A model with no variables at all answers False rather than refusing.
+    assert call(NO_VARIABLES, "variable_declared", name="units") is False
+
+
+def test_variable_declared_does_not_count_a_route_control_variable():
+    """The converter's own token is not the author's.
+
+    The effect facade already drops it from every answer, so reporting it as
+    declared would promise evidence no other call can deliver -- and it would
+    hide exactly the gap that pairs 0000 and 0006 are about, since in this corpus
+    the route token is the *only* variable any model declares.
+    """
+
+    env_with_exclusion = build_eval_environment(
+        model_text=RICH,
+        source_mappings=[],
+        source_exclusions=["compiler:route_control:units"],
+        timeout_seconds=30,
+        fbmcq_solver_timeout_ms=15_000,
+        fbmcq_max_bound=4,
+        fbmcq_process_wall_seconds=20.0,
+    )
+    assert env_with_exclusion.globals["variable_declared"](name="units") is False
+    # The author's other variable is unaffected.
+    assert env_with_exclusion.globals["variable_declared"](name="other") is True
+
+
+def test_event_declared_separates_declared_from_absent():
+    assert call(RICH, "event_declared", name="Root.go") is True
+    assert call(RICH, "event_declared", name="Root.tick") is True
+    assert call(RICH, "event_declared", name="Root.nosuchevent") is False
+
+
+def test_the_two_name_shapes_are_enforced_rather_than_answered():
+    """A prefixed variable name must be refused, not reported as absent.
+
+    `inspect` gives a variable row only a bare `name` and an event row only a
+    dotted `qualified_name`.  A producer generalising from state paths will write
+    `Sys.units`; that name is simply not found, so the call would answer False --
+    and that False reads as "the model lacks this variable".  A defect
+    manufactured out of a spelling convention is worse than a refusal.
+    """
+
+    with pytest.raises(UnsupportedEvidence, match="bare variable name"):
+        call(RICH, "variable_declared", name="Root.units")
+    with pytest.raises(UnsupportedEvidence, match="fully qualified event path"):
+        call(RICH, "event_declared", name="go")
+
+
+def test_the_existence_predicates_are_structure_family():
+    """They decide from declarations, so they must not demand runtime evidence."""
+
+    from paper_stm_feedback_loop.assertions.predicate_api import PREDICATE_FAMILIES
+
+    for name in ("variable_declared", "event_declared"):
+        assert PREDICATE_FAMILIES[name][0] == "structure", name

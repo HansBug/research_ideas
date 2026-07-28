@@ -241,6 +241,29 @@ class PredicateAPI:
                 "of its own. Name the state the claim is about."
             )
 
+    #: Which spelling each existence predicate expects.  The two differ because
+    #: `inspect` itself differs: a variable row carries only `name` (bare, e.g.
+    #: `R45RouteToken`) while an event row carries only `qualified_name` (dotted).
+    #: A producer that generalises from state paths will prefix a variable name,
+    #: and a prefixed name simply is not found -- so the call answers `False`, and
+    #: that `False` reads as "the model lacks this variable".  A defect
+    #: manufactured out of a spelling convention is worse than a refusal, so
+    #: refuse.
+    def _require_name_shape(self, name: Any, *, kind: str) -> None:
+        text = _need(name, "name").strip()
+        if kind == "variable" and "." in text:
+            raise UnsupportedEvidence(
+                f"variable_declared takes a bare variable name, got {text!r}: "
+                "variables are declared without a state path prefix. Copy the "
+                "name as it appears under `variables` in declared_model_vocabulary."
+            )
+        if kind == "event" and "." not in text:
+            raise UnsupportedEvidence(
+                f"event_declared takes a fully qualified event path, got {text!r}: "
+                "events are addressed as `<root>.<event>`. Copy the path as it "
+                "appears under `events` in declared_model_vocabulary."
+            )
+
     def _require_declared(self, **bindings: Any) -> None:
         """Decide what an `<undeclared>` binding means, by looking.
 
@@ -563,6 +586,46 @@ class PredicateAPI:
         raise UnsupportedEvidence(
             f"unknown state kind {kind!r}; use leaf / composite / pseudo / any"
         )
+
+    def variable_declared(self, *, name: str) -> bool:
+        """The model declares a variable of its own under this name.
+
+        Existence in its own right, which the vocabulary previously had only for
+        states: `variable` appeared solely inside `effect_declared` and
+        `variable_delta_after`, always in a relational context.  That asymmetry is
+        why "the NL requires a quantity this model has no variable for" had no
+        checkable form and had to be smuggled through as `<undeclared>` -- see
+        issue #170 §11.
+
+        Route-control variables are not the author's.  The effect facade already
+        drops them from every answer, so reporting one as declared here would
+        promise evidence no other call can deliver.
+        """
+
+        self._require_name_shape(name, kind="variable")
+        self._note(name)
+        owned = {
+            item.removeprefix("compiler:route_control:")
+            for item in self.source_exclusions
+            if item.startswith("compiler:route_control:")
+        }
+        wanted = _need(name, "name").strip()
+        for row in self.structure.variables():
+            if str(getattr(row, "name", "") or "") != wanted:
+                continue
+            return wanted not in owned
+        return False
+
+    def event_declared(self, *, name: str) -> bool:
+        """The model declares an event at this qualified path."""
+
+        self._require_name_shape(name, kind="event")
+        self._note(name)
+        wanted = _need(name, "name").strip()
+        for row in self.structure.events():
+            if str(getattr(row, "qualified_name", "") or "") == wanted:
+                return bool(getattr(row, "is_declared", True))
+        return False
 
     def containment(self, *, parent: str, child: str) -> bool:
         """This child is a direct substate of this parent."""
@@ -1158,6 +1221,8 @@ def _read_var(container: Any, name: str) -> float | None:
 #: the predicate, never chosen by the producer.
 PREDICATE_FAMILIES: dict[str, tuple[str, str]] = {
     "state_declared": ("structure", "state_declared"),
+    "variable_declared": ("structure", "variable_declared"),
+    "event_declared": ("structure", "event_declared"),
     "containment": ("structure", "containment"),
     "initial_target": ("structure", "initial_target"),
     "edge_declared": ("relation", "edge_declared"),

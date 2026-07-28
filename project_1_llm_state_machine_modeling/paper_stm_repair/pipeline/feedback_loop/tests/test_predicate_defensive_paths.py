@@ -765,3 +765,69 @@ def test_a_call_through_a_subscript_is_recorded_without_a_name():
     report = _audit("fns = [occupancy_after]\nfirst = fns[0]()")
     assert "dunder_call" not in _codes(report), _codes(report)
     assert "forbidden_call" not in _codes(report), _codes(report)
+
+
+# --------------------------------------------------------------------------
+# `_initial_child_of` on shapes a real model does not produce
+# --------------------------------------------------------------------------
+
+
+def test_initial_targets_given_as_plain_dicts_are_read():
+    """The facade wraps rows in `FrozenView`, but the reader must not assume it.
+
+    The first version filtered on `isinstance(t, dict)` and therefore matched
+    nothing, so every call returned `None` -- which reads as "the initial child is
+    not the one claimed" rather than "this code could not look".  Accepting both
+    shapes is what fixed it; this covers the dict branch that no live facade hits.
+    """
+
+    subject = api(
+        structure=Structure(
+            states=[
+                Row(
+                    path="Root.Mode",
+                    initial_targets=[
+                        {"target": "Root.Mode.A", "is_unconditional": True, "guard": None}
+                    ],
+                )
+            ]
+        )
+    )
+    assert subject._initial_child_of("Root.Mode") == "Root.Mode.A"
+
+
+def test_initial_targets_present_but_carrying_no_target_yields_none():
+    """A row shape change upstream must not be read as a wrong initial child."""
+
+    subject = api(
+        structure=Structure(
+            states=[Row(path="Root.Mode", initial_targets=[{"guard": "x > 0"}])]
+        )
+    )
+    assert subject._initial_child_of("Root.Mode") is None
+
+
+def test_only_guarded_entries_is_refused_not_answered():
+    """Every entry conditional means there is no entry taken without a guard.
+
+    Distinct from the converter shape this fix was written for, where exactly one
+    unconditional edge exists.  With none, the question has no answer from the
+    declarations, so refusing is the honest outcome -- answering would pick one
+    guarded re-entry point arbitrarily.
+    """
+
+    subject = api(
+        structure=Structure(
+            states=[
+                Row(
+                    path="Root.Mode",
+                    initial_targets=[
+                        {"target": "Root.Mode.A", "is_unconditional": False, "guard": "t == 1"},
+                        {"target": "Root.Mode.B", "is_unconditional": False, "guard": "t == 2"},
+                    ],
+                )
+            ]
+        )
+    )
+    with pytest.raises(UnsupportedEvidence, match="none is"):
+        subject._initial_child_of("Root.Mode")
