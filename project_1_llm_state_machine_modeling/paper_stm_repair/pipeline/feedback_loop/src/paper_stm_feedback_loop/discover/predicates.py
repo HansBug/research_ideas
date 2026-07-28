@@ -34,6 +34,8 @@ infrastructure caveats.
 
 from __future__ import annotations
 
+import ast
+import json
 from dataclasses import dataclass
 
 FAMILY_STRUCTURE = "S"
@@ -77,6 +79,14 @@ class Predicate:
     locators: tuple[str, ...] = ()
     #: Honest statement of what the current infrastructure cannot do.
     caveat: str = ""
+    #: Per-binding format spec: (binding, what it must contain).  Prose about a
+    #: field is not enough -- a producer that cannot see a field's domain guesses
+    #: it, and a guessed literal fails at precheck.
+    field_specs: tuple[tuple[str, str], ...] = ()
+    #: At least three worked calls per predicate, covering the shapes that
+    #: actually occur: the typical case, a literal or special-binding variant,
+    #: and the case where the term is undeclared or the answer is expected False.
+    examples: tuple[str, ...] = ()
 
 
 PREDICATES: tuple[Predicate, ...] = (
@@ -90,6 +100,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(path=..., exact=True)",
         "states",
+        field_specs=(
+            ('state', 'a declared state path, copied verbatim from declared_model_vocabulary'),
+            ('kind', 'one of "leaf" (no substates), "composite" (has substates), "pseudo" (an initial/final marker), or "any" (declared at all)'),
+        ),
+        examples=(
+            'state_declared(state="Sys.ModeA", kind="leaf")  # a simple operating mode',
+            'state_declared(state="Sys.Outer", kind="composite")  # a mode with substates',
+            'state_declared(state="Sys.Ghost", kind="any")  # only asks whether it exists at all',
+        ),
     ),
     Predicate(
         "containment",
@@ -100,6 +119,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(parent=..., recursive=False)",
         "states",
+        field_specs=(
+            ('parent', 'the declared enclosing state'),
+            ('child', 'the declared state that must be a DIRECT substate of parent; a grandchild answers False'),
+        ),
+        examples=(
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")  # direct child',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner.Deep")  # False: not direct',
+            'containment(parent="Sys", child="Sys.Outer")  # top-level containment',
+        ),
     ),
     Predicate(
         "initial_target",
@@ -110,6 +138,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "initial_child(...)",
         "initial_child",
+        field_specs=(
+            ('composite', 'the declared composite whose entry is claimed'),
+            ('child', 'the declared substate that entry must land on'),
+        ),
+        examples=(
+            'initial_target(composite="Sys.Outer", child="Sys.Outer.Inner")',
+            'initial_target(composite="Sys", child="Sys.ModeA")  # root entry',
+            'initial_target(composite="Sys.Outer", child="Sys.Outer.Other")  # False when entry lands elsewhere',
+        ),
     ),
     Predicate(
         "edge_declared",
@@ -126,6 +163,16 @@ PREDICATES: tuple[Predicate, ...] = (
             "use occupancy_after, because a declared edge may be unreachable or "
             "guard-blocked."
         ),
+        field_specs=(
+            ('source', 'the declared source state, or "[*]" for the pseudo-initial'),
+            ('trigger', 'the declared event path that labels the edge'),
+            ('target', 'the declared target state'),
+        ),
+        examples=(
+            'edge_declared(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB")',
+            'edge_declared(source="[*]", trigger="Sys.on", target="Sys.ModeA")  # the initial edge',
+            'edge_declared(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Other")  # False when the edge points elsewhere',
+        ),
     ),
     Predicate(
         "effect_declared",
@@ -137,6 +184,17 @@ PREDICATES: tuple[Predicate, ...] = (
         "effect_deltas(source=..., event=...)",
         "effect_deltas",
         locators=("effects(...)",),
+        field_specs=(
+            ('source', 'the declared source state of the transition carrying the effect'),
+            ('trigger', 'the declared event path'),
+            ('variable', 'the declared variable name, or "<undeclared>" when the NL names a quantity the model has no variable for'),
+            ('sign', '"negative" for a decrease, "positive" for an increase'),
+        ),
+        examples=(
+            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
+            'effect_declared(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
+            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative")  # False when the model declares no variable of its own',
+        ),
     ),
     Predicate(
         "action_declared",
@@ -151,6 +209,15 @@ PREDICATES: tuple[Predicate, ...] = (
             "Reports whether the phase declares any action at all, not what "
             "the action does."
         ),
+        field_specs=(
+            ('state', 'the declared state whose action is claimed'),
+            ('phase', '"entry", "exit", or "during"'),
+        ),
+        examples=(
+            'action_declared(state="Sys.ModeA", phase="entry")',
+            'action_declared(state="Sys.ModeA", phase="exit")',
+            'action_declared(state="Sys.ModeB", phase="during")  # False when no during action is declared',
+        ),
     ),
     Predicate(
         "guard_distinguishable",
@@ -162,6 +229,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "conflicting_targets(source=..., event=...)",
         "conflicting_targets",
         locators=("guards_overlap(...)",),
+        field_specs=(
+            ('source', 'the declared source state the alternatives leave from'),
+            ('trigger', 'the declared shared event path; raises when no transition leaves source on it'),
+        ),
+        examples=(
+            'guard_distinguishable(source="Sys.Hub", trigger="Sys.pick")  # True when guards separate the targets',
+            'guard_distinguishable(source="Sys.Hub", trigger="Sys.route")  # False when two targets share an empty guard',
+            'guard_distinguishable(source="Sys.Leaf", trigger="Sys.pick")  # raises: no such transition, so undecidable',
+        ),
     ),
     Predicate(
         "cardinality",
@@ -172,6 +248,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(...)",
         "states",
+        field_specs=(
+            ('scope', 'the declared enclosing state whose DIRECT substates are counted'),
+            ('count', 'an integer; pseudo-states are not counted'),
+        ),
+        examples=(
+            'cardinality(scope="Sys.Outer", count=3)  # exactly three direct modes',
+            'cardinality(scope="Sys", count=2)  # top level',
+            'cardinality(scope="Sys.Outer", count=4)  # False when only three are declared',
+        ),
     ),
     # ---- Family B: runtime behaviour ------------------------------------
     Predicate(
@@ -185,6 +270,17 @@ PREDICATES: tuple[Predicate, ...] = (
         "simulate(...).final.is_active(...)",
         "simulate",
         locators=("transition_exists(...)", "path(...)"),
+        field_specs=(
+            ('source', 'the configuration the claim is about, or "[*]" for power-on / first entry'),
+            ('trigger', 'the declared event path; the predicate also verifies this event was actually consumed'),
+            ('target', 'the declared state; occupying any leaf inside a composite target counts'),
+            ('within_cycles', 'how many cycles to run; default 1'),
+        ),
+        examples=(
+            'occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB")',
+            'occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA")  # power-on claim',
+            'occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Outer", within_cycles=2)  # composite target, two cycles',
+        ),
     ),
     Predicate(
         "event_consumed",
@@ -200,6 +296,15 @@ PREDICATES: tuple[Predicate, ...] = (
             "There is no static substitute: an event being declared does not "
             "mean any configuration accepts it."
         ),
+        field_specs=(
+            ('source', 'the configuration the event is offered in'),
+            ('trigger', 'the declared event path'),
+        ),
+        examples=(
+            'event_consumed(source="Sys.ModeA", trigger="Sys.evt")  # True when some transition accepts it here',
+            'event_consumed(source="[*]", trigger="Sys.on")',
+            'event_consumed(source="Sys.ModeB", trigger="Sys.evt")  # False when the event is silently ignored here',
+        ),
     ),
     Predicate(
         "stays_in",
@@ -211,6 +316,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness",
         "simulate(...) consumed_events and final.is_active(source)",
         "simulate",
+        field_specs=(
+            ('source', 'the configuration that must not change'),
+            ('trigger', 'the declared event path; the predicate requires it be consumed AND the state unchanged'),
+        ),
+        examples=(
+            'stays_in(source="Sys.ModeA", trigger="Sys.noop")  # True only for a declared self-loop',
+            'stays_in(source="Sys.ModeA", trigger="Sys.evt")  # False when the event moves the system',
+            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # False when this declared event is simply ignored here, so no self-loop exists',
+        ),
     ),
     Predicate(
         "variable_delta_after",
@@ -223,6 +337,17 @@ PREDICATES: tuple[Predicate, ...] = (
         "simulate(...).cycles[...].variables",
         "simulate",
         locators=("effect_deltas(...)",),
+        field_specs=(
+            ('source', 'the configuration the run starts from'),
+            ('trigger', 'the declared event path; the predicate verifies it was consumed'),
+            ('variable', 'the declared variable name, or "<undeclared>"'),
+            ('sign', '"negative" or "positive"'),
+        ),
+        examples=(
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative")  # False when the model declares no variable of its own',
+        ),
     ),
     Predicate(
         "reaches",
@@ -240,6 +365,16 @@ PREDICATES: tuple[Predicate, ...] = (
             "the cycle budget. It ignores triggers, so it cannot stand in for "
             "occupancy_after."
         ),
+        field_specs=(
+            ('source', 'the configuration to start from'),
+            ('target', 'the declared state to reach'),
+            ('within_cycles', 'cycle budget; default 3. Every declared event is offered each cycle, so this ignores which trigger caused it'),
+        ),
+        examples=(
+            'reaches(source="Sys.ModeA", target="Sys.Final", within_cycles=3)',
+            'reaches(source="[*]", target="Sys.ModeB", within_cycles=5)',
+            'reaches(source="Sys.ModeA", target="Sys.Dead", within_cycles=3)  # False: unreachable within the budget',
+        ),
     ),
     Predicate(
         "terminates",
@@ -252,6 +387,15 @@ PREDICATES: tuple[Predicate, ...] = (
         "simulate(...).final.is_ended",
         "simulate",
         locators=("topology(...)",),
+        field_specs=(
+            ('scope', 'the configuration to start from, or "[*]" / "root" for a cold start'),
+            ('trigger', 'optional; when given only that event is offered, otherwise every declared event is'),
+        ),
+        examples=(
+            'terminates(scope="Sys.ModeB", trigger="Sys.off")  # does this event finish the model',
+            'terminates(scope="[*]")  # can the model finish at all from a cold start',
+            'terminates(scope="Sys.ModeA")  # False when no run from here reaches a final state',
+        ),
     ),
     # ---- Family P: quantified properties --------------------------------
     Predicate(
@@ -269,6 +413,16 @@ PREDICATES: tuple[Predicate, ...] = (
             "region is a tautology and proves nothing.  Only holds is False is "
             "a violation; a non-terminal status is invalid, never False."
         ),
+        field_specs=(
+            ('scope', 'the declared state the run starts in'),
+            ('condition', 'an FCSTM boolean expression such as !active("Sys.Fault"); NOT a bare state path'),
+            ('bound', 'how many steps to check; default 5. Larger bounds cost exponentially more'),
+        ),
+        examples=(
+            'invariant(scope=\'Sys.ModeA\', condition=\'!active("Sys.Fault")\', bound=4)',
+            'invariant(scope=\'[*]\', condition=\'!active("Sys.Fault") && !active("Sys.Dead")\', bound=3)',
+            'invariant(scope=\'Sys.ModeA\', condition=\'!active("Sys.ModeB")\', bound=2)  # False when ModeB is reachable in two steps',
+        ),
     ),
     Predicate(
         "response_within",
@@ -279,6 +433,17 @@ PREDICATES: tuple[Predicate, ...] = (
         "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check response <= k: ...')",
         "fbmcq",
+        field_specs=(
+            ('trigger', 'the declared event path that creates the obligation'),
+            ('response', 'the declared STATE PATH that counts as the answer; not an expression'),
+            ('bound', 'step horizon; default 5'),
+            ('source', 'the configuration the obligation is about; supply it, or the event is offered where nothing can consume it'),
+        ),
+        examples=(
+            'response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA")',
+            'response_within(trigger="Sys.on", response="Sys.ModeA", bound=2, source="[*]")',
+            'response_within(trigger="Sys.evt", response="Sys.Never", bound=3, source="Sys.ModeA")  # False: no run answers in time',
+        ),
     ),
     Predicate(
         "persists_until",
@@ -292,6 +457,16 @@ PREDICATES: tuple[Predicate, ...] = (
         caveat=(
             "Infeasible on the pairs where formula construction exceeds budget; "
             "expand into B-family claims when the domain is enumerable."
+        ),
+        field_specs=(
+            ('state', 'the declared state that must hold'),
+            ('release', 'an FCSTM boolean expression that ends the obligation, such as active("Sys.Done")'),
+            ('bound', 'step horizon; default 5'),
+        ),
+        examples=(
+            'persists_until(state=\'Sys.Hold\', release=\'active("Sys.Done")\', bound=4)',
+            'persists_until(state=\'Sys.Search\', release=\'active("Sys.Found")\', bound=3)',
+            'persists_until(state=\'Sys.Hold\', release=\'active("Sys.Done")\', bound=2)  # False when the run can leave Hold early',
         ),
     ),
 )
@@ -341,12 +516,13 @@ FREE_FORM_BINDINGS = frozenset(
 #: has to guess and the reviewer never has to reject a legal literal.
 _LITERAL_ARGS = {
     "count": "count: int",
-    "kind": 'kind: "leaf"|"composite"|"pseudo"',
+    "kind": 'kind: "leaf"|"composite"|"pseudo"|"any"',
     "sign": 'sign: "negative"|"positive"',
     "phase": 'phase: "entry"|"exit"|"during"',
     "condition": "condition: str",
     "release": "release: str",
     "bound": "bound: int",
+    "within_cycles": "within_cycles: int",
 }
 
 
@@ -364,6 +540,34 @@ def signature_of(name: str) -> str:
     return f"{name}({', '.join(args)}) -> bool"
 
 
+def binding_examples(name: str) -> tuple[tuple[str, str], ...]:
+    """Re-emit each worked call of ``name`` as the JSON binding dict.
+
+    The requirement stages write `predicate_bindings`, the assertion stages
+    write a call, and the two must agree on every value.  Deriving the dict form
+    from the call form by parsing it makes that agreement structural rather than
+    a thing two prompt authors have to keep in step by hand.  Values are
+    stringified because that is what the schema stores.
+
+    :param name: predicate name.
+    :return: ``(json_object, note)`` per example; the note is the call's comment.
+    """
+
+    entry = PREDICATE_BY_NAME[name]
+    rendered: list[tuple[str, str]] = []
+    for example in entry.examples:
+        call, _, note = example.partition("  # ")
+        node = ast.parse(call.strip(), mode="eval").body
+        assert isinstance(node, ast.Call)  # noqa: S101 - table is ours, checked in tests
+        pairs = {
+            kw.arg: str(ast.literal_eval(kw.value))
+            for kw in node.keywords
+            if kw.arg is not None
+        }
+        rendered.append((json.dumps(pairs, ensure_ascii=False), note.strip()))
+    return tuple(rendered)
+
+
 def vocabulary_prompt() -> str:
     """Render the vocabulary for the requirement stages.
 
@@ -377,6 +581,17 @@ def vocabulary_prompt() -> str:
         "Predicate vocabulary. Every claim must name exactly one predicate from "
         "this closed list. The family, and therefore the evidence the controller "
         "requires, follows from the predicate -- you do not choose it.",
+        "",
+        "How the bindings look, one per family:",
+        '  state_declared   -> {"state": "Sys.ModeA", "kind": "leaf"}',
+        '  occupancy_after  -> {"source": "Sys.ModeA", "trigger": "Sys.evt", "target": "Sys.ModeB"}',
+        '  invariant        -> {"scope": "Sys.ModeA", "condition": "!active(\\"Sys.Fault\\")", "bound": "4"}',
+        "",
+        "Every binding the predicate lists must be present. Values that name a "
+        "model element are copied verbatim from `declared_model_vocabulary`; "
+        '"[*]" is the initial configuration and "<undeclared>" is a term the NL '
+        "requires that the model never declares. The remaining bindings take one "
+        "of the literal values shown in the signature.",
     ]
     for family, title in (
         (
@@ -403,6 +618,13 @@ def vocabulary_prompt() -> str:
             lines.append(f"    strength: {item.strength}")
             if item.caveat:
                 lines.append(f"    boundary: {item.caveat}")
+            lines.append("    bindings, each required:")
+            for binding, spec in item.field_specs:
+                lines.append(f"      - {binding}: {spec}")
+            lines.append("    predicate_bindings examples:")
+            for payload, note in binding_examples(item.name):
+                suffix = f"   # {note}" if note else ""
+                lines.append(f"      {payload}{suffix}")
     return "\n".join(lines)
 
 
@@ -423,17 +645,46 @@ def callable_prompt() -> str:
         "`declared_model_vocabulary`. Three literals are also accepted wherever an "
         "element is expected: `[*]` for the initial configuration (use it when the "
         "claim is about power-on or first entry and has no named source state), and "
-        "`<undeclared>` when the NL requires a term the model never declares -- that "
-        "raises, and the controller records the absence, which is the honest "
-        "outcome. Arguments shown with a value list take one of those values.",
+        "`<undeclared>` when the NL requires a term the model never declares. That "
+        "one is checked, not waved through: the predicate reads the matching "
+        "declaration table, answers False when the table holds nothing of the "
+        "author's own, and refuses when it does hold something -- name the "
+        "element instead. `condition` and `release` are expressions with no "
+        "table, so `<undeclared>` there is always refused. Arguments shown with "
+        "a value list take one of those values.",
         "",
-        "Worked examples:",
-        '    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-001][AST-REQ-001-1] ..."',
-        '    assert state_declared(state="Sys.ModeA", kind="leaf") is True, "[REQ-002][AST-REQ-002-1] ..."',
+        "Worked examples -- three per family, covering every argument shape.",
+        "",
+        "Family S (declarations). Note that `kind`, `phase`, `sign` and `count` "
+        "take a listed literal, not a path:",
+        '    assert state_declared(state="Sys.ModeA", kind="leaf") is True, "[REQ-001][AST-REQ-001-1] ..."',
+        '    assert containment(parent="Sys.Outer", child="Sys.Outer.Inner") is True, "[REQ-002][AST-REQ-002-1] ..."',
+        '    assert cardinality(scope="Sys.Outer", count=3) is True, "[REQ-003][AST-REQ-003-1] ..."',
+        '    assert action_declared(state="Sys.ModeA", phase="entry") is True, "[REQ-004][AST-REQ-004-1] ..."',
+        '    assert effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative") is True, "[REQ-005][AST-REQ-005-1] ..."',
+        "",
+        "Family B (runtime). `source` is the configuration the claim is about; "
+        'use "[*]" when the claim is about power-on or first entry:',
+        '    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-006][AST-REQ-006-1] ..."',
+        '    assert occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA") is True, "[REQ-007][AST-REQ-007-1] ..."',
+        '    assert event_consumed(source="Sys.ModeA", trigger="Sys.evt") is True, "[REQ-008][AST-REQ-008-1] ..."',
+        '    assert terminates(scope="Sys.ModeB", trigger="Sys.off") is True, "[REQ-009][AST-REQ-009-1] ..."',
+        "",
+        "Family P (bounded over all runs). `condition` and `release` are FCSTM "
+        "expressions, not paths:",
+        '    assert invariant(scope="Sys.ModeA", condition=\'!active("Sys.Fault")\', bound=4) is True, "[REQ-010][AST-REQ-010-1] ..."',
+        '    assert response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA") is True, "[REQ-011][AST-REQ-011-1] ..."',
+        '    assert persists_until(state="Sys.Hold", release=\'active("Sys.Done")\', bound=4) is True, "[REQ-012][AST-REQ-012-1] ..."',
+        "",
+        "A claim over several named elements folds with all(). A claim the model "
+        "has no term for binds `<undeclared>` and must stand alone -- folded in, "
+        "one raising arm would decide arms that never evaluated, so a fold "
+        "containing it is rejected:",
         '    assert all([',
         '        occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
         '        occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final"),',
-        '    ]) is True, "[REQ-003][AST-REQ-003-1] ..."',
+        '    ]) is True, "[REQ-013][AST-REQ-013-1] ..."',
+        '    assert variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative") is True, "[REQ-014][AST-REQ-014-1] ..."',
         "",
         "Besides these you may use only plain builtins: len, all, any, bool, int, "
         "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "
@@ -453,6 +704,10 @@ def callable_prompt() -> str:
             lines.append(f"      strength: {item.strength}")
             if item.caveat:
                 lines.append(f"      boundary: {item.caveat}")
+            for binding, spec in item.field_specs:
+                lines.append(f"      arg {binding}: {spec}")
+            for example in item.examples:
+                lines.append(f"      e.g. {example}")
     return "\n".join(lines)
 
 
@@ -540,26 +795,6 @@ def unmodelled_claim_paths(
     )
 
 
-def procedure_prompt() -> str:
-    """Render only predicate -> procedure, for the assertion-writing stages.
-
-    They do not need the full meaning text; they need to know which call is
-    mandatory and which calls are merely locators.  Same source of truth.
-    """
-
-    lines = [
-        "Predicate procedures. The `primary` assertion of a Requirement must "
-        "call the procedure its predicate names. Locators may appear only as "
-        "`supporting`.",
-    ]
-    for item in PREDICATES:
-        row = f"- `{item.name}` -> primary MUST call `{item.procedure}`"
-        if item.locators:
-            row += f"; locators (supporting only): {', '.join(f'`{x}`' for x in item.locators)}"
-        lines.append(row)
-    return "\n".join(lines)
-
-
 __all__ = [
     "FAMILY_BEHAVIOR",
     "FAMILY_PROPERTY",
@@ -577,6 +812,5 @@ __all__ = [
     "callable_prompt",
     "procedure_mismatch",
     "signature_of",
-    "procedure_prompt",
     "vocabulary_prompt",
 ]

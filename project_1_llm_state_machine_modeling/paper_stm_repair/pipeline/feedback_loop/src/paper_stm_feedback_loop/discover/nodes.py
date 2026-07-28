@@ -17,6 +17,7 @@ from paper_stm_feedback_loop.assertions import (
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 from paper_stm_feedback_loop.assertions.predicate_api import (
+    BINDING_DECLARATION_TABLE,
     PREDICATE_FAMILIES,
     UNDECLARED,
 )
@@ -821,13 +822,50 @@ def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
         )
 
 
-def _model_vocabulary(inspected: dict[str, Any]) -> dict[str, tuple[str, ...]]:
+#: Source-trace prefix marking a variable the converter created, not the author.
+_ROUTE_CONTROL_PREFIX = "compiler:route_control:"
+
+
+
+def _undeclared_bindings_with_a_table(bindings: dict | None) -> tuple[str, ...]:
+    """Which `<undeclared>` bindings the predicate can decide by reading a table.
+
+    `variable`, `trigger` and the state-shaped bindings each have a declaration
+    list, so their absence is provable and the primary assertion is expected to
+    come back false.  `condition` and `release` are boolean expressions with no
+    list to be absent from, so the predicate refuses them and no legal primary
+    exists -- those are the only ones that may skip the primary requirement.
+    """
+
+    if not isinstance(bindings, dict):
+        return ()
+    return tuple(
+        sorted(
+            name
+            for name, value in bindings.items()
+            if str(value) == UNDECLARED and name in BINDING_DECLARATION_TABLE
+        )
+    )
+
+
+def _model_vocabulary(
+    inspected: dict[str, Any], exclusions: tuple[str, ...] | list[str] = ()
+) -> dict[str, tuple[str, ...]]:
     """Return the declared state and event paths, under their real field names.
 
     States carry ``path``; events carry ``qualified_name``.  Reading ``path`` for
     both silently dropped every event, which made ``unresolved_model_references``
     unable to catch a fabricated event reference -- the pair-0029 ``event="/pick"``
     defect class.  One builder, so producers and gates see the same vocabulary.
+
+    Route-control variables are listed apart from the author's own.  They are the
+    converter's bookkeeping, the effect facade already drops them from every
+    answer, and the prompts forbid using one as a stand-in for a quantity the NL
+    names.  Listing them as ordinary variables contradicted all three: on pairs
+    0000 and 0006 the *only* entry under ``variables`` was a route token, so a
+    producer reading the vocabulary saw a variable available where the model has
+    none.  Pair 0006's expected defect is exactly that absence, and it is far
+    easier to state as `<undeclared>` when the vocabulary says so plainly.
     """
 
     def _paths(group: str, field: str) -> tuple[str, ...]:
@@ -841,12 +879,21 @@ def _model_vocabulary(inspected: dict[str, Any]) -> dict[str, tuple[str, ...]]:
             )
         )
 
+    route_control = {
+        item.removeprefix(_ROUTE_CONTROL_PREFIX)
+        for item in exclusions
+        if isinstance(item, str) and item.startswith(_ROUTE_CONTROL_PREFIX)
+    }
+    variables = _paths("variables", "name")
     # Three groups, three different field names.  Assuming one of them for all
     # three is what silently emptied this list; keep them explicit.
     return {
         "states": _paths("states", "path"),
         "events": _paths("events", "qualified_name"),
-        "variables": _paths("variables", "name"),
+        "variables": tuple(v for v in variables if v not in route_control),
+        "compiler_owned_variables_not_usable_as_evidence": tuple(
+            v for v in variables if v in route_control
+        ),
     }
 
 
@@ -886,18 +933,25 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
             "metrics": inspected.get("metrics", {}),
             "model_type": inspected.get("model_type"),
         },
+        # The gate that catches fabricated paths keeps the route-control names:
+        # they *are* declared, so rejecting a reference to one would report a
+        # non-existent element, which is not what that gate is for.  Whether a
+        # producer may *use* one is a separate question, answered by the prompts
+        # and the split in `model_vocabulary`.
         known_model_paths=tuple(
             sorted(
                 {
                     path
                     for paths in _model_vocabulary(
-                        inspected.get("inspect") or {}
+                        inspected.get("inspect") or {}, source_exclusions
                     ).values()
                     for path in paths
                 }
             )
         ),
-        model_vocabulary=_model_vocabulary(inspected.get("inspect") or {}),
+        model_vocabulary=_model_vocabulary(
+            inspected.get("inspect") or {}, source_exclusions
+        ),
         source_trace=discover_input.source_trace,
         working_contract=discover_input.manifest.get("working_contract", {})
         if isinstance(discover_input.manifest.get("working_contract"), dict)
@@ -1385,19 +1439,38 @@ def convert_assertions(
                 for assertion in owned_assertions
                 if assertion.role == "primary"
             )
-            # A requirement whose binding is `<undeclared>` has no executable
-            # primary by construction: the model declares no term for what the
-            # NL asks.  Demanding one forced the producer to invent a check that
-            # passes for some adjacent reason -- pair 0006 answered "does search
-            # persist" with a tautological bounded query and the requirement was
-            # reported satisfied.  Let it through without a primary; precheck
-            # turns it into a coverage gap, which is what an unanswerable
-            # obligation actually is.
+            # A requirement whose binding is `<undeclared>` states an obligation
+            # the model has no term for.  Its primary is decided by the absence
+            # itself -- the checker answers a plain false off the declaration
+            # table -- so the requirement is checkable and a primary is expected.
+            # What it cannot satisfy is the mandatory *family* demand below: the
+            # deciding evidence is structural whatever the requirement's family
+            # says, and insisting on a simulation or a bounded query is what
+            # pushed pair 0006's producer into a tautology that passed.
             unassertable = UNDECLARED in str(requirement.predicate_bindings or {})
-            if not primary_assertions and not unassertable:
+            # Only an `<undeclared>` binding with no declaration table behind it
+            # -- `condition`, `release` -- genuinely has no legal primary, since
+            # the predicate refuses those unconditionally.  Every other one is
+            # decided by reading the table, so a primary is both possible and
+            # required.  Waiving it for all of them left pair 0006's original
+            # loss reachable: a supporting-only requirement can never be
+            # reported violated (only `false_primary_assertions` become issues),
+            # so the finding would again be filed as an unchecked gap.
+            waivable = unassertable and not _undeclared_bindings_with_a_table(
+                requirement.predicate_bindings
+            )
+            if not primary_assertions and not waivable:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion"
+                    + (
+                        ". An `<undeclared>` binding does not exempt it: the "
+                        "predicate decides the absence from the declaration "
+                        "table, so write the primary as the ordinary call and "
+                        "let it come back false"
+                        if unassertable
+                        else ""
+                    )
                 )
             # Gate D (issue #170 C3): the named predicate fixes which procedure
             # decides it, and a locator answers a weaker question.  Without this
@@ -1405,7 +1478,7 @@ def convert_assertions(
             # obligation, which is how pair 0006 produced a false positive while
             # every other gate passed.  Requirements with no predicate keep the
             # pre-vocabulary behaviour so v1/v2 artifacts still run.
-            if requirement.predicate and not unassertable:
+            if requirement.predicate and primary_assertions:
                 called = frozenset[str]().union(
                     *(
                         called_evidence_functions(assertion.expression)
@@ -1437,12 +1510,15 @@ def convert_assertions(
                             "paths": list(residue),
                         }
                     )
-            if unassertable:
-                # No executable primary exists, so a mandatory-family demand has
-                # nothing to be satisfied by.  Leaving this on kept the
-                # `<undeclared>` deadlock alive for Family B and P: the only
-                # remaining move was a primary the converter prompt forbids.
-                continue
+            # Only the two family demands are waived for an `<undeclared>`
+            # requirement: whatever family it declares, the deciding evidence is
+            # the declaration table being empty, so insisting on a simulation or
+            # a bounded query is what pushed pair 0006's producer into a
+            # tautology that passed.  Everything after this block still applies.
+            # `continue`-ing past all of it -- which is what this used to do --
+            # took the fabricated-path gate with it, and that gate exists
+            # because a query over a non-existent element matches nothing and
+            # passes.
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -1453,7 +1529,7 @@ def convert_assertions(
                     if assertion.evidence_family not in allowed_primary_families
                 }
             )
-            if invalid_primary_families:
+            if invalid_primary_families and not unassertable:
                 raise ValueError(
                     f"{requirement.verification_kind} requirement "
                     f"{requirement.requirement_id} requires primary evidence from "
@@ -1469,7 +1545,7 @@ def convert_assertions(
                 ]
                 - present_primary_families
             )
-            if missing_mandatory_families:
+            if missing_mandatory_families and not unassertable:
                 # A mandatory family exists to stop *weaker* evidence from
                 # standing in for what the requirement needs.  It must not also
                 # block *stronger* evidence.  When a primary assertion already
@@ -1837,12 +1913,22 @@ def precheck_and_seal(
             hot_start_policy_error: str | None = None
             formal_causality_error: str | None = None
             requirement = requirement_by_id.get(assertion.requirement_id)
+            # A verdict read off an empty declaration table ran no query at all,
+            # so the two evidence-shape gates below have nothing to inspect.
+            # Judging them anyway is how the pair-0006 regression comes back:
+            # zero calls looks identical to non-causal or cold-started evidence,
+            # and the assertion is sent back for repairs it cannot make.
+            sealed_on_absence = (
+                checked.sealed_metadata.get("verdict_basis")
+                == "declared_vocabulary_absence"
+            )
             if (
                 requirement is not None
                 and requirement.verification_kind == "behavior"
                 and assertion.evidence_family == "simulation"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
+                and not sealed_on_absence
                 and "fbmcq"
                 not in assertion_families_by_requirement.get(
                     assertion.requirement_id, set()
@@ -1890,12 +1976,19 @@ def precheck_and_seal(
                         "claim. An unpinned observation is about wherever a cold "
                         "start happened to land, not about the state the NL names"
                     )
+            # A verdict sealed off an empty declaration table ran no bounded
+            # query, so there is no query to judge causal.  Without this the
+            # check saw zero formal calls, concluded the evidence was
+            # non-causal, and sent the assertion back for repairs it cannot
+            # make -- five rounds, then a coverage gap.  That is the pair-0006
+            # regression coming back through a different door.
             if (
                 requirement is not None
                 and requirement.verification_kind == "behavior"
                 and assertion.evidence_family == "fbmcq"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
+                and not sealed_on_absence
             ):
                 formal_calls = [
                     call
@@ -2155,18 +2248,12 @@ def precheck_and_seal(
             update["_assertion_invalid_semantic_counts"] = semantic_counts
             update["_assertion_item_repair_counts"] = item_repairs
 
-            # A binding the model never declares is not a repairable mistake: no
-            # rewrite can make the obligation executable, because the term the NL
-            # requires does not exist.  Retrying it burns the repair budget and,
-            # worse, pressures the producer into writing a check that passes for
-            # some adjacent reason -- on pair 0006 that produced a tautological
-            # bounded query and reported the requirement satisfied.  Quarantine
-            # immediately so the absence surfaces as a coverage gap.
-            # Neither of these is repairable by rewriting the expression: the
-            # model declares no term for the first, and is too large for the
-            # bound in the second.  Retrying burns the budget and, for the
-            # bounded check, ~25s of wall clock per round.
-            unrepairable_markers = (UNDECLARED, "exceeded its budget on this model")
+            # A bounded query the model is too large for is not repairable by
+            # rewriting it, and each retry costs ~25s of wall clock, so stop
+            # after the first.  `<undeclared>` used to be listed here too; it is
+            # now decided as a plain false by the checker, so it never reaches
+            # this branch and no longer consumes a repair budget.
+            unrepairable_markers = ("exceeded its budget on this model",)
             undeclared_ids = tuple(
                 item.assertion_id
                 for item in public_executions
@@ -3247,7 +3334,7 @@ def default_fake_responder(
                     "requirement_id": "REQ-001",
                     "description": "Fake smoke assertion.",
                     "expression": (
-                        f'state_declared(state="{_fake_state(payload)}", kind="any")'
+                        f'state_declared(state="{_fake_state(_user_input)}", kind="any")'
                     ),
                     "failure_message": "[REQ-001][AST-REQ-001-01] The frozen STM exposes no state.",
                     "evidence_family": "structure",

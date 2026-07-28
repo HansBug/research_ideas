@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .exceptions import UnsupportedEvidence
+from .exceptions import UndeclaredTerm, UnsupportedEvidence
 
 #: Written by the splitter when the NL names something the model never declares.
 UNDECLARED = "<undeclared>"
@@ -61,16 +61,21 @@ DEFAULT_BOUND = 5
 TERMINATION_CYCLES = 6
 
 
-def _require_declared(**bindings: Any) -> None:
-    """Refuse to answer a claim whose terms the model does not declare."""
-
-    missing = sorted(k for k, v in bindings.items() if v == UNDECLARED)
-    if missing:
-        raise UnsupportedEvidence(
-            f"binding(s) {missing} are {UNDECLARED}: the NL requires a term the "
-            "model does not declare, so this obligation has no executable check. "
-            "The absence is the finding; record it rather than testing around it."
-        )
+#: Which declaration table decides whether a binding's `<undeclared>` is provable.
+#: A binding absent from this map has no table to check against, so it can never
+#: be proved absent -- only refused.
+BINDING_DECLARATION_TABLE = {
+    "variable": "variables",
+    "trigger": "events",
+    "state": "states",
+    "source": "states",
+    "target": "states",
+    "parent": "states",
+    "child": "states",
+    "composite": "states",
+    "scope": "states",
+    "response": "states",
+}
 
 
 def _need(value: Any, name: str) -> str:
@@ -125,6 +130,139 @@ class PredicateAPI:
         for ref in refs:
             if isinstance(ref, str) and ref and ref != UNDECLARED:
                 self._refs.append(ref)
+
+    def _declared_count(self, table: str) -> int:
+        """How many entries of this kind the *author* declared.
+
+        Route-control variables are the converter's own bookkeeping; the effect
+        facade already drops them from every answer, so counting them here would
+        report a model as having variables when nothing in the evidence layer
+        will ever answer about one.
+        """
+
+        rows = getattr(self.structure, table)()
+        if table != "variables":
+            return len(rows)
+        owned = {
+            item.removeprefix("compiler:route_control:")
+            for item in self.source_exclusions
+            if item.startswith("compiler:route_control:")
+        }
+        return sum(
+            1
+            for row in rows
+            if str(getattr(row, "name", "") or "") not in owned
+        )
+
+    #: Bindings for which `[*]` is meaningless.  Each of these asks about a
+    #: property of a *named declared state* -- its kind, its parent, its entry
+    #: target, its substate count, its lifecycle actions, whether it persists.
+    #: The pseudo-initial is a marker, not such a state, so none of those
+    #: questions has an answer about it.
+    _NO_PSEUDO_INITIAL = {
+        "state_declared": ("state",),
+        "containment": ("parent", "child"),
+        "initial_target": ("composite", "child"),
+        "cardinality": ("scope",),
+        "action_declared": ("state",),
+        "persists_until": ("state",),
+    }
+
+    def _reject_pseudo_initial(self, predicate: str, **bindings: Any) -> None:
+        """Refuse `[*]` where it cannot mean anything, instead of answering False.
+
+        A producer learns from `occupancy_after(source="[*]")` that the literal
+        is legal and carries it across.  Every one of these then returned a
+        silent False -- "the model does not declare a state at [*]" -- which the
+        pipeline reads as a defect the model does not have.  Answering a
+        question nobody asked is worse than refusing to answer.
+        """
+
+        offenders = sorted(
+            name
+            for name in self._NO_PSEUDO_INITIAL.get(predicate, ())
+            if bindings.get(name) == PSEUDO_INITIAL
+        )
+        if offenders:
+            raise UnsupportedEvidence(
+                f"{predicate} cannot take {PSEUDO_INITIAL} for {offenders}: the "
+                "pseudo-initial is an entry marker, not a declared state, so it "
+                "has no kind, parent, entry target, substate count or lifecycle "
+                "of its own. Name the state the claim is about."
+            )
+
+    def _require_declared(self, **bindings: Any) -> None:
+        """Decide what an `<undeclared>` binding means, by looking.
+
+        Two very different situations wear the same literal.
+
+        The model may genuinely declare nothing of that kind -- pair 0006
+        declares no variable of its own, and the NL requires the swarm count to
+        drop.  That absence is a fact about the declaration table, provable by
+        reading it, and the honest verdict is *false*: the obligation cannot be
+        met.  :class:`UndeclaredTerm` says so and the checker seals it.
+
+        Or the table has entries and the producer simply did not pick one.  Then
+        nothing has been proved about anything, and sealing a false would
+        manufacture a defect the model may not have -- worse, it would pay
+        better than guessing, since a wrong guess costs a repair round and a
+        shrug would earn a finding.  Ordinary :class:`UnsupportedEvidence` sends
+        it back to be written properly.
+
+        Bindings with no table to read -- ``condition``, ``release``, and the
+        literal-valued ones -- can never take the first branch: a boolean
+        expression has no declaration list to be absent from.
+        """
+
+        missing = tuple(sorted(k for k, v in bindings.items() if v == UNDECLARED))
+        if not missing:
+            return
+        checkable = {k: BINDING_DECLARATION_TABLE[k] for k in missing if k in BINDING_DECLARATION_TABLE}
+        populated = sorted(
+            f"{k} ({self._declared_count(t)} declared {t})"
+            for k, t in checkable.items()
+            if self._declared_count(t) > 0
+        )
+        unreadable = sorted(set(missing) - set(checkable))
+        if populated or unreadable:
+            detail = []
+            if populated:
+                detail.append(
+                    "the model does declare elements of that kind: "
+                    + "; ".join(populated)
+                    + " -- name the one the claim is about, or explain in the "
+                    "requirement why none of them is it"
+                )
+            if unreadable:
+                detail.append(
+                    f"binding(s) {unreadable} are expressions, not declared "
+                    "elements, so their absence cannot be established; state the "
+                    "obligation over a state the model does declare"
+                )
+            raise UnsupportedEvidence(
+                f"binding(s) {list(missing)} are {UNDECLARED} but "
+                + "; and ".join(detail)
+            )
+        empty = sorted({BINDING_DECLARATION_TABLE[k] for k in missing})
+        self._note_declaration_tables(empty)
+        raise UndeclaredTerm(
+            f"binding(s) {list(missing)} are {UNDECLARED}, and the model declares "
+            f"no {' or '.join(empty)} of its own: the NL imposes an obligation "
+            "the model has no term to carry. Read off the declaration table, so "
+            "the claim is false rather than unanswerable.",
+            bindings=missing,
+        )
+
+    def _note_declaration_tables(self, tables: list[str]) -> None:
+        """Record that the verdict rests on these tables being empty.
+
+        Without this the evidence record would name `structure` as the deciding
+        family with nothing in the call trace to back it, which is a claim the
+        run cannot support under audit.
+        """
+
+        for table in tables:
+            self._note(f"declaration_table:{table}:empty")
 
     # ---- helpers -----------------------------------------------------
     @staticmethod
@@ -328,7 +466,8 @@ class PredicateAPI:
     def state_declared(self, *, state: str, kind: str) -> bool:
         """The model declares a state at this path, of this kind."""
 
-        _require_declared(state=state)
+        self._reject_pseudo_initial("state_declared", state=state)
+        self._require_declared(state=state)
         self._note(state)
         rows = self.structure.states(path=_need(state, "state"), exact=True)
         if len(rows) != 1:
@@ -350,7 +489,8 @@ class PredicateAPI:
     def containment(self, *, parent: str, child: str) -> bool:
         """This child is a direct substate of this parent."""
 
-        _require_declared(parent=parent, child=child)
+        self._reject_pseudo_initial("containment", parent=parent, child=child)
+        self._require_declared(parent=parent, child=child)
         self._note(parent, child)
         rows = self.structure.states(
             parent=_need(parent, "parent"), recursive=False, exact=True
@@ -360,7 +500,8 @@ class PredicateAPI:
     def initial_target(self, *, composite: str, child: str) -> bool:
         """Entering this composite starts in this child."""
 
-        _require_declared(composite=composite, child=child)
+        self._reject_pseudo_initial("initial_target", composite=composite, child=child)
+        self._require_declared(composite=composite, child=child)
         self._note(composite, child)
         return self.structure.initial_child(_need(composite, "composite")) == _need(
             child, "child"
@@ -369,7 +510,7 @@ class PredicateAPI:
     def edge_declared(self, *, source: str, trigger: str, target: str) -> bool:
         """The model declares an edge with this source, trigger and target."""
 
-        _require_declared(source=source, trigger=trigger, target=target)
+        self._require_declared(source=source, trigger=trigger, target=target)
         self._note(source, trigger, target)
         self._note_transitions(source=source, event=trigger, target=target)
         return bool(
@@ -383,7 +524,7 @@ class PredicateAPI:
     ) -> bool:
         """This transition declares an effect on this variable, in this direction."""
 
-        _require_declared(source=source, trigger=trigger, variable=variable)
+        self._require_declared(source=source, trigger=trigger, variable=variable)
         # Deliberately not noting `variable`: a bare name matches the
         # `compiler:route_control:<name>` exclusion kind-agnostically, so noting
         # it booked every variable finding as compiler-owned debt -- the exact
@@ -407,7 +548,8 @@ class PredicateAPI:
     def action_declared(self, *, state: str, phase: str) -> bool:
         """This state declares an entry, exit or during action."""
 
-        _require_declared(state=state)
+        self._reject_pseudo_initial("action_declared", state=state)
+        self._require_declared(state=state)
         self._note(state)
         rows = self.structure.states(path=_need(state, "state"), exact=True)
         if len(rows) != 1:
@@ -425,25 +567,91 @@ class PredicateAPI:
     def guard_distinguishable(self, *, source: str, trigger: str) -> bool:
         """A shared source and trigger cannot reach two targets indistinguishably."""
 
-        _require_declared(source=source, trigger=trigger)
+        self._require_declared(source=source, trigger=trigger)
         self._note(source, trigger)
         self._note_transitions(source=source, event=trigger)
         # No matching transition means the question is unanswerable, not
         # answered "distinguishable".  Returning True there reported a
         # mistyped or converter-projected trigger as satisfying the claim --
         # verbatim the pair-0029 defect.
-        if not self.structure.transitions(source=source, event=trigger, exact=True):
+        rows = self.structure.transitions(source=source, event=trigger, exact=True)
+        if not rows:
             raise UnsupportedEvidence(
                 f"no declared transition leaves {source!r} on {trigger!r}, so "
                 "distinguishability cannot be decided; check the trigger spelling "
                 "against declared_model_vocabulary"
             )
+        branches = self._resolve_combo_branches(rows)
+        if branches is not None:
+            return not self._indistinguishable(branches)
         return not bool(self.relations.conflicting_targets(source=source, event=trigger))
+
+    #: Marker the FCSTM lowering puts in the name of an intermediate state it
+    #: creates for a `: /event + [guard]` combo transition.
+    _COMBO_MARKER = "__combo"
+
+    def _resolve_combo_branches(self, rows: Any) -> list[Any] | None:
+        """Follow a combo intermediate state to the branches it really fans out to.
+
+        `S -> A : /e + [g1];` and `S -> B : /e + [g2];` do not lower to two
+        transitions out of `S`.  They lower to *one* transition into a generated
+        intermediate state, whose unlabelled successors carry `g1` and `g2`.  So
+        the direct query sees a single target, concludes there is nothing to
+        distinguish, and answers True -- for any pair of guards, including two
+        identical ones.  Since a guard attached to an event can only be written
+        with the combo form, that made the True branch of this predicate
+        unreachable for the case it exists to judge.
+
+        Returns ``None`` when no combo is involved, so the ordinary facade path
+        keeps handling the shape the corpus actually uses.
+        """
+
+        expanded: list[Any] = []
+        saw_combo = False
+        for row in rows:
+            target = str(getattr(row, "to_path", "") or "")
+            if self._COMBO_MARKER not in target:
+                expanded.append(row)
+                continue
+            saw_combo = True
+            expanded.extend(self.structure.transitions(source=target, exact=True))
+        return expanded if saw_combo else None
+
+    def _indistinguishable(self, rows: list[Any]) -> bool:
+        """Do two of these branches reach different targets on overlapping guards?
+
+        Mirrors `relations.conflicting_targets`, which cannot be reused directly
+        because it re-queries by (source, event) and the combo branches share
+        neither.
+        """
+
+        if len({str(getattr(r, "to_path", "")) for r in rows}) <= 1:
+            return False
+        undecidable = False
+        for index, left in enumerate(rows):
+            for right in rows[index + 1 :]:
+                if str(left.to_path) == str(right.to_path):
+                    continue
+                try:
+                    if self.relations.guards_overlap(
+                        f"transition:{left.transition_index}",
+                        f"transition:{right.transition_index}",
+                    ):
+                        return True
+                except UnsupportedEvidence:
+                    undecidable = True
+        if undecidable:
+            raise UnsupportedEvidence(
+                "cannot decide whether the guarded alternatives overlap with the "
+                "current structured public API"
+            )
+        return False
 
     def cardinality(self, *, scope: str, count: int) -> bool:
         """This scope declares exactly this many non-pseudo direct substates."""
 
-        _require_declared(scope=scope)
+        self._reject_pseudo_initial("cardinality", scope=scope)
+        self._require_declared(scope=scope)
         self._note(scope)
         try:
             want = int(count)
@@ -464,7 +672,7 @@ class PredicateAPI:
         occupying a composite means occupying one of its leaves.
         """
 
-        _require_declared(source=source, trigger=trigger, target=target)
+        self._require_declared(source=source, trigger=trigger, target=target)
         view = self._simulate(source=source, trigger=trigger, cycles=int(within_cycles))
         # The claim is "this trigger takes the system there".  A completion
         # transition can reach the target on its own while the trigger is never
@@ -482,7 +690,7 @@ class PredicateAPI:
         configuration accepts it.
         """
 
-        _require_declared(source=source, trigger=trigger)
+        self._require_declared(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
         for cycle in getattr(view, "cycles", ()) or ():
             if trigger in (getattr(cycle, "consumed_events", ()) or ()):
@@ -492,7 +700,7 @@ class PredicateAPI:
     def stays_in(self, *, source: str, trigger: str) -> bool:
         """After this trigger the system remains in the same state."""
 
-        _require_declared(source=source, trigger=trigger)
+        self._require_declared(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
         # Both halves matter.  Without the consumption check an ignored event
         # looks identical to a declared self-loop, so the missing-self-loop
@@ -511,7 +719,7 @@ class PredicateAPI:
         the executed path never reaches.
         """
 
-        _require_declared(source=source, trigger=trigger, variable=variable)
+        self._require_declared(source=source, trigger=trigger, variable=variable)
         self._note(source, trigger)
         want = str(sign).strip().lower()
         if want not in {"negative", "positive"}:
@@ -536,7 +744,7 @@ class PredicateAPI:
     def reaches(self, *, source: str, target: str, within_cycles: int = 3) -> bool:
         """Within a bounded number of cycles this target is reachable from here."""
 
-        _require_declared(source=source, target=target)
+        self._require_declared(source=source, target=target)
         # Reachability without events only ever exercises completion
         # transitions, so every target one event away was reported unreachable
         # -- a fabricated defect on the most common shape in this corpus.  Offer
@@ -575,7 +783,7 @@ class PredicateAPI:
     def terminates(self, *, scope: str, trigger: str | None = None) -> bool:
         """The model actually finishes."""
 
-        _require_declared(scope=scope)
+        self._require_declared(scope=scope, trigger=trigger)
         # One cycle only ever saw the first step, so a final state two events
         # away was reported unreachable.  Drive the declared alphabet for a
         # bounded number of cycles instead: termination is a reachability
@@ -614,7 +822,7 @@ class PredicateAPI:
         a tautological hand-written formula from closing a real obligation.
         """
 
-        _require_declared(scope=scope, condition=condition)
+        self._require_declared(scope=scope, condition=condition)
         query = self._formal_query("invariant", scope, condition, bound)
         return self._formal_holds(query)
 
@@ -634,7 +842,7 @@ class PredicateAPI:
         was a constant False.
         """
 
-        _require_declared(trigger=trigger, response=response)
+        self._require_declared(trigger=trigger, response=response, source=source)
         # Two things were wrong.  The response arm needs its own `within` or the
         # grammar rejects the query outright.  And with `within == bound` only
         # step 0 carries a complete obligation, so every later step lands in the
@@ -642,7 +850,16 @@ class PredicateAPI:
         # response a window strictly inside the horizon.
         horizon = max(2, int(bound))
         window = max(1, horizon - 1)
-        pinned = self._hot_startable(source) or self._default_init()
+        # `[*]` means the cold start, and the caller said so deliberately.
+        # Falling through to `_default_init()` there would answer about whatever
+        # leaf happens to come first in inspect order while the binding said
+        # "before the machine starts" -- a silently different question, which is
+        # the one failure this layer must never produce.  Only an *absent*
+        # source gets the default, because then no configuration was named.
+        if source == PSEUDO_INITIAL:
+            pinned = None
+        else:
+            pinned = self._hot_startable(source) or self._default_init()
         head = f'init state("{pinned}"); ' if pinned else ""
         query = (
             f"{head}check response <= {horizon}: "
@@ -654,15 +871,23 @@ class PredicateAPI:
     def persists_until(self, *, state: str, release: str, bound: int = DEFAULT_BOUND) -> bool:
         """This state holds continuously until the release condition."""
 
-        _require_declared(state=state, release=release)
+        self._reject_pseudo_initial("persists_until", state=state)
+        self._require_declared(state=state, release=release)
         # `exists_always` is a *witness* property: it asks whether some bounded
         # run keeps the condition, and with no events injected that run always
         # exists -- the truth value could not change when the defect was
         # present, which is the tautology this whole layer exists to remove.
         # The obligation is universal, so it belongs in invariant polarity:
         # until the release holds, the state must still hold.
+        # `[*]` has to mean "do not pin" here too.  `_formal_query` learned
+        # that; this query is hand-built and did not, so the literal went
+        # straight into `init state("[*]")` and came back as an undiagnosable
+        # solver failure.  One spelling, one meaning, in all five predicates
+        # that accept it.
+        pinned = self._hot_startable(state)
+        head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
         query = (
-            f'init state("{state}"); '
+            f"{head}"
             f"check invariant <= {int(bound)}: "
             f'({release}) || active("{state}");'
         )
@@ -705,7 +930,18 @@ class PredicateAPI:
         return None
 
     def _formal_query(self, kind: str, scope: str, condition: str, bound: int) -> str:
-        head = f'init state("{scope}"); ' if scope and scope not in {"root", ""} else ""
+        """Build the bounded query, treating `[*]` as "do not pin at all".
+
+        `terminates` and `reaches` already read `[*]` as the cold start via
+        `_hot_startable`; this path did not, and interpolated the literal
+        straight into `init state("[*]")`, which the solver rejects.  The same
+        spelling has to mean the same thing everywhere, or a producer that
+        copies a legal binding from one predicate to another gets a failure it
+        cannot diagnose.
+        """
+
+        pinned = self._hot_startable(scope)
+        head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
         return f"{head}check {kind} <= {int(bound)}: {condition};"
 
     def _formal_holds(self, query: str) -> bool:

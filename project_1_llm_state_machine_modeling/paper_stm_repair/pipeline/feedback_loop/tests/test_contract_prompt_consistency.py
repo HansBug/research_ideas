@@ -188,12 +188,22 @@ def test_undeclared_binding_rule_is_consistent_across_producers() -> None:
 
     # The splitter must be told to use it instead of substituting a declared term.
     assert "Do not substitute a different declared term" in splitter
-    # The reviewer must be told to accept it, or the loop cannot converge.
+    # The reviewer must accept it where it is the only legal encoding, or the
+    # loop cannot converge -- and must reject it where the checker will refuse
+    # it, or the item burns its whole repair budget instead of being fixed in
+    # one round.  Both halves, or the stages contradict each other again.
     assert "Accept `<undeclared>`" in reviewer
-    assert "unresolvable review loop" in reviewer
-    # The converter must not manufacture a primary for an unassertable claim.
-    assert "no executable primary check" in converter
-    assert "only `supporting`" in converter
+    assert "unresolvable loop" in reviewer
+    assert "**Reject it** when the vocabulary does list elements of that kind" in reviewer
+    # The converter must pass it straight through as the primary.  The earlier
+    # contract said the opposite -- primary forbidden, supporting only -- and
+    # that is what lost pair 0006's expected defect: with no primary the
+    # requirement could only be filed as an unchecked coverage gap, so a real
+    # finding was reported as "not looked at".
+    assert "checked exactly like any other" in converter
+    assert "passing `<undeclared>` through" in converter
+    assert "reported violated" in converter
+    assert "only `supporting`" not in converter
 
     # And the old contradictory sentence must be gone.
     assert "bind the closest declared term the sentence does name" not in splitter
@@ -281,3 +291,147 @@ def test_prompts_do_not_leak_benchmark_identifiers() -> None:
                 if token in text:
                     leaked.append(f"{name}: {token}")
     assert not leaked, f"benchmark identifiers reached the prompts: {sorted(set(leaked))[:10]}"
+
+
+def test_requirement_stages_are_warned_off_the_two_silent_failures() -> None:
+    """`[*]` misuse and model-derived requirements both pass every gate.
+
+    Pair 0000's expected defect is that Power Off is declared on the initial
+    pseudostate instead of on the running modes.  Claude bound `source="[*]"`,
+    which is precisely the model's own mistake restated as the requirement; the
+    check then passed, the cell reported zero issues, and nothing downstream
+    could tell.  Both halves have to be said, to the splitter that writes the
+    binding and to the reviewer that is the only stage able to reject it.
+    """
+
+    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
+
+    for name, text in (("splitter", splitter), ("reviewer", reviewer)):
+        assert "power-on, startup or first entry" in text, name
+        assert "already running" in text, name
+        assert "natural language" in text, name
+
+    # The splitter needs the positive instruction, the reviewer the rejection.
+    assert "is never on its own a reason to reach for `[*]`" in splitter
+    assert "Reject `[*]` on a claim that is not about power-on" in reviewer
+    assert "restates the model instead of the natural language" in reviewer
+
+
+def test_the_schema_rule_survives_the_new_guidance() -> None:
+    """Guidance added mid-prompt must not push the output contract out of the tail.
+
+    Checked separately from the tail test above because the failure mode is
+    additive: every future paragraph is one more chance to bury the schema rule
+    that three cells already violated once.
+    """
+
+    for name in ("REQUIREMENT_SPLITTER_PROMPT", "ASSERTION_CONVERTER_PROMPT"):
+        text = getattr(prompts, name)
+        assert "overrides anything above" in text[-1500:], name
+
+
+def test_the_undeclared_rule_is_the_same_on_all_four_producer_surfaces() -> None:
+    """A rule changed on one surface and left stale on another is a deadlock.
+
+    Pair 0006 ran five revisions and died on a transport fault because the
+    splitter and the reviewer had been given contradictory `<undeclared>` rules.
+    Reversing the rule for the converter and leaving the old wording in the
+    predicate table and the evidence-API doc rearmed exactly that: the assertion
+    reviewer reads both of those, so it was told the call "raises" and is
+    "recorded rather than tested" while the converter was told to write it as a
+    normal primary.
+
+    The check is over the *assembled* prompts plus the evidence-API doc that
+    ships inside the converter's and reviewer's user payloads, because that is
+    the full set of text a producer sees.
+    """
+
+    from paper_stm_feedback_loop.assertions.environment import (
+        get_assertion_environment_api_docs,
+    )
+
+    surfaces = {
+        "splitter": prompts.REQUIREMENT_SPLITTER_PROMPT,
+        "requirement_reviewer": prompts.REQUIREMENT_REVIEWER_PROMPT,
+        "converter": prompts.ASSERTION_CONVERTER_PROMPT,
+        "assertion_reviewer": prompts.ASSERTION_REVIEWER_PROMPT,
+        "evidence_api": get_assertion_environment_api_docs(),
+    }
+    stale = (
+        "recorded as a gap",
+        "the absence is the finding and the controller records",
+        "recorded rather than tested",
+        "the controller records the absence",
+        "records it as a coverage gap",
+        "no executable primary check",
+    )
+    for name, text in surfaces.items():
+        for phrase in stale:
+            assert phrase not in text, f"{name} still carries the reversed rule: {phrase!r}"
+
+    # And the surfaces that describe the call must describe the *current*
+    # semantics: read the table, false when empty, refused when populated.
+    for name in ("converter", "assertion_reviewer", "evidence_api"):
+        text = surfaces[name]
+        assert "declaration table" in text, name
+        assert "refused" in text, name
+
+
+def test_the_fold_restriction_reaches_the_stages_that_write_and_review_folds() -> None:
+    """`all([...])` is allowed; an `<undeclared>` arm inside one is not.
+
+    Verified on pair 0000 that a true second arm gets overruled by a raising
+    first arm, so the producer has to be told, and the reviewer has to be able
+    to catch it.
+    """
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        assert "must stand alone" in text or "stand alone" in text, name
+        assert "arms that never" in text or "never evaluated" in text or "never ran" in text, name
+
+
+def test_no_stage_demands_the_binding_the_checker_refuses() -> None:
+    """`<undeclared>` is now conditional, and every stage has to know the condition.
+
+    The checker seals a false only when the declaration table is empty of the
+    author's own entries; with entries present it refuses and the item goes back
+    for repair.  Three stages were still stating the old unconditional rule --
+    the splitter that chooses the binding, the requirement reviewer forbidden
+    from asking for a declared name, and the assertion reviewer *demanding*
+    `<undeclared>` whenever the NL omits an identifier.  A model that declares a
+    plausible variable then had no legal move anywhere in the loop: five repair
+    rounds, then a coverage gap.  That is the original pair-0006 loss with the
+    branch moved over one.
+    """
+
+    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    requirement_reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
+    assertion_reviewer = prompts.ASSERTION_REVIEWER_PROMPT
+
+    # The stage that picks the binding must know both outcomes.
+    assert "reported as a violation" in splitter
+    assert "the check is refused" in splitter
+    assert "always refused" in splitter, "the expression-binding case must be stated"
+
+    # Neither reviewer may state the rule unconditionally any more.
+    assert "Otherwise require `variable=\"<undeclared>\"`" not in assertion_reviewer
+    assert "no variable of the author's own" in assertion_reviewer
+    assert (
+        "Do not ask the Splitter to replace it with a declared term"
+        not in requirement_reviewer
+    ), "the unconditional form contradicts the populated-table refusal"
+
+
+def test_the_splitter_is_warned_that_the_literal_now_produces_a_finding() -> None:
+    """It used to cost a coverage gap; it now publishes a defect.
+
+    That asymmetry matters for precision: reading an empty variable table proves
+    the *model* declares nothing, not that the *NL* required something.  The
+    stage that judges the second half is the splitter, so the caution belongs
+    where it makes the call.
+    """
+
+    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "only when the NL genuinely imposes an obligation" in splitter

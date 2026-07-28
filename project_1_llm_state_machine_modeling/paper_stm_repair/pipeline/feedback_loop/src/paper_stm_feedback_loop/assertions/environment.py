@@ -43,8 +43,12 @@ Every predicate returns a strict bool, so you never need to coerce or guard a
 call.  A predicate that cannot answer raises instead of returning a value:
 
 - a binding equal to `<undeclared>` -- the NL requires a term the model does not
-  declare, so no check exists.  Do not test around it; the absence is the
-  finding and the controller records it as a coverage gap.
+  declare.  The predicate reads the matching declaration table.  If that table
+  is empty of the author's own entries, the absence is established and the call
+  comes back False: the obligation cannot be met, and that is the finding.  If
+  the table has entries, the claim is refused instead -- an element exists and
+  the assertion must name which one.  `condition` and `release` are expressions
+  with no table, so `<undeclared>` there is always refused.
 - a variable that is not observable, or a bounded check that returned no
   terminal verdict.  A non-terminal status is never a False.
 

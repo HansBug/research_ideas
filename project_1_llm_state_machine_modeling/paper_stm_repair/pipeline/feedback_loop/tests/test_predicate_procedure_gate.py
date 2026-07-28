@@ -16,6 +16,7 @@ import pytest
 
 from paper_stm_feedback_loop.discover.capability import called_evidence_functions
 from paper_stm_feedback_loop.discover.predicates import (
+    PREDICATE_BY_NAME,
     PREDICATES,
     procedure_mismatch,
 )
@@ -65,16 +66,12 @@ def test_absent_or_unknown_predicate_falls_back():
 def test_every_predicate_accepts_its_own_procedure(predicate):
     """A predicate whose own procedure trips the gate would be unusable."""
 
-    from paper_stm_feedback_loop.discover.predicates import PREDICATE_BY_NAME
-
     assert procedure_mismatch(predicate, frozenset({predicate})) is None
 
 
 @pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
 def test_no_predicate_lists_its_own_procedure_as_a_locator(predicate):
     """A locator is by definition weaker; listing the procedure would be a hole."""
-
-    from paper_stm_feedback_loop.discover.predicates import PREDICATE_BY_NAME
 
     entry = PREDICATE_BY_NAME[predicate]
     for locator in entry.locators:
@@ -425,3 +422,211 @@ def test_bare_expression_still_parses():
     assert called_evidence_functions(
         'state_declared(state="Root.Idle", kind="leaf")'
     ) == frozenset({"state_declared"})
+
+
+# --------------------------------------------------------------------------
+# Every predicate documents its own fields and shows three worked calls
+# --------------------------------------------------------------------------
+
+
+def _signature_arguments(name: str) -> tuple[set[str], set[str]]:
+    """Return ``(required, optional)`` argument names from the rendered signature."""
+
+    from paper_stm_feedback_loop.discover.predicates import PREDICATE_OPTIONS
+
+    entry = PREDICATE_BY_NAME[name]
+    required = set(entry.bindings)
+    optional = {
+        opt.split(":")[0].strip() for opt in PREDICATE_OPTIONS.get(name, ())
+    } - required
+    return required, optional
+
+
+@pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
+def test_each_predicate_documents_every_field_and_shows_three_calls(predicate):
+    """A field the producer cannot see the domain of is a field it guesses.
+
+    Two matrix cells burned revisions on literals that were legal at runtime but
+    absent from the prompt -- `kind="any"` was accepted by the implementation and
+    missing from the signature.  Pinning the docs to the signature makes that
+    class of drift a test failure instead of a wasted cell.
+    """
+
+    entry = PREDICATE_BY_NAME[predicate]
+    required, optional = _signature_arguments(predicate)
+
+    documented = {name for name, _ in entry.field_specs}
+    assert required <= documented, f"{predicate}: undocumented bindings {required - documented}"
+    assert documented <= required | optional, (
+        f"{predicate}: field spec for non-existent argument {documented - required - optional}"
+    )
+    for name, spec in entry.field_specs:
+        assert len(spec) > 15, f"{predicate}.{name} spec is too thin to act on: {spec!r}"
+
+    assert len(entry.examples) >= 3, f"{predicate} shows only {len(entry.examples)} calls"
+
+
+@pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
+def test_every_worked_call_is_well_formed_against_the_signature(predicate):
+    """The examples are executable calls, not illustrative prose.
+
+    Checked by parsing rather than by reading: an example that omits a required
+    binding, or passes one the callable does not accept, teaches a call that
+    fails at precheck.
+    """
+
+    import ast
+
+    entry = PREDICATE_BY_NAME[predicate]
+    required, optional = _signature_arguments(predicate)
+    for example in entry.examples:
+        call, _, _note = example.partition("  # ")
+        node = ast.parse(call.strip(), mode="eval").body
+        assert isinstance(node, ast.Call), example
+        assert isinstance(node.func, ast.Name) and node.func.id == predicate, example
+        assert not node.args, f"{predicate}: predicates are keyword-only: {example}"
+        passed = {kw.arg for kw in node.keywords}
+        assert required <= passed, f"{predicate}: missing {required - passed} in {example}"
+        assert passed <= required | optional, (
+            f"{predicate}: unknown argument {passed - required - optional} in {example}"
+        )
+        for kw in node.keywords:
+            ast.literal_eval(kw.value)  # every value must be a literal
+
+
+@pytest.mark.parametrize("predicate", [item.name for item in PREDICATES])
+def test_binding_and_call_forms_of_an_example_agree(predicate):
+    """The splitter's dict and the converter's call must show the same values."""
+
+    from paper_stm_feedback_loop.discover.predicates import binding_examples
+
+    entry = PREDICATE_BY_NAME[predicate]
+    import ast
+    import json
+
+    dicts = binding_examples(predicate)
+    assert len(dicts) == len(entry.examples)
+    for (payload, _note), example in zip(dicts, entry.examples):
+        # Compare the parsed values, not the presence of marker substrings: a
+        # dict rendered from a *different* example would still contain "Sys.".
+        call = ast.parse(example.partition("  # ")[0].strip(), mode="eval").body
+        expected = {
+            kw.arg: str(ast.literal_eval(kw.value)) for kw in call.keywords
+        }
+        assert json.loads(payload) == expected, example
+
+
+def test_both_prompts_carry_the_per_predicate_detail():
+    """Rendering, not just the table -- the producer reads the prompt."""
+
+    from paper_stm_feedback_loop.discover.predicates import callable_prompt, vocabulary_prompt
+
+    vocabulary, callable_ref = vocabulary_prompt(), callable_prompt()
+    for item in PREDICATES:
+        for name, spec in item.field_specs:
+            assert spec in vocabulary, f"{item.name}.{name} missing from vocabulary_prompt"
+            assert spec in callable_ref, f"{item.name}.{name} missing from callable_prompt"
+        for example in item.examples:
+            assert example in callable_ref, f"{item.name}: {example} missing from callable_prompt"
+
+
+# --------------------------------------------------------------------------
+# A predicate that cannot answer both ways is a false-positive generator
+# --------------------------------------------------------------------------
+
+_DISCRIMINATION_HOLDS = """state Root {
+    event go;
+    state Idle;
+    state Busy;
+    [*] -> Idle;
+    Idle -> Busy : /go;
+    Busy -> Busy : /go;
+}
+"""
+
+_DISCRIMINATION_FAILS = """state Root {
+    event go;
+    event other;
+    state Idle;
+    state Busy;
+    state Elsewhere;
+    [*] -> Idle;
+    Idle -> Elsewhere : /go;
+    Elsewhere -> Busy : /other;
+}
+"""
+
+
+def _p_family_env(model):
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+
+    return build_eval_environment(
+        model_text=model,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=60,
+        fbmcq_solver_timeout_ms=30_000,
+        fbmcq_max_bound=6,
+        fbmcq_process_wall_seconds=40.0,
+    )
+
+
+def test_response_within_tells_a_satisfying_model_from_a_violating_one():
+    """It shipped constant-False once; a one-sided predicate is not evidence.
+
+    `Idle -> Busy : /go` with a self-loop keeping the answer available satisfies
+    the obligation; routing `go` to a third state that only later reaches Busy
+    violates it.  A predicate that cannot separate those two would report every
+    model defective.
+    """
+
+    holds = _p_family_env(_DISCRIMINATION_HOLDS).globals["response_within"](
+        trigger="Root.go", response="Root.Busy", bound=3, source="Root.Idle"
+    )
+    fails = _p_family_env(_DISCRIMINATION_FAILS).globals["response_within"](
+        trigger="Root.go", response="Root.Busy", bound=3, source="Root.Idle"
+    )
+    assert holds is True
+    assert fails is False
+
+
+@pytest.mark.parametrize("predicate", ["invariant", "response_within", "persists_until"])
+def test_the_pseudo_initial_is_accepted_by_every_family_p_predicate(predicate):
+    """`[*]` must mean the same thing everywhere it is legal.
+
+    `terminates` and `reaches` read it as the cold start; the Family P
+    predicates interpolated the literal straight into `init state("[*]")`, which
+    the solver rejects.  A producer copying a legal binding from one predicate to
+    another then got a failure with nothing in the message to diagnose it -- and
+    `invariant(scope="[*]")` was a worked example in the prompt.
+    """
+
+    env = _p_family_env(_DISCRIMINATION_HOLDS)
+    kwargs = {
+        "invariant": dict(scope="[*]", condition='!active("Root.Busy")', bound=3),
+        "response_within": dict(
+            trigger="Root.go", response="Root.Busy", bound=3, source="[*]"
+        ),
+        "persists_until": dict(state="Root.Idle", release='active("Root.Busy")', bound=3),
+    }[predicate]
+    value = env.globals[predicate](**kwargs)
+    assert isinstance(value, bool), f"{predicate} did not answer for the cold start"
+
+
+def test_response_within_does_not_silently_repin_the_cold_start():
+    """`source="[*]"` must not fall through to "first leaf in inspect order".
+
+    It did, via `_hot_startable(...) or _default_init()`, so an obligation stated
+    about power-on was answered about whatever state happened to come first --
+    a silently different question, which is the one failure this layer must
+    never produce.
+    """
+
+    from paper_stm_feedback_loop.assertions.predicate_api import PSEUDO_INITIAL
+
+    env = _p_family_env(_DISCRIMINATION_HOLDS)
+    api = env.predicates
+    assert api._hot_startable(PSEUDO_INITIAL) is None
+    # The default exists and differs from "no pin", which is what made the
+    # substitution invisible.
+    assert api._default_init() is not None

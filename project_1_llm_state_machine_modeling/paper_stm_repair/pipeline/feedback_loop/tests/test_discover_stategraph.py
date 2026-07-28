@@ -108,7 +108,12 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
         in prompts.ASSERTION_CONVERTER_PROMPT
     )
     assert "variable=\"<undeclared>\"" in prompts.ASSERTION_CONVERTER_PROMPT
-    assert "reject every invented identifier" in prompts.ASSERTION_REVIEWER_PROMPT
+    # Case-insensitive: the sentence moved and its first word is now capitalised.
+    # The rule is what matters, not where in the paragraph it sits.
+    assert (
+        "reject every invented identifier"
+        in prompts.ASSERTION_REVIEWER_PROMPT.lower()
+    )
 
 
 def test_prompts_merge_one_repair_unit_and_preserve_attributable_mismatch() -> None:

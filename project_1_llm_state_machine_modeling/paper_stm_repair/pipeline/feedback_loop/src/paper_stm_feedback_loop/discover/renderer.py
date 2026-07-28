@@ -30,7 +30,10 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
     """
 
     vocabulary = frozen.model_vocabulary or {}
-    return {
+    compiler_owned = list(
+        vocabulary.get("compiler_owned_variables_not_usable_as_evidence") or ()
+    )
+    payload: dict[str, Any] = {
         "note": (
             "Exact declared paths. predicate_bindings and assertion expressions "
             "must use these verbatim; a name absent from these lists does not "
@@ -40,6 +43,21 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "events": list(vocabulary.get("events") or ()),
         "variables": list(vocabulary.get("variables") or ()),
     }
+    if compiler_owned:
+        # Shown, not hidden: the producer will see these names in the FCSTM text
+        # and needs to know why they are not on the list above.  An empty
+        # `variables` next to a populated one of these is the honest statement
+        # that the model has no variable of the author's own -- which for a
+        # quantity the NL names is the finding, encoded as `<undeclared>`.
+        payload["compiler_owned_variables"] = compiler_owned
+        payload["compiler_owned_variables_note"] = (
+            "Created by the converter for its own routing, not by the model's "
+            "author. The evidence layer drops them from every effect answer, so "
+            "binding one proves nothing about a quantity the NL names. If the NL "
+            "requires a quantity and `variables` above is empty, the correct "
+            "binding is `<undeclared>`."
+        )
+    return payload
 
 
 def _source_context(frozen: FrozenDiscoverInputs) -> dict[str, Any]:

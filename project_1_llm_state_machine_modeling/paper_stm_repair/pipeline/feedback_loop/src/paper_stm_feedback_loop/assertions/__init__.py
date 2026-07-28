@@ -15,7 +15,7 @@ from .environment import (
     build_eval_environment,
     get_assertion_environment_api_docs,
 )
-from .exceptions import UnsupportedEvidence
+from .exceptions import UndeclaredTerm, UnsupportedEvidence
 from .parser import ParsedAssertionScript, parse_assertion_script
 from .sealed import InMemorySealedStore, SealedAssertionResult
 from .views import FrozenView, UntrackedDependency
@@ -31,6 +31,7 @@ __all__ = [
     "ParsedAssertionScript",
     "SealedAssertionResult",
     "UntrackedDependency",
+    "UndeclaredTerm",
     "UnsupportedEvidence",
     "build_eval_environment",
     "get_assertion_environment_api_docs",

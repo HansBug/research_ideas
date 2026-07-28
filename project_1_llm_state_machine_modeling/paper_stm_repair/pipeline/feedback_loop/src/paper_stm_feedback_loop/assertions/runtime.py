@@ -492,6 +492,13 @@ class EvalEnvironment:
                         kwargs=_audit_value(kwargs),
                         exception_type=type(exc).__name__,
                         exception_message=str(exc),
+                        # A raise can still carry evidence.  An `<undeclared>`
+                        # binding whose declaration table is empty notes the
+                        # table it read, and that note is the only thing backing
+                        # the sealed verdict the checker derives from this
+                        # exception -- dropped here, the run record would assert
+                        # an absence with nothing behind it.
+                        model_refs=self._model_refs(name, kwargs, None),
                     )
                 )
                 raise
