@@ -63,17 +63,19 @@ def test_requirement_prompts_preserve_shared_scope_without_inventing_universal_s
     assert "source mode/state" in prompts.REQUIREMENT_REVIEWER_PROMPT
 
 
-def test_simulation_prompts_distinguish_initial_variable_names_from_result_paths() -> (
-    None
-):
-    assert (
-        "declaration names, not qualified paths" in prompts.ASSERTION_CONVERTER_PROMPT
-    )
-    assert (
-        "declaration names rather than qualified state-machine paths"
-        in prompts.ASSERTION_REVIEWER_PROMPT
-    )
-    assert "documented FBMCQ grammar" in prompts.ASSERTION_CONVERTER_PROMPT
+def test_assertion_prompts_state_the_family_b_valuation_boundary() -> None:
+    """Family B runs at declared initial values and takes no valuation.
+
+    A producer that does not know this writes `occupancy_after` for a guarded
+    claim ("when speed > 120 ..."), the guard is false at defaults, and a
+    correct model yields a False -- a fabricated confirmed issue.  Both
+    assertion stages must carry the boundary.
+    """
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        assert "cannot be given a valuation" in text, name
+        assert "`limitations`" in text or "limitations" in text, name
 
 
 def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -> None:
@@ -84,7 +86,7 @@ def test_assertion_prompts_preserve_nl_targets_and_require_conflict_analysis() -
         assert "source" in prompt
         assert "trigger" in prompt
         assert "destination" in prompt
-        assert "conflicting_targets" in prompt
+        assert "guard_distinguishable" in prompt
         assert "completion-holder" in prompt
     assert "Context and proxy discipline" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "Convergence rule" in prompts.ASSERTION_REVIEWER_PROMPT
@@ -105,7 +107,7 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
         "never invent or enumerate candidate variable names"
         in prompts.ASSERTION_CONVERTER_PROMPT
     )
-    assert "without `variable=`" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "variable=\"<undeclared>\"" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "reject every invented identifier" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
@@ -126,8 +128,8 @@ def test_prompts_enforce_positive_conflict_assertion_direction() -> None:
     assert (
         "positive distinguishability Requirement" in prompts.REQUIREMENT_REVIEWER_PROMPT
     )
-    assert "not conflicting_targets" in prompts.ASSERTION_CONVERTER_PROMPT
-    assert "Reject bare `conflicting_targets" in prompts.ASSERTION_REVIEWER_PROMPT
+    assert "Do not negate it" in prompts.ASSERTION_CONVERTER_PROMPT
+    assert "Reject a negated form" in prompts.ASSERTION_REVIEWER_PROMPT
 
 
 def test_requirement_prompts_distinguish_local_exit_from_completion() -> None:

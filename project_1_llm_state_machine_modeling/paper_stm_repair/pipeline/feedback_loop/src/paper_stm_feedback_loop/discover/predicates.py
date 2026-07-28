@@ -137,8 +137,8 @@ PREDICATES: tuple[Predicate, ...] = (
         "states(path=..., exact=True)",
         "states",
         caveat=(
-            "Requires the action fields to be exposed by the structure API; see "
-            "issue #170 C0."
+            "Reports whether the phase declares any action at all, not what "
+            "the action does."
         ),
     ),
     Predicate(
@@ -217,8 +217,10 @@ PREDICATES: tuple[Predicate, ...] = (
         "simulate",
         locators=("path(...)",),
         caveat=(
-            "path() is guard-blind and only accepts leaf targets, so it may "
-            "locate but never close this claim; see issue #170 C4."
+            "Reachability here is a bounded witness, not a proof: it runs the "
+            "model forward and reports whether the target was occupied within "
+            "the cycle budget. It ignores triggers, so it cannot stand in for "
+            "occupancy_after."
         ),
     ),
     Predicate(
@@ -311,22 +313,21 @@ def vocabulary_prompt() -> str:
         "derived from the predicate -- you do not choose it.",
     ]
     for family, title in (
-        (FAMILY_STRUCTURE, "Family S -- what the artifact declares (structural/relational evidence is correct here, not a compromise)"),
-        (FAMILY_BEHAVIOR, "Family B -- what the model does at runtime (simulate() is mandatory; static queries may only locate)"),
-        (FAMILY_PROPERTY, "Family P -- quantified over states, valuations or paths (bounded fbmcq() is mandatory)"),
+        (FAMILY_STRUCTURE, "Family S -- what the artifact declares; deciding this from the declarations is correct, not a compromise"),
+        (FAMILY_BEHAVIOR, "Family B -- what the model does at runtime: the predicate runs the model and observes the result"),
+        (FAMILY_PROPERTY, "Family P -- quantified over states, valuations or paths; the predicate builds and runs a bounded check"),
     ):
         lines.append(f"\n{title}")
         for item in PREDICATES:
             if item.family != family:
                 continue
-            lines.append(
-                f"- `{item.name}`({', '.join(item.bindings)}): {item.meaning}. "
-                f"Exposes: {item.proves}. Decided by `{item.procedure}`."
-            )
-            if item.locators:
-                lines.append(
-                    f"    supporting locators only: {', '.join(f'`{x}`' for x in item.locators)}"
-                )
+            # Describe the predicate by its own signature, never by the
+            # primitive it happens to use internally: those primitives are no
+            # longer callable, and naming them here is what let a reviewer ask
+            # for "the exact query that already decides it" and name something
+            # that does not exist.
+            lines.append(f"- `{signature_of(item.name)}`: {item.meaning}.")
+            lines.append(f"    Exposes: {item.proves}.")
             if item.caveat:
                 lines.append(f"    caveat: {item.caveat}")
     return "\n".join(lines)

@@ -56,7 +56,7 @@ def test_every_vocabulary_predicate_reaches_the_splitter() -> None:
 
     head = _splitter_head()
     for item in PREDICATES:
-        assert f"`{item.name}`" in head, item.name
+        assert f"`{item.name}(" in head, item.name
         assert item.meaning in head, item.name
 
 
@@ -74,7 +74,7 @@ def test_guard_distinguishability_precedent_reaches_the_splitter() -> None:
 
     head = _splitter_head()
     assert "guard_distinguishable" in head
-    assert "conflicting_targets" in head, (
+    assert "guard_distinguishable" in head, (
         "the worked precedent must name the deciding query, not just the category"
     )
 
@@ -83,12 +83,14 @@ def test_splitter_is_told_what_each_family_costs_and_cannot_do() -> None:
     """The node that fixes the family must see the obligation it creates."""
 
     head = _splitter_head()
-    for marker in ("simulate()", "fbmcq()"):
+    for marker in ("the predicate runs the model", "bounded check"):
         assert marker in head, marker
     # The caveats are the honest part: a predicate whose infrastructure is
     # partial must say so where the producer will read it.
     assert "tautology" in head, "the vacuous-invariant trap must be stated"
-    assert "guard-blind" in head, "path() over-approximation must be stated"
+    # path() is gone; the surviving over-approximation the splitter must know
+    # about is that `reaches` ignores triggers.
+    assert "ignores triggers" in head, "the reaches over-approximation must be stated"
 
 
 def test_family_is_derived_not_chosen() -> None:
