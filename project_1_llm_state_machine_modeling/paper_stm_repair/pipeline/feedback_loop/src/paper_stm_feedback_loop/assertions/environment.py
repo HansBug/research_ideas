@@ -10,76 +10,53 @@ from __future__ import annotations
 from .runtime import EvalAssertResult, EvalEnvironment, FunctionCallRecord, build_eval_environment
 
 ASSERTION_ENVIRONMENT_API_DOCS = """
-ASSERTION EXECUTION CONTRACT
-- AssertionScript has one shared Python prefix and independent assertion expressions.
-- At execution, each item becomes: <full prefix> then `assert (<expression>), <literal failure_message>` in a fresh namespace.
-- The terminal expression must evaluate to a strict `bool`. Exceptions, unsupported/inconclusive formal results, and non-bool values are invalid; only strict False is a contradiction.
-- Every expression must call the evidence family declared by evidence_family. Do not return a constant or rely only on prefix-computed constants.
-- Helpers are read-only and return tuples, scalars, or frozen attribute views. No imports, paths, mutation, network, hidden cases, or gold data.
+THE ASSERTION ENVIRONMENT
 
-EVIDENCE SELECTION
-- A structural requirement may use structure/relation/effect/topology facts.
-- An effect requirement must use direct structured-effect evidence (`effects`, `effect_delta`, or `effect_deltas`), simulation, or FBMCQ; static transition existence alone is only complementary evidence. Use `variable=...` only when NL or source evidence supplies that exact identifier. When NL describes a semantic quantity without naming its model variable, use an event/source/target-scoped `effect_deltas(...)` query without `variable=`; compiler route-control variables frozen in source exclusions are omitted automatically. Use simulation or FBMCQ when the claim specifically requires runtime response or bounded universal/counterexample evidence.
-- A cold-start simulation covers only one initialization path. For a state-agnostic behavior claim, use explicit hot-start initialization for relevant state(s), or use FBMCQ for a bounded universal/counterexample claim and state its bound.
-- Use hot-start simulation for a named state/mode and inspect the event in consumed_events plus the resulting state/effect.
+An assertion is one Python `assert` whose expression calls the predicate its
+Requirement names.  The environment contains the predicate vocabulary and a
+small set of pure builtins -- nothing else.  There is no `simulate`, no
+`fbmcq`, no `states`, no `transitions`, no `transition_exists`, no `path`, no
+`topology`.  Those primitives were removed on purpose: hand-assembling a check
+out of them let a near-tautological bounded query close a real obligation, and
+made it impossible to tell whether a call asked the right question.
 
-STRUCTURE / RELATION
-Evidence-family mapping: states/events/variables/initial_child are ``structure``;
-transitions/transition_exists/guards_overlap are ``relation``. The declared
-evidence_family must match the family of the function actually called.
-states(*, parent=None, recursive=True, name=None, path=None, within=None, kind=None, exact=False) -> tuple[state]
-  state fields include path, name, parent_path, is_leaf, is_composite, is_pseudo, substates, initial_targets.
-  ``initial_targets`` is a tuple of read-only mapping views; each mapping stores keys such as
-  ``target`` and optional ``event``/``guard``. Do not iterate it as if it were a tuple of target
-  strings (``'Child' in t`` checks mapping keys, not the target value). For the common single
-  initial-child check, use ``initial_child('Root.Composite') == 'Root.Composite.Child'``.
-events(*, name=None, path=None, within=None, scope=None, declared=None, used=None, exact=False) -> tuple[event]
-variables(*, name=None, path=None, within=None, type=None, read_in=None, written_in=None, exact=False) -> tuple[variable]
-transitions(*, source=None, event=None, target=None, forced=None, within=None, has_event=None, has_guard=None, has_effect=None, self_loop=None, source_within=None, target_within=None, exact=False) -> tuple[transition]
-  transition fields include from_path, to_path, event, guard, effect, is_forced, transition_index.
-  A pseudo-initial source is exposed as the exact path ``"[*]"``. It is not the
-  enclosing root/composite path and must not be rewritten as that path. An event
-  transition from ``"[*]"`` is initialization-only source placement.
-transition_exists(*, source=None, event=None, target=None, within=None, exact=False) -> bool
-initial_child(state: str) -> str | None
-  Returns the exact target path for a composite with one structured initial target, or ``None``.
-guards_overlap(left_ref: str, right_ref: str) -> bool; both refs must identify unambiguous transitions.
-conflicting_targets(*, source: str, event: str) -> bool
-  Returns True only when the same source/event has different targets whose empty or
-  identical guards are provably overlapping. A single target returns False. Distinct
-  non-empty guards that this facade cannot decide raise UnsupportedEvidence rather
-  than being guessed.
+WHAT YOU WRITE
 
-EFFECT
-effects(*, source=None, event=None, target=None, variable=None) -> tuple[transition carrying effects]
-effect_deltas(*, source=None, event=None, target=None, variable=None) -> tuple[(variable, numeric_delta)]
-effect_delta(*, source=None, event=None, target=None, variable: str) -> number | None; requires one unambiguous transition.
-Prefer `any(delta < 0 for _, delta in effect_deltas(...))` when NL constrains an effect but not a variable name.
-Compiler route-control variables listed by frozen source trace are excluded from effect evidence.
+    assert occupancy_after(source="R.Idle", trigger="R.go", target="R.Done") is True, "[REQ-001][AST-REQ-001-1] ..."
 
-SIMULATION
-simulate(*, cycles: list[list[str]], initial_state: str | None = None, initial_vars: dict[str, number] | None = None) -> simulation
-  simulation fields: cycles, final, requested_initialization, effective_initialization, model_sha256.
-  each cycle/final fields: index, is_ended, active_states, variables, input_events, consumed_events, unconsumed_events, fired_transitions, limitations; method is_active(state).
-  ``initial_vars`` keys must be the exact declaration names accepted by pyfcstm (for example ``"counter"``), not qualified state-machine paths. The result view uses the exact variable keys exposed by the pyfcstm cycle result, normally the same declaration names; do not assume a qualified path such as ``"Root.counter"``. Use ``cycle.variables["counter"]`` when known, or ``keys()``/``items()`` to inspect keys. The read-only view supports string-key lookup, ``in``, iteration, ``keys()``, ``items()``, ``values()``, and ``get()``, never integer indexing. active_states, consumed_events, and unconsumed_events are tuples of complete event/state paths.
-  Cold start: include an explicit leading [] cycle when initialization must run, and put an initialization-triggering event in a later cycle; this is a finite initial-path witness, not a global claim. Hot start: supply exact initial_state and every declared variable in initial_vars using declaration names, then place the causal event in cycle 0. Check event membership in consumed_events plus resulting state/effect; never assume an event is consumed exactly once in hierarchical execution.
+The arguments are the Requirement's `predicate_bindings`, copied verbatim.
+Paths must come from `declared_model_vocabulary`; literal arguments such as
+`kind`, `sign`, `phase`, `count` and `bound` take the values listed in the
+callable reference.
 
-BOUNDED FORMAL CHECKING
-fbmcq(query: str) -> formal observation with fields canonical_query, status, holds, bound, formal_property_kind, formal_bound, assumption_basis, witness, replay_status, limitations.
-  Use a complete pyfcstm FBMCQ query such as `check reach <= 5: active("Root.Done");` or an appropriate response/invariant query. `.holds is True` is the terminal bool pattern. Choose a finite bound justified by the NL or model scale; bounded evidence is stronger than sampled simulation for its declared horizon but does not establish unbounded correctness. Parse/solver/replay uncertainty raises invalid rather than False.
+Combining predicates is allowed and is how a claim over several named elements
+is expressed:
 
-TOPOLOGY
-topology() -> view with initial_closure, unreachable_leaves, strongly_connected_components, dead_ends, root_exit_reachable, topological_finite, topological_inevitable_terminator, guard_agnostic, limitations.
-path(source: str, target: str, avoid: tuple[str, ...] = (), max_hops: int | None = None) -> view with exists, nodes, hop_count, transition_refs, source_macro_refs, compiler_owned_nodes, guard_agnostic, limitations.
-Topology is guard-agnostic structural evidence; do not overclaim behavioral inevitability when limitations say otherwise.
+    assert all([
+        occupancy_after(source="R.A", trigger="R.off", target="R.Final"),
+        occupancy_after(source="R.B", trigger="R.off", target="R.Final"),
+    ]) is True, "[REQ-002][AST-REQ-002-1] ..."
 
-SOURCE MAPPING
-mapped_source_refs(fcstm_ref: str) -> tuple[str, ...]
-mapped_fcstm_refs(source_ref: str) -> tuple[str, ...]
-bound_model_refs(coverage_unit_id: str, fact_kind: str | None = None) -> tuple[str, ...]
-Mapping evidence alone cannot confirm an issue; source attribution is applied deterministically after assertion acceptance.
+RETURN CONTRACT
 
-Allowed pure builtins: abs, all, any, bool, float, int, iter, len, list, max, min, round, set, sorted, str, sum, tuple.
+Every predicate returns a strict bool, so you never need to coerce or guard a
+call.  A predicate that cannot answer raises instead of returning a value:
+
+- a binding equal to `<undeclared>` -- the NL requires a term the model does not
+  declare, so no check exists.  Do not test around it; the absence is the
+  finding and the controller records it as a coverage gap.
+- a variable that is not observable, or a bounded check that returned no
+  terminal verdict.  A non-terminal status is never a False.
+
+EVIDENCE FAMILY
+
+The family is derived from the predicate, never declared by you:
+structure/relation/effect for Family S, simulation for Family B, formal for
+Family P.  Declaring a family that disagrees with the predicate is a contract
+violation.
+
+Allowed pure builtins: abs, all, any, bool, float, int, iter, len, list, max,
+min, round, set, sorted, str, sum, tuple.
 """.strip()
 
 

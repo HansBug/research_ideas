@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .predicates import procedure_prompt, vocabulary_prompt
+from .predicates import callable_prompt, procedure_prompt, vocabulary_prompt
 
 REQUIREMENT_SPLITTER_PROMPT = """You are the Requirement Splitter in an academic state-machine defect-discovery pipeline.
 	Read the complete natural-language specification first, then decompose it into positive, atomic, independently decidable requirements. Preserve quantifiers, scope, ordering, modes, conditions, timing, effects, termination, and exclusivity stated by the source. Treat coordination, punctuation, parenthetical phrases, and shared prepositional qualifiers as syntax: a qualifier that governs several coordinated predicates must remain attached to every applicable requirement. When one source clause presents multiple conditions as a joint trigger or joint context, keep that conjunction in one requirement unless the grammar explicitly gives separate triggers; do not split a joint trigger into independent requirements merely because the model contains separate names. Do not silently turn a scoped or coordinated condition into an unconditional global requirement. If the source wording is genuinely ambiguous, preserve that ambiguity in the requirement statement/rationale and segment disposition instead of inventing a universal scope. Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement. Minimize overlap without deleting necessary interactions.
@@ -171,7 +171,15 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 """
 
 ASSERTION_CONVERTER_PROMPT += """
-Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write in an expression must come from those lists verbatim. A fabricated or mistyped path does not raise -- it silently makes the assertion true for the wrong reason.
+How to write an assertion now. The evidence layer no longer exposes primitives. There is no `simulate`, no `fbmcq`, no `states`, no `transition_exists`. An assertion is a call to the predicate its Requirement names, with that Requirement's `predicate_bindings` as arguments:
+
+    assert occupancy_after(source="R.HumanDrivingMode", trigger="R.Power_Off", target="R.FinalState") is True, "[REQ-006][AST-REQ-006-1] ..."
+
+Besides the predicates you may use only plain Python builtins -- `len`, `all`, `any`, `bool`, `int`, `str`, `sorted`, `sum`, `min`, `max`, `set`, `list`, `tuple`, `abs`, `round`, `float`, `iter`. Anything else is not in the namespace and the assertion will be rejected before it runs. Do not write lambdas over evidence objects; there are no evidence objects to write them over.
+
+Combining predicates with `all([...])` or `any([...])` is allowed and is the right way to express a claim that ranges over several named elements, for example one `occupancy_after` per active configuration the NL enumerates.
+
+Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write must come from those lists verbatim. A fabricated or mistyped path does not silently pass any more -- the predicate raises -- but it still wastes a repair round, so copy rather than retype.
 
 A Requirement whose `predicate_bindings` contain the literal `<undeclared>` has no executable primary check by construction: the model declares no term to bind. Do not invent a substitute and do not write a primary assertion that tests something adjacent. Emit only `supporting` evidence that documents the absence (for example the declared variable list, or the transitions that do exist for that trigger), and state in the rationale that the primary obligation is unassertable because the model declares no matching term.
 
@@ -179,7 +187,7 @@ Binding v3 predicate procedure: each Requirement names a `predicate`, and the vo
 
 This is not bookkeeping. A locator answers a neighbouring, easier question: `transition_exists` says an edge is declared, while `occupancy_after` asks whether the system actually gets there. Using the locator as primary reports "satisfied" for a model whose declared edge is unreachable or guard-blocked, which is a false negative on a real defect -- and, in the other direction, reports a violation for a model that reaches the target through declared follow-up transitions. Call the procedure the predicate names.
 """
-ASSERTION_CONVERTER_PROMPT += procedure_prompt()
+ASSERTION_CONVERTER_PROMPT += callable_prompt()
 ASSERTION_CONVERTER_PROMPT += """
 
 Binding v2 Assertion contract: every assertion must declare `role`, `coverage_key`, and `aggregation_group`. Each Requirement needs at least one `primary` assertion. Mandatory primary evidence is fixed by `verification_kind`, which the predicate derives: structure -> structure/relation/effect/topology/provenance; behavior -> at least one hot/cold-start simulation with explicit initialization; property -> at least one FBMCQ bounded formal check. A behavior Requirement may additionally use an exact relation or effect assertion as `primary` when that assertion independently encodes a repair-relevant part of the Requirement and can be source-attributed; a property Requirement may likewise add exact structure/relation/effect primary evidence. Such complementary primary evidence never replaces the mandatory simulation or FBMCQ. Mark a check `supporting` only when it is a weaker locator, witness, near-miss, or explanation that cannot independently establish a repair-relevant contradiction. Supporting evidence has equal diagnostic value but cannot substitute for mandatory primary evidence and cannot independently create an issue. Primary coverage keys must be unique within a Requirement and must implement its frozen coverage obligation. On revision, change only targeted items, consume the complete revision ledger, and use `revision_feedback.recovery_seed` only as a repair starting point; it is not an accepted artifact and unresolved Reviewer findings remain binding.
@@ -188,7 +196,7 @@ Binding v2 Assertion contract: every assertion must declare `role`, `coverage_ke
 ASSERTION_REVIEWER_PROMPT += """
 Binding v3 procedure review: for every non-quarantined Requirement, verify the `primary` assertion calls the procedure its `predicate` names, bound to its `predicate_bindings`. Reject a primary that substitutes a listed locator for the procedure -- say which procedure was required and which locator was used. A locator decides a different, easier question, so accepting it lets a defect the Requirement was written to catch pass unnoticed.
 """
-ASSERTION_REVIEWER_PROMPT += procedure_prompt()
+ASSERTION_REVIEWER_PROMPT += callable_prompt()
 ASSERTION_REVIEWER_PROMPT += """
 
 Binding v2 evidence review: verify every non-quarantined Requirement has complete mandatory primary coverage for its frozen `verification_kind`, unique `coverage_key` values, and one `aggregation_group` per primary obligation. A behavior Requirement must include simulation primary evidence and a property Requirement must include FBMCQ primary evidence. Exact source-attributable relation/effect primary evidence may complement behavior, and exact source-attributable structure/relation/effect primary evidence may complement property, but cannot replace those mandatory families. Do not demote an independently repair-relevant exact mismatch to `supporting` merely because mandatory runtime/formal evidence is also present. Supporting assertions may locate or explain a mismatch, but a supporting False cannot create a Repair issue. `coverage_gaps` are immutable deterministic quarantine facts: do not request restoration of an assertion already named there and do not reject otherwise valid peers merely because a quarantined primary makes overall coverage partial. Review the current executable artifact only; a recovery seed never bypasses this review.
@@ -252,17 +260,25 @@ FBMCQ capability boundary: FBMCQ observes state activity, termination, events, p
 Non-vacuity: an assertion whose truth value cannot change when the defect is present is not evidence. In particular, sibling states of one sequential region can never be active at the same time, so a query of the form `!(active(A) && active(B))` over such siblings is vacuously true and proves nothing. When a requirement names a trigger event, the bounded query must mention that event; a bare reachability probe of some state is not causal evidence for it.
 """
 
-ASSERTION_CONVERTER_PROMPT += FBMCQ_CAPABILITY_BOUNDARY
-ASSERTION_REVIEWER_PROMPT += FBMCQ_CAPABILITY_BOUNDARY
+PREDICATE_EVIDENCE_BOUNDARY = """
+Evidence boundary. Each predicate already knows which evidence decides it, so you never choose a family. What still matters is what the underlying evidence can and cannot see.
 
+Bounded model checking (Family P) observes state activity, termination, events and typed variables over bounded traces. It cannot observe guard expressions, transition syntax, or the transition relation itself. A claim about how the model is *written* -- containment, initial targets, which edges exist, whether two guards overlap, which effects a transition declares -- belongs to Family S, and `guard_distinguishable` already ranges over every valuation rather than guessing. Family P is also not free: the property build is exponential in the bound, so leave `bound` at its default unless the claim genuinely needs more.
+
+Non-vacuity: a check whose truth value cannot change when the defect is present is not evidence. Sibling states of one sequential region can never be active simultaneously, so asserting they are not is vacuously true. When a requirement names a trigger, the predicate you call must take that trigger as an argument -- `reaches` ignores triggers and cannot stand in for `occupancy_after`.
+"""
+
+ASSERTION_CONVERTER_PROMPT += PREDICATE_EVIDENCE_BOUNDARY
+ASSERTION_REVIEWER_PROMPT += PREDICATE_EVIDENCE_BOUNDARY
+
+# The FBMCQ language guide is deliberately NOT appended to the assertion stages
+# any more.  Bounded queries are constructed inside the predicates, so there is
+# no function an assertion could pass a query string to; showing the producer a
+# query language it cannot reach only invites it to try.  The FCSTM grammar
+# guide stays on the converter because assertions still name model paths and
+# `invariant(condition=...)` takes an FCSTM expression.
 ASSERTION_CONVERTER_PROMPT += (
     "\n\n=== FCSTM grammar guide (authoritative) ===\n" + FCSTM_GRAMMAR_GUIDE
-)
-ASSERTION_CONVERTER_PROMPT += (
-    "\n\n=== FBMCQ language guide (authoritative) ===\n" + FBMCQ_LANGUAGE_GUIDE
-)
-ASSERTION_REVIEWER_PROMPT += (
-    "\n\n=== FBMCQ language guide (authoritative) ===\n" + FBMCQ_LANGUAGE_GUIDE
 )
 REQUIREMENT_SPLITTER_PROMPT += (
     "\n\n=== FCSTM grammar guide (authoritative, orientation only) ===\n"

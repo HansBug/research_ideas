@@ -15,6 +15,7 @@ from paper_stm_feedback_loop.assertions import (
 )
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
+from paper_stm_feedback_loop.assertions.predicate_api import UNDECLARED
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
@@ -2136,10 +2137,23 @@ def precheck_and_seal(
             update["_assertion_invalid_semantic_counts"] = semantic_counts
             update["_assertion_item_repair_counts"] = item_repairs
 
+            # A binding the model never declares is not a repairable mistake: no
+            # rewrite can make the obligation executable, because the term the NL
+            # requires does not exist.  Retrying it burns the repair budget and,
+            # worse, pressures the producer into writing a check that passes for
+            # some adjacent reason -- on pair 0006 that produced a tautological
+            # bounded query and reported the requirement satisfied.  Quarantine
+            # immediately so the absence surfaces as a coverage gap.
+            undeclared_ids = tuple(
+                item.assertion_id
+                for item in public_executions
+                if item.status == "invalid" and UNDECLARED in str(item.error or "")
+            )
             exhausted_ids = tuple(
                 assertion_id
                 for assertion_id in invalid_ids
-                if item_repairs.get(assertion_id, 0) >= MAX_ASSERTION_PRECHECK_REPAIRS
+                if assertion_id in undeclared_ids
+                or item_repairs.get(assertion_id, 0) >= MAX_ASSERTION_PRECHECK_REPAIRS
                 or semantic_counts.get(semantic_keys[assertion_id], 0)
                 >= NO_PROGRESS_SEMANTIC_REPEATS
             )

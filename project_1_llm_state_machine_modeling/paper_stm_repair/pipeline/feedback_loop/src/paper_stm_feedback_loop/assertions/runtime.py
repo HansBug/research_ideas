@@ -12,6 +12,7 @@ from .pyfcstm_adapter import check_fcstm, sha256_text
 from .pyfcstm_adapter import load_model_for_simulation
 from .effects import EffectAPI
 from .exceptions import UnsupportedEvidence
+from .predicate_api import PREDICATE_FAMILIES, PredicateAPI
 from .fbmcq import FBMCQAPI, FBMCQ_FIELDS
 from .provenance import SAFE_BUILTINS, AuditReport, audit_expression
 from .relations import RelationAPI
@@ -269,32 +270,30 @@ class EvalEnvironment:
             self.source_mappings, bindings=coverage_bindings
         )
 
+        # The evidence surface an assertion may call is the predicate vocabulary
+        # of issue #170 and nothing else.  The raw building blocks these
+        # predicates are made of -- states/simulate/fbmcq/transition_exists --
+        # are deliberately *not* registered: exposing them let the producer
+        # hand-assemble a check, and a hand-written bounded query on pair 0006
+        # (`init state(X); check exists_always <= 1: active(X)`) was
+        # near-tautological, passed, and reported an unanswerable requirement as
+        # satisfied.  Building the query here once removes that whole class.
+        self.predicates = PredicateAPI(
+            structure=self.structure,
+            relations=self.relations,
+            effects=self.effects,
+            simulation=self.simulation,
+            topology=self.topology_api,
+            formal=self.fbmcq_api if formal_verification_enabled else None,
+        )
         functions: dict[str, tuple[str, Callable[..., Any]]] = {
-            "states": ("structure", self.structure.states),
-            "events": ("structure", self.structure.events),
-            "variables": ("structure", self.structure.variables),
-            "initial_child": ("structure", self.structure.initial_child),
-            "transitions": ("relation", self.relations.transitions),
-            "transition_exists": ("relation", self.relations.transition_exists),
-            "guards_overlap": ("relation", self.relations.guards_overlap),
-            "conflicting_targets": ("relation", self.relations.conflicting_targets),
-            "effects": ("effect", self.effects.effects),
-            "effect_delta": ("effect", self.effects.effect_delta),
-            "effect_deltas": ("effect", self.effects.effect_deltas),
-            "simulate": ("simulation", self.simulation.simulate),
-            "mapped_source_refs": ("mapping", self.mapping.mapped_source_refs),
-            "mapped_fcstm_refs": ("mapping", self.mapping.mapped_fcstm_refs),
-            "bound_model_refs": ("mapping", self.mapping.bound_model_refs),
+            name: (family, getattr(self.predicates, method))
+            for name, (family, method) in PREDICATE_FAMILIES.items()
         }
-        if self.topology_api is not None:
-            functions.update(
-                {
-                    "topology": ("structure", self.topology_api.topology),
-                    "path": ("structure", self.topology_api.path),
-                }
-            )
-        if formal_verification_enabled:
-            functions["fbmcq"] = ("formal", self.fbmcq_api.fbmcq)
+        if not formal_verification_enabled:
+            for name, (family, _m) in PREDICATE_FAMILIES.items():
+                if family == "formal":
+                    functions.pop(name, None)
         if extra_functions:
             functions.update(extra_functions)
         invalid_registry_families = {
@@ -461,6 +460,8 @@ class EvalEnvironment:
 
     def _wrap_function(self, name: str, family: str, func: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if name in PREDICATE_FAMILIES:
+                self.predicates.begin_call()
             try:
                 value = func(*args, **kwargs)
                 self.call_trace.append(
@@ -513,6 +514,17 @@ class EvalEnvironment:
             return ()
 
     def _collect_model_refs(
+        self, name: str, kwargs: dict[str, Any], value: Any
+    ) -> tuple[str, ...]:
+        # Predicates report their own references: the predicate chose the query,
+        # so it is the only thing that knows which elements the answer rests on.
+        # Re-deriving them from the function name here would break the moment a
+        # predicate changes how it is implemented.
+        if name in PREDICATE_FAMILIES:
+            return self.predicates.consume_refs()
+        return self._collect_legacy_model_refs(name, kwargs, value)
+
+    def _collect_legacy_model_refs(
         self, name: str, kwargs: dict[str, Any], value: Any
     ) -> tuple[str, ...]:
         """Preserve model scope beside compact assertion return values.

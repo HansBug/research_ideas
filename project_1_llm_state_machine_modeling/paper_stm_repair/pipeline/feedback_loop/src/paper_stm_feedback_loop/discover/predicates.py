@@ -330,6 +330,86 @@ def vocabulary_prompt() -> str:
     return "\n".join(lines)
 
 
+#: Optional keyword arguments each predicate accepts beyond its required
+#: bindings, with the default the runtime uses.  Kept beside the vocabulary so
+#: the callable signature shown to the producer is the real one.
+PREDICATE_OPTIONS: dict[str, tuple[str, ...]] = {
+    "occupancy_after": ("within_cycles: int = 1",),
+    "reaches": ("within_cycles: int = 3",),
+    "terminates": ("trigger: str | None = None",),
+    "invariant": ("bound: int = 5",),
+    "response_within": ("bound: int = 5",),
+    "persists_until": ("bound: int = 5",),
+}
+
+#: Binding names whose value is a literal, not a declared model path.
+FREE_FORM_BINDINGS = frozenset(
+    {"kind", "sign", "phase", "count", "bound", "condition", "release"}
+)
+
+
+def signature_of(name: str) -> str:
+    """Render the exact callable signature of one predicate."""
+
+    entry = PREDICATE_BY_NAME[name]
+    args = []
+    for b in entry.bindings:
+        if b == "count":
+            args.append("count: int")
+        elif b == "kind":
+            args.append('kind: "leaf"|"composite"|"pseudo"')
+        elif b == "sign":
+            args.append('sign: "negative"|"positive"')
+        elif b == "phase":
+            args.append('phase: "entry"|"exit"|"during"')
+        elif b in {"condition", "release"}:
+            args.append(f"{b}: str")
+        else:
+            args.append(f"{b}: str")
+    args.extend(PREDICATE_OPTIONS.get(name, ()))
+    return f"{name}({', '.join(args)}) -> bool"
+
+
+def callable_prompt() -> str:
+    """Render the callable predicate reference for the assertion writer.
+
+    The producer no longer composes evidence out of primitives, so what it needs
+    is the exact signature, what each predicate decides, and which arguments are
+    model paths versus literals.  Generated from the table so the prompt cannot
+    advertise a signature the runtime does not have.
+    """
+
+    lines = [
+        "Callable predicate reference. These are the ONLY evidence functions that "
+        "exist in the assertion environment. Every one returns a strict bool and "
+        "raises when it cannot answer, so you never need to guard a call.",
+        "",
+        "Arguments that name model elements must be copied verbatim from "
+        "`declared_model_vocabulary`. Arguments listed as literals take one of "
+        "the shown values, not a path.",
+    ]
+    for family, title in (
+        (FAMILY_STRUCTURE, "Family S -- decided from what the artifact declares"),
+        (FAMILY_BEHAVIOR, "Family B -- decided by running the model"),
+        (FAMILY_PROPERTY, "Family P -- decided by bounded model checking"),
+    ):
+        lines.append(f"\n{title}")
+        for item in PREDICATES:
+            if item.family != family:
+                continue
+            lines.append(f"  {signature_of(item.name)}")
+            lines.append(f"      {item.meaning}. Exposes: {item.proves}.")
+            if item.caveat:
+                lines.append(f"      caveat: {item.caveat}")
+    lines.append(
+        "\nThe query construction for Family P lives inside the predicate. Do not "
+        "attempt to write a bounded-checking query yourself -- there is no "
+        "function to pass one to. `invariant(condition=...)` takes the condition "
+        "only, in FCSTM expression syntax such as `!active(\"R.Done\")`."
+    )
+    return "\n".join(lines)
+
+
 def procedure_mismatch(
     predicate: str, called_functions: frozenset[str] | set[str]
 ) -> tuple[str, str] | None:
@@ -443,7 +523,11 @@ __all__ = [
     "Predicate",
     "family_of",
     "verification_kind_of",
+    "FREE_FORM_BINDINGS",
+    "PREDICATE_OPTIONS",
+    "callable_prompt",
     "procedure_mismatch",
+    "signature_of",
     "procedure_prompt",
     "vocabulary_prompt",
 ]
