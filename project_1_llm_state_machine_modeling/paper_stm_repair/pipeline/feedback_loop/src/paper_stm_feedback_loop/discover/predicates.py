@@ -273,7 +273,7 @@ PREDICATES: tuple[Predicate, ...] = (
     Predicate(
         "response_within",
         FAMILY_PROPERTY,
-        "every occurrence of this trigger is answered within the bound",
+        "every occurrence of this trigger is answered within the bound; `response` is the state path that counts as the answer, not an expression",
         "a missing or conditional response to a mandatory trigger",
         ("trigger", "response", "bound"),
         "holds for every run up to the bound, and says nothing beyond it",

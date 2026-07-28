@@ -213,9 +213,18 @@ def called_evidence_functions(expression: str) -> frozenset[str]:
     :return: the set of called plain-name functions, empty when unparseable.
     """
 
-    try:
-        tree = ast.parse(expression, mode="eval")
-    except SyntaxError:
+    # Assertions arrive as complete `assert ... , "..."` statements, not bare
+    # expressions.  Parsing in "eval" mode alone raised on every one of them and
+    # returned the empty set, so the procedure gate concluded that no predicate
+    # had been called and rejected correct scripts until their budget ran out.
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
         return frozenset()
     names: set[str] = set()
     for node in ast.walk(tree):
@@ -379,9 +388,14 @@ def unresolved_model_references(
 
     if not known_paths:
         return ()
-    try:
-        tree = ast.parse(expression, mode="eval")
-    except SyntaxError:
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
         return ()
     bad: list[str] = []
     for node in ast.walk(tree):
@@ -431,9 +445,14 @@ def source_omitting_relation_calls(expression: str) -> tuple[str, ...]:
     :return: offending call names, empty when none.
     """
 
-    try:
-        tree = ast.parse(expression, mode="eval")
-    except SyntaxError:
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
         return ()
     bad: list[str] = []
     for node in ast.walk(tree):

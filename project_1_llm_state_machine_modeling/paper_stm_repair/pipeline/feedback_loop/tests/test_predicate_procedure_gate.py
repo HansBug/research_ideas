@@ -384,3 +384,44 @@ def test_every_predicate_returns_a_verdict_on_a_real_model(predicate):
     )
     value = env.globals[predicate](**EXEC_ARGS[predicate])
     assert isinstance(value, bool), f"{predicate} returned {value!r}, not a strict bool"
+
+
+# --------------------------------------------------------------------------
+# The gates read a complete `assert` statement, not a bare expression
+# --------------------------------------------------------------------------
+
+
+def test_gates_parse_a_complete_assert_statement():
+    """Assertions arrive as statements; the gates must not need an expression.
+
+    Parsing only in "eval" mode raised on every real assertion and returned an
+    empty call set, so the procedure gate concluded no predicate had been called
+    and rejected correct scripts until their repair budget ran out.  Both smoke
+    cells died this way.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        called_evidence_functions,
+        unresolved_model_references,
+    )
+
+    statement = (
+        'assert state_declared(state="Root.Idle", kind="leaf") is True, '
+        '"[REQ-001][AST-REQ-001-1] not a leaf"'
+    )
+    assert called_evidence_functions(statement) == frozenset({"state_declared"})
+    assert procedure_mismatch("state_declared", called_evidence_functions(statement)) is None
+    # And the reference gate must see the bindings inside a statement too.
+    assert unresolved_model_references(statement, frozenset({"Root.Other"})) == (
+        "state='Root.Idle'",
+    )
+
+
+def test_bare_expression_still_parses():
+    """The prefix line of a script is a bare expression; keep both accepted."""
+
+    from paper_stm_feedback_loop.discover.capability import called_evidence_functions
+
+    assert called_evidence_functions(
+        'state_declared(state="Root.Idle", kind="leaf")'
+    ) == frozenset({"state_declared"})
