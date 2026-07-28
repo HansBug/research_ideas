@@ -653,38 +653,47 @@ def callable_prompt() -> str:
         "table, so `<undeclared>` there is always refused. Arguments shown with "
         "a value list take one of those values.",
         "",
-        "Worked examples -- three per family, covering every argument shape.",
+        "The `expression` field holds a bare boolean EXPRESSION. Do not write "
+        "`assert`, do not append a message, do not end with a semicolon: the "
+        "controller wraps what you give it as `assert (<your expression>), "
+        "<your failure_message>`, so an `assert` inside the field produces "
+        "`assert (assert ...), \"...\"` and the whole script fails to parse. The "
+        "`[REQ-xxx][AST-xxx]` label belongs in the separate `failure_message` "
+        "field, never in the expression.",
+        "",
+        "    right:  state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True",
+        "    wrong:  assert state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True, \"[REQ-001] ...\"",
+        "",
+        "Worked expressions -- several per family, covering every argument shape.",
         "",
         "Family S (declarations). Note that `kind`, `phase`, `sign` and `count` "
         "take a listed literal, not a path:",
-        '    assert state_declared(state="Sys.ModeA", kind="leaf") is True, "[REQ-001][AST-REQ-001-1] ..."',
-        '    assert containment(parent="Sys.Outer", child="Sys.Outer.Inner") is True, "[REQ-002][AST-REQ-002-1] ..."',
-        '    assert cardinality(scope="Sys.Outer", count=3) is True, "[REQ-003][AST-REQ-003-1] ..."',
-        '    assert action_declared(state="Sys.ModeA", phase="entry") is True, "[REQ-004][AST-REQ-004-1] ..."',
-        '    assert effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative") is True, "[REQ-005][AST-REQ-005-1] ..."',
+        '    state_declared(state="Sys.ModeA", kind="leaf") is True',
+        '    containment(parent="Sys.Outer", child="Sys.Outer.Inner") is True',
+        '    cardinality(scope="Sys.Outer", count=3) is True',
+        '    action_declared(state="Sys.ModeA", phase="entry") is True',
+        '    effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative") is True',
         "",
         "Family B (runtime). `source` is the configuration the claim is about; "
         'use "[*]" when the claim is about power-on or first entry:',
-        '    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-006][AST-REQ-006-1] ..."',
-        '    assert occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA") is True, "[REQ-007][AST-REQ-007-1] ..."',
-        '    assert event_consumed(source="Sys.ModeA", trigger="Sys.evt") is True, "[REQ-008][AST-REQ-008-1] ..."',
-        '    assert terminates(scope="Sys.ModeB", trigger="Sys.off") is True, "[REQ-009][AST-REQ-009-1] ..."',
+        '    occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True',
+        '    occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA") is True',
+        '    event_consumed(source="Sys.ModeA", trigger="Sys.evt") is True',
+        '    terminates(scope="Sys.ModeB", trigger="Sys.off") is True',
         "",
         "Family P (bounded over all runs). `condition` and `release` are FCSTM "
         "expressions, not paths:",
-        '    assert invariant(scope="Sys.ModeA", condition=\'!active("Sys.Fault")\', bound=4) is True, "[REQ-010][AST-REQ-010-1] ..."',
-        '    assert response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA") is True, "[REQ-011][AST-REQ-011-1] ..."',
-        '    assert persists_until(state="Sys.Hold", release=\'active("Sys.Done")\', bound=4) is True, "[REQ-012][AST-REQ-012-1] ..."',
+        '    invariant(scope="Sys.ModeA", condition=\'!active("Sys.Fault")\', bound=4) is True',
+        '    response_within(trigger="Sys.evt", response="Sys.ModeB", bound=3, source="Sys.ModeA") is True',
+        '    persists_until(state="Sys.Hold", release=\'active("Sys.Done")\', bound=4) is True',
         "",
         "A claim over several named elements folds with all(). A claim the model "
         "has no term for binds `<undeclared>` and must stand alone -- folded in, "
         "one raising arm would decide arms that never evaluated, so a fold "
         "containing it is rejected:",
-        '    assert all([',
-        '        occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
-        '        occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final"),',
-        '    ]) is True, "[REQ-013][AST-REQ-013-1] ..."',
-        '    assert variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative") is True, "[REQ-014][AST-REQ-014-1] ..."',
+        '    all([occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
+        '         occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final")]) is True',
+        '    variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="<undeclared>", sign="negative") is True',
         "",
         "Besides these you may use only plain builtins: len, all, any, bool, int, "
         "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "

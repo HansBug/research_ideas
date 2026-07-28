@@ -464,3 +464,63 @@ def test_a_provable_absence_still_requires_a_primary_assertion():
     # A requirement with no `<undeclared>` at all is unaffected.
     assert _undeclared_bindings_with_a_table({"state": "Root.Idle"}) == ()
     assert _undeclared_bindings_with_a_table(None) == ()
+
+
+# --------------------------------------------------------------------------
+# The expression field holds an expression
+# --------------------------------------------------------------------------
+
+
+def test_an_assert_statement_in_the_expression_field_is_rejected_at_schema_time():
+    """Both Claude cells of matrix v7 died on this, five assertions at a time.
+
+    The controller wraps the value as `assert (<expression>), <failure_message>`.
+    A producer that writes the statement form gets
+    `assert (assert ... , "..."), "..."` -- a syntax error on every assertion,
+    every item quarantined, then `soft isolation cannot publish an empty
+    AssertionScript`.  Rejecting it in the schema makes it the provider's own
+    validation error, naming the field, repaired in one round.
+    """
+
+    import pytest as _pytest
+    from paper_stm_feedback_loop.discover.schemas import AssertionSpec
+
+    good = dict(
+        assertion_id="AST-REQ-001-1",
+        requirement_id="REQ-001",
+        description="d",
+        expression='state_declared(state="Root.Idle", kind="leaf") is True',
+        failure_message="[REQ-001][AST-REQ-001-1] not a leaf",
+        evidence_family="structure",
+        role="primary",
+        coverage_key="k",
+        aggregation_group="g",
+    )
+    AssertionSpec(**good)  # the bare expression is accepted
+
+    for bad in (
+        'assert state_declared(state="Root.Idle", kind="leaf") is True, "[REQ-001] x"',
+        'assert(state_declared(state="Root.Idle", kind="leaf"))',
+        '   assert state_declared(state="Root.Idle", kind="any")',
+    ):
+        with _pytest.raises(ValueError, match="bare boolean expression"):
+            AssertionSpec(**{**good, "expression": bad})
+
+
+def test_a_word_starting_with_assert_is_not_mistaken_for_a_statement():
+    """`assertion_count(...)` is not an assert statement; only the keyword is."""
+
+    from paper_stm_feedback_loop.discover.schemas import AssertionSpec
+
+    spec = AssertionSpec(
+        assertion_id="AST-REQ-001-1",
+        requirement_id="REQ-001",
+        description="d",
+        expression='len([state_declared(state="Root.Idle", kind="leaf")]) == 1',
+        failure_message="[REQ-001][AST-REQ-001-1] x",
+        evidence_family="structure",
+        role="primary",
+        coverage_key="k",
+        aggregation_group="g",
+    )
+    assert spec.expression.startswith("len(")

@@ -380,6 +380,32 @@ class AssertionSpec(StrictBaseModel):
     coverage_key: str = Field(min_length=1)
     aggregation_group: str = Field(min_length=1)
 
+    @field_validator("expression")
+    @classmethod
+    def _expression_is_an_expression(cls, value: str) -> str:
+        """Reject a whole `assert` statement written into the expression field.
+
+        The controller wraps this value as `assert (<value>), <failure_message>`.
+        A producer that writes the statement form ends up with
+        `assert (assert ... , "..."), "..."`, which is a syntax error on every
+        assertion in the script; both Claude cells of matrix v7 died that way --
+        five identical `AssertionScriptSyntaxError`s, every item quarantined, then
+        `soft isolation cannot publish an empty AssertionScript`.  Caught here it
+        is the provider's own structured-output validation error, naming the field
+        and the fix, in one round.
+        """
+
+        text = value.strip()
+        if text.startswith("assert ") or text.startswith("assert("):
+            raise ValueError(
+                "expression must be a bare boolean expression, not an `assert` "
+                "statement: the controller adds `assert (...)` and your "
+                "failure_message itself. Write "
+                "`state_declared(state=\"X\", kind=\"leaf\") is True`, and put the "
+                "[REQ-xxx][AST-xxx] label in `failure_message`."
+            )
+        return value
+
 
 class AssertionScript(StrictBaseModel):
     schema_name: Literal["AssertionScript"] = "AssertionScript"

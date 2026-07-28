@@ -435,3 +435,35 @@ def test_the_splitter_is_warned_that_the_literal_now_produces_a_finding() -> Non
 
     splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "only when the NL genuinely imposes an obligation" in splitter
+
+
+def test_no_worked_example_shows_an_assert_statement_in_the_expression_field() -> None:
+    """`expression` holds an expression; the controller adds the `assert`.
+
+    Both Claude cells of matrix v7 died here.  The examples were written as
+    complete `assert <call> is True, "[REQ-001][AST-001] ..."` statements to show
+    the label convention, the model copied that shape into the `expression`
+    field, and the controller's own wrapper turned every one into
+    `assert (assert ... , "..."), "..."` -- `AssertionScriptSyntaxError` on all
+    five assertions, every item quarantined, then `soft isolation cannot publish
+    an empty AssertionScript`.  Four cells, zero results, and the cause was a
+    prompt example rather than anything either model did wrong.
+    """
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        offenders = [
+            line.strip()
+            for line in text.splitlines()
+            # An indented example line is a template the producer will copy.
+            if line.startswith("    ") and line.strip().startswith("assert ")
+            # The one deliberate counter-example is labelled as wrong.
+            and "wrong:" not in line
+        ]
+        assert not offenders, f"{name} shows assert-statement examples: {offenders[:3]}"
+
+    # And the field contract has to be stated, not merely implied by the examples.
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    assert "holds a bare boolean EXPRESSION" in converter
+    assert "Do not write `assert`" in converter
+    assert "belongs in the separate `failure_message` field" in converter

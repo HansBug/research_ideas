@@ -171,9 +171,12 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 """
 
 ASSERTION_CONVERTER_PROMPT += """
-How to write an assertion now. The evidence environment contains the predicates listed below and plain builtins, nothing else. An assertion is a call to the predicate its Requirement names, with that Requirement's `predicate_bindings` as arguments:
+How to write an assertion now. The evidence environment contains the predicates listed below and plain builtins, nothing else. An assertion is a call to the predicate its Requirement names, with that Requirement's `predicate_bindings` as arguments. The `expression` field takes that call as a bare boolean expression -- no `assert` keyword, no trailing message:
 
-    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-006][AST-REQ-006-1] ..."
+    "expression": "occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",
+    "failure_message": "[REQ-006][AST-REQ-006-1] Sys.evt from Sys.ModeA does not reach Sys.ModeB"
+
+The controller builds `assert (<your expression>), <your failure_message>` itself. An `assert` written inside the field therefore becomes `assert (assert ...), "..."` and the script fails to parse -- every assertion in it, not just the one.
 
 Besides the predicates you may use only plain Python builtins -- `len`, `all`, `any`, `bool`, `int`, `str`, `sorted`, `sum`, `min`, `max`, `set`, `list`, `tuple`, `abs`, `round`, `float`, `iter`. Anything else is not in the namespace and the assertion will be rejected before it runs. Do not write lambdas over evidence objects; there are no evidence objects to write them over.
 
