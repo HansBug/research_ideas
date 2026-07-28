@@ -495,6 +495,7 @@ def test_an_assert_statement_in_the_expression_field_is_rejected_at_schema_time(
         role="primary",
         coverage_key="k",
         aggregation_group="g",
+        rationale="Fixture assertion; rationale not under test here.",
     )
     AssertionSpec(**good)  # the bare expression is accepted
 
@@ -522,6 +523,7 @@ def test_a_word_starting_with_assert_is_not_mistaken_for_a_statement():
         role="primary",
         coverage_key="k",
         aggregation_group="g",
+        rationale="Fixture assertion; rationale not under test here.",
     )
     assert spec.expression.startswith("len(")
 

@@ -314,6 +314,7 @@ def test_v2_converter_path_rejects_legacy_inferred_assertion_fields() -> None:
         "role": "primary",
         "coverage_key": "state_declared:Root.Idle",
         "aggregation_group": "REQ-001:all",
+        "rationale": "Fixture assertion; rationale not under test here.",
     }
     assert AssertionSpec.model_validate(complete).aggregation_group == "REQ-001:all"
 
@@ -370,6 +371,7 @@ def test_primary_family_matrix_is_enforced(
                     "role": "primary",
                     "coverage_key": "REQ-001:key",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
                 }
             ],
             "requirement_mapping": {"REQ-001": ["AST-REQ-001-01"]},
@@ -439,6 +441,7 @@ def test_complementary_primary_requires_mandatory_family(
                 "role": "primary",
                 "coverage_key": f"REQ-001:{family}:{index}",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             }
             for index, family in enumerate(families, start=1)
         ]
@@ -509,6 +512,7 @@ def test_requirement_with_only_supporting_assertions_is_rejected() -> None:
                 "role": "supporting",
                 "coverage_key": "support:key",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -566,6 +570,7 @@ def _fake_responder(
                     "role": "primary",
                     "coverage_key": "model:states",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
                 },
             ),
             requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -621,6 +626,7 @@ def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial
                         "role": "primary",
                         "coverage_key": "state:Done",
                         "aggregation_group": "REQ-001:all",
+                        "rationale": "Fixture assertion; rationale not under test here.",
                     },
                     {
                         "assertion_id": "AST-REQ-001-SUPPORT",
@@ -632,6 +638,7 @@ def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial
                         "role": "supporting",
                         "coverage_key": "support:states",
                         "aggregation_group": "REQ-001:all",
+                        "rationale": "Fixture assertion; rationale not under test here.",
                     },
                 ),
                 requirement_mapping={
@@ -790,6 +797,7 @@ def test_revision_ledger_is_rendered_for_both_revision_loops() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -934,6 +942,7 @@ def test_renderer_assertion_review_input_has_no_truth_labels() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
     )
@@ -1012,6 +1021,7 @@ def test_effect_noncausal_formal_evidence_is_rejected_before_sealing() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1085,6 +1095,7 @@ def test_repeated_invalid_assertion_is_quarantined_without_discarding_peer() -> 
                 "role": "primary",
                 "coverage_key": "model:states",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-REQ-001-SUPPORT",
@@ -1096,6 +1107,7 @@ def test_repeated_invalid_assertion_is_quarantined_without_discarding_peer() -> 
                 "role": "supporting",
                 "coverage_key": "support:model:states",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={
@@ -1157,6 +1169,7 @@ def test_changed_invalid_script_is_not_treated_as_no_progress() -> None:
                     "role": "primary",
                     "coverage_key": "AST-REQ-001-01",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
                 },
             ),
             requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1251,6 +1264,7 @@ def test_invalid_effect_simulation_reports_script_error_before_hot_start_policy(
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1306,6 +1320,7 @@ def test_name_error_feedback_forbids_rename_only_alias_repair() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1365,6 +1380,7 @@ def test_behavior_simulation_predicate_is_accepted_by_the_precheck() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1464,6 +1480,7 @@ def test_converter_contract_reject_routes_existing_script_back_with_feedback() -
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1535,6 +1552,7 @@ def test_effect_requirement_rejects_relation_only_evidence() -> None:
                     "role": "primary",
                     "coverage_key": "response:go",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1618,6 +1636,7 @@ def test_effect_only_evidence_can_expose_missing_typed_effect_without_simulation
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1679,6 +1698,7 @@ def test_effect_requirement_does_not_accept_relation_only_after_contract_relaxat
                     "role": "primary",
                     "coverage_key": "response:go",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1731,6 +1751,7 @@ def test_assertion_reviewer_has_a_bounded_revision_gate() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1825,6 +1846,7 @@ def test_initial_converter_contract_violation_enters_bounded_revision() -> None:
                     "role": "primary",
                     "coverage_key": "response:go",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1871,6 +1893,7 @@ def test_repeated_contract_invalid_script_stops_without_five_duplicate_calls() -
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -1945,6 +1968,7 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-REQ-001-02",
@@ -1956,6 +1980,7 @@ def test_assertion_precheck_seals_strict_bool_and_invalid_exceptions() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-02",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
     )
@@ -2141,6 +2166,7 @@ def test_assertion_review_hash_must_match_current_script() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
     )
@@ -2231,6 +2257,7 @@ def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> No
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2304,6 +2331,7 @@ state Root {
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2391,6 +2419,7 @@ def test_wrong_target_near_miss_remains_source_attributable() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2640,6 +2669,7 @@ def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-001": ("AST-REQ-001-01",)},
@@ -2736,6 +2766,7 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                 "role": "primary",
                 "coverage_key": "state:Done",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-REQ-001-SUPPORT",
@@ -2747,6 +2778,7 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                 "role": "supporting",
                 "coverage_key": "support:route",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-REQ-001-SUPPORT-TRUE",
@@ -2758,6 +2790,7 @@ def test_supporting_false_is_retained_without_creating_issue() -> None:
                 "role": "supporting",
                 "coverage_key": "support:passing-route",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={
@@ -2912,6 +2945,7 @@ def test_safe_relation_primary_can_confirm_behavior_issue_when_simulation_has_de
                     "role": "primary",
                     "coverage_key": "runtime:PowerOff",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
                 },
                 {
                     "assertion_id": "AST-REQ-001-REL",
@@ -2923,6 +2957,7 @@ def test_safe_relation_primary_can_confirm_behavior_issue_when_simulation_has_de
                     "role": "primary",
                     "coverage_key": "relation:PowerOff:Final",
                     "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion; rationale not under test here.",
                 },
             ],
             "requirement_mapping": {
@@ -3050,6 +3085,7 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
                 "role": "primary",
                 "coverage_key": "AST-REQ-001-01",
                 "aggregation_group": "REQ-001:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-REQ-002-01",
@@ -3061,6 +3097,7 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
                 "role": "primary",
                 "coverage_key": "AST-REQ-002-01",
                 "aggregation_group": "REQ-002:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={

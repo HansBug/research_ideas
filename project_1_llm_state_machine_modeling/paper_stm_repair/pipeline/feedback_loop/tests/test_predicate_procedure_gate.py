@@ -124,6 +124,7 @@ def test_gate_runs_inside_convert_assertions_and_names_the_requirement():
                 role="primary",
                 coverage_key="k1",
                 aggregation_group="g1",
+                rationale="Fixture assertion; rationale not under test here.",
                 evidence_family="relation",
                 description="d",
                 expression=DECLARED,

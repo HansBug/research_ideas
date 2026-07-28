@@ -94,6 +94,7 @@ def _script(
                 "role": "primary",
                 "coverage_key": "edge:Idle-go-Done",
                 "aggregation_group": "REQ-GOOD:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
             {
                 "assertion_id": "AST-BAD",
@@ -105,6 +106,7 @@ def _script(
                 "role": "primary",
                 "coverage_key": "state:Idle",
                 "aggregation_group": "REQ-BAD:all",
+                "rationale": "Fixture assertion; rationale not under test here.",
             },
         ),
         requirement_mapping={"REQ-GOOD": ("AST-GOOD",), "REQ-BAD": ("AST-BAD",)},

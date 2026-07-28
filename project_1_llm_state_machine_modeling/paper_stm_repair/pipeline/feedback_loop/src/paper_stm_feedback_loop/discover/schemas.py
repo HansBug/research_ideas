@@ -44,7 +44,11 @@ EvidenceFamily = Literal[
     "topology",
     "provenance",
 ]
-AssertionRole = Literal["primary", "supporting"]
+#: `precondition` (issue #170 §11.4) checks a prerequisite of the primary rather
+#: than discharging the requirement's predicate.  It is exempt from Gate D, its
+#: `False` may still become an issue -- a missing element is a real defect -- and
+#: it is the source of the dependency graph.
+AssertionRole = Literal["primary", "supporting", "precondition"]
 
 
 class CoverageObligation(StrictBaseModel):
@@ -379,6 +383,19 @@ class AssertionSpec(StrictBaseModel):
     role: AssertionRole
     coverage_key: str = Field(min_length=1)
     aggregation_group: str = Field(min_length=1)
+    #: Assertion ids that must have evaluated **True** before this one runs.  A
+    #: plain list, not a mapping: dependencies keyed on a required truth value
+    #: were considered and dropped, because a "run only if the prerequisite is
+    #: false" branch is expressible as two unconditional assertions and would
+    #: make both the graph semantics and the repair stage's reading of it harder.
+    depends_on: tuple[str, ...] = Field(default_factory=tuple)
+    #: Why this assertion is written this way: which NL clause grounds it, why
+    #: this predicate, and -- for a precondition standing in for a term the model
+    #: lacks -- why this proposed name.  Distinct from `description`, which says
+    #: *what* is checked; this says *why*.  Kept separate because the reviewer
+    #: needs an NL citation it can verify, and a producer given one field writes
+    #: only the restatement.
+    rationale: str = Field(min_length=1)
 
     @field_validator("expression")
     @classmethod
@@ -414,6 +431,11 @@ class AssertionScript(StrictBaseModel):
     prefix: str = ""
     assertions: tuple[AssertionSpec, ...] = Field(min_length=1)
     requirement_mapping: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    #: `{requirement_id: how this group of assertions jointly covers it}`.  The
+    #: reviewer previously had to infer the decomposition intent from a bare list
+    #: of assertions; with preconditions and dependencies in play that inference
+    #: is no longer tractable.
+    strategies: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("assertions")
     @classmethod
@@ -431,7 +453,12 @@ class AssertionExecutionPublic(StrictBaseModel):
     requirement_id: str
     role: AssertionRole = "primary"
     coverage_key: str | None = None
-    status: Literal["executable", "invalid"]
+    #: `blocked` means a prerequisite did not hold, so this assertion was never
+    #: run.  It is not an execution failure and must not send the script back for
+    #: repair -- the prerequisite's own `False` is the finding.  Downstream it
+    #: counts as *not satisfied* (issue #170 §11.5); the distinction exists for
+    #: the record and the report, not for the verdict.
+    status: Literal["executable", "invalid", "blocked"]
     error: str | None = None
 
 
@@ -445,8 +472,12 @@ class AssertionCheckPublic(StrictBaseModel):
 
     @model_validator(mode="after")
     def _status_matches_executions(self) -> "AssertionCheckPublic":
+        # `blocked` is deliberately allowed inside an `executable` check: the
+        # script ran fine, one item simply had an unmet prerequisite.  Treating it
+        # as invalid would send the whole script back for a repair nobody can
+        # make, which is the deadlock class issue #170 §10.9 records.
         if self.status == "executable" and any(
-            e.status != "executable" for e in self.executions
+            e.status == "invalid" for e in self.executions
         ):
             raise ValueError("executable check cannot contain invalid executions")
         if self.status == "invalid" and not any(
