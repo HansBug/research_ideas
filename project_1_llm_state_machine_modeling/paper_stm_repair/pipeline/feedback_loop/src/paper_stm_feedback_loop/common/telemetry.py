@@ -23,9 +23,15 @@ SECRET_KEY_RE = re.compile(
 # record it silently destroyed the model paths of 23 of 55 assertions, which
 # makes the artifact unreplayable and unreadable as evidence.  Redaction must
 # not damage the research record it is protecting.
+# The `sk-` alternative is anchored on a word boundary for the same reason: the
+# pattern is case-insensitive, so an unanchored `sk-` also matches the middle of
+# ordinary words.  `hotstart-searching-task-assignment` contains `sk-assignment`
+# and was silently truncated to `hotstart-searching-ta[REDACTED]` in the 0006
+# run record, destroying a coverage key that identifies which obligation an
+# assertion discharges.
 SECRET_VALUE_RE = re.compile(
     r"(?i)("
-    r"sk-[A-Za-z0-9_\-]{12,}"
+    r"\bsk-[A-Za-z0-9_\-]{12,}"
     r"|Bearer\s+[A-Za-z0-9._\-]{12,}"
     r"|eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{12,}"
     r")"

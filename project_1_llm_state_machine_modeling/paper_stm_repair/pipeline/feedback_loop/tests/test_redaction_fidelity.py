@@ -53,3 +53,31 @@ def test_secret_bearing_keys_are_still_masked_wholesale() -> None:
     assert masked["api_key"] == "[REDACTED]"
     assert masked["authorization"] == "[REDACTED]"
     assert masked["state_path"] == "Root.A.b"
+
+
+def test_task_shaped_identifiers_survive_redaction():
+    """`sk-` is matched case-insensitively, so it also occurs inside words.
+
+    `hotstart-searching-task-assignment` contains `sk-assignment` and was
+    truncated to `hotstart-searching-ta[REDACTED]` in the 0006 run record,
+    destroying the coverage key that says which obligation an assertion
+    discharges.  Redaction must not damage the record it protects.
+    """
+
+    from paper_stm_feedback_loop.common.telemetry import redact
+
+    key = "hotstart-searching-task-assignment-to-attack-001"
+    assert redact(key) == key
+    for word in ("task-force-alignment", "risk-management-profile", "disk-usage-report"):
+        assert redact(word) == word, word
+
+
+def test_real_api_keys_are_still_redacted():
+    from paper_stm_feedback_loop.common.telemetry import redact
+
+    for secret in (
+        "sk-abcdefghijklmnopqrstuvwxyz123456",
+        "Bearer abcdefghijklmnopqrstuvwxyz",
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1g",
+    ):
+        assert "[REDACTED]" in redact(secret), secret
