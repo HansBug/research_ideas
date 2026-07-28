@@ -363,6 +363,8 @@ BOUND_PATH_KWARGS = frozenset(
 )
 #: The relation API exposes the pseudo-initial source under this exact literal.
 PSEUDO_INITIAL = "[*]"
+#: Sanctioned stand-in for a term the NL requires but the model never declares.
+UNDECLARED = "<undeclared>"
 
 
 def unresolved_model_references(
@@ -392,7 +394,19 @@ def unresolved_model_references(
             if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
                 continue
             text = value.value
-            if not text or text == PSEUDO_INITIAL or text in known_paths:
+            # `<undeclared>` is the sanctioned way to say "the NL requires a
+            # term this model never declares".  Rejecting it here left the
+            # requirement with no legal move at all: the literal was refused,
+            # any substitute is fabricated, and omitting the primary trips the
+            # "at least one primary" rule -- a three-way deadlock that burned
+            # the whole repair budget.  Let it through so precheck can turn it
+            # into a coverage gap, which is the honest outcome.
+            if (
+                not text
+                or text == PSEUDO_INITIAL
+                or text == UNDECLARED
+                or text in known_paths
+            ):
                 continue
             bad.append(f"{keyword.arg}={text!r}")
     return tuple(dict.fromkeys(bad))

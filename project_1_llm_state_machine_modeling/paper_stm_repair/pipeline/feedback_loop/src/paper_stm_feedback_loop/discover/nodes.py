@@ -1385,7 +1385,16 @@ def convert_assertions(
                 for assertion in owned_assertions
                 if assertion.role == "primary"
             )
-            if not primary_assertions:
+            # A requirement whose binding is `<undeclared>` has no executable
+            # primary by construction: the model declares no term for what the
+            # NL asks.  Demanding one forced the producer to invent a check that
+            # passes for some adjacent reason -- pair 0006 answered "does search
+            # persist" with a tautological bounded query and the requirement was
+            # reported satisfied.  Let it through without a primary; precheck
+            # turns it into a coverage gap, which is what an unanswerable
+            # obligation actually is.
+            unassertable = UNDECLARED in str(requirement.predicate_bindings or {})
+            if not primary_assertions and not unassertable:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion"
@@ -1396,7 +1405,7 @@ def convert_assertions(
             # obligation, which is how pair 0006 produced a false positive while
             # every other gate passed.  Requirements with no predicate keep the
             # pre-vocabulary behaviour so v1/v2 artifacts still run.
-            if requirement.predicate:
+            if requirement.predicate and not unassertable:
                 called = frozenset[str]().union(
                     *(
                         called_evidence_functions(assertion.expression)

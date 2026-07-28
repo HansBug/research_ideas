@@ -366,7 +366,14 @@ def signature_of(name: str) -> str:
             args.append(f"{b}: str")
         else:
             args.append(f"{b}: str")
-    args.extend(PREDICATE_OPTIONS.get(name, ()))
+    # A predicate whose required bindings already include an option (Family P
+    # lists `bound` in both) must not have it rendered twice: a signature with a
+    # duplicated keyword is not valid Python and the producer copies it verbatim.
+    listed = set(entry.bindings)
+    args.extend(
+        opt for opt in PREDICATE_OPTIONS.get(name, ())
+        if opt.split(":")[0].strip() not in listed
+    )
     return f"{name}({', '.join(args)}) -> bool"
 
 
