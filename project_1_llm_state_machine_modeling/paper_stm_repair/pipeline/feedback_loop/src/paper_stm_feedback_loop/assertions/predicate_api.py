@@ -57,6 +57,8 @@ PSEUDO_INITIAL = "[*]"
 #: the fired-transition derivation less likely to stay unambiguous.
 DEFAULT_CYCLES = 1
 DEFAULT_BOUND = 5
+#: Cycles a termination probe drives before concluding the model cannot finish.
+TERMINATION_CYCLES = 6
 
 
 def _require_declared(**bindings: Any) -> None:
@@ -143,18 +145,23 @@ class PredicateAPI:
 
         events = [[trigger]] if trigger else [[]]
         events += [[] for _ in range(max(0, cycles - 1))]
-        source = self._hot_startable(source)
-        view = None
-        if source:
+        pinned = self._hot_startable(source)
+        if pinned:
             try:
                 view = self.simulation.simulate(
-                    initial_state=source, initial_vars=self._all_vars(), cycles=events
+                    initial_state=pinned, initial_vars=self._all_vars(), cycles=events
                 )
-            except Exception:
-                # A composite or otherwise non-hot-startable source falls back to a
-                # cold start; the trace is weaker but still honest.
-                view = None
-        if view is None:
+            except Exception as exc:
+                # Falling back to a cold start here would answer about the
+                # initial configuration while the caller asked about `pinned`,
+                # and return a plain bool with no sign that it happened.  A
+                # silently-different question is the worst failure this layer
+                # can produce, so refuse instead.
+                raise UnsupportedEvidence(
+                    f"cannot start the model in {pinned!r} ({exc}); the claim is "
+                    "about that configuration and cannot be answered from another"
+                ) from exc
+        else:
             view = self.simulation.simulate(cycles=[[]] + events)
         self._note_simulation(view)
         return view
@@ -303,6 +310,15 @@ class PredicateAPI:
         return ()
 
     @staticmethod
+    def _consumed(view: Any) -> set[str]:
+        out: set[str] = set()
+        for cycle in getattr(view, "cycles", ()) or ():
+            for ev in getattr(cycle, "consumed_events", ()) or ():
+                if isinstance(ev, str):
+                    out.add(ev)
+        return out
+
+    @staticmethod
     def _active(view: Any) -> tuple[str, ...]:
         final = getattr(view, "final", None)
         states = getattr(final, "active_states", ()) if final is not None else ()
@@ -368,7 +384,11 @@ class PredicateAPI:
         """This transition declares an effect on this variable, in this direction."""
 
         _require_declared(source=source, trigger=trigger, variable=variable)
-        self._note(source, trigger, variable)
+        # Deliberately not noting `variable`: a bare name matches the
+        # `compiler:route_control:<name>` exclusion kind-agnostically, so noting
+        # it booked every variable finding as compiler-owned debt -- the exact
+        # pair-0006 regression `filtered_route_control:` was introduced to stop.
+        self._note(source, trigger)
         self._note_transitions(
             source=source, event=trigger, filtered_route_control=True
         )
@@ -408,6 +428,16 @@ class PredicateAPI:
         _require_declared(source=source, trigger=trigger)
         self._note(source, trigger)
         self._note_transitions(source=source, event=trigger)
+        # No matching transition means the question is unanswerable, not
+        # answered "distinguishable".  Returning True there reported a
+        # mistyped or converter-projected trigger as satisfying the claim --
+        # verbatim the pair-0029 defect.
+        if not self.structure.transitions(source=source, event=trigger, exact=True):
+            raise UnsupportedEvidence(
+                f"no declared transition leaves {source!r} on {trigger!r}, so "
+                "distinguishability cannot be decided; check the trigger spelling "
+                "against declared_model_vocabulary"
+            )
         return not bool(self.relations.conflicting_targets(source=source, event=trigger))
 
     def cardinality(self, *, scope: str, count: int) -> bool:
@@ -436,6 +466,12 @@ class PredicateAPI:
 
         _require_declared(source=source, trigger=trigger, target=target)
         view = self._simulate(source=source, trigger=trigger, cycles=int(within_cycles))
+        # The claim is "this trigger takes the system there".  A completion
+        # transition can reach the target on its own while the trigger is never
+        # consumed; crediting the trigger for that is the false-positive shape
+        # this predicate exists to prevent.
+        if trigger not in self._consumed(view):
+            return False
         active = self._active(view)
         return any(s == target or s.startswith(f"{target}.") for s in active)
 
@@ -458,6 +494,11 @@ class PredicateAPI:
 
         _require_declared(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
+        # Both halves matter.  Without the consumption check an ignored event
+        # looks identical to a declared self-loop, so the missing-self-loop
+        # defect this predicate advertises could never be observed.
+        if trigger not in self._consumed(view):
+            return False
         active = self._active(view)
         return any(s == source or s.startswith(f"{source}.") for s in active)
 
@@ -471,10 +512,15 @@ class PredicateAPI:
         """
 
         _require_declared(source=source, trigger=trigger, variable=variable)
+        self._note(source, trigger)
         want = str(sign).strip().lower()
         if want not in {"negative", "positive"}:
             raise UnsupportedEvidence(f"sign must be negative or positive, got {sign!r}")
         view = self._simulate(source=source, trigger=trigger, cycles=1)
+        if trigger not in self._consumed(view):
+            # A completion transition may have moved the variable; that is not
+            # evidence that *this* trigger does.
+            return False
         cycles = getattr(view, "cycles", ()) or ()
         if not cycles:
             return False
@@ -491,10 +537,38 @@ class PredicateAPI:
         """Within a bounded number of cycles this target is reachable from here."""
 
         _require_declared(source=source, target=target)
-        view = self._simulate(source=source, trigger=None, cycles=int(within_cycles))
+        # Reachability without events only ever exercises completion
+        # transitions, so every target one event away was reported unreachable
+        # -- a fabricated defect on the most common shape in this corpus.  Offer
+        # the whole declared alphabet each cycle and let the model take what it
+        # can; that is the bounded over-approximation this predicate is for.
+        return self._reaches_within(source=source, target=target, cycles=int(within_cycles))
+
+    def _reaches_within(self, *, source: str, target: str, cycles: int) -> bool:
+        alphabet = [
+            str(row.qualified_name)
+            for row in self.structure.events()
+            if getattr(row, "qualified_name", None)
+        ]
+        pinned = self._hot_startable(source)
+        plan = [list(alphabet) for _ in range(max(1, cycles))]
+        try:
+            view = (
+                self.simulation.simulate(
+                    initial_state=pinned, initial_vars=self._all_vars(), cycles=plan
+                )
+                if pinned
+                else self.simulation.simulate(cycles=[[]] + plan)
+            )
+        except Exception as exc:
+            raise UnsupportedEvidence(
+                f"cannot start the model in {source!r} ({exc})"
+            ) from exc
+        self._note_simulation(view)
         for cycle in getattr(view, "cycles", ()) or ():
-            for s in getattr(cycle, "active_states", ()) or ():
-                if str(s) == target or str(s).startswith(f"{target}."):
+            for item in getattr(cycle, "active_states", ()) or ():
+                text = str(item)
+                if text == target or text.startswith(f"{target}."):
                     return True
         return False
 
@@ -502,13 +576,35 @@ class PredicateAPI:
         """The model actually finishes."""
 
         _require_declared(scope=scope)
-        view = self._simulate(
-            source=None if scope in {"", "root"} else scope,
-            trigger=trigger,
-            cycles=DEFAULT_CYCLES,
-        )
-        final = getattr(view, "final", None)
-        return bool(getattr(final, "is_ended", False))
+        # One cycle only ever saw the first step, so a final state two events
+        # away was reported unreachable.  Drive the declared alphabet for a
+        # bounded number of cycles instead: termination is a reachability
+        # question, not a single-step one.
+        alphabet = [
+            str(row.qualified_name)
+            for row in self.structure.events()
+            if getattr(row, "qualified_name", None)
+        ]
+        offered = [trigger] if trigger else alphabet
+        pinned = self._hot_startable(None if scope in {"", "root"} else scope)
+        plan = [list(offered) for _ in range(TERMINATION_CYCLES)]
+        try:
+            view = (
+                self.simulation.simulate(
+                    initial_state=pinned, initial_vars=self._all_vars(), cycles=plan
+                )
+                if pinned
+                else self.simulation.simulate(cycles=[[]] + plan)
+            )
+        except Exception as exc:
+            raise UnsupportedEvidence(
+                f"cannot start the model in {scope!r} ({exc})"
+            ) from exc
+        self._note_simulation(view)
+        for cycle in getattr(view, "cycles", ()) or ():
+            if bool(getattr(cycle, "is_ended", False)):
+                return True
+        return bool(getattr(getattr(view, "final", None), "is_ended", False))
 
     # ---- Family P: quantified properties -----------------------------
     def invariant(self, *, scope: str, condition: str, bound: int = DEFAULT_BOUND) -> bool:
@@ -523,18 +619,35 @@ class PredicateAPI:
         return self._formal_holds(query)
 
     def response_within(
-        self, *, trigger: str, response: str, bound: int = DEFAULT_BOUND
+        self,
+        *,
+        trigger: str,
+        response: str,
+        bound: int = DEFAULT_BOUND,
+        source: str | None = None,
     ) -> bool:
-        """Every occurrence of this trigger is answered within the bound."""
+        """Every occurrence of this trigger is answered within the bound.
+
+        ``source`` pins the configuration the obligation is about.  Without one
+        the solver places the trigger in the cold-initialization step, where
+        nothing can consume it, and books that as a violation -- the predicate
+        was a constant False.
+        """
 
         _require_declared(trigger=trigger, response=response)
-        # The response arm needs its own `within`; without it the grammar rejects
-        # the query and the predicate can only ever raise.  No test executed this
-        # predicate, which is how a dead one shipped.
+        # Two things were wrong.  The response arm needs its own `within` or the
+        # grammar rejects the query outright.  And with `within == bound` only
+        # step 0 carries a complete obligation, so every later step lands in the
+        # incomplete formula and the answer is a constant False.  Give the
+        # response a window strictly inside the horizon.
+        horizon = max(2, int(bound))
+        window = max(1, horizon - 1)
+        pinned = self._hot_startable(source) or self._default_init()
+        head = f'init state("{pinned}"); ' if pinned else ""
         query = (
-            f"check response <= {int(bound)}: "
+            f"{head}check response <= {horizon}: "
             f'trigger event("{trigger}", current) -> '
-            f'within {int(bound)} active("{response}");'
+            f'within {window} active("{response}");'
         )
         return self._formal_holds(query)
 
@@ -542,10 +655,16 @@ class PredicateAPI:
         """This state holds continuously until the release condition."""
 
         _require_declared(state=state, release=release)
+        # `exists_always` is a *witness* property: it asks whether some bounded
+        # run keeps the condition, and with no events injected that run always
+        # exists -- the truth value could not change when the defect was
+        # present, which is the tautology this whole layer exists to remove.
+        # The obligation is universal, so it belongs in invariant polarity:
+        # until the release holds, the state must still hold.
         query = (
             f'init state("{state}"); '
-            f"check exists_always <= {int(bound)}: "
-            f'active("{state}") && !({release});'
+            f"check invariant <= {int(bound)}: "
+            f'({release}) || active("{state}");'
         )
         return self._formal_holds(query)
 
@@ -566,6 +685,24 @@ class PredicateAPI:
             self._note(*refs)
             return
         self._note("formal:examined_only")
+
+    def _default_init(self) -> str | None:
+        """Pick the state a bounded response obligation should start from.
+
+        The declared source of the trigger: that is the configuration where the
+        obligation is meaningful, and pinning it keeps the solver from planting
+        the event in the initialization step where nothing consumes it.
+        """
+
+        try:
+            rows = self.structure.states()
+        except Exception:
+            return None
+        for row in rows:
+            path = getattr(row, "path", None)
+            if isinstance(path, str) and path and getattr(row, "is_leaf", False):
+                return path
+        return None
 
     def _formal_query(self, kind: str, scope: str, condition: str, bound: int) -> str:
         head = f'init state("{scope}"); ' if scope and scope not in {"root", ""} else ""
