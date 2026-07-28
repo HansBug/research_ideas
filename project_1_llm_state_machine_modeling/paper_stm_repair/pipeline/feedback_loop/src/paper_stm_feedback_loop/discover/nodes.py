@@ -25,6 +25,12 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
+from .dependencies import (
+    cross_requirement_dependencies,
+    dependency_cycles,
+    missing_dependency_references,
+    orphan_preconditions,
+)
 from .capability import (
     SOURCE_SENSITIVE_PHASES,
     called_evidence_functions,
@@ -1427,8 +1433,50 @@ def convert_assertions(
                 raise ValueError(
                     f"assertion {assertion.assertion_id} failure_message must start with {expected_prefix}"
                 )
+            if UNDECLARED in assertion.expression:
+                raise ValueError(
+                    f"assertion {assertion.assertion_id} binds {UNDECLARED!r}. That "
+                    "literal states a fact about the requirement, not a check: give "
+                    "the missing element a proposed name, assert its existence as a "
+                    "`precondition`, and have this assertion depend on it (issue "
+                    "#170 §11.2)"
+                )
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
         assertions_by_id = {item.assertion_id: item for item in output.assertions}
+        # Dependency-graph gates (issue #170 §11.6).  Script-level rather than
+        # per-requirement: a cycle or a dangling reference is a property of the
+        # whole graph, and each of these states looks plausible downstream while
+        # being wrong -- a cycle leaves every member unrun, which reads as
+        # "blocked" with no prerequisite actually false anywhere.
+        dangling = missing_dependency_references(output.assertions)
+        if dangling:
+            raise ValueError(
+                f"depends_on names assertions this script does not contain: "
+                f"{list(dangling)}. On revision, an assertion that is dropped must "
+                "also be removed from every depends_on that referenced it"
+            )
+        cycles = dependency_cycles(output.assertions)
+        if cycles:
+            raise ValueError(
+                f"depends_on forms cycles: {[list(c) for c in cycles]}. Every member "
+                "of a cycle waits on another member, so none can ever run"
+            )
+        crossing = cross_requirement_dependencies(output.assertions)
+        if crossing:
+            raise ValueError(
+                f"depends_on crosses requirement boundaries: {list(crossing)}. A "
+                "requirement's verdict must not hinge on an assertion filed under "
+                "another; repeat the prerequisite within each requirement"
+            )
+        orphans = orphan_preconditions(output.assertions)
+        if orphans:
+            raise ValueError(
+                f"precondition assertions nothing depends on: {list(orphans)}. Add "
+                "them to the depends_on of the assertion whose prerequisite they "
+                "are, or drop them: unreferenced, the dependent runs anyway, raises "
+                "on the element it needs, and enters the repair loop while the "
+                "precondition already reports that same defect"
+            )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
         for requirement in requirements.requirements:
