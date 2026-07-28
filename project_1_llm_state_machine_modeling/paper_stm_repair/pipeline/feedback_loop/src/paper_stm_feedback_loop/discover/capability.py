@@ -49,6 +49,7 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
 )
 
 from .dependencies import dependency_closure
+from .predicates import EXISTENCE_PREDICATES
 
 __all__ = [
     "EvidenceCapability",
@@ -505,6 +506,48 @@ def unresolved_model_references(
     )
 
 
+def _existence_checked_names(
+    expression: str, known_paths: frozenset[str]
+) -> tuple[str, ...]:
+    """Absent names this expression asks the *existence* of.
+
+    Keyed on the predicate rather than on the assertion's `role`, because that is
+    where the soundness actually comes from: `variable_declared` on an absent name
+    returns False, which is the answer to the question asked, not a query that
+    matched nothing and passed.  Reading `role == "precondition"` instead forced a
+    requirement whose own predicate is an existence check into a precondition plus
+    a byte-identical dependent -- and when a reviewer objected to that duplication
+    and the producer removed one of them, the survivor lost its exemption and the
+    run died with its repair budget spent (pair 0006, matrix-v10).
+    """
+
+    tree = None
+    for mode in ("eval", "exec"):
+        try:
+            tree = ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    if tree is None:
+        return ()
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id not in EXISTENCE_PREDICATES:
+            continue
+        for keyword in node.keywords:
+            if keyword.arg not in BOUND_PATH_KWARGS:
+                continue
+            value = keyword.value
+            if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+                continue
+            text = value.value
+            if text and text != PSEUDO_INITIAL and text not in known_paths:
+                found.append(text)
+    return tuple(dict.fromkeys(found))
+
+
 class _ScriptAssertion(Protocol):
     """The fields of an ``AssertionSpec`` the script-level reference gate reads."""
 
@@ -545,9 +588,8 @@ def unresolved_reference_findings(
     closures = dependency_closure(items)
     proposed_by: dict[str, set[str]] = {}
     for item in items:
-        if item.role != "precondition":
-            continue
-        for _, name in _absent_path_bindings(item.expression, known_paths):
+        checked = _existence_checked_names(item.expression, known_paths)
+        for name in checked:
             proposed_by.setdefault(name, set()).add(item.assertion_id)
     findings: list[str] = []
     for item in items:

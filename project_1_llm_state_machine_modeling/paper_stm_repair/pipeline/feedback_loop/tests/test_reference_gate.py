@@ -285,3 +285,33 @@ def test_an_unaccepted_keyword_is_named_with_the_bindings_that_are_accepted():
     # Builtins and unknown callables are not this gate's business.
     assert misspelled_binding_findings("all([len(x) > 0])") == ()
     assert misspelled_binding_findings("state_declared(") == ()
+
+
+def test_an_existence_check_needs_no_precondition_of_its_own():
+    """Its False *is* the existence answer, so it cannot be a vacuous pass.
+
+    The exemption used to be keyed on `role == "precondition"`, which forced a
+    requirement whose own predicate is an existence check into a precondition plus
+    a byte-identical dependent.  Pair 0006 wrote exactly that, a reviewer objected
+    to the duplication, the producer deleted one of the pair, and the survivor lost
+    its exemption -- rejected on the last of its repair rounds, run dead.  Keying
+    on the predicate instead is both sounder and simpler: what makes an absent name
+    legitimate is that something is asking whether it exists.
+    """
+
+    script = (A("A1", EXISTS),)
+    assert unresolved_reference_findings(script, KNOWN) == ()
+    # And a claim that merely *uses* the name still needs the check to exist and
+    # to be depended on, so the vacuous-pass protection is untouched.
+    assert unresolved_reference_findings((A("A1", DELTA),), KNOWN) != ()
+    assert unresolved_reference_findings(
+        (A("A0", EXISTS, role="precondition"), A("A1", DELTA)), KNOWN
+    ) != ()
+    # A check about a *different* absent name exempts nothing.
+    assert unresolved_reference_findings(
+        (
+            A("A0", 'variable_declared(variable="other_name") is True', role="precondition"),
+            A("A1", DELTA, depends_on=("A0",)),
+        ),
+        KNOWN,
+    ) != ()

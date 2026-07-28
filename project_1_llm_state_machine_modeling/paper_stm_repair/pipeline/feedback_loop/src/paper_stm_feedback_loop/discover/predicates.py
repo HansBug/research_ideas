@@ -595,6 +595,18 @@ def signature_of(name: str) -> str:
     return f"{name}({', '.join(args)}) -> bool"
 
 
+#: The predicates that ask whether the model declares an element at all.
+#: A False from one of these is not a vacuous pass but the answer: nothing was
+#: looked up and found empty, the question *was* "is it there".  So a name absent
+#: from the frozen model is legitimate in exactly these calls, whatever role the
+#: assertion carries -- which is what lets a requirement whose own predicate is an
+#: existence check be discharged by one assertion instead of a precondition plus a
+#: byte-identical dependent.
+EXISTENCE_PREDICATES = frozenset(
+    {"state_declared", "variable_declared", "event_declared"}
+)
+
+
 def accepted_bindings(name: str) -> frozenset[str]:
     """Every keyword one predicate accepts: required bindings plus its options."""
 
@@ -937,6 +949,7 @@ def unmodelled_claim_paths(
 
 
 __all__ = [
+    "EXISTENCE_PREDICATES",
     "accepted_bindings",
     "misspelled_binding_findings",
     "FAMILY_BEHAVIOR",
