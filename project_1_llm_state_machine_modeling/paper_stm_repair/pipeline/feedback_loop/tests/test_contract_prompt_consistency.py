@@ -413,7 +413,16 @@ def test_no_stage_demands_the_binding_the_checker_refuses() -> None:
     # The stage that picks the binding must know both outcomes.
     assert "reported as a violation" in splitter
     assert "the check is refused" in splitter
-    assert "always refused" in splitter, "the expression-binding case must be stated"
+    # Which bindings can be discharged is the part that decides whether the loop
+    # converges: `variable`/`trigger` can, state-shaped ones and the two
+    # expression bindings cannot.  Pair 0050 deadlocked because only the
+    # expression case was stated.
+    assert "the predicate always refuses" in splitter
+    assert "every parsable model declares states" in splitter
+    assert "have no table at all" in splitter
+    assert "unchecked coverage gap rather than as a finding" in splitter, (
+        "the splitter must know that this choice costs a finding, or it will overuse it"
+    )
 
     # Neither reviewer may state the rule unconditionally any more.
     assert "Otherwise require `variable=\"<undeclared>\"`" not in assertion_reviewer

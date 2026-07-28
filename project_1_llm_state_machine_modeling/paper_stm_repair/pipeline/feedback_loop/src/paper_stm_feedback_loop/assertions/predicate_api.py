@@ -113,6 +113,20 @@ BINDING_DECLARATION_TABLE = {
     "response": "states",
 }
 
+#: Tables that can legitimately be empty, so `<undeclared>` against them is a
+#: *provable* absence.  `states` is not one: every parsable model declares at
+#: least a root, so a state-shaped `<undeclared>` can never be discharged -- the
+#: predicate will always refuse it.
+#:
+#: Getting this wrong is a deadlock, not a wrong answer.  Pair 0050's splitter
+#: bound `occupancy_after(source="<undeclared>")` and
+#: `terminates(scope="<undeclared>")`; the controller demanded a primary because
+#: `states` was in the table map, the predicate refused every primary because the
+#: table is never empty, and the reviewer rejected each attempt to substitute
+#: concrete states as changing the obligation.  Twelve revisions, then the
+#: no-progress gate killed the cell.
+PROVABLY_EMPTY_TABLES = frozenset({"variables", "events"})
+
 
 def _need(value: Any, name: str) -> str:
     if not isinstance(value, str) or not value.strip():
@@ -276,8 +290,11 @@ class PredicateAPI:
             for k, t in checkable.items()
             if self._declared_count(t) > 0
         )
+        undischargeable = sorted(
+            k for k, t in checkable.items() if t not in PROVABLY_EMPTY_TABLES
+        )
         unreadable = sorted(set(missing) - set(checkable))
-        if populated or unreadable:
+        if populated or unreadable or undischargeable:
             detail = []
             if populated:
                 detail.append(
@@ -291,6 +308,14 @@ class PredicateAPI:
                     f"binding(s) {unreadable} are expressions, not declared "
                     "elements, so their absence cannot be established; state the "
                     "obligation over a state the model does declare"
+                )
+            if undischargeable:
+                detail.append(
+                    f"binding(s) {undischargeable} name states, and every model "
+                    "declares states, so an absence there can never be proved -- "
+                    "this claim has no executable primary. Emit supporting "
+                    "evidence and no primary; the controller then records an "
+                    "honest coverage gap"
                 )
             raise UnsupportedEvidence(
                 f"binding(s) {list(missing)} are {UNDECLARED} but "

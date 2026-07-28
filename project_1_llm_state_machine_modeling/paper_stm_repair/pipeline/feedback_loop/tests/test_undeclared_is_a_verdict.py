@@ -524,3 +524,59 @@ def test_a_word_starting_with_assert_is_not_mistaken_for_a_statement():
         aggregation_group="g",
     )
     assert spec.expression.startswith("len(")
+
+
+# --------------------------------------------------------------------------
+# Only a table that can be empty makes an absence provable
+# --------------------------------------------------------------------------
+
+
+def test_a_state_shaped_undeclared_refusal_names_the_exit():
+    """Pair 0050 deadlocked here, twelve revisions and a dead cell.
+
+    Its splitter bound `occupancy_after(source="<undeclared>")` and
+    `terminates(scope="<undeclared>")`.  Every model declares states, so the
+    predicate refused every primary; the controller demanded one anyway because
+    `states` was in the binding-table map; and the reviewer rejected each attempt
+    to substitute concrete states as changing the obligation.  No stage had a
+    legal move.
+    """
+
+    result = _checker(MODEL_NO_VARS).check(
+        _script('occupancy_after(source="<undeclared>", trigger="Root.go", target="Root.Busy")'),
+        reason="state-shaped",
+        required_function_families=(),
+    )
+    assert result.sealed.outcome == "invalid", result.sealed.metadata
+    message = _message(result)
+    assert "every model declares states" in message, message
+    assert "no executable primary" in message, message
+    assert "coverage gap" in message, message
+
+
+def test_the_waiver_keys_on_provable_emptiness_not_on_having_a_table():
+    """`states` has a table and still cannot be discharged; the two differ."""
+
+    from paper_stm_feedback_loop.discover.nodes import _undeclared_bindings_with_a_table
+
+    # Provably empty -> a primary is possible and therefore required.
+    assert _undeclared_bindings_with_a_table({"variable": "<undeclared>"}) == ("variable",)
+    assert _undeclared_bindings_with_a_table({"trigger": "<undeclared>"}) == ("trigger",)
+    # Never empty, or no table -> no primary exists, so none is demanded.
+    for binding in ("source", "target", "state", "scope", "parent", "child",
+                    "composite", "response", "condition", "release"):
+        assert _undeclared_bindings_with_a_table({binding: "<undeclared>"}) == (), binding
+
+
+def test_a_variable_binding_is_still_expected_to_carry_a_primary():
+    """The 0006 recall win must not be given back by the 0050 fix.
+
+    `variable="<undeclared>"` on a model with no author variables is the whole
+    reason the seal exists; waiving its primary would refile that finding as an
+    unchecked gap.
+    """
+
+    result = _checker(MODEL_NO_VARS).check(
+        _script(VARIABLE_CALLS[0]), reason="still seals", required_function_families=()
+    )
+    assert result.sealed.outcome == "sealed_false"

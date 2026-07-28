@@ -19,6 +19,7 @@ from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 from paper_stm_feedback_loop.assertions.predicate_api import (
     BINDING_DECLARATION_TABLE,
     PREDICATE_FAMILIES,
+    PROVABLY_EMPTY_TABLES,
     UNDECLARED,
 )
 from paper_stm_feedback_loop.common.refs import reference_matches
@@ -843,7 +844,8 @@ def _undeclared_bindings_with_a_table(bindings: dict | None) -> tuple[str, ...]:
         sorted(
             name
             for name, value in bindings.items()
-            if str(value) == UNDECLARED and name in BINDING_DECLARATION_TABLE
+            if str(value) == UNDECLARED
+            and BINDING_DECLARATION_TABLE.get(name) in PROVABLY_EMPTY_TABLES
         )
     )
 
