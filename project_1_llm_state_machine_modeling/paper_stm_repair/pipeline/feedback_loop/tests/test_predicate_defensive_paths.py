@@ -372,14 +372,21 @@ def test_a_variable_whose_initial_value_is_not_numeric_still_seeds():
     assert seeded["c"] == 0
 
 
-def test_a_broken_state_facade_leaves_the_default_init_unset():
-    subject = api(structure=Structure(boom={"states"}))
-    assert subject._default_init() is None
+def test_a_broken_transition_facade_leaves_the_default_init_unset():
+    subject = api(structure=Structure(boom={"transitions"}))
+    assert subject._default_init("Root.go") is None
 
 
-def test_a_model_with_no_leaf_states_has_no_default_init():
-    subject = api(structure=Structure(states=[Row(path="Root", is_leaf=False)]))
-    assert subject._default_init() is None
+def test_a_trigger_declared_nowhere_has_no_default_init():
+    """`response_within` then runs unpinned, which is the honest reading.
+
+    The default used to come from the state table -- the first declared leaf,
+    whatever the trigger was -- so it named a source even for an event no
+    transition carries.
+    """
+
+    subject = api(structure=Structure(transitions=[]))
+    assert subject._default_init("Root.nosuchevent") is None
 
 
 def test_the_pseudo_initial_is_never_a_hot_start():

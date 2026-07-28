@@ -31,6 +31,7 @@ from .dependencies import (
 from .capability import (
     SOURCE_SENSITIVE_PHASES,
     called_evidence_functions,
+    declared_path_bindings,
     fbmcq_non_vacuity_findings,
     mandatory_waiver,
     placeholder_bindings,
@@ -2812,6 +2813,40 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         simulation_is_ineligible = _working_contract_simulation_is_ineligible(
             frozen.working_contract
         )
+        # A `precondition` on a proposed name observes only that name, which no
+        # frozen trace entry covers, so on its own every such finding lands as
+        # `unattributed` and is routed away from `issues`.  That is a regression
+        # the split introduced: before it, the same finding rode on an assertion
+        # that also bound the real source state, matched a trace entry, and was
+        # published as a confirmed issue (pair 0006, both models).
+        #
+        # The obligation is still about real elements -- the ones its dependents
+        # name.  So a precondition inherits their declared bindings, read from the
+        # expression rather than from an execution trace, because a blocked
+        # dependent never produced one.  The debt check runs over the same union,
+        # so a dependent naming compiler-owned elements still yields
+        # `representation_debt` rather than a source-level claim.
+        # Read with `.get`: attribution never needed the script before, and a
+        # caller that attributes one released result without one is legitimate.
+        script = state.get("assertion_script")
+        script_assertions = tuple(script.assertions) if script is not None else ()
+        known_paths = frozenset(frozen.known_model_paths)
+        expression_by_id = {
+            item.assertion_id: item.expression for item in script_assertions
+        }
+        inherited_refs: dict[str, set[str]] = {}
+        for item in script_assertions:
+            for prerequisite in item.depends_on:
+                inherited_refs.setdefault(prerequisite, set()).update(
+                    declared_path_bindings(
+                        expression_by_id.get(item.assertion_id, ""), known_paths
+                    )
+                )
+        precondition_ids = {
+            item.assertion_id
+            for item in script_assertions
+            if item.role == "precondition"
+        }
         bindings = []
         for result in released.results:
             if result.truth_value:
@@ -2834,6 +2869,8 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             observed = set(
                 _flatten_strings(result.check_detail.get("function_call_trace", []))
             )
+            if result.assertion_id in precondition_ids:
+                observed |= inherited_refs.get(result.assertion_id, set())
             matched = [
                 entry for entry in entries if _trace_entry_matches(entry, observed)
             ]

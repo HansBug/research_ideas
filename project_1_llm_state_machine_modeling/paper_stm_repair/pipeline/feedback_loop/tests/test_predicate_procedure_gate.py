@@ -616,23 +616,31 @@ def test_the_pseudo_initial_is_accepted_by_every_family_p_predicate(predicate):
     assert isinstance(value, bool), f"{predicate} did not answer for the cold start"
 
 
-def test_response_within_does_not_silently_repin_the_cold_start():
-    """`source="[*]"` must not fall through to "first leaf in inspect order".
+def test_response_within_never_answers_about_a_source_nobody_chose():
+    """Two ways that used to happen; both are silently-different questions.
 
-    It did, via `_hot_startable(...) or _default_init()`, so an obligation stated
-    about power-on was answered about whatever state happened to come first --
-    a silently different question, which is the one failure this layer must
-    never produce.
+    `source="[*]"` fell through to `_default_init()` via `or`, so an obligation
+    stated about power-on was answered about some pinned leaf.  And the default
+    itself was "the first leaf in inspect order", which ignored the trigger
+    entirely -- the same claim answered True on a model whose first declared leaf
+    happened to be the trigger's source and False on one declaring an unrelated
+    state first, with declaration order deciding the verdict.
+
+    So: the pseudo-initial still means no pin, and an ambiguous trigger is
+    refused rather than resolved by picking one.
     """
 
+    from paper_stm_feedback_loop.assertions.exceptions import UnsupportedEvidence
     from paper_stm_feedback_loop.assertions.predicate_api import PSEUDO_INITIAL
 
     env = _p_family_env(_DISCRIMINATION_HOLDS)
     api = env.predicates
     assert api._hot_startable(PSEUDO_INITIAL) is None
-    # The default exists and differs from "no pin", which is what made the
-    # substitution invisible.
-    assert api._default_init() is not None
+    with pytest.raises(UnsupportedEvidence, match="declared on 2 sources"):
+        api._default_init("Root.go")
+    # A trigger no transition carries names no source, so the obligation runs
+    # unpinned rather than against an invented one.
+    assert api._default_init("Root.nosuchevent") is None
 
 
 # --------------------------------------------------------------------------

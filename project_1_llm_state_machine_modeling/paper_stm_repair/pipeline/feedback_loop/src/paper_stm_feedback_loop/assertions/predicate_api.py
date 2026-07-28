@@ -252,20 +252,26 @@ class PredicateAPI:
             if isinstance(ref, str) and ref:
                 self._refs.append(ref)
 
-    #: Bindings for which `[*]` is meaningless.  Each asks about a property of a
-    #: *named declared state* -- its kind, its parent, its entry target, its
-    #: substate count, its lifecycle actions, whether it persists.  The
-    #: pseudo-initial is an entry marker, not such a state, so none of those
-    #: questions has an answer about it.
+    #: The only bindings `[*]` can mean anything in: both name a configuration
+    #: to start from, and "the initial one" is a configuration.  Everywhere else
+    #: the literal names an element, and the entry marker is not one.
+    #:
+    #: Stated as one rule over bindings rather than a list per predicate, because
+    #: the list was the bug: `edge_declared(trigger=...)`,
+    #: `effect_declared(trigger=..., variable=...)`, `occupancy_after(target=...)`
+    #: and `reaches(target=...)` were all absent from it, so each answered a
+    #: silent False on every model -- a defect reported against all 60 pairs.
+    _PSEUDO_INITIAL_BINDINGS = frozenset({"source", "scope"})
+
+    #: Predicates that cannot take `[*]` even in those bindings.  `cardinality`
+    #: would be counting the substates of an entry marker.
+    #: `guard_distinguishable` reads the facade's `[*]` bucket, which holds the
+    #: local entry edge of *every* composite: on pair 0002 that merged the
+    #: entries of two concurrent regions and reported non-determinism between
+    #: transitions in disjoint scopes.
     _NO_PSEUDO_INITIAL = {
-        "state_declared": ("state",),
-        "containment": ("parent", "child"),
-        "initial_target": ("composite", "child"),
         "cardinality": ("scope",),
-        "action_declared": ("state",),
-        "persists_until": ("state",),
-        "variable_declared": ("variable",),
-        "event_declared": ("event",),
+        "guard_distinguishable": ("source",),
     }
 
     def _reject_pseudo_initial(self, predicate: str, **bindings: Any) -> None:
@@ -285,10 +291,11 @@ class PredicateAPI:
         )
         if offenders:
             raise UnsupportedEvidence(
-                f"{predicate} cannot take {PSEUDO_INITIAL} for {offenders}: the "
-                "pseudo-initial is an entry marker, not a declared state, so it "
-                "has no kind, parent, entry target, substate count or lifecycle "
-                "of its own. Name the state the claim is about."
+                f"{predicate} cannot take {PSEUDO_INITIAL} for {offenders} even "
+                "though other predicates accept it there: this one reads the "
+                "declaration under that name, and the pseudo-initial is an entry "
+                "marker with no declaration of its own. Name the state or scope "
+                "the claim is about."
             )
 
     def _require_well_formed_names(self, **bindings: Any) -> None:
@@ -336,7 +343,15 @@ class PredicateAPI:
             # it through reached the effect facade as `unregistered item access:
             # None`, an exception class the controller cannot dispatch on.
             if value == PSEUDO_INITIAL:
-                continue  # the sanctioned literal for the initial configuration
+                if binding in self._PSEUDO_INITIAL_BINDINGS:
+                    continue  # the sanctioned literal for the initial configuration
+                raise UnsupportedEvidence(
+                    f"binding {binding!r} cannot be {PSEUDO_INITIAL}: the "
+                    "pseudo-initial marks where a run begins, so it only means "
+                    f"something for {sorted(self._PSEUDO_INITIAL_BINDINGS)}. "
+                    f"A {table[:-1] if table.endswith('s') else table} is named, "
+                    f"and this one is not; name the {binding} the claim is about."
+                )
             _require_identifier(
                 value,
                 binding,
@@ -354,21 +369,50 @@ class PredicateAPI:
             return None
         return source
 
+    def _pins_a_composite(self, path: str) -> bool:
+        """Whether pinning here starts the machine above a leaf configuration."""
+
+        try:
+            rows = self.structure.states(path=path, exact=True)
+        except Exception:  # the pin itself is refused below, with a better message
+            return False
+        return len(rows) == 1 and bool(getattr(rows[0], "is_composite", False))
+
     def _simulate(self, *, source: str | None, trigger: str | None, cycles: int):
         """Run the smallest trace that can witness ``trigger`` fired from ``source``.
 
         A cold start plus the event is used when no source is given; otherwise a
         hot start pins the configuration so the observation is about that state
         and not about whatever the machine drifted into.
+
+        A composite pin gets one empty settle cycle first, because committing the
+        entry into its initial child *is* a cycle: offered in that same cycle the
+        trigger is never consumed, so every B-family question about a mode rather
+        than a leaf came back False.  Measured on pair 0000 -- pinned at
+        `AutonomousMode`, plan `[[Condition_Met]]` consumes nothing while
+        `[[], [Condition_Met]]` consumes it and reaches `AutoFinal`; the leaf pin
+        answers the same either way, which is why only the composite case settles.
+        704 bindings across 58 of the 60 pairs name a composite source, so this
+        was a defect reported against models that handle the event correctly.
+
+        The settle cycle does not have to commit an entry for the trigger to be
+        consumed: pinned at pair 0000's root, that cycle reports "no stoppable
+        successor was committed" and the next cycle still consumes `Power_Off`
+        and fires the declared transition.  So an empty settle is not evidence
+        that the configuration cannot receive events, and refusing on it would
+        turn working root-pinned assertions into unsupported ones.
         """
 
         events = [[trigger]] if trigger else [[]]
         events += [[] for _ in range(max(0, cycles - 1))]
         pinned = self._hot_startable(source)
         if pinned:
+            settle = 1 if self._pins_a_composite(pinned) else 0
             try:
                 view = self.simulation.simulate(
-                    initial_state=pinned, initial_vars=self._all_vars(), cycles=events
+                    initial_state=pinned,
+                    initial_vars=self._all_vars(),
+                    cycles=[[] for _ in range(settle)] + events,
                 )
             except Exception as exc:
                 # Falling back to a cold start here would answer about the
@@ -536,6 +580,24 @@ class PredicateAPI:
                 if isinstance(ev, str):
                     out.add(ev)
         return out
+
+    @staticmethod
+    def _initial_configuration(view: Any) -> set[str]:
+        """The configuration the run held before any event was offered.
+
+        A cold-start plan leads with an empty cycle for exactly this reason, so
+        the first cycle's active ancestry is what `source="[*]"` names.
+        """
+
+        for cycle in getattr(view, "cycles", ()) or ():
+            states = {
+                str(state)
+                for state in (getattr(cycle, "active_states", ()) or ())
+                if str(state)
+            }
+            if states:
+                return states
+        return set()
 
     @staticmethod
     def _active(view: Any) -> tuple[str, ...]:
@@ -755,6 +817,7 @@ class PredicateAPI:
     def guard_distinguishable(self, *, source: str, trigger: str) -> bool:
         """A shared source and trigger cannot reach two targets indistinguishably."""
 
+        self._reject_pseudo_initial("guard_distinguishable", source=source)
         self._require_well_formed_names(source=source, trigger=trigger)
         self._note(source, trigger)
         self._note_transitions(source=source, event=trigger)
@@ -890,7 +953,14 @@ class PredicateAPI:
         return False
 
     def stays_in(self, *, source: str, trigger: str) -> bool:
-        """After this trigger the system remains in the same state."""
+        """After this trigger the system remains in the same state.
+
+        `source="[*]"` asks it of the initial configuration.  That used to be a
+        constant False: the literal was compared against real state paths, which
+        it can never equal, so a power-on self-loop claim reported a missing
+        self-loop on every model.  The configuration the cold start settles into
+        is what the claim is about, so that is what gets compared.
+        """
 
         self._require_well_formed_names(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
@@ -899,8 +969,29 @@ class PredicateAPI:
         # defect this predicate advertises could never be observed.
         if trigger not in self._consumed(view):
             return False
+        if source == PSEUDO_INITIAL:
+            held = self._initial_configuration(view)
+            # The ancestry of a configuration that committed nothing is just the
+            # root, and the root is active in every run -- so comparing against it
+            # answers True whatever the trigger does.  Replacing the old constant
+            # False with a near-constant True is no better, so refuse: on pair
+            # 0000 nothing is entered until `Power_On` itself fires, and there is
+            # no state the machine could have stayed in.
+            if len(held) < 2:
+                raise UnsupportedEvidence(
+                    "the run enters no state before this trigger, so there is "
+                    f"nothing for it to stay in. Name the state the claim is "
+                    f"about instead of {PSEUDO_INITIAL}, or ask whether the "
+                    "trigger is consumed there"
+                )
+        else:
+            held = {source}
         active = self._active(view)
-        return any(s == source or s.startswith(f"{source}.") for s in active)
+        return any(
+            state == name or state.startswith(f"{name}.")
+            for name in held
+            for state in active
+        )
 
     def variable_delta_after(
         self, *, source: str, trigger: str, variable: str, sign: str
@@ -1070,7 +1161,7 @@ class PredicateAPI:
         if source == PSEUDO_INITIAL:
             pinned = None
         else:
-            pinned = self._hot_startable(source) or self._default_init()
+            pinned = self._hot_startable(source) or self._default_init(trigger)
         head = f'init state("{pinned}"); ' if pinned else ""
         query = (
             f"{head}check response <= {horizon}: "
@@ -1122,23 +1213,46 @@ class PredicateAPI:
             return
         self._note("formal:examined_only")
 
-    def _default_init(self) -> str | None:
+    def _default_init(self, trigger: str) -> str | None:
         """Pick the state a bounded response obligation should start from.
 
         The declared source of the trigger: that is the configuration where the
         obligation is meaningful, and pinning it keeps the solver from planting
         the event in the initialization step where nothing consumes it.
+
+        It used to return the first leaf in inspect order, ignoring the trigger
+        entirely -- so the same obligation answered True on a model whose first
+        declared leaf happened to be the trigger's source and False on one that
+        declares an unrelated state first.  Two models, one claim, opposite
+        verdicts decided by declaration order.
+
+        An ambiguous trigger is refused rather than resolved by picking one:
+        `response_within` then reports about a source the caller did not choose,
+        and the caller is the only one who knows which the requirement means.
         """
 
         try:
-            rows = self.structure.states()
+            rows = self.structure.transitions(event=trigger)
         except Exception:
             return None
-        for row in rows:
-            path = getattr(row, "path", None)
-            if isinstance(path, str) and path and getattr(row, "is_leaf", False):
-                return path
-        return None
+        sources = sorted(
+            {
+                str(getattr(row, "from_path", "") or "")
+                for row in rows
+                if str(getattr(row, "from_path", "") or "")
+                and str(getattr(row, "from_path", "")) != PSEUDO_INITIAL
+            }
+        )
+        if len(sources) == 1:
+            return sources[0]
+        if not sources:
+            return None
+        raise UnsupportedEvidence(
+            f"{trigger!r} is declared on {len(sources)} sources ({sources}); with "
+            "`source` omitted the obligation would be answered about whichever "
+            "one the model happens to declare first. Pin the source the "
+            "requirement means, one assertion per source it ranges over."
+        )
 
     def _formal_query(self, kind: str, scope: str, condition: str, bound: int) -> str:
         """Build the bounded query, treating `[*]` as "do not pin at all".

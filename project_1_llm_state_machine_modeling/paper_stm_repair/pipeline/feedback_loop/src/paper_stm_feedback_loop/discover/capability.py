@@ -58,6 +58,7 @@ __all__ = [
     "unresolved_model_references",
     "unresolved_reference_findings",
     "placeholder_bindings",
+    "declared_path_bindings",
     "source_omitting_response_calls",
     "SOURCE_SENSITIVE_PHASES",
     "BOUND_PATH_KWARGS",
@@ -436,6 +437,32 @@ def _absent_path_bindings(
         # explains the precondition route; reporting it here too would pre-empt
         # that with the less useful "no such element".
         and not is_placeholder_name(text)
+    )
+
+
+def declared_path_bindings(
+    expression: str, known_paths: frozenset[str]
+) -> tuple[str, ...]:
+    """Return the bindings that do name an element the frozen model declares.
+
+    The symmetric read of `_absent_path_bindings`, and the one attribution needs.
+    A `precondition` on a proposed name observes nothing at runtime that any
+    frozen trace entry can cover, so on its own it is unattributable -- but the
+    obligation it guards is about real elements, named statically in the
+    assertions that depend on it.  Those are read from the expression rather than
+    from an execution trace because a blocked dependent never produced one.
+
+    :param expression: the assertion's terminal Python expression.
+    :param known_paths: every state and event path the frozen model declares.
+    :return: deduplicated declared names, in source order.
+    """
+
+    return tuple(
+        dict.fromkeys(
+            text
+            for _, text in _path_bindings(expression)
+            if text in known_paths
+        )
     )
 
 
