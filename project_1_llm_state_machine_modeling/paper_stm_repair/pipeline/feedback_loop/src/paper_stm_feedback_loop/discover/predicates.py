@@ -62,7 +62,12 @@ class Predicate:
     proves: str
     #: Required binding names.  The splitter must supply all of them.
     bindings: tuple[str, ...]
-    #: The evidence call that decides it, as prose for the producer to read.
+    #: How strong the answer is.  This is what the producer needs to reason
+    #: about; the mechanism that produces it is not.
+    strength: str
+    #: The evidence call that decides it.  Internal bookkeeping only -- never
+    #: rendered into a prompt, because naming a mechanism the producer cannot
+    #: call only invites it to try.
     procedure: str
     #: The bare function name inside ``procedure``.  The prose form is for the
     #: prompt; this is what the gate compares against the assertion's parsed
@@ -82,6 +87,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "the model declares a state at this path, of this kind",
         "missing or spurious state; a composite written as a leaf",
         ("state", "kind"),
+        "decides the declaration outright",
         "states(path=..., exact=True)",
         "states",
     ),
@@ -91,6 +97,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "this child is (or is not) a substate of this parent",
         "misplaced substate; a region attached to the wrong parent",
         ("parent", "child"),
+        "decides the declaration outright",
         "states(parent=..., recursive=False)",
         "states",
     ),
@@ -100,6 +107,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "entering this composite starts in this child",
         "wrong or missing initial child; entry lands in the wrong mode",
         ("composite", "child"),
+        "decides the declaration outright",
         "initial_child(...)",
         "initial_child",
     ),
@@ -109,6 +117,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "the model declares an edge with this source, trigger and target",
         "a missing or wrongly-targeted declared transition",
         ("source", "trigger", "target"),
+        "decides the declaration outright",
         "transition_exists(source=..., event=..., target=...)",
         "transition_exists",
         caveat=(
@@ -124,6 +133,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "this transition declares an effect on this variable, in this direction",
         "a missing or wrong-signed declared effect",
         ("source", "trigger", "variable", "sign"),
+        "decides the declaration outright",
         "effect_deltas(source=..., event=...)",
         "effect_deltas",
         locators=("effects(...)",),
@@ -134,6 +144,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "this state declares an entry, exit or during action",
         "a missing declared action; an action attached to the wrong phase",
         ("state", "phase"),
+        "decides the declaration outright",
         "states(path=..., exact=True)",
         "states",
         caveat=(
@@ -147,6 +158,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a shared source and trigger cannot reach two targets indistinguishably",
         "non-determinism: overlapping or absent discriminating guards",
         ("source", "trigger"),
+        "decides it over every variable valuation",
         "conflicting_targets(source=..., event=...)",
         "conflicting_targets",
         locators=("guards_overlap(...)",),
@@ -157,6 +169,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "this scope declares exactly this many non-pseudo states",
         "a missing or duplicated mode in an enumerated set",
         ("scope", "count"),
+        "decides the declaration outright",
         "states(...)",
         "states",
     ),
@@ -168,6 +181,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "wrong target; a local exit written as global completion; a declared "
         "edge that is guard-blocked or unreachable at runtime",
         ("source", "trigger", "target"),
+        "one bounded witness: it shows what this configuration does, not what every run does",
         "simulate(...).final.is_active(...)",
         "simulate",
         locators=("transition_exists(...)", "path(...)"),
@@ -179,6 +193,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a dangling event no transition consumes; an event silently ignored in "
         "the state where the NL requires a response",
         ("source", "trigger"),
+        "one bounded witness",
         "simulate(...).cycles[...].consumed_events",
         "simulate",
         caveat=(
@@ -193,6 +208,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "an event that should be ignored causes a transition; a required "
         "self-loop is missing",
         ("source", "trigger"),
+        "one bounded witness",
         "simulate(...) consumed_events and final.is_active(source)",
         "simulate",
     ),
@@ -203,6 +219,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "an effect is declared but the executed path never reaches it: "
         "declaration and runtime disagree",
         ("source", "trigger", "variable", "sign"),
+        "one bounded witness",
         "simulate(...).cycles[...].variables",
         "simulate",
         locators=("effect_deltas(...)",),
@@ -213,6 +230,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "within a bounded number of cycles this target is reachable from here",
         "an unreachable target: a broken chain or dead branch",
         ("source", "target", "within_cycles"),
+        "one bounded witness, and it ignores triggers",
         "simulate(...) multi-cycle",
         "simulate",
         locators=("path(...)",),
@@ -230,6 +248,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "premature or impossible completion: the final state is unreachable, "
         "or the path to it is guard-blocked",
         ("scope",),
+        "one bounded witness",
         "simulate(...).final.is_ended",
         "simulate",
         locators=("topology(...)",),
@@ -242,6 +261,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "a violated mutual exclusion; a reachable unsafe state; a broken "
         "never/always constraint",
         ("scope", "condition", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check invariant <= k: ...')",
         "fbmcq",
         caveat=(
@@ -256,6 +276,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "every occurrence of this trigger is answered within the bound",
         "a missing or conditional response to a mandatory trigger",
         ("trigger", "response", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check response <= k: ...')",
         "fbmcq",
     ),
@@ -265,6 +286,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "this state holds continuously until this release condition",
         "premature exit from a state that must persist",
         ("state", "release", "bound"),
+        "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check exists_always <= k: ...')",
         "fbmcq",
         caveat=(
@@ -299,130 +321,138 @@ def verification_kind_of(predicate: str) -> str | None:
     return FAMILY_TO_VERIFICATION_KIND.get(family) if family else None
 
 
-def vocabulary_prompt() -> str:
-    """Render the vocabulary for prompts, so text and gate cannot drift.
-
-    The gate reads :data:`PREDICATES`; so does this.  Hand-writing the table in
-    a prompt string would let the two diverge, and a prompt that advertises a
-    predicate the gate rejects wastes a whole repair round.
-    """
-
-    lines = [
-        "Predicate vocabulary. Every claim must name exactly one predicate from "
-        "this closed list. The family, and therefore the mandatory evidence, is "
-        "derived from the predicate -- you do not choose it.",
-    ]
-    for family, title in (
-        (FAMILY_STRUCTURE, "Family S -- what the artifact declares; deciding this from the declarations is correct, not a compromise"),
-        (FAMILY_BEHAVIOR, "Family B -- what the model does at runtime: the predicate runs the model and observes the result"),
-        (FAMILY_PROPERTY, "Family P -- quantified over states, valuations or paths; the predicate builds and runs a bounded check"),
-    ):
-        lines.append(f"\n{title}")
-        for item in PREDICATES:
-            if item.family != family:
-                continue
-            # Describe the predicate by its own signature, never by the
-            # primitive it happens to use internally: those primitives are no
-            # longer callable, and naming them here is what let a reviewer ask
-            # for "the exact query that already decides it" and name something
-            # that does not exist.
-            lines.append(f"- `{signature_of(item.name)}`: {item.meaning}.")
-            lines.append(f"    Exposes: {item.proves}.")
-            if item.caveat:
-                lines.append(f"    caveat: {item.caveat}")
-    return "\n".join(lines)
-
-
-#: Optional keyword arguments each predicate accepts beyond its required
-#: bindings, with the default the runtime uses.  Kept beside the vocabulary so
-#: the callable signature shown to the producer is the real one.
+#: Optional keyword arguments beyond the required bindings, with the runtime
+#: default, so the signature shown to the producer is the real one.
 PREDICATE_OPTIONS: dict[str, tuple[str, ...]] = {
     "occupancy_after": ("within_cycles: int = 1",),
     "reaches": ("within_cycles: int = 3",),
     "terminates": ("trigger: str | None = None",),
     "invariant": ("bound: int = 5",),
-    "response_within": ("bound: int = 5",),
+    "response_within": ("bound: int = 5", "source: str | None = None"),
     "persists_until": ("bound: int = 5",),
 }
 
-#: Binding names whose value is a literal, not a declared model path.
+#: Binding names whose value is one of a fixed value list, not a model element.
 FREE_FORM_BINDINGS = frozenset(
     {"kind", "sign", "phase", "count", "bound", "condition", "release"}
 )
+
+#: The literal value lists, rendered into the signature so the producer never
+#: has to guess and the reviewer never has to reject a legal literal.
+_LITERAL_ARGS = {
+    "count": "count: int",
+    "kind": 'kind: "leaf"|"composite"|"pseudo"',
+    "sign": 'sign: "negative"|"positive"',
+    "phase": 'phase: "entry"|"exit"|"during"',
+    "condition": "condition: str",
+    "release": "release: str",
+    "bound": "bound: int",
+}
 
 
 def signature_of(name: str) -> str:
     """Render the exact callable signature of one predicate."""
 
     entry = PREDICATE_BY_NAME[name]
-    args = []
-    for b in entry.bindings:
-        if b == "count":
-            args.append("count: int")
-        elif b == "kind":
-            args.append('kind: "leaf"|"composite"|"pseudo"')
-        elif b == "sign":
-            args.append('sign: "negative"|"positive"')
-        elif b == "phase":
-            args.append('phase: "entry"|"exit"|"during"')
-        elif b in {"condition", "release"}:
-            args.append(f"{b}: str")
-        else:
-            args.append(f"{b}: str")
-    # A predicate whose required bindings already include an option (Family P
-    # lists `bound` in both) must not have it rendered twice: a signature with a
-    # duplicated keyword is not valid Python and the producer copies it verbatim.
+    args = [_LITERAL_ARGS.get(b, f"{b}: str") for b in entry.bindings]
     listed = set(entry.bindings)
     args.extend(
-        opt for opt in PREDICATE_OPTIONS.get(name, ())
+        opt
+        for opt in PREDICATE_OPTIONS.get(name, ())
         if opt.split(":")[0].strip() not in listed
     )
     return f"{name}({', '.join(args)}) -> bool"
 
 
-def callable_prompt() -> str:
-    """Render the callable predicate reference for the assertion writer.
+def vocabulary_prompt() -> str:
+    """Render the vocabulary for the requirement stages.
 
-    The producer no longer composes evidence out of primitives, so what it needs
-    is the exact signature, what each predicate decides, and which arguments are
-    model paths versus literals.  Generated from the table so the prompt cannot
-    advertise a signature the runtime does not have.
+    Says what each predicate decides, what defect it exposes, and how strong the
+    answer is.  It deliberately does not say how any of them is computed: the
+    requirement stages choose a claim shape, and the mechanism is not theirs to
+    reason about.
     """
 
     lines = [
-        "Callable predicate reference. These are the ONLY evidence functions that "
-        "exist in the assertion environment. Every one returns a strict bool and "
-        "raises when it cannot answer, so you never need to guard a call.",
-        "",
-        "Arguments that name model elements must be copied verbatim from "
-        "`declared_model_vocabulary`. Arguments listed as literals take one of "
-        "the shown values, not a path.",
+        "Predicate vocabulary. Every claim must name exactly one predicate from "
+        "this closed list. The family, and therefore the evidence the controller "
+        "requires, follows from the predicate -- you do not choose it.",
     ]
     for family, title in (
-        (FAMILY_STRUCTURE, "Family S -- decided from what the artifact declares"),
-        (FAMILY_BEHAVIOR, "Family B -- decided by running the model"),
-        (FAMILY_PROPERTY, "Family P -- decided by bounded model checking"),
+        (
+            FAMILY_STRUCTURE,
+            "Family S -- claims about what the model declares. Answered from the "
+            "declarations, which is the correct evidence for them, not a shortcut.",
+        ),
+        (
+            FAMILY_BEHAVIOR,
+            "Family B -- claims about what the model does when it runs.",
+        ),
+        (
+            FAMILY_PROPERTY,
+            "Family P -- claims quantified over runs, checked up to a bound.",
+        ),
     ):
         lines.append(f"\n{title}")
         for item in PREDICATES:
             if item.family != family:
                 continue
-            lines.append(f"  {signature_of(item.name)}")
-            lines.append(f"      {item.meaning}. Exposes: {item.proves}.")
+            lines.append(f"- `{signature_of(item.name)}`")
+            lines.append(f"    asserts: {item.meaning}")
+            lines.append(f"    exposes: {item.proves}")
+            lines.append(f"    strength: {item.strength}")
             if item.caveat:
-                lines.append(f"      caveat: {item.caveat}")
-    lines.append(
-        "\nA behaviour claim about power-on or first entry has no named source "
-        "state. Write source=\"[*]\" for it -- the pseudo-initial exactly as "
-        "FCSTM spells it -- and the predicate starts from the initial "
-        "configuration. Do not invent a placeholder of your own."
-    )
-    lines.append(
-        "\nThe query construction for Family P lives inside the predicate. Do not "
-        "attempt to write a bounded-checking query yourself -- there is no "
-        "function to pass one to. `invariant(condition=...)` takes the condition "
-        "only, in FCSTM expression syntax such as `!active(\"R.Done\")`."
-    )
+                lines.append(f"    boundary: {item.caveat}")
+    return "\n".join(lines)
+
+
+def callable_prompt() -> str:
+    """Render the callable reference for the assertion stages.
+
+    Signature, what it decides, how strong the answer is, where it stops, and a
+    worked example.  Nothing about how it is implemented -- an assertion cannot
+    reach the mechanism, so describing it only tempts the producer to try.
+    """
+
+    lines = [
+        "Callable predicate reference. These are the ONLY evidence functions in "
+        "the assertion environment. Each returns a strict bool and raises when it "
+        "cannot answer, so you never guard a call.",
+        "",
+        "Arguments that name a model element must be copied verbatim from "
+        "`declared_model_vocabulary`. Three literals are also accepted wherever an "
+        "element is expected: `[*]` for the initial configuration (use it when the "
+        "claim is about power-on or first entry and has no named source state), and "
+        "`<undeclared>` when the NL requires a term the model never declares -- that "
+        "raises, and the controller records the absence, which is the honest "
+        "outcome. Arguments shown with a value list take one of those values.",
+        "",
+        "Worked examples:",
+        '    assert occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True, "[REQ-001][AST-REQ-001-1] ..."',
+        '    assert state_declared(state="Sys.ModeA", kind="leaf") is True, "[REQ-002][AST-REQ-002-1] ..."',
+        '    assert all([',
+        '        occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
+        '        occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final"),',
+        '    ]) is True, "[REQ-003][AST-REQ-003-1] ..."',
+        "",
+        "Besides these you may use only plain builtins: len, all, any, bool, int, "
+        "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "
+        "Anything else is not in the namespace.",
+    ]
+    for family, title in (
+        (FAMILY_STRUCTURE, "Family S -- decided from the declarations"),
+        (FAMILY_BEHAVIOR, "Family B -- decided by running the model"),
+        (FAMILY_PROPERTY, "Family P -- decided up to a bound over all runs"),
+    ):
+        lines.append(f"\n{title}")
+        for item in PREDICATES:
+            if item.family != family:
+                continue
+            lines.append(f"  `{signature_of(item.name)}`")
+            lines.append(f"      decides: {item.meaning}")
+            lines.append(f"      strength: {item.strength}")
+            if item.caveat:
+                lines.append(f"      boundary: {item.caveat}")
     return "\n".join(lines)
 
 

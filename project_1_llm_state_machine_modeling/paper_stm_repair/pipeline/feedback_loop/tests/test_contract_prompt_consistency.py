@@ -83,7 +83,7 @@ def test_splitter_is_told_what_each_family_costs_and_cannot_do() -> None:
     """The node that fixes the family must see the obligation it creates."""
 
     head = _splitter_head()
-    for marker in ("the predicate runs the model", "bounded check"):
+    for marker in ("what the model does when it runs", "checked up to a bound"):
         assert marker in head, marker
     # The caveats are the honest part: a predicate whose infrastructure is
     # partial must say so where the producer will read it.
@@ -113,7 +113,7 @@ def test_assertion_stages_receive_the_procedure_binding() -> None:
         text = getattr(prompts, name)
         assert "Callable predicate reference" in text, name
         assert "occupancy_after(source: str, trigger: str, target: str" in text, name
-        assert "ONLY evidence functions that exist" in text, name
+        assert "ONLY evidence functions in" in text, name
 
 
 def test_splitter_no_longer_carries_a_competing_taxonomy() -> None:

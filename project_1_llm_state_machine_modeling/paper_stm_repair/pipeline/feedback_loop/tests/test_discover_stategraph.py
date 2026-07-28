@@ -1983,7 +1983,7 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "behavioral requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "checkability classification" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert (
-        "at least one `effect`, `simulation`, or `fbmcq`"
+        "`effect_declared` is the direct declared-effect evidence"
         in prompts.ASSERTION_CONVERTER_PROMPT
     )
     assert "only evidence is static relation" in prompts.ASSERTION_REVIEWER_PROMPT
