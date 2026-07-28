@@ -139,7 +139,7 @@ Emit on every Requirement:
 
 When the NL requires a term the model does not declare, write the literal string `<undeclared>` as that binding's value and add a `limitations` entry naming what the NL asked for. Do not substitute a different declared term that happens to be available -- binding "the number of units" to an unrelated route-control variable changes the requirement into a different one, and the substitution hides the very gap that matters. Do not invent a path either.
 
-Know what the literal now does, because it is checked rather than waved through. The predicate reads the declaration table for that binding's kind. If the table holds nothing of the author's own, the absence is established, the check returns false, and **the requirement is reported as a violation** -- so use `<undeclared>` only when the NL genuinely imposes an obligation and the model has no term of that kind to carry it. If the table does hold entries, the check is refused and the requirement comes back for repair, because an element exists and the claim has to name which one. Which bindings can be discharged that way is not a matter of taste. `variable` and `trigger` can: a model may genuinely declare no variables and no events, so the table read settles it. `source`, `target`, `state`, `scope`, `parent`, `child`, `composite` and `response` cannot: every parsable model declares states, so an absence there is never provable and the predicate always refuses. `condition` and `release` have no table at all. For every binding in those last two groups the claim has no executable check, so the requirement is recorded as an unchecked coverage gap rather than as a finding -- which is honest, but it is not a defect report. Prefer a formulation the vocabulary can actually decide: name the states the sentence covers, or move the obligation onto the `variable` or `trigger` the NL is really about. Reach for a state-shaped `<undeclared>` only when the sentence genuinely requires an element this model has no counterpart for at all.
+What the literal means here is a fact about the requirement, not a check: *the NL imposes this obligation and the model has no term to carry it.* It never reaches an assertion. The Assertion Converter reads it, proposes a name for the missing element, asserts that name's existence as a `precondition`, and makes the real claim depend on that -- so the gap ends up with something a repair stage can add and a later run can verify. Use it only when the NL genuinely imposes an obligation and the model genuinely has no term of that kind; if a declared element plausibly is the one the sentence means, name that element instead.
 
 Everything except `variable` and `trigger` therefore has no primary at all, and that needs saying explicitly because every other route out of it is worse. When a Requirement binds `<undeclared>` to a state-shaped binding, to `condition` or to `release`, do NOT write a primary: not the predicate call (it is refused), not a substitute condition (that changes the obligation, and the Reviewer will keep rejecting it), and above all not a bare `False` or any literal. A literal calls no predicate, so it asserts a defect on no evidence whatsoever -- the procedure gate rejects it, and rightly: `expression: "False"` with a rationale explaining why the model cannot satisfy the claim is a conclusion, not a check. Emit `supporting` evidence documenting what the model does declare in that area, say in the rationale that the release term is undeclared, and stop. The controller records the obligation as an unchecked coverage gap, which is the honest outcome: the NL asked for something this vocabulary cannot express against this model, and reporting that as "not checked" is accurate where reporting it as a confirmed defect would not be.
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
@@ -163,7 +163,7 @@ Check the predicate against the sentence, not against the current model:
 - Reject a Family S predicate (`edge_declared`, `state_declared`, `containment`, ...) where the NL describes an operational scenario -- a trigger arriving and the system responding. That belongs to Family B, and closing it with a declaration query would pass a model whose declared edge is unreachable or guard-blocked. Name the behavioural predicate you expect instead.
 - Reject a Family P predicate whose obligation an exact structural or relational query already decides, and say which query.
 - Reject `predicate_bindings` whose values neither appear verbatim in `declared_model_vocabulary` nor equal the literal `<undeclared>`, and any that omit a required binding. Name the offending value and the closest declared path. A binding that names a nonexistent element makes the downstream check vacuous, so this is not a cosmetic objection.
-- **Accept `<undeclared>`** when it is paired with a `limitations` entry naming what the NL required *and* `declared_model_vocabulary` lists nothing of that kind -- an empty `variables` list, for instance. That is the case the encoding exists for, and asking the Splitter to replace it with a declared term there produces an unresolvable loop. **Reject it** when the vocabulary does list elements of that kind: the check refuses such a binding downstream and the requirement burns its whole repair budget, so say which declared element the claim is about, or why the sentence is not about any of them. Also reject a binding that substitutes a semantically different declared term for something the NL named -- an unrelated counter standing in for a quantity the model never declares -- and require `<undeclared>` plus the limitation instead.
+- **Accept `<undeclared>`** when it is paired with a `limitations` entry naming what the NL required and no declared element plausibly is the one the sentence means. It states that the model lacks a term, and the Converter turns it into a named existence check, so it is checkable rather than a dead end. **Reject it** when a declared element does plausibly fit -- an unrelated counter standing in for a quantity is the substitution this encoding exists to prevent, but so is reaching for the literal while the right element sits in the vocabulary. Say which element you mean.
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
 
@@ -186,13 +186,18 @@ Combining predicates with `all([...])` or `any([...])` is allowed and is the rig
 
 Model vocabulary: `declared_model_vocabulary` in your input lists every declared state, event and variable path. Every path you write must come from those lists verbatim. A fabricated or mistyped path does not silently pass any more -- the predicate raises -- but it still wastes a repair round, so copy rather than retype.
 
-A Requirement whose `predicate_bindings` contain the literal `<undeclared>` is checked exactly like any other: write the `primary` assertion as the normal call to its predicate, passing `<undeclared>` through as that binding's value. Do not substitute a declared term that happens to be available, do not invent a path, and do not replace the primary with something adjacent that can pass; each of those hides the gap.
+A Requirement whose `predicate_bindings` contain the literal `<undeclared>` needs two assertions, not one. The literal states that the model has no term for what the NL asks; it is not a value any predicate can evaluate, and passing it through is rejected outright.
 
-What that call does is worth knowing, because it decides whether your assertion is accepted. The predicate reads the declaration table for that binding's kind. If the model declares nothing of its own there -- no variables, say, once the converter's route-control names are set aside -- the absence is established and the call returns false: the NL imposed an obligation the model has no term to carry, and the requirement is correctly reported violated. If the table does hold entries, the call is refused and your assertion comes back for repair, because an element exists and the check has to name which one. Which bindings can be discharged that way is not a matter of taste. `variable` and `trigger` can: a model may genuinely declare no variables and no events, so the table read settles it. `source`, `target`, `state`, `scope`, `parent`, `child`, `composite` and `response` cannot: every parsable model declares states, so an absence there is never provable and the predicate always refuses. `condition` and `release` have no table at all. For every binding in those last two groups the claim has no executable check, so the requirement is recorded as an unchecked coverage gap rather than as a finding -- which is honest, but it is not a defect report. Prefer a formulation the vocabulary can actually decide: name the states the sentence covers, or move the obligation onto the `variable` or `trigger` the NL is really about. Reach for a state-shaped `<undeclared>` only when the sentence genuinely requires an element this model has no counterpart for at all.
+Write instead:
 
-Everything except `variable` and `trigger` therefore has no primary at all, and that needs saying explicitly because every other route out of it is worse. When a Requirement binds `<undeclared>` to a state-shaped binding, to `condition` or to `release`, do NOT write a primary: not the predicate call (it is refused), not a substitute condition (that changes the obligation, and the Reviewer will keep rejecting it), and above all not a bare `False` or any literal. A literal calls no predicate, so it asserts a defect on no evidence whatsoever -- the procedure gate rejects it, and rightly: `expression: "False"` with a rationale explaining why the model cannot satisfy the claim is a conclusion, not a check. Emit `supporting` evidence documenting what the model does declare in that area, say in the rationale that the release term is undeclared, and stop. The controller records the obligation as an unchecked coverage gap, which is the honest outcome: the NL asked for something this vocabulary cannot express against this model, and reporting that as "not checked" is accurate where reporting it as a confirmed defect would not be.
+1. A `precondition` asserting that the missing element **exists**, under a name you propose from the NL's own wording. Use `variable_declared`, `event_declared` or `state_declared(kind="any")` according to what is missing.
+2. The real claim as `primary`, bound to that same proposed name, with `depends_on` naming the precondition.
 
-Such an assertion must stand alone. Do not fold it into `all([...])` or `any([...])`: the call raises before its siblings evaluate, so a fold containing it would decide arms that never ran, and the checker rejects that.
+The precondition comes back `False` on a model that lacks the element, and that is the finding. The primary is then recorded as `blocked` -- not run, because there is nothing to evaluate. Both are reported and the requirement counts as unsatisfied. What this buys over the bare literal is that the gap now has a name: a repair stage can add exactly that element and re-run exactly these two assertions to check that it did.
+
+Propose the name from the sentence, not from the model: "the number of UAVs in the swarm" gives `uav_count`, not a route-control variable that happens to be declared. Put the NL citation in `rationale` -- which clause, which words -- because that is what the Reviewer checks.
+
+Every name you write, proposed or copied, must be a well-formed FCSTM name: letters, digits and underscores, not starting with a digit; dotted for states and events, bare for variables, and events always carry their root prefix. A malformed name is refused rather than answered, so `<missing>`, `Root Idle` and `Root..Idle` each cost a round.
 
 Binding v3 predicate procedure: each Requirement names a `predicate`, and the vocabulary below fixes the procedure that decides it. The `primary` assertion for that Requirement must call that procedure with the Requirement's `predicate_bindings`. The listed locators are weaker evidence and may appear only as `supporting`.
 
@@ -407,23 +412,32 @@ This is about form only. Whether a legal value is the *right* value is decided b
 """
 
 ASSERTION_CONVERTER_PROMPT += """
+(see the worked objects appended at the end of this prompt)
+"""
+
+ASSERTION_CONVERTER_PROMPT += """
 === Worked assertion objects (copy the shape, not the values) ===
-Prose alone was not enough: producers emitted `role` and `coverage_key` and
-silently dropped `aggregation_group`, which the controller then back-filled as
-`legacy-group:...`, rejected as legacy-inferred, and the whole cell died with an
-empty script. Every field below appears in every example on purpose.
+Prose alone failed twice here. Producers emitted `role` and `coverage_key` and
+silently dropped `aggregation_group`, which the controller back-filled, a gate
+rejected as legacy, and the cell died with an empty script. Separately, examples
+written as complete `assert` statements taught producers to put the statement into
+`expression`; the controller wraps that again, every assertion became
+`assert (assert ...), "..."`, and four cells died on syntax errors. So every field
+appears in every object below, and `expression` is always a bare expression.
 
 Example 1 -- Family S, one primary:
 {
   "assertion_id": "AST-REQ-001-1",
   "requirement_id": "REQ-001",
   "description": "ModeA must be declared as a leaf state.",
-  "expression": "assert state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True, \"[REQ-001][AST-REQ-001-1] ModeA is not a leaf state\"",
+  "expression": "state_declared(state=\"Sys.ModeA\", kind=\"leaf\") is True",
   "failure_message": "[REQ-001][AST-REQ-001-1] ModeA is not a leaf state",
+  "rationale": "NL clause 1 calls ModeA a simple mode, so it must carry no substates; state_declared with kind=leaf decides that from the declarations.",
   "evidence_family": "structure",
   "role": "primary",
   "coverage_key": "state_declared:Sys.ModeA:leaf",
-  "aggregation_group": "REQ-001:all"
+  "aggregation_group": "REQ-001:all",
+  "depends_on": []
 }
 
 Example 2 -- Family B primary plus a supporting locator, same requirement:
@@ -431,53 +445,99 @@ Example 2 -- Family B primary plus a supporting locator, same requirement:
   "assertion_id": "AST-REQ-002-1",
   "requirement_id": "REQ-002",
   "description": "After evt in ModeA the system must occupy ModeB.",
-  "expression": "assert occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True, \"[REQ-002][AST-REQ-002-1] evt does not reach ModeB\"",
+  "expression": "occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",
   "failure_message": "[REQ-002][AST-REQ-002-1] evt does not reach ModeB",
+  "rationale": "NL clause 2 is about what happens at runtime when evt arrives, so a declared edge is not enough -- it could be unreachable or guard-blocked. occupancy_after runs it.",
   "evidence_family": "simulation",
   "role": "primary",
   "coverage_key": "occupancy_after:Sys.ModeA:Sys.evt:Sys.ModeB",
-  "aggregation_group": "REQ-002:all"
+  "aggregation_group": "REQ-002:all",
+  "depends_on": []
 }
 {
   "assertion_id": "AST-REQ-002-2",
   "requirement_id": "REQ-002",
   "description": "Locate the declared edge that should carry evt.",
-  "expression": "assert edge_declared(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True, \"[REQ-002][AST-REQ-002-2] no declared edge carries evt\"",
+  "expression": "edge_declared(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",
   "failure_message": "[REQ-002][AST-REQ-002-2] no declared edge carries evt",
+  "rationale": "Corroboration only: when the runtime check fails, knowing whether the edge is even declared tells a repair stage whether to add a transition or fix a guard.",
   "evidence_family": "relation",
   "role": "supporting",
   "coverage_key": "edge_declared:Sys.ModeA:Sys.evt:Sys.ModeB",
-  "aggregation_group": "REQ-002:all"
+  "aggregation_group": "REQ-002:all",
+  "depends_on": []
 }
 
-Example 3 -- Family P, and a claim over several named elements folded with all():
+Example 3 -- a Requirement whose binding is `<undeclared>`: a precondition and a
+dependent primary. Use this shape whenever the model lacks the element the NL asks
+for.
+{
+  "assertion_id": "AST-REQ-003-0",
+  "requirement_id": "REQ-003",
+  "description": "A variable representing the unit count must be declared.",
+  "expression": "variable_declared(name=\"unit_count\") is True",
+  "failure_message": "[REQ-003][AST-REQ-003-0] no declared variable carries the unit count",
+  "rationale": "NL clause 3 says the number of units decreases after done. declared_model_vocabulary lists no author-owned variable at all, so the quantity has nothing to live in; unit_count is proposed from the sentence own wording so a repair stage has a name to add.",
+  "evidence_family": "structure",
+  "role": "precondition",
+  "coverage_key": "variable_declared:unit_count",
+  "aggregation_group": "REQ-003:all",
+  "depends_on": []
+}
 {
   "assertion_id": "AST-REQ-003-1",
   "requirement_id": "REQ-003",
-  "description": "Within the bound the system never occupies Fault.",
-  "expression": "assert invariant(scope=\"Sys.ModeA\", condition=\"!active(\\\"Sys.Fault\\\")\", bound=4) is True, \"[REQ-003][AST-REQ-003-1] Fault is reachable within the bound\"",
-  "failure_message": "[REQ-003][AST-REQ-003-1] Fault is reachable within the bound",
-  "evidence_family": "fbmcq",
+  "description": "After done the unit count must decrease.",
+  "expression": "variable_delta_after(source=\"Sys.ModeA\", trigger=\"Sys.done\", variable=\"unit_count\", sign=\"negative\") is True",
+  "failure_message": "[REQ-003][AST-REQ-003-1] done does not decrease the unit count",
+  "rationale": "The claim NL clause 3 actually makes. It can only be evaluated once the variable exists, so it depends on AST-REQ-003-0; with no such variable there is no delta to judge.",
+  "evidence_family": "simulation",
   "role": "primary",
-  "coverage_key": "invariant:Sys.ModeA:no-Fault:4",
-  "aggregation_group": "REQ-003:all"
+  "coverage_key": "variable_delta_after:Sys.done:unit_count:negative",
+  "aggregation_group": "REQ-003:all",
+  "depends_on": ["AST-REQ-003-0"]
 }
+
+Example 4 -- Family P, and a claim over several named elements folded with all():
 {
   "assertion_id": "AST-REQ-004-1",
   "requirement_id": "REQ-004",
+  "description": "Within the bound the system never occupies Fault.",
+  "expression": "invariant(scope=\"Sys.ModeA\", condition='!active(\"Sys.Fault\")', bound=4) is True",
+  "failure_message": "[REQ-004][AST-REQ-004-1] Fault is reachable within the bound",
+  "rationale": "NL clause 4 rules Fault out altogether, which is a claim over all runs rather than one, so a bounded check is the right strength; bound 4 is the horizon the clause implies.",
+  "evidence_family": "fbmcq",
+  "role": "primary",
+  "coverage_key": "invariant:Sys.ModeA:no-Fault:4",
+  "aggregation_group": "REQ-004:all",
+  "depends_on": []
+}
+{
+  "assertion_id": "AST-REQ-005-1",
+  "requirement_id": "REQ-005",
   "description": "Power-off must reach Final from every operating mode the NL names.",
-  "expression": "assert all([occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.off\", target=\"Sys.Final\"), occupancy_after(source=\"Sys.ModeB\", trigger=\"Sys.off\", target=\"Sys.Final\")]) is True, \"[REQ-004][AST-REQ-004-1] off does not reach Final from every mode\"",
-  "failure_message": "[REQ-004][AST-REQ-004-1] off does not reach Final from every mode",
+  "expression": "all([occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.off\", target=\"Sys.Final\"), occupancy_after(source=\"Sys.ModeB\", trigger=\"Sys.off\", target=\"Sys.Final\")]) is True",
+  "failure_message": "[REQ-005][AST-REQ-005-1] off does not reach Final from every mode",
+  "rationale": "NL clause 5 names two operating modes and one obligation, so both must hold; folding with all() keeps it one requirement with one verdict.",
   "evidence_family": "simulation",
   "role": "primary",
   "coverage_key": "occupancy_after:off:Sys.Final:all-modes",
-  "aggregation_group": "REQ-004:all"
+  "aggregation_group": "REQ-005:all",
+  "depends_on": []
+}
+
+And one `strategies` entry per Requirement, saying how its assertions divide the
+work. The Reviewer cannot infer a decomposition from a bare list once preconditions
+and dependencies are in play:
+{
+  "strategies": {
+    "REQ-002": "One primary running the transition, one supporting locator on the declared edge, so a failure separates no-edge from edge-present-but-not-taken.",
+    "REQ-003": "Split in two: the variable existence is a precondition of the delta being judgeable at all, and the two are repaired differently -- add a declaration versus add an effect -- so each gets its own verdict."
+  }
 }
 """
 ASSERTION_CONVERTER_PROMPT += """
 
 === Binding output contract (final, overrides anything above) ===
-Every assertion must declare `role` (`primary`/`supporting`), `coverage_key`, `aggregation_group`, `evidence_family`, and a `failure_message` beginning with `[REQ-...][AST-...]`. Every Requirement needs at least one `primary`. Do not emit a bounded formal query whose truth value cannot change when the defect is present.
+Every assertion must declare `role` (`primary`/`supporting`/`precondition`), `coverage_key`, `aggregation_group`, `evidence_family`, `rationale`, and a `failure_message` beginning with `[REQ-...][AST-...]`. `expression` is a bare boolean expression -- no `assert`, no trailing message. `depends_on` lists the assertion ids that must evaluate **True** before this one runs; leave it empty when there are none, and never point it outside the same Requirement. Every Requirement needs at least one `primary`, and every `precondition` must be named in some assertion's `depends_on` -- an unreferenced one means the primary forgot the dependency. Add a `strategies` entry per Requirement. Do not emit a bounded formal query whose truth value cannot change when the defect is present.
 """
-
-

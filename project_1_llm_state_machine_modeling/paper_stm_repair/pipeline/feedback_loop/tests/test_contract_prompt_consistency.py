@@ -192,17 +192,24 @@ def test_undeclared_binding_rule_is_consistent_across_producers() -> None:
     # loop cannot converge -- and must reject it where the checker will refuse
     # it, or the item burns its whole repair budget instead of being fixed in
     # one round.  Both halves, or the stages contradict each other again.
+    # Conditional acceptance, both directions.  Unconditional acceptance let the
+    # literal through where a declared element fitted; unconditional rejection
+    # produced the loop pair 0006 died in.
     assert "Accept `<undeclared>`" in reviewer
-    assert "unresolvable loop" in reviewer
-    assert "**Reject it** when the vocabulary does list elements of that kind" in reviewer
+    assert "no declared element plausibly is the one the sentence means" in reviewer
+    assert "**Reject it** when a declared element does plausibly fit" in reviewer
     # The converter must pass it straight through as the primary.  The earlier
     # contract said the opposite -- primary forbidden, supporting only -- and
     # that is what lost pair 0006's expected defect: with no primary the
     # requirement could only be filed as an unchecked coverage gap, so a real
     # finding was reported as "not looked at".
-    assert "checked exactly like any other" in converter
-    assert "passing `<undeclared>` through" in converter
-    assert "reported violated" in converter
+    # The converter no longer passes the literal to a predicate at all: it turns
+    # it into a proposed name, an existence `precondition`, and a dependent
+    # primary, so the gap becomes something repair can act on.
+    assert "needs two assertions, not one" in converter
+    assert "`precondition` asserting that the missing element **exists**" in converter
+    assert "`depends_on` naming the" in converter
+    assert "repair stage can add exactly that element" in converter
     assert "only `supporting`" not in converter
 
     # And the old contradictory sentence must be gone.
@@ -410,27 +417,21 @@ def test_no_stage_demands_the_binding_the_checker_refuses() -> None:
     requirement_reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
     assertion_reviewer = prompts.ASSERTION_REVIEWER_PROMPT
 
-    # The stage that picks the binding must know both outcomes.
-    assert "reported as a violation" in splitter
-    assert "the check is refused" in splitter
-    # Which bindings can be discharged is the part that decides whether the loop
-    # converges: `variable`/`trigger` can, state-shaped ones and the two
-    # expression bindings cannot.  Pair 0050 deadlocked because only the
-    # expression case was stated.
-    assert "the predicate always refuses" in splitter
-    assert "every parsable model declares states" in splitter
-    assert "have no table at all" in splitter
-    assert "unchecked coverage gap rather than as a finding" in splitter, (
-        "the splitter must know that this choice costs a finding, or it will overuse it"
+    # The per-binding-kind rules are gone along with the judgement they served --
+    # seal for `variable`/`trigger`, refuse for state-shaped and expression ones --
+    # because the literal no longer reaches a predicate at all.  What the splitter
+    # needs now is when choosing it is right in the first place.
+    assert "genuinely has no term of that kind" in splitter
+    assert "name that element instead" in splitter, (
+        "the splitter must be told to prefer a declared element when one fits"
     )
 
     # Neither reviewer may state the rule unconditionally any more.
     assert "Otherwise require `variable=\"<undeclared>\"`" not in assertion_reviewer
-    assert "no variable of the author's own" in assertion_reviewer
     assert (
         "Do not ask the Splitter to replace it with a declared term"
         not in requirement_reviewer
-    ), "the unconditional form contradicts the populated-table refusal"
+    ), "the unconditional form contradicts the conditional acceptance above"
 
 
 def test_the_splitter_is_warned_that_the_literal_now_produces_a_finding() -> None:
@@ -476,3 +477,69 @@ def test_no_worked_example_shows_an_assert_statement_in_the_expression_field() -
     assert "holds a bare boolean EXPRESSION" in converter
     assert "Do not write `assert`" in converter
     assert "belongs in the separate `failure_message` field" in converter
+
+
+def test_every_new_field_is_shown_filled_in_at_least_three_worked_objects() -> None:
+    """Prose naming a field is not enough; producers drop what they have not seen.
+
+    Established twice: `aggregation_group` was named three times in prose and
+    still omitted until it appeared in every example, and `expression` written as
+    a complete `assert` statement in the examples taught four cells to emit the
+    statement form.  So the four fields the precondition design adds are held to
+    the same bar.
+    """
+
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    for field in ("rationale", "depends_on", "role", "coverage_key"):
+        shown = converter.count(f'"{field}":')
+        assert shown >= 3, f"{field} appears in only {shown} worked objects"
+    # `strategies` is script-level, so one object is right -- but it must carry
+    # more than one requirement, or the producer will emit a single entry.
+    assert converter.count('"strategies":') >= 1
+    strategies_block = converter[converter.index('"strategies":') :]
+    assert strategies_block.count('": "') >= 2, "show strategies for two requirements"
+
+
+def test_the_precondition_shape_appears_as_a_complete_worked_pair() -> None:
+    """A precondition alone teaches nothing: the dependency is the point.
+
+    The example has to show both objects and the `depends_on` linking them, or a
+    producer writes an unreferenced precondition -- which the gate then rejects for
+    being orphaned, costing a round to learn what the example could have taught.
+    """
+
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    assert '"role": "precondition"' in converter
+    assert '"depends_on": ["AST-REQ-003-0"]' in converter, (
+        "the dependent must be shown pointing at the precondition by id"
+    )
+    # And the existence predicates must be named where the shape is explained.
+    for predicate in ("variable_declared", "event_declared"):
+        assert predicate in converter, predicate
+
+
+def test_no_worked_object_writes_a_statement_into_the_expression_field() -> None:
+    """The regression that killed four cells, pinned across both assertion stages."""
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        offenders = [
+            line.strip()
+            for line in text.splitlines()
+            if line.strip().startswith('"expression": "assert ')
+        ]
+        assert not offenders, f"{name}: {offenders[:2]}"
+
+
+def test_the_name_shape_rule_reaches_the_producer() -> None:
+    """A malformed name is refused, not answered, so the producer must know the shape.
+
+    Measured from the corpus: variables are bare, states and events dotted, events
+    always carry their root prefix.  A producer that guesses pays a round.
+    """
+
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    assert "well-formed FCSTM name" in converter
+    assert "bare for variables" in converter
+    assert "events always carry their root prefix" in converter
+    assert "refused rather than answered" in converter

@@ -676,14 +676,18 @@ def test_calling_the_wrong_predicate_still_gets_the_substitution_message():
     )
 
 
-def test_the_converter_prompt_states_the_no_primary_exit():
-    """The gate message is the second chance; the prompt is the first."""
+def test_the_converter_prompt_states_the_two_assertion_shape():
+    """The gate message is the second chance; the prompt is the first.
+
+    The earlier design's exit was "write no primary and accept a coverage gap".
+    That is gone: a gap is "not checked", which is useless to a repair stage.  The
+    shape now produces a named element and two verdicts instead.
+    """
 
     from paper_stm_feedback_loop.discover import prompts
 
     converter = prompts.ASSERTION_CONVERTER_PROMPT
-    assert "do NOT write a primary" in converter
-    assert "not a bare `False` or any literal" in converter
-    assert "unchecked coverage gap" in converter
-    # And it must say why that is the honest answer rather than a cop-out.
-    assert "reporting it as a confirmed defect would not be" in converter
+    assert "needs two assertions, not one" in converter
+    assert "under a name you propose from" in converter
+    assert "recorded as `blocked`" in converter
+    assert "re-run exactly these two" in converter
