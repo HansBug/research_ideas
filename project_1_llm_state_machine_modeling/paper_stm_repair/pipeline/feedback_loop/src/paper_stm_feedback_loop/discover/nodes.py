@@ -26,8 +26,10 @@ from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
 from .dependencies import (
+    blocked_by,
     cross_requirement_dependencies,
     dependency_cycles,
+    execution_order,
     missing_dependency_references,
     orphan_preconditions,
 )
@@ -1948,7 +1950,42 @@ def precheck_and_seal(
             assertion_families_by_requirement.setdefault(
                 item.requirement_id, set()
             ).add(item.evidence_family)
-        for assertion in script.assertions:
+        # Topological order, not declaration order (issue #170 §11.5).  A
+        # dependent must not run before the prerequisite whose truth decides
+        # whether it runs at all -- `variable_delta_after` on a variable that does
+        # not exist has nothing to compute, and forcing it to answer produced
+        # either a false built on the converter's own route token or an
+        # unrepairable refusal.  Ties break by id so two identical scripts execute
+        # identically; the sealed result is hashed.
+        by_id = {item.assertion_id: item for item in script.assertions}
+        ordered = tuple(
+            by_id[aid] for aid in execution_order(script.assertions) if aid in by_id
+        )
+        #: `{assertion_id: strict bool}` for assertions that produced a verdict.
+        #: An id absent here was blocked or non-executable, and `blocked_by` treats
+        #: both as an unmet prerequisite.
+        truth: dict[str, Any] = {}
+        for assertion in ordered:
+            unmet = blocked_by(assertion, truth)
+            if unmet:
+                # Not run.  Recorded so the report can say *why* it was skipped,
+                # but `blocked` is a runtime state only: downstream counts it as
+                # not satisfied, and the prerequisite's own False is the finding.
+                public_executions.append(
+                    AssertionExecutionPublic(
+                        assertion_id=assertion.assertion_id,
+                        requirement_id=assertion.requirement_id,
+                        role=assertion.role,
+                        coverage_key=assertion.coverage_key,
+                        status="blocked",
+                        error=(
+                            "prerequisite(s) "
+                            + ", ".join(unmet)
+                            + " did not hold, so this claim has nothing to evaluate"
+                        ),
+                    )
+                )
+                continue
             source = (
                 f"{script.prefix.rstrip()}\nassert ({assertion.expression}), "
                 f"{assertion.failure_message!r}"
@@ -2075,6 +2112,9 @@ def precheck_and_seal(
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
             ):
+                # Published before the dependents run, which is the whole point of
+                # the topological order.
+                truth[assertion.assertion_id] = checked.value
                 public_executions.append(
                     AssertionExecutionPublic(
                         assertion_id=assertion.assertion_id,
