@@ -79,7 +79,10 @@ def _budget(value: Any, name: str, default: int) -> int:
 
     try:
         parsed = int(value)
-    except (TypeError, ValueError) as exc:
+    # `int(float("inf"))` raises OverflowError, which is neither of the other two:
+    # it escaped as a bare exception, so the result was recorded as `exception`
+    # rather than `unsupported` and the controller had no repair branch for it.
+    except (TypeError, ValueError, OverflowError) as exc:
         raise UnsupportedEvidence(
             f"{name} must be an integer, got {value!r}"
         ) from exc
@@ -368,6 +371,48 @@ class PredicateAPI:
         if not source or source == PSEUDO_INITIAL:
             return None
         return source
+
+    def _model_root(self) -> str | None:
+        """The path every configuration is inside, or None if unreadable."""
+
+        try:
+            rows = self.structure.states()
+        except Exception:
+            return None
+        for row in rows:
+            if not getattr(row, "parent_path", None):
+                path = getattr(row, "path", None)
+                if isinstance(path, str) and path:
+                    return path
+        return None
+
+    def _reject_undiscriminating_root(self, predicate: str, **bindings: Any) -> None:
+        """Refuse a claim whose subject is active in every configuration.
+
+        The root is entered before anything else and left only at termination, so
+        `response_within(response=<root>)` holds however the model behaves, and
+        `occupancy_after(target=<root>)` holds whenever the trigger is consumed at
+        all.  A producer that binds the enclosing mode instead of the leaf gets a
+        pass on a model whose transition goes to the wrong state -- which is the
+        opposite of what these predicates are for.
+
+        `fbmcq_non_vacuity_findings` was supposed to catch this statically and no
+        longer can: it regexes for an `fbmcq(...)` call, and that function is not
+        in the assertion namespace any more, so it matches nothing while still
+        reading as an active gate.
+        """
+
+        root = self._model_root()
+        if not root:
+            return
+        offenders = sorted(name for name, value in bindings.items() if value == root)
+        if offenders:
+            raise UnsupportedEvidence(
+                f"{predicate} cannot take the model root {root!r} for {offenders}: "
+                "the root is active in every configuration, so the claim holds no "
+                "matter what the model does. Name the state the requirement is "
+                "actually about."
+            )
 
     def _pins_a_composite(self, path: str) -> bool:
         """Whether pinning here starts the machine above a leaf configuration."""
@@ -737,6 +782,14 @@ class PredicateAPI:
         entries = [t for t in targets if field(t, "target")]
         if not entries:
             return None
+        # A single declared entry *is* the entry, whatever labels it.  pyfcstm
+        # counts an edge as unconditional only when it carries neither guard nor
+        # event, so `[*] -> RunningState : /Activate_Pump` was "conditional" and
+        # the predicate refused -- on 22 of the corpus's 169 composites -- with a
+        # message about a guard the edge does not have.  Nothing is ambiguous
+        # about one entry, so answer from it.
+        if len(entries) == 1:
+            return str(field(entries[0], "target"))
         unconditional = [t for t in entries if field(t, "is_unconditional")]
         if len(unconditional) == 1:
             for t in entries:
@@ -752,9 +805,10 @@ class PredicateAPI:
                 "can be named"
             )
         raise UnsupportedEvidence(
-            f"{composite!r} declares {len(entries)} initial edges and none is "
-            "unconditional, so there is no entry the model takes without a guard "
-            "already being true; the claim cannot be decided from the declarations"
+            f"{composite!r} declares {len(entries)} initial edges and none of them "
+            "is taken unconditionally -- each carries a guard or a trigger -- so "
+            "which one entry takes depends on state this query cannot see. Ask "
+            "about the edge you mean with edge_declared instead."
         )
 
     def edge_declared(self, *, source: str, trigger: str, target: str) -> bool:
@@ -908,6 +962,15 @@ class PredicateAPI:
             want = int(count)
         except Exception as exc:
             raise UnsupportedEvidence(f"count must be an integer, got {count!r}") from exc
+        # An undeclared scope has no substates, so `count=0` used to come back
+        # True -- "exactly zero, as claimed" -- passing a model that is missing the
+        # whole enumerated set.  Nothing was counted, so nothing is decided.
+        if not self.structure.states(path=_need(scope, "scope"), exact=True):
+            raise UnsupportedEvidence(
+                f"the model declares no state at {scope!r}, so it has no substates "
+                "to count. A count over a scope that does not exist decides "
+                "nothing; assert the scope's existence first"
+            )
         rows = self.structure.states(parent=_need(scope, "scope"), recursive=False, exact=True)
         return len([r for r in rows if not bool(r.is_pseudo)]) == want
 
@@ -924,6 +987,7 @@ class PredicateAPI:
         """
 
         self._require_well_formed_names(source=source, trigger=trigger, target=target)
+        self._reject_undiscriminating_root("occupancy_after", target=target)
         view = self._simulate(
             source=source,
             trigger=trigger,
@@ -1037,6 +1101,7 @@ class PredicateAPI:
         """Within a bounded number of cycles this target is reachable from here."""
 
         self._require_well_formed_names(source=source, target=target)
+        self._reject_undiscriminating_root("reaches", target=target)
         # Reachability without events only ever exercises completion
         # transitions, so every target one event away was reported unreachable
         # -- a fabricated defect on the most common shape in this corpus.  Offer
@@ -1145,6 +1210,7 @@ class PredicateAPI:
         # present can be malformed.
         optional = {"source": source} if source is not None else {}
         self._require_well_formed_names(trigger=trigger, response=response, **optional)
+        self._reject_undiscriminating_root("response_within", response=response)
         # Two things were wrong.  The response arm needs its own `within` or the
         # grammar rejects the query outright.  And with `within == bound` only
         # step 0 carries a complete obligation, so every later step lands in the
@@ -1175,6 +1241,7 @@ class PredicateAPI:
 
         self._reject_pseudo_initial("persists_until", state=state)
         self._require_well_formed_names(state=state, release=release)
+        self._reject_undiscriminating_root("persists_until", state=state)
         # `exists_always` is a *witness* property: it asks whether some bounded
         # run keeps the condition, and with no events injected that run always
         # exists -- the truth value could not change when the defect was

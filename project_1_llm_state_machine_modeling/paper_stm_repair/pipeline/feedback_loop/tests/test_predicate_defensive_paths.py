@@ -856,8 +856,36 @@ def test_only_guarded_entries_is_refused_not_answered():
             ]
         )
     )
-    with pytest.raises(UnsupportedEvidence, match="none is"):
+    with pytest.raises(UnsupportedEvidence, match="none of them is taken"):
         subject._initial_child_of("Root.Mode")
+
+
+def test_a_single_entry_is_the_entry_however_it_is_labelled():
+    """pyfcstm counts an edge as unconditional only with no guard *and* no event.
+
+    So `[*] -> RunningState : /Activate_Pump` read as conditional and the
+    predicate refused -- on 22 of the corpus's 169 composites -- with a message
+    about a guard the edge does not carry, sending the producer looking for one.
+    Nothing is ambiguous about a single declared entry.
+    """
+
+    subject = api(
+        structure=Structure(
+            states=[
+                Row(
+                    path="Root.Mode",
+                    initial_targets=[
+                        {
+                            "target": "Root.Mode.Running",
+                            "is_unconditional": False,
+                            "event": "Root.Activate_Pump",
+                        }
+                    ],
+                )
+            ]
+        )
+    )
+    assert subject._initial_child_of("Root.Mode") == "Root.Mode.Running"
 
 
 def test_a_prefix_runs_under_the_alarm_when_one_is_configured():
