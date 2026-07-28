@@ -275,6 +275,8 @@ PREDICATES: tuple[Predicate, ...] = (
 PREDICATE_BY_NAME = {item.name: item for item in PREDICATES}
 _ALL_PROCEDURE_FUNCTIONS = frozenset(item.procedure_function for item in PREDICATES)
 PREDICATE_NAMES = frozenset(PREDICATE_BY_NAME)
+#: Declaration order, for building a stable Literal in the schema.
+PREDICATE_ORDER: tuple[str, ...] = tuple(item.name for item in PREDICATES)
 
 
 def family_of(predicate: str) -> str | None:
@@ -535,6 +537,7 @@ __all__ = [
     "PREDICATES",
     "PREDICATE_BY_NAME",
     "PREDICATE_NAMES",
+    "PREDICATE_ORDER",
     "Predicate",
     "family_of",
     "verification_kind_of",

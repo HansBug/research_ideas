@@ -13,7 +13,16 @@ from pydantic import (
     model_validator,
 )
 
-from .predicates import PREDICATE_BY_NAME, PREDICATE_NAMES, verification_kind_of
+from .predicates import (
+    PREDICATE_BY_NAME,
+    PREDICATE_NAMES,
+    PREDICATE_ORDER,
+    verification_kind_of,
+)
+
+#: Literal of every predicate name, so the closed vocabulary is enforced by the
+#: schema the provider sees rather than only by prose in the prompt.
+PredicateName = Literal[tuple(PREDICATE_ORDER)]  # type: ignore[valid-type]
 
 SCHEMA_VERSION = "v2"
 
@@ -164,11 +173,32 @@ class Requirement(StrictBaseModel):
     # mandatory evidence, is a table lookup rather than a per-sentence judgement.
     # That judgement is exactly what two models used to answer differently for
     # the same requirement.  Optional so v1/v2 fixtures stay readable.
-    predicate: str | None = None
+    # Enumerated so the provider's tool schema rejects a hallucinated name
+    # before it reaches us.  As a bare `str` one invented predicate raised
+    # inside the validator, which left `split_requirements` with no artifact to
+    # revise and failed the whole run instead of costing one repair round.
+    predicate: PredicateName | None = None
     #: Concrete arguments for the predicate, e.g. {"source": ..., "trigger": ...}.
     #: They give the converter the terms to bind and let a later gate check that
     #: the assertion tests this claim rather than an easier neighbouring one.
     predicate_bindings: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("predicate_bindings", mode="before")
+    @classmethod
+    def _stringify_binding_values(cls, value: Any) -> Any:
+        """Accept `count=3` as well as `count="3"`.
+
+        The literal bindings are naturally numeric and the prompt renders
+        `count: int`, so a producer writing an int was following instructions;
+        rejecting it cost a repair round for nothing.
+        """
+
+        if not isinstance(value, dict):
+            return value
+        return {
+            str(k): (v if isinstance(v, str) else ("" if v is None else str(v)))
+            for k, v in value.items()
+        }
     verification_kind: VerificationKind
     quantifier: str = Field(default="unspecified", min_length=1)
     trigger: str | None = None

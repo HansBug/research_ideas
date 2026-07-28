@@ -51,9 +51,12 @@ call.  A predicate that cannot answer raises instead of returning a value:
 EVIDENCE FAMILY
 
 The family is derived from the predicate, never declared by you:
-structure/relation/effect for Family S, simulation for Family B, formal for
-Family P.  Declaring a family that disagrees with the predicate is a contract
-violation.
+Family S -> `structure`, except `edge_declared` and `guard_distinguishable`
+which are `relation`, and `effect_declared` which is `effect`.
+Family B -> `simulation`.  Family P -> `fbmcq`.
+Declaring a family that disagrees with the predicate is a contract violation,
+and the schema accepts no other spelling -- `formal` is the internal name and
+is rejected.
 
 Allowed pure builtins: abs, all, any, bool, float, int, iter, len, list, max,
 min, round, set, sorted, str, sum, tuple.

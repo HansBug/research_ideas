@@ -1437,6 +1437,12 @@ def convert_assertions(
                             "paths": list(residue),
                         }
                     )
+            if unassertable:
+                # No executable primary exists, so a mandatory-family demand has
+                # nothing to be satisfied by.  Leaving this on kept the
+                # `<undeclared>` deadlock alive for Family B and P: the only
+                # remaining move was a primary the converter prompt forbids.
+                continue
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -1855,9 +1861,18 @@ def precheck_and_seal(
                     for call in checked.function_call_trace
                     if PREDICATE_FAMILIES.get(call.function, ("", ""))[0] == "simulation"
                 ]
+                # Not every Family B predicate spells its pinning argument
+                # `source`: `terminates` takes `scope`.  Requiring `source`
+                # rejected every `terminates` assertion and handed back repair
+                # text naming `initial_state`/`cycles`, which are not parameters
+                # of anything -- the item could only churn until its budget ran
+                # out.
+                pinning = ("source", "scope", "state", "composite")
                 has_hot_start = any(
-                    isinstance(call.kwargs.get("source"), str)
-                    and call.kwargs["source"].strip()
+                    any(
+                        isinstance(call.kwargs.get(k), str) and call.kwargs[k].strip()
+                        for k in pinning
+                    )
                     for call in behaviour_calls
                 )
                 source_context = requirement.source_context

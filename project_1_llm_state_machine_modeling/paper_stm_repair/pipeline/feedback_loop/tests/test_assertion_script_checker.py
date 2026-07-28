@@ -152,7 +152,7 @@ def test_environment_docs_list_readable_api_surface():
         "declared_model_vocabulary",
         "EVIDENCE FAMILY",
         "The family is derived from the predicate, never declared by you",
-        "structure/relation/effect for Family S, simulation for Family B, formal for Family P",
+        "Family B -> `simulation`. Family P -> `fbmcq`",
         "`<undeclared>`",
         "Allowed pure builtins:",
     ]:
