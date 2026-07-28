@@ -2147,10 +2147,16 @@ def precheck_and_seal(
             # some adjacent reason -- on pair 0006 that produced a tautological
             # bounded query and reported the requirement satisfied.  Quarantine
             # immediately so the absence surfaces as a coverage gap.
+            # Neither of these is repairable by rewriting the expression: the
+            # model declares no term for the first, and is too large for the
+            # bound in the second.  Retrying burns the budget and, for the
+            # bounded check, ~25s of wall clock per round.
+            unrepairable_markers = (UNDECLARED, "exceeded its budget on this model")
             undeclared_ids = tuple(
                 item.assertion_id
                 for item in public_executions
-                if item.status == "invalid" and UNDECLARED in str(item.error or "")
+                if item.status == "invalid"
+                and any(m in str(item.error or "") for m in unrepairable_markers)
             )
             exhausted_ids = tuple(
                 assertion_id

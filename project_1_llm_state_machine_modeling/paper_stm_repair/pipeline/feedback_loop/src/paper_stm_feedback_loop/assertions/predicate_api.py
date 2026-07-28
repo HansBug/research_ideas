@@ -574,7 +574,18 @@ class PredicateAPI:
     def _formal_holds(self, query: str) -> bool:
         if self.formal is None:
             raise UnsupportedEvidence("bounded model checking is not enabled for this run")
-        result = self.formal.fbmcq(query)
+        try:
+            result = self.formal.fbmcq(query)
+        except TimeoutError as exc:
+            # A solver timeout is "cannot answer", not "answered False", and no
+            # rewrite of the assertion makes the model smaller.  Surfacing it as
+            # a timeout sent it into the repair loop for five rounds at ~25s
+            # each; as a refusal the controller quarantines it once.
+            raise UnsupportedEvidence(
+                f"bounded check exceeded its budget on this model ({exc}); the "
+                "obligation is not decidable within the configured bound, so it "
+                "must be recorded as a coverage gap rather than retried"
+            ) from exc
         self._note_formal(result)
         status = getattr(result, "status", None)
         holds = getattr(result, "holds", None)
