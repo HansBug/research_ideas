@@ -45,6 +45,13 @@ from .exceptions import UnsupportedEvidence
 #: Written by the splitter when the NL names something the model never declares.
 UNDECLARED = "<undeclared>"
 
+#: The pseudo-initial source, spelled exactly as FCSTM spells it.  A behaviour
+#: claim about power-on or first entry has no named source state, and without a
+#: sanctioned way to say so the producer invents one -- the smoke run produced
+#: `source="<initial>"`, which the unresolved-reference gate correctly rejected
+#: and then had to repair.  Accepting the real literal removes the guesswork.
+PSEUDO_INITIAL = "[*]"
+
 #: Cycle budget for the bounded simulations the B-family predicates run.  Kept
 #: small on purpose: these are witnesses, not proofs, and a longer trace makes
 #: the fired-transition derivation less likely to stay unambiguous.
@@ -118,6 +125,14 @@ class PredicateAPI:
                 self._refs.append(ref)
 
     # ---- helpers -----------------------------------------------------
+    @staticmethod
+    def _hot_startable(source: str | None) -> str | None:
+        """Return the state to hot-start from, or None for the initial config."""
+
+        if not source or source == PSEUDO_INITIAL:
+            return None
+        return source
+
     def _simulate(self, *, source: str | None, trigger: str | None, cycles: int):
         """Run the smallest trace that can witness ``trigger`` fired from ``source``.
 
@@ -128,6 +143,7 @@ class PredicateAPI:
 
         events = [[trigger]] if trigger else [[]]
         events += [[] for _ in range(max(0, cycles - 1))]
+        source = self._hot_startable(source)
         view = None
         if source:
             try:

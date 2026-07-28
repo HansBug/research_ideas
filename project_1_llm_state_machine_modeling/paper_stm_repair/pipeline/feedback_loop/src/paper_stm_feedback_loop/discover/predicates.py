@@ -402,6 +402,12 @@ def callable_prompt() -> str:
             if item.caveat:
                 lines.append(f"      caveat: {item.caveat}")
     lines.append(
+        "\nA behaviour claim about power-on or first entry has no named source "
+        "state. Write source=\"[*]\" for it -- the pseudo-initial exactly as "
+        "FCSTM spells it -- and the predicate starts from the initial "
+        "configuration. Do not invent a placeholder of your own."
+    )
+    lines.append(
         "\nThe query construction for Family P lives inside the predicate. Do not "
         "attempt to write a bounded-checking query yourself -- there is no "
         "function to pass one to. `invariant(condition=...)` takes the condition "
