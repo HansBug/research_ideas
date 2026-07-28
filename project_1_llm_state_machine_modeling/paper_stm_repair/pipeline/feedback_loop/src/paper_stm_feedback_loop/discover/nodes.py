@@ -17,9 +17,7 @@ from paper_stm_feedback_loop.assertions import (
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
 from paper_stm_feedback_loop.assertions.predicate_api import (
-    BINDING_DECLARATION_TABLE,
     PREDICATE_FAMILIES,
-    PROVABLY_EMPTY_TABLES,
     UNDECLARED,
 )
 from paper_stm_feedback_loop.common.refs import reference_matches
@@ -836,28 +834,6 @@ _ROUTE_CONTROL_PREFIX = "compiler:route_control:"
 
 
 
-def _undeclared_bindings_with_a_table(bindings: dict | None) -> tuple[str, ...]:
-    """Which `<undeclared>` bindings the predicate can decide by reading a table.
-
-    `variable`, `trigger` and the state-shaped bindings each have a declaration
-    list, so their absence is provable and the primary assertion is expected to
-    come back false.  `condition` and `release` are boolean expressions with no
-    list to be absent from, so the predicate refuses them and no legal primary
-    exists -- those are the only ones that may skip the primary requirement.
-    """
-
-    if not isinstance(bindings, dict):
-        return ()
-    return tuple(
-        sorted(
-            name
-            for name, value in bindings.items()
-            if str(value) == UNDECLARED
-            and BINDING_DECLARATION_TABLE.get(name) in PROVABLY_EMPTY_TABLES
-        )
-    )
-
-
 def _model_vocabulary(
     inspected: dict[str, Any], exclusions: tuple[str, ...] | list[str] = ()
 ) -> dict[str, tuple[str, ...]]:
@@ -1491,38 +1467,17 @@ def convert_assertions(
                 for assertion in owned_assertions
                 if assertion.role == "primary"
             )
-            # A requirement whose binding is `<undeclared>` states an obligation
-            # the model has no term for.  Its primary is decided by the absence
-            # itself -- the checker answers a plain false off the declaration
-            # table -- so the requirement is checkable and a primary is expected.
-            # What it cannot satisfy is the mandatory *family* demand below: the
-            # deciding evidence is structural whatever the requirement's family
-            # says, and insisting on a simulation or a bounded query is what
-            # pushed pair 0006's producer into a tautology that passed.
-            unassertable = UNDECLARED in str(requirement.predicate_bindings or {})
-            # Only an `<undeclared>` binding with no declaration table behind it
-            # -- `condition`, `release` -- genuinely has no legal primary, since
-            # the predicate refuses those unconditionally.  Every other one is
-            # decided by reading the table, so a primary is both possible and
-            # required.  Waiving it for all of them left pair 0006's original
-            # loss reachable: a supporting-only requirement can never be
-            # reported violated (only `false_primary_assertions` become issues),
-            # so the finding would again be filed as an unchecked gap.
-            waivable = unassertable and not _undeclared_bindings_with_a_table(
-                requirement.predicate_bindings
-            )
-            if not primary_assertions and not waivable:
+            # `<undeclared>` can no longer reach an assertion (gate 7), so the
+            # exemptions this block used to carry are gone with it: a requirement
+            # naming a term the model lacks is checked through a proposed name and
+            # an existence precondition, which is an ordinary primary like any
+            # other.  See issue #170 §11.2.
+            if not primary_assertions:
                 raise ValueError(
                     f"requirement {requirement.requirement_id} requires at least one "
-                    "primary assertion"
-                    + (
-                        ". An `<undeclared>` binding does not exempt it: the "
-                        "predicate decides the absence from the declaration "
-                        "table, so write the primary as the ordinary call and "
-                        "let it come back false"
-                        if unassertable
-                        else ""
-                    )
+                    "primary assertion. A term the model lacks is no exception: give "
+                    "it a proposed name, assert its existence as a `precondition`, "
+                    "and let the primary depend on that"
                 )
             # Gate D (issue #170 C3): the named predicate fixes which procedure
             # decides it, and a locator answers a weaker question.  Without this
@@ -1562,15 +1517,6 @@ def convert_assertions(
                             "paths": list(residue),
                         }
                     )
-            # Only the two family demands are waived for an `<undeclared>`
-            # requirement: whatever family it declares, the deciding evidence is
-            # the declaration table being empty, so insisting on a simulation or
-            # a bounded query is what pushed pair 0006's producer into a
-            # tautology that passed.  Everything after this block still applies.
-            # `continue`-ing past all of it -- which is what this used to do --
-            # took the fabricated-path gate with it, and that gate exists
-            # because a query over a non-existent element matches nothing and
-            # passes.
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -1581,7 +1527,7 @@ def convert_assertions(
                     if assertion.evidence_family not in allowed_primary_families
                 }
             )
-            if invalid_primary_families and not unassertable:
+            if invalid_primary_families:
                 raise ValueError(
                     f"{requirement.verification_kind} requirement "
                     f"{requirement.requirement_id} requires primary evidence from "
@@ -1597,7 +1543,7 @@ def convert_assertions(
                 ]
                 - present_primary_families
             )
-            if missing_mandatory_families and not unassertable:
+            if missing_mandatory_families:
                 # A mandatory family exists to stop *weaker* evidence from
                 # standing in for what the requirement needs.  It must not also
                 # block *stronger* evidence.  When a primary assertion already
@@ -2000,22 +1946,12 @@ def precheck_and_seal(
             hot_start_policy_error: str | None = None
             formal_causality_error: str | None = None
             requirement = requirement_by_id.get(assertion.requirement_id)
-            # A verdict read off an empty declaration table ran no query at all,
-            # so the two evidence-shape gates below have nothing to inspect.
-            # Judging them anyway is how the pair-0006 regression comes back:
-            # zero calls looks identical to non-causal or cold-started evidence,
-            # and the assertion is sent back for repairs it cannot make.
-            sealed_on_absence = (
-                checked.sealed_metadata.get("verdict_basis")
-                == "declared_vocabulary_absence"
-            )
             if (
                 requirement is not None
                 and requirement.verification_kind == "behavior"
                 and assertion.evidence_family == "simulation"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
-                and not sealed_on_absence
                 and "fbmcq"
                 not in assertion_families_by_requirement.get(
                     assertion.requirement_id, set()
@@ -2075,7 +2011,6 @@ def precheck_and_seal(
                 and assertion.evidence_family == "fbmcq"
                 and checked.outcome in {"valid", "sealed_false"}
                 and type(checked.value) is bool
-                and not sealed_on_absence
             ):
                 formal_calls = [
                     call

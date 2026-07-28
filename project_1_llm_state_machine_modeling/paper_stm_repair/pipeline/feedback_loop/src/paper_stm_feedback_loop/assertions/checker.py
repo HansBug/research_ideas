@@ -15,7 +15,6 @@ import traceback
 from dataclasses import dataclass
 from typing import Any
 
-from .exceptions import UndeclaredTerm
 from .parser import AssertionScriptSyntaxError, ParsedAssertionScript, parse_assertion_script
 from .provenance import FORBIDDEN_NAMES, FORBIDDEN_NODES, AuditIssue, AuditReport, audit_expression
 from .runtime import ALLOWED_FUNCTION_FAMILIES, EvalEnvironment
@@ -145,78 +144,6 @@ class AssertionChecker:
         try:
             self._exec_prefix(parsed, globals_map, locals_map)
             value = self._eval_terminal(parsed, globals_map, locals_map)
-        except UndeclaredTerm as exc:
-            # Not a failure to check -- a check that came back negative.  The
-            # predicate read the declaration table, found it empty of the kind
-            # the claim needs, and that absence is the verdict.  Treating it as
-            # invalid sent the requirement round the repair loop until its
-            # budget ran out and it was filed as a coverage gap; on pair 0006
-            # that turned the expected defect -- the NL requires the swarm count
-            # to drop and no variable exists that could -- into "not checked".
-            # A defect reported as an unchecked obligation is a recall loss the
-            # run cannot recover from.
-            after = stable_hash(_namespace_snapshot(locals_map, self.environment._raw_functions))
-            observed = tuple(
-                sorted(
-                    {
-                        record.family
-                        for record in self.environment.call_trace
-                        if record.status == "completed"
-                    }
-                )
-            )
-            companions = _evidence_call_count(parsed, self.environment) - 1
-            if companions > 0:
-                # The raise came from one arm of a fold.  Counted from the AST,
-                # not from the call trace: Python evaluates left to right, so an
-                # `<undeclared>` arm in position 0 raises before its siblings run
-                # and the trace is empty exactly when the risk is highest.
-                # Sealing here reports the whole expression false on the strength
-                # of arms that never evaluated -- verified on pair 0000, where
-                # `any([<undeclared>, occupancy_after(...)])` with a true second
-                # arm turned a satisfied requirement into a confirmed issue.
-                return self._invalid(
-                    parsed,
-                    reason,
-                    type(exc).__name__,
-                    f"{exc} Write this claim as its own assertion: folded with "
-                    f"{companions} other evidence call(s), it would decide arms "
-                    "that never ran.",
-                    audit=audit.to_json(),
-                    metadata={"undeclared_bindings": list(exc.bindings)},
-                    before=before,
-                    after=after,
-                    required=required,
-                    actual=observed,
-                )
-            sealed = SealedAssertionResult(
-                outcome="sealed_false",
-                value=False,
-                terminal_expression=parsed.terminal_expression,
-                reason=str(reason),
-                metadata={
-                    "ported_source_commit": PORTED_SOURCE_COMMIT,
-                    "failure_message": parsed.failure_message,
-                    "verdict_basis": "declared_vocabulary_absence",
-                    "undeclared_bindings": list(exc.bindings),
-                    "verdict_note": str(exc),
-                },
-            )
-            return AssertionCheckResult(
-                sealed=sealed,
-                parsed=parsed,
-                audit=audit.to_json(),
-                function_call_trace=tuple(self.environment.call_trace),
-                # Report what was observed, which is nothing: the predicate
-                # raised before any facade answered.  Naming a family here would
-                # put an evidence claim in the run record with no call behind it,
-                # and `bind_attribution` reads this field to decide whether a
-                # simulation was involved.
-                actual_function_families=observed,
-                required_function_families=required,
-                namespace_hash_before=before,
-                namespace_hash_after=after,
-            )
         except Exception as exc:  # includes AssertionError by contract
             after = stable_hash(_namespace_snapshot(locals_map, self.environment._raw_functions))
             return self._invalid(
@@ -347,38 +274,6 @@ class AssertionChecker:
             namespace_hash_before=before,
             namespace_hash_after=after,
         )
-
-
-def _evidence_call_count(parsed: ParsedAssertionScript, environment: EvalEnvironment) -> int:
-    """How many registered evidence functions the whole script calls.
-
-    Static, because the dynamic answer is unavailable at the moment it matters:
-    an arm that raises first leaves the call trace empty, so counting completed
-    calls says "this is the only one" precisely for the fold that is most likely
-    to be misread.  Prefix and terminal are both counted -- a prefix binding a
-    name the terminal folds over is the same hazard wearing a variable.
-
-    Counting *mentions* rather than call sites, because `f = occupancy_after`
-    followed by `any([<undeclared-call>, f(...)])` is the same fold with the
-    second arm renamed.  Counting only `ast.Call` nodes missed it, the fold
-    sealed, and a satisfied requirement became a confirmed issue -- the very
-    outcome this counter exists to prevent.  A name in load position is enough:
-    an assertion that mentions a predicate without calling it is not a shape
-    worth accommodating, and over-counting costs at worst a redundant repair
-    round while under-counting costs a fabricated defect.
-    """
-
-    registered = set(environment._raw_functions)
-    total = 0
-    for tree in (parsed.prefix_ast, parsed.terminal_ast):
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Name)
-                and isinstance(node.ctx, ast.Load)
-                and node.id in registered
-            ):
-                total += 1
-    return total
 
 
 def _assigned_names(tree: ast.AST) -> set[str]:

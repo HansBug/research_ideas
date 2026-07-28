@@ -32,10 +32,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from paper_stm_feedback_loop.assertions.exceptions import (  # noqa: E402
-    UndeclaredTerm,
-    UnsupportedEvidence,
-)
+from paper_stm_feedback_loop.assertions.exceptions import UnsupportedEvidence  # noqa: E402
 from paper_stm_feedback_loop.assertions.predicate_api import PredicateAPI  # noqa: E402
 
 
@@ -286,56 +283,55 @@ def test_a_combo_target_expands_to_its_successors():
 
 
 # --------------------------------------------------------------------------
-# `<undeclared>` against a broken or unusual declaration table
+# `<undeclared>` is refused uniformly (issue #170 §11.2)
 # --------------------------------------------------------------------------
+#
+# Three earlier designs judged this literal per binding kind -- seal for
+# `variable` and `trigger`, refuse for state-shaped ones, refuse for expressions
+# -- which took three sets of judgement, three exemptions, a dedicated exception
+# type and a dedicated seal path.  The third was measured to constrain nothing:
+# 60 of 60 pairs have an empty author-owned variable table, so "the table is
+# empty" carried no information and a seal resting on it fired for any pair at
+# all.  One rule replaces all of it, and the obligation moves to a proposed name
+# plus an existence precondition, which repair can act on.
 
 
-def test_an_empty_variable_table_makes_the_absence_provable():
+@pytest.mark.parametrize(
+    "bindings",
+    [
+        {"variable": "<undeclared>"},
+        {"trigger": "<undeclared>"},
+        {"state": "<undeclared>"},
+        {"release": "<undeclared>"},
+        {"condition": "<undeclared>"},
+        {"variable": "<undeclared>", "release": "<undeclared>"},
+    ],
+)
+def test_every_binding_kind_is_refused_alike(bindings):
+    """The declaration table is not consulted, so its contents cannot matter."""
+
+    for variables in ([], [Row(name="battery")], [Row(name="R45RouteToken")]):
+        subject = api(structure=Structure(variables=variables))
+        with pytest.raises(UnsupportedEvidence, match="placeholder, not a name"):
+            subject._require_well_formed_names(**bindings)
+
+
+def test_the_refusal_names_the_offending_bindings_and_the_fix():
+    """A producer cannot act on "refused"; it can act on "do this instead"."""
+
     subject = api(structure=Structure(variables=[]))
-    with pytest.raises(UndeclaredTerm) as caught:
-        subject._require_declared(variable="<undeclared>")
-    assert caught.value.bindings == ("variable",)
-
-
-def test_a_table_holding_only_route_control_counts_as_empty():
-    """The effect facade drops these, so an evidence call can never reach one."""
-
-    subject = api(
-        structure=Structure(variables=[Row(name="R45RouteToken")]),
-        source_exclusions=("compiler:route_control:R45RouteToken",),
-    )
-    with pytest.raises(UndeclaredTerm):
-        subject._require_declared(variable="<undeclared>")
-
-
-def test_a_populated_table_refuses_instead_of_proving_an_absence():
-    subject = api(structure=Structure(variables=[Row(name="battery")]))
     with pytest.raises(UnsupportedEvidence) as caught:
-        subject._require_declared(variable="<undeclared>")
-    assert "1 declared variables" in str(caught.value)
-    assert not isinstance(caught.value, UndeclaredTerm)
-
-
-def test_an_expression_binding_can_never_prove_an_absence():
-    subject = api(structure=Structure(variables=[]))
-    with pytest.raises(UnsupportedEvidence) as caught:
-        subject._require_declared(release="<undeclared>")
-    assert "expressions, not declared elements" in str(caught.value)
-    assert not isinstance(caught.value, UndeclaredTerm)
-
-
-def test_a_mixed_binding_set_reports_both_reasons():
-    subject = api(structure=Structure(variables=[Row(name="battery")]))
-    with pytest.raises(UnsupportedEvidence) as caught:
-        subject._require_declared(variable="<undeclared>", release="<undeclared>")
+        subject._require_well_formed_names(variable="<undeclared>", release="<undeclared>")
     message = str(caught.value)
-    assert "1 declared variables" in message
-    assert "expressions, not declared elements" in message
+    # One binding per refusal: the message names the first offender it meets, and
+    # a producer fixes them one at a time anyway.
+    assert "'variable'" in message or "'release'" in message
+    assert "precondition" in message
 
 
 def test_no_undeclared_binding_is_a_no_op():
     subject = api(structure=Structure(variables=[]))
-    assert subject._require_declared(variable="battery", state="Root.A") is None
+    assert subject._require_well_formed_names(variable="battery", state="Root.A") is None
 
 
 # --------------------------------------------------------------------------

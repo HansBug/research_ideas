@@ -38,9 +38,10 @@ absence is the finding, and no check can stand in for it.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from .exceptions import UndeclaredTerm, UnsupportedEvidence
+from .exceptions import UnsupportedEvidence
 
 #: Written by the splitter when the NL names something the model never declares.
 UNDECLARED = "<undeclared>"
@@ -113,19 +114,74 @@ BINDING_DECLARATION_TABLE = {
     "response": "states",
 }
 
-#: Tables that can legitimately be empty, so `<undeclared>` against them is a
-#: *provable* absence.  `states` is not one: every parsable model declares at
-#: least a root, so a state-shaped `<undeclared>` can never be discharged -- the
-#: predicate will always refuse it.
-#:
-#: Getting this wrong is a deadlock, not a wrong answer.  Pair 0050's splitter
-#: bound `occupancy_after(source="<undeclared>")` and
-#: `terminates(scope="<undeclared>")`; the controller demanded a primary because
-#: `states` was in the table map, the predicate refused every primary because the
-#: table is never empty, and the reviewer rejected each attempt to substitute
-#: concrete states as changing the obligation.  Twelve revisions, then the
-#: no-progress gate killed the cell.
-PROVABLY_EMPTY_TABLES = frozenset({"variables", "events"})
+
+
+#: A single FCSTM identifier, and a dotted path of them.  Measured against the
+#: whole corpus: 627 state paths, 387 event paths and 33 variable names, every one
+#: matching, none deeper than six segments.  So a binding that does not match is
+#: not an unusual model -- it is a malformed value, and answering `False` about it
+#: would report "the model lacks this element" for a string that could never have
+#: named one.
+_IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_DOTTED_PATH = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*")
+
+#: `<undeclared>` and anything else shaped like a placeholder.  It needs no
+#: special case: `<` is not an identifier character, so the shape check already
+#: refuses it.  What the shape gets it is a more specific diagnosis, because a
+#: producer reaching for it is not making a typo -- it is expressing something real
+#: and needs to be told where that belongs (issue #170 §11.2).
+_PLACEHOLDER = re.compile(r"^<.*>$")
+
+
+def _require_identifier(
+    value: Any, binding: str, *, dotted: bool, min_segments: int = 1
+) -> str:
+    """Return the value stripped, or refuse it rather than answering about it.
+
+    ``dotted=False`` is for variable names: FCSTM declares variables outside the
+    state tree, so they carry no path prefix.
+
+    ``min_segments`` exists because the corpus is asymmetric.  All 387 declared
+    events are addressed with exactly two segments, `<root>.<event>`, so a bare
+    `go` cannot name one -- it would be looked up, not found, and reported as a
+    missing event.  States are different: 60 of the 627 paths are single-segment,
+    one per model, because each model's root is a state.  So the floor is a
+    measured fact per binding kind, not a uniform rule.
+    """
+
+    text = _need(value, binding)
+    stripped = text.strip()
+    pattern = _DOTTED_PATH if dotted else _IDENTIFIER
+    if pattern.fullmatch(stripped) and stripped.count(".") + 1 >= min_segments:
+        return stripped
+    if pattern.fullmatch(stripped):
+        raise UnsupportedEvidence(
+            f"predicate binding {binding!r} needs at least {min_segments} "
+            f"path segments, got {text!r}. Events are addressed as "
+            "`<root>.<event>`; copy the path as it appears under `events` in "
+            "declared_model_vocabulary. A bare name matches nothing, and the "
+            "`False` that would follow reads as a missing event."
+        )
+    if _PLACEHOLDER.match(stripped):
+        raise UnsupportedEvidence(
+            f"predicate binding {binding!r} is a placeholder, not a name: "
+            f"{text!r}. An assertion cannot evaluate one. If the NL requires a "
+            "term this model has no declaration for, give it a proposed name, "
+            "assert that name's existence as a `precondition`, and make this "
+            "assertion depend on it -- then the gap has something repair can add, "
+            "and something a later run can verify."
+        )
+    shape = (
+        "a dotted path of identifiers such as `Sys.Outer.Inner`"
+        if dotted
+        else "a bare identifier such as `units`"
+    )
+    raise UnsupportedEvidence(
+        f"predicate binding {binding!r} is not a well-formed model name: "
+        f"{text!r}. Expected {shape} -- letters, digits and underscores, not "
+        "starting with a digit. A malformed name cannot denote a declared "
+        "element, so this is refused rather than answered `False`."
+    )
 
 
 def _need(value: Any, name: str) -> str:
@@ -241,129 +297,59 @@ class PredicateAPI:
                 "of its own. Name the state the claim is about."
             )
 
-    #: Which spelling each existence predicate expects.  The two differ because
-    #: `inspect` itself differs: a variable row carries only `name` (bare, e.g.
-    #: `R45RouteToken`) while an event row carries only `qualified_name` (dotted).
-    #: A producer that generalises from state paths will prefix a variable name,
-    #: and a prefixed name simply is not found -- so the call answers `False`, and
-    #: that `False` reads as "the model lacks this variable".  A defect
-    #: manufactured out of a spelling convention is worse than a refusal, so
-    #: refuse.
-    def _require_name_shape(self, name: Any, *, kind: str) -> None:
-        text = _need(name, "name").strip()
-        if kind == "variable" and "." in text:
-            raise UnsupportedEvidence(
-                f"variable_declared takes a bare variable name, got {text!r}: "
-                "variables are declared without a state path prefix. Copy the "
-                "name as it appears under `variables` in declared_model_vocabulary."
-            )
-        if kind == "event" and "." not in text:
-            raise UnsupportedEvidence(
-                f"event_declared takes a fully qualified event path, got {text!r}: "
-                "events are addressed as `<root>.<event>`. Copy the path as it "
-                "appears under `events` in declared_model_vocabulary."
-            )
+    def _require_well_formed_names(self, **bindings: Any) -> None:
+        """Every model-name binding must be a name this model could have declared.
 
-    def _require_declared(self, **bindings: Any) -> None:
-        """Decide what an `<undeclared>` binding means, by looking.
+        One rule, replacing three.  Earlier designs judged `<undeclared>` per
+        binding kind -- seal a false for `variable` and `trigger`, refuse for
+        state-shaped ones, refuse for expressions -- which took three sets of
+        judgement, three exemptions, a dedicated exception type and a dedicated
+        seal path.  The third was measured to constrain nothing: 60 of 60 pairs
+        have an empty author-owned variable table, so "the table is empty" carried
+        no information and the seal fired for any pair at all.
 
-        Two very different situations wear the same literal.
+        Shape subsumes it.  `<undeclared>` is refused because `<` is not an
+        identifier character, not because it appears on a list -- and the same
+        check catches embedded newlines, quotes, semicolons and injection
+        attempts, each of which would otherwise be looked up, not found, and
+        reported as a missing model element.
 
-        The model may genuinely declare nothing of that kind -- pair 0006
-        declares no variable of its own, and the NL requires the swarm count to
-        drop.  That absence is a fact about the declaration table, provable by
-        reading it, and the honest verdict is *false*: the obligation cannot be
-        met.  :class:`UndeclaredTerm` says so and the checker seals it.
+        Checking here rather than inside each predicate is what makes it uniform:
+        `effect_declared` once passed an int straight to the effect facade, which
+        concatenated it and raised `TypeError` -- an error class the controller has
+        no repair branch for, so the producer got generic advice and spent its
+        budget repeating the mistake.
 
-        Or the table has entries and the producer simply did not pick one.  Then
-        nothing has been proved about anything, and sealing a false would
-        manufacture a defect the model may not have -- worse, it would pay
-        better than guessing, since a wrong guess costs a repair round and a
-        shrug would earn a finding.  Ordinary :class:`UnsupportedEvidence` sends
-        it back to be written properly.
-
-        Bindings with no table to read -- ``condition``, ``release``, and the
-        literal-valued ones -- can never take the first branch: a boolean
-        expression has no declaration list to be absent from.
+        Variable names are checked without a dot, everything else with: FCSTM
+        declares variables outside the state tree, and a producer generalising
+        from state paths writes `Sys.units`, which names nothing.
         """
 
-        # Type-check the path-shaped bindings here rather than leaving it to
-        # whichever facade happens to touch the value first.  `effect_declared`
-        # passed an int straight through to the effect facade, which concatenated
-        # it and raised `TypeError: can only concatenate str` -- an error type the
-        # controller has no repair branch for, so the producer got generic advice
-        # and burned its budget on the same mistake.  Every binding in the table
-        # is a path, so one check covers all of them.
-        for name in BINDING_DECLARATION_TABLE:
-            if name not in bindings:
+        for binding, value in bindings.items():
+            table = BINDING_DECLARATION_TABLE.get(binding)
+            if table is None:
+                # `condition` / `release` are FCSTM expressions, so no identifier
+                # shape applies -- but a placeholder is still a placeholder.  Left
+                # to itself it reaches the solver and comes back "fbmcq query parse
+                # failed", which is true and useless: the producer cannot tell from
+                # it that the problem is the binding rather than the query builder.
+                if isinstance(value, str) and _PLACEHOLDER.match(value.strip()):
+                    _require_identifier(value, binding, dotted=True)
                 continue
-            # An *absent* optional binding is fine and simply is not passed in;
-            # a binding that is present with a `None` value is not the same
-            # thing, and letting it through reached the effect facade as an
-            # unregistered item access -- another exception type with no repair
-            # branch behind it.
-            _need(bindings[name], name)
-
-        missing = tuple(sorted(k for k, v in bindings.items() if v == UNDECLARED))
-        if not missing:
-            return
-        checkable = {k: BINDING_DECLARATION_TABLE[k] for k in missing if k in BINDING_DECLARATION_TABLE}
-        populated = sorted(
-            f"{k} ({self._declared_count(t)} declared {t})"
-            for k, t in checkable.items()
-            if self._declared_count(t) > 0
-        )
-        undischargeable = sorted(
-            k for k, t in checkable.items() if t not in PROVABLY_EMPTY_TABLES
-        )
-        unreadable = sorted(set(missing) - set(checkable))
-        if populated or unreadable or undischargeable:
-            detail = []
-            if populated:
-                detail.append(
-                    "the model does declare elements of that kind: "
-                    + "; ".join(populated)
-                    + " -- name the one the claim is about, or explain in the "
-                    "requirement why none of them is it"
-                )
-            if unreadable:
-                detail.append(
-                    f"binding(s) {unreadable} are expressions, not declared "
-                    "elements, so their absence cannot be established; state the "
-                    "obligation over a state the model does declare"
-                )
-            if undischargeable:
-                detail.append(
-                    f"binding(s) {undischargeable} name states, and every model "
-                    "declares states, so an absence there can never be proved -- "
-                    "this claim has no executable primary. Emit supporting "
-                    "evidence and no primary; the controller then records an "
-                    "honest coverage gap"
-                )
-            raise UnsupportedEvidence(
-                f"binding(s) {list(missing)} are {UNDECLARED} but "
-                + "; and ".join(detail)
+            # `None` is not skipped.  An optional binding that is absent is simply
+            # not passed in (`terminates` and `response_within` do that), so a
+            # `None` arriving here is a required binding left unset -- and letting
+            # it through reached the effect facade as `unregistered item access:
+            # None`, an exception class the controller cannot dispatch on.
+            if value == PSEUDO_INITIAL:
+                continue  # the sanctioned literal for the initial configuration
+            _require_identifier(
+                value,
+                binding,
+                dotted=table != "variables",
+                # An event needs its root prefix; a state may be the root itself.
+                min_segments=2 if table == "events" else 1,
             )
-        empty = sorted({BINDING_DECLARATION_TABLE[k] for k in missing})
-        self._note_declaration_tables(empty)
-        raise UndeclaredTerm(
-            f"binding(s) {list(missing)} are {UNDECLARED}, and the model declares "
-            f"no {' or '.join(empty)} of its own: the NL imposes an obligation "
-            "the model has no term to carry. Read off the declaration table, so "
-            "the claim is false rather than unanswerable.",
-            bindings=missing,
-        )
-
-    def _note_declaration_tables(self, tables: list[str]) -> None:
-        """Record that the verdict rests on these tables being empty.
-
-        Without this the evidence record would name `structure` as the deciding
-        family with nothing in the call trace to back it, which is a claim the
-        run cannot support under audit.
-        """
-
-        for table in tables:
-            self._note(f"declaration_table:{table}:empty")
 
     # ---- helpers -----------------------------------------------------
     @staticmethod
@@ -568,7 +554,7 @@ class PredicateAPI:
         """The model declares a state at this path, of this kind."""
 
         self._reject_pseudo_initial("state_declared", state=state)
-        self._require_declared(state=state)
+        self._require_well_formed_names(state=state)
         self._note(state)
         rows = self.structure.states(path=_need(state, "state"), exact=True)
         if len(rows) != 1:
@@ -602,14 +588,16 @@ class PredicateAPI:
         promise evidence no other call can deliver.
         """
 
-        self._require_name_shape(name, kind="variable")
-        self._note(name)
+        # Without this the literal would be looked up as an ordinary name, not
+        # found, and answered `False` -- reinstating the manufactured-defect
+        # channel §11.1 records, through the very predicates added to replace it.
+        wanted = _require_identifier(name, "name", dotted=False)
+        self._note(wanted)
         owned = {
             item.removeprefix("compiler:route_control:")
             for item in self.source_exclusions
             if item.startswith("compiler:route_control:")
         }
-        wanted = _need(name, "name").strip()
         for row in self.structure.variables():
             if str(getattr(row, "name", "") or "") != wanted:
                 continue
@@ -619,9 +607,11 @@ class PredicateAPI:
     def event_declared(self, *, name: str) -> bool:
         """The model declares an event at this qualified path."""
 
-        self._require_name_shape(name, kind="event")
-        self._note(name)
-        wanted = _need(name, "name").strip()
+        # Without this the literal would be looked up as an ordinary name, not
+        # found, and answered `False` -- reinstating the manufactured-defect
+        # channel §11.1 records, through the very predicates added to replace it.
+        wanted = _require_identifier(name, "name", dotted=True, min_segments=2)
+        self._note(wanted)
         for row in self.structure.events():
             if str(getattr(row, "qualified_name", "") or "") == wanted:
                 return bool(getattr(row, "is_declared", True))
@@ -631,7 +621,7 @@ class PredicateAPI:
         """This child is a direct substate of this parent."""
 
         self._reject_pseudo_initial("containment", parent=parent, child=child)
-        self._require_declared(parent=parent, child=child)
+        self._require_well_formed_names(parent=parent, child=child)
         self._note(parent, child)
         rows = self.structure.states(
             parent=_need(parent, "parent"), recursive=False, exact=True
@@ -642,7 +632,7 @@ class PredicateAPI:
         """Entering this composite starts in this child."""
 
         self._reject_pseudo_initial("initial_target", composite=composite, child=child)
-        self._require_declared(composite=composite, child=child)
+        self._require_well_formed_names(composite=composite, child=child)
         self._note(composite, child)
         return self._initial_child_of(_need(composite, "composite")) == _need(
             child, "child"
@@ -716,7 +706,7 @@ class PredicateAPI:
     def edge_declared(self, *, source: str, trigger: str, target: str) -> bool:
         """The model declares an edge with this source, trigger and target."""
 
-        self._require_declared(source=source, trigger=trigger, target=target)
+        self._require_well_formed_names(source=source, trigger=trigger, target=target)
         self._note(source, trigger, target)
         self._note_transitions(source=source, event=trigger, target=target)
         return bool(
@@ -730,7 +720,7 @@ class PredicateAPI:
     ) -> bool:
         """This transition declares an effect on this variable, in this direction."""
 
-        self._require_declared(source=source, trigger=trigger, variable=variable)
+        self._require_well_formed_names(source=source, trigger=trigger, variable=variable)
         # Deliberately not noting `variable`: a bare name matches the
         # `compiler:route_control:<name>` exclusion kind-agnostically, so noting
         # it booked every variable finding as compiler-owned debt -- the exact
@@ -755,7 +745,7 @@ class PredicateAPI:
         """This state declares an entry, exit or during action."""
 
         self._reject_pseudo_initial("action_declared", state=state)
-        self._require_declared(state=state)
+        self._require_well_formed_names(state=state)
         self._note(state)
         rows = self.structure.states(path=_need(state, "state"), exact=True)
         if len(rows) != 1:
@@ -773,7 +763,7 @@ class PredicateAPI:
     def guard_distinguishable(self, *, source: str, trigger: str) -> bool:
         """A shared source and trigger cannot reach two targets indistinguishably."""
 
-        self._require_declared(source=source, trigger=trigger)
+        self._require_well_formed_names(source=source, trigger=trigger)
         self._note(source, trigger)
         self._note_transitions(source=source, event=trigger)
         # No matching transition means the question is unanswerable, not
@@ -857,7 +847,7 @@ class PredicateAPI:
         """This scope declares exactly this many non-pseudo direct substates."""
 
         self._reject_pseudo_initial("cardinality", scope=scope)
-        self._require_declared(scope=scope)
+        self._require_well_formed_names(scope=scope)
         self._note(scope)
         try:
             want = int(count)
@@ -878,7 +868,7 @@ class PredicateAPI:
         occupying a composite means occupying one of its leaves.
         """
 
-        self._require_declared(source=source, trigger=trigger, target=target)
+        self._require_well_formed_names(source=source, trigger=trigger, target=target)
         view = self._simulate(
             source=source,
             trigger=trigger,
@@ -900,7 +890,7 @@ class PredicateAPI:
         configuration accepts it.
         """
 
-        self._require_declared(source=source, trigger=trigger)
+        self._require_well_formed_names(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
         for cycle in getattr(view, "cycles", ()) or ():
             if trigger in (getattr(cycle, "consumed_events", ()) or ()):
@@ -910,7 +900,7 @@ class PredicateAPI:
     def stays_in(self, *, source: str, trigger: str) -> bool:
         """After this trigger the system remains in the same state."""
 
-        self._require_declared(source=source, trigger=trigger)
+        self._require_well_formed_names(source=source, trigger=trigger)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
         # Both halves matter.  Without the consumption check an ignored event
         # looks identical to a declared self-loop, so the missing-self-loop
@@ -929,7 +919,7 @@ class PredicateAPI:
         the executed path never reaches.
         """
 
-        self._require_declared(source=source, trigger=trigger, variable=variable)
+        self._require_well_formed_names(source=source, trigger=trigger, variable=variable)
         self._note(source, trigger)
         want = str(sign).strip().lower()
         if want not in {"negative", "positive"}:
@@ -955,7 +945,7 @@ class PredicateAPI:
     def reaches(self, *, source: str, target: str, within_cycles: int = 3) -> bool:
         """Within a bounded number of cycles this target is reachable from here."""
 
-        self._require_declared(source=source, target=target)
+        self._require_well_formed_names(source=source, target=target)
         # Reachability without events only ever exercises completion
         # transitions, so every target one event away was reported unreachable
         # -- a fabricated defect on the most common shape in this corpus.  Offer
@@ -1001,7 +991,7 @@ class PredicateAPI:
         # `trigger=None` means "offer every declared event", so it is an absent
         # binding rather than a malformed one and must not be handed to the guard.
         optional = {"trigger": trigger} if trigger is not None else {}
-        self._require_declared(scope=scope, **optional)
+        self._require_well_formed_names(scope=scope, **optional)
         # One cycle only ever saw the first step, so a final state two events
         # away was reported unreachable.  Drive the declared alphabet for a
         # bounded number of cycles instead: termination is a reachability
@@ -1040,7 +1030,7 @@ class PredicateAPI:
         a tautological hand-written formula from closing a real obligation.
         """
 
-        self._require_declared(scope=scope, condition=condition)
+        self._require_well_formed_names(scope=scope, condition=condition)
         query = self._formal_query("invariant", scope, condition, bound)
         return self._formal_holds(query)
 
@@ -1063,7 +1053,7 @@ class PredicateAPI:
         # `source=None` means "no configuration was named"; only a value that is
         # present can be malformed.
         optional = {"source": source} if source is not None else {}
-        self._require_declared(trigger=trigger, response=response, **optional)
+        self._require_well_formed_names(trigger=trigger, response=response, **optional)
         # Two things were wrong.  The response arm needs its own `within` or the
         # grammar rejects the query outright.  And with `within == bound` only
         # step 0 carries a complete obligation, so every later step lands in the
@@ -1093,7 +1083,7 @@ class PredicateAPI:
         """This state holds continuously until the release condition."""
 
         self._reject_pseudo_initial("persists_until", state=state)
-        self._require_declared(state=state, release=release)
+        self._require_well_formed_names(state=state, release=release)
         # `exists_always` is a *witness* property: it asks whether some bounded
         # run keeps the condition, and with no events injected that run always
         # exists -- the truth value could not change when the defect was

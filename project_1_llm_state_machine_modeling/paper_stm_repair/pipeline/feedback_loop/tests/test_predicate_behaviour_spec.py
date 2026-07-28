@@ -903,9 +903,9 @@ def test_the_two_name_shapes_are_enforced_rather_than_answered():
     manufactured out of a spelling convention is worse than a refusal.
     """
 
-    with pytest.raises(UnsupportedEvidence, match="bare variable name"):
+    with pytest.raises(UnsupportedEvidence, match="bare identifier"):
         call(RICH, "variable_declared", name="Root.units")
-    with pytest.raises(UnsupportedEvidence, match="fully qualified event path"):
+    with pytest.raises(UnsupportedEvidence, match="at least 2 path segments"):
         call(RICH, "event_declared", name="go")
 
 
@@ -916,3 +916,90 @@ def test_the_existence_predicates_are_structure_family():
 
     for name in ("variable_declared", "event_declared"):
         assert PREDICATE_FAMILIES[name][0] == "structure", name
+
+
+# --------------------------------------------------------------------------
+# Malformed names are refused, never answered (issue #170 §11.3)
+# --------------------------------------------------------------------------
+#
+# A name that could not possibly denote a declared element must not be looked up
+# and reported absent: the `False` that follows reads as "the model lacks this",
+# which is a defect manufactured out of a malformed string.  The shapes below come
+# from measuring the corpus -- 627 state paths, 387 event paths, 33 variable names,
+# every one an identifier or a dotted path of them.
+
+MALFORMED = [
+    ("空格", "Root Idle"),
+    ("引号注入", 'Root.Idle"); check reach <= 99: true; //'),
+    ("换行", "Root.Idle\ncheck reach <= 9: true;"),
+    ("分号", "Root.Idle;"),
+    ("连续点", "Root..Idle"),
+    ("尾点", "Root.Idle."),
+    ("首点", ".Root.Idle"),
+    ("数字开头", "0Root"),
+    ("连字符", "Root-Idle"),
+    ("中文", "Root.空状態"),
+    ("括号", "Root.Idle()"),
+    ("占位符", "<undeclared>"),
+    ("角括号变体", "<missing_state>"),
+]
+
+
+@pytest.mark.parametrize("label,value", MALFORMED, ids=[c[0] for c in MALFORMED])
+def test_a_malformed_state_path_is_refused_not_answered(label, value):
+    with pytest.raises(UnsupportedEvidence):
+        call(RICH, "state_declared", state=value, kind="any")
+
+
+@pytest.mark.parametrize("label,value", MALFORMED, ids=[c[0] for c in MALFORMED])
+def test_a_malformed_variable_name_is_refused_not_answered(label, value):
+    with pytest.raises(UnsupportedEvidence):
+        call(RICH, "variable_declared", name=value)
+
+
+@pytest.mark.parametrize("label,value", MALFORMED, ids=[c[0] for c in MALFORMED])
+def test_a_malformed_event_path_is_refused_not_answered(label, value):
+    with pytest.raises(UnsupportedEvidence):
+        call(RICH, "event_declared", name=value)
+
+
+def test_a_placeholder_gets_a_diagnosis_naming_the_replacement():
+    """Refusing is not enough; a producer reaching for it means something real.
+
+    It is expressing "the NL requires a term this model lacks", which is a claim
+    worth checking -- just not like this.  The message has to say where it belongs,
+    or the producer rewrites the same shape next round.
+    """
+
+    with pytest.raises(UnsupportedEvidence, match="placeholder, not a name") as caught:
+        call(RICH, "variable_declared", name="<undeclared>")
+    message = str(caught.value)
+    assert "proposed name" in message
+    assert "precondition" in message
+    assert "repair can add" in message
+
+
+def test_a_well_formed_absent_name_still_answers_false():
+    """The rule is about malformed values, not about absent ones.
+
+    A name that *could* have been declared and was not is exactly the finding this
+    layer exists to report, so it must not be swept up by the shape check.
+    """
+
+    assert call(RICH, "state_declared", state="Root.NoSuchState", kind="any") is False
+    assert call(RICH, "variable_declared", name="no_such_variable") is False
+    assert call(RICH, "event_declared", name="Root.no_such_event") is False
+
+
+def test_every_real_corpus_name_shape_is_accepted():
+    """Guard against a pattern tightened past the data.
+
+    Single-segment states occur once per model (the root), variables never carry a
+    prefix, and events always carry exactly one.  A rule that rejected any of these
+    would refuse legitimate work.
+    """
+
+    assert call(RICH, "state_declared", state="Root", kind="composite") is True
+    assert call(RICH, "state_declared", state="Root.Outer.First", kind="leaf") is True
+    assert call(RICH, "variable_declared", name="units") is True
+    assert call(RICH, "event_declared", name="Root.go") is True
