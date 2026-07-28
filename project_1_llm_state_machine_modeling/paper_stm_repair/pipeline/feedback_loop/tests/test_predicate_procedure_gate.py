@@ -630,3 +630,57 @@ def test_response_within_does_not_silently_repin_the_cold_start():
     # The default exists and differs from "no pin", which is what made the
     # substitution invisible.
     assert api._default_init() is not None
+
+
+# --------------------------------------------------------------------------
+# A dead end is worse than a rejection
+# --------------------------------------------------------------------------
+
+
+def test_a_literal_primary_is_rejected_and_the_message_names_the_exit():
+    """Pair 0006-gpt died with twelve revisions and a rationale, not a check.
+
+    Its Requirement bound `release` to `<undeclared>`.  Every route the converter
+    tried was closed: the predicate call is refused for an expression binding,
+    each substitute release condition was rejected by the Reviewer as changing
+    the obligation, and the twelfth attempt was `expression: "False"` with a
+    paragraph explaining why the model cannot satisfy the claim.
+
+    Rejecting that is correct -- a literal calls no predicate, so it asserts a
+    defect on no evidence at all.  But the producer had nowhere left to go, and
+    the run died at `convert_assertions`.  The legal move existed (emit no
+    primary; the controller records a coverage gap) and nothing told it so.
+    """
+
+    mismatch = procedure_mismatch("persists_until", frozenset())
+    assert mismatch is not None
+    message = mismatch[1]
+    assert "no predicate at all" in message
+    assert "`False`" in message, "the literal shape has to be named"
+    assert "emit no primary" in message, "the exit has to be named"
+    assert "coverage gap" in message
+
+
+def test_calling_the_wrong_predicate_still_gets_the_substitution_message():
+    """The two failures need different advice; do not collapse them."""
+
+    mismatch = procedure_mismatch("occupancy_after", frozenset({"edge_declared"}))
+    assert mismatch is not None
+    assert "called ['edge_declared'] instead" in mismatch[1]
+    assert "answers a different question" in mismatch[1]
+    assert "emit no primary" not in mismatch[1], (
+        "a producer that called the wrong predicate must not be told to omit it"
+    )
+
+
+def test_the_converter_prompt_states_the_no_primary_exit():
+    """The gate message is the second chance; the prompt is the first."""
+
+    from paper_stm_feedback_loop.discover import prompts
+
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    assert "do NOT write a primary" in converter
+    assert "not a bare `False` or any literal" in converter
+    assert "unchecked coverage gap" in converter
+    # And it must say why that is the honest answer rather than a cop-out.
+    assert "reporting it as a confirmed defect would not be" in converter

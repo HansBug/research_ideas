@@ -752,15 +752,32 @@ def procedure_mismatch(
     if predicate in called_functions:
         return None
     used = sorted(called_functions & PREDICATE_NAMES)
-    return (
-        predicate,
-        (
+    if used:
+        note = (
             f"predicate {predicate!r} must be discharged by calling "
             f"{signature_of(predicate)}; the primary assertion called "
-            f"{used or 'no predicate'} instead. Another predicate answers a "
-            f"different question, so it cannot close this claim."
-        ),
-    )
+            f"{used} instead. Another predicate answers a different question, so "
+            "it cannot close this claim."
+        )
+    else:
+        # No evidence call at all.  Pair 0006's converter reached this after the
+        # Reviewer had rejected every substitute release condition: it wrote
+        # `expression: "False"` with a rationale explaining why the model cannot
+        # satisfy the claim.  That is a conclusion, not a check -- it asserts a
+        # defect on no evidence -- so rejecting it is right.  But the producer had
+        # nowhere left to go, and repeated the shape until the run died.  Naming
+        # the exit turns a dead end into one more round.
+        note = (
+            f"predicate {predicate!r} must be discharged by calling "
+            f"{signature_of(predicate)}; the primary assertion called no "
+            "predicate at all. A literal such as `False` asserts a defect on no "
+            "evidence and can never be accepted. If the obligation genuinely "
+            "cannot be expressed against this model -- a `condition` or "
+            "`release` bound to `<undeclared>` is the usual case -- then emit no "
+            "primary for this requirement at all: supporting evidence plus a "
+            "rationale, and the controller records an honest coverage gap."
+        )
+    return (predicate, note)
 
 
 def unmodelled_claim_paths(
