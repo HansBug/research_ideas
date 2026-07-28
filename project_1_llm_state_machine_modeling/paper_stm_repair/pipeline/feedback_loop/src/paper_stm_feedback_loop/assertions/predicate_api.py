@@ -237,33 +237,10 @@ class PredicateAPI:
             if isinstance(ref, str) and ref and ref != UNDECLARED:
                 self._refs.append(ref)
 
-    def _declared_count(self, table: str) -> int:
-        """How many entries of this kind the *author* declared.
-
-        Route-control variables are the converter's own bookkeeping; the effect
-        facade already drops them from every answer, so counting them here would
-        report a model as having variables when nothing in the evidence layer
-        will ever answer about one.
-        """
-
-        rows = getattr(self.structure, table)()
-        if table != "variables":
-            return len(rows)
-        owned = {
-            item.removeprefix("compiler:route_control:")
-            for item in self.source_exclusions
-            if item.startswith("compiler:route_control:")
-        }
-        return sum(
-            1
-            for row in rows
-            if str(getattr(row, "name", "") or "") not in owned
-        )
-
-    #: Bindings for which `[*]` is meaningless.  Each of these asks about a
-    #: property of a *named declared state* -- its kind, its parent, its entry
-    #: target, its substate count, its lifecycle actions, whether it persists.
-    #: The pseudo-initial is a marker, not such a state, so none of those
+    #: Bindings for which `[*]` is meaningless.  Each asks about a property of a
+    #: *named declared state* -- its kind, its parent, its entry target, its
+    #: substate count, its lifecycle actions, whether it persists.  The
+    #: pseudo-initial is an entry marker, not such a state, so none of those
     #: questions has an answer about it.
     _NO_PSEUDO_INITIAL = {
         "state_declared": ("state",),
@@ -277,11 +254,11 @@ class PredicateAPI:
     def _reject_pseudo_initial(self, predicate: str, **bindings: Any) -> None:
         """Refuse `[*]` where it cannot mean anything, instead of answering False.
 
-        A producer learns from `occupancy_after(source="[*]")` that the literal
-        is legal and carries it across.  Every one of these then returned a
-        silent False -- "the model does not declare a state at [*]" -- which the
-        pipeline reads as a defect the model does not have.  Answering a
-        question nobody asked is worse than refusing to answer.
+        A producer learns from `occupancy_after(source="[*]")` that the literal is
+        legal and carries it across.  Each of these then returned a silent False --
+        "the model does not declare a state at [*]" -- which the pipeline reads as
+        a defect the model does not have.  Answering a question nobody asked is
+        worse than refusing to answer.
         """
 
         offenders = sorted(
@@ -925,21 +902,29 @@ class PredicateAPI:
         if want not in {"negative", "positive"}:
             raise UnsupportedEvidence(f"sign must be negative or positive, got {sign!r}")
         view = self._simulate(source=source, trigger=trigger, cycles=1)
+        cycles = view.cycles
+        before = getattr(getattr(view, "effective_initialization", None), "variables", None)
+        start = _read_var(before, variable)
+        end = _read_var(
+            getattr(cycles[-1], "variables", None) if cycles else None, variable
+        )
+        if start is None or end is None:
+            # Checked before consumption, deliberately.  A variable the model does
+            # not declare makes this claim undecidable, and the earlier order
+            # returned `False` for it whenever the trigger also happened not to
+            # fire -- so a producer that named a variable the model lacks, or
+            # forgot to depend on its existence precondition, got a verdict reading
+            # "the quantity did not decrease" for a quantity that does not exist.
+            raise UnsupportedEvidence(
+                f"variable {variable!r} is not observable in the simulation state. "
+                "If the NL requires a quantity this model has no variable for, "
+                "assert that variable's existence as a `precondition` and make this "
+                "assertion depend on it."
+            )
         if trigger not in self._consumed(view):
             # A completion transition may have moved the variable; that is not
             # evidence that *this* trigger does.
             return False
-        # `_consumed` reads the events off `view.cycles`, so reaching this line
-        # already means there is at least one cycle -- an `if not cycles` guard
-        # here was dead code, and dead code implies a case that cannot happen.
-        cycles = view.cycles
-        before = getattr(getattr(view, "effective_initialization", None), "variables", None)
-        start = _read_var(before, variable)
-        end = _read_var(getattr(cycles[-1], "variables", None), variable)
-        if start is None or end is None:
-            raise UnsupportedEvidence(
-                f"variable {variable!r} is not observable in the simulation state"
-            )
         return (end - start) < 0 if want == "negative" else (end - start) > 0
 
     def reaches(self, *, source: str, target: str, within_cycles: int = 3) -> bool:

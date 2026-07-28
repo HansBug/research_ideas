@@ -705,8 +705,14 @@ def test_duplicate_targets_among_three_branches_are_skipped_not_compared():
     assert overlapping._indistinguishable(rows) is True
 
 
-def test_a_trace_with_no_cycles_cannot_show_a_delta():
-    """An empty trace is "not observed", so the claim is unmet rather than met."""
+def test_a_trace_with_no_cycles_refuses_rather_than_answering():
+    """An empty trace observed nothing, so there is no delta either way.
+
+    This used to answer `False` -- the consumption check came first and returned
+    early.  That reads as "the quantity did not decrease", which is a claim about a
+    quantity the run never saw.  Observability is now checked first, so an
+    unobservable variable refuses regardless of what the trigger did.
+    """
 
     class Simulation:
         @staticmethod
@@ -721,13 +727,10 @@ def test_a_trace_with_no_cycles_cannot_show_a_delta():
         ),
         simulation=Simulation(),
     )
-    # `_consumed` sees nothing, so the trigger is treated as not having fired.
-    assert (
+    with pytest.raises(UnsupportedEvidence, match="not observable"):
         subject.variable_delta_after(
             source="Root.A", trigger="Root.go", variable="units", sign="negative"
         )
-        is False
-    )
 
 
 def test_a_frozen_view_in_the_namespace_is_serialised_structurally():
@@ -827,3 +830,34 @@ def test_only_guarded_entries_is_refused_not_answered():
     )
     with pytest.raises(UnsupportedEvidence, match="none is"):
         subject._initial_child_of("Root.Mode")
+
+
+def test_a_prefix_runs_under_the_alarm_when_one_is_configured():
+    """The timed path through `_exec_prefix`, which no other test reaches.
+
+    Every other script in the suite has an empty prefix, so the branch that arms
+    `SIGALRM` before executing it was never taken -- and that branch is what keeps a
+    runaway prefix from hanging a cell indefinitely.
+    """
+
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+    from paper_stm_feedback_loop.assertions.checker import AssertionChecker
+
+    checker = AssertionChecker(
+        environment=build_eval_environment(
+            model_text="state Root {\n    event go;\n    state Idle;\n    [*] -> Idle;\n}\n",
+            source_mappings=[],
+            source_exclusions=[],
+            timeout_seconds=30,
+            fbmcq_solver_timeout_ms=10_000,
+            fbmcq_max_bound=3,
+            fbmcq_process_wall_seconds=15.0,
+        )
+    )
+    script = (
+        "wanted = 1\n"
+        'assert len([state_declared(state="Root.Idle", kind="any")]) == wanted, '
+        '"[REQ-001][AST-REQ-001-1] m"'
+    )
+    result = checker.check(script, reason="prefix", required_function_families=())
+    assert result.sealed.outcome == "valid", result.sealed.metadata
