@@ -556,8 +556,73 @@ class PredicateAPI:
         self._reject_pseudo_initial("initial_target", composite=composite, child=child)
         self._require_declared(composite=composite, child=child)
         self._note(composite, child)
-        return self.structure.initial_child(_need(composite, "composite")) == _need(
+        return self._initial_child_of(_need(composite, "composite")) == _need(
             child, "child"
+        )
+
+    def _initial_child_of(self, composite: str) -> str | None:
+        """The state entering ``composite`` lands in, by UML entry semantics.
+
+        `structure.initial_child` demands exactly one declared initial edge and
+        refuses otherwise.  That is right for a hand-written machine and wrong for
+        a converted one: pair 0029's `HighwayMode` carries five, four of them
+        guarded on the converter's own route token --
+
+            [*] -> enter_hwy         if [R45RouteToken == 5]
+            [*] -> FinishState       if [R45RouteToken == 25]
+            [*] -> FinishState       if [R45RouteToken == 26]
+            [*] -> FinishState       if [R45RouteToken == 27]
+            [*] -> UnspecifiedInitial                            (unconditional)
+
+        -- so the predicate refused, the producer was charged three repair rounds
+        for an expression that could never execute, and a requirement the NL
+        plainly states ("entering HighwayMode starts in enter_hwy") was filed as
+        `no_progress`.  Two of pair 0029's requirements were lost that way in one
+        cell, and the reason recorded made it look like the producer's fault.
+
+        The guarded edges are re-entry points the converter generates for
+        cross-hierarchy transitions, not entry declarations.  Entry with no
+        history and no token set takes the unconditional edge, so that is the
+        initial child, and answering from it turns an unanswerable claim into a
+        decidable one.  The route-token names stay in the reference set, which is
+        what lets attribution mark the resulting finding as representation debt
+        rather than an authoring defect.
+        """
+
+        rows = self.structure.states(path=composite, exact=True)
+        if len(rows) != 1:
+            return None
+        targets = getattr(rows[0], "initial_targets", None) or []
+        # The rows come back as `FrozenView`, not dict -- the facade wraps nested
+        # structures too.  An `isinstance(t, dict)` filter here silently matched
+        # nothing and every call returned None, which reads as "the initial child
+        # is not the one claimed" rather than "this code could not look".
+        def field(item, name):
+            if isinstance(item, dict):
+                return item.get(name)
+            return getattr(item, name, None)
+
+        entries = [t for t in targets if field(t, "target")]
+        if not entries:
+            return None
+        unconditional = [t for t in entries if field(t, "is_unconditional")]
+        if len(unconditional) == 1:
+            for t in entries:
+                if not field(t, "is_unconditional"):
+                    # The guard names the converter's token; recording it is what
+                    # lets attribution see the lowering behind this answer.
+                    self._note(str(field(t, "guard") or ""))
+            return str(field(unconditional[0], "target"))
+        if len(unconditional) > 1:
+            raise UnsupportedEvidence(
+                f"{composite!r} declares {len(unconditional)} unconditional initial "
+                "edges, so entry is genuinely ambiguous and no single initial child "
+                "can be named"
+            )
+        raise UnsupportedEvidence(
+            f"{composite!r} declares {len(entries)} initial edges and none is "
+            "unconditional, so there is no entry the model takes without a guard "
+            "already being true; the claim cannot be decided from the declarations"
         )
 
     def edge_declared(self, *, source: str, trigger: str, target: str) -> bool:

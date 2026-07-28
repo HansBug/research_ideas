@@ -755,3 +755,87 @@ def test_effect_declared_and_variable_delta_after_can_disagree():
     # And on the flawed model both flip, because the declaration is what changed.
     assert call(FLAWED_EFFECT, "effect_declared", **common) is False
     assert call(FLAWED_EFFECT, "variable_delta_after", **common) is False
+
+
+# --------------------------------------------------------------------------
+# A converted model's entry declarations
+# --------------------------------------------------------------------------
+
+#: Pair 0029's shape: one unconditional entry plus converter-generated re-entry
+#: points guarded on its own route token.
+CONVERTED_ENTRY = """def int R45Token = 0;
+state Root {
+    event go;
+    state Mode {
+        state Wanted;
+        state Fallback;
+        [*] -> Wanted : if [R45Token == 5];
+        [*] -> Fallback;
+        Wanted -> Fallback : /go;
+    }
+    state Other;
+    [*] -> Mode;
+    Mode -> Other : /go;
+}
+"""
+
+
+def test_initial_target_answers_from_the_unconditional_entry():
+    """Five initial edges cost pair 0029 two requirements, filed as producer error.
+
+    `HighwayMode` declares one unconditional entry and four guarded on the
+    converter's route token.  The old implementation demanded exactly one edge and
+    refused, so the assertion could never execute; the producer was charged three
+    repair rounds and the requirement was recorded as `no_progress` -- which reads
+    as the model's author or the producer being at fault, when neither was.
+
+    Entry with no token set takes the unconditional edge, so that is the initial
+    child and the claim is decidable.
+    """
+
+    assert call(CONVERTED_ENTRY, "initial_target", composite="Root.Mode", child="Root.Mode.Fallback") is True
+    # And the guarded re-entry point is *not* the initial child, which is the
+    # finding the NL-derived requirement is looking for.
+    assert call(CONVERTED_ENTRY, "initial_target", composite="Root.Mode", child="Root.Mode.Wanted") is False
+
+
+def test_the_guarded_entries_stay_in_the_reference_set():
+    """Attribution needs to see the lowering behind that answer.
+
+    The finding is real but its cause is the conversion, not the author, so the
+    route-token guard has to reach the reference set or the issue is attributed
+    to the wrong party.
+    """
+
+    e = env(CONVERTED_ENTRY)
+    api = e.predicates
+    api.begin_call()
+    api.initial_target(composite="Root.Mode", child="Root.Mode.Fallback")
+    refs = api.consume_refs()
+    assert any("R45Token" in r for r in refs), refs
+
+
+def test_a_single_declared_entry_still_answers_directly():
+    """Control: the ordinary hand-written shape must not regress."""
+
+    assert call(RICH, "initial_target", composite="Root.Outer", child="Root.Outer.First") is True
+    assert call(RICH, "initial_target", composite="Root.Outer", child="Root.Outer.Second") is False
+
+
+def test_two_unconditional_entries_are_refused_as_genuinely_ambiguous():
+    """Real ambiguity is not the same as converter noise; keep refusing it."""
+
+    ambiguous = """state Root {
+    event go;
+    state Mode {
+        state A;
+        state B;
+        [*] -> A;
+        [*] -> B;
+        A -> B : /go;
+    }
+    [*] -> Mode;
+}
+"""
+    with pytest.raises(UnsupportedEvidence, match="unconditional initial"):
+        call(ambiguous, "initial_target", composite="Root.Mode", child="Root.Mode.A")
