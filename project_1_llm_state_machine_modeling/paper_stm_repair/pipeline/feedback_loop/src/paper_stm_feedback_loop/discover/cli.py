@@ -67,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fbmcq-canary-bound", type=int, default=3)
     parser.add_argument("--fbmcq-canary-wall-seconds", type=float, default=45.0)
     parser.add_argument("--skip-fbmcq-canary", action="store_true")
-    parser.add_argument("--transport-retries", type=int, default=2)
+    parser.add_argument("--transport-retries", type=int, default=4)
     return parser
 
 

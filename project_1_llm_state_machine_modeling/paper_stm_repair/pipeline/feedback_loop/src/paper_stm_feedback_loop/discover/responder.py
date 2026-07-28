@@ -6,6 +6,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from collections.abc import Callable
+from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -69,6 +70,60 @@ def _empty_structured_output(exc: Exception) -> bool:
         for item in items
         if isinstance(item, dict)
     )
+
+
+
+#: Seconds to wait before each retry.  Retrying with no gap is what made the
+#: existing budget useless: pair 0029's three attempts were issued 9 microseconds
+#: apart and all three landed inside the same 60-second Cloudflare 504 window, so
+#: the cell spent three minutes to fail exactly as it would have on one attempt.
+#: The schedule is deliberately longer than a gateway timeout, and long enough
+#: that a rate limit has a chance to clear.
+TRANSPORT_RETRY_DELAYS: tuple[float, ...] = (5.0, 20.0, 60.0, 120.0, 240.0)
+
+
+def _provider_retry_after_seconds(exc: BaseException) -> float | None:
+    """Read a numeric `Retry-After` hint off the provider exception, if any.
+
+    The provider knows better than any schedule when it will be ready; honouring
+    the header keeps a 429 from being retried into another 429.
+    """
+
+    seen: list[BaseException] = []
+    item: BaseException | None = exc
+    while item is not None and item not in seen:
+        seen.append(item)
+        response = getattr(item, "response", None)
+        headers = getattr(response, "headers", None) or getattr(item, "headers", None)
+        if isinstance(headers, Mapping):
+            raw = headers.get("retry-after") or headers.get("Retry-After")
+            try:
+                value = float(raw)
+            except (TypeError, ValueError):
+                value = 0.0
+            if value > 0:
+                return value
+        body = getattr(item, "body", None)
+        if isinstance(body, Mapping):
+            try:
+                value = float(body.get("retry_after"))
+            except (TypeError, ValueError):
+                value = 0.0
+            if value > 0:
+                return value
+        item = item.__cause__ or item.__context__
+    return None
+
+
+def _retry_delay(exc: BaseException, retry_index: int) -> float:
+    """How long to wait before retry number ``retry_index`` (0-based)."""
+
+    hinted = _provider_retry_after_seconds(exc)
+    if hinted is not None:
+        return hinted
+    if retry_index < len(TRANSPORT_RETRY_DELAYS):
+        return TRANSPORT_RETRY_DELAYS[retry_index]
+    return TRANSPORT_RETRY_DELAYS[-1]
 
 
 def _retryable_error(exc: Exception) -> bool:
@@ -156,7 +211,7 @@ class DirectStructuredResponder:
         *,
         registry_path: str | None = None,
         max_output_tokens: int | None = None,
-        transport_retries: int = 2,
+        transport_retries: int = 4,
         on_stream_chunk: Callable[[str, int, float], None] | None = None,
     ) -> None:
         registry = load_llm_registry(registry_path)
@@ -306,6 +361,9 @@ class DirectStructuredResponder:
                 )
                 if not retryable or attempt_index > self.transport_retries:
                     break
+                delay = _retry_delay(exc, attempt_index - 1)
+                attempts[-1]["retry_after_seconds"] = delay
+                time.sleep(delay)
 
         finished = _utc_now()
         unavailable = normalize_model_output_usage(None, status="failed")
