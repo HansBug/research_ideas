@@ -27,9 +27,12 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from audit_v4 import EXPECTED, _segment_macro_sources, _walk  # noqa: E402
+from audit_v4 import _segment_macro_sources, _walk  # noqa: E402
 
-ROOT = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas")
+# Derived, not hardcoded: this script used to carry an absolute path that only
+# worked on one machine, and it lives under version control now precisely so a
+# rebuilt machine still has it.
+ROOT = pathlib.Path(__file__).resolve().parents[3]
 REPORT = (
     ROOT
     / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"
