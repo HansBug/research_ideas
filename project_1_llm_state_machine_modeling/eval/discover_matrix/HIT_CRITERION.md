@@ -1,11 +1,8 @@
 # 命中判据：语义同一性优先于标签一致
 
-本文件是 Discover effectiveness 实验中「一条已发布 issue 是否命中某条 expected issue」的**裁决原则**。
-它是长期规则，不是某一轮的施工状态；施工进度与 review 状态在对应 GitHub PR / issue 中维护。
+本文件是 Discover effectiveness 实验中「一条已发布 issue 是否命中某条 expected issue」的**裁决原则**。它是长期规则，不是某一轮的施工状态；施工进度与 review 状态在对应 GitHub PR / issue 中维护。
 
-相关：[README.md](./README.md)、[GROUND_TRUTH_LIMITATIONS.md](./GROUND_TRUTH_LIMITATIONS.md)（分母的已知缺口）、Issue [#166](https://github.com/HansBug/research_ideas/issues/166)（expected issue 台帐）、
-Issue [#170](https://github.com/HansBug/research_ideas/issues/170)（谓词设计）、
-PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收）。
+相关：[README.md](./README.md)、[GROUND_TRUTH_LIMITATIONS.md](./GROUND_TRUTH_LIMITATIONS.md)（分母的已知缺口）、Issue [#166](https://github.com/HansBug/research_ideas/issues/166)（expected issue 台帐）、Issue [#170](https://github.com/HansBug/research_ideas/issues/170)（谓词设计）、PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收）。
 
 ---
 
@@ -20,15 +17,11 @@ PR [#169](https://github.com/HansBug/research_ideas/pull/169)（Discover 验收�
 
 ## 2. 为什么不看 family 标签
 
-Issue #166 的台帐建立于当前谓词体系**之前**。那时 19 个谓词的定位尚未形成，`required_function_families`
-是当时对「需要哪类证据」的粗略标注，用的是 `relation` / `structure` / `effect` 这套早期口径。
+Issue #166 的台帐建立于当前谓词体系**之前**。那时 19 个谓词的定位尚未形成，`required_function_families` 是当时对「需要哪类证据」的粗略标注，用的是 `relation` / `structure` / `effect` 这套早期口径。
 
-台帐 47 条 E1 的 `eval_assert` 全部调用当时的底层查询原语（`transition_exists` 22 次、`transitions` 11 次、
-`states` 9 次、`initial_child` 6 次、`effect_deltas` 2 次、`path` 2 次），**没有一条使用模拟**。
-而当前 Discover 产出的是 19 个封闭谓词的调用，其 family 由谓词表查得。
+台帐 47 条 E1 的 `eval_assert` 全部调用当时的底层查询原语（`transition_exists` 22 次、`transitions` 11 次、`states` 9 次、`initial_child` 6 次、`effect_deltas` 2 次、`path` 2 次），**没有一条使用模拟**。而当前 Discover 产出的是 19 个封闭谓词的调用，其 family 由谓词表查得。
 
-**两套标签之间存在信息代差，不是同一码事。** 因此 family 不一致本身不构成未命中的理由，也不构成
-方法论问题。这一点已经裁决：代差是预期的。
+**两套标签之间存在信息代差，不是同一码事。** 因此 family 不一致本身不构成未命中的理由，也不构成方法论问题。这一点已经裁决：代差是预期的。
 
 ## 3. 语义同一性的四种成立形态
 
@@ -58,9 +51,7 @@ Issue #166 的台帐建立于当前谓词体系**之前**。那时 19 个谓词�
 - 台帐 `eval_assert` 含 `event=` 时（**20 / 47**）：要求触发器精确绑定 + 至少一个状态重叠，**不检查 family**
 - 不含 `event=` 时（**27 / 47**）：要求期望的每个状态都匹配（容忍一级父子）**且 family 交集非空**
 
-第二支存在代差风险：那 27 条里有 **10 条要求 `relation`**，若系统用 `containment` / `state_declared`
-（family = `structure`）检出同一缺陷，family 交集为空而被判未命中。这 10 条分布在 9 个 pair：
-`0008 0009 0010 0018 0020 0038 0047 0049 0058`（category：TR 5、IT 4、GC 1）。
+第二支存在代差风险：那 27 条里有 **10 条要求 `relation`**，若系统用 `containment` / `state_declared`（family = `structure`）检出同一缺陷，family 交集为空而被判未命中。这 10 条分布在 9 个 pair：`0008 0009 0010 0018 0020 0038 0047 0049 0058`（category：TR 5、IT 4、GC 1）。
 
 **处理方式**：机械判据的结果不是终局。凡出现下列情形，必须按 §1 人工复核并在运行记录中写明理由：
 
@@ -70,24 +61,16 @@ Issue #166 的台帐建立于当前谓词体系**之前**。那时 19 个谓词�
 
 ## 6. 已用此原则修正过的结论
 
-- **matrix-v16 / v18 均为 10/10 命中**。此前记录的「v16 9/10 → v18 10/10 改善」不成立：那次未命中来自一份
-  仅覆盖 4 个 pair 的重建 ledger，其中 `EXP-0029-SH-001` 被写成要求 `{AutonomousMode, InitialState}`
-  两个状态都匹配，而原件只涉及 `AutonomousMode` 一个。
-- 六处谓词修复的实测价值在**精度侧**（捏造的已发布 issue 由 5 条降至 0 条，按证据重算、不依赖 ledger），
-  召回侧两轮都是满的。
-- 台帐 `EXP-0029-SH-001` 用的正是 `states(path='AutonomousMode.InitialState', exact=True)`，即
-  **提案路径的存在性检查**。因此「必须绑已声明路径才能命中」这一说法不成立；`containment(AutonomousMode,
-  InitialState)` 与 `state_declared(AutonomousMode.InitialState)` 两种写法都命中同一条。
+- **matrix-v16 / v18 均为 10/10 命中**。此前记录的「v16 9/10 → v18 10/10 改善」不成立：那次未命中来自一份仅覆盖 4 个 pair 的重建 ledger，其中 `EXP-0029-SH-001` 被写成要求 `{AutonomousMode, InitialState}` 两个状态都匹配，而原件只涉及 `AutonomousMode` 一个。
+- 六处谓词修复的实测价值在**精度侧**（捏造的已发布 issue 由 5 条降至 0 条，按证据重算、不依赖 ledger），召回侧两轮都是满的。
+- 台帐 `EXP-0029-SH-001` 用的正是 `states(path='AutonomousMode.InitialState', exact=True)`，即 **提案路径的存在性检查**。因此「必须绑已声明路径才能命中」这一说法不成立；`containment(AutonomousMode, InitialState)` 与 `state_declared(AutonomousMode.InitialState)` 两种写法都命中同一条。
 
 ## 7. ledger 的权威来源
 
 原始 ledger 曾一度被认为丢失，实际一直在 Issue #166 正文所链接的证据 gist 中：
 
 - gist `024ff833314ea6c3d30342290eda5906`，文件 `ledger.json`（370994 字节）
-- SHA-256 `03d8756650c079229dacb7fc2d7700ca98fda44f3c4648fd308e4f8e24ac955e`，与 #166 正文
-  「机器总账 SHA-256」逐字符一致
-- 已安装于 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`，
-  来源记录见同目录 `PROVENANCE.md`
+- SHA-256 `03d8756650c079229dacb7fc2d7700ca98fda44f3c4648fd308e4f8e24ac955e`，与 #166 正文「机器总账 SHA-256」逐字符一致
+- 已安装于 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`，来源记录见同目录 `PROVENANCE.md`
 
-`expected_issues_reconstructed.json` 自此仅作历史记录。代码在 frozen ledger 存在时一律优先使用它
-（`expected_ledger_provenance()` 返回 `frozen`）。**不要再基于重建版计算或引用任何命中数字。**
+`expected_issues_reconstructed.json` 自此仅作历史记录。代码在 frozen ledger 存在时一律优先使用它（`expected_ledger_provenance()` 返回 `frozen`）。**不要再基于重建版计算或引用任何命中数字。**

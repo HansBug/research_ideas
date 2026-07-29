@@ -1,17 +1,12 @@
 # 60 pair 人工审阅数据
 
-作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见
-[../MANUAL_REVIEW_SPEC.md](../MANUAL_REVIEW_SPEC.md)，命中判据见 [../HIT_CRITERION.md](../HIT_CRITERION.md)，
-分母的已知缺口见 [../GROUND_TRUTH_LIMITATIONS.md](../GROUND_TRUTH_LIMITATIONS.md)。
+作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见 [../MANUAL_REVIEW_SPEC.md](../MANUAL_REVIEW_SPEC.md)，命中判据见 [../HIT_CRITERION.md](../HIT_CRITERION.md)，分母的已知缺口见 [../GROUND_TRUTH_LIMITATIONS.md](../GROUND_TRUTH_LIMITATIONS.md)。
 
 完整报告与讨论：Issue [#171](https://github.com/HansBug/research_ideas/issues/171)。
 
 ## 为什么是人工判定
 
-机械元素 diff 不可用：参考独有而生成缺失的状态有 229 个，规范化大小写、分隔符与常见修饰词后
-降到 191，**仍余大量假缺失**——绝大多数是同一状态的不同命名（`human_mode` /
-`HumanDrivingMode`、`avoid_frontend_collision` / `F`）。原论文本身也把它的 stage (3)(4) 标为
-manual，正是因为元素对应关系无法机械判定。
+机械元素 diff 不可用：参考独有而生成缺失的状态有 229 个，规范化大小写、分隔符与常见修饰词后降到 191，**仍余大量假缺失**——绝大多数是同一状态的不同命名（`human_mode` / `HumanDrivingMode`、`avoid_frontend_collision` / `F`）。原论文本身也把它的 stage (3)(4) 标为 manual，正是因为元素对应关系无法机械判定。
 
 ## 主档与派生物
 
@@ -37,10 +32,7 @@ venv/bin/python project_1_llm_state_machine_modeling/eval/discover_matrix/render
 
 ## 组间信度（双盲复审）
 
-`reliability/` 下是 **12 例分层样本的双盲复审**，用于给出全量审阅结构上无法计算的组间信度
-（全量 60 case 零重叠，且 [../aggregate_manual_review.py](../aggregate_manual_review.py) 把重复
-审阅当作错误报出）。样本覆盖全部 10 个 NL 组、6 个 LLM、原审 `problem` 数 0–6 全区间；
-两个审阅者互不可见，也不可见原审结果与 `_summary.json`。
+`reliability/` 下是 **12 例分层样本的双盲复审**，用于给出全量审阅结构上无法计算的组间信度（全量 60 case 零重叠，且 [../aggregate_manual_review.py](../aggregate_manual_review.py) 把重复审阅当作错误报出）。样本覆盖全部 10 个 NL 组、6 个 LLM、原审 `problem` 数 0–6 全区间；两个审阅者互不可见，也不可见原审结果与 `_summary.json`。
 
 | 指标 | 结果 |
 | --- | --- |
@@ -50,12 +42,9 @@ venv/bin/python project_1_llm_state_machine_modeling/eval/discover_matrix/render
 | 三方一致判 0 problem | `0021` `0052` |
 | 唯一分歧 | `0017`（原审 0，盲A 2，盲B 3——三处带触发的初始边） |
 
-$\kappa = 0.750$ 落在 substantial agreement 区间。**但三方都是 LLM agent，高 $\kappa$ 可能部分
-反映同类模型的同类偏差，不等价于人类评审间一致性；它只证明判定可复现，不证明判定正确。**
+$\kappa = 0.750$ 落在 substantial agreement 区间。**但三方都是 LLM agent，高 $\kappa$ 可能部分反映同类模型的同类偏差，不等价于人类评审间一致性；它只证明判定可复现，不证明判定正确。**
 
-这批盲审还检验了「审阅单元与 NL 组混淆」的影响：两个盲审各自横跨全部 10 个 NL 组、**不含混淆**，
-而被指「最严厉」的 R2（NL03/04）与「最宽松」的 R5（NL09/10）之比在三方都复现
-（原审 6.00 / 盲A 5.25 / 盲B 2.10）。所以**组间相对高低可复现，绝对数值受拆分粒度强烈影响**。
+这批盲审还检验了「审阅单元与 NL 组混淆」的影响：两个盲审各自横跨全部 10 个 NL 组、**不含混淆**，而被指「最严厉」的 R2（NL03/04）与「最宽松」的 R5（NL09/10）之比在三方都复现（原审 6.00 / 盲A 5.25 / 盲B 2.10）。所以**组间相对高低可复现，绝对数值受拆分粒度强烈影响**。
 
 ## 判定档位
 
@@ -67,12 +56,9 @@ $\kappa = 0.750$ 落在 substantial agreement 区间。**但三方都是 LLM age
 | `extra` | 生成方多出、参考与 NL 都没有 | 31 | ✓ |
 | `uncertain` | 证据不足；卡点已写明 | 51 | ✗ |
 
-`out_of_scope` 标记 `concurrency` / `timing`。这两类在本研究问题定义外
-（`T0 + FSM/HSM/EFSM`，核心是层次 + 形式化 + 语义性），**既不计入问题也不静默丢弃**：
-29 条（并发 24 / 时间 5）逐条保留在主档里。
+`out_of_scope` 标记 `concurrency` / `timing`。这两类在本研究问题定义外（`T0 + FSM/HSM/EFSM`，核心是层次 + 形式化 + 语义性），**既不计入问题也不静默丢弃**：29 条（并发 24 / 时间 5）逐条保留在主档里。
 
-计入问题 = 132 + 31 − 9 = **154**（被扣除的 9 条是 verdict 为 `problem`/`extra` 且带
-`out_of_scope` 的那些；另 20 条 `out_of_scope` 落在 `similar`/`uncertain` 上，本就未计入）。
+计入问题 = 132 + 31 − 9 = **154**（被扣除的 9 条是 verdict 为 `problem`/`extra` 且带 `out_of_scope` 的那些；另 20 条 `out_of_scope` 落在 `similar`/`uncertain` 上，本就未计入）。
 
 ## 校验
 
@@ -87,9 +73,6 @@ $\kappa = 0.750$ 落在 substantial agreement 区间。**但三方都是 LLM age
 
 ## oracle 局限
 
-参考模型是论文作者**人工重建**的产物：论文 §7 自认 "we manually created them, which is
-subjective"，§4.2(4) 明写 "we **assume** the reference model is semantically correct"——
-正确性未经独立验证。本审阅在多个 NL 组发现参考模型自身与 NL 冲突（Issue #171 §5）。
+参考模型是论文作者**人工重建**的产物：论文 §7 自认 "we manually created them, which is subjective"，§4.2(4) 明写 "we **assume** the reference model is semantically correct"——正确性未经独立验证。本审阅在多个 NL 组发现参考模型自身与 NL 冲突（Issue #171 §5）。
 
-**因此这里的判定是「相对该参考模型」的，不等于绝对缺陷集**；作为 expected issue 候选池时
-必须再过 Issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的门槛。
+**因此这里的判定是「相对该参考模型」的，不等于绝对缺陷集**；作为 expected issue 候选池时必须再过 Issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的门槛。

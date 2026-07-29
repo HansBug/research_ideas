@@ -3,17 +3,22 @@
 Why the review is manual
 ------------------------
 The obvious way to compare an author-generated STM_0 against the paper's reference
-STM_0 is to diff their element sets.  I tried that first and it is not usable: of
-229 states present in a reference and absent from its generated counterpart, the
-overwhelming majority are the *same state under a different name* --
-`human_mode`/`HumanDrivingMode`, `avoid_frontend_collision`/`F`,
-`Search_for_the_Target`/`Search`.  Normalising case, separators and stock words
-cuts 229 to 191 and still leaves false gaps, because the remaining differences are
-semantic rather than lexical: a reference may split a transition in two where the
-generated model folds it, or name a region what the other names a state.
+STM_0 is to diff their element sets.  I tried that first and it is not usable.
+`mechanical_diff_baseline.py` derives the figures from the two released workbooks:
+exact name matching reports 175 reference-only states, and normalising case,
+separators and stock words cuts that to 127.  The 48 it removes were purely
+lexical -- `avoid_frontend_collision`/`FrontendCollision`,
+`Search_for_the_Target`/`Searching`.  The remaining 127 is still not the real gap
+count: a near-name heuristic errs in both directions, correctly pairing
+`EmergencyStoping`/`EmergencyStopping` (a typo on the reference side) while also
+pairing `choice2`/`choice3` and `Join1`/`Join2`, which are genuinely distinct
+pseudostates.  For scale: that one category alone reports 127, where the by-hand
+review found 132 problems across *every* category.
 
-That is also why the paper marks its own stages (3) and (4) as **manual**: element
-correspondence cannot be decided mechanically.  So this pipeline consumes a review
+The paper calls its own stage (2) SysML grammar and stage (3) SysML-standard
+semantics manual.  Stage (4), requirements consistency, is never called manual --
+it only states that the reference is assumed correct and an F1 computed, without
+saying how elements were aligned, so its matching is not reproducible either.  So this pipeline consumes a review
 where each difference was read and graded by hand, and its job is only to tally,
 cross-check and render -- never to re-derive a verdict.
 
@@ -43,6 +48,10 @@ import sys
 from collections import Counter, defaultdict
 
 HERE = pathlib.Path(__file__).resolve().parent
+_TOOLS = HERE.parents[2] / "tools"
+if str(_TOOLS) not in sys.path:
+    sys.path.insert(0, str(_TOOLS))
+from unwrap_markdown import unwrap as _unwrap  # noqa: E402
 ROOT = HERE.resolve().parents[2]
 LEDGER = (
     ROOT / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
@@ -229,6 +238,20 @@ def cross_reference(reviews: list[dict]) -> dict:
     return out
 
 
+def _flow(text: str | None, fallback: str = "—") -> str:
+    """A reviewer's free text, with any hard wrapping inside it folded away.
+
+    The reviewers wrote these fields across several lines. In Markdown that renders a
+    soft break as a space, which between two CJK characters is a stray space nobody
+    typed; and it makes the paragraph awkward to re-read in the published report. Folded
+    here rather than in the stored judgement, so the primary record keeps exactly what
+    the reviewer wrote.
+    """
+    if not text or not str(text).strip():
+        return fallback
+    return _unwrap(str(text).strip())
+
+
 def readable(review: dict, cross: dict) -> str:
     """One human-facing report per pair."""
 
@@ -254,7 +277,10 @@ def readable(review: dict, cross: dict) -> str:
     ]
     if info["out_of_scope"]:
         detail = "、".join(f"`{k}` {v} 条" for k, v in sorted(info["out_of_scope"].items()))
-        lines.append(f"问题定义外的差异：{detail}")
+        # Blank line first: without it this is the *same* Markdown paragraph as the
+        # count above, so it renders as one run-on line and any reflow pass folds the
+        # two statements together.  They are independent facts and want their own paragraph.
+        lines += ["", f"问题定义外的差异：{detail}"]
     lines += ["", "## 三方对照", "", "| 来源 | 记录 |", "| --- | --- |"]
     paper = info["paper"]
     lines += [
@@ -266,9 +292,9 @@ def readable(review: dict, cross: dict) -> str:
         f"| 台帐 status | {info['ledger']['status']} |",
         f"| 台帐 E1 | {', '.join(info['ledger']['e1_ids']) or '无'} |",
         "",
-        f"审阅者对照结论 — 相对论文：{review.get('vs_paper') or '（未填）'}",
+        f"审阅者对照结论 — 相对论文：{_flow(review.get('vs_paper'), '（未填）')}",
         "",
-        f"审阅者对照结论 — 相对台帐：{review.get('vs_ledger') or '（未填）'}",
+        f"审阅者对照结论 — 相对台帐：{_flow(review.get('vs_ledger'), '（未填）')}",
         "",
         "## 逐条差异",
         "",
@@ -280,7 +306,7 @@ def readable(review: dict, cross: dict) -> str:
             "",
             f"- 参考侧：`{diff.get('ref') or '—'}`",
             f"- 生成侧：`{diff.get('gen') or '—'}`",
-            f"- 理由：{diff.get('reason')}",
+            f"- 理由：{_flow(diff.get('reason'))}",
         ]
         if diff.get("assertable"):
             exists = diff.get("predicate_exists")
@@ -288,7 +314,7 @@ def readable(review: dict, cross: dict) -> str:
             lines.append(f"- 可断言形式（{mark}）：`{diff['assertable']}`")
         lines.append("")
     if review.get("notes"):
-        lines += ["## 审阅者备注", "", review["notes"], ""]
+        lines += ["## 审阅者备注", "", _flow(review["notes"]), ""]
     return "\n".join(lines)
 
 
