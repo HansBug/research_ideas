@@ -98,21 +98,45 @@ def test_the_event_is_observable_where_no_eventless_edge_competes():
     assert occupancy("Root.Auto.Settled", 1) is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect, pinned before the fix so the fix has something to satisfy. "
-        "strict=True on purpose: once the settle semantics land these XPASS and the "
-        "suite fails until this marker is removed, so the record cannot go stale."
-    ),
-)
 @pytest.mark.parametrize("source", ["Root.Auto.S1", "Root.Auto.S2", "Root.Auto"])
 @pytest.mark.parametrize("cycles", [1, 2, 3, 9])
 def test_an_eventless_completion_edge_must_not_swallow_the_event(source, cycles):
     """The obligation holds in this model; the predicate must not deny it.
 
-    Parametrised over the horizon because the bug is not a horizon shortfall --
-    every value fails, which is what rules out `within_cycles` as the remedy.
+    Parametrised over the horizon because the bug was not a horizon shortfall --
+    every value failed, which is what ruled out `within_cycles` as the remedy.
+
+    Fixed by counting the automatic chain instead of assuming it is one edge deep:
+    `_settle_cycles` spends empty cycles until the deepest active state stops
+    moving, then the trigger is offered.  Here that is 3 cycles from `Root.Auto`,
+    2 from `S1`, 1 from `S2` and 0 from `Settled`.
     """
 
     assert occupancy(source, cycles) is True, (source, cycles)
+
+
+def test_the_settle_depth_is_measured_rather_than_assumed():
+    """Pins the mechanism, so a regression cannot hide behind a passing verdict.
+
+    The old rule was `1 if composite else 0`, which is right for a composite's
+    entry into its initial child and for a leaf with nothing automatic outgoing --
+    523 of the corpus's 567 pinnable configurations.  The other 44 run 2 to 7 edges
+    deep, and this model reproduces that shape at depths 0 through 3.
+    """
+
+    from paper_stm_feedback_loop.assertions.predicate_api import PredicateAPI
+
+    entry = env()._raw_functions["occupancy_after"]
+    api = next(
+        candidate.__self__
+        for candidate in (entry if isinstance(entry, tuple) else (entry,))
+        if hasattr(candidate, "__self__")
+    )
+    assert isinstance(api, PredicateAPI)
+    assert api._settle_cycles("Root.Auto") == 3
+    assert api._settle_cycles("Root.Auto.S1") == 2
+    assert api._settle_cycles("Root.Auto.S2") == 1
+    # Nothing automatic leaves `Settled`, so the event is observable immediately.
+    assert api._settle_cycles("Root.Auto.Settled") == 0
+    # A leaf outside the chain likewise needs no settling.
+    assert api._settle_cycles("Root.Manual") == 0

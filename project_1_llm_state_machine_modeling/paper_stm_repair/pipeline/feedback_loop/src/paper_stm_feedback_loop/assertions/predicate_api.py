@@ -242,6 +242,9 @@ class PredicateAPI:
         # wrapper never has to re-derive them from a function name it no longer
         # recognises.
         self._refs: list[str] = []
+        # `_settle_cycles` costs one simulation per pinned configuration, and a
+        # script asks about the same handful of states repeatedly.
+        self._settle_cache: dict[str, int] = {}
 
     def begin_call(self) -> None:
         self._refs = []
@@ -415,6 +418,81 @@ class PredicateAPI:
                 "actually about."
             )
 
+    #: How many empty cycles to spend looking for a stable configuration before
+    #: giving up.  The longest automatic chain in the corpus is 7; 16 leaves room
+    #: without letting an automatic cycle spin indefinitely.
+    _SETTLE_LIMIT = 16
+
+    def _settle_cycles(self, pinned: str) -> int:
+        """Empty cycles needed before an offered event can be observed here.
+
+        An eventless completion edge is not waiting for anything: once its source
+        is active it fires, and the simulator commits one successor per cycle.  So
+        a configuration with one outgoing is not a configuration an event can be
+        observed in -- offered in that cycle, the trigger is simply not the thing
+        that fires, and the question comes back False on a model that answers it.
+
+        This used to be `1 if composite else 0`, which covers a composite's entry
+        into its initial child and nothing else.  Corpus-wide that is right for 523
+        of 567 pinnable configurations and wrong for the other 44, where the chain
+        runs 2 to 7 edges deep.  matrix-v16 published one of those as a confirmed
+        defect: pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
+        SubState3 -> FinalWaittr_0005` before anything can consume
+        `human_steering...`, and the requirement's obligation *is* met from the
+        settled position -- `occupancy_after` answers True when pinned there, and
+        False from every position an eventless edge leaves, at every horizon from 1
+        to 9.  Raising `within_cycles` cannot fix it because the event is offered
+        once and that offer lands on a cycle an unconditional edge has claimed.
+
+        Counting the chain rather than asking `_pins_a_composite` also makes the
+        composite/leaf distinction fall out: a composite pin leaves `pinned` on its
+        first cycle, and a leaf with no automatic edge does not move at all.
+
+        Known boundary, measured rather than assumed: four configurations in the
+        corpus never stabilise, all of them pair 0056's `SearchState` region, which
+        cycles `Area1 -> Area2 -> Area3` on completion edges.  There is no settled
+        position there to offer the event from.  Those keep the old behaviour rather
+        than being refused -- a refusal would turn a live search loop into a
+        coverage gap, and an event *can* be consumed inside the cycle even though
+        this layer cannot say which cycle to offer it in.
+        """
+
+        cached = self._settle_cache.get(pinned)
+        if cached is not None:
+            return cached
+        fallback = 1 if self._pins_a_composite(pinned) else 0
+        try:
+            view = self.simulation.simulate(
+                initial_state=pinned,
+                initial_vars=self._all_vars(),
+                cycles=[[] for _ in range(self._SETTLE_LIMIT)],
+            )
+        except Exception:
+            # The pin itself is refused in `_simulate`, with a better message.
+            return fallback
+        deepest = [
+            max(
+                (str(state) for state in (getattr(cycle, "active_states", ()) or ())),
+                key=lambda path: path.count("."),
+                default="",
+            )
+            for cycle in (getattr(view, "cycles", ()) or ())
+        ]
+        settled = fallback
+        if deepest:
+            first_stable = next(
+                (
+                    index
+                    for index in range(len(deepest) - 1)
+                    if deepest[index] == deepest[index + 1]
+                ),
+                None,
+            )
+            if first_stable is not None:
+                settled = 0 if deepest[0] == pinned else first_stable + 1
+        self._settle_cache[pinned] = settled
+        return settled
+
     def _pins_a_composite(self, path: str) -> bool:
         """Whether pinning here starts the machine above a leaf configuration."""
 
@@ -453,7 +531,7 @@ class PredicateAPI:
         events += [[] for _ in range(max(0, cycles - 1))]
         pinned = self._hot_startable(source)
         if pinned:
-            settle = 1 if self._pins_a_composite(pinned) else 0
+            settle = self._settle_cycles(pinned)
             try:
                 view = self.simulation.simulate(
                     initial_state=pinned,
