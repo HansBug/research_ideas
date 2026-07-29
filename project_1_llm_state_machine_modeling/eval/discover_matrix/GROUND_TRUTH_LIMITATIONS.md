@@ -43,19 +43,44 @@
 `E2a/pump_hierarchy_or_concurrency_ambiguity`、`E3/uav_concurrency_or_textual_effect_boundary`、
 `E2c/orthogonal_region_assertion_missing`。
 
-**这不是能力不足，是问题定义的边界**：本研究的状态机对象是 FSM / HSM / EFSM 类模型，
-其形式定义中**不含正交区与并发语义**；同理，时间约束类（台帐 taxonomy 的 `TO`，
-实际 0 条）也不在本问题定义内。两处在语料侧亦有对应边界：R4.5 表示层的
+**这不是方法未能检出，是本轮评测的边界**：本轮 Discover 实验的断言对象是
+FSM / HSM / EFSM 类状态机模型，其形式定义中**不含正交区与并发语义**；同理，时间约束类
+（台帐 taxonomy 的 `TO`，实际 0 条）也不在本轮的断言对象内。语料侧有对应边界：R4.5 表示层的
 `r4_5_boundary` 明写 `do not infer guard/effect/timing/concurrency`，
 `PlantUML concurrent region 29/29` 只保留结构与顺序、不声称已实现正交并发执行。
 
 **论文中应如实写明**：分母系统性排除了基线论文最大的一类语义问题（18/50 = 36% 的语义条目），
-原因是问题定义不覆盖正交并发，而非方法未能检出。不得把该类的缺席呈现为"这些模型没有此类问题"。
+原因是该类不在本轮评测的断言对象内，而非方法未能检出。不得把该类的缺席呈现为
+"这些模型没有此类问题"。§2.1 给出它与总纲创新点的关系。
 
-> ⚠️ **需确认的一处定位张力**：仓库总纲 [TARGET.md](../../../TARGET.md) 第 238 行的创新点 1 写
-> 「系统性解决层次化状态、**并发行为**和时间属性的建模难题」。若 paper1 把并发与时间列为
-> limitation，需要明确二者关系——是 paper1 范围内不做、留给后续 project，还是总纲措辞需要调整。
-> 本文件不代为裁定，仅标出该张力以免论文自相矛盾。
+### 2.1 与总纲创新点的关系（已裁定）
+
+[TARGET.md](../../../TARGET.md) 第 238 行的创新点 1 写「系统性解决层次化状态、**并发行为**和
+时间属性的建模难题」。这与本节的 limitation **不冲突**，因为两者说的是不同的东西：
+
+| | 对象 | 陈述 |
+| --- | --- | --- |
+| 总纲创新点 | **建模方法的能力** | 方法面向含层次、并发、时间的控制系统状态机 |
+| 本节 limitation | **本轮 effectiveness 实验 oracle 的覆盖范围** | 这批 60 例的 expected issue 分母不含并发与时间类可判定命题 |
+
+分母不含它们有两条独立于方法能力的原因：
+
+1. **语料的表示层不推断并发与时间**。R4.5 的 `r4_5_boundary` 明写
+   `do not infer guard/effect/timing/concurrency`；`PlantUML concurrent region 29/29`
+   只保留结构与顺序，不声称已实现正交并发执行。所以即使方法能建模并发，**这批 FCSTM 制品里
+   没有可供断言的并发语义**。
+2. **oracle 无法在归因安全的前提下形成并发/时间命题**。台帐门槛要求逐 issue 绑定
+   attribution-safe source trace entry；并发相关的候选一律落在 `E2a/E2c/E3`
+   （`pump_hierarchy_or_concurrency_ambiguity`、`orthogonal_region_assertion_missing`、
+   `uav_concurrency_or_textual_effect_boundary`），时间类落在
+   `E2c/camera_timing_adapter_missing`。
+
+**论文中的正确写法**：把它写成**评测边界**而非方法边界——"本次 effectiveness 实验的
+expected issue 集合不含正交并发与时间约束类命题，因为该批语料的表示层按设计不推断这两类语义，
+oracle 亦无法在归因安全前提下形成对应命题；方法本身对这两类的支持不在本实验的度量范围内。"
+
+不要写成"方法不支持并发"，也不要写成"这些模型没有并发问题"——后者与基线论文的记录直接矛盾
+（`missing regions` 是其最大语义类）。
 
 ---
 
