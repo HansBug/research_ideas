@@ -23,9 +23,23 @@
   表反推被转换器拆成多段的源迁移）。
 - `launch_cells_serial.sh` —— 串行启动单元格的历史脚本，保留作参考。
 
-## 外部依赖（不在本仓库内）
+## 预期缺陷台账：已丢失，已重建，已校准
 
-命中判据需要预期缺陷台账：
-`.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`。
-该文件从未被 git 跟踪，且已在 2026-07-29 重装中丢失。缺失时 `_expected_paths()`
-会抛 `FileNotFoundError`——这是**有意的**：没有 ground truth 就不该产出命中数字。
+命中判据需要 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`。
+该文件从未被 git 跟踪，已在 2026-07-29 重装中丢失，且无法从已发布的 bundle 恢复——
+bundle 保留了判定结果，没保留判据所解析的 `eval_assert` 原文。
+
+- `expected_issues_reconstructed.json` 是重建物，覆盖 8 格矩阵用到的 4 对。权威内容
+  来自 issue #166（它对这 4 对的记录与丢失台账逐项一致）；机器可核验的路径集是对着
+  各 pair 自己的 `fcstm.fcstm` 解析出来的，每条都附上它所指的缺陷边原文。
+  `EXP-0006-EA-001` 的 `eval_assert` 是**原件**（在会话记录里幸存），其余四条是重建。
+- **重建物不以"看起来合理"被接受。** `test_ledger_reconstruction.py` 要求它在
+  matrix-v11（最后一次在真台账下产出的矩阵）上复现该台账给出的 12 条判定、其中 10 条
+  命中。判据对"某条预期缺陷究竟点名了哪些路径"高度敏感——无触发事件时要求状态**全
+  匹配**，多列一个状态就会把真命中判成漏。0029 的结构缺陷正是这种情形：#166 描述为
+  三个兄弟状态，而 v11 的命中项只绑定了两个。
+- `calibration_matrix_v11.json` 保存该校准所需的输入。运行目录按设计不被跟踪，上一个
+  已经丢了，所以校准的输入必须自己留一份。
+- 真台账一旦恢复即自动优先（`_expected_ledger_path()`），且所用来源会写入每个审计制品
+  的 `expected_ledger_provenance` 字段——命中率是头号数字，读者必须能自己看出它是不是
+  建立在重建物上，而不是听谁说。

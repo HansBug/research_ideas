@@ -138,6 +138,42 @@ def load_cell(d: pathlib.Path) -> dict:
 _EXPECTED_PATHS: dict[str, dict[str, frozenset[str]]] = {}
 
 
+#: The frozen ledger, and the reconstruction that stands in when it is absent.
+#:
+#: The ledger was lost in the 2026-07-29 machine rebuild -- never tracked by git,
+#: not recoverable from the published bundles, which preserve verdicts but not the
+#: `eval_assert` texts the hit criterion parses.  The reconstruction rebuilds only
+#: those texts, from issue #166's authoritative inventory resolved against each
+#: pair's own FCSTM, and covers four pairs.
+#:
+#: The real ledger wins whenever it is present, and which one was used is recorded
+#: in every audit artifact.  A hit rate is a headline number; a reader has to be
+#: able to see that it rested on a reconstruction without taking anyone's word.
+LEDGER = (
+    ROOT / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
+)
+RECONSTRUCTED_LEDGER = (
+    pathlib.Path(__file__).resolve().parent / "expected_issues_reconstructed.json"
+)
+
+
+def _expected_ledger_path() -> pathlib.Path:
+    if LEDGER.exists():
+        return LEDGER
+    if RECONSTRUCTED_LEDGER.exists():
+        return RECONSTRUCTED_LEDGER
+    raise FileNotFoundError(
+        f"no expected-issue ledger: neither {LEDGER} nor {RECONSTRUCTED_LEDGER}. "
+        "Refusing to report hit rates without ground truth."
+    )
+
+
+def expected_ledger_provenance() -> str:
+    """`frozen` or `reconstructed`, for the record every artifact carries."""
+
+    return "frozen" if LEDGER.exists() else "reconstructed"
+
+
 def _expected_paths(case: str) -> dict[str, frozenset[str]]:
     """`{expected_issue_id: paths its eval_assert names}` for one pair."""
 
@@ -145,12 +181,7 @@ def _expected_paths(case: str) -> dict[str, frozenset[str]]:
 
     if case in _EXPECTED_PATHS:
         return _EXPECTED_PATHS[case]
-    ledger = json.loads(
-        (
-            ROOT
-            / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
-        ).read_text()
-    )
+    ledger = json.loads(_expected_ledger_path().read_text())
     found: dict[str, frozenset[str]] = {}
 
     def walk(node):
@@ -467,6 +498,7 @@ def audit_json(rec, commit: str) -> dict:
         },
         "node_failures": rec["node_failures"],
         "predicate_procedure_gate_rejections": rec["gate_d"],
+        "expected_ledger_provenance": expected_ledger_provenance(),
         "segment_macro_source_ids": sorted(_segment_macro_sources(rec["case"])),
     }
 
