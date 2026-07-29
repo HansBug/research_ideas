@@ -49,9 +49,22 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
     # on a model that terminates correctly.  These two keys are what the four-step
     # procedure's step 1 reads.
     facts = frozen.pseudo_state_facts or {}
-    payload["terminating_transitions"] = list(
-        facts.get("terminating_transitions") or ()
-    )
+    # Full rows only for the edges a claim can be built on.  The rest exist to
+    # answer one question -- "the model text shows `X -> [*]` here, why is that not
+    # termination?" -- and a per-scope tally answers it in a line.  Spelled out, pair
+    # 0029's 36 exit rows added 8.5 KB to a 2 KB vocabulary, and its requirement
+    # splitter is the one call in the corpus whose response the gateway truncates.
+    rows = list(facts.get("terminating_transitions") or ())
+    payload["terminating_transitions"] = [row for row in rows if row.get("ends_run")]
+    exits: dict[str, int] = {}
+    for row in rows:
+        if not row.get("ends_run"):
+            exits[str(row.get("exits_scope") or "")] = (
+                exits.get(str(row.get("exits_scope") or ""), 0) + 1
+            )
+    payload["composite_exits_not_terminating"] = [
+        {"exits_scope": scope, "edges": count} for scope, count in sorted(exits.items())
+    ]
     payload["terminating_transitions_note"] = (
         "Every `-> [*]` edge the model declares. `[*]` leaves whatever scope owns "
         "the source, so it ends the run only when that scope is the root -- read "
@@ -59,12 +72,13 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "finishing, ending or shutting down is answered by `terminates` over that "
         "source and trigger; there is no state to bind, so proposing a `FinalState` "
         "name reports a defect against a model that is correct. `ends_run: false` "
-        "means the edge exits the composite named in `exits_scope` and routes "
-        "onward, so a completion claim there is a reachability question "
-        "(`occupancy_after` / `reaches`) about a declared state, not a termination. "
+
         "`via_token` records the two-edge form the converter emits: the inner exit "
-        "sets a route token and an outer edge ends the run on it. If no row has "
-        "`ends_run: true`, nothing ends the run -- a completion claim is then about "
+        "sets a route token and an outer edge ends the run on it. Every other `-> [*]` "
+        "edge is tallied per scope under `composite_exits_not_terminating`: those "
+        "leave a composite and route onward, so a completion claim over one is a "
+        "reachability question (`occupancy_after` / `reaches`) about a declared "
+        "state, not `terminates`. If this list is empty, nothing ends the run -- a completion claim is then about "
         "reaching a declared state, or, when no declared state carries the "
         "sentence's completion notion at all, step 4 applies and you propose the "
         "name."
