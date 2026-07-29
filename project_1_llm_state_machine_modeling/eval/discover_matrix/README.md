@@ -14,7 +14,13 @@
 带一层容差 → 以触发事件为锚），每一次都是因为前一版会把错误的 issue 记成命中。
 这种东西必须可追溯。
 
-## 先读裁决原则
+## 先读裁决原则与已知缺口
+
+[HIT_CRITERION.md](./HIT_CRITERION.md) 定义什么算命中；
+[GROUND_TRUTH_LIMITATIONS.md](./GROUND_TRUTH_LIMITATIONS.md) 记录分母**系统性不覆盖**什么，
+以及每处缺口是问题定义边界还是待补欠账——引用召回率前必须读后者，否则会把
+「问题定义不做的类」误报成「方法没检出」。
+
 
 [HIT_CRITERION.md](./HIT_CRITERION.md) 是「命中」的定义所在：**语义同一性优先于标签一致**。
 `expected_verdicts()` 的路径重叠只是它的机械近似，不是终局；该文件同时列出机械判据已知会
