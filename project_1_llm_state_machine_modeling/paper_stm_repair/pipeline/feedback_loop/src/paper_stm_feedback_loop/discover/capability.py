@@ -62,6 +62,7 @@ __all__ = [
     "redundant_proposal_findings",
     "termination_proposal_findings",
     "CLAIM_SUBJECT_BINDINGS",
+    "SCOPE_LOCAL_WAIVER",
     "declared_path_bindings",
     "source_omitting_response_calls",
     "SOURCE_SENSITIVE_PHASES",
@@ -515,6 +516,27 @@ class _RequirementSpec(Protocol):
     requirement_id: str
     predicate: str
     predicate_bindings: dict[str, str]
+    limitations: tuple[str, ...]
+
+
+#: The phrase a Requirement must contain in `limitations` to keep a proposed name
+#: the step-2 comparison would otherwise refuse.
+#:
+#: Step 2 cannot tell a *shared* element from one the sentence wants *per scope*.
+#: `FinishState` declared once and reached from both modes is the first; "each
+#: region shall have its own Idle" on a model declaring only `RegionA.Idle` is the
+#: second, and there the refusal has no legal answer -- bind the declared path and
+#: the requirement now says something else, keep the proposal and the gate fires
+#: again, five rounds and the run dies.  That is the shape that killed pair 0006
+#: twice, so the gate carries an exit.
+#:
+#: An exit that costs nothing would be taken by default, so this one costs a
+#: sentence the Requirement Reviewer then reads: the producer has to say the
+#: sentence demands a scope-local instance, and the reviewer judges that claim
+#: (step 3 versus step 4 is its job anyway).  Same bargain as `mandatory_waiver`
+#: -- waivable, but only against an explicit justification that lands in the run
+#: record.
+SCOPE_LOCAL_WAIVER = "scope-local instance required"
 
 
 #: Bindings that name the *subject* of a claim -- what the run must reach or hold.
@@ -539,6 +561,13 @@ def redundant_proposal_findings(
     Deterministic from the vocabulary alone, so it is a gate: leaving it to the
     Requirement Reviewer asks a judgement call of something a comparison settles,
     and a reviewer that misses it costs the item its repair budget.
+
+    What the comparison cannot settle is *shared* versus *per scope*, so a
+    Requirement whose `limitations` states `SCOPE_LOCAL_WAIVER` keeps its proposal
+    and the reviewer judges it instead.  Measured over the corpus this is a rare
+    need -- 7 of 60 models declare any leaf name twice, and in those the repeated
+    name is the converter's own `UnspecifiedInitial` -- but the cost of being
+    wrong without an exit is the whole run.
     """
 
     by_leaf: dict[str, list[str]] = {}
@@ -546,6 +575,12 @@ def redundant_proposal_findings(
         by_leaf.setdefault(path.rsplit(".", 1)[-1], []).append(path)
     findings: list[str] = []
     for item in requirements:
+        waived = any(
+            SCOPE_LOCAL_WAIVER in str(entry).lower()
+            for entry in (getattr(item, "limitations", ()) or ())
+        )
+        if waived:
+            continue
         for binding, value in (item.predicate_bindings or {}).items():
             text = str(value).strip()
             if not text or text == PSEUDO_INITIAL or text in known_paths:
@@ -555,7 +590,10 @@ def redundant_proposal_findings(
                 findings.append(
                     f"{item.requirement_id} proposes {binding}={text!r} while the "
                     f"vocabulary already declares {declared}; bind the declared "
-                    "path (step 2)"
+                    f"path, or -- if the sentence really requires an instance "
+                    f"inside this scope rather than the shared one -- say "
+                    f"{SCOPE_LOCAL_WAIVER!r} in limitations and the Reviewer will "
+                    "judge that (step 2)"
                 )
     return tuple(findings)
 

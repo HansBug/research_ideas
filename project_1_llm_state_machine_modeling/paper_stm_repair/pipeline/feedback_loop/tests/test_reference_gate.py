@@ -324,10 +324,11 @@ def test_an_existence_check_needs_no_precondition_of_its_own():
 class Req:
     """A requirement carrying only what the two step gates read."""
 
-    def __init__(self, rid, predicate, bindings):
+    def __init__(self, rid, predicate, bindings, limitations=()):
         self.requirement_id = rid
         self.predicate = predicate
         self.predicate_bindings = bindings
+        self.limitations = tuple(limitations)
 
 
 GATE_KNOWN = frozenset({"Sys.ModeA", "Sys.ModeA.Inner", "Sys.RegionA.Done", "Sys.go"})
@@ -474,3 +475,85 @@ def test_the_declared_elsewhere_gate_compares_leaf_names():
     assert redundant_proposal_findings(
         (Req("REQ-004", "occupancy_after", {"source": "[*]", "target": ""}),), GATE_KNOWN
     ) == ()
+
+
+def test_the_declared_elsewhere_gate_has_an_exit_the_reviewer_judges():
+    """Because the comparison cannot tell *shared* from *wanted per scope*.
+
+    One `FinishState` reached from both modes is shared, and refusing a proposal
+    for it is right.  "Each region shall have its own Idle" on a model declaring
+    only `RegionA.Idle` is not, and there the refusal has no legal answer: bind the
+    declared path and the requirement says something else, keep the proposal and
+    the gate fires again -- five rounds, then the run dies.  That is the shape that
+    killed pair 0006 twice.
+
+    So the exit costs a sentence rather than nothing: the producer must state that
+    the sentence demands a scope-local instance, which the Requirement Reviewer
+    then judges as the step-3-versus-step-4 call it already owns.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        SCOPE_LOCAL_WAIVER,
+        redundant_proposal_findings,
+    )
+
+    proposal = {"target": "Sys.RegionB.Done"}
+    assert len(redundant_proposal_findings((Req("R1", "occupancy_after", proposal),), GATE_KNOWN)) == 1
+    # The message has to name the exit, or the producer cannot find it.
+    assert SCOPE_LOCAL_WAIVER in redundant_proposal_findings(
+        (Req("R1", "occupancy_after", proposal),), GATE_KNOWN
+    )[0]
+    # Stated, the proposal survives to the Reviewer.
+    assert redundant_proposal_findings(
+        (
+            Req(
+                "R2",
+                "occupancy_after",
+                proposal,
+                limitations=(
+                    f"NL-L009 requires a per-region completion state; "
+                    f"{SCOPE_LOCAL_WAIVER} rather than the shared Sys.RegionA.Done",
+                ),
+            ),
+        ),
+        GATE_KNOWN,
+    ) == ()
+    # An unrelated limitation is not an exit: the waiver has to be said.
+    assert len(
+        redundant_proposal_findings(
+            (Req("R3", "occupancy_after", proposal, limitations=("checked to bound 4 only",)),),
+            GATE_KNOWN,
+        )
+    ) == 1
+
+
+def test_the_termination_chain_ignores_an_unnamed_scope_or_trigger():
+    """The chain walk is what catches a composite that terminates via the lowering.
+
+    It is reached only from bindings that may be absent -- a requirement can omit
+    `source` and `trigger` both -- so the guard has to hold, or the chain check
+    starts matching every exit edge in the model against an empty scope.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        termination_proposal_findings,
+    )
+
+    chain = (
+        {"source": "Sys.ModeA.Inner", "trigger": "Sys.go", "ends_run": False},
+        {"source": "Sys.ModeA", "trigger": None, "ends_run": True},
+    )
+    # No source at all: nothing to key the chain on, so no finding.
+    assert termination_proposal_findings(
+        (Req("R1", "occupancy_after", {"trigger": "Sys.go", "target": "Sys.TheEnd"}),),
+        GATE_KNOWN,
+        chain,
+    ) == ()
+    # Source but no trigger still resolves through the direct-source fallback.
+    assert len(
+        termination_proposal_findings(
+            (Req("R2", "reaches", {"source": "Sys.ModeA", "target": "Sys.TheEnd"}),),
+            GATE_KNOWN,
+            chain,
+        )
+    ) == 1
