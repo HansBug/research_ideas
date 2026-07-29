@@ -649,7 +649,10 @@ def redundant_proposal_findings(
                     + (
                         f", whose False is then the finding: {item.predicate} answers "
                         "False precisely because the element sits outside the scope "
-                        "the sentence names, so there is nothing to propose (step 2)"
+                        "the sentence names. A proposal instead needs a "
+                        "state_declared precondition that is False for that same "
+                        "reason, which blocks the dependent and reports nothing at "
+                        "all (step 2)"
                         if item.predicate in _DECLARED_PATH_IS_THE_CLAIM
                         else f", or -- if the sentence really requires an instance "
                         f"inside this scope rather than the shared one -- open a "

@@ -635,12 +635,23 @@ def test_containment_and_initial_target_get_no_waiver_because_their_false_is_the
 
     "X shall be a substate of M" against a model declaring X at the root is answered
     by `containment(parent=M, child=<the declared X>)` coming back False -- the
-    obligation is violated exactly because the declared state sits outside M.  A
-    proposal restates that through an existence check plus a dependent, costs a
-    conversion round to add the precondition, and drops the declared path the finding
-    was anchored to.  matrix-v16's 0029-gpt took that route after the reviewer
-    invoked the waiver, spent a convert round on the unresolved reference, and bound
-    a path the hit criterion cannot match.
+    obligation is violated exactly because the declared state sits outside M.
+
+    A proposal does not merely restate it worse -- it *destroys* the finding.  The
+    proposed path needs a precondition `state_declared(M.X)`, which is False for
+    exactly the reason the requirement is violated, so the dependent primary is
+    `blocked` and never runs.  The defect silences its own detector.
+
+    matrix-v16 shows both outcomes on one pair.  0029-gpt sealed
+    `AST-REQ-002-1 containment(AutonomousMode, AutonomousMode.InitialState)` as
+    `blocked` behind `state_declared(AutonomousMode.InitialState)` and published no
+    issue for the structural defect; 0029-claude bound the declared root path,
+    got a direct False, and hit it.  Same defect, same model, one lost hit.
+
+    The exemption stays narrow on purpose: 0029-gpt's `REQ-030A..E` propose
+    `UrbanMode.FinishState` for `occupancy_after`/`edge_declared` primaries, where the
+    declared path is a *route to* the claim rather than the claim, and those keep the
+    waiver.
     """
 
     from paper_stm_feedback_loop.discover.capability import (

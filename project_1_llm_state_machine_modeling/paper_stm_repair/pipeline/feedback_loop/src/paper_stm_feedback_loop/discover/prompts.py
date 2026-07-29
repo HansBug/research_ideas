@@ -180,9 +180,10 @@ apply. Their False *is* the finding: "the standby step shall sit inside the warm
 mode" against a model that declares `Sys.Standby` at the root is answered by
 `containment(parent=Sys.WarmUp, child=Sys.Standby)` coming back False -- the
 obligation is violated exactly because the declared state sits outside that parent.
-Proposing `Sys.WarmUp.Standby` instead says the same thing through an existence check
-plus a dependent, costs a conversion round to add the precondition, and throws away
-the declared path that made the finding concrete. Bind the declared path.
+Proposing `Sys.WarmUp.Standby` instead destroys the finding: that path needs a
+`state_declared(Sys.WarmUp.Standby)` precondition, which is False for exactly the
+reason the requirement is violated, so the dependent is blocked, never runs, and the
+defect silences its own detector. Bind the declared path.
 
 **Step 3 -- does a declared element plausibly denote the same thing?** Different
 wording, same referent: the NL's "the calibration routine" and a declared
