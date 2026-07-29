@@ -625,25 +625,40 @@ def test_guard_distinguishable_reports_the_corpus_shape():
     assert call(RICH, "guard_distinguishable", source="Root.Idle", trigger="Root.go") is True
 
 
-def test_response_within_refuses_a_composite_response_rather_than_crashing():
-    """A boundary worth pinning: the solver cannot answer for a composite target.
+def test_response_within_answers_a_composite_response_like_occupancy_after():
+    """This used to be pinned as a boundary, and it was not one.
 
-    `occupancy_after` accepts one (occupying a leaf inside counts), so a producer
-    that learned the rule there will try it here.  What matters is that the
-    result is an `UnsupportedEvidence` refusal the controller can quarantine,
-    not an unhandled exception and not a False that would report a defect the
-    model does not have.
+    The refusal came from the solver finding no answer, and the reason it found
+    none was the unscoped obligation: with `init state(...)` binding step 0 while
+    `check response` quantified over every step, a composite response had no model
+    that satisfied it.  Scoping the trigger to the pinned configuration -- the fix
+    for the sink-only defect -- removed the refusal along with the fabrications, so
+    the honest pin is agreement with `occupancy_after`, which a producer would
+    reasonably expect after learning the rule there.
     """
 
-    with pytest.raises(UnsupportedEvidence):
-        call(
-            RICH,
-            "response_within",
-            trigger="Root.go",
-            response="Root.Outer",
-            bound=3,
-            source="Root.Idle",
-        )
+    for response, expected in (
+        # `Idle -/go-> Outer`: the obligation holds, at composite and leaf alike.
+        ("Root.Outer", True),
+        ("Root.Outer.First", True),
+        # `go` does not lead here, and that still fails.
+        ("Root.Done", False),
+    ):
+        assert (
+            call(
+                RICH,
+                "response_within",
+                trigger="Root.go",
+                response=response,
+                bound=3,
+                source="Root.Idle",
+            )
+            is expected
+        ), response
+        assert (
+            call(RICH, "occupancy_after", source="Root.Idle", trigger="Root.go", target=response)
+            is expected
+        ), response
 
 
 # --------------------------------------------------------------------------

@@ -1054,13 +1054,35 @@ class PredicateAPI:
                 )
             held = {leaf}
         else:
+            # A composite subject cannot discriminate.  Every observation reports
+            # the whole chain root..leaf, so a prefix match against an ancestor is
+            # satisfied by its entire subtree: on the fixture pair where `go` moves
+            # `Inner` to `Done`, binding `Root.Mode` -- or the root -- answered True
+            # for the model that violates the obligation just as for the one that
+            # satisfies it.  That is the same near-tautology the `[*]` branch above
+            # was fixed for, reached instead by naming an ancestor, and it is why
+            # the four sibling predicates refuse the root outright.
+            #
+            # Refused rather than reinterpreted: "stays inside this composite" and
+            # "stays in this exact state" are different claims, and a composite
+            # binding does not say which one the sentence meant.  Answering the
+            # first would pass a model that moves between the composite's children,
+            # answering the second would fail every model, since a composite is
+            # never the deepest active state.
+            if self._pins_a_composite(source):
+                raise UnsupportedEvidence(
+                    f"stays_in cannot take the composite {source!r}: every "
+                    "observation reports the whole chain root..leaf, so a composite "
+                    "subject is satisfied by any of its substates and the claim "
+                    "holds however the model behaves. Name the leaf state the "
+                    "requirement is about -- one requirement per state when the "
+                    "sentence names none."
+                )
             held = {source}
         active = self._active(view)
-        return any(
-            state == name or state.startswith(f"{name}.")
-            for name in held
-            for state in active
-        )
+        # `held` holds one leaf, so equality is the whole comparison; a prefix test
+        # here is what let an ancestor match its subtree.
+        return any(state == name for name in held for state in active)
 
     def variable_delta_after(
         self, *, source: str, trigger: str, variable: str, sign: str
@@ -1234,9 +1256,26 @@ class PredicateAPI:
         else:
             pinned = self._hot_startable(source) or self._default_init(trigger)
         head = f'init state("{pinned}"); ' if pinned else ""
+        # `init state(...)` constrains step 0 only, while `check response`
+        # quantifies the obligation over every step.  So the solver was free to
+        # inject the trigger in some *later* configuration that cannot answer it
+        # and book that as the violation -- which made the predicate True only
+        # where the response state is a sink.  On the decisive pair, an identical
+        # `Idle -/go-> Busy` edge answered True when `Busy` was a sink and False
+        # once `Busy` could be left on an unrelated event, at every bound; over the
+        # corpus, 67 edges pinned at their own source gave 6 True to 49 False.
+        # Being able to leave the response state afterwards is not a violation of
+        # "go is answered by Busy".
+        #
+        # So the trigger condition carries the configuration too, which is what
+        # `source` was documented to mean.  The obligation is then "whenever the
+        # trigger occurs *here*", and a model that routes it elsewhere still fails.
+        occurrence = f'event("{trigger}", current)'
+        if pinned:
+            occurrence = f'({occurrence} && active("{pinned}"))'
         query = (
             f"{head}check response <= {horizon}: "
-            f'trigger event("{trigger}", current) -> '
+            f"trigger {occurrence} -> "
             f'within {window} active("{response}");'
         )
         return self._formal_holds(query)

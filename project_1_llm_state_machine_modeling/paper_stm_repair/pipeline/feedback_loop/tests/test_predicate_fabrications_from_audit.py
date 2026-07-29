@@ -43,9 +43,6 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from paper_stm_feedback_loop.assertions import build_eval_environment  # noqa: E402
-from paper_stm_feedback_loop.assertions.exceptions import (  # noqa: E402
-    UnsupportedEvidence,
-)
 
 #: `A` has two outgoing events.  Only the order of the two lines differs between
 #: the pair, and no edge is eventless, so this is not the completion-edge defect.
@@ -121,6 +118,17 @@ def ask(model: str, expression: str):
     return env(model).eval_assert(expression, "audit regression").value
 
 
+def refused(model: str, expression: str) -> bool:
+    """Whether the predicate declined to answer.
+
+    `eval_assert` converts `UnsupportedEvidence` into `result="unsupported"` with a
+    `None` value rather than propagating it, so a test that catches the exception
+    would never see a refusal.
+    """
+
+    return env(model).eval_assert(expression, "audit regression").result == "unsupported"
+
+
 def test_the_one_step_fact_the_order_pair_shares_is_visible_to_both_models():
     """Premise: the edge is declared and taken in both, so order is the only变量."""
 
@@ -169,21 +177,34 @@ def test_the_response_pair_shares_the_edge_the_obligation_is_about():
         ) is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect (C2), pinned before the fix. Being able to leave the response "
-        "state afterwards is not a violation of 'go is answered by Busy'."
-    ),
+#: `go` is routed to `Other`, so the obligation genuinely fails here.  Kept beside
+#: the two satisfying models so a fix cannot pass by weakening the check.
+_MISROUTED = _RESPONSE.format(tail="        Busy -> Idle : /ack;").replace(
+    "    Idle -> Busy : /go;", "    state Other named \"Other\";\n    Idle -> Other : /go;"
 )
+
+
 @pytest.mark.parametrize("bound", [2, 4, 8])
 def test_response_within_must_not_require_the_response_state_to_be_a_sink(bound):
+    """Leaving the response state later is not a violation of the obligation.
+
+    Fixed by carrying the pinned configuration into the trigger condition, which is
+    what `source` was documented to mean: `trigger (event(E, current) &&
+    active(<source>))`.  Without it `init state(...)` bound step 0 while the
+    obligation quantified over every step, so the solver answered a different
+    question -- "the trigger must be answered from every reachable configuration",
+    which nothing satisfies unless the response is a sink.
+    """
+
     expression = (
         f'response_within(trigger="Root.go", response="Root.Busy", bound={bound}, '
         f'source="Root.Idle") is True'
     )
     assert ask(_SINK, expression) is True
     assert ask(_LEAVABLE, expression) is True
+    # The other half: a model that really does route the trigger elsewhere still
+    # fails, so the scoping did not simply make the predicate permissive.
+    assert ask(_MISROUTED, expression) is False
 
 
 def test_stays_in_discriminates_when_the_named_state_is_the_one_occupied():
@@ -194,24 +215,17 @@ def test_stays_in_discriminates_when_the_named_state_is_the_one_occupied():
     assert ask(_MOVES, expression) is False
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect (C3), pinned before the fix. An ancestor subject matches its "
-        "whole subtree, so the violating model answers True."
-    ),
-)
 @pytest.mark.parametrize("ancestor", ["Root", "Root.Mode"])
 def test_stays_in_must_not_answer_true_for_an_undiscriminating_ancestor(ancestor):
     """Either refuse the binding or answer about the state actually occupied.
 
-    Both are acceptable fixes, so this asserts only that the violating model does
-    not come back True -- which is what makes the finding fabricated.
+    Both would remove the fabrication, so this asserts only that the violating
+    model does not come back True.  The fix chose refusal, because "stays inside
+    this composite" and "stays in this exact state" are different claims and a
+    composite binding does not say which the sentence meant -- and it refuses on
+    both models, not just the failing one, so the check has to be symmetric.
     """
 
     expression = f'stays_in(source="{ancestor}", trigger="Root.go") is True'
-    try:
-        answer = ask(_MOVES, expression)
-    except UnsupportedEvidence:
-        return
-    assert answer is False, (ancestor, answer)
+    for model in (_MOVES, _SELF_LOOP):
+        assert refused(model, expression) or ask(model, expression) is False, ancestor
