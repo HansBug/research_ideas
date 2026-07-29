@@ -29,6 +29,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import build_gist  # noqa: E402
 import check_false_positives  # noqa: E402
 
 LEDGER = json.loads((HERE / "known_false_positives.json").read_text())
@@ -101,3 +102,43 @@ def test_the_checker_reproduces_the_run_it_was_adjudicated_on():
     assert result["fixed"] == [], result["fixed"]
     # All eight cells reached a terminal state in the end.
     assert result["incomplete_cells"] == [], result["incomplete_cells"]
+
+
+def test_the_hit_criterion_document_stays_wired_to_the_code():
+    """The criterion is a judgement rule; the code is only its approximation.
+
+    Pinned because the two drift apart silently: the document names the exact
+    branch structure of `expected_verdicts` (trigger branch does not check family,
+    no-trigger branch does) and the count of ledger entries each branch covers. If
+    someone changes the branching without the document, a later reader would apply
+    a rule the code no longer follows -- and the hit rate is the headline number.
+    """
+
+    import re
+
+    doc = (HERE / "HIT_CRITERION.md").read_text()
+    src = (HERE / "build_gist.py").read_text()
+
+    # The document's claim about the two branches has to match the code.
+    assert "if want_events:" in src
+    assert "if not want_events <= bound:" in src
+    # Family is checked only on the no-trigger side.
+    trigger_branch = src[src.index("if want_events:") : src.index("else:", src.index("if want_events:"))]
+    assert "families" not in trigger_branch, "trigger branch now checks family; update HIT_CRITERION.md"
+
+    # And the counts the document quotes have to be recomputable from the ledger.
+    ledger_path = build_gist._expected_ledger_path()
+    if ledger_path.name != "ledger.json":
+        pytest.skip("frozen ledger absent; the quoted counts are about it")
+    findings = json.loads(ledger_path.read_text())["findings"]
+    with_event = sum(1 for f in findings if re.search(r"event\s*=\s*'", str(f.get("eval_assert", ""))))
+    without = len(findings) - with_event
+    at_risk = sum(
+        1
+        for f in findings
+        if not re.search(r"event\s*=\s*'", str(f.get("eval_assert", "")))
+        and "relation" in (f.get("required_function_families") or [])
+    )
+    assert f"**{with_event} / {len(findings)}**" in doc, with_event
+    assert f"**{without} / {len(findings)}**" in doc, without
+    assert f"**{at_risk} 条要求 `relation`**" in doc, at_risk

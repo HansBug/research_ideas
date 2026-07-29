@@ -14,6 +14,16 @@
 带一层容差 → 以触发事件为锚），每一次都是因为前一版会把错误的 issue 记成命中。
 这种东西必须可追溯。
 
+## 先读裁决原则
+
+[HIT_CRITERION.md](./HIT_CRITERION.md) 是「命中」的定义所在：**语义同一性优先于标签一致**。
+`expected_verdicts()` 的路径重叠只是它的机械近似，不是终局；该文件同时列出机械判据已知会
+误判的风险面（无-trigger 分支的 family 交集检查，涉及 10 / 47 条台帐条目、9 个 pair），
+以及必须人工复核的三种情形。
+
+引用任何命中数字前，先确认用的是 frozen ledger 而非 `expected_issues_reconstructed.json`
+——后者仅覆盖 4 个 pair，且已知把 `EXP-0029-SH-001` 写严，据它算出的命中率是错的。
+
 ## 文件
 
 - `build_gist.py <matrix_dir> <out_dir>` —— 读一个矩阵运行目录，产出 `readable/`
