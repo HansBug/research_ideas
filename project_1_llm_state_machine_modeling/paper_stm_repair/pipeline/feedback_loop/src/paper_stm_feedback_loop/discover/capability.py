@@ -675,7 +675,14 @@ def initialization_anchored_findings(
         phase = str(
             (getattr(item, "source_context", None) or {}).get("behavior_phase", "")
         ).lower()
-        if phase not in SOURCE_SENSITIVE_PHASES:
+        # Allowed only where the phase says `initialization`, rather than refused
+        # where it says operation or termination.  `behavior_phase` is optional, and
+        # keyed the other way the gate reads a field the producer can simply leave
+        # out: matrix-v15's 0000-claude emitted no phase on any requirement, so the
+        # gate never fired and the vacuous termination claim went through exactly as
+        # it had before the gate existed.  A permission has to be claimed; a
+        # prohibition can be dodged by silence.
+        if phase == "initialization":
             continue
         bindings = item.predicate_bindings or {}
         anchored = sorted(
@@ -685,14 +692,14 @@ def initialization_anchored_findings(
         )
         if anchored:
             findings.append(
-                f"{item.requirement_id} is a {phase}-phase requirement with "
-                f"{anchored} bound to {PSEUDO_INITIAL}. That anchors the claim before "
-                "the machine has entered anything, so it asks about initialization "
-                "instead of about the phase the sentence is about -- and on a model "
-                "whose defect is an edge leaving the pseudo-initial, the claim is "
-                "true because of the defect. Name the running state the sentence is "
-                "about; when the sentence does not pin one, write one requirement "
-                "per state it ranges over."
+                f"{item.requirement_id} binds {anchored} to {PSEUDO_INITIAL} with "
+                f"source_context.behavior_phase={phase or 'unset'!r}. That anchors "
+                "the claim before the machine has entered anything, so it asks about "
+                "initialization -- and on a model whose defect is an edge leaving the "
+                "pseudo-initial, the claim is then true because of the defect. Either "
+                "name the running state the sentence is about (one requirement per "
+                "state when the sentence does not pin one), or, if the sentence really "
+                "is about power-on, set behavior_phase to \"initialization\"."
             )
     return tuple(findings)
 

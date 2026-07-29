@@ -197,6 +197,7 @@ precondition reports the absence, the claim resting on it is recorded as blocked
 rather than passed, and a repair stage receives a named element to add plus two
 verdicts to re-verify against.
 
+- `source_context`: always emit it, with `basis` and `behavior_phase`. `behavior_phase` is one of `structure` (a claim about what the model contains), `initialization` (power-on, first entry), `operation` (the machine already running) or `termination` (the run ending). It is not decoration: `[*]` as a `source` or `scope` is only accepted when `behavior_phase` is `initialization`, because anchoring any other phase before the machine has entered anything asks a different question -- and on a model whose defect is an edge leaving the pseudo-initial, it asks one that is true *because* of the defect. Leaving the field out is treated as "not initialization".
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
 `segment_disposition` sits on the RequirementSet, not on a Requirement, and its keys must match `nl_segments` **exactly** -- one entry per frozen segment id, no more and no fewer, including the segments you did not turn into requirements. A set listing only the covered ones is rejected before review. Values: `covered` (a Requirement carries it), `context` (background, imposes no obligation), `ambiguous` (an obligation you could not pin down), `out_of_scope`. So for `nl_segments: ["NL-L001", "NL-L002", "NL-L003"]` a complete disposition is `{"NL-L001": "covered", "NL-L002": "covered", "NL-L003": "context"}`.
@@ -281,6 +282,8 @@ Binding v2 evidence review: verify every non-quarantined Requirement has complet
 """
 
 RESULT_ADJUDICATOR_PROMPT += """
+Always emit `issues` and `excluded_findings` explicitly, as `[]` when there is nothing to put in them. A tool call with no arguments at all is indistinguishable from a response that was cut off, and it is rejected as incomplete -- so an all-true release, whose correct adjudication is empty, has to say so with empty arrays rather than by omission.
+
 Binding v2 adjudication contract: a False assertion whose role is `primary` or `precondition`, with safe attribution, may create a confirmed issue -- and must. A precondition reports that the model declares nothing under a name the requirement needs, which is a finding about the model, so it is dispositioned exactly like a primary; leaving it out of `issues` while its attribution is safe is rejected by the accounting check, and that node has no repair round. A supporting False is retained only in `excluded_observations` with disposition `supporting_false`, even when its attribution is safe; do not place a supporting assertion in `issues` or `excluded_findings`, and never use disposition `quarantined` for an executed False. `excluded_findings` is reserved for `primary` or `precondition` False assertions whose attribution is `representation_debt` or `unattributed`. Requirement satisfaction is derived deterministically from primary results using the frozen aggregation policy and is blocked by mandatory coverage gaps. Do not place quarantined items or coverage gaps in confirmed issues.
 """
 
@@ -381,6 +384,7 @@ Example 1 -- Family S:
   "statement": "ModeA shall be modelled as a simple (leaf) state.",
   "rationale": "NL-L001 names ModeA as a single operating mode with no substructure.",
   "source_segment_ids": ["NL-L001"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "structure"},
   "predicate": "state_declared",
   "predicate_bindings": {"state": "Sys.ModeA", "kind": "leaf"},
   "verification_kind": "structure",
@@ -397,6 +401,7 @@ Example 2 -- Family B, an operational scenario:
   "statement": "When evt occurs in ModeA, the system shall move to ModeB.",
   "rationale": "NL-L002 states the response; this is a runtime claim, not a claim about which edges exist.",
   "source_segment_ids": ["NL-L002"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "occupancy_after",
   "predicate_bindings": {"source": "Sys.ModeA", "trigger": "Sys.evt", "target": "Sys.ModeB"},
   "verification_kind": "behavior",
@@ -413,6 +418,7 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
   "statement": "The system shall never enter Fault while operating.",
   "rationale": "NL-L003 forbids Fault for the whole operating phase, so the claim is quantified over runs.",
   "source_segment_ids": ["NL-L003"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "invariant",
   "predicate_bindings": {"scope": "Sys.ModeA", "condition": "!active(\\"Sys.Fault\\")", "bound": "4"},
   "verification_kind": "property",
@@ -427,6 +433,7 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
   "statement": "Completing the task shall decrease the number of active units.",
   "rationale": "NL-L004 requires a quantity the model declares no variable for; unit_count is proposed from the sentence own wording rather than bound to an unrelated declared variable.",
   "source_segment_ids": ["NL-L004"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "variable_delta_after",
   "predicate_bindings": {"source": "Sys.ModeA", "trigger": "Sys.done", "variable": "unit_count", "sign": "negative"},
   "verification_kind": "behavior",
@@ -447,6 +454,7 @@ against a model that terminates correctly.
   "statement": "On shutdown the system shall reach its final state.",
   "rationale": "NL-L005 states a termination obligation; terminating_transitions shows the run ends from Sys.ModeA on Sys.shutdown, so no terminal state is named or needed.",
   "source_segment_ids": ["NL-L005"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "termination"},
   "predicate": "terminates",
   "predicate_bindings": {"scope": "Sys.ModeA", "trigger": "Sys.shutdown"},
   "verification_kind": "behavior",
@@ -466,6 +474,7 @@ Proposing `Sys.RegionB.Done` would report a missing state that is present.
   "statement": "RegionB shall reach the Done state once the work is finished.",
   "rationale": "NL-L006 names Done. declared_model_vocabulary lists it as Sys.RegionA.Done -- one shared state, declared inside RegionA -- so the claim binds that path.",
   "source_segment_ids": ["NL-L006"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "occupancy_after",
   "predicate_bindings": {"source": "Sys.RegionB.Working", "trigger": "Sys.work_done", "target": "Sys.RegionA.Done"},
   "verification_kind": "behavior",
@@ -484,6 +493,7 @@ record the naming difference; do not propose `Sys.CalibrationRoutine`.
   "statement": "The system shall run the calibration routine until an abort is requested.",
   "rationale": "NL-L007 names the activity in prose. Sys.Calibrating is the declared state for it, so the claim binds that rather than a new name.",
   "source_segment_ids": ["NL-L007"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "persists_until",
   "predicate_bindings": {"state": "Sys.Calibrating", "release": "active(\\"Sys.Aborted\\")", "bound": "4"},
   "verification_kind": "property",

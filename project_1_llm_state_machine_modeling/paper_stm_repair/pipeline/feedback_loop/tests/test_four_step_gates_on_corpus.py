@@ -432,7 +432,7 @@ def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
     fired = initialization_anchored_findings((power_on, power_off))
     assert len(fired) == 1, fired
     assert "REQ-006" in fired[0]
-    assert "termination-phase" in fired[0]
+    assert "termination" in fired[0]
     # A named running source is what the gate is asking for, and it passes.
     pinned = req(
         "REQ-006",
@@ -451,3 +451,25 @@ def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
         {"source": "[*]", "trigger": f"{prefix}.Condition_Met", "target": f"{prefix}.AutonomousMode"},
     )
     assert len(initialization_anchored_findings((operating,))) == 1
+
+    # An omitted phase must be refused too, which is why the rule is a whitelist.
+    # matrix-v15's 0000-claude emitted no `behavior_phase` on any requirement; keyed
+    # as "refuse when the phase is operation or termination", the gate never fired
+    # and the vacuous termination claim went through exactly as before it existed.
+    unset = Req(
+        "REQ-006",
+        "occupancy_after",
+        {
+            "source": "[*]",
+            "trigger": f"{prefix}.Power_Off",
+            "target": f"{prefix}.FinalState",
+        },
+    )
+    unset.source_context = {"basis": "explicit_nl"}
+    fired_unset = initialization_anchored_findings((unset,))
+    assert len(fired_unset) == 1, fired_unset
+    assert "unset" in fired_unset[0]
+    # Same when there is no source_context at all.
+    bare = Req("REQ-007", "occupancy_after", dict(unset.predicate_bindings))
+    bare.source_context = {}
+    assert len(initialization_anchored_findings((bare,))) == 1
