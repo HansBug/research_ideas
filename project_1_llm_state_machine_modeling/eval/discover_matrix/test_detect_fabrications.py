@@ -184,3 +184,54 @@ def test_an_unparseable_assertion_is_reported_rather_than_skipped(tmp_path):
     found = detect.scan(bundle)
     assert len(found) == 1, found
     assert found[0]["defect_class"] == "unparseable-assertion"
+
+
+def test_a_failed_scan_is_recorded_as_a_failure_not_as_a_clean_result(tmp_path, monkeypatch):
+    """The one way this evidence could lie is by being silently absent.
+
+    `build_gist.py` writes the scan into the audit bundle so a gist carries the
+    check rather than the claim.  If the scan raises -- a missing corpus file, a
+    predicate that cannot load -- the bundle must say so, because an empty
+    `findings` list and a missing file read identically to someone counting zeros.
+    """
+
+    import json
+    import sys as _sys
+
+    import build_gist
+
+    monkeypatch.setattr(
+        detect, "scan", lambda _dir: (_ for _ in ()).throw(RuntimeError("corpus gone"))
+    )
+    monkeypatch.setitem(_sys.modules, "detect_fabrications", detect)
+
+    (tmp_path / "0029-claude-opus-4-7-audit.json").write_text("{}")
+    assert build_gist.write_fabrication_scan(tmp_path, "deadbeef") == -1
+
+    scan = json.loads((tmp_path / "_fabrication_scan.json").read_text())
+    assert "corpus gone" in scan["error"]
+    assert "clean result" in scan["note"]
+    assert "findings" not in scan
+    # The cells are still listed, so a reader can see what went unchecked.
+    assert scan["cells_scanned"] == ["0029-claude-opus-4-7"]
+
+
+def test_a_clean_scan_records_the_commit_and_the_cells_it_covered(tmp_path, monkeypatch):
+    """Zero findings over zero cells is not a clean run, and must be visible as such."""
+
+    import json
+    import sys as _sys
+
+    import build_gist
+
+    monkeypatch.setattr(detect, "scan", lambda _dir: [])
+    monkeypatch.setitem(_sys.modules, "detect_fabrications", detect)
+
+    (tmp_path / "0050-gpt-5.5-audit.json").write_text("{}")
+    assert build_gist.write_fabrication_scan(tmp_path, "cafe1234") == 0
+
+    scan = json.loads((tmp_path / "_fabrication_scan.json").read_text())
+    assert scan["findings"] == []
+    assert scan["git_commit"] == "cafe1234"
+    assert scan["cells_scanned"] == ["0050-gpt-5.5"]
+    assert scan["limitation"]

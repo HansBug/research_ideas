@@ -503,6 +503,76 @@ def audit_json(rec, commit: str) -> dict:
     }
 
 
+def write_fabrication_scan(data_dir: pathlib.Path, commit: str) -> int:
+    """Write the audit bundle's fabrication scan; return how many findings it has.
+
+    A gist that says "no fabricated findings" should carry the check, not the claim.
+    Its own file rather than folded into each cell, because the scan is per run and
+    needs the predicate layer -- which the per-cell audit deliberately does not.
+
+    A scan that raises writes an `error` instead of a `findings` list, because an
+    empty list and a missing file read identically to someone counting zeros.
+    Returns -1 in that case, so a caller cannot mistake failure for zero.
+    """
+
+    scan_path = data_dir / "_fabrication_scan.json"
+    cells = sorted(
+        path.name.removesuffix("-audit.json")
+        for path in data_dir.glob("*-audit.json")
+    )
+    try:
+        import detect_fabrications
+
+        findings = detect_fabrications.scan(data_dir)
+    except Exception as exc:
+        scan_path.write_text(
+            json.dumps(
+                {
+                    "schema": "paper1.discover.fabrication_scan.v1",
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "note": (
+                        "The scan did not run, so this bundle carries no evidence "
+                        "either way. Do not read its absence as a clean result."
+                    ),
+                    "git_commit": commit,
+                    "cells_scanned": cells,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n"
+        )
+        print(f"  fabrication scan FAILED: {type(exc).__name__}: {exc}")
+        return -1
+    scan_path.write_text(
+        json.dumps(
+            {
+                "schema": "paper1.discover.fabrication_scan.v1",
+                "what_it_asks": (
+                    "For every published issue: does its primary assertion still "
+                    "re-derive to False against the current predicates, and does the "
+                    "evidence that False rests on avoid every attribution_exclusions "
+                    "entry? An issue failing either is not one the current layer "
+                    "stands behind."
+                ),
+                "limitation": (
+                    "It cannot distinguish a fabricated issue from one a later bug "
+                    "made unanswerable. What it establishes is agreement between the "
+                    "published issues and the predicates as they are."
+                ),
+                "git_commit": commit,
+                "cells_scanned": cells,
+                "findings": findings,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    )
+    print(f"  fabrication scan: {len(findings)} finding(s) -> {scan_path.name}")
+    return len(findings)
+
+
 def main() -> None:
     """Emit two separate bundles.
 
@@ -636,9 +706,17 @@ def main() -> None:
         "distribution, telemetry, node failures, predicate-procedure gate "
         "rejections, and the segment-macro source ids used for the taint "
         "blind-spot cross-check.\n\n"
+        "`_fabrication_scan.json` carries the check behind any claim that the run "
+        "published no fabricated findings: for every issue, whether its primary "
+        "assertion still re-derives to False against the predicates at the recorded "
+        "commit, and whether the evidence that False rests on avoids every "
+        "`attribution_exclusions` entry. A `findings` list that is empty is the "
+        "evidence; an `error` field means the scan did not run, and its absence must "
+        "not be read as a clean result.\n\n"
         "The point is that a reader can recompute the published tables rather than "
         "trust them. `run-index.tsv` repeats the ledger so this gist stands alone.\n"
     )
+    write_fabrication_scan(data_dir, commit)
     print(f"wrote {len(cells)} cells -> {out}")
     print(f"  readable bundle: {md_dir}")
     print(f"  audit bundle   : {data_dir}")
