@@ -973,3 +973,111 @@ def test_an_unreadable_state_table_does_not_claim_a_composite_pin():
 
     subject = api(structure=Structure(boom={"states"}))
     assert subject._pins_a_composite("Root.A") is False
+
+
+# --------------------------------------------------------------------------
+# The guards around audit metadata and structural lookups
+# --------------------------------------------------------------------------
+
+
+def test_a_broken_state_facade_leaves_the_model_root_unknown():
+    """And the root guard then permits the binding rather than refusing it.
+
+    `_model_root` backs the "a claim about the root cannot fail" refusal.  If the
+    lookup itself breaks, refusing would report a defect on a facade fault -- so it
+    returns None and the predicate answers normally.  A guard that turns an
+    infrastructure failure into a finding is worse than no guard.
+    """
+
+    subject = api(structure=Structure(boom={"states"}))
+    assert subject._model_root() is None
+    # And with no root known, nothing is refused for being the root.
+    subject._reject_undiscriminating_root("occupancy_after", target="Root")
+
+
+def test_the_model_root_is_the_state_with_no_parent():
+    subject = api(
+        structure=Structure(
+            states=[
+                Row(path="Root.Inner", parent_path="Root"),
+                Row(path="Root", parent_path=None),
+            ]
+        )
+    )
+    assert subject._model_root() == "Root"
+    # A row whose path is unusable is skipped rather than returned.
+    assert api(structure=Structure(states=[Row(path="", parent_path=None)]))._model_root() is None
+
+
+def test_a_broken_transition_facade_records_no_references():
+    """`_note_transitions` only feeds attribution, so a failure there must not
+    change any verdict -- the reference set is simply thinner."""
+
+    subject = api(structure=Structure(boom={"transitions"}))
+    subject.begin_call()
+    subject._note_transitions(source="Root.A", event="Root.go")
+    assert subject.consume_refs() == ()
+
+
+def test_the_near_miss_scan_skips_a_filter_combination_that_raises():
+    """It probes several narrower filters; one broken probe must not abort the rest.
+
+    The scan exists to attribute an *ignored* event -- the case where nothing
+    matched -- so losing it silently would leave a real finding unattributable.
+    """
+
+    class Flaky:
+        """Raises for the two-key probes, answers for the single-key one."""
+
+        def __init__(self):
+            self.calls = []
+
+        def transitions(self, **kwargs):
+            self.calls.append(tuple(sorted(kwargs)))
+            if len(kwargs) != 1:
+                raise RuntimeError("two-key probe is broken")
+            return (Row(to_path="Root.B", transition_index=0),)
+
+    # Three filters: the two-key combinations are narrower than the original, so they
+    # are probed.  All three raise, and the scan returns empty rather than
+    # propagating -- the caller then has no near-miss to attribute, which is a
+    # thinner record, not a wrong verdict.
+    flaky = Flaky()
+    subject = api(structure=flaky)
+    assert subject._near_miss(
+        {"source": "Root.A", "event": "Root.go", "target": "Root.B"}
+    ) == ()
+    assert any(len(c) == 2 for c in flaky.calls), flaky.calls
+
+    # Two filters: the scan goes straight to single keys, and a raising one is
+    # skipped so the next key still gets its chance.
+    class SingleFlaky:
+        def __init__(self):
+            self.calls = []
+
+        def transitions(self, **kwargs):
+            self.calls.append(tuple(sorted(kwargs)))
+            if "source" in kwargs:
+                raise RuntimeError("source probe is broken")
+            return (Row(to_path="Root.B", transition_index=0),)
+
+    single = SingleFlaky()
+    rows = api(structure=single)._near_miss({"source": "Root.A", "event": "Root.go"})
+    assert rows, single.calls
+    assert single.calls == [("source",), ("event",)]
+
+
+def test_the_initial_configuration_skips_cycles_with_no_active_state():
+    """A terminated or not-yet-committed cycle reports none, and `stays_in` asks
+    about the first configuration that exists rather than the first cycle."""
+
+    subject = api()
+    view = View(
+        cycles=[
+            Cycle(active_states=()),
+            Cycle(active_states=("Root", "Root.A")),
+        ]
+    )
+    assert subject._initial_configuration(view) == {"Root", "Root.A"}
+    assert subject._initial_configuration(View(cycles=[Cycle(active_states=())])) == set()
+    assert subject._initial_configuration(View(cycles=[])) == set()

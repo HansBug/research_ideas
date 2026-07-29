@@ -499,3 +499,69 @@ def test_formal_query_causality_rejects_bare_reach_but_accepts_context():
     assert event_assumption["causal"] is True
     assert hot_start["causal"] is True
     assert response["causal"] is True
+
+
+def test_a_wall_clock_alarm_stops_a_slow_expression_in_both_positions():
+    """Because a predicate that never returns would otherwise hold the whole run.
+
+    The solver has its own timeout; a structural query that spins does not, so the
+    alarm is the only bound on it.  Both the prefix and the terminal expression get
+    one, and both must surface as a refusal rather than a verdict -- a `False` here
+    would report a defect on a check that never finished.
+
+    The slow work is pure builtin arithmetic rather than an injected function,
+    because an unregistered name is rejected by the dependency audit before the
+    expression ever runs.  `signal.alarm` takes whole seconds, so the expression has
+    to outlast one: rendering `2**1500000` in decimal takes roughly two.
+    """
+
+    slow = "len(str(2**1500000)) > 0"
+    env = EvalEnvironment(model_text=MODEL, timeout_seconds=1)
+    checker = AssertionChecker(env)
+
+    terminal = checker.check(
+        f"assert {slow}, '[REQ-001][AST-001-01] never finishes'",
+        reason="a terminal expression that outlasts the alarm",
+        required_function_families=[],
+    )
+    assert terminal.outcome == "invalid"
+    assert "timed out" in str(terminal.sealed.error.get("message", "")), terminal.sealed.error
+
+    prefix = checker.check(
+        f"held = {slow}\nassert held, '[REQ-001][AST-001-02] never finishes'",
+        reason="a prefix statement that outlasts the alarm",
+        required_function_families=[],
+    )
+    assert prefix.outcome == "invalid"
+    assert "timed out" in str(prefix.sealed.error.get("message", "")), prefix.sealed.error
+
+
+def test_the_module_level_helper_checks_a_script_without_a_checker_object():
+    """It is the entry point the pipeline uses, so it needs its own cover."""
+
+    from paper_stm_feedback_loop.assertions import check_assertion_script
+
+    result = check_assertion_script(
+        "assert state_declared(state='Root.Idle', kind='leaf'), '[REQ-001][AST-001-01] Idle missing'",
+        EvalEnvironment(model_text=MODEL),
+        "module-level entry point",
+        required_function_families=["structure"],
+    )
+    assert result.outcome == "valid"
+    assert result.value is True
+
+
+def test_sealed_metadata_is_handed_out_as_a_copy():
+    """The audit stores it, so mutating the copy must not reach the sealed result."""
+
+    result = AssertionChecker(
+        EvalEnvironment(model_text=MODEL), metadata=FIXTURE_METADATA
+    ).check(
+        "assert state_declared(state='Root.Idle', kind='leaf'), '[REQ-001][AST-001-01] Idle missing'",
+        reason="metadata passthrough",
+        required_function_families=["structure"],
+    )
+    metadata = result.sealed_metadata
+    assert metadata["ported_source_commit"] == FIXTURE_METADATA["ported_source_commit"]
+    metadata["mutated"] = True
+    assert "mutated" not in (result.sealed.metadata or {})

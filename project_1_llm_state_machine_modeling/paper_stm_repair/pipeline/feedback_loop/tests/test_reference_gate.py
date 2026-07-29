@@ -597,3 +597,34 @@ def test_the_waiver_must_open_the_limitation_not_merely_appear_in_it():
     assert not fires(f"  {SCOPE_LOCAL_WAIVER.upper()} -- per NL-L009  ")
     assert fires(f"no {SCOPE_LOCAL_WAIVER}, this is the shared state")
     assert fires("checked up to bound 4 only")
+
+
+def test_the_declared_and_existence_readers_answer_on_real_bindings():
+    """Both feed decisions elsewhere, so their empty case is not the whole story.
+
+    `declared_path_bindings` is what a `precondition` inherits its attribution
+    anchor from -- if it never reported a declared name, a proposed-name finding
+    would stay unattributable and never become a confirmed issue.
+    `_existence_checked_names` is what makes an absent name legal at all.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        _existence_checked_names,
+        declared_path_bindings,
+    )
+
+    # Declared names are reported; absent ones are not this reader's business.
+    assert declared_path_bindings(DELTA, KNOWN) == ("Sys.ModeA", "Sys.done")
+    assert declared_path_bindings(EXISTS, KNOWN) == ()
+    assert declared_path_bindings("not python at all (", KNOWN) == ()
+
+    # An existence predicate's absent name is reported; a declared one is not, and
+    # neither is an absent name bound by a predicate that merely *uses* it.
+    assert _existence_checked_names(EXISTS, KNOWN) == ("uav_count",)
+    assert _existence_checked_names('variable_declared(variable="units")', KNOWN) == ()
+    assert _existence_checked_names(DELTA, KNOWN) == ()
+    assert _existence_checked_names('state_declared(state="[*]", kind="leaf")', KNOWN) == ()
+    # A binding whose value is not a literal cannot be read statically, and the
+    # runtime shape check refuses whatever it evaluates to -- so this reader says
+    # nothing about it rather than guessing a name.
+    assert _existence_checked_names("variable_declared(variable=some_name)", KNOWN) == ()

@@ -1034,20 +1034,24 @@ class PredicateAPI:
         if trigger not in self._consumed(view):
             return False
         if source == PSEUDO_INITIAL:
-            held = self._initial_configuration(view)
-            # The ancestry of a configuration that committed nothing is just the
-            # root, and the root is active in every run -- so comparing against it
-            # answers True whatever the trigger does.  Replacing the old constant
-            # False with a near-constant True is no better, so refuse: on pair
-            # 0000 nothing is entered until `Power_On` itself fires, and there is
-            # no state the machine could have stayed in.
-            if len(held) < 2:
+            # The *deepest* state of the initial configuration, not its ancestry.
+            # An observation reports the whole chain root..leaf, and the root is
+            # active in every run, so comparing against the chain answers True
+            # whatever the trigger does -- on the fixture model `Root.go` moves
+            # `Inner` to `Done` and the chain still matched on `Root`.  Replacing
+            # the old constant False with a near-constant True is no better.
+            ancestry = self._initial_configuration(view)
+            leaf = max(ancestry, key=lambda path: path.count("."), default="")
+            # Only the root means nothing was committed: on pair 0000 no state is
+            # entered until `Power_On` itself fires, so there is nothing to stay in.
+            if len(ancestry) < 2 or not leaf:
                 raise UnsupportedEvidence(
                     "the run enters no state before this trigger, so there is "
                     f"nothing for it to stay in. Name the state the claim is "
                     f"about instead of {PSEUDO_INITIAL}, or ask whether the "
                     "trigger is consumed there"
                 )
+            held = {leaf}
         else:
             held = {source}
         active = self._active(view)

@@ -199,6 +199,11 @@ def test_staying_in_the_initial_configuration_is_refused_when_none_was_entered()
     prefix = "llms_emp_feedback_final_0000"
     with pytest.raises(UnsupportedEvidence, match="enters no state before"):
         pair.globals["stays_in"](source="[*]", trigger=f"{prefix}.Power_On")
+    # Where the cold start *does* commit a configuration, the question is answerable
+    # and gets a real verdict rather than a refusal.  This model's entries are
+    # unconditional, so `[*]` settles into `Mode.Inner` before the trigger.
+    assert call("stays_in", source="[*]", trigger="Root.tick") is True
+    assert call("stays_in", source="[*]", trigger="Root.go") is False
     # The named-source form is the one that decides the defect, and it still does.
     assert call("stays_in", source="Root.Mode.Inner", trigger="Root.tick") is True
     assert call("stays_in", source="Root.Mode.Inner", trigger="Root.go") is False
