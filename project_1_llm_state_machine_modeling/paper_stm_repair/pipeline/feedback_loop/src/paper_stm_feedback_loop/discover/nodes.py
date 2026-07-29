@@ -16,7 +16,10 @@ from paper_stm_feedback_loop.assertions import (
 )
 from paper_stm_feedback_loop.assertions.fbmcq import formal_query_causality
 from paper_stm_feedback_loop.assertions.pyfcstm_adapter import check_fcstm
-from paper_stm_feedback_loop.assertions.predicate_api import PREDICATE_FAMILIES
+from paper_stm_feedback_loop.assertions.predicate_api import (
+    PREDICATE_FAMILIES,
+    PSEUDO_INITIAL,
+)
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
@@ -32,6 +35,8 @@ from .capability import (
     SOURCE_SENSITIVE_PHASES,
     called_evidence_functions,
     declared_path_bindings,
+    redundant_proposal_findings,
+    termination_proposal_findings,
     fbmcq_non_vacuity_findings,
     mandatory_waiver,
     placeholder_bindings,
@@ -837,6 +842,70 @@ _ROUTE_CONTROL_PREFIX = "compiler:route_control:"
 
 
 
+def _pseudo_state_facts(inspected: dict[str, Any]) -> dict[str, tuple[dict[str, Any], ...]]:
+    """Return what the model expresses through `[*]` instead of through a name.
+
+    `model_vocabulary` lists states, events and variables -- everything that has a
+    name.  Entry and termination do not: they are written `[*]`.  A producer given
+    only the named vocabulary therefore sees nothing that could carry "when power
+    off it reaches the final state", concludes the model lacks it, and proposes a
+    `FinalState` that no correctly-terminating model would declare.  Pair 0050 did
+    that twice on a model whose `HumanDrivingMode -> [*] : /Power_Off` is exactly
+    how termination is written.
+
+    `ends_run` is the distinction that matters and it is not guessable from the
+    edge alone: `-> [*]` leaves whatever scope owns the source, so it ends the run
+    only when that scope is the root.  Pair 0029's `enter_urban -> [*]` exits
+    UrbanMode and routes onward to a declared state, which is why a completion
+    claim there is a reachability question and not a termination one.
+    """
+
+    inspect = inspected.get("inspect") or {}
+    rows = [r for r in (inspect.get("states") or []) if isinstance(r, dict)]
+    parent_of = {
+        str(r.get("path")): str(r.get("parent_path") or "")
+        for r in rows
+        if r.get("path")
+    }
+    root = str(inspect.get("root_state_path") or "")
+    terminating: list[dict[str, Any]] = []
+    for row in inspect.get("transitions") or []:
+        if not isinstance(row, dict) or str(row.get("to_path") or "") != PSEUDO_INITIAL:
+            continue
+        source = str(row.get("from_path") or "")
+        if not source:
+            continue
+        scope = parent_of.get(source, "")
+        terminating.append(
+            {
+                "source": source,
+                "trigger": str(row.get("event") or "") or None,
+                "guard": str(row.get("guard") or "") or None,
+                "exits_scope": scope,
+                "ends_run": bool(scope) and scope == root,
+            }
+        )
+    entries: list[dict[str, Any]] = []
+    for row in rows:
+        composite = str(row.get("path") or "")
+        for target in row.get("initial_targets") or []:
+            if not isinstance(target, dict) or not target.get("target"):
+                continue
+            entries.append(
+                {
+                    "composite": composite,
+                    "target": str(target.get("target")),
+                    "unconditional": bool(target.get("is_unconditional")),
+                    "guard": str(target.get("guard") or "") or None,
+                    "trigger": str(target.get("event") or "") or None,
+                }
+            )
+    return {
+        "terminating_transitions": tuple(terminating),
+        "initial_entries": tuple(entries),
+    }
+
+
 def _model_vocabulary(
     inspected: dict[str, Any], exclusions: tuple[str, ...] | list[str] = ()
 ) -> dict[str, tuple[str, ...]]:
@@ -942,6 +1011,7 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         model_vocabulary=_model_vocabulary(
             inspected.get("inspect") or {}, source_exclusions
         ),
+        pseudo_state_facts=_pseudo_state_facts(inspected),
         source_trace=discover_input.source_trace,
         working_contract=discover_input.manifest.get("working_contract", {})
         if isinstance(discover_input.manifest.get("working_contract"), dict)
@@ -1052,6 +1122,26 @@ def split_requirements(
                 raise ValueError(
                     f"requirement {requirement.requirement_id} references unknown source trace entries: {sorted(unknown_trace_ids)}"
                 )
+        # Steps 1 and 2 of the four-step procedure are decided here, not reviewed.
+        # Both are settled by comparing the bindings against the frozen model, so
+        # asking the Requirement Reviewer for a judgement would be asking it to
+        # re-derive something a comparison answers -- and a reviewer that lets one
+        # through costs the item its whole repair budget.  Step 3 versus step 4 is
+        # the genuinely semantic call and stays with the reviewer.
+        known_paths = frozenset(frozen.known_model_paths)
+        step_findings = (
+            *termination_proposal_findings(
+                output.requirements,
+                known_paths,
+                (frozen.pseudo_state_facts or {}).get("terminating_transitions") or (),
+            ),
+            *redundant_proposal_findings(output.requirements, known_paths),
+        )
+        if step_findings:
+            raise ValueError(
+                "requirements propose a name where an earlier step of the "
+                f"four-step procedure applies: {list(step_findings)}"
+            )
         coverage = RequirementCoverageProjection(
             covered_requirement_ids=tuple(
                 req.requirement_id for req in output.requirements

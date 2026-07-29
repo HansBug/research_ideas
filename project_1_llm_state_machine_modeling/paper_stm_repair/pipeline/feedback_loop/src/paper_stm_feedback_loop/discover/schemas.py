@@ -162,6 +162,21 @@ class FrozenDiscoverInputs(StrictBaseModel):
     #: A guessed event name makes an assertion vacuously true, which is how pair
     #: 0029 lost a real defect to a one-character typo.
     model_vocabulary: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    #: What the model expresses through `[*]` rather than through a name.
+    #:
+    #: Entry and termination have no declared element, so a producer reading only
+    #: `model_vocabulary` sees nothing that could carry "when power off it reaches
+    #: the final state" and concludes the model lacks it -- then proposes a
+    #: `FinalState` that no correct model would declare.  Pair 0050 did exactly
+    #: that, twice, on a model whose `HumanDrivingMode -> [*] : /Power_Off` is the
+    #: right way to write termination.  Naming the facts here is what lets the
+    #: four-step procedure decide step 1 from evidence instead of by guessing.
+    #:
+    #: `terminating_transitions`: `{source, trigger}` per edge that ends a run.
+    #: `initial_entries`: `{composite, target, unconditional}` per declared entry.
+    pseudo_state_facts: dict[str, tuple[dict[str, Any], ...]] = Field(
+        default_factory=dict
+    )
 
 
 class Requirement(StrictBaseModel):

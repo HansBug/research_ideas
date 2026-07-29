@@ -138,16 +138,64 @@ Emit on every Requirement:
 - `predicate`: exactly one name from the closed vocabulary below.
 - `predicate_bindings`: the concrete model terms that predicate requires, as an object. Copy the paths verbatim from `declared_model_vocabulary` in your input, which lists every declared state, event and variable path. Do not retype them from the FCSTM text and do not abbreviate them. A mistyped name is worse than a missing requirement, because the resulting check passes for the wrong reason instead of failing loudly.
 
-When the sentence requires an element this model does not declare, do not leave the binding empty, and do not substitute a declared element that happens to fit the slot -- binding "the number of units" to an unrelated route-control variable changes the requirement into a different one and hides the very gap that matters. Write the name that element should have, taken from the sentence's own wording: `unit_count` for "the number of units", `Sys.OperatorConfirm` for "until the operator confirms", `Sys.Degraded` for "a degraded mode". Follow the model's own conventions for the kind of element -- variables are bare names, events and states are `<root>.<name>` paths -- and add a `limitations` entry naming what the NL asked for and recording that the model declares nothing under that name.
+When the sentence needs an element you cannot bind directly, work down these four
+steps and stop at the first that applies. They are ordered: a later step is only
+legal because the earlier ones did not apply, and taking step 4 while step 1 or 2
+applies is the single most common way a Requirement reports a defect the model
+does not have.
 
-A name you propose is an ordinary binding value, not a special case. The Assertion Converter asserts its existence as a `precondition` and makes the real claim depend on it, so the obligation stays checkable from end to end: the precondition reports the absence, the claim resting on it is recorded as blocked rather than passed, and a repair stage receives a named element to add plus two verdicts to re-verify against. Propose a name only when the sentence genuinely imposes the obligation and no declared element plausibly is the one it means; when one does, name that element instead.
+**Step 1 -- is the concept a pseudo-state?** Entry into a state and termination of
+a run have no names in this notation; they are written `[*]`. So there is nothing
+to bind and nothing to propose, and the predicate that asks about the concept is
+the answer:
+
+- "on shutdown it transits to the final state" / "the run ends" / "the mode
+  finishes" -> `terminates`. Never `occupancy_after` toward an invented terminal
+  state name: a model that terminates correctly declares no such state, so
+  proposing one reports a defect against a model that is right. Read
+  `terminating_transitions` in your input: if it lists an edge from the state the
+  sentence is about, the model already ends the run there, and `terminates` over
+  that source and trigger is the check.
+- "the system begins in X" / "entering M starts in X" -> `initial_target`. Read
+  `initial_entries` in your input: it shows each composite's declared entries and
+  whether each is unconditional, which is what decides this claim.
+
+**Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
+Compare the *last segment* of the name, not the whole path. A state two regions
+share is declared inside exactly one of them, and a sentence about the other
+region still means that one state. Bind the declared path verbatim: proposing
+`Sys.RegionB.Done` while the vocabulary lists `Sys.RegionA.Done` reports a
+missing state that is present, and the run reaches it by leaving RegionB and
+routing onward -- which is a reachability question, not a missing element.
+
+**Step 3 -- does a declared element plausibly denote the same thing?** Different
+wording, same referent: the NL's "target search task" and a declared `Searching`
+state. Bind the declared element and record the naming difference in
+`limitations`. Do not stretch this into substitution: binding "the number of
+units" to an unrelated route-control variable changes the requirement into a
+different one and hides the very gap that matters.
+
+**Step 4 -- none of the above: the model has no counterpart at all.** Only now
+write the name the element should have, taken from the sentence's own wording --
+`unit_count` for "the number of units", `Sys.OperatorConfirm` for "until the
+operator confirms". Follow the model's conventions for the kind: variables are
+bare names, events and states are `<root>.<name>` paths. Add a `limitations`
+entry naming what the NL asked for and recording that the model declares nothing
+under that name, and say which of steps 1-3 you ruled out.
+
+A name proposed under step 4 is an ordinary binding value, not a special case.
+The Assertion Converter asserts its existence as a `precondition` and makes the
+real claim depend on it, so the obligation stays checkable from end to end: the
+precondition reports the absence, the claim resting on it is recorded as blocked
+rather than passed, and a repair stage receives a named element to add plus two
+verdicts to re-verify against.
 
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
 How to choose the predicate. Read what the sentence asserts, then pick the predicate whose meaning matches it.
 - Ask whether the sentence is about what the model *contains* or about what the model *does*. "The model shall declare a transition from A on E to B" is about containment: `edge_declared`. "When E occurs in A the system moves to B" is about behaviour: `occupancy_after`. This one distinction decides the majority of requirements, and getting it wrong is the single most common source of a wrong verdict, because a declared edge can be unreachable, guard-blocked, or overridden by a competing transition. When the NL describes an operational scenario, prefer the behavioural predicate.
 - Do not pick a predicate to make the check cheaper or easier. Pick the one that would actually be violated if the model were wrong in the way the sentence forbids.
-- If no predicate fits, do not force one and do not invent a name. Emit the Requirement with the closest predicate and record the mismatch in `limitations`, so the gap is visible instead of silently mis-tested.
+- If no predicate seems to fit, you are usually at step 1 of the four steps above: the concept is a pseudo-state and `terminates` or `initial_target` asks about it. Work those four steps rather than forcing a predicate, and never bypass them by inventing a name.
 
 Split independently violable mixed modalities into separate Requirements: one predicate per Requirement. A sentence that says "X is a substate of Y and entering Y starts at X" is two claims (`containment`, `initial_target`) and must become two Requirements, otherwise satisfying half of it reads as satisfying all of it.
 
@@ -163,7 +211,7 @@ Check the predicate against the sentence, not against the current model:
 - Reject a Family S predicate (`edge_declared`, `state_declared`, `containment`, ...) where the NL describes an operational scenario -- a trigger arriving and the system responding. That belongs to Family B, and closing it with a declaration query would pass a model whose declared edge is unreachable or guard-blocked. Name the behavioural predicate you expect instead.
 - Reject a Family P predicate whose obligation an exact structural or relational query already decides, and say which query.
 - Reject any `predicate_bindings` value that omits a required binding, and any value that is neither a path appearing verbatim in `declared_model_vocabulary` nor a name the requirement's `limitations` identifies as one the model should have declared. Name the offending value and the closest declared path. A binding that names a nonexistent element without saying so makes the downstream check vacuous, so this is not a cosmetic objection.
-- A binding may name an element this model does not declare, provided `limitations` records that. **Accept it** when no declared element plausibly is the one the sentence means: the Converter turns it into an existence check the claim depends on, so the obligation stays checkable and a repair stage gets a named target. **Reject it** when a declared element does plausibly fit -- an unrelated counter standing in for a quantity is the substitution this rule exists to prevent, and so is proposing a new name while the right element sits in the vocabulary. Say which element you mean. Also reject a value that is not shaped like a name at all: nothing can be looked up under it, so no check can rest on it.
+- A binding may name an element this model does not declare, provided `limitations` records that. Judge only the last two steps of the Splitter's four-step procedure -- whether a declared element plausibly denotes the same thing (step 3) or the model genuinely has no counterpart (step 4). The first two steps are settled deterministically before you see the set: a pseudo-state concept answered by `terminates` or `initial_target`, and a leaf name the vocabulary already declares under another parent, are both rejected by a gate, so do not spend a finding on them. **Accept the proposal** when no declared element plausibly is the one the sentence means: the Converter turns it into an existence check the claim depends on, so the obligation stays checkable and a repair stage gets a named target. **Reject it** when a declared element does plausibly fit -- an unrelated counter standing in for a quantity is the substitution this rule exists to prevent. Say which element you mean. Also reject a value that is not shaped like a name at all: nothing can be looked up under it, so no check can rest on it.
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
 
@@ -377,6 +425,63 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
   "expected_outcome": "the unit count decreases",
   "coverage_obligation": {"domain": "quantitative_effect", "aggregation": "all"},
   "limitations": ["the model declares no variable for the number of active units"]
+}
+
+Example 4 -- step 1: the sentence asks about termination, so there is no state to bind.
+`terminating_transitions` lists `Sys.ModeA --Sys.shutdown--> final`, so the model
+already ends the run there and `terminates` is the check. Writing
+`occupancy_after(target="Sys.FinalState")` here would report a missing state
+against a model that terminates correctly.
+{
+  "requirement_id": "REQ-005",
+  "statement": "On shutdown the system shall reach its final state.",
+  "rationale": "NL-L005 states a termination obligation; terminating_transitions shows the run ends from Sys.ModeA on Sys.shutdown, so no terminal state is named or needed.",
+  "source_segment_ids": ["NL-L005"],
+  "predicate": "terminates",
+  "predicate_bindings": {"scope": "Sys.ModeA", "trigger": "Sys.shutdown"},
+  "verification_kind": "behavior",
+  "quantifier": "single",
+  "trigger": "Sys.shutdown",
+  "expected_outcome": "the run ends",
+  "coverage_obligation": {"domain": "termination", "aggregation": "all"},
+  "limitations": []
+}
+
+Example 5 -- step 2: the element is declared, under another parent. The sentence is
+about RegionB, the vocabulary lists `Sys.RegionA.Done`, and that one state is what
+the sentence means; RegionB reaches it by leaving RegionB and routing onward.
+Proposing `Sys.RegionB.Done` would report a missing state that is present.
+{
+  "requirement_id": "REQ-006",
+  "statement": "RegionB shall reach the Done state once the work is finished.",
+  "rationale": "NL-L006 names Done. declared_model_vocabulary lists it as Sys.RegionA.Done -- one shared state, declared inside RegionA -- so the claim binds that path.",
+  "source_segment_ids": ["NL-L006"],
+  "predicate": "occupancy_after",
+  "predicate_bindings": {"source": "Sys.RegionB.Working", "trigger": "Sys.work_done", "target": "Sys.RegionA.Done"},
+  "verification_kind": "behavior",
+  "quantifier": "single",
+  "trigger": "Sys.work_done",
+  "expected_outcome": "the run occupies the declared Done state",
+  "coverage_obligation": {"domain": "completion", "aggregation": "all"},
+  "limitations": ["Done is declared inside RegionA; the sentence speaks of RegionB and the run reaches it by routing out of RegionB"]
+}
+
+Example 6 -- step 3: different wording, same referent. The NL says "target search
+task" and the model declares `Sys.Searching`. Bind the declared element and record
+the naming difference; do not propose `Sys.TargetSearchTask`.
+{
+  "requirement_id": "REQ-007",
+  "statement": "The system shall perform the target search task until interception is detected.",
+  "rationale": "NL-L007 names the activity in prose. Sys.Searching is the declared state for it, so the claim binds that rather than a new name.",
+  "source_segment_ids": ["NL-L007"],
+  "predicate": "persists_until",
+  "predicate_bindings": {"state": "Sys.Searching", "release": "active(\\"Sys.Intercepted\\")", "bound": "4"},
+  "verification_kind": "property",
+  "quantifier": "always",
+  "trigger": null,
+  "expected_outcome": "Searching holds until Intercepted becomes active",
+  "coverage_obligation": {"domain": "continuity", "aggregation": "all"},
+  "limitations": ["checked up to bound 4 only", "the NL says target search task; the declared state for it is Sys.Searching"]
 }
 """
 REQUIREMENT_SPLITTER_PROMPT += """

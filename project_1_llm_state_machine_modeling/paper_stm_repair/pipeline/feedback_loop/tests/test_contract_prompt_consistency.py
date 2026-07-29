@@ -163,203 +163,133 @@ def test_binding_output_contract_is_the_last_thing_each_producer_reads() -> None
         assert "overrides anything above" in tail, name
 
 
-def test_the_missing_element_rule_is_one_rule_on_every_producer_surface() -> None:
-    """Splitter, both reviewers and the converter must agree on one encoding.
+def test_the_missing_element_rule_is_one_ordered_procedure() -> None:
+    """One procedure, four ordered exits, described in exactly one place.
 
-    Pair 0006 is the worked failure, twice over.  First two instructions
-    contradicted each other -- bindings had to appear verbatim in the declared
-    vocabulary, *and* a term the NL required but the model did not declare had to
-    be bound to the closest declared term -- and the loop ran five revisions until
-    the growing ledger broke the provider's streamed tool call.  Then, after the
-    encoding changed, the prompts still told the producer to write a stand-in
-    literal while the conversion gate refused exactly that: six revisions of
-    obeying orders and being rejected for it, both models, until the repair budget
-    ran out and the run died.
+    This test exists because the failure it guards against already happened twice.
+    First two instructions contradicted each other about vocabulary binding and the
+    loop ran five revisions until the provider's streamed tool call broke.  Then a
+    "propose the name the element should have" paragraph was added beside a
+    surviving "do not force a predicate and do not invent a name" bullet: the
+    producer obeyed the newer one, invented a terminal state on a model that
+    terminates correctly, and two fabricated defects were published (pair 0050).
 
-    A contradiction between two surfaces fails like a transport fault, so pin the
-    agreement rather than any one stage's wording.
+    So the invariant is not "the wording is good" but "there is one rule".  A
+    second, independent description of what to do when a binding cannot be made is
+    the defect, however sensible it reads on its own.
     """
 
     splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
-    requirement_reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
-    converter = prompts.ASSERTION_CONVERTER_PROMPT
 
-    # The splitter decides the binding: name the element the model should have,
-    # never borrow one that merely fits the slot.
-    assert "do not substitute a declared element that happens to fit the slot" in splitter
-    assert "add a `limitations` entry naming what the NL asked for" in splitter
+    # The procedure, in order, with each step's exit named.
+    for marker in (
+        "Step 1 -- is the concept a pseudo-state?",
+        "Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?",
+        "Step 3 -- does a declared element plausibly denote the same thing?",
+        "Step 4 -- none of the above",
+    ):
+        assert marker in splitter, marker
+        assert splitter.count(marker) == 1, f"{marker} is described twice"
+
+    # Step 1 must name both predicates that answer a pseudo-state concept, or the
+    # producer has the rule and no way to act on it.
+    assert "`terminates`" in splitter
+    assert "`initial_target`" in splitter
+    # And it must point at the evidence that decides step 1, not ask for a guess.
+    assert "terminating_transitions" in splitter
+    assert "initial_entries" in splitter
+
+    # The retired second description must be gone, not merely outvoted.
+    assert "do not force one and do not invent a name" not in splitter
     assert "bind the closest declared term the sentence does name" not in splitter
 
-    # The requirement reviewer judges that choice, and must be able to answer
-    # both ways: unconditional acceptance let a proposal through while the right
-    # element sat in the vocabulary, unconditional rejection is the loop 0006
-    # died in.
-    assert (
-        "**Accept it** when no declared element plausibly is the one the sentence means"
-        in requirement_reviewer
-    )
-    assert (
-        "**Reject it** when a declared element does plausibly fit"
-        in requirement_reviewer
-    )
-
-    # The converter turns the proposal into two assertions, which is what gives
-    # the repair stage a named target instead of an unchecked gap.
+    # The converter still owns the two-assertion shape for step 4, and only that.
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
     assert "needs two assertions, not one" in converter
     assert "`precondition` asserting that the missing element **exists**" in converter
     assert "with `depends_on` naming the precondition" in converter
-    assert "repair stage can add exactly that element" in converter
-    assert "only `supporting`" not in converter
 
 
-def test_the_prefer_a_declared_element_condition_reaches_both_judging_stages() -> None:
-    """Proposing a name is conditional, and the condition must not be one-sided.
+def test_each_step_of_the_procedure_has_a_worked_object() -> None:
+    """Prose alone has failed here twice; a step without an example gets skipped.
 
-    A model that declares a plausible variable had no legal move anywhere in the
-    loop when the stages disagreed about whether to prefer it: five repair rounds,
-    then a coverage gap on a defect that was really there.  The splitter makes the
-    call and the requirement reviewer checks it, so both need the condition, and
-    neither may state the rule unconditionally.
+    The four steps are a decision procedure, and the one that misfires in practice
+    is not step 4 -- it is stopping too late, at step 4, when step 1 or 2 applied.
+    Those two need to be *shown*, not just ordered.
     """
 
     splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
-    requirement_reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
-    assertion_reviewer = prompts.ASSERTION_REVIEWER_PROMPT
-
-    assert "Propose a name only when the sentence genuinely imposes the obligation" in splitter
-    assert "name that element instead" in splitter, (
-        "the splitter must be told to prefer a declared element when one fits"
-    )
-    assert (
-        "Do not ask the Splitter to replace it with a declared term"
-        not in requirement_reviewer
-    ), "the unconditional form contradicts the conditional acceptance above"
-    assert (
-        "an existence precondition on a proposed name is wrong while a declared "
-        "variable plausibly is the one the sentence means" in assertion_reviewer
-    ), "the assertion reviewer must not demand the shape where an element fits"
+    for marker, needle in (
+        ("step 1", '"predicate": "terminates"'),
+        ("step 2", '"target": "Sys.RegionA.Done"'),
+        ("step 3", '"state": "Sys.Searching"'),
+    ):
+        assert needle in splitter, f"{marker} has no worked object ({needle})"
+    # Step 4's object predates these and stays: it is the only case a proposed name
+    # is legal, so it must remain visible beside the three that outrank it.
+    assert '"variable": "unit_count"' in splitter
 
 
-def test_multi_field_outputs_are_shown_not_described() -> None:
-    """Every multi-field structured output needs at least three worked objects.
+def test_the_deterministic_steps_are_gated_and_not_left_to_the_reviewer() -> None:
+    """Steps 1 and 2 are settled by comparison, so a judgement call is the wrong tool.
 
-    Prose is not enough.  The converter prompt named `role`, `coverage_key` and
-    `aggregation_group` three separate times, and producers still emitted the
-    first two and dropped the third; the controller back-filled it, a gate
-    rejected the back-fill as legacy, every assertion in the script was isolated
-    and three of eight matrix cells died with an empty script.  A field seen
-    filled in three complete examples does not get dropped.
+    A reviewer asked to re-derive what a comparison answers will sometimes get it
+    right, and the cost of the times it does not is the item's whole repair budget.
+    The reviewer's text must therefore scope itself to steps 3 and 4 and say the
+    first two are already decided -- otherwise both stages own the same rule and
+    they will drift.
     """
 
-    cases = [
-        (
-            "ASSERTION_CONVERTER_PROMPT",
-            ("assertion_id", "role", "coverage_key", "aggregation_group", "evidence_family"),
-        ),
-        (
-            "REQUIREMENT_SPLITTER_PROMPT",
-            ("requirement_id", "predicate", "predicate_bindings", "coverage_obligation"),
-        ),
-    ]
-    for name, fields in cases:
-        text = getattr(prompts, name)
-        for field in fields:
-            shown = text.count(f'"{field}":')
-            assert shown >= 3, f"{name} shows {field} in only {shown} worked objects"
-
-
-def test_prompts_do_not_leak_benchmark_identifiers() -> None:
-    """No prompt may name an element of the evaluation corpus.
-
-    A producer whose system prompt contains identifiers from the 60 evaluated
-    pairs is not solving the task blind, and the result would be challenged.
-    """
-
-    corpus = (
-        ROOT.parent / "representation/reports/llms_emp_r45_java_60/pairs"
-    )
-    leaked: list[str] = []
-    # Only the text this repository authors is checked.  The appended pyfcstm
-    # grammar guide is upstream documentation with its own worked examples, and
-    # one of its illustrative names (`EmergencyStop`) happens to also occur in
-    # the corpus.  That is coincidence, not leakage, and it is not ours to edit;
-    # scoping the check to our own prose keeps it meaningful instead of noisy.
-    def authored(name: str) -> str:
-        text = getattr(prompts, name)
-        for guide in ("\n\n=== FCSTM grammar guide", "\n\n=== FBMCQ language guide"):
-            head, _, _ = text.partition(guide)
-            text = head
-        return text
-
-    prompt_texts = {
-        name: authored(name)
-        for name in (
-            "REQUIREMENT_SPLITTER_PROMPT",
-            "REQUIREMENT_REVIEWER_PROMPT",
-            "ASSERTION_CONVERTER_PROMPT",
-            "ASSERTION_REVIEWER_PROMPT",
-            "RESULT_ADJUDICATOR_PROMPT",
-        )
-    }
-    # Only multi-word identifiers are checked.  A single English word such as
-    # `Condition` or `Transition` appears in ordinary prose, so matching those
-    # reports the prompt's own vocabulary as a leak.  A CamelCase compound of
-    # two or more words, or a snake_case compound, is corpus-specific enough
-    # that a coincidental match is implausible.
-    pattern = re.compile(
-        r"\b(?:[A-Z][a-z]{2,}){2,}\b|\b[a-z]{3,}(?:_[a-z0-9]{2,}){2,}\b"
-    )
-    seen: set[str] = set()
-    for case in sorted(corpus.iterdir())[:60]:
-        fcstm = case / "fcstm.fcstm"
-        if not fcstm.exists():
-            continue
-        for token in pattern.findall(fcstm.read_text()):
-            if token in seen or len(token) < 10:
-                continue
-            seen.add(token)
-            for name, text in prompt_texts.items():
-                if token in text:
-                    leaked.append(f"{name}: {token}")
-    assert not leaked, f"benchmark identifiers reached the prompts: {sorted(set(leaked))[:10]}"
-
-
-def test_requirement_stages_are_warned_off_the_two_silent_failures() -> None:
-    """`[*]` misuse and model-derived requirements both pass every gate.
-
-    Pair 0000's expected defect is that Power Off is declared on the initial
-    pseudostate instead of on the running modes.  Claude bound `source="[*]"`,
-    which is precisely the model's own mistake restated as the requirement; the
-    check then passed, the cell reported zero issues, and nothing downstream
-    could tell.  Both halves have to be said, to the splitter that writes the
-    binding and to the reviewer that is the only stage able to reject it.
-    """
-
-    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
     reviewer = prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "Judge only the last two steps" in reviewer
+    assert "rejected by a gate, so do not spend a finding on them" in reviewer
 
-    for name, text in (("splitter", splitter), ("reviewer", reviewer)):
-        assert "power-on, startup or first entry" in text, name
-        assert "already running" in text, name
-        assert "natural language" in text, name
+    # And the gates exist, as functions over the frozen model rather than prose.
+    from paper_stm_feedback_loop.discover.capability import (
+        redundant_proposal_findings,
+        termination_proposal_findings,
+    )
 
-    # The splitter needs the positive instruction, the reviewer the rejection.
-    assert "is never on its own a reason to reach for `[*]`" in splitter
-    assert "Reject `[*]` on a claim that is not about power-on" in reviewer
-    assert "restates the model instead of the natural language" in reviewer
+    class Req:
+        def __init__(self, rid, predicate, bindings):
+            self.requirement_id = rid
+            self.predicate = predicate
+            self.predicate_bindings = bindings
 
-
-def test_the_schema_rule_survives_the_new_guidance() -> None:
-    """Guidance added mid-prompt must not push the output contract out of the tail.
-
-    Checked separately from the tail test above because the failure mode is
-    additive: every future paragraph is one more chance to bury the schema rule
-    that three cells already violated once.
-    """
-
-    for name in ("REQUIREMENT_SPLITTER_PROMPT", "ASSERTION_CONVERTER_PROMPT"):
-        text = getattr(prompts, name)
-        assert "overrides anything above" in text[-1500:], name
+    known = frozenset({"Sys.ModeA", "Sys.RegionA.Done", "Sys.shutdown"})
+    ends = (
+        {"source": "Sys.ModeA", "trigger": "Sys.shutdown", "ends_run": True},
+    )
+    # Step 1: a proposed terminal state where the model already ends the run.
+    fired = termination_proposal_findings(
+        (
+            Req(
+                "REQ-001",
+                "occupancy_after",
+                {"source": "Sys.ModeA", "trigger": "Sys.shutdown", "target": "Sys.FinalState"},
+            ),
+        ),
+        known,
+        ends,
+    )
+    assert len(fired) == 1
+    assert "terminates(scope='Sys.ModeA'" in fired[0], "the message must name the exit"
+    # The same requirement written per step 1 passes.
+    assert termination_proposal_findings(
+        (Req("REQ-001", "terminates", {"scope": "Sys.ModeA", "trigger": "Sys.shutdown"}),),
+        known,
+        ends,
+    ) == ()
+    # Step 2: a proposed path whose leaf is declared under another parent.
+    fired = redundant_proposal_findings(
+        (Req("REQ-002", "occupancy_after", {"target": "Sys.RegionB.Done"}),), known
+    )
+    assert len(fired) == 1
+    assert "Sys.RegionA.Done" in fired[0], "the message must name the declared path"
+    # A genuinely absent element is not this gate's business; step 4 handles it.
+    assert redundant_proposal_findings(
+        (Req("REQ-003", "variable_delta_after", {"variable": "unit_count"}),), known
+    ) == ()
 
 
 def test_no_surface_carries_a_retired_exit_for_a_missing_element() -> None:
@@ -583,3 +513,87 @@ def test_every_worked_example_object_parses_and_validates() -> None:
             f"{name} shows only {checked} complete worked objects; three is the "
             "floor a field needs before producers stop dropping it"
         )
+
+
+def test_multi_field_outputs_are_shown_not_described() -> None:
+    """Every multi-field structured output needs at least three worked objects.
+
+    Prose is not enough.  The converter prompt named `role`, `coverage_key` and
+    `aggregation_group` three separate times, and producers still emitted the
+    first two and dropped the third; the controller back-filled it, a gate
+    rejected the back-fill as legacy, every assertion in the script was isolated
+    and three of eight matrix cells died with an empty script.  A field seen
+    filled in three complete examples does not get dropped.
+    """
+
+    cases = [
+        (
+            "ASSERTION_CONVERTER_PROMPT",
+            ("assertion_id", "role", "coverage_key", "aggregation_group", "evidence_family"),
+        ),
+        (
+            "REQUIREMENT_SPLITTER_PROMPT",
+            ("requirement_id", "predicate", "predicate_bindings", "coverage_obligation"),
+        ),
+    ]
+    for name, fields in cases:
+        text = getattr(prompts, name)
+        for field in fields:
+            shown = text.count(f'"{field}":')
+            assert shown >= 3, f"{name} shows {field} in only {shown} worked objects"
+
+
+def test_prompts_do_not_leak_benchmark_identifiers() -> None:
+    """No prompt may name an element of the evaluation corpus.
+
+    A producer whose system prompt contains identifiers from the 60 evaluated
+    pairs is not solving the task blind, and the result would be challenged.
+    """
+
+    corpus = (
+        ROOT.parent / "representation/reports/llms_emp_r45_java_60/pairs"
+    )
+    leaked: list[str] = []
+    # Only the text this repository authors is checked.  The appended pyfcstm
+    # grammar guide is upstream documentation with its own worked examples, and
+    # one of its illustrative names (`EmergencyStop`) happens to also occur in
+    # the corpus.  That is coincidence, not leakage, and it is not ours to edit;
+    # scoping the check to our own prose keeps it meaningful instead of noisy.
+    def authored(name: str) -> str:
+        text = getattr(prompts, name)
+        for guide in ("\n\n=== FCSTM grammar guide", "\n\n=== FBMCQ language guide"):
+            head, _, _ = text.partition(guide)
+            text = head
+        return text
+
+    prompt_texts = {
+        name: authored(name)
+        for name in (
+            "REQUIREMENT_SPLITTER_PROMPT",
+            "REQUIREMENT_REVIEWER_PROMPT",
+            "ASSERTION_CONVERTER_PROMPT",
+            "ASSERTION_REVIEWER_PROMPT",
+            "RESULT_ADJUDICATOR_PROMPT",
+        )
+    }
+    # Only multi-word identifiers are checked.  A single English word such as
+    # `Condition` or `Transition` appears in ordinary prose, so matching those
+    # reports the prompt's own vocabulary as a leak.  A CamelCase compound of
+    # two or more words, or a snake_case compound, is corpus-specific enough
+    # that a coincidental match is implausible.
+    pattern = re.compile(
+        r"\b(?:[A-Z][a-z]{2,}){2,}\b|\b[a-z]{3,}(?:_[a-z0-9]{2,}){2,}\b"
+    )
+    seen: set[str] = set()
+    for case in sorted(corpus.iterdir())[:60]:
+        fcstm = case / "fcstm.fcstm"
+        if not fcstm.exists():
+            continue
+        for token in pattern.findall(fcstm.read_text()):
+            if token in seen or len(token) < 10:
+                continue
+            seen.add(token)
+            for name, text in prompt_texts.items():
+                if token in text:
+                    leaked.append(f"{name}: {token}")
+    assert not leaked, f"benchmark identifiers reached the prompts: {sorted(set(leaked))[:10]}"

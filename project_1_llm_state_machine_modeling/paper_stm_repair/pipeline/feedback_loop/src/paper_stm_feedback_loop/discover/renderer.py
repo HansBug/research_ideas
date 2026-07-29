@@ -43,6 +43,32 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "events": list(vocabulary.get("events") or ()),
         "variables": list(vocabulary.get("variables") or ()),
     }
+    # What the model says through `[*]`, which has no name and so appears in none
+    # of the lists above.  Without it a producer reading this block concludes the
+    # model cannot terminate and proposes a `FinalState`; pair 0050 did that twice
+    # on a model that terminates correctly.  These two keys are what the four-step
+    # procedure's step 1 reads.
+    facts = frozen.pseudo_state_facts or {}
+    ending = [
+        row
+        for row in (facts.get("terminating_transitions") or ())
+        if isinstance(row, dict) and row.get("ends_run")
+    ]
+    payload["terminating_transitions"] = ending
+    payload["terminating_transitions_note"] = (
+        "Edges that end the run. A requirement about finishing, ending or "
+        "reaching a final state is answered by `terminates` over one of these; "
+        "there is no state to bind, so proposing a `FinalState` name reports a "
+        "defect against a model that is correct. Empty means no edge ends the "
+        "run, and then a completion claim is about reaching a declared state."
+    )
+    payload["initial_entries"] = list(facts.get("initial_entries") or ())
+    payload["initial_entries_note"] = (
+        "Declared entries per composite. Entry takes an `unconditional` edge when "
+        "one exists, so that target is where the composite actually starts; a "
+        "guarded or triggered entry is only taken when its condition already "
+        "holds. `initial_target` claims are decided against this."
+    )
     if compiler_owned:
         # Shown, not hidden: the producer will see these names in the FCSTM text
         # and needs to know why they are not on the list above.  An empty

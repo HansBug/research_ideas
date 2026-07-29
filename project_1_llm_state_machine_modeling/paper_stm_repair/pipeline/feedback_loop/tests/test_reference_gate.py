@@ -315,3 +315,162 @@ def test_an_existence_check_needs_no_precondition_of_its_own():
         ),
         KNOWN,
     ) != ()
+
+
+# --------------------------------------------------------------------------
+# Steps 1 and 2 of the four-step procedure, as gates
+
+
+class Req:
+    """A requirement carrying only what the two step gates read."""
+
+    def __init__(self, rid, predicate, bindings):
+        self.requirement_id = rid
+        self.predicate = predicate
+        self.predicate_bindings = bindings
+
+
+GATE_KNOWN = frozenset({"Sys.ModeA", "Sys.ModeA.Inner", "Sys.RegionA.Done", "Sys.go"})
+
+
+def test_termination_gate_reads_the_model_not_the_wording():
+    """Firing on words like "final" would hit requirements about other things.
+
+    The gate fires exactly when the model ends the run from that source on that
+    trigger -- which is exactly when `terminates` can answer the claim -- so a
+    sentence that merely says "finally" is untouched, and a sentence about
+    termination on a model that does *not* terminate there is left alone too, since
+    then the absence is the finding.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        termination_proposal_findings,
+    )
+
+    ends = ({"source": "Sys.ModeA", "trigger": "Sys.go", "ends_run": True},)
+    proposal = Req(
+        "REQ-001",
+        "occupancy_after",
+        {"source": "Sys.ModeA", "trigger": "Sys.go", "target": "Sys.TheEnd"},
+    )
+    fired = termination_proposal_findings((proposal,), GATE_KNOWN, ends)
+    assert len(fired) == 1
+    assert "terminates(scope='Sys.ModeA', trigger='Sys.go')" in fired[0]
+
+    # Written per step 1, it passes.
+    assert termination_proposal_findings(
+        (Req("REQ-001", "terminates", {"scope": "Sys.ModeA", "trigger": "Sys.go"}),),
+        GATE_KNOWN,
+        ends,
+    ) == ()
+    # A declared target is not a proposal, so the gate has nothing to say.
+    assert termination_proposal_findings(
+        (
+            Req(
+                "REQ-002",
+                "occupancy_after",
+                {"source": "Sys.ModeA", "trigger": "Sys.go", "target": "Sys.ModeA.Inner"},
+            ),
+        ),
+        GATE_KNOWN,
+        ends,
+    ) == ()
+    # No terminating edge at all: the proposal may well be the finding.
+    assert termination_proposal_findings((proposal,), GATE_KNOWN, ()) == ()
+    # Terminating, but not on this trigger.
+    assert termination_proposal_findings(
+        (
+            Req(
+                "REQ-003",
+                "occupancy_after",
+                {"source": "Sys.ModeA", "trigger": "Sys.other", "target": "Sys.TheEnd"},
+            ),
+        ),
+        GATE_KNOWN,
+        ends,
+    ) == ()
+
+
+def test_the_termination_gate_follows_the_two_step_lowering():
+    """Because that is how the corpus writes it, and reading one hop missed half.
+
+    Pair 0050 ends the run from its autonomous mode by leaving the composite on the
+    event and terminating on the token that exit set.  Reading only the direct edge
+    caught its first fabricated terminal state and let the second through -- the
+    same defect published twice, one of them invisible to the gate.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        termination_proposal_findings,
+    )
+
+    chain = (
+        # inner edge: leaves the composite carrying the event
+        {"source": "Sys.ModeA.Inner", "trigger": "Sys.go", "ends_run": False},
+        # outer edge: ends the run, on the token the inner edge set
+        {"source": "Sys.ModeA", "trigger": None, "ends_run": True},
+    )
+    fired = termination_proposal_findings(
+        (
+            Req(
+                "REQ-004",
+                "occupancy_after",
+                {"source": "Sys.ModeA", "trigger": "Sys.go", "target": "Sys.TheEnd"},
+            ),
+        ),
+        GATE_KNOWN,
+        chain,
+    )
+    assert len(fired) == 1
+    # The chain must actually leave the named scope, not merely exist somewhere.
+    assert termination_proposal_findings(
+        (
+            Req(
+                "REQ-005",
+                "occupancy_after",
+                {"source": "Sys.Elsewhere", "trigger": "Sys.go", "target": "Sys.TheEnd"},
+            ),
+        ),
+        GATE_KNOWN,
+        chain,
+    ) == ()
+    # A source with no trigger falls back to "this source ends the run".
+    assert len(
+        termination_proposal_findings(
+            (Req("REQ-006", "reaches", {"source": "Sys.ModeA", "target": "Sys.TheEnd"}),),
+            GATE_KNOWN,
+            chain,
+        )
+    ) == 1
+
+
+def test_the_declared_elsewhere_gate_compares_leaf_names():
+    """A shared state lives in one region; a sentence about the other means it.
+
+    Whole-path comparison cannot see that, which is how a requirement proposed a
+    `Done` under the region it was talking about while the vocabulary declared the
+    one `Done` under the sibling -- a missing state reported as missing while
+    present.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        redundant_proposal_findings,
+    )
+
+    fired = redundant_proposal_findings(
+        (Req("REQ-001", "occupancy_after", {"target": "Sys.RegionB.Done"}),), GATE_KNOWN
+    )
+    assert len(fired) == 1
+    assert "Sys.RegionA.Done" in fired[0]
+
+    # A declared path, and a genuinely new leaf, are both none of its business.
+    assert redundant_proposal_findings(
+        (Req("REQ-002", "occupancy_after", {"target": "Sys.RegionA.Done"}),), GATE_KNOWN
+    ) == ()
+    assert redundant_proposal_findings(
+        (Req("REQ-003", "variable_delta_after", {"variable": "unit_count"}),), GATE_KNOWN
+    ) == ()
+    # `[*]` and empty values are not proposals.
+    assert redundant_proposal_findings(
+        (Req("REQ-004", "occupancy_after", {"source": "[*]", "target": ""}),), GATE_KNOWN
+    ) == ()

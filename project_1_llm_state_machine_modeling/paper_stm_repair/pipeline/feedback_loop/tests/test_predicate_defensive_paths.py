@@ -917,3 +917,59 @@ def test_a_prefix_runs_under_the_alarm_when_one_is_configured():
     )
     result = checker.check(script, reason="prefix", required_function_families=())
     assert result.sealed.outcome == "valid", result.sealed.metadata
+
+
+# --------------------------------------------------------------------------
+# The root guard: a claim whose subject is active in every configuration
+# --------------------------------------------------------------------------
+
+
+def test_the_root_is_read_from_the_state_table_and_skips_non_roots():
+    """The root is the row with no parent; rows above it in the table are not it."""
+
+    subject = api(
+        structure=Structure(
+            states=[
+                Row(path="Root.A", parent_path="Root"),
+                Row(path="Root", parent_path=None),
+            ]
+        )
+    )
+    assert subject._model_root() == "Root"
+
+
+def test_an_unreadable_state_table_leaves_the_root_guard_silent():
+    """It refuses claims; it must not manufacture one when it cannot look.
+
+    A guard that raises because its own lookup failed would report a binding
+    problem the producer cannot act on, for a model that may be fine.
+    """
+
+    subject = api(structure=Structure(boom={"states"}))
+    assert subject._model_root() is None
+    subject._reject_undiscriminating_root("occupancy_after", target="Root")
+
+    # Same when the table is readable but declares no root at all.
+    rootless = api(structure=Structure(states=[Row(path="Root.A", parent_path="Root")]))
+    assert rootless._model_root() is None
+    rootless._reject_undiscriminating_root("occupancy_after", target="Root")
+
+
+def test_the_root_guard_only_fires_on_the_root():
+    subject = api(structure=Structure(states=[Row(path="Root", parent_path=None)]))
+    # A named state below the root is exactly what the guard wants instead.
+    subject._reject_undiscriminating_root("occupancy_after", target="Root.A")
+    with pytest.raises(UnsupportedEvidence, match="active in every configuration"):
+        subject._reject_undiscriminating_root("occupancy_after", target="Root")
+
+
+def test_an_unreadable_state_table_does_not_claim_a_composite_pin():
+    """The settle cycle is only right for a composite; guessing costs a verdict.
+
+    Reporting a composite it could not read would add an empty cycle to a leaf pin,
+    which for a state with an eventless outgoing transition answers about wherever
+    the machine drifted to instead.
+    """
+
+    subject = api(structure=Structure(boom={"states"}))
+    assert subject._pins_a_composite("Root.A") is False

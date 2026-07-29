@@ -41,7 +41,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
-from typing import Iterable, Protocol
+from typing import Any, Iterable, Protocol
 
 from paper_stm_feedback_loop.assertions.predicate_api import (
     PSEUDO_INITIAL,
@@ -59,6 +59,9 @@ __all__ = [
     "unresolved_model_references",
     "unresolved_reference_findings",
     "placeholder_bindings",
+    "redundant_proposal_findings",
+    "termination_proposal_findings",
+    "CLAIM_SUBJECT_BINDINGS",
     "declared_path_bindings",
     "source_omitting_response_calls",
     "SOURCE_SENSITIVE_PHASES",
@@ -504,6 +507,142 @@ def unresolved_model_references(
             for arg, text in _absent_path_bindings(expression, known_paths)
         )
     )
+
+
+class _RequirementSpec(Protocol):
+    """The fields of a ``Requirement`` the four-step gates read."""
+
+    requirement_id: str
+    predicate: str
+    predicate_bindings: dict[str, str]
+
+
+#: Bindings that name the *subject* of a claim -- what the run must reach or hold.
+#: A proposed name in one of these is what turns a pseudo-state concept into a
+#: fabricated state; a proposed `source` or `scope` is a different mistake and is
+#: caught by the reference gate instead.
+CLAIM_SUBJECT_BINDINGS = frozenset({"target", "response", "state", "child"})
+
+
+def redundant_proposal_findings(
+    requirements: Iterable[_RequirementSpec], known_paths: frozenset[str]
+) -> tuple[str, ...]:
+    """Step 2 of the four-step procedure, decided rather than reviewed.
+
+    A state two regions share is declared inside exactly one of them.  A sentence
+    about the other region still means that one state, so the leaf name is already
+    in the vocabulary under a different parent -- and proposing a new path for it
+    reports a missing element that is present.  Pair 0029 proposed
+    `<UrbanMode>.FinishState` while the vocabulary listed it under the sibling
+    composite, and the resulting finding was published as a confirmed issue.
+
+    Deterministic from the vocabulary alone, so it is a gate: leaving it to the
+    Requirement Reviewer asks a judgement call of something a comparison settles,
+    and a reviewer that misses it costs the item its repair budget.
+    """
+
+    by_leaf: dict[str, list[str]] = {}
+    for path in known_paths:
+        by_leaf.setdefault(path.rsplit(".", 1)[-1], []).append(path)
+    findings: list[str] = []
+    for item in requirements:
+        for binding, value in (item.predicate_bindings or {}).items():
+            text = str(value).strip()
+            if not text or text == PSEUDO_INITIAL or text in known_paths:
+                continue
+            declared = sorted(by_leaf.get(text.rsplit(".", 1)[-1], ()))
+            if declared:
+                findings.append(
+                    f"{item.requirement_id} proposes {binding}={text!r} while the "
+                    f"vocabulary already declares {declared}; bind the declared "
+                    "path (step 2)"
+                )
+    return tuple(findings)
+
+
+def termination_proposal_findings(
+    requirements: Iterable[_RequirementSpec],
+    known_paths: frozenset[str],
+    terminating: Iterable[dict[str, Any]],
+) -> tuple[str, ...]:
+    """Step 1 of the four-step procedure, decided rather than reviewed.
+
+    Termination is written `[*]` and has no name, so a requirement that proposes
+    one -- `FinalState`, `EndState`, whatever the sentence's wording suggests --
+    asks about a state no correctly-terminating model declares.  Pair 0050 did it
+    twice and both findings were published against a model whose termination is
+    written correctly.
+
+    Keyed on the model rather than on the sentence's wording: the gate fires only
+    when the model actually ends the run from that source on that trigger, which is
+    exactly when `terminates` can answer the claim.  Matching words like "final"
+    would fire on requirements that have nothing to do with termination.
+    """
+
+    rows = [row for row in terminating if isinstance(row, dict)]
+    # Direct: the edge that ends the run carries the trigger itself.
+    ends = {
+        (str(row.get("source") or ""), str(row.get("trigger") or ""))
+        for row in rows
+        if row.get("ends_run")
+    }
+    sources_that_end = {source for source, _ in ends}
+    # Two-step: the lowering splits "this event ends the run" into an inner edge
+    # that leaves the composite carrying the event and an outer edge that ends the
+    # run on the token it set.  Pair 0050 terminates from `AutonomousMode` that
+    # way, so reading only direct edges let its second fabricated `FinalState`
+    # requirement through while catching the first.
+    exits_by_trigger: dict[str, set[str]] = {}
+    for row in rows:
+        trigger = str(row.get("trigger") or "")
+        source = str(row.get("source") or "")
+        if trigger and source:
+            exits_by_trigger.setdefault(trigger, set()).add(source)
+
+    def ends_run_via_chain(scope: str, trigger: str) -> bool:
+        if not scope or not trigger:
+            return False
+        inner = exits_by_trigger.get(trigger, set())
+        leaves_scope = any(
+            source == scope or source.startswith(f"{scope}.") for source in inner
+        )
+        if not leaves_scope:
+            return False
+        return any(
+            source == scope or scope.startswith(f"{source}.")
+            for source in sources_that_end
+        )
+
+    findings: list[str] = []
+    for item in requirements:
+        if item.predicate == "terminates":
+            continue
+        bindings = item.predicate_bindings or {}
+        proposed = sorted(
+            binding
+            for binding in CLAIM_SUBJECT_BINDINGS & set(bindings)
+            if str(bindings[binding]).strip()
+            and str(bindings[binding]).strip() != PSEUDO_INITIAL
+            and str(bindings[binding]).strip() not in known_paths
+        )
+        if not proposed:
+            continue
+        source = str(bindings.get("source") or bindings.get("scope") or "").strip()
+        trigger = str(bindings.get("trigger") or "").strip()
+        if (
+            (source, trigger) in ends
+            or (source in sources_that_end and not trigger)
+            or ends_run_via_chain(source, trigger)
+        ):
+            findings.append(
+                f"{item.requirement_id} proposes {proposed} as the claim's subject "
+                f"while the model ends the run from {source!r}"
+                + (f" on {trigger!r}" if trigger else "")
+                + f"; use terminates(scope={source!r}"
+                + (f", trigger={trigger!r}" if trigger else "")
+                + ") -- termination has no state to bind (step 1)"
+            )
+    return tuple(findings)
 
 
 def _existence_checked_names(
