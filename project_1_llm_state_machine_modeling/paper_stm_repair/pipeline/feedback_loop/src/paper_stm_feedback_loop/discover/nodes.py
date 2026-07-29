@@ -32,7 +32,7 @@ from .dependencies import (
     orphan_preconditions,
 )
 from .capability import (
-    SOURCE_SENSITIVE_PHASES,
+    anchors_at_initialization,
     called_evidence_functions,
     declared_path_bindings,
     initialization_anchored_findings,
@@ -1827,7 +1827,7 @@ def convert_assertions(
             phase = str(
                 (requirement.source_context or {}).get("behavior_phase", "")
             ).lower()
-            if phase in SOURCE_SENSITIVE_PHASES:
+            if not anchors_at_initialization(requirement.source_context):
                 source_blind = tuple(
                     f"{assertion.assertion_id}: {call}(...) omits source"
                     for assertion in primary_assertions
@@ -1835,11 +1835,12 @@ def convert_assertions(
                 )
                 if source_blind:
                     raise ValueError(
-                        f"{phase}-phase requirement {requirement.requirement_id} has "
+                        f"requirement {requirement.requirement_id} "
+                        f"(behavior_phase={phase or 'unset'!r}) has "
                         f"source-blind primary evidence: {list(source_blind)}. "
                         "Without `source` the claim is only about the initial "
-                        "configuration, which for an operation or termination event is "
-                        "initialization-only evidence. Pin the exact source, one "
+                        "configuration, which is initialization-only evidence for any "
+                        "phase but `initialization`. Pin the exact source, one "
                         "assertion per source the requirement ranges over"
                     )
             if vacuity_findings:

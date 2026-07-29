@@ -473,3 +473,57 @@ def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
     bare = Req("REQ-007", "occupancy_after", dict(unset.predicate_bindings))
     bare.source_context = {}
     assert len(initialization_anchored_findings((bare,))) == 1
+
+
+def test_the_phase_judgement_is_a_permission_and_has_exactly_one_owner():
+    """The sibling gate was keyed the other way, and a third value switched it off.
+
+    `initialization_anchored_findings` learned this already: `behavior_phase` is
+    optional, so a rule keyed on the phases it *forbids* is dodged by silence.  The
+    gate on source-blind `response_within` was still keyed that way -- it fired only
+    for the literals `operation` and `termination` -- while the splitter prompt
+    offered `unspecified` as a fourth value and `structure` as a fifth, and stated
+    that omitting the field means "not initialization".
+
+    What that costs is pair 0000's expected issue.  Its only `Power_Off` edge leaves
+    the pseudo-initial, so a `response_within` without `source` falls back to the
+    default initial configuration, finds the edge, and reports the requirement
+    satisfied -- true *because* of the defect.  The gate exists to stop precisely
+    that, and any phase value outside two spellings turned it off silently.
+
+    So both gates now ask one function, and it answers as a permission.
+    """
+
+    from paper_stm_feedback_loop.discover import capability, nodes
+    from paper_stm_feedback_loop.discover.capability import (
+        anchors_at_initialization,
+        source_omitting_response_calls,
+    )
+
+    # Only the claimed permission is granted; everything else, including silence
+    # and the values the prompt offers, needs an anchored source.
+    assert anchors_at_initialization({"behavior_phase": "initialization"}) is True
+    assert anchors_at_initialization({"behavior_phase": "Initialization"}) is True
+    for dodge in ("operation", "termination", "structure", "unspecified", "", None):
+        assert anchors_at_initialization({"behavior_phase": dodge}) is False, dodge
+    assert anchors_at_initialization({}) is False
+    assert anchors_at_initialization(None) is False
+
+    # The call the gate is about is still recognised, so the permission is the only
+    # thing that changed.
+    prefix = "llms_emp_feedback_final_0000"
+    blind = (
+        f'response_within(trigger="{prefix}.Power_Off", '
+        f'response="{prefix}.FinalState", bound=5) is True'
+    )
+    assert source_omitting_response_calls(blind) == ("response_within",)
+    anchored = (
+        f'response_within(source="{prefix}.HumanDrivingMode", '
+        f'trigger="{prefix}.Power_Off", response="{prefix}.FinalState", bound=5) is True'
+    )
+    assert source_omitting_response_calls(anchored) == ()
+
+    # One owner, not two: the blacklist constant is gone rather than left beside the
+    # function for someone to reach for again.
+    assert not hasattr(capability, "SOURCE_SENSITIVE_PHASES")
+    assert nodes.anchors_at_initialization is anchors_at_initialization

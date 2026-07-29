@@ -12,8 +12,10 @@ from .runtime import EvalAssertResult, EvalEnvironment, FunctionCallRecord, buil
 ASSERTION_ENVIRONMENT_API_DOCS = """
 THE ASSERTION ENVIRONMENT
 
-An assertion is one Python `assert` whose expression calls the predicate its
-Requirement names.  The environment contains the predicate vocabulary and a
+An assertion is one Python *expression* that calls the predicate its Requirement
+names.  You write the expression only -- the runtime supplies the `assert` and
+the message from the sibling fields, and an `expression` beginning with `assert`
+is refused by the schema.  The environment contains the predicate vocabulary and a
 small set of pure builtins -- nothing else.  There is no `simulate`, no
 `fbmcq`, no `states`, no `transitions`, no `transition_exists`, no `path`, no
 `topology`.  Those primitives were removed on purpose: hand-assembling a check
@@ -22,7 +24,12 @@ made it impossible to tell whether a call asked the right question.
 
 WHAT YOU WRITE
 
-    assert occupancy_after(source="R.Idle", trigger="R.go", target="R.Done") is True, "[REQ-001][AST-REQ-001-1] ..."
+    occupancy_after(source="R.Idle", trigger="R.go", target="R.Done") is True
+
+That whole line is the `expression` field.  The `[REQ-001][AST-REQ-001-1]` tag and
+the human-readable text go in `failure_message`, which is a separate required
+field; a trailing message inside `expression` makes it a tuple, and a tuple is
+not a bool.
 
 The arguments are the Requirement's `predicate_bindings`, copied verbatim.
 Paths must come from `declared_model_vocabulary`; literal arguments such as
@@ -32,10 +39,10 @@ callable reference.
 Combining predicates is allowed and is how a claim over several named elements
 is expressed:
 
-    assert all([
+    all([
         occupancy_after(source="R.A", trigger="R.off", target="R.Final"),
         occupancy_after(source="R.B", trigger="R.off", target="R.Final"),
-    ]) is True, "[REQ-002][AST-REQ-002-1] ..."
+    ]) is True
 
 RETURN CONTRACT
 
@@ -59,7 +66,8 @@ and the dependent claim is recorded as blocked rather than answered.
 
 EVIDENCE FAMILY
 
-The family is derived from the predicate, never declared by you:
+`evidence_family` is a required field, and its value is fixed by the predicate
+rather than chosen -- read it off this table:
 Family S -> `structure`, except `edge_declared` and `guard_distinguishable`
 which are `relation`, and `effect_declared` which is `effect`.
 Family B -> `simulation`.  Family P -> `fbmcq`.

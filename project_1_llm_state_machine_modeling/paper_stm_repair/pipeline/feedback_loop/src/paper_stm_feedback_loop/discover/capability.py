@@ -66,7 +66,7 @@ __all__ = [
     "SCOPE_LOCAL_WAIVER",
     "declared_path_bindings",
     "source_omitting_response_calls",
-    "SOURCE_SENSITIVE_PHASES",
+    "anchors_at_initialization",
     "BOUND_PATH_KWARGS",
     "EVIDENCE_CAPABILITY",
     "DECISIVE_COMPLETENESS",
@@ -695,18 +695,14 @@ def initialization_anchored_findings(
 
     findings: list[str] = []
     for item in requirements:
+        # Keyed as a permission rather than a prohibition; see
+        # `anchors_at_initialization` for why, and for the sibling gate that now
+        # shares the judgement.
+        if anchors_at_initialization(getattr(item, "source_context", None)):
+            continue
         phase = str(
             (getattr(item, "source_context", None) or {}).get("behavior_phase", "")
         ).lower()
-        # Allowed only where the phase says `initialization`, rather than refused
-        # where it says operation or termination.  `behavior_phase` is optional, and
-        # keyed the other way the gate reads a field the producer can simply leave
-        # out: matrix-v15's 0000-claude emitted no phase on any requirement, so the
-        # gate never fired and the vacuous termination claim went through exactly as
-        # it had before the gate existed.  A permission has to be claimed; a
-        # prohibition can be dodged by silence.
-        if phase == "initialization":
-            continue
         bindings = item.predicate_bindings or {}
         anchored = sorted(
             binding
@@ -902,8 +898,27 @@ def unresolved_reference_findings(
     return tuple(findings)
 
 
-#: Lifecycle phases where an event's *source placement* decides satisfaction.
-SOURCE_SENSITIVE_PHASES = frozenset({"operation", "termination"})
+def anchors_at_initialization(source_context: Any) -> bool:
+    """Whether the requirement's claim is about the initial configuration.
+
+    One owner for a question two gates ask, because they used to answer it in
+    opposite directions.  `initialization_anchored_findings` allows `[*]` on
+    `source`/`scope` only where the phase claims `initialization`; the gate on
+    source-blind `response_within` used to fire only where the phase spelled
+    `operation` or `termination`.  Both bear on the same thing -- an
+    initialization claim is legitimately about the configuration before anything
+    has been entered, so it may bind the pseudo-initial and may leave `source`
+    unbound; every other claim is about a running machine and may do neither.
+
+    Keyed as a permission, in the direction the sibling gate already learned:
+    `behavior_phase` is optional, and the prompts also offer `structure`, so a
+    prohibition keyed on two spellings is dodged by any third value and by
+    silence.  matrix-v16's prompts offered `unspecified` for exactly the field
+    that would have switched the gate off.
+    """
+
+    phase = str((source_context or {}).get("behavior_phase", "")).lower()
+    return phase == "initialization"
 
 
 def source_omitting_response_calls(expression: str) -> tuple[str, ...]:

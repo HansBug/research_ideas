@@ -443,7 +443,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "simulate",
         locators=("topology(...)",),
         field_specs=(
-            ('scope', 'the configuration to start from, or "[*]" / "root" for a cold start'),
+            ('scope', 'the configuration to start from, or "[*]" for a cold start'),
             ('trigger', 'optional; when given only that event is offered, otherwise every declared event is'),
         ),
         examples=(
@@ -718,7 +718,16 @@ def vocabulary_prompt() -> str:
         "element should have, taken from the sentence's own wording, together with "
         "a `limitations` entry recording that the model declares nothing under it. "
         'Do not substitute a different declared element that happens to fit the '
-        'slot. "[*]" is the initial configuration. The remaining bindings take one '
+        'slot. "[*]" is the initial configuration, so a requirement binding it to '
+        '`source` or `scope` -- including the signature examples below that do so -- '
+        'is a claim anchored at power-on and must carry '
+        '`source_context.behavior_phase = "initialization"`. That is true even when '
+        'the claim is about the run ending: `terminates(scope="[*]")` asks whether a '
+        'cold start can finish, and the anchor is still the initial configuration. '
+        'Any other phase there is refused, because anchoring a running-system claim '
+        'before the machine has entered anything asks a different question -- and on '
+        'a model whose defect is an edge leaving the pseudo-initial, it asks one that '
+        'is true because of the defect. The remaining bindings take one '
         "of the literal values shown in the signature.",
     ]
     for family, title in (

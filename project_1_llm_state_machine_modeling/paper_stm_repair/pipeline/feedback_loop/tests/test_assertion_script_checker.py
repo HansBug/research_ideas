@@ -151,7 +151,11 @@ def test_environment_docs_list_readable_api_surface():
         "predicate_bindings",
         "declared_model_vocabulary",
         "EVIDENCE FAMILY",
-        "The family is derived from the predicate, never declared by you",
+        # `evidence_family` is a required field, so "never declared by you" told the
+        # producer to omit something the schema demands.  Pin the wording that
+        # states both halves: required, and not a choice.
+        "`evidence_family` is a required field",
+        "fixed by the predicate rather than chosen",
         "Family B -> `simulation`. Family P -> `fbmcq`",
         # The doc must say what to do about an element the model lacks, since
         # that is the case a producer cannot resolve on its own.

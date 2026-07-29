@@ -2044,7 +2044,17 @@ def test_prompts_are_english_and_ban_tools_or_truth_leak() -> None:
     assert "do not define functions or classes" in prompts.ASSERTION_CONVERTER_PROMPT
     assert "public_check.script_hash" in prompts.ASSERTION_REVIEWER_PROMPT
     assert "behavioral requirement" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "checkability classification" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    # `checkability` is a removed field, and both requirement prompts prohibit
+    # emitting it.  This used to pin a leftover review duty telling the reviewer to
+    # "check the checkability classification" and reclassify to `effect` or
+    # `relation` -- neither of which is a legal `verification_kind`, so a reviewer
+    # acting on it could only loop until the repair budget ran out.  Pin the
+    # prohibition that is actually in force instead.
+    assert "checkability classification" not in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "legacy `checkability` field" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert (
+        "no separate `checkability` vocabulary" in prompts.REQUIREMENT_SPLITTER_PROMPT
+    )
     assert (
         "`effect_declared` is the direct declared-effect evidence"
         in prompts.ASSERTION_CONVERTER_PROMPT

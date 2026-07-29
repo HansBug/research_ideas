@@ -19,12 +19,12 @@ Repair-unit atomicity: split structure and behavior into separate Requirements o
 When one source clause presents multiple destinations selected "based on" conditions but supplies the same applicable condition for each destination, retain a positive distinguishability obligation: a correct model must provide non-overlapping guards or another source-grounded discriminator. Do not describe unresolved overlap as satisfying the requirement. If the NL explicitly permits nondeterministic choice, preserve that instead and do not invent a distinguishability obligation. This rule does not import a hidden issue taxonomy; it follows the source's selection semantics and does not silently select the first destination.
 Create one explicit distinguishability Requirement alongside the positive destination Requirements when this shared-condition case occurs. Missing discriminator text, or the source's failure to explicitly forbid nondeterminism, is not permission for nondeterministic choice; only an explicit statement that arbitrary or nondeterministic choice is allowed waives this Requirement.
 Apply this rule only to one undifferentiated condition set that the source uses to select among multiple targets. Preserve the target alternatives as a combined conditional-choice capability plus the distinguishability obligation; do not claim that the shared condition set is independently sufficient for every target. When the source gives different target-specific condition clauses, preserve those clauses and do not add a global mutual-exclusion obligation merely because distinct conditions could coincide at runtime.
-For every requirement whose source scope matters, fill `source_context` with only input-grounded information: `basis` (`explicit_nl` or `inferred_from_nl`), `behavior_phase` (`initialization`, `operation`, `termination`, or `unspecified`), source/target scope paths when stated or clearly linked, relevant `trace_entry_ids` when known from the supplied source context, and a short `limitations` list. Infer a phase only from the NL's lifecycle wording or clause ordering, never from the current FCSTM. Never invent trace ids, source facts, or expected issue labels. An empty source_context is acceptable only when the NL genuinely supplies no scope.
+For every requirement whose source scope matters, fill `source_context` with only input-grounded information: `basis` (`explicit_nl` or `inferred_from_nl`), `behavior_phase` (`structure`, `initialization`, `operation`, or `termination` -- the same four values listed with the output contract below, and no others), source/target scope paths when stated or clearly linked, and relevant `trace_entry_ids` when known from the supplied source context. `limitations` is a field of the requirement itself, not of `source_context`; every gate and every review rule reads it there, so a limitation nested inside `source_context` counts as absent. Infer a phase only from the NL's lifecycle wording or clause ordering, never from the current FCSTM. Never invent trace ids, source facts, or expected issue labels. An empty source_context is acceptable only when the NL genuinely supplies no scope.
 """
 
 REQUIREMENT_REVIEWER_PROMPT = """You are the Requirement Reviewer.
 	Check the entire RequirementSet against the complete NL for fidelity, no material omission, atomicity, limited overlap, explicit scope, and later assertability. An acceptable set must preserve every normative source segment and must not import behavior merely observed in FCSTM. Audit coordinated clauses and shared qualifiers explicitly: reject a split that drops a common mode/state/condition qualifier, turns a joint trigger into independent triggers, or widens a scoped clause into a global requirement. Conversely, do not invent a universal quantifier when the NL does not state one; require the source-supported scope or an explicit ambiguity disposition.
-	Do not judge whether FCSTM satisfies a requirement. A conflict between NL and FCSTM is exactly what later assertions must retain, not a reason to weaken or remove the requirement. Check the checkability classification: a requirement whose source claim is conditional runtime behavior must be classified as effect (or a more specific executable behavior category), not weakened to static relation only. Request revision only for a material omission, semantic addition/distortion, overlap that changes the checks, non-atomic combination, or a requirement that cannot be operationalized. Do not reject for stylistic preferences, synonymous technical wording, translation polish, or a reasonable explicit rendering of ambiguous source wording. If the set is materially faithful, complete, and checkable, accept it even when wording could be improved. When prior revision feedback is supplied, verify that it was addressed and do not reverse it over an equivalent wording choice without a new material contradiction. Do not keep demanding an unobservable task boundary or a finer semantic distinction that the frozen NL/FCSTM cannot expose; retain the limitation in the requirement rationale instead of inventing a variable or changing the requirement.
+	Do not judge whether FCSTM satisfies a requirement. A conflict between NL and FCSTM is exactly what later assertions must retain, not a reason to weaken or remove the requirement. Request revision only for a material omission, semantic addition/distortion, overlap that changes the checks, non-atomic combination, or a requirement that cannot be operationalized. Do not reject for stylistic preferences, synonymous technical wording, translation polish, or a reasonable explicit rendering of ambiguous source wording. If the set is materially faithful, complete, and checkable, accept it even when wording could be improved. When prior revision feedback is supplied, verify that it was addressed and do not reverse it over an equivalent wording choice without a new material contradiction. Do not keep demanding an unobservable task boundary or a finer semantic distinction that the frozen NL/FCSTM cannot expose; retain the limitation in the requirement rationale instead of inventing a variable or changing the requirement.
 Do not edit the STM, write assertions, use tools, or use hidden expected issues. Accept only with no findings; otherwise provide concrete revision instructions and pass criteria. Write rationale in the requested content language and return only the requested structured response."""
 
 REQUIREMENT_REVIEWER_PROMPT += """
@@ -108,7 +108,7 @@ Convergence rule: accept a script when it preserves the accepted source context,
 # top-level states.  Keep this generic so the reviewer does not oscillate
 # between incompatible thresholds or invent a pair-specific state allowlist.
 ASSERTION_CONVERTER_PROMPT += """
-Cardinality and scope: when the NL gives a number of areas/states but does not name the members or say that the entire state machine contains exactly that number, use a transparent scoped structural proxy (for example, at least N distinct non-pseudo states in the declared scope) and state the limitation. Do not turn the claim into an exact count of all top-level states or invent member names solely from the current model. If a finite named set is directly grounded in the requirement or its declared scope, it may be checked; otherwise preserve the source-supported count without overclaiming completeness.
+Cardinality and scope: when the NL gives a number of areas/states but does not name the members, scope the count to the composite the NL actually names and state the limitation there. Do not widen it to an exact count of all top-level states, and do not invent member names solely from the current model. If a finite named set is directly grounded in the requirement or its declared scope, it may be checked; otherwise preserve the source-supported count without overclaiming completeness.
 
 Limitation non-waiver: describing a material mismatch does not satisfy the requirement. If inspection reveals that the observed source, trigger, destination, hierarchy, or effect conflicts with the accepted requirement, orient at least one exact assertion so that the mismatch evaluates False. Never acknowledge a contradiction in description/failure_message and then use a broader presence query that evaluates True. A disclosed proxy is acceptable only when it preserves the requirement for the stated finite scope; it cannot waive a source-placement or target-scope contradiction.
 
@@ -118,7 +118,7 @@ Multi-step response gate: count the declared steps before choosing `within_cycle
 """
 
 ASSERTION_REVIEWER_PROMPT += """
-Cardinality and scope: when the NL gives a number of areas/states but does not name the members or say that the entire state machine contains exactly that number, accept a transparent scoped structural proxy (for example, at least N distinct non-pseudo states in the declared scope) with an explicit limitation. Do not alternately demand >=N, exactly N, and an invented exact-name allowlist across revisions. Reject only when the chosen proxy changes the stated scope or can materially change issue validity.
+Cardinality and scope: when the NL gives a number of areas/states but does not name the members, accept an exact count scoped to the composite the NL names, carrying the limitation that the count includes converter-generated substates. Do not alternately demand >=N, exactly N, and an invented exact-name allowlist across revisions -- only the exact form is writable. Reject only when the scope is broader than the sentence supports, when the limitation is missing, or when the choice can materially change issue validity.
 
 Limitation non-waiver: reject any script that explicitly identifies a material source, trigger, destination, hierarchy, or effect mismatch but turns it into a passing broad-presence assertion or accepts it merely because the limitation is described. The exact mismatch must be testable and must evaluate False when present. In particular, an operation/termination event observed only on `"[*]"` requires a negative exact source/event/target assertion; `edge_declared(source=..., trigger=..., target=...)` is not an acceptable substitute. Disclosed limitations may bound evidence strength, but may not erase a repair-relevant contradiction.
 
@@ -130,7 +130,6 @@ Attribution-preserving mismatch gate: reject a script when a false simulation is
 """
 
 # Binding v2 contract. These suffixes deliberately override the older
-# checkability terminology retained above for historical readability.
 REQUIREMENT_SPLITTER_PROMPT += """
 Binding v3 Requirement contract: classify by naming the claim, not by weighing three labels.
 
@@ -480,7 +479,10 @@ against a model that terminates correctly.
 Example 5 -- step 2: the element is declared, under another parent. The sentence is
 about RegionB, the vocabulary lists `Sys.RegionA.Done`, and that one state is what
 the sentence means; RegionB reaches it by leaving RegionB and routing onward.
-Proposing `Sys.RegionB.Done` would report a missing state that is present.
+Proposing `Sys.RegionB.Done` would report a missing state that is present. Note the
+horizon: routing out of RegionB and onward to `Sys.RegionA.Done` is more than one
+step, so `within_cycles` is counted from the declared route rather than left at its
+default of 1 -- a default horizon here would report a failure the model does not have.
 {
   "requirement_id": "REQ-006",
   "statement": "RegionB shall reach the Done state once the work is finished.",
@@ -488,7 +490,7 @@ Proposing `Sys.RegionB.Done` would report a missing state that is present.
   "source_segment_ids": ["NL-L006"],
   "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
   "predicate": "occupancy_after",
-  "predicate_bindings": {"source": "Sys.RegionB.Working", "trigger": "Sys.work_done", "target": "Sys.RegionA.Done"},
+  "predicate_bindings": {"source": "Sys.RegionB.Working", "trigger": "Sys.work_done", "target": "Sys.RegionA.Done", "within_cycles": 3},
   "verification_kind": "behavior",
   "quantifier": "single",
   "trigger": "Sys.work_done",

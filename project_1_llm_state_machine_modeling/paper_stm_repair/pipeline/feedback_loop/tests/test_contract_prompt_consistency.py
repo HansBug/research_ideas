@@ -629,3 +629,97 @@ def test_the_horizon_guidance_names_the_knob_that_exists() -> None:
     assert "eventless completion edges" in converter
     # And the reviewer has to be able to reject a horizon that is too small.
     assert "bounded artifact, not a defect" in prompts.ASSERTION_REVIEWER_PROMPT
+
+
+def test_the_vocabulary_offers_no_literal_the_reference_gate_refuses() -> None:
+    """A literal the prompt suggests and a gate refuses costs a repair round.
+
+    `terminates`'s scope spec offered `"root"` beside `"[*]"`.  `scope` is in
+    `BOUND_PATH_KWARGS`, so it is resolved as a model path, and `root` is not one --
+    the reference gate refuses it every time.  Checked against the gate rather than
+    against a hardcoded list, so a later binding added to `BOUND_PATH_KWARGS` is
+    covered without editing this test.
+    """
+
+    import re
+
+    from paper_stm_feedback_loop.discover.capability import (
+        BOUND_PATH_KWARGS,
+        unresolved_reference_findings,
+    )
+    from paper_stm_feedback_loop.discover.predicates import PREDICATES
+
+    class _Item:
+        role = "primary"
+        depends_on = ()
+
+        def __init__(self, expression: str, predicate: str) -> None:
+            self.assertion_id = "A1"
+            self.requirement_id = "R1"
+            self.expression = expression
+            self.predicate = predicate
+
+    # Quoted literals the field specs advertise for path-valued bindings.
+    offered: list[tuple[str, str, str]] = []
+    for predicate in PREDICATES:
+        for name, description in predicate.field_specs:
+            if name not in BOUND_PATH_KWARGS:
+                continue
+            for literal in re.findall(r'"([^"]+)"', description):
+                offered.append((predicate.name, name, literal))
+    assert offered, "no path-valued literals found; the scan is broken, not clean"
+
+    known = frozenset({"Sys", "Sys.ModeA"})
+    refused = [
+        (predicate, binding, literal)
+        for predicate, binding, literal in offered
+        if unresolved_reference_findings(
+            (_Item(f'{predicate}({binding}="{literal}") is True', predicate),), known
+        )
+    ]
+    assert refused == [], refused
+
+
+def test_the_evidence_api_teaches_the_expression_shape_the_schema_accepts() -> None:
+    """It is a prompt surface too, and the assert-shape guard did not cover it.
+
+    `get_assertion_environment_api_docs()` is injected into the converter's and the
+    reviewer's user payload, so whatever it shows is as instructive as the system
+    prompt -- and it showed `assert <expr> is True, "[REQ-..][AST-..] .."` under a
+    heading reading "WHAT YOU WRITE", while `AssertionSpec` refuses an `expression`
+    that starts with `assert`.  The existing guard
+    (`test_no_worked_example_shows_an_assert_statement_in_the_expression_field`)
+    scans only the two system-prompt constants.
+    """
+
+    import pytest
+
+    from paper_stm_feedback_loop.assertions.environment import (
+        ASSERTION_ENVIRONMENT_API_DOCS,
+    )
+    from paper_stm_feedback_loop.discover.schemas import AssertionSpec
+
+    docs = ASSERTION_ENVIRONMENT_API_DOCS
+    # No line may be an assert statement, indented sample or not.
+    offenders = [
+        line for line in docs.splitlines() if line.strip().startswith("assert ")
+    ]
+    assert offenders == [], offenders
+    # And the field that actually carries the message has to be named, so the tag
+    # does not get appended to the expression instead.
+    unwrapped = " ".join(docs.split())
+    assert "`failure_message`" in unwrapped
+    # The claim the docs now make about `assert` is the schema's real behaviour.
+    with pytest.raises(Exception):
+        AssertionSpec(
+            assertion_id="AST-REQ-001-1",
+            requirement_id="REQ-001",
+            description="d",
+            expression='assert occupancy_after(source="R.A", trigger="R.go", target="R.B") is True',
+            failure_message="[REQ-001][AST-REQ-001-1] m",
+            evidence_family="simulation",
+            role="primary",
+            coverage_key="k",
+            aggregation_group="REQ-001:all",
+            rationale="r",
+        )
