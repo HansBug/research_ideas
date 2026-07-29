@@ -637,16 +637,20 @@ def test_containment_and_initial_target_get_no_waiver_because_their_false_is_the
     by `containment(parent=M, child=<the declared X>)` coming back False -- the
     obligation is violated exactly because the declared state sits outside M.
 
-    A proposal does not merely restate it worse -- it *destroys* the finding.  The
-    proposed path needs a precondition `state_declared(M.X)`, which is False for
-    exactly the reason the requirement is violated, so the dependent primary is
-    `blocked` and never runs.  The defect silences its own detector.
+    A proposal restates it in a form the finding cannot survive.  The proposed path
+    needs a precondition `state_declared(M.X)`, which is False for exactly the reason
+    the requirement is violated, so the dependent primary is `blocked` and never
+    runs.  The finding is not lost outright -- a False `precondition` is published as
+    an issue too (nodes.py, issue #170 §11.4) -- but the issue it produces is bound
+    to the *proposed* path.  The hit criterion reads the requirement's
+    `predicate_bindings` and, with no trigger to key on, needs every expected state
+    matched, tolerating only one level of parent/child.  `M.X` is neither `X` nor one
+    level from it, so the overlap comes to one where two are required.
 
-    matrix-v16 shows both outcomes on one pair.  0029-gpt sealed
-    `AST-REQ-002-1 containment(AutonomousMode, AutonomousMode.InitialState)` as
-    `blocked` behind `state_declared(AutonomousMode.InitialState)` and published no
-    issue for the structural defect; 0029-claude bound the declared root path,
-    got a direct False, and hit it.  Same defect, same model, one lost hit.
+    matrix-v16 shows both outcomes on one pair.  0029-gpt bound
+    `{AutonomousMode, AutonomousMode.InitialState}` and scores a miss on a defect it
+    did detect; 0029-claude bound the declared root path, got a direct False from
+    `containment`, and hit it.  Same defect, same model, one lost hit.
 
     The exemption stays narrow on purpose: 0029-gpt's `REQ-030A..E` propose
     `UrbanMode.FinishState` for `occupancy_after`/`edge_declared` primaries, where the
