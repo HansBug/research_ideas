@@ -520,6 +520,18 @@ class _RequirementSpec(Protocol):
     limitations: tuple[str, ...]
 
 
+#: Predicates whose False *is* the finding when the element is declared elsewhere,
+#: so the waiver below does not apply to them.
+#:
+#: `containment(parent=M, child=<declared elsewhere>)` answers False precisely
+#: because the state sits outside `M` -- which is the NL's "substate" obligation
+#: being violated, stated directly.  Proposing `M.<name>` instead says the same
+#: thing through an existence check plus a dependent, costs a conversion round to
+#: add the precondition, and loses the declared path that anchored it.  Pair 0029's
+#: expected structural defect is exactly this shape, and it is the one the reviewer
+#: pushed toward a proposal.
+_DECLARED_PATH_IS_THE_CLAIM = frozenset({"containment", "initial_target"})
+
 #: The phrase a Requirement must contain in `limitations` to keep a proposed name
 #: the step-2 comparison would otherwise refuse.
 #:
@@ -613,7 +625,7 @@ def redundant_proposal_findings(
         # shared state" -- a limitation that explicitly denies the need -- switched
         # the gate off.  Unlikely in fresh prose, likely once a producer has read the
         # phrase in a refusal and is arguing with it.
-        waived = any(
+        waived = item.predicate not in _DECLARED_PATH_IS_THE_CLAIM and any(
             str(entry).strip().lower().startswith(SCOPE_LOCAL_WAIVER)
             for entry in (getattr(item, "limitations", ()) or ())
         )
@@ -633,10 +645,17 @@ def redundant_proposal_findings(
                 findings.append(
                     f"{item.requirement_id} proposes {binding}={text!r} while the "
                     f"vocabulary already declares {declared}; bind the declared "
-                    f"path, or -- if the sentence really requires an instance "
-                    f"inside this scope rather than the shared one -- say "
-                    f"{SCOPE_LOCAL_WAIVER!r} in limitations and the Reviewer will "
-                    "judge that (step 2)"
+                    f"path"
+                    + (
+                        f", whose False is then the finding: {item.predicate} answers "
+                        "False precisely because the element sits outside the scope "
+                        "the sentence names, so there is nothing to propose (step 2)"
+                        if item.predicate in _DECLARED_PATH_IS_THE_CLAIM
+                        else f", or -- if the sentence really requires an instance "
+                        f"inside this scope rather than the shared one -- open a "
+                        f"limitations entry with {SCOPE_LOCAL_WAIVER!r} and the "
+                        "Reviewer will judge that (step 2)"
+                    )
                 )
     return tuple(findings)
 

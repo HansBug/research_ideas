@@ -603,3 +603,29 @@ def test_prompts_do_not_leak_benchmark_identifiers() -> None:
                 if token in text:
                     leaked.append(f"{name}: {token}")
     assert not leaked, f"benchmark identifiers reached the prompts: {sorted(set(leaked))[:10]}"
+
+
+def test_the_horizon_guidance_names_the_knob_that_exists() -> None:
+    """Cycle plans are built inside the predicates; `within_cycles` is the only knob.
+
+    Four paragraphs used to demand a leading empty cycle and "enough empty follow-up
+    cycles", which no assertion can express -- the producer's only horizon control is
+    `within_cycles` on `occupancy_after`/`reaches` and `bound` on Family P.  Left
+    stale, the guidance is unactionable exactly where it matters: matrix-v16's
+    0050-gpt published a False produced by the default one-cycle horizon on a model
+    whose declared return path runs through three eventless completion edges and a
+    token-routed parent transition.
+    """
+
+    for name in ("ASSERTION_CONVERTER_PROMPT", "ASSERTION_REVIEWER_PROMPT"):
+        text = getattr(prompts, name)
+        assert "leading empty cycle" not in text, name
+        assert "empty follow-up cycles" not in text, name
+        assert "inject the event in cycle 0" not in text, name
+        assert "within_cycles" in text, name
+    # The converter has to be told how to pick the number, not just that it exists.
+    converter = prompts.ASSERTION_CONVERTER_PROMPT
+    assert "count the declared steps" in converter
+    assert "eventless completion edges" in converter
+    # And the reviewer has to be able to reject a horizon that is too small.
+    assert "bounded artifact, not a defect" in prompts.ASSERTION_REVIEWER_PROMPT

@@ -628,3 +628,43 @@ def test_the_declared_and_existence_readers_answer_on_real_bindings():
     # runtime shape check refuses whatever it evaluates to -- so this reader says
     # nothing about it rather than guessing a name.
     assert _existence_checked_names("variable_declared(variable=some_name)", KNOWN) == ()
+
+
+def test_containment_and_initial_target_get_no_waiver_because_their_false_is_the_finding():
+    """Proposing a scope-local name there says the same thing the worse way.
+
+    "X shall be a substate of M" against a model declaring X at the root is answered
+    by `containment(parent=M, child=<the declared X>)` coming back False -- the
+    obligation is violated exactly because the declared state sits outside M.  A
+    proposal restates that through an existence check plus a dependent, costs a
+    conversion round to add the precondition, and drops the declared path the finding
+    was anchored to.  matrix-v16's 0029-gpt took that route after the reviewer
+    invoked the waiver, spent a convert round on the unresolved reference, and bound
+    a path the hit criterion cannot match.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        SCOPE_LOCAL_WAIVER,
+        redundant_proposal_findings,
+    )
+
+    vocabulary = {"states": tuple(GATE_KNOWN)}
+    waiver = (f"{SCOPE_LOCAL_WAIVER}: the sentence says substate",)
+
+    def fired(predicate, bindings, limitations=()):
+        return redundant_proposal_findings(
+            (Req("R", predicate, bindings, limitations=limitations),), GATE_KNOWN, vocabulary
+        )
+
+    proposal = {"parent": "Sys.ModeA", "child": "Sys.ModeA.Done"}
+    # Refused with or without the waiver, and the message says why rather than
+    # pointing at an exit that does not apply.
+    plain = fired("containment", proposal)
+    assert len(plain) == 1
+    assert SCOPE_LOCAL_WAIVER not in plain[0]
+    assert "False is then the finding" in plain[0]
+    assert len(fired("containment", proposal, waiver)) == 1
+    assert len(fired("initial_target", {"composite": "Sys.ModeA", "child": "Sys.ModeA.Done"}, waiver)) == 1
+    # Every other predicate keeps the exit.
+    assert fired("occupancy_after", {"target": "Sys.RegionB.Done"}, waiver) == ()
+    assert len(fired("occupancy_after", {"target": "Sys.RegionB.Done"})) == 1
