@@ -49,25 +49,45 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
     # on a model that terminates correctly.  These two keys are what the four-step
     # procedure's step 1 reads.
     facts = frozen.pseudo_state_facts or {}
-    ending = [
-        row
-        for row in (facts.get("terminating_transitions") or ())
-        if isinstance(row, dict) and row.get("ends_run")
-    ]
-    payload["terminating_transitions"] = ending
+    payload["terminating_transitions"] = list(
+        facts.get("terminating_transitions") or ()
+    )
     payload["terminating_transitions_note"] = (
-        "Edges that end the run. A requirement about finishing, ending or "
-        "reaching a final state is answered by `terminates` over one of these; "
-        "there is no state to bind, so proposing a `FinalState` name reports a "
-        "defect against a model that is correct. Empty means no edge ends the "
-        "run, and then a completion claim is about reaching a declared state."
+        "Every `-> [*]` edge the model declares. `[*]` leaves whatever scope owns "
+        "the source, so it ends the run only when that scope is the root -- read "
+        "`ends_run`, not the arrow. `ends_run: true` means a requirement about "
+        "finishing, ending or shutting down is answered by `terminates` over that "
+        "source and trigger; there is no state to bind, so proposing a `FinalState` "
+        "name reports a defect against a model that is correct. `ends_run: false` "
+        "means the edge exits the composite named in `exits_scope` and routes "
+        "onward, so a completion claim there is a reachability question "
+        "(`occupancy_after` / `reaches`) about a declared state, not a termination. "
+        "`via_token` records the two-edge form the converter emits: the inner exit "
+        "sets a route token and an outer edge ends the run on it. If no row has "
+        "`ends_run: true`, nothing ends the run -- a completion claim is then about "
+        "reaching a declared state, or, when no declared state carries the "
+        "sentence's completion notion at all, step 4 applies and you propose the "
+        "name."
     )
     payload["initial_entries"] = list(facts.get("initial_entries") or ())
     payload["initial_entries_note"] = (
         "Declared entries per composite. Entry takes an `unconditional` edge when "
-        "one exists, so that target is where the composite actually starts; a "
-        "guarded or triggered entry is only taken when its condition already "
-        "holds. `initial_target` claims are decided against this."
+        "one exists; a guarded or triggered entry is only taken when its condition "
+        "already holds. `initial_target` claims are decided against this, with two "
+        "cases that are not what they look like.\n"
+        "`converter_generated: true` marks a target the converter inserted, not one "
+        "the author chose. It is unconditional *because* no author entry was, so it "
+        "is the converter's fallback rather than the model's answer to \"where does "
+        "this composite start\". Do not bind it as the entry the NL names: state "
+        "the claim about the state the NL names, whose `initial_target` then "
+        "answers False -- and that False is the finding, since the model gives the "
+        "author's entry a guard and the default to a generated holder.\n"
+        "When a composite lists two or more entries and none is unconditional, "
+        "`initial_target` cannot answer at all and raises. State that claim as "
+        "`edge_declared(source=\"[*]\", trigger=..., target=...)` for the "
+        "declaration or `occupancy_after(source=\"[*]\", ...)` for the behaviour, "
+        "and pick that predicate in the Requirement -- the predicate is frozen "
+        "before the assertion stage and cannot be changed later."
     )
     if compiler_owned:
         # Shown, not hidden: the producer will see these names in the FCSTM text

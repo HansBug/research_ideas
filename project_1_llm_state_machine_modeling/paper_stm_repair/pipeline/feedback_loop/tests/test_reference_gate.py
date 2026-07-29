@@ -405,10 +405,14 @@ def test_the_termination_gate_follows_the_two_step_lowering():
         termination_proposal_findings,
     )
 
+    # The shape `_pseudo_state_facts` emits for a two-edge termination: the inner
+    # exit is marked because its token reaches a run-ending edge, and the composite
+    # carries a row for the same trigger so a mode-level claim can match.
     chain = (
-        # inner edge: leaves the composite carrying the event
-        {"source": "Sys.ModeA.Inner", "trigger": "Sys.go", "ends_run": False},
-        # outer edge: ends the run, on the token the inner edge set
+        {"source": "Sys.ModeA.Inner", "trigger": "Sys.go", "ends_run": True,
+         "via_token": "tok==9"},
+        {"source": "Sys.ModeA", "trigger": "Sys.go", "ends_run": True,
+         "via_token": "tok==9"},
         {"source": "Sys.ModeA", "trigger": None, "ends_run": True},
     )
     fired = termination_proposal_findings(
@@ -510,9 +514,12 @@ def test_the_declared_elsewhere_gate_has_an_exit_the_reviewer_judges():
                 "R2",
                 "occupancy_after",
                 proposal,
+                # Opens with the phrase: a waiver has to be the entry's subject,
+                # not a clause buried in one, or a limitation that *denies* the need
+                # reads as a waiver.
                 limitations=(
-                    f"NL-L009 requires a per-region completion state; "
-                    f"{SCOPE_LOCAL_WAIVER} rather than the shared Sys.RegionA.Done",
+                    f"{SCOPE_LOCAL_WAIVER}: NL-L009 wants a per-region completion "
+                    "state, not the shared Sys.RegionA.Done",
                 ),
             ),
         ),
@@ -557,3 +564,36 @@ def test_the_termination_chain_ignores_an_unnamed_scope_or_trigger():
             chain,
         )
     ) == 1
+
+
+def test_the_waiver_must_open_the_limitation_not_merely_appear_in_it():
+    """Because a limitation that denies the need was switching the gate off.
+
+    As a free substring, "no scope-local instance required, this is the shared
+    state" waived it -- the producer said the opposite of the waiver and got the
+    waiver. Unlikely in fresh prose; likely once a producer has read the phrase in a
+    refusal message and is arguing with it.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        SCOPE_LOCAL_WAIVER,
+        redundant_proposal_findings,
+    )
+
+    proposal = {"target": "Sys.RegionB.Done"}
+
+    def fires(*limitations):
+        return bool(
+            redundant_proposal_findings(
+                (Req("R", "occupancy_after", proposal, limitations=limitations),),
+                GATE_KNOWN,
+                {"states": tuple(GATE_KNOWN)},
+            )
+        )
+
+    assert fires()
+    assert not fires(f"{SCOPE_LOCAL_WAIVER}: NL-L009 wants one per region")
+    # Case and surrounding whitespace are not the point; leading negation is.
+    assert not fires(f"  {SCOPE_LOCAL_WAIVER.upper()} -- per NL-L009  ")
+    assert fires(f"no {SCOPE_LOCAL_WAIVER}, this is the shared state")
+    assert fires("checked up to bound 4 only")

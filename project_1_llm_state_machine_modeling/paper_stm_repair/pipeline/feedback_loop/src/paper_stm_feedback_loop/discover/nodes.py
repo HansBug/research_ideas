@@ -842,7 +842,18 @@ _ROUTE_CONTROL_PREFIX = "compiler:route_control:"
 
 
 
-def _pseudo_state_facts(inspected: dict[str, Any]) -> dict[str, tuple[dict[str, Any], ...]]:
+#: `R45RouteToken = 7;` in an effect, `R45RouteToken == 9` in a guard.  Matched by
+#: shape rather than by the token's name, which is the converter's to choose.
+_TOKEN_SET = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(-?\d+)")
+_TOKEN_TEST = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*==\s*(-?\d+)")
+
+
+_COMPILER_STATE_PREFIX = "compiler:state:"
+
+
+def _pseudo_state_facts(
+    inspected: dict[str, Any], exclusions: tuple[str, ...] | list[str] = ()
+) -> dict[str, tuple[dict[str, Any], ...]]:
     """Return what the model expresses through `[*]` instead of through a name.
 
     `model_vocabulary` lists states, events and variables -- everything that has a
@@ -853,11 +864,27 @@ def _pseudo_state_facts(inspected: dict[str, Any]) -> dict[str, tuple[dict[str, 
     that twice on a model whose `HumanDrivingMode -> [*] : /Power_Off` is exactly
     how termination is written.
 
-    `ends_run` is the distinction that matters and it is not guessable from the
-    edge alone: `-> [*]` leaves whatever scope owns the source, so it ends the run
-    only when that scope is the root.  Pair 0029's `enter_urban -> [*]` exits
-    UrbanMode and routes onward to a declared state, which is why a completion
-    claim there is a reachability question and not a termination one.
+    `ends_run` is the distinction that matters and it is not readable off the edge:
+    `-> [*]` leaves whatever scope owns the source, so it ends the run only when
+    that scope is the root.  Pair 0029's `enter_urban -> [*]` exits UrbanMode and
+    routes onward to a declared state, which is why a completion claim there is a
+    reachability question and not a termination one.
+
+    Inside a composite it takes two edges, and *which* two is decided by the route
+    token, not by ancestry.  Pair 0050 exits `SubState1` on two different events:
+
+        SubState1 -> [*] : /Power_Off        effect { R45RouteToken = 9; }
+        SubState1 -> [*] : /human_steering.. effect { R45RouteToken = 7; }
+        AutonomousMode -> [*]              if [R45RouteToken == 9]   <- ends the run
+        AutonomousMode -> HumanDrivingMode if [R45RouteToken == 7]   <- mode switch
+
+    Both inner edges leave the same composite and both sit under a state that ends
+    the run on *some* token, so an ancestry test calls both terminations.  It is
+    wrong about the second, and being wrong there is expensive: the step-1 gate
+    then tells the producer to write `terminates` for a mode switch, which is
+    False, which publishes a defect the model does not have.  So the token an inner
+    edge sets is matched against the guard of the outer edge, and `via_token`
+    records the link for the record.
     """
 
     inspect = inspected.get("inspect") or {}
@@ -868,36 +895,111 @@ def _pseudo_state_facts(inspected: dict[str, Any]) -> dict[str, tuple[dict[str, 
         if r.get("path")
     }
     root = str(inspect.get("root_state_path") or "")
+    transitions = [t for t in (inspect.get("transitions") or []) if isinstance(t, dict)]
+
+    def _tokens(text: Any, pattern: re.Pattern[str]) -> set[tuple[str, str]]:
+        return {(m.group(1), m.group(2)) for m in pattern.finditer(str(text or ""))}
+
+    # Tokens whose guarded outer edge ends the run, and the scope that edge leaves:
+    # `AutonomousMode -> [*] if [tok == 9]` publishes `("tok","9") -> AutonomousMode`.
+    ends_on_token: dict[tuple[str, str], set[str]] = {}
+    for row in transitions:
+        if str(row.get("to_path") or "") != PSEUDO_INITIAL:
+            continue
+        source = str(row.get("from_path") or "")
+        if parent_of.get(source, "") != root:
+            continue
+        for token in _tokens(row.get("guard"), _TOKEN_TEST):
+            ends_on_token.setdefault(token, set()).add(source)
+    run_ending_tokens = set(ends_on_token)
+
     terminating: list[dict[str, Any]] = []
-    for row in inspect.get("transitions") or []:
-        if not isinstance(row, dict) or str(row.get("to_path") or "") != PSEUDO_INITIAL:
+    # The composite an inner exit ultimately terminates, keyed by the event that
+    # started the chain.  A requirement says "while in autonomous mode, power off
+    # ends the run" and names the *mode*, not the substate it happened to be in, so
+    # the chain has to be reported at that level too or a mode-level claim matches
+    # nothing.
+    chain_rows: dict[tuple[str, str | None], str] = {}
+    for row in transitions:
+        if str(row.get("to_path") or "") != PSEUDO_INITIAL:
             continue
         source = str(row.get("from_path") or "")
         if not source:
             continue
         scope = parent_of.get(source, "")
+        direct = bool(scope) and scope == root
+        matched = _tokens(row.get("effect"), _TOKEN_SET) & run_ending_tokens
+        via = sorted(f"{name}=={value}" for name, value in matched)
+        trigger = str(row.get("event") or "") or None
+        for token in matched:
+            for composite in ends_on_token[token]:
+                if composite != source:
+                    chain_rows[(composite, trigger)] = f"{token[0]}=={token[1]}"
         terminating.append(
             {
                 "source": source,
-                "trigger": str(row.get("event") or "") or None,
+                "trigger": trigger,
                 "guard": str(row.get("guard") or "") or None,
                 "exits_scope": scope,
-                "ends_run": bool(scope) and scope == root,
+                "ends_run": direct or bool(via),
+                "via_token": via[0] if via else None,
             }
         )
+    seen = {(r["source"], r["trigger"]) for r in terminating if r["ends_run"]}
+    for (composite, trigger), token in sorted(
+        chain_rows.items(), key=lambda kv: (kv[0][0], kv[0][1] or "")
+    ):
+        if (composite, trigger) in seen:
+            continue
+        terminating.append(
+            {
+                "source": composite,
+                "trigger": trigger,
+                "guard": None,
+                "exits_scope": parent_of.get(composite, ""),
+                "ends_run": True,
+                "via_token": token,
+            }
+        )
+    # States the converter inserted, from the frozen exclusion table.  An
+    # unconditional entry onto one of these is not where the author said the
+    # composite starts -- it is the converter's default, generated *because* no
+    # author entry was unconditional.  Pair 0029 declares
+    # `[*] -> enter_hwy if [R45RouteToken == 5]` alongside
+    # `[*] -> UnspecifiedInitial` with no guard, and `initial_target` answers True
+    # for the synthetic one and False for `enter_hwy` -- which is the credited
+    # defect.  A producer told only "entry takes the unconditional edge" binds the
+    # synthetic target and the defect disappears.  37 of the corpus's 157
+    # unconditional entries, across 20 pairs, land on such a state.
+    compiler_states = {
+        str(item)[len(_COMPILER_STATE_PREFIX) :]
+        for item in exclusions
+        if str(item).startswith(_COMPILER_STATE_PREFIX)
+    }
     entries: list[dict[str, Any]] = []
     for row in rows:
         composite = str(row.get("path") or "")
         for target in row.get("initial_targets") or []:
             if not isinstance(target, dict) or not target.get("target"):
                 continue
+            # The inspect table qualifies `target` and leaves `event` bare, and the
+            # payload this lands in says every value must be used verbatim.  Copied
+            # as-is, `Power_On` is refused by `event_declared` ("a bare name with no
+            # dot is refused") and trips the step-2 gate, because the leaf matches
+            # the qualified path the vocabulary does declare.  29 entries across the
+            # corpus are bare, including both of pair 0000's root entries.
+            trigger = str(target.get("event") or "") or None
+            if trigger and "." not in trigger and root:
+                trigger = f"{root}.{trigger}"
+            path = str(target.get("target"))
             entries.append(
                 {
                     "composite": composite,
-                    "target": str(target.get("target")),
+                    "target": path,
                     "unconditional": bool(target.get("is_unconditional")),
+                    "converter_generated": path in compiler_states,
                     "guard": str(target.get("guard") or "") or None,
-                    "trigger": str(target.get("event") or "") or None,
+                    "trigger": trigger,
                 }
             )
     return {
@@ -1011,7 +1113,7 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         model_vocabulary=_model_vocabulary(
             inspected.get("inspect") or {}, source_exclusions
         ),
-        pseudo_state_facts=_pseudo_state_facts(inspected),
+        pseudo_state_facts=_pseudo_state_facts(inspected, source_exclusions),
         source_trace=discover_input.source_trace,
         working_contract=discover_input.manifest.get("working_contract", {})
         if isinstance(discover_input.manifest.get("working_contract"), dict)
@@ -1135,7 +1237,9 @@ def split_requirements(
                 known_paths,
                 (frozen.pseudo_state_facts or {}).get("terminating_transitions") or (),
             ),
-            *redundant_proposal_findings(output.requirements, known_paths),
+            *redundant_proposal_findings(
+                output.requirements, known_paths, dict(frozen.model_vocabulary or {})
+            ),
         )
         if step_findings:
             raise ValueError(

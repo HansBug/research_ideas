@@ -89,8 +89,24 @@ def test_termination_is_derived_only_where_the_run_really_ends():
 
     _, facts = _frozen("0050")
     ends = [row for row in facts["terminating_transitions"] if row["ends_run"]]
-    sources = {row["source"].rsplit(".", 1)[-1] for row in ends}
-    assert sources == {"HumanDrivingMode", "AutonomousMode"}, ends
+    by_trigger = {
+        (row["source"].rsplit(".", 1)[-1], (row["trigger"] or "").rsplit(".", 1)[-1])
+        for row in ends
+    }
+    # Direct: the root's own child exits on the event.
+    assert ("HumanDrivingMode", "Power_Off") in by_trigger
+    # Chain: the substates exit on the event setting the run-ending token, and the
+    # composite is reported too -- a requirement says "while in autonomous mode",
+    # naming the mode rather than whichever substate happened to be active.
+    assert ("SubState1", "Power_Off") in by_trigger
+    assert ("AutonomousMode", "Power_Off") in by_trigger
+    # And the event that leaves the same composite on the *mode-switch* token is
+    # not termination.  Ancestry cannot tell the two apart; the token can, and
+    # calling this one a termination is what fabricated 16 defects across three
+    # pairs.
+    assert not any(
+        "human_steering" in (row["trigger"] or "") for row in ends
+    ), [row for row in ends if "human_steering" in (row["trigger"] or "")]
 
     _, urban = _frozen("0029")
     assert [row for row in urban["terminating_transitions"] if row["ends_run"]] == []
@@ -241,3 +257,129 @@ def test_pair_0029_shared_completion_state_is_refused():
 def test_correct_requirements_are_not_refused(case, requirements):
     assert _step1(case, requirements) == ()
     assert _step2(case, requirements) == ()
+
+
+def test_a_mode_switch_through_the_lowering_is_not_termination():
+    """The distinction the gate got wrong, on the pair that exposed it.
+
+    Pair 0050 leaves `AutonomousMode` on two events.  `Power_Off` sets the token
+    whose outer edge goes to `[*]`; the mode-switch event sets a token whose outer
+    edge goes to `HumanDrivingMode`.  Both inner edges are `-> [*]`, both sit under
+    a state that ends the run on *some* token, so ancestry calls both terminations
+    and the gate told the producer to assert `terminates` for a mode switch --
+    False on a correct model, i.e. a published defect the model does not have.
+
+    16 requirements across pairs 0020, 0050 and 0056 tripped it, on triggers that
+    are central to their NL.  So both directions are pinned here: the real
+    termination must still be refused when a terminal state is proposed for it, and
+    the mode switch must be left alone.
+    """
+
+    prefix = "llms_emp_feedback_final_0050"
+    switch = f"{prefix}.human_steering_cmd_nor_brake_pressed_nor_in_auto_final"
+    for source in (f"{prefix}.AutonomousMode", f"{prefix}.AutonomousMode.SubState1"):
+        assert _step1(
+            "0050",
+            (
+                Req(
+                    "REQ-SWITCH",
+                    "occupancy_after",
+                    {"source": source, "trigger": switch, "target": f"{prefix}.Proposed"},
+                ),
+            ),
+        ) == (), source
+        # The same shape on the terminating event is refused, at both levels.
+        assert len(
+            _step1(
+                "0050",
+                (
+                    Req(
+                        "REQ-END",
+                        "occupancy_after",
+                        {
+                            "source": source,
+                            "trigger": f"{prefix}.Power_Off",
+                            "target": f"{prefix}.FinalState",
+                        },
+                    ),
+                ),
+            )
+        ) == 1, source
+
+
+def test_a_converter_generated_entry_is_marked_so_it_is_not_mistaken_for_the_answer():
+    """Otherwise the note that explains `initial_entries` loses a credited defect.
+
+    Pair 0029 declares `[*] -> enter_hwy if [R45RouteToken == 5]` next to a bare
+    `[*] -> UnspecifiedInitial`.  The unconditional one is the converter's fallback,
+    inserted *because* no author entry was unconditional, and `initial_target`
+    answers True for it and False for `enter_hwy` -- where the False is the expected
+    defect matrix-v11 was credited with finding.  A producer told only "entry takes
+    the unconditional edge" binds the synthetic target and the defect vanishes.
+
+    37 of the corpus's 157 unconditional entries, across 20 pairs, land on such a
+    state, so the marking is what the note rests on.
+    """
+
+    import json
+
+    trace = json.loads(
+        (
+            ROOT.parent
+            / "representation/reports/llms_emp_r45_java_60/source_traces"
+            / "llms_emp_feedback_final_0029.json"
+        ).read_text()
+    )
+    inspected = check_fcstm((PAIRS / "0029" / "fcstm.fcstm").read_text())
+    facts = _pseudo_state_facts(inspected, trace["attribution_exclusions"])
+    entries = {
+        (row["composite"].rsplit(".", 1)[-1], row["target"].rsplit(".", 1)[-1]): row
+        for row in facts["initial_entries"]
+    }
+    synthetic = entries[("HighwayMode", "UnspecifiedInitial")]
+    assert synthetic["unconditional"] is True
+    assert synthetic["converter_generated"] is True
+    authored = entries[("HighwayMode", "enter_hwy")]
+    assert authored["unconditional"] is False
+    assert authored["converter_generated"] is False
+
+
+def test_a_missing_variable_claim_survives_a_state_of_the_same_leaf_name():
+    """The three namespaces are flat lists that share leaf names.
+
+    Pair 0029 declares a *state* called `intersection`, and its NL line 7 writes
+    `intersection=true` -- a genuine missing-variable claim.  Compared against one
+    merged index that claim was refused and told to bind
+    `<root>.UrbanMode.intersection`, which `variable_declared` then refuses outright
+    ("variables take no path prefix").  No legal answer, five rounds, dead run.
+    """
+
+    known, _ = _frozen("0029")
+    vocabulary = dict(
+        _model_vocabulary(check_fcstm((PAIRS / "0029" / "fcstm.fcstm").read_text()).get("inspect") or {}, ())
+    )
+    prefix = "llms_emp_feedback_final_0029"
+    assert any(p.endswith(".intersection") for p in vocabulary["states"])
+
+    def fired(bindings, predicate):
+        return redundant_proposal_findings(
+            (Req("RX", predicate, bindings),), known, vocabulary
+        )
+
+    assert fired({"variable": "intersection"}, "variable_declared") == ()
+    assert fired({"event": f"{prefix}.lane_change"}, "event_declared") == ()
+    # The shared-state case it exists for still fires, and a non-name binding is
+    # none of its business.
+    assert len(
+        fired(
+            {
+                "source": f"{prefix}.UrbanMode",
+                "trigger": f"{prefix}.auto_finished_true",
+                "target": f"{prefix}.UrbanMode.FinishState",
+            },
+            "occupancy_after",
+        )
+    ) == 1
+    assert fired(
+        {"state": f"{prefix}.HighwayMode.cruise", "phase": "entry"}, "action_declared"
+    ) == ()

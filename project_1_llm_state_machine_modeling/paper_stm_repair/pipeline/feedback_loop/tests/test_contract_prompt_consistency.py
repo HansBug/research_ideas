@@ -222,7 +222,13 @@ def test_each_step_of_the_procedure_has_a_worked_object() -> None:
     for marker, needle in (
         ("step 1", '"predicate": "terminates"'),
         ("step 2", '"target": "Sys.RegionA.Done"'),
-        ("step 3", '"state": "Sys.Searching"'),
+        # Deliberately not `Sys.Searching`: the step-3 example used to say "target
+        # search task" against a declared `Searching` released by `Intercepted`, all
+        # three of which pair 0006 carries verbatim in its own NL and model.  A
+        # worked example that pre-answers the step-3-versus-step-4 judgement for a
+        # corpus pair, in that pair's own words, is a leak -- and step 3 versus 4 is
+        # exactly the call the Requirement Reviewer is supposed to make unaided.
+        ("step 3", '"state": "Sys.Calibrating"'),
     ):
         assert needle in splitter, f"{marker} has no worked object ({needle})"
     # Step 4's object predates these and stays: it is the only case a proposed name

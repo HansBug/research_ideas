@@ -546,8 +546,29 @@ SCOPE_LOCAL_WAIVER = "scope-local instance required"
 CLAIM_SUBJECT_BINDINGS = frozenset({"target", "response", "state", "child"})
 
 
+#: Which declaration namespace each binding draws its name from.  Bindings absent
+#: from this map are not names -- `kind`, `sign`, `count`, and the FCSTM expressions
+#: in `condition` / `release` -- and comparing them against declared paths is how a
+#: `phase: "entry"` came within a case fold of matching a state called `Entry`.
+_BINDING_NAMESPACE = {
+    "source": "states",
+    "target": "states",
+    "state": "states",
+    "parent": "states",
+    "child": "states",
+    "composite": "states",
+    "scope": "states",
+    "response": "states",
+    "trigger": "events",
+    "event": "events",
+    "variable": "variables",
+}
+
+
 def redundant_proposal_findings(
-    requirements: Iterable[_RequirementSpec], known_paths: frozenset[str]
+    requirements: Iterable[_RequirementSpec],
+    known_paths: frozenset[str],
+    vocabulary: dict[str, tuple[str, ...]] | None = None,
 ) -> tuple[str, ...]:
     """Step 2 of the four-step procedure, decided rather than reviewed.
 
@@ -570,22 +591,43 @@ def redundant_proposal_findings(
     wrong without an exit is the whole run.
     """
 
-    by_leaf: dict[str, list[str]] = {}
-    for path in known_paths:
-        by_leaf.setdefault(path.rsplit(".", 1)[-1], []).append(path)
+    # Per namespace, because they are three flat lists that share leaf names.  A
+    # state, an event and a variable can all be called `intersection`, and pair 0029
+    # declares a state by that name while its NL line 7 writes `intersection=true`
+    # -- a genuine missing-variable claim.  Compared against one merged index, that
+    # claim was refused and told to bind `<root>.UrbanMode.intersection`, which
+    # `variable_declared` then refuses outright ("variables take no path prefix").
+    # No legal answer, five rounds, dead run.
+    groups = vocabulary if vocabulary is not None else {"states": tuple(known_paths)}
+    by_namespace: dict[str, dict[str, list[str]]] = {}
+    for namespace, paths in groups.items():
+        index: dict[str, list[str]] = {}
+        for path in paths:
+            index.setdefault(str(path).rsplit(".", 1)[-1], []).append(str(path))
+        by_namespace[namespace] = index
     findings: list[str] = []
     for item in requirements:
+        # The phrase has to *open* a limitation entry rather than appear anywhere in
+        # one.  As a free substring, "no scope-local instance required, this is the
+        # shared state" -- a limitation that explicitly denies the need -- switched
+        # the gate off.  Unlikely in fresh prose, likely once a producer has read the
+        # phrase in a refusal and is arguing with it.
         waived = any(
-            SCOPE_LOCAL_WAIVER in str(entry).lower()
+            str(entry).strip().lower().startswith(SCOPE_LOCAL_WAIVER)
             for entry in (getattr(item, "limitations", ()) or ())
         )
         if waived:
             continue
         for binding, value in (item.predicate_bindings or {}).items():
+            namespace = _BINDING_NAMESPACE.get(binding)
+            if namespace is None:
+                continue
             text = str(value).strip()
             if not text or text == PSEUDO_INITIAL or text in known_paths:
                 continue
-            declared = sorted(by_leaf.get(text.rsplit(".", 1)[-1], ()))
+            declared = sorted(
+                by_namespace.get(namespace, {}).get(text.rsplit(".", 1)[-1], ())
+            )
             if declared:
                 findings.append(
                     f"{item.requirement_id} proposes {binding}={text!r} while the "
@@ -615,41 +657,35 @@ def termination_proposal_findings(
     when the model actually ends the run from that source on that trigger, which is
     exactly when `terminates` can answer the claim.  Matching words like "final"
     would fire on requirements that have nothing to do with termination.
+
+    The trigger is part of the key, always.  A source that ends the run on one
+    event usually does other things on others: pair 0050's `HumanDrivingMode` ends
+    the run on `Power_Off` and moves to `AutonomousMode` on a distance event.  A
+    fallback that fired whenever the source ends the run on *anything* therefore
+    refused every subject-proposing claim from it -- and `reaches` and `cardinality`
+    have no trigger binding at all, so every "the NL needs a state this model lacks,
+    reachable from X" claim died there, prescribing a `terminates` call that
+    evaluates False.  44 source/pair combinations across 16 pairs.  Missing a
+    trigger-less fabrication is the cheaper error: it reaches the Requirement
+    Reviewer, which is where an undecidable case belongs.
+
+    Reads `ends_run` and asks nothing else.  This gate used to reconstruct the
+    lowering's two-edge termination itself, from ancestry -- an inner exit carrying
+    the trigger plus any run-ending edge at or above its scope.  That is wrong
+    whenever a composite exits on more than one event: pair 0050 leaves
+    `SubState1` both on `Power_Off` (which ends the run) and on the mode-switch
+    event (which does not), and ancestry cannot tell them apart, so the gate
+    claimed the model terminates on a mode switch and told the producer to assert
+    it -- a fabricated defect on 16 requirements across three pairs.  The route
+    token decides it, and `_pseudo_state_facts` is where the token is visible.
     """
 
     rows = [row for row in terminating if isinstance(row, dict)]
-    # Direct: the edge that ends the run carries the trigger itself.
     ends = {
         (str(row.get("source") or ""), str(row.get("trigger") or ""))
         for row in rows
         if row.get("ends_run")
     }
-    sources_that_end = {source for source, _ in ends}
-    # Two-step: the lowering splits "this event ends the run" into an inner edge
-    # that leaves the composite carrying the event and an outer edge that ends the
-    # run on the token it set.  Pair 0050 terminates from `AutonomousMode` that
-    # way, so reading only direct edges let its second fabricated `FinalState`
-    # requirement through while catching the first.
-    exits_by_trigger: dict[str, set[str]] = {}
-    for row in rows:
-        trigger = str(row.get("trigger") or "")
-        source = str(row.get("source") or "")
-        if trigger and source:
-            exits_by_trigger.setdefault(trigger, set()).add(source)
-
-    def ends_run_via_chain(scope: str, trigger: str) -> bool:
-        if not scope or not trigger:
-            return False
-        inner = exits_by_trigger.get(trigger, set())
-        leaves_scope = any(
-            source == scope or source.startswith(f"{scope}.") for source in inner
-        )
-        if not leaves_scope:
-            return False
-        return any(
-            source == scope or scope.startswith(f"{source}.")
-            for source in sources_that_end
-        )
 
     findings: list[str] = []
     for item in requirements:
@@ -667,11 +703,7 @@ def termination_proposal_findings(
             continue
         source = str(bindings.get("source") or bindings.get("scope") or "").strip()
         trigger = str(bindings.get("trigger") or "").strip()
-        if (
-            (source, trigger) in ends
-            or (source in sources_that_end and not trigger)
-            or ends_run_via_chain(source, trigger)
-        ):
+        if (source, trigger) in ends:
             findings.append(
                 f"{item.requirement_id} proposes {proposed} as the claim's subject "
                 f"while the model ends the run from {source!r}"

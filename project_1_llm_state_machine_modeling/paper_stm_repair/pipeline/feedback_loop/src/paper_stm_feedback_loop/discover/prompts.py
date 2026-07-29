@@ -112,7 +112,7 @@ Cardinality and scope: when the NL gives a number of areas/states but does not n
 
 Limitation non-waiver: describing a material mismatch does not satisfy the requirement. If inspection reveals that the observed source, trigger, destination, hierarchy, or effect conflicts with the accepted requirement, orient at least one exact assertion so that the mismatch evaluates False. Never acknowledge a contradiction in description/failure_message and then use a broader presence query that evaluates True. A disclosed proxy is acceptable only when it preserves the requirement for the stated finite scope; it cannot waive a source-placement or target-scope contradiction.
 
-Cardinality evidence gate: when the NL states a number N but neither names the members nor defines a complete structural scope whose entire direct membership is that set, do not use `len(direct_children) == N` or an exact-name allowlist. Use a transparent lower-bound proxy such as at least N distinct non-pseudo states within the broadest grounded scope and state that extra model states cannot be classified without additional source semantics. An exact equality is admissible only when the NL grounds both the complete scope and its membership interpretation.
+Cardinality evidence gate: `cardinality(scope, count)` is exact and it is the only counting predicate -- there is no at-least form, and no way to write one. So when the NL states a number N without naming the members, scope the claim to the composite the NL actually names and record in `limitations` that the count includes every declared non-pseudo direct substate, converter-generated ones among them. Do not weaken the claim to something else and do not skip it: a count that disagrees is a finding worth reporting with that limitation attached, and the limitation is what tells a reader whether the disagreement is about the author's states or about the converter's.
 
 Multi-step response gate: inspect the structured transition path before choosing simulation cycles. If an event may first enter an intermediate state and the target is reached through automatic, forced, completion, or parent-level follow-up transitions, inject the event in cycle 0 and include enough finite empty cycles for that declared chain to settle. Check event consumption in the causal cycle and target activity after the bounded follow-up. Do not report a one-cycle intermediate observation as a failed final response, and do not replace composed runtime evidence with a nonexistent direct source-to-final-target relation.
 """
@@ -122,7 +122,7 @@ Cardinality and scope: when the NL gives a number of areas/states but does not n
 
 Limitation non-waiver: reject any script that explicitly identifies a material source, trigger, destination, hierarchy, or effect mismatch but turns it into a passing broad-presence assertion or accepts it merely because the limitation is described. The exact mismatch must be testable and must evaluate False when present. In particular, an operation/termination event observed only on `"[*]"` requires a negative exact source/event/target assertion; `edge_declared(source=..., trigger=..., target=...)` is not an acceptable substitute. Disclosed limitations may bound evidence strength, but may not erase a repair-relevant contradiction.
 
-Cardinality evidence gate: reject exact equality over all direct children when the NL gives N but does not name the members or define that complete direct-child scope. Require a transparent lower-bound proxy within the broadest grounded scope, with the unclassified-extra-state limitation stated. Such ungrounded exact equality can create a false issue and is not acceptable evidence.
+Cardinality evidence gate: `cardinality` is exact and no at-least form exists, so do not ask for one. What to require instead: the scope must be the composite the NL names, and `limitations` must state that the count includes converter-generated substates. Reject a count whose scope is broader than the sentence supports, and reject one with no such limitation -- without it a reader cannot tell a disagreement about the author's states from one about the converter's.
 
 Multi-step response gate: reject a one-cycle simulation when structured inspect exposes an intermediate state followed by automatic, forced, completion, or parent-level transitions toward the required target. Require a finite event cycle plus enough empty follow-up cycles to observe the composed outcome, while checking event consumption in the causal cycle. The relation assertion may verify the actual event-bearing edge, but must not require a nonexistent direct edge to the final target.
 
@@ -168,9 +168,16 @@ region still means that one state. Bind the declared path verbatim: proposing
 missing state that is present, and the run reaches it by leaving RegionB and
 routing onward -- which is a reachability question, not a missing element.
 
+This one is checked by a comparison, so it is decided before review. The
+comparison cannot tell a *shared* element from one the sentence wants *per
+scope*, and if yours is the second, say so: keep your proposed path and add a
+`limitations` entry that *begins* with `scope-local instance required`, spelled
+exactly that way, and continues with why the shared one will not do. The Requirement
+Reviewer then judges that claim. Without the entry the proposal is refused.
+
 **Step 3 -- does a declared element plausibly denote the same thing?** Different
-wording, same referent: the NL's "target search task" and a declared `Searching`
-state. Bind the declared element and record the naming difference in
+wording, same referent: the NL's "the calibration routine" and a declared
+`Calibrating` state. Bind the declared element and record the naming difference in
 `limitations`. Do not stretch this into substitution: binding "the number of
 units" to an unrelated route-control variable changes the requirement into a
 different one and hides the very gap that matters.
@@ -192,6 +199,8 @@ verdicts to re-verify against.
 
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
+`segment_disposition` sits on the RequirementSet, not on a Requirement, and its keys must match `nl_segments` **exactly** -- one entry per frozen segment id, no more and no fewer, including the segments you did not turn into requirements. A set listing only the covered ones is rejected before review. Values: `covered` (a Requirement carries it), `context` (background, imposes no obligation), `ambiguous` (an obligation you could not pin down), `out_of_scope`. So for `nl_segments: ["NL-L001", "NL-L002", "NL-L003"]` a complete disposition is `{"NL-L001": "covered", "NL-L002": "covered", "NL-L003": "context"}`.
+
 How to choose the predicate. Read what the sentence asserts, then pick the predicate whose meaning matches it.
 - Ask whether the sentence is about what the model *contains* or about what the model *does*. "The model shall declare a transition from A on E to B" is about containment: `edge_declared`. "When E occurs in A the system moves to B" is about behaviour: `occupancy_after`. This one distinction decides the majority of requirements, and getting it wrong is the single most common source of a wrong verdict, because a declared edge can be unreachable, guard-blocked, or overridden by a competing transition. When the NL describes an operational scenario, prefer the behavioural predicate.
 - Do not pick a predicate to make the check cheaper or easier. Pick the one that would actually be violated if the model were wrong in the way the sentence forbids.
@@ -211,6 +220,7 @@ Check the predicate against the sentence, not against the current model:
 - Reject a Family S predicate (`edge_declared`, `state_declared`, `containment`, ...) where the NL describes an operational scenario -- a trigger arriving and the system responding. That belongs to Family B, and closing it with a declaration query would pass a model whose declared edge is unreachable or guard-blocked. Name the behavioural predicate you expect instead.
 - Reject a Family P predicate whose obligation an exact structural or relational query already decides, and say which query.
 - Reject any `predicate_bindings` value that omits a required binding, and any value that is neither a path appearing verbatim in `declared_model_vocabulary` nor a name the requirement's `limitations` identifies as one the model should have declared. Name the offending value and the closest declared path. A binding that names a nonexistent element without saying so makes the downstream check vacuous, so this is not a cosmetic objection.
+- A binding may keep a proposed path the step-2 comparison would refuse when `limitations` carries the exact entry `scope-local instance required`. That is the Splitter saying the sentence needs an instance inside *this* scope rather than the shared one, and judging it is yours: accept when the sentence really does demand a per-scope instance, reject and name the shared declared path when it does not.
 - A binding may name an element this model does not declare, provided `limitations` records that. Judge only the last two steps of the Splitter's four-step procedure -- whether a declared element plausibly denotes the same thing (step 3) or the model genuinely has no counterpart (step 4). The first two steps are settled deterministically before you see the set: a pseudo-state concept answered by `terminates` or `initial_target`, and a leaf name the vocabulary already declares under another parent, are both rejected by a gate, so do not spend a finding on them. **Accept the proposal** when no declared element plausibly is the one the sentence means: the Converter turns it into an existence check the claim depends on, so the obligation stays checkable and a repair stage gets a named target. **Reject it** when a declared element does plausibly fit -- an unrelated counter standing in for a quantity is the substitution this rule exists to prevent. Say which element you mean. Also reject a value that is not shaped like a name at all: nothing can be looked up under it, so no check can rest on it.
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
@@ -467,21 +477,21 @@ Proposing `Sys.RegionB.Done` would report a missing state that is present.
 }
 
 Example 6 -- step 3: different wording, same referent. The NL says "target search
-task" and the model declares `Sys.Searching`. Bind the declared element and record
-the naming difference; do not propose `Sys.TargetSearchTask`.
+routine" and the model declares `Sys.Calibrating`. Bind the declared element and
+record the naming difference; do not propose `Sys.CalibrationRoutine`.
 {
   "requirement_id": "REQ-007",
-  "statement": "The system shall perform the target search task until interception is detected.",
-  "rationale": "NL-L007 names the activity in prose. Sys.Searching is the declared state for it, so the claim binds that rather than a new name.",
+  "statement": "The system shall run the calibration routine until an abort is requested.",
+  "rationale": "NL-L007 names the activity in prose. Sys.Calibrating is the declared state for it, so the claim binds that rather than a new name.",
   "source_segment_ids": ["NL-L007"],
   "predicate": "persists_until",
-  "predicate_bindings": {"state": "Sys.Searching", "release": "active(\\"Sys.Intercepted\\")", "bound": "4"},
+  "predicate_bindings": {"state": "Sys.Calibrating", "release": "active(\\"Sys.Aborted\\")", "bound": "4"},
   "verification_kind": "property",
   "quantifier": "always",
   "trigger": null,
-  "expected_outcome": "Searching holds until Intercepted becomes active",
+  "expected_outcome": "Calibrating holds until Aborted becomes active",
   "coverage_obligation": {"domain": "continuity", "aggregation": "all"},
-  "limitations": ["checked up to bound 4 only", "the NL says target search task; the declared state for it is Sys.Searching"]
+  "limitations": ["checked up to bound 4 only", "the NL says calibration routine; the declared state for it is Sys.Calibrating"]
 }
 """
 REQUIREMENT_SPLITTER_PROMPT += """
