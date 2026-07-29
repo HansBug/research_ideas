@@ -47,12 +47,31 @@ def test_every_fabricated_entry_is_pinned_by_a_test_that_exists(entry):
     assert path.exists(), path
 
 
-def test_no_entry_is_both_fabricated_and_grounded():
-    fabricated = {(e["cell"], e["requirement_id"]) for e in LEDGER["fabricated"]}
+def test_no_entry_is_both_fabricated_and_grounded_within_one_run():
+    """Across runs the same id legitimately names different claims.
+
+    `0006-claude/REQ-001` is the substate-count finding in matrix-v16 and a missing
+    mission-complete state in matrix-v18 -- both grounded, neither a contradiction.
+    Within one run a contradiction would make the checker's verdict depend on dict
+    iteration order, so that is what this guards.
+    """
+
+    def key(entry, req):
+        return (entry.get("run", "matrix-v16"), entry["cell"], req)
+
+    fabricated = {key(e, e["requirement_id"]) for e in LEDGER["fabricated"]}
     grounded = {
-        (e["cell"], req) for e in LEDGER["grounded"] for req in e["requirement_ids"]
+        key(e, req) for e in LEDGER["grounded"] for req in e["requirement_ids"]
     }
     assert not (fabricated & grounded), fabricated & grounded
+
+
+def test_every_adjudication_names_the_run_it_was_made_against():
+    """Otherwise a later run's entry silently rescopes an earlier verdict."""
+
+    for group in ("fabricated", "grounded"):
+        for entry in LEDGER[group]:
+            assert entry.get("run"), (group, entry.get("cell"))
 
 
 def test_every_entry_records_why():
@@ -72,9 +91,13 @@ def test_the_checker_reproduces_the_run_it_was_adjudicated_on():
     bundle = pathlib.Path("/tmp/v16-gist/audit")
     if not bundle.is_dir():
         pytest.skip("matrix-v16 audit bundle not on disk (runs/ is untracked)")
-    result = check_false_positives.scan(bundle)
-    assert len(result["still_fabricating"]) == 3, result["still_fabricating"]
+    result = check_false_positives.scan(bundle, "matrix-v16")
+    # Five, not three: 0029-gpt finished after the first adjudication pass and
+    # carried two more instances of the `initial_target` class under different
+    # requirement ids -- the undercount an id-keyed ledger produces, and the reason
+    # `detect_fabrications.py` scores new runs instead.
+    assert len(result["still_fabricating"]) == 5, result["still_fabricating"]
     assert result["unadjudicated"] == [], result["unadjudicated"]
-    # 0029-gpt never finished in v16; its absence must not read as a fix.
     assert result["fixed"] == [], result["fixed"]
-    assert result["incomplete_cells"], result["incomplete_cells"]
+    # All eight cells reached a terminal state in the end.
+    assert result["incomplete_cells"] == [], result["incomplete_cells"]

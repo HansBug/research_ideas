@@ -17,11 +17,18 @@ Three outcomes matter:
     unadjudicated       an extra nobody has ruled on yet -> needs a human call
                         before the run's precision can be quoted
 
-Matching is by (cell, requirement_id), not by title: titles are LLM-written prose
-and change wording between runs on the same defect.
+Matching is by (cell, requirement_id) *within one run*, not by title: titles are
+LLM-written prose and change wording between runs on the same defect.  The run
+matters because requirement ids do not survive it -- the splitter reuses them for
+different claims, so `0006-claude/REQ-001` is the substate-count finding in
+matrix-v16 and a missing mission-complete state in matrix-v18.  Replaying one
+run's adjudications is what this script is for; scoring a *new* run is what
+`detect_fabrications.py` is for, and that one re-derives each class from the model
+and needs no ids.
 
-Usage: check_false_positives.py <audit_dir>
-    where <audit_dir> is the `audit/` bundle build_gist.py wrote.
+Usage: check_false_positives.py <audit_dir> [run]
+    <audit_dir>  the `audit/` bundle build_gist.py wrote
+    [run]        which run's adjudications to replay (default: matrix-v16)
 """
 
 from __future__ import annotations
@@ -50,17 +57,21 @@ def _credited_titles(record: dict) -> set[str]:
     return out
 
 
-def scan(audit_dir: pathlib.Path) -> dict:
+def scan(audit_dir: pathlib.Path, run: str = "matrix-v16") -> dict:
     ledger = json.loads(LEDGER.read_text())
     fabricated = {
         (entry["cell"], entry["requirement_id"]): entry
         for entry in ledger["fabricated"]
+        if entry.get("run", "matrix-v16") == run
     }
     grounded = {
         (entry["cell"], req)
         for entry in ledger["grounded"]
+        if entry.get("run", "matrix-v16") == run
         for req in entry["requirement_ids"]
     }
+    if not fabricated and not grounded:
+        raise SystemExit(f"no adjudications recorded for run {run!r}")
 
     seen: set[tuple[str, str]] = set()
     still: list[dict] = []
@@ -104,10 +115,12 @@ def scan(audit_dir: pathlib.Path) -> dict:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
+    if not 2 <= len(sys.argv) <= 3:
         print(__doc__)
         return 2
-    result = scan(pathlib.Path(sys.argv[1]))
+    run = sys.argv[2] if len(sys.argv) == 3 else "matrix-v16"
+    print(f"回放 {run} 的判定\n")
+    result = scan(pathlib.Path(sys.argv[1]), run)
 
     if result["incomplete_cells"]:
         print("未完成的格子（其缺失不计作修复）:")
