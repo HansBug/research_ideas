@@ -840,9 +840,14 @@ class PredicateAPI:
         cross-hierarchy transitions, not entry declarations.  Entry with no
         history and no token set takes the unconditional edge, so that is the
         initial child, and answering from it turns an unanswerable claim into a
-        decidable one.  The route-token names stay in the reference set, which is
-        what lets attribution mark the resulting finding as representation debt
-        rather than an authoring defect.
+        decidable one.
+
+        The entry that decided the answer is recorded as a reference, which is what
+        lets attribution mark the resulting finding as representation debt rather
+        than an authoring defect.  The guard texts are recorded too, but they are
+        expressions rather than element paths -- `'R45RouteToken == 25'` does not
+        match the `compiler:route_control:R45RouteToken` exclusion -- so they are
+        orientation for a reader, not something attribution can key on.
         """
 
         rows = self.structure.states(path=composite, exact=True)
@@ -873,10 +878,19 @@ class PredicateAPI:
         if len(unconditional) == 1:
             for t in entries:
                 if not field(t, "is_unconditional"):
-                    # The guard names the converter's token; recording it is what
-                    # lets attribution see the lowering behind this answer.
                     self._note(str(field(t, "guard") or ""))
-            return str(field(unconditional[0], "target"))
+            entry = str(field(unconditional[0], "target"))
+            # The element that decided the answer.  Without it a False says only
+            # which child was *claimed*, never which one the model actually enters,
+            # and attribution has nothing to match: on pair 0029 the entry is the
+            # converter's synthetic `UnspecifiedInitial`, listed in the pair's
+            # `attribution_exclusions`, so the finding is representation debt by
+            # policy -- but the binding came back `safe` and matrix-v16 published
+            # two of them as confirmed defects.  A False that hinges on an element
+            # the predicate will not name cannot be filtered by anything
+            # downstream, and refs are this layer's job.
+            self._note(entry)
+            return entry
         if len(unconditional) > 1:
             raise UnsupportedEvidence(
                 f"{composite!r} declares {len(unconditional)} unconditional initial "
@@ -1218,33 +1232,165 @@ class PredicateAPI:
             cycles=_budget(within_cycles, "within_cycles", 3),
         )
 
-    def _reaches_within(self, *, source: str, target: str, cycles: int) -> bool:
-        alphabet = [
+    def _declared_alphabet(self) -> list[str]:
+        return [
             str(row.qualified_name)
             for row in self.structure.events()
             if getattr(row, "qualified_name", None)
         ]
-        pinned = self._hot_startable(source)
-        plan = [list(alphabet) for _ in range(max(1, cycles))]
-        try:
-            view = (
-                self.simulation.simulate(
-                    initial_state=pinned, initial_vars=self._all_vars(), cycles=plan
+
+    #: Simulations one bounded search may spend.  A search that needs more than
+    #: this is refused rather than answered, because the alternative is a False
+    #: that only means "I stopped looking".  Measured: the corpus's widest model
+    #: offers 15 events and settles into ~30 distinct configurations, so a
+    #: three-cycle search costs a few hundred runs and this ceiling is slack.
+    _SEARCH_BUDGET = 4000
+
+    def _bounded_witness(
+        self,
+        *,
+        predicate: str,
+        scope: str,
+        pinned: str | None,
+        offered: list[str],
+        cycles: int,
+        hit,
+    ) -> bool:
+        """Search bounded event sequences for a run that witnesses the claim.
+
+        Both callers used to offer the *whole* declared alphabet in every cycle and
+        read the single resulting run.  The simulator commits one successor per
+        cycle, so that run followed whichever competing event the transition table
+        happened to list first -- the verdict was a function of declaration order,
+        not of the model.  Two models differing only in the order of two lines
+        answered True and False for the same reachability question, and across the
+        corpus 124 of 412 declared one-step event edges had `occupancy_after` True
+        while `reaches` said False on the same binding.  A witness predicate is not
+        entitled to report "no run reaches this" after looking at one run.
+
+        Offering one event per run instead is not enough either: the obligations
+        these predicates carry are genuinely multi-step.  Reaching `Done` in the
+        spec fixture takes `go`, `go`, `fin` -- three different events -- and a
+        predicate that cannot see that has lost the use it exists for.
+
+        So this enumerates sequences, breadth-first, and prunes by the configuration
+        a sequence lands in: two sequences reaching the same active states with the
+        same variable values cannot be told apart by anything later, so only one
+        needs extending.  That keeps the search polynomial in configurations rather
+        than exponential in cycles, and it stays *complete* for the bound -- which
+        is what makes a False sound.
+
+        Each sequence is replayed from the pinned start rather than resumed from a
+        stored configuration.  Resuming would re-enter the state and re-run its
+        `enter` actions, so the variable values would not be the ones a continuous
+        run would have: on the spec fixture, restarting in `Idle` re-runs
+        `enter { other = 1; }` and the replayed trace diverges from the real one.
+
+        Settling comes first, for the same reason `_simulate` settles: a
+        configuration with an eventless completion edge outgoing is not one an
+        offered event can be observed in.  These two predicates skipped that.
+
+        Exhausting `_SEARCH_BUDGET` is reported as a refusal, never as False.
+        """
+
+        settle = [[] for _ in range(self._settle_cycles(pinned))] if pinned else []
+        horizon = max(1, cycles)
+
+        def run(sequence: tuple[str, ...]):
+            plan = [[event] for event in sequence]
+            # An empty tail lets automatic transitions finish the job.
+            plan += [[] for _ in range(horizon - len(sequence))]
+            try:
+                return (
+                    self.simulation.simulate(
+                        initial_state=pinned,
+                        initial_vars=self._all_vars(),
+                        cycles=settle + plan,
+                    )
+                    if pinned
+                    else self.simulation.simulate(cycles=[[]] + plan)
                 )
-                if pinned
-                else self.simulation.simulate(cycles=[[]] + plan)
+            except Exception as exc:
+                raise UnsupportedEvidence(
+                    f"cannot start the model in {scope!r} ({exc})"
+                ) from exc
+
+        def configuration(view):
+            final = getattr(view, "final", None)
+            states = tuple(
+                sorted(str(s) for s in (getattr(final, "active_states", ()) or ()))
             )
-        except Exception as exc:
-            raise UnsupportedEvidence(
-                f"cannot start the model in {source!r} ({exc})"
-            ) from exc
+            try:
+                values = tuple(sorted(dict(getattr(final, "variables", {})).items()))
+            except Exception as exc:
+                # Pruning on states alone would not be conservative: two runs can
+                # share a configuration and differ in a variable a guard reads, so
+                # dropping one of them can discard the only sequence that reaches
+                # the target -- and the resulting False would be indistinguishable
+                # from an honest one.  Refuse instead.
+                raise UnsupportedEvidence(
+                    f"{predicate} cannot read the variable values that decide which "
+                    f"bounded runs are distinct ({exc}), so a search over them cannot "
+                    "be exhaustive and a negative answer would not be evidence."
+                ) from exc
+            return states, values
+
+        spent = 0
+        # The zero-event run: automatic transitions alone may already witness it.
+        view = run(())
+        spent += 1
         self._note_simulation(view)
-        for cycle in getattr(view, "cycles", ()) or ():
-            for item in getattr(cycle, "active_states", ()) or ():
-                text = str(item)
-                if text == target or text.startswith(f"{target}."):
-                    return True
+        if hit(view):
+            return True
+        frontier = [((), configuration(view))]
+        seen = {frontier[0][1]}
+        for _ in range(horizon):
+            nxt: list[tuple[tuple[str, ...], tuple]] = []
+            for sequence, _config in frontier:
+                for event in offered:
+                    if spent >= self._SEARCH_BUDGET:
+                        raise UnsupportedEvidence(
+                            f"{predicate} exhausted its {self._SEARCH_BUDGET}-run "
+                            f"search budget over {horizon} cycles without finding a "
+                            "witness, so this is not evidence that the model cannot "
+                            "do it. State the obligation over a smaller horizon, or "
+                            "name the exact source, trigger and target with "
+                            "occupancy_after."
+                        )
+                    extended = sequence + (event,)
+                    view = run(extended)
+                    spent += 1
+                    self._note_simulation(view)
+                    if hit(view):
+                        return True
+                    config = configuration(view)
+                    if config not in seen:
+                        seen.add(config)
+                        nxt.append((extended, config))
+            if not nxt:
+                # Every sequence leads somewhere already visited: the reachable set
+                # is closed, and no longer sequence can reach anything new.
+                break
+            frontier = nxt
         return False
+
+    def _reaches_within(self, *, source: str, target: str, cycles: int) -> bool:
+        def hit(view) -> bool:
+            for cycle in getattr(view, "cycles", ()) or ():
+                for item in getattr(cycle, "active_states", ()) or ():
+                    text = str(item)
+                    if text == target or text.startswith(f"{target}."):
+                        return True
+            return False
+
+        return self._bounded_witness(
+            predicate="reaches",
+            scope=source,
+            pinned=self._hot_startable(source),
+            offered=self._declared_alphabet(),
+            cycles=max(1, cycles),
+            hit=hit,
+        )
 
     def terminates(self, *, scope: str, trigger: str | None = None) -> bool:
         """The model actually finishes."""
@@ -1254,34 +1400,28 @@ class PredicateAPI:
         optional = {"trigger": trigger} if trigger is not None else {}
         self._require_well_formed_names(scope=scope, **optional)
         # One cycle only ever saw the first step, so a final state two events
-        # away was reported unreachable.  Drive the declared alphabet for a
-        # bounded number of cycles instead: termination is a reachability
-        # question, not a single-step one.
-        alphabet = [
-            str(row.qualified_name)
-            for row in self.structure.events()
-            if getattr(row, "qualified_name", None)
-        ]
-        offered = [trigger] if trigger else alphabet
-        pinned = self._hot_startable(None if scope in {"", "root"} else scope)
-        plan = [list(offered) for _ in range(TERMINATION_CYCLES)]
-        try:
-            view = (
-                self.simulation.simulate(
-                    initial_state=pinned, initial_vars=self._all_vars(), cycles=plan
-                )
-                if pinned
-                else self.simulation.simulate(cycles=[[]] + plan)
-            )
-        except Exception as exc:
-            raise UnsupportedEvidence(
-                f"cannot start the model in {scope!r} ({exc})"
-            ) from exc
-        self._note_simulation(view)
-        for cycle in getattr(view, "cycles", ()) or ():
-            if bool(getattr(cycle, "is_ended", False)):
-                return True
-        return bool(getattr(getattr(view, "final", None), "is_ended", False))
+        # away was reported unreachable.  Termination is a reachability question,
+        # not a single-step one, so it is driven over a bounded number of cycles --
+        # one event at a time, for the reasons in `_bounded_witness`.  A named
+        # `trigger` is the single-candidate case there, which is why the eight
+        # `terminates` calls in matrix-v16 were unaffected by the order defect:
+        # every one of them named its event.
+        offered = [trigger] if trigger else self._declared_alphabet()
+
+        def hit(view) -> bool:
+            for cycle in getattr(view, "cycles", ()) or ():
+                if bool(getattr(cycle, "is_ended", False)):
+                    return True
+            return bool(getattr(getattr(view, "final", None), "is_ended", False))
+
+        return self._bounded_witness(
+            predicate="terminates",
+            scope=scope,
+            pinned=self._hot_startable(None if scope in {"", "root"} else scope),
+            offered=offered,
+            cycles=TERMINATION_CYCLES,
+            hit=hit,
+        )
 
     # ---- Family P: quantified properties -----------------------------
     def invariant(self, *, scope: str, condition: str, bound: int = DEFAULT_BOUND) -> bool:

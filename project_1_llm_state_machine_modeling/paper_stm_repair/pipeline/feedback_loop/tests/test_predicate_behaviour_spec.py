@@ -419,10 +419,18 @@ def test_event_consumed_separates_handled_from_ignored():
 
 
 def test_reaches_is_bounded_by_its_cycle_budget():
-    """The budget is part of the claim, so a smaller one must be able to fail."""
+    """The budget is part of the claim, so a smaller one must be able to fail.
 
-    assert call(RICH, "reaches", source="Root.Idle", target="Root.Done", within_cycles=5) is True
-    assert call(RICH, "reaches", source="Root.Idle", target="Root.Done", within_cycles=4) is False
+    The boundary sits one cycle earlier than it used to.  The old search offered
+    the whole alphabet each cycle and read the single run that came back, so it
+    found `Done` only along the path the transition table happened to order first;
+    the breadth-first sequence search finds the shortest witness instead.  A
+    complete search finding a shorter one is the fix working, not a regression --
+    what the test is for is that the horizon still binds, and it does.
+    """
+
+    assert call(RICH, "reaches", source="Root.Idle", target="Root.Done", within_cycles=4) is True
+    assert call(RICH, "reaches", source="Root.Idle", target="Root.Done", within_cycles=3) is False
 
 
 def test_terminates_separates_a_finishing_model_from_a_stuck_one():

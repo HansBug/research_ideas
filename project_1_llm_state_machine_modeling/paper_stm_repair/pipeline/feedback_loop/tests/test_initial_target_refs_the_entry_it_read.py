@@ -34,8 +34,6 @@ from __future__ import annotations
 import pathlib
 import sys
 
-import pytest
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
@@ -94,14 +92,6 @@ def test_the_synthetic_default_entry_is_what_makes_the_call_false():
     assert call("Synthetic")[0] is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect, pinned before the fix. strict=True so the marker cannot "
-        "outlive the bug: once refs include the entry that decided the answer, "
-        "this XPASSes and the suite fails until the marker is removed."
-    ),
-)
 def test_a_false_initial_target_declares_the_entry_that_decided_it():
     """Otherwise attribution cannot tell a real defect from a lowering artifact.
 

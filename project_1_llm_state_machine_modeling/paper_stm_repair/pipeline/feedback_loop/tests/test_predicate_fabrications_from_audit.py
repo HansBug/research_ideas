@@ -141,22 +141,16 @@ def test_the_one_step_fact_the_order_pair_shares_is_visible_to_both_models():
         assert ask(model, occupancy) is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect (C1), pinned before the fix. strict=True so the marker cannot "
-        "outlive the bug."
-    ),
-)
 @pytest.mark.parametrize("cycles", [1, 3, 20])
 def test_reaches_must_not_depend_on_transition_declaration_order(cycles):
+    """Fixed by offering each declared event on its own instead of all at once."""
+
     expression = (
         f'reaches(source="Root.A", target="Root.C", within_cycles={cycles}) is True'
     )
     assert ask(_TARGET_FIRST, expression) == ask(_COMPETITOR_FIRST, expression)
 
 
-@pytest.mark.xfail(strict=True, reason="Known defect (C1), pinned before the fix.")
 def test_terminates_must_not_depend_on_transition_declaration_order():
     model = 'state Root named "Root" {{\n    event go named "go";\n    event stop named "stop";\n    state A named "A";\n    state B named "B";\n    [*] -> A;\n{edges}\n}}\n'
     stop_first = model.format(
@@ -229,3 +223,107 @@ def test_stays_in_must_not_answer_true_for_an_undiscriminating_ancestor(ancestor
     expression = f'stays_in(source="{ancestor}", trigger="Root.go") is True'
     for model in (_MOVES, _SELF_LOOP):
         assert refused(model, expression) or ask(model, expression) is False, ancestor
+
+
+#: Nothing reaches `Unreachable`, and it takes two *different* events to get near
+#: it -- the shape the one-event-at-a-time enumeration cannot settle.
+_SEQUENCE = """\
+state Root named "Root" {
+    event first named "first";
+    event second named "second";
+    state A named "A";
+    state B named "B";
+    state C named "C";
+    state Unreachable named "Unreachable";
+    [*] -> A;
+    A -> B : /first;
+    B -> C : /second;
+}
+"""
+
+
+def test_the_search_finds_a_multi_event_witness_and_still_reports_unreachable():
+    """Completeness for the bound is what makes a False sound.
+
+    A target needing `first` then `second` has to be found -- that is the use these
+    predicates exist for, and offering one event per run would miss it.  A target
+    nothing can reach has to come back False rather than being refused, or the
+    predicate could never expose the defect it advertises.  The breadth-first
+    sequence search delivers both: it prunes by landing configuration, so it stays
+    polynomial while remaining exhaustive over the bound.
+    """
+
+    # Two different events in sequence.
+    assert ask(_SEQUENCE, 'reaches(source="Root.A", target="Root.C", within_cycles=4) is True') is True
+    # Declared but with no incoming edge at all: the reachable set closes without it.
+    assert (
+        ask(_SEQUENCE, 'reaches(source="Root.A", target="Root.Unreachable", within_cycles=4) is True')
+        is False
+    )
+    # One event away, unchanged.
+    assert ask(_SEQUENCE, 'reaches(source="Root.A", target="Root.B", within_cycles=4) is True') is True
+
+
+def test_the_budget_is_part_of_the_claim_so_a_smaller_one_can_fail():
+    """And the horizon still bounds it, rather than the search running away."""
+
+    # `C` is two events away, so one cycle cannot witness it.
+    assert ask(_SEQUENCE, 'reaches(source="Root.A", target="Root.C", within_cycles=1) is True') is False
+    assert ask(_SEQUENCE, 'reaches(source="Root.A", target="Root.C", within_cycles=2) is True') is True
+
+
+def test_a_single_candidate_still_answers_false_because_that_search_is_complete():
+    """With the event named, the enumeration is exhaustive and a False is sound.
+
+    This is the shape every `terminates` call in matrix-v16 used -- eight of them,
+    all naming their trigger -- which is why the order defect never reached the
+    published results.
+    """
+
+    # `first` cannot end the run in this model, and that is a complete answer.
+    assert ask(_SEQUENCE, 'terminates(scope="Root.A", trigger="Root.first") is True') is False
+    ending = _SEQUENCE.replace("    B -> C : /second;", "    B -> [*] : /second;")
+    assert ask(ending, 'terminates(scope="Root.B", trigger="Root.second") is True') is True
+
+
+def test_the_search_refuses_rather_than_answering_past_its_budget(monkeypatch):
+    """A False that only means "I stopped looking" is the defect being fixed.
+
+    Forced with a tiny ceiling rather than a huge model: what matters is which of
+    the two answers the exhausted branch gives, and that is independent of the
+    number that exhausts it.
+    """
+
+    from paper_stm_feedback_loop.assertions.predicate_api import PredicateAPI
+
+    monkeypatch.setattr(PredicateAPI, "_SEARCH_BUDGET", 2)
+    assert refused(
+        _SEQUENCE, 'reaches(source="Root.A", target="Root.C", within_cycles=4) is True'
+    )
+
+
+def test_the_search_refuses_when_it_cannot_read_the_values_that_distinguish_runs(
+    monkeypatch,
+):
+    """Pruning on states alone is not conservative, so it must not fall back to it.
+
+    Two runs can share a configuration and differ in a variable a guard reads.
+    Treating them as one can discard the only sequence that reaches the target, and
+    the False that follows looks exactly like an honest one.
+    """
+
+    from paper_stm_feedback_loop.assertions import views
+
+    original = views.FrozenView.keys
+
+    def unreadable(self):
+        # Only the variables view; `keys` is on the dict protocol `dict()` uses, and
+        # breaking every view would prove nothing about this branch.
+        if self.view_kind.endswith(".field"):
+            raise RuntimeError("variables unreadable")
+        return original(self)
+
+    monkeypatch.setattr(views.FrozenView, "keys", unreadable, raising=False)
+    assert refused(
+        _SEQUENCE, 'reaches(source="Root.A", target="Root.C", within_cycles=4) is True'
+    )

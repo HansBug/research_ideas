@@ -140,3 +140,55 @@ def test_the_settle_depth_is_measured_rather_than_assumed():
     assert api._settle_cycles("Root.Auto.Settled") == 0
     # A leaf outside the chain likewise needs no settling.
     assert api._settle_cycles("Root.Manual") == 0
+
+
+#: Completion edges that cycle, so no configuration in the region is ever stable.
+#: Pair 0056's `SearchState` has this shape -- `Area1 -> Area2 -> Area3 -> Area1` --
+#: and it is the corpus's only instance, 4 of 567 pinnable configurations.
+CYCLING = """\
+state Root named "Root" {
+    event HS named "HS";
+    state Manual named "Manual";
+    state Loop named "Loop" {
+        state A named "A";
+        state B named "B";
+        [*] -> A;
+        A -> B;
+        B -> A;
+    }
+    [*] -> Manual;
+}
+"""
+
+
+def test_an_automatic_cycle_keeps_the_old_behaviour_rather_than_being_refused():
+    """There is no settled position to offer the event from, and refusing costs more.
+
+    A refusal would turn a live search loop into a coverage gap, and an event *can*
+    be consumed inside the cycle -- this layer just cannot say which cycle to offer
+    it in.  So the depth falls back to the composite/leaf rule it replaced, which
+    is the documented boundary of the fix rather than an oversight.
+    """
+
+    from paper_stm_feedback_loop.assertions.predicate_api import PredicateAPI
+
+    environment = build_eval_environment(
+        model_text=CYCLING,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=60,
+        fbmcq_solver_timeout_ms=20_000,
+        fbmcq_max_bound=5,
+        fbmcq_process_wall_seconds=30.0,
+    )
+    entry = environment._raw_functions["occupancy_after"]
+    api = next(
+        candidate.__self__
+        for candidate in (entry if isinstance(entry, tuple) else (entry,))
+        if hasattr(candidate, "__self__")
+    )
+    assert isinstance(api, PredicateAPI)
+    # A leaf inside the cycle: nothing stabilises, so the leaf rule applies.
+    assert api._settle_cycles("Root.Loop.A") == 0
+    # The composite itself keeps the one entry-committing cycle it always had.
+    assert api._settle_cycles("Root.Loop") == 1
