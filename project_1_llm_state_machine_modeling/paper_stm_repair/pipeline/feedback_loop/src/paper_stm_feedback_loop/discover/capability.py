@@ -53,9 +53,9 @@ from .predicates import EXISTENCE_PREDICATES
 
 __all__ = [
     "EvidenceCapability",
-    "fbmcq_non_vacuity_findings",
+    "condition_non_vacuity_findings",
+    "CONDITION_BINDINGS",
     "vacuous_sibling_conjunction",
-    "bare_reachability_probe",
     "unresolved_model_references",
     "unresolved_reference_findings",
     "initialization_anchored_findings",
@@ -310,48 +310,68 @@ def vacuous_sibling_conjunction(query: str) -> tuple[str, str] | None:
     return None
 
 
-def bare_reachability_probe(query: str) -> bool:
-    """Detect a reachability query with no causal anchoring at all.
+#: Bindings whose value is an FCSTM boolean expression rather than a model path.
+#: These are where a vacuous condition can now hide; `fbmcq(...)` used to be the
+#: only carrier and is no longer callable.
+CONDITION_BINDINGS = ("condition", "release")
 
-    ``check reach <= N: active("X");`` with no ``init``, no event assumption and
-    no response trigger asks "is X reachable from anywhere", which is not
-    evidence for any requirement that names a trigger.  The converter prompt
-    already forbids it; this makes the rule enforceable instead of advisory.
 
-    :param query: the FBMCQ query text.
-    :return: ``True`` when the query is an unanchored reachability probe.
+def _condition_arguments(expression: str) -> tuple[str, ...]:
+    """Every `condition=`/`release=` string literal in the call, via the AST.
+
+    Parsed rather than regexed because the value is itself full of quotes and
+    operators -- `!(active("A") && active("B"))` -- and a regex over that is how
+    the previous gate ended up matching a call shape instead of a value.
     """
 
-    lowered = query.lower()
-    if "check reach" not in lowered:
-        return False
-    if "init " in lowered or "assume" in lowered or "event(" in lowered:
-        return False
-    return True
+    try:
+        tree = ast.parse(expression.strip(), mode="eval")
+    except SyntaxError:
+        return ()
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        for keyword in node.keywords:
+            if keyword.arg in CONDITION_BINDINGS and isinstance(
+                keyword.value, ast.Constant
+            ) and isinstance(keyword.value.value, str):
+                found.append(keyword.value.value)
+    return tuple(found)
 
 
-def fbmcq_non_vacuity_findings(expression: str) -> tuple[str, ...]:
-    """Return human-readable reasons one FBMCQ expression proves nothing.
+def condition_non_vacuity_findings(expression: str) -> tuple[str, ...]:
+    """Return human-readable reasons one condition expression proves nothing.
+
+    Reads the condition out of the predicate bindings that carry one.  The
+    previous version regexed for `fbmcq('...')`, and `fbmcq` was removed from the
+    assertion namespace when the vocabulary closed -- so it matched nothing on
+    every real script while still being run as an active gate and described in
+    the prompts as enforced.  The detection itself was fine; only the place it
+    looked was gone.  What that costs is a mandatory primary that cannot fail:
+    `invariant(scope="Sys.M", condition='!(active("Sys.M.A") && active("Sys.M.B"))')`
+    over two siblings of one sequential region is true whatever the model does,
+    so the requirement is reported satisfied and its expected issue is lost.
+
+    The companion check for unanchored reachability probes is gone rather than
+    ported: it looked for `check reach` with no `init`, which is FBMCQ DSL and not
+    something a condition binding can contain, and the shape it guarded against is
+    now unwritable -- `reaches` requires `source` and `target`, so there is no
+    anchorless form of the query to reject.  The vocabulary enforces it by
+    construction, which is the stronger place for it.
 
     :param expression: the assertion's terminal Python expression.
     :return: zero or more finding strings; empty means the query is admissible.
     """
 
     findings: list[str] = []
-    for query in re.findall(r"""fbmcq\(\s*(['"])(.*?)\1""", expression, re.S):
-        text = query[1]
+    for text in _condition_arguments(expression):
         siblings = vacuous_sibling_conjunction(text)
         if siblings is not None:
             findings.append(
                 f"vacuous query: {siblings[0]} and {siblings[1]} are siblings of one "
                 "sequential region and can never be active together, so this check "
                 "is true regardless of the defect"
-            )
-        if bare_reachability_probe(text):
-            findings.append(
-                "unanchored query: a bare `check reach` with no init state, event "
-                "assumption or response trigger is not causal evidence for a "
-                "triggered requirement"
             )
     return tuple(findings)
 

@@ -396,10 +396,11 @@ class PredicateAPI:
         pass on a model whose transition goes to the wrong state -- which is the
         opposite of what these predicates are for.
 
-        `fbmcq_non_vacuity_findings` was supposed to catch this statically and no
-        longer can: it regexes for an `fbmcq(...)` call, and that function is not
-        in the assertion namespace any more, so it matches nothing while still
-        reading as an active gate.
+        No static gate covers this one.  `condition_non_vacuity_findings` reads
+        `invariant`/`persists_until` conditions, and a root binding is not a
+        condition -- it is a path in `target`/`response`, valid on its face and
+        vacuous only because of what the model's root happens to contain.  So the
+        refusal has to happen here, at the call.
         """
 
         root = self._model_root()

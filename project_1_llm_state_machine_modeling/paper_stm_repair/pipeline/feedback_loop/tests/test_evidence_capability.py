@@ -465,29 +465,58 @@ REAL_QUERIES_THAT_PROVED_NOTHING = [
     f'!(active("{P0029}.HighwayMode.lane_change") && active("{P0029}.HighwayMode.cruise"));\').holds is True',
     f'fbmcq(\'init state("{P0029}.HighwayMode.enter_hwy"); check reach <= 3: '
     f'active("{P0029}.HighwayMode.lane_change") && active("{P0029}.HighwayMode.cruise");\').holds is False',
-    # GPT revisions 6, 8/11, 12: unanchored reachability probes.
-    f'fbmcq(\'check reach <= 5: active("{P0029}.HighwayMode.enter_hwy");\').holds is True',
-    f'fbmcq(\'check reach <= 5: active("{P0029}.HighwayMode.cruise");\').holds is True',
-    f'fbmcq(\'check reach <= 0: active("{P0029}.AutonomousMode");\').holds is True',
+]
+
+
+#: The same vacuous claims, in the shape they can be written today.  The originals
+#: were `fbmcq('...')` calls, which the closed vocabulary removed; the sibling
+#: conjunction they encoded now travels in `invariant(condition=)` and
+#: `persists_until(release=)`, so that is where the gate has to catch it.  The
+#: unanchored `check reach` probes are not ported: `reaches` requires `source` and
+#: `target`, so the anchorless shape no longer exists to reject.
+VACUOUS_CONDITIONS_IN_TODAYS_SHAPE = [
+    f'invariant(scope="{P0029}.HighwayMode", condition=\'!(active("{P0029}.HighwayMode.cruise") '
+    f'&& active("{P0029}.HighwayMode.lane_change"))\', bound=4) is True',
+    f'persists_until(scope="{P0029}.HighwayMode", condition=\'active("{P0029}.HighwayMode.cruise")\', '
+    f'release=\'active("{P0029}.HighwayMode.cruise") && active("{P0029}.HighwayMode.lane_change")\', '
+    f'bound=4) is True',
 ]
 
 
 def test_real_non_evidential_queries_are_rejected_statically() -> None:
-    from paper_stm_feedback_loop.discover.capability import fbmcq_non_vacuity_findings
+    """The gate looked for a call shape that no longer exists, so it caught nothing.
 
-    for query in REAL_QUERIES_THAT_PROVED_NOTHING:
-        assert fbmcq_non_vacuity_findings(query), query[:90]
+    `fbmcq(...)` left the assertion namespace when the vocabulary closed, and the
+    gate's regex was keyed on it -- it ran on every script and returned empty every
+    time, while the prompts went on describing the rule as enforced.  A vacuous
+    `invariant` is a mandatory primary that cannot fail, so its requirement is
+    reported satisfied and its expected issue is lost.
+    """
 
-
-def test_anchored_queries_and_non_fbmcq_evidence_are_left_alone() -> None:
-    from paper_stm_feedback_loop.discover.capability import fbmcq_non_vacuity_findings
-
-    anchored = (
-        f'fbmcq(\'init state("{P0029}.HighwayMode.enter_hwy"); check reach <= 3: '
-        f'active("{P0029}.HighwayMode.cruise");\').holds is True'
+    from paper_stm_feedback_loop.discover.capability import (
+        condition_non_vacuity_findings,
     )
-    assert fbmcq_non_vacuity_findings(anchored) == ()
-    assert fbmcq_non_vacuity_findings(CONFLICT_EXPR) == ()
+
+    for query in VACUOUS_CONDITIONS_IN_TODAYS_SHAPE:
+        assert condition_non_vacuity_findings(query), query[:90]
+
+
+def test_admissible_conditions_and_other_evidence_are_left_alone() -> None:
+    from paper_stm_feedback_loop.discover.capability import (
+        condition_non_vacuity_findings,
+    )
+
+    # A condition over one state says something the model can violate.
+    admissible = (
+        f'invariant(scope="{P0029}.HighwayMode", '
+        f'condition=\'!active("{P0029}.HighwayMode.lane_change")\', bound=4) is True'
+    )
+    assert condition_non_vacuity_findings(admissible) == ()
+    assert condition_non_vacuity_findings(CONFLICT_EXPR) == ()
+    # A predicate with no condition binding is not this gate's business.
+    assert condition_non_vacuity_findings(
+        f'containment(parent="{P0029}.HighwayMode", child="{P0029}.HighwayMode.cruise") is True'
+    ) == ()
 
 
 def test_published_artifact_carries_excluded_primary_findings() -> None:

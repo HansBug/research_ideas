@@ -38,7 +38,7 @@ from .capability import (
     initialization_anchored_findings,
     redundant_proposal_findings,
     termination_proposal_findings,
-    fbmcq_non_vacuity_findings,
+    condition_non_vacuity_findings,
     mandatory_waiver,
     placeholder_bindings,
     source_omitting_response_calls,
@@ -1822,7 +1822,7 @@ def convert_assertions(
             vacuity_findings = tuple(
                 f"{assertion.assertion_id}: {finding}"
                 for assertion in primary_assertions
-                for finding in fbmcq_non_vacuity_findings(assertion.expression)
+                for finding in condition_non_vacuity_findings(assertion.expression)
             )
             phase = str(
                 (requirement.source_context or {}).get("behavior_phase", "")
