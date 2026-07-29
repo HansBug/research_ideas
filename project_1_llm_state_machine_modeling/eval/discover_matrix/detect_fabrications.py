@@ -1,36 +1,33 @@
-"""Identify fabricated findings by re-deriving them, not by matching an id list.
+"""Re-derive every published issue against the current predicates.
 
-Why the id list was wrong
--------------------------
-`known_false_positives.json` keys on `(cell, requirement_id)`.  Requirement ids
-come from the splitter, so the same defect class carries different ids in
-different cells: matrix-v16's `initial_target` fabrication appears as REQ-006 and
-REQ-014 in 0029-claude and as REQ-007 and REQ-019 in 0029-gpt.  Scored by id, the
-0029-gpt pair reads as "unadjudicated" and the run looks cleaner than it is --
-four fabrications counted as two.  Ids also change between runs on one cell, so
-the list could not verify a fix even where it did match.
+Why this replaced a per-class detector
+--------------------------------------
+The first version had one branch per known defect class -- an `initial_target`
+check, a reachability check -- and each branch re-implemented enough of the
+predicate to second-guess it.  Three problems followed.  The branches could only
+find defects already known, so a new class would score as clean.  They crashed on
+inputs the real predicates handle (a `states()` call with no recorded trace entry
+took `function_call_trace[0]` out of range).  And they duplicated logic that the
+predicate layer owns, so a fix there left the detector stale.
 
-So each class is detected from the evidence instead, by calling the predicate
-again on the pair's real model:
+What actually decides whether a published issue is fabricated is not which class
+it belongs to.  It is two questions that can be asked of any issue:
 
-`initial-target-omits-deciding-entry-from-refs`
-    A False `initial_target(composite=X, child=Y)` is a fabrication when X's
-    unconditional default entry targets some Z that the pair's
-    `attribution_exclusions` marks converter-owned.  Confirmed by calling
-    `initial_target(X, Z)` and getting True: the claim is then only about which
-    state the converter's synthetic entry points at.  Reported as fixed when the
-    failing call's refs name Z, because attribution can filter it from there.
+  1. Does its primary assertion still come back False?  A True says the model
+     satisfies the obligation, so the issue was never a defect.  An `unsupported`
+     says the predicate now refuses to answer -- which is what the horizon and
+     search-budget guards do to the answers they used to fabricate.
 
-`eventless-completion-swallows-event`
-    A False `occupancy_after`/`reaches` is a fabrication when raising
-    `within_cycles` never changes the answer while the same call from a settled
-    position answers True -- an event that cannot be observed anywhere an
-    unconditional edge is outgoing.  Both halves are required: a horizon that is
-    merely too small is a producer error, not a predicate defect, and it is
-    distinguished by the answer flipping at some larger bound.
+  2. Does the evidence that False rests on touch a converter-owned element?  If
+     the pair's `attribution_exclusions` match the call's refs, the finding is
+     representation debt by policy and must not be published as a confirmed
+     defect.
 
-Building an eval environment per pair costs a few seconds, which is why this is
-an audit-time tool and not part of a run.
+Both are asked by calling the predicate, so there is nothing to keep in sync: the
+detector reports what the current layer says, and its verdict moves when the layer
+moves.  That is also its limitation, stated plainly -- it cannot tell a fabricated
+issue from one that a *later* bug made unanswerable.  What it establishes is that
+the run's published issues are the ones the current predicates still stand behind.
 
 Usage: detect_fabrications.py <audit_dir>
 """
@@ -53,11 +50,13 @@ REPORT = (
 if str(FEEDBACK_LOOP / "src") not in sys.path:
     sys.path.insert(0, str(FEEDBACK_LOOP / "src"))
 
-#: `predicate(a="x", b="y", n=1)` -> name plus the keyword bindings.
+#: `predicate(a="x", b=1)` -> name plus keyword bindings.  Kept because the audit
+#: bundle stores expressions as text, and the parse is what decides whether a call
+#: gets re-derived at all -- a miss here is a silent pass, so it is unit-tested.
 _CALL = re.compile(r"([a-z_]+)\s*\((.*)\)\s*is\s+(True|False)\s*$", re.S)
 _KWARG = re.compile(r"(\w+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|(\d+))")
-#: An unconditional default entry inside a composite: `[*] -> Name;` with no
-#: guard and no trigger.  Anything after `:` disqualifies it.
+#: An unconditional default entry inside a composite: `[*] -> Name;`, no guard and
+#: no trigger.  Anything after `:` disqualifies it.
 _DEFAULT_ENTRY = re.compile(r"^\s*\[\*\]\s*->\s*(\w+)\s*;\s*$")
 
 
@@ -66,50 +65,24 @@ def _parse_call(expression: str) -> tuple[str, dict[str, str]] | None:
     if not match:
         return None
     bindings = {
-        key: (dq or sq or num)
-        for key, dq, sq, num in _KWARG.findall(match.group(2))
+        key: (dq or sq or num) for key, dq, sq, num in _KWARG.findall(match.group(2))
     }
     return match.group(1), bindings
 
 
-def _environment(case: str):
-    from paper_stm_feedback_loop.assertions import build_eval_environment
-
-    model = (REPORT / f"fcstm/llms_emp_feedback_final_{case}.fcstm").read_text()
-    trace = json.loads(
-        (REPORT / f"source_traces/llms_emp_feedback_final_{case}.json").read_text()
-    )
-    env = build_eval_environment(
-        model_text=model,
-        source_mappings=trace.get("mappings") or [],
-        source_exclusions=trace.get("attribution_exclusions") or [],
-        timeout_seconds=120,
-        fbmcq_solver_timeout_ms=20_000,
-        fbmcq_max_bound=6,
-        fbmcq_process_wall_seconds=60.0,
-    )
-    return env, model, set(trace.get("attribution_exclusions") or [])
-
-
-def _call(env, expression: str):
-    result = env.eval_assert(expression, "fabrication detector")
-    refs = tuple(result.function_call_trace[0].model_refs or ())
-    return result.value, refs
-
-
 def _default_entry_of(model: str, composite: str) -> str | None:
-    """The composite's unconditional `[*] -> Z`, as a fully qualified path.
+    """The composite's unconditional `[*] -> Z`, fully qualified, or None.
 
     Read from the text because the question is syntactic -- which entry carries no
     guard -- and the structure facade reports entries without that distinction.
     Scoped by brace depth so a sibling composite's entry is not picked up.
+    Reported for context on a representation-debt verdict, not used to decide one.
     """
 
     leaf = composite.rsplit(".", 1)[-1]
-    lines = model.splitlines()
     depth = 0
     inside_at: int | None = None
-    for line in lines:
+    for line in model.splitlines():
         stripped = line.strip()
         if inside_at is not None:
             if depth == inside_at:
@@ -124,148 +97,113 @@ def _default_entry_of(model: str, composite: str) -> str | None:
     return None
 
 
-def _check_initial_target(env, model, exclusions, bindings):
-    composite, child = bindings.get("composite"), bindings.get("child")
-    if not composite or not child:
-        return None
-    value, refs = _call(env, f'initial_target(composite="{composite}", child="{child}") is True')
-    if value is not False:
-        return None
-    entry = _default_entry_of(model, composite)
-    if not entry or entry == child:
-        return None
-    if f"compiler:state:{entry}" not in exclusions:
-        return None
-    entry_value, _ = _call(env, f'initial_target(composite="{composite}", child="{entry}") is True')
-    if entry_value is not True:
-        return None
-    if any(entry in ref for ref in refs):
-        # The predicate now declares what decided it, so attribution can filter
-        # this without help.  Not a fabrication any more.
-        return None
-    return {
-        "defect_class": "initial-target-omits-deciding-entry-from-refs",
-        "evidence": (
-            f"{composite} 的无条件默认入口指向 {entry}（在 attribution_exclusions 中），"
-            f"initial_target(composite, {entry.rsplit('.',1)[-1]}) 为 True；"
-            f"而失败调用的 refs 未申报它，归因无 exclusion 可匹配"
-        ),
-    }
+def _environment(case: str):
+    from paper_stm_feedback_loop.assertions import build_eval_environment
+
+    trace = json.loads(
+        (REPORT / f"source_traces/llms_emp_feedback_final_{case}.json").read_text()
+    )
+    exclusions = list(trace.get("attribution_exclusions") or [])
+    env = build_eval_environment(
+        model_text=(REPORT / f"fcstm/llms_emp_feedback_final_{case}.fcstm").read_text(),
+        source_mappings=trace.get("mappings") or [],
+        source_exclusions=exclusions,
+        timeout_seconds=120,
+        fbmcq_solver_timeout_ms=20_000,
+        fbmcq_max_bound=6,
+        fbmcq_process_wall_seconds=60.0,
+    )
+    model = (REPORT / f"fcstm/llms_emp_feedback_final_{case}.fcstm").read_text()
+    return env, model, exclusions
 
 
-def _check_reachability(env, predicate, bindings):
-    source, target = bindings.get("source"), bindings.get("target")
-    trigger = bindings.get("trigger") or bindings.get("event")
-    if not (source and target and trigger):
-        return None
-    def ask(cycles):
-        expr = (
-            f'{predicate}(source="{source}", trigger="{trigger}", '
-            f'target="{target}", within_cycles={cycles}) is True'
-        )
-        return _call(env, expr)[0]
-    if ask(1) is not False:
-        return None
-    # A horizon shortfall flips somewhere; this defect never does.
-    if any(ask(n) is True for n in (2, 3, 5, 9)):
-        return None
-    # The other half: the same obligation holds from a settled position.  Walk the
-    # eventless chain out of `source` and retry from its end.
-    settled = _settled_from(env, source, trigger, target)
-    if settled is None:
-        return None
-    return {
-        "defect_class": "eventless-completion-swallows-event",
-        "evidence": (
-            f"{predicate} 在 within_cycles 1/2/3/5/9 全为 False，不是视野不足；"
-            f"而同一义务自 {settled} 起注入同一事件为 True，"
-            f"说明事件在无条件完成边占用的周期上无法被观测"
-        ),
-    }
+def _rederive(env, expression: str):
+    """`(verdict, refs)` for one assertion expression, re-run now.
 
-
-def _settled_from(env, source, trigger, target) -> str | None:
-    """A sibling position where the same call answers True, if one exists.
-
-    Searched among the source's siblings rather than derived from the model text:
-    the point is only to establish that the obligation holds somewhere the
-    eventless chain has already run out, and a sibling that answers True is that
-    witness.  Returns None when none does, in which case the False may be real
-    and the finding is left for a human.
+    `verdict` is `"false"`, `"true"`, `"unsupported"` or `"error"`; refs are the
+    model elements the call declared it rested on, which is what an exclusion is
+    matched against.
     """
 
-    parent = source.rsplit(".", 1)[0]
-    from paper_stm_feedback_loop.assertions.exceptions import UnsupportedEvidence
-
-    try:
-        rows = env.eval_assert(
-            f'len(states(parent="{parent}", recursive=False)) >= 0', "enumerate"
-        )
-    except Exception:
-        return None
-    del rows  # only used to prove the facade answers; paths come from refs below
-    for candidate in _siblings(env, parent):
-        if candidate == source:
-            continue
-        expr = (
-            f'occupancy_after(source="{candidate}", trigger="{trigger}", '
-            f'target="{target}", within_cycles=1) is True'
-        )
-        try:
-            if _call(env, expr)[0] is True:
-                return candidate
-        except UnsupportedEvidence:
-            continue
-        except Exception:
-            continue
-    return None
-
-
-def _siblings(env, parent: str) -> list[str]:
-    try:
-        result = env.eval_assert(
-            f'[row.path for row in states(parent="{parent}", recursive=False)] == []',
-            "enumerate",
-        )
-    except Exception:
-        return []
-    refs = result.function_call_trace[0].model_refs or ()
-    return [ref for ref in refs if ref.startswith(parent + ".")]
+    result = env.eval_assert(expression, "fabrication detector")
+    trace = result.function_call_trace or ()
+    refs: tuple[str, ...] = ()
+    if trace:
+        refs = tuple(trace[0].model_refs or ())
+    if result.value is True:
+        return "true", refs
+    if result.value is False:
+        return "false", refs
+    if result.result == "unsupported":
+        return "unsupported", refs
+    return "error", refs
 
 
 def scan(audit_dir: pathlib.Path) -> list[dict]:
+    from paper_stm_feedback_loop.common.refs import reference_matches
+
     out: list[dict] = []
     for path in sorted(audit_dir.glob("*-audit.json")):
         record = json.loads(path.read_text())
         if record.get("terminal") != "completed":
             continue
         cell = path.name.removesuffix("-audit.json")
-        case = record["pair"]
         artifact = record.get("terminal_artifact") or {}
         issues = artifact.get("issues") or []
         if not issues:
             continue
-        env, model, exclusions = _environment(case)
+        env, model, exclusions = _environment(record["pair"])
         by_id = {a.get("assertion_id"): a for a in record.get("assertions") or []}
         for issue in issues:
             for assertion_id in issue.get("assertion_ids") or []:
-                expression = str((by_id.get(assertion_id) or {}).get("expression") or "")
-                parsed = _parse_call(expression)
-                if not parsed:
-                    continue
-                predicate, bindings = parsed
-                verdict = None
-                if predicate == "initial_target":
-                    verdict = _check_initial_target(env, model, exclusions, bindings)
-                elif predicate in {"occupancy_after", "reaches"}:
-                    verdict = _check_reachability(env, predicate, bindings)
-                if verdict:
+                assertion = by_id.get(assertion_id) or {}
+                expression = str(assertion.get("expression") or "")
+                if not _parse_call(expression):
                     out.append({
                         "cell": cell,
                         "requirement_id": issue.get("requirement_id"),
                         "assertion_id": assertion_id,
                         "title": issue.get("title"),
-                        **verdict,
+                        "defect_class": "unparseable-assertion",
+                        "evidence": (
+                            "无法解析该断言表达式，因此无法重算；这条必须人工核对，"
+                            f"不能计入干净结果：{expression[:120]}"
+                        ),
+                    })
+                    continue
+                verdict, refs = _rederive(env, expression)
+                if verdict != "false":
+                    out.append({
+                        "cell": cell,
+                        "requirement_id": issue.get("requirement_id"),
+                        "assertion_id": assertion_id,
+                        "title": issue.get("title"),
+                        "defect_class": f"published-issue-no-longer-false:{verdict}",
+                        "evidence": (
+                            f"该 issue 的主断言现在重算为 {verdict}，"
+                            "说明它不是当前谓词层认可的缺陷"
+                        ),
+                    })
+                    continue
+                touched = [e for e in exclusions if reference_matches(e, refs)]
+                if touched:
+                    composite = (
+                        _parse_call(expression)[1].get("composite")
+                        or _parse_call(expression)[1].get("source")
+                        or ""
+                    )
+                    entry = _default_entry_of(model, composite) if composite else None
+                    out.append({
+                        "cell": cell,
+                        "requirement_id": issue.get("requirement_id"),
+                        "assertion_id": assertion_id,
+                        "title": issue.get("title"),
+                        "defect_class": "false-rests-on-converter-owned-element",
+                        "evidence": (
+                            f"该 False 依赖的元素命中归因排除 {touched}"
+                            + (f"（该组合状态的无条件默认入口为 {entry}）" if entry else "")
+                            + "，按策略属表征债，不应作为 confirmed issue 发布"
+                        ),
                     })
     return out
 
@@ -275,11 +213,13 @@ def main() -> int:
         print(__doc__)
         return 2
     found = scan(pathlib.Path(sys.argv[1]))
-    print(f"按证据判定的捏造发现 {len(found)} 条:\n")
+    print(f"按当前谓词重算后站不住的已发布 issue：{len(found)} 条\n")
     for row in found:
         print(f"  {row['cell']:22s} {row['requirement_id']:10s} [{row['defect_class']}]")
         print(f"    {row['title']}")
         print(f"    证据: {row['evidence']}\n")
+    if not found:
+        print("  （无）每条已发布 issue 的主断言仍重算为 False，且其证据未触及归因排除元素。")
     return 1 if found else 0
 
 
