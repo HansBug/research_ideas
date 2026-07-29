@@ -1,0 +1,86 @@
+{
+ "case": "0021",
+ "group": "NL02",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 Brake_Caliper_Closed_State 无任何出边）",
+   "gen": "ClampingState --> BrakingState : Clamping Released",
+   "reason": "NL 三句话完全没有描述钳夹之后如何解除、也没有任何松钳事件；参考模型里钳夹态是吸收状态。作者凭空新增了 Clamping Released 事件与一条回到 BrakingState 的边，属无 NL 依据的过度指定。因为 NL 未对钳夹态给出 remain/only/never 显式义务，按台帐 UA 口径不足以升级为 problem，故记 extra。另需记录一个领域语义疑点：钳夹 '已释放' 后回到 BrakingState（制动态）而不是某个非制动状态，方向上是可疑的；这属于安全相关行为的凭空发明，在制动系统语境下是过度指定里后果最重的一类。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0021.ClampingState', event='llms_emp_feedback_final_0021.Clamping_Released')  # 谓词与归因链都成立（ClampingState 与 tr_0007 均可源归因），但缺 NL 显式禁止依据，写成 E1 等于引入闭世界假设",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Brake_Caliper_Relaxed_State / Running_State --> Brake_Caliper_Relaxed_State",
+   "gen": "（作者模型没有该状态；最接近的是把 '松开' 表达成事件 Clamping Released）",
+   "reason": "论文给 0021 记的 semantic 幻觉 'missing state and transition'（resolved = 0.0）指的就是这个只存在于参考、NL 从未提及的松钳状态。因此这不是相对 NL 的缺失，而是参考模型自身越出 NL；按 REVIEW_SPEC 对参考问题的处理记 uncertain。有意思的是 0021 其实表达了 '松开' 这个概念，只不过表达成事件而非状态——即使按参考符合度计分，这也更像 '状态/事件建模粒度不同' 而非 '语义缺失'。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签完成迁移）",
+   "gen": "BrakingState --> ClampingState : Entering Clamping State",
+   "reason": "与 0001/0011 同一判断：标签自指重述目标状态名，NL 第 3 句未给触发器，同组存在无争议散文标签实例，因此按描述文本读，作者意图即完成迁移，与参考一致。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Initial_State --> Braking_State : Signal_sent_successfully / Initial_State --> Running_State : Signal_sending_failed",
+   "gen": "InitialState --> BrakingState : Brake Signal Received / InitialState --> OperationalState : Signal Transmission Fails",
+   "reason": "字面读法与互补命名的差异，两者都说得通；作者侧丢失的是两支互斥的表达，但 NL 也未明说互斥。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> Initial_State / Braking_State --> Initial_State : Send_signal_feedback / Running_State --> Initial_State : Send_signal_feedback",
+   "gen": "[*] --> InitialState / BrakingState --> InitialState : Signal Feedback Sent / OperationalState --> InitialState : Signal Feedback Sent",
+   "reason": "初始边与 NL 第 2 句末句 'Once the signal feedback is sent, it returns to the initial state' 的两条回边都与参考一致；NL 该句未指明从哪个状态返回，作者与参考都给了两条，处理方式相同。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 1,
+ "vs_paper": "论文记 format 栏 'syntax error: stm Train Braking System'（已 resolved）与 semantic 栏 '1. missing state and transition'（semantic_resolved = 0.0），f1 从 0.9167 升到 0.9231。论文那条 semantic 幻觉指向的是参考独有、NL 无依据的松钳状态，我按规范记为参考侧 uncertain 而非模型 problem。反过来，我判出的 1 个 extra（凭空新增 Clamping Released 回边）论文完全没记录——这正好是 '论文度量参考符合度而非 NL 忠实度' 的对称后果：模型少了参考的东西会被罚，多了 NL 没有的东西不会被罚。",
+ "vs_ledger": "台帐 0021 状态 candidate_only、expected_issue_count = 0，唯一观察是 E2a/eventless_label_ambiguity（与其余五个 case 完全相同的文本）。我判的 1 个 extra 台帐未记，理由成立：NL02 只有三句话、对钳夹态之后毫无约束，写成 E1 需要闭世界假设。但要指出台帐记录的准确性问题：E2a 描述的是 Braking→Clamping 那条边的标签歧义，而这与 0021 真正的差异（新增出边、缺参考独有状态）无关；因此对 0021 而言，E1 = 0 的真实原因是 NL 欠定，不是标签歧义。",
+ "notes": "0021 对 NL 三句话本身是忠实的，唯一超出部分是钳夹态的解除边。它同时提供了一个有用的观察：论文所谓 'missing state' 在这里其实是被作者模型以事件形式表达了，说明用参考模型做元素级比对时，状态/事件建模粒度差异会被误判成语义缺失。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0021",
+  "group": "NL02",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 0,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": "syntax error: stm Train Braking System",
+   "grammar": null,
+   "semantic": "1. missing state and transition",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.9166666667,
+   "f1_phase2": 0.9230769231
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

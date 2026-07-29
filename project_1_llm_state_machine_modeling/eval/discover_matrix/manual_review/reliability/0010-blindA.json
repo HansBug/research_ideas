@@ -1,0 +1,71 @@
+{
+  "case": "0010",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "[*] --> human_mode : power_on",
+      "gen": "[*] --> HumanDriving\\nHumanDriving --> Autonomous : Power On",
+      "reason": "NL 第 3 句「when power on, the system turn into human driving mode」把 power on 的效果规定为进入人工驾驶模式。gen 的根初始边 `[*] --> HumanDriving` 无触发（这本身是合规的），但 Power On 被挂到了 `HumanDriving --> Autonomous` 上，即 power on 变成了「从人工驾驶切到自动驾驶」的触发；而 NL 第 4 句已规定人工→自动的条件是 front_distance > 10。因此 Power On 的归属与 NL 第 3、4 句同时矛盾。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "autonomous_mode --> human_mode : human_steering_cmd（autonomous_mode 作为 sub machine state 引用，子结构在另一图中定义）",
+      "gen": "Autonomous : <<submachine>>\\nAutonomous --> AutonomousIdle : Front Distance <= 10\\nAutonomousIdle --> AutonomousActive : Front Distance > 10",
+      "reason": "NL 第 2 句显式点名「The autonomous mode has sub-states and is represented by a sub machine state」。gen 只把 <<submachine>> 写成状态体文字（FCSTM 投影为 `[PlantUML body] <<submachine>>`），AutonomousIdle / AutonomousActive 是与 Autonomous 平级的顶层状态而非其子态（投影中三者同层声明），因此 Autonomous 仍是简单态、没有默认子态，NL 点名的层次结构在模型中不存在。这是 project 关注的层次结构缺失，不是命名差异。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "human_mode --> [*] : power_off\\nautonomous_mode --> [*] : power_off",
+      "gen": "HumanDriving --> AutonomousFinal : Power Off\\nAutonomousFinal : Auto Final State",
+      "reason": "NL 第 5 句「when power off, it will transit to final state」要求终态。gen 用普通命名状态 AutonomousFinal 代替 final 伪状态（FCSTM 投影为 `state AutonomousFinal named \"AutonomousFinal\"`，非 [*]），且该状态没有任何出边 —— 属良构性中的死端/吸收态，模型永远无法真正终止。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "human_mode --> autonomous_mode : in (auto_final)",
+      "gen": "AutonomousActive --> HumanDriving : Human Steering Cmd\\nAutonomousActive --> HumanDriving : Brake Pressed\\n（无 in (auto_final) 相关迁移或守卫）",
+      "reason": "NL 第 4 句（第二个编号 4）点名三个返回人工驾驶的条件：「human steering cmd, brake pressed, in (auto final)」。gen 只实现了前两个，第三个 in (auto_final) 在模型中没有任何对应的事件、守卫或迁移；AutonomousFinal 这个名字被挪用为 power off 的落点，与 in(auto_final) 语义无关。NL 点名的元素缺失。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "（参考中 autonomous_mode 有 power_off、human_steering_cmd 两条出边，不会被锁死）",
+      "gen": "HumanDriving --> Autonomous : Front Distance > 10\\nAutonomous --> AutonomousIdle : Front Distance <= 10",
+      "reason": "良构性：Autonomous 的唯一出边守卫是 Front Distance <= 10，而按 NL 第 4 句进入 Autonomous 的条件是 front_distance > 10。只要前车距离保持大于 10，Autonomous 就没有任何可用出边（无 power off、无 human steering cmd、无 brake pressed），构成可达的吸收构型。该 <= 10 守卫既非 NL 内容也非参考内容，且与 NL 第 4 句给出的进入条件方向相反。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "autonomous_mode --> [*] : power_off",
+      "gen": "（Power Off 仅有 HumanDriving --> AutonomousFinal 一条）",
+      "reason": "NL 第 5 句「when power off, it will transit to final state」未枚举可断电的源状态。gen 只在 HumanDriving 上给了断电边；由于 AutonomousActive 可经 Human Steering Cmd / Brake Pressed 回到 HumanDriving，终止路径仍可达（Autonomous 本身被锁死的问题已在上一条单独记账，不在此处重复），属 NL 欠定下的可接受收窄，参考侧比 NL 更完整。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "（参考中没有任何 front_distance 触发）",
+      "gen": "HumanDriving --> Autonomous : Front Distance > 10",
+      "reason": "NL 第 4 句「when front_distance > 10, auto transport to autonomous state」被 gen 正确实现；参考侧完全没有 front_distance 这一 NL 点名的条件，此处 gen 比参考更贴合 NL。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "human_mode / autonomous_mode",
+      "gen": "HumanDriving / Autonomous",
+      "reason": "NL 第 1 句「The human driving mode is represented by a simple state」被满足：HumanDriving 是简单态。human_mode 与 HumanDriving、autonomous_mode 与 Autonomous 是同一状态的不同命名，按口径 1 不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "autonomous_mode --> human_mode : human_steering_cmd\\nhuman_mode --> autonomous_mode : human_steering_cmd\\nhuman_mode --> autonomous_mode : brake_pressed\\nhuman_mode --> autonomous_mode : in (auto_final)",
+      "gen": "AutonomousActive --> HumanDriving : Human Steering Cmd\\nAutonomousActive --> HumanDriving : Brake Pressed",
+      "reason": "参考侧存疑：NL 第 4 句（第二个 4）说的是「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」，即方向应为自动→人工。参考把 brake_pressed 与 in (auto_final) 写成了 human_mode --> autonomous_mode（方向反了），并且同一触发 human_steering_cmd 在两个方向上各有一条边（human_mode --> autonomous_mode 与 autonomous_mode --> human_mode 并存），自身不一致；参考还漏掉了 NL 第 4 句的 front_distance > 10。因此 gen 与参考在这三条边上的不一致不能据参考判为 problem，我对 brake_pressed / in(auto_final) 的判定只依据 NL 原文（见上文 diff 4），方向问题本身证据落在参考侧。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 5,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。同一成因重复出现则合并为一条并在 reason 中列出全部位置；成因不同即使后果相邻则拆为两条（本 case 中「子机层次被拉平」与「Autonomous 因反向守卫被锁死」是两个独立成因，分别立条）；纯命名差异归并为一条 correct。\n\n逐句核对 NL：\nNL1「The human driving mode is represented by a simple state」——满足，HumanDriving 为简单态。\nNL2「The autonomous mode has sub-states and is represented by a sub machine state」——未满足：<<submachine>> 只是文字标注，AutonomousIdle/AutonomousActive 是顶层兄弟态而非子态（FCSTM 投影确认同层），Autonomous 无默认子态。\nNL3「when power on, the system turn into human driving mode」——未满足：Power On 被挂到 HumanDriving --> Autonomous 上，而不是进入人工驾驶模式。\nNL4a「when front_distance > 10, auto transport to autonomous state」——满足：HumanDriving --> Autonomous : Front Distance > 10。\nNL4b「transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)」——部分满足：human steering cmd、brake pressed 有（AutonomousActive --> HumanDriving），in (auto_final) 完全缺失。\nNL5「when power off, it will transit to final state」——未满足：落点 AutonomousFinal 是普通命名状态且是死端，不是 final 伪状态；且断电边只从 HumanDriving 出发。\n\n参考模型自身问题（本 case 参考侧存疑较重）：\n(1) `[*] --> human_mode : power_on` 是带触发的初始边，按良构性口径参考侧本身不合规（gen 的初始边反而无触发）。\n(2) 参考把 brake_pressed、in (auto_final) 的方向写成 human_mode --> autonomous_mode，与 NL4b「transit to human driving mode when...」方向相反。\n(3) 参考同时存在 human_mode --> autonomous_mode : human_steering_cmd 与 autonomous_mode --> human_mode : human_steering_cmd，同一触发双向并存，自身不一致。\n(4) 参考完全没有 NL4a 点名的 front_distance > 10。\n因此本 case 我对返回人工驾驶三条件的判定完全以 NL 原文为准，未以参考方向为基准。"
+}

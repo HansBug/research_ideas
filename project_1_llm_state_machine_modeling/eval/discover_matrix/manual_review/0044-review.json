@@ -1,0 +1,90 @@
+{
+ "case": "0044",
+ "group": "NL01",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state InMotion{ [*]-->Accelerating ... }",
+   "gen": "state InMotion { state Accelerating : entry/Accelerate; state Cruising; state Approaching : do/Send; ...（无 [*] --> Accelerating）}",
+   "reason": "NL 第 5 句 'The system begins in the Accelerating substate' 与第 8 句 'The system enters the Accelerating substate when motion begins' 共同要求进入 InMotion 后默认落到 Accelerating。作者正确建了复合状态与三个子状态，却漏了内部初始伪状态，导致 InMotion 被进入后活动子状态未定义。FCSTM 确认投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial，并额外补了两条 UnspecifiedInitial -> [*] 路由边。这是丢失 NL 明确要求的初始化语义。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0044.InMotion', child='llms_emp_feedback_final_0044.InMotion.Accelerating')  # 台帐已实测 false/contradicts",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考模型全模型无终态，Stopping / EmergencyStopping 均为吸收状态）",
+   "gen": "Stopping --> [*] / EmergencyStopping --> [*]",
+   "reason": "NL 全文没有任何完成、断电或收尾语义，参考模型也没有终态。作者给两个吸收状态各补一条无触发完成边。这是无 NL 依据的新增元素，属过度指定；因为 NL 未对这两个状态给出 remain/never 义务，不升级为 problem。两条边出自同一个建模决策（把两个吸收状态改造成可完成），合并记为一条 extra。",
+   "assertable": "not terminates(scope='llms_emp_feedback_final_0044.Stopping')  # 写得出（EmergencyStopping 同），但缺 NL 显式依据，不宜作为 E1",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Approaching: Entry/Send",
+   "gen": "state Approaching : do/Send",
+   "reason": "NL 第 9 句未指定相位且含 'continues to approach' 的持续语义，作者选 do、参考选 entry，两者都读得通。FCSTM 保留为 during abstract Send，动作没有丢失。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected",
+   "gen": "state EmergencyStopping : do/Emergency Stop, send \"Obstacle Detected\"",
+   "reason": "NL 第 3 句要求的两个动作都在，且带 do 相位前缀，FCSTM 保留为 during abstract EmergencyStopSendObstacleDetected。差异只有两点：相位选 do 而非 entry（NL 未指定相位），以及两个动作被合并成一个标识符（投影层的拼接结果，非语义丢失）。判 similar。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*]-->DoorsClosing / DoorsClosing --> InMotion: Closed/SendDeparted / InMotion --> Stopping / InMotion --> EmergencyStopping / Accelerating --> Cruising / Accelerating --> Approaching / Cruising --> Approaching / Accelerating: Entry/Accelerate",
+   "gen": "同结构、同触发器，Accelerating 带 entry/Accelerate",
+   "reason": "顶层初始边、四条顶层迁移、InMotion 复合状态与三个子状态归属、三条内部迁移、以及 NL 第 8 句点名的 entry/Accelerate 全部与参考一致（FCSTM 保留 enter abstract Accelerate）。覆盖 NL 第 1、2、4、6、7、8 句。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 1,
+ "vs_paper": "论文只记 format 栏 'syntax error: stm TrainSystem'（已 resolved），grammar / semantic 栏均为 None，f1_phase1 = f1_phase2 = 0.9333。我判的 1 个 problem（InMotion 内部初始伪状态缺失）与 1 个 extra（两条终态边）论文都没记录。这个漏项类型与 0014 的顶层初始缺失同源，说明论文的语义检查对初始伪状态这一类元素系统性不敏感。",
+ "vs_ledger": "台帐 0044 状态 mixed，1 条 E1：EXP-0044-IT-001（inmotion_initial_missing，eval_assert = initial_child('...InMotion') == '...InMotion.Accelerating'，false/contradicts），正对应我唯一的 problem。台帐另有 E2c/state_action_adapter_missing 观察，但 0044 的动作实际都保留在 FCSTM 里，此观察对本 pair 不构成漏项。我的 extra（终态边）台帐未记，理由成立：NL 无完成语义要求，写成 E1 会引入闭世界假设。",
+ "notes": "0044 与 0054 是本组质量最高的两个模型，动作相位、层次结构与迁移关系基本正确，唯一实质缺陷是 InMotion 缺内部初始边。这条缺陷正好是台帐能稳定命中的类型（structure 家族、不依赖 action 门面），因此 0044 是三份记录中 '台帐命中而论文漏记' 的干净样本。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0044",
+  "group": "NL01",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 1,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 2,
+  "paper": {
+   "format": "syntax error: stm TrainSystem",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9333333333,
+   "f1_phase2": 0.9333333333
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0044-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 1
+ }
+}

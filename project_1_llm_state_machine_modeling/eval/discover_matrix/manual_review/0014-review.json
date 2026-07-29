@@ -1,0 +1,108 @@
+{
+ "case": "0014",
+ "group": "NL01",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "[*]-->DoorsClosing",
+   "gen": "state DoorsClosing（全模型没有任何 [*] --> ... 顶层初始边）",
+   "reason": "NL 第 1 句明确 'The system starts in the DoorsClosing state'，参考用 [*]-->DoorsClosing 承载。作者模型顶层完全没有初始伪状态，冷启动时初始配置未定义；FCSTM 投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial 即为此。这是丢失 NL 明确要求的初始化语义，属真实问题。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0014', child='llms_emp_feedback_final_0014.DoorsClosing')  # 当前 False（落在 UnspecifiedInitial）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Accelerating: Entry/Accelerate（挂在状态上的 entry 动作）",
+   "gen": "[*] --> Accelerating : Entry/Accelerate（挂在 InMotion 内部初始边上的标签）",
+   "reason": "NL 第 8 句是全语料中少数逐字点名动作相位的句子（'marked by the \"Entry/Accelerate\" action'），要求 Accelerating 有一个 entry 动作。作者把整串文本搬到了初始迁移的标签位置，PlantUML trigger/effect 约定下它被读成触发器 Entry 加效果 Accelerate；FCSTM 确认降级为 event Entry_Accelerate named 'Entry/Accelerate' 并写成 [*] -> Accelerating : /Entry_Accelerate。后果有两个：Accelerating 不再声明任何 entry 动作，且初始伪状态迁移被挂上了本不该存在的触发器（初始迁移应无触发）。这属于作者侧问题而非表示层降级——降级的直接原因就在作者文本里。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0014.InMotion.Accelerating', phase='entry')  # 当前 False；不依赖 action 门面的替代写法：not event_declared(event='llms_emp_feedback_final_0014.Entry_Accelerate')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, ...（意图是 EmergencyStopping 的 entry 动作）",
+   "gen": "state EmergencyStopping {\\n  Entry: Emergency Stop\\n  EmergencyStopping: Obstacle Detected\\n}",
+   "reason": "'Entry: Emergency Stop' 在 PlantUML 里不是动作语法，而是给一个名为 Entry 的状态加描述，于是 NL 第 3 句要求的 'Emergency Stop' 动作被降级成 EmergencyStopping 内部一个虚假子状态。FCSTM 确认：state Entry named 'Entry\\n[PlantUML body] Emergency Stop'，并连带生成 EmergencyStopping.UnspecifiedInitial 与 [*] -> UnspecifiedInitial。结果是 EmergencyStopping 既没有动作，又莫名变成了带子状态的复合状态，而 NL 第 4 句只把子状态授予 InMotion。这是 action 降级成状态的典型实例，且完全由作者文本导致。",
+   "assertable": "not state_declared(state='llms_emp_feedback_final_0014.EmergencyStopping.Entry', kind='any')  # 当前该状态存在，故断言 False；等价写法 cardinality(scope='llms_emp_feedback_final_0014.EmergencyStopping', count=0)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Approaching: Entry/Send",
+   "gen": "state Approaching { Approaching: Nearing Destination; Approaching: Ready to Stop/Decelerate }",
+   "reason": "NL 第 9 句要求 Approaching 发送 'Send' 信号，参考以 Entry/Send 承载。作者模型里 Approaching 只有两行描述文本，Send 动作在全模型任何相位、任何迁移上都不存在（FCSTM 中 Approaching 只有 named 字符串，无 enter/during abstract）。这是丢失 NL 明确要求的输出动作，不是相位差异或命名差异。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='during')  # 当前 False；entry 相位同样 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "（参考未建模 NL 第 10 句）",
+   "gen": "Approaching: Nearing Destination / Approaching: Ready to Stop/Decelerate",
+   "reason": "这两行是把 NL 第 10 句的持续性义务写成状态描述文本而非迁移或约束。参考模型同样没有建模第 10 句，因此不算相对参考的语义丢失；作者至少把该义务留了痕迹。判 similar 并记录：这条义务在双方模型里都不可执行。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "EmergencyStoping:... Send Obstacle Detected",
+   "gen": "EmergencyStopping: Obstacle Detected",
+   "reason": "NL 第 3 句未指定该输出的相位，作者写成无相位前缀的描述文本，FCSTM 只把它并入 named 字符串（EmergencyStopping\\n[PlantUML body] Obstacle Detected），投影后不可执行。因为 NL 本身没给相位，且信号名保留了下来，判 similar，但要记录：无相位描述在投影里是惰性文本，动作语义实质丢失。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "DoorsClosing --> InMotion: Closed/SendDeparted / InMotion --> Stopping: Arrived/Stop, Send Arrived / InMotion --> EmergencyStopping: ObstacleDetected / 三条 InMotion 内部迁移",
+   "gen": "同结构，触发器写作 Closed/SendDeparted、Arrived/Stop, SendArrived、Obstacle Detected 及三条同名内部迁移",
+   "reason": "除初始边外，顶层与 InMotion 内部的 source-trigger-target 关系与参考逐条一致；SendArrived 与 'Send Arrived' 只是空格差异，属命名风格。InMotion 复合状态与三个子状态归属也正确（NL 第 4 句）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 4,
+ "extra_count": 0,
+ "vs_paper": "论文 grammar 栏记 'cannot connect internal state to the composite state itself.'（已 resolved），format / semantic 栏均为 None，f1 从 0.8936 提升到 0.9545。也就是说论文认为 0014 在 Phase-II 后没有任何语义幻觉。我判的 4 个 problem（顶层初始缺失、Entry/Accelerate 降级为事件、Emergency Stop 降级为子状态 Entry、Send 动作彻底缺失）论文一个都没记录。其中前三个是纯结构/初始化问题，用论文自己的语法检查口径本也该命中（尤其 EmergencyStopping 里凭空多出的 Entry 子状态与 UnspecifiedInitial）。",
+ "vs_ledger": "台帐 0014 状态 mixed，有 1 条 E1：EXP-0014-IT-001（top_level_initial_missing，eval_assert = initial_child(...) == '...DoorsClosing'，结果 false/contradicts），正对应我的第 1 个 problem。另有 E2c/state_action_adapter_missing 观察，解释了我的第 2、4 个 problem（动作类）为何暂时不能成 E1——FCSTM 的 lifecycle action 节点在 attribution_exclusions 中，action_declared 谓词虽存在但缺可归因门面。我的第 3 个 problem（Entry 子状态）既没被论文记录也没被台帐记为 E1，而它恰好绕开了 action 门面限制：state_declared / cardinality 属 structure 家族，Entry 状态本身来自 puml 第 25 行、可源归因，是当前台帐可以补上的一条 E1。",
+ "notes": "0014 是本组问题最集中的模型之一，也是 'action 被降级' 的关键样本：一次降级成事件（Entry/Accelerate → event），一次降级成状态（Entry: Emergency Stop → 子状态）。两次降级的原因都写在作者 puml 原文里，FCSTM 只是忠实投影，因此不能归因于表示层。相反，0004/0034/0044/0054 用带相位前缀的写法时，FCSTM 都正确保留了 enter/during abstract，这反证了转换器行为一致。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0014",
+  "group": "NL01",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 4,
+   "extra": 0,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 4,
+  "paper": {
+   "format": null,
+   "grammar": "cannot connect internal state to the composite state itself.",
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.8936170213,
+   "f1_phase2": 0.9545454545
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0014-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 4
+ }
+}

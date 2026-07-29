@@ -880,7 +880,22 @@ class PredicateAPI:
         # message about a guard the edge does not have.  Nothing is ambiguous
         # about one entry, so answer from it.
         if len(entries) == 1:
-            return str(field(entries[0], "target"))
+            entry = str(field(entries[0], "target"))
+            # Same reason the multi-entry branch below notes its deciding entry, and
+            # the omission here was worse because this is the common branch: 25 of the
+            # corpus's composites across 18 pairs take it.  When that single entry is
+            # the converter's synthetic `UnspecifiedInitial`, a False from this
+            # predicate hinges entirely on an element listed in the pair's
+            # `attribution_exclusions` -- yet the binding came back `safe`, because
+            # attribution can only filter on refs this layer records.  The visible
+            # consequence was an inconsistency that looked like reviewer discretion:
+            # the ledger accepted pair 0019's missing initial edge as a real defect
+            # while excluding pair 0029's identical shape as representation debt.
+            # 0029 has five entries and so went through the branch that notes; 0019,
+            # 0043 and 0053 have one and went through this one.  Same evidence, two
+            # answers, decided by a branch.
+            self._note(entry)
+            return entry
         unconditional = [t for t in entries if field(t, "is_unconditional")]
         if len(unconditional) == 1:
             for t in entries:

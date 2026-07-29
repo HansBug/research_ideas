@@ -107,6 +107,76 @@ def validate(reviews: list[dict]) -> list[str]:
     return complaints
 
 
+def _predicate_complaints(reviews: list[dict]) -> list[str]:
+    """Gate the `assertable` field against the closed predicate vocabulary.
+
+    Every one of these was found by hand after publication, and each is mechanically
+    detectable, which is the argument for gating rather than reviewing:
+
+      * `transition_exists` is a facade primitive, not one of the 19 registered
+        predicates.  Naming it and setting `predicate_exists: true` overstates
+        vocabulary coverage -- 9 diffs did.
+      * `any(edge_declared(...))` cannot run at all: `edge_declared` returns `bool`
+        and `any` needs an iterable, so the expression raises `TypeError`.  3 diffs
+        carried it, all marked `predicate_exists: true`.
+      * A `problem` with no `assertable` contradicts the spec's requirement that every
+        problem be expressible; 2 diffs had none.
+      * An `extra` with `predicate_exists: true` but a blank `assertable` reads, in the
+        rollup, as "no predicate can express this" -- a vocabulary gap that is not one.
+        3 diffs did this.
+
+    Reported as complaints, never silently repaired: which predicate applies is the
+    reviewer's judgement, and rewriting it here would launder a wrong claim into a
+    right-looking one.
+    """
+    CLOSED = {
+        "state_declared", "variable_declared", "event_declared", "containment",
+        "initial_target", "edge_declared", "effect_declared", "action_declared",
+        "guard_distinguishable", "cardinality", "occupancy_after", "event_consumed",
+        "stays_in", "variable_delta_after", "reaches", "terminates", "invariant",
+        "response_within", "persists_until",
+    }
+    out: list[str] = []
+    for review in reviews:
+        case = review.get("case", "?")
+        for index, diff in enumerate(review.get("diffs") or []):
+            verdict = diff.get("verdict")
+            if verdict not in {"problem", "extra"}:
+                continue
+            text = str(diff.get("assertable") or "").strip()
+            exists = diff.get("predicate_exists")
+            if not text:
+                if verdict == "problem":
+                    out.append(f"{case} diff[{index}]: problem 缺 assertable（规范要求每条 problem 可表达）")
+                elif exists is True:
+                    out.append(
+                        f"{case} diff[{index}]: extra 标 predicate_exists=true 但 assertable 为空"
+                        "——会被汇总读成词表缺口"
+                    )
+                continue
+            # Strip quoted spans before looking for call names.  `invariant` and
+            # `persists_until` take an fbmcq condition *string*, and that language has
+            # its own calls -- `active(...)`, `in(...)`.  Reading those as predicate
+            # names produced 12 false complaints on the published corpus, which would
+            # have trained the next reader to ignore this gate.
+            bare = __import__("re").sub(r"(['\"]).*?\1", "''", text, flags=__import__("re").S)
+            named = {
+                m.rstrip("( ").strip("`\"' ")
+                for m in __import__("re").findall(r"[A-Za-z_][A-Za-z_0-9]*\s*\(", bare)
+            }
+            for name in sorted(named - CLOSED - {"any", "all", "not", "len", "bool", "sum", "str", "int"}):
+                out.append(
+                    f"{case} diff[{index}]: `{name}` 不在 19 个封闭谓词中"
+                    f"（{'且标了 predicate_exists=true' if exists is True else '需重映射'}）"
+                )
+            if __import__("re").search(r"\bany\s*\(\s*(?:not\s+)?edge_declared\s*\(", bare):
+                out.append(
+                    f"{case} diff[{index}]: `any(edge_declared(...))` 无法执行"
+                    "——edge_declared 返回 bool，any 需要可迭代对象，会抛 TypeError"
+                )
+    return out
+
+
 def cross_reference(reviews: list[dict]) -> dict:
     """Tie each reviewed pair to the paper's record and to the ledger's E1s."""
 
@@ -233,6 +303,13 @@ def main() -> int:
 
     reviews = load_reviews(review_dir)
     complaints = validate(reviews)
+    # Two severities, and the split is deliberate.  `complaints` are things that make the
+    # statistics wrong -- a missing case reads as "no problems there", a mismatched count
+    # means one of the two numbers is a lie -- so they block.  `warnings` are annotation
+    # defects that leave every headline count intact and only degrade the secondary
+    # "expressible with an existing predicate" figure.  Blocking on those would have
+    # stopped a bundle whose 418 judgements are fine, which is how a gate gets disabled.
+    warnings = _predicate_complaints(reviews)
     cross = cross_reference(reviews)
 
     for review in reviews:
@@ -270,6 +347,13 @@ def main() -> int:
         "problems_in_scope_total": sum(i["problems_in_scope"] for i in cross.values()),
         "assertable_problems_total": sum(i["assertable_problems"] for i in cross.values()),
         "validation_complaints": complaints,
+        "assertable_warnings": warnings,
+        "assertable_warning_note": (
+            "标注质量问题，不阻塞发布：谓词名不在 19 个封闭谓词中、写法不可执行、"
+            "problem 缺 assertable、extra 空 assertable 却标 predicate_exists。"
+            "它们不改变任何档位计数，只影响「可用现有谓词正面断言」这个次要指标——"
+            "引用该指标时应按此清单折减。"
+        ),
         "per_case": {c: {k: v for k, v in i.items() if k != "out_of_scope"} | {"out_of_scope": dict(i["out_of_scope"])} for c, i in sorted(cross.items())},
     }
     (audit / "_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n")
@@ -278,8 +362,14 @@ def main() -> int:
     print(f"  档位合计: {dict(totals)}")
     print(f"  问题定义外: {dict(scope_totals)}")
     print(f"  计入问题合计: {summary['problems_in_scope_total']}")
+    if warnings:
+        print(f"  ⚠ 标注质量警告 {len(warnings)} 条（不阻塞，「可断言」指标应按此折减）:")
+        for line in warnings[:8]:
+            print(f"    {line}")
+        if len(warnings) > 8:
+            print(f"    …另 {len(warnings) - 8} 条见 _summary.json 的 assertable_warnings")
     if complaints:
-        print(f"  ⚠ 校验问题 {len(complaints)} 条:")
+        print(f"  ✗ 阻塞级校验问题 {len(complaints)} 条:")
         for line in complaints[:12]:
             print(f"    {line}")
     return 1 if complaints else 0

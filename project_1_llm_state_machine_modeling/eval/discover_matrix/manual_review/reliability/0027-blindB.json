@@ -1,0 +1,65 @@
+{
+  "case": "0027",
+  "nl_group": "NL07",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state Collision_Avoidance { [*] --> front_inactive ... -- ... -- ... }（`{` 后直接是第一个区域，共 3 个区域）",
+      "gen": "state ActiveState {\n--\n[*] --> BrakeControlState\n...（`{` 之后紧跟 `--`）",
+      "reason": "NL 第1句 \"There are three region in this diagram\" 点名区域数为 3。生成方在 `{` 之后立即写 `--`，第一个分隔符之前形成一个空区域，实际 4 个区域，其中区域 0 无状态、无默认入口（fcstm 记录 `concurrent region 0: states=-; transitions=-`）。空区域无默认子态命中口径 3 良构性类，区域数量与 NL 第1句不符属数量/结构问题，在范围内。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true（区域内迁移均带条件）",
+      "gen": "BrakeControlState --> junction2 ；SteeringControlState --> junction3 ；SensorControlState --> junction4 ；junction4 --> InitialState（四条均无触发、无守卫）",
+      "reason": "良构性问题：三个区域的控制状态各有一条无标签 completion 出边，按 UML 语义会在进入 ActiveState 后立刻触发，因此 BrakeControlState / SteeringControlState / SensorControlState 三个\"碰撞避免控制\"状态都无法驻留，进入即被清空；`junction4 --> InitialState` 同样无标签，继续级联。NL 第3句要求正交区域\"allow for concurrent activation different of collision avoidance controls\"，即这些控制应当处于激活并驻留状态，即发迁移使该义务落空。属口径 3 明列的\"无触发的 completion 边造成不该有的即发迁移\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "avoid_frontend_collision --> front_inactive: dist_to_front>15 ；avoid_rearend_collision --> rear_inactive: dist_to_rear>12 ；avoid_pedestrian_collision --> pedestrian_inactive（每个区域都能回到未激活）",
+      "gen": "junction2（无出边）；junction3（无出边）；ActiveState 内的 InitialState（无出边）",
+      "reason": "良构性问题：区域 1 的 junction2、区域 2 的 junction3、区域 3 的 InitialState 都没有任何出边，是吸收态/死端（fcstm 中三者均为普通 state 且无出边）。结果是 ActiveState 一旦进入，三个区域立刻各自跑进一个永久停滞节点，既无法回到 DetectingState，也无法再次激活；参考三个区域都能回到 inactive。属口径 3 明列的\"死端/吸收态\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "三个区域按碰撞类型划分：avoid_frontend_collision / avoid_rearend_collision / avoid_pedestrian_collision",
+      "gen": "三个区域按控制手段划分：BrakeControlState / SteeringControlState / SensorControlState",
+      "reason": "NL 第3句原文是 \"concurrent activation different of collision avoidance controls\"，按\"控制手段\"分区是对该句的直接读法；参考按 NL 第2句的碰撞类型分区是另一种读法。NL 第1句只规定区域数为 3，未规定分区维度，属 NL 欠定，按口径 1、2 不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "front_inactive / rear_inactive / pedestrian_inactive（每区域一个未激活基线状态）",
+      "gen": "DetectingState : Detecting Collision（激活前的单一探测状态，位于 ActiveState 之外）",
+      "reason": "NL 第2句 \"This sub-machine becomes active when ... is detected\" 隐含存在一个激活前状态，但没有规定它是每区域一个还是全局一个。生成方把参考的三个 inactive 状态合并为一个全局 DetectingState，语义上仍是\"探测中→激活\"，属结构写法差异。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "三类探测各自独立标注条件（dist_to_front<10 & urban=true / dist_to_rear<5 & vel>30 / pedestrian_detected 等数值守卫）",
+      "gen": "DetectingState --> junction1 : Frontend Collision or Rear-end Collision or Collision with Pedestrian detected（单条复合触发）",
+      "reason": "NL 第2句以 \"or\" 枚举三类探测，生成方的复合触发把三类都点名了，语义覆盖 NL；参考的数值守卫（距离、速度阈值）在 NL 中完全没有出现，属参考更具体部分（口径 2）。与 0017 不同，这里三类探测名至少出现在触发文本中，故判 similar。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中无任何 junction 节点）",
+      "gen": "junction1 ；junction1 --> ActiveState",
+      "reason": "junction1 在 NL 与参考中都不存在，且它在生成方中被声明为普通状态（fcstm: `state junction1`）而非伪状态，出边无触发，进入即离开，是单入单出的多余中转节点。属生成方多出的元素。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "（参考为子机片段，无顶层 `[*] -->`）",
+      "gen": "[*] --> DetectingState",
+      "reason": "生成方顶层有无触发初始迁移，良构。NL 第2句称其为 sub-machine，参考省略顶层入口，生成方补上一个不违反 NL，按口径 1 判 correct（对比同组 case 0017 完全没有任何可达入口）。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 1,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。\"三条无标签 completion 边导致即发迁移\"合成一条（同一修复：补触发/守卫）；\"junction2/junction3/InitialState 无出边\"另成一条（不同修复：补回激活解除路径）；二者虽在同一批语句上，但缺陷类型与修复动作不同，不合并。\n\nNL 逐句核对：\n1 \"There are three region in this diagram\"：不满足——有内容区域为 3，但 `{` 后紧跟 `--` 额外造出空区域，实际 4 个且空区域无默认子态。\n2 \"This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected\"：满足——DetectingState 经复合触发（三类碰撞全部点名）经 junction1 进入 ActiveState。\n3 \"The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls\"：形式上有三个正交区域且按控制手段划分，但三个控制状态都被无标签 completion 边立即清空并落入无出边的 junction/InitialState，\"并发激活并保持\"的语义实际不成立。\n\n参考侧存疑位置：本 case 参考未发现与 NL 冲突的硬错误；其数值守卫属 NL 之外的额外具体化。\n附注：生成方 ActiveState 内的状态名 \"InitialState\" 与语义（区域终点）相反，属命名误导，但因该节点的实质缺陷（无出边）已计入 problem，不另开条目。"
+}

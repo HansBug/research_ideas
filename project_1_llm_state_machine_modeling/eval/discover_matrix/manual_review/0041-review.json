@@ -1,0 +1,86 @@
+{
+ "case": "0041",
+ "group": "NL02",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 Brake_Caliper_Closed_State 无任何出边）",
+   "gen": "ClampingState --> BrakingState : Brake Signal Maintained",
+   "reason": "NL 没有 'brake signal maintained' 这个事件，也没有从钳夹态回到制动态的任何描述；参考里钳夹态是吸收状态。这是无 NL 依据的新增事件与新增边，且与 BrakingState --> ClampingState 一起构成 Braking↔Clamping 的二元循环，引入了 NL 完全没有的往复行为。因 NL 未给钳夹态显式 remain/only/never 义务，不升级为 problem。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0041.ClampingState', event='llms_emp_feedback_final_0041.Brake_Signal_Maintained')  # 谓词与归因链成立，但缺 NL 显式禁止依据",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 Brake_Caliper_Closed_State 无任何出边）",
+   "gen": "ClampingState --> InitialState : Brake Signal Released",
+   "reason": "NL 同样没有 'brake signal released' 事件，也没有钳夹态返回初态的描述。这是与上一条不同的第二个新增事件与第二条新增边，因此单列。0041 是本组新增边最多的模型（两条）。在制动系统语境下凭空发明 '制动信号释放即回初态' 是安全相关行为，属后果较重的过度指定，但 NL 无显式禁止依据，仍记 extra。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0041.ClampingState', event='llms_emp_feedback_final_0041.Brake_Signal_Released')  # 同上，缺 NL 显式禁止依据",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Brake_Caliper_Relaxed_State / Running_State --> Brake_Caliper_Relaxed_State",
+   "gen": "（作者模型没有该状态与该边）",
+   "reason": "论文对 0041 记的 '1. missing transition and states'（resolved = 0.0）指向这两个只存在于参考、NL 从未提及的元素，属参考自身越出 NL，按规范记 uncertain 而非 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签完成迁移）",
+   "gen": "BrakingState --> ClampingState : Entering Clamping State",
+   "reason": "与本组其余五 case 同一判断：自指描述文本，NL 第 3 句未给触发器；按描述读与参考的完成迁移一致，判 similar。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> Initial_State / Initial_State --> Braking_State / Initial_State --> Running_State / Braking_State --> Initial_State / Running_State --> Initial_State",
+   "gen": "[*] --> InitialState / InitialState --> BrakingState : Brake Signal Received / InitialState --> OperationalState : Signal Transmission Fails / BrakingState --> InitialState : Signal Feedback Sent / OperationalState --> InitialState : Signal Feedback Sent",
+   "reason": "NL 第 2 句的三段语义与初始边全部覆盖，与参考对应；OperationalState 与 Running_State 是同一概念的不同译法，触发器命名差异属风格。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 0,
+ "extra_count": 2,
+ "vs_paper": "论文记 format 栏 'syntax error: stm BasicBrakingDevice [State Machine Diagram]'（已 resolved）与 semantic 栏 '1. missing transition and states'（semantic_resolved = 0.0），f1_phase1 = f1_phase2 = 0.9167。论文那条 semantic 记录指向参考独有、NL 无依据的松钳状态，我记为参考侧 uncertain。我判的 2 个 extra 论文均未记录——0041 是本组新增边最多的模型，却与只新增一条边的 0021/0031/0051 拿到同档甚至更高的 F1，说明元素级 F1 对过度指定几乎不惩罚。",
+ "vs_ledger": "台帐 0041 状态 candidate_only、expected_issue_count = 0，唯一观察是 E2a/eventless_label_ambiguity（与本组其余五 case 同文）。我判的 2 个 extra 台帐未记，理由成立：NL02 三句话对钳夹态之后毫无约束，写成 E1 需要闭世界假设。但这恰恰暴露当前 UA 口径的覆盖盲区：'UA 需 NL 显式 remain/until/only/never' 在 NL 极短、只有三句话时几乎永不成立，因此安全相关的凭空新增行为在这类 pair 上系统性不可检出。",
+ "notes": "0041 是 NL02 组过度指定最严重的模型（两条无依据出边、两个自造事件、一个 Braking↔Clamping 循环），但对 NL 三句话本身仍然忠实，没有 problem。它是 '当前 NL-grounded 正向断言无法覆盖过度指定' 这一方法学缺口的最佳样本。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0041",
+  "group": "NL02",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 1,
+   "similar": 1,
+   "problem": 0,
+   "extra": 2,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 2,
+  "paper": {
+   "format": "syntax error: stm BasicBrakingDevice [State Machine Diagram]",
+   "grammar": null,
+   "semantic": "1. missing transition and states",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.9166666667,
+   "f1_phase2": 0.9166666667
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 0
+ }
+}

@@ -1,0 +1,112 @@
+{
+ "case": "0035",
+ "group": "NL10",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "[*] --> DoorShut",
+   "gen": "state DoorShut as \"Door Shut\" <<initial>>（无任何初始伪态边）",
+   "reason": "NL 第 1 句明写『The microwave starts in the DoorShut state.』。生成侧用一个 <<initial>> 构造型代替初始伪态边，全模型没有 [*] --> 边；R4.5 因此在根状态合成 UnspecifiedInitial（attribution_exclusions 含 compiler:state:...UnspecifiedInitial 与一条 synthetic_transition），DoorShut 从上电起不可达。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0035', child='llms_emp_feedback_final_0035.DoorShut')  # False（台帐用的是同一底层 initial_child 的等价形）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "DoorOpen --> DoorShut: Door Closed",
+   "gen": "（无此边）",
+   "reason": "NL 第 2 句明写『The door can be closed to return to the DoorShut state.』，是显式关系义务，生成侧完全没有这条边（第 5 行的位置被一条 DoorOpen 自环占据）。",
+   "assertable": "occupancy_after(source='llms_emp_feedback_final_0035.DoorOpen', trigger='llms_emp_feedback_final_0035.Door_Closed', target='llms_emp_feedback_final_0035.DoorShut')  # False（台帐用的是 S 族 edge_declared 形）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考无此边）",
+   "gen": "DoorOpen --> DoorOpen : Item Removed",
+   "reason": "在没有放入物品的 DoorOpen 状态里『移除物品』在物理上无意义；NL 第 3 句把 Item Removed 只挂在 DoorOpenWithItem 上，而模型第 7 行已有 DoorOpenWithItem --> DoorOpen : Item Removed。这是参考与 NL 都没有的多余元素。",
+   "assertable": "stays_in(source='llms_emp_feedback_final_0035.DoorOpen', trigger='llms_emp_feedback_final_0035.Item_Removed')  # 本模型为 True，正确模型应为 False（需取否定形式表达『该自环不应存在』）",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
+   "gen": "DoorOpenWithItem --> DoorShutWithItem : Door Closed（无任何限定）",
+   "reason": "与 0025 同形：该边既无守卫也未在事件名点出零时，已输入烹饪时间时关门仍落 DoorShutWithItem，丢失 NL 第 4 句把该去向限定于零时的义务。",
+   "assertable": "19 个谓词无法表达『这条边必须携带区分条件』——本模型该 source+trigger 只有一个目标，guard_distinguishable 返回 True 不暴露；台帐的 any(t.guard ...) 是绕过谓词词汇直查迁移属性",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "5 处 timer / display effect",
+   "gen": "（无任何 effect、变量或状态动作）",
+   "reason": "同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失。",
+   "assertable": "variable_declared(variable='timer')  # False；或 effect_declared(source='llms_emp_feedback_final_0035.ReadytoCook', trigger='llms_emp_feedback_final_0035.Start', variable='timer', sign='positive')  # False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "DoorOpenWithItem --> ReadytoCook: Door Closed[Time Remaining]",
+   "gen": "DoorOpenWithItem --> ReadytoCook : Cooking Time Entered",
+   "reason": "同 0015/0025：NL 第 4 句字面写『if cooking time is entered』，生成侧取字面读法。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "ReadytoCook --> ReadytoCook 自环",
+   "gen": "（无）",
+   "reason": "NL 未明确要求，六个模型均无。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 4,
+ "extra_count": 1,
+ "vs_paper": "论文 format 栏『syntax error: stm MicrowaveStateMachine』resolved=YES；grammar 栏『Define composite state DoorShut {}, but there are no real child states in it』resolved=NO；semantic 栏『1. interaction error』resolved=1.0。F1 0.4528 → 0.9286。两处对不上制品：(1) 制品里的空复合态 DoorShut {} 已经不存在，被换成了 <<initial>> 构造型——即那次修补消灭了旧缺陷却制造出『无初始伪态』这个新缺陷，而 grammar_resolved=NO 标的是已经不存在的旧问题；(2) semantic『interaction error』标 resolved=1.0，但制品仍缺 NL 第 2 句的 DoorOpen→DoorShut 且仍带 DoorOpen 自环。我判的 4 个 problem 中 timer/display 与零时条件两条论文完全未记。",
+ "vs_ledger": "台帐 status=mixed，三条 E1 全部与我吻合：EXP-0035-IT-001 = 我的第 1 条 problem（成立）；EXP-0035-TR-001 = 我的第 2 条 problem（成立），其 source_contradiction_proof 同时点出了那条多余自环，即我单列的 extra；EXP-0035-GC-001 = 我的第 4 条 problem（实体成立，但 assert 机制同 0025 的问题）。我的第 5 条 problem（effect 全缺）台帐只记为被排除的 E2c observation。台帐是四份记录中对本 case 最准确的。",
+ "notes": "0035 是 NL10 组唯一同时踩中初始化、关系完整性、条件三类的模型，也是唯一让 R4.5 必须在根状态合成初始态的 case。它与 0032（Kimi 的 NL09 输出）呈现同一失效模式：Kimi 倾向于用状态装饰/构造型代替真正的伪态与结构边。",
+ "_source_file": "NL10-b.json",
+ "cross_reference": {
+  "case": "0035",
+  "group": "NL10",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 0,
+   "similar": 2,
+   "problem": 4,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 5,
+  "paper": {
+   "format": "syntax error: stm MicrowaveStateMachine",
+   "grammar": "Define composite state DoorShut {}, but there are no real child states in it",
+   "semantic": "1. interaction error",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.4528301887,
+   "f1_phase2": 0.9285714286
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0035-GC-001",
+    "EXP-0035-IT-001",
+    "EXP-0035-TR-001"
+   ],
+   "e1_categories": [
+    "GC",
+    "IT",
+    "TR"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

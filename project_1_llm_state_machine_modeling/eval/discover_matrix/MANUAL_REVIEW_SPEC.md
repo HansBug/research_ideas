@@ -44,13 +44,41 @@
 - 语料的 `pairs/<case>-author.puml` 是论文 **Phase-II 语义检查后**的产物（workbook 列 AE），
   不是 Phase-I 原始生成。所以论文 `semantic_hallucinations` 里记的问题**可能已在这份制品中被修好**，
   `semantic_resolved = 1.0` 即论文声称已修。你审的是**这份最终制品**。
-- 参考模型是论文作者**人工重建**的，论文 §7 自认 "we manually created them, which is subjective"，
-  §4.2(4) 说 "we **assume** the reference model is semantically correct"——其正确性未经独立验证。
+- 参考模型是论文作者**人工重建**的。原论文 §3.3 说 "All reconstructed models were cross-validated
+  against the original sources"，§4.2 第 (4) 项说 "we **assume** the reference model is semantically
+  correct"——其正确性未经独立验证。（**注意**：§7 那句 "we manually created them, which is
+  subjective" 的先行词是 **requirements（NL 文本）**，不是参考模型；且原文紧接着写了
+  cross-check。不要把它引成对参考模型的自认。）
   **若你认为参考模型本身有问题或与 NL 不一致，必须记录**（档位用 `uncertain` 并说明）。
-  已知一例：HLDCS 的 `in (auto final)` 参考模型写成三条独立迁移，但方向与 NL 相反。
-- 本研究的建模对象是 **FSM / HSM / EFSM**，不含时钟与正交并发。所以并发类与时间类差异要
-  **照实记录**，但在档位后额外标 `out_of_scope: concurrency` 或 `out_of_scope: timing`，
-  以便汇总时能分开统计。
+  已知实例：HLDCS 参考的 `brake_pressed` 与 `in (auto_final)` 方向与 NL 相反、
+  `human_steering_cmd` 双向并存、完全缺 NL 点名的 `front_distance > 10`；
+  NL05 参考有五条无标签 completion 边使其自己声明的分支不可达。
+
+### 范围外（`out_of_scope`）的边界 —— 硬规则
+
+本研究的建模对象是 **FSM / HSM / EFSM**（$M = (S, E, V, Tr, A)$），**不含时钟与正交并发**。
+并发类与时间类差异要**照实记录**，但在档位后额外标 `out_of_scope: concurrency` /
+`out_of_scope: timing`。
+
+上一轮因为没写死边界，出现了**同一现象被反向裁定**：`0006`(NL03) 把「参考用区域承载的三路分解
+在生成侧塌缩」判 `problem` **未标 tag**（理由：这是数量/结构问题），`0033`(NL06) 把同一现象判
+`problem` **标了 concurrency**（理由：并发结构超出范围）——两者用的还是**同一个谓词**
+`cardinality(count=3)`。后果是「计入问题」只能报区间而非确定值。因此现在按下表执行：
+
+| 现象 | 归属 | 理由 |
+| --- | :-: | --- |
+| NL 或参考说「有 N 个 X」而模型只有 M 个 | **范围内** | 这是**数量 / 结构**断言，落在 $S$ 内，与是否并发无关 |
+| 区域之间是否**同时活跃**（并发执行语义） | **范围外** `concurrency` | 正交区语义不在 $M$ 内 |
+| 定时器**动作**（`Start Timer`） | **范围内** | 属 $A$ |
+| 定时器**事件**（`Timer Expired`） | **范围内** | 属 $E$ |
+| 零时 / 剩余时间**守卫**（`[Zero Time]`） | **范围内** | 是 over $V$ 的普通守卫 |
+| 真正的**时长约束**（`execTime=[(2,s,max)]`） | **范围外** `timing` | 属时间自动机的 $C$，$M$ 里没有 |
+
+**并且：一条 diff 不得同时承载范围内与范围外两个方面。** `problems_in_scope` 按**整条 diff**
+扣除，所以给一条兼有两面的 diff 打 tag 会**静默丢掉其中的范围内缺陷**。上一轮有 3 条如此
+（`0033`d2、`0039`d4 的理由明写「这是**独立于并发议题**的确定性缺陷」、`0053`d1 明写
+「三主子态从可同时活跃退化为互斥且互不可达」**是真实的语义损失**）。遇到这种情况**必须拆成两条
+diff**：范围内那条不打 tag，范围外那条打 tag。
 
 ## 输出格式
 

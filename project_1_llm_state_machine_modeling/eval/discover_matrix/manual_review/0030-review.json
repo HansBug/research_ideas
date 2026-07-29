@@ -1,0 +1,110 @@
+{
+ "case": "0030",
+ "group": "NL08",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> human_mode : power_on；human_mode 简单状态",
+   "gen": "[*] --> HumanDriving : Power On；state HumanDriving { }",
+   "reason": "NL 第1、3句满足（空花括号在 UML 与 pyfcstm 投影里都是无子状态的简单状态）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考无 front_distance；参考未声明 autonomous_mode 状态体)",
+   "gen": "HumanDriving --> Autonomous : front_distance > 10；state Autonomous { Navigating, Parking }",
+   "reason": "NL 第2、4句满足，两点均优于参考模型。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "human_mode --> autonomous_mode : in (auto_final)（隐含 auto final 是 autonomous 的子状态）",
+   "gen": "state Autonomous { Navigating <-> Parking }，无 auto final 子状态；`[*]` 仅作为迁移标签文本出现",
+   "reason": "NL 第2+5句共同要求 autonomous 内存在可被 in(...) 指代的 auto final 子状态；制品内部只有 Navigating↔Parking 死循环，标签里的 `[*]` 不声明任何状态，导致 in (auto final) 无指代对象。",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0030.Autonomous.AutoFinal\", kind=\"any\") → False；补充 terminates(scope=\"llms_emp_feedback_final_0030.Autonomous\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "autonomous_mode --> [*] : power_off",
+   "gen": "只有 HumanDriving --> [*] : Power Off",
+   "reason": "自动驾驶激活期间无法断电，NL 第5句的断电义务只覆盖了一半作用域（参考模型两边都有）。",
+   "assertable": "event_consumed(source=\"llms_emp_feedback_final_0030.Autonomous.Navigating\", trigger=\"llms_emp_feedback_final_0030.Power_Off\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "参考把三条件拆成三条独立边",
+   "gen": "Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]",
+   "reason": "三个接管条件压成一个不可分解事件（投影事件名 `Human_Steering_Cmd_Brake_Pressed`，斜杠与 `[*]` 均被当普通字符），任一单独条件都无法触发接管。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0030.Brake_Pressed\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考无对应元素)",
+   "gen": "Navigating --> Parking : Park Request；Parking --> Navigating : Parking Complete",
+   "reason": "NL 未指定 autonomous 子状态内容，自造内部行为按必要发明处理，不记 over-specification。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考 NL 第5句三条边中两条方向写反、human_steering_cmd 双向并存；且漏掉第4句、未建 autonomous 复合状态",
+   "gen": "(生成方在第2、4句优于参考)",
+   "reason": "garbled 第5句读法无法定案，参考自身不自洽，故对\"三条件是否必须可独立触发\"的判定带不确定性。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 0,
+ "vs_paper": "论文：format/grammar 栏 None；semantic 栏记 \"1. missing final state\"（semantic_resolved=1.0）；F1 0.7407 → 0.8148。核对 workbook：Phase-I（列 I）写的是 `[*] --> FinalState : Power Off`，语义阶段把它改成 `HumanDriving --> [*] : Power Off`——即论文在 0030 上正确识别并修好了它在 0000 上亲手引入且判为无问题的同形缺陷。我判的 3 个 problem 与论文记录不重叠（论文修的是断电边源端，我记的是 auto final 缺失、自动驾驶侧断电缺失、接管标签复合）。",
+ "vs_ledger": "台帐 2 条：EXP-0030-SH-001 ↔ 我的 auto final 子状态缺失；EXP-0030-IT-001 ↔ 我的自动驾驶侧无断电。我另有 1 个 problem（三条件压成单一事件）台帐与论文都没记。",
+ "notes": "0030 与 0000 构成论文语义检查不可复现的直接证据对：同一 NL、同一缺陷形状 `[*] --> FinalState : Power Off`，0030 被记为 missing final state 并修好，0000 由语法阶段引入后语义栏留空且 resolved=1.0。",
+ "_source_file": "NL08-c.json",
+ "cross_reference": {
+  "case": "0030",
+  "group": "NL08",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 2,
+   "similar": 1,
+   "problem": 3,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing final state",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.7407407407,
+   "f1_phase2": 0.8148148148
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0030-IT-001",
+    "EXP-0030-SH-001"
+   ],
+   "e1_categories": [
+    "IT",
+    "SH"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

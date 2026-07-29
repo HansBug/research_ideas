@@ -1,0 +1,149 @@
+{
+ "case": "0008",
+ "group": "NL04",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state fork1 <>; state choice1 <>; state Junction3 <>; state Join2 <> …（10 个伪状态全部声明为伪状态）",
+   "gen": "fork1/choice1/choice2/choice3/Junction1/Junction2/Junction3/Join1/Join2/Fork2 全部是普通状态或 composite",
+   "reason": "NL 逐句点名 fork/choice/junction/join，参考把它们全部声明为伪状态；本模型没有任何一个伪状态声明，分支/汇合语义退化为普通状态跳转。伪状态结构不属时间也不属并发，正常判。注意 state_declared 的 kind 只有 leaf/composite/pseudo/any，无法断言具体是 fork 还是 choice。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0008.TurnOn.fork1', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "fork1 --> AutoFocus; fork1 --> DetLight（fork 伪状态，同时进入两条并行路径）",
+   "gen": "fork1 -down-> AutoFocus; fork1 -right-> DetLight; fork1 -down-> choice3（普通状态的三条无守卫出边）",
+   "reason": "NL 第 2 句说 fork1 『contains parallel paths leading to AutoFocus and DetLight』；写成普通状态的三条无守卫出边后，语义从『同时进入』变成『三选一且不可区分』。并行丢失部分标 concurrency；三条无守卫出边造成的不确定性也在同一处记录（guard_distinguishable 需要共享 trigger，对无触发 completion 边不适用）。",
+   "assertable": "guard_distinguishable(source='llms_emp_feedback_final_0008.TurnOn.fork1', trigger='<无触发，谓词不适用>')",
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "problem",
+   "ref": "AutoFocus --> choice1: [memFull=true]",
+   "gen": "state AutoFocus { [*] --> choice1: After (2 s);  choice1 --> Junction3: when (memFull=true) }",
+   "reason": "NL 第 3 句要求 memFull=true 约束 AutoFocus 到 choice1；本模型把 AutoFocus --> choice1 换成 AutoFocus 的内部初始迁移（还挂了时间当 trigger），并把 memFull=true 移到 choice1 --> Junction3 上，NL 要求的守卫边整条不存在。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0008.AutoFocus', trigger='llms_emp_feedback_final_0008.when_memFull_true', target='llms_emp_feedback_final_0008.AutoFocus.choice1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Junction3 是顶层 junction，ChargedFlash --> Junction3 --> Join2",
+   "gen": "Junction3 声明在 state AutoFocus {} 内，ChargedFlash --> Junction3 因此重新进入 AutoFocus（投影为 ChargedFlash -> AutoFocus : /when_Charged_true）",
+   "reason": "NL 第 6、7 句让 Junction3 汇合闪光分支后进入 Join2；把它放进 AutoFocus 使闪光分支回流到自动对焦，控制流拓扑被改写。",
+   "assertable": "containment(parent='llms_emp_feedback_final_0008.AutoFocus', child='llms_emp_feedback_final_0008.AutoFocus.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "DetLight --> choice2: <>{prob=0.4}",
+   "gen": "state DetLight { [*] --> choice2: After (1 s);  choice2 --> Join2: <<GaStep>>{prob=0.4} }",
+   "reason": "概率条件被挂到 choice2 之后的出边上，NL 第 4 句要求它约束 DetLight 进入 choice2。与台帐 EXP-0008-GC-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0008.DetLight', trigger='llms_emp_feedback_final_0008._GaStep_prob_0_4', target='llms_emp_feedback_final_0008.DetLight.choice2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "choice3 --> Junction3",
+   "gen": "只有 choice3 --> ChargedFlash，无 choice3 --> Junction3",
+   "reason": "NL 第 7 句明确『The choice3 state also transitions to Junction3』，该直连分支缺失，闪光未充电时无路可走。与台帐 EXP-0008-TR-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0008.choice3', trigger='<无触发>', target='llms_emp_feedback_final_0008.AutoFocus.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "choice2/Join1/Join2/Junction2/TakePicture/WriteMemory/Junction1 均在顶层",
+   "gen": "state DetLight { choice2, Join1, state Join2 { state Junction2 { TakePicture, WriteMemory, Junction1 } , Fork2, Flash, Terminate } }",
+   "reason": "分支后的整条拍照流水线被层层塞进 DetLight，导致 AutoFocus 分支与闪光分支要想到达 TakePicture 必须先进入 DetLight。NL 未把这些元素归属于 DetLight，层次归属错误。",
+   "assertable": "containment(parent='llms_emp_feedback_final_0008.DetLight', child='llms_emp_feedback_final_0008.DetLight.Join2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "TurnOn/AutoFocus/DetLight/ChargedFlash/WriteMemory 各有 execTime=[(max),(min)] 共 5 处",
+   "gen": "只有 After (2 s)/After (2 s)/After (1 s) 三处，且写成初始迁移上的 trigger；ChargedFlash 与 WriteMemory 完全无时间",
+   "reason": "NL 第 1、3、4、5、9 句共 5 处最大/最小执行时间，本模型丢掉 2 处、其余 3 处只保留 max 且放在初始迁移的 trigger 位置。时间类差异标 out_of_scope: timing；19 个谓词无状态 timing 查询，无法断言（与台帐 E2c camera_timing_adapter_missing 一致）。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "timing"
+  },
+  {
+   "verdict": "similar",
+   "ref": "Junction2 --> TakePicture;  Join2 --> Fork2",
+   "gen": "state Junction2 { [*] --> TakePicture … };  state Join2 { [*] --> Fork2 … }",
+   "reason": "把参考的入边改写成 composite 内部初始迁移，入口语义等价；且 NL 第 11 句字面说 Fork2『is part of the Join2 substate』，本模型的嵌套是 NL 直接诱导的读法。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0008.DetLight.Join2', child='llms_emp_feedback_final_0008.DetLight.Join2.Fork2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Fork2 --> Junction2; Fork2 --> Flash; Flash --> Terminate; TakePicture --> WriteMemory; WriteMemory --> Junction1; Junction1 --> TurnOff; TurnOff --> [*]; Join1 --> Junction2; choice2 --> Join1:[sunny=true]; choice3 --> ChargedFlash; Junction3 --> Join2",
+   "gen": "同名同向的 11 条边均存在",
+   "reason": "NL 第 8、9、10、11 句的主干边基本齐全，含 TurnOff --> [*] 全局终态（论文 semantic 栏说的 Missing final state 在这份最终制品里已不成立）。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0008.DetLight.Join2.Junction2.WriteMemory', trigger='<无触发>', target='llms_emp_feedback_final_0008.DetLight.Join2.Junction2.Junction1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1;  choice1 --> Junction1;  fork1/Fork2/Join1/Join2 无正交区域可供 fork/join;  state X <> 记法退化",
+   "gen": "—",
+   "reason": "参考侧存疑：(1) choice1 的两条出边在 NL 11 句里完全没有对应句子，任何 LLM 都无法产出，却无条件计入本组全部 6 例的 FN；(2) 参考通篇没有正交区域，fork1/Fork2/Join1/Join2 因此不是合法的 fork/join，论文却以『incorrect expression of join, fork, junction』扣分；(3) 参考所有伪状态都写成 state X <>（stereotype 已退化），kind 信息只存在于名字里；(4) NL 第 6 句把 Charged=true 挂在 ChargedFlash --> Junction3，参考却挂在 choice3 --> Junction3，NL 与参考自相矛盾。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 8,
+ "extra_count": 0,
+ "vs_paper": "论文：format/grammar 栏 None；语义栏『1. Missing final state 2. Missing Junction Pseudostate and Fork Pseudostate 3. interactions error』，semantic_resolved=0.0。F1 Phase-I 0.4762 → Phase-II 0.5556（TP 15→20）。命中情况：我的第 1 条（伪状态全缺）对应论文第 2 项；『Missing final state』在这份最终制品里已不成立（TurnOff --> [*] 存在）；『interactions error』过于含糊，可勉强覆盖第 3-7 条中的某些。我的第 3、4、7 条（memFull 守卫移位、Junction3 错置进 AutoFocus、流水线整体塞进 DetLight）论文均未具体记录。",
+ "vs_ledger": "台帐 status=mixed，2 条 E1：EXP-0008-GC-001（概率条件挂在 choice2 之后）对应我的第 5 条；EXP-0008-TR-001（choice3 --> Junction3 缺失）对应我的第 6 条。两条 observation：camera_timing_adapter_missing（E2c）对应我的第 8 条 timing；choice_guard_attachment_ambiguity（E2a，memFull 守卫位置有歧义）对应我的第 3 条——台帐因 NL 关系从句不唯一固定 guard 位置而排除，我认为仍应记录，因为本模型不是把守卫放在另一合理位置，而是整条 AutoFocus --> choice1 边都不存在。我的第 1、2、4、7 条（伪状态类型、fork 并行、Junction3 错置、层次归属）台帐均未收。",
+ "notes": "GPT-4o 的核心病灶是『把每个伪状态当成 composite 并让后续元素落进其作用域』，一路把整条流水线埋进 DetLight。8 个 problem 中 1 条标 concurrency、1 条标 timing，范围内 6 条。参考侧问题（choice1 两条 NL 无依据出边、fork/join 无正交区域、Charged=true 位置与 NL 冲突）会同时影响本组全部 6 例的 F1。",
+ "_source_file": "NL04-0008.json",
+ "cross_reference": {
+  "case": "0008",
+  "group": "NL04",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 1,
+   "similar": 1,
+   "problem": 8,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1,
+   "timing": 1
+  },
+  "problems_in_scope": 6,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. Missing final state 2. Missing Junction Pseudostate and Fork Pseudostate 3. interactions error",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.4761904762,
+   "f1_phase2": 0.5555555556
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0008-GC-001",
+    "EXP-0008-TR-001"
+   ],
+   "e1_categories": [
+    "GC",
+    "TR"
+   ]
+  },
+  "assertable_problems": 6
+ }
+}

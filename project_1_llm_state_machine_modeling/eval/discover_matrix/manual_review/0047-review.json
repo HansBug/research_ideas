@@ -1,0 +1,101 @@
+{
+ "case": "0047",
+ "group": "NL07",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "三个区各有独立命名的状态（front_inactive / rear_inactive / pedestrian_inactive 等）",
+   "gen": "Frontend / RearEnd / Pedestrian 三个复合状态里重复使用同名 Idle / Braking / Clamping",
+   "reason": "PlantUML 状态名是全局标识：Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 中的同名引用指向的是 Frontend 内的同一批状态，于是后两个复合状态实际为空、其初始迁移越界指向 Frontend.Idle（pyfcstm 明确报 \"PlantUML initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle\"，并生成 InvalidInitialtr_0005 / InvalidInitialtr_0009）。三个避撞控制塌缩为一个，直接违反 NL 第1、3句要求的三路控制，也是同一批迁移被重复声明三次的根因。",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.RearEnd.Idle\", kind=\"any\") → 期望 True 实得 False；补充 containment(parent=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian.Idle\") → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "参考的每个区都有自己的 [*] --> X_inactive 默认入口",
+   "gen": "state CollisionAvoidanceSystem { Frontend / RearEnd / Pedestrian }（复合状态本身没有 [*] 默认子状态）",
+   "reason": "CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial，连唯一存活的 Frontend 控制也不可达；UML 要求区必须有默认入口或显式进入点，这是结构缺陷。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Frontend\") → 期望 True 实得 False；补充 reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Frontend.Idle\", within_cycles=5) → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "(参考不写顶层入口，激活由父机负责)",
+   "gen": "[*] --> CollisionAvoidanceSystem（无触发）",
+   "reason": "NL 第2句明确规定子机在检测到可能碰撞时才 becomes active；生成方在上电时无条件激活整个避撞子机，与该句直接冲突。（需注记：参考模型对激活条件同样保持沉默，故此条依据的是 NL 原文而非参考。）",
+   "assertable": "edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0047.Collision_Detected\", target=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Collision_Avoidance { ... -- ... -- ... }",
+   "gen": "三个避撞控制写成顺序嵌套复合状态，无 `--`",
+   "reason": "丢失 NL 第1、3句的正交并发语义，同一时刻只能有一个控制处于激活（正交并发类）。",
+   "assertable": "无：19 谓词无 region / concurrency 谓词，FCSTM 无法表示正交区；台帐亦以 E2c observation 排除。",
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "avoid_X --> X_inactive（避撞后回到常备态）",
+   "gen": "Idle --> Braking --> Clamping --> Idle 循环；CollisionAvoidanceSystem --> [*] : Collision Avoided",
+   "reason": "存活的那一路控制具备常备-激活-复位循环，形状与参考一致；子机整体在 Collision Avoided 时退出可理解为交还父机，NL 未禁止，故记差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考带入 NL 未提及的量化守卫",
+   "gen": "(不可能生成)",
+   "reason": "同组其它 pair 一致：参考含输入外信息，F1 ground truth 不可达（0047 0.1818 → 0.3125，为 NL07 最低，与其塌缩成单路控制的实际质量方向一致）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 4,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏记 \"syntax error: stm CollisionAvoidanceSystem [...]\"（resolved YES）；grammar 栏 None（36/36 全通过）；semantic 栏记 \"missing regions\" 且 semantic_resolved=0.0（如实承认未修好）；F1 0.1818 → 0.3125。论文只覆盖了我的第 4 个 problem（并发），完全没有发现同名状态塌缩与缺失默认入口这两个更致命的结构缺陷——尽管语法阶段自称 36/36 全通过。",
+ "vs_ledger": "台帐 1 条 E1：EXP-0047-IT-001（collision_avoidance_activated_without_detection）↔ 我的第 3 个 problem；1 条 E2c observation ↔ 我的第 4 个 problem。我的第 1、2 个 problem（全局同名塌缩致三路控制变一路；复合状态无默认入口致控制不可达）台帐与论文都没有，是本 pair 最严重的两条。",
+ "notes": "0047 是全组最差制品，我判 4 个 problem。其核心缺陷（PlantUML 全局命名空间导致的状态塌缩）来自 Phase-I 原始生成、非论文修复引入；论文语法检查 36/36 与台帐都漏掉了它，说明基于名字集合的检查无法发现\"同名即同一状态\"造成的层次塌缩。",
+ "_source_file": "NL07-b.json",
+ "cross_reference": {
+  "case": "0047",
+  "group": "NL07",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 0,
+   "similar": 1,
+   "problem": 4,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": "syntax error: stm CollisionAvoidanceSystem [Collision Avoidance State Machine]",
+   "grammar": null,
+   "semantic": "missing regions",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.1818181818,
+   "f1_phase2": 0.3125
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0047-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

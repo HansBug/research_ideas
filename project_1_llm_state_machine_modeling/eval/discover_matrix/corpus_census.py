@@ -51,8 +51,12 @@ def main():
         n_enter = len(re.findall(r"^\s*enter\s+", text, re.M))
         n_exit = len(re.findall(r"^\s*exit\s+", text, re.M))
         n_during = len(re.findall(r"^\s*during\s+", text, re.M))
-        n_unspec = len(re.findall(r"UnspecifiedInitial", text))
-        n_finalwait = len(re.findall(r"FinalWaittr_", text))
+        # Count *declarations*, not text occurrences.  Each synthesized entry appears at
+        # least twice -- `state UnspecifiedInitial named "..."` and the `[*] -> Unspecified
+        # Initial` that targets it -- so a bare token count roughly doubles the structural
+        # element count.  0058 has 6 declarations and 12 occurrences.
+        n_unspec = len(re.findall(r"^\s*state\s+UnspecifiedInitial\b", text, re.M))
+        n_finalwait = len(re.findall(r"^\s*state\s+FinalWaittr_", text, re.M))
         rows.append({
             "case": case, "nl_group": group_of.get(case, "?"), "states": len(states), "composites": len(composites),
             "depth": max(depths) if depths else 0, "events": len(events),

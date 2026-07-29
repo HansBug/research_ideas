@@ -1,0 +1,58 @@
+{
+  "case": "0017",
+  "nl_group": "NL07",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state Collision_Avoidance { [*] --> front_inactive ... -- ... -- ... }（`{` 后直接是第一个区域内容，共 3 个区域）",
+      "gen": "state Collision_Avoidance_Active_Mode {\n--\n[*] --> F : collision detected\n...（`{` 之后紧跟 `--`）",
+      "reason": "NL 第1句 \"There are three region in this diagram\" 点名区域数为 3。生成方在 `{` 之后立刻写了一个 `--`，因此第一个分隔符之前形成了一个**空区域**，实际区域数为 4，其中区域 0 既无状态也无默认入口（fcstm 投影记录为 `concurrent region 0: states=-; transitions=-`）。空区域没有默认子态，命中口径 3 的良构性类；区域数量与 NL 第1句不符属数量/结构问题，在范围内。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "[*] --> front_inactive / [*] --> rear_inactive / [*] --> pedestrian_inactive（均无触发）",
+      "gen": "[*] --> F : collision detected\n[*] --> R : collision detected\n[*] --> P : collision detected",
+      "reason": "良构性问题：三条初始迁移全部带触发事件 `collision detected`。初始伪状态的出边不允许带触发，其后果是进入 Collision_Avoidance_Active_Mode 时三个区域都没有合法的默认活动状态，直到该事件到达为止复合态处于无定义配置。参考的三条初始边均无触发，是正确写法。属口径 3 明列的\"带触发的初始边\"。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true ；rear_inactive --> avoid_rearend_collision: dist_to_rear<5 & vel>30 ；pedestrian_inactive --> avoid_pedestrian_collision: pedestrian_detected（三类探测各有独立条件）",
+      "gen": "三个区域共用同一个事件名 `collision detected`（fcstm 中归一为唯一事件 `collision_detected`）",
+      "reason": "NL 第2句以 \"or\" 枚举了三类互相独立的探测：\"a possible frontend collision, rear-end collision or collision with pedestrian is detected\"；NL 第3句进一步要求正交区域允许\"concurrent activation different of collision avoidance controls\"，即各控制可被**分别**激活。生成方三个区域的激活触发是同一个未区分的事件，因此\"只探测到行人\"这种只激活行人控制的行为在模型中无法表达——三个区域必然同时激活。NL 点名的三类探测条件在事件层面丢失（状态名 F/R/P 只保留了分类名称，不构成激活条件）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "front_inactive / rear_inactive / pedestrian_inactive 三个未激活基线状态，以及 dist_to_front<10 & urban=true、dist_to_front<15 & highway=true、dist_to_rear<15 & vel>60、dist_to_front>15、dist_to_rear>12 等数值守卫",
+      "gen": "（无 inactive 基线状态，无任何数值守卫；复合态直接命名为 Collision_Avoidance_Active_Mode）",
+      "reason": "NL 三句都没有点名 inactive 状态，也没有出现任何距离/速度数值。参考的 inactive 状态与数值守卫属于比 NL 更具体的部分，按口径 2 不算生成方问题。生成方把复合态直接命名为\"激活模式\"并让三个区域承载三类控制，是 NL 第3句 \"the active mode of collision avoidance\" 的一种说得通的读法。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "avoid_frontend_collision --> front_inactive: dist_to_front>15（回到未激活，可重复激活）",
+      "gen": "F --> [*] : Collision avoided（回到区域 final）",
+      "reason": "两侧都表达\"危险解除后本控制退出激活\"。参考回到 inactive 使控制可再次激活，生成方进入区域 final 则该区域一次性完成。NL 三句只讲激活，没有规定解除后必须可重新激活，属 NL 欠定；按口径 2 参考更具体的循环语义不计为生成方问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "avoid_frontend_collision / avoid_rearend_collision / avoid_pedestrian_collision",
+      "gen": "state \"Frontend collision\" as F / state \"Rear-end collision\" as R / state \"Collision with pedestrian\" as P",
+      "reason": "NL 第2句点名的三类碰撞在生成方以三个区域各一个状态一一对应，仅命名与缩写不同（F/R/P 带完整显示名）。按口径 1，命名差异不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "state Collision_Avoidance { ... }（无顶层 `[*] -->`，作为子机图）",
+      "gen": "state Collision_Avoidance_Active_Mode { ... }（同样无顶层 `[*] -->`）",
+      "reason": "NL 第2句自称 \"This sub-machine\"，两侧都是不带顶层初始迁移的子机片段，缺顶层入口是双方共有且与 NL 的子机定位一致，不构成差异。复合态命名差异按口径 1 判 correct。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 3,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象；三条同类的\"带触发初始边\"合成一条（一次修复动作即可），而\"空区域\"与\"带触发初始边\"拆开（分属删除多余 `--` 与去掉触发两种修复）。\n\nNL 逐句核对：\n1 \"There are three region in this diagram\"：不满足——有内容的区域是 3 个，但 `{` 后紧跟的 `--` 额外造出一个空区域，实际 4 个区域且空区域无默认子态。\n2 \"This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected\"：部分满足——三类碰撞作为三个区域的状态名存在，但激活触发被压成同一个不区分类型的 `collision detected`，且写在初始边上（不良构）。\n3 \"The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls\"：结构上满足（确有正交区域），但由于共用同一触发，\"分别/不同\"的激活无法表达。\n\n补充：`F --> [*]` 等区域 final 使各控制只能激活一次，NL 未规定，按口径 2 不计问题。生成方无顶层初始迁移与参考一致（子机片段），不计问题。\n参考侧存疑位置：本 case 参考未发现与 NL 冲突的硬错误；其数值守卫（dist_to_rear<15 & vel>60 等）为 NL 之外的额外具体化。"
+}

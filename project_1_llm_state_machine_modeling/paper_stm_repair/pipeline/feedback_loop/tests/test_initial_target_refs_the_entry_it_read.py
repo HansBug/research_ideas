@@ -103,3 +103,79 @@ def test_a_false_initial_target_declares_the_entry_that_decided_it():
     value, refs = call("Authored")
     assert value is False
     assert any("Synthetic" in ref for ref in refs), refs
+
+
+# --- the same omission on the single-entry branch ---------------------------------
+#
+# The fix above landed only on the branch that resolves a unique *unconditional*
+# entry among several.  The branch that returns immediately because there is only
+# one entry at all kept returning without noting it -- and that is the common case:
+# 25 of the 60-pair corpus's composites across 18 pairs take it, against 10 for the
+# multi-entry branch.
+#
+# The visible damage was an inconsistency in the expected-issue ledger that read as
+# reviewer discretion.  Pair 0019's `CollisionAvoidanceSystem` was accepted as a real
+# missing-initial-edge defect; pair 0029's `HighwayMode` -- same shape, same synthetic
+# entry, same exclusion list -- was excluded as representation debt.  0029 has five
+# entries and went through the noting branch, so attribution saw the artifact and
+# filtered it.  0019, 0043 and 0053 have exactly one and went through this branch, so
+# attribution saw nothing and marked them `safe`.  Same evidence, two answers, decided
+# by which branch the model's shape happened to select.
+
+SINGLE_ENTRY_MODEL = """\
+def int Token = 0;
+state Root named "Root" {
+    event go named "go";
+    state Mode named "Mode" {
+        state Wanted named "Wanted";
+        state Synthetic named "Unspecified initial";
+        [*] -> Synthetic;
+        Synthetic -> [*] : /go effect { Token = 5; };
+    }
+    state Idle named "Idle";
+    [*] -> Idle;
+    Idle -> Mode : /go;
+}
+"""
+
+_SINGLE: dict[str, object] = {}
+
+
+def single_env():
+    if "env" not in _SINGLE:
+        _SINGLE["env"] = build_eval_environment(
+            model_text=SINGLE_ENTRY_MODEL,
+            source_mappings=[],
+            source_exclusions=[],
+            timeout_seconds=60,
+            fbmcq_solver_timeout_ms=20_000,
+            fbmcq_max_bound=5,
+            fbmcq_process_wall_seconds=30.0,
+        )
+    return _SINGLE["env"]
+
+
+def single_call(child: str):
+    expr = f'initial_target(composite="Root.Mode", child="Root.Mode.{child}") is True'
+    result = single_env().eval_assert(expr, "initial_target single-entry refs regression")
+    return result.value, tuple(result.function_call_trace[0].model_refs or ())
+
+
+def test_the_lone_synthetic_entry_is_what_makes_the_single_entry_call_false():
+    """Premise for the test below: `Mode` declares exactly one entry, the synthetic one."""
+
+    assert single_call("Wanted")[0] is False
+    assert single_call("Synthetic")[0] is True
+
+
+def test_a_false_from_the_single_entry_branch_also_declares_its_entry():
+    """The common branch needs the refs contract as much as the multi-entry one.
+
+    Without this, a False that rests entirely on a converter-synthesised entry is
+    indistinguishable from a False that rests on the authored model, on 25 of the
+    corpus's composites.
+    """
+
+    value, refs = single_call("Wanted")
+    assert value is False
+    assert any("Synthetic" in ref for ref in refs), refs

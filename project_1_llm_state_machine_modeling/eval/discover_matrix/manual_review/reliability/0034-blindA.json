@@ -1,0 +1,85 @@
+{
+  "case": "0034",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "state InMotion{\\n [*]-->Accelerating\\n Accelerating --> Cruising: Reached Cruising/Cruise\\n Accelerating --> Approaching: Approached/Decelerate\\n Cruising --> Approaching: Approached/Decelerate\\n ...\\n}",
+      "gen": "InMotion --> Accelerating\\nInMotion --> Cruising\\nInMotion --> Approaching（无 state InMotion { } 块，三个态与 InMotion 同层）",
+      "reason": "NL 第 4 句显式点名「Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching」。gen 完全没有 `state InMotion { }` 复合块，FCSTM 投影确认 `state InMotion named \"InMotion\";` 是简单态，而 Accelerating / Cruising / Approaching 与它同层声明。NL 点名的层次包含关系丢失，InMotion 也因此没有默认子态。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "state InMotion{ [*]-->Accelerating ... }（用内部初始伪状态进入子态，InMotion 的两条外部触发边保持有效）",
+      "gen": "InMotion --> Accelerating\\nInMotion --> Cruising\\nInMotion --> Approaching（三条均无标签）",
+      "reason": "良构性：InMotion 有三条无触发的 completion 出边（FCSTM 投影为 `InMotion -> Accelerating;`、`InMotion -> Cruising;`、`InMotion -> Approaching;`，均无事件），因此 InMotion 一被进入就立刻、且不确定地离开。后果是 NL 第 2 句要求的 `InMotion --> Stopping : Arrived/Stop, Send Arrived` 与 NL 第 2、3 句要求的 `InMotion --> EmergencyStopping : Obstacle Detected` 这两条带触发边永远来不及触发——无触发的 completion 边使这两个已声明的分支实际不可达。这是与 diff 1 不同的成因：即便层次缺失，只要给这三条边加上触发（或只保留一条进入边）就不会造成即发退出，修复动作不同。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Accelerating: Entry/Accelerate（Accelerate 只挂在 Accelerating 上；DoorsClosing 无任何动作）",
+      "gen": "DoorsClosing : entry/Accelerate",
+      "reason": "NL 第 8 句把该动作明确归属给加速子态：「The system enters the Accelerating substate when motion begins, marked by the 'Entry/Accelerate' action」。NL 第 1 句则规定 DoorsClosing 在车门关闭、进入 InMotion 之前——即列车尚未开始运动。gen 在 DoorsClosing 上也挂了 entry/Accelerate（FCSTM 投影为 `state DoorsClosing { enter abstract Accelerate; }`），等于车门关闭阶段就开始加速，与 NL 第 1、8 句给出的时序义务矛盾。gen 同时已在 Accelerating 上正确挂了 entry/Accelerate，因此 DoorsClosing 上这一份是错位复制。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "Approaching: Entry/Send",
+      "gen": "Approaching : entry/Decelerate",
+      "reason": "NL 第 9 句显式点名「In the Approaching substate, the system sends the 'Send' signal and continues to approach the destination」。gen 把 Approaching 的 entry 动作写成 Decelerate（FCSTM 投影为 `state Approaching { enter abstract Decelerate; }`），模型中不存在任何 Send 动作，NL 点名的元素缺失。Decelerate 在 NL 第 6、7 句中是 `Approached/Decelerate` 这条迁移的效果（gen 也已在迁移上带了它），此处属把迁移效果误复制为 entry 动作并顶替了 Send。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "problem",
+      "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected",
+      "gen": "EmergencyStopping : entry/Emergency Stop",
+      "reason": "NL 第 3 句点名了两个动作：「the EmergencyStopping state, which includes the actions 'Emergency Stop' and sends the 'Obstacle Detected' signal」。gen 只有 Emergency Stop（FCSTM 投影为 `state EmergencyStopping { enter abstract EmergencyStop; }`），发送 Obstacle Detected 信号这一 NL 点名动作在模型中完全没有对应元素。本条判定依据是 NL 第 3 句原文，不依赖参考侧那一行（参考该行的状态名拼写有误，另见 uncertain 条）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 EmergencyStopping 无任何出边）",
+      "gen": "EmergencyStopping --> [*] : Obstacle Cleared",
+      "reason": "NL 十句中没有任何关于「障碍清除」或离开紧急制动状态的描述，参考也把该状态留成汇状态。gen 凭空新增了 Obstacle Cleared 事件与到 final 的边。副作用是消除了紧急制动态的死端，但事件与迁移本身既非 NL 内容也非参考内容。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考无对应元素）",
+      "gen": "Approaching --> [*] : Destination Missed",
+      "reason": "NL 中不存在「Destination Missed」这一事件，也没有任何从接近状态直接终止的描述；NL 第 10 句恰恰说系统「remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate」。参考同样没有这条边。属凭空新增。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 Cruising 无任何动作标注）",
+      "gen": "Cruising : entry/Cruise",
+      "reason": "NL 第 5 句把 Cruise 规定为迁移效果：「moving to the Cruising substate once cruising speed is reached, as indicated by the 'Reached Cruising/Cruise' signal」，gen 已在 `Accelerating --> Cruising : Reached Cruising/Cruise` 上正确承载。额外在 Cruising 上再挂一个 entry/Cruise（FCSTM 投影 `enter abstract Cruise;`）既非 NL 内容也非参考内容。与 diff 3、diff 4 虽同属「把迁移效果复制成 entry 动作」的手法，但此处没有顶替任何 NL 点名动作、也没有与 NL 时序矛盾，故按档位定义单列为 extra 而非 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "（参考仅有 InMotion --> Stopping : Arrived/Stop, Send Arrived 这条组迁移）",
+      "gen": "Approaching --> Stopping : Ready to Stop",
+      "reason": "NL 第 10 句「until it is ready to stop or decelerate」为这条边提供了依据。参考没有它，靠 InMotion 层的 Arrived 组迁移覆盖到站。gen 的做法有 NL 依据、不违反 NL，属拆分方式差异。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*]-->DoorsClosing\\nDoorsClosing --> InMotion: Closed/SendDeparted\\nInMotion --> Stopping: Arrived/Stop, Send Arrived\\nInMotion --> EmergencyStopping: ObstacleDetected\\nAccelerating --> Cruising: Reached Cruising/Cruise\\nAccelerating --> Approaching: Approached/Decelerate\\nCruising --> Approaching: Approached/Decelerate\\nAccelerating: Entry/Accelerate",
+      "gen": "[*] --> DoorsClosing\\nDoorsClosing --> InMotion : Closed/SendDeparted\\nInMotion --> Stopping : Arrived/Stop, Send Arrived\\nInMotion --> EmergencyStopping : Obstacle Detected\\nAccelerating --> Cruising : Reached Cruising/Cruise\\nAccelerating --> Approaching : Approached/Decelerate\\nCruising --> Approaching : Approached/Decelerate\\nAccelerating : entry/Accelerate",
+      "reason": "NL 第 1、2、3（状态存在性）、5、6、7、8 句涉及的状态、事件与效果标签在 gen 中逐条存在且文本与参考一致；根初始边无触发，合规。Obstacle Detected 与参考 ObstacleDetected 只是分词差异。NL 第 8 句的 Entry/Accelerate 也已正确挂在 Accelerating 上（问题在于它同时被复制到 DoorsClosing，另行记账）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected\\nApproaching: Approaching",
+      "gen": "EmergencyStopping : entry/Emergency Stop\\n（无对应的 Approaching 自标注行）",
+      "reason": "参考侧存疑：参考把状态名写成 `EmergencyStoping`（少一个 p，与其自身在 `InMotion --> EmergencyStopping` 中使用的名字不一致），动作名也写成 `Emergency Sop`（少一个 t）。按 PlantUML 语义，这一行会声明一个新的孤立状态 EmergencyStoping 并把两个 entry 动作挂到这个幽灵状态上，真正的 EmergencyStopping 反而没有任何动作——即参考自己也没有把 NL 第 3 句的两个动作正确挂上。另外参考还有一行 `Approaching: Approaching`，把状态名当作内部标注重复了一次，语义不明。因此参考的动作清单不能作为基准，我对 gen 缺失 Send Obstacle Detected 的判定完全依据 NL 第 3 句原文。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 5,
+  "extra_count": 3,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。本 case 中「InMotion 层次缺失」与「三条无触发 completion 边导致 Stopping/EmergencyStopping 分支不可达」拆为两条——前者的修复是补 `state InMotion { }` 与 `[*]-->Accelerating`，后者的修复是消除无触发出边，动作不同且后果不同。三处「把迁移效果复制成 entry 动作」按后果分档：顶替了 NL 点名动作或与 NL 时序矛盾的（DoorsClosing 的 Accelerate、Approaching 的 Decelerate）判 problem 且各自立条（归属对象不同、修复位置不同），未顶替任何 NL 义务的（Cruising 的 Cruise）判 extra。与参考同名同标签的正确元素按对象归并为一条 correct，不逐条铺开。\n\n逐句核对 NL（10 句）：\nNL1（起于 DoorsClosing，车门关闭时以 Closed/SendDeparted 转 InMotion）——迁移满足；但 DoorsClosing 被额外挂了 entry/Accelerate，与「运动尚未开始」矛盾。\nNL2（InMotion 可经 Arrived/Stop, Send Arrived 转 Stopping，或障碍检测转 EmergencyStopping）——两条边文本正确存在，但因 InMotion 有三条无触发 completion 出边而实际不可达。\nNL3（EmergencyStopping 含 Emergency Stop 动作并发送 Obstacle Detected 信号）——部分满足：只有 Emergency Stop，Send Obstacle Detected 缺失。\nNL4（InMotion 内含 Accelerating、Cruising、Approaching 三个子态）——未满足：三个状态存在但与 InMotion 同层，无 `state InMotion { }` 包含关系（FCSTM 投影确认）。\nNL5（起于 Accelerating，达到巡航速度后经 Reached Cruising/Cruise 转 Cruising）——迁移满足；但「起于 Accelerating」这一默认子态语义因层次缺失而不存在（gen 靠三条无触发边同时指向三个态代替）。\nNL6（Accelerating 接近目的地时经 Approached/Decelerate 转 Approaching）——满足。\nNL7（Cruising 经 Approached/Decelerate 转 Approaching）——满足。\nNL8（进入 Accelerating 时以 Entry/Accelerate 标记）——满足（Accelerating : entry/Accelerate）。\nNL9（Approaching 中发送 Send 信号并继续接近目的地）——未满足：entry 动作被写成 Decelerate，模型中无 Send。\nNL10（在 Approaching 保持直到准备停车或减速）——满足：`Approaching --> Stopping : Ready to Stop` 有 NL 依据（判 similar）；但同时额外新增了无依据的 `Approaching --> [*] : Destination Missed`。\n\n良构性补充：Stopping 在 gen 与参考中都是死端，NL 未规定其后继，故未计问题。\n\n参考模型自身问题：\n(1) `EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected` 状态名拼写错误（EmergencyStoping vs EmergencyStopping），动作名亦拼错（Sop），导致两个 entry 动作挂到幽灵状态上，真正的 EmergencyStopping 无动作。\n(2) `Approaching: Approaching` 一行把状态名当内部标注重复，语义不明。\n(3) 参考中 EmergencyStopping 与 Stopping 均为死端，NL 未要求终止，非错误但需注意。"
+}
