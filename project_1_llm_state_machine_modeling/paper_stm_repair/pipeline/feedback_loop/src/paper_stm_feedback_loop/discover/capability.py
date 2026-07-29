@@ -58,6 +58,7 @@ __all__ = [
     "bare_reachability_probe",
     "unresolved_model_references",
     "unresolved_reference_findings",
+    "initialization_anchored_findings",
     "placeholder_bindings",
     "redundant_proposal_findings",
     "termination_proposal_findings",
@@ -637,6 +638,62 @@ def redundant_proposal_findings(
                     f"{SCOPE_LOCAL_WAIVER!r} in limitations and the Reviewer will "
                     "judge that (step 2)"
                 )
+    return tuple(findings)
+
+
+def initialization_anchored_findings(
+    requirements: Iterable[_RequirementSpec],
+) -> tuple[str, ...]:
+    """Requirements that anchor a running-phase claim at the initial configuration.
+
+    `[*]` as a source means "before the machine has entered anything", which is the
+    right anchor for a power-on claim and the wrong one for every other phase.  Bound
+    on an operation or termination requirement it makes the claim about
+    initialization instead, and the two questions can have opposite answers on the
+    same model.
+
+    Pair 0000 is the case, and it is the pair's expected defect: the model declares
+    `[*] -> FinalState : /Power_Off`, which is precisely the mistake -- power-off
+    should terminate the *running* mode, not fire from the pseudo-initial.  A
+    termination requirement bound to `source="[*]"` asks whether that very edge
+    exists, so it is true *because* of the defect, and the pair's one expected issue
+    goes unreported.  Verified: matrix-v13's 0000-claude wrote exactly that and
+    published zero issues where matrix-v11 published the credited hit.
+
+    Refused here rather than at conversion, because `predicate_bindings` are frozen
+    once the requirement is accepted.  The converter cannot rebind a source, so a
+    gate downstream of the freeze would leave the item no legal move -- which is how
+    two earlier runs died.
+
+    :param requirements: the accepted requirement set.
+    :return: one finding per offending requirement; empty when every anchor fits its
+        phase.
+    """
+
+    findings: list[str] = []
+    for item in requirements:
+        phase = str(
+            (getattr(item, "source_context", None) or {}).get("behavior_phase", "")
+        ).lower()
+        if phase not in SOURCE_SENSITIVE_PHASES:
+            continue
+        bindings = item.predicate_bindings or {}
+        anchored = sorted(
+            binding
+            for binding in ("source", "scope")
+            if str(bindings.get(binding, "")).strip() == PSEUDO_INITIAL
+        )
+        if anchored:
+            findings.append(
+                f"{item.requirement_id} is a {phase}-phase requirement with "
+                f"{anchored} bound to {PSEUDO_INITIAL}. That anchors the claim before "
+                "the machine has entered anything, so it asks about initialization "
+                "instead of about the phase the sentence is about -- and on a model "
+                "whose defect is an edge leaving the pseudo-initial, the claim is "
+                "true because of the defect. Name the running state the sentence is "
+                "about; when the sentence does not pin one, write one requirement "
+                "per state it ranges over."
+            )
     return tuple(findings)
 
 

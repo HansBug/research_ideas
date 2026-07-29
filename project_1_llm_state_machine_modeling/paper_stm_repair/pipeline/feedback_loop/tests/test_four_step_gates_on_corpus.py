@@ -383,3 +383,71 @@ def test_a_missing_variable_claim_survives_a_state_of_the_same_leaf_name():
     assert fired(
         {"state": f"{prefix}.HighwayMode.cruise", "phase": "entry"}, "action_declared"
     ) == ()
+
+
+def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
+    """Pair 0000's expected defect *is* an edge leaving the pseudo-initial.
+
+    The model declares `[*] -> FinalState : /Power_Off`, and that is the mistake --
+    power-off should terminate the running mode.  So a termination requirement bound
+    to `source="[*]"` asks whether that very edge exists: true because of the defect,
+    and the pair's one expected issue goes unreported.  matrix-v13's 0000-claude
+    wrote exactly that and published zero issues where matrix-v11 published the
+    credited hit.
+
+    The same binding on an initialization requirement is correct and must survive --
+    that is how a power-on claim is written, and the two live side by side in the
+    same requirement set.
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        initialization_anchored_findings,
+    )
+
+    prefix = "llms_emp_feedback_final_0000"
+
+    def req(rid, phase, bindings):
+        item = Req(rid, "occupancy_after", bindings)
+        item.source_context = {"basis": "explicit_nl", "behavior_phase": phase}
+        return item
+
+    power_on = req(
+        "REQ-003",
+        "initialization",
+        {
+            "source": "[*]",
+            "trigger": f"{prefix}.Power_On",
+            "target": f"{prefix}.HumanDrivingMode",
+        },
+    )
+    power_off = req(
+        "REQ-006",
+        "termination",
+        {
+            "source": "[*]",
+            "trigger": f"{prefix}.Power_Off",
+            "target": f"{prefix}.FinalState",
+        },
+    )
+    fired = initialization_anchored_findings((power_on, power_off))
+    assert len(fired) == 1, fired
+    assert "REQ-006" in fired[0]
+    assert "termination-phase" in fired[0]
+    # A named running source is what the gate is asking for, and it passes.
+    pinned = req(
+        "REQ-006",
+        "termination",
+        {
+            "source": f"{prefix}.HumanDrivingMode",
+            "trigger": f"{prefix}.Power_Off",
+            "target": f"{prefix}.FinalState",
+        },
+    )
+    assert initialization_anchored_findings((pinned,)) == ()
+    # And `operation` is source-sensitive too, not just termination.
+    operating = req(
+        "REQ-009",
+        "operation",
+        {"source": "[*]", "trigger": f"{prefix}.Condition_Met", "target": f"{prefix}.AutonomousMode"},
+    )
+    assert len(initialization_anchored_findings((operating,))) == 1

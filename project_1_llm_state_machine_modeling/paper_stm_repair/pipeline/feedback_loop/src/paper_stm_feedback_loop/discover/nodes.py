@@ -35,6 +35,7 @@ from .capability import (
     SOURCE_SENSITIVE_PHASES,
     called_evidence_functions,
     declared_path_bindings,
+    initialization_anchored_findings,
     redundant_proposal_findings,
     termination_proposal_findings,
     fbmcq_non_vacuity_findings,
@@ -1232,6 +1233,7 @@ def split_requirements(
         # the genuinely semantic call and stays with the reviewer.
         known_paths = frozenset(frozen.known_model_paths)
         step_findings = (
+            *initialization_anchored_findings(output.requirements),
             *termination_proposal_findings(
                 output.requirements,
                 known_paths,
@@ -1243,8 +1245,8 @@ def split_requirements(
         )
         if step_findings:
             raise ValueError(
-                "requirements propose a name where an earlier step of the "
-                f"four-step procedure applies: {list(step_findings)}"
+                "requirements are anchored or named against what the frozen model "
+                f"already says: {list(step_findings)}"
             )
         coverage = RequirementCoverageProjection(
             covered_requirement_ids=tuple(

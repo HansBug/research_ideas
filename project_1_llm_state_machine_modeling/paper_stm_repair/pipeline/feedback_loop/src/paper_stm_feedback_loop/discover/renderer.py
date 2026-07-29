@@ -83,11 +83,18 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "answers False -- and that False is the finding, since the model gives the "
         "author's entry a guard and the default to a generated holder.\n"
         "When a composite lists two or more entries and none is unconditional, "
-        "`initial_target` cannot answer at all and raises. State that claim as "
+        "`initial_target` cannot answer at all and raises. State *that* claim -- the "
+        "entry claim, nothing else -- as "
         "`edge_declared(source=\"[*]\", trigger=..., target=...)` for the "
         "declaration or `occupancy_after(source=\"[*]\", ...)` for the behaviour, "
-        "and pick that predicate in the Requirement -- the predicate is frozen "
-        "before the assertion stage and cannot be changed later."
+        "and pick that predicate in the Requirement, since the predicate is frozen "
+        "before the assertion stage.\n"
+        "`[*]` is an entry anchor and only that. Do not carry it into a requirement "
+        "about a phase the machine is already running in: a termination claim bound "
+        "to `source=\"[*]\"` asks whether the run ends *from power-on*, which on a "
+        "model whose defect is an edge leaving the pseudo-initial is true because of "
+        "the defect. Name the running state instead, one requirement per state the "
+        "sentence ranges over."
     )
     if compiler_owned:
         # Shown, not hidden: the producer will see these names in the FCSTM text
