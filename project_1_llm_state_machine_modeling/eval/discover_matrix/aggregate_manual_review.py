@@ -1,0 +1,289 @@
+"""Aggregate the 60-pair manual review into an audit ledger plus readable reports.
+
+Why the review is manual
+------------------------
+The obvious way to compare an author-generated STM_0 against the paper's reference
+STM_0 is to diff their element sets.  I tried that first and it is not usable: of
+229 states present in a reference and absent from its generated counterpart, the
+overwhelming majority are the *same state under a different name* --
+`human_mode`/`HumanDrivingMode`, `avoid_frontend_collision`/`F`,
+`Search_for_the_Target`/`Search`.  Normalising case, separators and stock words
+cuts 229 to 191 and still leaves false gaps, because the remaining differences are
+semantic rather than lexical: a reference may split a transition in two where the
+generated model folds it, or name a region what the other names a state.
+
+That is also why the paper marks its own stages (3) and (4) as **manual**: element
+correspondence cannot be decided mechanically.  So this pipeline consumes a review
+where each difference was read and graded by hand, and its job is only to tally,
+cross-check and render -- never to re-derive a verdict.
+
+Grades (defined in `REVIEW_SPEC.md`, one per difference):
+
+    correct     semantically equivalent, different spelling or shape
+    similar     differs but defensible and not violating the NL
+    problem     violates the NL, or drops semantics the reference carries
+    extra       present in the generated model, in neither reference nor NL
+    uncertain   evidence insufficient; the blocker is recorded
+
+`out_of_scope` marks a difference as `concurrency` or `timing` so the two classes
+this study's problem definition excludes (see `GROUND_TRUTH_LIMITATIONS.md`) can be
+counted separately rather than silently dropped or silently included.
+
+Usage:
+    PYTHONPATH=<repo root> python aggregate_manual_review.py <review_dir> <out_dir>
+        <review_dir>  holds NL*.json written by the review agents
+        <out_dir>     receives audit/ and readable/ bundles
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+import sys
+from collections import Counter, defaultdict
+
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.resolve().parents[2]
+LEDGER = (
+    ROOT / ".omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json"
+)
+PAPER = HERE / "paper_reported_problems.json"
+
+GRADES = ("correct", "similar", "problem", "extra", "uncertain")
+SCOPES = ("concurrency", "timing")
+
+
+def load_reviews(review_dir: pathlib.Path) -> list[dict]:
+    """Every reviewed pair, with the source file recorded for traceability."""
+
+    out: list[dict] = []
+    for path in sorted(review_dir.glob("NL*.json")):
+        payload = json.loads(path.read_text())
+        if not isinstance(payload, list):
+            raise SystemExit(f"{path.name}: expected a JSON array, got {type(payload).__name__}")
+        for entry in payload:
+            entry["_source_file"] = path.name
+            out.append(entry)
+    return out
+
+
+def validate(reviews: list[dict]) -> list[str]:
+    """Problems that would make the tally misleading.  Reported, never silently fixed."""
+
+    complaints: list[str] = []
+    seen = Counter(r.get("case") for r in reviews)
+    expected = {f"{n:04d}" for n in range(60)}
+    got = set(seen)
+    if missing := sorted(expected - got):
+        complaints.append(f"未审阅的 case（其缺席会被读成「无问题」）: {missing}")
+    if dupes := sorted(c for c, n in seen.items() if n > 1):
+        complaints.append(f"重复审阅的 case: {dupes}")
+    if unknown := sorted(got - expected):
+        complaints.append(f"不在 60 例中的 case: {unknown}")
+    for review in reviews:
+        case = review.get("case", "?")
+        diffs = review.get("diffs")
+        if not isinstance(diffs, list):
+            complaints.append(f"{case}: diffs 缺失或非数组")
+            continue
+        for index, diff in enumerate(diffs):
+            verdict = diff.get("verdict")
+            if verdict not in GRADES:
+                complaints.append(f"{case} diff[{index}]: 未知档位 {verdict!r}")
+            if not str(diff.get("reason") or "").strip():
+                complaints.append(f"{case} diff[{index}]: 缺理由（判定不可复核）")
+            scope = diff.get("out_of_scope")
+            if scope not in (None, *SCOPES):
+                complaints.append(f"{case} diff[{index}]: 未知 out_of_scope {scope!r}")
+        # The reviewer states a count; recompute it and flag disagreement rather
+        # than trusting either side.
+        for field, grade in (("problem_count", "problem"), ("extra_count", "extra")):
+            stated = review.get(field)
+            actual = sum(1 for d in diffs if d.get("verdict") == grade)
+            if stated is not None and stated != actual:
+                complaints.append(
+                    f"{case}: {field}={stated} 与逐条统计 {actual} 不一致"
+                )
+    return complaints
+
+
+def cross_reference(reviews: list[dict]) -> dict:
+    """Tie each reviewed pair to the paper's record and to the ledger's E1s."""
+
+    paper = json.loads(PAPER.read_text())
+    ledger = json.loads(LEDGER.read_text())
+    e1_by_case: dict[str, list[dict]] = defaultdict(list)
+    for finding in ledger["findings"]:
+        e1_by_case[finding["issue_id"].split("-")[1]].append(finding)
+    cases = {c["case_id"]: c for c in ledger["cases"]}
+
+    out = {}
+    for review in reviews:
+        case = review["case"]
+        record = paper.get(case, {})
+        e1 = e1_by_case.get(case, [])
+        counts = Counter(d.get("verdict") for d in review.get("diffs", []))
+        in_scope_problems = sum(
+            1
+            for d in review.get("diffs", [])
+            if d.get("verdict") in {"problem", "extra"} and not d.get("out_of_scope")
+        )
+        out[case] = {
+            "case": case,
+            "group": review.get("group"),
+            "llm": review.get("llm"),
+            "counts": {g: counts.get(g, 0) for g in GRADES},
+            "out_of_scope": Counter(
+                d["out_of_scope"] for d in review.get("diffs", []) if d.get("out_of_scope")
+            ),
+            "problems_in_scope": in_scope_problems,
+            "paper": {
+                "format": record.get("format_hallucinations"),
+                "grammar": record.get("grammar_hallucinations"),
+                "semantic": record.get("semantic_hallucinations"),
+                "semantic_resolved": record.get("semantic_resolved"),
+                "f1_phase1": record.get("f1_phase1"),
+                "f1_phase2": record.get("f1_phase2"),
+            },
+            "ledger": {
+                "status": (cases.get(case) or {}).get("status"),
+                "e1_ids": [f["issue_id"] for f in e1],
+                "e1_categories": [f.get("category") for f in e1],
+            },
+            "assertable_problems": sum(
+                1
+                for d in review.get("diffs", [])
+                if d.get("verdict") == "problem" and d.get("predicate_exists")
+            ),
+        }
+    return out
+
+
+def readable(review: dict, cross: dict) -> str:
+    """One human-facing report per pair."""
+
+    case = review["case"]
+    info = cross[case]
+    lines = [
+        f"# `{case}` × `{info['llm']}` — 作者 STM_0 vs 参考 STM_0 人工审阅",
+        "",
+        f"NL 组 `{info['group']}`。判定口径见审阅规范：**语义等价即标 `correct` / `similar`，"
+        "不做机械的元素存在性比对**；本研究问题定义外的差异（正交并发、时间约束）单独标记，"
+        "既不计入问题也不静默丢弃。",
+        "",
+        "## 判定汇总",
+        "",
+        "| 档位 | 条数 |",
+        "| --- | ---: |",
+    ]
+    for grade in GRADES:
+        lines.append(f"| `{grade}` | {info['counts'][grade]} |")
+    lines += [
+        "",
+        f"**计入问题**（`problem` + `extra`，已排除问题定义外的差异）：**{info['problems_in_scope']}**",
+    ]
+    if info["out_of_scope"]:
+        detail = "、".join(f"`{k}` {v} 条" for k, v in sorted(info["out_of_scope"].items()))
+        lines.append(f"问题定义外的差异：{detail}")
+    lines += ["", "## 三方对照", "", "| 来源 | 记录 |", "| --- | --- |"]
+    paper = info["paper"]
+    lines += [
+        f"| 论文 格式栏 | {paper['format'] or '—'} |",
+        f"| 论文 语法栏 | {paper['grammar'] or '—'} |",
+        f"| 论文 语义栏（SysML 规范） | {paper['semantic'] or '—'}"
+        f"（resolved={paper['semantic_resolved']}） |",
+        f"| 论文 F1 | Phase-I {paper['f1_phase1']} → Phase-II {paper['f1_phase2']} |",
+        f"| 台帐 status | {info['ledger']['status']} |",
+        f"| 台帐 E1 | {', '.join(info['ledger']['e1_ids']) or '无'} |",
+        "",
+        f"审阅者对照结论 — 相对论文：{review.get('vs_paper') or '（未填）'}",
+        "",
+        f"审阅者对照结论 — 相对台帐：{review.get('vs_ledger') or '（未填）'}",
+        "",
+        "## 逐条差异",
+        "",
+    ]
+    for index, diff in enumerate(review.get("diffs", []), 1):
+        scope = f" · 问题定义外：`{diff['out_of_scope']}`" if diff.get("out_of_scope") else ""
+        lines += [
+            f"### {index}. `{diff.get('verdict')}`{scope}",
+            "",
+            f"- 参考侧：`{diff.get('ref') or '—'}`",
+            f"- 生成侧：`{diff.get('gen') or '—'}`",
+            f"- 理由：{diff.get('reason')}",
+        ]
+        if diff.get("assertable"):
+            exists = diff.get("predicate_exists")
+            mark = "谓词存在" if exists else ("谓词不存在" if exists is False else "未判定")
+            lines.append(f"- 可断言形式（{mark}）：`{diff['assertable']}`")
+        lines.append("")
+    if review.get("notes"):
+        lines += ["## 审阅者备注", "", review["notes"], ""]
+    return "\n".join(lines)
+
+
+def main() -> int:
+    if len(sys.argv) != 3:
+        print(__doc__)
+        return 2
+    review_dir, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+    audit, human = out / "audit", out / "readable"
+    audit.mkdir(parents=True, exist_ok=True)
+    human.mkdir(parents=True, exist_ok=True)
+
+    reviews = load_reviews(review_dir)
+    complaints = validate(reviews)
+    cross = cross_reference(reviews)
+
+    for review in reviews:
+        case = review["case"]
+        (audit / f"{case}-review.json").write_text(
+            json.dumps({**review, "cross_reference": cross[case]}, ensure_ascii=False, indent=1) + "\n"
+        )
+        (human / f"{case}-readable.md").write_text(readable(review, cross))
+
+    totals = Counter()
+    scope_totals = Counter()
+    for info in cross.values():
+        for grade in GRADES:
+            totals[grade] += info["counts"][grade]
+        scope_totals.update(info["out_of_scope"])
+    summary = {
+        "schema": "paper1.manual_ref_review.v1",
+        "what_this_is": (
+            "60 个 pair 的逐条人工审阅结果：作者生成 STM_0 相对论文参考 STM_0 的差异，"
+            "按语义而非元素存在性判定。语义等价的写法差异标为 correct/similar，不计问题。"
+        ),
+        "why_not_mechanical": (
+            "机械元素比对不可用：参考独有状态 229 个中绝大多数是同一状态的不同命名"
+            "（human_mode/HumanDrivingMode、avoid_frontend_collision/F 等），规范化后仍余 191 个"
+            "假缺失。论文自身也把这一阶段标为人工执行。"
+        ),
+        "oracle_caveat": (
+            "参考模型是论文作者人工重建的产物，论文 §7 自认 subjective、§4.2(4) 说 "
+            "we assume the reference model is semantically correct——其正确性未经独立验证。"
+            "因此本审阅的结论是「相对该参考模型」的，不等于绝对缺陷集。"
+        ),
+        "cases_reviewed": len(cross),
+        "grade_totals": dict(totals),
+        "out_of_scope_totals": dict(scope_totals),
+        "problems_in_scope_total": sum(i["problems_in_scope"] for i in cross.values()),
+        "assertable_problems_total": sum(i["assertable_problems"] for i in cross.values()),
+        "validation_complaints": complaints,
+        "per_case": {c: {k: v for k, v in i.items() if k != "out_of_scope"} | {"out_of_scope": dict(i["out_of_scope"])} for c, i in sorted(cross.items())},
+    }
+    (audit / "_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n")
+
+    print(f"审阅 {len(cross)} 个 case -> {out}")
+    print(f"  档位合计: {dict(totals)}")
+    print(f"  问题定义外: {dict(scope_totals)}")
+    print(f"  计入问题合计: {summary['problems_in_scope_total']}")
+    if complaints:
+        print(f"  ⚠ 校验问题 {len(complaints)} 条:")
+        for line in complaints[:12]:
+            print(f"    {line}")
+    return 1 if complaints else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

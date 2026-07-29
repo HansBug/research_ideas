@@ -128,3 +128,86 @@ def test_a_failed_scan_is_not_reported_as_clean(tmp_path):
     text = report_tables.fabrication_section(tmp_path / "failed")
     assert "捏造扫描失败" in text
     assert "不得读作干净结果" in text
+
+
+def test_the_aggregator_refuses_to_bless_an_incomplete_review(tmp_path):
+    """A missing case reads as a case with no problems, so it has to be reported.
+
+    The whole point of the manual review is that a pair nobody looked at must not
+    be indistinguishable from a pair that came back clean.  Four failure modes are
+    checked together because each one alone would corrupt the tally: an unreviewed
+    case, an unknown grade, a stated count that disagrees with the per-difference
+    tally, and a verdict with no reason (which makes it unreviewable by anyone else).
+    """
+
+    import json
+    import sys as _sys
+
+    import aggregate_manual_review as agg
+
+    review = [
+        {
+            "case": "0000", "group": "NL08", "llm": "GPT-4o",
+            "problem_count": 99,  # disagrees with the two below
+            "diffs": [
+                {"verdict": "problem", "ref": "a", "gen": "b", "reason": "ok"},
+                {"verdict": "nonsense", "ref": "c", "gen": "d", "reason": "ok"},
+                {"verdict": "problem", "ref": "e", "gen": "f", "reason": "   "},
+            ],
+        }
+    ]
+    source = tmp_path / "in"
+    source.mkdir()
+    (source / "NL08.json").write_text(json.dumps(review))
+
+    complaints = agg.validate(agg.load_reviews(source))
+    joined = "\n".join(complaints)
+    assert "未审阅的 case" in joined
+    assert "未知档位" in joined
+    assert "problem_count=99" in joined
+    assert "缺理由" in joined
+
+    # And the runner must exit non-zero, so it can gate a publish step.
+    out = tmp_path / "out"
+    monkey = getattr(_sys, "argv")
+    try:
+        _sys.argv = ["aggregate_manual_review.py", str(source), str(out)]
+        assert agg.main() == 1
+    finally:
+        _sys.argv = monkey
+
+
+def test_out_of_scope_differences_are_counted_apart_from_problems(tmp_path):
+    """Concurrency and timing are outside this study's problem definition.
+
+    They must be neither silently dropped (which would hide that the reviewer saw
+    them) nor folded into the problem count (which would report the study as having
+    missed something it does not claim to cover).
+    """
+
+    import json
+
+    import aggregate_manual_review as agg
+
+    review = [
+        {
+            "case": "0000", "group": "NL08", "llm": "GPT-4o",
+            "diffs": [
+                {"verdict": "problem", "ref": "a", "gen": "b", "reason": "r"},
+                {"verdict": "problem", "ref": "c", "gen": "d", "reason": "r",
+                 "out_of_scope": "concurrency"},
+                {"verdict": "extra", "ref": None, "gen": "e", "reason": "r",
+                 "out_of_scope": "timing"},
+            ],
+        }
+    ]
+    source = tmp_path / "in"
+    source.mkdir()
+    (source / "NL08.json").write_text(json.dumps(review))
+    cross = agg.cross_reference(agg.load_reviews(source))
+
+    # Three graded problems, but only the one inside the problem definition counts.
+    assert cross["0000"]["counts"]["problem"] == 2
+    assert cross["0000"]["counts"]["extra"] == 1
+    assert cross["0000"]["problems_in_scope"] == 1
+    assert dict(cross["0000"]["out_of_scope"]) == {"concurrency": 1, "timing": 1}

@@ -958,6 +958,20 @@ talks/
 ### 状态机形式化
 - 状态机模型：`M = (S, E, V, Tr, A)` 其中 S=状态集合，E=事件集合，V=变量集合，Tr=迁移集合，A=动作集合
 - 时间状态机：`TSM = (S, S₀, E, V, C, Tr, Inv, Act)` 包含时钟约束和不变式
+
+**研究内容一（project_1 / paper1）的建模对象边界**：锚定 **FSM / HSM / EFSM**，即上面的
+`M = (S, E, V, Tr, A)`；**时钟变量与不变式（`TSM` 相对 `M` 多出的 `C` 与 `Inv`）以及正交区并发
+语义均排除在建模对象之外**。核心关注**层次结构、形式化语义、语义一致性**三件事。
+
+这条边界是硬约束，涉及 project_1 的问题定义、prompt 引导、谓词词表、expected issue 分母与论文
+表述时都必须遵守：
+- 不得把并发/时间列为 project_1 的方法主张或创新点
+- 不得把并发/时间类问题在 project_1 的评测中记为"方法未能检出"——它们不在断言对象内
+- 也不得反过来声称"这些模型没有并发/时间问题"（基线论文的最大语义类正是 missing regions）
+- 详见 [project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)
+
+时间与并发相关的验证仍属**研究内容三**；由于研究内容一不产出时钟与不变式，其时间属性来源
+需在研究内容二/三中另行界定（见 [TARGET.md](./TARGET.md) 「可能遇到的问题」第 2 条的衔接说明）。
 - 验证剖面：`SP = ⟨(E₁, C₁, τ₁), (E₂, C₂, τ₂), ..., (Eₙ, Cₙ, τₙ)⟩`
 - 性质模型：`Property = (Type, Scope, Predicate, TemporalConstraint)`
 
