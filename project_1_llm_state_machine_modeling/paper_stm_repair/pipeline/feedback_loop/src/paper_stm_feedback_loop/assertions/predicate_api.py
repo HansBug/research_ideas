@@ -60,6 +60,13 @@ DEFAULT_BOUND = 5
 #: Cycles a termination probe drives before concluding the model cannot finish.
 TERMINATION_CYCLES = 6
 
+#: How much further than asked `occupancy_after` looks before letting a False
+#: stand.  Four is measured, not guessed: every bounded artifact in the corpus
+#: flips at the very next cycle, and the deepest automatic chain a target can sit
+#: behind is 7 edges -- of which the settle in `_simulate` already absorbs the part
+#: that precedes the trigger, leaving the tail this has to cover.
+_HORIZON_PROBE = 4
+
 #: Hard ceiling on any caller-supplied cycle or step budget.  `reaches` builds
 #: one plan entry per cycle, so `within_cycles=10**9` allocated a billion of them
 #: and exhausted the machine's memory before any check ran.  A producer can write
@@ -1081,11 +1088,43 @@ class PredicateAPI:
 
         self._require_well_formed_names(source=source, trigger=trigger, target=target)
         self._reject_undiscriminating_root("occupancy_after", target=target)
-        view = self._simulate(
-            source=source,
-            trigger=trigger,
-            cycles=_budget(within_cycles, "within_cycles", DEFAULT_CYCLES),
-        )
+        asked = _budget(within_cycles, "within_cycles", DEFAULT_CYCLES)
+        if self._occupies(source=source, trigger=trigger, target=target, cycles=asked):
+            return True
+        # A False has to be about the model, not about the horizon it was asked
+        # over.  The converter prompt already says publishing a bounded artifact is
+        # "the failure this gate exists to stop" -- but no gate did, and matrix-v17
+        # published one on the first cell that finished: pair 0006's
+        # `Searching --Interception_Detected--> Intercepted --(completion)-->
+        # FormationAdjustment` is answered by `within_cycles=2` and denied by the
+        # default of 1.  Prompt guidance to count the declared steps did not hold;
+        # the producer chose the default anyway.
+        #
+        # Safe to refuse rather than answer, because a genuine defect does not
+        # become satisfied at a longer horizon.  Measured on the corpus's credited
+        # findings: EXP-0000-IT-001 and EXP-0029-IT-001 are False at every horizon
+        # from 1 to 8, while the bounded artifacts flip at the second cycle.
+        for larger in range(asked + 1, min(asked + _HORIZON_PROBE, MAX_BUDGET) + 1):
+            if self._occupies(
+                source=source, trigger=trigger, target=target, cycles=larger
+            ):
+                raise UnsupportedEvidence(
+                    f"occupancy_after is False over {asked} cycle(s) but True over "
+                    f"{larger}, so the answer is about the horizon rather than the "
+                    "model: the target is reached through steps the claim did not "
+                    "allow for -- eventless completion edges, forced transitions, or "
+                    "a parent-level follow-up routed on a converter token. Count the "
+                    f"declared steps and state the obligation with "
+                    f"within_cycles={larger}."
+                )
+        return False
+
+    def _occupies(
+        self, *, source: str, trigger: str, target: str, cycles: int
+    ) -> bool:
+        """Whether the trigger leaves the machine inside ``target`` within ``cycles``."""
+
+        view = self._simulate(source=source, trigger=trigger, cycles=cycles)
         # The claim is "this trigger takes the system there".  A completion
         # transition can reach the target on its own while the trigger is never
         # consumed; crediting the trigger for that is the false-positive shape

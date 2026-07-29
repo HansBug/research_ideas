@@ -192,3 +192,80 @@ def test_an_automatic_cycle_keeps_the_old_behaviour_rather_than_being_refused():
     assert api._settle_cycles("Root.Loop.A") == 0
     # The composite itself keeps the one entry-committing cycle it always had.
     assert api._settle_cycles("Root.Loop") == 1
+
+
+#: The trigger is answered, but the target sits one *completion* edge past the
+#: state the trigger leads to -- pair 0006's shape:
+#: `Searching --Interception_Detected--> Intercepted --(completion)--> FormationAdjustment`.
+PAST_THE_TRIGGER = """\
+state Root named "Root" {
+    event detected named "detected";
+    state Searching named "Searching";
+    state Intercepted named "Intercepted";
+    state Adjusting named "Adjusting";
+    state Elsewhere named "Elsewhere";
+    [*] -> Searching;
+    Searching -> Intercepted : /detected;
+    Intercepted -> Adjusting;
+}
+"""
+
+
+def _ask(model: str, expression: str):
+    environment = build_eval_environment(
+        model_text=model,
+        source_mappings=[],
+        source_exclusions=[],
+        timeout_seconds=60,
+        fbmcq_solver_timeout_ms=20_000,
+        fbmcq_max_bound=5,
+        fbmcq_process_wall_seconds=30.0,
+    )
+    return environment.eval_assert(expression, "horizon regression")
+
+
+def test_a_false_over_too_small_a_horizon_is_refused_not_published():
+    """The converter prompt claimed a gate stopped this, and no gate did.
+
+    matrix-v17 published one on the first cell that finished: the obligation is
+    answered at two cycles and denied at the default of one, because the target
+    sits behind a completion edge *after* the trigger -- which the settle before
+    the trigger cannot absorb.  Prompt guidance to count the declared steps did
+    not hold; the producer used the default anyway.
+
+    Refusing is safe because a genuine defect does not become satisfied at a longer
+    horizon: the corpus's credited findings are False at every horizon from 1 to 8,
+    while bounded artifacts flip at the next cycle.  The refusal names the horizon
+    that works, so the producer has something to act on.
+    """
+
+    refusal = _ask(
+        PAST_THE_TRIGGER,
+        'occupancy_after(source="Root.Searching", trigger="Root.detected", '
+        'target="Root.Adjusting", within_cycles=1) is True',
+    )
+    assert refusal.result == "unsupported"
+    assert "within_cycles=2" in (refusal.error or {}).get("message", "")
+    # Stated over the horizon it actually needs, it answers.
+    assert (
+        _ask(
+            PAST_THE_TRIGGER,
+            'occupancy_after(source="Root.Searching", trigger="Root.detected", '
+            'target="Root.Adjusting", within_cycles=2) is True',
+        ).value
+        is True
+    )
+
+
+def test_a_target_no_horizon_reaches_still_answers_false():
+    """Otherwise the predicate could never expose the defect it advertises."""
+
+    for cycles in (1, 2, 4):
+        assert (
+            _ask(
+                PAST_THE_TRIGGER,
+                f'occupancy_after(source="Root.Searching", trigger="Root.detected", '
+                f'target="Root.Elsewhere", within_cycles={cycles}) is True',
+            ).value
+            is False
+        ), cycles
