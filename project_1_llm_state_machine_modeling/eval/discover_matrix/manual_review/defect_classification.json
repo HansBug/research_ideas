@@ -1,11 +1,11 @@
 {
- "what_this_is": "129 条可入 expected issue 的缺陷方向分类与谓词覆盖交叉。方向读自 reason（什么坏了），谓词读自 assertable（能否表达）。",
+ "what_this_is": "126 条可入 expected issue 的缺陷方向分类与谓词覆盖交叉。方向读自 reason（什么坏了），谓词读自 assertable（能否表达）。",
  "totals": {
-  "admissible": 129,
+  "admissible": 126,
   "by_direction": {
-   "reachability": 26,
+   "reachability": 25,
    "hierarchy": 21,
-   "entry": 25,
+   "entry": 23,
    "cardinality": 5,
    "guard": 22,
    "effect_action": 10,
@@ -15,25 +15,25 @@
   },
   "by_primary_predicate": {
    "occupancy_after": 9,
-   "event_declared": 9,
+   "stays_in": 2,
    "initial_target": 20,
    "reaches": 6,
    "cardinality": 7,
-   "state_declared": 17,
-   "stays_in": 1,
+   "state_declared": 18,
    "invariant": 1,
    "variable_declared": 6,
    "effect_declared": 3,
    "terminates": 4,
-   "edge_declared": 17,
+   "edge_declared": 16,
    "containment": 9,
    "event_consumed": 3,
    "persists_until": 2,
    "action_declared": 8,
+   "event_declared": 5,
    "guard_distinguishable": 3,
    "<无>": 4
   },
-  "existence_only": 54,
+  "existence_only": 50,
   "no_predicate": 4,
   "unused_predicates": [
    "response_within",
@@ -71,21 +71,47 @@
    "verdict": "problem",
    "lexical_stratum": "nl_named",
    "lexical_trigger": "NL 第",
-   "stratum": "nl_named",
-   "decided_by": "nl_review",
-   "assertable": "event_declared(event=\"llms_emp_feedback_final_0000.Human_Steering_Cmd\") → False（模型未声明可单独触发的 human steering cmd 事件）。注意：\"存在一条以 in(auto_final) 为状态条件、无事件触发的接管边\"这一形状**无法**用 19 谓词表达——edge_declared 强制要求 trigger 事件路径，词表里没有 guard / in-state / completion-transition 谓词，这是谓词词表的真实缺口。",
+   "stratum": "wellformedness",
+   "decided_by": "parent_ruling",
+   "assertable": "stays_in(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoNavigating\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\")",
    "case_has_ledger_e1": true,
    "reason_head": "NL 第5句的三个接管条件被压成**一个不可分解的事件标签**：pyfcstm 投影得到单一事件 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`，模型无法对单独的 human steering",
    "review_verdict": "confirmed",
    "nl_evidence": "NL S5（原文标号 '4.'）逐字含 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)'——三个条件逐字出现；NL S2 逐字含 'The autonomous mode has sub-states' 为 in(...) 的指代提供依据。",
    "review_note": "不依赖参考模型：参考虽把三条件拆成三条独立边，但 brake_pressed 与 in (auto_final) 两条方向与 S5 相反（都写成 human_mode --> autonomous_mode），故参考不可作 oracle；归因完全来自 S5 逐字点名。另需指出生成方的边方向 AutonomousMode --> HumanDrivingMode 恰与 S5 一致，方向不是本条问题。残留争议属 verdict 层不属分层层：S5 是'三选一'还是'合取'读法未定，但两种读法下单一自由文本事件都无法表达 in (auto final) 这个状态条件。",
+   "parent_ruling": {
+    "case": "0000",
+    "diff_index": 5,
+    "was": {
+     "verdict": "problem",
+     "stratum": "nl_named",
+     "assertable": "event_declared(event='...0000.Human_Steering_Cmd')",
+     "reason_basis": "三个接管条件被压成单一事件，模型缺少可单独触发的 Human_Steering_Cmd"
+    },
+    "ruling": {
+     "stratum": "wellformedness",
+     "assertable": "stays_in(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoNavigating\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\")",
+     "negative_control": "occupancy_after(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoFinal\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\", target=\"llms_emp_feedback_final_0000.HumanDrivingMode\")",
+     "negative_control_rationale": "从 AutoFinal 接管本应成立。若该式亦为 False，则主断言（从 AutoNavigating 也能接管）是恒假、不构成缺陷证据。实测为 True，故主断言判别有效。"
+    },
+    "affects_admissible_count": 0,
+    "why": [
+     "原判据放弃：它依赖把 NL08 第 4 句读作析取。NL 原文是 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)'——逗号列举，既无 any of 也无 and。NL 未授权析取解释，故『缺少可单独触发的事件』不能作为归因依据（这一点由用户在 2026-07-30 的讨论中指出，经复核成立）。",
+     "换用不依赖该解释的判据：in (AutoFinal) 是状态测试表达式，其真值由系统当前状态决定；模型把它放在 trigger 位置而非 guard 位置，因此它对迁移不构成任何约束。原始 PlantUML 那条边是组迁移（源为复合态 AutonomousMode），UML 语义下从任何活跃子态均可触发。",
+     "后果实测：stays_in(source='...AutonomousMode.AutoNavigating', trigger='...Human_Steering_Cmd_Brake_Pressed_in_AutoFinal') = False，即模型在尚未进入 AutoFinal 时就交还控制权；not occupancy_after(AutoNavigating, 该事件, HumanDrivingMode) = False。",
+     "负控有效：occupancy_after(AutoFinal, 该事件, HumanDrivingMode) = True，说明断言不是恒 False——从 AutoFinal 走得通，从 AutoNavigating 也走得通才是缺陷。",
+     "层从 nl_named 改为 wellformedness：新判据不以任何 NL 句为前提，只依赖模型自身结构与状态机的形式化语义（状态条件不得充当事件）。对照 0050#4：该 pair 的 AutoFinal 根本不存在，是另一类缺陷，两者不同型。"
+    ],
+    "conflict_note": "不改变可入计数（仍计入）。缺陷方向应由 hierarchy 改为 guard，因新判据的对象是被错置的条件而非层次。若认定『UML 标准语义』也属 oracle、不应计入 wellformedness，则本条应降为 uncertain_stratum，可入数由 129 降为 128；本裁定采前者，理由是形式化语义是公共基础，与 case-specific 的参考模型不同质。"
+   },
+   "assertable_superseded": "event_declared(event=\"llms_emp_feedback_final_0000.Human_Steering_Cmd\") → False（模型未声明可单独触发的 human steering cmd 事件）。注意：\"存在一条以 in(auto_final) 为状态条件、无事件触发的接管边\"这一形状**无法**用 19 谓词表达——edge_declared 强制要求 trigger 事件路径，词表里没有 guard / in-state / completion-transition 谓词，这是谓词词表的真实缺口。",
    "direction": "hierarchy",
    "direction_trigger": "子状态",
    "predicates": [
-    "event_declared"
+    "stays_in"
    ],
-   "primary_predicate": "event_declared",
-   "existence_only": true
+   "primary_predicate": "stays_in",
+   "existence_only": false
   },
   {
    "case": "0002",
@@ -944,31 +970,6 @@
    "existence_only": false
   },
   {
-   "case": "0016",
-   "group": "NL03",
-   "llm": "GPT-4",
-   "diff_index": 5,
-   "verdict": "extra",
-   "lexical_stratum": "over_specification",
-   "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
-   "assertable": "edge_declared(source='[*]', trigger='llms_emp_feedback_final_0016.Start_Mission', target='llms_emp_feedback_final_0016.SearchMission')",
-   "case_has_ledger_e1": false,
-   "reason_head": "初始迁移带 trigger，UML 不允许初始迁移携带触发事件，且 NL 无任何启动事件；属额外元素。",
-   "harm": "harmful",
-   "harm_consequence": "A triggered initial transition means the cold start commits NO state: the power-up configuration is the root alone. Until the invented Start Mission arrives, no declared event can be consumed and no NL03 behaviour is reachable at all. Measured: cold-start active set = {llms_emp_feedback_final_0016} only.",
-   "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0016.Finished_Region1_Search') = False  (equivalently occupancy_after(source='[*]', trigger='...Interception_Detected', target='...FormationAdjust', within_cycles=2) = False)",
-   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', Finished_Region1_Search) -> False while the pinned control event_consumed(SearchMission.Region1.Search, Finished_Region1_Search) -> True; occupancy_after('[*]', Interception_Detected, FormationAdjust, 2) -> False while the pinned control occupancy_after(SearchMission.Region1.Search, Interception_Detected, FormationAdjust, 2) -> True. Negative control: 0021 (untriggered root initial) gives event_consumed('[*]', Brake_Signal_Received) -> True, so the predicate is not a constant False.",
-   "direction": "entry",
-   "direction_trigger": "初始迁移",
-   "predicates": [
-    "edge_declared"
-   ],
-   "primary_predicate": "edge_declared",
-   "existence_only": true
-  },
-  {
    "case": "0018",
    "group": "NL04",
    "llm": "GPT-4",
@@ -1112,31 +1113,6 @@
    ],
    "primary_predicate": "occupancy_after",
    "existence_only": false
-  },
-  {
-   "case": "0019",
-   "group": "NL05",
-   "llm": "GPT-4",
-   "diff_index": 5,
-   "verdict": "extra",
-   "lexical_stratum": "over_specification",
-   "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
-   "assertable": "event_declared(event=\"llms_emp_feedback_final_0019.Autonomous_mode_start\")",
-   "case_has_ledger_e1": true,
-   "reason_head": "NL 1 只说系统起始于 AutonomousMode 并进入 InitialState，从未命名任何触发事件。生成侧在两条初始边上凭空造了 Autonomous_mode_start 与 Start_of_autonomous_drivi",
-   "harm": "harmful",
-   "harm_consequence": "Cold start commits nothing (power-up configuration = root alone), so NL05 s1 ('the system begins in AutonomousMode, which transitions into the InitialState substate') fails and the NL05 s2 dispatch from InitialState is unreachable from power-up. Two triggers stacked: even after the first fires, AutonomousMode is entered with no active substate until the second arrives.",
-   "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0019.high_way_true') = False  (equivalently occupancy_after(source='[*]', trigger='...high_way_true', target='...AutonomousMode.HighwayMode', within_cycles=2) = False)",
-   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', high_way_true) -> False vs pinned control event_consumed(AutonomousMode.InitialState, high_way_true) -> True; occupancy_after('[*]', high_way_true, HighwayMode) -> False at 1, 2 and 3 cycles vs occupancy_after(AutonomousMode.InitialState, high_way_true, HighwayMode, 2) -> True",
-   "direction": "entry",
-   "direction_trigger": "初始边",
-   "predicates": [
-    "event_declared"
-   ],
-   "primary_predicate": "event_declared",
-   "existence_only": true
   },
   {
    "case": "0020",
@@ -1758,31 +1734,6 @@
    ],
    "primary_predicate": "initial_target",
    "existence_only": false
-  },
-  {
-   "case": "0033",
-   "group": "NL06",
-   "llm": "Kimi",
-   "diff_index": 3,
-   "verdict": "extra",
-   "lexical_stratum": "over_specification",
-   "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
-   "assertable": "event_declared(event=\"llms_emp_feedback_final_0033.Water_Flow_Stabilized\")",
-   "case_has_ledger_e1": true,
-   "reason_head": "NL06 五句话没有命名任何触发事件，也从未提到停用、稳定或终止。begin、Pump Deactivated、Water Flow Stabilized、Methane Flow Stabilized 全属凭空发明，参考侧一个都没有。这三",
-   "harm": "harmful",
-   "harm_consequence": "`begin` sits on the root initial transition ([*] -> PumpControl : /begin), so the power-up configuration is the root alone -- NL06 s1 ('The system begins in the PumpControl state') never holds and NOTHING at all can be consumed until the invented begin arrives. Additionally the three invented 'Stabilized/Deactivated' edges land in converter-projected InvalidFinal* states that are absorbing.",
-   "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0033.Activate_Pump') = False",
-   "harm_verified": "ran: cold init cfg = {llms_emp_feedback_final_0033} only; event_consumed('[*]', Activate_Pump) -> False (negative control 0021 -> True); reaches(InvalidFinaltr_0006, PumpState, 3) -> False (absorbing dead end); cardinality(PumpControl, 3) -> True is a FALSE PASS (it counts the three InvalidInitial* states)",
-   "direction": "reachability",
-   "direction_trigger": "终结",
-   "predicates": [
-    "event_declared"
-   ],
-   "primary_predicate": "event_declared",
-   "existence_only": true
   },
   {
    "case": "0034",
@@ -2827,19 +2778,45 @@
    "lexical_stratum": "unclassified",
    "lexical_trigger": "",
    "stratum": "nl_named",
-   "decided_by": "batch5_reclassify",
-   "assertable": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\") → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达",
+   "decided_by": "parent_ruling",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.auto_final\", kind=\"leaf\")",
    "case_has_ledger_e1": false,
    "reason_head": "三个接管条件压成一个跨行自由文本标签，投影为单一事件，任一单独条件都不能触发接管；`in (auto final)` 作为状态条件被塞进事件名，处于自动驾驶终态边界时不会自动交还控制权。",
    "review_verdict": "nl_named",
    "nl_evidence": "同 0030#4 / 0040#3：NL08 S5 逐字点名三个条件；FCSTM 事件表只有该复合名",
    "review_note": "与 0030#4 同型。附带旁证（对 part B 的 0010#6 / 0030#3 有用）：0050 同时写了 `HumanDrivingMode --> [*] : Power Off` 与 `AutonomousMode --> [*] : Power Off`，说明同一 NL08 S6 被至少一个模型自然读成系统级义务而非仅人驾侧义务。",
+   "parent_ruling": {
+    "case": "0050",
+    "diff_index": 4,
+    "was": {
+     "verdict": "problem",
+     "stratum": "nl_named",
+     "assertable": "event_declared(event='...0050.human_steering_cmd')",
+     "reason_basis": "与 0000#5 同型：三条件压成跨行自由文本标签"
+    },
+    "ruling": {
+     "stratum": "nl_named",
+     "assertable": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.auto_final\", kind=\"leaf\")",
+     "negative_control": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.SubState1\", kind=\"leaf\")",
+     "negative_control_rationale": "模型确实声明过的子态应为 True。若连它也 False，则 state_declared 在该 scope 上恒假、主断言（auto final 不存在）不构成证据。实测为 True，故判别有效。"
+    },
+    "affects_admissible_count": 0,
+    "why": [
+     "原判据放弃，理由同 0000#5：NL 未授权析取解释。并纠正一处事实——此前称本条与 0000#5『同型』是错的，两个模型对同一句 NL 的处理不同：0000 逐字照抄逗号列举且其 AutonomousMode 内确有 AutoFinal 状态；0050 自行写成 'human steering cmd\\nor brake pressed\\nor in (auto final)'，且其 AutonomousMode 内只有 SubState1/2/3。",
+     "换用的判据：NL 点名的 auto final 子状态在模型中根本不存在。NL08 第 2 句要求 autonomous mode 有子状态，第 4 句以 in (auto final) 点名其中之一；模型给出的是三个无语义占位名。",
+     "实测：state_declared('...0050.AutonomousMode.auto_final', kind='leaf') = False，换名 AutoFinal / AutoFinalState 同为 False。负控有效：state_declared('...SubState1', kind='leaf') = True、SubState3 = True，说明谓词工作正常、不是恒 False。",
+     "该判据与析取/合取解释无关，也与建模粒度无关：无论选何粒度，被标签引用的状态都必须存在。",
+     "附带记录（不作为本条判据）：0050 在 trigger 位置写了 or 连接的析取式，而 UML 不允许一条迁移有析取 trigger；R4.5 投影把 \\n 与 or 拼成了 nor，事件名成为 human_steering_cmd_nor_brake_pressed_nor_in_auto_final——该 nor 是字符串拼接产物，不含语义。"
+    ],
+    "conflict_note": "层不变（仍 nl_named）、可入计数不变。断言由 event_declared 改为 state_declared(auto_final, kind='leaf')。8 格漏检的成因归属需相应调整：本条仍属 split_requirements 该拆出的需求（NL 点名了元素），而 0000#5 不再归因于 prompts.py:46 的合并事件豁免。"
+   },
+   "assertable_superseded": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\") → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达",
    "direction": "guard",
    "direction_trigger": "条件",
    "predicates": [
-    "event_declared"
+    "state_declared"
    ],
-   "primary_predicate": "event_declared",
+   "primary_predicate": "state_declared",
    "existence_only": true
   },
   {

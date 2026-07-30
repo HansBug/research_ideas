@@ -24,13 +24,13 @@
 3. **可归因于生成方**，且归因方式属四个归因层之一。
 4. **不处于搁置状态**。
 
-据此明确排除的（合计 25 条）：
+据此明确排除的（合计 28 条）：
 
 | 排除层 | 条数 | 为什么不入 |
 | --- | ---: | --- |
 | `over_specification_benign` | 18 | 生成方多出，但写不出可断言的后果 |
 | `reference_only` | 3 | 只在参考侧、NL 未点名——不可归因于生成方 |
-| `uncertain_stratum` | 2 | 已审阅但搁置（断言实测 `None`，或该行自述「本任务不裁」）|
+| `uncertain_stratum` | 5 | 已审阅但搁置（断言实测 `None`，或该行自述「本任务不裁」）|
 | `over_specification_duplicate` | 1 | 后果已被同 pair 另一条承载，计入会双算 |
 | `out_of_scope_concurrency` | 1 | 主裁定移出范畴 |
 

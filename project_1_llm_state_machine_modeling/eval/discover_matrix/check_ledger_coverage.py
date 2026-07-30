@@ -77,7 +77,11 @@ def ledger_entries(i166_text: str) -> dict[str, dict]:
             out[iid] = {
                 "id": iid, "pair": m.group(1), "category": m.group(2),
                 "category_label": CATEGORY.get(m.group(2), "未知类别"),
-                "statement_from_i166": re.sub(r"\s+", " ", desc)[:400],
+                # The markdown line an id appears on is usually the *model name* cell, not a
+                # statement -- 41 of 47 came out as 'high-level driving module' and the like.
+                # The real statement lives in the frozen ledger's own field, filled in below.
+                "line_context_from_i166": re.sub(r"\s+", " ", desc)[:200],
+                "statement": None,
             }
     return out
 
@@ -103,6 +107,12 @@ def main() -> int:
         provenance = "frozen"
         payload = json.loads(frozen.read_text())
         for f in payload.get("findings") or []:
+            iid = f.get("issue_id")
+            if iid in entries:
+                entries[iid]["statement"] = (
+                    f.get("positive_proposition") or f.get("nl_quote") or "")[:600]
+                entries[iid]["evidence_grade"] = f.get("evidence_grade")
+                entries[iid]["subtype"] = f.get("subtype")
             if f.get("issue_id") and f.get("eval_assert"):
                 recon_assert[f["issue_id"]] = set(_PATH.findall(f["eval_assert"]))
             # `source_trace_bindings` names elements the ledger itself resolved, so fold

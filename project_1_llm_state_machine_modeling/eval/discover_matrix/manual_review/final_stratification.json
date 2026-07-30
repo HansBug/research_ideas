@@ -11,17 +11,17 @@
   "by_stratum": {
    "wellformedness": 37,
    "nl_named": 69,
-   "over_specification": 10,
+   "over_specification": 7,
    "over_specification_benign": 18,
    "nl_contradiction": 13,
    "reference_only": 3,
    "out_of_scope_concurrency": 1,
-   "uncertain_stratum": 2,
+   "uncertain_stratum": 5,
    "over_specification_duplicate": 1
   },
-  "admissible": 129,
+  "admissible": 126,
   "admissible_cases": 48,
-  "admissible_on_cases_without_ledger_e1": 29,
+  "admissible_on_cases_without_ledger_e1": 28,
   "still_at_lexical_bound": 32,
   "lexical_but_stratum_sampled": 32,
   "unreviewed": 0,
@@ -33,7 +33,7 @@
    "over_specification",
    "wellformedness"
   ],
-  "uncertain": 2,
+  "uncertain": 5,
   "is_point_value": true
  },
  "complaints": [
@@ -855,15 +855,35 @@
    "verdict": "extra",
    "lexical_stratum": "over_specification",
    "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
+   "stratum": "uncertain_stratum",
+   "decided_by": "parent_ruling",
    "assertable": "edge_declared(source='[*]', trigger='llms_emp_feedback_final_0016.Start_Mission', target='llms_emp_feedback_final_0016.SearchMission')",
    "case_has_ledger_e1": false,
    "reason_head": "初始迁移带 trigger，UML 不允许初始迁移携带触发事件，且 NL 无任何启动事件；属额外元素。",
    "harm": "harmful",
    "harm_consequence": "A triggered initial transition means the cold start commits NO state: the power-up configuration is the root alone. Until the invented Start Mission arrives, no declared event can be consumed and no NL03 behaviour is reachable at all. Measured: cold-start active set = {llms_emp_feedback_final_0016} only.",
    "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0016.Finished_Region1_Search') = False  (equivalently occupancy_after(source='[*]', trigger='...Interception_Detected', target='...FormationAdjust', within_cycles=2) = False)",
-   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', Finished_Region1_Search) -> False while the pinned control event_consumed(SearchMission.Region1.Search, Finished_Region1_Search) -> True; occupancy_after('[*]', Interception_Detected, FormationAdjust, 2) -> False while the pinned control occupancy_after(SearchMission.Region1.Search, Interception_Detected, FormationAdjust, 2) -> True. Negative control: 0021 (untriggered root initial) gives event_consumed('[*]', Brake_Signal_Received) -> True, so the predicate is not a constant False."
+   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', Finished_Region1_Search) -> False while the pinned control event_consumed(SearchMission.Region1.Search, Finished_Region1_Search) -> True; occupancy_after('[*]', Interception_Detected, FormationAdjust, 2) -> False while the pinned control occupancy_after(SearchMission.Region1.Search, Interception_Detected, FormationAdjust, 2) -> True. Negative control: 0021 (untriggered root initial) gives event_consumed('[*]', Brake_Signal_Received) -> True, so the predicate is not a constant False.",
+   "parent_ruling": {
+    "case": "0016",
+    "diff_index": 5,
+    "was": {
+     "verdict": "extra",
+     "stratum": "over_specification",
+     "assertion": "event_consumed(source='[*]', trigger='...0016.Finished_Region1_Search')  # 实测 False"
+    },
+    "ruling": {
+     "stratum": "uncertain_stratum"
+    },
+    "affects_admissible_count": -1,
+    "why": [
+     "主断言绑错了元素，其 False 是空洞真值。该条指控『初始迁移带 trigger』，但断言绑的 Finished_Region1_Search 并不是根初始边的 trigger——实测该模型的根初始边是 `[*] -> SearchMission : /Start_Mission`。",
+     "正确绑定后 event_consumed(source='[*]', trigger='Start_Mission') 实测为 **True**，即它只能证明『生成方造了这条初始边』——对 extra 档那是前提，不是缺陷。按 EXTRA_POLICY 的有害性判据，存在性证明不构成后果。",
+     "发布的 False 之所以出现，仅仅因为 Finished_Region1_Search 不是根初始边的 trigger；这个 False 与该条的事实主张无关，甚至与之矛盾。",
+     "降为 uncertain_stratum 而非删除：该 extra 元素确实是生成方凭空多出的，指控本身可能成立，但当前没有一条能证明其后果的可求值断言。要重新入集，需补一条正确绑定且实测为 False 的后果断言。"
+    ],
+    "conflict_note": "本裁定由对抗性复核发现（试图推翻『115 条可自动验收』时逐条重绑元素）。可入 E1 与可自动验收数各减 1。"
+   }
   },
   {
    "case": "0018",
@@ -976,15 +996,35 @@
    "verdict": "extra",
    "lexical_stratum": "over_specification",
    "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
+   "stratum": "uncertain_stratum",
+   "decided_by": "parent_ruling",
    "assertable": "event_declared(event=\"llms_emp_feedback_final_0019.Autonomous_mode_start\")",
    "case_has_ledger_e1": true,
    "reason_head": "NL 1 只说系统起始于 AutonomousMode 并进入 InitialState，从未命名任何触发事件。生成侧在两条初始边上凭空造了 Autonomous_mode_start 与 Start_of_autonomous_drivi",
    "harm": "harmful",
    "harm_consequence": "Cold start commits nothing (power-up configuration = root alone), so NL05 s1 ('the system begins in AutonomousMode, which transitions into the InitialState substate') fails and the NL05 s2 dispatch from InitialState is unreachable from power-up. Two triggers stacked: even after the first fires, AutonomousMode is entered with no active substate until the second arrives.",
    "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0019.high_way_true') = False  (equivalently occupancy_after(source='[*]', trigger='...high_way_true', target='...AutonomousMode.HighwayMode', within_cycles=2) = False)",
-   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', high_way_true) -> False vs pinned control event_consumed(AutonomousMode.InitialState, high_way_true) -> True; occupancy_after('[*]', high_way_true, HighwayMode) -> False at 1, 2 and 3 cycles vs occupancy_after(AutonomousMode.InitialState, high_way_true, HighwayMode, 2) -> True"
+   "harm_verified": "ran: cold init cfg = {root} only; event_consumed('[*]', high_way_true) -> False vs pinned control event_consumed(AutonomousMode.InitialState, high_way_true) -> True; occupancy_after('[*]', high_way_true, HighwayMode) -> False at 1, 2 and 3 cycles vs occupancy_after(AutonomousMode.InitialState, high_way_true, HighwayMode, 2) -> True",
+   "parent_ruling": {
+    "case": "0019",
+    "diff_index": 5,
+    "was": {
+     "verdict": "extra",
+     "stratum": "over_specification",
+     "assertion": "event_consumed(source='[*]', trigger='...0019.high_way_true')  # 实测 False"
+    },
+    "ruling": {
+     "stratum": "uncertain_stratum"
+    },
+    "affects_admissible_count": -1,
+    "why": [
+     "主断言绑的 high_way_true 是一个 NL 派生的条件事件，不属于该条指控的任何一个 extra 元素（Autonomous_mode_start / Start_of_autonomous_driving_mode）。",
+     "被指控的那两个 extra 实测 event_declared 均为 **True**，即只能证明『生成方声明了它们』——对 extra 档是前提不是缺陷。且 Start_of_autonomous_driving_mode 恰是该模型根初始边的 trigger（实测 `[*] -> InitialState : /Start_of_autonomous_driving_mode`）。",
+     "因此发布的 False 与指控对象无关，不构成有害性证据。",
+     "降为 uncertain_stratum：需补一条绑定到被指控 extra 且实测 False 的后果断言才能重新入集。"
+    ],
+    "conflict_note": "同 0016#4 / 0033#3，由对抗性复核发现。"
+   }
   },
   {
    "case": "0020",
@@ -1534,15 +1574,35 @@
    "verdict": "extra",
    "lexical_stratum": "over_specification",
    "lexical_trigger": "verdict=extra",
-   "stratum": "over_specification",
-   "decided_by": "harm_test",
+   "stratum": "uncertain_stratum",
+   "decided_by": "parent_ruling",
    "assertable": "event_declared(event=\"llms_emp_feedback_final_0033.Water_Flow_Stabilized\")",
    "case_has_ledger_e1": true,
    "reason_head": "NL06 五句话没有命名任何触发事件，也从未提到停用、稳定或终止。begin、Pump Deactivated、Water Flow Stabilized、Methane Flow Stabilized 全属凭空发明，参考侧一个都没有。这三",
    "harm": "harmful",
    "harm_consequence": "`begin` sits on the root initial transition ([*] -> PumpControl : /begin), so the power-up configuration is the root alone -- NL06 s1 ('The system begins in the PumpControl state') never holds and NOTHING at all can be consumed until the invented begin arrives. Additionally the three invented 'Stabilized/Deactivated' edges land in converter-projected InvalidFinal* states that are absorbing.",
    "harm_assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0033.Activate_Pump') = False",
-   "harm_verified": "ran: cold init cfg = {llms_emp_feedback_final_0033} only; event_consumed('[*]', Activate_Pump) -> False (negative control 0021 -> True); reaches(InvalidFinaltr_0006, PumpState, 3) -> False (absorbing dead end); cardinality(PumpControl, 3) -> True is a FALSE PASS (it counts the three InvalidInitial* states)"
+   "harm_verified": "ran: cold init cfg = {llms_emp_feedback_final_0033} only; event_consumed('[*]', Activate_Pump) -> False (negative control 0021 -> True); reaches(InvalidFinaltr_0006, PumpState, 3) -> False (absorbing dead end); cardinality(PumpControl, 3) -> True is a FALSE PASS (it counts the three InvalidInitial* states)",
+   "parent_ruling": {
+    "case": "0033",
+    "diff_index": 3,
+    "was": {
+     "verdict": "extra",
+     "stratum": "over_specification",
+     "assertion": "event_consumed(source='[*]', trigger='...0033.Activate_Pump')  # 实测 False"
+    },
+    "ruling": {
+     "stratum": "uncertain_stratum"
+    },
+    "affects_admissible_count": -1,
+    "why": [
+     "主断言绑错了元素，其 False 是空洞真值。该条指控『初始迁移带 trigger』，但断言绑的 Activate_Pump 并不是根初始边的 trigger——实测该模型的根初始边是 `[*] -> PumpControl : /begin`。",
+     "正确绑定后 event_consumed(source='[*]', trigger='begin') 实测为 **True**，即它只能证明『生成方造了这条初始边』——对 extra 档那是前提，不是缺陷。按 EXTRA_POLICY 的有害性判据，存在性证明不构成后果。",
+     "发布的 False 之所以出现，仅仅因为 Activate_Pump 不是根初始边的 trigger；这个 False 与该条的事实主张无关，甚至与之矛盾。",
+     "降为 uncertain_stratum 而非删除：该 extra 元素确实是生成方凭空多出的，指控本身可能成立，但当前没有一条能证明其后果的可求值断言。要重新入集，需补一条正确绑定且实测为 False 的后果断言。"
+    ],
+    "conflict_note": "本裁定由对抗性复核发现（试图推翻『115 条可自动验收』时逐条重绑元素）。可入 E1 与可自动验收数各减 1。"
+   }
   },
   {
    "case": "0034",

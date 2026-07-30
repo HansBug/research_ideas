@@ -35,8 +35,8 @@ flowchart LR
     A["issue #166 台帐<br/>47 条 / 29 pair"] -->|"5 条 binding_match"| C
     A -->|"42 条 same_pair_only<br/>待人工确认"| C
     B["本轮逐对复核<br/>418 差异 → 153 计入问题"] -->|"四层归因筛选"| C
-    C["expected issue set<br/>129 条 / 48 pair"]
-    C --> D["115 条可自动验收"]
+    C["expected issue set<br/>126 条 / 48 pair"]
+    C --> D["112 条可自动验收"]
     C --> E["14 条须人工"]
 ```
 

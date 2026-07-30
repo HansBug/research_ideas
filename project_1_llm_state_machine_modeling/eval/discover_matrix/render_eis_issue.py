@@ -354,10 +354,67 @@ def main() -> int:
         L.append(f"| `{k}`（{zh}）| **{bl[k]}** | {pct(bl[k], t['records'])} | "
                  f"{bar(bl[k], mx)} | {basis} |")
     L.append(f"| **合计** | **{sum(bl.values())}** | 100% | | |")
+    # Attribution replay, joined by (pair, diff_index). This is the single most consequential
+    # limitation of the set and it is not visible from the layer table alone: the pipeline's
+    # own contract routes non-`safe` False assertions to `excluded_findings` and *never* to
+    # confirmed issues (discover/prompts.py:73, :298).
+    rep_rows = {(r["case"], r["diff_index"]): r
+                for r in json.loads((MR / "loop_audit/replay_attribution.json").read_text())
+                ["rows"]}
+    attr = Counter()
+    attr_by_layer: dict[str, Counter] = defaultdict(Counter)
+    for r in recs:
+        row = rep_rows.get((r["pair"], r["upstream"]["diff_index"])) or {}
+        st = row.get("attribution_status") or "declared_not_expressible"
+        attr[st] += 1
+        attr_by_layer[r["layer"]][st] += 1
+    safe_n = attr["safe"]
     L += [
         "",
-        f"`wellformedness` 这 {bl.get('wellformedness', 0)} 条最难被质疑——"
-        "反驳它必须先反驳模型自身，不需要 NL 也不需要参考模型。",
+        "### ⚠️ 归因门控：本集合最重要的限制",
+        "",
+        "把这 " + str(t["records"]) + " 条逐条重放一遍归因，结果是：",
+        "",
+        "| 归因结论 | 条数 | 占比 | 按流水线契约能否成为 confirmed issue |",
+        "| --- | ---: | ---: | --- |",
+        f"| `safe` | **{attr['safe']}** | {pct(attr['safe'], t['records'])} | 可以 |",
+        f"| `representation_debt` | **{attr['representation_debt']}** | "
+        f"{pct(attr['representation_debt'], t['records'])} | "
+        f"**不能**——判定所依赖的元素落在该 pair 的 `attribution_exclusions` 里 |",
+        f"| `unattributed` | **{attr['unattributed']}** | "
+        f"{pct(attr['unattributed'], t['records'])} | **不能**——找不到可信源头映射 |",
+        f"| `declared_not_expressible` | {attr['declared_not_expressible']} | "
+        f"{pct(attr['declared_not_expressible'], t['records'])} | 无断言可归因 |",
+        "",
+        f"**{t['records'] - safe_n} / {t['records']} = "
+        f"{pct(t['records'] - safe_n, t['records'])} 的记录，"
+        f"按流水线自己的裁决契约不得成为 confirmed issue。**"
+        "这不是软降级而是硬门控：`discover/prompts.py:73` 明写"
+        "「False results marked representation_debt or unattributed must go to "
+        "excluded_findings, **never confirmed issues**」。"
+        "把本集合当作命中率分母时，必须同时报告这个分层，"
+        "否则会把流水线按设计不该上报的条目记成漏检。",
+        "",
+        "**按归因通过率给四层重新排序，结论与直觉相反：**",
+        "",
+        "| 层 | 条数 | 其中 `safe` | 通过率 |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    for k in sorted(bl, key=lambda x: -attr_by_layer[x]["safe"] / max(bl[x], 1)):
+        L.append(f"| `{k}`（{LAYER_ZH[k][0]}）| {bl[k]} | {attr_by_layer[k]['safe']} | "
+                 f"**{pct(attr_by_layer[k]['safe'], bl[k])}** |")
+    wf = attr_by_layer["wellformedness"]
+    L += [
+        "",
+        f"⚠️ **一处必须撤回的表述。** 本 issue 初版称 `wellformedness` 这一层「最难被质疑」，"
+        f"理由是它不需要 NL 也不需要参考模型。**按归因实测，它恰恰是四层里通过率最低的一层**："
+        f"{bl['wellformedness']} 条里只有 **{wf['safe']} 条** `safe`"
+        f"（{wf['representation_debt']} 条 `representation_debt`、"
+        f"{wf['unattributed']} 条 `unattributed`）。"
+        f"通过率最高的是 `nl_contradiction`"
+        f"（{attr_by_layer['nl_contradiction']['safe']} / {bl['nl_contradiction']}）。"
+        "原因见 §6.4：该层的判定大量依赖 R4.5 投影注入的合成节点，"
+        "而那些节点正是归因排除表里的元素。",
         "",
         "```mermaid",
         "pie showData title 归因层分布（129 条）",
@@ -438,6 +495,21 @@ def main() -> int:
         "",
         f"19 个封闭谓词里 **{len(bp)}** 个被用到，未用到的 {len(unused)} 个是 "
         + "、".join(f"`{u}`" for u in unused) + "。",
+        "",
+        "",
+        "**⚠️ 最大谓词组的证据不是自足的。** `initial_target` 是本集合承载最多的谓词，"
+        "但对抗性复核逐条追出了实际决定其 `False` 的那个初始子态："
+        "**21 条里有 18 条（86%）的初始子态是 R4.5 投影注入的合成节点**"
+        "（`UnspecifiedInitial` ×17、`InvalidInitialtr_*` ×1），"
+        "而这些节点正列在各 pair 自己的 `attribution_exclusions` 里"
+        "（`compiler:state:…UnspecifiedInitial`）。"
+        "复核者的散文**确实**追对了根因（「作者源没写初始边、投影因此注入 UnspecifiedInitial」），"
+        "但**断言本身没有编码这个推理**：一个 `initial_target` 的 `False` 同时兼容"
+        "(a) 根本没写初始边、(b) 初始边指向了别的子态、"
+        "(c) converter 的 route-token 守卫迫使无条件回退。"
+        "因此这 18 条要判定归因，必须再读一份断言从未触及的制品（源 PlantUML）——"
+        "**这与 `wellformedness` 声称的「仅凭生成模型自身即可判定」直接冲突**，"
+        "也是上面归因通过率里该层垫底的直接原因。",
         "",
         f"**{none_n}** 条没有可求值的主断言"
         + (f"，另 {rest} 条写得出封闭谓词表达式但从散文恢复后不可求值（`EIS-0007-03`）"
