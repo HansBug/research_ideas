@@ -73,9 +73,28 @@ def main() -> int:
     # --- stratification vs its own summary ---------------------------------------
     adm_strata = set(final["admissible_strata"])
     adm = [r for r in rows if r["stratum"] in adm_strata]
-    check("可入 E1 = 130，与 final_stratification 的 summary 自洽",
-          len(adm) == final["summary"]["admissible"] == 130,
+    # 130 -> 129: `0056`#3 carried a `duplicate_of` marker *and* an admissible stratum, and
+    # its own review_note said the call had not been made. Parked by parent ruling.
+    check("可入 E1 = 129，与 final_stratification 的 summary 自洽",
+          len(adm) == final["summary"]["admissible"] == 129,
           f"逐行数 {len(adm)}，summary 报 {final['summary']['admissible']}")
+
+    dup_admissible = [r for r in rows if r.get("duplicate_of") and r["stratum"] in adm_strata]
+    check("没有任何带 duplicate_of 的行落在可入层（否则同一缺陷被计两次）",
+          not dup_admissible,
+          "0 条" if not dup_admissible else
+          "、".join(f"{r['case']}#{r['diff_index']}" for r in dup_admissible))
+
+    parked = [r for r in rows if r["stratum"] == "uncertain_stratum"]
+    # Parking a row must never be silent: it has to carry either a parent ruling or the
+    # measured evidence that the predicate surface gave no positive answer. The two live
+    # under different keys because they came from different passes (`0044`#1 from the harm
+    # test's own probes, `0056`#3 from a parent ruling).
+    documented = [r for r in parked if r.get("parent_ruling") or r.get("review_note")
+                  or r.get("harm_verified")]
+    check("搁置层 = 2 条，且每条都有裁定或实测记录",
+          len(parked) == 2 and len(documented) == 2,
+          "、".join(f"{r['case']}#{r['diff_index']}（{r.get('decided_by')}）" for r in parked))
 
     by_stratum = Counter(r["stratum"] for r in rows)
     check("各层之和 = 154",
@@ -85,12 +104,12 @@ def main() -> int:
     # --- defect classification covers exactly the admissible set ------------------
     if defects:
         drows = defects["rows"]
-        check("缺陷方向分类覆盖 130 条可入",
-              len(drows) == 130,
+        check("缺陷方向分类覆盖 129 条可入",
+              len(drows) == 129,
               f"{len(drows)} 行")
         dsum = sum(defects["totals"]["by_direction"].values())
-        check("方向合计 = 130",
-              dsum == 130,
+        check("方向合计 = 129",
+              dsum == 129,
               f"{defects['totals']['by_direction']}")
         keys = {(r["case"], r["diff_index"]) for r in drows}
         akeys = {(r["case"], r["diff_index"]) for r in adm}

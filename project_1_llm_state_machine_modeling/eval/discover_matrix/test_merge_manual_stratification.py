@@ -238,3 +238,60 @@ class TestDuplicateHarmfulExtrasAreNotDoubleBooked:
             "items": [], "harmful_but_duplicate_of_an_existing_problem": ["9999#9 (dup)"]})
         m.apply_harm([row()], complaints)
         assert any("不在基线里" in c for c in complaints)
+
+
+class TestDuplicateMarkerConflict:
+    """A row may not be flagged as a duplicate *and* counted as admissible.
+
+    `0056`#3 was both: the harm test deduped it against `0056`#1 on identical binding, then
+    a later pass moved its stratum back into `over_specification`. Nothing objected, so one
+    defect was counted twice until an adversarial review caught it."""
+
+    def test_a_duplicate_sitting_in_an_admissible_layer_is_reported(self):
+        rows = [row(case="0056", index=3, verdict="extra", stratum="over_specification")]
+        rows[0]["duplicate_of"] = "0056#3 (dup of 0056#1, identical binding)"
+        complaints: list[str] = []
+        m.check_duplicate_markers(rows, complaints)
+        assert any("重复标记冲突" in c for c in complaints)
+        assert any("计两次" in c for c in complaints)
+
+    def test_a_duplicate_in_a_non_admissible_layer_is_fine(self):
+        rows = [row(case="0046", index=5, verdict="extra",
+                    stratum="over_specification_duplicate")]
+        rows[0]["duplicate_of"] = "0046#5 (dup of 0046#2)"
+        complaints: list[str] = []
+        m.check_duplicate_markers(rows, complaints)
+        assert not complaints
+
+    def test_an_admissible_row_without_the_marker_is_fine(self):
+        complaints: list[str] = []
+        m.check_duplicate_markers([row()], complaints)
+        assert not complaints
+
+
+class TestParentRulingCanMoveALayerNotOnlyScope:
+    def test_a_stratum_ruling_moves_the_row_and_records_why(self, nlcheck):
+        rows = [row(case="0056", index=3, verdict="extra", stratum="over_specification")]
+        write(nlcheck, "parent_rulings.json", {"rulings": [
+            {"case": "0056", "diff_index": 3,
+             "ruling": {"stratum": "uncertain_stratum"},
+             "why": ["自己的 review_note 写明本任务不裁"]}]})
+        assert m.apply_parent_rulings(rows, []) == 1
+        assert rows[0]["stratum"] == "uncertain_stratum"
+        assert rows[0]["stratum"] not in m.ADMISSIBLE
+        assert rows[0]["decided_by"] == "parent_ruling"
+        assert rows[0]["parent_ruling"]["why"]
+
+    def test_an_out_of_scope_ruling_still_works(self, nlcheck):
+        rows = [row(case="0013", index=1, stratum="wellformedness")]
+        write(nlcheck, "parent_rulings.json", {"rulings": [
+            {"case": "0013", "diff_index": 1, "ruling": {"out_of_scope": "concurrency"}}]})
+        assert m.apply_parent_rulings(rows, []) == 1
+        assert rows[0]["stratum"] == "out_of_scope_concurrency"
+
+    def test_a_ruling_for_an_unknown_row_is_reported(self, nlcheck):
+        complaints: list[str] = []
+        write(nlcheck, "parent_rulings.json", {"rulings": [
+            {"case": "9999", "diff_index": 9, "ruling": {"stratum": "uncertain_stratum"}}]})
+        m.apply_parent_rulings([row()], complaints)
+        assert any("不在基线里" in c for c in complaints)

@@ -54,7 +54,7 @@ class TestGapFamilyDereferencesReferences:
 
     def test_a_reference_chain_resolves_through_two_hops(self):
         idx = {("0002", 3): "同 0001#1", ("0001", 1): "真词表缺口：缺最小性谓词"}
-        assert r.gap_family("同 0002#3", idx.get)[0] == "minimality"
+        assert r.gap_family("同 0002#3", idx.get)[0] == "minimality_no_provenance"
 
     def test_mutually_referencing_rows_terminate_instead_of_recursing(self):
         idx = {("0001", 1): "同 0002#2", ("0002", 2): "同 0001#1"}
@@ -71,15 +71,53 @@ class TestGapFamilyOrdering:
         assert key == "deliberate_refusal"
         assert real is False, "刻意设防是护栏，计入缺口会高估"
 
-    def test_the_sharper_family_wins_over_generic_minimality(self):
-        """A row mentioning both synthetic nodes and minimality is really about the former."""
-        key, _l, _r = r.gap_family("两个缺口叠加：(1) 缺最小性谓词；(2) cardinality 把投影合成节点计入")
-        assert key == "minimality", "顺序即优先级，此处最小性先匹配——变更须显式"
-
     def test_an_unrecognised_analysis_is_surfaced_not_bucketed(self):
         key, label, _r = r.gap_family("某种全新的说法")
         assert key == "unmatched"
         assert "人工" in label
+
+
+class TestPrimaryIsDecidedByTheTextNotByListOrder:
+    """An adversarial review found the primary family was decided by position in
+    GAP_FAMILIES, which made one family unreachable and gave some rows their second gap."""
+
+    def test_primary_is_whichever_family_appears_earliest_in_the_text(self):
+        p, s = r.gap_families("两个缺口叠加：(1) 缺最小性谓词；(2) cardinality 把投影合成节点计入")
+        assert p == "minimality_no_provenance"
+        assert "synthetic_nodes" in s
+
+    def test_reversing_the_text_reverses_the_primary(self):
+        """The decisive check: same two families, opposite order in the prose."""
+        p, _s = r.gap_families("两个缺口叠加：(1) cardinality 把投影合成节点计入；(2) 缺最小性谓词")
+        assert p == "synthetic_nodes", "primary 必须随文本顺序变，不能随规则表顺序"
+
+    def test_granularity_is_reachable_when_it_is_named_first(self):
+        """It was a dead family: its only candidate was captured by a later-listed pattern."""
+        p, s = r.gap_families("真词表缺口两处：(a) 没有粒度谓词；(b) cardinality 无法排除投影合成节点")
+        assert p == "granularity"
+        assert "synthetic_nodes" in s
+
+    def test_secondary_gaps_are_returned_not_discarded(self):
+        _p, s = r.gap_families("缺『无触发迁移存在』谓词；且行为族对 pseudo 目标返回 False 而非拒答")
+        assert "false_false_source" in s, "会伪造缺陷的假 False 源不得从统计中消失"
+
+
+class TestTheTwoFamiliesThatWereMisassigned:
+    def test_a_guard_gap_is_not_an_action_gap(self):
+        """`守卫非空` had been hard-coded into the action pattern, inflating it from 8 to 10."""
+        key, _l, _r = r.gap_family("真词表缺口：缺『边必须携带区分条件 / 守卫非空』谓词")
+        assert key == "guard_content"
+
+    def test_an_action_gap_stays_an_action_gap(self):
+        key, _l, _r = r.gap_family("真词表缺口：缺「迁移/状态必须携带具名的抽象动作或输出信号」这一谓词")
+        assert key == "action_content"
+
+    def test_over_specification_and_minimality_are_one_family(self):
+        """Both phrasings name the same missing capability: asserting an element should not
+        exist. Split apart they read 5 and 7 and `action_content` looked largest."""
+        a, _ = r.gap_families("真词表缺口：缺一个可归因的『过度指定』判据")
+        b, _ = r.gap_families("真词表缺口：缺「最小性 / 非 NL 点名元素不得出现」谓词")
+        assert a == b == "minimality_no_provenance"
 
 
 class TestOneLine:

@@ -233,6 +233,7 @@ def apply_parent_rulings(rows: list[dict], complaints: list[str]) -> int:
             complaints.append(f"主裁定: {key} 不在基线里")
             continue
         scope = (ruling.get("ruling") or {}).get("out_of_scope")
+        stratum = (ruling.get("ruling") or {}).get("stratum")
         if scope:
             # Moving a row out of scope removes it from `problems_in_scope` entirely, so it
             # leaves the stratification rather than changing layer inside it.
@@ -240,7 +241,29 @@ def apply_parent_rulings(rows: list[dict], complaints: list[str]) -> int:
             row["parent_ruling"] = ruling
             row["decided_by"] = "parent_ruling"
             applied += 1
+        elif stratum:
+            # A ruling that moves the row to a different layer *within* scope -- e.g. parking
+            # a row whose own review_note says the call was not made.
+            row["stratum"] = stratum
+            row["parent_ruling"] = ruling
+            row["decided_by"] = "parent_ruling"
+            applied += 1
     return applied
+
+
+def check_duplicate_markers(rows: list[dict], complaints: list[str]) -> None:
+    """A row carrying `duplicate_of` must not also sit in an admissible layer.
+
+    `0056`#3 did both: the harm test deduped it against `0056`#1 ("identical binding") while
+    a later pass moved it back to `over_specification`, leaving the row simultaneously
+    flagged as a duplicate and counted as an admissible finding. That is a double-count of
+    one defect, and nothing in the pipeline objected -- so it is checked here."""
+    for row in rows:
+        if row.get("duplicate_of") and row["stratum"] in ADMISSIBLE:
+            complaints.append(
+                f"重复标记冲突: {row['case']}#{row['diff_index']} 带 duplicate_of "
+                f"（{row['duplicate_of']}）却落在可入层 {row['stratum']}——"
+                f"同一缺陷会被计两次，须显式裁定")
 
 
 def summarise(rows: list[dict]) -> dict:
@@ -287,6 +310,7 @@ def main() -> int:
     n_harm = apply_harm(rows, complaints)
     n_b5 = apply_batch5(rows, complaints)
     n_pr = apply_parent_rulings(rows, complaints)
+    check_duplicate_markers(rows, complaints)
     s = summarise(rows)
 
     print(f"基线 {s['in_scope']} 条计入问题；NL 复核落地 {n_nl} 条，"

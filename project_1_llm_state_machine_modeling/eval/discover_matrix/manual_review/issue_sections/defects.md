@@ -1,4 +1,4 @@
-把 **130 条可入 expected issue** 按「什么坏了」归类。方向读自复核给出的 `reason`，与「能否用谓词说出来」是两个独立问题，交叉起来才看得出词表的真实缺口。
+把 **129 条可入 expected issue** 按「什么坏了」归类。方向读自复核给出的 `reason`，与「能否用谓词说出来」是两个独立问题，交叉起来才看得出词表的真实缺口。
 
 | 方向 | 条数 | 占比 | 含义 |
 | --- | ---: | ---: | --- |
@@ -10,8 +10,8 @@
 | `pseudostate` | **9** | 7% | 伪状态类型：fork / join / junction / choice 未声明或错配 |
 | `unclassified` | **7** | 5% | 关键词未命中，需人工看 |
 | `cardinality` | **5** | 4% | 元素数量：NL 点名 N 个而模型 M 个、克隆件、区域数 |
-| `event` | **5** | 4% | 事件与触发：事件缺失、被压成复合名、自造事件、触发方向错 |
-| **合计** | **130** | 100% | |
+| `event` | **4** | 3% | 事件与触发：事件缺失、被压成复合名、自造事件、触发方向错 |
+| **合计** | **129** | 100% | |
 
 交叉谓词族后，最值得注意的是「无谓词」那一列——它标出词表真正说不出的方向：
 
@@ -25,9 +25,9 @@
 | `pseudostate` | 9 | 0 | 0 | 0 | **9** |
 | `unclassified` | 5 | 1 | 0 | 1 | **7** |
 | `cardinality` | 4 | 1 | 0 | 0 | **5** |
-| `event` | 5 | 0 | 0 | 0 | **5** |
-| **合计** | **100** | **23** | **3** | **4** | **130** |
+| `event` | 4 | 0 | 0 | 0 | **4** |
+| **合计** | **99** | **23** | **3** | **4** | **129** |
 
-两个限制值得单独记下来。**55 条（42%）只能给出存在性断言**（`state_declared` / `edge_declared` 这类）：能说「模型缺 X」，不能说「因此行为坏了」，而后者才是难以被质疑的形态。另有 **4 条完全落在 19 谓词之外**：`0034`#5、`0035`#3、`0039`#5、`0049`#4。
+两个限制值得单独记下来。**54 条（42%）只能给出存在性断言**（`state_declared` / `edge_declared` 这类）：能说「模型缺 X」，不能说「因此行为坏了」，而后者才是难以被质疑的形态。另有 **4 条完全落在 19 谓词之外**：`0034`#5、`0035`#3、`0039`#5、`0049`#4。
 
-逐行分类数据（130 行，含方向、命中的关键词、承载谓词）：[defect_classification.json](https://gist.github.com/HansBug/daa977482df22711e8e0d00fc80c406c#file-defect_classification-json) ｜ 生成脚本 [classify_defects.py](../classify_defects.py)
+逐行分类数据（129 行，含方向、命中的关键词、承载谓词）：[defect_classification.json](https://gist.github.com/HansBug/daa977482df22711e8e0d00fc80c406c#file-defect_classification-json) ｜ 生成脚本 `project_1_llm_state_machine_modeling/eval/discover_matrix/classify_defects.py`
