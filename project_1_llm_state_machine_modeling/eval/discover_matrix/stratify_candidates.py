@@ -79,7 +79,11 @@ STRATA: list[tuple[str, str, str]] = [
         r"NL\s*未涉及", r"NL\s*完全未",
     ])),
     ("nl_named", "NL 点名的元素缺失或错位", "|".join([
-        r"NL\s*第", r"NL\s*\d", r"点名", r"NL\s*要求", r"NL\s*说", r"NL\s*明确",
+        # `\d+` not `\d`: with a single digit the recorded trigger for "NL 12 逐字点名"
+        # came back as "NL 1", so the audit trail pointed at the wrong NL sentence. The
+        # stratum was unaffected, but a trigger a reader cannot trust defeats the purpose
+        # of recording one.
+        r"NL\s*第", r"NL\s*\d+", r"点名", r"NL\s*要求", r"NL\s*说", r"NL\s*明确",
         r"NL\s*逐字", r"NL\s*原文", r"NL\s*中的", r"NL\s*给", r"NL\s*描述",
     ])),
     # Reached by verdict, not by phrase -- see `classify`. Listed here so it appears in
@@ -204,11 +208,17 @@ def main() -> int:
             "totals": {
                 "in_scope": len(rows),
                 "admissible_upper": len(adm),
-                "admissible_floor": by_stratum["wellformedness"] + by_stratum["nl_contradiction"],
+                # Must stay equal to the printed floor; they disagreed once (35 vs 66)
+                # because only the print was updated when over_specification was added,
+                # and a JSON number nobody re-derives is exactly what gets quoted.
+                "admissible_floor": floor,
                 "floor_note": (
-                    "下界 = wellformedness + nl_contradiction，无需 oracle 或引了 NL 显式冲突；"
-                    "上界再加 nl_named，而该层是上界——词法判据只要理由提到 NL 就命中，"
-                    "提到 NL 不等于 NL 点名了缺失的那个元素。"
+                    "下界 = wellformedness + nl_contradiction + over_specification。"
+                    "第一层无需 oracle、第二层引了 NL 的显式冲突、第三层是生成方凭空多出，"
+                    "三者都最难被反驳。上界再加 nl_named，而该层是上界——词法判据只要理由提到 "
+                    "NL 就命中，提到 NL 不等于 NL 点名了缺失的那个元素。"
+                    "注意 over_specification 计入下界的前提是它通过有害性判定；"
+                    "未判定时这个下界本身也是上界。"
                 ),
                 "by_stratum": dict(by_stratum),
                 "admissible_on_cases_without_ledger_e1": len(fresh),

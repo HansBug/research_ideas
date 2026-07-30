@@ -1,0 +1,252 @@
+{
+ "batch": 3,
+ "groups": [
+  "NL01",
+  "NL08"
+ ],
+ "nl_sentences": {
+  "NL01": [
+   "The system starts in the DoorsClosing state and transitions to InMotion when the doors are closed, triggered by the \"Closed/SendDeparted\" signal.",
+   "In the InMotion state, the system can either transition to the Stopping state when it arrives, indicated by the \"Arrived/Stop, Send Arrived\" signal, or to the EmergencyStopping state if an obstacle is detected.",
+   "When an obstacle is detected, the system enters the EmergencyStopping state, which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal.",
+   "Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching, which represent different phases of the train's motion.",
+   "The system begins in the Accelerating substate, moving to the Cruising substate once cruising speed is reached, as indicated by the \"Reached Cruising/Cruise\" signal.",
+   "If the system is in the Accelerating substate and approaches its destination, it transitions to the Approaching substate upon receiving the \"Approached/Decelerate\" signal.",
+   "The system in the Cruising substate transitions to the Approaching substate when it approaches the destination, triggered by the \"Approached/Decelerate\" signal.",
+   "The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action.",
+   "In the Approaching substate, the system sends the \"Send\" signal and continues to approach the destination.",
+   "The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate."
+  ],
+  "NL08": [
+   "S1 [原文标号 \"1\"] The human driving mode is represented by a simple state.",
+   "S2 [原文标号 \"2\"] The autonomous mode has sub-states and is represented by a sub machine state.",
+   "S3 [原文标号 \"3.\"] when power on, the system turn into human driving mode",
+   "S4 [原文标号 \"4\"（无点，与下一句同号）] when front_distance > 10, auto transport to autonomous state",
+   "S5 [原文标号 \"4.\"（与上一句同号）] transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)",
+   "S6 [原文标号 \"5\"] when power off, it will transit to final state"
+  ]
+ },
+ "nl08_numbering_note": "NL08 的 nl.txt 是单行连写，标号序列为 1, 2, 3., 4, 4., 5——共 6 个子句但只有 5 个互异标号（'4' 出现两次：'4when front_distance > 10...' 与 '4. transit to human driving mode...'）。本次复核统一采用**位置编号 S1..S6**，并在每条句子里保留原文标号做映射：S1='1', S2='2', S3='3.', S4='4'(front_distance), S5='4.'(接管三条件), S6='5'(power off)。理由：原审阅稿的 '第5句' 在不同条目里指两个不同子句——0000/d5 与 0020/d4 的 '第5句' 指接管三条件（位置第 5 句、标号 '4.'），而 0010/d6、0030/d3、0040/d2 的 '第5句' 指 power off（标号 '5'、位置第 6 句）；任务背景说明里 '第 4 句' 也同时被用于 front_distance 与接管子句。只有位置编号能唯一消歧，故本报告一律用 S1..S6，并按内容逐条重新绑定审阅者的引用。",
+ "items": [
+  {
+   "case": "0004",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "wellformedness",
+   "element": "DoorsClosing 被写成复合状态，其唯一内部初始边 [*] --> DoorsClosing 的目标越出子域（FCSTM: state InvalidInitialtr_0002 named 'PlantUML initial target outside child scope: DoorsClosing'），该复合态没有任何合法默认子态；出边被降级为 !DoorsClosing -> InMotion。",
+   "nl_evidence": "NL 未点名。审阅者引 NL 第 4 句只是反向论证：第 4 句逐字为 'Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching'，只把子状态授予 InMotion，从未提到 DoorsClosing 的子态；而 NL 第 1 句 'The system starts in the DoorsClosing state' 所要求的顶层初始边在 0004 里确实存在（puml 第 2 行 [*] --> DoorsClosing），该义务已满足。",
+   "note": "改判 wellformedness（仍可入 E1）：本条是'复合态无默认子态 + 初始目标越出子域'，仅凭生成模型自身（puml 第 4-6 行 / FCSTM 的 InvalidInitialtr_0002）即可判定，不需要 NL 或参考模型作 oracle。这是本批唯一一条'审阅者引了 NL 但 NL 并未点名该元素'且落到良构性层的实例。"
+  },
+  {
+   "case": "0014",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "顶层初始伪状态与初始边 [*] --> DoorsClosing 完全缺失（FCSTM: state UnspecifiedInitial named 'Unspecified initial' + [*] -> UnspecifiedInitial）",
+   "nl_evidence": "NL 第 1 句逐字含 'The system starts in the DoorsClosing state'——起始状态被逐字点名，断言 initial_target(root, child=DoorsClosing) 的 child 直接来自 NL。",
+   "note": "同时命中良构性判据（根区域初始配置未定义），但 NL 对'起始态就是 DoorsClosing'是显式点名而非顺带引用，故保留 nl_named；两层均可入 E1，此处分层选择不影响可入条数。"
+  },
+  {
+   "case": "0014",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Accelerating 的 entry 动作 Accelerate——整串 'Entry/Accelerate' 被搬到 InMotion 内部初始边标签上（FCSTM: event Entry_Accelerate named 'Entry/Accelerate'；[*] -> Accelerating : /Entry_Accelerate）",
+   "nl_evidence": "NL 第 8 句逐字含 'marked by the \"Entry/Accelerate\" action'——动作名与相位都逐字出现，是全语料少数直接点名 entry 相位的句子。",
+   "note": "附带产生'带触发的初始边'这一良构性缺陷，但主判据是 NL 逐字点名的 entry 动作缺失，归因于生成侧（降级的直接原因就在作者文本里）。"
+  },
+  {
+   "case": "0014",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "EmergencyStopping 的 'Emergency Stop' 动作——被 PlantUML 读成子状态（FCSTM: EmergencyStopping { state Entry named 'Entry\\n[PlantUML body] Emergency Stop'; state UnspecifiedInitial; [*] -> UnspecifiedInitial; }）",
+   "nl_evidence": "NL 第 3 句逐字含 'which includes the actions \"Emergency Stop\"'。",
+   "note": "参考侧把该动作挂在拼错的幽灵态 'EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected' 上，参考不能作 oracle；但 NL 第 3 句逐字点名，归因成立。附带 EmergencyStopping 变成无默认子态的复合态（良构性），不改变本条 nl_named 判定。"
+  },
+  {
+   "case": "0014",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Approaching 的 'Send' 输出动作——全模型任何相位、任何迁移上都不存在（FCSTM 中 Approaching 只有 named 描述串，无 enter/during abstract）",
+   "nl_evidence": "NL 第 9 句逐字含 'the system sends the \"Send\" signal'。",
+   "note": ""
+  },
+  {
+   "case": "0024",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Accelerating 的 entry/Accelerate 动作（FCSTM 中 Accelerating 只有 named 'Accelerating\\n[PlantUML body] Accelerating'，无 enter abstract）",
+   "nl_evidence": "NL 第 8 句逐字含 'marked by the \"Entry/Accelerate\" action'。",
+   "note": ""
+  },
+  {
+   "case": "0024",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Approaching 的 'Send' 输出动作被写成迁移触发器（FCSTM: event exit_Send named 'exit/Send'；Approaching -> [*] : /exit_Send，经 R45RouteToken==7 路由回 InMotion）",
+   "nl_evidence": "NL 第 9 句逐字含 'the system sends the \"Send\" signal'——NL 点名 Send 且明确其为系统发出的输出。",
+   "note": "NL 点名的元素存在但角色反转（输出动作→必须由环境提供的输入事件），按 §判据的'错位'归 nl_named；若按'方向写反'口径记 nl_contradiction 亦可，两者同样可入 E1。"
+  },
+  {
+   "case": "0024",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "EmergencyStopping 发送 'Obstacle Detected' 的输出动作被写成迁移触发器（FCSTM: event exit_Send_Obstacle_Detected named 'exit/Send Obstacle Detected'；EmergencyStopping -> InMotion : /exit_Send_Obstacle_Detected）",
+   "nl_evidence": "NL 第 3 句逐字含 'sends the \"Obstacle Detected\" signal'。",
+   "note": "与 0024/d1 同型：NL 点名元素的角色反转，nl_named（错位）或 nl_contradiction（方向反）均可入 E1。"
+  },
+  {
+   "case": "0034",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "InMotion 的复合结构与 Accelerating / Cruising / Approaching 的 containment（FCSTM 中 InMotion 为叶状态，三个阶段是 root 直属兄弟态）",
+   "nl_evidence": "NL 第 4 句逐字含 'Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching'——父态与三个子态全部逐字点名。",
+   "note": ""
+  },
+  {
+   "case": "0034",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "进入运动后唯一默认子态 Accelerating——被三条无触发 completion 边 InMotion -> Accelerating / Cruising / Approaching 取代（FCSTM 逐字可见）",
+   "nl_evidence": "NL 第 5 句逐字含 'The system begins in the Accelerating substate'；NL 第 8 句逐字含 'The system enters the Accelerating substate when motion begins'；被绕过的触发器 'Reached Cruising/Cruise'（第 5 句）与 'Approached/Decelerate'（第 6、7 句）同样是 NL 逐字点名。",
+   "note": "该 diff 同时命中良构性判据'无触发 completion 边挤压已声明分支'：FCSTM 中 InMotion 的三条无触发出边会抢在 /Arrived_Stop_Send_Arrived 与 /Obstacle_Detected 之前完成。但断言里的 child=Accelerating 由第 5/8 句逐字点名，NL 不是顺带引用，故保留 nl_named。"
+  },
+  {
+   "case": "0034",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "被错置/复制到 DoorsClosing 上的 entry/Accelerate（FCSTM: DoorsClosing { enter abstract Accelerate; }，同时 Accelerating 上也有一份正确的）",
+   "nl_evidence": "NL 第 8 句逐字含 'The system enters the Accelerating substate when motion begins, marked by the \"Entry/Accelerate\" action'——动作名、归属状态与触发时机（motion begins）都被点名。",
+   "note": "元素本身（Entry/Accelerate）为 NL 逐字点名，按'错位'归 nl_named。严格说这是重复+错置而非纯迁移，若按'违反第 8 句把该动作绑定到 Accelerating / motion begins'记 nl_contradiction 亦成立；两者均可入 E1。"
+  },
+  {
+   "case": "0034",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Approaching 的 Send 输出动作缺失，且被迁移效果 Decelerate 顶替到 entry 相位（FCSTM: Approaching { enter abstract Decelerate; }）",
+   "nl_evidence": "NL 第 9 句逐字含 'the system sends the \"Send\" signal'；NL 第 6、7 句把 Decelerate 定为 'Approached/Decelerate' 迁移的效果，而非 Approaching 的状态局部动作。",
+   "note": ""
+  },
+  {
+   "case": "0034",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "EmergencyStopping 发送 'Obstacle Detected' 的输出动作（全模型不存在；FCSTM 中 EmergencyStopping 只有 enter abstract EmergencyStop）",
+   "nl_evidence": "NL 第 3 句逐字含 'which includes the actions \"Emergency Stop\" and sends the \"Obstacle Detected\" signal'——两个动作都被点名，生成方只保留前者。",
+   "note": ""
+  },
+  {
+   "case": "0034",
+   "diff_index": 5,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "生成侧多出的出边 Approaching --> [*] : Destination Missed（FCSTM: Approaching -> [*] : /Destination_Missed）",
+   "nl_evidence": "NL 未点名任何名为 'Destination Missed' 的事件，也未点名 Approaching 的任何终止路径；可归因的依据是 NL 第 10 句的显式 remain-until 义务，逐字为 'The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate'——该边让系统在义务未解除时离开 Approaching 并直接终止整机。",
+   "note": "改判 nl_contradiction（仍可入 E1）：该元素既不被 NL 点名，也不存在于参考模型（参考中 Approaching 无任何出边），因此 reference_only 在结构上不适用——它是生成侧多出的边；可归因性来自违反第 10 句的显式义务。"
+  },
+  {
+   "case": "0044",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "InMotion 内部初始边 [*] --> Accelerating 缺失（FCSTM: InMotion { ... state UnspecifiedInitial; [*] -> UnspecifiedInitial; 并额外补出两条 UnspecifiedInitial -> [*] 路由边 }）",
+   "nl_evidence": "NL 第 5 句逐字含 'The system begins in the Accelerating substate'；NL 第 8 句逐字含 'The system enters the Accelerating substate when motion begins'。",
+   "note": "同时命中良构性判据（复合态无默认子态），但断言里的 child=Accelerating 由第 5/8 句逐字点名，保留 nl_named；两层均可入 E1。"
+  },
+  {
+   "case": "0000",
+   "diff_index": 5,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "NL S5 点名的三个接管条件 human steering cmd / brake pressed / in (auto final) 被压成单一不可分解事件（FCSTM: event Human_Steering_Cmd_Brake_Pressed_in_AutoFinal named 'Human Steering Cmd, Brake Pressed, in (AutoFinal)'），其中 in (AutoFinal) 本是状态条件却被塞进事件名",
+   "nl_evidence": "NL S5（原文标号 '4.'）逐字含 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)'——三个条件逐字出现；NL S2 逐字含 'The autonomous mode has sub-states' 为 in(...) 的指代提供依据。",
+   "note": "不依赖参考模型：参考虽把三条件拆成三条独立边，但 brake_pressed 与 in (auto_final) 两条方向与 S5 相反（都写成 human_mode --> autonomous_mode），故参考不可作 oracle；归因完全来自 S5 逐字点名。另需指出生成方的边方向 AutonomousMode --> HumanDrivingMode 恰与 S5 一致，方向不是本条问题。残留争议属 verdict 层不属分层层：S5 是'三选一'还是'合取'读法未定，但两种读法下单一自由文本事件都无法表达 in (auto final) 这个状态条件。"
+  },
+  {
+   "case": "0010",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Autonomous 的子状态与 sub machine 结构（FCSTM 确认 Autonomous 是 root 直属叶状态，只带 '[PlantUML body] <<submachine>>' 描述串；AutonomousIdle / AutonomousActive / AutonomousFinal 与它平级）",
+   "nl_evidence": "NL S2（原文标号 '2'）逐字含 'The autonomous mode has sub-states and is represented by a sub machine state.'",
+   "note": "参考模型自身也没给 autonomous_mode 写状态体、同样违反 S2；本条的 oracle 完全是 NL 而非参考，属 nl_named 分层成立的正面例证（NL 站在'两侧都不合格'的位置上，仍能独立归因生成侧）。"
+  },
+  {
+   "case": "0010",
+   "diff_index": 6,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "自动驾驶侧缺少断电出边（FCSTM 中 Power_Off 只被 HumanDriving 消费，且目标是普通状态 AutonomousFinal 而非终态；AutonomousIdle / AutonomousActive / AutonomousFinal 都不消费 Power_Off）",
+   "nl_evidence": "NL S6（原文标号 '5'）逐字含 'when power off, it will transit to final state'。该句**没有任何状态前件**（对比 S4/S5 都显式写出源/目标模式），故为无作用域限定的全局义务：自动驾驶模式下断电事件被静默丢弃即违反该义务。但 NL 并未逐字点名 'autonomous_mode --> [*] : power_off' 这条具体边——该具体边只出现在参考模型里。",
+   "note": "改判 nl_contradiction（仍可入 E1）：审阅者引了 NL，但 NL 没有点名该具体边，故不构成 nl_named；可归因性来自 S6 的无作用域义务。**敏感性提示**：若采用更严口径（要求 NL 逐字点名源状态才算可归因），本条与 0030/d3、0040/d2 三条应降为 reference_only，可入条数减 3。旁证支持全局读法：0020 的生成方仅凭同一份 NL 就在 AutoInitialState / AutoOperationalState / AutoFinalState 三个子态上都写了 Power_Off 出边。附带观察：0010 连 human 侧的断电也没有到终态（目标是普通状态 AutonomousFinal），对 S6 的满足程度更差。"
+  },
+  {
+   "case": "0020",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "power_on 事件本身及初始迁移上的该触发（FCSTM 中 0020 完全没有 Power_On 事件，初始边为无触发的 [*] -> HumanDrivingMode）",
+   "nl_evidence": "NL S3（原文标号 '3.'）逐字含 'when power on, the system turn into human driving mode'——事件名 power on 与目标态 human driving mode 都被点名。",
+   "note": "需注意参考把它编码成带触发的初始边 [*] --> human_mode : power_on，该写法本身是良构性缺陷，因此不能把参考的写法当成修复目标；但 S3 逐字点名 power on 而模型里该事件完全不存在，归因于生成侧仍成立（生成方本可用 Off 态 --power_on--> HumanDriving 编码）。"
+  },
+  {
+   "case": "0020",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "接管条件被压成单一不可分解事件（FCSTM: event human_steering_cmd_brake_pressed named 'human steering cmd, brake pressed'），且 in (auto final) 不构成独立接管条件——AutoFinalState -> [*] 仍须等该复合事件",
+   "nl_evidence": "NL S5（原文标号 '4.'）逐字含 'human steering cmd, brake pressed, in (auto final)'——三个条件逐字出现。",
+   "note": "分层成立（三条件逐字点名）。verdict 层残留争议同 0000/d5：'处于 auto final 单独即应交还控制'依赖 S5 的三选一读法；若按合取读法，以 AutoFinalState 为源 + 复合事件的写法接近忠实，残留问题只剩复合事件不可分解。该争议属 verdict 不属分层。"
+  },
+  {
+   "case": "0030",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Autonomous 内可被 in(...) 指代的 auto final 子状态（FCSTM: Autonomous 只含 Navigating / Parking；标签里的 '[*]' 被吞进事件名 Human_Steering_Cmd_Brake_Pressed named 'Human Steering Cmd / Brake Pressed / [*]'，不声明任何状态）",
+   "nl_evidence": "NL S5（原文标号 '4.'）逐字含 'in (auto final)'；NL S2 逐字含 'The autonomous mode has sub-states and is represented by a sub machine state.'",
+   "note": "参考模型同样没有声明 auto_final 状态（它只在标签 'human_mode --> autonomous_mode : in (auto_final)' 里作为文本出现，参考的 autonomous_mode 连状态体都没有），所以该元素不是'只存在于参考'——它是 NL 点名而参考与生成两侧都缺，归因于 NL 成立，不构成 reference_only。"
+  },
+  {
+   "case": "0030",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "自动驾驶侧缺少断电出边（FCSTM 中只有 HumanDriving -> [*] : /Power_Off；Navigating / Parking 都不消费 Power_Off）",
+   "nl_evidence": "NL S6（原文标号 '5'）逐字含 'when power off, it will transit to final state'，无状态前件，构成全局义务；NL 未逐字点名 'autonomous_mode --> [*] : power_off' 这条具体边，该边只出现在参考模型里。",
+   "note": "改判 nl_contradiction（仍可入 E1），理由与敏感性同 0010/d6：严口径下应降为 reference_only。"
+  },
+  {
+   "case": "0040",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "自动驾驶侧缺少断电出边（FCSTM 中只有 HumanDriving -> [*] : /Power_Off；AutoInitial / AutoFinal 都不消费 Power_Off）",
+   "nl_evidence": "NL S6（原文标号 '5'）逐字含 'when power off, it will transit to final state'，无状态前件，构成全局义务；NL 未逐字点名 'autonomous_mode --> [*] : power_off' 这条具体边，该边只出现在参考模型里。",
+   "note": "改判 nl_contradiction（仍可入 E1），理由与敏感性同 0010/d6：严口径下应降为 reference_only。"
+  }
+ ],
+ "totals": {
+  "confirmed": 18,
+  "reference_only": 0,
+  "wellformedness": 1,
+  "nl_contradiction": 4,
+  "uncertain_stratum": 0
+ },
+ "eligibility": {
+  "reviewed": 23,
+  "e1_eligible": 23,
+  "e1_ineligible": 0,
+  "sensitivity": "若采用'必须 NL 逐字点名源状态才算可归因'的严口径，则 0010/d6、0030/d3、0040/d2 三条 power_off 从 nl_contradiction 降为 reference_only，e1_eligible 由 23 变为 20。其余 20 条不受任何读法影响。"
+ }
+}

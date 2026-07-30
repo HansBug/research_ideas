@@ -1,0 +1,377 @@
+{
+ "total": 31,
+ "criterion": "harmful = the extra element produces a consequence (unreachable/dead-end/absorbing/conflicting-target/preemption/semantic shift) that can be stated as ONE POSITIVE assertion drawn only from the consequence predicates (reaches / terminates / occupancy_after / initial_target / stays_in / event_consumed / cardinality / containment / guard_distinguishable / invariant / persists_until / response_within / variable_delta_after) and that assertion evaluates False on the FCSTM projection. Existence predicates (state_/edge_/event_/variable_/action_/effect_declared) are the PREMISE for an extra, never the defect. No closed-world reading: 'NL never mentioned it' is not harm, and 'NL never forbade it' is not innocence.",
+ "harness": "/tmp/nlcheck/harness.py (build_eval_environment over fcstm/<stem>.fcstm + source_traces/<stem>.json, venv python)",
+ "items": [
+  {
+   "case": "0002",
+   "diff_index": 2,
+   "element": "extra PumpControl.InitialState (4th direct substate, absorbing, and it is the only [*] target inside PumpControl)",
+   "verdict": "harmful",
+   "consequence": "NL06 s2 enumerates exactly three substates ('there are three main substates: PumpState, WaterState, and MethaneState'). The extra state makes the direct non-pseudo child count 4, and because `[*] -> InitialState` is PumpControl's only initial edge the extra state also captures the entry and is itself a dead end (no outgoing edge), so all three NL-named substates become unreachable.",
+   "assertion": "cardinality(scope='llms_emp_feedback_final_0002.PumpControl', count=3) = False",
+   "verified": "ran: cardinality(...,3) -> False; initial_target(PumpControl, PumpState) -> False; reaches('[*]', PumpControl.PumpState, 6) -> False; reaches('[*]', PumpControl.WaterState, 6) -> False; terminates(PumpControl.InitialState) -> False",
+   "note": "cardinality is a FRESH assertion for this pair: 0002#0 (problem) uses initial_target and 0002#1 (problem) uses reaches, so it does not double-book. The reviewer's `assertable` was already cardinality and is correct."
+  },
+  {
+   "case": "0002",
+   "diff_index": 3,
+   "element": "extra inner layer RunningState / MonitoringWaterFlow / MonitoringMethaneFlow + 4 invented events (Activate Pump, Deactivate Pump, Start Monitoring, Stop Monitoring) with region-final edges",
+   "verdict": "benign",
+   "consequence": "none assertable. The extra layer does not change PumpControl's direct-child set, so cardinality/containment at the only NL-anchored scope are unaffected (containment(PumpControl, PumpControl.PumpState) = True). Each invented inner entry is the sole initial edge of its composite, so initial_target(PumpState, RunningState) = True. The invented Deactivate/Stop edges lead to region-final boundaries that do not terminate the machine (terminates(PumpState, Deactivate_Pump) = False), and everything inside is masked anyway because 0002#2 already makes the three substates unreachable.",
+   "assertion": null,
+   "verified": "ran: containment(PumpControl, PumpControl.PumpState) -> True; initial_target(PumpControl.PumpState, ...RunningState) -> True; terminates(PumpControl.PumpState, Deactivate_Pump) -> False; reaches('[*]', ...RunningState, 6) -> False (but so is PumpState itself, i.e. caused by 0002#2 not by this diff)",
+   "note": "Reviewer's `assertable` is event_declared(...Deactivate_Pump) -- an existence predicate, i.e. the premise. There is no NL06 obligation about depth, termination or these events, so no consequence form exists. Only a closed-world 'the model must not declare events' claim would book it."
+  },
+  {
+   "case": "0005",
+   "diff_index": 2,
+   "element": "4 invented leaf states DoorIdleWithItem / ItemInside / WaitingToStart / ActiveCooking",
+   "verdict": "benign",
+   "consequence": "none attributable. These four leaves are the default children that carry the transitions the reference puts on their (mis-nested) parents, so they are on the live path and satisfy the NL edges rather than break them. cardinality(root, 6) = False is real but is caused by the 4-level mis-nesting, which is 0005#1 (problem, assertable = invariant over DoorOpenWithItem && DoorShutWithItem), not by these leaves.",
+   "assertion": null,
+   "verified": "ran: reaches('[*]', DoorOpenWithItem.DoorIdleWithItem, 4) -> True (on-path, not dead code); occupancy_after(DoorOpenWithItem, Close_Door_with_Zero_Time, DoorOpenWithItem.DoorShutWithItem, 1) -> True (NL s4 still met); cardinality(root, 6) -> False but co-caused by 0005#1",
+   "note": "Reviewer's own `assertable` already flagged that cardinality(root,6) is about the top level, i.e. about the nesting diff, not about the four leaves. Deleting the four leaves would not change any NL verdict."
+  },
+  {
+   "case": "0006",
+   "diff_index": 4,
+   "element": "extra intermediate state Intercepted (Searching --Interception_Detected--> Intercepted --(completion)--> FormationAdjustment)",
+   "verdict": "benign",
+   "consequence": "none assertable. The one-hop NL03 s3 obligation is satisfied through the eventless completion edge; Intercepted has exactly one outgoing edge, so it is neither a dead end nor a preemptor, and it competes with nothing.",
+   "assertion": null,
+   "verified": "ran: occupancy_after(Searching, Interception_Detected, FormationAdjustment, within_cycles=2) -> True and within_cycles=3 -> True; at within_cycles=1 the API REFUSES (UnsupportedEvidence: 'False over 1 cycle but True over 2 ... state the obligation with within_cycles=2'), i.e. the vocabulary deliberately forbids booking the extra hop as a defect. predicate_api.py documents this pair by name as the shape that must not be published as a bounded artifact.",
+   "note": "Reviewer's `assertable` was edge_declared(Searching, Interception_Detected, FormationAdjustment) -> that edge does not even exist (the model routes via Intercepted), so as written it is a False of the WRONG polarity (it would read as a missing edge). The honest reading is: no consequence."
+  },
+  {
+   "case": "0007",
+   "diff_index": 3,
+   "element": "extra top-level subtree OperationalControls { FeedbackControl / SystemCheck / CommunicationControl } + 3 invented events (Signal Feedback / Health Check / Communicate Control)",
+   "verdict": "harmful",
+   "consequence": "The whole subtree has ZERO incoming transitions -- the only top-level edges are CollisionDetection->CollisionAvoidance, CollisionAvoidance->InitialState and [*]->InitialState -- so it is dead code no environment can enter. On top of that its three triggered initial edges sit in one non-orthogonal region, so its own entry is nondeterministic.",
+   "assertion": "reaches(source='[*]', target='llms_emp_feedback_final_0007.OperationalControls', within_cycles=5) = False",
+   "verified": "ran: reaches('[*]', OperationalControls, 5) -> False; reaches('[*]', OperationalControls.FeedbackControl, 6) -> False; and also False from EVERY top-level state (CollisionDetection / CollisionAvoidance / InitialState, within_cycles=6), which is decisive because reaches over-approximates by offering the whole declared alphabet each cycle. initial_target(OperationalControls, FeedbackControl) raises UnsupportedEvidence ('3 initial edges and none of them is taken unconditionally').",
+   "note": "Independent of 0007#1: even if [*] pointed at CollisionDetection, nothing targets OperationalControls. Fresh assertion -- 0007#1 targets CollisionDetection.PossibleCollision, 0007#2 targets CollisionAvoidance.AutomaticBraking. The reviewer's `assertable` mixed an existence claim with the reaches form; the reaches form is the correct one."
+  },
+  {
+   "case": "0010",
+   "diff_index": 7,
+   "element": "invented event 'Front Distance <= 10' plus the entry chain Autonomous --<=10--> AutonomousIdle --'>10'--> AutonomousActive",
+   "verdict": "benign",
+   "consequence": "none attributable. It is the ONLY outgoing edge of Autonomous, so removing it would make Autonomous absorbing -- i.e. this extra strictly increases reachability rather than destroying it. It does not conflict with anything (Autonomous has one out-edge; HumanDriving's '>10' edge is still deterministic). The genuine defect 'takeover/power-off only exist on AutonomousActive' is already booked as 0010#5 / 0010#6 (problems) and is caused by the flat hierarchy, not by this event.",
+   "assertion": null,
+   "verified": "ran: occupancy_after(HumanDriving, 'Front Distance > 10', Autonomous, 1) -> True (NL s4 still met); guard_distinguishable(HumanDriving, 'Front Distance > 10') -> True; reaches('[*]', AutonomousIdle, 4) -> True; event_consumed(Autonomous, Human_Steering_Cmd) -> False but that is 0010#6's finding",
+   "note": "Real residual risk is assertability, not model behaviour: FCSTM folds 'Front Distance <= 10' and 'Front Distance > 10' into Front_Distance_10 and Front_Distance_10_2, so an assertion author can bind the wrong one. That is a vocabulary hazard to record, not an expected issue."
+  },
+  {
+   "case": "0013",
+   "diff_index": 2,
+   "element": "6 invented events (Water/Methane Flow Detected/Controlled, Transition to Methane/Water) + 9 inter-substate transitions",
+   "verdict": "benign",
+   "consequence": "none fresh. Every candidate consequence in this pair is already carried by a neighbouring problem: cardinality(PumpControl,3) = False is caused by the 4 clone STATES (0013#0, whose assertable is exactly that), and initial_target(PumpControl, PumpState) raising 'declares 3 unconditional initial edges ... genuinely ambiguous' is 0013#1. The transitions themselves introduce no conflict (each source uses a distinct event) and no dead end.",
+   "assertion": null,
+   "verified": "ran: cardinality(PumpControl,3) -> False (but attributable to 0013#0); containment(PumpControl, PumpState) -> True; guard_distinguishable(PumpState, Water_Flow_Detected) -> True; initial_target(PumpControl, PumpState) -> UnsupportedEvidence (3 unconditional initial edges) = 0013#1",
+   "note": "Reviewer's `assertable` is event_declared(...Transition_to_Methane) -- existence, i.e. the premise. NL06 names no events and no inter-substate transitions, so there is no positive obligation these edges can break."
+  },
+  {
+   "case": "0016",
+   "diff_index": 5,
+   "element": "invented event 'Start Mission' placed on the root initial transition ([*] -> SearchMission : /Start_Mission)",
+   "verdict": "harmful",
+   "consequence": "A triggered initial transition means the cold start commits NO state: the power-up configuration is the root alone. Until the invented Start Mission arrives, no declared event can be consumed and no NL03 behaviour is reachable at all. Measured: cold-start active set = {llms_emp_feedback_final_0016} only.",
+   "assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0016.Finished_Region1_Search') = False  (equivalently occupancy_after(source='[*]', trigger='...Interception_Detected', target='...FormationAdjust', within_cycles=2) = False)",
+   "verified": "ran: cold init cfg = {root} only; event_consumed('[*]', Finished_Region1_Search) -> False while the pinned control event_consumed(SearchMission.Region1.Search, Finished_Region1_Search) -> True; occupancy_after('[*]', Interception_Detected, FormationAdjust, 2) -> False while the pinned control occupancy_after(SearchMission.Region1.Search, Interception_Detected, FormationAdjust, 2) -> True. Negative control: 0021 (untriggered root initial) gives event_consumed('[*]', Brake_Signal_Received) -> True, so the predicate is not a constant False.",
+   "note": "Fresh: 0016#0/#1 use containment/initial_target inside SearchMission, 0016#2 uses terminates. Reviewer's `assertable` was edge_declared(...) -- existence only; corrected form given here."
+  },
+  {
+   "case": "0018",
+   "diff_index": 8,
+   "element": "invented events Start (on [*] -> TurnOn) and end (on Junction1 -> TurnOff)",
+   "verdict": "harmful",
+   "consequence": "Same cold-start failure: with a trigger on the root initial transition the power-up configuration is the root alone, so NL04 s1 ('The system begins in the TurnOn state') never holds and none of the declared events can be consumed until the invented Start arrives. Secondary (not separately assertable): 'end' on a junction out-edge lets the machine rest in a pseudostate, which NL04 s10 ('enters Junction1 BEFORE proceeding to TurnOff') forbids.",
+   "assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0018.memFull_true') = False",
+   "verified": "ran: cold init cfg = {root} only; event_consumed('[*]', memFull_true) -> False and event_consumed('[*]', '<<GaStep>>{prob=0.4}') -> False, while the pinned control event_consumed(AutoFocus, memFull_true) -> True; occupancy_after(TurnOn, memFull_true, ChargedFlash, 3) -> True vs occupancy_after('[*]', memFull_true, ChargedFlash, 3) -> False",
+   "note": "Fresh: 0018#1/#2 use state_declared/edge_declared. Note initial_target(root, TurnOn) returns True -- _initial_child_of deliberately answers from a single triggered entry -- so initial_target CANNOT catch this shape; event_consumed('[*]', ...) is the working form."
+  },
+  {
+   "case": "0019",
+   "diff_index": 5,
+   "element": "invented events 'Autonomous mode start' and 'Start of autonomous driving mode' on the two initial transitions",
+   "verdict": "harmful",
+   "consequence": "Cold start commits nothing (power-up configuration = root alone), so NL05 s1 ('the system begins in AutonomousMode, which transitions into the InitialState substate') fails and the NL05 s2 dispatch from InitialState is unreachable from power-up. Two triggers stacked: even after the first fires, AutonomousMode is entered with no active substate until the second arrives.",
+   "assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0019.high_way_true') = False  (equivalently occupancy_after(source='[*]', trigger='...high_way_true', target='...AutonomousMode.HighwayMode', within_cycles=2) = False)",
+   "verified": "ran: cold init cfg = {root} only; event_consumed('[*]', high_way_true) -> False vs pinned control event_consumed(AutonomousMode.InitialState, high_way_true) -> True; occupancy_after('[*]', high_way_true, HighwayMode) -> False at 1, 2 and 3 cycles vs occupancy_after(AutonomousMode.InitialState, high_way_true, HighwayMode, 2) -> True",
+   "note": "Fresh: 0019#3 uses occupancy_after from cruise. initial_target(AutonomousMode, InitialState) -> True, so again initial_target cannot see it. Reviewer's `assertable` was event_declared -- existence only; corrected."
+  },
+  {
+   "case": "0021",
+   "diff_index": 0,
+   "element": "extra edge ClampingState --Clamping Released--> BrakingState (reference: clamping is absorbing)",
+   "verdict": "benign",
+   "consequence": "none assertable. NL02 has 3 sentences and gives ClampingState no remain/until/only obligation, so there is no positive claim the new out-edge can falsify. It creates no conflict (ClampingState's single out-edge on a unique event), no dead end, and does not disturb the NL02 s3 obligation.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(ClampingState, Clamping_Released) -> True; occupancy_after(BrakingState, Entering_Clamping_State, ClampingState, 1) -> True (NL02 s3 still met); stays_in(ClampingState, Clamping_Released) -> False but NON-DISCRIMINATING: a correct model has no such event, so stays_in there is also False (the predicate requires the trigger to be consumed)",
+   "note": "The reviewer's own `assertable` was already the negated form `not transition_exists(...)`, which is closed-world by construction. The domain-safety worry ('released' returning to BRAKING) is a legitimate qualitative remark for the paper but is not an assertable consequence."
+  },
+  {
+   "case": "0024",
+   "diff_index": 4,
+   "element": "extra recovery edge EmergencyStopping --exit/Send Obstacle Detected--> InMotion (event fabricated from a mis-parsed exit action)",
+   "verdict": "benign",
+   "consequence": "none assertable. NL01 s2/s3 give EmergencyStopping no remain/until obligation (only s10 does, and it is about Approaching). The extra edge conflicts with nothing (single out-edge) and leaves the NL01 obligation intact.",
+   "assertion": null,
+   "verified": "ran: occupancy_after(InMotion.Cruising, Obstacle_Detected, EmergencyStopping, 2) -> True (NL01 s2 still met); stays_in(EmergencyStopping, exit_Send_Obstacle_Detected) -> False but non-discriminating (see 0021); persists_until(EmergencyStopping, 'false') -> FBMCQUnsupportedEvidence (query exceeds Controller analysis bound), so the temporal form is not available either",
+   "note": "The REAL defect on this line is the lost exit action, and that is already 0024#3 (problem). Booking the extra edge separately would double-count the same source line. Reviewer's `assertable` was the negated `not transition_exists(...)` form."
+  },
+  {
+   "case": "0029",
+   "diff_index": 5,
+   "element": "invented events `initial` (AutonomousMode -> InitialState) and `enter` (HighwayMode -> enter_hwy, UrbanMode -> enter_urban, both demoted to group edges)",
+   "verdict": "benign",
+   "consequence": "none assertable, and the two halves cancel. `initial` is LOAD-BEARING: it is the only edge out of the cold-start state AutonomousMode, so deleting it makes InitialState/HighwayMode/UrbanMode unreachable -- the extra increases reachability. `enter` as a group edge does add an unauthorised reset from any HighwayMode substate back to enter_hwy, but the only form for that is stays_in(cruise, enter) which is False in a correct model too (the event does not exist there, so it is never consumed), i.e. non-discriminating; NL05 names no `enter` event so there is no positive obligation to break.",
+   "assertion": null,
+   "verified": "ran: stays_in(HighwayMode.cruise, enter_) -> False (non-discriminating); occupancy_after(HighwayMode.cruise, auto_finished_true, HighwayMode.FinishState, 3) -> True (NL05 s6 still met); occupancy_after(AutonomousMode, initial, InitialState, 1) -> True",
+   "note": "The consequences the reviewer described (no default entry into HighwayMode/UrbanMode) are already booked as 0029#0 and 0029#3 (problems); initial_target(HighwayMode, enter_hwy) resolves to the converter's UnspecifiedInitial, which is in this pair's attribution_exclusions, so it is representation debt, not an authoring defect."
+  },
+  {
+   "case": "0029",
+   "diff_index": 6,
+   "element": "extra third mode-completion edge AutonomousMode --auto_finished=true--> FinishState (reference has two: from HighwayMode and from UrbanMode)",
+   "verdict": "benign",
+   "consequence": "none assertable. The edge does add a startup shortcut (AutonomousMode is the cold-start state, so auto_finished=true jumps straight to HighwayMode.FinishState) but NL05 places no obligation on AutonomousMode for that event, it does not compete with the `initial` edge (different trigger), and both NL05 s6/s10 completion obligations still hold.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(AutonomousMode, auto_finished_true) -> True (no conflicting target); occupancy_after(HighwayMode.cruise, auto_finished_true, HighwayMode.FinishState, 3) -> True; occupancy_after(AutonomousMode, initial, InitialState, 1) -> True",
+   "note": "Reviewer already wrote assertable = None; confirmed. The related real defect (FinishState is scoped inside HighwayMode so UrbanMode's completion is routed cross-hierarchy) is 0029#4 (problem)."
+  },
+  {
+   "case": "0031",
+   "diff_index": 0,
+   "element": "extra edge ClampingState --Transition Missing Feedback--> InitialState",
+   "verdict": "benign",
+   "consequence": "none assertable -- identical shape to 0021#0. NL02 gives ClampingState no remain/until obligation; single out-edge on a unique event, so no conflict and no dead end.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(ClampingState, Transition_Missing_Feedback) -> True; occupancy_after(BrakingState, Entering_Clamping_State, ClampingState, 1) -> True; stays_in(ClampingState, Transition_Missing_Feedback) -> False (non-discriminating)",
+   "note": "Note the fabricated event duplicates NL02's own return-to-initial semantics under a different name, but the NL-named path (Signal Feedback Sent from BrakingState/OperationalState) is untouched, so no NL claim flips."
+  },
+  {
+   "case": "0032",
+   "diff_index": 2,
+   "element": "extra wrapper layer IdleRegion / AccelerateRegion / BrakeRegion inserted between Operate and its NL-named substates",
+   "verdict": "harmful",
+   "consequence": "NL09 s1+s3 make Idle / 'Accelerating or Cruising' / Braking substates OF Operate. The wrapper demotes them to grandchildren, so the containment obligation fails. Note cardinality(OperateState, 3) is a FALSE PASS here (it counts the three wrappers), which is exactly why the containment form is required.",
+   "assertion": "containment(parent='llms_emp_feedback_final_0032.OperateState', child='llms_emp_feedback_final_0032.OperateState.IdleRegion.IdleState') = False",
+   "verified": "ran: containment(OperateState, OperateState.IdleRegion.IdleState) -> False; containment(OperateState, OperateState.IdleState) -> False (no such path); cardinality(OperateState, 3) -> True (false pass, confirming the reviewer's diagnosis)",
+   "note": "Reviewer set predicate_exists=false claiming no predicate can express it; that is WRONG -- containment is in the consequence set and returns False. Fresh: 0032#1 uses initial_target/reaches on AccelerateRegion. The name to bind is the declared grandchild path, not a non-existent OperateState.IdleState."
+  },
+  {
+   "case": "0032",
+   "diff_index": 3,
+   "element": "split of NL's single 'Accelerating or Cruising' state into AcceleratingState + CruisingState, plus invented 'Reach Speed' and the AccelerateRegion --Reach Speed--> CruisingState cross-level edge",
+   "verdict": "benign",
+   "consequence": "none attributable. AcceleratingState IS unreachable, but so are IdleState and BrakingState -- the cause is that all three wrappers lack a [*] initial edge and fall back to the converter's UnspecifiedInitial, which is 0032#1 (problem, whose assertable is exactly reaches('[*]', AcceleratingState) / initial_target(AccelerateRegion, AcceleratingState)). The cross-level Reach Speed edge causes no conflict and, from CruisingState, merely re-enters CruisingState.",
+   "assertion": null,
+   "verified": "ran: reaches('[*]', AccelerateRegion.AcceleratingState, 6) -> False, BUT reaches('[*]', IdleRegion.IdleState, 6) -> False and reaches('[*]', BrakeRegion.BrakingState, 6) -> False as well, so the unreachability is systemic (0032#1), not caused by the split; reaches('[*]', AccelerateRegion.CruisingState, 6) -> True; stays_in(CruisingState, Reach_Speed) -> True",
+   "note": "cardinality(OperateState, 3) is True, so the over-count cannot be seen at any NL-anchored scope. The split is a naming/decomposition difference with no independent consequence."
+  },
+  {
+   "case": "0033",
+   "diff_index": 3,
+   "element": "7 invented events (begin / Activate Pump / Monitor Water Flow / Monitor Methane Flow / Pump Deactivated / Water Flow Stabilized / Methane Flow Stabilized) + 3 out-of-scope final edges",
+   "verdict": "harmful",
+   "consequence": "`begin` sits on the root initial transition ([*] -> PumpControl : /begin), so the power-up configuration is the root alone -- NL06 s1 ('The system begins in the PumpControl state') never holds and NOTHING at all can be consumed until the invented begin arrives. Additionally the three invented 'Stabilized/Deactivated' edges land in converter-projected InvalidFinal* states that are absorbing.",
+   "assertion": "event_consumed(source='[*]', trigger='llms_emp_feedback_final_0033.Activate_Pump') = False",
+   "verified": "ran: cold init cfg = {llms_emp_feedback_final_0033} only; event_consumed('[*]', Activate_Pump) -> False (negative control 0021 -> True); reaches(InvalidFinaltr_0006, PumpState, 3) -> False (absorbing dead end); cardinality(PumpControl, 3) -> True is a FALSE PASS (it counts the three InvalidInitial* states)",
+   "note": "Weaker than the other three triggered-initial cases because NL06 names no event, so the assertion has to bind one of the model's OWN events to expose the dead-on-arrival configuration; and the dead-end half hinges on InvalidFinaltr_* which are listed in this pair's attribution_exclusions (representation debt). Fresh w.r.t. 0033#0 (containment) and 0033#1 (initial_target). If the grader refuses assertions that name a fabricated event, downgrade this one to benign."
+  },
+  {
+   "case": "0034",
+   "diff_index": 6,
+   "element": "extra edge EmergencyStopping --Obstacle Cleared--> [*] (reference has no final state at all)",
+   "verdict": "benign",
+   "consequence": "none assertable. The final edge is TRIGGERED, so it does not fire spontaneously and EmergencyStopping stays occupiable; NL01 gives EmergencyStopping no remain/never obligation, so the only form is the closed-world 'must not terminate'.",
+   "assertion": null,
+   "verified": "ran: terminates(EmergencyStopping, Obstacle_Cleared) -> True (the model does it; the obligation would have to be the negation); stays_in(EmergencyStopping, Obstacle_Cleared) -> False (non-discriminating); occupancy_after(InMotion, Obstacle_Detected, EmergencyStopping, 1..3) -> False, but that is caused by InMotion's three untriggered out-edges = 0034#1 (problem), not by this diff",
+   "note": "Contrast with 0044#1, where the same-looking final edge is UNTRIGGERED and therefore does destroy occupancy. The trigger is what makes this one benign."
+  },
+  {
+   "case": "0035",
+   "diff_index": 2,
+   "element": "extra self-loop DoorOpen --Item Removed--> DoorOpen",
+   "verdict": "benign",
+   "consequence": "none. This is the canonical benign shape: a triggered self-loop on a state that is otherwise correct. It preempts nothing (DoorOpen's other out-edges use different events) and the NL10 s3 obligation is carried by the separately declared DoorOpenWithItem --Item Removed--> DoorOpen edge, which still fires.",
+   "assertion": null,
+   "verified": "ran: stays_in(DoorOpen, Item_Removed) -> True (the loop exists; the obligation would be its negation); guard_distinguishable(DoorOpen, Item_Removed) -> True; occupancy_after(DoorOpenWithItem, Item_Removed, DoorOpen, 1) -> True (NL10 s3 met)",
+   "note": "event_consumed('[*]', Door_Opened) is False in this pair, but that is 0035#0 (problem: DoorShut carries an <<initial>> stereotype instead of a real [*] edge, projected as UnspecifiedInitial), not this self-loop. The physical-nonsense argument ('removing an item from an empty oven') is a semantic remark with no assertable consequence."
+  },
+  {
+   "case": "0039",
+   "diff_index": 5,
+   "element": "two parent-to-descendant edges written outside AutonomousMode's braces: AutonomousMode --high_way=true--> HighwayMode and --urban_way=true--> UrbanMode",
+   "verdict": "harmful",
+   "consequence": "Because the source is the enclosing composite, the projection gives EVERY descendant a second out-edge on the same trigger. InitialState therefore has both the NL05 s2 edge InitialState --high_way=true--> HighwayMode and the group edge InitialState --high_way=true--> (region final, token 22): same source, same trigger, two different targets and no distinguishing guard, so the NL05 s2 dispatch is nondeterministic. It also resets already-advanced substates (receiving high_way=true inside HighwayMode exits and re-enters HighwayMode).",
+   "assertion": "guard_distinguishable(source='llms_emp_feedback_final_0039.AutonomousMode.InitialState', trigger='llms_emp_feedback_final_0039.high_way_true') = False",
+   "verified": "ran: guard_distinguishable(InitialState, high_way_true) -> False; guard_distinguishable(InitialState, urban_way_true) -> False (both). occupancy_after(InitialState, high_way_true, HighwayMode, 2) -> True, i.e. the simulator happens to pick the right branch -- which is precisely why the guard_distinguishable form, not occupancy_after, is the correct one here.",
+   "note": "Reviewer wrote assertable = None; CORRECTED above. Fresh: 0039#1 uses edge_declared on enter_hwy. Two conflicting sources (InitialState on high_way and on urban_way) -- book as ONE finding for the diff."
+  },
+  {
+   "case": "0041",
+   "diff_index": 0,
+   "element": "extra edge ClampingState --Brake Signal Maintained--> BrakingState",
+   "verdict": "benign",
+   "consequence": "none assertable -- same shape as 0021#0. NL02 gives ClampingState no obligation; the new edge uses a unique event so it does not conflict with 0041#1's second new edge, and the Braking<->Clamping cycle it forms breaks no positive claim.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(ClampingState, Brake_Signal_Maintained) -> True; occupancy_after(BrakingState, Entering_Clamping_State, ClampingState, 1) -> True; stays_in(ClampingState, Brake_Signal_Maintained) -> False (non-discriminating)",
+   "note": "0041 is the only NL02 model with two new out-edges; because the two triggers differ, even together they produce no conflicting target."
+  },
+  {
+   "case": "0041",
+   "diff_index": 1,
+   "element": "extra edge ClampingState --Brake Signal Released--> InitialState",
+   "verdict": "benign",
+   "consequence": "none assertable -- as 0041#0. Distinct event, no conflict with the sibling extra edge, no dead end, no NL02 obligation touched.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(ClampingState, Brake_Signal_Released) -> True; stays_in(ClampingState, Brake_Signal_Released) -> False (non-discriminating); occupancy_after(BrakingState, Entering_Clamping_State, ClampingState, 1) -> True",
+   "note": "Safety-relevant invention ('brake signal released => back to initial') but unassertable under an open-world reading; keep as a qualitative observation."
+  },
+  {
+   "case": "0043",
+   "diff_index": 2,
+   "element": "entire invented region PumpControl.Region2 { Idle, Active } + events [Activation Signal] / [Deactivation Signal]",
+   "verdict": "benign",
+   "consequence": "no consequence attributable to Region2 itself. Region2 IS unreachable -- but so is Region1: PumpControl's only unconditional entry is the converter-synthesized UnspecifiedInitial (listed in this pair's attribution_exclusions), which is 0043#1 (problem). cardinality(PumpControl, 3) is a FALSE PASS (Region1 + Region2 + UnspecifiedInitial = 3), and containment(PumpControl, Region1.PumpState) = False is caused by the Region1 wrapper (0043#0/#4), not by Region2. Idle/Active are grandchildren, and no predicate constrains the descendant set.",
+   "assertion": null,
+   "verified": "ran: reaches('[*]', PumpControl.Region2.Idle, 4) -> False AND reaches('[*]', PumpControl.Region1.PumpState, 4) -> False (so not attributable to Region2); cardinality(PumpControl, 3) -> True; containment(PumpControl, Region1.PumpState) -> False (0043#0's territory)",
+   "note": "Reviewer's `assertable` was state_declared(...Region2.Idle) -- existence, i.e. the premise. The 'Region2 squeezed NL's three-way decomposition into two' claim is already 0043#0 (problem, assertable = cardinality(PumpControl,3)); removing Region2 would still leave 1 item, not 3, so it is not the cause."
+  },
+  {
+   "case": "0043",
+   "diff_index": 3,
+   "element": "4 invented events ([Water/Methane Flow Detected/Completed]) + 4 transitions among the three NL-named substates inside Region1",
+   "verdict": "benign",
+   "consequence": "none assertable. NL06 names no events and no inter-substate transitions, so there is no positive obligation to break; each source uses a distinct event so there is no conflicting target, and no dead end is created.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(Region1.PumpState, _Water_Flow_Detected) -> True; the states involved are unreachable for reasons already booked at 0043#1 (synthesized UnspecifiedInitial)",
+   "note": "Reviewer's `assertable` was event_declared(..._Water_Flow_Detected) -- existence only. Same shape as 0013#2."
+  },
+  {
+   "case": "0044",
+   "diff_index": 1,
+   "element": "two extra UNTRIGGERED completion edges Stopping -> [*] and EmergencyStopping -> [*] (reference has no final state; both are absorbing there)",
+   "verdict": "uncertain",
+   "consequence": "Because the edges carry no trigger they fire the moment the state is entered, so the ROOT terminates and neither state is ever occupiable. NL01 s2 requires that arriving takes the system TO Stopping and that obstacle detection takes it TO EmergencyStopping; in this model the machine passes through and halts, so the arrival/emergency states cannot be observed and NL01 s3's EmergencyStopping behaviour can never run.",
+   "assertion": "occupancy_after(source='llms_emp_feedback_final_0044.InMotion.Cruising', trigger='llms_emp_feedback_final_0044.Arrived_Stop_Send_Arrived', target='llms_emp_feedback_final_0044.Stopping', within_cycles=2) = False",
+   "verified": "ran: occupancy_after(Cruising, Arrived_Stop_Send_Arrived, Stopping) -> True at within_cycles=1 but False at 2, 4 and 6; same shape for Obstacle_Detected/EmergencyStopping (True at 1, False at 2 and 4). Trace confirms the cause: after cycle 0 the runtime reports 'Runtime already ended' and the final active set is empty; terminates(Stopping) -> True",
+   "note": "CAVEAT to weigh explicitly: the assertion is horizon-sensitive in the direction the API does NOT police (occupancy_after only probes LARGER horizons), so the 1-cycle form passes and only the >=2-cycle form fails. The >=2 form is the legitimate way to state 'Stopping is a stable state', and it is stable at every horizon >= 2. If the grader insists the canonical horizon is the declared step count (1), this diff falls back to benign. Fresh w.r.t. 0044#0 (initial_target(InMotion, Accelerating)). Contrast 0034#6, where the same edge shape is triggered and therefore benign.",
+   "parent_override": "主 session 裁定降级。复核报告称该断言在 cycles>=2 时为 False，实测为 **None**（不是 False）：occupancy_after(Cruising, Arrived_at_Destination, Stopping, cycles=2) -> None、terminates(scope='InMotion.Stopping') -> None、reaches(Stopping -> [*], 3) -> None，运行时输出 'Runtime already ended, cycle ignored.'。None 表示无法判定，不能作为该条为缺陷的证据。同时 terminates(scope='[*]') -> True，即整机能终止，所以那两条无触发完成边并未造成死锁。保留为 uncertain 而非 benign：无触发完成边本身是良构性可疑形状，只是当前 19 谓词面给不出 False。"
+  },
+  {
+   "case": "0046",
+   "diff_index": 4,
+   "element": "extra Idle state + invented 'Start Mission' event ([*] -> Idle; Idle --Start Mission--> Searching)",
+   "verdict": "harmful",
+   "consequence": "The extra Idle CAPTURES SearchRegion's initial pseudostate, so entering the search region no longer starts in Searching -- contradicting NL03 s2 ('Before the mission is completed, the UAV swarm CONTINUOUSLY performs target search tasks'). As a direct consequence the NL03 s3 obligation also fails from the region entry: Idle has no Intercepted edge, so interception is simply ignored on entry.",
+   "assertion": "initial_target(composite='llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion', child='llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Searching') = False  (corroborated by occupancy_after(SearchRegion, Intercepted, SearchRegion.FormationAdjustment, within_cycles=2) = False)",
+   "verified": "ran: initial_target(SearchRegion, Searching) -> False; occupancy_after(SearchRegion, Intercepted, FormationAdjustment, 2) -> False. Attribution is clean: _initial_child_of resolves SearchRegion's single unconditional entry to `Idle`, an author element -- SearchRegion has no converter-synthesized UnspecifiedInitial (unlike the root and UAVSwarmStateMachine).",
+   "note": "Fresh: 0046#0 asserts initial_target(UAVSwarmStateMachine, SearchRegion) -- a different composite. Beware that 0046#1's assertable cardinality(SearchRegion, 3) -> False is ALSO caused by this extra Idle (4 children); pick one of the two to avoid double-booking the same element."
+  },
+  {
+   "case": "0046",
+   "diff_index": 5,
+   "element": "extra bookkeeping region MissionRegion { MissionActive --Mission Completed--> MissionComplete }",
+   "verdict": "harmful",
+   "consequence": "The mission-completion edge is retargeted into the invented region instead of a final state, so the mission never actually completes: the machine keeps running and can even be restarted (MissionActive/MissionComplete --Start Mission--> SearchRegion). NL03 s2's 'before the mission is completed' framing and the reference's SearchState --> [*] : Mission Complete both require termination.",
+   "assertion": "terminates(scope='llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Searching', trigger='llms_emp_feedback_final_0046.Mission_Completed') = False",
+   "verified": "ran: terminates(Searching, Mission_Completed) -> False; terminates(Searching) -> False (whole alphabet offered); containment(UAVSwarmStateMachine, SearchRegion.Searching) -> False (but that is the SearchRegion wrapper, 0046#1)",
+   "note": "DUPLICATE WARNING: 0046#2 (problem) already books terminates(scope='[*]') for the same missing-final defect, and its gen text names the two SearchRegion<->MissionRegion edges. #5 (the region + its two states) and #2 (the edges) are two halves of one defect -- harmful in substance, but they must be merged, not counted twice."
+  },
+  {
+   "case": "0049",
+   "diff_index": 4,
+   "element": "3 extra substate-level completion edges (cruise / straight / intersection --auto_finished=true--> FinishState) alongside the top-level AutonomousMode --auto_finished=true--> FinishState",
+   "verdict": "harmful",
+   "consequence": "cruise ends up with TWO transitions on auto_finished=true -- its own new edge to HighwayMode.FinishState and the projected parent group edge to the region final (token 29) -- with different targets and no distinguishing guard, so NL05 s6's completion is nondeterministic at cruise. (Also a duplicate relation at cruise: dist_to_exit<2 and auto_finished=true both go to FinishState.)",
+   "assertion": "guard_distinguishable(source='llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.cruise', trigger='llms_emp_feedback_final_0049.auto_finished_true') = False",
+   "verified": "ran: guard_distinguishable(cruise, auto_finished_true) -> False. Controls: guard_distinguishable(UrbanMode.straight, auto_finished_true) -> True and (UrbanMode.intersection, auto_finished_true) -> True, because those two extra edges are projected to the same region-final target -- so the conflict is specific to cruise",
+   "note": "Reviewer wrote assertable = None; CORRECTED above. Fresh: 0049#2 uses edge_declared on cruise/dist_to_exit<2 and 0049#3 uses containment(AutonomousMode, FinishState). Only the cruise instance is assertable; the straight/intersection copies are genuinely inert redundancy."
+  },
+  {
+   "case": "0051",
+   "diff_index": 0,
+   "element": "extra edge ClampingState --Braking Complete--> InitialState",
+   "verdict": "benign",
+   "consequence": "none assertable -- same shape as 0021#0 / 0031#0 / 0041#*. NL02 gives ClampingState no remain/until obligation; single out-edge on a unique event, no conflict, no dead end, and the NL02 s3 obligation still holds.",
+   "assertion": null,
+   "verified": "ran: guard_distinguishable(ClampingState, Braking_Complete) -> True; occupancy_after(BrakingState, Entering_Clamping_State, ClampingState, 1) -> True; stays_in(ClampingState, Braking_Complete) -> False (non-discriminating)",
+   "note": "All five NL02 clamping extras (0021#0, 0031#0, 0041#0, 0041#1, 0051#0) fall the same way, which is a useful consistency check: they are the same over-specification across five LLMs and none is bookable without a closed-world reading."
+  },
+  {
+   "case": "0056",
+   "diff_index": 3,
+   "element": "extra second region NoIntercept <-> Intercepted inside SearchState, with invented event 'Intercept Resolved'",
+   "verdict": "harmful",
+   "consequence": "NoIntercept carries both the extra region's NoIntercept --Intercepted--> Intercepted edge and the projected group edge NoIntercept --Intercepted--> (region final, token 9 -> FormationAdjustment): same source, same trigger, two different targets, no distinguishing guard. NL03 s3 ('when intercepted, transition to the formation adjustment state') is therefore nondeterministic. NoIntercept is reachable -- it is one of SearchState's two unconditional initial targets.",
+   "assertion": "guard_distinguishable(source='llms_emp_feedback_final_0056.SearchState.NoIntercept', trigger='llms_emp_feedback_final_0056.Intercepted') = False  (corroborated by occupancy_after(SearchState.NoIntercept, Intercepted, FormationAdjustment, within_cycles=2) = False)",
+   "verified": "ran: guard_distinguishable(NoIntercept, Intercepted) -> False; occupancy_after(NoIntercept, Intercepted, FormationAdjustment, 2) -> False; control guard_distinguishable(SearchState.Intercepted, Intercepted) -> True; initial_target(SearchState, Area1) raises UnsupportedEvidence ('2 unconditional initial edges, so entry is genuinely ambiguous') -- a second consequence of the extra region, though a raise is not a usable False",
+   "note": "DUPLICATE WARNING: 0056#1 (problem) already uses the IDENTICAL assertion guard_distinguishable(NoIntercept, Intercepted). Harmful in substance, but #1 and #3 are the same finding seen from the edge side and the state side -- merge, do not count twice."
+  }
+ ],
+ "totals": {
+  "harmful": 12,
+  "benign": 18,
+  "uncertain": 1
+ },
+ "harmful_list": [
+  "0002#2",
+  "0007#3",
+  "0016#5",
+  "0018#8",
+  "0019#5",
+  "0032#2",
+  "0033#3",
+  "0039#5",
+  "0044#1",
+  "0046#4",
+  "0046#5",
+  "0049#4",
+  "0056#3"
+ ],
+ "benign_list": [
+  "0002#3",
+  "0005#2",
+  "0006#4",
+  "0010#7",
+  "0013#2",
+  "0021#0",
+  "0024#4",
+  "0029#5",
+  "0029#6",
+  "0031#0",
+  "0032#3",
+  "0034#6",
+  "0035#2",
+  "0041#0",
+  "0041#1",
+  "0043#2",
+  "0043#3",
+  "0051#0"
+ ],
+ "harmful_but_duplicate_of_an_existing_problem": [
+  "0046#5 (dup of 0046#2 terminates)",
+  "0056#3 (dup of 0056#1 guard_distinguishable, identical binding)"
+ ],
+ "net_new_expected_issues_if_duplicates_merged": 11,
+ "corrections_to_reviewer_assertable_fields": [
+  "0032#2: reviewer set predicate_exists=false; containment(OperateState, OperateState.IdleRegion.IdleState) = False works. cardinality(OperateState,3) is a false pass.",
+  "0039#5: reviewer set assertable=None; guard_distinguishable(AutonomousMode.InitialState, high_way_true) = False.",
+  "0049#4: reviewer set assertable=None; guard_distinguishable(HighwayMode.cruise, auto_finished_true) = False (only the cruise instance conflicts).",
+  "0007#3: use reaches('[*]', OperationalControls, 5) = False, not state_declared.",
+  "0016#5 / 0018#8 / 0019#5 / 0033#3: use event_consumed(source='[*]', trigger=<first NL event>) = False, not event_declared / edge_declared. initial_target CANNOT see a triggered initial edge (_initial_child_of answers from a single triggered entry), so it is the wrong predicate for this family.",
+  "0044#1: use occupancy_after(InMotion.Cruising, Arrived_Stop_Send_Arrived, Stopping, within_cycles=2) = False, not `not terminates(...)`.",
+  "0046#4: use initial_target(SearchRegion, Searching) = False, not state_declared.",
+  "0046#5: use terminates(SearchRegion.Searching, Mission_Completed) = False, not state_declared.",
+  "0006#4: reviewer's edge_declared(Searching, Interception_Detected, FormationAdjustment) is False with the WRONG polarity (reads as a missing edge); there is no valid consequence assertion for this diff."
+ ],
+ "parent_overrides": [
+  "0044#1: harmful -> uncertain，理由见该条 parent_override"
+ ]
+}

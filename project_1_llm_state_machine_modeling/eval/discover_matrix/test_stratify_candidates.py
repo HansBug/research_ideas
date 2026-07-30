@@ -140,3 +140,44 @@ class TestOverSpecificationIsDecidedByVerdictNotPhrase:
     def test_trigger_records_that_the_verdict_decided(self):
         """A reader must be able to see *why* it landed there."""
         assert classify("任意理由", "extra")[1] == "verdict=extra"
+
+
+class TestTriggerAccuracy:
+    """The trigger is the audit trail: it tells a reader which phrase decided the stratum.
+    A trigger that points at the wrong NL sentence is worse than none, because it looks
+    checkable and is not."""
+
+    @pytest.mark.parametrize(("reason", "expected"), [
+        ("NL 12 逐字点名了该状态", "NL 12"),
+        ("NL 1 说系统起始于此", "NL 1"),
+        ("NL 06 全文没有命名事件", "NL 06"),
+        ("NL06 全文没有命名事件", "NL06"),
+    ])
+    def test_multi_digit_nl_references_are_captured_whole(self, reason: str, expected: str):
+        assert classify(reason)[1] == expected
+
+    def test_a_two_digit_reference_is_not_truncated_to_one(self):
+        """`r"NL\\s*\\d"` reported "NL 1" for every NL 10-13 citation."""
+        assert classify("NL 12 逐字点名了该状态")[1] != "NL 1"
+
+
+def test_json_floor_equals_printed_floor(tmp_path, capsys):
+    """These disagreed once -- 35 in the JSON against 66 in the output -- because adding
+    over_specification touched only the print path. A number in a JSON nobody re-derives
+    is precisely the one that ends up quoted in a paper."""
+    import json
+    import sys
+    import stratify_candidates as s
+
+    out = tmp_path / "s.json"
+    argv = sys.argv
+    sys.argv = ["stratify_candidates.py", "--json", str(out)]
+    try:
+        s.main()
+    finally:
+        sys.argv = argv
+    printed = capsys.readouterr().out
+    payload = json.loads(out.read_text())
+    floor = payload["totals"]["admissible_floor"]
+    upper = payload["totals"]["admissible_upper"]
+    assert f"可入 E1 的区间：{floor} – {upper}" in printed
