@@ -161,8 +161,9 @@ def main() -> int:
         f"| 可自动验收 | **{t['automatable']}**（{pct(t['automatable'], t['records'])}）| "
         f"主断言实测返回 `False` |",
         f"| 须人工验收 | **{t['needs_human_judgement']}** | 19 个封闭谓词表述不出 |",
-        f"| 带实测有效负控 | **{t['with_negative_control']}** | 负控须实测为 `True`；"
-        f"**本集合为 0**，是已知的最大证据弱点 |",
+        f"| 带实测有效负控 | **{t['with_negative_control']}** / {t['records']} | "
+        f"负控须实测为 `True`。覆盖率 {pct(t['with_negative_control'], t['records'])}——"
+        f"**这是本集合已知的最大证据弱点** |",
         f"| 经主裁定 | {t['with_parent_ruling']} | 复核结论被推翻或换据后重判 |",
         f"| 落在有旧台帐 E1 的 pair 上 | {t['on_pairs_with_ledger_e1']} | 其余落在旧台帐无记录的 pair |",
         "",
@@ -368,12 +369,21 @@ def main() -> int:
     L += [
         f"| **合计** | **{sum(ad.values())}** |",
         "",
-        f"**必须写明的弱点：本集合 {t['records']} 条中带经实测验证负控的为 "
-        f"{t['with_negative_control']} 条。** 复核者在文本里记录过负控"
-        "（如「正控：`0026` 真吸收态返回 True」），但从散文恢复出的表达式多数不可求值，"
-        "因此无一能被自动验证。这意味着**当前无法机械排除主断言恒假的可能**——"
-        "本轮 18 条 benign `extra` 中有 5 条正是因为「正确模型也返回 False」而被拒，"
-        "说明这个风险是真实的，不是假想。补齐负控是本集合的首要改进项。",
+        f"**必须写明的弱点：{t['records']} 条中只有 {t['with_negative_control']} 条"
+        f"带经实测验证的负控（{pct(t['with_negative_control'], t['records'])}）。**"
+        "复核者在文本里记录过负控（如「正控：`0026` 真吸收态返回 `True`」），"
+        "但从散文恢复出的表达式绝大多数不可求值，因此无法自动验证——"
+        f"当前 {t['with_negative_control']} 条是随主裁定**以结构化字段**补入的，"
+        "这也说明补齐的路径是可行的：把负控写成字段而不是散文。",
+        "",
+        "为什么这个缺口重要：**没有负控就无法机械排除「正确模型也返回 `False`」。**"
+        "本轮 18 条 benign `extra` 中有 5 条正是因此被拒——"
+        "`stays_in` 要求触发被消费，所以正确模型（根本不声明该事件）也返回 `False`。"
+        "风险是实测过的，不是假想。因此本集合的 "
+        f"{t['automatable']} 条「可自动验收」应读作**上界**："
+        "它们的主断言都实测为 `False`，但除那 "
+        f"{t['with_negative_control']} 条外，尚未证明这个 `False` 具有判别力。"
+        "**补齐负控是本集合的首要改进项，也是把 expected issue set 用于命中率统计前必须做的事。**",
     ]
     emit("assertions.md", "\n".join(L))
 

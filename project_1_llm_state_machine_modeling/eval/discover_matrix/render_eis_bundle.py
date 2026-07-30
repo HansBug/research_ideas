@@ -105,6 +105,12 @@ def render_pair(pair: str, recs: list[dict], cov: list[dict]) -> str:
             one_line(r["statement"], 1500),
             "",
         ]
+        if r.get("basis_superseded_by_ruling"):
+            L += [
+                "**⚠️ 本条的判据经主裁定更换** —— 上面的缺陷描述是复核者当时的原话，"
+                "其中作为归因依据的部分已被撤回并替换。撤回理由与新判据：", "",
+                "> " + one_line(r["basis_superseded_by_ruling"], 2200), "",
+            ]
         if r.get("nl_evidence"):
             L += ["**NL 依据（复核者逐字引用）**", "", "> " + one_line(r["nl_evidence"], 900), ""]
         if r.get("reference_side") or r.get("generated_side"):

@@ -29,12 +29,11 @@
   },
   "by_primary_predicate": {
    "occupancy_after": 7,
-   "event_declared": 6,
+   "stays_in": 2,
    "initial_target": 21,
    "reaches": 9,
    "cardinality": 5,
-   "state_declared": 14,
-   "stays_in": 1,
+   "state_declared": 15,
    "containment": 12,
    "null": 13,
    "effect_declared": 3,
@@ -43,7 +42,8 @@
    "event_consumed": 7,
    "persists_until": 3,
    "action_declared": 6,
-   "guard_distinguishable": 5
+   "guard_distinguishable": 5,
+   "event_declared": 4
   },
   "by_llm": {
    "GPT-4o": 23,
@@ -66,17 +66,18 @@
   },
   "assertion_count_distribution": {
    "4": 8,
-   "7": 5,
+   "8": 1,
    "1": 46,
-   "2": 38,
+   "7": 4,
+   "2": 37,
    "0": 13,
-   "3": 12,
+   "3": 13,
    "6": 3,
    "10": 1,
    "11": 1,
    "5": 2
   },
-  "with_negative_control": 0,
+  "with_negative_control": 2,
   "with_parent_ruling": 2,
   "on_pairs_with_ledger_e1": 100,
   "automatable": 115,
@@ -89,6 +90,7 @@
    "group": "NL08",
    "llm": "GPT-4o",
    "statement": "NL 第5句要求运行中的系统在断电时进入终态。生成制品里 Power Off 的源端是顶层伪初始，任何运行态（HumanDrivingMode / AutonomousMode）都没有断电出边；顶层同时存在 `[*] --> HumanDrivingMode : Power On` 和 `[*] --> FinalState : Power Off` 两条初始边，冷启动时给出 Power Off 会直接落到 FinalState（等于没开机就关机）；而 FinalState 只是普通命名状态、无出边，模型永远不会真正 terminate。此外这是**论文自己的语法修复阶段引入**的：workbook 列 I（Phase-I 原始生成）写的是 `HumanDriving --> FinalState : Power Off`（语义正确，但因嵌在 `state HumanDriving { ... }` 体内而结构违法，被记为语法幻觉 \"transition does not connect two state\"），列 Z（语法检查后）把源端改成 `[*]`，语义随之被破坏；列 AD（语义幻觉）为空、AG 语义 resolved 记 1.0，说明该注入缺陷未被后续语义检查捕获。对照 0030：同一份 NL 下 Phase-I 同样出现 `[*] --> FinalState : Power Off`，论文语义栏把它记为 \"missing final state\" 并改成 `HumanDriving --> [*] : Power Off`；同一缺陷形状在同一 NL 的两个 case 上一个被抓一个被漏，说明语义检查不可复现。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "human_mode --> [*] : power_off  与  autonomous_mode --> [*] : power_off",
    "generated_side": "[*] --> FinalState : Power Off（唯一的 Power Off 边，源端是伪初始；FinalState 是普通状态而非终态伪状态）",
    "verdict": "problem",
@@ -117,6 +119,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "occupancy_after(...) → 期望 True 实得 False；补充 terminates(...) → False（FinalState 不是终态边界）  【原字段是散文，不可直接执行，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -216,6 +219,7 @@
    "group": "NL08",
    "llm": "GPT-4o",
    "statement": "NL 第5句的三个接管条件被压成**一个不可分解的事件标签**：pyfcstm 投影得到单一事件 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`，模型无法对单独的 human steering cmd 或 brake pressed 作出响应；更关键的是 `in (AutoFinal)` 本质是**状态条件**（NL 第2句保证 auto final 是 autonomous mode 的子状态），把它塞进事件名是范畴错误——制品里 AutoFinal 确实存在，但仅凭进入 AutoFinal 不会交还控制权，AutoFinal 除该复合事件外无其他出边。无论按\"三选一\"还是\"合取\"读法，单一自由文本标签都不是忠实编码；论文 SysML 语法检查（grammar 12/13、grammar_resolved=1.0）未对此报警。",
+   "basis_superseded_by_ruling": "原判据放弃：它依赖把 NL08 第 4 句读作析取。NL 原文是 'transit to human driving mode when receive human steering cmd, brake pressed, in (auto final)'——逗号列举，既无 any of 也无 and。NL 未授权析取解释，故『缺少可单独触发的事件』不能作为归因依据（这一点由用户在 2026-07-30 的讨论中指出，经复核成立）。；换用不依赖该解释的判据：in (AutoFinal) 是状态测试表达式，其真值由系统当前状态决定；模型把它放在 trigger 位置而非 guard 位置，因此它对迁移不构成任何约束。原始 PlantUML 那条边是组迁移（源为复合态 AutonomousMode），UML 语义下从任何活跃子态均可触发。；后果实测：stays_in(source='...AutonomousMode.AutoNavigating', trigger='...Human_Steering_Cmd_Brake_Pressed_in_AutoFinal') = False，即模型在尚未进入 AutoFinal 时就交还控制权；not occupancy_after(AutoNavigating, 该事件, HumanDrivingMode) = False。；负控有效：occupancy_after(AutoFinal, 该事件, HumanDrivingMode) = True，说明断言不是恒 False——从 AutoFinal 走得通，从 AutoNavigating 也走得通才是缺陷。；层从 nl_named 改为 wellformedness：新判据不以任何 NL 句为前提，只依赖模型自身结构与状态机的形式化语义（状态条件不得充当事件）。对照 0050#4：该 pair 的 AutoFinal 根本不存在，是另一类缺陷，两者不同型。",
    "reference_side": "autonomous_mode --> human_mode : human_steering_cmd（参考把三个条件拆成三条独立边，但其中两条方向写反）",
    "generated_side": "AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)",
    "verdict": "problem",
@@ -229,20 +233,40 @@
    "assertions": [
     {
      "role": "primary",
-     "expression": "event_declared(event=\"llms_emp_feedback_final_0000.Human_Steering_Cmd\")",
+     "expression": "stays_in(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoNavigating\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\")",
      "predicates": [
-      "event_declared"
+      "stays_in"
      ],
      "families": [
-      "S"
+      "B"
      ],
      "elements": [
-      "llms_emp_feedback_final_0000.Human_Steering_Cmd"
+      "llms_emp_feedback_final_0000.AutonomousMode.AutoNavigating",
+      "llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal"
      ],
-     "measured_by_batch": "False",
-     "source": "predicate_coverage/resultNone.json",
-     "rewrote_from": "event_declared(...) → False（模型未声明可单独触发的 human steering cmd 事件）。注意：…… 【原字段是散文，已抽成表达式；其对 in-state 缺口的判断经实测确认】",
+     "measured_by_batch": null,
+     "source": "nl_review/parent_rulings.json",
+     "rewrote_from": null,
+     "supersedes": "event_declared(event=\"llms_emp_feedback_final_0000.Human_Steering_Cmd\")",
      "measured": "False"
+    },
+    {
+     "role": "negative_control",
+     "expression": "occupancy_after(source=\"llms_emp_feedback_final_0000.AutonomousMode.AutoFinal\", trigger=\"llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal\", target=\"llms_emp_feedback_final_0000.HumanDrivingMode\")",
+     "predicates": [
+      "occupancy_after"
+     ],
+     "families": [
+      "B"
+     ],
+     "elements": [
+      "llms_emp_feedback_final_0000.AutonomousMode.AutoFinal",
+      "llms_emp_feedback_final_0000.HumanDrivingMode",
+      "llms_emp_feedback_final_0000.Human_Steering_Cmd_Brake_Pressed_in_AutoFinal"
+     ],
+     "source": "nl_review/parent_rulings.json",
+     "rationale": "从 AutoFinal 接管本应成立。若该式亦为 False，则主断言（从 AutoNavigating 也能接管）是恒假、不构成缺陷证据。实测为 True，故主断言判别有效。",
+     "measured": "True"
     },
     {
      "role": "recovered_unverified",
@@ -335,9 +359,9 @@
      "demoted_because": "从散文恢复的表达式不可求值（None）"
     }
    ],
-   "primary_predicate": "event_declared",
-   "assertion_count": 7,
-   "has_negative_control": false,
+   "primary_predicate": "stays_in",
+   "assertion_count": 8,
+   "has_negative_control": true,
    "expressible_with_closed_vocabulary": true,
    "replay": {
     "verdict": "captured",
@@ -387,6 +411,7 @@
    "group": "NL06",
    "llm": "GPT-4o",
    "statement": "NL 3 明确 \"The system first transitions to the PumpState substate\"，参考侧第一个区域的初始边直接指向 PumpState。生成侧把 PumpControl 的初始边指向了一个 NL 中不存在的 InitialState，进入 PumpControl 后落点错误。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState }",
    "generated_side": "state PumpControl { [*] --> InitialState; state PumpState {...}; -- ; state WaterState {...}; -- ; state MethaneState {...} }",
    "verdict": "problem",
@@ -414,6 +439,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -448,6 +474,7 @@
    "group": "NL06",
    "llm": "GPT-4o",
    "statement": "FCSTM 投影确认 PumpControl 体内只有一条 [*] -> InitialState，而 InitialState 没有任何出边。结果是 NL 2 点名的三个子态 PumpState、WaterState、MethaneState 全部不可达，PumpControl 唯一能到达的状态是一个死端。NL 3/4/5 分别要求系统能进入这三个子态，此处全部落空。这是独立于上一条（初始落点错）的可达性缺陷，台帐与论文均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "三个区域各自的唯一状态都由该区域的初始边直接进入，PumpState/WaterState/MethaneState 都可达",
    "generated_side": "PumpControl 的第一个区域含 {InitialState, PumpState}，唯一的边是 [*] --> InitialState；WaterState、MethaneState 所在的第二、三区域没有任何初始边",
    "verdict": "problem",
@@ -474,6 +501,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -508,6 +536,7 @@
    "group": "NL06",
    "llm": "GPT-4o",
    "statement": "NL 2 是 60 例中少见的逐个点名的数量断言：\"there are three main substates: PumpState, WaterState, and MethaneState\"。InitialState 既不在 NL 中也不在参考中，属过度规定，并直接违反这条枚举式基数断言。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "PumpControl 只有 PumpState、WaterState、MethaneState 三个非伪状态",
    "generated_side": "额外声明 InitialState，使 PumpControl 的直接非伪子态变为四个",
    "verdict": "extra",
@@ -534,6 +563,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -659,6 +689,7 @@
    "group": "NL01",
    "llm": "GPT-4o",
    "statement": "作者把 DoorsClosing 写成复合状态，且其内部初始伪状态指向的正是它自己（PlantUML 名字全局解析），构成初始目标越出子域的畸形结构。NL 第 4 句只把三个子状态授予 InMotion，从未给 DoorsClosing 任何子状态，所以这既是无 NL 依据的多余层次，也是语义未定义的结构缺陷。R4.5 投影确认了这一点：FCSTM 里生成了 state InvalidInitialtr_0002 named 'PlantUML initial target outside child scope: DoorsClosing'，并且因为 DoorsClosing 变成复合状态，出边被降级成 !DoorsClosing -> InMotion，退出语义也随之改变。这不是命名或写法差异，是真实结构问题。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DoorsClosing 是叶子状态（参考模型只写 [*]-->DoorsClosing 和 DoorsClosing --> InMotion）",
    "generated_side": "state DoorsClosing {\\n  [*] --> DoorsClosing\\n}",
    "verdict": "problem",
@@ -685,6 +716,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -732,6 +764,7 @@
    "group": "NL10",
    "llm": "GPT-4o",
    "statement": "NL 第 1 句明写『can either remain in DoorShut if a Cancel action is performed』，是显式自环义务。生成侧把它写成状态体一行说明文字，模型中不存在该迁移（R4.5 投影里 DoorShut 被命名为 'DoorShut\\n[PlantUML body] Cancel'，无自环）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DoorShut --> DoorShut: Cancel/CancelTimer",
    "generated_side": "DoorShut : Cancel（状态体描述文本，非迁移）",
    "verdict": "problem",
@@ -759,6 +792,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -794,6 +828,7 @@
    "group": "NL10",
    "llm": "GPT-4o",
    "statement": "这三个 ID 首次出现在外层 state 块体内，PlantUML 前向引用规则把它们钉成子态（R4.5 投影确认：DoorOpenWithItem { DoorShutWithItem {...} ReadytoCook { Cooking {...} WaitingToStart } DoorIdleWithItem }）。后果是 active(DoorShutWithItem) 蕴含 active(DoorOpenWithItem)——门开有物与门关有物同时成立，直接违反 NL 第 4/5/6/8 句把二者当互斥替代配置（由相反的开/关门事件到达）的处理；且 DoorOpen --Place Item--> DoorOpenWithItem 现在总落在自造的 DoorIdleWithItem 上。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "六个状态全部平级（扁平）",
    "generated_side": "DoorShutWithItem / ReadytoCook / Cooking 成为 DoorOpenWithItem 的后代，形成四层嵌套",
    "verdict": "problem",
@@ -823,6 +858,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "invariant(scope='[*]', condition='!(active(\"llms_emp_feedback_final_0005.DoorOpenWithItem\") && active(\"llms_emp_feedback_final_0005.DoorOpenWithItem.DoorShutWithItem\"))', bound=5)",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -858,6 +894,7 @@
    "group": "NL10",
    "llm": "GPT-4o",
    "statement": "NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 的显示/更新（『where the timer starts』『stops the timer』『the cooking time is displayed and updated』『canceling or updating the cooking time』），参考模型全部以迁移 effect 承载，生成侧完全没有表达。这是 NL 显式义务的丢失，不是参考独有细化。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Cancel/CancelTimer、Start/Start Timer、Door Opened/Stop Timer、Cooking Time Entered/Display Cooking Time, Update Cooking Time 共 5 处 effect",
    "generated_side": "（全模型无任何 effect、无变量、无状态局部动作）",
    "verdict": "problem",
@@ -901,6 +938,7 @@
    "group": "NL03",
    "llm": "GPT-4o",
    "statement": "NL 第 2 句 'operates within three different state areas' 是数量断言，本模型一个区域都没有，三区域语义完全缺失。这是数量/结构问题，不是并发风格问题。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Raster_Scanning { ...region1... -- ...region2... -- ...region3... }",
    "generated_side": "Searching / FormationAdjustment / Attack / Intercepted 全部平铺，无任何区域",
    "verdict": "problem",
@@ -927,6 +965,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -990,6 +1029,7 @@
    "group": "NL03",
    "llm": "GPT-4o",
    "statement": "NL 第 4 句要求攻击完成后 UAV 数量递减；该迁移只有 trigger，既无 / effect 也无 [guard] 也无任何计数文本，递减语义在作者源中完全不存在。与台帐 EXP-0006-EA-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Strike_the_Target: exit/ NumberofCru--",
    "generated_side": "AttackingTarget --> Searching : Attack Complete",
    "verdict": "problem",
@@ -1017,6 +1057,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -1125,6 +1166,7 @@
    "group": "NL03",
    "llm": "GPT-4o",
    "statement": "NL 第 2 句 'Before the mission is completed' 预设存在任务完成这一终结条件；本模型没有终态、没有完成事件，永远无法结束。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
    "generated_side": "模型内无任何 final 状态，也无 mission-complete 事件",
    "verdict": "problem",
@@ -1151,6 +1193,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "terminates(scope='[*]')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -1243,6 +1286,7 @@
    "group": "NL07",
    "llm": "GPT-4o",
    "statement": "顶层唯一初始迁移落在 InitialState，而 InitialState 只有入边没有出边，整机永久停在该状态：检测流程与避撞控制都不可达，`CollisionAvoidance --> InitialState : Collision Resolved` 回来后也再也出不去（无法重新武装）。这是对 NL 第2句（检测到碰撞时子机becomes active）的硬性违反。核对 workbook：Phase-I（列 I）里 InitialState 是**包含检测流程的复合状态**，语义连通；论文语义修复阶段把它改成空叶状态并把检测流程拆成同级 CollisionDetection，才造成不可达——属修复引入缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "(参考的每个区都由 [*] --> X_inactive 无条件进入，随后由检测条件激活)",
    "generated_side": "[*] --> InitialState（InitialState 为无出边叶状态；CollisionDetection / CollisionAvoidance / OperationalControls 均无入边）",
    "verdict": "problem",
@@ -1269,6 +1313,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", within_cycles=5) → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1303,6 +1348,7 @@
    "group": "NL07",
    "llm": "GPT-4o",
    "statement": "三个区的初始迁移各自带一个模型中无人产生的触发事件，因此即使进入 CollisionAvoidance 也没有任何控制被激活，违反 NL 第2、3句\"检测即激活\"的语义（UML 亦不允许初始迁移带触发）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> front_inactive / rear_inactive / pedestrian_inactive（无触发的初始迁移）",
    "generated_side": "[*] --> AutomaticBraking : Start Braking（三个区的初始迁移都带触发：Start Braking / Steering Engaged / Alerts Activated）",
    "verdict": "problem",
@@ -1331,6 +1377,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "occupancy_after(source=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", trigger=\"llms_emp_feedback_final_0007.Collision_Mode_Active\", target=\"llms_emp_feedback_final_0007.CollisionAvoidance.AutomaticBraking\") → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -1395,6 +1442,7 @@
    "group": "NL07",
    "llm": "GPT-4o",
    "statement": "整棵子树是 NL 完全未提及的臆造内容（信号反馈、健康检查、通信控制），且无任何入边（死代码），内部还在同一个非正交区里放了三条初始迁移（非确定初始）。属 over-specification 叠加结构缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "(参考与 NL 都没有任何运维/自检/通信内容)",
    "generated_side": "state OperationalControls { [*] --> FeedbackControl : Signal Feedback ; [*] --> SystemCheck : Health Check ; [*] --> CommunicationControl : Communicate Control }",
    "verdict": "extra",
@@ -1499,6 +1547,7 @@
    "group": "NL04",
    "llm": "GPT-4o",
    "statement": "NL 逐句点名 fork/choice/junction/join，参考把它们全部声明为伪状态；本模型没有任何一个伪状态声明，分支/汇合语义退化为普通状态跳转。伪状态结构不属时间也不属并发，正常判。注意 state_declared 的 kind 只有 leaf/composite/pseudo/any，无法断言具体是 fork 还是 choice。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state fork1 <>; state choice1 <>; state Junction3 <>; state Join2 <> …（10 个伪状态全部声明为伪状态）",
    "generated_side": "fork1/choice1/choice2/choice3/Junction1/Junction2/Junction3/Join1/Join2/Fork2 全部是普通状态或 composite",
    "verdict": "problem",
@@ -1525,6 +1574,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1560,6 +1610,7 @@
    "group": "NL04",
    "llm": "GPT-4o",
    "statement": "NL 第 3 句要求 memFull=true 约束 AutoFocus 到 choice1；本模型把 AutoFocus --> choice1 换成 AutoFocus 的内部初始迁移（还挂了时间当 trigger），并把 memFull=true 移到 choice1 --> Junction3 上，NL 要求的守卫边整条不存在。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "AutoFocus --> choice1: [memFull=true]",
    "generated_side": "state AutoFocus { [*] --> choice1: After (2 s);  choice1 --> Junction3: when (memFull=true) }",
    "verdict": "problem",
@@ -1588,6 +1639,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1623,6 +1675,7 @@
    "group": "NL04",
    "llm": "GPT-4o",
    "statement": "NL 第 6、7 句让 Junction3 汇合闪光分支后进入 Join2；把它放进 AutoFocus 使闪光分支回流到自动对焦，控制流拓扑被改写。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Junction3 是顶层 junction，ChargedFlash --> Junction3 --> Join2",
    "generated_side": "Junction3 声明在 state AutoFocus {} 内，ChargedFlash --> Junction3 因此重新进入 AutoFocus（投影为 ChargedFlash -> AutoFocus : /when_Charged_true）",
    "verdict": "problem",
@@ -1650,6 +1703,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "containment(parent='llms_emp_feedback_final_0008.AutoFocus', child='llms_emp_feedback_final_0008.AutoFocus.Junction3')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -1715,6 +1769,7 @@
    "group": "NL04",
    "llm": "GPT-4o",
    "statement": "概率条件被挂到 choice2 之后的出边上，NL 第 4 句要求它约束 DetLight 进入 choice2。与台帐 EXP-0008-GC-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DetLight --> choice2: <>{prob=0.4}",
    "generated_side": "state DetLight { [*] --> choice2: After (1 s);  choice2 --> Join2: <<GaStep>>{prob=0.4} }",
    "verdict": "problem",
@@ -1743,6 +1798,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1778,6 +1834,7 @@
    "group": "NL04",
    "llm": "GPT-4o",
    "statement": "NL 第 7 句明确『The choice3 state also transitions to Junction3』，该直连分支缺失，闪光未充电时无路可走。与台帐 EXP-0008-TR-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "choice3 --> Junction3",
    "generated_side": "只有 choice3 --> ChargedFlash，无 choice3 --> Junction3",
    "verdict": "problem",
@@ -1821,6 +1878,7 @@
    "group": "NL05",
    "llm": "GPT-4o",
    "statement": "NL 4/5 的 dist_to_exit<2 是「驶离高速」这一局部退出动作，NL 6 明确只有 auto_finished=true 才使系统进入 FinishState。生成侧把两者合并到同一个 FinishState，等于让距出口 2 公里即宣告整个自动驾驶完成，与 NL 6 直接冲突。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2; exit_hwy --> [*]（局部退出）与 HighwayMode --> FinishState : auto_finished=true（全局完成）分离",
    "generated_side": "cruise --> FinishState : dist_to_exit<2; lane_change --> FinishState : dist_to_exit<2",
    "verdict": "problem",
@@ -1849,6 +1907,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0009.dist_to_exit_2\", target=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.FinishState\"))  —— 实跑抛 TypeError: 'bool' object is not iterable（BRIEF 坑 1），必须去掉 any()",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1883,6 +1942,7 @@
    "group": "NL05",
    "llm": "GPT-4o",
    "statement": "与高速侧不同，NL 8 逐字点名了 exit_urban 这个状态（\"or to exit_urban if the distance to the urban exit is less than 0.7 kilometers\"）。生成侧既没有声明 exit_urban，也把 0.7 公里的城市出口条件接到了 FinishState 上。更严重的是 FCSTM 投影显示该 FinishState 实际位于 HighwayMode 内部，所以城市模式的出口动作会把系统送进 HighwayMode——跨模式的作用域错误。这一条论文与台帐都没有记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "lane_change_urban --> exit_urban: dist_to_exit<0.7; exit_urban --> [*]",
    "generated_side": "lane_change_urban --> FinishState : dist_to_exit<0.7（模型完全没有 exit_urban 状态）",
    "verdict": "problem",
@@ -1909,6 +1969,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -1943,6 +2004,7 @@
    "group": "NL05",
    "llm": "GPT-4o",
    "statement": "NL 6 与 NL 10 都用裸名 FinishState、无冠词区分，参考模型也确实只建了一个位于 AutonomousMode 层级的共享 FinishState。生成侧把它嵌进 HighwayMode，导致 UrbanMode 的 auto_finished 完成路径经 FCSTM 的 R45RouteToken=21 路由回 HighwayMode 再进入 HighwayMode.FinishState，即「城市模式完成后 HighwayMode 变为活跃」。这是独立于上一条的层次归属缺陷，台帐未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "FinishState 声明在 AutonomousMode 层级，被 HighwayMode 与 UrbanMode 共享：HighwayMode --> FinishState : auto_finished = true; UrbanMode --> FinishState : auto_finished = true; FinishState --> [*]",
    "generated_side": "FinishState 首次出现在 state HighwayMode { ... } 块内（cruise --> FinishState），按 PlantUML 首次提及身份归属 HighwayMode；UrbanMode --> FinishState 于是成为跨层边",
    "verdict": "problem",
@@ -1970,6 +2032,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2004,6 +2067,7 @@
    "group": "NL08",
    "llm": "GPT-4",
    "statement": "NL 第3句要求 power on 时系统进入 human driving mode。生成制品把 Power On 挪到了 HumanDriving→Autonomous 这条边上：顶层初始边成了无触发迁移（丢失 NL 明确给出的触发条件），而 Power On 反过来变成\"开机即切自动驾驶\"的事件，既违反第3句，又抢占了第4句 front_distance>10 才该承担的角色（该模型同时保留了 `HumanDriving --> Autonomous : Front Distance > 10`，于是 HumanDriving 有两条通向 Autonomous 的边）。冷启动后给出 Power On，系统从人工驾驶被推进自动驾驶，与 NL 语义相反。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> human_mode : power_on",
    "generated_side": "[*] --> HumanDriving（无触发） 且 HumanDriving --> Autonomous : Power On",
    "verdict": "problem",
@@ -2031,6 +2095,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "occupancy_after(...) → 期望 True 实得 False（…）；补充 edge_declared(...) → False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2083,6 +2148,7 @@
    "group": "NL08",
    "llm": "GPT-4",
    "statement": "NL 第2句要求 autonomous mode 有子状态并以 sub machine state 表示。生成方只给 Autonomous 贴了 `<<submachine>>` 字样注释，实际上是叶状态；本该作为其子状态的 AutonomousIdle / AutonomousActive 被声明成顶层同级状态（pyfcstm 投影确认全部为 root 直属叶状态，Autonomous 无 substates），层次结构完全丢失。这是 stereotype 文本冒充结构的典型幻觉，论文语法检查 14/14 全通过也没有发现。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "autonomous_mode（参考自己也没写状态体，同样违反 NL 第2句）",
    "generated_side": "Autonomous : <<submachine>>（仅状态体文本），AutonomousIdle / AutonomousActive 与 Autonomous 平级声明在顶层",
    "verdict": "problem",
@@ -2109,6 +2175,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(...) → 期望 True 实得 False；补充 containment(...) → False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2161,6 +2228,7 @@
    "group": "NL08",
    "llm": "GPT-4",
    "statement": "NL 第5句要求断电进入终态。生成制品把 Power Off 指向一个名字里带 Final 的**普通状态**，模型里根本没有终态伪状态，投影中 AutonomousFinal 也无任何出边——断电后系统进入一个永远出不来的活状态，机器永不 terminate。命名像终态但语义不是终态，属于典型的名字骗过评审、结构没兑现。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "human_mode --> [*] : power_off",
    "generated_side": "HumanDriving --> AutonomousFinal : Power Off，且 AutonomousFinal 是普通状态（AutonomousFinal : Auto Final State）",
    "verdict": "problem",
@@ -2188,6 +2256,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "terminates(...) → 期望 True 实得 False；补充 terminates(scope=\"[*]\") → False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2239,6 +2308,7 @@
    "group": "NL08",
    "llm": "GPT-4",
    "statement": "NL 第5句的第三个条件 in (auto final) 在生成制品里没有任何承载：AutonomousFinal 被声明出来却是绝对吸收态，处于 auto final 时既不能交还控制权也不能断电。相比之下 human steering cmd 与 brake pressed 被拆成两条独立边（这一点比同组其它 5 个 pair 都好），恰恰说明缺的是第三个条件。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "human_mode --> autonomous_mode : in (auto_final)（参考虽把方向写反，但至少为 in(auto final) 保留了一条独立迁移）",
    "generated_side": "AutonomousFinal 无任何出边；接管只有 AutonomousActive --> HumanDriving : Human Steering Cmd 和 : Brake Pressed 两条",
    "verdict": "problem",
@@ -2266,6 +2336,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "reaches(...) → 期望 True 实得 False（…）  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2303,6 +2374,7 @@
    "group": "NL08",
    "llm": "GPT-4",
    "statement": "NL 第5句的断电义务对运行中的系统整体成立，参考模型也从两个模式各给了一条 power_off 边。生成制品在 AutonomousIdle / AutonomousActive / AutonomousFinal 三个自动驾驶态里都不消费 Power Off，自动驾驶期间无法关机。台帐对 0030、0040 记了同类 power_off_missing_from_autonomous，唯独 0010 漏记，属台帐口径不一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "autonomous_mode --> [*] : power_off",
    "generated_side": "(自动驾驶侧无任何 Power Off 出边；Power Off 只从 HumanDriving 发出)",
    "verdict": "problem",
@@ -2330,6 +2402,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2367,6 +2440,7 @@
    "group": "NL09",
    "llm": "GPT-4",
    "statement": "Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态：任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态。因此 NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立，而 Operate --keyOff--> Off 之后的再次启动一般不可达。按 UML 完成迁移优先级读则更严重，start 直接不可达。注意 pyfcstm 按声明顺序选边（fcstm 第 24 行 start 边在第 25 行无触发边之前），故同周期竞争由 start 胜出——所以『无触发边吃掉 start 信号』这一说法需要修正为『Off 不可驻留』，不能用 occupancy_after 暴露。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Off --> [*]: keyOff（有触发的终止边）",
    "generated_side": "Off --> Terminate（无触发）",
    "verdict": "problem",
@@ -2394,6 +2468,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "persists_until(state='llms_emp_feedback_final_0012.Off', release='active(\"llms_emp_feedback_final_0012.Operate\")', bound=4)",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2510,6 +2585,7 @@
    "group": "NL06",
    "llm": "GPT-4",
    "statement": "NL 2 是显式枚举式数量断言（\"three main substates: PumpState, WaterState, and MethaneState\"）。生成侧把同一批状态克隆成 A、B 两套塞进两个额外区域，FCSTM 投影确认 PumpControl 体内共七个具名状态。无论按「直接子态」还是「后代状态」读法，七个 ≠ 三个，这条基数断言都被违反——它不依赖直接/后代之争，因此不受台帐 E2a 排除理由的影响。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "PumpControl 恰有三个非伪子态：PumpState、WaterState、MethaneState",
    "generated_side": "PumpControl 有七个非伪子态：PumpState、WaterState、MethaneState、PumpStateA、WaterStateA、PumpStateB、MethaneStateB",
    "verdict": "problem",
@@ -2536,6 +2612,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2568,6 +2645,7 @@
    "group": "NL01",
    "llm": "GPT-4",
    "statement": "NL 第 1 句明确 'The system starts in the DoorsClosing state'，参考用 [*]-->DoorsClosing 承载。作者模型顶层完全没有初始伪状态，冷启动时初始配置未定义；FCSTM 投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial 即为此。这是丢失 NL 明确要求的初始化语义，属真实问题。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*]-->DoorsClosing",
    "generated_side": "state DoorsClosing（全模型没有任何 [*] --> ... 顶层初始边）",
    "verdict": "problem",
@@ -2595,6 +2673,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2646,6 +2725,7 @@
    "group": "NL01",
    "llm": "GPT-4",
    "statement": "NL 第 8 句是全语料中少数逐字点名动作相位的句子（'marked by the \"Entry/Accelerate\" action'），要求 Accelerating 有一个 entry 动作。作者把整串文本搬到了初始迁移的标签位置，PlantUML trigger/effect 约定下它被读成触发器 Entry 加效果 Accelerate；FCSTM 确认降级为 event Entry_Accelerate named 'Entry/Accelerate' 并写成 [*] -> Accelerating : /Entry_Accelerate。后果有两个：Accelerating 不再声明任何 entry 动作，且初始伪状态迁移被挂上了本不该存在的触发器（初始迁移应无触发）。这属于作者侧问题而非表示层降级——降级的直接原因就在作者文本里。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Accelerating: Entry/Accelerate（挂在状态上的 entry 动作）",
    "generated_side": "[*] --> Accelerating : Entry/Accelerate（挂在 InMotion 内部初始边上的标签）",
    "verdict": "problem",
@@ -2672,6 +2752,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2706,6 +2787,7 @@
    "group": "NL01",
    "llm": "GPT-4",
    "statement": "'Entry: Emergency Stop' 在 PlantUML 里不是动作语法，而是给一个名为 Entry 的状态加描述，于是 NL 第 3 句要求的 'Emergency Stop' 动作被降级成 EmergencyStopping 内部一个虚假子状态。FCSTM 确认：state Entry named 'Entry\\n[PlantUML body] Emergency Stop'，并连带生成 EmergencyStopping.UnspecifiedInitial 与 [*] -> UnspecifiedInitial。结果是 EmergencyStopping 既没有动作，又莫名变成了带子状态的复合状态，而 NL 第 4 句只把子状态授予 InMotion。这是 action 降级成状态的典型实例，且完全由作者文本导致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "EmergencyStoping:Entry/Emergency Sop, ...（意图是 EmergencyStopping 的 entry 动作）",
    "generated_side": "state EmergencyStopping {\\n  Entry: Emergency Stop\\n  EmergencyStopping: Obstacle Detected\\n}",
    "verdict": "problem",
@@ -2732,6 +2814,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2781,6 +2864,7 @@
    "group": "NL01",
    "llm": "GPT-4",
    "statement": "NL 第 9 句要求 Approaching 发送 'Send' 信号，参考以 Entry/Send 承载。作者模型里 Approaching 只有两行描述文本，Send 动作在全模型任何相位、任何迁移上都不存在（FCSTM 中 Approaching 只有 named 字符串，无 enter/during abstract）。这是丢失 NL 明确要求的输出动作，不是相位差异或命名差异。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Approaching: Entry/Send",
    "generated_side": "state Approaching { Approaching: Nearing Destination; Approaching: Ready to Stop/Decelerate }",
    "verdict": "problem",
@@ -2807,6 +2891,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0014.InMotion.Approaching', phase='during')",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -2841,6 +2926,7 @@
    "group": "NL10",
    "llm": "GPT-4",
    "statement": "同 0005：NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 显示更新，参考以迁移 effect 承载，生成侧完全缺失。属 NL 显式义务丢失。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "5 处 timer / display effect",
    "generated_side": "（无任何 effect、变量或状态动作）",
    "verdict": "problem",
@@ -2881,6 +2967,7 @@
    "group": "NL03",
    "llm": "GPT-4",
    "statement": "Search --> Region2 写在 state Region1 {} 体内，PlantUML 按首次出现作用域把 Region2 建成 Region1 的子状态、Region3 建成 Region2 的子状态（FCSTM 投影确认三层嵌套）。NL 第 2 句的『三个不同状态区域』被写成三层包含关系，区域归属语义错误。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Raster_Scanning { region1 -- region2 -- region3 }（三个兄弟正交区域）",
    "generated_side": "state Region1 { Search --> Region2 ... } / state Region2 { ... Region3 } / state Region3 { ... }",
    "verdict": "problem",
@@ -2908,6 +2995,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "containment(parent='llms_emp_feedback_final_0016.SearchMission', child='llms_emp_feedback_final_0016.SearchMission.Region2')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -2956,6 +3044,7 @@
    "group": "NL03",
    "llm": "GPT-4",
    "statement": "三个区域都把内部状态命名为 Search，名字碰撞后 Region2/Region3 的初始迁移目标落在 Region1.Search 上，投影插入 InvalidInitialtr_0005 / InvalidInitialtr_0007，即进入 Region2/Region3 后无定义初始子状态。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "每个区域各有自己的 [*] -> 初始子状态",
    "generated_side": "Region2 / Region3 内的 [*] --> Search 解析到 SearchMission.Region1.Search（越界）",
    "verdict": "problem",
@@ -2983,6 +3072,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3030,6 +3120,7 @@
    "group": "NL03",
    "llm": "GPT-4",
    "statement": "NL 第 2 句要求搜索『持续到任务完成』；本模型把『第三区域搜索完成』当作结束条件，既无 mission-complete 事件也无顶层终态，属提前完成 + 完成条件错置。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
    "generated_side": "Search --> [*] : Finished Region3 Search（唯一指向 final 的边，且在最内层区域内）",
    "verdict": "problem",
@@ -3056,6 +3147,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "terminates(scope='[*]')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3102,6 +3194,7 @@
    "group": "NL03",
    "llm": "GPT-4",
    "statement": "初始迁移带 trigger，UML 不允许初始迁移携带触发事件，且 NL 无任何启动事件；属额外元素。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> Raster_Scanning（无触发）",
    "generated_side": "[*] --> SearchMission : Start Mission",
    "verdict": "extra",
@@ -3128,6 +3221,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "edge_declared(source='[*]', trigger='llms_emp_feedback_final_0016.Start_Mission', target='llms_emp_feedback_final_0016.SearchMission')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3299,6 +3393,7 @@
    "group": "NL04",
    "llm": "GPT-4",
    "statement": "NL 第 5、7 句要求闪光分支挂在 fork1 --> choice3 之下并由 choice3 直连 Junction3；本模型删掉 choice3、自造一个 fork2 顶替，并让 ChargedFlash 从 choice1 进入（还重复测一次 memFull=true，与 AutoFocus --> choice1 的守卫冗余，且 choice1 --> fork2 无守卫，两条出边在 memFull=true 时不可区分）。缺 choice3、缺 fork1 --> choice3、缺 choice3 --> Junction3 三处均源于此。与台帐 EXP-0018-SH-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "fork1 --> choice3;  choice3 --> ChargedFlash;  choice3 --> Junction3:[Charged=true]",
    "generated_side": "choice3 从未声明；choice1 --> fork2（自造 fork）、fork2 --> ChargedFlash、choice1 --> ChargedFlash : memFull=true",
    "verdict": "problem",
@@ -3325,6 +3420,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state='choice3', kind='pseudo')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3377,6 +3473,7 @@
    "group": "NL04",
    "llm": "GPT-4",
    "statement": "NL 第 11 句要求 Join2 先进入 Fork2，再由 Fork2 分出 Junction2 与 Flash；本模型把两条边直接挂在 join2 上，Fork2 在拍照分支中不存在。与台帐 EXP-0018-TR-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Join2 --> Fork2;  Fork2 --> Junction2;  Fork2 --> Flash",
    "generated_side": "join2 --> Junction2;  join2 --> Flash : activated（Fork2 被旁路，fork2 挪去服务 ChargedFlash 分支）",
    "verdict": "problem",
@@ -3405,6 +3502,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "edge_declared(source='llms_emp_feedback_final_0018.join2', trigger='<无触发>', target='llms_emp_feedback_final_0018.fork2')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3486,6 +3584,7 @@
    "group": "NL04",
    "llm": "GPT-4",
    "statement": "自造 Start / end 两个事件；UML 不允许初始迁移带触发，junction 出边也不应带触发，NL 中均无对应事件，属 over-specification。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> TurnOn（无触发）;  Junction1 --> TurnOff（无触发）",
    "generated_side": "[*] --> TurnOn : Start;  Junction1 --> TurnOff : end",
    "verdict": "extra",
@@ -3514,6 +3613,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(event='llms_emp_feedback_final_0018.Start')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3703,6 +3803,7 @@
    "group": "NL05",
    "llm": "GPT-4",
    "statement": "NL 3 虽然把 cruise 与 lane_change 写在同一个条件从句下（本身歧义），但两个目标互斥，模型必须给出可区分依据。生成侧对两个不同目标使用逐字相同的条件，FCSTM 投影中它们共享同一个 event dist_to_front_25_extra_lane_true 且均无守卫，形成不可区分的冲突目标。参考侧靠 cruise 无守卫消歧，0009/0049 靠互补守卫消歧，只有 0019 与 0029 没有消歧。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "enter_hwy --> cruise（无守卫）; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— 两条边条件不同",
    "generated_side": "enter_hwy --> cruise: dist_to_front<25 & extra_lane=true; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— 两条边条件完全相同",
    "verdict": "problem",
@@ -3730,6 +3831,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -3765,6 +3867,7 @@
    "group": "NL05",
    "llm": "GPT-4",
    "statement": "NL 12 首句明确 \"The collision avoidance system is initially in the collision_avoidance_deactive state\"，是显式的初态要求。生成侧只声明了两个状态与两条互逆边，没有初始边；FCSTM 投影因此注入 CollisionAvoidanceSystem.UnspecifiedInitial，该复合态默认进入点未定义。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> collision_avoidance_deactive（并发区内的初始边）",
    "generated_side": "state CollisionAvoidanceSystem { collision_avoidance_deactive --> collision_avoidance_active: ...; collision_avoidance_active --> collision_avoidance_deactive: ... } —— 无任何初始边",
    "verdict": "problem",
@@ -3792,6 +3895,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -3827,6 +3931,7 @@
    "group": "NL05",
    "llm": "GPT-4",
    "statement": "NL 6 的主语是 HighwayMode 整体（\"The HighwayMode ends when...\"），NL 10 同理（\"The system exits the UrbanMode state by...\"）。生成侧把完成条件的源收窄到 ExitHighway / exit_urban，于是 auto_finished=true 在 cruise、lane_change、enter_hwy、straight、intersection 等状态里根本不被消费——必须先满足 dist_to_exit<2（或 <0.7）走到出口态才能完成自动驾驶，这是 NL 未授权的前置条件。台帐与论文均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "HighwayMode --> FinishState : auto_finished = true; UrbanMode --> FinishState : auto_finished = true —— 从复合态边界发出的组迁移，模式内任一子态都可完成",
    "generated_side": "ExitHighway --> FinishState: auto_finished=true; exit_urban --> FinishState: auto_finished=true —— 只有出口子态可完成",
    "verdict": "problem",
@@ -3855,6 +3960,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -3905,6 +4011,7 @@
    "group": "NL05",
    "llm": "GPT-4",
    "statement": "NL 1 只说系统起始于 AutonomousMode 并进入 InitialState，从未命名任何触发事件。生成侧在两条初始边上凭空造了 Autonomous_mode_start 与 Start_of_autonomous_driving_mode 两个事件（FCSTM 中确实被投影为 declared event），属参考模型没有、NL 也未要求的过度规定。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> AutonomousMode（无触发）; [*] --> InitialState（无触发）",
    "generated_side": "[*] --> AutonomousMode: Autonomous mode start; [*] --> InitialState: Start of autonomous driving mode",
    "verdict": "extra",
@@ -3931,6 +4038,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(event=\"llms_emp_feedback_final_0019.Autonomous_mode_start\")  —— 该字段只断言多出元素的存在性（实测 True），是前提不是缺陷；改用台帐 harm_assertion 的后果形式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4057,6 +4165,7 @@
    "group": "NL08",
    "llm": "Llama",
    "statement": "NL 第3句明确的 power on 触发在制品中完全不存在，初始迁移无条件发生。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> human_mode : power_on",
    "generated_side": "[*] -> HumanDrivingMode（无触发；模型里根本没有 Power On 事件）",
    "verdict": "problem",
@@ -4083,6 +4192,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(...) → False；配套 edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0020.Power_On\", target=\"llms_emp_feedback_final_0020.HumanDrivingMode\") → False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4133,6 +4243,7 @@
    "group": "NL08",
    "llm": "Llama",
    "statement": "两个接管条件被压成一个不可分解事件，且从 AutoFinalState 返回仍必须等这个复合事件——处于 auto final 本身不构成独立的接管条件（NL 第5句第三项）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "human_mode --> autonomous_mode : in (auto_final)（方向反，但保留独立迁移）",
    "generated_side": "AutoFinalState -> HumanDrivingMode: human steering cmd, brake pressed",
    "verdict": "problem",
@@ -4159,6 +4270,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(...) → False（无可单独触发的事件）；\"以 in-state 为守卫、无事件的接管边\"这一形状 19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4209,6 +4321,7 @@
    "group": "NL01",
    "llm": "Llama",
    "statement": "NL 第 8 句逐字要求 'Entry/Accelerate' 动作。作者模型里 Accelerating 只有一行与自身同名的空描述，Accelerate 这个动作在全模型不存在（FCSTM 中 Accelerating 仅有 named 'Accelerating\\n[PlantUML body] Accelerating'，无 enter abstract）。这是丢失 NL 明确点名的动作。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Accelerating: Entry/Accelerate",
    "generated_side": "Accelerating: Accelerating（与状态同名的空描述，无任何动作）",
    "verdict": "problem",
@@ -4235,6 +4348,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -4269,6 +4383,7 @@
    "group": "NL01",
    "llm": "Llama",
    "statement": "NL 第 9 句的 Send 是系统发出的输出信号。作者把它写成一条迁移的标签，PlantUML 下整串 'exit/Send' 成为触发器；FCSTM 确认 event exit_Send named 'exit/Send'，即输出动作被反转成必须由环境提供的输入事件，方向完全相反。同时 Approaching 不再声明任何动作。这与相位差异（0004 的 do/Send）性质不同，是真实语义错误。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Approaching: Entry/Send",
    "generated_side": "Approaching --> InMotion:exit/Send",
    "verdict": "problem",
@@ -4295,6 +4410,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='exit')",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -4329,6 +4445,7 @@
    "group": "NL01",
    "llm": "Llama",
    "statement": "同一行文本还造成第二个独立后果：Approaching 多出一条指向自身外层复合状态 InMotion 的迁移。UML 下这等价于 InMotion 的自迁移，退出并重入复合状态、重跑内部初始，把运动阶段重置回 Accelerating；FCSTM 确认被路由成 InMotion -> InMotion : if [R45RouteToken == 7]。NL 第 10 句明确要求 'remains in the Approaching substate ... until it is ready to stop or decelerate'，该边在既不 ready to stop 也不 decelerate 的条件下离开 Approaching，直接违反这条 remain-until 义务。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "（参考模型中 Approaching 无任何出边，仅靠 InMotion 的组退出边离开）",
    "generated_side": "Approaching --> InMotion:exit/Send",
    "verdict": "problem",
@@ -4357,6 +4474,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0024.InMotion.Approaching', event='llms_emp_feedback_final_0024.exit_Send')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4406,6 +4524,7 @@
    "group": "NL01",
    "llm": "Llama",
    "statement": "与 Approaching 同一类错误：NL 第 3 句要求 EmergencyStopping 发送 'Obstacle Detected' 信号，作者把这个输出写成迁移标签，FCSTM 生成 event exit_Send_Obstacle_Detected named 'exit/Send Obstacle Detected'，输出动作被反转为输入事件，EmergencyStopping 也不再声明任何动作。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "EmergencyStoping:... Send Obstacle Detected",
    "generated_side": "EmergencyStopping --> InMotion:exit/Send Obstacle Detected",
    "verdict": "problem",
@@ -4432,6 +4551,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='exit')",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -4466,6 +4586,7 @@
    "group": "NL10",
    "llm": "Llama",
    "statement": "该边既无守卫也未在事件名中点出零时，因此在已输入烹饪时间的情形下关门仍然落到 DoorShutWithItem。NL 第 4 句把这个去向限定在『with zero time set』，其对偶义务（时间已设则不应落 DoorShutWithItem）被丢失，NL 所述『门关后去向取决于时间设定』这一依赖关系在模型中消失。这是本 case 与同构的 0015/0045/0055 唯一的实质差别。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
    "generated_side": "DoorOpenWithItem --> DoorShutWithItem: Door Closed（无任何限定）",
    "verdict": "problem",
@@ -4508,6 +4629,7 @@
    "group": "NL10",
    "llm": "Llama",
    "statement": "同 0005/0015：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "5 处 timer / display effect",
    "generated_side": "（无任何 effect、变量或状态动作）",
    "verdict": "problem",
@@ -4550,6 +4672,7 @@
    "group": "NL03",
    "llm": "Llama",
    "statement": "NL 第 2 句要求搜索期间存在三个不同状态区域；本模型只有一个区域，三个兄弟状态是『搜索/编队/攻击』三种模式而非三个搜索区域。注意 cardinality(scope=SearchingState, count=3) 恰好为真但理由完全错误——19 个谓词里没有区域数谓词，这是一处会产生假阳性的谓词缺口。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Raster_Scanning { region1 -- region2 -- region3 }",
    "generated_side": "state SearchingState { TargetSearchingState / FormationAdjustmentState / AttackState 三个兄弟叶状态，单区域 }",
    "verdict": "problem",
@@ -4576,6 +4699,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "cardinality(scope='llms_emp_feedback_final_0026.SearchingState', count=3)  # 会误判为 true",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4625,6 +4749,7 @@
    "group": "NL03",
    "llm": "Llama",
    "statement": "NL 第 4 句要求攻击完成后数量递减；该迁移只有 trigger，无 / effect、无 [guard]、无任何计数文本，递减语义在作者源中不存在。与台帐 EXP-0026-EA-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Strike_the_Target: exit/ NumberofCru--",
    "generated_side": "AttackState --> TargetSearchingState : Attack Completed",
    "verdict": "problem",
@@ -4652,6 +4777,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4701,6 +4827,7 @@
    "group": "NL03",
    "llm": "Llama",
    "statement": "FormationAdjustmentState 是一个吸收态：一旦被拦截，swarm 永远无法回到搜索，也无法再攻击或完成任务，直接违反 NL 第 2 句『持续执行搜索任务直到任务完成』。论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Formation_Adjustment --> Fly_Along_the_Path（编队调整后回到飞行/搜索）",
    "generated_side": "无任何从 FormationAdjustmentState 出发的边",
    "verdict": "problem",
@@ -4728,6 +4855,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4779,6 +4907,7 @@
    "group": "NL07",
    "llm": "Llama",
    "statement": "进入 ActiveState 后整机被永久困住：三个区的末端 junction2 / junction3 / InitialState 全是死端，ActiveState 没有任何外出迁移，DetectingState 再也不可达，子机既不能解除激活也不能重新武装（参考模型每区都回到常备态）。而且 BrakeControlState --> junction2 是无触发完成迁移，控制状态形同虚设。核对 workbook：Phase-I 与 format 修复后（列 I / 列 U）都有 `InitialState --> DetectingState : No Collision detected` 这条返回边，是论文语义修复阶段把 InitialState 挪进 ActiveState 并删掉该边，才形成陷阱——又一处修复引入缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "avoid_frontend_collision --> front_inactive: dist_to_front>15 等（每区避撞后回到常备态，可重新检测）",
    "generated_side": "BrakeControlState --> junction2（junction2 无出边）；SteeringControlState --> junction3（无出边）；SensorControlState --> junction4 --> InitialState（InitialState 在 ActiveState 内且无出边）；ActiveState 本身无任何出边",
    "verdict": "problem",
@@ -4806,6 +4935,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "reaches(source=\"llms_emp_feedback_final_0027.ActiveState\", target=\"llms_emp_feedback_final_0027.DetectingState\", within_cycles=5) → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -4853,6 +4983,7 @@
    "group": "NL04",
    "llm": "Llama",
    "statement": "整份制品是微波炉状态机，NL04 是数字相机：TurnOn / fork1 / AutoFocus / DetLight / ChargedFlash / Junction1-3 / Join1-2 / Fork2 / Flash / TakePicture / WriteMemory / TurnOff 一个都不存在，与参考、与 NL 11 句的元素重合为零。领域完全错配。与台帐 EXP-0028-DA-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "@startuml [*] --> TurnOn; state fork1 <>; fork1 --> AutoFocus; fork1 --> DetLight; … Junction2 --> TakePicture; TakePicture --> WriteMemory; … TurnOff --> [*]（数字相机）",
    "generated_side": "@startuml state DoorShut as \"Door Shut\" <<initial>>; … DoorOpenWithItem --> ReadytoCook : Cooking Time Entered; ReadytoCook --> Cooking : Start; Cooking --> DoorShutWithItem : Timer Expired（微波炉）",
    "verdict": "problem",
@@ -4882,6 +5013,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state='TurnOn', kind='any') and state_declared(state='AutoFocus', kind='any') and state_declared(state='DetLight', kind='any') and state_declared(state='TakePicture', kind='any')",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -4916,6 +5048,7 @@
    "group": "NL04",
    "llm": "Llama",
    "statement": "即便就微波炉本身而论，<<initial>> 只是一个 stereotype，PlantUML 不会据此建立初始伪状态，投影因此插入 UnspecifiedInitial，模型无入口、6 个状态全不可达。此条在领域已错配的前提下意义有限，仅作制品缺陷如实记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> TurnOn",
    "generated_side": "state DoorShut as \"Door Shut\" <<initial>>（用 stereotype 而非 [*] --> 表示初态）",
    "verdict": "problem",
@@ -4943,6 +5076,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -4977,6 +5111,7 @@
    "group": "NL05",
    "llm": "Llama",
    "statement": "NL 1 说系统起始于 AutonomousMode 状态并「transitions into the InitialState substate」，NL 2/7 把 HighwayMode、UrbanMode 也置于该自动驾驶模式之内。生成侧从未打开 AutonomousMode 复合括号，FCSTM 投影确认 AutonomousMode 是与 HighwayMode/UrbanMode/InitialState 平级的叶态，层次结构整体丢失。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state AutonomousMode { [*] --> InitialState; InitialState --> HighwayMode:...; state HighwayMode {...}; state UrbanMode {...}; FinishState ... } —— 三者均为 AutonomousMode 的子态",
    "generated_side": "AutonomousMode 是顶层叶态；AutonomousMode --> InitialState : initial；state HighwayMode {...} 与 state UrbanMode {...} 都开在顶层",
    "verdict": "problem",
@@ -5004,6 +5139,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "containment(parent=\"llms_emp_feedback_final_0029.AutonomousMode\", child=\"llms_emp_feedback_final_0029.AutonomousMode.HighwayMode\")  —— 实测 False 但 oracle 不在 NL（NL 未点名该归属），按 review_note 换成 InitialState",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -5119,6 +5255,7 @@
    "group": "NL05",
    "llm": "Llama",
    "statement": "与 0019 完全同型：两个互斥目标共享逐字相同的条件，FCSTM 中共享同一 event 且无守卫，无法区分。NL 3 的联合条件从句虽有歧义，但不授权模型对两个目标给出相同判据。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "enter_hwy --> cruise（无守卫）; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true",
    "generated_side": "enter_hwy --> cruise : dist_to_front<25 & extra_lane=true; enter_hwy --> lane_change : dist_to_front<25 & extra_lane=true",
    "verdict": "problem",
@@ -5146,6 +5283,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -5231,6 +5369,7 @@
    "group": "NL05",
    "llm": "Llama",
    "statement": "NL 4 与 NL 5 对 dist_to_exit<2 给的是同一个语义（驶离高速）。生成侧自身不一致：lane_change 走局部 exit_hwy（正确），cruise 却直接进 FinishState，把局部退出与 NL 6 的全局完成混为一谈。模型内部的这种不一致本身就是最强证据。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2 —— 两条出口边一致",
    "generated_side": "cruise --> FinishState : dist_to_exit<2 但 lane_change --> exit_hwy : dist_to_exit<2 —— 同一条件两个不同作用域的目标",
    "verdict": "problem",
@@ -5259,6 +5398,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.dist_to_exit_2\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\"))  —— 实跑抛 TypeError（坑 1），去掉 any()",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -5344,6 +5484,7 @@
    "group": "NL05",
    "llm": "Llama",
    "statement": "NL 3 \"the system begins in the enter_hwy substate\"、NL 7 \"the system begins in the enter_urban substate\" 都是显式初态要求。生成侧改用「父态 --> 子态 + 自造 enter 事件」，FCSTM 投影在 HighwayMode 与 UrbanMode 内各注入了一个 UnspecifiedInitial，两个复合态的默认进入点未定义。台帐把它排除为 E2b（认为父子边可能等价实现初始行为），但结构族谓词 initial_target 在当前投影上确实返回 UnspecifiedInitial 而非 enter_hwy，与台帐已接受的 EXP-0019-IT-001 是同型证据，标准应当一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state HighwayMode { [*] --> enter_hwy; ... }; state UrbanMode { [*] --> enter_urban; ... }",
    "generated_side": "state HighwayMode { HighwayMode --> enter_hwy : enter; ... }; state UrbanMode { UrbanMode --> enter_urban : enter; ... } —— 两个复合态都没有 [*] 初始边",
    "verdict": "problem",
@@ -5371,6 +5512,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -5471,6 +5613,7 @@
    "group": "NL05",
    "llm": "Llama",
    "statement": "NL 6/10 用同一个裸名 FinishState，参考确实只有一个共享的 AutonomousMode 级 FinishState。生成侧把它绑进 HighwayMode，FCSTM 显示 UrbanMode 的 auto_finished 经 R45RouteToken=26 路由到 HighwayMode 再进入 HighwayMode.FinishState——城市模式完成后 HighwayMode 变为活跃。台帐的 EXP-0029-IT-001 只覆盖 cruise 那条边，未覆盖这个作用域后果。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "FinishState 在 AutonomousMode 层级，HighwayMode 与 UrbanMode 共享",
    "generated_side": "FinishState 首次出现在 state HighwayMode { cruise --> FinishState } 内，归属 HighwayMode；UrbanMode --> FinishState 与 AutonomousMode --> FinishState 都成为跨层边",
    "verdict": "problem",
@@ -5498,6 +5641,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -5583,6 +5727,7 @@
    "group": "NL08",
    "llm": "Kimi",
    "statement": "NL 第2+5句共同要求 autonomous 内存在可被 in(...) 指代的 auto final 子状态；制品内部只有 Navigating↔Parking 死循环，标签里的 `[*]` 不声明任何状态，导致 in (auto final) 无指代对象。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "human_mode --> autonomous_mode : in (auto_final)（隐含 auto final 是 autonomous 的子状态）",
    "generated_side": "state Autonomous { Navigating <-> Parking }，无 auto final 子状态；`[*]` 仅作为迁移标签文本出现",
    "verdict": "problem",
@@ -5609,6 +5754,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(...) → False；补充 terminates(scope=\"...0030.Autonomous\") → False  【补充项实测为 True，已剔除】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -5674,6 +5820,7 @@
    "group": "NL08",
    "llm": "Kimi",
    "statement": "自动驾驶激活期间无法断电，NL 第5句的断电义务只覆盖了一半作用域（参考模型两边都有）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "autonomous_mode --> [*] : power_off",
    "generated_side": "只有 HumanDriving --> [*] : Power Off",
    "verdict": "problem",
@@ -5701,6 +5848,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -5736,6 +5884,7 @@
    "group": "NL08",
    "llm": "Kimi",
    "statement": "三个接管条件压成一个不可分解事件（投影事件名 `Human_Steering_Cmd_Brake_Pressed`，斜杠与 `[*]` 均被当普通字符），任一单独条件都无法触发接管。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "参考把三条件拆成三条独立边",
    "generated_side": "Autonomous --> HumanDriving : Human Steering Cmd / Brake Pressed / [*]",
    "verdict": "problem",
@@ -5762,6 +5911,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -5797,6 +5947,7 @@
    "group": "NL09",
    "llm": "Kimi",
    "statement": "三个 Region 都是复合态却没有初始伪态，进入任一 Region 的默认子态未定义；AcceleratingState 更是全模型无任何入边，NL 第 1 句点名的 Accelerating(or Cruising) 配置根本不可占据。R4.5 投影不得不在三个 Region 内各合成一个 UnspecifiedInitial（见 attribution_exclusions 的 compiler:state:...UnspecifiedInitial 三条），这是缺陷的机器证据。违反 NL 第 1 句『transitions between Idle, Accelerating or Cruising, and Braking』。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Operate { [*] --> Idle; ... }（一层子态，有默认子态）",
    "generated_side": "state IdleRegion { IdleState }、state AccelerateRegion { AcceleratingState CruisingState }、state BrakeRegion { BrakingState } —— 三个复合态均无 [*] 初始伪态",
    "verdict": "problem",
@@ -5824,6 +5975,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "initial_target(composite='llms_emp_feedback_final_0032.OperateState.AccelerateRegion', child='llms_emp_feedback_final_0032.OperateState.AccelerateRegion.AcceleratingState')  # False；或 reaches(...)  # False",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -5871,6 +6023,7 @@
    "group": "NL09",
    "llm": "Kimi",
    "statement": "NL 第 3 句只说 Operate 内有子态间迁移，只许可一层子态；参考也是一层。多出的 Region 包装层是 NL 与参考都没有的元素，属过度规约。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Operate 下直接是三个叶子态",
    "generated_side": "Operate 下多插一层 Region 包装（IdleRegion / AccelerateRegion / BrakeRegion）",
    "verdict": "extra",
@@ -5898,6 +6051,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "cardinality(scope='llms_emp_feedback_final_0032.OperateState', count=3)  # 该式为 True 无法暴露 ... 只能用 state_declared(...IdleRegion, kind='leaf') 判 False 间接表达",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6005,6 +6159,7 @@
    "group": "NL06",
    "llm": "Kimi",
    "statement": "NL 2 明确 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\"。生成侧把三者声明成了 PumpControl 的兄弟而非子态，层次归属整体错位。这与直接子态/后代状态之争无关——它们根本不在 PumpControl 内部的任何层级。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState } —— 三者都在 PumpControl 之内",
    "generated_side": "PumpControl -down-> PumpState : Activate Pump 等三条顶层边先提及三个状态，按 PlantUML 首次提及身份它们成为顶层状态；FCSTM 确认 PumpState / WaterState / MethaneState 与 PumpControl 平级",
    "verdict": "problem",
@@ -6032,6 +6187,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6081,6 +6237,7 @@
    "group": "NL06",
    "llm": "Kimi",
    "statement": "NL 3 要求系统首先进入 PumpState。生成侧的三条初始边目标全部越出了 PumpControl 的子作用域，投影因此把它们替换成三个 Invalid 标记——PumpControl 没有任何有效的默认进入点，NL 3/4/5 描述的三个进入动作在 PumpControl 的入口处一个都无法实现。同时三条初始边并存本身也使默认进入点不唯一。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "每个区域一条初始边，指向该区域内的具名子态",
    "generated_side": "三个重名的 state PumpControl { ... } 块被 PlantUML 合并为同一状态体，内含三条 [*] --> PumpState / WaterState / MethaneState，但目标已在 PumpControl 之外；FCSTM 投影出 InvalidInitialtr_0005 / 0007 / 0009（\"PlantUML initial target outside child scope\"）三个非法初始标记",
    "verdict": "problem",
@@ -6123,6 +6280,7 @@
    "group": "NL06",
    "llm": "Kimi",
    "statement": "NL06 五句话没有命名任何触发事件，也从未提到停用、稳定或终止。begin、Pump Deactivated、Water Flow Stabilized、Methane Flow Stabilized 全属凭空发明，参考侧一个都没有。这三条终结边还因源状态位于 PumpControl 之外而全部投影为非法终态边界，即过度规定同时产出了畸形结构。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "零 declared event、零行为迁移；无任何终结边",
    "generated_side": "自造七个事件 begin / Activate Pump / Monitor Water Flow / Monitor Methane Flow / Pump Deactivated / Water Flow Stabilized / Methane Flow Stabilized，并写了三条 PumpState --> [*] : Pump Deactivated 之类的终结边（FCSTM 投影为 InvalidFinaltr_0006 / 0008 / 0010，\"final boundary outside source ancestry\"）",
    "verdict": "extra",
@@ -6149,6 +6307,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(event=\"llms_emp_feedback_final_0033.Water_Flow_Stabilized\")  （实测 True，纯存在性，抓不到缺陷）",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6274,6 +6433,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 4 句明确 'Within the InMotion state, the system operates in three substates: Accelerating, Cruising, and Approaching'。作者从未打开 InMotion 复合状态，三个运动阶段被声明为顶层兄弟状态，用无事件边 InMotion --> Accelerating/Cruising/Approaching 连接。层次归属信息完全丢失，InMotion 的组退出语义（Arrived、Obstacle Detected 从任意子状态离开）也随之失效。这是丢失 NL 明确要求的结构。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state InMotion{ ... }（Accelerating / Cruising / Approaching 为 InMotion 的子状态）",
    "generated_side": "state InMotion（叶子）+ 顶层平铺的 Accelerating / Cruising / Approaching",
    "verdict": "problem",
@@ -6301,6 +6461,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6397,6 +6558,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 5 句 'The system begins in the Accelerating substate' 要求进入运动后唯一初始化到 Accelerating。作者用三条无事件完成迁移取代嵌套初始边，导致进入 InMotion 后可以不确定地落到三个阶段中任意一个。更严重的是 InMotion --> Cruising 与 InMotion --> Approaching 让 Cruising / Approaching 可以绕过 NL 第 5、6、7 句要求的 'Reached Cruising/Cruise' 与 'Approached/Decelerate' 触发直接进入。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state InMotion{ [*]-->Accelerating }",
    "generated_side": "InMotion --> Accelerating / InMotion --> Cruising / InMotion --> Approaching（三条无触发边）",
    "verdict": "problem",
@@ -6424,6 +6586,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6475,6 +6638,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 8 句把 'Entry/Accelerate' 明确归属给 Accelerating。作者除了在 Accelerating 上正确写了一份，还在 DoorsClosing 上多挂了一份同名 entry 动作（FCSTM 确认 DoorsClosing { enter abstract Accelerate; }）。让关门阶段执行加速动作与 NL 语义矛盾，属动作错置而非命名差异。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "（参考模型中 DoorsClosing 无任何动作）",
    "generated_side": "DoorsClosing : entry/Accelerate",
    "verdict": "problem",
@@ -6501,6 +6665,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -6537,6 +6702,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 9 句要求 Approaching 发送 'Send' 信号；NL 第 6、7 句里 Decelerate 是 'Approached/Decelerate' 迁移的效果，不是 Approaching 的状态局部动作。作者把迁移效果搬成状态 entry 动作，同时 Send 动作在全模型不存在（FCSTM 中 Approaching 只有 enter abstract Decelerate）。既丢失 NL 要求的输出动作，又把迁移效果错置为状态动作。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Approaching: Entry/Send",
    "generated_side": "Approaching : entry/Decelerate",
    "verdict": "problem",
@@ -6581,6 +6747,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 3 句要求 EmergencyStopping 既执行 'Emergency Stop' 又发送 'Obstacle Detected' 信号。作者只保留了前者，后者在全模型任何相位、任何迁移上都不存在（FCSTM 中 EmergencyStopping 只有 enter abstract EmergencyStop）。这是 NL 明确要求的输出动作彻底缺失。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "EmergencyStoping:... Send Obstacle Detected",
    "generated_side": "EmergencyStopping : entry/Emergency Stop（无任何发送 Obstacle Detected 的动作）",
    "verdict": "problem",
@@ -6625,6 +6792,7 @@
    "group": "NL01",
    "llm": "Kimi",
    "statement": "NL 第 10 句明确 'The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate'。'Destination Missed' 既不是 ready to stop 也不是 decelerate，这条边让系统在义务未解除时离开 Approaching 并直接完成，违反该 remain-until 义务，属真实问题而非单纯过度指定。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "（参考模型中 Approaching 无任何出边，也无终态）",
    "generated_side": "Approaching --> [*] : Destination Missed",
    "verdict": "problem",
@@ -6653,6 +6821,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "not transition_exists(source='llms_emp_feedback_final_0034.Approaching', event='llms_emp_feedback_final_0034.Destination_Missed')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6706,6 +6875,7 @@
    "group": "NL10",
    "llm": "Kimi",
    "statement": "NL 第 1 句明写『The microwave starts in the DoorShut state.』。生成侧用一个 <<initial>> 构造型代替初始伪态边，全模型没有 [*] --> 边；R4.5 因此在根状态合成 UnspecifiedInitial（attribution_exclusions 含 compiler:state:...UnspecifiedInitial 与一条 synthetic_transition），DoorShut 从上电起不可达。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> DoorShut",
    "generated_side": "state DoorShut as \"Door Shut\" <<initial>>（无任何初始伪态边）",
    "verdict": "problem",
@@ -6733,6 +6903,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -6784,6 +6955,7 @@
    "group": "NL10",
    "llm": "Kimi",
    "statement": "NL 第 2 句明写『The door can be closed to return to the DoorShut state.』，是显式关系义务，生成侧完全没有这条边（第 5 行的位置被一条 DoorOpen 自环占据）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DoorOpen --> DoorShut: Door Closed",
    "generated_side": "（无此边）",
    "verdict": "problem",
@@ -6812,6 +6984,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -6848,6 +7021,7 @@
    "group": "NL10",
    "llm": "Kimi",
    "statement": "与 0025 同形：该边既无守卫也未在事件名点出零时，已输入烹饪时间时关门仍落 DoorShutWithItem，丢失 NL 第 4 句把该去向限定于零时的义务。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
    "generated_side": "DoorOpenWithItem --> DoorShutWithItem : Door Closed（无任何限定）",
    "verdict": "problem",
@@ -6892,6 +7066,7 @@
    "group": "NL10",
    "llm": "Kimi",
    "statement": "同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "5 处 timer / display effect",
    "generated_side": "（无任何 effect、变量或状态动作）",
    "verdict": "problem",
@@ -6936,6 +7111,7 @@
    "group": "NL03",
    "llm": "Kimi",
    "statement": "三个区域槽位里第一个只放了一个无出边的 InitialState，实质行为区域只有两个，NL 的三区域数量断言不满足；且在并发读法下 region0 是恒定无用区域，在顺序读法下（顶层 -- 并非标准 PlantUML 并发写法）机器起于 InitialState 且永不离开，两种读法下都有缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "三个区域各自承载实质行为（飞行/编队、飞行/打击、搜索目标）",
    "generated_side": "region0 = { InitialState }（无出边）、region1 = Region1、region2 = Region2",
    "verdict": "problem",
@@ -6962,6 +7138,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state='llms_emp_feedback_final_0036.Region3', kind='any')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7090,6 +7267,7 @@
    "group": "NL03",
    "llm": "Kimi",
    "statement": "NL 第 2 句『Before the mission is completed』预设完成条件；本模型两个区域各自内部无限循环，永不结束。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
    "generated_side": "模型内无任何 final 状态，也无 mission-complete 事件",
    "verdict": "problem",
@@ -7116,6 +7294,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "terminates(scope='[*]')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7178,6 +7357,7 @@
    "group": "NL07",
    "llm": "Kimi",
    "statement": "三条检测边指向的是死端叶状态 FrontendCollision / RearEndCollision / PedestrianCollision，而真正含控制逻辑的 FrontendCollisionRegion / RearEndCollisionRegion / PedestrianCollisionRegion 没有任何入边，因此 BrakingControl / SteeringControl / EmergencyStop 全部不可达；检测一次后整机卡在死端叶状态，ActiveState 也无外出边。违反 NL 第2、3句（检测应导致对应避撞控制被激活）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "front_inactive --> avoid_frontend_collision（检测直接把该区推进避撞控制）",
    "generated_side": "Inactive --> FrontendCollision : Frontend Collision Detected（FrontendCollision 为隐式声明的无出边叶状态）；三个 *CollisionRegion 复合状态无任何入边",
    "verdict": "problem",
@@ -7207,6 +7387,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "occupancy_after(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", trigger=\"llms_emp_feedback_final_0037.Frontend_Collision_Detected\", target=\"llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion\") → 期望 True 实得 False；补充 reaches(...BrakingControl, within_cycles=5) → False  —— 改用无 oracle 的良构性形式并覆盖三个区",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7256,6 +7437,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "NL 第 3 句要求 memFull=true 约束 AutoFocus 进入 choice1；本模型把该守卫移到 choice1 --> choice3 上，AutoFocus --> choice1 的标签被时间占满。守卫移位，论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "AutoFocus --> choice1: [memFull=true]",
    "generated_side": "AutoFocus --> choice1 : after 2s / minimum 1s;  choice1 --> choice3 : memFull=true",
    "verdict": "problem",
@@ -7284,6 +7466,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -7320,6 +7503,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "NL 第 5 句『If the fork1 state transitions to choice3』要求闪光分支由 fork 直接分出；本模型把它挂在 choice1 之后，闪光分支变成对焦分支的下游，控制流拓扑错误。论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "fork1 --> choice3",
    "generated_side": "无 fork_state --> choice3；choice3 只能由 choice1 --> choice3 进入",
    "verdict": "problem",
@@ -7348,6 +7532,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "edge_declared(source='llms_emp_feedback_final_0038.fork_state', trigger='<无触发>', target='llms_emp_feedback_final_0038.choice3')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7414,6 +7599,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "Charged=true 晚了一条边：应约束 ChargedFlash 进入 Junction3，实际约束 Junction3 出到 Join2，于是未充电时仍可进入 Junction3。与台帐 EXP-0038-GC-001 一致（注意台帐依据的是 NL 第 6 句，参考自身把 Charged=true 挂在 choice3 --> Junction3，两者不一致，以 LLM 实际看到的 NL 为准更合理）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "NL 第 6 句：ChargedFlash --> Junction3，The transition occurs when Charged=true",
    "generated_side": "ChargedFlash --> Junction3 : after 4s / minimum 2s;  Junction3 --> Join2 : Charged=true",
    "verdict": "problem",
@@ -7442,6 +7628,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -7478,6 +7665,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "NL 第 7 句明确要求 choice3 也直连 Junction3，该分支缺失。与台帐 EXP-0038-TR-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "choice3 --> Junction3",
    "generated_side": "只有 choice3 --> ChargedFlash",
    "verdict": "problem",
@@ -7522,6 +7710,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "NL 第 8 句要求 choice2 无条件到 Join2、并在 sunny=true 时汇入 Join1 再到 Junction2；本模型删掉 Join1 并把 sunny 守卫挂到 Join2 边上，晴天分支整条丢失。与台帐 EXP-0038-SH-001 一致（其 GC 的一半也在此）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2",
    "generated_side": "choice2 --> Join2 : sunny=true（Join1 完全不存在）",
    "verdict": "problem",
@@ -7548,6 +7737,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state='Join1', kind='pseudo')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7599,6 +7789,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "把 Terminate 声明成 composite 且其内部初始迁移指向自己，投影为 InvalidInitialtr_0021『initial target outside child scope: Terminate』，进入 Terminate 后无定义子状态。这是 Phase-II 语义检查重写新引入的缺陷（论文 grammar 栏说的是 TurnOn 被嵌套两次，已修，与此无关），论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Flash --> Terminate（Terminate 为普通叶状态）",
    "generated_side": "state Terminate { [*] --> Terminate }（内部初始迁移指向 composite 自身）",
    "verdict": "problem",
@@ -7625,6 +7816,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -7661,6 +7853,7 @@
    "group": "NL04",
    "llm": "Kimi",
    "statement": "10 个伪状态中只有 fork_state 与 Join2 类型正确；Junction3 与 Junction1 被标成 join（NL/参考均为 junction），其余 6 个退化为普通状态。伪状态结构问题不属时间也不属并发，正常判。19 谓词的 state_declared 只有 leaf/composite/pseudo/any，join 与 junction 的类型错配无法断言，只能断言『是否为伪状态』。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Junction1/Junction2/Junction3 为 junction，Fork2 为 fork，choice1/2/3 为 choice",
    "generated_side": "state Junction3 <<join>>;  state Junction1 <<join>>;  Junction2 / Fork2 / choice1 / choice2 / choice3 无任何 stereotype",
    "verdict": "problem",
@@ -7687,6 +7880,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7738,6 +7932,7 @@
    "group": "NL05",
    "llm": "Kimi",
    "statement": "NL 3 逐字写明 enter_hwy 「can transition to cruise or lane_change」，是一个显式的二选一关系，参考模型也声明了两条边。生成侧删掉了 lane_change 分支，把 lane_change 降级为只能从 cruise 二次到达，丢失了 NL 明确给出的 source-target 关系。台帐将其排除为 E2b（indirect_enter_highway_lane_change，认为行为上可等价），我在「声明关系」层面不同意：NL 与参考都承载了这条边。但见下一条 uncertain，参考自身的写法削弱了本条的强度。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "enter_hwy --> cruise; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true —— enter_hwy 有两个目标",
    "generated_side": "只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change",
    "verdict": "problem",
@@ -7766,6 +7961,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -7798,6 +7994,7 @@
    "group": "NL05",
    "llm": "Kimi",
    "statement": "这两条边在 UML 语义下从 AutonomousMode 任意配置都使能，FCSTM 投影为 AutonomousMode --> AutonomousMode 自环加 token 22/23 重入。副作用是 NL 未授权的：身处 HighwayMode 时收到 high_way=true 会退出并重入 HighwayMode，把已推进的子态进度复位；InitialState、FinishState 也各多出一条 high_way/urban_way 的组出边。属过度规定。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "HighwayMode --> UrbanMode : urban_way = true; UrbanMode --> HighwayMode : high_way = true（模式间直接切换，只在两模式之间生效）",
    "generated_side": "在 AutonomousMode 闭合括号之外写 AutonomousMode --> HighwayMode : high_way=true; AutonomousMode --> UrbanMode : urban_way=true（父复合态指向自身后代）",
    "verdict": "extra",
@@ -7825,6 +8022,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "（原 assertable 为 null；本式取自台帐 harm_assertion 并已实跑）",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -7919,6 +8117,7 @@
    "group": "NL08",
    "llm": "DeepSeek",
    "statement": "自动驾驶激活期间无法断电，NL 第5句断电义务只覆盖一半作用域（参考两边都有）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "autonomous_mode --> [*] : power_off",
    "generated_side": "只有 HumanDriving --> [*] : Power Off",
    "verdict": "problem",
@@ -7946,6 +8145,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -7980,6 +8180,7 @@
    "group": "NL08",
    "llm": "DeepSeek",
    "statement": "作者写出了显式析取，但 PlantUML 标签是自由文本，投影得到单一事件 `human_steering_cmd_brake_pressed_in_AutoFinal`：单独的 human_steering_cmd 无法触发接管，处于 AutoFinal 也不会自动交还控制权。论文 SysML 语法检查 13/13 全通过未报警。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "参考把三条件拆成三条独立边",
    "generated_side": "Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)",
    "verdict": "problem",
@@ -8006,6 +8207,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "event_declared(...) → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8055,6 +8257,7 @@
    "group": "NL08",
    "llm": "DeepSeek",
    "statement": "复合状态的初始迁移带触发事件：front_distance>10 把系统送进 Autonomous 后，必须再等一个模型里无人产生的 `Enter Autonomous Mode` 事件才会激活子状态，即进入自动驾驶后无任何子状态处于激活。UML 初始迁移不允许带触发，这是结构与行为双重缺陷，论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "(参考无对应元素；NL 未要求任何进入 autonomous 内部的额外事件)",
    "generated_side": "state Autonomous { [*] --> AutoInitial : Enter Autonomous Mode }",
    "verdict": "problem",
@@ -8083,6 +8286,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "occupancy_after(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8147,6 +8351,7 @@
    "group": "NL09",
    "llm": "DeepSeek",
    "statement": "初始伪态出边带触发。UML 禁止初始伪态出边带事件；行为上根状态没有任何无条件初始迁移（R4.5 保留了该触发，且未像 0032/0035 那样合成 UnspecifiedInitial），因此模型必须先收到一个 keyOff 才能进入 Off，NL 第 1、2 句的冷启动路径（上电→Off→start→Operate）不可达。同时把 NL 明确赋给关机的 keyOff 误挂到上电边上。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> Off（无触发）",
    "generated_side": "[*] --> Off : keyOff",
    "verdict": "problem",
@@ -8174,6 +8379,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8258,6 +8464,7 @@
    "group": "NL06",
    "llm": "DeepSeek",
    "statement": "NL 2 是显式枚举式数量断言（\"three main substates: PumpState, WaterState, and MethaneState\"）。生成侧的顶层分解只有两个成员，且其中一个（Region2）承载的是 NL 里根本不存在的 Idle/Active。无论按直接子态还是后代读法，「PumpControl 的顶层分解恰由这三个具名子态构成」都被违反——这一点不受台帐 E2a 排除理由的影响，因为问题不是包裹层数，而是分解成员被替换了。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "PumpControl 的顶层分解恰为三项：PumpState、WaterState、MethaneState（一区一项）",
    "generated_side": "PumpControl 的顶层分解为两项：Region1（内含 PumpState/WaterState/MethaneState）与 Region2（内含 Idle/Active）",
    "verdict": "problem",
@@ -8285,6 +8492,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "cardinality(scope=\"llms_emp_feedback_final_0043.PumpControl\", count=3)  （实测 True，被合成节点凑数掩盖）",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8347,6 +8555,7 @@
    "group": "NL06",
    "llm": "DeepSeek",
    "statement": "NL 3 明确 \"The system first transitions to the PumpState substate\"，参考侧用区域初始边保证了这一点。生成侧在 PumpControl 层级没有任何默认进入点，投影因此注入 UnspecifiedInitial，Region1 与 Region2 都不会被进入，PumpState 不可达。台帐未记录此条，但它与台帐已接受为 E1 的 EXP-0019-IT-001（collision_avoidance_initial_missing）是完全同型的证据：同样是作者源没写初始边、同样由投影注入 UnspecifiedInitial、同样用 initial_target 结构族谓词断言。标准不一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "每个区域各有一条初始边直接指向其具名子态，PumpState 在进入 PumpControl 时即被激活",
    "generated_side": "PumpControl 的两个区域都没有指向 Region1 / Region2 的初始边（[*] --> PumpState 写在 Region1 内部）；FCSTM 投影注入 PumpControl.UnspecifiedInitial",
    "verdict": "problem",
@@ -8374,6 +8583,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8421,6 +8631,7 @@
    "group": "NL01",
    "llm": "DeepSeek",
    "statement": "NL 第 5 句 'The system begins in the Accelerating substate' 与第 8 句 'The system enters the Accelerating substate when motion begins' 共同要求进入 InMotion 后默认落到 Accelerating。作者正确建了复合状态与三个子状态，却漏了内部初始伪状态，导致 InMotion 被进入后活动子状态未定义。FCSTM 确认投影出 state UnspecifiedInitial 与 [*] -> UnspecifiedInitial，并额外补了两条 UnspecifiedInitial -> [*] 路由边。这是丢失 NL 明确要求的初始化语义。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state InMotion{ [*]-->Accelerating ... }",
    "generated_side": "state InMotion { state Accelerating : entry/Accelerate; state Cruising; state Approaching : do/Send; ...（无 [*] --> Accelerating）}",
    "verdict": "problem",
@@ -8448,6 +8659,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -8482,6 +8694,7 @@
    "group": "NL10",
    "llm": "DeepSeek",
    "statement": "同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失，参考以迁移 effect 承载。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "5 处 timer / display effect",
    "generated_side": "（无任何 effect、变量或状态动作）",
    "verdict": "problem",
@@ -8522,6 +8735,7 @@
    "group": "NL03",
    "llm": "DeepSeek",
    "statement": "包壳 composite 有两个顺序子状态却没有初始子状态，进入哪个区域完全未定义（投影在根与包壳内各插入一个 UnspecifiedInitial）。与 0006 的单子女包壳不同，这里的入口是真歧义，构成 IT 类缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "[*] --> Raster_Scanning",
    "generated_side": "state UAVSwarmStateMachine { state SearchRegion {...} state MissionRegion {...} } —— 顶层与包壳都没有 [*]",
    "verdict": "problem",
@@ -8549,6 +8763,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -8581,6 +8796,7 @@
    "group": "NL03",
    "llm": "DeepSeek",
    "statement": "只有两个所谓 region，且都不是 -- 并发区域；其中 MissionRegion 与『搜索期间所处的状态区域』无关，实质搜索区域只有一个。NL 第 2 句三区域数量断言不满足。cardinality(scope=SearchRegion, count=3) 会数出 4 个叶状态，同样无法表达区域数——谓词缺口。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Raster_Scanning { r1 -- r2 -- r3 }（三个正交区域，均是搜索期间的状态区域）",
    "generated_side": "SearchRegion / MissionRegion 两个顺序子状态；MissionRegion 只是任务状态记账（MissionActive / MissionComplete）",
    "verdict": "problem",
@@ -8607,6 +8823,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "cardinality(scope='llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion', count=3)  # 实际 4，且与区域数无关",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8654,6 +8871,7 @@
    "group": "NL03",
    "llm": "DeepSeek",
    "statement": "NL 未提到待机态或启动事件；额外增加了一个 Idle 态与 Start Mission 事件，属 over-specification（也是第 3 条振荡的一半原因）。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "无 Idle 状态，[*] 直接进入搜索行为",
    "generated_side": "[*] --> Idle;  Idle --> Searching : Start Mission",
    "verdict": "extra",
@@ -8681,6 +8899,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state='llms_emp_feedback_final_0046.UAVSwarmStateMachine.SearchRegion.Idle', kind='leaf')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8788,6 +9007,7 @@
    "group": "NL07",
    "llm": "DeepSeek",
    "statement": "PlantUML 状态名是全局标识：Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 中的同名引用指向的是 Frontend 内的同一批状态，于是后两个复合状态实际为空、其初始迁移越界指向 Frontend.Idle（pyfcstm 明确报 \"PlantUML initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle\"，并生成 InvalidInitialtr_0005 / InvalidInitialtr_0009）。三个避撞控制塌缩为一个，直接违反 NL 第1、3句要求的三路控制，也是同一批迁移被重复声明三次的根因。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "三个区各有独立命名的状态（front_inactive / rear_inactive / pedestrian_inactive 等）",
    "generated_side": "Frontend / RearEnd / Pedestrian 三个复合状态里重复使用同名 Idle / Braking / Clamping",
    "verdict": "problem",
@@ -8815,6 +9035,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "state_declared(state=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.RearEnd.Idle\", kind=\"any\") → 期望 True 实得 False；补充 containment(parent=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian.Idle\") → False  —— 抽出表达式并用 all() 一次覆盖两个塌缩的复合态",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8894,6 +9115,7 @@
    "group": "NL07",
    "llm": "DeepSeek",
    "statement": "CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial，连唯一存活的 Frontend 控制也不可达；UML 要求区必须有默认入口或显式进入点，这是结构缺陷。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "参考的每个区都有自己的 [*] --> X_inactive 默认入口",
    "generated_side": "state CollisionAvoidanceSystem { Frontend / RearEnd / Pedestrian }（复合状态本身没有 [*] 默认子状态）",
    "verdict": "problem",
@@ -8921,6 +9143,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "initial_target(composite=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Frontend\") → 期望 True 实得 False；补充 reaches(...) → False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -8970,6 +9193,7 @@
    "group": "NL07",
    "llm": "DeepSeek",
    "statement": "NL 第2句明确规定子机在检测到可能碰撞时才 becomes active；生成方在上电时无条件激活整个避撞子机，与该句直接冲突。（需注记：参考模型对激活条件同样保持沉默，故此条依据的是 NL 原文而非参考。）",
+   "basis_superseded_by_ruling": null,
    "reference_side": "(参考不写顶层入口，激活由父机负责)",
    "generated_side": "[*] --> CollisionAvoidanceSystem（无触发）",
    "verdict": "problem",
@@ -8997,6 +9221,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0047.Collision_Detected\", target=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\") → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9046,6 +9271,7 @@
    "group": "NL04",
    "llm": "DeepSeek",
    "statement": "把 fork 的出边写在它自己的 body 里，PlantUML 于是把 AutoFocus 与 DetLight 建成 fork1 的子状态，且 fork1 没有初始子状态（投影插入 fork1.UnspecifiedInitial）；TurnOn --> fork1 进入后落点未定义。NL 第 2 句只说 fork1 引出两条并行路径，未说它们是 fork1 的子状态。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state fork1 <>;  fork1 --> AutoFocus;  fork1 --> DetLight（fork 与两个目标是兄弟）",
    "generated_side": "state fork1 <<fork>> { fork1 --> AutoFocus;  fork1 --> DetLight }",
    "verdict": "problem",
@@ -9073,6 +9299,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "containment(parent='llms_emp_feedback_final_0048.fork1', child='llms_emp_feedback_final_0048.fork1.AutoFocus')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9137,6 +9364,7 @@
    "group": "NL04",
    "llm": "DeepSeek",
    "statement": "同一病灶：Join1 变成 Join2 的子状态且 Join2 无初始子状态，于是 Junction3 --> Join2 与 choice2 --> Join2 进入后停滞，Join1 只能靠 Join2 自身的出边到达。NL 第 8 句要求 Join1 由 sunny=true 从 choice2 汇入，而非藏在 Join2 内部。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Join2 <>;  choice2 --> Join1 : [sunny=true];  Join1 --> Junction2（Join1 与 Join2 是兄弟伪状态）",
    "generated_side": "state Join2 <<join>> { Join2 --> Join1 }",
    "verdict": "problem",
@@ -9164,6 +9392,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9215,6 +9444,7 @@
    "group": "NL04",
    "llm": "DeepSeek",
    "statement": "第三处同型缺陷：Flash 被建成 Fork2 的子状态，Fork2 无初始子状态，Join2 --> Fork2 进入后落点未定义，NL 第 11 句的『Fork2 可去 Junction2 或 Flash』二选一语义退化。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Fork2 <>;  Fork2 --> Junction2;  Fork2 --> Flash",
    "generated_side": "state Fork2 <<fork>> { Fork2 --> Junction2;  Fork2 --> Flash }（Flash 成为 Fork2 子状态，Fork2 无初始）",
    "verdict": "problem",
@@ -9242,6 +9472,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -9276,6 +9507,7 @@
    "group": "NL04",
    "llm": "DeepSeek",
    "statement": "NL 第 8 句要求无条件进入 Join2、sunny=true 时才汇入 Join1；本模型把 sunny 守卫挪到 Join2 边上并让 Join1 无条件跟在 Join2 之后，条件与分支双双错位。与台帐 EXP-0048-GC-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true]",
    "generated_side": "choice2 --> Join2 : [sunny=true];  Join2 --> Join1（无条件）",
    "verdict": "problem",
@@ -9304,6 +9536,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -9338,6 +9571,7 @@
    "group": "NL04",
    "llm": "DeepSeek",
    "statement": "10 个伪状态里只有 fork1 / Join2 / Fork2 带 stereotype，而这三个又同时被误用成 composite；6 个 choice/junction 完全退化为普通状态，NL 逐句点名的 choice、junction 语义丢失。伪状态结构在范围内，正常判。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state choice1 <>; state choice2 <>; state choice3 <>; state Junction1 <>; state Junction2 <>; state Junction3 <>",
    "generated_side": "choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 均为普通状态（无 stereotype）",
    "verdict": "problem",
@@ -9364,6 +9598,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -9398,6 +9633,7 @@
    "group": "NL05",
    "llm": "DeepSeek",
    "statement": "NL 4/5 的 dist_to_exit<2 是局部驶离高速，NL 6 明确只有 auto_finished=true 才进 FinishState。生成侧把两者合并，使距出口 2 公里即宣告自动驾驶完成，与 NL 6 冲突。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "cruise --> exit_hwy: dist_to_exit<2; lane_change --> exit_hwy: dist_to_exit<2；局部退出与 HighwayMode --> FinishState : auto_finished = true 分离",
    "generated_side": "cruise --> FinishState : dist_to_exit<2; lane_change --> FinishState : dist_to_exit<2",
    "verdict": "problem",
@@ -9426,6 +9662,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0049.dist_to_exit_2\", target=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.FinishState\"))  —— 实跑抛 TypeError（坑 1），去掉 any()",
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -9460,6 +9697,7 @@
    "group": "NL05",
    "llm": "DeepSeek",
    "statement": "NL 6/10 用同一裸名 FinishState，参考只有一个 AutonomousMode 级共享终态。生成侧把它绑进 HighwayMode 后，FCSTM 显示 UrbanMode 的 auto_finished 经 token 21/23/29 路由到 HighwayMode 再进入 HighwayMode.FinishState——城市模式完成反而使 HighwayMode 活跃。这是独立于上一条的层次归属缺陷，台帐未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "FinishState 声明在 AutonomousMode 层级，被 HighwayMode 与 UrbanMode 共享",
    "generated_side": "FinishState 首次出现在 state HighwayMode { lane_change --> FinishState } 内，归属 HighwayMode；末行 AutonomousMode --> FinishState : auto_finished=true 于是把所有完成路径都导向 HighwayMode 内部",
    "verdict": "problem",
@@ -9487,6 +9725,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -9521,6 +9760,7 @@
    "group": "NL05",
    "llm": "DeepSeek",
    "statement": "NL 6/10 各要求一条模式级完成关系。生成侧写了四条：三条子态级的零散完成边加一条顶层组边。顶层那条已覆盖全部情形，三条子态边纯属冗余，且造成同一源同一事件到同一目标的重复关系（cruise 上 dist_to_exit<2 与 auto_finished=true 各有一条到 FinishState）。属参考没有、NL 未要求的过度规定。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "HighwayMode --> FinishState : auto_finished = true; UrbanMode --> FinishState : auto_finished = true（各一条模式级完成边）",
    "generated_side": "cruise --> FinishState : auto_finished=true（HighwayMode 内）、straight --> FinishState : auto_finished=true、intersection --> FinishState : auto_finished=true（UrbanMode 内），外加顶层 AutonomousMode --> FinishState : auto_finished=true",
    "verdict": "extra",
@@ -9548,6 +9788,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "（原 assertable 为 null；本式取自台帐 harm_assertion 并已实跑）",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9629,6 +9870,7 @@
    "group": "NL08",
    "llm": "Claude",
    "statement": "三个接管条件压成一个跨行自由文本标签，投影为单一事件，任一单独条件都不能触发接管；`in (auto final)` 作为状态条件被塞进事件名，处于自动驾驶终态边界时不会自动交还控制权。",
+   "basis_superseded_by_ruling": "原判据放弃，理由同 0000#5：NL 未授权析取解释。并纠正一处事实——此前称本条与 0000#5『同型』是错的，两个模型对同一句 NL 的处理不同：0000 逐字照抄逗号列举且其 AutonomousMode 内确有 AutoFinal 状态；0050 自行写成 'human steering cmd\\nor brake pressed\\nor in (auto final)'，且其 AutonomousMode 内只有 SubState1/2/3。；换用的判据：NL 点名的 auto final 子状态在模型中根本不存在。NL08 第 2 句要求 autonomous mode 有子状态，第 4 句以 in (auto final) 点名其中之一；模型给出的是三个无语义占位名。；实测：state_declared('...0050.AutonomousMode.auto_final', kind='leaf') = False，换名 AutoFinal / AutoFinalState 同为 False。负控有效：state_declared('...SubState1', kind='leaf') = True、SubState3 = True，说明谓词工作正常、不是恒 False。；该判据与析取/合取解释无关，也与建模粒度无关：无论选何粒度，被标签引用的状态都必须存在。；附带记录（不作为本条判据）：0050 在 trigger 位置写了 or 连接的析取式，而 UML 不允许一条迁移有析取 trigger；R4.5 投影把 \\n 与 or 拼成了 nor，事件名成为 human_steering_cmd_nor_brake_pressed_nor_in_auto_final——该 nor 是字符串拼接产物，不含语义。",
    "reference_side": "参考把三条件拆成三条独立边",
    "generated_side": "AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)",
    "verdict": "problem",
@@ -9642,20 +9884,37 @@
    "assertions": [
     {
      "role": "primary",
-     "expression": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\")",
+     "expression": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.auto_final\", kind=\"leaf\")",
      "predicates": [
-      "event_declared"
+      "state_declared"
      ],
      "families": [
       "S"
      ],
      "elements": [
-      "llms_emp_feedback_final_0050.human_steering_cmd"
+      "llms_emp_feedback_final_0050.AutonomousMode.auto_final"
      ],
-     "measured_by_batch": "False",
-     "source": "predicate_coverage/resultNone.json",
-     "rewrote_from": "event_declared(...) → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+     "measured_by_batch": null,
+     "source": "nl_review/parent_rulings.json",
+     "rewrote_from": null,
+     "supersedes": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\")",
      "measured": "False"
+    },
+    {
+     "role": "negative_control",
+     "expression": "state_declared(state=\"llms_emp_feedback_final_0050.AutonomousMode.SubState1\", kind=\"leaf\")",
+     "predicates": [
+      "state_declared"
+     ],
+     "families": [
+      "S"
+     ],
+     "elements": [
+      "llms_emp_feedback_final_0050.AutonomousMode.SubState1"
+     ],
+     "source": "nl_review/parent_rulings.json",
+     "rationale": "模型确实声明过的子态应为 True。若连它也 False，则 state_declared 在该 scope 上恒假、主断言（auto final 不存在）不构成证据。实测为 True，故判别有效。",
+     "measured": "True"
     },
     {
      "role": "recovered_unverified",
@@ -9673,9 +9932,9 @@
      "demoted_because": "从散文恢复的表达式不可求值（None）"
     }
    ],
-   "primary_predicate": "event_declared",
-   "assertion_count": 2,
-   "has_negative_control": false,
+   "primary_predicate": "state_declared",
+   "assertion_count": 3,
+   "has_negative_control": true,
    "expressible_with_closed_vocabulary": true,
    "replay": {
     "verdict": "captured",
@@ -9702,6 +9961,7 @@
    "group": "NL06",
    "llm": "Claude",
    "statement": "NL 3 明确 \"The system first transitions to the PumpState substate\"。生成侧的三条初始边都写在各自的 wrapper 内部，PumpControl 这一层没有默认进入点，投影因此注入 UnspecifiedInitial——进入 PumpControl 后三个 wrapper 一个都不会被进入，PumpState 不可达。台帐未记录，但这与台帐已接受为 E1 的 EXP-0019-IT-001 是完全同型的证据（作者源未写初始边 + 投影注入 UnspecifiedInitial + initial_target 结构族断言），且 0053 连一条意图性的替代边都没有（对比 0029 至少写了 HighwayMode --> enter_hwy : enter），排除理由比 0029 更弱。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState } —— 每个区域都有初始边",
    "generated_side": "state PumpControl { state PumpRegion { [*] --> PumpState }; state WaterRegion { [*] --> WaterState }; state MethaneRegion { [*] --> MethaneState } } —— PumpControl 自身层级没有任何初始边；FCSTM 投影注入 PumpControl.UnspecifiedInitial",
    "verdict": "problem",
@@ -9729,6 +9989,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9776,6 +10037,7 @@
    "group": "NL10",
    "llm": "Claude",
    "statement": "同组其余 case：NL 第 5/6/7/8 句显式要求的 timer 启停与 cooking time 显示更新完全缺失，参考以迁移 effect 承载。这是本 case 唯一的实质缺口。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "5 处 timer / display effect",
    "generated_side": "（无任何 effect、变量或状态动作）",
    "verdict": "problem",
@@ -9816,6 +10078,7 @@
    "group": "NL03",
    "llm": "Claude",
    "statement": "同一 Intercepted 事件在同一活动配置下有两个可达目标（区域内的 Intercepted 态、composite 出边到 FormationAdjustment），且两者都无区分守卫，构成不可区分的冲突目标；若内层胜出，NL 第 3 句『被拦截即转入编队调整』就不成立。FCSTM 投影同时含 NoIntercept -> Intercepted : /Intercepted 与 Area* -> [*] : /Intercepted（token=9，即出到 FormationAdjustment），冲突可直接确认。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "拦截只有一种后果：Fly_Along_the_Path --> Formation_Adjustment",
    "generated_side": "SearchState.NoIntercept --> SearchState.Intercepted : Intercepted  与  SearchState --> FormationAdjustment : Intercepted 同时使能",
    "verdict": "problem",
@@ -9843,6 +10106,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9907,6 +10171,7 @@
    "group": "NL03",
    "llm": "Claude",
    "statement": "递减被写在 UML 的 guard 槽位 [...] 而不是 effect 槽位 /，语义读作『若 Decrease UAV Count 成立则迁移』，与『迁移时执行递减』不同，且该条件不可满足。这与 0016/0036/0046 写在 / 后的情形有本质区别：那三例是前端未切分 / 造成的 lowering 债务，本例是作者把动作放进了错误的记法槽位。因此我不认同台帐对 0056 沿用 E3。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "Strike_the_Target: exit/ NumberofCru--",
    "generated_side": "AttackState --> SearchState : Attack Complete [Decrease UAV Count]",
    "verdict": "problem",
@@ -9934,6 +10199,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "effect_declared(source='llms_emp_feedback_final_0056.AttackState', trigger='llms_emp_feedback_final_0056.Attack_Complete', variable='uav_count', sign='negative')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -9981,6 +10247,7 @@
    "group": "NL07",
    "llm": "Claude",
    "statement": "CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到合成的 UnspecifiedInitial（FCSTM 确认 `state UnspecifiedInitial` + `[*] -> UnspecifiedInitial`），FCIdle / RCIdle / PCIdle 三路控制全部不可达——即\"子机被激活但没有任何避撞控制被激活\"，与 NL 第2、3句冲突。这是顺序化改写留下的结构缺陷，与并发本身可分开判定。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "参考每个区都有自己的 [*] --> X_inactive 默认入口",
    "generated_side": "state CA { state Frontend {...} state RearEnd {...} state Pedestrian {...} }（CA 自身没有 [*] 默认子状态）",
    "verdict": "problem",
@@ -10008,6 +10275,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "initial_target(composite=\"llms_emp_feedback_final_0057.CA\", child=\"llms_emp_feedback_final_0057.CA.Frontend\") → 期望 True 实得 False；补充 reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0057.CA.Frontend.FCIdle\", within_cycles=5) → False  —— 原字段带散文后缀，本次抽出可执行表达式",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -10070,6 +10338,7 @@
    "group": "NL04",
    "llm": "Claude",
    "statement": "fork2 嵌在 Join2 内却没有任何进入它的关系（既无 [*] 也无 Join2 --> fork2），于是 Junction3 --> Join2 与 choice2 --> Join2 进入后停滞，Junction2/Flash 经此分支不可达；NL 第 11 句要求的 Join2 --> Fork2 缺失。与台帐 EXP-0058-IT-001 一致。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state Join2 <>;  Join2 --> Fork2;  Fork2 --> Junction2;  Fork2 --> Flash",
    "generated_side": "state Join2 <<join>>（顶层）+ state Join2 { state fork2 <<fork>>; fork2 --> Junction2; fork2 --> Flash }（第二次打开，无初始、无入边）",
    "verdict": "problem",
@@ -10097,6 +10366,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": "edge_declared(source='llms_emp_feedback_final_0058.Join2', trigger='<无触发>', target='llms_emp_feedback_final_0058.Join2.fork2')",
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -10146,6 +10416,7 @@
    "group": "NL04",
    "llm": "Claude",
    "statement": "包壳 composite 没有初始子状态，fork1 --> AutoFocus 指向 composite，进入后落点未定义，AutoFocus_state 及其出边 choice1 不可达（投影插入 AutoFocus.UnspecifiedInitial）。论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "AutoFocus 是叶状态，AutoFocus --> choice1:[memFull=true]",
    "generated_side": "state AutoFocus { state \"AutoFocus\" as AutoFocus_state }（无初始）；fork1 --> AutoFocus；AutoFocus_state --> choice1 : [memFull=true]",
    "verdict": "problem",
@@ -10173,6 +10444,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -10222,6 +10494,7 @@
    "group": "NL04",
    "llm": "Claude",
    "statement": "与第 2 条同型：fork1 --> DetLight 进入 composite 后无定义子状态，DetLight_state 与 choice2 分支不可达（投影插入 DetLight.UnspecifiedInitial）。论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "DetLight 是叶状态，DetLight --> choice2:<>{prob=0.4}",
    "generated_side": "state DetLight { state \"DetLight\" as DetLight_state }（无初始）；fork1 --> DetLight；DetLight_state --> choice2",
    "verdict": "problem",
@@ -10249,6 +10522,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -10283,6 +10557,7 @@
    "group": "NL04",
    "llm": "Claude",
    "statement": "同型缺陷但后果最严重：TakePicture --> WriteMemory 进入后停滞，导致 Junction1 --> TurnOff --> [*] 整条尾部不可达，相机永远无法完成 NL 第 10 句的关机与终止。论文与台帐均未记录。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "WriteMemory 是叶状态，TakePicture --> WriteMemory --> Junction1 --> TurnOff --> [*]",
    "generated_side": "state WriteMemory { state \"WriteMemory\" as WriteMemory_state }（无初始）；TakePicture --> WriteMemory；WriteMemory_state --> Junction1",
    "verdict": "problem",
@@ -10310,6 +10585,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     },
     {
@@ -10390,6 +10666,7 @@
    "group": "NL04",
    "llm": "Claude",
    "statement": "10 个伪状态中只有 fork1 / fork2 / Join1 / Join2 带 stereotype；6 个 choice/junction 退化为普通状态，NL 逐句点名的 choice、junction 语义丢失。伪状态结构在范围内，正常判。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "state choice1 <>; state choice2 <>; state choice3 <>; state Junction1 <>; state Junction2 <>; state Junction3 <>",
    "generated_side": "choice1 / choice2 / choice3 / Junction1 / Junction2 / Junction3 从未声明，仅由迁移隐式产生为普通状态",
    "verdict": "problem",
@@ -10416,6 +10693,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -10450,6 +10728,7 @@
    "group": "NL05",
    "llm": "Claude",
    "statement": "NL 3 显式写明 enter_hwy 可转向 cruise 或 lane_change，参考也声明了两条边。生成侧删掉 lane_change 分支，lane_change 只能经 cruise 二次到达，丢失了 NL 明确给出的 source-target 关系。台帐排除为 E2b（认为行为可等价），我在声明层面判 problem，但强度受下一条 uncertain 削弱。",
+   "basis_superseded_by_ruling": null,
    "reference_side": "enter_hwy --> cruise; enter_hwy --> lane_change: dist_to_front<25 & extra_lane=true",
    "generated_side": "只有 enter_hwy --> cruise（无守卫）；没有 enter_hwy --> lane_change",
    "verdict": "problem",
@@ -10478,6 +10757,7 @@
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
      "rewrote_from": null,
+     "supersedes": null,
      "measured": "False"
     }
    ],
@@ -10512,6 +10792,7 @@
    "primary:False": 115,
    "corroborating:None": 118,
    "corroborating:False": 18,
+   "negative_control:True": 2,
    "negative_control:None": 18,
    "corroborating:True": 4,
    "negative_control:False": 1

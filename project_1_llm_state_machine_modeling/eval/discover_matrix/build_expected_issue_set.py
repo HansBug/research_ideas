@@ -92,16 +92,40 @@ def assertion_group(row: dict, batch: dict) -> list[dict]:
     corroborating      a second measured consequence, where the reviewer recorded one
     """
     out: list[dict] = []
-    expr = (batch.get("assertion") or "").strip()
+    # A parent ruling outranks the batch. The batch rewrote the *reviewer's* basis; a ruling
+    # may have withdrawn that basis entirely and substituted a different one, in which case
+    # the batch's expression argues for a claim no longer being made. `0000`#5 is exactly
+    # that: its original basis (a missing atomic event) was withdrawn because the NL never
+    # authorised the disjunctive reading, and replaced by a state-test-in-trigger-position
+    # argument with a different assertion.
+    ruled = ((row.get("parent_ruling") or {}).get("ruling") or {}).get("assertable")
+    expr = (ruled or batch.get("assertion") or "").strip()
     if expr:
         preds = predicates_in(expr)
         out.append({
             "role": "primary", "expression": expr, "predicates": preds,
             "families": sorted({FAMILY[p] for p in preds}),
             "elements": elements_in(expr),
-            "measured_by_batch": batch.get("measured_raw", batch.get("measured")),
-            "source": f"predicate_coverage/result{batch.get('batch')}.json",
-            "rewrote_from": (batch.get("rewrote_from") or "").strip() or None,
+            "measured_by_batch": (None if ruled
+                                  else batch.get("measured_raw", batch.get("measured"))),
+            "source": ("nl_review/parent_rulings.json" if ruled
+                       else f"predicate_coverage/result{batch.get('batch')}.json"),
+            "rewrote_from": (None if ruled
+                             else (batch.get("rewrote_from") or "").strip() or None),
+            "supersedes": (batch.get("assertion") or "").strip() if ruled else None,
+        })
+    # A ruling may supply a structured control. This is the only place a control arrives as a
+    # field rather than being scraped from prose, and it is the only kind that survives
+    # verification -- which is why the set's control count is so low.
+    nc = ((row.get("parent_ruling") or {}).get("ruling") or {}).get("negative_control")
+    if nc:
+        preds = predicates_in(nc)
+        out.append({
+            "role": "negative_control", "expression": nc.strip(), "predicates": preds,
+            "families": sorted({FAMILY[p] for p in preds}), "elements": elements_in(nc),
+            "source": "nl_review/parent_rulings.json",
+            "rationale": ((row.get("parent_ruling") or {}).get("ruling") or {})
+                         .get("negative_control_rationale"),
         })
     # Controls and corroborations live in free text; recover the expressions from it rather
     # than dropping them, but mark them as recovered so nobody mistakes them for structured
@@ -221,7 +245,13 @@ def build() -> dict:
         records.append({
             "id": f"EIS-{case}-{seq[case]:02d}",
             "pair": case, "group": cross.get("group"), "llm": cross.get("llm"),
+            # The reviewer's original reason is kept verbatim -- it is the record of what was
+            # judged -- but when a ruling withdrew its basis, the withdrawal must travel with
+            # it, or a reader would cite a rationale the set no longer stands behind.
             "statement": (diff.get("reason") or "").strip(),
+            "basis_superseded_by_ruling": (
+                "；".join((row.get("parent_ruling") or {}).get("why") or [])
+                if row.get("parent_ruling") else None),
             "reference_side": (diff.get("ref") or "").strip(),
             "generated_side": (diff.get("gen") or "").strip(),
             "verdict": diff["verdict"],
