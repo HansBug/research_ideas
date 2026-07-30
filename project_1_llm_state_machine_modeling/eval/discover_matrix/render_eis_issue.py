@@ -112,28 +112,38 @@ def main() -> int:
         cell.setdefault((cr.get("group"), cr.get("llm")), rv["case"])
 
     # ---------------------------------------------------------------- 边界与定义（§0）
-    oos = json.loads((MR / "_summary.json").read_text())["out_of_scope_totals"]
+    smry = json.loads((MR / "_summary.json").read_text())
+    g = smry["grade_totals"]
+    oos = smry["out_of_scope_totals"]
+    bl = t["by_layer"]
     strata_all = Counter(r["stratum"] for r in
                          json.loads((MR / "final_stratification.json").read_text())["rows"])
     L = [
         "### 0.1 断言对象边界",
         "",
         "本集合的断言对象是 **FSM / HSM / EFSM**，即 $M = (S, E, V, Tr, A)$；"
-        "**时钟 $C$、不变式 $Inv$ 与正交区并发执行语义不在断言对象内。**"
+        "**时钟 $C$、不变式 $Inv$ 与正交区并发执行语义不在断言对象内**。"
         "判据来自 [MANUAL_REVIEW_SPEC.md](https://github.com/HansBug/research_ideas/blob/main/"
         "project_1_llm_state_machine_modeling/eval/discover_matrix/MANUAL_REVIEW_SPEC.md) "
         "的六行硬规则：数量与结构断言（「有 N 个 X」）在范围内；"
         "「区域之间是否同时活跃」在范围外；定时器动作属 $A$、定时器事件属 $E$、"
         "零时守卫属 $V$，三者均在范围内；真正的时长约束（`execTime`）在范围外。",
         "",
-        "**418 → 153 的两道过滤（后文不再重复）：**",
+        "**418 → 153 的三道过滤（后文不再重复）：**",
         "",
-        "| 过滤 | 条数 | 说明 |",
-        "| --- | ---: | --- |",
-        f"| 逐条 `out_of_scope` tag | {sum(oos.values())} | "
-        f"并发 {oos['concurrency']} + 时间 {oos['timing']}。其中 **`problem`/`extra` 档 9 条**"
-        f"（并发 7 + 时间 2）——这 9 条可归因于生成方，但按断言对象边界排除 |",
-        "| 主裁定追加剔除 | 1 | `0013`#1：该事实与参考共有，且只在正交区被展平后成立 |",
+        "| # | 过滤 | 剩余 | 说明 |",
+        "| --: | --- | ---: | --- |",
+        f"| 1 | 档位过滤 | {g['problem'] + g['extra']} | "
+        f"只保留 `problem` {g['problem']} + `extra` {g['extra']}；"
+        f"`correct` {g['correct']} / `similar` {g['similar']} / `uncertain` {g['uncertain']} "
+        f"不进入（语义等价或证据不足）|",
+        f"| 2 | `out_of_scope` tag（`problem`/`extra` 档）| "
+        f"{g['problem'] + g['extra'] - 9} | 减 9 条（并发 7 + 时间 2）。"
+        f"全档位共 {sum(oos.values())} 条带该 tag"
+        f"（并发 {oos['concurrency']} + 时间 {oos['timing']}），"
+        f"其余落在 `similar` / `uncertain` 档、本就不计入 |",
+        "| 3 | 主裁定追加剔除 | **153** | "
+        "`0013`#1：该事实与参考共有，且只在正交区被展平后成立 |",
         "",
         "剩余 153 条经逐条复检全部落在范畴内。**这个 153/153 必须读作"
         "「对已过滤集合的复检未发现漏剔」，不是「原始差异集天然全在范畴内」**——"
@@ -184,7 +194,8 @@ def main() -> int:
         "",
         "### 0.3 计数单位与粒度依赖（必须披露）",
         "",
-        "**一条 expected issue = 一条复核 diff 行**，因此 129 这个数**依赖审阅者把一个现象拆成几条**：",
+        f"**一条 expected issue = 一条复核 diff 行**，因此 {t['records']} 这个数"
+        f"**依赖审阅者把一个现象拆成几条**：",
         "",
         "- 各审阅单元的 diffs/case 在 **4.8 – 9.2** 之间；粒度与 `problem` 数的 "
         "Pearson $r = 0.850$，即组间差异约 **72%** 可由拆分粒度解释；",
@@ -192,7 +203,7 @@ def main() -> int:
         "双盲复审中盲审 B 把 `0045` 拆成 **4** 条而原审判 **1** 条；",
         "- 拆分纪律本身也强制产生拆分：一条兼有范畴内与范畴外两面的 diff **必须**拆成两条。",
         "",
-        "因此正确表述是：**129 是当前拆分口径下的条数，不是缺陷的客观个数。**"
+        f"因此正确表述是：**{t['records']} 是当前拆分口径下的条数，不是缺陷的客观个数**。"
         "跨 LLM、跨 NL 组比较绝对数值无效（见 §5）。",
         "",
         "### 0.4 术语与口径",
@@ -203,9 +214,9 @@ def main() -> int:
         "`extra`, `uncertain`} | 418 |",
         "| **计入问题** | 档位为 `problem`/`extra`、未带 `out_of_scope` tag，再减主裁定剔除 | 153 |",
         "| **expected issue**（= 可入 / admissible）| 「计入问题」中归因层属四个可入层之一"
-        "且未搁置者。正文统一用 expected issue | 129 |",
+        f"且未搁置者。正文统一用 expected issue | {t['records']} |",
         "| **可自动验收** | 存在 `primary` 断言且**实测为 `False`**。指 oracle 侧能否机械判定"
-        "该缺陷存在，与运行时 Confirm 阶段无关 | 115 |",
+        f"该缺陷存在，与运行时 Confirm 阶段无关 | {t['automatable']} |",
         "| **E1** | 旧台帐（#166）对一条 expected issue 的编号前缀口径，"
         "本文只在引用旧台帐时使用 | 47 |",
         "| **8 格运行** | 最近一次完整 Discover 运行覆盖的 8 个单元格"
@@ -219,6 +230,7 @@ def main() -> int:
     emit("boundary.md", "\n".join(L))
 
     # ---------------------------------------------------------------- oracle 局限（§6）
+    bl_named = bl.get("nl_named", 0)
     L = [
         "### 6.1 参考模型：不作归因依据，但决定了差异的可见性",
         "",
@@ -240,7 +252,8 @@ def main() -> int:
         "behaviors to **infer implicit requirements**\" —— 那些 case 的 **NL 是从作者模型反推的**。"
         "后果：在这些 case 上，「NL 点名了 X，生成侧缺 X」部分退化为「参考模型有 X」，"
         "即 `nl_named` 层想避开的那个 oracle 通过 NL 间接回流。"
-        "这一层是最大层（69 / 129 = 53%），所以不是边缘风险。",
+        f"这一层是最大层（{bl_named} / {t['records']} = {pct(bl_named, t['records'])}），"
+        f"所以不是边缘风险。",
         "",
         "**待办**：逐 NL 组标注 documented / inferred 两态，"
         "并对落在 inferred 组的 `nl_named` 条目做一次降级复核。"
@@ -250,7 +263,7 @@ def main() -> int:
         "",
         "逐对复核由 LLM 执行，判定的也是 LLM 制品。"
         "12 例双盲复审的 Cohen $\\kappa$ = **0.750**、一致率 **91.7%**，"
-        "只能证明**判定可复现**，不能证明**判定正确**。本集合的 129 条继承这一局限。",
+        f"只能证明**判定可复现**，不能证明**判定正确**。本集合的 {t['records']} 条继承这一局限。",
         "",
         "### 6.4 `wellformedness` 层不是 oracle-free，而是换了一个 oracle",
         "",
@@ -345,7 +358,6 @@ def main() -> int:
         "| 层 | 条数 | 占比 | 图示 | 判据 |",
         "| --- | ---: | ---: | --- | --- |",
     ]
-    bl = t["by_layer"]
     mx = max(bl.values())
     for k in LAYER_ORDER:
         if k not in bl:
@@ -386,12 +398,19 @@ def main() -> int:
         f"| `declared_not_expressible` | {attr['declared_not_expressible']} | "
         f"{pct(attr['declared_not_expressible'], t['records'])} | 无断言可归因 |",
         "",
-        f"**{t['records'] - safe_n} / {t['records']} = "
-        f"{pct(t['records'] - safe_n, t['records'])} 的记录，"
-        f"按流水线自己的裁决契约不得成为 confirmed issue。**"
-        "这不是软降级而是硬门控：`discover/prompts.py:73` 明写"
-        "「False results marked representation_debt or unattributed must go to "
-        "excluded_findings, **never confirmed issues**」。"
+        f"**{attr['representation_debt'] + attr['unattributed']} 条触发 "
+        f"`excluded_findings` 硬门控**"
+        f"（`representation_debt` {attr['representation_debt']} + "
+        f"`unattributed` {attr['unattributed']}）："
+        "`discover/prompts.py:73` 明写「False results marked representation_debt or "
+        "unattributed must go to excluded_findings, **never confirmed issues**」。"
+        f"连同 {attr['declared_not_expressible']} 条无可求值断言，"
+        f"共 **{t['records'] - safe_n} / {t['records']} = "
+        f"{pct(t['records'] - safe_n, t['records'])} 的记录不满足"
+        f"「binding = `safe` 且实测 `False`」这一 confirmed 前提**"
+        "（`prompts.py` 另一句：「Create confirmed issues only from False assertions "
+        "whose binding status is safe」）。**两个数口径不同，不可互换：48 是硬门控触发数，"
+        f"{t['records'] - safe_n} 是不满足 confirmed 前提的总数**。"
         "把本集合当作命中率分母时，必须同时报告这个分层，"
         "否则会把流水线按设计不该上报的条目记成漏检。",
         "",
@@ -417,7 +436,7 @@ def main() -> int:
         "而那些节点正是归因排除表里的元素。",
         "",
         "```mermaid",
-        "pie showData title 归因层分布（129 条）",
+        f"pie showData title 归因层分布（{t['records']} 条）",
     ]
     for k in LAYER_ORDER:
         if k in bl:
@@ -425,7 +444,7 @@ def main() -> int:
     L += ["```", ""]
     L += [
         "",
-        f"⚠️ 同质组的口径经过一次修正：初版报 {t['records'] - 3} 组，"
+        f"⚠️ 同质组的口径经过一次修正：初版（129 条记录时）报 126 组，"
         f"因为合并键在记录缺主断言时退化为 `(pair, None, ())`，"
         f"把同 pair 上无断言记录中的 3 对**不同**缺陷误并"
         f"（`0025`、`0034`、`0035` 各一对）。修正后无断言记录各自单独成组，"
@@ -578,9 +597,9 @@ def main() -> int:
         "",
         "```mermaid",
         "flowchart LR",
-        f'    A["issue #166 台帐<br/>47 条 / {ct["pairs_in_ledger"]} pair"] '
-        f'-->|"5 条 binding_match"| C',
-        f'    A -->|"42 条 same_pair_only<br/>待人工确认"| C',
+        f'    A["issue #166 frozen ledger<br/>47 条 / {ct["pairs_in_ledger"]} pair"] '
+        f'-->|"{ct.get("binding_match", 0)} 条 binding_match"| C',
+        f'    A -->|"{ct.get("same_pair_only", 0)} 条 same_pair_only<br/>待人工确认"| C',
         f'    B["本轮逐对复核<br/>418 差异 → 153 计入问题"] -->|"四层归因筛选"| C',
         f'    C["expected issue set<br/>{t["records"]} 条 / {t["pairs_covered"]} pair"]',
         f'    C --> D["{t["automatable"]} 条可自动验收"]',

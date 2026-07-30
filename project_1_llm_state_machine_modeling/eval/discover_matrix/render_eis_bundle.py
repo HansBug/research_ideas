@@ -27,6 +27,7 @@ MR = HERE / "manual_review"
 #: The audit gist and the issue, so cross-references in the readable ledgers are clickable
 #: rather than telling the reader to go find them.
 AUDIT_GIST = "e92fb6ca165b46d19b1638f03ae93842"
+READABLE_GIST = "c34f29f80e778802fe4da5e2a7e3a82b"
 ISSUE_URL = "https://github.com/HansBug/research_ideas/issues/172"
 
 LLMS = ["GPT-4o", "GPT-4", "Llama", "Kimi", "DeepSeek", "Claude"]
@@ -82,8 +83,10 @@ def render_pair(pair: str, recs: list[dict], cov: list[dict]) -> str:
                      f"| `{c['outcome']}` |")
         L += ["",
               "> `binding_match` = 旧条目的 `eval_assert` 与本 pair 某条新断言共享模型元素（机器可判）；"
-              "`same_pair_only` = 只能确认本 pair 有新条目，具体对应需人工判定"
-              "（旧台帐 47 条中仅 5 条留有 `eval_assert`，其余在 2026-07-29 机器重建中丢失）。",
+              "`same_pair_only` = 本 pair 有新条目但 binding 不相交，具体对应需人工判定。"
+              "数据取自 frozen ledger（47 / 47 条带 `eval_assert`，"
+              "SHA-256 `03d8756650c0…`）；全库合计 38 `binding_match` / 9 `same_pair_only` / "
+              "0 `unaccounted`。",
               ""]
 
     for r in recs:
@@ -167,7 +170,8 @@ def render_pair(pair: str, recs: list[dict], cov: list[dict]) -> str:
                 L += [f"> 主断言经重写。原式：`{one_line(prim['rewrote_from'], 400)}`", ""]
             if not any(a["role"] == "negative_control" for a in r["assertions"]):
                 L += ["> ⚠️ 本条**没有经实测验证的负控**。缺负控意味着无法排除主断言对正确模型"
-                      "也返回 `False` 的可能（本轮 18 条 benign 中有 5 条正是因此被拒）。", ""]
+                      "也返回 `False` 的可能——本轮 18 条 benign `extra` 中有 **8** 条正是因此被拒"
+                  "（其 harm test 记录写明 non-discriminating）。", ""]
         else:
             L += [
                 "**断言组：空 —— 现有 19 个封闭谓词表述不出这条**", "",
@@ -214,6 +218,74 @@ def main() -> int:
     for pair, recs in sorted(by_pair.items()):
         (out / "readable" / f"{pair}-eis.md").write_text(
             render_pair(pair, recs, cov_by_pair.get(pair, [])))
+
+    # Both READMEs are generated, not hand-written: their headline figures were hand-typed
+    # once and immediately went stale (the negative-control count said 0 after it became 2).
+    t = eis["totals"]
+    cov_t = cov.get("totals", {})
+    NAV = (f"↩ **正文**：[issue #172]({ISSUE_URL})"
+           f" ｜ ↔ **另一面**：")
+    (out / "readable" / "00-README.md").write_text(f"""# LLMS-EMP expected issue set — 逐 pair 可读台帐
+
+{NAV}[审计数据 gist](https://gist.github.com/HansBug/{AUDIT_GIST})
+
+本 gist 是 **expected issue set** 的逐 pair 可读面：{t['pairs_covered']} 个 pair、共 **{t['records']}** 条 expected issue。审计数据（机读主档、覆盖校验、谓词复跑、一致性检查）在另一个 gist。
+
+## 每条记录包含什么
+
+| 字段 | 说明 |
+| --- | --- |
+| 归因层 | 凭什么把这条归因于生成方。四层：`wellformedness`（模型自身 + 良构性/投影语义即可判定）/ `nl_named`（NL 逐字点名该元素）/ `nl_contradiction`（与 NL 显式义务矛盾）/ `over_specification`（凭空多出且有可断言后果）|
+| 缺陷方向 | 什么坏了（可达性、初始入口、守卫、层次、动作、事件、伪状态、基数）|
+| 触及的元组分量 | 落在 $M = (S, E, V, Tr, A)$ 的哪个分量 |
+| 断言组 | 主断言（经复跑）+ 负控 + 佐证。**负控须实测为 `True`**，否则无法排除主断言对正确模型也返回 `False`。超长表达式在表下以可复制的 code block 给出 |
+| 上游关联 | 复核主档的 diff 下标、本 pair 的旧台帐 E1、8 格运行已发布 issue、论文两阶段 F1 |
+
+## 必须先知道的四件事
+
+1. **{t['records']} 条中 {t['automatable']} 条可自动验收**（主断言实测返回 `False`），**{t['needs_human_judgement']} 条**只能人工验收（现有 19 个封闭谓词表述不出，或表达式不可求值）。后者构成本集合的自动化上限，逐条标注在各 pair 文件里。
+2. **只有 {t['with_negative_control']} 条带经实测验证的负控**（覆盖率 {t['with_negative_control'] / t['records']:.0%}）。复核者在散文里记录过更多负控，但从散文恢复的表达式绝大多数不可求值。**这是本集合已知的最大证据弱点**——没有负控就无法机械排除「正确模型也返回 `False`」。
+3. **旧台帐（issue #166 的 47 条）可做 binding 级交代。** frozen ledger 位于 `.omx/specs/…/ledger.json`（SHA-256 `03d8756650c0…`），其 47/47 条带 `eval_assert`。实测 **{cov_t.get('binding_match', 0)} 条 `binding_match`、{cov_t.get('same_pair_only', 0)} 条 `same_pair_only`、{cov_t.get('unaccounted', 0)} 条 `unaccounted`**。⚠️ 本 gist 的早前版本称该台帐已丢失、仅 5 条可比——那是误判，已更正。
+4. **归因门控是最重要的限制。** 按流水线自己的裁决契约，非 `safe` 的 `False` 断言强制进 `excluded_findings`、永不成为 confirmed issue。把本集合当命中率分母时必须同时报告归因分层，否则会把按设计不该上报的条目记成漏检。详见正文 §TL;DR 末的归因门控表。
+
+## 判定口径
+
+`correct` / `similar` 不计入问题（语义等价即不计）；`problem` 与 `extra` 走两条不同路径——`problem` 判**可归因性**，`extra` 判**有害性**，因为前者的有害性由定义蕴含、后者的可归因性由来源唯一而免费。四档判定与两条路径的完整定义见 issue 正文 §0.2。
+""")
+    (out / "audit" / "00-README.md").write_text(f"""# LLMS-EMP expected issue set — 审计数据
+
+{NAV}[逐 pair 可读台帐 gist](https://gist.github.com/HansBug/{READABLE_GIST})
+
+本 gist 是 **expected issue set** 的机读面：**{t['records']}** 条记录、{t['pairs_covered']} 个 pair。
+
+## 文件
+
+| 文件 | 内容 |
+| --- | --- |
+| `expected_issue_set.json` | **主档**：{t['records']} 条记录，每条含自然语言描述、归因层、缺陷方向、断言组（primary / negative_control / corroborating，各带实测值）、同质组、上游关联 |
+| `index.tsv` | 逐 pair 一行：条数、可自动验收数、须人工数、层分布、方向分布、旧台帐 E1 数、是否进入 8 格运行 |
+| `ledger_coverage.json` | issue #166 的 47 条逐条对照本集合（读 frozen ledger）|
+| `final_stratification.json` | 154 行分层逐行数据，含判定来源与全部主裁定 |
+| `defect_classification.json` | 缺陷方向 × 谓词族交叉分类 |
+| `reconcile.json` | 交叉一致性检查：多个独立来源报同一批数，任何不一致都会阻断发布 |
+| `predcov_*` | 谓词覆盖复跑：五批原始判定 + 独立复跑 + 方法与已知坑 |
+| `loopaudit_*` | 8 格运行审计：逐格命中/漏检、**归因重放**、prompt 审计、范畴裁定 |
+| `nlreview_*` | NL 复核各批判定、`extra` 有害性判定、**主裁定**、`extra` 归属政策 |
+
+## 计数口径（混用会算错）
+
+| 口径 | 值 | 含义 |
+| --- | ---: | --- |
+| 记录条数 | {t['records']} | 一条 expected issue 一条记录 |
+| 同质组 | {t['homogeneity_groups']} | 同 pair 上主谓词与元素集合相同者视为同一缺陷。当前实际合并 **{t['homogeneity_merges']}** 次——该机制尚未生效 |
+| 可自动验收 | {t['automatable']} | 主断言实测返回 `False` |
+| 须人工判定 | {t['needs_human_judgement']} | 无可求值主断言 |
+| 带实测有效负控 | {t['with_negative_control']} | 负控须实测为 `True` |
+
+## 断言组的三种角色
+
+`primary` 陈述缺陷（须实测 `False`）；`negative_control` 证明主断言不是恒假（**须实测 `True`**）；`corroborating` 补第二个后果。标为 `recovered_unverified` 的是从复核者散文里恢复、未能自动求值的表达式——记录在案以便人工核对，**不计入证据**。
+""")
 
     # index.tsv: one row per pair, machine-readable
     lines = ["pair\tgroup\tllm\teis_count\tautomatable\tneeds_human\tlayers\tdirections\t"

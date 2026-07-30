@@ -32,7 +32,7 @@
 | `unattributed` | **16** | 13% | **不能**——找不到可信源头映射 |
 | `declared_not_expressible` | 14 | 11% | 无断言可归因 |
 
-**62 / 126 = 49% 的记录，按流水线自己的裁决契约不得成为 confirmed issue。**这不是软降级而是硬门控：`discover/prompts.py:73` 明写「False results marked representation_debt or unattributed must go to excluded_findings, **never confirmed issues**」。把本集合当作命中率分母时，必须同时报告这个分层，否则会把流水线按设计不该上报的条目记成漏检。
+**48 条触发 `excluded_findings` 硬门控**（`representation_debt` 32 + `unattributed` 16）：`discover/prompts.py:73` 明写「False results marked representation_debt or unattributed must go to excluded_findings, **never confirmed issues**」。连同 14 条无可求值断言，共 **62 / 126 = 49% 的记录不满足「binding = `safe` 且实测 `False`」这一 confirmed 前提**（`prompts.py` 另一句：「Create confirmed issues only from False assertions whose binding status is safe」）。**两个数口径不同，不可互换：48 是硬门控触发数，62 是不满足 confirmed 前提的总数**。把本集合当作命中率分母时，必须同时报告这个分层，否则会把流水线按设计不该上报的条目记成漏检。
 
 **按归因通过率给四层重新排序，结论与直觉相反：**
 
@@ -46,7 +46,7 @@
 ⚠️ **一处必须撤回的表述。** 本 issue 初版称 `wellformedness` 这一层「最难被质疑」，理由是它不需要 NL 也不需要参考模型。**按归因实测，它恰恰是四层里通过率最低的一层**：37 条里只有 **13 条** `safe`（19 条 `representation_debt`、4 条 `unattributed`）。通过率最高的是 `nl_contradiction`（11 / 13）。原因见 §6.4：该层的判定大量依赖 R4.5 投影注入的合成节点，而那些节点正是归因排除表里的元素。
 
 ```mermaid
-pie showData title 归因层分布（129 条）
+pie showData title 归因层分布（126 条）
     "nl_named NL 点名" : 69
     "wellformedness 良构性" : 37
     "nl_contradiction 与 NL 矛盾" : 13
@@ -54,4 +54,4 @@ pie showData title 归因层分布（129 条）
 ```
 
 
-⚠️ 同质组的口径经过一次修正：初版报 123 组，因为合并键在记录缺主断言时退化为 `(pair, None, ())`，把同 pair 上无断言记录中的 3 对**不同**缺陷误并（`0025`、`0034`、`0035` 各一对）。修正后无断言记录各自单独成组，因此**该机制在本集合上没有消解任何真实重复**——它是为后续规模准备的，当前未生效。
+⚠️ 同质组的口径经过一次修正：初版（129 条记录时）报 126 组，因为合并键在记录缺主断言时退化为 `(pair, None, ())`，把同 pair 上无断言记录中的 3 对**不同**缺陷误并（`0025`、`0034`、`0035` 各一对）。修正后无断言记录各自单独成组，因此**该机制在本集合上没有消解任何真实重复**——它是为后续规模准备的，当前未生效。

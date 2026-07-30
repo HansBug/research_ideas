@@ -9,13 +9,13 @@
 
 ### 6.2 部分 NL 是从模型反推的，这削弱 `nl_named` 层
 
-原论文 §3.3 写明："For undocumented cases, we analyzed model structures and behaviors to **infer implicit requirements**" —— 那些 case 的 **NL 是从作者模型反推的**。后果：在这些 case 上，「NL 点名了 X，生成侧缺 X」部分退化为「参考模型有 X」，即 `nl_named` 层想避开的那个 oracle 通过 NL 间接回流。这一层是最大层（69 / 129 = 53%），所以不是边缘风险。
+原论文 §3.3 写明："For undocumented cases, we analyzed model structures and behaviors to **infer implicit requirements**" —— 那些 case 的 **NL 是从作者模型反推的**。后果：在这些 case 上，「NL 点名了 X，生成侧缺 X」部分退化为「参考模型有 X」，即 `nl_named` 层想避开的那个 oracle 通过 NL 间接回流。这一层是最大层（69 / 126 = 55%），所以不是边缘风险。
 
 **待办**：逐 NL 组标注 documented / inferred 两态，并对落在 inferred 组的 `nl_named` 条目做一次降级复核。在此之前，`nl_named` 的 69 条**不应**被表述为「与参考模型无关」。
 
 ### 6.3 审阅者与被审对象同类
 
-逐对复核由 LLM 执行，判定的也是 LLM 制品。12 例双盲复审的 Cohen $\kappa$ = **0.750**、一致率 **91.7%**，只能证明**判定可复现**，不能证明**判定正确**。本集合的 129 条继承这一局限。
+逐对复核由 LLM 执行，判定的也是 LLM 制品。12 例双盲复审的 Cohen $\kappa$ = **0.750**、一致率 **91.7%**，只能证明**判定可复现**，不能证明**判定正确**。本集合的 126 条继承这一局限。
 
 ### 6.4 `wellformedness` 层不是 oracle-free，而是换了一个 oracle
 

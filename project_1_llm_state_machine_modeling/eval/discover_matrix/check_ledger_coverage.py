@@ -153,7 +153,7 @@ def main() -> int:
             outcome = "same_pair_only"
             matched = [r["id"] for r in cands]
         results.append({**e, "outcome": outcome,
-                        "has_reconstructed_eval_assert": iid in recon_assert,
+                        "has_extractable_binding": iid in recon_assert,
                         "new_set_matches": matched,
                         "new_set_findings_on_pair": len(cands)})
 
@@ -202,12 +202,21 @@ def main() -> int:
         dest.write_text(json.dumps({
             "what_this_is":
                 "把 issue #166 的 47 条 expected issue 逐条对照新集合。"
-                "旧台帐 ledger.json 已丢失、47 条中仅 5 条有重建的 eval_assert，"
-                "因此只有那 5 条能做 binding 级比对，其余只能确认『该 pair 在新集合中有条目』"
-                "并留待人工确认。unaccounted 必须为 0 或逐条解释，否则新集合不能声称取代旧台帐。",
+                "读的是 frozen ledger（见 ledger_path 字段），其 47/47 条带 eval_assert，"
+                "因此 binding 级比对对绝大多数条目可做。"
+                "binding_match = 旧条目的 eval_assert 与新集合某条断言共享模型元素（机器可判）；"
+                "same_pair_only = 该 pair 有新条目但 binding 不相交，须人工确认；"
+                "unaccounted = 该 pair 无任何可入条目，必须为 0 或逐条解释。"
+                "⚠️ 早前版本读的是仅覆盖 4 个 pair 的 expected_issues_reconstructed.json，"
+                "并据此称『仅 5 条可做 binding 比对』——那违反了 HIT_CRITERION.md §7，已更正。",
             "ledger_provenance": provenance,
             "ledger_path": str(frozen if provenance == "frozen" else "reconstructed"),
-            "totals": {**dict(tally), "ledger_entries": len(results),
+            # Spell out `unaccounted` even when zero: a reader should not have to infer it
+            # from 38 + 9 = 47, and a missing key reads as "not measured".
+            "totals": {"binding_match": tally.get("binding_match", 0),
+                       "same_pair_only": tally.get("same_pair_only", 0),
+                       "unaccounted": tally.get("unaccounted", 0),
+                       "ledger_entries": len(results),
                        "pairs_in_ledger": len(covered_pairs),
                        "pairs_only_in_new_set": only_new},
             "entries": results,
