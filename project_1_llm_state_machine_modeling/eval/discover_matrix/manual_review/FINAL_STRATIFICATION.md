@@ -1,15 +1,15 @@
-# 最终分层：可入 expected issue = 130 条（点值）
+# 最终分层：可入 expected issue = 129 条（点值）
 
 Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 问「154 条候选如何入账」。词法分层只能给出区间 **66 – 144**，因为 `nl_named` 层的判据是「理由里提到 NL」，而那不等于「NL 点名了缺失的那个元素」。本轮把全部需要人工的行逐条判完，**收敛到点值**。
 
 | | 数 |
 | --- | ---: |
 | 计入问题（基线，主档口径） | 154 |
-| **可入 expected issue** | **130** |
-| 已审阅但搁置（断言给不出正面判定） | 1 |
+| **可入 expected issue** | **129** |
+| 已审阅但搁置（断言给不出正面判定 / 裁定未做） | 2 |
 | 明确不可入 | 23 |
 | 分布 case 数 | 48 |
-| **落在台帐无 E1 的 case 上**（裁决点 2 的补录增量） | **30** |
+| **落在台帐无 E1 的 case 上**（裁决点 2 的补录增量） | **29** |
 
 逐行数据：[final_stratification.json](./final_stratification.json)。各批复核原始判定：[nl_review/](./nl_review/)。生成脚本：[../merge_manual_stratification.py](../merge_manual_stratification.py)（24 个测试）。
 
@@ -20,12 +20,12 @@ Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 �
 | `nl_named` | 70 | ✓ | NL 点名了那个缺失或错位的元素 |
 | `wellformedness` | 36 | ✓ | 无需 oracle，仅凭生成模型自身即可判定 |
 | `nl_contradiction` | 13 | ✓ | 与 NL 的显式义务矛盾 |
-| `over_specification` | 11 | ✓ | 生成方凭空多出**且**造成可断言的负面后果 |
+| `over_specification` | 10 | ✓ | 生成方凭空多出**且**造成可断言的负面后果 |
 | `over_specification_benign` | 18 | ✗ | 生成方多出但写不出后果 |
 | `reference_only` | 3 | ✗ | 只在参考、NL 未点名——不可归因于生成方 |
 | `over_specification_duplicate` | 1 | ✗ | 后果已被同 pair 的另一条承载，计入会双算 |
 | `out_of_scope_concurrency` | 1 | ✗ | 主裁定移出范围，见 [nl_review/parent_rulings.json](./nl_review/parent_rulings.json) |
-| `uncertain_stratum` | 1 | ✗ | 已审阅但搁置 |
+| `uncertain_stratum` | 2 | ✗ | 已审阅但搁置（`0044`#1 断言实测 None；`0056`#3 见下）|
 
 ## 复核怎么做的
 
@@ -68,6 +68,20 @@ Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 �
 唯一 gen-only 的残留是行首多余 `--` 造出的空区域 0——无状态、无迁移、无后果。克隆件造成的七个具名状态问题由 `0013`#0 单独承载，不因本条降级而丢失。
 
 ⚠️ 这条与 [RESCOPE.md](./RESCOPE.md) 那轮的反向检查冲突（它报「0 条需补 tag」，漏了这条），以本裁定为准。
+
+## 第三条主裁定：一条被记录为「未裁」的行不得默认计入
+
+`0056`#3 由 `over_specification`（可入）降为 `uncertain_stratum`，**可入 E1 因此由 130 降为 129**，`over_specification` 由 11 降为 10，搁置由 1 增为 2，裁决点 2 的补录增量由 30 降为 29。
+
+三条理由：
+
+1. **该行自己的 `review_note` 写明「是否最终入 E1 需过有害性 + scope 两道判定，本任务不裁」**——一条被明确记录为未决的行，却被默认计入了可入集。
+2. **行内状态自相矛盾**：有害性判定按 `harm_assertion`（`guard_distinguishable(NoIntercept, Intercepted)`）判它与 `0056`#1 是 identical binding，因此写入了 `duplicate_of`；而批 5 又把 `stratum` 移回 `over_specification`。同一行同时带「我是重复」与「我可入」两个标记。
+3. **两种口径都指向不可入**：按 `harm_assertion` 口径它与 #1 同绑定，计入即双算；按 `assertable` 口径（`state_declared(NoIntercept, kind='leaf')`）它只是存在性断言，按 [nl_review/EXTRA_POLICY.md](./nl_review/EXTRA_POLICY.md) 的有害性判据「只能证明生成方造了它，不能证明因此坏了什么」。
+
+降为搁置而非删除：有害性信号是真的（它确是 `0056`#1 冲突目标的根因），只是当前谓词面与分层政策给不出可独立计数的形态。**同 case 的 `0056`#1 仍在可入集内（`nl_contradiction`），该缺陷不因本条搁置而丢失。**
+
+已新增 `check_duplicate_markers`：任何带 `duplicate_of` 的行落在可入层都会报错，防止同类冲突再次静默通过。
 
 ## 另一条主裁定：拒绝一个被提出的判据
 

@@ -186,7 +186,7 @@ def main() -> int:
     if "--json" in sys.argv:
         dest = pathlib.Path(sys.argv[sys.argv.index("--json") + 1])
         dest.write_text(json.dumps({
-            "what_this_is": "130 条可入 expected issue 的缺陷方向分类与谓词覆盖交叉。"
+            "what_this_is": f"{len(rows)} 条可入 expected issue 的缺陷方向分类与谓词覆盖交叉。"
                             "方向读自 reason（什么坏了），谓词读自 assertable（能否表达）。",
             "totals": {"admissible": len(rows), "by_direction": dict(by_dir),
                        "by_primary_predicate": dict(by_pred),
