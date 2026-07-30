@@ -66,7 +66,20 @@
 
 原论文**有**这一类：Table 10 的一级分类含 `Over-specification`，在 ACT 图上占 33%（9 例 `Extra ActivityNode`）。实例：`0001` 的作者 PlantUML 第 14 行 `OperationalState --> ClampingLoseState : Transition to Clamping Lose State`，而 `ClampingLoseState` 在该 case 的 NL 里从未出现。
 
-**这是真缺口，不是问题定义边界**——多出的状态属于 FSM/HSM/EFSM 完全能表达的范围。处理方式待裁决：新增一个 `OS` 类做敏感性分析，或在 threats 中明确列为整类漏判。
+**这是真缺口，不是问题定义边界**——多出的状态属于 FSM/HSM/EFSM 完全能表达的范围。
+
+**这一轮把这个缺口量化了：60 pair 的逐条审阅判出 31 条 `extra`**（生成方多出、参考与 NL 都没有），占 154 条计入问题的 **20%**。它们**完全可归因于生成模型**，因此在候选分层（[manual_review/STRATIFICATION.md](./manual_review/STRATIFICATION.md)）里单列为 `over_specification` 层并计入可入 E1。
+
+分层过程还暴露一个判据陷阱，值得记下来：`over_specification` 与 `reference_only` 有**完全相同的词法外形**（理由都写「NL 未要求 / NL 从未提及 / 参考独有」），区别只在**缺失方向**——
+
+| 档位 | 含义 | 可归因于生成方 |
+| --- | --- | :-: |
+| `problem` + 「NL 未要求」 | 参考有、NL 没点名、生成方缺 | ✗ |
+| `extra` + 「NL 未要求」 | 参考没有、NL 没点名、**生成方凭空造** | ✓ |
+
+只按词法判会把两者判反。首版分层正是如此：`0049`#4 与 `0056`#3 两条 `extra`（都是凭空新增）被归入 `reference_only` 并当作「不可归因」划掉。现由 `verdict` 短路决定，见 [stratify_candidates.py](./stratify_candidates.py) 的 `classify`，并有专门的回归测试。
+
+**处理方式**：台帐若要收这一类，需新增一个 `OS` 类（8 类 taxonomy 现无槽位、`UA` 明确拒绝该角色）；若不收，则应在 threats 中按 31 条 / 20% 的规模明确列为整类漏判，而不再只说「整类无槽位」。
 
 ---
 

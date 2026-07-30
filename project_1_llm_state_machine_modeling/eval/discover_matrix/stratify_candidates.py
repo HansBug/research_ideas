@@ -6,19 +6,26 @@ is constructively underdetermined and the reference model is one arbitrary membe
 set of NL-consistent models. Scoring against that member measures "guessed the author's
 private model", not "modelled the requirement".
 
-What survives that objection is three classes, and they are the strata here:
+What survives that objection is four classes, and they are the strata here:
 
-  wellformedness   defects readable from the model alone, with no oracle needed: an
-                   untriggered completion edge that pre-empts a declared branch, a
-                   triggered initial edge, a composite with no default substate, a dead
-                   end / absorbing state / unreachable region
-  nl_named         the NL names the element and the model does not have it
-  nl_contradiction the model contradicts an explicit NL obligation
+  wellformedness     defects readable from the model alone, with no oracle needed: an
+                     untriggered completion edge that pre-empts a declared branch, a
+                     triggered initial edge, a composite with no default substate, a
+                     dead end / absorbing state / unreachable region
+  nl_named           the NL names the element and the model does not have it
+  nl_contradiction   the model contradicts an explicit NL obligation
+  over_specification the model invented an element neither the NL nor the reference has
 
 and one that does not:
 
-  reference_only   present in the reference, absent from the NL. Real as a difference,
-                   but not attributable to the generated model.
+  reference_only     present in the reference, absent from the NL. Real as a difference,
+                     but not attributable to the generated model.
+
+`over_specification` and `reference_only` are the same lexical shape ("the NL never asks
+for it") pointing opposite ways, and only the verdict tells them apart -- see `classify`.
+It is also the class the expected-issue ledger has no slot for: none of its eight
+categories covers "invented from nothing", and `UA` explicitly refuses the role, while the
+paper's own Table 10 does list `Over-specification`.
 
 Classification is lexical over the reviewer's `reason`, which makes it a *proposal*, not a
 verdict -- every row carries the phrase that triggered it so a reader can overrule it. The
@@ -75,12 +82,36 @@ STRATA: list[tuple[str, str, str]] = [
         r"NL\s*第", r"NL\s*\d", r"点名", r"NL\s*要求", r"NL\s*说", r"NL\s*明确",
         r"NL\s*逐字", r"NL\s*原文", r"NL\s*中的", r"NL\s*给", r"NL\s*描述",
     ])),
+    # Reached by verdict, not by phrase -- see `classify`. Listed here so it appears in
+    # the printed table and in the admissible set.
+    ("over_specification", "生成方凭空多出，参考与 NL 都没有——可归因于生成方", r"(?!)"),
 ]
 _COMPILED = [(name, re.compile(pattern)) for name, _d, pattern in STRATA]
 
 
-def classify(reason: str) -> tuple[str, str]:
-    """Return (stratum, the phrase that decided it)."""
+def classify(reason: str, verdict: str = "problem") -> tuple[str, str]:
+    """Return (stratum, the phrase that decided it).
+
+    `verdict` is not decoration -- it encodes the *direction* of the difference, and
+    without it the lexical rules invert the most important judgement in the whole
+    stratification. Both of these reasons contain "NL 未要求":
+
+        problem: the NL never names it, the reference has it, the model lacks it
+                 -> not attributable to the model
+        extra:   the NL never names it, the reference lacks it, the model invented it
+                 -> squarely attributable to the model
+
+Keying only on the phrase put `0049`#4 and `0056`#3 -- both `extra`, both inventions --
+    into `reference_only` and struck them off as unattributable. `extra` therefore short-
+    circuits to `over_specification` before any phrase is consulted.
+
+    That stratum is also the one the ledger has no slot for at all: its eight categories
+    (`SH`/`IT`/`TR`/`GC`/`UA`/`EA`/`TO`/`DA`) carry no "invented from nothing" class, and
+    `UA` explicitly refuses the role. The paper does have it -- its Table 10 lists
+    `Over-specification` -- so leaving it out of the strata would hide a whole class.
+    """
+    if verdict == "extra":
+        return "over_specification", "verdict=extra"
     text = reason or ""
     for name, pattern in _COMPILED:
         if m := pattern.search(text):
@@ -100,7 +131,7 @@ def main() -> int:
                 continue
             if diff.get("out_of_scope"):
                 continue
-            stratum, trigger = classify(diff.get("reason") or "")
+            stratum, trigger = classify(diff.get("reason") or "", diff["verdict"])
             rows.append({
                 "case": case,
                 "group": cross.get("group"),
@@ -116,7 +147,7 @@ def main() -> int:
             })
 
     by_stratum = Counter(r["stratum"] for r in rows)
-    admissible = {"wellformedness", "nl_contradiction", "nl_named"}
+    admissible = {"wellformedness", "nl_contradiction", "nl_named", "over_specification"}
     # Printed in STRATA order, so the exclusion stratum appears where it decides.
     adm = [r for r in rows if r["stratum"] in admissible]
     print(f"计入问题 {len(rows)} 条（problem + extra，已排除范围外）\n")
@@ -131,10 +162,11 @@ def main() -> int:
     # something beyond it. So the lexical count is an upper bound on that stratum.
     # `wellformedness` needs no oracle and `nl_contradiction` quotes an explicit clash;
     # those two are the defensible floor.
-    floor = by_stratum["wellformedness"] + by_stratum["nl_contradiction"]
+    floor = (by_stratum["wellformedness"] + by_stratum["nl_contradiction"]
+             + by_stratum["over_specification"])
     print(f"\n**可入 E1 的区间：{floor} – {len(adm)}**（共 {len(rows)} 条计入问题）")
-    print(f"- 下界 **{floor}**：`wellformedness` + `nl_contradiction`。前者无需 oracle、"
-          f"后者引了 NL 的显式冲突，是最难被反驳的两层")
+    print(f"- 下界 **{floor}**：`wellformedness` + `nl_contradiction` + `over_specification`。"
+          f"第一层无需 oracle、第二层引了 NL 的显式冲突、第三层是生成方凭空多出，三者都最难被反驳")
     print(f"- 上界 **{len(adm)}**：再加上 `nl_named` {by_stratum['nl_named']} 条。"
           f"该层是**上界**——词法判据只要理由里提到 NL 就命中，而提到 NL ≠ NL 点名了缺失的那个元素")
     print(f"- 明确不可入 **{by_stratum['reference_only']}** 条，待人工归层 "

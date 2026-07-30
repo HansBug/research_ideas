@@ -100,3 +100,43 @@ def test_every_stratum_reports_the_phrase_that_decided_it():
     stratum, trigger = classify("NL 第 5 句点名了 FinishState")
     assert stratum == "nl_named"
     assert trigger and trigger in "NL 第 5 句点名了 FinishState"
+
+
+class TestOverSpecificationIsDecidedByVerdictNotPhrase:
+    """`extra` and `problem` can carry the same phrase and mean opposite things.
+
+    "NL 未要求 X" on a `problem` means the reference has X and the model lacks it -- not
+    the model's fault. On an `extra` it means the model invented X -- squarely the model's
+    fault. Keying on the phrase alone put `0049`#4 and `0056`#3, both inventions, into
+    `reference_only` and struck them off as unattributable.
+    """
+
+    @pytest.mark.parametrize("reason", [
+        "NL 未要求为拦截状态单独建区域，也没有『拦截解除』事件；属额外元素",
+        "NL 未提到待机态或启动事件；额外增加了一个 Idle 态",
+        "NL 全文没有 obstacle 清除事件；这是无 NL 依据的新增事件",
+        "参考独有的写法，NL 从未提及",
+    ])
+    def test_extra_always_lands_in_over_specification(self, reason: str):
+        assert classify(reason, "extra")[0] == "over_specification"
+
+    @pytest.mark.parametrize("reason", [
+        "该状态 NL 未点名，只存在于参考",
+        "NL 未要求这个中间状态，参考却建了",
+    ])
+    def test_the_same_phrase_on_a_problem_stays_reference_only(self, reason: str):
+        assert classify(reason, "problem")[0] == "reference_only"
+
+    def test_extra_short_circuits_before_any_phrase_is_consulted(self):
+        """Even a reason that would match wellformedness must not divert an `extra`."""
+        assert classify("该状态无出边成吸收态", "extra")[0] == "over_specification"
+        assert classify("该状态无出边成吸收态", "problem")[0] == "wellformedness"
+
+    def test_over_specification_is_admissible(self):
+        """It is attributable to the generated model, so it belongs in E1."""
+        from stratify_candidates import STRATA
+        assert "over_specification" in {name for name, _d, _p in STRATA}
+
+    def test_trigger_records_that_the_verdict_decided(self):
+        """A reader must be able to see *why* it landed there."""
+        assert classify("任意理由", "extra")[1] == "verdict=extra"
