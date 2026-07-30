@@ -248,6 +248,15 @@ def apply_parent_rulings(rows: list[dict], complaints: list[str]) -> int:
             row["parent_ruling"] = ruling
             row["decided_by"] = "parent_ruling"
             applied += 1
+        # A ruling may also replace the assertion without moving the layer: the reviewer's
+        # original basis can be withdrawn and a stronger one substituted while the finding
+        # itself stands. `0050`#4 is exactly that -- same layer, different evidence.
+        new_assert = (ruling.get("ruling") or {}).get("assertable")
+        if new_assert:
+            row["assertable_superseded"] = row.get("assertable")
+            row["assertable"] = new_assert
+            row["parent_ruling"] = ruling
+            row["decided_by"] = "parent_ruling"
     return applied
 
 
