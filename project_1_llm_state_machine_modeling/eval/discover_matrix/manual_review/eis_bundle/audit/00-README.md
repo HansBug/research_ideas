@@ -1,5 +1,7 @@
 # LLMS-EMP expected issue set — 审计数据
 
+↩ **正文**：[issue #172](https://github.com/HansBug/research_ideas/issues/172) ｜ ↔ **另一面**：[逐 pair 可读台帐 gist](https://gist.github.com/HansBug/c34f29f80e778802fe4da5e2a7e3a82b)
+
 本 gist 是 **expected issue set** 的机读面。逐 pair 可读台帐在**另一个 gist**，见对应 issue 正文的入口表。
 
 ## 文件

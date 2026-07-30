@@ -286,9 +286,18 @@ def build() -> dict:
     # "same defect?" question; anything subtler stays a human call and is not grouped here.
     by_binding = defaultdict(list)
     for r in records:
-        a = r["assertions"][0] if r["assertions"] else None
-        key = (r["pair"], a["predicates"][0] if a and a["predicates"] else None,
-               tuple(a["elements"]) if a else ())
+        prim = next((a for a in r["assertions"] if a["role"] == "primary"), None)
+        pred = prim["predicates"][0] if prim and prim["predicates"] else None
+        elems = tuple(prim["elements"]) if prim else ()
+        if pred is None or not elems:
+            # A record with no primary assertion has no binding, so it cannot be shown to
+            # duplicate anything. Grouping such records together collapsed to the key
+            # (pair, None, ()) and merged *different* defects that merely shared the
+            # property of being inexpressible -- three such pairs on 0025 / 0034 / 0035.
+            # Give each its own group and say why.
+            key = ("__no_binding__", r["id"])
+        else:
+            key = (r["pair"], pred, elems)
         by_binding[key].append(r["id"])
     hg = {}
     per_pair = Counter()
@@ -298,6 +307,8 @@ def build() -> dict:
         for i in ids:
             hg[i] = gid
     for r in records:
+        prim = next((a for a in r["assertions"] if a["role"] == "primary"), None)
+        r["homogeneity_groupable"] = bool(prim and prim["predicates"] and prim["elements"])
         r["homogeneity_group"] = hg[r["id"]]
         r["homogeneity_group_size"] = sum(1 for x in records
                                           if hg[x["id"]] == hg[r["id"]])
@@ -324,6 +335,9 @@ def build() -> dict:
         "totals": {
             "records": len(records),
             "homogeneity_groups": len(groups),
+            "homogeneity_groupable_records": sum(1 for r in records
+                                                 if r["homogeneity_groupable"]),
+            "homogeneity_merges": len(records) - len(groups),
             "pairs_covered": len({r["pair"] for r in records}),
             "by_layer": dict(Counter(r["layer"] for r in records)),
             "by_direction": dict(Counter(r["direction"] for r in records)),

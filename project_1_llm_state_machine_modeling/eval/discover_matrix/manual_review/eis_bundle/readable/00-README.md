@@ -1,5 +1,7 @@
 # LLMS-EMP expected issue set — 逐 pair 可读台帐
 
+↩ **正文**：[issue #172](https://github.com/HansBug/research_ideas/issues/172) ｜ ↔ **另一面**：[审计数据 gist](https://gist.github.com/HansBug/e92fb6ca165b46d19b1638f03ae93842)
+
 本 gist 是 **expected issue set** 的逐 pair 可读面：48 个 pair、共 **129** 条 expected issue。审计数据（机读 JSON、覆盖校验、一致性检查）在**另一个 gist**，见对应 issue 正文的入口表。
 
 ## 每条记录包含什么
@@ -20,4 +22,4 @@
 
 ## 判定口径
 
-`correct` / `similar` 不计入问题（语义等价即不计）；`problem` 与 `extra` 走两条不同的判定路径 —— `problem` 判**可归因性**（Q1），`extra` 判**有害性**（Q2），因为前者的有害性由定义蕴含、后者的可归因性由来源唯一而免费。详见 issue 正文的分层章节。
+`correct` / `similar` 不计入问题（语义等价即不计）；`problem` 与 `extra` 走两条不同的判定路径 —— `problem` 判**可归因性**（Q1），`extra` 判**有害性**（Q2），因为前者的有害性由定义蕴含、后者的可归因性由来源唯一而免费。四档判定与两条路径的完整定义见 issue 正文 §0.2；归因层的判据见 §TL;DR 的归因层表。

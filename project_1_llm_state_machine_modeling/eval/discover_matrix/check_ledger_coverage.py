@@ -1,10 +1,17 @@
 """Account for every one of issue #166's 47 expected issues against the new set.
 
-The old ledger's machine-checkable form is gone (lost 2026-07-29, never in git, only 5 of 47
-reconstructed with an `eval_assert`). So the new set cannot be merged with it at binding
-level. What the new set CAN be held to is weaker but still meaningful: **for each of the 47
-statements, does the new set contain a finding on the same pair that plausibly covers it, and
-if not, why not?**
+Reads the **frozen ledger** at `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/
+ledger.json`. An earlier version of this script read `expected_issues_reconstructed.json`
+instead, on the belief that the frozen ledger had been lost in the 2026-07-29 machine
+rebuild. That belief was wrong: the file is in the repository, was committed by `94074e4e`
+on 2026-07-29 22:01, its SHA-256 matches the figure published in issue #166, and **47 of 47
+findings carry an `eval_assert`** (44 of them with extractable model-element paths). The
+reconstruction only ever covered 4 pairs / 5 findings, and `HIT_CRITERION.md` §7 explicitly
+forbids computing hit figures from it. Reading the wrong file understated binding-level
+coverage by a factor of ~9.
+
+So the question this script answers is the strong one: **for each ledger entry, does the new
+set contain a finding whose assertion binds to the same model elements?**
 
 Three outcomes per ledger entry, and the third is the one that matters:
 
@@ -31,6 +38,10 @@ from collections import Counter, defaultdict
 
 HERE = pathlib.Path(__file__).resolve().parent
 MR = HERE / "manual_review"
+#: `.omx` is a dotted directory, so a plain glob for `ledger.json` misses it -- which is how
+#: it came to be believed lost. Pin the path explicitly.
+FROZEN_LEDGER = (HERE.parents[2] / ".omx/specs"
+                 / "autoresearch-paper1-llms-emp-60-expected-issues/ledger.json")
 
 _EXP = re.compile(r"EXP-(\d{4})-([A-Z]{2})-(\d{3})")
 _PATH = re.compile(r"llms_emp_feedback_final_\d{4}[\w.]*")
@@ -83,20 +94,38 @@ def main() -> int:
     for r in eis["records"]:
         by_pair[r["pair"]].append(r)
 
-    # Reconstructed eval_asserts, where they exist, give the only binding-level link.
+    # The frozen ledger is authoritative. Fall back to the reconstruction only if it is
+    # absent, and say so loudly, because the two give very different coverage figures.
     recon_assert: dict[str, set[str]] = {}
-    rp = HERE / "expected_issues_reconstructed.json"
-    if rp.exists():
-        def walk(o):
-            if isinstance(o, dict):
-                if o.get("issue_id") and o.get("eval_assert"):
-                    recon_assert[o["issue_id"]] = set(_PATH.findall(o["eval_assert"]))
-                for v in o.values():
-                    walk(v)
-            elif isinstance(o, list):
-                for v in o:
-                    walk(v)
-        walk(json.loads(rp.read_text()))
+    provenance = "missing"
+    frozen = FROZEN_LEDGER
+    if frozen.exists():
+        provenance = "frozen"
+        payload = json.loads(frozen.read_text())
+        for f in payload.get("findings") or []:
+            if f.get("issue_id") and f.get("eval_assert"):
+                recon_assert[f["issue_id"]] = set(_PATH.findall(f["eval_assert"]))
+            # `source_trace_bindings` names elements the ledger itself resolved, so fold
+            # them in: they are the same claim stated as data rather than as an expression.
+            for b in f.get("source_trace_bindings") or []:
+                for v in (b.values() if isinstance(b, dict) else [b]):
+                    if isinstance(v, str):
+                        recon_assert.setdefault(f["issue_id"], set()).update(
+                            _PATH.findall(v))
+    else:
+        rp = HERE / "expected_issues_reconstructed.json"
+        if rp.exists():
+            provenance = "reconstructed"
+            def walk(o):
+                if isinstance(o, dict):
+                    if o.get("issue_id") and o.get("eval_assert"):
+                        recon_assert[o["issue_id"]] = set(_PATH.findall(o["eval_assert"]))
+                    for v in o.values():
+                        walk(v)
+                elif isinstance(o, list):
+                    for v in o:
+                        walk(v)
+            walk(json.loads(rp.read_text()))
 
     results = []
     for iid, e in sorted(entries.items()):
@@ -119,6 +148,12 @@ def main() -> int:
                         "new_set_findings_on_pair": len(cands)})
 
     tally = Counter(r["outcome"] for r in results)
+    print(f"台帐来源：**{provenance}**"
+          + (f"（{frozen}）" if provenance == "frozen" else "")
+          + f"；其中 {sum(1 for e in entries if e in recon_assert)} / {len(entries)} "
+            f"条有可提取的 binding\n")
+    if provenance != "frozen":
+        print("⚠️ 未使用 frozen ledger —— HIT_CRITERION.md §7 禁止基于重建版计算命中数字\n")
     print(f"issue #166 的 expected issue：**{len(results)}** 条\n")
     print("| 交代结果 | 条数 | 含义 |")
     print("| --- | ---: | --- |")
@@ -160,6 +195,8 @@ def main() -> int:
                 "旧台帐 ledger.json 已丢失、47 条中仅 5 条有重建的 eval_assert，"
                 "因此只有那 5 条能做 binding 级比对，其余只能确认『该 pair 在新集合中有条目』"
                 "并留待人工确认。unaccounted 必须为 0 或逐条解释，否则新集合不能声称取代旧台帐。",
+            "ledger_provenance": provenance,
+            "ledger_path": str(frozen if provenance == "frozen" else "reconstructed"),
             "totals": {**dict(tally), "ledger_entries": len(results),
                        "pairs_in_ledger": len(covered_pairs),
                        "pairs_only_in_new_set": only_new},

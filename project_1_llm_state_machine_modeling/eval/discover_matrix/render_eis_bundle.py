@@ -24,6 +24,11 @@ from collections import Counter, defaultdict
 HERE = pathlib.Path(__file__).resolve().parent
 MR = HERE / "manual_review"
 
+#: The audit gist and the issue, so cross-references in the readable ledgers are clickable
+#: rather than telling the reader to go find them.
+AUDIT_GIST = "e92fb6ca165b46d19b1638f03ae93842"
+ISSUE_URL = "https://github.com/HansBug/research_ideas/issues/172"
+
 LLMS = ["GPT-4o", "GPT-4", "Llama", "Kimi", "DeepSeek", "Claude"]
 NLS = [f"NL{i:02d}" for i in range(1, 11)]
 NL_DOMAIN = {
@@ -124,16 +129,35 @@ def render_pair(pair: str, recs: list[dict], cov: list[dict]) -> str:
         if r["assertions"]:
             L += [
                 f"**断言组（{len(r['assertions'])} 条）**", "",
-                "| 角色 | 谓词 | 族 | 表达式 | 实测 |",
-                "| --- | --- | :-: | --- | :-: |",
+                "| # | 角色 | 谓词 | 族 | 表达式 | 实测 |",
+                "| --: | --- | --- | :-: | --- | :-: |",
             ]
-            for a in r["assertions"]:
+            LONG = 140   # past this a cell truncation would cut mid-identifier
+            for i, a in enumerate(r["assertions"], 1):
+                expr = re.sub(r"\s+", " ", a["expression"]).strip()
+                shown = (f"见下 `[{i}]`" if len(expr) > LONG
+                         else "`" + expr.replace("|", "\\|") + "`")
                 L.append(
-                    f"| {ROLE_ZH.get(a['role'], a['role'])} | "
+                    f"| `[{i}]` | {ROLE_ZH.get(a['role'], a['role'])} | "
                     f"{'、'.join(f'`{p}`' for p in a['predicates']) or '—'} | "
-                    f"{'/'.join(a['families']) or '—'} | `{one_line(a['expression'], 220)}` | "
+                    f"{'/'.join(a['families']) or '—'} | {shown} | "
                     f"`{a.get('measured', '—')}` |")
             L.append("")
+            L += ["> 族：`S` = 结构（静态查询）· `B` = 行为（需展开执行）· "
+                  "`P` = 性质（含步数界）。角色口径见 "
+                  "[`00-README.md`](#file-00-readme-md)。", ""]
+            # A truncated assertion is not evidence -- a reader must be able to copy and run
+            # it. Anything too long for a cell is emitted verbatim in a code block, which
+            # also gives GitHub's copy button.
+            longs = [(i, a) for i, a in enumerate(r["assertions"], 1)
+                     if len(re.sub(r"\s+", " ", a["expression"]).strip()) > LONG]
+            if longs:
+                L += ["完整表达式（可直接复制求值）：", "", "```python"]
+                for i, a in longs:
+                    L.append(f"# [{i}] {ROLE_ZH.get(a['role'], a['role'])}"
+                             f" — 实测 {a.get('measured', '—')}")
+                    L.append(re.sub(r"\s+", " ", a["expression"]).strip())
+                L += ["```", ""]
             prim = next((a for a in r["assertions"] if a["role"] == "primary"), None)
             if prim and prim.get("rewrote_from"):
                 # The reason for a rewrite varies -- some originals used a non-closed
@@ -164,8 +188,11 @@ def render_pair(pair: str, recs: list[dict], cov: list[dict]) -> str:
             "",
         ]
         if r.get("superseded_assertion"):
-            L += [f"> 本条断言经主裁定替换，原断言为 `{one_line(r['superseded_assertion'], 260)}`"
-                  f"，替换理由见审计 gist 的 `nlreview_parent_rulings.json`。", ""]
+            L += [f"> 本条断言经主裁定替换。原断言（含复核者当时的说明）：\n>\n"
+                  f"> ```\n> {one_line(r['superseded_assertion'], 2000)}\n> ```\n>\n"
+                  f"> 替换理由见 [`nlreview_parent_rulings.json`]"
+                  f"(https://gist.github.com/HansBug/{AUDIT_GIST}"
+                  f"#file-nlreview_parent_rulings-json)。", ""]
     return "\n".join(L).rstrip() + "\n"
 
 
