@@ -153,14 +153,17 @@ def main() -> int:
             outcome = "same_pair_only"
             matched = [r["id"] for r in cands]
         results.append({**e, "outcome": outcome,
-                        "has_extractable_binding": iid in recon_assert,
+                        # `iid in recon_assert` is true even when the extracted path set is empty, which
+                        # labelled 3 entries (0018-SH / 0028-DA / 0038-SH) as having a
+                        # binding they do not have. Test the set, not the key.
+                        "has_extractable_binding": bool(recon_assert.get(iid)),
                         "new_set_matches": matched,
                         "new_set_findings_on_pair": len(cands)})
 
     tally = Counter(r["outcome"] for r in results)
     print(f"台帐来源：**{provenance}**"
           + (f"（{frozen}）" if provenance == "frozen" else "")
-          + f"；其中 {sum(1 for e in entries if e in recon_assert)} / {len(entries)} "
+          + f"；其中 {sum(1 for e in entries if recon_assert.get(e))} / {len(entries)} "
             f"条有可提取的 binding\n")
     if provenance != "frozen":
         print("⚠️ 未使用 frozen ledger —— HIT_CRITERION.md §7 禁止基于重建版计算命中数字\n")
