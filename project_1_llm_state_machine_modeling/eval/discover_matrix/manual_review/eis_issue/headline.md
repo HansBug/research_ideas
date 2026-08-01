@@ -43,7 +43,7 @@
 | `nl_named`（NL 点名）| 69 | 36 | **52%** |
 | `wellformedness`（良构性）| 37 | 13 | **35%** |
 
-⚠️ **一处必须撤回的表述。** 本 issue 初版称 `wellformedness` 这一层「最难被质疑」，理由是它不需要 NL 也不需要参考模型。**按归因实测，它恰恰是四层里通过率最低的一层**：37 条里只有 **13 条** `safe`（19 条 `representation_debt`、4 条 `unattributed`、1 条无可求值断言）。通过率最高的是 `nl_contradiction`（11 / 13）。原因见 §6.4：该层的判定大量依赖 R4.5 投影注入的合成节点，而那些节点正是归因排除表里的元素。
+⚠️ **一处必须撤回的表述。** 本 issue 初版称 `wellformedness` 这一层「最难被质疑」，理由是它不需要 NL 也不需要参考模型。**按归因实测，它恰恰是四层里通过率最低的一层**：37 条里只有 **13 条** `safe`（19 条 `representation_debt`、4 条 `unattributed`、1 条无可求值断言）。通过率最高的是 `nl_contradiction`（11 / 13）。原因见 §7.4：该层的判定大量依赖 R4.5 投影注入的合成节点，而那些节点正是归因排除表里的元素。
 
 ```mermaid
 pie showData title 归因层分布（126 条）
