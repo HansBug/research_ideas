@@ -219,6 +219,61 @@ def main() -> int:
         (out / "readable" / f"{pair}-eis.md").write_text(
             render_pair(pair, recs, cov_by_pair.get(pair, [])))
 
+    # The 14 non-automatable records get their own file. They are the set's automation
+    # ceiling, and a reader asking "what exactly can the predicates not say?" should not
+    # have to grep 48 per-pair files to find out.
+    rep_rows = {}
+    rp = MR / "loop_audit/replay_attribution.json"
+    if rp.exists():
+        rep_rows = {(r["case"], r["diff_index"]): r
+                    for r in json.loads(rp.read_text())["rows"]}
+    noa = [r for r in eis["records"] if not r.get("automatable")]
+    GAP = {
+        "A": "`action_declared` 无动作名参数；effect 通道要求「变量 + 符号」，"
+             "而该通道在本语料恒为空（全库唯一变量是 converter 的 `R45RouteToken`）",
+        "Tr": "`edge_declared` 强制要求具名 trigger，completion 边（无触发）表达不出",
+        "V": "R4.5 从不把方括号解析为守卫；作者自有守卫全库为零，"
+             "`guard_distinguishable` 的判别分支不可达",
+        "S": "S 族全是具名点查询，无存在量词，「壳缺失」只能照搬参考名",
+    }
+    N = [f"# {len(noa)} 条只能人工验收的记录 —— 逐条明细", "",
+         f"这 {len(noa)} 条构成 expected issue set 的**自动化上限**：缺陷成立、可归因，"
+         "但现有 19 个封闭谓词给不出可复跑的正面断言。"
+         "它们**仍然是 expected issue**——入选条件是「缺陷真实且可归因」，"
+         "不是「本工具当前能不能表述它」。按可表述性剔除，就会用工具能力反向定义研究边界。", "",
+         f"正文对这批条目的成因分析与扩谓词决策见 [issue #172 §4.3–4.5]({ISSUE_URL})。", "",
+         "## 分布", "", "| 维度 | 分布 |", "| --- | --- |",
+         "| 元组分量 | " + "、".join(f"**{k}** {v}" for k, v in
+                                  Counter(r.get("element_of_M") for r in noa).most_common()) + " |",
+         "| 缺陷方向 | " + "、".join(f"`{k}` {v}" for k, v in
+                                  Counter(r["direction"] for r in noa).most_common()) + " |",
+         "| 归因层 | " + "、".join(f"`{k}` {v}" for k, v in
+                                 Counter(r["layer"] for r in noa).most_common()) + " |", "",
+         "## 逐条", ""]
+    for r in sorted(noa, key=lambda x: x["id"]):
+        st = ((rep_rows.get((r["pair"], r["upstream"]["diff_index"])) or {})
+              .get("attribution_status") or "declared_not_expressible")
+        N += [f"### {r['id']} — `{r['pair']}` {r['group']} × {r['llm']}", "",
+              "| 字段 | 值 |", "| --- | --- |",
+              f"| 归因层 | `{r['layer']}` |", f"| 缺陷方向 | `{r['direction']}` |",
+              f"| 元组分量 | **{r.get('element_of_M')}** |", f"| 归因重放 | `{st}` |",
+              f"| 词表缺口 | {GAP.get(r.get('element_of_M'), '—')} |",
+              f"| 完整台帐 | [`{r['pair']}-eis.md`](#file-{r['pair']}-eis-md) |", "",
+              "**缺陷描述**", "", one_line(r["statement"], 700), ""]
+        if r.get("nl_evidence"):
+            N += ["**NL 依据**", "", "> " + one_line(r["nl_evidence"], 500), ""]
+        if r["assertions"]:
+            N += [f"**曾尝试的表达式（{len(r['assertions'])} 条，均不可求值或不判别）**",
+                  "", "```python"]
+            for a in r["assertions"][:4]:
+                N.append(f"# {a['role']} — 实测 {a.get('measured', '—')}")
+                N.append(re.sub(r"\s+", " ", a["expression"]).strip()[:300])
+            N += ["```", ""]
+        else:
+            N += ["**断言组：空** —— 复核者尝试后判定 19 谓词写不出。", ""]
+        N += ["---", ""]
+    (out / "readable" / "00-NOT-AUTOMATABLE.md").write_text("\n".join(N).rstrip() + "\n")
+
     # Both READMEs are generated, not hand-written: their headline figures were hand-typed
     # once and immediately went stale (the negative-control count said 0 after it became 2).
     t = eis["totals"]
@@ -240,6 +295,13 @@ def main() -> int:
 | 触及的元组分量 | 落在 $M = (S, E, V, Tr, A)$ 的哪个分量 |
 | 断言组 | 主断言（经复跑）+ 负控 + 佐证。**负控须实测为 `True`**，否则无法排除主断言对正确模型也返回 `False`。超长表达式在表下以可复制的 code block 给出 |
 | 上游关联 | 复核主档的 diff 下标、本 pair 的旧台帐 E1、8 格运行已发布 issue、论文两阶段 F1 |
+
+## 本 gist 的两个入口文件
+
+| 文件 | 用途 |
+| --- | --- |
+| [`00-NOT-AUTOMATABLE.md`](#file-00-not-automatable-md) | 那 {t['needs_human_judgement']} 条只能人工验收的记录，逐条给出元组分量、词表缺口与曾尝试过的表达式 |
+| `<pair>-eis.md` | 该 pair 的完整台帐 |
 
 ## 必须先知道的四件事
 

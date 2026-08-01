@@ -1,4 +1,4 @@
-⚠️ **一处必须更正的前提。** 本 issue 的初版称 issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的机器总账 `ledger.json` 已在 2026-07-29 机器重建中丢失且不可恢复，因此无法做 binding 级交代。**这个判断是错的。** 该文件一直在仓库里：路径 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`，370,994 字节，SHA-256 `03d8756650c0…` 与 #166 正文公布的「机器总账 SHA-256」逐字符一致，已于 2026-07-29 22:01 由 commit `94074e4e` 恢复并纳入 git。**其 47 / 47 条带 `eval_assert`，其中 44 条含可提取的模型元素路径。**初版之所以判为丢失，是因为检索 `ledger.json` 时用的 glob 不匹配 `.omx` 这个点开头的目录。
+⚠️ **一处必须更正的前提。** 本 issue 的初版称 issue [#166](https://github.com/HansBug/research_ideas/issues/166) 的机器总账 `ledger.json` 已在 2026-07-29 机器重建中丢失且不可恢复，因此无法做 binding 级交代。**这个判断是错的。** 该文件一直在仓库里：路径 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`，370,994 字节，SHA-256 `03d8756650c0…` 与 #166 正文公布的「机器总账 SHA-256」逐字符一致，已于 2026-07-29 22:01 由 commit `94074e4e` 恢复并纳入 git。**其 47 / 47 条带 `eval_assert`，其中 44 条含可提取的模型元素路径**。初版之所以判为丢失，是因为检索 `ledger.json` 时用的 glob 不匹配 `.omx` 这个点开头的目录。
 
 本节数字已改用 frozen ledger 重算（来源：`frozen`）。这也纠正了一处违规：`HIT_CRITERION.md` §7 明文规定「不要再基于重建版计算或引用任何命中数字」，而初版读的正是那份仅覆盖 4 个 pair 的重建物。
 

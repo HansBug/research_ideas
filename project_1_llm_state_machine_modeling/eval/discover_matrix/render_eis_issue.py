@@ -453,6 +453,225 @@ def main() -> int:
     ]
     emit("headline.md", "\n".join(L))
 
+    # ------------------------------------------------- 门控三类拆解 + 14 条详情（§4.x）
+    # These three groups get lumped together as "62 records cannot be reported", which makes
+    # them look like one problem with one fix. They are not: one is an attribution
+    # resolution limit, one is trace coverage, one is vocabulary. Only the third is a
+    # question about the predicate set, and conflating them would send the fix in the wrong
+    # direction -- so the split is spelled out rather than left to the reader.
+    noa = [r for r in recs if not r["automatable"]]
+    reason_of = Counter()
+    for r in recs:
+        row = rep_rows.get((r["pair"], r["upstream"]["diff_index"])) or {}
+        st = row.get("attribution_status")
+        if st in ("representation_debt", "unattributed"):
+            reason_of[(st, row.get("attribution_reason"))] += 1
+    gate_dir = Counter()
+    for r in recs:
+        row = rep_rows.get((r["pair"], r["upstream"]["diff_index"])) or {}
+        if row.get("attribution_status") in ("representation_debt", "unattributed"):
+            gate_dir[r["direction"]] += 1
+    n_debt, n_unattr, n_dne = (attr["representation_debt"], attr["unattributed"],
+                               attr["declared_not_expressible"])
+
+    L = [
+        "上一节的 " + str(n_debt + n_unattr + n_dne) + " 条常被当成同一个问题，"
+        "从而指向同一个修法。**它们不是**。按机器给出的成因，它们是三类互不相干的东西，"
+        "各自的解法完全不同：",
+        "",
+        "| 类 | 条数 | 机器给出的成因 | 卡在哪一层 | 解法方向 |",
+        "| :-: | ---: | --- | --- | --- |",
+        f"| **A** | **{n_debt}** | `exclusion_intersection`"
+        f"（{reason_of[('representation_debt', 'exclusion_intersection')]}/{n_debt} 全是这一个）"
+        f"| **归因分辨力** | 改归因，不扩谓词、不改边界 |",
+        f"| **B** | **{n_unattr}** | "
+        + "、".join(f"`{k[1]}` {v}" for k, v in sorted(reason_of.items())
+                   if k[0] == "unattributed")
+        + " | **trace 覆盖** | 补 `source_trace`，纯工程 |",
+        f"| **C** | **{n_dne}** | 19 谓词表述不出 | **词表能力** | 扩谓词（见 §4.3）|",
+        "",
+        "### 4.1 A 类：作者的错，被 converter 的补丁盖住了",
+        "",
+        f"这 {n_debt} 条的成因**全部**是 `exclusion_intersection`——判定所依赖的元素，"
+        "落在该 pair 自己的 `attribution_exclusions` 里。机制是这样的：",
+        "",
+        "```",
+        "1. 作者没写初始边                            ← 真缺陷，可归因于生成方",
+        "2. R4.5 投影为让模型合法，注入 UnspecifiedInitial",
+        "3. initial_target 判定时读到的初始子态就是这个合成节点",
+        "4. 归因阶段发现「证据踩在 attribution_exclusions 里的元素上」→ representation_debt → 挡下",
+        "```",
+        "",
+        "**关键在于：合成节点是症状，不是原因。** 作者确实有错，只是错的表现形式被 converter "
+        "填平了。所以这些条目被挡，**不是归因判错，而是归因分辨力不足**——"
+        "它只能看到「证据踩在排除元素上」，看不到「这个排除元素的存在本身就是缺陷的后果」。",
+        "",
+        "这也解释了 §TL;DR 那张通过率表为什么反直觉："
+        f"`wellformedness` 层 {bl['wellformedness']} 条里有 "
+        f"{attr_by_layer['wellformedness']['representation_debt']} 条是 "
+        f"`representation_debt`，因为该层大量依赖投影语义。"
+        "**该层证据不弱，是归因看不穿投影这一层。**",
+        "",
+        "### 4.2 B 类：source_trace 覆盖不全",
+        "",
+        f"{n_unattr} 条中 "
+        f"{reason_of[('unattributed', 'no_safe_trace_entry')]} 条是 `no_safe_trace_entry`"
+        f"（冻结的 source trace 里找不到可安全归因的条目）、"
+        f"{reason_of[('unattributed', 'path_taint_ambiguous')]} 条是 `path_taint_ambiguous`。"
+        "这是工程覆盖问题，不涉及方法论：trace 没记全，判定就无从溯源。",
+        "",
+        "### 4.3 C 类：这 " + str(len(noa)) + " 条才是真正的词表问题",
+        "",
+        "按元组分量分布，问题的重心一目了然：",
+        "",
+        "| 分量 | 条数 | 占比 |",
+        "| :-: | ---: | ---: |",
+    ]
+    el = Counter(r.get("element_of_M") for r in noa)
+    for k, v in el.most_common():
+        L.append(f"| **{k}** | {v} | {pct(v, len(noa))} |")
+    L.append(f"| **合计** | **{len(noa)}** | 100% |")
+    L += [
+        "",
+        f"**$A$ 占 {el.get('A', 0)} 条（{pct(el.get('A', 0), len(noa))}）——而 $A$ 正是 "
+        "$M = (S, E, V, Tr, A)$ 的分量之一。** 这个事实决定了后面的取舍（§4.5）。",
+        "",
+        "#### 主体：动作与输出信号（$A$）",
+        "",
+        "微波炉那一组是最干净的例子——**同一份 NL 的六个模型全中**：",
+        "",
+        "> NL 第 5/6/7/8 句显式要求 timer 启停与 cooking time 的显示/更新"
+        "（\"where the timer starts\"、\"stops the timer\"、"
+        "\"the cooking time is displayed and updated\"），参考以迁移 effect 承载，"
+        "**生成侧完全缺失**。",
+        "",
+        "19 个谓词为什么说不出这条：",
+        "",
+        "| 通道 | 谓词 | 为什么不行 |",
+        "| --- | --- | --- |",
+        "| effect | `effect_declared` / `variable_declared` / `variable_delta_after` | "
+        "三者都要求 `variable` + `sign` 两个参数，即「某变量增减」。"
+        "但 `Start Timer` 是一个**具名的抽象动作**，不是数值变化。"
+        "而且全库唯一被声明过的变量是 converter 的 `R45RouteToken`，"
+        "**该通道在本语料恒为空** |",
+        "| action | `action_declared(state=..., phase=...)` | "
+        "**没有动作名参数**。它只能证明「这个状态挂了某个动作」，"
+        "证明不了「挂的是 `Start Timer`」|",
+        "",
+        "另两条比「说不出」更危险，因为谓词会**给出错误的肯定答案**：",
+        "",
+        "> `0034`#5：NL 第 3 句要求 `EmergencyStopping` 既执行 `Emergency Stop` "
+        "又发送 `Obstacle Detected` 信号。作者只保留了前者，"
+        "后者**在全模型任何相位、任何迁移上都不存在**。",
+        "",
+        "此时 `action_declared(EmergencyStopping, 'entry')` 返回 **`True`**"
+        "——因为确实挂了 `Emergency Stop`。**谓词说「有动作」，而缺的是「哪个动作」**。"
+        "这是漏检（false pass），不是表述不出，性质更严重。",
+        "",
+        "#### 其余分量",
+        "",
+        "| 分量 | 条目 | 卡点 |",
+        "| :-: | --- | --- |",
+        "| $Tr$ | `0008`#5、`0038`#4 | 「`choice3` 应直连 `Junction3` 但分支缺失」涉及伪状态间的边，"
+        "而 `edge_declared` 强制要求具名 `trigger`，completion 边（无触发）表达不出 |",
+        "| $Tr$ | `0033`#2 | 三条初始边全部越出子作用域，被投影替换成三个 `Invalid` 标记 |",
+        "| $V$ | `0025`#1、`0035`#3 | 「该边既无守卫也未在事件名点出零时」。"
+        "R4.5 **从不把方括号解析为守卫**（11 个 pair 的 38 个方括号标签无一成为守卫），"
+        "且全库 160/160 个守卫都是 converter 的 route-control、"
+        "**作者自有守卫为零**——`guard_distinguishable` 的判别分支在本语料几乎不可达 |",
+        "| $S$ | `0007`#3 | 整棵臆造子树无入边（死代码）+ 同一非正交区里三条初始迁移 |",
+        "",
+        "### 4.4 命中率该怎么算",
+        "",
+        f"这 {n_debt + n_unattr + n_dne} 条的处理，两种极端都会得出错误结论：",
+        "",
+        "| 做法 | 后果 |",
+        "| --- | --- |",
+        f"| 全算进分母 | 流水线**按设计不该报**的条目被记成漏检 → **低估**流水线 |",
+        f"| 全踢出分母 | 掩盖归因与词表的真实局限 → **高估**流水线 |",
+        "",
+        f"**建议：分母仍是 {t['records']} 条**（缺陷成立与否，与工具能否报它无关），"
+        "**但命中率必须拆三层报**：",
+        "",
+        f"1. **`safe` {attr['safe']} 条上的命中率** = 当前流水线的真实能力，这是唯一"
+        "可直接解读为「检出率」的数；",
+        f"2. **A 类 {n_debt} 条** = 受归因分辨力限制而结构性不可达，"
+        "**不应记为流水线漏检**，应记为归因层待改进；",
+        f"3. **B 类 {n_unattr} + C 类 {n_dne} 条** = 受 trace 覆盖与词表能力限制，同上分列。",
+        "",
+        "### 4.5 扩谓词，还是把这些排除在边界之外",
+        "",
+        "**三类要分开决策，把它们当一个问题是最容易犯的错。**",
+        "",
+        "| 类 | 决策 | 理由 |",
+        "| :-: | --- | --- |",
+        f"| **A**（{n_debt}）| **改归因分辨力**，不扩谓词、不改边界 | "
+        "谓词已经正确检测到了缺陷。要做的是让归因区分"
+        "「证据落在合成节点上」与「缺陷本身由合成节点造成」"
+        "——前者应放行（作者的错），后者应挡下（converter 的产物）。"
+        "这是**一处判定逻辑**，不是一批谓词 |",
+        f"| **B**（{n_unattr}）| **补 source_trace 覆盖** | 纯工程，不涉及方法论 |",
+        f"| **C**（{n_dne}）| **必须扩谓词，不能排除在边界外** | 见下三条理由 |",
+        "",
+        "**理由一：$A$ 就在 paper1 的问题定义里。** paper1 锚定 $M = (S, E, V, Tr, A)$，"
+        "排除的只有时钟 $C$、不变式 $Inv$ 与正交并发。"
+        f"而这 {len(noa)} 条里 **{el.get('A', 0)} 条落在 $A$**。"
+        "把它们排除，等于 paper1 声称覆盖 $A$ 分量、却对 $A$ 的内容无法断言"
+        "——这个自相矛盾审稿人一定会问。",
+        "",
+        "**理由二：这个错误本仓库已经犯过一次。** "
+        "[GROUND_TRUTH_LIMITATIONS.md](https://github.com/HansBug/research_ideas/blob/main/"
+        "project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)"
+        " §4 记录的正是它：#166 台帐的「正向断言可执行」门槛建立在 6 个底层原语上，"
+        "直接把整类问题挡在门外。**用工具当前能力反向定义研究边界，会让偏差变成不可见**"
+        "——一旦排除，「谓词面缺什么」就不再是可报告的结论，而是被静默吸收的系统性缺口。",
+        "",
+        f"**理由三：要扩的量很小、方向很明确。** 这 {len(noa)} 条不是 "
+        f"{len(noa)} 个方向，而是四个具体缺口：",
+        "",
+        "| 缺口 | 覆盖条数 | 形态 | 难度 |",
+        "| --- | ---: | --- | --- |",
+        f"| 动作名 / 动作内容 | **{el.get('A', 0)}** | "
+        "`action_declared(state, phase, action='Start Timer')`——**给现有谓词加一个参数** | 低 |",
+        "| 无触发 / completion 边 | 2 | 允许 `edge_declared` 的 `trigger` 为空 | 低 |",
+        "| 守卫非空 / 边须携带区分条件 | 2 | "
+        "⚠️ **扩谓词也判别不出**——作者自有守卫全库为零，卡在表示层，"
+        "应老实标为投影层缺口 | 需先改 R4.5 |",
+        "| 存在量词 / 最小性 | 2 | S 族全是具名点查询，无存在量词 | 结构性，可暂缓 |",
+        "",
+        "前两个是**给现有谓词加参数或放宽约束**，不是新增一族。"
+        "第三个卡在表示层，扩谓词无用。",
+        "",
+        "### 4.6 一个必须由人裁定的边界政策",
+        "",
+        "有件事扩谓词解决不了：**是否允许闭世界禁令命题**"
+        "（「该状态必须保持吸收」「不得声明该事件」）。",
+        "",
+        "30 条不可表述里有 5 条（NL02 钳夹类）实测 "
+        "`invariant(scope=S, condition=active(S))` **确实返回 `False`** 且有有效负控"
+        "——按纯机械判据它们本该算「可表述」。它们被留在不可表述里，"
+        "依据的是一条**未写进 [`predcov_BRIEF.md`](https://gist.github.com/HansBug/"
+        + agist + "#file-predcov_brief-md) 的政策**。"
+        "这条政策若翻转，**至少 8 条会移出不可表述**"
+        "（除 NL02 钳夹类，还有 `0002`#3、`0010`#7、`0043`#2 这类「沉默封闭」）。"
+        "**这是分层政策问题，不是谓词能力问题，必须由人裁定。**",
+        "",
+        "### 4.7 优先级建议",
+        "",
+        "| 序 | 动作 | 影响条数 | 成本 | 附带收益 |",
+        "| --: | --- | ---: | --- | --- |",
+        f"| 1 | 改归因分辨力（区分「证据踩合成节点」与「缺陷由合成节点造成」）| **{n_debt}** | "
+        "一处判定逻辑 | 会同时提高 `wellformedness` 层的通过率"
+        f"（现 {pct(attr_by_layer['wellformedness']['safe'], bl['wellformedness'])} 垫底），"
+        "让「该层最难被质疑」这个直觉重新成立 |",
+        f"| 2 | 给 `action_declared` 加动作名参数 | **{el.get('A', 0)}** | 加一个参数 | "
+        "补上 $A$ 分量这个方法论漏洞 |",
+        f"| 3 | 补 source_trace 覆盖 | **{n_unattr}** | 纯工程 | — |",
+        "| 4 | 裁定闭世界政策 | ≥8（口径变化）| 需人决策 | — |",
+        "| 5 | 最小性 / 存在量词谓词 | 2 | 结构性大 | 可留作 future work |",
+    ]
+    emit("gate_detail.md", "\n".join(L))
+
     # ---------------------------------------------------------------- directions
     bd = t["by_direction"]
     mx = max(bd.values())
@@ -549,7 +768,7 @@ def main() -> int:
         "`.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`，"
         "370,994 字节，SHA-256 `03d8756650c0…` 与 #166 正文公布的「机器总账 SHA-256」逐字符一致，"
         "已于 2026-07-29 22:01 由 commit `94074e4e` 恢复并纳入 git。"
-        "**其 47 / 47 条带 `eval_assert`，其中 44 条含可提取的模型元素路径。**"
+        "**其 47 / 47 条带 `eval_assert`，其中 44 条含可提取的模型元素路径**。"
         "初版之所以判为丢失，是因为检索 `ledger.json` 时用的 glob 不匹配 `.omx` 这个点开头的目录。",
         "",
         f"本节数字已改用 frozen ledger 重算（来源：`{prov}`）。"
