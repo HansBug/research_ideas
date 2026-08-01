@@ -167,7 +167,7 @@ NL 第 7 句明确『The choice3 state also transitions to Junction3』，该直
 | 缺陷方向 | `entry` |
 | 元组分量 | **Tr** |
 | 归因重放 | `declared_not_expressible` |
-| 词表缺口 | `edge_declared` 强制要求具名 trigger，completion 边（无触发）表达不出 |
+| 词表缺口 | 缺 `initial_edge_count` / `unique_default_entry` / `entry_is_in_scope` 一类谓词；`initial_target` 的拒答语义把整个「多默认进入点」族变成不可判定 |
 | 完整台帐 | [`0033-eis.md`](#file-0033-eis-md) |
 
 **缺陷描述**

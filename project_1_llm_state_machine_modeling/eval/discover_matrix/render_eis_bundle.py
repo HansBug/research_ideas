@@ -228,6 +228,11 @@ def main() -> int:
         rep_rows = {(r["case"], r["diff_index"]): r
                     for r in json.loads(rp.read_text())["rows"]}
     noa = [r for r in eis["records"] if not r.get("automatable")]
+    GAP_BY_ID = {
+        "EIS-0033-02": "缺 `initial_edge_count` / `unique_default_entry` / "
+                       "`entry_is_in_scope` 一类谓词；`initial_target` 的拒答语义"
+                       "把整个「多默认进入点」族变成不可判定",
+    }
     GAP = {
         "A": "`action_declared` 无动作名参数；effect 通道要求「变量 + 符号」，"
              "而该通道在本语料恒为空（全库唯一变量是 converter 的 `R45RouteToken`）",
@@ -257,7 +262,10 @@ def main() -> int:
               "| 字段 | 值 |", "| --- | --- |",
               f"| 归因层 | `{r['layer']}` |", f"| 缺陷方向 | `{r['direction']}` |",
               f"| 元组分量 | **{r.get('element_of_M')}** |", f"| 归因重放 | `{st}` |",
-              f"| 词表缺口 | {GAP.get(r.get('element_of_M'), '—')} |",
+              # A per-element lookup mislabels 0033#2: its element is Tr but the gap is about
+        #初始边作用域/唯一性, not the completion-edge trigger problem the Tr bucket names.
+        # Per-record overrides come first.
+        f"| 词表缺口 | {GAP_BY_ID.get(r['id']) or GAP.get(r.get('element_of_M'), '—')} |",
               f"| 完整台帐 | [`{r['pair']}-eis.md`](#file-{r['pair']}-eis-md) |", "",
               "**缺陷描述**", "", one_line(r["statement"], 700), ""]
         if r.get("nl_evidence"):
