@@ -20,6 +20,7 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
     PREDICATE_FAMILIES,
     PSEUDO_INITIAL,
 )
+from paper_stm_feedback_loop.common.nl_segmentation import resolve_nl_segments
 from paper_stm_feedback_loop.common.refs import reference_matches
 
 from . import prompts, renderer
@@ -1075,18 +1076,19 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         source_mappings=source_entries,
         source_exclusions=source_exclusions,
     )
-    segments = {
-        f"NL-L{index:03d}": line.strip()
-        for index, line in enumerate(
-            discover_input.natural_language.splitlines(), start=1
-        )
-        if line.strip()
-    } or {"NL-ALL": discover_input.natural_language.strip()}
+    # Boundaries come from `common/nl_segmentation`, which prefers a hand annotation when
+    # the specification's own numbering is not machine-decidable and otherwise reproduces the
+    # newline split verbatim. One corpus specification needs the former: it puts every
+    # requirement on a single line, so splitting on newlines collapsed it to one segment and
+    # `segment_disposition` could only carry one coarse verdict for the whole spec.
+    resolved = resolve_nl_segments(discover_input.natural_language)
+    segments = resolved.segments
     return FrozenDiscoverInputs(
         run_id=discover_input.run_id,
         natural_language=discover_input.natural_language,
         stm_text=discover_input.stm_text,
         nl_segments=segments,
+        nl_segmentation_source=resolved.source,
         inspect_digest={
             "parse_status": inspected.get("parse_status"),
             "semantic_status": inspected.get("semantic_status"),

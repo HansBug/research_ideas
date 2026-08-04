@@ -142,6 +142,10 @@ class FrozenDiscoverInputs(StrictBaseModel):
     natural_language: str = Field(min_length=1)
     stm_text: str = Field(min_length=1)
     nl_segments: dict[str, str] = Field(default_factory=dict)
+    #: Whether the segments above were annotated by hand or split on newlines. Travels into
+    #: the run record so a reader can tell which without re-deriving it; see
+    #: `common/nl_segmentation.py` for why one specification needs annotation.
+    nl_segmentation_source: Literal["manual_override", "line_split"] = "line_split"
     inspect_digest: dict[str, Any] = Field(default_factory=dict)
     source_trace: dict[str, Any] = Field(default_factory=dict)
     working_contract: dict[str, Any] = Field(default_factory=dict)
