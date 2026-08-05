@@ -3063,6 +3063,29 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             for item in script_assertions
             if item.role == "precondition"
         }
+        # The predicate and its bound values, per assertion. Both rules below key on the
+        # predicate rather than on the element, which is what keeps them from widening what
+        # counts as author-owned for any claim about behaviour.
+        requirement_set = state.get("requirement_set")
+        requirement_by_id = {
+            item.requirement_id: item
+            for item in (getattr(requirement_set, "requirements", ()) or ())
+        }
+        predicate_by_assertion: dict[str, str | None] = {}
+        binding_values_by_assertion: dict[str, tuple[str, ...]] = {}
+        for item in script_assertions:
+            requirement = requirement_by_id.get(item.requirement_id)
+            predicate_by_assertion[item.assertion_id] = (
+                getattr(requirement, "predicate", None) if requirement else None
+            )
+            binding_values_by_assertion[item.assertion_id] = tuple(
+                str(value)
+                for value in (
+                    (getattr(requirement, "predicate_bindings", None) or {}).values()
+                    if requirement
+                    else ()
+                )
+            )
         bindings = []
         for result in released.results:
             if result.truth_value:
@@ -3156,6 +3179,24 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                     "counterexample within the bound, which examines the named "
                     "elements without exhibiting a defective trace."
                 )
+            elif debt_refs and _omission_placeholder_only(
+                debt_refs, predicate_by_assertion.get(result.assertion_id)
+            ):
+                # The excluded elements are all stand-ins the projection injected *because*
+                # the author declared nothing, and the predicate's claim is precisely about
+                # what the model declares. A correct model would carry no such placeholder
+                # and the assertion would be True, so the placeholder is the omission's
+                # fingerprint rather than a confound about who is at fault.
+                #
+                # Narrow on purpose: for a behavioural predicate the same element really is a
+                # confound, because the run passes through a node the author never wrote.
+                status = "safe"
+                rationale = (
+                    "The evidence rests on a placeholder the projection injects only when "
+                    "the author declares nothing, and this predicate's claim is about what "
+                    "the model declares -- so the placeholder is the omitted declaration, "
+                    "not an unattributable artefact."
+                )
             elif debt_refs:
                 status = "representation_debt"
                 rationale = "Assertion evidence touches compiler-owned or lowering-excluded elements."
@@ -3163,8 +3204,28 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                 status = "safe"
                 rationale = "False assertion evidence is bound to source-owned elements by frozen trace entries."
             else:
-                status = "unattributed"
-                rationale = "No attribution-safe frozen source trace entry covers the assertion evidence."
+                ancestor_refs = _declared_ancestor_refs(
+                    result.assertion_id,
+                    predicate_by_assertion.get(result.assertion_id),
+                    binding_values_by_assertion.get(result.assertion_id, ()),
+                    entries,
+                )
+                if ancestor_refs:
+                    # A step-4 proposal names a path that does not exist, so no trace entry
+                    # can cover it -- by construction, not by accident. But "this composite
+                    # declares no child by that name" is a claim about the composite, which
+                    # the author did write and the trace does cover. Attributing it to the
+                    # declared ancestor is what makes the finding answerable at all.
+                    status = "safe"
+                    refs = ancestor_refs
+                    rationale = (
+                        "The claim is about a declared ancestor of a name the model does "
+                        "not declare; attribution follows that ancestor, which the frozen "
+                        "trace covers."
+                    )
+                else:
+                    status = "unattributed"
+                    rationale = "No attribution-safe frozen source trace entry covers the assertion evidence."
             bindings.append(
                 AttributionBinding(
                     assertion_id=result.assertion_id,
@@ -3240,6 +3301,91 @@ def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
     """Delegate to the single shared matcher; see ``common.refs``."""
 
     return reference_matches(reference, observed)
+
+
+#: Names the R4.5 projection injects to stand in for a declaration the author omitted. Each
+#: exists only on models that are missing something, so evidence resting on one says the
+#: author omitted it. Contrast `R45RouteToken`, which the projection adds to *every* model
+#: regardless of what the author wrote -- that one carries no information about the author.
+_OMISSION_PLACEHOLDERS = ("UnspecifiedInitial", "FinalWait")
+
+#: Predicates whose claim is about what the model declares, reused from the capability layer
+#: so the two cannot drift. For these an injected stand-in for a missing declaration is
+#: admissible evidence; for a behavioural predicate the same element is a genuine confound.
+def _claim_is_about_declaration(predicate: str | None) -> bool:
+    from .capability import _DECLARED_PATH_IS_THE_CLAIM
+
+    if not predicate:
+        return False
+    return predicate in _DECLARED_PATH_IS_THE_CLAIM or predicate.endswith("_declared")
+
+
+def _omission_placeholder_only(
+    debt_refs: tuple[str, ...], predicate: str | None
+) -> bool:
+    """Whether every excluded element is an omission placeholder and the claim is declarative.
+
+    Both halves are required. One excluded element that is *not* a placeholder means the
+    evidence also rests on something the projection adds unconditionally, and then it cannot
+    speak about the author either way.
+    """
+    if not debt_refs or not _claim_is_about_declaration(predicate):
+        return False
+    return all(
+        any(marker in str(ref) for marker in _OMISSION_PLACEHOLDERS) for ref in debt_refs
+    )
+
+
+def _declared_ancestor_refs(
+    assertion_id: str,
+    predicate: str | None,
+    binding_values: tuple[str, ...],
+    entries: list[Any],
+) -> tuple[str, ...]:
+    """Source refs of the nearest declared ancestor of a name the model does not declare.
+
+    A step-4 proposal binds a path that does not exist, so nothing in the frozen trace covers
+    it. The claim it makes -- "this composite declares no child by that name" -- is about the
+    composite, which the author did write. So the longest proper prefix that some trace entry
+    does cover carries the attribution.
+
+    Only for declarative predicates. A behavioural claim needs the *run* it describes to be
+    author-owned, and a run through a non-existent state is not made author-owned by its
+    parent being declared.
+    """
+    if not _claim_is_about_declaration(predicate):
+        return ()
+    for value in binding_values:
+        text = str(value).strip()
+        if "." not in text:
+            continue
+        parts = text.split(".")
+        # Longest proper prefix first: attribute as specifically as the trace allows.
+        for cut in range(len(parts) - 1, 0, -1):
+            prefix = ".".join(parts[:cut])
+            covered = [
+                entry
+                for entry in entries
+                if _trace_entry_matches(entry, {prefix})
+                and isinstance(entry.get("attribution_boundary"), dict)
+                and entry["attribution_boundary"].get("source_level_claim_allowed") is True
+                and entry["attribution_boundary"].get("representation_related") is not True
+                and entry["attribution_boundary"].get("conversion_or_lowering_related")
+                is not True
+            ]
+            refs = tuple(
+                sorted(
+                    {
+                        str(ref)
+                        for entry in covered
+                        for ref in entry.get("source_elements", [])
+                        if isinstance(ref, str)
+                    }
+                )
+            )
+            if refs:
+                return refs
+    return ()
 
 
 def _trace_entry_matches(entry: Any, observed: set[str]) -> bool:
