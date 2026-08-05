@@ -321,19 +321,148 @@ def render_assertion_review_input(
     )
 
 
+#: Content digests carried through `check_detail` for replay verification. They are about
+#: two thirds of the adjudicator's payload and there is nothing a reader can do with them --
+#: unlike `kwargs` and `model_refs` in the same structure, which hold the resolved predicate
+#: arguments and are often the only place a shared element such as `Power_Off` is visible
+#: (`source_refs` carries states alone).
+_OPAQUE_DIGEST_KEYS = frozenset(
+    {
+        "args_hash",
+        "kwargs_hash",
+        "result_hash",
+        "namespace_hash_before",
+        "namespace_hash_after",
+        "expression_sha256",
+        "ported_source_commit",
+    }
+)
+
+
+def _without_digests(value: Any) -> Any:
+    """Drop content digests, keeping everything a reader could reason about.
+
+    Rendering-time only: `bind_attribution` reads `check_detail.function_call_trace` and
+    `actual_function_families` off the stored results, so the results themselves are left
+    exactly as released. Attribution is where three of the eight-cell misses already sit;
+    it must not acquire a fourth from a display concern.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _without_digests(item)
+            for key, item in value.items()
+            if key not in _OPAQUE_DIGEST_KEYS
+            and not (key.endswith("_sha256") or key.endswith("_hash"))
+        }
+    if isinstance(value, list):
+        return [_without_digests(item) for item in value]
+    return value
+
+
+#: How a released result is allowed to be dispositioned, derived from role and attribution.
+#: The rule is already in the prompt; carrying it per-result puts it where the adjudicator is
+#: looking when it decides. A supporting False was placed in `issues` once across the eight
+#: cells -- the deterministic layer trimmed it, but the rationale kept citing the trimmed id.
+_DISPOSITION_HINTS = {
+    "may_become_issue": "primary/precondition False with safe attribution",
+    "excluded_only": "primary/precondition False that attribution could not make safe",
+    "observation_only": "supporting evidence: never an issue, never an excluded finding",
+}
+
+
+def _disposition_hint(role: str, truth_value: bool | None, status: str | None) -> str:
+    if role == "supporting":
+        return "observation_only"
+    if truth_value is False and status == "safe":
+        return "may_become_issue"
+    if truth_value is False:
+        return "excluded_only"
+    return "observation_only"
+
+
+def _merge_candidates(
+    requirements: RequirementSet,
+    mergeable_requirement_ids: set[str],
+) -> list[dict[str, Any]]:
+    """Requirement pairs that differ only in `source`, computed rather than guessed.
+
+    A specification sentence that never says which mode it applies to becomes one Requirement
+    per mode, because `occupancy_after` needs a concrete `source`. When they then share a
+    predicate, trigger and target, the same model element is under test from two directions
+    and one defect can explain both.
+
+    Two limits, both deliberate. The pairs are scoped to Requirements that could actually
+    become issues -- unscoped, pair 0029 yields thirteen candidates whose counterparts have
+    no safe-False assertion, which could never merge and would only make the adjudicator's
+    acceptance rate unreadable. And the rule is narrow: on pair 0029 the two Requirements
+    that genuinely belong together use different predicates, so it returns nothing for them.
+    It is a hint to check, not a grouping to apply.
+    """
+    keyed: dict[tuple[str, str, str], list[str]] = {}
+    for requirement in requirements.requirements:
+        if requirement.requirement_id not in mergeable_requirement_ids:
+            continue
+        bindings = requirement.predicate_bindings or {}
+        trigger, target = bindings.get("trigger"), bindings.get("target")
+        source = bindings.get("source")
+        if not trigger or not target or not source:
+            continue
+        keyed.setdefault(
+            (str(requirement.checkability), str(trigger), str(target)), []
+        ).append(requirement.requirement_id)
+    return [
+        {
+            "requirement_ids": sorted(ids),
+            "shared_bindings": {"trigger": trigger, "target": target},
+            "differs_in": "source",
+        }
+        for (_checkability, trigger, target), ids in sorted(keyed.items())
+        if len(ids) > 1
+    ]
+
+
 def render_adjudicator_input(
     requirements: RequirementSet,
     script: AssertionScript,
     released: ReleasedAssertionResults,
     attribution: AttributionProjection,
     coverage_gaps: tuple[CoverageGap, ...] = (),
+    *,
+    stm_text: str = "",
 ) -> str:
+    """Everything needed to decide whether two failures are one defect.
+
+    `stm_text` is new here and is safe to supply precisely because this role cannot overturn
+    anything: which assertions exist, which are False, and which may become issues are all
+    settled before this call, and the closure check in `adjudicate_results` rejects any
+    response that changes them. What the model buys is the ability to check a claimed shared
+    element against the artefact instead of asserting it.
+    """
+    status_by_assertion = {
+        binding.assertion_id: binding.status for binding in attribution.bindings
+    }
+    role_by_assertion = {
+        assertion.assertion_id: assertion.role for assertion in script.assertions
+    }
+    results = released.model_dump(mode="json")
+    mergeable: set[str] = set()
+    for result in results.get("results", []):
+        assertion_id = result.get("assertion_id")
+        role = role_by_assertion.get(assertion_id, result.get("role") or "primary")
+        status = status_by_assertion.get(assertion_id)
+        hint = _disposition_hint(role, result.get("truth_value"), status)
+        result["disposition_hint"] = hint
+        if hint == "may_become_issue":
+            mergeable.add(str(result.get("requirement_id")))
     return prompt_json(
         {
+            "stm_text": stm_text,
             "accepted_requirements": requirements.model_dump(mode="json"),
             "assertion_script": script.model_dump(mode="json"),
-            "strict_bool_results": released.model_dump(mode="json"),
+            "strict_bool_results": _without_digests(results),
             "safe_attribution": attribution.model_dump(mode="json"),
+            "merge_candidates": _merge_candidates(requirements, mergeable),
+            "disposition_hint_legend": _DISPOSITION_HINTS,
             "coverage_gaps": [gap.model_dump(mode="json") for gap in coverage_gaps],
         }
     )

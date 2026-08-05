@@ -3244,12 +3244,18 @@ def adjudicate_results(
         released = state["released_assertion_results"]
         attribution = state["attribution_projection"]
         # Pydantic already enforces strict bool in ReleasedAssertionResults/AssertionResult.
+        # The frozen model text, so a claimed shared element can be checked rather than
+        # taken on the adjudicator's word.  It cannot widen this role's authority: the set
+        # of issues is closed against the released results below, so the only thing the
+        # model text can change is how they are grouped and worded.
+        frozen = state.get("frozen_inputs")
         payload = renderer.render_adjudicator_input(
             requirements,
             script,
             released,
             attribution,
             state.get("coverage_gaps", ()),
+            stm_text=frozen.stm_text if frozen is not None else "",
         )
         output = responder.invoke_structured(
             role="result_adjudicator",

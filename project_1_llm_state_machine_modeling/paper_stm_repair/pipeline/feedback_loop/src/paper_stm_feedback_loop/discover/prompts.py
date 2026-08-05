@@ -70,7 +70,31 @@ Revision-ledger discipline: compare the current script with all prior deltas, pu
 
 RESULT_ADJUDICATOR_PROMPT = """You are the Result Adjudicator.
 	You receive accepted requirements, accepted assertions, already released strict bool results, and deterministic attribution bindings. The execution is final: do not rerun, reinterpret, or request assertion revision.
-	Mark a requirement as satisfied if and only if every released assertion for that requirement has truth_value=true. If any assertion for a requirement is false, including a false assertion placed in excluded_findings, do not include that requirement id in satisfied_requirement_ids. Create confirmed issues only from False assertions whose binding status is safe; merge complementary evidence for the same Requirement and retain every supporting assertion id. False results marked representation_debt or unattributed must go to excluded_findings, never confirmed issues. Do not manufacture a new Requirement, root cause, expected issue, or inconclusive outcome. Keep attribution_status consistent with the supplied binding. Write titles/rationales in the requested content language and return only the requested structured response."""
+	Mark a requirement as satisfied if and only if every released assertion for that requirement has truth_value=true. If any assertion for a requirement is false, including a false assertion placed in excluded_findings, do not include that requirement id in satisfied_requirement_ids. Create confirmed issues only from False assertions whose binding status is safe; group evidence that reports the same underlying model defect, and reference only the primary and precondition assertion ids that carry it -- supporting evidence is routed by the deterministic layer and must not appear in an issue. False results marked representation_debt or unattributed must go to excluded_findings, never confirmed issues. Do not manufacture a new Requirement, root cause, expected issue, or inconclusive outcome. Keep attribution_status consistent with the supplied binding. Write titles/rationales in the requested content language and return only the requested structured response."""
+
+# Grouping across Requirements is what makes the published count a count of defects rather
+# than of Requirements.  It is also the one judgement here that can lower that count, so the
+# rules below are written to make the failure mode be "reported separately" rather than
+# "quietly collapsed": an over-merge understates how much is wrong and is far harder to spot
+# downstream than the reverse.
+RESULT_ADJUDICATOR_PROMPT += """
+
+Grouping several Requirements under one issue. Requirements are split for checkability, not by cause: a predicate such as occupancy_after needs a concrete source, so a sentence that never says which running mode it applies to becomes one Requirement per mode. When a single model defect is why all of them fail, `requirement_ids` may name all of them and the defect is published once.
+
+Four rules govern that.
+
+1. Default to not grouping. Group only when the False results point at the same missing or wrong element of the model. Serving different Requirements is not a reason. Similar symptoms are not a reason. Originating in the same sentence of the specification is not a reason. If you are unsure, do not merge -- reporting one defect twice overstates how much is wrong, which a reader can see and correct; collapsing two defects into one hides the second, which a reader cannot.
+
+2. A group must state `shared_root_cause` and name `shared_elements`. `shared_root_cause` is one sentence saying where the single cause sits. `shared_elements` names the model elements it rests on, and at least one must be findable in `stm_text` or explicitly marked as required by the specification but never declared by the model. A group you cannot supply these for is not a group.
+
+3. `requirement_ids` must be exactly the Requirements owning the assertions you reference -- no more, no fewer. Referencing an assertion whose Requirement you omit, or naming a Requirement none of your assertions belong to, is rejected.
+
+4. `merge_candidates` is a hint, not an instruction. It lists Requirement pairs sharing a predicate, trigger and target while differing only in source, which is one shape a split-for-checkability Requirement takes -- but only one. Genuine groups whose Requirements use different predicates will not appear there, and a listed pair may still be two distinct defects. Check each against the evidence and decide; do not accept the list wholesale and do not treat its silence as a verdict.
+
+Worked example, a group. Two Requirements ask that power off reaches the final state, one from each running mode; both primary assertions are False; both rest on the same power_off event, which `stm_text` shows leaving the initial pseudo-source and no running state. One issue, `requirement_ids` naming both, `shared_root_cause` "the power_off edge is anchored at the initial pseudo-source so no running mode can shut down", `shared_elements` naming the event and the final state.
+
+Worked example, not a group. One Requirement fails because a mode routes to the wrong target state; another fails because that same mode declares no final state at all. Both are False, both mention the same mode, and the mode therefore appears in both sets of elements -- but a shared element is not a shared cause. Fixing either leaves the other broken. Two issues.
+"""
 
 # Keep this API-shape warning close to both assertion-authoring prompts.  The
 # same warning is intentionally duplicated because converter and reviewer calls
