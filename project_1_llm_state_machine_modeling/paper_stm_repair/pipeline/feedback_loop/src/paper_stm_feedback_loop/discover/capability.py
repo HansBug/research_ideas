@@ -466,6 +466,72 @@ def _absent_path_bindings(
     )
 
 
+def substituted_binding_findings(
+    requirements: Iterable[_RequirementSpec],
+    assertions: Iterable[Any],
+    known_paths: frozenset[str],
+) -> tuple[str, ...]:
+    """Assertions naming an element nobody bound, declared, or proposed.
+
+    Gate D checks that an assertion calls the predicate its Requirement named. It does not
+    check *what the predicate is called on*, and that gap let pair 0050 publish a finding the
+    ledger had explicitly withdrawn: the Requirement bound the composite event the model does
+    declare, and the converter wrote both its assertions against `…human_steering_cmd` -- a
+    prefix of that composite name, declared nowhere. The resulting precondition asked whether
+    the model declares a separately-triggerable atom, which is the basis parent ruling
+    withdrew on 2026-07-30 because the specification's comma list does not authorise reading
+    the three conditions as independently triggerable.
+
+    Three sources make an element legitimate, and the third is what keeps the proposed-name
+    mechanism alive:
+
+      the Requirement's own `predicate_bindings` -- what it asked about;
+      the frozen model's declared paths -- reading the artefact, not inventing; and
+      a name the Requirement wrote into `limitations` -- step 4, recorded and therefore
+      reviewable.
+
+    Anything else is the converter changing the question. Refused here rather than at
+    execution, because a bound element cannot be rebound once the requirement is accepted --
+    the same reason `initialization_anchored_findings` gates at split time.
+
+    :param requirements: the accepted requirement set.
+    :param assertions: the converted assertion specs.
+    :param known_paths: every path the frozen model declares.
+    :return: one finding per offending assertion.
+    """
+    if not known_paths:
+        return ()
+    by_id = {item.requirement_id: item for item in requirements}
+    findings: list[str] = []
+    for assertion in assertions:
+        requirement = by_id.get(getattr(assertion, "requirement_id", None))
+        # No predicate means a pre-vocabulary artefact; those keep the old behaviour so v1/v2
+        # bundles still run.
+        if requirement is None or not getattr(requirement, "predicate", None):
+            continue
+        bound = {
+            str(value).strip()
+            for value in (requirement.predicate_bindings or {}).values()
+            if str(value).strip()
+        }
+        limitations_text = " ".join(
+            str(entry) for entry in (getattr(requirement, "limitations", ()) or ())
+        )
+        for arg, text in _absent_path_bindings(
+            getattr(assertion, "expression", ""), known_paths
+        ):
+            if text in bound or text in limitations_text:
+                continue
+            findings.append(
+                f"{assertion.assertion_id} binds {arg}={text!r}, which the model does not "
+                f"declare, requirement {requirement.requirement_id} did not bind, and no "
+                "`limitations` entry proposes. Assert what the requirement bound "
+                f"({sorted(bound)}), or -- if the sentence needs an element the model lacks "
+                "-- have the requirement propose it and record that in `limitations` first."
+            )
+    return tuple(findings)
+
+
 def declared_path_bindings(
     expression: str, known_paths: frozenset[str]
 ) -> tuple[str, ...]:

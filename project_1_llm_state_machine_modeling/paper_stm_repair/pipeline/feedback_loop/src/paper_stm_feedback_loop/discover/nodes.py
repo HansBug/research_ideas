@@ -39,6 +39,7 @@ from .capability import (
     initialization_anchored_findings,
     redundant_proposal_findings,
     root_anchored_findings,
+    substituted_binding_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
     mandatory_waiver,
@@ -1759,6 +1760,24 @@ def convert_assertions(
                             "paths": list(residue),
                         }
                     )
+                # Gate D says the right procedure was called; this says it was called on the
+                # right thing. Pair 0050 passed Gate D while asserting against an invented
+                # prefix of the bound composite event, which resurrected a basis the ledger
+                # had withdrawn.
+                substitutions = substituted_binding_findings(
+                    (requirement,),
+                    tuple(
+                        assertion
+                        for assertion in output.assertions
+                        if assertion.requirement_id == requirement.requirement_id
+                    ),
+                    frozenset(frozen.known_model_paths),
+                )
+                if substitutions:
+                    raise ValueError(
+                        "assertions bind elements their requirement never bound and the "
+                        f"model does not declare: {list(substitutions)}"
+                    )
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -3078,10 +3097,13 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             predicate_by_assertion[item.assertion_id] = (
                 getattr(requirement, "predicate", None) if requirement else None
             )
+            # Keyed pairs, not bare values: `kind="any"` and `sign="negative"` are enumerated
+            # options, not element names, and treating them as bare declarations sent every
+            # `state_declared` down the variable path.
             binding_values_by_assertion[item.assertion_id] = tuple(
-                str(value)
-                for value in (
-                    (getattr(requirement, "predicate_bindings", None) or {}).values()
+                (str(name), str(value))
+                for name, value in (
+                    (getattr(requirement, "predicate_bindings", None) or {}).items()
                     if requirement
                     else ()
                 )
@@ -3336,10 +3358,49 @@ def _omission_placeholder_only(
     )
 
 
+def _any_declaring_scope_refs(entries: list[Any]) -> tuple[str, ...]:
+    """Source refs of the scope that owns bare-named declarations.
+
+    A variable has no path, so "the model declares no variable called X" is a claim about the
+    declaring scope rather than about any element inside it. The scope is whatever the frozen
+    trace covers at its shallowest -- the entry whose intermediate element has the fewest
+    segments, which is the machine root or the region that owns the namespace.
+    """
+    best: tuple[int, tuple[str, ...]] | None = None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        boundary = entry.get("attribution_boundary")
+        if not isinstance(boundary, dict):
+            continue
+        if boundary.get("source_level_claim_allowed") is not True:
+            continue
+        if boundary.get("representation_related") is True:
+            continue
+        if boundary.get("conversion_or_lowering_related") is True:
+            continue
+        elements = entry.get("intermediate_elements")
+        if not isinstance(elements, list) or not elements:
+            continue
+        depth = min(str(item).count(".") for item in elements)
+        refs = tuple(
+            sorted(
+                {
+                    str(ref)
+                    for ref in entry.get("source_elements", [])
+                    if isinstance(ref, str)
+                }
+            )
+        )
+        if refs and (best is None or depth < best[0]):
+            best = (depth, refs)
+    return best[1] if best else ()
+
+
 def _declared_ancestor_refs(
     assertion_id: str,
     predicate: str | None,
-    binding_values: tuple[str, ...],
+    binding_values: tuple[tuple[str, str], ...],
     entries: list[Any],
 ) -> tuple[str, ...]:
     """Source refs of the nearest declared ancestor of a name the model does not declare.
@@ -3355,9 +3416,28 @@ def _declared_ancestor_refs(
     """
     if not _claim_is_about_declaration(predicate):
         return ()
-    for value in binding_values:
+    from .capability import BOUND_PATH_KWARGS
+
+    for name, value in binding_values:
+        # Only the arguments that name model elements. `kind`, `sign`, `count` and friends are
+        # enumerated options; reading them as element names sent every `state_declared` down
+        # the bare-name branch below.
+        if name not in BOUND_PATH_KWARGS:
+            continue
         text = str(value).strip()
+        if not text:
+            continue
         if "." not in text:
+            # Variables carry no path -- the DSL declares them bare, at the scope that owns
+            # them. So there is no ancestor to walk to, and the subject is the scope itself:
+            # "the machine declares no variable by this name". Without this, a
+            # `variable_declared` primary lands `unattributed` while a byte-identical
+            # precondition on the same expression lands `safe`, because only preconditions
+            # inherit their dependents' refs. Attribution that turns on the role rather than
+            # on the evidence is not attribution.
+            refs = _any_declaring_scope_refs(entries)
+            if refs:
+                return refs
             continue
         parts = text.split(".")
         # Longest proper prefix first: attribute as specifically as the trace allows.

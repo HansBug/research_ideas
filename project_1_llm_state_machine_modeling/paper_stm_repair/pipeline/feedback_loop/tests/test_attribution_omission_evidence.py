@@ -295,3 +295,101 @@ def test_the_ancestor_rule_does_not_apply_to_behavioural_predicates() -> None:
         )
     )
     assert binding.status == "unattributed", binding.rationale
+
+
+def test_the_same_expression_gets_the_same_attribution_regardless_of_role() -> None:
+    """A `variable_declared` primary was `unattributed` while an identical precondition was safe.
+
+    On `v3run1/0006-claude` two assertions carried byte-identical expressions, identical
+    `model_refs` and identical result hashes, and came out `safe` / `unattributed`:
+
+        AST-REQ-005-0  precondition  variable_declared(variable="uav_count")  -> safe
+        AST-REQ-006-1  primary       variable_declared(variable="uav_count")  -> unattributed
+
+    `inherited_refs` only injected the precondition role. A variable has no path, so the
+    declared-ancestor rule cannot help either -- it splits on `.` and a bare name has none.
+    Attribution that depends on the role rather than on the evidence is not attribution.
+    """
+    from paper_stm_feedback_loop.discover.schemas import AssertionScript
+
+    frozen = nodes._fallback_prepare(_input())
+    frozen = frozen.model_copy(
+        update={
+            "source_trace": {
+                "attribution_exclusions": [],
+                "entries": [
+                    {
+                        "trace_id": "T1",
+                        "intermediate_elements": ["Root.Region"],
+                        "source_elements": ["source:state:Root.Region"],
+                        "attribution_boundary": {
+                            "source_level_claim_allowed": True,
+                            "representation_related": False,
+                            "conversion_or_lowering_related": False,
+                        },
+                    }
+                ],
+            }
+        }
+    )
+
+    def _spec(aid: str, rid: str, role: str) -> dict:
+        return {
+            "assertion_id": aid,
+            "requirement_id": rid,
+            "description": "The variable is declared.",
+            "expression": 'variable_declared(variable="unit_count") is True',
+            "failure_message": f"[{rid}][{aid}] requirement failed",
+            "evidence_family": "structure",
+            "role": role,
+            "coverage_key": aid,
+            "aggregation_group": f"{rid}:all",
+            "rationale": "Fixture assertion; rationale not under test here.",
+        }
+
+    script = AssertionScript(
+        revision=1,
+        assertions=(_spec("AST-REQ-001-1", "REQ-001", "primary"),),
+        requirement_mapping={"REQ-001": ("AST-REQ-001-1",)},
+    )
+    released = ReleasedAssertionResults(
+        script_hash="script",
+        tool_env_hash="env",
+        sealed_hash="sealed",
+        results=(
+            AssertionResult(
+                assertion_id="AST-REQ-001-1",
+                requirement_id="REQ-001",
+                truth_value=False,
+                script_hash="script",
+                tool_env_hash="env",
+                evidence_family="structure",
+                role="primary",
+                check_detail={"function_call_trace": [{"model_refs": ["unit_count"]}]},
+            ),
+        ),
+    )
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            {
+                "requirement_id": "REQ-001",
+                "statement": "The number of units shall decrease.",
+                "checkability": "structure",
+                "predicate": "variable_declared",
+                "predicate_bindings": {"variable": "unit_count"},
+                "source_context": {"basis": "nl", "behavior_phase": "structure"},
+            },
+        ),
+    )
+    binding = _bind(
+        {
+            "_input": _input(),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+            "assertion_script": script,
+            "released_assertion_results": released,
+        }
+    )
+    assert binding.status == "safe", binding.rationale
+    assert "source:state:Root.Region" in binding.source_refs
