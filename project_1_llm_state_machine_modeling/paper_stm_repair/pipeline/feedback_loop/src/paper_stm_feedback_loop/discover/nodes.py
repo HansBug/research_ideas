@@ -37,6 +37,7 @@ from .capability import (
     called_evidence_functions,
     declared_path_bindings,
     initialization_anchored_findings,
+    projection_anchored_findings,
     redundant_proposal_findings,
     root_anchored_findings,
     substituted_binding_findings,
@@ -1262,6 +1263,14 @@ def split_requirements(
             # catches at `[*]`. Pair 0000 round 1 bound `source` to the root and the claim came
             # back True because the defective edge fires on the first tick.
             *root_anchored_findings(output.requirements, _declared_model_root(known_paths)),
+            # The third anchor mistake, after `[*]` and the model root: a behavioural claim
+            # bound to something the projection injected. Pair 0050 lost a round to
+            # `reaches(source=…FinalWaittr_0005, …)`, which is True because the projection
+            # routes that node onward -- so the sentence's actual defect went unreported.
+            *projection_anchored_findings(
+                output.requirements,
+                frozen.source_trace.get("attribution_exclusions", []) or (),
+            ),
         )
         if step_findings:
             raise ValueError(

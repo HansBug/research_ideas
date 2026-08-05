@@ -60,6 +60,7 @@ __all__ = [
     "unresolved_reference_findings",
     "initialization_anchored_findings",
     "placeholder_bindings",
+    "projection_anchored_findings",
     "redundant_proposal_findings",
     "termination_proposal_findings",
     "CLAIM_SUBJECT_BINDINGS",
@@ -901,6 +902,66 @@ def root_anchored_findings(
                 "is about (one requirement per state when the sentence does not pin one). "
                 "This applies to behavioural claims only: cardinality, containment and "
                 "initial_target may take the root as their subject."
+            )
+    return tuple(findings)
+
+
+def projection_anchored_findings(
+    requirements: Iterable[_RequirementSpec],
+    exclusions: Iterable[str],
+) -> tuple[str, ...]:
+    """Behavioural requirements whose `source`/`scope` is a projection artefact.
+
+    The R4.5 projection adds elements the author never wrote -- a completion hold for a nested
+    final state, a routing token -- and lists them in `attribution_exclusions`. Anchoring a
+    behavioural claim at one of them asks what a run *starting there* does, and that run is
+    the compiler's, not the author's. On pair 0050 the splitter bound
+    `reaches(source=…FinalWaittr_0005, …)` for a sentence about a substate the model lacks; the
+    projection really does route that node onward, so the claim was True and the cell published
+    nothing.
+
+    The third gate of this shape, after `initialization_anchored_findings` (`[*]`) and
+    `root_anchored_findings` (the model root). All three refuse the same mistake -- asking
+    about a configuration the sentence is not about -- and all three are decided here rather
+    than reviewed, because prose fires at a rate: the prompt already forbids this binding by
+    name and it still happened on one round in three.
+
+    Deliberately narrow in two directions. Only behavioural predicates: a *declarative* claim
+    about a projection artefact is legitimate, and `bind_attribution` was taught one generation
+    earlier to treat such an element as an omission's own evidence -- the two rules have to
+    agree. And only `source`/`scope`: reaching *into* a projected node is an observable fact
+    about the machine, so refusing that would block real work.
+
+    :param requirements: the accepted requirement set.
+    :param exclusions: the working contract's `attribution_exclusions`.
+    :return: one finding per offending requirement.
+    """
+    artefacts = {
+        str(ref).rsplit(":", 1)[-1].strip() for ref in exclusions if str(ref).strip()
+    }
+    artefacts = {name for name in artefacts if name}
+    if not artefacts:
+        return ()
+    findings: list[str] = []
+    for item in requirements:
+        predicate = str(getattr(item, "predicate", "") or "")
+        if not _binds_a_run(predicate):
+            continue
+        bindings = item.predicate_bindings or {}
+        anchored = sorted(
+            binding
+            for binding in _RUN_SCOPED_BINDINGS
+            if str(bindings.get(binding, "")).strip() in artefacts
+        )
+        if anchored:
+            findings.append(
+                f"{item.requirement_id} binds {anchored} to "
+                f"{str(bindings.get(anchored[0]))!r}, which the projection injected and the "
+                "working contract excludes from attribution. A run anchored there is the "
+                "compiler's, not the author's, so the claim comes back about the projection "
+                "rather than about the behaviour the sentence describes. Bind a state the "
+                "author wrote; if the sentence names an element the model lacks, propose that "
+                "name and assert its existence instead of substituting a projected sibling."
             )
     return tuple(findings)
 
