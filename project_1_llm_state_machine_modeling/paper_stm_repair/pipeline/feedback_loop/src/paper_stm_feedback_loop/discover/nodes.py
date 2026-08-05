@@ -3759,12 +3759,40 @@ def adjudicate_results(
         )
         issue_assertions: set[str] = set()
         excluded_assertions: set[str] = set()
+        # An issue citing an assertion that is not a False primary is dropped, not fatal.
+        # `v7run2/0029-claude` died here: one such issue out of six, and the whole cell was
+        # lost -- 32 released assertions, a full attribution pass and five earlier LLM calls
+        # thrown away, with no retry (`result-adjudicator-llm-call-failed` appears once).
+        # Issue #167 §3 says a local producer defect must not become RUN_FAILED, and
+        # `split_requirements` has honoured that since v2 by handing the contract error back.
+        # This node is the last one that did not. Dropping the finding keeps the rule exactly
+        # as strict -- the issue does not get published either way -- while the rest of the
+        # cell survives, and the drop is recorded so it cannot pass as a clean round.
+        # NOT YET EXERCISED BY A TEST. Reproducing the `v7run2/0029` shape needs a released
+        # fixture carrying a True or supporting result for an issue to cite, and the merge
+        # fixture only has two False primaries; an issue citing an id that does not exist at
+        # all is removed by an earlier stage, so it does not reach here. Until that fixture
+        # exists this path is defensive only and must not be reported as a fix.
+        dropped_unsupported: list[dict[str, object]] = []
+        surviving_issues = []
+        for issue in output.issues:
+            if not set(issue.assertion_ids).issubset(false_primary_assertions):
+                dropped_unsupported.append(
+                    {
+                        "issue_id": issue.issue_id,
+                        "assertion_ids": tuple(issue.assertion_ids),
+                        "reason": (
+                            "cites assertions that are not primary False results; the "
+                            "adjudicator may only group findings the release layer produced"
+                        ),
+                    }
+                )
+                continue
+            surviving_issues.append(issue)
+        if dropped_unsupported:
+            output = output.model_copy(update={"issues": tuple(surviving_issues)})
         for issue in output.issues:
             issue_ids = set(issue.assertion_ids)
-            if not issue_ids.issubset(false_primary_assertions):
-                raise ValueError(
-                    "adjudicated issues may only reference primary False assertions"
-                )
             # `attribution_status` is no longer checked here -- the sort above guarantees
             # it. What remains is the part no relocation can fix: a finding whose *cited
             # assertions* are not attribution-safe is making a claim the attribution layer
@@ -3892,6 +3920,7 @@ def adjudicate_results(
             # Relocating a finding changes which basket a reader finds it in, so the move has
             # to be as visible as the finding itself.
             "misfiled_findings_moved": tuple(misfiled_moves),
+            "unsupported_issues_dropped": tuple(dropped_unsupported),
             "merged_exclusions_split": tuple(exclusion_splits),
             "thin_merge_warnings": thin_merge_warnings,
             "normalization_applied": reported_satisfied != expected_satisfied,
