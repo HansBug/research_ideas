@@ -24,7 +24,7 @@ For every requirement whose source scope matters, fill `source_context` with onl
 
 REQUIREMENT_REVIEWER_PROMPT = """You are the Requirement Reviewer.
 	Check the entire RequirementSet against the complete NL for fidelity, no material omission, atomicity, limited overlap, explicit scope, and later assertability. An acceptable set must preserve every normative source segment and must not import behavior merely observed in FCSTM. Audit coordinated clauses and shared qualifiers explicitly: reject a split that drops a common mode/state/condition qualifier, turns a joint trigger into independent triggers, or widens a scoped clause into a global requirement. Conversely, do not invent a universal quantifier when the NL does not state one; require the source-supported scope or an explicit ambiguity disposition.
-	Do not judge whether FCSTM satisfies a requirement. A conflict between NL and FCSTM is exactly what later assertions must retain, not a reason to weaken or remove the requirement. Request revision only for a material omission, semantic addition/distortion, overlap that changes the checks, non-atomic combination, or a requirement that cannot be operationalized. Do not reject for stylistic preferences, synonymous technical wording, translation polish, or a reasonable explicit rendering of ambiguous source wording. If the set is materially faithful, complete, and checkable, accept it even when wording could be improved. When prior revision feedback is supplied, verify that it was addressed and do not reverse it over an equivalent wording choice without a new material contradiction. Do not keep demanding an unobservable task boundary or a finer semantic distinction that the frozen NL/FCSTM cannot expose; retain the limitation in the requirement rationale instead of inventing a variable or changing the requirement.
+	Do not judge whether FCSTM satisfies a requirement. A conflict between NL and FCSTM is exactly what later assertions must retain, not a reason to weaken or remove the requirement. Request revision only for a material omission, semantic addition/distortion, overlap that changes the checks, non-atomic combination, or a requirement that cannot be operationalized. Do not reject for stylistic preferences, synonymous technical wording, translation polish, or a reasonable explicit rendering of ambiguous source wording. If the set is materially faithful, complete, and checkable, accept it even when wording could be improved. When prior revision feedback is supplied, verify that it was addressed and do not reverse it over an equivalent wording choice without a new material contradiction. Do not keep demanding an unobservable task boundary or a finer semantic distinction that the frozen NL/FCSTM cannot expose; retain the limitation in the requirement rationale instead of inventing a variable or changing the requirement. A substate the sentence names by name is not such a distinction: `state_declared` observes its presence directly, so when the model declares nothing under that name the requirement should assert the absence rather than retain it as a limitation. Treat a limitation that discloses the missing substate instead of asserting it as a material omission and request revision.
 Do not edit the STM, write assertions, use tools, or use hidden expected issues. Accept only with no findings; otherwise provide concrete revision instructions and pass criteria. Write rationale in the requested content language and return only the requested structured response."""
 
 REQUIREMENT_REVIEWER_PROMPT += """
@@ -215,7 +215,19 @@ wording, same referent: the NL's "the calibration routine" and a declared
 `Calibrating` state. Bind the declared element and record the naming difference in
 `limitations`. Do not stretch this into substitution: binding "the number of
 units" to an unrelated route-control variable changes the requirement into a
-different one and hides the very gap that matters.
+different one and hides the very gap that matters. One case is settled rather
+than judged: when the sentence names a specific substate -- "in (auto final)",
+"the calibrating substate" -- and no declared state carries that name or a near
+variant of it, that is step 4, not step 3. A state the specification names by
+name has to exist whatever the rest of the clause turns out to mean, so its
+absence is a finding about the model rather than a wording difference to record.
+Do not bind it to a differently-named sibling on the grounds that both sit in the
+same region: `FinalWaittr_0005` and "auto final" are not the same state merely
+because both are substates of the autonomous mode, and binding one to the other
+files the gap as a naming note. Write the name the sentence uses and say in
+`limitations` that the model declares no state under it. This exception is to
+step 3 alone -- if the last segment of the name is already declared somewhere in
+the vocabulary, step 2 still applies and you bind the declared path.
 
 **Step 4 -- none of the above: the model has no counterpart at all.** Only now
 write the name the element should have, taken from the sentence's own wording --
