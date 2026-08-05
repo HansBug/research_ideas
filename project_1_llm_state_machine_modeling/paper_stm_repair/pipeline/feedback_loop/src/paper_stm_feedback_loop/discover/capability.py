@@ -60,6 +60,7 @@ __all__ = [
     "unresolved_reference_findings",
     "initialization_anchored_findings",
     "placeholder_bindings",
+    "conceded_omission_findings",
     "projection_anchored_findings",
     "redundant_proposal_findings",
     "termination_proposal_findings",
@@ -903,6 +904,140 @@ def root_anchored_findings(
                 "This applies to behavioural claims only: cardinality, containment and "
                 "initial_target may take the root as their subject."
             )
+    return tuple(findings)
+
+
+#: Wording a splitter uses when it concedes the model never declared something the NL named.
+_CONCESSION = re.compile(
+    r"(未声明|没有.{0,8}声明|not declared|does not declare|no such|undeclared)"
+)
+
+#: The shapes a conceded name takes in this corpus, most specific first. The last two exist
+#: because the concession is sometimes a bare NL phrase with no delimiters at all --
+#: 「auto final 是 NL 提及的名称」 -- and that is the exact round pair 0050 lost.
+_CONCEDED_NAME_PATTERNS = (
+    re.compile(r"\b([a-z_]+_final_\d+(?:\.[A-Za-z_][\w]*)+)"),
+    re.compile(r"\b([A-Z][A-Za-z]+(?:\.[A-Za-z_][\w]*)+)"),
+    re.compile("[「(（\"']\\s*([A-Za-z_][\\w ]{2,40}?)\\s*[」)）\"']"),
+    re.compile(r"\b([a-z][a-z0-9_]{3,}(?:_[a-z0-9]+)+)\b"),
+    re.compile(r"([A-Za-z][\w ]{2,30}?)\s*是\s*NL\s*(?:提及|提到|点名)"),
+    re.compile("名为\\s*['\"「]?([A-Za-z_][\\w ]{2,30}?)['\"」]?\\s*的"),
+)
+
+#: Tokens a concession mentions that are never the missing element: the four-step procedure it
+#: cites by number, and the compiler-owned names it explicitly rules out as substitutes. Without
+#: this the gate reads `step 4` as the missing name and refuses a requirement that did propose.
+_NOT_A_CONCEDED_NAME = re.compile(
+    r"^(step\s*\d+|步骤\s*\d+|第\s*\d+\s*步|R45RouteToken.*|declared_model_vocabulary.*"
+    r"|compiler.*|initial_target|.*编译器.*)$",
+    re.IGNORECASE,
+)
+
+
+def _tail(name: str) -> str:
+    """Compare names on their last segment, ignoring case, underscores and spaces.
+
+    `auto final` in prose has to match `…AutonomousMode.auto_final` in a binding.
+    """
+    return name.strip().rsplit(".", 1)[-1].lower().replace("_", "").replace(" ", "")
+
+
+def _conceded_names(text: str, declared_tails: frozenset[str]) -> tuple[str, ...]:
+    """The names a concession says are missing, minus anything the model did declare.
+
+    A concession usually names the substitute in the same breath -- 「声明的是 FinalWaittr_0005」
+    -- and the substitute is declared, so subtracting the declared set leaves the missing one.
+    """
+    for pattern in _CONCEDED_NAME_PATTERNS:
+        found = tuple(
+            token
+            for token in (str(match).strip() for match in pattern.findall(text))
+            if token
+            and not _NOT_A_CONCEDED_NAME.match(token)
+            and _tail(token) not in declared_tails
+        )
+        if found:
+            return found
+    return ()
+
+
+def _batch_proposals(
+    requirements: tuple[_RequirementSpec, ...], declared_tails: frozenset[str]
+) -> frozenset[str]:
+    """Every undeclared name the batch binds anywhere -- these are its step-4 proposals.
+
+    Reading only the `*_declared` predicates is not enough: pair 0006 proposes
+    `MissionComplete` through `persists_until(release=active("<path>"))`, and a narrower reading
+    called that requirement a bare concession on three separate rounds.
+    """
+    out: set[str] = set()
+    for item in requirements:
+        for value in (item.predicate_bindings or {}).values():
+            for token in re.findall(r"[A-Za-z_][\w.]*", str(value)):
+                if "." not in token and not token[:1].isupper() and "_" not in token:
+                    continue
+                if _tail(token) not in declared_tails:
+                    out.add(_tail(token))
+    return frozenset(out)
+
+
+def conceded_omission_findings(
+    requirements: Iterable[_RequirementSpec],
+    known_paths: Iterable[str],
+) -> tuple[str, ...]:
+    """Requirements that concede an omission in prose without asserting it anywhere.
+
+    A rule kept in prose fails two ways. The familiar one is that it does not fire. The other
+    is worse to find, because the trace looks correct: on `v5run1` the splitter wrote
+
+        「auto final 是 NL 提及的名称;模型未声明此名的子状态,声明的是 FinalWaittr_0005」
+
+    into `limitations` -- exactly the right observation, step 4's own trigger condition -- and
+    then bound the behavioural claim to three sibling substates that do exist. Every assertion
+    came back True and the cell published nothing at all. A note in `limitations` cannot come
+    back False, so the omission goes unreported no matter how accurately the note describes it.
+
+    The check is therefore on the model's own internal consistency, not on the requirement's
+    prose: concede that a name the NL used is undeclared, and something in this batch has to
+    *claim* it, where a claim is a binding the model never declared and can therefore fail.
+    Taking the trigger from the self-report rather than from the sentence is what keeps this
+    narrow -- no noun-phrase extraction from NL, nothing to tune per pair.
+
+    Silent when no name can be pulled out of the concession: 115 of the corpus's 246 concessions
+    are like that, and refusing them all would repeat the `substituted_binding` accident, where
+    a gate with no legal move killed a cell within two rounds. Missing is the cheaper error.
+
+    :param requirements: the accepted requirement set for one batch.
+    :param known_paths: the elements the model declares.
+    :return: one finding per requirement that concedes an omission it never asserts.
+    """
+    declared_tails = frozenset(_tail(str(path)) for path in known_paths if str(path).strip())
+    if not declared_tails:
+        return ()
+    batch = tuple(requirements)
+    proposals = _batch_proposals(batch, declared_tails)
+    findings: list[str] = []
+    for item in batch:
+        concessions = tuple(
+            str(entry)
+            for entry in (getattr(item, "limitations", ()) or ())
+            if _CONCESSION.search(str(entry))
+        )
+        if not concessions:
+            continue
+        missing = tuple(
+            name for text in concessions for name in _conceded_names(text, declared_tails)
+        )
+        if not missing or any(_tail(name) in proposals for name in missing):
+            continue
+        findings.append(
+            f"{item.requirement_id} records in `limitations` that the model never declared "
+            f"{sorted(set(missing))[:2]}, and then asserts nothing about it. A note in "
+            "`limitations` cannot come back False, so the omission the sentence points at goes "
+            "unreported however accurately the note describes it. Step 4 applies: propose the "
+            "name the NL used and assert its existence, so the claim can fail. Keep the note as "
+            "well -- it explains the proposal -- but the note is not the finding."
+        )
     return tuple(findings)
 
 

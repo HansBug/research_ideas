@@ -37,6 +37,7 @@ from .capability import (
     called_evidence_functions,
     declared_path_bindings,
     initialization_anchored_findings,
+    conceded_omission_findings,
     projection_anchored_findings,
     redundant_proposal_findings,
     root_anchored_findings,
@@ -1271,6 +1272,10 @@ def split_requirements(
                 output.requirements,
                 frozen.source_trace.get("attribution_exclusions", []) or (),
             ),
+            # A concession filed in `limitations` cannot come back False. Pair 0050 lost a round
+            # to a splitter that wrote down the omission correctly and then asserted nothing
+            # about it -- eleven assertions, all True, nothing published.
+            *conceded_omission_findings(output.requirements, known_paths),
         )
         if step_findings:
             raise ValueError(
