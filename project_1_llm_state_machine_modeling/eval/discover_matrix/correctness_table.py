@@ -56,25 +56,51 @@ from round_variance import (  # noqa: E402
 
 KNOWN_FP = HERE / "known_false_positives.json"
 
+#: The same cell goes by two names. Run directories and this table use `0029-claude`; the
+#: adjudicated ledger and `detect_fabrications.py` both use the full profile
+#: (`0029-claude-opus-4-7`). Joining on the raw string silently matched nothing, so every
+#: verdict fell through to the default branch and looked like a checked result.
+_MODEL_ALIASES = {"claude-opus-4-7": "claude", "gpt-5.5": "gpt"}
 
-def _known_false_positives() -> set[tuple[str, str]]:
-    """Adjudicated false positives, keyed `(cell, requirement_id)`.
 
-    The file keys on `(run, cell, requirement_id)` and warns that a requirement id means
-    different things in different runs. Dropping `run` here is deliberate and stated: these
-    are fresh runs whose ids no entry can match exactly, so the pair is used as a *hint* and
-    a hit is reported rather than acted on.
+def _canonical_cell(cell: str) -> str:
+    text = str(cell)
+    for long_name, short in _MODEL_ALIASES.items():
+        if text.endswith(f"-{long_name}"):
+            return text[: -len(long_name)] + short
+    return text
+
+
+def _adjudicated() -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
+    """The two adjudicated sets, kept apart: `(fabricated, grounded)`.
+
+    Merging them is the mistake the file itself warns against -- "Mixing the two kinds
+    understates precision when a grounded extra is counted as a false positive". `grounded`
+    records extras the ledger does not list but the pair's NL supports; those are correct
+    findings, not noise.
+
+    Keyed `(cell, requirement_id)` with `run` dropped, which is deliberate and limited:
+    the file's own `id_matching_caveat` says a requirement id means different things across
+    runs, so a hit here is a *hint that a same-shaped finding was adjudicated before*, not a
+    verdict on this one. The report says so where it uses it.
     """
     if not KNOWN_FP.exists():
-        return set()
+        return set(), set()
     payload = json.loads(KNOWN_FP.read_text(encoding="utf-8"))
-    entries = payload.get("false_positives") or payload.get("entries") or []
-    out: set[tuple[str, str]] = set()
-    for entry in entries:
+    fabricated: set[tuple[str, str]] = set()
+    grounded: set[tuple[str, str]] = set()
+    for entry in payload.get("fabricated") or []:
         cell, requirement = entry.get("cell"), entry.get("requirement_id")
         if cell and requirement:
-            out.add((str(cell), str(requirement)))
-    return out
+            fabricated.add((_canonical_cell(cell), str(requirement)))
+    for entry in payload.get("grounded") or []:
+        cell = entry.get("cell")
+        # `grounded` entries carry `requirement_ids` (plural); reading only the singular key
+        # was the second half of why this join never fired.
+        for requirement in entry.get("requirement_ids") or ([entry.get("requirement_id")] if entry.get("requirement_id") else []):
+            if cell and requirement:
+                grounded.add((_canonical_cell(cell), str(requirement)))
+    return fabricated, grounded
 
 
 def _fabrication_findings(
@@ -99,7 +125,10 @@ def _fabrication_findings(
             found = True
             payload = json.loads(path.read_text(encoding="utf-8"))
             for finding in payload.get("findings") or []:
-                key = (str(finding.get("cell")), str(finding.get("requirement_id")))
+                key = (
+                    _canonical_cell(finding.get("cell")),
+                    str(finding.get("requirement_id")),
+                )
                 matched.setdefault(key, []).append(finding)
     return matched if found else None
 
@@ -108,22 +137,26 @@ def _classify(
     cell: str,
     issue: dict,
     fabrication: dict[tuple[str, str], list[dict]] | None,
-    known_fp: set[tuple[str, str]],
+    adjudicated: tuple[set[tuple[str, str]], set[tuple[str, str]]],
 ) -> dict:
     """One unexpected issue, with the facts a reader would otherwise have to dig for."""
+    fabricated_set, grounded_set = adjudicated
     requirements = requirement_ids_of(issue)
     hits = [f for rid in requirements for f in (fabrication or {}).get((cell, rid), [])]
     classes = {str(f.get("defect_class", "")) for f in hits}
-    flagged_fp = any((cell, rid) in known_fp for rid in requirements)
+    same_shape_fabricated = any((cell, rid) in fabricated_set for rid in requirements)
+    same_shape_grounded = any((cell, rid) in grounded_set for rid in requirements)
 
     if any(c.startswith("published-issue-no-longer-false") for c in classes):
-        verdict, why = "does-not-reproduce", "主断言重算不再为 False"
+        verdict, why = "does-not-reproduce", "主断言重算不再为 False（含谓词拒答）"
     elif "false-rests-on-converter-owned-element" in classes:
         verdict, why = "rests-on-projection", "False 依赖投影注入的元素，非作者所写"
     elif "unparseable-assertion" in classes:
         verdict, why = "unverifiable", "断言表达式无法解析，无法重算"
-    elif flagged_fp:
-        verdict, why = "known-false-positive", "命中已裁定假阳台账（按 cell+requirement 提示）"
+    elif same_shape_fabricated:
+        verdict, why = "same-shape-adjudicated-fabricated", "同 cell+requirement 曾被裁定为捏造（跨 run 仅作提示）"
+    elif same_shape_grounded:
+        verdict, why = "same-shape-adjudicated-grounded", "同 cell+requirement 曾被裁定为 grounded：台账未列但 NL 支持"
     elif fabrication is None:
         verdict, why = "unknown", "未找到该轮的 _fabrication_scan.json，无机器判据"
     else:
@@ -135,6 +168,10 @@ def _classify(
         "verdict": verdict,
         "why": why,
         "fabrication_classes": sorted(classes),
+        "same_shape_adjudicated": (
+            "fabricated" if same_shape_fabricated
+            else ("grounded" if same_shape_grounded else None)
+        ),
     }
 
 
@@ -152,7 +189,7 @@ def main() -> int:
     args = parser.parse_args()
 
     ledger = _ledger_by_pair()
-    known_fp = _known_false_positives()
+    adjudicated = _adjudicated()
     report: dict[str, dict] = {}
 
     for run_dir in args.run_dirs:
@@ -172,7 +209,7 @@ def main() -> int:
                     if hit:
                         matched.setdefault(hit[0], []).append(issue.get("issue_id"))
                     else:
-                        unexpected.append(_classify(cell, issue, fabrication, known_fp))
+                        unexpected.append(_classify(cell, issue, fabrication, adjudicated))
                 report.setdefault(cell, {"N": len(entries), "rounds": {}})["rounds"][
                     run_dir.name
                 ] = {
@@ -181,6 +218,19 @@ def main() -> int:
                     "matched": {k: v for k, v in sorted(matched.items())},
                     "missed": sorted(e["id"] for e in entries if e["id"] not in matched),
                     "unexpected": unexpected,
+                    # A claim the splitter produced and the attribution layer refused. It is
+                    # not a miss by the same mechanism as "never asserted", and a table over
+                    # published issues alone cannot see it -- yet on `0050-claude` that is
+                    # the entire story of the cell.
+                    "blocked_by_attribution": [
+                        {
+                            "issue_id": e.get("issue_id"),
+                            "requirement_ids": list(requirement_ids_of(e)),
+                            "attribution_status": e.get("attribution_status"),
+                            "title": e.get("title"),
+                        }
+                        for e in (data["record"].get("excluded_findings") or [])
+                    ],
                     # Two issues matching one ledger entry is a duplicate the merge change
                     # exists to remove, and it is invisible in `published` alone.
                     "duplicate_matches": {
@@ -192,14 +242,25 @@ def main() -> int:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
 
-    print(f"{'cell':<14}{'N':>3}  n/N per round        多报/轮   命中的台账条目")
+    print(f"{'cell':<14}{'N':>3}  n/N per round   多报/轮   归因挡/轮  命中并集         从未命中")
     for cell, info in report.items():
         rounds = info["rounds"]
         ns = "/".join(str(r["n"]) for r in rounds.values())
         us = "/".join(str(len(r["unexpected"])) for r in rounds.values())
+        bs = "/".join(str(len(r["blocked_by_attribution"])) for r in rounds.values())
         union = sorted({k for r in rounds.values() for k in r["matched"]})
-        print(f"{cell:<14}{info['N']:>3}  {ns:<20} {us:<9} "
-              f"{','.join(x.replace('EIS-','') for x in union) or '-'}")
+        never = sorted(set.intersection(*[set(r["missed"]) for r in rounds.values()]))
+        print(f"{cell:<14}{info['N']:>3}  {ns:<15} {us:<9} {bs:<10} "
+              f"{','.join(x.replace('EIS-','') for x in union) or '-':<16} "
+              f"{','.join(x.replace('EIS-','') for x in never) or '-'}")
+
+    print("\n=== 被归因层挡住的断言（提出了但未发布）===")
+    blocked = [(rn, c, b) for c, i in report.items()
+               for rn, r in i["rounds"].items() for b in r["blocked_by_attribution"]]
+    for rn, c, b in blocked:
+        print(f"  {rn}/{c}  {b['attribution_status']:<20} {(b['title'] or '')[:58]}")
+    if not blocked:
+        print("  （无）")
 
     print("\n=== 多报逐条判据 ===")
     any_unexpected = False
