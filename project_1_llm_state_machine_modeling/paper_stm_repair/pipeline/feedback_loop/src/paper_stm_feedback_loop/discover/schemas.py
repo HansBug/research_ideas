@@ -584,12 +584,54 @@ class AttributionProjection(StrictBaseModel):
 
 
 class AdjudicatedIssue(StrictBaseModel):
+    """One defect, which may be the reason several Requirements failed.
+
+    Requirements are split for checkability rather than by root cause -- `occupancy_after`
+    needs a concrete `source`, so a sentence that leaves the source open becomes one
+    Requirement per running mode. When the underlying model defect is a single misplaced
+    edge, every one of those Requirements fails for that one reason, and reporting them
+    separately inflates the defect count.
+
+    `shared_root_cause` and `shared_elements` are what stop that allowance from becoming a
+    way to shrink the count instead: a group spanning Requirements must say where the shared
+    cause is and name the elements it rests on. `adjudicate_results` enforces their presence,
+    and separately enforces that `requirement_ids` equals the Requirements owning the
+    referenced assertions -- so a group can neither drop one nor claim one it never touched.
+    """
+
     issue_id: str = Field(pattern=r"^ISSUE-[A-Za-z0-9_.-]+$", min_length=7)
-    requirement_id: str
+    requirement_ids: tuple[str, ...] = Field(min_length=1)
     assertion_ids: tuple[str, ...] = Field(min_length=1)
     title: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
     attribution_status: Literal["safe", "representation_debt", "unattributed"]
+    #: Required once `requirement_ids` holds more than one entry. Absent on single-Requirement
+    #: issues, and absent on every excluded finding -- exclusions are never merged.
+    shared_root_cause: str | None = None
+    shared_elements: tuple[str, ...] = Field(default_factory=tuple)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_legacy_singular(cls, data: Any) -> Any:
+        """Read run records written before this field was pluralised.
+
+        `StrictBaseModel` forbids unknown keys, so without this every
+        `discover-completed.json` from v11-v18 would fail to load -- and those are the
+        baseline the merge change is measured against. Only the read path is lenient; the
+        tool schema handed to the adjudicator advertises `requirement_ids` alone, so nothing
+        new is written in the old shape. Carrying both keys is an error rather than a
+        precedence rule: two disagreeing answers to "which Requirement" is not a record
+        worth guessing about.
+        """
+        if not isinstance(data, dict) or "requirement_id" not in data:
+            return data
+        if "requirement_ids" in data:
+            raise ValueError(
+                "AdjudicatedIssue carries both requirement_id and requirement_ids"
+            )
+        migrated = dict(data)
+        migrated["requirement_ids"] = (migrated.pop("requirement_id"),)
+        return migrated
 
 
 class DiscoverAdjudication(StrictBaseModel):

@@ -49,6 +49,9 @@ REPORT = (
 
 if str(FEEDBACK_LOOP / "src") not in sys.path:
     sys.path.insert(0, str(FEEDBACK_LOOP / "src"))
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from issue_compat import requirement_label  # noqa: E402
 
 #: `predicate(a="x", b=1)` -> name plus keyword bindings.  Kept because the audit
 #: bundle stores expressions as text, and the parse is what decides whether a call
@@ -161,7 +164,7 @@ def scan(audit_dir: pathlib.Path) -> list[dict]:
                 if not _parse_call(expression):
                     out.append({
                         "cell": cell,
-                        "requirement_id": issue.get("requirement_id"),
+                        "requirement_id": assertion.get("requirement_id") or requirement_label(issue),
                         "assertion_id": assertion_id,
                         "title": issue.get("title"),
                         "defect_class": "unparseable-assertion",
@@ -175,7 +178,7 @@ def scan(audit_dir: pathlib.Path) -> list[dict]:
                 if verdict != "false":
                     out.append({
                         "cell": cell,
-                        "requirement_id": issue.get("requirement_id"),
+                        "requirement_id": assertion.get("requirement_id") or requirement_label(issue),
                         "assertion_id": assertion_id,
                         "title": issue.get("title"),
                         "defect_class": f"published-issue-no-longer-false:{verdict}",
@@ -195,7 +198,7 @@ def scan(audit_dir: pathlib.Path) -> list[dict]:
                     entry = _default_entry_of(model, composite) if composite else None
                     out.append({
                         "cell": cell,
-                        "requirement_id": issue.get("requirement_id"),
+                        "requirement_id": assertion.get("requirement_id") or requirement_label(issue),
                         "assertion_id": assertion_id,
                         "title": issue.get("title"),
                         "defect_class": "false-rests-on-converter-owned-element",

@@ -40,6 +40,10 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 LEDGER = HERE / "known_false_positives.json"
 
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+from issue_compat import requirement_ids_of  # noqa: E402
+
 
 def _cell_name(path: pathlib.Path) -> str:
     return path.name.removesuffix("-audit.json")
@@ -87,17 +91,20 @@ def scan(audit_dir: pathlib.Path, run: str = "matrix-v16") -> dict:
         credited = _credited_titles(record)
         artifact = record.get("terminal_artifact") or {}
         for issue in artifact.get("issues") or []:
-            requirement = str(issue.get("requirement_id") or "")
-            key = (cell, requirement)
-            seen.add(key)
-            title = str(issue.get("title") or "")
-            if title and title in credited:
-                continue  # credited against an expected issue; not an extra
-            if key in fabricated:
-                still.append({"cell": cell, "requirement_id": requirement, "title": title,
-                              "defect_class": fabricated[key]["defect_class"]})
-            elif key not in grounded:
-                unadjudicated.append({"cell": cell, "requirement_id": requirement, "title": title})
+            # A merged issue speaks for several Requirements, and the known-false-positive
+            # table is keyed per Requirement -- so each one is looked up separately. Merging
+            # must not let a Requirement slip past a ruling that already applies to it.
+            for requirement in requirement_ids_of(issue):
+                key = (cell, requirement)
+                seen.add(key)
+                title = str(issue.get("title") or "")
+                if title and title in credited:
+                    continue  # credited against an expected issue; not an extra
+                if key in fabricated:
+                    still.append({"cell": cell, "requirement_id": requirement, "title": title,
+                                  "defect_class": fabricated[key]["defect_class"]})
+                elif key not in grounded:
+                    unadjudicated.append({"cell": cell, "requirement_id": requirement, "title": title})
 
     return {
         "still_fabricating": still,

@@ -3360,13 +3360,28 @@ def adjudicate_results(
             expected_requirements = {
                 requirement_by_assertion[assertion_id] for assertion_id in issue_ids
             }
-            if (
-                issue.requirement_id not in expected_requirements
-                or len(expected_requirements) != 1
-            ):
+            # Equality, not membership: a group that drops a Requirement whose assertion it
+            # references, or claims one it does not, is not describing the evidence it cites.
+            if set(issue.requirement_ids) != expected_requirements:
                 raise ValueError(
-                    "confirmed issue requirement_id must match all referenced assertions"
+                    "confirmed issue requirement_ids must equal the requirements of all "
+                    "referenced assertions"
                 )
+            if len(expected_requirements) > 1:
+                # Grouping across Requirements lowers the reported defect count, so it has
+                # to be argued rather than asserted.  Without these the adjudicator could
+                # emit one issue over every False assertion and nothing downstream would
+                # be able to tell that apart from a genuine single root cause.
+                if not issue.shared_root_cause:
+                    raise ValueError(
+                        "an issue spanning multiple requirements must state its "
+                        "shared_root_cause"
+                    )
+                if not issue.shared_elements:
+                    raise ValueError(
+                        "an issue spanning multiple requirements must name its "
+                        "shared_elements"
+                    )
         for excluded in output.excluded_findings:
             excluded_ids = set(excluded.assertion_ids)
             if not excluded_ids.issubset(false_primary_assertions):
@@ -3381,12 +3396,16 @@ def adjudicate_results(
             expected_requirements = {
                 requirement_by_assertion[assertion_id] for assertion_id in excluded_ids
             }
+            # Exclusions stay one Requirement each.  They record evidence that could not be
+            # attributed, so grouping them buys no accuracy in the defect count -- the only
+            # thing it changes is how hard the record is to trace back to its Requirement.
             if (
-                excluded.requirement_id not in expected_requirements
-                or len(expected_requirements) != 1
+                len(expected_requirements) != 1
+                or set(excluded.requirement_ids) != expected_requirements
             ):
                 raise ValueError(
-                    "excluded finding requirement_id must match all referenced assertions"
+                    "excluded finding requirement_ids must be the single requirement of "
+                    "all referenced assertions"
                 )
             expected_statuses = {
                 binding_by_assertion[assertion_id].status
@@ -3670,7 +3689,7 @@ def deterministic_adjudication_from_results(
         issues.append(
             AdjudicatedIssue(
                 issue_id=f"ISSUE-{result.requirement_id.removeprefix('REQ-')}",
-                requirement_id=result.requirement_id,
+                requirement_ids=(result.requirement_id,),
                 assertion_ids=(result.assertion_id,),
                 title=f"Requirement {result.requirement_id} is not satisfied",
                 rationale="The released strict bool assertion result is False.",

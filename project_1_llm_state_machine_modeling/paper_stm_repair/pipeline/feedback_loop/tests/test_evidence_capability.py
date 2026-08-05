@@ -252,7 +252,7 @@ def test_property_requirement_closes_on_decisive_relation_evidence() -> None:
     assert "failure" not in state
     published = state["final_output"]
     assert published.status == "completed"
-    assert [issue.requirement_id for issue in published.issues] == ["REQ-001"]
+    assert [issue.requirement_ids for issue in published.issues] == [("REQ-001",)]
 
     waivers = [
         detail

@@ -28,6 +28,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from audit_v4 import _segment_macro_sources, _walk  # noqa: E402
+from issue_compat import requirement_ids_of, requirement_label  # noqa: E402
 
 # Derived, not hardcoded: this script used to carry an absolute path that only
 # worked on one machine, and it lives under version control now precisely so a
@@ -286,10 +287,12 @@ def expected_verdicts(rec) -> list[tuple[str, str, str]]:
         want_events, want_states = spec["events"], spec["states"]
         hit = ""
         for issue in issues:
-            req = reqs.get(issue.get("requirement_id")) or {}
+            # A merged issue rests on the bindings of every Requirement it covers, so the
+            # bound-element set is their union rather than one Requirement's.
             bound = {
                 str(v)
-                for v in (req.get("predicate_bindings") or {}).values()
+                for rid in requirement_ids_of(issue)
+                for v in ((reqs.get(rid) or {}).get("predicate_bindings") or {}).values()
                 if str(v) not in {"[*]", "<undeclared>"}
             }
             if want_events:
@@ -368,7 +371,7 @@ def readable(rec, commit: str) -> str:
         A("| issue | requirement | 归因 | 标题 |")
         A("| --- | --- | --- | --- |")
         for i in issues:
-            A(f"| `{i.get('issue_id')}` | `{i.get('requirement_id')}` "
+            A(f"| `{i.get('issue_id')}` | `{requirement_label(i)}` "
               f"| **{i.get('attribution_status')}** | {i.get('title')} |")
         A("")
     for e in final.get("excluded_findings") or []:
