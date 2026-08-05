@@ -187,3 +187,67 @@ def test_every_substituting_assertion_gets_its_own_finding() -> None:
     )
     findings = substituted_binding_findings((requirement,), assertions, DECLARED)
     assert len(findings) == 2
+
+
+def test_an_element_embedded_in_a_binding_expression_counts_as_bound() -> None:
+    """`persists_until` binds `release=active("<path>")`, so the element is inside an expression.
+
+    Reading only bare binding values refused a Requirement that had bound the very element its
+    assertion asserted, and the repeat killed `v4run3/0006-claude` on the no-progress gate.
+    """
+    root = "llms_emp_feedback_final_0006"
+    declared = frozenset({root, f"{root}.UAVSwarmStateMachine", f"{root}.UAVSwarmStateMachine.Searching"})
+    requirement = _Req(
+        "REQ-001",
+        "persists_until",
+        {
+            "bound": "5",
+            "release": f'active("{root}.UAVSwarmStateMachine.MissionComplete")',
+            "state": f"{root}.UAVSwarmStateMachine.Searching",
+        },
+    )
+    assertion = _Ast(
+        "AST-REQ-001-0",
+        "REQ-001",
+        f'state_declared(state="{root}.UAVSwarmStateMachine.MissionComplete", kind="any") is True',
+        "precondition",
+    )
+    assert substituted_binding_findings((requirement,), (assertion,), declared) == ()
+
+
+def test_a_proposed_name_recorded_by_last_segment_counts() -> None:
+    """`limitations` is prose, so it names the element, not the path it will be bound as.
+
+    The real entry reads「MissionComplete 是按 NL 措辞提出的名称（step 4）」-- no namespace
+    prefix. Comparing last segments is the same comparison the step-2 gate performs.
+    """
+    root = "llms_emp_feedback_final_0006"
+    declared = frozenset({root, f"{root}.UAVSwarmStateMachine"})
+    requirement = _Req(
+        "REQ-001",
+        "state_declared",
+        {"state": f"{root}.UAVSwarmStateMachine.Searching", "kind": "any"},
+        limitations=("模型未声明任何对应『任务完成』的状态；MissionComplete 是按 NL 措辞提出的名称（step 4）",),
+    )
+    assertion = _Ast(
+        "AST-REQ-001-0",
+        "REQ-001",
+        f'state_declared(state="{root}.UAVSwarmStateMachine.MissionComplete", kind="any") is True',
+        "precondition",
+    )
+    assert substituted_binding_findings((requirement,), (assertion,), declared) == ()
+
+
+def test_the_invented_prefix_is_still_refused_after_the_relaxation() -> None:
+    """The relaxations must not let pair 0050's substitution back through.
+
+    `human_steering_cmd` is a prefix of the bound composite, so its *last segment* differs
+    (`human_steering_cmd` vs `human_steering_cmd_nor_brake_pressed_nor_in_auto_final`) and no
+    `limitations` entry names it on its own.
+    """
+    findings = _findings(
+        expression=f'event_declared(event="{ROOT_NS}.human_steering_cmd") is True',
+        role="precondition",
+        limitations=("模型将三条件合并为一个复合事件，未为 human steering cmd / brake pressed 声明独立事件",),
+    )
+    assert len(findings) == 1, findings

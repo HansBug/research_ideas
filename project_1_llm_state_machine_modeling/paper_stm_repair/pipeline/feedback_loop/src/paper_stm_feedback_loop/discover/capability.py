@@ -509,11 +509,21 @@ def substituted_binding_findings(
         # bundles still run.
         if requirement is None or not getattr(requirement, "predicate", None):
             continue
-        bound = {
-            str(value).strip()
-            for value in (requirement.predicate_bindings or {}).values()
-            if str(value).strip()
-        }
+        # Every path-shaped token in every binding value, not just the values that *are*
+        # paths. `persists_until` binds `release=active("<path>")`, so the element it names is
+        # embedded in an expression -- reading only bare values refused a Requirement that had
+        # bound the very element its assertion asserted, and the repeat killed the cell on the
+        # no-progress gate.
+        bound: set[str] = set()
+        for value in (requirement.predicate_bindings or {}).values():
+            text = str(value).strip()
+            if not text:
+                continue
+            bound.add(text)
+            bound.update(re.findall(r"[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)+", text))
+        # Proposed names are recorded in prose, so the Requirement writes the *name* rather
+        # than the qualified path it will be bound as. Compare last segments, which is the
+        # same comparison `redundant_proposal_findings` performs.
         limitations_text = " ".join(
             str(entry) for entry in (getattr(requirement, "limitations", ()) or ())
         )
@@ -521,6 +531,11 @@ def substituted_binding_findings(
             getattr(assertion, "expression", ""), known_paths
         ):
             if text in bound or text in limitations_text:
+                continue
+            if text.rsplit(".", 1)[-1] in limitations_text:
+                continue
+            if any(text == candidate or text.rsplit(".", 1)[-1] == candidate.rsplit(".", 1)[-1]
+                   for candidate in bound):
                 continue
             findings.append(
                 f"{assertion.assertion_id} binds {arg}={text!r}, which the model does not "
