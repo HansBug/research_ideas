@@ -184,3 +184,37 @@ def test_every_offending_requirement_gets_its_own_finding() -> None:
         _Req("REQ-B", "stays_in", {"source": f"{NS}.AutonomousMode.FinalWaittr_0005"}),
     )
     assert len(findings) == 2
+
+
+def test_the_model_root_is_not_treated_as_a_projection_artefact() -> None:
+    """`compiler:root:<ns>` is on the exclusion list, but the author wrote the root.
+
+    `root_anchored_findings` already refuses a behavioural claim anchored there, and it carries
+    the exemptions that decision needs -- `containment`, `initial_target` and `cardinality` ask
+    what the model declares about itself, so the root is their legitimate subject. Folding the
+    root in here would refuse `terminates(scope=<root>)` for a sentence that really is about the
+    whole system shutting down. The corpus has three such requirements, all in v1's gpt cells: two `terminates(scope=root)`
+    and one `occupancy_after(source=root)`.
+    """
+    exclusions = (*EXCLUSIONS, f"compiler:root:{NS}")
+    findings = projection_anchored_findings(
+        (_Req("REQ-M006", "terminates", {"scope": NS, "trigger": f"{NS}.Power_Off"}),),
+        exclusions,
+    )
+    assert findings == ()
+
+
+def test_a_real_artefact_is_still_refused_when_the_root_is_listed() -> None:
+    """Excluding the root must not disable the gate for everything else on the list."""
+    exclusions = (*EXCLUSIONS, f"compiler:root:{NS}")
+    findings = projection_anchored_findings(
+        (
+            _Req(
+                "REQ-M005C",
+                "reaches",
+                {"source": f"{NS}.AutonomousMode.FinalWaittr_0005", "target": f"{NS}.HumanDrivingMode"},
+            ),
+        ),
+        exclusions,
+    )
+    assert len(findings) == 1

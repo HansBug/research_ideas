@@ -936,8 +936,16 @@ def projection_anchored_findings(
     :param exclusions: the working contract's `attribution_exclusions`.
     :return: one finding per offending requirement.
     """
+    # `compiler:root:<ns>` is on the exclusion list too, but the root is not a projection
+    # artefact -- the author wrote it. Anchoring a behavioural claim there is a real mistake and
+    # `root_anchored_findings` already refuses it, with the structural-predicate exemptions that
+    # decision needs. Folding the root in here would refuse `terminates(scope=<root>)` for a
+    # sentence that really is about the whole system, which is why the first published
+    # feasibility table reported "0 误伤" off a corpus that happened to exclude those cells.
     artefacts = {
-        str(ref).rsplit(":", 1)[-1].strip() for ref in exclusions if str(ref).strip()
+        str(ref).rsplit(":", 1)[-1].strip()
+        for ref in exclusions
+        if str(ref).strip() and not str(ref).startswith("compiler:root:")
     }
     artefacts = {name for name in artefacts if name}
     if not artefacts:
