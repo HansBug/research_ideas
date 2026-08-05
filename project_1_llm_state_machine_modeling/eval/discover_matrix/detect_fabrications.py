@@ -142,6 +142,31 @@ def _rederive(env, expression: str):
     return "error", refs
 
 
+#: Kept in sync with `discover/nodes.py::_OMISSION_PLACEHOLDERS`. Duplicated rather than
+#: imported because this script also runs against bundles from older commits, where the
+#: pipeline constant may not exist.
+_OMISSION_PLACEHOLDERS = ("UnspecifiedInitial", "FinalWait")
+
+
+def _is_omission_evidence(expression: str, touched: list[str]) -> bool:
+    """Whether every touched exclusion is an omission placeholder under a declarative claim.
+
+    Both halves required, same as the pipeline: `R45RouteToken` is injected on every model
+    regardless of what the author wrote, so evidence resting on it says nothing either way,
+    and a behavioural predicate through an injected node is a genuine confound.
+    """
+    call = _parse_call(expression)
+    predicate = call[0] if call else ""
+    declarative = predicate in {"containment", "initial_target"} or predicate.endswith(
+        "_declared"
+    )
+    if not declarative:
+        return False
+    return all(
+        any(marker in str(ref) for marker in _OMISSION_PLACEHOLDERS) for ref in touched
+    )
+
+
 def scan(audit_dir: pathlib.Path) -> list[dict]:
     from paper_stm_feedback_loop.common.refs import reference_matches
 
@@ -189,6 +214,15 @@ def scan(audit_dir: pathlib.Path) -> list[dict]:
                     })
                     continue
                 touched = [e for e in exclusions if reference_matches(e, refs)]
+                # One policy, one place. `bind_attribution` treats an omission placeholder as
+                # the omission's own evidence when the predicate's claim is about what the
+                # model declares -- a placeholder the projection injects *because* the author
+                # declared nothing cannot make that omission unattributable. This scanner has
+                # to apply the same rule or the two layers disagree on the same issue, and a
+                # reader gets `safe` from the pipeline and `rests-on-projection` from the
+                # audit for one finding.
+                if touched and _is_omission_evidence(expression, touched):
+                    touched = []
                 if touched:
                     composite = (
                         _parse_call(expression)[1].get("composite")
