@@ -63,6 +63,23 @@ def _elements(text: str) -> set[str]:
     return out
 
 
+def _verification_kind(predicate: str | None) -> str | None:
+    """`structure` / `behavior` / `property` for a predicate, or `None` when unknown.
+
+    Used only to break element-overlap ties. Two ledger entries can name exactly the same
+    elements and differ only in what they ask about them, and then nothing else in the
+    signature can tell them apart.
+    """
+    if not predicate:
+        return None
+    try:
+        from paper_stm_feedback_loop.discover.predicates import verification_kind_of
+
+        return verification_kind_of(predicate)
+    except Exception:
+        return None
+
+
 def _ledger_by_pair() -> dict[str, list[dict]]:
     records = json.loads(LEDGER.read_text(encoding="utf-8"))["records"]
     by_pair: dict[str, list[dict]] = collections.defaultdict(list)
@@ -75,14 +92,17 @@ def _ledger_by_pair() -> dict[str, list[dict]]:
         # `primary`, `role` and a dozen more. `trigger` alone bought a point of overlap from
         # any issue that has one, and `EIS-0029-03` matched an unrelated UrbanMode finding on
         # `{finishstate, trigger}` -- one coincidence and one JSON key.
-        primary_only = [
-            assertion
-            for assertion in (record.get("assertions") or [])
-            if assertion.get("role") == "primary"
-        ] or (record.get("assertions") or [])
+        # Every assertion, not just the primary one, and from the expression when the
+        # `elements` field is empty. `EIS-0029-04`'s statement covers both HighwayMode and
+        # UrbanMode and records the UrbanMode half as a `recovered_unverified` assertion --
+        # whose `elements` list is blank while its expression names them. Reading only primary
+        # `elements` made the UrbanMode side permanently unmatchable, which then showed up as
+        # an unexpected issue *and* collided with `known_false_positives.json`, whose 2026-07-29
+        # verdict on that exact shape `EIS-0029-04` explicitly overrides ("标准应当一致").
         named: set[str] = set()
-        for assertion in primary_only:
-            named |= _elements(" ".join(str(x) for x in (assertion.get("elements") or ())))
+        for assertion in record.get("assertions") or []:
+            listed = _elements(" ".join(str(x) for x in (assertion.get("elements") or ())))
+            named |= listed or _elements(str(assertion.get("expression") or ""))
         by_pair[record["pair"]].append(
             {
                 "id": record["id"],
@@ -130,17 +150,31 @@ def _match(issue_sig: tuple[str | None, set[str]], entries: list[dict]) -> tuple
     a forced match would manufacture the hit this is meant to detect.
     """
     predicate, elements = issue_sig
+    kind = _verification_kind(predicate)
     scored = []
     for entry in entries:
         overlap = len(elements & entry["elements"])
         agrees = predicate is not None and entry["predicate"] == predicate
+        # Same verification kind is a weaker signal than the same predicate, and it is the
+        # only thing that separates `EIS-0006-01` (`cardinality`, structure) from
+        # `EIS-0006-03` (`terminates`, behaviour): their element sets are byte-identical, so
+        # element overlap ties at 2 and the tie was discarded every round -- a ledger entry
+        # that could never be matched, and the issue that did describe it counted as an extra.
+        same_kind = kind is not None and _verification_kind(entry["predicate"]) == kind
         # Two elements normally, but one is enough when the predicate also agrees: the
         # predicate carries real discriminating power. `EIS-0006-01` and `EIS-0006-03` name
         # the same two elements and differ only by predicate, so requiring two elements
         # regardless would leave a `cardinality` issue over the right scope unmatched.
         if overlap < (1 if agrees else 2):
             continue
-        scored.append((overlap + (2 if agrees else 0), overlap, agrees, entry["id"]))
+        scored.append(
+            (
+                overlap + (2 if agrees else 0) + (1 if same_kind else 0),
+                overlap,
+                agrees,
+                entry["id"],
+            )
+        )
     if not scored:
         return None
     scored.sort(reverse=True)
