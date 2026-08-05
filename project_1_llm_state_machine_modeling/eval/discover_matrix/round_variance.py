@@ -199,6 +199,22 @@ def main() -> int:
                     "terminal": "completed",
                     "published": len(issues),
                     "merged": sum(1 for i in issues if len(requirement_ids_of(i)) > 1),
+                    # Merge quality is reported apart from the published count on purpose.
+                    # `0000-claude` published one issue in all three rounds, but two of those
+                    # were a merge and one was a splitter that never split -- indistinguishable
+                    # in the count, and only one of them is evidence the merge works.
+                    "merge_groups": [
+                        {
+                            "issue_id": i.get("issue_id"),
+                            "requirement_ids": list(requirement_ids_of(i)),
+                            "shared_elements": list(i.get("shared_elements") or []),
+                            # The one questionable grouping across three rounds rested on a
+                            # single element both Requirements merely bound to.
+                            "thin": len(i.get("shared_elements") or []) <= 1,
+                        }
+                        for i in issues
+                        if len(requirement_ids_of(i)) > 1
+                    ],
                     "excluded": len(data["record"].get("excluded_findings") or []),
                     "eis_matched": sorted(set(matched)),
                     # Matched on elements alone -- the ledger records the defect under a
@@ -229,6 +245,7 @@ def main() -> int:
                 "eis_union": sorted({e for s in eis_sets for e in s}),
                 "eis_intersection": sorted(set.intersection(*[set(s) for s in eis_sets])) if eis_sets else [],
                 "merged": [v["merged"] for v in done],
+                "merge_groups": [g for v in done for g in v.get("merge_groups", [])],
                 "baseline_published": len(baseline_cells.get(cell, {}).get("published") or []),
                 "unstable": unstable,
             }
@@ -249,6 +266,13 @@ def main() -> int:
         both = inter if inter == union else f"{inter}  (并集 {union})"
         print(f"{cell:<14}{e['baseline_published']:>5}{pub:>16}{mark}"
               f"{','.join(str(m) for m in e['merged']):>9}  {both}")
+    groups = [g for e in report["cells"].values() for g in e.get("merge_groups", [])]
+    thin = [g for g in groups if g["thin"]]
+    print(f"\n合并组: {len(groups)} 个，其中单元素（需人工复核）{len(thin)} 个")
+    for g in groups:
+        mark = " ⚠单元素" if g["thin"] else ""
+        print(f"  {' + '.join(g['requirement_ids'])} → {g['issue_id'][:40]}"
+              f"  元素×{len(g['shared_elements'])}{mark}")
     print(f"\n不稳定的格（轮次间不一致）: {len(report['unstable_cells'])} / {len(report['cells'])}")
     for c in report["unstable_cells"]:
         print(f"  ⚠ {c}: published {report['cells'][c]['published']}")

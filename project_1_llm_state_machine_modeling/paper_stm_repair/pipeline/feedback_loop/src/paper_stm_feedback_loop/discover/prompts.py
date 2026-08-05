@@ -87,6 +87,8 @@ Four rules govern that.
 
 2. A group must state `shared_root_cause` and name `shared_elements`. `shared_root_cause` is one sentence saying where the single cause sits. `shared_elements` names the model elements it rests on, and at least one must be findable in `stm_text` or explicitly marked as required by the specification but never declared by the model. A group you cannot supply these for is not a group.
 
+   `shared_elements` must name **the missing or wrong thing itself**, not elements the Requirements merely bind to. Two Requirements about the same state are not thereby about the same defect: one may say its kind is wrong while the other says its contents are absent, and those are two findings that happen to mention one name. The test to apply is: **would fixing that one place make both False results go away?** If the answer is no, or you cannot tell, report them separately. A group whose only shared element is the element both Requirements were written against is the exact case this rule exists to catch.
+
 3. `requirement_ids` must be exactly the Requirements owning the assertions you reference -- no more, no fewer. Referencing an assertion whose Requirement you omit, or naming a Requirement none of your assertions belong to, is rejected.
 
 4. `merge_candidates` is a hint, not an instruction. It lists Requirement pairs sharing a predicate, trigger and target while differing only in source, which is one shape a split-for-checkability Requirement takes -- but only one. Genuine groups whose Requirements use different predicates will not appear there, and a listed pair may still be two distinct defects. Check each against the evidence and decide; do not accept the list wholesale and do not treat its silence as a verdict.
@@ -160,6 +162,16 @@ Binding v3 Requirement contract: classify by naming the claim, not by weighing t
 Emit on every Requirement:
 - `predicate`: exactly one name from the closed vocabulary below.
 - `predicate_bindings`: the concrete model terms that predicate requires, as an object. Copy the paths verbatim from `declared_model_vocabulary` in your input, which lists every declared state, event and variable path. Do not retype them from the FCSTM text and do not abbreviate them. A mistyped name is worse than a missing requirement, because the resulting check passes for the wrong reason instead of failing loudly.
+
+Before you split anything, read the NL once for **substates it names by name** -- inside
+quotes, inside `in (...)`, or written as "the X substate". For each one, look for a declared
+state in `declared_model_vocabulary.states` with that name or with that name as its last
+segment. Where there is none, emit a `state_declared` Requirement for the name the sentence
+uses. That obligation stands on its own: it is not discharged because the same name also
+appears in another Requirement's bindings, and not weakened because the sentence's main
+clause is about something else. A specification that points at a state is asserting the state
+exists, whatever it goes on to say about it. Where the last segment *is* already declared
+somewhere in the vocabulary, this is step 2 instead -- bind the declared path.
 
 When the sentence needs an element you cannot bind directly, work down these four
 steps and stop at the first that applies. They are ordered: a later step is only
@@ -236,6 +248,16 @@ operator confirms". Follow the model's conventions for the kind: variables are
 bare names, events and states are `<root>.<name>` paths. Add a `limitations`
 entry naming what the NL asked for and recording that the model declares nothing
 under that name, and say which of steps 1-3 you ruled out.
+
+**Choosing a scope when the sentence does not say which one.** A sentence like "on
+shutdown the system reaches the final state" names no source, and the model offers several
+places to hang it: the root, each top-level mode, individual substates. These are not
+equivalent. A binding at the root is satisfied by any edge of that shape already present
+anywhere in the machine, so it comes back true on almost any model and reports nothing either way -- that is
+not a check, it is a way of avoiding one. **So do not bind it to the root.**
+Emit one Requirement per candidate running scope instead, and say in `limitations` that
+the NL left the scope open and which one this Requirement covers. The same reasoning rules out binding a
+whole composite when the sentence is about behaviour its children exhibit.
 
 A name proposed under step 4 is an ordinary binding value, not a special case.
 The Assertion Converter asserts its existence as a `precondition` and makes the

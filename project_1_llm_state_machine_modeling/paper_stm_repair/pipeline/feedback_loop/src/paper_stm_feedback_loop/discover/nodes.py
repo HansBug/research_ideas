@@ -3362,16 +3362,104 @@ def adjudicate_results(
             )
             for assertion_id in sorted(supporting_false_assertions)
         )
+        # Which basket a primary False belongs in follows from its attribution status, which
+        # is already known here -- so a finding filed in the wrong one is a clerical error,
+        # not a disagreement about evidence.  Rejecting the whole response over it discarded
+        # a complete run of `0029-gpt` that had the right findings in it, and this node has
+        # no contract-feedback retry to soften that.  The move is recorded, never silent.
+        misfiled_moves: list[dict[str, Any]] = []
+        kept_issues, kept_excluded = [], []
+
+        def _derived_status(finding: AdjudicatedIssue) -> str | None:
+            """The status the bindings support, ignoring what the finding claims.
+
+            Sorting on the model's own `attribution_status` would only repair half of what
+            goes wrong, because the label and the basket fail together: a model that thinks a
+            finding is unattributed both says so and files it as an exclusion. Pair 0029
+            happened to get the label right and the basket wrong, but the mirror case -- right
+            basket, wrong label -- dies just as hard on `excluded finding attribution_status
+            must match its bindings`, and a mislabelled *merged* issue dies on the
+            single-requirement rule for exclusions after being moved.
+
+            `None` means the cited assertions disagree with each other. That is not a filing
+            error and nothing here can repair it, so it falls through to the checks below.
+            """
+            statuses = {
+                binding_by_assertion[assertion_id].status
+                for assertion_id in finding.assertion_ids
+                if assertion_id in binding_by_assertion
+            }
+            return statuses.pop() if len(statuses) == 1 else None
+
+        for finding, origin in (
+            *((f, "issues") for f in normalized_issues),
+            *((f, "excluded_findings") for f in normalized_excluded),
+        ):
+            derived = _derived_status(finding)
+            target = "issues" if derived == "safe" else "excluded_findings"
+            if derived is None:
+                # Mixed bindings: leave it where the model put it and let the closure checks
+                # below reject it, rather than guessing at a basket.
+                target = origin
+            relabelled = (
+                finding
+                if derived is None or derived == finding.attribution_status
+                else finding.model_copy(update={"attribution_status": derived})
+            )
+            if target != origin or relabelled is not finding:
+                misfiled_moves.append(
+                    {
+                        "issue_id": finding.issue_id,
+                        "from": origin,
+                        "to": target,
+                        "reported_status": finding.attribution_status,
+                        "binding_status": derived,
+                    }
+                )
+            if target == "issues":
+                if origin == "excluded_findings":
+                    # The prose was written to explain an exclusion; published as a confirmed
+                    # issue it would read as if the adjudicator had argued for it.
+                    relabelled = relabelled.model_copy(
+                        update={
+                            "rationale": (
+                                relabelled.rationale
+                                + " [relocated from excluded_findings by the deterministic "
+                                "layer: the attribution binding for its assertions is safe]"
+                            )
+                        }
+                    )
+                kept_issues.append(relabelled)
+            else:
+                kept_excluded.append(relabelled)
         output = output.model_copy(
             update={
-                "issues": tuple(normalized_issues),
-                "excluded_findings": tuple(normalized_excluded),
+                "issues": tuple(kept_issues),
+                "excluded_findings": tuple(kept_excluded),
                 # This projection is derived from released execution truth, not
                 # copied from the semantic adjudicator.  A model-written True
                 # observation must never be relabelled as supporting_false.
                 "excluded_observations": supporting_observations,
-                "has_confirmed_issues": bool(normalized_issues),
+                "has_confirmed_issues": bool(kept_issues),
             }
+        )
+        # A merge whose only shared element is one both Requirements happen to bind to is the
+        # shape the one questionable grouping in three rounds took: `state_declared(X,
+        # composite)` merged with `cardinality(X, 3)` under the single element `X`. Binding to
+        # the same state is not the same defect. It is recorded rather than rejected because a
+        # genuine one-element merge exists and this layer cannot tell them apart.
+        thin_merge_warnings = tuple(
+            {
+                "issue_id": issue.issue_id,
+                "requirement_ids": issue.requirement_ids,
+                "shared_elements": issue.shared_elements,
+                "reason": (
+                    "a merge across requirements rests on a single shared element; "
+                    "check that it names the defect rather than a common binding"
+                ),
+            }
+            for issue in output.issues
+            if len(issue.requirement_ids) > 1 and len(issue.shared_elements) == 1
         )
         issue_assertions: set[str] = set()
         excluded_assertions: set[str] = set()
@@ -3381,9 +3469,11 @@ def adjudicate_results(
                 raise ValueError(
                     "adjudicated issues may only reference primary False assertions"
                 )
-            if issue.attribution_status != "safe" or not issue_ids.issubset(
-                safe_assertions
-            ):
+            # `attribution_status` is no longer checked here -- the sort above guarantees
+            # it. What remains is the part no relocation can fix: a finding whose *cited
+            # assertions* are not attribution-safe is making a claim the attribution layer
+            # refused, and moving it would not change that.
+            if not issue_ids.issubset(safe_assertions):
                 raise ValueError(
                     "confirmed issues may only reference attribution-safe False assertions"
                 )
@@ -3421,8 +3511,9 @@ def adjudicate_results(
                 raise ValueError(
                     "excluded findings may only reference primary False assertions"
                 )
-            if excluded.attribution_status == "safe":
-                raise ValueError("excluded findings must not be attribution-safe")
+            # Likewise settled by the sort above; a safe finding reaching this branch would
+            # be a bug in that sort rather than a response to reject.
+            assert excluded.attribution_status != "safe"
             if excluded_ids & excluded_assertions:
                 raise ValueError("excluded finding assertion groups must be disjoint")
             excluded_assertions.update(excluded_ids)
@@ -3502,6 +3593,10 @@ def adjudicate_results(
             # Rewriting a published rationale, however narrowly, has to be visible. Without
             # this entry the annotation would itself be an untraceable edit to the artefact.
             "rationale_citations_annotated": tuple(annotated_citations),
+            # Relocating a finding changes which basket a reader finds it in, so the move has
+            # to be as visible as the finding itself.
+            "misfiled_findings_moved": tuple(misfiled_moves),
+            "thin_merge_warnings": thin_merge_warnings,
             "normalization_applied": reported_satisfied != expected_satisfied,
             "reported_satisfied_requirement_ids": tuple(sorted(reported_satisfied)),
             "deterministic_satisfied_requirement_ids": tuple(
@@ -3717,23 +3812,28 @@ def deterministic_adjudication_from_results(
         for binding in state["attribution_projection"].bindings
     }
     issues: list[AdjudicatedIssue] = []
+    excluded: list[AdjudicatedIssue] = []
     for result in released.results:
         if result.truth_value:
             continue
         binding = bindings.get(result.assertion_id)
         status = binding.status if binding else "unattributed"
-        issues.append(
-            AdjudicatedIssue(
-                issue_id=f"ISSUE-{result.requirement_id.removeprefix('REQ-')}",
-                requirement_ids=(result.requirement_id,),
-                assertion_ids=(result.assertion_id,),
-                title=f"Requirement {result.requirement_id} is not satisfied",
-                rationale="The released strict bool assertion result is False.",
-                attribution_status=status,
-            )
+        finding = AdjudicatedIssue(
+            issue_id=f"ISSUE-{result.requirement_id.removeprefix('REQ-')}",
+            requirement_ids=(result.requirement_id,),
+            assertion_ids=(result.assertion_id,),
+            title=f"Requirement {result.requirement_id} is not satisfied",
+            rationale="The released strict bool assertion result is False.",
+            attribution_status=status,
         )
+        # Only attribution-safe False results may be confirmed issues. The schema used to
+        # reject a violation here; it no longer does, because rejecting at parse time is
+        # fatal to a node that has no retry. The routing is written in rather than left to
+        # a check that has since moved to `adjudicate_results`.
+        (issues if status == "safe" else excluded).append(finding)
     return DiscoverAdjudication(
         has_confirmed_issues=bool(issues),
         issues=tuple(issues),
+        excluded_findings=tuple(excluded),
         rationale="Deterministic fake adjudication over released bool results.",
     )

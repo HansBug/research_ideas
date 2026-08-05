@@ -104,9 +104,20 @@ def _summarise_cell(cell_dir: pathlib.Path) -> dict:
             for e in excluded
             if "auto_final" in json.dumps(e, ensure_ascii=False)
         ],
+        # The deterministic layer's three repair signals. They are on disk either way; if no
+        # tool surfaces them, "the adjudicator systematically confuses the two baskets" stays
+        # invisible while every run reports clean.
         "rationale_citations_annotated": (
             record.get("adjudication_reconciliation") or {}
         ).get("rationale_citations_annotated")
+        or [],
+        "misfiled_findings_moved": (
+            record.get("adjudication_reconciliation") or {}
+        ).get("misfiled_findings_moved")
+        or [],
+        "thin_merge_warnings": (
+            record.get("adjudication_reconciliation") or {}
+        ).get("thin_merge_warnings")
         or [],
     }
 
@@ -147,7 +158,8 @@ def main() -> int:
         return 0
 
     print(f"run: {args.run_dir}   cells: {len(cells)}")
-    print(f"\n{'cell':<16}{'status':<12}{'cov':<8}{'pub':>4}{'merged':>8}{'excl':>6}  auto_final")
+    print(f"\n{'cell':<16}{'status':<12}{'cov':<8}{'pub':>4}{'merged':>8}{'excl':>6}"
+          f"{'moved':>7}{'thin':>6}  auto_final")
     for c in cells:
         af = ",".join(c["auto_final_published"]) or "-"
         if c["auto_final_excluded"]:
@@ -155,7 +167,8 @@ def main() -> int:
                 f"{x['issue_id']}={x['attribution_status']}" for x in c["auto_final_excluded"]
             ) + ")"
         print(f"{c['cell']:<16}{str(c['status']):<12}{str(c['coverage_status']):<8}"
-              f"{c['published']:>4}{c['merged_issues']:>8}{c['excluded_findings']:>6}  {af}")
+              f"{c['published']:>4}{c['merged_issues']:>8}{c['excluded_findings']:>6}"
+              f"{len(c['misfiled_findings_moved']):>7}{len(c['thin_merge_warnings']):>6}  {af}")
     print(f"\npublished this run: {published}   baseline: {baseline.get('published')}")
     print(f"merged issues:      {report['this_run']['merged_issues']}")
     merges = [g for c in cells for g in c["merge_groups"]]
@@ -165,6 +178,17 @@ def main() -> int:
             print(f"  {g['issue_id']}: {' + '.join(g['requirement_ids'])}")
             print(f"     cause: {g['shared_root_cause']}")
             print(f"     elements: {g['shared_elements']}")
+    moved = [(c["cell"], m) for c in cells for m in c["misfiled_findings_moved"]]
+    if moved:
+        print("\n被确定性层归位的发现（LLM 放错筐，非拒绝）:")
+        for cell, m in moved:
+            print(f"  {cell}: {m['issue_id']}  {m['from']} → {m['to']}"
+                  f"  报告={m.get('reported_status')} 绑定={m.get('binding_status')}")
+    thin = [(c["cell"], w) for c in cells for w in c["thin_merge_warnings"]]
+    if thin:
+        print("\n单元素合并（需人工复核）:")
+        for cell, w in thin:
+            print(f"  {cell}: {w['issue_id']}  {w['shared_elements']}")
     print("\nstill requires the manual pass of §7.2:")
     for item in report["requires_manual_annotation"]:
         print(f"  - {item}")

@@ -2229,22 +2229,52 @@ def test_assertion_review_hash_must_match_current_script() -> None:
     assert "agrees on only" in (record.details or {}).get("reviewed_hash_note", "")
 
 
-def test_confirmed_issue_schema_rejects_unsafe_attribution() -> None:
-    with pytest.raises(ValidationError):
-        DiscoverAdjudication(
-            has_confirmed_issues=True,
-            issues=(
-                {
-                    "issue_id": "ISSUE-001",
-                    "requirement_id": "REQ-001",
-                    "assertion_ids": ("AST-REQ-001-01",),
-                    "title": "Unsafe finding",
-                    "rationale": "False but source attribution is absent.",
-                    "attribution_status": "unattributed",
-                },
-            ),
-            rationale="must fail",
-        )
+def test_confirmed_issue_schema_defers_unsafe_attribution_to_the_node() -> None:
+    """Parsing accepts a misfiled finding; `adjudicate_results` relocates it.
+
+    This check used to raise here. It was moved because structured-output validation is
+    recorded `retryable: False` in the responder, so a rejection at parse time ends the node
+    just as surely as one inside it -- and `adjudicate_results` has no contract-feedback
+    round to recover with. A whole `0029-gpt` run was lost that way.
+
+    Nothing is loosened overall: which basket a primary False belongs in follows from its
+    attribution status, so the node sorts both collections by status and records each move in
+    `_adjudication_reconciliation.misfiled_findings_moved`. See
+    `tests/test_adjudication_misfiling.py` for the relocation itself.
+    """
+    parsed = DiscoverAdjudication(
+        has_confirmed_issues=True,
+        issues=(
+            {
+                "issue_id": "ISSUE-001",
+                "requirement_ids": ("REQ-001",),
+                "assertion_ids": ("AST-REQ-001-01",),
+                "title": "Unsafe finding",
+                "rationale": "False but source attribution is absent.",
+                "attribution_status": "unattributed",
+            },
+        ),
+        rationale="parses; the node will move it to excluded_findings",
+    )
+    assert parsed.issues[0].attribution_status == "unattributed"
+
+
+def test_adjudication_schema_defers_a_self_contradictory_flag_to_the_node() -> None:
+    """The flag is re-derived downstream, so rejecting it here would only cost the cell.
+
+    `adjudicate_results` sets `has_confirmed_issues` from the sorted collections
+    unconditionally, which means a parse-time check on it protects nothing -- and structured
+    validation is `retryable: False`, so it ends the run. The model that misfiles a safe
+    finding as an exclusion is the same one that then reports no confirmed issues to match,
+    so this is the flag most likely to disagree.
+    """
+    parsed = DiscoverAdjudication(
+        has_confirmed_issues=True,
+        issues=(),
+        rationale="claims issues while listing none; the node re-derives the flag",
+    )
+    assert parsed.has_confirmed_issues is True
+    assert parsed.issues == ()
 
 
 def test_false_assertion_on_excluded_compiler_ref_is_representation_debt() -> None:

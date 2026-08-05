@@ -648,13 +648,22 @@ class DiscoverAdjudication(StrictBaseModel):
 
     @model_validator(mode="after")
     def _issue_flag_consistent(self) -> "DiscoverAdjudication":
-        if self.has_confirmed_issues != bool(self.issues):
-            raise ValueError("has_confirmed_issues must match issues emptiness")
-        if any(issue.attribution_status != "safe" for issue in self.issues):
-            raise ValueError("confirmed issues must be attribution-safe")
-        # Supporting False observations can arrive in excluded_findings from
-        # the structured LLM response. The deterministic adjudication node
-        # removes them before enforcing primary-only issue/exclusion closure.
+        # Neither `has_confirmed_issues` nor attribution status is checked here, though both
+        # once were.
+        # Structured-output validation is recorded `retryable: False` in the responder, so a
+        # rejection at this layer is as fatal as one further down -- it kills the node, which
+        # has no contract-feedback round. Meanwhile which basket a primary False belongs in
+        # follows from its attribution status alone, so a misfiled one is a clerical error
+        # the deterministic layer can simply correct. `adjudicate_results` sorts both
+        # collections by status and records every move; it re-establishes the invariant this
+        # check used to assert, at a point where getting it wrong costs a correction instead
+        # of a whole run. The flag is likewise re-derived there from the sorted collections,
+        # so asserting it at parse time protects nothing and can only kill the cell -- and a
+        # model that files a safe finding as an exclusion is exactly the model that will then
+        # report `has_confirmed_issues=false` to match.
+        #
+        # Supporting False observations can arrive in excluded_findings from the structured
+        # LLM response. The same node removes them before enforcing primary-only closure.
         return self
 
 
