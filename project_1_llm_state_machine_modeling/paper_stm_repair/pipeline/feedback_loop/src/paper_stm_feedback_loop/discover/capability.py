@@ -801,7 +801,12 @@ def initialization_anchored_findings(
         # Keyed as a permission rather than a prohibition; see
         # `anchors_at_initialization` for why, and for the sibling gate that now
         # shares the judgement.
-        if anchors_at_initialization(getattr(item, "source_context", None)):
+        # The permission is the requirement's own `behavior_phase`, so it has to be checked
+        # against something the requirement cannot restate -- otherwise a claim marked
+        # `initialization` exempts itself, which is how `v6run3/0000-claude` published nothing.
+        if anchors_at_initialization(
+            getattr(item, "source_context", None)
+        ) and _trigger_can_fire_from_initial(item):
             continue
         phase = str(
             (getattr(item, "source_context", None) or {}).get("behavior_phase", "")
@@ -821,7 +826,11 @@ def initialization_anchored_findings(
                 "pseudo-initial, the claim is then true because of the defect. Either "
                 "name the running state the sentence is about (one requirement per "
                 "state when the sentence does not pin one), or, if the sentence really "
-                "is about power-on, set behavior_phase to \"initialization\"."
+                "is about power-on, set behavior_phase to \"initialization\" -- but that "
+                "permission only holds when the trigger is one the machine can see before "
+                "entering anything. A power-off from the pseudo-initial is not a claim about "
+                "the specification: if the model routes it from there, that routing is the "
+                "defect, and asking about it returns true because of the defect."
             )
     return tuple(findings)
 
@@ -1282,6 +1291,45 @@ def unresolved_reference_findings(
             if text not in exempt
         )
     return tuple(findings)
+
+
+#: Triggers that can legitimately fire from the pseudo-initial state. Matched on the last
+#: segment, underscore-insensitively, so `llms_emp_feedback_final_0000.Power_On` counts.
+_POWER_ON_HINTS = ("poweron", "start", "boot", "init", "reset")
+
+
+def _trigger_can_fire_from_initial(item: _RequirementSpec) -> bool:
+    """Whether this requirement's trigger is one the machine can see before entering anything.
+
+    `anchors_at_initialization` answers "does the requirement *claim* to be about power-on",
+    and that answer is correct as far as it goes. What it cannot answer is whether the claim is
+    credible, because `behavior_phase` is filled in by the same splitter the gate constrains.
+
+    `v6run3/0000-claude` is what that costs. It bound
+    `occupancy_after(source="[*]", trigger=Power_Off, target=FinalState)` and marked the phase
+    `initialization`; the gate saw the claim and stepped aside. The assertion then came back
+    True -- because the model's `Power_Off` edge really is misanchored at `[*]`, which is the
+    one defect pair 0000 exists to find -- and the cell published nothing.
+
+    A self-report can be trusted when making it costs the reporter something. This one is free.
+    So the permission is checked against something the splitter cannot restate: a run that
+    starts at `[*]` begins before the machine has entered anything, and only a power-on event
+    can fire there. `Power_Off` from the pseudo-initial is not a claim about the specification.
+
+    Corpus check over all 19 rounds: 123 pseudo-initial bindings carry a power-on trigger or
+    none and stay permitted; 23 carry `Power_Off`. Twenty-one of those 23 spell the phase
+    `termination` and are already refused today -- this changes the answer for the two that
+    spelled it `initialization`, `v1 run3/0000-claude` and `v6run3/0000-claude`.
+
+    :param item: the requirement whose initialization claim is being checked.
+    :return: whether the trigger is consistent with starting from the pseudo-initial.
+    """
+    bindings = item.predicate_bindings or {}
+    trigger = str(bindings.get("trigger") or getattr(item, "trigger", "") or "").strip()
+    if not trigger:
+        return True
+    tail = trigger.rsplit(".", 1)[-1].lower().replace("_", "")
+    return any(hint in tail for hint in _POWER_ON_HINTS)
 
 
 def anchors_at_initialization(source_context: Any) -> bool:
