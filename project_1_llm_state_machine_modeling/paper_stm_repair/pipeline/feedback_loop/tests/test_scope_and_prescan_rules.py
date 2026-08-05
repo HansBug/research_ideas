@@ -37,7 +37,9 @@ from paper_stm_feedback_loop.discover import prompts  # noqa: E402
 def test_binding_an_unscoped_sentence_to_the_root_is_forbidden() -> None:
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
     assert "does not say which" in text
-    assert "do not bind it to the root" in text.lower()
+    # "root state", not "root": the prompt elsewhere requires a `<root>.<name>` prefix on
+    # every proposed path, and a bare "do not bind the root" reads as forbidding that prefix.
+    assert "do not bind it to the root state" in text.lower()
 
 
 def test_the_rule_gives_the_reason_rather_than_only_the_prohibition() -> None:
@@ -47,28 +49,44 @@ def test_the_rule_gives_the_reason_rather_than_only_the_prohibition() -> None:
     gate over three rounds. A rule it understands is one it will not retreat into.
     """
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
-    start = text.lower().find("do not bind it to the root")
-    window = text[max(0, start - 500) : start + 900]
-    assert "already" in window and "true" in window.lower(), window[:200]
-    assert "one Requirement per" in window
+    start = text.lower().find("do not bind it to the root state")
+    window = text[max(0, start - 700) : start + 1400]
+    # The reason has to be the real one. An earlier draft said a root binding "is satisfied
+    # by any edge of that shape already present anywhere in the machine", which is not what
+    # `occupancy_after` does -- it simulates from the bound configuration. A model that reads
+    # the predicate's own field_spec can refute that, and then discounts the whole rule.
+    assert "starts at the root" in window
+    assert "power-on" in window
+    assert "direct children of the root" in window
 
 
 def test_the_scope_rule_does_not_name_any_defect() -> None:
     """The line between a structural rule and an oracle hint.
 
     It may say that root bindings are weak in general. It may not say what is wrong with any
-    particular model, or which pair the rule was written for.
+    particular model, or which pair the rule was written for. The first draft failed this
+    for a reason no identifier grep would catch: its example sentence was pair 0000's own
+    ("on shutdown the system reaches the final state") and its recipe -- one Requirement per
+    running mode -- is that pair's expected defect decomposed. So the check is on the shape,
+    normalised, not on identifiers.
     """
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
-    start = text.lower().find("do not bind it to the root")
-    window = text[max(0, start - 500) : start + 900]
-    for leak in ("power_off", "0000", "auto_final", "FinalState", "EIS-"):
-        assert leak.lower() not in window.lower(), f"scope rule leaks {leak!r}"
+    start = text.lower().find("do not bind it to the root state")
+    window = text[max(0, start - 700) : start + 1400]
+    flat = window.lower().replace("_", " ")
+    for leak in ("power off", "shutdown", "final state", "auto final", "0000", "eis-"):
+        assert leak not in flat, f"scope rule leaks {leak!r}"
 
 
-def test_named_substates_are_scanned_before_splitting_begins() -> None:
+def test_named_substates_are_scanned_before_step_three_is_chosen() -> None:
+    """Placed at the step 3 decision rather than at the very top.
+
+    The first draft opened the prompt with it, which meant asking the model to consult the
+    vocabulary before it had read how the vocabulary is used -- and a misjudged proposal
+    there costs a revision round, with a repeat costing the cell.
+    """
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "Before you split" in text
+    assert "Before you settle on step 3" in text
     assert "declared_model_vocabulary" in text
 
 
@@ -79,18 +97,69 @@ def test_the_prescan_makes_the_resulting_requirement_non_optional() -> None:
     in some other Requirement's bindings -- that is how it went missing.
     """
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
-    start = text.find("Before you split")
-    window = text[start : start + 1200]
+    start = text.find("Before you settle on step 3")
+    window = text[start : start + 2000]
     assert "state_declared" in window
     assert "another Requirement" in window
 
 
 def test_the_prescan_still_defers_to_the_deterministic_step_2_gate() -> None:
-    """A last segment already in the vocabulary is step 2's business, not step 4's."""
+    """A last segment already in the vocabulary is step 2's business, not step 4's.
+
+    The comparison is spelled out as the gate performs it, because a near-match the model
+    argues itself into is refused after the fact and costs a round.
+    """
     text = prompts.REQUIREMENT_SPLITTER_PROMPT
-    start = text.find("Before you split")
-    window = text[start : start + 1200]
+    start = text.find("Before you settle on step 3")
+    window = text[start : start + 2000]
     assert "last segment" in window
+    assert "same comparison a deterministic gate runs" in window
+
+
+def test_the_prescan_fixes_the_path_shape_the_hit_criterion_needs() -> None:
+    """Without this the rule can fire perfectly and still be scored as a miss.
+
+    `round_variance.py` matches a published issue to a ledger entry on element overlap and
+    requires at least two elements in common. `<parent>.<name>` yields the parent and the
+    name; a bare `<root>.<name>` yields one, and the run reads as a miss.
+    """
+    text = prompts.REQUIREMENT_SPLITTER_PROMPT
+    start = text.find("Before you settle on step 3")
+    window = text[start : start + 2000]
+    assert "<parent>.<name>" in window
+    assert "replacing each space with" in window
+
+
+def test_the_prescan_gives_way_to_step_one_for_termination() -> None:
+    """"the final state" is a pseudo-state, and proposing a name for it invents a defect."""
+    text = prompts.REQUIREMENT_SPLITTER_PROMPT
+    start = text.find("Before you settle on step 3")
+    window = text[start : start + 2000]
+    assert "termination itself" in window
+    assert "step 1" in window
+
+
+def test_the_prescan_pins_the_predicate_kind() -> None:
+    """`leaf` is also False for a state that exists as a composite -- a weaker claim."""
+    text = prompts.REQUIREMENT_SPLITTER_PROMPT
+    start = text.find("Before you settle on step 3")
+    window = text[start : start + 2000]
+    assert 'kind="any"' in window
+
+
+def test_the_scope_rule_exempts_the_predicates_whose_subject_is_the_root() -> None:
+    """Twelve ledger assertions bind the bare root under these and are right to.
+
+    `initial_target(composite=<root>, ...)`, `containment(parent=<root>, ...)` and
+    `cardinality(scope=<root>, ...)` ask what the model declares about itself. The prompt
+    says so two steps earlier; a scope rule that contradicted it would leave the splitter
+    arguing with itself across revisions.
+    """
+    text = prompts.REQUIREMENT_SPLITTER_PROMPT
+    start = text.lower().find("do not bind it to the root state")
+    window = text[start : start + 1400]
+    for exempt in ("containment", "initial_target", "cardinality"):
+        assert exempt in window, f"scope rule must exempt {exempt}"
 
 
 def test_shared_elements_must_name_the_defect_not_a_common_binding() -> None:

@@ -38,6 +38,7 @@ from .capability import (
     declared_path_bindings,
     initialization_anchored_findings,
     redundant_proposal_findings,
+    root_anchored_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
     mandatory_waiver,
@@ -1147,6 +1148,18 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
     )
 
 
+def _declared_model_root(known_paths: frozenset[str]) -> str:
+    """The model's own name: the one declared path with no parent.
+
+    Every other path is `<root>.<something>`, so the root is the unique single-segment
+    entry. Returns empty when that is ambiguous or absent, which disables the gate that
+    reads it -- a pair whose root cannot be identified is a reason to say nothing rather
+    than to refuse every binding.
+    """
+    roots = {path for path in known_paths if "." not in path}
+    return next(iter(roots)) if len(roots) == 1 else ""
+
+
 def split_requirements(
     state: DiscoverGraphState, responder: StructuredResponder
 ) -> DiscoverGraphState:
@@ -1244,6 +1257,10 @@ def split_requirements(
             *redundant_proposal_findings(
                 output.requirements, known_paths, dict(frozen.model_vocabulary or {})
             ),
+            # The root spelling of the same anchoring mistake `initialization_anchored_findings`
+            # catches at `[*]`. Pair 0000 round 1 bound `source` to the root and the claim came
+            # back True because the defective edge fires on the first tick.
+            *root_anchored_findings(output.requirements, _declared_model_root(known_paths)),
         )
         if step_findings:
             raise ValueError(

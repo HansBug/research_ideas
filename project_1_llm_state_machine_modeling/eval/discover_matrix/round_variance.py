@@ -48,12 +48,18 @@ _NOISE = re.compile(r"^(llms_emp_feedback_final_\d+|state|event|source|target|le
 
 
 def _elements(text: str) -> set[str]:
-    """Distinctive names in a blob of text, namespace prefixes stripped."""
+    """Distinctive names in a blob of text, namespace prefixes stripped.
+
+    Underscores are dropped along with case, so `auto_final`, `AutoFinal` and `autofinal`
+    count as the same element. Without that, a rule that fires perfectly still scores as a
+    miss whenever the model spells a proposed name in the artefact's own casing rather than
+    the specification's -- which is what every historical run did for this concept.
+    """
     out: set[str] = set()
     for token in re.findall(r"[A-Za-z_][A-Za-z_0-9.]{2,}", text):
         for part in token.split("."):
             if len(part) > 3 and not _NOISE.match(part):
-                out.add(part.lower())
+                out.add(part.lower().replace("_", ""))
     return out
 
 
@@ -222,6 +228,16 @@ def main() -> int:
                     # `terminates` here) but weaker, so it is surfaced rather than merged in.
                     "eis_matched_predicate_differs": sorted(set(weak)),
                     "unmatched_issues": unmatched,
+                    # The elements of issues no ledger entry claimed. When a round's count
+                    # moves, this is what separates "the rule never fired" -- visible in the
+                    # requirement list -- from "it fired and the matcher did not recognise
+                    # the shape", which otherwise look identical in a total.
+                    "unmatched_elements": [
+                        sorted(_issue_signature(i, data["requirements"])[1])
+                        for i in issues
+                        if _match(_issue_signature(i, data["requirements"]), ledger[pair])
+                        is None
+                    ],
                     "titles": [i.get("title") for i in issues],
                 }
 
@@ -246,6 +262,15 @@ def main() -> int:
                 "eis_intersection": sorted(set.intersection(*[set(s) for s in eis_sets])) if eis_sets else [],
                 "merged": [v["merged"] for v in done],
                 "merge_groups": [g for v in done for g in v.get("merge_groups", [])],
+                "unmatched_elements": [e for v in done for e in v.get("unmatched_elements", [])],
+                # What the published count would be if every thin merge were reported as the
+                # separate findings it groups. Without it, a drop in `published` cannot be
+                # read as "fewer duplicates" rather than "this round merged more eagerly".
+                "published_if_thin_merges_split": [
+                    v["published"] + sum(len(g["requirement_ids"]) - 1
+                                         for g in v.get("merge_groups", []) if g["thin"])
+                    for v in done
+                ],
                 "baseline_published": len(baseline_cells.get(cell, {}).get("published") or []),
                 "unstable": unstable,
             }

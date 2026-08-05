@@ -743,6 +743,87 @@ def initialization_anchored_findings(
     return tuple(findings)
 
 
+#: Predicates whose subject is a *run* and which name it `source` or `scope`. Derived from
+#: `verification_kind_of` rather than listed by hand so a new predicate joins the right side
+#: automatically. `cardinality`, `edge_declared`, `effect_declared` and
+#: `guard_distinguishable` also bind one of those names but ask about what the model
+#: *declares*, so the root is a legitimate subject there -- as it is for `containment` and
+#: `initial_target`, which name their subject differently and so never reach this gate.
+_RUN_SCOPED_BINDINGS = ("source", "scope")
+
+
+def _binds_a_run(predicate: str) -> bool:
+    from .predicates import PREDICATE_BY_NAME, verification_kind_of
+
+    if predicate not in PREDICATE_BY_NAME:
+        return False
+    if verification_kind_of(predicate) == "structure":
+        return False
+    bindings = getattr(PREDICATE_BY_NAME[predicate], "bindings", {}) or {}
+    return any(name in bindings for name in _RUN_SCOPED_BINDINGS)
+
+
+def root_anchored_findings(
+    requirements: Iterable[_RequirementSpec],
+    model_root: str,
+) -> tuple[str, ...]:
+    """Behavioural requirements that anchor their claim at the model root.
+
+    The root is where a run begins, so binding a behavioural `source` or `scope` to it makes
+    the claim about the initial configuration -- the same question `[*]` asks, which
+    `initialization_anchored_findings` already refuses. Pair 0000 round 1 took this spelling
+    instead: `occupancy_after(source=<root>, target=FinalState, trigger=Power_Off)` was True
+    because `[*] -> FinalState : /Power_Off` fires on the first tick, so the claim was true
+    *because of* the defect it was meant to catch and the cell published nothing. Rounds 2
+    and 3 bound the running modes and found it.
+
+    Decided rather than reviewed, for the reason the sibling gates give: prose fires at a
+    rate, and three rounds measured the comparable prompt rule at two times in four. Treating
+    run-to-run variance with an instrument that is itself a random variable does not reduce
+    it.
+
+    Scoped to run-subject predicates on purpose. Twelve ledger assertions bind the bare root
+    under `cardinality`, `containment` and `initial_target` and are correct to -- those ask
+    what the model declares about itself, and no configuration is being assumed. The prompt
+    says the same thing two steps earlier ("Their False *is* the finding"); a gate that
+    contradicted it would leave the splitter arguing with itself across revisions, which is
+    the failure this whole change exists to remove.
+
+    :param requirements: the accepted requirement set.
+    :param model_root: the model's own name, i.e. the single-segment declared path. Empty
+        disables the gate rather than refusing everything, because a pair whose root cannot
+        be determined is a reason to say nothing, not to reject every binding.
+    :return: one finding per offending requirement.
+    """
+    if not model_root:
+        return ()
+    findings: list[str] = []
+    for item in requirements:
+        predicate = str(getattr(item, "predicate", "") or "")
+        if not _binds_a_run(predicate):
+            continue
+        bindings = item.predicate_bindings or {}
+        anchored = sorted(
+            binding
+            for binding in _RUN_SCOPED_BINDINGS
+            # `[*]` belongs to `initialization_anchored_findings`. Two findings for one
+            # binding would hand the splitter two instructions in the same round.
+            if str(bindings.get(binding, "")).strip() == model_root
+        )
+        if anchored:
+            findings.append(
+                f"{item.requirement_id} binds {anchored} to the model root "
+                f"{model_root!r}. A run starts at the root, so the claim is answered by "
+                "what happens at power-on rather than by the behaviour the sentence is "
+                "about -- and on a model whose defect is an edge leaving the pseudo-initial "
+                "it is then true because of the defect. Name the running state the sentence "
+                "is about (one requirement per state when the sentence does not pin one). "
+                "This applies to behavioural claims only: cardinality, containment and "
+                "initial_target may take the root as their subject."
+            )
+    return tuple(findings)
+
+
 def termination_proposal_findings(
     requirements: Iterable[_RequirementSpec],
     known_paths: frozenset[str],
