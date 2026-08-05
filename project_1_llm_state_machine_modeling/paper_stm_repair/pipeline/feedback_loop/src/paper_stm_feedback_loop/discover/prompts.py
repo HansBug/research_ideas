@@ -173,9 +173,9 @@ is step 2 -- bind the declared path. Where none matches, emit a `state_declared`
 - Write the path as `<parent>.<name>`, where `<parent>` is the composite the sentence places
   the state inside, taken verbatim from `declared_model_vocabulary.states`. Use the root as
   the parent only when the sentence puts the state at top level.
-- Turn the sentence's wording into an identifier by replacing each space with `_` and keeping
-  the sentence's own casing. Do not restyle it to match the model's other names -- the point
-  is to name what the specification asked for.
+- Turn the sentence's wording into an identifier by replacing each space with `_`. This is
+  about the state name in this scan and nothing else: elements of any other kind still follow
+  step 4's rule of matching the model's own naming conventions.
 - Use `kind="any"`. Its False says the model declares nothing under that name at all, which
   is the claim; `kind="leaf"` is also False for a state that exists as a composite, which is
   a different and much weaker finding.

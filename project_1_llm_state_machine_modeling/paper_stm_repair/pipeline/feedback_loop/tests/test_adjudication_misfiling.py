@@ -467,3 +467,79 @@ def test_the_moves_reach_the_published_artifact() -> None:
     moves = completed.adjudication_reconciliation["misfiled_findings_moved"]
     assert [m["issue_id"] for m in moves] == ["ISSUE-REQ-001"]
     assert completed.model_dump_json()  # the record has to serialise, not just exist
+
+
+def test_a_merged_exclusion_is_split_rather_than_rejected() -> None:
+    """Exclusions stay one Requirement each, but enforcing that by refusal costs the run.
+
+    `v2run1/0050-gpt` died here: the adjudicator grouped two non-safe findings into one
+    exclusion, which the single-Requirement rule rejects. The grouping carries no information
+    the split does not -- an exclusion records that attribution could not support a claim, and
+    that is per-Requirement by construction -- so the deterministic layer takes it apart
+    instead of discarding forty minutes of run.
+    """
+    fx = _fixture({"REQ-001": "unattributed", "REQ-002": "unattributed"})
+    out = _run(
+        fx,
+        DiscoverAdjudication(
+            has_confirmed_issues=False,
+            issues=(),
+            excluded_findings=(
+                {
+                    "issue_id": "ISSUE-MERGED-EXCLUSION",
+                    "requirement_ids": ("REQ-001", "REQ-002"),
+                    "assertion_ids": ("AST-REQ-001-1", "AST-REQ-002-1"),
+                    "title": "Both are unattributed",
+                    "rationale": "Neither has a safe binding.",
+                    "attribution_status": "unattributed",
+                    "shared_root_cause": "Same projected node.",
+                    "shared_elements": ("Root.Done", "Root.go"),
+                },
+            ),
+            satisfied_requirement_ids=(),
+            rationale="Merged exclusion.",
+        ),
+    )
+    assert "failure" not in out, out.get("failure")
+    excluded = out["adjudication"].excluded_findings
+    assert len(excluded) == 2
+    assert {e.requirement_ids for e in excluded} == {("REQ-001",), ("REQ-002",)}
+    assert {a for e in excluded for a in e.assertion_ids} == {
+        "AST-REQ-001-1",
+        "AST-REQ-002-1",
+    }
+    # The split has to be visible: a reader comparing counts across rounds would otherwise
+    # see one exclusion become two with nothing in the record to explain it.
+    split = out["_adjudication_reconciliation"]["merged_exclusions_split"]
+    assert [s["issue_id"] for s in split] == ["ISSUE-MERGED-EXCLUSION"]
+    assert split[0]["into"] == 2
+
+
+def test_splitting_an_exclusion_keeps_its_prose_and_says_where_it_came_from() -> None:
+    fx = _fixture({"REQ-001": "unattributed", "REQ-002": "unattributed"})
+    out = _run(
+        fx,
+        DiscoverAdjudication(
+            has_confirmed_issues=False,
+            issues=(),
+            excluded_findings=(
+                {
+                    "issue_id": "ISSUE-MERGED-EXCLUSION",
+                    "requirement_ids": ("REQ-001", "REQ-002"),
+                    "assertion_ids": ("AST-REQ-001-1", "AST-REQ-002-1"),
+                    "title": "Both are unattributed",
+                    "rationale": "Neither has a safe binding.",
+                    "attribution_status": "unattributed",
+                    "shared_root_cause": "Same projected node.",
+                    "shared_elements": ("Root.Done", "Root.go"),
+                },
+            ),
+            satisfied_requirement_ids=(),
+            rationale="Merged exclusion.",
+        ),
+    )
+    excluded = out["adjudication"].excluded_findings
+    assert all(e.rationale.startswith("Neither has a safe binding.") for e in excluded)
+    assert all("split from ISSUE-MERGED-EXCLUSION" in e.rationale for e in excluded)
+    # Issue ids have to stay distinct or a reader keying on them silently loses one.
+    assert len({e.issue_id for e in excluded}) == 2

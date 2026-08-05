@@ -301,8 +301,15 @@ def test_dropping_a_referenced_requirement_is_rejected() -> None:
     assert "failure" in out
 
 
-def test_excluded_findings_may_not_span_requirements() -> None:
-    """Exclusions record what could not be attributed; merging only obscures that."""
+def test_excluded_findings_spanning_requirements_are_split_apart() -> None:
+    """Exclusions stay one Requirement each -- but enforced by splitting, not by refusing.
+
+    The rule is unchanged: an exclusion records that attribution could not support a claim,
+    which is per-Requirement by construction, so a group carries nothing the split does not.
+    What changed is the remedy. Rejecting the response ended the run, and `v2run1/0050-gpt`
+    lost forty minutes to exactly this shape. See `tests/test_adjudication_misfiling.py` for
+    the split itself.
+    """
     from paper_stm_feedback_loop.discover import nodes
 
     fx = _two_requirement_fixture()
@@ -342,7 +349,10 @@ def test_excluded_findings_may_not_span_requirements() -> None:
             )
         ),
     )
-    assert "failure" in out
+    assert "failure" not in out, out.get("failure")
+    excluded = out["adjudication"].excluded_findings
+    assert len(excluded) == 2
+    assert all(len(e.requirement_ids) == 1 for e in excluded)
 
 
 def test_historical_records_using_requirement_id_still_parse() -> None:

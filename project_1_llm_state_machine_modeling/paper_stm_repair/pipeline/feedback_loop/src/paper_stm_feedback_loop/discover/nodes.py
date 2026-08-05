@@ -3449,6 +3449,45 @@ def adjudicate_results(
                 kept_issues.append(relabelled)
             else:
                 kept_excluded.append(relabelled)
+
+        # Exclusions stay one Requirement each -- an exclusion records that attribution could
+        # not support a claim, and that is per-Requirement by construction, so a group carries
+        # nothing the split does not. Enforcing it by refusal is what cost `v2run1/0050-gpt`
+        # its whole run, so the group is taken apart instead.
+        exclusion_splits: list[dict[str, Any]] = []
+        split_excluded: list[AdjudicatedIssue] = []
+        for finding in kept_excluded:
+            by_requirement: dict[str, list[str]] = {}
+            for assertion_id in finding.assertion_ids:
+                owner = requirement_by_assertion.get(assertion_id)
+                if owner is not None:
+                    by_requirement.setdefault(owner, []).append(assertion_id)
+            if len(by_requirement) <= 1:
+                split_excluded.append(finding)
+                continue
+            for requirement_id, assertion_ids in sorted(by_requirement.items()):
+                split_excluded.append(
+                    finding.model_copy(
+                        update={
+                            # Suffixed so a reader keying on `issue_id` does not silently
+                            # lose one of the halves to a duplicate.
+                            "issue_id": f"{finding.issue_id}-{requirement_id}",
+                            "requirement_ids": (requirement_id,),
+                            "assertion_ids": tuple(assertion_ids),
+                            "rationale": (
+                                f"{finding.rationale} [split from {finding.issue_id} by the "
+                                "deterministic layer: exclusions are recorded one "
+                                "requirement at a time]"
+                            ),
+                            "shared_root_cause": None,
+                            "shared_elements": (),
+                        }
+                    )
+                )
+            exclusion_splits.append(
+                {"issue_id": finding.issue_id, "into": len(by_requirement)}
+            )
+        kept_excluded = split_excluded
         output = output.model_copy(
             update={
                 "issues": tuple(kept_issues),
@@ -3613,6 +3652,7 @@ def adjudicate_results(
             # Relocating a finding changes which basket a reader finds it in, so the move has
             # to be as visible as the finding itself.
             "misfiled_findings_moved": tuple(misfiled_moves),
+            "merged_exclusions_split": tuple(exclusion_splits),
             "thin_merge_warnings": thin_merge_warnings,
             "normalization_applied": reported_satisfied != expected_satisfied,
             "reported_satisfied_requirement_ids": tuple(sorted(reported_satisfied)),
