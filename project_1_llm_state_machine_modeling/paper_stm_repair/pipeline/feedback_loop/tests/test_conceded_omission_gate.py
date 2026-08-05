@@ -179,3 +179,43 @@ def test_every_offending_requirement_gets_its_own_finding() -> None:
         ("模型未声明名为 'auto final' 的状态",),
     )
     assert len(_findings(CONCEDED, second)) == 2
+
+
+def test_a_chinese_diagnosis_in_parentheses_is_not_a_missing_element() -> None:
+    """The false positive that cost `v7run2/0000-claude` the whole cell.
+
+    The parenthesised pattern exists to catch `'auto final'`, a two-word NL phrase. But a
+    parenthesis in these limitations far more often holds a diagnosis, and
+    `(terminating_transitions 为空)` was read as an element the NL had named. The gate then told
+    the splitter to propose an element called "terminating_transitions 为空" and assert its
+    existence -- which it cannot -- and refused the requirement three revisions running until the
+    round ran out of budget.
+    """
+    conceded = _Req(
+        "REQ-M006",
+        "occupancy_after",
+        {"source": f"{NS}.HumanDrivingMode", "target": f"{NS}.FinalState"},
+        (
+            "模型未声明 -> [*] 终止边(terminating_transitions 为空),"
+            "故用 occupancy_after 到达 FinalState 表示完成",
+        ),
+    )
+    assert conceded_omission_findings((conceded,), DECLARED) == ()
+
+
+def test_a_predicate_name_is_not_a_missing_element() -> None:
+    """A limitation explains itself in predicate names; those are the report's vocabulary."""
+    conceded = _Req(
+        "REQ-X",
+        "reaches",
+        {"source": f"{NS}.AutonomousMode", "target": f"{NS}.HumanDrivingMode"},
+        ("模型未声明单独事件,改用 occupancy_after 与 response_within 组合近似",),
+    )
+    assert conceded_omission_findings((conceded,), DECLARED) == ()
+
+
+def test_the_two_word_nl_phrase_it_exists_for_still_works() -> None:
+    """Guard against the filters above swallowing the case the pattern was written for."""
+    findings = conceded_omission_findings((CONCEDED,), DECLARED)
+    assert len(findings) == 1
+    assert "auto final" in findings[0]

@@ -49,7 +49,7 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
 )
 
 from .dependencies import dependency_closure
-from .predicates import EXISTENCE_PREDICATES
+from .predicates import EXISTENCE_PREDICATES, PREDICATE_NAMES
 
 __all__ = [
     "EvidenceCapability",
@@ -943,6 +943,33 @@ _NOT_A_CONCEDED_NAME = re.compile(
 )
 
 
+#: A model element is an identifier, not prose. The parenthesised pattern above exists to catch
+#: `'auto final'` -- a two-word NL phrase -- but a parenthesis in these limitations far more often
+#: holds a diagnosis. `(terminating_transitions 为空)` was read as a missing element name on two
+#: live rounds; the gate then told the splitter to assert that an element called
+#: "terminating_transitions 为空" exists, which it cannot, and refused the requirement three
+#: revisions running until `v7run2/0000-claude` ran out of budget and the cell was lost. Any CJK
+#: character means the token is prose, not a name the NL used.
+_HAS_CJK = re.compile(r"[\u3400-\u9fff\u3000-\u303f\uff00-\uffef]")
+
+#: Vocabulary of the report itself, not of the specification. A limitation explains its reasoning
+#: with predicate names and with the fields of the frozen input it consulted, and the snake_case
+#: pattern happily reads those as element names -- `terminating_transitions 为空` yielded
+#: `terminating_transitions`, an input field, once the CJK filter removed the prose around it.
+_REPORTING_VOCABULARY = frozenset(PREDICATE_NAMES) | {
+    "terminating_transitions",
+    "declared_model_vocabulary",
+    "compiler_owned_variables",
+    "attribution_exclusions",
+    "known_model_paths",
+    "predicate_bindings",
+    "source_context",
+    "behavior_phase",
+    "initial_target",
+    "source_segment_ids",
+}
+
+
 def _tail(name: str) -> str:
     """Compare names on their last segment, ignoring case, underscores and spaces.
 
@@ -963,6 +990,8 @@ def _conceded_names(text: str, declared_tails: frozenset[str]) -> tuple[str, ...
             for token in (str(match).strip() for match in pattern.findall(text))
             if token
             and not _NOT_A_CONCEDED_NAME.match(token)
+            and not _HAS_CJK.search(token)
+            and token.lower() not in _REPORTING_VOCABULARY
             and _tail(token) not in declared_tails
         )
         if found:
