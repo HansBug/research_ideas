@@ -69,12 +69,25 @@ def _ledger_by_pair() -> dict[str, list[dict]]:
     for record in records:
         if record["pair"] not in PAIRS:
             continue
-        assertion_text = json.dumps(record.get("assertions") or [], ensure_ascii=False)
+        # The ledger names its model elements explicitly, per assertion. Dumping the whole
+        # `assertions` blob and tokenising that was the first attempt and it was wrong: the
+        # dump carries field *names* too, so every entry picked up `trigger`, `expression`,
+        # `primary`, `role` and a dozen more. `trigger` alone bought a point of overlap from
+        # any issue that has one, and `EIS-0029-03` matched an unrelated UrbanMode finding on
+        # `{finishstate, trigger}` -- one coincidence and one JSON key.
+        primary_only = [
+            assertion
+            for assertion in (record.get("assertions") or [])
+            if assertion.get("role") == "primary"
+        ] or (record.get("assertions") or [])
+        named: set[str] = set()
+        for assertion in primary_only:
+            named |= _elements(" ".join(str(x) for x in (assertion.get("elements") or ())))
         by_pair[record["pair"]].append(
             {
                 "id": record["id"],
                 "predicate": record.get("primary_predicate"),
-                "elements": _elements(assertion_text),
+                "elements": named,
                 "statement": (record.get("statement") or "")[:90],
             }
         )
@@ -93,8 +106,12 @@ def _issue_signature(issue: dict, requirements: dict[str, dict]) -> tuple[str | 
         requirement = requirements.get(rid) or {}
         if requirement.get("predicate"):
             predicates.add(requirement["predicate"])
-        elements |= _elements(json.dumps(requirement.get("predicate_bindings") or {},
-                                         ensure_ascii=False))
+        # Values only. Dumping the bindings object brought its *keys* along -- `scope`,
+        # `count`, `trigger`, `sign` -- and those are shared by construction, so they
+        # inflated every overlap without distinguishing anything.
+        elements |= _elements(
+            " ".join(str(v) for v in (requirement.get("predicate_bindings") or {}).values())
+        )
     elements |= _elements(" ".join(issue.get("shared_elements") or ()))
     return (sorted(predicates)[0] if len(predicates) == 1 else None), elements
 
@@ -116,9 +133,13 @@ def _match(issue_sig: tuple[str | None, set[str]], entries: list[dict]) -> tuple
     scored = []
     for entry in entries:
         overlap = len(elements & entry["elements"])
-        if overlap < 2:
-            continue
         agrees = predicate is not None and entry["predicate"] == predicate
+        # Two elements normally, but one is enough when the predicate also agrees: the
+        # predicate carries real discriminating power. `EIS-0006-01` and `EIS-0006-03` name
+        # the same two elements and differ only by predicate, so requiring two elements
+        # regardless would leave a `cardinality` issue over the right scope unmatched.
+        if overlap < (1 if agrees else 2):
+            continue
         scored.append((overlap + (2 if agrees else 0), overlap, agrees, entry["id"]))
     if not scored:
         return None
