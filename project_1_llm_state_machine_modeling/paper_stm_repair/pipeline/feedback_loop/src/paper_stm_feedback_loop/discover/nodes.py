@@ -3301,6 +3301,7 @@ def adjudicate_results(
         safe_false_assertions = false_primary_assertions & safe_assertions
         unsafe_false_assertions = false_primary_assertions - safe_false_assertions
         normalized_issues = []
+        annotated_citations: list[dict[str, Any]] = []
         for issue in output.issues:
             primary_ids = tuple(
                 assertion_id
@@ -3308,9 +3309,35 @@ def adjudicate_results(
                 if assertion_id in primary_assertion_ids
             )
             if primary_ids:
-                normalized_issues.append(
-                    issue.model_copy(update={"assertion_ids": primary_ids})
+                update: dict[str, Any] = {"assertion_ids": primary_ids}
+                dropped = tuple(
+                    assertion_id
+                    for assertion_id in issue.assertion_ids
+                    if assertion_id not in primary_assertion_ids
                 )
+                # The trim above is right -- supporting evidence cannot create an issue --
+                # but on its own it leaves the rationale citing an id the record no longer
+                # lists, which is what pair 0029's REQ-012 published. Annotating in place
+                # keeps the sentence readable and tells the auditor what became of the
+                # citation; deleting the id would hide that anything was removed.
+                cited = tuple(
+                    assertion_id
+                    for assertion_id in dropped
+                    if assertion_id in issue.rationale
+                )
+                if cited:
+                    rationale = issue.rationale
+                    for assertion_id in cited:
+                        rationale = rationale.replace(
+                            assertion_id,
+                            f"{assertion_id} [supporting evidence; removed from this "
+                            f"issue's assertion_ids and recorded as an observation]",
+                        )
+                    update["rationale"] = rationale
+                    annotated_citations.append(
+                        {"issue_id": issue.issue_id, "assertion_ids": cited}
+                    )
+                normalized_issues.append(issue.model_copy(update=update))
         normalized_excluded = []
         for finding in output.excluded_findings:
             primary_ids = tuple(
@@ -3472,6 +3499,9 @@ def adjudicate_results(
         }
         reported_satisfied = set(output.satisfied_requirement_ids)
         reconciliation = {
+            # Rewriting a published rationale, however narrowly, has to be visible. Without
+            # this entry the annotation would itself be an untraceable edit to the artefact.
+            "rationale_citations_annotated": tuple(annotated_citations),
             "normalization_applied": reported_satisfied != expected_satisfied,
             "reported_satisfied_requirement_ids": tuple(sorted(reported_satisfied)),
             "deterministic_satisfied_requirement_ids": tuple(
