@@ -66,13 +66,19 @@ def _elements(text: str) -> set[str]:
 
 #: Resolved once. The pipeline package is not installed into the venv -- the repo's own Makefile
 #: runs it off `PYTHONPATH=$(SRC):$(REPO_ROOT)` -- so a bare `python round_variance.py` used to
-#: fall into a bare `except Exception: return None` and silently disable the tie-breaker. That
-#: cost nine generations of reports their `0006` column: with the tie-breaker dead, pair 0006's
-#: `ISSUE-searching-subregions-missing` scored level with a second ledger entry and was thrown
-#: out as an over-report; with it alive the same issue matches `EIS-0006-01`. The v9 report
-#: published `8/8/7` and a "target not met" verdict off the dead configuration; the live one
-#: gives `8/8/8`. Resolve the path here so the script cannot be run wrong, and if the import
-#: still fails, say so on stderr rather than quietly answering a different question.
+#: fall into a bare `except Exception: return None` and silently disable the tie-breaker. With
+#: the tie-breaker dead, pair 0006's `ISSUE-searching-subregions-missing` scored level with a
+#: second ledger entry and `_match` threw it out as an over-report; with it alive the same issue
+#: matches `EIS-0006-01`.
+#:
+#: Measured, not assumed: recomputing all ten generations changes exactly two cells --
+#: `v9/0006-claude` (`2/2/1` -> `2/2/2`) and `v1/0006-gpt` (gains `EIS-0006-03`). The other
+#: eight generations are byte-identical either way. But the two it changed mattered: the v9
+#: report published `8/8/7` and a "target not met" verdict off the dead configuration, where
+#: the live one gives `8/8/8`.
+#:
+#: Resolve the path here so the script cannot be run wrong, and if the import still fails, say
+#: so on stderr rather than quietly answering a different question.
 _KIND_FN: "Callable[[str], str | None] | None" = None
 
 
