@@ -763,6 +763,15 @@ def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]
     the declared prefix there is no obligation to check -- the model already satisfies it by
     construction. Where it disagrees, that disagreement is the requirement, and the binding
     is not self-prefixed any more, so this gate never sees it.
+
+    ⚠️ NOT WIRED as of v22. Landing it needs two things this function cannot supply: a prompt
+    that teaches the producer to record `source_context.nl_parent`, and updated fixtures for
+    the existing tests whose requirements use the nested spelling. Wiring it without those
+    makes the refusal unanswerable -- the producer is told to supply a field nothing has
+    described, exhausts its repair budget, and the cell is quarantined. Measured directly:
+    wiring it alone turned fourteen green tests red, every one on "revised RequirementSet
+    revision must increase". It lands with its tests now so the next iteration starts from a
+    checked design instead of a description.
     """
 
     findings: list[str] = []
