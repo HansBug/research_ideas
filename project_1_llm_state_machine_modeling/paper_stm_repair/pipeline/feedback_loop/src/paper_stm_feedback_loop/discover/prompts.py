@@ -217,10 +217,10 @@ has no name to propose.
 
 **Whenever you propose a name, name the incumbents you looked at.** The last-segment
 comparison is exact, so it says nothing about a declared element that is plainly the same
-thing under a different spelling -- `Idle` against a declared `IdleState`, `Join1` against a
-declared `Join2`. Both of those go to step 3 and both produce a `state_declared` that is
-False, but they are different findings: in one the model named the thing differently, in the
-other the thing is absent. Only you can tell them apart at this point, and the distinction is
+thing under a different spelling -- a sentence naming `Alpha` against a vocabulary declaring
+`AlphaState`, or naming `Beta1` against a vocabulary declaring only `Beta2`. Both go to
+step 3 and both produce a `state_declared` that is False, but they are different findings: in
+one the model named the thing differently, in the other the thing is absent. Only you can tell them apart at this point, and the distinction is
 unrecoverable later -- downstream sees one False either way.
 
 So add a `limitations` entry that begins with `incumbent considered:` and continues with the
