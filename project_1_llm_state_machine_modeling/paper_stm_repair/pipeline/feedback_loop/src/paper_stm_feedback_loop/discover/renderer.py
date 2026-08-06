@@ -93,9 +93,9 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "the author chose. It is unconditional *because* no author entry was, so it "
         "is the converter's fallback rather than the model's answer to \"where does "
         "this composite start\". Do not bind it as the entry the NL names: state "
-        "the claim about the state the NL names, whose `initial_target` then "
-        "answers False -- and that False is the finding, since the model gives the "
-        "author's entry a guard and the default to a generated holder.\n"
+        "the claim about the state the NL names, and let `initial_target` decide it. "
+        "Whether that comes back true or false is the model's answer, not something "
+        "to arrange in advance.\n"
         "When a composite lists two or more entries and none is unconditional, "
         "`initial_target` cannot answer at all and raises. State *that* claim -- the "
         "entry claim, nothing else -- as "
@@ -107,8 +107,8 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "about a phase the machine is already running in: a termination claim bound "
         "to `source=\"[*]\"` asks whether the run ends *from power-on*, and if the model "
         "happens to be wrong in that configuration the answer comes back true for a "
-        "reason the sentence never asked about. Name the running state instead, one requirement per state the "
-        "sentence ranges over."
+        "reason the sentence never asked about. Anchor such a claim at the phase the "
+        "sentence is about, named as a declared state."
     )
     if compiler_owned:
         # Shown, not hidden: the producer will see these names in the FCSTM text

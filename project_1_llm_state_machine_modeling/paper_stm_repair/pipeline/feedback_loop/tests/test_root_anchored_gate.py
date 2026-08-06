@@ -71,11 +71,20 @@ def test_the_finding_names_the_legal_move() -> None:
     `nodes.py` stops a requirement loop when a revision repeats a fingerprint, and that stop
     is fatal -- `can_revise` goes False. A gate that says only "no" invites exactly that
     repeat, so this one says what to bind instead.
+
+    What is asserted is that a legal move is named, not how many requirements it takes. An
+    earlier version required the words "one requirement per", which is a prescription about
+    the *cardinality of the answer* -- and pinning it here is what kept that prescription in
+    the gate's message across generations. The way out the gate owes the splitter is which
+    subject to bind; how many requirements the sentence needs is the splitter's to decide.
     """
     findings = _findings(
         _Req("REQ-006", "occupancy_after", {"source": MODEL_ROOT, "target": "x", "trigger": "y"})
     )
-    assert "one requirement per" in findings[0]
+    assert "Name the running state" in findings[0]
+    # And the refusal must still say which subjects remain legal, or the splitter cannot
+    # tell a refused binding from a refused predicate.
+    assert "cardinality, containment and initial_target" in findings[0]
 
 
 def test_a_behavioural_scope_bound_to_the_root_is_refused_too() -> None:

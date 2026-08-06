@@ -231,9 +231,16 @@ def test_each_step_of_the_procedure_has_a_worked_object() -> None:
         ("step 3", '"state": "Sys.Calibrating"'),
     ):
         assert needle in splitter, f"{marker} has no worked object ({needle})"
-    # Step 4's object predates these and stays: it is the only case a proposed name
-    # is legal, so it must remain visible beside the three that outrank it.
-    assert '"variable": "unit_count"' in splitter
+    # Step 4 must stay visible beside the three that outrank it -- it is the only case
+    # a proposed name is legal. What is asserted is the *rule*, not the instance: an
+    # earlier version of this test pinned `"variable": "unit_count"`, which is how the
+    # variable-declaration/decrement shape came to sit in the prompt and how a test came
+    # to hold it there. Pinning a worked instance makes the prompt's instances
+    # unchangeable, so any instance that happens to mirror a ledger pair's answer
+    # becomes permanent. Assert the naming convention instead.
+    assert "Step 4" in splitter
+    assert "taken from the sentence's own wording" in splitter
+    assert "bare names" in splitter
 
 
 def test_the_deterministic_steps_are_gated_and_not_left_to_the_reviewer() -> None:

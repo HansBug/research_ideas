@@ -137,7 +137,7 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
         examples=(
             'variable_declared(variable="units")  # True when the author declared it',
-            'variable_declared(variable="unit_count")  # False when the model declares no such variable',
+            'variable_declared(variable="retry_limit")  # False when the model declares no such variable',
             'variable_declared(variable="Sys.units")  # raises: variables take no path prefix',
         ),
     ),
@@ -248,7 +248,7 @@ PREDICATES: tuple[Predicate, ...] = (
         examples=(
             'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
             'effect_declared(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
-            'effect_declared(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative")  # False when the model declares no variable under that name',
+            'effect_declared(source="Sys.Charging", trigger="Sys.pulse", variable="charge_level", sign="positive")  # False when the model declares no variable under that name',
         ),
     ),
     Predicate(
@@ -401,7 +401,7 @@ PREDICATES: tuple[Predicate, ...] = (
         examples=(
             'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="units", sign="negative")',
             'variable_delta_after(source="Sys.ModeA", trigger="Sys.add", variable="units", sign="positive")',
-            'variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative")  # False when the model declares no variable under that name',
+            'variable_delta_after(source="Sys.ModeA", trigger="Sys.consume", variable="fuel_reserve", sign="negative")  # False when the model declares no variable under that name',
         ),
     ),
     Predicate(
@@ -426,7 +426,7 @@ PREDICATES: tuple[Predicate, ...] = (
             ('within_cycles', 'cycle budget; default 3. Every declared event is offered each cycle, so this ignores which trigger caused it'),
         ),
         examples=(
-            'reaches(source="Sys.ModeA", target="Sys.Final", within_cycles=3)',
+            'reaches(source="Sys.ModeA", target="Sys.Idle", within_cycles=3)',
             'reaches(source="[*]", target="Sys.ModeB", within_cycles=5)',
             'reaches(source="Sys.ModeA", target="Sys.Dead", within_cycles=3)  # False: unreachable within the budget',
         ),
@@ -447,7 +447,7 @@ PREDICATES: tuple[Predicate, ...] = (
             ('trigger', 'optional; when given only that event is offered, otherwise every declared event is'),
         ),
         examples=(
-            'terminates(scope="Sys.ModeB", trigger="Sys.off")  # does this event finish the model',
+            'terminates(scope="Sys.Draining", trigger="Sys.shutdown")  # does this event finish the model',
             'terminates(scope="[*]")  # can the model finish at all from a cold start',
             'terminates(scope="Sys.ModeA")  # False when no run from here reaches a final state',
         ),
@@ -814,7 +814,7 @@ def callable_prompt() -> str:
         '    occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.ModeB") is True',
         '    occupancy_after(source="[*]", trigger="Sys.on", target="Sys.ModeA") is True',
         '    event_consumed(source="Sys.ModeA", trigger="Sys.evt") is True',
-        '    terminates(scope="Sys.ModeB", trigger="Sys.off") is True',
+        '    terminates(scope="Sys.Draining", trigger="Sys.shutdown") is True',
         "",
         "Family P (bounded over all runs). `condition` and `release` are FCSTM "
         "expressions, not paths:",
@@ -827,10 +827,12 @@ def callable_prompt() -> str:
         "verdict cannot distinguish an element that is missing from one that is "
         "present and behaves wrongly, and those take different repairs. Keep those "
         "two as separate assertions linked by depends_on:",
-        '    all([occupancy_after(source="Sys.ModeA", trigger="Sys.off", target="Sys.Final"),',
-        '         occupancy_after(source="Sys.ModeB", trigger="Sys.off", target="Sys.Final")]) is True',
-        '    variable_declared(variable="unit_count") is True    # precondition',
-        '    variable_delta_after(source="Sys.ModeA", trigger="Sys.done", variable="unit_count", sign="negative") is True    # depends_on it',
+        '    all([occupancy_after(source="Sys.RegionA.Working", trigger="Sys.abort", target="Sys.Idle"),',
+        '         occupancy_after(source="Sys.RegionB.Working", trigger="Sys.abort", target="Sys.Idle")]) is True',
+        '    event_declared(event="Sys.recalibrate") is True    # precondition',
+        '    edge_declared(source="Sys.Idle", trigger="Sys.recalibrate", target="Sys.Calibrating") is True    # depends_on it',
+        "The pairing above is required for any element kind the model does not "
+        "declare -- state, event, variable or action -- not only for the kind shown.",
         "",
         "Besides these you may use only plain builtins: len, all, any, bool, int, "
         "str, sorted, sum, min, max, set, list, tuple, abs, round, float, iter. "

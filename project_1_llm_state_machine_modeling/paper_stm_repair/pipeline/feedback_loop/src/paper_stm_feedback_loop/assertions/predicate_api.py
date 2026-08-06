@@ -1221,8 +1221,7 @@ class PredicateAPI:
                     "observation reports the whole chain root..leaf, so a composite "
                     "subject is satisfied by any of its substates and the claim "
                     "holds however the model behaves. Name the leaf state the "
-                    "requirement is about -- one requirement per state when the "
-                    "sentence names none."
+                    "requirement is about."
                 )
             held = {source}
         active = self._active(view)

@@ -138,7 +138,7 @@ Cardinality and scope: when the NL gives a number of areas/states but does not n
 
 Limitation non-waiver: describing a material mismatch does not satisfy the requirement. If inspection reveals that the observed source, trigger, destination, hierarchy, or effect conflicts with the accepted requirement, orient at least one exact assertion so that the mismatch evaluates False. Never acknowledge a contradiction in description/failure_message and then use a broader presence query that evaluates True. A disclosed proxy is acceptable only when it preserves the requirement for the stated finite scope; it cannot waive a source-placement or target-scope contradiction.
 
-Cardinality evidence gate: `cardinality(scope, count)` is exact and it is the only counting predicate -- there is no at-least form, and no way to write one. So when the NL states a number N without naming the members, scope the claim to the composite the NL actually names and record in `limitations` that the count includes every declared non-pseudo direct substate, converter-generated ones among them. Do not weaken the claim to something else and do not skip it: a count that disagrees is a finding worth reporting with that limitation attached, and the limitation is what tells a reader whether the disagreement is about the author's states or about the converter's.
+Cardinality evidence gate: `cardinality(scope, count)` is exact and it is the only counting predicate -- there is no at-least form, and no way to write one. So when the NL states a number N without naming the members, scope the claim to the composite the NL actually names and record in `limitations` that the count includes every declared non-pseudo direct substate, converter-generated ones among them. Do not weaken the claim to something else and do not skip it: state the count the NL gives and let the predicate settle it either way, with that limitation attached, since the limitation is what tells a reader whether an eventual disagreement is about the author's states or about the converter's.
 
 Multi-step response gate: count the declared steps before choosing `within_cycles`. `occupancy_after` defaults to 1, which observes only the immediate successor -- so when the target is reached through eventless completion edges, forced transitions, or a parent-level follow-up routed on a converter token, one cycle sees an intermediate state and reports a failure the model does not have. Read the transition table: follow the declared path from the source to the target, count the edges, and set `within_cycles` to at least that many. A composite source costs no extra cycle (the predicate settles the entry itself), but every eventless hop on the way does. Never report a one-cycle intermediate observation as a failed final response, and never substitute a nonexistent direct source-to-target edge for the composed evidence.
 """
@@ -260,8 +260,8 @@ the vocabulary, step 2 still applies and you bind the declared path.
 
 **Step 4 -- none of the above: the model has no counterpart at all.** Only now
 write the name the element should have, taken from the sentence's own wording --
-`unit_count` for "the number of units", `Sys.OperatorConfirm` for "until the
-operator confirms". Follow the model's conventions for the kind: variables are
+`retry_limit` for "the configured retry limit", `Sys.OperatorConfirm` for "until
+the operator confirms". Follow the model's conventions for the kind: variables are
 bare names, events and states are `<root>.<name>` paths. Add a `limitations`
 entry naming what the NL asked for and recording that the model declares nothing
 under that name, and say which of steps 1-3 you ruled out.
@@ -531,18 +531,18 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
 }
 {
   "requirement_id": "REQ-004",
-  "statement": "Completing the task shall decrease the number of active units.",
-  "rationale": "NL-L004 requires a quantity the model declares no variable for; unit_count is proposed from the sentence own wording rather than bound to an unrelated declared variable.",
+  "statement": "The controller shall accept a recalibration command while idle.",
+  "rationale": "NL-L004 names a command the model declares no event for; Sys.recalibrate is proposed from the sentence own wording rather than bound to an unrelated declared event.",
   "source_segment_ids": ["NL-L004"],
   "source_context": {"basis": "explicit_nl", "behavior_phase": "operation"},
-  "predicate": "variable_delta_after",
-  "predicate_bindings": {"source": "Sys.ModeA", "trigger": "Sys.done", "variable": "unit_count", "sign": "negative"},
-  "verification_kind": "behavior",
+  "predicate": "edge_declared",
+  "predicate_bindings": {"source": "Sys.Idle", "trigger": "Sys.recalibrate", "target": "Sys.Calibrating"},
+  "verification_kind": "structure",
   "quantifier": "single",
-  "trigger": "Sys.done",
-  "expected_outcome": "the unit count decreases",
-  "coverage_obligation": {"domain": "quantitative_effect", "aggregation": "all"},
-  "limitations": ["the model declares no variable for the number of active units"]
+  "trigger": "Sys.recalibrate",
+  "expected_outcome": "the idle state declares an edge for the command",
+  "coverage_obligation": {"domain": "command_acceptance", "aggregation": "all"},
+  "limitations": ["the model declares no event for the recalibration command"]
 }
 
 Example 4 -- step 1: the sentence asks about termination, so there is no state to bind.
@@ -702,31 +702,42 @@ Example 2 -- Family B primary plus a supporting locator, same requirement:
 }
 
 Example 3 -- a Requirement naming an element `declared_model_vocabulary` does not
-contain: a precondition and a dependent primary. Use this shape whenever the model
-lacks the element the NL asks for.
+contain. Every such Requirement splits in two, whatever the element kind is -- state,
+event, variable or action:
+
+  * a `precondition` asserting the element is declared, and
+  * the `primary` claim the sentence actually makes, carrying that precondition in
+    `depends_on`.
+
+The reason is evaluability, not bookkeeping. A primary bound to a name the model never
+declared cannot be judged on its own terms, so the precondition's verdict is what says
+why. Emitting only the primary throws that away; emitting only the precondition drops
+the obligation the sentence stated. The example below happens to be an event, and the
+same two-assertion shape is required for a missing state, a missing variable or a
+missing action.
 {
   "assertion_id": "AST-REQ-003-0",
   "requirement_id": "REQ-003",
-  "description": "A variable representing the unit count must be declared.",
-  "expression": "variable_declared(variable=\\"unit_count\\") is True",
-  "failure_message": "[REQ-003][AST-REQ-003-0] no declared variable carries the unit count",
-  "rationale": "NL clause 3 says the number of units decreases after done. declared_model_vocabulary lists no author-owned variable at all, so the quantity has nothing to live in; unit_count is proposed from the sentence own wording so a repair stage has a name to add.",
+  "description": "An event for the recalibration command must be declared.",
+  "expression": "event_declared(event=\\"Sys.recalibrate\\") is True",
+  "failure_message": "[REQ-003][AST-REQ-003-0] no declared event carries the recalibration command",
+  "rationale": "NL clause 3 names a command the operator issues. declared_model_vocabulary lists no event for it, so the trigger the clause needs has nothing to bind to; Sys.recalibrate is proposed from the sentence own wording so a repair stage has a name to add.",
   "evidence_family": "structure",
   "role": "precondition",
-  "coverage_key": "variable_declared:unit_count",
+  "coverage_key": "event_declared:Sys.recalibrate",
   "aggregation_group": "REQ-003:all",
   "depends_on": []
 }
 {
   "assertion_id": "AST-REQ-003-1",
   "requirement_id": "REQ-003",
-  "description": "After done the unit count must decrease.",
-  "expression": "variable_delta_after(source=\\"Sys.ModeA\\", trigger=\\"Sys.done\\", variable=\\"unit_count\\", sign=\\"negative\\") is True",
-  "failure_message": "[REQ-003][AST-REQ-003-1] done does not decrease the unit count",
-  "rationale": "The claim NL clause 3 actually makes. It can only be evaluated once the variable exists, so it depends on AST-REQ-003-0; with no such variable there is no delta to judge.",
-  "evidence_family": "simulation",
+  "description": "The recalibration command must be accepted while idle.",
+  "expression": "edge_declared(source=\\"Sys.Idle\\", trigger=\\"Sys.recalibrate\\", target=\\"Sys.Calibrating\\") is True",
+  "failure_message": "[REQ-003][AST-REQ-003-1] Idle declares no edge for the recalibration command",
+  "rationale": "The claim NL clause 3 actually makes. It can only be evaluated once the event exists, so it depends on AST-REQ-003-0; with no such event there is no edge to judge.",
+  "evidence_family": "structure",
   "role": "primary",
-  "coverage_key": "variable_delta_after:Sys.done:unit_count:negative",
+  "coverage_key": "edge_declared:Sys.Idle:Sys.recalibrate:Sys.Calibrating",
   "aggregation_group": "REQ-003:all",
   "depends_on": ["AST-REQ-003-0"]
 }
@@ -748,13 +759,13 @@ Example 4 -- Family P, and a claim over several named elements folded with all()
 {
   "assertion_id": "AST-REQ-005-1",
   "requirement_id": "REQ-005",
-  "description": "Power-off must reach Final from every operating mode the NL names.",
-  "expression": "all([occupancy_after(source=\\"Sys.ModeA\\", trigger=\\"Sys.off\\", target=\\"Sys.Final\\"), occupancy_after(source=\\"Sys.ModeB\\", trigger=\\"Sys.off\\", target=\\"Sys.Final\\")]) is True",
-  "failure_message": "[REQ-005][AST-REQ-005-1] off does not reach Final from every mode",
-  "rationale": "NL clause 5 names two operating modes and one obligation, so both must hold; folding with all() keeps it one requirement with one verdict.",
+  "description": "Abort must return the run to Idle from both working regions.",
+  "expression": "all([occupancy_after(source=\\"Sys.RegionA.Working\\", trigger=\\"Sys.abort\\", target=\\"Sys.Idle\\"), occupancy_after(source=\\"Sys.RegionB.Working\\", trigger=\\"Sys.abort\\", target=\\"Sys.Idle\\")]) is True",
+  "failure_message": "[REQ-005][AST-REQ-005-1] abort does not return to Idle from both working regions",
+  "rationale": "NL clause 5 names two regions and one obligation, so both must hold; folding with all() keeps it one requirement with one verdict.",
   "evidence_family": "simulation",
   "role": "primary",
-  "coverage_key": "occupancy_after:off:Sys.Final:all-modes",
+  "coverage_key": "occupancy_after:abort:Sys.Idle:both-regions",
   "aggregation_group": "REQ-005:all",
   "depends_on": []
 }

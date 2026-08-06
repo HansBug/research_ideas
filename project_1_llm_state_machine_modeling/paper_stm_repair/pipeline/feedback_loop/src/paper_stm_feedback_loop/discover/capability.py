@@ -909,7 +909,7 @@ def root_anchored_findings(
                 "what happens at power-on rather than by the behaviour the sentence is "
                 "about, and if the model happens to be wrong there the answer comes back "
                 "true for a reason the sentence never asked about. Name the running state the sentence "
-                "is about (one requirement per state when the sentence does not pin one). "
+                "is about. "
                 "This applies to behavioural claims only: cardinality, containment and "
                 "initial_target may take the root as their subject."
             )
