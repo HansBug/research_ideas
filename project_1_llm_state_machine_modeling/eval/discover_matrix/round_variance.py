@@ -30,6 +30,7 @@ import json
 import pathlib
 import re
 import sys
+from typing import Callable
 
 HERE = pathlib.Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
@@ -63,6 +64,44 @@ def _elements(text: str) -> set[str]:
     return out
 
 
+#: Resolved once. The pipeline package is not installed into the venv -- the repo's own Makefile
+#: runs it off `PYTHONPATH=$(SRC):$(REPO_ROOT)` -- so a bare `python round_variance.py` used to
+#: fall into a bare `except Exception: return None` and silently disable the tie-breaker. That
+#: cost nine generations of reports their `0006` column: with the tie-breaker dead, pair 0006's
+#: `ISSUE-searching-subregions-missing` scored level with a second ledger entry and was thrown
+#: out as an over-report; with it alive the same issue matches `EIS-0006-01`. The v9 report
+#: published `8/8/7` and a "target not met" verdict off the dead configuration; the live one
+#: gives `8/8/8`. Resolve the path here so the script cannot be run wrong, and if the import
+#: still fails, say so on stderr rather than quietly answering a different question.
+_KIND_FN: "Callable[[str], str | None] | None" = None
+
+
+def _verification_kind_of() -> "Callable[[str], str | None]":
+    global _KIND_FN
+    if _KIND_FN is not None:
+        return _KIND_FN
+    src = HERE.parents[1] / "paper_stm_repair" / "pipeline" / "feedback_loop" / "src"
+    if src.is_dir() and str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    try:
+        from paper_stm_feedback_loop.discover.predicates import verification_kind_of
+
+        _KIND_FN = verification_kind_of
+    except ImportError as exc:  # pragma: no cover - configuration failure, not logic
+        print(
+            f"WARNING: predicate tie-breaker unavailable ({exc}). Ledger entries naming the "
+            f"same elements can no longer be told apart, and some real hits will be counted "
+            f"as over-reports. Looked for the package under {src}.",
+            file=sys.stderr,
+        )
+
+        def _unavailable(_predicate: str) -> str | None:
+            return None
+
+        _KIND_FN = _unavailable
+    return _KIND_FN
+
+
 def _verification_kind(predicate: str | None) -> str | None:
     """`structure` / `behavior` / `property` for a predicate, or `None` when unknown.
 
@@ -72,12 +111,7 @@ def _verification_kind(predicate: str | None) -> str | None:
     """
     if not predicate:
         return None
-    try:
-        from paper_stm_feedback_loop.discover.predicates import verification_kind_of
-
-        return verification_kind_of(predicate)
-    except Exception:
-        return None
+    return _verification_kind_of()(predicate)
 
 
 def _ledger_by_pair() -> dict[str, list[dict]]:
