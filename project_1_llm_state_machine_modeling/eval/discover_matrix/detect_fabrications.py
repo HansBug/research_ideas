@@ -171,7 +171,19 @@ def scan(audit_dir: pathlib.Path) -> list[dict]:
     from paper_stm_feedback_loop.common.refs import reference_matches
 
     out: list[dict] = []
-    for path in sorted(audit_dir.glob("*-audit.json")):
+    audit_files = sorted(audit_dir.glob("*-audit.json"))
+    if not audit_files:
+        # Reporting "0 unsupported issues" off zero inputs is how nine generations of reports
+        # claimed a clean bill they had never run. `*-audit.json` is written by `build_gist.py`
+        # into a gist data directory; a raw round directory never contains one, so pointing this
+        # scanner at `runs/.../vNrunM` reads nothing and prints the same "0 条" as a real pass.
+        raise SystemExit(
+            f"ERROR: no *-audit.json under {audit_dir}. This scanner reads the audit bundle "
+            f"built by build_gist.py, not a raw round directory. Refusing to report a count "
+            f"from zero inputs -- that reads as a clean scan and is what made the '0 条' in "
+            f"every report from v5 onward vacuous."
+        )
+    for path in audit_files:
         record = json.loads(path.read_text())
         if record.get("terminal") != "completed":
             continue
