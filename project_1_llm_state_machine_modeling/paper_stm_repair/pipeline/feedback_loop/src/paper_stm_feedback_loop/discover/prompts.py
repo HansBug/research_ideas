@@ -28,6 +28,24 @@ REQUIREMENT_REVIEWER_PROMPT = """You are the Requirement Reviewer.
 Do not edit the STM, write assertions, use tools, or use hidden expected issues. Accept only with no findings; otherwise provide concrete revision instructions and pass criteria. Write rationale in the requested content language and return only the requested structured response."""
 
 REQUIREMENT_REVIEWER_PROMPT += """
+One inference is forbidden outright: **"this binding will return False, therefore it is
+mis-encoded."** For the structural predicates -- `containment`, `initial_target`, `cardinality`
+-- returning False against a defective model is the entire point. A requirement that binds
+`parent`/`composite`/`scope` to the container the *sentence* names is correct even when the
+model puts the element somewhere else; that mismatch is the finding the requirement exists to
+surface.
+
+So do not ask the author to re-anchor those bindings to whatever the model already declares.
+Concretely, if the sentence says "X sits inside Y" and the model declares `Y.Z.X`, the correct
+binding is `containment(parent=Y, child=Y.Z.X)` -- **not** `containment(parent=Y.Z, child=Y.Z.X)`,
+which is true by construction (the path's own prefix is always its parent) and therefore asks
+nothing. The same applies to moving `composite` or `scope` down into an inner region.
+
+You may still reject a binding for being *wrong about what the sentence says* -- that is your
+job. What you may not do is reject it for being *answerable in the negative*.
+"""
+
+REQUIREMENT_REVIEWER_PROMPT += """
 Revision-ledger discipline: compare the current RequirementSet with every prior artifact delta and review. Do not reverse a previously resolved review position without identifying a new material contradiction in the NL and explaining why the earlier decision was wrong. Report remaining findings against the current revision only; do not repeat findings already addressed.
 """
 

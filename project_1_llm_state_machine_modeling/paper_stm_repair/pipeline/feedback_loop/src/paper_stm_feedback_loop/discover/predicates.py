@@ -176,19 +176,24 @@ PREDICATES: tuple[Predicate, ...] = (
         "states",
         field_specs=(
             ('parent', 'the declared enclosing state'),
-            ('child', 'the declared state that must be a DIRECT substate of parent; a grandchild answers False'),
+            ('child', 'the state the sentence places inside parent; False means the model put it '
+                      'somewhere else, and that is the finding'),
         ),
         examples=(
-            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")  # direct child',
-            'containment(parent="Sys.Outer", child="Sys.Outer.Inner.Deep")  # False: not direct',
-            'containment(parent="Sys", child="Sys.Outer")  # top-level containment',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")  # holds: direct child',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner.Deep")'
+            '  # False -- the model wrapped it one level deeper than the sentence allows. '
+            'THIS IS A FINDING, not a mis-encoding: do not re-anchor parent to "Sys.Outer.Inner".',
+            'containment(parent="Sys", child="Sys.Outer")  # holds: top-level containment',
         ),
     ),
     Predicate(
         "initial_target",
         FAMILY_STRUCTURE,
         "entering this composite starts in this child",
-        "wrong or missing initial child; entry lands in the wrong mode",
+        "wrong or missing initial child; entry lands in the wrong mode. False means the author "
+        "declared no such default entry at THIS composite -- that is the finding. Do not move "
+        "`composite` down to whatever inner region happens to have one.",
         ("composite", "child"),
         "decides the declaration outright",
         "initial_child(...)",
@@ -304,8 +309,10 @@ PREDICATES: tuple[Predicate, ...] = (
         "states(...)",
         "states",
         field_specs=(
-            ('scope', 'the declared enclosing state whose DIRECT substates are counted'),
-            ('count', 'an integer; pseudo-states are not counted'),
+            ('scope', 'the state the sentence enumerates the members of. False means the model '
+                      'has a different number THERE -- that is the finding. Do not move `scope` '
+                      'down to an inner region whose count happens to match.'),
+            ('count', 'an integer; pseudo-states and compiler-inserted states are not counted'),
         ),
         examples=(
             'cardinality(scope="Sys.Outer", count=3)  # exactly three direct modes',
