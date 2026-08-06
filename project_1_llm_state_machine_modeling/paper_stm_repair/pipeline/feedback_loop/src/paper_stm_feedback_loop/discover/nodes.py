@@ -853,6 +853,7 @@ def _canonicalize_trace_entry_ids(
 #: plausible value instead of failing.
 ABLATABLE_GATES = (
     "initialization_anchored",
+    "vacuous_containment",
     "termination_proposal",
     "redundant_proposal",
     "root_anchored",
@@ -1356,6 +1357,9 @@ def split_requirements(
         # model never sees) rather than in any prompt (which it does).
         gates = (
             ("initialization_anchored", lambda: initialization_anchored_findings(output.requirements)),
+            # v23: 接线。它要求 `source_context.nl_parent`，splitter prompt 已在 v23 教这个字段 ——
+            # v22 未接线正是因为「被要求补一个从未被描述过的字段」会耗尽修复预算。
+            ("vacuous_containment", lambda: vacuous_containment_findings(output.requirements)),
             (
                 "termination_proposal",
                 lambda: termination_proposal_findings(

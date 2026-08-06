@@ -805,6 +805,19 @@ def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]
                 "this by construction and there is no obligation to check. Drop the "
                 "requirement and state what the sentence says the element does instead."
             )
+        else:
+            # `nl_parent` names a different level than the binding uses -- so the producer knows
+            # the sentence puts the element somewhere else, and bound the check to the model's
+            # placement anyway. That is the displacement this gate exists to catch, stated
+            # outright in the requirement's own field. Left unrefused it would be the one shape
+            # that survives by *filling the field correctly*.
+            findings.append(
+                f"{rid} records `nl_parent={str(nl_parent).strip()!r}` but binds "
+                f"containment(parent={parent!r}, child={child!r}) -- the binding uses the "
+                "model's placement, not the level the sentence names. Bind "
+                f"parent={str(nl_parent).strip()!r} and keep the declared path as `child`; "
+                "the False that produces is the finding."
+            )
     return tuple(findings)
 
 

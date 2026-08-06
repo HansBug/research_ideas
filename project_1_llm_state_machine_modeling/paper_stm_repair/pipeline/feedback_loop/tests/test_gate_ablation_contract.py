@@ -37,6 +37,11 @@ from paper_stm_feedback_loop.discover import nodes  # noqa: E402
 #: derived from the module, so adding a gate without adding it here fails.
 EXPECTED_GATES = {
     "initialization_anchored",
+    # v23 接线。它在 v22 就写好了（`capability.vacuous_containment_findings`），却只在
+    # `nodes.py` 里当死导入放着 —— 因为它要求 `source_context.nl_parent`，而当时没有任何 prompt
+    # 描述过这个字段，接线会让生产者被要求补一个它没被教过的东西，耗尽修复预算后整格隔离。
+    # v23 先在 splitter prompt 里教了该字段，再接线。
+    "vacuous_containment",
     "termination_proposal",
     "redundant_proposal",
     "root_anchored",
@@ -51,10 +56,15 @@ def test_every_gate_the_report_names_is_ablatable() -> None:
     assert set(nodes.ABLATABLE_GATES) == EXPECTED_GATES
 
 
-def test_the_seven_step_findings_gates_are_all_present() -> None:
-    """`step_findings` is the block the coverage number is produced by; all seven must be here."""
+def test_the_step_findings_gates_are_all_present() -> None:
+    """`step_findings` is the block the coverage number is produced by; all of them must be here.
+
+    数量从 7 变 8（v23 接线 `vacuous_containment`）。这里写活数而不是写死 8，因为把数字钉在测试里
+    会让下一次接线看起来像「测试坏了」而不是「契约变了」—— 真正要守的是**两侧一致**：
+    `ABLATABLE_GATES` 与报告里出现的门名不能有一方多出一项。
+    """
     step_gates = EXPECTED_GATES - {"source_blind_response"}
-    assert len(step_gates) == 7
+    assert step_gates
     assert step_gates <= set(nodes.ABLATABLE_GATES)
 
 

@@ -111,3 +111,27 @@ def test_a_missing_binding_is_not_this_gates_business() -> None:
     """Unresolved or absent bindings have their own gate; this one must not double-report."""
     assert capability.vacuous_containment_findings((_Req({"parent": "Sys.Outer"}),)) == ()
     assert capability.vacuous_containment_findings((_Req({}),)) == ()
+
+
+def test_a_correctly_filled_nl_parent_that_is_ignored_is_still_refused() -> None:
+    """填对了字段却不照做 —— 这是最该拦的形态，而原设计放行了它。
+
+    门的三分支里，「`nl_parent` 缺失」与「`nl_parent` 等于绑定」都拦，只有「`nl_parent` 指向别的
+    层」放行。可那正是完整的位移：生产者**知道**句子说的是另一层（它自己写在字段里），仍把断言绑在
+    模型的摆放上。
+
+    不补这一支，唯一能绕过这道门的方式就是**把字段填对** —— 一道要求记录 provenance 的门，如果只在
+    provenance 缺失时才拦，就等于奖励「填了但不照做」。
+    """
+    item = _Req({"parent": "Sys.Outer", "child": "Sys.Outer.Inner"}, "Sys", "REQ-DISPLACED")
+    findings = capability.vacuous_containment_findings([item])
+    assert len(findings) == 1, findings
+    assert "nl_parent='Sys'" in findings[0]
+    assert "the level the sentence names" in findings[0]
+
+
+def test_a_cross_level_binding_is_never_touched_whatever_nl_parent_says() -> None:
+    """可判别绑定按构造不是自前缀形状，门连看都看不到它 —— 这是「不压真命中」的全部依据。"""
+    for nl_parent in ("__absent__", "Sys", "Sys.Outer"):
+        item = _Req({"parent": "Sys", "child": "Sys.Outer.Inner"}, nl_parent, "REQ-OK")
+        assert capability.vacuous_containment_findings([item]) == (), nl_parent
