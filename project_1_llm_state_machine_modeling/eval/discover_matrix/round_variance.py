@@ -40,7 +40,20 @@ from issue_compat import requirement_ids_of  # noqa: E402
 LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 CELLS = HERE / "manual_review" / "loop_audit" / "cells.json"
 
-PAIRS = ("0000", "0006", "0029", "0050")
+def _pairs() -> tuple[str, ...]:
+    """格集从盘上读，不写死。
+
+    写死的四个 pair 让这个脚本在 v21 上报「不稳定的格 1 / 4」—— 十一格里测了四格，而
+    `0032` / `0035` / `0047`（当时全部三个可报 pair）一格没测，且没有任何「7 格未找到」的提示。
+    `run_grid.py` 正是为治这个病写的，却没有任何测量脚本消费它。
+    """
+
+    import run_grid
+
+    return tuple(run_grid.grid())
+
+
+PAIRS = _pairs()
 MODELS = ("claude", "gpt")
 
 #: Path segments that carry no discriminating power -- every element in a pair shares the

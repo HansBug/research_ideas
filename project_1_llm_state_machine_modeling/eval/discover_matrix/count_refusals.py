@@ -30,7 +30,11 @@ import argparse
 import collections
 import json
 import pathlib
+import re
 import sys
+
+#: 轮次目录，`smoke/` 与 `*.try*` 之类不算。
+_ROUND = re.compile(r"^run\d+$")
 
 #: Refusal messages, keyed by the rule that raised them. Matched on a distinctive prefix of
 #: the message rather than on an exception type, because every one of these arrives as
@@ -166,7 +170,14 @@ def main() -> int:
     args = parser.parse_args()
 
     rounds: dict[str, dict[str, dict]] = {}
-    for run_dir in sorted(p for p in args.matrix_dir.iterdir() if p.is_dir()):
+    # 只认 `run<N>`。上一版把 matrix_dir 下**每个**子目录当轮次，于是 `smoke/` 混进分母：
+    # v21 上报 34 格而实为 33，同时输出里写着「same denominator as over@1」，而 `over@1` 由
+    # 人工按 33 格给。两个被要求并列阅读的比率跑在不同分母上，脚本自己却断言它们相同。
+    round_dirs = [p for p in sorted(args.matrix_dir.iterdir()) if p.is_dir() and _ROUND.match(p.name)]
+    skipped = [p.name for p in sorted(args.matrix_dir.iterdir()) if p.is_dir() and not _ROUND.match(p.name)]
+    if skipped:
+        print(f"skipped non-round dirs: {', '.join(skipped)}", file=sys.stderr)
+    for run_dir in round_dirs:
         cells = {}
         for cell in sorted(p for p in run_dir.iterdir() if p.is_dir() and "try" not in p.name):
             # Only finished cells. A cell still running has records but no verdict, and

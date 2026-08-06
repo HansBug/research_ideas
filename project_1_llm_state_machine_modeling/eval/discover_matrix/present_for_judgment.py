@@ -18,13 +18,48 @@
 一个要重新设计角色语义，一个要调预算。前十八代次只看 issues，这可能正是「分析没有触及
 根本」的一个具体来源。
 
-用法：python present_for_judgment.py [代次前缀] [可选的单个 pair]
+⚠️ 这个脚本曾经在真实路径上**输出零行并 exit 0**。`BASE` 写死成 `matrix-i175`、轮次目录名
+写死成 `<gen>run<N>`，而 v20 起的实际布局是 `runs/paper1/matrix-<gen>/run<N>`；模型 glob 写死
+`*-claude`，而 v22 起有两条臂。零行输出与「所有格都没发现任何东西」在终端上完全一样 —— 对一个
+存在理由就是「防止三种不同的失败被读成同一个未发现」的脚本，这是最坏的失败形态。
+
+所以路径与格集不再写死：代次目录按 `matrix-<gen>` 与 `<gen>run<N>` 两种布局都试，模型臂从目录
+名解析，且**找不到任何格时非零退出并说明找过哪些路径**。
+
+用法：
+    present_for_judgment.py v21                  # 全部轮次、全部臂
+    present_for_judgment.py v22 --pair 0047      # 单个 pair
+    present_for_judgment.py v22 --arm gpt        # 单条臂
+    present_for_judgment.py v22 --full           # 不截断（判定时应当用这个）
 """
-import json, pathlib, sys, collections
+import argparse, json, pathlib, sys, collections
 HERE = pathlib.Path(__file__).resolve().parent
 LED = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
-BASE = HERE.parents[2] / "runs" / "paper1" / "matrix-i175"
-HOLD = set(json.loads((HERE / "holdout.json").read_text())["holdout"])
+RUNS = HERE.parents[2] / "runs" / "paper1"
+FROZEN = json.loads((HERE / "holdout.json").read_text())
+HOLD = set(FROZEN["holdout"])
+# 记录级资格：判定者必须看得出哪几条承载主张、哪几条已烧毁。上一版用 pair 级 `holdout`，于是
+# 0018/0038/0048 照旧显示 [HOLDOUT]，而它们连同五条记录早已判为烧毁。
+REPORTABLE = set(FROZEN.get("reportable_records") or ())
+BURNED_RECORDS = FROZEN.get("burned_records") or {}
+BURNED_PAIRS = set(FROZEN.get("burned") or {})
+# EIS-0047-03 干净但被 initialization_anchored 门结构性封死（预注册 §9.1）。它若报未命中，
+# 那是门的抑制，不是能力缺口 —— 判定时必须看见这句话，否则会被记成未命中。
+BLOCKED = {"EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）：两条编码都绑 "
+                          "source=[*] 且 trigger 不在上电词表里，八种组合全拒"}
+
+
+def _round_dirs(gen: str):
+    """代次的轮次目录，两种历史布局都试，并把试过的路径报出来。"""
+    tried, found = [], []
+    for rnd in (1, 2, 3):
+        for candidate in (RUNS / f"matrix-{gen}" / f"run{rnd}", RUNS / f"{gen}run{rnd}",
+                          RUNS / f"matrix-{gen}" / f"{gen}run{rnd}"):
+            tried.append(candidate)
+            if candidate.is_dir():
+                found.append((rnd, candidate))
+                break
+    return found, tried
 
 def expected(pair):
     out=[]
@@ -33,31 +68,63 @@ def expected(pair):
             out.append(r)
     return out
 
-gen = sys.argv[1] if len(sys.argv)>1 else "v19"
-only = sys.argv[2] if len(sys.argv)>2 else None
-for rnd in (1,2,3):
-    for cell in sorted((BASE/f"{gen}run{rnd}").glob("*-claude")) if (BASE/f"{gen}run{rnd}").is_dir() else []:
-        pair = cell.name.split("-")[0]
-        if only and pair!=only: continue
+ap = argparse.ArgumentParser(description="并列呈现，不做判定")
+ap.add_argument("gen", help="代次前缀，如 v21 / v22")
+ap.add_argument("--pair", help="只看一个 pair")
+ap.add_argument("--arm", help="只看一条臂，如 claude / gpt")
+ap.add_argument("--full", action="store_true",
+                help="不截断台账 statement 与模型 detail。判定时应当用这个："
+                     "170/230 字符的截断线曾把台账自己的结论子句切掉")
+args = ap.parse_args()
+gen, only, arm = args.gen, args.pair, args.arm
+LIM_LED = 10**9 if args.full else 170
+LIM_MOD = 10**9 if args.full else 230
+
+rounds, tried = _round_dirs(gen)
+if not rounds:
+    print(f"找不到 {gen} 的任何轮次目录。试过：", file=sys.stderr)
+    for path in tried:
+        print(f"  {path}", file=sys.stderr)
+    # 零行输出与「什么都没发现」不可区分，所以这里必须非零退出。
+    raise SystemExit(2)
+
+shown = 0
+for rnd, base in rounds:
+    cells = sorted(c for c in base.iterdir() if c.is_dir() and "-" in c.name)
+    for cell in cells:
+        pair, _, this_arm = cell.name.partition("-")
+        if only and pair != only: continue
+        if arm and this_arm != arm: continue
+        shown += 1
         f = cell/"discover-completed.json"
-        tag = "HOLDOUT" if pair in HOLD else "hist"
+        if pair in BURNED_PAIRS: tag = "已烧毁-整格"
+        elif pair in HOLD: tag = "HOLDOUT"
+        else: tag = "hist"
         if not f.exists():
             fail = cell/"discover-failed.json"
-            print(f"\n{'='*100}\n{gen}run{rnd} {pair} [{tag}]  ** {'FAILED: '+json.loads(fail.read_text()).get('error_type','?') if fail.exists() else 'IN PROGRESS'} **")
+            print(f"\n{'='*100}\n{gen} run{rnd} {pair}-{this_arm} [{tag}]  ** {'FAILED: '+json.loads(fail.read_text()).get('error_type','?') if fail.exists() else 'IN PROGRESS'} **")
             continue
         d = json.loads(f.read_text())
         iss = d.get("issues") or []
-        print(f"\n{'='*100}\n{gen}run{rnd} {pair} [{tag}]  coverage={d.get('coverage_status')}  issues={len(iss)}")
+        print(f"\n{'='*100}\n{gen} run{rnd} {pair}-{this_arm} [{tag}]  coverage={d.get('coverage_status')}  issues={len(iss)}")
         print("-- 台账期望（可判定） --")
         for r in expected(pair):
-            print(f"   {r['id']}  {r['layer']}/{r.get('direction')}  pred={r.get('primary_predicate')}")
-            print(f"      {r['statement'][:170]}")
+            rid = r["id"]
+            if rid in BURNED_RECORDS:
+                elig = f"已烧毁 @ {BURNED_RECORDS[rid].get('since_commit','?')}，不作能力主张"
+            elif rid in REPORTABLE:
+                elig = "★可报——承载能力主张"
+                if rid in BLOCKED: elig += f"，但 {BLOCKED[rid]}"
+            else:
+                elig = "共演化观测"
+            print(f"   {rid}  {r['layer']}/{r.get('direction')}  pred={r.get('primary_predicate')}  [{elig}]")
+            print(f"      {r['statement'][:LIM_LED]}")
         print(f"-- 模型产出（attribution: {[x.get('attribution_status') for x in iss]}） --")
         for i,x in enumerate(iss,1):
             t = x.get("title") or x.get("summary") or ""
-            print(f"   [{i}] {t[:170]}")
+            print(f"   [{i}] {t[:LIM_MOD]}")
             det = (x.get("description") or x.get("detail") or x.get("rationale") or "")
-            if det: print(f"       {det[:230]}")
+            if det: print(f"       {det[:LIM_MOD]}")
 
         # 「从未发现」与「发现了但被丢掉」是两种不同的失败，根因不同，必须分开看。
         recon = d.get("adjudication_reconciliation") or {}
@@ -66,7 +133,15 @@ for rnd in (1,2,3):
                            ("coverage_gaps", "自报覆盖缺口"),
                            ("@rejected_issues", "被结构门丢弃的发现"),
                            ("@rejected_exclusions", "被结构门丢弃的排除项"),
-                           ("@issue_citations_pruned", "被剪除的引用（发现仍保留）")):
+                           ("@issue_citations_pruned", "被剪除的引用（发现仍保留）"),
+                           # 这两类同样是丢发现，而上一版没印。`unaccounted_safe_false_assertions`
+                           # 是「safe 且为 False 却无人认领」——与「从未发现」根因完全不同；
+                           # `unsupported_issues_dropped` 是门把已成形的 issue 丢掉。v21 上前者
+                           # 恰好与同格的 rejected_issues 同时出现，所以没漏——那是数据巧合。
+                           ("@unaccounted_safe_false_assertions", "safe 且为 False 但无人认领的断言"),
+                           ("@unsupported_issues_dropped", "被判无支撑而丢弃的 issue"),
+                           ("@thin_merge_warnings", "同质合并过薄告警"),
+                           ("@misfiled_findings_moved", "错档后被移动的发现")):
             # `@` 前缀的键来自 adjudication_reconciliation，不在顶层。
             # 这一类必须单列：一个被结构门丢弃的发现，若不显示出来，在判定者眼里与
             # 「从未发现」完全一样，而两者的根因和修法截然不同——前者是管线致因的漏检。
@@ -82,3 +157,12 @@ for rnd in (1,2,3):
                     if why and why != txt: print(f"     理由: {str(why)[:150]}")
                 else:
                     print(f"   * {str(x)[:150]}")
+
+if not shown:
+    print(f"{gen} 的轮次目录存在，但一个格都没匹配上"
+          f"（--pair={only!r} --arm={arm!r}）", file=sys.stderr)
+    raise SystemExit(2)
+print(f"\n{'='*100}\n共呈现 {shown} 格。可报记录 {len(REPORTABLE)} 条：{sorted(REPORTABLE)}")
+if BLOCKED:
+    for rid, why in BLOCKED.items():
+        print(f"⚠️ {rid} {why}")
