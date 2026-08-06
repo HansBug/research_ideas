@@ -348,7 +348,12 @@ def expected_records_for_judgment(rec) -> list[tuple[str, str, str]]:
 
 
 def _legacy_binding_overlap_verdicts(rec) -> list[tuple[str, str, str]]:
-    """Kept only so the reason for its removal stays readable. Not called.
+    """No longer published. Still called by `test_ledger_reconstruction.py`, and only there.
+
+    Removing it from the bundle was the point; removing it outright was not. Whether the
+    reconstructed `EXP-*` ledger reproduces the frozen one's verdicts is a real consistency
+    question, and this is how that test asks it -- inside the repository, never in a published
+    artifact. The underscore marks the boundary: internal comparison, not a conclusion.
 
     Decide hit/miss per expected issue, by binding overlap rather than wording.
 

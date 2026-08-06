@@ -122,14 +122,25 @@ def _audit_bundle(tmp_path, cell, pair, requirement_id, expression):
     return tmp_path
 
 
-def test_a_false_resting_on_a_converter_owned_element_is_reported(tmp_path):
-    """The class matrix-v16 published twice, now decided by matching exclusions.
+def test_a_false_resting_on_an_omission_placeholder_is_not_a_fabrication(tmp_path):
+    """Policy reversal, recorded here rather than in a deleted assertion.
 
-    `initial_target(HighwayMode, enter_hwy)` is False because the converter's
-    synthetic unconditional entry targets `UnspecifiedInitial`, which the pair's
-    `attribution_exclusions` list -- so the finding is representation debt and must
-    not be a confirmed issue.  The refs fix is what makes the match possible; before
-    it, the failing call named neither the entry nor the token.
+    This test used to assert the opposite, and it was left asserting it after the pipeline
+    changed -- so the eval suite has been red since `8f5cb3ba` while every commit body reported
+    "eval 侧 21 passed" (which was only `test_holdout_stays_clean.py`).
+
+    `initial_target(composite=HighwayMode, child=HighwayMode.enter_hwy)` is False because the
+    projection made `HighwayMode`'s entry target `UnspecifiedInitial`. The old reading: the
+    finding rests on a converter-owned element, therefore representation debt, therefore
+    publishing it is a fabrication. The current reading, and the correct one: the projection
+    inserted that placeholder *because the author wrote no initial edge at all*, so the False
+    says exactly what the sentence asked about -- the author did not declare the entry. Its
+    presence is the defect, not an artefact standing between the evidence and the defect.
+
+    That is the same distinction `exclusion_roles` draws in the pipeline (`omission_surrogate`
+    vs `carrier`), and the waiver here requires both halves: an omission placeholder *and* a
+    declarative predicate. A behavioural predicate running *through* an inserted node is still a
+    genuine confound -- see the test below.
     """
 
     bundle = _audit_bundle(
@@ -137,10 +148,24 @@ def test_a_false_resting_on_a_converter_owned_element_is_reported(tmp_path):
         f'initial_target(composite="{R0029}.HighwayMode", '
         f'child="{R0029}.HighwayMode.enter_hwy") is True',
     )
+    assert detect.scan(bundle) == []
+
+
+def test_the_omission_waiver_needs_a_declarative_predicate(tmp_path):
+    """The half that keeps the waiver from swallowing behavioural evidence.
+
+    A run that passes through an inserted node is not made author-owned by the node standing in
+    for an omission -- the trace went somewhere the author never wrote, so what the assertion
+    observed is the projection's behaviour, not the model's.
+    """
+
+    bundle = _audit_bundle(
+        tmp_path, "0029-claude-opus-4-7", "0029", "REQ-006",
+        f'occupancy_after(source="{R0029}.HighwayMode.UnspecifiedInitial", '
+        f'trigger="{R0029}.brake", target="{R0029}.HighwayMode.enter_hwy") is True',
+    )
     found = detect.scan(bundle)
-    assert len(found) == 1, found
-    assert found[0]["defect_class"] == "false-rests-on-converter-owned-element"
-    assert "UnspecifiedInitial" in found[0]["evidence"]
+    assert found, "a behavioural claim through an inserted node must still be reported"
 
 
 def test_an_issue_whose_assertion_no_longer_fails_is_reported(tmp_path):

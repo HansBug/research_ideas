@@ -37,7 +37,14 @@ CALIBRATION = json.loads((HERE / "calibration_matrix_v11.json").read_text())
 
 
 def _record(cell: dict) -> dict:
-    """The subset of a run record `expected_verdicts` reads."""
+    """The subset of a run record the binding-overlap comparison reads.
+
+    That comparison no longer ships in the published bundle -- a machine verdict there was a
+    second version of the headline conclusion, computed off a different ledger. It survives as
+    an internal function because *this* check still needs it: whether the reconstructed `EXP-*`
+    ledger reproduces the frozen one's verdicts is a real consistency question, and it is
+    answered inside the repository rather than published.
+    """
 
     return {
         "case": cell["case"],
@@ -52,7 +59,7 @@ def _record(cell: dict) -> dict:
 def test_reconstruction_reproduces_the_frozen_ledgers_verdicts(cell):
     recomputed = {
         issue_id: verdict
-        for issue_id, verdict, _title in build_gist.expected_verdicts(_record(cell))
+        for issue_id, verdict, _title in build_gist._legacy_binding_overlap_verdicts(_record(cell))
     }
     frozen = {row["expected_issue"]: row["verdict"] for row in cell["v11_verdicts"]}
     # Pairs with no expected issue carry a placeholder row rather than an id, and

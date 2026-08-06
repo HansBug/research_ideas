@@ -304,3 +304,65 @@ v22 十一格逐 scope（全部子态数 → 作者声明数），共 16 个，`
 | 枚举式能抓、裸 id 抓不到的 span | 52 |
 
 「零误伤」那半**确实复现**。教训是更锋利的那条：**一个未经测量的断言被一个经过测量的断言替换，而那个测量不可复算** —— 与它所修的失败同型。
+
+---
+
+# 十、双报的路径修好了，而它给出的答案是「没有变化」
+
+## 10.1 上一版的双报路径结构上办不到
+
+`detect_fabrications.py` 的 `scan()` 开头就是 `issues = artifact.get("issues") or []` 后接
+`if not issues: continue` —— **只遍历已发布 issue**，没有任何分支读 `excluded_findings`。而双报
+要测的恰恰是「条目从 `excluded_findings` 搬进 `issues`」这个方向。v21 三十三格实测：
+
+    issues 88 | excluded_findings 42（unattributed 24 + representation_debt 18）
+    excluded_observations 22 | coverage_gaps 15
+
+那 42 条候选一条都进不了重导出结果。所以这条被预注册为公平性控制的路径**只能把 v21 的分子往下
+调**，方向与它要控制的机制相反。§六 写「标为 v21 的下界」结论对（`v21' ≤ v21-under-current`），
+但理由不对：写的是「回测不模拟修订路径」，那是 §二.3 对 A1 这类**收紧**规则的论证；这里的主因
+更硬 —— 重导出器**没有任何机制**重新采信被排除项。
+
+新增 [rederive_admissibility.py](./rederive_admissibility.py) 补上这条路径。
+
+## 10.2 答案：**0 / 42**
+
+| status（as published） | 重算原因 | 条数 | 当前语义下会被采信？ |
+| :-- | :-- | --: | :--: |
+| `representation_debt` | 至少一条排除项是 carrier，仍为债务 | 18 | ✗ |
+| `unattributed` | 有 refs 但不全是遗漏替身 | 11 | ✗ |
+| `unattributed` | **无 exclusion_refs**，需 V1/V2 的祖先/前置条件回退 | 13 | 本脚本不算 |
+| | **合计会被重新采信** | **0** | |
+
+这与代码正确性 review 独立算出的结论一致：13 条角色翻转在 v21 实际产物上**零判定变化** ——
+含被翻转元素的绑定全部是 `unattributed`，由更早的分支就决定了，根本走不到角色判据那一步。
+
+**所以 V4/V5 与 Q1 角色翻转的双报列，会与 as-published 列完全相同。放宽只是前向风险，不是
+回溯性的抬高。** 这条写在 v22 出结果之前。
+
+## 10.3 那 13 条无 refs 的，分布恰好落在已烧毁格上
+
+    无 exclusion_refs：13 条，分布 0018: 4、0038: 9
+
+而 [V22_PROGRESS.md](./V22_PROGRESS.md) 记的 V1+V2 救回 13 条，逐轮分布是
+`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`run2/0038 ×1`、`run3/0018 ×1`、`run3/0038 ×1`
+—— 合计 0018 共 4、0038 共 9。两条独立路径给出同一组数。
+
+**这 13 条全部落在已按动机烧毁的 `0018` / `0038` 上，因此一条都不能计入能力主张。** V1/V2 在
+可报记录上的效果，只能由 v22 的活体运行回答。
+
+## 10.4 双报的正确命令
+
+    build_gist.py runs/paper1/matrix-v21/run1 runs/paper1/matrix-v21/run2 \
+                  runs/paper1/matrix-v21/run3 /tmp/v21-rederived
+    detect_fabrications.py /tmp/v21-rederived/audit      # 减法侧：不再为 False 的已发布 issue
+    rederive_admissibility.py /tmp/v21-rederived/audit   # 加法侧：会被重新采信的被排除发现
+
+⚠️ §六.1 原来那条 `build_gist.py runs/.../run{1,2,3} <out>` 会被 shell 展开成三个路径，而旧版
+`main()` 只读 `argv[1]` 与 `argv[2]` —— **run2 变成输出目录**、run3 被丢弃、`<out>` 从未创建，
+且打印的是成功信息。已修（多轮 + 三种写入 `runs/` 的形态各一条负控）。
+
+两条界的理由必须一起说，只说一条会被读成完整重表达：
+
+1. 只在**已经产出的**排除项上重算。当前语义下生产者会走不同的修订路径，可能产出另一批断言。
+2. 只重算可采性判定这一步。谓词返回值沿用冻结产物，不重新求值。
