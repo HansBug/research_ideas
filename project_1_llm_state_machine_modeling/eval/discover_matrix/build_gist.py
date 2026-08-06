@@ -23,6 +23,7 @@ import collections
 import hashlib
 import json
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -33,6 +34,7 @@ from issue_compat import requirement_ids_of, requirement_label  # noqa: E402
 # Derived, not hardcoded: this script used to carry an absolute path that only
 # worked on one machine, and it lives under version control now precisely so a
 # rebuilt machine still has it.
+HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 REPORT = (
     ROOT
@@ -248,8 +250,107 @@ def _overlap(bound: set[str], expected: frozenset[str]) -> int:
     return sum(1 for e in expected if any(_path_matches(b, e) for b in bound))
 
 
-def expected_verdicts(rec) -> list[tuple[str, str, str]]:
-    """Decide hit/miss per expected issue, by binding overlap rather than wording.
+#: 判定与记账两侧共用的那一份台账。发布层此前读的是另一份，见
+#: `expected_records_for_judgment` 的说明。
+EIS_LEDGER = HERE / "manual_review" / "expected_issue_set.json"
+_HOLDOUT = HERE / "holdout.json"
+
+
+def _eis_records() -> list[dict]:
+    payload = json.loads(EIS_LEDGER.read_text())
+    records = payload.get("records")
+    if not records:
+        records = next(
+            value
+            for value in payload.values()
+            if isinstance(value, list) and value and isinstance(value[0], dict) and "id" in value[0]
+        )
+    return [record for record in records if isinstance(record, dict)]
+
+
+def _eis_sha256() -> str:
+    """台账文件的哈希，写进审计包，使「读的是哪一份」可核验而不必相信一句 provenance。"""
+
+    return hashlib.sha256(EIS_LEDGER.read_bytes()).hexdigest()
+
+
+def _frozen_holdout() -> dict:
+    try:
+        return json.loads(_HOLDOUT.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+_REPORTABLE = frozenset(_frozen_holdout().get("reportable_records") or ())
+_BURNED_RECORDS = _frozen_holdout().get("burned_records") or {}
+
+
+def _round_tag(src: pathlib.Path) -> str:
+    """`run1` / `run2` / `run3` from the source directory, or `""` when it is not a round dir.
+
+    Needed because the bundle used to key files by `PAIR-PROFILE` alone, so building three rounds
+    into one output directory silently kept only the last one -- and printed a success line three
+    times while doing it.
+    """
+
+    name = src.resolve().name
+    return name if _ROUND_DIR.match(name) else ""
+
+
+_ROUND_DIR = re.compile(r"^run\d+$")
+
+
+def expected_records_for_judgment(rec) -> list[tuple[str, str, str]]:
+    """List this pair's ledger records with their eligibility. **No verdict.**
+
+    This used to decide hit/miss mechanically, and shipping that in the published bundle was
+    wrong twice over.
+
+    First, it is the judgement `present_for_judgment.py` exists to forbid: two products in one
+    generation touched the right elements and reached the *opposite* conclusion from the ledger,
+    and any overlap-based matcher credits both as hits. The division of labour is that a human
+    judges and scripts do arithmetic; a machine verdict in the audit bundle reinstates the thing
+    the division was drawn to prevent.
+
+    Second, it read a *different ledger*. `expected_verdicts` resolved through
+    `.omx/specs/.../ledger.json` (`EXP-*`, 16 records inside the grid) while judging, the
+    hold-out bookkeeping and `metrics_at_k.py` all read `manual_review/expected_issue_set.json`
+    (`EIS-*`, 34). The consequence in the published bundle: pair `0032`, which holds the
+    reportable record `EIS-0032-02`, got `"(本 pair 无期望问题)" / "0 confirmed 即为正解"`, beside
+    an `expected_ledger_provenance: "frozen"` that reads as "this is the authoritative ledger".
+    Two versions of one conclusion, and the optimistic one shipped.
+
+    So this yields the raw material and stops: each `EIS-*` record for the pair, its layer, and
+    its eligibility (reportable / burned / co-evolution observation). The verdict lives in the
+    hand-written `verdicts.json` that `metrics_at_k.py` validates, and nowhere else.
+    """
+
+    rows = []
+    pair = str(rec["case"])[-4:]
+    for record in _eis_records():
+        if str(record.get("pair", ""))[-4:] != pair:
+            continue
+        rid = str(record["id"])
+        if rid in _BURNED_RECORDS:
+            eligibility = f"已烧毁 @ {_BURNED_RECORDS[rid].get('since_commit', '?')}，不作能力主张"
+        elif rid in _REPORTABLE:
+            eligibility = "★可报——承载能力主张"
+        elif record.get("in_scope") is True and record.get(
+            "expressible_with_closed_vocabulary"
+        ) is True:
+            eligibility = "共演化观测"
+        else:
+            eligibility = "不可判定（超出问题定义边界或闭词表无法表达）"
+        rows.append((rid, str(record.get("layer") or "?"), eligibility))
+    if not rows:
+        rows.append(("（本 pair 在 EIS 台账里无记录）", "—", "—"))
+    return rows
+
+
+def _legacy_binding_overlap_verdicts(rec) -> list[tuple[str, str, str]]:
+    """Kept only so the reason for its removal stays readable. Not called.
+
+    Decide hit/miss per expected issue, by binding overlap rather than wording.
 
     The earlier version matched keywords against the issue *title*, which is
     LLM-written prose.  That is too loose to carry the matrix's headline claim:
@@ -353,11 +454,14 @@ def readable(rec, commit: str) -> str:
     A(f"| 覆盖 | `{final.get('coverage_status', 'n/a')}` |")
     A("")
 
-    A("## 2. 期望问题结果\n")
-    A("| expected issue | 结果 | 命中的 confirmed 标题 |")
+    A("## 2. 本 pair 的台账记录与其资格（**不含判定**）\n")
+    A("判定必须人工逐条做，理由见 `present_for_judgment.py`：同一代次有两条产出触及了正确的"
+      "元素却得出与台账**相反**的结论，任何按重叠或措辞对齐的脚本都会把它们判成命中。"
+      "本表只给判定所需的原材料；结论在人工 `verdicts.json` 里，由 `metrics_at_k.py` 校验。\n")
+    A("| EIS 记录 | 层 | 资格 |")
     A("| --- | --- | --- |")
-    for eid, verdict, title in expected_verdicts(rec):
-        A(f"| `{eid}` | **{verdict}** | {title or '—'} |")
+    for rid, layer, eligibility in expected_records_for_judgment(rec):
+        A(f"| `{rid}` | {layer} | {eligibility} |")
     A("")
 
     A("## 3. 裁决\n")
@@ -483,9 +587,12 @@ def audit_json(rec, commit: str) -> dict:
         "profile": rec["profile"],
         "terminal": rec["terminal"],
         "inputs": inputs,
-        "expected_issue_verdicts": [
-            {"expected_issue": e, "verdict": v, "matched_title": t}
-            for e, v, t in expected_verdicts(rec)
+        # No verdict field. It used to carry a machine hit/miss decision computed off a second
+        # ledger, which put an optimistic duplicate of the headline conclusion in the published
+        # audit bundle. What ships now is the material a human needs and nothing more.
+        "expected_records_for_judgment": [
+            {"record": r, "layer": l, "eligibility": e}
+            for r, l, e in expected_records_for_judgment(rec)
         ],
         "terminal_artifact": final,
         "requirements": rec["requirements"],
@@ -501,7 +608,11 @@ def audit_json(rec, commit: str) -> dict:
         },
         "node_failures": rec["node_failures"],
         "predicate_procedure_gate_rejections": rec["gate_d"],
-        "expected_ledger_provenance": expected_ledger_provenance(),
+        # Which ledger the rows above came from, spelled out. The old field said `frozen` while
+        # the rows came from a different file than every other consumer read.
+        "expected_ledger": "manual_review/expected_issue_set.json",
+        "expected_ledger_sha256": _eis_sha256(),
+        "verdicts_live_in": "人工 verdicts.json（见 metrics_at_k.py --template）",
         "segment_macro_source_ids": sorted(_segment_macro_sources(rec["case"])),
     }
 
@@ -584,8 +695,43 @@ def main() -> None:
     bundle is megabytes of machine-checkable evidence that would bury it.
     """
 
-    matrix = pathlib.Path(sys.argv[1])
-    out = pathlib.Path(sys.argv[2])
+    # 最后一个参数是 out，其余全是轮次目录。上一版只取 argv[1] 与 argv[2]，于是文档里那条
+    # `build_gist.py runs/.../run{1,2,3} <out>` 被 shell 展开成三个路径后，**run2 变成了输出
+    # 目录**、run3 被丢弃、`<out>` 从未创建 —— 而它打印的是成功信息。那同时违反了「不回写
+    # runs/」这条自己定的纪律。
+    if len(sys.argv) < 3:
+        raise SystemExit("usage: build_gist.py <round_dir> [<round_dir> ...] <out_dir>")
+    sources = [pathlib.Path(a) for a in sys.argv[1:-1]]
+    out = pathlib.Path(sys.argv[-1])
+    # 三种都要拦，而上一版只拦了第二种：out 等于某个轮次目录、out 是它的祖先、out 落在 `runs/`
+    # 之下的任何位置。最后一条是关键 —— 第一次写这个守卫时我漏了它，负控立刻用 §六 那条命令的
+    # 真实故障形态打回来：`build_gist.py run1 run2` 把 run2 当成了 out 并**写进去了**。
+    runs_root = ROOT / "runs"
+    resolved_out = out.resolve()
+    for source in sources:
+        resolved_source = source.resolve()
+        if resolved_out == resolved_source or resolved_out in resolved_source.parents:
+            raise SystemExit(
+                f"refusing to write into {out} -- it is (or contains) the run directory "
+                f"{source}. Analysis products must not land in `runs/`."
+            )
+    if runs_root.exists() and (
+        resolved_out == runs_root.resolve() or runs_root.resolve() in resolved_out.parents
+    ):
+        raise SystemExit(
+            f"refusing to write into {out}: it is under `runs/`. Run bundles are evidence and "
+            "analysis products must not be mixed into them -- see the same rule in "
+            "V21_PREREGISTERED_CALIBRE.md §二.5."
+        )
+    for source in sources:
+        _build(source, out)
+    if len(sources) > 1:
+        print(f"wrote {len(sources)} rounds -> {out}")
+
+
+def _build(matrix: pathlib.Path, out: pathlib.Path) -> None:
+    """一轮的包。文件名带轮次前缀，`run-index.tsv` 追加而非覆盖。"""
+
     md_dir, data_dir = out / "readable", out / "audit"
     md_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -594,9 +740,13 @@ def main() -> None:
     ).stdout.strip()
 
     cells = [load_cell(d) for d in sorted(p for p in matrix.iterdir() if p.is_dir())]
+    # 轮次进文件名与索引。上一版 stem 是 `PAIR-PROFILE`，于是把三轮写进同一个 out 目录时
+    # 后一轮覆盖前一轮：三次调用各打印 `wrote 11 cells`、无任何告警，最终 `run-index.tsv`
+    # 只剩 run3。也就是说「一个可审计包」按文档入口**无法表示一个 3 轮代次**。
+    round_tag = _round_tag(matrix)
     index = []
     for rec in cells:
-        stem = f"{rec['case']}-{rec['profile']}"
+        stem = f"{round_tag}-{rec['case']}-{rec['profile']}" if round_tag else f"{rec['case']}-{rec['profile']}"
         md = readable(rec, commit)
         aj = json.dumps(audit_json(rec, commit), ensure_ascii=False, indent=2, sort_keys=True)
         (md_dir / f"{stem}-readable.md").write_text(md)
@@ -604,6 +754,7 @@ def main() -> None:
         f = rec["final"]
         index.append(
             {
+                "round": round_tag or "?",
                 "pair": rec["case"],
                 "profile": rec["profile"],
                 "terminal": rec["terminal"],
@@ -628,13 +779,26 @@ def main() -> None:
                 "audit_sha256": sha(aj),
             }
         )
+    # 跨轮**追加**。只写当前轮会让第二轮覆盖第一轮的索引，于是包里 33 份 audit 文件而索引
+    # 只有 11 行 —— 而这份索引正是审计者用来确认「包里有几格」的东西。
+    existing = []
+    index_path = data_dir / "run-index.tsv"
+    if index_path.is_file():
+        lines = index_path.read_text().splitlines()
+        if len(lines) > 1:
+            header = lines[0].split("\t")
+            existing = [dict(zip(header, line.split("\t"))) for line in lines[1:]]
     cols = list(index[0])
+    merged = {}
+    for row in existing + [{c: str(r[c]) for c in cols} for r in index]:
+        merged[(row.get("round", "?"), row.get("pair", ""), row.get("profile", ""))] = row
+    ordered = [merged[k] for k in sorted(merged)]
     tsv = (
         "\t".join(cols) + "\n"
-        + "\n".join("\t".join(str(r[c]) for c in cols) for r in index) + "\n"
+        + "\n".join("\t".join(str(row.get(c, "")) for c in cols) for row in ordered) + "\n"
     )
     (md_dir / "run-index.tsv").write_text(tsv)
-    (data_dir / "run-index.tsv").write_text(tsv)
+    index_path.write_text(tsv)
     # A per-cell mapping table for the PR comment.  The two gist ids are filled
     # in after publishing; keeping the row order and file names here means the
     # table cannot drift from what was actually uploaded.
@@ -656,9 +820,15 @@ def main() -> None:
     # gists because the audit JSON is megabytes and would bury the prose.
     total_conf = sum(r["confirmed"] for r in index)
     done = sum(1 for r in index if r["terminal"] == "completed")
+    # Derived, not typed. The literal here said "0000 / 0006 / 0029 / 0050 ... under gpt-5.5 and
+    # claude-opus-4-7" and "Cells completed: 11/11" while the bundle held eleven pairs under one
+    # model -- so the audit package's self-declared scope disagreed with the data inside it. Same
+    # class of error as the measurement script that carried its grid as a literal.
+    grid = sorted({str(r["pair"])[-4:] for r in index})
+    profiles = sorted({str(r["profile"]) for r in index})
     common = (
-        "Matrix: 0000 / 0006 / 0029 / 0050, each run under gpt-5.5 and "
-        "claude-opus-4-7.\n"
+        f"Matrix: {' / '.join(grid)} ({len(grid)} pairs), "
+        f"under {' and '.join(profiles)}.\n"
         f"Cells completed: {done}/{len(index)}. Confirmed issues: {total_conf}.\n\n"
         f"Git commit `{commit}`, branch `paper1/pr-feedback-loop-discover-acceptance`, "
         "[PR #169](https://github.com/HansBug/research_ideas/pull/169), "
