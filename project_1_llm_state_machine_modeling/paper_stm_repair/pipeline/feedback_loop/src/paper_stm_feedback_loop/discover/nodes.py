@@ -41,6 +41,7 @@ from .capability import (
     projection_anchored_findings,
     redundant_proposal_findings,
     root_anchored_findings,
+    trigger_consuming_predicate_findings,
     substituted_binding_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
@@ -1276,6 +1277,9 @@ def split_requirements(
             # to a splitter that wrote down the omission correctly and then asserted nothing
             # about it -- eleven assertions, all True, nothing published.
             *conceded_omission_findings(output.requirements, known_paths),
+            # `reaches` on a declared event answers from the compiler's routing, not the
+            # author's edge; pair 0000 lost v6run2 and v10run3 to exactly that.
+            *trigger_consuming_predicate_findings(output.requirements, known_paths),
         )
         if step_findings:
             raise ValueError(

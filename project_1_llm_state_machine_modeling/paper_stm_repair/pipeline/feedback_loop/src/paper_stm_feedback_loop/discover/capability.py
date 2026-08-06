@@ -62,6 +62,7 @@ __all__ = [
     "placeholder_bindings",
     "conceded_omission_findings",
     "projection_anchored_findings",
+    "trigger_consuming_predicate_findings",
     "redundant_proposal_findings",
     "termination_proposal_findings",
     "CLAIM_SUBJECT_BINDINGS",
@@ -1083,6 +1084,59 @@ def conceded_omission_findings(
             "unreported however accurately the note describes it. Step 4 applies: propose the "
             "name the NL used and assert its existence, so the claim can fail. Keep the note as "
             "well -- it explains the proposal -- but the note is not the finding."
+        )
+    return tuple(findings)
+
+
+def trigger_consuming_predicate_findings(
+    requirements: Iterable[_RequirementSpec],
+    known_paths: Iterable[str],
+) -> tuple[str, ...]:
+    """`reaches` where the sentence names a declared event, and `occupancy_after` was available.
+
+    `reaches(source, target, within_cycles)` has no `trigger` slot, so it asks "can the machine
+    get there at all", and on a projected model the only path that answers yes may run through
+    `R45RouteToken`. The attribution layer then rules the evidence compiler-owned, marks the
+    finding `representation_debt`, and it is never published. `occupancy_after(source, trigger,
+    target)` asks the sentence's actual question -- what happens *on this event* -- and its
+    evidence is the author's own edge.
+
+    Pair 0000 has lost rounds to this twice, `v6run2` and `v10run3`, both times on the same
+    sentence (power off shall reach the final state) and both times because the splitter reached
+    for `reaches`. `v10run3` was the single sub-70% round in the first fixed-configuration sample
+    of six.
+
+    Narrow on purpose, and the width is what makes it usable. A first attempt refused every
+    behavioural predicate lacking a `trigger` slot and matched 109 requirements, 62 of them in
+    pair 0050 -- a cell that scores 1/1/1 every round -- because `terminates` legitimately has no
+    such slot. Requiring the predicate to be `reaches` *and* the trigger to be an element the
+    model declares brings it to 5 corpus matches, all in pair 0000, all `Power_Off`, all inside
+    the three rounds already known to have lost or nearly lost the cell to this. Nothing else in
+    nineteen rounds matches.
+
+    :param requirements: the accepted requirement set.
+    :param known_paths: the elements the model declares.
+    :return: one finding per requirement that should have consumed its trigger.
+    """
+    declared = {str(path).strip() for path in known_paths if str(path).strip()}
+    if not declared:
+        return ()
+    findings: list[str] = []
+    for item in requirements:
+        if str(getattr(item, "predicate", "")) != "reaches":
+            continue
+        bindings = item.predicate_bindings or {}
+        trigger = str(bindings.get("trigger") or getattr(item, "trigger", "") or "").strip()
+        if not trigger or trigger not in declared:
+            continue
+        findings.append(
+            f"{item.requirement_id} asks `reaches` while naming {trigger!r}, an event the model "
+            "declares. `reaches` has no trigger slot, so it asks whether the target is reachable "
+            "at all -- and on a projected model that question can be answered by the compiler's "
+            "routing rather than by the author's edge, which makes the finding "
+            "`representation_debt` and stops it being published. Use "
+            "`occupancy_after(source=..., trigger=..., target=...)`: it asks what the sentence "
+            "actually asks, and it answers from the edge the author wrote."
         )
     return tuple(findings)
 
