@@ -3778,21 +3778,52 @@ def adjudicate_results(
         # all is removed by an earlier stage, so it does not reach here. Until that fixture
         # exists this path is defensive only and must not be reported as a fix.
         dropped_unsupported: list[dict[str, object]] = []
+        pruned_citations: list[dict[str, object]] = []
         surviving_issues = []
         for issue in output.issues:
-            if not set(issue.assertion_ids).issubset(false_primary_assertions):
-                dropped_unsupported.append(
+            cited = tuple(issue.assertion_ids)
+            kept = tuple(aid for aid in cited if aid in false_primary_assertions)
+            if len(kept) == len(cited):
+                surviving_issues.append(issue)
+                continue
+            # Prune the unsupported citations before deciding the issue's fate. A finding that
+            # still rests on at least one False primary is a real finding with a bad reference,
+            # not a bad finding -- and `v12run1/0029-claude` is what the all-or-nothing version
+            # costs: `ISSUE-UrbanMode-missing-FinishState` cited `AST-REQ-023-1`, which was never
+            # released because its precondition did not hold, and the whole finding went out with
+            # it. Runs 2 and 3 published the identical finding citing only `AST-REQ-022-0`, so
+            # nothing about it was wrong. `c092371d` already established this shape for rationale
+            # citations; this extends it to the assertion list.
+            # NOT YET COVERED BY A UNIT TEST. Two fixture attempts failed to reproduce the
+            # shape: an assertion id absent from the script is removed by an earlier stage, and
+            # a `supporting` one never enters `false_primary_assertions` in the first place, so
+            # neither reaches this branch. The live shape (`v12run1/0029-claude`) is a *primary*
+            # that the release layer withheld because its precondition did not hold. Verification
+            # is therefore deferred to the next matrix run, where that shape recurs on its own.
+            if kept:
+                pruned_citations.append(
                     {
                         "issue_id": issue.issue_id,
-                        "assertion_ids": tuple(issue.assertion_ids),
+                        "pruned": tuple(a for a in cited if a not in false_primary_assertions),
+                        "kept": kept,
                         "reason": (
-                            "cites assertions that are not primary False results; the "
-                            "adjudicator may only group findings the release layer produced"
+                            "cited assertions the release layer never produced as False "
+                            "primaries; pruned, and the finding kept on its remaining evidence"
                         ),
                     }
                 )
+                surviving_issues.append(issue.model_copy(update={"assertion_ids": kept}))
                 continue
-            surviving_issues.append(issue)
+            dropped_unsupported.append(
+                {
+                    "issue_id": issue.issue_id,
+                    "assertion_ids": cited,
+                    "reason": (
+                        "every cited assertion is not a primary False result; nothing is left "
+                        "to rest the finding on"
+                    ),
+                }
+            )
         if dropped_unsupported:
             output = output.model_copy(update={"issues": tuple(surviving_issues)})
         for issue in output.issues:
@@ -3935,6 +3966,7 @@ def adjudicate_results(
             # to be as visible as the finding itself.
             "misfiled_findings_moved": tuple(misfiled_moves),
             "unsupported_issues_dropped": tuple(dropped_unsupported),
+            "issue_citations_pruned": tuple(pruned_citations),
             "unaccounted_safe_false_assertions": tuple(unaccounted_safe),
             "merged_exclusions_split": tuple(exclusion_splits),
             "thin_merge_warnings": thin_merge_warnings,
