@@ -300,6 +300,49 @@ def test_the_detector_reports_locations_not_categories() -> None:
         )
 
 
+def test_a_prose_only_commit_is_auto_classified_but_a_real_change_is_not() -> None:
+    """The negative control for the auto-classifier, which exists to keep the list bounded.
+
+    Per-location accounting had one unwanted consequence: recording that a pair is reportable
+    names it, so every bookkeeping commit became a location needing a ruling and `--verify` went
+    red the moment the accounting was written. Going back to category names would be the stamp
+    this replaced three times, so the classifier reads the *diff* instead: rules that reach the
+    model live under the pipeline's `src/`, and a commit whose parsed trees there are unchanged
+    cannot have authored one.
+
+    The control that matters is the second half -- a commit that really did change behaviour must
+    still demand a ruling. Checked on real commits: `a8123003` edited a `capability.py` docstring
+    and nothing else, `02539b82` changed predicate and node behaviour.
+    """
+    prose_only, why = holdout._behaviour_changed_in_pipeline("a8123003")
+    assert prose_only is False, why
+    assert "docstring" in why or "no file" in why, why
+
+    real_change, why = holdout._behaviour_changed_in_pipeline("02539b82")
+    assert real_change is True, why
+    assert "behaviour" in why, why
+
+
+def test_the_classifier_fails_toward_demanding_a_ruling() -> None:
+    """An unreadable commit must not be waved through.
+
+    Getting a spurious ruling request costs a paragraph; missing one costs a capability claim,
+    so every error path returns "behaviour changed" and lands the location in the unaccounted
+    list rather than in the auto-classified one.
+    """
+    changed, why = holdout._behaviour_changed_in_pipeline("0000000")
+    assert changed is True, why
+
+
+def test_docstring_stripping_does_not_hide_a_code_change() -> None:
+    """The tree comparison must be blind to prose and nothing else."""
+    same = holdout._tree_without_docstrings('def f():\n    """one."""\n    return 1\n')
+    other = holdout._tree_without_docstrings('def f():\n    """two, at length."""\n    return 1\n')
+    assert same == other
+    changed = holdout._tree_without_docstrings('def f():\n    """one."""\n    return 2\n')
+    assert same != changed
+
+
 def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> None:
     """Records the fact that v22 has no capability-claim band, so it cannot be discovered later.
 

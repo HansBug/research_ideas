@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import ast
 import json
 import os
 import re
@@ -213,6 +214,83 @@ def _naming_commits(pair: str) -> tuple[str, ...]:
         if pattern.search(text):
             found.append(f"commit:{sha.strip()[:9]}")
     return tuple(dict.fromkeys(found))
+
+
+def _behaviour_changed_in_pipeline(sha: str) -> tuple[bool, str]:
+    """Whether this commit changed pipeline *behaviour*, as opposed to prose about it.
+
+    Per-location accounting is right and it has one unwanted consequence: every bookkeeping
+    commit that names a held-out pair -- and recording a pair's reportable status *requires*
+    naming it -- becomes a new location needing a ruling, so the list grows without end and
+    `--verify` goes red the moment the accounting is written down.
+
+    The wrong fix is to go back to category names, which is the stamp this replaced three times.
+    The fix that is not a weakening is to classify on something read from the *diff* rather than
+    asserted by the author: rules that reach the model live in the pipeline's `src/`. A commit
+    that changes no file there cannot have authored one. A commit that changes only docstrings
+    and comments there cannot either -- and that is checkable by parsing both versions and
+    comparing the trees with docstrings stripped.
+
+    So this returns `(True, why)` only when some pipeline module's tree actually differs. Those
+    commits still need an individual ruling. Everything else is auto-classified with the
+    mechanical reason recorded, and the audit trail says which test was applied.
+
+    Fails *toward requiring a ruling*: an unparseable version, a missing blob, a git error, or a
+    non-`.py` file under `src/` all return `True`. Getting a spurious ruling request costs a
+    paragraph; missing one costs a capability claim.
+    """
+
+    listed = subprocess.run(
+        ["git", "show", "--name-only", "--format=", sha],
+        cwd=REPO, capture_output=True, text=True,
+    )
+    if listed.returncode != 0:
+        return True, f"git show failed for {sha}"
+    marker = "pipeline/feedback_loop/src/"
+    touched = [line.strip() for line in listed.stdout.splitlines() if marker in line]
+    if not touched:
+        return False, "changed no file under the pipeline's src/, so it authored no rule"
+    changed = []
+    for path in touched:
+        if not path.endswith(".py"):
+            return True, f"changed a non-Python file under src/: {path}"
+        trees = []
+        for revision in (f"{sha}~1", sha):
+            blob = subprocess.run(
+                ["git", "show", f"{revision}:{path}"], cwd=REPO, capture_output=True, text=True
+            )
+            if blob.returncode != 0:
+                return True, f"could not read {path} at {revision}"
+            try:
+                trees.append(_tree_without_docstrings(blob.stdout))
+            except SyntaxError:
+                return True, f"could not parse {path} at {revision}"
+        if trees[0] != trees[1]:
+            changed.append(path.rsplit("/", 1)[-1])
+    if changed:
+        return True, f"changed the behaviour of {', '.join(sorted(set(changed)))}"
+    return False, (
+        f"touched {len(touched)} pipeline module(s) but only their docstrings and comments; "
+        "the parsed trees are identical, so no rule text reaching the model changed"
+    )
+
+
+def _tree_without_docstrings(source: str) -> str:
+    """The module's tree with every docstring removed, so prose edits compare equal."""
+
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        body = getattr(node, "body", None)
+        if (
+            body
+            and isinstance(body[0], ast.Expr)
+            and isinstance(body[0].value, ast.Constant)
+            and isinstance(body[0].value.value, str)
+        ):
+            node.body = body[1:] or [ast.Pass()]
+    return ast.dump(tree, annotate_fields=True, include_attributes=False)
 
 
 def _claimed_locations(entry: dict) -> set[str]:
@@ -501,6 +579,7 @@ def main(argv: list[str] | None = None) -> int:
         # stale bookkeeping and a narrowed matcher look identical from inside.
         adjudicated = frozen.get("motive_adjudicated") or {}
         unaccounted = {}
+        auto_classified: dict[str, list[tuple[str, str]]] = {}
         for pair, where in burned_now.items():
             claimed = set()
             for record in detail.get(pair) or ():
@@ -510,9 +589,28 @@ def main(argv: list[str] | None = None) -> int:
             ruling = adjudicated.get(pair)
             if isinstance(ruling, dict) and ruling.get("verdict") and ruling.get("reasoning"):
                 claimed.update(_claimed_locations(ruling))
-            missing = sorted(set(where) - claimed)
+            missing = []
+            for location in sorted(set(where) - claimed):
+                if location.startswith("commit:"):
+                    behaved, why = _behaviour_changed_in_pipeline(location.split(":", 1)[1])
+                    if not behaved:
+                        auto_classified.setdefault(pair, []).append((location, why))
+                        continue
+                missing.append(location)
             if missing:
                 unaccounted[pair] = missing
+        if auto_classified:
+            total = sum(len(v) for v in auto_classified.values())
+            print(
+                f"note: {total} naming(s) auto-classified as authoring no rule "
+                f"(no behaviour change under the pipeline's src/): "
+                + "; ".join(
+                    f"{pair} {loc} -- {why}"
+                    for pair, entries in sorted(auto_classified.items())
+                    for loc, why in entries[:2]
+                ),
+                file=sys.stderr,
+            )
         if unaccounted != burned_now:
             accounted = sorted(set(burned_now) - set(unaccounted))
             if accounted:
