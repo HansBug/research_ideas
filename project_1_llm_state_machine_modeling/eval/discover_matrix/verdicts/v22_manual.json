@@ -28,6 +28,49 @@
     0,
     null
    ]
+  },
+  "EIS-0035-02": {
+   "claude": [
+    1,
+    1,
+    null
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ],
+   "direction": {
+    "claude": "direct",
+    "gpt": "direct"
+   }
+  },
+  "EIS-0035-01": {
+   "claude": [
+    1,
+    1,
+    null
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ]
+  },
+  "EIS-0047-03": {
+   "claude": [
+    1,
+    0,
+    null
+   ],
+   "gpt": [
+    0,
+    0,
+    null
+   ],
+   "direction": {
+    "claude": "implies"
+   }
   }
  },
  "over": {},
@@ -46,9 +89,37 @@
    "run1/gpt = 0": "5 条已发布里 [2] 讲的是**根**组合态初始目标是 OffState（不是 Region 的初始伪态），层级不同；另 4 条是命名主张。2 条被排除的是 Region 间迁移不通，同样不是缺初始伪态。",
    "run2 两臂 = 0": "0 条产出。",
    "注": "该记录已按动机烧毁（23315498），判定仅作共演化观测，不进能力主张分母。"
+  },
+  "EIS-0035-02": {
+   "台账": "NL 第 2 句『The door can be closed to return to the DoorShut state.』是显式关系义务，生成侧完全没有这条边（第 5 行被一条 DoorOpen 自环占据）。primary = occupancy_after(DoorOpen, Door_Closed, DoorShut)",
+   "四格全命中，全部 direct": "四条产出与台账**同谓词、同绑定、同方向**，措辞不同而已：",
+   "run1/claude": "「DoorOpen 状态缺少 Door_Closed 到 DoorShut 的迁移」，detail 明写 occupancy_after(DoorOpen, Door_Closed, DoorShut) 为 false，且指出真实的 Door_Closed 边在 DoorOpenWithItem→DoorShutWithItem 上。",
+   "run1/gpt": "「DoorOpen 关闭门时未返回 DoorShut」，同样点出 Door_Closed 边位于 DoorOpenWithItem 并指向 DoorShutWithItem。",
+   "run2/claude": "「缺少 DoorOpen 上 Door_Closed 到 DoorShut 的转移边」，同一谓词同一绑定，并注明 supporting 层 edge_declared 同为 false 相互印证。",
+   "run2/gpt": "「DoorOpen 上缺少 Door_Closed 到 DoorShut 的响应」，同上。",
+   "注": "这条与 EIS-0032-02 形成对照：那条的近似命中（gpt 的命名严格性主张）被判未命中，因为它在无缺陷模型上也会触发；这条四格都能通过同一反问 —— 一个**有**这条边的模型，这四条产出都不会出现。"
+  },
+  "EIS-0035-01": {
+   "台账": "NL 第 1 句『The microwave starts in the DoorShut state.』；生成侧用 <<initial>> 构造型代替初始伪态边，全模型无 [*] --> 边，R4.5 在根合成 UnspecifiedInitial，DoorShut 从上电起不可达。primary = initial_target(root, DoorShut)",
+   "四格全命中": "四条产出都是「根（复合）状态初始入口未指向 DoorShut，而是 UnspecifiedInitial」，同谓词同绑定。run1/claude 还额外指出「DoorShut 上的 <<initial>> 标记仅是 PlantUML 注释，未落地为根 composite 的实际初始迁移」—— 那正是台账所述的机制。",
+   "注": "该记录已按元素名泄漏烧毁（f73d6dd8，`test_root_anchored_gate.py` 用的 <root>.DoorShut 逐字是它的 primary 形状）。判定仅作共演化观测，不进能力主张分母。"
+  },
+  "EIS-0047-03": {
+   "台账": "NL 第 2 句规定子机在检测到可能碰撞时才 becomes active；生成方在上电时无条件激活整个避撞子机。primary = edge_declared(source=\"[*]\", trigger=Collision_Detected, target=CAS)",
+   "run1/claude = 1 (implies)": "断言是 event_consumed(source=<根>, trigger=Collision_Detected)，返回 False → 已发布「根作用域下 Collision_Detected 事件未被消费，子机激活语义缺失」。「该事件在根作用域完全没有消费者」**蕴含**「不存在 [*]--Collision_Detected-->CAS 这条边」，且定位更上游（整个事件无人消费，而非单条边缺失）→ 按 HIT_CRITERION §3 判 implies。",
+   "run2/claude = 0": "该格发布的是 occupancy_after(source=CAS, ...) 为假 →「Collision_Detected 触发后系统脱离 CAS 活动配置」。那讲的是**从 CAS 出发**的行为，不是上电激活边。「Collision_Detected 会把系统带出 CAS」不蕴含「不存在进入 CAS 的 Collision_Detected 边」—— 模型可以同时有两条。属台账外发现，另按多报三分裁定。",
+   "run1/gpt = 0 与 run2/gpt = 0": "两轮都要求 state_declared(<根>.Inactive) 与 event_declared(Frontend_/Rear_End_/Pedestrian_Collision_Detected)，precondition 为假使 primary 无法执行，于是发布「缺少非活动源状态 Inactive」「缺少类别化触发事件」。判据是同一句反问：一个**正确**的模型完全可以写 `[*] -> Idle` 再 `Idle --Collision_Detected--> CAS`，不必存在名为 Inactive 的状态、也不必把事件按三类拆开 —— 所以这些主张会在无缺陷模型上照样触发，不蕴含台账命题。与 EIS-0032-02 上gpt 的命名严格性主张是同一形态，按 HIT_CRITERION §4 判未命中。"
   }
  },
  "_pending": {
-  "0032": "run3 两臂待落盘"
+  "0032": "run3 两臂待落盘",
+  "0035": "run3 两臂待落盘",
+  "0047": "run3 两臂待落盘"
+ },
+ "_correction_to_prereg": {
+  "§9.1 说 EIS-0047-03 被 initialization_anchored 门结构性封死": "**过强，需就地更正**",
+  "实测": "0047 全部四格 `UnsupportedEvidence` 拒答 **0 条**（count_refusals 逐格确认），而门的文案「before the machine has entered anything」在记录里出现 59 次 —— 它是以**修订反馈**形式在 `split-requirements-failed` 阶段起作用的，不是拒答。生产者据此改了编码：run1/claude 在 4 轮修订后用 `event_consumed(source=<根>)` 而非 `source=\"[*]\"`，**绕过了门并找到了同一缺陷**。",
+  "所以正确的说法是": "门封死的是**台账那一种编码**，不是**那个缺陷**。§9.1 的机制论证（八种 phase ×编码组合全拒）本身没错 —— 它测的是台账写法；错在从中推出「该记录不可达」。",
+  "方向": "这是**对我有利**方向的更正（可达记录从 2 条回到 3 条），所以更要核实清楚：拒答计数、门文案出现位置、修订轮数、实际断言表达式四项均已逐一查过。"
  }
 }
