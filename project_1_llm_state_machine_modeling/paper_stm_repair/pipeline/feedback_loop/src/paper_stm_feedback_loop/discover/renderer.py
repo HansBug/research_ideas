@@ -70,7 +70,7 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "the source, so it ends the run only when that scope is the root -- read "
         "`ends_run`, not the arrow. `ends_run: true` means a requirement about "
         "finishing, ending or shutting down is answered by `terminates` over that "
-        "source and trigger; there is no state to bind, so proposing a `FinalState` "
+        "source and trigger; there is no state to bind, so proposing a terminal-state name "
         "name reports a defect against a model that is correct. `ends_run: false` "
 
         "`via_token` records the two-edge form the converter emits: the inner exit "

@@ -245,14 +245,14 @@ wording, same referent: the NL's "the calibration routine" and a declared
 `limitations`. Do not stretch this into substitution: binding "the number of
 units" to an unrelated route-control variable changes the requirement into a
 different one and hides the very gap that matters. One case is settled rather
-than judged: when the sentence names a specific substate -- "in (auto final)",
+than judged: when the sentence names a specific substate -- "in (post-flight hold)",
 "the calibrating substate" -- and no declared state carries that name or a near
 variant of it, that is step 4, not step 3. A state the specification names by
 name has to exist whatever the rest of the clause turns out to mean, so its
 absence is a finding about the model rather than a wording difference to record.
 Do not bind it to a differently-named sibling on the grounds that both sit in the
-same region: `FinalWaittr_0005` and "auto final" are not the same state merely
-because both are substates of the autonomous mode, and binding one to the other
+same region: `HoldTr_0009` and "post-flight hold" are not the same state merely
+because both are substates of the same composite, and binding one to the other
 files the gap as a naming note. Write the name the sentence uses and say in
 `limitations` that the model declares no state under it. This exception is to
 step 3 alone -- if the last segment of the name is already declared somewhere in
@@ -589,9 +589,9 @@ default of 1 -- a default horizon here would report a failure the model does not
   "limitations": ["Done is declared inside RegionA; the sentence speaks of RegionB and the run reaches it by routing out of RegionB"]
 }
 
-Example 6 -- step 3: different wording, same referent. The NL says "target search
-routine" and the model declares `Sys.Calibrating`. Bind the declared element and
-record the naming difference; do not propose `Sys.CalibrationRoutine`.
+Example 6 -- step 3: different wording, same referent. The NL says "periodic health
+sweep" and the model declares `Sys.Calibrating`. Bind the declared element and
+record the naming difference; do not propose `Sys.HealthSweep`.
 {
   "requirement_id": "REQ-007",
   "statement": "The system shall run the calibration routine until an abort is requested.",
