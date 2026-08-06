@@ -137,7 +137,7 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
         examples=(
             'variable_declared(variable="units")  # True when the author declared it',
-            'variable_declared(variable="uav_count")  # False when the model declares no such variable',
+            'variable_declared(variable="unit_count")  # False when the model declares no such variable',
             'variable_declared(variable="Sys.units")  # raises: variables take no path prefix',
         ),
     ),
