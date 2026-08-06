@@ -236,6 +236,7 @@ class PredicateAPI:
         formal: Any = None,
         source_exclusions: tuple[str, ...] = (),
         exclusion_roles: dict[str, str] | None = None,
+        inserted_states: frozenset[str] | None = None,
     ) -> None:
         self.structure = structure
         self.relations = relations
@@ -245,9 +246,13 @@ class PredicateAPI:
         self.formal = formal
         self.source_exclusions = tuple(source_exclusions)
         # Which excluded elements stand in for an omission versus lower something the author
-        # wrote. Empty when no contract reached this layer, and then `_is_omission_surrogate`
-        # falls back to the table rather than treating every excluded element as a member.
+        # wrote. Empty when no contract reached this layer, and then the callers fall back to
+        # the exclusion table rather than treating every excluded element as a member.
         self.exclusion_roles = dict(exclusion_roles or {})
+        # Which states the projection inserted. A count ranges over what the author declared,
+        # a different question from admissibility -- kept in its own map so neither can be
+        # answered with the other's field.
+        self.inserted_states = frozenset(inserted_states or ())
         # Attribution needs to know which model elements a call rested on.  The
         # predicate is the only thing that knows: it chose the query.  Refs are
         # collected per call and consumed by the runtime's audit wrapper, so the
@@ -1128,26 +1133,34 @@ class PredicateAPI:
             )
         return False
 
-    def _is_omission_surrogate(self, path: str) -> bool:
-        """Whether this element stands in for something the author omitted.
+    def _is_inserted_state(self, path: str) -> bool:
+        """Whether the projection inserted this state, rather than the author declaring it.
 
-        The extension of a count is the author's element set, so a stand-in the projection
-        inserted because the author wrote nothing is not a member. A *lowering* of something the
-        author did write is a member -- it is that element, in another form -- and excluding it
-        would report a shortfall against what the author supplied.
+        A count ranges over what the *author declared*, and that is not the same question as
+        whether evidence about an element is admissible. Two rounds answered it with the wrong
+        field, in opposite directions: first by filtering everything in the exclusion table --
+        which also holds lowerings of elements the author did supply, so four of sixteen scopes
+        reported a shortfall against the author's own work -- then by filtering only what
+        attribution calls `omission_surrogate`, which admits `FinalWait*` as a member because
+        evidence about it is inadmissible, while the author declared no state there at all.
 
-        The exclusion table alone cannot tell them apart; the contract can, and does. This
-        method carries the narrower question so `cardinality` does not have to restate it, and
-        so the two layers cannot drift on what "the author wrote" means.
+        The contract settles it outright: every `synthetic_state` is `compiler_owned`, 51 of 51
+        across the corpus. So this asks its own question, reads its own field, and no reading of
+        the attribution roles is involved.
+
+        Without a contract it falls back to the exclusion table plus the leaf-name families the
+        generator emits. That is the older, weaker test, kept so a checkout without a contract
+        behaves as it did rather than counting inserted states in silence.
         """
 
+        if self.inserted_states:
+            return any(key in self.inserted_states for key in (path, f"state:{path}"))
         if f"compiler:state:{path}" not in self.source_exclusions:
             return False
-        roles = getattr(self, "exclusion_roles", None) or {}
-        role = roles.get(path) or roles.get(f"state:{path}")
-        # No contract available: fall back to the table's answer rather than silently counting
-        # every excluded element as a member, which would undo the filter entirely.
-        return role == "omission_surrogate" if role else True
+        leaf = path.split(".")[-1]
+        return leaf.startswith(
+            ("UnspecifiedInitial", "InvalidInitial", "InvalidFinal", "FinalWait")
+        )
 
     def cardinality(self, *, scope: str, count: int) -> bool:
         """This scope declares exactly this many non-pseudo direct substates."""
@@ -1189,11 +1202,11 @@ class PredicateAPI:
             if bool(row.is_pseudo):
                 continue
             path = str(getattr(row, "path", "") or "")
-            # `omission_surrogate` only, not "anything in the exclusion table". The table also
-            # holds *carriers* -- lowerings of things the author did write -- and dropping those
-            # would report a shortfall against elements the author supplied. Measured: four of
-            # the sixteen affected scopes drop a carrier under the wider test.
-            if self._is_omission_surrogate(path):
+            # Its own question, not attribution's. See `_is_inserted_state`: the two disagree
+            # on `FinalWait*`, and a scope whose only child was an `InvalidInitial*` answered
+            # "exactly one substate, as claimed" -- while the ledger for that very pair records
+            # the scope as empty and cites that inserted state as the machine evidence of it.
+            if self._is_inserted_state(path):
                 excluded.append(path)
             else:
                 authored.append(path)

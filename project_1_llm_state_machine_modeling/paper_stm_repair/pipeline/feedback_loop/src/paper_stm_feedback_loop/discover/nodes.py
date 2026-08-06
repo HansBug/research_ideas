@@ -1166,6 +1166,13 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
             if isinstance(discover_input.manifest.get("working_contract"), dict)
             else None
         ),
+        # A separate question, deliberately not derived from the roles above: those decide
+        # admissibility, this decides what a count ranges over, and they disagree.
+        inserted_states=inserted_state_paths(
+            discover_input.manifest.get("working_contract")
+            if isinstance(discover_input.manifest.get("working_contract"), dict)
+            else None
+        ),
     )
     # Boundaries come from `common/nl_segmentation`, which prefers a hand annotation when
     # the specification's own numbering is not machine-decidable and otherwise reproduces the
@@ -3485,6 +3492,9 @@ def _reference_matches_observed(reference: str, observed: set[str]) -> bool:
 #: regardless of what the author wrote -- that one carries no information about the author.
 _OMISSION_PLACEHOLDERS = ("UnspecifiedInitial", "FinalWait")
 
+#: `InvalidInitialtr_0005` names the transition whose segment carries the role.
+_TRANSITION_ID = re.compile(r"(tr_\d+)")
+
 #: Predicates whose claim is about what the model declares, reused from the capability layer
 #: so the two cannot drift. For these an injected stand-in for a missing declaration is
 #: admissible evidence; for a behavioural predicate the same element is a genuine confound.
@@ -3603,11 +3613,21 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
     So the delta is: take the waiver away from ten lowerings of nested finals the author did
     write, and grant it to twenty-eight fail-closed segments. One direction stricter, one looser.
 
-    ⚠️ An earlier version of this docstring also claimed `InvalidInitialtr_*` was a stand-in
-    denied its waiver. That is wrong: all nine `InvalidInitial*` and four `InvalidFinal*`
-    entries carry non-empty `source_refs`, so the contract classifies them `carrier` and they
-    get no waiver here either -- the same answer the table gives. The claim was retracted rather
-    than left standing because it was the more persuasive half of the argument and it was false.
+    ⚠️ `source_refs` was the wrong proxy for inserted states, and the retraction of that claim
+    was itself the error. Two rounds ago this docstring said `InvalidInitialtr_*` is a stand-in
+    denied its waiver; it was then retracted on the ground that those entries carry non-empty
+    `source_refs`. The semantics were right the first time. Every `synthetic_state` in the
+    corpus is `compiler_owned` (51 of 51), and a ref on one points at the source line that
+    *triggered* the insertion, not at a declaration. So refs cannot separate
+
+      `invalid_source_initial_surrogate`  (9, named `InvalidInitial*`)   presence *is* the defect
+      `invalid_source_final_surrogate`    (4, named `InvalidFinal*`)     presence *is* the defect
+      `nested_final_completion_hold`      (10, named `FinalWait*`)       ordinary lowering
+
+    -- all three have refs. What separates them is the `generated_role` of the segment inserted
+    alongside, which the generator already writes and which resolves 23 of 23 with no ambiguity.
+    The lesson is not "the claim was false"; it is that a mechanical proxy agreeing with a
+    semantic claim on part of the corpus reads as confirmation of the claim.
 
     Returns an empty mapping when the contract is absent, so callers fall back to their previous
     behaviour rather than having every verdict silently reclassified.
@@ -3615,6 +3635,7 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
 
     if not isinstance(working_contract, dict):
         return {}
+    segment_roles = _segment_roles_by_transition(working_contract)
     roles: dict[str, str] = {}
     for element in working_contract.get("elements") or ():
         if not isinstance(element, dict):
@@ -3628,6 +3649,13 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
             continue
         if element.get("kind") == "root_wrapper":
             role = "naming_wrapper"
+        elif element.get("kind") == "synthetic_state":
+            # Not by `source_refs`. Every inserted state is `compiler_owned`, and the twenty-
+            # three that carry refs point at the source line that *triggered* the insertion --
+            # which says nothing about whether the author declared anything. What separates them
+            # is the role of the segment inserted alongside, and the corpus resolves it without
+            # ambiguity (23 of 23, zero unresolved).
+            role = _inserted_state_role(element, segment_roles)
         elif element.get("source_refs"):
             role = "carrier"
         else:
@@ -3643,6 +3671,75 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
             for key in _ref_lookup_keys(str(path)):
                 roles.setdefault(key, role)
     return roles
+
+
+def _segment_roles_by_transition(working_contract: dict) -> dict[str, set[str]]:
+    """Transition id -> the `generated_role`s of the segments the projection made for it."""
+
+    found: dict[str, set[str]] = {}
+    for element in working_contract.get("elements") or ():
+        if not isinstance(element, dict) or element.get("kind") != "transition_segment":
+            continue
+        role = (element.get("metadata") or {}).get("generated_role")
+        if not role:
+            continue
+        for ref in element.get("model_refs") or ():
+            match = _TRANSITION_ID.search(str(ref))
+            if match:
+                found.setdefault(match.group(1), set()).add(str(role))
+    return found
+
+
+def _inserted_state_role(element: dict, segment_roles: dict[str, set[str]]) -> str:
+    """Whether an inserted state's *presence* is the defect, or just a lowering.
+
+    The state itself carries no `generated_role` -- the paired segment does, and the inserted
+    state's name embeds the transition id, so the pairing is mechanical. A `UnspecifiedInitial`
+    has no transition in its name and no partner: the author wrote no entry at all, so its
+    presence is the omission.
+
+    Fails closed to `omission_surrogate` when the partner cannot be found, because that is the
+    reading under which the evidence stays admissible. Discarding a finding for a bookkeeping
+    miss is the more expensive error: it reads as "the method did not detect this".
+    """
+
+    for ref in element.get("model_refs") or ():
+        match = _TRANSITION_ID.search(str(ref).split(".")[-1])
+        if not match:
+            continue
+        roles = segment_roles.get(match.group(1)) or set()
+        if any(role.startswith("invalid_source_") for role in roles):
+            return "omission_surrogate"
+        if any("completion_hold" in role for role in roles):
+            return "carrier"
+    return "omission_surrogate"
+
+
+def inserted_state_paths(working_contract: Any) -> frozenset[str]:
+    """Paths of states the projection inserted, under every spelling evidence may use.
+
+    A *separate* question from `exclusion_roles`, deliberately given its own home. That map
+    answers "does evidence resting on this element say something about the author?", which is
+    what decides admissibility. This one answers "did the author *declare* this element?",
+    which is what a count ranges over. The two answers differ, and reusing one for the other is
+    the defect this function exists to end: `FinalWait*` is a faithful lowering of a nested
+    final the author wrote, so evidence about it is inadmissible (carrier) -- yet the author
+    declared no state there, so counting it inflates the total.
+
+    Every `synthetic_state` is `compiler_owned` (51 of 51 in the corpus), so the answer here is
+    total and needs no role reasoning: none of them were declared.
+    """
+
+    if not isinstance(working_contract, dict):
+        return frozenset()
+    paths: set[str] = set()
+    for element in working_contract.get("elements") or ():
+        if not isinstance(element, dict) or element.get("kind") != "synthetic_state":
+            continue
+        for ref in element.get("model_refs") or ():
+            if isinstance(ref, str) and ref:
+                paths.update(_ref_lookup_keys(ref))
+    return frozenset(paths)
 
 
 def _ref_lookup_keys(reference: str) -> tuple[str, ...]:

@@ -38,13 +38,50 @@ def test_verify_does_not_recompute_the_candidate_pool() -> None:
     assert isinstance(recomputed, list)
 
 
-def test_no_held_out_pair_is_named_anywhere() -> None:
-    fresh = holdout.compute()
-    burned = sorted(set(FROZEN["holdout"]) & set(fresh["tainted_pairs"]))
-    assert burned == [], (
-        f"held-out pairs are now named in pipeline source, tests or a commit body: {burned}. "
-        "Reporting capability on them is no longer defensible; pick replacements with "
-        "`python -m holdout` and freeze a new set, stating in the report that the old one burned."
+def test_no_naming_of_a_held_out_pair_goes_unaccounted() -> None:
+    """The absolute form of this ran out of room, and weakening it needed saying out loud.
+
+    It used to assert that no held-out pair is named anywhere. That is the right invariant while
+    a hold-out is untouched, and it is unreachable once record-level burning exists: recording
+    that `EIS-0032-02` is reportable names `0032`, so the absolute form goes red on correct
+    bookkeeping. What replaces it is not weaker in the direction that matters -- every naming
+    site must be claimed by a burn or a ruling -- but it is weaker in one direction, and that
+    is exactly why `--verify` is the gate and this test only checks it agrees.
+    """
+    assert holdout.main(["--verify"]) == 0
+
+
+def test_a_ruling_for_a_pair_nobody_names_is_a_matcher_regression() -> None:
+    """Dead bookkeeping is how a broken detector looks from the inside.
+
+    Six recurrences of the enumeration mistake all presented the same way: the rules stayed on
+    the page, the matcher stopped finding what they were written for, and everything went green.
+    A burn or ruling whose pair the detector no longer reports as named means either the entry
+    is stale or the matcher has narrowed again -- and the second reading is the one this
+    repository keeps landing on.
+    """
+    # The same two texts `--verify` reads. `tainted_pairs` covers source and tests only, so
+    # using it here would make this test disagree with the gate about what "named" means -- a
+    # second definition of the fact, which is the shape of the bug it is looking for.
+    source, commits = holdout._source_and_test_text(), holdout._commit_text()
+    named = {
+        pair
+        for pair in holdout.compute()["candidates"] + _frozen()["holdout"]
+        if holdout._naming_in_prose(pair).search(source)
+        or holdout._naming_in_prose(pair).search(commits)
+    }
+    d = _frozen()
+    claimed = set(d.get("motive_adjudicated") or {})
+    detail = {x["pair"]: x["record_ids"] for x in d["holdout_detail"]}
+    for record in d.get("burned_records") or {}:
+        for pair, records in detail.items():
+            if record in records:
+                claimed.add(pair)
+    orphans = sorted(claimed - named)
+    assert not orphans, (
+        f"burns or rulings exist for {orphans}, which the detector no longer reports as named. "
+        "Either the entries are stale or the matcher has narrowed -- check `_naming_in_prose` "
+        "against the measurement in its docstring before touching the frozen set."
     )
 
 
@@ -178,16 +215,60 @@ def test_a_naming_hit_needs_either_a_burn_or_a_ruling() -> None:
         ), f"{pair} is reportable but neither partially burned nor adjudicated"
 
 
+def test_a_burn_only_accounts_for_the_sites_it_names() -> None:
+    """The negative control for the rubber stamp, because the stamp passed every positive one.
+
+    Reconciliation used to ask whether *any* record of the pair was burned. `0047` had
+    `EIS-0047-02` burned for a commit-body naming, so a second, unrelated naming of `0047` in
+    the coactivity gate -- targeting `EIS-0047-01`, for a different rule, in a different
+    round -- was waved through. Two real contaminations entered that way.
+
+    So every burn declares `named_at`, every ruling declares `covers`, and a site nobody
+    claimed is a failure. Asserted here by removing coverage and requiring the failure, since
+    the defect was invisible to every assertion that only checked the happy path.
+    """
+    d = _frozen()
+    detail = {x["pair"]: x["record_ids"] for x in d["holdout_detail"]}
+    for pair in d["reportable_holdout"]:
+        sites = set()
+        for record in detail[pair]:
+            entry = (d.get("burned_records") or {}).get(record)
+            if isinstance(entry, dict):
+                sites.update(entry.get("named_at") or ())
+        ruling = (d.get("motive_adjudicated") or {}).get(pair)
+        if isinstance(ruling, dict):
+            sites.update(ruling.get("covers") or ())
+        assert sites, f"{pair} is named somewhere but no burn or ruling says where"
+        assert sites <= {"pipeline_source_or_tests", "commit_body"}, sites
+
+
+def test_every_burn_says_where_it_was_named() -> None:
+    """`named_at` is what reconciliation reads, so a burn without it silently covers nothing."""
+    for record, entry in (_frozen().get("burned_records") or {}).items():
+        assert entry.get("named_at"), f"{record} has no `named_at`"
+        assert entry.get("evidence"), f"{record} has no evidence"
+        assert entry.get("since_commit"), f"{record} has no commit"
+
+
 def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> None:
     """Records the fact that v22 has no capability-claim band, so it cannot be discovered later.
 
-    Six records remain across four layers -- `wellformedness` 3, and one each of
-    `over_specification`, `nl_named`, `nl_contradiction`. The threshold is four. Writing this as
+    Four records remain, one in each of the four layers. The threshold is four. Writing this as
     a test rather than only as prose means a later change that quietly re-inflates the
     denominator has to argue with it.
+
+    It was six until per-site reconciliation found two more contaminations. Both were free in
+    scientific terms -- no layer reached the threshold at six either -- which is the reason to
+    record them rather than argue about them.
     """
     d = _frozen()
-    assert d["reportable_judgeable_total"] == 6
+    assert d["reportable_judgeable_total"] == 4
+    assert d["reportable_layer_coverage"] == {
+        "wellformedness": 1,
+        "nl_named": 1,
+        "over_specification": 1,
+        "nl_contradiction": 1,
+    }
     assert not any(d["reportable_layers_at_k"].values()), d["reportable_layer_coverage"]
 
 

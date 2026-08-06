@@ -95,20 +95,8 @@ MAX_PER_GROUP = 3
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
 
 
-def _naming(pair: str) -> re.Pattern[str]:
-    """Every spelling by which the corpus refers to a pair, in *source and test* text.
-
-    Deliberately an enumeration here, because source text is full of four-digit numbers that
-    are not pair ids (record sequence numbers `L000-000018-...`, bounds, counts). For commit
-    bodies use `_naming_in_prose`, which has no such ambiguity and must not enumerate.
-    """
-    return re.compile(
-        rf"(pair[ _-]?{pair}\b|{pair}-claude|{pair}-gpt|feedback_final_{pair}\b|EIS-{pair}-)"
-    )
-
-
 def _naming_in_prose(pair: str) -> re.Pattern[str]:
-    """Any bare mention of the four-digit id. For commit bodies and prose only.
+    """Any bare mention of the four-digit id. The only matcher; there is no second one.
 
     The enumerating form above produced a false negative on every held-out pair: commit bodies
     write `0018/0038`, `0018(9)、0038(4)`, and plain `0048`, none of which match `pair 0018` or
@@ -119,8 +107,25 @@ def _naming_in_prose(pair: str) -> re.Pattern[str]:
     This is the fourth recurrence of one mistake: defining detection as a spelling enumeration,
     so the next spelling escapes. Earlier rounds went gate -> predicate catalogue, element name
     -> prose description, static prompt -> runtime feedback. The fix is to stop enumerating:
-    a bare four-digit id in a commit body has no competing meaning, so match it and let a human
-    adjudicate the rare incidental hit.
+    a bare four-digit id has no competing meaning, so match it and let a human adjudicate the
+    rare incidental hit.
+
+    ⚠️ Recurrences five and six were the *same function surviving in half the call sites*.
+    Round five: `compute()` was moved to this matcher and `--verify` -- the gate -- was left on
+    the enumerating one. Round six: `--verify`'s commit-body branch was moved and its
+    source-and-test branch was left, on the argument that source text is full of four-digit
+    numbers which are not pair ids. That argument was never measured, and it is false. Across
+    all sixty ids in `src/` and `tests/`:
+
+        bare id                269 hits, 18 ids
+        enumerating form                  6 ids
+        reachable only by the bare id     139 hits, 17 ids -- and *zero* are false positives
+
+    The feared spellings cannot match: `\b` fails inside `L000-000018-` and `tr_0043` because
+    a digit and an underscore are word characters. Two of the 139 are live rule-1 violations
+    (`0019, 0043 and 0053` in the attribution branch; `Pair 0047` -- capitalised, which is all
+    it took -- in the coactivity gate). One matcher, therefore, and no ambiguity argument
+    without a measurement behind it.
     """
     return re.compile(rf"\b{pair}\b")
 
@@ -197,7 +202,7 @@ def compute() -> dict:
 
     named, run, flagged = {}, {}, {}
     for pair in all_pairs:
-        pattern = _naming(pair)
+        pattern = _naming_in_prose(pair)
         where = []
         if pattern.search(source):
             where.append("pipeline_source_or_tests")
@@ -370,15 +375,14 @@ def main(argv: list[str] | None = None) -> int:
         burned_now = {}
         for pair in held:
             where = []
-            # Source and tests keep the enumerating pattern: four-digit numbers are ambiguous
-            # there (record indices like `L000-000018-...`, bounds, counts).
-            if _naming(pair).search(source):
+            # Same matcher as prose. The "ambiguous in source" argument that justified a second
+            # one here measured 139 bare-id hits with zero false positives, two of them live
+            # rule-1 violations the enumerating form was hiding.
+            if _naming_in_prose(pair).search(source):
                 where.append("pipeline_source_or_tests")
-            # Commit bodies do not have that ambiguity, and this branch used the enumerating
-            # pattern anyway -- the fifth recurrence of the mistake this module's own docstring
-            # numbers. Bodies write `0018/0038`, `0018(9)、0038(4)`, plain `0048`; none match
-            # `pair 0018` or `EIS-0018-`. Measured: all four reportable pairs are named in
-            # commit bodies by bare id and `--verify` reported the set clean.
+            # Bodies write `0018/0038`, `0018(9)、0038(4)`, plain `0048`; none matched the
+            # enumerating form, and all four reportable pairs were named this way while
+            # `--verify` reported the set clean.
             if _naming_in_prose(pair).search(commits):
                 where.append("commit_body")
             if where:
@@ -394,21 +398,31 @@ def main(argv: list[str] | None = None) -> int:
         # to satisfy it: the records a rule was designed against are recorded in
         # `burned_records`, or the naming is recorded in `motive_adjudicated` with its reasoning
         # and a verdict. What stays a failure is a naming nobody has ruled on.
+        # Per *naming site*, not per pair. The previous version asked whether any record of the
+        # pair was burned -- so once one was, every later naming of that pair, whatever its
+        # motive and whichever other record it targeted, passed unexamined. That is a rubber
+        # stamp, and it let two real contaminations through: `0043` named in the attribution
+        # branch for `EIS-0043-02`, and `0047` named in the coactivity gate for `EIS-0047-01`,
+        # both waved past by burns recorded for a different record of the same pair.
         adjudicated = frozen.get("motive_adjudicated") or {}
         unaccounted = {}
         for pair, where in burned_now.items():
-            records = detail.get(pair) or ()
-            if records and any(r in burned_records for r in records):
-                continue
+            covered = set()
+            for record in detail.get(pair) or ():
+                entry = burned_records.get(record)
+                if isinstance(entry, dict):
+                    covered.update(entry.get("named_at") or ())
             ruling = adjudicated.get(pair)
             if isinstance(ruling, dict) and ruling.get("verdict") and ruling.get("reasoning"):
-                continue
-            unaccounted[pair] = where
+                covered.update(ruling.get("covers") or ())
+            missing = [site for site in where if site not in covered]
+            if missing:
+                unaccounted[pair] = missing
         if unaccounted != burned_now:
             accounted = sorted(set(burned_now) - set(unaccounted))
             if accounted:
                 print(
-                    f"note: named but accounted for at record level: {accounted}",
+                    f"note: every naming site accounted for at record level: {accounted}",
                     file=sys.stderr,
                 )
         burned_now = unaccounted
@@ -447,9 +461,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAIL {problem}", file=sys.stderr)
         if problems:
             return 1
+        # Not "still unnamed" -- most of them are named, and the run above prints exactly which.
+        # The success line said the opposite of what the same invocation had just reported two
+        # lines earlier, so a reader skimming for the verdict got the reassuring half.
+        reportable = frozen.get("reportable_records") or ()
         print(
-            f"ok: {held} still unnamed, {frozen['holdout_judgeable_total']} records, "
-            f"frozen at {frozen.get('frozen_at_commit', '?')[:9]}"
+            f"ok: every naming site accounted for; {len(reportable)} of "
+            f"{frozen['holdout_judgeable_total']} records remain reportable "
+            f"({', '.join(reportable) or 'none'}), frozen at "
+            f"{frozen.get('frozen_at_commit', '?')[:9]}"
         )
 
     if not (args.freeze or args.verify):

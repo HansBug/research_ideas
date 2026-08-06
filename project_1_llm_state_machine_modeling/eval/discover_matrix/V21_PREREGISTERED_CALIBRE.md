@@ -105,9 +105,12 @@ eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定�
 
 | 记录 | 烧于 | 动机证据 |
 | :-- | :-- | :-- |
-| `EIS-0043-01` | `0eb36a06`（V6）| commit 正文给了**期望结果**「0043 PumpControl 3 → 2 ← 三轮全 True 掩盖的缺陷会浮出」，而该记录的 primary 断言逐字就是 `cardinality(scope=PumpControl, count=3)` |
+| `EIS-0043-01` | `0eb36a06`（V6）| commit 正文给了**期望结果**「0043 PumpControl 3 → 2 ← 三轮全 True 掩盖的缺陷会浮出」，而该记录的断言集里含 `cardinality(scope=PumpControl, count=3)`（作为 `recovered_unverified`；primary 是 `containment`）—— 规则改的正是那个调用的返回值。<br>⚠️ 上一版此处写「primary 断言逐字就是 cardinality」，不实 |
 | `EIS-0047-02` | `0eb36a06`（V6）| 同 commit「0047 CAS 4 → 3 ← 三轮全发的多报会消失」—— 而判断「0047 发的是误报」本身需要台账 |
 | `EIS-0032-01` | `23315498`（V4/V5）| 动机是根因分析的 M4，唯一落点是 0032 的四条 `representation_debt` 排除；该记录的 statement 明写那三条 compiler exclusion「这是缺陷的机器证据」 |
+
+| `EIS-0043-02` | `3d0049c1`（initial_target 归因盲）| commit 正文自陈动机「0019 的缺初始边被采信…0019/0043/0053 只有一个走了不记录分支」，规则文本在 `predicate_api.py` 与其测试两处注释里点名 0043；而该记录的 primary 恰是 `initial_target(PumpControl, Region1)`，statement 写的就是「与 0019 标准不一致」 |
+| `EIS-0047-01` | `fc25c232`（B1）+ `e45e01e0`（V6 角色边界）| 两处独立污染。① B1 正文与 `capability.py` 注释「0047 有真实三项条件」，用来划定 B1 不该拒绝的形状 —— 而该记录的 primary 正是 `all([state_declared(RearEnd.Idle), state_declared(Pedestrian.Idle)])` 这种跨非嵌套路径的合取；② `e45e01e0` 正文给出方向性期望「0047 RearEnd/Pedestrian 1 → 0」并据此改了角色边界，而该记录 statement 逐字点名 `InvalidInitialtr_0005 / tr_0009` |
 
 `0035` 判**未污染**并显式记录裁定：它只出现在 V6 的受影响 scope 清单里（根 7→6），无方向性主张、不指向任何台账记录。**点名一个 pair 以记账它受某规则影响，与看着它的失败写规则，不是同一件事。**
 
@@ -115,12 +118,16 @@ eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定�
 
 | | v21 | v22 |
 | :-- | --: | --: |
-| 可报记录 | 9 | **6** |
-| `wellformedness` | 5 | 3 |
+| 可报记录 | 9 | **4** |
+| `wellformedness` | 5 | 1 |
 | `nl_named` | 1 | 1 |
 | `over_specification` | 1 | 1 |
 | `nl_contradiction` | 2 | 1 |
 | 达 `≥4` 阈值的层 | 1 | **0** |
+
+⚠️ **首版此处写 6，漏了两条**，原因是对账按 pair 粒度：一旦某 pair 有任一记录被烧，该 pair 此后**任何**动机、指向**任何**其他记录的点名都自动过关。改为逐点名归属后 `EIS-0043-02` 与 `EIS-0047-01` 浮出。两条在科学上都是零成本 —— 6 条时同样无层达阈值 —— 这正是记录而非争论的理由。
+
+对应地，规则 1（不得在 pipeline 源码 / 测试中被点名）此前**已被违反且检测不到**：`--verify` 的源码分支仍用枚举式匹配器。实测全六十个 id：裸 id 命中 269 处 / 18 个 id，枚举式只命中 6 个 id，**只有裸 id 能抓到的 139 处里零误伤**。所担心的 `L000-000018-`、`tr_0043` 因前导数字与下划线是 word char，`\b` 本就不成立。已统一为单一匹配器。
 
 **所以 v22 不产出任何能力主张。** 全部数字只能作为「方法 + 样本共演化观测」报出。这条写在跑之前，不是跑完才发现。
 
@@ -136,7 +143,58 @@ eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定�
 2. 历代对比表按修法逐条标注哪一代次起生效
 3. `refuse@1` 与 `over@1` 并列，否则「归因层少吃发现」会被读成生产侧能力提升
 
-## 七、V6 的触发面按角色过滤后重测
+## 八、V6 二次返工：计数与归因分家（`§七` 的口径已作废）
+
+`§七` 按 `role == "omission_surrogate"` 过滤，仍然是错的 —— 它用**归因层的答案**回答**计数层的问题**。两者是不同的问题：
+
+- **Q1 归因**：「基于这个元素的证据，能不能说作者的事？」→ 决定可采性
+- **Q2 计数**：「作者**声明**了这个元素吗？」→ 决定外延成员
+
+两者在 `FinalWait*` 上分道扬镳：它是作者写的嵌套 final 的忠实降级，所以证据**不可采**（carrier）；而作者在那里没有声明任何状态，所以计入会虚增。反过来在 `InvalidInitial*` 上也错：它的**存在本身就是缺陷**，证据应当可采。
+
+实测代价（返工前）：`cardinality(0047.RearEnd, 1)` 返回 **True** —— 而 `EIS-0047-01` 的 statement 原话是「后两个复合状态实际为空」，并逐字点名那两个 `InvalidInitial` 作为空的机器证据。**谓词与冻结台账直接矛盾。**
+
+### 契约里的正确判据
+
+| 判据 | 对 Q1 | 对 Q2 | 实测 |
+| :-- | :-- | :-- | :-- |
+| `source_refs` 非空 | 对 1590 条降级正确，对 51 条插入态错 | 错 | 23/51 插入态有 refs，指的是**触发注入的源行** |
+| `origin == compiler_owned` | 错（会毁掉 1131 个 `transition_segment` carrier）| **对** | 51/51 插入态皆 `compiler_owned`，0 条 `source_owned` |
+| 配对段的 `generated_role` | **对** | 过细 | 23/23 可唯一定，零歧义 |
+
+`synthetic_state` 自身不带 `generated_role`，它在配对的 `transition_segment` 上，而插入态名字里嵌着迁移 id，配对是机械的：
+
+    invalid_source_initial_surrogate   9   InvalidInitial*      存在即缺陷 → omission_surrogate
+    invalid_source_final_surrogate     4   InvalidFinal*        存在即缺陷 → omission_surrogate
+    nested_final_completion_hold      10   FinalWait*           普通降级   → carrier
+    （无配对段、名字无迁移 id）       28   UnspecifiedInitial   作者没写   → omission_surrogate
+
+### 落地与量到的效果
+
+- **Q1**（`exclusion_roles`）改读配对段 role：13 条角色翻转（`InvalidInitial` 9 + `InvalidFinal` 4，`carrier` → `omission_surrogate`）。⚠️ 这是**放宽可采性**，与 §六 同族，必须双报。
+- **Q2**（新增 `inserted_state_paths`，独立函数、独立字段）：剔除面 12 → **51**（全语料），v22 十一格受影响 scope **22 个**。
+- 矛盾消除：`RearEnd` / `Pedestrian` 作者声明数现为 **0**，`cardinality(...,1)` 返回 False。
+
+v22 十一格逐 scope（全部子态数 → 作者声明数）：
+
+| pair | scope | → | pair | scope | → |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| `0006` | root | 2→1 | `0047` | CollisionAvoidanceSystem | 4→3 |
+| `0029` | HighwayMode | 6→5 | `0047` | CAS.RearEnd | **1→0** |
+| `0029` | UrbanMode | 6→5 | `0047` | CAS.Pedestrian | **1→0** |
+| `0032` | AccelerateRegion | 3→2 | `0048` | fork1 | 3→2 |
+| `0032` | BrakeRegion | 2→1 | `0048` | Fork2 / Join2 | 2→1（各）|
+| `0032` | IdleRegion | 2→1 | `0050` | AutonomousMode | 4→3 |
+| `0035` | root | 7→6 | `0058` | 六个 scope | 2→1（各）|
+| `0038` | Terminate | **1→0** | `0043` | PumpControl | 3→2 |
+
+### 上一版被撤回的判断，撤回本身是错的
+
+两轮前 docstring 说 `InvalidInitialtr_*` 是被剥夺豁免的替身；上一轮以「它们 `source_refs` 非空」为由撤回。**语义上第一次是对的**，错的是机械代理。教训不是「那个主张为假」，而是**一个机械代理在语料的一部分上与语义主张吻合，会被读成对该主张的确认**。
+
+---
+
+## 七、V6 的触发面按角色过滤后重测（⚠️ 已被 §八 作废，保留以便对照）
 
 旧口径（按「在 `source_exclusions` 里」）报 8 个受影响 scope，实为 16，其中 **4 个剔掉的是 carrier**（`0038.Terminate`、`0047.RearEnd`、`0047.Pedestrian`、`0050.AutonomousMode`）—— 会就作者确实写了的元素数发布发现。
 

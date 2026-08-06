@@ -19,7 +19,7 @@ from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
 from .graph import run_discover_state
 from .nodes import ABLATABLE_GATES, _ABLATED_GATES
-from .nodes import exclusion_roles
+from .nodes import exclusion_roles, inserted_state_paths
 from .report import telemetry_summary, write_discover_markdown
 from .responder import DirectStructuredResponder
 from .schemas import DiscoverInput, LLMCallRecord, NodeExecutionRecord
@@ -230,6 +230,11 @@ def main(argv: list[str] | None = None) -> int:
         source_mappings=source_entries,
         source_exclusions=source_exclusions,
         exclusion_roles=exclusion_roles(
+            bundle.working_contract.data
+            if getattr(bundle, "working_contract", None) is not None
+            else None
+        ),
+        inserted_states=inserted_state_paths(
             bundle.working_contract.data
             if getattr(bundle, "working_contract", None) is not None
             else None

@@ -209,6 +209,7 @@ class EvalEnvironment:
         source_mappings: list[dict[str, Any]] | None = None,
         source_exclusions: list[str] | tuple[str, ...] | None = None,
         exclusion_roles: dict[str, str] | None = None,
+        inserted_states: frozenset[str] | None = None,
         coverage_bindings: dict[str, list[str]] | None = None,
         extra_vars: dict[str, Any] | None = None,
         extra_functions: dict[str, tuple[str, Callable[..., Any]]] | None = None,
@@ -231,6 +232,7 @@ class EvalEnvironment:
         # contract by the caller. Absent on a checkout without a contract, and then the
         # predicates fall back to the leaf-name table rather than to a default.
         self.exclusion_roles = dict(exclusion_roles or {})
+        self.inserted_states = frozenset(inserted_states or ())
         self.timeout_seconds = timeout_seconds
         self.call_trace: list[FunctionCallRecord] = []
         self._known_paths_cache: frozenset[str] | None = None
@@ -292,6 +294,7 @@ class EvalEnvironment:
             formal=self.fbmcq_api if formal_verification_enabled else None,
             source_exclusions=self.source_exclusions,
             exclusion_roles=getattr(self, "exclusion_roles", None),
+            inserted_states=getattr(self, "inserted_states", None),
         )
         functions: dict[str, tuple[str, Callable[..., Any]]] = {
             name: (family, getattr(self.predicates, method))
