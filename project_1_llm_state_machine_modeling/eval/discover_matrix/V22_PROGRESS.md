@@ -1,6 +1,11 @@
 # v22 实施进度与剩余工作
 
-代码 `c05587f8`。全量 **1570 passed / 4 skipped**。**实验尚未开跑** —— 剩余修法有跨层依赖，见 §3。
+代码 `23315498`。全量 **1577 passed / 4 skipped**。**实验尚未开跑** —— 待过第 2 步的两份 review。
+
+> ⚠️ **本文件初版有一处判断错误，已更正。** 初版称 V4/V5 被「需要把 working contract 的
+> `elements` 接进 discover 层」阻塞。**那个阻塞不存在** —— `frozen.working_contract` 早已
+> 在 `schemas.py:151` 定义，真实运行里就带 73 条 `elements`。核实后直接实施，见 §1 的 V4。
+> 记在这里是因为「以为被阻塞」比「真的被阻塞」更容易让一条修法无限期搁置。
 
 设计来源：[v21 根因分析 comment](https://github.com/HansBug/research_ideas/pull/169#issuecomment-5205900480)（三个独立 agent，每条过 `generality_check`）。
 
@@ -13,6 +18,7 @@
 | **V1** | 机器根外壳在祖先归因中透明：前缀回溯耗尽时锚到该前缀下的**直接**子元素 | 与 V2 合计救回 v21 三轮 24 条 `unattributed` 中的 **13** 条 | `935aa3ac` |
 | **V2** | precondition 由自己的 expression 归因，不由所属 requirement | 同上；并消除「一条发现能否浮现取决于 dependent 是否被改写掉」这一不稳定性 | `c05587f8` |
 | **V6** | 计数类谓词的外延剔除编译器插入的成员 | 8 个 scope 受影响，**双向**：`0043 PumpControl` 3→2（掩盖的缺陷浮出）、`0047 CAS` 4→3（三轮多报消失）| `0eb36a06` |
+| **V4 + V5 前半** | 排除元素的角色由契约 `source_refs` 决定，替换两项叶名表 | 叶名表的**两个方向错误都在语料上量到**：10 个 `FinalWaittr_*` 被误判为占位（实为 carrier，会误免）、28 个 `synthetic:segment:N` 被漏判（实为替身，永远拿不到免除）| `23315498` |
 
 V1+V2 的 13 条分布：`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`run2/0038 ×1`、`run3/0018 ×1`、`run3/0038 ×1` —— 与根因分析报的 M1 逐条吻合。
 
@@ -33,8 +39,7 @@ V1+V2 的 13 条分布：`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`
 
 | id | 内容 | 阻塞原因 |
 | :-- | :-- | :-- |
-| **V4** | 排除表带 `carrier` / `omission_surrogate` / `naming_wrapper` 角色 | 需要把 working contract 的 `elements` 接进 discover 层。当前只有 `source_trace` 的**扁平字符串** `attribution_exclusions` 到得了那里 |
-| **V5** | fail-closed 替身对位置型主张是可采信证据；并删掉 `_OMISSION_PLACEHOLDERS` 叶名表 | **依赖 V4**。判据是 `source_refs` 是否为空，而扁平字符串里没有这个信息 |
+| **V5 后半** | fail-closed 替身对**位置型**主张也是可采信证据 | 独立，可先做。前半（角色判据）已落在 `23315498` |
 | **V7** | 拆 `unresolved_segment` 与 `taint_disagreement`；taint 判定移到归因之后 | 独立，可先做 |
 | **V8** | 排除词表闭合性 | **必须在 V4 之后** —— 单独修匹配器会把 143 条 `safe` 里的 74 条（52%）当场变成 `representation_debt`，砍掉一半发布量 |
 | **D2/D3/D4** | splitter 禁止性需求判据、reviewer 引文核查、极性段 + `stays_in` 假阳性 | 独立，可先做 |
