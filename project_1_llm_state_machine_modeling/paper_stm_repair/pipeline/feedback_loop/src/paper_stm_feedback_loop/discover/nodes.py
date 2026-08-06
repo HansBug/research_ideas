@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from collections.abc import Callable
@@ -805,6 +806,24 @@ def _canonicalize_trace_entry_ids(
     return {**context, "trace_entry_ids": canonical_ids}
 
 
+#: Gates to switch off for a hold-out run, as a comma-separated list in
+#: `DISCOVER_ABLATE_GATES`. Empty by default, so a normal run is unaffected.
+#:
+#: Needed because a gate written after a specific defect went unfound cannot be cleared of
+#: having taught the answer just by inspecting its text -- `initialization_anchored_findings`
+#: says nothing about `Power_Off` any more, yet on all three v17 rounds pair 0000's unaided
+#: `revision=1` output was rejected by it and the retry then published the expected issue. The
+#: only way to tell whether the finding was reachable without it is to turn it off and look.
+_ABLATED_GATES = frozenset(
+    name.strip() for name in os.environ.get("DISCOVER_ABLATE_GATES", "").split(",") if name.strip()
+)
+
+
+def _ablated(gate_name: str) -> bool:
+    """Whether this gate is switched off for a hold-out run."""
+    return gate_name in _ABLATED_GATES
+
+
 def prepare(state: DiscoverGraphState) -> DiscoverGraphState:
     started_at, start_ns = _now(), time.perf_counter_ns()
     discover_input = state["_input"]
@@ -1252,7 +1271,11 @@ def split_requirements(
         # the genuinely semantic call and stays with the reviewer.
         known_paths = frozenset(frozen.known_model_paths)
         step_findings = (
-            *initialization_anchored_findings(output.requirements),
+            *(
+                ()
+                if _ablated("initialization_anchored")
+                else initialization_anchored_findings(output.requirements)
+            ),
             *termination_proposal_findings(
                 output.requirements,
                 known_paths,
@@ -1279,7 +1302,11 @@ def split_requirements(
             *conceded_omission_findings(output.requirements, known_paths),
             # `reaches` on a declared event answers from the compiler's routing, not the
             # author's edge; pair 0000 lost v6run2 and v10run3 to exactly that.
-            *trigger_consuming_predicate_findings(output.requirements, known_paths),
+            *(
+                ()
+                if _ablated("trigger_consuming")
+                else trigger_consuming_predicate_findings(output.requirements, known_paths)
+            ),
         )
         if step_findings:
             raise ValueError(
