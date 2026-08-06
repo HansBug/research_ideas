@@ -374,6 +374,91 @@
     0,
     null
    ]
+  },
+  "EIS-0038-01": {
+   "claude": [
+    0,
+    0,
+    0
+   ],
+   "gpt": [
+    1,
+    null,
+    null
+   ],
+   "direction": {
+    "gpt": "direct"
+   }
+  },
+  "EIS-0038-02": {
+   "claude": [
+    0,
+    1,
+    0
+   ],
+   "gpt": [
+    0,
+    null,
+    null
+   ],
+   "direction": {
+    "claude": "dual"
+   }
+  },
+  "EIS-0038-03": {
+   "claude": [
+    0,
+    0,
+    0
+   ],
+   "gpt": [
+    1,
+    null,
+    null
+   ],
+   "direction": {
+    "gpt": "direct"
+   }
+  },
+  "EIS-0038-05": {
+   "claude": [
+    1,
+    1,
+    1
+   ],
+   "gpt": [
+    1,
+    null,
+    null
+   ],
+   "direction": {
+    "claude": "direct",
+    "gpt": "direct"
+   }
+  },
+  "EIS-0038-06": {
+   "claude": [
+    0,
+    0,
+    0
+   ],
+   "gpt": [
+    0,
+    null,
+    null
+   ]
+  },
+  "EIS-0038-07": {
+   "claude": [
+    0,
+    0,
+    0
+   ],
+   "gpt": [
+    0,
+    null,
+    null
+   ]
   }
  },
  "over": {},
@@ -454,6 +539,15 @@
    "EIS-0018-02 = claude [1,1,1] / gpt [1,1,·]": "台账 not edge_declared(join2, activated, ...)：NL 要求 Join2 先进 Fork2 再分出 Junction2 与 Flash，模型把两条边直接挂在 join2 上。claude 侧判 **dual**（负向命题的正向对偶）：模型说「fork2 到 Flash 的直连转移缺失」/「从 fork2 出发不可达 Flash」—— 台账说「不应存在错的边」，模型说「应存在对的边」。gpt 侧判 **direct**：run1/gpt 逐字点名「activated 转移挂在 join2→Flash」，run3/claude 亦然（「activated 事件被错误地绑定在 join2 -> Flash 而非 Flash -> Terminate」）。",
    "EIS-0018-03 = 全 0": "台账 not any([event_consumed('[*]', Start), event_consumed(..., end)])：自造 Start / end 两个事件属 over-specification。五格无一条把它们标为多余 —— 相反，run1/claude 的「Junction1 在 end 事件下没有把系统置于 TurnOff」**把 end 当作合法事件去用**，方向与台账相反。与 v21 的全 0 一致。",
    "22 条伪状态 issue 的归属": "run1 那 22 条含伪状态名的 issue 里，0018 占 18 条。逐条看，其中 「fork1 到 DetLight 不可达」「choice2 经 join2 不可达」等属台账外发现（0018 的参考确实要求 fork 两分支都落地），须按多报三分裁定，**不自动算多报**。已列入待裁定。"
+  },
+  "0038（已烧毁带，fork/join 家族）": {
+   "EIS-0038-05 = claude [1,1,1] / gpt [1,·,·]，direct": "台账 state_declared(Join1, kind='pseudo')：模型删掉 Join1。四格逐字命中（「模型未声明 NL-L008 命名的 Join1 状态」等）。",
+   "EIS-0038-01 与 -03 只有 gpt 命中": "-01 台账 edge_declared(AutoFocus, memFull_true, …)：守卫被移到 choice1 --> choice3 上。run1/gpt「AutoFocus 在 memFull=true 条件下未进入 choice1」逐字对应 → direct。-03 台账 edge_declared(ChargedFlash, Charged_true, …)：Charged=true 晚了一条边。run1/gpt「Charged=true 从 ChargedFlash 发生时未完成到 Junction3 后继流程」+「Junction3 在 Charged=true 条件下未到达 Join2」两条一起点出了守卫的错位位置 → direct。**claude 三轮在这两条上一条都没发** —— 与 0050 的方向相反（那里是 claude 零产出、gpt 命中），两条臂互补而非一方全面占优。",
+   "EIS-0038-02 = claude [0,1,0]，dual": "台账 not edge_declared(choice1, memFull…, …)：闪光分支应由 fork 直接分出，模型挂在 choice1 之后。run2/claude「NL 所需的 fork1 -> choice3 直接转移的触发事件未声明」是「应存在对的边」，与台账「不应存在错的边」构成对偶 → dual。另两轮未发。",
+   "EIS-0038-06 = 全 0": "台账 state_declared(Terminate, kind='leaf')：Terminate 被声明成 composite 且内部初始迁移指向自己，投影为 InvalidInitialtr_0021。run1/gpt 的「Terminate 状态未结束序列」讲的是终止性 —— 一个**叶子** Terminate 若没有出边同样不结束序列，所以不蕴含「它被错声明为 composite」。",
+   "EIS-0038-07 = 全 0，且产出方向与台账相反": "台账说 10 个伪状态里**只有 fork_state 与 Join2 类型正确**，其余退化为普通状态。而 run1/claude 说「Join2 被声明为 pseudo state 且 Fork2 位于其外」、run1/gpt 说「Join2 不是能够包含 Fork2 的复合状态」—— **要求 Join2 变成复合态**，恰好否掉台账认定为正确的那一项。",
+   "★★★ 跨三格的系统性方向反转（0018 / 0038 / 0048）": "三格都反复发布「Fork2 未被声明为 Join2 的直接子状态」这一形态：0038 四格全有，0048 四格全有，0018 五格全有。而台账在这三格上说的是相反的事 —— 伪状态**应当保持伪状态且扁平**（0048 的 EIS-0048-02 明说「Join1 变成 Join2 的子状态」是缺陷；0038 的 EIS-0038-07 明说 Join2 的 pseudo 类型是正确的）。**模型系统性地要求更多嵌套，而台账要求更少。** 这是本轮最大的单一多报来源，也是根因分析的首要对象。它不在 A1 的拦截面上（A1 拦主张槽里的瞬态节点，这里是 containment 类主张），所以是新的、独立的形态。",
+   "⚠️ 待裁定": "上述「要求更多嵌套」的产出是否算多报，须逐条对着 NL 与参考核 —— NL 第 11 句确实提到 Join2 与 Fork2 的先后关系，所以「Fork2 应在 Join2 之后」可能有据，只是模型把「之后」实现成了「之内」。这个区分要看 NL 原文，已列入多报三分待裁定。"
   }
  },
  "_pending": {
