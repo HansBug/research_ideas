@@ -1537,6 +1537,30 @@ def _trigger_can_fire_from_initial(item: _RequirementSpec) -> bool:
     `termination` and are already refused today -- this changes the answer for the two that
     spelled it `initialization`, `v1 run3/0000-claude` and `v6run3/0000-claude`.
 
+    ⚠️ That check measured the wrong thing, and the sentence it produced -- "误伤面 0" -- is
+    withdrawn. It ran over bindings the pipeline had *already produced*, so it reports how many
+    existing bindings this gate would newly refuse. It cannot report which correct bindings the
+    gate makes unwritable, because a shape no round ever wrote does not appear in the corpus.
+
+    The frozen ledger has such a shape. `EIS-0047-03` says pair 0047 activates its collision
+    subsystem unconditionally at power-on where the sentence requires a detection first, and both
+    of its encodings bind `source="[*]"` with trigger `Collision_Detected`. That tail is not in
+    `_POWER_ON_HINTS`, so **every** `behavior_phase` spelling is refused -- measured, eight of
+    eight combinations, against `Power_On` permitted. The record is unreachable, and the corpus
+    check saw nothing because no round had written it yet.
+
+    So the word list is not a neutral credibility test: it encodes "only a power-on event can
+    fire from the pseudo-initial", which is true of *runs* and false of *declarations* --
+    `edge_declared` asks what the model declares, and a model may declare an edge out of `[*]`
+    on any trigger at all. That is exactly the defect 0047 has. Narrowing the gate to the
+    behavioural predicates is the obvious repair and is deliberately **not** made here: it would
+    be a rule change motivated by a ledger record, in the middle of preparing a run. It is
+    pre-registered instead (see `V21_PREREGISTERED_CALIBRE.md` §9.1), so a miss on that record
+    in v22 is attributable to this gate rather than read as a capability gap.
+
+    The general lesson is §3.5 clause 3's: a backtest measures collateral damage, only a live
+    run measures generality. This is the second time that has cost something here.
+
     :param item: the requirement whose initialization claim is being checked.
     :return: whether the trigger is consistent with starting from the pseudo-initial.
     """

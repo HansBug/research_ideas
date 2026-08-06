@@ -215,3 +215,92 @@ v22 十一格逐 scope（全部子态数 → 作者声明数），共 16 个，`
 | `0048` | fork1 / Join2 / Fork2 | 3→2 / 2→1 / 2→1 |
 
 ⚠️ **「双向」是单调过滤器的一个可能后果，不是已证性质。** 规则严格单调（计数只会下降）；翻转方向取决于 LLM 选的 `want` 落在 old 还是 new 上，而 `want` 来自 NL。v21 全部 9 次 `cardinality` 调用 `want=3`，实际被触及的只有 2 个 scope，一正一反纯属两个 `want`/count 对齐的巧合，n=2 证不了性质。
+
+---
+
+# 九、v22 开跑前的最后三条（写于 `runs/paper1/matrix-v22/` 仍不存在时）
+
+## 9.1 ⚠️ `EIS-0047-03` 被门结构性封死 —— 三条可报记录里有一条不可达
+
+它的两条台账编码都绑 `source="[*]"`：
+
+- primary：`edge_declared(source="[*]", trigger=…Collision_Detected, target=…CollisionAvoidanceSystem)`
+- recovered：`event_consumed(source="[*]", trigger=…Collision_Detected)`
+
+`initialization_anchored_findings` 不按谓词豁免，放行条件是 `anchors_at_initialization(...) and _trigger_can_fire_from_initial(...)`，后者要求 trigger 尾名命中 `_POWER_ON_HINTS = ("poweron", "start", "boot", "init", "reset")`。`collisiondetected` 不命中。实测四种 `behavior_phase` × 两种编码 **八种组合全部被拒**，而对照组 `Power_On` + `initialization` 放行：
+
+| phase | 编码 | 触发可上电 | 被拒 |
+| :-- | :-- | :--: | :--: |
+| `initialization` / `operation` / `structure` / 未设 | `edge_declared` | ✗ | ✅ |
+| 同上 | `event_consumed` | ✗ | ✅ |
+| `initialization` | `edge_declared` + `Power_On`（对照）| ✓ | ✗ |
+
+**该门的「误伤面 0」是回测假象。** `33f43b3f` 声称「全 19 轮语料核实…误伤面 0」，但那是在**已产出的绑定**上回测的 —— 历史上没有一轮在 `0047` 上写过这个形状，所以回测看不见它。这正是 §3.5 条款 3「回测测误伤面、活体才测通用性」的教科书演示，也是本仓库第二次在同一处栽跟头。`33f43b3f` 的那句断言须按 §3.6 就地更正。
+
+**后果**：`nl_contradiction` 层的可报条目实际可达数为 **0**。所以
+
+| | 记账上 | 扣掉不可达后 |
+| :-- | --: | --: |
+| 可报记录 | 3 | **2** |
+| `over_specification`（`EIS-0032-02`）| 1 | 1 |
+| `nl_named`（`EIS-0035-02`）| 1 | 1 |
+| `nl_contradiction`（`EIS-0047-03`）| 1 | **0** |
+| `wellformedness` | 0 | 0 |
+
+**若 v22 在 `EIS-0047-03` 上报「未命中」，那不是能力缺口，是这道门的抑制。** 这条写在跑之前，跑完再写与事后找借口无法区分。
+
+## 9.2 Q2 的基线必须是 v21 实跑口径，不是任何中间提交
+
+| 口径 | 是否实跑过 | 剔除面 |
+| :-- | :-- | :-- |
+| **v21 实跑**（08-06 20:18）| ✅ | **无过滤** |
+| `0eb36a06` V6（22:33）| ❌ 仅提交 | 51 元素（≡ 新口径）|
+| `e45e01e0` 角色过滤（23:19）| ❌ 仅提交 | 28 元素 |
+| `02539b82` 新口径 | 待跑 | 51 元素 / 格集内 **16 scope** |
+
+实测：契约 `synthetic_state` 与排除表 `compiler:state:*` **两侧各 51，对称差为零**。所以相对 `0eb36a06` 新口径确是空操作 —— 但 `0eb36a06` 从未跑过，拿它作基线等于对着假想敌宣布战果。
+
+**报告要比的是 v21 → v22，即 `0 → 51 元素 / 格集内 16 scope`。** §八 首版写的「12 → 51」两头都不是实跑口径，且单位不齐（12 是 scope、51 是元素），已就地更正为本表。归因通道的风险是实的：若 v22 与 v21 有差，「12 → 51」会诱导把它记到 Q2 头上，而 Q2 相对中间提交为空操作、相对 v21 才有效。
+
+另如实记录一笔：为「消除」`cardinality(0047.RearEnd,1)` 的矛盾而去读 `EIS-0047-01` 的 statement，代价是烧掉了一条可报记录。矛盾是真的（相对 v21 实跑口径，`RearEnd` 的计数里确实含 `InvalidInitial`），但发现它的路径本身消耗了 hold-out 资格。
+
+## 9.3 对账粒度第三次收紧：类别名 → 具体位置
+
+三轮橡皮图章，每次都是同一错误的更弱版本：
+
+1. **per-pair**：问「该 pair 是否有任一记录被烧」→ 一旦有，此后任何点名免检。
+2. **per-site-name**：问「该类别是否被认领」→ 一条 `named_at: ["commit_body"]` 吸收该 pair 过去与未来**所有** commit-body 点名。
+3. **per-location**（现行）：每处点名是一个 `commit:<sha>` 或 `src:<path>`，各自要一条带理由的认领。
+
+第 2 版放过的实例：`EIS-0032-01` 的烧毁记 `since_commit: 23315498`，而**该 commit 正文里 `0032` 出现 0 次**（动机来自 v21 根因 M4）。这个错标的类别顺手吸收了 `0eb36a06` 正文里的「`0032` 三个 Region 2/3/2 → 1/2/1」—— 另一条规则、另一个动机，全仓没有任何裁定看过它。
+
+逐位置裁定后，四个可报 pair 共 **39 处**点名全部认领，其中：
+
+- **动机污染**（已烧对应记录）：`0eb36a06`→0043/0047、`3d0049c1`→0043、`fc25c232`+`e45e01e0`→0047、`f73d6dd8`→0035，外加四个源码/测试落点
+- **台账构建**：`79aabb7a`、`d6889d16`（分母与缺口）、`ba77c8c3`（合并键 bug）、`94074e4e`（命中判据）—— 台账是评分标准本身，记录它对某 pair 说了什么不是对方法的污染，前提是冻结先于结果（已核）
+- **记账**：`588184f6`、`8977f454`、`dbc2e265`、`52295b3c`、`02539b82`、`e75fcc9a` —— 记账本身必须点名，否则无法审计
+
+### 两条实质裁定
+
+**① `0eb36a06` 对 `0032` 不构成污染。** 公平性 review 判它「指向 `EIS-0032-02` 的主体」，按机械论证不成立：该 commit 改的是 `AccelerateRegion`/`BrakeRegion`/`IdleRegion`，而 `EIS-0032-02` 的三个 `cardinality` 调用全在 **`OperateState`** 上。`OperateState` 的直接子态就是那三个 Region（作者所写），插入的 `UnspecifiedInitial` 在 Region **内部**，所以 `OperateState` 的计数不变；其 primary 是 `containment`，Q2 过滤不触及。`EIS-0032-02` 因此保留可报。
+
+**② `EIS-0035-01` 应当烧毁 —— 元素名泄漏，任何基于 id 的扫描都看不见。** `tests/test_root_anchored_gate.py:119` 写着 `initial_target(composite=MODEL_ROOT, child=f"{MODEL_ROOT}.DoorShut")`，而 `MODEL_ROOT = "llms_emp_feedback_final_0000"` —— **`0000` 没有 `DoorShut`**。全台账 `DoorShut` 只出现在 `0005`/`0025`/`0028`/`0035` 的八条记录里，而 `EIS-0035-01` 的 primary 逐字就是 `initial_target(composite=<root>, child=<root>.DoorShut)`。`f73d6dd8` 正文自陈该门是拿「台账里 12 条绑裸 root 的 assertion」校准的。
+
+机械上该门不触及 `initial_target` 的 `composite`/`child` 绑定，所以实体结论不变；但**边界是看着这条记录划的**。代价：`wellformedness` 层可报条目归零。
+
+这一类不能靠加检查抓 —— 泄漏的是元素名而非 pair id。落成的纪律是：**台账内容不得用于划定 gate 边界**，并在 `holdout.json` 里对每处点名要求带理由的认领（`test_every_claimed_location_carries_a_reason` / `test_the_detector_reports_locations_not_categories` 两条负控把它钉住）。
+
+## 9.4 匹配器第七次收窄：裸 id 漏掉本仓库最常用的拼写
+
+`\b0018\b` 在 `llms_emp_feedback_final_0018` 里**不成立**，因为 `_` 是 word char —— 正是上一版 docstring 用来否定 `L000-000018-` 的同一事实，反过来打在仓库自己的规范 pair id 上（`cli._formal_pair` 构造它、launcher 传它）。被删掉的枚举式本来显式带 `feedback_final_{pair}\b`。已改为 `(\b{pair}\b|_{pair}\b)`。
+
+同时更正一个不可复算的数：上一版 docstring 报「裸 269 处/18 id、枚举式 6 id、只有裸 id 能抓 139 处」。这些数字在本 commit 与此前四个 commit 上、按 span/行/仅 src/仅 tests 四种计法**都不复现**。重测：
+
+| 计法 | 处数 / id 数 |
+| :-- | :-- |
+| 裸 `\b{pair}\b` | 354 / 19 |
+| 现行 `(\b{pair}\b\|_{pair}\b)` | 460 / 21 |
+| 被删的枚举式 | 219 / 7 |
+| 枚举式能抓、裸 id 抓不到的 span | 52 |
+
+「零误伤」那半**确实复现**。教训是更锋利的那条：**一个未经测量的断言被一个经过测量的断言替换，而那个测量不可复算** —— 与它所修的失败同型。

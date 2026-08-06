@@ -239,36 +239,97 @@ def test_a_burn_only_accounts_for_the_sites_it_names() -> None:
         if isinstance(ruling, dict):
             sites.update(ruling.get("covers") or ())
         assert sites, f"{pair} is named somewhere but no burn or ruling says where"
-        assert sites <= {"pipeline_source_or_tests", "commit_body"}, sites
+        # A burn may legitimately claim no location -- `EIS-0032-01`'s mechanism is motive, from
+        # an analysis document, and the rule's own commit body names the pair zero times. What
+        # must not happen is a *pair* with namings and nothing claiming any of them, and the
+        # empty `named_at` there is annotated rather than left to look like an omission.
+        for location in sites:
+            assert location.startswith(("commit:", "src:")), location
 
 
 def test_every_burn_says_where_it_was_named() -> None:
     """`named_at` is what reconciliation reads, so a burn without it silently covers nothing."""
     for record, entry in (_frozen().get("burned_records") or {}).items():
-        assert entry.get("named_at"), f"{record} has no `named_at`"
         assert entry.get("evidence"), f"{record} has no evidence"
         assert entry.get("since_commit"), f"{record} has no commit"
+        # An empty `named_at` is legitimate and must be annotated, not merely empty. `EIS-0032-01`
+        # burns on motive from an analysis document while the rule's own commit body names the
+        # pair zero times -- and the previous version papered over that by recording the category
+        # `commit_body`, which then silently covered a different commit's directional claim.
+        assert entry.get("named_at") or entry.get("named_at_note"), (
+            f"{record} claims no location and does not say why; an unexplained empty "
+            "`named_at` is indistinguishable from forgetting to fill it in"
+        )
+
+
+def test_every_claimed_location_carries_a_reason() -> None:
+    """A `covers` entry without a reason is a location waved past, which is the whole failure.
+
+    Three rounds of rubber stamps: per-pair (`any` record burned), then per-site-name (one
+    `commit_body` entry absorbing every commit body), now per-location. The remaining way to
+    stamp is to list a location and say nothing about it, so the reason is required and the
+    detector's own spelling of the location has to match.
+    """
+    d = _frozen()
+    for pair, ruling in (d.get("motive_adjudicated") or {}).items():
+        reasons = ruling.get("covers_reasons") or {}
+        for location in ruling.get("covers") or ():
+            assert reasons.get(location), f"{pair} claims {location} with no reason"
+            assert len(reasons[location]) > 40, f"{pair}/{location} reason is too thin to audit"
+
+
+def test_the_detector_reports_locations_not_categories() -> None:
+    """Categories are claimable once and cover everything after; locations are not.
+
+    Measured on the version this replaced: `EIS-0032-01`'s burn recorded
+    `named_at: ["commit_body"]` against `23315498`, whose body names `0032` zero times -- and
+    that mislabelled category then absorbed `0eb36a06`, which names it with a directional
+    expectation about other scopes entirely. Nothing had ruled on it.
+    """
+    d = _frozen()
+    claimed = set()
+    for entry in (d.get("burned_records") or {}).values():
+        claimed.update(entry.get("named_at") or ())
+    for ruling in (d.get("motive_adjudicated") or {}).values():
+        claimed.update(ruling.get("covers") or ())
+    assert claimed, "nothing is claimed anywhere"
+    for location in claimed:
+        assert location.startswith(("commit:", "src:")), (
+            f"{location!r} is a category, not a location. A category is claimed once and then "
+            "covers every future naming inside it, which is the stamp this replaced."
+        )
 
 
 def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> None:
     """Records the fact that v22 has no capability-claim band, so it cannot be discovered later.
 
-    Four records remain, one in each of the four layers. The threshold is four. Writing this as
+    Three records remain, one each in `over_specification` / `nl_named` / `nl_contradiction`,
+    and `wellformedness` is empty. The threshold is four. Writing this as
     a test rather than only as prose means a later change that quietly re-inflates the
     denominator has to argue with it.
 
-    It was six until per-site reconciliation found two more contaminations. Both were free in
-    scientific terms -- no layer reached the threshold at six either -- which is the reason to
-    record them rather than argue about them.
+    It was six until per-site reconciliation found two more, then four until per-location
+    reconciliation found `EIS-0035-01`. Every one was free in scientific terms -- no layer reached
+    the threshold at six either -- which is the reason to record them rather than argue about them.
+
+    Of the three that remain, `EIS-0047-03` is clean but structurally unreachable (see the
+    pre-registration: both its encodings bind `source="[*]"` with a trigger the power-on word
+    list does not admit, so `initialization_anchored_findings` refuses them). So the honest count
+    of clean *and* reachable records is **two**.
     """
     d = _frozen()
-    assert d["reportable_judgeable_total"] == 4
+    assert d["reportable_judgeable_total"] == 3
     assert d["reportable_layer_coverage"] == {
-        "wellformedness": 1,
-        "nl_named": 1,
         "over_specification": 1,
+        "nl_named": 1,
         "nl_contradiction": 1,
     }
+    # `wellformedness` reached zero when `EIS-0035-01` burned on an element-name leak that no
+    # id-based matcher can see: a gate test binds `<root>.DoorShut`, which is that record's own
+    # primary shape, and the gate's commit says it was calibrated on twelve root-bound ledger
+    # assertions. Recorded as an absent key rather than a zero so a later re-inflation has to
+    # add it back deliberately.
+    assert "wellformedness" not in d["reportable_layer_coverage"]
     assert not any(d["reportable_layers_at_k"].values()), d["reportable_layer_coverage"]
 
 

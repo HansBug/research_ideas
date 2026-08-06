@@ -110,24 +110,40 @@ def _naming_in_prose(pair: str) -> re.Pattern[str]:
     a bare four-digit id has no competing meaning, so match it and let a human adjudicate the
     rare incidental hit.
 
-    ⚠️ Recurrences five and six were the *same function surviving in half the call sites*.
+    ⚠️ Recurrences five through seven were the *same function surviving in half the call sites*,
+    and then the replacement inheriting the same blind spot.
+
     Round five: `compute()` was moved to this matcher and `--verify` -- the gate -- was left on
     the enumerating one. Round six: `--verify`'s commit-body branch was moved and its
     source-and-test branch was left, on the argument that source text is full of four-digit
-    numbers which are not pair ids. That argument was never measured, and it is false. Across
-    all sixty ids in `src/` and `tests/`:
+    numbers which are not pair ids. That argument was never measured, and it is false.
 
-        bare id                269 hits, 18 ids
-        enumerating form                  6 ids
-        reachable only by the bare id     139 hits, 17 ids -- and *zero* are false positives
+    Round seven: the bare form that replaced it is **not a superset of what it deleted**. `\b`
+    fails inside `llms_emp_feedback_final_0018` because `_` is a word character -- the very fact
+    the previous paragraph used to dismiss `L000-000018-`, turned against the repository's own
+    canonical pair id, the one `cli._formal_pair` builds and the launcher passes. The deleted
+    form named `feedback_final_{pair}\b` explicitly. So the alternation below carries `_{pair}\b`
+    as well, and the `\b` clause still keeps `L000-000018-` and `tr_0043` out (a digit before
+    the id, an underscore before a *digit* -- neither yields `_0043` at a boundary that matters
+    here, and both were checked).
 
-    The feared spellings cannot match: `\b` fails inside `L000-000018-` and `tr_0043` because
-    a digit and an underscore are word characters. Two of the 139 are live rule-1 violations
-    (`0019, 0043 and 0053` in the attribution branch; `Pair 0047` -- capitalised, which is all
-    it took -- in the coactivity gate). One matcher, therefore, and no ambiguity argument
-    without a measurement behind it.
+    Measured over ids `0000`-`0059` in `src/` and `tests/`, recomputed at this commit:
+
+        bare `\b{pair}\b`                354 hits, 19 ids
+        this matcher, with `_{pair}\b`    460 hits, 21 ids
+        the deleted enumerating form       219 hits,  7 ids
+        spans the enumerating form caught and the bare one missed: 52
+
+    ⚠️ An earlier version of this docstring reported `269 / 6 / 139` for the first and third
+    rows. Those numbers do not recompute -- at this commit or at any of the four commits since
+    the claim was made, under span, line, src-only or tests-only counting. The figures above
+    replace them. The "zero false positives" half *does* reproduce: every span reachable only by
+    the wider matcher is a genuine pair naming, and two are live rule-1 violations (`0019, 0043
+    and 0053` in the attribution branch; `Pair 0047` -- capitalised, which is all it took -- in
+    the coactivity gate). The lesson is the sharper one: **an unmeasured claim was replaced by a
+    measured one, and the measurement was not recomputable** -- the same failure it was fixing.
     """
-    return re.compile(rf"\b{pair}\b")
+    return re.compile(rf"(\b{pair}\b|_{pair}\b)")
 
 
 def _source_and_test_text() -> str:
@@ -150,6 +166,72 @@ def _commit_text() -> str:
     if done.returncode != 0:  # pragma: no cover
         raise RuntimeError(f"git log failed: {done.stderr.strip()}")
     return done.stdout
+
+
+def _naming_source_files(pair: str) -> tuple[str, ...]:
+    """Every source or test file that names this pair, as `src:<relative path>`.
+
+    Locations, not a category. `pipeline_source_or_tests` could be claimed once and then cover
+    every future naming anywhere in the tree; a path cannot, because a naming in a new file is a
+    new location that nobody has ruled on.
+    """
+
+    pattern = _naming_in_prose(pair)
+    found = []
+    for root in (PIPELINE / "src", PIPELINE / "tests"):
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            if pattern.search(path.read_text(errors="ignore")):
+                found.append(f"src:{path.relative_to(PIPELINE)}")
+    return tuple(found)
+
+
+def _naming_commits(pair: str) -> tuple[str, ...]:
+    """Every commit whose subject or body names this pair, as `commit:<short sha>`.
+
+    Same reason as above, and the one that actually bit: a burn recorded `named_at:
+    ["commit_body"]` against a commit whose body does not name the pair at all, and that entry
+    then covered a *different* commit which named it with a directional expectation about
+    another ledger record.
+    """
+
+    done = subprocess.run(
+        ["git", "log", "--format=%H%x00%s%n%b%x01", "--all"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
+    if done.returncode != 0:  # pragma: no cover
+        raise RuntimeError(f"git log failed: {done.stderr.strip()}")
+    pattern = _naming_in_prose(pair)
+    found = []
+    for entry in done.stdout.split("\x01"):
+        if "\x00" not in entry:
+            continue
+        sha, text = entry.split("\x00", 1)
+        if pattern.search(text):
+            found.append(f"commit:{sha.strip()[:9]}")
+    return tuple(dict.fromkeys(found))
+
+
+def _claimed_locations(entry: dict) -> set[str]:
+    """Locations a burn or ruling says it accounts for.
+
+    Accepts `named_at` / `covers` (burns and rulings respectively) and normalises commit shas to
+    the nine characters the detector reports, so a full sha in the frozen file still matches.
+    """
+
+    claimed = set()
+    for key in ("named_at", "covers"):
+        for value in entry.get(key) or ():
+            text = str(value).strip()
+            if not text:
+                continue
+            claimed.add(text)
+            if text.startswith("commit:"):
+                claimed.add(f"commit:{text.split(':', 1)[1][:9]}")
+    return claimed
 
 
 def _run_pairs_from_dirs() -> set[str]:
@@ -375,16 +457,17 @@ def main(argv: list[str] | None = None) -> int:
         burned_now = {}
         for pair in held:
             where = []
+            # Specific locations, not two category names. A category name can be claimed once and
+            # then absorb every future naming in that category; a commit sha or a file path
+            # cannot, because a new naming is a new location.
             # Same matcher as prose. The "ambiguous in source" argument that justified a second
-            # one here measured 139 bare-id hits with zero false positives, two of them live
-            # rule-1 violations the enumerating form was hiding.
-            if _naming_in_prose(pair).search(source):
-                where.append("pipeline_source_or_tests")
+            # one here was never measured and is false; two live rule-1 violations were hiding
+            # behind it. See the docstring for the recomputed census.
+            where.extend(_naming_source_files(pair))
             # Bodies write `0018/0038`, `0018(9)、0038(4)`, plain `0048`; none matched the
             # enumerating form, and all four reportable pairs were named this way while
             # `--verify` reported the set clean.
-            if _naming_in_prose(pair).search(commits):
-                where.append("commit_body")
+            where.extend(_naming_commits(pair))
             if where:
                 burned_now[pair] = where
         # A pair named in a commit body is not automatically burned: §3.5.-1 手段 1 says the
@@ -398,24 +481,36 @@ def main(argv: list[str] | None = None) -> int:
         # to satisfy it: the records a rule was designed against are recorded in
         # `burned_records`, or the naming is recorded in `motive_adjudicated` with its reasoning
         # and a verdict. What stays a failure is a naming nobody has ruled on.
-        # Per *naming site*, not per pair. The previous version asked whether any record of the
-        # pair was burned -- so once one was, every later naming of that pair, whatever its
-        # motive and whichever other record it targeted, passed unexamined. That is a rubber
-        # stamp, and it let two real contaminations through: `0043` named in the attribution
-        # branch for `EIS-0043-02`, and `0047` named in the coactivity gate for `EIS-0047-01`,
-        # both waved past by burns recorded for a different record of the same pair.
+        # Per *naming occurrence*, not per pair and not per site name.
+        #
+        # Two rubber stamps in two rounds, each a weaker version of the same mistake. The first
+        # asked whether *any* record of the pair was burned, so once one was, every later naming
+        # of that pair passed unexamined. The second asked whether the *site name* was claimed,
+        # so one entry reading `named_at: ["commit_body"]` absorbed every commit-body naming of
+        # that pair, past and future, whatever its motive and whichever record it targeted.
+        #
+        # Both let real contaminations through. Measured on the second: `EIS-0032-01`'s burn
+        # records `since_commit: 23315498`, and `0032` appears zero times in that commit body --
+        # its motive came from the v21 root-cause analysis. That mislabelled site then absorbed
+        # `0eb36a06`'s body, which names `0032 三个 Region 2/3/2 → 1/2/1` -- a different rule,
+        # a different motive, and pointing at `EIS-0032-02`'s own subject. Nothing had ruled on it.
+        #
+        # So the unit of accounting is a (pair, commit-or-file) occurrence, and each one needs an
+        # entry naming *that* location. A burn or ruling that claims a location where the
+        # detector finds no naming is reported too -- see `test_a_ruling_for_a_pair_nobody_names`:
+        # stale bookkeeping and a narrowed matcher look identical from inside.
         adjudicated = frozen.get("motive_adjudicated") or {}
         unaccounted = {}
         for pair, where in burned_now.items():
-            covered = set()
+            claimed = set()
             for record in detail.get(pair) or ():
                 entry = burned_records.get(record)
                 if isinstance(entry, dict):
-                    covered.update(entry.get("named_at") or ())
+                    claimed.update(_claimed_locations(entry))
             ruling = adjudicated.get(pair)
             if isinstance(ruling, dict) and ruling.get("verdict") and ruling.get("reasoning"):
-                covered.update(ruling.get("covers") or ())
-            missing = [site for site in where if site not in covered]
+                claimed.update(_claimed_locations(ruling))
+            missing = sorted(set(where) - claimed)
             if missing:
                 unaccounted[pair] = missing
         if unaccounted != burned_now:

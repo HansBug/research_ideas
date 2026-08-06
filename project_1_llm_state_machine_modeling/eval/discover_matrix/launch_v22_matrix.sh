@@ -15,7 +15,13 @@ echo "grid: ${#PAIRS[@]} pairs -- ${PAIRS[*]}"
 MAX="${MAX:-8}"; MAXTRY=6
 cd "$FL" || exit 1
 one() {  # run pair profile short
-  local run="$1" pair="$2" prof="$3" short="$4" out="$BASE/$run/$pair-$short"
+  # Split, not one `local`. Under `set -u`, `local a="$1" b="$a"` fails: `local` declares every
+  # named variable first (unset), then assigns left to right, so the right-hand side of `b` sees
+  # `a` as declared-but-unset. Without `set -u` it expands to empty instead -- equally wrong, and
+  # silent. As written before this, every one of the 66 cells wrote to `//` and produced nothing,
+  # while the launcher printed `0/22` and exited 0. Caught by a stub run, not by reading.
+  local run="$1" pair="$2" prof="$3" short="$4"
+  local out="$BASE/$run/$pair-$short"
   for i in $(seq 1 $MAXTRY); do
     [ -f "$out/discover-completed.json" ] && { echo "OK $run/$pair-$short (try $((i-1)))"; return 0; }
     [ -d "$out" ] && mv "$out" "$out.try$i" 2>/dev/null
