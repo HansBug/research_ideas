@@ -153,6 +153,22 @@ def _finding(rid: str, status: str) -> dict:
     }
 
 
+
+def _rejected(out: dict) -> tuple:
+    """The C1 residue: findings the adjudicator produced that failed a structural check.
+
+    These checks used to raise, killing the cell. Each keeps its exact semantics; only the
+    consequence changed -- the offending finding is dropped and recorded, per issue #167 §3
+    ("a defect localised to one finding must cost that finding, not the run"). Asserting on
+    `"failure" in out` would pin the consequence, which is what these tests did before and
+    what made `adjudicate_results` responsible for 13 dead cell-rounds across the run tree.
+    """
+    assert "failure" not in out, "a local structural defect must not kill the cell"
+    recon = out.get("_adjudication_reconciliation") or {}
+    return tuple(recon.get("rejected_issues") or ()) + tuple(
+        recon.get("rejected_exclusions") or ()
+    )
+
 def test_a_safe_finding_filed_as_an_exclusion_is_moved_not_rejected() -> None:
     """The exact failure that killed run3/0029-gpt."""
     fx = _fixture({"REQ-001": "safe"})
@@ -318,7 +334,9 @@ def test_unrepairable_errors_still_raise() -> None:
             rationale="Unrepairable.",
         ),
     )
-    assert "failure" in out
+    rejected = _rejected(out)
+    assert rejected, "the offending finding must be recorded, not silently kept"
+    assert not (out["adjudication"].issues or ()), "it must not survive into issues"
 
 
 def test_a_wrong_label_on_a_correctly_filed_finding_is_also_repaired() -> None:

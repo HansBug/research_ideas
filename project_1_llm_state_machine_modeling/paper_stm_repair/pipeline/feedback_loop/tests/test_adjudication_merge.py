@@ -204,6 +204,22 @@ MERGED = {
 }
 
 
+
+def _rejected(out: dict) -> tuple:
+    """The C1 residue: findings the adjudicator produced that failed a structural check.
+
+    These checks used to raise, killing the cell. Each keeps its exact semantics; only the
+    consequence changed -- the offending finding is dropped and recorded, per issue #167 §3
+    ("a defect localised to one finding must cost that finding, not the run"). Asserting on
+    `"failure" in out` would pin the consequence, which is what these tests did before and
+    what made `adjudicate_results` responsible for 13 dead cell-rounds across the run tree.
+    """
+    assert "failure" not in out, "a local structural defect must not kill the cell"
+    recon = out.get("_adjudication_reconciliation") or {}
+    return tuple(recon.get("rejected_issues") or ()) + tuple(
+        recon.get("rejected_exclusions") or ()
+    )
+
 def test_one_defect_across_two_requirements_is_published_once() -> None:
     out = _run(
         DiscoverAdjudication(
@@ -268,7 +284,9 @@ def test_merge_without_its_justification_is_rejected(missing: str) -> None:
             rationale="Merged without saying why.",
         )
     )
-    assert "failure" in out
+    rejected = _rejected(out)
+    assert rejected, "the offending finding must be recorded, not silently kept"
+    assert not (out["adjudication"].issues or ()), "it must not survive into issues"
 
 
 def test_requirement_ids_must_equal_the_referenced_requirements() -> None:
@@ -283,7 +301,9 @@ def test_requirement_ids_must_equal_the_referenced_requirements() -> None:
             rationale="Claims a Requirement it never touched.",
         )
     )
-    assert "failure" in out
+    rejected = _rejected(out)
+    assert rejected, "the offending finding must be recorded, not silently kept"
+    assert not (out["adjudication"].issues or ()), "it must not survive into issues"
 
 
 def test_dropping_a_referenced_requirement_is_rejected() -> None:
@@ -298,7 +318,9 @@ def test_dropping_a_referenced_requirement_is_rejected() -> None:
             rationale="Silently drops REQ-006B.",
         )
     )
-    assert "failure" in out
+    rejected = _rejected(out)
+    assert rejected, "the offending finding must be recorded, not silently kept"
+    assert not (out["adjudication"].issues or ()), "it must not survive into issues"
 
 
 def test_excluded_findings_spanning_requirements_are_split_apart() -> None:

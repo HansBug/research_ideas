@@ -2099,15 +2099,62 @@ def convert_assertions(
             and not repeated_contract_failure
             and repair_count < MAX_ASSERTION_CONTRACT_REPAIRS
         )
-        if repeated_contract_failure:
+        if repeated_contract_failure or (
+            output is not None and repair_count >= MAX_ASSERTION_CONTRACT_REPAIRS
+        ):
+            # C2: a producer defect confined to one requirement must quarantine that
+            # requirement once its repair budget is spent -- not the batch.
+            #
+            # The gate's judgement is kept intact: the contract check still rejects, the
+            # producer still gets MAX_ASSERTION_CONTRACT_REPAIRS attempts, and the reason is
+            # still recorded verbatim. What changes is the consequence on exhaustion. The
+            # rule is the one `_quarantine_reviewed_assertions` already implements one stage
+            # later, with the same `CoverageGap` vocabulary; conversion is simply the stage
+            # that never got it. Measured cost of leaving it fatal: it killed two of three
+            # rounds on one hold-out pair, and the message it died on
+            # ("vacuous query: A and B are siblings of one sequential region and can never be
+            # active together") was a *correct* diagnosis -- the query really was tautological.
+            # Killing the cell threw away every other requirement's evidence to say so.
             failure_message = (
                 "no-progress gate rejected repeated contract-invalid "
                 "AssertionScript semantics"
+                if repeated_contract_failure
+                else "assertion contract repair budget exhausted"
             )
+            # Which requirements the contract complaint names. Every raise in the
+            # per-requirement loop above is formatted `requirement <id> ...`, so the id is
+            # recoverable without threading extra state through the loop.
+            blamed = tuple(sorted(set(re.findall(r"requirement (REQ-[\w.-]+)", message))))
+            quarantined: tuple[str, ...] = ()
+            store = locals().get("sealed_store") or state.get("_sealed_store")
+            if blamed and output is not None and store is not None:
+                script_now = getattr(output, "script", None)
+                if script_now is not None:
+                    present = {item.assertion_id for item in script_now.assertions}
+                    targeted = {
+                        item.assertion_id
+                        for item in script_now.assertions
+                        if getattr(item, "requirement_id", None) in blamed
+                    } & present
+                    if targeted and (present - targeted):
+                        update = _quarantine_reviewed_assertions(
+                            state,
+                            script=script_now,
+                            quarantined_ids=tuple(sorted(targeted)),
+                            rationale=failure_message,
+                            findings=(message,),
+                            sealed_store=store,
+                        )
+                        quarantined = tuple(sorted(targeted))
+                        update["_assertion_feedback"] = None
+                        update["_contract_quarantined_requirements"] = blamed
+                        return update
+            # No requirement could be blamed, or quarantining would empty the script -- then
+            # there is nothing local left to isolate and the failure really is the run's.
             return _fail_state(
                 state,
                 "convert_assertions",
-                ValueError(failure_message),
+                ValueError(f"{failure_message} (quarantine not possible: blamed={list(blamed)})"),
                 started_at=started_at,
                 start_ns=start_ns,
                 input_value=locals().get("payload", state),
@@ -3909,26 +3956,40 @@ def adjudicate_results(
             )
         if dropped_unsupported:
             output = output.model_copy(update={"issues": tuple(surviving_issues)})
+        # Each check below keeps its exact semantics; only the consequence changes. An issue
+        # that fails one is dropped and recorded, instead of killing the cell.
+        #
+        # Four defects of exactly this kind are already treated as clerical here
+        # (`dropped_unsupported`, `pruned_citations`, `misfiled_findings_moved`,
+        # `merged_exclusions_split`), and issue #167 §3 states the rule: a defect localised to
+        # one finding must cost that finding, not the run. These raises were the same disease.
+        # Measured cost of leaving them fatal: `adjudicate_results` killed 13 cell-rounds across
+        # the run tree, 9 of them before v20; in v20 alone it took 4 of 21 hold-out cell-rounds
+        # and, with the other two fatal gates, left 52% of the ledger without three full rounds.
+        kept_issues: list = []
+        rejected_issues: list[dict[str, object]] = []
         for issue in output.issues:
             issue_ids = set(issue.assertion_ids)
+            reasons: list[str] = []
             # `attribution_status` is no longer checked here -- the sort above guarantees
             # it. What remains is the part no relocation can fix: a finding whose *cited
             # assertions* are not attribution-safe is making a claim the attribution layer
             # refused, and moving it would not change that.
             if not issue_ids.issubset(safe_assertions):
-                raise ValueError(
+                reasons.append(
                     "confirmed issues may only reference attribution-safe False assertions"
                 )
             if issue_ids & issue_assertions:
-                raise ValueError("confirmed issue assertion groups must be disjoint")
-            issue_assertions.update(issue_ids)
+                reasons.append("confirmed issue assertion groups must be disjoint")
             expected_requirements = {
-                requirement_by_assertion[assertion_id] for assertion_id in issue_ids
+                requirement_by_assertion[assertion_id]
+                for assertion_id in issue_ids
+                if assertion_id in requirement_by_assertion
             }
             # Equality, not membership: a group that drops a Requirement whose assertion it
             # references, or claims one it does not, is not describing the evidence it cites.
             if set(issue.requirement_ids) != expected_requirements:
-                raise ValueError(
+                reasons.append(
                     "confirmed issue requirement_ids must equal the requirements of all "
                     "referenced assertions"
                 )
@@ -3938,29 +3999,46 @@ def adjudicate_results(
                 # emit one issue over every False assertion and nothing downstream would
                 # be able to tell that apart from a genuine single root cause.
                 if not issue.shared_root_cause:
-                    raise ValueError(
+                    reasons.append(
                         "an issue spanning multiple requirements must state its "
                         "shared_root_cause"
                     )
                 if not issue.shared_elements:
-                    raise ValueError(
+                    reasons.append(
                         "an issue spanning multiple requirements must name its "
                         "shared_elements"
                     )
+            if reasons:
+                rejected_issues.append(
+                    {
+                        "issue_id": getattr(issue, "issue_id", None),
+                        "assertion_ids": sorted(issue_ids),
+                        "reasons": tuple(reasons),
+                    }
+                )
+                continue
+            kept_issues.append(issue)
+            issue_assertions.update(issue_ids)
+        if rejected_issues:
+            output = output.model_copy(update={"issues": tuple(kept_issues)})
+        kept_exclusions: list = []
+        rejected_exclusions: list[dict[str, object]] = []
         for excluded in output.excluded_findings:
             excluded_ids = set(excluded.assertion_ids)
+            reasons = []
             if not excluded_ids.issubset(false_primary_assertions):
-                raise ValueError(
+                reasons.append(
                     "excluded findings may only reference primary False assertions"
                 )
             # Likewise settled by the sort above; a safe finding reaching this branch would
             # be a bug in that sort rather than a response to reject.
             assert excluded.attribution_status != "safe"
             if excluded_ids & excluded_assertions:
-                raise ValueError("excluded finding assertion groups must be disjoint")
-            excluded_assertions.update(excluded_ids)
+                reasons.append("excluded finding assertion groups must be disjoint")
             expected_requirements = {
-                requirement_by_assertion[assertion_id] for assertion_id in excluded_ids
+                requirement_by_assertion[assertion_id]
+                for assertion_id in excluded_ids
+                if assertion_id in requirement_by_assertion
             }
             # Exclusions stay one Requirement each.  They record evidence that could not be
             # attributed, so grouping them buys no accuracy in the defect count -- the only
@@ -3969,21 +4047,36 @@ def adjudicate_results(
                 len(expected_requirements) != 1
                 or set(excluded.requirement_ids) != expected_requirements
             ):
-                raise ValueError(
+                reasons.append(
                     "excluded finding requirement_ids must be the single requirement of "
                     "all referenced assertions"
                 )
             expected_statuses = {
                 binding_by_assertion[assertion_id].status
                 for assertion_id in excluded_ids
+                if assertion_id in binding_by_assertion
             }
             if (
                 len(expected_statuses) != 1
                 or excluded.attribution_status not in expected_statuses
             ):
-                raise ValueError(
+                reasons.append(
                     "excluded finding attribution_status must match its bindings"
                 )
+            if reasons:
+                rejected_exclusions.append(
+                    {
+                        "assertion_ids": sorted(excluded_ids),
+                        "reasons": tuple(reasons),
+                    }
+                )
+                continue
+            kept_exclusions.append(excluded)
+            excluded_assertions.update(excluded_ids)
+        if rejected_exclusions:
+            output = output.model_copy(
+                update={"excluded_findings": tuple(kept_exclusions)}
+            )
         # A False primary the adjudicator forgot to group is a hole in the report, not a reason
         # to throw the report away. `v11run3/0006-claude` died here with five of six issues
         # already written, an attribution pass done, and nine LLM calls spent; issue #167 §3
@@ -3994,14 +4087,9 @@ def adjudicate_results(
         # get right, and makes the omission visible to the reader -- which a dead cell does not.
         unaccounted_safe = sorted(safe_false_assertions - issue_assertions)
         over_claimed_safe = sorted(issue_assertions - safe_false_assertions)
-        if over_claimed_safe:
-            raise ValueError(
-                "adjudicated issues may only reference primary False assertions"
-            )
-        if excluded_assertions != unsafe_false_assertions:
-            raise ValueError(
-                "adjudication must account for every non-safe False assertion"
-            )
+        # Same rule as above: a bookkeeping hole is recorded and marked partial, not fatal.
+        unaccounted_unsafe = sorted(unsafe_false_assertions - excluded_assertions)
+        over_excluded = sorted(excluded_assertions - unsafe_false_assertions)
         result_by_requirement: dict[str, list[bool]] = {}
         for result in released.results:
             # `precondition` counts toward satisfaction: a requirement whose
@@ -4051,6 +4139,13 @@ def adjudicate_results(
             "unsupported_issues_dropped": tuple(dropped_unsupported),
             "issue_citations_pruned": tuple(pruned_citations),
             "unaccounted_safe_false_assertions": tuple(unaccounted_safe),
+            # C1: findings the adjudicator produced but that failed a structural check.
+            # Recorded rather than fatal -- see the comment above the issue loop.
+            "rejected_issues": tuple(rejected_issues),
+            "rejected_exclusions": tuple(rejected_exclusions),
+            "unaccounted_unsafe_false_assertions": tuple(unaccounted_unsafe),
+            "over_excluded_assertions": tuple(over_excluded),
+            "over_claimed_safe_assertions": tuple(over_claimed_safe),
             "merged_exclusions_split": tuple(exclusion_splits),
             "thin_merge_warnings": thin_merge_warnings,
             "normalization_applied": reported_satisfied != expected_satisfied,
@@ -4127,12 +4222,26 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
         # An adjudication that left a safe False primary ungrouped has not fully covered the
         # cell, whatever the gaps list says -- surface it here so a reader of the terminal
         # artifact cannot mistake it for a complete pass.
-        unaccounted = (
-            state.get("_adjudication_reconciliation", {}) or {}
-        ).get("unaccounted_safe_false_assertions") or ()
+        recon = state.get("_adjudication_reconciliation", {}) or {}
+        # Every C1 residue counts the same way an unaccounted safe False does: the report is
+        # not complete, and a reader must not be able to mistake it for one. A cell that drops
+        # an issue for a structural defect is strictly more informative than a dead cell, but
+        # it is still not a full pass.
+        incomplete = tuple(
+            item
+            for key in (
+                "unaccounted_safe_false_assertions",
+                "rejected_issues",
+                "rejected_exclusions",
+                "unaccounted_unsafe_false_assertions",
+                "over_excluded_assertions",
+                "over_claimed_safe_assertions",
+            )
+            for item in (recon.get(key) or ())
+        )
         coverage_status = (
             "partial"
-            if any(gap.blocks_full_coverage for gap in coverage_gaps) or unaccounted
+            if any(gap.blocks_full_coverage for gap in coverage_gaps) or incomplete
             else "full"
         )
         guards = tuple(
