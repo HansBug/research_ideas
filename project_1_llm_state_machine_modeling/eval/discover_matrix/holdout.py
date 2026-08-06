@@ -96,10 +96,33 @@ LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction"
 
 
 def _naming(pair: str) -> re.Pattern[str]:
-    """Every spelling by which the corpus refers to a pair."""
+    """Every spelling by which the corpus refers to a pair, in *source and test* text.
+
+    Deliberately an enumeration here, because source text is full of four-digit numbers that
+    are not pair ids (record sequence numbers `L000-000018-...`, bounds, counts). For commit
+    bodies use `_naming_in_prose`, which has no such ambiguity and must not enumerate.
+    """
     return re.compile(
         rf"(pair[ _-]?{pair}\b|{pair}-claude|{pair}-gpt|feedback_final_{pair}\b|EIS-{pair}-)"
     )
+
+
+def _naming_in_prose(pair: str) -> re.Pattern[str]:
+    """Any bare mention of the four-digit id. For commit bodies and prose only.
+
+    The enumerating form above produced a false negative on every held-out pair: commit bodies
+    write `0018/0038`, `0018(9)、0038(4)`, and plain `0048`, none of which match `pair 0018` or
+    `0018-claude`. One commit body even states outright that its rule was written after watching
+    two held-out pairs fail -- the exact motive taint the hold-out exists to exclude -- and the
+    detector reported the set clean.
+
+    This is the fourth recurrence of one mistake: defining detection as a spelling enumeration,
+    so the next spelling escapes. Earlier rounds went gate -> predicate catalogue, element name
+    -> prose description, static prompt -> runtime feedback. The fix is to stop enumerating:
+    a bare four-digit id in a commit body has no competing meaning, so match it and let a human
+    adjudicate the rare incidental hit.
+    """
+    return re.compile(rf"\b{pair}\b")
 
 
 def _source_and_test_text() -> str:
@@ -172,14 +195,26 @@ def compute() -> dict:
     for record in records:
         group_of[pair_of(record)] = record.get("group")
 
-    named, run = {}, {}
+    named, run, flagged = {}, {}, {}
     for pair in all_pairs:
         pattern = _naming(pair)
         where = []
         if pattern.search(source):
             where.append("pipeline_source_or_tests")
-        if pattern.search(commits):
-            where.append("commit_body")
+        # Bare four-digit mentions in commit bodies are *flagged*, not auto-excluded.
+        #
+        # Enumerating spellings gave false negatives on all seven held-out pairs. Matching the
+        # bare id gives false positives instead -- 40 of 48 pairs appear in some commit body,
+        # mostly inside ledger statistics like "7 个 case 连候选都未记录（0003 0012 … 0052）",
+        # which is not rule authoring. Auto-excluding on either rule is wrong; the pool goes to
+        # zero on one and stays contaminated on the other.
+        #
+        # What actually decides taint is motive, not mention (CLAUDE.md §3.5.-1 手段 1): was a
+        # rule written *because* this pair failed? That is a human judgement over the commit
+        # body, so this records the evidence and refuses to pretend it is automatic.
+        prose_hits = _naming_in_prose(pair).findall(commits)
+        if prose_hits:
+            flagged[pair] = len(prose_hits)
         named[pair] = where
         # 目录名 + 已公开运行台账。前者只覆盖本仓库 runs/，后者覆盖 PR/gist。
         run[pair] = pair in ran_dirs or pair in ran_published
@@ -248,6 +283,9 @@ def compute() -> dict:
             f"layer-stratified over {list(LAYERS)}, then ascending pair id, to {HOLDOUT_SIZE}",
         ],
         "tainted_pairs": {p: w for p, w in sorted(named.items()) if w},
+        # Mentioned by bare id in some commit body. NOT auto-excluded -- see `_naming_in_prose`.
+        # Each needs a human motive judgement before it can be used or dismissed.
+        "flagged_for_motive_adjudication": dict(sorted(flagged.items())),
         "run_pairs": sorted(p for p, r in run.items() if r),
         "candidate_count": len(candidates),
         "candidates": candidates,
