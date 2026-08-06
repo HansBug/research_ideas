@@ -56,6 +56,7 @@ __all__ = [
     "condition_non_vacuity_findings",
     "CONDITION_BINDINGS",
     "vacuous_sibling_conjunction",
+    "vacuous_containment_findings",
     "unresolved_model_references",
     "unresolved_reference_findings",
     "initialization_anchored_findings",
@@ -735,6 +736,67 @@ _BINDING_NAMESPACE = {
     "event": "events",
     "variable": "variables",
 }
+
+
+def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]:
+    """Refuse a containment requirement whose parent was read off the child's own path.
+
+    `containment(parent=P, child=P.X)` cannot come back False: a declared path's own prefix
+    *is* its parent, so the answer follows from how the two strings were spelled. Measured
+    over the corpus, 567 of 567 calls in that shape return True; over one generation's three
+    rounds, the nested spelling was True 28 times and False never, while the cross-level
+    spelling was False 25 times and True never.
+
+    Refusing the shape inside the predicate was tried first and is wrong: a direct child's
+    path is *always* its parent's plus one segment, so a call-site refusal leaves the
+    predicate unable to return True at all, and four behaviour tests say so immediately. The
+    shape is not the defect.
+
+    The defect is where `parent` came from. Bound to what the sentence says, the check is
+    ordinary -- True when the model agrees, False when it buries the element somewhere else,
+    and that False is the finding. Bound to the declared path's own prefix, it asks "is this
+    element where the model put it" and answers yes, while the hierarchy the sentence asked
+    about is never examined. The two are identical at the call site and differ only in
+    provenance, which is visible here and nowhere else.
+
+    So the requirement has to say where the level came from. Where `nl_parent` agrees with
+    the declared prefix there is no obligation to check -- the model already satisfies it by
+    construction. Where it disagrees, that disagreement is the requirement, and the binding
+    is not self-prefixed any more, so this gate never sees it.
+    """
+
+    findings: list[str] = []
+    for item in requirements:
+        if getattr(item, "predicate", None) != "containment":
+            continue
+        bindings = getattr(item, "predicate_bindings", None) or {}
+        parent = str(bindings.get("parent") or "").strip()
+        child = str(bindings.get("child") or "").strip()
+        if not parent or not child:
+            # Absent or unresolved bindings have their own gate; reporting them here would
+            # give the producer two different reasons for one problem.
+            continue
+        if not (child.startswith(f"{parent}.") and "." not in child[len(parent) + 1 :]):
+            continue
+        context = getattr(item, "source_context", None) or {}
+        nl_parent = context.get("nl_parent") if isinstance(context, dict) else None
+        rid = getattr(item, "requirement_id", "?")
+        if not nl_parent:
+            findings.append(
+                f"{rid} binds containment(parent={parent!r}, child={child!r}): the child is "
+                "that parent's own prefix plus one segment, so the check cannot come back "
+                "False and tests nothing. Record in `source_context.nl_parent` the level the "
+                "sentence puts the element at, then bind that as `parent` and keep the "
+                "declared path as `child`."
+            )
+        elif str(nl_parent).strip() == parent:
+            findings.append(
+                f"{rid} binds containment(parent={parent!r}, child={child!r}) and its "
+                f"`nl_parent` agrees with the declared prefix, so the model already satisfies "
+                "this by construction and there is no obligation to check. Drop the "
+                "requirement and state what the sentence says the element does instead."
+            )
+    return tuple(findings)
 
 
 def redundant_proposal_findings(

@@ -46,6 +46,7 @@ from .capability import (
     substituted_binding_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
+    vacuous_containment_findings,
     mandatory_waiver,
     placeholder_bindings,
     source_omitting_response_calls,
@@ -3609,7 +3610,61 @@ def _declared_ancestor_refs(
             )
             if refs:
                 return refs
+        # The walk ran out. That happens for a top-level proposal and only for one: `Sys.X`
+        # has a single proper prefix, the machine root, and the frozen traces carry no entry
+        # for it -- across the corpus their `intermediate_elements` hold `state:` and `macro:*`
+        # and nothing else. The root is a naming wrapper the projection adds; the author never
+        # wrote it, so no trace could cover it.
+        #
+        # The claim survives that. "This scope declares no element named X" is witnessed by
+        # the elements the scope *does* declare, which is the same inference the nested case
+        # makes one step lower down. Without it, whether a missing-name finding can be
+        # published turns on how deep the specification's prose happened to nest the name --
+        # thirteen of forty-three refusals in one generation, including a ledger record that
+        # was found and then lost.
+        scope = ".".join(parts[:-1])
+        siblings = _declared_children_refs(scope, entries)
+        if siblings:
+            return siblings
     return ()
+
+
+def _declared_children_refs(scope: str, entries: list[Any]) -> tuple[str, ...]:
+    """Source refs of the elements a scope declares directly.
+
+    Direct children only. A grandchild says nothing about what its grandparent contains, so
+    admitting it would make the fallback fire on scopes the trace never really covered --
+    turning "cannot attribute this" into "can attribute anything", which is the failure mode
+    the empty return exists to preserve.
+    """
+
+    prefix = f"{scope}."
+    refs: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        boundary = entry.get("attribution_boundary")
+        if not (
+            isinstance(boundary, dict)
+            and boundary.get("source_level_claim_allowed") is True
+            and boundary.get("representation_related") is not True
+            and boundary.get("conversion_or_lowering_related") is not True
+        ):
+            continue
+        declares_a_direct_child = False
+        for ref in entry.get("intermediate_elements", []) or ():
+            text = str(ref)
+            path = text.split(":", 1)[1] if ":" in text else text
+            if path.startswith(prefix) and "." not in path[len(prefix) :]:
+                declares_a_direct_child = True
+                break
+        if declares_a_direct_child:
+            refs.update(
+                str(ref)
+                for ref in entry.get("source_elements", []) or ()
+                if isinstance(ref, str)
+            )
+    return tuple(sorted(refs))
 
 
 def _trace_entry_matches(entry: Any, observed: set[str]) -> bool:
