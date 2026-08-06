@@ -58,6 +58,14 @@ _RULES: tuple[tuple[str, str], ...] = (
     # way. A gate in the same sense as the others -- it declines rather than answering False.
     ("no_matching_transition", "no declared transition leaves"),
     ("ambiguous_initial", "initial edges and none of them is taken unconditionally"),
+    # 断言参数校验，与 `malformed_name` / `unsupported_binding` 同族：**作者写错了断言**，
+    # 不是关于模型的判断。单开一桶而不并入前两者，因为三者的修法不同 —— 名字不合法要改绑定，
+    # 绑定不受支持要换谓词，而 `within_cycles=0` 是转换器给了一个检查不了任何东西的预算。
+    #
+    # 这条是本工具在 v22 数据上**拒绝运行**才暴露的：它匹配不到任何规则，而工具的设计是
+    # 「未识别的消息是错误，不是 `other` 桶」。若当初给了 catch-all，这个形态会一直不被看见 ——
+    # `CLAUDE.md` §7 的「未分类 diagnostic 不能静默放过」在这里的具体形态。
+    ("invalid_cycle_budget", "within_cycles must be at least 1"),
 )
 
 #: Buckets that are the pipeline's own gates. `refuse@1` is about what the gates removed, so
@@ -65,7 +73,9 @@ _RULES: tuple[tuple[str, str], ...] = (
 GATE_RULES = frozenset(
     {"transient_subject", "undiscriminating_root", "horizon_probe",
      "pseudo_initial", "malformed_name", "unsupported_binding",
-     "no_matching_transition", "ambiguous_initial"}
+     "no_matching_transition", "ambiguous_initial",
+     # 与 `malformed_name` 同理算门：它确实移除了一条断言，且移除的原因在管线自己一侧。
+     "invalid_cycle_budget"}
 )
 
 
