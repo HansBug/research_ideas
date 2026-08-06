@@ -145,12 +145,50 @@ def test_the_reportable_denominator_adds_up() -> None:
     """
     d = _frozen()
     detail = {x["pair"]: x for x in d["holdout_detail"]}
-    expected = sum(len(detail[p]["record_ids"]) for p in d["reportable_holdout"])
-    assert d["reportable_judgeable_total"] == expected
-    layers: dict[str, int] = collections.Counter()
+    burned_records = d.get("burned_records") or {}
+    # Record level, not cell level. A pair can be partially burned: a rule designed against one
+    # of its ledger records leaves the others usable, and throwing the whole cell away would
+    # shrink the denominator further than the contamination warrants.
+    expected = [
+        record
+        for pair in d["reportable_holdout"]
+        for record in detail[pair]["record_ids"]
+        if record not in burned_records
+    ]
+    assert d["reportable_judgeable_total"] == len(expected)
+    assert d["reportable_records"] == sorted(expected)
+
+
+def test_a_naming_hit_needs_either_a_burn_or_a_ruling() -> None:
+    """Every named reportable pair is accounted for, one way or the other.
+
+    Naming demands an adjudication, not an automatic verdict: recording that a pair is
+    reportable names it too, so auto-excluding on a spelling match would empty the set. What
+    must not exist is a naming nobody ruled on.
+    """
+    d = _frozen()
+    burned_records = d.get("burned_records") or {}
+    adjudicated = d.get("motive_adjudicated") or {}
+    detail = {x["pair"]: x for x in d["holdout_detail"]}
     for pair in d["reportable_holdout"]:
-        layers.update(detail[pair]["by_layer"])
-    assert d["reportable_layer_coverage"] == dict(layers)
+        has_burn = any(r in burned_records for r in detail[pair]["record_ids"])
+        ruling = adjudicated.get(pair)
+        assert has_burn or (
+            isinstance(ruling, dict) and ruling.get("verdict") and ruling.get("reasoning")
+        ), f"{pair} is reportable but neither partially burned nor adjudicated"
+
+
+def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> None:
+    """Records the fact that v22 has no capability-claim band, so it cannot be discovered later.
+
+    Six records remain across four layers -- `wellformedness` 3, and one each of
+    `over_specification`, `nl_named`, `nl_contradiction`. The threshold is four. Writing this as
+    a test rather than only as prose means a later change that quietly re-inflates the
+    denominator has to argue with it.
+    """
+    d = _frozen()
+    assert d["reportable_judgeable_total"] == 6
+    assert not any(d["reportable_layers_at_k"].values()), d["reportable_layer_coverage"]
 
 
 def test_every_burn_records_its_mechanism_and_evidence() -> None:

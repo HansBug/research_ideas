@@ -23,6 +23,9 @@ _FROZEN = json.loads((pathlib.Path(__file__).resolve().parent / "holdout.json").
 # 冒充样本外证据。它们照常全量报出，只是单独成带。
 HOLD = set(_FROZEN.get("reportable_holdout") or _FROZEN["holdout"])
 BURNED = set(_FROZEN.get("burned") or {})
+# 记录级，不是格级。一个 pair 可以部分烧毁：某条修法是看着它的某一条台账记录设计的，
+# 该 pair 的其余记录仍然可用，整格作废会把分母缩得比污染范围更狠。
+BURNED_RECORDS = set(_FROZEN.get("burned_records") or {})
 
 def group(ids, name):
     if not ids: return
@@ -49,9 +52,12 @@ def group(ids, name):
         print(f"!! 轮次不足 3 的条目 {len(thin)} 个：{thin}。hit@all 在这些条目上不构成稳定性证据。")
     for k, raw, kind in rows: print(f"   {k:16} {raw}  {kind}")
 
-hold_ids = [k for k in V if k.split("-")[1] in HOLD]
-burn_ids = [k for k in V if k.split("-")[1] in BURNED]
-hist_ids = [k for k in V if k.split("-")[1] not in HOLD and k.split("-")[1] not in BURNED]
+hold_ids = [k for k in V if k.split("-")[1] in HOLD and k not in BURNED_RECORDS]
+burn_ids = [k for k in V if k.split("-")[1] in BURNED or k in BURNED_RECORDS]
+hist_ids = [
+    k for k in V
+    if k.split("-")[1] not in HOLD and k.split("-")[1] not in BURNED and k not in BURNED_RECORDS
+]
 group(hold_ids, "HOLD-OUT（能力主张的唯一依据）")
 group(burn_ids, "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）")
 group(hist_ids, "历史四格（共同演化观测，不作能力主张）")

@@ -369,14 +369,49 @@ def main(argv: list[str] | None = None) -> int:
         problems = []
         burned_now = {}
         for pair in held:
-            pattern = _naming(pair)
             where = []
-            if pattern.search(source):
+            # Source and tests keep the enumerating pattern: four-digit numbers are ambiguous
+            # there (record indices like `L000-000018-...`, bounds, counts).
+            if _naming(pair).search(source):
                 where.append("pipeline_source_or_tests")
-            if pattern.search(commits):
+            # Commit bodies do not have that ambiguity, and this branch used the enumerating
+            # pattern anyway -- the fifth recurrence of the mistake this module's own docstring
+            # numbers. Bodies write `0018/0038`, `0018(9)、0038(4)`, plain `0048`; none match
+            # `pair 0018` or `EIS-0018-`. Measured: all four reportable pairs are named in
+            # commit bodies by bare id and `--verify` reported the set clean.
+            if _naming_in_prose(pair).search(commits):
                 where.append("commit_body")
             if where:
                 burned_now[pair] = where
+        # A pair named in a commit body is not automatically burned: §3.5.-1 手段 1 says the
+        # judgement is motive, not spelling. Recording that a pair is *reportable* names it too.
+        # So a naming hit is reconciled against `burned_records` -- if every record of that pair
+        # which a rule was designed against is recorded there, the remaining records stay
+        # reportable and the hit is a notice, not a failure.
+        burned_records = frozen.get("burned_records") or {}
+        detail = {x["pair"]: x["record_ids"] for x in frozen.get("holdout_detail") or ()}
+        # A naming hit demands an adjudication, not an automatic verdict either way. Two ways
+        # to satisfy it: the records a rule was designed against are recorded in
+        # `burned_records`, or the naming is recorded in `motive_adjudicated` with its reasoning
+        # and a verdict. What stays a failure is a naming nobody has ruled on.
+        adjudicated = frozen.get("motive_adjudicated") or {}
+        unaccounted = {}
+        for pair, where in burned_now.items():
+            records = detail.get(pair) or ()
+            if records and any(r in burned_records for r in records):
+                continue
+            ruling = adjudicated.get(pair)
+            if isinstance(ruling, dict) and ruling.get("verdict") and ruling.get("reasoning"):
+                continue
+            unaccounted[pair] = where
+        if unaccounted != burned_now:
+            accounted = sorted(set(burned_now) - set(unaccounted))
+            if accounted:
+                print(
+                    f"note: named but accounted for at record level: {accounted}",
+                    file=sys.stderr,
+                )
+        burned_now = unaccounted
         if burned_now:
             problems.append(
                 f"held-out pairs have since been named: {burned_now}. A hold-out that has "

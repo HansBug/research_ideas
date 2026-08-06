@@ -92,3 +92,64 @@ eval/discover_matrix/holdout.py --verify                # 与 burned 对账；�
 eval/discover_matrix/present_for_judgment.py v21        # 逐格并列呈现，供人工判定
 eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定由人工给
 ```
+
+---
+
+# v22 追加口径 —— 同样先于任何 v22 结果写死
+
+写作时间点：v22 代码已落但**尚未开跑**（`runs/paper1/matrix-v22/` 为空）。
+
+## 五、⚠️ v22 已无能力主张带
+
+按 §3.5.-1 手段 1（查引入动机而非拼写）逐条裁定后，四个可报 pair 中有三条记录参与了修法设计：
+
+| 记录 | 烧于 | 动机证据 |
+| :-- | :-- | :-- |
+| `EIS-0043-01` | `0eb36a06`（V6）| commit 正文给了**期望结果**「0043 PumpControl 3 → 2 ← 三轮全 True 掩盖的缺陷会浮出」，而该记录的 primary 断言逐字就是 `cardinality(scope=PumpControl, count=3)` |
+| `EIS-0047-02` | `0eb36a06`（V6）| 同 commit「0047 CAS 4 → 3 ← 三轮全发的多报会消失」—— 而判断「0047 发的是误报」本身需要台账 |
+| `EIS-0032-01` | `23315498`（V4/V5）| 动机是根因分析的 M4，唯一落点是 0032 的四条 `representation_debt` 排除；该记录的 statement 明写那三条 compiler exclusion「这是缺陷的机器证据」 |
+
+`0035` 判**未污染**并显式记录裁定：它只出现在 V6 的受影响 scope 清单里（根 7→6），无方向性主张、不指向任何台账记录。**点名一个 pair 以记账它受某规则影响，与看着它的失败写规则，不是同一件事。**
+
+**代价：**
+
+| | v21 | v22 |
+| :-- | --: | --: |
+| 可报记录 | 9 | **6** |
+| `wellformedness` | 5 | 3 |
+| `nl_named` | 1 | 1 |
+| `over_specification` | 1 | 1 |
+| `nl_contradiction` | 2 | 1 |
+| 达 `≥4` 阈值的层 | 1 | **0** |
+
+**所以 v22 不产出任何能力主张。** 全部数字只能作为「方法 + 样本共演化观测」报出。这条写在跑之前，不是跑完才发现。
+
+记账已落成代码读得到的事实：`holdout.json` 的 `burned_records` / `motive_adjudicated` / `reportable_records`（已冻结字段一字未动）、`--verify` 按记录级对账（未裁定的点名仍 exit 1）、`metrics_at_k.py` 三带按记录级排除、`test_holdout_stays_clean.py` 新增三条断言把「无能力主张带」钉住。
+
+## 六、V1 / V2 / V4 / V5 都改断言可采性，必须双报
+
+`status == "safe"` 是进入 `issues` 的唯一闸门。这四条把 `unattributed` / `representation_debt` 转 `safe`，**直接抬高 `hit@k` 的分子而分母不变** —— 这是 §三（精度单调改善而能力未提高）的**召回侧镜像**。
+
+按 §二对 v20→v21 的既有裁定，必须：
+
+1. v21 用 v22 谓词**机械重导出**（`build_gist.py runs/paper1/matrix-v21/run{1,2,3} <out>` → `detect_fabrications.py <out>/audit`），与原值**并列双报**，并标为 v21 的**下界**（回测不模拟修订路径）
+2. 历代对比表按修法逐条标注哪一代次起生效
+3. `refuse@1` 与 `over@1` 并列，否则「归因层少吃发现」会被读成生产侧能力提升
+
+## 七、V6 的触发面按角色过滤后重测
+
+旧口径（按「在 `source_exclusions` 里」）报 8 个受影响 scope，实为 16，其中 **4 个剔掉的是 carrier**（`0038.Terminate`、`0047.RearEnd`、`0047.Pedestrian`、`0050.AutonomousMode`）—— 会就作者确实写了的元素数发布发现。
+
+改按 `role == "omission_surrogate"` 过滤后重测：**12 个 scope，剔除的全部是 `UnspecifiedInitial`，零 carrier**。
+
+| pair | scope | old → new |
+| :-- | :-- | :-- |
+| `0006` | root | 2 → 1 |
+| `0029` | HighwayMode / UrbanMode | 6 → 5（各）|
+| `0032` | 三个 Region | 2/3/2 → 1/2/1 |
+| `0035` | root | 7 → 6 |
+| `0043` | PumpControl | 3 → 2 |
+| `0047` | CollisionAvoidanceSystem | 4 → 3 |
+| `0048` | fork1 / Join2 / Fork2 | 3→2 / 2→1 / 2→1 |
+
+⚠️ **「双向」是单调过滤器的一个可能后果，不是已证性质。** 规则严格单调（计数只会下降）；翻转方向取决于 LLM 选的 `want` 落在 old 还是 new 上，而 `want` 来自 NL。v21 全部 9 次 `cardinality` 调用 `want=3`，实际被触及的只有 2 个 scope，一正一反纯属两个 `want`/count 对齐的巧合，n=2 证不了性质。
