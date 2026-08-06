@@ -3344,7 +3344,9 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                     "elements without exhibiting a defective trace."
                 )
             elif debt_refs and _omission_placeholder_only(
-                debt_refs, predicate_by_assertion.get(result.assertion_id)
+                debt_refs,
+                predicate_by_assertion.get(result.assertion_id),
+                exclusion_roles(getattr(frozen, "working_contract", None)),
             ):
                 # The excluded elements are all stand-ins the projection injected *because*
                 # the author declared nothing, and the predicate's claim is precisely about
@@ -3485,16 +3487,45 @@ def _claim_is_about_declaration(predicate: str | None) -> bool:
 
 
 def _omission_placeholder_only(
-    debt_refs: tuple[str, ...], predicate: str | None
+    debt_refs: tuple[str, ...],
+    predicate: str | None,
+    roles: dict[str, str] | None = None,
 ) -> bool:
-    """Whether every excluded element is an omission placeholder and the claim is declarative.
+    """Whether every excluded element is an omission stand-in and the claim is declarative.
 
-    Both halves are required. One excluded element that is *not* a placeholder means the
-    evidence also rests on something the projection adds unconditionally, and then it cannot
-    speak about the author either way.
+    Both halves are required. One excluded element that is *not* a stand-in means the evidence
+    also rests on something the projection adds unconditionally, and then it cannot speak about
+    the author either way.
+
+    The first half now reads the contract's own record rather than matching leaf names. The
+    name table was wrong in both directions, and the two errors are why a substring match
+    cannot do this job: `FinalWait*` names a *lowering* of a nested final the author did write,
+    so matching it waived evidence that should have stayed excluded; `InvalidInitialtr_*` names
+    a stand-in for an initial target the author got wrong -- the defect itself -- and was absent
+    from the table, so it never got the waiver it deserves. `exclusion_roles` derives the split
+    from `source_refs`, which the contract already records, exactly across 1712 entries.
+
+    The table remains as the fallback for a checkout with no contract: without it every verdict
+    on such a tree would change, which is a worse failure than keeping the old approximation
+    where the better evidence is unavailable.
+
+    Still declarative-only. Extending it to positional claims -- where landing on a fail-closed
+    stand-in *is* the omission's evidence, as `capability.projection_anchored_findings` already
+    argues for the gate side -- is the remaining half of this change and is not made here.
     """
     if not debt_refs or not _claim_is_about_declaration(predicate):
         return False
+    if roles:
+        decided = []
+        for ref in debt_refs:
+            path = str(ref).split(":")[-1]
+            role = roles.get(path)
+            if role is None:
+                decided.append(None)
+            else:
+                decided.append(role == "omission_surrogate")
+        if all(item is not None for item in decided):
+            return all(decided)
     return all(
         any(marker in str(ref) for marker in _OMISSION_PLACEHOLDERS) for ref in debt_refs
     )
@@ -3537,6 +3568,54 @@ def _any_declaring_scope_refs(entries: list[Any]) -> tuple[str, ...]:
         if refs and (best is None or depth < best[0]):
             best = (depth, refs)
     return best[1] if best else ()
+
+
+def exclusion_roles(working_contract: Any) -> dict[str, str]:
+    """Model path -> whether the excluded element carries author information.
+
+    `attribution_exclusions` reaches the attribution layer as flat strings, so that layer
+    cannot tell two very different things apart: the *lowering* of something the author wrote,
+    and a *stand-in* the projection inserted because the author wrote nothing. Evidence resting
+    on the first says nothing about the author -- it looked at a representation artefact.
+    Evidence resting on the second says the author omitted something, which is the defect.
+
+    The contract already records the difference. Every element carries `source_refs`, and
+    across 1712 entries in sixty pairs the split is exact: lowerings have refs into the source,
+    fail-closed stand-ins have none, and the root wrapper has neither refs nor semantics.
+
+    The downstream substitute was a two-string leaf-name table, and it is wrong in both
+    directions -- which is why this cannot stay a substring match. `FinalWait*` names a lowering
+    of a nested final the author *did* write, so matching it waived evidence that should have
+    been excluded. `InvalidInitialtr_*` names a stand-in for an initial target the author got
+    wrong -- the defect itself -- and is absent from the table, so it never got the waiver it
+    deserves.
+
+    Returns an empty mapping when the contract is absent, so callers fall back to their previous
+    behaviour rather than having every verdict silently reclassified.
+    """
+
+    if not isinstance(working_contract, dict):
+        return {}
+    roles: dict[str, str] = {}
+    for element in working_contract.get("elements") or ():
+        if not isinstance(element, dict):
+            continue
+        refs = element.get("model_refs") or ()
+        paths = [str(ref) for ref in refs if isinstance(ref, str) and ref]
+        if not paths:
+            # Some entries describe source text and name no model element. Inventing a key for
+            # them would put roles under paths no evidence ever mentions, which reads as
+            # coverage this mapping does not have.
+            continue
+        if element.get("kind") == "root_wrapper":
+            role = "naming_wrapper"
+        elif element.get("source_refs"):
+            role = "carrier"
+        else:
+            role = "omission_surrogate"
+        for path in paths:
+            roles.setdefault(path, role)
+    return roles
 
 
 def _assertion_claim_key(
