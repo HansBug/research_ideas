@@ -102,6 +102,10 @@ MAX_ASSERTION_CONTRACT_REPAIRS = 5
 #: markdown a human auditor reads prints `full` for exactly the cells this policy makes lossy.
 INCOMPLETE_RECONCILIATION_KEYS = (
     "unaccounted_safe_false_assertions",
+    # Both are loss channels too: a pruned citation means published evidence was removed,
+    # and a dropped unsupported issue means a whole finding was discarded.
+    "issue_citations_pruned",
+    "unsupported_issues_dropped",
     "rejected_issues",
     "rejected_exclusions",
     "unaccounted_unsafe_false_assertions",
@@ -3967,6 +3971,7 @@ def adjudicate_results(
         for issue in output.issues:
             issue_ids = set(issue.assertion_ids)
             reasons: list[str] = []
+            pending_prune: dict[str, object] | None = None
             # `attribution_status` is no longer checked here -- the sort above guarantees
             # it. What remains is the part no relocation can fix: a finding whose *cited
             # assertions* are not attribution-safe is making a claim the attribution layer
@@ -3982,19 +3987,39 @@ def adjudicate_results(
                 # nothing safe left is a claim the attribution layer wholly refused.
                 kept_ids = issue_ids - unsafe_cited
                 if kept_ids:
-                    pruned_citations.append(
-                        {
-                            "issue_id": getattr(issue, "issue_id", None),
-                            "pruned": tuple(sorted(unsafe_cited)),
-                            "kept": tuple(sorted(kept_ids)),
-                            "reason": (
-                                "cited assertions the attribution layer refused; the finding "
-                                "is kept on its remaining attribution-safe evidence"
+                    # `requirement_ids` must shrink with the citations, or the equality check
+                    # below fires on the very issue this branch just rescued -- the prune would
+                    # be defeated one check later and the record would say both "kept" and
+                    # "dropped" about the same finding. Only requirements whose *sole* evidence
+                    # was pruned are removed, so an issue claiming a requirement it never
+                    # touched still fails the check.
+                    orphaned = {
+                        requirement_by_assertion[a]
+                        for a in unsafe_cited
+                        if a in requirement_by_assertion
+                    } - {
+                        requirement_by_assertion[a]
+                        for a in kept_ids
+                        if a in requirement_by_assertion
+                    }
+                    pending_prune = {
+                        "issue_id": getattr(issue, "issue_id", None),
+                        "cited": tuple(sorted(issue_ids)),
+                        "pruned": tuple(sorted(unsafe_cited)),
+                        "kept": tuple(sorted(kept_ids)),
+                        "requirements_orphaned": tuple(sorted(orphaned)),
+                        "reason": (
+                            "cited assertions the attribution layer refused; the finding "
+                            "is kept on its remaining attribution-safe evidence"
+                        ),
+                    }
+                    issue = issue.model_copy(
+                        update={
+                            "assertion_ids": tuple(sorted(kept_ids)),
+                            "requirement_ids": tuple(
+                                r for r in issue.requirement_ids if r not in orphaned
                             ),
                         }
-                    )
-                    issue = issue.model_copy(
-                        update={"assertion_ids": tuple(sorted(kept_ids))}
                     )
                     issue_ids = kept_ids
                 else:
@@ -4031,17 +4056,30 @@ def adjudicate_results(
                         "shared_elements"
                     )
             if reasons:
+                # Do not also record a prune for a finding that is being dropped: the judge
+                # would be shown the same issue under both "kept on remaining evidence" and
+                # "discarded by a structural gate".
                 rejected_issues.append(
                     {
                         "issue_id": getattr(issue, "issue_id", None),
-                        "assertion_ids": sorted(issue_ids),
+                        # What it actually cited, not the post-prune remainder -- an audit
+                        # trail that hides the offending citation defeats its own purpose.
+                        "assertion_ids": sorted(
+                            (pending_prune or {}).get("cited") or issue_ids
+                        ),
                         "reasons": tuple(reasons),
                     }
                 )
                 continue
+            if pending_prune is not None:
+                pruned_citations.append(pending_prune)
             kept_issues.append(issue)
             issue_assertions.update(issue_ids)
-        if rejected_issues:
+        # Unconditional: an issue that was pruned but not rejected also needs writing back,
+        # and when nothing changed `kept_issues == list(output.issues)` so the copy is a no-op.
+        # Gating this on `rejected_issues` reintroduced, 90 lines later, the exact defect the
+        # `dropped_unsupported or pruned_citations` fix above was written for.
+        if True:
             # The flag must be re-derived with the collection. `DiscoverAdjudication`
             # deliberately stopped validating it at parse time ("re-derived there from the
             # sorted collections"), delegating the invariant to this node -- so dropping issues
