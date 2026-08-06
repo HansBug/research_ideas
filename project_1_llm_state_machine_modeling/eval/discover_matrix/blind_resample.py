@@ -146,6 +146,19 @@ def _units_from_runs(generation: str, ledger: dict, reportable: set[str]) -> lis
         pair = str(record.get("pair", ""))[-4:]
         if not pair:
             continue
+        # 只收**可判定**记录：`in_scope` 且闭词表可表达。首版漏了这道过滤，于是多收 6 个单元
+        # （台账格集内 37 条 × 2 臂 = 74，而上一代次判定表是 34 条 × 2 = 68）。
+        #
+        # 那 3 条多出的记录全是 `expressible_with_closed_vocabulary = false`。把它们放进分母会
+        # **把方法边界报成能力缺口** —— `holdout.py` 规则 4 的 rationale 明令禁止：「A record
+        # outside paper1's boundary, or one the closed predicate vocabulary cannot state, is
+        # unfindable by construction -- counting it would report a boundary as a capability gap」。
+        #
+        # 后果量化：不修的话 hit@1 的分母是 74×3 而非 68×3，凭空多 18 个必然判 0 的位，
+        # **覆盖率被系统性压低约 8 个百分点，且看起来完全正常**。
+        if not (record.get("in_scope") is True
+                and record.get("expressible_with_closed_vocabulary") is True):
+            continue
         for cell, rounds in sorted(rounds_by_cell.items()):
             cell_pair, arm = cell.rsplit("-", 1)
             if cell_pair != pair:
