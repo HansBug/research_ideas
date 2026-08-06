@@ -3,76 +3,297 @@
 分工是刻意的：判定由人工做（见 present_for_judgment.py 的理由），算术由脚本做。脚本读不到
 模型输出，所以它不可能"顺手"把判定也做了。
 
-输入是一个 JSON：{"verdicts": {"EIS-0007-01": [1,0,1], ...}, "over": {"0007": [2,1,0], ...}}
-其中三元组是 run1/run2/run3 的人工判定：1=命中，0=未命中，null=该轮该格失败（不计入分母）。
-over 是每轮的多报条数（人工认定为「不在台账内且确为误报」的条目数）。
+⚠️ 但「只做算术」不等于「不做校验」。上一版对输入零校验，于是手写判定表时漏掉一条不利记录
+就能静默拿到 100%：
 
-hit@1    = 命中数 / 有效(条目,轮次)对数        —— 一次运行的期望产出
-hit@3    = 至少一轮命中的条目比例              —— 该缺陷是否在能力范围内
-hit@all  = 全部有效轮次都命中的条目比例        —— 稳定性
+    {"verdicts": {"EIS-0035-01": [1,1,1], "EIS-0035-02": [1,1,1], "EIS-0047-03": [1,1,1]}}
+    → HOLD-OUT 条目=3  hit@1 = 9/9 = 100.0%
+
+而可报记录当时是四条，`EIS-0032-02` 被整条省掉、分母从 4 变 3、无一句告警。这正是
+`CLAUDE.md` §3.5 条款 4 的「更改分母 / 剔除不利样本」，且**不需要任何恶意** —— 手写三十几条
+三元组漏一条即可。同一版还接受台账外的 id、长度不是 3 的数组、`2` 之类的值，并照常打印
+`hit@1 = 8/7 = 114.3%`。
+
+所以本版启动即对账，任一条不满足就**拒跑**：
+
+  1. `reportable_records` 必须全部出现 —— 少一条即拒，因为那正是分母
+  2. 台账外的 id 一律拒 —— 它会被按 id 前缀错分到某个带里并污染统计
+  3. 值只能是 `0` / `1` / `null`，轮次数必须等于 `--rounds`（默认 3）
+  4. `verdicts` 为空即非零退出 —— 零输出与「全部未命中」不可区分
+
+用 `--template` 生成预填骨架（全部 id、值为 null），人工只需填值，漏填会被上面第 1 条抓住。
+
+## 输入格式
+
+    {
+      "verdicts": {
+        "EIS-0007-01": {"claude": [1, 0, 1], "gpt": [0, 0, 1]},
+        "EIS-0007-02": [1, 1, 1]
+      },
+      "over": {"0007-claude": [2, 1, 0], "0007-gpt": [3, 3, 3]}
+    }
+
+三元组是 run1/run2/run3 的人工判定：`1`=命中，`0`=未命中，`null`=该轮该格失败（不计入分母）。
+裸数组视为单臂，保留历史格式。`over` 是每轮的多报条数（人工认定为「不在台账内且确为误报」）。
+
+**模型维度必须显式。** 上一版无处安放它，于是 `EIS-0035-01@claude` / `@gpt` 这种写法会把一条
+台账记录算成两条、分母翻倍；而 `over` 的 `0035-claude` 因为不等于 `0035`，落进「历史格」兜底
+带 —— hold-out pair 的多报被归入共演化观测，无告警。本版按 id 与 pair 前缀分带，臂只影响呈现
+与分臂小计，不影响分带。
+
+hit@1    = 命中数 / 有效(条目,轮次,臂)组数    —— 一次运行的期望产出
+hit@3    = 至少一轮命中的(条目,臂)比例        —— 该缺陷是否在能力范围内
+hit@all  = 全部有效轮次都命中的(条目,臂)比例  —— 稳定性
 over@1   = 每轮平均多报数
 over@any = 出现过多报的格子数
 """
-import json, sys, collections, pathlib
 
-d = json.loads(pathlib.Path(sys.argv[1]).read_text())
-V = d["verdicts"]; O = d.get("over", {})
-_FROZEN = json.loads((pathlib.Path(__file__).resolve().parent / "holdout.json").read_text())
+from __future__ import annotations
+
+import argparse
+import collections
+import json
+import pathlib
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+FROZEN = json.loads((HERE / "holdout.json").read_text())
+
 # 三带，不是两带。`holdout` 里有三个 pair 因为参与了 A1 的编写（0018/0038 是动机，0048 同
 # NL 组）而不再能支撑能力主张；把它们留在 hold-out 带里，等于让「方法+样本共演化」的观测
 # 冒充样本外证据。它们照常全量报出，只是单独成带。
-HOLD = set(_FROZEN.get("reportable_holdout") or _FROZEN["holdout"])
-BURNED = set(_FROZEN.get("burned") or {})
+HOLD = set(FROZEN.get("reportable_holdout") or FROZEN["holdout"])
+BURNED = set(FROZEN.get("burned") or {})
 # 记录级，不是格级。一个 pair 可以部分烧毁：某条修法是看着它的某一条台账记录设计的，
 # 该 pair 的其余记录仍然可用，整格作废会把分母缩得比污染范围更狠。
-BURNED_RECORDS = set(_FROZEN.get("burned_records") or {})
+BURNED_RECORDS = set(FROZEN.get("burned_records") or {})
+REPORTABLE = tuple(FROZEN.get("reportable_records") or ())
+# 干净但结构性不可达的记录。它若报未命中不是能力缺口，所以必须在输出里说出来，否则读者会把
+# 门的抑制读成方法的失败。
+BLOCKED = {
+    "EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）",
+}
 
-def group(ids, name):
-    if not ids: return
-    pairs_n = 0; hits = 0; at3 = 0; atall = 0; items = 0
+
+def _ledger_ids() -> set[str]:
+    """台账里全部记录的 id。台账外的 id 一律拒收，它会污染分带。"""
+
+    payload = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
+    records = payload.get("records")
+    if not records:
+        records = next(
+            value
+            for value in payload.values()
+            if isinstance(value, list) and value and isinstance(value[0], dict) and "id" in value[0]
+        )
+    return {str(record["id"]) for record in records}
+
+
+def _arms(value) -> dict[str, list]:
+    """判定值归一成 臂 -> 三元组。裸数组视为单臂，保留历史格式。"""
+
+    if isinstance(value, dict):
+        return {str(arm): list(rounds) for arm, rounds in value.items()}
+    return {"-": list(value)}
+
+
+def validate(verdicts: dict, over: dict, rounds: int) -> list[str]:
+    """输入是否能支撑一个可被引用的比率。返回全部问题，不是第一个。"""
+
+    if not verdicts:
+        return ["verdicts 为空。零输出与「全部未命中」不可区分，所以这是错误而不是 0%"]
+    problems = []
+    known = _ledger_ids()
+    for record_id, value in sorted(verdicts.items()):
+        if record_id not in known:
+            problems.append(f"{record_id} 不在台账里。它会被按 id 前缀错分到某个带并污染统计")
+        for arm, series in _arms(value).items():
+            label = record_id if arm == "-" else f"{record_id}[{arm}]"
+            if len(series) != rounds:
+                problems.append(f"{label} 有 {len(series)} 轮，应为 {rounds}")
+            for index, entry in enumerate(series, 1):
+                if entry not in (0, 1, None):
+                    problems.append(f"{label} 第 {index} 轮是 {entry!r}，只能是 0 / 1 / null")
+    missing = [record for record in REPORTABLE if record not in verdicts]
+    if missing:
+        problems.append(
+            f"可报记录缺 {len(missing)} 条：{missing}。它们就是能力主张的分母，少一条就是"
+            "「更改分母 / 剔除不利样本」（CLAUDE.md §3.5 条款 4），即便只是手写时漏填"
+        )
+    for cell, series in sorted(over.items()):
+        if len(series) != rounds:
+            problems.append(f"over[{cell}] 有 {len(series)} 轮，应为 {rounds}")
+    return problems
+
+
+def band_of(record_id: str) -> str:
+    """记录属哪一带。臂不参与判定 —— 否则分带会随臂数漂移。
+
+    hold 带的成员是 `reportable_records` 本身，不是「pair 在 `reportable_holdout` 里」。两者不
+    等价：按 pair 前缀判定会把 `EIS-0035-03` / `EIS-0035-04` 也算进来，而它们在台账里**不可
+    判定**（不满足 `in_scope` 与 `expressible_with_closed_vocabulary`），于是「能力主张的唯一
+    依据」这个带里出现了三条本不该被判定的记录，分母 3 变 5。
+
+    带的标题声称它是主张的唯一依据，那它就必须恰好是那一组。可报清单缺失时才退回 pair 级，
+    并且此时 hold 带只是「hold-out pair 的记录」，不构成主张。
+    """
+
+    pair = record_id.split("-")[1]
+    if record_id in BURNED_RECORDS or pair in BURNED:
+        return "burned"
+    if REPORTABLE:
+        return "hold" if record_id in REPORTABLE else "hist"
+    return "hold" if pair in HOLD else "hist"
+
+
+def report_band(verdicts: dict, ids: list[str], name: str) -> None:
+    if not ids:
+        return
+    triples = hits = items = at3 = atall = 0
     rows = []
-    for k in sorted(ids):
-        v = [x for x in V[k] if x is not None]
-        if not v: rows.append((k, V[k], "全轮失败")); continue
-        items += 1; pairs_n += len(v); hits += sum(v)
-        a3 = 1 if any(v) else 0; aa = 1 if all(v) else 0
-        at3 += a3; atall += aa
-        if len(v) < 2:
-            # n=1 时 hit@all 与 hit@1 退化为同一个数，说「稳定」是从单点断言稳定性。
-            kind = f"轮次不足({len(v)}轮)，不得据此说稳定"
-        else:
-            kind = "稳定命中" if aa else ("hit@3 only" if a3 else "全轮未命中")
-        rows.append((k, V[k], kind))
-    print(f"\n### {name}   条目={items}  有效(条目,轮次)={pairs_n}")
-    print(f"hit@1   = {hits}/{pairs_n} = {hits/pairs_n*100:.1f}%")
-    print(f"hit@3   = {at3}/{items} = {at3/items*100:.1f}%")
-    print(f"hit@all = {atall}/{items} = {atall/items*100:.1f}%")
-    thin = [k for k in sorted(ids) if len([x for x in V[k] if x is not None]) in (1, 2)]
+    per_arm: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
+    for record_id in sorted(ids):
+        for arm, series in sorted(_arms(verdicts[record_id]).items()):
+            label = record_id if arm == "-" else f"{record_id}[{arm}]"
+            valid = [entry for entry in series if entry is not None]
+            if not valid:
+                rows.append((label, series, "全轮失败"))
+                continue
+            items += 1
+            triples += len(valid)
+            hits += sum(valid)
+            any_hit = 1 if any(valid) else 0
+            all_hit = 1 if all(valid) else 0
+            at3 += any_hit
+            atall += all_hit
+            per_arm[arm][0] += sum(valid)
+            per_arm[arm][1] += len(valid)
+            if len(valid) < 2:
+                # n=1 时 hit@all 与 hit@1 退化为同一个数，说「稳定」是从单点断言稳定性。
+                kind = f"轮次不足({len(valid)}轮)，不得据此说稳定"
+            else:
+                kind = "稳定命中" if all_hit else ("hit@3 only" if any_hit else "全轮未命中")
+            if record_id in BLOCKED:
+                kind += f"  ⚠️ {BLOCKED[record_id]}"
+            rows.append((label, series, kind))
+    header = f"\n### {name}   条目={items}  有效(条目,轮次)={triples}"
+    if not items:
+        print(f"\n### {name}   条目=0（全部全轮失败）")
+        for label, raw, kind in rows:
+            print(f"   {label:24} {raw}  {kind}")
+        return
+    print(header)
+    print(f"hit@1   = {hits}/{triples} = {hits / triples * 100:.1f}%")
+    print(f"hit@3   = {at3}/{items} = {at3 / items * 100:.1f}%")
+    print(f"hit@all = {atall}/{items} = {atall / items * 100:.1f}%")
+    if len(per_arm) > 1:
+        # 分臂小计。两条臂的数字必须能分开读，否则模型间比较消失。
+        for arm, (arm_hits, arm_triples) in sorted(per_arm.items()):
+            print(f"  按臂 {arm}: hit@1 = {arm_hits}/{arm_triples} = "
+                  f"{arm_hits / arm_triples * 100:.1f}%")
+    thin = [
+        label for label, series, _ in rows
+        if 0 < len([x for x in series if x is not None]) < 3
+    ]
     if thin:
-        print(f"!! 轮次不足 3 的条目 {len(thin)} 个：{thin}。hit@all 在这些条目上不构成稳定性证据。")
-    for k, raw, kind in rows: print(f"   {k:16} {raw}  {kind}")
+        print(f"!! 轮次不足 3 的条目 {len(thin)} 个：{thin}。"
+              "hit@all 在这些条目上不构成稳定性证据。")
+    for label, raw, kind in rows:
+        print(f"   {label:24} {raw}  {kind}")
 
-hold_ids = [k for k in V if k.split("-")[1] in HOLD and k not in BURNED_RECORDS]
-burn_ids = [k for k in V if k.split("-")[1] in BURNED or k in BURNED_RECORDS]
-hist_ids = [
-    k for k in V
-    if k.split("-")[1] not in HOLD and k.split("-")[1] not in BURNED and k not in BURNED_RECORDS
-]
-group(hold_ids, "HOLD-OUT（能力主张的唯一依据）")
-group(burn_ids, "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）")
-group(hist_ids, "历史四格（共同演化观测，不作能力主张）")
 
-if O:
+def report_over(over: dict) -> None:
+    if not over:
+        return
     print("\n### 多报")
-    for name, keep in (("hold-out", lambda p: p in HOLD),
-                       ("已烧毁 hold-out", lambda p: p in BURNED),
-                       ("历史四格", lambda p: p not in HOLD and p not in BURNED)):
-        sel = {p: v for p, v in O.items() if keep(p)}
-        vals = [x for v in sel.values() for x in v if x is not None]
-        if not vals:
+    grouped: dict[str, dict[str, list]] = collections.defaultdict(dict)
+    for cell, series in over.items():
+        # pair 前缀分带。上一版按整个键名判定，于是 `0035-claude` 不等于 `0035`，落进兜底带 ——
+        # hold-out pair 的多报被归入「共同演化观测」，无告警。
+        pair = str(cell).split("-")[0]
+        if pair in BURNED:
+            band = "已烧毁 hold-out"
+        elif pair in HOLD:
+            band = "hold-out"
+        else:
+            band = "历史格"
+        grouped[band][cell] = series
+    for band in ("hold-out", "已烧毁 hold-out", "历史格"):
+        cells = grouped.get(band) or {}
+        values = [x for series in cells.values() for x in series if x is not None]
+        if not values:
             continue
-        any_n = sum(1 for v in sel.values() if any(x for x in v if x))
-        print(f"  {name}: over@1 = {sum(vals)}/{len(vals)} = {sum(vals)/len(vals):.2f} 条/轮"
-              f"   over@any = {any_n} 个格子")
-        for p_, v in sorted(sel.items()):
-            print(f"     {p_}: {v}")
+        any_n = sum(1 for series in cells.values() if any(x for x in series if x))
+        print(f"  {band}: over@1 = {sum(values)}/{len(values)} = "
+              f"{sum(values) / len(values):.2f} 条/轮   over@any = {any_n} 个格子")
+        for cell, series in sorted(cells.items()):
+            print(f"     {cell}: {series}")
+
+
+def template(arms: list[str], rounds: int) -> str:
+    """预填骨架：全部台账 id、值为 null。人工只填值，漏填由 validate 抓住。"""
+
+    verdicts: dict[str, object] = {}
+    for record_id in sorted(_ledger_ids()):
+        if len(arms) == 1:
+            verdicts[record_id] = [None] * rounds
+        else:
+            verdicts[record_id] = {arm: [None] * rounds for arm in arms}
+    return json.dumps(
+        {
+            "_note": "1=命中 0=未命中 null=该轮该格失败。可报记录必须全部填写。",
+            "_reportable_records": list(REPORTABLE),
+            "_blocked": BLOCKED,
+            "verdicts": verdicts,
+            "over": {},
+        },
+        ensure_ascii=False,
+        indent=1,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="从人工判定表算 metric@k，只做算术")
+    parser.add_argument("verdicts_json", nargs="?", type=pathlib.Path)
+    parser.add_argument("--rounds", type=int, default=3)
+    parser.add_argument("--arms", default="claude,gpt", help="生成模板时的臂，逗号分隔")
+    parser.add_argument("--template", action="store_true", help="打印预填骨架后退出")
+    parser.add_argument(
+        "--force", action="store_true", help="校验失败仍然计算。只用于诊断，结果不得引用"
+    )
+    args = parser.parse_args(argv)
+
+    if args.template:
+        print(template([a for a in args.arms.split(",") if a], args.rounds))
+        return 0
+    if args.verdicts_json is None:
+        parser.error("需要判定表路径，或用 --template 生成骨架")
+
+    payload = json.loads(args.verdicts_json.read_text())
+    verdicts = payload.get("verdicts") or {}
+    over = payload.get("over") or {}
+    problems = validate(verdicts, over, args.rounds)
+    if problems:
+        print(f"判定表有 {len(problems)} 处问题，拒绝计算：", file=sys.stderr)
+        for problem in problems:
+            print(f"  - {problem}", file=sys.stderr)
+        if not args.force:
+            print("修好后重跑，或用 --force 仅作诊断（结果不得引用）", file=sys.stderr)
+            return 1
+        print("!! --force：以下数字不得引用", file=sys.stderr)
+
+    bands: dict[str, list[str]] = collections.defaultdict(list)
+    for record_id in verdicts:
+        bands[band_of(record_id)].append(record_id)
+    report_band(verdicts, bands["hold"], "HOLD-OUT（能力主张的唯一依据）")
+    report_band(verdicts, bands["burned"], "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）")
+    report_band(verdicts, bands["hist"], "历史格（共同演化观测，不作能力主张）")
+    report_over(over)
+    for record_id, why in BLOCKED.items():
+        if record_id in verdicts:
+            print(f"\n⚠️ {record_id} {why}：其未命中不构成能力缺口")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
