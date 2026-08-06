@@ -3239,20 +3239,17 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         binding_values_by_assertion: dict[str, tuple[str, ...]] = {}
         for item in script_assertions:
             requirement = requirement_by_id.get(item.requirement_id)
-            predicate_by_assertion[item.assertion_id] = (
-                getattr(requirement, "predicate", None) if requirement else None
-            )
             # Keyed pairs, not bare values: `kind="any"` and `sign="negative"` are enumerated
             # options, not element names, and treating them as bare declarations sent every
             # `state_declared` down the variable path.
-            binding_values_by_assertion[item.assertion_id] = tuple(
-                (str(name), str(value))
-                for name, value in (
-                    (getattr(requirement, "predicate_bindings", None) or {}).items()
-                    if requirement
-                    else ()
-                )
-            )
+            #
+            # And read from the assertion itself when it is a precondition -- see
+            # `_assertion_claim_key`. A precondition asserts that a name exists while its
+            # requirement describes the obligation that name is needed for; classifying the
+            # former by the latter's predicate refused a declarative claim as behavioural.
+            predicate, bound = _assertion_claim_key(item, requirement)
+            predicate_by_assertion[item.assertion_id] = predicate
+            binding_values_by_assertion[item.assertion_id] = bound
         bindings = []
         for result in released.results:
             if result.truth_value:
@@ -3540,6 +3537,78 @@ def _any_declaring_scope_refs(entries: list[Any]) -> tuple[str, ...]:
         if refs and (best is None or depth < best[0]):
             best = (depth, refs)
     return best[1] if best else ()
+
+
+def _assertion_claim_key(
+    assertion: Any, requirement: Any
+) -> tuple[str | None, tuple[tuple[str, str], ...]]:
+    """The predicate and bound paths of what *this assertion* claims.
+
+    For a primary the requirement is the authoritative copy: its predicate is what the primary
+    checks, and its `predicate_bindings` are the frozen values. Reading from it is right.
+
+    For a precondition it is not. A precondition asserts that some name exists; its requirement
+    describes the obligation that name is needed for. Keying off the requirement classifies the
+    precondition by a predicate it never called -- and when that predicate is behavioural,
+    `_declared_ancestor_refs` refuses it before looking at anything, because a run through a
+    non-existent state is not made author-owned by its parent being declared. Correct rule,
+    wrong subject. Measured once: a `state_declared` precondition under a `reaches` requirement
+    short-circuited, and a finding the ledger says should have been published landed
+    `unattributed`; its bound paths came from the same wrong place, the requirement's
+    `source`/`target` rather than the state the precondition names.
+
+    Worse than being wrong, it was unstable. With a dependent present the precondition
+    inherited its refs and was published; after the converter rewrote that dependent away, the
+    orphan asserting the identical thing was refused. Whether a finding surfaced turned on
+    revision history.
+
+    A malformed expression falls back to the requirement rather than returning nothing:
+    unparseable text is another gate's business, and losing the key here would make the
+    assertion unattributable for a reason unrelated to attribution.
+    """
+
+    from .capability import _path_bindings
+
+    def _from_requirement() -> tuple[str | None, tuple[tuple[str, str], ...]]:
+        if requirement is None:
+            return None, ()
+        return (
+            getattr(requirement, "predicate", None),
+            tuple(
+                (str(name), str(value))
+                for name, value in (
+                    getattr(requirement, "predicate_bindings", None) or {}
+                ).items()
+            ),
+        )
+
+    if getattr(assertion, "role", None) != "precondition":
+        return _from_requirement()
+    expression = str(getattr(assertion, "expression", "") or "")
+    called = _called_predicate_name(expression)
+    bindings = _path_bindings(expression)
+    if not called:
+        return _from_requirement()
+    return called, bindings
+
+
+def _called_predicate_name(expression: str) -> str | None:
+    """The predicate a bare boolean expression calls, or nothing if it is unparseable."""
+
+    import ast as _ast
+
+    for mode in ("eval", "exec"):
+        try:
+            tree = _ast.parse(expression, mode=mode)
+            break
+        except SyntaxError:
+            continue
+    else:
+        return None
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name):
+            return node.func.id
+    return None
 
 
 def _declared_ancestor_refs(
