@@ -82,14 +82,17 @@ def _scrub(text: str) -> str:
     return re.sub(r"\b\d{4}\b", "NNNN", text)
 
 
-def _blind_output(pair: str, arm: str, rounds: int) -> list[dict]:
+def _blind_output(pair: str, arm: str, rounds: int, generation: str = "v22") -> list[dict]:
     """该格三轮的已发布发现，盲化后交给复判者。
 
     只给 `issues` —— 判定的问题是「管线是否**发现并发布**了这条缺陷」，而排除项与观察项按定义
     没有发布。把它们一并给出会让复判者对「发现了但被制度静默」也判 1，那是另一个量。
     """
 
-    base = HERE.parents[2] / "runs" / "paper1" / "matrix-v22"
+    # 首版把代次写死成上一代次。给新代次建样本时，那会让每个 item 都带上**别的代次的产出** ——
+    # 判定者读到的是旧数据，而 key 指向新数据，算出的 κ 毫无意义且完全说得通。与 sample_id 那次
+    # 是同一类：错配不会报错，只会给出一个合理的错数。
+    base = HERE.parents[2] / "runs" / "paper1" / f"matrix-{generation}"
     out = []
     for n in range(1, rounds + 1):
         path = base / f"run{n}" / f"{pair}-{arm}" / "discover-completed.json"
@@ -113,14 +116,61 @@ def _band(pair: str, record_id: str, reportable: set[str]) -> str:
     return "reportable" if record_id in reportable else "burned"
 
 
-def build(verdicts_path: pathlib.Path, size: int, seed: int) -> tuple[dict, dict]:
-    payload = json.loads(verdicts_path.read_text())
-    verdicts = payload.get("verdicts") or {}
+def _units_from_runs(generation: str, ledger: dict, reportable: set[str]) -> list[dict]:
+    """从 run 目录直接构造判定单元，**不需要已有判定表**。
+
+    为什么需要这个模式：盲判 + 预注册判据已证明比我自己先判更可靠（$\\kappa = 0.883$，且抓出了
+    我在可报带的系统性偏严）。既然如此，新代次应当**直接盲判**，而不是「我先判一遍、再盲检一遍」——
+    后者把一份已知有偏的判定引入流程，然后再花一轮去测它的偏。
+
+    代价是没有「原判定」可比，所以 $\\kappa$ 要在**两个独立盲判者之间**算。这顺带修掉多报核验那个
+    设计缺陷：那里三批按 item 切分、批间零重叠，于是一致性根本算不出来。
+
+    `original_series` 在这个模式下写成全 `None` —— 它表示「尚无判定」，而不是「判定为未命中」。
+    `blind_agreement.py` 会跳过 `None`，所以覆盖率与 $\\kappa$ 都不会被这批空位污染。
+    """
+
+    base = HERE.parents[2] / "runs" / "paper1" / f"matrix-{generation}"
+    if not base.is_dir():
+        raise SystemExit(f"ERROR: no {base}")
+    rounds_by_cell: dict[str, set[int]] = collections.defaultdict(set)
+    for path in base.glob("run*/*/discover-completed.json"):
+        cell = path.parent.name
+        if ".try" in cell or "-" not in cell:
+            continue
+        run = path.parent.parent.name
+        if run.startswith("run") and run[3:].isdigit():
+            rounds_by_cell[cell].add(int(run[3:]))
+    units = []
+    for record_id, record in ledger.items():
+        pair = str(record.get("pair", ""))[-4:]
+        if not pair:
+            continue
+        for cell, rounds in sorted(rounds_by_cell.items()):
+            cell_pair, arm = cell.rsplit("-", 1)
+            if cell_pair != pair:
+                continue
+            units.append({
+                "record_id": record_id, "pair": pair, "arm": arm,
+                "series": [None] * len(rounds),
+                "band": _band(pair, record_id, reportable),
+            })
+    return units
+
+
+def build(verdicts_path: pathlib.Path, size: int, seed: int,
+          generation: str | None = None) -> tuple[dict, dict]:
     ledger = _ledger()
     frozen = json.loads((HERE / "holdout.json").read_text())
     reportable = set(frozen.get("reportable_records") or [])
 
-    units = []
+    if generation:
+        units = _units_from_runs(generation, ledger, reportable)
+        verdicts: dict = {}
+    else:
+        payload = json.loads(verdicts_path.read_text())
+        verdicts = payload.get("verdicts") or {}
+        units = []
     for record_id, arms in verdicts.items():
         record = ledger.get(record_id) or {}
         pair = str(record.get("pair", ""))[-4:]
@@ -184,7 +234,8 @@ def build(verdicts_path: pathlib.Path, size: int, seed: int) -> tuple[dict, dict
             "predicate": record.get("predicate") or record.get("primary_predicate"),
             # 判定所需的产出必须在样本里，否则复判者无从判断 —— 首版只给了台账 statement，
             # 那样复判的是「这条缺陷听起来像不像被发现了」，不是同一件事。
-            "pipeline_output_per_round": _blind_output(u["pair"], u["arm"], len(u["series"])),
+            "pipeline_output_per_round": _blind_output(u["pair"], u["arm"], len(u["series"]),
+                                                       generation or "v22"),
             "task": ("对每一轮的 pipeline_output 逐轮判断：其中是否有一条与 expected_defect "
                      "**语义同一**的发现（同一命题，不是同一元素 —— 触及了正确元素却得出相反"
                      "结论算未发现）。输出每轮 1/0，并给一句依据。"),
@@ -215,6 +266,8 @@ def main(argv: list[str] | None = None) -> int:
                         default=HERE / "verdicts" / "v22_manual.json")
     parser.add_argument("--size", type=int, default=40)
     parser.add_argument("--seed", type=int, default=20260807)
+    parser.add_argument("--generation", help="从 runs/paper1/matrix-<gen> 直接构造单元，"
+                                             "不需要已有判定表（新代次用这个）")
     parser.add_argument("--verify", action="store_true")
     args = parser.parse_args(argv)
 
@@ -232,7 +285,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ok: {path} 无 pair 指纹、无带名称残留")
         return 0
 
-    sample, key = build(args.verdicts_json, args.size, args.seed)
+    sample, key = build(args.verdicts_json, args.size, args.seed, args.generation)
     OUT.mkdir(exist_ok=True)
     (OUT / "sample.json").write_text(json.dumps(sample, ensure_ascii=False, indent=1))
     (OUT / "key.json").write_text(json.dumps(key, ensure_ascii=False, indent=1))
