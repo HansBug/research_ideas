@@ -96,3 +96,32 @@ A1（`_reject_transient_subject`）挂在**主张槽**上：`occupancy_after` / 
 另外要先回答一个问题再动手：这 22 条**是多报吗**？标题看着像伪状态可达性主张，但
 `0018` 的参考模型确实要求 fork 的两个分支都能落地。**先做人工判定，再谈修法** —— 上一代次
 「先诊断后核验」的顺序反了一次，代价是根因诊断整条作废。
+
+---
+
+# v22 发布规格（第 5 步）
+
+v21 的两个 gist 是完整的 —— `gh gist list` 显示「10 files」只是**列表页截断**，
+`gh api gists/<id> --jq '.files | length'` 实为 34 与 43，三轮各 11 格齐全。核实过才敢照做。
+
+v22 是 66 格，所以：
+
+| gist | 文件数 | 内容 |
+| :-- | --: | :-- |
+| 可读 | 1 + 66 = **67** | `README.md` + `run{N}-<pair>-<profile>-readable.md` |
+| 审计 | 1 + 66 + 附件 = **76±** | `README.md` + `*-audit.json` + `_*.json` 附件 |
+
+审计 gist 的 `_*.json` 附件（沿用 v21 的构成并按本轮新增）：
+
+    _verdicts_manual.json          人工判定表（含 direction 形态）
+    _gate_refusals.json            count_refusals 输出
+    _rule_surface.json             measure_rule_surface 输出
+    _holdout_with_burn_record.json 冻结的 holdout.json
+    _run_manifest.json             开跑 commit + 同质性核验结果      ← 本轮新增
+    _model_drift.json              两条臂的模型代换审计              ← 本轮新增
+    _rederived_admissibility.json  双报加法侧                        ← 本轮新增
+    _v21_as_published.json         双报对照：v21 原值
+    _v21_rederived.json            双报对照：v21 在当前谓词下重导出
+
+发布前核对：`gh auth status` 的 token scopes 含 `gist`（已核）、活动账号是 `HansBug`（已核）、
+PR #169 可访问（已核）。
