@@ -51,7 +51,15 @@ def audit(base: Path) -> tuple[dict, list[str]]:
     problems: list[str] = []
     for run in sorted(base.glob("run*")):
         for cell in sorted(p for p in run.iterdir() if p.is_dir() and (p / "records").is_dir()):
+            # `0047-gpt.try1` 是失败重试留下的目录。上一版把它当成一条名为 `gpt.try2` 的臂，
+            # 于是漂移审计里凭空多出一条臂，而它的调用其实属于同一条 gpt 臂的作废尝试。
+            # 作废的尝试**仍然要审**（若网关在那次代换了模型，那是真事实），但要归到它自己
+            # 的臂上，并单独标出来 —— 它不进主结果统计。
             arm = cell.name.rsplit("-", 1)[-1]
+            attempt = ""
+            if "." in arm:
+                arm, _, attempt = arm.partition(".")
+                arm = f"{arm} (作废尝试 {attempt})"
             for record, payload in _calls(cell):
                 asked = next((payload.get(k) for k in ASKED if payload.get(k)), None)
                 served = next((_dig(payload, k) for k in SERVED if _dig(payload, k)), None)
