@@ -209,3 +209,30 @@ PR #169 可访问（已核）。
 v21 run1 该格 0 条排除，v22 有 5 条 `representation_debt`。这不是「v22 多排除了」——v21 那一格
 根本没产出这些断言（issue 数同为 1）。所以是**生产侧写出了更多行为类主张，而归因层判它们是表示
 债务**。这条要在根因分析里追：多写出来的主张为什么全落在债务侧。
+
+## 观察 7：两条臂的修订负担差近两倍，且集中在 `convert_assertions`
+
+| 臂 | 格 | 平均最大修订轮数 | `convert_assertions` failed | `split_requirements` failed |
+| :-- | --: | --: | --: | --: |
+| claude | 33 | **2.4** | 18（0.5/格）| 14（0.4/格）|
+| gpt | 33 | **4.6** | 26（0.8/格）| 8（0.2/格）|
+
+两次触发 launcher 重试的格（`run1/0047-gpt`、`run2/0038-gpt`）都是 gpt 且都停在
+`convert_assertions`。但**该阶段失败在两条臂上都常见**（claude 10 格、gpt 14 格的日志里出现过），
+所以它不是 gpt 特有的失败模式，差别在**收敛速度**：gpt 需要更多轮才写出通过 precheck 的断言。
+
+反过来，`split_requirements` 的失败 claude 更多（0.4 vs 0.2/格）——两条臂卡在不同环节。
+
+### 与判定结果对照，这个差异有解释
+
+gpt 在 `convert_assertions` 上多花的轮次，与它反复产出「要求一个自造具名元素」的形态一致
+（`Inactive`、`Target_Search_Tasks`、`Accelerating_or_Cruising`、三个类别化 `*_Collision_Detected`）：
+那些路径在模型里不存在，于是 precheck 拒、修订、再拒。而当它要求的名字**确实来自 NL**
+（`auto_final`、`Join1`、`choice3`）时就一次通过并命中。
+
+**所以「gpt 修订更多」与「gpt 命名施压」很可能是同一根因的两个面**：缺少一步「这个名字是 NL 给的
+还是我造的」的区分。这条把观察 2（伪状态）、0050 的反例、以及这里的修订负担串成了一条线，是第 6 步
+最值得先验的假设。
+
+⚠️ 仍是**假设**。要验它需要看 `convert_assertions` 的 revision feedback 内容，逐条确认被拒的断言
+是否绑了自造路径 —— 那是第 6 步的工作，不在运行期间做。
