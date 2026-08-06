@@ -49,7 +49,7 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
 )
 
 from .dependencies import dependency_closure
-from .predicates import EXISTENCE_PREDICATES, PREDICATE_NAMES
+from .predicates import EXISTENCE_PREDICATES, PREDICATE_NAMES, PREDICATES
 
 __all__ = [
     "EvidenceCapability",
@@ -957,6 +957,14 @@ _HAS_CJK = re.compile(r"[\u3400-\u9fff\u3000-\u303f\uff00-\uffef]")
 #: pattern happily reads those as element names -- `terminating_transitions 为空` yielded
 #: `terminating_transitions`, an input field, once the CJK filter removed the prose around it.
 _REPORTING_VOCABULARY = frozenset(PREDICATE_NAMES) | {
+    # The binding slots themselves. `within_cycles` was read as a missing element on
+    # `v8run2/0050-claude`, one generation after the CJK and predicate-name filters went in --
+    # the same mistake wearing a third costume. Derived from the predicate table rather than
+    # listed by hand so a new slot joins automatically.
+    slot
+    for predicate in PREDICATES
+    for slot in getattr(predicate, "bindings", ()) or ()
+} | {
     "terminating_transitions",
     "declared_model_vocabulary",
     "compiler_owned_variables",

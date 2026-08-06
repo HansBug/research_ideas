@@ -219,3 +219,19 @@ def test_the_two_word_nl_phrase_it_exists_for_still_works() -> None:
     findings = conceded_omission_findings((CONCEDED,), DECLARED)
     assert len(findings) == 1
     assert "auto final" in findings[0]
+
+
+def test_a_binding_slot_name_is_not_a_missing_element() -> None:
+    """`within_cycles` on `v8run2/0050-claude` -- the same mistake in a third costume.
+
+    The CJK filter and the predicate-name filter both went in one generation earlier, and the
+    gate still read a slot name as an element the NL had named. Slots are now derived from the
+    predicate table rather than listed, so a new one joins the exclusion automatically.
+    """
+    conceded = _Req(
+        "REQ-M006",
+        "occupancy_after",
+        {"source": f"{NS}.AutonomousMode", "target": f"{NS}.HumanDrivingMode"},
+        ("模型未声明该迁移的 within_cycles 约束,按默认 bound 处理",),
+    )
+    assert conceded_omission_findings((conceded,), DECLARED) == ()
