@@ -207,6 +207,82 @@
     "claude": "implies",
     "gpt": "implies"
    }
+  },
+  "EIS-0029-01": {
+   "claude": [
+    1,
+    1,
+    1
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ],
+   "direction": {
+    "claude": "direct",
+    "gpt": "direct"
+   }
+  },
+  "EIS-0029-02": {
+   "claude": [
+    1,
+    1,
+    1
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ],
+   "direction": {
+    "claude": "direct",
+    "gpt": "direct"
+   }
+  },
+  "EIS-0029-03": {
+   "claude": [
+    1,
+    1,
+    1
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ],
+   "direction": {
+    "claude": "dual",
+    "gpt": "dual"
+   }
+  },
+  "EIS-0029-04": {
+   "claude": [
+    1,
+    1,
+    1
+   ],
+   "gpt": [
+    1,
+    1,
+    null
+   ],
+   "direction": {
+    "claude": "direct",
+    "gpt": "direct"
+   }
+  },
+  "EIS-0029-05": {
+   "claude": [
+    0,
+    0,
+    0
+   ],
+   "gpt": [
+    0,
+    0,
+    null
+   ]
   }
  },
  "over": {},
@@ -262,6 +338,11 @@
    "EIS-0006-01 = claude [1,1,1] / gpt [0,1,1]": "台账 cardinality(UAVSwarmStateMachine.Searching, 3)：NL『operates within three different state areas』，本模型一个区域都没有。claude 三轮均发「UAVSwarmStateMachine 直接子状态数为 4，与三个状态区域不符」—— scope 写的是顶层而非 Searching，**但 v21 把同一措辞判为命中**（v21 EIS-0006-01 = [1,1,1]，run1 那条逐字是「UAVSwarmStateMachine 的直接子状态数量不等于 3」），按同一口径判命中，不中途改判据。gpt：run2「Searching 未声明三个直接非伪状态区域」、run3「Searching 未建模为包含三个状态区域的复合目标搜索区域」—— 连 scope 都对上，命中；run1 只发「缺少目标搜索任务复合上下文 Target_Search_Tasks」，那是要求一个 NL 未命名的状态，与 0032/0047 上 gpt 的命名严格性形态同类，判未命中。",
    "EIS-0006-02 = 六格全中": "台账 effect_declared(...AttackingTarget, ...)：攻击完成后 UAV 数量递减，模型无 effect、无 guard、无计数文本。六格都发「未声明表示无人机数量的变量，导致数量减少义务无法承载」—— 按 HIT_CRITERION §3『蕴含更根本的原因』：无变量则不可能有递减效果，且定位更上游 → implies。",
    "EIS-0006-03 = claude [0,1,0] / gpt [1,1,1]，**与 v21 的全 0 不同**": "台账 terminates(Searching)：NL『Before the mission is completed』预设终结条件，模型无终态无完成事件。gpt 三轮都发「缺少任务完成标志 mission_completed」/「缺少任务完成条件变量」；claude 仅 run2 发「模型未声明『任务完成』标志(MissionComplete)，持续性释放条件无法评估」。判 implies：没有完成标志则不存在完成条件，终止性主张不可能成立，且定位更上游。v21 该条全 0 —— 差异来自产出，不是判据变化（v21 六格没有一条提到完成标志）。"
+  },
+  "0029（历史格，共演化观测）": {
+   "EIS-0029-01 / -02 / -04 = 五格全中，direct": "台账 containment(AutonomousMode, .InitialState)、guard_distinguishable(enter_hwy, …)、initial_target(HighwayMode, .enter_hwy) —— 五格逐条逐字对应，措辞不同而已。",
+   "EIS-0029-03 = 五格全中，dual": "台账是负向命题 `not edge_declared(cruise, dist_to_exit<2, FinishState)`；模型说「cruise 在 dist_to_exit<2 时被路由至 FinishState 而非 exit_hwy」——「不应存在错的边」与「应存在对的边」的正向对偶。`HIT_CRITERION.md` §3 的 dual 例子逐字就是这一条（EXP-0029-IT-001），照它判。",
+   "EIS-0029-05 = 全 0，且**与 v21 判定冲突，此处显式标出**": "台账全文：参考**只有一个共享的 AutonomousMode 级 FinishState**，缺陷是生成侧把它绑进了 HighwayMode，于是 UrbanMode 的 auto_finished 经 R45RouteToken=26 路由到 HighwayMode 并进入 HighwayMode.FinishState。primary = containment(AutonomousMode, AutonomousMode.FinishState)。模型三格发的是「UrbanMode 未声明**独立的** FinishState 子状态」—— 要求的是 UrbanMode 自己的局部完成态，**方向与台账相反**（台账要一个共享的、放在上一层）。用同一句反问：一个**正确**的模型（共享 FinishState 在 AutonomousMode 级）里，「auto_finished 无法在 UrbanMode **内**完成」照样成立 —— 所以不蕴含台账命题。与 0032/0047/0006 上判未命中的三处用的是同一个判据。"
   }
  },
  "_pending": {
@@ -274,5 +355,16 @@
   "实测": "0047 全部四格 `UnsupportedEvidence` 拒答 **0 条**（count_refusals 逐格确认），而门的文案「before the machine has entered anything」在记录里出现 59 次 —— 它是以**修订反馈**形式在 `split-requirements-failed` 阶段起作用的，不是拒答。生产者据此改了编码：run1/claude 在 4 轮修订后用 `event_consumed(source=<根>)` 而非 `source=\"[*]\"`，**绕过了门并找到了同一缺陷**。",
   "所以正确的说法是": "门封死的是**台账那一种编码**，不是**那个缺陷**。§9.1 的机制论证（八种 phase ×编码组合全拒）本身没错 —— 它测的是台账写法；错在从中推出「该记录不可达」。",
   "方向": "这是**对我有利**方向的更正（可达记录从 2 条回到 3 条），所以更要核实清楚：拒答计数、门文案出现位置、修订轮数、实际断言表达式四项均已逐一查过。"
+ },
+ "_conflicts_with_v21": {
+  "EIS-0029-05": {
+   "v21 判定": "[1, 1, 0]（命中 run1/run2）",
+   "v21 run1 的依据": "「UrbanMode 未声明独立的 FinishState 子状态，auto_finished=true 的完成占据无法评估」—— 与 v22 三格所发**同一形态**",
+   "v22 判定": "[0, 0, 0]（未命中）",
+   "冲突性质": "**同一形态在两代次被判成相反结果**，二者必有一错。我按上述反问判未命中；若 v21 的读法成立，v22 该记录应为 [1,1,·]。",
+   "为什么显式标出而不是静默相异": "§3.5 条款 4 禁止中途更改口径，而『收紧』与『放宽』同样是更改。这条不是我有意收紧 —— 是我按 HIT_CRITERION §4「不同缺陷共用状态名」读出来的结果与 v21 不同。判定者不能既当判据的解释者又当冲突的裁决者，所以：**两种读法下的数字都进报告**，由发布后的 review 裁决。",
+   "影响面": "0029 是**历史格**（共演化观测），无论哪种读法都不进能力主张分母。所以这条冲突在科学结论上零成本 —— 这正是应当把它摆出来而不是私下选一个的理由。",
+   "两种读法下的 0029 hit@1（claude 三轮）": "按我的读法 12/15；按 v21 的读法 15/15。"
+  }
  }
 }
