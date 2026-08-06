@@ -1143,7 +1143,38 @@ class PredicateAPI:
                 "nothing; assert the scope's existence first"
             )
         rows = self.structure.states(parent=_need(scope, "scope"), recursive=False, exact=True)
-        return len([r for r in rows if not bool(r.is_pseudo)]) == want
+        # The `is_pseudo` filter above already concedes that this count needs to range over
+        # what the *author* declared rather than over every node present. It is incomplete: a
+        # fail-closed stand-in for a composite whose entry the author never wrote is an
+        # ordinary named state, `is_pseudo` false, and it lands in the count.
+        #
+        # The consequence runs both ways, which is why filtering is a correction and not a
+        # loosening. Two authored children plus one inserted, against a sentence enumerating
+        # three: the count reaches three, the requirement passes, and a real shortfall is
+        # masked. Three authored plus one inserted, same sentence: the count reaches four and
+        # a finding is published about an element the author never wrote. Both shapes are in
+        # the corpus and both decided three rounds of one generation.
+        #
+        # `source_exclusions` is the same table attribution reads, so "what the author wrote"
+        # has one definition in this pipeline. A leaf-name table would be a second one, and
+        # that is the mistake this repository has already made twice.
+        authored, excluded = [], []
+        for row in rows:
+            if bool(row.is_pseudo):
+                continue
+            path = str(getattr(row, "path", "") or "")
+            if f"compiler:state:{path}" in self.source_exclusions:
+                excluded.append(path)
+            else:
+                authored.append(path)
+        # Counting is the one predicate whose answer cannot be reconstructed from its
+        # arguments, and it recorded only its scope -- so a polluted extension was invisible
+        # in the trace and two verdicts turned on a member no reader could see. The excluded
+        # members are reported under a prefix the reference matcher does not recognise, so
+        # naming them cannot itself create representation debt.
+        self._note(*authored)
+        self._note(*(f"excluded_member:{path}" for path in excluded))
+        return len(authored) == want
 
     # ---- Family B: what the model does at runtime --------------------
     def occupancy_after(
