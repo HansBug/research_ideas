@@ -65,7 +65,14 @@ _RULES: tuple[tuple[str, str], ...] = (
     # 这条是本工具在 v22 数据上**拒绝运行**才暴露的：它匹配不到任何规则，而工具的设计是
     # 「未识别的消息是错误，不是 `other` 桶」。若当初给了 catch-all，这个形态会一直不被看见 ——
     # `CLAUDE.md` §7 的「未分类 diagnostic 不能静默放过」在这里的具体形态。
-    ("invalid_cycle_budget", "within_cycles must be at least 1"),
+    # 锚在这条校验的**不变部分**，不锚参数名。首版写的是 `"within_cycles must be at least 1"` ——
+    # 而同一条校验对不同谓词用不同参数名（`within_cycles` / `bound`），于是规则只覆盖了一半，
+    # 下一代次数据上又报一次未分类。
+    #
+    # 这是「枚举式匹配器」那个老毛病的复发：泄漏检测器曾同一错误连续七次以新拼写复发，正解是
+    # 停止枚举、改按性质匹配。我记下了那条教训，然后在同一天又写了一个按拼写枚举的匹配器。
+    # 「零或负预算什么也检查不了」这句与参数名无关，是这条校验的真正身份。
+    ("invalid_step_budget", "a zero or negative budget checks nothing"),
 )
 
 #: Buckets that are the pipeline's own gates. `refuse@1` is about what the gates removed, so
@@ -75,7 +82,7 @@ GATE_RULES = frozenset(
      "pseudo_initial", "malformed_name", "unsupported_binding",
      "no_matching_transition", "ambiguous_initial",
      # 与 `malformed_name` 同理算门：它确实移除了一条断言，且移除的原因在管线自己一侧。
-     "invalid_cycle_budget"}
+     "invalid_step_budget"}
 )
 
 
