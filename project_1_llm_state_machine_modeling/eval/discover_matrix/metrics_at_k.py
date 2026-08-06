@@ -17,7 +17,12 @@ import json, sys, collections, pathlib
 
 d = json.loads(pathlib.Path(sys.argv[1]).read_text())
 V = d["verdicts"]; O = d.get("over", {})
-HOLD = set(json.loads((pathlib.Path(__file__).resolve().parent / "holdout.json").read_text())["holdout"])
+_FROZEN = json.loads((pathlib.Path(__file__).resolve().parent / "holdout.json").read_text())
+# 三带，不是两带。`holdout` 里有三个 pair 因为参与了 A1 的编写（0018/0038 是动机，0048 同
+# NL 组）而不再能支撑能力主张；把它们留在 hold-out 带里，等于让「方法+样本共演化」的观测
+# 冒充样本外证据。它们照常全量报出，只是单独成带。
+HOLD = set(_FROZEN.get("reportable_holdout") or _FROZEN["holdout"])
+BURNED = set(_FROZEN.get("burned") or {})
 
 def group(ids, name):
     if not ids: return
@@ -45,13 +50,17 @@ def group(ids, name):
     for k, raw, kind in rows: print(f"   {k:16} {raw}  {kind}")
 
 hold_ids = [k for k in V if k.split("-")[1] in HOLD]
-hist_ids = [k for k in V if k.split("-")[1] not in HOLD]
+burn_ids = [k for k in V if k.split("-")[1] in BURNED]
+hist_ids = [k for k in V if k.split("-")[1] not in HOLD and k.split("-")[1] not in BURNED]
 group(hold_ids, "HOLD-OUT（能力主张的唯一依据）")
+group(burn_ids, "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）")
 group(hist_ids, "历史四格（共同演化观测，不作能力主张）")
 
 if O:
     print("\n### 多报")
-    for name, keep in (("hold-out", lambda p: p in HOLD), ("历史四格", lambda p: p not in HOLD)):
+    for name, keep in (("hold-out", lambda p: p in HOLD),
+                       ("已烧毁 hold-out", lambda p: p in BURNED),
+                       ("历史四格", lambda p: p not in HOLD and p not in BURNED)):
         sel = {p: v for p, v in O.items() if keep(p)}
         vals = [x for v in sel.values() for x in v if x is not None]
         if not vals:

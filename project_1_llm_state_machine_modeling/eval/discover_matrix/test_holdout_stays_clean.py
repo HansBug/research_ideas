@@ -118,4 +118,75 @@ def test_the_freeze_refuses_to_be_overwritten() -> None:
     assert holdout.main(["--freeze"]) == 2
 
 
+# --- v21：烧毁记账 ---
 
+
+def _frozen() -> dict:
+    return json.loads((HERE / "holdout.json").read_text(encoding="utf-8"))
+
+
+def test_burned_and_reportable_partition_the_frozen_set() -> None:
+    """Every frozen pair is either still usable for a capability claim or recorded as burned.
+
+    A pair that is in neither would drop out of the report silently; one in both would put a
+    co-evolved cell back into the capability band, which is the whole thing this accounting
+    exists to prevent.
+    """
+    d = _frozen()
+    assert set(d["burned"]) | set(d["reportable_holdout"]) == set(d["holdout"])
+    assert not (set(d["burned"]) & set(d["reportable_holdout"]))
+
+
+def test_the_reportable_denominator_adds_up() -> None:
+    """The shrunken denominator has to be derivable, not asserted.
+
+    23 records became 9 by removing three pairs; if that arithmetic is wrong the capability
+    claim is computed over a denominator nobody can reproduce.
+    """
+    d = _frozen()
+    detail = {x["pair"]: x for x in d["holdout_detail"]}
+    expected = sum(len(detail[p]["record_ids"]) for p in d["reportable_holdout"])
+    assert d["reportable_judgeable_total"] == expected
+    layers: dict[str, int] = collections.Counter()
+    for pair in d["reportable_holdout"]:
+        layers.update(detail[pair]["by_layer"])
+    assert d["reportable_layer_coverage"] == dict(layers)
+
+
+def test_every_burn_records_its_mechanism_and_evidence() -> None:
+    """A burn with no stated reason cannot be checked, and would read as an excuse."""
+    for pair, entry in _frozen()["burned"].items():
+        assert entry["mechanism"] in {"motive", "nl_group"}, pair
+        assert entry["evidence"].strip(), pair
+        assert entry["since_commit"].strip(), pair
+        assert entry["records"], pair
+
+
+def test_verify_still_fails_on_a_burn_that_was_not_recorded() -> None:
+    """Otherwise a green suite cannot be told from a detector that stopped working.
+
+    Reconciling against `burned` makes the check pass on known burns by design, so the
+    detector needs a positive control: name a reportable pair and `--verify` must refuse.
+    """
+    import subprocess
+
+    frozen = HERE / "holdout.json"
+    original = frozen.read_text(encoding="utf-8")
+    d = json.loads(original)
+    # `0018` is the one pair known to match the enumerating detector (`EIS-0018-` and
+    # `pair 0018` both appear in commit bodies). Un-recording its burn is therefore a
+    # faithful simulation of a burn nobody wrote down, and the check must catch it.
+    victim = "0018"
+    assert victim in d["burned"], "the positive control needs a pair that is actually named"
+    d["burned"].pop(victim)
+    d["reportable_holdout"] = sorted(set(d["reportable_holdout"]) | {victim})
+    try:
+        frozen.write_text(json.dumps(d, ensure_ascii=False, indent=1) + "\n")
+        done = subprocess.run(
+            [sys.executable, str(HERE / "holdout.py"), "--verify"],
+            capture_output=True, text=True, cwd=str(HERE),
+        )
+        assert done.returncode == 1, (done.returncode, done.stdout, done.stderr)
+        assert victim in done.stderr
+    finally:
+        frozen.write_text(original)

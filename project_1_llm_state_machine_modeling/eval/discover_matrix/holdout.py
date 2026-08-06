@@ -349,7 +349,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{FROZEN.name} missing; run --freeze first", file=sys.stderr)
             return 2
         frozen = json.loads(FROZEN.read_text())
-        held = list(frozen["holdout"])
+        # Reconcile against what is *recorded* as burned rather than re-deciding it. Once a
+        # pair is burned, the report has to explain why -- and explaining why means writing
+        # its id down, which trips a spelling detector forever after. Under the old check
+        # there was no way to record a burn without leaving the suite permanently red, so
+        # the red stopped meaning "something new happened".
+        burned = frozen.get("burned") or {}
+        reportable = frozen.get("reportable_holdout") or frozen["holdout"]
+        held = list(reportable)
         # 只校验「冻结集是否仍然未被污染」，不重算候选池。
         #
         # 上一版把 `frozen["holdout"] == compute()["holdout"]` 当作校验，于是第一次正常使用
@@ -360,7 +367,7 @@ def main(argv: list[str] | None = None) -> int:
         # 持续成立的只有规则 1（未被点名）与规则 3（可判定）。
         source, commits = _source_and_test_text(), _commit_text()
         problems = []
-        burned = {}
+        burned_now = {}
         for pair in held:
             pattern = _naming(pair)
             where = []
@@ -369,12 +376,26 @@ def main(argv: list[str] | None = None) -> int:
             if pattern.search(commits):
                 where.append("commit_body")
             if where:
-                burned[pair] = where
-        if burned:
+                burned_now[pair] = where
+        if burned_now:
             problems.append(
-                f"held-out pairs have since been named: {burned}. A hold-out that has been "
-                "written about is no longer one; pick replacements and freeze a new set, "
-                "stating in the report that the old one burned."
+                f"held-out pairs have since been named: {burned_now}. A hold-out that has "
+                "been written about is no longer one; record it under `burned` with its "
+                "mechanism and evidence, move it out of `reportable_holdout`, and say so in "
+                "the report. If no replacement exists, say that too."
+            )
+        # A pair cannot be both burned and reportable; the two lists are what the bands in
+        # `metrics_at_k.py` read, so an overlap would put co-evolved cells back into the
+        # capability claim without anything noticing.
+        overlap = sorted(set(burned) & set(reportable))
+        if overlap:
+            problems.append(f"pairs are both burned and reportable: {overlap}")
+        if burned:
+            print(
+                f"note: {len(burned)} held-out pair(s) recorded as burned "
+                f"({', '.join(sorted(burned))}); capability claims use "
+                f"{len(reportable)} pair(s).",
+                file=sys.stderr,
             )
         ledger = json.loads(LEDGER.read_text())
         judgeable_now = collections.Counter(

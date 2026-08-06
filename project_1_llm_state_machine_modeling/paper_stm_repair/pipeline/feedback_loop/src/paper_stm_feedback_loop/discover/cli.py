@@ -419,6 +419,12 @@ def main(argv: list[str] | None = None) -> int:
                 "misspelled_binding_findings",
                 "placeholder_bindings",
                 "adjudication-side checks (6 sites)",
+                # v21/A1. Its trigger is `is_pseudo`, derived by pyfcstm from the model and
+                # naming no pair -- but it was written after watching 0018/0038 publish 17
+                # vacuously-false findings, and every pair it can fire on shares one NL group
+                # with those two. So it is pair-motivated in origin whatever its wording, and
+                # its effect is structurally unmeasurable in this corpus.
+                "transient_subject (A1)",
             ],
             # The splitter/converter prompts were themselves tuned on the four historical cells
             # and have no switch at all. This is the ceiling on what any ablation can show.
