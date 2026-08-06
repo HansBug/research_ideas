@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import pathlib
 import random
@@ -155,8 +156,18 @@ def build(verdicts_path: pathlib.Path, size: int, seed: int) -> tuple[dict, dict
     for u in picked:
         pair_alias.setdefault(u["pair"], f"PAIR-{chr(65 + len(pair_alias))}")
 
-    sample = {"seed": seed, "unit_count": len(picked), "items": []}
-    key = {"seed": seed, "pair_alias": pair_alias, "items": []}
+    # `unit_id` 是**位置编号**，不是内容地址 —— 换个 `--size` 就换一套映射（配额与最终 shuffle
+    # 都随 size 变）。一次实测：40 单元的盲判结果配 68 单元的 key，算出 κ = −0.2，而那个数会被
+    # 读成「两个判定者毫无一致性」—— 一个足以推翻整套判定的结论，真相只是编号错配。
+    #
+    # 所以两边都带 `sample_id`：`unit_id → record_id|arm` 映射的哈希。配错 key 时它对不上，
+    # `blind_agreement.py` 拒绝计算而不是给出一个看起来合理的数。
+    mapping = "\n".join(f"{i+1:03d}:{u['record_id']}|{u['arm']}" for i, u in enumerate(picked))
+    sample_id = hashlib.sha256(mapping.encode()).hexdigest()[:16]
+    sample = {"seed": seed, "sample_id": sample_id, "unit_count": len(picked), "items": [],
+              "note": ("把 sample_id 抄进你的盲判结果文件（顶层 `sample_id` 字段）。"
+                       "它让「结果配错了 key」变成一个报错，而不是一个错的 κ。")}
+    key = {"seed": seed, "sample_id": sample_id, "pair_alias": pair_alias, "items": []}
     for i, u in enumerate(picked, 1):
         record = ledger.get(u["record_id"]) or {}
         alias = pair_alias[u["pair"]]
