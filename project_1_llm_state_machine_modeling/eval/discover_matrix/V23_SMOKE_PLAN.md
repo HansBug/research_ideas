@@ -116,3 +116,36 @@ claude 臂 `decision: accept`，评审员用自己的话背书了 v22 prompt 曾
 
 ⚠️ 但**不能**据此说「评审员由攻转守」：v22 的 55 份含 containment 的评审记录里，51 份已有辩护性
 措辞，仅 4 份带攻击性措辞。改进在生成侧，不在评审侧。
+
+---
+
+# 66 格运行期观察（滚动记录，第 4 步逐条读时的优先级清单）
+
+## 优先级 1：`0018-claude` 三件事同时发生
+
+| 量 | v22 同格 | v23 run1 |
+| :-- | :-- | :-- |
+| coverage | `full` | **`partial`** |
+| issues | 10 | **5** |
+| `coverage_gaps` | 0 | **0** ← 与 partial 自相矛盾 |
+| `reported_satisfied` vs `deterministic` | 相等 | **15 vs 14** |
+| `unaccounted_safe_false_assertions` | —— | **1** |
+
+`partial` 却 `coverage_gaps = []` 这个组合本身需要解释。而 v22 的 Q3 分析明确记录过
+「`reported == deterministic`，无记账偏差 —— 问题不在裁决」，**现在这个等式破了**。
+
+`0018` 是 fork/join 伪状态族，也正是 A1 规则的编写来源。单格单轮不足以定性，但它是本次运行最需要
+逐条读的格。`unaccounted_safe_false_assertions` 属「丢发现」类，且是早前呈现里根本没印的两个键之一。
+
+## 已排除的担忧：`EIS-0035-02` 仍命中
+
+`0035-claude` 的 issue 数 5 → 4，但**台账命中未丢**：v23 第 2 条「缺失 DoorOpen 在 Door_Closed 下
+回到 DoorShut 的迁移」与台账 statement 语义同一。差别在第 5 条 —— v22 报 `timer_running` 变量未
+声明，v23 改报 `during` 动作缺失，是不同的多报项，不是丢了命中。
+
+**这条必须人工读原文才能判**：只看 issue 数会得出「命中丢了」的相反结论。
+
+## 十格同格对照：非系统性回归
+
+issue 净变化 **−2**（0038 +3、0006 +1、0043 +1 vs 0018 −5、0029 −1、0035 −1），coverage 状态变化
+1 格。**不是系统性回归**，是噪声加 `0018` 一处大降。
