@@ -75,6 +75,40 @@ def test_a_bare_pair_with_no_hierarchy_is_left_alone() -> None:
     assert capability.vacuous_sibling_conjunction(_query("A", "B")) is None
 
 
+@pytest.mark.parametrize(
+    "left,right",
+    [("M", "Sys.M.A"), ("Sys.M.A", "M"), ("A", "Sys.M.B")],
+)
+def test_a_bare_name_against_a_path_is_left_alone(left: str, right: str) -> None:
+    """One side without hierarchy is a case this rule cannot decide, so it does not.
+
+    `M` may be an unqualified reference to `Sys.M`, which contains `Sys.M.A` and is co-active
+    with it -- refusing would cost a real check on a guess. The old rule required a dot on
+    the pair it compared, and generalising the *other* half of the test must not quietly
+    drop that: `"." not in left or "." not in right` keeps it, `and` would have lost it.
+    """
+    assert capability.vacuous_sibling_conjunction(_query(left, right)) is None
+
+
+def test_the_finding_does_not_call_cousins_siblings() -> None:
+    """This string goes back to the producer as revision feedback.
+
+    A cousin pair described as "siblings of one sequential region" is simply untrue, and a
+    wrong reason invites the producer to argue with the gate instead of fixing the query.
+    """
+    cousins = (
+        'invariant(scope="Sys", condition=\'!(active("Sys.M1.A") && active("Sys.M2.B"))\')'
+    )
+    finding = capability.condition_non_vacuity_findings(cousins)[0]
+    assert "siblings" not in finding, finding
+    assert "neither containing the other" in finding
+
+    siblings = (
+        'invariant(scope="Sys", condition=\'!(active("Sys.M.A") && active("Sys.M.B"))\')'
+    )
+    assert "siblings of one sequential region" in capability.condition_non_vacuity_findings(siblings)[0]
+
+
 def test_the_generalisation_catches_what_the_sibling_rule_missed() -> None:
     """The regression this exists to prevent, stated as a contrast.
 
@@ -96,3 +130,50 @@ def test_condition_findings_report_the_cousin_case() -> None:
     findings = capability.condition_non_vacuity_findings(expression)
     assert findings, "a cousin conjunction must produce a finding"
     assert any("Sys.M1.A" in f and "Sys.M2.B" in f for f in findings), findings
+
+# --- 运行前 review 补的三条 ---
+
+
+@pytest.mark.parametrize("left,right", [("Sys.M1", "Sys.M10"), ("Sys.M10", "Sys.M1")])
+def test_numeric_siblings_are_not_mistaken_for_nesting(left: str, right: str) -> None:
+    """`Sys.M10` starts with `Sys.M1` as a *string* but is not inside it.
+
+    A prefix test written without the separator reads them as nested and lets the pair
+    through -- a regression on a case the same-parent rule already caught. The corpus has
+    exactly these shapes (`fork1`/`fork2`, `Join1`/`Join2`), so this is a live trap.
+    """
+    assert capability.vacuous_sibling_conjunction(_query(left, right)) == (left, right)
+
+
+def test_a_negated_operand_makes_the_conjunction_satisfiable() -> None:
+    """`!active(A) && active(B)` says "in B and not in A", which two siblings satisfy easily.
+
+    The detector matches on the inner `active(...)` substring, so the leading `!` is invisible
+    to it and the pair is refused on a reading that is the opposite of what was written.
+    Pre-existing, but generalising from siblings to every non-nested pair widens who it can
+    hit, and the refusal is fatal in `convert_assertions`.
+    """
+    assert capability.vacuous_sibling_conjunction(
+        '!(!active("Sys.M.A") && active("Sys.M.B"))'
+    ) is None
+    # The unnegated form must still be caught, or the fix has simply disabled the rule.
+    assert capability.vacuous_sibling_conjunction(
+        '!(active("Sys.M.A") && active("Sys.M.B"))'
+    ) == ("Sys.M.A", "Sys.M.B")
+
+
+def test_every_pair_of_a_multi_term_conjunction_is_examined() -> None:
+    """`findall` is non-overlapping, so a three-term conjunction was only half-checked.
+
+    `active(M) && active(M.A) && active(N.B)` matched `(M, M.A)` -- nested, admissible -- and
+    the vacuous `(M.A, N.B)` pair was never looked at. Pair 0047 contains a real three-term
+    condition, so this is not hypothetical.
+    """
+    query = (
+        '!(active("Sys.M") && active("Sys.M.A") && active("Sys.N.B"))'
+    )
+    found = capability.vacuous_sibling_conjunction(query)
+    assert found is not None, "the non-nested pair in a three-term conjunction must be found"
+    assert set(found) <= {"Sys.M", "Sys.M.A", "Sys.N.B"}
+    assert not (found[0].startswith(found[1] + ".") or found[1].startswith(found[0] + "."))
+

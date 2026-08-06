@@ -455,11 +455,14 @@ class PredicateAPI:
         the model is answerable for. Across the v20 hold-out set the same shape produced 17
         published findings on pairs `0018` and `0038`.
 
-        Scope, kept honest: this fires only where the projection renders the pseudo-state as
-        a `pseudo state` node. Where a `<<fork>>` carries a body it projects to a composite,
-        `occupancy_after` counts occupying a composite as occupying one of its leaves, and
-        those bindings answer True -- a different failure that this rule neither reaches nor
-        claims to.
+        Scope, and the reason for it is not what it first looks like. `is_pseudo` is set by
+        the `pseudo` keyword alone (`pyfcstm/dsl/listener.py:650`), and the validator forbids
+        a pseudo state from carrying a body, so `is_pseudo` implies leaf as a DSL invariant.
+        What actually bounds this rule is that the projection applies that keyword
+        *inconsistently*: pair `0018` marks nine routing nodes `pseudo state`, while `0048`
+        writes semantically identical `choice1..3` / `Junction2..3` as plain leaf states and
+        marks nothing. So the rule reaches `0018` and `0038` and not `0048` -- a property of
+        how the corpus was produced, not of the nodes themselves.
         """
 
         transient = self._transient_states()
@@ -1228,6 +1231,13 @@ class PredicateAPI:
         """
 
         self._require_well_formed_names(source=source, trigger=trigger)
+        # The fifth predicate of the occupancy family, and the only one where the claim lives
+        # in `source`: it asks whether the machine *remains* where `source` says. A transient
+        # node is never occupied, so `held={source}` never meets the active set and the answer
+        # is constant False -- measured as False across two behaviourally different models,
+        # for every trigger. The other four exempt `source` because there it states where the
+        # question is asked from; here it states what is being claimed, so it is guarded.
+        self._reject_transient_subject("stays_in", source=source)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
         # Both halves matter.  Without the consumption check an ignored event
         # looks identical to a declared self-loop, so the missing-self-loop

@@ -290,7 +290,14 @@ def mandatory_waiver(
 # one of them and every violation cost a full LLM round trip to discover.
 
 _ACTIVE_CALL = re.compile(r'active\(\s*"([^"]+)"\s*\)')
-_CONJUNCTION = re.compile(r'active\(\s*"([^"]+)"\s*\)\s*(?:&&|and)\s*active\(\s*"([^"]+)"\s*\)')
+#: One `active("path")` operand, remembering whether it was negated. Matching the operand
+#: rather than a whole two-term conjunction is what lets the pair-wise test below see every
+#: combination in a longer chain, and what lets it drop a `!` it previously could not see.
+_ACTIVE_OPERAND = re.compile(r'(!\s*)?active\(\s*"([^"]+)"\s*\)')
+
+#: Disjunction splits a condition into independent claims, so operands from different sides
+#: of a `||` are never jointly asserted and must not be paired.
+_DISJUNCTION = re.compile(r"\|\||\bor\b")
 
 
 def vacuous_sibling_conjunction(query: str) -> tuple[str, str] | None:
@@ -305,11 +312,50 @@ def vacuous_sibling_conjunction(query: str) -> tuple[str, str] | None:
     :return: the offending sibling pair, or ``None``.
     """
 
-    for left, right in _CONJUNCTION.findall(query):
-        if left == right:
-            continue
-        if left.rsplit(".", 1)[:-1] == right.rsplit(".", 1)[:-1] and "." in left:
-            return left, right
+    for disjunct in _DISJUNCTION.split(query):
+        # Only operands the disjunct *asserts* can contradict each other. `!active(A) &&
+        # active(B)` says "in B and not in A", which two siblings satisfy easily -- the old
+        # detector matched the inner substring and never saw the `!`, so it refused a query
+        # on the opposite of what was written.
+        asserted = [
+            path for negated, path in _ACTIVE_OPERAND.findall(disjunct) if not negated
+        ]
+        # Every pair, not just adjacent ones: `findall` over two-term shapes is
+        # non-overlapping, so `active(M) && active(M.A) && active(N.B)` matched the nested
+        # `(M, M.A)` and the vacuous `(M.A, N.B)` was never examined. Pair 0047 carries a real
+        # three-term condition.
+        for index, left in enumerate(asserted):
+            for right in asserted[index + 1 :]:
+                found = _incompatible(left, right)
+                if found is not None:
+                    return found
+    return None
+
+
+def _incompatible(left: str, right: str) -> tuple[str, str] | None:
+    """The pair, when no configuration can hold both; otherwise nothing."""
+
+    if left == right:
+        return None
+    if "." not in left or "." not in right:
+        # A bare name carries no hierarchy, so nothing here can tell an unrelated state
+        # from an unqualified reference to an ancestor: `M` against `Sys.M.A` may well be
+        # `Sys.M`, which contains it and is co-active with it. The old rule required a
+        # dot on the pair it compared; requiring one on *each side* keeps that
+        # conservatism, which loosening it to "either side" would have quietly dropped.
+        return None
+    # Siblings were only the shortest case. paper1's object language is `M = (S, E, V,
+    # Tr, A)` with orthogonal regions excluded, so exactly one leaf is active and the
+    # active set is the chain from the root down to it -- two states are co-active if and
+    # only if one contains the other. Cousins across two top-level modes are the same
+    # impossibility with a longer prefix, and comparing immediate parents let every one
+    # of them through: an unsatisfiable conjunction became a primary that could not fail,
+    # so its requirement reported satisfied and its expected issue was lost.
+    # The separator is load-bearing: `Sys.M10` starts with `Sys.M1` as a string but is
+    # not inside it, and the corpus has exactly those shapes (`fork1`/`fork2`,
+    # `Join1`/`Join2`).
+    if not (left.startswith(f"{right}.") or right.startswith(f"{left}.")):
+        return left, right
     return None
 
 
@@ -369,12 +415,21 @@ def condition_non_vacuity_findings(expression: str) -> tuple[str, ...]:
 
     findings: list[str] = []
     for text in _condition_arguments(expression):
-        siblings = vacuous_sibling_conjunction(text)
-        if siblings is not None:
+        pair = vacuous_sibling_conjunction(text)
+        if pair is not None:
+            left, right = pair
+            # The wording has to hold for the general case now that the rule does. Calling a
+            # cousin pair "siblings of one region" was a plain falsehood, and this string is
+            # handed back to the producer as revision feedback -- a wrong reason invites an
+            # argument with the gate rather than a fix.
+            relation = (
+                "siblings of one sequential region"
+                if left.rsplit(".", 1)[0] == right.rsplit(".", 1)[0]
+                else "in different branches of the hierarchy, neither containing the other"
+            )
             findings.append(
-                f"vacuous query: {siblings[0]} and {siblings[1]} are siblings of one "
-                "sequential region and can never be active together, so this check "
-                "is true regardless of the defect"
+                f"vacuous query: {left} and {right} are {relation}, so no configuration "
+                "holds both and this check is true regardless of the defect"
             )
     return tuple(findings)
 
