@@ -180,11 +180,17 @@ PREDICATES: tuple[Predicate, ...] = (
                       'somewhere else, and that is the finding'),
         ),
         examples=(
-            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")  # holds: direct child',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Inner")'
+            '  # holds -- and legitimate ONLY because the sentence itself names Outer as the '
+            'enclosing level. Record that level in source_context.nl_parent. Reading the level off '
+            'the model instead makes every such call return True by construction.',
             'containment(parent="Sys.Outer", child="Sys.Outer.Inner.Deep")'
             '  # False -- the model wrapped it one level deeper than the sentence allows. '
             'THIS IS A FINDING, not a mis-encoding: do not re-anchor parent to "Sys.Outer.Inner".',
-            'containment(parent="Sys", child="Sys.Outer")  # holds: top-level containment',
+            'containment(parent="Sys.Outer", child="Sys.Outer.Absent")'
+            '  # False because the child is not declared at all -- a missing-element finding. '
+            'Write this requirement even though it cannot pass; dropping it is the only way this '
+            'omission goes unreported.',
         ),
     ),
     Predicate(

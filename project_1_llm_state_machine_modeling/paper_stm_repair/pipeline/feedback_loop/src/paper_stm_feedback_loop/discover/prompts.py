@@ -25,9 +25,14 @@ recovered later -- at the call site `containment(parent=A.B, child=A.B.C)` and
 `containment(parent=A, child=A.B.C)` look identical, and only you know which level the sentence
 meant. If the sentence puts the element directly inside `A` while the model declares it at
 `A.B.C`, then `nl_parent` is `A` and that is what you bind as `parent`; the resulting False is
-the finding. If the sentence itself puts it at `A.B`, say so -- the model then satisfies the
-obligation by construction and the requirement should be dropped rather than written as a check
-that cannot fail. `limitations` is a field of the requirement itself, not of `source_context`; every gate and every review rule reads it there, so a limitation nested inside `source_context` counts as absent. Infer a phase only from the NL's lifecycle wording or clause ordering, never from the current FCSTM. Never invent trace ids, source facts, or expected issue labels. An empty source_context is acceptable only when the NL genuinely supplies no scope.
+the finding. If the sentence itself puts it at `A.B`, say so and **keep the requirement** -- bind
+`parent=A.B`, let it return True, and report that True. A check that passes is a discharged
+obligation, not wasted work; deleting it destroys the record that the sentence was checked at all.
+Never delete a containment requirement on the grounds that it will pass. Two cases in particular
+must be written even though they look uninformative: (a) the sentence names a level the model
+happens to have got right -- that True is the evidence; (b) the `child` path the sentence names is
+**not declared anywhere in the model** -- then the False is a missing-element finding, and it is the
+one case where deleting the requirement deletes the only thing that would have surfaced it. `limitations` is a field of the requirement itself, not of `source_context`; every gate and every review rule reads it there, so a limitation nested inside `source_context` counts as absent. Infer a phase only from the NL's lifecycle wording or clause ordering, never from the current FCSTM. Never invent trace ids, source facts, or expected issue labels. An empty source_context is acceptable only when the NL genuinely supplies no scope.
 """
 
 REQUIREMENT_REVIEWER_PROMPT = """You are the Requirement Reviewer.
@@ -536,6 +541,29 @@ Example 1 -- Family S:
   "quantifier": "single",
   "trigger": null,
   "expected_outcome": "ModeA is declared as a leaf state",
+  "coverage_obligation": {"domain": "state_declaration", "aggregation": "all"},
+  "limitations": []
+}
+
+Example 1b -- Family S, containment. `nl_parent` is filled here because the sentence names a
+level, and `parent` is bound to *that* level rather than to wherever the model happens to have
+put the element. The model declares `Sys.ModeA.Sub.ModeC`; the sentence says ModeC sits directly
+inside ModeA, so `parent` is `Sys.ModeA` and the assertion returns False. **That False is the
+finding.** Binding `parent` to `Sys.ModeA.Sub` instead would make it return True and report
+nothing -- that is the mistake this field exists to prevent:
+{
+  "requirement_id": "REQ-001b",
+  "statement": "ModeC shall be a substate of ModeA.",
+  "rationale": "NL-L001 places ModeC inside ModeA; the level is stated, not inferred.",
+  "source_segment_ids": ["NL-L001"],
+  "source_context": {"basis": "explicit_nl", "behavior_phase": "structure",
+                     "nl_parent": "Sys.ModeA"},
+  "predicate": "containment",
+  "predicate_bindings": {"parent": "Sys.ModeA", "child": "Sys.ModeA.Sub.ModeC"},
+  "verification_kind": "structure",
+  "quantifier": "single",
+  "trigger": null,
+  "expected_outcome": "ModeC is a direct substate of ModeA",
   "coverage_obligation": {"domain": "state_declaration", "aggregation": "all"},
   "limitations": []
 }
