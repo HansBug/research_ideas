@@ -88,10 +88,39 @@ V1+V2 合计救回 13 条，分布 `run1/0018 ×2`、`run1/0038 ×7`、`run2/001
 
 ## 5. 复算入口
 
+⚠️ 上一版是五条裸脚本名，**其中三条按字面执行会失败或静默空跑**：没有解释器、没有
+`PYTHONPATH`、没说 cwd，而 `present_for_judgment.py v21` 当时还会输出零行并 exit 0。
+下面是可直接粘贴的完整命令。
+
 ```bash
-eval/discover_matrix/measure_rule_surface.py            # 规则触发面 + NL 组归并
-eval/discover_matrix/count_refusals.py <matrix_dir>     # gate 拒答与覆盖率代价
-eval/discover_matrix/holdout.py --verify                # 与 burned 对账
-eval/discover_matrix/present_for_judgment.py <代次前缀> # 并列呈现，供人工判定
-eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定由人工给
+cd /home/zhangshaoang/oo-projects/research_ideas
+export R=$PWD E=$R/project_1_llm_state_machine_modeling/eval/discover_matrix
+export PYTHONPATH=$R:$E
+
+# —— 运行前 ——
+$R/venv/bin/python $E/holdout.py --verify                    # 灼烧对账，逐位置
+$R/venv/bin/python $E/leak_audit.py                          # 泄漏面（元素名 / 谓词 / 散文）
+$R/venv/bin/python $E/measure_rule_surface.py                # 规则触发面 + NL 组归并
+$R/venv/bin/python $E/run_grid.py --source                   # 格集从盘上读，不打字
+$R/venv/bin/python $E/check_run_homogeneity.py v22 --record  # 开跑归属落库
+
+# —— 运行后 ——
+$R/venv/bin/python $E/check_run_homogeneity.py v22 --verify  # 跑的时候代码没变过
+$R/venv/bin/python $E/check_model_drift.py $R/runs/paper1/matrix-v22 --strict
+$R/venv/bin/python $E/count_refusals.py $R/runs/paper1/matrix-v22
+$R/venv/bin/python $E/round_variance.py $R/runs/paper1/matrix-v22/run{1,2,3}
+$R/venv/bin/python $E/present_for_judgment.py v22 --full     # 判定用这个，别用截断版
+
+# —— 判定与发布 ——
+$R/venv/bin/python $E/metrics_at_k.py --template > /tmp/v22_verdicts.json   # 先出骨架
+#   人工填 verdicts，可报记录必须全填，漏填会被拒
+$R/venv/bin/python $E/metrics_at_k.py /tmp/v22_verdicts.json
+$R/venv/bin/python $E/build_comment.py /tmp/v22_verdicts.json --generation v22
+$R/venv/bin/python $E/build_gist.py $R/runs/paper1/matrix-v22/run1 \
+    $R/runs/paper1/matrix-v22/run2 $R/runs/paper1/matrix-v22/run3 /tmp/v22-bundle
+$R/venv/bin/python $E/detect_fabrications.py /tmp/v22-bundle/audit        # 双报减法侧
+$R/venv/bin/python $E/rederive_admissibility.py /tmp/v22-bundle/audit     # 双报加法侧
 ```
+
+每条都在 v21 真实产物上跑通过。四处**拒绝对空输入报数**（无 llm-call 记录 / 无 audit 文件 /
+无 manifest / 空 verdicts），因为空审计被读成通过是本轮反复出现的失败形态。

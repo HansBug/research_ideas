@@ -13,10 +13,13 @@ held-out ones is the whole point.
 """
 import ast, json, pathlib, re, collections
 
-ROOT = pathlib.Path("project_1_llm_state_machine_modeling")
+# 相对 cwd 的路径意味着这个脚本只能从仓库根跑，而它被列在「复算入口」里 —— 复算者从
+# `discover_matrix/` 调用它会拿到 FileNotFoundError，而不是审计结果。锚到文件自身位置。
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
 LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
 SRC = ROOT / "paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop"
-HOLDOUT_FILE = ROOT / "eval/discover_matrix/holdout.json"
+HOLDOUT_FILE = HERE / "holdout.json"
 #: Held-out pairs first -- those are the ones a reported number depends on -- plus the four
 #: historical cells, which are audited too so a regression there is still visible.
 HISTORICAL = {"0000", "0006", "0029", "0050"}
