@@ -1,0 +1,198 @@
+"""把判定表渲染成 PR comment。**三张按资格分开的表，不是一张。**
+
+## 为什么结构本身是个纪律问题
+
+上一代次的格式是单表 34 行（`pr-comment-format-paper1`）。问题不在字段，在于**任何单表都会把
+行数当成分母**：读者的默认阅读是「表里有多少行，就有多少条被度量」。而 v22 的可报记录只有 3
+条，其余 30 条是共演化观测 —— 它们照常全量报出，但**不构成任何主张**。一张 33 行的表加一句
+脚注解决不了这个，因为脚注会被跳过而表头不会。
+
+所以：
+
+  能力主张表（3 行）      —— 只有这张给 hit@1/@3/@all 三个比率
+  达阈值的层（4 行，全 0）—— **空本身是结论**，必须是一张实体表，不能降级成脚注
+  已烧毁 hold-out（20 行）—— 逐轮 ✅/✗ 与逐条依据，**不算比率**
+  历史格（10 行）         —— 同上
+
+三条硬约束，落成断言而不是提醒：
+
+1. `hit@` 比率只出现在第一张表。给了比率它就会被引用。
+2. 头部速览不得出现任何 `n/33` 形式的分数。写「可报记录 3 条，达阈值层 0 层，本代次无能力主张」。
+3. 「达阈值的层：0/4」那张表必须实体存在。§9 的结论是「v22 不产出任何能力主张」；一张写着 0
+   的表能被看见，一句脚注会被跳过。
+
+双报同理：`as published` 与 `re-derived` 必须**同表两列**，且 re-derived 列的表头就带界的说明，
+否则那个数会被当成完整重表达。
+"""
+
+from __future__ import annotations
+
+import argparse
+import collections
+import json
+import pathlib
+import sys
+
+HERE = pathlib.Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+import metrics_at_k as mk  # noqa: E402
+
+BAND_TITLES = {
+    "hold": "能力主张（{n} 条 · 全部为可报记录）",
+    "burned": "已烧毁 hold-out（{n} 条 · 共演化观测 · **不作能力主张**）",
+    "hist": "历史格（{n} 条 · 共演化观测 · **不作能力主张**）",
+}
+LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
+THRESHOLD = 4
+
+
+def _ledger() -> dict[str, dict]:
+    payload = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
+    records = payload.get("records")
+    if not records:
+        records = next(
+            value
+            for value in payload.values()
+            if isinstance(value, list) and value and isinstance(value[0], dict) and "id" in value[0]
+        )
+    return {str(r["id"]): r for r in records}
+
+
+def _mark(value) -> str:
+    return {1: "✅", 0: "✗", None: "—"}.get(value, "?")
+
+
+def _brief(record: dict, limit: int = 64) -> str:
+    """缺陷简述。取 statement 首句，且**不在句中截断** —— 截断线切掉结论子句是有前科的。"""
+
+    text = str(record.get("statement") or "").replace("\n", " ").strip()
+    for stop in ("；", "。", "，"):
+        head = text.split(stop, 1)[0]
+        if len(head) <= limit:
+            return head
+    return text[:limit] + "…" if len(text) > limit else text
+
+
+def _rows(verdicts: dict, ids: list[str], ledger: dict, rounds: int) -> list[list[str]]:
+    rows = []
+    for record_id in sorted(ids):
+        record = ledger.get(record_id) or {}
+        for arm, series in sorted(mk._arms(verdicts[record_id]).items()):
+            label = record_id if arm == "-" else f"{record_id} · {arm}"
+            cells = [_mark(series[i]) if i < len(series) else "—" for i in range(rounds)]
+            note = mk.BLOCKED.get(record_id, "")
+            rows.append(
+                [label, str(record.get("layer") or "?"), _brief(record), *cells,
+                 f"⚠️ {note}" if note else ""]
+            )
+    return rows
+
+
+def _table(header: list[str], rows: list[list[str]]) -> str:
+    align = ["| " + " | ".join(header) + " |",
+             "| " + " | ".join("---" for _ in header) + " |"]
+    align += ["| " + " | ".join(cell or "—" for cell in row) + " |" for row in rows]
+    return "\n".join(align)
+
+
+def _ratios(verdicts: dict, ids: list[str]) -> dict:
+    triples = hits = items = at3 = atall = 0
+    for record_id in ids:
+        for _arm, series in mk._arms(verdicts[record_id]).items():
+            valid = [x for x in series if x is not None]
+            if not valid:
+                continue
+            items += 1
+            triples += len(valid)
+            hits += sum(valid)
+            at3 += 1 if any(valid) else 0
+            atall += 1 if all(valid) else 0
+    if not items:
+        return {}
+    return {
+        "hit@1": f"{hits}/{triples} = {hits / triples * 100:.1f}%",
+        "hit@3": f"{at3}/{items} = {at3 / items * 100:.1f}%",
+        "hit@all": f"{atall}/{items} = {atall / items * 100:.1f}%",
+    }
+
+
+def render(payload: dict, generation: str, rounds: int) -> str:
+    verdicts = payload.get("verdicts") or {}
+    problems = mk.validate(verdicts, payload.get("over") or {}, rounds)
+    if problems:
+        # 判定表不合格就不渲染。渲染出来的表会被引用，而它的分母是错的。
+        raise SystemExit(
+            "判定表未通过 metrics_at_k 的校验，拒绝渲染 comment：\n  - "
+            + "\n  - ".join(problems)
+        )
+    ledger = _ledger()
+    bands: dict[str, list[str]] = collections.defaultdict(list)
+    for record_id in verdicts:
+        bands[mk.band_of(record_id)].append(record_id)
+
+    reportable = list(mk.REPORTABLE)
+    coverage = collections.Counter(
+        str((ledger.get(r) or {}).get("layer") or "?") for r in reportable
+    )
+    at_k = {layer: coverage.get(layer, 0) >= THRESHOLD for layer in LAYERS}
+    blocked = [r for r in reportable if r in mk.BLOCKED]
+
+    out = [f"# {generation} 运行结果\n"]
+    # 约束 2：头部不出现任何 n/总数 形式的分数。
+    out.append(
+        f"**可报记录 {len(reportable)} 条**"
+        + (f"（其中 {len(blocked)} 条结构性不可达）" if blocked else "")
+        + f"，**达阈值（≥{THRESHOLD}）的层 {sum(at_k.values())} 层** —— "
+        "本代次**不产出任何按层的能力主张**。\n"
+    )
+    out.append(
+        f"其余 {len(bands['burned'])} + {len(bands['hist'])} 条为共演化观测，逐条列于下方，"
+        "**不构成主张**。判定口径见 "
+        "[`V21_PREREGISTERED_CALIBRE.md`](../../../project_1_llm_state_machine_modeling/"
+        "eval/discover_matrix/V21_PREREGISTERED_CALIBRE.md)。\n"
+    )
+
+    header = ["记录", "层", "缺陷简述", *[f"r{i}" for i in range(1, rounds + 1)], "备注"]
+
+    out.append(f"\n## {BAND_TITLES['hold'].format(n=len(bands['hold']))}\n")
+    out.append(_table(header, _rows(verdicts, bands["hold"], ledger, rounds)))
+    ratios = _ratios(verdicts, bands["hold"])
+    if ratios:
+        out.append("\n" + " · ".join(f"**{k}** {v}" for k, v in ratios.items()) + "\n")
+
+    # 约束 3：这张表必须实体存在，空本身是结论。
+    out.append(f"\n## ⚠️ 达阈值的层：{sum(at_k.values())} / {len(LAYERS)}\n")
+    out.append(_table(
+        ["层", "可报条目", f"阈值", "可报？"],
+        [[layer, str(coverage.get(layer, 0)), str(THRESHOLD),
+          "✅" if at_k[layer] else "✗"] for layer in LAYERS],
+    ))
+    out.append("\n**这张表是空的，空本身是结论** —— 没有任何一层达到阈值，所以本代次的数字"
+               "只能作为方法与样本共演化的观测报出。\n")
+
+    for band in ("burned", "hist"):
+        if not bands[band]:
+            continue
+        out.append(f"\n## {BAND_TITLES[band].format(n=len(bands[band]))}\n")
+        out.append("逐轮结果与依据如下。**本节不给任何比率** —— 给了它就会被引用，"
+                   "而这些条目所在的格已因参与规则编写而失去支撑主张的资格。\n")
+        out.append(_table(header, _rows(verdicts, bands[band], ledger, rounds)))
+
+    return "\n".join(out) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("verdicts_json", type=pathlib.Path)
+    parser.add_argument("--generation", default="v22")
+    parser.add_argument("--rounds", type=int, default=3)
+    args = parser.parse_args(argv)
+    payload = json.loads(args.verdicts_json.read_text())
+    print(render(payload, args.generation, args.rounds))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
