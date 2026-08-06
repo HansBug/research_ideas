@@ -225,7 +225,17 @@ def build(verdicts_path: pathlib.Path, size: int, seed: int,
     #
     # 所以两边都带 `sample_id`：`unit_id → record_id|arm` 映射的哈希。配错 key 时它对不上，
     # `blind_agreement.py` 拒绝计算而不是给出一个看起来合理的数。
-    mapping = "\n".join(f"{i+1:03d}:{u['record_id']}|{u['arm']}" for i, u in enumerate(picked))
+    # 指纹里**必须含代次**。首版只哈希 `unit_id → record_id|arm` 映射，于是同一批单元在不同代次
+    # 会得到同一个 `sample_id` —— 实测两个代次的指纹逐字相同（`b2cc5097…`），跨代次错配完全检不出。
+    #
+    # 那次拦住我的是轮次数不符（新代次尚未全量落盘、部分单元只有 2 轮），而那是**偶然**：若新代次
+    # 已三轮齐全，旧代次的盲判结果会被静默接受，算出一个完全说得通的错 κ 与错 hit@k。
+    #
+    # 与前一次 sample_id 缺陷同族：**指纹漏掉了一个会改变语义的维度**。前一次漏的是 size，这次是
+    # 代次。防法是把「这份样本是关于什么的」全部纳入哈希，而不是只纳入「里面有哪些单元」。
+    scope = generation or "verdicts:" + verdicts_path.name
+    mapping = f"scope={scope}\n" + "\n".join(
+        f"{i+1:03d}:{u['record_id']}|{u['arm']}" for i, u in enumerate(picked))
     sample_id = hashlib.sha256(mapping.encode()).hexdigest()[:16]
     sample = {"seed": seed, "sample_id": sample_id, "unit_count": len(picked), "items": [],
               "note": ("把 sample_id 抄进你的盲判结果文件（顶层 `sample_id` 字段）。"
