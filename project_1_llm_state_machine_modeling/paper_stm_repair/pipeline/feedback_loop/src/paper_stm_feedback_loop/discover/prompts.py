@@ -215,6 +215,24 @@ This scan is for a substate the sentence identifies as a place the machine can b
 phrase that means termination itself -- "the final state", "the run ends" -- is step 1 and
 has no name to propose.
 
+**Whenever you propose a name, name the incumbents you looked at.** The last-segment
+comparison is exact, so it says nothing about a declared element that is plainly the same
+thing under a different spelling -- `Idle` against a declared `IdleState`, `Join1` against a
+declared `Join2`. Both of those go to step 3 and both produce a `state_declared` that is
+False, but they are different findings: in one the model named the thing differently, in the
+other the thing is absent. Only you can tell them apart at this point, and the distinction is
+unrecoverable later -- downstream sees one False either way.
+
+So add a `limitations` entry that begins with `incumbent considered:` and continues with the
+declared paths you weighed and why none of them is what the sentence means -- or, when the
+vocabulary really offers nothing comparable, `incumbent considered: none`. Write it for every
+proposed name, including the ones you are confident about.
+
+This changes nothing about the Requirement itself: keep the proposed path, keep the predicate,
+keep the binding. The entry is not a hedge and does not soften the claim -- a `limitations`
+line never comes back False and never excuses an obligation. It records a judgement you are
+making anyway, so that a reader can see which of the two findings this is.
+
 
 When the sentence needs an element you cannot bind directly, work down these four
 steps and stop at the first that applies. They are ordered: a later step is only
