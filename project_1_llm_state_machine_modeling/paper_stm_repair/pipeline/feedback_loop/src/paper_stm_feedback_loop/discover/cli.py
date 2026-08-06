@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 from datetime import datetime, timezone
@@ -17,6 +18,7 @@ from paper_stm_feedback_loop.common.inputs import (
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
 from .graph import run_discover_state
+from .nodes import ABLATABLE_GATES, _ABLATED_GATES
 from .report import telemetry_summary, write_discover_markdown
 from .responder import DirectStructuredResponder
 from .schemas import DiscoverInput, LLMCallRecord, NodeExecutionRecord
@@ -392,6 +394,18 @@ def main(argv: list[str] | None = None) -> int:
     node_records: list[NodeExecutionRecord] = state.get("node_execution_records", [])
     llm_calls: list[LLMCallRecord] = state.get("llm_call_records", [])
     summary = telemetry_summary(node_records, llm_calls)
+    # Which gates were live, recorded from the process that ran rather than reconstructed from
+    # a launch command afterwards. Without this an ablated cell and a fully gated cell produce
+    # byte-identical artifacts, and the only evidence of the difference is a shell history --
+    # which is how a two-of-seven ablation came to be read back as an unaided baseline.
+    summary = {
+        **summary,
+        "gate_ablation": {
+            "env": os.environ.get("DISCOVER_ABLATE_GATES", ""),
+            "ablated": sorted(_ABLATED_GATES),
+            "active": [name for name in ABLATABLE_GATES if name not in _ABLATED_GATES],
+        },
+    }
     completed = state["final_output"].model_copy(
         update={
             "telemetry_summary": summary,

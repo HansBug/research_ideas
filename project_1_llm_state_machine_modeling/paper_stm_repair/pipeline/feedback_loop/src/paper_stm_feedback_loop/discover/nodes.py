@@ -814,13 +814,41 @@ def _canonicalize_trace_entry_ids(
 #: says nothing about `Power_Off` any more, yet on all three v17 rounds pair 0000's unaided
 #: `revision=1` output was rejected by it and the retry then published the expected issue. The
 #: only way to tell whether the finding was reachable without it is to turn it off and look.
+#: Every name the switch accepts. An unknown name is refused rather than ignored: a run
+#: launched as `DISCOVER_ABLATE_GATES=trigger_consuimng` would otherwise be recorded as an
+#: ablation in the launch command and be fully gated in fact, and the resulting cell read back
+#: as an unaided baseline. Two silent degradations of exactly this shape -- a tie-breaker
+#: disabled by a swallowed ImportError, a scanner reading zero files -- each published a wrong
+#: number for several generations before being noticed, because a misconfiguration returned a
+#: plausible value instead of failing.
+ABLATABLE_GATES = (
+    "initialization_anchored",
+    "termination_proposal",
+    "redundant_proposal",
+    "root_anchored",
+    "projection_anchored",
+    "conceded_omission",
+    "trigger_consuming",
+    "source_blind_response",
+)
+
 _ABLATED_GATES = frozenset(
     name.strip() for name in os.environ.get("DISCOVER_ABLATE_GATES", "").split(",") if name.strip()
 )
 
+_unknown_ablations = sorted(_ABLATED_GATES - set(ABLATABLE_GATES))
+if _unknown_ablations:
+    raise ValueError(
+        f"DISCOVER_ABLATE_GATES names gates that do not exist: {_unknown_ablations}. "
+        f"Known gates: {list(ABLATABLE_GATES)}. Refusing to start, because a run whose "
+        "ablation silently did nothing would be indistinguishable from a fully gated run."
+    )
+
 
 def _ablated(gate_name: str) -> bool:
     """Whether this gate is switched off for a hold-out run."""
+    if gate_name not in ABLATABLE_GATES:  # pragma: no cover - guards a typo at the call site
+        raise ValueError(f"unknown gate name {gate_name!r}; add it to ABLATABLE_GATES")
     return gate_name in _ABLATED_GATES
 
 
@@ -1270,43 +1298,69 @@ def split_requirements(
         # through costs the item its whole repair budget.  Step 3 versus step 4 is
         # the genuinely semantic call and stays with the reviewer.
         known_paths = frozenset(frozen.known_model_paths)
-        step_findings = (
-            *(
-                ()
-                if _ablated("initialization_anchored")
-                else initialization_anchored_findings(output.requirements)
+        # Every gate is named, and the name is the only thing `DISCOVER_ABLATE_GATES` keys on.
+        # Two earlier generations wired the switch into two of the seven by hand, which made
+        # "gates off" mean "two gates off" -- and a cell published under that label was read
+        # back as an unaided baseline when it was not one.  Enumerating them here means the
+        # ablated set is exactly what the environment says, and `active_step_gates` below can
+        # be written into the run record so a reader never has to infer it.
+        #
+        # The per-gate comments name the round each gate was written for. That is deliberate:
+        # it is the motive record the leak audit reads, and it stays in the source (which the
+        # model never sees) rather than in any prompt (which it does).
+        gates = (
+            ("initialization_anchored", lambda: initialization_anchored_findings(output.requirements)),
+            (
+                "termination_proposal",
+                lambda: termination_proposal_findings(
+                    output.requirements,
+                    known_paths,
+                    (frozen.pseudo_state_facts or {}).get("terminating_transitions") or (),
+                ),
             ),
-            *termination_proposal_findings(
-                output.requirements,
-                known_paths,
-                (frozen.pseudo_state_facts or {}).get("terminating_transitions") or (),
-            ),
-            *redundant_proposal_findings(
-                output.requirements, known_paths, dict(frozen.model_vocabulary or {})
+            (
+                "redundant_proposal",
+                lambda: redundant_proposal_findings(
+                    output.requirements, known_paths, dict(frozen.model_vocabulary or {})
+                ),
             ),
             # The root spelling of the same anchoring mistake `initialization_anchored_findings`
             # catches at `[*]`. Pair 0000 round 1 bound `source` to the root and the claim came
             # back True because the defective edge fires on the first tick.
-            *root_anchored_findings(output.requirements, _declared_model_root(known_paths)),
+            (
+                "root_anchored",
+                lambda: root_anchored_findings(
+                    output.requirements, _declared_model_root(known_paths)
+                ),
+            ),
             # The third anchor mistake, after `[*]` and the model root: a behavioural claim
             # bound to something the projection injected. Pair 0050 lost a round to
             # `reaches(source=…FinalWaittr_0005, …)`, which is True because the projection
             # routes that node onward -- so the sentence's actual defect went unreported.
-            *projection_anchored_findings(
-                output.requirements,
-                frozen.source_trace.get("attribution_exclusions", []) or (),
+            (
+                "projection_anchored",
+                lambda: projection_anchored_findings(
+                    output.requirements,
+                    frozen.source_trace.get("attribution_exclusions", []) or (),
+                ),
             ),
             # A concession filed in `limitations` cannot come back False. Pair 0050 lost a round
             # to a splitter that wrote down the omission correctly and then asserted nothing
             # about it -- eleven assertions, all True, nothing published.
-            *conceded_omission_findings(output.requirements, known_paths),
+            ("conceded_omission", lambda: conceded_omission_findings(output.requirements, known_paths)),
             # `reaches` on a declared event answers from the compiler's routing, not the
             # author's edge; pair 0000 lost v6run2 and v10run3 to exactly that.
-            *(
-                ()
-                if _ablated("trigger_consuming")
-                else trigger_consuming_predicate_findings(output.requirements, known_paths)
+            (
+                "trigger_consuming",
+                lambda: trigger_consuming_predicate_findings(output.requirements, known_paths),
             ),
+        )
+        active_step_gates = tuple(name for name, _ in gates if not _ablated(name))
+        step_findings = tuple(
+            finding
+            for name, evaluate in gates
+            if name in active_step_gates
+            for finding in evaluate()
         )
         if step_findings:
             raise ValueError(
@@ -1910,7 +1964,9 @@ def convert_assertions(
             phase = str(
                 (requirement.source_context or {}).get("behavior_phase", "")
             ).lower()
-            if not anchors_at_initialization(requirement.source_context):
+            if not anchors_at_initialization(requirement.source_context) and not _ablated(
+                "source_blind_response"
+            ):
                 source_blind = tuple(
                     f"{assertion.assertion_id}: {call}(...) omits source"
                     for assertion in primary_assertions
