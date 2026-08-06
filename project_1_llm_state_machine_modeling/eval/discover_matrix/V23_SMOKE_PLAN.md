@@ -63,3 +63,56 @@ for f in sorted(glob.glob('/tmp/v23smoke/*/discover-completed.json')):
 grep -c 'nl_parent' /tmp/v23smoke/*/records/*split-requirements-state-update/record.json
 grep -oE 'revision=[0-9]+' /tmp/v23smoke/*.log | sort -u | tail -2
 ```
+
+---
+
+# 试跑结果
+
+## 三个问题的答案
+
+| 问题 | 答 | 依据 |
+| :-- | :-- | :-- |
+| ① 第一轮填不填 `nl_parent` | **填了**，两臂 `revision=0` 即填 | 结构化字段，非 prompt 回显（逐个 JSON 路径核过） |
+| ② 被门拒后第二轮填不填 | **无从得知** | 门 0 次触发 |
+| ③ 几轮收敛 | claude `full`，无隔离、无预算耗尽 | 见下 |
+
+## 判定：落在判据表**第四行**
+
+门一次没触发 → **存疑，不是通过**。按试跑前写死的口径，该报的是「改动 1 有效、门未被验证」。
+
+改动 1 的有效性有实测支撑：
+
+| | v22 gpt（同格 6 格） | v23 gpt（试跑） |
+| :-- | --: | --: |
+| 自前缀 containment（结构上恒真） | 9–11 | **0** |
+| 跨层 containment（可判假） | 1–2 | 1 |
+| 带 `nl_parent` | 0 / 79 | 1 / 1 |
+
+## 一个推翻了选格依据一半的发现
+
+该 pair 的 63 条自前缀绑定**全部来自 gpt 臂**，claude 臂 0 条 —— claude 本来就在正确跨层锚定。
+选格时量的是 pair 级聚合，**聚合把臂间 63/0 分裂抹平了**。所以 claude 臂这一跑对门几乎零信息量；
+它的 6 条发现四代次完全同一组（措辞不同、实质一致），是稳定性证据而非改动效果证据。
+
+## 一个我原本会误判的发现
+
+gpt 的 containment 需求从 10–12 掉到 1，**看数字像「需求丢了」** —— 而那正是本轮修改要防的失败
+模式。读原文后是**合并**：9 条逐元素自前缀 containment 换成 3 条 `cardinality` 打包（如
+「enter_hwy、cruise、lane_change、exit_hwy 应为 HighwayMode 的直接子状态」）。13 个 NL 段两臂全
+覆盖，一个没丢。
+
+换来的检查**更强**（自前缀 containment 结构上永远 True；`cardinality` 少一个多一个都失败），但有
+真实代价：**只查数量不查身份**，数量对而命名错会漏过。
+
+而需求评审员抓得比我更全 —— 它 `revise` 的理由指出 `count: '5'` 还**凭空引入了 NL 从未声明的
+「恰好数量」**。这一条我漏了。报告里两面都要写，不能只报「可判假条数上升」。
+
+## 改动 1 在评审层的直接证据
+
+claude 臂 `decision: accept`，评审员用自己的话背书了 v22 prompt 曾禁止的推断：
+
+> REQ-002 正确地把 InitialState 放在 AutonomousMode 之下（NL 明确称其为 substate），**即使模型
+> 将其置于根下，这一 False 正是需求要暴露的问题**，符合 containment 规则。
+
+⚠️ 但**不能**据此说「评审员由攻转守」：v22 的 55 份含 containment 的评审记录里，51 份已有辩护性
+措辞，仅 4 份带攻击性措辞。改进在生成侧，不在评审侧。
