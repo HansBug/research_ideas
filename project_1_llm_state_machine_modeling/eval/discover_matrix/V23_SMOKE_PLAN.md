@@ -149,3 +149,57 @@ claude 臂 `decision: accept`，评审员用自己的话背书了 v22 prompt 曾
 
 issue 净变化 **−2**（0038 +3、0006 +1、0043 +1 vs 0018 −5、0029 −1、0035 −1），coverage 状态变化
 1 格。**不是系统性回归**，是噪声加 `0018` 一处大降。
+
+## 优先级 1 的定性结论：归因层把并发造成的 False 标成了 `safe`
+
+追完整条链，`0018-claude` 的记账偏差成因确定，**而它是一条边界类缺陷，不是丢失的发现**。
+
+### 链条
+
+```
+REQ-009            「当 Charged=true 时 ChargedFlash 应转移到 Junction3」（NL-L006）
+AST-REQ-009-1 主   occupancy_after(ChargedFlash --Charged_true--> TakePicture, ≤5)  → False
+AST-REQ-009-2 辅   edge_declared(ChargedFlash --Charged_true--> Junction3)          → True
+bind_attribution   status: safe          ← 语义是「这个 False 归因于模型」
+裁决器             未发 issue（正确），但把 REQ-009 记为已满足（错）
+对账层             抓住：unaccounted_safe_false_assertions=["AST-REQ-009-1"]
+                   确定性重算剔除 REQ-009 → 顶层 satisfied 用重算值 14，自报 15
+coverage_status    partial（正确反映「有一条需求无法裁决」）
+```
+
+### 为什么 False 与模型无关
+
+`join2` 是伪状态且有**两条入边**：`Junction3 -> join2`（闪光分支）与 `choice2 -> join2 : /sunny_false`
+（测光分支）；`fork1` 分出 `AutoFocus` / `DetLight` 两条并行分支。从 `ChargedFlash` 单独出发到
+`TakePicture` 必须等另一条分支也到达 join —— **这是正交区并发语义**。
+
+按 [CLAUDE.md](../../../CLAUDE.md) 的硬约束，并发语义**排除在 project_1 的断言对象之外**，且
+「不得把并发类问题在 project_1 的评测中记为『方法未能检出』」。
+
+**所以真缺陷是：`bind_attribution` 把一条由并发语义造成的 False 标成 `safe`。** 正确处置是识别为
+边界外 —— 既不该是 `safe`，也不该落进 `unaccounted` 这个本不该有东西的类别。
+
+### 发生率：罕见且非本代次引入
+
+| 代次 | 有未记账判假断言的格 | 占比 |
+| :-- | :-- | --: |
+| v21 | 1 / 33 | 3.0% |
+| v22 | **0 / 66** | 0% |
+| v23（进行中） | 1 / 13 | 7.7% |
+
+1/13 与 1/33 在这个量级不可区分。**不是 v23 回归。** 且对账层抓住了记账错误、确定性重算胜出，
+所以**数字没被污染**。
+
+### 追这一条我连错三次，序列本身要记下来
+
+| 判断 | 为什么错 |
+| :-- | :-- |
+| 「这是丢失的发现」 | 它在边界外，不发布是正确的 |
+| 「A1 漏了目标位」 | `_reject_transient_subject` 遍历**全部** bindings；且此处目标 `TakePicture` 本就不是伪状态 |
+| 「事件放在 effect 位是真缺陷」 | `chain_id : isabs=SLASH? ID (DOT ID)*` —— 前导 `/` 是**绝对路径标记**。我拿 UML/SCXML 的约定套了这个 DSL |
+
+三次都是**读一行原文就下结论，没查该行所属的约定**。第三次尤其典型：整个模型每条带事件的迁移都写
+`: /X`，若 `/` 真是 effect 位，这模型一条 trigger 都没有 —— **那个反证当时就在眼前**。
+
+教训与「机械代理只能定位不能裁定」是同一条的延伸：**人工读原文也需要先确认原文的约定**，否则
+「人工读过」只是把错误换了个来源。
