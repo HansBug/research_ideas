@@ -412,3 +412,31 @@ def test_both_spellings_at_once_is_an_error() -> None:
                 "attribution_status": "safe",
             }
         )
+
+
+def test_dropping_every_issue_also_clears_the_confirmed_flag() -> None:
+    """`has_confirmed_issues` must be re-derived whenever the collection changes.
+
+    `DiscoverAdjudication._issue_flag_consistent` deliberately stopped validating this at parse
+    time -- "the flag is likewise re-derived there from the sorted collections, so asserting it
+    at parse time protects nothing" -- which delegates the invariant to `adjudicate_results`.
+    The first C1 draft dropped issues without touching the flag and published
+    `has_confirmed_issues=True` alongside `issues=[]`. Before C1 that state was unreachable
+    (the cell died first), so no test existed to catch it.
+    """
+    out = _run(
+        DiscoverAdjudication(
+            has_confirmed_issues=True,
+            issues=(dict(MERGED, requirement_ids=("REQ-006A", "REQ-006B", "REQ-999")),),
+            satisfied_requirement_ids=(),
+            rationale="Claims a Requirement it never touched.",
+        )
+    )
+    assert "failure" not in out
+    adj = out["adjudication"]
+    assert not (adj.issues or ()), "the offending issue must not survive"
+    assert adj.has_confirmed_issues == bool(adj.issues or ()), (
+        "the flag must agree with the collection it summarises; publishing "
+        f"has_confirmed_issues={adj.has_confirmed_issues} with issues={list(adj.issues or ())} "
+        "is the inconsistency the schema stopped checking because this node owns it"
+    )

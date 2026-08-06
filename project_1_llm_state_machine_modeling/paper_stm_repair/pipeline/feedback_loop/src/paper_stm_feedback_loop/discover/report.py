@@ -87,8 +87,12 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
     attribution = state["attribution_projection"]
     adjudication = state["adjudication"]
     coverage_gaps = state.get("coverage_gaps", ())
-    coverage_status = (
-        "partial" if any(gap.blocks_full_coverage for gap in coverage_gaps) else "full"
+    # Same owner as `publish`; a divergence here means the human-readable artifact and the
+    # machine-readable one disagree about whether the run was complete.
+    from .nodes import coverage_status_of
+
+    coverage_status = coverage_status_of(
+        coverage_gaps, state.get("_adjudication_reconciliation", {})
     )
     adjudication_reconciliation = state.get("_adjudication_reconciliation", {})
     nodes = state.get("node_execution_records", [])

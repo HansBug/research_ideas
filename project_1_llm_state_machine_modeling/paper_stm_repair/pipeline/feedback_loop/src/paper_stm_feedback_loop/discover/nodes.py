@@ -94,6 +94,30 @@ MAX_REQUIREMENT_REVIEW_REPAIRS = 5
 MAX_REQUIREMENT_CONTRACT_REPAIRS = 5
 MAX_ASSERTION_REVIEW_REPAIRS = 5
 MAX_ASSERTION_CONTRACT_REPAIRS = 5
+
+
+#: Keys in `_adjudication_reconciliation` whose non-emptiness means the report is not complete.
+#: A cell that dropped a finding for a structural defect is strictly more informative than a
+#: dead cell, but it is still not a full pass -- and `report.py` must say so too, or the
+#: markdown a human auditor reads prints `full` for exactly the cells this policy makes lossy.
+INCOMPLETE_RECONCILIATION_KEYS = (
+    "unaccounted_safe_false_assertions",
+    "rejected_issues",
+    "rejected_exclusions",
+    "unaccounted_unsafe_false_assertions",
+    "over_excluded_assertions",
+    "over_claimed_safe_assertions",
+)
+
+
+def coverage_status_of(coverage_gaps, reconciliation) -> str:
+    """Single owner of the full/partial decision, shared by `publish` and `report`."""
+    incomplete = any(
+        (reconciliation or {}).get(key) for key in INCOMPLETE_RECONCILIATION_KEYS
+    )
+    blocked = any(getattr(gap, "blocks_full_coverage", False) for gap in coverage_gaps or ())
+    return "partial" if (blocked or incomplete) else "full"
+
 MAX_ASSERTION_NO_PROGRESS_RECOVERIES = 1
 #: Per-assertion precheck repairs before that item is isolated.  Issue #167 §8.3
 #: specifies a *per-item* budget; before this it was only ever a whole-script
@@ -2099,62 +2123,30 @@ def convert_assertions(
             and not repeated_contract_failure
             and repair_count < MAX_ASSERTION_CONTRACT_REPAIRS
         )
-        if repeated_contract_failure or (
-            output is not None and repair_count >= MAX_ASSERTION_CONTRACT_REPAIRS
-        ):
-            # C2: a producer defect confined to one requirement must quarantine that
-            # requirement once its repair budget is spent -- not the batch.
+        if repeated_contract_failure:
+            # C2 (per-requirement quarantine on budget exhaustion) was attempted here and
+            # reverted: its design premise is wrong. `_quarantine_reviewed_assertions` reads
+            # `state["assertion_check_public"]` and `state["sealed_assertion_results"]`, neither
+            # of which exists before `precheck_and_seal` has run, so calling it from conversion
+            # raises KeyError *inside* the `except` block -- an unhandled crash instead of a
+            # recorded failure. It also stamps every gap `stage="assertion_review"` /
+            # `reason_code="review_unresolved"`, which would attribute a contract-gate rejection
+            # to a reviewer that never ran.
             #
-            # The gate's judgement is kept intact: the contract check still rejects, the
-            # producer still gets MAX_ASSERTION_CONTRACT_REPAIRS attempts, and the reason is
-            # still recorded verbatim. What changes is the consequence on exhaustion. The
-            # rule is the one `_quarantine_reviewed_assertions` already implements one stage
-            # later, with the same `CoverageGap` vocabulary; conversion is simply the stage
-            # that never got it. Measured cost of leaving it fatal: it killed two of three
-            # rounds on one hold-out pair, and the message it died on
-            # ("vacuous query: A and B are siblings of one sequential region and can never be
-            # active together") was a *correct* diagnosis -- the query really was tautological.
-            # Killing the cell threw away every other requirement's evidence to say so.
+            # Doing this properly needs three things this node does not have: the graph's
+            # `sealed_store` threaded into `convert_assertions` (graph.py passes it to
+            # precheck/review/release but not here), a conversion-stage gap vocabulary of its
+            # own, and clearing `_assertion_conversion_contract_feedback` -- not
+            # `_assertion_feedback` -- or the router loops straight back into this node.
+            # Shipping it half-done would have been worse than the fatal raise it replaced.
             failure_message = (
                 "no-progress gate rejected repeated contract-invalid "
                 "AssertionScript semantics"
-                if repeated_contract_failure
-                else "assertion contract repair budget exhausted"
             )
-            # Which requirements the contract complaint names. Every raise in the
-            # per-requirement loop above is formatted `requirement <id> ...`, so the id is
-            # recoverable without threading extra state through the loop.
-            blamed = tuple(sorted(set(re.findall(r"requirement (REQ-[\w.-]+)", message))))
-            quarantined: tuple[str, ...] = ()
-            store = locals().get("sealed_store") or state.get("_sealed_store")
-            if blamed and output is not None and store is not None:
-                script_now = getattr(output, "script", None)
-                if script_now is not None:
-                    present = {item.assertion_id for item in script_now.assertions}
-                    targeted = {
-                        item.assertion_id
-                        for item in script_now.assertions
-                        if getattr(item, "requirement_id", None) in blamed
-                    } & present
-                    if targeted and (present - targeted):
-                        update = _quarantine_reviewed_assertions(
-                            state,
-                            script=script_now,
-                            quarantined_ids=tuple(sorted(targeted)),
-                            rationale=failure_message,
-                            findings=(message,),
-                            sealed_store=store,
-                        )
-                        quarantined = tuple(sorted(targeted))
-                        update["_assertion_feedback"] = None
-                        update["_contract_quarantined_requirements"] = blamed
-                        return update
-            # No requirement could be blamed, or quarantining would empty the script -- then
-            # there is nothing local left to isolate and the failure really is the run's.
             return _fail_state(
                 state,
                 "convert_assertions",
-                ValueError(f"{failure_message} (quarantine not possible: blamed={list(blamed)})"),
+                ValueError(failure_message),
                 started_at=started_at,
                 start_ns=start_ns,
                 input_value=locals().get("payload", state),
@@ -3954,7 +3946,11 @@ def adjudicate_results(
                     ),
                 }
             )
-        if dropped_unsupported:
+        if dropped_unsupported or pruned_citations:
+            # Gating on `dropped_unsupported` alone meant a prune-only issue was never written
+            # back: the C1 loop then saw the *unpruned* issue, its stale citation failed the
+            # safe-subset check, and the finding was dropped -- silently, since C1 records
+            # rather than raises. Pruning exists precisely to keep such a finding alive.
             output = output.model_copy(update={"issues": tuple(surviving_issues)})
         # Each check below keeps its exact semantics; only the consequence changes. An issue
         # that fails one is dropped and recorded, instead of killing the cell.
@@ -3975,10 +3971,36 @@ def adjudicate_results(
             # it. What remains is the part no relocation can fix: a finding whose *cited
             # assertions* are not attribution-safe is making a claim the attribution layer
             # refused, and moving it would not change that.
-            if not issue_ids.issubset(safe_assertions):
-                reasons.append(
-                    "confirmed issues may only reference attribution-safe False assertions"
-                )
+            unsafe_cited = issue_ids - safe_assertions
+            if unsafe_cited:
+                # The node's own precedent for a partly-unsupported citation list is to prune
+                # the bad ids and keep the finding on its remaining safe evidence
+                # (`pruned_citations`), not to discard it whole. All four v20 adjudicate deaths
+                # were exactly this shape -- an issue citing a *mix* of safe and non-safe
+                # assertions -- so discarding whole would depress the reported number for a
+                # disposition reason rather than a capability one. Only a citation list with
+                # nothing safe left is a claim the attribution layer wholly refused.
+                kept_ids = issue_ids - unsafe_cited
+                if kept_ids:
+                    pruned_citations.append(
+                        {
+                            "issue_id": getattr(issue, "issue_id", None),
+                            "pruned": tuple(sorted(unsafe_cited)),
+                            "kept": tuple(sorted(kept_ids)),
+                            "reason": (
+                                "cited assertions the attribution layer refused; the finding "
+                                "is kept on its remaining attribution-safe evidence"
+                            ),
+                        }
+                    )
+                    issue = issue.model_copy(
+                        update={"assertion_ids": tuple(sorted(kept_ids))}
+                    )
+                    issue_ids = kept_ids
+                else:
+                    reasons.append(
+                        "confirmed issues may only reference attribution-safe False assertions"
+                    )
             if issue_ids & issue_assertions:
                 reasons.append("confirmed issue assertion groups must be disjoint")
             expected_requirements = {
@@ -4020,7 +4042,16 @@ def adjudicate_results(
             kept_issues.append(issue)
             issue_assertions.update(issue_ids)
         if rejected_issues:
-            output = output.model_copy(update={"issues": tuple(kept_issues)})
+            # The flag must be re-derived with the collection. `DiscoverAdjudication`
+            # deliberately stopped validating it at parse time ("re-derived there from the
+            # sorted collections"), delegating the invariant to this node -- so dropping issues
+            # without updating it publishes `has_confirmed_issues=True` alongside `issues=[]`.
+            output = output.model_copy(
+                update={
+                    "issues": tuple(kept_issues),
+                    "has_confirmed_issues": bool(kept_issues),
+                }
+            )
         kept_exclusions: list = []
         rejected_exclusions: list[dict[str, object]] = []
         for excluded in output.excluded_findings:
@@ -4223,27 +4254,7 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
         # cell, whatever the gaps list says -- surface it here so a reader of the terminal
         # artifact cannot mistake it for a complete pass.
         recon = state.get("_adjudication_reconciliation", {}) or {}
-        # Every C1 residue counts the same way an unaccounted safe False does: the report is
-        # not complete, and a reader must not be able to mistake it for one. A cell that drops
-        # an issue for a structural defect is strictly more informative than a dead cell, but
-        # it is still not a full pass.
-        incomplete = tuple(
-            item
-            for key in (
-                "unaccounted_safe_false_assertions",
-                "rejected_issues",
-                "rejected_exclusions",
-                "unaccounted_unsafe_false_assertions",
-                "over_excluded_assertions",
-                "over_claimed_safe_assertions",
-            )
-            for item in (recon.get(key) or ())
-        )
-        coverage_status = (
-            "partial"
-            if any(gap.blocks_full_coverage for gap in coverage_gaps) or incomplete
-            else "full"
-        )
+        coverage_status = coverage_status_of(coverage_gaps, recon)
         guards = tuple(
             f"{result.assertion_id}:{result.truth_value}" for result in released.results
         )

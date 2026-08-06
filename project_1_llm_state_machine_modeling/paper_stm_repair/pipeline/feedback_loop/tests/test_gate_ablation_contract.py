@@ -111,3 +111,39 @@ def test_asking_about_an_unknown_gate_at_a_call_site_is_an_error() -> None:
 def test_the_module_reloads_cleanly_so_the_checks_above_are_not_import_order_artifacts() -> None:
     importlib.reload(nodes)
     assert set(nodes.ABLATABLE_GATES) == EXPECTED_GATES
+
+
+def test_every_incomplete_reconciliation_key_forces_partial_coverage() -> None:
+    """The only defence against a lossy run reading as a complete pass has to be tested.
+
+    C1 made three gates non-fatal: a structural defect in one finding now discards that finding
+    and marks the cell `partial`, instead of killing the run. `partial` is therefore the *sole*
+    signal that something was dropped — and nothing asserted it. A refactor could quietly remove
+    any key from `INCOMPLETE_RECONCILIATION_KEYS` and every other test would still pass, at
+    which point a cell that discarded findings would report `full`.
+    """
+    from paper_stm_feedback_loop.discover.nodes import (
+        INCOMPLETE_RECONCILIATION_KEYS,
+        coverage_status_of,
+    )
+
+    assert coverage_status_of((), {}) == "full"
+    assert coverage_status_of((), {k: () for k in INCOMPLETE_RECONCILIATION_KEYS}) == "full"
+    for key in INCOMPLETE_RECONCILIATION_KEYS:
+        assert coverage_status_of((), {key: ({"any": "residue"},)}) == "partial", (
+            f"a non-empty {key!r} must make the cell partial; without it a run that dropped "
+            "a finding is indistinguishable from one that found everything"
+        )
+
+
+def test_report_and_publish_share_one_coverage_owner() -> None:
+    """Two formulas for the same field is how the markdown says `full` and the JSON says `partial`."""
+    import inspect
+
+    from paper_stm_feedback_loop.discover import report
+
+    src = inspect.getsource(report)
+    assert "coverage_status_of" in src, "report.py must use the shared owner, not its own formula"
+    assert "blocks_full_coverage for gap in coverage_gaps" not in src, (
+        "report.py still computes coverage_status itself"
+    )

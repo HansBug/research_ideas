@@ -11,6 +11,8 @@
   excluded_findings       发现了但被归因策略排除
   excluded_observations   发现了但被证据角色制度静默（supporting_false 不能开 issue）
   coverage_gaps           发现了但预算耗尽
+  rejected_issues         发现了但被结构门丢弃（C1 起：裁决层的结构校验不再杀格，改为丢弃并记录）
+  issue_citations_pruned  发现被保留，但其中引用了归因层拒绝的证据，该引用被剪除
 
 后三类若只看 issues 列表，全部表现为「没发现」，而修法方向截然不同——一个要放宽归因，
 一个要重新设计角色语义，一个要调预算。前十八代次只看 issues，这可能正是「分析没有触及
@@ -58,10 +60,17 @@ for rnd in (1,2,3):
             if det: print(f"       {det[:230]}")
 
         # 「从未发现」与「发现了但被丢掉」是两种不同的失败，根因不同，必须分开看。
+        recon = d.get("adjudication_reconciliation") or {}
         for key, label in (("excluded_findings", "被排除的发现"),
                            ("excluded_observations", "被排除的观察"),
-                           ("coverage_gaps", "自报覆盖缺口")):
-            rows = d.get(key) or []
+                           ("coverage_gaps", "自报覆盖缺口"),
+                           ("@rejected_issues", "被结构门丢弃的发现"),
+                           ("@rejected_exclusions", "被结构门丢弃的排除项"),
+                           ("@issue_citations_pruned", "被剪除的引用（发现仍保留）")):
+            # `@` 前缀的键来自 adjudication_reconciliation，不在顶层。
+            # 这一类必须单列：一个被结构门丢弃的发现，若不显示出来，在判定者眼里与
+            # 「从未发现」完全一样，而两者的根因和修法截然不同——前者是管线致因的漏检。
+            rows = (recon.get(key[1:]) if key.startswith("@") else d.get(key)) or []
             if not rows:
                 continue
             print(f"-- {label}（{len(rows)}）--")

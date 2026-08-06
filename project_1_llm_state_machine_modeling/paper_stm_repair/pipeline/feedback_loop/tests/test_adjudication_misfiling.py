@@ -561,3 +561,4 @@ def test_splitting_an_exclusion_keeps_its_prose_and_says_where_it_came_from() ->
     assert all("split from ISSUE-MERGED-EXCLUSION" in e.rationale for e in excluded)
     # Issue ids have to stay distinct or a reader keying on them silently loses one.
     assert len({e.issue_id for e in excluded}) == 2
+
