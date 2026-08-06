@@ -44,6 +44,24 @@ _RULES: tuple[tuple[str, str], ...] = (
     ("pseudo_initial", "pseudo-initial"),
     ("malformed_name", "is not a well-formed model name"),
     ("unsupported_binding", "predicate binding"),
+    # Not a gate at all: the bounded solver gave up. Kept in its own bucket rather than
+    # merged with the gates, because "a rule declined to answer" and "the solver could not"
+    # call for entirely different responses, and summing them would hide both.
+    ("fbmcq_solver_unstable", "fbmcq exited without stable result"),
+    ("fbmcq_solver_timeout", "fbmcq solver timed out"),
+    ("fbmcq_solver", "FBMCQUnsupportedEvidence"),
+    # The predicate found nothing matching the binding, so there is no fact to report either
+    # way. A gate in the same sense as the others -- it declines rather than answering False.
+    ("no_matching_transition", "no declared transition leaves"),
+    ("ambiguous_initial", "initial edges and none of them is taken unconditionally"),
+)
+
+#: Buckets that are the pipeline's own gates. `refuse@1` is about what the gates removed, so
+#: solver failures are reported alongside rather than inside it.
+GATE_RULES = frozenset(
+    {"transient_subject", "undiscriminating_root", "horizon_probe",
+     "pseudo_initial", "malformed_name", "unsupported_binding",
+     "no_matching_transition", "ambiguous_initial"}
 )
 
 
