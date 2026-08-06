@@ -22,10 +22,19 @@ import metrics_at_k as mk  # noqa: E402
 
 
 def _full_verdicts(pattern=(1, 0, 1)) -> dict:
-    return {
-        "verdicts": {rid: list(pattern) for rid in sorted(mk._ledger_ids())},
-        "over": {},
-    }
+    """完整判定表。可报记录的命中带方向形态 —— 否则 `validate` 会拒，而它拒得对。
+
+    这条 fixture 在方向校验落地时立刻转红，五个断言一起。那不是校验过严，是 fixture 少了一个
+    判定者本来就必须提供的字段：一条判为命中却说不出按哪种形态成立的记录，正是判反最常见的样子。
+    """
+
+    verdicts: dict[str, object] = {}
+    for record_id in sorted(mk._ledger_ids()):
+        entry: dict[str, object] = {"claude": list(pattern)}
+        if record_id in mk.REPORTABLE and 1 in pattern:
+            entry["direction"] = {"claude": "direct"}
+        verdicts[record_id] = entry
+    return {"verdicts": verdicts, "over": {}}
 
 
 def _rendered() -> str:
