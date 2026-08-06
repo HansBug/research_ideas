@@ -109,23 +109,72 @@ def _order(name: str) -> tuple:
     return (0 if match else 1, int(match.group(1)) if match else 0, name)
 
 
-def _verdict_ratio(generation: str) -> str:
-    """该代次能力主张带的 hit@1，仅当判定表已入库。没有就明说没有，不猜。"""
+#: 判定表的两种文件名。首版只认 `_as_published`，于是 `v22_manual.json` 静默返回 `—` ——
+#: 当前代次的命中率从历代对比表里消失，而读者只会看到一个破折号。**有数据时出现的静默「无数据」
+#: 比缺数据更坏**，所以这里枚举全部已用过的命名，并在找不到时区分「没有判定表」与「有但读不了」。
+_VERDICT_SUFFIXES = ("_as_published", "_manual")
 
-    path = HERE / "verdicts" / f"{generation.replace('matrix-', '')}_as_published.json"
-    if not path.is_file():
-        return "—"
+
+def _verdict_paths(generation: str) -> list[pathlib.Path]:
+    stem = generation.replace("matrix-", "")
+    return [HERE / "verdicts" / f"{stem}{sfx}.json" for sfx in _VERDICT_SUFFIXES]
+
+
+def _ratio_over(verdicts: dict, ids) -> tuple[str, int]:
     import metrics_at_k as mk
 
-    payload = json.loads(path.read_text())
-    verdicts = payload.get("verdicts") or {}
     hits = triples = 0
-    for record_id in mk.REPORTABLE:
+    for record_id in ids:
         for series in mk._arms(verdicts.get(record_id, {})).values():
             valid = [x for x in series if x is not None]
             hits += sum(valid)
             triples += len(valid)
-    return f"{hits}/{triples} = {hits / triples * 100:.1f}%" if triples else "—"
+    if not triples:
+        return "—", 0
+    return f"{hits}/{triples} = {hits / triples * 100:.1f}%", triples
+
+
+def _verdict_ratio(generation: str) -> tuple[str, str]:
+    """该代次能力主张带的 hit@1，**两个分母都给**。
+
+    返回 `(按当前可报集重算, 按该代次发布时的可报集)`。
+
+    为什么必须两列：只遍历当前 `mk.REPORTABLE` 时，历史代次的数字会随烧毁而变，而且是**抬高
+    方向** —— 被烧的记录若在那一代次恰为未命中，去掉它就等于去掉一个分母里的 0。实测：
+
+        v21   发布时 4/9 = 44.4%   →  按当前 2 条重算 3/6 = 50.0%   (+5.6)
+        v22   发布时 9/18 = 50.0%  →  按当前 2 条重算 8/12 = 66.7%  (+16.7)
+
+    **后一行是本工具存在的全部理由。** 拿新代次的「当前口径」数字去比 v22 的「发布口径」50.0%，
+    会凭空得出一个 16.7 点的改进 —— 那个改进完全来自分母变化，与方法无关。v23 的正确对照基线
+    是 66.7%，不是 50.0%。`CLAUDE.md` §3.7 要求历代对比标注口径差异，这就是那条要求的具体形态；
+    §3.5 条款 4 禁止的「评测口径迁就结果」在这里的形态是**沉默地换分母**，而不是显式改判据。
+    """
+
+    for path in _verdict_paths(generation):
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text())
+        except (OSError, ValueError) as exc:
+            # 有文件却读不了，不能与「没有判定表」共用一个破折号。
+            return f"⚠️ 判定表不可读（{type(exc).__name__}）", "⚠️"
+        verdicts = payload.get("verdicts") or {}
+        import metrics_at_k as mk
+
+        now, _ = _ratio_over(verdicts, mk.REPORTABLE)
+        # 第二列必须是**该代次发布时**的可报集，不是判定表的全体记录 —— 后者含烧毁带与历史格，
+        # 算出来是另一个带的数字而表头写着能力主张带。判定表若没记下当时的可报集，就说没记，
+        # 不用「遍历全部键」去近似它。
+        own_ids = payload.get("reportable_records_at_publication")
+        if not own_ids:
+            return now, "⚠️ 该代次未记录当时的可报集"
+        missing = [r for r in own_ids if r not in verdicts]
+        if missing:
+            return now, f"⚠️ 声明的可报集有 {len(missing)} 条不在判定表内"
+        own, _ = _ratio_over(verdicts, own_ids)
+        return now, own
+    return "—", "—"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -159,8 +208,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.markdown:
         print("| 代次 | 轮 | 格 | 完成 | 臂 | full/partial | issues | excluded | observations "
-              "| gaps | 能力主张带 hit@1 |")
-        print("| --- | --: | --: | --: | --- | --- | --: | --: | --: | --: | --- |")
+              "| gaps | hit@1（当前 2 条可报集重算） | hit@1（该代次发布时的可报集） |")
+        print("| --- | --: | --: | --: | --- | --- | --: | --: | --: | --: | --- | --- |")
         for row in rows:
             cov = "/".join(str(row["coverage"].get(k, 0)) for k in ("full", "partial"))
             # 父目录 `matrix-v18/` 与 `matrix-i175/v18run*` 都叫 v18，是同一代次的两处产物。
@@ -172,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"| `{name}` | {row['rounds']} | {row['cells']} "
                 f"| {row['completed']} | {'+'.join(row['arms']) or '—'} | {cov} "
                 f"| {row['issues']} | {row['excluded_findings']} | {row['excluded_observations']} "
-                f"| {row['coverage_gaps']} | {_verdict_ratio(row['generation'])} |"
+                f"| {row['coverage_gaps']} | {' | '.join(_verdict_ratio(row['generation']))} |"
             )
         skipped = {r["generation"]: r["skipped_dirs"] for r in rows if r.get("skipped_dirs")}
         if skipped:
