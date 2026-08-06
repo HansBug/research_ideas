@@ -823,15 +823,14 @@ def initialization_anchored_findings(
                 f"{item.requirement_id} binds {anchored} to {PSEUDO_INITIAL} with "
                 f"source_context.behavior_phase={phase or 'unset'!r}. That anchors "
                 "the claim before the machine has entered anything, so it asks about "
-                "initialization -- and on a model whose defect is an edge leaving the "
-                "pseudo-initial, the claim is then true because of the defect. Either "
-                "name the running state the sentence is about (one requirement per "
+                "initialization, and if the model happens to be wrong in that configuration "
+                "the answer comes back true for a reason the sentence never asked about. "
+                "Either name the running state the sentence is about (one requirement per "
                 "state when the sentence does not pin one), or, if the sentence really "
                 "is about power-on, set behavior_phase to \"initialization\" -- but that "
                 "permission only holds when the trigger is one the machine can see before "
-                "entering anything. A power-off from the pseudo-initial is not a claim about "
-                "the specification: if the model routes it from there, that routing is the "
-                "defect, and asking about it returns true because of the defect."
+                "entering anything, and a trigger the machine can only see while running is "
+                "not one of them."
             )
     return tuple(findings)
 

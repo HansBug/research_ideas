@@ -77,8 +77,14 @@ def test_the_refusal_explains_why_the_permission_did_not_apply() -> None:
             ),
         )
     )
-    assert "power-off" in findings[0].lower()
-    assert "true because of the defect" in findings[0]
+    # Deliberately not asserting on any concrete defect wording. An earlier version of this
+    # test required the words "power-off" and "true because of the defect" -- which is how the
+    # gate's message came to describe pair 0000's expected defect, and how a test came to hold
+    # that description in place. What the refusal must say is *why the permission does not
+    # apply*, in terms of the trigger, without naming a defect.
+    assert "behavior_phase" in findings[0]
+    assert "trigger" in findings[0]
+    assert "running" in findings[0]
 
 
 def test_a_genuine_power_on_claim_is_still_permitted() -> None:
