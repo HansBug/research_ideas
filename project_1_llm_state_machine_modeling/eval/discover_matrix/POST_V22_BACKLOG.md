@@ -419,3 +419,35 @@ i=2 时才把**第一次**尝试的产物移到 `.try2`。
 恰是判断「运行是否健康」的关键量。
 
 修法：用独立的尝试序号，或改为 `mv "$out" "$out.attempt$((i-1))"`。
+
+---
+
+## L-3（I 级，吞吐与证据链）门的致命 raise 覆盖不全：四次重试里三次是它
+
+跨两代次把全部重试成因查齐后：
+
+| 代次 | 阶段 | 成因 | 性质 |
+| :-- | :-- | :-- | :-- |
+| v22 | `convert_assertions` | `vacuous query` | 🔴 门致命 raise |
+| v22 | `convert_assertions` | `unresolved model reference` | 🔴 门致命 raise |
+| v23 | `split_requirements` | `ValidationError: RequirementSet` 为 `None` | ⚪ 瞬时 provider |
+| v23 | `split_requirements` | `anchored against frozen model` | 🔴 门致命 raise |
+
+**四次里三次是门致命 raise → 整格重跑。** 仓库历史里 `47327849` 做过「门控致命 raise 降级为局部隔离」，
+但至少上表三族仍是致命的。
+
+局部隔离的价值不只是吞吐：致命 raise 会让**该轮已产出的部分被丢弃**，而局部隔离能保留其余需求的
+判定。按 `CLAUDE.md` §6，这属于「会导致 run record 缺失关键证据」一类。
+
+### 附带观察：阶段分布在两代次间迁移
+
+```
+v22:  两次都在 convert_assertions（断言层）
+v23:  两次都在 split_requirements（需求层）
+```
+
+方向与本轮改动的作用点一致 —— 它把「恒真 / 自前缀」问题从断言层推到需求层（生产者写出自前缀需求时
+就被拒，而非等到断言转换）。**更早拒是好事**（更接近病因、修复反馈更精准）。
+
+⚠️ **但不写成「改动造成的效果」**：n = 2 + 2，而「从单个观测推因果机制」是本轮已栽过两次的形态。
+正确表述是「阶段分布在两代次间不同，方向与改动作用点一致，样本量不足以判定因果」。
