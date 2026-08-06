@@ -3870,9 +3870,19 @@ def adjudicate_results(
                 raise ValueError(
                     "excluded finding attribution_status must match its bindings"
                 )
-        if issue_assertions != safe_false_assertions:
+        # A False primary the adjudicator forgot to group is a hole in the report, not a reason
+        # to throw the report away. `v11run3/0006-claude` died here with five of six issues
+        # already written, an attribution pass done, and nine LLM calls spent; issue #167 §3
+        # says a local producer defect must not become RUN_FAILED, and this is the second
+        # `adjudicate_results` raise to break it (the first was converted in `94ad01b5`).
+        #
+        # Recording the gap and marking coverage partial keeps every finding the adjudicator did
+        # get right, and makes the omission visible to the reader -- which a dead cell does not.
+        unaccounted_safe = sorted(safe_false_assertions - issue_assertions)
+        over_claimed_safe = sorted(issue_assertions - safe_false_assertions)
+        if over_claimed_safe:
             raise ValueError(
-                "adjudication must account for every attribution-safe False assertion"
+                "adjudicated issues may only reference primary False assertions"
             )
         if excluded_assertions != unsafe_false_assertions:
             raise ValueError(
@@ -3925,6 +3935,7 @@ def adjudicate_results(
             # to be as visible as the finding itself.
             "misfiled_findings_moved": tuple(misfiled_moves),
             "unsupported_issues_dropped": tuple(dropped_unsupported),
+            "unaccounted_safe_false_assertions": tuple(unaccounted_safe),
             "merged_exclusions_split": tuple(exclusion_splits),
             "thin_merge_warnings": thin_merge_warnings,
             "normalization_applied": reported_satisfied != expected_satisfied,
@@ -3998,9 +4009,15 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
         released = state["released_assertion_results"]
         adjudication = state["adjudication"]
         coverage_gaps = state.get("coverage_gaps", ())
+        # An adjudication that left a safe False primary ungrouped has not fully covered the
+        # cell, whatever the gaps list says -- surface it here so a reader of the terminal
+        # artifact cannot mistake it for a complete pass.
+        unaccounted = (
+            state.get("_adjudication_reconciliation", {}) or {}
+        ).get("unaccounted_safe_false_assertions") or ()
         coverage_status = (
             "partial"
-            if any(gap.blocks_full_coverage for gap in coverage_gaps)
+            if any(gap.blocks_full_coverage for gap in coverage_gaps) or unaccounted
             else "full"
         )
         guards = tuple(

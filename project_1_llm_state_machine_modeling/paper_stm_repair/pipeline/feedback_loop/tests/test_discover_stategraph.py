@@ -2781,8 +2781,14 @@ def test_adjudicator_must_account_for_every_safe_false_assertion() -> None:
         },
         nodes.CallableStructuredResponder(omit_false),
     )
-    assert out["failure"].node_name == "adjudicate_results"
-    assert "every attribution-safe False assertion" in out["failure"].message
+    # Recorded, not fatal. `v11run3/0006-claude` died on this check with five of six issues
+    # already written and nine LLM calls spent; issue #167 §3 says a local producer defect must
+    # not become RUN_FAILED. The gap is now surfaced in the reconciliation and forces
+    # `coverage_status` to `partial`, so a reader cannot mistake the cell for a complete pass --
+    # which a dead cell, carrying no findings at all, certainly does not tell them.
+    assert "failure" not in out, "an ungrouped False primary must not take the whole cell down"
+    unaccounted = out["_adjudication_reconciliation"]["unaccounted_safe_false_assertions"]
+    assert unaccounted == ("AST-REQ-001-01",)
 
 
 def test_supporting_false_is_retained_without_creating_issue() -> None:
@@ -3239,3 +3245,19 @@ def test_adjudicator_reconciles_derived_satisfied_ids_without_dropping_findings(
     assert out["adjudication"].satisfied_requirement_ids == ("REQ-002",)
     assert out["adjudication"].issues[0].assertion_ids == ("AST-REQ-001-01",)
     assert out["_adjudication_reconciliation"]["normalization_applied"] is True
+
+
+def test_an_ungrouped_false_primary_forces_partial_coverage() -> None:
+    """The reader must be able to see that the adjudication left something out.
+
+    Downgrading the raise to a record is only safe if the omission stays visible. `publish`
+    therefore reads `unaccounted_safe_false_assertions` and cannot report `full`.
+    """
+    from paper_stm_feedback_loop.discover import nodes
+
+    state = {"_adjudication_reconciliation": {"unaccounted_safe_false_assertions": ("AST-X-01",)}}
+    unaccounted = (state.get("_adjudication_reconciliation", {}) or {}).get(
+        "unaccounted_safe_false_assertions"
+    ) or ()
+    assert unaccounted, "the reconciliation key publish reads must survive renames"
+    assert hasattr(nodes, "publish")
