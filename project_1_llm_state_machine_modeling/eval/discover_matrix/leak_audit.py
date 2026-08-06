@@ -3,14 +3,24 @@
 Not a probe list -- the previous four attempts each grepped for the strings the last audit had
 named, and each time the next leak was in a form nobody had grepped for. This walks the AST,
 takes every string literal that is not a docstring, and matches it against every identifier and
-characteristic phrase in the ledger's four in-scope pairs.
+characteristic phrase in the pairs that are actually being measured.
+
+Which pairs those are is read from `holdout.json`, not hardcoded. The first version pinned the
+four historical cells, so the audit that was declared a pre-run gate had never once run against
+the pairs a coverage number would be reported from -- it audited only the pairs already known to
+be burned. Auditing the burned cells tells you nothing you did not already know; auditing the
+held-out ones is the whole point.
 """
 import ast, json, pathlib, re, collections
 
 ROOT = pathlib.Path("project_1_llm_state_machine_modeling")
 LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
 SRC = ROOT / "paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop"
-FOUR = {"0000", "0006", "0029", "0050"}
+HOLDOUT_FILE = ROOT / "eval/discover_matrix/holdout.json"
+#: Held-out pairs first -- those are the ones a reported number depends on -- plus the four
+#: historical cells, which are audited too so a regression there is still visible.
+HISTORICAL = {"0000", "0006", "0029", "0050"}
+AUDITED = set(json.loads(HOLDOUT_FILE.read_text())["holdout"]) | HISTORICAL
 GENERIC = {
     "source","target","trigger","scope","child","parent","variable","count","kind","sign","phase",
     "within_cycles","bound","release","condition","composite","state","event","True","False","None",
@@ -24,9 +34,14 @@ GENERIC = {
 led = json.loads(LEDGER.read_text())
 tokens = set()
 for rec in led.get("records", []):
-    if str(rec.get("pair")) not in FOUR:
+    if str(rec.get("pair"))[-4:] not in AUDITED:
         continue
-    fields = [rec.get("reference_side"), rec.get("generated_side"), rec.get("nl_evidence")]
+    # `statement` was missing: it is where the defect is described in prose, i.e. exactly the
+    # form the answer-shape leaks took.
+    fields = [
+        rec.get("reference_side"), rec.get("generated_side"), rec.get("nl_evidence"),
+        rec.get("statement"),
+    ]
     for a in rec.get("assertions") or []:
         fields.append(a.get("expression"))
         fields.extend(a.get("elements") or [])
