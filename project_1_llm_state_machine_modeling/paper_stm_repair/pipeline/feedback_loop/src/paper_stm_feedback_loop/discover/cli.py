@@ -403,7 +403,26 @@ def main(argv: list[str] | None = None) -> int:
         "gate_ablation": {
             "env": os.environ.get("DISCOVER_ABLATE_GATES", ""),
             "ablated": sorted(_ABLATED_GATES),
-            "active": [name for name in ABLATABLE_GATES if name not in _ABLATED_GATES],
+            # Deliberately not called `active`: these are the *ablatable* gates that stayed on,
+            # not the gates that were live. A reader who takes `active: [8 items]` for "the eight
+            # gates that ran" repeats v18's error one level up -- there, "two of seven off" was
+            # read as "no gates"; here, "eight ablatable" would be read as "eight total".
+            "ablatable_active": [n for n in ABLATABLE_GATES if n not in _ABLATED_GATES],
+            # Rules written against a specific pair that `DISCOVER_ABLATE_GATES` cannot switch
+            # off. Listed so no cell can be labelled an unaided baseline on the strength of the
+            # field above.
+            "non_ablatable_pair_motivated_gates": [
+                "unresolved_reference_findings",
+                "procedure_mismatch (Gate D)",
+                "substituted_binding_findings",
+                "mandatory_waiver",
+                "misspelled_binding_findings",
+                "placeholder_bindings",
+                "adjudication-side checks (6 sites)",
+            ],
+            # The splitter/converter prompts were themselves tuned on the four historical cells
+            # and have no switch at all. This is the ceiling on what any ablation can show.
+            "prompt_level_tuning_not_ablatable": True,
         },
     }
     completed = state["final_output"].model_copy(

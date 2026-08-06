@@ -11,6 +11,7 @@ Run it directly (`python -m pytest test_holdout_stays_clean.py`) or via the eval
 
 from __future__ import annotations
 
+import collections
 import json
 import sys
 from pathlib import Path
@@ -24,9 +25,17 @@ import holdout  # noqa: E402
 FROZEN = json.loads((HERE / "holdout.json").read_text())
 
 
-def test_the_frozen_set_is_what_the_rule_still_produces() -> None:
-    """Drift means either the ledger changed or a hold-out pair got named. Both are failures."""
-    assert holdout.compute()["holdout"] == FROZEN["holdout"]
+def test_verify_does_not_recompute_the_candidate_pool() -> None:
+    """The first version asserted `compute()["holdout"] == frozen`, and running the hold-out
+    destroyed it: rule 2 (never run) then excludes the very pairs that were frozen, so the
+    recomputed set is necessarily different and the check is permanently red -- with the same
+    message a real burn would produce. `--verify` must therefore pass on a tree where the
+    hold-out has been run, and `compute()` must be allowed to differ from the frozen set.
+    """
+    assert holdout.main(["--verify"]) == 0
+    recomputed = holdout.compute()["holdout"]
+    # Not an equality assertion in either direction -- only that a difference is tolerated.
+    assert isinstance(recomputed, list)
 
 
 def test_no_held_out_pair_is_named_anywhere() -> None:
@@ -42,6 +51,42 @@ def test_no_held_out_pair_is_named_anywhere() -> None:
 def test_the_four_historical_cells_are_all_excluded() -> None:
     """0000/0006/0029/0050 are what eighteen generations were tuned against."""
     assert set(FROZEN["holdout"]).isdisjoint({"0000", "0006", "0029", "0050"})
+
+
+def test_no_held_out_pair_shares_an_nl_group_with_a_tuned_cell() -> None:
+    """Same group means the same requirement text and reference model.
+
+    A rule written against one member acts on every member, which a pair-id spelling check
+    cannot see. The first freeze held two pairs sharing NL08 and NL05 with the tuned cells.
+    """
+    assert set(FROZEN["holdout_groups"].values()).isdisjoint(set(FROZEN["excluded_tuned_groups"]))
+
+
+def test_no_nl_group_dominates_the_holdout() -> None:
+    counts = collections.Counter(FROZEN["holdout_groups"].values())
+    assert max(counts.values()) <= FROZEN["max_per_group"]
+    assert len(counts) >= 5, f"only {len(counts)} distinct NL groups: {dict(counts)}"
+
+
+def test_no_held_out_pair_was_already_run_and_published() -> None:
+    """`runs/` is not the only run ledger; two pairs' results were published in a PR comment."""
+    assert set(FROZEN["holdout"]).isdisjoint(set(FROZEN["previously_run_and_published"]))
+    assert set(FROZEN["holdout"]).isdisjoint(set(FROZEN["run_seen_in_runs_dir"]))
+
+
+def test_layers_too_thin_to_report_are_marked_as_such() -> None:
+    """Reporting `@k` per layer off 2 records is reporting a Bernoulli draw as a percentage."""
+    reportable = FROZEN["layers_reportable_at_k"]
+    for layer, ok in reportable.items():
+        n = FROZEN["holdout_layer_coverage"].get(layer, 0)
+        assert ok == (n >= 4), f"{layer}: {n} records but reportable={ok}"
+    assert any(reportable.values()), "no layer has enough records to report at all"
+
+
+def test_an_undersized_freeze_is_refused() -> None:
+    """An empty hold-out written to disk looks exactly like a valid one, and divides by zero."""
+    assert FROZEN["holdout_judgeable_total"] >= 20
+    assert len(FROZEN["holdout"]) >= 5
 
 
 def test_every_layer_is_represented() -> None:
@@ -73,5 +118,4 @@ def test_the_freeze_refuses_to_be_overwritten() -> None:
     assert holdout.main(["--freeze"]) == 2
 
 
-def test_verify_passes_on_the_current_tree() -> None:
-    assert holdout.main(["--verify"]) == 0
+

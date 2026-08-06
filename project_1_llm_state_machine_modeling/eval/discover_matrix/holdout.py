@@ -19,15 +19,23 @@ The selection rule, in full
 1. **Never named.** The pair id does not appear in the feedback-loop pipeline source, its tests,
    or the body of any commit in the repository. `pair 0050`, `0050-claude`,
    `feedback_final_0050` and `EIS-0050-` all count as naming it.
-2. **Never run.** No directory under `runs/` mentions the pair.
-3. **Judgeable.** Only ledger records with `in_scope: true` and
+2. **Never run, and never published as run.** No directory under `runs/` mentions the pair, and
+   the pair is absent from `published_run_ledger.json` -- the frozen record of pairs whose
+   Discover behaviour was already observed and written up elsewhere (PR #158 §五 and its gist).
+   The first version of this rule checked only `runs/` directory names, and two pairs whose
+   results had been published in a PR comment passed it.
+3. **NL group disjoint from the tuned cells.** The pair's `group` is not one of `TUNED_GROUPS`.
+   Same group means the same requirement text and the same reference model, so a rule written
+   against one member acts on every member -- something a pair-id spelling check cannot see.
+4. **Judgeable.** Only ledger records with `in_scope: true` and
    `expressible_with_closed_vocabulary: true` count. A record outside paper1's `M = (S, E, V,
    Tr, A)` boundary, or one the closed predicate vocabulary cannot state, is unfindable by
    construction -- counting it would report a boundary as a capability gap.
-4. **Non-trivial denominator.** The pair must carry at least two judgeable records.
-5. **Layer-stratified, then ascending.** Walk candidates in ascending pair id. Admit a pair if
-   it introduces a `layer` not yet covered, until all four layers are present; then keep
-   admitting in ascending id order until `HOLDOUT_SIZE` pairs are held.
+5. **Non-trivial denominator.** The pair must carry at least two judgeable records.
+6. **Layer-stratified, then ascending, group-capped.** Walk candidates in ascending pair id.
+   Admit a pair if it introduces a `layer` not yet covered, until all four layers are present;
+   then keep admitting in ascending id order, at most `MAX_PER_GROUP` per NL group, until
+   `HOLDOUT_SIZE` pairs are held.
 
 Every step is a property of the ledger and the repository, never of a result. Nothing here can
 be tuned after seeing an outcome, which is the whole point: rule 5 is arbitrary on purpose, and
@@ -44,10 +52,12 @@ is the loop through *observed pipeline behaviour*; it does not remove the shared
 Usage
 -----
     python -m holdout --freeze     # writes holdout.json, refusing if it already exists
-    python -m holdout --verify     # recomputes and diffs against the frozen file
+    python -m holdout --verify     # checks the frozen set is still uncontaminated
 
-`--verify` is what the test calls. It fails if a held-out pair has since been named anywhere,
-which is the guard that keeps a future commit from silently burning the hold-out.
+`--verify` deliberately does NOT recompute the candidate pool. It checks only the two properties
+that must keep holding: rule 1 (still unnamed) and rule 4 (ledger denominator unchanged). Running
+the hold-out is what rule 2 forbids *before* freezing, so recomputing it afterwards would make
+the check fail on its first legitimate use -- and fail with the same message as a real burn.
 """
 
 from __future__ import annotations
@@ -55,6 +65,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import re
 import subprocess
 import sys
@@ -64,12 +75,22 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 FROZEN = HERE / "holdout.json"
+#: 已被运行且结果已公开的 pair。规则 2 查这里而不是只查 runs/ 的目录名。
+PUBLISHED_RUNS = HERE / "published_run_ledger.json"
 PIPELINE = REPO / "project_1_llm_state_machine_modeling" / "paper_stm_repair" / "pipeline" / "feedback_loop"
 RUNS = REPO / "runs"
 
 #: Six pairs against four cells: 18 cell-rounds per generation against the previous 12. Chosen
 #: from the round budget, not from the candidates -- see rule 5.
-HOLDOUT_SIZE = 6
+HOLDOUT_SIZE = 10
+
+#: 四个调优格所属的 NL group。同 group 意味着同一份需求文本与同一份参考模型，
+#: 因此针对某个调优格写下的规则天然作用于同 group 的其它 pair——按 pair id 拼写
+#: 判污染完全看不到这一层。实测：0010 与 0000/0050 同属 NL08，0009 与 0029 同属 NL05。
+TUNED_GROUPS = ("NL03", "NL05", "NL08")
+
+#: 同一 group 最多取几个，避免某一族的句法特性主导整个 hold-out。
+MAX_PER_GROUP = 3
 
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
 
@@ -103,10 +124,28 @@ def _commit_text() -> str:
     return done.stdout
 
 
-def _run_dir_text() -> str:
+def _run_pairs_from_dirs() -> set[str]:
+    """Pair ids that appear as a *cell directory* under `runs/`, e.g. `v19run1/0007-claude`.
+
+    Matching pair ids anywhere in the path text is what an earlier version did, with
+    `rf"{pair}-\\w+"`. Record files are named `L000-000005-requirement-...`, so every four-digit
+    id matched some record sequence number in some unrelated cell, the candidate pool came back
+    empty, and `--freeze` wrote an empty hold-out without complaint. Only the cell directory's
+    own name identifies which pair was run.
+    """
     if not RUNS.is_dir():
-        return ""
-    return "\n".join(str(p) for p in RUNS.rglob("*") if p.is_dir())
+        return set()
+    found = set()
+    # Walk at any depth -- cell dirs sit at runs/<campaign>/<matrix>/<round>/<pair>-<profile>,
+    # and a fixed-depth glob missed the aborted v19 rounds entirely, leaving four pairs in the
+    # hold-out whose output had already been read. Prune `records/` so this stays cheap.
+    for root, dirs, _ in os.walk(RUNS):
+        dirs[:] = [d for d in dirs if d not in ("records", "loops")]
+        for name in dirs:
+            head, _, rest = name.partition("-")
+            if rest and len(head) == 4 and head.isdigit():
+                found.add(head)
+    return found
 
 
 def _judgeable(record: dict) -> bool:
@@ -124,7 +163,14 @@ def compute() -> dict:
         return str(record["pair"])[-4:]
 
     all_pairs = sorted({pair_of(r) for r in records})
-    source, commits, run_dirs = _source_and_test_text(), _commit_text(), _run_dir_text()
+    source, commits = _source_and_test_text(), _commit_text()
+    ran_dirs = _run_pairs_from_dirs()
+
+    published = json.loads(PUBLISHED_RUNS.read_text())
+    ran_published = set(published["ran_and_published"])
+    group_of = {}
+    for record in records:
+        group_of[pair_of(record)] = record.get("group")
 
     named, run = {}, {}
     for pair in all_pairs:
@@ -135,7 +181,8 @@ def compute() -> dict:
         if pattern.search(commits):
             where.append("commit_body")
         named[pair] = where
-        run[pair] = bool(re.search(rf"{pair}-(claude|gpt)", run_dirs))
+        # 目录名 + 已公开运行台账。前者只覆盖本仓库 runs/，后者覆盖 PR/gist。
+        run[pair] = pair in ran_dirs or pair in ran_published
 
     judgeable: dict[str, list[dict]] = collections.defaultdict(list)
     for record in records:
@@ -145,23 +192,32 @@ def compute() -> dict:
     candidates = [
         pair
         for pair in all_pairs
-        if not named[pair] and not run[pair] and len(judgeable[pair]) >= 2
+        if not named[pair]
+        and not run[pair]
+        and group_of.get(pair) not in TUNED_GROUPS
+        and len(judgeable[pair]) >= 2
     ]
 
     held: list[str] = []
     covered: set[str] = set()
-    for pair in candidates:  # rule 5, phase 1: cover every layer
-        layers = {r["layer"] for r in judgeable[pair]}
-        if layers - covered:
-            held.append(pair)
-            covered |= layers
+    per_group: collections.Counter = collections.Counter()
+
+    def admit(pair: str) -> None:
+        held.append(pair)
+        covered.update(r["layer"] for r in judgeable[pair])
+        per_group[group_of.get(pair)] += 1
+
+    for pair in candidates:  # rule 6, phase 1: cover every layer
+        if {r["layer"] for r in judgeable[pair]} - covered:
+            admit(pair)
         if covered >= set(LAYERS):
             break
-    for pair in candidates:  # rule 5, phase 2: ascending fill
+    for pair in candidates:  # rule 6, phase 2: ascending fill, group-capped
         if len(held) >= HOLDOUT_SIZE:
             break
-        if pair not in held:
-            held.append(pair)
+        if pair in held or per_group[group_of.get(pair)] >= MAX_PER_GROUP:
+            continue
+        admit(pair)
     held.sort()
 
     def summarise(pair: str) -> dict:
@@ -196,6 +252,14 @@ def compute() -> dict:
         "candidate_count": len(candidates),
         "candidates": candidates,
         "holdout": held,
+        "holdout_groups": {p: group_of.get(p) for p in held},
+        "excluded_tuned_groups": list(TUNED_GROUPS),
+        "max_per_group": MAX_PER_GROUP,
+        "frozen_at_commit": subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True
+        ).stdout.strip(),
+        "previously_run_and_published": sorted(ran_published),
+        "run_seen_in_runs_dir": sorted(ran_dirs),
         "holdout_detail": [summarise(p) for p in held],
         "holdout_judgeable_total": sum(len(judgeable[p]) for p in held),
         "holdout_layer_coverage": dict(
@@ -204,6 +268,13 @@ def compute() -> dict:
             )
         ),
         "excluded_records_inside_holdout_pairs": excluded_here,
+        # 分层 @k 需要每层足够条目；不足时必须显式声明该层不报，而不是用 2~3 条撑出一个百分比。
+        "layers_reportable_at_k": {
+            layer: (
+                sum(1 for p in held for r in judgeable[p] if r["layer"] == layer) >= 4
+            )
+            for layer in LAYERS
+        },
         "caveat": (
             "The ledger for these pairs shares an author with the rules. The hold-out removes "
             "the loop through observed pipeline behaviour, not the shared author."
@@ -219,6 +290,16 @@ def main(argv: list[str] | None = None) -> int:
     fresh = compute()
 
     if args.freeze:
+        # 一个空的或过小的 hold-out 写盘后与一个合法的 hold-out 在形状上无从区分，
+        # 而它会让此后每个 @k 都算在一个空分母上。规则配错必须拒绝，不能静默产出。
+        if len(fresh["holdout"]) < 5 or fresh["holdout_judgeable_total"] < 20:
+            print(
+                f"refusing to freeze an undersized set: {len(fresh['holdout'])} pairs / "
+                f"{fresh['holdout_judgeable_total']} records (need >=5 pairs and >=20 records). "
+                f"candidate pool was {fresh['candidate_count']}; check the exclusion rules.",
+                file=sys.stderr,
+            )
+            return 2
         if FROZEN.exists():
             print(f"refusing to overwrite {FROZEN.name}; a hold-out is frozen once", file=sys.stderr)
             return 2
@@ -230,20 +311,52 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{FROZEN.name} missing; run --freeze first", file=sys.stderr)
             return 2
         frozen = json.loads(FROZEN.read_text())
+        held = list(frozen["holdout"])
+        # 只校验「冻结集是否仍然未被污染」，不重算候选池。
+        #
+        # 上一版把 `frozen["holdout"] == compute()["holdout"]` 当作校验，于是第一次正常使用
+        # 就把它摧毁了：hold-out 一旦跑过，规则 2（未跑过）就把这些 pair 自己剔除，重算结果
+        # 必然是另一组，测试永久变红——而「被点名烧毁」与「正常跑过」产出同一条失败信息。
+        # 这正是 `ec9c4dfe` 自己写下的判据「配错必须无法与成功区分开来，否则它就是缺陷」的
+        # 反例。「未跑过」是冻结时刻的一次性前置条件，记录为 frozen_at_commit 即可；此后需要
+        # 持续成立的只有规则 1（未被点名）与规则 3（可判定）。
+        source, commits = _source_and_test_text(), _commit_text()
         problems = []
-        if frozen["holdout"] != fresh["holdout"]:
-            problems.append(f"holdout drifted: frozen {frozen['holdout']} vs now {fresh['holdout']}")
-        burned = sorted(set(frozen["holdout"]) & set(fresh["tainted_pairs"]))
+        burned = {}
+        for pair in held:
+            pattern = _naming(pair)
+            where = []
+            if pattern.search(source):
+                where.append("pipeline_source_or_tests")
+            if pattern.search(commits):
+                where.append("commit_body")
+            if where:
+                burned[pair] = where
         if burned:
             problems.append(
-                f"held-out pairs are now named in source or commits: {burned}. "
-                "A hold-out that has been written about is no longer one."
+                f"held-out pairs have since been named: {burned}. A hold-out that has been "
+                "written about is no longer one; pick replacements and freeze a new set, "
+                "stating in the report that the old one burned."
             )
+        ledger = json.loads(LEDGER.read_text())
+        judgeable_now = collections.Counter(
+            str(r["pair"])[-4:] for r in ledger["records"] if _judgeable(r)
+        )
+        for row in frozen["holdout_detail"]:
+            if judgeable_now[row["pair"]] != row["judgeable_records"]:
+                problems.append(
+                    f"ledger changed for {row['pair']}: frozen {row['judgeable_records']} "
+                    f"judgeable records, now {judgeable_now[row['pair']]}. The denominator "
+                    "moved after freezing; report both counts or re-freeze."
+                )
         for problem in problems:
             print(f"FAIL {problem}", file=sys.stderr)
         if problems:
             return 1
-        print(f"ok: {frozen['holdout']} still clean, {frozen['holdout_judgeable_total']} records")
+        print(
+            f"ok: {held} still unnamed, {frozen['holdout_judgeable_total']} records, "
+            f"frozen at {frozen.get('frozen_at_commit', '?')[:9]}"
+        )
 
     if not (args.freeze or args.verify):
         print(json.dumps(fresh, ensure_ascii=False, indent=1))

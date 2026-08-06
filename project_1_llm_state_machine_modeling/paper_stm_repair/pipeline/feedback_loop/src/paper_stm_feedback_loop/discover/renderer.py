@@ -111,20 +111,22 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "sentence is about, named as a declared state."
     )
     if compiler_owned:
-        # Shown, not hidden: the producer will see these names in the FCSTM text
-        # and needs to know why they are not on the list above.  An empty
-        # `variables` next to a populated one of these is the honest statement
-        # that the model has no variable of the author's own -- which for a
-        # quantity the NL names is the finding.
+        # Shown, not hidden: the producer will see these names in the FCSTM text and needs to
+        # know why they are not on the list above.
+        #
+        # The note stops at the rendering-surface fact. An earlier version continued "if the NL
+        # requires a quantity and `variables` above is empty, this model has no variable of its
+        # own to carry it: name the variable it should have declared and assert that name's
+        # existence" -- trigger condition, expected truth value and prescribed action in one
+        # sentence, which is the same answer shape as the `initial_target` and `[*]` paragraphs
+        # cleaned in 21276850, twenty lines up in this file. What to do about an element the
+        # model does not declare is stated generically in the converter prompt, for every
+        # element kind; it does not need restating here for one kind, on this model.
         payload["compiler_owned_variables"] = compiler_owned
         payload["compiler_owned_variables_note"] = (
             "Created by the converter for its own routing, not by the model's "
             "author. The evidence layer drops them from every effect answer, so "
-            "binding one proves nothing about a quantity the NL names. If the NL "
-            "requires a quantity and `variables` above is empty, this model has no "
-            "variable of its own to carry it: name the variable it should have "
-            "declared and assert that name's existence, rather than binding one of "
-            "these."
+            "binding one proves nothing about a quantity the NL names."
         )
     return payload
 
