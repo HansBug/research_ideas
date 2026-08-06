@@ -425,6 +425,59 @@ class PredicateAPI:
                 "actually about."
             )
 
+    def _transient_states(self) -> frozenset[str]:
+        """Paths the notation marks as entered and left within one step."""
+
+        try:
+            rows = self.structure.states()
+        except Exception:
+            return frozenset()
+        return frozenset(
+            path
+            for row in rows
+            if getattr(row, "is_pseudo", False)
+            and isinstance(path := getattr(row, "path", None), str)
+            and path
+        )
+
+    def _reject_transient_subject(self, predicate: str, **bindings: Any) -> None:
+        """Refuse a claim whose subject no configuration can ever contain.
+
+        The mirror of `_reject_undiscriminating_root`, and the reason it needs saying
+        separately is that the two failures look nothing alike from outside. A root binding
+        is vacuously *true* and quietly hides a defect; a pseudo-state binding is vacuously
+        *false* and quietly publishes one. `occupancy_after(target=<choice>)` returns False
+        on a perfectly correct model, because a choice is left in the step it is entered --
+        the verdict describes the notation, not the artefact under test.
+
+        Measured on this fixture: with `Idle --go--> Pick --> Warm`, `target='Root.Warm'`
+        gives True and `target='Root.Pick'` gives False, on the same model, for no reason
+        the model is answerable for. Across the v20 hold-out set the same shape produced 17
+        published findings on pairs `0018` and `0038`.
+
+        Scope, kept honest: this fires only where the projection renders the pseudo-state as
+        a `pseudo state` node. Where a `<<fork>>` carries a body it projects to a composite,
+        `occupancy_after` counts occupying a composite as occupying one of its leaves, and
+        those bindings answer True -- a different failure that this rule neither reaches nor
+        claims to.
+        """
+
+        transient = self._transient_states()
+        if not transient:
+            return
+        offenders = sorted(
+            f"{name}={value!r}" for name, value in bindings.items() if value in transient
+        )
+        if offenders:
+            raise UnsupportedEvidence(
+                f"{predicate} cannot take a transient node for {offenders}: a pseudo-state "
+                "is left in the same step it is entered, so no configuration ever occupies "
+                "one and the check is false however the model behaves. Bind the branch "
+                "outcome the requirement is about -- the state reached through it -- or, if "
+                "the requirement really is about the node's existence, use "
+                "`state_declared(kind='pseudo')`."
+            )
+
     #: How many empty cycles to spend looking for a stable configuration before
     #: giving up.  The longest automatic chain in the corpus is 7; 16 leaves room
     #: without letting an automatic cycle spin indefinitely.
@@ -1103,6 +1156,7 @@ class PredicateAPI:
 
         self._require_well_formed_names(source=source, trigger=trigger, target=target)
         self._reject_undiscriminating_root("occupancy_after", target=target)
+        self._reject_transient_subject("occupancy_after", target=target)
         asked = _budget(within_cycles, "within_cycles", DEFAULT_CYCLES)
         if self._occupies(source=source, trigger=trigger, target=target, cycles=asked):
             return True
@@ -1274,6 +1328,7 @@ class PredicateAPI:
 
         self._require_well_formed_names(source=source, target=target)
         self._reject_undiscriminating_root("reaches", target=target)
+        self._reject_transient_subject("reaches", target=target)
         # Reachability without events only ever exercises completion
         # transitions, so every target one event away was reported unreachable
         # -- a fabricated defect on the most common shape in this corpus.  Offer
@@ -1509,6 +1564,7 @@ class PredicateAPI:
         optional = {"source": source} if source is not None else {}
         self._require_well_formed_names(trigger=trigger, response=response, **optional)
         self._reject_undiscriminating_root("response_within", response=response)
+        self._reject_transient_subject("response_within", response=response)
         # Two things were wrong.  The response arm needs its own `within` or the
         # grammar rejects the query outright.  And with `within == bound` only
         # step 0 carries a complete obligation, so every later step lands in the
@@ -1557,6 +1613,7 @@ class PredicateAPI:
         self._reject_pseudo_initial("persists_until", state=state)
         self._require_well_formed_names(state=state, release=release)
         self._reject_undiscriminating_root("persists_until", state=state)
+        self._reject_transient_subject("persists_until", state=state)
         # `exists_always` is a *witness* property: it asks whether some bounded
         # run keeps the condition, and with no events injected that run always
         # exists -- the truth value could not change when the defect was
