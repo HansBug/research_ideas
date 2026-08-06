@@ -93,11 +93,36 @@ def _arms(value) -> dict[str, list]:
     """判定值归一成 臂 -> 三元组。裸数组视为单臂，保留历史格式。"""
 
     if isinstance(value, dict):
-        return {str(arm): list(rounds) for arm, rounds in value.items()}
+        return {
+            str(arm): list(rounds)
+            for arm, rounds in value.items()
+            if arm != "direction" and isinstance(rounds, list)
+        }
     return {"-": list(value)}
 
 
-def validate(verdicts: dict, over: dict, rounds: int) -> list[str]:
+#: `HIT_CRITERION.md` §3 的四种成立形态。命中必须落在其中之一。
+DIRECTIONS = {
+    "direct": "直接对应——两个命题说同一件事，只是谓词不同",
+    "conjunct": "合取项之一——台账命题是 all(...)，我们证明其中一个合取项为假",
+    "dual": "负向命题的正向对偶——台账说「不应存在错的边」，我们说「应存在对的边」",
+    "implies": "蕴含更根本的原因——我们的命题为假蕴含台账命题为假，且定位更上游",
+}
+
+
+def _hit_directions(value) -> dict:
+    """判定值里的方向标注。裸数组没有标注位，返回空。"""
+
+    if isinstance(value, dict) and isinstance(value.get("direction"), dict):
+        return value["direction"]
+    return {}
+
+
+def _has_any_hit(value) -> bool:
+    return any(1 in series for series in _arms(value).values())
+
+
+def validate(verdicts: dict, over: dict, rounds: int, require_direction: bool = True) -> list[str]:
     """输入是否能支撑一个可被引用的比率。返回全部问题，不是第一个。"""
 
     if not verdicts:
@@ -123,6 +148,46 @@ def validate(verdicts: dict, over: dict, rounds: int) -> list[str]:
     for cell, series in sorted(over.items()):
         if len(series) != rounds:
             problems.append(f"over[{cell}] 有 {len(series)} 轮，应为 {rounds}")
+    if require_direction:
+        problems.extend(_direction_problems(verdicts))
+    return problems
+
+
+def _direction_problems(verdicts: dict) -> list[str]:
+    """命中必须写出它按哪一种形态成立。
+
+    这是防「判反」的机械检查点，而判反是这条链上最容易犯、代价最大的错误：上一代次有两条模型
+    产出触及了正确的元素、却得出与台账**相反**的结论，而唯一的防线（并列呈现）当时在真实路径
+    上输出零行。
+
+    要求填形态的作用不是记录，是**强制做一次方向比对**：填不出 `HIT_CRITERION.md` §3 四种形态
+    里的哪一种，就说明没做过那次比对。空值即拒收。
+
+    只对**能力主张带**强制。共演化带三十条逐条填形态的成本，换不来能被引用的结论。
+    """
+
+    problems = []
+    for record_id in REPORTABLE:
+        value = verdicts.get(record_id)
+        if value is None or not _has_any_hit(value):
+            continue
+        directions = _hit_directions(value)
+        for arm, series in _arms(value).items():
+            if 1 not in series:
+                continue
+            label = record_id if arm == "-" else f"{record_id}[{arm}]"
+            form = directions.get(arm) or directions.get("-") or directions.get("all")
+            if not form:
+                problems.append(
+                    f"{label} 判为命中但没写方向形态。填 {sorted(DIRECTIONS)} 之一到 "
+                    f'verdicts["{record_id}"]["direction"]["{arm}"] —— 填不出哪一种，'
+                    "就说明没做过方向比对，而判反正是这条链上代价最大的错误"
+                )
+            elif form not in DIRECTIONS:
+                problems.append(
+                    f"{label} 的方向形态 {form!r} 不在 HIT_CRITERION.md §3 的四种里："
+                    f"{sorted(DIRECTIONS)}"
+                )
     return problems
 
 
@@ -235,13 +300,16 @@ def template(arms: list[str], rounds: int) -> str:
 
     verdicts: dict[str, object] = {}
     for record_id in sorted(_ledger_ids()):
-        if len(arms) == 1:
-            verdicts[record_id] = [None] * rounds
-        else:
-            verdicts[record_id] = {arm: [None] * rounds for arm in arms}
+        entry: dict[str, object] = {arm: [None] * rounds for arm in arms}
+        if record_id in REPORTABLE:
+            # 可报记录预留方向位。命中而不填，`validate` 会拒。
+            entry["direction"] = {arm: None for arm in arms}
+        verdicts[record_id] = entry if len(arms) > 1 or record_id in REPORTABLE else [None] * rounds
     return json.dumps(
         {
-            "_note": "1=命中 0=未命中 null=该轮该格失败。可报记录必须全部填写。",
+            "_note": "1=命中 0=未命中 null=该轮该格失败。可报记录必须全部填写；"
+                     "判为命中的可报记录还必须在 direction 里写出 HIT_CRITERION.md §3 的形态。",
+            "_directions": DIRECTIONS,
             "_reportable_records": list(REPORTABLE),
             "_blocked": BLOCKED,
             "verdicts": verdicts,
@@ -261,6 +329,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--force", action="store_true", help="校验失败仍然计算。只用于诊断，结果不得引用"
     )
+    parser.add_argument(
+        "--no-direction-check", action="store_true",
+        help="跳过命中的方向形态校验。只用于诊断中途状态，正式报告不得使用"
+    )
     args = parser.parse_args(argv)
 
     if args.template:
@@ -272,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = json.loads(args.verdicts_json.read_text())
     verdicts = payload.get("verdicts") or {}
     over = payload.get("over") or {}
-    problems = validate(verdicts, over, args.rounds)
+    problems = validate(verdicts, over, args.rounds, not args.no_direction_check)
     if problems:
         print(f"判定表有 {len(problems)} 处问题，拒绝计算：", file=sys.stderr)
         for problem in problems:

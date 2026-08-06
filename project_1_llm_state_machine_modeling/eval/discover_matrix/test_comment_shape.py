@@ -100,3 +100,38 @@ def test_the_brief_does_not_cut_mid_clause() -> None:
         assert brief.endswith("…") or not str(ledger[record_id]["statement"]).startswith(
             brief + "的"
         ), brief
+
+
+def test_a_hit_must_state_how_the_identity_holds() -> None:
+    """防判反的机械检查点。
+
+    上一代次有两条模型产出触及了正确的元素、却得出与台账**相反**的结论，而唯一的防线（并列
+    呈现）当时在真实路径上输出零行。要求填形态的作用不是记录，是**强制做一次方向比对** ——
+    填不出 `HIT_CRITERION.md` §3 四种形态里的哪一种，就说明没做过那次比对。
+    """
+    verdicts = {rid: {"claude": [1, 0, 1]} for rid in sorted(mk._ledger_ids())}
+    problems = mk.validate({"": None} and verdicts, {}, 3)
+    complained = [p for p in problems if "方向形态" in p]
+    assert len(complained) == len(mk.REPORTABLE), problems
+
+
+def test_only_the_capability_band_is_asked_for_a_direction() -> None:
+    """共演化带三十条逐条填形态的成本，换不来能被引用的结论。"""
+    verdicts = {rid: {"claude": [1, 0, 1]} for rid in sorted(mk._ledger_ids())}
+    for rid in mk.REPORTABLE:
+        verdicts[rid]["direction"] = {"claude": "direct"}
+    assert not [p for p in mk.validate(verdicts, {}, 3) if "方向形态" in p]
+
+
+def test_an_unknown_direction_form_is_refused() -> None:
+    """四种形态来自 HIT_CRITERION.md §3，自由文本会让这个字段退化成摆设。"""
+    verdicts = {rid: {"claude": [1, 0, 1]} for rid in sorted(mk._ledger_ids())}
+    for rid in mk.REPORTABLE:
+        verdicts[rid]["direction"] = {"claude": "差不多吧"}
+    assert [p for p in mk.validate(verdicts, {}, 3) if "不在 HIT_CRITERION" in p]
+
+
+def test_a_miss_needs_no_direction() -> None:
+    """未命中没有「按哪种形态成立」可言，强制它填等于制造噪声。"""
+    verdicts = {rid: {"claude": [0, 0, 0]} for rid in sorted(mk._ledger_ids())}
+    assert not [p for p in mk.validate(verdicts, {}, 3) if "方向形态" in p]
