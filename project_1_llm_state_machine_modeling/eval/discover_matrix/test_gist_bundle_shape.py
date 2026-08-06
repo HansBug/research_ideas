@@ -103,7 +103,7 @@ def test_the_bundle_carries_no_machine_verdict(tmp_path) -> None:
         assert payload["expected_ledger_sha256"]
 
 
-def test_the_0032_cell_shows_its_reportable_record(tmp_path) -> None:
+def test_a_burned_cell_shows_its_records_with_the_burn_recorded(tmp_path) -> None:
     """The specific regression: it used to say this pair had no expected issue at all.
 
     `0032` holds `EIS-0032-02`, one of the records the capability claim rests on. Under the old
@@ -121,8 +121,15 @@ def test_the_0032_cell_shows_its_reportable_record(tmp_path) -> None:
     rows = json.loads(matches[0].read_text())["expected_records_for_judgment"]
     ids = {row["record"] for row in rows}
     assert "EIS-0032-02" in ids, rows
-    reportable = [row for row in rows if "可报" in row["eligibility"]]
-    assert reportable, rows
+    # ⚠️ 这条曾断言 `EIS-0032-02` 可报。v23 把它按动机烧毁了（`incumbent considered:` 约束的
+    # 实例表用了它 primary 绑定末段的元素名，且给出了真值判定），所以现在该格全部记录都是
+    # 已烧毁或共演化观测。**测试跟着资格走，不跟着某条记录走** —— 断言改成「每条记录都带明确
+    # 资格标注」，这才是这个包必须保证的东西。
+    for row in rows:
+        assert row["eligibility"], row
+        assert any(
+            marker in row["eligibility"] for marker in ("可报", "已烧毁", "共演化", "不可判定")
+        ), row
 
 
 def test_the_readme_scope_is_derived_from_the_data(tmp_path) -> None:

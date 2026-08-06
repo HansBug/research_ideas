@@ -363,9 +363,8 @@
   "0043",
   "0047"
  ],
- "reportable_judgeable_total": 3,
+ "reportable_judgeable_total": 2,
  "reportable_layer_coverage": {
-  "over_specification": 1,
   "nl_named": 1,
   "nl_contradiction": 1
  },
@@ -435,11 +434,19 @@
     "src:tests/test_root_anchored_gate.py"
    ],
    "evidence": "元素名泄漏，裸 id 匹配器结构上看不见。tests/test_root_anchored_gate.py 用 initial_target(composite=MODEL_ROOT, child=f'{MODEL_ROOT}.DoorShut')，而 MODEL_ROOT 是 0000 —— 0000 没有 DoorShut。全台账 DoorShut 只出现在 0005/0025/0028/0035 的八条记录里，而 EIS-0035-01 的 primary 逐字就是 initial_target(composite=<root>, child=<root>.DoorShut)。f73d6dd8 正文自陈该门是拿「台账里 12 条绑裸 root 的 assertion」校准的，EIS-0035-01 即其中一条。机械上该门不触及 initial_target 的 composite/child 绑定，所以实体结论不变；但边界是看着这条记录划的，按 §3.5.-1 手段 1（动机而非拼写）应当烧毁。代价：wellformedness 层可报条目归零。"
+  },
+  "EIS-0032-02": {
+   "mechanism": "motive_element_name_plus_truth_value",
+   "since_commit": "9a692f34",
+   "rule": "incumbent_considered_constraint",
+   "named_at": [
+    "src:tests/test_incumbent_considered.py"
+   ],
+   "evidence": "元素名泄漏 + 真值判定，两者叠加。`incumbent considered:` 约束的实例表在 prompt 与测试 docstring 里都用了 `Idle` / `IdleState` 这一对。① **唯一性**：`IdleState` 在 60 份 canonical 模型里**只出现在 0032**（比 f73d6dd8 的 `DoorShut` 更强，那个横跨 4 个 pair），而 0032 的 NL 第 1 句逐字写 `Idle` —— 这一对就是 0032 的「NL 名 vs 模型名」。② **它是该记录 primary 绑定的末段**：`containment(parent=…OperateState, child=…OperateState.IdleRegion.IdleState)`。③ **docstring 还给了真值判定**：把这次提名标为「噪声」。判断「0032 的 Idle 提名是噪声」必须查台账才能做 —— 与 `EIS-0047-02` 的烧毁理由逐字同构（「精度侧的方向判断，而判断『0047 发的是误报』本身需要台账」）。先例 `EIS-0035-01` 的 named_at 就是 `src:tests/test_root_anchored_gate.py`，且那次门对该记录的绑定是机械无关的、仍然烧了；本次泄漏的名字直接是 primary 路径的末段，更近一步。⚠️ prompt 侧已在 5faf7567 换成全语料零出现的 Alpha/Beta，且 `runs/paper1/` 下无任何 v23 目录—— **带泄漏的 prompt 从未进过模型，无数据被污染**。烧毁的理由不是数据污染，是 §3.5 条款 4：**分母必须在开跑前冻结**。跑完再裁定就成了「看过结果之后改口径」。"
   }
  },
  "reportable_records_note": "能力主张按**记录级**计，不按整格。上表三条因参与修法设计而失去资格；其余记录仍可报。0035 只在 V6 的受影响 scope 清单里被点名（7→6）且无方向性主张，判**未污染**——点名一个 pair 以记账它可报，与看着它的失败写规则，不是同一件事（§3.5.-1 手段 1 查动机而非拼写）。",
  "reportable_records": [
-  "EIS-0032-02",
   "EIS-0035-02",
   "EIS-0047-03"
  ],
@@ -554,5 +561,6 @@
    },
    "reasoning": "EIS-0047-01/02 已烧；EIS-0047-03 未被任何规则动机触及，保留可报（但见预注册 §九：它被 initialization_anchored 门结构性封死）。"
   }
- }
+ },
+ "_burn_note_EIS-0032-02": "为什么不选「不烧」：可以主张 prompt 侧已修、从未运行、门对该记录机械无关（它是两段跨层 containment，门只匹配一段自前缀，实测放行）。但 `EIS-0035-01` 的先例正是「机械无关仍烧」，而本次泄漏更近（primary 末段 + 真值判定）。在两种读法之间选更保守的那个，代价是可报记录 3 → 2；选宽松的那个若日后被推翻，代价是整代次结论作废。**不对称，所以选保守。**"
 }

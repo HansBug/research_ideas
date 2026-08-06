@@ -738,7 +738,9 @@ _BINDING_NAMESPACE = {
 }
 
 
-def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]:
+def vacuous_containment_findings(
+    requirements: Iterable[Any], known_paths: Iterable[str] = ()
+) -> tuple[str, ...]:
     """Refuse a containment requirement whose parent was read off the child's own path.
 
     `containment(parent=P, child=P.X)` cannot come back False: a declared path's own prefix
@@ -775,6 +777,7 @@ def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]
     """
 
     findings: list[str] = []
+    declared = frozenset(str(p) for p in known_paths if p)
     for item in requirements:
         if getattr(item, "predicate", None) != "containment":
             continue
@@ -786,6 +789,20 @@ def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]
             # give the producer two different reasons for one problem.
             continue
         if not (child.startswith(f"{parent}.") and "." not in child[len(parent) + 1 :]):
+            continue
+        if declared and child not in declared:
+            # `child` 是**提名路径**，模型没有声明它 —— 那么 `containment` 返回 False，而那个 False
+            # 就是发现（元素缺失）。本门的整个前提是「已声明路径的自前缀必为其父，所以答案由拼写
+            # 决定」；`child` 未声明时前提不成立，答案由模型决定。
+            #
+            # 没有别的门兜住这一类：`redundant_proposal_findings` 只在叶名在词表里另有声明时才拦，
+            # 完全缺失的名字它不管。而 v23 恰好抬高了这个形状的出现概率：prompt 早就教「路径写成
+            # `<句子所指的父>.<名字>`」，v23 又新教「parent 绑句子所指的层」，两条叠加，
+            # `nl_parent + "." + name` 作 child 是自然产物。
+            #
+            # 历史激活 0/105（既有自前缀 containment 断言取值全为 True，说明 child 都已声明），
+            # 所以这是前瞻性防护而非既存缺陷 —— 但代价不对称：漏放一次是白花一次 check，
+            # 误拒一次是压掉一条真缺失。
             continue
         context = getattr(item, "source_context", None) or {}
         nl_parent = context.get("nl_parent") if isinstance(context, dict) else None
@@ -799,12 +816,23 @@ def vacuous_containment_findings(requirements: Iterable[Any]) -> tuple[str, ...]
                 "declared path as `child`."
             )
         elif str(nl_parent).strip() == parent:
-            findings.append(
-                f"{rid} binds containment(parent={parent!r}, child={child!r}) and its "
-                f"`nl_parent` agrees with the declared prefix, so the model already satisfies "
-                "this by construction and there is no obligation to check. Drop the "
-                "requirement and state what the sentence says the element does instead."
-            )
+            # 放行，不拒。
+            #
+            # 这一支原本要求「删掉该需求」，理由是「模型按构造已满足，这次 check 白花」。那是**成本
+            # 论证，不是正确性论证** —— 而它与另外两条指令构成无解闭环：splitter prompt 说
+            # containment 语言必须产出 containment 需求，评审员规则说只用效果迁移表示它属 material
+            # omission。生产者产出 → 本门要求删 → 评审员要求加回 → 本门再拒，两侧预算都有限，
+            # 结果不是死循环而是**整格隔离**。仓库已两次记录过这个形态。
+            #
+            # 激活面证实这不是理论风险：v21+v22 的 480 条 containment 绑定里 **302 条（63%）是自前缀
+            # 形状**，v22 的 68 格中 32 格至少命中一次，单个需求集最多 11 条，而修复预算只有 5 次
+            # 且与其它契约错误共用。
+            #
+            # 门要拦的位移由另外两支覆盖：`nl_parent` 缺失（无从判断来源）与 `nl_parent` 指向别处
+            # （明知句子说的是另一层却绑在模型的摆放上）。「句子本来就说这一层」是**正确的需求**，
+            # 只是这一条恰好由构造成立 —— 让它照常执行并返回 True，代价是一次无信息的 check，
+            # 而拒绝它的代价是整格数据。
+            continue
         else:
             # `nl_parent` names a different level than the binding uses -- so the producer knows
             # the sentence puts the element somewhere else, and bound the check to the model's

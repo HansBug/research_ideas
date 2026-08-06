@@ -1359,7 +1359,7 @@ def split_requirements(
             ("initialization_anchored", lambda: initialization_anchored_findings(output.requirements)),
             # v23: 接线。它要求 `source_context.nl_parent`，splitter prompt 已在 v23 教这个字段 ——
             # v22 未接线正是因为「被要求补一个从未被描述过的字段」会耗尽修复预算。
-            ("vacuous_containment", lambda: vacuous_containment_findings(output.requirements)),
+            ("vacuous_containment", lambda: vacuous_containment_findings(output.requirements, known_paths)),
             (
                 "termination_proposal",
                 lambda: termination_proposal_findings(

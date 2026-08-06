@@ -68,15 +68,38 @@ def test_the_finding_says_where_the_parent_must_come_from() -> None:
     assert "sentence" in finding.lower()
 
 
-def test_agreement_is_refused_too_because_there_is_nothing_to_check() -> None:
-    """`nl_parent` matching the declared prefix means the obligation holds by construction.
+def test_agreement_is_admitted_because_refusing_it_has_no_legal_answer() -> None:
+    """`nl_parent` 等于已声明前缀 —— 这条需求由构造成立，但**放行**而不是拒。
 
-    This is not a defect in the requirement -- it is a requirement with no content. Emitting
-    it spends a check and reports a satisfied obligation the model could not have violated.
+    该分支原本拒绝，理由是「模型按构造已满足，这次 check 白花」。那是**成本论证，不是正确性
+    论证**，而它与另外两条指令构成无解闭环：splitter prompt 说 containment 语言必须产出
+    containment 需求，评审员规则说只用效果迁移表示它属 material omission。生产者产出 → 本门
+    要求删 → 评审员要求加回 → 本门再拒。两侧预算都有限，所以不是死循环而是**整格隔离**。
+
+    激活面证实这不是理论风险：v21+v22 的 480 条 containment 绑定里 **302 条（63%）是自前缀
+    形状**，v22 的 68 格中 32 格至少命中一次，单个需求集最多 11 条，而修复预算只有 5 次且与
+    其它契约错误共用。
+
+    门要拦的位移由另外两支覆盖 —— `nl_parent` 缺失（无从判断来源）与 `nl_parent` 指向别处
+    （明知句子说的是另一层却绑在模型的摆放上）。「句子本来就说这一层」是**正确的需求**，
+    只是恰好由构造成立：放行的代价是一次无信息的 check，拒绝的代价是整格数据。
     """
-    findings = capability.vacuous_containment_findings((_nested(nl_parent="Sys.Outer"),))
-    assert findings
-    assert "agrees" in findings[0].lower()
+    assert capability.vacuous_containment_findings((_nested(nl_parent="Sys.Outer"),)) == ()
+
+
+def test_a_proposed_child_is_admitted_because_its_false_is_a_real_finding() -> None:
+    """`child` 未声明时，`containment` 返回 False —— 那是元素缺失，不是空洞查询。
+
+    本门的整个前提是「已声明路径的自前缀必为其父，所以答案由拼写决定」。`child` 是提名路径时
+    前提不成立：答案由模型决定。没有别的门兜住这一类（`redundant_proposal_findings` 只在叶名
+    在词表里另有声明时才拦），而 v23 恰好抬高了它的出现概率 —— prompt 早教「路径写成
+    `<句子所指的父>.<名字>`」，v23 又新教「parent 绑句子所指的层」，两条叠加后
+    `nl_parent + "." + name` 作 child 是自然产物。
+    """
+    req = _Req({"parent": "Sys.Outer", "child": "Sys.Outer.Missing"})
+    assert capability.vacuous_containment_findings((req,), ["Sys.Outer", "Sys.Outer.Inner"]) == ()
+    # 不传词表时退回旧行为 —— 老 bundle 与不提供词表的调用方不受影响。
+    assert capability.vacuous_containment_findings((req,)) != ()
 
 
 def test_disagreement_is_admitted_and_is_the_whole_point() -> None:

@@ -346,8 +346,8 @@ def test_docstring_stripping_does_not_hide_a_code_change() -> None:
 def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> None:
     """Records the fact that v22 has no capability-claim band, so it cannot be discovered later.
 
-    Three records remain, one each in `over_specification` / `nl_named` / `nl_contradiction`,
-    and `wellformedness` is empty. The threshold is four. Writing this as
+    Two records remain, one each in `nl_named` / `nl_contradiction`; `wellformedness` and
+    `over_specification` are both empty. The threshold is four. Writing this as
     a test rather than only as prose means a later change that quietly re-inflates the
     denominator has to argue with it.
 
@@ -355,18 +355,25 @@ def test_no_layer_reaches_the_reporting_threshold_after_record_level_burns() -> 
     reconciliation found `EIS-0035-01`. Every one was free in scientific terms -- no layer reached
     the threshold at six either -- which is the reason to record them rather than argue about them.
 
-    Of the three that remain, `EIS-0047-03` is clean but structurally unreachable (see the
+    ⚠️ 又少一条：v23 写 `incumbent considered:` 约束时，实例表用了 `EIS-0032-02` primary 绑定末段
+    的元素名，且给出了真值判定 —— prompt 侧自查时修了，测试 docstring 里的同一组名字漏了，由发布前
+    的公平性 review 抓出。**一处泄漏的修复要覆盖它的全部副本。**
+
+    Of the two that remain, `EIS-0047-03` was once thought structurally unreachable (see the
     pre-registration: both its encodings bind `source="[*]"` with a trigger the power-on word
     list does not admit, so `initialization_anchored_findings` refuses them). So the honest count
     of clean *and* reachable records is **two**.
     """
     d = _frozen()
-    assert d["reportable_judgeable_total"] == 3
+    assert d["reportable_judgeable_total"] == 2
     assert d["reportable_layer_coverage"] == {
-        "over_specification": 1,
         "nl_named": 1,
         "nl_contradiction": 1,
     }
+    # `over_specification` 在 v23 归零：`EIS-0032-02` 因 `incumbent considered:` 约束的实例表
+    # 用了它 primary 末段的元素名（`IdleState` 在 60 份模型里只出现在那一个 pair）而烧毁。
+    # 与 `wellformedness` 一样记为**缺键**而非零，好让后续任何重新充气都必须显式加回来。
+    assert "over_specification" not in d["reportable_layer_coverage"]
     # `wellformedness` reached zero when `EIS-0035-01` burned on an element-name leak that no
     # id-based matcher can see: a gate test binds `<root>.DoorShut`, which is that record's own
     # primary shape, and the gate's commit says it was calibrated on twelve root-bound ledger
