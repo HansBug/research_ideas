@@ -235,6 +235,7 @@ class PredicateAPI:
         topology: Any = None,
         formal: Any = None,
         source_exclusions: tuple[str, ...] = (),
+        exclusion_roles: dict[str, str] | None = None,
     ) -> None:
         self.structure = structure
         self.relations = relations
@@ -243,6 +244,10 @@ class PredicateAPI:
         self.topology_api = topology
         self.formal = formal
         self.source_exclusions = tuple(source_exclusions)
+        # Which excluded elements stand in for an omission versus lower something the author
+        # wrote. Empty when no contract reached this layer, and then `_is_omission_surrogate`
+        # falls back to the table rather than treating every excluded element as a member.
+        self.exclusion_roles = dict(exclusion_roles or {})
         # Attribution needs to know which model elements a call rested on.  The
         # predicate is the only thing that knows: it chose the query.  Refs are
         # collected per call and consumed by the runtime's audit wrapper, so the
@@ -1123,6 +1128,27 @@ class PredicateAPI:
             )
         return False
 
+    def _is_omission_surrogate(self, path: str) -> bool:
+        """Whether this element stands in for something the author omitted.
+
+        The extension of a count is the author's element set, so a stand-in the projection
+        inserted because the author wrote nothing is not a member. A *lowering* of something the
+        author did write is a member -- it is that element, in another form -- and excluding it
+        would report a shortfall against what the author supplied.
+
+        The exclusion table alone cannot tell them apart; the contract can, and does. This
+        method carries the narrower question so `cardinality` does not have to restate it, and
+        so the two layers cannot drift on what "the author wrote" means.
+        """
+
+        if f"compiler:state:{path}" not in self.source_exclusions:
+            return False
+        roles = getattr(self, "exclusion_roles", None) or {}
+        role = roles.get(path) or roles.get(f"state:{path}")
+        # No contract available: fall back to the table's answer rather than silently counting
+        # every excluded element as a member, which would undo the filter entirely.
+        return role == "omission_surrogate" if role else True
+
     def cardinality(self, *, scope: str, count: int) -> bool:
         """This scope declares exactly this many non-pseudo direct substates."""
 
@@ -1163,7 +1189,11 @@ class PredicateAPI:
             if bool(row.is_pseudo):
                 continue
             path = str(getattr(row, "path", "") or "")
-            if f"compiler:state:{path}" in self.source_exclusions:
+            # `omission_surrogate` only, not "anything in the exclusion table". The table also
+            # holds *carriers* -- lowerings of things the author did write -- and dropping those
+            # would report a shortfall against elements the author supplied. Measured: four of
+            # the sixteen affected scopes drop a carrier under the wider test.
+            if self._is_omission_surrogate(path):
                 excluded.append(path)
             else:
                 authored.append(path)

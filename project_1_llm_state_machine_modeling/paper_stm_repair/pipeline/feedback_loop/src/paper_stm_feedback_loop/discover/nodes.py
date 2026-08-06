@@ -33,6 +33,7 @@ from .dependencies import (
     missing_dependency_references,
     orphan_preconditions,
 )
+from ..common.refs import reference_identity
 from .capability import (
     anchors_at_initialization,
     called_evidence_functions,
@@ -1156,6 +1157,15 @@ def _fallback_prepare(discover_input: DiscoverInput) -> FrozenDiscoverInputs:
         inspect=inspected.get("inspect"),
         source_mappings=source_entries,
         source_exclusions=source_exclusions,
+        # Which excluded elements stand in for an omission and which lower something the author
+        # wrote. The flat exclusion list cannot say; the contract can, and counting predicates
+        # need the distinction -- excluding a lowering would report a shortfall against elements
+        # the author supplied.
+        exclusion_roles=exclusion_roles(
+            discover_input.manifest.get("working_contract")
+            if isinstance(discover_input.manifest.get("working_contract"), dict)
+            else None
+        ),
     )
     # Boundaries come from `common/nl_segmentation`, which prefers a hand annotation when
     # the specification's own numbering is not machine-decidable and otherwise reproduces the
@@ -3518,8 +3528,9 @@ def _omission_placeholder_only(
     if roles:
         decided = []
         for ref in debt_refs:
-            path = str(ref).split(":")[-1]
-            role = roles.get(path)
+            role = next(
+                (roles[key] for key in _ref_lookup_keys(str(ref)) if key in roles), None
+            )
             if role is None:
                 decided.append(None)
             else:
@@ -3583,12 +3594,20 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
     across 1712 entries in sixty pairs the split is exact: lowerings have refs into the source,
     fail-closed stand-ins have none, and the root wrapper has neither refs nor semantics.
 
-    The downstream substitute was a two-string leaf-name table, and it is wrong in both
-    directions -- which is why this cannot stay a substring match. `FinalWait*` names a lowering
-    of a nested final the author *did* write, so matching it waived evidence that should have
-    been excluded. `InvalidInitialtr_*` names a stand-in for an initial target the author got
-    wrong -- the defect itself -- and is absent from the table, so it never got the waiver it
-    deserves.
+    The downstream substitute was a two-string leaf-name table, and the contract disagrees with
+    it on exactly 38 of 1712 entries, in two families:
+
+      10 `compiler:state:*FinalWait*`             table: placeholder   contract: carrier
+      28 `compiler:synthetic_transition:*`        table: not one       contract: surrogate
+
+    So the delta is: take the waiver away from ten lowerings of nested finals the author did
+    write, and grant it to twenty-eight fail-closed segments. One direction stricter, one looser.
+
+    ⚠️ An earlier version of this docstring also claimed `InvalidInitialtr_*` was a stand-in
+    denied its waiver. That is wrong: all nine `InvalidInitial*` and four `InvalidFinal*`
+    entries carry non-empty `source_refs`, so the contract classifies them `carrier` and they
+    get no waiver here either -- the same answer the table gives. The claim was retracted rather
+    than left standing because it was the more persuasive half of the argument and it was false.
 
     Returns an empty mapping when the contract is absent, so callers fall back to their previous
     behaviour rather than having every verdict silently reclassified.
@@ -3614,8 +3633,45 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
         else:
             role = "omission_surrogate"
         for path in paths:
-            roles.setdefault(path, role)
+            # Normalise through the shared matcher. `model_refs` keeps its kind prefix
+            # (`state:Sys.X`) while `attribution_exclusions` uses the producer namespace
+            # (`compiler:state:Sys.X`), so comparing either verbatim gives an empty
+            # intersection -- measured 0 of 31 on one pair, 0 of 1712 across the corpus, with
+            # seven green tests beside it because the fixture used a spelling the generator
+            # never emits. `common/refs.py` exists for exactly this and warns that "a drifted
+            # matcher fails silently"; writing a third one here is how that happened.
+            for key in _ref_lookup_keys(str(path)):
+                roles.setdefault(key, role)
     return roles
+
+
+def _ref_lookup_keys(reference: str) -> tuple[str, ...]:
+    """Every spelling one reference can be looked up by.
+
+    The two sides of this lookup are spelled differently and neither is wrong. `model_refs`
+    carries the element's own kind (`state:Sys.X`, `fcstm-transition:tr_7:segment:2`);
+    `attribution_exclusions` carries the producer namespace on top of it
+    (`compiler:state:Sys.X`, `compiler:transition_segment:tr_7:segment:2`). Comparing either
+    verbatim gives an empty intersection -- measured 0 of 1712 -- and stripping to the last
+    colon segment turns a segment ref into the string `"2"`.
+
+    So both sides are indexed under the full string and under every suffix obtained by dropping
+    leading segments. `reference_identity` handles the two-segment case the shared vocabulary
+    knows about; this covers the deeper producer forms it was not written for, without becoming
+    a second matcher for the case it *was* written for.
+    """
+
+    text = reference.strip()
+    if not text:
+        return ()
+    keys = [text]
+    _, identity = reference_identity(text)
+    if identity != text:
+        keys.append(identity)
+    parts = text.split(":")
+    for cut in range(1, len(parts)):
+        keys.append(":".join(parts[cut:]))
+    return tuple(dict.fromkeys(keys))
 
 
 def _assertion_claim_key(
@@ -3684,10 +3740,22 @@ def _called_predicate_name(expression: str) -> str | None:
             continue
     else:
         return None
+    from .predicates import PREDICATE_NAMES
+
+    fallback = None
     for node in _ast.walk(tree):
-        if isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name):
+        if not (isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name)):
+            continue
+        if node.func.id in PREDICATE_NAMES:
             return node.func.id
-    return None
+        if fallback is None:
+            fallback = node.func.id
+    # A folded expression -- `all([...])`, `bool(...)`, `any(... for ...)` -- puts a builtin at
+    # the first call, and a builtin is neither in the declarative set nor `*_declared`, so
+    # keying on it would *lose* the attribution this function exists to supply. Preferring a
+    # known predicate makes the change monotone. No fold occurs in the corpus today, which is
+    # why the naive version passed: all twenty-two preconditions resolve to a bare predicate.
+    return fallback
 
 
 def _declared_ancestor_refs(
@@ -3801,8 +3869,13 @@ def _declared_children_refs(scope: str, entries: list[Any]) -> tuple[str, ...]:
             continue
         declares_a_direct_child = False
         for ref in entry.get("intermediate_elements", []) or ():
-            text = str(ref)
-            path = text.split(":", 1)[1] if ":" in text else text
+            # Through the shared matcher, and only for state refs. Splitting on the first colon
+            # was a second parser: it turns `compiler:state:Sys.X` into `state:Sys.X`, the
+            # prefix test then fails, and the whole fallback stops working with no signal.
+            # `common/refs.py` says it out loud -- "a drifted matcher fails silently".
+            kind, path = reference_identity(str(ref))
+            if kind != "state":
+                continue
             if path.startswith(prefix) and "." not in path[len(prefix) :]:
                 declares_a_direct_child = True
                 break

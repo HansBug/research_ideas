@@ -208,6 +208,7 @@ class EvalEnvironment:
         inspect: dict[str, Any] | None = None,
         source_mappings: list[dict[str, Any]] | None = None,
         source_exclusions: list[str] | tuple[str, ...] | None = None,
+        exclusion_roles: dict[str, str] | None = None,
         coverage_bindings: dict[str, list[str]] | None = None,
         extra_vars: dict[str, Any] | None = None,
         extra_functions: dict[str, tuple[str, Callable[..., Any]]] | None = None,
@@ -226,6 +227,10 @@ class EvalEnvironment:
         self.inspect = copy.deepcopy(inspect or {})
         self.source_mappings = copy.deepcopy(source_mappings or [])
         self.source_exclusions = tuple(str(item) for item in (source_exclusions or ()))
+        # Carrier / omission_surrogate / naming_wrapper per element, derived from the frozen
+        # contract by the caller. Absent on a checkout without a contract, and then the
+        # predicates fall back to the leaf-name table rather than to a default.
+        self.exclusion_roles = dict(exclusion_roles or {})
         self.timeout_seconds = timeout_seconds
         self.call_trace: list[FunctionCallRecord] = []
         self._known_paths_cache: frozenset[str] | None = None
@@ -286,6 +291,7 @@ class EvalEnvironment:
             topology=self.topology_api,
             formal=self.fbmcq_api if formal_verification_enabled else None,
             source_exclusions=self.source_exclusions,
+            exclusion_roles=getattr(self, "exclusion_roles", None),
         )
         functions: dict[str, tuple[str, Callable[..., Any]]] = {
             name: (family, getattr(self.predicates, method))

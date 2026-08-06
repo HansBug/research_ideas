@@ -19,6 +19,7 @@ from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
 from .graph import run_discover_state
 from .nodes import ABLATABLE_GATES, _ABLATED_GATES
+from .nodes import exclusion_roles
 from .report import telemetry_summary, write_discover_markdown
 from .responder import DirectStructuredResponder
 from .schemas import DiscoverInput, LLMCallRecord, NodeExecutionRecord
@@ -228,6 +229,11 @@ def main(argv: list[str] | None = None) -> int:
         model_text=bundle.fcstm_text,
         source_mappings=source_entries,
         source_exclusions=source_exclusions,
+        exclusion_roles=exclusion_roles(
+            bundle.working_contract.data
+            if getattr(bundle, "working_contract", None) is not None
+            else None
+        ),
         timeout_seconds=args.assertion_timeout_seconds,
         fbmcq_solver_timeout_ms=args.fbmcq_solver_timeout_ms,
         fbmcq_max_bound=args.fbmcq_max_bound,
