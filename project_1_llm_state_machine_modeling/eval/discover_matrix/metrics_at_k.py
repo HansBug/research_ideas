@@ -70,8 +70,17 @@ BURNED_RECORDS = set(FROZEN.get("burned_records") or {})
 REPORTABLE = tuple(FROZEN.get("reportable_records") or ())
 # 干净但结构性不可达的记录。它若报未命中不是能力缺口，所以必须在输出里说出来，否则读者会把
 # 门的抑制读成方法的失败。
-BLOCKED = {
-    "EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）",
+BLOCKED: dict[str, str] = {
+    # 空的，而空是判定的结果，不是遗漏。
+    #
+    # 预注册 §9.1 曾断言 `EIS-0047-03` 被 `initialization_anchored` 门**结构性封死**，理由是台账
+    # 那两种编码（都绑 `source="[*]"` + trigger `Collision_Detected`）在八种 phase 组合下全被拒。
+    # 机制论证没错，但从「这种写法被拒」推出「这个缺陷测不到」是错的：v22 实测 0047 六格
+    # `UnsupportedEvidence` 拒答 0 条，门是以**修订反馈**形式起作用的，生产者据此改用
+    # `event_consumed(source=<根复合态>, ...)` 并在 run1/claude 上命中（形态 `implies`）。
+    #
+    # 所以这里不能再标它「被封死」—— 那会把一条真命中的记录在报告里写成受抑制。§9.1 已就地更正，
+    # 这张表随之清空。若将来发现新的结构性封死项，在此登记并同时更新预注册。
 }
 
 
