@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-# v22: 11 pair × 2 model × 3 轮 = 66 格。失败自动重试直到落盘。
+# v22: <grid> pair × 2 model（claude-opus-4-7 + gpt-5.5）× 3 轮。失败自动重试直到落盘。
+# 格集从盘上读（run_grid.py），不在本文件里维护第二份。
 set -u
 REPO=/home/zhangshaoang/oo-projects/research_ideas
 FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
 CFG="$REPO/.llmconfig.yml"
 BASE="${BASE:-$REPO/runs/paper1/matrix-v22}"
-PAIRS=(0000 0006 0018 0029 0032 0035 0038 0043 0047 0048 0050)
+# The grid is read from disk, not typed. A literal here was wrong once already -- it carried
+# `0058`, which has never been in the grid, and the resulting count went into a document that
+# claims to be pre-registered. See `run_grid.py`.
+read -r -a PAIRS <<< "$("$REPO/venv/bin/python" "$REPO/project_1_llm_state_machine_modeling/eval/discover_matrix/run_grid.py" ${GRID:+--grid "$GRID"})"
+[ "${#PAIRS[@]}" -gt 0 ] || { echo "refusing to run: could not determine the grid" >&2; exit 1; }
+echo "grid: ${#PAIRS[@]} pairs -- ${PAIRS[*]}"
 MAX="${MAX:-8}"; MAXTRY=6
 cd "$FL" || exit 1
 one() {  # run pair profile short
@@ -37,5 +43,5 @@ done
 wait
 echo "V22 ALL DONE"
 for run in run1 run2 run3; do
-  echo "  $run: $(ls $BASE/$run/*/discover-completed.json 2>/dev/null | wc -l)/22"
+  echo "  $run: $(ls $BASE/$run/*/discover-completed.json 2>/dev/null | wc -l)/$(( ${#PAIRS[@]} * 2 ))"
 done

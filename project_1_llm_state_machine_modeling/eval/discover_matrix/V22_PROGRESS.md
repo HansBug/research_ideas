@@ -1,6 +1,8 @@
 # v22 实施进度与剩余工作
 
-代码 `23315498`。全量 **1577 passed / 4 skipped**。**实验尚未开跑** —— 待过第 2 步的两份 review。
+代码 `02539b82`。全量 **1580 passed / 4 skipped**，eval 侧 **21 passed**。**实验尚未开跑** —— 待过第 2 步的两份 review（前三轮均判「禁止进入运行」）。
+
+口径与预注册以 [V21_PREREGISTERED_CALIBRE.md](./V21_PREREGISTERED_CALIBRE.md) 为准，本文件只记实施进度。
 
 > ⚠️ **本文件初版有一处判断错误，已更正。** 初版称 V4/V5 被「需要把 working contract 的
 > `elements` 接进 discover 层」阻塞。**那个阻塞不存在** —— `frozen.working_contract` 早已
@@ -17,10 +19,22 @@
 | :-- | :-- | :-- | :-- |
 | **V1** | 机器根外壳在祖先归因中透明：前缀回溯耗尽时锚到该前缀下的**直接**子元素 | 与 V2 合计救回 v21 三轮 24 条 `unattributed` 中的 **13** 条 | `935aa3ac` |
 | **V2** | precondition 由自己的 expression 归因，不由所属 requirement | 同上；并消除「一条发现能否浮现取决于 dependent 是否被改写掉」这一不稳定性 | `c05587f8` |
-| **V6** | 计数类谓词的外延剔除编译器插入的成员 | 8 个 scope 受影响，**双向**：`0043 PumpControl` 3→2（掩盖的缺陷浮出）、`0047 CAS` 4→3（三轮多报消失）| `0eb36a06` |
-| **V4 + V5 前半** | 排除元素的角色由契约 `source_refs` 决定，替换两项叶名表 | 叶名表的**两个方向错误都在语料上量到**：10 个 `FinalWaittr_*` 被误判为占位（实为 carrier，会误免）、28 个 `synthetic:segment:N` 被漏判（实为替身，永远拿不到免除）| `23315498` |
+| **V6** | 计数类谓词的外延剔除编译器插入的成员 | 三轮返工后：全语料剔除面 **51**、v22 十一格受影响 scope **16**。见下方「V6 的三次口径」| `0eb36a06` → `e45e01e0` → `02539b82` |
+| **V4 + V5 前半** | 排除元素的角色由契约决定，替换两项叶名表 | 判据经两次返工：`source_refs` → 配对段 `generated_role`。10 个 `FinalWaittr_*` 被叶名表误判为占位（实为 carrier）、28 个 `synthetic:segment:N` 被漏判（实为替身）、13 个 `InvalidInitial*`/`InvalidFinal*` 被 `source_refs` 误判为 carrier（实为替身）| `23315498` → `e45e01e0` → `02539b82` |
 
-V1+V2 的 13 条分布：`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`run2/0038 ×1`、`run3/0018 ×1`、`run3/0038 ×1` —— 与根因分析报的 M1 逐条吻合。
+V1+V2 合计救回 13 条，分布 `run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`run2/0038 ×1`、`run3/0018 ×1`、`run3/0038 ×1` —— 与根因分析报的 M1 逐条吻合。
+
+⚠️ **三处数字更正**：① 13 条是 **V1+V2 合计**，V1 单独是 8 条 —— 上一版把合计写成了 V1 的功劳；② 13 条**全部落在 `0018` 与 `0038`**，而这两格已按动机烧毁，所以这 13 条不能计入能力主张，只能作为共演化观测；③ 契约 elements 是 **3125** 条 `model_refs` 解析、**1712** 条 `attribution_exclusions`，上一版把这两个数混用了。
+
+### V6 的三次口径（前两次都错，记录以免再犯）
+
+| 轮次 | 过滤判据 | 剔除面 | 错在哪 |
+| :-- | :-- | --: | :-- |
+| `0eb36a06` | 在 `source_exclusions` 里 | 16 scope | 表里也有 carrier，4 个 scope 会就作者确实写了的元素数报缺口 |
+| `e45e01e0` | `role == "omission_surrogate"` | 12 scope | 用**归因层的答案**回答**计数层的问题**；`FinalWait*` 因证据不可采而被当成成员，`cardinality(0047.RearEnd, 1)` 返回 True 而台账说该 scope 是空的 |
+| `02539b82` | 独立函数 `inserted_state_paths`，`kind == "synthetic_state"` | **51 全语料 / 16 在格集** | —— |
+
+`FinalWait` 出现在 **5 个 pair**（`0002 0017 0026 0039 0050`），不是上一版写的「`0050` 是唯一含它的 pair」；`InvalidInitial` 出现在 `0004 0016 0033 0038 0047`。v22 十一格里只有 `0050` 含 `FinalWait`、`0038`/`0047` 含 `InvalidInitial`，所以 Q1 的 13 条翻转在格集内只触及 **3 条** —— 两个修法在 v22 上的可观测面都很窄。
 
 ## 2. 已实现但**未接线**（一条）
 
@@ -44,7 +58,7 @@ V1+V2 的 13 条分布：`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`
 | **V8** | 排除词表闭合性 | **必须在 V4 之后** —— 单独修匹配器会把 143 条 `safe` 里的 74 条（52%）当场变成 `representation_debt`，砍掉一半发布量 |
 | **D2/D3/D4** | splitter 禁止性需求判据、reviewer 引文核查、极性段 + `stays_in` 假阳性 | 独立，可先做 |
 
-### V4 的判据已在契约里验证成立
+### V4 的判据（⚠️ 下表的 `source_refs` 口径已被 `02539b82` 作废，保留以便对照）
 
 `working_contracts/*.json` 的 `elements[]` 带 `kind` / `source_refs` / `metadata.generated_role`。实测（pair `0032`）：
 
@@ -54,13 +68,16 @@ V1+V2 的 13 条分布：`run1/0018 ×2`、`run1/0038 ×7`、`run2/0018 ×1`、`
 | `synthetic_state` / `synthetic_transition` | ❌ | **omission_surrogate**（作者没写时的兜底替身）|
 | `root_wrapper` | ❌ | **naming_wrapper**（无语义）|
 
-全语料 1712 条零例外。**这不是新发明的判据，是契约生成器已经写在盘上的事实，只是被 `attribution_exclusions` 拍平成裸字符串时扔掉了。**
+⚠️ **「零例外」只对降级类成立，对插入态不成立。** 51 条 `synthetic_state` 全是 `compiler_owned`，其中 23 条带 `source_refs`（指向**触发注入的源行**，不是声明）。正确判据是配对 `transition_segment` 的 `generated_role`，23/23 唯一可定 —— 见 [V21_PREREGISTERED_CALIBRE.md](./V21_PREREGISTERED_CALIBRE.md) §八。
+
+**判据本身仍不是新发明的，是契约生成器已经写在盘上的事实**；错的是我读了盘上错的那个字段。
 
 而现有的替代判据 `nodes.py:3474` 的 `_OMISSION_PLACEHOLDERS = ("UnspecifiedInitial", "FinalWait")` **两个方向都错**：`FinalWait` 的 `source_refs` 非空（是 carrier），当成遗漏占位会**误免**（`0050` 是唯一含它的 pair 且 v21 里 0 条 False，属**潜伏缺陷**）；`InvalidInitial*`（9 例）不在表里，**永远拿不到免除**。
 
 ## 4. v22 实验配置（runner 已备好，未跑）
 
-- **11 pair × 2 模型 × 3 轮 = 66 格**。`gpt-5.5` 额度已恢复，**仅限实验用途**（见 memory `gpt-only-for-matrix-experiments`）
+- **11 pair × 2 模型 × 3 轮 = 66 格**。`gpt-5.5` 额度已恢复，**仅限实验用途**
+- 格集**从盘上读**（[run_grid.py](./run_grid.py)），runner 与测量脚本都不再自带列表。上一版两处都是字面量，其中一处写进了 `0058`（从未在格集里）、漏了 `0000`，产出的错数进了预注册文档
 - 并行 8，失败自动重试 6 次、每次退避 90 秒
 - 口径沿用 [`V21_PREREGISTERED_CALIBRE.md`](./V21_PREREGISTERED_CALIBRE.md)，另需**先于结果**追加三条：
   1. **V6 会同时改变已发布数与命中数且方向相反**（−3 多报 / +3 候选），必须双报

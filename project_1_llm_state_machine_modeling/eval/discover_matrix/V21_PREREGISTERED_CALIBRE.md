@@ -172,21 +172,25 @@ eval/discover_matrix/metrics_at_k.py <verdicts.json>    # 只做算术，判定�
 ### 落地与量到的效果
 
 - **Q1**（`exclusion_roles`）改读配对段 role：13 条角色翻转（`InvalidInitial` 9 + `InvalidFinal` 4，`carrier` → `omission_surrogate`）。⚠️ 这是**放宽可采性**，与 §六 同族，必须双报。
-- **Q2**（新增 `inserted_state_paths`，独立函数、独立字段）：剔除面 12 → **51**（全语料），v22 十一格受影响 scope **22 个**。
+- **Q2**（新增 `inserted_state_paths`，独立函数、独立字段）：剔除面 12 → **51**（全语料），v22 十一格受影响 scope **16 个**。
 - 矛盾消除：`RearEnd` / `Pedestrian` 作者声明数现为 **0**，`cardinality(...,1)` 返回 False。
 
-v22 十一格逐 scope（全部子态数 → 作者声明数）：
+⚠️ **首版此处写 22，错的**。测量脚本把 `0058` 当成 v22 格集成员（6 个 scope）、漏了 `0000`（0 个）。v22 的十一格是 `0000 0006 0018 0029 0032 0035 0038 0043 0047 0048 0050`，与 v21 实跑一致；`0058` 从未在这个格集里。这是「手写数字」被 §一 禁止的原因的又一次演示 —— 该脚本的格集是我打字打进去的，不是从 `holdout.json` 或 v21 run 目录读的。
+
+v22 十一格逐 scope（全部子态数 → 作者声明数），共 16 个，`0000` 与 `0018` 无插入态因此不受影响：
 
 | pair | scope | → | pair | scope | → |
 | :-- | :-- | :-- | :-- | :-- | :-- |
-| `0006` | root | 2→1 | `0047` | CollisionAvoidanceSystem | 4→3 |
-| `0029` | HighwayMode | 6→5 | `0047` | CAS.RearEnd | **1→0** |
-| `0029` | UrbanMode | 6→5 | `0047` | CAS.Pedestrian | **1→0** |
-| `0032` | AccelerateRegion | 3→2 | `0048` | fork1 | 3→2 |
-| `0032` | BrakeRegion | 2→1 | `0048` | Fork2 / Join2 | 2→1（各）|
-| `0032` | IdleRegion | 2→1 | `0050` | AutonomousMode | 4→3 |
-| `0035` | root | 7→6 | `0058` | 六个 scope | 2→1（各）|
-| `0038` | Terminate | **1→0** | `0043` | PumpControl | 3→2 |
+| `0006` | root | 2→1 | `0043` | PumpControl | 3→2 |
+| `0029` | HighwayMode | 6→5 | `0047` | CollisionAvoidanceSystem | 4→3 |
+| `0029` | UrbanMode | 6→5 | `0047` | CAS.RearEnd | **1→0** |
+| `0032` | AccelerateRegion | 3→2 | `0047` | CAS.Pedestrian | **1→0** |
+| `0032` | BrakeRegion | 2→1 | `0048` | fork1 | 3→2 |
+| `0032` | IdleRegion | 2→1 | `0048` | Fork2 / Join2 | 2→1（各）|
+| `0035` | root | 7→6 | `0050` | AutonomousMode | 4→3 |
+| `0038` | Terminate | **1→0** | | | |
+
+家族分布：`UnspecifiedInitial` 12、`InvalidInitial` 3（`0038` 1 + `0047` 2）、`FinalWait` 1（`0050`）。所以本轮 Q1 的 13 条角色翻转在这十一格里只触及 **3 条**，`FinalWait` 侧只有 `0050` 一格 —— 换言之两个修法在 v22 上的可观测面都很窄，这必须写在跑之前。
 
 ### 上一版被撤回的判断，撤回本身是错的
 

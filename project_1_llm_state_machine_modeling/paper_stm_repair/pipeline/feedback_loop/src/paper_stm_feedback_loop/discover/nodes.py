@@ -3600,9 +3600,11 @@ def exclusion_roles(working_contract: Any) -> dict[str, str]:
     on the first says nothing about the author -- it looked at a representation artefact.
     Evidence resting on the second says the author omitted something, which is the defect.
 
-    The contract already records the difference. Every element carries `source_refs`, and
-    across 1712 entries in sixty pairs the split is exact: lowerings have refs into the source,
-    fail-closed stand-ins have none, and the root wrapper has neither refs nor semantics.
+    The contract already records the difference. Every element carries `source_refs`, and across
+    the 1712 `attribution_exclusions` entries of sixty pairs -- resolved through 3125 `model_refs`
+    lookups -- the split is exact *for the lowering kinds*: they have refs into the source, and
+    the root wrapper has neither refs nor semantics. It is not exact for the inserted states; see
+    the warning below.
 
     The downstream substitute was a two-string leaf-name table, and the contract disagrees with
     it on exactly 38 of 1712 entries, in two families:
