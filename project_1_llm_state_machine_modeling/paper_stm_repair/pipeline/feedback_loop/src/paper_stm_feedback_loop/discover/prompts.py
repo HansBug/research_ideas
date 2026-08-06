@@ -298,7 +298,7 @@ precondition reports the absence, the claim resting on it is recorded as blocked
 rather than passed, and a repair stage receives a named element to add plus two
 verdicts to re-verify against.
 
-- `source_context`: always emit it, with `basis` and `behavior_phase`. `behavior_phase` is one of `structure` (a claim about what the model contains), `initialization` (power-on, first entry), `operation` (the machine already running) or `termination` (the run ending). It is not decoration: `[*]` as a `source` or `scope` is only accepted when `behavior_phase` is `initialization`, because anchoring any other phase before the machine has entered anything asks a different question -- and on a model whose defect is an edge leaving the pseudo-initial, it asks one that is true *because* of the defect. Leaving the field out is treated as "not initialization".
+- `source_context`: always emit it, with `basis` and `behavior_phase`. `behavior_phase` is one of `structure` (a claim about what the model contains), `initialization` (power-on, first entry), `operation` (the machine already running) or `termination` (the run ending). It is not decoration: `[*]` as a `source` or `scope` is only accepted when `behavior_phase` is `initialization`, because anchoring any other phase before the machine has entered anything asks a different question -- and if the model happens to be wrong in that configuration, the answer comes back true for a reason the sentence never asked about. Leaving the field out is treated as "not initialization".
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.
 
 `segment_disposition` sits on the RequirementSet, not on a Requirement, and its keys must match `nl_segments` **exactly** -- one entry per frozen segment id, no more and no fewer, including the segments you did not turn into requirements. A set listing only the covered ones is rejected before review. Values: `covered` (a Requirement carries it), `context` (background, imposes no obligation), `ambiguous` (an obligation you could not pin down), `out_of_scope`. So for `nl_segments: ["NL-L001", "NL-L002", "NL-L003"]` a complete disposition is `{"NL-L001": "covered", "NL-L002": "covered", "NL-L003": "context"}`.
@@ -548,7 +548,7 @@ Example 3 -- Family P, and a requirement naming an element the model does not de
 Example 4 -- step 1: the sentence asks about termination, so there is no state to bind.
 `terminating_transitions` lists `Sys.ModeA --Sys.shutdown--> final`, so the model
 already ends the run there and `terminates` is the check. Writing
-`occupancy_after(target="Sys.FinalState")` here would report a missing state
+`occupancy_after(target="Sys.Final")` here would report a missing state
 against a model that terminates correctly.
 {
   "requirement_id": "REQ-005",

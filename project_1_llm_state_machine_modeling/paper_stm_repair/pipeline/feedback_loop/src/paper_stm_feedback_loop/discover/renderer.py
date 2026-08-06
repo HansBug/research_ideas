@@ -105,9 +105,9 @@ def _model_vocabulary(frozen: FrozenDiscoverInputs) -> dict[str, Any]:
         "before the assertion stage.\n"
         "`[*]` is an entry anchor and only that. Do not carry it into a requirement "
         "about a phase the machine is already running in: a termination claim bound "
-        "to `source=\"[*]\"` asks whether the run ends *from power-on*, which on a "
-        "model whose defect is an edge leaving the pseudo-initial is true because of "
-        "the defect. Name the running state instead, one requirement per state the "
+        "to `source=\"[*]\"` asks whether the run ends *from power-on*, and if the model "
+        "happens to be wrong in that configuration the answer comes back true for a "
+        "reason the sentence never asked about. Name the running state instead, one requirement per state the "
         "sentence ranges over."
     )
     if compiler_owned:

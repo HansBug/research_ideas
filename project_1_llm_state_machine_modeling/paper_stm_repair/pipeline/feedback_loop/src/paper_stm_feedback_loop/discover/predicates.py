@@ -725,9 +725,9 @@ def vocabulary_prompt() -> str:
         'the claim is about the run ending: `terminates(scope="[*]")` asks whether a '
         'cold start can finish, and the anchor is still the initial configuration. '
         'Any other phase there is refused, because anchoring a running-system claim '
-        'before the machine has entered anything asks a different question -- and on '
-        'a model whose defect is an edge leaving the pseudo-initial, it asks one that '
-        'is true because of the defect. The remaining bindings take one '
+        'before the machine has entered anything asks a different question -- and if '
+        'the model happens to be wrong in that configuration, the answer comes back '
+        'true for a reason the sentence never asked about. The remaining bindings take one '
         "of the literal values shown in the signature.",
     ]
     for family, title in (
