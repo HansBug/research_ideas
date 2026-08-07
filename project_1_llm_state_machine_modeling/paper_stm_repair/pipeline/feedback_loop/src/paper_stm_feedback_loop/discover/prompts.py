@@ -285,14 +285,19 @@ the answer:
   outright, so bind X and there is no scope choice to get wrong. This second one is what
   catches a composite whose children are declared elsewhere, or whose entries point outside
   its own scope -- the declaration reads fine and the run still exits.
-- **Whenever you form a `cardinality` or a `containment` Requirement on a composite, form an
-  entry Requirement on that same composite too.** This trigger is mechanical: it does not
-  depend on recognising a phrasing. If the sentence is enough to say what is declared inside
-  M, it is enough to say that entering M has to land somewhere declared inside M -- and those
-  are different claims. A model can declare exactly the right children and still have no
-  declared way into any of them, in which case the cardinality and containment Requirements
-  both pass and the composite is still unreachable from the inside. Write the entry one as a
-  disjunction over the children in question, not as a single binding:
+- **Whenever you form a `cardinality` Requirement on a composite, form exactly one entry
+  Requirement on that same composite too.** This trigger is mechanical: it does not depend on
+  recognising a phrasing. If the sentence is enough to say how many children M declares, it is
+  enough to say that entering M has to land on one of them -- and those are different claims.
+  A model can declare exactly the right children and still have no declared way into any of
+  them, in which case the cardinality Requirement passes and the composite is still
+  unreachable from the inside.
+
+  ⚠️ **Follow `cardinality` only, not `containment`.** `containment` is written once per child,
+  so hanging the entry obligation off it multiplies one question by the number of children and
+  buries the rest of the sentence's obligations under near-duplicates. One entry Requirement
+  per composite is the whole of this claim. Write it as a disjunction over the children in
+  question, not as a single binding:
 
       any([initial_target(composite="Sys.M", child="Sys.M.A"),
            initial_target(composite="Sys.M", child="Sys.M.B")]) is True
