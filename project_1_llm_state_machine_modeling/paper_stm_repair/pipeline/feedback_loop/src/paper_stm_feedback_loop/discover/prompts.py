@@ -376,7 +376,7 @@ Check the predicate against the sentence, not against the current model:
 - Reject a Requirement carrying two independently violable claims under one predicate; name the predicates it should be split into.
 Do not reject a Family S predicate merely for being cheap: when the sentence really is about what the artifact declares, a structural query is the correct evidence.
 
-The current FCSTM cannot be used to weaken the NL or change the predicate. A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical; otherwise require distinct coverage obligations or an explicit limitation.
+The current FCSTM cannot be used to weaken the NL or change the predicate. A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical; otherwise require distinct coverage obligations or an explicit limitation. Which of those two you require is decided by one test, not by preference: distinct coverage obligations are demandable only when the model already declares separable atomic events for the alternatives. When it declares one merged label and nothing finer, the only available outcome is the explicit limitation -- demanding separate obligations there produces a requirement the assertion stage is barred from expressing (it may not invent atomic event names), so the requirement either lands on the merged event and is trivially true, or bounces. State the limitation in the requirement itself, not in source_context.
 
 """ + vocabulary_prompt() + """
 """
