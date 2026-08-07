@@ -347,54 +347,79 @@ def check_changelog_desc() -> None:
 
 
 def check_timezone_suffix() -> None:
-    """同一 venue-year 的时区后缀口径必须三方一致：年度页 / venue 根 README / TIMELINE。
+    """同一 venue-year 的时区标注形态必须三方一致：年度页 / venue 根 README / TIMELINE。
 
-    背景（轮次 11）：库内多处把官方 ``Timezone: AoE (UTC-12h)`` 只写成 ``AoE``，而**同一
-    venue-year 的另一处**写了完整后缀——即本库已持有更高等级的证据，派生视图却降级了。
-    一次修 2 个 venue、下一轮再冒出 5 个，是因为此前一直**按 venue 枚举**而不是按不变量
-    枚举。本函数把它变成不变量：任一 venue-year 若同时出现「裸 AoE」与「AoE / UTC-*」即失败。
+    背景（轮次 11-12）：库内多处把官方 ``Timezone: AoE (UTC-12h)`` 只写成 ``AoE``，而**同一
+    venue-year 的另一处**写了完整时区——即本库已持有更高等级的证据，派生视图却降级了。
+    一次修 2 个 venue、下一轮再冒出 5 个，是因为此前一直**按 venue 枚举**而不是按不变量枚举。
 
-    规范形式取自各 venue 自己的官方逐字，**不跨 venue 统一**——例如 ICFEM 官方写
-    ``AoE / UTC-12``（无结尾 h），researchr 系写 ``AoE (UTC-12h)``，两者都对。
+    时区标注分三类，同一 venue-year 只允许出现一种：
 
-    识别日期格时不要求「以日期开头」：``Round 1: 2023-12-15 … ；Round 2: …`` 这类复合格
-    不以日期开头，早期版本整格跳过，是实测到的召回缺口。
+    ==========================  ====================================================
+    ``UTC``                     ``AoE / UTC-12h`` 或 ``AoE (UTC-12h)`` / ``AoE (UTC-12)``
+    ``NAMED``                   ``AoE (Anywhere on Earth)``
+    ``BARE``                    只有 ``AoE``
+    ==========================  ====================================================
+
+    ⚠️ **括号形态与斜杠形态是同一类**。轮次 12 实测到：早期版本只认 ``AoE / UTC-\d``，把全库
+    90 处规范官方写法 ``AoE (UTC-12h)`` 判成 BARE，于是修复脚本把 ICFEM 的官方引文改成了
+    ``AoE / UTC-12 (UTC-12)`` —— 校验器逼着作者去破坏官方逐字才能变绿。
+
+    ⚠️ **NAMED 必须自成一类**，不能只在 BARE 里用否定环视排除。否则给 APSEC（官方逐字
+    ``AoE (Anywhere on Earth)``）的日期格注入 ``/ UTC-12h`` 时，BARE 计数为 0、混用不成立，
+    校验静默通过——那正是本库已两次明确「不得连坐」的 venue。
+
+    日期格的判别（轮次 12 实测标定）：含 ``AoE`` 且含日期、长度 ≤140、不含句号 ``。``，
+    且剥掉日期 / 时间 / 时区 / ``待补时刻`` / 标点后**残余不含中文**。前两条不足以排除备注列
+    —— ICFEM 那处回归的第一层根因，正是一句中文备注被当成日期格。允许残余为 ASCII 标签
+    （``Round 1`` / ``major revision`` / ``second round``），因为复合日期格合法存在。
     """
     has_date = re.compile(r"\d{4}-\d{2}-\d{2}")
-    prose = re.compile(r"复核|复查|核验|逐字|tooltip|官方页|https?://|属性|此前")
-    bare = re.compile(r"AoE(?!\s*/\s*UTC-\d)(?!\s*\(Anywhere)(?!\s*\(=)")
-    suffixed = re.compile(r"AoE\s*/\s*UTC-\d")
+    strip = re.compile(r"\d{4}-\d{2}-\d{2}|\d\d:\d\d(:\d\d)?|AoE|UTC-\d+h?"
+                       r"|Anywhere on Earth|待补时刻|至|\.\."
+                       # ⚠️ 不能用 \w —— Python 的 \w 在 Unicode 模式下连中文一起匹配，
+                       # 会把散文格的中文剥光、残余变空，于是备注列被判成日期格（轮次 12 实测）。
+                       r"|[\sA-Za-z0-9_.,;:()/（）；，、=\-—…*`+]")
+    cjk = re.compile(r"[\u4e00-\u9fff]")
+    utc = re.compile(r"AoE\s*[/(]\s*UTC-\d")
+    named = re.compile(r"AoE\s*\(Anywhere")
 
-    def date_cells(text, keep):
+    def is_datecell(c: str) -> bool:
+        return ("AoE" in c and has_date.search(c) is not None and len(c) <= 140
+                and "。" not in c and cjk.search(strip.sub("", c)) is None)
+
+    def forms(text: str, keep) -> set:
+        out = set()
         for line in text.split("\n"):
             if not line.startswith("|") or re.match(r"\| `20\d\d-", line) or not keep(line):
                 continue
             for c in (x.strip() for x in line.split("|")):
-                if "AoE" in c and has_date.search(c) and len(c) <= 140 and not prose.search(c):
-                    yield c
-
-    def tally(text, keep):
-        b = s = 0
-        for c in date_cells(text, keep):
-            b += len(bare.findall(c))
-            s += len(suffixed.findall(c))
-        return b, s
+                if not is_datecell(c):
+                    continue
+                # 逐个 AoE 出现位置分类，复合格内混用也能发现
+                for m in re.finditer(r"AoE", c):
+                    tail = c[m.start():m.start() + 40]
+                    out.add("UTC" if utc.match(tail) else
+                            "NAMED" if named.match(tail) else "BARE")
+        return out
 
     tl = read(TIMELINE)
-    bad = []
-    for yp in sorted(glob.glob("conf-*/[12][0-9][0-9][0-9]/README.md")):
+    bad, n_ok = [], 0
+    for yp in sorted(glob.glob("*/[12][0-9][0-9][0-9]/README.md")):
         ven, yr = yp.split("/")[0], yp.split("/")[1]
         rp = f"{ven}/README.md"
         rt = read(rp) if os.path.exists(rp) else ""
-        yb, ys = tally(read(yp), lambda l: True)
-        rb, rs = tally(rt, lambda l, y=yr: re.match(rf"\| \[`?{y}`?\]", l) is not None)
-        tb, ts = tally(tl, lambda l, p=f"/{ven}/{yr}/README.md": p in l)
-        if (yb + rb + tb) and (ys + rs + ts):
-            bad.append(f"{ven}/{yr}（裸 {yb}/{rb}/{tb}，带后缀 {ys}/{rs}/{ts}）")
+        seen = (forms(read(yp), lambda l: True)
+                | forms(rt, lambda l, y=yr: re.match(rf"\| \[`?{y}`?\]", l) is not None)
+                | forms(tl, lambda l, p=f"/{ven}/{yr}/README.md": p in l))
+        if len(seen) > 1:
+            bad.append(f"{ven}/{yr}：{sorted(seen)}")
+        elif seen:
+            n_ok += 1
     if bad:
-        fail(f"[tz-suffix] {len(bad)} 个 venue-year 的 AoE 后缀口径三方不一致："
-             f"{bad[:5]}。同一 venue-year 内不得混用裸 `AoE` 与 `AoE / UTC-*`。")
-    stats.append(f"时区后缀三方一致性: {len(bad)} 个 venue-year 违规")
+        fail(f"[tz-suffix] {len(bad)} 个 venue-year 的时区标注形态三方不一致："
+             f"{bad[:5]}。同一 venue-year 不得混用 UTC / NAMED / BARE 三类标注。")
+    stats.append(f"时区标注三方一致性: {n_ok} 个 venue-year 单一形态，{len(bad)} 个违规")
 
 
 def check_relative_links() -> None:

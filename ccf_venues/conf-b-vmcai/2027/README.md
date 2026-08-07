@@ -89,7 +89,7 @@ Artifact 政策（官方逐字）：`VMCAI 2027 offers authors the option to sub
 ## 6. 与本仓库 project 的年度相关性观察
 
 - P1 状态机建模；P2 验证场景与性质生成；P3 验证剖面与模型检查；P4 迭代式模型修复
-- **投稿视角（最高优先）**：主轨 submission `2026-09-16 AoE`，是 P3（验证、模型检查、抽象解释）当前**距今最近**的 🥈 档可行动窗口。
+- **投稿视角（最高优先）**：主轨 submission `2026-09-16 AoE / UTC-12h`，是 P3（验证、模型检查、抽象解释）当前**距今最近**的 🥈 档可行动窗口。
 - 年度论文筛选时优先看与 LLM 状态机建模、验证性质 / 场景、模型检查 profile、缺陷修复闭环直接相关的 research / tool papers。
 
 ## 7. 证据与核查记录
@@ -126,6 +126,7 @@ Artifact 政策（官方逐字）：`VMCAI 2027 offers authors the option to sub
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-08 03:40:00` | 轮次 12 M-3：§6 投稿视角 bullet 的 `2026-09-16 AoE` 补为 `AoE / UTC-12h`，与本页 §3 及 [../../TIMELINE.md](../../TIMELINE.md) 一致。散文 bullet 不在 `[tz-suffix]` 覆盖范围内，属人工排查项。 |
 | `2026-08-07 20:05:00` | 常态化刷新：VMCAI 2027 官方年度主页、CFP/track、dates、series、EasyChair 入口均已上线，从 `⏳ 已检索未公布` 升级为 `🟢 投稿中`；补齐第 28 届、Mexico City / Hilton Mexico City Reforma、co-located POPL 2027、主轨 `2026-09-16 / 2026-11-06 / 2026-11-20`（AoE / UTC-12h）、三类论文页数、LNCS 格式、regular-only 双盲、artifact 可选无独立 ddl、Organizing / Steering / AEC 名单；记录大写 slug 漏检原因；关于 dates 页时区的初稿判断已于同日二次核验更正（见 §2 / §8），并用 POPL 2027 官方站交叉核验。 |
 | `2026-07-13 19:11:00` | 常态化刷新：复查 VMCAI 2027 未发现官方主页 / CFP / important dates，继续保留占位。 |
 | `2026-06-05 09:15` | PR-3 初始化 VMCAI 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |
