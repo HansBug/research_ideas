@@ -101,6 +101,30 @@ docstring 逐字：「As with every declaration predicate the **False** is the f
 
 **`make test`：1645 passed / 4 skipped**（基线 1599，新增 46 条含合同参数化）。
 
+### 端到端可达性与可归因性（登记 ≠ 可调用 ≠ 可归因，三件事分别验过）
+
+| 检查 | 结果 |
+| :-- | :-- |
+| 在求值命名空间 `globals` / `locals` 内 | ✅ / ✅ |
+| 在 `allowed_names` 白名单内 | ✅ |
+| 从断言脚本表达式端到端求值 | ✅ `untriggered_edge_declared(source=…, target=…) is True` → True |
+| 命中分支留下 attribution refs | ✅ 8 条 |
+| ⭐ **False 分支**留下 refs（含近失锚点） | ✅ **6 条**，含 `…Join2` |
+
+📌 **最后一行最要紧。** `_note_transitions` 的 docstring 写明：「a query that matches nothing still
+needs an anchor: without a near miss a negative structural answer has no model identity to attribute,
+which is how a real defect ends up merely `unattributed`」。若 False 分支不记账，本改动会**静默无效**
+—— 断言照写、发现照被排除、覆盖率不动，而没有任何报错。
+
+### 开跑前置闸（本轮新增，与改动同一批推送）
+
+启动器现在在 launch **之前**写 `BASE/CODE_VERSION.txt`（commit / branch / 是否启动前写入 /
+src 脏文件数），并在 pipeline src 脏或有未推送提交时**拒绝开跑**。两个方向都用对照验过：
+往 src 放一个未跟踪文件即被拒；干净树下写出的 commit 与 `git rev-parse HEAD` 一致。
+
+理由是可追溯性而非备份：run record 没有代码版本字段，v22/v23 都只有事后反推件，而
+`full_tables.py` 早已在缺该文件时警告 —— 但此前没有任何东西保证它被写。
+
 ## 三、公平性自审
 
 ### 抽象化测试
