@@ -1268,22 +1268,82 @@ class PredicateAPI:
     def _occupies(
         self, *, source: str, trigger: str, target: str, cycles: int
     ) -> bool:
-        """variant: OFF_MINUS1"""
+        """Whether the trigger leaves the machine inside ``target`` within ``cycles``."""
 
         view = self._simulate(source=source, trigger=trigger, cycles=cycles)
+        # The claim is "this trigger takes the system there".  A completion
+        # transition can reach the target on its own while the trigger is never
+        # consumed; crediting the trigger for that is the false-positive shape
+        # this predicate exists to prevent.
         if trigger not in self._consumed(view):
             return False
-        cyc = list(getattr(view, "cycles", ()) or ())
-        start = next((i for i, c in enumerate(cyc)
-                      if trigger in (getattr(c, "consumed_events", ()) or ())), None)
+        # Scan **every** cycle, not just the last one -- the same shape
+        # `_reaches_within`'s `hit()` uses.  The parameter is named
+        # `within_cycles`, and both this docstring and the splitter prompt say
+        # "within N cycles", but reading only `view.final` implements "after
+        # *exactly* N".  Those differ whenever the target is left again by an
+        # eventless completion edge, and then the predicate is **not monotone in
+        # `cycles`**: measured on pair 0018,
+        #
+        #     occupancy_after(ChargedFlash --Charged_true--> TakePicture, c=1) -> True
+        #     the same call with c=2..8                                       -> False
+        #
+        # `Junction3 -> join2 -> Junction2 -> TakePicture` collapses into one
+        # cycle (a pseudo-state is not a stoppable successor), so `join2`
+        # synchronises nothing; the four spare cycles then let
+        # `TakePicture -> WriteMemory` carry the machine away.  Meanwhile the
+        # prompt tells the producer to raise `within_cycles` towards the number
+        # of *declared* edges, which on a pseudo-state-dense model therefore
+        # overshoots by construction.
+        #
+        # Two things this cost before it was found.  Across v22+v23, 51 of 219
+        # False results (23.3%) are True at a smaller horizon -- every one of
+        # them a false positive published as a finding.  And `_HORIZON_PROBE`
+        # only searches *upward* (`range(asked + 1, ...)`) precisely because its
+        # comment assumes monotonicity ("a genuine defect does not become
+        # satisfied at a longer horizon"), so it can never catch this direction.
+        #
+        # Scan from the cycle the trigger was consumed in, **not from cycle 0**.
+        #
+        # The first attempt at this fix scanned every cycle, and a fairness review
+        # caught what that does: `_simulate` builds `[settle...] + [[trigger]] +
+        # [[]...]`, so cycle 0 is the configuration *before* the trigger was
+        # offered.  Scanning it makes `occupancy_after(X, t, Y)` return True when
+        # the machine was **already** in `Y` and the trigger *took it away* --
+        # measured on pair 0006, `Attack --Attack_Complete--> AttackingTarget`
+        # goes True at every horizon while the trace reads
+        #
+        #     cycle 0: [..., Attack, AttackingTarget]      <- before the trigger
+        #     cycle 1: [..., Searching]                    <- after it
+        #
+        # The correct answer is False.  Ten of eleven pairs had such flips, all in
+        # the False->True direction, i.e. **findings being eaten** -- exactly the
+        # false-positive shape the `_consumed` guard above exists to prevent, just
+        # arriving along the time axis instead.
+        #
+        # `_reaches_within`'s `hit()` is not the right analogue: reachability
+        # legitimately counts the starting configuration, while this predicate
+        # asks about "after".  **Ordering is part of the proposition**, so the
+        # window has to start where the trigger lands.
+        cycles = list(getattr(view, "cycles", ()) or ())
+        start = next(
+            (
+                index
+                for index, cycle in enumerate(cycles)
+                if trigger in (getattr(cycle, "consumed_events", ()) or ())
+            ),
+            None,
+        )
         if start is not None:
-            start = max(0, start - 1)
-            for cycle in cyc[start:]:
+            for cycle in cycles[start:]:
                 for item in getattr(cycle, "active_states", ()) or ():
-                    t = str(item)
-                    if t == target or t.startswith(f"{target}."):
+                    text = str(item)
+                    if text == target or text.startswith(f"{target}."):
                         return True
             return False
+        # No per-cycle record says where the trigger landed, yet `_consumed` saw it
+        # somewhere in the view.  Fall back to the final frame -- the only thing
+        # consulted before this change -- rather than guessing a window.
         return any(s == target or s.startswith(f"{target}.") for s in self._active(view))
 
     def event_consumed(self, *, source: str, trigger: str) -> bool:
