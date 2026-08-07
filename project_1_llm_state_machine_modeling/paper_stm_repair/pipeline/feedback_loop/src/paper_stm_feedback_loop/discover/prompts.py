@@ -276,16 +276,22 @@ the answer:
   A reachability check (`occupancy_after`, `reaches`) is the wrong primary here -- it asks
   whether the run gets to X, which is true of both the compliant and the unconditional
   model. Record the scope choice in `limitations`.
-- "X remains active" / "X stays in control while <trigger>" / a sentence that puts continued
-  operation inside X -> `stays_in(source=X, trigger=<the event>)`. Its False is the finding:
-  the run leaves X's scope on that event, so whatever the sentence says happens *within* X
-  cannot hold. `stays_in` refuses an inner composite outright, so there is no scope choice
-  to get wrong -- bind X. This is the check that catches a composite whose children are
-  declared elsewhere or whose entries point outside its own scope: the declaration looks
-  fine and the run still exits.
-- A composite whose children the sentence establishes -- by naming them, or by giving their
-  number -- also owes an entry obligation: **entry has to land on one of those children**.
-  Write it as a disjunction over them, not as a single binding:
+  That sentence owes a **second, separate** Requirement as well: becoming active on the
+  trigger means being *inside* X once it arrives, so add
+  `stays_in(source=X, trigger=<the event>)`. Its False is the finding -- the run leaves X's
+  scope on that event, so nothing the sentence says happens within X can hold. The two are
+  independently violable and must not be merged: a scope can consume the event and still
+  exit, or never consume it while nominally remaining. `stays_in` refuses an inner composite
+  outright, so bind X and there is no scope choice to get wrong. This second one is what
+  catches a composite whose children are declared elsewhere, or whose entries point outside
+  its own scope -- the declaration reads fine and the run still exits.
+- A composite whose children the sentence establishes -- by naming them, **or by giving their
+  number** -- owes an entry obligation **in addition to** the containment and cardinality ones:
+  entry has to land on one of those children. Producing the containment and cardinality
+  Requirements does **not** discharge it. They say what is declared inside the composite;
+  this one says where entry goes, and a model can declare all the right children and still
+  have no declared way into any of them. Write it as a disjunction over those children, not
+  as a single binding:
 
       any([initial_target(composite="Sys.M", child="Sys.M.A"),
            initial_target(composite="Sys.M", child="Sys.M.B")]) is True
