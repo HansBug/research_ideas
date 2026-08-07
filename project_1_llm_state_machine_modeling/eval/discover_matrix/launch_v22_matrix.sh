@@ -13,6 +13,38 @@ read -r -a PAIRS <<< "$("$REPO/venv/bin/python" "$REPO/project_1_llm_state_machi
 [ "${#PAIRS[@]}" -gt 0 ] || { echo "refusing to run: could not determine the grid" >&2; exit 1; }
 echo "grid: ${#PAIRS[@]} pairs -- ${PAIRS[*]}"
 MAX="${MAX:-8}"; MAXTRY=6
+
+# ── 开跑前置闸：代码版本必须可追溯 ───────────────────────────────────────────────
+# `full_tables.py` 已经会在缺 `CODE_VERSION.txt` 时警告「该代次只能靠时间戳反推代码版本」，
+# 但此前没有任何东西保证它被写 —— v22/v23 就都只有事后反推件。写在这里，忘不掉。
+#
+# 同时拒绝在脏工作区或有未推送提交时开跑：CLAUDE.md §3.5.1 的理由不是备份而是**可追溯性** ——
+# 运行记录里没有代码版本字段，一次运行归属于哪个 commit 只能靠时间戳反推，而若那个 commit 还在
+# 本地，别人无法核对，而这正是审查「实验是否公平」时最先要查的东西。
+if [ "${SKIP_VERSION_GATE:-0}" != "1" ]; then
+  DIRTY="$(cd "$REPO" && git status --porcelain -- \
+    "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src")"
+  if [ -n "$DIRTY" ]; then
+    echo "refusing to run: pipeline src 有未提交改动 —— 该次运行将无法归属到某个 commit" >&2
+    echo "$DIRTY" >&2; exit 1
+  fi
+  UNPUSHED="$(cd "$REPO" && git log --oneline '@{u}..HEAD' 2>/dev/null | wc -l)"
+  if [ "$UNPUSHED" != "0" ]; then
+    echo "refusing to run: 有 $UNPUSHED 个未推送提交 —— 别人无法核对本次运行的代码版本" >&2; exit 1
+  fi
+fi
+mkdir -p "$BASE"
+{
+  cd "$REPO" || exit 1
+  echo "commit: $(git rev-parse HEAD)"
+  echo "branch: $(git rev-parse --abbrev-ref HEAD)"
+  echo "written_before_launch: yes"
+  echo "pipeline_src_diff_vs_commit: $(git status --porcelain -- \
+    project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src | wc -l) files"
+} > "$BASE/CODE_VERSION.txt"
+echo "code version -> $BASE/CODE_VERSION.txt: $(head -1 "$BASE/CODE_VERSION.txt")"
+# ──────────────────────────────────────────────────────────────────────────────
+
 cd "$FL" || exit 1
 one() {  # run pair profile short
   # Split, not one `local`. Under `set -u`, `local a="$1" b="$a"` fails: `local` declares every
