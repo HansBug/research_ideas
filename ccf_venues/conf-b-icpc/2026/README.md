@@ -41,7 +41,7 @@
 | Rebuttal / response | 待补或不适用 | [Important Dates](https://conf.researchr.org/dates/icpc-2026) | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | 只在官方明确给出时同步到 TIMELINE。 |
 | Notification | 2026-01-05 待补时刻 | [Important Dates](https://conf.researchr.org/dates/icpc-2026) | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | 官方仅给日期时具体时刻待补。 |
 | Camera-ready | 2026-01-26 待补时刻 | [Important Dates](https://conf.researchr.org/dates/icpc-2026) | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | 官方未公布时写 TBD / 未公布，不预设。 |
-| Conference dates | 2026-04-12..2026-04-13 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | 2026 DBLP / proceedings 尚未稳定公开；dates 页含 ERA / RENE / Tool / JF 等 track，不混入 Research Track。 |
+| Conference dates | 2026-04-12..2026-04-13 | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | [ICPC 2026](https://conf.researchr.org/home/icpc-2026) | ⚠️ 2026-08-07 更正：**DBLP 年度页已上线**（[icpc2026](https://dblp.org/db/conf/iwpc/icpc2026.html)，52 条 `inproceedings`）；**proceedings 仍未稳定公开**；dates 页含 ERA / RENE / Tool / JF 等 track，不混入 Research Track。 |
 
 ## 4. Tracks / 口径边界
 
@@ -79,7 +79,7 @@
 
 ## 8. 待补 / 风险记录
 
-- 2026 DBLP / proceedings 尚未稳定公开；dates 页含 ERA / RENE / Tool / JF 等 track，不混入 Research Track。
+- ⚠️ 2026-08-07 更正：DBLP 年度页已上线（52 条）；proceedings 仍未稳定公开；dates 页含 ERA / RENE / Tool / JF 等 track，不混入 Research Track。
 - 后续论文数量精算时必须先确定 main / research track 边界，再决定是否使用 DBLP / proceedings fallback。
 
 ## 9. TIMELINE.md 同步提示
