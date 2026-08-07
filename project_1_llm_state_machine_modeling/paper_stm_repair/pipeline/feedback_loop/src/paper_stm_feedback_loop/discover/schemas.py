@@ -195,6 +195,62 @@ class FrozenDiscoverInputs(StrictBaseModel):
     )
 
 
+class RequirementSourceContext(StrictBaseModel):
+    """`Requirement.source_context` 的结构，取代原先的 `dict[str, Any]`。
+
+    ⚠️ `dict[str, Any]` 在 JSON Schema 里退化成 `{"additionalProperties": true}` —— `Any` 把类型
+    信息全擦掉，生产者看到的就是「随便填」。实测后果：产出里稳定出现 `nl_parent`（80 次）这个**两边都没要求的键**，而消费侧只读
+    `behavior_phase`。
+
+    ⚠️ `basis` 曾被我误判为生产者发明 —— 它其实是 `prompts.py` 明确要求的（「always emit it, with
+    `basis` and `behavior_phase`」）。那份契约一直存在，只是**存在于 prompt 而不在 schema** ——
+    这正是本次迁移要消除的分裂。
+
+    改成模型后，键名与取值范围由类型自己承载，随 `model_json_schema()` 一起到达生产者，
+    也不再需要靠 `json_schema_extra` 手工贴一份说明（那份会与实际校验脱同步）。
+
+    ⚠️ `extra="forbid"` 由 `StrictBaseModel` 继承而来，所以发明的键会被**明确拒绝**并进入
+    契约修复循环，而不是静默留在产物里。
+    """
+
+    behavior_phase: (
+        Literal["structure", "initialization", "operation", "termination"] | None
+    ) = Field(
+        default=None,
+        description=(
+            "Which phase the claim is anchored in: `structure` for a claim about what the model "
+            "contains, `initialization` for power-on or first entry, `operation` while the "
+            "machine already runs, `termination` for the run ending. Gates read this -- `\"[*]\"` "
+            "as a `source` or `scope` is accepted only under `initialization`, because anchoring "
+            "any other phase before the machine has entered anything asks a different question, "
+            "and a model that happens to be wrong in that configuration then answers true for a "
+            "reason the sentence never raised. Omitting it is treated as not-initialization."
+        ),
+    )
+    basis: str = Field(
+        default="",
+        description=(
+            "Where in the input this claim is anchored -- the segment or clause it rests on, in "
+            "the requested content language. Always emit it."
+        ),
+    )
+    nl_parent: str | None = Field(
+        default=None,
+        description=(
+            "For a containment claim, the parent the NL itself places the child under. A gate "
+            "reads it: without it a containment binding cannot be checked against the sentence "
+            "and the claim is refused."
+        ),
+    )
+    trace_entry_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "Ids that exist verbatim in the supplied source trace. An id not present there is "
+            "rejected deterministically."
+        ),
+    )
+
+
 class Requirement(StrictBaseModel):
     requirement_id: str = Field(
         pattern=r"^REQ-[A-Za-z0-9_.-]+$",
@@ -229,24 +285,13 @@ class Requirement(StrictBaseModel):
     )
     # Lightweight, input-derived scope ledger.  It may record explicit or
     # carefully qualified inferred source context, but never evaluator gold.
-    source_context: dict[str, Any] = Field(
-        default_factory=dict,
+    source_context: RequirementSourceContext = Field(
+        default_factory=RequirementSourceContext,
         description=(
-            "Input-derived scope ledger. Recognised keys: `behavior_phase` (one of "
-            "`initialization`, `operation`, `termination`), `trace_entry_ids` (a list of ids that "
-            "exist in the supplied source trace). Never put evaluator expectations or model-derived "
-            "answers here."
+            "Input-derived scope ledger. Never put evaluator expectations or model-derived "
+            "answers here -- it records where in the *input* the claim is anchored."
         ),
     )
-    # The named claim shape, from the closed vocabulary in ``discover.predicates``.
-    # When present it *derives* verification_kind: the family, and therefore the
-    # mandatory evidence, is a table lookup rather than a per-sentence judgement.
-    # That judgement is exactly what two models used to answer differently for
-    # the same requirement.  Optional so v1/v2 fixtures stay readable.
-    # Enumerated so the provider's tool schema rejects a hallucinated name
-    # before it reaches us.  As a bare `str` one invented predicate raised
-    # inside the validator, which left `split_requirements` with no artifact to
-    # revise and failed the whole run instead of costing one repair round.
     predicate: PredicateName | None = Field(
         default=None,
         description=(

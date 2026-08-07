@@ -1,5 +1,6 @@
 """The two step gates against the real corpus, on the requirements that misfired.
 
+
 The unit tests above drive these gates through synthetic fixtures, which is the
 right way to pin their branches.  It is not enough here: the gates read a
 *derived* view of the model (`_pseudo_state_facts`), and a derivation that
@@ -36,6 +37,7 @@ from paper_stm_feedback_loop.discover.nodes import (  # noqa: E402
     _model_vocabulary,
     _pseudo_state_facts,
 )
+from paper_stm_feedback_loop.discover.schemas import RequirementSourceContext
 
 PAIRS = (
     ROOT.parent / "representation/reports/llms_emp_r45_java_60/pairs"
@@ -408,7 +410,7 @@ def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
 
     def req(rid, phase, bindings):
         item = Req(rid, "occupancy_after", bindings)
-        item.source_context = {"basis": "explicit_nl", "behavior_phase": phase}
+        item.source_context = RequirementSourceContext(basis="explicit_nl", behavior_phase=phase)
         return item
 
     power_on = req(
@@ -465,13 +467,13 @@ def test_a_running_phase_claim_may_not_be_anchored_at_the_pseudo_initial():
             "target": f"{prefix}.FinalState",
         },
     )
-    unset.source_context = {"basis": "explicit_nl"}
+    unset.source_context = RequirementSourceContext(basis="explicit_nl")
     fired_unset = initialization_anchored_findings((unset,))
     assert len(fired_unset) == 1, fired_unset
     assert "unset" in fired_unset[0]
     # Same when there is no source_context at all.
     bare = Req("REQ-007", "occupancy_after", dict(unset.predicate_bindings))
-    bare.source_context = {}
+    bare.source_context = RequirementSourceContext()
     assert len(initialization_anchored_findings((bare,))) == 1
 
 

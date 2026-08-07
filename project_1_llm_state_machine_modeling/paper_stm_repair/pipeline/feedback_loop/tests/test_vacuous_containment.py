@@ -35,6 +35,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from paper_stm_feedback_loop.discover import capability  # noqa: E402
+from paper_stm_feedback_loop.discover.schemas import RequirementSourceContext
 
 
 class _Req:
@@ -46,7 +47,9 @@ class _Req:
         self.predicate_bindings = bindings
         self.limitations: tuple[str, ...] = ()
         self.source_context = (
-            {} if nl_parent == "__absent__" else {"nl_parent": nl_parent}
+            RequirementSourceContext()
+            if nl_parent == "__absent__"
+            else RequirementSourceContext(nl_parent=nl_parent)
         )
 
 

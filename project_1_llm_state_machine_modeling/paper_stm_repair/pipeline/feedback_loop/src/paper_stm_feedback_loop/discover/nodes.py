@@ -801,7 +801,9 @@ def _canonicalize_trace_entry_ids(
     trace entry; ambiguous or unknown references remain hard errors.
     """
 
-    raw_ids = context.get("trace_entry_ids", [])
+    raw_ids = getattr(context, "trace_entry_ids", None)
+    if raw_ids is None:
+        raw_ids = []
     if not isinstance(raw_ids, (list, tuple)):
         raise ValueError("source_context.trace_entry_ids must be a list")
     canonical_ids: list[str] = []
@@ -1339,7 +1341,7 @@ def split_requirements(
                     f"requirement {requirement.requirement_id} references unknown NL segments: {sorted(unknown)}"
                 )
             context = requirement.source_context
-            trace_ids = context.get("trace_entry_ids", [])
+            trace_ids = getattr(context, "trace_entry_ids", None) or []
             if not isinstance(trace_ids, (list, tuple)):
                 raise ValueError(
                     f"requirement {requirement.requirement_id} source_context.trace_entry_ids must be a list"
@@ -2054,7 +2056,7 @@ def convert_assertions(
                 for finding in condition_non_vacuity_findings(assertion.expression)
             )
             phase = str(
-                (requirement.source_context or {}).get("behavior_phase", "")
+                getattr(requirement.source_context, "behavior_phase", None) or ""
             ).lower()
             if not anchors_at_initialization(requirement.source_context) and not _ablated(
                 "source_blind_response"
@@ -2460,7 +2462,7 @@ def precheck_and_seal(
                 source_context = requirement.source_context
                 is_initial_configuration = (
                     isinstance(source_context, dict)
-                    and source_context.get("behavior_phase") == "initialization"
+                    and getattr(source_context, "behavior_phase", None) == "initialization"
                 )
                 if behaviour_calls and not has_hot_start and not is_initial_configuration:
                     hot_start_policy_error = (

@@ -808,8 +808,8 @@ def vacuous_containment_findings(
             # 所以这是前瞻性防护而非既存缺陷 —— 但代价不对称：漏放一次是白花一次 check，
             # 误拒一次是压掉一条真缺失。
             continue
-        context = getattr(item, "source_context", None) or {}
-        nl_parent = context.get("nl_parent") if isinstance(context, dict) else None
+        context = getattr(item, "source_context", None)
+        nl_parent = getattr(context, "nl_parent", None)
         rid = getattr(item, "requirement_id", "?")
         if not nl_parent:
             findings.append(
@@ -981,7 +981,7 @@ def initialization_anchored_findings(
         ) and _trigger_can_fire_from_initial(item):
             continue
         phase = str(
-            (getattr(item, "source_context", None) or {}).get("behavior_phase", "")
+            getattr(getattr(item, "source_context", None), "behavior_phase", None) or ""
         ).lower()
         bindings = item.predicate_bindings or {}
         anchored = sorted(
@@ -1636,7 +1636,19 @@ def anchors_at_initialization(source_context: Any) -> bool:
     that would have switched the gate off.
     """
 
-    phase = str((source_context or {}).get("behavior_phase", "")).lower()
+    # 同时接受 `RequirementSourceContext` 与裸 dict。
+    #
+    # 字段已迁成数据模型，但这个函数是**判据入口**，被门、测试和外部审计脚本各自调用；
+    # 只认模型会让任何仍持 dict 的调用者静默拿到 False —— 而 False 在这里意味着「不是
+    # initialization」，即**放宽**判定。判据入口的静默放宽比报错危险得多。
+    phase = str(
+        (
+            source_context.get("behavior_phase")
+            if isinstance(source_context, dict)
+            else getattr(source_context, "behavior_phase", None)
+        )
+        or ""
+    ).lower()
     return phase == "initialization"
 
 

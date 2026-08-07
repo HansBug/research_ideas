@@ -1,5 +1,6 @@
 """A requirement cannot exempt itself from a gate by filling in the gate's own input field.
 
+
 `initialization_anchored_findings` refuses a behavioural claim anchored at `[*]`, because `[*]`
 is the configuration before the machine has entered anything -- and on a model whose defect is an
 edge leaving the pseudo-initial, such a claim comes back true *because of* the defect. It permits
@@ -37,6 +38,7 @@ if str(SRC) not in sys.path:
 from paper_stm_feedback_loop.discover.capability import (  # noqa: E402
     initialization_anchored_findings,
 )
+from paper_stm_feedback_loop.discover.schemas import RequirementSourceContext
 
 NS = "llms_emp_feedback_final_0000"
 
@@ -46,7 +48,7 @@ class _Req:
         self.requirement_id = requirement_id
         self.predicate = predicate
         self.predicate_bindings = bindings
-        self.source_context = {"behavior_phase": phase} if phase else {}
+        self.source_context = RequirementSourceContext(behavior_phase=phase) if phase else RequirementSourceContext()
         self.limitations: tuple[str, ...] = ()
 
 
