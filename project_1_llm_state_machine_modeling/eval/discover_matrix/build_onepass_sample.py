@@ -38,20 +38,28 @@
 但 `_BAND_WORDS` 扫描**保留**：样本里出现「调优 / 可报 / 已烧毁」等词仍是泄漏，因为它们会告诉标注者
 「这条曾被特殊对待」。**废止一个分组制度，不等于允许它的痕迹进入样本。**
 
-## ⚠️ 待改：样本必须包含 NL 原文
+## 样本包含 NL 原文（v1.2 起）
 
 v1 的两位标注者在 17 条上分歧，其中 **12 条塌缩成同一个可核查的事实问题** —— `containment(Join2, Fork2)`
 是否误读 NL。一位判 `fabricated`，理由是「NL 说的是迁移不是父子关系」；而 NL 原文逐字是
 
     "In the Fork2 state, which is part of the Join2 substate, the system can either proceed to ..."
 
-`which is part of the Join2 substate` 是**包含关系**的自然语言表述。该判定的事实前提为假。
+`which is part of the Join2 substate` 是**包含关系**的自然语言表述，该判定的事实前提为假。**根因是样本
+不含 NL**，标注者只能靠台账 statement 反推 —— 这使 `fabricated` 既可能漏判（无证据时退回
+`grounded-extra`）也可能误判（凭对 NL 的猜测）。
 
-**根因是本样本不含 NL 原文**，标注者只能靠台账 statement 反推。这使 `fabricated` 既可能漏判（无证据时
-退回 `grounded-extra`）也可能误判（凭对 NL 的猜测）。
+### 放在哪：`nl_by_model` 顶层映射，不逐单元重复
 
-修法：为每个 unit 附上该 pair 的 NL 原文（按句编号）。**盲化仍需处理** —— NL 里可能含 pair 可识别的
-系统名，要过 `_scrub`。
+NL 是 **per-pair** 的，而单元是 (pair, 臂, 轮) —— 同一 pair 有 6 个单元。逐单元附 NL 会让样本膨胀约
+6 倍（216 KB → 1.3 MB）。所以放在顶层 `nl_by_model[model_alias]`，单元通过 `model_alias` 引用。
+
+### 盲化：过 `_scrub`，且这不引入新的分组泄漏
+
+NL 会暴露领域（微波炉 / 无人机群 / …），但**领域此前已可从 issue 与台账 statement 里的状态名推断**
+（`DoorShut` / `Searching` / `TurnOn`）。真正要盲的是**别名映射**与**分组标签**，NL 不暴露这两者。
+
+`_scrub` 仍要跑：NL 里可能出现 `llms_emp_feedback_final_XXXX` 形式的路径引用或四位编号。
 
 ## issue_uid 的稳定性
 
@@ -73,6 +81,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "onepass_sample"
 RUNS = HERE.parents[2] / "runs" / "paper1"
+SEED = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
 _LEAK = re.compile(r"\b\d{4}\b|EIS-|llms_emp_feedback_final")
 #: 仍然要扫这些词：**带划分虽已废止，但样本里出现它们仍是泄漏** —— 它们会告诉标注者
 #: 「这条记录曾被特殊对待」，而那是标注者不该知道的分组信息。
@@ -99,6 +108,19 @@ def _ledger() -> dict[str, list[dict]]:
             continue
         out[str(record.get("pair", ""))[-4:]].append(record)
     return dict(out)
+
+
+def _nl_sentences(pair: str) -> list[str]:
+    """该 pair 的 NL，按句拆分。原文已带 `1.` / `2.` 前缀，故按行拆足够。
+
+    找不到文件时返回空列表 —— **不抛异常**：NL 缺失使 `fabricated` 判定退化（见模块 docstring），
+    但不该让整个样本无法生成。缺失会在统计里显式报出。
+    """
+
+    path = SEED / f"llms_emp_feedback_final_{pair}" / "nl.txt"
+    if not path.is_file():
+        return []
+    return [_scrub(line.strip()) for line in path.read_text().splitlines() if line.strip()]
 
 
 def build(generation: str) -> tuple[dict, dict]:
@@ -131,13 +153,23 @@ def build(generation: str) -> tuple[dict, dict]:
     for unit in units:
         alias.setdefault(unit["pair"], f"PAIR-{chr(65 + len(alias))}")
 
-    mapping = "\n".join(
-        f"{u['run']}|{u['pair']}|{u['arm']}|{len(u['issues'])}" for u in units
-    )
-    sample_id = hashlib.sha256(f"onepass:{generation}\n{mapping}".encode()).hexdigest()[:16]
+    # `sample_id` 必须覆盖**标注者看到的全部内容**，不是「我记得要区分的那几维」。
+    #
+    # ## 这条已经咬过三次，每次我只补了被咬到的那一维
+    #
+    #     1. 按位置配对（`unit_id` 是位置性的，非内容寻址）→ κ = −0.2
+    #     2. 缺代次维度 → 不同代次的样本可能撞同一个 id
+    #     3. 缺**内容版本**维度 → v1.2 加了 NL，而 id 不变，于是 v1 的标注会被静默配对
+    #
+    # 前两次我都是加一维。第三次说明加法式补丁不管用 —— 正确做法是让哈希覆盖 payload 本身。
+    # 所以下面对**将要交给标注者的那个 dict** 取哈希，而不是对我挑出来的几个字段。
+    sample_id = "PENDING"
 
-    sample = {
-        "schema": "OnePassAnnotation/v1",
+    sample: dict = {
+        "schema": "OnePassAnnotation/v1.2",
+        "nl_by_model": {
+            alias[pair]: _nl_sentences(pair) for pair in sorted(alias)
+        },
         "generation_alias": "GEN",
         "sample_id": sample_id,
         "unit_count": len(units),
@@ -152,8 +184,8 @@ def build(generation: str) -> tuple[dict, dict]:
         ),
         "items": [],
     }
-    key = {"schema": "OnePassAnnotation/v1", "sample_id": sample_id,
-           "pair_alias": alias, "items": []}
+    key: dict = {"schema": "OnePassAnnotation/v1.2", "sample_id": sample_id,
+                 "pair_alias": alias, "items": []}
 
     for index, unit in enumerate(units, 1):
         unit_id = f"C{index:03d}"
@@ -163,6 +195,7 @@ def build(generation: str) -> tuple[dict, dict]:
             "model_alias": a,
             "arm": unit["arm"],
             "round_alias": f"R{unit['run'][3:]}",
+            "nl_ref": f"见顶层 nl_by_model['{a}']",
             "expected_defects": [
                 {"record_alias": f"{a}-REC-{n:02d}",
                  "layer": e.get("layer"),
@@ -190,6 +223,15 @@ def build(generation: str) -> tuple[dict, dict]:
             },
             "issue_count": len(unit["issues"]),
         })
+    # payload 齐全后再算 id：对**除 sample_id 本身以外的整个 sample** 取哈希。
+    # 代次显式加进去 —— 它不在 payload 里（`generation_alias` 被盲成 "GEN"），但它改变语义。
+    payload = {k: v for k, v in sample.items() if k != "sample_id"}
+    sample_id = hashlib.sha256(
+        (f"onepass:{generation}\n"
+         + json.dumps(payload, ensure_ascii=False, sort_keys=True)).encode()
+    ).hexdigest()[:16]
+    sample["sample_id"] = sample_id
+    key["sample_id"] = sample_id
     return sample, key
 
 
@@ -240,6 +282,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"(格, 轮) 单元 {sample['unit_count']} 个，sample_id={sample['sample_id']}")
     print(f"  待标注 issue {issues} 条；台账条目位 {records} 个")
     print(f"  按问题类型（仅在 key 里）：{dict(bands)}")
+    nl = sample["nl_by_model"]
+    empty = [k for k, v in nl.items() if not v]
+    print(f"  NL：{len(nl)} 个模型别名，共 {sum(len(v) for v in nl.values())} 句"
+          + (f"；⚠️ **{len(empty)} 个缺 NL**：{empty}" if empty else "；全部就位"))
     problems = verify(OUT / "sample.json")
     print("  盲化自检：" + ("✅ 干净" if not problems else f"❌ {len(problems)} 处残留"))
     return 1 if problems else 0
