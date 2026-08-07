@@ -8,7 +8,7 @@
 
 本路径重点维护：
 
-当前组合计数锚点：**42 个 venue 根 README、294 个年度 README（29 个会议 / 13 个期刊）**；其中 PR #63 在 PR #35 / PR #62 之后新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 LLM4Modeling-SE 扩展候选，共 3 个 venue、21 个年度 README，并同步 CCF 名录证据等级与 TIMELINE。
+当前组合计数锚点：**42 个 venue 根 README、295 个年度 README（29 个会议 / 13 个期刊）**。⚠️ `2026-08-07` 由 294 增至 295：ICSE 指导委员会官方站公布 `ICSE 2029: Apr 2029 / Tokyo, Japan`，按 §4.2「2029+ 一旦有官方信息必须建档」新增 [conf-a-icse/2029/](./conf-a-icse/2029/README.md)。**venue 数不变，仍为 42，本轮未新增任何 venue 目录**；其中 PR #63 在 PR #35 / PR #62 之后新增 Automated Software Engineering Journal、CAiSE、ICECCS 三个 LLM4Modeling-SE 扩展候选，共 3 个 venue、21 个年度 README，并同步 CCF 名录证据等级与 TIMELINE。
 
 1. 与本仓库四个 project 强相关或中相关的 `CCF` 会议 / 期刊基本信息。
 2. 每个 venue 的研究方向、官方入口、出版入口、`DBLP` 入口和 project 相关性。
@@ -88,7 +88,7 @@
 
 ### 4.4 试点后维护边界
 
-当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue、PR-6 的 4 个维护 / 修复 P1 venue、PR-7 的 4 个实证 / 质量 P1 venue、PR-8 的 4 个 P1 形式化 / 工具链 venue，以及 PR-9 的 5 个 P2 邻近观察 venue 的基础建档与部分核验；PR-10 已完成并合入 #35，当前组合状态共有 42 个 venue 根 README、294 个年度 README，其中 29 个会议、13 个期刊。P0 冻结基线仍是 22 个 venue 根 README、154 个年度 README；PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-6、PR-7 与 PR-8 本轮交付物均各按 4 个目标 venue 计数，即各 4 个根 README + 28 个年度 README = 32 个 README；PR-9 本轮交付物按 5 个 P2 目标 venue 计数，即 5 个根 README + 35 个年度 README = 40 个 README。当前 42 / 294 是 PR-6 / PR-7 / PR-8 / PR-9 均已合入上游、PR-10 完成全局审计后，再由 PR #63 增补 3 个 LLM4Modeling-SE 扩展候选后的组合统计；历史更新日志中的 26 / 182、30 / 210、34 / 238 仅代表各 sibling branch-local 或中间组合阶段，不得再写作当前总量。
+当前情报库已完成 6 个会议 / 期刊试点 venue、PR-2 的 5 个软工 / 需求会议 venue、PR-3 的 8 个形式化 / 验证会议 venue、PR-4 的 3 个剩余 P0 期刊 venue、PR-6 的 4 个维护 / 修复 P1 venue、PR-7 的 4 个实证 / 质量 P1 venue、PR-8 的 4 个 P1 形式化 / 工具链 venue，以及 PR-9 的 5 个 P2 邻近观察 venue 的基础建档与部分核验；PR-10 已完成并合入 #35，PR #63 后组合状态为 42 个 venue 根 README、294 个年度 README（29 会议 / 13 期刊）；`2026-08-07` 新增 ICSE 2029 年度页后为 **42 个 venue 根 README、295 个年度 README**。P0 冻结基线仍是 22 个 venue 根 README、154 个年度 README；PR-3 本轮交付物仍按 8 个目标 venue 计数，即 8 个根 README + 56 个年度 README = 64 个 README；PR-4 本轮交付物仍按 3 个目标期刊 venue 计数，即 3 个根 README + 21 个年度 README = 24 个 README；PR-6、PR-7 与 PR-8 本轮交付物均各按 4 个目标 venue 计数，即各 4 个根 README + 28 个年度 README = 32 个 README；PR-9 本轮交付物按 5 个 P2 目标 venue 计数，即 5 个根 README + 35 个年度 README = 40 个 README。当前 42 / 294 是 PR-6 / PR-7 / PR-8 / PR-9 均已合入上游、PR-10 完成全局审计后，再由 PR #63 增补 3 个 LLM4Modeling-SE 扩展候选后的组合统计；历史更新日志中的 26 / 182、30 / 210、34 / 238 仅代表各 sibling branch-local 或中间组合阶段，不得再写作当前总量。
 
 截至 `2026-07-13`，本轮已逐项复核全部 42 个 venue 根 README 的 2026 / 2027 / 2028 当前状态：会议只按 main / research / technical track 维护当前投稿链，不把 workshop、industry、独立 artifact track、demo、forum、doctoral symposium 或其他旁支 track 混入主链；若 artifact 是主轨论文的强制提交步骤，则作为主轨流程节点保留。期刊只把常规 rolling 投稿和公开、非 invite-only、普通投稿者可行动的 collection / special issue 作为当前机会，不把 invite-only、selected-paper extension 或仅为历史 Closed 的 collection 写成当前可投窗口。具体 deadline、会期、collection 状态与来源仍以对应 venue 根 README、年度 README 和 [TIMELINE.md](./TIMELINE.md) 为准，本入口只保留 42 / 294 统计与维护边界。
 

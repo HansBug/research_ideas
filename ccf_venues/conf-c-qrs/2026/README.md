@@ -16,6 +16,7 @@
 | Submission system | [Submission](https://qrs26.techconf.org/submission) |
 | Program / accepted papers | 未公布 |
 | Proceedings | [Proceedings policy](https://qrs26.techconf.org/track/proceeding) |
+| Proceedings 出版方（**2026-08-07 新增**） | 官方主页 News 首条逐字 `2026-07-24 — QRS 2026 Proceedings and Companion will be published by Springer as part of LNCS` | ⚠️ **QRS 历年为 IEEE proceedings，本届改由 Springer LNCS 出版**，且明确区分 `Proceedings` 与 `Companion`。这是出版链路的实质变更，直接影响本库 `出版方` 字段、EI/CPCI 证据路径与后续 proceedings 检索策略。注意 [Proceedings policy 页](https://qrs26.techconf.org/track/proceeding) **尚未同步该消息**（仍只写将被 Ei Compendex / Scopus / DBLP 收录、未点名出版商），两个官方页面口径不一致，以 News 条目为准。**尚无对应 Springer 卷号 / ISBN / DOI，卷次待补。** | `2026-08-07 20:05:00` |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/qrs/index.html) |
 | 当前阶段状态 | ✅ 已结束 / 待 proceedings |
 
@@ -100,5 +101,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段由 `🔵 会期临近` 迁移为 `✅ 已结束 / 待 proceedings`（会期 `2026-07-22..25` 已结束）。⚠️ 新增**出版方实质变更**记录：官方主页 News 逐字 `2026-07-24 — QRS 2026 Proceedings and Companion will be published by Springer as part of LNCS`（QRS 历年为 IEEE proceedings），且 Proceedings policy 页尚未同步，两个官方页面口径不一致；卷号 / ISBN / DOI 待补。九条 important dates 与官方逐字一致，官方确无时区声明。 |
 | `2026-07-13 10:27:51` | 常态化刷新：确认 QRS 2026 已通知/终稿，会期 2026-07-22..25 临近。 |
 | `2026-06-05 18:05` | PR-8 初始化 QRS 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

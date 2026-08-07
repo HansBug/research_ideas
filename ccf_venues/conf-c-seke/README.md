@@ -1,6 +1,6 @@
 # SEKE README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -102,6 +102,7 @@ SEKE 连接 software engineering 与 knowledge engineering，覆盖 requirements
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟣 通知后` 迁移为 `🔵 会期临近`（camera-ready 与 early registration 均为 `2026-07-20`，已过；live 会期 `2026-10-01..02` 未到）。⚠️ 记录官方 Technical Program 入口为 **`seke26pgm.txt`（.txt 而非 .html，后者为 404）**，且该 program 仍是工作稿（含 `Chair: name (e-mail)` 占位、两个 Open Slot、标题截断），计数待终版复核。**P2 / 不升级。** |
 | `2026-07-13 10:27:51` | 常态化刷新 SEKE 2026：确认 notification 已过，camera-ready / early registration 2026-07-20 仍待发生；2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

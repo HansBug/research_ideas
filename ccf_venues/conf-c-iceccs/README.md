@@ -1,6 +1,6 @@
 # ICECCS README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -114,6 +114,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 待 notification`（abstract 与 full paper 均于 `2026-07-20 AoE` 截止且未再延期，notification `2026-08-24`）。⚠️ 记录官网 HTML 注释陷阱：注释中藏有「location has been changed to Nansha, Guangzhou」等内容，可见正文 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane，抓取前必须剥离注释。**P2 / 不升级。** |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 ICECCS 2026 dates 更新 main paper abstract / full paper 延期至 2026-07-20 AoE、notification 2026-08-24 AoE、camera-ready 2026-08-31；未更改旁支 track。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

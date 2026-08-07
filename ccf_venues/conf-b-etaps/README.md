@@ -1,6 +1,6 @@
 # ETAPS / TACAS README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -109,6 +109,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新 + **跟踪范围扩展**：年度汇总表新增 **iFS 2027 分会行**（submission `2026-10-15 AoE`、notification `2026-12-22 AoE`、会期 2027-04-12..15）。本库跟踪的 ETAPS 主会自本轮起由「仅 TACAS」扩展为「TACAS + iFS」；iFS 为 FASE + iFM 合并首届，详见 [2027/README.md](./2027/README.md) §4.1 与 [../01-venue-scope.md](../01-venue-scope.md)。 |
 | `2026-07-13 13:30:00` | 常态化刷新 ETAPS/TACAS：确认 2026 已结束；复核 2027 TACAS paper、mandatory artifact、notification 与会期 AoE 口径；复查 2028 仅有主页和会期，CFP 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

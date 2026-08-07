@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：为 Milan 预告补上**官方来源 URL** [ESEC/FSE Upcoming Events](http://www.esec-fse.org/upcoming_events)（此前该条目无任何链接，违反 GUIDE §5 挂链要求）。官方逐字列 `FSE 2028` — Milan, Italy, 2028 并自标 `website not up yet`；`conf.researchr.org/home/fse-2028` 仍 HTTP 404。 |
 | `2026-07-13 19:13:21` | 常态化刷新：升级 FSE 2028 为 Milan 预告占位；未发现正式 CFP / dates / submission system，不写 dated event。 |
 | `2026-06-05 08:39` | 初始化 FSE 2028 年度 README 草稿。 |

@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**DBLP 年度页已上线**（[Part I](https://dblp.org/db/conf/caise/caise2026-1.html) 22 条 + [Part II](https://dblp.org/db/conf/caise/caise2026-2.html) 24 条 = 46），与官方 accepted 页 46 篇、Springer LNCS 两卷完全吻合，形成 **official × publisher × DBLP 三方闭合**；计数口径已相应升级。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 CAiSE 2026 已结束状态，补入 LNCS 16558 + 16559 共 46 篇主会 full papers；DBLP 年度页仍待发布。 |
 | `2026-06-07 12:47` | 初始化 CAiSE 2026 年度 README，记录 official / DBLP 入口、重要时间点、计数口径和 TIMELINE 同步状态。 |

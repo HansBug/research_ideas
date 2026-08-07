@@ -83,6 +83,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：`conf.researchr.org/home/fm-2027` **由 404 变为 HTTP 200 + Access denied**（slug 已建、未公开发布），已从「已检索未公布」改记为「官方入口已定位，正文未取得可审计快照」，是 CFP 即将放出的强信号，列高频复查；同轮补入 FM 自 2027 起**改为每年一届、固定秋季**的官方 cadence 变更（organizer call 逐字 `a new edition taking place every autumn`）。仍无正式 CFP / dates / host city。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复查 FM 2027，organizer call 仍仅为官方线索，未发现正式 CFP / dates。 |
 | `2026-06-05 10:04` | 将 FM 2027 organizer call 从官方年度主页降级为主办征集线索，避免把 organizer call 冒充年度主页 / CFP。 |
 | `2026-06-05 09:15` | PR-3 初始化 FM 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

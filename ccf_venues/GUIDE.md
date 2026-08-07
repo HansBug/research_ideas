@@ -549,7 +549,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 ### 12.9 P0/P1/P2 与统计不回退规则
 
-1. 当前组合统计为 42 个 venue 根 README、294 个年度 README；P0 冻结基线为 22 个 venue 根 README、154 个年度 README；PR-10 后、PR #63 前的 39/273 只能作为历史状态。常态化更新不得把正文当前状态回退到历史中间统计。
+1. 当前组合统计为 **42 个 venue 根 README、295 个年度 README**（`2026-08-07` 因新增 [ICSE 2029 年度页](./conf-a-icse/2029/README.md) 由 294 增至 295，venue 数不变）；P0 冻结基线为 22 个 venue 根 README、154 个年度 README；PR-10 后、PR #63 前的 39/273 只能作为历史状态。常态化更新不得把正文当前状态回退到历史中间统计。
 2. 历史更新日志中的 26 / 182、30 / 210、34 / 238 等旧统计是当时真实记录，不得为了 `rg` 零命中而删除或篡改。
 3. P2 venue 可以出现在近期窗口和历史事件表中，但必须保留 `P2 / 不升级` 或等价说明；不得在 README、SUMMARY、PR body 或投稿建议中改写成 P0/P1 主投目标。
 4. 常态化刷新若发现 CCF 官方更名、venue 分裂 / 合并或确有强相关漏项，不能直接新增目录；先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，再进入新增 venue 流程。
@@ -702,7 +702,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 ### 16.5 PR #63 LLM4Modeling-SE 扩展规则
 
-1. PR #63 新增 `journal-b-ase`、`conf-b-caise`、`conf-c-iceccs` 后，当前组合统计必须重算为 42 个 venue / 294 个年度 README（29 个会议 / 13 个期刊）；历史 39/273 只能作为 PR-10 后、PR #63 前状态。
+1. PR #63 新增 `journal-b-ase`、`conf-b-caise`、`conf-c-iceccs` 后，组合统计重算为 42 个 venue / 294 个年度 README（29 个会议 / 13 个期刊）；`2026-08-07` 新增 ICSE 2029 年度页后为 42 个 venue / **295** 个年度 README；历史 39/273 只能作为 PR-10 后、PR #63 前状态。
 2. ASE Journal 与 ASE Conference 同缩写但不同 venue；任何投稿决策表、SUMMARY、TIMELINE label 都必须写清 Journal / Conference。
 3. CAiSE 只在需求、概念建模、MDE、信息系统 / 过程 / 企业建模语境下适投；不得将泛 LLM4SE 工具评测硬写为 CAiSE 主场。
 4. ICECCS 只作为 🥉 档复杂系统工程 / formal engineering / V&V 工程案例来源；不得把全部 complex systems 论文自动标为 LLM 状态机建模强相关。

@@ -85,6 +85,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新 + **日期更正**：阶段由 `🟡 审稿中` 迁移为 `🟣 通知后`（notification `2026-08-01 AoE` 已过）。paper / tutorial proposal submission 按官方现行 CFP 由 `2026-06-14` 更正为 **`2026-06-16 AoE`**（官方以删除线标出原 `31 May, 2026`）；tool showcase 由 `2026-08-10 / 2026-08-17` 更正为 **submission `12 August, 2026` / notification `15 August, 2026`（AoE）**。program 页为 JS 壳且数据源为空模板，accepted / proceedings / DBLP 确未发布。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新：按官方 extended dates 更新 RV 2026 为已截稿审稿中。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 RV 2026 Tutorial proposal submission `2026-06-14` AoE，明确 tutorial track 与 paper submission 同日但不混入主论文计数。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 RV 2026 CFP extended 日期（submission `2026-06-14` AoE、notification `2026-07-30`、camera-ready `2026-08-10`、会期 `2026-10-06..09`）与 TIMELINE 一致，未改变官方来源口径。 |

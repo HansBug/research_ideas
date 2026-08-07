@@ -1,6 +1,6 @@
 # RV README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -103,6 +103,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟡 审稿中` 迁移为 `🟣 通知后`（notification `2026-08-01 AoE` 已过）。⚠️ 同轮修正两处日期错误：paper / tutorial submission 官方现行 CFP 为 `16 June, 2026`（本库此前记 `2026-06-14`）；tool showcase 为 submission `12 August, 2026` / notification `15 August, 2026`（本库此前记 `2026-08-10 / 2026-08-17`）。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新 RV 2026：按官方 extended dates 更新为已截稿审稿中；2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：论文数量补为 Research Papers **24 篇**（官方 track 页 `Accepted Papers` 逐行统计，不含 RE@Next! / Industrial Innovation / Journal-First / Posters and Tool Demos / Artifacts 等其余 track）；官方完整 program 亦已发布。 |
 | `2026-07-13 13:30:00` | 常态化刷新：确认 Research Papers camera-ready 已过、会期 `2026-08-17..2026-08-21` 未开始，将阶段改为会期临近。 |
 | `2026-06-05 08:35` | 初始化 RE 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

@@ -90,6 +90,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：地点由「Switzerland（具体城市待补）」闭合为 **Basel, Switzerland（FHNW Dreispitz Campus）**；**Submission system 由 `未公布` 升级为 [EasyChair `refsq2027`](https://easychair.org/conferences/?conf=refsq2027)**（入口已公布，官方逐字 `Submissions will open later this year.`，尚未开放）；补入**首次采用双盲**的政策变更（官方逐字 `New this year: REFSQ 2027 will adopt a double-blind review process.`）、special theme `Aligning RE and AI Velocity`、第 33 届与五类论文页数。四个主轨日期逐字复核一致；AoE 现有 dates 表 `title` 属性与 CFP 正文双重官方证据。 |
 | `2026-07-13 10:27:51` | 常态化刷新：升级 REFSQ 2027 Research official dates，统一 official dates 链接与 AoE 口径。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：修正 REFSQ 2027 Research Papers 官方 CFP 链接，旧 `refsq-2027-research` 直链为 404，不再使用。 |
 | `2026-06-05 08:35` | 初始化 REFSQ 2027 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

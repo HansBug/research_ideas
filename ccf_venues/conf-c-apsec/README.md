@@ -1,6 +1,6 @@
 # APSEC README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -103,6 +103,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 审稿中`（full paper `2026-07-20` 已过、未再延期）。⚠️ 同轮修正 Technical Track 时区口径：官方 dates 页 6 行 tooltip 与 CFP 小标题当前均为 `AoE (Anywhere on Earth)`，本库此前记的 `UTC+8 (Bali time)` 相差 20 小时，已按官方现状改回并保留冲突历史。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 APSEC 2026 dates 更新 Technical Track optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19，保留 UTC+8 (Bali time)；复查 2027/2028 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

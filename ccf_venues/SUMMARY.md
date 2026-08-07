@@ -6,7 +6,7 @@
 
 `SUMMARY.md` 只作为 `ccf_venues/` 的读者查阅总账：正文不再承载施工分工、编辑流程、执行合同、分批完成小节或踩坑长表。流程性信息只允许进入各文件的更新日志表格；可复用规则写入 [GUIDE.md](./GUIDE.md)，范围与 ownership 写入 [01-venue-scope.md](./01-venue-scope.md)，投稿时间线写入 [TIMELINE.md](./TIMELINE.md)。
 
-- 当前范围：42 个 venue，含 29 个会议、13 个期刊；默认年度范围为 2022--2028。
+- 当前范围：42 个 venue，含 29 个会议、13 个期刊；默认年度范围为 2022--2028，**另有 [ICSE 2029](./conf-a-icse/2029/README.md) 一个 2029 年度页**（ICSE 指导委员会官方站已公布 `Apr 2029 / Tokyo, Japan`，按规则建档）。年度 README 合计 295。
 - CCF 分布：🏆 8 个，🥈 19 个，🥉 15 个。
 - 最新状态刷新：截至 `2026-08-07` 已按用户要求做**全库 42 个 venue 的全量核验**（上一轮为 `2026-07-13`）；会议只同步 main / research / technical track 当前链，期刊只同步常规 rolling 与公开、非 invite-only collection，行级事实仍回到对应 venue 根 README / 年度 README 和官方来源核验。
 - **CCF 目录版本**：第七版已于 `2026-03-31` 发布（`2026-04-09` 勘误），已按官方 PDF 全量复核本库 42 个 venue，**等级 42/42 全部不变**，下表 CCF 列与 `🏆 8 / 🥈 19 / 🥉 15` 分布继续成立。来源基准与访问指引见 [README.md](./README.md) §3；第七版带来的待评估候选（FMCAD C→B、MEMOCODE 新增）登记在 [01-venue-scope.md](./01-venue-scope.md) §8.4。

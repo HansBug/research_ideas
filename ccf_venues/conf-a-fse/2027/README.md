@@ -88,6 +88,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新 + **精度修正**：官方 Research Papers track 只给 `Fri 2 Oct 2026` + 侧栏 `Important Dates AoE (UTC-12h)`，**未给钟点**；本库此前自行补写的 `23:59:59` 已按证据纪律回退为 `待补时刻 AoE / UTC-12h`。同轮记录 `/dates/fse-2027` 页本身无时区声明（AoE 只在 track 页侧栏）、Industry Papers 独立窗口 `2027-01-23`、submission site 官方仍未公布。五个主轨节点逐字复核一致，无变更。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 FSE 2027 official home / Research Papers / dates，将 full paper deadline 精确为 `2026-10-02 23:59:59 AoE / UTC-12h`。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：按 FSE 2027 官方主页 / dates / Research Papers track 补齐投稿、response、initial notification、major revision、final notification 与会期，并同步根 README 与 TIMELINE。 |
 | `2026-06-05 08:39` | 初始化 FSE 2027 年度 README 草稿。 |

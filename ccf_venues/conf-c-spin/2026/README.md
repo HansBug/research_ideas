@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**官方 program 与独立 `Accepted papers` 清单已发布**，Program / accepted papers 由 `未公布` 改为官方入口，论文数量补为 **7 篇**（含 Best Paper Award）。计数状态说明官方名录已闭合但 Springer LNCS 卷与 DBLP `spin2026` 年度页均未发布（后者复查为 HTTP 404）。 |
 | `2026-07-13 10:27:51` | 常态化刷新：确认 SPIN 2026 已结束，保留 proceedings / DBLP 待补。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：补齐 CFP 明确给出的 EasyChair SPIN 2026 submission website，避免投稿入口留空。 |
 | `2026-06-05 09:15` | PR-3 初始化 SPIN 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

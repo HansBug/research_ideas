@@ -93,5 +93,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：Research Track `Accepted Papers` 名录已上线，Program / accepted papers 由 `未公布` 改为官方 track 入口；⚠️ 页面过长、单次抓取被截断，**计数待补**，不得填数字。camera-ready `2026-08-03` 已过，2026 主链已无可行动节点。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 Research Track 大修提交、通知、camera-ready 与会期，当前阶段改为 `🟣 通知后`。 |
 | `2026-06-05 08:38` | 初始化 ASE 2026 年度 README，填充核心链接、Research Papers 日期、tracks 与计数口径。 |

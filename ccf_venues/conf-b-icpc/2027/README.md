@@ -95,6 +95,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**Research Track CFP 与 Important Dates 已公布**，年度状态由 `🟦 已有主页` 升级为 `🟢 投稿中`。补齐 abstract `2026-10-29 23:59:59 AoE / UTC-12h`、paper `2026-11-05`、notification `2027-01-14`、camera-ready `2027-01-28`（官方逐字 `All dates are 23:59:59 AoE (UTC-12h).`，**给了精确时刻故不写 `待补时刻`**）、HotCRP 投稿入口、10+2 页限、double-anonymous、第 35 届与组委会。⚠️ 记录 track slug 由 `icpc-YYYY-research` 变更为 `icpc-2027-research-track`（旧模式 404），这是上一轮漏检的直接原因。 |
 | `2026-07-13 13:30:00` | 常态化刷新：升级 ICPC 2027 official home、地点与会期；CFP / Important Dates / submission 仍未公布。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 ICPC 2027 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

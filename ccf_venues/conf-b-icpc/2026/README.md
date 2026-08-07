@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**DBLP 年度页已上线**（[icpc2026](https://dblp.org/db/conf/iwpc/icpc2026.html)，52 条 `inproceedings`，含全部 track）；论文数量补为 Research Track **35 篇**（官方 track 页去重统计），并显式说明 35 与 52 的差额为 ERA / Tool Demo / RENE，**不得混算**。 |
 | `2026-07-13 13:30:00` | 常态化刷新：确认 ICPC 2026 已结束；保留 proceedings / DBLP 年度页待补，不改历史 deadline。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 ICPC 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

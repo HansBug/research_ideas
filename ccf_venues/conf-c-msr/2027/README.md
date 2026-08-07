@@ -89,5 +89,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**Submission system 由 `未公布` 升级为 [HotCRP `msr2027`](https://msr2027.hotcrp.com/)**（官方 CFP 直链，HTTP 200）；会期与地点来源由 dates 页（现已无 Conference 行）改挂 `2027.msrconf.org` 页头与 series 页，从「stable homepage 线索」升级为已核验官方事实（含 co-located with ICSE 2027、CCD 会场）。六个 Technical Papers 日期与 AoE (UTC-12h) 逐字复核一致。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新：升级 MSR 2027 Technical Papers official dates。 |
 | `2026-06-05 17:23` | PR-9 初始化 MSR 2027 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

@@ -1,6 +1,6 @@
 # MoDELS README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -107,6 +107,7 @@ MoDELS 是模型驱动工程（Model-Driven Engineering, MDE）核心会议，�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段补为 `🟣 通知后 / camera-ready 已过`，并补入 Research Papers 30 篇（Foundations Track 23 + Practice Track 7）。⚠️ 该名录公开在 **track 页的 `Accepted Papers` 标签**下，而 `/program/` 与 `/info/.../accepted-papers` 两条路径仍为 Access denied —— 此前只探测 authwall 路径导致系统性假阴性。 |
 | `2026-07-13 13:30:00` | 常态化刷新 MoDELS：按官方 Research Papers track / dates 确认 notification `2026-06-17 AoE` 已过、camera-ready `2026-07-31 AoE` 未到；2027/2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

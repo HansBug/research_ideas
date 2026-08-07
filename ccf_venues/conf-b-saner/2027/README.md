@@ -96,6 +96,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**Submission system 由 `未公布` 升级为 [EasyChair `saner2027`](https://easychair.org/my/conference?conf=saner2027)**；补入主轨 10+2 页限、IEEEtran 10pt conference 格式、**全轨 double-anonymous**、PC Co-Chairs / General Co-Chairs、三大 strategic themes（含 `Program Repair`）与 `Special Issue: TBD`；track 清单更正为官方 9 个（**新增 `Agentic AI4SE Track`，主轨仍唯一为 Research Track**；此前误列的 `Journal First` 不在 2027 官方 track 导航中）。四个主轨日期与 AoE 时区逐字复核一致，无变更；记录 CFP 正文两处官方笔误。 |
 | `2026-07-13 19:11:00` | 常态化刷新：复查 SANER 2027 Research Track 官方 dates 与会期，保留 AoE / UTC-12h 与 `待补时刻` 口径。 |
 | `2026-06-06 00:41` | PR-10 实现后 review 修复：补充 SANER 2027 Research Track 官方 AoE / UTC-12h 时区，并同步 TIMELINE。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |

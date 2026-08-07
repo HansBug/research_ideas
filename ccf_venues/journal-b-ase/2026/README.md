@@ -90,5 +90,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：⚠️ **两个 collection 被官方延期且仍开放** —— `Green and Sustainable Software` 由 `2026-07-15` 延至 **`15 August 2026`**、`Genetic Improvement of Software` 由 `2026-07-31` 延至 **`14 August 2026`**，状态均为 `Open for submissions`；按旧日期会误判为已关闭。`Search-Based Software Engineering in the Era of LLMs and Agentic Systems` 状态由 `Upcoming` 迁移为 `Open`（2026-07-15 开窗已生效），deadline `30 January 2027` 未变。 |
 | `2026-07-13 19:10:00` | 常态化刷新：按官方 Springer collections 更新 2026 open / upcoming special issue 窗口，并排除 invite-only / selected-paper / 弱相关旁支。 |
 | `2026-06-07 12:47` | 初始化 ASE Journal 2026 年度 README，记录 rolling / collection / volume / DBLP fallback 与 TIMELINE 同步口径。 |

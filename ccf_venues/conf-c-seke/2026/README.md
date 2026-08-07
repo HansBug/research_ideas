@@ -84,6 +84,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段由 `🟣 通知后` 迁移为 `🔵 会期临近`（camera-ready 与 early registration 均为 `2026-07-20`，已过；live 会期 `2026-10-01..02` 未到）。四条 important dates 与官方逐字一致，`Midnight EST` 仅适用 submission 行。**P2 / 不升级。** |
 | `2026-07-13 10:27:51` | 常态化刷新：确认 SEKE 2026 notification 已过，camera-ready / early registration 2026-07-20 待发生。 |
 | `2026-06-05 18:03` | 按 2026-06-05 当前日期同步年度阶段状态为 `🟡 审稿中 / 待通知`；未改变官方日期与来源口径。 |
 | `2026-06-05 17:23` | PR-9 初始化 SEKE 2026 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

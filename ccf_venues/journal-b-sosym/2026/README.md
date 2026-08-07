@@ -87,6 +87,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：`Theme Section: Industry 5.0` 官方确认 `Submission status: Closed`、无延期，状态由 `🟡 专刊征稿` 改为 `✅ 已关闭`（⚠️ sosym.org 侧仍过期挂在 `Current Call for Papers` 下，以 Springer 为准）；`Engineering of Digital Twins` 发现两个官方源冲突（Springer `Closed` vs sosym.org `Open all the time`），暂不作可投窗口；**补入此前完全漏记的两个 theme section** —— `LLM for Generative Software Engineering`（与 project_1 高度重合，已于 2026-02-15 关闭，属已错过的高价值窗口）与 `Data-intensive software product lines`；新增 Springer 侧三条 `Open / Ongoing` 常规 collection（Regular / Tool / Expert Voice），为 SoSyM 当前唯一确认可投的通道；投稿系统变更提示已溯源，两个官方源不一致且无新系统被公布。 |
 | `2026-07-13 19:21:00` | 常态化刷新：确认 Industry 5.0 submission 2026-07-15 / notification 2026-10-15 仍为官方日期但待补时刻；Digital Twins 为 ongoing rolling theme section。 |
 | `2026-06-04 22:31` | 根据 deepseek reviewer 修复后复审意见，将 Industry 5.0 的 2026-02-15 intent 节点显式标为已过去，与 TIMELINE.md 状态口径对齐。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |

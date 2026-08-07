@@ -87,6 +87,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段补为 `🟣 通知后 / camera-ready 已过`；论文数量补为 Research Papers **30 篇**（Foundations Track 23 + Practice Track 7）。⚠️ 记录该名录公开在 **track 页 `Accepted Papers` 标签**下，而 `/program/` 与 `/info/.../accepted-papers` 仍为 Access denied —— 此前只探测 authwall 路径造成系统性假阴性。 |
 | `2026-07-13 13:30:00` | 常态化刷新：按官方 Research Papers track / dates 将阶段改为通知后，保留 camera-ready `2026-07-31 待补时刻 AoE` 与会期 `2026-10-04..2026-10-09`。 |
 | `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 将当前阶段统一为审稿中，并补充阶段状态判定依据。 |
