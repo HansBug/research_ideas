@@ -26,7 +26,7 @@
 |---|---|---|---|
 | 官方年度主页 | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | 2026-08-07 核验：站点已上线（此前 2026-07-13 复查记为未公布）；co-located with POPL 2027；逐字 `as a physical (in-person) event` | `2026-08-07 20:05:00` |
 | CFP / Call for Papers | [VMCAI 2027 Papers](https://conf.researchr.org/track/VMCAI-2027/VMCAI-2027-papers) | 单轨会议，track 页与 home 页同内容；含论文类别、页数、双盲范围与 artifact 政策 | `2026-08-07 20:05:00` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/VMCAI-2027) | ⚠️ **该 dates 页三行表格不带任何时区声明**；`AoE (UTC-12h)` 只出现在 home / track 页侧栏 Important Dates 区块，引用时区必须落到 home/track 页 | `2026-08-07 20:05:00` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/VMCAI-2027) | 三行：Paper Submission / Notification / Camera Ready，与 home/track 页一致。时区为 `AoE (UTC-12h)`，在 home/track 页侧栏与本 dates 页**每行的 HTML `title="Timezone: …"` 属性**中均有声明，两者均为有效来源；⚠️ 但**纯文本提取会丢失该属性**，核验必须读原始 HTML（本页初稿曾据此误记为「dates 页不带时区声明」，已于 2026-08-07 二次核验更正，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5） | `2026-08-07 20:05:00` |
 | Submission system | [EasyChair `vmcai2027`](https://easychair.org/conferences/?conf=vmcai2027) | CFP 逐字 `Submission is via EasyChair.` | `2026-08-07 20:05:00` |
 | 组织 / Steering / PC / AEC | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | 见 §4.1；PC 约 35 人已公布 | `2026-08-07 20:05:00` |
 | Co-location 交叉核验 | [POPL 2027](https://popl27.sigplan.org/) | POPL 侧独立列出 `VMCAI` 为 co-hosted conference，并同步 `Wed 16 Sep 2026 · VMCAI · Paper Submission` 与 `Fri 6 Nov 2026 · VMCAI · Notification`，两站互证无冲突 | `2026-08-07 20:05:00` |
@@ -98,7 +98,7 @@ Artifact 政策（官方逐字）：`VMCAI 2027 offers authors the option to sub
 |---|---|---|---|
 | 官方年度主页 | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | `2026-08-07 20:05:00` | HTTP 200，已取可审计快照；第 28 届、Mexico City、Hilton Mexico City Reforma、co-located POPL 2027、in-person。 |
 | 官方 CFP / track | [VMCAI 2027 Papers](https://conf.researchr.org/track/VMCAI-2027/VMCAI-2027-papers) | `2026-08-07 20:05:00` | 单轨；三类论文页数、LNCS 格式、regular-only 双盲、artifact 可选政策、EasyChair 入口均已逐字核验。 |
-| 官方 dates 页 | [Important Dates](https://conf.researchr.org/dates/VMCAI-2027) | `2026-08-07 20:05:00` | 三行（Paper Submission / Notification / Camera Ready），列头 `When / Track / What`；**页面不带任何时区声明**，时区依据取自 home/track 页侧栏。 |
+| 官方 dates 页 | [Important Dates](https://conf.researchr.org/dates/VMCAI-2027) | `2026-08-07 20:05:00` | 三行（Paper Submission / Notification / Camera Ready），列头 `When / Track / What`；⚠️ 2026-08-07 二次核验更正：**每行均带 `title="Timezone: AoE (UTC-12h)"` 属性**（纯文本提取会丢失），与 home/track 页侧栏一致，两者均为有效来源。 |
 | 官方 series 页 | [VMCAI series](https://conf.researchr.org/series/VMCAI) | `2026-08-07 20:05:00` | 最新 edition 即 2027，无 2028 及以后。 |
 | 官方 submission system | [EasyChair `vmcai2027`](https://easychair.org/conferences/?conf=vmcai2027) | `2026-08-07 20:05:00` | CFP 直链，未登录可访问。 |
 | Co-location 交叉核验 | [POPL 2027](https://popl27.sigplan.org/) | `2026-08-07 20:05:00` | POPL 2027 `Sun 10 - Sat 16 January 2027, Mexico City`，Hilton Mexico City Reforma；co-hosted 列表含 VMCAI；VMCAI 两个日期同步一致，无冲突。 |
@@ -107,7 +107,7 @@ Artifact 政策（官方逐字）：`VMCAI 2027 offers authors the option to sub
 
 ## 8. 待补 / 风险记录
 
-- **时区来源不一致**：`dates` 页无时区声明，`AoE (UTC-12h)` 仅见于 home/track 页侧栏。任何引用必须落到 home/track 页，引 dates 页即为证据链断裂。
+- **时区来源**：`AoE (UTC-12h)` 在 home/track 页侧栏与 `dates` 页**每行的 `title="Timezone: …"` 属性**中均有声明，两者都是有效来源；但**纯文本提取会丢失属性**，核验必须读原始 HTML。（本页初稿曾写「dates 页无时区声明」，系把提取丢失误读为页面缺失，已于 2026-08-07 更正。）
 - 官方只给日期未给钟点，全部主轨节点保留 `待补时刻 AoE / UTC-12h`；**不得**臆造 `23:59`。
 - Artifact 无独立 deadline 与独立 track，**不得**照抄 VMCAI 2026 的 `Artifact registration 2025-09-17` / `Artifact submission 2025-09-22`。
 - 双盲仅适用 regular papers；tool papers 与 case studies 官方未声明匿名要求，**不得**统一写成全轨双盲（与 SANER 2027 的 full double-anonymous 不同）。
@@ -126,6 +126,6 @@ Artifact 政策（官方逐字）：`VMCAI 2027 offers authors the option to sub
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-08-07 20:05:00` | 常态化刷新：VMCAI 2027 官方年度主页、CFP/track、dates、series、EasyChair 入口均已上线，从 `⏳ 已检索未公布` 升级为 `🟢 投稿中`；补齐第 28 届、Mexico City / Hilton Mexico City Reforma、co-located POPL 2027、主轨 `2026-09-16 / 2026-11-06 / 2026-11-20`（AoE / UTC-12h）、三类论文页数、LNCS 格式、regular-only 双盲、artifact 可选无独立 ddl、Organizing / Steering / AEC 名单；记录 dates 页无时区声明与大写 slug 漏检原因，并用 POPL 2027 官方站交叉核验。 |
+| `2026-08-07 20:05:00` | 常态化刷新：VMCAI 2027 官方年度主页、CFP/track、dates、series、EasyChair 入口均已上线，从 `⏳ 已检索未公布` 升级为 `🟢 投稿中`；补齐第 28 届、Mexico City / Hilton Mexico City Reforma、co-located POPL 2027、主轨 `2026-09-16 / 2026-11-06 / 2026-11-20`（AoE / UTC-12h）、三类论文页数、LNCS 格式、regular-only 双盲、artifact 可选无独立 ddl、Organizing / Steering / AEC 名单；记录大写 slug 漏检原因；关于 dates 页时区的初稿判断已于同日二次核验更正（见 §2 / §8），并用 POPL 2027 官方站交叉核验。 |
 | `2026-07-13 19:11:00` | 常态化刷新：复查 VMCAI 2027 未发现官方主页 / CFP / important dates，继续保留占位。 |
 | `2026-06-05 09:15` | PR-3 初始化 VMCAI 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

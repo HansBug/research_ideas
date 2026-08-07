@@ -52,7 +52,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 |---|---|---|---|
 | Series / main site | [APSEC series](https://conf.researchr.org/series/apsec) | 年度事实仍以年度主页 / CFP / committee 为准 | `2026-06-05 17:23` |
 | Latest year homepage | [APSEC 2026](https://conf.researchr.org/home/apsec-2026) | 2026 Technical Track dates 已复查；2027/2028 未发现官方主页 / CFP / dates | `2026-07-13 19:11:00` |
-| CFP / Important Dates | [APSEC 2026 dates](https://conf.researchr.org/dates/apsec-2026) | 2026 Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time) | `2026-07-13 19:11:00` |
+| CFP / Important Dates | [APSEC 2026 dates](https://conf.researchr.org/dates/apsec-2026) | 2026 Technical Track：optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19。⚠️ **2026-08-07 复核：时区为 `AoE (Anywhere on Earth)`**（dates 页 8 行 tooltip 与 CFP 小标题 `Key Dates (AoE)` 一致）；本库 2026-06 记录的 `UTC+8 (Bali time)` 相差 20 小时，已更正，`UTC+8h` 当前只出现在 Local Student Forum / Doctoral Symposium 行 | `2026-08-07 20:30:00` |
 | Submission system | [2026 submission](https://easychair.org/conferences/?conf=apsec2026) | 投稿系统可能按 track 拆分；年度页保留具体入口 | `2026-06-05 17:23` |
 | Program / accepted papers | [2026 program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 已结束年度优先官方 program / accepted；缺失时用 DBLP fallback | `2026-06-05 17:23` |
 | Proceedings | 未公布 | 出版商 / proceedings DOI 优先；受限时记录 WAF / 已检索未获可审计证据 | `2026-06-05 17:23` |

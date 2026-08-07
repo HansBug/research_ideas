@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 年度主页 | [ISSTA 2027](https://conf.researchr.org/home/issta-2027) | 2026-08-07 核验：站点已上线，逐字 `the 36th edition of ISSTA!`；Singapore；`Tue 7 - Fri 10 September 2027` | `2026-08-07 20:05:00` |
 | CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/issta-2027/issta-2027-research-papers) | track 页侧栏已给全部主轨 dates 与时区；CFP 正文 About 段仍为 `TBD` | `2026-08-07 20:05:00` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/issta-2027) | dates 页与 track 页日期一致；**该 dates 页本身无时区声明**，AoE 口径只能引 track 页侧栏 | `2026-08-07 20:05:00` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/issta-2027) | dates 页与 track 页日期一致。⚠️ **2026-08-07 二次核验更正**：该判断不成立 —— researchr 的时区写在 HTML `title="Timezone: …"` 属性里，纯文本提取会丢失，实测该 dates 页**每个日期行都带 `title="Timezone: AoE (UTC-12h)"`**。dates 页与 track 页侧栏**均为有效时区来源**，但两者都必须读原始 HTML；见 [../../GUIDE.md](../../GUIDE.md) §16.6.5。 | `2026-08-07 20:05:00` |
 | Submission system | ⏳ 已检索未公布 | track 页尚未给出 HotCRP / 投稿入口 | `2026-08-07 20:05:00` |
 | Venue | [ISSTA 2027 venue](https://conf.researchr.org/venue/issta-2027/issta-2027-venue) | 逐字 `Venue: TBD`，仅确认城市 Singapore 与会期 | `2026-08-07 20:05:00` |
 | 组织委员会 | [Organizing Committee](https://conf.researchr.org/committee/issta-2027/issta-2027-organizing-committee) | General Chair 与 Program Co-Chairs 已公布，见 §4.1 | `2026-08-07 20:05:00` |
@@ -89,7 +89,7 @@
 |---|---|---|---|
 | 官方年度主页 | [ISSTA 2027](https://conf.researchr.org/home/issta-2027) | `2026-08-07 20:05:00` | 站点已上线（此前 2026-07-13 复查为未公开）；第 36 届、Singapore、会期 2027-09-07..10。 |
 | 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/issta-2027/issta-2027-research-papers) | `2026-08-07 20:05:00` | 主轨全链日期已公布，侧栏逐字 `Important Dates AoE (UTC-12h)`；About 段仍 `TBD`。 |
-| 官方 dates 页 | [Important Dates](https://conf.researchr.org/dates/issta-2027) | `2026-08-07 20:05:00` | 与 track 页一致；**页面本身无时区声明**，引用 AoE 必须落到 track 页。 |
+| 官方 dates 页 | [Important Dates](https://conf.researchr.org/dates/issta-2027) | `2026-08-07 20:05:00` | 与 track 页一致。⚠️ **2026-08-07 二次核验更正**：该 dates 页**每行均带 `title="Timezone: AoE (UTC-12h)"` 属性**（共 7 行），此前记的「页面本身无时区声明」系把纯文本提取丢失误读为页面缺失；dates 页与 track 页侧栏均为有效来源。 |
 | 官方 venue 页 | [ISSTA 2027 venue](https://conf.researchr.org/venue/issta-2027/issta-2027-venue) | `2026-08-07 20:05:00` | `Venue: TBD`，仅确认 Singapore 与会期。 |
 | 官方组织委员会 | [Organizing Committee](https://conf.researchr.org/committee/issta-2027/issta-2027-organizing-committee) | `2026-08-07 20:05:00` | General Chair 与两位 Program Co-Chair 已公布。 |
 | 官方 series 页 | [ISSTA series](https://conf.researchr.org/series/issta) | `2026-08-07 20:05:00` | 列出 `ISSTA 2027` 36th edition 与会期，与年度页一致。 |
