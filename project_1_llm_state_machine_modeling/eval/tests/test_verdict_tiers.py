@@ -337,3 +337,78 @@ def test_horizon_relaxation_does_not_let_a_value_mismatch_through() -> None:
         )["matched"]
         is False
     )
+
+
+# ---------------------------------------------------------------- 人工判定工作表
+
+def test_the_worksheet_groups_by_record_not_by_cell() -> None:
+    """按记录分组：判「是不是同一命题」需要 statement 在眼前，而 statement 是按记录的。
+
+    按格分组会让同一条 statement 被重复读 6 次，每次都要重建上下文 —— v35 那两处作用域误判
+    正是在上下文切换中发生的。
+    """
+
+    built = {
+        "base": "/x/matrix-vtest",
+        "grid": ["0000"],
+        "records": [],
+        "positions": [
+            {**_position(cell="run1/0000-claude", matched=True), "tier_a": {"matched": True, "assertion_id": "A1", "horizon_bindings_ignored": []}},
+            {
+                **_position(cell="run1/0000-gpt"),
+                "comparison": {
+                    "ledger_primary": 'f(x="1")',
+                    "candidates": [
+                        {"assertion_id": "A2", "predicate": "g", "result": False, "differs_in": ["谓词 f vs g"]}
+                    ],
+                },
+            },
+        ],
+        "tier_a_confirmed": 1,
+        "needs_human": 1,
+    }
+    ledger = {"EIS-0000-01": {"layer": "wellformedness", "statement": "台账原文在此", "primary_expression": 'f(x="1")'}}
+    text = V.worksheet(built, ledger)
+    assert text.count("## `EIS-0000-01`") == 1, "同一记录只应出现一次"
+    assert "台账原文在此" in text
+    assert "[A] run1/0000-claude" in text
+    assert "[?] run1/0000-gpt" in text
+    # A 层已确认的位不列候选 —— 人的注意力应全部落在 [?] 上
+    assert "谓词 f vs g" in text
+    for form in V.EQUIVALENCE_FORMS:
+        assert form in text
+
+
+def test_a_fully_confirmed_record_says_so_and_lists_nothing() -> None:
+    built = {
+        "base": "/x/m",
+        "grid": [],
+        "records": [],
+        "positions": [
+            {**_position(cell=f"run{i}/0000-claude"), "tier_a": {"matched": True, "assertion_id": "A", "horizon_bindings_ignored": []}}
+            for i in (1, 2)
+        ],
+        "tier_a_confirmed": 2,
+        "needs_human": 0,
+    }
+    text = V.worksheet(built, {"EIS-0000-01": {"layer": "l", "statement": "s", "primary_expression": "e"}})
+    assert "六格全部由 A 层确认" in text
+
+
+def test_a_cell_with_no_published_assertion_is_stated() -> None:
+    """⭐ 零 issue 的格必须显式说「无已发布断言」，不能只是空着。
+
+    空着与「我忘了列」在工作表上无从区分，而零 issue 恰是最需要被看见的情形 ——
+    v36 run1/0000-claude 就是这样丢掉整句 NL 的义务的。
+    """
+
+    built = {
+        "base": "/x/m",
+        "grid": [],
+        "records": [],
+        "positions": [{**_position(), "comparison": {"ledger_primary": "e", "candidates": []}}],
+        "tier_a_confirmed": 0,
+        "needs_human": 1,
+    }
+    text = V.worksheet(built, {"EIS-0000-01": {"layer": "l", "statement": "s", "primary_expression": "e"}})
+    assert "该格无已发布断言" in text

@@ -4,7 +4,8 @@
 
 **全自动做不到。** 台账的陈述是散文，而同一个缺陷可以被合法地编码成不同的谓词与绑定 ——
 `HIT_CRITERION.md` §3 列了四种成立形态，只有第一种（直接对应）是机械可判的。实测（v35，132 判定位）：
-按 (谓词, 绑定, 真值) 完全相等去判，只复现人工 89 条命中里的 **28 条（31%）**。
+按 (谓词, 绑定, 真值) 完全相等去判，只复现人工 89 条命中里的 **28 条（31%）**；
+加上视界约定（台账未写的 `within_cycles`/`bound`/`release` 不参与比较）后为 **34 条（38%）**。
 
 **全人工也不行，而且已经出过错。** v35 那一轮我在 132 位上犯了两处**作用域误判**
 （`EIS-0032-01` 记成 3/6、`EIS-0029-05` 记成 2/6），都是拿「同一个 pair、同一类谓词」的邻近性
@@ -21,7 +22,7 @@ issue 命中记录 R ⟺ 该 issue 引用的某条断言，其 (谓词, 绑定) 
 
 - 只看**已发布 issue 引用的**断言。被排除的发现不算命中 —— 它没有进入产物。
 - 台账的 `measured` 是字符串 `"False"` 而非布尔 `False`，必须先归一化；不归一化会让每一条都判不等。
-- 实测性质：**假阳 0，假阴 50**（v35）。A 层从不宣称一个人会否掉的命中，所以它的输出可以直接采信；
+- 实测性质：**假阳 0，假阴 55**（v35）。A 层从不宣称一个人会否掉的命中，所以它的输出可以直接采信；
   它只是不完备。
 
 ### B 层 —— 人工判编码等价
@@ -48,7 +49,8 @@ A 层未确认的每一位，本模块打印一张对照表：台账 primary 的
 
 用法：
 
-    python -m verdict_tiers --generation matrix-v36                # A 层 + B 层对照表
+    python -m verdict_tiers --generation matrix-v36                     # A 层 + B 层对照（JSON）
+    python -m verdict_tiers --generation matrix-v36 --worksheet         # 人工判定工作表
     python -m verdict_tiers --generation matrix-v36 --verdicts v.json --audit out.json
 """
 
@@ -363,12 +365,76 @@ def apply_human(built: dict[str, Any], verdicts: dict[str, Any]) -> dict[str, An
     }
 
 
+def worksheet(built: dict[str, Any], ledger: dict[str, dict[str, Any]]) -> str:
+    """B 层人工判定工作表：按记录分组，一屏内看完一条记录的六格。
+
+    ## 为什么按记录分组而不按格
+
+    判「这两种编码是不是同一个命题」需要台账 statement 在眼前，而 statement 是**按记录**的。
+    按格分组会让同一条 statement 被重复读 6 次，且每次都要重新建立上下文 —— v35 那两处作用域
+    误判正是在上下文切换中发生的（把「同 pair、同类谓词」的邻近性当成了同一命题）。
+
+    A 层已确认的位标 `[A]` 并**不列候选** —— 它们不需要人看。人的注意力全部落在 `[?]` 上。
+    """
+
+    lines: list[str] = []
+    positions_by_record: dict[str, list[dict[str, Any]]] = collections.defaultdict(list)
+    for entry in built["positions"]:
+        positions_by_record[entry["record_id"]].append(entry)
+    lines.append(f"# B 层人工判定工作表 — {Path(built['base']).name}")
+    lines.append("")
+    lines.append(
+        f"判定位 {len(built['positions'])} ｜ A 层已确认 **{built['tier_a_confirmed']}**"
+        f"（无需人看）｜ 待人工 **{built['needs_human']}**"
+    )
+    lines.append("")
+    lines.append(
+        "判命中必须点名等价形态之一并写论证："
+        + " / ".join(f"`{form}`" for form in EQUIVALENCE_FORMS)
+    )
+    lines.append("")
+    for record_id, entries in sorted(positions_by_record.items()):
+        record = ledger.get(record_id, {})
+        confirmed = sum(1 for entry in entries if entry["tier_a"]["matched"])
+        pending = len(entries) - confirmed
+        lines.append(f"## `{record_id}` — {record.get('layer')} — A 层 {confirmed}/{len(entries)}")
+        lines.append("")
+        lines.append(f"> {record.get('statement', '')}")
+        lines.append("")
+        lines.append(f"台账 primary: `{record.get('primary_expression', '')}`")
+        lines.append("")
+        if not pending:
+            lines.append("✅ 六格全部由 A 层确认，无需人工。")
+            lines.append("")
+            continue
+        for entry in sorted(entries, key=lambda item: item["cell"]):
+            if entry["tier_a"]["matched"]:
+                verdict = entry["tier_a"]
+                ignored = verdict.get("horizon_bindings_ignored") or []
+                note = f"（视界约定忽略 {ignored}）" if ignored else ""
+                lines.append(f"- **[A] {entry['cell']}** → 命中，据 `{verdict['assertion_id']}` {note}")
+                continue
+            candidates = (entry.get("comparison") or {}).get("candidates") or []
+            lines.append(f"- **[?] {entry['cell']}** — 候选 {len(candidates)} 条")
+            if not candidates:
+                lines.append("    - _该格无已发布断言_")
+            for candidate in candidates:
+                lines.append(
+                    f"    - `{candidate['assertion_id']}` "
+                    f"{candidate['predicate']} → **{candidate['result']}** ｜ "
+                    f"差异: {'；'.join(candidate['differs_in'])}"
+                )
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base")
     parser.add_argument("--generation")
     parser.add_argument("--verdicts", help="人工判定 JSON")
     parser.add_argument("--audit", help="审计输出路径")
+    parser.add_argument("--worksheet", action="store_true", help="打印 B 层人工判定工作表")
     args = parser.parse_args(argv)
     if args.base:
         base = Path(args.base)
@@ -396,6 +462,9 @@ def main(argv: list[str] | None = None) -> int:
         for problem in result["gate_problems"]:
             print(f"  ⚠️ {problem}")
         return 1 if result["gate_problems"] else 0
+    if args.worksheet:
+        print(worksheet(built, ledger_claims()))
+        return 0
     print(json.dumps(built, ensure_ascii=False, indent=1))
     return 0
 
