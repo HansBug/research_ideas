@@ -58,7 +58,7 @@
 | 官方论文名录 / accepted papers | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) |
 | Program | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) |
 | Proceedings | 未公布 |
-| DBLP 年度页 | ⏳ 已检索未公布 |
+| DBLP 年度页 | [DBLP ICPC 2026](https://dblp.org/db/conf/iwpc/icpc2026.html)（52 条 `inproceedings`，含全部 track） |
 | 计数口径 | 若写 DBLP fallback，表示 `inproceedings` / 年度条目基线，不等同于 Research Track 精确 count；需后续用 official program / proceedings 按 track 复核。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
