@@ -35,11 +35,29 @@ import argparse
 import collections
 import json
 import pathlib
+import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 RUNS = HERE.parents[2] / "runs" / "paper1"
 TUNED_PAIRS = ("0000", "0006", "0029", "0050")
+
+#: 「运行代理式主张」的**候选**指纹：闭词表无法把结构主张绑到瞬时伪状态（`Junction*`/`Join*`/
+#: `fork*`/`choice*`），产出方于是改用下游可占据后继。见 `HIT_CRITERION.md` §4.5。
+#:
+#: ## ⚠️ 故意过宽，且这个方向是有意选的
+#:
+#: 首版写成收紧式（要求「伪状态」与「代理/后继」在 40 字内同现）。逐条人工核对发现它**漏了 3 条**
+#: 真代理，根因是一个字：我写 `后继`、原文写 `后续`。
+#:
+#: 但真正的教训不是那个 bug。**这个数只用于算上限，而在上限计算里过度包含是安全方向** ——
+#: 上限变松不会低估歧义影响，漏包含才会。收紧的动机是「精确」，而精确性在这里是错误的优化目标。
+#:
+#: 所以：本正则**故意过宽**，输出一律标为「候选」而非「确认」。确认数必须由人逐条读原文给出
+#: （已知过宽命中的例子：`0050` 的 `ISSUE-M004-front-distance-missing` 说「不能由路由变量或仅以
+#: 事件名代理替代」，那是**拒绝**用代理；`0035` 的两条用的是「动作声明作行为需求的结构代理」，
+#: 与伪状态无关）。
+_PROXY = re.compile(r"瞬时伪状态|运行代理|以其后续|下游代理|代理|proxy|transient pseudo")
 
 def _ledger() -> dict[str, dict]:
     payload = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
@@ -112,6 +130,50 @@ def positions(generation: str, verdicts_path: pathlib.Path) -> list[dict]:
             "gpt": series.get("gpt"),
         })
     return rows
+
+
+def proxy_reading_bound(generation: str, pos_rows: list[dict]) -> dict | None:
+    """读法 A 的**上限**（`HIT_CRITERION.md` §4.5 要求并列报出）。
+
+    读法 A（把 issue 的命题读成它引用的 requirement）需要逐条命题人工匹配，**机械算不出来**。
+    但它的上限可以：把每条**候选**代理式 issue 所在 (pair, 臂, 轮) 的**全部**未命中位都当成命中。
+
+    两重过宽叠加（候选过滤器过宽 + 该格该轮全部未命中位都算），所以这是一个**很松的上限**。
+    松是有意的：按「先算上限」的判据顺序，若连这个上限都不足以翻转结论，就不必进入逐条裁定。
+
+    返回 None 表示该代次无候选。
+    """
+
+    base = RUNS / f"matrix-{generation}"
+    if not base.is_dir():
+        return None
+    index = {r["record_id"]: r for r in pos_rows}
+    gain: set[tuple[str, str, int]] = set()
+    proxy_issues = 0
+    for run_dir in sorted(base.glob("run*")):
+        if not run_dir.name[3:].isdigit():
+            continue
+        for cell in sorted(p for p in run_dir.iterdir() if p.is_dir() and ".try" not in p.name):
+            final = cell / "discover-completed.json"
+            if not final.is_file() or "-" not in cell.name:
+                continue
+            pair, arm = cell.name.rsplit("-", 1)
+            issues = json.loads(final.read_text()).get("issues") or []
+            found = [i for i in issues if _PROXY.search(str(i.get("rationale") or ""))]
+            if not found:
+                continue
+            proxy_issues += len(found)
+            slot = int(run_dir.name[3:]) - 1
+            for record_id, row in index.items():
+                if row["pair"] != pair:
+                    continue
+                series = row.get(arm)
+                if isinstance(series, list) and slot < len(series) and series[slot] == 0:
+                    gain.add((record_id, arm, slot))
+    if not proxy_issues:
+        return None
+    return {"proxy_issues": proxy_issues, "upper_bound_gain": len(gain),
+            "slots": sorted(gain)}
 
 
 def _series_md(series) -> str:
@@ -192,6 +254,30 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
             f"`{r['predicate']}` | {_series_md(r['claude'])} | {_series_md(r['gpt'])} | {stmt} |"
         )
     out.append("")
+
+    # ---- 读法 A 的上限（§4.5 强制并列）----
+    bound = proxy_reading_bound(generation, pos_rows)
+    out.append("#### `HIT_CRITERION.md` §4.5 强制并列：伪状态**运行代理**式主张的双读法\n")
+    if bound is None:
+        out.append("本代次**无**代理式 issue，两读法数值相同。\n")
+    else:
+        gain = bound["upper_bound_gain"]
+        out.append(
+            f"本代次有 **{bound['proxy_issues']}** 条**候选** issue 疑似用「下游可占据后继」替代无法"
+            f"绑定的瞬时伪状态（过滤器**故意过宽**，确认数须人工逐条读原文；v23 实测 14 候选里 7 条真、"
+            f"7 条假 —— 假的包括「**拒绝**用代理」与「动作声明作结构代理」两类）。"
+            f"一条 issue 的命题读成**它引用的 requirement**（读法 A）还是**断言的字面主张**（读法 B）"
+            f"影响判定，而本文件此前未规定走向。\n")
+        out.append("| 读法 | `hit@1` | 说明 |")
+        out.append("| :-- | --: | :-- |")
+        out.append(f"| **B（判定所用）** | **{hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%** | "
+                   "断言字面主张；§4「更弱的命题」不算命中 |")
+        out.append(f"| A 的**极宽上限** | {hit_pos + gain}/{n_pos} = "
+                   f"{(hit_pos + gain) / n_pos * 100:.1f}% | "
+                   f"候选过滤器过宽 **＋** 该格该轮全部未命中位都算命中（+{gain} 位）—— 两重过宽叠加 |")
+        out.append("")
+        out.append(f"增量上限 **{(hit_pos + gain) / n_pos * 100 - hit_pos / n_pos * 100:+.1f}pp**。"
+                   "上限口径极度宽松，逐条匹配远低于此 —— 但它可复算，且足以判断该歧义能否翻转结论。\n")
 
     # ---- 逐带小计（不出比率，比率由 metrics_at_k 的闸门管）----
     out.append("#### 逐问题类型命中小计 —— 「哪类缺陷发现得好」\n")
