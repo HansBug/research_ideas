@@ -174,7 +174,7 @@ src 脏文件数），并在 pipeline src 脏或有未推送提交时**拒绝开
 
 | 项 | 需要什么 |
 | :-- | :-- |
-| `wellformedness` 层 8/12 属「工具已报」 | 收窄能力分母，见 [WELLFORMEDNESS_ATTRIBUTION_RULING.md](./WELLFORMEDNESS_ATTRIBUTION_RULING.md)；需独立核验 + 双份口径 |
+| `wellformedness` 层「工具已报」子类：**9/12**（含 `InvalidInitial*`）或 **6/12**（只算 `UnspecifiedInitial`） | 收窄能力分母，见 [WELLFORMEDNESS_ATTRIBUTION_RULING.md](./WELLFORMEDNESS_ATTRIBUTION_RULING.md)；需独立核验 + 报双份数 |
 | 伪状态 join/junction 类型错配（`EIS-0038-07` / `EIS-0048-05`） | `state_declared` 的 kind 词表扩张 |
 | 事件粒度（`EIS-0000-02`） | `event_cardinality`，见 [FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md) §四 |
 | over-specification 的存在性否定（`EIS-0018-03`） | 词表只有正向存在性谓词 |
