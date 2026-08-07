@@ -35,7 +35,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Extended abstract | 2026-06-22 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 当前显示 abstract submission 已延期至 2026-06-22；所有 deadline 为 23:59 AoE (UTC-12)。 |
+| Extended abstract | 2026-06-22 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 当前显示 abstract submission 已延期至 2026-06-22；所有 deadline 为 23:59 AoE / UTC-12 (UTC-12)。 |
 | Extended full paper | 2026-06-22 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
 | Acceptance notification | 2026-08-08 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |
 | Camera-ready | 2026-09-07 23:59 AoE / UTC-12 | [Important Dates](https://icfem2026.github.io/#dates) | [ICFEM 2026](https://icfem2026.github.io/) | 官方 Important Dates 明确 All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)。 |

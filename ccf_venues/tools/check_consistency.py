@@ -346,6 +346,57 @@ def check_changelog_desc() -> None:
     stats.append(f"更新日志: {n_tables} 张表 / {n_stamps} 个时间戳，降序校验完成")
 
 
+def check_timezone_suffix() -> None:
+    """同一 venue-year 的时区后缀口径必须三方一致：年度页 / venue 根 README / TIMELINE。
+
+    背景（轮次 11）：库内多处把官方 ``Timezone: AoE (UTC-12h)`` 只写成 ``AoE``，而**同一
+    venue-year 的另一处**写了完整后缀——即本库已持有更高等级的证据，派生视图却降级了。
+    一次修 2 个 venue、下一轮再冒出 5 个，是因为此前一直**按 venue 枚举**而不是按不变量
+    枚举。本函数把它变成不变量：任一 venue-year 若同时出现「裸 AoE」与「AoE / UTC-*」即失败。
+
+    规范形式取自各 venue 自己的官方逐字，**不跨 venue 统一**——例如 ICFEM 官方写
+    ``AoE / UTC-12``（无结尾 h），researchr 系写 ``AoE (UTC-12h)``，两者都对。
+
+    识别日期格时不要求「以日期开头」：``Round 1: 2023-12-15 … ；Round 2: …`` 这类复合格
+    不以日期开头，早期版本整格跳过，是实测到的召回缺口。
+    """
+    has_date = re.compile(r"\d{4}-\d{2}-\d{2}")
+    prose = re.compile(r"复核|复查|核验|逐字|tooltip|官方页|https?://|属性|此前")
+    bare = re.compile(r"AoE(?!\s*/\s*UTC-\d)(?!\s*\(Anywhere)(?!\s*\(=)")
+    suffixed = re.compile(r"AoE\s*/\s*UTC-\d")
+
+    def date_cells(text, keep):
+        for line in text.split("\n"):
+            if not line.startswith("|") or re.match(r"\| `20\d\d-", line) or not keep(line):
+                continue
+            for c in (x.strip() for x in line.split("|")):
+                if "AoE" in c and has_date.search(c) and len(c) <= 140 and not prose.search(c):
+                    yield c
+
+    def tally(text, keep):
+        b = s = 0
+        for c in date_cells(text, keep):
+            b += len(bare.findall(c))
+            s += len(suffixed.findall(c))
+        return b, s
+
+    tl = read(TIMELINE)
+    bad = []
+    for yp in sorted(glob.glob("conf-*/[12][0-9][0-9][0-9]/README.md")):
+        ven, yr = yp.split("/")[0], yp.split("/")[1]
+        rp = f"{ven}/README.md"
+        rt = read(rp) if os.path.exists(rp) else ""
+        yb, ys = tally(read(yp), lambda l: True)
+        rb, rs = tally(rt, lambda l, y=yr: re.match(rf"\| \[`?{y}`?\]", l) is not None)
+        tb, ts = tally(tl, lambda l, p=f"/{ven}/{yr}/README.md": p in l)
+        if (yb + rb + tb) and (ys + rs + ts):
+            bad.append(f"{ven}/{yr}（裸 {yb}/{rb}/{tb}，带后缀 {ys}/{rs}/{ts}）")
+    if bad:
+        fail(f"[tz-suffix] {len(bad)} 个 venue-year 的 AoE 后缀口径三方不一致："
+             f"{bad[:5]}。同一 venue-year 内不得混用裸 `AoE` 与 `AoE / UTC-*`。")
+    stats.append(f"时区后缀三方一致性: {len(bad)} 个 venue-year 违规")
+
+
 def check_relative_links() -> None:
     """仓库内相对链接目标存在。"""
     bad = []
@@ -386,6 +437,7 @@ def main() -> int:
     check_table_columns()
     check_stats()
     check_changelog_desc()
+    check_timezone_suffix()
     check_relative_links()
 
     print(f"基准日: {args.today}（Asia/Shanghai）\n")

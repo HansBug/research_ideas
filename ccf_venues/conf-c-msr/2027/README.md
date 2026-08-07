@@ -89,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-08 02:30:00` | 轮次 11 M-2：§2「Important Dates」行的 `核查时间` 已于本轮推进至 `2026-08-08 01:10:00`（内容同步改写），补记本条日志使日志与单元格时间戳对齐。 |
 | `2026-08-07 21:40:00` | 轮次 9 I 级修复：§3 六行日期列与 §2 口径句由 `AoE` 补全为 `AoE / UTC-12h`，与 [../../conf-c-icst/2027/README.md](../../conf-c-icst/2027/README.md) 五行同构、与 [../../TIMELINE.md](../../TIMELINE.md) §3 / §9.1 逐字一致。此前 TIMELINE §15 已声称「两个年度页均已统一」但本页实际未改，属 live-state 表失效断言；本轮补齐事实侧而非改弱断言。时区证据为 researchr date 单元格 `title` 属性，官方仍只给日期、未给钟点。 |
 | `2026-08-07 20:05:00` | 常态化刷新：**Submission system 由 `未公布` 升级为 [HotCRP `msr2027`](https://msr2027.hotcrp.com/)**（官方 CFP 直链，HTTP 200）；会期与地点来源由 dates 页（现已无 Conference 行）改挂 `2027.msrconf.org` 页头与 series 页，从「stable homepage 线索」升级为已核验官方事实（含 co-located with ICSE 2027、CCD 会场）。六个 Technical Papers 日期与 AoE (UTC-12h) 逐字复核一致。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新：升级 MSR 2027 Technical Papers official dates。 |
