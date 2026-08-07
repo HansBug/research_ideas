@@ -994,36 +994,6 @@ class PredicateAPI:
             "about the edge you mean with edge_declared instead."
         )
 
-    def untriggered_edge_declared(self, *, source: str, target: str) -> bool:
-        """The model declares an edge from `source` to `target` that carries **no trigger**.
-
-        `edge_declared` requires all three of source, trigger and target, so a transition with
-        no event on it cannot be its subject: every sentinel for "no trigger" is refused
-        (`""` and `None` fail `_require_well_formed_names`, `"[*]"` is reserved for the
-        pseudo-initial, and omitting the argument is a `TypeError`). Measured on the corpus,
-        that leaves a large share of declared transitions outside the reach of any
-        declaration predicate.
-
-        Passing `event=None` to `edge_declared` would have been the smaller change and is the
-        wrong one: `structure.transitions` treats a `None` filter as *unset*, so the call
-        would silently match an edge carrying **any** trigger. That turns False into True on
-        models whose edge exists but under the wrong event -- i.e. it would quietly retract
-        findings that currently hold. A separate name leaves every existing call untouched.
-
-        Returns True when such an edge is declared. As with every declaration predicate the
-        **False** is the finding: it says the artifact does not declare the unconditional
-        step the requirement is about.
-        """
-
-        self._require_well_formed_names(source=source, target=target)
-        self._note(source, target)
-        self._note_transitions(source=source, target=target)
-        return bool(
-            self.relations.transition_exists(
-                source=source, target=target, has_event=False, exact=True
-            )
-        )
-
     def edge_declared(self, *, source: str, trigger: str, target: str) -> bool:
         """The model declares an edge with this source, trigger and target."""
 
@@ -1951,7 +1921,6 @@ PREDICATE_FAMILIES: dict[str, tuple[str, str]] = {
     "containment": ("structure", "containment"),
     "initial_target": ("structure", "initial_target"),
     "edge_declared": ("relation", "edge_declared"),
-    "untriggered_edge_declared": ("relation", "untriggered_edge_declared"),
     "effect_declared": ("effect", "effect_declared"),
     "action_declared": ("structure", "action_declared"),
     "guard_distinguishable": ("relation", "guard_distinguishable"),

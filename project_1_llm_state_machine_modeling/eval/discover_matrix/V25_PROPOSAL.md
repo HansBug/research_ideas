@@ -1,8 +1,119 @@
-# v25 提案：两处改动，各有独立可观测签名
+# v25 提案：两处改动 —— ⛔ **均已撤销**（两份运行前 review 各判禁止开跑）
 
-前两次 v25 尝试都被运行前 review 判禁止开跑（见
-[V25_SYNTHESIZED_PLACEHOLDER_PROPOSAL.md](./V25_SYNTHESIZED_PLACEHOLDER_PROPOSAL.md) 开头）。
-本提案的两处改动都**不在**上次被否的那条通路上。
+`git revert 709d8125`。**第三次 v25 尝试失败。** 两份 review 各自独立给出决定性理由，我全部接受。
+
+## 一、代码正确性侧的四条 C
+
+### C1 我声称的「没有任何一处调和」是假的 —— 调和在我编辑处**下方 6 行**
+
+`prompts.py` L110–127 是 `RESULT_ADJUDICATOR_PROMPT` 的追加块，**同一个字符串变量**：
+
+| 位置 | 逐字 | 我的新句 |
+| :-- | :-- | :-- |
+| L110 | Grouping across Requirements is what makes the published count **a count of defects rather than of Requirements** | —— |
+| L119 rule 2 | 判据：**would fixing that one place make both False results go away?** 是则并组 | 「即使一次模型修改能同时修好，也要分成两条」 |
+| L126 worked example | **both primary assertions are False** … **One issue**，`requirement_ids` 同列两条 | 「it **never** merges two False primaries into one issue」 |
+
+**逐字互斥**，且我的改动实质上**废除了整个跨需求归组功能**（`nodes.py:4290` 只把 False primary 留在
+issue 引用里，故「多需求 issue」按构造必然含 ≥2 个 False primary）。四处配套设施一处都没同步：
+`schemas.py:586`、`nodes.py:4417-4431`（强制 `shared_root_cause`）、`nodes.py:4256-4268`
+（`thin_merge_warnings`）、`renderer.py:466`（`_merge_candidates` 已算好塞进裁决者输入）。
+
+⛔ **我在提案里写的是「这三条都是无条件祈使句，且我读了各自的完整行文」。** 我读了三行就宣称不存在
+调和，**没有往下看 6 行**。这是本会话第**三**次「声称某跨阶段矛盾存在而它不存在」，前两次都在 L379。
+
+### C2 判定侧的修法已经存在，而且是我自己在同一次会话里写的
+
+`ONEPASS_JUDGE_INSTRUCTIONS.md` §158 标题逐字：**「⚠️ 已知装置限制：一条 issue 陈述多条台账缺陷时会被
+结构性低估」**；§187 规则：**「一条 issue 可以命中多条期望缺陷，写成 `hits:X+Y`」**；
+`onepass_merge.py` 的 `hits_aliases()` 已支持；commit **`cd74380a`**。
+
+⛔ **改动 ① 是改被测系统去迁就一个已经不存在的判定限制。** 我在正确的地方修好了，然后忘了，
+又在错误的地方修了一遍。
+
+### C3 改动 ② 的可计入上限实测为 **0**
+
+全台账 126 条中，期望断言真正需要「无触发边声明」的只有 **3 条**：
+
+| 记录 | 格 | 在 11 格内 | 状态 |
+| :-- | :-- | :-- | :-- |
+| `EIS-0018-02` | 0018 | 是 | **BURNED** |
+| `EIS-0038-02` | 0038 | 是 | **BURNED** |
+| `EIS-0058-01` | 0058 | **否** | —— |
+
+4 个可报留出格（0032/0035/0043/0047）里 **0 条**；以 primary 身份出现 **0 条**。
+而提案 §三 自己已排除 `EIS-0038-02`。**净可计入上限 = 0。**
+
+⛔ 按我自己写进记忆的「**先算上限再做相关分析**」：**上限为 0 则假设自动失败。**
+我那个「12 位」是从**漏检清单**数出来的，不是从可报集算出来的 —— §零 说它是「当前最大的杠杆」，
+§三 说构成它的记录不计入能力，**两节互相抵消**。
+
+### C4 改动 ② 从另一条通路复现了我整节论证要避开的失效模式
+
+实测（真实语料，非 docstring）：
+
+    pair 0043   initial_target(PumpControl, Region1.PumpState)       = False  ← 现有发现
+                untriggered_edge_declared("[*]", Region1.PumpState)  = True   ← 发现消失
+    pair 0032   initial_target(AccelerateRegion, CruisingState)      = False  ← 现有发现
+                untriggered_edge_declared("[*]", CruisingState)      = True   （该边守卫 R45RouteToken == 6）
+
+语义根因：**我把 untriggered 与 unconditional 混为一谈。** `has_event=False` 只表示「无触发」，
+而我的 `meaning` 写「a missing **unconditional** step」。语料 134 条无触发边里 **46 条带守卫**，
+谓词对它们一律 True。
+
+且产出方会选错的通路是敞开的：`caveat` 写「Use this only when the NL names no event for the step」——
+入口类 NL（「上电后从 X 开始」）恰恰不点名事件；`field_specs` 主动广告 `"[*]"`；新条目在词表里
+**紧挨 `initial_target` 之后**。回归闸只钉了 `edge_declared`，`initial_target` 这条通路零覆盖。
+
+### 复算否证的一条附带主张
+
+提案 §三「11/11 个 pair 都有无触发边」成立但**空洞**。分解 134 条：
+
+| 形态 | 条数 | 归属 |
+| :-- | --: | :-- |
+| `[*] ->` 伪初始边 | 41 | `initial_target` 的地盘（见 C4） |
+| 带守卫（多为编译器路由 `R45RouteToken`） | 46 | 谓词忽略守卫，**恒 True** |
+| **普通 状态→状态 无触发边**（提案描述的形态） | **57** | 新谓词 |
+
+而这 57 条中 **53 条在三个已 burned 格**（0018/0038/0048），4 个可报留出格里 **0 条**。
+
+## 二、公平性侧的两条 C（均为文档，不需改代码）
+
+### C1 provenance 锚错了，而更干净的出处早已存在且已裁定
+
+`RULE_PROVENANCE.md` 逐字：「**照着漏检清单写规则就是把答案喂进去的一种形态**」。
+而 `V23_REPORT_SKELETON.md` §十二之二 早已从**拒答统计**给出同一结论：
+
+> `unsupported_binding` **92 条**，全部是 `'trigger' must be a non-empty path`，76/92 集中在伪状态族 pair
+> …「该模型大量迁移**本就无触发**（伪状态间流转不带事件），生产者只能填空」
+> **是否消耗 hold-out 资格：不消耗 —— 它是谓词表的设计问题，不针对任何具体样本**
+
+⛔ **我用一个弱的、自证有罪的框架（照漏检清单数 12 位）替换了一个强的、已裁定的框架。**
+
+### C2 上限低于已确立的噪声底，而预注册一行都没提
+
+`V25_INSTRUMENT_ABLATION_PREREG.md` 已写死噪声底 **7.4pp**（v24 逐轮 `hit@1` 极差）。
+我的上限：① 约 1–3 位、② 12 位，合计 **15/204 = 7.4pp**，恰好等于噪声底；② 单独 5.9pp，**低于**噪声底。
+
+⛔ 「先测噪声底再谈效果」也是我自己写进记忆的判据。**本会话第三次「有规则、没用上」。**
+
+## 三、由此得到的实际结论
+
+| 杠杆 | 状态 |
+| :-- | :-- |
+| issue 粒度 | **判定侧已修**（`hits:X+Y`，commit `cd74380a`）—— 不需要动 pipeline |
+| 无触发边谓词 | 可报留出集上上限 **0**，且会抹掉 `initial_target` 的现有发现 —— **不应作为一个代次的变量** |
+| 其余全 0 记录 | 词表扩张（伪状态 kind / `event_cardinality` / 存在性否定），均需独立设计 |
+
+📌 **所以 v25 没有可做的 pipeline 改动，而唯一已修好的杠杆在判定侧。**
+下一步不是再找一处 src 改动，而是**按已修好的判定装置重判 v24**，看真实数字是多少 ——
+这件事我在几小时前就识别为「唯一有依据的下一步」，随后却转去追 src 改动了。
+
+---
+
+📌 以下保留原提案供追溯。**其中每一处「拟改动」「预注册」「杠杆量化」都已作废。**
+
+---
 
 ## 零、先给上限：为什么这两处是当前最大的杠杆
 

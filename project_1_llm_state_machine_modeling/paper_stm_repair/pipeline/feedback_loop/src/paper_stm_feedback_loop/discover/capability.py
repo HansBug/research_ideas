@@ -161,11 +161,6 @@ EVIDENCE_CAPABILITY: dict[str, EvidenceCapability] = {
         completeness="locator",
         quantification="single_edge",
     ),
-    "untriggered_edge_declared": EvidenceCapability(
-        decides="edge_presence",
-        completeness="locator",
-        quantification="single_edge",
-    ),
     "terminates": EvidenceCapability(
         decides="run_termination",
         completeness="witness",

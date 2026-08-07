@@ -215,30 +215,6 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
     ),
     Predicate(
-        "untriggered_edge_declared",
-        FAMILY_STRUCTURE,
-        "the model declares an edge from this source to this target that carries no trigger",
-        "a missing unconditional step, where the NL names no event for the transition",
-        ("source", "target"),
-        "decides the declaration outright",
-        "transition_exists(source=..., target=..., has_event=False)",
-        "transition_exists",
-        caveat=(
-            "Use this only when the NL names no event for the step.  If the NL names a "
-            "trigger, use edge_declared: this predicate ignores triggers entirely and "
-            "would report False for an edge that exists under the event the NL states."
-        ),
-        field_specs=(
-            ('source', 'the declared source state, or "[*]" for the pseudo-initial'),
-            ('target', 'the declared target state'),
-        ),
-        examples=(
-            'untriggered_edge_declared(source="Sys.ModeA", target="Sys.ModeB")',
-            'untriggered_edge_declared(source="Sys.ModeA", target="Sys.Other")  # False when no such trigger-free edge is declared',
-            'untriggered_edge_declared(source="Sys.ModeA", target="Sys.ModeB")  # False when the only declared edge there carries a trigger',
-        ),
-    ),
-    Predicate(
         "edge_declared",
         FAMILY_STRUCTURE,
         "the model declares an edge with this source, trigger and target",

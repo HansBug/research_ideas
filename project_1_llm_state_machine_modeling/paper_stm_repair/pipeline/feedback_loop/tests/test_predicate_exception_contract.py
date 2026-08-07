@@ -66,7 +66,6 @@ BASE = {
     "containment": dict(parent="Root", child="Root.Idle"),
     "initial_target": dict(composite="Root", child="Root.Idle"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Busy"),
-    "untriggered_edge_declared": dict(source="Root.Idle", target="Root.Busy"),
     "effect_declared": dict(
         source="Root.Idle", trigger="Root.go", variable="units", sign="negative"
     ),
