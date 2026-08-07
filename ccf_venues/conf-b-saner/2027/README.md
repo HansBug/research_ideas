@@ -1,6 +1,6 @@
 # SANER 2027 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,7 +13,7 @@
 | 官方年度主页 | [SANER 2027](https://conf.researchr.org/home/saner-2027) |
 | 官方 CFP | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/saner-2027) |
-| Submission system | 未公布 |
+| Submission system | [EasyChair `saner2027`](https://easychair.org/my/conference?conf=saner2027) |
 | Program / accepted papers | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -26,7 +26,7 @@
 | 年度主页 | [SANER 2027](https://conf.researchr.org/home/saner-2027) | 未公布时写 `⏳ 已检索未公布`，不伪造 URL | `2026-06-05 17:35` |
 | CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | track 分散时逐 track 补链接 | `2026-06-05 17:35` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/saner-2027) | 2026-07-13 复查：Research Track mandatory abstract / paper / notification 仍按 AoE (UTC-12h) 记录；具体钟点未公布时写 `待补时刻 AoE` | `2026-07-13 19:11:00` |
-| Submission system | 未公布 | 历史入口失效时保留待复核说明 | `2026-06-05 17:35` |
+| Submission system | [EasyChair `saner2027`](https://easychair.org/my/conference?conf=saner2027) | 2026-08-07 核验：Research Track CFP 正文已给出投稿入口 | `2026-08-07 20:05:00` |
 | Tracks / program | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | Research Track；RENE / ERA / Tool / Industrial / Journal First / Registered Reports 需分开 | `2026-06-05 17:35` |
 | Accepted papers / paper list | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 未公布 | 出版商页面优先；DBLP 仅作 fallback | `2026-06-05 17:35` |
@@ -47,8 +47,9 @@
 
 | Track / 类别 | 官方链接 | 是否关注 | 备注 |
 |---|---|---|---|
-| Research / main track | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | 🟡 重点关注 | 本仓库默认只把该 track 作为 research / main count 起点。 |
-| Tool / industry / journal-first / RENE / RR / workshop | 见年度导航 / dates 页 | 🟡 辅助关注 | 可提供 P4 修复工具、负结果、复现实验和工业证据，但不混入 research count。 |
+| Research / main track | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | 🟡 重点关注 | 本仓库默认只把该 track 作为 research / main count 起点。2026-08-07 补：`Submissions should not exceed 10 pages (with 2 additional pages for references only)`，IEEE Conference format（`\documentclass[10pt,conference]{IEEEtran}`，不得加 compsoc 选项），`All papers must be full papers.`，违规 `desk-rejected without review`；`SANER 2027 follows a full double-anonymous review process.`（**全轨强制双盲**，与 VMCAI 2027 仅 regular paper 双盲不同）；每篇至少 3 位 PC 评审。PC Co-Chairs = Yuanfang Cai (Drexel University)、Denys Poshyvanyk (William & Mary)；General Co-Chairs = Rodrigo Spinola、Kostadin Damevski (both Virginia Commonwealth University)。CFP 三大 strategic themes：`AI for Software Engineering (AI4SE)`、`Agentic AI in Software Engineering`、`Human-AI Interaction and Developer Experience`；topics 明确含 `Program Repair`（P4 直接相关）。`Special Issue: TBD.` |
+| Agentic AI4SE Track（**2027 新增**） | [SANER 2027](https://conf.researchr.org/home/saner-2027) | ⚪ 不计入主链 | **2027 新增 track**，独立 chair（Xiwei Xuan, UC Davis；Yiling Lou, UIUC）与独立 ddl（abstract `2026-10-19`、paper `2026-10-23`、notification `2026-12-08`）。与主轨 topics 高度重叠，但计数与 deadline 必须严格分开，不得混入 Research Track。 |
+| ERA / Industrial / RR / RENE / SP&P / Tool Demo / W&T | 见年度导航 / dates 页 | 🟡 辅助关注 | 2026-08-07 核验官方 track 导航共 **9 个 track**：Agentic AI4SE、ERA、Industrial、Registered Report (RR)、RENE、**Research（唯一主轨）**、Short Papers and Posters (SP&P)、Tool Demo、Workshops & Tutorials (W&T)。⚠️ 本库此前备注列举的 `Journal First` **不在 2027 官方 track 导航中**（虽有 Journal First Co-Chair: Eunjong Choi / Mia Mohammad Imran），已修正。这些 track 可提供 P4 修复工具、负结果、复现实验和工业证据，但不混入 research count。 |
 
 ## 5. 论文名录与数量
 
@@ -75,6 +76,7 @@
 | 官方年度主页 | [SANER 2027](https://conf.researchr.org/home/saner-2027) | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
 | 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/saner-2027) | `2026-06-06 00:41` | 已提取 Research Track 核心日期与官方 `Timezone: AoE (UTC-12h)`；具体钟点仍待补。 |
 | 官方 CFP / Dates 复查 | [Important Dates](https://conf.researchr.org/dates/saner-2027) | `2026-07-13 19:11:00` | Research Track 仍为 mandatory abstract 2026-09-21、paper 2026-09-25、notification 2026-12-01；会期 2027-03-09..2027-03-12。 |
+| 官方 CFP / Dates 复查 | [Important Dates](https://conf.researchr.org/dates/saner-2027) | `2026-08-07 20:05:00` | 主轨 4 个日期、`AoE (UTC-12h)` 时区、地点与会期逐字复核**全部一致，无变更**。⚠️ CFP 正文有两处官方笔误：`34rd edition`（应为 34th）、`Fri 25 Sept 2026`（侧栏与 dates 页均为 `Sep`）；以侧栏 / dates 页为准。 |
 | 官方论文名录 / proceedings | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 

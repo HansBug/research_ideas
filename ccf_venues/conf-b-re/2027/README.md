@@ -1,6 +1,6 @@
 # RE 2027 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -9,14 +9,14 @@
 | Venue | RE |
 | 年份 | 2027 |
 | 地点 | 未公布 |
-| 官方年度主页 | ⏳ 已检索未公布 |
+| 官方年度主页 | [RE 2027（官方入口已定位，正文未取得可审计快照）](https://conf.researchr.org/home/RE-2027) |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 已检索未公布 |
+| 当前阶段状态 | ⏳ 待官网（researchr 页面槽位已存在但未公开发布） |
 
 ## 2. 年度核心 URL 索引
 
@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 年度主页 | ⏳ 已检索未公布 | 官方年度主页；未公布年度不伪造 URL | `2026-06-05 08:35` |
 | CFP / Call for Papers | 未公布 | Research / main track 页面优先 | `2026-06-05 08:35` |
-| Important Dates | 未公布 | 官方 dates 页；仅日期则写 `待补时刻` | `2026-06-05 08:35` |
+| Important Dates | [RE 2027 dates（authwall）](https://conf.researchr.org/dates/RE-2027) | ⚠️ 2026-08-07 核验：`home/RE-2027`、`home/re-2027`（小写）、`dates/RE-2027` **均返回 HTTP 200 + `Access denied` 登录页**（逐字 `You do not have the privileges to access this part.` / `You are not logged in on conf.researchr.org.`），**这不是 404** —— researchr 页面槽位已建立但尚未公开发布，属「官方入口已定位，正文未取得可审计快照」，是筹备已启动的弱正向信号。对比：`home/RE-2028` 为**真 404**。RE 系列页 All Editions 最新仍为 2026。承办地预计在 2026-08-17..21 Montréal 会上公布，建议 8 月下旬复查。 | `2026-08-07 20:05:00` |
 | Submission system | 未公布 | 历史年度若入口失效则待复核 | `2026-06-05 08:35` |
 | Tracks / program | 未公布 | RE 年度导航含 Research、Industry、RE@Next、Artifacts、Posters / Tools 等 track；计数时必须分开。 | `2026-06-05 08:35` |
 | Accepted papers / paper list | 未公布 | 已结束年度优先 official program / accepted papers | `2026-06-05 08:35` |

@@ -1,6 +1,6 @@
 # ICECCS 2026 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | 未公布；曾检索到 `ICECCS_2026_Accepted_Papers.txt` candidate，但 2026-06-07 CLI `curl -I` 返回 404，待补 |
 | Proceedings | 未公布；官网说明 planned Springer LNCS |
 | DBLP 年度页 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 已截稿 / 待 notification |
 
 ## 2. 年度核心 URL 索引
 

@@ -527,7 +527,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 |---|---|---|
 | 官方完全核验 | 官方年度主页、CFP / dates、publisher collection、official program / proceedings 明确给出的时间、状态、人员或入口 | 可进入年度 README、根 README、TIMELINE 与 Mermaid |
 | 官方入口 + 部分核验 | 官方 URL 可定位，但只给日期、缺时刻、缺 track、页面需交互式展开、或信息不完整 | 可写 `待补时刻` / `部分核验`，必须保留 caveat |
-| 动态页面受限 / WAF / 403 / CAPTCHA / Authwall | 官方 URL 存在但 CLI 受限、需要交互式页面或登录、返回 JS 壳 / WAF / 403 / CAPTCHA / Authwall | 保留官方 URL，写 `未获公开可审计正文`；不得改写成“无官方信息” |
+| 动态页面受限 / WAF / 403 / CAPTCHA / Authwall / JS 壳 | 官方 URL 存在但 CLI 受限、需要交互式页面或登录、返回 JS 壳 / WAF / 403 / CAPTCHA / Authwall | 保留官方 URL，写 `未获公开可审计正文`，并**按 §16.6 的四类分别标注具体阻断形式**；不得改写成“无官方信息”，也不得统称 `WAF` |
 | DBLP fallback | 年度论文名录、计数、bibliographic cross-check | 不能支撑 CFP、deadline、current roster、author guidelines 或当前 articles in press |
 | 第三方线索 | 发现候选 CFP、deadline 或人员线索 | 不得进入官方来源列；只能写备注 / 待补记录，核验后再升级 |
 
@@ -709,6 +709,67 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 5. 若 CAiSE 2024 或 ICECCS 2024 只找到 DBLP / proceedings / 第三方 deadline，不得补写 abstract / submission / notification 等 official dates；会期可以由 proceedings record 支撑，但必须标明来源降级。
 6. Springer collections 进入 TIMELINE 前必须记录 collection 语义、状态、deadline 与本仓库相关性；弱相关 open collection 可留作观察线索，不必进入近期投稿重点，但不能把它写成已同步事实。
 
+### 16.6 访问失败分类、入口语义与 slug 漂移（2026-08-07 全量刷新后固化）
+
+本节把 `2026-08-07` 全库刷新中暴露的检索与取证踩坑固化为硬规则。这些问题不是个别疏漏，而是**会系统性造成假阴性 / 假阳性**的检索策略缺陷。
+
+#### 16.6.1 访问失败必须分四类记录，不得统称 `WAF`
+
+| 站点族 | 精确表现 | 记录写法 | 可用 fallback |
+|---|---|---|---|
+| Springer（`link.springer.com`） | WebFetch → `idp.springer.com/authorize` **303 authwall**，回跳带 `?error=cookies_not_supported`；`curl` → **HTTP 200 但 body 恒为约 3038 字节的 F5 `<title>Client Challenge</title>` JS 壳** | `authwall（idp 303）+ JS 壳（Client Challenge）` | **`rd.springer.com` 同路径可直出完整官方 HTML**（Springer 同源镜像域，页脚 `© 2026 Springer Nature`）。这是本库当前唯一可靠的 Springer 正文通道，取得的内容按「官方正文」计，但应注明取自 `rd.` 域 |
+| ScienceDirect / Elsevier | 直连 **HTTP 403**；渲染代理 → **Elsevier CAPTCHA**（`Are you a robot?` + Reference number + UTC 时间戳） | `直连 403 / 代理 CAPTCHA（含 Reference number）` | 无等价通道；`editorialmanager.com` 可核验 rolling 投稿入口，DBLP 可作计数 fallback |
+| ACM DL（`dl.acm.org`） | 直连 **403**；代理 → `Performing security verification` bot 页；**连静态 CFP PDF 资源也 403** | `直连 403 / 代理 bot 验证页` | 无；DBLP 作计数 fallback |
+| Wiley（`onlinelibrary.wiley.com`） | Cloudflare **`Just a moment...` 403**；special issues 页经 WebFetch 返回 **HTTP 402 Payment Required** | `Cloudflare WAF/403`（402 需单列） | 无；DBLP 作计数 fallback |
+| CCF 官网（`www.ccf.org.cn`） | `curl`（含浏览器 UA / Referer）→ **HTTP 200 + 约 15999 字节阿里云 WAF CAPTCHA 挑战页**（`aliyun_waf_aa`、`aliyunCaptcha-sliding-slider`）；PDF 下载 URL 亦被替换为挑战页 | `阿里云 WAF CAPTCHA（HTTP 200 伪装）` | **WebFetch 通道可穿透** |
+
+**通用铁律**：`HTTP 200` 不等于取到正文。凡上述站点族，必须检查 body 内容与长度，否则会把挑战页当成「页面不存在 / collection 已关闭」。
+
+#### 16.6.2 `Access denied` ≠ `404`：researchr 入口的三种语义
+
+| 返回 | 语义 | 记录写法 | 复查优先级 |
+|---|---|---|---|
+| HTTP 200 + `Access denied`（`You do not have the privileges to access this part.`） | 页面槽位**已建立但未公开发布**，通常意味着主办方已确定并在筹备 | 「官方入口已定位，正文未取得可审计快照（未发布 / 需登录）」，并注明这是**即将发布的弱正向信号** | **高频复查** |
+| HTTP 404 | 尚未建站 | `⏳ 已检索未公布` | 常规 |
+| HTTP 200 + 空 dates 表（表头在、无数据行） | 页面已建、chair 尚未填 | `🟦 已有主页 / CFP 待发布` | 高频复查 |
+
+`2026-08-07` 实例：RE 2027、ICSME 2027、FM 2027、ICSE 2028 均为 `Access denied`（此前本库统一记作 404 或「已检索未公布」，丢失了信号）；RE 2028、ICSME 2028、ASE 2027 为真 404；EASE 2027 为空 dates 表。
+
+另有两类非 researchr 的陷阱：
+
+1. **UA 型 bot 过滤**：`cyprusconferences.org`（ISSRE 2026）对默认 `curl` UA 返回 **404**，对浏览器 UA 返回 **200**。裸 curl 复查会误判「官网已下线」。
+2. **通配符域假阳性**：`2027.models-conf.com` 返回 HTTP 200，但与 `www.models-conf.com` 内容**字节级相同**且 `<title>` 为空。HTTP 200 **不构成**该年度已发布的证据。
+
+#### 16.6.3 slug 与 series 入口不得假定稳定
+
+`2026-08-07` 的四例漏检全部源于此：
+
+1. **series 根页退化**：`conferences.i-cav.org/` 现只返回占位文本 `This is a repo`，无法用于发现未来 edition —— 必须直接 probe `https://conferences.i-cav.org/<year>/`。这是 CAV 2027 被漏掉的直接原因。
+2. **大小写 slug**：researchr 上 VMCAI 使用**大写** `VMCAI-2027`（RE 亦为 `RE-2027`）；只探测小写会漏。
+3. **track slug 变更**：ICPC 2027 的 Research Track slug 由历史 `icpc-YYYY-research` 改为 `icpc-2027-research-track`，旧模式 404。
+4. **合办改名**：ATVA 与 APLAS 合办后官方页托管在 `conf.researchr.org/aplas-atva-2026`，按 `atva-YYYY` 探测必然 404；且 `atva-conference.org` series 站长期停更在 2025。
+
+**规则**：任何 venue 的年度巡检至少尝试 ① 大小写两种 slug、② 已知合办组合 slug、③ 直接按年份 probe 独立域名路径；并且**不得**把 series 页 / 长期主页作为「是否公布」的唯一判据（`program-comprehension.org` 停在 ICPC 2025、`icse-conferences.org` 才是 ICSE 2028/2029 的真源而 researchr series 只到 2027，均为反例）。
+
+#### 16.6.4 伞会议必须按子会议展开维护
+
+CCF 目录以单一 `ETAPS` 伞条目收录（第七版全 72 页 PDF 中无 TACAS / FASE / iFS 字样），但**实际投稿单位是具体子会议，其 scope 差异极大**。本库此前 `conf-b-etaps` 只跟踪 TACAS（P3 视角的决定），导致 FASE→iFS 的合并与 iFS 2027 首届窗口被完整漏掉。
+
+**规则**：伞会议目录必须在年度页逐子会议维护本库跟踪范围，并在 [01-venue-scope.md](./01-venue-scope.md) 写明跟踪哪些主会、为什么；同一目录内扩展跟踪范围**不算新增 venue**，但仍须在 scope 文档与 PR body 中显式记录。会议合并 / 更名会让基于旧名的监控同时失效（搜 FASE 找不到、搜 iFS 不知道要搜），因此伞会议的年度巡检必须以 **umbrella 官方 CFP 页**（如 `etaps.org/<year>/cfp/`）为入口，而非按子会议名逐个搜。
+
+#### 16.6.5 HTML 注释与删除线不得当作正文
+
+1. **HTML 注释残留**：ICECCS 2026 官网的 `<!-- -->` 中藏有「location has been changed to Nansha, Guangzhou」「注册费表」等内容，而**可见正文**的 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane。TASE 2026 主页的「IEEE Computer Society Press」出版方说法同样位于注释内（可见正文为 Springer LNCS）。**抓取前必须先剥离 HTML 注释**，否则会把注释内容写成事实。
+2. **删除线表示的 extended 日期**：TASE / RV / SPIN / ICECCS / ISSRE 等站用 `<s>` 或 `text-decoration: line-through` 表示旧日期，纯文本提取会把新旧日期并排输出，**极易误读**。必须回原始 HTML 判定删除线归属。
+3. **时区藏在属性里**：researchr 的时区信息位于 HTML `title="Timezone: AoE (UTC-12h)"` 属性中，纯文本提取会丢失；核验 AoE 必须查原始 HTML。且 **`/dates/<venue>-<year>` 页普遍不带时区声明，AoE 只在各 track 页侧栏** —— 引用时区必须落到 track 页，引 dates 页即为证据链断裂。
+4. **frameset**：`ksiresearch.org/seke/sekeNN.html` 是 FRAMESET，须改抓 `sekeNNmain.html` / `sekeNNleft.html`，并带 `--compressed`（否则得 gzip 乱码）；SEKE 的官方 program 入口是 **`.txt` 而非 `.html`**。
+
+#### 16.6.6 空白位翻新与已有事实维护同等重要
+
+本轮五条主轨窗口漏检（CAV 2027 / ISSTA 2027 / VMCAI 2027 / iFS 2027 / ICPC 2027）有共同特征：**都是上一轮判定为「未公布」后就停止主动复查的 venue**。本库既有复查策略偏向「已有事实的维护」，对「空白位的翻新」覆盖不足。
+
+**规则**：常态化刷新的 watchlist 必须显式包含「上一轮记为 `⏳ 已检索未公布` / `🟦 已有主页` 且属 P0/P1 的 venue-year」，其优先级不低于已有 deadline 的复核。漏掉一个 40 天窗口的代价远大于重复核验一个已知 deadline。
+
 ## 17. 外部索引与分区制度化规则
 
 外部索引与分区信息用于快速查阅 venue 的 WoS / JCR / CAS / EI 状态，但不得替代 CCF 分类，也不得替代官方 venue / 投稿事实。本节是后续维护的硬规则。
@@ -780,6 +841,7 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:40:00` | 2026-08 全量刷新后固化检索与取证规则：新增 §16.6，把访问失败四分类（Springer authwall+JS 壳 / Elsevier CAPTCHA / ACM bot 页 / Wiley Cloudflare+402）、`rd.springer.com` 官方 fallback 通道、`Access denied ≠ 404` 的三种 researchr 入口语义、UA 型 bot 过滤与通配符域假阳性、slug 与 series 入口漂移、伞会议按子会议展开维护、HTML 注释 / 删除线 / 时区属性 / frameset 的解析陷阱，以及「空白位翻新与已有事实维护同等重要」写成硬规则；同步收紧 §12.7 的访问受限行记录要求。 |
 | `2026-06-09 20:50:00` | 清理可能和旧 CCF 字母等级混淆的 字母等级表达，改用 🏆/🥈/🥉 档表述，保持与 SUMMARY / venue README 的 emoji 口径一致。 |
 | `2026-06-09 20:36:00` | 按最新 SUMMARY 单表化要求制度化：SUMMARY 正文只保留总览、外部索引口径、一个 Venue 总表、一个待补核查表和更新日志；PR 流程、执行合同、踩坑长表、watchlist 过程回到 GUIDE / scope / README / changelog。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口规则回写：索引核验行应记录已完成证据链与后续升级条件，不得把本轮核验留成 reviewer 复核动作；同步 venue 根 README 口径。 |

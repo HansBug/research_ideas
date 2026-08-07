@@ -1,6 +1,6 @@
 # ASE 2026 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,7 +14,7 @@
 | 官方 CFP | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) |
 | Important Dates | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) |
 | Submission system | [HotCRP](https://ase26.hotcrp.com/) |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [Research Track Accepted Papers](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 当前阶段状态 | 🟣 通知后 |
@@ -49,7 +49,7 @@
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
-| Research Track | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | 未公布 | 是 | 主研究 / 技术论文入口；主论文数量应优先按该 track 计数。 |
+| Research Track | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [Accepted Papers](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | 是 | 主研究 / 技术论文入口；主论文数量应优先按该 track 计数。2026-08-07 核验：Accepted Papers 名录已上线，但页面过长、单次抓取被截断，**计数待补**。 |
 | NIER | 年度主页 tracks 导航 / 未逐项深挖 | 未逐项核验 | 不计入主论文数量 | 中 | 新想法与趋势入口，不混入 Research Papers 数量。 |
 | Tool Demonstration / Tools and Datasets | 年度主页 tracks 导航 / 未逐项深挖 | 未逐项核验 | 不计入主论文数量 | 中 | 工具和数据集可服务本仓库 baseline / artifacts，但计数分开。 |
 | Industry Showcase / SEIP | 年度主页 tracks 导航 / 未逐项深挖 | 未逐项核验 | 不计入主论文数量 | 中 | 工业实践与验证落地线索，不混入 Research Papers 数量。 |

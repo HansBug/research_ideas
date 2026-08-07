@@ -1,6 +1,6 @@
 # ISSTA 2026 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,7 +14,7 @@
 | 官方 CFP | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Important Dates | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Submission system | [HotCRP](https://issta2026.hotcrp.com/) |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [Research Papers Accepted Papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Proceedings | PACMSE Issue ISSTA 2026（track 说明；未正式发布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 当前阶段状态 | 🟣 通知后 |
@@ -57,8 +57,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
-| 官方论文名录 / accepted papers | 未公布 |
+| 论文数量 | 名录已公布 / 计数待补 |
+| 官方论文名录 / accepted papers | [Research Papers Accepted Papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Program | 未公布 |
 | Proceedings | PACMSE Issue ISSTA 2026（track 说明；未正式发布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |

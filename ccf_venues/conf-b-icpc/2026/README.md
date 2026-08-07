@@ -1,6 +1,6 @@
 # ICPC 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Submission system | [HotCRP](https://icpc2026-technical.hotcrp.com) |
 | Program / accepted papers | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) |
 | Proceedings | 未公布 |
-| DBLP 年度页 | ⏳ 已检索未公布 |
+| DBLP 年度页 | [DBLP ICPC 2026](https://dblp.org/db/conf/iwpc/icpc2026.html) |
 | 当前阶段状态 | ✅ 已结束 / proceedings 待补 |
 
 ## 2. 年度核心 URL 索引
@@ -30,7 +30,7 @@
 | Tracks / program | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) | Research Track；ERA / RENE / Tool / Journal First 需分开 | `2026-06-05 17:35` |
 | Accepted papers / paper list | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 未公布 | 出版商页面优先；DBLP 仅作 fallback | `2026-06-05 17:35` |
-| DBLP 年度页 | ⏳ 已检索未公布 | 仅作 fallback / 计数核验 | `2026-06-05 17:35` |
+| DBLP 年度页 | [DBLP ICPC 2026](https://dblp.org/db/conf/iwpc/icpc2026.html) | 2026-08-07 核验：年度页已上线，52 条 `inproceedings`；仅作 fallback / 计数核验，不等同 Research Track count | `2026-08-07 20:05:00` |
 
 ## 3. 重要时间点
 
@@ -54,7 +54,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
+| 论文数量 | Research Track 35（官方 track 页去重统计）；DBLP 年度页 52 条 `inproceedings`（含全部 track，差额为 ERA / Tool Demo / RENE，**不得混算**） |
 | 官方论文名录 / accepted papers | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) |
 | Program | [Research Track](https://conf.researchr.org/track/icpc-2026/icpc-2026-research) |
 | Proceedings | 未公布 |

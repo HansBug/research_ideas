@@ -1,6 +1,6 @@
 # ESEM 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,10 +14,10 @@
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) |
 | Submission system | [HotCRP esem26](https://esem26.hotcrp.com) |
 | Review / open science policy | [Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) 明确 ESEM 2026 使用 double-anonymous review，且 open by default；强稿可被邀请扩展投稿到 Empirical Software Engineering special issue |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [ESEM Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) |
 | Proceedings | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中 / 通知临近 |
+| 当前阶段状态 | 🟣 通知后 / camera-ready 窗口内 |
 
 ## 2. 年度核心 URL 索引
 
@@ -57,8 +57,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未最终公布 |
-| 官方论文名录 / accepted papers | 未公布 |
+| 论文数量 | Technical Track 50（官方 track 页已列名、均标 `Not scheduled`；official-program-level 计数，proceedings 与 DBLP 年度页均未发布） |
+| 官方论文名录 / accepted papers | [ESEM Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) |
 | Program | 未公布 |
 | Proceedings | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |

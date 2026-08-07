@@ -1,6 +1,6 @@
 # FSE 2028 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -10,7 +10,7 @@
 | 年份 | 2028 |
 | 地点 | Milan, Italy（仅预告，正式 CFP / dates 未公布） |
 | 官方 series page | [FSE series](https://conf.researchr.org/series/fse) |
-| 官方年度主页 | FSE 2028 Milan 预告；正式年度主页未公开（[FSE series](https://conf.researchr.org/series/fse)） |
+| 官方年度主页 | 正式年度主页未建站；官方预告见 [ESEC/FSE Upcoming Events](http://www.esec-fse.org/upcoming_events)（逐字 `FSE 2028` — Milan, Italy, 2028，并标注 `website not up yet`） |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
@@ -74,7 +74,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [FSE series](https://conf.researchr.org/series/fse) | `2026-07-13 19:13:21` | 候选年度路径返回 404；仅记录 Milan 预告，未发现正式 CFP / dates / submission system。 |
+| 官方年度主页 | [ESEC/FSE Upcoming Events](http://www.esec-fse.org/upcoming_events) | `2026-08-07 20:05:00` | 2026-08-07 为 Milan 预告补上**官方来源 URL**（此前本库该条目无任何链接，违反 GUIDE §5 挂链要求）。ESEC/FSE 官方站逐字列 `FSE 2028` — Milan, Italy, 2028，并自标 `website not up yet`；`conf.researchr.org/home/fse-2028` 仍为 HTTP 404。未发现正式 CFP / dates / submission system。 |
 | 官方 CFP / Dates | 未公布 | `2026-06-05 08:39` | 主 submission / notification 已按可访问页面记录；缺失字段显式待补。 |
 | 官方论文名录 / proceedings | 未公布；未公布 | `2026-06-05 08:39` | 官方 program / proceedings 优先；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 08:39` | DBLP 仅作论文名录与数量 fallback。 |

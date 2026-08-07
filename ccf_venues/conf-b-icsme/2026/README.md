@@ -1,6 +1,6 @@
 # ICSME 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -17,7 +17,7 @@
 | Program / accepted papers | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟣 通知后 |
+| 当前阶段状态 | 🔵 会期临近 / program 已排定 |
 
 ## 2. 年度核心 URL 索引
 
@@ -54,7 +54,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
+| 论文数量 | Research Papers Track 51（官方 track 页 event 列表去重统计，program 已排入 2026-09-15..18 sessions；official-program-level 计数，IEEE Xplore 卷与 DBLP 年度页均未上线） |
 | 官方论文名录 / accepted papers | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) |
 | Program | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) |
 | Proceedings | 未公布 |

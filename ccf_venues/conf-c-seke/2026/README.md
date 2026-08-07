@@ -1,6 +1,6 @@
 # SEKE 2026 README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🟣 通知后 |
+| 当前阶段状态 | 🔵 会期临近 |
 
 ## 2. 年度核心 URL 索引
 

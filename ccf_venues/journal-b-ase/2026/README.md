@@ -1,6 +1,6 @@
 # Automated Software Engineering Journal 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -42,8 +42,8 @@
 
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
-| Green and Sustainable Software | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 2026-07-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P3/P4 中；energy / sustainability evidence 相关。 |
-| Genetic Improvement of Software | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 2026-07-31 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P4 强；自动修复 / search-based improvement 相关。 |
+| Green and Sustainable Software | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 2026-08-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jjcbchfbhf) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | ⚠️ **2026-08-07 核验：官方已延期，`Submission deadline` 逐字 `15 August 2026`（本库此前记 2026-07-15），且状态仍为 `Open for submissions`。**按旧日期会误判为已关闭。P3/P4 中；energy / sustainability evidence 相关。 |
+| Genetic Improvement of Software | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 2026-08-14 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/fihghiidjg) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | ⚠️ **2026-08-07 核验：官方已延期，`Submission deadline` 逐字 `14 August 2026`（本库此前记 2026-07-31），状态仍为 `Open for submissions`。**P4 强；自动修复 / search-based improvement 相关。 |
 | Reproducibility Studies and Negative Results @ Software Analysis, Evolution and Reengineering | [Springer collection](https://link.springer.com/collections/jdacgeggca) | 2026-08-15 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jdacgeggca) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 公开征稿；P4 / empirical validation 相关。 |
 | Low-Code Development - Architecture, Design, and Modeling | [Springer collection](https://link.springer.com/collections/eefheafjba) | 2026-09-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/eefheafjba) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1 强到中；模型 / 架构 / 低代码相关。 |
 | Explainability in Automated Software Engineering (Ex-ASE) | [Springer collection](https://link.springer.com/collections/edfceadhdg) | 2026-09-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/edfceadhdg) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 与 LLM-generated artifact explainability / review 相关。 |
@@ -51,7 +51,7 @@
 | The Interplay of Automated Software Engineering and Software-Intensive Business | [Springer collection](https://link.springer.com/collections/geiadeefdd) | 2026-09-30 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/geiadeefdd) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 明确向 broader international community 开放 original submissions。 |
 | Intelligent Techniques for Automated Code Review and Software Quality Evaluation | [Springer collection](https://link.springer.com/collections/jjgcbecced) | 2026-10-01 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/jjgcbecced) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P2/P4 强，P1 中；与 review / quality evaluation / judge 相关。 |
 | Special Issue on Software Engineering for and with Trustworthy Large Language Models | [Springer collection](https://link.springer.com/collections/bhgdidaibi) | 2026-12-31 待补时刻 | Open | [Springer collection](https://link.springer.com/collections/bhgdidaibi) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1/P2/P4 强；LLM trustworthiness 与评测相关。 |
-| Search-Based Software Engineering in the Era of LLMs and Agentic Systems | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 2026-07-15 待补时刻（submissions open）；2027-01-30 待补时刻（deadline） | Upcoming / 跨年 | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | P1/P4 强，P2 中到强。 |
+| Search-Based Software Engineering in the Era of LLMs and Agentic Systems | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 2027-01-30 待补时刻（deadline；submissions 已于 2026-07-15 开放） | Open | [Springer collection](https://link.springer.com/collections/jjcfecffai) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 2026-08-07 核验：状态已由 `Upcoming` 迁移为 `Open for submissions`，deadline `30 January 2027` 未变。P1/P4 强，P2 中到强。 |
 | Asia-Pacific Software Engineering Conference collection | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 2026-12-15 待补时刻（submissions open）；2027-03-12 待补时刻（deadline） | Upcoming / 跨年 | [Springer collection](https://link.springer.com/collections/bhffibbfhh) | 已同步至 [../../TIMELINE.md](../../TIMELINE.md) | 公开 original research 征稿；不是 ASE Journal 常规 deadline。 |
 
 ## 5. 年度论文入口与数量

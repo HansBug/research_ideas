@@ -1,6 +1,6 @@
 # ISSTA 2028 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -8,7 +8,7 @@
 |---|---|
 | Venue | ISSTA |
 | 年份 | 2028 |
-| 地点 | 未公布 |
+| 地点 | Shanghai, China |
 | 官方 series page | [ISSTA series](https://conf.researchr.org/series/issta) |
 | 官方年度主页 | ⏳ 已检索未公布 |
 | 官方 CFP | 未公布 |
@@ -17,7 +17,7 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 待官网 |
+| 当前阶段状态 | 🟦 已有预告 |
 
 ## 2. 年度核心 URL 索引
 

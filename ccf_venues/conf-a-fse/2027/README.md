@@ -1,6 +1,6 @@
 # FSE 2027 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | 官方年度入口；列出 Shenzhen 会期和 Research Papers 重要日期 | `2026-07-13 19:13:21` |
 | CFP / Call for Papers | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | track 页已发布 research call；submission site 仍待公布 | `2026-07-13 19:13:21` |
-| Important Dates | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) | 年度主页侧栏同步列出；Research Papers track 标注 AoE / UTC-12h；full paper deadline 按 `23:59:59` 记录 | `2026-07-13 19:13:21` |
+| Important Dates | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) / [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) | 2026-08-07 核验：Research Papers 五个节点逐字一致（full paper `Fri 2 Oct 2026`、author response `Mon 14 - Fri 18 Dec 2026`、initial notification `Fri 22 Jan 2027`、major revision `Fri 5 Mar 2027`、final notification `Wed 31 Mar 2027`），**官方未给钟点**；AoE 声明仅见于 track 页侧栏，dates 页无时区声明。另：Industry Papers 为独立窗口（submission `2027-01-23`、notification `2027-03-20`、camera ready `2027-04-03`），非主轨。submission site 官方仍未公布（`link will be posted when we're closer to the deadline`）。 | `2026-08-07 20:05:00` |
 | Submission system | 待公布 | track 明确写 submission site 会在临近 deadline 时发布，不预造 HotCRP URL | `2026-06-06 11:46` |
 | Tracks / program | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | 其他 tracks 后续按年度主页展开 | `2026-06-06 11:46` |
 | Accepted papers / paper list | 未公布 | 官方 program 优先；DBLP 作 fallback | `2026-06-06 11:46` |
@@ -36,7 +36,7 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Full paper submission | 2026-10-02 23:59:59 AoE / UTC-12h | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | Research Papers track 标注 AoE / UTC-12h；本轮按投稿决策口径精确到日末。 |
+| Full paper submission | 2026-10-02 待补时刻 AoE / UTC-12h | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | ⚠️ 2026-08-07 复核：官方 Research Papers track 侧栏只给 `Fri 2 Oct 2026` + 标题 `Important Dates AoE (UTC-12h)`，**未给具体钟点**；本库此前写的 `23:59:59` 属自行补写的日末口径，已按证据纪律回退为 `待补时刻 AoE / UTC-12h`（对比：ICSE 2027 才是官方明写 `All dates are 23:59:59 AoE (UTC-12h)`）。另注：`/dates/fse-2027` 页本身无时区声明，AoE 只在 track 页侧栏，引用必须落到 track 页。 |
 | Author response period | 2026-12-14..2026-12-18 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | researchr 行级 `Timezone: AoE (UTC-12h)`。 |
 | Initial notification | 2027-01-22 待补时刻 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | initial decision，可为 accept / reject / major revision。 |
 | Major revision submission | 2027-03-05 待补时刻 AoE | [FSE 2027 dates](https://conf.researchr.org/dates/fse-2027) / [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [FSE 2027](https://conf.researchr.org/home/fse-2027) | major revision track-specific submission deadline。 |

@@ -1,6 +1,6 @@
 # `ccf_venues/` README
 
-> 信息更新时间：`2026-07-13 19:31:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:40:00`（Asia/Shanghai）
 
 ## 1. 路径定位
 
@@ -33,13 +33,18 @@
 
 ## 3. CCF 官方来源基准
 
-本库的 CCF 等级与官方缩写默认以以下页面为准：
+**当前有效版本：第七版**。CCF 已于 `2026-03-31` 正式发布第七版《中国计算机学会推荐国际学术会议和期刊目录》，并于 `2026-04-09` 更新一次勘误。本库的 CCF 等级与官方缩写按以下优先级取证：
 
-1. CCF 软件工程 / 系统软件 / 程序设计语言目录：<https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/>
-2. CCF 计算机科学理论目录：<https://www.ccf.org.cn/Academic_Evaluation/TCS/>
-3. CCF 推荐目录更新 / 更名通知：<https://www.ccf.org.cn/Academic_Evaluation/By_category/2024-06-28/825349.shtml>
+1. **第一优先 —— 官方第七版 PDF**：<https://www.ccf.org.cn/ccf/contentcore/resource/download?ID=112CF3BF7E1140ACEB271ADAED12A67ADFABB8FF099E40C2759502A85C8A281F>（72 页；封面标题《中国计算机学会推荐国际学术会议和期刊目录（2026年）》；PDF `CreationDate = 2026-04-09 11:13:27 CST`；md5 `bb5d9010c50395b9fa3d0d2152824d3d`）。
+2. **第二优先 —— 第七版发布公告**：<https://www.ccf.org.cn/Academic_Evaluation/By_category/>。该文章由 CMS 直接渲染在栏目根，**没有独立 `.shtml` URL**；引用时只能用栏目根 URL + PDF 资源 URL，不得编造 `2026-03-31/NNNNNN.shtml`。
+3. **历史基线（已降级）** —— 两个 HTML 分类页 <https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/> 与 <https://www.ccf.org.cn/Academic_Evaluation/TCS/>：**截至 `2026-08-07` 现网仍是第六版（2022 版 + 2024 更名版）内容**，且页面本身不标版次年份，极易被误当作当前版。已用官方 PDF 与两页逐行比对确认差异（例如 PDF 的 SE 会议 B 类有 20 行含 `CC`、HTML 只有 19 行无 `CC`；PDF 的 TCS 会议 B 类含 `FMCAD`、HTML 无）。**它们只能作为第六版历史基线，不得再作为第七版等级证据**；需定期复查何时切换。
+4. **保留 —— 2024-06-28 更名通知**：<https://www.ccf.org.cn/Academic_Evaluation/By_category/2024-06-28/825349.shtml>，作为 FSE 等更名的历史来源，该页仍可正常解析。
 
-若 [../VENUES.md](../VENUES.md)、`PR #5` 或其他旧材料与 CCF 官方页面冲突，以当前官方页面为准，并在具体 venue README 的“证据与核查记录”中说明差异。
+**第七版对本库的影响（`2026-08-07` 全量复核结论）**：本库 42 个 venue 的 CCF 等级 **42/42 全部不变**，无升级、无降级、无更名、无移除；`🏆 8 / 🥈 19 / 🥉 15` 的分布在第七版下继续成立。第七版相对 2022 版的官方变动为「新增期刊 14 个、会议 23 个；升级期刊 6 个、会议 5 个；移除会议 1 个，降级会议 2 个、期刊 1 个；更名会议 2 个」；其中落在本库 scope 相邻范围的是 **FMCAD 由 C 升 B**、**MEMOCODE 新增为 C**、**RTA 更名为 FSCD**，处理方式见 [01-venue-scope.md](./01-venue-scope.md)。
+
+**访问方式（重要操作指引）**：`curl`（即使带完整浏览器 UA / Referer）访问 `www.ccf.org.cn` 任意路径都会返回 **HTTP 200 + 约 15999 字节的阿里云 WAF CAPTCHA 挑战页**（含 `aliyun_waf_aa`、`aliyunCaptcha-sliding-slider`），**不是 403 也不是 404**；PDF 下载 URL 同样会被替换为该挑战页。WebFetch 通道可穿透。判断"CCF 官网不可达"前必须先检查 body 内容。
+
+若 [../VENUES.md](../VENUES.md)、`PR #5` 或其他旧材料与 CCF 官方第七版冲突，以第七版 PDF 为准，并在具体 venue README 的“证据与核查记录”中说明差异。
 
 
 ### 3.1 外部索引与分区来源基准
@@ -52,7 +57,7 @@
 4. EI / Compendex 以 Elsevier / Engineering Village 官方 source list snapshot 为主证据，记录 source title、source type 原值、sheet、snapshot 与 coverage。
 5. 所有缺证项写 `❓` / `⏳` / `⚪` / `🔴` 等规范占位；跨 venue 共性风险同步登记到 [SUMMARY.md](./SUMMARY.md) §13 合并待补与核查记录，JCR / CAS 官方 product 若受账号或机构权限限制，允许使用可点击、字段完整、逐刊逐版本的公开分区记录作为二级可审计证据，但必须在 venue README 说明“非 Clarivate/CAS 官方导出 / 公开官方行级记录未获可复现访问”，且 `索引核验` 不得升级为 `🟢`。不得把未执行公开核验的占位说法作为终态；公开路径能核则核，不能核则写明已检索未获公开可审计证据。
 
-补充证据等级口径：`https://ccf.atom.im/` 当前只能作为非官方机器检索镜像 / 差集筛查线索；其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文未取得可审计快照”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
+补充证据等级口径：`https://ccf.atom.im/` 与 GitHub `atom-im/ccf` 仍只能作为**非官方机器检索镜像 / 差集筛查线索**，不得作为等级事实来源；任何要写入本库的等级都必须回到官方第七版 PDF 或 CCF 官网页面复核。⚠️ 本条在 `2026-08-07` 有一处修订：原文写“其页面标注的 `2026 / 第七版` 不得直接写成 CCF 官方已核验事实”，该判断在第七版尚未确认发布时是正确的保守处理；**第七版的存在性与内容现已由 CCF 官网公告与官方 PDF 直接核验（见上文 §3）**，故该事实前提已不再成立，但“镜像不得升级为官方事实”的规则本身继续有效。若 CLI 访问 CCF 官方目录时遇到阿里云 WAF / CAPTCHA / 动态页壳，应写“官方入口已定位，正文未取得可审计快照”，不能把镜像或旧 [../VENUES.md](../VENUES.md) 当成唯一证据。
 
 ## 4. 收录范围
 
@@ -192,6 +197,7 @@ ccf_venues/
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:40:00` | **2026-08 全量常态化刷新**：§3 来源基准改为以 **CCF 第七版官方 PDF**（2026-03-31 发布 / 2026-04-09 勘误）为第一优先，并把两个 HTML 分类页降级为「现网仍是第六版」的历史基线；记录 42/42 等级零变化的全量复核结论与 `www.ccf.org.cn` 阿里云 WAF CAPTCHA 的访问指引；修订 §3.1 中关于 atom.im 标注「2026 / 第七版」的过期事实前提（规则本身保留）。同轮把 `conf-b-etaps` 的跟踪范围由「仅 TACAS」扩展为「TACAS + iFS」。 |
 | `2026-07-13 19:31:00` | 共享总账刷新：同步 42 个 venue 的 2026/2027/2028 当前状态复核边界，明确会议仅维护 main/research/technical track、期刊仅维护 rolling + public non-invite collection，并保持 42 个 venue / 294 个年度 README 统计。 |
 | `2026-06-09 20:42:00` | 同步 SUMMARY 单表化纪律：入口说明改为 SUMMARY 只承载读者总表、外部索引口径、合并待补表和更新日志，流程 / ownership 回到 GUIDE 与范围文档。 |
 | `2026-06-09 17:05:00` | PR #91 复核后同步：补充 JCR/CAS 二级镜像降权口径，并确认 CCF 等级 emoji 使用 🏆/🥈/🥉 而非单色编码。 |

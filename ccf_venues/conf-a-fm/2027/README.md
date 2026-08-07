@@ -1,6 +1,6 @@
 # FM 2027 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -23,7 +23,7 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 官方年度主页 | 未公布 | 仅找到官方线索：[FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)；2026-07-13 复查仍不等同于年度主页 / CFP | `2026-07-13 19:13:21` |
+| 官方年度主页 | [FM 2027 on researchr（官方入口已定位，正文未取得可审计快照）](https://conf.researchr.org/home/fm-2027) | ⚠️ 2026-08-07 核验：该 URL **由 404 变为 HTTP 200 + `Access denied`**（逐字 `You do not have the privileges to access this part.` / `You are not logged in on conf.researchr.org.`）—— researchr slug 已创建但未公开发布，说明主办方已确定并在筹备，CFP 大概率将在数周至数月内公开，应列高频复查。另有官方线索：[FM 2027 organizer call](https://www.fmeurope.org/2025/09/14/fm-2027-call-for-organizers/)，其中明确 **FM 自 2027 起改为每年一届、固定在秋季**（逐字 `a new edition taking place every autumn`），并已同时征集 2028 第 29 届；`fmeurope.org/symposia/` 未来 edition 仍只列到 FM 2026。以上均不等同于年度主页 / CFP。 | `2026-08-07 20:05:00` |
 | CFP / Call for Papers | 未公布 | 2026-07-13 复查仍未发现正式 CFP | `2026-07-13 19:13:21` |
 | Important Dates | 未公布 | 2026-07-13 复查仍未发现正式 dates | `2026-07-13 19:13:21` |
 | Submission system | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |

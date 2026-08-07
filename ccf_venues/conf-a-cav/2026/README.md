@@ -1,6 +1,6 @@
 # CAV 2026 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,10 +14,10 @@
 | 官方 CFP | [CFP](https://conferences.i-cav.org/2026/cfp/) |
 | Important Dates | [Important Dates](https://conferences.i-cav.org/2026/cfp/) |
 | Submission system | [Submission](https://submissions.floc26.org/cav/) |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/cav/index.html) |
-| 当前阶段状态 | 🔵 会期临近 |
+| 当前阶段状态 | ✅ 已结束 / 待 proceedings |
 
 ## 2. 年度核心 URL 索引
 
@@ -27,7 +27,7 @@
 | CFP / Call for Papers | [CFP / Call for Papers](https://conferences.i-cav.org/2026/cfp/) | 官方 CFP / dates 已复核；主 paper、artifact 与会期分开记录 | `2026-07-13 19:13:21` |
 | Important Dates | [Important Dates](https://conferences.i-cav.org/2026/cfp/) | 官方 CFP / dates 已复核；官方只给日期时保留待补时刻 | `2026-07-13 19:13:21` |
 | Submission system | [Submission system](https://submissions.floc26.org/cav/) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
-| Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
+| Program / accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) | 2026-08-07 核验：官方 accepted 页已上线，按 `Research Papers` / `Tool Papers` / `Industrial Experience Reports or Case Studies` 三类分列 | `2026-08-07 20:05:00` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-06-05 09:15` |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/cav/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-06-05 09:15` |
 
@@ -54,9 +54,9 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
-| 计数状态 | 🟡 部分核验 |
-| 论文名录 / accepted papers | 未公布 |
+| 论文数量 | Research Papers 54 + Tool Papers 20 + Industrial Experience Reports or Case Studies 6 = 80 |
+| 计数状态 | 🟢 官方 accepted 页分类计数 |
+| 论文名录 / accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/cav/index.html) |
 | 计数口径 | 2026 proceedings / DBLP 年度页尚未落地；不得用 artifact/workshop 混算。 |
@@ -71,9 +71,10 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [官方年度主页](https://conferences.i-cav.org/2026/) | `2026-07-13 19:13:21` | 已复核会期 `2026-07-26..2026-07-29`；当前阶段为会期临近。 |
+| 官方年度主页 | [官方年度主页](https://conferences.i-cav.org/2026/) | `2026-08-07 20:05:00` | 会期 `2026-07-26..2026-07-29` 已结束；页面正文仍保留 forward-looking 文案未随会期更新，阶段判断以日历为准。 |
 | CFP / Call for Papers | [CFP / Call for Papers](https://conferences.i-cav.org/2026/cfp/) | `2026-07-13 19:13:21` | 已复核主 paper chain、camera-ready 与 artifact 相关窗口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Important Dates | [Important Dates](https://conferences.i-cav.org/2026/cfp/) | `2026-07-13 19:13:21` | 官方仅给日期时按待补时刻记录；会期日期保留官方来源。 |
+| 官方 accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) | `2026-08-07 20:05:00` | 官方名录已公布并自带分类小标题：Research Papers 54、Tool Papers 20、Industrial Experience Reports or Case Studies 6，合计 80；三类不得合并写成单一 research count。 |
 | Submission system | [Submission system](https://submissions.floc26.org/cav/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/cav/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
@@ -92,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：会期 `2026-07-26..2026-07-29` 已结束，阶段由 `🔵 会期临近` 迁移为 `✅ 已结束 / 待 proceedings`；补入官方 accepted papers 入口与三分类计数 54/20/6=80。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 CAV 2026 official home / CFP，确认会期 `2026-07-26..2026-07-29`，阶段更新为 `🔵 会期临近`。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 CAV 2026 artifact registration / artifact evaluation window，并在 TIMELINE 中单列 artifact 专项事件，避免混入 rebuttal 或主论文计数。 |
 | `2026-06-05 09:15` | PR-3 初始化 CAV 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |
