@@ -25,6 +25,24 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RUNS = ROOT / "runs" / "paper1"
+#: 格目录下最新文件在这个窗口内被改过，即判为「进行中」而非「失败」。
+#: 单格实测耗时 10–40 分钟（某格曾达 40 分钟，见 `POST_V22_BACKLOG.md` L-4），故取 45 分钟。
+_IN_FLIGHT_WINDOW = 45 * 60
+
+
+#: 格目录下最新文件在这个窗口内被改过，即判为「进行中」而非「失败」。
+#: 单格实测耗时 10–40 分钟（某格曾达 40 分钟），故取 45 分钟。
+_IN_FLIGHT_WINDOW = 45 * 60
+
+
+def _now() -> float:
+    """当前时间。抽成函数以便测试注入 —— 直接调 `time.time()` 会让 in-flight 判定不可测。"""
+
+    import time
+
+    return time.time()
+
+
 _ROUND = re.compile(r"^run\d+$")
 #: `matrix-i175/` 是历史遗留的公共父目录，v2 到 v20 的轮次目录全在它下面，形如 `v10run1`。
 #: 上一版只认 `run<N>`，于是那十九个代次一个都没进历代对比表 —— 而这张表的全部意义就是覆盖
@@ -64,7 +82,7 @@ def scan(directory: pathlib.Path, rounds: list[pathlib.Path] | None = None,
     ]
     if not rounds:
         rounds, skipped = [directory], []
-    cells = completed = failed = 0
+    cells = completed = failed = in_flight = 0
     totals: collections.Counter = collections.Counter()
     coverage: collections.Counter = collections.Counter()
     arms: set[str] = set()
@@ -80,7 +98,24 @@ def scan(directory: pathlib.Path, rounds: list[pathlib.Path] | None = None,
                 arms.add(arm.split("-")[0])
             final = cell / "discover-completed.json"
             if not final.is_file():
-                failed += 1
+                # 「目录已建但产物未落」有两种成因，**不可混为一谈**：
+                #
+                #   进行中  —— 该格正在跑，产物还没写
+                #   失败    —— 该格已放弃（启动器耗尽重试，或运行被杀）
+                #
+                # 首版一律计入 `failed`，于是**对进行中的运行会误报**：v24 跑到 38/66 时该字段报
+                # `failed: 8`，而那 8 格正在跑。把它写进报告就是把在飞的格报成失败。
+                #
+                # 判据用「该代次目录下是否还有活进程」不可靠（本工具可能在别的机器上跑），改用
+                # **文件新近度**：格目录下有文件在 `_IN_FLIGHT_WINDOW` 内被改过 → 进行中。
+                newest = max(
+                    (f.stat().st_mtime for f in cell.rglob("*") if f.is_file()),
+                    default=0.0,
+                )
+                if newest and (_now() - newest) < _IN_FLIGHT_WINDOW:
+                    in_flight += 1
+                else:
+                    failed += 1
                 continue
             completed += 1
             payload = json.loads(final.read_text())
@@ -95,6 +130,7 @@ def scan(directory: pathlib.Path, rounds: list[pathlib.Path] | None = None,
         "cells": cells,
         "completed": completed,
         "failed": failed,
+        "in_flight": in_flight,
         "arms": sorted(arms),
         "coverage": dict(coverage),
         **{k: totals[k] for k in
