@@ -51,7 +51,7 @@ CAV 聚焦计算机辅助验证、模型检查、SMT/SAT、程序验证、系统
 |---|---|---|---|
 | Series / main site | [CAV official series](https://conferences.i-cav.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-07-13 19:13:21` |
 | DBLP venue page | [DBLP CAV index](https://dblp.org/db/conf/cav/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| Latest year homepage | [CAV 2026](https://conferences.i-cav.org/2026/) | 2027/2028 于 2026-07-13 复查；⚠️ **2026-08-07 更正：2027 已上线**（[CAV 2027](https://conferences.i-cav.org/2027/)，直接 probe `/YYYY/` 命中）；2028 仍未获正式年度主页 / CFP / dates；未来年度不得伪造 | `2026-07-13 19:13:21` |
+| Latest year homepage | [CAV 2027](https://conferences.i-cav.org/2027/) | 2027/2028 于 2026-07-13 复查；⚠️ **2026-08-07 更正：2027 已上线**（[CAV 2027](https://conferences.i-cav.org/2027/)，直接 probe `/YYYY/` 命中）；2028 仍未获正式年度主页 / CFP / dates；未来年度不得伪造 | `2026-08-07 20:30:00` |
 | CFP / Important Dates | [CAV 2026 CFP](https://conferences.i-cav.org/2026/cfp/) | main conference paper chain；artifact evaluation 单列，不混入主论文口径 | `2026-07-13 19:13:21` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 

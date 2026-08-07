@@ -50,7 +50,7 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [ICPC official site](https://www.program-comprehension.org/)；[researchr ICPC series](https://conf.researchr.org/series/icpc) | 年度独立站点 / researchr / 官方组织站点并行 | `2026-06-05 17:35` |
-| Latest year homepage | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | ⚠️ **2026-08-07 更正：2027 Research Track CFP 与 Important Dates 均已公布**（abstract `2026-10-29 23:59:59 AoE / UTC-12h`、paper `2026-11-05`，HotCRP 已开）；2028 仍未公布。此前「CFP / Important Dates 未公布」已作废 | `2026-07-13 13:30` |
+| Latest year homepage | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | ⚠️ **2026-08-07 更正：2027 Research Track CFP 与 Important Dates 均已公布**（abstract `2026-10-29 23:59:59 AoE / UTC-12h`、paper `2026-11-05`，HotCRP 已开）；2028 仍未公布。此前「CFP / Important Dates 未公布」已作废 | `2026-08-07 20:30:00` |
 | CFP / Call for Papers | [ICPC 2027 Research Track](https://conf.researchr.org/track/icpc-2027/icpc-2027-research-track) | ⚠️ **2026-08-07 更正：Research Track CFP 已公布**（10+2 页、double-anonymous、第 35 届）。⚠️ 2027 起 track slug 由历史的 `icpc-YYYY-research` 改为 `icpc-2027-research-track`，旧模式 404；track 分散时在年度 README 展开 | `2026-08-07 20:25:00` |
 | Important Dates | [ICPC 2027 dates](https://conf.researchr.org/dates/icpc-2027) | ⚠️ **2026-08-07 更正：2027 Important Dates 已公布**，官方逐字 `All dates are 23:59:59 AoE (UTC-12h).`（给了精确时刻，故不写 `待补时刻`）；researchr dates / official CFP 优先 | `2026-08-07 20:25:00` |
 | Submission system | 见 §6 年度信息汇总 | 历史系统可能失效，失效时保留待复核 | `2026-06-05 17:35` |

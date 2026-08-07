@@ -96,7 +96,7 @@
 ## 7. 维护备注
 
 - SoSyM regular / tool / expert voice papers 可 rolling submission，不进入 dated Mermaid。
-- ⚠️ **2026-08-07 更正**：Industry 5.0 theme section 已由 Springer 官方确认 **`Submission status: Closed`、无延期**（原 submission `2026-07-15` / notification `2026-10-15`，前者已过，**不再是可投窗口**）；⚠️ sosym.org 首页与 theme_sections 页今日仍把它挂在 `Current Call for Papers` 下，属该站过期挂牌，判定以 Springer collection 为准。当前唯一确认可投通道为 Regular / Tool / Expert Voice 三条 `Open / Ongoing` 常规 collection。本轮只更新本目录，未触碰全局 [../TIMELINE.md](../TIMELINE.md)。
+- ⚠️ **2026-08-07 更正**：Industry 5.0 theme section 已由 Springer 官方确认 **`Submission status: Closed`、无延期**（原 submission `2026-07-15` / notification `2026-10-15`，前者已过，**不再是可投窗口**）；⚠️ sosym.org 首页与 theme_sections 页今日仍把它挂在 `Current Call for Papers` 下，属该站过期挂牌，判定以 Springer collection 为准。当前唯一确认可投通道为 Regular / Tool / Expert Voice 三条 `Open / Ongoing` 常规 collection。⚠️ 该说明自 `2026-08-07` 起**不再成立**：本轮已同步修改 [../TIMELINE.md](../TIMELINE.md) 的 §9.1 两行（Industry 5.0 submission / notification 阶段与备注）与 §14 SoSyM 滚动行。
 - Engineering of Digital Twins 是 SoSyM official site 给出的 ongoing rolling theme section，和 Industry 5.0 是不同条目；EDTConf'26 相关日期只作为“若希望会议展示”的目标节点记录，不写成普通 SoSyM 截稿。
 - 2027/2028 已于 2026-07-13 复查，未发现新的官方年度卷期、DBLP 年度页或 active dated CFP；保留 rolling 占位。
 - 2022-2026 年度论文数量已填 DBLP `entry article` baseline；这不是 publisher 最终闭合数，后续仍需用 Springer issue pages / SoSyM online 按 article type 交叉核验。

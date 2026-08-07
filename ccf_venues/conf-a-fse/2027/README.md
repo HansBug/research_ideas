@@ -75,7 +75,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | `2026-07-13 19:13:21` | 官方主页已发布 Shenzhen 会期 `2027-07-12..2027-07-16`、Research Papers track 与重要日期。 |
-| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers)；[Dates](https://conf.researchr.org/dates/fse-2027) | `2026-07-13 19:13:21` | 已核验 full paper submission `2026-10-02 23:59:59 AoE / UTC-12h`、author response、initial notification、major revision submission、final notification。 |
+| 官方 CFP / Dates | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers)；[Dates](https://conf.researchr.org/dates/fse-2027) | `2026-07-13 19:13:21` | 已核验 full paper submission `2026-10-02 23:59:59 AoE / UTC-12h`（⚠️ 其中 `23:59:59` 属当轮自行补写的日末口径，**已于 2026-08-07 作废并回退为 `待补时刻`**；官方 track 页只给日期）、author response、initial notification、major revision submission、final notification。 |
 | 官方论文名录 / proceedings | 未公布；未公布 | `2026-06-06 11:46` | 官方 program / proceedings 尚未公布；PACMSE 关系按冻结口径说明。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-06 11:46` | DBLP 仅作论文名录与数量 fallback。 |
 

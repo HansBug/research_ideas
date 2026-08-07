@@ -73,7 +73,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [年度主页](https://conf.researchr.org/home/apsec-2026) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-07-13 19:11:00` | Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、author notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time)，companion tracks 不作为本轮当前机会。 |
+| 官方 CFP / Dates（⚠️ 时区部分已于 2026-08-07 作废） | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-07-13 19:11:00` | ⚠️ 本行记录的 `UTC+8 (Bali time)` 已作废，2026-08-07 复核官方为 `AoE (Anywhere on Earth)`（相差 20 小时）；日期本身无变化。原文如下：Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、author notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time)，companion tracks 不作为本轮当前机会。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
 | DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
