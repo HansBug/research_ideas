@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 年度主页 | [MSR 2027](https://2027.msrconf.org/) | 年度事实源之一 | `2026-07-13 10:27:51` |
 | CFP / Call for Papers | [Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) | 主关注 track；其他 track 不作为当前机会 | `2026-07-13 10:27:51` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/msr-2027) | 官方 dates 页；官方只给日期时写待补时刻 AoE | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/msr-2027) | 官方 dates 页；时区逐字 `AoE (UTC-12h)`，官方只给日期时写 `待补时刻 AoE / UTC-12h` | `2026-07-13 10:27:51` |
 | Submission system | [HotCRP `msr2027`](https://msr2027.hotcrp.com/) | 2026-08-07 核验：Technical Papers CFP 正文直链，HTTP 200 | `2026-08-07 20:05:00` |
 | Tracks / program | [Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) | 已结束年度优先 official program | `2026-07-13 10:27:51` |
 | Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-07-13 10:27:51` |
@@ -35,12 +35,12 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Technical Papers abstract | 2026-10-20 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Technical Papers paper deadline | 2026-10-23 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Early reject notification | 2026-12-03 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Author response period | 2026-12-04..2026-12-08 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期范围；researchr 标注 AoE。 |
-| Author notification | 2027-01-08 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Camera-ready | 2027-01-26 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Technical Papers abstract | 2026-10-20 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 逐字 `Timezone: AoE (UTC-12h)`（date 单元格 title 属性，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5）；官方仅给日期、未给钟点。 |
+| Technical Papers paper deadline | 2026-10-23 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 逐字 `Timezone: AoE (UTC-12h)`（date 单元格 title 属性，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5）；官方仅给日期、未给钟点。 |
+| Early reject notification | 2026-12-03 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 逐字 `Timezone: AoE (UTC-12h)`（date 单元格 title 属性，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5）；官方仅给日期、未给钟点。 |
+| Author response period | 2026-12-04..2026-12-08 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期范围；researchr 逐字 `Timezone: AoE (UTC-12h)`。 |
+| Author notification | 2027-01-08 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 逐字 `Timezone: AoE (UTC-12h)`（date 单元格 title 属性，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5）；官方仅给日期、未给钟点。 |
+| Camera-ready | 2027-01-26 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期；researchr 逐字 `Timezone: AoE (UTC-12h)`（date 单元格 title 属性，见 [../../GUIDE.md](../../GUIDE.md) §16.6.5）；官方仅给日期、未给钟点。 |
 | Conference | 2027-04-26..2027-04-27 | [Important Dates](https://conf.researchr.org/dates/msr-2027) | [MSR 2027](https://2027.msrconf.org/) | 官方日期。 |
 
 ## 4. Tracks
@@ -89,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 21:40:00` | 轮次 9 I 级修复：§3 六行日期列与 §2 口径句由 `AoE` 补全为 `AoE / UTC-12h`，与 [../../conf-c-icst/2027/README.md](../../conf-c-icst/2027/README.md) 五行同构、与 [../../TIMELINE.md](../../TIMELINE.md) §3 / §9.1 逐字一致。此前 TIMELINE §15 已声称「两个年度页均已统一」但本页实际未改，属 live-state 表失效断言；本轮补齐事实侧而非改弱断言。时区证据为 researchr date 单元格 `title` 属性，官方仍只给日期、未给钟点。 |
 | `2026-08-07 20:05:00` | 常态化刷新：**Submission system 由 `未公布` 升级为 [HotCRP `msr2027`](https://msr2027.hotcrp.com/)**（官方 CFP 直链，HTTP 200）；会期与地点来源由 dates 页（现已无 Conference 行）改挂 `2027.msrconf.org` 页头与 series 页，从「stable homepage 线索」升级为已核验官方事实（含 co-located with ICSE 2027、CCD 会场）。六个 Technical Papers 日期与 AoE (UTC-12h) 逐字复核一致。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新：升级 MSR 2027 Technical Papers official dates。 |
 | `2026-06-05 17:23` | PR-9 初始化 MSR 2027 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |
