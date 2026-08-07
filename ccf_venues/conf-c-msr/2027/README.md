@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 年度主页 | [MSR 2027](https://2027.msrconf.org/) | 年度事实源之一 | `2026-07-13 10:27:51` |
 | CFP / Call for Papers | [Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) | 主关注 track；其他 track 不作为当前机会 | `2026-07-13 10:27:51` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/msr-2027) | 官方 dates 页；时区逐字 `AoE (UTC-12h)`，官方只给日期时写 `待补时刻 AoE / UTC-12h` | `2026-07-13 10:27:51` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/msr-2027) | 官方 dates 页；时区逐字 `AoE (UTC-12h)`（⚠️ 2026-08-08 更正：本行此前只写 `待补时刻 AoE`，属信息不足），官方只给日期时写 `待补时刻 AoE / UTC-12h` | `2026-08-08 01:10:00` |
 | Submission system | [HotCRP `msr2027`](https://msr2027.hotcrp.com/) | 2026-08-07 核验：Technical Papers CFP 正文直链，HTTP 200 | `2026-08-07 20:05:00` |
 | Tracks / program | [Technical Papers](https://conf.researchr.org/track/msr-2027/msr-2027-technical-papers) | 已结束年度优先 official program | `2026-07-13 10:27:51` |
 | Accepted papers / paper list | 未公布 | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-07-13 10:27:51` |
