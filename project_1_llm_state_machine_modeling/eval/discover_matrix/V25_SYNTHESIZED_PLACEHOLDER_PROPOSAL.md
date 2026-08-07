@@ -1,5 +1,131 @@
 # v25 提案：让「复合态无默认入口」变得可断言
 
+## ⛔ 本提案已作废，改动已撤销（两份运行前 review 各自独立判「禁止开跑」）
+
+两份 review 给出**互相独立、各自足以致命**的理由，两条我都接受：
+
+### 代码正确性侧的致命理由：**极性反了**
+
+`prompts.py:104` 逐字「Create confirmed issues only from **False** assertions」。而 reviewer 实测：
+
+    initial_target(composite='…0047.CollisionAvoidanceSystem', child='…UnspecifiedInitial')  -> True
+    initial_target(composite='…0047.…RearEnd',   child='…InvalidInitialtr_0005')             -> True
+    state_declared('…UnspecifiedInitial', kind='any')                                        -> True
+
+**True 的断言 = 已履行的义务 = 零 finding。** 我许可的形状按构造**不可能**成为发现。
+仓库每一处都写死极性（L27 / L34 / L46 / L551「That False is the finding.」），唯独我新写的那句
+丢掉极性并断言了相反的事。
+
+真正可用的形状是 `initial_target(X, <NL 点名的状态>) is False` —— **它根本不需要把占位符写进绑定**，
+也不需要任何 prompt 许可。§六「不需要新谓词」只在这个负向形状下成立，与本提案的正向读法无关。
+
+### 更糟：改动会翻掉两条**当前命中**的记录
+
+`EIS-0035-01`（6/6）与 `EIS-0043-02`（5/6）所在 pair 都含占位符，且占位符挂在**同一个 composite** 上。
+许可等于告诉转换器可以把 `child=DoorShut`（False，命中）重绑为 `child=占位符`（True，零发现）。
+`capability.py:528-550` 把「frozen model 的已声明路径」列为合法来源，**没有确定性关卡拦得住**。
+
+⛔ **而原 §五 预注册表里没有「已有命中丢失」这一行** —— 这个损失在我计划的读数里**不可见**，
+净效应会被错误归因（因为四条动机记录已按 §四 排除出能力度量）。
+
+### 基础错误：改在了错误的阶段
+
+`predicate_bindings` 是 **Requirement** 的字段，由 **Requirement Splitter** 产出
+（`schemas.py:207`「They give **the converter** the terms to bind」）。
+**我测的是 Splitter 的绑定，许可加在了 Converter 上**，而 `REQUIREMENT_SPLITTER_PROMPT` 一字未改。
+按原 §五 自己那一行「主体位仍为 0 → 位置问题」，**这个结果跑之前就静态可判**，那 66 格买不到信息。
+
+### 与同 prompt 内两条无条件禁令直接冲突
+
+| 行 | 阶段 | 逐字 |
+| --: | :-- | :-- |
+| 170 | Converter | Never acknowledge a contradiction … and then use a broader presence query that **evaluates True** |
+| 180 | Reviewer | reject any script that … turns it into a **passing broad-presence assertion** … must evaluate **False** |
+| 51 | Req Reviewer | **do not** ask the author to re-anchor those bindings to whatever the model already declares（点名 `containment` / `initial_target` / `cardinality`） |
+
+许可只加进了 Converter，Reviewer 侧的拒绝规则原样保留 —— **听话的 converter 写出的东西，
+听话的 reviewer 必须拒。** 且 L51 明令禁止的正是我指示 converter 去做的那个 re-anchor。
+
+📌 **这是本次会话第三次「断言某阶段被许可/禁止某事而未读相邻约束」**（前两次都在 L379 上）。
+三次的共同结构不是没查，是**查了、把事实写下来了、下一步推理时没有用它**。
+
+### 公平性侧的致命理由：**C3 段是台账论证的去标识化改写**
+
+reviewer 把台账 `0032-eis.md:21` 与我的新句逐项对上，**连情态动词都对上了**：
+
+| 台账原文 | 我写的 prompt |
+| :-- | :-- |
+| 三个 Region 都是复合态却**没有初始伪态** | because a composite **declared none** |
+| R4.5 投影**不得不**各合成一个 | the projection **had to synthesize** |
+| **这是缺陷的机器证据** | **which is the finding** |
+
+我删掉的只有 `UnspecifiedInitial` 与 pair 号 —— 正是 CLAUDE.md §3.5.-1 逐字描述的「不含任何台账
+标识符的『答案形状』」。原 §四 自评「不含期望缺陷、不含判定结论」**两条都假**。
+
+⛔ **我的抽象化测试只按标识符扫描，而 §3.5.-1 明写这种扫描会失败。** 我读过那条规则、在提案里
+引用了它、然后用了它说会失败的方法。
+
+### 留出集本身已污染，且留出这个装置对类级规则不适用
+
+- 12 个留出 pair 中 `0019` / `0053` **被直接读过台账**（commit `3d0049c1` body 有据）。
+- 原 §五 把 `0029` / `0043` 列为「非动机记录」，**两个都错** —— 门侧规则
+  `_omission_placeholder_only`（`e41ca47c`）的动机 body 写明是 `0029-claude`。
+  **我只反向标注了 prompt 那一半动机，漏了它依赖的门侧那一半。**
+- 更根本：留出处理的是**实例级**污染。C3 交出的是**整个缺陷类的检出规则**，
+  在留出 pair 上命中的仍是「被告知」而非「被引导方法」。
+
+### 运行时孪生体（早于 v25，但本改动的全部目的就是让它开始触发）
+
+`nodes.py` 的 `_omission_placeholder_only` 写入的 rationale：
+
+> "… **the placeholder is the omitted declaration**, not an unattributable artefact."
+
+它经 `renderer.py:465` 的 `render_adjudicator_input` 整体序列化进裁决者 user input。
+**它只在这一缺陷类上触发，并把结论直接交给裁决者。** 此前休眠（主体位 0/4373），
+本改动会激活它 —— 故必须计入本次泄漏面，不能以「不是我引入的」豁免。
+
+---
+
+## ⚠️ 原 §二 的实测数字还有两处错，就地更正
+
+| 我写的 | 实际 | 错因 |
+| :-- | :-- | :-- |
+| 占位符在需求绑定中出现 **3 次** | 去重后 **1 次 / 1026**，集中在 **1 个格** | 那 3 次是**同一条**绑定的三份累积状态快照。**结构化解析修掉了正则问题，没有修掉快照问题** —— 第 2 轮的错误换了结构化外衣重来一次 |
+| 分母 **37 格** | **19 格**（`matrix-v24` 单版；37 对不上任何一个 universe） | —— |
+
+⛔ **我在一个自陈教训是「先打印分母」的小节里写错了分母。** 且「模型会伸手去用」这个机制主张的
+证据是**单点观测**，不是 3 次尝试。
+
+另有一处前置条件不成立（reviewer I3）：许可写「because a composite **declared none**」，
+但 `0047` 的 `InvalidInitialtr_*` 是**作者声明了入口、只是指到子域外**
+（`nodes.py:3527`「a stand-in for an initial target the author got **wrong**」）。
+原 §二 把 `UnspecifiedInitial` 与 `InvalidInitial*` 当同一类处理，**这一步也错了**。
+
+---
+
+## 两份 review 一致认可、应当保留的部分
+
+1. **代理禁令从「synthetic root or completion holder」扩宽为「projection-synthesized element」是实质
+   改进** —— 实测那次违规用的 `event_consumed(source=…)` 既非 root 也非 completion holder，
+   **原句字面确实管不到它**。这一半可以单独重提，但需枚举类别（`FinalWait*` 等性质不同）。
+2. **「绑定词表内的名字不是臆造」是干净的词表契约陈述**，不含结论。
+3. 观测法定位（问题全部在断言生成之前）与「NL 是否点名绑定所需元素」这个两分**未被质疑**。
+
+## 下一步的前置条件（两份 review 共同要求）
+
+1. `PREDICATE_BOTTLENECK.md` §四 已裁定：放开需求来源必须**同时**给出「工具已报的 vs 方法自推的」
+   可执行区分，且能力主张只能记后者。**该裁定未做，v25 事实上选了路线 1 却没实现附带条件。**
+2. 若要走「主体位」，形状必须写成**负向**（在缺陷模型上取 `False`）。
+3. 改 **Splitter**，不是 Converter；且 **Reviewer 侧必须同步**。
+4. 预注册必须加「已有命中丢失」这一行，并改为**类级**不可计入（所有 pair，含留出）。
+5. 运行时 rationale 须改为只陈述归因状态与依据类型，不下「占位符就是作者遗漏」的判语。
+
+---
+
+📌 以下保留原文供追溯。**其中每一处「拟改动」「预注册」都已作废**，只有 §一 的观测与两分仍有效。
+
+---
+
 ## 一、这条提案从何而来（不是猜的）
 
 观测法（[PREDICATE_BOTTLENECK.md](./PREDICATE_BOTTLENECK.md) §十二）把 12 条 `wellformedness` 记录
