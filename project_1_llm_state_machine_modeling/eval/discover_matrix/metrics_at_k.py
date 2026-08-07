@@ -220,6 +220,73 @@ def band_of(record_id: str) -> str:
     return "hold" if pair in HOLD else "hist"
 
 
+#: 比率闸门（§3.5.2 补充条款）。覆盖率类指标**以比率形式**报出，须同时满足三条；任一不满足时该带
+#: **只出逐条序列 + 全称/存在性陈述**，不出比率、不出 CI、不出代次间差值。
+#:
+#: 为什么需要它，而不是「小心解读」：
+#:
+#: 可报带的分母是 12 个判定位。实测（两代次逐位对齐、都用盲判 + 预注册判据 + 100% 覆盖）该带的
+#: 代次间翻转率是 8.3%，全体 204 位是 **9.8%（20/204，方向对称 10:10）** —— 而 12 位上 `hit@1` 的
+#: 粒度恰好也是 8.3%。**粒度与噪声同阶意味着任何「变化」只能是「翻了一位」。**
+#:
+#: 三条阈值的来源，逐条：
+#:
+#: (a) 独立簇数 ≥ 10 —— 簇 = **污染传播单元**，本语料是 NL 组（`holdout.py:27-29` 规定污染以 NL 组
+#:     传播）。簇级 bootstrap 在簇数低于约 10 时无覆盖保证；实测可报带只有 2 个 NL 组，其「区间」
+#:     支撑集只有 3 个点，那不是置信区间。
+#: (b) 判定位 ≥ 100 —— 由 McNemar 反推：在实测 ψ = 9.8% 下，检出 8.3 pp 需 108 位。
+#: (c) 粒度 ≤ 拟解读差异的 1/3 —— 当前 1/12 = 8.3% 而拟解读的差异恰是 8.3%。
+#:
+#: ⚠️ 按此闸门，**本语料上没有任何一个带够格报比率**（可报 2 簇 / 12 位；历史格 3 簇 / 66 位；
+#: 已烧毁 5 簇 / 126 位）。这个结论听着极端，但它与 `DENOMINATOR_EXHAUSTION.md` 已作出的裁定
+#: （共演化溢价按 cluster 级不显著，p = 0.37 / 0.45，bootstrap CI 含 0）是**同一条纪律的一致外推**
+#: —— 那次只施加于两带之差，这次施加于每一带自身。
+#:
+#: 最要紧的后果：**比率一旦不报，烧毁就不再抬高任何东西。** 这是唯一能结构性解除幸存者偏差的动作 ——
+#: 已实测「剔除表现最差的一条使 hit@1 +16.7 pp」，而在只出序列的口径下那个 +16.7 无处可去。
+MIN_CLUSTERS = 10
+MIN_POSITIONS = 100
+#: 该带实测的代次间翻转率，用于「只出序列」时并列报出。None = 尚未测过该带。
+MEASURED_CHURN = {
+    "reportable": "8.3%（1/12）",
+    "hist": "9.1%（6/66，3 升 3 降 —— 聚合值相同是抵消，不是稳定）",
+    "burned": "10.3%（13/126）",
+}
+
+
+def _clusters_of(ids: list[str]) -> int:
+    """该带覆盖多少个 NL 组 —— 污染传播单元，也是推断的独立单元。"""
+
+    payload = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
+    records = payload.get("records") or next(
+        v for v in payload.values()
+        if isinstance(v, list) and v and isinstance(v[0], dict) and "id" in v[0]
+    )
+    by_id = {str(r["id"]): r for r in records}
+    return len({(by_id.get(i) or {}).get("group") for i in ids if by_id.get(i)} - {None})
+
+
+def ratio_gate(ids: list[str], positions: int, band: str) -> list[str]:
+    """返回不满足的闸门条件；空 = 允许报比率。"""
+
+    failed = []
+    clusters = _clusters_of(ids)
+    if clusters < MIN_CLUSTERS:
+        failed.append(f"独立簇（NL 组）{clusters} < {MIN_CLUSTERS}")
+    if positions < MIN_POSITIONS:
+        failed.append(f"判定位 {positions} < {MIN_POSITIONS}")
+    if positions:
+        granularity = 100.0 / positions
+        churn = MEASURED_CHURN.get(band)
+        if churn:
+            measured = float(churn.split("%")[0])
+            if granularity > measured / 3:
+                failed.append(
+                    f"粒度 {granularity:.1f}% > 实测 churn {measured}% 的 1/3"
+                )
+    return failed
+
+
 def report_band(verdicts: dict, ids: list[str], name: str) -> None:
     if not ids:
         return
@@ -257,14 +324,37 @@ def report_band(verdicts: dict, ids: list[str], name: str) -> None:
             print(f"   {label:24} {raw}  {kind}")
         return
     print(header)
-    print(f"hit@1   = {hits}/{triples} = {hits / triples * 100:.1f}%")
-    print(f"hit@3   = {at3}/{items} = {at3 / items * 100:.1f}%")
-    print(f"hit@all = {atall}/{items} = {atall / items * 100:.1f}%")
+    band_key = {"HOLD-OUT（能力主张的唯一依据）": "reportable"}.get(name)
+    if band_key is None:
+        band_key = "hist" if "历史" in name else ("burned" if "烧毁" in name else "")
+    failed = ratio_gate(sorted(ids), triples, band_key)
+    if failed:
+        # 闸门不通过：**只出逐条序列**。不出比率是为了让烧毁不再抬高任何东西 —— 见 `MIN_CLUSTERS`
+        # 上方的说明。这里仍打印分子分母的原始计数，因为它们不是比率、也不会被当成比率引用。
+        print(f"⛔ **比率闸门不通过，本带不出 hit@k 比率。** 未满足：{'；'.join(failed)}")
+        print(f"   原始计数（**不得写成百分比**）：命中 {hits} / 位 {triples}；"
+              f"至少一轮命中 {at3} / 条目 {items}；三轮全中 {atall} / 条目 {items}")
+        churn = MEASURED_CHURN.get(band_key)
+        if churn:
+            print(f"   该带实测代次间翻转率：{churn}")
+        print("   → 只以逐条序列与全称/存在性陈述报出（见下方逐条清单）")
+    else:
+        print(f"hit@1   = {hits}/{triples} = {hits / triples * 100:.1f}%")
+        print(f"hit@3   = {at3}/{items} = {at3 / items * 100:.1f}%")
+        print(f"hit@all = {atall}/{items} = {atall / items * 100:.1f}%")
     if len(per_arm) > 1:
         # 分臂小计。两条臂的数字必须能分开读，否则模型间比较消失。
+        #
+        # ⚠️ 但分臂的分母是全带的一半，所以**只要全带的闸门不通过，分臂必然更不通过** —— 首版把这
+        # 两行漏在闸门外，于是在「本带不出比率」的正下方又打了两个百分比，而它们的分母只有 6 位、
+        # 粒度 16.7%。闸门要拦的恰恰是这种东西。
         for arm, (arm_hits, arm_triples) in sorted(per_arm.items()):
-            print(f"  按臂 {arm}: hit@1 = {arm_hits}/{arm_triples} = "
-                  f"{arm_hits / arm_triples * 100:.1f}%")
+            if failed:
+                print(f"  按臂 {arm}: 命中 {arm_hits} / 位 {arm_triples}"
+                      f"（**不得写成百分比**，分母仅 {arm_triples} 位）")
+            else:
+                print(f"  按臂 {arm}: hit@1 = {arm_hits}/{arm_triples} = "
+                      f"{arm_hits / arm_triples * 100:.1f}%")
     thin = [
         label for label, series, _ in rows
         if 0 < len([x for x in series if x is not None]) < 3

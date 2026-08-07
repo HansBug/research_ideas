@@ -1303,16 +1303,47 @@ class PredicateAPI:
         # comment assumes monotonicity ("a genuine defect does not become
         # satisfied at a longer horizon"), so it can never catch this direction.
         #
-        # Verification is a boolean identity, not a metric: `_occupies(., c)`
-        # must be non-decreasing in `c`.  See `test_occupancy_horizon_monotone`.
-        for cycle in getattr(view, "cycles", ()) or ():
-            for item in getattr(cycle, "active_states", ()) or ():
-                text = str(item)
-                if text == target or text.startswith(f"{target}."):
-                    return True
-        # Keep the final-frame check as a fallback: a view that carries no
-        # per-cycle records still has to answer, and before this change that was
-        # the only thing consulted.
+        # Scan from the cycle the trigger was consumed in, **not from cycle 0**.
+        #
+        # The first attempt at this fix scanned every cycle, and a fairness review
+        # caught what that does: `_simulate` builds `[settle...] + [[trigger]] +
+        # [[]...]`, so cycle 0 is the configuration *before* the trigger was
+        # offered.  Scanning it makes `occupancy_after(X, t, Y)` return True when
+        # the machine was **already** in `Y` and the trigger *took it away* --
+        # measured on pair 0006, `Attack --Attack_Complete--> AttackingTarget`
+        # goes True at every horizon while the trace reads
+        #
+        #     cycle 0: [..., Attack, AttackingTarget]      <- before the trigger
+        #     cycle 1: [..., Searching]                    <- after it
+        #
+        # The correct answer is False.  Ten of eleven pairs had such flips, all in
+        # the False->True direction, i.e. **findings being eaten** -- exactly the
+        # false-positive shape the `_consumed` guard above exists to prevent, just
+        # arriving along the time axis instead.
+        #
+        # `_reaches_within`'s `hit()` is not the right analogue: reachability
+        # legitimately counts the starting configuration, while this predicate
+        # asks about "after".  **Ordering is part of the proposition**, so the
+        # window has to start where the trigger lands.
+        cycles = list(getattr(view, "cycles", ()) or ())
+        start = next(
+            (
+                index
+                for index, cycle in enumerate(cycles)
+                if trigger in (getattr(cycle, "consumed_events", ()) or ())
+            ),
+            None,
+        )
+        if start is not None:
+            for cycle in cycles[start:]:
+                for item in getattr(cycle, "active_states", ()) or ():
+                    text = str(item)
+                    if text == target or text.startswith(f"{target}."):
+                        return True
+            return False
+        # No per-cycle record says where the trigger landed, yet `_consumed` saw it
+        # somewhere in the view.  Fall back to the final frame -- the only thing
+        # consulted before this change -- rather than guessing a window.
         return any(s == target or s.startswith(f"{target}.") for s in self._active(view))
 
     def event_consumed(self, *, source: str, trigger: str) -> bool:

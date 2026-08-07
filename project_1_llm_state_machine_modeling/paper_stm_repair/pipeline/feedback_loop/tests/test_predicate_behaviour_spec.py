@@ -393,10 +393,19 @@ def test_occupancy_after_accepts_a_composite_target():
 
 
 def test_occupancy_after_from_the_pseudo_initial():
-    """`[*]` is the cold start, and the model enters `Idle`."""
+    """`[*]` is the cold start, and the model enters `Idle`.
+
+    The third assertion is the one with teeth. A cold start puts `Idle` in the
+    leading cycle *before* any event is offered, so an implementation that scans
+    from cycle 0 answers True for **every** trigger -- and the first two
+    assertions here stay green while it does. `go` moves the machine to `Outer`,
+    so the honest answer is False, and only a scan window that starts where the
+    trigger was consumed produces it.
+    """
 
     assert call(RICH, "occupancy_after", source="[*]", trigger="Root.tick", target="Root.Idle") is True
     assert call(RICH, "occupancy_after", source="[*]", trigger="Root.tick", target="Root.Hub") is False
+    assert call(RICH, "occupancy_after", source="[*]", trigger="Root.go", target="Root.Idle") is False
 
 
 def test_stays_in_requires_the_event_to_be_consumed():

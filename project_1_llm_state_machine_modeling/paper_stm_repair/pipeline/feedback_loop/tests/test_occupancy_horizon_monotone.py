@@ -28,7 +28,30 @@ Two costs this had before it was found:
    as a boundary is worse than filing it as a bug, because a boundary is
    permanent by construction.
 
-`_HORIZON_PROBE` cannot catch this: it searches only *upward*
+## The first fix was wrong in the mirror direction, and this file could not see it
+
+Scanning *every* cycle — the obvious reading of "within" — makes the predicate
+return True when the machine was **already** in the target and the trigger *took
+it away*. `_simulate` builds `[settle...] + [[trigger]] + [[]...]`, so cycle 0 is
+the configuration *before* the trigger was offered. Measured on pair 0006:
+
+    Attack --Attack_Complete--> AttackingTarget
+      cycle 0: [..., Attack, AttackingTarget]   <- before the trigger
+      cycle 1: [..., Searching]                 <- after it
+
+Ten of eleven pairs had such flips, all False->True, i.e. **findings eaten**.
+
+**And every assertion in the first version of this file passed anyway** — because
+they only fail when the implementation answers False too often. A monotonicity
+identity is satisfied by `return True`. So the file was single-sided: it could
+never catch the mirror error, which is why 1594 tests went green on a change that
+ate findings in ten pairs.
+
+That is the reason `test_trigger_must_move_the_machine_there` below exists. A
+one-sided acceptance criterion is not an acceptance criterion; it is a way of
+confirming what you already believe.
+
+`_HORIZON_PROBE` cannot catch this either: it searches only *upward*
 (`range(asked + 1, ...)`), and its own comment states the assumption it relies on
 -- "a genuine defect does not become satisfied at a longer horizon". That
 assumption is false for eventless out-edges, which is exactly the population this
@@ -129,4 +152,114 @@ def test_monotone_over_declared_states(pair: str) -> None:
     assert not violations, (
         f"{len(violations)} monotonicity violation(s) on {pair}: "
         f"{violations[:3]}"
+    )
+
+
+#: Calls whose correct answer is **False**: the machine is already inside the
+#: target at cycle 0 and the trigger moves it out. Pinned as a pair to the
+#: monotonicity tests above -- those can only fail on too many Falses, these can
+#: only fail on too many Trues, and the implementation has to satisfy both.
+MUST_BE_FALSE = (
+    ("0006", "UAVSwarmStateMachine.Attack", "Attack_Complete",
+     "UAVSwarmStateMachine.Attack.AttackingTarget"),
+)
+
+
+@pytest.mark.parametrize("pair,source,trigger,target", MUST_BE_FALSE)
+def test_trigger_must_move_the_machine_there(
+    pair: str, source: str, trigger: str, target: str
+) -> None:
+    """A trigger that *leaves* the target does not count as occupying it.
+
+    This is the half the first version of this file was missing. `occupancy_after`
+    asks about "after the trigger", so ordering is part of the proposition: a
+    window that starts before the trigger lands turns "it took the machine away"
+    into "it is there".
+    """
+
+    env = _api(pair)
+    prefix = f"llms_emp_feedback_final_{pair}."
+    values = [
+        env.predicates.occupancy_after(
+            source=prefix + source,
+            trigger=prefix + trigger,
+            target=prefix + target,
+            within_cycles=cycles,
+        )
+        for cycles in (1, 2, 4)
+    ]
+    assert not any(values), (
+        f"occupancy_after credited a trigger that moved the machine *out* of "
+        f"{target}: {dict(zip((1, 2, 4), values))}. Cycle 0 is the configuration "
+        "before the trigger was offered; the scan window must start where the "
+        "trigger was consumed."
+    )
+
+
+@pytest.mark.parametrize("pair", ["0000", "0006", "0029"])
+def test_hit_frame_is_never_before_the_trigger_frame(pair: str) -> None:
+    """第二条恒等式：命中帧的下标必须 ≥ 触发被消费的帧下标。
+
+    单调性（上面那两个测试）对错误实现同样成立 —— settle / cold-start 前缀的长度**与 c 无关**，
+    所以「扫全部帧」产生的假阳性在**每一个** c 上都是 True，天然满足单调不减，也天然绕过
+    `_HORIZON_PROBE`（它只向上搜）。
+
+    换言之：一条只查单调性的验收判据**无法把正确修法与错误修法区分开**。这一条补的正是那个缺口 ——
+    它直接检查窗口的起点，而起点是错误实现与正确实现唯一的差别。
+
+    选这三个 pair 是因为它们都有 `settle > 0` 的 composite 源（全语料 217/627 = 34.6% 的可 pin 配置
+    如此），而那正是假阳性的来源面。
+
+    ⚠️ **三个都是调优格，不是 hold-out。** 首版写了一个 hold-out pair，`holdout.py --verify` 当场
+    拦下（`FAIL held-out pairs have since been named`）。它的两条记录其实早已烧毁，所以那次点名不损失
+    任何可报记录 —— 但检查器**按 pair 判、不看记录状态**，这是对的：动机是自述的，点名是可查的。
+
+    我选它的理由（有 `settle > 0` 的 composite 源）是通用技术性质，与该样本的任何缺陷无关。**但
+    「理由通用」不构成豁免。** 正确处置是换 pair 而不是登记烧毁 —— 该性质在 34.6% 的配置上成立，
+    调优格里必然有，所以换掉的代价是零。
+    """
+
+    env = _api(pair)
+    api = env.predicates
+    states = [row.path for row in api.structure.states()][:10]
+    events = [row.qualified_name for row in api.structure.events()][:3]
+
+    violations = []
+    for source in states:
+        for trigger in events:
+            try:
+                view = api._simulate(source=source, trigger=trigger, cycles=4)
+            except Exception:
+                continue
+            cycles = list(getattr(view, "cycles", ()) or ())
+            fired = next(
+                (
+                    index
+                    for index, cycle in enumerate(cycles)
+                    if trigger in (getattr(cycle, "consumed_events", ()) or ())
+                ),
+                None,
+            )
+            if fired is None:
+                continue
+            # 只出现在触发帧**之前**的状态，不得被判为「触发之后占据」。
+            before = {
+                str(item)
+                for cycle in cycles[:fired]
+                for item in (getattr(cycle, "active_states", ()) or ())
+            }
+            after = {
+                str(item)
+                for cycle in cycles[fired:]
+                for item in (getattr(cycle, "active_states", ()) or ())
+            }
+            for target in before - after:
+                if target in states and api.occupancy_after(
+                    source=source, trigger=trigger, target=target, within_cycles=4
+                ):
+                    violations.append((source, trigger, target))
+
+    assert not violations, (
+        f"{len(violations)} 处命中发生在触发帧之前（{pair}）：{violations[:3]}。"
+        "occupancy_after 问的是「触发**之后**」，所以扫描窗口必须从触发被消费的那一帧开始。"
     )
