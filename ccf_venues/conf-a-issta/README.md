@@ -52,7 +52,7 @@
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [ISSTA series](https://conf.researchr.org/series/issta) | researchr 长期入口 | `2026-06-05 08:39` |
-| Latest year homepage | [ISSTA 2026](https://conf.researchr.org/home/issta-2026) | 2027/2028 于 2026-07-13 复查仍未公布 | `2026-07-13 19:13:21` |
+| Latest year homepage | [ISSTA 2027](https://conf.researchr.org/home/issta-2027) | ⚠️ **2026-08-07 更正**：ISSTA 2027 官方站已上线（第 36 届 Singapore，mandatory abstract `2027-01-08`、full paper `2027-01-11`，AoE / UTC-12h）；2028 由 [issta.org](http://www.issta.org/) 公布地点 Shanghai, China（`conf.researchr.org/home/issta-2028` 仍 404）。此前「2027/2028 于 2026-07-13 复查仍未公布」已作废 | `2026-08-07 20:25:00` |
 | CFP / Call for Papers | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 2022-2023 为 Technical Papers 命名 | `2026-07-13 19:13:21` |
 | Important Dates | [ISSTA 2026 Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) | 与 CFP 同页；2026 官方只给日期 + AoE，未给具体钟点；camera-ready `2026-07-23` | `2026-07-13 19:13:21` |
 | Submission system | [ISSTA 2026 HotCRP](https://issta2026.hotcrp.com/) | 历年入口见年度页 | `2026-06-05 08:39` |
@@ -93,7 +93,7 @@
 - 2026 与 SPLASH/ISSTA co-located，2024 与 ECOOP/ISSTA co-located，2025 与 FSE 同地同周；这些只作为会期/入口关系，不改变 ISSTA 独立计数。
 - 2024/2025 official track canonical slug 均为 `issta-YYYY-papers`：2024 页面标题为 Technical Papers，2025 页面标题为 Research Papers；不要再猜 `technical-papers` / `research-papers` 这类会 404 的 slug。
 - ISSTA 2026 已过 final notification，下一主链节点为 camera-ready `2026-07-23 待补时刻 AoE / UTC-12h`，会期 `2026-10-03..2026-10-09`。
-- ISSTA 2027/2028 于 2026-07-13 复查仍未公布正式年度主页 / CFP / dates，不伪造日期。
+- ⚠️ **2026-08-07 更正**：ISSTA **2027** 正式年度主页、Research Papers track、dates、venue 与组织委员会均已上线（主轨 mandatory abstract `2027-01-08`、full paper `2027-01-11`，`AoE (UTC-12h)`）；**2028** 已由 [issta.org](http://www.issta.org/) 公布地点 Shanghai, China 与三位 chair，但 researchr 年度页仍 404、会期未公布。此前「2027/2028 于 2026-07-13 复查仍未公布」的结论已作废；仍不伪造未公布的日期。
 - 2022-2024 数量暂以 DBLP inproceedings fallback；2025 DBLP `issta2025c.html` 明确为 companion/fallback 入口，35 条不能当作最终主 proceedings 数量，后续必须以 ACM DL / PACMSE Issue ISSTA 2025 和官方 accepted papers 交叉核验。
 
 ## 8. TIMELINE.md 同步提示

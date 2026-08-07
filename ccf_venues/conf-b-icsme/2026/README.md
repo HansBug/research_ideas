@@ -76,7 +76,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | `2026-06-05 17:35` | 已按可访问状态记录；未公布年度写明已检索未公布。 |
-| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/icsme-2026) | `2026-07-13 13:30` | 已复查 Research Papers Track 核心日期；notification 已过，camera-ready 仍按本年度记录为 `TBD` / 未明确公开。 |
+| 官方 CFP / Dates | [Important Dates](https://conf.researchr.org/dates/icsme-2026) | `2026-07-13 13:30` | 已复查 Research Papers Track 核心日期；notification 已过，camera-ready 仍按本年度记录为 `TBD`（⚠️ 该判断已于 2026-08-07 作废：官方已公布 `2026-06-26 23:59 AoE`） / 未明确公开。 |
 | 官方论文名录 / proceedings | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
 

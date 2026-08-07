@@ -49,7 +49,7 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 |---|---|---|---|
 | Series / main site | [VMCAI official pages on researchr](https://conf.researchr.org/series/VMCAI) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP VMCAI index](https://dblp.org/db/conf/vmcai/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | 2026-07-13 复查：VMCAI 2026 已结束；2027/2028/2029+ 未发现官方主页 / CFP / important dates，未来年度不得伪造 | `2026-07-13 19:11:00` |
+| 最新年度入口 | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | 2026-07-13 复查：VMCAI 2026 已结束；2027/2028/2029+ ；⚠️ **2026-08-07 更正：VMCAI 2027 官方站已上线**（researchr 使用**大写 slug** `VMCAI-2027`，小写探测会漏），submission `2026-09-16 AoE / UTC-12h`、第 28 届 Mexico City、co-located POPL 2027；2028/2029+ 仍未发现官方主页 / CFP / important dates，未来年度不得伪造 | `2026-07-13 19:11:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -82,9 +82,9 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；未发现官方主页 / CFP / important dates，未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；的判断已于 **2026-08-07 对 2027 作废**（官方站已上线，见 [2027/README.md](./2027/README.md)）；**2028 与 2029+ 仍未发现官方主页 / CFP / important dates**，未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 VMCAI 2028 官方年页。
-- 2027 计数口径：未发现 VMCAI 2027 官方年页。
+- 2027 计数口径：会期未到，accepted 未公布；后续须按 regular / tool / case study 三类分别计数，不与 POPL umbrella 混算。（⚠️ 此前「未发现 VMCAI 2027 官方年页」的结论已于 2026-08-07 作废。）
 - 2026 计数口径：2026 会期已结束；proceedings / DBLP 尚未稳定落地。
 - 2025 计数口径：Part I/II 需拆 paper category；不与 POPL umbrella 混算。
 - 2024 计数口径：artifact 与 research papers 分列待补。

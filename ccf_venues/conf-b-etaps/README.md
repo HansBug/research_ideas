@@ -96,6 +96,7 @@
 - 2023 未找到独立 TACAS 分会页时，根表与年度页均显式写作 `fallback`，避免把 ETAPS programme 误读为独立 TACAS track 页。
 - 2026 / 2027 CFP 均写明 `All the dates are AoE`；投稿、artifact、rebuttal、notification、final version 等 deadline 默认按 AoE 口径记录，会期日期本身不按 AoE deadline 解释。2026 已结束；2027 TACAS 仍处于可投稿窗口，paper submission 为 `2026-10-15 待补时刻 AoE`，mandatory artifact 为 `2026-10-29 待补时刻 AoE`。
 - 2027 ETAPS 年度主页 / CFP 给出 umbrella 会期 `2027-04-10..2027-04-15`，CFP 同时注明 Main conferences `2027-04-12..2027-04-15`；本库在根表与年度页同时保留两层日期。
+- ⚠️ **2026-08-07 跟踪范围扩展**：本库跟踪的 ETAPS 主会由「仅 TACAS」扩为 **「TACAS + iFS」**。**iFS 2027 是 FASE 与 iFM 合并后的首届会议**，与 TACAS / ESOP-R2 / FoSSaCS 共用 submission deadline `2026-10-15 AoE`，但**无 rebuttal**、artifact 自愿、双盲仅限 regular research paper；proceedings 为 LNCS **ARCoSS** subline gold open access（CC-BY，作者无 APC），并有 **STTT + FAC 双专刊邀请**。其 scope 明列 requirements engineering、MDE、model learning、AI-based systems 的 SE 基础，**对 project_1 / 2 / 4 的契合度高于偏工具算法的 TACAS**。详见 [2027/README.md](./2027/README.md) §4.1 与 [../01-venue-scope.md](../01-venue-scope.md)。⚠️ CCF 第七版目录只收 `ETAPS` 单一伞条目（全 72 页无子会议名），iFS 继承 B 类属**推论而非目录明文**，用于毕业成果认定前需另行确认。
 - 2024 TACAS artifact deadline 存在版本差异，当前按已知官方证据记为 `2023-10-26 23:59 AoE`，并在年度页保留矛盾提示。
 
 ## 8. TIMELINE.md 同步提示

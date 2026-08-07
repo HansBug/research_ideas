@@ -50,9 +50,9 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核验时间 |
 |---|---|---|---|
 | Series / main site | [ICPC official site](https://www.program-comprehension.org/)；[researchr ICPC series](https://conf.researchr.org/series/icpc) | 年度独立站点 / researchr / 官方组织站点并行 | `2026-06-05 17:35` |
-| Latest year homepage | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | 2027 已有 official home / venue / tracks，但 CFP / Important Dates 未公布；2028 仍未公布 | `2026-07-13 13:30` |
-| CFP / Call for Papers | 见 §6 年度信息汇总 | 2027 已有 official home / tracks，但 Research Track CFP 未公布；track 分散时在年度 README 展开 | `2026-07-13 13:30` |
-| Important Dates | 见 §6 年度信息汇总 | 2027 Important Dates 未公布；researchr dates / official CFP 优先 | `2026-07-13 13:30` |
+| Latest year homepage | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | ⚠️ **2026-08-07 更正：2027 Research Track CFP 与 Important Dates 均已公布**（abstract `2026-10-29 23:59:59 AoE / UTC-12h`、paper `2026-11-05`，HotCRP 已开）；2028 仍未公布。此前「CFP / Important Dates 未公布」已作废 | `2026-07-13 13:30` |
+| CFP / Call for Papers | [ICPC 2027 Research Track](https://conf.researchr.org/track/icpc-2027/icpc-2027-research-track) | ⚠️ **2026-08-07 更正：Research Track CFP 已公布**（10+2 页、double-anonymous、第 35 届）。⚠️ 2027 起 track slug 由历史的 `icpc-YYYY-research` 改为 `icpc-2027-research-track`，旧模式 404；track 分散时在年度 README 展开 | `2026-08-07 20:25:00` |
+| Important Dates | [ICPC 2027 dates](https://conf.researchr.org/dates/icpc-2027) | ⚠️ **2026-08-07 更正：2027 Important Dates 已公布**，官方逐字 `All dates are 23:59:59 AoE (UTC-12h).`（给了精确时刻，故不写 `待补时刻`）；researchr dates / official CFP 优先 | `2026-08-07 20:25:00` |
 | Submission system | 见 §6 年度信息汇总 | 历史系统可能失效，失效时保留待复核 | `2026-06-05 17:35` |
 | Program / accepted papers | 见 §6 年度信息汇总 | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 见 §6 年度信息汇总 | publisher proceedings 优先，DBLP 仅作 fallback | `2026-06-05 17:35` |
@@ -88,7 +88,7 @@ ICPC 面向程序理解、软件制品理解、代码 / 文档 / 历史理解、
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、industry、tool、journal-first、registered report、artifact、workshop、co-located event 不得混算。
-- `2027` 已出现 [ICPC 2027](https://conf.researchr.org/home/icpc-2027) official home，地点 Dublin, Ireland，会期 `2027-04-25..2027-04-26`，co-located with ICSE 2027；截至 `2026-07-13` 仍未公布 CFP / Important Dates / submission。`2028` 与 `2029+` 已做公开入口检索，未公布年度保留占位与核查记录，不预设 CFP。
+- ⚠️ **2026-08-07 更正**：`2027` 的 [ICPC 2027](https://conf.researchr.org/home/icpc-2027) official home 之外，**Research Track CFP 与 Important Dates 亦已公布** —— abstract `2026-10-29 23:59:59 AoE / UTC-12h`、paper `2026-11-05`、notification `2027-01-14`、camera-ready `2027-01-28`，投稿入口 [HotCRP `icpc2027-technical`](https://icpc2027-technical.hotcrp.com)；地点 Dublin, Ireland，会期 `2027-04-25..2027-04-26`，co-located with ICSE 2027，第 35 届。此前「截至 `2026-07-13` 仍未公布 CFP / Important Dates / submission」的结论已作废。
 - 本 venue 的 dated events 已按事件发生年份同步到 [../TIMELINE.md](../TIMELINE.md)；后续修改 deadline 必须同步更新年度 README、根表与 Mermaid。
 
 ## 8. TIMELINE.md 同步提示

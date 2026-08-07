@@ -23,8 +23,8 @@
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | official home 已公布；CFP / Important Dates 未公布 | `2026-07-13 13:30` |
-| CFP / Call for Papers | 未公布 | track 分散时逐 track 补链接；当前仅有 track 导航，无 CFP 日期 | `2026-07-13 13:30` |
+| 年度主页 | [ICPC 2027](https://conf.researchr.org/home/icpc-2027) | ⚠️ 2026-08-07 更正：official home 之外，**Research Track CFP 与 Important Dates 亦已公布**（此前记未公布） | `2026-08-07 20:05:00` |
+| CFP / Call for Papers | [Research Track](https://conf.researchr.org/track/icpc-2027/icpc-2027-research-track) | ⚠️ 2026-08-07 更正：CFP 已公布（10+2 页、double-anonymous）。⚠️ track slug 为 `icpc-2027-research-track`，**不是**历史的 `icpc-2027-research`（后者 404） | `2026-08-07 20:05:00` |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/icpc-2027) | 2026-08-07 核验：Research Track 四行已公布且**官方给出精确时刻** —— track 页逐字 `All dates are 23:59:59 AoE (UTC-12h).`，故不写 `待补时刻`。dates 页对该四行标 `new`，说明近期调整过，投稿季前需复查 | `2026-08-07 20:05:00` |
 | Submission system | [HotCRP `icpc2027-technical`](https://icpc2027-technical.hotcrp.com) | 2026-08-07 核验：Research Track CFP 已给出投稿入口 | `2026-08-07 20:05:00` |
 | Tracks / program | 未公布 | Research Track；ERA / RENE / Tool / Journal First 需分开 | `2026-06-05 17:35` |
