@@ -381,11 +381,15 @@ def check_timezone_suffix() -> None:
                        # 会把散文格的中文剥光、残余变空，于是备注列被判成日期格（轮次 12 实测）。
                        r"|[\sA-Za-z0-9_.,;:()/（）；，、=\-—…*`+]")
     cjk = re.compile(r"[\u4e00-\u9fff]")
-    utc = re.compile(r"AoE\s*[/(]\s*UTC-\d")
-    named = re.compile(r"AoE\s*\(Anywhere")
+
+    # 日期格必须**以日期开头**，或以 ASCII 标签 + 冒号开头（`Round 1: 2023-12-15 …`）。
+    # 仅「含日期」不够：纯 ASCII 英文备注若恰好含日期 + AoE 会被误判（轮次 13 M-2 实测）。
+    # 但也不能只允许「以日期开头」——那会漏掉 ISSTA 2024 的 `Round 1: … ；Round 2: …`
+    # 复合格（轮次 11 实测的召回缺口）。两条约束必须同时存在。
+    starts_date = re.compile(r"^(?:\*\*)?(?:[A-Za-z][A-Za-z ]{0,24}\d?\s*[:：]\s*)?\d{4}-\d{2}-\d{2}")
 
     def is_datecell(c: str) -> bool:
-        return ("AoE" in c and has_date.search(c) is not None and len(c) <= 140
+        return ("AoE" in c and starts_date.match(c) is not None and len(c) <= 140
                 and "。" not in c and cjk.search(strip.sub("", c)) is None)
 
     def forms(text: str, keep) -> set:
@@ -396,11 +400,24 @@ def check_timezone_suffix() -> None:
             for c in (x.strip() for x in line.split("|")):
                 if not is_datecell(c):
                     continue
-                # 逐个 AoE 出现位置分类，复合格内混用也能发现
-                for m in re.finditer(r"AoE", c):
-                    tail = c[m.start():m.start() + 40]
-                    out.add("UTC" if utc.match(tail) else
-                            "NAMED" if named.match(tail) else "BARE")
+                # 逐个 AoE 出现位置分类，复合格内混用也能发现。
+                #
+                # ⚠️ tail **必须截断在下一个 AoE 处**。用固定窗口会越界读到下一段的后缀：
+                # `Round 1: … AoE；Round 2: … AoE / UTC-12h` 中首个裸 AoE 会被冒认成 UTC，
+                # 于是格内混用检不出来（轮次 13 实测，一度让复合格召回归零）。
+                #
+                # ⚠️ 两种标记要**各自独立判定**，且不要求紧跟 AoE：
+                # `AoE (Anywhere on Earth) / UTC-12h` 里 UTC 并不紧邻 AoE，
+                # 若沿用「UTC 必须紧跟 AoE」的模式会漏判成纯 NAMED 而静默通过。
+                pos = [m.start() for m in re.finditer(r"AoE", c)]
+                for idx, st in enumerate(pos):
+                    tail = c[st:pos[idx + 1] if idx + 1 < len(pos) else len(c)]
+                    hit = set()
+                    if re.search(r"UTC-\d", tail):
+                        hit.add("UTC")
+                    if "Anywhere on Earth" in tail:
+                        hit.add("NAMED")
+                    out |= hit or {"BARE"}
         return out
 
     tl = read(TIMELINE)
