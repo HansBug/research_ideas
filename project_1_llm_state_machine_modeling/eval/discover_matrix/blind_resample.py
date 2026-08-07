@@ -310,6 +310,19 @@ def main(argv: list[str] | None = None) -> int:
 
     sample, key = build(args.verdicts_json, args.size, args.seed, args.generation)
     OUT.mkdir(exist_ok=True)
+    # 覆盖已有 key 之前先归档它。上一代次的 key 被这一步直接覆盖，于是那一代次的 `hit@k` 与代次间
+    # 对比**永久不可复算** —— 发布核验把这列为 I 级证据链缺口，而救回它的唯一原因是种子固定。
+    #
+    # 归档而不是拒绝覆盖：拒绝会让重跑变成手工删文件，而手工删掉的东西不会被归档。
+    existing = OUT / "key.json"
+    if existing.is_file():
+        old_key = json.loads(existing.read_text())
+        old_sid = old_key.get("sample_id")
+        if old_sid and old_sid != key.get("sample_id"):
+            archive = OUT / f"key.{old_sid}.json"
+            if not archive.is_file():
+                archive.write_text(existing.read_text())
+                print(f"  已归档上一份 key（sample_id={old_sid}）→ {archive.name}")
     (OUT / "sample.json").write_text(json.dumps(sample, ensure_ascii=False, indent=1))
     (OUT / "key.json").write_text(json.dumps(key, ensure_ascii=False, indent=1))
     bands = collections.Counter(i["band"] for i in key["items"])

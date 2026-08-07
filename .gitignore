@@ -1253,6 +1253,14 @@ project_ex1_llm_judge_for_stm/discussions/*.pdf
 # linked from the PR, where it can also be read without a clone.
 /runs/
 
-# 盲判样本：sample.json 含 170KB 管线产出快照，key.json 是答案。
-# 两者都是一次性审计中间件，不入库；可用 blind_resample.py --seed 复现。
-project_1_llm_state_machine_modeling/eval/discover_matrix/blind_sample/
+# 盲判样本：`sample.json` 含数百 KB 管线产出快照，不入库（可用 blind_resample.py --seed 复现）。
+#
+# 但 `key.json`（16K）**必须入库** —— 它是 `unit_id → (记录, 臂, 带)` 的映射，而盲判结果文件以
+# `unit_id` 为键。没有它，`hit@k` 与代次间对比**外部无法复算**：发布核验实测「能发现可报带表格里那个
+# 多出的 ✅，只因本机恰好还留着当代次的 key」。更糟的是这个路径已被覆盖过一次 —— 上一代次两位盲判者
+# 的 `sample_id` 与当前 key 不同，那份 key 已不存在，于是上一代次的基线不可复算。
+#
+# 判定者只拿 `sample.json`，所以 key 入库不构成泄漏。
+project_1_llm_state_machine_modeling/eval/discover_matrix/blind_sample/*
+!project_1_llm_state_machine_modeling/eval/discover_matrix/blind_sample/key.json
+!project_1_llm_state_machine_modeling/eval/discover_matrix/blind_sample/key.*.json
