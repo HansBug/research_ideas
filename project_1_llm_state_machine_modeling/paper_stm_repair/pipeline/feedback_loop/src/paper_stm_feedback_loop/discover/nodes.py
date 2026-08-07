@@ -1454,6 +1454,10 @@ def split_requirements(
             missing_segment_ids=tuple(
                 sorted(set(frozen.nl_segments) - set(output.segment_disposition))
             ),
+            # 隔离掉的需求走**已有**字段，与断言评审阶段同一归属地（见本文件对
+            # `quarantined_requirement_ids` 的另一处赋值）。不新开 `_`-前缀 state 键 ——
+            # 那会让「哪些需求被丢掉」有两个真源，而审计者只会读其中一个。
+            quarantined_requirement_ids=quarantined_requirements,
         )
         record = _record_node(
             state,
@@ -1489,13 +1493,6 @@ def split_requirements(
             "requirement_set": output,
             "requirement_coverage": coverage,
             "_requirement_revision_ledger": revision_ledger,
-            # 被门隔离掉的需求 id。空元组是常态；非空表示该轮**没有**整格失败，而是丢了这几条，
-            # 其余需求的判定被保留。审计时必须把它与 `requirement_coverage` 一起读 ——
-            # 后者只列存活的需求，单看它会以为这一轮本来就没形成那几条。
-            "_quarantined_requirements": (
-                *state.get("_quarantined_requirements", ()),
-                *quarantined_requirements,
-            ),
             "requirement_fingerprints": (
                 *state.get("requirement_fingerprints", ()),
                 fingerprint,

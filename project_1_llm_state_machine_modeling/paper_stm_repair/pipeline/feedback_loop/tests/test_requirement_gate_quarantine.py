@@ -94,3 +94,7 @@ def test_nodes_py_does_not_raise_unconditionally_on_step_findings() -> None:
     window = src[i : i + 2200]
     assert "quarantine not possible" in window, "隔离分支不见了，门又变成无条件致命"
     assert "survivors" in window
+    # 隔离结果必须走**已有**的 `quarantined_requirement_ids` 字段，不得另开 `_`-前缀 state 键。
+    # 两个真源的后果是审计者只读其中一个，而「哪些需求被丢掉」恰恰是最不该分叉的事实。
+    assert "quarantined_requirement_ids=quarantined_requirements" in src
+    assert "_quarantined_requirements" not in src, "又开了第二个真源"
