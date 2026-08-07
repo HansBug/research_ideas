@@ -2,7 +2,10 @@
 
 ## 为什么需要这个工具，以及为什么它不分带
 
-前几代次的 comment 只报了「能力主张带」的 2–4 条记录，而实际有 66 个格、204 个判定位。
+前几代次的 comment 只报了「能力主张带」的 2–4 条记录，而实际有数十个格、上百个判定位。
+⚠️ 格数与位数**不写死**：它们随建模对象筛选（见 `nl_scope_filter.py`）变化 —— v24 是 66 格 / 204 位
+（11 pair × 34 条记录），v35 起是 48 格 / 120 位（8 pair × 20 条记录）。表头一律由实际数据算出，
+因为标题写着 66 而表里只有 48 行这种错误不会报错、只会让读者按标题相信一个错的分母。
 
 **带划分本身是套错的工具，现已废止。** hold-out 服务的是泛化性声明（「在未见过的模型上命中率 X%」）。
 本研究的贡献是**从真实模型归纳问题类型与判定能力** —— 语料是研究对象本身，不是留出测试集。这与工具
@@ -15,13 +18,13 @@
 运行时反馈里不得出现台账元素名、期望真值、针对单样本的特判）。这条与 hold-out 是**两条不同的线**，
 此前被我捆在一起了。
 
-所以：**全部 34 条记录、204 个判定位、66 个格一律入表入算**，不过滤、不分带。代价是**不能声称对未见
+所以：**筛选后的全部记录、全部判定位、全部格一律入表入算**，不过滤、不分带。代价是**不能声称对未见
 模型的泛化** —— 报告里必须写明这一点，那是主张边界，不是分母边界。
 
 ## 两张表
 
-1. `cells()` —— 66 格：run × pair × arm，每格的 issue 数、coverage_gaps、拒答、重试痕迹
-2. `positions()` —— 204 位：34 条台账记录 × 2 臂 × 3 轮，逐条带 layer / 主谓词 / 缺陷简述
+1. `cells()` —— 逐格：run × pair × arm，每格的 issue 数、coverage_gaps、拒答、重试痕迹
+2. `positions()` —— 逐位：台账记录 × 2 臂 × 3 轮，逐条带 layer / 主谓词 / 缺陷简述
 
 分组维度是**问题类型（`layer`）**，不是带 —— 那才是「归纳问题类型与判定能力」的实际维度，也是唯一能回答「哪类缺陷发现得好、哪类差」的切法。
 
@@ -70,7 +73,7 @@ def _ledger() -> dict[str, dict]:
 
 
 def cells(generation: str) -> list[dict]:
-    """66 格逐格实况。`.try` 目录单独计数为重试痕迹，不混入正表。"""
+    """逐格实况。`.try` 目录单独计数为重试痕迹，不混入正表。"""
 
     base = RUNS / f"matrix-{generation}"
     if not base.is_dir():
@@ -110,7 +113,7 @@ def cells(generation: str) -> list[dict]:
 
 
 def positions(generation: str, verdicts_path: pathlib.Path) -> list[dict]:
-    """204 位逐位实况，含层、主谓词、缺陷简述与逐轮 0/1/None。"""
+    """逐位实况，含层、主谓词、缺陷简述与逐轮 0/1/None。"""
 
     payload = json.loads(verdicts_path.read_text())
     verdicts = payload.get("verdicts") or {}
@@ -234,7 +237,7 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
     pos_rows = positions(generation, verdicts_path)
     out: list[str] = run_validity(generation)
 
-    # ---- 表 1：66 格 ----
+    # ---- 表 1：逐格 ----
     done = sum(1 for r in cell_rows if r["status"] == "完成")
     total_issues = sum(r["issues"] or 0 for r in cell_rows)
     total_retry = sum(r["retries"] for r in cell_rows)
