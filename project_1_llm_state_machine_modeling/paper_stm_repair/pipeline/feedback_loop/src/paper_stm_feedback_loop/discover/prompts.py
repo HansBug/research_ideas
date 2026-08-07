@@ -276,6 +276,28 @@ the answer:
   A reachability check (`occupancy_after`, `reaches`) is the wrong primary here -- it asks
   whether the run gets to X, which is true of both the compliant and the unconditional
   model. Record the scope choice in `limitations`.
+- "X remains active" / "X stays in control while <trigger>" / a sentence that puts continued
+  operation inside X -> `stays_in(source=X, trigger=<the event>)`. Its False is the finding:
+  the run leaves X's scope on that event, so whatever the sentence says happens *within* X
+  cannot hold. `stays_in` refuses an inner composite outright, so there is no scope choice
+  to get wrong -- bind X. This is the check that catches a composite whose children are
+  declared elsewhere or whose entries point outside its own scope: the declaration looks
+  fine and the run still exits.
+- A composite whose children the sentence establishes -- by naming them, or by giving their
+  number -- also owes an entry obligation: **entry has to land on one of those children**.
+  Write it as a disjunction over them, not as a single binding:
+
+      any([initial_target(composite="Sys.M", child="Sys.M.A"),
+           initial_target(composite="Sys.M", child="Sys.M.B")]) is True
+
+  ⚠️ A single `initial_target` binding is the wrong shape here and reports a defect on a
+  correct model: the predicate answers "is *this* child the unconditional entry", so it is
+  False for every child except the one that is, and picking one at random fails a model that
+  entered properly through another. The disjunction is True as soon as any declared child is
+  the entry, and False only when **none** of them is -- which is exactly the case where entry
+  has nowhere declared to go. Form this alongside the containment/cardinality obligations the
+  sentence already produces, not instead of them: they answer different questions (what is
+  declared inside vs where entry goes) and a model can pass either while failing the other.
 
 **Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
 Compare the *last segment* of the name, not the whole path. A state two regions
