@@ -49,6 +49,7 @@
 
 | 字段 | 内容 |
 |---|---|
+| 取证域说明（2026-08-07） | SBSE collection 由 `Upcoming` 迁移为 `Open` 及 APSEC collection 窗口，均经 `rd.springer.com/journal/10515/collections` 与各 collection 直链官方正文核验；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳），见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。 |
 | 论文数量 | 未公布 |
 | Publisher annual / issue entry | ⏳ 已检索未公布 |
 | Articles / online first | [Springer articles](https://link.springer.com/journal/10515/articles) |

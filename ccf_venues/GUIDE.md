@@ -516,8 +516,10 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 会议主链默认按以下状态迁移：
 
 ```text
-⏳ 待官网 / ⏳ 已检索未公布 -> 🟦 已有主页 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
+⏳ 已检索未公布 -> ⏳ 待官网（槽位已建未发布） -> 🟦 已有主页 / 🟦 已有预告 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
 ```
+
+> `⏳ 待官网（槽位已建未发布）`、`🟦 已有预告`、`🟦 主办征集中` 三个状态词的定义与判别见 [§10.1](#101-补充状态词2026-08-07-增补) 与 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。
 
 其中 `⏳ 已检索未公布` 表示只找到 stable series、publisher placeholder 或旧站入口，尚无本年度 official home / CFP / dates；它不得被硬升为 `🟦 已有主页`，也不得作为事件本身进入 dated TIMELINE / Mermaid。若某条 dated event 已由官方日期支撑，TIMELINE 的论文集 / 名录等辅助列可以写 `⏳ 已检索未公布` 表示 proceedings、paper list 或卷期入口尚未发布；这不等同于把年度 placeholder 伪造成 dated event，但必须确保事件日期、阶段状态和来源列已核验。
 
@@ -677,7 +679,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
 19. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
 20. **PR-10 全局审计降级核验坑**：若 subagent 服务出现 503 / 429，不能把“agent 未返回”当作可遗留待核验项；主 session 必须用本地脚本、官方页面、带 User-Agent 的 `requests` / `curl`、`claude -p` / `codex-deepseek exec` 等替代路径完成核验，并在 SUMMARY / PR body 说明降级方式。
-21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`UTC+8`、本地时区或无具体时刻；不能把其他 track 的 AoE 套到 main / technical / research chain，也不能在官方行级 `title="Timezone: ..."` 已给时区时继续写成“官方仅日期”。核验时应检查 HTML 的 `title="Timezone: ..."` 或页面显示的时区图标说明；例如 APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE；SANER 2027 Research Track 是 `AoE (UTC-12h)`，应写成 `待补时刻 AoE` / `AoE / UTC-12h`。
+21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`AoE (Anywhere on Earth)`、`UTC+8h`、本地时区或无具体时刻；**必须逐 track 读原始 HTML 的 `title="Timezone: …"` 属性**，不能把某个 track 的时区套到 main / technical / research chain，也不能凭纯文本提取断言「页面无时区声明」（见 §16.6.5 第 3 条）。⚠️ **2026-08-07 更正范例**：本条初稿曾以「APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE」作为 worked example —— **该范例事实错误**。实测 `dates/apsec-2026` 的 Technical Track **全 8 行 tooltip 均为 `AoE (Anywhere on Earth)`**，CFP 小标题亦为 `Key Dates (AoE)`；`UTC+8h` 只属于 Local Student Forum 与 Doctoral Symposium 两个旁支 track。正确的 worked example 应是：**同一张 dates 页上，APSEC 2026 的 Technical Track 为 `AoE`、Local Student Forum / Doctoral Symposium 为 `UTC+8h`** —— 这正说明为什么必须逐 track 核对，而不是读一行推全表。
 
 ### 16.2 回写位置
 
@@ -759,7 +761,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 ⏳ 已检索未公布 -> ⏳ 待官网（槽位已建未发布） -> 🟦 已有主页 / 🟦 已有预告 -> 🟢 投稿中 -> ...
 ```
 
-**四个实例的正确编码（2026-08-07 统一）**：`RE 2027` 与 `ICSME 2027` = `⏳ 待官网（researchr 槽位已存在但未公开发布）`（researchr 是唯一来源）；`FM 2027` = `🟦 主办征集中`（researchr Access denied，但 FME 另有官方 organizer call 这一实质事实，故用该会议族专有态）；`ICSE 2028` = `🟦 已有预告`（researchr Access denied，但 ICSE 指导委员会官方站已公布 `Apr 2028 / Hawaii, USA`）。**关键判别：Access denied 本身只决定「不低于 `⏳ 待官网`」，最终档位由是否另有官方实质事实决定。**
+**四个实例的正确编码（2026-08-07 统一）**：`RE 2027` 与 `ICSME 2027` = **`⏳ 待官网（槽位已建未发布）`**（规范 token，见 §10.1；researchr 是唯一来源）；`FM 2027` = `🟦 主办征集中`（researchr Access denied，但 FME 另有官方 organizer call 这一实质事实，故用该会议族专有态）；`ICSE 2028` = `🟦 已有预告`（researchr Access denied，但 ICSE 指导委员会官方站已公布 `Apr 2028 / Hawaii, USA`）。**关键判别：Access denied 本身只决定「不低于 `⏳ 待官网`」，最终档位由是否另有官方实质事实决定。**
 
 `2026-08-07` 实例：RE 2027、ICSME 2027、FM 2027、ICSE 2028 均为 `Access denied`（此前本库统一记作 404 或「已检索未公布」，丢失了信号）；RE 2028、ICSME 2028、ASE 2027 为真 404；EASE 2027 为空 dates 表。
 

@@ -69,6 +69,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | STTT 在 Springer 侧**无 collections 页**（`rd.springer.com/journal/10009/collections` 为 HTTP 404）、`updates` 页全量仅 1 条，均经 `rd.` 域官方正文核验；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 / scope | [Springer STTT](https://link.springer.com/journal/10009)；[Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | `2026-06-05 11:58` | 官方入口与 scope 可用，scope 明确 tool-supported development / verification 与 technology transfer。 |
 | Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines)；[Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | `2026-06-05 11:58` | 投稿指南与 Equinocs 入口可用；Equinocs 页面命令行只显示 loading 壳，未获公开可审计正文登录后流程。 |
 | Special issue / journal updates | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | `2026-07-13 19:30:00` | 本年度未发现 active dated CFP；已出版 special issue / section 仅作为计数风险记录。 |

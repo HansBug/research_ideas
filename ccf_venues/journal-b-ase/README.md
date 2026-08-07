@@ -97,7 +97,7 @@
 
 - 常规投稿为 rolling / continuous publishing，不进入 dated Mermaid；[TIMELINE.md](../TIMELINE.md) 的“期刊滚动投稿 / 未定日期”表已记录本 venue。
 - 2026-07-13 复查：ASE Journal 常规稿 rolling；当前作为通用机会维护的 Springer collection 限于公开、非 invite-only 且与本仓库直接相关的条目。排除 invite-only / conference selected-paper 扩展和弱相关旁支。
-- 当前 open / upcoming 机会包括 Green and Sustainable Software（2026-07-15）、Genetic Improvement（2026-07-31）、Reproducibility @ SANER（2026-08-15）、Low-Code Modeling / Ex-ASE（2026-09-01）、Q-SE（2026-09-15）、ASE / Software-Intensive Business（2026-09-30）、Code Review Quality（2026-10-01）、Trustworthy LLM（2026-12-31）、SBSE in LLMs/Agents（2027-01-30），以及 2026-12-15 开放、2027-03-12 截止的 APSEC collection。
+- 当前 open / upcoming 机会包括 Green and Sustainable Software（**2026-08-15**，官方已由 2026-07-15 延期，仍 Open）、Genetic Improvement（**2026-08-14**，官方已由 2026-07-31 延期，仍 Open）、Reproducibility @ SANER（2026-08-15）、Low-Code Modeling / Ex-ASE（2026-09-01）、Q-SE（2026-09-15）、ASE / Software-Intensive Business（2026-09-30）、Code Review Quality（2026-10-01）、Trustworthy LLM（2026-12-31）、SBSE in LLMs/Agents（2027-01-30），以及 2026-12-15 开放、2027-03-12 截止的 APSEC collection。
 - Springer collections 只维护与 LLM4Modeling / 自动化建模 / 模型质量 / 修复强相关的 subset；弱相关 open collections 不写入近期投稿窗口，以免误导投稿决策。
 - DBLP `entry article` baseline 不等于 Springer 最终卷期闭合数；后续如做论文数量统计，必须按 publisher issue / article type 交叉核验。
 - CCF 等级以 CCF 官方目录为准；`ccf.atom.im` 只作非官方检索线索，不作为官方证据。

@@ -71,6 +71,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | 本轮 RE Journal 全量 6 条 collection 的 `Closed` 状态经 `rd.springer.com/journal/766/collections` 官方正文核验；0 条 Open、0 条 Upcoming；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 | [Springer Requirements Engineering](https://link.springer.com/journal/766) | `2026-06-05 11:57` | 官方期刊入口可用。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines)；[Submit manuscript](https://submission.springernature.com/new-submission/766/3) | `2026-06-05 11:57` | 常规投稿入口可用，按 rolling submission 处理。 |
 | Special issue / topical collection | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[LLM collection](https://link.springer.com/collections/deebijccbh) | `2026-07-13 19:15:00` | 三项 2026 collections 均已 Closed；关键历史 deadline 见 §4，当前可投口径回到常规 rolling。 |

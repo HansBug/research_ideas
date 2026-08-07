@@ -86,7 +86,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-08-07 20:05:00` | 常态化刷新：**修正 Technical Track 时区口径** —— 官方 dates 页 6 行 tooltip 与 CFP 小标题当前均为 `AoE (Anywhere on Earth)`，本库此前记录的 `UTC+8 (Bali time)` 相差 20 小时，已改回 AoE 并保留冲突历史；阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 审稿中`（full paper 2026-07-20 已过，未再延期）；补入 First/Final Reviews Due 与 AUSE 特刊事实。 |
+| `2026-08-07 20:05:00` | 常态化刷新：**修正 Technical Track 时区口径** —— 官方 dates 页 8 行 tooltip 与 CFP 小标题当前均为 `AoE (Anywhere on Earth)`，本库此前记录的 `UTC+8 (Bali time)` 相差 20 小时，已改回 AoE 并保留冲突历史；阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 审稿中`（full paper 2026-07-20 已过，未再延期）；补入 First/Final Reviews Due 与 AUSE 特刊事实。 |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 dates 更新 APSEC 2026 Technical Track optional abstract / full paper 延期信息，补 `待补时刻 UTC+8 (Bali time)`，不混入旁支 track。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：补充 APSEC 2026 companion tracks 异构时区 caveat，并将 Technical Track UTC+8 标注按官方 tooltip 核验，避免误套到 ERA / Tool Demo / Tutorials 等 track。 |
 | `2026-06-06 01:13` | PR-10 focused final review 修复：将 APSEC 2026 会期备注统一为 Bali local time (UTC+8)，与 TIMELINE 会期行一致。 |

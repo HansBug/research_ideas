@@ -45,7 +45,7 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026) | [CFP](https://link.springer.com/collections/bddiejbihe) | 2027-03-01 待补时刻（submission deadline）；2027-04-30 待补时刻（first review round）；2027-07-31 待补时刻（revision due）；2027-11-30 待补时刻（final notification） | 开放窗口 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | 官方页面写 submission deadline March 1, 2027；first review round April 30, 2027；revised manuscripts July 31, 2027；final notification November 30, 2027。 |
-| Human-Centered AI Transformation for Software Engineering | [CFP](https://link.springer.com/collections/jicahjcieb) | 2027-01-31 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | ⚠️ **2026-08-07 新增（此前本库完全未记录）**：Springer collection 页 `Submission status: Open`，`Submission deadline` 逐字 `31 January 2027`，**public non-invite**。涵盖 transparency、accountability、governance、human-AI collaboration，与 project_ex1 的评审方法学、P1 的人机协同建模相关。取证域：`rd.springer.com/collections/jicahjcieb`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳）。 |
+| Human-Centered AI Transformation for Software Engineering | [CFP](https://link.springer.com/collections/jicahjcieb) | 2027-01-31 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/jicahjcieb) | 已同步至 TIMELINE / SUMMARY | ⚠️ **2026-08-07 新增（此前本库完全未记录）**：Springer collection 页 `Submission status: Open`，`Submission deadline` 逐字 `31 January 2027`，**public non-invite**。涵盖 transparency、accountability、governance、human-AI collaboration，与 project_ex1 的评审方法学、P1 的人机协同建模相关。取证域：`rd.springer.com/collections/jicahjcieb`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳）。 |
 
 ## 5. 年度论文入口与数量
 

@@ -74,7 +74,7 @@
 | 官方年度主页 | [官方年度主页](https://conferences.i-cav.org/2026/) | `2026-08-07 20:05:00` | 会期 `2026-07-26..2026-07-29` 已结束；页面正文仍保留 forward-looking 文案未随会期更新，阶段判断以日历为准。 |
 | CFP / Call for Papers | [CFP / Call for Papers](https://conferences.i-cav.org/2026/cfp/) | `2026-07-13 19:13:21` | 已复核主 paper chain、camera-ready 与 artifact 相关窗口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | Important Dates | [Important Dates](https://conferences.i-cav.org/2026/cfp/) | `2026-07-13 19:13:21` | 官方仅给日期时按待补时刻记录；会期日期保留官方来源。 |
-| 官方 accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) | `2026-08-07 20:05:00` | 官方名录已公布并自带三个分类小标题：Research Papers **55**、Tool Papers 20、Industrial Experience Reports or Case Studies 6，合计 **81**（按各段 `<li>` 逐条统计，全页 `</li>` 合计 81，两法一致；55 篇 research 标题互不重复，无去重理由）。三类不得合并写成单一 research count。 |
+| 官方 accepted papers | [CAV 2026 Accepted Papers](https://conferences.i-cav.org/2026/accepted) | `2026-08-07 20:05:00` | 官方名录已公布并自带三个分类小标题：Research Papers **55**、Tool Papers 20、Industrial Experience Reports or Case Studies 6，合计 **81**（按官方三个分类小节各自的 `<li>` 逐条统计；注意**全页 `</li>` 为 93**，81 只对 `id="research-papers"` 至 `<footer>` 区间成立，不可用全页计数当佐证；55 篇 research 标题互不重复，无去重理由）。三类不得合并写成单一 research count。 |
 | Submission system | [Submission system](https://submissions.floc26.org/cav/) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/cav/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 

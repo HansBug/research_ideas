@@ -49,7 +49,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 |---|---|---|---|
 | Series / main site | [ATVA official site](https://atva-conference.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP ATVA index](https://dblp.org/db/conf/atva/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | 2026-07-13 复查：[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates；未来年度不得伪造 | `2026-07-13 19:11:00` |
+| 最新年度入口 | [APLAS-ATVA 2026](https://conf.researchr.org/home/aplas-atva-2026) | ⚠️ **2026-08-07 更正**：ATVA 2026 与 APLAS 2026 合办，官方年度页托管在 researchr 联合 slug `aplas-atva-2026`，此前「未检索到」的结论对 2026 已不成立；`atva-conference.org` series 站长期停更在 2025，**不能作为「是否公布」的判据**。2027/2028 仍未公开 edition 主页 / CFP / important dates；未来年度不得伪造 | `2026-07-13 19:11:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -89,11 +89,11 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates，未公布年度保留占位与核查记录，不预设 CFP。
+- ⚠️ **2026-08-07 更正**：ATVA **2026** 官方年度页存在于 [`aplas-atva-2026`](https://conf.researchr.org/home/aplas-atva-2026)（与 APLAS 合办），已补齐 dates / artifact / 会期；`2027`、`2028` 与 `2029+` 复查仍未公开 edition 主页 / CFP / important dates。后续巡检必须同时探测 `aplas-atva-YYYY` 等合办 slug。未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ATVA 2028 官方年页。
 - 2027 计数口径：未发现 ATVA 2027 官方年页。
 - 2026：命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
-- 2026 计数口径：截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
+- 2026 计数口径：官方 [program 页](https://conf.researchr.org/program/aplas-atva-2026/program-aplas-atva-2026/) 为 `Access denied`（需登录），accepted papers 与论文数量待补；notification 已于 2026-07-23 完成，名单很可能存在但对匿名访客不可见，**不得据此写计数**。（⚠️ 此前「未检索到独立官方年页」的结论已于 2026-08-07 作废，根因是合办 slug。）
 - 2022 计数口径：已核验独立年度页；Springer proceedings 写 21 regular + 5 tool + 1 invited，Springer TOC 显示 27 papers；EasyChair CFP 仅作历史 fallback。
 
 ## 8. TIMELINE.md 同步提示

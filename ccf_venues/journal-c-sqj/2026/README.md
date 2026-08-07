@@ -72,6 +72,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | `Quantum Software Quality` 的 `Open` 状态与 `20 December 2026` deadline 经 `rd.springer.com/collections/iaiffbgcbf` 官方正文核验；15 条 collection 中仅此 1 条 Open；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 / scope | [Springer SQJ](https://link.springer.com/journal/11219)；[Aims and scope](https://link.springer.com/journal/11219/aims-and-scope) | `2026-06-05 17:21` | 官方入口可用；scope 面向 software quality。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines)；[Submit manuscript](https://submission.nature.com/new-submission/11219/3) | `2026-06-05 17:21` | 常规投稿入口已记录，按 rolling submission 处理。 |
 | Special issue / topical collection | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | `2026-07-13 19:27:00` | Quantum Software Quality open，deadline 为 2026-12-20 待补时刻；AI-Driven World Closed。 |

@@ -16,7 +16,7 @@
 | Special issues / topical collections | [Industry 5.0 theme section](https://link.springer.com/collections/hhibjbacdf)；[Digital Twins rolling theme section](https://www.sosym.org/edtconf_journal_first/) |
 | Articles in press / online first | [SoSyM online](https://www.sosym.org/online/) |
 | DBLP 年度页 | [DBLP SoSyM Volume 25](https://dblp.org/db/journals/sosym/sosym25.html) |
-| 当前年度状态 | 🟡 专刊征稿 |
+| 当前年度状态 | 🟢 滚动开放（Regular / Tool / Expert Voice 三条常规 collection `Open / Ongoing`）；Industry 5.0 等专刊均已关闭 |
 
 ## 2. 年度核心 URL 索引
 
