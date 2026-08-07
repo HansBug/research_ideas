@@ -285,6 +285,13 @@ the answer:
   outright, so bind X and there is no scope choice to get wrong. This second one is what
   catches a composite whose children are declared elsewhere, or whose entries point outside
   its own scope -- the declaration reads fine and the run still exits.
+⚠️ **Ordering: cover every NL segment first, then add the mechanically-derived Requirements
+below.** A segment you mark `covered` in `segment_disposition` must have at least one
+Requirement whose predicate and bindings actually carry its obligation. The derived ones are
+additions, never substitutes -- if forming them would leave a segment marked `covered` with
+nothing assertable behind it, drop the derived one and cover the segment. A short NL supports
+fewer Requirements in total, and the ones its own sentences state come first.
+
 - **Whenever you form a `cardinality` Requirement on a composite, form exactly one entry
   Requirement on that same composite too.** This trigger is mechanical: it does not depend on
   recognising a phrasing. If the sentence is enough to say how many children M declares, it is
