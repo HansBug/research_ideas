@@ -1,6 +1,6 @@
 # RE README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -77,8 +77,8 @@ RE 是需求工程领域核心会议，覆盖 elicitation、analysis、prioritiz
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🔵 会期临近 | [RE 2026](https://conf.researchr.org/home/RE-2026) | [Research Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) | [Important Dates](https://conf.researchr.org/dates/RE-2026) | [Research track submission](https://easychair.org/conferences/?conf=re26) | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) | 未公布 | ⏳ 已检索未公布 | 2026-02-16 待补时刻 AoE | 2026-02-23 待补时刻 AoE | 2026-05-08 待补时刻 AoE | 2026-08-17..2026-08-21 | 未最终公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | ⏳ 待官网（槽位已建未发布） | [RE 2027（Access denied，正文未取得可审计快照）](https://conf.researchr.org/home/RE-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🔵 会期临近 | [RE 2026](https://conf.researchr.org/home/RE-2026) | [Research Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) | [Important Dates](https://conf.researchr.org/dates/RE-2026) | [Research track submission](https://easychair.org/conferences/?conf=re26) | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) / [Program](https://conf.researchr.org/program/RE-2026/program-RE-2026/) | 未公布 | ⏳ 已检索未公布 | 2026-02-16 待补时刻 AoE | 2026-02-23 待补时刻 AoE | 2026-05-08 待补时刻 AoE | 2026-08-17..2026-08-21 | Research Papers 24（官方 track `Accepted Papers` 逐行统计，不含其余 track） | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [RE 2025](https://conf.researchr.org/home/RE-2025) | [Research Papers](https://conf.researchr.org/track/RE-2025/RE-2025-research-papers) | [Important Dates](https://conf.researchr.org/dates/RE-2025) | 待补（官方页面曾提供 track submission；历史入口需复核） | [Program](https://conf.researchr.org/program/RE-2025/program-RE-2025/) / [Research Papers](https://conf.researchr.org/track/RE-2025/RE-2025-research-papers) | 待补（IEEE Xplore 需补 conference number） | [DBLP 2025](https://dblp.org/db/conf/re/re2025.html) | 2025-03-03 待补时刻 AoE | 2025-03-10 待补时刻 AoE | 2025-05-23 待补时刻 AoE | 2025-09-01..2025-09-05 | 待复核（Research track 与其他 track 分开） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [RE 2024](https://conf.researchr.org/home/RE-2024) | [Research Papers](https://conf.researchr.org/track/RE-2024/RE-2024-research-papers) | [Important Dates](https://conf.researchr.org/dates/RE-2024) | 待补（历史入口需复核） | [Program](https://conf.researchr.org/program/RE-2024/program-RE-2024/) / [Research Papers](https://conf.researchr.org/track/RE-2024/RE-2024-research-papers) | 待补（IEEE Xplore 需补 conference number） | [DBLP 2024](https://dblp.org/db/conf/re/re2024.html) | 2024-01-19 待补时刻 AoE | 2024-01-26 待补时刻 AoE | 2024-03-22 待补时刻 AoE | 2024-06-24..2024-06-28 | 待复核（Research track 与其他 track 分开） | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [RE 2023](https://conf.researchr.org/home/RE-2023) | [Research Papers](https://conf.researchr.org/track/RE-2023/RE-2023-research-papers) | [Important Dates](https://conf.researchr.org/dates/RE-2023) | 待补（历史入口需复核） | [Program](https://conf.researchr.org/program/RE-2023/program-RE-2023/) / [Research Papers](https://conf.researchr.org/track/RE-2023/RE-2023-research-papers) | 待补（IEEE Xplore 需补 conference number） | [DBLP 2023](https://dblp.org/db/conf/re/re2023.html) | 2023-03-10 待补时刻 AoE | 2023-03-17 待补时刻 AoE | 2023-05-30 待补时刻 AoE | 2023-09-04..2023-09-08 | 待复核（Research track 与其他 track 分开） | 🟡 部分核验 |
@@ -101,6 +101,8 @@ RE 是需求工程领域核心会议，覆盖 elicitation、analysis、prioritiz
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2027 行由 `⏳ 已检索未公布` 精确化为「researchr 槽位已存在但未公开发布」—— `home/RE-2027`、`home/re-2027`、`dates/RE-2027` 均为 **HTTP 200 + `Access denied`（不是 404）**，属筹备已启动的弱正向信号；对比 `home/RE-2028` 为真 404。承办地预计 2026-08-17..21 Montréal 会上公布，列高频复查。 |
+| `2026-08-07 20:25:00` | 常态化刷新：2026 行论文数量补为 Research Papers **24**（官方 track `Accepted Papers` 逐行统计），并补入已发布的完整 program 入口。 |
 | `2026-07-13 13:30:00` | 常态化刷新 RE：确认 2026 Research Papers camera-ready 已过、会期 `2026-08-17..2026-08-21` 未开始，阶段改为会期临近；复查 2027/2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

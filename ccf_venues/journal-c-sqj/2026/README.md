@@ -1,6 +1,6 @@
 # SQJ 2026 README
 
-> 信息更新时间：`2026-07-13 19:27:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -89,5 +89,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：`Quantum Software Quality` 由官方确认 **`Submission status: Open`**，`Submission deadline` 逐字 `20 December 2026`，可从 `🟡` 升为确认开放窗口（editors: Samuel Sepulveda / Ricardo Pérez-Castillo / Jianjun Zhao；主题含 `Testing, Debugging, and Verification`、`Generative AI for Software Quality`）；`Software Quality in an AI-Driven World` 仍 `Closed`。SQJ 全量 15 条 collection 中**仅此 1 条 Open，无新增**。⚠️ Closed collection 页不再回显 deadline，历史日期 `2026-03-30` 本轮**无法再逐字复核**，保留为历史记录。取证域为 `rd.springer.com`。 |
 | `2026-07-13 19:27:00` | 常态化刷新：新增 Quantum Software Quality open collection，记录 submission deadline 2026-12-20 待补时刻；确认 AI-Driven World Closed。 |
 | `2026-06-05 17:21` | 初始化 SQJ 2026 年度 README，记录 Springer / DBLP 入口、volume baseline、topical collection 状态与 project 相关性。 |

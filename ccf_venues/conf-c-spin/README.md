@@ -1,6 +1,6 @@
 # SPIN README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -72,7 +72,7 @@ SPIN 聚焦软件模型检查、运行时验证、验证工具、形式化建模
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP SPIN index](https://dblp.org/db/conf/spin/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP SPIN index](https://dblp.org/db/conf/spin/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | ✅ 已结束 | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | [CFP](https://spin-web.github.io/SPIN2026/cfp) | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/spin/index.html) | 2026-01-22 待补时刻 AoE | 2026-01-29 待补时刻 AoE | 2026-03-05 待补时刻 | 2026-04-15..2026-04-16 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | ✅ 已结束 | [SPIN 2026](https://spin-web.github.io/SPIN2026/) | [CFP](https://spin-web.github.io/SPIN2026/cfp) | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/spin/index.html) | 2026-01-22 待补时刻 AoE | 2026-01-29 待补时刻 AoE | 2026-03-05 待补时刻 | 2026-04-15..2026-04-16 | 7 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [SPIN 2025](https://spin-web.github.io/SPIN2025/) | [CFP](https://spin-web.github.io/SPIN2025/cfp) | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/9783032068460) | [DBLP](https://dblp.org/db/conf/spin/spin2025) | 未公布 | 未公布 | 未公布 | 2025 待补精确日期 | 9 full papers / 20 submissions | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [SPIN 2024](https://spin-web.github.io/SPIN2024/) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-66149-5) | [DBLP](https://dblp.org/db/conf/spin/spin2024) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | 14 papers / 1 volume | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [SPIN 2023](https://spin-web.github.io/SPIN2023/) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-32156-6) | [DBLP](https://dblp.org/db/conf/spin/spin2023) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | 11 papers / 1 volume | 🟡 部分核验 |
@@ -101,6 +101,7 @@ SPIN 聚焦软件模型检查、运行时验证、验证工具、形式化建模
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2026 行论文数量由 `未公布` 补为 **7**（官方 program 页 `Accepted papers` 清单逐条统计，含 Best Paper Award）；Springer LNCS 卷与 DBLP `spin2026` 年度页仍未发布（后者复查 HTTP 404）。 |
 | `2026-07-13 10:27:51` | 常态化刷新 SPIN 2026：确认会议已结束，2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

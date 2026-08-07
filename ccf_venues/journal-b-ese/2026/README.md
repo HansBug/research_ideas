@@ -1,6 +1,6 @@
 # Empirical Software Engineering 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -45,6 +45,7 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Agentic Software Engineering: The Rise of AI Teammates | [CFP](https://link.springer.com/collections/aaaihgcafc) | 2026-09-28 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/aaaihgcafc) | 已同步至 TIMELINE / SUMMARY | 官方页面写 Open for submissions 与 Submission deadline 28 September 2026；submission instructions 要求在 EMSE Editorial Manager 中选择 Agentic Software Engineering。 |
+| Software Security Testing (SECUTE 2026) | [CFP](https://link.springer.com/collections/bacdicffbh) | 2026-11-30 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/aaaihgcafc) | 已同步至 TIMELINE / SUMMARY | ⚠️ **2026-08-07 新增（此前本库完全未记录）**：Springer collection 页 `Submission status: Open`，`Submission deadline` 逐字 `30 November 2026`。官方逐字 `In addition to the open call for papers, authors with an accepted paper to SECUTE 2026 are invited...` —— **公开征稿轨与邀请轨并存，普通投稿者可直接行动**；要求强实证成分。取证域：`rd.springer.com/collections/bacdicffbh`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳）。 |
 | Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026) | [CFP](https://link.springer.com/collections/bddiejbihe) | 2026-07-01 待补时刻（submissions open）；2027-03-01 待补时刻（submission deadline） | 即将开放 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | 官方页面写 Submissions open on 01 July 2026；deadline 落在 2027 年，年度页 2027 也需记录。 |
 | Advancing Software Engineering with Large Language Models | [CFP](https://link.springer.com/collections/jfdgedjehb) | 2026-05-31 待补时刻（first review round）；2026-07-15 待补时刻（revision due）；2026-09-15 待补时刻（final notification） | 已关闭 | [官方来源](https://link.springer.com/collections/jfdgedjehb) | 已同步至 TIMELINE / SUMMARY | 官方页面已关闭；2026 日期为 tentative first review round、revision due、final author notification。 |
 
@@ -88,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**新增此前完全未记录的 public collection `Software Security Testing (SECUTE 2026)`**（`Submission status: Open`，deadline 逐字 `30 November 2026`，公开征稿轨与邀请轨并存）；复核 Agentic SE 仍 `Open`、deadline `28 September 2026` 未变；`Advancing SE with LLMs` 确认 `Closed`。取证域为 `rd.springer.com`，`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。⚠️ 索引页存在若干渲染后丢标题的 `Open / Ongoing` 行，本轮**不能声称已穷举全部 public collection**。 |
 | `2026-07-13 19:10:00` | 常态化刷新：保留 Agentic SE 与 PROMPT-SE 作为 public opportunities，排除 FORGE / EASE invite-only collection 通用机会口径。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 Agentic SE、FORGE 2026、EASE 2026、PROMPT-SE 2026 与 Advancing SE with LLM collection 的 Springer 日期 / 邀请制 caveat，并确认已同步 TIMELINE 对应 dated events。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 2026 年度 README，记录 Springer / DBLP 核心入口、重点 collection、投稿节奏与 DBLP entry article baseline。 |

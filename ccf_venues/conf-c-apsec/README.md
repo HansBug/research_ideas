@@ -1,6 +1,6 @@
 # APSEC README
 
-> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -79,7 +79,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 已截稿 / 审稿中 | [年度主页](https://conf.researchr.org/home/apsec-2026) | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Submission](https://easychair.org/conferences/?conf=apsec2026) | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 未公布 | 未公布 | 2026-07-13 待补时刻 UTC+8 (Bali time) | 2026-07-20 待补时刻 UTC+8 (Bali time) | 2026-09-14 待补时刻 UTC+8 (Bali time) | 2026-12-07..2026-12-10 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟡 已截稿 / 审稿中 | [年度主页](https://conf.researchr.org/home/apsec-2026) | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Submission](https://easychair.org/conferences/?conf=apsec2026) | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 未公布 | 未公布 | 2026-07-13 待补时刻 AoE (Anywhere on Earth) | 2026-07-20 待补时刻 AoE (Anywhere on Earth) | 2026-09-14 待补时刻 AoE (Anywhere on Earth) | 2026-12-07..2026-12-10 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2025) | [CFP / track](https://conf.researchr.org/track/apsec-2025/apsec-2025-papers) | [Dates](https://conf.researchr.org/dates/apsec-2025) | [Submission](https://apsec25.hotcrp.com) | [Program / accepted](https://conf.researchr.org/program/apsec-2025/program-apsec-2025/) | 未公布 | [DBLP](https://dblp.org/db/conf/apsec/apsec2025.html) | 2025-07-13 | 2025-07-20 | 2025-09-20 | 2025-12-02..2025-12-05 | DBLP fallback `inproceedings`=117；IEEE proceedings URL 待补 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2024) | [CFP / track](https://conf.researchr.org/track/apsec-2024/apsec-2024-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2024) | [Submission](https://easychair.org/conferences/?conf=apsec2024) | [Program / accepted](https://conf.researchr.org/program/apsec-2024/program-apsec-2024/) | 未公布 | [DBLP](https://dblp.org/db/conf/apsec/apsec2024.html) | 2024-07-13 | 2024-07-20 | 2024-09-13 | 2024-12-03..2024-12-06 | DBLP fallback `inproceedings`=68；IEEE proceedings URL 待补 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://conf.researchr.org/home/apsec-2023) | [CFP / track](https://conf.researchr.org/track/apsec-2023/apsec-2023-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2023) | [Submission](https://easychair.org/conferences/?conf=apsec2023) | [Program / accepted](https://conf.researchr.org/program/apsec-2023/program-apsec-2023/) | [Proceedings](https://ieeexplore.ieee.org/xpl/conhome/1000681/all-proceedings) | [DBLP](https://dblp.org/db/conf/apsec/apsec2023.html) | 2023-07-07 | 2023-07-14 | 2023-08-23 | 2023-12-04..2023-12-07 | DBLP fallback `inproceedings`=90；IEEE Xplore CLI 418 已检索未获可审计证据 | 🟡 部分核验 |
@@ -103,6 +103,7 @@ APSEC 是亚太软件工程综合会议，覆盖 empirical / automated / AI-inte
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | ⚠️ 补修：根表 2026 行三个日期单元格此前仍写 `UTC+8 (Bali time)`，与年度页和 TIMELINE 已改的 `AoE` 矛盾（相差 20 小时），本次一并改为 `AoE (Anywhere on Earth)`，消除根表与年度页的口径冲突。 |
 | `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 审稿中`（full paper `2026-07-20` 已过、未再延期）。⚠️ 同轮修正 Technical Track 时区口径：官方 dates 页 6 行 tooltip 与 CFP 小标题当前均为 `AoE (Anywhere on Earth)`，本库此前记的 `UTC+8 (Bali time)` 相差 20 小时，已按官方现状改回并保留冲突历史。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 APSEC 2026 dates 更新 Technical Track optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19，保留 UTC+8 (Bali time)；复查 2027/2028 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |

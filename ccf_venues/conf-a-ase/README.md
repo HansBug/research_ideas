@@ -1,6 +1,6 @@
 # ASE README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -88,7 +88,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | [ASE series](https://conf.researchr.org/series/ase)；年度页未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | [ASE series](https://conf.researchr.org/series/ase)；年度页未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 待核验 |
-| [2026](./2026/README.md) | 🟣 通知后 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [HotCRP](https://ase26.hotcrp.com/) | 未公布 | 未公布 | ⏳ 已检索未公布 | 未列出 | 2026-03-26 待补时刻 AoE / UTC-12h；major revision 2026-07-16 待补时刻 AoE / UTC-12h | initial 2026-06-18 待补时刻 AoE / UTC-12h；major revisions 2026-07-29 待补时刻 AoE / UTC-12h；camera-ready 2026-08-03 待补时刻 AoE / UTC-12h | 2026-10-12..2026-10-16 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟣 通知后 | [ASE 2026](https://conf.researchr.org/home/ase-2026) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [Research Track](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | [HotCRP](https://ase26.hotcrp.com/) | [Accepted Papers](https://conf.researchr.org/track/ase-2026/ase-2026-research-track) | 未公布 | ⏳ 已检索未公布 | 未列出 | 2026-03-26 待补时刻 AoE / UTC-12h；major revision 2026-07-16 待补时刻 AoE / UTC-12h | initial 2026-06-18 待补时刻 AoE / UTC-12h；major revisions 2026-07-29 待补时刻 AoE / UTC-12h；camera-ready 2026-08-03 待补时刻 AoE / UTC-12h | 2026-10-12..2026-10-16 | 名录已公布 / 计数待补 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ASE 2025](https://conf.researchr.org/home/ase-2025) | [Research Papers](https://conf.researchr.org/track/ase-2025/ase-2025-papers) | [Research Papers](https://conf.researchr.org/track/ase-2025/ase-2025-papers) | [HotCRP](https://ase25.hotcrp.com/) | [Program](https://conf.researchr.org/program/ase-2025/program-ase-2025/) | ⏳ [Access denied](https://conf.researchr.org/info/ase-2025/proceedings) | [DBLP 2025](https://dblp.org/db/conf/kbse/ase2025.html) | 未列出 | 2025-05-30 待补时刻 AoE / UTC-12h | 2025-08-14 待补时刻 AoE / UTC-12h | 2025-11-16..2025-11-20 | DBLP inproceedings fallback: 389（全 proceedings，非主 track） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ASE 2024](https://conf.researchr.org/home/ase-2024) | [Research Papers](https://conf.researchr.org/track/ase-2024/ase-2024-research) | [Research Papers](https://conf.researchr.org/track/ase-2024/ase-2024-research) | [HotCRP](https://ase2024.hotcrp.com) | [Program](https://conf.researchr.org/program/ase-2024/program-ase-2024/) | ⏳ [Access denied](https://conf.researchr.org/info/ase-2024/proceedings) | [DBLP 2024](https://dblp.org/db/conf/kbse/ase2024.html) | 2024-05-31 待补时刻 AoE / UTC-12h | 2024-06-07 待补时刻 AoE / UTC-12h | 2024-08-06 待补时刻 AoE / UTC-12h | 2024-10-27..2024-11-01 | DBLP inproceedings fallback: 266（全 proceedings，非主 track） | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ASE 2023](https://conf.researchr.org/home/ase-2023) | [Research Papers](https://conf.researchr.org/track/ase-2023/ase-2023-papers) | [Research Papers](https://conf.researchr.org/track/ase-2023/ase-2023-papers) | [HotCRP](https://ase2023.hotcrp.com/) | [Program](https://conf.researchr.org/program/ase-2023/program-ase-2023/) | ⏳ [Access denied](https://conf.researchr.org/info/ase-2023/proceedings) | [DBLP 2023](https://dblp.org/db/conf/kbse/ase2023.html) | 2023-04-28 待补时刻 AoE / UTC-12h | 2023-05-05 待补时刻 AoE / UTC-12h | 2023-07-17 待补时刻 AoE / UTC-12h | 2023-09-11..2023-09-15 | DBLP inproceedings fallback: 209（全 proceedings，非主 track） | 🟡 部分核验 |
@@ -113,6 +113,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2026 行 Program / Accepted papers 由 `未公布` 改为官方 Research Track `Accepted Papers` 入口（名录已上线）；论文数量改为「名录已公布 / 计数待补」—— 页面过长、单次抓取被截断，**不得填具体数字**。camera-ready `2026-08-03` 已过，2026 主链已无可行动节点。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 ASE 2026 Research Track 大修、通知、camera-ready 与会期；2027/2028 未获正式年度信息，仅保守记录复查。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

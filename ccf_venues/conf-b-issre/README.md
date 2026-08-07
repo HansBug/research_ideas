@@ -1,6 +1,6 @@
 # ISSRE README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -101,6 +101,7 @@ ISSRE 聚焦软件可靠性、测试、质量保障、故障预测、可靠 AI/M
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2026 行事实无变更（四个主轨日期与官方逐字一致，program / accepted 官方仍为 `TBA`）；同轮在年度页补入此前缺失的三个主链节点（Author Rebuttal Period `2026-06-05..06-09`、Decisions and Early Notification `2026-06-15`、Author Revision Period `2026-06-16..07-03`）与 `cyprusconferences.org` 的 UA 型 bot 过滤陷阱（裸 curl 返回 404、浏览器 UA 返回 200）。 |
 | `2026-07-13 13:30:00` | 常态化刷新 ISSRE：将 2026 阶段改为通知后，Important Dates 绑定官方 dates 页并保留 camera-ready `2026-08-19 AoE`；2027 仅记录 Macau future-edition 线索、无 CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

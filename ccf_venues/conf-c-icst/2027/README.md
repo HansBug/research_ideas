@@ -1,6 +1,6 @@
 # ICST 2027 README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -35,11 +35,11 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Research Papers submission | 2026-11-02 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Initial notification | 2026-12-22 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Major revision submission | 2027-01-31 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Final notification | 2027-02-20 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
-| Camera-ready | 2027-03-07 待补时刻 AoE | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Research Papers submission | 2026-11-02 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Initial notification | 2026-12-22 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Major revision submission | 2027-01-31 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Final notification | 2027-02-20 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
+| Camera-ready | 2027-03-07 待补时刻 AoE / UTC-12h | [Important Dates](https://conf.researchr.org/dates/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方日期；researchr 标注 AoE 时区，具体时刻待补。 |
 | Conference | 2027-05-17..2027-05-21 | [ICST 2027](https://conf.researchr.org/home/icst-2027) | [ICST 2027](https://conf.researchr.org/home/icst-2027) | 官方年度主页给出会期。 |
 
 ## 4. Tracks / 口径边界
@@ -91,5 +91,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：五个主轨日期与官方逐字复核**一致，无变更**；同轮把时区补全为 `AoE / UTC-12h` —— `dates/icst-2027` 每行 tooltip 均为 `Timezone: AoE (UTC-12h)`，track 页正文亦独立标注，此前只写 `AoE` 属信息不足。官方仍未给钟点，`待补时刻` 保留。另补记：ICST 首次引入 Accept / Major Revision / Reject 三档 initial notification 与 5 周 revision 窗口（官方逐字 `for the first time in ICST` / `5-weeks period`），会场为 The Kursaal Exhibition Center。 |
 | `2026-07-13 10:27:51` | 常态化刷新：升级 ICST 2027 Research Papers official dates。 |
 | `2026-06-05 09:15` | PR-3 初始化 ICST 2027 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

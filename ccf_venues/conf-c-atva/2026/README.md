@@ -59,7 +59,7 @@
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/atva/index.html) |
-| 计数口径 | 截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。 |
+| 计数口径 | ⚠️ 该历史结论已于 2026-08-07 作废：官方年度页托管在 researchr 联合 slug [`aplas-atva-2026`](https://conf.researchr.org/home/aplas-atva-2026)（与 APLAS 2026 合办），按 `atva-YYYY` 探测必然 404，这是当时判为「未检索到」的成因。 |
 
 ## 6. 与本仓库 project 的年度相关性观察
 
@@ -82,7 +82,7 @@
 - 后续 ATVA 年度巡检必须同时探测 `aplas-atva-YYYY` 等合办 slug；`atva-conference.org` series 站长期停更，不可作为判据。
 
 - 命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
-- 截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
+- ⚠️ 该历史结论已于 2026-08-07 作废：官方年度页托管在 researchr 联合 slug [`aplas-atva-2026`](https://conf.researchr.org/home/aplas-atva-2026)（与 APLAS 2026 合办），按 `atva-YYYY` 探测必然 404，这是当时判为「未检索到」的成因。
 
 ## 9. TIMELINE.md 同步提示
 

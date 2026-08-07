@@ -14,6 +14,7 @@
 | Important Dates | [Important Dates](https://ksiresearch.org/seke/seke26main.html) |
 | Submission system | [Submission](https://www.easychair.org/conferences/?conf=seke26) |
 | Program / accepted papers | 未公布 |
+| Program / accepted papers（**2026-08-07 更正**） | [seke26pgm.txt](https://ksiresearch.org/seke/seke26pgm.txt) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
 | 当前阶段状态 | 🔵 会期临近 |

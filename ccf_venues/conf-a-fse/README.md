@@ -1,6 +1,6 @@
 # FSE README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -81,7 +81,7 @@
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract / registration deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | 🟦 已有预告 | FSE 2028 Milan 预告；正式年度主页未公开（[FSE series](https://conf.researchr.org/series/fse)） | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | Milan，日期未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟢 投稿中 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [Important Dates](https://conf.researchr.org/dates/fse-2027) | 待公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 无单独 abstract；full paper 2026-10-02 23:59:59 AoE / UTC-12h | 2026-10-02 23:59:59 AoE / UTC-12h | initial 2027-01-22 待补时刻 AoE；final 2027-03-31 待补时刻 AoE | 2027-07-12..2027-07-16 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 投稿中 | [FSE 2027](https://conf.researchr.org/home/fse-2027) | [Research Papers](https://conf.researchr.org/track/fse-2027/fse-2027-papers) | [Important Dates](https://conf.researchr.org/dates/fse-2027) | 待公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 无单独 abstract；full paper 2026-10-02 待补时刻 AoE / UTC-12h | 2026-10-02 待补时刻 AoE / UTC-12h | initial 2027-01-22 待补时刻 AoE；final 2027-03-31 待补时刻 AoE | 2027-07-12..2027-07-16 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束 | [FSE 2026](https://conf.researchr.org/home/fse-2026) | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2026/fse-2026-research-papers) | [HotCRP](https://fse2026.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2026/program-fse-2026/) | 未公布；PACMSE Issue FSE 2026 由 Research Papers track 说明 | ⏳ 已检索未公布 | 2025-09-04 23:59 AoE / UTC-12h | 2025-09-11 23:59 AoE / UTC-12h | 2025-12-22 23:59 AoE / UTC-12h；major revision final 2026-03-24 23:59 AoE / UTC-12h | 2026-07-05..2026-07-09 | 未最终核验；program 已有条目 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [FSE 2025](https://conf.researchr.org/home/fse-2025) | [Research Papers](https://conf.researchr.org/track/fse-2025/fse-2025-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2025/fse-2025-research-papers) | [HotCRP](https://fse2025.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2025/program-fse-2025/) | [Proceedings](https://conf.researchr.org/info/fse-2025/proceedings) / PACMSE Issue FSE 2025 | [DBLP 2025](https://dblp.org/db/conf/sigsoft/fse2025c.html) | 2024-09-05 23:59 AoE / UTC-12h | 2024-09-12 23:59 AoE / UTC-12h | 2025-01-14 23:59 AoE / UTC-12h（官方页疑似写 2024，按上下文待复核）；major revision final 2025-04-01 23:59 AoE / UTC-12h | 2025-06-23..2025-06-27 | DBLP inproceedings fallback: 259 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [FSE 2024](https://conf.researchr.org/home/fse-2024) | [Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [Research Papers](https://conf.researchr.org/track/fse-2024/fse-2024-research-papers) | [HotCRP](https://fse2024.hotcrp.com/) | [FSE Program](https://conf.researchr.org/program/fse-2024/program-fse-2024/) | [Proceedings](https://conf.researchr.org/info/fse-2024/proceedings) / PACMSE Issue FSE 2024 | [DBLP 2024](https://dblp.org/db/conf/sigsoft/fse2024c.html) | 2023-09-21 23:59 AoE / UTC-12h | 2023-09-28 23:59 AoE / UTC-12h | 2024-01-23 23:59 AoE / UTC-12h；major revision final 2024-04-16 23:59 AoE / UTC-12h | 2024-07-15..2024-07-19 | DBLP inproceedings fallback: 108 | 🟡 部分核验 |
@@ -93,7 +93,7 @@
 - 2024 起官方说明会议名称调整为 FSE；2022-2023 年度页仍保留 ESEC/FSE 官方名称。
 - 2024+ Research Papers 页面说明 PACMSE issue 是主 proceedings 入口；本库不得把 PACMSE 卷期再作为独立会议论文数量重复计数。
 - FSE 2026 已于 `2026-07-09` 结束；后续只补 proceedings / DBLP / 论文数量口径，不再作为当前投稿机会。
-- FSE 2027 Research Papers 仍是当前主链机会；full paper deadline 为 `2026-10-02 23:59:59 AoE / UTC-12h`，会期为 `2027-07-12..2027-07-16`。
+- FSE 2027 Research Papers 仍是当前主链机会；full paper deadline 为 `2026-10-02 待补时刻 AoE / UTC-12h`，会期为 `2027-07-12..2027-07-16`。
 - FSE 2028 仅记录 Milan 预告；未发现正式 CFP / dates / submission system，不进入 dated event。
 - 2025 Research Papers 页面 initial notification 年份疑似官方页笔误；本草稿按上下文记录为待复核，不作为最终 timeline 事实。
 - 2022/2023 DBLP 数量本轮未稳定抓取，年度页保留 fallback 待复核。
@@ -107,7 +107,8 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| `2026-07-13 19:13:21` | 常态化刷新：将 FSE 2026 标记为已结束，精确 FSE 2027 full paper deadline 为 `2026-10-02 23:59:59 AoE / UTC-12h`，并保守记录 2028 Milan 预告无 CFP / dates。 |
+| `2026-08-07 20:25:00` | ⚠️ 补修：根表 2027 行此前仍写 `2026-10-02 23:59:59 AoE / UTC-12h`，与年度页已按证据纪律回退的 `待补时刻` 矛盾；本次一并改为 `2026-10-02 待补时刻 AoE / UTC-12h`（官方 track 页只给日期，未给钟点）。 |
+| `2026-07-13 19:13:21` | 常态化刷新：将 FSE 2026 标记为已结束，精确 FSE 2027 full paper deadline 为 `2026-10-02 待补时刻 AoE / UTC-12h`，并保守记录 2028 Milan 预告无 CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
 | `2026-06-09 11:13` | 新增外部索引与分区信息占位入口，后续按 GUIDE 逐项补证 WoS/JCR/CAS/EI。 |

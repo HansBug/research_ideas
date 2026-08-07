@@ -1,6 +1,6 @@
 # STTT 2026 README
 
-> 信息更新时间：`2026-07-13 19:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -87,5 +87,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：✅ 结论获得**更强证据**——Springer 侧 STTT **根本没有 collections 页**（`rd.springer.com/journal/10009/collections` 为 **HTTP 404**），而非「有页但无内容」；`journal/10009/updates` 全量仅 1 条 `Special issue guidelines`（无日期）。⚠️ 新线索：ETAPS 2027 官方 iFS 分会页逐字 `iFS'27 will organize journal special issues in STTT and FAC, for which the authors of selected papers will be invited to submit.` —— 属 **conference-based invited special issue，不是公开 CFP**，普通投稿者无法直接投，仅作长期线索登记。rolling 入口 Equinocs 为 Angular SPA 壳，内容层未取得可审计正文。 |
 | `2026-07-13 19:30:00` | 常态化刷新：确认 STTT 2026 rolling / online-first 为当前入口，未发现 active dated CFP；保留 Equinocs SPA 与 conference-based special issue 计数 caveat。 |
 | `2026-06-05 11:58` | 初始化 STTT 2026 年度 README，记录 Springer / Equinocs / DBLP 核心入口、special issue 计数风险与 DBLP `entry article` baseline。 |

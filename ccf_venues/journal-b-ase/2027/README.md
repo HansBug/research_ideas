@@ -1,6 +1,6 @@
 # Automated Software Engineering Journal 2027 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -80,5 +80,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：`Search-Based Software Engineering in the Era of LLMs and Agentic Systems` 状态由 `Upcoming` 迁移为 **`Open for submissions`**（2026-07-15 开窗已生效），deadline `30 January 2027` 逐字复核未变；`APSEC collection` 仍为 `Upcoming`（`Submissions open on 15 December 2026`，deadline `12 March 2027`）。另核到三个新的 Upcoming / Ongoing collection：`ASE for Systems-of-Systems and Software Ecosystems`（2027-07-26..10-11）、`Sustainable Software Development and Operations`（2026-09-15..2027-04-30）、以及 `Less is More` / `Literature review (MDO)` / `Future's Track` 三条 `Ongoing`（后者为 invited）。取证域为 `rd.springer.com`，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。⚠️ Springer 索引页存在渲染后丢标题的 `Ongoing` 行，**不能声称已穷举**。 |
 | `2026-07-13 19:10:00` | 常态化复查：记录 SBSE in LLMs/Agents 跨年至 2027-01-30 deadline；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-07 12:47` | 初始化 ASE Journal 2027 年度 README，记录 rolling / collection / volume / DBLP fallback 与 TIMELINE 同步口径。 |

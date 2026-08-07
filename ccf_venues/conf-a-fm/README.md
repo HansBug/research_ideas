@@ -1,6 +1,6 @@
 # FM README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -75,7 +75,7 @@ FM 是形式化方法主会，覆盖形式化规格、验证、模型检查、�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | 🟦 主办征集中 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟦 主办征集中 | [FM 2027 on researchr（Access denied，正文未取得可审计快照）](https://conf.researchr.org/home/fm-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束 | [FM 2026](https://conf.researchr.org/home/fm-2026) | [CFP](https://conf.researchr.org/track/fm-2026/fm-2026-research-paper) | [Important Dates](https://conf.researchr.org/dates/fm-2026) | [Submission](https://easychair.org/conferences/?conf=fm2026) | [Program / Accepted](https://conf.researchr.org/program/fm-2026/program-fm-2026/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-032-26204-2) | [DBLP](https://dblp.org/db/conf/fm/index.html) | 2025-11-25 待补时刻 | 2025-12-02 待补时刻 | 2026-02-06 待补时刻 | 2026-05-18..2026-05-22 | Part I: 49 full + 2 short | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP FM index](https://dblp.org/db/conf/fm/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-71162-6) | [DBLP](https://dblp.org/db/conf/fm/index.html) | 未公布 | 未公布 | 未公布 | 2024-09-09..2024-09-13 | Springer Part I/II 待拆 | 🟡 部分核验 |
@@ -111,6 +111,7 @@ FM 是形式化方法主会，覆盖形式化规格、验证、模型检查、�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2027 行官方主页由 `⏳ 已检索未公布` 精确化为 **HTTP 200 + `Access denied`**（researchr slug 已建、尚未公开发布，此前为 404），是 CFP 即将放出的强信号，列高频复查；同轮在年度页补入 FM 自 2027 起**改为每年一届、固定秋季**的官方 cadence 变更。仍无正式 CFP / dates / host city。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 FM 2026 已结束状态；FM 2027/2028 仍无正式 CFP / dates，2027 organizer call 继续保守记录为线索。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

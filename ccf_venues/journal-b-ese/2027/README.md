@@ -1,6 +1,6 @@
 # Empirical Software Engineering 2027 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -45,6 +45,7 @@
 | 名称 | CFP | 截止时间 | 状态 | 官方来源 | TIMELINE 同步 | 备注 |
 |---|---|---|---|---|---|---|
 | Empirical Studies for Prompt Engineering in Software Engineering (PROMPT-SE 2026) | [CFP](https://link.springer.com/collections/bddiejbihe) | 2027-03-01 待补时刻（submission deadline）；2027-04-30 待补时刻（first review round）；2027-07-31 待补时刻（revision due）；2027-11-30 待补时刻（final notification） | 开放窗口 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | 官方页面写 submission deadline March 1, 2027；first review round April 30, 2027；revised manuscripts July 31, 2027；final notification November 30, 2027。 |
+| Human-Centered AI Transformation for Software Engineering | [CFP](https://link.springer.com/collections/jicahjcieb) | 2027-01-31 待补时刻 | 开放 | [官方来源](https://link.springer.com/collections/bddiejbihe) | 已同步至 TIMELINE / SUMMARY | ⚠️ **2026-08-07 新增（此前本库完全未记录）**：Springer collection 页 `Submission status: Open`，`Submission deadline` 逐字 `31 January 2027`，**public non-invite**。涵盖 transparency、accountability、governance、human-AI collaboration，与 project_ex1 的评审方法学、P1 的人机协同建模相关。取证域：`rd.springer.com/collections/jicahjcieb`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳）。 |
 
 ## 5. 年度论文入口与数量
 
@@ -85,6 +86,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**新增此前完全未记录的 public collection `Human-Centered AI Transformation for Software Engineering`**（`Open`，deadline 逐字 `31 January 2027`）；PROMPT-SE 2026 状态由 `Upcoming` 迁移为 `Open for submissions`，deadline `01 March 2027` 未变；另记录 Springer 已开 Volume 32（February 2027）。取证域为 `rd.springer.com`，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。 |
 | `2026-07-13 19:10:00` | 常态化复查：保留 PROMPT-SE 2026 跨年 public deadline 2027-03-01；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 PROMPT-SE 2026 collection 的 2027 submission / review / revision / final notification 日期，并确认按事件发生年份同步 TIMELINE。 |
 | `2026-06-05 17:21` | 初始化 Empirical Software Engineering 2027 年度 README，记录 Springer / DBLP 核心入口、重点 collection、投稿节奏与 DBLP entry article baseline。 |

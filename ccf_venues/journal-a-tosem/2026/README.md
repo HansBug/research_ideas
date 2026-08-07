@@ -1,6 +1,6 @@
 # TOSEM 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -82,6 +82,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。ACM DL 全域 bot 验证阻断——直连 `HTTP 403`，代理返回 `Performing security verification` 页（466 字节），**连静态 CFP PDF 资源亦 403**，阻断等级高于 Elsevier。维持「无 active **dated** special issue」结论与 ScholarOne「候选入口 / 未获公开可审计正文」降级口径。⚠️ 第三方线索指向 `Agentic AI in Software` SI 的 deadline 为 `2025-11-01`（已过期，Guest Editors: Foutse Khomh / Denys Poshyvanyk），并提示 TOSEM 另有多条**无固定 deadline 的 continuous special section**（AI and SE、Human AI Collaboration in SE、Roadmap to 2030、New Frontiers in SE）—— 均**未经官方核验，不得入事实表**，列为人工复核项。DBLP Vol. 35 已至 Number 6。 |
 | `2026-07-13 19:10:00` | 常态化刷新：将 2026 卷期入口升级为 ACM DL Vol. 35 No. 7 / July 2026；确认常规 rolling 与无 active dated CFP 口径。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 21:15` | 根据 review 统一 TOSEM author guidelines、ScholarOne 候选入口、Just Accepted 和 DBLP canonical 年度链接口径。 |

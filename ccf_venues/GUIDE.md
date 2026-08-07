@@ -376,6 +376,19 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 注意：阶段状态描述会议 / 期刊生命周期，核验状态描述证据完整度，二者不得混写。
 
+
+### 10.1 补充状态词（2026-08-07 增补）
+
+本节此前的词表未覆盖以下三类实际使用中的状态，现予补入，避免各 venue 各写各的：
+
+| 状态 | 适用 | 说明 |
+|---|---|---|
+| `⏳ 待官网（槽位已建未发布）` | 会议 | researchr / 官方站返回 **HTTP 200 + `Access denied`**（不是 404），页面槽位已建但未公开发布。位于 `⏳ 已检索未公布` 与 `🟦 已有主页` 之间，判别与实例见 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。 |
+| `🟦 已有预告` | 会议 | 年度主页尚未建站或未公开，但**另有官方来源**已公布该年度的地点 / 月份等实质事实（如 ICSE 指导委员会官方站、issta.org、esec-fse.org）。必须挂该官方来源 URL。 |
+| `🟦 主办征集中` | 会议 | 会议族官方组织（如 FME）已发出 call for organizers，但主办方 / 地点 / CFP 均未定。仅适用于有此流程的会议族。 |
+
+上述三态与 §12.6 的迁移链关系见 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。
+
 ## 11. TIMELINE.md 结构规范
 
 [TIMELINE.md](./TIMELINE.md) 是跨 venue 投稿时间线总览，必须随着 venue README / 年度 README 同步维护。
@@ -561,7 +574,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 ```bash
 git status --short
 rg -n "常态化|滚动刷新|投稿窗口|近期窗口|刷新" ccf_venues/README.md ccf_venues/GUIDE.md ccf_venues/SUMMARY.md
-rg -n "42.*venue|294.*年度|P2|PR #63" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md
+rg -n "42.*venue|29[45].*年度|P2|PR #63" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md   # 2026-08-07 起当前口径为 295 个年度 README，历史日志中的 294 需保留
 rg -n '^(<<<<<<<|=======|>>>>>>>)' ccf_venues || true
 ```
 
@@ -717,21 +730,36 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 | 站点族 | 精确表现 | 记录写法 | 可用 fallback |
 |---|---|---|---|
-| Springer（`link.springer.com`） | WebFetch → `idp.springer.com/authorize` **303 authwall**，回跳带 `?error=cookies_not_supported`；`curl` → **HTTP 200 但 body 恒为约 3038 字节的 F5 `<title>Client Challenge</title>` JS 壳** | `authwall（idp 303）+ JS 壳（Client Challenge）` | **`rd.springer.com` 同路径可直出完整官方 HTML**（Springer 同源镜像域，页脚 `© 2026 Springer Nature`）。这是本库当前唯一可靠的 Springer 正文通道，取得的内容按「官方正文」计，但应注明取自 `rd.` 域 |
-| ScienceDirect / Elsevier | 直连 **HTTP 403**；渲染代理 → **Elsevier CAPTCHA**（`Are you a robot?` + Reference number + UTC 时间戳） | `直连 403 / 代理 CAPTCHA（含 Reference number）` | 无等价通道；`editorialmanager.com` 可核验 rolling 投稿入口，DBLP 可作计数 fallback |
+| Springer（`link.springer.com`） | WebFetch → `idp.springer.com/authorize` **303 authwall**，回跳带 `?error=cookies_not_supported`；`curl` → **HTTP 200 但 body 恒为约 3038 字节的 F5 `<title>Client Challenge</title>` JS 壳** | `authwall（idp 303）+ JS 壳（Client Challenge）` | **`rd.springer.com` 同路径可直出完整官方 HTML**（Springer 同源镜像域，页脚 `© 2026 Springer Nature`）。这是本库当前唯一可靠的 Springer 正文通道，取得的内容按「官方正文」计。**披露要求（硬性）**：凡仅通过 `rd.` 域取得的事实，必须在该事实所在单元格逐条注明取证域，范例见 [journal-b-ase/2026/README.md](./journal-b-ase/2026/README.md) 的 Green / Genetic Improvement 两行；只在方法论章节声明而不在事实处落实，等于没有披露 |
+| ScienceDirect / Elsevier | 直连 **HTTP 403**；经第三方渲染代理 **`r.jina.ai`** → **Elsevier CAPTCHA**（`Are you a robot?` + Reference number + UTC 时间戳） | `直连 403 / 代理 CAPTCHA（含 Reference number）` | 无等价通道；`editorialmanager.com` 可核验 rolling 投稿入口，DBLP 可作计数 fallback |
 | ACM DL（`dl.acm.org`） | 直连 **403**；代理 → `Performing security verification` bot 页；**连静态 CFP PDF 资源也 403** | `直连 403 / 代理 bot 验证页` | 无；DBLP 作计数 fallback |
 | Wiley（`onlinelibrary.wiley.com`） | Cloudflare **`Just a moment...` 403**；special issues 页经 WebFetch 返回 **HTTP 402 Payment Required** | `Cloudflare WAF/403`（402 需单列） | 无；DBLP 作计数 fallback |
 | CCF 官网（`www.ccf.org.cn`） | `curl`（含浏览器 UA / Referer）→ **HTTP 200 + 约 15999 字节阿里云 WAF CAPTCHA 挑战页**（`aliyun_waf_aa`、`aliyunCaptcha-sliding-slider`）；PDF 下载 URL 亦被替换为挑战页 | `阿里云 WAF CAPTCHA（HTTP 200 伪装）` | **WebFetch 通道可穿透** |
 
 **通用铁律**：`HTTP 200` 不等于取到正文。凡上述站点族，必须检查 body 内容与长度，否则会把挑战页当成「页面不存在 / collection 已关闭」。
 
+**渲染代理具名要求（硬性）**：本库涉及的第三方渲染代理为 **`r.jina.ai`**（用法 `https://r.jina.ai/<目标URL>`）。它**不是我方直连**，属 [CLAUDE.md](../CLAUDE.md) §2 口径下的中间层，必须具名而非笼统称「渲染代理」。判定规则：
+
+1. 经 `r.jina.ai` 访问 **`rd.springer.com`** 等**官方域**并取得该域自有 DOM（可用 `URL Source` 与 Springer 自有 class 如 `app-collection-page-sidebar__text-bold`、`id="submission-status"` 交叉印证）时，事实按「官方正文（经代理取得）」计，但**必须在事实所在单元格逐条注明取证域与路径**。
+2. 经 `r.jina.ai` 取得的**非官方域**内容，一律只作发现线索，不得升级为官方事实。
+3. 代理返回 CAPTCHA / bot 验证页时，按「官方入口已定位，正文未取得可审计快照」记录，**不得**据此断言目标不存在或已关闭。
+4. 只在本方法论章节声明披露规则、而不在具体事实处落实，**等于没有披露**；reviewer 应按此判定。
+
 #### 16.6.2 `Access denied` ≠ `404`：researchr 入口的三种语义
 
-| 返回 | 语义 | 记录写法 | 复查优先级 |
-|---|---|---|---|
-| HTTP 200 + `Access denied`（`You do not have the privileges to access this part.`） | 页面槽位**已建立但未公开发布**，通常意味着主办方已确定并在筹备 | 「官方入口已定位，正文未取得可审计快照（未发布 / 需登录）」，并注明这是**即将发布的弱正向信号** | **高频复查** |
-| HTTP 404 | 尚未建站 | `⏳ 已检索未公布` | 常规 |
-| HTTP 200 + 空 dates 表（表头在、无数据行） | 页面已建、chair 尚未填 | `🟦 已有主页 / CFP 待发布` | 高频复查 |
+| 返回 | 语义 | 记录写法 | **阶段状态（接入 §10 词表与 §12.6 迁移链）** | 复查优先级 |
+|---|---|---|---|---|
+| HTTP 200 + `Access denied`（`You do not have the privileges to access this part.`） | 页面槽位**已建立但未公开发布**，通常意味着主办方已确定并在筹备 | 「官方入口已定位，正文未取得可审计快照（未发布 / 需登录）」，并注明这是**即将发布的弱正向信号** | **`⏳ 待官网（槽位已建未发布）`** —— 这是 §12.6 迁移链中 `⏳ 已检索未公布` 与 `🟦 已有主页` **之间的中间态**，不得直接写成 `🟦 已有主页`（正文未取得，不满足「已有主页」的证据要求），也不得写成裸的 `⏳ 已检索未公布`（会丢失筹备信号）。若同时另有**其他官方来源**已给出该年度的地点 / 月份等实质事实（如 ICSE 2028 由 icse-conferences.org 公布 `Apr 2028 / Hawaii`），则以那条实质事实定档为 `🟦 已有预告`，并在证据记录中同时注明 researchr 为 Access denied | **高频复查** |
+| HTTP 404 | 尚未建站 | `⏳ 已检索未公布` | `⏳ 已检索未公布` | 常规 |
+| HTTP 200 + 空 dates 表（表头在、无数据行） | 页面已建、chair 尚未填 | `🟦 已有主页 / CFP 待发布` | `🟦 已有主页` | 高频复查 |
+
+**§12.6 迁移链据此扩展为**：
+
+```text
+⏳ 已检索未公布 -> ⏳ 待官网（槽位已建未发布） -> 🟦 已有主页 / 🟦 已有预告 -> 🟢 投稿中 -> ...
+```
+
+**四个实例的正确编码（2026-08-07 统一）**：`RE 2027` 与 `ICSME 2027` = `⏳ 待官网（researchr 槽位已存在但未公开发布）`（researchr 是唯一来源）；`FM 2027` = `🟦 主办征集中`（researchr Access denied，但 FME 另有官方 organizer call 这一实质事实，故用该会议族专有态）；`ICSE 2028` = `🟦 已有预告`（researchr Access denied，但 ICSE 指导委员会官方站已公布 `Apr 2028 / Hawaii, USA`）。**关键判别：Access denied 本身只决定「不低于 `⏳ 待官网`」，最终档位由是否另有官方实质事实决定。**
 
 `2026-08-07` 实例：RE 2027、ICSME 2027、FM 2027、ICSE 2028 均为 `Access denied`（此前本库统一记作 404 或「已检索未公布」，丢失了信号）；RE 2028、ICSME 2028、ASE 2027 为真 404；EASE 2027 为空 dates 表。
 
@@ -761,7 +789,7 @@ CCF 目录以单一 `ETAPS` 伞条目收录（第七版全 72 页 PDF 中无 TAC
 
 1. **HTML 注释残留**：ICECCS 2026 官网的 `<!-- -->` 中藏有「location has been changed to Nansha, Guangzhou」「注册费表」等内容，而**可见正文**的 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane。TASE 2026 主页的「IEEE Computer Society Press」出版方说法同样位于注释内（可见正文为 Springer LNCS）。**抓取前必须先剥离 HTML 注释**，否则会把注释内容写成事实。
 2. **删除线表示的 extended 日期**：TASE / RV / SPIN / ICECCS / ISSRE 等站用 `<s>` 或 `text-decoration: line-through` 表示旧日期，纯文本提取会把新旧日期并排输出，**极易误读**。必须回原始 HTML 判定删除线归属。
-3. **时区藏在属性里**：researchr 的时区信息位于 HTML `title="Timezone: AoE (UTC-12h)"` 属性中，纯文本提取会丢失；核验 AoE 必须查原始 HTML。且 **`/dates/<venue>-<year>` 页普遍不带时区声明，AoE 只在各 track 页侧栏** —— 引用时区必须落到 track 页，引 dates 页即为证据链断裂。
+3. **时区藏在属性里**：researchr 的时区信息位于 HTML `title="Timezone: AoE (UTC-12h)"` 属性中，**纯文本提取会完全丢失**；核验 AoE 必须查原始 HTML。⚠️ **2026-08-07 更正**：本节初稿曾写「`/dates/<venue>-<year>` 页普遍不带时区声明，AoE 只在各 track 页侧栏，引 dates 页即为证据链断裂」——**该判断不成立**，是把「纯文本提取丢失了属性」误读成「页面没有声明」。实测 `dates/issta-2027`(7 行) / `VMCAI-2027`(3) / `fse-2027`(8) / `icpc-2027`(16) / `apsec-2026`(24) / `saner-2027`(46) / `msr-2027`(15) **每一个日期行都带 `title="Timezone: …"`**。正确规则是：**dates 页与 track 页侧栏均为有效时区来源，但两者都必须读原始 HTML**；且同一 dates 页上不同 track 的 tooltip 可能不同（APSEC 2026 即同页并存 `AoE (Anywhere on Earth)`、`AoE (UTC-12h)` 与 `UTC+8h`），**必须逐 track 核对，不得把某 track 的时区套到另一 track**。
 4. **frameset**：`ksiresearch.org/seke/sekeNN.html` 是 FRAMESET，须改抓 `sekeNNmain.html` / `sekeNNleft.html`，并带 `--compressed`（否则得 gzip 乱码）；SEKE 的官方 program 入口是 **`.txt` 而非 `.html`**。
 
 #### 16.6.6 空白位翻新与已有事实维护同等重要

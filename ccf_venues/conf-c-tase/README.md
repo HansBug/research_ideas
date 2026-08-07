@@ -1,6 +1,6 @@
 # TASE README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -81,7 +81,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/tase/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/tase/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | ✅ 已结束 | [TASE 2026](https://tase2026.github.io/) | [CFP](https://tase2026.github.io/c_cfp.html) | [Important Dates](https://tase2026.github.io/c_impd.html) | [Submission](https://tase2026.github.io/c_subins.html) | [Program / Accepted](https://tase2026.github.io/c_ap.html) | 未公布；官网说明 planned Springer LNCS | [DBLP](https://dblp.org/db/conf/tase/index.html) | 2026-03-01 待补时刻 | 2026-03-07 待补时刻 | 2026-04-18 待补时刻 | 2026-07-04..2026-07-06 | 官方 accepted 表 28 papers；Springer / DBLP 2026 入口尚未发布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | ✅ 已结束 | [TASE 2026](https://tase2026.github.io/) | [CFP](https://tase2026.github.io/c_cfp.html) | [Important Dates](https://tase2026.github.io/c_impd.html) | [Submission](https://tase2026.github.io/c_subins.html) | [Program / Accepted](https://tase2026.github.io/c_ap.html) | 未公布；官网说明 planned Springer LNCS | [DBLP](https://dblp.org/db/conf/tase/index.html) | 2026-03-01 待补时刻 | 2026-03-07 待补时刻 | 2026-04-18 待补时刻 | 2026-07-04..2026-07-06 | 28（官方 accepted 表 = DBLP `tase2026` 年度页，两方闭合） | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [TASE 2025](https://cyprusconferences.org/tase2025/) | [CFP](https://cyprusconferences.org/tase2025/call-for-papers/) | [Important Dates](https://cyprusconferences.org/tase2025/call-for-papers/) | [Submission](https://cyprusconferences.org/tase2025/submission/) | [Program / Accepted](https://cyprusconferences.org/tase2025/accepted-papers/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-98208-8) | [DBLP](https://dblp.org/db/conf/tase/tase2025.html) | 2025-03-01 待补时刻 AoE | 2025-03-08 待补时刻 AoE | 2025-04-05 待补时刻 AoE | 2025-07-14..2025-07-16 | 官方 accepted list：21 contributed papers；Springer about：20 full + 1 short + 2 invited papers from 66 submissions；DBLP `inproceedings`：22；Springer TOC 是否排除 invited abstract / front matter 待逐项复核 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [TASE 2024](https://tase2024.github.io/) | [CFP](https://tase2024.github.io/c_cfp.html) | [Important Dates](https://tase2024.github.io/c_impd.html) | [Submission](https://tase2024.github.io/c_subins.html) | [Program / Accepted](https://tase2024.github.io/c_ap.html) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-64626-3) | [DBLP](https://dblp.org/db/conf/tase/tase2024.html) | 2024-02-27 待补时刻 AoE | 2024-03-05 待补时刻 AoE | 2024-04-10 待补时刻 | 2024-07-29..2024-08-01 | 官方 accepted 表 26 contributed papers；Springer TOC 28 papers，含 invited / invited abstract，需标明口径 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [TASE 2023](https://plrg-bristol.github.io/tase2023/) | [CFP](https://plrg-bristol.github.io/tase2023/cfp.html) | [Important Dates](https://plrg-bristol.github.io/tase2023/cfp.html) | [Submission](https://plrg-bristol.github.io/tase2023/submit.html) | [Program / Accepted](https://plrg-bristol.github.io/tase2023/accepted-papers.html) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-35257-7) | [DBLP](https://dblp.org/db/conf/tase/tase2023.html) | 2023-02-17 待补时刻 | 2023-02-24 待补时刻 | 2023-04-10 待补时刻 | 2023-07-04..2023-07-06 | 官方 accepted 表 21 行；Springer TOC 21 papers；Springer about 写 19 full + 2 short from 49 submissions | 🟡 部分核验 |
@@ -106,6 +106,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2026 行论文数量口径闭合为 **28**（官方 accepted 表 28 篇 = [DBLP tase2026](https://dblp.org/db/conf/tase/tase2026.html) 28 条 `inproceedings`）；proceedings 已出版，DBLP 给出 `LNCS 16697 / ISBN 978-3-032-30692-0 / Springer 2027`（imprint year，会期为 2026，**不得误读为 TASE 2027**）；Springer 页 CLI 为 `Client Challenge` JS 壳，卷次当前仅有 DBLP 一个可审计来源。 |
 | `2026-07-13 10:27:51` | 常态化刷新 TASE 2026：确认会期 2026-07-04..06 已结束，2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

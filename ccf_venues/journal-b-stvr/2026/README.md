@@ -1,6 +1,6 @@
 # STVR 2026 README
 
-> 信息更新时间：`2026-07-13 19:24:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -91,5 +91,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。Wiley Online Library 为 Cloudflare **`Just a moment...` 403**，`icst_special_issues.htm` 经 WebFetch 返回 **HTTP 402 Payment Required**，两个投稿入口均为 JS 壳（1319 / 5199 字节），当前性仍未证实。✅ 新增可入库事实：[DBLP STVR](https://dblp.org/db/journals/stvr/index.html) 截至快照 `2026-08-06` **最新仍只有 Volume 35 (2025)**，2026 卷未公布 —— 由「⏳ 未公布」升级为带日期的复核记录。⚠️ 第三方线索称 STVR 可能有 open call `Testing Extra-Functional Properties — Second Edition`，**未经官方核验，不得入事实表**，列为高优先级人工复核项。 |
 | `2026-07-13 19:24:00` | 常态化刷新：确认 STVR 2026 仍为 rolling，无 active dated CFP；保留 Wiley 403 与 DBLP 年度页待补 caveat。 |
 | `2026-06-05 12:05` | 初始化 STVR 2026 年度 README，记录 Wiley 官方入口、WAF/403 caveat、DBLP fallback 与年度状态。 |

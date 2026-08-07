@@ -17,7 +17,7 @@
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 待官网（researchr 实例已建且已配置 Research Papers Track，尚未公开发布） |
+| 当前阶段状态 | ⏳ 待官网（槽位已建未发布） |
 
 ## 2. 年度核心 URL 索引
 

@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 年度主页 | [年度主页](https://conf.researchr.org/home/apsec-2026) | Program tentative；accepted/proceedings/DBLP 尚未发布。 | `2026-06-05 17:23` |
 | CFP / Call for Papers | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/apsec-2026) | ⚠️ **2026-08-07 复查：Technical Track 全部 6 行 tooltip 均为 `Timezone: AoE (Anywhere on Earth)`，CFP 正文小标题亦为 `Key Dates (AoE)`**，与本库 2026-06-06 记录的 `UTC+8 (Bali time)` 冲突（相差 20 小时），本轮按官方现状改回 AoE 并保留历史记录；`UTC+8h` tooltip 当前只出现在 Local Student Forum / Doctoral Symposium 行。日期本身未再延期 | `2026-08-07 20:05:00` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/apsec-2026) | ⚠️ **2026-08-07 复查：Technical Track 全部 8 行 tooltip（含 Paper Bidding Period 与 Papers assigned for review 两行流程节点）均为 `Timezone: AoE (Anywhere on Earth)`，CFP 正文小标题亦为 `Key Dates (AoE)`**，与本库 2026-06-06 记录的 `UTC+8 (Bali time)` 冲突（相差 20 小时），本轮按官方现状改回 AoE 并保留历史记录；`UTC+8h` tooltip 当前只出现在 Local Student Forum / Doctoral Symposium 行。日期本身未再延期 | `2026-08-07 20:05:00` |
 | Submission system | [Submission](https://easychair.org/conferences/?conf=apsec2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
 | Tracks / program | [Program / track](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 已结束年度优先 official program | `2026-06-05 17:23` |
 | Accepted papers / paper list | [Accepted / program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
