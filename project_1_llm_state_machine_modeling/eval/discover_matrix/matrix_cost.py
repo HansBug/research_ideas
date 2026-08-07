@@ -71,17 +71,44 @@ def _cells(base: Path) -> list[tuple[str, str, str, dict[str, Any]]]:
 
 
 def _wallclock(base: Path) -> dict[str, Any]:
-    """启动器写下的墙钟。缺失时明确说缺，不用累加值冒充。"""
+    """启动器写下的墙钟。缺失时明确说缺，不用累加值冒充。
+
+    ⚠️ **必须处理续跑。** `one()` 在每次尝试开头检查 `discover-completed.json` 就返回，所以对同一个
+    BASE 重跑启动器会跳过已落盘的格 —— 324 格中断后直接续跑是**预期用法**。那样 `WALLCLOCK.txt`
+    里会有多段，而逐行读取时后者覆盖前者，读到的是**最后一段**的起止：一次「跑了 9 小时、中断、
+    再跑 20 分钟补完」会被报成 20 分钟。
+
+    所以分段耗时要相加，并把段数打出来 —— 读者据此知道这个数字是一次跑完还是拼起来的。
+    """
 
     path = base / "WALLCLOCK.txt"
     if not path.is_file():
         return {"available": False, "note": "无 WALLCLOCK.txt —— 该代次的墙钟无法复原，不得用累加值代替"}
     fields: dict[str, str] = {}
+    segment_seconds: list[int] = []
     for line in path.read_text().splitlines():
-        if ":" in line:
-            key, _, value = line.partition(":")
-            fields[key.strip()] = value.strip()
-    return {"available": True, **fields}
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        key, value = key.strip(), value.strip()
+        fields[key] = value
+        if re.fullmatch(r"segment_\d+_elapsed_seconds", key):
+            try:
+                segment_seconds.append(int(value))
+            except ValueError:
+                pass
+    out: dict[str, Any] = {"available": True, **fields}
+    if segment_seconds:
+        total = sum(segment_seconds)
+        out["segments"] = len(segment_seconds)
+        out["elapsed_seconds"] = total
+        out["elapsed"] = f"{total // 3600}h{total % 3600 // 60:02d}m{total % 60:02d}s"
+        if len(segment_seconds) > 1:
+            out["segments_note"] = (
+                f"续跑 {len(segment_seconds)} 段，耗时为各段之和"
+                f"（{'+'.join(str(s) for s in segment_seconds)} 秒）；不是一次跑完"
+            )
+    return out
 
 
 def summarise(base: Path) -> dict[str, Any]:
@@ -169,6 +196,8 @@ def render(summary: dict[str, Any]) -> str:
             f"（{wall.get('elapsed','?')}，并发 MAX={wall.get('max_concurrency','?')}）",
             "",
         ]
+        if wall.get("segments_note"):
+            lines += [f"⚠️ {wall['segments_note']}", ""]
     else:
         lines += [f"⚠️ 墙钟不可用：{wall.get('note')}", ""]
     lines += [

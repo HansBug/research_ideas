@@ -58,11 +58,20 @@ echo "grid -> $BASE/GRID.txt (${#PAIRS[@]} pairs)"
 # 跑的：48 格累加约 8.25 小时，MAX=8 下实际墙钟 1.61 小时 —— 差 5 倍。报「跑完要多久」必须用墙钟，
 # 而事后无从复原，所以写在这里。`matrix_cost.py` 缺这份文件时会明确说缺，不用累加值冒充。
 WALL_START_EPOCH=$SECONDS
+# `>>` 而非 `>`：`one()` 在每次尝试开头检查 `discover-completed.json` 就返回，所以对同一个 BASE
+# 重跑启动器会跳过已落盘的格 —— 324 格中断后直接续跑，不用重做。但那样会写第二段起止，
+# 若用 `>` 覆盖，第一段（真正的开始时间）就没了；若只追加而不标段号，`matrix_cost` 逐行读、
+# 后者覆盖前者，读到的是**最后一段**的起止，那不是总墙钟。
+# 所以每段带 `segment` 编号，让读取方能看出这是续跑而不是一次跑完。
+SEG=$(( $(grep -c '^segment:' "$BASE/WALLCLOCK.txt" 2>/dev/null || echo 0) + 1 ))
 {
-  echo "started_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "segment: $SEG"
+  echo "segment_${SEG}_started_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  [ "$SEG" = "1" ] && echo "started_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "max_concurrency: $MAX"
   echo "cells_planned: $(( ${#PAIRS[@]} * 6 ))"
-} > "$BASE/WALLCLOCK.txt"
+  echo "cells_already_landed_at_segment_${SEG}_start: $(ls "$BASE"/run*/*/discover-completed.json 2>/dev/null | wc -l)"
+} >> "$BASE/WALLCLOCK.txt"
 # ──────────────────────────────────────────────────────────────────────────────
 
 cd "$FL" || exit 1
@@ -119,6 +128,8 @@ done
 wait
 ELAPSED=$(( SECONDS - WALL_START_EPOCH ))
 {
+  echo "segment_${SEG}_finished_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "segment_${SEG}_elapsed_seconds: $ELAPSED"
   echo "finished_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "elapsed: $(( ELAPSED / 3600 ))h$(( ELAPSED % 3600 / 60 ))m$(( ELAPSED % 60 ))s"
   echo "elapsed_seconds: $ELAPSED"

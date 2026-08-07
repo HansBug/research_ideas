@@ -134,3 +134,63 @@ def test_non_cell_directories_are_ignored(base) -> None:
     (base / "run1" / "notacell").mkdir()
     (base / "run1" / "0000-claude.try2").mkdir()
     assert matrix_cost.summarise(base)["cells_completed"] == 3
+
+
+# ---------------------------------------------------------------- 续跑墙钟
+
+def _segmented(base, *segments) -> None:
+    lines = []
+    for index, seconds in enumerate(segments, 1):
+        lines.append(f"segment: {index}")
+        lines.append(f"segment_{index}_started_at: 2026-08-08T0{index}:00:00Z")
+        if index == 1:
+            lines.append("started_at: 2026-08-08T01:00:00Z")
+            lines.append("max_concurrency: 8")
+        lines.append(f"segment_{index}_elapsed_seconds: {seconds}")
+        lines.append(f"finished_at: 2026-08-08T0{index}:30:00Z")
+    (base / "WALLCLOCK.txt").write_text("\n".join(lines) + "\n")
+
+
+def test_a_resumed_run_sums_its_segments(base) -> None:
+    """⭐ 续跑是**预期用法**：`one()` 在每次尝试开头检查落盘就返回，所以重跑会跳过已完成的格。
+
+    逐行读取时后者覆盖前者，若不相加，「跑了 9 小时、中断、再跑 20 分钟补完」会被报成 20 分钟 ——
+    这在 324 格上是最可能发生的读数错误。
+    """
+
+    _segmented(base, 32_400, 1_200)
+    wall = matrix_cost.summarise(base)["wallclock"]
+    assert wall["segments"] == 2
+    assert wall["elapsed_seconds"] == 33_600
+    assert wall["elapsed"] == "9h20m00s"
+    assert "不是一次跑完" in wall["segments_note"]
+    assert "续跑 2 段" in matrix_cost.render(matrix_cost.summarise(base))
+
+
+def test_a_single_segment_carries_no_resume_note(base) -> None:
+    """⭐ 负控：一次跑完时不得出现「续跑」字样，否则读者会以为数字是拼的。"""
+
+    _segmented(base, 5_800)
+    wall = matrix_cost.summarise(base)["wallclock"]
+    assert wall["segments"] == 1
+    assert "segments_note" not in wall
+    assert "续跑" not in matrix_cost.render(matrix_cost.summarise(base))
+
+
+def test_started_at_is_the_first_segments(base) -> None:
+    """总起始时间必须是**第一段**的，尾段的 finished_at 才是终点。"""
+
+    _segmented(base, 100, 200, 300)
+    wall = matrix_cost.summarise(base)["wallclock"]
+    assert wall["started_at"] == "2026-08-08T01:00:00Z"
+    assert wall["finished_at"] == "2026-08-08T03:30:00Z"
+    assert wall["elapsed_seconds"] == 600
+
+
+def test_a_malformed_segment_value_is_skipped_not_fatal(base) -> None:
+    (base / "WALLCLOCK.txt").write_text(
+        "segment: 1\nsegment_1_elapsed_seconds: oops\nmax_concurrency: 8\n"
+    )
+    wall = matrix_cost.summarise(base)["wallclock"]
+    assert wall["available"] is True
+    assert "segments" not in wall
