@@ -10,7 +10,7 @@
 | # | 公理 | 规范出处 | 可执行形式 |
 | :-- | :-- | :-- | :-- |
 | **A1** | 复合态的默认入口必须**唯一且无条件** | UML 2.5.1 §14.2.3.2、§14.2.3.7、OCL 约束 `initial_vertex` / `initial_transition` | `initial_target(composite=p, child=c)` 恰有一个为 True |
-| **A2** | 已声明的迁移必须可实现 | UML 2.5.1 §14.2.3.9 | `occupancy_after(source=s, trigger=e, target=t, within_cycles=k)` |
+| **A2** | 已声明的迁移必须可实现（**已按 §二① 退回普通形态，无叶量化**） | UML 2.5.1 §14.2.3.9 | `occupancy_after(source=s, trigger=e, target=t, within_cycles=k)` |
 | **A3** | 同源同触发的备选迁移，守卫必须**两两不相交** | UML 2.5.1 §14.2.3.7（Choice：多守卫为真时选择算法**未定义**；无守卫为真时模型 **ill formed**） | `guard_distinguishable(source=s, trigger=e)` |
 | **A4** | 已声明的迁移效果必须**真实生效** | UML 2.5.1 §14.2.3.9、§14.2.3.4.5–6 | `effect_declared` → `variable_delta_after` 对偶 |
 
@@ -21,6 +21,17 @@ $$\forall p \in S:\ \mathrm{comp}(p) \Rightarrow \exists ! \, c \in S:\ \mathrm{
 $$\forall s \in S,\ \forall e \in E,\ \forall t_1,t_2 \in Tr(s,e):\ \mathrm{tgt}(t_1) \neq \mathrm{tgt}(t_2) \Rightarrow \neg\,\mathrm{Sat}(g_{t_1} \land g_{t_2})$$
 
 $$\forall (s,e,t) \in Tr:\ \forall v \in V:\ \forall \sigma \in \\{+,-\\}:\ \mathrm{Eff}(s,e,v,\sigma) \Rightarrow \mathrm{Delta}(s,e,v,\sigma)$$
+
+**A2 的终版形式**（退回后，$\mathrm{Leaf}(s) = \{s\}$）：
+
+$$\forall (s,e,t) \in Tr:\ \exists k \le K:\ \mathrm{Occ}(s,e,t,k)$$
+
+即「已声明的迁移必须在其源上可实现」，**不再按 $\mathrm{Leaf}(s)$ 量化**。
+
+代价与收益都要写明：**与 pyfcstm 的重叠度上升、增量下降**（`W_TRANSITION_SHADOWED` /
+`W_GUARD_CONST_FALSE` / `W_DEAD_GUARD` 覆盖了部分成因），但**污染嫌疑归零**。叶量化维度可在未来某代次
+作为独立公理重新预注册，条件是由一位读到**干净的** `predicate_api.py` 的执行者推导（§三 处置第 1 项完成
+之后）。
 
 ## 二、我对推导者三个提问的裁决
 
@@ -122,8 +133,64 @@ UnsupportedEvidence`**，不返回 `False`。即 **A1 最有价值的那半边�
 1. [ ] UML 2.5.1（OMG formal/17-12-05）**原文逐字核对** —— 推导者未能直接取到 PDF，条款号经二手来源交叉
    核对，须人工复核
 2. [ ] `initial_target` 的返回语义修改（§二②）落地并过双 review
-3. [ ] `predicate_api.py` 的结果邻接文本移出（§三处置第 1 项）
-4. [ ] A2 已按 §二① 退回普通形态并重新表述
+3. [ ] `predicate_api.py` 的结果邻接文本移出（§三处置第 1 项）—— **待移清单已精确定位，见 §六**
+4. [x] **A2 已按 §二① 退回普通形态并重新表述**（2026-08-07）—— 终版形式见 §一，代价（与 pyfcstm 重叠
+   度上升、增量下降）已写明
 5. [ ] 冻结后写入 `holdout.json` 或等价冻结文件，记录 `frozen_at` commit
 
 **冻结后不允许运行期追加。** 追加一条须重走盲态推导（[RULE_PROVENANCE.md](./RULE_PROVENANCE.md)）。
+
+
+## 六、条件 3 的待移清单（29 行，精确定位）
+
+`predicate_api.py` 里含结果邻接文本的行（代次名 / 条目 ID / pair 编号 / 语料统计）：
+
+    L10    On pair 0006 that produced ``init state("X"); check exists_always <= 1:
+    L331   seal path.  The third was measured to constrain nothing: 60 of 60 pairs
+    L465   the model is answerable for. Across the v20 hold-out set the same shape produced 17
+    L466   published findings on pairs `0018` and `0038`.
+    L472   *inconsistently*: pair `0018` marks nine routing nodes `pseudo state`, while `0048`
+    L474   marks nothing. So the rule reaches `0018` and `0038` and not `0048` -- a property of
+    L511   runs 2 to 7 edges deep.  matrix-v16 published one of those as a confirmed
+    L512   defect: pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
+    L588   than a leaf came back False.  Measured on pair 0000 -- pinned at
+    L596   consumed: pinned at pair 0000's root, that cycle reports "no stoppable
+    L716   # on pair 0006 the only effect on the Attack_Complete
+    L897   a converted one: pair 0029's `HighwayMode` carries five, four of them
+    L909   `no_progress`.  Two of pair 0029's requirements were lost that way in one
+    L945   # the predicate refused -- on 22 of the corpus's 169 composites -- with a
+    L959   # while excluding pair 0029's identical shape as representation debt.
+    L960   # 0029 has five entries and so went through the branch that notes; 0019,
+    L961   # 0043 and 0053 have one and went through this one.  Same evidence, two
+    L973   # and attribution has nothing to match: on pair 0029 the entry is the
+    L976   # policy -- but the binding came back `safe` and matrix-v16 published
+    L1016  # pair-0006 regression `filtered_route_control:` was introduced to stop.
+    L1062  # verbatim the pair-0029 defect.
+    L1242  # "the failure this gate exists to stop" -- but no gate did, and matrix-v17
+    L1243  # published one on the first cell that finished: pair 0006's
+    L1251  # findings: EXP-0000-IT-001 and EXP-0029-IT-001 are False at every horizon
+    L1286  # `cycles`**: measured on pair 0018,
+    L1299  # Two things this cost before it was found.  Across v22+v23, 51 of 219
+    L1313  # measured on pair 0006, `Attack --Attack_Complete--> AttackingTarget`
+    L1396  # Only the root means nothing was committed: on pair 0000 no state is
+    L1665  # `terminates` calls in matrix-v16 were unaffected by the order defect:
+
+### 处置方式
+
+**不删**（它们记录真实的发现过程与教训）。移入 `eval/discover_matrix/` 下的专门文件，docstring 只留
+**机制说明**并链接过去。判别标准：
+
+| 留在 docstring | 移出 |
+| :-- | :-- |
+| 「`_simulate` 构造 `[settle...] + [[trigger]] + [[]...]`，故 cycle 0 在触发之前」 | 「实测 pair 0006：cycle 0 含 Attack…」 |
+| 「扫全部帧会在机器本已在目标里而触发把它带走时返回 True」 | 「10/11 个 pair 有此类翻转」「51/219 个 False 是 horizon 假象」 |
+| 「`pseudo` 关键字在语料中被不一致使用，故该规则的命中分布是语料属性」 | 「pair 0018 标了九个、0048 标了两个、0038 一个没标」 |
+
+即：**保留「为什么这样实现」，移出「在哪些样本上观测到多少」。**
+
+### ⚠️ 为什么现在不做
+
+7 步流程要求先走完 v24 的第 4–7 步，**避免在解读结果时同时改代码**。且这个改动应与冻结条件 2
+（`initial_target` 的返回语义修改）**同批**过一次双 review，而不是分两次。
+
+登记为 **v25 第 1 步**的组成部分。本清单使它成为机械操作 —— 不需要重新查找。
