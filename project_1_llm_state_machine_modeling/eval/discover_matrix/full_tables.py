@@ -105,6 +105,7 @@ def positions(generation: str, verdicts_path: pathlib.Path) -> list[dict]:
             "record_id": record_id,
             "pair": pair,
             "layer": entry.get("layer") or "?",
+            "boundary": entry.get("boundary_ruling") or "in_scope",
             "predicate": entry.get("primary_predicate") or "—",
             "statement": str(entry.get("statement") or "").strip(),
             "claude": series.get("claude"),
@@ -167,8 +168,19 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
     n_pos = sum(len(r["claude"] or []) + len(r["gpt"] or []) for r in pos_rows)
     out.append(f"### 表 2 · 全部 {len(pos_rows)} 条台账记录 × 2 臂 × 3 轮 = {n_pos} 个判定位\n")
     hit_pos = sum(_hits(r["claude"]) + _hits(r["gpt"]) for r in pos_rows)
+    oos = [r for r in pos_rows if r["boundary"] == "out_of_scope"]
     out.append(f"命中 **{hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%**（`hit@1`）。"
                "**全部记录入表入算，不过滤、不分带。**\n")
+    if oos:
+        # 越界记录**不静默剔除**：两个分母都报。静默剔除会让读者无法核对方向 —— 而这次剔除使
+        # 数字**下降**（越界的那条是 6/6 命中），若只报剔除后的数，读者会以为剔除是自利的。
+        k = sum(len(r["claude"] or []) + len(r["gpt"] or []) for r in oos)
+        kh = sum(_hits(r["claude"]) + _hits(r["gpt"]) for r in oos)
+        out.append(
+            f"⚠️ 其中 **{len(oos)} 条**经独立边界裁定为 `out_of_scope`"
+            f"（{'、'.join('`' + r['record_id'] + '`' for r in oos)}），占 {k} 位、命中 {kh} 位。"
+            f"**剔除后：{hit_pos - kh}/{n_pos - k} = {(hit_pos - kh) / (n_pos - k) * 100:.1f}%** —— "
+            f"注意方向是**下降**，因为越界记录在命中侧。两个分母都列，不静默剔除。\n")
     out.append("| 记录 | 层 | 主谓词 | claude | gpt | 缺陷简述 |")
     out.append("| :-- | :-- | :-- | :-: | :-: | :-- |")
     for r in sorted(pos_rows, key=lambda x: (x["layer"], x["record_id"])):
