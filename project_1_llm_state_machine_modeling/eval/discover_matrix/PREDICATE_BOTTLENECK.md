@@ -465,3 +465,53 @@ state UnspecifiedInitial named "Unspecified initial";
    公理层自行检出，并在 run record 里留下「投影曾在此消音」的可审计标记。
 3. **声明性缺席主张的证据集过宽**（I 级，精度侧）：为断定「不存在这条边」而枚举邻边，把邻边的 opaque
    event 记进证据，于是被判 `representation_debt`。**缺席证明不该被它所排除的那条边的表示债污染。**
+
+---
+
+## 九、多报侧的最大一类：产出方与判定方用**不同的名字匹配规则**
+
+⚠️ **动机披露**：本节的发现路径是「查 `fabricated` 集中在哪些类别」，即从失败分析出发。按
+[RULE_PROVENANCE.md](./RULE_PROVENANCE.md) 的纪律，据此改 prompt 需要说明为什么它不是特化 —— 见本节末。
+
+### 现象
+
+两位标注者的 `fabricated` 里，**第一大类在两人间稳定一致**：模型声明了 `OperateState`，而 issue 报
+「缺 `Operate`」。A 计 6/18（33%），B 计 8/23（35%）。
+
+（⚠️ 我的正则分类器按标注者的 `why` 措辞归类，两人措辞不同，**所以整个分布不是精确统计**；只有
+「第一大类是什么」这一点在两人间稳定。）
+
+### 机制：一个双侧规则不对称
+
+| 侧 | 规则 | 出处 |
+| :-- | :-- | :-- |
+| **产出方** | 按**字面名**判缺失 | `prompts.py:40`：「A substate the sentence names by name … so **when the model declares nothing under that name** the requirement should assert the absence」 |
+| **判定方** | 按**归一化**判 | `ONEPASS_JUDGE_PROMPT.md`：「标识符 vs 散文 … **归一化后再判**，不要因为字面不同就说 NL 无依据」 |
+
+**两边都在正确执行自己的规则。** 谓词实测确认它不归一化：
+
+    state_declared('...0032.OperateState')  = True     ← 确实声明了
+    state_declared('...0032.Operate')       = False    ← 虚构的来源
+
+于是 NL 说 `Operate`、模型声明 `OperateState` 时，产出方被指令报缺失 → 谓词返回 False → 发布
+「缺 `Operate`」→ 判定方归一化后判虚构。
+
+### ⚠️ 我这次测试里的一处自身错误，记下来防止过度主张
+
+我同时查了 `state_declared('IdleState')` 得 False，一度以为也是同类。**那是我的查询错了** ——
+`IdleState` 嵌在 `IdleRegion.IdleState` 下，我用了扁平前缀。所以本节的实证只有 `OperateState`
+一条，不是六条。
+
+### 为什么这不是特化
+
+改法是「产出方在断言缺失前必须按与判定方同一条规则归一化」。它的表述**完全不提任何具体状态名、
+pair 或缺陷**，且：
+
+1. **它修的是两条规则之间的不一致**，而不是某个样本的答案。不一致本身可从两份文件的措辞直接读出，
+   不需要看任何运行结果
+2. 它的效果方向是**降低多报**（精度），不是提升命中（召回）—— 不能用来把覆盖率推过 70%
+3. 激活面是「NL 用散文名、模型用带后缀标识符」的全部配置，与样本无关
+
+📌 **但披露仍然必要**：我是从失败分析发现它的。若评审认为这构成污染，正确处置是让一位盲态执行者
+独立比对产出方与判定方的两份 prompt、看是否能自行发现该不一致 —— 那是可构造的检验（同
+[RULE_PROVENANCE.md](./RULE_PROVENANCE.md) 的做法），而不是我事后论证。
