@@ -265,14 +265,17 @@ the answer:
   artifact reacts to the trigger at all in the scope that should react:
   `event_consumed(source=<that scope>, trigger=<the event>)`. Its False is the finding --
   a scope that declares no transition taking that event cannot be conditioning anything
-  on it, which is precisely what "becomes active only when" forbids. Bind `source` to the
-  scope the sentence puts the condition on (the composite being entered, or the one that
-  encloses it), **not** to `"[*]"`: the pseudo-initial anchors the claim before the machine
-  has entered anything, so it answers a cold-start question instead of the conditional-entry
-  one, and a model that activates X unconditionally comes back satisfied for a reason the
-  sentence never raised. A reachability check (`occupancy_after`, `reaches`) is the wrong
-  primary here -- it asks whether the run gets to X, which is true of both the compliant
-  and the unconditional model. Record the scope choice in `limitations`.
+  on it, which is precisely what "becomes active only when" forbids.
+  **`source` is X itself** -- the composite whose entry the sentence conditions -- and one
+  requirement is enough. Do not bind `"[*]"`: the pseudo-initial anchors the claim before
+  the machine has entered anything, so it answers a cold-start question instead of the
+  conditional-entry one, and a model that activates X unconditionally comes back satisfied
+  for a reason the sentence never raised. Do not bind a region or substate *inside* X
+  either: an inner scope may well consume the event while X's own entry stays
+  unconditional, so an inner binding comes back True and hides exactly the defect.
+  A reachability check (`occupancy_after`, `reaches`) is the wrong primary here -- it asks
+  whether the run gets to X, which is true of both the compliant and the unconditional
+  model. Record the scope choice in `limitations`.
 
 **Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
 Compare the *last segment* of the name, not the whole path. A state two regions
