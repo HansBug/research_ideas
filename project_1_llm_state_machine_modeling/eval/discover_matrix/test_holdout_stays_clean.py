@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import collections
 import json
+
+import pytest
 import sys
 from pathlib import Path
 
@@ -25,6 +27,37 @@ import holdout  # noqa: E402
 FROZEN = json.loads((HERE / "holdout.json").read_text())
 
 
+#: ## ⛔ hold-out **数据侧**纪律已退役（带划分被用户裁定废止）
+#:
+#: 下面两条测试守护的是「留出 pair 不得在改 `src/` 的 commit 里被点名」。用户已裁定废止 hold-out 带划分
+#: （理由：它服务泛化性声明，而本研究的贡献是**从真实模型归纳问题类型与判定能力**，语料即研究对象；
+#: 且它把分母掐死到 2 条）。**没有留出集了，所以它们守护的对象不存在。**
+#:
+#: 保留它们的后果：任何触及 `src/` 且提到格集的 commit 都被拦 —— 而那是大多数 commit。
+#:
+#: ### 为什么这不是「因为不方便就删检查」
+#:
+#: 判据是**这个决定是否早于我遇到不方便**。它是的：`RULE_PROVENANCE.md` 早已写明「hold-out 带划分已按
+#: 用户裁定废止，但**规则侧**纪律不随之废止」，写那句话时我没有任何 push 被拦。所以退役是执行一个已作出
+#: 并已记录的决定。
+#:
+#: ### 仍然生效的是另一件事
+#:
+#:     数据侧（已退役）  留出集不参与规则编写      ← 前提消失
+#:     规则侧（生效）    规则编写者不见结果        ← RULE_PROVENANCE.md，公理表盲态推导即此
+#:
+#: 两者是不同的纪律。**废止前者不放宽后者** —— 用户保留的红线正是「不得把答案或不该可见的信息喂进去」，
+#: 而照着漏检清单写规则是喂答案的一种形态。
+#:
+#: 本文件其余 24 项检查（burn 记账一致性、matcher 未变窄、ruling 不悬空等）**保留** ——
+#: 它们守护的是台账记账的自一致性，与带划分无关。
+_HOLDOUT_DATA_SIDE_RETIRED = True
+
+
+@pytest.mark.skipif(
+    _HOLDOUT_DATA_SIDE_RETIRED,
+    reason="hold-out 数据侧纪律已退役：带划分被用户裁定废止，留出集不再存在",
+)
 def test_verify_does_not_recompute_the_candidate_pool() -> None:
     """The first version asserted `compute()["holdout"] == frozen`, and running the hold-out
     destroyed it: rule 2 (never run) then excludes the very pairs that were frozen, so the
@@ -38,6 +71,10 @@ def test_verify_does_not_recompute_the_candidate_pool() -> None:
     assert isinstance(recomputed, list)
 
 
+@pytest.mark.skipif(
+    _HOLDOUT_DATA_SIDE_RETIRED,
+    reason="hold-out 数据侧纪律已退役：带划分被用户裁定废止，留出集不再存在",
+)
 def test_no_naming_of_a_held_out_pair_goes_unaccounted() -> None:
     """The absolute form of this ran out of room, and weakening it needed saying out loud.
 
