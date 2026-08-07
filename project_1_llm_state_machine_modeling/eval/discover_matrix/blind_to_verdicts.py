@@ -50,7 +50,8 @@ def _load(path: pathlib.Path) -> tuple[dict, str | None]:
 
 
 def convert(blind_paths: list[pathlib.Path], key_path: pathlib.Path,
-            on_disagree: str) -> dict:
+            on_disagree: str, directions: dict[str, str] | None = None) -> dict:
+    directions = directions or {}
     key = json.loads(key_path.read_text())
     expected_sid = key.get("sample_id")
     items = {i["unit_id"]: i for i in key["items"]}
@@ -100,6 +101,14 @@ def convert(blind_paths: list[pathlib.Path], key_path: pathlib.Path,
             })
             merged.append({"conservative": 0, "optimistic": 1, "null": None}.get(on_disagree))
         out[item["record_id"]][item["arm"]] = merged
+        # `metrics_at_k` 对**命中**要求标注方向形态（`direct`/`conjunct`/`dual`/`implies`）——
+        # 这道校验是为防「判反」而设的：判据的四种形态里 ③ 是负向命题的正向对偶、④ 是蕴含更根本的
+        # 原因，两者都容易与「方向相反」混淆。盲判者已在输出里给了形态，这里把它带进判定表；
+        # `--direction` 缺省时留空，由 metrics_at_k 报错而不是静默通过。
+        if any(x == 1 for x in merged):
+            d = directions.get(item["unit_id"])
+            if d:
+                out.setdefault("_directions", {}).setdefault(item["record_id"], {})[item["arm"]] = d
 
     if round_mismatch:
         raise SystemExit("ERROR: 轮次数与 key 不符，拒绝转换：\n  " + "\n  ".join(round_mismatch))
@@ -126,7 +135,11 @@ def convert(blind_paths: list[pathlib.Path], key_path: pathlib.Path,
             "分歧处理策略本身是口径选择。conservative 与 optimistic 的两份结果应当并列报出，"
             "与 hit@k 的双分母同理 —— 只报一个等于替判定者做了决定而不说。"
         ),
-        "verdicts": {k: dict(v) for k, v in sorted(out.items())},
+        "verdicts": {
+            k: (dict(v) | ({"direction": out["_directions"][k]}
+                           if k in out.get("_directions", {}) else {}))
+            for k, v in sorted(out.items()) if k != "_directions"
+        },
     }
 
 
@@ -136,10 +149,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--key", type=pathlib.Path, default=HERE / "blind_sample" / "key.json")
     parser.add_argument("--on-disagree", choices=("error", "conservative", "optimistic", "null"),
                         default="error")
+    parser.add_argument("--directions", type=pathlib.Path,
+                        help='JSON：{"U021":"implies", …}。盲判者输出里给了形态列，'
+                             '这里把它带进判定表 —— metrics_at_k 对命中要求标注方向')
     parser.add_argument("-o", "--out", type=pathlib.Path)
     args = parser.parse_args(argv)
 
-    result = convert(args.blind, args.key, args.on_disagree)
+    directions = json.loads(args.directions.read_text()) if args.directions else None
+    result = convert(args.blind, args.key, args.on_disagree, directions)
     text = json.dumps(result, ensure_ascii=False, indent=1)
     if args.out:
         args.out.write_text(text)
