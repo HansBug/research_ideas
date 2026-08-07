@@ -30,6 +30,21 @@ HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "onepass_sample"
 
 
+
+def hits_aliases(label: str | None) -> frozenset[str]:
+    """`hits:A` → {A}；`hits:A+B` → {A, B}；其他标签 → 空集。
+
+    ⚠️ 多别名形式是判据的一条**修正**：一条 issue 的正文可能同时陈述两条期望缺陷的事实，而
+    「一条 issue 一个标签」曾迫使标注者二选一，另一条被记为未命中。两位标注者独立报告了这个
+    系统性低估，故 `hits:` 允许 `+` 连接。
+
+    ⛔ 读取器必须用本函数，不得写 `label == f"hits:{alias}"` —— 精确比较会让 `hits:A+B` 既不匹配
+    A 也不匹配 B，等于把这条修正静默吃掉，且**表现为覆盖率下降**而不是报错。
+    """
+    if not isinstance(label, str) or not label.startswith("hits:"):
+        return frozenset()
+    return frozenset(part.strip() for part in label[5:].split("+") if part.strip())
+
 def _coverage(sample: dict, key: dict, labels: dict) -> dict[tuple[str, str, str], int]:
     """→ {(record_id, arm, run): 0|1}，按 `hits:<alias>` 派生。"""
 
@@ -39,7 +54,7 @@ def _coverage(sample: dict, key: dict, labels: dict) -> dict[tuple[str, str, str
         kitem = by_unit[item["unit_id"]]
         for alias, meta in kitem["record_aliases"].items():
             hit = any(
-                labels.get(i["issue_uid"], {}).get("label") == f"hits:{alias}"
+                alias in hits_aliases(labels.get(i["issue_uid"], {}).get("label"))
                 for i in item["published_issues"]
             )
             out[(meta["record_id"], kitem["arm"], kitem["run"])] = int(hit)

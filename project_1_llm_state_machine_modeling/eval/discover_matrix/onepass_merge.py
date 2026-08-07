@@ -44,6 +44,21 @@ OUT = HERE / "onepass_sample"
 LABELS = ("hits", "grounded-extra", "boundary", "fabricated", "duplicate-of")
 
 
+
+def hits_aliases(label: str | None) -> frozenset[str]:
+    """`hits:A` → {A}；`hits:A+B` → {A, B}；其他标签 → 空集。
+
+    ⚠️ 多别名形式是判据的一条**修正**：一条 issue 的正文可能同时陈述两条期望缺陷的事实，而
+    「一条 issue 一个标签」曾迫使标注者二选一，另一条被记为未命中。两位标注者独立报告了这个
+    系统性低估，故 `hits:` 允许 `+` 连接。
+
+    ⛔ 读取器必须用本函数，不得写 `label == f"hits:{alias}"` —— 精确比较会让 `hits:A+B` 既不匹配
+    A 也不匹配 B，等于把这条修正静默吃掉，且**表现为覆盖率下降**而不是报错。
+    """
+    if not isinstance(label, str) or not label.startswith("hits:"):
+        return frozenset()
+    return frozenset(part.strip() for part in label[5:].split("+") if part.strip())
+
 def _coarse(label: str) -> str:
     """五分类里 `hits:X` 与 `duplicate-of:Y` 带参数，粗化到标签名本身。"""
 
@@ -109,9 +124,9 @@ def merge(sample: dict, key: dict, a: dict, b: dict, on_disagree: str) -> dict:
         kitem = key_by_unit[unit_id]
         run, arm = kitem["run"], kitem["arm"]
         for alias, meta in kitem["record_aliases"].items():
-            ha = any(la[i["issue_uid"]]["label"] == f"hits:{alias}"
+            ha = any(alias in hits_aliases(la[i["issue_uid"]]["label"])
                      for i in item["published_issues"])
-            hb = any(lb[i["issue_uid"]]["label"] == f"hits:{alias}"
+            hb = any(alias in hits_aliases(lb[i["issue_uid"]]["label"])
                      for i in item["published_issues"])
             cov_pairs.append(("1" if ha else "0", "1" if hb else "0"))
             if ha == hb:
