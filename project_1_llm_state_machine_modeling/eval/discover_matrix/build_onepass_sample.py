@@ -28,7 +28,15 @@
 「每格每轮」为单元的样本，问「这条 issue 是什么」。**后者能派生前者，前者不能派生后者** —— 这是换
 结构的实质收益，也是为什么不能靠给旧结构打补丁。
 
-盲化沿用同一套：pair id、台账记录 id、模型路径前缀替别名，带标签不出现，`sample_id` 含代次。
+盲化沿用同一套：pair id、台账记录 id、模型路径前缀替别名，分组标签不出现，`sample_id` 含代次。
+
+## ⚠️ hold-out 带划分已废止
+
+`band` 字段已从 key 里移除，换成 `layer` + `primary_predicate` —— 分组维度是**问题类型**，那才是
+「归纳问题类型与判定能力」的实际维度。全部记录入样、入算，不过滤。
+
+但 `_BAND_WORDS` 扫描**保留**：样本里出现「调优 / 可报 / 已烧毁」等词仍是泄漏，因为它们会告诉标注者
+「这条曾被特殊对待」。**废止一个分组制度，不等于允许它的痕迹进入样本。**
 
 ## issue_uid 的稳定性
 
@@ -51,8 +59,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "onepass_sample"
 RUNS = HERE.parents[2] / "runs" / "paper1"
 _LEAK = re.compile(r"\b\d{4}\b|EIS-|llms_emp_feedback_final")
+#: 仍然要扫这些词：**带划分虽已废止，但样本里出现它们仍是泄漏** —— 它们会告诉标注者
+#: 「这条记录曾被特殊对待」，而那是标注者不该知道的分组信息。
 _BAND_WORDS = ("调优", "留出", "已烧毁", "可报", "hold-out", "holdout", "tuned", "burned")
-TUNED_PAIRS = ("0000", "0006", "0029", "0050")
 
 
 def _scrub(text: str) -> str:
@@ -77,20 +86,11 @@ def _ledger() -> dict[str, list[dict]]:
     return dict(out)
 
 
-def _band(pair: str, record_id: str, reportable: set[str]) -> str:
-    if pair in TUNED_PAIRS:
-        return "hist"
-    return "reportable" if record_id in reportable else "burned"
-
-
 def build(generation: str) -> tuple[dict, dict]:
     base = RUNS / f"matrix-{generation}"
     if not base.is_dir():
         raise SystemExit(f"ERROR: no {base}")
     ledger = _ledger()
-    frozen = json.loads((HERE / "holdout.json").read_text())
-    reportable = set(frozen.get("reportable_records") or [])
-
     units = []
     for run_dir in sorted(base.glob("run*")):
         if not (run_dir.name.startswith("run") and run_dir.name[3:].isdigit()):
@@ -166,7 +166,10 @@ def build(generation: str) -> tuple[dict, dict]:
             "record_aliases": {
                 f"{a}-REC-{n:02d}": {
                     "record_id": e["id"],
-                    "band": _band(unit["pair"], e["id"], reportable),
+                    # 分组维度是**问题类型**，不是带 —— 带划分已废止（见模块 docstring）。
+                    # layer 放在 key 里而不是 sample 里：标注者不该看到它，但派生逐层结果需要它。
+                    "layer": e.get("layer"),
+                    "primary_predicate": e.get("primary_predicate"),
                 }
                 for n, e in enumerate(unit["entries"], 1)
             },
@@ -217,11 +220,11 @@ def main(argv: list[str] | None = None) -> int:
     issues = sum(len(i["published_issues"]) for i in sample["items"])
     records = sum(len(i["expected_defects"]) for i in sample["items"])
     bands = collections.Counter(
-        v["band"] for i in key["items"] for v in i["record_aliases"].values()
+        v["layer"] for i in key["items"] for v in i["record_aliases"].values()
     )
     print(f"(格, 轮) 单元 {sample['unit_count']} 个，sample_id={sample['sample_id']}")
     print(f"  待标注 issue {issues} 条；台账条目位 {records} 个")
-    print(f"  按带（仅在 key 里）：{dict(bands)}")
+    print(f"  按问题类型（仅在 key 里）：{dict(bands)}")
     problems = verify(OUT / "sample.json")
     print("  盲化自检：" + ("✅ 干净" if not problems else f"❌ {len(problems)} 处残留"))
     return 1 if problems else 0
