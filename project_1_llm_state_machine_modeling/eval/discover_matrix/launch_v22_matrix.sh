@@ -24,12 +24,30 @@ one() {  # run pair profile short
   local out="$BASE/$run/$pair-$short"
   for i in $(seq 1 $MAXTRY); do
     [ -f "$out/discover-completed.json" ] && { echo "OK $run/$pair-$short (try $((i-1)))"; return 0; }
+    # ⚠️ `.try$i` 的编号有 off-by-one：`i` 是循环计数器，i=1 时目录尚不存在、mv 静默失败，
+    # i=2 时才把**第一次**尝试的产物移过去 —— 所以 **`.try2` 装的是第一次尝试的残留**。
+    #
+    # **不改这个名字，故意的。** 至少 6 个工具（anchor_shift / count_refusals /
+    # generation_history / check_model_drift / blind_resample / round_variance）按 `"try"` 匹配来
+    # 排除作废目录。改成 `.attempt` 会让它们把作废目录当成正常格计入，症状是「格数变多、指标被
+    # 失败运行的中间产物污染」，**且没有任何报错**。
+    #
+    # 收益/风险不成比例：off-by-one 的代价是「读 `.try2` 时要记得它装的是第一次尝试」，一句注释
+    # 就能解决；改名的代价是 6 处匹配逻辑，每一处漏改都是静默污染。
+    #
+    # 若将来要改：**先给所有工具引入一个共享的「是否为作废目录」判定函数，再改名** —— 不是先改名
+    # 再追着修。
     [ -d "$out" ] && mv "$out" "$out.try$i" 2>/dev/null
+    # L-1 修：`>>` 而非 `>`，并写一行分隔。首版用 `>` 覆盖日志，于是**造成重试的那次失败的
+    # stderr 不可恢复** —— 实测某格日志只剩 1 行。救回来的唯一原因是 run record 独立于日志写盘，
+    # 但两者失效模式不同：日志覆盖 run record 尚未落盘的那一段（例如进程在写 record 之前就被
+    # provider 断开）。
+    echo "=== attempt $i at $(date -u +%Y-%m-%dT%H:%M:%SZ) ===" >> "$BASE/$run/$pair-$short.log"
     PYTHONPATH="$FL/src:$REPO" LLM_CONFIG_FILE="$CFG" \
       "$REPO/venv/bin/python" -u -m paper_stm_feedback_loop.discover \
       --pair-id "llms_emp_feedback_final_$pair" --profile "$prof" \
       --content-language zh-CN --llm-config "$CFG" --transport-retries 8 \
-      --output-dir "$out" > "$BASE/$run/$pair-$short.log" 2>&1
+      --output-dir "$out" >> "$BASE/$run/$pair-$short.log" 2>&1
     [ -f "$out/discover-completed.json" ] && { echo "OK $run/$pair-$short (try $i)"; return 0; }
     echo "RETRY $run/$pair-$short try$i: $(grep -oE 'Error code: [0-9]+|failed at [a-z_]+' "$BASE/$run/$pair-$short.log" | tail -1)"
     sleep 90
