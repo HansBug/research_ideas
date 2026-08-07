@@ -1,6 +1,6 @@
 # RV 2026 README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,13 +16,13 @@
 | Program / accepted papers | [Program / accepted](https://rv2026.smithengineering.queensu.ca/program/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🟡 审稿中 |
+| 当前阶段状态 | 🟣 通知后 |
 
 ## 2. 年度核心 URL 索引
 
 | 链接类型 | 官方 / 优先链接 | fallback / 备注 | 核查时间 |
 |---|---|---|---|
-| 年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tool showcase 2026-08-10 / 2026-08-17 另列，accepted/proceedings/DBLP 尚未发布。 | `2026-07-13 10:27:51` |
+| 年度主页 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | 2026-08-07 复查：Tool showcase 官方 [Call for Tool Showcase](https://rv2026.smithengineering.queensu.ca/tools/) 为 submission `12 August, 2026` AoE / notification `15 August, 2026` AoE（本库此前记 `2026-08-10 / 2026-08-17`，已按官方修正）；program 页为 JS 壳且 `assets/js/data.json` 仍是空模板，accepted / proceedings / DBLP 确未发布。 | `2026-08-07 20:05:00` |
 | CFP / Call for Papers | [CFP / track](https://rv2026.smithengineering.queensu.ca/cfp/) | track 分散时按年度主页展开 | `2026-07-13 10:27:51` |
 | Important Dates | [Important Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | 可与 CFP 同页 | `2026-07-13 10:27:51` |
 | Submission system | [Submission](https://easychair.org/conferences?conf=rv2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-07-13 10:27:51` |
@@ -35,8 +35,8 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Paper submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Paper submission; extended; all deadlines are AoE. |
-| Tutorial proposal submission | 2026-06-14 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Tutorial proposal submission; extended; all deadlines are AoE；tutorial 最长 2 小时。 |
+| Paper submission | 2026-06-16 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | 官方 CFP 逐字 `Paper submission: (extended) 16 June, 2026`（原 31 May, 2026 以删除线标出）；`All deadlines are anywhere on Earth.`。2026-08-07 复查：本库此前记为 `2026-06-14`，与官方现行文本不符，已按官方改为 `2026-06-16`。 |
+| Tutorial proposal submission | 2026-06-16 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | 官方 CFP 逐字 `Tutorial proposal submission: (extended) 16 June, 2026`；`All deadlines are anywhere on Earth.`；tutorial 最长 2 小时。2026-08-07 复查：本库此前记为 `2026-06-14`，已按官方改为 `2026-06-16`。 |
 | Notification | 2026-08-01 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Notification; official extended date, all deadlines AoE |
 | Camera-ready | 2026-08-12 待补时刻 AoE | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Camera-ready; official extended date, all deadlines AoE |
 | Conference dates | 2026-10-06..2026-10-09 | [官方来源](https://rv2026.smithengineering.queensu.ca/cfp/) | [年度主页](https://rv2026.smithengineering.queensu.ca/) | Conference; Kingston local time |
@@ -46,7 +46,7 @@
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
 | Main / Technical / Research track | [Track / CFP](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program / accepted](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 关注 | P2 观察时优先读取 main / technical / research track。 |
-| Tutorial track | [CFP](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 按需 | tutorial 最长 2 小时；proposal deadline 与 paper submission 同为 extended `2026-06-14` AoE。 |
+| Tutorial track | [CFP](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 按需 | tutorial 最长 2 小时；proposal deadline 与 paper submission 同为 extended `2026-06-16` AoE（2026-08-07 按官方 CFP 修正，原记 `2026-06-14`）。 |
 | Data / Tool / Industry / Special session | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 🟡 按需 | 不能与 main track count 混算；有强相关 LLM / data / verification 主题时单独记录。 |
 
 ## 5. 论文名录与数量
@@ -85,6 +85,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新 + **日期更正**：阶段由 `🟡 审稿中` 迁移为 `🟣 通知后`（notification `2026-08-01 AoE` 已过）。paper / tutorial proposal submission 按官方现行 CFP 由 `2026-06-14` 更正为 **`2026-06-16 AoE`**（官方以删除线标出原 `31 May, 2026`）；tool showcase 由 `2026-08-10 / 2026-08-17` 更正为 **submission `12 August, 2026` / notification `15 August, 2026`（AoE）**。program 页为 JS 壳且数据源为空模板，accepted / proceedings / DBLP 确未发布。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新：按官方 extended dates 更新 RV 2026 为已截稿审稿中。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：补齐 RV 2026 Tutorial proposal submission `2026-06-14` AoE，明确 tutorial track 与 paper submission 同日但不混入主论文计数。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 RV 2026 CFP extended 日期（submission `2026-06-14` AoE、notification `2026-07-30`、camera-ready `2026-08-10`、会期 `2026-10-06..09`）与 TIMELINE 一致，未改变官方来源口径。 |

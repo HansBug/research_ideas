@@ -1,6 +1,6 @@
 # ESEM README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -82,7 +82,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟡 审稿中 / 通知临近 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [HotCRP esem26](https://esem26.hotcrp.com) | 未公布 | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） | ⏳ 已检索未公布 | 2026-05-11 待补时刻 | 2026-05-18 待补时刻 | 2026-07-14 待补时刻 | 2026-10-04..2026-10-09 | 未最终公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟣 通知后 / camera-ready 窗口内 | [ESEIW 2026](https://conf.researchr.org/home/eseiw-2026) | [ESEM - Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) | [HotCRP esem26](https://esem26.hotcrp.com) | 未公布 | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） | ⏳ 已检索未公布 | 2026-05-11 待补时刻 | 2026-05-18 待补时刻 | 2026-07-14 待补时刻 | 2026-10-04..2026-10-09 | Technical Track 50（官方 track 页已列名；official-program-level 计数，proceedings 与 DBLP 均未发布） | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ESEIW 2025](https://conf.researchr.org/home/esem-2025) | [ESEM - Technical Track](https://conf.researchr.org/track/esem-2025/esem-2025-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2025) | [EasyChair esem25](https://easychair.org/conferences/?conf=esem25) | [Program](https://conf.researchr.org/program/esem-2025/program-esem-2025/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2025](https://dblp.org/db/conf/esem/esem2025.html) | 2025-04-18 待补时刻 | 2025-04-25 待补时刻 | 2025-06-16 待补时刻 | 2025-09-28..2025-10-03 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ESEIW 2024](https://conf.researchr.org/home/esem-2024) | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2024/esem-2024-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2024) | [EasyChair esem24](https://easychair.org/conferences/?conf=esem24) | [Program](https://conf.researchr.org/program/esem-2024/program-esem-2024/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2024](https://dblp.org/db/conf/esem/esem2024.html) | 2024-05-02 待补时刻 | 2024-05-06 待补时刻 | 2024-06-20 待补时刻 | 2024-10-20..2024-10-25 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ESEIW 2023](https://conf.researchr.org/home/esem-2023) | [ESEM Technical Papers](https://conf.researchr.org/track/esem-2023/esem-2023-technical-track) | [Important Dates](https://conf.researchr.org/dates/esem-2023) | [EasyChair esem2023](https://easychair.org/my/conference?conf=esem2023) | [Program](https://conf.researchr.org/program/esem-2023/program-esem-2023/) | 待补（DBLP 年度页作论文名录 fallback） | [DBLP ESEM 2023](https://dblp.org/db/conf/esem/esem2023.html) | 2023-04-24 待补时刻 | 2023-05-02 待补时刻 | 2023-06-16 待补时刻 | 2023-10-22..2023-10-27 | DBLP 年度页已定位；数量待复核 | 🟡 部分核验 |
@@ -106,6 +106,7 @@ ESEM 是实证软件工程与度量核心会议，通常与 ESEIW 同周组织�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟡 审稿中 / 通知临近` 迁移为 `🟣 通知后 / camera-ready 窗口内`（notification `2026-07-14` 已过），并补入 Technical Track 官方已列名 50 篇的 official-program-level 计数。 |
 | `2026-07-13 13:30:00` | 常态化刷新 ESEM 2026：按官方 Important Dates 将 Technical Track notification 更新为 `2026-07-14 待补时刻`、阶段记为通知临近；复查 2027/2028 仍未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

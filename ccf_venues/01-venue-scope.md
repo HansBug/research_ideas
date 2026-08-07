@@ -20,7 +20,8 @@
 
 1. 软件工程 / 系统软件 / 程序设计语言 venue 以 <https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/> 为主。
 2. CAV 等理论类验证 venue 以 <https://www.ccf.org.cn/Academic_Evaluation/TCS/> 为主。
-3. 旧材料中的 `EMSE` 在 CCF 官方页写作 `ESE`；旧材料中的 `TACAS` 在 CCF 官方页归入 `ETAPS`，本库用 `conf-b-etaps` 并在年度页重点跟踪 TACAS。
+3. 旧材料中的 `EMSE` 在 CCF 官方页写作 `ESE`；旧材料中的 `TACAS` 在 CCF 官方页归入 `ETAPS`，本库用 `conf-b-etaps` 并在年度页跟踪其主会。
+4. **CCF 第七版（2026-03-31 发布 / 2026-04-09 勘误）已成为当前有效版本**，来源与访问方式见 [README.md](./README.md) §3。`2026-08-07` 已按官方 PDF 全量复核本库 42 个 venue，**等级 42/42 全部不变**，本范围文档的 CCF 列无需修改。第七版**不列举 ETAPS 的任何子会议**（全 72 页 PDF 中无 TACAS / FASE / iFS 字样），因此 `conf-b-etaps` 的伞条目口径继续成立。
 
 ## 4. PR-5 冻结状态与后续执行合同
 
@@ -62,7 +63,7 @@
 |---|---|---|---|---|
 | `conf-a-fm` | FM | 会议 | 🏆 | 形式化方法主场，P2/P3 强相关。 |
 | `conf-a-cav` | CAV | 会议 | 🏆 | 计算机辅助验证顶会，P3 的模型检查与验证剖面核心对口。 |
-| `conf-b-etaps` | ETAPS / TACAS | 会议 | 🥈 | CCF 目录列为 ETAPS，实际维护时重点跟踪 TACAS 等验证相关分会，P3 与 pyfcstm / UPPAAL 工具化相关。 |
+| `conf-b-etaps` | ETAPS（TACAS + iFS） | 会议 | 🥈 | CCF 目录以单一 `ETAPS` 伞条目收录（第七版 SE 会议 B #2，目录不列子会议）。**自 `2026-08-07` 起，本库跟踪的主会由「仅 TACAS」扩展为「TACAS + iFS」**：iFS 是 FASE 与 iFM 合并后的首届会议（ETAPS 2027 起），官方 scope 明列 requirements engineering、MDE、model learning、CPS/hybrid/real-time、AI-based systems 的 SE 基础，对 P1/P2/P4 的契合度高于偏工具算法的 TACAS；FASE 旧入口已 404。这是**同一 venue 目录内的跟踪范围扩展，不新增 venue 目录**。iFS 继承 ETAPS 的 B 类归属属推论而非目录明文，用于毕业成果认定前需另行确认。TACAS 仍作为 P3 与 pyfcstm / UPPAAL 工具化的主要跟踪分会。 |
 | `conf-b-vmcai` | VMCAI | 会议 | 🥈 | 验证、模型检查、抽象解释，P3 核心。 |
 | `conf-b-issre` | ISSRE | 会议 | 🥈 | 可靠性与验证，P2/P3 对口。 |
 | `journal-b-stvr` | STVR | 期刊 | 🥈 | 测试、验证、可靠性，P2/P3 对口。 |
@@ -100,6 +101,21 @@
 | `conf-c-msr` | MSR | 会议 | 🥉 | 数据集、仓库挖掘、LLM4SE 实证。 |
 | `conf-c-rv` | RV | 会议 | 🥉 | 运行时验证，与 P3 邻近。 |
 
+## 8.4 CCF 第七版新增 / 升级带来的待评估候选（2026-08-07 登记，尚未纳入建档）
+
+> 本节只登记候选与理由，**不等于已纳入 scope**。按 [GUIDE.md](./GUIDE.md) §12.9.4，新增 venue 目录前必须先在本文件与 PR body 中明确范围变更。以下条目均来自官方第七版 PDF 与官方第六版 HTML 分类页的逐行 diff（SE/SS/PL 与 TCS 两类的全部变动已锁定）。
+
+| 名称 | 类型 | 第七版等级 | 变动 | 领域 | 相关 project | 相关度 | 建议 |
+|---|---|---|---|---|---|---|---|
+| FMCAD — Formal Methods in Computer-Aided Design | 会议 | 🥈 | **由 C 升 B** | TCS | P3 主 / P2 次 | 强 | **建议认真评估纳入**。模型检查 / SAT-SMT / 系统形式化验证与 project_3 主线高度重合，且可与已收录的 CAV(🏆) / VMCAI(🥈) / SPIN(🥉) / ATVA(🥉) 构成完整梯度。第六版时它是 TCS C，落在当时 scope 之外，故本库从未收录。 |
+| MEMOCODE — International Conference on Formal Methods and Models for Co-Design | 会议 | 🥉 | **新增** | SE/SS/PL | P1 + P3 主 / P2 次 | 强 | **建议评估纳入**。会议名直接命中「形式化方法 + 模型」交叉定位，且面向嵌入式 / 控制系统协同设计，与本仓库 9 个控制系统数据集语境契合。 |
+| CC — International Conference on Compiler Construction | 会议 | 🥈 | 新增 | SE/SS/PL | P4 边缘 | 弱—中 | 暂不纳入；仅登记。 |
+| FSCD（原 RTA） | 会议 | 🥉 | 更名 | TCS | P3 边缘 | 弱—中 | 暂不纳入；仅登记更名事实。 |
+| TQC — ACM Transactions in Quantum Computing | 期刊 | 🥉 | 新增 | TCS | 无 | 不相关 | 不纳入。 |
+| SETTA | 会议 | 🥉 | 全称变更（删去 `Dependable`） | TCS | P3 边缘 | 弱 | 暂不纳入；仅登记。 |
+
+**范围外提示（属「人工智能」大类，不在本库两个主类内，仅作 project_1 参考）**：第七版中 **ICLR 首次收录并直接进入 A 类**，**IJCAI 由 A 降为 B**。project_1 以 LLM 为核心方法，ICLR 进 A 会改变「LLM 方法侧成果」的可投 A 类池，做毕业成果规划时值得单独考虑，但本库不因此扩展 venue scope。
+
 ## 8.5 PR #63 LLM4Modeling-SE 扩展候选
 
 PR #63 是在 PR #35 / PR #62 已合入后的用户指定补链，不属于 PR-6~PR-10 原冻结合同。它只补充 SE 大类中与 LLM4Modeling 主线足够贴合且规模可控的漏项，并要求 CCF 官方 / 镜像证据等级显式区分。
@@ -116,6 +132,7 @@ PR #63 是在 PR #35 / PR #62 已合入后的用户指定补链，不属于 PR-6
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:40:00` | 2026-08 全量刷新：记录 CCF 第七版已成当前有效版本且本库 42/42 等级不变；把 `conf-b-etaps` 的跟踪主会由「仅 TACAS」扩展为「TACAS + iFS」（同目录内范围扩展，不新增 venue 目录）；新增 §8.4 登记第七版带来的待评估候选 FMCAD（C→B）、MEMOCODE（新增 C）等，并提示范围外的 ICLR 进 A / IJCAI 降 B。 |
 | `2026-06-09 20:50:00` | 同步 CCF emoji 口径：将扩展候选边界中的旧字母等级表述改为 🥉 档补充观察，避免与正式 CCF emoji 列混淆。 |
 | `2026-06-09 20:42:00` | 同步 SUMMARY 单表化纪律：P1/P2 ownership 与执行合同继续由本文和 GUIDE 承载，不再指向 SUMMARY 正文旧小节。 |
 | `2026-06-09 18:08:00` | 修复 PR #91 subagent I 级反馈：将范围冻结表中的正式 `CCF` 列从旧式字母等级文本改为 🏆/🥈/🥉 emoji，避免与 SUMMARY / TIMELINE 等总账口径分裂。 |

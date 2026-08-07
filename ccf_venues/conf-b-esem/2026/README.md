@@ -1,6 +1,6 @@
 # ESEM 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,10 +14,10 @@
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/eseiw-2026) |
 | Submission system | [HotCRP esem26](https://esem26.hotcrp.com) |
 | Review / open science policy | [Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) 明确 ESEM 2026 使用 double-anonymous review，且 open by default；强稿可被邀请扩展投稿到 Empirical Software Engineering special issue |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [ESEM Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) |
 | Proceedings | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟡 审稿中 / 通知临近 |
+| 当前阶段状态 | 🟣 通知后 / camera-ready 窗口内 |
 
 ## 2. 年度核心 URL 索引
 
@@ -57,8 +57,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未最终公布 |
-| 官方论文名录 / accepted papers | 未公布 |
+| 论文数量 | Technical Track 50（官方 track 页已列名、均标 `Not scheduled`；official-program-level 计数，proceedings 与 DBLP 年度页均未发布） |
+| 官方论文名录 / accepted papers | [ESEM Technical Track](https://conf.researchr.org/track/eseiw-2026/eseiw-2026-esem---technical-track) |
 | Program | 未公布 |
 | Proceedings | [Dagstuhl LIPIcs FAQ](https://conf.researchr.org/info/eseiw-2026/dagstuhl-lipics---faq-for-authors) / [Open Science Policy](https://conf.researchr.org/info/eseiw-2026/open-science-policy)（论文集未公布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段由 `🟡 审稿中 / 通知临近` 迁移为 `🟣 通知后 / camera-ready 窗口内`（notification `2026-07-14` 已过，camera-ready `2026-08-17`）；Program / accepted papers 与论文数量补为 Technical Track **50 篇**（官方 track 页已列名，均标 `Not scheduled`，属 official-program-level 计数，proceedings 与 DBLP 均未发布）。 |
 | `2026-07-13 13:30:00` | 常态化刷新：按官方 Important Dates 将 Technical Track notification 从 `2026-07-10` 更新为 `2026-07-14`，并将阶段记为通知临近；camera-ready 保持 `2026-08-17 待补时刻`。 |
 | `2026-06-05 18:39` | 实现后 review 修复：更新 TIMELINE 同步备注，明确本年度 dated event 是否已同步或因未公布暂无可同步事件。 |
 | `2026-06-05 17:23` | 初始化 ESEM 2026 年度 README，记录核心 URL、Technical Track 重要时间点、tracks、论文名录与核查状态。 |

@@ -1,6 +1,6 @@
 # MoDELS 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -13,10 +13,10 @@
 | 官方 CFP | [Research Papers track](https://conf.researchr.org/track/models-2026/models-2026-research-papers) |
 | Important Dates | [Important Dates](https://conf.researchr.org/dates/models-2026) |
 | Submission system | [Submission system](https://easychair.org/conferences/?conf=models2026) |
-| Program / accepted papers | ⏳ 已检索未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
+| Program / accepted papers | [Research Papers track Accepted Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | 🟣 通知后 |
+| 当前阶段状态 | 🟣 通知后 / camera-ready 已过 |
 
 ## 2. 年度核心 URL 索引
 
@@ -52,8 +52,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未最终公布 |
-| 官方论文名录 / accepted papers | 未公布（[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied） |
+| 论文数量 | Research Papers 30（Foundations Track `FT` 23 + Practice Track `PT` 7） |
+| 官方论文名录 / accepted papers | [Research Papers track Accepted Papers](https://conf.researchr.org/track/models-2026/models-2026-research-papers)；⚠️ 该名录在 **track 页的 `Accepted Papers` 标签**下公开，而 [program](https://conf.researchr.org/program/models-2026/program-models-2026/) 与 [info/accepted-papers](https://conf.researchr.org/info/models-2026/accepted-papers) 两条路径仍为 Access denied —— 此前只探测 authwall 路径导致系统性假阴性 |
 | Program | ⏳ 已检索未公布；[program probe](https://conf.researchr.org/program/models-2026/program-models-2026/) 当前 Access denied |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -87,6 +87,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段补为 `🟣 通知后 / camera-ready 已过`；论文数量补为 Research Papers **30 篇**（Foundations Track 23 + Practice Track 7）。⚠️ 记录该名录公开在 **track 页 `Accepted Papers` 标签**下，而 `/program/` 与 `/info/.../accepted-papers` 仍为 Access denied —— 此前只探测 authwall 路径造成系统性假阴性。 |
 | `2026-07-13 13:30:00` | 常态化刷新：按官方 Research Papers track / dates 将阶段改为通知后，保留 camera-ready `2026-07-31 待补时刻 AoE` 与会期 `2026-10-04..2026-10-09`。 |
 | `2026-06-05 01:08` | 统一年度页日期范围分隔符为 `..`，便于后续时间字段脚本化解析。 |
 | `2026-06-04 22:20` | 将当前阶段统一为审稿中，并补充阶段状态判定依据。 |

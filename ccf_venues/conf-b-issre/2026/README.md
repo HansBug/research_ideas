@@ -1,6 +1,6 @@
 # ISSRE 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -41,6 +41,9 @@
 | Early decision | 2026-06-15 待补时刻 AoE | [CFP / track](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方写作 Decisions and Early Notification；Important Dates 标题明确为 AoE。 |
 | Revision period | 2026-06-16..2026-07-03 AoE | [CFP / track](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方写作 Author Revision Period；该区间继承 Important Dates (AoE) 口径。 |
 | Notification | 2026-07-08 待补时刻 AoE | [CFP / track](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方写作 Notification to Authors；Important Dates 标题明确为 AoE。 |
+| Author Rebuttal Period（**2026-08-07 新增**） | 2026-06-05..2026-06-09 待补时刻 AoE | [ISSRE 2026 Dates](https://cyprusconferences.org/issre2026/dates/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方逐字 `Author Rebuttal Period: June 5 – June 9, 2026`；页面标题即 `ISSRE 2026 Dates (AoE)`。 |
+| Decisions and Early Notification（**2026-08-07 新增**） | 2026-06-15 待补时刻 AoE | [ISSRE 2026 Dates](https://cyprusconferences.org/issre2026/dates/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方逐字 `Decisions and Early Notification: June 15, 2026`。ISSRE 采 early-notification + revision 两阶段流程。 |
+| Author Revision Period（**2026-08-07 新增**） | 2026-06-16..2026-07-03 待补时刻 AoE | [ISSRE 2026 Dates](https://cyprusconferences.org/issre2026/dates/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方逐字 `Author Revision Period: June 16 – July 3, 2026`。 |
 | Camera-ready | 2026-08-19 待补时刻 AoE | [CFP / track](https://cyprusconferences.org/issre2026/cfp-research/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方写作 Camera Ready Papers；Important Dates 标题明确为 AoE。 |
 | Conference | 2026-10-20..2026-10-23 | [年度主页](https://cyprusconferences.org/issre2026/) | [ISSRE 2026](https://cyprusconferences.org/issre2026/) | 官方仅给日期时按待补时刻记录；若 source 为 fallback，年度页已说明口径。 |
 
@@ -79,6 +82,9 @@
 
 ## 8. 待补 / 风险记录
 
+- ⚠️ **访问陷阱（2026-08-07 记录）**：`cyprusconferences.org` 对默认 `curl` UA 返回 **HTTP 404**，对浏览器 UA 返回 **200**（UA 型 bot 过滤）。裸 curl 复查会误判「ISSRE 2026 官网已下线」，后续复查必须带浏览器 UA。
+- 官方 `/program/` 正文为 `Program` + `TBA`，`/accepted-papers/` 逐字 `Accepted papers: TBA`，accepted 名录确未发布。
+
 - Research track 包含 RES/PER/TAR；industry/tool/workshop 不混入 research count。
 - Research CFP 当前把旧 abstract deadline `2026-04-10` 与旧 paper deadline `2026-04-17` 都 extended 到 `2026-04-24 AoE`；后续若页面再次更新，必须同步根 README 和 [TIMELINE.md](../../TIMELINE.md)。
 
@@ -93,6 +99,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：补入官方 Research Track 三个此前缺失的主链节点 —— Author Rebuttal Period `2026-06-05..06-09`、Decisions and Early Notification `2026-06-15`、Author Revision Period `2026-06-16..07-03`（ISSRE 特有的 early-notification + revision 两阶段流程）；记录 `cyprusconferences.org` 的 UA 型 bot 过滤陷阱（裸 curl 返回 404、浏览器 UA 返回 200）。四个既有主轨日期与官方逐字一致，未变更。 |
 | `2026-07-13 13:30:00` | 常态化刷新：将阶段改为通知后，Important Dates 改挂官方 dates 页，保留 camera-ready `2026-08-19 待补时刻 AoE` 与会期 `2026-10-20..2026-10-23`。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：将 ISSRE 2026 rebuttal、early decision、revision period、notification 与 camera-ready 明确为 AoE 口径，并同步 TIMELINE revision period。 |
 | `2026-06-05 11:12` | 根据复审修正 ISSRE 2026 extended dates：abstract / paper submission 均为 2026-04-24 AoE，并记录普通 curl 可能 404/WAF-like、带 UA 可核验的访问坑。 |

@@ -1,6 +1,6 @@
 # JSEP 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -90,6 +90,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。Wiley 期刊主页与 `special_issues` 页均为 Cloudflare 403 / HTTP 402；投稿入口候选 `mc.manuscriptcentral.com/jsme` 同为 Cloudflare 403，**候选状态维持不变**。✅ 新增可入库事实：[DBLP JSEP](https://dblp.org/db/journals/smr/index.html) 截至快照 `2026-08-06` 最新仍只有 Volume 37 (2025)，2026 卷（Volume 38）未公布。 |
 | `2026-07-13 19:10:00` | 常态化刷新：确认 JSEP 2026 rolling 投稿口径，无可核验 active dated CFP；保留 Wiley WAF/403 与 ScholarOne 当前性 caveat。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：降级 Wiley rolling 投稿为候选口径，并将 current issue 与 Early View / articles in press 入口明确分离。 |
 | `2026-06-05 17:35` | PR-6 初始化 JSEP 2026 年度 README，记录 Wiley / DBLP 核心入口、投稿节奏、special issue 线索与 DBLP entry article baseline。 |

@@ -1,6 +1,6 @@
 # ISSTA 2026 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,7 +14,7 @@
 | 官方 CFP | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Important Dates | [Research papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Submission system | [HotCRP](https://issta2026.hotcrp.com/) |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [Research Papers Accepted Papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Proceedings | PACMSE Issue ISSTA 2026（track 说明；未正式发布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
 | 当前阶段状态 | 🟣 通知后 |
@@ -57,8 +57,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
-| 官方论文名录 / accepted papers | 未公布 |
+| 论文数量 | 名录已公布 / 计数待补 |
+| 官方论文名录 / accepted papers | [Research Papers Accepted Papers](https://conf.researchr.org/track/issta-2026/issta-2026-research-papers) |
 | Program | 未公布 |
 | Proceedings | PACMSE Issue ISSTA 2026（track 说明；未正式发布） |
 | DBLP 年度页 | ⏳ 已检索未公布 |
@@ -89,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：Research Papers `Accepted Papers` 名录已上线，Program / accepted papers 与官方论文名录字段由 `未公布` 改为官方 track 入口，论文数量改为「名录已公布 / 计数待补」；⚠️ 页面过长被截断，**不得填具体数字**。camera-ready `2026-07-23` 已过。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复核 ISSTA 2026 Research papers 日期，当前阶段改为 `🟣 通知后`，保留 camera-ready `2026-07-23 待补时刻 AoE / UTC-12h`。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：去除 ISSTA 2026 未获官方证据支撑的 `23:59` 时刻，补齐 author response、final notification 与 camera-ready，删除跨会议误植说明，并同步根 README 与 TIMELINE。 |
 | `2026-06-05 08:39` | 初始化 ISSTA 2026 年度 README 草稿。 |

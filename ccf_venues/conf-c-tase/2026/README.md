@@ -1,6 +1,6 @@
 # TASE 2026 README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Submission system | [Submission](https://tase2026.github.io/c_subins.html) |
 | Program / accepted papers | [Program / Accepted](https://tase2026.github.io/c_ap.html) |
 | Proceedings | 未公布；官网说明 planned Springer LNCS |
-| DBLP 年度页 | [DBLP](https://dblp.org/db/conf/tase/index.html) |
+| DBLP 年度页 | [DBLP TASE 2026](https://dblp.org/db/conf/tase/tase2026.html) |
 | 当前阶段状态 | ✅ 已结束 |
 
 ## 2. 年度核心 URL 索引
@@ -30,7 +30,7 @@
 | Tracks / program | [Program / schedule](https://tase2026.github.io/c_cs.html) | track 边界需逐年复核 | `2026-07-13 10:27:51` |
 | Accepted papers / paper list | [Accepted papers](https://tase2026.github.io/c_ap.html) | 未公布时不以 DBLP 冒充 official accepted list | `2026-07-13 10:27:51` |
 | Proceedings | 未公布；官网说明 planned Springer LNCS | 出版商 / DOI / proceedings page 优先 | `2026-07-13 10:27:51` |
-| DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/tase/index.html) | 仅作 fallback / 计数核验 | `2026-07-13 10:27:51` |
+| DBLP 年度页 | [DBLP TASE 2026](https://dblp.org/db/conf/tase/tase2026.html) | 2026-08-07 核验：年度页已上线，28 条 `inproceedings` + 1 条 proceedings volume；给出卷次 `Lecture Notes in Computer Science 16697, Springer 2027, ISBN 978-3-032-30692-0`、编者 Giuseppe De Giacomo / Jianwen Li / Lili Xiao、DOI [10.1007/978-3-032-30693-7](https://link.springer.com/book/10.1007/978-3-032-30693-7)。⚠️ DBLP 标注的 `Springer 2027` 是 imprint year（会期为 2026），不得误读为 TASE 2027；Springer 页 CLI 为 `Client Challenge` JS 壳，卷次事实当前仅有 DBLP 一个可审计来源 | `2026-08-07 20:05:00` |
 
 ## 3. 重要时间点
 
@@ -53,8 +53,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 官方 accepted 表 28 papers；Springer / DBLP 2026 入口尚未发布 |
-| 计数状态 | 🟡 部分核验 |
+| 论文数量 | 28（官方 accepted 表 28 篇 = DBLP `tase2026` 年度页 28 条 `inproceedings`，两方口径闭合） |
+| 计数状态 | 🟢 官方 accepted 表与 DBLP 年度页交叉一致 |
 | 论文名录 / accepted papers | [Program / Accepted](https://tase2026.github.io/c_ap.html) |
 | Proceedings | 未公布；官网说明 planned Springer LNCS |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/tase/index.html) |
@@ -98,5 +98,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**proceedings 与 DBLP 年度页均已发布**。DBLP [tase2026](https://dblp.org/db/conf/tase/tase2026.html) 给出 `Lecture Notes in Computer Science 16697, Springer 2027, ISBN 978-3-032-30692-0`、编者 De Giacomo / Li / Xiao 与 DOI；其 28 条 `inproceedings` 与官方 accepted 表 28 篇**完全吻合**，计数状态由 `🟡 部分核验` 升级为 `🟢`。⚠️ DBLP 标注的 `Springer 2027` 是 imprint year（会期为 2026），不得误读为 TASE 2027；Springer 页 CLI 为 JS 壳，卷次当前仅有 DBLP 一个可审计来源。 |
 | `2026-07-13 10:27:51` | 常态化刷新：确认 TASE 2026 已结束，保留 Springer / DBLP 待补。 |
 | `2026-06-05 18:05` | PR-8 初始化 TASE 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

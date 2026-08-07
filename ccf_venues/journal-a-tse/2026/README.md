@@ -1,6 +1,6 @@
 # TSE 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -82,6 +82,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：✅ 官方 [TSE Call for Papers](https://www.computer.org/digital-library/journals/ts/cfp-ieee-transactions-on-software-engineering) 正文已取得，确认**无任何 dated special issue、无 deadline**，本库「无已知 active dated special issue」结论从推断升级为官方正文确认。同轮记录卷期漂移：IEEE CSDL `/csdl/journal/ts/2026/07` 已上线（最新为 **Vol. 52 Issue 7, July 2026**，`/2026/08` 仍 404），DBLP `entry article` baseline 由 98 增至 **124** —— 属计数漂移，不改变可投窗口结论。 |
 | `2026-07-13 19:10:00` | 常态化刷新：将 2026 卷期入口更新为 IEEE CS Vol. 52 Issue 6；确认常规 rolling 与无 active dated CFP 口径。 |
 | `2026-06-04 22:05` | 补充年度论文数量的 DBLP `entry article` baseline，并说明 publisher 卷期/online-first 口径仍需交叉核验。 |
 | `2026-06-04 20:43` | 初始化 TSE 2026 年度 README。 |

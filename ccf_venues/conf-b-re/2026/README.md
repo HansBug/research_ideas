@@ -1,6 +1,6 @@
 # RE 2026 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -54,7 +54,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未最终公布 |
+| 论文数量 | Research Papers 24（官方 track 页 `Accepted Papers` 逐行统计；不含 RE@Next!、Industrial Innovation、Journal-First、Posters and Tool Demos、Artifacts 等其余 track） |
 | 官方论文名录 / accepted papers | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) |
 | Program | [Accepted Papers](https://conf.researchr.org/track/RE-2026/RE-2026-Research-Papers) |
 | Proceedings | 未公布 |
@@ -88,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：论文数量补为 Research Papers **24 篇**（官方 track 页 `Accepted Papers` 逐行统计，不含 RE@Next! / Industrial Innovation / Journal-First / Posters and Tool Demos / Artifacts 等其余 track）；官方完整 program 亦已发布。 |
 | `2026-07-13 13:30:00` | 常态化刷新：确认 Research Papers camera-ready 已过、会期 `2026-08-17..2026-08-21` 未开始，将阶段改为会期临近。 |
 | `2026-06-05 08:35` | 初始化 RE 2026 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

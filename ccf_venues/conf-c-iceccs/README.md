@@ -1,6 +1,6 @@
 # ICECCS README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -80,7 +80,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟢 投稿中 | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) | [Submission section](https://formal-analysis.com/iceccs/2026/#submission) | [Important Dates](https://formal-analysis.com/iceccs/2026/#dates) | [EasyChair ICECCS 2026](https://easychair.org/conferences/?conf=iceccs2026) | 未公布；404 candidate 已降级为待补风险 | 未公布；官网说明 planned Springer LNCS | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2026-07-20 待补时刻 AoE | 2026-07-20 待补时刻 AoE | 2026-08-24 待补时刻 AoE | 2026-08-31 待补时刻 | 2026-11-23..2026-11-24（Brisbane, Australia） | 未公布；accepted-list candidate 2026-06-07 CLI 404 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🟡 已截稿 / 待 notification | [ICECCS 2026](https://formal-analysis.com/iceccs/2026/) | [Submission section](https://formal-analysis.com/iceccs/2026/#submission) | [Important Dates](https://formal-analysis.com/iceccs/2026/#dates) | [EasyChair ICECCS 2026](https://easychair.org/conferences/?conf=iceccs2026) | 未公布；404 candidate 已降级为待补风险 | 未公布；官网说明 planned Springer LNCS | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2026-07-20 待补时刻 AoE | 2026-07-20 待补时刻 AoE | 2026-08-24 待补时刻 AoE | 2026-08-31 待补时刻 | 2026-11-23..2026-11-24（Brisbane, Australia） | 未公布；accepted-list candidate 2026-06-07 CLI 404 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ICECCS 2025](https://iceccs2025-hangzhou.github.io/) | [Submission and Publication](https://iceccs2025-hangzhou.github.io/#submissionandpublication) | [Important Dates](https://iceccs2025-hangzhou.github.io/#importantdates) | [EasyChair ICECCS 2025](https://easychair.org/conferences/?conf=iceccs2025) | [Program](https://iceccs2025-hangzhou.github.io/#program) / [Program PDF](https://iceccs2025-hangzhou.github.io/Program.pdf) | 官网说明 Springer LNCS；具体 Springer volume URL 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2025-01-28 待补时刻 AoE | 2025-02-11 待补时刻 AoE | 2025-04-04 待补时刻 AoE | 2025-05-02 待补时刻 AoE | 2025-07-02..2025-07-04 UTC+8 | 待按 official program / proceedings / DBLP 分口径计数 | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 / 待补 | 待补；候选 `https://cyprusconferences.org/iceccs2024/` 当前 CLI 404 | 待补 | 待补 | 待补 | 待补 | 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 待补 | 待补 | 待补 | 待补 | 待补 | 待 DBLP / proceedings 复核 | ⏳ 待核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ICECCS 2023](https://www.irit.fr/iceccs2023/) | [Submission section](https://www.irit.fr/iceccs2023/#submission) | [Important Dates](https://www.irit.fr/iceccs2023/#dates) | [EasyChair ICECCS 2023](https://easychair.org/conferences/?conf=iceccs2023) | [Accepted Papers](https://www.irit.fr/iceccs2023/#acceptedpapers) | [Local proceedings page](https://www.irit.fr/iceccs2023/doc/proc.html)；IEEE Xplore 待补 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) | 2023-01-16 待补时刻 | 2023-01-16 待补时刻 | 2023-03-15 待补时刻 | 2023-04-15 待补时刻 | 2023-06-14..2023-06-16 | 待从 accepted/proceedings/DBLP 分口径计数 | 🟡 部分核验 |
@@ -114,6 +114,7 @@ ICECCS 聚焦 complex computer-based systems / complex computer systems 的工�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 待 notification`（abstract 与 full paper 均于 `2026-07-20 AoE` 截止且未再延期，notification `2026-08-24`）。⚠️ 记录官网 HTML 注释陷阱：注释中藏有「location has been changed to Nansha, Guangzhou」等内容，可见正文 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane，抓取前必须剥离注释。**P2 / 不升级。** |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 ICECCS 2026 dates 更新 main paper abstract / full paper 延期至 2026-07-20 AoE、notification 2026-08-24 AoE、camera-ready 2026-08-31；未更改旁支 track。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

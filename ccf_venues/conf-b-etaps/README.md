@@ -1,6 +1,6 @@
 # ETAPS / TACAS README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -81,6 +81,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | 🟦 已有主页 | [ETAPS 2028](https://etaps.org/2028/) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 2028-04-02..2028-04-07 | ETAPS umbrella: 未公布；TACAS: 未公布 | ⏳ 已检索未公布 |
 | [`2027`](./2027/README.md) | 🟢 投稿中 | [ETAPS 2027](https://etaps.org/2027/) | [CFP](https://etaps.org/2027/cfp/) | [Important Dates](https://etaps.org/2027/cfp/) | [TACAS track](https://etaps.org/2027/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas27) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-10-15 待补时刻 AoE | 2026-12-22 待补时刻 AoE | ETAPS 2027-04-10..2027-04-15；Main conferences/TACAS 2027-04-12..2027-04-15 | ETAPS umbrella: 未公布；TACAS: 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md)（iFS 分会） | 🟢 投稿中 | [ETAPS 2027](https://etaps.org/2027/) | [Joint CFP](https://etaps.org/2027/cfp/) | [Important Dates](https://etaps.org/2027/cfp/) | [iFS 分会页](https://etaps.org/2027/conferences/ifs/) | [EasyChair `ifs27`](https://easychair.org/conferences/?conf=ifs27) | 未公布 | 未公布 | ⏳ 已检索未公布 | 2026-10-15 待补时刻 AoE | 2026-12-22 待补时刻 AoE | 2027-04-12..2027-04-15 | 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束 | [ETAPS 2026](https://etaps.org/2026/) | [CFP](https://etaps.org/2026/cfp/) | [Important Dates](https://etaps.org/2026/cfp/) | [TACAS track](https://etaps.org/2026/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas26) | [Program / Accepted](https://etaps.org/2026/programme/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2026](https://dblp.org/db/conf/tacas/index.html#2026) | 2025-10-16 待补时刻 AoE | 2025-12-22 待补时刻 | ETAPS 2026-04-11..2026-04-16；TACAS 2026-04-13..2026-04-16 | ETAPS umbrella: 138；TACAS: 56 | 🟢 已核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ETAPS 2025](https://etaps.org/2025/) | [CFP](https://etaps.org/2025/cfp/) | [Important Dates](https://etaps.org/2025/cfp/) | [TACAS track](https://etaps.org/2025/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas25) | [Program / Accepted](https://etaps.org/2025/past-conference/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2025](https://dblp.org/db/conf/tacas/index.html#2025) | 2024-10-10 23:59 AoE | 2024-12-20 待补时刻 | 2025-05-03..2025-05-08 | ETAPS umbrella: 106；TACAS: 46 | 🟢 已核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ETAPS 2024](https://etaps.org/2024/) | [CFP](https://etaps.org/2024/cfp/) | [Important Dates](https://etaps.org/2024/cfp/) | [TACAS track](https://etaps.org/2024/conferences/tacas/) | [EasyChair](https://easychair.org/conferences/?conf=tacas24) | [Program / Accepted](https://etaps.org/2024/past-conference/) | [Proceedings](https://etaps.org/about/proceedings/) | [DBLP TACAS 2024](https://dblp.org/db/conf/tacas/index.html#2024) | 2023-10-12 23:59 AoE | 2023-12-21 待补时刻 | 2024-04-06..2024-04-11 | ETAPS umbrella: 117；TACAS: 53 | 🟢 已核验 |
@@ -95,6 +96,7 @@
 - 2023 未找到独立 TACAS 分会页时，根表与年度页均显式写作 `fallback`，避免把 ETAPS programme 误读为独立 TACAS track 页。
 - 2026 / 2027 CFP 均写明 `All the dates are AoE`；投稿、artifact、rebuttal、notification、final version 等 deadline 默认按 AoE 口径记录，会期日期本身不按 AoE deadline 解释。2026 已结束；2027 TACAS 仍处于可投稿窗口，paper submission 为 `2026-10-15 待补时刻 AoE`，mandatory artifact 为 `2026-10-29 待补时刻 AoE`。
 - 2027 ETAPS 年度主页 / CFP 给出 umbrella 会期 `2027-04-10..2027-04-15`，CFP 同时注明 Main conferences `2027-04-12..2027-04-15`；本库在根表与年度页同时保留两层日期。
+- ⚠️ **2026-08-07 跟踪范围扩展**：本库跟踪的 ETAPS 主会由「仅 TACAS」扩为 **「TACAS + iFS」**。**iFS 2027 是 FASE 与 iFM 合并后的首届会议**，与 TACAS / ESOP-R2 / FoSSaCS 共用 submission deadline `2026-10-15 AoE`，但**无 rebuttal**、artifact 自愿、双盲仅限 regular research paper；proceedings 为 LNCS **ARCoSS** subline gold open access（CC-BY，作者无 APC），并有 **STTT + FAC 双专刊邀请**。其 scope 明列 requirements engineering、MDE、model learning、AI-based systems 的 SE 基础，**对 project_1 / 2 / 4 的契合度高于偏工具算法的 TACAS**。详见 [2027/README.md](./2027/README.md) §4.1 与 [../01-venue-scope.md](../01-venue-scope.md)。⚠️ CCF 第七版目录只收 `ETAPS` 单一伞条目（全 72 页无子会议名），iFS 继承 B 类属**推论而非目录明文**，用于毕业成果认定前需另行确认。
 - 2024 TACAS artifact deadline 存在版本差异，当前按已知官方证据记为 `2023-10-26 23:59 AoE`，并在年度页保留矛盾提示。
 
 ## 8. TIMELINE.md 同步提示
@@ -108,6 +110,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新 + **跟踪范围扩展**：年度汇总表新增 **iFS 2027 分会行**（submission `2026-10-15 AoE`、notification `2026-12-22 AoE`、会期 2027-04-12..15）。本库跟踪的 ETAPS 主会自本轮起由「仅 TACAS」扩展为「TACAS + iFS」；iFS 为 FASE + iFM 合并首届，详见 [2027/README.md](./2027/README.md) §4.1 与 [../01-venue-scope.md](../01-venue-scope.md)。 |
 | `2026-07-13 13:30:00` | 常态化刷新 ETAPS/TACAS：确认 2026 已结束；复核 2027 TACAS paper、mandatory artifact、notification 与会期 AoE 口径；复查 2028 仅有主页和会期，CFP 未公布。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

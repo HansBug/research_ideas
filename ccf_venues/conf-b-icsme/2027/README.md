@@ -1,6 +1,6 @@
 # ICSME 2027 README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -10,14 +10,14 @@
 | 年份 | `2027` |
 | 本库目录 | `ccf_venues/conf-b-icsme/2027/` |
 | 地点 | 未公布 |
-| 官方年度主页 | ⏳ 已检索未公布 |
+| 官方年度主页 | [ICSME 2027（官方入口已定位，正文未取得可审计快照）](https://conf.researchr.org/home/icsme-2027) |
 | 官方 CFP | 未公布 |
 | Important Dates | 未公布 |
 | Submission system | 未公布 |
 | Program / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | ⏳ 已检索未公布 |
-| 当前阶段状态 | ⏳ 已检索未公布 |
+| 当前阶段状态 | ⏳ 待官网（槽位已建未发布） |
 
 ## 2. 年度核心 URL 索引
 
@@ -72,7 +72,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ 已检索未公布 | `2026-07-13 13:30` | 复查 `home/icsme-2027` 返回 accessDenied 壳，未获公开可审计年度主页正文；不据此伪造日期。 |
+| 官方年度主页 | [ICSME 2027](https://conf.researchr.org/home/icsme-2027) | `2026-08-07 20:05:00` | ⚠️ `home/icsme-2027` **与** `track/icsme-2027/icsme-2027-papers` 均返回 HTTP 200 + `Access denied`（**不是 404**）。这说明 researchr 上 ICSME 2027 实例已建立**并已配置 Research Papers Track**，只是尚未对外发布，属「官方入口已定位，正文未取得可审计快照」，是明确的即将发布信号，应列高频复查。对比 `home/icsme-2028`、`home/icsme-2029` 为**真 404**。不据此伪造日期。 |
 | 官方 CFP / Dates | 未公布 | `2026-07-13 13:30` | 复查未发现公开可审计 CFP / Important Dates。 |
 | 官方论文名录 / proceedings | 未公布 / 未公布 | `2026-06-05 17:35` | 已记录当前可用入口；publisher proceedings 或 DBLP 延迟时写待补。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-05 17:35` | 仅作论文名录 / 计数 fallback；不可替代官方 CFP / dates。 |
@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：`home/icsme-2027` 与 `track/icsme-2027/icsme-2027-papers` **均为 HTTP 200 + Access denied（不是 404）**，说明 researchr 实例已建立并已配置 Research Papers Track、只是尚未公开发布。已从「已检索未公布」改记为「官方入口已定位，正文未取得可审计快照」并列高频复查；对比 `home/icsme-2028` / `2029` 为真 404。 |
 | `2026-07-13 13:30:00` | 常态化刷新：复查 ICSME 2027 仅见 accessDenied 壳，未获得公开可审计 CFP / Important Dates；保留占位。 |
 | `2026-06-05 18:13` | PR-6 收尾复核：同步共享统计与待补口径，确认本 venue 仍按部分核验状态入账。 |
 | `2026-06-05 17:35` | PR-6 初始化 ICSME 2027 年度 README，记录核心 URL、重要时间点、tracks、论文名录与核查状态。 |

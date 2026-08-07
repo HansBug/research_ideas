@@ -376,6 +376,19 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 注意：阶段状态描述会议 / 期刊生命周期，核验状态描述证据完整度，二者不得混写。
 
+
+### 10.1 补充状态词（2026-08-07 增补）
+
+本节此前的词表未覆盖以下三类实际使用中的状态，现予补入，避免各 venue 各写各的：
+
+| 状态 | 适用 | 说明 |
+|---|---|---|
+| `⏳ 待官网（槽位已建未发布）` | 会议 | researchr / 官方站返回 **HTTP 200 + `Access denied`**（不是 404），页面槽位已建但未公开发布。位于 `⏳ 已检索未公布` 与 `🟦 已有主页` 之间，判别与实例见 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。 |
+| `🟦 已有预告` | 会议 | 年度主页尚未建站或未公开，但**另有官方来源**已公布该年度的地点 / 月份等实质事实（如 ICSE 指导委员会官方站、issta.org、esec-fse.org）。必须挂该官方来源 URL。 |
+| `🟦 主办征集中` | 会议 | 会议族官方组织（如 FME）已发出 call for organizers，但主办方 / 地点 / CFP 均未定。仅适用于有此流程的会议族。 |
+
+上述三态与 §12.6 的迁移链关系见 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。
+
 ## 11. TIMELINE.md 结构规范
 
 [TIMELINE.md](./TIMELINE.md) 是跨 venue 投稿时间线总览，必须随着 venue README / 年度 README 同步维护。
@@ -482,7 +495,59 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 8. **更新 Mermaid**：任何新增、删除或修改 dated event 都必须同步受影响年度 Mermaid；图中 label 使用 venue edition 年份，表格保留 URL 和 caveat。
 9. **更新 SUMMARY 读者总表**：只有当 venue 事实、外部索引、年度入口、核心人员 / 计数口径或全库待补状态发生变化时，才更新 [SUMMARY.md](./SUMMARY.md) 的 Venue 总表或 §13 合并待补表；不得把本轮 watchlist、PR 执行过程或 TIMELINE §3 全量行复制进 SUMMARY 正文。单轮流程只在更新日志中保留一行。
 10. **更新时间戳与更新日志**：修改过的 README / GUIDE / SUMMARY / TIMELINE / venue 文件均需更新 `信息更新时间` 与文末更新日志；新写日志默认精确到秒，历史分钟级记录可保留，日志按时间降序。
-11. **一致性检查**：运行本节 §12.10 的命令，并本地检查 Markdown 相对链接、emoji 列口径、Mermaid label、统计数字、P0/P1/P2 边界。
+11. **同步散文与非表格落点（2026-08-07 新增，必做）**：前十步只覆盖**结构化表格**。同一个事实在本库最多有 **7 个落点**，其中三类**不在**上面任何一步里，且**无法被列数 / 排序 / multiset 这类不变量脚本发现**：
+
+    | 遗漏落点 | 位置 | 为什么容易漏 |
+    |---|---|---|
+    | venue 根 README 的 **§7 维护备注 / 计数口径 bullet** | 散文，非表格 | 复述了同一事实但不在任何同步清单上；`journal-b-ase` 曾出现根表写对 `2026-08-15`、同文件 bullet 仍写已过期 `2026-07-15` 的**文件内自相矛盾** |
+    | 年度页的 **§8 待补 / 风险记录**段 | 散文 | 常保留"官方仍为 TBD / 尚未到"这类**时效性判断**，事实更新后即失效 |
+    | [TIMELINE.md](./TIMELINE.md) **§14 期刊滚动投稿 / 未定日期表** | 表格，但不在 §12.4 第 6/7 步的"年度表 / §3"范围内 | 它**长得像总览、实际是 live-state 列**（`截止时间` 列会随官方延期变化）；`2026-08` 那轮六处都改对了，唯独漏掉 §14，把仍开放的窗口写成已关闭 |
+
+    **执行要求**：每完成一次事实更新，必须用该事实的**旧值**（旧日期 / 旧状态词 / 旧计数）对全库做一次 `grep`，逐条判定命中是「当前值残留」还是「合规的历史记录」。**合规的历史记录**指：位于 dated 更新日志中，或带有 `已作废` / `已更正` / `原记` / `保留历史` 等明确标记。除此之外的命中一律按当前值处理并修正。
+
+    **如何识别一张表是不是 live 表（2026-08-07 补充判据）**：不要靠标题判断。以下三张表的标题都像"归档 / 审计 / 待补"，实际语义却是 **current-value**，`2026-08` 那轮各自漏改过至少一次：
+
+    | 表 | 标题给人的印象 | 实际语义 |
+    |---|---|---|
+    | [TIMELINE.md](./TIMELINE.md) §6 PR-3 合流审计与风险记录 | 历史审计 | preamble 明写「只保留**未公布年度**、来源降级和后续复查风险」——是待办 |
+    | [TIMELINE.md](./TIMELINE.md) §15 待补与核查记录 | 待补清单 | `当前处理` / `下一步` 两列都是给下一轮 agent 的**现行指令** |
+    | [TIMELINE.md](./TIMELINE.md) §14 期刊滚动投稿 / 未定日期 | 滚动总览 | `截止时间` 列随官方延期变化——是 live 状态 |
+
+    **通用判据**：一张表若**没有时间戳 / 核查时间列**、且单元格内容是**状态断言**（「未公布」「仍为 TBD」「尚未到」「不预设」等），它就是 live 表，必须进入本步的旧值 grep 范围。反之，带 dated 列的表（如各文件 §7 证据与核查记录）属历史快照，其中的旧值应**加作废标注而非改写**。
+
+    ⚠️ `2026-08` 那轮的实证：`TIMELINE.md` §6 的 ICST 2027 行把「Research track / CFP 未公布」当当前值写着，**这个错误在本轮之前就已存在于 `main`**——说明 §6 从未被纳入任何同步流程，是只写不读的表。
+
+12. **一致性检查**：运行本节 §12.10 的命令，并本地检查 Markdown 相对链接、emoji 列口径、Mermaid label、统计数字、P0/P1/P2 边界。
+
+13. **不变量自查的强度要求（2026-08-07 新增）**：脚本自查必须校验**不变式**而非"我改对了吗"，且不变式要足够强：
+    - 年度表 ↔ Mermaid **不能只比数量**（`2026-08` 那轮曾出现 `190 = 190` 但集合不同），必须按**日期 multiset** 比对；且 multiset 必须取每行的**全部日期**，即 `2026-12-04..2026-12-08` 这类区间行的**起止两端都要参与比对**——只取首个日期时，把 Mermaid 区间的结束日期改错也能通过（脚本早期版本的实测缺陷）；
+    - §3 每一行必须能在对应年度表找到同日期同 venue 的事件（§3 是筛选视图，不是独立事实源）；
+    - §3 不得含已过期行、重复行，以及 `Notification` / `Camera-ready` / `Conference` / `Rebuttal` 类型行；
+    - **§3 每行的「日期时间」列与年度表对应行必须逐字一致**（不只是日期相同）——§3 是筛选视图，后缀差异（如一侧写 `AoE`、另一侧写 `AoE / UTC-12h`）即为不同步；
+    - **§3 每行的 track / 事项名必须与年度表逐字一致**——简称与正式题名混用会让「§3 是年度表子集」这一不变量失效，也会让自动校验误报孤儿行；
+    - 全库 Markdown 表格列数与表头一致；Mermaid milestone id 唯一；Mermaid 内不含 URL 与 emoji；更新日志降序；仓库内相对链接目标存在。
+    - **同一 venue-year 的时区后缀口径三方一致（2026-08-08 新增）**：年度页 §3、venue 根 README 索引行、TIMELINE 日期列的时区标注必须属于**同一类**。共三类：`UTC`（`AoE / UTC-12h` 或 `AoE (UTC-12h)` / `AoE (UTC-12)`）、`NAMED`（`AoE (Anywhere on Earth)`）、`BARE`（只有 `AoE`）。⚠️ **括号形态与斜杠形态是同一类**——轮次 12 实测：早期实现只认 `AoE / UTC-\d`，把全库 90 处规范官方写法 `AoE (UTC-12h)` 判成 BARE，结果修复脚本把 ICFEM 官方引文改成了 `AoE / UTC-12 (UTC-12)`，即**校验器逼着作者破坏官方逐字才能变绿**。⚠️ **NAMED 必须自成一类**，不能只在 BARE 里用否定环视排除——否则给 APSEC 注入 `/ UTC-12h` 时 BARE 计数为 0、混用不成立，静默通过。本库若在任一处已核到官方 `Timezone: AoE (UTC-12h)`，其余两处就不能只写 `AoE`——那是**本库已持有更高等级证据却在派生视图降级**。⚠️ 该不变量的教训是**枚举口径**：此前连续三轮「一次修 2 个 venue、下一轮再冒出 5 个」，根因是按 venue 枚举而非按不变量枚举；写检测脚本时还要注意两类易漏形态——带钟点的 `23:59 AoE` / `23:59:59 AoE`，以及不以日期开头的复合格 `Round 1: … ；Round 2: …`。规范形式取各 venue 官方逐字，**不跨 venue 统一**（ICFEM 官方为 `AoE / UTC-12` 无结尾 h）。
+
+    **以上不变量已固化为可执行脚本**：[tools/check_consistency.py](./tools/check_consistency.py)。用法：
+
+    ```bash
+    cd ccf_venues && python3 tools/check_consistency.py --today 2026-08-07
+    ```
+
+    每轮刷新与每次 review 都应直接运行它，而不是各自重写等价脚本（`2026-08` 那轮有四位 reviewer 分别重写了一遍，并因计数口径不同产生了跨两轮的争论）。
+
+    ⚠️ **改本库结构时必须同步改脚本的定位常量**：脚本用 `YEAR_SECTIONS` / `SECTION3_HEADING` / `SECTION3_END` / `YEARS_START` 定位章节，这四组经 `locate()` 断言每个标记**恰好出现一次**，改名即报 `[anchor-missing]`。`S3_TABLE_HEADER` 是**例外**：它按设计就与各年度表表头同名、不可能唯一，因此不走 `locate()`，改为先用 `SECTION3_HEADING` 收窄范围再在段内查找，改名报 `[s3-header]`。两条路径都**报错而非静默跳过**。这条设计来自实测：`| 日期时间 | Venue |` 这个表头与**各年度表完全同名**，早期版本直接全文 `index` 会在 §3 表头被改动时命中年度表，于是校验静默作用在错误的表格上并**返回 0**。一个静默通过的校验器比没有校验器更危险。**修改脚本后必须做故障注入回归**（改章节名 / 改表头 / 删 Mermaid 行 / 改区间结束日期 / 去掉 §3 日期列时区后缀，逐条确认退出码为 1）。
+
+    **计数口径必须写死，避免跨轮次歧义（2026-08-07 补充）**：同一张年度表存在两种合法计数，二者相差「多日事件的结束日期是否单独计一次」：
+
+    ```text
+    数据行数（以 `| 20XX-` 开头的行）        + 日期区间行数 = 日期出现总次数
+    2027：50 + 13 = 63        2026：192 + 40 = 232
+    ```
+
+    两种口径下 **表↔图不变量都应成立**（`50=50` 且 `63=63`）。报告数字时必须写明用的是哪一种；`2026-08` 那轮曾因 reviewer 用「日期出现总次数」、作者用「数据行数」而产生两轮口径分歧，最终由本换算式闭合。
+
+    ⚠️ **但必须清楚脚本的边界**：以上不变量**抓不到散文中的旧事实**。第 11 步的旧值 grep 是唯一能覆盖该盲区的手段，不可用脚本通过来替代。
 
 ### 12.5 投稿决策字段与落点
 
@@ -503,8 +568,10 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 会议主链默认按以下状态迁移：
 
 ```text
-⏳ 待官网 / ⏳ 已检索未公布 -> 🟦 已有主页 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
+⏳ 已检索未公布 -> ⏳ 待官网（槽位已建未发布） -> 🟦 已有主页 / 🟦 已有预告 -> 🟢 投稿中 -> 🟡 已截稿 / 🟡 审稿中 -> 🟣 通知后 -> 🔵 会期临近 -> ✅ 已结束 -> proceedings / DBLP 待补 -> 历史闭合
 ```
+
+> `⏳ 待官网（槽位已建未发布）`、`🟦 已有预告`、`🟦 主办征集中` 三个状态词的定义与判别见 [§10.1](#101-补充状态词2026-08-07-增补) 与 [§16.6.2](#1662-access-denied--404researchr-入口的三种语义)。
 
 其中 `⏳ 已检索未公布` 表示只找到 stable series、publisher placeholder 或旧站入口，尚无本年度 official home / CFP / dates；它不得被硬升为 `🟦 已有主页`，也不得作为事件本身进入 dated TIMELINE / Mermaid。若某条 dated event 已由官方日期支撑，TIMELINE 的论文集 / 名录等辅助列可以写 `⏳ 已检索未公布` 表示 proceedings、paper list 或卷期入口尚未发布；这不等同于把年度 placeholder 伪造成 dated event，但必须确保事件日期、阶段状态和来源列已核验。
 
@@ -527,7 +594,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 |---|---|---|
 | 官方完全核验 | 官方年度主页、CFP / dates、publisher collection、official program / proceedings 明确给出的时间、状态、人员或入口 | 可进入年度 README、根 README、TIMELINE 与 Mermaid |
 | 官方入口 + 部分核验 | 官方 URL 可定位，但只给日期、缺时刻、缺 track、页面需交互式展开、或信息不完整 | 可写 `待补时刻` / `部分核验`，必须保留 caveat |
-| 动态页面受限 / WAF / 403 / CAPTCHA / Authwall | 官方 URL 存在但 CLI 受限、需要交互式页面或登录、返回 JS 壳 / WAF / 403 / CAPTCHA / Authwall | 保留官方 URL，写 `未获公开可审计正文`；不得改写成“无官方信息” |
+| 动态页面受限 / WAF / 403 / CAPTCHA / Authwall / JS 壳 | 官方 URL 存在但 CLI 受限、需要交互式页面或登录、返回 JS 壳 / WAF / 403 / CAPTCHA / Authwall | 保留官方 URL，写 `未获公开可审计正文`，并**按 §16.6 的四类分别标注具体阻断形式**；不得改写成“无官方信息”，也不得统称 `WAF` |
 | DBLP fallback | 年度论文名录、计数、bibliographic cross-check | 不能支撑 CFP、deadline、current roster、author guidelines 或当前 articles in press |
 | 第三方线索 | 发现候选 CFP、deadline 或人员线索 | 不得进入官方来源列；只能写备注 / 待补记录，核验后再升级 |
 
@@ -549,7 +616,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 
 ### 12.9 P0/P1/P2 与统计不回退规则
 
-1. 当前组合统计为 42 个 venue 根 README、294 个年度 README；P0 冻结基线为 22 个 venue 根 README、154 个年度 README；PR-10 后、PR #63 前的 39/273 只能作为历史状态。常态化更新不得把正文当前状态回退到历史中间统计。
+1. 当前组合统计为 **42 个 venue 根 README、295 个年度 README**（`2026-08-07` 因新增 [ICSE 2029 年度页](./conf-a-icse/2029/README.md) 由 294 增至 295，venue 数不变）；P0 冻结基线为 22 个 venue 根 README、154 个年度 README；PR-10 后、PR #63 前的 39/273 只能作为历史状态。常态化更新不得把正文当前状态回退到历史中间统计。
 2. 历史更新日志中的 26 / 182、30 / 210、34 / 238 等旧统计是当时真实记录，不得为了 `rg` 零命中而删除或篡改。
 3. P2 venue 可以出现在近期窗口和历史事件表中，但必须保留 `P2 / 不升级` 或等价说明；不得在 README、SUMMARY、PR body 或投稿建议中改写成 P0/P1 主投目标。
 4. 常态化刷新若发现 CCF 官方更名、venue 分裂 / 合并或确有强相关漏项，不能直接新增目录；先更新 [01-venue-scope.md](./01-venue-scope.md) 与 PR body，再进入新增 venue 流程。
@@ -561,7 +628,7 @@ Special issue / topical collection editors 必须与长期 editorial board 分�
 ```bash
 git status --short
 rg -n "常态化|滚动刷新|投稿窗口|近期窗口|刷新" ccf_venues/README.md ccf_venues/GUIDE.md ccf_venues/SUMMARY.md
-rg -n "42.*venue|294.*年度|P2|PR #63" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md
+rg -n "42.*venue|29[45].*年度|P2|PR #63" ccf_venues/README.md ccf_venues/SUMMARY.md ccf_venues/01-venue-scope.md   # 2026-08-07 起当前口径为 295 个年度 README，历史日志中的 294 需保留
 rg -n '^(<<<<<<<|=======|>>>>>>>)' ccf_venues || true
 ```
 
@@ -664,7 +731,7 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 18. **投稿系统 code 臆造坑**：Editorial Manager / ScholarOne / Equinocs / publisher dashboard 的路径 code 不一定等于 venue slug；必须由官方跳转或可访问入口支撑，不能按缩写猜 URL。
 19. **QRS / TASE 计数多源坑**：techconf stats、official accepted list、Springer TOC、DBLP 和 publisher proceedings 入口都可能不是同一口径；必须并列保留，不得写成单一“论文数量”。
 20. **PR-10 全局审计降级核验坑**：若 subagent 服务出现 503 / 429，不能把“agent 未返回”当作可遗留待核验项；主 session 必须用本地脚本、官方页面、带 User-Agent 的 `requests` / `curl`、`claude -p` / `codex-deepseek exec` 等替代路径完成核验，并在 SUMMARY / PR body 说明降级方式。
-21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`UTC+8`、本地时区或无具体时刻；不能把其他 track 的 AoE 套到 main / technical / research chain，也不能在官方行级 `title="Timezone: ..."` 已给时区时继续写成“官方仅日期”。核验时应检查 HTML 的 `title="Timezone: ..."` 或页面显示的时区图标说明；例如 APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE；SANER 2027 Research Track 是 `AoE (UTC-12h)`，应写成 `待补时刻 AoE` / `AoE / UTC-12h`。
+21. **researchr 日期行时区坑**：researchr dates 页同一 venue 不同 track 可能混用 `AoE (UTC-12h)`、`AoE (Anywhere on Earth)`、`UTC+8h`、本地时区或无具体时刻；**必须逐 track 读原始 HTML 的 `title="Timezone: …"` 属性**，不能把某个 track 的时区套到 main / technical / research chain，也不能凭纯文本提取断言「页面无时区声明」（见 §16.6.5 第 3 条）。⚠️ **2026-08-07 更正范例**：本条初稿曾以「APSEC 2026 Technical Track 是 `UTC+8 (Bali time)`，不是 AoE」作为 worked example —— **该范例事实错误**。实测 `dates/apsec-2026` 的 Technical Track **全 8 行 tooltip 均为 `AoE (Anywhere on Earth)`**，CFP 小标题亦为 `Key Dates (AoE)`；`UTC+8h` 只属于 Local Student Forum 与 Doctoral Symposium 两个旁支 track。正确的 worked example 应是：**同一张 dates 页上，APSEC 2026 的 Technical Track 为 `AoE`、Local Student Forum / Doctoral Symposium 为 `UTC+8h`** —— 这正说明为什么必须逐 track 核对，而不是读一行推全表。
 
 ### 16.2 回写位置
 
@@ -702,12 +769,88 @@ PR-5 已将 P1/P2 扩展冻结为 PR-6~PR-10 的 stacked execution contract；�
 
 ### 16.5 PR #63 LLM4Modeling-SE 扩展规则
 
-1. PR #63 新增 `journal-b-ase`、`conf-b-caise`、`conf-c-iceccs` 后，当前组合统计必须重算为 42 个 venue / 294 个年度 README（29 个会议 / 13 个期刊）；历史 39/273 只能作为 PR-10 后、PR #63 前状态。
+1. PR #63 新增 `journal-b-ase`、`conf-b-caise`、`conf-c-iceccs` 后，组合统计重算为 42 个 venue / 294 个年度 README（29 个会议 / 13 个期刊）；`2026-08-07` 新增 ICSE 2029 年度页后为 42 个 venue / **295** 个年度 README；历史 39/273 只能作为 PR-10 后、PR #63 前状态。
 2. ASE Journal 与 ASE Conference 同缩写但不同 venue；任何投稿决策表、SUMMARY、TIMELINE label 都必须写清 Journal / Conference。
 3. CAiSE 只在需求、概念建模、MDE、信息系统 / 过程 / 企业建模语境下适投；不得将泛 LLM4SE 工具评测硬写为 CAiSE 主场。
 4. ICECCS 只作为 🥉 档复杂系统工程 / formal engineering / V&V 工程案例来源；不得把全部 complex systems 论文自动标为 LLM 状态机建模强相关。
 5. 若 CAiSE 2024 或 ICECCS 2024 只找到 DBLP / proceedings / 第三方 deadline，不得补写 abstract / submission / notification 等 official dates；会期可以由 proceedings record 支撑，但必须标明来源降级。
 6. Springer collections 进入 TIMELINE 前必须记录 collection 语义、状态、deadline 与本仓库相关性；弱相关 open collection 可留作观察线索，不必进入近期投稿重点，但不能把它写成已同步事实。
+
+### 16.6 访问失败分类、入口语义与 slug 漂移（2026-08-07 全量刷新后固化）
+
+本节把 `2026-08-07` 全库刷新中暴露的检索与取证踩坑固化为硬规则。这些问题不是个别疏漏，而是**会系统性造成假阴性 / 假阳性**的检索策略缺陷。
+
+#### 16.6.1 访问失败必须分四类记录，不得统称 `WAF`
+
+| 站点族 | 精确表现 | 记录写法 | 可用 fallback |
+|---|---|---|---|
+| Springer（`link.springer.com`） | WebFetch → `idp.springer.com/authorize` **303 authwall**，回跳带 `?error=cookies_not_supported`；`curl` → **HTTP 200 但 body 恒为约 3038 字节的 F5 `<title>Client Challenge</title>` JS 壳** | `authwall（idp 303）+ JS 壳（Client Challenge）` | **`rd.springer.com` 同路径可直出完整官方 HTML**（Springer 同源镜像域，页脚 `© 2026 Springer Nature`）。这是本库当前唯一可靠的 Springer 正文通道，取得的内容按「官方正文」计。**披露要求（硬性）**：凡仅通过 `rd.` 域取得的事实，必须在该事实所在单元格逐条注明取证域，范例见 [journal-b-ase/2026/README.md](./journal-b-ase/2026/README.md) 的 Green / Genetic Improvement 两行；只在方法论章节声明而不在事实处落实，等于没有披露 |
+| ScienceDirect / Elsevier | 直连 **HTTP 403**；经第三方渲染代理 **`r.jina.ai`** → **Elsevier CAPTCHA**（`Are you a robot?` + Reference number + UTC 时间戳） | `直连 403 / 代理 CAPTCHA（含 Reference number）` | 无等价通道；`editorialmanager.com` 可核验 rolling 投稿入口，DBLP 可作计数 fallback |
+| ACM DL（`dl.acm.org`） | 直连 **403**；代理 → `Performing security verification` bot 页；**连静态 CFP PDF 资源也 403** | `直连 403 / 代理 bot 验证页` | 无；DBLP 作计数 fallback |
+| Wiley（`onlinelibrary.wiley.com`） | Cloudflare **`Just a moment...` 403**；special issues 页经 WebFetch 返回 **HTTP 402 Payment Required** | `Cloudflare WAF/403`（402 需单列） | 无；DBLP 作计数 fallback |
+| CCF 官网（`www.ccf.org.cn`） | `curl`（含浏览器 UA / Referer）→ **HTTP 200 + 约 15999 字节阿里云 WAF CAPTCHA 挑战页**（`aliyun_waf_aa`、`aliyunCaptcha-sliding-slider`）；PDF 下载 URL 亦被替换为挑战页 | `阿里云 WAF CAPTCHA（HTTP 200 伪装）` | **WebFetch 通道可穿透** |
+
+**通用铁律**：`HTTP 200` 不等于取到正文。凡上述站点族，必须检查 body 内容与长度，否则会把挑战页当成「页面不存在 / collection 已关闭」。
+
+**渲染代理具名要求（硬性）**：本库涉及的第三方渲染代理为 **`r.jina.ai`**（用法 `https://r.jina.ai/<目标URL>`）。它**不是我方直连**，属 [CLAUDE.md](../CLAUDE.md) §2 口径下的中间层，必须具名而非笼统称「渲染代理」。判定规则：
+
+1. 经 `r.jina.ai` 访问 **`rd.springer.com`** 等**官方域**并取得该域自有 DOM（可用 `URL Source` 与 Springer 自有 class 如 `app-collection-page-sidebar__text-bold`、`id="submission-status"` 交叉印证）时，事实按「官方正文（经代理取得）」计，但**必须在事实所在单元格逐条注明取证域与路径**。
+2. 经 `r.jina.ai` 取得的**非官方域**内容，一律只作发现线索，不得升级为官方事实。
+3. 代理返回 CAPTCHA / bot 验证页时，按「官方入口已定位，正文未取得可审计快照」记录，**不得**据此断言目标不存在或已关闭。
+4. 只在本方法论章节声明披露规则、而不在具体事实处落实，**等于没有披露**；reviewer 应按此判定。
+
+#### 16.6.2 `Access denied` ≠ `404`：researchr 入口的三种语义
+
+| 返回 | 语义 | 记录写法 | **阶段状态（接入 §10 词表与 §12.6 迁移链）** | 复查优先级 |
+|---|---|---|---|---|
+| HTTP 200 + `Access denied`（`You do not have the privileges to access this part.`） | 页面槽位**已建立但未公开发布**，通常意味着主办方已确定并在筹备 | 「官方入口已定位，正文未取得可审计快照（未发布 / 需登录）」，并注明这是**即将发布的弱正向信号** | **`⏳ 待官网（槽位已建未发布）`** —— 这是 §12.6 迁移链中 `⏳ 已检索未公布` 与 `🟦 已有主页` **之间的中间态**，不得直接写成 `🟦 已有主页`（正文未取得，不满足「已有主页」的证据要求），也不得写成裸的 `⏳ 已检索未公布`（会丢失筹备信号）。若同时另有**其他官方来源**已给出该年度的地点 / 月份等实质事实（如 ICSE 2028 由 icse-conferences.org 公布 `Apr 2028 / Hawaii`），则以那条实质事实定档为 `🟦 已有预告`，并在证据记录中同时注明 researchr 为 Access denied | **高频复查** |
+| HTTP 404 | 尚未建站 | `⏳ 已检索未公布` | `⏳ 已检索未公布` | 常规 |
+| HTTP 200 + 空 dates 表（表头在、无数据行） | 页面已建、chair 尚未填 | `🟦 已有主页 / CFP 待发布` | `🟦 已有主页` | 高频复查 |
+
+**§12.6 迁移链据此扩展为**：
+
+```text
+⏳ 已检索未公布 -> ⏳ 待官网（槽位已建未发布） -> 🟦 已有主页 / 🟦 已有预告 -> 🟢 投稿中 -> ...
+```
+
+**四个实例的正确编码（2026-08-07 统一）**：`RE 2027` 与 `ICSME 2027` = **`⏳ 待官网（槽位已建未发布）`**（规范 token，见 §10.1；researchr 是唯一来源）；`FM 2027` = `🟦 主办征集中`（researchr Access denied，但 FME 另有官方 organizer call 这一实质事实，故用该会议族专有态）；`ICSE 2028` = `🟦 已有预告`（researchr Access denied，但 ICSE 指导委员会官方站已公布 `Apr 2028 / Hawaii, USA`）。**关键判别：Access denied 本身只决定「不低于 `⏳ 待官网`」，最终档位由是否另有官方实质事实决定。**
+
+`2026-08-07` 实例：RE 2027、ICSME 2027、FM 2027、ICSE 2028 均为 `Access denied`（此前本库统一记作 404 或「已检索未公布」，丢失了信号）；RE 2028、ICSME 2028、ASE 2027 为真 404；EASE 2027 为空 dates 表。
+
+另有两类非 researchr 的陷阱：
+
+1. **UA 型 bot 过滤**：`cyprusconferences.org`（ISSRE 2026）对默认 `curl` UA 返回 **404**，对浏览器 UA 返回 **200**。裸 curl 复查会误判「官网已下线」。
+2. **通配符域假阳性**：`2027.models-conf.com` 返回 HTTP 200，但与 `www.models-conf.com` 内容**字节级相同**且 `<title>` 为空。HTTP 200 **不构成**该年度已发布的证据。
+
+#### 16.6.3 slug 与 series 入口不得假定稳定
+
+`2026-08-07` 的四例漏检全部源于此：
+
+1. **series 根页退化**：`conferences.i-cav.org/` 现只返回占位文本 `This is a repo`，无法用于发现未来 edition —— 必须直接 probe `https://conferences.i-cav.org/<year>/`。这是 CAV 2027 被漏掉的直接原因。
+2. **大小写 slug**：researchr 上 VMCAI 使用**大写** `VMCAI-2027`（RE 亦为 `RE-2027`）；只探测小写会漏。
+3. **track slug 变更**：ICPC 2027 的 Research Track slug 由历史 `icpc-YYYY-research` 改为 `icpc-2027-research-track`，旧模式 404。
+4. **合办改名**：ATVA 与 APLAS 合办后官方页托管在 `conf.researchr.org/aplas-atva-2026`，按 `atva-YYYY` 探测必然 404；且 `atva-conference.org` series 站长期停更在 2025。
+
+**规则**：任何 venue 的年度巡检至少尝试 ① 大小写两种 slug、② 已知合办组合 slug、③ 直接按年份 probe 独立域名路径；并且**不得**把 series 页 / 长期主页作为「是否公布」的唯一判据（`program-comprehension.org` 停在 ICPC 2025、`icse-conferences.org` 才是 ICSE 2028/2029 的真源而 researchr series 只到 2027，均为反例）。
+
+#### 16.6.4 伞会议必须按子会议展开维护
+
+CCF 目录以单一 `ETAPS` 伞条目收录（第七版全 72 页 PDF 中无 TACAS / FASE / iFS 字样），但**实际投稿单位是具体子会议，其 scope 差异极大**。本库此前 `conf-b-etaps` 只跟踪 TACAS（P3 视角的决定），导致 FASE→iFS 的合并与 iFS 2027 首届窗口被完整漏掉。
+
+**规则**：伞会议目录必须在年度页逐子会议维护本库跟踪范围，并在 [01-venue-scope.md](./01-venue-scope.md) 写明跟踪哪些主会、为什么；同一目录内扩展跟踪范围**不算新增 venue**，但仍须在 scope 文档与 PR body 中显式记录。会议合并 / 更名会让基于旧名的监控同时失效（搜 FASE 找不到、搜 iFS 不知道要搜），因此伞会议的年度巡检必须以 **umbrella 官方 CFP 页**（如 `etaps.org/<year>/cfp/`）为入口，而非按子会议名逐个搜。
+
+#### 16.6.5 HTML 注释与删除线不得当作正文
+
+1. **HTML 注释残留**：ICECCS 2026 官网的 `<!-- -->` 中藏有「location has been changed to Nansha, Guangzhou」「注册费表」等内容，而**可见正文**的 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane。TASE 2026 主页的「IEEE Computer Society Press」出版方说法同样位于注释内（可见正文为 Springer LNCS）。**抓取前必须先剥离 HTML 注释**，否则会把注释内容写成事实。
+2. **删除线表示的 extended 日期**：TASE / RV / SPIN / ICECCS / ISSRE 等站用 `<s>` 或 `text-decoration: line-through` 表示旧日期，纯文本提取会把新旧日期并排输出，**极易误读**。必须回原始 HTML 判定删除线归属。
+3. **时区藏在属性里**：researchr 的时区信息位于 HTML `title="Timezone: AoE (UTC-12h)"` 属性中，**纯文本提取会完全丢失**；核验 AoE 必须查原始 HTML。⚠️ **2026-08-07 更正**：本节初稿曾写「`/dates/<venue>-<year>` 页普遍不带时区声明，AoE 只在各 track 页侧栏，引 dates 页即为证据链断裂」——**该判断不成立**，是把「纯文本提取丢失了属性」误读成「页面没有声明」。实测 `dates/issta-2027`(7 行) / `VMCAI-2027`(3) / `fse-2027`(8) / `icpc-2027`(16) / `apsec-2026`(24) / `saner-2027`(46) / `msr-2027`(15) **每一个日期行都带 `title="Timezone: …"`**。正确规则是：**dates 页与 track 页侧栏均为有效时区来源，但两者都必须读原始 HTML**；且同一 dates 页上不同 track 的 tooltip 可能不同（APSEC 2026 即同页并存 `AoE (Anywhere on Earth)`、`AoE (UTC-12h)` 与 `UTC+8h`），**必须逐 track 核对，不得把某 track 的时区套到另一 track**。
+4. **frameset**：`ksiresearch.org/seke/sekeNN.html` 是 FRAMESET，须改抓 `sekeNNmain.html` / `sekeNNleft.html`，并带 `--compressed`（否则得 gzip 乱码）；SEKE 的官方 program 入口是 **`.txt` 而非 `.html`**。
+
+#### 16.6.6 空白位翻新与已有事实维护同等重要
+
+本轮五条主轨窗口漏检（CAV 2027 / ISSTA 2027 / VMCAI 2027 / iFS 2027 / ICPC 2027）有共同特征：**都是上一轮判定为「未公布」后就停止主动复查的 venue**。本库既有复查策略偏向「已有事实的维护」，对「空白位的翻新」覆盖不足。
+
+**规则**：常态化刷新的 watchlist 必须显式包含「上一轮记为 `⏳ 已检索未公布` / `🟦 已有主页` 且属 P0/P1 的 venue-year」，其优先级不低于已有 deadline 的复核。漏掉一个 40 天窗口的代价远大于重复核验一个已知 deadline。
 
 ## 17. 外部索引与分区制度化规则
 
@@ -780,6 +923,14 @@ PR #91 将 PR #90 的外部索引占位推进为真实核验记录，后续维�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-08 05:10:00` | 轮次 13 的两项 M 级 tool hardening（reviewer 判不阻塞，本轮一并修完不留 backlog）：(1) 日期格判别由「含日期」改为「**以日期开头**，或 ASCII 标签 + 冒号 + 日期」——纯 ASCII 英文备注若恰好含日期与 `AoE` 会被误判为日期格；但不能只允许「以日期开头」，那会漏掉 `Round 1: … ；Round 2: …` 复合格。两条约束必须同时存在。(2) 单格内叠加两种时区形态（`AoE (Anywhere on Earth) / UTC-12h`）此前静默通过，原因有两层：`UTC` 的判定要求 `UTC-` 紧跟 `AoE`，而叠加写法里并不紧邻；且逐个 `AoE` 分类时 tail 用固定窗口会**越界读到下一段的后缀**，使 `Round 1: … AoE；Round 2: … AoE / UTC-12h` 中首个裸 `AoE` 被冒认成 UTC，格内混用反而检不出来。现改为 tail 截断在下一个 `AoE` 处、两种标记各自独立判定且不要求紧邻。故障注入 7/7 符合预期（含两条叠加注入与三条召回回归）。 |
+| `2026-08-08 03:40:00` | 轮次 12 修复：(1) `[tz-suffix]` 改为 **UTC / NAMED / BARE 三分类**，`AoE (UTC-12h)` 这类括号形态归入 UTC——此前把全库 90 处规范官方写法判成 BARE，直接导致修复脚本破坏 ICFEM 官方引文。(2) `NAMED` 自成一类，APSEC 连坐注入现在能被抓到（此前静默通过）。(3) 日期格判别加两条：不含句号 `。`、且剥掉日期/时间/时区/标点后**残余不含中文**——前者排除备注列，后者是 ICFEM 回归的第一层根因（一句中文备注被当成日期格）。⚠️ 剥离正则**不得用 `\w`**：Python 的 `\w` 在 Unicode 下连中文一起匹配，会把散文格的中文剥光、残余变空。(4) 扫描范围由 `conf-*` 扩到全部 venue，覆盖 `journal-*`。(5) 收回「该缺陷类不可能再静默复现」这一过强断言。四条故障注入全部验证。 |
+| `2026-08-08 02:30:00` | 轮次 11：新增 `[tz-suffix]` 不变量——同一 venue-year 的年度页 / venue 根 README / TIMELINE 三处不得混用裸 `AoE` 与 `AoE / UTC-*`。此前三轮反复出现「一次修 2 个 venue、下一轮再冒出 5 个」，根因是按 venue 枚举而非按不变量枚举；固化为脚本后该缺陷类不可能再静默复现。（⚠️ **本句已于 2026-08-08 03:40 作废**：经轮次 12 用 APSEC 连坐注入证伪，当时 NAMED 未自成一类故静默通过；正确范围见同日 03:40 日志行与 §12.4 第 13 步。）规范形式取自各 venue 官方逐字，不跨 venue 统一（ICFEM 官方写 `AoE / UTC-12` 无结尾 h，researchr 系写 `AoE (UTC-12h)`，两者都对）。同时记录两类日期格识别陷阱：带钟点形态 `23:59 AoE` / `23:59:59 AoE`，以及不以日期开头的复合格 `Round 1: … ；Round 2: …`。 |
+| `2026-08-08 00:20:00` | 轮次 9 反馈落地：(1) 修复 [tools/check_consistency.py](./tools/check_consistency.py) 的**真实假阴性**——§3 表头 `\| 日期时间 \| Venue \|` 与各年度表表头同名，早期版本全文 `index` 会在 §3 表头被改动时命中年度表、静默校验错误表格并返回 0；现所有结构标记经 `locate()` 断言恰好出现一次，缺失或歧义一律报错。(2) 日期 multiset 改取每行**全部日期**，区间行起止两端均参与比对（此前把 Mermaid 区间结束日期改错可通过）。(3) 表格列数校验纳入表头行本身与 `templates/*.md`（2415 → 2443 张表）。(4) 更新日志校验输出匹配张数，避免匹配 0 张也打印「全部降序」。(5) `--today` 默认改为 Asia/Shanghai 当天而非系统本地时区。(6) 统计行显式标注「非校验」，因换算式两侧同源、恒等式不会失败。故障注入回归 8/8 捕获。 |
+| `2026-08-07 21:30:00` | 将 §12.4 第 13 步的结构不变量固化为可执行脚本 [tools/check_consistency.py](./tools/check_consistency.py)（覆盖七个年度表↔Mermaid 日期 multiset、年度表升序、§3 孤儿 / 重复 / 过期 / 错类型行、**§3 与年度表的「日期时间」列与 track 名逐字一致**、Mermaid id 唯一与内容洁净、全库表格列数、venue 与年度 README 统计、更新日志降序、相对链接可达），终结每轮 reviewer 各自重写等价脚本并因口径不同产生争论的问题；同时把两条新不变量写入正文。脚本首部与输出均显式声明其边界：**只查结构，抓不到散文中的旧事实，不得替代第 11 步的旧值 grep**。该脚本在引入当轮即抓出 3 处 §3 与年度表的 track 名漂移（简称 vs 正式题名），已一并对齐。 |
+| `2026-08-07 21:05:00` | 补强 §12.4 第 11 / 13 步：新增「如何识别一张表是不是 live 表」的通用判据 —— 不靠标题而靠「**无时间戳列 + 内容为状态断言**」判定，并点名 TIMELINE §6 / §15 / §14 三张标题像归档、语义却是 current-value 的表（各自在 2026-08 那轮漏改过至少一次；其中 §6 的 ICST 2027 行错误在本轮之前即已存在于 main，说明该表从未进入同步流程）；同时写死年度表的两种合法计数口径及其换算式（数据行数 + 日期区间行数 = 日期出现总次数，2027 为 50+13=63、2026 为 192+40=232），终结跨轮次的计数分歧。 |
+| `2026-08-07 20:50:00` | 扩展 §12.4 常态化刷新 checklist 由 11 步增至 13 步，修复本轮 review 反复暴露的根因：新增第 11 步「同步散文与非表格落点」，点名三类不在原 checklist 内且无法被不变量脚本发现的遗漏位置（venue 根 README §7 散文 bullet、年度页 §8 待补记录、TIMELINE §14 期刊滚动表的 live-state 列），并规定每次事实更新后必须用旧值对全库 grep、逐条判定是当前值残留还是合规历史记录；新增第 13 步「不变量自查的强度要求」，明确年度表与 Mermaid 不能只比数量而必须按日期 multiset 比对（本轮曾出现 190=190 但集合不同），并写明脚本抓不到散文旧事实、不可用脚本通过替代旧值 grep。 |
+| `2026-08-07 20:40:00` | 2026-08 全量刷新后固化检索与取证规则：新增 §16.6，把访问失败四分类（Springer authwall+JS 壳 / Elsevier CAPTCHA / ACM bot 页 / Wiley Cloudflare+402）、`rd.springer.com` 官方 fallback 通道、`Access denied ≠ 404` 的三种 researchr 入口语义、UA 型 bot 过滤与通配符域假阳性、slug 与 series 入口漂移、伞会议按子会议展开维护、HTML 注释 / 删除线 / 时区属性 / frameset 的解析陷阱，以及「空白位翻新与已有事实维护同等重要」写成硬规则；同步收紧 §12.7 的访问受限行记录要求。 |
 | `2026-06-09 20:50:00` | 清理可能和旧 CCF 字母等级混淆的 字母等级表达，改用 🏆/🥈/🥉 档表述，保持与 SUMMARY / venue README 的 emoji 口径一致。 |
 | `2026-06-09 20:36:00` | 按最新 SUMMARY 单表化要求制度化：SUMMARY 正文只保留总览、外部索引口径、一个 Venue 总表、一个待补核查表和更新日志；PR 流程、执行合同、踩坑长表、watchlist 过程回到 GUIDE / scope / README / changelog。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口规则回写：索引核验行应记录已完成证据链与后续升级条件，不得把本轮核验留成 reviewer 复核动作；同步 venue 根 README 口径。 |

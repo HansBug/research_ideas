@@ -1,6 +1,6 @@
 # RV README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -79,7 +79,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🟡 审稿中 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [CFP / track](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Submission](https://easychair.org/conferences?conf=rv2026) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 未公布 | 未公布 | 未公布 | 2026-06-16 待补时刻 AoE | 2026-08-01 待补时刻 AoE | 2026-10-06..2026-10-09 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟣 通知后 | [年度主页](https://rv2026.smithengineering.queensu.ca/) | [CFP / track](https://rv2026.smithengineering.queensu.ca/cfp/) | [Dates](https://rv2026.smithengineering.queensu.ca/cfp/) | [Submission](https://easychair.org/conferences?conf=rv2026) | [Program](https://rv2026.smithengineering.queensu.ca/program/) | 未公布 | 未公布 | 未公布 | 2026-06-16 待补时刻 AoE | 2026-08-01 待补时刻 AoE | 2026-10-06..2026-10-09 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [年度主页](https://rv25.isec.tugraz.at/) | [CFP / track](https://rv25.isec.tugraz.at/?page_id=27) | [Dates](https://rv25.isec.tugraz.at/?page_id=27) | [Submission](https://easychair.org/conferences/?conf=rv25) | [Program / accepted](https://rv25.isec.tugraz.at/program/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-032-05435-7) | [DBLP](https://dblp.org/db/conf/rv/rv2025.html) | 未公布 | 2025-06-06 | 2025-07-12 | 2025-09-15..2025-09-19 | DBLP fallback `inproceedings`=27 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [年度主页](https://cmpe.bogazici.edu.tr/rv24/) | [CFP / track](https://cmpe.bogazici.edu.tr/rv24/call-for-papers/) | [Dates](https://cmpe.bogazici.edu.tr/rv24/call-for-papers/) | [Submission](https://easychair.org/conferences/?conf=rv2024) | [Program / accepted](https://cmpe.bogazici.edu.tr/rv24/program/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-74234-7) | [DBLP](https://dblp.org/db/conf/rv/rv2024.html) | 未公布 | 2024-05-28 | 2024-06-25 | 2024-10-15..2024-10-17 | DBLP fallback `inproceedings`=18 | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [年度主页](https://rv23.csd.auth.gr/) | [CFP / track](https://rv23.csd.auth.gr/calls) | [Dates](https://rv23.csd.auth.gr/calls) | [Submission](https://easychair.org/conferences/?conf=rv2023) | [Program / accepted](https://easychair.org/smart-program/RV2023/) | [Proceedings](https://link.springer.com/book/10.1007/978-3-031-44267-4) | [DBLP](https://dblp.org/db/conf/rv/rv2023.html) | 未公布 | 2023-06-04 | 2023-07-07 | 2023-10-03..2023-10-06 | DBLP fallback `inproceedings`=26 | 🟡 部分核验 |
@@ -103,6 +103,7 @@ RV 聚焦 runtime verification、monitoring、temporal logic、runtime observers
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟡 审稿中` 迁移为 `🟣 通知后`（notification `2026-08-01 AoE` 已过）。⚠️ 同轮修正两处日期错误：paper / tutorial submission 官方现行 CFP 为 `16 June, 2026`（本库此前记 `2026-06-14`）；tool showcase 为 submission `12 August, 2026` / notification `15 August, 2026`（本库此前记 `2026-08-10 / 2026-08-17`）。**P2 邻近观察，不升级为 P0/P1 主线。** |
 | `2026-07-13 10:27:51` | 常态化刷新 RV 2026：按官方 extended dates 更新为已截稿审稿中；2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

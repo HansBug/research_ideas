@@ -1,6 +1,6 @@
 # ICECCS 2026 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | 未公布；曾检索到 `ICECCS_2026_Accepted_Papers.txt` candidate，但 2026-06-07 CLI `curl -I` 返回 404，待补 |
 | Proceedings | 未公布；官网说明 planned Springer LNCS |
 | DBLP 年度页 | [DBLP ICECCS index](https://dblp.org/db/conf/iceccs/index.html) |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 已截稿 / 待 notification |
 
 ## 2. 年度核心 URL 索引
 
@@ -90,6 +90,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 待 notification`（abstract 与 full paper 均于 `2026-07-20 AoE` 截止，**未再延期**，notification `2026-08-24`）。⚠️ 记录官网 HTML 注释陷阱：注释中藏有「location has been changed to Nansha, Guangzhou」、注册费表等内容，而可见正文 `Host City and Venue` 为 `TBA`、页头仍写 Brisbane；抓取必须先剥离注释，地点列为待复查风险。 |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 Important Dates 更新 ICECCS 2026 main paper abstract / full paper / notification 延期信息，保留 AoE 与 `待补时刻` 口径。 |
 | `2026-06-07 13:33` | 修复实现后 review：降级 accepted-list 404 candidate，补入 Brisbane 地点与 `2026-11-23..2026-11-24` 会期，并同步 TIMELINE。 |
 | `2026-06-07 12:47` | 初始化 ICECCS 2026 年度 README，记录 official / DBLP 入口、重要时间点、计数口径和 TIMELINE 同步状态。 |

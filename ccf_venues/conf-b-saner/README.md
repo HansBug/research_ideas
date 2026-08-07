@@ -1,6 +1,6 @@
 # SANER README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -77,7 +77,7 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | 🟢 投稿中 | [SANER 2027](https://conf.researchr.org/home/saner-2027) | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | [Important Dates](https://conf.researchr.org/dates/saner-2027) | 未公布 | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | 未公布 | ⏳ 已检索未公布 | 2026-09-21 待补时刻 AoE / UTC-12h | 2026-09-25 待补时刻 AoE / UTC-12h | 2026-12-01 待补时刻 AoE / UTC-12h | 2027-03-09..2027-03-12 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | 🟢 投稿中 | [SANER 2027](https://conf.researchr.org/home/saner-2027) | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | [Important Dates](https://conf.researchr.org/dates/saner-2027) | [EasyChair `saner2027`](https://easychair.org/my/conference?conf=saner2027) | [Research Track](https://conf.researchr.org/track/saner-2027/saner-2027-papers) | 未公布 | ⏳ 已检索未公布 | 2026-09-21 待补时刻 AoE / UTC-12h | 2026-09-25 待补时刻 AoE / UTC-12h | 2026-12-01 待补时刻 AoE / UTC-12h | 2027-03-09..2027-03-12 | 未公布 | 🟡 部分核验 |
 | [2026](./2026/README.md) | ✅ 已结束 / 待 proceedings | [SANER 2026](https://conf.researchr.org/home/saner-2026) | [Research Track](https://conf.researchr.org/track/saner-2026/saner-2026-papers) | [Important Dates](https://conf.researchr.org/dates/saner-2026) | 未公布 | [Program](https://conf.researchr.org/program/saner-2026/program-saner-2026/) / [Research Track](https://conf.researchr.org/track/saner-2026/saner-2026-papers) | 未公布 | [DBLP SANER index](https://dblp.org/db/conf/saner/index) | 2025-10-09 待补时刻 | 2025-10-16 待补时刻 | 2025-12-09 待补时刻 | 2026-03-17..2026-03-20 | 未公布 | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [SANER 2025](https://conf.researchr.org/home/saner-2025) | [Important Dates](https://conf.researchr.org/dates/saner-2025) | [Important Dates](https://conf.researchr.org/dates/saner-2025) | 未公布 | [Program](https://conf.researchr.org/program/saner-2025/program-saner-2025/) | [DBLP 2025](https://dblp.org/db/conf/saner/saner2025.html) | [DBLP 2025](https://dblp.org/db/conf/saner/saner2025.html) | 2024-10-04 待补时刻 | 2024-10-13 待补时刻 | 2024-11-29 待补时刻 | 2025-03-04..2025-03-07 | 89（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [SANER 2024](https://conf.researchr.org/home/saner-2024) | [Important Dates](https://conf.researchr.org/dates/saner-2024) | [Important Dates](https://conf.researchr.org/dates/saner-2024) | 未公布 | [Research Papers](https://conf.researchr.org/track/saner-2024/saner-2024-papers) / [Program](https://conf.researchr.org/program/saner-2024/program-saner-2024/) | [DBLP 2024](https://dblp.org/db/conf/wcre/saner2024) / [Companion](https://dblp.org/db/conf/wcre/saner2024c) | [DBLP 2024](https://dblp.org/db/conf/wcre/saner2024) | 2023-10-13 待补时刻 | 2023-10-29 待补时刻 | 2023-12-15 待补时刻 | 2024-03-12..2024-03-15 | 105（DBLP inproceedings fallback；companion 分卷另计） | 🟡 部分核验 |
@@ -102,6 +102,7 @@ SANER 面向软件分析、逆向工程、演化、维护、重构、程序理�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：2027 行 Submission system 由 `未公布` 升级为 [EasyChair `saner2027`](https://easychair.org/my/conference?conf=saner2027)（官方 Research Track CFP 正文直链）。四个主轨日期与 AoE / UTC-12h 时区逐字复核一致，无变更；同轮在年度页补入 10+2 页限、全轨 double-anonymous、PC Co-Chairs 与官方 9 个 track 清单（含 2027 新增 `Agentic AI4SE Track`，主轨仍唯一为 Research Track）。 |
 | `2026-07-13 19:11:00` | 常态化刷新：复查 SANER 2026 已结束、SANER 2027 Research Track 官方 dates 仍为 mandatory abstract 2026-09-21 / paper 2026-09-25 / notification 2026-12-01（AoE / UTC-12h）且会期 2027-03-09..2027-03-12；2028 未发现官方主页 / CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
