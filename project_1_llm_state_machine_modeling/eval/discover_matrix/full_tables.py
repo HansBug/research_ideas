@@ -190,10 +190,49 @@ def _hits(series) -> int:
     return sum(1 for v in series if v == 1) if isinstance(series, list) else 0
 
 
+def run_validity(generation: str) -> list[str]:
+    """运行有效性证据：代码版本 + 模型漂移 + src 冻结。
+
+    报告必须**自带**这些，而不是让读者自己去跑（§3.7 自包含）。三项都可从冻结产物机械复算。
+
+    `src` 冻结那一项特别值得机械化：它是**双侧**判据（有改动就非空），不依赖我记得去查什么。
+    对照今天早些时候的 C-0 —— `predicate_api.py` 被误提交，而我用一个单侧 grep 确认「没问题」。
+    """
+
+    base = RUNS / f"matrix-{generation}"
+    out = ["#### 运行有效性（可从冻结产物机械复算）\n"]
+    version = base / "CODE_VERSION.txt"
+    if version.is_file():
+        lines = [l.strip() for l in version.read_text().splitlines() if l.strip()]
+        out.append(f"- 代码版本：`{lines[0][:12] if lines else '?'}`"
+                   + (f"，src 最后一次改动 `{lines[1]}`" if len(lines) > 1 else ""))
+        out.append(f"- **src 冻结**：复算 `git log {lines[0][:12] if lines else 'BASE'}..HEAD -- "
+                   f"'.../feedback_loop/src/'`，应为空")
+    else:
+        out.append(f"- ⚠️ 无 `CODE_VERSION.txt` —— 该代次的代码版本只能靠时间戳反推（§3.5.1 要求先 push）")
+    drift: collections.Counter = collections.Counter()
+    for run_dir in sorted(base.glob("run*")) if base.is_dir() else []:
+        for record in run_dir.rglob("*llm-call*/record.json"):
+            try:
+                payload = json.loads(record.read_text())
+            except Exception:
+                continue
+            asked = payload.get("request_model") or payload.get("model")
+            got = payload.get("response_model") or payload.get("model")
+            if asked:
+                drift[(str(asked), str(got))] += 1
+    if drift:
+        bad = {k: v for k, v in drift.items() if k[0] != k[1]}
+        out.append(f"- 模型漂移：{'**零**' if not bad else f'⚠️ **{sum(bad.values())} 次不一致** {bad}'}"
+                   f"（共 {sum(drift.values())} 次调用）")
+    out.append("")
+    return out
+
+
 def render(generation: str, verdicts_path: pathlib.Path) -> str:
     cell_rows = cells(generation)
     pos_rows = positions(generation, verdicts_path)
-    out: list[str] = []
+    out: list[str] = run_validity(generation)
 
     # ---- 表 1：66 格 ----
     done = sum(1 for r in cell_rows if r["status"] == "完成")
