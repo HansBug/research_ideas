@@ -187,3 +187,48 @@ A 要改需求形成，B 要改锚定引导。**把两者当成一个问题去�
 
 这是两种不同的失败：`0048` 是判错，`0047` 是没判。**逐格产出量必须与命中率并列看**，否则会把「没查」
 读成「查了没发现」。
+
+---
+
+## 六、第三种候选根因：attribution 门可能在吃发现（**待裁定**）
+
+追 `0047`「几乎什么都没查」时发现它并非没查。`runs/paper1/matrix-v23/run1/0047-claude` 的产出是
+`satisfied=1` / `issue=1` / **`excluded_findings=1` + `excluded_observations=4`** —— 7 个结局里 5 个
+被排除。而那条 `excluded_findings` 是：
+
+```
+attribution_status: representation_debt
+title: REQ-003 并发不变式失败,证据依赖编译器插入的 UnspecifiedInitial(representation_debt)
+rationale: ... 其证据(active(UnspecifiedInitial))落在编译器为处理并发缺失而插入的伪状态上,
+           attribution 标注为 representation_debt、source_level_claim_allowed=false
+```
+
+台账 `EIS-0047-02` 逐字是「CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的
+UnspecifiedInitial」。**看起来是同一个缺陷** —— 若成立，则方法找到了它、断言了它、判 False 了，
+**在发布前被门拦掉**。
+
+那与 §四之二 的「需求未形成」是**不同的失效阶段**，可能是并列的第二个根因。
+
+### 怀疑的机制
+
+attribution 门似乎无法区分两种情形，因为两者表征相同（「证据落在 `UnspecifiedInitial` 上」）：
+
+| 情形 | 该不该排除 |
+| :-- | :-- |
+| 投影**制造**了缺陷（`EIS-0043-02`：摊平正交区才产生的前提） | 该排除 |
+| 投影**暴露**了作者的遗漏（`0047`：作者确实没写初始边，合成态只是症状） | **不该排除** |
+
+若该区分缺失，「作者漏写初始边」这类真缺陷会被系统性吃掉 —— 而它恰是 `wellformedness` 层的主要形态。
+
+### ⛔ 我为此做的两个机械筛都失灵了，不得采信
+
+| 筛法 | 结果 | 为什么不可用 |
+| :-- | :-- | :-- |
+| 格级共现 | 13 条里 11 条所在格有 `representation_debt`/`unattributed` 排除项 | **格级共现 ≠ 逐记录匹配**。`0048` 的排除项是「AutoFocus 未到达 choice1」这类可达性失败，与 `EIS-0048-02`（Join2 无初始子态）不是同一命题 |
+| 元素级重叠 | 仅 1 条重叠 ≥3 | **两个方向都错**：`EIS-0047-02`（语义最清楚）只得 1，因为我把 `UnspecifiedInitial` 当噪声滤掉了 —— 而它正是唯一鉴别性 token；排第一的 `EIS-0047-01` 匹配到「正交并发意图无法表达」，与其缺陷（PlantUML 全局名解析致同名态合并）关系存疑 |
+
+📌 **教训：过滤"噪声" token 时，最鉴别性的那个可能正在里面。** 我滤掉 `UnspecifiedInitial` 的理由是
+"它到处都出现"，而它到处出现恰恰因为它是这类缺陷的统一标记。
+
+**重叠高的不一定对，重叠低的不一定错** —— 这个筛只能给裁定者列候选，不能排序，不能计数。已交独立裁定
+逐条读原文判定。
