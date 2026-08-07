@@ -1,4 +1,23 @@
-"""从人工判定表算 metric@k。**脚本不做匹配、不读模型输出——只做算术。**
+"""
+## ⛔ 本文件的**按带报告**部分已作废（band 划分已废止）
+
+用户裁定废止 hold-out 带划分（理由：它服务泛化性声明，而本研究的贡献是从真实模型归纳问题类型与判定
+能力，语料即研究对象；且它把分母掐死到 2 条）。
+
+| 本文件的部分 | 状态 |
+| :-- | :-- |
+| `ratio_gate()` | **仍是唯一归属地** —— `full_tables.py` 调它，不重实现 |
+| `MEASURED_CHURN` / `MIN_POSITIONS` / `MIN_CLUSTERS` | 仍有效（已改为全分母口径） |
+| `band_of()` / `report_band()` / `HOLD` / `BURNED` / `REPORTABLE` | **作废** —— 会产出与新口径矛盾的数 |
+| `main()` 的按带输出 | **作废**，改用 `full_tables.py` |
+
+⚠️ **不要用本文件的 `main()` 报覆盖率。** 用：
+
+    python3 full_tables.py --generation <gen> --verdicts <verdicts.json>
+
+保留作废代码而不删，是因为历史 comment 引用过它的输出，删掉会使那些数字无法复算。但**当前正文一律以
+`full_tables.py` 为准**。
+从人工判定表算 metric@k。**脚本不做匹配、不读模型输出——只做算术。**
 
 分工是刻意的：判定由人工做（见 present_for_judgment.py 的理由），算术由脚本做。脚本读不到
 模型输出，所以它不可能"顺手"把判定也做了。

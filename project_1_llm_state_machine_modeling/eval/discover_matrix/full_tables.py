@@ -36,9 +36,13 @@ import collections
 import json
 import pathlib
 import re
-import sys
+import sys  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import metrics_at_k as mak  # noqa: E402  —— 比率闸门的**唯一归属地**，不在此重实现
+
 RUNS = HERE.parents[2] / "runs" / "paper1"
 TUNED_PAIRS = ("0000", "0006", "0029", "0050")
 
@@ -281,8 +285,11 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
 
     # ---- 逐带小计（不出比率，比率由 metrics_at_k 的闸门管）----
     out.append("#### 逐问题类型命中小计 —— 「哪类缺陷发现得好」\n")
-    out.append("| 问题类型（layer） | 记录 | 判定位 | 命中位 | hit@1 | hit@3 | hit@all |")
-    out.append("| :-- | --: | --: | --: | --: | --: | --: |")
+    out.append("比率是否够格报由 `metrics_at_k.ratio_gate()` 裁定（**闸门的唯一归属地**，本文件不重实现）。"
+               "⛔ = 该层分母或粒度不满足，比率不可作描述性结论，只看原始计数。\n")
+    out.append("| 问题类型（layer） | 记录 | 判定位 | 命中位 | hit@1 | hit@3 | hit@all | 闸门 |")
+    out.append("| :-- | --: | --: | --: | --: | --: | --: | :-: |")
+    gated: list[tuple[str, list[str]]] = []
     for band in sorted({r["layer"] for r in pos_rows}):
         group = [r for r in pos_rows if r["layer"] == band]
         if not group:
@@ -292,10 +299,24 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
         at3 = sum(1 for r in group for s in (r["claude"], r["gpt"]) if _hits(s) >= 1)
         atall = sum(1 for r in group for s in (r["claude"], r["gpt"])
                     if isinstance(s, list) and s and all(v == 1 for v in s))
+        failed = mak.ratio_gate([r["record_id"] for r in group], npos)
+        mark = "✅" if not failed else "⛔"
         out.append(f"| `{band}` | {len(group)} | {npos} | {nhit} | "
                    f"{nhit / npos * 100:.1f}% | {at3}/{len(group) * 2} = {at3 / (len(group) * 2) * 100:.1f}% | "
-                   f"{atall}/{len(group) * 2} = {atall / (len(group) * 2) * 100:.1f}% |")
+                   f"{atall}/{len(group) * 2} = {atall / (len(group) * 2) * 100:.1f}% | {mark} |")
+        if failed:
+            gated.append((band, failed))
     out.append("")
+    for band, failed in gated:
+        out.append(f"- ⛔ `{band}`：" + "；".join(failed))
+    if gated:
+        out.append("")
+    # 全体一行也过闸门 —— 它才是报告里最常被引用的那个数。
+    whole = mak.ratio_gate([r["record_id"] for r in pos_rows], n_pos)
+    out.append(f"**全体 `hit@1` = {hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%**，闸门 "
+               + ("✅ 够格报为描述性比率" if not whole else "⛔ " + "；".join(whole)) + "。")
+    infer = mak.ratio_gate([r["record_id"] for r in pos_rows], n_pos, inferential=True)
+    out.append(f"跨代次差的**显著性**：" + ("✅ 可断言" if not infer else "⛔ " + "；".join(infer)) + "\n")
     out.append("⚠️ `hit@3` / `hit@all` 按 **(记录, 臂)** 计数，不是按记录 —— 一条记录在两臂上可以"
                "一边稳定命中、一边全轮未命中，合成一个数会把这件事抹掉。分母 = 记录数 × 2 臂。")
     return "\n".join(out)
