@@ -520,6 +520,7 @@ WELL_FORMED = {
     "containment": dict(parent="Root.Outer", child="Root.Outer.First"),
     "initial_target": dict(composite="Root.Outer", child="Root.Outer.First"),
     "edge_declared": dict(source="Root.Idle", trigger="Root.go", target="Root.Outer"),
+    "untriggered_edge_declared": dict(source="Root.Idle", target="Root.Outer"),
     "effect_declared": dict(
         source="Root.Idle", trigger="Root.go", variable="units", sign="negative"
     ),
