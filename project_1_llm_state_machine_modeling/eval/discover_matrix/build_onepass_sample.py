@@ -38,6 +38,21 @@
 但 `_BAND_WORDS` 扫描**保留**：样本里出现「调优 / 可报 / 已烧毁」等词仍是泄漏，因为它们会告诉标注者
 「这条曾被特殊对待」。**废止一个分组制度，不等于允许它的痕迹进入样本。**
 
+## ⚠️ 待改：样本必须包含 NL 原文
+
+v1 的两位标注者在 17 条上分歧，其中 **12 条塌缩成同一个可核查的事实问题** —— `containment(Join2, Fork2)`
+是否误读 NL。一位判 `fabricated`，理由是「NL 说的是迁移不是父子关系」；而 NL 原文逐字是
+
+    "In the Fork2 state, which is part of the Join2 substate, the system can either proceed to ..."
+
+`which is part of the Join2 substate` 是**包含关系**的自然语言表述。该判定的事实前提为假。
+
+**根因是本样本不含 NL 原文**，标注者只能靠台账 statement 反推。这使 `fabricated` 既可能漏判（无证据时
+退回 `grounded-extra`）也可能误判（凭对 NL 的猜测）。
+
+修法：为每个 unit 附上该 pair 的 NL 原文（按句编号）。**盲化仍需处理** —— NL 里可能含 pair 可识别的
+系统名，要过 `_scrub`。
+
 ## issue_uid 的稳定性
 
 `(run, cell, index)` —— index 是该轮 issues 列表里的位置。它在冻结的 run record 上是稳定的，且
