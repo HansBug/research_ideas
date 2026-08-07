@@ -678,6 +678,9 @@ class _RequirementSpec(Protocol):
     predicate: str
     predicate_bindings: dict[str, str]
     limitations: tuple[str, ...]
+    #: `RequirementDerivation | None` —— `derivation_contract_findings` 读它。
+    #: 这里不写具体类型是为了不让 capability 依赖 schemas（其余门也都按 Protocol 松耦合）。
+    derivation: object | None
 
 
 #: Predicates whose False *is* the finding when the element is declared elsewhere,
@@ -1308,6 +1311,105 @@ def trigger_consuming_predicate_findings(
             "`occupancy_after(source=..., trigger=..., target=...)`: it asks what the sentence "
             "actually asks, and it answers from the edge the author wrote."
         )
+    return tuple(findings)
+
+
+#: 每种许可派生所要求的：父 Requirement 的谓词，以及父子之间必须相等的那一对绑定键。
+#:
+#: 这张表是「派生」这个概念的全部内容。它是闭集，加项要过 review —— 否则 `derivation`
+#: 就从「一小组具名蕴含」退化成「绕过 NL 审查的任意口子」。
+_LICENSED_DERIVATIONS: dict[str, tuple[str, str, str]] = {
+    # kind: (父谓词, 父侧绑定键, 子侧绑定键)
+    "entry_follows_cardinality": ("cardinality", "scope", "composite"),
+    "activation_residency": ("event_consumed", "source", "source"),
+}
+
+
+def derivation_contract_findings(
+    requirements: Iterable[_RequirementSpec],
+) -> tuple[str, ...]:
+    """申报为机械派生的 Requirement，其申报是否站得住。
+
+    ## 这道门存在的理由：消解 splitter 与 reviewer 的直接冲突
+
+    splitter 侧写着入口义务的触发器「is mechanical: it does not depend on recognising a phrasing」，
+    而 reviewer 侧的常设指令是「不得因 FCSTM 暴露了方便的元素就添加语义区分」，且 reviewer
+    **看不到**那条触发器（实测：该文本只在 splitter prompt 里，reviewer / converter / adjudicator
+    全为 0 命中）。于是 reviewer 判「无 NL 出处 → 删」，`0032` 删掉 3/4 格、`0047` 删掉 5/6 格。
+
+    **reviewer 按自己的规则是对的** —— 它无从分辨「凭 FCSTM 方便就加的义务」与「从一条
+    NL-grounded 义务蕴含出来的义务」。差别无法从产物推断，只能由 splitter 申报。
+
+    所以这道门不是给派生义务的免检通道，而是把 reviewer 面对的问题从**不可判定**（有没有 NL 出处）
+    换成**可判定**（申报是否满足四条）。任一条不满足 → 仍然删，但 finding 点明是哪一条。
+
+    ## 四条判据里这道门负责哪两条
+
+    - (b) `kind` 在许可清单内 —— 由 `RequirementDerivation.kind` 的 `Literal` 承担
+    - (c) 形状正确 —— 由 `Requirement` 的 before-validator 承担（`child` 从必填改为禁填）
+    - **(a) 父存在、且父自身有 NL 出处** ← 本门
+    - **(d) 父子绑定一致** ← 本门
+
+    (a) 里「父自身有 NL 出处」这条不能省：允许派生之上再派生，等于让整条链没有 NL 地板，
+    那正是 reviewer 原本担心的那件事。
+
+    :param requirements: 已接受的需求集。
+    :return: 每条申报不成立的派生义务一条 finding。
+    """
+
+    items = list(requirements)
+    by_id = {str(getattr(item, "requirement_id", "")): item for item in items}
+    findings: list[str] = []
+    for item in items:
+        derivation = getattr(item, "derivation", None)
+        if derivation is None:
+            continue
+        kind = str(getattr(derivation, "kind", "") or "")
+        parent_id = str(getattr(derivation, "parent_requirement_id", "") or "")
+        rid = str(getattr(item, "requirement_id", ""))
+        licensed = _LICENSED_DERIVATIONS.get(kind)
+        if licensed is None:
+            findings.append(
+                f"{rid} declares derivation kind {kind!r}, which is not a licensed entailment. "
+                f"Licensed kinds are {sorted(_LICENSED_DERIVATIONS)}. Either drop the derivation "
+                f"and ground the requirement in an NL segment, or remove the requirement."
+            )
+            continue
+        parent_predicate, parent_key, child_key = licensed
+        parent = by_id.get(parent_id)
+        if parent is None:
+            findings.append(
+                f"{rid} declares it is derived from {parent_id!r}, which is not a requirement in "
+                f"this set. A derivation names the obligation it is entailed by; without that "
+                f"obligation present there is nothing anchoring it to the NL."
+            )
+            continue
+        if getattr(parent, "derivation", None) is not None:
+            findings.append(
+                f"{rid} is derived from {parent_id!r}, which is itself derived. A derivation chain "
+                f"has no NL floor -- the parent must be a requirement an NL segment states. Point "
+                f"{rid} at that requirement, or drop it."
+            )
+            continue
+        actual_parent_predicate = str(getattr(parent, "predicate", "") or "")
+        if actual_parent_predicate != parent_predicate:
+            findings.append(
+                f"{rid} declares a {kind!r} derivation, which is only entailed by a "
+                f"`{parent_predicate}` obligation, but {parent_id!r} names "
+                f"`{actual_parent_predicate or 'no predicate'}`. The entailment does not follow "
+                f"from that parent."
+            )
+            continue
+        parent_value = str((getattr(parent, "predicate_bindings", None) or {}).get(parent_key) or "").strip()
+        child_value = str((getattr(item, "predicate_bindings", None) or {}).get(child_key) or "").strip()
+        if not parent_value or parent_value != child_value:
+            findings.append(
+                f"{rid} binds `{child_key}={child_value or '<empty>'}` while its parent "
+                f"{parent_id!r} binds `{parent_key}={parent_value or '<empty>'}`. The entailment is "
+                f"only about the parent's own scope, so the two must name the same element; a "
+                f"derived obligation on a different scope is a new claim and needs its own NL "
+                f"source."
+            )
     return tuple(findings)
 
 

@@ -251,6 +251,53 @@ class RequirementSourceContext(StrictBaseModel):
     )
 
 
+class RequirementDerivation(StrictBaseModel):
+    """一条 Requirement 是**从另一条 Requirement 机械派生**的，而不是从某句 NL 长出来的。
+
+    ## 为什么需要这个字段
+
+    Splitter 与 Requirement Reviewer 此前有一处**直接冲突**，实测让派生义务在多数格里被删掉：
+
+    - splitter 侧写着「Whenever you form a `cardinality` Requirement on a composite, form exactly
+      one entry Requirement on that same composite too. **This trigger is mechanical: it does not
+      depend on recognising a phrasing.**」
+    - reviewer 侧的常设指令是「Do not add a semantic distinction merely because the current FCSTM
+      exposes a convenient state, event, transition, or variable」，并且它**看不到**上面那条触发器
+      （实测：该触发器文本只存在于 splitter prompt，reviewer / converter / adjudicator 全为 0 命中）。
+
+    于是 reviewer 按自己的规则判「无 NL 出处 → 语义添加 → 删」，而它是对的 —— 它无从分辨
+    「凭 FCSTM 方便就加的义务」和「从一条 NL-grounded 义务蕴含出来的义务」。
+
+    **两者的差别无法从产物推断，只能由 splitter 申报。** 这个模型就是那份申报：带上它，
+    reviewer 就有了可判定的判据（见 `kind`）；不带它，reviewer 的原规则不变。
+
+    ⚠️ 这不是给派生义务的免检通道。reviewer 仍可删，只是必须点明是四条判据里的哪一条不满足。
+    """
+
+    kind: Literal["entry_follows_cardinality", "activation_residency"] = Field(
+        description=(
+            "Which licensed entailment this is. The list is closed: an entailment not on it is not "
+            "a licensed derivation, and the reviewer deletes the requirement on that ground alone. "
+            "`entry_follows_cardinality` -- the parent says how many children a composite declares, "
+            "so entering that composite has to land on one of them; a model can declare exactly the "
+            "right children and still have no declared way into any of them. "
+            "`activation_residency` -- the parent conditions a composite's activation on a trigger, "
+            "so the run has to be inside that composite once the trigger arrives; consuming the "
+            "event and then leaving are independently violable."
+        ),
+    )
+    parent_requirement_id: str = Field(
+        pattern=r"^REQ-[A-Za-z0-9_.-]+$",
+        min_length=5,
+        description=(
+            "The `requirement_id` this one is entailed by. It must be a requirement in this same "
+            "set, and it must itself be anchored in the NL -- a derivation whose parent is also "
+            "derived has no NL floor and is refused. The reviewer checks the parent's bindings "
+            "against this one's: the entailment is only about the parent's own scope."
+        ),
+    )
+
+
 class Requirement(StrictBaseModel):
     requirement_id: str = Field(
         pattern=r"^REQ-[A-Za-z0-9_.-]+$",
@@ -290,6 +337,17 @@ class Requirement(StrictBaseModel):
         description=(
             "Input-derived scope ledger. Never put evaluator expectations or model-derived "
             "answers here -- it records where in the *input* the claim is anchored."
+        ),
+    )
+    derivation: RequirementDerivation | None = Field(
+        default=None,
+        description=(
+            "Set this only when the requirement is mechanically entailed by another requirement in "
+            "this set rather than stated by an NL segment -- then `source_segment_ids` may be empty "
+            "and the reviewer judges it by the four conditions on `RequirementDerivation` instead of "
+            "looking for an NL source. Leave it null for every requirement an NL segment states: a "
+            "false derivation claim moves the requirement out of NL review and is treated as a "
+            "contract violation, not as a shortcut."
         ),
     )
     predicate: PredicateName | None = Field(
@@ -419,15 +477,44 @@ class Requirement(StrictBaseModel):
                 f"vocabulary: {', '.join(sorted(PREDICATE_NAMES))}"
             )
         entry = PREDICATE_BY_NAME[predicate]
+        bound = value.get("predicate_bindings") or {}
+        required, forbidden = entry.bindings, ()
+        # `entry_follows_cardinality` binds the composite and **must not** bind a child.
+        #
+        # `initial_target(composite, child)` answers "is *this* child the unconditional entry", so
+        # it is False for every child except the one that is. The derived obligation is the weaker
+        # and correct claim "entry lands on *some* declared child", which is a disjunction over the
+        # children -- and a disjunction cannot live in `dict[str, str]`. Naming one child here is
+        # not an approximation of it, it is a different claim that fails a model entered properly
+        # through another child.
+        #
+        # So the shape is not relaxed, it is *replaced*: the child slot moves from required to
+        # forbidden, the assertion stage expands the disjunction from the composite, and the wrong
+        # shape becomes unrepresentable rather than merely discouraged. Measured on v35 before this
+        # change: 2 disjunctions against 23 single bindings, while the splitter prompt already said
+        # in as many words that a single binding "reports a defect on a correct model".
+        derivation = value.get("derivation")
+        kind = derivation.get("kind") if isinstance(derivation, dict) else getattr(derivation, "kind", None)
+        if kind == "entry_follows_cardinality" and predicate == "initial_target":
+            required = tuple(name for name in entry.bindings if name != "child")
+            forbidden = ("child",)
         missing = [
             name
-            for name in entry.bindings
-            if not str((value.get("predicate_bindings") or {}).get(name) or "").strip()
+            for name in required
+            if not str(bound.get(name) or "").strip()
         ]
         if missing:
             raise ValueError(
-                f"predicate {predicate!r} requires bindings {list(entry.bindings)}; "
+                f"predicate {predicate!r} requires bindings {list(required)}; "
                 f"missing or empty: {missing}"
+            )
+        present = [name for name in forbidden if str(bound.get(name) or "").strip()]
+        if present:
+            raise ValueError(
+                f"a `{kind}` derivation must not bind {present}: the obligation is that entry lands "
+                f"on *some* declared child, and naming one makes the check False for a model that "
+                f"entered correctly through another. Bind only "
+                f"{list(required)} -- the assertion stage forms the disjunction over the children."
             )
         return {**value, "verification_kind": verification_kind_of(predicate)}
 

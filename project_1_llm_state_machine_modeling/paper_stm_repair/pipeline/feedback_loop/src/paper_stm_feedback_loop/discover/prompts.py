@@ -66,6 +66,7 @@ REQUIREMENT_REVIEWER_PROMPT += """
 Context and containment review: do not accept a split that turns behavior stated in an established operating mode into a root-only cold-start property. Check that source mode/state, trigger, target, and ordering context remain attached when the NL supplies them or clearly links them across clauses. Explicit substate/inside/within/belongs-to language is a structure/containment obligation and must not be represented only as an effect transition. A finite contextual inference may remain in the rationale; do not reject it merely because the source did not use formal state-machine notation.
 	Repair-unit review: reject duplicate Requirements whose failures would identify the same misplaced state and require the same edit. In particular, a clause that says a composite begins in or enters a named substate should normally be one Requirement with complementary containment and entry evidence, unless the source states an independently triggered behavior that can fail separately.
 	Initialization review: do not force a causal event or hot-start response for a claim that only describes the initial configuration. For every behavioral requirement, verify that its source context, trigger, destination, ordering, and named effects remain grounded in the NL. Do not add a semantic distinction merely because the current FCSTM exposes a convenient state, event, transition, or variable.
+	Derived requirements: a requirement carrying a `derivation` field is claiming it is entailed by another requirement in the set rather than stated by an NL segment, so "it has no NL source" is not a ground to delete it -- that is what the field says. Judge it by four conditions instead, and delete it if **any** fails, naming which one: (a) `derivation.parent_requirement_id` is a requirement in this set and that parent is **not itself derived** -- a chain of derivations has no NL floor; (b) `derivation.kind` is one of the two licensed entailments -- `entry_follows_cardinality` (a parent `cardinality` obligation on a composite entails that entering it lands on some declared child) or `activation_residency` (a parent `event_consumed` obligation entails that the run is inside that scope once the event arrives); (c) the shape matches the kind -- `entry_follows_cardinality` binds `composite` and must not bind `child`, `activation_residency` binds the parent's own `source`; (d) the parent's scope binding and the derived one's name the same element, because the entailment is only about the parent's own scope. Conditions (b) and (c) are also checked deterministically before you see the set, so a survivor has already passed them; your judgement is mostly (a) and (d), plus whether the parent really is NL-grounded. A requirement **without** `derivation` is judged by your normal rule -- an addition with no NL source is deleted as before.
 	Alternative-target review: when the source says alternatives are selected based on conditions but the same condition is attached to different targets, require a positive distinguishability Requirement. Do not accept a statement that merely records unresolved ambiguity as the desired behavior. Explicitly permitted nondeterminism is the exception.
 	Do not reinterpret a missing discriminator, or the absence of an explicit ban on nondeterminism, as permission for nondeterminism. In a source phrase of the form "A or B based on" one shared condition, require the separate distinguishability Requirement unless the source explicitly allows arbitrary or nondeterministic selection.
 	This is a binding normalization for an undifferentiated shared condition set: accept a combined conditional-choice capability plus one distinguishability Requirement, without requiring that the shared conditions independently trigger every target. Do not apply it to alternatives that the source already assigns different condition clauses, and do not request global guard mutual exclusion for such distinct clauses without source priority/exclusivity semantics.
@@ -285,6 +286,10 @@ the answer:
   outright, so bind X and there is no scope choice to get wrong. This second one is what
   catches a composite whose children are declared elsewhere, or whose entries point outside
   its own scope -- the declaration reads fine and the run still exits.
+  Like the entry obligation below, this second Requirement is entailed by the first rather than
+  stated on its own, so declare it: `derivation = {"kind": "activation_residency",
+  "parent_requirement_id": "<the event_consumed Requirement's id>"}`, and bind the same `source`
+  the parent binds. Undeclared, the reviewer reads it as an addition with no NL source.
 ⚠️ **Ordering: cover every NL segment first, then add the mechanically-derived Requirements
 below.** A segment you mark `covered` in `segment_disposition` must have at least one
 Requirement whose predicate and bindings actually carry its obligation. The derived ones are
@@ -303,20 +308,27 @@ fewer Requirements in total, and the ones its own sentences state come first.
   ⚠️ **Follow `cardinality` only, not `containment`.** `containment` is written once per child,
   so hanging the entry obligation off it multiplies one question by the number of children and
   buries the rest of the sentence's obligations under near-duplicates. One entry Requirement
-  per composite is the whole of this claim. Write it as a disjunction over the children in
-  question, not as a single binding:
+  per composite is the whole of this claim.
 
-      any([initial_target(composite="Sys.M", child="Sys.M.A"),
-           initial_target(composite="Sys.M", child="Sys.M.B")]) is True
+  **This one is not stated by any NL segment, so you must declare that it is derived.** Emit
+  `derivation = {"kind": "entry_follows_cardinality", "parent_requirement_id": "<the cardinality
+  Requirement's id>"}`. Without that field the reviewer sees a requirement with no NL source and
+  deletes it -- correctly, because it cannot tell an obligation entailed by another obligation
+  from one added merely because the FCSTM happens to expose a convenient element. The field is
+  what makes the difference visible. `source_segment_ids` may then be empty; the parent carries
+  the NL anchor for both.
 
-  ⚠️ A single `initial_target` binding is the wrong shape here and reports a defect on a
-  correct model: the predicate answers "is *this* child the unconditional entry", so it is
-  False for every child except the one that is, and picking one at random fails a model that
-  entered properly through another. The disjunction is True as soon as any declared child is
-  the entry, and False only when **none** of them is -- which is exactly the case where entry
-  has nowhere declared to go. Form this alongside the containment/cardinality obligations the
-  sentence already produces, not instead of them: they answer different questions (what is
-  declared inside vs where entry goes) and a model can pass either while failing the other.
+  **Bind `composite` and do not bind `child`.** `initial_target(composite, child)` answers "is
+  *this* child the unconditional entry", so it is False for every child except the one that is.
+  The obligation here is the weaker and correct one -- entry lands on *some* declared child --
+  which is a disjunction, and naming one child is not an approximation of it but a different
+  claim that fails a model entered properly through another child. The assertion stage forms the
+  disjunction from the composite; a `child` binding on a derived entry obligation is rejected
+  deterministically.
+
+  Form this alongside the containment/cardinality obligations the sentence already produces, not
+  instead of them: they answer different questions (what is declared inside vs where entry goes)
+  and a model can pass either while failing the other.
 
 **Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
 Compare the *last segment* of the name, not the whole path. A state two regions
@@ -439,6 +451,14 @@ The current FCSTM cannot be used to weaken the NL or change the predicate. A sou
 """
 
 ASSERTION_CONVERTER_PROMPT += """
+One Requirement shape does not map to a single call: a Requirement carrying `derivation.kind == "entry_follows_cardinality"` binds `composite` and deliberately leaves `child` unbound, because its obligation is that entry lands on *some* declared child. Expand it into a disjunction over that composite's declared non-pseudo children, read from `declared_model_vocabulary`:
+
+    "expression": "any([initial_target(composite=\\"Sys.M\\", child=\\"Sys.M.A\\"), initial_target(composite=\\"Sys.M\\", child=\\"Sys.M.B\\")]) is True",
+
+Cover every declared non-pseudo child of that composite and no others. Do not pick one child and do not include a projection-inserted placeholder among them: `initial_target` answers "is *this* child the unconditional entry", so a single binding is False for every child except the one that is and fails a model entered properly through another, while including the placeholder makes the disjunction true exactly when entry has nowhere the author declared to go. The disjunction is False only when none of the author's own children is the entry, which is the obligation.
+
+A Requirement carrying `derivation.kind == "activation_residency"` maps to a single `stays_in` call on its own bindings like any other; only the entry kind expands.
+
 How to write an assertion now. The evidence environment contains the predicates listed below and plain builtins, nothing else. An assertion is a call to the predicate its Requirement names, with that Requirement's `predicate_bindings` as arguments. The `expression` field takes that call as a bare boolean expression -- no `assert` keyword, no trailing message:
 
     "expression": "occupancy_after(source=\"Sys.ModeA\", trigger=\"Sys.evt\", target=\"Sys.ModeB\") is True",

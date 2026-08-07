@@ -44,6 +44,7 @@ from .capability import (
     redundant_proposal_findings,
     root_anchored_findings,
     trigger_consuming_predicate_findings,
+    derivation_contract_findings,
     substituted_binding_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
@@ -862,6 +863,7 @@ ABLATABLE_GATES = (
     "projection_anchored",
     "conceded_omission",
     "trigger_consuming",
+    "derivation_contract",
     "source_blind_response",
 )
 
@@ -1370,6 +1372,11 @@ def split_requirements(
         # model never sees) rather than in any prompt (which it does).
         gates = (
             ("initialization_anchored", lambda: initialization_anchored_findings(output.requirements)),
+            # v36：消解 splitter/reviewer 对机械派生义务的直接冲突。splitter 侧的入口义务触发器
+            # 自陈「is mechanical」，reviewer 侧的常设指令是「无 NL 出处即语义添加」，而 reviewer
+            # 看不到那条触发器 —— 实测 0032 删 3/4 格、0047 删 5/6 格。这道门把 reviewer 面对的
+            # 问题从不可判定（有没有 NL 出处）换成可判定（申报是否满足四条）。
+            ("derivation_contract", lambda: derivation_contract_findings(output.requirements)),
             # v23: 接线。它要求 `source_context.nl_parent`，splitter prompt 已在 v23 教这个字段 ——
             # v22 未接线正是因为「被要求补一个从未被描述过的字段」会耗尽修复预算。
             ("vacuous_containment", lambda: vacuous_containment_findings(output.requirements, known_paths)),
@@ -3319,6 +3326,7 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         }
         predicate_by_assertion: dict[str, str | None] = {}
         binding_values_by_assertion: dict[str, tuple[str, ...]] = {}
+        bindings_by_assertion: dict[str, dict[str, str]] = {}
         for item in script_assertions:
             requirement = requirement_by_id.get(item.requirement_id)
             # Keyed pairs, not bare values: `kind="any"` and `sign="negative"` are enumerated
@@ -3332,6 +3340,36 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             predicate, bound = _assertion_claim_key(item, requirement)
             predicate_by_assertion[item.assertion_id] = predicate
             binding_values_by_assertion[item.assertion_id] = bound
+            bindings_by_assertion[item.assertion_id] = dict(
+                getattr(requirement, "predicate_bindings", None) or {}
+            )
+
+        # 载体/成因分流要问的那件事 ——「作者在这个 scope 上声明了以这个事件为触发的迁移吗」——
+        # 恰好就是 `event_consumed` 的语义，所以用谓词回答，不用正则解析 FCSTM 文本
+        # （仓库 §7：不从文本反解事实）。环境按需构建一次：这条分支只在证据全为 carrier 时才可达。
+        _edge_probe: dict[str, Any] = {}
+
+        def _author_declares_edge(source: str, trigger: str) -> bool | None:
+            """作者源里该 scope 是否消费该事件。None 表示无法判定（此时调用方不放行）。"""
+
+            if "api" not in _edge_probe:
+                try:
+                    from ..assertions.runtime import EvalEnvironment
+
+                    _edge_probe["api"] = EvalEnvironment(
+                        model_text=frozen.stm_text
+                    ).predicates
+                except Exception:  # pragma: no cover - 环境不可用时退回原行为
+                    _edge_probe["api"] = None
+            api = _edge_probe["api"]
+            if api is None:
+                return None
+            try:
+                return bool(api.event_consumed(source=source, trigger=trigger))
+            except Exception:
+                # 谓词自己拒答（例如 scope 形状不合法）也算无法判定，不放行。
+                return None
+
         bindings = []
         for result in released.results:
             if result.truth_value:
@@ -3444,6 +3482,24 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
                     "the author declares nothing, and this predicate's claim is about what "
                     "the model declares -- so the placeholder is the omitted declaration, "
                     "not an unattributable artefact."
+                )
+            elif debt_refs and _carrier_only_and_author_declared_it(
+                debt_refs,
+                predicate_by_assertion.get(result.assertion_id),
+                bindings_by_assertion.get(result.assertion_id),
+                exclusion_roles(getattr(frozen, "working_contract", None)),
+                _author_declares_edge,
+            ):
+                # 与上一条对称的另一半。上一条说「替身就是那个遗漏」；这一条说「载体只是作者
+                # 自己那条边的 lowering」。`R45RouteToken` 被投影加到每一个模型上，所以任何关于
+                # 跨层退出的行为证据都必然触碰它 —— 若不分流，台账为这类缺陷指定的判据就结构性
+                # 不可发布，而那是规则的问题，不是模型漏检。
+                status = "safe"
+                rationale = (
+                    "The excluded elements are all lowerings of what the author wrote, and the "
+                    "author's own source declares the transition that witnesses this False -- so "
+                    "the routing variable is the carrier of the author's edge, not a confound "
+                    "about who is at fault."
                 )
             elif debt_refs:
                 status = "representation_debt"
@@ -3569,6 +3625,80 @@ def _claim_is_about_declaration(predicate: str | None) -> bool:
     if not predicate:
         return False
     return predicate in _DECLARED_PATH_IS_THE_CLAIM or predicate.endswith("_declared")
+
+
+#: 谓词 -> 其 False 的见证者是「一条作者声明的、从被点名 scope 出发、以被点名 trigger 为事件的迁移」。
+#:
+#: 只有 `stays_in`。为什么可以只靠 `event_consumed` 把「作者写了边」与「运行确实离开」钉在一起：
+#: `stays_in` **拒绝复合态**（实测报错原文：「every observation reports the whole chain root..leaf,
+#: so a composite subject is satisfied by any of its substates」），所以 subject 必是叶态；叶态没有
+#: 内部可去处，作者在其上声明的该事件迁移只能是出边 —— 自环会让 `stays_in` 为真，而这条分支的前提
+#: 正是它为假。因此两者同时成立时，离开是作者那条边造成的，不是路由载体造成的。
+_AUTHOR_EDGE_WITNESSES_FALSE = frozenset({"stays_in"})
+
+
+def _carrier_only_and_author_declared_it(
+    debt_refs: tuple[str, ...],
+    predicate: str | None,
+    bindings: dict[str, str] | None,
+    roles: dict[str, str] | None,
+    author_declares_edge: Callable[[str, str], bool | None],
+) -> bool:
+    """载体 vs 成因：被排除的元素只是作者自己那条边的 lowering 吗。
+
+    ## 为什么需要这条分支
+
+    `R45RouteToken` 是投影**加到每一个模型上**的路由变量（见 `_OMISSION_PLACEHOLDERS` 上方的注释：
+    "that one carries no information about the author"）。而跨层组迁移在 FCSTM 里的唯一实现形式就是
+    经它路由。于是**任何**关于跨层退出的行为证据都必然触碰它、必然落进
+    `Assertion evidence touches compiler-owned or lowering-excluded elements` 那条，被判
+    `representation_debt` 而永不发布。
+
+    实测后果：`0000` 的 `stays_in(AutoNavigating, <复合接管事件>)` 取 False —— 与台账为该缺陷
+    指定的 primary 逐字相同、真值正确 —— 却因此没能发布。台账指定的判据在当前规则下**结构性
+    不可发布**，这不是漏检。
+
+    ## 判据
+
+    这条与 `_omission_placeholder_only` 完全对称，两条都用合同自己的角色分类而不是名字表：
+
+    - 那条：全部排除元素是 `omission_surrogate` + 声明类谓词 → 替身**就是**那个遗漏
+    - 本条：全部排除元素是 `carrier`（作者所写之物的 lowering）+ 作者确实声明了见证该 False 的
+      那条迁移 → 载体只是作者自己那条边的 lowering，退出是作者的
+
+    三个条件都必须成立。少任何一个都会把「运行经过了作者从未写过的节点」误判成作者的责任：
+
+    1. 谓词在 `_AUTHOR_EDGE_WITNESSES_FALSE` 内 —— 见该常量的注释，这是叶态约束让判据可靠的地方。
+    2. 每个被排除的元素角色都是 `carrier`。有一个不是，证据就还搭在别的东西上，那时它两边都说不了。
+       角色映射缺失时保守地不放行（`roles` 为空意味着没有合同，退回原行为）。
+    3. 作者在该 scope 上确实声明了以该 trigger 为事件的迁移。这一条由 `event_consumed` 回答，
+       不是文本正则 —— 谓词语义与要问的问题逐字吻合。
+
+    :param debt_refs: 该断言证据触碰到的、被排除的元素引用。
+    :param predicate: 该断言所属需求的谓词。
+    :param bindings: 该需求的 `predicate_bindings`。
+    :param roles: `exclusion_roles` 的输出；空映射表示无合同，此时不放行。
+    :param author_declares_edge: `(source, trigger) -> bool | None`，None 表示无法判定。
+    :return: 是否应判 `safe`。
+    """
+
+    if not debt_refs or not roles:
+        return False
+    if (predicate or "") not in _AUTHOR_EDGE_WITNESSES_FALSE:
+        return False
+    for ref in debt_refs:
+        role = None
+        for key in _ref_lookup_keys(str(ref)):
+            if key in roles:
+                role = roles[key]
+                break
+        if role != "carrier":
+            return False
+    source = str((bindings or {}).get("source") or "").strip()
+    trigger = str((bindings or {}).get("trigger") or "").strip()
+    if not source or not trigger:
+        return False
+    return author_declares_edge(source, trigger) is True
 
 
 def _omission_placeholder_only(

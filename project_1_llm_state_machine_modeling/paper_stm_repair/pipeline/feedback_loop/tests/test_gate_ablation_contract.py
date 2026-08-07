@@ -49,6 +49,14 @@ EXPECTED_GATES = {
     "conceded_omission",
     "trigger_consuming",
     "source_blind_response",
+    # v36 接线。它与其余门方向相反：其余门**拒绝**一类需求，这道门检查一份**申报**是否成立。
+    # 由来是 splitter 与 requirement reviewer 的直接冲突 —— splitter 侧的入口义务触发器自陈
+    # 「is mechanical: it does not depend on recognising a phrasing」，reviewer 侧的常设指令是
+    # 「无 NL 出处即语义添加」，而 reviewer 看不到那条触发器；实测 0032 删 3/4 格、0047 删 5/6 格。
+    #
+    # ⚠️ 消融它的含义因此也相反：关掉它不是「少一道拒绝」，而是**派生申报不再被核验** ——
+    # 一条声称派生的需求会带着未核验的 parent 与 scope 进入下游。做消融基线时要按这个方向读。
+    "derivation_contract",
 }
 
 
