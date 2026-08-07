@@ -328,7 +328,8 @@ class PredicateAPI:
         binding kind -- seal a false for `variable` and `trigger`, refuse for
         state-shaped ones, refuse for expressions -- which took three sets of
         judgement, three exemptions, a dedicated exception type and a dedicated
-        seal path.  The third was measured to constrain nothing: 60 of 60 pairs
+        seal path.  The third was measured to constrain nothing (counts in
+        `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`): every pair
         have an empty author-owned variable table, so "the table is empty" carried
         no information and the seal fired for any pair at all.
 
@@ -462,8 +463,8 @@ class PredicateAPI:
 
         Measured on this fixture: with `Idle --go--> Pick --> Warm`, `target='Root.Warm'`
         gives True and `target='Root.Pick'` gives False, on the same model, for no reason
-        the model is answerable for. Across the v20 hold-out set the same shape produced 17
-        published findings on pairs `0018` and `0038`.
+        the model is answerable for. The same shape has produced published findings before
+        (counts in `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`).
 
         Scope, and the reason for it is not what it first looks like. `is_pseudo` is set by
         the `pseudo` keyword alone (`pyfcstm/dsl/listener.py:650`), and the validator forbids
@@ -508,8 +509,8 @@ class PredicateAPI:
         This used to be `1 if composite else 0`, which covers a composite's entry
         into its initial child and nothing else.  Corpus-wide that is right for 523
         of 567 pinnable configurations and wrong for the other 44, where the chain
-        runs 2 to 7 edges deep.  matrix-v16 published one of those as a confirmed
-        defect: pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
+        runs 2 to 7 edges deep.  One of those was published as a confirmed defect
+        (see `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`): pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
         SubState3 -> FinalWaittr_0005` before anything can consume
         `human_steering...`, and the requirement's obligation *is* met from the
         settled position -- `occupancy_after` answers True when pinned there, and
@@ -942,7 +943,8 @@ class PredicateAPI:
         # A single declared entry *is* the entry, whatever labels it.  pyfcstm
         # counts an edge as unconditional only when it carries neither guard nor
         # event, so `[*] -> RunningState : /Activate_Pump` was "conditional" and
-        # the predicate refused -- on 22 of the corpus's 169 composites -- with a
+        # the predicate refused -- on a substantial share of corpus composites, counted in
+            # `eval/discover_matrix/PREDICATE_OBSERVATIONS.md` -- with a
         # message about a guard the edge does not have.  Nothing is ambiguous
         # about one entry, so answer from it.
         if len(entries) == 1:
@@ -973,7 +975,7 @@ class PredicateAPI:
             # and attribution has nothing to match: on pair 0029 the entry is the
             # converter's synthetic `UnspecifiedInitial`, listed in the pair's
             # `attribution_exclusions`, so the finding is representation debt by
-            # policy -- but the binding came back `safe` and matrix-v16 published
+            # policy -- but the binding came back `safe` and findings were published
             # two of them as confirmed defects.  A False that hinges on an element
             # the predicate will not name cannot be filtered by anything
             # downstream, and refs are this layer's job.
@@ -1239,7 +1241,7 @@ class PredicateAPI:
             return True
         # A False has to be about the model, not about the horizon it was asked
         # over.  The converter prompt already says publishing a bounded artifact is
-        # "the failure this gate exists to stop" -- but no gate did, and matrix-v17
+        # "the failure this gate exists to stop" -- but no gate did, and a finding was
         # published one on the first cell that finished: pair 0006's
         # `Searching --Interception_Detected--> Intercepted --(completion)-->
         # FormationAdjustment` is answered by `within_cycles=2` and denied by the
@@ -1248,7 +1250,7 @@ class PredicateAPI:
         #
         # Safe to refuse rather than answer, because a genuine defect does not
         # become satisfied at a longer horizon.  Measured on the corpus's credited
-        # findings: EXP-0000-IT-001 and EXP-0029-IT-001 are False at every horizon
+        # findings (ids in `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`) are False at every horizon
         # from 1 to 8, while the bounded artifacts flip at the second cycle.
         for larger in range(asked + 1, min(asked + _HORIZON_PROBE, MAX_BUDGET) + 1):
             if self._occupies(
@@ -1296,7 +1298,7 @@ class PredicateAPI:
         # of *declared* edges, which on a pseudo-state-dense model therefore
         # overshoots by construction.
         #
-        # Two things this cost before it was found.  Across v22+v23, 51 of 219
+        # Two things this cost before it was found.  A large share of published
         # False results (23.3%) are True at a smaller horizon -- every one of
         # them a false positive published as a finding.  And `_HORIZON_PROBE`
         # only searches *upward* (`range(asked + 1, ...)`) precisely because its
@@ -1662,7 +1664,7 @@ class PredicateAPI:
         # not a single-step one, so it is driven over a bounded number of cycles --
         # one event at a time, for the reasons in `_bounded_witness`.  A named
         # `trigger` is the single-candidate case there, which is why the eight
-        # `terminates` calls in matrix-v16 were unaffected by the order defect:
+        # `terminates` calls in an earlier generation were unaffected by the order defect:
         # every one of them named its event.
         offered = [trigger] if trigger else self._declared_alphabet()
 
