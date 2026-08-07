@@ -278,3 +278,62 @@ def test_an_empty_generation_refuses(tmp_path) -> None:
     empty.mkdir()
     with pytest.raises(SystemExit, match="没有可判定位"):
         V.main(["--base", str(empty)])
+
+
+# ---------------------------------------------------------------- 视界约定
+
+def test_a_horizon_binding_the_ledger_omitted_does_not_block_the_match() -> None:
+    """台账不写 `within_cycles`，产出写了 —— 同一主张，应当匹配。
+
+    这不是本模块新造的放宽：`test_ledger_expectations_survive_predicate_changes.py` 早就对台账
+    未写明 `within_cycles` 的断言扫 1..5 并要求全部一致。实测收益（v35）：A 层 28 → 34 位，
+    **假阳仍为 0**。
+    """
+
+    verdict = V.tier_a(
+        _record(claims={("f", (("x", "1"),)): False}),
+        _evidence(_call(bindings=(("within_cycles", 1), ("x", "1")))),
+    )
+    assert verdict["matched"] is True
+    assert verdict["horizon_bindings_ignored"] == ["within_cycles"]
+
+
+def test_an_exact_match_records_no_ignored_bindings() -> None:
+    verdict = V.tier_a(_record(), _evidence(_call()))
+    assert verdict["horizon_bindings_ignored"] == []
+
+
+def test_a_non_horizon_extra_binding_still_blocks() -> None:
+    """⭐ 负控：放宽只对视界参数生效，不是「多出的键都忽略」。"""
+
+    assert (
+        V.tier_a(
+            _record(claims={("f", (("x", "1"),)): False}),
+            _evidence(_call(bindings=(("target", "T"), ("x", "1")))),
+        )["matched"]
+        is False
+    )
+
+
+def test_a_ledger_binding_the_product_omitted_blocks() -> None:
+    """⭐ 负控：台账写了而产出没写 —— 那是在问一个更宽的问题，不算同一主张。"""
+
+    assert (
+        V.tier_a(
+            _record(claims={("f", (("x", "1"), ("y", "2"))): False}),
+            _evidence(_call(bindings=(("x", "1"),))),
+        )["matched"]
+        is False
+    )
+
+
+def test_horizon_relaxation_does_not_let_a_value_mismatch_through() -> None:
+    """⭐ 负控：台账写了 `within_cycles=3` 而产出写 1 —— 值不同就是不同。"""
+
+    assert (
+        V.tier_a(
+            _record(claims={("f", (("within_cycles", 3), ("x", "1"))): False}),
+            _evidence(_call(bindings=(("within_cycles", 1), ("x", "1")))),
+        )["matched"]
+        is False
+    )

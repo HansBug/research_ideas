@@ -192,25 +192,51 @@ def cell_evidence(cell_dir: Path) -> dict[str, Any]:
     return {"published_assertion_ids": sorted(published), "calls": calls}
 
 
+#: 观测视界参数。台账表达式常常不写它 —— 台账记的是**主张**，而主张跨视界成立。
+#:
+#: 这不是本模块新造的放宽：既有的 `test_ledger_expectations_survive_predicate_changes.py` 早就用
+#: 同一个约定 —— 它对台账未写明 `within_cycles` 的断言**扫 1..5 并要求全部一致**，理由逐字是
+#: 「台账表达式未必写明 `within_cycles`，而修复正是关于 horizon 的」。
+#:
+#: 实测收益（v35）：A 层 28 → 34 位（31.5% → 38.2%），**假阳仍为 0**。放宽的方向是「台账没说的
+#: 参数不参与比较」，而不是「值不同也算相等」—— 台账写了的每个键仍须逐字相等。
+_HORIZON_BINDINGS = frozenset({"within_cycles", "bound", "release"})
+
+
 def tier_a(record: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
-    """确定性判定。匹配即返回它匹配到的那一条，让判定可复核。"""
+    """确定性判定。匹配即返回它匹配到的那一条，让判定可复核。
+
+    相等的定义：谓词逐字相同，**台账写了的每个绑定键逐字相同**，产出多出的键只能是观测视界
+    参数（见 `_HORIZON_BINDINGS`），且真值等于台账记的那个值。台账写了而产出没写的键 ——
+    一个都不许缺，缺了就是在问一个更宽的问题。
+    """
 
     for call in evidence["calls"]:
         if not call["published"]:
             continue
-        key = (call["predicate"], call["bindings"])
-        expected = record["claims"].get(key)
-        if expected is None:
-            continue
-        if call["result"] is expected:
-            return {
-                "matched": True,
-                "assertion_id": call["assertion_id"],
-                "predicate": call["predicate"],
-                "bindings": dict(call["bindings"]),
-                "result": call["result"],
-                "expected": expected,
-            }
+        call_bindings = dict(call["bindings"])
+        for (predicate, bindings), expected in record["claims"].items():
+            if predicate != call["predicate"]:
+                continue
+            ledger_bindings = dict(bindings)
+            extra = set(call_bindings) - set(ledger_bindings)
+            if set(ledger_bindings) - set(call_bindings):
+                continue
+            if extra - _HORIZON_BINDINGS:
+                continue
+            if any(ledger_bindings[key] != call_bindings[key] for key in ledger_bindings):
+                continue
+            if call["result"] is expected:
+                return {
+                    "matched": True,
+                    "assertion_id": call["assertion_id"],
+                    "predicate": call["predicate"],
+                    "bindings": call_bindings,
+                    "result": call["result"],
+                    "expected": expected,
+                    # 记下来：读者据此知道这一位是逐字相等还是靠视界约定匹配的。
+                    "horizon_bindings_ignored": sorted(extra),
+                }
     return {"matched": False}
 
 
