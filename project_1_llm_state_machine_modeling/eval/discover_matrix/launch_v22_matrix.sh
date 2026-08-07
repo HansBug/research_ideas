@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# v22: <grid> pair × 2 model（claude-opus-4-7 + gpt-5.5）× 3 轮。失败自动重试直到落盘。
+# <grid> pair × 2 model（claude-opus-4-7 + gpt-5.5）× 3 轮。失败自动重试直到落盘。
+# 格数不硬编码：8 格诊断与 54 格全量走同一个脚本，`CORPUS=1` 切到全语料。
 # 格集从盘上读（run_grid.py），不在本文件里维护第二份。
 set -u
 REPO=/home/zhangshaoang/oo-projects/research_ideas
@@ -9,9 +10,13 @@ BASE="${BASE:-$REPO/runs/paper1/matrix-v22}"
 # The grid is read from disk, not typed. A literal here was wrong once already -- it carried
 # `0058`, which has never been in the grid, and the resulting count went into a document that
 # claims to be pre-registered. See `run_grid.py`.
-read -r -a PAIRS <<< "$("$REPO/venv/bin/python" "$REPO/project_1_llm_state_machine_modeling/eval/discover_matrix/run_grid.py" ${GRID:+--grid "$GRID"})"
+# `CORPUS=1` 取全语料（54 pair）。它是**显式**来源，不进 run_grid 的自动优先级 —— 见该模块
+# docstring：把语料放进自动链，会让一个没有 runs 的 checkout 静默宣称全语料就是格集。
+RG="$REPO/project_1_llm_state_machine_modeling/eval/discover_matrix/run_grid.py"
+read -r -a PAIRS <<< "$("$REPO/venv/bin/python" "$RG" ${CORPUS:+--corpus} ${GRID:+--grid "$GRID"})"
 [ "${#PAIRS[@]}" -gt 0 ] || { echo "refusing to run: could not determine the grid" >&2; exit 1; }
 echo "grid: ${#PAIRS[@]} pairs -- ${PAIRS[*]}"
+echo "grid source: $("$REPO/venv/bin/python" "$RG" ${CORPUS:+--corpus} ${GRID:+--grid "$GRID"} --source)"
 MAX="${MAX:-8}"; MAXTRY=6
 
 # ── 开跑前置闸：代码版本必须可追溯 ───────────────────────────────────────────────
@@ -43,6 +48,21 @@ mkdir -p "$BASE"
     project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src | wc -l) files"
 } > "$BASE/CODE_VERSION.txt"
 echo "code version -> $BASE/CODE_VERSION.txt: $(head -1 "$BASE/CODE_VERSION.txt")"
+# 格集也要在开跑**前**写下，理由与代码版本相同但故障形态更隐蔽：目录是逐格创建的，所以
+# `run_grid.from_runs()` 的目录清点在运行**期间**给出残缺格集，且看起来完全正常。实测 v36 开跑
+# 30 秒后无参调用返回 4 个 pair 而不是 8；跑 324 格时这个窗口有 9 到 11 小时，运行期做测量的
+# 脚本会拿到错的分母。`from_runs` 优先读这份文件。
+printf '%s\n' "${PAIRS[*]}" > "$BASE/GRID.txt"
+echo "grid -> $BASE/GRID.txt (${#PAIRS[@]} pairs)"
+# 墙钟只能在这里记。`node_elapsed_ms_sum` 是各节点耗时**串行累加**（某格 800 秒），而格是并发
+# 跑的：48 格累加约 8.25 小时，MAX=8 下实际墙钟 1.61 小时 —— 差 5 倍。报「跑完要多久」必须用墙钟，
+# 而事后无从复原，所以写在这里。`matrix_cost.py` 缺这份文件时会明确说缺，不用累加值冒充。
+WALL_START_EPOCH=$SECONDS
+{
+  echo "started_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "max_concurrency: $MAX"
+  echo "cells_planned: $(( ${#PAIRS[@]} * 6 ))"
+} > "$BASE/WALLCLOCK.txt"
 # ──────────────────────────────────────────────────────────────────────────────
 
 cd "$FL" || exit 1
@@ -97,7 +117,15 @@ for run in run1 run2 run3; do
   done
 done
 wait
-echo "V22 ALL DONE"
+ELAPSED=$(( SECONDS - WALL_START_EPOCH ))
+{
+  echo "finished_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "elapsed: $(( ELAPSED / 3600 ))h$(( ELAPSED % 3600 / 60 ))m$(( ELAPSED % 60 ))s"
+  echo "elapsed_seconds: $ELAPSED"
+  echo "cells_landed: $(ls "$BASE"/run*/*/discover-completed.json 2>/dev/null | wc -l)"
+} >> "$BASE/WALLCLOCK.txt"
+echo "MATRIX ALL DONE (${#PAIRS[@]} pairs x 2 arms x 3 rounds = $(( ${#PAIRS[@]} * 6 )) cells)"
+echo "wallclock -> $BASE/WALLCLOCK.txt"
 for run in run1 run2 run3; do
   echo "  $run: $(ls $BASE/$run/*/discover-completed.json 2>/dev/null | wc -l)/$(( ${#PAIRS[@]} * 2 ))"
 done
