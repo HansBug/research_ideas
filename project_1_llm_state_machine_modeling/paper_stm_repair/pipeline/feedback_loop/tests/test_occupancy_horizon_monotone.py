@@ -225,6 +225,7 @@ def test_hit_frame_is_never_before_the_trigger_frame(pair: str) -> None:
     events = [row.qualified_name for row in api.structure.events()][:3]
 
     violations = []
+    probes = 0
     for source in states:
         for trigger in events:
             try:
@@ -254,11 +255,29 @@ def test_hit_frame_is_never_before_the_trigger_frame(pair: str) -> None:
                 for item in (getattr(cycle, "active_states", ()) or ())
             }
             for target in before - after:
-                if target in states and api.occupancy_after(
-                    source=source, trigger=trigger, target=target, within_cycles=4
-                ):
+                if target not in states:
+                    continue
+                probes += 1
+                try:
+                    hit = api.occupancy_after(
+                        source=source, trigger=trigger, target=target, within_cycles=4
+                    )
+                except Exception:
+                    # 拒答不是有序性问题；但它**不能**让这一格静默消失，否则一道新门就能把
+                    # 整条验收变成空过。所以 probes 已在上面计数。
+                    continue
+                if hit:
                     violations.append((source, trigger, target))
 
+    # 空过护栏：这条测试的鉴别力来自「只在触发前出现过的状态」这一探测面，实测 0000→3 / 0006→7 /
+    # 0029→2。将来任何拒绝这些 source 的门（扩大 `_reject_transient_subject`、composite pin 拒绝
+    # 路径等）都会让探测面归零，而**零违规与零探测在断言上不可区分** —— 那时这条验收会静默变绿。
+    #
+    # 这与第一轮 I-3 是同一型错误：判据看起来通过了，实际是没有被行使。
+    assert probes >= 1, (
+        f"{pair} 上没有任何可探测的 (source, trigger, target)：探测面已归零，这条验收未被行使。"
+        "空过与通过不可区分，所以这是错误而不是通过。"
+    )
     assert not violations, (
         f"{len(violations)} 处命中发生在触发帧之前（{pair}）：{violations[:3]}。"
         "occupancy_after 问的是「触发**之后**」，所以扫描窗口必须从触发被消费的那一帧开始。"

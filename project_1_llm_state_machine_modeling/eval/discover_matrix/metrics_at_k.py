@@ -237,20 +237,28 @@ def band_of(record_id: str) -> str:
 #: (b) 判定位 ≥ 100 —— 由 McNemar 反推：在实测 ψ = 9.8% 下，检出 8.3 pp 需 108 位。
 #: (c) 粒度 ≤ 拟解读差异的 1/3 —— 当前 1/12 = 8.3% 而拟解读的差异恰是 8.3%。
 #:
-#: ⚠️ 按此闸门，**本语料上没有任何一个带够格报比率**（可报 2 簇 / 12 位；历史格 3 簇 / 66 位；
-#: 已烧毁 5 簇 / 126 位）。这个结论听着极端，但它与 `DENOMINATOR_EXHAUSTION.md` 已作出的裁定
-#: （共演化溢价按 cluster 级不显著，p = 0.37 / 0.45，bootstrap CI 含 0）是**同一条纪律的一致外推**
-#: —— 那次只施加于两带之差，这次施加于每一带自身。
+#: ## ⚠️ 首版把两种不同的主张混成了一条判据，已拆开
 #:
-#: 最要紧的后果：**比率一旦不报，烧毁就不再抬高任何东西。** 这是唯一能结构性解除幸存者偏差的动作 ——
-#: 已实测「剔除表现最差的一条使 hit@1 +16.7 pp」，而在只出序列的口径下那个 +16.7 无处可去。
-MIN_CLUSTERS = 10
-MIN_POSITIONS = 100
-#: 该带实测的代次间翻转率，用于「只出序列」时并列报出。None = 尚未测过该带。
+#: 首版对**所有**比率施加同一条 `clusters >= 10`。后果是：本语料只有 **8 个 NL 组**（`group` 字段实测，
+#: 34 条判定记录跨 NL03~NL10），这是**语料的固有属性、不是取样不足**，所以描述性比率**永远不可报**。
+#: 那与刚废止的 hold-out 带划分是同型错误 —— 用一条纪律把可测量的东西变成不可测量。
+#:
+#: 正确的区分是主张类型，不是阈值高低：
+#:
+#: | 主张 | 例 | 需要什么 | 不需要什么 |
+#: | :-- | :-- | :-- | :-- |
+#: | **描述性比率** | 「本语料上 `hit@1` = 51.5%」 | 分母够大、粒度细于噪声 | **簇数** —— 没有向簇外推断 |
+#: | **推断性主张** | 「v22→v23 的 +3.9pp 是真改进」 | **独立簇 ≥ 10** | —— |
+#:
+#: 污染在 NL 组内传播，组才是独立单元 —— 所以簇要求只对**推断**成立。描述研究对象本身时，样本就是
+#: 总体，簇数不构成障碍。
+#:
+#: 实测本语料：**204 位 ✅ / 粒度 0.5% ✅ / 8 簇 ❌** → 描述性比率**可报**，跨代次差的显著性**不可断言**。
+MIN_CLUSTERS = 10          # 仅用于推断性主张（跨代次差是否显著）
+MIN_POSITIONS = 100        # 描述性比率的分母下限
+#: 实测的代次间翻转率（全分母，v22↔v23）。粒度必须细于它的 1/3，否则比率的最小可分辨变化落在噪声里。
 MEASURED_CHURN = {
-    "reportable": "8.3%（1/12）",
-    "hist": "9.1%（6/66，3 升 3 降 —— 聚合值相同是抵消，不是稳定）",
-    "burned": "10.3%（13/126）",
+    "all": "9.8%（20/204，10 升 10 降 —— 聚合值接近是抵消，不是稳定）",
 }
 
 
@@ -266,24 +274,37 @@ def _clusters_of(ids: list[str]) -> int:
     return len({(by_id.get(i) or {}).get("group") for i in ids if by_id.get(i)} - {None})
 
 
-def ratio_gate(ids: list[str], positions: int, band: str) -> list[str]:
-    """返回不满足的闸门条件；空 = 允许报比率。"""
+def ratio_gate(ids: list[str], positions: int, band: str = "all",
+               *, inferential: bool = False) -> list[str]:
+    """返回不满足的闸门条件；空 = 允许报。
+
+    `inferential=False`（默认）判**描述性比率**是否可报：只查分母与粒度。
+    `inferential=True` 判**推断性主张**（跨代次差是否显著）是否可断言：额外要求独立簇 ≥ 10。
+
+    两者分开是因为它们回答不同的问题 —— 描述研究对象时样本即总体，簇数不构成障碍；向簇外推断时，
+    污染在 NL 组内传播，组才是独立单元。**首版对两者施加同一条簇要求，使描述性比率在本语料上永远
+    不可报（只有 8 个 NL 组，是语料固有属性）。**
+    """
 
     failed = []
-    clusters = _clusters_of(ids)
-    if clusters < MIN_CLUSTERS:
-        failed.append(f"独立簇（NL 组）{clusters} < {MIN_CLUSTERS}")
     if positions < MIN_POSITIONS:
         failed.append(f"判定位 {positions} < {MIN_POSITIONS}")
     if positions:
         granularity = 100.0 / positions
-        churn = MEASURED_CHURN.get(band)
+        churn = MEASURED_CHURN.get(band) or MEASURED_CHURN.get("all")
         if churn:
             measured = float(churn.split("%")[0])
             if granularity > measured / 3:
                 failed.append(
                     f"粒度 {granularity:.1f}% > 实测 churn {measured}% 的 1/3"
                 )
+    if inferential:
+        clusters = _clusters_of(ids)
+        if clusters < MIN_CLUSTERS:
+            failed.append(
+                f"独立簇（NL 组）{clusters} < {MIN_CLUSTERS} —— 描述性比率不受此限，"
+                "但跨代次差的显著性不可断言"
+            )
     return failed
 
 
