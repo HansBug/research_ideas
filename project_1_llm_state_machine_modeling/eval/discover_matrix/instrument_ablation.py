@@ -47,7 +47,29 @@ def _coverage(sample: dict, key: dict, labels: dict) -> dict[tuple[str, str, str
 
 
 def _load(path: pathlib.Path) -> dict:
-    return json.loads(path.read_text()).get("labels") or {}
+    """Normalise both annotation shapes to a flat ``{issue_uid: {"label": ...}}``.
+
+    Two shapes exist in the corpus and they must both be readable by one reader:
+
+    ``v1.0`` (v24 and earlier)   ``{"labels": {uid: {...}}, "unhit_expected": {...}}``
+    ``v1.2`` (v25 onward)        ``{"units": [{"issues": [{"issue_uid": ..., "label": ...}]}]}``
+
+    ⚠️ Reading only ``labels`` silently yields ``{}`` for a v1.2 file, and every downstream
+    count then comes out **zero** -- which is indistinguishable from a real "nothing hit".
+    That is exactly how the first ablation run reported ``clean hit@1 = 0/204`` while both
+    annotators had in fact labelled 133 and 132 hits. Hence :func:`main` asserts a non-empty
+    load per file rather than trusting the number it gets.
+    """
+    doc = json.loads(path.read_text())
+    if isinstance(doc.get("labels"), dict):
+        return doc["labels"]
+    flat: dict = {}
+    for unit in doc.get("units") or []:
+        for issue in unit.get("issues") or []:
+            uid = issue.get("issue_uid")
+            if uid:
+                flat[uid] = issue
+    return flat
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,10 +87,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: no {path}", file=sys.stderr)
             return 2
 
-    cov = {
-        name: _coverage(sample, key, _load(path))
-        for name, path in vars(args).items()
-    }
+    labels = {name: _load(path) for name, path in vars(args).items()}
+    for name, lab in labels.items():
+        if not lab:
+            raise SystemExit(
+                f"{name} ({vars(args)[name]}) 读出 0 条标签 —— 几乎必然是 schema 不认，"
+                f"不是标注者一条都没判。已知形状：v1.0 顶层 'labels'、v1.2 顶层 'units[].issues[]'。"
+            )
+    cov = {name: _coverage(sample, key, lab) for name, lab in labels.items()}
     slots = sorted(cov["leaky_a"])
 
     def spread(x: str, y: str) -> int:
