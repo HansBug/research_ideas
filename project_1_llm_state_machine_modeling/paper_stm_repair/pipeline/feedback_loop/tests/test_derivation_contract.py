@@ -272,3 +272,92 @@ def test_licensed_table_is_closed_and_small() -> None:
     assert set(_LICENSED_DERIVATIONS) == {ENTRY, RESIDENCY}
     for kind, (parent_predicate, parent_key, child_key) in _LICENSED_DERIVATIONS.items():
         assert parent_predicate and parent_key and child_key, kind
+
+
+# ---------------------------------------------------------------- 析取占位符
+
+from types import SimpleNamespace  # noqa: E402
+
+from paper_stm_feedback_loop.discover.capability import (  # noqa: E402
+    entry_disjunction_findings,
+)
+
+_DECLARED = (
+    'any([initial_target(composite="Sys.M", child="Sys.M.A"), '
+    'initial_target(composite="Sys.M", child="Sys.M.B")]) is True'
+)
+_WITH_PLACEHOLDER = (
+    'any([initial_target(composite="Sys.M", child="Sys.M.A"), '
+    'initial_target(composite="Sys.M", child="Sys.M.UnspecifiedInitial")]) is True'
+)
+
+
+def _assertion(expression: str, requirement_id: str = "REQ-002"):
+    return SimpleNamespace(
+        assertion_id="AST-1", requirement_id=requirement_id, expression=expression
+    )
+
+
+def _derived_entry(requirement_id: str = "REQ-002"):
+    return _req(
+        requirement_id,
+        "initial_target",
+        {"composite": "Sys.M"},
+        {"kind": ENTRY, "parent_requirement_id": "REQ-001"},
+    )
+
+
+def test_a_disjunction_over_declared_children_passes() -> None:
+    assert entry_disjunction_findings(
+        [_derived_entry()], [_assertion(_DECLARED)]
+    ) == ()
+
+
+def test_a_placeholder_in_the_disjunction_is_refused() -> None:
+    """⭐ v36 `run1/0043-claude` 的形状，实测真值 True = 缺陷被自己的检查掩盖。
+
+    converter prompt 已写这条并预言了后果，但只能靠自觉：17 条析取里 2 条违规。
+    """
+
+    findings = entry_disjunction_findings(
+        [_derived_entry()], [_assertion(_WITH_PLACEHOLDER)]
+    )
+    assert len(findings) == 1
+    assert "Sys.M.UnspecifiedInitial" in findings[0]
+    assert "true exactly when entry has nowhere" in findings[0]
+
+
+def test_all_three_inserted_name_families_are_caught() -> None:
+    for name in ("UnspecifiedInitial", "InvalidInitialtr_0005", "FinalWaittr_0003"):
+        expression = f'any([initial_target(composite="Sys.M", child="Sys.M.{name}")]) is True'
+        assert entry_disjunction_findings(
+            [_derived_entry()], [_assertion(expression)]
+        ), name
+
+
+def test_a_non_derived_requirement_is_not_checked() -> None:
+    """⭐ 负控：这道门只管申报了 `entry_follows_cardinality` 的那些。
+
+    一条 NL 点名了子态的合法单绑定 `initial_target` 不受此约束。
+    """
+
+    plain = _req("REQ-002", "initial_target", {"composite": "Sys.M", "child": "Sys.M.A"})
+    assert entry_disjunction_findings([plain], [_assertion(_WITH_PLACEHOLDER)]) == ()
+
+
+def test_a_single_binding_expression_is_not_this_gate() -> None:
+    """⭐ 负控：非析取表达式不是这道门的对象（形状由 schema 管）。"""
+
+    expression = 'initial_target(composite="Sys.M", child="Sys.M.UnspecifiedInitial") is True'
+    assert entry_disjunction_findings([_derived_entry()], [_assertion(expression)]) == ()
+
+
+def test_an_assertion_of_another_requirement_is_ignored() -> None:
+    assert entry_disjunction_findings(
+        [_derived_entry("REQ-002")], [_assertion(_WITH_PLACEHOLDER, "REQ-009")]
+    ) == ()
+
+
+def test_no_derived_requirements_means_no_work() -> None:
+    plain = _req("REQ-001", "cardinality", {"scope": "Sys.M", "count": "2"})
+    assert entry_disjunction_findings([plain], [_assertion(_WITH_PLACEHOLDER)]) == ()

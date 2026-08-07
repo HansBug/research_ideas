@@ -237,6 +237,7 @@ def test_v2_splitter_path_rejects_legacy_requirement_upgrade() -> None:
         revision=1,
         requirements=(
             {
+                "source_segment_ids": ("NL-L001",),
                 "requirement_id": "REQ-001",
                 "statement": "Legacy shape.",
                 "checkability": "structure",
@@ -273,6 +274,7 @@ def test_splitter_contract_repairs_are_bounded() -> None:
         revision=1,
         requirements=(
             {
+                "source_segment_ids": ("NL-L001",),
                 "requirement_id": "REQ-001",
                 "statement": "Legacy shape.",
                 "checkability": "structure",
@@ -600,6 +602,7 @@ def test_stategraph_soft_isolates_repeated_invalid_primary_and_publishes_partial
                 revision=1,
                 requirements=(
                     {
+                        "source_segment_ids": ("NL-L001",),
                         "requirement_id": "REQ-001",
                         "statement": "Done shall be structurally present.",
                         "verification_kind": "structure",

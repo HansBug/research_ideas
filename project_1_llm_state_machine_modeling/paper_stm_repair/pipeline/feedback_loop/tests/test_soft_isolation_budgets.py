@@ -62,12 +62,14 @@ def _requirements() -> RequirementSet:
         revision=1,
         requirements=(
             {
+                "source_segment_ids": ("NL-L001",),
                 "requirement_id": "REQ-GOOD",
                 "statement": "Done must exist in the model.",
                 "verification_kind": "structure",
                 "coverage_obligation": {"domain": "state:Done", "aggregation": "all"},
             },
             {
+                "source_segment_ids": ("NL-L001",),
                 "requirement_id": "REQ-BAD",
                 "statement": "An obligation whose check never becomes executable.",
                 "verification_kind": "structure",

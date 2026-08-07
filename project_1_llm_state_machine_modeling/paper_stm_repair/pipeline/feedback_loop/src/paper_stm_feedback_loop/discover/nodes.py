@@ -46,6 +46,7 @@ from .capability import (
     trigger_consuming_predicate_findings,
     derivation_contract_findings,
     substituted_binding_findings,
+    entry_disjunction_findings,
     termination_proposal_findings,
     condition_non_vacuity_findings,
     vacuous_containment_findings,
@@ -1336,6 +1337,48 @@ def split_requirements(
             raise ValueError(
                 "segment_disposition keys must exactly match the frozen NL segment ids"
             )
+        # `covered` 的语义是断言式的 —— `segment_disposition` 的 description 逐字写着
+        # 「`covered` asserts that some Requirement here carries that segment's obligation」，
+        # 而 `source_segment_ids` 的 description 也写着「every segment you mark `covered` … must be
+        # listed by at least one requirement here」。**契约一直存在，只是没有任何东西执行它。**
+        #
+        # 两种后果，实测都发生过：
+        #
+        # 1. **沉默漏检。** v36 `run1/0000-claude` 把 `NL-M006`（power off → final state）标 `covered`
+        #    却没有承接需求，于是 `coverage_status` 报 `full`、裁决说「All released assertions
+        #    evaluated True」、零 issue —— 读起来像一次干净的完整通过，而整句 NL 的义务不见了。
+        #    该格在上一代次是命中的。
+        # 2. **修订锁死。** 当评审**确实**发现了它（v36 `run2/0000-gpt`），它给出的 finding 说的是
+        #    「缺了一条需求」—— 而那**归责不到任何 requirement id**，于是修订预算耗尽后隔离机制
+        #    无人可摘，整格致命。实测超过半数的评审 finding 都归责不到人（v35 101/191、v36 83/154），
+        #    这一类是其中最大的一支。
+        #
+        # 所以在这里查、而不是等评审去查：确定性、发生在生产者仍能修的时候，且消息给出**两条**出路。
+        # 只给「补一条需求」会逼它为范围外的段编一个义务 —— 那正是 v36 `run3/0047-gpt` 锁死的样子：
+        # 评审要求为一句讲**正交区并发**的 NL 补义务，而并发按建模对象边界不在范围内，六轮必然收敛不了。
+        unbacked = sorted(
+            segment
+            for segment, disposition in output.segment_disposition.items()
+            if disposition == "covered"
+            and not any(
+                segment in (requirement.source_segment_ids or ())
+                for requirement in output.requirements
+            )
+        )
+        if unbacked:
+            raise ValueError(
+                f"segments marked `covered` with no requirement carrying them: {unbacked}. "
+                "`covered` asserts that some requirement here carries that segment's obligation, "
+                "so each of these must take one of two routes. Either add a requirement whose "
+                "predicate and bindings actually carry the obligation and list the segment id in "
+                "its `source_segment_ids`; or re-mark the segment to what it really is -- "
+                "`out_of_scope` when the sentence is about clocks, timing constraints or "
+                "concurrent orthogonal regions, which are outside the modelling object and owe no "
+                "requirement; `ambiguous` when the wording admits several readings and you will "
+                "not pick one; `context` when it is descriptive rather than normative. Re-marking "
+                "is not a retreat -- a segment left `covered` with nothing behind it reports a "
+                "clean pass over an obligation that was never checked."
+            )
         for requirement in output.requirements:
             unknown = set(requirement.source_segment_ids) - set(frozen.nl_segments)
             if unknown:
@@ -1531,8 +1574,28 @@ def split_requirements(
         # cells in matrix v3-final died exactly this way.  Hand the deterministic
         # contract error straight back and let the producer repair it.
         rejected = locals().get("output")
+        # `rejected is None` 是**另一件事**，此前与「有产物但违反契约」一起走了致命路径。
+        #
+        # 实测（v36 run3/0006-gpt 与 run3/0032-gpt，两格各一次）：provider 返回 200 但结构化输出
+        # 解析得到 `None`，于是 `ValidationError: Input should be a valid dictionary or instance of
+        # RequirementSet [input_value=None]`。transport 层的 8 次重试没有触发 —— 因为响应本身成功了，
+        # 只是内容为空。两次都在第 2 次整格尝试立刻跑通，说明是 provider 侧的瞬时空响应。
+        #
+        # 守卫的本意是对的：没有产物就没什么可「修」的。但它把两种情况混成一种：
+        #   有产物但违反契约 → 让生产者修那一处
+        #   压根没收到产物   → 不是修，是**重发**，而重发同样该走反馈循环
+        # 后者走致命路径的代价不是丢格（启动器 `MAXTRY` 兜住），是**整格重跑** ——
+        # 已完成的 prepare / split / review 全部作废重做。
+        # ⚠️ 判据必须**窄**。首版写成 `rejected is None and isinstance(exc, (TypeError, ValueError))`，
+        # 结果把「`output` 还没赋值就抛」的每一类都算成空响应 —— 包括 create/revise 配对违规，
+        # 而那类是 no-progress 家族、必须保持致命。实测：`make test` 里
+        # `test_create_revise_pairs_and_no_progress_gate_are_enforced` 立刻变红。
+        #
+        # 所以按 pydantic 的**结构化**错误判定，不按消息文本：空响应的特征是校验器在顶层模型上
+        # 收到 `None`（`type == "model_type"` 且 `input is None`），这与「字段值不合法」不同。
+        empty_response = rejected is None and _is_empty_structured_response(exc)
         can_revise = (
-            rejected is not None
+            (rejected is not None or empty_response)
             and "no-progress gate" not in message
             and repair_count < MAX_REQUIREMENT_CONTRACT_REPAIRS
         )
@@ -1541,7 +1604,11 @@ def split_requirements(
                 target="requirements",
                 origin="requirement_review",
                 reason=(
-                    "The previous Requirement Splitter response violated the "
+                    "No parsable structured response was received -- the previous reply "
+                    "produced no RequirementSet at all. Emit the complete RequirementSet "
+                    "again; nothing about the task has changed."
+                    if empty_response
+                    else "The previous Requirement Splitter response violated the "
                     "deterministic RequirementSet contract. Repair exactly the "
                     "reported problem and keep every other requirement unchanged."
                 ),
@@ -1558,13 +1625,18 @@ def split_requirements(
                 start_ns=start_ns,
                 failure=message,
             )
-            return {
-                "requirement_set": rejected,
+            update: dict[str, Any] = {
                 "_requirement_feedback": contract_feedback,
                 "_requirement_split_contract_feedback": contract_feedback,
                 "_requirement_contract_repair_count": repair_count + 1,
                 "node_execution_records": _append_records(state, record),
             }
+            # 空响应时**省略** `requirement_set` —— 写入 `None` 会让下游拿到一个类型上不该存在的值，
+            # 而省略键让状态保留上一版（若有）。这也是「重发」与「修那一处」的语义差别：
+            # 前者没有任何产物可交回，后者要把被拒的产物交回去让生产者对着改。
+            if rejected is not None:
+                update["requirement_set"] = rejected
+            return update
         return _fail_state(
             state,
             "split_requirements",
@@ -1978,6 +2050,19 @@ def convert_assertions(
                         "assertions bind elements their requirement never bound and the "
                         f"model does not declare: {list(substitutions)}"
                     )
+            # v36：派生析取不得含投影插入的占位符。converter prompt 已写这条并预言了后果
+            # 「including the placeholder makes the disjunction true exactly when entry has nowhere
+            # the author declared to go」，但只能靠自觉 —— 实测 17 条析取里 2 条违规且真值 True。
+            disjunction = entry_disjunction_findings(
+                (requirement,),
+                tuple(
+                    assertion
+                    for assertion in output.assertions
+                    if assertion.requirement_id == requirement.requirement_id
+                ),
+            )
+            if disjunction:
+                raise ValueError("; ".join(disjunction))
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -3599,6 +3684,45 @@ def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool
     return (
         isinstance(summary, dict) and summary.get("simulation_status") == "ineligible"
     )
+
+
+def _is_empty_structured_response(exc: BaseException) -> bool:
+    """provider 返回了成功响应，但结构化输出解析得到 `None`。
+
+    这与「产物存在但某字段不合法」是两件事，处置也不同：前者要**重发**，后者要**修那一处**。
+    此前两者都走致命路径，代价是整格重跑 —— 已完成的 prepare / split / review 全部作废。
+
+    实测（v36 `run3/0006-gpt` 与 `run3/0032-gpt` 各一次）：
+    `ValidationError: Input should be a valid dictionary or instance of RequirementSet
+    [type=model_type, input_value=None, input_type=NoneType]`。transport 层的 8 次重试没触发，
+    因为 HTTP 响应本身成功了、只是内容为空；两格都在第 2 次整格尝试立刻跑通。
+
+    ⚠️ 按 pydantic 的结构化错误判定，不按消息文本：`type == "model_type"` 且 `input is None`
+    才是「顶层模型收到 None」。首版用 `isinstance(exc, (TypeError, ValueError))` 太宽，
+    把 create/revise 配对违规也算了进去 —— 那类属 no-progress 家族，必须保持致命。
+
+    嵌套异常也要看：节点把它包成 `RuntimeError(f"ValidationError: ...")`，所以链上任一环
+    是 `ValidationError` 都算。
+    """
+
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        errors = getattr(current, "errors", None)
+        if callable(errors):
+            try:
+                for entry in errors():
+                    if (
+                        isinstance(entry, dict)
+                        and entry.get("type") == "model_type"
+                        and entry.get("input") is None
+                    ):
+                        return True
+            except Exception:  # pragma: no cover - 非 pydantic 的同名方法
+                pass
+        current = current.__cause__ or current.__context__
+    return False
 
 
 def _reference_matches_observed(reference: str, observed: set[str]) -> bool:

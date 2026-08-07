@@ -1413,6 +1413,73 @@ def derivation_contract_findings(
     return tuple(findings)
 
 
+#: 投影插入元素的名族。`exclusion_roles` 是更准的来源，但断言层拿不到 working contract，
+#: 而这三族名是投影自己生成的、拼写稳定；这里只用来判「析取里混进了作者没写的东西」。
+_INSERTED_NAME_FAMILIES = ("UnspecifiedInitial", "InvalidInitial", "FinalWait")
+
+
+def entry_disjunction_findings(
+    requirements: Iterable[_RequirementSpec],
+    assertions: Iterable[Any],
+) -> tuple[str, ...]:
+    """`entry_follows_cardinality` 展开的析取里混进了投影插入的占位符。
+
+    ## 为什么这必须是一道门
+
+    converter prompt 已经写了这条，连后果都预言对了：「including the placeholder makes the
+    disjunction true exactly when entry has nowhere the author declared to go」。把占位符放进析取，
+    析取**恰好在「作者没写任何入口」时为真** —— 那正是义务要抓的情形，于是缺陷被自己的检查掩盖。
+
+    v36 实测：17 条析取里 2 条违规（`run1/0043-claude` 的 `AST-REQ-003-1` 与 `AST-REQ-002B-1` 含
+    `PumpControl.UnspecifiedInitial`），实测真值 `True`。
+
+    ⚠️ **那一次没造成损失，但那是运气**：`0043` 的 NL 点名了入口子态（"The system first transitions
+    to the PumpState substate"），所以旁边有一条合法的单绑定 `initial_target` 取 False，缺陷靠它
+    发布了。风险在 NL **不**点名入口子态的 pair —— 那里派生析取是唯一通路，混入占位符即完全掩盖。
+    而那正是入口义务最需要生效的地方。
+
+    这与 `derivation_contract_findings` 同一个道理：规则写在 prompt 里两代次都没稳定生效，
+    改成不可表达或可机械检出才生效。
+
+    :param requirements: 已接受的需求集。
+    :param assertions: 断言脚本里的断言，需有 `requirement_id` 与 `expression`。
+    :return: 每条含占位符的析取一条 finding。
+    """
+
+    derived = {
+        str(getattr(item, "requirement_id", "")): item
+        for item in requirements
+        if getattr(getattr(item, "derivation", None), "kind", None)
+        == "entry_follows_cardinality"
+    }
+    if not derived:
+        return ()
+    findings: list[str] = []
+    for assertion in assertions:
+        requirement_id = str(getattr(assertion, "requirement_id", "") or "")
+        if requirement_id not in derived:
+            continue
+        expression = str(getattr(assertion, "expression", "") or "")
+        if "any(" not in expression:
+            continue
+        offenders = sorted(
+            {
+                child
+                for child in re.findall(r'child\s*=\s*"([^"]+)"', expression)
+                if any(family in child for family in _INSERTED_NAME_FAMILIES)
+            }
+        )
+        if offenders:
+            findings.append(
+                f"{getattr(assertion, 'assertion_id', '?')} expands the entry disjunction over "
+                f"{offenders}, which the projection inserted rather than the author writing them. "
+                "Including a placeholder makes the disjunction true exactly when entry has nowhere "
+                "the author declared to go -- the obligation then passes on the artefact it was "
+                "written to catch. Cover only the composite's declared non-pseudo children."
+            )
+    return tuple(findings)
+
+
 def projection_anchored_findings(
     requirements: Iterable[_RequirementSpec],
     exclusions: Iterable[str],

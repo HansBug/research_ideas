@@ -167,6 +167,7 @@ def _responder_property_closed_by_relation(
             revision=1,
             requirements=(
                 {
+                    "source_segment_ids": ("NL-L001",),
                     "requirement_id": "REQ-001",
                     "statement": (
                         "Alpha and Beta must be distinguishable under the shared pick condition."
@@ -645,6 +646,7 @@ def test_termination_requirement_rejects_source_blind_primary() -> None:
                 revision=1,
                 requirements=(
                     {
+                        "source_segment_ids": ("NL-L001",),
                         "requirement_id": "REQ-001",
                         "statement": "On pick the system shall reach Done.",
                         "predicate": "response_within",
