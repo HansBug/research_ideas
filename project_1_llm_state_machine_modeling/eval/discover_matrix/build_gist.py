@@ -728,13 +728,54 @@ def main() -> None:
             "analysis products must not be mixed into them -- see the same rule in "
             "V21_PREREGISTERED_CALIBRE.md §二.5."
         )
+    combined: list[dict] = []
     for source in sources:
-        _build(source, out)
+        combined += _build(source, out) or []
     if len(sources) > 1:
-        print(f"wrote {len(sources)} rounds -> {out}")
+        # README 必须按**累计** index 重写一次。
+        #
+        # ## 为什么这是修复而不是又一次披露
+        #
+        # `_build` 每轮各写一次 README，后覆盖前 —— 于是一次传三个轮目录后，README 头部写的是
+        # 「Cells completed: 22/22」而包里有 66 格。文件数是对的（数据完整），**只有摘要行被覆盖**。
+        #
+        # 我在 v23 的 PR comment 里**披露**过这件事（「README 头部是单轮口径」），但没修工具。结果
+        # 它在 v24 又出现了 —— 而下一个读 gist 的人若没读到那句说明，就会以为只跑了 22 格。
+        #
+        # **披露不等于修复。** 当时选了便宜的那个，成本是每代次重复披露 + 依赖读者读到那句话。
+        _rewrite_readmes(out, combined)
+        print(f"wrote {len(sources)} rounds ({len(combined)} cells total) -> {out}")
 
 
-def _build(matrix: pathlib.Path, out: pathlib.Path) -> None:
+def _rewrite_readmes(out: pathlib.Path, index: list[dict]) -> None:
+    """按累计 index 重写两个 bundle 的 README 摘要行。
+
+    只改**摘要那几行**（Matrix / Cells completed / Confirmed issues），其余散文与 commit 引用由
+    `_build` 写好后保持不变 —— 那些内容与轮次无关。
+    """
+
+    import re as _re
+
+    total_conf = sum(r.get("confirmed", 0) for r in index)
+    done = sum(1 for r in index if r.get("terminal") == "completed")
+    grid = sorted({str(r.get("pair"))[-4:] for r in index})
+    profiles = sorted({str(r.get("profile")) for r in index})
+    for name in ("readable", "audit"):
+        path = out / name / "README.md"
+        if not path.is_file():
+            continue
+        text = path.read_text()
+        text = _re.sub(
+            r"Matrix: [^\n]*\nCells completed: \d+/\d+\. Confirmed issues: \d+\.",
+            (f"Matrix: {' / '.join(grid)} ({len(grid)} pairs), "
+             f"under {' and '.join(profiles)}.\n"
+             f"Cells completed: {done}/{len(index)}. Confirmed issues: {total_conf}."),
+            text, count=1,
+        )
+        path.write_text(text)
+
+
+def _build(matrix: pathlib.Path, out: pathlib.Path) -> list[dict]:
     """一轮的包。文件名带轮次前缀，`run-index.tsv` 追加而非覆盖。"""
 
     md_dir, data_dir = out / "readable", out / "audit"
