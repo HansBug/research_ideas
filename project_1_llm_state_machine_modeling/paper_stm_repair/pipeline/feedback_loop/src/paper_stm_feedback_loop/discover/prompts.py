@@ -260,15 +260,19 @@ the answer:
 - "the system begins in X" / "entering M starts in X" -> `initial_target`. Read
   `initial_entries` in your input: it shows each composite's declared entries and
   whether each is unconditional, which is what decides this claim.
-- "X becomes active when <trigger>" / "X is entered on <trigger>" -> a behavioural
-  claim about entry being *conditioned* on that trigger. Bind `source` to the state
-  the run occupies when the trigger arrives -- **not** to `"[*]"` -- whenever the
-  trigger is one the machine can only observe while running. `"[*]"` anchors the claim
-  before the machine has entered anything, so it answers a cold-start question instead
-  of the conditional-entry one the sentence asks, and a model that activates X
-  unconditionally at power-on then comes back satisfied for a reason the sentence never
-  raised. When the sentence names no enclosing state, bind the composite that encloses X
-  and record that choice in `limitations`.
+- "X becomes active when <trigger>" / "X is entered on <trigger>" -> the sentence makes
+  entry *conditional* on that trigger, so the first thing to establish is that the
+  artifact reacts to the trigger at all in the scope that should react:
+  `event_consumed(source=<that scope>, trigger=<the event>)`. Its False is the finding --
+  a scope that declares no transition taking that event cannot be conditioning anything
+  on it, which is precisely what "becomes active only when" forbids. Bind `source` to the
+  scope the sentence puts the condition on (the composite being entered, or the one that
+  encloses it), **not** to `"[*]"`: the pseudo-initial anchors the claim before the machine
+  has entered anything, so it answers a cold-start question instead of the conditional-entry
+  one, and a model that activates X unconditionally comes back satisfied for a reason the
+  sentence never raised. A reachability check (`occupancy_after`, `reaches`) is the wrong
+  primary here -- it asks whether the run gets to X, which is true of both the compliant
+  and the unconditional model. Record the scope choice in `limitations`.
 
 **Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
 Compare the *last segment* of the name, not the whole path. A state two regions
