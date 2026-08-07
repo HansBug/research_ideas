@@ -105,7 +105,7 @@
 
 | Venue | 年份 | 当前处理 | 下一步 |
 |---|---:|---|---|
-| FM | 2027 | 只找到 FM Europe organizer call；未写成正式 CFP | 等正式主页 / CFP / dates |
+| FM | 2027 | 只找到 FM Europe organizer call，未写成正式 CFP（结论仍成立）。⚠️ **2026-08-07 补充信号**：`conf.researchr.org/home/fm-2027` **由 404 变为 HTTP 200 + `Access denied`**（researchr slug 已建、尚未公开发布），说明主办方已确定并在筹备；另 organizer call 明确 FM 自 2027 起**改为每年一届、固定秋季** | **列高频复查**：CFP 大概率在数周至数月内公开；同时跟踪 researchr slug 何时转为公开与 FM Europe 的 host 公告 |
 | FM | 2028 | 未检索到官方年页 | 后续复查 FM Europe / researchr / Springer |
 | CAV | 2027-2028 | ⚠️ **2026-08-07 更正：该结论对 2027 已不成立。** [CAV 2027](https://conferences.i-cav.org/2027/) 官方站、CFP、artifact 与 CFW 页均已上线（第 39 届 Amsterdam，主轨 submission `2027-01-20 23:59 AoE`），已按 `🟢 投稿中` 入账；**2028 仍未检索到官方年页 / CFP**。漏检根因：`conferences.i-cav.org/` 根 series 页已退化为占位文本 `This is a repo` | 2027 只需跟踪 CFP 正文（投稿类别 / 页数 / submission site 仍为 placeholder）；2028 后续复查须**直接 probe `/YYYY/` 路径**，不得依赖 series 页 |
 | VMCAI | 2027-2028 | ⚠️ **2026-08-07 更正：该结论对 2027 已不成立。** [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) 官方站、CFP/track、dates 均已上线（第 28 届 Mexico City、co-located POPL 2027，submission `2026-09-16 AoE / UTC-12h`），已按 `🟢 投稿中` 入账；**2028 与 2029+ 仍未检索到官方年页 / CFP**。漏检根因：researchr 使用**大写 slug** `VMCAI-2027`，小写探测会漏 | 2027 只需跟踪 accepted / proceedings；2028 后续复查须**同时探测大小写 slug** |
@@ -113,7 +113,7 @@
 | ICFEM | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 ICFEM official annual pages |
 | SPIN | 2027-2028 | 未检索到官方年页 / CFP | 后续复查 SPIN GitHub pages |
 | ATVA | 2026-2028 | ⚠️ **2026-08-07 更正：该结论对 2026 已不成立。** ATVA 2026 与 APLAS 2026 合办，官方年度页托管在 researchr 联合 slug `aplas-atva-2026`，按 `atva-YYYY` 探测必然 404，这是本条历史记录的成因 | 2026 已补录官方 dates / artifact / 会期（见 [conf-c-atva/2026/README.md](./conf-c-atva/2026/README.md)）；2027-2028 仍未检索到官方年页，后续须同时探测 `aplas-atva-*` 等合办 slug |
-| ICST | 2027 | 只公布 home/dates shell 和会期；Research track / CFP 未公布 | 后续补 research track 和 submission dates |
+| ICST | 2027 | ⚠️ **2026-08-07 更正：该结论已不成立。** ICST 2027 [Research Papers track](https://conf.researchr.org/track/icst-2027/icst-2027-research-papers) 与完整 dates 均已公布（submission `2026-11-02 待补时刻 AoE / UTC-12h`、initial notification `2026-12-22`、major revision `2027-01-31`、final `2027-02-20`、camera-ready `2027-03-07`），年度页已按 `🟢 投稿中` 入账；`dates/icst-2027` 每行 tooltip 均为 `Timezone: AoE (UTC-12h)`。⚠️ 该陈旧断言在本轮之前即已存在于本表，属 §6 未随年度页同步的历史遗留 | 只需跟踪 submission system（官方仍未公布）与 ICST 首次引入的 5 周 major-revision 流程 |
 | ICST | 2028 | 未检索到官方年页 / CFP | 后续复查 researchr series |
 <!-- PR-3-END -->
 
