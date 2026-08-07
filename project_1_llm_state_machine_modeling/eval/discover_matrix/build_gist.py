@@ -744,7 +744,16 @@ def _build(matrix: pathlib.Path, out: pathlib.Path) -> None:
         ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True
     ).stdout.strip()
 
-    cells = [load_cell(d) for d in sorted(p for p in matrix.iterdir() if p.is_dir())]
+    # `.try<N>` 是失败重试留下的作废目录，**必须排除**。首版没排，于是 `claude.try2` 被当成第三
+    # 条臂，README 写出「under claude-opus-4-7 and claude.try2 and gpt-5.5」，且格数从 66 掉到 24、
+    # confirmed issues 从 246 掉到 82 —— **没有任何报错**。
+    #
+    # 这是第 7 处按 `"try"` 排除作废目录的地方。我在决定「不改 `.try` 命名」时查了 6 处
+    # （anchor_shift / count_refusals / generation_history / check_model_drift / blind_resample /
+    # round_variance），**漏了这一处** —— 而它的症状恰好印证了当时的判断依据：改名会让每一处都
+    # 静默出错，而我数不全有多少处。
+    cells = [load_cell(d) for d in sorted(
+        p for p in matrix.iterdir() if p.is_dir() and ".try" not in p.name)]
     # 轮次进文件名与索引。上一版 stem 是 `PAIR-PROFILE`，于是把三轮写进同一个 out 目录时
     # 后一轮覆盖前一轮：三次调用各打印 `wrote 11 cells`、无任何告警，最终 `run-index.tsv`
     # 只剩 run3。也就是说「一个可审计包」按文档入口**无法表示一个 3 轮代次**。
