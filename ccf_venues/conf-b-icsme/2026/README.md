@@ -44,7 +44,7 @@
 | Author response period（**2026-08-07 新增**） | 2026-05-04..2026-05-08 23:59 AoE | [Research Papers Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | 官方逐字 `Author response period: May 4, 2026 - May 8, 2026`。 |
 | Camera-ready（**2026-08-07 更正**） | 2026-06-26 23:59 AoE | [Research Papers Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | ⚠️ 本库此前记为 `TBD / 未明确公开`，官方 track 页与 dates 页均已公布 `Camera-ready submission: June 26, 2026`（`Fri 26 Jun 2026`）。track 页逐字 `All submission dates are at 23:59 AoE (Anywhere on Earth)` —— **官方给了钟点，不写 `待补时刻`**（注意 ICSME 是 `23:59`，ICPC 2027 是 `23:59:59`，两者官方措辞不同，不得互相套用）。 |
 | Camera-ready（**旧记录，已作废**） | ~~TBD~~ → 见下方 `Camera-ready（2026-08-07 更正）` 行 | [Important Dates](https://conf.researchr.org/dates/icsme-2026) | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | 官方未公布时写 TBD / 未公布，不预设。 |
-| Conference dates | 2026-09-14..2026-09-18 | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | Research Track camera-ready 官方仍为 TBD；dates 页还含 SCAM / JF / RR / RENE 等事件，不混作 Research Track。 |
+| Conference dates | 2026-09-14..2026-09-18 | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | ⚠️ camera-ready 已于 2026-08-07 更正为 `2026-06-26 23:59 AoE`（见 §3）；dates 页还含 SCAM / JF / RR / RENE 等事件，不混作 Research Track。 |
 
 ## 4. Tracks / 口径边界
 
@@ -82,7 +82,7 @@
 
 ## 8. 待补 / 风险记录
 
-- Research Track camera-ready 官方仍为 TBD；dates 页还含 SCAM / JF / RR / RENE 等事件，不混作 Research Track。
+- ⚠️ **2026-08-07 更正：Research Track camera-ready 已由官方公布为 `2026-06-26 23:59 AoE`**（此前记 TBD，见 §3）；dates 页还含 SCAM / JF / RR / RENE 等事件，不混作 Research Track。
 - 后续论文数量精算时必须先确定 main / research track 边界，再决定是否使用 DBLP / proceedings fallback。
 
 ## 9. TIMELINE.md 同步提示
