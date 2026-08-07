@@ -885,6 +885,22 @@ def _build(matrix: pathlib.Path, out: pathlib.Path) -> list[dict]:
         f"Matrix: {' / '.join(grid)} ({len(grid)} pairs), "
         f"under {' and '.join(profiles)}.\n"
         f"Cells completed: {done}/{len(index)}. Confirmed issues: {total_conf}.\n\n"
+        # 取用方式必须写在 **gist 自己的 README** 里，不能只写在 PR comment 里。
+        #
+        # v23 时我把这条截断警告只放进了 comment。但拿到 gist 链接的人（审计者最可能这样）看不到
+        # comment —— 与同代次那个「指令正文说样本不含 NL 而实际含了」是同一类错误：**说明放在了
+        # 读者看不到的地方**。
+        "## ⚠️ Reading this gist through the API\n\n"
+        "Large files here exceed the GitHub gist API's per-file `content` cap (~200 KB), so "
+        "`.files[X].content` comes back **truncated** with `.files[X].truncated = true`. "
+        "Note that the top-level `.truncated` (which reports whether the *file list* was "
+        "truncated) is a **different field** and will read `false` -- reading that one instead "
+        "is how the truncation gets missed.\n\n"
+        "The raw URLs are complete. Fetch through them:\n\n"
+        "```bash\n"
+        "RAW=$(gh api gists/<id> -q '.files[\"<name>\"].raw_url')\n"
+        "curl -sL \"$RAW\" | python3 -c 'import json,sys; json.load(sys.stdin)'\n"
+        "```\n\n"
         f"Git commit `{commit}`, branch `paper1/pr-feedback-loop-discover-acceptance`, "
         "[PR #169](https://github.com/HansBug/research_ideas/pull/169), "
         "predicate design [Issue #170](https://github.com/HansBug/research_ideas/issues/170).\n\n"
