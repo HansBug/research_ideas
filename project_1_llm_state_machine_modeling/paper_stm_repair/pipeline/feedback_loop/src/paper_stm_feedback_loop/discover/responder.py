@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import functools
 import time
 import uuid
 from dataclasses import dataclass
@@ -139,6 +140,35 @@ def _retryable_error(exc: Exception) -> bool:
     return status in {408, 409, 425, 429} or status >= 500
 
 
+@functools.lru_cache(maxsize=None)
+def _schema_contract(schema: type[Any]) -> str:
+    """用 LangChain 原生的 `PydanticOutputParser` 把字段契约渲染进 system prompt。
+
+    ⚠️ 为什么必须进 prompt 文本，而不是只靠 `with_structured_output(schema)`：
+    后者只把**类型**约束交给 provider 的 tool schema，字段的**语义**（哪个值合法、
+    为什么、与其他字段的关系）不在其中。实测代价 ——
+
+    * `revision` 的语义只在 prompt 里以「on revise, increase the revision」一句自然语言出现，
+      生产者连续 5 次发同一个值，把契约修复预算耗尽后整格失败（`diag-0047-v28/run3`）；
+    * 而 `Requirement.predicate_bindings` 这类字段的说明写在 Python `#:` 注释里，
+      **注释不进 `model_json_schema()`**，生产者看到的只有 `{"type": "object"}`。
+
+    ⛔ 不要手写这段 schema 说明。手写会与模型定义脱同步，而脱同步的契约比没有契约更糟 ——
+    它让生产者按一份过期的说明去满足一份现行的校验。`get_format_instructions()` 从同一个
+    Pydantic 模型生成，改字段就自动改说明。
+
+    字段语义应写在 `Field(description=...)` 里（它进 schema），不要只写成 `#` 注释。
+
+    ⛔ 本函数**不捕获异常**。渲染失败若被降级成空串，运行会照常继续，只是生产者从此看不到字段契约 ——
+    而那正是它存在的唯一理由。契约悄悄消失、指标随之变差、日志里却什么都没有，是最难定位的一类失败。
+    渲染不出来就明着炸，让它在第一次调用时就暴露。
+    """
+
+    from langchain_core.output_parsers import PydanticOutputParser
+
+    return "\n\n" + PydanticOutputParser(pydantic_object=schema).get_format_instructions()
+
+
 class IncompleteStructuredStreamError(RuntimeError):
     """The provider ended a structured stream before its tool-call JSON closed."""
 
@@ -270,7 +300,12 @@ class DirectStructuredResponder:
                 response = None
                 chunk_count = 0
                 for chunk in structured.stream(
-                    [SystemMessage(system_prompt), HumanMessage(user_input)]
+                    [
+                        SystemMessage(
+                            system_prompt + _schema_contract(schema)
+                        ),
+                        HumanMessage(user_input),
+                    ]
                 ):
                     chunk_count += 1
                     response = chunk if response is None else response + chunk

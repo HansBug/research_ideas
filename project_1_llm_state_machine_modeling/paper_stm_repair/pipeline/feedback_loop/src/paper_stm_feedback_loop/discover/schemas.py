@@ -53,8 +53,20 @@ AssertionRole = Literal["primary", "supporting", "precondition"]
 
 class CoverageObligation(StrictBaseModel):
     domain: str = Field(default="requirement", min_length=1)
-    partition_by: str | None = None
-    aggregation: Literal["all", "any", "exactly_one", "custom"] = "all"
+    partition_by: str | None = Field(
+        default=None,
+        description=(
+            "The dimension the obligation ranges over when it is not a single element, e.g. a "
+            "composite whose children are each checked. Null for a single-element claim."
+        ),
+    )
+    aggregation: Literal["all", "any", "exactly_one", "custom"] = Field(
+        default="all",
+        description=(
+            "How the per-element results combine: `all` (every element must hold), `any` (at least "
+            "one), `exactly_one`, or `custom` with `custom_policy_id`."
+        ),
+    )
     custom_policy_id: str | None = None
     limitations: tuple[str, ...] = Field(default_factory=tuple)
 
@@ -184,13 +196,48 @@ class FrozenDiscoverInputs(StrictBaseModel):
 
 
 class Requirement(StrictBaseModel):
-    requirement_id: str = Field(pattern=r"^REQ-[A-Za-z0-9_.-]+$", min_length=5)
-    statement: str = Field(min_length=1)
-    rationale: str = Field(default="")
-    source_segment_ids: tuple[str, ...] = Field(default_factory=tuple)
+    requirement_id: str = Field(
+        pattern=r"^REQ-[A-Za-z0-9_.-]+$",
+        min_length=5,
+        description=(
+            "Stable identifier, `REQ-` followed by digits or dot-separated parts (e.g. REQ-004, "
+            "REQ-006B). Reuse the same id across revisions for the same claim; a renamed id reads "
+            "as a removed requirement plus a new one."
+        ),
+    )
+    statement: str = Field(
+        min_length=1,
+        description=(
+            "The obligation in one sentence, in the requested content language. State what the "
+            "artifact must satisfy -- not whether it does."
+        ),
+    )
+    rationale: str = Field(
+        default="",
+        description=(
+            "Why this obligation follows from the cited NL segments. Name the segment and quote the "
+            "words you relied on."
+        ),
+    )
+    source_segment_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "The `nl_segments` ids this obligation comes from, verbatim. Every id you list must "
+            "exist in the input, and every segment you mark `covered` in `segment_disposition` must "
+            "be listed by at least one requirement here."
+        ),
+    )
     # Lightweight, input-derived scope ledger.  It may record explicit or
     # carefully qualified inferred source context, but never evaluator gold.
-    source_context: dict[str, Any] = Field(default_factory=dict)
+    source_context: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Input-derived scope ledger. Recognised keys: `behavior_phase` (one of "
+            "`initialization`, `operation`, `termination`), `trace_entry_ids` (a list of ids that "
+            "exist in the supplied source trace). Never put evaluator expectations or model-derived "
+            "answers here."
+        ),
+    )
     # The named claim shape, from the closed vocabulary in ``discover.predicates``.
     # When present it *derives* verification_kind: the family, and therefore the
     # mandatory evidence, is a table lookup rather than a per-sentence judgement.
@@ -200,11 +247,31 @@ class Requirement(StrictBaseModel):
     # before it reaches us.  As a bare `str` one invented predicate raised
     # inside the validator, which left `split_requirements` with no artifact to
     # revise and failed the whole run instead of costing one repair round.
-    predicate: PredicateName | None = None
+    predicate: PredicateName | None = Field(
+        default=None,
+        description=(
+            "The claim shape, from the closed vocabulary. It *derives* `verification_kind` and the "
+            "mandatory evidence family, so pick the predicate whose procedure actually decides the "
+            "sentence rather than a cheaper neighbour: a declaration query cannot settle a runtime "
+            "claim, and a runtime query cannot settle what the artifact declares."
+        ),
+    )
     #: Concrete arguments for the predicate, e.g. {"source": ..., "trigger": ...}.
     #: They give the converter the terms to bind and let a later gate check that
     #: the assertion tests this claim rather than an easier neighbouring one.
-    predicate_bindings: dict[str, str] = Field(default_factory=dict)
+    predicate_bindings: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "The predicate's arguments, keyed by that predicate's own parameter names (e.g. "
+            "`source`, `trigger`, `target` for edge_declared; `composite`, `child` for "
+            "initial_target; `scope`, `count` for cardinality). Every value that names a model "
+            "element must be a complete dotted path copied verbatim from "
+            "`declared_model_vocabulary`, not a bare name and not retyped from the FCSTM text. "
+            "`\"[*]\"` is the pseudo-initial and is only legal where the predicate documents it. A "
+            "value naming an element the model does not declare is allowed only when `limitations` "
+            "records that."
+        ),
+    )
 
     @field_validator("predicate_bindings", mode="before")
     @classmethod
@@ -222,13 +289,47 @@ class Requirement(StrictBaseModel):
             str(k): (v if isinstance(v, str) else ("" if v is None else str(v)))
             for k, v in value.items()
         }
-    verification_kind: VerificationKind
-    quantifier: str = Field(default="unspecified", min_length=1)
-    trigger: str | None = None
-    expected_outcome: str | None = None
+    verification_kind: VerificationKind = Field(
+        description=(
+            "Derived from `predicate` by table lookup -- emit the family that predicate's "
+            "vocabulary entry states. Do not judge it per sentence: that judgement is what two "
+            "models used to answer differently for the same requirement."
+        ),
+    )
+    quantifier: str = Field(
+        default="unspecified",
+        min_length=1,
+        description=(
+            "Scope of the claim over configurations or elements, e.g. `unspecified`, `all`, "
+            "`exists`. Leave `unspecified` unless the sentence really quantifies."
+        ),
+    )
+    trigger: str | None = Field(
+        default=None,
+        description=(
+            "The event the claim is conditioned on, as a complete declared path, when the sentence "
+            "names one. Null when the claim is unconditional."
+        ),
+    )
+    expected_outcome: str | None = Field(
+        default=None,
+        description=(
+            "What holds if the artifact satisfies this obligation, in the requested content "
+            "language."
+        ),
+    )
     timing: str | None = None
     coverage_obligation: CoverageObligation = Field(default_factory=CoverageObligation)
-    limitations: tuple[str, ...] = Field(default_factory=tuple)
+    limitations: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "One entry per way this obligation had to be weakened or re-scoped, and why. Two forms "
+            "are load-bearing: an entry beginning exactly `scope-local instance required` keeps a "
+            "proposed per-scope path that the shared-element comparison would otherwise refuse; and "
+            "an entry recording that the model declares no counterpart is what makes a binding to "
+            "an undeclared name admissible."
+        ),
+    )
     # Read-only compatibility for v1 fixtures and historical artifacts. New
     # producer prompts must emit verification_kind and leave this field absent.
     checkability: (
@@ -242,7 +343,13 @@ class Requirement(StrictBaseModel):
             "provenance",
         ]
         | None
-    ) = Field(default=None, exclude=True)
+    ) = Field(
+        default=None,
+        exclude=True,
+        description=(
+            "Legacy v1 field. Do not emit it -- emit `verification_kind` and `coverage_obligation`."
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -302,11 +409,34 @@ class Requirement(StrictBaseModel):
 class RequirementSet(StrictBaseModel):
     schema_name: Literal["RequirementSet"] = "RequirementSet"
     schema_version: Literal["v2"] = SCHEMA_VERSION
-    revision: int = Field(ge=1)
-    requirements: tuple[Requirement, ...] = Field(min_length=1)
+    revision: int = Field(
+        ge=1,
+        description=(
+            "Artifact version counter. On create emit 1. On revise emit the value given as "
+            "`revision_to_emit` in the input (always current+1): a revision that does not exceed "
+            "the current one is rejected deterministically, and repeating the previous value "
+            "consumes the repair budget without changing anything."
+        ),
+    )
+    requirements: tuple[Requirement, ...] = Field(
+        min_length=1,
+        description=(
+            "One entry per independently violable claim. At least one is required -- an empty set "
+            "cannot be constructed."
+        ),
+    )
     segment_disposition: dict[
         str, Literal["covered", "context", "ambiguous", "out_of_scope"]
-    ] = Field(default_factory=dict)
+    ] = Field(
+        default_factory=dict,
+        description=(
+            "One key per NL segment id, exactly the ids supplied in `nl_segments`. `covered` "
+            "asserts that some Requirement here carries that segment's obligation; marking a "
+            "segment covered with nothing assertable behind it is the most common review rejection. "
+            "Use `context` for background, `ambiguous` when it cannot be operationalised, "
+            "`out_of_scope` when it asks for something the modelling object excludes."
+        ),
+    )
 
     @field_validator("requirements")
     @classmethod
@@ -370,8 +500,20 @@ class RequirementReview(StrictBaseModel):
     schema_name: Literal["RequirementReview"] = "RequirementReview"
     schema_version: Literal["v2"] = SCHEMA_VERSION
     decision: Literal["accept", "revise"]
-    reviewed_revision: int = Field(ge=1)
-    findings: tuple[RequirementReviewFinding, ...] = Field(default_factory=tuple)
+    reviewed_revision: int = Field(
+        ge=1,
+        description=(
+            "The `revision` of the exact RequirementSet you reviewed, copied from the input. A "
+            "mismatch means the review is about a different artifact and is rejected."
+        ),
+    )
+    findings: tuple[RequirementReviewFinding, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "One entry per problem, each naming the offending requirement_id and what to change. A "
+            "finding the producer cannot act on is re-emitted unchanged and wastes a repair round."
+        ),
+    )
     rationale: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -446,10 +588,29 @@ class AssertionSpec(StrictBaseModel):
 class AssertionScript(StrictBaseModel):
     schema_name: Literal["AssertionScript"] = "AssertionScript"
     schema_version: Literal["v2"] = SCHEMA_VERSION
-    revision: int = Field(ge=1)
+    revision: int = Field(
+        ge=1,
+        description=(
+            "Artifact version counter. On create emit 1. On revise emit `revision_to_emit` from the "
+            "input (always current+1); repeating the previous value only consumes the repair "
+            "budget."
+        ),
+    )
     prefix: str = ""
-    assertions: tuple[AssertionSpec, ...] = Field(min_length=1)
-    requirement_mapping: dict[str, tuple[str, ...]] = Field(default_factory=dict)
+    assertions: tuple[AssertionSpec, ...] = Field(
+        min_length=1,
+        description=(
+            "One entry per check. Every accepted Requirement needs at least one `primary` calling "
+            "the procedure its `predicate` names, bound to its `predicate_bindings`."
+        ),
+    )
+    requirement_mapping: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        description=(
+            "requirement_id -> the assertion_ids carrying it. Every accepted requirement must "
+            "appear."
+        ),
+    )
     #: `{requirement_id: how this group of assertions jointly covers it}`.  The
     #: reviewer previously had to infer the decomposition intent from a bare list
     #: of assertions; with preconditions and dependencies in play that inference
@@ -543,9 +704,26 @@ class AssertionReviewFinding(StrictBaseModel):
 class AssertionReview(StrictBaseModel):
     schema_name: Literal["AssertionReview"] = "AssertionReview"
     schema_version: Literal["v2"] = SCHEMA_VERSION
-    decision: Literal["accept", "revise"]
-    reviewed_script_hash: str = Field(min_length=1)
-    findings: tuple[AssertionReviewFinding, ...] = Field(default_factory=tuple)
+    decision: Literal["accept", "revise"] = Field(
+        description=(
+            "`accept` only with no findings; otherwise `revise` with concrete, actionable findings. "
+            "Never accept with findings and never revise without any."
+        ),
+    )
+    reviewed_script_hash: str = Field(
+        min_length=1,
+        description=(
+            "Hash of the exact AssertionScript you reviewed, copied from the input. A mismatch "
+            "means the review is about a different artifact and is rejected."
+        ),
+    )
+    findings: tuple[AssertionReviewFinding, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "One entry per problem, each naming the offending assertion_id and what to change. A "
+            "finding the producer cannot act on is re-emitted unchanged and wastes a repair round."
+        ),
+    )
     rationale: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -600,11 +778,28 @@ class AdjudicatedIssue(StrictBaseModel):
     """
 
     issue_id: str = Field(pattern=r"^ISSUE-[A-Za-z0-9_.-]+$", min_length=7)
-    requirement_ids: tuple[str, ...] = Field(min_length=1)
-    assertion_ids: tuple[str, ...] = Field(min_length=1)
+    requirement_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description=(
+            "Every requirement whose False primary this one issue reports. More than one is correct "
+            "when a single model edit resolves all of them; then `shared_root_cause` is required."
+        ),
+    )
+    assertion_ids: tuple[str, ...] = Field(
+        min_length=1,
+        description=(
+            "Only the primary and precondition assertion ids carrying the defect. Supporting "
+            "evidence is routed by the deterministic layer and must not appear here."
+        ),
+    )
     title: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
-    attribution_status: Literal["safe", "representation_debt", "unattributed"]
+    attribution_status: Literal["safe", "representation_debt", "unattributed"] = Field(
+        description=(
+            "Copie d from the f rozen attri butio n for this  evide nce. Only  `safe ` may be pu "
+            "blish ed."
+        ),
+    )
     #: Required once `requirement_ids` holds more than one entry. Absent on single-Requirement
     #: issues, and absent on every excluded finding -- exclusions are never merged.
     shared_root_cause: str | None = None
@@ -638,9 +833,28 @@ class DiscoverAdjudication(StrictBaseModel):
     schema_name: Literal["DiscoverAdjudication"] = "DiscoverAdjudication"
     schema_version: Literal["v2"] = SCHEMA_VERSION
     has_confirmed_issues: StrictBool
-    issues: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
-    satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
-    excluded_findings: tuple[AdjudicatedIssue, ...] = Field(default_factory=tuple)
+    issues: tuple[AdjudicatedIssue, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "Confirmed model defects. Create one only from a False primary or precondition "
+            "assertion whose binding status is safe -- a True assertion is a satisfied obligation, "
+            "never a finding."
+        ),
+    )
+    satisfied_requirement_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "A requirement belongs here if and only if every released assertion for it is True. If "
+            "any is False -- including one routed to excluded_findings -- it does not belong here."
+        ),
+    )
+    excluded_findings: tuple[AdjudicatedIssue, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "False assertions that cannot be attributed to the author's model (compiler-owned or "
+            "lowering- excluded evidence). Recorded, not published as defects."
+        ),
+    )
     excluded_observations: tuple[ExcludedObservation, ...] = Field(
         default_factory=tuple
     )
