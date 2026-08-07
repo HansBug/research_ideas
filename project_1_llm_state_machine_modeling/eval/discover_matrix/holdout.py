@@ -34,8 +34,10 @@ The selection rule, in full
 5. **Non-trivial denominator.** The pair must carry at least two judgeable records.
 6. **Layer-stratified, then ascending, group-capped.** Walk candidates in ascending pair id.
    Admit a pair if it introduces a `layer` not yet covered, until all four layers are present;
-   then keep admitting in ascending id order, at most `MAX_PER_GROUP` per NL group, until
-   `HOLDOUT_SIZE` pairs are held.
+   then keep admitting in ascending id order, until `HOLDOUT_SIZE` pairs are held or a group
+   would exceed `MAX_PER_GROUP` **judgeable records** (not pairs -- counting pairs let one NL
+   group carry 60.9% of the denominator, and one rule written against two of its members then
+   burned two whole layers).
 
 Every step is a property of the ledger and the repository, never of a result. Nothing here can
 be tuned after seeing an outcome, which is the whole point: rule 5 is arbitrary on purpose, and
@@ -90,8 +92,18 @@ HOLDOUT_SIZE = 10
 #: 判污染完全看不到这一层。实测：0010 与 0000/0050 同属 NL08，0009 与 0029 同属 NL05。
 TUNED_GROUPS = ("NL03", "NL05", "NL08")
 
-#: 同一 group 最多取几个，避免某一族的句法特性主导整个 hold-out。
-MAX_PER_GROUP = 3
+#: 同一 group 最多贡献几条**可判定记录**，避免某一族的句法特性主导整个 hold-out。
+#:
+#: ⚠️ **单位是记录，不是 pair。** 首版按 pair 计数（`per_group[...] += 1`），后果实测：NL04 的三个
+#: pair 全部被接纳，而它们携带 **14 / 23 = 60.9%** 的可判定记录。于是 A1（看着该组两个 pair 的失败
+#: 写的）一条规则連坐全组，**一次性抹掉 `nl_named` 的 9/10 与 `wellformedness` 的 4/9** —— 两个层
+#: 因此归零。
+#:
+#: 按 pair 计数的规则允许**单一污染单元占据分母六成**，这本身违背「按构造留出」的目的。所以改为按
+#: 记录计数是这条规则的**收紧**，不是放宽 —— 它让 `MAX_PER_GROUP` 真正约束它声称约束的那个量。
+#:
+#: 阈值取 6：按记录计时，23 条 / 4 个层意味着每层期望 ~6 条，而单组超过 6 条就已能主导某一层。
+MAX_PER_GROUP = 6
 
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
 
@@ -405,7 +417,8 @@ def compute() -> dict:
     def admit(pair: str) -> None:
         held.append(pair)
         covered.update(r["layer"] for r in judgeable[pair])
-        per_group[group_of.get(pair)] += 1
+        # 按**可判定记录数**累加，不是 pair 数 —— 见 `MAX_PER_GROUP` 的注释。
+        per_group[group_of.get(pair)] += len(judgeable[pair])
 
     for pair in candidates:  # rule 6, phase 1: cover every layer
         if {r["layer"] for r in judgeable[pair]} - covered:

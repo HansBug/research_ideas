@@ -1277,8 +1277,43 @@ class PredicateAPI:
         # this predicate exists to prevent.
         if trigger not in self._consumed(view):
             return False
-        active = self._active(view)
-        return any(s == target or s.startswith(f"{target}.") for s in active)
+        # Scan **every** cycle, not just the last one -- the same shape
+        # `_reaches_within`'s `hit()` uses.  The parameter is named
+        # `within_cycles`, and both this docstring and the splitter prompt say
+        # "within N cycles", but reading only `view.final` implements "after
+        # *exactly* N".  Those differ whenever the target is left again by an
+        # eventless completion edge, and then the predicate is **not monotone in
+        # `cycles`**: measured on pair 0018,
+        #
+        #     occupancy_after(ChargedFlash --Charged_true--> TakePicture, c=1) -> True
+        #     the same call with c=2..8                                       -> False
+        #
+        # `Junction3 -> join2 -> Junction2 -> TakePicture` collapses into one
+        # cycle (a pseudo-state is not a stoppable successor), so `join2`
+        # synchronises nothing; the four spare cycles then let
+        # `TakePicture -> WriteMemory` carry the machine away.  Meanwhile the
+        # prompt tells the producer to raise `within_cycles` towards the number
+        # of *declared* edges, which on a pseudo-state-dense model therefore
+        # overshoots by construction.
+        #
+        # Two things this cost before it was found.  Across v22+v23, 51 of 219
+        # False results (23.3%) are True at a smaller horizon -- every one of
+        # them a false positive published as a finding.  And `_HORIZON_PROBE`
+        # only searches *upward* (`range(asked + 1, ...)`) precisely because its
+        # comment assumes monotonicity ("a genuine defect does not become
+        # satisfied at a longer horizon"), so it can never catch this direction.
+        #
+        # Verification is a boolean identity, not a metric: `_occupies(., c)`
+        # must be non-decreasing in `c`.  See `test_occupancy_horizon_monotone`.
+        for cycle in getattr(view, "cycles", ()) or ():
+            for item in getattr(cycle, "active_states", ()) or ():
+                text = str(item)
+                if text == target or text.startswith(f"{target}."):
+                    return True
+        # Keep the final-frame check as a fallback: a view that carries no
+        # per-cycle records still has to answer, and before this change that was
+        # the only thing consulted.
+        return any(s == target or s.startswith(f"{target}.") for s in self._active(view))
 
     def event_consumed(self, *, source: str, trigger: str) -> bool:
         """In this configuration the event is actually consumed.
