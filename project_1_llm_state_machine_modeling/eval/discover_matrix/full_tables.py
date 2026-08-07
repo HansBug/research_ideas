@@ -265,6 +265,9 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
                 line.append(f"{r['issues']}{('^' + extra) if extra else ''}")
         out.append(f"| `{pair}` | " + " | ".join(line) + f" | {tot} |")
     out.append("")
+    out.append("⚠️ **跨代次比较必须带噪声底**：任何百分比变化都要与该量在**代次内**的方差（用完整轮算）"
+               "并列。差 < 代次内极差 → 不可归因；1~2× → 弱信号；>2× → 可作效果讨论。"
+               "实测 v23 代次内极差：谓词调用/格 6.7%、issue/格 **20.5%**。\n")
     out.append("上标 `g`/`r`/`e` 表示该格另有 `coverage_gaps` / `rejected_issues` / `excluded_*`。"
                "**全部 11 个 pair 均参与规则归纳**，故本表是方法在其归纳语料上的表现 —— "
                "这是主张边界（不声称对未见模型泛化），不是分母边界。\n")
