@@ -71,7 +71,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | ⏳ 已检索未公布 | `2026-06-05 10:04` | 未检索到独立 ATVA 2026 年度主页；[ATVA official site](https://atva-conference.org/) 仅作为 series/main site 与后续复查入口。 |
+| 官方年度主页（**该历史结论已于 2026-08-07 作废**） | ⏳ 已检索未公布 | `2026-06-05 10:04` | ⚠️ 保留历史失败记录：当时未检索到独立 ATVA 2026 年度主页；**根因是 ATVA 与 APLAS 合办、官方页托管在 `aplas-atva-2026`，按 `atva-YYYY` 探测必然 404**。原文如下：未检索到独立 ATVA 2026 年度主页；[ATVA official site](https://atva-conference.org/) 仅作为 series/main site 与后续复查入口。 |
 | 官方年度主页 / CFP / dates 复查 | [ATVA official site](https://atva-conference.org/) | `2026-07-13 19:11:00` | 未发现 ATVA 2026 official edition 主页、CFP 或 important dates；series/main site 不升级为年度事实。 |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/atva/index.html) | `2026-06-05 09:15` | 已记录为本年度入口；若是 DBLP / 出版商 fallback，计数口径另列。 |
 
