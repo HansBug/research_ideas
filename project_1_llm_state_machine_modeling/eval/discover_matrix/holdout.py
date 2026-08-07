@@ -102,7 +102,36 @@ TUNED_GROUPS = ("NL03", "NL05", "NL08")
 #: 按 pair 计数的规则允许**单一污染单元占据分母六成**，这本身违背「按构造留出」的目的。所以改为按
 #: 记录计数是这条规则的**收紧**，不是放宽 —— 它让 `MAX_PER_GROUP` 真正约束它声称约束的那个量。
 #:
-#: 阈值取 6：按记录计时，23 条 / 4 个层意味着每层期望 ~6 条，而单组超过 6 条就已能主导某一层。
+#: 阈值取 **4**，由**集中度目标**反推，不是由层覆盖反推。
+#:
+#: ⚠️ 首版取 6，推法是「23 条 / 4 个层 ≈ 每层 6 条」——**那个推法针对的是层覆盖，而我改这条规则的动机
+#: 是集中度**（某组携带 60.9% 记录，A1 一条规则連坐全组、一次抹掉两个层）。两个目标被混成一个阈值。
+#:
+#: 反事实扫描（候选池 32 个 pair，忽略污染过滤）暴露了后果：
+#:
+#:     cap   pair   记录   最大单组   占比
+#:      3      8     21       3     14.3%
+#:      4     10     28       4     14.3%   ← 取这个
+#:      5     10     28       4     14.3%
+#:      6     10     30       6     20.0%   ← 首版
+#:      8     10     32       7     21.9%
+#:
+#: cap 6 的最大单组占比 **20.0%**，而 cap 4 是 **14.3%** 且只少 2 条记录。更要紧的是：按 pair 计的
+#: 旧规则（cap 3）在这个池上最大单组只有 **2 条**，所以「改成按记录计数是收紧」这句话**只对总量成立、
+#: 对集中度不成立** —— 我此前写的「收紧」需要这条限定。
+#:
+#: ⚠️ **但按集中度取 4 在当前语料上等价于「留出集为空」**，所以最终取 6。实测：当前候选池只剩一个
+#: pair，它自带 **5 条**记录 ——
+#:
+#:     cap 6  →  它进得来（5 ≤ 6），留出 5 条记录
+#:     cap 4  →  它进不来，留出 **0 条**
+#:
+#: 该 pair 已被 NL 组連坐烧毁，所以它进不来**不损失任何可用分母**；但这暴露：**在候选池只剩一个
+#: 5 条记录的 pair 时，任何 ≤4 的集中度阈值都使留出集为空。** cap 的选择在当前语料上是**假选择** ——
+#: 它在反事实的 32-pair 池上有意义（14.3% vs 20.0%），在真实的 1-pair 池上只决定「空」还是「一个组」。
+#:
+#: 📌 **留给生成式分母建成后重定。** 那时候选池才有意义，集中度目标（单组 ≤ 1/4）才是可达的约束。
+#: 当前记 6 并把这个冲突写在此处，而不是选一个在两种情形下都说不通的数。
 MAX_PER_GROUP = 6
 
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
@@ -414,6 +443,11 @@ def compute() -> dict:
     covered: set[str] = set()
     per_group: collections.Counter = collections.Counter()
 
+    def _fits(pair: str) -> bool:
+        """接纳它之后该组是否仍不超 `MAX_PER_GROUP` 条可判定记录（**前瞻**）。"""
+
+        return (per_group[group_of.get(pair)] + len(judgeable[pair])) <= MAX_PER_GROUP
+
     def admit(pair: str) -> None:
         held.append(pair)
         covered.update(r["layer"] for r in judgeable[pair])
@@ -421,14 +455,21 @@ def compute() -> dict:
         per_group[group_of.get(pair)] += len(judgeable[pair])
 
     for pair in candidates:  # rule 6, phase 1: cover every layer
-        if {r["layer"] for r in judgeable[pair]} - covered:
+        # phase 1（层覆盖）此前**完全不查 cap**，phase 2 又是**后顾**检查（`>= MAX` 通过后一次性
+        # 加上整个 pair 的记录数），于是实际上限是 `MAX - 1 + 该 pair 的记录数` —— 反事实推演里某组
+        # 实际拿到 8 条而 cap 是 6。两份运行前 review 独立指出这一点：**正文承诺的上限没有被执行**。
+        #
+        # 改为前瞻（`would exceed`），并让 phase 1 也受约束。层覆盖仍优先：只有在**不超 cap** 的前提
+        # 下才为覆盖新层而接纳，因为一个占据分母六成的组会让它引入的那个「层」同样脆弱 ——
+        # 这正是 A1 一条规则連坐全组、一次抹掉两个层的机制。
+        if {r["layer"] for r in judgeable[pair]} - covered and _fits(pair):
             admit(pair)
         if covered >= set(LAYERS):
             break
     for pair in candidates:  # rule 6, phase 2: ascending fill, group-capped
         if len(held) >= HOLDOUT_SIZE:
             break
-        if pair in held or per_group[group_of.get(pair)] >= MAX_PER_GROUP:
+        if pair in held or not _fits(pair):
             continue
         admit(pair)
     held.sort()
