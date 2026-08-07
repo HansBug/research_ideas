@@ -285,13 +285,14 @@ the answer:
   outright, so bind X and there is no scope choice to get wrong. This second one is what
   catches a composite whose children are declared elsewhere, or whose entries point outside
   its own scope -- the declaration reads fine and the run still exits.
-- A composite whose children the sentence establishes -- by naming them, **or by giving their
-  number** -- owes an entry obligation **in addition to** the containment and cardinality ones:
-  entry has to land on one of those children. Producing the containment and cardinality
-  Requirements does **not** discharge it. They say what is declared inside the composite;
-  this one says where entry goes, and a model can declare all the right children and still
-  have no declared way into any of them. Write it as a disjunction over those children, not
-  as a single binding:
+- **Whenever you form a `cardinality` or a `containment` Requirement on a composite, form an
+  entry Requirement on that same composite too.** This trigger is mechanical: it does not
+  depend on recognising a phrasing. If the sentence is enough to say what is declared inside
+  M, it is enough to say that entering M has to land somewhere declared inside M -- and those
+  are different claims. A model can declare exactly the right children and still have no
+  declared way into any of them, in which case the cardinality and containment Requirements
+  both pass and the composite is still unreachable from the inside. Write the entry one as a
+  disjunction over the children in question, not as a single binding:
 
       any([initial_target(composite="Sys.M", child="Sys.M.A"),
            initial_target(composite="Sys.M", child="Sys.M.B")]) is True
