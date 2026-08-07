@@ -225,6 +225,13 @@ def render_requirement_split_input(
             revision_ledger,
             current_result.revision if current_result is not None else None,
         ),
+        # `revision` 是必须递增的整数，而 prompt 只写了「on revise, increase the revision」。
+        #
+        # 实测（`diag-0047-v28/run3`）：生产者连续 5 次发同一个 revision，把契约修复预算耗尽后
+        # 整格失败。schema 层没问题（`with_structured_output` 已把 schema 下发给 provider），
+        # 问题在语义层 —— 它既不知道当前基准是几，打回的 findings 里也没有目标值，
+        # 于是只能重复猜同一个数。**一个「必须比某值大」的字段，唯一可靠的说法是把该值直接给出来。**
+        "revision_to_emit": 1 if current_result is None else current_result.revision + 1,
     }
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")
@@ -285,6 +292,13 @@ def render_assertion_conversion_input(
             revision_ledger,
             current_result.revision if current_result is not None else None,
         ),
+        # `revision` 是必须递增的整数，而 prompt 只写了「on revise, increase the revision」。
+        #
+        # 实测（`diag-0047-v28/run3`）：生产者连续 5 次发同一个 revision，把契约修复预算耗尽后
+        # 整格失败。schema 层没问题（`with_structured_output` 已把 schema 下发给 provider），
+        # 问题在语义层 —— 它既不知道当前基准是几，打回的 findings 里也没有目标值，
+        # 于是只能重复猜同一个数。**一个「必须比某值大」的字段，唯一可靠的说法是把该值直接给出来。**
+        "revision_to_emit": 1 if current_result is None else current_result.revision + 1,
     }
     if current_result is not None:
         payload["current_result"] = current_result.model_dump(mode="json")

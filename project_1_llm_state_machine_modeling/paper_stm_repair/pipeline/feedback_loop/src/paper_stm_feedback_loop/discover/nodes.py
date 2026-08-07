@@ -1279,11 +1279,22 @@ def split_requirements(
             system_prompt=prompts.REQUIREMENT_SPLITTER_PROMPT,
             user_input=payload,
         )
+        # 契约错误的文案必须带上生产者需要的**数值**。
+        #
+        # 实测（`diag-0047-v28/run3`）：生产者连续 5 次发 `revision=4`，把契约修复预算耗尽后整格失败。
+        # 那不是它不听话 —— 打回的 findings 只写了「must increase」，**没有当前值、也没有应发的值**，
+        # 所以它无从知道该发什么。反馈缺数字时，重试次数再多也只是重复同一个错。
         if current is None and output.revision != 1:
-            raise ValueError("create RequirementSet must use revision 1")
+            raise ValueError(
+                f"create RequirementSet must use revision 1, you emitted {output.revision}"
+            )
         if current is not None:
             if output.revision <= current.revision:
-                raise ValueError("revised RequirementSet revision must increase")
+                raise ValueError(
+                    "revised RequirementSet revision must increase: the current set is at "
+                    f"revision {current.revision} and you emitted {output.revision}; "
+                    f"emit revision {current.revision + 1} or higher"
+                )
         for requirement in output.requirements:
             if requirement.checkability is not None:
                 raise ValueError(
@@ -2064,9 +2075,26 @@ def convert_assertions(
                         "assertion per source the requirement ranges over"
                     )
             if vacuity_findings:
+                # 空洞断言是**该条需求**的局部缺陷，不是整格的失败。
+                #
+                # 实测（`diag-0047-v31/run2.try2`）：一条 `REQ-008` 的 formal primary 被判空洞
+                # （「两个状态是同一顺序区的兄弟，没有配置同时持有二者，故该检查恒为真」），
+                # 整个 run 因此死掉并从零重跑 —— 13 次 LLM 调用作废。
+                #
+                # `7c118ab2` 早把「v22 convert_assertions vacuous query」记为致命 raise 之一，
+                # 而 `47327849` 的局部隔离只做到了断言评审阶段。这里补上转换阶段。
+                #
+                # 与需求层同一手法：把违规的那条打回让生产者重写，重试预算由既有的
+                # `MAX_ASSERTION_CONTRACT_REPAIRS` 管；预算耗尽才是整格失败。
+                # 抛出的仍是 ValueError，但 `convert_assertions` 的 `except` 会把它转成
+                # 契约反馈而不是 RunFailure —— 前提是消息里带上**生产者能据以修改的信息**，
+                # 所以这里逐条列出空洞理由，而不只是给一个断言 id。
                 raise ValueError(
                     f"requirement {requirement.requirement_id} has non-evidential "
-                    f"bounded formal primaries: {list(vacuity_findings)}"
+                    f"bounded formal primaries: {list(vacuity_findings)}. "
+                    "Replace each listed assertion with one whose truth value changes when "
+                    "the defect is present -- a check that holds for every configuration is "
+                    "not evidence. Keep every other assertion in the script unchanged."
                 )
             coverage_keys = [assertion.coverage_key for assertion in primary_assertions]
             if len(coverage_keys) != len(set(coverage_keys)):
