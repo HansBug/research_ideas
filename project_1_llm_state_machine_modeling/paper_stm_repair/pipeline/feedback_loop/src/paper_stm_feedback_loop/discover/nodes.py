@@ -1412,11 +1412,38 @@ def split_requirements(
             if name in active_step_gates
             for finding in evaluate()
         )
+        quarantined_requirements: tuple[str, ...] = ()
         if step_findings:
-            raise ValueError(
-                "requirements are anchored or named against what the frozen model "
-                f"already says: {list(step_findings)}"
+            # 局部隔离，不杀整格。
+            #
+            # `7c118ab2` 已记录：跨 v22/v23 四次重试里**三次**是门致命 raise，而
+            # `47327849` 只把断言层的降级做了，需求层这三道门仍是致命的。代价不只是吞吐 ——
+            # 致命 raise 会把该轮**已产出的其余需求**一起丢掉，按 CLAUDE.md §6 属「run record
+            # 缺失关键证据」。诊断实测：`0047` 三轮 claude 里 **1 轮**因此整格丢失。
+            #
+            # 三道门的 finding 都格式化为 `f"{item.requirement_id} ..."`，但这里不依赖该格式：
+            # 用**已知 requirement id**去匹配，格式变了也不会静默错配。
+            blamed = tuple(
+                req.requirement_id
+                for req in output.requirements
+                if any(
+                    finding.startswith(f"{req.requirement_id} ") for finding in step_findings
+                )
             )
+            survivors = tuple(
+                req for req in output.requirements if req.requirement_id not in blamed
+            )
+            if not blamed or not survivors:
+                # 没有需求可归责，或隔离后集合为空 —— 没有局部可隔离的东西，失败确实是整格的。
+                # 这一支保留致命行为，与 `47327849` 在断言层的处置一致。
+                raise ValueError(
+                    "requirements are anchored or named against what the frozen model "
+                    f"already says: {list(step_findings)}"
+                    f" (quarantine not possible: blamed={list(blamed)},"
+                    f" would_survive={len(survivors)})"
+                )
+            output = output.model_copy(update={"requirements": survivors})
+            quarantined_requirements = blamed
         coverage = RequirementCoverageProjection(
             covered_requirement_ids=tuple(
                 req.requirement_id for req in output.requirements
@@ -1462,6 +1489,13 @@ def split_requirements(
             "requirement_set": output,
             "requirement_coverage": coverage,
             "_requirement_revision_ledger": revision_ledger,
+            # 被门隔离掉的需求 id。空元组是常态；非空表示该轮**没有**整格失败，而是丢了这几条，
+            # 其余需求的判定被保留。审计时必须把它与 `requirement_coverage` 一起读 ——
+            # 后者只列存活的需求，单看它会以为这一轮本来就没形成那几条。
+            "_quarantined_requirements": (
+                *state.get("_quarantined_requirements", ()),
+                *quarantined_requirements,
+            ),
             "requirement_fingerprints": (
                 *state.get("requirement_fingerprints", ()),
                 fingerprint,
