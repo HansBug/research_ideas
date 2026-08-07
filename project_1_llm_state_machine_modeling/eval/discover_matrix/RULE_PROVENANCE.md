@@ -32,6 +32,29 @@ $$\forall C \in \mathrm{Composite},\ |\mathrm{children}(C)| \ge 1 \Rightarrow \e
 **应当读**：`CLAUDE.md` 的建模对象边界、`pyfcstm` DSL 规约与 `diagnostics/codes.yaml`、现有谓词词表、
 UML 规范条款。
 
+### ⚠️ 「结果邻接」类文件：必读，但用途受限
+
+`assertions/predicate_api.py` 与 `discover/predicates.py` 是**必读**（公理必须能用现有谓词表达），但它们
+当前的 docstring 与注释**含实验结果性内容** —— 具体 pair 编号、代次名（`matrix-v16/v17/v20/v22+v23`）、
+条目 ID（`EXP-0000-IT-001`）、语料统计（"51 of 219 False results"、"704 bindings across 58 of the 60
+pairs"、"22 of the corpus's 169 composites"）。
+
+这不是泄漏进实验（已查：无 `__doc__`/`inspect.getsource` 用法，8 个探针在 66 格 record 中全部 0 命中），
+但它污染规则编写侧。
+
+**用途限制（推导者必须遵守并自查）**：
+
+1. 只把它们当作「某个谓词能否表达某个断言」的**可执行性证据**
+2. **不用它们决定收录哪条公理**
+3. 产出时必须附一份「哪些判断受结果邻接文本影响」的自查清单
+
+首次盲态推导的执行者**自发做到了这三点**，并因此正确剔除了一条候选公理（「默认入口不得指向 pseudo」——
+因为语料的 `pseudo` 标注不一致，该公理的命中分布是语料生产方式的属性而非方法能力）。**但下一位可能
+不会自发做到，所以固化为要求。**
+
+📌 长期处置是把结果邻接文本从 docstring 移入 `eval/discover_matrix/` 下的专门文件（docstring 只留机制
+说明并链接过去），而**不是删掉** —— 它们记录了真实的发现过程与教训。
+
 这比「我自己写完再论证其实是从规范推的」强，原因是它改变了主张的**类型**：
 
 | | 主张形态 | 可核验性 |
