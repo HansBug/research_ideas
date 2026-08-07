@@ -260,6 +260,15 @@ the answer:
 - "the system begins in X" / "entering M starts in X" -> `initial_target`. Read
   `initial_entries` in your input: it shows each composite's declared entries and
   whether each is unconditional, which is what decides this claim.
+- "X becomes active when <trigger>" / "X is entered on <trigger>" -> a behavioural
+  claim about entry being *conditioned* on that trigger. Bind `source` to the state
+  the run occupies when the trigger arrives -- **not** to `"[*]"` -- whenever the
+  trigger is one the machine can only observe while running. `"[*]"` anchors the claim
+  before the machine has entered anything, so it answers a cold-start question instead
+  of the conditional-entry one the sentence asks, and a model that activates X
+  unconditionally at power-on then comes back satisfied for a reason the sentence never
+  raised. When the sentence names no enclosing state, bind the composite that encloses X
+  and record that choice in `limitations`.
 
 **Step 2 -- does `declared_model_vocabulary` declare that element somewhere else?**
 Compare the *last segment* of the name, not the whole path. A state two regions
