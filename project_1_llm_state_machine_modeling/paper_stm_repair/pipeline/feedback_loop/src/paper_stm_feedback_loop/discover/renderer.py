@@ -281,6 +281,17 @@ def render_assertion_conversion_input(
 ) -> str:
     payload: dict[str, Any] = {
         "accepted_requirements": requirements.model_dump(mode="json"),
+        # 原句必须在场。converter prompt 要求 `rationale` 引用 NL —— "which clause, which
+        # words" —— 而 assertion reviewer 被告知它是「唯一同时看到句子与提议名的阶段」并据此
+        # 核验该引用。两句都成立，但 converter 的 payload 里此前**没有原文**：splitter、
+        # requirement reviewer、assertion reviewer 三家都有，只有它看不见。
+        # v37 实测：5641 条断言的 `rationale` 里 50.8% 没有任何 NL 指涉，8.4% 说「NL/条款」却
+        # 给不出段 id —— 它只能转述 Requirement 的 statement。
+        #
+        # provenance: 需求可追溯性通则 —— 派生制品对需求的引用须可回溯到需求原文
+        #（IEEE 29148-2018 §5.2.8 traceability）。要求引用一份看不到的文本不是可追溯性。
+        "natural_language": frozen.natural_language,
+        "nl_segments": dict(frozen.nl_segments),
         "stm_text": frozen.stm_text,
         "inspect_digest": frozen.inspect_digest,
         "declared_model_vocabulary": _model_vocabulary(frozen),

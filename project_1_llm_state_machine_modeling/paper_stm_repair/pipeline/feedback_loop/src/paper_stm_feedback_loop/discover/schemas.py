@@ -674,6 +674,15 @@ class AssertionSpec(StrictBaseModel):
     assertion_id: str = Field(pattern=r"^AST-[A-Za-z0-9_.-]+$", min_length=5)
     requirement_id: str = Field(pattern=r"^REQ-[A-Za-z0-9_.-]+$", min_length=5)
     description: str = Field(min_length=1)
+    #: 这条断言在证据层面**说不到**的东西。converter prompt 与 assertion reviewer 此前都要求
+    #: 「record in `limitations`」，而这个字段并不存在于本模型上（`limitations` 是 Requirement
+    #: 的字段，且需求在断言阶段已冻结、converter 无权改）。v37 实测：637 条 assertion-review
+    #: finding 里 70 条（11%）在追这个不存在的字段，reviewer 已自行改投 description/rationale
+    #: 绕道 —— 每一轮都在为一条 prompt 指错了归属地的字段消耗修订预算。
+    #:
+    #: provenance: 「一条策略只能有一个归属地」（本仓库 CLAUDE.md 工程纪律）；字段名与执行点
+    #: 必须落在同一个模型上，否则规则既无法被满足也无法被检查。
+    limitations: tuple[str, ...] = Field(default_factory=tuple)
     expression: str = Field(min_length=1)
     failure_message: str = Field(min_length=1)
     evidence_family: EvidenceFamily
@@ -941,8 +950,8 @@ class AdjudicatedIssue(StrictBaseModel):
     rationale: str = Field(min_length=1)
     attribution_status: Literal["safe", "representation_debt", "unattributed"] = Field(
         description=(
-            "Copie d from the f rozen attri butio n for this  evide nce. Only  `safe ` may be pu "
-            "blish ed."
+            "Copied from the frozen attribution for this evidence. Only `safe` may be "
+            "published."
         ),
     )
     #: Required once `requirement_ids` holds more than one entry. Absent on single-Requirement

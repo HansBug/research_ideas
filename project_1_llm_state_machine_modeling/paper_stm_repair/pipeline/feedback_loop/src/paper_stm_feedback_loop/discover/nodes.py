@@ -4,7 +4,7 @@ import json
 import os
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timezone
 from typing import Any, Protocol, TypeVar, cast
 
@@ -1464,12 +1464,22 @@ def split_requirements(
             ),
         )
         active_step_gates = tuple(name for name, _ in gates if not _ablated(name))
-        step_findings = tuple(
-            finding
+        # 逐门归因，不是一锅 finding。v37 实测：861 份需求集快照里 167 份发生隔离、覆盖 66 个
+        # cell，而在 19,893 个 run 文件里 grep 这十道门的消息签名，**七道命中 0 个文件** ——
+        # 「是哪道门摘的、摘掉了什么」在 run record 里完全不可恢复。后果不是不好看：它使
+        # 「关掉某道门会怎样」这个问题无法被回答，于是任何门贡献度审计、任何「该门从未触发」
+        # 的退役判断都失去证据基础（仓库已有前例：某守卫注释写「历史激活 0/105」，按正确分母
+        # 重算实为 9/227）。按 CLAUDE.md §6 这属于运行记录缺失关键证据。
+        #
+        # provenance: CLAUDE.md §6「run record 与实验可复现证据链」——凡影响实验结论、复盘或
+        # 审计的运行事实，必须在自包含的运行记录里可追溯。
+        attributed_findings: tuple[tuple[str, str], ...] = tuple(
+            (name, finding)
             for name, evaluate in gates
             if name in active_step_gates
             for finding in evaluate()
         )
+        step_findings = tuple(finding for _, finding in attributed_findings)
         quarantined_requirements: tuple[str, ...] = ()
         if step_findings:
             # 局部隔离，不杀整格。
@@ -1502,6 +1512,9 @@ def split_requirements(
                 )
             output = output.model_copy(update={"requirements": survivors})
             quarantined_requirements = blamed
+            gate_attribution = tuple(
+                f"[{name}] {finding}" for name, finding in attributed_findings
+            )
         coverage = RequirementCoverageProjection(
             covered_requirement_ids=tuple(
                 req.requirement_id for req in output.requirements
@@ -1566,6 +1579,28 @@ def split_requirements(
             status="created",
             artifact_delta=_revision_delta(current, output),
         )
+        if quarantined_requirements:
+            # 隔离必须在 ledger 里留下**逐门**痕迹。`findings` 每条以 `[<gate>]` 起头，
+            # 于是「哪道门触发过几次」变成一次 grep，而不是靠推断。
+            ledger_now = tuple(state.get("_requirement_revision_ledger", ()))
+            revision_ledger = (
+                *revision_ledger,
+                RevisionLedgerEvent(
+                    sequence=len(ledger_now) + 2,
+                    loop="requirements",
+                    event="artifact_quarantined",
+                    revision=output.revision,
+                    artifact_hash=sha256_data(output),
+                    status="quarantined",
+                    rationale=(
+                        "Step gates isolated requirements anchored or named against the frozen "
+                        "model; the remaining requirements continue."
+                    ),
+                    findings=gate_attribution,
+                    item_ids=quarantined_requirements,
+                    budget_counters={"active_step_gates": len(active_step_gates)},
+                ),
+            )
         return {
             "requirement_set": output,
             "requirement_coverage": coverage,
@@ -1700,7 +1735,7 @@ def review_requirements(
             artifact_hash=sha256_data(requirements),
             status=output.decision,
             rationale=output.rationale,
-            findings=tuple(f.message for f in output.findings),
+            findings=_review_findings(output.findings),
         )
         review_repair_count = state.get("_requirement_review_repair_count", 0)
         if output.decision == "revise":
@@ -1716,7 +1751,7 @@ def review_requirements(
             update["_requirement_feedback"] = RevisionFeedback(
                 target="requirements",
                 reason=output.rationale,
-                findings=tuple(f.message for f in output.findings),
+                findings=_review_findings(output.findings),
                 target_item_ids=targeted_requirement_ids,
                 origin="requirement_review",
             )
@@ -3169,7 +3204,7 @@ def review_assertions(
             artifact_hash=script_hash,
             status=output.decision,
             rationale=output.rationale,
-            findings=tuple(f.message for f in output.findings),
+            findings=_review_findings(output.findings),
         )
         review_repair_count = state.get("_assertion_review_repair_count", 0)
         if output.decision == "revise":
@@ -3186,7 +3221,7 @@ def review_assertions(
                 target="assertions",
                 origin="assertion_review",
                 reason=output.rationale,
-                findings=tuple(f.message for f in output.findings),
+                findings=_review_findings(output.findings),
                 target_item_ids=targeted_assertion_ids,
             )
             update["_assertion_review_repair_count"] = review_repair_count + 1
@@ -3239,7 +3274,7 @@ def review_assertions(
                         script=script,
                         quarantined_ids=tuple(sorted(targeted)),
                         rationale=output.rationale,
-                        findings=tuple(f.message for f in output.findings),
+                        findings=_review_findings(output.findings),
                         sealed_store=sealed_store,
                     )
                 )
@@ -3698,6 +3733,29 @@ def _working_contract_simulation_is_ineligible(contract: dict[str, Any]) -> bool
     return (
         isinstance(summary, dict) and summary.get("simulation_status") == "ineligible"
     )
+
+
+
+def _review_findings(findings: Iterable[Any]) -> tuple[str, ...]:
+    """Render reviewer findings for `RevisionFeedback`, **including `required_change`**.
+
+    Both review schemas make `required_change` mandatory (`Field(min_length=1)`) -- the reviewer
+    is required to say what to change, not only what is wrong.  Every construction site used to
+    forward `f.message` alone, and `required_change` had no read point anywhere in the codebase:
+    184 sampled values, none of them reached the producer.  Half of what the reviewer was forced
+    to write was discarded at the door, which is why a revision round routinely reports the same
+    defect again -- the producer was told where it hurts and never told what to do.
+
+    provenance: 需求工程通则 —— 评审意见须同时给出「问题」与「期望变更」，只给前者不构成可
+    执行的评审输出（IEEE 1028-2008 §5.4 review 输出要求）。
+    """
+
+    rendered: list[str] = []
+    for finding in findings:
+        message = str(getattr(finding, "message", "") or "").strip()
+        change = str(getattr(finding, "required_change", "") or "").strip()
+        rendered.append(f"{message} → 需要的变更：{change}" if change else message)
+    return tuple(rendered)
 
 
 def _is_empty_structured_response(exc: BaseException) -> bool:

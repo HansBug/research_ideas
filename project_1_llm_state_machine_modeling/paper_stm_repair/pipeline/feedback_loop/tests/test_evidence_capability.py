@@ -444,7 +444,11 @@ def test_official_pyfcstm_guides_are_injected_with_provenance() -> None:
     assert "FCSTM grammar guide" in prompts.REQUIREMENT_SPLITTER_PROMPT
 
     provenance = prompts.guide_provenance()
-    for key in ("fbmcq_language_guide", "fcstm_grammar_guide"):
+    # FBMCQ 语言指南已于 2026-08-09 从 provenance 中移除：它 27,747 字符却**未被注入任何阶段**，
+    # 而 provenance 的语义是「producer 被展示过什么」。声称展示过一份从未展示的合同，按
+    # CLAUDE.md §6 属证据链失真。
+    assert "fbmcq_language_guide" not in provenance
+    for key in ("fcstm_grammar_guide",):
         assert provenance[key]["sha256"] == provenance[key]["expected_sha256"], key
 
 

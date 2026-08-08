@@ -123,8 +123,15 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
 
 
 def test_prompts_merge_one_repair_unit_and_preserve_attributable_mismatch() -> None:
-    assert "Repair-unit atomicity" in prompts.REQUIREMENT_SPLITTER_PROMPT
-    assert "same misplaced state" in prompts.REQUIREMENT_REVIEWER_PROMPT
+    # Repair-unit atomicity（「containment + entry 保持在一条需求里」）已于 2026-08-09 删除：
+    # `Requirement.predicate` 是单值必填，一条需求承载两个谓词在 v3 schema 下不可表达，而
+    # reviewer 的孪生条据此删掉了承载台账谓词的那条需求 —— v37 段② 的 D 类 10 位就是这么丢的。
+    # 现在锁的是相反的性质：去重只允许同谓词同绑定，且删除请求必须点名幸存者承接。
+    assert "Repair-unit atomicity" not in prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "one predicate per Requirement is a schema invariant" in (
+        prompts.REQUIREMENT_REVIEWER_PROMPT
+    )
+    assert "name which surviving Requirement carries" in prompts.REQUIREMENT_REVIEWER_PROMPT
     assert (
         "Do not leave a repair-relevant destination mismatch"
         in prompts.ASSERTION_CONVERTER_PROMPT

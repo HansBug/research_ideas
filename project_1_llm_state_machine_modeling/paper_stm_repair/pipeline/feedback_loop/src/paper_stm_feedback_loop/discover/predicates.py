@@ -255,7 +255,12 @@ PREDICATES: tuple[Predicate, ...] = (
             "the sentence says which sub-mode is active at the instant a composite "
             "is entered. Also reach for it when the sentence describes entering a "
             "mode and names what is active at that moment, without using the word "
-            "\"initial\"."
+            "\"initial\". TWO shapes are legal and the reviewer must accept both: the "
+            "ordinary one binds `composite` and `child`; the one derived from a "
+            "cardinality claim (`derivation.kind = \"entry_follows_cardinality\"`) binds "
+            "`composite` ALONE -- there `child` is forbidden by the schema, an absent "
+            "`child` is the correct shape, and the assertion layer expands it into a "
+            "disjunction over the declared children."
         ),
         field_specs=(
             ('composite', 'the declared composite whose entry is claimed'),

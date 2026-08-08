@@ -15,7 +15,6 @@ REQUIREMENT_SPLITTER_PROMPT += """
 Operational context: preserve source modes and ordering across adjacent NL clauses. If an earlier clause establishes an operating context and a later event-result clause semantically belongs to it, keep that context in the later requirement instead of reducing the behavior to a root cold-start property. When context is inferred from sentence linkage rather than explicitly named, record that limitation in rationale and keep the scope finite; do not invent a universal quantifier.
 Local-exit grounding: preserve a local exit from the current mode or region as distinct from a separate completion/termination target that the NL binds to another trigger. When adjacent source clauses establish a named local exit state for the same mode, an otherwise unnamed phrase such as "exit the current mode/road/region" may use that source-grounded local target with the inference disclosed. Do not broaden it to an arbitrary Finish/final/completion holder merely because that holder exists in the FCSTM, especially when the NL reserves that holder for a different completion condition.
 Containment language: phrases such as substate, inside, within, belongs to, or contains are structural obligations. Produce a structure/containment requirement in addition to any transition-effect requirement, and preserve the declared parent scope for named states. Do not treat a transition that reaches a state as proof that the state is contained by the required parent.
-Repair-unit atomicity: split structure and behavior into separate Requirements only when they can be violated and repaired independently. When one clause says that a composite enters or begins in a named substate, and the target identity itself depends on that containment, keep the containment plus entry relation in one Requirement so complementary structure/relation assertions become one issue rather than duplicate issues for the same misplaced state. A separately triggered later behavior remains independent.
 When one source clause presents multiple destinations selected "based on" conditions but supplies the same applicable condition for each destination, retain a positive distinguishability obligation: a correct model must provide non-overlapping guards or another source-grounded discriminator. Do not describe unresolved overlap as satisfying the requirement. If the NL explicitly permits nondeterministic choice, preserve that instead and do not invent a distinguishability obligation. This rule does not import a hidden issue taxonomy; it follows the source's selection semantics and does not silently select the first destination.
 Create one explicit distinguishability Requirement alongside the positive destination Requirements when this shared-condition case occurs. Missing discriminator text, or the source's failure to explicitly forbid nondeterminism, is not permission for nondeterministic choice; only an explicit statement that arbitrary or nondeterministic choice is allowed waives this Requirement.
 Apply this rule only to one undifferentiated condition set that the source uses to select among multiple targets. Preserve the target alternatives as a combined conditional-choice capability plus the distinguishability obligation; do not claim that the shared condition set is independently sufficient for every target. When the source gives different target-specific condition clauses, preserve those clauses and do not add a global mutual-exclusion obligation merely because distinct conditions could coincide at runtime.
@@ -64,7 +63,7 @@ Revision-ledger discipline: compare the current RequirementSet with every prior 
 
 REQUIREMENT_REVIEWER_PROMPT += """
 Context and containment review: do not accept a split that turns behavior stated in an established operating mode into a root-only cold-start property. Check that source mode/state, trigger, target, and ordering context remain attached when the NL supplies them or clearly links them across clauses. Explicit substate/inside/within/belongs-to language is a structure/containment obligation and must not be represented only as an effect transition. A finite contextual inference may remain in the rationale; do not reject it merely because the source did not use formal state-machine notation.
-	Repair-unit review: reject duplicate Requirements whose failures would identify the same misplaced state and require the same edit. In particular, a clause that says a composite begins in or enters a named substate should normally be one Requirement with complementary containment and entry evidence, unless the source states an independently triggered behavior that can fail separately.
+	Repair-unit review: two Requirements whose failures identify the same misplaced state are not by themselves a duplicate -- one predicate per Requirement is a schema invariant, so a clause carrying both a containment claim and an entry claim MUST become two. Reject a duplicate only when the two carry the SAME predicate on the SAME bindings. When you do ask for a removal, name which surviving Requirement carries the removed one's predicate as complementary evidence; if none does, the removal loses the only assertion that could have discharged that claim and must not be requested.
 	Initialization review: do not force a causal event or hot-start response for a claim that only describes the initial configuration. For every behavioral requirement, verify that its source context, trigger, destination, ordering, and named effects remain grounded in the NL. Do not add a semantic distinction merely because the current FCSTM exposes a convenient state, event, transition, or variable.
 	Segment disposition: `out_of_scope` is a legitimate verdict, not an evasion. The modelling object is $M = (S, E, V, Tr, A)$ -- states, events, variables, transitions, actions. Clocks, timing constraints, invariants and concurrent orthogonal regions are **outside** it, so a sentence about them owes no requirement, and asking for one asks for something the vocabulary cannot express: the splitter will either invent an unsourced obligation or run out of revisions. Do not read `out_of_scope` on such a segment as material omission. A segment marked `ambiguous` when its content is actually out of scope is worth a finding -- but the fix is to re-mark it `out_of_scope`, not to add a requirement. Conversely `covered` does assert that some requirement carries the obligation, and a deterministic check enforces that on what the producer emitted -- so an unbacked `covered` of the producer's own making no longer reaches you. One case still does, and `coverage_projection.orphaned_covered_segment_ids` names it: a gate quarantined the only requirement carrying that segment **after** the check ran. That is not producer error, and asking generically to "cover it" is what exhausts the revision budget -- the producer cannot tell which segment lost its carrier. Ask for one of the two concrete things instead: add back a requirement that carries the obligation and lists the segment id in `source_segment_ids`, or re-mark the segment to what it really is. Name the segment id and the quarantined requirement id in your finding so the request is actionable.
 	Derived requirements: a requirement carrying a `derivation` field is claiming it is entailed by another requirement in the set rather than stated by an NL segment, so "it has no NL source" is not a ground to delete it -- that is what the field says. Judge it by four conditions instead, and delete it if **any** fails, naming which one: (a) `derivation.parent_requirement_id` is a requirement in this set and that parent is **not itself derived** -- a chain of derivations has no NL floor; (b) `derivation.kind` is one of the two licensed entailments -- `entry_follows_cardinality` (a parent `cardinality` obligation on a composite entails that entering it lands on some declared child) or `activation_residency` (a parent `event_consumed` obligation entails that the run is inside that scope once the event arrives); (c) the shape matches the kind -- for `entry_follows_cardinality` that means it binds `composite` and **binds no `child` at all**, for `activation_residency` that it binds the parent's own `source`; (d) the parent's scope binding and the derived one's name the same element, because the entailment is only about the parent's own scope. Conditions (b) and (c) are also checked deterministically before you see the set, so a survivor has already passed them; your judgement is mostly (a) and (d), plus whether the parent really is NL-grounded.
@@ -172,17 +171,17 @@ Cardinality and scope: when the NL gives a number of areas/states but does not n
 
 Limitation non-waiver: describing a material mismatch does not satisfy the requirement. If inspection reveals that the observed source, trigger, destination, hierarchy, or effect conflicts with the accepted requirement, orient at least one exact assertion so that the mismatch evaluates False. Never acknowledge a contradiction in description/failure_message and then use a broader presence query that evaluates True. A disclosed proxy is acceptable only when it preserves the requirement for the stated finite scope; it cannot waive a source-placement or target-scope contradiction.
 
-Cardinality evidence gate: `cardinality(scope, count)` is exact and it is the only counting predicate -- there is no at-least form, and no way to write one. So when the NL states a number N without naming the members, scope the claim to the composite the NL actually names and record in `limitations` that the count includes every declared non-pseudo direct substate, converter-generated ones among them. Do not weaken the claim to something else and do not skip it: state the count the NL gives and let the predicate settle it either way, with that limitation attached, since the limitation is what tells a reader whether an eventual disagreement is about the author's states or about the converter's.
+Cardinality evidence gate: `cardinality(scope, count)` is exact and it is the only counting predicate -- there is no at-least form, and no way to write one. So when the NL states a number N without naming the members, scope the claim to the composite the NL actually names and record in `limitations` that the count covers every declared non-pseudo direct substate and **excludes** the members the converter inserted (the predicate drops them, so a count that assumed otherwise would disagree with the answer for the wrong reason). Do not weaken the claim to something else and do not skip it: state the count the NL gives and let the predicate settle it either way, with that limitation attached, since the limitation is what tells a reader whether an eventual disagreement is about the author's states or about the converter's.
 
 Multi-step response gate: count the declared steps before choosing `within_cycles`. `occupancy_after` defaults to 1, which observes only the immediate successor -- so when the target is reached through eventless completion edges, forced transitions, or a parent-level follow-up routed on a converter token, one cycle sees an intermediate state and reports a failure the model does not have. Read the transition table: follow the declared path from the source to the target, count the edges, and set `within_cycles` to at least that many. A composite source costs no extra cycle (the predicate settles the entry itself), but every eventless hop on the way does. Never report a one-cycle intermediate observation as a failed final response, and never substitute a nonexistent direct source-to-target edge for the composed evidence.
 """
 
 ASSERTION_REVIEWER_PROMPT += """
-Cardinality and scope: when the NL gives a number of areas/states but does not name the members, accept an exact count scoped to the composite the NL names, carrying the limitation that the count includes converter-generated substates. Do not alternately demand >=N, exactly N, and an invented exact-name allowlist across revisions -- only the exact form is writable. Reject only when the scope is broader than the sentence supports, when the limitation is missing, or when the choice can materially change issue validity.
+Cardinality and scope: when the NL gives a number of areas/states but does not name the members, accept an exact count scoped to the composite the NL names, carrying the limitation that the count excludes converter-inserted substates (the predicate drops them). Do not alternately demand >=N, exactly N, and an invented exact-name allowlist across revisions -- only the exact form is writable. Reject only when the scope is broader than the sentence supports, when the limitation is missing, or when the choice can materially change issue validity.
 
 Limitation non-waiver: reject any script that explicitly identifies a material source, trigger, destination, hierarchy, or effect mismatch but turns it into a passing broad-presence assertion or accepts it merely because the limitation is described. The exact mismatch must be testable and must evaluate False when present. A primary must be anchored where the sentence is anchored. If the sentence is about a running machine, a primary bound to the initial configuration answers a different question, and its answer says nothing about the obligation the sentence states -- whichever way it comes out. A structural locator alongside a behavioural primary is welcome as `supporting`, but a supporting False cannot open an issue, so it never stands in for the primary. Disclosed limitations may bound evidence strength, but may not erase a repair-relevant contradiction.
 
-Cardinality evidence gate: `cardinality` is exact and no at-least form exists, so do not ask for one. What to require instead: the scope must be the composite the NL names, and `limitations` must state that the count includes converter-generated substates. Reject a count whose scope is broader than the sentence supports, and reject one with no such limitation -- without it a reader cannot tell a disagreement about the author's states from one about the converter's.
+Cardinality evidence gate: `cardinality` is exact and no at-least form exists, so do not ask for one. What to require instead: the scope must be the composite the NL names, and `limitations` must state that the count excludes converter-inserted substates. Reject a count whose scope is broader than the sentence supports, and reject one with no such limitation -- without it a reader cannot tell a disagreement about the author's states from one about the converter's.
 
 Multi-step response gate: reject a default `within_cycles` when the declared path from source to target runs through an intermediate state -- an eventless completion edge, a forced transition, or a parent-level follow-up routed on a converter token. Name the number of declared edges and require `within_cycles` to be at least that. A False produced by too small a horizon is a bounded artifact, not a defect, and publishing one is the failure this gate exists to stop. The relation assertion may verify the actual event-bearing edge, but must not require a nonexistent direct edge to the final target.
 
@@ -269,23 +268,34 @@ the answer:
   `event_consumed(source=<that scope>, trigger=<the event>)`. Its False is the finding --
   a scope that declares no transition taking that event cannot be conditioning anything
   on it, which is precisely what "becomes active only when" forbids.
-  **`source` is X itself** -- the composite whose entry the sentence conditions -- and one
-  requirement is enough. Do not bind `"[*]"`: the pseudo-initial anchors the claim before
-  the machine has entered anything, so it answers a cold-start question instead of the
+  **`source` is X itself** -- the composite whose entry the sentence conditions. The three
+  restrictions below scope THIS Requirement only; they say nothing about what else the
+  sentence may owe. Do not bind `"[*]"` **on this one**: the pseudo-initial anchors the claim
+  before the machine has entered anything, so it answers a cold-start question instead of the
   conditional-entry one, and a model that activates X unconditionally comes back satisfied
   for a reason the sentence never raised. Do not bind a region or substate *inside* X
   either: an inner scope may well consume the event while X's own entry stays
   unconditional, so an inner binding comes back True and hides exactly the defect.
-  A reachability check (`occupancy_after`, `reaches`) is the wrong primary here -- it asks
-  whether the run gets to X, which is true of both the compliant and the unconditional
-  model. Record the scope choice in `limitations`.
+  `reaches` is the wrong primary **for this Requirement** -- it ignores triggers, so it asks
+  whether the run gets to X at all, which is true of both the compliant and the unconditional
+  model. That restriction does not extend to `occupancy_after`: that one takes the trigger and
+  verifies it was consumed, so it asks the conditional question, not a reachability one.
+  Record the scope choice in `limitations`.
+  ⚠️ And when the sentence needs X to be enterable at all, that is a SEPARATE claim which this
+  rule does not forbid: write `reaches(source="[*]", target=X)` as its own Requirement. "The
+  entry is not conditioned on E" and "X can never be entered" are two different findings, and
+  the second is the stronger one -- the predicates above cannot express it, because they raise
+  or come back vacuous when X is unreachable.
   That sentence owes a **second, separate** Requirement as well: becoming active on the
   trigger means being *inside* X once it arrives, so add
   `stays_in(source=X, trigger=<the event>)`. Its False is the finding -- the run leaves X's
   scope on that event, so nothing the sentence says happens within X can hold. The two are
-  independently violable and must not be merged: a scope can consume the event and still
-  exit, or never consume it while nominally remaining. `stays_in` refuses an inner composite
-  outright, so bind X and there is no scope choice to get wrong. This second one is what
+  independently violable in one direction: a scope can consume the event and still exit.
+  (The reverse does not hold -- `stays_in` itself requires the trigger be consumed, so its
+  False adds nothing new when the parent is already False.)
+  ⚠️ `stays_in` **refuses any composite**, not merely an inner one. When X is a composite --
+  which it is in most conditional-activation sentences -- bind this second Requirement to the
+  declared entry leaf of X, not to X; binding X makes the assertion raise instead of answer. This second one is what
   catches a composite whose children are declared elsewhere, or whose entries point outside
   its own scope -- the declaration reads fine and the run still exits.
   Like the entry obligation below, this second Requirement is entailed by the first rather than
@@ -297,10 +307,13 @@ the answer:
 you emit carries that segment's obligation** -- a deterministic check rejects the set if any
 `covered` segment has no requirement listing it in `source_segment_ids`. So mark it truthfully:
 
-- `out_of_scope` when the sentence is about **clocks, timing constraints, invariants, or
-  concurrent orthogonal regions**. The modelling object is $M = (S, E, V, Tr, A)$ -- states,
-  events, variables, transitions, actions -- and those four are outside it. The closed vocabulary
-  cannot express them, so forcing a Requirement there produces an unsourced obligation that the
+- `out_of_scope` when the sentence is about **clock variables, real-time constraints, timed
+  state invariants (the $Inv$ of a timed automaton), or concurrent orthogonal regions**. The
+  modelling object is $M = (S, E, V, Tr, A)$ -- states, events, variables, transitions, actions
+  -- and those four are outside it. ⚠️ This does NOT cover untimed always/never safety
+  properties, nor step-bounded response obligations: those are `invariant`, `persists_until` and
+  `response_within`, which are in the closed vocabulary. Only the clock-bearing forms are out of
+  scope. The closed vocabulary cannot express the clock-bearing forms, so forcing a Requirement there produces an unsourced obligation that the
   reviewer will rightly reject, and the round is spent for nothing. This is the correct verdict,
   not a retreat.
 - `ambiguous` when the wording genuinely admits several readings and you decline to pick one --
@@ -544,10 +557,6 @@ Binding v2 adjudication contract: a False assertion whose role is `primary` or `
 # pyfcstm ships checksum-verified, LLM-targeted guides for exactly this; not
 # using them was the gap. They go in the *system* prompt because that text is
 # stable across revisions and therefore fully prompt-cacheable.
-from pyfcstm.llm.fbmcq import (  # noqa: E402
-    get_fbmcq_language_guide_prompt_for_llm,
-    get_fbmcq_language_guide_prompt_metadata_for_llm,
-)
 from pyfcstm.llm.fcstm import (  # noqa: E402
     get_grammar_guide_prompt_for_llm,
     get_grammar_guide_prompt_metadata_for_llm,
@@ -556,9 +565,9 @@ from pyfcstm.llm.fcstm import (  # noqa: E402
 # raise_on_integrity_error stays True: a checksum mismatch means the frozen
 # language contract is not what the run record will claim it was, and that is a
 # reproducibility failure, not something to degrade past silently.
-FBMCQ_LANGUAGE_GUIDE = get_fbmcq_language_guide_prompt_for_llm(
-    raise_on_integrity_error=True
-)
+# FBMCQ_LANGUAGE_GUIDE 已删除（2026-08-09）。它 27,747 字符，**未被注入任何阶段** —— 断言里
+# 的有界查询由谓词内部构造，producer 没有任何函数可以把查询串传进去。留着它唯一的作用是让
+# `guide_provenance()` 声称展示过一份从未展示的语言合同，按 CLAUDE.md §6 属证据链失真。
 FCSTM_GRAMMAR_GUIDE = get_grammar_guide_prompt_for_llm(raise_on_integrity_error=True)
 
 
@@ -570,23 +579,14 @@ def guide_provenance() -> dict[str, object]:
     """
 
     return {
-        "fbmcq_language_guide": dict(
-            get_fbmcq_language_guide_prompt_metadata_for_llm()
-        ),
         "fcstm_grammar_guide": dict(get_grammar_guide_prompt_metadata_for_llm()),
     }
 
 
-# What the guide cannot say about itself: FBMCQ's observation surface is
-# active/terminated/event/case/called/call_count plus typed variables over
-# bounded traces.  The word "guard" does not occur anywhere in the 544-line
-# guide, and pair 0029 burned 1.6M tokens across two models trying to make a
-# bounded trace query decide a guard-overlap proposition.
-FBMCQ_CAPABILITY_BOUNDARY = """
-FBMCQ capability boundary: FBMCQ observes state activity, termination, events, public cases, action calls and typed variables over bounded execution traces. It cannot observe guard expressions, transition syntax, or the transition relation itself, and it cannot quantify over anything that is not an execution. If a claim is about how the model is written -- containment, initial targets, which source/event/target edges exist, whether two guards overlap, which effects a transition declares -- then the structure/relation/effect API decides it and FBMCQ does not. Use `conflicting_targets(source=..., event=...)` for guard indistinguishability; it already ranges over every valuation and refuses to answer rather than guessing. Bounded formal evidence is also not free: the property build is exponential in the bound over a dense transition relation, so choose the smallest bound the claim actually needs.
-Non-vacuity: an assertion whose truth value cannot change when the defect is present is not evidence. In particular, two states can only be active at the same time when one contains the other -- this notation has no orthogonal regions, so exactly one leaf is active and the active set is the chain from the root down to it. A query of the form `!(active(A) && active(B))` is therefore vacuously true whenever neither of A and B is an ancestor of the other, whether they are siblings of one region or sit in different branches entirely, and it proves nothing. When a requirement names a trigger event, the bounded query must mention that event; a bare reachability probe of some state is not causal evidence for it.
-"""
-
+# FBMCQ_CAPABILITY_BOUNDARY 已删除（2026-08-09）。它同样未被注入任何阶段，且其中写的
+# `conflicting_targets(source=..., event=...)` 是早已改名的谓词（现为 `guard_distinguishable`）——
+# 一份不会被读到、内容还过期的参考，只会被后人复制。它要表达的能力边界现由
+# `PREDICATE_EVIDENCE_BOUNDARY` 承担，那一份是真的注入了的。
 PREDICATE_EVIDENCE_BOUNDARY = """
 Evidence boundary. Each predicate already knows which evidence decides it, so you never choose a family. What still matters is what the underlying evidence can and cannot see.
 
