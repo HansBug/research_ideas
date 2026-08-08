@@ -75,7 +75,7 @@ Context and containment review: do not accept a split that turns behavior stated
 """
 
 ASSERTION_CONVERTER_PROMPT = """You are the Assertion Converter.
-Compile every accepted requirement into one or more independently executable Python assertions over the documented frozen evidence API. The evidence family is not yours to choose: each predicate carries the family the controller then requires, so emit the one its vocabulary entry states. The five that predicates produce are structure, relation, effect, simulation and fbmcq. `effect_declared` is the direct declared-effect evidence and `variable_delta_after` the runtime one; a structural locator alone is only complementary. If the NL supplies an exact model variable identifier, query only that declaration; do not substitute another variable. If the NL describes a quantity but does not supply an identifier, never enumerate candidate variable names hoping one matches: use the name the Requirement proposes, asserted as a `precondition` and depended on, as described below. Compiler route-control variables frozen in source exclusions are omitted automatically. Never use a compiler-generated or source-trace-excluded route-control variable as a proxy for a semantic quantity. When the claim is specifically about runtime response under a condition/event and the model exposes the relevant operational behavior, use hot-start simulation or a causal FBMCQ query as stronger evidence. You do not build cycle plans: the predicate does that. Your only horizon knob is `within_cycles` on `occupancy_after` and `reaches`, and `bound` on the Family P predicates. State the finite scope and do not present a bounded result as a global behaviour proof. For a state-agnostic event, cover the relevant sources explicitly -- one assertion per source -- or choose a bounded formal query.
+Compile every accepted requirement into one or more independently executable Python assertions over the documented frozen evidence API. The evidence family is not yours to choose: each predicate carries the family the controller then requires, so emit the one its vocabulary entry states. The five that predicates produce are structure, relation, effect, simulation and fbmcq. `effect_declared` is the direct declared-effect evidence and `variable_delta_after` the runtime one; a structural locator alone is only complementary. If the NL supplies an exact model variable identifier, query only that declaration; do not substitute another variable. If the NL describes a quantity but does not supply an identifier, never enumerate candidate variable names hoping one matches: use the name the Requirement proposes, asserted in a `supporting` assertion (NOT a `precondition`: a false precondition makes the controller skip the primary, so the missing element becomes the reason the real question is never asked). Compiler route-control variables frozen in source exclusions are omitted automatically. Never use a compiler-generated or source-trace-excluded route-control variable as a proxy for a semantic quantity. When the claim is specifically about runtime response under a condition/event and the model exposes the relevant operational behavior, use hot-start simulation or a causal FBMCQ query as stronger evidence. You do not build cycle plans: the predicate does that. Your only horizon knob is `within_cycles` on `occupancy_after` and `reaches`, and `bound` on the Family P predicates. State the finite scope and do not present a bounded result as a global behaviour proof. For a state-agnostic event, cover the relevant sources explicitly -- one assertion per source -- or choose a bounded formal query.
 	Revision discipline is mandatory. Use quoted, complete literal paths from `declared_model_vocabulary` directly; do not introduce aliases or bare Python names as arguments. When a requirement states that an event causes a target, preserve the exact declared event in the predicate's `trigger` binding; do not broaden by omitting it. If the model exposes one combined event for a natural-language conjunction or disjunction, use that exact declared event and state the representation limitation; do not invent separate atomic events from punctuation or an opaque label. Do not use a synthetic root or completion holder as a source/target proxy unless the input explicitly names that scope. When revision feedback identifies an invalid assertion, change that assertion's expression and retain valid unaffected assertions; do not repeat the same failing expression under a new id.
 Each assertion expression must return a strict bool and call the evidence family declared by evidence_family. Missing required model behavior should evaluate False, not raise through unsafe indexing. Every assertion needs a globally unique AST-<REQ-suffix>-<ordinal> id, maps to exactly one REQ, and has a literal failure_message beginning with [REQ-...][AST-...]. The message states which positive requirement is contradicted without inventing a root cause. Every Requirement must have at least one assertion and requirement_mapping must be complete. Before returning, cross-check every assertion's requirement_id, AST id, failure-message prefix, and requirement_mapping entry against the exact requirement it operationalizes; never copy a neighboring requirement's id or message prefix when revising one assertion.
 Mandatory event-response gate: a requirement is not an initialization claim merely because its source state is omitted. A cold-start witness is valid only when the accepted requirement or its NL-grounded source_context identifies initialization. For an operation, termination, or unspecified-phase event response, use source-compatible hot-start evidence or a causal bounded formal check, and inspect the exact transitions that carry the declared event. Include complementary relation evidence that can become False when the event is attached only to an initialization-only, unrelated, or wrong-scope source. An `edge_declared` binding that omits the source is not expressible -- the predicate requires all three -- so source placement is always part of the claim.
@@ -222,8 +222,22 @@ This scan is for a substate the sentence identifies as a place the machine can b
 phrase that means termination itself -- "the final state", "the run ends" -- is step 1 and
 has no name to propose.
 
-**Run the same scan for events and for variables.** The comparison, the verdict and the
-obligation are identical in shape; only the vocabulary list and the predicate change:
+**Record the whole scan in `named_elements`, and run it for events and variables too.**
+`named_elements` is a required tabulation, one row per element the sentence names:
+
+    {"kind": "state"|"event"|"variable",
+     "name_in_sentence": "<the sentence's own wording, verbatim>",
+     "proposed_path": "<root>.<Name>"   (bare name for a variable),
+     "declared_match": "<the declared path whose LAST SEGMENT equals yours>" or null}
+
+Filling it **is** the scan, and it fixes the direction: you enumerate what the sentence names
+and look each one up, never the reverse. `declared_match: null` is a finding, and a
+deterministic check requires an existence Requirement for every such row -- an element the
+specification names and the model lacks is a defect on its own, separately from whatever the
+sentence goes on to say about it.
+
+The comparison, the verdict and the obligation are identical in shape across kinds;
+only the vocabulary list and the predicate change:
 
 | what the sentence names | compare against | where none matches, emit |
 |---|---|---|
@@ -465,11 +479,11 @@ their False *is* the finding.
 
 
 A name proposed under step 4 is an ordinary binding value, not a special case.
-The Assertion Converter asserts its existence as a `precondition` and makes the
-real claim depend on it, so the obligation stays checkable from end to end: the
-precondition reports the absence, the claim resting on it is recorded as blocked
-rather than passed, and a repair stage receives a named element to add plus two
-verdicts to re-verify against.
+The Assertion Converter asserts its existence in a `supporting` assertion and keeps the
+real claim independent of it, so the obligation stays checkable from end to end: the
+supporting assertion reports the absence, the primary still runs and reports its own
+verdict, and a repair stage receives a named element to add plus two verdicts to
+re-verify against.
 
 - `source_context`: always emit it, with `basis` and `behavior_phase`. `behavior_phase` is one of `structure` (a claim about what the model contains), `initialization` (power-on, first entry), `operation` (the machine already running) or `termination` (the run ending). It is not decoration: `[*]` as a `source` or `scope` is only accepted when `behavior_phase` is `initialization`, because anchoring any other phase before the machine has entered anything asks a different question -- and if the model happens to be wrong in that configuration, the answer comes back true for a reason the sentence never asked about. Leaving the field out is treated as "not initialization".
 - `verification_kind`: still emit it, but it is derived from the predicate and will be overwritten if it disagrees. Do not spend effort on it.

@@ -59,6 +59,7 @@ from .predicates import (
 __all__ = [
     "EvidenceCapability",
     "missing_presupposition_findings",
+    "unmatched_named_element_findings",
     "short_circuited_primary_findings",
     "condition_non_vacuity_findings",
     "CONDITION_BINDINGS",
@@ -1561,6 +1562,60 @@ def _unconditional_call_names(node: ast.AST) -> set[str]:
             names |= _unconditional_call_names(element)
         return names
     return set()
+
+
+_KIND_TO_EXISTENCE = {
+    "state": "state_declared",
+    "event": "event_declared",
+    "variable": "variable_declared",
+}
+
+
+def unmatched_named_element_findings(requirement_set: Any) -> tuple[str, ...]:
+    """Elements the sentence names, the model does not declare, and nobody asserted.
+
+    `named_elements` records the diff in a typed slot; this closes it.  Every entry whose
+    `declared_match` is null is a missing element by the producer's own tabulation, and a
+    missing element the specification names is a finding on its own -- so it owes an existence
+    Requirement bound to the proposed name.
+
+    Why the check and not just the field: v40 put the same rule in prose and measured the
+    result -- `event_declared` went from 4/36 to 23/35 cells but its calls stayed at 110 True
+    against 17 False, because the producer wrote the predicate on names the model already
+    declares.  The field records which side of the diff each name is on; this finding makes the
+    null side load-bearing.
+
+    provenance: IEEE 29148-2018 §5.2（规范点名的要素构成独立义务）。
+
+    :param requirement_set: the produced `RequirementSet`.
+    :return: one finding per unmatched element with no existence Requirement.
+    """
+
+    named = tuple(getattr(requirement_set, "named_elements", ()) or ())
+    if not named:
+        return ()
+    covered: set[tuple[str, str]] = set()
+    for requirement in getattr(requirement_set, "requirements", ()) or ():
+        predicate = str(getattr(requirement, "predicate", "") or "")
+        if predicate not in set(_KIND_TO_EXISTENCE.values()):
+            continue
+        for value in (getattr(requirement, "predicate_bindings", {}) or {}).values():
+            covered.add((predicate, str(value)))
+    findings: list[str] = []
+    for element in named:
+        if getattr(element, "declared_match", None):
+            continue
+        predicate = _KIND_TO_EXISTENCE[str(element.kind)]
+        if (predicate, str(element.proposed_path)) in covered:
+            continue
+        findings.append(
+            f"named_elements records {element.name_in_sentence!r} as a {element.kind} the "
+            f"sentence names with no declared counterpart, but no Requirement asserts it: add "
+            f"{predicate}(...) bound to {element.proposed_path!r}. Its False IS the finding -- "
+            "an element the specification names and the model lacks is a defect on its own, "
+            "separately from whatever the sentence goes on to say about it."
+        )
+    return tuple(findings)
 
 
 def missing_presupposition_findings(

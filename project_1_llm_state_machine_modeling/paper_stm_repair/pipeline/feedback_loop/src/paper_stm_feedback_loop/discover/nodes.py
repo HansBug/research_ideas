@@ -49,6 +49,7 @@ from .capability import (
     entry_disjunction_findings,
     missing_presupposition_findings,
     short_circuited_primary_findings,
+    unmatched_named_element_findings,
     orphaned_covered_segments,
     termination_proposal_findings,
     condition_non_vacuity_findings,
@@ -1465,6 +1466,11 @@ def split_requirements(
                 lambda: trigger_consuming_predicate_findings(output.requirements, known_paths),
             ),
         )
+        # named_elements 是生产者自己填的比对表；表里说「模型没有这个元素」却又不为它写义务，
+        # 是自陈矛盾，不是判断分歧。这类**致命**：它不要求模型多想，只要求它跟自己一致。
+        unmatched = unmatched_named_element_findings(output)
+        if unmatched:
+            raise ValueError("; ".join(unmatched))
         active_step_gates = tuple(name for name, _ in gates if not _ablated(name))
         # 逐门归因，不是一锅 finding。v37 实测：861 份需求集快照里 167 份发生隔离、覆盖 66 个
         # cell，而在 19,893 个 run 文件里 grep 这十道门的消息签名，**七道命中 0 个文件** ——
@@ -1968,7 +1974,9 @@ def convert_assertions(
                     f"assertion {assertion.assertion_id} binds {list(placeholders)}. A "
                     "placeholder states a fact about the requirement, not a check: "
                     "nothing can be looked up under it. Give the missing element a "
-                    "proposed name, assert its existence as a `precondition`, and "
+                    "proposed name, assert its existence in a `supporting` assertion "
+                    "(NOT a `precondition`: a false precondition makes the controller skip "
+                    "the primary), and "
                     "have this assertion depend on it (issue #170 §11.2)"
                 )
             mapped_by_assertions[assertion.requirement_id].add(assertion.assertion_id)
@@ -2017,9 +2025,12 @@ def convert_assertions(
                 "element matches nothing and passes, hiding the defect it was meant "
                 "to test. If the requirement genuinely needs an element this model "
                 "lacks, do not drop it and do not rename it to something that happens "
-                "to exist: assert the missing element's existence in a `precondition` "
-                "under the same proposed name, and list that precondition in the "
-                "depends_on of every assertion that needs it"
+                "to exist: assert the missing element's existence under the same proposed "
+                "name in a `supporting` assertion, and keep the primary independent of it. "
+                "⚠️ Do NOT make it a `precondition`: a precondition that comes back False "
+                "makes the controller skip the primary, so the missing element becomes the "
+                "reason the real question is never asked -- v37 has 135 primaries that were "
+                "never asked for exactly that reason"
             )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
@@ -2043,7 +2054,9 @@ def convert_assertions(
                 raise ValueError(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion. A term the model lacks is no exception: give "
-                    "it a proposed name, assert its existence as a `precondition`, "
+                    "it a proposed name, assert its existence in a `supporting` assertion "
+                    "(NOT a `precondition`: a false precondition makes the controller skip "
+                    "the primary), "
                     "and let the primary depend on that"
                 )
             # Gate D (issue #170 C3): the named predicate fixes which procedure

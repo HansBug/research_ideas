@@ -536,6 +536,39 @@ class Requirement(StrictBaseModel):
         return value
 
 
+class NamedElement(StrictBaseModel):
+    """One element the NL names, and whether the model declares it.
+
+    ## 为什么这是字段而不是散文
+
+    v37 的最大单项损失是需求层没形成义务：135 个未命中位（占全部未命中的 39%）的台账谓词
+    从未被写进需求集，其中事件类 37 位。v40 把「差集扫描」写成散文后，`event_declared` 的
+    形成格数从 4/36 涨到 23/35，**但调用真值是 110 True / 17 False** —— 模型开始写它了，
+    却仍绑在制品已声明的名字上，那种检查按构造只能为真。`event_consumed` 更彻底：跨两代
+    102 次调用，False 恒为 0。
+
+    本仓库对同一现象有可复算的度量：落在 typed 槽位的规则遵守率 96–100%（`strategies`
+    11,826/11,842；`nl_parent` 1,489/1,489），落在 free-text 里当协议用的 25–38%
+    （`incumbent considered:` 305/803）。散文说不动的事，槽位能。
+
+    所以枚举**方向**在这里被做成结构：`name_in_sentence` 必填，`declared_match` 是比对结果
+    而不是选择。填这张表就是在做「句子点名了什么 → 模型有没有」，而不是反过来。
+
+    provenance: IEEE 29148-2018 §5.2 —— 规范点名的每个要素构成一条独立于其行为的义务；
+    形式语义中的预设（presupposition）。
+    """
+
+    schema_name: Literal["NamedElement"] = "NamedElement"
+    kind: Literal["state", "event", "variable"]
+    #: 句子里的原措辞，逐字。不是路径，不做规范化 —— 它是「谁点的名」的证据。
+    name_in_sentence: str = Field(min_length=1)
+    #: 该措辞规范化后应有的路径/名字：state 与 event 用 `<root>.<name>`，variable 用裸名。
+    proposed_path: str = Field(min_length=1)
+    #: `declared_model_vocabulary` 里**末段精确相等**的那一条；没有则 null。
+    #: null 就是发现：句子点了名而模型没有它。
+    declared_match: str | None = None
+
+
 class RequirementSet(StrictBaseModel):
     schema_name: Literal["RequirementSet"] = "RequirementSet"
     schema_version: Literal["v2"] = SCHEMA_VERSION
@@ -548,6 +581,10 @@ class RequirementSet(StrictBaseModel):
             "consumes the repair budget without changing anything."
         ),
     )
+    #: 句子点名的每一个 state / event / variable，以及它在 declared vocabulary 里的比对结果。
+    #: `declared_match is None` 的每一项都欠一条对应的 `*_declared` Requirement —— 由
+    #: `capability.unmatched_named_element_findings` 机械检查，不靠自觉。
+    named_elements: tuple[NamedElement, ...] = Field(default_factory=tuple)
     requirements: tuple[Requirement, ...] = Field(
         min_length=1,
         description=(

@@ -110,10 +110,22 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
     # Not guessing is only half the rule: the producer still owes a check, so the
     # prompt has to say where the name comes from instead.  Left at "do not
     # guess", the item has no legal move and burns its repair budget.
+    #
+    # 2026-08-09: the carrier changed from `precondition` to `supporting`.  A false
+    # precondition makes the controller skip the primary -- v37 has 135 primaries that
+    # were never asked for exactly that reason, so the missing element became the reason
+    # the real question went unasked.  The four places that said `precondition` are now
+    # one message; this asserts the new one and that the old one is gone everywhere.
     assert (
-        "use the name the Requirement proposes, asserted as a `precondition`"
+        "use the name the Requirement proposes, asserted in a `supporting` assertion"
         in prompts.ASSERTION_CONVERTER_PROMPT
     )
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.REQUIREMENT_SPLITTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
+        assert "as a `precondition`" not in prompt
     # Case-insensitive: the sentence moved and its first word is now capitalised.
     # The rule is what matters, not where in the paragraph it sits.
     assert (
