@@ -97,7 +97,15 @@ def _table(header: list[str], rows: list[list[str]]) -> str:
     return "\n".join(align)
 
 
-def _ratios(verdicts: dict, ids: list[str]) -> dict:
+def _ratios(verdicts: dict, ids: list[str], rounds: int) -> dict:
+    """`hit@k` 三口径。`rounds` 不是可选的 —— 见 `atall` 那行。
+
+    `all(valid)` 在丢掉 `None` 之后回答的是「我观测到的那几轮都命中吗」，不是
+    「三轮都命中吗」。v37 有一格耗尽重试没落盘，那个单元只剩两轮、两轮都中，于是
+    被计成三轮全中，`hit@all` 报成 73/198 而真值是 72/198。缺测越多这个数字越好看，
+    方向恰好是错的，所以判据必须同时约束元数与谓词。
+    """
+
     triples = hits = items = at3 = atall = 0
     for record_id in ids:
         for _arm, series in mk._arms(verdicts[record_id]).items():
@@ -108,7 +116,7 @@ def _ratios(verdicts: dict, ids: list[str]) -> dict:
             triples += len(valid)
             hits += sum(valid)
             at3 += 1 if any(valid) else 0
-            atall += 1 if all(valid) else 0
+            atall += 1 if len(valid) == rounds and all(valid) else 0
     if not items:
         return {}
     return {
@@ -158,7 +166,7 @@ def render(payload: dict, generation: str, rounds: int) -> str:
 
     out.append(f"\n## {BAND_TITLES['hold'].format(n=len(bands['hold']))}\n")
     out.append(_table(header, _rows(verdicts, bands["hold"], ledger, rounds)))
-    ratios = _ratios(verdicts, bands["hold"])
+    ratios = _ratios(verdicts, bands["hold"], rounds)
     if ratios:
         out.append("\n" + " · ".join(f"**{k}** {v}" for k, v in ratios.items()) + "\n")
 

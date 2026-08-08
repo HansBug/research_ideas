@@ -327,7 +327,15 @@ def ratio_gate(ids: list[str], positions: int, band: str = "all",
     return failed
 
 
-def report_band(verdicts: dict, ids: list[str], name: str) -> None:
+def report_band(verdicts: dict, ids: list[str], name: str, rounds: int) -> None:
+    """`rounds` 不是可选的 —— 见 `all_hit` 那行。
+
+    `all(valid)` 在丢掉 `None` 之后回答的是「我观测到的那几轮都命中吗」，不是
+    「三轮都命中吗」。一个只跑了两轮、两轮都中的单元会被计成三轮全中：缺测越多这个
+    数字越好看，方向恰好是错的。下面 `len(valid) < 2` 那句只是把 n=1 标注出来，并
+    没有把它挡在 `atall` 之外，所以 arity 必须在计数处约束。
+    """
+
     if not ids:
         return
     triples = hits = items = at3 = atall = 0
@@ -344,7 +352,7 @@ def report_band(verdicts: dict, ids: list[str], name: str) -> None:
             triples += len(valid)
             hits += sum(valid)
             any_hit = 1 if any(valid) else 0
-            all_hit = 1 if all(valid) else 0
+            all_hit = 1 if len(valid) == rounds and all(valid) else 0
             at3 += any_hit
             atall += all_hit
             per_arm[arm][0] += sum(valid)
@@ -496,9 +504,9 @@ def main(argv: list[str] | None = None) -> int:
     bands: dict[str, list[str]] = collections.defaultdict(list)
     for record_id in verdicts:
         bands[band_of(record_id)].append(record_id)
-    report_band(verdicts, bands["hold"], "HOLD-OUT（能力主张的唯一依据）")
-    report_band(verdicts, bands["burned"], "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）")
-    report_band(verdicts, bands["hist"], "历史格（共同演化观测，不作能力主张）")
+    report_band(verdicts, bands["hold"], "HOLD-OUT（能力主张的唯一依据）", args.rounds)
+    report_band(verdicts, bands["burned"], "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）", args.rounds)
+    report_band(verdicts, bands["hist"], "历史格（共同演化观测，不作能力主张）", args.rounds)
     report_over(over)
     for record_id, why in BLOCKED.items():
         if record_id in verdicts:

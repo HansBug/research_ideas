@@ -71,7 +71,14 @@ def _kappa(pairs: list[tuple[int, int]]) -> tuple[float, float, float]:
     return po, pe, kappa
 
 
-def _hit_at_k(series_by_unit: dict[str, list], units: list[str]) -> dict:
+def _hit_at_k(series_by_unit: dict[str, list], units: list[str], rounds: int) -> dict:
+    """`rounds` 不是可选的 —— 见 `atall` 那行。
+
+    `all(series)` 在丢掉 `None` 之后回答的是「我观测到的那几轮都命中吗」，不是
+    「三轮都命中吗」。一个只跑了两轮、两轮都中的单元会被计成三轮全中：缺测越多
+    这个数字越好看，方向恰好是错的。判据必须同时约束元数与谓词。
+    """
+
     hits = triples = at3 = atall = items = 0
     for unit in units:
         series = [x for x in (series_by_unit.get(unit) or []) if x is not None]
@@ -81,7 +88,7 @@ def _hit_at_k(series_by_unit: dict[str, list], units: list[str]) -> dict:
         triples += len(series)
         hits += sum(series)
         at3 += 1 if any(series) else 0
-        atall += 1 if all(series) else 0
+        atall += 1 if len(series) == rounds and all(series) else 0
     if not items:
         return {}
     return {
@@ -91,7 +98,7 @@ def _hit_at_k(series_by_unit: dict[str, list], units: list[str]) -> dict:
     }
 
 
-def analyse(blind_paths: list[pathlib.Path], key_path: pathlib.Path) -> dict:
+def analyse(blind_paths: list[pathlib.Path], key_path: pathlib.Path, rounds: int = 3) -> dict:
     blind: dict[str, list] = {}
     for path in blind_paths:
         overlap = set(blind) & set(_load_blind(path))
@@ -163,9 +170,12 @@ def analyse(blind_paths: list[pathlib.Path], key_path: pathlib.Path) -> dict:
         "hit_at_k": {
             band: {
                 "as_judged": _hit_at_k(
-                    orig_by_unit, [u for u, i in items.items() if i["band"] == band]),
+                    orig_by_unit,
+                    [u for u, i in items.items() if i["band"] == band], rounds),
                 "blind": _hit_at_k(
-                    blind, [u for u, i in items.items() if i["band"] == band and u in blind]),
+                    blind,
+                    [u for u, i in items.items() if i["band"] == band and u in blind],
+                    rounds),
             }
             for band in sorted({i["band"] for i in items.values()})
         },
@@ -184,10 +194,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="一份或多份盲判结果 json（拆份时给多个）")
     parser.add_argument("--key", type=pathlib.Path,
                         default=HERE / "blind_sample" / "key.json")
+    parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
-    result = analyse(args.blind, args.key)
+    result = analyse(args.blind, args.key, args.rounds)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=1))
         return 0
