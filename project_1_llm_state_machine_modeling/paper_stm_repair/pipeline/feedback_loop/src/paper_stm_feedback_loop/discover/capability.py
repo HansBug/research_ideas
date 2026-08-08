@@ -41,7 +41,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Protocol
+from typing import Any, Iterable, Mapping, Protocol
 
 from paper_stm_feedback_loop.assertions.predicate_api import (
     PSEUDO_INITIAL,
@@ -1411,6 +1411,59 @@ def derivation_contract_findings(
                 f"source."
             )
     return tuple(findings)
+
+
+def orphaned_covered_segments(
+    disposition: Mapping[str, str],
+    requirements: Iterable[_RequirementSpec],
+) -> tuple[str, ...]:
+    """标为 `covered` 却没有任何需求承接的 NL 段。
+
+    ## 这是一个不变量，它有两个被破坏的时点
+
+    `segment_disposition` 的 description 逐字写着「`covered` asserts that some Requirement here
+    carries that segment's obligation」，`source_segment_ids` 的 description 也写着「every segment
+    you mark `covered` … must be listed by at least one requirement here」。契约是断言式的。
+
+    它能在两个地方被破坏：
+
+    1. **生产者自己标错** —— 发出的集合本身不一致。
+    2. **门的局部隔离摘掉了唯一承接者** —— 集合原本一致，隔离后不再一致。
+
+    v37 实测：61 份需求集快照里 14 份有孤立段，**全部**伴随隔离；「孤立且无隔离」为 **0**。
+    也就是说第 1 类在 v37 一次都没发生，全部来自第 2 类 —— 而上一代次只修了第 1 类。
+
+    后果两种，都实测过：
+
+    - **沉默漏检。** v36 `run1/0000-claude` 把 `NL-M006`（power off → final state）标 `covered`
+      却无承接，于是 `coverage_status` 报 `full`、裁决说「All released assertions evaluated True」、
+      零 issue —— 读起来像一次干净的完整通过。该格在上一代次是命中的。
+    - **修订锁死直至丢格。** 评审发现它时给出的 finding 说「缺了一条需求」，而那**归责不到任何
+      requirement id**，于是预算耗尽后隔离机制无人可摘、整格致命。v37 `run1/0057-gpt` 六次尝试
+      全撞这一处，耗尽 `MAXTRY=6` —— 本项目已知的第一次丢格，`EIS-0057-01` 因此只有 5 位。
+
+    ## 为什么是一个谓词、两处调用
+
+    上一代次我在两个时点各打了一个补丁，第三条路径随即复发（同一个格连续三代次同根因）。
+    所以规则只有这一处定义；调用点是「已接受集合发生变化」的地方，那是可穷举的，
+    而不是「我想到的地方」。处置按语境不同（契约拒绝 vs 并进修订反馈），但判据同一份。
+
+    :param disposition: `segment_disposition`，段 id -> 四种取值之一。
+    :param requirements: 已接受的需求集。
+    :return: 孤立的段 id，升序。
+    """
+
+    listed: set[str] = set()
+    for requirement in requirements:
+        for segment in getattr(requirement, "source_segment_ids", None) or ():
+            listed.add(str(segment))
+    return tuple(
+        sorted(
+            segment
+            for segment, verdict in (disposition or {}).items()
+            if str(verdict) == "covered" and str(segment) not in listed
+        )
+    )
 
 
 #: 投影插入元素的名族。`exclusion_roles` 是更准的来源，但断言层拿不到 working contract，

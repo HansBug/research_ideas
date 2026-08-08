@@ -586,6 +586,19 @@ class RequirementCoverageProjection(StrictBaseModel):
     missing_segment_ids: tuple[str, ...] = Field(default_factory=tuple)
     accepted_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
     quarantined_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
+    orphaned_covered_segment_ids: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "Segments still marked `covered` whose only carrier was quarantined by a gate in this "
+            "same step. They are **not** producer error -- the emitted set was consistent, and the "
+            "quarantine made it inconsistent. Nothing re-marks them automatically: a segment "
+            "silently changed to `context` would erase the record that it was ever claimed "
+            "covered, and choosing the right verdict is a semantic judgement the pipeline must not "
+            "make for the producer. So the fact is recorded here for the reviewer to act on -- "
+            "either a requirement is added back that carries the obligation, or the segment is "
+            "re-marked to what it really is."
+        ),
+    )
 
 
 class CoverageGap(StrictBaseModel):

@@ -47,6 +47,7 @@ from .capability import (
     derivation_contract_findings,
     substituted_binding_findings,
     entry_disjunction_findings,
+    orphaned_covered_segments,
     termination_proposal_findings,
     condition_non_vacuity_findings,
     vacuous_containment_findings,
@@ -1356,18 +1357,12 @@ def split_requirements(
         # 所以在这里查、而不是等评审去查：确定性、发生在生产者仍能修的时候，且消息给出**两条**出路。
         # 只给「补一条需求」会逼它为范围外的段编一个义务 —— 那正是 v36 `run3/0047-gpt` 锁死的样子：
         # 评审要求为一句讲**正交区并发**的 NL 补义务，而并发按建模对象边界不在范围内，六轮必然收敛不了。
-        unbacked = sorted(
-            segment
-            for segment, disposition in output.segment_disposition.items()
-            if disposition == "covered"
-            and not any(
-                segment in (requirement.source_segment_ids or ())
-                for requirement in output.requirements
-            )
+        unbacked = orphaned_covered_segments(
+            output.segment_disposition, output.requirements
         )
         if unbacked:
             raise ValueError(
-                f"segments marked `covered` with no requirement carrying them: {unbacked}. "
+                f"segments marked `covered` with no requirement carrying them: {list(unbacked)}. "
                 "`covered` asserts that some requirement here carries that segment's obligation, "
                 "so each of these must take one of two routes. Either add a requirement whose "
                 "predicate and bindings actually carry the obligation and list the segment id in "
@@ -1521,6 +1516,25 @@ def split_requirements(
             # `quarantined_requirement_ids` 的另一处赋值）。不新开 `_`-前缀 state 键 ——
             # 那会让「哪些需求被丢掉」有两个真源，而审计者只会读其中一个。
             quarantined_requirement_ids=quarantined_requirements,
+            # 同一个不变量的**第二个**被破坏时点。上方那处检查看的是生产者的原始输出，那时承接者
+            # 还在；隔离把它摘掉之后，`segment_disposition` 没人更新。
+            #
+            # v37 实测：61 份需求集快照里 14 份有孤立段，**全部**伴随隔离，「孤立且无隔离」为 0。
+            # 上一代次只修了第一处，于是这条路径一次没被拦住，并在 `run1/0057-gpt` 上耗尽
+            # `MAXTRY=6` 造成本项目已知的第一次丢格。
+            #
+            # ⚠️ 三种处置里选了「记录」：
+            #   硬拒 —— 隔离是正当降级，把它变成致命等于用更坏的结果换坏结果
+            #   自动改标 —— 流水线替生产者做语义判断，且抹掉「该段曾被声称覆盖」这个记录
+            #   记录 —— 评审能看见，且能据此要求**对的**东西（补回承接者或改标），而不是笼统地
+            #            「去覆盖它」；后者正是评审此前反复要求而生产者无从满足、直至预算耗尽的原因
+            #
+            # ⚠️ 也不要试图把它塞进 `step_findings` —— 那个变量在此之后没有任何消费点（已验），
+            # 追加进去是死代码。信息要放在下游真会读的地方，而 `coverage_projection` 随 payload
+            # 一起到达评审。
+            orphaned_covered_segment_ids=orphaned_covered_segments(
+                output.segment_disposition, output.requirements
+            ),
         )
         record = _record_node(
             state,

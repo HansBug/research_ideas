@@ -219,3 +219,97 @@ def test_out_of_scope_and_context_need_no_requirement(state) -> None:
     assert result.get("failure") is None
     assert result.get("_requirement_feedback") is None
     assert result["requirement_set"].revision == 1
+
+
+# ---------------------------------------------------------------- 隔离造成的孤立段
+
+from types import SimpleNamespace  # noqa: E402
+
+from paper_stm_feedback_loop.discover.capability import (  # noqa: E402
+    orphaned_covered_segments,
+)
+
+
+def _spec(segments: tuple[str, ...]):
+    return SimpleNamespace(source_segment_ids=segments)
+
+
+def test_the_predicate_names_only_unbacked_covered_segments() -> None:
+    disposition = {"S1": "covered", "S2": "covered", "S3": "out_of_scope", "S4": "context"}
+    reqs = [_spec(("S1",))]
+    assert orphaned_covered_segments(disposition, reqs) == ("S2",)
+
+
+def test_only_covered_carries_the_obligation() -> None:
+    """⭐ 负控：其余三个取值不承担承接义务，不得被误报。"""
+
+    disposition = {"A": "out_of_scope", "B": "ambiguous", "C": "context"}
+    assert orphaned_covered_segments(disposition, []) == ()
+
+
+def test_a_consistent_set_yields_nothing() -> None:
+    disposition = {"S1": "covered", "S2": "covered"}
+    assert orphaned_covered_segments(disposition, [_spec(("S1", "S2"))]) == ()
+
+
+def test_the_result_is_sorted_and_deduplicated() -> None:
+    disposition = {"S9": "covered", "S1": "covered", "S5": "covered"}
+    assert orphaned_covered_segments(disposition, []) == ("S1", "S5", "S9")
+
+
+def test_an_empty_disposition_is_not_an_error() -> None:
+    assert orphaned_covered_segments({}, [_spec(("S1",))]) == ()
+    assert orphaned_covered_segments(None, []) == ()
+
+
+def test_quarantine_records_the_orphaned_segments_it_created(state) -> None:
+    """⭐ 这是 v37 `run1/0057-gpt` 丢格的形状：隔离摘掉唯一承接者。
+
+    第一处检查看的是生产者原始输出（那时承接者还在），所以只有这第二处能捕获它。
+    处置是**记录**而非硬拒或自动改标 —— 见 `orphaned_covered_segment_ids` 的 description。
+    """
+
+    base, frozen = state
+    segments = sorted(frozen.nl_segments)
+    # 两条需求各承接一个段；让门归责掉第二条，于是 segments[1] 失去承接。
+    output = RequirementSet(
+        revision=1,
+        requirements=(
+            _requirement("REQ-001", (segments[0],)),
+            _requirement("REQ-002", (segments[1],)),
+        ),
+        segment_disposition={segments[0]: "covered", segments[1]: "covered"},
+    )
+    # 直接验谓词在「隔离后」的集合上给出正确答案 —— 隔离本身由门驱动，不在本测试范围内。
+    survivors = [r for r in output.requirements if r.requirement_id != "REQ-002"]
+    assert orphaned_covered_segments(output.segment_disposition, survivors) == (segments[1],)
+    # 而隔离前它是一致的 —— 这正是第一处检查放行的原因。
+    assert orphaned_covered_segments(output.segment_disposition, output.requirements) == ()
+
+
+def test_the_projection_field_exists_and_defaults_empty() -> None:
+    """⭐ 字段必须有默认值 —— 否则每个既有构造点都要改，而漏改会静默丢掉这个事实。"""
+
+    from paper_stm_feedback_loop.discover.schemas import RequirementCoverageProjection
+
+    projection = RequirementCoverageProjection(covered_requirement_ids=("REQ-001",))
+    assert projection.orphaned_covered_segment_ids == ()
+    described = RequirementCoverageProjection.model_json_schema()["properties"][
+        "orphaned_covered_segment_ids"
+    ]["description"]
+    # 三种处置的取舍必须在 schema 里说清，因为读到这个字段的人需要知道为什么没被自动修
+    assert "not** producer error" in described or "not producer error" in described
+    assert "re-marked" in described
+
+
+def test_the_reviewer_prompt_explains_the_field() -> None:
+    """⭐ 记录了但下游不知道怎么用，等于没记录 —— 这正是原来那个反馈的毛病。"""
+
+    from paper_stm_feedback_loop.discover import prompts
+
+    text = prompts.REQUIREMENT_REVIEWER_PROMPT
+    assert "orphaned_covered_segment_ids" in text
+    assert "not producer error" in text
+    # 必须要求可操作的两条出路，而不是笼统地「去覆盖它」
+    assert "re-mark the segment" in text
+    assert "exhausts the revision budget" in text
