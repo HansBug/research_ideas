@@ -778,6 +778,68 @@ EXISTENCE_PREDICATES = frozenset(
 )
 
 
+#: 绑定名 → 该元素种类的存在性谓词。派生用，不手写谓词对。
+#:
+#: 每个谓词都**预设**它所绑元素存在：`occupancy_after(source=A, trigger=E, target=B)` 只有在
+#: A、B 是状态、E 是事件时才有意义。这是预设（presupposition）而不是经验关联 —— 它从签名本身
+#: 就能读出来，与语料无关。
+#:
+#: 为什么它值得被显式化：一句 NL 往往同时承载「这个要素存在」与「它如何行为」两重义务，而
+#: 生产者只写后者。v37 实测 ① 需求层 91 位里 23 位的台账 primary 是 `event_declared` —— NL
+#: 点名了刺激、模型没声明它，而需求集里只有关于迁移的主张，从不断言该事件是否存在。
+#:
+#: provenance: 形式语义中的预设（presupposition）—— 一个带参谓词的可满足性预设其论元存在；
+#: 需求工程通则：规范点名的要素必须存在，这是独立于其行为的一条义务。
+_BINDING_ELEMENT_KIND = {
+    "state": "state_declared",
+    "source": "state_declared",
+    "target": "state_declared",
+    "parent": "state_declared",
+    "child": "state_declared",
+    "composite": "state_declared",
+    "scope": "state_declared",
+    "response": "state_declared",
+    "event": "event_declared",
+    "trigger": "event_declared",
+    "variable": "variable_declared",
+}
+
+#: 强制配对的元素种类。状态已有前置扫描（见 splitter prompt 的 "substates it names by name"），
+#: 事件与变量此前**没有任何对应机制**，所以只对这两类强制 —— 范围有界，且正对着实测缺口。
+_PAIRED_ELEMENT_KINDS = frozenset({"event_declared", "variable_declared"})
+
+
+def presupposes(name: str) -> tuple[tuple[str, str], ...]:
+    """``(binding, existence_predicate)`` pairs this predicate presupposes.
+
+    Derived from the predicate's own ``field_specs`` -- never hand-listed, so a new predicate
+    gets its presuppositions for free and cannot silently miss one.
+
+    :param name: predicate name.
+    :return: pairs for the bindings that name a model element of another kind.
+    """
+
+    entry = PREDICATE_BY_NAME.get(name)
+    if entry is None:
+        return ()
+    return tuple(
+        (binding, _BINDING_ELEMENT_KIND[binding])
+        for binding, _ in entry.field_specs
+        if binding in _BINDING_ELEMENT_KIND
+        and _BINDING_ELEMENT_KIND[binding] != name
+    )
+
+
+def paired_presuppositions(name: str) -> tuple[tuple[str, str], ...]:
+    """The subset of :func:`presupposes` that a supporting assertion must discharge."""
+
+    return tuple(
+        (binding, predicate)
+        for binding, predicate in presupposes(name)
+        if predicate in _PAIRED_ELEMENT_KINDS
+    )
+
+
 def accepted_bindings(name: str) -> frozenset[str]:
     """Every keyword one predicate accepts: required bindings plus its options."""
 
@@ -941,6 +1003,20 @@ def vocabulary_prompt() -> str:
             lines.append("    bindings, each required:")
             for binding, spec in item.field_specs:
                 lines.append(f"      - {binding}: {spec}")
+            paired = paired_presuppositions(item.name)
+            if paired:
+                owed = ", ".join(
+                    f"`{predicate}` on the `{binding}` you bind" for binding, predicate in paired
+                )
+                lines.append(
+                    f"    also owes: {owed}. Naming an element is asserting it exists, and that "
+                    "claim is separately violable -- a transition claim about an event the model "
+                    "never declares reports the transition, never the missing event. Write it as "
+                    "a `supporting` assertion on the same Requirement (NOT a `precondition`: a "
+                    "precondition that comes back False makes the controller skip the primary, "
+                    "so the missing element would become the reason the real question is never "
+                    "asked)."
+                )
             lines.append("    predicate_bindings examples:")
             for payload, note in binding_examples(item.name):
                 suffix = f"   # {note}" if note else ""

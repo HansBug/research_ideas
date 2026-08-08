@@ -47,6 +47,8 @@ from .capability import (
     derivation_contract_findings,
     substituted_binding_findings,
     entry_disjunction_findings,
+    missing_presupposition_findings,
+    short_circuited_primary_findings,
     orphaned_covered_segments,
     termination_proposal_findings,
     condition_non_vacuity_findings,
@@ -2021,6 +2023,7 @@ def convert_assertions(
             )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
+        presupposition_findings: list[str] = []
         for requirement in requirements.requirements:
             owned_assertions = tuple(
                 assertions_by_id[assertion_id]
@@ -2112,6 +2115,38 @@ def convert_assertions(
             )
             if disjunction:
                 raise ValueError("; ".join(disjunction))
+            # 预设配对：绑了事件/变量就欠一条存在性 supporting 断言（见
+            # `capability.missing_presupposition_findings`）。
+            #
+            # ⚠️ 有意**不致命**。本仓库的实测教训是新门会把格逼进不收敛：v37 有 27/324 格
+            # 修订 ≥6 轮，而其中最贵的一批正是被确定性契约门反复打回。这条规则的收益是
+            # 「多写一条 supporting」，它落空的代价远小于把整格逼死，所以它只进修订反馈。
+            # 若后续实测证明它被大面积忽略，再考虑升级为拒绝。
+            # 短路式 primary：Gate D 只查表达式文本里有没有该谓词名，于是
+            # `P(...) is True if all([...]) else False` 能在 P 从未被调用的情况下通过。
+            # 这条**是致命的** —— 它与其它「多写一条」的建议不同：一个能在不问问题的前提下
+            # 被满足的门，比没有门更坏，因为它报告的是合规。v37 有一个已被生产者实际利用的
+            # 实例，其 rationale 自陈动机。
+            short_circuited = short_circuited_primary_findings(
+                requirement,
+                tuple(
+                    assertion
+                    for assertion in output.assertions
+                    if assertion.requirement_id == requirement.requirement_id
+                ),
+            )
+            if short_circuited:
+                raise ValueError("; ".join(short_circuited))
+            presupposition_findings.extend(
+                missing_presupposition_findings(
+                    (requirement,),
+                    tuple(
+                        assertion
+                        for assertion in output.assertions
+                        if assertion.requirement_id == requirement.requirement_id
+                    ),
+                )
+            )
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ]
@@ -2280,6 +2315,10 @@ def convert_assertions(
                     for key, value in (
                         ("mandatory_evidence_waivers", mandatory_waivers),
                         ("untested_claim_paths", untested_claim_paths),
+                        # 预设未配对。写进 run record 而不是拒绝，见接线处的说明；
+                        # 它同时满足准入闸 A2：新规则必须在运行记录里留下可 grep 的激活痕迹，
+                        # 否则「该规则从未触发」既不能证明也不能证伪。
+                        ("missing_presuppositions", presupposition_findings),
                     )
                     if value
                 }

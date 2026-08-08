@@ -60,23 +60,21 @@ class CoverageObligation(StrictBaseModel):
             "composite whose children are each checked. Null for a single-element claim."
         ),
     )
-    aggregation: Literal["all", "any", "exactly_one", "custom"] = Field(
+    #: `custom` 与 `custom_policy_id` 已于 2026-08-09 退役：v37 全量 28,435 次 `aggregation`
+    #: 里 **0 次** 用到它们，而它们占着一个进 tool schema 的枚举值、一个可选字段和一条
+    #: validator。一个从未被选过的枚举值只会扩大 producer 的选择面。
+    #:
+    #: ⚠️ 同批候选里 `effect_declared` 与 `variable_delta_after` **没有**退役：它们看起来
+    #: 「324 格 0 次执行」，但那 52 条 primary 是被为假的前置条件 `blocked` 掉的，不是没人写。
+    #: 「从未执行」与「从未被规则驱动」是两件事，按错误的那件退役会删掉真正在用的能力。
+    aggregation: Literal["all", "any", "exactly_one"] = Field(
         default="all",
         description=(
-            "How the per-element results combine: `all` (every element must hold), `any` (at least "
-            "one), `exactly_one`, or `custom` with `custom_policy_id`."
+            "How the per-element results combine: `all` (every element must hold), `any` (at "
+            "least one), or `exactly_one`."
         ),
     )
-    custom_policy_id: str | None = None
     limitations: tuple[str, ...] = Field(default_factory=tuple)
-
-    @model_validator(mode="after")
-    def _custom_policy_is_named(self) -> "CoverageObligation":
-        if self.aggregation == "custom" and not self.custom_policy_id:
-            raise ValueError("custom coverage aggregation requires custom_policy_id")
-        if self.aggregation != "custom" and self.custom_policy_id is not None:
-            raise ValueError("custom_policy_id is only valid for custom aggregation")
-        return self
 
 
 class NodeName(str, Enum):

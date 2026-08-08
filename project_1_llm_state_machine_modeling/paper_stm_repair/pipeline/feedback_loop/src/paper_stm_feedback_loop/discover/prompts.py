@@ -222,11 +222,34 @@ This scan is for a substate the sentence identifies as a place the machine can b
 phrase that means termination itself -- "the final state", "the run ends" -- is step 1 and
 has no name to propose.
 
+**Run the same scan for events and for variables.** The comparison, the verdict and the
+obligation are identical in shape; only the vocabulary list and the predicate change:
+
+| what the sentence names | compare against | where none matches, emit |
+|---|---|---|
+| a stimulus the system reacts to -- command, request, signal, sensor reading, timeout, fault, operator action | `declared_model_vocabulary.events`, last segment only, exactly | `event_declared(event="<root>.<name>")` |
+| a quantity the system tracks -- count, level, remaining amount, threshold, configured limit | `declared_model_vocabulary.variables`, bare name, exactly | `variable_declared(variable="<name>")` |
+
+⚠️ **The direction of the comparison is what makes it work, and it is easy to get backwards.**
+You are enumerating **what the sentence names**, and asking of each whether the model declares
+it. You are NOT enumerating what the model declares and confirming those exist -- that check
+is true by construction and reports nothing. A sentence naming `arm` against a model declaring
+only `Sys.disarm` and `Sys.arm_or_reset` owes `event_declared(event="Sys.arm") == False`;
+writing `event_declared` on the two declared names instead answers a question nobody asked.
+
+
+Two consequences follow from the same reasoning as the state scan. A fused name the model
+declares (`Sys.a_or_b`) does not match a sentence that names `a` on its own -- the fusion
+IS the finding, so scan for `a`, not for the fused label. And the obligation stands on its
+own even when the same event already appears as another Requirement's `trigger`: existence
+and effect are separately violable, and a transition claim about an undeclared event reports
+the transition, never the missing event.
+
 **Whenever you propose a name, name the incumbents you looked at.** The last-segment
 comparison is exact, so it says nothing about a declared element that is plainly the same
 thing under a different spelling -- a sentence naming `Alpha` against a vocabulary declaring
 `AlphaState`, or naming `Beta1` against a vocabulary declaring only `Beta2`. Both go to
-step 3 and both produce a `state_declared` that is False, but they are different findings: in
+step 4 and both produce a `state_declared` that is False, but they are different findings: in
 one the model named the thing differently, in the other the thing is absent. Only you can tell them apart at this point, and the distinction is
 unrecoverable later -- downstream sees one False either way.
 

@@ -369,12 +369,32 @@ class PredicateAPI:
             if value == PSEUDO_INITIAL:
                 if binding in self._PSEUDO_INITIAL_BINDINGS:
                     continue  # the sanctioned literal for the initial configuration
+                # ⚠️ 这条拒答是全语料最贵的一条：v37 有 227 条 finding、68 个 precheck-invalid
+                # 轮次（占该类轮次的 44%）来自它，且几乎全是 `edge_declared(..., target="[*]")`。
+                # 原因不是生产者乱写 —— `X --> [*]` 是 PlantUML 表达「迁移到终止伪态」的标准
+                # 写法，作者原文就长这样。旧消息只说「name the target the claim is about」，
+                # 而这里根本没有可命名的 target，于是生产者只能重猜，每格烧掉一整轮。
+                #
+                # 拒答本身是对的（`[*]` 不是一个可被命名的状态），要补的是**去哪里**：
+                # 「运行会结束」这件事由 `terminates` 承载，它正好有可选的 `trigger`。
+                #
+                # provenance: UML 2.5.1 §14.2.3.4 —— final state 是 vertex 的一种终结形态，
+                # 不是可被 transition 的 target 端具名引用的普通 state；「运行终止」是一条
+                # 关于行为的主张，不是一条关于边的主张。
+                hint = (
+                    " If the sentence is about the run ENDING (the author wrote"
+                    ' `X --> [*]`), that is not an edge claim: use'
+                    ' `terminates(scope=<the state the run ends from>, trigger=<the event>)`.'
+                    if binding in {"target", "child", "response", "state"}
+                    else ""
+                )
                 raise UnsupportedEvidence(
                     f"binding {binding!r} cannot be {PSEUDO_INITIAL}: the "
                     "pseudo-initial marks where a run begins, so it only means "
                     f"something for {sorted(self._PSEUDO_INITIAL_BINDINGS)}. "
                     f"A {table[:-1] if table.endswith('s') else table} is named, "
                     f"and this one is not; name the {binding} the claim is about."
+                    + hint
                 )
             _require_identifier(
                 value,

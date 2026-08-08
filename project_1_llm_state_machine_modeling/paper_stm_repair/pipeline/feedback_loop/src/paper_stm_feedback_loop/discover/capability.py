@@ -49,10 +49,17 @@ from paper_stm_feedback_loop.assertions.predicate_api import (
 )
 
 from .dependencies import dependency_closure
-from .predicates import EXISTENCE_PREDICATES, PREDICATE_NAMES, PREDICATES
+from .predicates import (
+    EXISTENCE_PREDICATES,
+    PREDICATE_NAMES,
+    PREDICATES,
+    paired_presuppositions,
+)
 
 __all__ = [
     "EvidenceCapability",
+    "missing_presupposition_findings",
+    "short_circuited_primary_findings",
     "condition_non_vacuity_findings",
     "CONDITION_BINDINGS",
     "vacuous_sibling_conjunction",
@@ -1469,6 +1476,146 @@ def orphaned_covered_segments(
 #: 投影插入元素的名族。`exclusion_roles` 是更准的来源，但断言层拿不到 working contract，
 #: 而这三族名是投影自己生成的、拼写稳定；这里只用来判「析取里混进了作者没写的东西」。
 _INSERTED_NAME_FAMILIES = ("UnspecifiedInitial", "InvalidInitial", "FinalWait")
+
+
+def short_circuited_primary_findings(
+    requirement: Any, assertions: Any
+) -> tuple[str, ...]:
+    """Primary assertions whose declared predicate sits behind a short circuit.
+
+    Gate D parses the expression text and passes when the predicate's name appears in it.  A
+    producer that writes ``P(...) is True if all([...]) else False`` therefore satisfies the gate
+    while ``P`` is **never actually called** -- the conditional collapses to the ``else`` branch.
+    This is not hypothetical: v37 has a worked instance whose own rationale states the motive
+    ("the public check shows a bare ``guard_distinguishable`` is not executable here").
+
+    A gate that can be satisfied without asking the question it exists to enforce is worse than
+    no gate: it reports compliance.  The check is purely syntactic -- the predicate must occur in
+    a position that is evaluated unconditionally.
+
+    provenance: Python 语言参考 §6.12–6.13（条件表达式与布尔运算的短路求值语义）——
+    出现在源文本中不蕴含被求值。
+
+    :param requirement: the Requirement whose predicate must be discharged.
+    :param assertions: its assertions.
+    :return: one finding per offending primary; empty when none.
+    """
+
+    predicate = str(getattr(requirement, "predicate", "") or "")
+    if not predicate:
+        return ()
+    findings: list[str] = []
+    for spec in assertions or ():
+        if (getattr(spec, "role", "primary") or "primary") != "primary":
+            continue
+        expression = str(getattr(spec, "expression", "") or "")
+        try:
+            tree = ast.parse(expression, mode="eval")
+        except SyntaxError:
+            continue
+        unconditional = _unconditional_call_names(tree.body)
+        if predicate in _all_call_names(tree.body) and predicate not in unconditional:
+            findings.append(
+                f"{spec.assertion_id} names {predicate} only behind a short circuit "
+                "(a conditional branch or a lazy boolean operand), so the call may never run "
+                "and the claim would go unasked while the gate reports it discharged. Put the "
+                f"{predicate} call in a position that is always evaluated."
+            )
+    return tuple(findings)
+
+
+def _all_call_names(node: ast.AST) -> set[str]:
+    return {
+        child.func.id
+        for child in ast.walk(node)
+        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name)
+    }
+
+
+def _unconditional_call_names(node: ast.AST) -> set[str]:
+    """Call names in positions Python always evaluates."""
+
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        names = {node.func.id}
+        for argument in [*node.args, *(kw.value for kw in node.keywords)]:
+            names |= _unconditional_call_names(argument)
+        return names
+    if isinstance(node, ast.IfExp):
+        # Only the test is guaranteed to run.
+        return _unconditional_call_names(node.test)
+    if isinstance(node, ast.BoolOp):
+        # Only the first operand is guaranteed to run.
+        return _unconditional_call_names(node.values[0]) if node.values else set()
+    if isinstance(node, ast.Compare):
+        names = _unconditional_call_names(node.left)
+        for comparator in node.comparators:
+            names |= _unconditional_call_names(comparator)
+        return names
+    if isinstance(node, (ast.UnaryOp,)):
+        return _unconditional_call_names(node.operand)
+    if isinstance(node, (ast.BinOp,)):
+        return _unconditional_call_names(node.left) | _unconditional_call_names(node.right)
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        names: set[str] = set()
+        for element in node.elts:
+            names |= _unconditional_call_names(element)
+        return names
+    return set()
+
+
+def missing_presupposition_findings(
+    requirements: Any, assertions: Any
+) -> tuple[str, ...]:
+    """Requirements that bind an event or variable without asserting it exists.
+
+    Every predicate presupposes the elements it binds (see `predicates.presupposes`).  States
+    already have a forced pre-scan in the splitter prompt; events and variables had **nothing**,
+    and the measured cost is the largest single block in the needs layer: of the 91 v37 positions
+    where the ledger's predicate was never written at all, 23 are `event_declared` and the
+    sentence had named the stimulus outright.
+
+    The pairing is required as `supporting`, never as `precondition`.  A false precondition makes
+    the controller skip the primary (`status="blocked"`), and v37 has 135 primaries that were
+    never asked for exactly that reason -- the missing element became the reason the real
+    question went unasked.  Supporting evidence carries the same information and blocks nothing.
+
+    provenance: 形式语义中的预设（presupposition）；IEEE 29148-2018 §5.2 —— 规范点名的要素本身
+    构成一条独立于其行为的义务。
+
+    :param requirements: accepted `Requirement` objects.
+    :param assertions: the `AssertionSpec` objects written for them.
+    :return: one finding per unpaired (requirement, binding); empty when all are paired.
+    """
+
+    by_requirement: dict[str, list[Any]] = {}
+    for spec in assertions or ():
+        by_requirement.setdefault(str(getattr(spec, "requirement_id", "")), []).append(spec)
+    findings: list[str] = []
+    for requirement in requirements or ():
+        pairs = paired_presuppositions(str(getattr(requirement, "predicate", "")))
+        if not pairs:
+            continue
+        bindings = dict(getattr(requirement, "predicate_bindings", {}) or {})
+        written = " ".join(
+            str(getattr(spec, "expression", "") or "")
+            for spec in by_requirement.get(str(requirement.requirement_id), ())
+        )
+        for binding, existence in pairs:
+            value = str(bindings.get(binding) or "").strip()
+            if not value or value == "[*]":
+                continue
+            if f"{existence}(" in written and value in written:
+                continue
+            findings.append(
+                f"{requirement.requirement_id} binds {binding}={value!r} but no assertion "
+                f"claims it exists. Add a `supporting` assertion "
+                f"{existence}(...) on {value!r}: naming an element asserts it exists, and that "
+                "claim is separately violable. Use role=\"supporting\", not "
+                "\"precondition\" -- a false precondition would make the controller skip the "
+                "primary, so the missing element would become the reason the real question is "
+                "never asked."
+            )
+    return tuple(findings)
 
 
 def entry_disjunction_findings(
