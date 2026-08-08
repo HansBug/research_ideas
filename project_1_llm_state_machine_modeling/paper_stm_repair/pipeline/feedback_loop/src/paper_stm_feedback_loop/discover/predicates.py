@@ -75,6 +75,20 @@ class Predicate:
     #: prompt; this is what the gate compares against the assertion's parsed
     #: call names, so an easier query cannot close a harder claim.
     procedure_function: str
+    #: The sentence shape that calls for this predicate, one short line, for the
+    #: forward index.  Everything else here is written from the predicate's side
+    #: -- "what this function asserts" -- which only helps a reader who already
+    #: guessed the answer.  A producer holds a sentence and needs the other
+    #: direction, so the predicates whose names sit furthest from ordinary
+    #: wording are otherwise never reached for at all.  Required, not defaulted:
+    #: a twentieth predicate with no index entry must fail at import rather than
+    #: quietly go missing from the one list a producer scans.
+    nl_index: str
+    #: The same mapping at length -- when to reach for it, and which neighbouring
+    #: predicate takes the claim when the sentence is shaped slightly otherwise.
+    #: Rendered directly under ``asserts``, where the reader is deciding whether
+    #: this is the predicate they want.
+    nl_cue: str
     #: Optional weaker evidence, allowed only as ``supporting``.
     locators: tuple[str, ...] = ()
     #: Honest statement of what the current infrastructure cannot do.
@@ -101,6 +115,16 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(path=..., exact=True)",
         "states",
+        nl_index="names a mode, phase or condition the system can be in",
+        nl_cue=(
+            "the sentence names a mode, phase or condition the system can occupy. "
+            "Write one for every such name the sentence uses -- including a name "
+            "the model does not declare, whose False is the missing-state finding. "
+            "When the sentence also says whether the mode has sub-modes, say so in "
+            "`kind`: described as having sub-modes is \"composite\", described as "
+            "indivisible is \"leaf\", and \"any\" when the sentence only implies it "
+            "exists."
+        ),
         field_specs=(
             ('state', 'a declared state path, copied verbatim from declared_model_vocabulary'),
             ('kind', 'one of "leaf" (no substates), "composite" (has substates), "pseudo" (an initial/final marker), or "any" (declared at all)'),
@@ -120,6 +144,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "variables(name=...)",
         "variables",
+        nl_index="names a quantity the system tracks: count, level, remaining amount, threshold, limit",
+        nl_cue=(
+            "the sentence reasons about a quantity -- a count, level, remaining "
+            "amount, elapsed measure, threshold or configured limit. A quantity the "
+            "sentence needs and the model has no variable for is a finding no other "
+            "predicate reports, so write it even when a claim about what happens to "
+            "that quantity is written as well."
+        ),
         caveat=(
             "Route-control variables the converter generated are not counted: the "
             "effect facade drops them from every answer, so reporting one as "
@@ -150,6 +182,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "events(path=...)",
         "events",
+        nl_index="names a stimulus: command, request, signal, sensor reading, timeout, fault, operator action",
+        nl_cue=(
+            "the sentence names anything the system reacts to. Write it even when "
+            "you also write the behavioural claim about the same stimulus: "
+            "existence and effect are separately violable, and a transition claim "
+            "about an undeclared event reports the transition, never the missing "
+            "event."
+        ),
         field_specs=(
             (
                 "event",
@@ -174,6 +214,12 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(parent=..., recursive=False)",
         "states",
+        nl_index="places one named element inside another: \"a sub-mode of\", \"part of\", \"B contains A\"",
+        nl_cue=(
+            "the sentence puts one named element inside another. The enclosing "
+            "level is the one the SENTENCE names; reading it off the model instead "
+            "makes the call true by construction."
+        ),
         field_specs=(
             ('parent', 'the declared enclosing state'),
             ('child', 'the state the sentence places inside parent; False means the model put it '
@@ -204,6 +250,13 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "initial_child(...)",
         "initial_child",
+        nl_index="says where entry lands: \"starts in\", \"defaults to\", \"initially\", \"on entry the system is in\"",
+        nl_cue=(
+            "the sentence says which sub-mode is active at the instant a composite "
+            "is entered. Also reach for it when the sentence describes entering a "
+            "mode and names what is active at that moment, without using the word "
+            "\"initial\"."
+        ),
         field_specs=(
             ('composite', 'the declared composite whose entry is claimed'),
             ('child', 'the declared substate that entry must land on'),
@@ -223,6 +276,13 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "transition_exists(source=..., event=..., target=...)",
         "transition_exists",
+        nl_index="the ARTIFACT contains or lacks a transition -- a design-level statement, not run-time behaviour",
+        nl_cue=(
+            "the sentence is about the artifact: a specification that enumerates "
+            "transitions, or a claim that the design is missing one. A sentence "
+            "describing what the running system does when the event arrives is "
+            "occupancy_after instead."
+        ),
         caveat=(
             "Use this only when the NL speaks about the model containing an "
             "edge.  'When X happens the system moves to Y' is a runtime claim: "
@@ -249,6 +309,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "effect_deltas(source=..., event=...)",
         "effect_deltas",
+        nl_index="a transition changes a quantity: increments, decrements, adds, consumes, replenishes, resets",
+        nl_cue=(
+            "the sentence attaches a change of quantity to a transition. Only the "
+            "direction is observable, so a specific amount the sentence names goes "
+            "in `limitations`. When the sentence claims the change actually happens "
+            "as the system runs, rather than that the transition carries it, add "
+            "variable_delta_after."
+        ),
         locators=("effects(...)",),
         field_specs=(
             ('source', 'the declared source state of the transition carrying the effect'),
@@ -271,6 +339,12 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(path=..., exact=True)",
         "states",
+        nl_index="behaviour attached to OCCUPYING a state: \"on entering\", \"upon leaving\", \"while in A it continuously\"",
+        nl_cue=(
+            "the sentence attaches behaviour to being in a state rather than to "
+            "taking a transition. It reports only that the phase declares something "
+            "at all, so what the action does belongs in `limitations`."
+        ),
         caveat=(
             "Reports whether the phase declares any action at all, not what "
             "the action does."
@@ -294,6 +368,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides it over every variable valuation",
         "conflicting_targets(source=..., event=...)",
         "conflicting_targets",
+        nl_index="ONE stimulus, DIFFERENT outcomes chosen by a condition: \"if ... otherwise\", \"depending on whether\", \"unless\"",
+        nl_cue=(
+            "the sentence makes one event lead to different outcomes according to "
+            "some condition, including an enumeration of cases under a single "
+            "event. Write it in ADDITION to the per-branch claims: each branch "
+            "claim says its own outcome is possible, and only this one says the "
+            "choice between them is actually determined."
+        ),
         locators=("guards_overlap(...)",),
         field_specs=(
             ('source', 'the declared source state the alternatives leave from'),
@@ -314,6 +396,13 @@ PREDICATES: tuple[Predicate, ...] = (
         "decides the declaration outright",
         "states(...)",
         "states",
+        nl_index="fixes how many: \"exactly N modes\", \"only these three\", \"a single\", or a list presented as complete",
+        nl_cue=(
+            "the sentence closes a set. A list presented as exhaustive is a count "
+            "claim even when the sentence writes no number -- count the items it "
+            "lists. Do not write it for a list the sentence merely draws examples "
+            "from."
+        ),
         field_specs=(
             ('scope', 'the state the sentence enumerates the members of. False means the model '
                       'has a different number THERE -- that is the finding. Do not move `scope` '
@@ -337,6 +426,12 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness: it shows what this configuration does, not what every run does",
         "simulate(...).final.is_active(...)",
         "simulate",
+        nl_index="run-time reaction to a NAMED event: \"when e occurs the system goes to / is then in B\"",
+        nl_cue=(
+            "the sentence describes what the running system does when a named "
+            "stimulus arrives. This is the default for event-driven behaviour; "
+            "edge_declared is only for claims about what the artifact contains."
+        ),
         locators=("transition_exists(...)", "path(...)"),
         field_specs=(
             ('source', 'the configuration the claim is about, or "[*]" for power-on / first entry'),
@@ -360,6 +455,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness",
         "simulate(...).cycles[...].consumed_events",
         "simulate",
+        nl_index="a stimulus must be acted on in some situation -- its False says nothing there handles it",
+        nl_cue=(
+            "the sentence requires the system to react to a stimulus in a "
+            "particular configuration -- \"in A the request must be handled / "
+            "acknowledged / serviced\". False means nothing consumes it there, so "
+            "the stimulus is silently dropped. When the sentence instead requires "
+            "the stimulus NOT to move the system, that is stays_in."
+        ),
         caveat=(
             "There is no static substitute: an event being declared does not "
             "mean any configuration accepts it."
@@ -384,6 +487,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness",
         "simulate(...) consumed_events and final.is_active(source)",
         "simulate",
+        nl_index="an event must leave the mode unchanged: \"is ignored\", \"has no effect\", \"remains in\", \"continues to\"",
+        nl_cue=(
+            "the sentence says a stimulus must not move the system out of where it "
+            "is, including a self-loop described in words. False means the model "
+            "does move on that event, and that is the finding. When the sentence "
+            "instead requires a response and the worry is that none exists, that is "
+            "event_consumed."
+        ),
         field_specs=(
             ('source', 'the configuration that must not change'),
             ('trigger', 'the declared event path; the predicate requires it be consumed AND the state unchanged'),
@@ -404,6 +515,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness",
         "simulate(...).cycles[...].variables",
         "simulate",
+        nl_index="the quantity really changes when the system RUNS, not merely that a transition is annotated with it",
+        nl_cue=(
+            "the sentence claims an executed path changes a quantity. Reach for it "
+            "alongside effect_declared whenever the net effect over a sequence of "
+            "steps is what the sentence cares about: an effect declared on an "
+            "unreachable or guard-blocked transition never runs, and only this "
+            "predicate sees that."
+        ),
         locators=("effect_deltas(...)",),
         field_specs=(
             ('source', 'the configuration the run starts from'),
@@ -426,6 +545,14 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness, and it ignores triggers",
         "simulate(...) multi-cycle",
         "simulate",
+        nl_index="arrives somewhere with NO single event named: \"eventually\", \"can return to\", \"must be able to get back to\"",
+        nl_cue=(
+            "the sentence says the system eventually arrives somewhere, or arrives "
+            "within some number of steps, without naming the one stimulus that "
+            "takes it there -- \"eventually\", \"can always return to\", \"after the "
+            "sequence completes the system is back in\". When the sentence does name "
+            "the single triggering event, use occupancy_after instead."
+        ),
         locators=("path(...)",),
         caveat=(
             "Reachability here is a bounded witness, not a proof: it runs the "
@@ -454,6 +581,12 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness",
         "simulate(...).final.is_ended",
         "simulate",
+        nl_index="the run ENDS: \"shuts down\", \"completes\", \"the cycle finishes\", \"powers off\", a named final state",
+        nl_cue=(
+            "the sentence describes the run finishing. A named end / final / done "
+            "state is this claim even when the sentence never uses the word "
+            "terminate. A claim that a cold start can finish binds `scope=\"[*]\"`."
+        ),
         locators=("topology(...)",),
         field_specs=(
             ('scope', 'the configuration to start from, or "[*]" for a cold start'),
@@ -476,6 +609,13 @@ PREDICATES: tuple[Predicate, ...] = (
         "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check invariant <= k: ...')",
         "fbmcq",
+        nl_index="constrains the WHOLE run: \"never\", \"at no time\", \"must always\", \"shall not while\"",
+        nl_cue=(
+            "the sentence constrains every instant rather than one step. "
+            "`condition` is an FCSTM state expression, so the constrained thing "
+            "must be expressible as which states are active; a constraint over a "
+            "variable value is not this predicate."
+        ),
         caveat=(
             "Writing !(active(A) && active(B)) for siblings of one sequential "
             "region is a tautology and proves nothing.  Only holds is False is "
@@ -501,6 +641,13 @@ PREDICATES: tuple[Predicate, ...] = (
         "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check response <= k: ...')",
         "fbmcq",
+        nl_index="EVERY occurrence of a stimulus must be answered by a deadline: \"must respond within\", \"no later than\"",
+        nl_cue=(
+            "the sentence obliges an answer to each occurrence of a stimulus, with "
+            "a bound. `response` is a state path -- the answer must be entering a "
+            "state; if the required answer is anything else, this is not the "
+            "predicate."
+        ),
         field_specs=(
             ('trigger', 'the declared event path that creates the obligation'),
             ('response', 'the declared STATE PATH that counts as the answer; not an expression'),
@@ -522,6 +669,12 @@ PREDICATES: tuple[Predicate, ...] = (
         "holds for every run up to the bound, and says nothing beyond it",
         "fbmcq('check exists_always <= k: ...')",
         "fbmcq",
+        nl_index="a state is held CONTINUOUSLY until a later condition: \"remains ... until\", \"is maintained while\"",
+        nl_cue=(
+            "the sentence says a state must not be left before some later condition "
+            "holds. `release` is an FCSTM state expression, so a release that is "
+            "really an event belongs in response_within instead."
+        ),
         caveat=(
             "Infeasible on the pairs where formula construction exceeds budget; "
             "expand into B-family claims when the domain is enumerable."
@@ -742,7 +895,18 @@ def vocabulary_prompt() -> str:
         'the model happens to be wrong in that configuration, the answer comes back '
         'true for a reason the sentence never asked about. The remaining bindings take one '
         "of the literal values shown in the signature.",
+        "",
+        "Which predicate the sentence is asking for. Scan the sentence against "
+        "this list BEFORE reading the catalogue: the catalogue is indexed by "
+        "predicate, and answers 'what does this one assert' -- useful only once "
+        "you have already guessed which one you want. A sentence routinely "
+        "matches several lines, and each match is a separate Requirement, "
+        "because each is separately violable. Matching means the sentence makes "
+        "that claim, not that its words merely appear.",
     ]
+    width = max(len(item.name) for item in PREDICATES)
+    for item in PREDICATES:
+        lines.append(f"  {item.name.ljust(width)}  <- {item.nl_index}")
     for family, title in (
         (
             FAMILY_STRUCTURE,
@@ -764,6 +928,7 @@ def vocabulary_prompt() -> str:
                 continue
             lines.append(f"- `{signature_of(item.name)}`")
             lines.append(f"    asserts: {item.meaning}")
+            lines.append(f"    reach for it when: {item.nl_cue}")
             lines.append(f"    exposes: {item.proves}")
             lines.append(f"    strength: {item.strength}")
             if item.caveat:
