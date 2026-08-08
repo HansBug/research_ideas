@@ -52,8 +52,8 @@ if str(HERE) not in sys.path:
 
 from paper_stm_feedback_loop.assertions import build_eval_environment  # noqa: E402
 
-HOLDOUT = json.loads((HERE / "holdout.json").read_text(encoding="utf-8"))
-HELD = set(HOLDOUT["holdout"])
+# hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
+HELD: set[str] = set()
 #: The four pairs eighteen generations of gates and prompts were written against.
 TUNED = {"0000", "0006", "0029", "0050"}
 

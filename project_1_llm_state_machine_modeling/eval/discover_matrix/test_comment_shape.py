@@ -47,7 +47,7 @@ def test_ratios_appear_only_in_the_capability_band() -> None:
     sections = text.split("\n## ")
     with_ratio = [s.split("\n", 1)[0] for s in sections if "hit@1" in s]
     assert len(with_ratio) == 1, with_ratio
-    assert "能力主张" in with_ratio[0]
+    assert "全部记录" in with_ratio[0]
 
 
 def test_the_header_carries_no_fraction_over_the_full_ledger() -> None:
@@ -59,19 +59,25 @@ def test_the_header_carries_no_fraction_over_the_full_ledger() -> None:
     assert not fractions, fractions
 
 
-def test_the_empty_threshold_table_is_a_real_table() -> None:
-    """§9 的结论是「本代次不产出能力主张」。写着 0 的表能被看见，脚注会被跳过。"""
-    text = _rendered()
-    assert "## ⚠️ 达阈值的层" in text
-    block = text.split("## ⚠️ 达阈值的层", 1)[1].split("\n## ", 1)[0]
+def test_the_threshold_table_is_a_real_table() -> None:
+    """分层可报条目表必须实体存在。
+
+    hold-out 移除前它恒为空（可报记录只有 3 条，四层全部不达阈值），当时"空本身是结论"。
+    现在全部 126 条记录同等参与度量，四层都达阈值 —— 表不再为空，但它**仍必须是一张实体表**：
+    分层条目数是读者判断"某层的比率能不能单独引用"的唯一依据，写成脚注会被跳过。
+    """
+
+    rendered = _rendered()
+    assert "## 达阈值的层" in rendered
     for layer in bc.LAYERS:
-        assert f"| {layer} |" in block, layer
-    assert block.count("| ✗ |") >= 1
+        assert f"| {layer} |" in rendered, layer
+    assert "不设 hold-out" in rendered
 
 
-def test_the_capability_band_holds_exactly_the_reportable_records() -> None:
+def test_the_band_holds_every_ledger_record() -> None:
+    """hold-out 移除后，唯一一节必须装下**全部**台账记录，不得有记录被静默丢掉。"""
     text = _rendered()
-    band = text.split("## 能力主张", 1)[1].split("\n## ", 1)[0]
+    band = text.split("## 全部记录", 1)[1].split("\n## ", 1)[0]
     for record_id in mk.REPORTABLE:
         assert record_id in band, record_id
     # 共演化条目不得混进这一节。

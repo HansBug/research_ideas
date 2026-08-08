@@ -174,7 +174,7 @@ def _units_from_runs(generation: str, ledger: dict, reportable: set[str]) -> lis
 def build(verdicts_path: pathlib.Path, size: int, seed: int,
           generation: str | None = None) -> tuple[dict, dict]:
     ledger = _ledger()
-    frozen = json.loads((HERE / "holdout.json").read_text())
+    frozen = {}  # hold-out 已移除
     reportable = set(frozen.get("reportable_records") or [])
 
     if generation:

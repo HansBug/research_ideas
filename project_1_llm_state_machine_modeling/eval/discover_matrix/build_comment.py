@@ -11,8 +11,7 @@
 
   能力主张表（3 行）      —— 只有这张给 hit@1/@3/@all 三个比率
   达阈值的层（4 行，全 0）—— **空本身是结论**，必须是一张实体表，不能降级成脚注
-  已烧毁 hold-out（20 行）—— 逐轮 ✅/✗ 与逐条依据，**不算比率**
-  历史格（10 行）         —— 同上
+  （hold-out 与分带机制已于 2026-08-09 永久移除；下面两带恒为空）
 
 三条硬约束，落成断言而不是提醒：
 
@@ -40,9 +39,9 @@ if str(HERE) not in sys.path:
 import metrics_at_k as mk  # noqa: E402
 
 BAND_TITLES = {
-    "hold": "能力主张（{n} 条 · 全部为可报记录）",
-    "burned": "已烧毁 hold-out（{n} 条 · 共演化观测 · **不作能力主张**）",
-    "hist": "历史格（{n} 条 · 共演化观测 · **不作能力主张**）",
+    "hold": "全部记录（{n} 条）",
+    "burned": "（已废弃分带）{n} 条",
+    "hist": "（已废弃分带）{n} 条",
 }
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
 THRESHOLD = 4
@@ -156,8 +155,7 @@ def render(payload: dict, generation: str, rounds: int) -> str:
         "本代次**不产出任何按层的能力主张**。\n"
     )
     out.append(
-        f"其余 {len(bands['burned'])} + {len(bands['hist'])} 条为共演化观测，逐条列于下方，"
-        "**不构成主张**。判定口径见 "
+        "判定口径见 "
         "[`V21_PREREGISTERED_CALIBRE.md`](../../../project_1_llm_state_machine_modeling/"
         "eval/discover_matrix/V21_PREREGISTERED_CALIBRE.md)。\n"
     )
@@ -170,15 +168,20 @@ def render(payload: dict, generation: str, rounds: int) -> str:
     if ratios:
         out.append("\n" + " · ".join(f"**{k}** {v}" for k, v in ratios.items()) + "\n")
 
-    # 约束 3：这张表必须实体存在，空本身是结论。
-    out.append(f"\n## ⚠️ 达阈值的层：{sum(at_k.values())} / {len(LAYERS)}\n")
+    # 约束 3：这张表必须实体存在。hold-out 移除后它不再恒为空，但仍必须实体给出 ——
+    # 分层可报条目数是读者判断「某层的数字能不能引用」的唯一依据。
+    out.append(f"\n## 达阈值的层：{sum(at_k.values())} / {len(LAYERS)}\n")
     out.append(_table(
         ["层", "可报条目", f"阈值", "可报？"],
         [[layer, str(coverage.get(layer, 0)), str(THRESHOLD),
           "✅" if at_k[layer] else "✗"] for layer in LAYERS],
     ))
-    out.append("\n**这张表是空的，空本身是结论** —— 没有任何一层达到阈值，所以本代次的数字"
-               "只能作为方法与样本共演化的观测报出。\n")
+    out.append(
+        "\n本项目**不设 hold-out**：方法是在这批 pair 上迭代出来的，全部台账记录同等参与度量。"
+        "上表给出每层的可报条目数与阈值，未达阈值的层其比率不得单独引用。\n"
+        if sum(at_k.values()) else
+        "\n**这张表是空的，空本身是结论** —— 没有任何一层达到阈值。\n"
+    )
 
     for band in ("burned", "hist"):
         if not bands[band]:

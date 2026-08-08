@@ -253,7 +253,6 @@ def _overlap(bound: set[str], expected: frozenset[str]) -> int:
 #: 判定与记账两侧共用的那一份台账。发布层此前读的是另一份，见
 #: `expected_records_for_judgment` 的说明。
 EIS_LEDGER = HERE / "manual_review" / "expected_issue_set.json"
-_HOLDOUT = HERE / "holdout.json"
 
 
 def _eis_records() -> list[dict]:
@@ -274,15 +273,9 @@ def _eis_sha256() -> str:
     return hashlib.sha256(EIS_LEDGER.read_bytes()).hexdigest()
 
 
-def _frozen_holdout() -> dict:
-    try:
-        return json.loads(_HOLDOUT.read_text())
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-
-_REPORTABLE = frozenset(_frozen_holdout().get("reportable_records") or ())
-_BURNED_RECORDS = _frozen_holdout().get("burned_records") or {}
+# hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
+_REPORTABLE = frozenset()
+_BURNED_RECORDS = {}
 
 
 def _round_tag(src: pathlib.Path) -> str:

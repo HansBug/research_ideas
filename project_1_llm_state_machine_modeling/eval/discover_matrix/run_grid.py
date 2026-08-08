@@ -11,10 +11,10 @@ Precedence:
   2. `--grid` on the command line, for a generation that deliberately changes the set.
   3. The most recent `runs/paper1/matrix-*/run1/` directory listing, which is what a generation
      actually ran -- the only unfalsifiable record of it.
-  4. `holdout.json`'s `run_pairs` union its `holdout`, which is what the frozen bookkeeping
-     says is in play.
+  （曾有第 4 项 `holdout.json`。hold-out 机制已于 2026-08-09 永久移除 —— 方法在这批 pair 上
+   迭代，不再区分留出与非留出，格集只能来自命令行或运行目录。）
 
-Deliberately no hardcoded fallback. A checkout with neither runs nor a frozen hold-out cannot
+Deliberately no hardcoded fallback. A checkout with no runs cannot
 know the grid, and guessing is how the wrong number gets into a document that claims to be
 pre-registered.
 
@@ -113,16 +113,6 @@ def from_runs(generation: str | None = None) -> list[str]:
     return []
 
 
-def from_frozen() -> list[str]:
-    """`run_pairs` union `holdout`: what the frozen bookkeeping says is in play."""
-
-    path = HERE / "holdout.json"
-    if not path.is_file():
-        return []
-    frozen = json.loads(path.read_text())
-    return sorted(set(frozen.get("run_pairs") or ()) | set(frozen.get("holdout") or ()))
-
-
 def in_scope(pairs: list[str]) -> list[str]:
     """去掉建模对象之外的 pair（见 `nl_scope_filter.py`）。
 
@@ -168,13 +158,13 @@ def grid(
         pairs = sorted({p.strip() for p in re.split(r"[,\s]+", explicit) if p.strip()})
         if pairs:
             return in_scope(pairs) if apply_scope else pairs
-    for source in (lambda: from_runs(generation), from_frozen):
+    for source in (lambda: from_runs(generation),):
         pairs = source()
         if pairs:
             return in_scope(pairs) if apply_scope else pairs
     raise SystemExit(
-        "cannot determine the grid: no `runs/paper1/matrix-*/run1/` and no `holdout.json`. "
-        "Pass it with `--grid` and say in the report where it came from."
+        "cannot determine the grid: no `runs/paper1/matrix-*/run1/`. "
+        "Pass it with `--grid` or `--corpus` and say in the report where it came from."
     )
 
 
@@ -194,15 +184,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     pairs = grid(args.grid, args.generation, apply_scope=not args.all, corpus=args.corpus)
     if args.source:
-        # ⚠️ 与来源比对必须用**未筛选**的格集：筛选后 `pairs` 与 `from_runs()` 不再逐字相等，
-        # 直接比会把 runs 来源误标成 holdout.json，而来源标注是报告里说明数字出处的那一行。
+        # ⚠️ 与来源比对必须用**未筛选**的格集：筛选后 `pairs` 与 `from_runs()` 不再逐字相等。
         raw = grid(args.grid, args.generation, apply_scope=False, corpus=args.corpus)
         if args.corpus:
             origin = f"corpus（{CORPUS.name} 下 {len(raw)} 个 pair，且均有种子模型）"
         elif args.grid:
             origin = "--grid"
         else:
-            origin = "runs" if from_runs(args.generation) == raw else "holdout.json"
+            origin = "runs"
         if not args.all:
             origin += "（已过建模对象筛选）"
         print(f"{len(pairs)} pairs from {origin}: {' '.join(pairs)}")

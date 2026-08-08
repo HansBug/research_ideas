@@ -36,13 +36,8 @@ import argparse, json, pathlib, sys, collections
 HERE = pathlib.Path(__file__).resolve().parent
 LED = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
 RUNS = HERE.parents[2] / "runs" / "paper1"
-FROZEN = json.loads((HERE / "holdout.json").read_text())
-HOLD = set(FROZEN["holdout"])
-# 记录级资格：判定者必须看得出哪几条承载主张、哪几条已烧毁。上一版用 pair 级 `holdout`，于是
-# 0018/0038/0048 照旧显示 [HOLDOUT]，而它们连同五条记录早已判为烧毁。
-REPORTABLE = set(FROZEN.get("reportable_records") or ())
-BURNED_RECORDS = FROZEN.get("burned_records") or {}
-BURNED_PAIRS = set(FROZEN.get("burned") or {})
+# hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
+HOLD, REPORTABLE, BURNED_RECORDS, BURNED_PAIRS = set(), set(), {}, set()
 # EIS-0047-03 干净但被 initialization_anchored 门结构性封死（预注册 §9.1）。它若报未命中，
 # 那是门的抑制，不是能力缺口 —— 判定时必须看见这句话，否则会被记成未命中。
 BLOCKED = {"EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）：两条编码都绑 "

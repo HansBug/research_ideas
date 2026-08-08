@@ -10,7 +10,7 @@ and both therefore carry no information about the model under test.
 
 The asymmetry in how they were handled is why this matters here. An always-true binding
 quietly passes and hides a defect; an always-false one quietly *publishes* one. Across the
-v20 hold-out set that second direction produced 17 assertions on pairs `0018` and `0038`,
+v20 run that second direction produced 17 assertions on pairs `0018` and `0038`,
 every one of them False, every one of them published as a finding about the model. The
 adjudicator had no way to tell them apart from real evidence -- the rationale often said in
 so many words that the state is transient, and the finding shipped anyway.

@@ -5,7 +5,7 @@ named, and each time the next leak was in a form nobody had grepped for. This wa
 takes every string literal that is not a docstring, and matches it against every identifier and
 characteristic phrase in the pairs that are actually being measured.
 
-Which pairs those are is read from `holdout.json`, not hardcoded. The first version pinned the
+The audited set is every pair in the grid; there is no hold-out. The first version pinned the
 four historical cells, so the audit that was declared a pre-run gate had never once run against
 the pairs a coverage number would be reported from -- it audited only the pairs already known to
 be burned. Auditing the burned cells tells you nothing you did not already know; auditing the
@@ -19,11 +19,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
 SRC = ROOT / "paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop"
-HOLDOUT_FILE = HERE / "holdout.json"
 #: Held-out pairs first -- those are the ones a reported number depends on -- plus the four
 #: historical cells, which are audited too so a regression there is still visible.
 HISTORICAL = {"0000", "0006", "0029", "0050"}
-AUDITED = set(json.loads(HOLDOUT_FILE.read_text())["holdout"]) | HISTORICAL
+# hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
+# 审计范围改为全部 pair —— 不再有「留出/历史」之分。
+AUDITED = set(run_grid.resolve()) | HISTORICAL
 GENERIC = {
     "source","target","trigger","scope","child","parent","variable","count","kind","sign","phase",
     "within_cycles","bound","release","condition","composite","state","event","True","False","None",

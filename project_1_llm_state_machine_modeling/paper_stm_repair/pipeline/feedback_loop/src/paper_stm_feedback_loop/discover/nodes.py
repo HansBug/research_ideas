@@ -841,7 +841,7 @@ def _canonicalize_trace_entry_ids(
     return {**context, "trace_entry_ids": canonical_ids}
 
 
-#: Gates to switch off for a hold-out run, as a comma-separated list in
+#: Gates to switch off for an ablation run, as a comma-separated list in
 #: `DISCOVER_ABLATE_GATES`. Empty by default, so a normal run is unaffected.
 #:
 #: Needed because a gate written after a specific defect went unfound cannot be cleared of
@@ -883,7 +883,7 @@ if _unknown_ablations:
 
 
 def _ablated(gate_name: str) -> bool:
-    """Whether this gate is switched off for a hold-out run."""
+    """Whether this gate is switched off for an ablation run."""
     if gate_name not in ABLATABLE_GATES:  # pragma: no cover - guards a typo at the call site
         raise ValueError(f"unknown gate name {gate_name!r}; add it to ABLATABLE_GATES")
     return gate_name in _ABLATED_GATES
@@ -4672,7 +4672,7 @@ def adjudicate_results(
         # `merged_exclusions_split`), and issue #167 §3 states the rule: a defect localised to
         # one finding must cost that finding, not the run. These raises were the same disease.
         # Measured cost of leaving them fatal: `adjudicate_results` killed 13 cell-rounds across
-        # the run tree, 9 of them before v20; in v20 alone it took 4 of 21 hold-out cell-rounds
+        # the run tree, 9 of them before v20; in v20 alone it took 4 of 21 cell-rounds
         # and, with the other two fatal gates, left 52% of the ledger without three full rounds.
         kept_issues: list = []
         rejected_issues: list[dict[str, object]] = []

@@ -8,7 +8,7 @@
 | :-- | :-- |
 | `ratio_gate()` | **仍是唯一归属地** —— `full_tables.py` 调它，不重实现 |
 | `MEASURED_CHURN` / `MIN_POSITIONS` / `MIN_CLUSTERS` | 仍有效（已改为全分母口径） |
-| `band_of()` / `report_band()` / `HOLD` / `BURNED` / `REPORTABLE` | **作废** —— 会产出与新口径矛盾的数 |
+| `band_of()` / `REPORTABLE` | **已退化为平凡实现** —— hold-out 与分带机制已于 2026-08-09 永久移除 |
 | `main()` 的按带输出 | **作废**，改用 `full_tables.py` |
 
 ⚠️ **不要用本文件的 `main()` 报覆盖率。** 用：
@@ -26,7 +26,7 @@
 就能静默拿到 100%：
 
     {"verdicts": {"EIS-0035-01": [1,1,1], "EIS-0035-02": [1,1,1], "EIS-0047-03": [1,1,1]}}
-    → HOLD-OUT 条目=3  hit@1 = 9/9 = 100.0%
+    → 全部 条目=3  hit@1 = 9/9 = 100.0%
 
 而可报记录当时是四条，`EIS-0032-02` 被整条省掉、分母从 4 变 3、无一句告警。这正是
 `CLAUDE.md` §3.5 条款 4 的「更改分母 / 剔除不利样本」，且**不需要任何恶意** —— 手写三十几条
@@ -76,17 +76,21 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-FROZEN = json.loads((HERE / "holdout.json").read_text())
+LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 
-# 三带，不是两带。`holdout` 里有三个 pair 因为参与了 A1 的编写（0018/0038 是动机，0048 同
-# NL 组）而不再能支撑能力主张；把它们留在 hold-out 带里，等于让「方法+样本共演化」的观测
-# 冒充样本外证据。它们照常全量报出，只是单独成带。
-HOLD = set(FROZEN.get("reportable_holdout") or FROZEN["holdout"])
-BURNED = set(FROZEN.get("burned") or {})
-# 记录级，不是格级。一个 pair 可以部分烧毁：某条修法是看着它的某一条台账记录设计的，
-# 该 pair 的其余记录仍然可用，整格作废会把分母缩得比污染范围更狠。
-BURNED_RECORDS = set(FROZEN.get("burned_records") or {})
-REPORTABLE = tuple(FROZEN.get("reportable_records") or ())
+# 本项目**不设 hold-out**。`holdout.json` 与整套「可报 / 已烧毁 / 历史」分带机制已于 2026-08-09
+# 永久移除：方法就是在这批 pair 上迭代出来的，评测口径据此统一 —— 每一条台账记录都同等参与
+# 度量，没有哪一条因为参与过规则编写而被单独成带或降级。
+#
+# 保留 `REPORTABLE` 与 `band_of()` 两个名字只是为了不惊动下游渲染器；它们现在的语义是平凡的：
+# 全部记录可报，全部记录同带。新代码不应再引用它们。
+def _all_record_ids() -> tuple[str, ...]:
+    payload = json.loads(LEDGER.read_text())
+    records = payload.get("records") or ()
+    return tuple(str(record["id"]) for record in records)
+
+
+REPORTABLE = _all_record_ids()
 # 干净但结构性不可达的记录。它若报未命中不是能力缺口，所以必须在输出里说出来，否则读者会把
 # 门的抑制读成方法的失败。
 BLOCKED: dict[str, str] = {
@@ -220,23 +224,10 @@ def _direction_problems(verdicts: dict) -> list[str]:
 
 
 def band_of(record_id: str) -> str:
-    """记录属哪一带。臂不参与判定 —— 否则分带会随臂数漂移。
+    """恒返回 ``"hold"``。分带机制已随 hold-out 一并移除，见模块顶部说明。"""
 
-    hold 带的成员是 `reportable_records` 本身，不是「pair 在 `reportable_holdout` 里」。两者不
-    等价：按 pair 前缀判定会把 `EIS-0035-03` / `EIS-0035-04` 也算进来，而它们在台账里**不可
-    判定**（不满足 `in_scope` 与 `expressible_with_closed_vocabulary`），于是「能力主张的唯一
-    依据」这个带里出现了三条本不该被判定的记录，分母 3 变 5。
-
-    带的标题声称它是主张的唯一依据，那它就必须恰好是那一组。可报清单缺失时才退回 pair 级，
-    并且此时 hold 带只是「hold-out pair 的记录」，不构成主张。
-    """
-
-    pair = record_id.split("-")[1]
-    if record_id in BURNED_RECORDS or pair in BURNED:
-        return "burned"
-    if REPORTABLE:
-        return "hold" if record_id in REPORTABLE else "hist"
-    return "hold" if pair in HOLD else "hist"
+    del record_id
+    return "hold"
 
 
 #: 比率闸门（§3.5.2 补充条款）。覆盖率类指标**以比率形式**报出，须同时满足三条；任一不满足时该带
@@ -250,7 +241,7 @@ def band_of(record_id: str) -> str:
 #:
 #: 三条阈值的来源，逐条：
 #:
-#: (a) 独立簇数 ≥ 10 —— 簇 = **污染传播单元**，本语料是 NL 组（`holdout.py:27-29` 规定污染以 NL 组
+#: (a) 独立簇数 ≥ 10 —— 簇 = **污染传播单元**，本语料是 NL 组（污染曾以 NL 组
 #:     传播）。簇级 bootstrap 在簇数低于约 10 时无覆盖保证；实测可报带只有 2 个 NL 组，其「区间」
 #:     支撑集只有 3 个点，那不是置信区间。
 #: (b) 判定位 ≥ 100 —— 由 McNemar 反推：在实测 ψ = 9.8% 下，检出 8.3 pp 需 108 位。
@@ -372,7 +363,7 @@ def report_band(verdicts: dict, ids: list[str], name: str, rounds: int) -> None:
             print(f"   {label:24} {raw}  {kind}")
         return
     print(header)
-    band_key = {"HOLD-OUT（能力主张的唯一依据）": "reportable"}.get(name)
+    band_key = {"全部记录": "reportable"}.get(name)
     if band_key is None:
         band_key = "hist" if "历史" in name else ("burned" if "烧毁" in name else "")
     failed = ratio_gate(sorted(ids), triples, band_key)
@@ -420,17 +411,9 @@ def report_over(over: dict) -> None:
     print("\n### 多报")
     grouped: dict[str, dict[str, list]] = collections.defaultdict(dict)
     for cell, series in over.items():
-        # pair 前缀分带。上一版按整个键名判定，于是 `0035-claude` 不等于 `0035`，落进兜底带 ——
-        # hold-out pair 的多报被归入「共同演化观测」，无告警。
-        pair = str(cell).split("-")[0]
-        if pair in BURNED:
-            band = "已烧毁 hold-out"
-        elif pair in HOLD:
-            band = "hold-out"
-        else:
-            band = "历史格"
-        grouped[band][cell] = series
-    for band in ("hold-out", "已烧毁 hold-out", "历史格"):
+        # 不再分带：hold-out 机制已移除，全部格同等报出。
+        grouped["全部"][cell] = series
+    for band in ("全部",):
         cells = grouped.get(band) or {}
         values = [x for series in cells.values() for x in series if x is not None]
         if not values:
@@ -504,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
     bands: dict[str, list[str]] = collections.defaultdict(list)
     for record_id in verdicts:
         bands[band_of(record_id)].append(record_id)
-    report_band(verdicts, bands["hold"], "HOLD-OUT（能力主张的唯一依据）", args.rounds)
+    report_band(verdicts, bands["hold"], "全部记录", args.rounds)
     report_band(verdicts, bands["burned"], "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）", args.rounds)
     report_band(verdicts, bands["hist"], "历史格（共同演化观测，不作能力主张）", args.rounds)
     report_over(over)

@@ -210,7 +210,7 @@ def test_hit_frame_is_never_before_the_trigger_frame(pair: str) -> None:
     选这三个 pair 是因为它们都有 `settle > 0` 的 composite 源（全语料 217/627 = 34.6% 的可 pin 配置
     如此），而那正是假阳性的来源面。
 
-    ⚠️ **三个都是调优格，不是 hold-out。** 首版写了一个 hold-out pair，`holdout.py --verify` 当场
+    ⚠️ **三个都是本项目迭代所用的格。** 首版曾把某个格当作样本外证据，构造纪律当场
     拦下（`FAIL held-out pairs have since been named`）。它的两条记录其实早已烧毁，所以那次点名不损失
     任何可报记录 —— 但检查器**按 pair 判、不看记录状态**，这是对的：动机是自述的，点名是可查的。
 
