@@ -255,7 +255,10 @@ PREDICATES: tuple[Predicate, ...] = (
             "the sentence says which sub-mode is active at the instant a composite "
             "is entered. Also reach for it when the sentence describes entering a "
             "mode and names what is active at that moment, without using the word "
-            "\"initial\"."
+            "\"initial\". This is a claim about the DECLARED default entry, and "
+            "nothing more. That the default entry names the wrong child, and that a "
+            "mode cannot be entered at all, are two separate findings: write reaches "
+            "as well whenever the sentence needs the mode to be enterable."
         ),
         field_specs=(
             ('composite', 'the declared composite whose entry is claimed'),
@@ -545,13 +548,23 @@ PREDICATES: tuple[Predicate, ...] = (
         "one bounded witness, and it ignores triggers",
         "simulate(...) multi-cycle",
         "simulate",
-        nl_index="arrives somewhere with NO single event named: \"eventually\", \"can return to\", \"must be able to get back to\"",
+        nl_index="\"eventually\" / \"can return to\" -- and, with source=\"[*]\", whether a named mode is enterable at all",
         nl_cue=(
             "the sentence says the system eventually arrives somewhere, or arrives "
             "within some number of steps, without naming the one stimulus that "
             "takes it there -- \"eventually\", \"can always return to\", \"after the "
-            "sequence completes the system is back in\". When the sentence does name "
-            "the single triggering event, use occupancy_after instead."
+            "sequence completes the system is back in\". It also carries a claim the "
+            "sentence makes only implicitly, and that implicit one is the MORE COMMON "
+            "of the two: whenever the sentence describes the system operating in a "
+            "named mode, that mode has to be enterable from power-on. Write it as "
+            "source=\"[*]\" with the mode as target. Nothing in the wording announces "
+            "this form -- there is no \"eventually\" to key on -- so ask it of every "
+            "mode the sentence names. Do not let initial_target stand in for it: that "
+            "one says the declared default entry names some other child, which can "
+            "hold while the mode is still reachable by a later transition, and can "
+            "fail while the mode is unreachable for an entirely different reason. "
+            "When the sentence does name the single triggering event, use "
+            "occupancy_after instead."
         ),
         locators=("path(...)",),
         caveat=(
@@ -567,7 +580,7 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
         examples=(
             'reaches(source="Sys.ModeA", target="Sys.Idle", within_cycles=3)',
-            'reaches(source="[*]", target="Sys.ModeB", within_cycles=5)',
+            'reaches(source="[*]", target="Sys.ModeB", within_cycles=5)  # False when no run from power-on ever occupies ModeB -- declared, but the machine can never be in it',
             'reaches(source="Sys.ModeA", target="Sys.Dead", within_cycles=3)  # False: unreachable within the budget',
         ),
     ),
