@@ -293,16 +293,32 @@ def test_property_requirement_without_decisive_evidence_still_requires_fbmcq() -
             )
         return _responder_property_closed_by_relation(role, schema, system, payload)
 
-    with pytest.raises(RuntimeError):
-        run_discover_state(
-            DiscoverInput(
-                run_id="s1-no-waiver",
-                natural_language="Alpha or Beta must be distinguishable.",
-                stm_text=FIXTURE_MODEL,
-                language="en-US",
-            ),
-            responder,
-        )
+    # The contract is still an allowlist -- what changed (CLAUDE.md §10) is how refusing shows
+    # up. It used to kill the cell; now the cell lands, publishes nothing off the insufficient
+    # evidence, and records what it gave up on. Asserting the crash would re-pin the behaviour
+    # that silently deleted the hardest samples from the measured set.
+    state = run_discover_state(
+        DiscoverInput(
+            run_id="s1-no-waiver",
+            natural_language="Alpha or Beta must be distinguishable.",
+            stm_text=FIXTURE_MODEL,
+            language="en-US",
+        ),
+        responder,
+    )
+    assert "failure" not in state
+    assert state["final_output"].issues == (), (
+        "a relation-only primary must not produce an issue for a property requirement"
+    )
+    waivers = [
+        detail
+        for record in state["node_execution_records"]
+        for detail in (record.details or {}).get("mandatory_evidence_waivers", [])
+    ]
+    assert waivers == [], "no waiver may be granted when FBMCQ is feasible"
+    assert state["_degraded_stages"], "giving up must be recorded, not silent"
+    assert [gap.stage for gap in state["coverage_gaps"]] == ["assertion_conversion"]
+    assert all(gap.blocks_full_coverage for gap in state["coverage_gaps"])
 
 
 # --------------------------------------------------------------------------
@@ -376,18 +392,29 @@ def test_infeasible_fbmcq_canary_waives_the_unsatisfiable_mandatory_family() -> 
 def test_feasible_fbmcq_canary_keeps_the_strict_contract() -> None:
     """A pair where FBMCQ works must still be held to the mandatory family."""
 
-    with pytest.raises(RuntimeError):
-        run_discover_state(
-            DiscoverInput(
-                run_id="s4-canary-feasible",
-                natural_language="Alpha or Beta must be distinguishable.",
-                stm_text=FIXTURE_MODEL,
-                language="en-US",
-                source_trace=SOURCE_TRACE,
-                manifest={"fbmcq_canary": {"feasible": True, "reason": "compiled"}},
-            ),
-            _responder_property_with_locator_primary,
-        )
+    # Same change of observable as the no-waiver test above: strictness is now visible as a
+    # recorded gap on a landed cell rather than as a dead process.
+    state = run_discover_state(
+        DiscoverInput(
+            run_id="s4-canary-feasible",
+            natural_language="Alpha or Beta must be distinguishable.",
+            stm_text=FIXTURE_MODEL,
+            language="en-US",
+            source_trace=SOURCE_TRACE,
+            manifest={"fbmcq_canary": {"feasible": True, "reason": "compiled"}},
+        ),
+        _responder_property_with_locator_primary,
+    )
+    assert "failure" not in state
+    assert state["final_output"].issues == ()
+    waivers = [
+        detail
+        for record in state["node_execution_records"]
+        for detail in (record.details or {}).get("mandatory_evidence_waivers", [])
+    ]
+    assert waivers == [], "a feasible canary must not buy a waiver"
+    assert state["_degraded_stages"]
+    assert state["coverage_gaps"], "the abandoned mandatory family must leave a gap"
 
 
 def test_fbmcq_canary_bound_must_be_discriminating() -> None:
@@ -589,17 +616,27 @@ def test_slashed_event_path_would_have_passed_the_defect_and_is_now_rejected() -
             )
         return _responder_property_closed_by_relation(role, schema, system, payload)
 
-    with pytest.raises(RuntimeError):
-        run_discover_state(
-            DiscoverInput(
-                run_id="unresolved-ref",
-                natural_language="Alpha or Beta must be distinguishable.",
-                stm_text=FIXTURE_MODEL,
-                language="en-US",
-                source_trace=SOURCE_TRACE,
-            ),
-            responder,
-        )
+    # "Never reaches execution" is the property under test, and it is now checked directly
+    # rather than through a crash: nothing is released, nothing is published, and the isolation
+    # is on the record. Asserting the exception instead would re-pin the behaviour that made a
+    # cell disappear rather than report (CLAUDE.md §10).
+    state = run_discover_state(
+        DiscoverInput(
+            run_id="unresolved-ref",
+            natural_language="Alpha or Beta must be distinguishable.",
+            stm_text=FIXTURE_MODEL,
+            language="en-US",
+        ),
+        responder,
+    )
+    assert "failure" not in state
+    assert state["released_assertion_results"].results == (), (
+        "the mistyped reference must never execute"
+    )
+    assert state["final_output"].issues == ()
+    assert any(
+        "断言被隔离" in entry for entry in state["_degraded_stages"]
+    ), "full isolation must be recorded, or the empty result reads as a clean run"
 
 
 def test_source_blind_response_evidence_is_detected() -> None:

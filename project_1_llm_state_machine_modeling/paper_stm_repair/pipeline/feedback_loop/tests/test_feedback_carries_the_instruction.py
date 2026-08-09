@@ -64,7 +64,9 @@ def test_no_construction_site_forwards_message_alone() -> None:
 
     source = inspect.getsource(nodes)
     assert "findings=tuple(f.message for f in output.findings)" not in source
-    assert source.count("findings=_review_findings(output.findings)") == 5
+    # 6 not 5 since the review_assertions full-isolation degradation added a site
+    # (CLAUDE.md §10). The number is a proxy; the invariant is the assertion above.
+    assert source.count("findings=_review_findings(output.findings)") == 6
 
 
 def test_quarantine_is_attributed_to_a_named_gate() -> None:

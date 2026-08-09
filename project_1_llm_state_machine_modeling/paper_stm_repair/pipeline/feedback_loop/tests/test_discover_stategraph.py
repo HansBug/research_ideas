@@ -1957,8 +1957,22 @@ def test_repeated_contract_invalid_script_stops_without_five_duplicate_calls() -
         },
         responder,
     )
-    assert "failure" in second
-    assert "repeated contract-invalid" in second["failure"].message
+    # Repeating one failure signature is a structural dead end, so the node stops revising --
+    # but per CLAUDE.md §10 it stops by *degrading*, not by killing the cell. The observable is
+    # the trail it leaves, not an exception: fall back to the last artifact that cleared the
+    # contract, record what was abandoned, and clear both routing keys so the graph advances
+    # instead of re-entering the node that just gave up.
+    assert "failure" not in second
+    assert second["_degraded_stages"], "giving up must be recorded, not silent"
+    assert "missing mandatory primary evidence" in second["_degraded_stages"][0]
+    assert second["assertion_script"] == first["assertion_script"]
+    assert second["coverage_gaps"], "the abandoned obligation must leave a gap"
+    assert {gap.stage for gap in second["coverage_gaps"]} == {"assertion_conversion"}
+    assert second["_assertion_conversion_contract_feedback"] is None
+    assert second["_assertion_feedback"] is None
+    ledger = second["_assertion_revision_ledger"]
+    assert ledger[-1].event == "artifact_quarantined"
+    assert ledger[-1].status == "degraded_budget_exhausted"
 
 
 def test_splitter_failure_routes_directly_to_run_failed_without_reviewer_masking() -> (

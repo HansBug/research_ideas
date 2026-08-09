@@ -30,6 +30,21 @@ Route = Literal[
 ]
 
 
+class DiscoverGraphFailed(RuntimeError):
+    """A terminal graph failure that still carries the state it died in.
+
+    Plain `RuntimeError` threw the state away, so `cli._write_failure_artifacts` could only
+    record the exception string -- a crashed cell left a nine-field receipt and a traceback,
+    and nothing about which obligations had already been abandoned along the way.  That is the
+    second half of what `CLAUDE.md` §10 objects to: not just the missing artifact, but the
+    missing diagnosis.  Attaching the state costs nothing and makes a failed cell analysable.
+    """
+
+    def __init__(self, message: str, *, state: DiscoverGraphState) -> None:
+        super().__init__(message)
+        self.state = state
+
+
 def route_after_prepare(state: DiscoverGraphState) -> Route:
     return "run_failed" if "failure" in state else "split_requirements"
 
@@ -261,7 +276,8 @@ def run_discover_state(
                 on_update(node_name, update)
     if "failure" in final_state:
         failure = final_state["failure"]
-        raise RuntimeError(
-            f"Discover graph failed at {failure.node_name}: {failure.message}"
+        raise DiscoverGraphFailed(
+            f"Discover graph failed at {failure.node_name}: {failure.message}",
+            state=final_state,
         )
     return final_state

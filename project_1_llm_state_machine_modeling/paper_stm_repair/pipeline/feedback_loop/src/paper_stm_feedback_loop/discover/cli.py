@@ -7,6 +7,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any
 
 from paper_stm_feedback_loop.assertions import AssertionChecker, build_eval_environment
@@ -171,6 +172,7 @@ def _write_failure_artifacts(
     content_language: str,
     error_type: str,
     error_message: str,
+    state: Mapping[str, Any] | None = None,
 ) -> None:
     """Persist a deterministic failure receipt without rewriting records.
 
@@ -192,6 +194,18 @@ def _write_failure_artifacts(
         "error_type": error_type,
         "error_message": error_message,
         "records_dir": "records",
+        # A crashed cell is still an experiment outcome, and the two things a reader needs
+        # first are "which obligations had already been abandoned" and "where did the pipeline
+        # stop trying". Without them the receipt says only that something raised, and the cell
+        # is unusable for anything except a rerun (CLAUDE.md §10).
+        "coverage_gaps": [
+            gap.model_dump(mode="json") for gap in (state or {}).get("coverage_gaps", ())
+        ],
+        "degraded_stages": list((state or {}).get("_degraded_stages", ())),
+        "node_execution_records_count": len(
+            (state or {}).get("node_execution_records", ())
+        ),
+        "llm_call_records_count": len((state or {}).get("llm_call_records", ())),
     }
     with (output_root / "discover-failed.json").open("x", encoding="utf-8") as stream:
         json.dump(payload, stream, ensure_ascii=False, indent=2)
@@ -204,6 +218,22 @@ def _write_failure_artifacts(
         stream.write("- `status`: `failed`\n")
         stream.write(f"- `error_type`: `{error_type}`\n")
         stream.write(f"- `error_message`: {error_message}\n\n")
+        degraded = list((state or {}).get("_degraded_stages", ()))
+        gaps = list((state or {}).get("coverage_gaps", ()))
+        if degraded:
+            stream.write("## 本次运行中已降级的阶段\n\n")
+            for entry in degraded:
+                stream.write(f"- {entry}\n")
+            stream.write("\n")
+        if gaps:
+            stream.write(f"## 未满足的义务（{len(gaps)} 条 coverage gap）\n\n")
+            stream.write("| gap | 阶段 | 需求 | 原因 |\n|:--|:--|:--|:--|\n")
+            for gap in gaps:
+                stream.write(
+                    f"| `{gap.gap_id}` | {gap.stage} | "
+                    f"`{gap.requirement_id or '-'}` | {gap.reason} |\n"
+                )
+            stream.write("\n")
         stream.write(
             "所有已产生的 node、LLM、transport attempt 和 revision feedback "
             "仍保存在 [`records/`](../records/)；该失败收据不把部分结果伪装成 completed。\n"
@@ -399,6 +429,7 @@ def main(argv: list[str] | None = None) -> int:
             content_language=args.content_language,
             error_type=type(exc).__name__,
             error_message=str(exc),
+            state=getattr(exc, "state", None),
         )
         raise
 

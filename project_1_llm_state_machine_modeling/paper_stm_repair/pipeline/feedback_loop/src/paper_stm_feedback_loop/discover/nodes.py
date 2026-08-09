@@ -487,6 +487,30 @@ def _quarantine_reviewed_assertions(
         ),
         "_assertion_revision_ledger": (*ledger, quarantine_event),
         "_last_executable_assertion_script": filtered_script,
+        **_full_isolation_note(
+            state, "review_assertions", retained, len(script.assertions)
+        ),
+    }
+
+
+def _full_isolation_note(
+    state: DiscoverGraphState, node_name: str, retained: set[str], total: int
+) -> dict[str, tuple[str, ...]]:
+    """Mark the state when isolation removed *every* assertion.
+
+    Partial isolation is ordinary operation -- some checks are dropped, the rest still run.
+    Isolating all of them is different in kind: the cell lands with nothing to release, so its
+    zero-issue result must not read as "no defects found". Without this flag such a cell is
+    byte-indistinguishable from a clean run, which is the silent-degradation hazard §10 names.
+    """
+
+    if retained or not total:
+        return {}
+    return {
+        "_degraded_stages": (
+            *state.get("_degraded_stages", ()),
+            f"{node_name}: 全部 {total} 条断言被隔离，本格没有任何可发布的结果",
+        )
     }
 
 
@@ -497,7 +521,18 @@ def _filter_assertion_script(
         item for item in script.assertions if item.assertion_id in accepted_ids
     )
     if not assertions:
-        raise ValueError("soft isolation cannot publish an empty AssertionScript")
+        # Every assertion was isolated. This used to raise, which killed the cell one node
+        # after `convert_assertions` had just been taught to degrade -- moving the crash
+        # rather than removing it (CLAUDE.md §10).
+        #
+        # `AssertionScript.assertions` is `min_length=1`, so there is no empty script to
+        # return. Keeping the original assertions is nevertheless safe *and* more honest:
+        # the script records what was attempted, while the caller derives `executions` and
+        # sealed `results` from `accepted_ids` independently -- both come out empty, so
+        # `release_results` releases nothing and no issue can be published. Dropping the
+        # `requirement_mapping` is what makes the isolation visible downstream: no
+        # requirement is claimed to be covered by anything.
+        return script.model_copy(update={"requirement_mapping": {}})
     mapping = {
         requirement_id: tuple(
             assertion_id
@@ -683,6 +718,171 @@ def _llm_call_record(
         transport_attempts=observation.attempts,
         failure=observation.failure,
     )
+
+
+def _degraded_conversion(
+    state: DiscoverGraphState,
+    *,
+    message: str,
+    repair_count: int,
+    repeated: bool,
+) -> tuple[AssertionScript, tuple[CoverageGap, ...]] | None:
+    """Fallback script + conversion-stage gaps, or `None` when nothing ever cleared the contract.
+
+    The fallback is the newest artifact that already passed the deterministic contract:
+    `_last_executable_assertion_script` if precheck ever accepted one, else the last
+    `assertion_script` in state.  Requirements that artifact does not cover become gaps --
+    those are exactly the obligations the abandoned revisions were trying to satisfy.
+    """
+
+    fallback = state.get("_last_executable_assertion_script") or state.get(
+        "assertion_script"
+    )
+    if fallback is None:
+        return None
+    requirement_set = state.get("requirement_set")
+    requirements = requirement_set.requirements if requirement_set is not None else ()
+    covered = {
+        item.requirement_id
+        for item in fallback.assertions
+        if item.role == "primary"
+    }
+    reason_code = (
+        "no_progress" if repeated else "revision_budget_exhausted"
+    )
+    gaps = tuple(
+        CoverageGap(
+            gap_id=f"GAP-{requirement.requirement_id}-CONVERSION-DEGRADED",
+            stage="assertion_conversion",
+            requirement_id=requirement.requirement_id,
+            source_segment_ids=requirement.source_segment_ids,
+            reason_code=cast(Any, reason_code),
+            reason=(
+                "转换阶段放弃该需求：契约修复预算已用尽"
+                f"（{repair_count}/{MAX_ASSERTION_CONTRACT_REPAIRS}）"
+                if not repeated
+                else "转换阶段放弃该需求：重复同一失败签名，重试期望收益为零"
+            ),
+            last_revision=fallback.revision,
+            last_feedback=message,
+            coverage_impact=(
+                "该需求没有通过契约的 primary 断言，因此不会产生任何 issue；"
+                "本格的零结果不得读作「该需求无缺陷」。"
+            ),
+            blocks_full_coverage=True,
+        )
+        for requirement in requirements
+        if requirement.requirement_id not in covered
+    )
+    if not gaps:
+        # The fallback happens to name a primary for every requirement, so the per-requirement
+        # scan finds nothing -- yet the contract did reject the newest revision, and something
+        # was abandoned (a mandatory evidence family, a coverage key, an aggregation group).
+        # Returning no gap here would land a cell whose artifact is indistinguishable from a
+        # clean run. A degradation that leaves no trace is worse than a crash, because a crash
+        # at least cannot be mistaken for a result.
+        gaps = (
+            CoverageGap(
+                gap_id="GAP-SCRIPT-CONVERSION-DEGRADED",
+                stage="assertion_conversion",
+                reason_code=cast(Any, reason_code),
+                reason=(
+                    "转换阶段放弃继续修订，但回退产物对每条需求都有 primary，"
+                    "因此无法定位到具体需求；被放弃的是契约在脚本层面的要求。"
+                ),
+                last_revision=fallback.revision,
+                last_feedback=message,
+                coverage_impact=(
+                    "脚本层面的契约要求未被满足；本格结果不得读作完整覆盖。"
+                ),
+                blocks_full_coverage=True,
+            ),
+        )
+    return fallback, gaps
+
+
+def _degrade_state(
+    state: DiscoverGraphState,
+    node_name: str,
+    message: str,
+    *,
+    loop: Literal["requirements", "assertions"],
+    gaps: tuple[CoverageGap, ...],
+    revision: int,
+    started_at: datetime | None = None,
+    start_ns: int | None = None,
+    input_value: Any | None = None,
+    kind: str = "llm",
+    responder: StructuredResponder | None = None,
+    role: str | None = None,
+    extra: dict[str, Any] | None = None,
+) -> DiscoverGraphState:
+    """Record an unsatisfiable obligation and keep going, instead of killing the cell.
+
+    Counterpart to `_fail_state`, and deliberately built **from** it: the node record and the
+    failed-LLM-call accounting must be byte-identical, and a hand-copied second version would
+    drift the moment a usage field is added on one side only -- which is how a run record comes
+    to under-report tokens for exactly the calls that failed.  The single difference is that
+    `failure` is dropped, so the router advances and the run still writes
+    `discover-completed.json`.
+
+    Why this exists, per `CLAUDE.md` §10: a cell that dies produces no artifact, which silently
+    removes that sample from the measured set -- and the samples most likely to die are the ones
+    whose model is *most* broken (a malformed artifact is exactly what makes a predicate refuse
+    to answer and a contract unsatisfiable).  Losing them biases the measurement upward and
+    destroys the evidence of why.  Landing a partial artifact plus a `CoverageGap` keeps both
+    the sample and the diagnosis.
+
+    The caller owns the two things this helper cannot decide: which artifact to fall back to,
+    and which routing keys to clear so the graph does not loop straight back into the node that
+    just gave up.  Both go in `extra`.
+    """
+
+    failed = _fail_state(
+        state,
+        node_name,
+        ValueError(f"degraded: {message}"),
+        started_at=started_at,
+        start_ns=start_ns,
+        input_value=input_value,
+        revision=revision,
+        kind=kind,
+        responder=responder,
+        role=role,
+    )
+    update: DiscoverGraphState = {
+        key: value for key, value in failed.items() if key != "failure"
+    }
+    update["coverage_gaps"] = _append_coverage_gaps(state, *gaps)
+    update["_degraded_stages"] = (
+        *state.get("_degraded_stages", ()),
+        f"{node_name}: {message}",
+    )
+    ledger_key = (
+        "_requirement_revision_ledger"
+        if loop == "requirements"
+        else "_assertion_revision_ledger"
+    )
+    ledger = state.get(ledger_key, ())
+    update[ledger_key] = (
+        *ledger,
+        RevisionLedgerEvent(
+            sequence=len(ledger) + 1,
+            loop=loop,
+            event="artifact_quarantined",
+            revision=max(revision, 1),
+            status="degraded_budget_exhausted",
+            rationale=(
+                "修订预算耗尽或重复同一失败签名；已回退到最后一个可执行产物，"
+                "把未满足的义务记为 coverage gap，继续向下游推进而不是让整格失败。"
+            ),
+            findings=(message,),
+            item_ids=tuple(gap.requirement_id or gap.gap_id for gap in gaps),
+        ),
+    )
+    if extra:
+        update.update(extra)
+    return update
 
 
 def _fail_state(
@@ -1611,6 +1811,11 @@ def split_requirements(
             )
         return {
             "requirement_set": output,
+            # The newest set that actually cleared the deterministic contract. `requirement_set`
+            # cannot serve as that anchor: on a contract violation the node deliberately writes
+            # the *rejected* artifact back under that key so the producer can revise it in
+            # place. Falling back to it would launder a rejected artifact into the run.
+            "_last_accepted_requirement_set": output,
             "requirement_coverage": coverage,
             "_requirement_revision_ledger": revision_ledger,
             "requirement_fingerprints": (
@@ -1694,6 +1899,49 @@ def split_requirements(
             if rejected is not None:
                 update["requirement_set"] = rejected
             return update
+        # Budget exhausted rather than "nothing to revise": if an earlier revision already
+        # produced an accepted RequirementSet, keep it and move on (CLAUDE.md §10). The
+        # narrowness matters for the same reason it did in `convert_assertions` -- degrading on
+        # every un-revisable error would swallow the empty-response and no-progress families,
+        # which are not budget cases.
+        previous = state.get("_last_accepted_requirement_set")
+        if previous is not None and repair_count >= MAX_REQUIREMENT_CONTRACT_REPAIRS:
+            return _degrade_state(
+                state,
+                "split_requirements",
+                message,
+                loop="requirements",
+                gaps=(
+                    CoverageGap(
+                        gap_id="GAP-SPLIT-DEGRADED",
+                        stage="requirement_split",
+                        reason_code="revision_budget_exhausted",
+                        reason=(
+                            "拆分阶段的契约修复预算已用尽"
+                            f"（{repair_count}/{MAX_REQUIREMENT_CONTRACT_REPAIRS}）；"
+                            "沿用最后一版通过契约的需求集继续。"
+                        ),
+                        last_revision=previous.revision,
+                        last_feedback=message,
+                        coverage_impact=(
+                            "最后一次拆分修订未被接受，需求集可能未覆盖全部 NL 义务；"
+                            "本格的零结果不得读作「无缺陷」。"
+                        ),
+                        blocks_full_coverage=True,
+                    ),
+                ),
+                revision=previous.revision,
+                started_at=started_at,
+                start_ns=start_ns,
+                input_value=locals().get("payload", state),
+                responder=responder,
+                role="requirement_splitter",
+                extra={
+                    "requirement_set": previous,
+                    "_requirement_split_contract_feedback": None,
+                    "_requirement_feedback": None,
+                },
+            )
         return _fail_state(
             state,
             "split_requirements",
@@ -1849,15 +2097,60 @@ def review_requirements(
                 update["coverage_gaps"] = _append_coverage_gaps(state, *gaps)
                 update["_requirement_feedback"] = None
             else:
+                # Every requirement is unresolved, so item-local quarantine has nothing to
+                # retain. This used to set `failure` and kill the cell; per CLAUDE.md §10 an
+                # exhausted review budget degrades instead.
+                #
+                # The trade-off is real and points the other way from the conversion case:
+                # keeping the set means downstream may publish issues off requirements the
+                # reviewer never accepted, so this can *add* unreviewed output rather than
+                # lose it. It is still the better failure: the alternative deletes the sample
+                # entirely, and here the artifact says exactly what happened -- every
+                # requirement carries a gap and `_degraded_stages` names the node. An eval
+                # eligibility filter can drop such a cell from precision-side statistics while
+                # still counting it on the recall side; a cell that never landed offers no
+                # such choice.
                 message = (
                     "bounded review gate could not isolate unresolved Requirement "
                     "items without emptying the accepted RequirementSet"
                 )
-                update["failure"] = RunFailure(
-                    run_id=_run_id(state),
-                    node_name="review_requirements",
-                    message=message,
+                update["_degraded_stages"] = (
+                    *state.get("_degraded_stages", ()),
+                    f"review_requirements: {message}",
                 )
+                update["requirement_review"] = RequirementReview(
+                    decision="accept",
+                    reviewed_revision=requirements.revision,
+                    rationale=(
+                        "评审预算耗尽且无法在保留非空需求集的前提下隔离；"
+                        "按降级口径整体放行，并为每条需求记录 coverage gap。"
+                    ),
+                )
+                update["coverage_gaps"] = _append_coverage_gaps(
+                    state,
+                    *(
+                        CoverageGap(
+                            gap_id=f"GAP-{item.requirement_id}-REVIEW-DEGRADED",
+                            stage="requirement_split",
+                            requirement_id=item.requirement_id,
+                            source_segment_ids=item.source_segment_ids,
+                            reason_code="revision_budget_exhausted",
+                            reason=(
+                                "评审预算耗尽，且隔离该项会清空需求集；"
+                                "该需求未经评审接受即进入下游。"
+                            ),
+                            last_revision=requirements.revision,
+                            last_feedback=output.rationale,
+                            coverage_impact=(
+                                "该需求未通过评审；由它产生的任何 issue 都不得在精度侧统计中"
+                                "当作已评审结果。"
+                            ),
+                            blocks_full_coverage=True,
+                        )
+                        for item in requirements.requirements
+                    ),
+                )
+                update["_requirement_feedback"] = None
         return update
     except Exception as exc:
         return _fail_state(
@@ -2403,30 +2696,71 @@ def convert_assertions(
             and not repeated_contract_failure
             and repair_count < MAX_ASSERTION_CONTRACT_REPAIRS
         )
-        if repeated_contract_failure:
-            # C2 (per-requirement quarantine on budget exhaustion) was attempted here and
-            # reverted: its design premise is wrong. `_quarantine_reviewed_assertions` reads
-            # `state["assertion_check_public"]` and `state["sealed_assertion_results"]`, neither
-            # of which exists before `precheck_and_seal` has run, so calling it from conversion
-            # raises KeyError *inside* the `except` block -- an unhandled crash instead of a
-            # recorded failure. It also stamps every gap `stage="assertion_review"` /
-            # `reason_code="review_unresolved"`, which would attribute a contract-gate rejection
-            # to a reviewer that never ran.
+        budget_exhausted = repeated_contract_failure or (
+            output is not None and repair_count >= MAX_ASSERTION_CONTRACT_REPAIRS
+        )
+        # Only these two count as "the internal budget ran out". `not can_revise_contract` is
+        # wider and must NOT be used: it is also true when `output is None` (nothing came back
+        # to revise -- the provider/schema class that §10 does exempt) and when the message
+        # names the no-progress gate. An earlier revision of this patch used the wider form and
+        # silently degraded a first-revision contract rejection, landing a cell with zero issues
+        # and zero gaps -- indistinguishable from a clean run, which is the exact hazard §10
+        # exists to prevent.
+        if budget_exhausted:
+            # CLAUDE.md §10: an exhausted internal budget is not a reason to kill the cell.
+            # This used to `_fail_state` here, and it is what lost `run1/0049-gpt` and
+            # `run2/0039-gpt` in v41 -- 24 discarded try directories and 206 wasted LLM calls,
+            # on a wall the shell could not see: the contract demands the predicate the
+            # requirement names, the predicate refuses to answer on that artifact
+            # (`UnsupportedEvidence`: two unconditional initial edges), and switching predicates
+            # is rejected by the same contract.  Retrying the cell cold re-enters an identical
+            # dead end with none of the accumulated diagnosis.
             #
-            # Doing this properly needs three things this node does not have: the graph's
-            # `sealed_store` threaded into `convert_assertions` (graph.py passes it to
-            # precheck/review/release but not here), a conversion-stage gap vocabulary of its
-            # own, and clearing `_assertion_conversion_contract_feedback` -- not
-            # `_assertion_feedback` -- or the router loops straight back into this node.
-            # Shipping it half-done would have been worse than the fatal raise it replaced.
-            failure_message = (
-                "no-progress gate rejected repeated contract-invalid "
-                "AssertionScript semantics"
+            # An earlier attempt (C2) tried to reuse `_quarantine_reviewed_assertions` and was
+            # correctly reverted: it reads `assertion_check_public` / `sealed_assertion_results`,
+            # neither of which exists before `precheck_and_seal`, and it stamps every gap
+            # `stage="assertion_review"`, attributing a conversion-stage rejection to a reviewer
+            # that never ran.  This version does not reuse it -- it builds conversion-stage gaps
+            # directly and falls back to the last artifact that survived the contract.
+            degraded = _degraded_conversion(
+                state,
+                message=message,
+                repair_count=repair_count,
+                repeated=repeated_contract_failure,
             )
+            if degraded is not None:
+                fallback, gaps = degraded
+                return _degrade_state(
+                    state,
+                    "convert_assertions",
+                    message,
+                    loop="assertions",
+                    gaps=gaps,
+                    revision=fallback.revision,
+                    started_at=started_at,
+                    start_ns=start_ns,
+                    input_value=locals().get("payload", state),
+                    responder=responder,
+                    role="assertion_converter",
+                    extra={
+                        "assertion_script": fallback,
+                        # Both must be cleared. `_assertion_conversion_contract_feedback` is what
+                        # `route_after_convert` looks at, and `_assertion_feedback` is what the
+                        # next producer call would consume -- leaving either set sends the graph
+                        # straight back into the node that just gave up.
+                        "_assertion_conversion_contract_feedback": None,
+                        "_assertion_feedback": None,
+                    },
+                )
+            # No artifact ever cleared the contract, so there is nothing to fall back to
+            # (`AssertionScript.assertions` is `min_length=1`; a synthesized empty script would
+            # be fabricated data).  The run still ends, but `cli._write_failure_artifacts` now
+            # carries the accumulated gaps and the degradation trail, so the cell is analysable
+            # rather than a bare traceback.
             return _fail_state(
                 state,
                 "convert_assertions",
-                ValueError(failure_message),
+                ValueError(message),
                 started_at=started_at,
                 start_ns=start_ns,
                 input_value=locals().get("payload", state),
@@ -3071,6 +3405,11 @@ def precheck_and_seal(
                 if item.status == "executable"
             }
             filtered_script = _filter_assertion_script(script, accepted_ids)
+            update.update(
+                _full_isolation_note(
+                    state, "precheck_and_seal", accepted_ids, len(script.assertions)
+                )
+            )
             filtered_script_hash = sha256_data(filtered_script)
             filtered_executions = tuple(
                 item for item in public_executions if item.status == "executable"
@@ -3356,14 +3695,48 @@ def review_assertions(
                     }
                 )
                 return update
+            # Every assertion is unresolved, so isolation would empty the script. That used to
+            # set `failure`; per CLAUDE.md §10 it degrades instead. `_filter_assertion_script`
+            # now tolerates a fully-isolated script (it keeps the assertions as the record of
+            # what was attempted and drops `requirement_mapping`), and the caller's executions
+            # and sealed results come out empty -- so this quarantines everything and releases
+            # nothing, rather than deleting the cell.
             message = (
                 "bounded review gate: Assertion Reviewer requested more than "
                 f"{MAX_ASSERTION_REVIEW_REPAIRS} revisions and no assertion could "
                 "be isolated while retaining a non-empty script"
             )
-            update["failure"] = RunFailure(
-                run_id=_run_id(state), node_name="review_assertions", message=message
-            )
+            if sealed_store is not None:
+                update.update(
+                    _quarantine_reviewed_assertions(
+                        state,
+                        script=script,
+                        quarantined_ids=tuple(
+                            sorted(item.assertion_id for item in script.assertions)
+                        ),
+                        rationale=output.rationale,
+                        findings=_review_findings(output.findings),
+                        sealed_store=sealed_store,
+                    )
+                )
+                update["_assertion_feedback"] = None
+                update["assertion_review"] = output.model_copy(
+                    update={
+                        "decision": "accept",
+                        "rationale": (
+                            "评审预算耗尽且无法保留非空脚本；全部断言隔离，本格不发布任何结果。"
+                        ),
+                    }
+                )
+            else:
+                # No sealed store means nothing was ever executed; there is no partial result
+                # to keep, so this stays fatal. It is the deterministic-wiring class, not the
+                # budget class.
+                update["failure"] = RunFailure(
+                    run_id=_run_id(state),
+                    node_name="review_assertions",
+                    message=message,
+                )
             failed_record = _record_node(
                 state,
                 node_name="review_assertions",

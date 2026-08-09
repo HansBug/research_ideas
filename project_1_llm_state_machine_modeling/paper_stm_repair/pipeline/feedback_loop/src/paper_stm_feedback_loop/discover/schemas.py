@@ -1186,6 +1186,13 @@ class DiscoverGraphState(TypedDict, total=False):
     attribution_projection: AttributionProjection
     adjudication: DiscoverAdjudication
     coverage_gaps: tuple[CoverageGap, ...]
+    #: One entry per stage that gave up on an obligation and continued anyway (CLAUDE.md §10).
+    #: Distinct from `coverage_gaps`, which say *what* was not covered: this says *where the
+    #: pipeline stopped trying*, so a reader of a landed artifact can tell a clean run from one
+    #: that only looks clean because a stage abandoned its budget.  A cell with entries here is
+    #: eligible for the measured set -- it produced an artifact -- but its zero-issue result
+    #: cannot be read as "no defects found".
+    _degraded_stages: tuple[str, ...]
     _adjudication_reconciliation: dict[str, Any]
     final_output: DiscoverCompleted
     failure: RunFailure
@@ -1201,6 +1208,10 @@ class DiscoverGraphState(TypedDict, total=False):
     _requirement_review_repair_count: int
     _requirement_contract_repair_count: int
     _requirement_split_contract_feedback: RevisionFeedback | None
+    #: Newest RequirementSet that cleared the deterministic contract. Distinct from
+    #: `requirement_set`, which on a contract violation holds the *rejected* artifact so
+    #: the producer can revise it in place.
+    _last_accepted_requirement_set: RequirementSet
     _assertion_feedback: RevisionFeedback | None
     _assertion_feedback_history: tuple[RevisionFeedback, ...]
     _assertion_revision_ledger: tuple[RevisionLedgerEvent, ...]
