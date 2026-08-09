@@ -561,12 +561,42 @@ class NamedElement(StrictBaseModel):
     schema_name: Literal["NamedElement"] = "NamedElement"
     kind: Literal["state", "event", "variable"]
     #: 句子里的原措辞，逐字。不是路径，不做规范化 —— 它是「谁点的名」的证据。
+    #:
+    #: ⚠️ **一行只放一个要素。** 句子并列点名多个时（"human steering cmd, brake pressed"、
+    #: "A or B"、"X 和 Y"）必须拆成多行，每行一个。v41 实测：`0020` 两个格都把
+    #: `human steering cmd, brake pressed` 抄成一行，于是它匹配上了制品的融合事件
+    #: `human_steering_cmd_brake_pressed`，`declared_match` 非空 → 不生成义务 →
+    #: `EIS-0020-02` 六格全灭。**制品的融合命名反过来决定了句子被切成几个要素**，
+    #: 这正是这张表要防的那件事，只是上移了一层。
     name_in_sentence: str = Field(min_length=1)
     #: 该措辞规范化后应有的路径/名字：state 与 event 用 `<root>.<name>`，variable 用裸名。
     proposed_path: str = Field(min_length=1)
     #: `declared_model_vocabulary` 里**末段精确相等**的那一条；没有则 null。
     #: null 就是发现：句子点了名而模型没有它。
+    #:
+    #: ⚠️ 制品把多个要素压成一个名字时，那个融合名**不算**其中任何单个要素的匹配 ——
+    #: 融合本身就是缺陷。`human_steering_cmd_brake_pressed` 不是 `human steering cmd` 的
+    #: `declared_match`，也不是 `brake pressed` 的；两行都该是 null。
     declared_match: str | None = None
+
+    @model_validator(mode="after")
+    def _one_element_per_row(self) -> "NamedElement":
+        """并列连接词留在 `name_in_sentence` 里，说明这一行装了不止一个要素。
+
+        做成 validator 而不是 prompt 措辞，是因为本仓库反复量到同一件事：落在 typed 槽位
+        的约束遵守率 96–100%，落在散文里 25–38%。而 pydantic 的 `ValidationError` 是
+        `ValueError`，会走契约反馈回到生产者手上改，代价与一道门相同。
+        """
+
+        raw = self.name_in_sentence.strip()
+        for token in (",", "、", "，", " and ", " or ", " 和 ", " 或 "):
+            if token in f" {raw} ":
+                raise ValueError(
+                    f"named_elements: `name_in_sentence` 只能放一个要素，收到 {raw!r}。"
+                    f"句子并列点名多个要素时拆成多行，每行一个；若模型把它们压成了一个名字，"
+                    f"那个融合名不是其中任何一个的 declared_match，两行都填 null —— 融合本身是缺陷。"
+                )
+        return self
 
 
 class RequirementSet(StrictBaseModel):

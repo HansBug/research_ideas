@@ -236,6 +236,25 @@ deterministic check requires an existence Requirement for every such row -- an e
 specification names and the model lacks is a defect on its own, separately from whatever the
 sentence goes on to say about it.
 
+**One element per row, and a fused model name matches none of them.** When the sentence names
+several ("lid opened, tray removed", "A or B"), emit one row each -- a deterministic check
+rejects a row whose wording still carries a conjunction. And when the model has collapsed them
+into a single declared name, that name is **not** the `declared_match` of any one of them: both
+rows stay `null`, because the collapsing is itself the defect.
+
+    sentence: "... when the lid is opened or the tray is removed ..."
+    declared events: [Sys.lid_opened_tray_removed]
+
+    {"kind": "event", "name_in_sentence": "the lid is opened",
+     "proposed_path": "Sys.lid_opened",  "declared_match": null}
+    {"kind": "event", "name_in_sentence": "the tray is removed",
+     "proposed_path": "Sys.tray_removed", "declared_match": null}
+
+Neither row may point at `Sys.lid_opened_tray_removed`: no single event in that model can be
+triggered on its own, and that is exactly the claim the two obligations go on to make. Letting
+the model's naming decide how many elements a sentence names hands the artifact the very
+decision this table exists to take away from it.
+
 The comparison, the verdict and the obligation are identical in shape across kinds;
 only the vocabulary list and the predicate change:
 

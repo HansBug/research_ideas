@@ -81,3 +81,66 @@ def test_the_field_reaches_the_provider_as_a_typed_slot() -> None:
     assert "named_elements" in schema["properties"]
     kind = schema["$defs"]["NamedElement"]["properties"]["kind"]
     assert kind["enum"] == ["state", "event", "variable"]
+
+
+def test_a_row_may_not_carry_a_conjunction() -> None:
+    """一行一个要素——否则制品的融合命名会反过来决定句子被切成几个要素。
+
+    v41 实测：`0020` 两个格都把「human steering cmd, brake pressed」抄成一行，它匹配上了
+    制品的融合事件，`declared_match` 非空 → 不生成义务 → 该台账条目六格全灭、跨三代零命中。
+    这正是这张表要防的那件事，只是上移了一层：表原本防「让制品决定绑哪个元素」，
+    这里是「让制品决定句子里有几个元素」。
+
+    做成 validator 而非 prompt 措辞，理由与这张表本身相同：typed 约束遵守率 96–100%，
+    散文 25–38%。
+    """
+
+    import pytest
+    from pydantic import ValidationError
+
+    from paper_stm_feedback_loop.discover.schemas import NamedElement
+
+    ok = NamedElement(
+        kind="event", name_in_sentence="the lid is opened", proposed_path="Sys.lid_opened"
+    )
+    assert ok.declared_match is None
+
+    for wording in (
+        "lid opened, tray removed",
+        "lid opened and tray removed",
+        "lid opened or tray removed",
+        "开盖、取盘",
+        "开盖 和 取盘",
+    ):
+        with pytest.raises(ValidationError):
+            NamedElement(kind="event", name_in_sentence=wording, proposed_path="Sys.x")
+
+
+def test_the_rejection_says_the_fused_name_is_not_a_match() -> None:
+    """报错必须把「融合名不算任何单个要素的 declared_match」讲出来。
+
+    只说「拆开」会让生产者拆成两行、再把两行都指向同一个融合名——`declared_match` 仍非空，
+    义务仍然不生成，缺陷仍然报不出来。指令必须同时给出拆分与判空两件事。
+    """
+
+    import pytest
+    from pydantic import ValidationError
+
+    from paper_stm_feedback_loop.discover.schemas import NamedElement
+
+    with pytest.raises(ValidationError) as caught:
+        NamedElement(kind="event", name_in_sentence="a, b", proposed_path="Sys.x")
+    message = str(caught.value)
+    assert "declared_match" in message
+    assert "null" in message
+
+
+def test_the_prompt_states_the_same_rule_as_the_validator() -> None:
+    """约束与 prompt 必须同源——只有约束没解释，生产者只会反复撞门耗光预算。"""
+
+    from paper_stm_feedback_loop.discover import prompts
+
+    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    assert "One element per row" in splitter
+    assert "fused model name matches none of them" in splitter
+    assert "both rows stay `null`" in splitter
