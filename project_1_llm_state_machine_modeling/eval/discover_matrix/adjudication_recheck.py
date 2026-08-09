@@ -69,14 +69,32 @@ def primary_elements(expression: str) -> frozenset[str]:
     而 issue 为了指认具体元素必然把它们写出来。**同一个缺陷，散文可以换着说，元素名不能。**
     """
 
+    return frozenset(element_forms(expression))
+
+
+def element_forms(expression: str) -> dict[str, frozenset[str]]:
+    """元素名 → 它在 issue 文本里可能的写法。
+
+    目前只认**全名**。试过放宽到 CamelCase 段（让 `AutonomousActive` 被「Autonomous」命中，
+    因为 issue 常用父状态名指代子状态），实测是在两类假阳性之间换手而不是消除：
+    严格版把「Autonomous 下缺 Power_Off 出边」与「HumanDriving 中 Power_Off 未终止」
+    看成同一形态（v37 上 8 对）；放宽版让 `AutonomousFinal` 被任何提到「Autonomous」的
+    父状态级 issue 命中（v37 上 13 对）。
+
+    这类作用域歧义没有词法解法。既然本工具只定位不裁定，就取更简单、失败模式更好解释的
+    严格版，并把「作用域级假阳性属预期，必须人读原文分辨」写在这里。
+    """
+
     stripped = _CORPUS_PREFIX.sub("", expression or "")
-    quoted = re.findall(r"[\"']([^\"']+)[\"']", stripped)
-    parts: set[str] = set()
-    for value in quoted:
+    forms: dict[str, set[str]] = {}
+    for value in re.findall(r"[\"']([^\"']+)[\"']", stripped):
         for chunk in re.split(r"[.\s]+", value):
-            parts.add(chunk.lower())
-            parts.update(piece for piece in chunk.lower().split("_") if piece)
-    return frozenset(part for part in parts if part and part not in _WEAK and len(part) > 1)
+            for name in [chunk, *chunk.split("_")]:
+                key = name.lower()
+                if not key or key in _WEAK or len(key) < 2:
+                    continue
+                forms.setdefault(key, {key})
+    return {key: frozenset(value) for key, value in forms.items()}
 
 
 def predicate_of(expression: str) -> str:
@@ -84,17 +102,23 @@ def predicate_of(expression: str) -> str:
     return match.group(1) if match else ""
 
 
-def coverage(elements: frozenset[str], title: str) -> tuple[float, frozenset[str]]:
+def coverage(
+    elements: dict[str, frozenset[str]] | frozenset[str], title: str
+) -> tuple[float, frozenset[str]]:
     """issue 标题覆盖了 primary 的几成绑定元素，以及具体覆盖了哪些。
 
     返回覆盖集合而不只是比值，是因为「同一形态」要用**覆盖了哪些元素**来判定：两位覆盖的
     元素集合相同，才说明两处 issue 指认的是同一组对象。
     """
 
+    if not isinstance(elements, dict):
+        elements = {name: frozenset({name}) for name in elements}
     if not elements:
         return 0.0, frozenset()
     lowered = (title or "").lower()
-    found = frozenset(part for part in elements if part in lowered)
+    found = frozenset(
+        name for name, forms in elements.items() if any(form in lowered for form in forms)
+    )
     return len(found) / len(elements), found
 
 
@@ -115,7 +139,7 @@ def best_match(
 ) -> tuple[str, float, frozenset[str]]:
     """覆盖 primary 绑定元素最多的那条已发布 issue。"""
 
-    elements = primary_elements(expression)
+    elements = element_forms(expression)
     if not titles or not elements:
         return "", 0.0, frozenset()
     scored = [(title,) + coverage(elements, title) for title in titles]

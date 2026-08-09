@@ -182,3 +182,35 @@ def test_the_corpus_prefix_is_stripped() -> None:
     elements = R.primary_elements(LEDGER["EIS-0030-02"]["primary_expression"])
     assert not any("llms_emp" in part for part in elements)
     assert {"autonomous", "navigating", "power", "off"} <= elements
+
+
+def test_scope_level_false_positives_are_accepted_by_design() -> None:
+    """已知局限，锁在这里防止有人"顺手修好"：作用域不同却被当成同一形态。
+
+    `AutonomousActive` 这个全名在两侧 issue 里都没出现，于是「Autonomous 下缺 Power_Off
+    出边」与「HumanDriving 中 Power_Off 未终止」覆盖集相同，被配成一对。放宽到 CamelCase
+    段能解决这一类，但会让 `AutonomousFinal` 被任何提到「Autonomous」的父状态级 issue 命中，
+    假阳性从 8 对涨到 13 对——是换手不是消除。本工具只定位不裁定，取严格版。
+    """
+
+    ledger = {
+        "R": {
+            "statement": "自动驾驶激活期间无法断电。",
+            "primary_expression": (
+                'event_consumed(source="A.AutonomousActive", trigger="A.Power_Off")'
+            ),
+        }
+    }
+    titles = {
+        "run1/x-claude": ["Power_Off 未真正终止运行，且 Autonomous 下缺少 Power_Off 出边"],
+        "run1/x-gpt": ["Power_Off 未使 HumanDriving 中的运行终止"],
+    }
+    import pytest as _pytest
+
+    with _pytest.MonkeyPatch.context() as patch:
+        patch.setattr(R, "published_titles", lambda _gen, cell: titles.get(cell, []))
+        audit = [
+            _entry("R", "run1/x-claude", hit=True),
+            _entry("R", "run1/x-gpt", hit=False),
+        ]
+        assert len(R.inconsistencies("g", audit, ledger)) == 1

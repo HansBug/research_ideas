@@ -128,4 +128,5 @@ def test_audit_json_on_disk_agrees_if_present() -> None:
         arm = entry["cell"].split("-")[-1]
         by_arm[(entry["record_id"], arm)].append(int(entry["hit"]))
     at_all = sum(1 for v in by_arm.values() if len(v) == 3 and all(v))
-    assert (at_all, len(by_arm)) == (73, 198)
+    # 77 而非最初发布的 73：2026-08-09 横向一致性复核改判了 26 位（详见 adjudication_recheck.py）。
+    assert (at_all, len(by_arm)) == (77, 198)
