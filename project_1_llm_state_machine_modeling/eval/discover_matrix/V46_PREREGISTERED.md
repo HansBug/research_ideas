@@ -70,3 +70,27 @@ python metrics_at_k.py /tmp/v37_verdicts.json --no-direction-check
 
 `validate` 对 v37 判定表报 **0 个问题**，分母恰为 99 条范围内记录 —— 这独立印证了
 `00x8` 自 v35 起即为既定网格，不是本轮的取舍。
+
+---
+
+## 附：运行期发现的孤儿残留（已清除，无污染）
+
+启动后约 20 分钟发现 `run1/0000-*.try1`、`run1/0001-*.try1` 四个目录的 `run_id` 时间戳为
+`20260809T1658`，**早于本次 launcher 的 `T1707`**。溯源：它们是被放弃的 360 网格运行
+（`run_v46b.sh`）的孤儿。
+
+**成因（CLAUDE.md §3.5.1 记过的坑，这次踩的是它的变体）**：我按 PID 杀掉 launcher 与全部
+worker 后立即 `ps` 确认「剩余 0」，但 `cell()` 的重试循环此刻正处在 `sleep 90`。那些子 shell
+不是 worker，`ps` 查 `discover --pair-id` 看不到它们；90 秒后它们醒来又各自开了新 worker，
+写进了同一个输出目录。**「杀完立刻数进程为 0」不足以证明干净 —— 还要等过重试退避窗口再数一次。**
+
+**污染核查（四项，全部通过）**：
+
+1. `.try*` 目录中完成收据数 = **0**，故不进任何统计；
+2. `verdict_tiers._CELL` 正则锚定为 `^(\d{4})-(claude|gpt)$`，`.tryN` 匹配不上会被跳过；
+   `degradation_audit` 与 `audit_to_verdicts` 各自也过滤，三处一致；
+3. 当前 15 个 worker 的启动时间**全部 ≥ 01:07**，无孤儿存活；
+4. 网格内外均无 `00x8` 目录或 worker。
+
+四个孤儿目录已删除。本次 launcher 自己产生的 `.try2`（`0002-claude` / `0004-gpt` /
+`0007-claude`，均为 provider 侧失败后的合法重试）保留，作为失败证据。
