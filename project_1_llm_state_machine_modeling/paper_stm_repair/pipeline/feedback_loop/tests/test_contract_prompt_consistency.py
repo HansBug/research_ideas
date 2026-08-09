@@ -206,8 +206,18 @@ def test_the_missing_element_rule_is_one_ordered_procedure() -> None:
     # The converter still owns the two-assertion shape for step 4, and only that.
     converter = prompts.ASSERTION_CONVERTER_PROMPT
     assert "needs two assertions, not one" in converter
-    assert "`precondition` asserting that the missing element **exists**" in converter
-    assert "with `depends_on` naming the precondition" in converter
+    # The shape is `supporting` + an *independent* `primary`, not
+    # `precondition` + dependent. Four runtime gate messages already said so; this
+    # block was the last place still prescribing the other one, and a real v42 run
+    # caught the model being handed both in the same cell. `precondition` remains a
+    # legal role -- it is simply not the prescription for a missing element, because
+    # a false one makes the controller skip the primary and the real question is
+    # never asked (v37: 135 primaries unasked for exactly that reason).
+    assert "`supporting` assertion asserting that the missing element **exists**" in converter
+    assert "**Not a `precondition`.**" in converter
+    assert "do not add `depends_on`" in converter
+    assert "`precondition` asserting that the missing element" not in converter
+    assert "with `depends_on` naming the precondition" not in converter
 
 
 def test_each_step_of_the_procedure_has_a_worked_object() -> None:
@@ -730,3 +740,40 @@ def test_the_evidence_api_teaches_the_expression_shape_the_schema_accepts() -> N
             aggregation_group="REQ-001:all",
             rationale="r",
         )
+
+
+def test_missing_element_shape_is_never_contradicted_across_prompt_and_gates() -> None:
+    """prompt 与运行时门必须给同一条处方——这是第 6 次「新规则输给老禁令」。
+
+    v41 的 T2.1 把四处运行时门统一到 `supporting`，却漏了 converter prompt 里的
+    worked-example 块，它仍要求 `precondition` + `depends_on`。两边同时生效的后果在
+    v42 的一次真实运行里被逮到：同一格的降级反馈里，门说
+    「⚠️ Do NOT make it a `precondition`」，而 prompt 说必须用 precondition。
+    生产者无论选哪种都会被另一端判错，两轮之后修订预算耗尽。
+
+    所以这里锁的不是措辞，而是**两个来源的一致性**：只要有一侧改了而另一侧没跟上，
+    这条测试就红。
+    """
+
+    import inspect
+
+    from paper_stm_feedback_loop.discover import nodes, prompts
+
+    gate_source = inspect.getsource(nodes)
+    # 运行时门的立场：不得用 precondition。
+    assert gate_source.count("NOT a `precondition`") >= 2
+
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
+        # 不得再出现处方式的 precondition 形态要求。
+        assert "`precondition` asserting that the missing element" not in prompt
+        assert "precondition-plus-dependent" not in prompt
+        assert "with `depends_on` naming the precondition" not in prompt
+
+    # `precondition` 本身仍是合法角色（schema 里有，且 precondition-False 仍须开 issue），
+    # 只是不再是「元素缺失」这一情形的处方。锁住它没有被连带删掉。
+    from paper_stm_feedback_loop.discover.schemas import AssertionRole
+
+    assert "precondition" in getattr(AssertionRole, "__args__", ())

@@ -703,8 +703,11 @@ def test_the_converter_prompt_states_the_two_assertion_shape():
     converter = prompts.ASSERTION_CONVERTER_PROMPT
     assert "needs two assertions, not one" in converter
     assert "under a name you propose from" in converter
-    assert "recorded as `blocked`" in converter
-    assert "re-run exactly these two" in converter
+    # Was "recorded as `blocked`". The primary is now evaluated rather than skipped:
+    # a `supporting` False reports the missing element and the primary reports its own
+    # False, so the absence shows up as a failed claim instead of an unasked one.
+    assert "The primary is still evaluated" in converter
+    assert "recorded as `blocked`" not in converter
 
 
 def test_every_named_binding_is_known_to_both_reference_tables():
