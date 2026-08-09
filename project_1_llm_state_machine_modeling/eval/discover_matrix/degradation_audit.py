@@ -38,12 +38,25 @@ REPO = HERE.parents[2]
 RUNS = REPO / "runs" / "paper1"
 
 
+def _cell_name(path: pathlib.Path) -> str:
+    """`run1/0039-gpt.try3` and `run1/0039-gpt` are the same cell, not two.
+
+    The launcher renames a cell directory to `<cell>.tryN` before each whole-cell retry, so an
+    abandoned attempt leaves its own `discover-failed.json` on disk. Counting those as separate
+    cells inflated v41's "not landed" from 2 to 13 -- a scanner whose job is to make quiet
+    problems loud must not manufacture loud non-problems.
+    """
+
+    name = path.parent.name
+    return f"{path.parent.parent.name}/{name.split('.try')[0]}"
+
+
 def scan(generation: str) -> dict:
     root = RUNS / generation
     cells: list[dict] = []
     failed: list[dict] = []
     for path in sorted(root.glob("*/*/discover-completed.json")):
-        cell = f"{path.parent.parent.name}/{path.parent.name}"
+        cell = _cell_name(path)
         try:
             payload = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError) as exc:
@@ -68,9 +81,11 @@ def scan(generation: str) -> dict:
     # A cell that never landed is a different problem from a cell that degraded, and after §10
     # it should be rare. Counting it here keeps both visible in one place.
     for path in sorted(root.glob("*/*/discover-failed.json")):
-        cell = f"{path.parent.parent.name}/{path.parent.name}"
+        cell = _cell_name(path)
         if any(item["cell"] == cell for item in cells):
-            continue  # a later retry landed; the receipt is stale
+            continue  # a later retry landed, or this is an abandoned `.tryN`; the receipt is stale
+        if any(item["cell"] == cell for item in failed):
+            continue  # several abandoned attempts of one cell are still one cell
         try:
             payload = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError):

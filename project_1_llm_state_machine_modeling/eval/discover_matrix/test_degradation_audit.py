@@ -120,3 +120,35 @@ def test_a_stale_failure_receipt_is_ignored_when_the_retry_landed(
     result = degradation_audit.scan("matrix-stale")
     assert result["landed"] == 1
     assert result["not_landed"] == 0
+
+
+def test_abandoned_try_directories_are_not_counted_as_separate_cells(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`run1/0039-gpt.try3` 与 `run1/0039-gpt` 是同一格。
+
+    启动器在每次整格重试前把目录改名为 `<cell>.tryN`，于是每次放弃的尝试都留下自己的失败收据。
+    把它们当独立的格，会让 v41 的「未落盘」从 2 虚报成 13——一个用来把安静问题变响亮的工具，
+    绝不能自己制造响亮的假问题。
+    """
+
+    root = tmp_path / "matrix-try"
+    for suffix in (".try1", ".try2", ".try3"):
+        _cell(root, f"run1/0039-gpt{suffix}", {"error_type": "RuntimeError"}, failed=True)
+    _cell(root, "run1/0039-gpt", {"error_type": "RuntimeError"}, failed=True)
+    monkeypatch.setattr(degradation_audit, "RUNS", tmp_path)
+    result = degradation_audit.scan("matrix-try")
+    assert result["not_landed"] == 1
+    assert result["failed_cells"][0]["cell"] == "run1/0039-gpt"
+
+
+def test_a_try_directory_does_not_shadow_the_landed_cell(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "matrix-try2"
+    _cell(root, "run1/0030-gpt.try4", {"error_type": "RuntimeError"}, failed=True)
+    _cell(root, "run1/0030-gpt", {"issues": [], "degraded_stages": []})
+    monkeypatch.setattr(degradation_audit, "RUNS", tmp_path)
+    result = degradation_audit.scan("matrix-try2")
+    assert result["landed"] == 1
+    assert result["not_landed"] == 0
