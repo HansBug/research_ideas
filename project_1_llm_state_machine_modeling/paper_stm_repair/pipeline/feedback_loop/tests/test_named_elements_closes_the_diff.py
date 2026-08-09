@@ -159,3 +159,95 @@ def test_the_prompt_states_the_generator_side_rule() -> None:
     assert "fused model name matches none of them" in splitter
     assert "both rows stay `null`" in splitter
     assert "the collapsing is itself the defect" in splitter
+
+
+# --------------------------------------------------------------------------
+# v45：报错必须给出**两条**出路，否则「填错表」这一支无解
+
+
+class _V45Elem:
+    def __init__(self, name, kind, path, match=None):
+        self.name_in_sentence = name
+        self.kind = kind
+        self.proposed_path = path
+        self.declared_match = match
+
+
+class _V45Set:
+    def __init__(self, elements):
+        self.named_elements = tuple(elements)
+        self.requirements = ()
+
+
+_KNOWN = frozenset({"m.HumanDriving", "m.Autonomous", "m.Power_On"})
+
+
+def test_the_finding_offers_the_tabulation_fix_as_well() -> None:
+    """只给「补存在性需求」一条出路时，pair 0030 在这里空转了十轮。
+
+    生产者把 `'human driving mode'` 的 `declared_match` 填成 null，而模型声明了
+    `HumanDriving`。旧报错要求它断言这个状态缺失；它正确地拒绝了，因为那不是真的。
+    两边都没错，但没有一方能动——真正的缺陷是**表填错了**，而报错没提这条路。
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        unmatched_named_element_findings,
+    )
+
+    finding = unmatched_named_element_findings(
+        _V45Set([_V45Elem("human driving mode", "state", "m.human_driving_mode")]), _KNOWN
+    )[0]
+    assert "Two exits" in finding
+    assert "set `declared_match`" in finding
+    # 候选必须指名道姓，否则生产者仍要自己猜是哪一个。
+    assert "'m.HumanDriving'" in finding
+
+
+def test_the_candidate_hint_is_a_hint_and_not_a_gate() -> None:
+    """没有近似候选时不得凭空造提示；有候选时也只是提示，判定条件不变。
+
+    「这个短语指的是不是那个已声明元素」是语义判断，按 §11 不许进门；
+    所以候选只出现在文案里，`declared_match` 非空才是唯一的免除条件。
+    """
+
+    from paper_stm_feedback_loop.discover.capability import (
+        unmatched_named_element_findings,
+    )
+
+    absent = unmatched_named_element_findings(
+        _V45Set([_V45Elem("emergency brake", "state", "m.emergency_brake")]), _KNOWN
+    )[0]
+    assert "declared vocabulary contains" not in absent
+
+    # 填了 declared_match 就没有 finding —— 判定条件仍然只看这一个字段。
+    assert (
+        unmatched_named_element_findings(
+            _V45Set(
+                [
+                    _V45Elem(
+                        "human driving mode",
+                        "state",
+                        "m.human_driving_mode",
+                        "m.HumanDriving",
+                    )
+                ]
+            ),
+            _KNOWN,
+        )
+        == ()
+    )
+
+
+def test_known_paths_is_optional_so_existing_callers_keep_working() -> None:
+    finding = unmatched_named_element_findings_default()
+    assert "Two exits" in finding
+
+
+def unmatched_named_element_findings_default() -> str:
+    from paper_stm_feedback_loop.discover.capability import (
+        unmatched_named_element_findings,
+    )
+
+    return unmatched_named_element_findings(
+        _V45Set([_V45Elem("human driving mode", "state", "m.human_driving_mode")])
+    )[0]

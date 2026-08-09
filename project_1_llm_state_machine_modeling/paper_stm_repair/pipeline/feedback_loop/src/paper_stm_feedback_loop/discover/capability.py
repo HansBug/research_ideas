@@ -1572,7 +1572,36 @@ _KIND_TO_EXISTENCE = {
 }
 
 
-def unmatched_named_element_findings(requirement_set: Any) -> tuple[str, ...]:
+def _declared_near_matches(
+    name_in_sentence: str, known_paths: frozenset[str]
+) -> str:
+    """Declared leaf names that look like this sentence phrase, as a hint string.
+
+    Deliberately loose and deliberately non-binding: whether `HumanDriving` is what
+    "human driving mode" names is a semantic judgement, so this only widens the producer's
+    view.  Making it a gate condition would put a fuzzy string match in a hard refusal, which
+    §11 forbids for exactly the reason this function exists.
+    """
+
+    def norm(text: str) -> str:
+        return "".join(ch for ch in text.lower() if ch.isalnum())
+
+    target = norm(name_in_sentence)
+    if not target:
+        return ""
+    hits = []
+    for path in sorted(known_paths):
+        leaf = norm(path.rsplit(".", 1)[-1])
+        if not leaf or len(leaf) < 3:
+            continue
+        if leaf in target or target in leaf:
+            hits.append(path)
+    return ", ".join(repr(h) for h in hits[:4])
+
+
+def unmatched_named_element_findings(
+    requirement_set: Any, known_paths: frozenset[str] = frozenset()
+) -> tuple[str, ...]:
     """Elements the sentence names, the model does not declare, and nobody asserted.
 
     `named_elements` records the diff in a typed slot; this closes it.  Every entry whose
@@ -1588,7 +1617,17 @@ def unmatched_named_element_findings(requirement_set: Any) -> tuple[str, ...]:
 
     provenance: IEEE 29148-2018 §5.2（规范点名的要素构成独立义务）。
 
+    ⚠️ The finding has **two** legal exits, and naming only one deadlocked pair 0030 for ten
+    revisions (v45).  The producer had tabulated `'human driving mode'` with a null
+    `declared_match` on a model that declares `HumanDriving`; the message told it to assert the
+    element's existence, it correctly refused to claim a declared state is missing, and neither
+    side moved.  So the message now offers both: fix the tabulation, or discharge the
+    obligation.  Which one applies is a semantic judgement -- `HumanDriving` versus
+    `human_driving_mode` is not decidable from the strings -- so candidates are offered as a
+    *hint* and never enforced (§11).
+
     :param requirement_set: the produced `RequirementSet`.
+    :param known_paths: the frozen model's declared paths, used only to suggest near-matches.
     :return: one finding per unmatched element with no existence Requirement.
     """
 
@@ -1609,12 +1648,24 @@ def unmatched_named_element_findings(requirement_set: Any) -> tuple[str, ...]:
         predicate = _KIND_TO_EXISTENCE[str(element.kind)]
         if (predicate, str(element.proposed_path)) in covered:
             continue
+        hint = ""
+        candidates = _declared_near_matches(element.name_in_sentence, known_paths)
+        if candidates:
+            hint = (
+                " ⚠️ The declared vocabulary contains "
+                f"{candidates}, which may be what this sentence names under a different "
+                "spelling. If one of them is the counterpart, this is a tabulation error: set "
+                "`declared_match` to it and the obligation disappears. Only if none of them is "
+                "the counterpart is the element genuinely missing."
+            )
         findings.append(
             f"named_elements records {element.name_in_sentence!r} as a {element.kind} the "
-            f"sentence names with no declared counterpart, but no Requirement asserts it: add "
+            f"sentence names with no declared counterpart. Two exits, pick the true one. "
+            f"(a) The element IS declared under another spelling -- set `declared_match`. "
+            f"(b) It is genuinely absent -- then it owes an existence Requirement: add "
             f"{predicate}(...) bound to {element.proposed_path!r}. Its False IS the finding -- "
             "an element the specification names and the model lacks is a defect on its own, "
-            "separately from whatever the sentence goes on to say about it."
+            "separately from whatever the sentence goes on to say about it." + hint
         )
     return tuple(findings)
 

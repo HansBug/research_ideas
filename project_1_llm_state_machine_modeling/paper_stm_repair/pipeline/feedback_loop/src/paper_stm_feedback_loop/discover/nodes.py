@@ -1714,7 +1714,11 @@ def split_requirements(
         )
         # named_elements 是生产者自己填的比对表；表里说「模型没有这个元素」却又不为它写义务，
         # 是自陈矛盾，不是判断分歧。这类**致命**：它不要求模型多想，只要求它跟自己一致。
-        unmatched = unmatched_named_element_findings(output)
+        # known_paths 只用于在报错里列出近似候选拼写；它不参与判定（§11：「这个短语指的是不是
+        # 那个已声明元素」是语义判断，不能进门）。v45 的 pair 0030 在这里空转十轮：生产者把
+        # 'human driving mode' 的 declared_match 填成 null，而模型声明了 HumanDriving，旧报错
+        # 只给「补一条存在性需求」一条出路，生产者正确地拒绝为一个存在的状态声称缺失。
+        unmatched = unmatched_named_element_findings(output, known_paths)
         if unmatched:
             raise ValueError("; ".join(unmatched))
         active_step_gates = tuple(name for name, _ in gates if not _ablated(name))
