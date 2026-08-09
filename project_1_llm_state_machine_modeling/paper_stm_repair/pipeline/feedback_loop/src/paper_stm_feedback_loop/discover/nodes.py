@@ -2527,6 +2527,25 @@ def convert_assertions(
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ] | ({"structure"} if existence_shaped else set())
+            # The existence primary only reports the defect if the requirement's
+            # verdict actually reads it.  Under `any` it does not: the existence
+            # check comes back False, the sibling claim passes vacuously on the
+            # element that is not there, and `any` calls the requirement
+            # satisfied -- which is the exact vacuous hiding the reference gate
+            # exists to prevent, arriving one layer later.  `exactly_one` is
+            # worse still: it is *satisfied by* the missing element.
+            if existence_shaped and requirement.coverage_obligation.aggregation != "all":
+                raise ValueError(
+                    f"requirement {requirement.requirement_id} has a primary "
+                    "existence check on an element the frozen model does not "
+                    "declare, so its coverage_obligation.aggregation must be "
+                    f"'all'; it is "
+                    f"'{requirement.coverage_obligation.aggregation}'. Under "
+                    "'any' or 'exactly_one' the absent element makes the "
+                    "existence primary False while its sibling passes vacuously, "
+                    "and the requirement is reported satisfied -- the defect "
+                    "disappears. Set aggregation to 'all'; nothing else changes"
+                )
             invalid_primary_families = sorted(
                 {
                     assertion.evidence_family

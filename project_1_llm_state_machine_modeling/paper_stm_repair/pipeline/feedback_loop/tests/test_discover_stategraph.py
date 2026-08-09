@@ -3313,3 +3313,168 @@ def test_an_ungrouped_false_primary_forces_partial_coverage() -> None:
     ) or ()
     assert unaccounted, "the reconciliation key publish reads must survive renames"
     assert hasattr(nodes, "publish")
+
+
+def _absent_element_script() -> AssertionScript:
+    """存在性 primary + 真主张 primary，彼此无 `depends_on`（v44 收敛出的唯一形状）。"""
+
+    return AssertionScript.model_validate(
+        {
+            "revision": 1,
+            "assertions": [
+                {
+                    "assertion_id": "AST-REQ-001-1",
+                    "requirement_id": "REQ-001",
+                    "description": "缺失元素的存在性，作为 primary。",
+                    "expression": 'event_declared(event="Root.no_such_event") is True',
+                    "failure_message": "[REQ-001][AST-REQ-001-1] failed",
+                    "evidence_family": "structure",
+                    "role": "primary",
+                    "coverage_key": "REQ-001:structure:1",
+                    "aggregation_group": "REQ-001:all",
+                    "rationale": "NL 点名了这个事件；模型未声明。",
+                },
+                {
+                    "assertion_id": "AST-REQ-001-2",
+                    "requirement_id": "REQ-001",
+                    "description": "真正的主张，绑定同一个缺失名。",
+                    "expression": (
+                        'occupancy_after(source="Root.Idle", '
+                        'trigger="Root.no_such_event", target="Root.Done") is True'
+                    ),
+                    "failure_message": "[REQ-001][AST-REQ-001-2] failed",
+                    "evidence_family": "simulation",
+                    "role": "primary",
+                    "coverage_key": "REQ-001:simulation:2",
+                    "aggregation_group": "REQ-001:all",
+                    "rationale": "NL 要求该事件把系统送到 Done。",
+                },
+            ],
+            "requirement_mapping": {
+                "REQ-001": ["AST-REQ-001-1", "AST-REQ-001-2"]
+            },
+        }
+    )
+
+
+def _absent_element_requirements(aggregation: str) -> RequirementSet:
+    return RequirementSet.model_validate(
+        {
+            "revision": 1,
+            "requirements": [
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "no_such_event 应把系统从 Idle 送到 Done。",
+                    "verification_kind": "behavior",
+                    "coverage_obligation": {"aggregation": aggregation},
+                }
+            ],
+        }
+    )
+
+
+def test_absent_element_takes_the_existence_primary_route() -> None:
+    """v44 的四方互斥消解后，这个形状必须能过。
+
+    在此之前它无解：引用门要 `depends_on`（→ 阻塞），`supporting` 不计满足性
+    （→ 无证据），证据族门又禁止 `structure` 在 behavior 需求上当 primary。
+    """
+
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("absent-element-ok"))
+    state = nodes.convert_assertions(
+        {
+            "_input": _input("absent-element-ok"),
+            "frozen_inputs": frozen,
+            "requirement_set": _absent_element_requirements("all"),
+        },
+        nodes.CallableStructuredResponder(
+            lambda _r, _s, _sys, _p: _absent_element_script()
+        ),
+    )
+    feedback = state.get("_assertion_conversion_contract_feedback")
+    assert feedback is None, feedback.findings if feedback else None
+    assert "failure" not in state
+
+
+@pytest.mark.parametrize("aggregation", ["any", "exactly_one"])
+def test_absent_element_may_not_aggregate_so_the_defect_survives(
+    aggregation: str,
+) -> None:
+    """`any` 会让缺陷凭空消失，所以必须拒。
+
+    存在性 primary 为假，兄弟主张在「不存在的元素」上空过为真，`any` 判需求满足——
+    正是引用门要防的空过掩盖，只是晚一层到达。`exactly_one` 更糟：它被缺失元素**满足**。
+    """
+
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input(f"absent-element-{aggregation}"))
+    state = nodes.convert_assertions(
+        {
+            "_input": _input(f"absent-element-{aggregation}"),
+            "frozen_inputs": frozen,
+            "requirement_set": _absent_element_requirements(aggregation),
+        },
+        nodes.CallableStructuredResponder(
+            lambda _r, _s, _sys, _p: _absent_element_script()
+        ),
+    )
+    findings = state["_assertion_conversion_contract_feedback"].findings
+    assert any("aggregation must be" in f for f in findings), findings
+    # 报错必须指出合法出路，否则生产者只能猜（§13 配套要求 1）。
+    assert any("Set aggregation to 'all'" in f for f in findings), findings
+
+
+def test_the_aggregation_rule_does_not_touch_ordinary_requirements() -> None:
+    """没有缺失元素时，`any` 仍然合法——这条门只在存在性 primary 出现时生效。"""
+
+    from paper_stm_feedback_loop.discover import nodes
+
+    frozen = nodes._fallback_prepare(_input("ordinary-any"))
+    requirements = RequirementSet.model_validate(
+        {
+            "revision": 1,
+            "requirements": [
+                {
+                    "requirement_id": "REQ-001",
+                    "statement": "一条普通结构需求。",
+                    "verification_kind": "structure",
+                    "coverage_obligation": {"aggregation": "any"},
+                }
+            ],
+        }
+    )
+    script = AssertionScript.model_validate(
+        {
+            "revision": 1,
+            "assertions": [
+                {
+                    "assertion_id": "AST-REQ-001-1",
+                    "requirement_id": "REQ-001",
+                    "description": "普通结构证据。",
+                    "expression": "True",
+                    "failure_message": "[REQ-001][AST-REQ-001-1] failed",
+                    "evidence_family": "structure",
+                    "role": "primary",
+                    "coverage_key": "REQ-001:structure:1",
+                    "aggregation_group": "REQ-001:all",
+                    "rationale": "Fixture assertion.",
+                }
+            ],
+            "requirement_mapping": {"REQ-001": ["AST-REQ-001-1"]},
+        }
+    )
+    state = nodes.convert_assertions(
+        {
+            "_input": _input("ordinary-any"),
+            "frozen_inputs": frozen,
+            "requirement_set": requirements,
+        },
+        nodes.CallableStructuredResponder(lambda _r, _s, _sys, _p: script),
+    )
+    feedback = state.get("_assertion_conversion_contract_feedback")
+    assert feedback is None or not any(
+        "aggregation must be" in f for f in feedback.findings
+    )
