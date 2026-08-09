@@ -683,3 +683,71 @@ def test_containment_and_initial_target_get_no_waiver_because_their_false_is_the
     # Every other predicate keeps the exit.
     assert fired("occupancy_after", {"target": "Sys.RegionB.Done"}, waiver) == ()
     assert len(fired("occupancy_after", {"target": "Sys.RegionB.Done"})) == 1
+
+
+# --------------------------------------------------------------------------
+# v44：四方互斥，以及唯一的出口
+#
+# v44 有 22/35 格降级，97 次降级事件里绝大多数是这道门，触雷需求 61/62 是 `behavior`
+# kind。原因不是生产者不听话，是**合法解空间为空**：
+#
+#   1. 本门要求缺失名被 primary 的**依赖闭包内**某条存在性断言提出  → 逼出 `depends_on`
+#   2. `dependencies.blocked_by` 对任何非 True 的依赖都阻塞，不看 role → primary 永不被问
+#   3. 满足性只数 `primary` / `precondition`，`supporting` 不计       → 存在性为假也不产证据
+#   4. `behavior` 需求必须有 `simulation` primary，`structure` 族不许当 primary
+#                                                                  → 存在性检查当不了 primary
+#
+# 四条交集为空。三处文本还各自描述了不同的坏形状：门自己的报错说「保持 primary 独立」
+# （必被本门再拒），L2392 说「让 primary 依赖它」（必被阻塞），reviewer prompt 说
+# 「never require depends_on」（阻止唯一能过门的改法）。生产者在它们之间来回改到预算耗尽。
+#
+# 出口只有一个，且它同时满足四条：**存在性检查当这条需求的 `primary`，不加 `depends_on`。**
+# 元素不在，行为就无从观察——这条需求问的本来就不是行为问题，是存在性问题。
+
+
+def test_a_primary_existence_check_licenses_its_own_requirement():
+    """唯一的出口：存在性检查自己当 primary，同需求内的绑定无需 `depends_on`。
+
+    这不是放松：那条 primary 为假会**计入满足性**，需求判不满足，缺陷带着具体元素名发布。
+    没有任何东西被空过掩盖——正相反，比 `supporting`（不计满足）掩盖得更少。
+    """
+
+    script = (
+        A("A0", EXISTS, role="primary"),
+        A("A1", DELTA, role="supporting"),
+    )
+    assert unresolved_reference_findings(script, KNOWN) == ()
+
+
+def test_that_licence_does_not_cross_requirement_boundaries():
+    """否则一条需求的存在性 primary 会默许另一条需求空过。"""
+
+    script = (
+        A("A0", EXISTS, rid="REQ-001", role="primary"),
+        A("B1", DELTA, rid="REQ-002", role="primary"),
+    )
+    findings = unresolved_reference_findings(script, KNOWN)
+    assert len(findings) == 1
+    assert "REQ-002/B1" in findings[0]
+
+
+def test_a_supporting_existence_check_alone_still_does_not_licence():
+    """`supporting` 不计入满足性，为假也不产出证据——空过就真的把缺陷掩盖了。
+
+    这正是 v44 三处文本共同推荐的形状，也正是它必须继续被拒的原因。
+    """
+
+    script = (
+        A("A0", EXISTS, role="supporting"),
+        A("A1", DELTA, role="primary"),
+    )
+    findings = unresolved_reference_findings(script, KNOWN)
+    assert len(findings) == 1
+    assert "REQ-001/A1" in findings[0]
+
+
+def test_the_old_precondition_route_still_works():
+    """新出口是增补，不是替换：既有的 precondition + depends_on 形状不受影响。"""
+
+    script = (A("A0", EXISTS, role="precondition"), A("A1", DELTA, depends_on=("A0",)))
+    assert unresolved_reference_findings(script, KNOWN) == ()

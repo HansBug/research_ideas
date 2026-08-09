@@ -57,6 +57,7 @@ from .capability import (
     mandatory_waiver,
     placeholder_bindings,
     source_omitting_response_calls,
+    proposes_absent_element,
     unresolved_reference_findings,
 )
 from .predicates import (
@@ -2363,12 +2364,19 @@ def convert_assertions(
                 "element matches nothing and passes, hiding the defect it was meant "
                 "to test. If the requirement genuinely needs an element this model "
                 "lacks, do not drop it and do not rename it to something that happens "
-                "to exist: assert the missing element's existence under the same proposed "
-                "name in a `supporting` assertion, and keep the primary independent of it. "
-                "⚠️ Do NOT make it a `precondition`: a precondition that comes back False "
-                "makes the controller skip the primary, so the missing element becomes the "
-                "reason the real question is never asked -- v37 has 135 primaries that were "
-                "never asked for exactly that reason"
+                "to exist. Write ONE shape, and it is the same shape everywhere: assert "
+                "the missing element's existence under the proposed name as a `primary` "
+                "assertion of that requirement, with no `depends_on` for it. Every other "
+                "binding of that name inside the same requirement is then legal. "
+                "⚠️ Do NOT make it a `precondition`, and do NOT make anything depend on "
+                "it: any prerequisite that is not exactly True blocks its dependents, so the "
+                "missing element would become the reason the real question is never asked "
+                "-- v37 has 135 primaries that were never asked for exactly that reason. "
+                "⚠️ Do NOT make it merely `supporting`: `supporting` does not count "
+                "toward satisfaction, so a False there publishes nothing and the defect stays "
+                "hidden. `primary` is the only role that both licenses the binding and reports "
+                "the defect, and an existence `primary` is accepted on a `behavior` requirement "
+                "too -- with the element absent there is no behaviour to observe"
             )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
@@ -2392,10 +2400,10 @@ def convert_assertions(
                 raise ValueError(
                     f"requirement {requirement.requirement_id} requires at least one "
                     "primary assertion. A term the model lacks is no exception: give "
-                    "it a proposed name, assert its existence in a `supporting` assertion "
-                    "(NOT a `precondition`: a false precondition makes the controller skip "
-                    "the primary), "
-                    "and let the primary depend on that"
+                    "it a proposed name and assert its existence in a `primary` assertion "
+                    "(NOT a `precondition`, whose False blocks the very question; NOT merely "
+                    "`supporting`, which does not count toward satisfaction), "
+                    "and add no `depends_on` for it"
                 )
             # Gate D (issue #170 C3): the named predicate fixes which procedure
             # decides it, and a locator answers a weaker question.  Without this
@@ -2498,9 +2506,23 @@ def convert_assertions(
                     ),
                 )
             )
+            # A requirement whose primary asks the existence of an element the
+            # frozen model lacks is not a behaviour question, whatever its
+            # `verification_kind` says: with the element absent there is nothing
+            # to simulate.  Demanding `simulation` there demands evidence that
+            # cannot exist, and barring `structure` bars the only answer the
+            # model can give -- which, together with the reference gate and
+            # `blocked_by`, left an empty solution space and degraded 22 of v44's
+            # 35 cells (61 of 62 offending requirements were `behavior`-kind).
+            # See `capability.unresolved_reference_findings` for the full
+            # four-way deadlock.
+            existence_shaped = proposes_absent_element(
+                tuple(item.expression for item in primary_assertions),
+                frozenset(frozen.known_model_paths),
+            )
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
-            ]
+            ] | ({"structure"} if existence_shaped else set())
             invalid_primary_families = sorted(
                 {
                     assertion.evidence_family
@@ -2536,6 +2558,20 @@ def convert_assertions(
                     requirement.verification_kind,
                     tuple(item.expression for item in primary_assertions),
                 )
+                if waiver is None and existence_shaped:
+                    # Same reason as the allowed-families widening above: the
+                    # mandatory family is unobtainable because the element it
+                    # would observe is not there.  Waived rather than dropped so
+                    # the limitation is published instead of hidden.
+                    waiver = (
+                        "absent_element",
+                        (
+                            "The requirement's primary asks the existence of an "
+                            "element the frozen model does not declare; there is "
+                            "no behaviour to observe, so the mandatory family is "
+                            "not obtainable on this model."
+                        ),
+                    )
                 if (
                     waiver is None
                     and missing_mandatory_families == ["fbmcq"]

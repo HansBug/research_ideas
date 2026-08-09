@@ -66,6 +66,7 @@ __all__ = [
     "vacuous_sibling_conjunction",
     "vacuous_containment_findings",
     "unresolved_model_references",
+    "proposes_absent_element",
     "unresolved_reference_findings",
     "initialization_anchored_findings",
     "placeholder_bindings",
@@ -1920,6 +1921,26 @@ def _existence_checked_names(
     return tuple(dict.fromkeys(found))
 
 
+def proposes_absent_element(
+    expressions: Iterable[str], known_paths: frozenset[str]
+) -> bool:
+    """Do these expressions ask the *existence* of a name the model lacks?
+
+    The evidence-family gates read this to decide whether a requirement is still
+    a behaviour question.  It is not: with the element absent there is no
+    behaviour to observe, so demanding a `simulation` primary demands evidence
+    that cannot exist, and barring the `structure` family bars the only answer
+    the model can give.  Deciding it here keeps the test in one place with the
+    reference gate that sanctions the same shape.
+
+    Perfectly decidable from the script text alone -- an existence predicate,
+    a literal binding, a name not in the frozen vocabulary -- which is why it
+    belongs in a gate at all rather than in prompt discipline.
+    """
+
+    return any(_existence_checked_names(text, known_paths) for text in expressions)
+
+
 class _ScriptAssertion(Protocol):
     """The fields of an ``AssertionSpec`` the script-level reference gate reads."""
 
@@ -1935,12 +1956,50 @@ def unresolved_reference_findings(
 ) -> tuple[str, ...]:
     """Return findings for bindings naming an element the frozen model lacks.
 
-    An absent name is legal in exactly one shape: a `precondition` proposes the
-    name of an element the model should have declared, and every assertion that
-    needs that element depends on it.  A missing element then makes the
-    precondition false, its dependents are blocked rather than run, and blocked
-    never counts as satisfied -- so nothing passes vacuously, and the repair
-    stage receives a named target to add (issue #170 §11.2).
+    An absent name is legal in exactly two shapes.
+
+    **The precondition route.** A `precondition` proposes the name of an element
+    the model should have declared, and every assertion that needs that element
+    depends on it.  A missing element then makes the precondition false, its
+    dependents are blocked rather than run, and blocked never counts as
+    satisfied -- so nothing passes vacuously, and the repair stage receives a
+    named target to add (issue #170 §11.2).
+
+    **The primary-existence route.** An assertion whose own `role` is `primary`
+    checks the name's existence.  Then every binding of that name *inside the
+    same requirement* is exempt, with no `depends_on` at all.
+
+    The second route is not a relaxation -- it hides strictly less.  A `primary`
+    counts toward satisfaction, so its `False` makes the requirement unsatisfied
+    and publishes the missing element by name; a `supporting` does not count, and
+    a blocked primary produces no evidence at all.
+
+    Why it had to be added: the four rules below have an **empty** intersection
+    for a `behavior` requirement that binds an undeclared element, and v44 paid
+    for it with 22 of 35 cells degraded, 61 of 62 offending requirements
+    `behavior`-kind.
+
+    1. this gate wanted the name proposed inside the primary's dependency
+       closure, which forces `depends_on`;
+    2. `dependencies.blocked_by` blocks on any prerequisite that is not exactly
+       `True`, regardless of its role, so the primary is never asked;
+    3. satisfaction counts `primary` and `precondition` only, so a `supporting`
+       existence check that is False yields no evidence;
+    4. `ALLOWED_PRIMARY_EVIDENCE_FAMILIES` bars the `structure` family from being
+       primary on a `behavior` requirement, so the existence check could not be
+       the primary either.
+
+    Three separate texts each recommended a *different* one of the broken shapes
+    -- this function's own error message said "keep the primary independent of
+    it" (which this gate then refuses), `convert_assertions` said "let the
+    primary depend on that" (which blocks it), and the Assertion Reviewer prompt
+    said "never require `precondition` or `depends_on`" (which forbids the only
+    move that used to pass).  A producer following the feedback it was given
+    could not converge, so it revised until the repair budget was gone.
+
+    The exemption is deliberately scoped to the requirement, not the script: a
+    neighbouring requirement's existence primary must not silently licence this
+    one's vacuous binding.
 
     Every other absent name is refused, because unlinked it still runs, still
     matches nothing, and still passes: the defect-hiding vacuous pass this gate
@@ -1959,15 +2018,23 @@ def unresolved_reference_findings(
     items = tuple(assertions)
     closures = dependency_closure(items)
     proposed_by: dict[str, set[str]] = {}
+    primary_proposed: dict[str, set[str]] = {}
     for item in items:
         checked = _existence_checked_names(item.expression, known_paths)
         for name in checked:
             proposed_by.setdefault(name, set()).add(item.assertion_id)
+            if item.role == "primary":
+                primary_proposed.setdefault(name, set()).add(item.requirement_id)
     findings: list[str] = []
     for item in items:
         allowed = {item.assertion_id} | closures[item.assertion_id]
         exempt = {
             name for name, owners in proposed_by.items() if owners & allowed
+        }
+        exempt |= {
+            name
+            for name, requirement_ids in primary_proposed.items()
+            if item.requirement_id in requirement_ids
         }
         findings.extend(
             f"{item.requirement_id}/{item.assertion_id}: "

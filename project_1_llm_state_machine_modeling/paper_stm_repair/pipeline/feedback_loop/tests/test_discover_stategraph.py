@@ -111,15 +111,31 @@ def test_quantitative_effect_prompts_forbid_guessed_variable_names() -> None:
     # prompt has to say where the name comes from instead.  Left at "do not
     # guess", the item has no legal move and burns its repair budget.
     #
-    # 2026-08-09: the carrier changed from `precondition` to `supporting`.  A false
-    # precondition makes the controller skip the primary -- v37 has 135 primaries that
-    # were never asked for exactly that reason, so the missing element became the reason
-    # the real question went unasked.  The four places that said `precondition` are now
-    # one message; this asserts the new one and that the old one is gone everywhere.
+    # 2026-08-09 起两轮：先从 `precondition` 改成 `supporting`，v44 又改成 `primary`。
+    # 三种角色只有第三种能同时满足四条约束，前两种各自撞上其中一条：
+    #   `precondition` / 任何 `depends_on` → `blocked_by` 阻塞 primary，问题永不被问
+    #                                        （v37 的 135 条就是这么丢的）
+    #   `supporting`                       → 不计入满足性，为假也不发布，缺陷被掩盖
+    #   `primary` 且无 `depends_on`        → 过引用门、不阻塞、计满足、产出证据
+    # 断言的是**形式要求**（角色 + 无依赖），不是某段措辞：措辞会改，四条约束不会。
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
+        assert "`primary`" in prompt
+        assert "no `depends_on`" in prompt or "any `depends_on`" in prompt
     assert (
-        "use the name the Requirement proposes, asserted in a `supporting` assertion"
-        in prompts.ASSERTION_CONVERTER_PROMPT
+        "asserted in a `primary` assertion of that "
+        "requirement with no `depends_on`" in prompts.ASSERTION_CONVERTER_PROMPT
     )
+    # 旧的两种坏形状不得再被任何一段文本推荐。
+    for prompt in (
+        prompts.ASSERTION_CONVERTER_PROMPT,
+        prompts.REQUIREMENT_SPLITTER_PROMPT,
+        prompts.ASSERTION_REVIEWER_PROMPT,
+    ):
+        assert "in a `supporting` assertion" not in prompt
+        assert "never require `precondition` or `depends_on`" not in prompt
     for prompt in (
         prompts.ASSERTION_CONVERTER_PROMPT,
         prompts.REQUIREMENT_SPLITTER_PROMPT,

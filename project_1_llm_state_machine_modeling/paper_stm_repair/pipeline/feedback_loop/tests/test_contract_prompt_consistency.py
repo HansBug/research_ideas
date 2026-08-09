@@ -206,18 +206,20 @@ def test_the_missing_element_rule_is_one_ordered_procedure() -> None:
     # The converter still owns the two-assertion shape for step 4, and only that.
     converter = prompts.ASSERTION_CONVERTER_PROMPT
     assert "needs two assertions, not one" in converter
-    # The shape is `supporting` + an *independent* `primary`, not
-    # `precondition` + dependent. Four runtime gate messages already said so; this
-    # block was the last place still prescribing the other one, and a real v42 run
-    # caught the model being handed both in the same cell. `precondition` remains a
-    # legal role -- it is simply not the prescription for a missing element, because
-    # a false one makes the controller skip the primary and the real question is
-    # never asked (v37: 135 primaries unasked for exactly that reason).
-    assert "`supporting` assertion asserting that the missing element **exists**" in converter
-    assert "**Not a `precondition`.**" in converter
-    assert "do not add `depends_on`" in converter
+    # v44：形状第三次也是最后一次收敛，为 **两条 `primary`、彼此无 `depends_on`**。
+    # 前两版各撞上四条约束里的一条，而四条的交集在旧形状下为空：
+    #   `precondition` / 任何 `depends_on` → `blocked_by` 阻塞，问题永不被问
+    #   `supporting`                       → 不计入满足性，为假也不发布
+    #   `primary` + 无依赖                 → 过引用门（同需求内自豁免）、不阻塞、产出证据
+    # 这里断言的是**角色与依赖**这两项形式要求，不是某段行文。
+    assert "**`primary`** assertion asserting that the missing element **exists**" in converter
+    assert "Not a `precondition`, and nothing may `depends_on` it" in converter
+    assert "Not `supporting` either" in converter
+    assert "with no `depends_on`" in converter
+    # 三种被淘汰的写法都不得复活。
     assert "`precondition` asserting that the missing element" not in converter
     assert "with `depends_on` naming the precondition" not in converter
+    assert "`supporting` assertion asserting that the missing element" not in converter
 
 
 def test_each_step_of_the_procedure_has_a_worked_object() -> None:
