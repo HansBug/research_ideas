@@ -169,7 +169,11 @@ def _describe(
 
 
 def inconsistencies(
-    generation: str, audit: list[dict], ledger: dict, threshold: float = DEFAULT_THRESHOLD
+    generation: str,
+    audit: list[dict],
+    ledger: dict,
+    threshold: float = DEFAULT_THRESHOLD,
+    also: tuple[tuple[str, list[dict]], ...] = (),
 ) -> list[dict]:
     """同一形态（同谓词 × issue 指认同一组元素）却判出两种结果的位。
 
@@ -182,12 +186,18 @@ def inconsistencies(
     `Autonomous` + `Power_Off`——**在已发布文本这一层它们是同一句话**，理应同判。
     """
 
-    enriched = [
-        described
-        for entry in audit
-        if entry.get("decided_by") != "tier_a"  # A 层确定性判据，无人的口径漂移
-        and (described := _describe(generation, entry, ledger, threshold)) is not None
-    ]
+    enriched = []
+    for gen, entries in ((generation, audit), *also):
+        for entry in entries:
+            if entry.get("decided_by") == "tier_a":
+                continue  # A 层确定性判据，无人的口径漂移
+            described = _describe(gen, entry, ledger, threshold)
+            if described is None:
+                continue
+            described["generation"] = gen
+            if also:  # 只在跨代比时给 cell 加代次前缀，单代输出保持原样
+                described["cell"] = f"{gen}:{described['cell']}"
+            enriched.append(described)
     flagged: list[dict] = []
     for index, left in enumerate(enriched):
         for right in enriched[index + 1 :]:
@@ -227,12 +237,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--generation", required=True)
     parser.add_argument("--audit", required=True, type=pathlib.Path)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
+    parser.add_argument(
+        "--also",
+        nargs=2,
+        action="append",
+        metavar=("GENERATION", "AUDIT"),
+        default=[],
+        help="再纳入一代一起比。跨代次的口径漂移单代扫不出来——同一形态在 v37 判未命中、"
+        "在 v41 判命中，两次单代扫描各自都是自洽的。",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     audit = json.loads(args.audit.read_text())["audit"]
     ledger = V.ledger_claims()
-    pairs = inconsistencies(args.generation, audit, ledger)
+    also = tuple(
+        (gen, json.loads(pathlib.Path(path).read_text())["audit"]) for gen, path in args.also
+    )
+    pairs = inconsistencies(args.generation, audit, ledger, args.threshold, also)
     items = worklist(args.generation, audit, ledger, args.threshold)
 
     if args.json:

@@ -173,6 +173,7 @@ def test_the_tool_reports_locations_not_verdicts() -> None:
                 "statement",
                 "matched_issue",
                 "score",
+                "generation",
             }
 
 
@@ -214,3 +215,21 @@ def test_scope_level_false_positives_are_accepted_by_design() -> None:
             _entry("R", "run1/x-gpt", hit=False),
         ]
         assert len(R.inconsistencies("g", audit, ledger)) == 1
+
+
+def test_cross_generation_drift_is_detectable() -> None:
+    """跨代次的口径漂移单代扫不出来：两次单代扫描各自都是自洽的。
+
+    v37 把某形态判未命中、v41 把同形态判命中，两代各自内部没有矛盾，所以必须能把两代
+    放在一起比——否则每代都"通过"了一致性检查，漂移却一直在。
+    """
+
+    audit_a = [_entry("EIS-0040-01", "run1/0040-claude", hit=False)]
+    audit_b = [_entry("EIS-0030-02", "run2/0030-claude", hit=True)]
+    assert R.inconsistencies("gA", audit_a, LEDGER) == []
+    assert R.inconsistencies("gB", audit_b, LEDGER) == []
+
+    both = R.inconsistencies("gA", audit_a, LEDGER, R.DEFAULT_THRESHOLD, (("gB", audit_b),))
+    assert len(both) == 1
+    assert both[0]["miss_side"]["cell"] == "gA:run1/0040-claude"
+    assert both[0]["hit_side"]["cell"] == "gB:run2/0030-claude"
