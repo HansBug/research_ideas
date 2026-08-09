@@ -3399,32 +3399,50 @@ def test_absent_element_takes_the_existence_primary_route() -> None:
 
 
 @pytest.mark.parametrize("aggregation", ["any", "exactly_one"])
-def test_absent_element_may_not_aggregate_so_the_defect_survives(
+def test_absent_element_aggregation_is_normalised_not_refused(
     aggregation: str,
 ) -> None:
-    """`any` 会让缺陷凭空消失，所以必须拒。
+    """`any` 会让缺陷凭空消失，但**不能靠拒绝生产者来防**。
 
-    存在性 primary 为假，兄弟主张在「不存在的元素」上空过为真，`any` 判需求满足——
-    正是引用门要防的空过掩盖，只是晚一层到达。`exactly_one` 更糟：它被缺失元素**满足**。
+    存在性 primary 为假、兄弟主张在不存在的元素上空过为真，`any` 判需求满足；
+    `exactly_one` 更糟，它被缺失元素**满足**。所以必须防。
+
+    但防法只能是求值时归一化，不能是门：`coverage_obligation` 在 `Requirement` 上，由
+    splitter 产出，到断言阶段已冻结；转换器只读需求集、只产出 AssertionScript，
+    **没有任何合法手段把它改成 `all`**。曾经在 `convert_assertions` 加过这道门，
+    v46 首跑 28 格即撞出一个降级格，同一条 REQ 连撞三次、失败签名相同（§12 结构性死路），
+    而按 §13，写不出可行形状的约束不许做成门。
+
+    所以这里断言两件事：脚本**照常通过**，且真值按 `all` 算。
     """
 
     from paper_stm_feedback_loop.discover import nodes
 
     frozen = nodes._fallback_prepare(_input(f"absent-element-{aggregation}"))
+    requirements = _absent_element_requirements(aggregation)
     state = nodes.convert_assertions(
         {
             "_input": _input(f"absent-element-{aggregation}"),
             "frozen_inputs": frozen,
-            "requirement_set": _absent_element_requirements(aggregation),
+            "requirement_set": requirements,
         },
         nodes.CallableStructuredResponder(
             lambda _r, _s, _sys, _p: _absent_element_script()
         ),
     )
-    findings = state["_assertion_conversion_contract_feedback"].findings
-    assert any("aggregation must be" in f for f in findings), findings
-    # 报错必须指出合法出路，否则生产者只能猜（§13 配套要求 1）。
-    assert any("Set aggregation to 'all'" in f for f in findings), findings
+    feedback = state.get("_assertion_conversion_contract_feedback")
+    assert feedback is None, feedback.findings if feedback else None
+
+    # 求值侧：存在性 primary 为假时，无论声明的聚合方式是什么，需求都不得判满足。
+    requirement = requirements.requirements[0]
+    # 先确认不归一化时确实会出问题，否则这条测试测不到东西：
+    # `[存在性=False, 兄弟主张空过=True]` 在 `any` 下为真（有一个真就算满足），
+    # 在 `exactly_one` 下也为真（恰好一个真）—— 后者字面上是「被缺失元素满足」。
+    assert nodes._requirement_primary_truth(requirement, [False, True]) is True
+    assert (
+        nodes._requirement_primary_truth(requirement, [False, True], force_all=True)
+        is False
+    )
 
 
 def test_the_aggregation_rule_does_not_touch_ordinary_requirements() -> None:

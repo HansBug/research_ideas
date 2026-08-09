@@ -600,10 +600,26 @@ def _filter_assertion_script(
 def _requirement_primary_truth(
     requirement: Any,
     values: list[bool],
+    *,
+    force_all: bool = False,
 ) -> bool:
+    """这条需求的 primary 们合起来算不算满足。
+
+    `force_all` 用于一种确定性归一化，而不是偏好：当该需求的某条 primary 在检查一个冻结模型
+    未声明的元素时，聚合方式**必须**是 `all`，否则缺陷会凭空消失 —— 存在性 primary 为假，
+    兄弟主张在「不存在的元素」上空过为真，`any` 于是把需求判成满足；`exactly_one` 更糟，
+    它被缺失元素**满足**。
+
+    ⚠️ 为什么归一化而不是设门拒绝：`coverage_obligation` 在 `Requirement` 上，由 splitter
+    产出，到断言阶段已冻结。曾经在 `convert_assertions` 加过一道门要求生产者「改成 all」，
+    但转换器只读需求集、只产出 AssertionScript，**没有任何合法手段照办**；v46 首跑 28 格
+    即撞出一个降级格，同一条 REQ 连撞三次、失败签名相同。按 §13，写不出可行形状的约束
+    不许做成门。这里改成求值时覆盖，不需要任何一方去改它改不了的字段。
+    """
+
     if not values:
         return False
-    aggregation = requirement.coverage_obligation.aggregation
+    aggregation = "all" if force_all else requirement.coverage_obligation.aggregation
     if aggregation == "all":
         return all(values)
     if aggregation == "any":
@@ -2531,25 +2547,17 @@ def convert_assertions(
             allowed_primary_families = ALLOWED_PRIMARY_EVIDENCE_FAMILIES[
                 requirement.verification_kind
             ] | ({"structure"} if existence_shaped else set())
-            # The existence primary only reports the defect if the requirement's
-            # verdict actually reads it.  Under `any` it does not: the existence
-            # check comes back False, the sibling claim passes vacuously on the
-            # element that is not there, and `any` calls the requirement
-            # satisfied -- which is the exact vacuous hiding the reference gate
-            # exists to prevent, arriving one layer later.  `exactly_one` is
-            # worse still: it is *satisfied by* the missing element.
-            if existence_shaped and requirement.coverage_obligation.aggregation != "all":
-                raise ValueError(
-                    f"requirement {requirement.requirement_id} has a primary "
-                    "existence check on an element the frozen model does not "
-                    "declare, so its coverage_obligation.aggregation must be "
-                    f"'all'; it is "
-                    f"'{requirement.coverage_obligation.aggregation}'. Under "
-                    "'any' or 'exactly_one' the absent element makes the "
-                    "existence primary False while its sibling passes vacuously, "
-                    "and the requirement is reported satisfied -- the defect "
-                    "disappears. Set aggregation to 'all'; nothing else changes"
-                )
+            # ⚠️ 这里**不许加门**。曾经加过，v46 首跑 28 格就撞出一个降级格：
+            # 报错写着「Set aggregation to 'all'」，但 `coverage_obligation` 在 `Requirement`
+            # 上，由 splitter 产出且此刻已冻结 —— 断言转换器只读它、只产出 AssertionScript，
+            # **没有任何合法手段满足那道门**。同一条 REQ 连撞三次、失败签名相同，正是 §12 的
+            # 结构性死路签名；而按 §13 的规矩，新增会拒绝的门必须能写出一个可行形状，写不出
+            # 就不许加。这条约束写不出，所以它不该是门。
+            #
+            # 真正要防的事仍然成立：存在性 primary 为假、兄弟主张在不存在的元素上空过为真，
+            # 若按 `any` 聚合就会把需求判成满足，缺陷凭空消失（`exactly_one` 更糟，它被缺失
+            # 元素**满足**）。防法改在求值侧，见 `_requirement_primary_truth` 的
+            # `force_all` —— 那是确定性归一化，不需要任何一方去改它改不了的字段。
             invalid_primary_families = sorted(
                 {
                     assertion.evidence_family
@@ -5489,12 +5497,27 @@ def adjudicate_results(
             requirement.requirement_id: requirement
             for requirement in requirements.requirements
         }
+        # 哪些需求的 primary 正在检查一个冻结模型未声明的元素。对这些需求，聚合方式必须按
+        # `all` 算，否则「存在性为假 + 兄弟主张空过为真」会在 `any` 下判成满足，缺陷消失。
+        # 这是确定性归一化而非拒绝 —— `coverage_obligation` 由 splitter 产出、此刻已冻结，
+        # 没有任何一方能改它，所以不能做成门（详见 `_requirement_primary_truth`）。
+        known_paths = frozenset(frozen.known_model_paths) if frozen is not None else frozenset()
+        absent_element_requirements = {
+            item.requirement_id
+            for item in (script.assertions if script is not None else ())
+            if item.role == "primary"
+            and proposes_absent_element((item.expression,), known_paths)
+        }
         expected_satisfied = {
             requirement_id
             for requirement_id, values in result_by_requirement.items()
             if requirement_id not in blocking_gap_requirements
             and requirement_id not in blocked_requirements
-            and _requirement_primary_truth(requirement_by_id[requirement_id], values)
+            and _requirement_primary_truth(
+                requirement_by_id[requirement_id],
+                values,
+                force_all=requirement_id in absent_element_requirements,
+            )
         }
         reported_satisfied = set(output.satisfied_requirement_ids)
         reconciliation = {
