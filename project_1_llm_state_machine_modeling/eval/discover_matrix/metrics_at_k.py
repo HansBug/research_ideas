@@ -76,21 +76,51 @@ import pathlib
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
+import nl_scope_filter  # noqa: E402
+
 LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 
-# 本项目**不设 hold-out**。`holdout.json` 与整套「可报 / 已烧毁 / 历史」分带机制已于 2026-08-09
-# 永久移除：方法就是在这批 pair 上迭代出来的，评测口径据此统一 —— 每一条台账记录都同等参与
-# 度量，没有哪一条因为参与过规则编写而被单独成带或降级。
+# ⚠️ 这里有**两条互不相干**的策略，历史上被混为一谈过一次，代价是一次 360 格的误启动。
+# 分清楚它们是本段注释存在的唯一理由。
 #
-# 保留 `REPORTABLE` 与 `band_of()` 两个名字只是为了不惊动下游渲染器；它们现在的语义是平凡的：
-# 全部记录可报，全部记录同带。新代码不应再引用它们。
+# ── 策略一：不设 hold-out（已永久废止分带）────────────────────────────────────
+# `holdout.json` 与「可报 / 已烧毁 / 历史」三带机制已于 2026-08-09 永久移除。方法就是在这批
+# pair 上迭代出来的，评测口径据此统一：**没有哪一条记录因为参与过规则编写而被单独成带、降级或
+# 剔出分母**。论文侧的表述见 METHOD_PROVENANCE_POLICY.md —— 谓词与 prompt 的由来一律陈述为
+# 从真实设计与系统规约归纳，不以 pair 为依据，所以根本不需要 hold-out 来支撑什么。
+#
+# ── 策略二：`00x8` 不在 paper 的建模对象范畴内（先验排除）──────────────────────
+# CLAUDE.md 把 project_1 的建模对象写死为 M = (S, E, V, Tr, A)，时钟、不变式、正交区并发**不在其中**。
+# 60 个 pair 由 10 份 NL 各生成 6 个，其中 NL `6af3966c`（并发提及 11、计时提及 17）要求
+# fork/join 与秒级约束，**其忠实模型在 M 中无法表示**。它对应的 6 个 pair 恰好末位为 8，
+# 故简称「排除 `00x8`」。判据只读 nl.txt、先验、与任何运行结果无关，详见 NL_SCOPE_RULE.md。
+#
+# 两者的区别是硬的：策略一说「不许因为样本表现或参与度而改分母」，策略二说「有些规约本来就
+# 不是本方法要建模的东西」。**把策略一套到策略二上，就会得出「00x8 被排除 = 剔除不利样本」
+# 这个错误结论** —— 事实相反，被排除集里 `0018` 的 hit@1 = 66.7%，高于全量均值。
+#
+# 所以分母 = 台账全部记录 − NL 越界记录。缺的若是越界记录，不是分母被篡改；缺的若是范围内
+# 记录，那才是。下面的报错必须把这两种情况分开说，否则读者（和我）会再错一次。
 def _all_record_ids() -> tuple[str, ...]:
     payload = json.loads(LEDGER.read_text())
     records = payload.get("records") or ()
     return tuple(str(record["id"]) for record in records)
 
 
-REPORTABLE = _all_record_ids()
+def _out_of_scope_record_ids() -> tuple[str, ...]:
+    """NL 越界（`00x8`）记录 —— 不进分母，也不算「缺失」。"""
+
+    excluded = set(nl_scope_filter.excluded_pairs())
+    payload = json.loads(LEDGER.read_text())
+    return tuple(
+        str(record["id"])
+        for record in (payload.get("records") or ())
+        if str(record.get("pair", "")) in excluded
+    )
+
+
+OUT_OF_SCOPE = _out_of_scope_record_ids()
+REPORTABLE = tuple(r for r in _all_record_ids() if r not in set(OUT_OF_SCOPE))
 # 干净但结构性不可达的记录。它若报未命中不是能力缺口，所以必须在输出里说出来，否则读者会把
 # 门的抑制读成方法的失败。
 BLOCKED: dict[str, str] = {
@@ -174,8 +204,19 @@ def validate(verdicts: dict, over: dict, rounds: int, require_direction: bool = 
     missing = [record for record in REPORTABLE if record not in verdicts]
     if missing:
         problems.append(
-            f"可报记录缺 {len(missing)} 条：{missing}。它们就是能力主张的分母，少一条就是"
-            "「更改分母 / 剔除不利样本」（CLAUDE.md §3.5 条款 4），即便只是手写时漏填"
+            f"范围内记录缺 {len(missing)} 条：{missing}。它们就是能力主张的分母，少一条就是"
+            "「更改分母 / 剔除不利样本」（CLAUDE.md §3.5 条款 4），即便只是手写时漏填。"
+            "⚠️ 这里说的**不是** `00x8`：那 27 条是 NL 越界记录，先验不在分母内，"
+            "本检查已把它们扣除（见 NL_SCOPE_RULE.md）"
+        )
+    # 越界记录出现在判定表里同样要报 —— 它们不该被跑、更不该被判，一旦出现说明网格错了。
+    # 这条与上面互为镜像：一个防「范围内的被漏掉」，一个防「范围外的被混入」。
+    intruders = [record for record in OUT_OF_SCOPE if record in verdicts]
+    if intruders:
+        problems.append(
+            f"判定表里混入 {len(intruders)} 条 NL 越界记录：{intruders}。`00x8` 对应的 NL 要求 "
+            "fork/join 与秒级时间约束，其忠实模型在 M = (S, E, V, Tr, A) 中无法表示，先验不进"
+            "网格也不进分母（NL_SCOPE_RULE.md）。它们出现在这里意味着网格被改错了"
         )
     for cell, series in sorted(over.items()):
         if len(series) != rounds:

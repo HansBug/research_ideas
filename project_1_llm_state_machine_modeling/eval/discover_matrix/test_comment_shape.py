@@ -28,10 +28,15 @@ def _full_verdicts(pattern=(1, 0, 1)) -> dict:
     判定者本来就必须提供的字段：一条判为命中却说不出按哪种形态成立的记录，正是判反最常见的样子。
     """
 
+    # ⚠️ 分母是 `REPORTABLE`（99 条），不是台账全部（126 条）。差的 27 条是 `00x8` 的 NL 越界
+    # 记录：那份 NL 要求 fork/join 与秒级时间约束，忠实模型在 M 中无法表示，v35 起先验不进网格。
+    # 把它们放进判定表会被 `validate` 判为「网格被改错」—— 而那条检查是对的，见
+    # NL_SCOPE_RULE.md §五。v23/v24 的历史判定表确实含 `00x8`（那两代跑过），
+    # 但本 fixture 模拟的是**当前**口径。
     verdicts: dict[str, object] = {}
-    for record_id in sorted(mk._ledger_ids()):
+    for record_id in sorted(mk.REPORTABLE):
         entry: dict[str, object] = {"claude": list(pattern)}
-        if record_id in mk.REPORTABLE and 1 in pattern:
+        if 1 in pattern:
             entry["direction"] = {"claude": "direct"}
         verdicts[record_id] = entry
     return {"verdicts": verdicts, "over": {}}
@@ -102,7 +107,9 @@ def test_it_refuses_to_render_an_invalid_verdict_table() -> None:
     incomplete = {"verdicts": {"EIS-0035-02": [1, 1, 1]}, "over": {}}
     with pytest.raises(SystemExit) as caught:
         bc.render(incomplete, "v22", 3)
-    assert "可报记录缺" in str(caught.value)
+    # 措辞 2026-08-10 起改为「范围内记录缺」，因为旧措辞「可报记录缺 …… 即剔除不利样本」
+    # 会让读者把 `00x8` 的先验越界读成分母被篡改 —— 已实际造成一次误启动。
+    assert "范围内记录缺" in str(caught.value)
 
 
 def test_the_brief_does_not_cut_mid_clause() -> None:

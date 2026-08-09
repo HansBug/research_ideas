@@ -1115,6 +1115,24 @@ talks/
 - 也不得反过来声称"这些模型没有并发/时间问题"（基线论文的最大语义类正是 missing regions）
 - 详见 [project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)
 
+**由这条边界导出的两项永久裁定，二者互不相干，不得混谈：**
+
+1. **`00x8` 系列（`0008` `0018` `0028` `0038` `0048` `0058`）永久排除。** 60 个 pair 由 10 份 NL
+   各生成 6 个；其中一份要求 fork/join 与秒级时间约束，其忠实模型在 $M$ 中无法表示，对应的
+   6 个 pair 恰好末位为 8。**它们不进评测网格、不进命中分母**，故全量网格恒为
+   `54 pair × 2 模型 × 3 轮 = 324 格`，台账可判记录恒为 `126 - 27 = 99` 条。判据只读 `nl.txt`、
+   先验、与运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。
+   见 [NL_SCOPE_RULE.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/NL_SCOPE_RULE.md)。
+2. **hold-out 永久不用。** 不划分留出集，也**不在论文里解释这件事**：谓词词表与 prompt 的由来
+   一律陈述为从真实设计与系统规约归纳，不以任何 pair 为依据，「为什么不留出」在本方法的论证
+   结构里根本不出现。见
+   [METHOD_PROVENANCE_POLICY.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/METHOD_PROVENANCE_POLICY.md)。
+
+⛔ 把裁定 2（不许因样本表现或参与度改分母）套到裁定 1 上，会得出「排除 `00x8` = 剔除不利样本」
+这个**错误**结论。已实际发生过一次，代价是把网格擅自改成 60 pair / 360 格的误启动。工具层由
+[test_scope_vs_holdout_are_different.py](./project_1_llm_state_machine_modeling/eval/discover_matrix/test_scope_vs_holdout_are_different.py)
+钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录，且越界记录若混入判定表会直接报「网格被改错」。
+
 时间与并发相关的验证仍属**研究内容三**；由于研究内容一不产出时钟与不变式，其时间属性来源
 需在研究内容二/三中另行界定（见 [TARGET.md](./TARGET.md) 「可能遇到的问题」第 2 条的衔接说明）。
 - 验证剖面：`SP = ⟨(E₁, C₁, τ₁), (E₂, C₂, τ₂), ..., (Eₙ, Cₙ, τₙ)⟩`
