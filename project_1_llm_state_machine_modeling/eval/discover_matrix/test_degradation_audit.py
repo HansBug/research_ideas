@@ -48,7 +48,11 @@ def generation(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> str:
             "issues": [{"title": "b"}],
             "coverage_status": "partial",
             "degraded_stages": [],
-            "coverage_gaps": [{"gap_id": "GAP-AST-1-REVIEW", "assertion_ids": ["AST-1"]}],
+            "coverage_gaps": [
+                {"gap_id": "GAP-AST-1-REVIEW", "assertion_ids": ["AST-1"]},
+                # 需求级隔离：assertion_ids 天然为空，但它是常态隔离而非降级。
+                {"gap_id": "GAP-REQ-032-REVIEW", "assertion_ids": []},
+            ],
         },
     )
     _cell(
@@ -87,7 +91,9 @@ def test_partial_coverage_alone_is_not_degradation(generation: str) -> None:
     )
     assert partial_but_clean["coverage_status"] == "partial"
     assert partial_but_clean["degraded"] is False
-    assert partial_but_clean["isolation_gaps"] == 1
+    assert partial_but_clean["isolation_gaps"] == 2, (
+        "断言级与需求级隔离都算隔离；需求级的 assertion_ids 天然为空，不得据此当成降级"
+    )
     assert partial_but_clean["degradation_gaps"] == 0
 
 

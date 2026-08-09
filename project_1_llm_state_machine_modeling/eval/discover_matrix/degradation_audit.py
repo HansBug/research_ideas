@@ -71,11 +71,20 @@ def scan(generation: str) -> dict:
                 "degraded_stages": stages,
                 "issues": len(payload.get("issues") or []),
                 "coverage_status": payload.get("coverage_status"),
-                # Degradation gaps carry no assertion ids; isolation gaps do. Counting them
-                # apart is what lets a reader see whether the gaps came from routine per-item
-                # isolation or from a stage giving up.
-                "degradation_gaps": sum(1 for gap in gaps if not gap.get("assertion_ids")),
-                "isolation_gaps": sum(1 for gap in gaps if gap.get("assertion_ids")),
+                # The `-DEGRADED` suffix is the only reliable marker. "Empty `assertion_ids`"
+                # is NOT: a *requirement*-level quarantine (`GAP-REQ-032-REVIEW`) has none
+                # either, because it isolates a requirement rather than an assertion. The
+                # first version of this scanner used the empty-ids heuristic and duly
+                # mislabelled a routine requirement quarantine in `0049-gpt` as degradation --
+                # caught only by running it against a real cell.
+                "degradation_gaps": sum(
+                    1 for gap in gaps if str(gap.get("gap_id", "")).endswith("-DEGRADED")
+                ),
+                "isolation_gaps": sum(
+                    1
+                    for gap in gaps
+                    if not str(gap.get("gap_id", "")).endswith("-DEGRADED")
+                ),
             }
         )
     # A cell that never landed is a different problem from a cell that degraded, and after §10
