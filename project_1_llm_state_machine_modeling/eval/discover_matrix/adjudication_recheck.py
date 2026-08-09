@@ -53,8 +53,13 @@ _CORPUS_PREFIX = re.compile(r"llms_emp_feedback_final_\d+\.")
 #: 单独出现无区分力的路径片段。
 _WEAK = frozenset({"any", "state", "event", "kind", "true", "false"})
 
-#: 低于这个覆盖率的不进工作清单——否则人要读的量和不用工具一样多。
-DEFAULT_THRESHOLD = 0.6
+#: 低于这个覆盖率的不进工作清单。
+#:
+#: 0.5 而非 0.6：这是**定位器**，召回比精度重要得多。0.6 漏掉了两位真实判错
+#: （`EIS-0040-03@run2/0040-gpt` 覆盖 0.50、`EIS-0042-01@run1/0042-gpt` 覆盖 0.50），
+#: 而漏掉的代价是判定错误留在数据里，误报的代价只是人多读一条。v37 实测精度约 1/2
+#: （52 个候选里 26 个是真错），这个比例下多捞一些是划算的。
+DEFAULT_THRESHOLD = 0.5
 
 
 def primary_elements(expression: str) -> frozenset[str]:
@@ -75,25 +80,28 @@ def primary_elements(expression: str) -> frozenset[str]:
 def element_forms(expression: str) -> dict[str, frozenset[str]]:
     """元素名 → 它在 issue 文本里可能的写法。
 
-    目前只认**全名**。试过放宽到 CamelCase 段（让 `AutonomousActive` 被「Autonomous」命中，
-    因为 issue 常用父状态名指代子状态），实测是在两类假阳性之间换手而不是消除：
-    严格版把「Autonomous 下缺 Power_Off 出边」与「HumanDriving 中 Power_Off 未终止」
-    看成同一形态（v37 上 8 对）；放宽版让 `AutonomousFinal` 被任何提到「Autonomous」的
-    父状态级 issue 命中（v37 上 13 对）。
+    分母是**点号分段**后的元素，不再把 `front_distance_10` 按下划线拆成 front/distance/10 三个
+    独立元素——那会把一个元素在分母里数四次（整名 + 三段），覆盖率被稀释到判不出来。
+    `EIS-0040-03` 就是这么漏掉的：元素表里有 7 项而实际只有 4 个元素，命中 4 项算 0.57，
+    差一点点到不了阈值。
 
-    这类作用域歧义没有词法解法。既然本工具只定位不裁定，就取更简单、失败模式更好解释的
-    严格版，并把「作用域级假阳性属预期，必须人读原文分辨」写在这里。
+    覆盖判定放宽到「下划线各段都出现」，因为 issue 常把标识符写回自然语言或运算符形态：
+    `front_distance_10` 在标题里是 `front_distance > 10`，字面找不到，但 front / distance / 10
+    三段都在。`EIS-0042-01` 的 `start` 被写成「启动初始化」则仍然找不到——这类只能靠降低阈值
+    兜住，见 `DEFAULT_THRESHOLD`。
+
+    `[*]` 一类伪态不进分母：它在模型里没有名字，任何 issue 都不可能"提到"它，留着只会拉低
+    每一位的覆盖率。
     """
 
     stripped = _CORPUS_PREFIX.sub("", expression or "")
     forms: dict[str, set[str]] = {}
     for value in re.findall(r"[\"']([^\"']+)[\"']", stripped):
         for chunk in re.split(r"[.\s]+", value):
-            for name in [chunk, *chunk.split("_")]:
-                key = name.lower()
-                if not key or key in _WEAK or len(key) < 2:
-                    continue
-                forms.setdefault(key, {key})
+            key = chunk.lower()
+            if not key or key in _WEAK or len(key) < 2 or not re.search(r"[a-z0-9]", key):
+                continue
+            forms.setdefault(key, {key})
     return {key: frozenset(value) for key, value in forms.items()}
 
 
@@ -116,9 +124,15 @@ def coverage(
     if not elements:
         return 0.0, frozenset()
     lowered = (title or "").lower()
-    found = frozenset(
-        name for name, forms in elements.items() if any(form in lowered for form in forms)
-    )
+
+    def covered(name: str, surface: frozenset[str]) -> bool:
+        if any(form in lowered for form in surface):
+            return True
+        # 标识符被写回自然语言或运算符形态：`front_distance_10` -> `front_distance > 10`。
+        parts = [p for p in name.split("_") if len(p) >= 2]
+        return len(parts) > 1 and all(p in lowered for p in parts)
+
+    found = frozenset(name for name, surface in elements.items() if covered(name, surface))
     return len(found) / len(elements), found
 
 

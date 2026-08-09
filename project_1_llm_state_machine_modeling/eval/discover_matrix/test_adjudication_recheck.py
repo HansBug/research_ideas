@@ -182,7 +182,10 @@ def test_the_corpus_prefix_is_stripped() -> None:
 
     elements = R.primary_elements(LEDGER["EIS-0030-02"]["primary_expression"])
     assert not any("llms_emp" in part for part in elements)
-    assert {"autonomous", "navigating", "power", "off"} <= elements
+    # 点号分段后是 4 个元素；`Power_Off` 不再被拆成 power/off 两项塞进分母——
+    # 一个元素在分母里数两次会把覆盖率稀释到判不出来。
+    assert {"autonomous", "navigating", "power_off"} <= elements
+    assert "power" not in elements and "off" not in elements
 
 
 def test_scope_level_false_positives_are_accepted_by_design() -> None:
@@ -233,3 +236,45 @@ def test_cross_generation_drift_is_detectable() -> None:
     assert len(both) == 1
     assert both[0]["miss_side"]["cell"] == "gA:run1/0040-claude"
     assert both[0]["hit_side"]["cell"] == "gB:run2/0030-claude"
+
+
+def test_the_two_real_misses_that_0_6_let_through_are_now_caught() -> None:
+    """两处真实判错在旧口径（阈值 0.6 + 下划线拆分）下覆盖率不足而漏掉。
+
+    - `EIS-0040-03@run2/0040-gpt`：issue 写 `front_distance > 10`，标识符是 `front_distance_10`
+    - `EIS-0042-01@run1/0042-gpt`：触发器 `start` 被写成中文「启动初始化」
+
+    漏掉的代价是判定错误留在数据里；误报的代价只是人多读一条。这条测试锁住两者都能被捞出来。
+    """
+
+    P = "llms_emp_feedback_final_"
+    cases = (
+        (
+            f'occupancy_after(source="{P}0040.HumanDriving", '
+            f'trigger="{P}0040.front_distance_10", target="{P}0040.Autonomous.AutoInitial")',
+            "front_distance > 10 后未进入 Autonomous",
+        ),
+        (
+            f"occupancy_after(source='[*]', trigger='{P}0042.start', "
+            f"target='{P}0042.Operate', within_cycles=2)",
+            "启动初始化未进入 Operate 状态",
+        ),
+    )
+    for expression, title in cases:
+        score, _ = R.coverage(R.element_forms(expression), title)
+        assert score >= R.DEFAULT_THRESHOLD, (expression[:40], score)
+
+
+def test_a_pseudo_state_is_not_an_element() -> None:
+    """`[*]` 在模型里没有名字，任何 issue 都不可能提到它；留在分母只会拉低每一位。"""
+
+    forms = R.element_forms("occupancy_after(source='[*]', target='A.Operate')")
+    assert set(forms) == {"operate"}
+
+
+def test_an_identifier_written_back_as_prose_still_counts() -> None:
+    """标识符被写成运算符/空格形态时，按下划线各段是否都出现来判。"""
+
+    forms = R.element_forms('p(x="A.dist_to_front_25")')
+    assert R.coverage(forms, "dist_to_front 超过 25 时未触发")[0] == 1.0
+    assert R.coverage(forms, "完全无关的一句话")[0] == 0.0

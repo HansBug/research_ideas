@@ -18,7 +18,7 @@ splitter 的整条 LLM-call 记录做 `"predicate": "X"` 正则，而记录里�
 2. **能改变结论的度量工具必须落库并带测试。** 临时脚本没有回归，错误会活到它支撑的每一个
    结论里。
 
-## 六段的定义（互斥，按最深到达者归段）
+## 分段定义（互斥，按最深到达者归段）
 
 - **⑥** 台账无 `primary_predicate` —— 不可机械判定。注意它**不是损失**：这些位的命中率与
   全量相当，人工判编码等价照样接住。
@@ -26,22 +26,22 @@ splitter 的整条 LLM-call 记录做 `"predicate": "X"` 正则，而记录里�
 - **②** 断言层：需求写了，但没有对应断言跑起来。
 - **③** 真值层：断言跑了，但从未取到台账期望的真值。
 - **④** 发布层：取到了期望真值，但没被任何已发布 issue 引用。
-- **⑤** 判定层：已发布且真值对，但绑定/命题不符。
+- **⑤** 绑定层：该谓词**发布过**，但绑的不是台账问的那组元素——报到了同一片区域、指错了对象。
+- **⑦** 台账 primary 存在但解析不出 `(谓词, 绑定) -> 期望真值`（``all([...])`` 等形态）。机械不可判，
+  与「台账根本没有 primary」是两回事，分开记，免得把「判不了」读成「不该判」。
 
-## ⚠️ 读 ⑤ 时的陷阱：它是混合段，不是单一失败模式
+⚠️ **旧口径里的「⑤ 判定层」在严格绑定判据下必然为空**，因为「已发布 + 绑定相符 + 真值等于期望」
+恰好就是 `tier_a` 的命中条件——一个位不可能同时满足它又被判未命中。旧 ⑤ 的 53 位全部是按谓词名
+松散匹配的产物。现在的 ⑤ 换了定义：**谓词发布过但绑错对象**，这才是当初想从 ⑤ 读出的东西。
 
-「最深到达者归段」是明写的规则，但它有一个副作用：只要该谓词**在该格的别处**被调用过并取到过
-False 且被发布过，这一位就会被推到 ⑤，哪怕该格**根本没报**台账那条缺陷。于是 ⑤ 里混着覆盖
-问题，读成「报了但绑错」会高估绑定精度问题的规模。
+## ③ 与旧 ⑤ 为什么恒为空
 
-v37 全量 324 的 ⑤ 有 53 位，按「已发布 issue 指认的元素与台账 primary 的重合度」拆开是：
+两者都是严格判据下的**结构性空段**，不是数据碰巧如此：
 
-- **19 位** 重合度 < 0.3 —— 该格压根没报这条，实质属**覆盖**问题
-- **31 位** 重合度 0.3–0.6 —— 报到了同一片区域，绑错了其中一个对象（真·绑定精度）
-- **3 位** 重合度 ≥ 0.6 —— 对象全对、命题不对
-
-也就是说 ⑤ 作为「第二大块」是统计假象，拆开后没有一块进得了前两名。要拆这个口径，用
-`adjudication_recheck.best_match()` 的 coverage 分档，别直接引用 ⑤ 的总数。
+- **③ 真值层**：绑定逐字相符地问同一个问题，在同一份制品上必然得到台账记的那个真值——谓词是
+  确定性的。所以「问对了却没取到期望真值」不可能发生。
+- **旧 ⑤ 判定层**（已发布 + 绑定相符 + 真值对）恰是 `tier_a` 的命中条件，一个位不可能同时
+  满足它又被判未命中。代码里那条分支现在直接 `raise`，用来发现分段与判定两侧判据漂移。
 
 用法::
 
@@ -71,8 +71,9 @@ STAGES = (
     "② 断言层",
     "③ 真值层",
     "④ 发布层",
-    "⑤ 判定层",
+    "⑤ 绑定层",
     "⑥ 台账无 primary",
+    "⑦ primary 不可机械解析",
 )
 
 
@@ -100,33 +101,99 @@ def requirement_predicates(cell_dir: pathlib.Path) -> set[str]:
     return written
 
 
+def _answers_the_claim(call: dict, bindings: tuple, ) -> bool:
+    """Does this call ask the ledger's question, or merely a same-named one?
+
+    Same rule as `verdict_tiers.tier_a`: every binding key the ledger wrote must be present and
+    equal; the only extra keys allowed are observation-horizon parameters. Deliberately shared
+    with tier_a rather than reimplemented -- if the two drift, a position can be "answered"
+    for segmentation and "unanswered" for adjudication at the same time.
+    """
+
+    call_bindings = dict(call["bindings"])
+    ledger_bindings = dict(bindings)
+    if set(ledger_bindings) - set(call_bindings):
+        return False
+    if set(call_bindings) - set(ledger_bindings) - V._HORIZON_BINDINGS:
+        return False
+    return all(ledger_bindings[key] == call_bindings[key] for key in ledger_bindings)
+
+
 def stage_of(
     entry: dict, ledger: dict, cell_dir: pathlib.Path, cache: dict
 ) -> str:
-    """Which stage this judged position died at."""
+    """Which stage this judged position died at.
+
+    ⚠️ The first version compared **predicate names only** and hardcoded the expected truth
+    value to `False`. Both are wrong and they compounded:
+
+    - A ledger claim like ``not edge_declared(cruise, dist_to_exit_2, FinishState)`` expects the
+      inner call to be **True**; hardcoding False meant the position could never reach ④/⑤ on
+      its own evidence, and instead matched some unrelated `edge_declared` call elsewhere in the
+      cell. Measured on v37: **13 of the 24 ④ positions were misfiled this way.**
+    - Matching on the name alone counts "the cell asked a different question with the same
+      predicate" as "the cell asked this question". That is precisely the distinction ①/②/③ are
+      supposed to draw, so the error was self-concealing.
+
+    The expected truth value and the bindings both come from `record["claims"]`, the same source
+    `verdict_tiers.tier_a` adjudicates against. A record may carry several claims (``any([...])``
+    forms); the position is credited with the **deepest** stage any single claim reached, since
+    getting one claim further is genuine progress on that position.
+    """
 
     if entry["hit"]:
         return "命中"
     record = ledger[entry["record_id"]]
-    predicate = record.get("primary_predicate")
-    if not predicate:
+    claims = record.get("claims") or {}
+    if not record.get("primary_predicate"):
         return "⑥ 台账无 primary"
+    if not claims:
+        # A primary that exists but does not parse into (predicate, bindings) -> expected.
+        # Mechanically unjudgeable -- but NOT the same as having no primary, so it gets its own
+        # label. Folding it into ⑥ would quietly inflate "the ledger did not ask" with "the tool
+        # cannot read what the ledger asked".
+        return "⑦ primary 不可机械解析"
     if cell_dir not in cache:
         cache[cell_dir] = (
             V.cell_evidence(cell_dir),
             requirement_predicates(cell_dir),
         )
     evidence, written = cache[cell_dir]
-    calls = [call for call in evidence["calls"] if call["predicate"] == predicate]
-    if predicate not in written and not calls:
-        return "① 需求层"
-    if not calls:
-        return "② 断言层"
-    if not any(call["result"] is False for call in calls):
-        return "③ 真值层"
-    if not any(call["published"] and call["result"] is False for call in calls):
-        return "④ 发布层"
-    return "⑤ 判定层"
+
+    depth = {"① 需求层": 1, "⑤ 绑定层": 2, "② 断言层": 3, "③ 真值层": 4, "④ 发布层": 5}
+    reached = "① 需求层"
+    for (predicate, bindings), expected in claims.items():
+        same_predicate = [c for c in evidence["calls"] if c["predicate"] == predicate]
+        answering = [c for c in same_predicate if _answers_the_claim(c, bindings)]
+        if predicate not in written and not same_predicate:
+            stage = "① 需求层"
+        elif not answering:
+            # The predicate exists in this cell but nothing bound the way the ledger asks: the
+            # question was never posed. Split by whether the cell nonetheless *published*
+            # something with this predicate -- "reported the neighbourhood, bound the wrong
+            # object" is a different problem from "asked nothing of the kind", and lumping them
+            # together is what made the old ⑤ unreadable.
+            stage = (
+                "⑤ 绑定层"
+                if any(c["published"] for c in same_predicate)
+                else "② 断言层"
+            )
+        elif not any(c["result"] is expected for c in answering):
+            stage = "③ 真值层"
+        elif not any(c["published"] and c["result"] is expected for c in answering):
+            stage = "④ 发布层"
+        else:
+            # Published + bindings match + result == expected is exactly `tier_a`'s hit
+            # condition, so this position would have been auto-credited as a hit and never
+            # reached `stage_of`. Unreachable by construction; assert rather than invent a
+            # stage for it.
+            raise AssertionError(
+                f"{entry['record_id']}@{entry['cell']}: tier_a should have matched "
+                f"{predicate}{bindings}; segmentation and adjudication have drifted apart"
+            )
+        if depth[stage] > depth[reached]:
+            reached = stage
+    return reached
 
 
 def classify(generation: str, audit_path: pathlib.Path) -> dict:

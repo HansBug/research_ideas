@@ -109,6 +109,77 @@ def test_a_malformed_record_is_skipped_not_fatal(tmp_path: pathlib.Path) -> None
 def test_stages_are_mutually_exclusive_and_named() -> None:
     """六段 + 命中，名字集合固定；分段结果不得出现表外的段名。"""
 
-    assert len(set(loss_stages.STAGES)) == 7
+    assert len(set(loss_stages.STAGES)) == 8
     assert loss_stages.STAGES[0] == "命中"
-    assert loss_stages.STAGES[-1] == "⑥ 台账无 primary"
+    assert loss_stages.STAGES[-1] == "⑦ primary 不可机械解析"
+
+
+def _ledger(primary: str, claims: dict) -> dict:
+    return {"R": {"primary_predicate": primary, "claims": claims}}
+
+
+def _evidence_cell(tmp_path, calls):
+    """A cell whose `cell_evidence` yields exactly these calls."""
+
+    import verdict_tiers as V
+
+    cell = tmp_path / "run1" / "0000-claude"
+    record = cell / "records" / "L000-000001-requirement-splitter-llm-call-completed"
+    record.mkdir(parents=True)
+    (record / "record.json").write_text(
+        json.dumps({"parsed_output": {"requirements": [{"predicate": c["predicate"]} for c in calls]}})
+    )
+    V.cell_evidence.cache_clear() if hasattr(V.cell_evidence, "cache_clear") else None
+    return cell
+
+
+def test_a_same_named_call_with_other_bindings_is_not_an_answer() -> None:
+    """按谓词名匹配会把「问了别的问题」算成「问了这个问题」。
+
+    这正是第一版的缺陷：v37 的 ④ 段 24 位里 13 位因此归错段。判据必须比绑定。
+    """
+
+    claim_bindings = (("source", "A"), ("target", "B"))
+    same_name_other_target = {"predicate": "edge_declared", "bindings": [["source", "A"], ["target", "Z"]]}
+    assert not loss_stages._answers_the_claim(same_name_other_target, claim_bindings)
+
+    exact = {"predicate": "edge_declared", "bindings": [["source", "A"], ["target", "B"]]}
+    assert loss_stages._answers_the_claim(exact, claim_bindings)
+
+
+def test_horizon_bindings_are_the_only_permitted_extras() -> None:
+    """视界参数可以多出来（观测约定），别的键多出来就是问了个更宽的问题。"""
+
+    claim = (("state", "S"),)
+    assert loss_stages._answers_the_claim(
+        {"predicate": "p", "bindings": [["state", "S"], ["within_cycles", "3"]]}, claim
+    )
+    assert not loss_stages._answers_the_claim(
+        {"predicate": "p", "bindings": [["state", "S"], ["phase", "entry"]]}, claim
+    )
+
+
+def test_a_missing_ledger_binding_key_is_not_an_answer() -> None:
+    """台账写了的键一个都不许缺——缺了就是在问一个更宽的问题。"""
+
+    claim = (("source", "A"), ("trigger", "t"))
+    assert not loss_stages._answers_the_claim(
+        {"predicate": "p", "bindings": [["source", "A"]]}, claim
+    )
+
+
+def test_an_unparseable_primary_is_not_the_same_as_no_primary() -> None:
+    """`all([...])` 形态解析不出 (谓词,绑定)->期望，但台账确实问了——不能算「没问」。
+
+    折进 ⑥ 会把「工具读不懂台账」冒充成「台账没要求」，两者对结论的含义相反。
+    """
+
+    entry = {"hit": False, "record_id": "R", "cell": "run1/0000-claude"}
+    stage = loss_stages.stage_of(entry, _ledger("containment", {}), pathlib.Path("/nonexistent"), {})
+    assert stage == "⑦ primary 不可机械解析"
+
+    no_primary = {"R": {"primary_predicate": None, "claims": {}}}
+    assert (
+        loss_stages.stage_of(entry, no_primary, pathlib.Path("/nonexistent"), {})
+        == "⑥ 台账无 primary"
+    )
