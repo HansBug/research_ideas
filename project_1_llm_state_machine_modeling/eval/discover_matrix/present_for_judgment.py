@@ -67,6 +67,11 @@ ap = argparse.ArgumentParser(description="并列呈现，不做判定")
 ap.add_argument("gen", help="代次前缀，如 v21 / v22")
 ap.add_argument("--pair", help="只看一个 pair")
 ap.add_argument("--arm", help="只看一条臂，如 claude / gpt")
+ap.add_argument("--compact", action="store_true",
+                help="台账每 pair 只打一次，每格只列 issue 标题与四类计数。"
+                     "为 324 格全量判定而加：默认模式下台账在同一 pair 内被重复打印 6 遍，"
+                     "48 个 pair 约 8500 行。**四类「没发现」的计数一个都不省** —— "
+                     "省掉它们会让判定者把「被门丢弃」读成「从未发现」，那正是本脚本要防的事")
 ap.add_argument("--full", action="store_true",
                 help="不截断台账 statement 与模型 detail。判定时应当用这个："
                      "170/230 字符的截断线曾把台账自己的结论子句切掉")
@@ -74,6 +79,9 @@ args = ap.parse_args()
 gen, only, arm = args.gen, args.pair, args.arm
 LIM_LED = 10**9 if args.full else 170
 LIM_MOD = 10**9 if args.full else 230
+
+#: compact 模式下已打印过台账的 pair。
+_LEDGER_PRINTED: set = set()
 
 rounds, tried = _round_dirs(gen)
 if not rounds:
@@ -102,24 +110,30 @@ for rnd, base in rounds:
         d = json.loads(f.read_text())
         iss = d.get("issues") or []
         print(f"\n{'='*100}\n{gen} run{rnd} {pair}-{this_arm} [{tag}]  coverage={d.get('coverage_status')}  issues={len(iss)}")
-        print("-- 台账期望（可判定） --")
-        for r in expected(pair):
-            rid = r["id"]
-            if rid in BURNED_RECORDS:
-                elig = f"已烧毁 @ {BURNED_RECORDS[rid].get('since_commit','?')}，不作能力主张"
-            elif rid in REPORTABLE:
-                elig = "★可报——承载能力主张"
-                if rid in BLOCKED: elig += f"，但 {BLOCKED[rid]}"
-            else:
-                elig = "共演化观测"
-            print(f"   {rid}  {r['layer']}/{r.get('direction')}  pred={r.get('primary_predicate')}  [{elig}]")
-            print(f"      {r['statement'][:LIM_LED]}")
+        # compact：台账每 pair 只打一次。判定者在同一 pair 的 6 个格之间来回看时，
+        # 重复的台账文本只增加行数不增加信息。
+        if args.compact and pair in _LEDGER_PRINTED:
+            print("-- 台账期望：见本 pair 首格 --")
+        else:
+            _LEDGER_PRINTED.add(pair)
+            print("-- 台账期望（可判定） --")
+            for r in expected(pair):
+                rid = r["id"]
+                if rid in BURNED_RECORDS:
+                    elig = f"已烧毁 @ {BURNED_RECORDS[rid].get('since_commit','?')}，不作能力主张"
+                elif rid in REPORTABLE:
+                    elig = "★可报——承载能力主张"
+                    if rid in BLOCKED: elig += f"，但 {BLOCKED[rid]}"
+                else:
+                    elig = "共演化观测"
+                print(f"   {rid}  {r['layer']}/{r.get('direction')}  pred={r.get('primary_predicate')}  [{elig}]")
+                print(f"      {r['statement'][:LIM_LED]}")
         print(f"-- 模型产出（attribution: {[x.get('attribution_status') for x in iss]}） --")
         for i,x in enumerate(iss,1):
             t = x.get("title") or x.get("summary") or ""
             print(f"   [{i}] {t[:LIM_MOD]}")
             det = (x.get("description") or x.get("detail") or x.get("rationale") or "")
-            if det: print(f"       {det[:LIM_MOD]}")
+            if det and not args.compact: print(f"       {det[:LIM_MOD]}")
 
         # 「从未发现」与「发现了但被丢掉」是两种不同的失败，根因不同，必须分开看。
         recon = d.get("adjudication_reconciliation") or {}
@@ -144,7 +158,7 @@ for rnd, base in rounds:
             if not rows:
                 continue
             print(f"-- {label}（{len(rows)}）--")
-            for x in rows[:8]:
+            for x in ([] if args.compact else rows[:8]):
                 if isinstance(x, dict):
                     txt = x.get("title") or x.get("statement") or x.get("reason") or x.get("detail") or json.dumps(x, ensure_ascii=False)
                     why = x.get("reason") or x.get("exclusion_reason") or ""
