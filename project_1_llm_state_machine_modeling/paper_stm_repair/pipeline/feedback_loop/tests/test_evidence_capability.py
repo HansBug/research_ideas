@@ -809,3 +809,28 @@ def test_a_self_conjunction_and_a_cross_region_pair_are_not_vacuous() -> None:
     assert vacuous_sibling_conjunction('active("Root.R.A") && active("Root.R.A")') is None
     assert vacuous_sibling_conjunction('active("Alpha") && active("Beta")') is None
     assert vacuous_sibling_conjunction('active("Root.R.A")') is None
+
+
+def test_absence_claims_must_use_the_structural_predicate() -> None:
+    """「关系缺失」不能用运行形态取证——缺失本身没有可观察的行为。
+
+    v41 pair 0039 实测：`run2/0039-claude` 用 `edge_declared` 断言缺失的分支，发布并命中；
+    `run1`/`run3` 把同一缺陷断言成可达性失败，全部发现被判 `unattributed` 排除，整格零 issue。
+    机制是必然的：作者的迁移不存在，运行检查的每一次派生都被迫绕经编译器插入的路由，
+    于是证据被归因到编译器拥有的元素上。
+
+    这条与同段「运行证据更强」的指引方向相反，所以必须写在一起——两条分处两地，
+    生产者只会各挑一条，而这正是本仓库反复出现的「新规则输给老禁令」。
+    """
+
+    from paper_stm_feedback_loop.discover import prompts
+
+    converter = " ".join(prompts.ASSERTION_CONVERTER_PROMPT.split())
+    assert "the structural predicate is the primary" in converter
+    assert "Absence has no runtime witness to attribute" in converter
+    # 与它相反的那条指引必须仍在同一段里，否则读者看不到这是一个例外而非替换。
+    assert "use hot-start simulation or a causal FBMCQ query as stronger evidence" in converter
+    head = converter[: converter.index("Absence has no runtime witness")]
+    assert "hot-start simulation or a causal FBMCQ query as stronger evidence" in head, (
+        "例外必须紧跟在它所例外的那条规则之后"
+    )
