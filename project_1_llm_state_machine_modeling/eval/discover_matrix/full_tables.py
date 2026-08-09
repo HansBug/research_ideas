@@ -41,6 +41,8 @@ import pathlib
 import re
 import sys  # noqa: E402
 
+ARMS_IN_TABLE = ("claude", "gpt")
+
 HERE = pathlib.Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
@@ -206,10 +208,23 @@ def run_validity(generation: str) -> list[str]:
     out = ["#### 运行有效性（可从冻结产物机械复算）\n"]
     version = base / "CODE_VERSION.txt"
     if version.is_file():
+        # `CODE_VERSION.txt` 有两种写法：裸 SHA 一行，或 `key: value` 若干行
+        # （启动器自 v41 起写后者）。按前者解析后者会把 "commit: 6f43" 当成版本号印出来，
+        # 而那串东西看上去像个短 SHA，读者不会起疑 —— 这正是本文件反对的那类无声错误。
         lines = [l.strip() for l in version.read_text().splitlines() if l.strip()]
-        out.append(f"- 代码版本：`{lines[0][:12] if lines else '?'}`"
-                   + (f"，src 最后一次改动 `{lines[1]}`" if len(lines) > 1 else ""))
-        out.append(f"- **src 冻结**：复算 `git log {lines[0][:12] if lines else 'BASE'}..HEAD -- "
+        fields = {}
+        for line in lines:
+            if ":" in line:
+                key, _, value = line.partition(":")
+                fields[key.strip()] = value.strip()
+        sha = fields.get("commit") or (lines[0] if lines else "")
+        dirty = fields.get("pipeline_src_diff_vs_commit")
+        out.append(
+            f"- 代码版本：`{sha[:12] or '?'}`"
+            + (f"（分支 `{fields['branch']}`）" if fields.get("branch") else "")
+            + (f"，启动时 src 脏改动 **{dirty}**" if dirty else "")
+        )
+        out.append(f"- **src 冻结**：复算 `git log {sha[:12] or 'BASE'}..HEAD -- "
                    f"'.../feedback_loop/src/'`，应为空")
     else:
         out.append(f"- ⚠️ 无 `CODE_VERSION.txt` —— 该代次的代码版本只能靠时间戳反推（§3.5.1 要求先 push）")
@@ -272,12 +287,18 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
                "并列。差 < 代次内极差 → 不可归因；1~2× → 弱信号；>2× → 可作效果讨论。"
                "实测 v23 代次内极差：谓词调用/格 6.7%、issue/格 **20.5%**。\n")
     out.append("上标 `g`/`r`/`e` 表示该格另有 `coverage_gaps` / `rejected_issues` / `excluded_*`。"
-               "**全部 11 个 pair 均参与规则归纳**，故本表是方法在其归纳语料上的表现 —— "
+               f"**本代次的全部 {len(pairs)} 个 pair 均参与规则归纳**，故本表是方法在其归纳语料上的表现 —— "
                "这是主张边界（不声称对未见模型泛化），不是分母边界。\n")
 
     # ---- 表 2：全部判定位 ----
     n_pos = sum(len(r["claude"] or []) + len(r["gpt"] or []) for r in pos_rows)
-    out.append(f"### 表 2 · 全部 {len(pos_rows)} 条台账记录 × 2 臂 × 3 轮 = {n_pos} 个判定位\n")
+    # 轮数由实际位数反推，不写死：只跑了一轮的代次写着「× 3 轮」而表里 16 位，
+    # 读者会按标题相信一个错的分母 —— 与上面 pair 数同一种错误。
+    n_rounds = max((len(r["claude"] or []) for r in pos_rows), default=0)
+    out.append(
+        f"### 表 2 · 全部 {len(pos_rows)} 条台账记录 × {len(ARMS_IN_TABLE)} 臂 × "
+        f"{n_rounds} 轮 = {n_pos} 个判定位\n"
+    )
     hit_pos = sum(_hits(r["claude"]) + _hits(r["gpt"]) for r in pos_rows)
     oos = [r for r in pos_rows if r["boundary"] == "out_of_scope"]
     out.append(f"命中 **{hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%**（`hit@1`）。"
