@@ -177,3 +177,39 @@ Gate D 强制 primary 必须调它，而该谓词在入口有歧义的制品上�
 这也印证了先前记下的判断：谓词拒答的理由本身常常就是缺陷。
 
 本轮正式运行代码为 `36c46ae0`，网格与四条判据一字未改。
+
+---
+
+## 附：第二号残留缺陷 —— schema 校验失败没有节点内原地重试（**不中断，留 v47**）
+
+本轮 32 格里有 3 格因 schema 校验失败被整格冷启动重跑：
+
+| 格 | 阶段 | 错误 |
+| :-- | :-- | :-- |
+| `run1/0004-claude` | `split_requirements` | `Requirement` 收到多余字段（`extra_forbidden`） |
+| `run1/0015-claude` | `adjudicate_results` | `DiscoverAdjudication` 三处 `extra_forbidden` |
+| `run1/0021-gpt` | `review_assertions` | `revise reviews require at least one finding` |
+
+根因：`responder._retryable_error` 对 `ValueError` / `TypeError` 返回 `False`，而 pydantic 的
+`ValidationError` 是 `ValueError` 的子类 —— **schema 校验失败在节点内不会原地重试**，直接冒泡
+杀格，由 shell 冷启动重跑。
+
+这正是 CLAUDE.md §10 点名禁止的形态：「把模型引导到正确结构是 prompt 与 LangGraph 节点的
+义务……整格 try 永远不是 schema 问题的解法。冷启动重跑既不带走解析错误的具体位置，也不改变
+prompt，等于换个随机数再赌一次。」三例都是**可定向反馈**的结构错误。
+
+### 为什么不中断
+
+- **不污染结果**：格最终落盘，命中率与判定不受影响；代价是配额与墙钟（≈30 次冷启动，约 10%）。
+- **非本轮引入**：长期存在，v37 同样如此。
+- **修复风险**：改的是 LLM 调用主路径（`_retryable_error` 与结构化输出解析），需独立验证；
+  本轮已因其它缺陷重启四次，不宜再仓促改主路径。
+
+红线 3（累计重试 > 30）继续生效；若真超出即中断。
+
+### 建议修法（v47）
+
+`invoke_structured` 增加**解析失败的原地重试**：捕获 `ValidationError`，把错误本身
+（哪个字段、缺什么、期望什么形状）作为一条追加消息回灌给同一次调用的下一轮，重试 2–3 次；
+仍不过再按 §10 第 2 类逃生口处理，并记为待修。同时给三处高频形态补 `Field(description=...)`：
+禁止多余字段、`revise` 必须至少一条 finding。
