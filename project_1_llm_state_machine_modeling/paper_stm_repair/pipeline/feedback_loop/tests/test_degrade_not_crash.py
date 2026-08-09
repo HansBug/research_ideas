@@ -334,3 +334,34 @@ def test_the_markdown_report_warns_about_degradation(tmp_path: pathlib.Path) -> 
     text = path.read_text()
     assert "本格发生过降级" in text
     assert "不得读作" in text
+
+
+def test_a_budget_can_be_lowered_but_never_raised(monkeypatch: pytest.MonkeyPatch) -> None:
+    """故障注入设施只能让流水线**更早**放弃，不能让它接受本该拒绝的东西。
+
+    降级路径在真实 pair 上很少走到——v42 四格实跑 0 次降级。对流水线是好消息，对信心是坏消息：
+    一条在生产里从没跑过的恢复路径，等于没人见过它在生产里成立。所以预算可从环境下调，
+    用来在真实 provider 上强制触发。但它必须是单向的，否则就成了放宽契约的后门。
+    """
+
+    monkeypatch.setenv("DISCOVER_BUDGET_ASSERTION_CONTRACT", "1")
+    assert nodes._budget("ASSERTION_CONTRACT", 5) == 1
+    monkeypatch.setenv("DISCOVER_BUDGET_ASSERTION_CONTRACT", "99")
+    assert nodes._budget("ASSERTION_CONTRACT", 5) == 5, "不得调高"
+    monkeypatch.setenv("DISCOVER_BUDGET_ASSERTION_CONTRACT", "0")
+    assert nodes._budget("ASSERTION_CONTRACT", 5) == 1, "下限为 1"
+    monkeypatch.setenv("DISCOVER_BUDGET_ASSERTION_CONTRACT", "abc")
+    assert nodes._budget("ASSERTION_CONTRACT", 5) == 5, "非法值回落默认"
+    monkeypatch.delenv("DISCOVER_BUDGET_ASSERTION_CONTRACT")
+    assert nodes._budget("ASSERTION_CONTRACT", 5) == 5
+
+
+def test_an_injected_budget_is_recorded_so_the_cell_cannot_pass_as_normal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """强制降级的格与普通格若产出无法区分，这个设施本身就成了污染源。"""
+
+    monkeypatch.setenv("DISCOVER_BUDGET_ASSERTION_CONTRACT", "1")
+    assert nodes._budgets_from_env() == {"ASSERTION_CONTRACT": 1}
+    monkeypatch.delenv("DISCOVER_BUDGET_ASSERTION_CONTRACT")
+    assert nodes._budgets_from_env() == {}, "未注入时必须为空，否则正常运行也会被标记"

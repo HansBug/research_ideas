@@ -19,6 +19,7 @@ from paper_stm_feedback_loop.common.inputs import (
 from paper_stm_feedback_loop.common.records import ImmutableRecordStore
 
 from .graph import run_discover_state
+from . import nodes
 from .nodes import ABLATABLE_GATES, _ABLATED_GATES
 from .nodes import exclusion_roles, inserted_state_paths
 from .report import telemetry_summary, write_discover_markdown
@@ -442,6 +443,11 @@ def main(argv: list[str] | None = None) -> int:
     # which is how a two-of-seven ablation came to be read back as an unaided baseline.
     summary = {
         **summary,
+        # Non-empty only under fault injection. Sits beside `gate_ablation` for the same
+        # reason that field exists: without it a forced-degradation cell and an ordinary one
+        # produce indistinguishable artifacts, and the only record of the difference is a
+        # shell history.
+        "budget_overrides": nodes.BUDGET_OVERRIDES,
         "gate_ablation": {
             "env": os.environ.get("DISCOVER_ABLATE_GATES", ""),
             "ablated": sorted(_ABLATED_GATES),

@@ -96,12 +96,57 @@ from .utils import sha256_data, sha256_text
 
 T = TypeVar("T", bound=BaseModel)
 
-MAX_REQUIREMENT_REVIEW_REPAIRS = 5
+def _budget(name: str, default: int) -> int:
+    """A revision budget, lowerable from the environment for fault injection.
+
+    The degradation paths (CLAUDE.md §10) only execute when a budget runs out, which on real
+    pairs is rare -- the four-cell v42 verification landed 4/4 with zero degradations. That is
+    a good outcome for the pipeline and a bad one for confidence: a recovery path that never
+    runs in production is a path nobody has seen work there. Unit tests cover the state shape;
+    they cannot show that a real provider, a real artifact and the real record writer come out
+    the other side intact.
+
+    So the budgets are lowerable: `DISCOVER_BUDGET_ASSERTION_CONTRACT=1` forces the contract
+    path to give up on the first violation. This is fault injection, not a backdoor -- it can
+    only make the pipeline give up *earlier*, never accept something it would otherwise
+    reject, and the resulting cell is marked degraded like any other.
+
+    ⚠️ A run with any of these set is not a measurement. The value lands in the run record via
+    `budget_overrides` so no such cell can be mistaken for a normal one.
+    """
+
+    raw = os.environ.get(f"DISCOVER_BUDGET_{name}")
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return max(1, min(value, default))
+
+
+#: Non-empty only under fault injection; travels into the run record so a forced-degradation
+#: cell is never read as a normal one.
+BUDGET_OVERRIDES: dict[str, int] = {}
+
+
+def _budgets_from_env() -> dict[str, int]:
+    names = (
+        "REQUIREMENT_REVIEW",
+        "REQUIREMENT_CONTRACT",
+        "ASSERTION_REVIEW",
+        "ASSERTION_CONTRACT",
+    )
+    return {name: _budget(name, 5) for name in names if os.environ.get(f"DISCOVER_BUDGET_{name}")}
+
+
+MAX_REQUIREMENT_REVIEW_REPAIRS = _budget("REQUIREMENT_REVIEW", 5)
 #: Deterministic RequirementSet contract violations the splitter may repair
 #: before the run gives up.  Mirrors MAX_ASSERTION_CONTRACT_REPAIRS.
-MAX_REQUIREMENT_CONTRACT_REPAIRS = 5
-MAX_ASSERTION_REVIEW_REPAIRS = 5
-MAX_ASSERTION_CONTRACT_REPAIRS = 5
+MAX_REQUIREMENT_CONTRACT_REPAIRS = _budget("REQUIREMENT_CONTRACT", 5)
+MAX_ASSERTION_REVIEW_REPAIRS = _budget("ASSERTION_REVIEW", 5)
+MAX_ASSERTION_CONTRACT_REPAIRS = _budget("ASSERTION_CONTRACT", 5)
+BUDGET_OVERRIDES = _budgets_from_env()
 
 
 #: Keys in `_adjudication_reconciliation` whose non-emptiness means the report is not complete.
