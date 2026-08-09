@@ -140,7 +140,9 @@ def test_the_prompt_states_the_same_rule_as_the_validator() -> None:
 
     from paper_stm_feedback_loop.discover import prompts
 
-    splitter = prompts.REQUIREMENT_SPLITTER_PROMPT
+    # 对空白不敏感：prompt 是硬换行的散文，断言原样子串会被行宽截断。
+    splitter = " ".join(prompts.REQUIREMENT_SPLITTER_PROMPT.split())
     assert "One element per row" in splitter
     assert "fused model name matches none of them" in splitter
     assert "both rows stay `null`" in splitter
+    assert "the collapsing is itself the defect" in splitter
