@@ -2376,7 +2376,11 @@ def convert_assertions(
                 "toward satisfaction, so a False there publishes nothing and the defect stays "
                 "hidden. `primary` is the only role that both licenses the binding and reports "
                 "the defect, and an existence `primary` is accepted on a `behavior` requirement "
-                "too -- with the element absent there is no behaviour to observe"
+                "too -- with the element absent there is no behaviour to observe. "
+                "⚠️ The existence `primary` is an ADDITION, not a replacement: the "
+                "requirement's own `predicate` must still be called by one of its primary "
+                "assertions, or Gate D refuses the script for discharging the claim with a "
+                "different procedure. Write both primaries, neither depending on the other"
             )
         mandatory_waivers: list[dict[str, Any]] = []
         untested_claim_paths: list[dict[str, Any]] = []
