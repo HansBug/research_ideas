@@ -5498,6 +5498,7 @@ def publish(state: DiscoverGraphState) -> DiscoverGraphState:
             adjudication=adjudication,
             issues=adjudication.issues,
             coverage_status=cast(Any, coverage_status),
+            degraded_stages=tuple(state.get("_degraded_stages", ())),
             coverage_gaps=coverage_gaps,
             satisfied_requirement_ids=adjudication.satisfied_requirement_ids,
             excluded_findings=adjudication.excluded_findings,

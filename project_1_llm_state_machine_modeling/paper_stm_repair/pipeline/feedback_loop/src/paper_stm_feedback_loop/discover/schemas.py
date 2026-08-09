@@ -1083,6 +1083,17 @@ class DiscoverCompleted(StrictBaseModel):
     issues: tuple[AdjudicatedIssue, ...]
     coverage_status: Literal["full", "partial"] = "full"
     coverage_gaps: tuple[CoverageGap, ...] = Field(default_factory=tuple)
+    #: Stages that hit an internal budget, gave up on an obligation, and let the run continue
+    #: (CLAUDE.md §10).  Published rather than kept in graph state because that is the whole
+    #: point: a degraded cell lands a normal-looking artifact, and without this field a reader
+    #: of `discover-completed.json` cannot tell "found nothing" from "stopped looking".
+    #:
+    #: `coverage_gaps` is not a substitute.  Gaps say *what* was not covered and are also
+    #: written by ordinary item-local isolation, which is routine; this says *where the
+    #: pipeline abandoned its budget*, which is not.  A non-empty value means the cell is
+    #: still eligible for recall-side statistics -- it produced an artifact -- but its
+    #: zero-issue result must not be read as "no defects found".
+    degraded_stages: tuple[str, ...] = Field(default_factory=tuple)
     satisfied_requirement_ids: tuple[str, ...] = Field(default_factory=tuple)
     # Primary False assertions the adjudicator kept out of `issues` because
     # their attribution is representation_debt or unattributed.  These were

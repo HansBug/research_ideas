@@ -116,6 +116,20 @@ def render_discover_markdown(state: DiscoverGraphState) -> str:
         f"- `content_language`: `{frozen.language}`",
         f"- `tool_env_hash`: `{frozen.tool_env_hash}`",
         f"- `coverage_status`: `{coverage_status}`",
+        # 降级必须出现在人读的第一屏。它与 coverage_status 不同：partial 是常态（逐项隔离
+        # 也会 partial），而「某个阶段放弃了预算」不是常态，且它决定这一格的零结果能不能
+        # 读作「没发现缺陷」。
+        *(
+            [
+                "",
+                "> ⚠️ **本格发生过降级**：下列阶段耗尽内部预算后放弃了义务并继续推进。",
+                "> 该格的零结果不得读作「未发现缺陷」。",
+                "",
+                *(f"> - {entry}" for entry in state.get("_degraded_stages", ())),
+            ]
+            if state.get("_degraded_stages")
+            else []
+        ),
         "",
         "### Input Hashes",
         "",

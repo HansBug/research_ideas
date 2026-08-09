@@ -290,3 +290,47 @@ def test_degradation_gaps_are_distinguishable_from_isolation_gaps() -> None:
     assert "requirement_mapping` is empty" in reviewer, (
         "全隔离脚本必须被明确豁免，否则评审者会为缺失的 mapping 反复要求修订"
     )
+
+
+def test_the_landed_artifact_exposes_the_degradation() -> None:
+    """可审计性的落点：`discover-completed.json` 自己必须说出「这一格降级过」。
+
+    这是整套改造成立的前提。降级的代价是产出一份**看起来正常**的制品；若落盘件里没有这个字段，
+    读者无从区分「没发现缺陷」与「停止了寻找」，那就用一个静默的错误换掉了一个响亮的错误。
+    `coverage_gaps` 顶不上：逐项隔离也写 gap，那是常态。
+    """
+
+    from paper_stm_feedback_loop.discover.graph import run_discover_state
+
+    revisions = iter(range(1, 40))
+
+    def responder(_role: str, schema: type[BaseModel], _system: str, _payload: str):
+        if schema is AssertionScript:
+            return _relation_only_script(next(revisions))
+        return nodes.default_fake_responder(_role, schema, _system, _payload)
+
+    state = run_discover_state(_input("degrade-artifact"), responder)
+    published = state["final_output"]
+    assert published.degraded_stages, "落盘件必须自带降级轨迹"
+    assert published.degraded_stages == tuple(state["_degraded_stages"])
+    assert published.coverage_status == "partial"
+    # 序列化后仍在：读 JSON 的人（以及 eval 侧扫描）拿到的是这一份。
+    assert published.model_dump(mode="json")["degraded_stages"]
+
+
+def test_the_markdown_report_warns_about_degradation(tmp_path: pathlib.Path) -> None:
+    from paper_stm_feedback_loop.discover.graph import run_discover_state
+    from paper_stm_feedback_loop.discover.report import write_discover_markdown
+
+    revisions = iter(range(1, 40))
+
+    def responder(_role: str, schema: type[BaseModel], _system: str, _payload: str):
+        if schema is AssertionScript:
+            return _relation_only_script(next(revisions))
+        return nodes.default_fake_responder(_role, schema, _system, _payload)
+
+    state = run_discover_state(_input("degrade-md"), responder)
+    path = write_discover_markdown(state, tmp_path / "discover.md")
+    text = path.read_text()
+    assert "本格发生过降级" in text
+    assert "不得读作" in text
