@@ -21,7 +21,7 @@
 
 ## 参数
 
-- 代码：`b1db51dc`（含 `6f43e335` 四方互斥消解 / `107f8cc3` Gate D 文案 /
+- 代码：`b49cce4a`（含 `6f43e335` 四方互斥消解 / `107f8cc3` Gate D 文案 /
   `85768484` 聚合门 / `3aef252c` named_elements 两条出路）
 - 并发 MAX=16，MAXTRY=3
 - 网格中有 12 个 pair 无台账记录：它们不产生判定位，只服务多报侧统计，如实计入格数不计入命中分母
@@ -48,3 +48,25 @@
 - 耗尽格 > 5
 - 累计重试 > 30
 - 任一格出现 `FileExistsError` 或序号重复（重复写入者的 signature）
+
+---
+
+## 附：v37 基线三口径（**运行后补记，只补基线数字，四条判据一字未改**）
+
+由 `audit_to_verdicts.py` + `metrics_at_k.py` 机械算出，可复算：
+
+```
+python audit_to_verdicts.py --generation matrix-v37 --audit <v37 audit> --out /tmp/v37_verdicts.json
+python metrics_at_k.py /tmp/v37_verdicts.json --no-direction-check
+```
+
+| 口径 | v37 |
+| :-- | --: |
+| `hit@1` | 280/594 = **47.1%** |
+| `hit@3` | 108/198 = **54.5%** |
+| `hit@all` | 79/198 = **39.9%** |
+| claude `hit@1` | 135/297 = 45.5% |
+| gpt `hit@1` | 145/297 = 48.8% |
+
+`validate` 对 v37 判定表报 **0 个问题**，分母恰为 99 条范围内记录 —— 这独立印证了
+`00x8` 自 v35 起即为既定网格，不是本轮的取舍。
