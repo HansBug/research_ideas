@@ -365,3 +365,63 @@ def test_an_injected_budget_is_recorded_so_the_cell_cannot_pass_as_normal(
     assert nodes._budgets_from_env() == {"ASSERTION_CONTRACT": 1}
     monkeypatch.delenv("DISCOVER_BUDGET_ASSERTION_CONTRACT")
     assert nodes._budgets_from_env() == {}, "未注入时必须为空，否则正常运行也会被标记"
+
+
+def test_a_swallowed_validation_error_is_recovered_from_the_raw_tool_call() -> None:
+    """流式路径会把 schema 违约伪装成传输故障；必须把真因捞回来。
+
+    `with_structured_output(include_raw=True)` 的 docstring 承诺输出永远含
+    `'raw'/'parsed'/'parsing_error'` 三个键。流式路径违反了它：
+    `BaseCumulativeTransformOutputParser._transform` (transform.py:142) 恒以 `partial=True`
+    调 parser，`PydanticToolsParser.parse_result` 在 partial 下把 `ValidationError`
+    `continue` 掉 (openai_tools.py:369-371) → 返回 None → 什么都不 yield → `parsed` 键从不出现，
+    异常没逃逸所以 `parsing_error` 也是 None。
+
+    代价不是少个字段：`schema.model_validate(None)` 抛出的 `model_type / input_value=None`
+    会被 `_empty_structured_output` 判为可重试，于是用完全相同的输入重试到底，真实的校验错误
+    一次都没回到生产者手上。全仓 340 条「模型正常收尾、内容完整」的失败都栽在这条通道上。
+
+    官方对「结构化 + 流式」组合没有 1.x 说明（v0.3 只说过 Pydantic schema 不可流式），
+    所以这里不改架构，只把库吞掉的那次校验重放一遍。
+    """
+
+    import inspect
+
+    from paper_stm_feedback_loop.discover import responder
+
+    source = inspect.getsource(responder)
+    assert 'tool_calls = getattr(raw, "tool_calls", None) or []' in source
+    assert 'schema.model_validate(tool_calls[0].get("args"))' in source
+    # 没有 tool call 时不得静默通过——那才是真的什么都没拿到
+    assert "neither a parsed object nor a tool call" in source
+
+
+def test_the_empty_response_classifier_only_matches_the_shapeless_error() -> None:
+    """重放出来的真实 ValidationError 必须**不**被判为可重试。
+
+    `_empty_structured_output` 认的是 `type=='model_type'` 且 `input is None` 且 `loc` 为空
+    ——那是「什么都没装配出来」。而重放得到的错误带 `loc`（如 `named_elements.4`）、
+    `input` 不是 None，因此不匹配，会走不可重试路径。内容违约重试无益。
+    """
+
+    from pydantic import BaseModel, ValidationError
+
+    from paper_stm_feedback_loop.discover.responder import _empty_structured_output
+
+    class Inner(BaseModel):
+        v: int
+
+    class Outer(BaseModel):
+        inner: Inner
+
+    try:
+        Outer.model_validate(None)
+    except ValidationError as shapeless:
+        assert _empty_structured_output(shapeless) is True
+
+    try:
+        Outer.model_validate({"inner": {"v": "not-an-int"}})
+    except ValidationError as content:
+        assert _empty_structured_output(content) is False, (
+            "带 loc 的内容违约不得被当成可重试的传输故障"
+        )

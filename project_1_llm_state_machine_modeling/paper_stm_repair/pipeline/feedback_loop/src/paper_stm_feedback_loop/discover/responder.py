@@ -325,7 +325,39 @@ class DirectStructuredResponder:
                     raise ValueError(f"structured validation failed: {parsing_error}")
                 _validate_complete_structured_stream(raw)
                 parsed = response.get("parsed")
-                output = parsed if isinstance(parsed, schema) else schema.model_validate(parsed)
+                if parsed is None:
+                    # `with_structured_output(include_raw=True)` 的 docstring 承诺「The final
+                    # output is always a dict with keys 'raw', 'parsed', and 'parsing_error'」，
+                    # 但流式路径违反了它：`BaseCumulativeTransformOutputParser._transform`
+                    # (transform.py:142) 恒定以 `partial=True` 调 parser，而
+                    # `PydanticToolsParser.parse_result` 在 partial 下把 `ValidationError`
+                    # `continue` 掉 (openai_tools.py:369-371)，返回 None → 什么都不 yield →
+                    # `parsed` 键从不出现，异常没逃逸所以 `parsing_error` 也保持 None。
+                    #
+                    # 后果不是少个字段，是**把内容违约伪装成传输故障**：`schema.model_validate(None)`
+                    # 抛出的 `model_type / input_value=None` 被 `_empty_structured_output` 判为
+                    # 可重试，于是用完全相同的输入重试到底，真实的校验错误一次都没回到生产者手上。
+                    # 全仓 340 条「模型正常收尾、内容完整」的失败都栽在这条通道上。
+                    #
+                    # 官方对「结构化 + 流式」这个组合没有 1.x 说明；v0.3 文档只说过 Pydantic
+                    # schema 不在可流式范围内。所以这里不改架构，只把库吞掉的那次校验按
+                    # `partial=False` 的语义重放一遍，让真因浮出来。
+                    tool_calls = getattr(raw, "tool_calls", None) or []
+                    if tool_calls:
+                        # 抛出的是真实的 ValidationError，`_empty_structured_output` 不会认它
+                        # （它带 loc，且 input 不是 None），因此按不可重试处理 —— 内容违约重试无益。
+                        output = schema.model_validate(tool_calls[0].get("args"))
+                    else:
+                        raise IncompleteStructuredStreamError(
+                            "structured stream produced neither a parsed object nor a tool call; "
+                            f"stop_reason={getattr(raw, 'response_metadata', {}).get('stop_reason')!r}"
+                        )
+                else:
+                    output = (
+                        parsed
+                        if isinstance(parsed, schema)
+                        else schema.model_validate(parsed)
+                    )
                 usage = normalize_model_output_usage(raw)
                 metadata = getattr(raw, "response_metadata", {}) or {}
                 observed_model = (

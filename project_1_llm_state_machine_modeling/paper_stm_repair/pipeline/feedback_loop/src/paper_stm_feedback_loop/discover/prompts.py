@@ -40,6 +40,26 @@ REQUIREMENT_REVIEWER_PROMPT = """You are the Requirement Reviewer.
 Do not edit the STM, write assertions, use tools, or use hidden expected issues. Accept only with no findings; otherwise provide concrete revision instructions and pass criteria. Write rationale in the requested content language and return only the requested structured response."""
 
 REQUIREMENT_REVIEWER_PROMPT += """
+Check `named_elements` row by row -- this table has no deterministic gate behind it, so if you
+do not check it nobody does. Two things, and both need your judgement rather than a pattern:
+
+1. **One element per row.** When the sentence names several things ("human steering cmd, brake
+   pressed"), each needs its own row. But punctuation does not decide this: a specification that
+   quotes a whole signal name, punctuation included, has named **one** element -- copy it
+   verbatim and do not split it. Ask what the sentence names, not what characters it contains.
+   A deterministic comma check was tried here and rejected a correct verbatim quotation on every
+   attempt, which is why the judgement is yours.
+
+2. **A fused declared name matches none of the elements it fuses.** If the sentence names two
+   things separately and the model declares one name carrying both, `declared_match` must be
+   null on both rows -- the fusing is itself the defect, and a non-null match there silently
+   cancels the obligation that would have reported it. Conversely, when the specification itself
+   treats the wording as one signal, a single declared name for it is correct; leave it.
+
+Request revision when a row carries several separately-named elements, or when a fused name is
+recorded as the match of one of them. Say which row and which of the two problems it is.
+"""
+REQUIREMENT_REVIEWER_PROMPT += """
 One inference is forbidden outright: **"this binding will return False, therefore it is
 mis-encoded."** For the structural predicates -- `containment`, `initial_target`, `cardinality`
 -- returning False against a defective model is the entire point. A requirement that binds

@@ -83,59 +83,72 @@ def test_the_field_reaches_the_provider_as_a_typed_slot() -> None:
     assert kind["enum"] == ["state", "event", "variable"]
 
 
-def test_a_row_may_not_carry_a_conjunction() -> None:
-    """一行一个要素——否则制品的融合命名会反过来决定句子被切成几个要素。
+def test_the_one_element_rule_is_not_a_validator() -> None:
+    """这条纪律**不许**做成 schema 约束（CLAUDE.md §11）。
 
-    v41 实测：`0020` 两个格都把「human steering cmd, brake pressed」抄成一行，它匹配上了
-    制品的融合事件，`declared_match` 非空 → 不生成义务 → 该台账条目六格全灭、跨三代零命中。
-    这正是这张表要防的那件事，只是上移了一层：表原本防「让制品决定绑哪个元素」，
-    这里是「让制品决定句子里有几个元素」。
+    它曾经是一条 `model_validator`：`name_in_sentence` 含逗号/and/or 即拒。后果是把语义判断
+    实现成了词法判断，在 `0014` 上打死一个**完全正确**的回答——规范逐字引用的信号名
+    `"Arrived/Stop, Send Arrived"` 天然含逗号，其 `declared_match` 非 null 且正确。
+    v41 全量 2928 行里 190 行被误拒（`0020`/`0039` 的若干臂 100%），该 pair 18/18 撞死、
+    5 格耗尽、约 16 万 output token 白烧，而模型没有任何合法写法能通过——拆开写反而是错的。
 
-    做成 validator 而非 prompt 措辞，理由与这张表本身相同：typed 约束遵守率 96–100%，
-    散文 25–38%。
+    确定性门一票否决且没有出路，所以只放能完美判定的约束。这条测试锁住它不被重新加回来。
     """
-
-    import pytest
-    from pydantic import ValidationError
 
     from paper_stm_feedback_loop.discover.schemas import NamedElement
 
+    # 规范把带标点的整体引成一个信号名——这是正确回答，必须被接受
     ok = NamedElement(
-        kind="event", name_in_sentence="the lid is opened", proposed_path="Sys.lid_opened"
+        kind="event",
+        name_in_sentence="Arrived/Stop, Send Arrived",
+        proposed_path="Sys.Arrived_Stop_SendArrived",
+        declared_match="Sys.Arrived_Stop_SendArrived",
     )
-    assert ok.declared_match is None
+    assert ok.declared_match is not None
 
-    for wording in (
-        "lid opened, tray removed",
-        "lid opened and tray removed",
-        "lid opened or tray removed",
-        "开盖、取盘",
-        "开盖 和 取盘",
-    ):
-        with pytest.raises(ValidationError):
-            NamedElement(kind="event", name_in_sentence=wording, proposed_path="Sys.x")
+    # 守卫表达式里的 and 是布尔算子，不是并列连接词
+    NamedElement(
+        kind="event",
+        name_in_sentence="dist_to_front<25 and extra_lane=true",
+        proposed_path="Sys.dist_to_front_25_extra_lane_true",
+    )
+
+    # 真正的融合形态也不再被 schema 拒——它交给评审端判断
+    NamedElement(
+        kind="event",
+        name_in_sentence="human steering cmd, brake pressed",
+        proposed_path="Sys.x",
+    )
 
 
-def test_the_rejection_says_the_fused_name_is_not_a_match() -> None:
-    """报错必须把「融合名不算任何单个要素的 declared_match」讲出来。
+def test_the_discipline_lives_in_description_and_both_prompts() -> None:
+    """撤掉门之后，纪律必须在三处都在：字段说明、生成端、评审端。
 
-    只说「拆开」会让生产者拆成两行、再把两行都指向同一个融合名——`declared_match` 仍非空，
-    义务仍然不生成，缺陷仍然报不出来。指令必须同时给出拆分与判空两件事。
+    当初加门的起点是「reviewer prompt 里根本没有 `named_elements` 的审查条款」——
+    缺的是评审条款，却用 validator 去顶，这才是根本错误。
     """
 
-    import pytest
-    from pydantic import ValidationError
-
+    from paper_stm_feedback_loop.discover import prompts
     from paper_stm_feedback_loop.discover.schemas import NamedElement
 
-    with pytest.raises(ValidationError) as caught:
-        NamedElement(kind="event", name_in_sentence="a, b", proposed_path="Sys.x")
-    message = str(caught.value)
-    assert "declared_match" in message
-    assert "null" in message
+    desc = NamedElement.model_fields["name_in_sentence"].description or ""
+    assert "一行只放一个要素" in desc
+    assert "逐字优先" in desc, "必须写明规范引号框住的整体算一个要素，否则又会误拆"
+
+    match_desc = NamedElement.model_fields["declared_match"].description or ""
+    assert "融合本身是缺陷" in match_desc
+
+    splitter = " ".join(prompts.REQUIREMENT_SPLITTER_PROMPT.split())
+    assert "One element per row" in splitter
+
+    reviewer = " ".join(prompts.REQUIREMENT_REVIEWER_PROMPT.split())
+    assert "Check `named_elements` row by row" in reviewer
+    assert "punctuation does not decide this" in reviewer
+    assert "A fused declared name matches none of the elements it fuses" in reviewer
+    assert "Request revision" in reviewer
 
 
-def test_the_prompt_states_the_same_rule_as_the_validator() -> None:
+def test_the_prompt_states_the_generator_side_rule() -> None:
     """约束与 prompt 必须同源——只有约束没解释，生产者只会反复撞门耗光预算。"""
 
     from paper_stm_feedback_loop.discover import prompts
