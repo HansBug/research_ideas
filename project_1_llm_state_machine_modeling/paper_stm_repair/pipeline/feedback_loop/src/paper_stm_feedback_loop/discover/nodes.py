@@ -597,6 +597,31 @@ def _filter_assertion_script(
     )
 
 
+def _predicates_that_refused(state: DiscoverGraphState) -> frozenset[str]:
+    """本格里哪些需求的谓词已经**拒绝作答**过（`UnsupportedEvidence`）。
+
+    Gate D 的前提是「被点名的谓词决定这个命题」。当该谓词在这份制品上根本不能决定时，
+    前提不成立，强制调用它就把这条需求逼成死路：v46 前 40 格里三个降级格**全部**是
+    `initial_target` 在入口有歧义的模型上拒答 —— 生产者改用别的谓词被 Gate D 拒，
+    把它放进短路分支被短路门拒，耗尽预算。而 `initial_target` 占台账 15/88 = 17%，
+    是第一大谓词，这条死路系统性压制了最大的一类测量。
+
+    判据取自反馈历史里的断言 id 前缀，纯机械、可完美判定（§11）：一条
+    `AST-<REQ-x>-<n>` 的拒答只豁免 `REQ-x` 自己，不外溢到别的需求 —— 否则这条豁免
+    会变成万能后门。
+    """
+
+    refused: set[str] = set()
+    for feedback in state.get("_assertion_feedback_history", ()) or ():
+        for finding in (getattr(feedback, "findings", None) or ()):
+            text = str(finding)
+            if "UnsupportedEvidence" not in text:
+                continue
+            for match in re.finditer(r"AST-(REQ-[A-Za-z0-9]+)-\d+", text):
+                refused.add(match.group(1))
+    return frozenset(refused)
+
+
 def _requirement_primary_truth(
     requirement: Any,
     values: list[bool],
@@ -2403,6 +2428,7 @@ def convert_assertions(
                 "different procedure. Write both primaries, neither depending on the other"
             )
         mandatory_waivers: list[dict[str, Any]] = []
+        refused_predicates = _predicates_that_refused(state)
         untested_claim_paths: list[dict[str, Any]] = []
         presupposition_findings: list[str] = []
         for requirement in requirements.requirements:
@@ -2443,7 +2469,24 @@ def convert_assertions(
                     )
                 )
                 mismatch = procedure_mismatch(requirement.predicate, called)
-                if mismatch is not None:
+                if mismatch is not None and requirement.requirement_id in refused_predicates:
+                    # 被点名的谓词已在本格拒绝作答，Gate D 的前提不成立。放行并记账，
+                    # 让读者看得见「这条命题换了个过程回答」，而不是静默通过。
+                    mandatory_waivers.append(
+                        {
+                            "requirement_id": requirement.requirement_id,
+                            "verification_kind": requirement.verification_kind,
+                            "waived_families": [],
+                            "decisive_function": "named_predicate_refused",
+                            "justification": (
+                                f"predicate {requirement.predicate!r} returned "
+                                "UnsupportedEvidence on this artefact, so Gate D's premise "
+                                "(the named predicate decides this proposition) does not "
+                                "hold; an alternative primary is accepted."
+                            ),
+                        }
+                    )
+                elif mismatch is not None:
                     raise ValueError(
                         f"requirement {requirement.requirement_id}: {mismatch[1]}"
                     )

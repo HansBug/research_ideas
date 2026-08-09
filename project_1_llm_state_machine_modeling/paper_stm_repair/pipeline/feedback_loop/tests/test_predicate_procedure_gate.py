@@ -770,3 +770,151 @@ def test_every_named_binding_is_known_to_both_reference_tables():
                 f"{item.name}({binding}=...) is invisible to the static reference "
                 "gate, so neither absent names nor proposed names are seen there"
             )
+
+
+# --------------------------------------------------------------------------
+# v46：被点名的谓词若在本格拒绝作答，Gate D 必须让路
+
+
+def _refusal_feedback(assertion_id: str, message: str):
+    from paper_stm_feedback_loop.discover.schemas import RevisionFeedback
+
+    return RevisionFeedback(
+        target="assertions",
+        reason="precheck",
+        origin="assertion_precheck",
+        findings=(
+            str({
+                "assertion_id": assertion_id,
+                "error": {"type": "UnsupportedEvidence", "message": message},
+            }),
+        ),
+    )
+
+
+def _gate_d_case():
+    """一条 `initial_target` 需求 + 一条改用别的谓词的 primary。"""
+
+    from paper_stm_feedback_loop.discover.schemas import (
+        AssertionScript,
+        AssertionSpec,
+        FrozenDiscoverInputs,
+        Requirement,
+        RequirementSet,
+    )
+
+    requirements = RequirementSet(
+        revision=1,
+        requirements=(
+            Requirement(
+                requirement_id="REQ-004",
+                statement="进入任务范围时应落入三个状态区域之一。",
+                predicate="initial_target",
+                predicate_bindings={"composite": "R.Scope", "child": "R.Scope.A"},
+                verification_kind="structure",
+            ),
+        ),
+    )
+    script = AssertionScript(
+        revision=1,
+        assertions=(
+            AssertionSpec(
+                assertion_id="AST-REQ-004-2",
+                requirement_id="REQ-004",
+                role="primary",
+                coverage_key="k1",
+                aggregation_group="g1",
+                rationale="initial_target 已拒答，退到可回答的结构证据。",
+                evidence_family="structure",
+                description="改用可回答的谓词。",
+                expression='state_declared(state="R.Scope", kind="any") is True',
+                failure_message="[REQ-004][AST-REQ-004-2] m",
+            ),
+        ),
+    )
+    frozen = FrozenDiscoverInputs(
+        run_id="gate-d",
+        natural_language="nl",
+        stm_text="stm",
+        input_hashes={"nl": "0" * 64},
+        tool_env_hash="0" * 64,
+        profile="gate-d",
+        language="zh-CN",
+    )
+
+    class Responder:
+        def invoke_structured(self, *args, **kwargs):
+            return script
+
+    return requirements, frozen, Responder()
+
+
+def _gate_d_findings(extra_state: dict) -> tuple[str, ...]:
+    from paper_stm_feedback_loop.discover import nodes
+
+    requirements, frozen, responder = _gate_d_case()
+    out = nodes.convert_assertions(
+        {
+            "requirement_set": requirements,
+            "node_execution_records": (),
+            "frozen_inputs": frozen,
+            **extra_state,
+        },
+        responder,
+    )
+    feedback = out.get("_assertion_conversion_contract_feedback")
+    return tuple(feedback.findings) if feedback else ()
+
+
+def test_gate_d_yields_when_the_named_predicate_refused_to_answer() -> None:
+    """`initial_target` 在入口有歧义的制品上拒绝作答，而 Gate D 强制必须调它。
+
+    v46 实测：前 40 格里三个降级格**全部**是这一条。`initial_target` 占台账
+    15/88 = 17%，是第一大谓词，所以这条死路系统性压制最大的一类测量。
+
+    Gate D 的前提是「被点名的谓词决定这个命题」。当该谓词在这份制品上**不能决定**时，
+    前提不成立 —— 按 §13，该放宽的正是判据已不成立的那一条。
+    """
+
+    strict = _gate_d_findings({})
+    assert any("must be discharged by calling" in f for f in strict), strict
+
+    lenient = _gate_d_findings({
+        "_assertion_feedback_history": (
+            _refusal_feedback(
+                "AST-REQ-004-1",
+                "'R.Scope' declares 3 unconditional initial edges, so entry is "
+                "genuinely ambiguous and no single initial child can be named",
+            ),
+        ),
+    })
+    assert not any("must be discharged by calling" in f for f in lenient), lenient
+
+
+def test_the_waiver_is_scoped_to_the_requirement_that_was_refused() -> None:
+    """别的需求拒答过，不能给这条需求开后门 —— 否则豁免会变成万能后门。"""
+
+    findings = _gate_d_findings({
+        "_assertion_feedback_history": (
+            _refusal_feedback("AST-REQ-009-1", "unrelated refusal"),
+        ),
+    })
+    assert any("must be discharged by calling" in f for f in findings), findings
+
+
+def test_the_waiver_needs_an_actual_refusal_not_any_feedback() -> None:
+    """普通的修订反馈不构成豁免依据；只有谓词拒答才算。"""
+
+    from paper_stm_feedback_loop.discover.schemas import RevisionFeedback
+
+    findings = _gate_d_findings({
+        "_assertion_feedback_history": (
+            RevisionFeedback(
+                target="assertions",
+                reason="reviewer",
+                origin="assertion_review",
+                findings=("AST-REQ-004-1 的 rationale 未引用 NL 子句",),
+            ),
+        ),
+    })
+    assert any("must be discharged by calling" in f for f in findings), findings
