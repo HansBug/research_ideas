@@ -76,7 +76,8 @@ wc -c "$L" && sha256sum "$L"
 
 | 文件 | 内容 |
 | :-- | :-- |
-| [V40_PREREGISTERED.md](./V40_PREREGISTERED.md) ｜ [V41](./V41_PREREGISTERED.md) ｜ [V43](./V43_PREREGISTERED.md) ｜ [V44](./V44_PREREGISTERED.md) ｜ [V45](./V45_PREREGISTERED.md) ｜ [v46](./v46/preregistered.md) | 各代次事前登记（判据、达标档位、回归红旗） |
+| [V40_PREREGISTERED.md](./V40_PREREGISTERED.md) ｜ [V41](./V41_PREREGISTERED.md) ｜ [V43](./V43_PREREGISTERED.md) ｜ [V44](./V44_PREREGISTERED.md) ｜ [V45](./V45_PREREGISTERED.md) ｜ [v46](./v46/preregistered.md) ｜ [v46r](./V46R_PREREGISTERED.md) | 各代次事前登记（判据、达标档位、回归红旗） |
+| [CONDITIONAL_ACTIVATION_RULE.md](./CONDITIONAL_ACTIVATION_RULE.md) | 一条仍在生效的 prompt 规则的引入动机与通用性证据（§3.5.-1 要求） |
 | [V23_MOTIVE_AUDIT.md](./V23_MOTIVE_AUDIT.md) | 引入动机溯源——泄漏审查（CLAUDE.md §3.5.-1）的材料 |
 | [V24_REPORT_DETERMINED.md](./V24_REPORT_DETERMINED.md) | v24 与判定无关的已定部分 |
 | [V25_ABLATION_RESULT.md](./V25_ABLATION_RESULT.md) | 判定装置消融结果 |

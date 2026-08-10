@@ -7,14 +7,35 @@
 
 | 项 | 值 | 核验方式 |
 | :-- | :-- | :-- |
-| 运行代码 | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `CODE_VERSION.txt`，`written_before_launch: yes` |
+| 运行代码（288 格） | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `matrix-v46-full/CODE_VERSION.txt`，`written_before_launch: yes` |
+| 运行代码（36 格） | `92da821a734bdb2756f6ec35e1c5a0a3f1882ba5` | `matrix-v46r/CODE_VERSION.txt`，`written_before_launch: yes`，`dirty_src: 0` |
+| 哪 36 格 | `0000` `0010` `0020` `0030` `0040` `0050` × 2 臂 × 3 轮。该家族共用一份 NL，其 `name_in_sentence` 字段描述与 reviewer prompt 的示例串改为与语料无交集的合成串后重跑。事前登记（判据、档位、回归红旗、替换口径）见 [V46R_PREREGISTERED.md](../V46R_PREREGISTERED.md)，于开跑前推送 | `git show 92da821a --stat` |
+| ⛔ 复现 | **两批分别复现**：288 格 `git checkout ca41369e`，36 格 `git checkout 92da821a`。两批除示例串外还差若干谓词求值语义，合成网格因此是代码版本混杂的，不藏 | 两份 `CODE_VERSION.txt` |
 | 该 commit 是否在远端 | 是 | `git branch -r --contains ca41369e` |
 | 启动时 `src` 脏改动 | **0 files** | `CODE_VERSION.txt` |
 | `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订。**覆盖侧 588 位不受影响**（命中判定读的是产出文本与台账，不重新求值断言）；**多报侧分母受影响**，见下一行。**复现该 324 格运行须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
 | 多报侧分母的求值口径 | 桶内计入 286；其中 `0044-2` 与 `0054-1` 不计入：`0044-2` 与 `0054-1` 的断言按**当前**谓词语义在冻结制品上求值为 **True**（模型满足该义务），属真阴性、两侧都不存在，记于 [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。**复现该判定须当前 HEAD，不是 `ca41369e`。** 这是一次运行后的口径变更，方向是缩小多报侧分母（对我们不利的方向） | `not_produced.jsonl` 的 `assertion` / `value_on_frozen_artifact` 字段逐条可复算 |
 | 网格 | 54 pair × 2 模型 × 3 轮 = 324 | `GRID.txt`，含 `00x8`: 无 |
-| 启动时刻 | `2026-08-09T20:09:52Z` | `WALLCLOCK.txt` |
-| 完成时刻 / 墙钟 | `2026-08-10T03:15:41Z` / **7h05m49s** | 同上 |
+| 启动时刻 | 288 格 `2026-08-09T20:09:52Z`｜36 格 `2026-08-10T11:55:24Z` | 两份 `WALLCLOCK.txt` |
+| 完成时刻 / 墙钟 | 288 格 `2026-08-10T03:15:41Z` / **7h05m49s**（4 并发）｜36 格 `2026-08-10T13:00:52Z` / **1h05m**（18 并发） | 同上 |
+### 定向重跑的双份数字（[V46R_PREREGISTERED.md](../V46R_PREREGISTERED.md) §四 的报告义务）
+
+那六个 pair 的判定位整体替换前后：
+
+| 口径 | 替换前 | 替换后 |
+| :-- | --: | --: |
+| `hit@1` | 359/588 = 61.1% | **361/588 = 61.4%** |
+| `hit@3` | 139/196 = 70.9% | **141/196 = 71.9%** |
+| `hit@all` | 97/196 = 49.5% | **97/196 = 49.5%** |
+
+事前登记把档位写在开跑之前：受示例串影响的五条记录在替换前是 30/30，替换后 **28/30**，
+落 **A 档**（≥24/30，「示例影响小，原数字大体反映能力」）。四条回归红旗**均未触发**
+（36 格收据齐、无 `.try`、降级未见异常、其它记录变化在 ±2 内、多报侧无新类别）。
+
+六个 pair 整体 79/96 → 81/96：非受影响记录的双向波动（`EIS-0010-01` +2、`EIS-0030-02` +1、
+`EIS-0040-03` +1，对 `EIS-0010-04` −1、`EIS-0040-02` −1）量级与代次内采样方差同阶，
+盖过了示例串本身的影响。
+
 
 ## 1. 数据完整性（全部通过）
 
@@ -89,7 +110,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 人工判定，每条带 `argument`；其中 352 条判为命中，且全部带 `equivalence_form`）。
 📌 **判定覆盖的缺口**：588 位中 **20 位**在该文件里没有对应条目（15 位判为命中、4 位判为
 未命中），涉及 `EIS-0002-01` / `EIS-0002-03` / `EIS-0009-02` / `EIS-0029-02` / `EIS-0029-04` /
-`EIS-0037-01` / `EIS-0039-01` / `EIS-0057-01`；**这 19 位无逐格 `argument` 可复核**。
+`EIS-0037-01` / `EIS-0039-01` / `EIS-0057-01`；**这 20 位无逐格 `argument` 可复核**。
 
 ## 5. 成本（本次新增审计维度）
 
@@ -171,7 +192,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 cd project_1_llm_state_machine_modeling/eval/discover_matrix
 python verdict_tiers.py     --generation matrix-v46-full --verdicts v46/verdicts/v46_human.json --audit /tmp/a.json
 python audit_to_verdicts.py --generation matrix-v46-full --audit /tmp/a.json --out /tmp/v.json
-python metrics_at_k.py      /tmp/v.json --no-direction-check      # 分母自动扣除 28 条越界记录
+python metrics_at_k.py      /tmp/v.json --no-direction-check      # 分母自动扣 27 条 00x8 越界 + 1 条 boundary_ruling（来源不同，不可混谈）
 python full_tables.py       --generation v46-full --verdicts /tmp/v.json
 python loss_stages.py       --generation matrix-v46-full --audit /tmp/a.json
 python degradation_audit.py --generation matrix-v46-full

@@ -8,7 +8,7 @@
 因此一切计数都给两套分母：**条目数**（原始簇数）与**去重数**（不同 `merge_key` 的个数，
 去重单元 = `(pair, 根因)`；同 pair 同一处失误合并计 1，不同 pair 不合并）。
 
-桶内 **286 条目 / 123 去重 / 42 个 pair**。逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，
+桶内 **286 条目 / 123 去重 / 43 个 pair**。逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，
 结论与判据链见 [unexpected_adjudication.md](./unexpected_adjudication.md)，
 成分与子类含义见 [composition.md](./composition.md)。
 
@@ -103,6 +103,8 @@ R-REGION 规则）、`OOS-INV`（`0017-7` / `0027-6` 的不变式 + 并发保持
 
 ## 六、相对上一版的改动
 
+
+- **这六个 pair 的判定位与多报侧簇整体替换为定向重跑结果**（`0000` `0010` `0020` `0030` `0040` `0050`，代码 `92da821a`）。替换范围、判据与档位见 [V46R_PREREGISTERED.md](../V46R_PREREGISTERED.md)；其余 48 个 pair 未动。
 - 交叉表统一归口到 [unexpected_tables.md](./unexpected_tables.md)，本文件只留链接与结论。
   **理由**：手工副本无法随裁定变更同步，会让同一目录内出现两个互斥的答案。
 - 分母切换为清洗后的口径（桶内 286 条目 / 123 去重），并新增 §三 把真阴性单列，使
