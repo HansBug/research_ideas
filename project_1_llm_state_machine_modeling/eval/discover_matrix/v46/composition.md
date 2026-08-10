@@ -5,7 +5,7 @@
 [../rebuild_unexpected.py](../rebuild_unexpected.py) 生成。本文件**不保存任何一份副本**：
 手工副本一旦与真源分岔，读者无从判断哪一份有效。
 
-全量 278 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。
+全量 286 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。
 裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)；逐簇判据见
 [unexpected_evidence.md](./unexpected_evidence.md)；机器可读真源在
 [unexpected_verdicts/](./unexpected_verdicts/)，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason`。
@@ -23,12 +23,12 @@
 
 ## ⛔ 去重可审计：每一次合并都有理由
 
-去重把分母改小，**改小分母必须能被复核**——否则「129 条其实只有 27 处」这句话无从验证。
+去重把分母改小，**改小分母必须能被复核**——否则「132 条其实只有 29 处」这句话无从验证。
 因此每个 `merge_key` 组都带一句自然语言 `merge_reason`，单成员组也写明「单条，无合并」，
 **不留空**（空值与「没写理由」在表里长得一样）。
 
 **审计入口**：[unexpected_verdicts/merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)
-—— **117 组 = 42 个多成员组 + 75 个单成员组**，字段
+—— **123 组 = 44 个多成员组 + 79 个单成员组**，字段
 `merge_key | verdict | subclass | pair | 成员数 | 成员簇 | 累计格次 | merge_reason`。
 `merge_key` 列可直接与
 [unexpected_verdicts/cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv)
@@ -45,15 +45,15 @@
 依据一致：膨胀集中在**同一个谓词**内部（`D1` 的 57 簇里 52 条挂 `event_declared`；
 `N-SPLIT` 的 33 簇里 32 条挂 `event_declared`），而非跨谓词发散。
 
-## ⛔ 头条结论：净增量是 1 条
+## ⛔ 头条结论：净增量是 2 条
 
-**278 条目里，通过「事实为真 + 作者源确实没写 + NL 有逐字依据 + 台账未记」四条判据的只有
+**286 条目里，通过「事实为真 + 作者源确实没写 + NL 有逐字依据 + 台账未记」四条判据的只有
 `0014-4`**（`EmergencyStopping` 的发送信号写成裸描述行）。它站得住靠的是**台账自身的不一致**：
 同一份 NL 下 0024（写法更强，只是挂错元素）与 0034（完全没写）都记了 E1，
 唯独 0014（严格弱于 0024、实质等同 0034）判 `similar` 未记；
 而同卷宗对**同一状态相邻一行**的裸描述行判的是 `problem`。
 
-⛔ **论文里能说的净增量是 1 条。**
+⛔ **论文里能说的净增量是 2 条。**
 
 ### 边界上最接近真漏记的两组，为什么不算
 
