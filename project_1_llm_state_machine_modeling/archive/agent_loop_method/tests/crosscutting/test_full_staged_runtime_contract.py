@@ -5,9 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-import method.schema as schema
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
-from method.schema import (
+import archive.agent_loop_method.schema as schema
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from archive.agent_loop_method.schema import (
     DesignDiagnosticItem,
     DesignFeedback,
     GroundingMap,
@@ -26,7 +26,7 @@ from method.schema import (
     TestScenario,
     ScenarioStep,
 )
-from method.staged_runtime import (
+from archive.agent_loop_method.staged_runtime import (
     FullStagedRuntimeAdapters,
     FullStagedRuntimeConfig,
     RepairRequest,
@@ -35,8 +35,8 @@ from method.staged_runtime import (
     _compact_sl9_input_for_prompt,
     run_full_staged_deterministic_runtime,
 )
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
 
 
 def _meta(
@@ -2193,7 +2193,7 @@ def test_sl10_compound_major_local_override_requires_each_objection_kind(tmp_pat
 def test_repair_memory_keeps_overridden_local_summary_audit_only() -> None:
     """Accepted SL-10 overrides must not feed local summaries back as repair targets."""
 
-    from method.staged_runtime import _repair_memory_for_prompt
+    from archive.agent_loop_method.staged_runtime import _repair_memory_for_prompt
 
     fix_log = [
         {
@@ -2675,7 +2675,7 @@ def test_sl10_rework_memory_carries_local_expected_actual_summary_to_next_sl9(tm
 def test_repair_memory_exposes_non_regressive_local_only_frontier_in_sl9_prompt() -> None:
     """A behavior-fixed candidate must be visible before SL-9 swings back."""
 
-    from method.staged_runtime import _repair_memory_for_prompt
+    from archive.agent_loop_method.staged_runtime import _repair_memory_for_prompt
 
     fix_log = [
         {

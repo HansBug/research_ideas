@@ -37,9 +37,9 @@
 
 ## 依赖关系
 
-- stage id 由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义。
-- prompt generator 位于 `method/stages/`，只返回 message pack / markdown prompt，不调用 LLM provider。
-- 若由 `method/agents/*` wrapper 使用，wrapper 必须复用本 stage 的 prompt generator，避免 prompt drift。
+- stage id 由 `archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义。
+- prompt generator 位于 `archive/agent_loop_method/stages/`，只返回 message pack / markdown prompt，不调用 LLM provider。
+- 若由 `archive/agent_loop_method/agents/*` wrapper 使用，wrapper 必须复用本 stage 的 prompt generator，避免 prompt drift。
 
 ## 失败语义
 

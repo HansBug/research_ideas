@@ -8,7 +8,7 @@ omission.  `check_false_positives.py` already refuses the same inference; the ta
 has to refuse it too, and more firmly, because a reader sees the table first.
 
 Run:
-    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/eval/discover_matrix
+    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
 """
 
 from __future__ import annotations

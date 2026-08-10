@@ -28,7 +28,7 @@
 
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+由 `archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
 
 ## 失败语义
 
@@ -47,7 +47,7 @@
 ## PR-1A 工具入口与本地复验
 
 ```python
-from method.stages.sd_tools import run_sd10_repair_review
+from archive.agent_loop_method.stages.sd_tools import run_sd10_repair_review
 
 repair_review, meta = run_sd10_repair_review(
     nl=nl,

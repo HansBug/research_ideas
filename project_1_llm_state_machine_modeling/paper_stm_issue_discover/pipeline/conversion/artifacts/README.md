@@ -1,6 +1,6 @@
 # conversion/artifacts
 
-本目录用于保存 `paper_stm_repair/conversion` 下需要长期复验、但文件数量过高的运行证据。这里不是根目录 `runs/`，也不承载 PR 进度信息；它只保存可复现实验 / 转换证据链中需要随代码一起审阅的稳定制品。
+本目录用于保存 `paper_stm_issue_discover/conversion` 下需要长期复验、但文件数量过高的运行证据。这里不是根目录 `runs/`，也不承载 PR 进度信息；它只保存可复现实验 / 转换证据链中需要随代码一起审阅的稳定制品。
 
 ## 目录纪律
 

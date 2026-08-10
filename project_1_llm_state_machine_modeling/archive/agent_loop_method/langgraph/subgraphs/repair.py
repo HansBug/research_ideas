@@ -1,15 +1,15 @@
 """LG-M1-D3 split module for repair subgraph.
 
 This module owns the physical implementation moved out of
-``method.langgraph_runtime``.  It imports LG-C1 graph-state contracts and shared
-runtime helpers from ``method.langgraph.core`` without importing the legacy
+``archive.agent_loop_method.langgraph_runtime``.  It imports LG-C1 graph-state contracts and shared
+runtime helpers from ``archive.agent_loop_method.langgraph.core`` without importing the legacy
 facade, preserving the academic evidence path while making the D3 architecture
 readable by file name.
 """
 
 from __future__ import annotations
 
-from method.langgraph.core import *  # noqa: F403 - D3 compatibility split keeps shared helper names private.
+from archive.agent_loop_method.langgraph.core import *  # noqa: F403 - D3 compatibility split keeps shared helper names private.
 
 
 def _d3_state_graph_factory() -> Any:
@@ -17,7 +17,7 @@ def _d3_state_graph_factory() -> Any:
 
     import sys
 
-    facade = sys.modules.get("method.langgraph_runtime")
+    facade = sys.modules.get("archive.agent_loop_method.langgraph_runtime")
     if facade is not None and hasattr(facade, "StateGraph"):
         return getattr(facade, "StateGraph")
     return StateGraph
@@ -73,7 +73,7 @@ def _build_repair_subgraph(
     LangGraph owns the repair micro-loop: SD-8 prepares a request batch, SL-9
     proposes/accepts per-request edits, SL-10 reviews or requests rework, and
     SC-11 records accepted candidate handoff.  Canonical stage semantics remain
-    in ``method.staged_runtime`` helpers; this subgraph only replaces the
+    in ``archive.agent_loop_method.staged_runtime`` helpers; this subgraph only replaces the
     previous Python-level repair-path orchestration.
     """
 

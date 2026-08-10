@@ -24,10 +24,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from method.gpt_client import chat as llm_chat
-from method.gpt_client import get_default_model
-from method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
-from method.schema import (
+from archive.agent_loop_method.gpt_client import chat as llm_chat
+from archive.agent_loop_method.gpt_client import get_default_model
+from archive.agent_loop_method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
+from archive.agent_loop_method.schema import (
     AgentLoopResult,
     AgentLoopRunRecord,
     FeedbackBundle,
@@ -45,8 +45,8 @@ from method.schema import (
     TestScenario,
     RevisedFixPlan,
 )
-from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageStatus
-from method.stages.sd_tools import (
+from archive.agent_loop_method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageStatus
+from archive.agent_loop_method.stages.sd_tools import (
     freeze_scenario_set,
     mark_warning_repair_attempt,
     run_sd2_parse,
@@ -57,9 +57,9 @@ from method.stages.sd_tools import (
     run_sd8_fix_plan,
     run_sd10_repair_review,
 )
-from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
-from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
+from archive.agent_loop_method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
 
 SC_0_STAGE_GRAPH = [
     StageId.SC_0_START.value,
@@ -387,7 +387,7 @@ def _environment() -> dict[str, Any]:
         "git_commit": git_commit,
         "python_version": platform.python_version(),
         "pyfcstm_version": pyfcstm_version,
-        "runner": "method.experiments.ablation.deterministic_loop.run_deterministic_ablation_loop",
+        "runner": "archive.agent_loop_method.experiments.ablation.deterministic_loop.run_deterministic_ablation_loop",
         "llm_provider": "none",
     }
 
@@ -1120,7 +1120,7 @@ def _build_record(
         replay_index={
             "stage_by_index": {str(i): meta.stage_id for i, meta in enumerate(stage_records)},
             "iteration_count": len(iteration_records),
-            "record_replay_command": "python -m method.run_record <path>",
+            "record_replay_command": "python -m archive.agent_loop_method.run_record <path>",
         },
         redaction_report=redaction_report,
     )

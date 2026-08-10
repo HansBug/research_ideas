@@ -7,7 +7,7 @@ spec into pyfcstm DSL.
 
 Design choices:
 
-- The prompt lives in ``method/prompts/spec_extractor.txt`` (separated for
+- The prompt lives in ``archive/agent_loop_method/prompts/spec_extractor.txt`` (separated for
   ease of review without diffing Python).
 - We request ``response_format={"type": "json_object"}`` to force valid JSON.
   Some proxy backends ignore this; we fall back to manual fence stripping.
@@ -21,8 +21,8 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from method.gpt_client import chat
-from method.schema import SpecJson
+from archive.agent_loop_method.gpt_client import chat
+from archive.agent_loop_method.schema import SpecJson
 
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "spec_extractor.txt"

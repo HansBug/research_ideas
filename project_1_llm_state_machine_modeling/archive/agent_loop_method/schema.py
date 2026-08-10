@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
-from method.stages.ids import (
+from archive.agent_loop_method.stages.ids import (
     FEEDBACK_SOURCE_TO_STAGE_ID,
     STAGE_SPECS_BY_ID,
     FeedbackSource,
@@ -370,7 +370,7 @@ class LoopConfig:
         ``LoopConfig`` remains mutable for historical call sites, but PR-C's
         experiment-default semantics require that callers cannot silently turn
         ``full_staged_v1`` into a budget/stage/oracle ablation after
-        construction.  The public ``method.loop.run_agent_loop`` entry calls
+        construction.  The public ``archive.agent_loop_method.loop.run_agent_loop`` entry calls
         this method immediately before resolving config hashes.
         """
 
@@ -544,7 +544,7 @@ class LegacyLoopConfig:
     LG-M1-C2 keeps this dataclass only for provenance and historical material
     readability.  New code must not use it to drive an active loop; canonical
     experiments use :class:`LoopConfig`, while deterministic ablations use
-    ``method.experiments.ablation``.
+    ``archive.agent_loop_method.experiments.ablation``.
     """
 
     condition: ConditionLiteral = "A4"

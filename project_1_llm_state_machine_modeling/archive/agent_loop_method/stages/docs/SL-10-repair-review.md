@@ -48,7 +48,7 @@ stage_kind: LLM
 ## 最小示例
 
 ```python
-from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
+from archive.agent_loop_method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
 
 messages = build_sl10_repair_review_prompt(
     nl="Start moves Idle to Active.",

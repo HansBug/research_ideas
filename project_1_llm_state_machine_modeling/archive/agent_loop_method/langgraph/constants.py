@@ -2,7 +2,7 @@
 
 LG-M1-D1 intentionally keeps only runtime/registry identity constants here.
 Instrumentation, context-engineering, Send fan-out, ToolNode wrapper, and other
-C/E/D2/D3 lane constants remain in ``method.langgraph_runtime`` until their
+C/E/D2/D3 lane constants remain in ``archive.agent_loop_method.langgraph_runtime`` until their
 own focused sub-PRs migrate the corresponding behavior and evidence gates.
 """
 

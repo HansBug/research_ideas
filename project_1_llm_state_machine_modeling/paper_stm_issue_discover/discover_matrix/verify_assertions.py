@@ -30,7 +30,7 @@ from collections import Counter, defaultdict
 HERE = pathlib.Path(__file__).resolve().parent
 REVIEWS = HERE / "manual_review"
 PREDCHECK = pathlib.Path("/tmp/predcheck")
-#: `HERE` is eval/discover_matrix, so the project root is two levels up -- one level was
+#: `HERE` is paper_stm_issue_discover/discover_matrix, so the project root is two levels up -- one level was
 #: wrong and every evaluation came back as ModuleNotFoundError, i.e. "inconclusive",
 #: which would have silently reported zero coverage.
 PROJECT = HERE.parents[1]

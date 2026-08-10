@@ -1,6 +1,25 @@
-# Discover 默认作者 feedback-final 选择池 60 资源
+# selected_seed_examples/ — 60 个 pair 的人读镜像
 
-本目录是 `paper_stm_repair_loop.inputs.load_pair()` 的默认 FCSTM 资源集合。它不再维护四例 smoke 子集，也不提供 manual、compat 或临时旁路；目录中的 60 个子目录与默认 [`pairs.jsonl`](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) 一一对应。
+> **导航页。** 想看某个 pair 的 NL 原文与 `STM_0`，进这里；**跑实验的输入不从这里读。**
+>
+> | 问题 | 答案 |
+> | :-- | :-- |
+> | 当前 discover 从哪读输入 | [../pipeline/representation/reports/llms_emp_r45_java_60/](../pipeline/representation/reports/llms_emp_r45_java_60/) 的 `pairs/<NNNN>/`。硬编码在 `discover/cli.py` 的 `REPORT_ROOT` |
+> | 本目录与那份输入的关系 | **逐字节相同的镜像副本**。已核对 pair `0000` 两侧 `nl.txt` / `.fcstm` 的 SHA-256 一致 |
+> | 谁还读本目录 | 只有已退役的 `paper_stm_repair_loop.inputs.load_pair()`（[../pipeline/agent_loop/](../pipeline/agent_loop/)，不在运行路径上） |
+> | 有多少个 pair | 目录里 60 个；**实验网格 54 个** |
+>
+> ⚠️ **60 ≠ 54。** 末位为 `8` 的 6 个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）**永久排除**：
+> 它们同源于一份要求 fork/join 并发与秒级时间约束的需求，其忠实模型在
+> $M = (S, E, V, Tr, A)$ 中无法表达，属**建模对象边界**而非样本取舍。判据只读 `nl.txt`、
+> 与任何运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。
+> 见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
+> 故全量网格恒为 `54 pair × 2 执行模型 × 3 轮 = 324 格`。
+>
+> ⚠️ **判缺陷读 `stm0.puml`，不读 `model.fcstm`。** 后者是编译产物；只读它会把编译债务
+> （compiler-owned 支架元素）当成模型缺陷。
+
+目录中的 60 个子目录与默认 [`pairs.jsonl`](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) 一一对应，不提供 manual、compat 或临时旁路。
 
 ## 资源合同
 
@@ -12,7 +31,7 @@
 - `source_meta.json`：默认 pair、workbook cell、Phase-I/Phase-II lineage、source hash 与审阅入口；
 - `fcstm_meta.json`：FCSTM hash、canonical/case report/source trace/working contract/parse-inspect/publication seal 绑定。
 
-目录名、`source_meta.json.pair_id` 和 `pairs.jsonl.pair_id` 必须相同。`load_pair()` 读取 `pairs.jsonl` 的 NL 与 PlantUML，并读取本目录的 `model.fcstm`；不得把 report 目录、manual identity 或 custom mode 当作默认输入替代品。pair schema 中 `generation_context=author_phase_ii_checking_feedback` 与 `stm0_role=author_feedback_final_plantuml` 是池级标签；逐例实际来源以 `selected_stage`、`selected_stage_column` 和 `is_phase_i_fallback` 为准，`0054/0055` 的 `attribution` 必须明确禁止将其写成作者 checking 或本研究 Repair 的产物。
+目录名、`source_meta.json.pair_id` 和 `pairs.jsonl.pair_id` 必须相同。退役的 `load_pair()` 读取 `pairs.jsonl` 的 NL 与 PlantUML，并读取本目录的 `model.fcstm`。pair schema 中 `generation_context=author_phase_ii_checking_feedback` 与 `stm0_role=author_feedback_final_plantuml` 是池级标签；逐例实际来源以 `selected_stage`、`selected_stage_column` 和 `is_phase_i_fallback` 为准，`0054/0055` 的 `attribution` 必须明确禁止将其写成作者 checking 或本研究 Repair 的产物。
 
 ## 学术边界
 

@@ -2,7 +2,7 @@
 
 These tests lock D2's no-semantic-change gates: the compatibility facade stays
 usable, moved class/TypedDict objects keep identity, instrumentation submodules
-never reverse-import ``method.langgraph_runtime``, LG-C1 helpers stay out of the
+never reverse-import ``archive.agent_loop_method.langgraph_runtime``, LG-C1 helpers stay out of the
 D2 package, and historical evidence files are read-only inputs rather than
 rewritten fixtures.
 """
@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+REPO_ROOT = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 HISTORICAL_RECORD = (
     REPO_ROOT
@@ -30,11 +30,11 @@ HISTORICAL_RECORD = (
 )
 
 MOVED_SYMBOLS: dict[str, list[str]] = {
-    "method.langgraph.checkpointing": [
+    "archive.agent_loop_method.langgraph.checkpointing": [
         "_PickleCheckpointSerde",
         "_checkpoint_resume_smoke",
     ],
-    "method.langgraph.instrumentation.operator_stream": [
+    "archive.agent_loop_method.langgraph.instrumentation.operator_stream": [
         "LG_D1_OPERATOR_EVENT_SCHEMA_VERSION",
         "LG_D1_STREAM_SUMMARY_SCHEMA_VERSION",
         "LG_D1_INSTRUMENTATION_LAYER",
@@ -45,14 +45,14 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
         "_write_lg_d1_operator_artifacts",
         "_run_graph_with_lg_d1_stream",
     ],
-    "method.langgraph.instrumentation.trace_export": [
+    "archive.agent_loop_method.langgraph.instrumentation.trace_export": [
         "LG_G1_TRACE_EXPORT_SCHEMA_VERSION",
         "LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER",
         "_lg_g1_trace_export_policy",
         "_lg_g1_safe_trace_payload",
         "_augment_run_record_with_lg_g1_trace_export",
     ],
-    "method.langgraph.instrumentation.tool_wrappers": [
+    "archive.agent_loop_method.langgraph.instrumentation.tool_wrappers": [
         "LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION",
         "LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER",
         "build_lg_e3_toolnode_wrapper_registry",
@@ -60,7 +60,7 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
         "_lg_e3_fixed_tool_call",
         "_augment_run_record_with_lg_e3_toolnode_trace",
     ],
-    "method.langgraph.instrumentation.retry_timeout": [
+    "archive.agent_loop_method.langgraph.instrumentation.retry_timeout": [
         "LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION",
         "LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION",
         "LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER",
@@ -71,7 +71,7 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
         "_lg_d2_operator_events_from_flow_logs",
         "_lg_d2_wrap_llm_stage_node",
     ],
-    "method.langgraph.instrumentation.send_parallel": [
+    "archive.agent_loop_method.langgraph.instrumentation.send_parallel": [
         "LG_E2_SEND_PARALLEL_SCHEMA_VERSION",
         "LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER",
         "_LgE2SendState",
@@ -82,7 +82,7 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
         "_lg_e2_run_sd6_send_parallel_or_serial",
         "_augment_run_record_with_lg_e2_send_parallel_trace",
     ],
-    "method.langgraph.instrumentation.store": [
+    "archive.agent_loop_method.langgraph.instrumentation.store": [
         "langgraph_store_compat_smoke",
         "_transient_namespace",
         "_put_transient",
@@ -90,7 +90,7 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
         "_drop_transient",
         "_drain_transients",
     ],
-    "method.langgraph.subgraphs.context_engineering": [
+    "archive.agent_loop_method.langgraph.subgraphs.context_engineering": [
         "LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION",
         "LG_C2_CONTEXT_SUBGRAPH_ID",
         "LG_C2_CONTEXT_NODE_IDS",
@@ -104,11 +104,11 @@ MOVED_SYMBOLS: dict[str, list[str]] = {
 }
 
 IDENTITY_SYMBOLS = {
-    ("method.langgraph.checkpointing", "_PickleCheckpointSerde"),
-    ("method.langgraph.instrumentation.send_parallel", "_LgE2SendState"),
-    ("method.langgraph.subgraphs.context_engineering", "_LG_C2_ContextState"),
-    ("method.langgraph.subgraphs.context_engineering", "LG_C2_ContextRedactionBlocked"),
-    ("method.langgraph.subgraphs.context_engineering", "LG_C2_ContextAssemblyResult"),
+    ("archive.agent_loop_method.langgraph.checkpointing", "_PickleCheckpointSerde"),
+    ("archive.agent_loop_method.langgraph.instrumentation.send_parallel", "_LgE2SendState"),
+    ("archive.agent_loop_method.langgraph.subgraphs.context_engineering", "_LG_C2_ContextState"),
+    ("archive.agent_loop_method.langgraph.subgraphs.context_engineering", "LG_C2_ContextRedactionBlocked"),
+    ("archive.agent_loop_method.langgraph.subgraphs.context_engineering", "LG_C2_ContextAssemblyResult"),
 }
 
 POSTPONED_F1_SYMBOLS = {
@@ -163,21 +163,21 @@ def test_lg_m1_d2_modules_do_not_reverse_import_runtime_facade_or_c1_helpers() -
         for node in ast.walk(module):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "method.langgraph_runtime":
+                    if alias.name == "archive.agent_loop_method.langgraph_runtime":
                         forbidden_imports.append(f"{rel} imports {alias.name}")
             elif isinstance(node, ast.ImportFrom):
-                if node.module == "method.langgraph_runtime":
-                    forbidden_imports.append(f"{rel} imports from method.langgraph_runtime")
-                if node.module == "method" and any(alias.name == "langgraph_runtime" for alias in node.names):
-                    forbidden_imports.append(f"{rel} imports method.langgraph_runtime via method re-export")
-        if "_lg_c1_" in source and rel != "project_1_llm_state_machine_modeling/method/langgraph/core.py":
+                if node.module == "archive.agent_loop_method.langgraph_runtime":
+                    forbidden_imports.append(f"{rel} imports from archive.agent_loop_method.langgraph_runtime")
+                if node.module == "archive.agent_loop_method" and any(alias.name == "langgraph_runtime" for alias in node.names):
+                    forbidden_imports.append(f"{rel} imports archive.agent_loop_method.langgraph_runtime via method re-export")
+        if "_lg_c1_" in source and rel != "project_1_llm_state_machine_modeling/archive/agent_loop_method/langgraph/core.py":
             c1_leaks.append(rel)
     assert forbidden_imports == []
     assert c1_leaks == []
 
 
 def test_lg_m1_d2_facade_reexports_moved_symbols_with_identity_for_stateful_objects() -> None:
-    facade = importlib.import_module("method.langgraph_runtime")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
     for module_name, symbols in MOVED_SYMBOLS.items():
         module = importlib.import_module(module_name)
         for symbol in symbols:
@@ -192,18 +192,18 @@ def test_lg_m1_d2_facade_reexports_moved_symbols_with_identity_for_stateful_obje
 
 
 def test_lg_m1_d2_f1_resume_entrypoints_are_postponed_in_facade() -> None:
-    facade = importlib.import_module("method.langgraph_runtime")
-    checkpointing = importlib.import_module("method.langgraph.checkpointing")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
+    checkpointing = importlib.import_module("archive.agent_loop_method.langgraph.checkpointing")
     for symbol in POSTPONED_F1_SYMBOLS:
         assert hasattr(facade, symbol)
         assert not hasattr(checkpointing, symbol), f"{symbol} is F1/runtime orchestration and must not move in D2"
-    assert facade.run_lg_f1_resume_experiment.__module__ == "method.langgraph_runtime"
+    assert facade.run_lg_f1_resume_experiment.__module__ == "archive.agent_loop_method.langgraph_runtime"
 
 
 def test_lg_m1_d2_runtime_identity_and_graph_registry_facade_stay_stable() -> None:
-    facade = importlib.import_module("method.langgraph_runtime")
-    assert facade.run_full_staged_langgraph_runtime.__module__ == "method.langgraph_runtime"
-    assert facade.graph_registry_consistency.__module__ == "method.langgraph_runtime"
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
+    assert facade.run_full_staged_langgraph_runtime.__module__ == "archive.agent_loop_method.langgraph_runtime"
+    assert facade.graph_registry_consistency.__module__ == "archive.agent_loop_method.langgraph_runtime"
     assert facade.build_langgraph_node_registry()["runtime_backend"] == "langgraph"
 
 
@@ -214,10 +214,10 @@ def test_lg_m1_d2_historical_evidence_read_only_drift_gate() -> None:
     summary = _stable_historical_summary(record)
 
     assert summary == {
-        "environment.runner": "method.langgraph_runtime.run_full_staged_langgraph_runtime",
-        "environment.loop_entrypoint": "method.loop.run_agent_loop",
+        "environment.runner": "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime",
+        "environment.loop_entrypoint": "archive.agent_loop_method.loop.run_agent_loop",
         "environment.graph_runtime_backend": "langgraph",
-        "run_config.runtime_implementation": "method.langgraph_runtime.run_full_staged_langgraph_runtime",
+        "run_config.runtime_implementation": "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime",
         "run_config.canonical_runtime_backend": "langgraph",
         "record.status": "success",
         "final_artifacts.verdict": "success",

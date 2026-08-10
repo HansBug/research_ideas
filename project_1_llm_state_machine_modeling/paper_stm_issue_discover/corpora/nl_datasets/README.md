@@ -11,7 +11,7 @@
 - 这是三类文库之一：[../seed_library/](../seed_library/) / [../repair_baselines/](../repair_baselines/) / 当前 [nl_datasets](./)。
 - 本库只维护纯 NL 数据源，不维护 repair baseline，也不维护 seed 方法本体。
 - 当前 PR-R1.8-D 只做脚手架与字段纪律冻结，不创建具体 `<dataset-slug>/` 子目录，不开展大规模外部检索。
-- 后续首批填充锚点包括：来自 [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 功能安全需求、[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 中分析的公开 NL→STM generation 数据集、[../../../sources/](../../../sources/) 真实控制系统 NL 池，以及旧 [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) 中的 `sources/` T0+🟢 线索。
+- 后续首批填充锚点包括：来自 [../../../../CLAUDE.md](../../../../CLAUDE.md) § 数据集信息的 9 系统 / 101 功能安全需求、[../../../data/STM_GENERATION_DATASET_ANALYSIS.md](../../../data/STM_GENERATION_DATASET_ANALYSIS.md) 中分析的公开 NL→STM generation 数据集、[../../../sources/](../../../sources/) 真实控制系统 NL 池，以及旧 [../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../archive/path1_path2_guides/PATH1_HARD_COMPARISON_GUIDE.md) 中的 `sources/` T0+🟢 线索。
 
 ## 2. 阅读顺序
 

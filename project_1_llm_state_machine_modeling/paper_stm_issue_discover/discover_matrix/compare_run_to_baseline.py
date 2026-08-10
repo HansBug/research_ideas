@@ -2,7 +2,7 @@
 """Put a fresh eight-cell run next to the recorded baseline, per issue #175 §7.3.
 
 This is arithmetic, not adjudication. `cells.json` has no generator -- its `matches_manual_diff`
-mapping and its evidence prose were written by hand, and `HIT_CRITERION.md` §5 is explicit that
+mapping and its evidence prose were written by hand, and `docs/protocol/hit_criterion.md` §5 is explicit that
 a mechanical verdict is not final. So this script reports what changed in the shapes that can
 be counted, and leaves "is this the same defect the ledger means" to the person doing the
 re-annotation.

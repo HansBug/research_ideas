@@ -24,7 +24,7 @@
 
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+由 `archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
 
 ## 失败语义
 
@@ -43,7 +43,7 @@
 ## PR-1A 工具入口
 
 ```python
-from method.stages.sd_tools import run_sd6_sim
+from archive.agent_loop_method.stages.sd_tools import run_sd6_sim
 
 sim_feedback, meta = run_sd6_sim(current_dsl, frozen_scenario_set, context)
 ```

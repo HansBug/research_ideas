@@ -24,7 +24,7 @@ from typing import Iterable, Mapping, Sequence
 
 SKILL_ROOT = Path(__file__).resolve().parent
 METHOD_ROOT = SKILL_ROOT.parent
-PROJECT_ROOT = METHOD_ROOT.parent
+PROJECT_ROOT = METHOD_ROOT.parent.parent
 REPO_ROOT = PROJECT_ROOT.parent
 
 TRACKED_DEFAULT_CODEX_EXEC_CONFIG = "model_provider=airouter"
@@ -40,10 +40,10 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("openai_project_key", re.compile(r"\bsk-proj-[A-Za-z0-9_\-]{12,}\b")),
 )
 FORBIDDEN_RUNNER_TERMS = (
-    "method.loop.run_agent_loop",
+    "archive.agent_loop_method.loop.run_agent_loop",
     "run_agent_loop(",
-    "method.pr_e1_real_runs",
-    "method.pr_d_representative",
+    "archive.agent_loop_method.pr_e1_real_runs",
+    "archive.agent_loop_method.pr_d_representative",
     "real_run_matrix.py --run",
 )
 FORBIDDEN_COMMAND_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -642,10 +642,10 @@ def build_codex_prompt(case: CodexExecCase, run_dir: Path, run_label: str) -> st
 
 # 硬性边界
 
-1. 必须读取并遵循 repo-local skill 入口：`project_1_llm_state_machine_modeling/method/agent_loop_skill/SKILL.md`（若 symlink 异常则读 `AGENT_LOOP_SKILL.md`）。
+1. 必须读取并遵循 repo-local skill 入口：`project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/SKILL.md`（若 symlink 异常则读 `AGENT_LOOP_SKILL.md`）。
 2. 必须读取：`e2e_ref_model_guide.md`、`tools.md`、`prompts.md`、`nfrr_evaluation_guide.md`、`codex_exec_experiment_guide.md`。
-3. 禁止调用 `method.loop.run_agent_loop(...)`、PR-D representative runner、PR-E1 real-run runner 或任何一键 full staged runner；也不要用它们间接生成模型。
-4. 允许使用 `method.stages.api` / `method.stages.sc_control` / `method.stages.sl_prompt_api` / SD deterministic tools / SL prompt generators / pyfcstm utilities / 仓库搜索与论文材料阅读。
+3. 禁止调用 `archive.agent_loop_method.loop.run_agent_loop(...)`、PR-D representative runner、PR-E1 real-run runner 或任何一键 full staged runner；也不要用它们间接生成模型。
+4. 允许使用 `archive.agent_loop_method.stages.api` / `archive.agent_loop_method.stages.sc_control` / `archive.agent_loop_method.stages.sl_prompt_api` / SD deterministic tools / SL prompt generators / pyfcstm utilities / 仓库搜索与论文材料阅读。
 5. 不得针对 ABS / CARA / Elevator / LNG 写 lexical special-case；所有 waiver、修复和上下文策略必须是可迁移规则。
 6. 不要输出、写入或回显 raw API key、raw endpoint、Bearer token 或 `.env` secret。
 7. 若 provider/network/CLI 故障导致无法完成，必须标记 invalid-run，不要伪造模型产物。

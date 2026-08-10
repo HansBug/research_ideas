@@ -86,14 +86,14 @@ LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 # ── 策略一：不设 hold-out（已永久废止分带）────────────────────────────────────
 # `holdout.json` 与「可报 / 已烧毁 / 历史」三带机制已于 2026-08-09 永久移除。方法就是在这批
 # pair 上迭代出来的，评测口径据此统一：**没有哪一条记录因为参与过规则编写而被单独成带、降级或
-# 剔出分母**。论文侧的表述见 METHOD_PROVENANCE_POLICY.md —— 谓词与 prompt 的由来一律陈述为
+# 剔出分母**。论文侧的表述见 docs/protocol/method_provenance_policy.md —— 谓词与 prompt 的由来一律陈述为
 # 从真实设计与系统规约归纳，不以 pair 为依据，所以根本不需要 hold-out 来支撑什么。
 #
 # ── 策略二：`00x8` 不在 paper 的建模对象范畴内（先验排除）──────────────────────
 # CLAUDE.md 把 project_1 的建模对象写死为 M = (S, E, V, Tr, A)，时钟、不变式、正交区并发**不在其中**。
 # 60 个 pair 由 10 份 NL 各生成 6 个，其中 NL `6af3966c`（并发提及 11、计时提及 17）要求
 # fork/join 与秒级约束，**其忠实模型在 M 中无法表示**。它对应的 6 个 pair 恰好末位为 8，
-# 故简称「排除 `00x8`」。判据只读 nl.txt、先验、与任何运行结果无关，详见 NL_SCOPE_RULE.md。
+# 故简称「排除 `00x8`」。判据只读 nl.txt、先验、与任何运行结果无关，详见 docs/protocol/nl_scope_rule.md。
 #
 # 两者的区别是硬的：策略一说「不许因为样本表现或参与度而改分母」，策略二说「有些规约本来就
 # 不是本方法要建模的东西」。**把策略一套到策略二上，就会得出「00x8 被排除 = 剔除不利样本」
@@ -113,7 +113,7 @@ def _out_of_scope_record_ids() -> tuple[str, ...]:
     两个来源，都必须扣，且都不算「缺失」：
 
     1. **NL 越界**：`00x8` 六个 pair 的规约要求 fork/join 与秒级时间约束，忠实模型在
-       $M$ 中无法表示（NL_SCOPE_RULE.md）。
+       $M$ 中无法表示（docs/protocol/nl_scope_rule.md）。
     2. **逐条边界裁定**：台账记录自带 `boundary_ruling`，`out_of_scope` 者由独立裁定
        判为「表示层产物而非作者缺陷」，其 `boundary_effect` 明写「从能力分母剔除」。
 
@@ -189,7 +189,7 @@ def _arms(value) -> dict[str, list]:
     return {"-": list(value)}
 
 
-#: `HIT_CRITERION.md` §3 的四种成立形态。命中必须落在其中之一。
+#: `docs/protocol/hit_criterion.md` §3 的四种成立形态。命中必须落在其中之一。
 DIRECTIONS = {
     "direct": "直接对应——两个命题说同一件事，只是谓词不同",
     "conjunct": "合取项之一——台账命题是 all(...)，我们证明其中一个合取项为假",
@@ -233,7 +233,7 @@ def validate(verdicts: dict, over: dict, rounds: int, require_direction: bool = 
             f"范围内记录缺 {len(missing)} 条：{missing}。它们就是能力主张的分母，少一条就是"
             "「更改分母 / 剔除不利样本」（CLAUDE.md §3.5 条款 4），即便只是手写时漏填。"
             "⚠️ 这里说的**不是** `00x8`：那 27 条是 NL 越界记录，先验不在分母内，"
-            "本检查已把它们扣除（见 NL_SCOPE_RULE.md）"
+            "本检查已把它们扣除（见 docs/protocol/nl_scope_rule.md）"
         )
     # 两条排除来源在这里必须分开，因为它们的**合法性相反**。
     #
@@ -249,7 +249,7 @@ def validate(verdicts: dict, over: dict, rounds: int, require_direction: bool = 
         problems.append(
             f"判定表里混入 {len(nl_intruders)} 条 NL 越界记录：{nl_intruders}。`00x8` 对应的 NL 要求 "
             "fork/join 与秒级时间约束，其忠实模型在 M = (S, E, V, Tr, A) 中无法表示，先验不进"
-            "网格也不进分母（NL_SCOPE_RULE.md）。它们出现在这里意味着网格被改错了"
+            "网格也不进分母（docs/protocol/nl_scope_rule.md）。它们出现在这里意味着网格被改错了"
         )
     ruled = sorted({r for r in OUT_OF_SCOPE if r in verdicts} - set(nl_intruders))
     if ruled:
@@ -270,7 +270,7 @@ def _direction_problems(verdicts: dict) -> list[str]:
     产出触及了正确的元素、却得出与台账**相反**的结论，而唯一的防线（并列呈现）当时在真实路径
     上输出零行。
 
-    要求填形态的作用不是记录，是**强制做一次方向比对**：填不出 `HIT_CRITERION.md` §3 四种形态
+    要求填形态的作用不是记录，是**强制做一次方向比对**：填不出 `docs/protocol/hit_criterion.md` §3 四种形态
     里的哪一种，就说明没做过那次比对。空值即拒收。
 
     只对**能力主张带**强制。共演化带三十条逐条填形态的成本，换不来能被引用的结论。
@@ -295,7 +295,7 @@ def _direction_problems(verdicts: dict) -> list[str]:
                 )
             elif form not in DIRECTIONS:
                 problems.append(
-                    f"{label} 的方向形态 {form!r} 不在 HIT_CRITERION.md §3 的四种里："
+                    f"{label} 的方向形态 {form!r} 不在 docs/protocol/hit_criterion.md §3 的四种里："
                     f"{sorted(DIRECTIONS)}"
                 )
     return problems
@@ -509,7 +509,7 @@ def template(arms: list[str], rounds: int) -> str:
     return json.dumps(
         {
             "_note": "1=命中 0=未命中 null=该轮该格失败。可报记录必须全部填写；"
-                     "判为命中的可报记录还必须在 direction 里写出 HIT_CRITERION.md §3 的形态。",
+                     "判为命中的可报记录还必须在 direction 里写出 docs/protocol/hit_criterion.md §3 的形态。",
             "_directions": DIRECTIONS,
             "_reportable_records": list(REPORTABLE),
             "_blocked": BLOCKED,

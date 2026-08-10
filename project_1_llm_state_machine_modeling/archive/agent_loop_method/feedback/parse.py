@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from method.schema import ParseFeedback
+from archive.agent_loop_method.schema import ParseFeedback
 
 
 _EXPECTING_RE = re.compile(r"expecting\s+(?P<expected>.+)$", re.IGNORECASE)

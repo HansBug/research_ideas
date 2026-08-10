@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from method.gpt_client import chat
+from archive.agent_loop_method.gpt_client import chat
 
 
 PROMPT_DIR = Path(__file__).resolve().parent.parent.parent / "prompts" / "multistep"
@@ -89,7 +89,7 @@ def call_step(
     ----------
     step_name
         e.g. ``"identify_state"`` — must correspond to a file under
-        ``method/prompts/multistep/``.
+        ``archive/agent_loop_method/prompts/multistep/``.
     user_message
         The user-side prompt content (typically begins with "Requirements:
         ..." plus upstream lists).

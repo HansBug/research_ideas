@@ -66,7 +66,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 | gpt `hit@1` | 142/294 = 48.3% | 171/294 = 58.2% | +9.9pp |
 
 ⚠️ **上表的 `hit@k` 只能作为上界读。** 多报侧已做表示债务审计（§6），**命中侧的对称审计
-尚未做**（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：
+尚未做**（[representation_debt.md](../docs/findings/representation_debt.md) §4.7）。已量化的规模：
 **分母内带逐位判据的 340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，
 其中 10 位（2.9%）不依赖其它事实**（另有 15 个无判据文字的命中位未被筛查，故 51 是下界）。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
 缺陷模型与忠实模型。逐位清单见
@@ -135,8 +135,8 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 
 判据与定义另见 [unexpected_evidence.md](./unexpected_evidence.md)（288 簇逐条判据）、
 [unexpected_merged.md](./unexpected_merged.md)（归并后的问题）、
-[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)（裁定口径）、
-[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
+[unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)（裁定口径）、
+[representation_debt.md](../docs/findings/representation_debt.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
 出现几次）实现，见 [unexpected_tables.md](./unexpected_tables.md) 表 4。
@@ -161,7 +161,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
    9 处未命中同属此形态。
 4. **命中侧的表示债务审计未做** —— 多报侧已查、命中侧尚未查，两侧失效模式方向相同（都偏
    乐观），故本代 `hit@k` 只能作为上界（§4）。待办是对参与度量的 98 条台账记录逐条回读
-   `stm0.puml`，见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7。
+   `stm0.puml`，见 [representation_debt.md](../docs/findings/representation_debt.md) §4.7。
 
 ## 8. 复算
 

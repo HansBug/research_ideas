@@ -4,7 +4,12 @@
 
 ## 1. 为什么归档
 
-当前 paper1 主线已经重置为：给定 `NL + raw/source STM_0`，通过中间可执行语义表示、diagnostics / inspect、simulation / probe、formal verification / check feedback 与 agent loop，发现并确认 source-level behavioral issues，围绕 confirmed issues 做 issue-grounded repair / refinement，并最终回到 raw/source 层说明 issue closure 与 regression。
+⚠️ **本节下面这句「当前 paper1 主线」写于 2026-07，已经过期。** 2026-08 导师定调把 paper1
+**收窄为 issue discover 单独成篇**，repair 另立后续论文；因此其中的 `issue-grounded repair /
+refinement`、`issue closure 与 regression` 都**不再属于 paper1**。当前口径以
+[../../README.md](../../README.md) §2 为准。原句保留如下以供追溯：
+
+> 当前 paper1 主线已经重置为：给定 `NL + raw/source STM_0`，通过中间可执行语义表示、diagnostics / inspect、simulation / probe、formal verification / check feedback 与 agent loop，发现并确认 source-level behavioral issues，围绕 confirmed issues 做 issue-grounded repair / refinement，并最终回到 raw/source 层说明 issue closure 与 regression。
 
 R5.7 的 Better STM 框架在阶段性上有价值：它暴露了 attribution boundary、candidate-only、no-regression、blind judge 与 anti-gaming 等风险。但若继续放在 active 主路径，会让后续工作误以为本文要证明“哪个 STM 更好”或“`fcstm` 表达更强”。因此本 PR 将这些资产整体迁入本 snapshot。
 

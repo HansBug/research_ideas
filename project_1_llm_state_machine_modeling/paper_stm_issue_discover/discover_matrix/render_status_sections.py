@@ -202,7 +202,7 @@ def main() -> int:
     lines = [
         "本轮把 60 对逐对人工复核的结果，收敛成一组彼此对得上的数字。"
         f"下表每个数字都由脚本从逐行数据重算，并经 {recon['total'] if recon else 0} 项交叉一致性检查"
-        f"（脚本 `project_1_llm_state_machine_modeling/eval/discover_matrix/reconcile_numbers.py`）"
+        f"（脚本 `project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/reconcile_numbers.py`）"
         f"{'全部通过' if ok else '**有未通过项**'}——任何两个来源不一致都必须先解决再发布。",
         "",
         "| 量 | 值 | 口径 |",
@@ -312,7 +312,7 @@ def main() -> int:
             "",
             f"逐行分类数据（{len(rows)} 行，含方向、命中的关键词、承载谓词）："
             + gist_link("defect_classification.json", "defect_classification.json")
-            + " ｜ 生成脚本 `project_1_llm_state_machine_modeling/eval/discover_matrix/classify_defects.py`",
+            + " ｜ 生成脚本 `project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/classify_defects.py`",
         ]
         emit("defects.md", "\n".join(lines))
 
@@ -465,7 +465,7 @@ def main() -> int:
         + " ｜ 五批原始判定 "
         + "、".join(gist_link(f"批{n}", f"predcov_result{n}.json") for n in range(1, 6))
         + " ｜ 方法与已知坑 " + gist_link("predcov_BRIEF.md", "predcov_BRIEF.md")
-        + " ｜ 复跑脚本 `project_1_llm_state_machine_modeling/eval/discover_matrix/verify_assertions.py`",
+        + " ｜ 复跑脚本 `project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/verify_assertions.py`",
     ]
     emit("predicates.md", "\n".join(lines))
 

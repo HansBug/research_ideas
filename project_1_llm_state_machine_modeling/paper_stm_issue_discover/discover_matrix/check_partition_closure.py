@@ -42,7 +42,7 @@ $\\kappa_{cross}$ 高 = 判定与一个不随判据移动的参照物一致。**
 
 ## 机械匹配器只是对照物，不是判据
 
-`HIT_CRITERION.md` §5 把终局判定保留给人，理由有实证：`present_for_judgment.py` 的 docstring 记着两例
+`docs/protocol/hit_criterion.md` §5 把终局判定保留给人，理由有实证：`present_for_judgment.py` 的 docstring 记着两例
 「触及了正确元素却得出**相反**结论」，任何重叠式匹配器都会判它们命中。所以 $\\kappa_{cross} < 1$ 不等于
 人工判定错 —— 它只是说两者在哪些位上分歧，而那些位**需要人读**。
 

@@ -1,14 +1,47 @@
-# Paper1 Discover Agent
+# agent_loop/ — 上一版单 Agent discover 实现（已退出运行路径）
 
-本目录实现 paper1 的 `B-discover`：给定 A 阶段已经准备并冻结的
+> 🔴 **本目录不在当前运行路径上。代码完整保留，但论文的任何数字都不来自这里。**
+>
+> | 问题 | 答案 |
+> | :-- | :-- |
+> | 当前活的实现在哪 | [../feedback_loop/](../feedback_loop/)，包 `paper_stm_feedback_loop` |
+> | 本目录的包名 | `paper_stm_repair_loop`（旧名，见 [../README.md](../README.md) §4） |
+> | 入口还能跑吗 | 能，但**前缀已改**：`make legacy-discover-*`，不是 `make discover-*` |
+> | 为什么保留 | 一次性代码搬运与 golden fixture 来源；作为架构对照的历史记录 |
+> | 测试规模 | 266 个（`make legacy-discover-test`） |
+>
+> ⚠️ **`make discover-demo` / `make discover-test` 现在转发到 [../feedback_loop/](../feedback_loop/)。**
+> 本文件下文 §8、§10 里写的这两条命令**已经不指向本目录**——正确的 legacy 入口见 §8.0。
+>
+> ⚠️ **本目录没有自己的 `Makefile`。** 所有 `make` 目标都定义在**仓库根 `Makefile`** 里。
+>
+> ⛔ 运行时禁止 import `paper_stm_repair_loop`，也不得把 `agent_loop/src` 加入活路径的 `PYTHONPATH`。
+
+## 0. 与当前实现的架构差异（这是本目录唯一的现存价值）
+
+| 维度 | 本目录（旧） | [../feedback_loop/](../feedback_loop/)（当前） |
+| :-- | :-- | :-- |
+| 编排 | 一个顶层 Discover Agent + 11 个工具，Agent 自行决定调用顺序 | 确定性 LangGraph StateGraph，阶段固定 |
+| 审查 | Agent 主动调 `review_discovery_coverage`，内含两个隔离 reviewer | 每个生产阶段配一个审查者，路由强制打回 |
+| 断言来源 | Agent 自由撰写表达式，由注册门禁事后拒绝 | 先验闭合的 19 谓词词表 |
+| 输入根 | [../../selected_seed_examples/](../../selected_seed_examples/)（`load_pair()`） | `../representation/reports/llms_emp_r45_java_60/` |
+| 失败语义 | 门禁拒绝可导致整次 attempt 终止 | 降级落盘，带结构化诊断 |
+
+下文是这一版的完整设计记录，**按历史材料阅读**，其中「paper1 核心贡献是 feedback-driven loop」
+「Repair / Confirm 后续阶段」等表述均已被 2026-08 的收窄定调作废：paper1 只做 issue discover，
+贡献口径以 [../../README.md](../../README.md) §2 为准。
+
+---
+
+## 历史设计记录（以下内容保留原样）
+
+本目录实现 paper1 早期版本的 `B-discover`：给定 A 阶段已经准备并冻结的
 `<NL, raw/source STM_0, fcstm STM_0>`，在 FCSTM 中间语义层上完整探索行为义务，
 发现 source-level 行为问题，并把问题、通过项、执行证据和覆盖审查写入不可变运行记录。
 
 Discover 只读，不修改 `STM_0`，不执行 Repair、Confirm，也不在运行中回到 PlantUML
-或其他 source 表示层。raw/source 与 source trace 仅用于 grounding 和归因。paper1 的
-核心贡献仍是 feedback-driven loop 以及 simulation / bounded formal verification 的
-可执行反馈集成；FCSTM、Controller、records 和审查工具是方法基础设施，不单独作为
-headline contribution。
+或其他 source 表示层。raw/source 与 source trace 仅用于 grounding 和归因。FCSTM、Controller、
+records 和审查工具是方法基础设施，不单独作为 headline contribution。
 
 ## 1. 当前方法结构
 
@@ -274,25 +307,53 @@ pass criteria；system prompt 要求 Agent 先产生真实的 payload、证据�
 
 ## 8. 真实运行
 
+### 8.0 当前正确的 legacy 入口（本节为更名后补正）
+
+根 `Makefile` 已把无前缀的 `discover*` 目标让给 [../feedback_loop/](../feedback_loop/)。
+要跑**本目录**必须用 `legacy-` 前缀：
+
+```bash
+source .env
+source venv/bin/activate
+
+make legacy-discover-demo                                        # = legacy-discover-custom，走 identity fixture
+make legacy-discover-pair DISCOVER_PAIR=llms_emp_feedback_final_0029
+make legacy-discover-test                                        # 266 个测试
+make legacy-discover DISCOVER_ARGS="--help"                      # 裸转发
+```
+
+`legacy-discover-demo` 的输入变量也带前缀：`LEGACY_DISCOVER_CASE`、`LEGACY_DISCOVER_NL`、
+`LEGACY_DISCOVER_FCSTM`、`LEGACY_DISCOVER_RAW_SOURCE`、`LEGACY_DISCOVER_SOURCE_TRACE`，
+默认指向 [`fixtures/discover_integrated/0000_hldcs_manual_identity/`](./fixtures/discover_integrated/0000_hldcs_manual_identity/)。
+`DISCOVER_PROFILE`、`DISCOVER_LANGUAGE`、`DISCOVER_RENDERER`、`DISCOVER_OUT`、`DISCOVER_ARGS`
+两侧共用。等价直调：
+
+```bash
+PYTHONPATH=.../pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
+python -m paper_stm_repair_loop.discover --help
+```
+
+### 8.1 原文（命令前缀已过期，语义仍有效）
+
 真实 LLM 前先加载环境变量：
 
 ```bash
 source .env
 source venv/bin/activate
-make discover-demo
+make legacy-discover-demo
 ```
 
 Demo 只有真实 provider 模式，并使用与 `utils.agent.demo` 相同的 Rich 交互输出。直接运行：
 
 ```bash
-make discover-demo \
+make legacy-discover-demo \
   DISCOVER_PROFILE=gpt-5.5 \
   DISCOVER_OUT=runs/paper1/discover/manual-0000
 ```
 
-`discover-demo` 使用隔离在 `fixtures/discover_integrated/0000_hldcs_manual_identity/`
-下的人工 FCSTM identity 工程样例，不占用正式 60 例 `selected_seed_examples/`。需要
-运行正式 pair 时使用 `make discover-pair DISCOVER_PAIR=llms_emp_feedback_final_NNNN`。
+`legacy-discover-demo` 使用隔离在 `fixtures/discover_integrated/0000_hldcs_manual_identity/`
+下的人工 FCSTM identity 工程样例，不占用正式 60 例 [../../selected_seed_examples/](../../selected_seed_examples/)。需要
+运行正式 pair 时使用 `make legacy-discover-pair DISCOVER_PAIR=llms_emp_feedback_final_NNNN`。
 
 `--profile` 是本次运行唯一的模型选择入口。Discover 主 Agent、语义覆盖
 reviewer 和对抗性漏报 reviewer 必须使用同一个 profile；两个 reviewer 只分离
@@ -301,15 +362,15 @@ reviewer 和对抗性漏报 reviewer 必须使用同一个 profile；两个 revi
 自定义 identity 输入：
 
 ```bash
-make discover-custom \
-  DISCOVER_CASE=custom-case \
-  DISCOVER_NL=/path/to/nl.txt \
-  DISCOVER_FCSTM=/path/to/model.fcstm \
+make legacy-discover-custom \
+  LEGACY_DISCOVER_CASE=custom-case \
+  LEGACY_DISCOVER_NL=/path/to/nl.txt \
+  LEGACY_DISCOVER_FCSTM=/path/to/model.fcstm \
   DISCOVER_OUT=runs/paper1/discover/custom-case
 ```
 
-若 raw/source 与 FCSTM 不同，必须同时提供 `DISCOVER_RAW_SOURCE` 和
-`DISCOVER_SOURCE_TRACE`，不能猜测映射。
+若 raw/source 与 FCSTM 不同，必须同时提供 `LEGACY_DISCOVER_RAW_SOURCE` 和
+`LEGACY_DISCOVER_SOURCE_TRACE`，不能猜测映射。
 
 默认不设置主 Agent 或 reviewer 预算。受限 smoke 可通过 CLI 传入：
 
@@ -361,12 +422,12 @@ outdir/
 ## 10. 验证
 
 ```bash
-make discover-test
+make legacy-discover-test        # 266 个测试；`make discover-test` 现在跑的是 feedback_loop
 
 source venv/bin/activate
 ruff check \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src/paper_stm_repair_loop \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/src/paper_stm_repair_loop \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/tests
 ```
 
 Development fixtures 和 evaluator gold 只用于测试/验收，不进入 Agent 或 reviewer context。
@@ -376,7 +437,7 @@ Development fixtures 和 evaluator gold 只用于测试/验收，不进入 Agent
 
 ```bash
 source .env
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests/helpers/probe_discover_evidence_choice.py \
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/tests/helpers/probe_discover_evidence_choice.py \
   --run-real \
   --profile gpt-5.5 \
   --profile claude-opus-4-7 \
@@ -393,9 +454,9 @@ PR #162 的 60 例 FCSTM 资产可用以下 helper 做显式 opt-in FBMCQ 性能
 存在时只是小型 smoke，省略时才执行严格的 60/60 ID 集合 preflight 和全量 probe：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests/helpers/probe_discover_fbmcq.py \
-  --fcstm-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/fcstm \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/src:project_1_llm_state_machine_modeling:$PWD \
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/tests/helpers/probe_discover_fbmcq.py \
+  --fcstm-dir project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60/fcstm \
   --bounds 5,20,50 \
   --output runs/paper1/discover/fbmcq-probe-<git-head>.jsonl
 ```

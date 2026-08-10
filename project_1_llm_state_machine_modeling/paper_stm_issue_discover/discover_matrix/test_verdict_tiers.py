@@ -6,7 +6,7 @@
    28 条全部落在人工判的 89 条之内。
 2. **A 层的不完备性必须被承认**。31% 不是覆盖率主张，是审计下界。一个把 A 层当全部判定的
    读法会把 hit@1 报成 21%。
-3. **C 层的两道闸都要真的拦得住**：人工判命中而 A 层未确认 → 必须点名 `HIT_CRITERION.md` §3
+3. **C 层的两道闸都要真的拦得住**：人工判命中而 A 层未确认 → 必须点名 `docs/protocol/hit_criterion.md` §3
    的四种形态之一并给出论证；A 层确认而人工判未命中 → 不得并存。
    v35 那两处作用域误判（`EIS-0032-01`、`EIS-0029-05`）正是第一道闸的形状。
 4. **未判位不得静默通过**。一个只判了一半的审计文件与判完的在形状上无从区分。
@@ -183,7 +183,7 @@ def test_a_human_hit_needs_a_named_equivalence_form() -> None:
         _built(_position()),
         {"EIS-0000-01|run1/0000-claude": {"hit": True, "equivalence_form": "看起来一样", "argument": GOOD_ARGUMENT}},
     )
-    assert any("不在 HIT_CRITERION §3 的四种形态内" in p for p in result["gate_problems"])
+    assert any("不在 docs/protocol/hit_criterion.md §3 的四种形态内" in p for p in result["gate_problems"])
 
 
 def test_a_human_hit_needs_a_written_argument() -> None:
@@ -238,7 +238,7 @@ def test_an_unjudged_position_is_a_problem_not_a_miss() -> None:
 
 
 def test_equivalence_forms_are_the_four_from_the_criterion_document() -> None:
-    """闭集是这道闸的全部力量所在。逐字取自 `HIT_CRITERION.md` §3。"""
+    """闭集是这道闸的全部力量所在。逐字取自 `docs/protocol/hit_criterion.md` §3。"""
 
     assert V.EQUIVALENCE_FORMS == (
         "直接对应",
@@ -246,7 +246,7 @@ def test_equivalence_forms_are_the_four_from_the_criterion_document() -> None:
         "负向命题的正向对偶",
         "蕴含更根本的原因",
     )
-    criterion = MATRIX / "HIT_CRITERION.md"
+    criterion = MATRIX / "docs/protocol/hit_criterion.md"
     if criterion.is_file():
         text = criterion.read_text()
         for form in V.EQUIVALENCE_FORMS:

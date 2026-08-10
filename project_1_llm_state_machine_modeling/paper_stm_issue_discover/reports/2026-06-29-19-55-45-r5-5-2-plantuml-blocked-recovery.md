@@ -619,12 +619,12 @@ state llms_emp_stm_results_0045 named "llms_emp_stm_results_0045" {
 [cmd-r552-status]
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src \
 python -m paper_stm_repair_smoke.cli validate
 python - <<'PY'
 import json, collections
 from pathlib import Path
-base = Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile')
+base = Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/llms_emp_profile')
 rows = [json.loads(l) for l in (base/'llms_emp_case_matrix.jsonl').read_text(encoding='utf-8').splitlines() if l.strip()]
 print(collections.Counter(r['conversion_status'] for r in rows))
 for pid in ['llms_emp_stm_results_0018','llms_emp_stm_results_0028','llms_emp_stm_results_0037']:
@@ -635,13 +635,13 @@ PY
 [cmd-r552-no-regression]
 
 ```bash
-git show origin/paper1/r5.5-llms-emp-deep-profile:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl > /tmp/r5_5_llms_emp_case_matrix.baseline.jsonl
+git show origin/paper1/r5.5-llms-emp-deep-profile:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl > /tmp/r5_5_llms_emp_case_matrix.baseline.jsonl
 python - <<'PY'
 import json
 from pathlib import Path
 from collections import Counter
 base_path = Path('/tmp/r5_5_llms_emp_case_matrix.baseline.jsonl')
-new_path = Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl')
+new_path = Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/llms_emp_profile/llms_emp_case_matrix.jsonl')
 target = {'llms_emp_stm_results_0018', 'llms_emp_stm_results_0028', 'llms_emp_stm_results_0037'}
 rank = {'converted': 0, 'partial': 1, 'blocked': 2}
 base = {json.loads(line)['raw_pair_id']: json.loads(line) for line in base_path.read_text(encoding='utf-8').splitlines() if line.strip()}
@@ -666,11 +666,11 @@ PY
 
 ```bash
 export PLANTUML_JAR=/path/to/plantuml.jar  # 本次实测使用本机 bundled PlantUML jar；新环境需按 README/GUIDE 配置。
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_conversion.cli recover-plantuml \
-  --reports-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/reports \
-  --run-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir \
-  --archive-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed \
+  --reports-dir project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/reports \
+  --run-dir project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir \
+  --archive-dir project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed \
   --run-id r5.5.2-plantuml-blocked-recovery \
   --created-at 2026-06-29T21:14:14+08:00
 ```
@@ -678,7 +678,7 @@ python -m paper_stm_repair_conversion.cli recover-plantuml \
 [cmd-r552-snippets]
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
 python - <<'PY'
 import json, zipfile, tempfile
 from pathlib import Path

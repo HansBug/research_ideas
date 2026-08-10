@@ -5,7 +5,7 @@ from dataclasses import asdict
 
 import pytest
 
-from method.llm_stages import (
+from archive.agent_loop_method.llm_stages import (
     LLMStageConfig,
     MockLLMProvider,
     run_sl1_initial_modeling_llm,
@@ -15,8 +15,8 @@ from method.llm_stages import (
     run_sl10_repair_review_llm,
     run_sl10b_delta_review_llm,
 )
-from method.schema import FixPlan, FixRequest, FixRequestBatch, FixRequestDecision, GroundedElement, GroundingMap
-from method.stages.ids import StageId, StageStatus
+from archive.agent_loop_method.schema import FixPlan, FixRequest, FixRequestBatch, FixRequestDecision, GroundedElement, GroundingMap
+from archive.agent_loop_method.stages.ids import StageId, StageStatus
 
 
 BASE_DSL = """

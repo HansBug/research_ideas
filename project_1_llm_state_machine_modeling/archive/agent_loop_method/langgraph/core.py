@@ -1,13 +1,13 @@
 """LangGraph runtime for the project_1 full-staged agent loop.
 
 PR-langgraph deliberately makes LangGraph the default orchestration layer for
-``method.loop.run_agent_loop``.  The public path no longer exposes a
+``archive.agent_loop_method.loop.run_agent_loop``.  The public path no longer exposes a
 ``runtime_backend`` switch and it does not call the historical monolithic staged
 runtime driver.  Instead, this module owns the loop control flow as a
 ``StateGraph`` with explicit nodes for start, initial modelling, validation,
 repair, waiver-continuation, verdict routing, and trace-audit finalisation.
 
-The existing ``method.staged_runtime`` module is still used as the canonical
+The existing ``archive.agent_loop_method.staged_runtime`` module is still used as the canonical
 stage-semantics library: it provides dataclasses, deterministic SD tools,
 SL-adapter contracts, FixRequest/FixLog helpers, eligibility policy, and run
 record construction.  That reuse is intentionally different from leaving an old
@@ -47,10 +47,10 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command, Send
 
-from method.llm_stages import ChatProvider, LLMStageConfig, estimate_prompt_tokens
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-import method.staged_runtime as staged_runtime
-from method.schema import (
+from archive.agent_loop_method.llm_stages import ChatProvider, LLMStageConfig, estimate_prompt_tokens
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+import archive.agent_loop_method.staged_runtime as staged_runtime
+from archive.agent_loop_method.schema import (
     AgentLoopResult,
     DesignFeedback,
     FixPlan,
@@ -68,7 +68,7 @@ from method.schema import (
     StageContext,
     StageResultMeta,
 )
-from method.staged_runtime import (
+from archive.agent_loop_method.staged_runtime import (
     FullStagedRuntimeAdapters,
     FullStagedRuntimeConfig,
     _LLMRetryExhausted,
@@ -120,13 +120,13 @@ from method.staged_runtime import (
     _stage_ids,
     _utc_now,
 )
-from method.langgraph.constants import GRAPH_RUNTIME_SCHEMA_VERSION, NODE_EDGE_SCHEMA_VERSION
-from method.langgraph.registry import (
+from archive.agent_loop_method.langgraph.constants import GRAPH_RUNTIME_SCHEMA_VERSION, NODE_EDGE_SCHEMA_VERSION
+from archive.agent_loop_method.langgraph.registry import (
     build_langgraph_node_registry as _build_langgraph_node_registry_foundation,
     graph_registry_consistency as _graph_registry_consistency_foundation,
 )
-from method.langgraph.state import _CompatState
-from method.langgraph.instrumentation.common import (
+from archive.agent_loop_method.langgraph.state import _CompatState
+from archive.agent_loop_method.langgraph.instrumentation.common import (
     _canonical_json_payload,
     _hash_canonical_payload,
     _hash_file,
@@ -134,8 +134,8 @@ from method.langgraph.instrumentation.common import (
     _jsonable,
     _package_version,
 )
-from method.langgraph.checkpointing import _PickleCheckpointSerde, _checkpoint_resume_smoke
-from method.langgraph.instrumentation.operator_stream import (
+from archive.agent_loop_method.langgraph.checkpointing import _PickleCheckpointSerde, _checkpoint_resume_smoke
+from archive.agent_loop_method.langgraph.instrumentation.operator_stream import (
     LG_D1_INSTRUMENTATION_LAYER,
     LG_D1_OPERATOR_EVENT_SCHEMA_VERSION,
     LG_D1_STREAM_SUMMARY_SCHEMA_VERSION,
@@ -172,7 +172,7 @@ from method.langgraph.instrumentation.operator_stream import (
     lg_d1_llm_stream_runtime_metadata,
     reconstruct_lg_d1_stream_summary_from_jsonl,
 )
-from method.langgraph.instrumentation.trace_export import (
+from archive.agent_loop_method.langgraph.instrumentation.trace_export import (
     LG_G1_TRACE_EXPORT_INSTRUMENTATION_LAYER,
     LG_G1_TRACE_EXPORT_SCHEMA_VERSION,
     _LG_G1_ACADEMIC_EVIDENCE_SOURCES,
@@ -184,7 +184,7 @@ from method.langgraph.instrumentation.trace_export import (
     _lg_g1_trace_export_policy,
     _write_lg_g1_trace_artifact,
 )
-from method.langgraph.instrumentation.tool_wrappers import (
+from archive.agent_loop_method.langgraph.instrumentation.tool_wrappers import (
     LG_E3_TOOLNODE_WRAPPER_INSTRUMENTATION_LAYER,
     LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION,
     _LG_E3_SENSITIVE_SUMMARY_KEY_EXACT,
@@ -196,7 +196,7 @@ from method.langgraph.instrumentation.tool_wrappers import (
     _safe_lg_e3_tool_summary,
     build_lg_e3_toolnode_wrapper_registry,
 )
-from method.langgraph.instrumentation.retry_timeout import (
+from archive.agent_loop_method.langgraph.instrumentation.retry_timeout import (
     LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
     LG_D2_LLM_NODE_ENVELOPE_EVENT_TYPES,
     LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
@@ -220,7 +220,7 @@ from method.langgraph.instrumentation.retry_timeout import (
     _lg_d2_wrap_llm_stage_node,
     build_lg_d2_llm_node_envelope_policy,
 )
-from method.langgraph.instrumentation.send_parallel import (
+from archive.agent_loop_method.langgraph.instrumentation.send_parallel import (
     LG_E2_SEND_PARALLEL_INSTRUMENTATION_LAYER,
     LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
     _LG_E2_ORDERING_KEY_FIELDS,
@@ -250,7 +250,7 @@ from method.langgraph.instrumentation.send_parallel import (
     _lg_e2_worker_specs,
     build_lg_e2_send_parallel_contract,
 )
-from method.langgraph.instrumentation.store import (
+from archive.agent_loop_method.langgraph.instrumentation.store import (
     _drain_transients,
     _drop_transient,
     _get_transient,
@@ -259,7 +259,7 @@ from method.langgraph.instrumentation.store import (
     _transient_namespace_label,
     langgraph_store_compat_smoke,
 )
-from method.langgraph.subgraphs.context_engineering import (
+from archive.agent_loop_method.langgraph.subgraphs.context_engineering import (
     LG_C2_CANONICAL_RECORD_FIELD,
     LG_C2_CONTEXT_INSTRUMENTATION_LAYER,
     LG_C2_CONTEXT_NODE_IDS,
@@ -275,9 +275,9 @@ from method.langgraph.subgraphs.context_engineering import (
     assemble_lg_c2_prompt_context,
     build_lg_c2_context_subgraph_contract,
 )
-from method.stages.ids import StageId, StageStatus
-from method.stages.ids import FeedbackSource
-from method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
+from archive.agent_loop_method.stages.ids import StageId, StageStatus
+from archive.agent_loop_method.stages.ids import FeedbackSource
+from archive.agent_loop_method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
 
 LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION = "lg-f1.resume-reconciliation.v1"
 LG_B3_WAIVER_ENTRY_ENVELOPE_SCHEMA_VERSION = "lg-b3.waiver-entry-envelope.v1"
@@ -962,7 +962,7 @@ def build_langgraph_node_registry() -> dict[str, Any]:
 
     LG-M1-D1 keeps this no-arg function as the public compatibility facade.
     The foundation registry builder receives LG-C2 context identifiers by
-    injection so ``method.langgraph.registry`` does not import this facade and
+    injection so ``archive.agent_loop_method.langgraph.registry`` does not import this facade and
     does not own context-engineering behavior.
     """
 
@@ -1086,7 +1086,7 @@ def _graph_runtime_metadata(
 
 
 def _planned_stage_graph_from_config(cfg: LoopConfig) -> dict[str, Any]:
-    from method.loop import build_planned_stage_graph
+    from archive.agent_loop_method.loop import build_planned_stage_graph
 
     return build_planned_stage_graph(cfg)
 
@@ -1232,12 +1232,12 @@ def _build_graph(
     checkpointer: Any | None = None,
     store: Any | None = None,
 ) -> Any:
-    from method.langgraph.nodes.sc import register_sc_nodes
-    from method.langgraph.nodes.sd import register_sd_nodes
-    from method.langgraph.nodes.sl import register_sl_nodes
-    from method.langgraph.subgraphs.repair import _build_repair_subgraph
-    from method.langgraph.subgraphs.validation import _build_validation_subgraph
-    from method.langgraph.subgraphs.waiver import (
+    from archive.agent_loop_method.langgraph.nodes.sc import register_sc_nodes
+    from archive.agent_loop_method.langgraph.nodes.sd import register_sd_nodes
+    from archive.agent_loop_method.langgraph.nodes.sl import register_sl_nodes
+    from archive.agent_loop_method.langgraph.subgraphs.repair import _build_repair_subgraph
+    from archive.agent_loop_method.langgraph.subgraphs.validation import _build_validation_subgraph
+    from archive.agent_loop_method.langgraph.subgraphs.waiver import (
         _build_waiver_continuation_subgraph,
         _build_waiver_entry_envelope,
         _drop_repair_subgraph_state,
@@ -2417,7 +2417,7 @@ def run_full_staged_langgraph_runtime(
         allow_main_result_eligible=config.condition_id == "full_staged_v1" and config.llm_provider_mode == "real_env",
         resolved_loop_config=resolved,
         run_config_extra={
-            "runtime_implementation": "method.langgraph_runtime.run_full_staged_langgraph_runtime",
+            "runtime_implementation": "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime",
             "langgraph_called_from_loop": called_from_loop,
             "canonical_runtime_backend": "langgraph",
             "graph_node_registry": registry,
@@ -2438,13 +2438,13 @@ def run_full_staged_langgraph_runtime(
             "lg_c2_context_subgraph_contract_hash": lg_c2_context_contract_hash,
             "lg_c2_context_subgraph_canonical_record_field": LG_C2_CANONICAL_RECORD_FIELD,
             "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
-            "stage_semantics_module": "method.staged_runtime",
+            "stage_semantics_module": "archive.agent_loop_method.staged_runtime",
         },
         environment_extra={
             **metadata,
-            "runner": "method.langgraph_runtime.run_full_staged_langgraph_runtime",
-            "stage_semantics_module": "method.staged_runtime",
-            "loop_entrypoint": "method.loop.run_agent_loop" if called_from_loop else "method.langgraph_runtime.run_full_staged_langgraph_runtime",
+            "runner": "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime",
+            "stage_semantics_module": "archive.agent_loop_method.staged_runtime",
+            "loop_entrypoint": "archive.agent_loop_method.loop.run_agent_loop" if called_from_loop else "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime",
             "record_schema_version": "pr-c.default-full-staged-runtime.v1",
             "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
             "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,

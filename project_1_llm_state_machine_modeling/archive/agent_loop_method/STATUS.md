@@ -1,6 +1,6 @@
-# `method/` current status
+# `archive/agent_loop_method/` current status
 
-> **当前锚点（2026-06-08，PR39 / LG-M1-G final）**：本文件现在作为 `method/` 的状态总账与历史索引。新读者应优先读取 [README.md](./README.md) 与 [ARCHITECTURE.md](./ARCHITECTURE.md)，再把本文件用于确认当前 final evidence、PR 阶段和历史 sprint provenance。
+> **当前锚点（2026-06-08，PR39 / LG-M1-G final）**：本文件现在作为 `archive/agent_loop_method/` 的状态总账与历史索引。新读者应优先读取 [README.md](./README.md) 与 [ARCHITECTURE.md](./ARCHITECTURE.md)，再把本文件用于确认当前 final evidence、PR 阶段和历史 sprint provenance。
 >
 > **注意**：下方 “Historical sprint record” 保留 2026-05-26 至 PR-E1/PR-E2/PR-3 的早期记录，用于追溯 agent-loop 设计来源；其中的 `dev/method-agent-implementation`、PR #11、Phase A-J 等不再是当前 LG-M1 推荐入口或当前施工分支。
 
@@ -9,13 +9,13 @@
 | 子 PR | 状态 | 当前事实 | 验收 / 四例口径 |
 |---|---|---|---|
 | LG-M1-A / [PR #66](https://github.com/HansBug/research_ideas/pull/66) | ✅ | inventory、baseline fixture、characterization tests 已建立 | baseline-only，不跑四例 |
-| LG-M1-B / [PR #68](https://github.com/HansBug/research_ideas/pull/68) | ✅ | `method.stages.api`、`method.stages.sc_control`、`method.stages.sl_prompt_api` 与 skill health 已落地 | API/docs-only，不跑四例 |
-| LG-M1-C1 / [PR #70](https://github.com/HansBug/research_ideas/pull/70) | ✅ | `method.experiments.real_run_matrix`、`checkpoint_resume`、`representative_cases` 功能入口已落地，旧 `pr_*` shim 保留 | import/CLI equivalence，不跑四例 |
+| LG-M1-B / [PR #68](https://github.com/HansBug/research_ideas/pull/68) | ✅ | `archive.agent_loop_method.stages.api`、`archive.agent_loop_method.stages.sc_control`、`archive.agent_loop_method.stages.sl_prompt_api` 与 skill health 已落地 | API/docs-only，不跑四例 |
+| LG-M1-C1 / [PR #70](https://github.com/HansBug/research_ideas/pull/70) | ✅ | `archive.agent_loop_method.experiments.real_run_matrix`、`checkpoint_resume`、`representative_cases` 功能入口已落地，旧 `pr_*` shim 保留 | import/CLI equivalence，不跑四例 |
 | LG-M1-C2 / [PR #72](https://github.com/HansBug/research_ideas/pull/72) | ✅ | `experiments/ablation/deterministic_loop.py` 已落地，古老 `legacy_loop` active API 已清理 | 已按用户 override 跑四例 |
-| LG-M1-D1 / [PR #69](https://github.com/HansBug/research_ideas/pull/69) | ✅ | `method/langgraph/{constants,state,registry}.py` foundation 已落地 | foundation-only，不跑四例 |
-| LG-M1-D2 / [PR #71](https://github.com/HansBug/research_ideas/pull/71) | ✅ | instrumentation、checkpointing、context helper 已下沉到 `method/langgraph/` | focused/historical gates，不跑四例 |
+| LG-M1-D1 / [PR #69](https://github.com/HansBug/research_ideas/pull/69) | ✅ | `archive/agent_loop_method/langgraph/{constants,state,registry}.py` foundation 已落地 | foundation-only，不跑四例 |
+| LG-M1-D2 / [PR #71](https://github.com/HansBug/research_ideas/pull/71) | ✅ | instrumentation、checkpointing、context helper 已下沉到 `archive/agent_loop_method/langgraph/` | focused/historical gates，不跑四例 |
 | LG-M1-D3 / [PR #74](https://github.com/HansBug/research_ideas/pull/74) | ✅ | validation/repair/waiver subgraphs、SC/SD/SL nodes、core runtime、facade 收敛已完成 | 已按计划跑四例 |
-| LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) | ✅ | `method/tests/` 已按功能域镜像迁移；root flat `test*.py` 清空 | `412 tests collected` / `412 passed, 6 warnings`；不跑四例 |
+| LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) | ✅ | `archive/agent_loop_method/tests/` 已按功能域镜像迁移；root flat `test*.py` 清空 | `412 tests collected` / `412 passed, 6 warnings`；不跑四例 |
 | LG-M1-F / [PR #76](https://github.com/HansBug/research_ideas/pull/76) | ✅ | README / ARCHITECTURE / STATUS / skill / handoff docs provenance 收口 | docs/provenance scan + method tests；历史 no-provider docs/provenance-only 边界已收口 |
 | LG-M1-G / PR #39 final integration | ✅ | 最终 integrated evidence、CI/comment、三路 review closure | 已在最终 head 上保留 ABS / CARA / Elevator / LNG 四例 retained evidence；PR22 最终 review C=0/I=0 |
 
@@ -26,9 +26,9 @@
 ```bash
 source venv/bin/activate
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 ```
 
 历史 LG-M1-F 预期为 `412 tests collected`，full method tests 通过，且不 source `.env` / 不调用 provider / 不提交 `runs/` 真实 run artifact。当前 PR39 / LG-M1-G final 已在后续阶段补齐真实四例 retained evidence；最终本地验证基线为 `432 passed, 6 warnings`。
@@ -37,15 +37,15 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
 
 | 用途 | 当前入口 | 不推荐作为新入口的历史路径 |
 |---|---|---|
-| 默认 full staged runtime | `method.loop.run_agent_loop(...)` | 旧 A0-A4 `method.legacy_loop` |
-| Stage deterministic / control tools | `method.stages.api`、`method.stages.sc_control` | 直接抄旧 PR 命名 helper |
-| SL prompt facade | `method.stages.sl_prompt_api` | 在 skill 中直接调用 full loop |
-| Real run matrix | `method.experiments.real_run_matrix` | `method.pr_e1_real_runs` |
-| Checkpoint / resume | `method.experiments.checkpoint_resume` | `method.pr_lg_f1_resume_experiment` |
-| Representative cases | `method.experiments.representative_cases` | `method.pr_d_representative` |
-| Deterministic ablation | `method.experiments.ablation.deterministic_loop` | `method.pr2a_loop` |
-| LangGraph implementation | `method.langgraph.*` + `method.langgraph_runtime` facade | 把 `langgraph_runtime.py` 重新当作 monolith 编辑 |
-| Tests | `method/tests/{stages,langgraph,experiments,llm,crosscutting,handoff_smoke,agent_loop_skill}` | 旧 method tests flat path |
+| 默认 full staged runtime | `archive.agent_loop_method.loop.run_agent_loop(...)` | 旧 A0-A4 `archive.agent_loop_method.legacy_loop` |
+| Stage deterministic / control tools | `archive.agent_loop_method.stages.api`、`archive.agent_loop_method.stages.sc_control` | 直接抄旧 PR 命名 helper |
+| SL prompt facade | `archive.agent_loop_method.stages.sl_prompt_api` | 在 skill 中直接调用 full loop |
+| Real run matrix | `archive.agent_loop_method.experiments.real_run_matrix` | `archive.agent_loop_method.pr_e1_real_runs` |
+| Checkpoint / resume | `archive.agent_loop_method.experiments.checkpoint_resume` | `archive.agent_loop_method.pr_lg_f1_resume_experiment` |
+| Representative cases | `archive.agent_loop_method.experiments.representative_cases` | `archive.agent_loop_method.pr_d_representative` |
+| Deterministic ablation | `archive.agent_loop_method.experiments.ablation.deterministic_loop` | `archive.agent_loop_method.pr2a_loop` |
+| LangGraph implementation | `archive.agent_loop_method.langgraph.*` + `archive.agent_loop_method.langgraph_runtime` facade | 把 `langgraph_runtime.py` 重新当作 monolith 编辑 |
+| Tests | `archive/agent_loop_method/tests/{stages,langgraph,experiments,llm,crosscutting,handoff_smoke,agent_loop_skill}` | 旧 method tests flat path |
 
 ## 3. Provenance handling rule
 
@@ -56,14 +56,14 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
 
 ## 4. Historical sprint record（保留，不代表当前入口）
 
-以下内容是早期 `method/` 共同基础 sprint 的历史记录，保留用于解释 agent-loop 的设计来源、prompt/stage 演化与早期验证证据。当前 LG-M1 维护性阶段不应把这些分支名、Phase 名或旧命令当作当前 recommended entrypoint。
+以下内容是早期 `archive/agent_loop_method/` 共同基础 sprint 的历史记录，保留用于解释 agent-loop 的设计来源、prompt/stage 演化与早期验证证据。当前 LG-M1 维护性阶段不应把这些分支名、Phase 名或旧命令当作当前 recommended entrypoint。
 
 ### PR-E1 状态补充（issue #21，2026-06-03）
 
 PR-E1 在 PR-C/PR-D 默认入口基础上调整 repair 子架构与真实运行证据链：
 
 - `LoopConfig()` 默认解析为 `experiment_default/full_staged_v1`，包含 full staged stage switches、feedback/budget/scenario/LLM/record/eligibility policy 与 condition hash。
-- `method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation，也不再停留在 PR-A contract-only façade；默认执行 full staged runtime。
+- `archive.agent_loop_method.loop.run_agent_loop()` 不再调用旧 A0-A4 implementation，也不再停留在 PR-A contract-only façade；默认执行 full staged runtime。
 - 默认 `LoopConfig()` 使用 real-env LLM provider adapter；缺 provider 配置、provider retry exhaustion 或 schema invalid 会写出 run record 并以 `provider_error` / `invalid` 退出，不回退 fake。
 - planned stage graph 更新为 `SC-0/SL-1/SD-2/SD-3/SD-4/SL-5/SD-5A/SC-5F/SD-6/SL-7/SD-8/SL-9/SL-10/SC-11/SC-12/SC-13`。
 - run record 记录 resolved config / environment / provider-model 脱敏标识 / stage_records / iteration_records / llm_interactions / deterministic_feedback / repair_history / fix_log / scenario_history / logs / final_artifacts / redaction_report。
@@ -74,7 +74,7 @@ PR-E1 在 PR-C/PR-D 默认入口基础上调整 repair 子架构与真实运行�
 PR-B2 交付真实/mock LLM stage execution units，但仍不切默认 full runtime：
 
 - `llm_stages.py` 封装 `SL-1/SL-5/SL-7/SL-9/SL-10` 的默认 provider adapter、schema/empty/provider retry 与 interaction record；旧 `SL-10B` 保留为 legacy/ablation。
-- 默认真实 provider 通过 `method.gpt_client` 读取进程环境变量；单元测试使用 `MockLLMProvider`，不依赖真实 API。
+- 默认真实 provider 通过 `archive.agent_loop_method.gpt_client` 读取进程环境变量；单元测试使用 `MockLLMProvider`，不依赖真实 API。
 - LLM retry 只处理 provider/network/schema-invalid/empty-output；deterministic feedback failure 不在 PR-B2 中 retry。
 - `SL-9` repair prompt 保留 `suggested_fix` 作为 hint，不强制照抄，允许 LLM 基于 NL 与全局约束给出更合理修复。
 - interaction payload 记录 prompt、raw output、parsed output、usage、provider/model、attempts、retry error、schema validation、hash 与脱敏报告。

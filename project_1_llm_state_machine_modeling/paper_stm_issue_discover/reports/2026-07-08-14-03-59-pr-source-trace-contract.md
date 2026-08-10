@@ -86,9 +86,9 @@ source trace 因此是 source-level attribution 和 closure evidence 的桥，�
 
 | 命令 | 结果 | 说明 |
 |---|---|---|
-| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests/test_source_trace_schema.py -q` | `18 passed in 0.15s` | source trace 单项 schema / fixture / cross-ledger gate。 |
-| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `45 passed in 0.25s` | evaluation 目录 source issue + source trace 测试。 |
-| `PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q` | `110 passed in 20.04s` | conversion / representation / readiness / evaluation 组合 smoke。 |
+| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests/test_source_trace_schema.py -q` | `18 passed in 0.15s` | source trace 单项 schema / fixture / cross-ledger gate。 |
+| `python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests -q` | `45 passed in 0.25s` | evaluation 目录 source issue + source trace 测试。 |
+| `PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tests project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/tests project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests -q` | `110 passed in 20.04s` | conversion / representation / readiness / evaluation 组合 smoke。 |
 
 ## 8. 可以支持的结论
 

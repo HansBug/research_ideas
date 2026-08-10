@@ -1,6 +1,6 @@
 # 按边界规范重判范围外：「计入问题」收敛为 157
 
-Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 此前只能把「计入问题」报成区间 **[148, 165]**，因为 `out_of_scope` 的边界没在规范里写死。边界现已写死（见 [../MANUAL_REVIEW_SPEC.md](../MANUAL_REVIEW_SPEC.md) 的「范围外的边界 —— 硬规则」），据此逐条重判 29 条被标 `out_of_scope` 的差异，并反向检查有无该标而未标的。
+Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 此前只能把「计入问题」报成区间 **[148, 165]**，因为 `out_of_scope` 的边界没在规范里写死。边界现已写死（见 [manual_review_spec.md](../docs/protocol/manual_review_spec.md) 的「范围外的边界 —— 硬规则」），据此逐条重判 29 条被标 `out_of_scope` 的差异，并反向检查有无该标而未标的。
 
 **结论：计入问题 = 157**（确定值）。逐条依据见 [rescope.json](./rescope.json)。
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from method.schema import (
+from archive.agent_loop_method.schema import (
     FeedbackBundle,
     FixPlan,
     GroundedElement,
@@ -19,30 +19,30 @@ from method.schema import (
     SpecJson,
     TestScenario as ScenarioCase,
 )
-from method.stages.sl_delta_review_prompt import (
+from archive.agent_loop_method.stages.sl_delta_review_prompt import (
     DELTA_REVIEW_DECISIONS,
     build_sl10b_delta_review_prompt,
     parse_sl10b_delta_review_response,
 )
-from method.stages.sl_initial_modeling_prompt import (
+from archive.agent_loop_method.stages.sl_initial_modeling_prompt import (
     build_sl1_initial_modeling_prompt,
     extract_candidate_dsl_or_legacy,
 )
-from method.stages.sl_model_review_prompt import (
+from archive.agent_loop_method.stages.sl_model_review_prompt import (
     MODEL_REVIEW_CATEGORIES,
     build_sl7_model_review_prompt,
     compact_sl7_review_input,
     parse_sl7_model_review_response,
 )
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.sl_scenario_generation_prompt import (
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
     compact_sl5_inspect_for_prompt,
     parse_sl5_scenario_generation_response,
 )
 
-REPO = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method"
+REPO = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 
 
 def _grammar_digest() -> str:
@@ -690,7 +690,7 @@ def test_sl9_repair_prompt_accepts_fix_plan_and_revised_fix_plan() -> None:
 
 
 def test_modeler_agent_passes_nl_into_sl1_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
-    import method.agents.modeler as modeler
+    import archive.agent_loop_method.agents.modeler as modeler
 
     captured: dict[str, object] = {}
 
@@ -727,7 +727,7 @@ def test_sl1_legacy_dsl_extractor_still_supports_fenced_raw_dsl() -> None:
 def test_repair_agent_uses_structured_sl9_inputs_without_repeating_nl_and_dsl(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import method.agents.repair as repair
+    import archive.agent_loop_method.agents.repair as repair
 
     captured: dict[str, object] = {}
 
@@ -809,9 +809,9 @@ def test_fake_review_response_rejects_unknown_category_and_invalid_decision() ->
 
 
 def test_agents_reuse_sl_prompt_generators() -> None:
-    import method.agents.modeler as modeler
-    import method.agents.repair as repair
-    import method.agents.scenariogen.generate as scenariogen
+    import archive.agent_loop_method.agents.modeler as modeler
+    import archive.agent_loop_method.agents.repair as repair
+    import archive.agent_loop_method.agents.scenariogen.generate as scenariogen
 
     assert modeler.build_sl1_initial_modeling_prompt is build_sl1_initial_modeling_prompt
     assert repair.build_sl9_repair_prompt is build_sl9_repair_prompt

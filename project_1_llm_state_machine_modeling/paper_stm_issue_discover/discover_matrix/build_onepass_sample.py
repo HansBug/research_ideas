@@ -175,7 +175,7 @@ def build(generation: str) -> tuple[dict, dict]:
         "unit_count": len(units),
         "task": (
             "对每个 unit 里的**每一条** issue 恰好给一个标签："
-            "`hits:<record_id>`（它主张的缺陷与该台账条目语义同一，按 HIT_CRITERION.md 的四种形态）"
+            "`hits:<record_id>`（它主张的缺陷与该台账条目语义同一，按 docs/protocol/hit_criterion.md 的四种形态）"
             " / `grounded-extra`（对着 NL 站得住，但不对应本 unit 任何台账条目）"
             " / `boundary`（涉时钟、时间约束或正交区并发 —— 不在建模对象内）"
             " / `fabricated`（在模型上不成立，或 NL 上无依据）"

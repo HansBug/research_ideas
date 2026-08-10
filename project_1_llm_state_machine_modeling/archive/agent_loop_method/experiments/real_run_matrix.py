@@ -1,7 +1,7 @@
 """PR-E1 real agent-loop run exploration and reporting helpers.
 
 PR-E1 is not a new runtime.  It is a thin, auditable runner around the
-canonical ``method.loop.run_agent_loop(nl, LoopConfig(...))`` entry so that the
+canonical ``archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig(...))`` entry so that the
 umbrella PR can compare real Path1/Path2 NL runs under a small set of explicit
 budget/config conditions.
 
@@ -39,37 +39,37 @@ from typing import Any, Callable, Iterable, Sequence
 
 if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
     # Allow repo-root package execution, for example
-    # ``python -m project_1_llm_state_machine_modeling.method.experiments.real_run_matrix``.
-    # The method implementation keeps absolute ``method.*`` imports to preserve
+    # ``python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.real_run_matrix``.
+    # The method implementation keeps absolute ``archive.agent_loop_method.*`` imports to preserve
     # the historical ``PYTHONPATH=project_1_llm_state_machine_modeling`` workflow;
     # package-mode execution therefore needs the project package root on sys.path.
     # This bootstrap does not read ``.env`` and does not touch provider config.
-    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
 
-from method.gpt_client import (
+from archive.agent_loop_method.gpt_client import (
     DEFAULT_SDK_MAX_RETRIES,
     get_progress_log_enabled,
     get_request_timeout_seconds,
     get_stream_enabled,
     get_stream_include_usage_enabled,
 )
-from method.loop import LoopConfig, run_agent_loop
-from method.experiments.representative_cases import (
+from archive.agent_loop_method.loop import LoopConfig, run_agent_loop
+from archive.agent_loop_method.experiments.representative_cases import (
     PATH1_CARA_NL,
     PATH2_LNG_EMS_NL,
     assert_pr_d_provider_env,
     missing_provider_env,
     representative_cases,
 )
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult, AgentLoopRunRecord, experiment_default_condition
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, AgentLoopRunRecord, experiment_default_condition
 
 RunAgentLoopFn = Callable[[str, LoopConfig], AgentLoopResult]
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 PR_E1_FULL_STAGED_REQUIRED_STAGE_IDS = [
     "SC-0",
@@ -551,14 +551,14 @@ def _file_hash(path: Path) -> str | None:
 
 def _prompt_snapshot() -> dict[str, object]:
     paths = [
-        PROJECT_ROOT / "method" / "prompts" / "_pyfcstm_grammar.md",
-        PROJECT_ROOT / "method" / "prompts" / "modeler.txt",
-        PROJECT_ROOT / "method" / "stages" / "sl_initial_modeling_prompt.py",
-        PROJECT_ROOT / "method" / "stages" / "sl_repair_prompt.py",
-        PROJECT_ROOT / "method" / "stages" / "sl_scenario_generation_prompt.py",
-        PROJECT_ROOT / "method" / "stages" / "sl_model_review_prompt.py",
-        PROJECT_ROOT / "method" / "stages" / "sl10_repair_review_prompt.py",
-        PROJECT_ROOT / "method" / "stages" / "sl_delta_review_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "prompts" / "_pyfcstm_grammar.md",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "prompts" / "modeler.txt",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl_initial_modeling_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl_repair_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl_scenario_generation_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl_model_review_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl10_repair_review_prompt.py",
+        PROJECT_ROOT / "archive" / "agent_loop_method" / "stages" / "sl_delta_review_prompt.py",
     ]
     files = []
     for path in paths:
@@ -645,13 +645,13 @@ def build_reproducibility_payload(
         },
         "condition": asdict(spec),
         "command": {
-            "module": "method.experiments.real_run_matrix",
-            "legacy_module": "method.pr_e1_real_runs",
+            "module": "archive.agent_loop_method.experiments.real_run_matrix",
+            "legacy_module": "archive.agent_loop_method.pr_e1_real_runs",
             "env_loading_command": "set -a; source .env; set +a",
             "canonical_example": (
                 "bash -lc 'set -a; source .env; set +a; "
                 "PYTHONPATH=project_1_llm_state_machine_modeling "
-                f"python -m method.experiments.real_run_matrix --case-set e2-aligned "
+                f"python -m archive.agent_loop_method.experiments.real_run_matrix --case-set e2-aligned "
                 f"--case-keys {case.case_key} --condition-set {spec.config_id} "
                 f"--output-dir {_as_repo_relative(output_root)} --run-tag <same-tag>'"
             ),
@@ -1400,7 +1400,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         "",
         "### 0. 准确边界与结论",
         "",
-        f"- 运行入口：`method.loop.run_agent_loop(nl, LoopConfig(...))`。",
+        f"- 运行入口：`archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig(...))`。",
         f"- 是否使用 fake / fixture / hot-start / replay：{boundary}",
         f"- final verdict：`{summary.verdict}`；record_status：`{summary.record_status}`；result_status：`{summary.result_status}`。",
         f"- main_result_eligible：`{str(summary.main_result_eligible).lower()}`。",
@@ -1414,7 +1414,7 @@ def render_run_report(case: PrE1Case, spec: ConditionSpec, record: AgentLoopRunR
         f"| Path | `{case.path}` |",
         f"| case_id | `{case.case_id}` |",
         f"| config_id | `{spec.config_id}` |",
-        "| 运行入口 | `method.loop.run_agent_loop(nl, LoopConfig(...))` |",
+        "| 运行入口 | `archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig(...))` |",
         f"| LoopConfig 摘要 | `condition_id={summary.condition_id}`, `max_iterations={spec.max_iterations}`, `llm_max_retries={spec.llm_max_retries}`, `scenario_max_retries={spec.scenario_max_retries}`, `min_sl10_rework_attempts={_record_budget_value(record, 'min_sl10_rework_attempts')}`, `model_review_mode={spec.model_review_mode}`, `repair_review_mode={spec.repair_review_mode}` |",
         f"| Git commit | `{summary.git_commit}` |",
         f"| clean / diff / prompt snapshot | clean=`{summary.clean_commit_bound}`, dirty=`{summary.git_dirty}`, diff_hash=`{summary.git_diff_hash}`, prompt_hash=`{summary.prompt_snapshot_hash}` |",
@@ -1515,7 +1515,7 @@ def render_exception_report(case: PrE1Case, spec: ConditionSpec, summary: PrE1Ru
 
 ### 0. 准确边界与结论
 
-- 本次调用 `method.loop.run_agent_loop` 未能写出 `AgentLoopRunRecord`。
+- 本次调用 `archive.agent_loop_method.loop.run_agent_loop` 未能写出 `AgentLoopRunRecord`。
 - verdict：`{summary.verdict}`。
 - reason：{summary.verdict_reason}
 - stdout：[`stdout.txt`](./run_logs/stdout.txt)
@@ -1550,7 +1550,7 @@ def render_matrix_summary(summaries: Sequence[PrE1RunSummary]) -> str:
     lines = [
         "# PR-E1 real agent-loop exploration summary",
         "",
-        "本文件由 `python -m method.experiments.real_run_matrix` 生成，用于汇总 PR-E1 真实运行证据。非 default 条件均为显式 exploratory condition，不应直接计入 Path1/Path2 主结果。",
+        "本文件由 `python -m archive.agent_loop_method.experiments.real_run_matrix` 生成，用于汇总 PR-E1 真实运行证据。非 default 条件均为显式 exploratory condition，不应直接计入 Path1/Path2 主结果。",
         "",
         "## 0. 可复现性边界",
         "",
@@ -1633,7 +1633,7 @@ def render_pr_comment(summaries: Sequence[PrE1RunSummary], *, output_dir: str | 
         "",
         "身份：主 session / PR-E1 runner。",
         "",
-        f"本 comment 汇总当前已产出的真实 `method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
+        f"本 comment 汇总当前已产出的真实 `archive.agent_loop_method.loop.run_agent_loop` 运行证据；详细报告见仓库内 `{output_dir_text}/`。",
         "",
         "| Path | case | config | verdict | status | clean | eligible | path2 blueprint | post-accept | failure class | token usage | report |",
         "|---|---|---|---|---|---:|---:|---|---|---|---|---|",

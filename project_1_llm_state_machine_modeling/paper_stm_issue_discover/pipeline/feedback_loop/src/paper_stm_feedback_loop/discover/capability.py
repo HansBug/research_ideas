@@ -2164,7 +2164,7 @@ def _trigger_can_fire_from_initial(item: _RequirementSpec) -> bool:
     on any trigger at all. That is exactly the defect 0047 has. Narrowing the gate to the
     behavioural predicates is the obvious repair and is deliberately **not** made here: it would
     be a rule change motivated by a ledger record, in the middle of preparing a run. It is
-    pre-registered instead (see `V21_PREREGISTERED_CALIBRE.md` §9.1), so a miss on that record
+    pre-registered instead (see `discover_matrix/docs/generations/v21/preregistered_calibre.md` §9.1), so a miss on that record
     in v22 is attributable to this gate rather than read as a capability gap.
 
     The general lesson is §3.5 clause 3's: a backtest measures collateral damage, only a live

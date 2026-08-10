@@ -17,19 +17,19 @@ from typing import Any, Sequence
 
 if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
     # Allow the PR body / run record entrypoint to be executed from the repo
-    # root as ``python -m project_1_llm_state_machine_modeling.method...``.
-    # The method package itself intentionally keeps absolute ``method.*``
+    # root as ``python -m project_1_llm_state_machine_modeling.archive.agent_loop_method...``.
+    # The method package itself intentionally keeps absolute ``archive.agent_loop_method.*``
     # imports for compatibility with the existing ``PYTHONPATH=project_1...``
     # workflow, so this shim only extends sys.path; it never reads ``.env``.
-    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
 
-from method.langgraph.resume import run_lg_f1_resume_experiment
-from method.llm_stages import RealEnvLLMProvider
-from method.loop import _build_runtime_adapters, _llm_stage_config
-from method.experiments.real_run_matrix import condition_specs, make_pr_e1_config, pr_e1_cases
-from method.schema import (
+from archive.agent_loop_method.langgraph.resume import run_lg_f1_resume_experiment
+from archive.agent_loop_method.llm_stages import RealEnvLLMProvider
+from archive.agent_loop_method.loop import _build_runtime_adapters, _llm_stage_config
+from archive.agent_loop_method.experiments.real_run_matrix import condition_specs, make_pr_e1_config, pr_e1_cases
+from archive.agent_loop_method.schema import (
     DesignDiagnosticItem,
     DesignFeedback,
     LoopConfig,
@@ -42,8 +42,8 @@ from method.schema import (
     StageResultMeta,
     TestScenario,
 )
-from method.staged_runtime import FullStagedRuntimeAdapters, RepairRequest, ScenarioGenerationRequest
-from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.staged_runtime import FullStagedRuntimeAdapters, RepairRequest, ScenarioGenerationRequest
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
 
 
 _CASE_ALIASES = {

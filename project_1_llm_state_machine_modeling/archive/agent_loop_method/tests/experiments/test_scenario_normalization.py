@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from method.feedback.sim import check_sim
-from method.loop import _normalize_scenarios_for_runtime
-from method.schema import ScenarioSet, ScenarioStep, StageContext, TestScenario
-from method.stages.sd_tools import run_sd6_sim
+from archive.agent_loop_method.feedback.sim import check_sim
+from archive.agent_loop_method.loop import _normalize_scenarios_for_runtime
+from archive.agent_loop_method.schema import ScenarioSet, ScenarioStep, StageContext, TestScenario
+from archive.agent_loop_method.stages.sd_tools import run_sd6_sim
 
 
 ELEVATOR_DSL = """

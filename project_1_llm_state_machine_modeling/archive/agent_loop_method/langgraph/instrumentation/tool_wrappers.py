@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from method.langgraph.instrumentation.common import _hash_payload, _jsonable
-from method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES, _append_lg_d1_operator_event
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult
-from method.staged_runtime import FullStagedRuntimeConfig, _hash_text
-from method.stages.ids import StageId
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_payload, _jsonable
+from archive.agent_loop_method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES, _append_lg_d1_operator_event
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult
+from archive.agent_loop_method.staged_runtime import FullStagedRuntimeConfig, _hash_text
+from archive.agent_loop_method.stages.ids import StageId
 
 LG_E3_TOOLNODE_WRAPPER_SCHEMA_VERSION = "lg-e3.fixed-toolnode-wrapper.v1"
 

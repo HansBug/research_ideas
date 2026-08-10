@@ -3,7 +3,7 @@
 ## 为什么分三层，而不是「全人工」或「全自动」
 
 **全自动做不到。** 台账的陈述是散文，而同一个缺陷可以被合法地编码成不同的谓词与绑定 ——
-`HIT_CRITERION.md` §3 列了四种成立形态，只有第一种（直接对应）是机械可判的。实测（v35，132 判定位）：
+`docs/protocol/hit_criterion.md` §3 列了四种成立形态，只有第一种（直接对应）是机械可判的。实测（v35，132 判定位）：
 按 (谓词, 绑定, 真值) 完全相等去判，只复现人工 89 条命中里的 **28 条（31%）**；
 加上视界约定（台账未写的 `within_cycles`/`bound`/`release` 不参与比较）后为 **34 条（38%）**。
 
@@ -34,7 +34,7 @@ A 层未确认的每一位，本模块打印一张对照表：台账 primary 的
 
 ### C 层 —— 分歧闸
 
-- 人判命中而 A 层未确认 → **必须**写出等价性论证，并点明属 `HIT_CRITERION.md` §3 四种形态的哪一种。
+- 人判命中而 A 层未确认 → **必须**写出等价性论证，并点明属 `docs/protocol/hit_criterion.md` §3 四种形态的哪一种。
   这是 v35 那两处误判会被拦住的地方：把「作用域邻近」写成论证时它自己站不住。
 - A 层确认而人判未命中 → 两者之一必错，不得并存，必须就地解决。
 
@@ -71,7 +71,7 @@ LEDGER = HERE / "manual_review" / "expected_issue_set.json"
 
 _CELL = re.compile(r"^(\d{4})-(claude|gpt)$")
 
-#: `HIT_CRITERION.md` §3 的四种成立形态，逐字取自该文件。人工判命中时必须点名其中一种。
+#: `docs/protocol/hit_criterion.md` §3 的四种成立形态，逐字取自该文件。人工判命中时必须点名其中一种。
 #:
 #: 闭集是这道闸的全部力量所在：一个不属于任何形态的「等价性论证」就是没有论证。
 EQUIVALENCE_FORMS = (
@@ -345,7 +345,7 @@ def apply_human(built: dict[str, Any], verdicts: dict[str, Any]) -> dict[str, An
         if form not in EQUIVALENCE_FORMS:
             problems.append(
                 f"{key}: 人工判命中但 equivalence_form={form!r} 不在 "
-                f"HIT_CRITERION §3 的四种形态内：{list(EQUIVALENCE_FORMS)}"
+                f"docs/protocol/hit_criterion.md §3 的四种形态内：{list(EQUIVALENCE_FORMS)}"
             )
         if len(argument) < 20:
             problems.append(

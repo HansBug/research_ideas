@@ -7,11 +7,11 @@ from types import SimpleNamespace
 
 import pytest
 
-import method.feedback.cascade as feedback_cascade
-import method.loop as loop
-from method.agents.repair import repair_model
-import method.schema as schema
-from method.schema import (
+import archive.agent_loop_method.feedback.cascade as feedback_cascade
+import archive.agent_loop_method.loop as loop
+from archive.agent_loop_method.agents.repair import repair_model
+import archive.agent_loop_method.schema as schema
+from archive.agent_loop_method.schema import (
     AgentLoopRunRecord,
     BudgetState,
     DesignDiagnosticItem,
@@ -35,8 +35,8 @@ from method.schema import (
     StageResultMeta,
     StepResult,
 )
-from method.stages import ids
-from method.stages.ids import (
+from archive.agent_loop_method.stages import ids
+from archive.agent_loop_method.stages.ids import (
     ALL_STAGE_SPECS,
     FEEDBACK_SOURCE_TO_STAGE_ID,
     STAGE_SPECS_BY_ID,
@@ -47,8 +47,8 @@ from method.stages.ids import (
 )
 
 
-REPO = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method"
+REPO = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 
 
 def ok_meta(stage_id: StageId | str, kind: StageKind | str = StageKind.DETERMINISTIC) -> StageResultMeta:
@@ -842,7 +842,7 @@ def test_canonical_run_agent_loop_default_full_staged_writes_auditable_record(mo
     assert result.run_record_path is not None
     assert result.resolved_config["condition_id"] == "full_staged_v1"
     assert result.planned_stage_graph["planned"][0] == "SC-0"
-    from method.run_record import read_agent_loop_run_record, is_path_result_eligible
+    from archive.agent_loop_method.run_record import read_agent_loop_run_record, is_path_result_eligible
 
     record = read_agent_loop_run_record(result.run_record_path)
     assert record.status == "error"
@@ -928,7 +928,7 @@ def test_direct_non_default_loop_config_requires_academic_question(monkeypatch: 
         run_id="iter3-contract",
     )
     result = loop.run_agent_loop("NL", cfg)
-    from method.run_record import read_agent_loop_run_record
+    from archive.agent_loop_method.run_record import read_agent_loop_run_record
 
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert result.resolved_config["academic_question"] == "迭代预算从 5 降到 3 是否影响收敛率？"
@@ -1004,7 +1004,7 @@ def test_run_cascade_materializes_missing_scenarios_as_sim_error(monkeypatch) ->
 
 
 def test_scenariogen_failure_root_cause_is_preserved_without_repair(tmp_path: Path) -> None:
-    from method.staged_runtime import (
+    from archive.agent_loop_method.staged_runtime import (
         FullStagedRuntimeConfig,
         build_full_staged_runtime_adapters,
         run_full_staged_deterministic_runtime,
@@ -1070,7 +1070,7 @@ state Root {
         ),
     )
 
-    from method.run_record import read_agent_loop_run_record
+    from archive.agent_loop_method.run_record import read_agent_loop_run_record
 
     record = read_agent_loop_run_record(result.run_record_path or "")
 
@@ -1086,11 +1086,11 @@ state Root {
 
 
 def test_iter_trace_persists_feedback_stage_results_without_removed_full_loop(tmp_path: Path) -> None:
-    from method.experiments.ablation.deterministic_loop import (
+    from archive.agent_loop_method.experiments.ablation.deterministic_loop import (
         DeterministicLoopConfig,
         run_deterministic_ablation_loop,
     )
-    from method.run_record import read_agent_loop_run_record
+    from archive.agent_loop_method.run_record import read_agent_loop_run_record
 
     result = run_deterministic_ablation_loop(
         "The controller may move between Idle and Active without external events.",

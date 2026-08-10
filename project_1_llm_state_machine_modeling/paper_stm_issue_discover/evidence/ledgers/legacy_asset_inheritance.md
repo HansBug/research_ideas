@@ -8,9 +8,9 @@
 
 | 资产 | 当前状态 | 可复用内容 | 不可继承内容 |
 |---|---|---|---|
-| [../../paper_v1/README.md](../../../paper_v1/README.md) | `main` 已有历史入口 | 2026-05 Direction-Decision Sprint 背景。 | “第一篇仍在 Path-1/Path-2 决策阶段”的当前性口径。 |
-| [../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md) | `main` 已有历史 guide | baseline hard comparison 的风险、旧实验边界线索。 | 把第一篇继续写成 direct `NL -> STM` hard comparison。 |
-| [../../paper_v1/PATH2_DIFFERENTIATION_GUIDE.md](../../../paper_v1/PATH2_DIFFERENTIATION_GUIDE.md) | `main` 已有历史 guide | 控制系统差异化、数据来源线索。 | 把 Path-2 直接压回第一篇主线。 |
+| [../../paper_v1/README.md](../../../archive/path1_path2_guides/README.md) | `main` 已有历史入口 | 2026-05 Direction-Decision Sprint 背景。 | “第一篇仍在 Path-1/Path-2 决策阶段”的当前性口径。 |
+| [../../paper_v1/PATH1_HARD_COMPARISON_GUIDE.md](../../../archive/path1_path2_guides/PATH1_HARD_COMPARISON_GUIDE.md) | `main` 已有历史 guide | baseline hard comparison 的风险、旧实验边界线索。 | 把第一篇继续写成 direct `NL -> STM` hard comparison。 |
+| [../../paper_v1/PATH2_DIFFERENTIATION_GUIDE.md](../../../archive/path1_path2_guides/PATH2_DIFFERENTIATION_GUIDE.md) | `main` 已有历史 guide | 控制系统差异化、数据来源线索。 | 把 Path-2 直接压回第一篇主线。 |
 | PR #93 `path1_foundation/` | #93 分支局部 | “入口 + story + evidence + experiment_design + plan”的分层经验。 | 目录所有权、旧 `NL -> STM` story、旧文件事实状态。 |
 | PR #94 direct baseline 盘点 | #93 分支局部 | baseline 反证、候选 prior artifact 线索。 | 未经 R1 复核即写成可运行 / 可转换 / 可比较。 |
 | PR #96 旧 story 重构 | #93 分支局部 | claim gate、弱化 DSL、outline 的可复用论证。 | 旧 S0a 主线和未进 `main` 的文件状态。 |

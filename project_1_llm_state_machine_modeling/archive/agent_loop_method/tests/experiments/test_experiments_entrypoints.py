@@ -11,17 +11,17 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+REPO_ROOT = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 
 ENTRYPOINT_PAIRS = [
-    ("method.pr_e1_real_runs", "method.experiments.real_run_matrix"),
-    ("method.pr_lg_f1_resume_experiment", "method.experiments.checkpoint_resume"),
-    ("method.pr_d_representative", "method.experiments.representative_cases"),
+    ("archive.agent_loop_method.pr_e1_real_runs", "archive.agent_loop_method.experiments.real_run_matrix"),
+    ("archive.agent_loop_method.pr_lg_f1_resume_experiment", "archive.agent_loop_method.experiments.checkpoint_resume"),
+    ("archive.agent_loop_method.pr_d_representative", "archive.agent_loop_method.experiments.representative_cases"),
 ]
 
 USED_SYMBOLS = {
-    "method.pr_e1_real_runs": [
+    "archive.agent_loop_method.pr_e1_real_runs": [
         "PrE1RunSummary",
         "condition_specs",
         "make_pr_e1_config",
@@ -36,11 +36,11 @@ USED_SYMBOLS = {
         "_inject_pr_e1_quality_boundary",
         "main",
     ],
-    "method.pr_lg_f1_resume_experiment": [
+    "archive.agent_loop_method.pr_lg_f1_resume_experiment": [
         "build_lg_f1_mock_adapters",
         "main",
     ],
-    "method.pr_d_representative": [
+    "archive.agent_loop_method.pr_d_representative": [
         "FULL_STAGED_REQUIRED_STAGE_IDS",
         "RepresentativeCase",
         "_schema_validation_error",
@@ -156,9 +156,9 @@ def test_lg_m1_c1_repo_root_package_entrypoints_exit_zero_without_pythonpath() -
 
 def test_lg_m1_c1_experiment_implementations_do_not_import_legacy_shims() -> None:
     forbidden_modules = {
-        "method.pr_e1_real_runs",
-        "method.pr_lg_f1_resume_experiment",
-        "method.pr_d_representative",
+        "archive.agent_loop_method.pr_e1_real_runs",
+        "archive.agent_loop_method.pr_lg_f1_resume_experiment",
+        "archive.agent_loop_method.pr_d_representative",
     }
     for path in sorted((METHOD_ROOT / "experiments").glob("*.py")):
         if path.name == "__init__.py":

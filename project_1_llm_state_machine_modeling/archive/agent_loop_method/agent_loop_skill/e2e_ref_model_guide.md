@@ -2,17 +2,17 @@
 
 本文件用于 PR-E2：让 Codex / Claude Code 类 agent 在**不调用顶层 agent-loop runtime** 的前提下，基于 repo-local skill / toolbox 自主完成“NL + 论文子路径 -> FCSTM/pyfcstm ref model 候选”的 e2e 建模、验证、修复和留痕。
 
-> **LG-M1-F provenance note（2026-06-08）**：本指南保留 PR-E2 / PR-skill-fix 的历史 e2e ref-model skill 流程。第 1.3 条“修改范围只限 `agent_loop_skill/`”是 PR-skill-fix 当时的实现约束；LG-M1-F 的 docs/provenance sweep 允许同步更新 method README / ARCHITECTURE / STATUS / handoff docs / skill docs，但仍不得修改 runtime、prompt、provider、FixLog、run record 或真实 evidence。当前程序化入口仍以 `method.stages.api`、`method.stages.sc_control`、`method.stages.sl_prompt_api` 为准。
+> **LG-M1-F provenance note（2026-06-08）**：本指南保留 PR-E2 / PR-skill-fix 的历史 e2e ref-model skill 流程。第 1.3 条“修改范围只限 `agent_loop_skill/`”是 PR-skill-fix 当时的实现约束；LG-M1-F 的 docs/provenance sweep 允许同步更新 method README / ARCHITECTURE / STATUS / handoff docs / skill docs，但仍不得修改 runtime、prompt、provider、FixLog、run record 或真实 evidence。当前程序化入口仍以 `archive.agent_loop_method.stages.api`、`archive.agent_loop_method.stages.sc_control`、`archive.agent_loop_method.stages.sl_prompt_api` 为准。
 
 ## 0.1 PR-M3 codex exec 标准实验入口补充
 
-PR-M3 的 `codex exec` 标准实验入口在本指南基础上增加了可复跑 harness、`codex exec --json` event stream、脱敏配置合同、机器可审计 artifact package 与人类友好 `report.md` 要求；详见 [codex_exec_experiment_guide.md](./codex_exec_experiment_guide.md)。PR-M3 仍遵守本文件的 E2 边界：不调用顶层 `method.loop.run_agent_loop(...)`，而是让 mature agent 使用 skill/toolbox 自主完成建模、检查、修复与 NFRR。
+PR-M3 的 `codex exec` 标准实验入口在本指南基础上增加了可复跑 harness、`codex exec --json` event stream、脱敏配置合同、机器可审计 artifact package 与人类友好 `report.md` 要求；详见 [codex_exec_experiment_guide.md](./codex_exec_experiment_guide.md)。PR-M3 仍遵守本文件的 E2 边界：不调用顶层 `archive.agent_loop_method.loop.run_agent_loop(...)`，而是让 mature agent 使用 skill/toolbox 自主完成建模、检查、修复与 NFRR。
 
 ## 1. 硬性边界
 
-1. **禁止调用顶层 agent-loop runtime**：不得调用 `method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
+1. **禁止调用顶层 agent-loop runtime**：不得调用 `archive.agent_loop_method.loop.run_agent_loop(...)`、PR-D representative runner 或任何一键 full staged runner。
 2. **允许调用底层工具箱**：可以调用 `SD-*` deterministic tools、`SL-*` prompt generators、pyfcstm parse/build/inspect/sim utilities，以及仓库内只读论文材料。
-3. **修改范围**：PR-skill-fix 默认只允许改 `project_1_llm_state_machine_modeling/method/agent_loop_skill/` 及其子路径。`agent_loop_skill/stages/*.md` 多为指向共享 `method/stages/docs/` 的 symlink，本 PR 默认把这些 target 视为只读；如发现旧口径，优先在 skill 路径内用 wrapper guide / index / health check 修正，不直接突破范围修改共享 stage docs。
+3. **修改范围**：PR-skill-fix 默认只允许改 `project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/` 及其子路径。`agent_loop_skill/stages/*.md` 多为指向共享 `archive/agent_loop_method/stages/docs/` 的 symlink，本 PR 默认把这些 target 视为只读；如发现旧口径，优先在 skill 路径内用 wrapper guide / index / health check 修正，不直接突破范围修改共享 stage docs。
 4. **质量优先**：允许 Codex / Claude Code 长时间运行。时间限制只用于防止死锁或 CLI 挂死，不应用来牺牲论文阅读、验证或 repair 质量。
 5. **证据留痕**：每个样本的输入、读取路径、候选模型、检查反馈、修复轨迹和最终判断都必须能写入 PR comment。
 6. **NFRR 必填**：每个样本必须按 [nfrr_evaluation_guide.md](./nfrr_evaluation_guide.md) 给出 NFRR claim、八维 vector、tier、cap reasons、allowed_use 与 `calibration_status=uncalibrated_candidate_gate`。
@@ -29,7 +29,7 @@ Path 类别: Path-1 或 Path-2
 NL 片段: 可来自 eval/data/sources/<case>/nl.md 或 sources/<case>/STM.md / DESC.md 中整理出的需求片段
 论文子路径: project_1_llm_state_machine_modeling/sources/<case>/
 目标: 产出 FCSTM/pyfcstm ref model 候选，并记录验证/修复轨迹
-禁止: 不得调用 method.loop.run_agent_loop 或一键 runner
+禁止: 不得调用 archive.agent_loop_method.loop.run_agent_loop 或一键 runner
 ```
 
 论文子路径通常应包含：
@@ -57,11 +57,11 @@ bibtex.bib -> STM.md / DESC.md -> paper_content.txt -> paper.pdf（必要时核�
 读取：
 
 ```text
-project_1_llm_state_machine_modeling/method/agent_loop_skill/SKILL.md
-project_1_llm_state_machine_modeling/method/agent_loop_skill/tools.md
-project_1_llm_state_machine_modeling/method/agent_loop_skill/prompts.md
-project_1_llm_state_machine_modeling/method/agent_loop_skill/nfrr_evaluation_guide.md
-project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
+project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/SKILL.md
+project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/tools.md
+project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/prompts.md
+project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/nfrr_evaluation_guide.md
+project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/stages/
 ```
 
 输出记录：列出实际读取的 skill 文件。`SKILL.md` / `CLAUDE.md` 当前是指向 `AGENT_LOOP_SKILL.md` 的软链接；如果 agent 环境无法跟随 symlink，应直接读取 `AGENT_LOOP_SKILL.md`，并在 PR comment 中说明这是入口解析差异而不是 skill 缺失。
@@ -100,8 +100,8 @@ project_1_llm_state_machine_modeling/method/agent_loop_skill/stages/
 - 外部传感输入优先用显式事件更新、环境采样 aspect、或 `int/float` 变量 + 清晰 PR comment 说明来建模；不要用无意义 self-assignment 只为消警。
 
 ```python
-from method.schema import StageContext, TestScenario, ScenarioSet
-from method.stages.sd_tools import (
+from archive.agent_loop_method.schema import StageContext, TestScenario, ScenarioSet
+from archive.agent_loop_method.stages.sd_tools import (
     freeze_scenario_set,
     run_sd2_parse,
     run_sd3_semantic,
@@ -383,7 +383,7 @@ reviewer 的 review 范畴包括：
 - 论文子路径：`project_1_llm_state_machine_modeling/sources/<case>/`
 - NL 来源：`...`
 - skill 入口：`agent_loop_skill/SKILL.md` 或 `agent_loop_skill/CLAUDE.md`
-- 禁止调用检查：未调用 `method.loop.run_agent_loop(...)` / 未调用一键 runner
+- 禁止调用检查：未调用 `archive.agent_loop_method.loop.run_agent_loop(...)` / 未调用一键 runner
 
 ### 读取材料
 
@@ -455,7 +455,7 @@ reviewer 的 review 范畴包括：
 
 | 误用 | 影响 | review 等级 |
 |---|---|---|
-| 调用 `method.loop.run_agent_loop(...)` 产出模型 | 不是 PR-E2 skill evidence | C |
+| 调用 `archive.agent_loop_method.loop.run_agent_loop(...)` 产出模型 | 不是 PR-E2 skill evidence | C |
 | 未读取 skill，只凭 issue comment 工作 | 无法证明 repo-local skill 可用 | I |
 | 未读取论文路径或 NL 来源不清 | ref-model grounding 不可信 | I |
 | 不运行任何 parse/semantic/design/sim/review 检查 | 质量证据不足 | I |

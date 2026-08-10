@@ -14,10 +14,10 @@ import re
 from dataclasses import asdict
 from typing import Any, Iterable, Literal
 
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
-from method.feedback.sim import check_sim
-from method.schema import (
+from archive.agent_loop_method.feedback.parse import check_parse
+from archive.agent_loop_method.feedback.semantic import check_semantic
+from archive.agent_loop_method.feedback.sim import check_sim
+from archive.agent_loop_method.schema import (
     BudgetState,
     DesignDiagnosticItem,
     DesignFeedback,
@@ -38,8 +38,8 @@ from method.schema import (
     StageResultMeta,
     TestScenario,
 )
-from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
-from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
+from archive.agent_loop_method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
 
 DesignPolicyProfile = Literal["experiment_default", "generated_candidate", "signed_ref_model", "path_smoke", "audit_only"]
 
@@ -682,7 +682,7 @@ def run_sd4_design(
 
 
 def run_sd5a_scenario_coverage(current_dsl: str, scenarios: Iterable[Any]) -> tuple[dict[str, Any], StageResultMeta]:
-    from method.scenariogen_validate import coverage_directive, validate_coverage
+    from archive.agent_loop_method.scenariogen_validate import coverage_directive, validate_coverage
 
     scenario_list = list(scenarios or [])
     coverage_report = validate_coverage(current_dsl, scenario_list)

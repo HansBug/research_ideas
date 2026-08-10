@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from method.gpt_client import chat
+from archive.agent_loop_method.gpt_client import chat
 
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "multistep" / "build_pyfcstm.txt"

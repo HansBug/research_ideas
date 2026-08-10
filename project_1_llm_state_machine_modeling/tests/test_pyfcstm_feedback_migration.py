@@ -6,9 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from archive.path1_evaluation.extract.pyfcstm import extract_pyfcstm
-from method.agents.scenariogen.generate import _extract_model_elements
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
+from archive.agent_loop_method.agents.scenariogen.generate import _extract_model_elements
+from archive.agent_loop_method.feedback.parse import check_parse
+from archive.agent_loop_method.feedback.semantic import check_semantic
 from archive.path1_path2_guides.selection.ref_stms.verify_pyfcstm_static import _EXTERNAL_RE, _severity, analyze
 from pyfcstm.utils.validate import ModelDiagnostic
 

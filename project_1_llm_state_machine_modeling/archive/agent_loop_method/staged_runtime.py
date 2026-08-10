@@ -5,7 +5,7 @@ canonical full staged loop.  It does not call real providers and it does not rea
 ``.env``/process provider configuration.  SL stages are supplied through
 explicit adapters so PR-B1 can prove the stage ordering, repair revalidation,
 weak-oracle eligibility, and run-record trace semantics before PR-B2/PR-C wire
-real LLM adapters into the canonical ``method.loop`` entry point.
+real LLM adapters into the canonical ``archive.agent_loop_method.loop`` entry point.
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
-from method.schema import (
+from archive.agent_loop_method.run_record import agent_loop_run_record_path, write_agent_loop_run_record
+from archive.agent_loop_method.schema import (
     AgentLoopResult,
     AgentLoopRunRecord,
     BudgetState,
@@ -54,9 +54,9 @@ from method.schema import (
     StageResultMeta,
     TestScenario,
 )
-from method.stages.ids import ALL_STAGE_SPECS, FEEDBACK_SOURCE_TO_STAGE_ID, FeedbackSource, StageId, StageStatus, STAGE_SPECS_BY_ID
-from method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
-from method.stages.sd_tools import (
+from archive.agent_loop_method.stages.ids import ALL_STAGE_SPECS, FEEDBACK_SOURCE_TO_STAGE_ID, FeedbackSource, StageId, StageStatus, STAGE_SPECS_BY_ID
+from archive.agent_loop_method.stages.sd_tools import freeze_scenario_set, mark_warning_repair_attempt, run_sd8_fix_plan
+from archive.agent_loop_method.stages.sd_tools import (
     run_sd2_parse,
     run_sd3_semantic,
     run_sd4_design,
@@ -1545,7 +1545,7 @@ def _environment(cfg: FullStagedRuntimeConfig) -> dict[str, Any]:
         "git_commit": _git_commit(),
         "python_version": platform.python_version(),
         "platform": platform.platform(),
-        "runner": "method.staged_runtime.run_full_staged_deterministic_runtime",
+        "runner": "archive.agent_loop_method.staged_runtime.run_full_staged_deterministic_runtime",
         "adapter_mode": cfg.adapter_mode,
         "provider_mode": provider_mode,
         "real_llm_provider_api": bool(cfg.real_llm_provider_api),
@@ -4967,7 +4967,7 @@ def _build_record(
     redaction_failed = False
     redaction_failure_message: str | None = None
     try:
-        from method.llm_stages import redact_run_record_payload
+        from archive.agent_loop_method.llm_stages import redact_run_record_payload
 
         redacted_payload, payload_report = redact_run_record_payload(raw_payload)
         raw_payload = redacted_payload

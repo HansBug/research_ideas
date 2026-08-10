@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from method.stages.sl_prompt_common import fenced_json, fenced_text, message_pack, parse_json_response, require_one_of
+from archive.agent_loop_method.stages.sl_prompt_common import fenced_json, fenced_text, message_pack, parse_json_response, require_one_of
 
 DELTA_REVIEW_DECISIONS = {"accept", "reject", "revise"}
 DELTA_REVIEW_RISKS = {"none", "minor", "major"}

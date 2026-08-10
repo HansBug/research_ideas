@@ -106,7 +106,7 @@ def extract_pyfcstm(dsl_text: str) -> ComponentSet:
     """Parse DSL, inspect the model, and build a 5-component IR.
 
     Raises if DSL fails parse / sem. Callers using potentially broken DSL
-    should pre-gate with ``method.feedback.parse`` / ``semantic``.
+    should pre-gate with ``archive.agent_loop_method.feedback.parse`` / ``semantic``.
     """
     from pyfcstm.dsl import parse_with_grammar_entry
     from pyfcstm.model import parse_dsl_node_to_state_machine

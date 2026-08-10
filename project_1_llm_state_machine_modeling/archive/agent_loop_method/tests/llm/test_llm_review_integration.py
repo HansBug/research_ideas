@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
-from method.schema import GroundedElement, GroundingMap, TestScenario
-from method.stages.ids import StageId
+from archive.agent_loop_method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from archive.agent_loop_method.schema import GroundedElement, GroundingMap, TestScenario
+from archive.agent_loop_method.stages.ids import StageId
 
 
 DEADLOCK_DSL = """

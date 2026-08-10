@@ -38,7 +38,7 @@ if str(HERE) not in sys.path:
 
 import metrics_at_k as mk  # noqa: E402
 
-#: 只剩一个分母。分带随 hold-out 于 2026-08-09 一并废止（METHOD_PROVENANCE_POLICY.md §一.1），
+#: 只剩一个分母。分带随 hold-out 于 2026-08-09 一并废止（docs/protocol/method_provenance_policy.md §一.1），
 #: 台账全部记录同等参与度量，没有哪一条因为参与过规则编写而被单独成带或剔出分母。
 BAND_TITLES = {"hold": "可报告记录（{n} 条）"}
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
@@ -151,8 +151,8 @@ def render(payload: dict, generation: str, rounds: int) -> str:
     )
     out.append(
         "判定口径见 "
-        "[`V21_PREREGISTERED_CALIBRE.md`](../../../project_1_llm_state_machine_modeling/"
-        "eval/discover_matrix/V21_PREREGISTERED_CALIBRE.md)。\n"
+        "[`preregistered_calibre.md`](../../../project_1_llm_state_machine_modeling/"
+        "paper_stm_issue_discover/discover_matrix/docs/generations/v21/preregistered_calibre.md)。\n"
     )
 
     header = ["记录", "层", "缺陷简述", *[f"r{i}" for i in range(1, rounds + 1)], "备注"]

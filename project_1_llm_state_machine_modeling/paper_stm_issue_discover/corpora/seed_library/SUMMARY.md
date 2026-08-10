@@ -4,7 +4,7 @@
 
 本 SUMMARY 是种子文库的研究结论与统计摘要入口；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 和单条目 `seed_resource_registry.json` 为准。
 
-核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；[selected_seed_examples/README.md](../../selected_seed_examples/README.md) 已将当前四个 smoke 用代表性种子样例整理到 `paper_stm_repair/` 根路径，但四例不是最终实验集合或主结果样本上限。
+核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；[selected_seed_examples/README.md](../../selected_seed_examples/README.md) 已将当前四个 smoke 用代表性种子样例整理到 `paper_stm_issue_discover/` 根路径，但四例不是最终实验集合或主结果样本上限。
 
 ### 1.1 三类文库关系
 

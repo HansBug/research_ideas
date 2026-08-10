@@ -113,7 +113,7 @@
 校验入口：
 
 ```bash
-python project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library/tools/validate_seed_assets.py unified-uml-multimodal-validation
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/corpora/seed_library/tools/validate_seed_assets.py unified-uml-multimodal-validation
 ```
 
 JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_resource_registry.schema.json) 与 [schemas/assets_manifest.schema.json](./schemas/assets_manifest.schema.json)。

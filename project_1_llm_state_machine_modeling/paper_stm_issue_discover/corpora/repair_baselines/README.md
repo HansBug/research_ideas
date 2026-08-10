@@ -1,8 +1,24 @@
 # repair_baselines — STM 修正任务 baseline / 近邻工作文库
 
+> 🟡 **本子库服务相关工作与后续论文，不是 paper1 的 baseline 对照。**
+>
+> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
+> 因此本目录 24 个入库条目的角色变了：
+>
+> | 用途 | 现状 |
+> | :-- | :-- |
+> | paper1 的 §Related Work | 🟢 可用。用于说明「现有 detection 方法报告错误但缺少错误的上下文信息」这条差异化叙述 |
+> | paper1 的实验 baseline 对照 | 🔴 不适用。本文不做 repair，无从对照 |
+> | 后续 repair 论文的 baseline 储备 | 🟢 这是它现在的主要长期价值 |
+>
+> ⚠️ **下文所有「source-level issue discovery / repair / closure 主线」措辞是本文库自身的
+> 收录口径，不代表 paper1 的主张。** paper1 的贡献口径见 [../../README.md](../../README.md) §2；
+> 「多轮 Repair-Confirm」「B-final」「closure / regression 作为主线」这类表述在 paper1 语境下均已作废。
+> 本文库的收录标准不因此变化——repair 近邻工作仍然照原标准收。
+
 ## 0. 定位
 
-本目录是第一篇论文 `paper_stm_repair` 的 **repair baselines / near-miss related work** 文库，服务于 source-level issue discovery / repair / closure 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
+本目录是第一篇论文 `paper_stm_issue_discover` 的 **repair baselines / near-miss related work** 文库，服务于 source-level issue discovery / repair / closure 主线。它只回答一个问题：已有工作在“已有模型之后的修正、补全、refinement、consistency fixing、verification / simulation / diagnostic feedback、LLM / agentic repair loop”上做到了什么。
 
 **核心边界**：这里不是 `NL -> STM_0` generation baseline 的改名。能写成本文 baseline 的工作必须满足 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure / regression evidence`，且 `STM_0` 明确由同一 `NL` 生成 / 派生。只提供上游 `<NL, STM_0>` 的工作应登记在 [../seed_library/](../seed_library/)；只有 `STM + error / tests / oracle / diagnostics` 的 repair 工作只能作为 near-neighbor / related work；纯控制系统自然语言来源应留给 [../nl_datasets/](../nl_datasets/)。同一篇论文如果既能提供 seed，又包含 repair / feedback 环节，应在 seed 文库记录 seed 关系，在本目录记录 repair 能力，并相互交叉链接。
 

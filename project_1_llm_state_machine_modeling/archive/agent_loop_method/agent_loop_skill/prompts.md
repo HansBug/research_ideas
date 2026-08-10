@@ -1,6 +1,6 @@
 # SL prompt generators
 
-PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑定内部 LLM wrapper。仓库内部 `agents/*` wrapper 也复用同一 prompt generator，避免 prompt drift。程序化调用优先从 `method.stages.sl_prompt_api` 或总 façade `method.stages.api` 导入；`method.stages.sl_prompt_common` 是多个 SL prompt module 共享的底层 schema/format helper，不是面向 skill 的 API。
+PR-1B 约定：`SL-*` 只暴露 prompt generator / stage spec / schema，不绑定内部 LLM wrapper。仓库内部 `agents/*` wrapper 也复用同一 prompt generator，避免 prompt drift。程序化调用优先从 `archive.agent_loop_method.stages.sl_prompt_api` 或总 façade `archive.agent_loop_method.stages.api` 导入；`archive.agent_loop_method.stages.sl_prompt_common` 是多个 SL prompt module 共享的底层 schema/format helper，不是面向 skill 的 API。
 
 
 ## PR-E2 外部 agent 使用方式
@@ -17,7 +17,7 @@ PR-E2 的最终模型评审必须使用 [nfrr_evaluation_guide.md](./nfrr_evalua
 
 - prompt generator 只返回 message pack 或 markdown prompt。
 - prompt generator 不调用 LLM、不读取 `.env`、不绑定 provider。
-- 真实 provider 调用、ReviewRunMeta/interaction record wiring 属于 PR-B2 的 `method.llm_stages`；top-down driver 与 run record 完整写入属于 PR-B1/PR-C。
+- 真实 provider 调用、ReviewRunMeta/interaction record wiring 属于 PR-B2 的 `archive.agent_loop_method.llm_stages`；top-down driver 与 run record 完整写入属于 PR-B1/PR-C。
 - `GroundingMap`、`FixRequestBatch`、`FixLog`、`ScenarioSet` 等输入默认由上游提供 schema-valid 对象；PR-1B/PR-E1 只消费并格式化它们，不负责生产。
 
 ## Generator 列表
@@ -52,6 +52,6 @@ SD-8 legacy FixPlan/RevisedFixPlan
 
 ## PR-B2 adapter trace 补充
 
-`method.llm_stages` 对每个 SL stage 都会记录：`prompt_messages`、`raw_output`、`parsed_output`、`schema_validation_ok/error`、`usage`、`provider/model`、`attempts`、`retry_error`、prompt/input/raw hash 与 redaction report。
+`archive.agent_loop_method.llm_stages` 对每个 SL stage 都会记录：`prompt_messages`、`raw_output`、`parsed_output`、`schema_validation_ok/error`、`usage`、`provider/model`、`attempts`、`retry_error`、prompt/input/raw hash 与 redaction report。
 
 注意：`SL-5` 的 coverage directive retry 由 `SD-5A` / runtime 决定何时触发；PR-B2 只保证带 directive 的 `SL-5` LLM call 可重放、可审计。`SL-9` 中的 `suggested_fix` 永远是 context hint，不是强制编辑命令；PR-E1 后 `SL-9` 还必须读取 FixLog，避免重复修复已被 waiver/reject 的 request。

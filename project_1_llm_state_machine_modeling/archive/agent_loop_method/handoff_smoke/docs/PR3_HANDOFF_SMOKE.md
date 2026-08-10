@@ -27,7 +27,7 @@
 ```bash
 source .env
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  venv/bin/python -m method.handoff_smoke.runner \
+  venv/bin/python -m archive.agent_loop_method.handoff_smoke.runner \
   --real-llm \
   --out runs/pr3_handoff_smoke \
   --summary runs/pr3_handoff_smoke/summary.json \

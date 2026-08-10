@@ -9,12 +9,12 @@ agent loop.
 
 from __future__ import annotations
 
-from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
-from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
-from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
-from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, compact_sl7_review_input, parse_sl7_model_review_response
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.sl_scenario_generation_prompt import (
+from archive.agent_loop_method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
+from archive.agent_loop_method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
+from archive.agent_loop_method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
+from archive.agent_loop_method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, compact_sl7_review_input, parse_sl7_model_review_response
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
     compact_sl5_design_summary_for_prompt,
     compact_sl5_inspect_for_prompt,

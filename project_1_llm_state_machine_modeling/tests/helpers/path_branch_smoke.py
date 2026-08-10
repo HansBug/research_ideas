@@ -21,9 +21,9 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "project_1_llm_state_machine_modeling"))
 
 from archive.path1_evaluation.extract.pyfcstm import extract_pyfcstm
-from method.agents.scenariogen.generate import _extract_model_elements
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
+from archive.agent_loop_method.agents.scenariogen.generate import _extract_model_elements
+from archive.agent_loop_method.feedback.parse import check_parse
+from archive.agent_loop_method.feedback.semantic import check_semantic
 from archive.path1_path2_guides.selection.ref_stms.verify_pyfcstm_static import analyze
 
 ARTIFACT_ROOT = Path("/tmp/pr13_artifacts")

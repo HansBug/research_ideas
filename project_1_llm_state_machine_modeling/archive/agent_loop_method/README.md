@@ -1,6 +1,6 @@
-# `method/` — Agent Loop method package（功能入口与证据边界）
+# `archive/agent_loop_method/` — Agent Loop method package（功能入口与证据边界）
 
-> **位置**：`project_1_llm_state_machine_modeling/method/`
+> **位置**：`project_1_llm_state_machine_modeling/archive/agent_loop_method/`
 >
 > **服务对象**：Project 1 的 NL → pyfcstm / FCSTM 状态机建模 agent-loop 基础设施，供 Path 1 hard comparison、Path 2 differentiation、repo-local skill/ref-model 生产与后续 verification/repair 研究复用。
 >
@@ -12,21 +12,21 @@
 
 | 领域 | 当前推荐入口 | 用途 | 历史 / compatibility 说明 |
 |---|---|---|---|
-| 默认完整 agent loop | [`loop.py`](./loop.py) 中 `method.loop.run_agent_loop(...)` | Path1/Path2 主 agent-loop runtime；默认 LangGraph full staged path | 旧 A0-A4 loop 已退出 active API；不要调用 `method.legacy_loop` |
+| 默认完整 agent loop | [`loop.py`](./loop.py) 中 `archive.agent_loop_method.loop.run_agent_loop(...)` | Path1/Path2 主 agent-loop runtime；默认 LangGraph full staged path | 旧 A0-A4 loop 已退出 active API；不要调用 `archive.agent_loop_method.legacy_loop` |
 | Stage deterministic / control API | [`stages/api.py`](./stages/api.py)、[`stages/sc_control.py`](./stages/sc_control.py) | Codex/Claude skill、工具箱、单 stage 检查与外部流程编排 | LG-M1-B 后的稳定 Pythonic API；不读 `.env`、不调用 provider |
 | SL prompt facade | [`stages/sl_prompt_api.py`](./stages/sl_prompt_api.py) | 生成 `SL-*` prompt / schema 输入，供外部 agent 自行调用 LLM | skill/ref-model producer 应走 prompt facade，而不是直接调用 full loop |
 | Real run matrix | [`experiments/real_run_matrix.py`](./experiments/real_run_matrix.py) | 真实四例/多样本运行与 evidence 汇总 | [`pr_e1_real_runs.py`](./pr_e1_real_runs.py) 仅为 compatibility shim |
 | Checkpoint / resume experiment | [`experiments/checkpoint_resume.py`](./experiments/checkpoint_resume.py) | checkpoint/resume smoke 与相关实验 | [`pr_lg_f1_resume_experiment.py`](./pr_lg_f1_resume_experiment.py) 仅为 compatibility shim |
 | Representative cases | [`experiments/representative_cases.py`](./experiments/representative_cases.py) | ABS / Elevator / CARA / LNG 等代表样本 catalog | [`pr_d_representative.py`](./pr_d_representative.py) 仅为 compatibility shim |
 | Deterministic ablation | [`experiments/ablation/deterministic_loop.py`](./experiments/ablation/deterministic_loop.py) | replay / deterministic / ablation 对照 | [`pr2a_loop.py`](./pr2a_loop.py) 仅为 compatibility shim |
-| LangGraph implementation | [`langgraph/`](./langgraph/) 与 [`langgraph_runtime.py`](./langgraph_runtime.py) | nodes、subgraphs、instrumentation、checkpoint、core runtime | `method.langgraph_runtime` 保持 public compatibility facade 与 run-record identity |
+| LangGraph implementation | [`langgraph/`](./langgraph/) 与 [`langgraph_runtime.py`](./langgraph_runtime.py) | nodes、subgraphs、instrumentation、checkpoint、core runtime | `archive.agent_loop_method.langgraph_runtime` 保持 public compatibility facade 与 run-record identity |
 | Tests | [`tests/`](./tests/) | method 单元/表征/contract 测试总入口 | LG-M1-E 后按 `stages/`、`langgraph/`、`experiments/`、`llm/`、`crosscutting/`、`handoff_smoke/`、`agent_loop_skill/` 镜像组织 |
-| Repo-local skill | [`agent_loop_skill/AGENT_LOOP_SKILL.md`](./agent_loop_skill/AGENT_LOOP_SKILL.md) | 给 Codex / Claude Code 使用 stage tools 与 prompt 规范 | skill 侧不得调用 `method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器 |
+| Repo-local skill | [`agent_loop_skill/AGENT_LOOP_SKILL.md`](./agent_loop_skill/AGENT_LOOP_SKILL.md) | 给 Codex / Claude Code 使用 stage tools 与 prompt 规范 | skill 侧不得调用 `archive.agent_loop_method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器 |
 | Handoff smoke | [`handoff_smoke/`](./handoff_smoke/) | 历史 PR-3 Path1/Path2 infrastructure compatibility smoke | 真实 provider 命令只用于显式 handoff smoke；当前最终四例 evidence 以 `experiments/real_run_matrix.py` retained runs 为准 |
 
 ## 1. 当前默认 runtime 语义
 
-`method.loop.run_agent_loop(nl, LoopConfig())` 是 canonical full staged runtime，默认解析为 `experiment_default/full_staged_v1` 并调用 LangGraph full staged path。默认 stage graph：
+`archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig())` 是 canonical full staged runtime，默认解析为 `experiment_default/full_staged_v1` 并调用 LangGraph full staged path。默认 stage graph：
 
 ```text
 SC-0 -> SL-1 -> SD-2 -> SD-3 -> SD-4 -> SL-5 -> SD-5A -> SC-5F -> SD-6 -> SL-7 -> SD-8 -> SL-9 -> SL-10 -> SC-11 -> SC-12 -> SC-13
@@ -59,7 +59,7 @@ LLM_MODEL     — 主跑模型名
 
 1. **只有真实 provider run**（例如 LG-M1-G 四例、handoff smoke `--real-llm`、正式 Path1/Path2 实验）才需要在 shell 中 `set -a; source .env; set +a`。
 2. docs/provenance scan、pytest collection、unit tests、skill health check 默认不得读取 `.env`、不得调用真实 provider。
-3. `method/gpt_client.py` 是仓库中唯一允许实例化 OpenAI-compatible client 的位置；所有 agent / baseline replication / judge adapter 均应注入或复用该 client。
+3. `archive/agent_loop_method/gpt_client.py` 是仓库中唯一允许实例化 OpenAI-compatible client 的位置；所有 agent / baseline replication / judge adapter 均应注入或复用该 client。
 4. stream 纪律、retry/timeout policy 与 `max_tokens=None` 口径属于 runtime/evidence contract；最终四例 retained evidence 已按该 contract 留档。
 
 ## 3. pyfcstm 集成方式
@@ -76,7 +76,7 @@ method 代码内一律以 `from pyfcstm.dsl import parse_with_grammar_entry` 等
 ## 4. 当前目录结构
 
 ```text
-method/
+archive/agent_loop_method/
 ├── README.md
 ├── ARCHITECTURE.md
 ├── STATUS.md
@@ -126,9 +126,9 @@ Compatibility shim（例如 [`pr_e1_real_runs.py`](./pr_e1_real_runs.py)、[`pr_
 ```bash
 source venv/bin/activate
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 ```
 
 LG-M1-F 的历史验收重点是 docs/provenance scan、旧路径清理、pytest collection/full method tests。当前 PR39/LG-M1-G final 已在其后补齐最终四例真实 provider retained evidence；不要再把 LG-M1-F 的 no-provider 边界误读为当前最终状态。
@@ -140,7 +140,7 @@ LG-M1-F 的历史验收重点是 docs/provenance scan、旧路径清理、pytest
 ```bash
 source venv/bin/activate
 set -a; source .env; set +a
-# 之后再调用 method.experiments.real_run_matrix 等真实 provider runner
+# 之后再调用 archive.agent_loop_method.experiments.real_run_matrix 等真实 provider runner
 ```
 
 PR comment 中不得回显 raw key / endpoint；必须报告脱敏 provider/model、run_id、artifact path、record status、verdict、eligibility 与 secret scan 结果。

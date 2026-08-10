@@ -5,7 +5,7 @@ PR-0/PR-1A 约定：`SD-*` 是确定性工具层，不调用 LLM、不读取 `.e
 
 ## PR-E2 skill-driven e2e 调用提醒
 
-PR-E2 的 agent 可以直接调用本页 `SD-*` deterministic tools 来检查候选模型，但不得把这些工具包在 `method.loop.run_agent_loop(...)` 或一键 runner 里间接执行。推荐最小顺序是：
+PR-E2 的 agent 可以直接调用本页 `SD-*` deterministic tools 来检查候选模型，但不得把这些工具包在 `archive.agent_loop_method.loop.run_agent_loop(...)` 或一键 runner 里间接执行。推荐最小顺序是：
 
 ```text
 run_sd2_parse -> run_sd3_semantic -> run_sd4_design -> SD-5A/SC-5F/SD-6 -> SD-8 FixRequestBatch -> SL-9 decision/repair -> SL-10 review -> 回到 SD-2
@@ -19,11 +19,11 @@ PR-E1 已将默认 repair 主链提升为 `FixRequestBatch + FixLog + SL-9 per-r
 
 ## Python 入口
 
-推荐从 skill-facing 总 façade `method.stages.api` 导入；若只需要 deterministic SD 工具，也可继续使用 `method.stages.sd_tools`。`agent_loop_skill/stages/` 中的 symlink 仅供人类阅读 stage 文档，不是程序化调用 API。
+推荐从 skill-facing 总 façade `archive.agent_loop_method.stages.api` 导入；若只需要 deterministic SD 工具，也可继续使用 `archive.agent_loop_method.stages.sd_tools`。`agent_loop_skill/stages/` 中的 symlink 仅供人类阅读 stage 文档，不是程序化调用 API。
 
 ```python
-from method.schema import StageContext
-from method.stages.api import (
+from archive.agent_loop_method.schema import StageContext
+from archive.agent_loop_method.stages.api import (
     freeze_scenario_set,
     mark_warning_repair_attempt,
     run_sd2_parse,
@@ -51,7 +51,7 @@ fix_plan, fix_meta = run_sd8_fix_plan(
 
 | Stage | 函数 | 输入 | 输出 | 说明 |
 |---|---|---|---|---|
-| `SD-2` | `run_sd2_parse(current_dsl, context=None)` | pyfcstm DSL | `ParseFeedback`, `StageResultMeta` | 复用 `method.feedback.parse.check_parse`。 |
+| `SD-2` | `run_sd2_parse(current_dsl, context=None)` | pyfcstm DSL | `ParseFeedback`, `StageResultMeta` | 复用 `archive.agent_loop_method.feedback.parse.check_parse`。 |
 | `SD-3` | `run_sd3_semantic(parse_ok_dsl, context=None)` | parse-ok DSL | `SemanticFeedback`, `StageResultMeta`, `BuildResult` | canonical build helper 写入 `StageContext.ast/model`，避免重复隐式构建。 |
 | `SD-4` | `run_sd4_design(context, policy_profile="generated_candidate")` | `StageContext.model`, warning budget | `DesignFeedback`, `StageResultMeta` | 消费 `inspect_model().to_json()`；E hard-block，high-risk W budgeted repair，I/info 入 trace。 |
 | `SD-5A` | `run_sd5a_scenario_coverage(current_dsl, scenarios)` | DSL + scenario candidates | coverage report, `StageResultMeta` | coverage probe；有缺口时给 retry directive。 |

@@ -1,50 +1,115 @@
-# model_scope.md — paper1 模型范围与行为表达边界
+# model_scope.md — 建模对象与行为表达边界
 
-## 1. 研究对象
+> 本文件回答论文 §Problem Formulation 里「我们说的状态机是什么」这一问。
+> 它是**问题定义**的一部分，不是样本取舍的辩护。
 
-本文研究对象是 existing raw/source state-machine artifacts，而不是某个特定 DSL 本身。`fcstm` / `pyfcstm` 只是在当前实现中承载中间可执行语义表示的工具介质。
+## 1. 建模对象
 
-## 2. Headline 范围
+本研究锚定的状态机形式为五元组
 
-| 范围 | 当前角色 | 说明 |
-|---|---|---|
-| discrete FSM | headline | 状态、事件、迁移是基础对象。 |
-| hierarchical state machine | headline | 允许 composite / nested state，但必须可 trace。 |
-| discrete UML/SysML-like statechart subset | headline | 作为 source artifact 形态进入；不声称覆盖 arbitrary UML/SysML。 |
-| EFSM-lite cues | careful / annotated | 变量、guard-like condition、action/effect 可作为 issue evidence，但需严格 source-level confirmation。 |
-| timer-like textual cue | caveat | 可作为 annotation 或 risk，不进入 timed automata headline。 |
-| timed / hybrid automata | out-of-scope headline | 当前 paper1 不主打 timed/hybrid 语义完整验证。 |
+$$
+M = (S, E, V, Tr, A)
+$$
 
-## 3. 可处理的行为表达
+即状态、事件、变量、迁移、动作。核心关注**层次结构、形式化语义、语义一致性**三件事。
 
-| 表达 | 可进入 issue lifecycle 的条件 |
-|---|---|
-| state / initial / final | raw/source 可定位，且与 NL 或行为路径有关。 |
-| transition | source element 可追踪，且有事件 / guard / action / target 语义影响。 |
-| event | 作为触发条件或外部输入；若 folded 了 guard/action，需要进一步确认是否为 issue。 |
-| guard-like condition | 需要与 NL、变量、路径或 source 语义对齐；不能因名字像 condition 就自动确认。 |
-| variable / data condition | 可作为 EFSM-lite evidence；需记录当前工具支持边界。 |
-| action / effect | 可作为行为结果或 side effect evidence；文本 action 需标注不确定性。 |
-| hierarchy | 可作为 scope / containment / transition semantics evidence；需 source trace。 |
-| annotation / comment | 只能辅助确认，不单独成为 confirmed issue。 |
+**它不含两样东西**，且这两样是硬边界：
 
-## 4. confirmed issue 的最低要求
+| 不含 | 相对通用时间状态机 $TSM$ 少了什么 | 后果 |
+| :-- | :-- | :-- |
+| 时钟变量与不变式 | $TSM$ 的 $C$ 与 $Inv$ | 「在所有时刻恒成立」「$n$ 秒内响应」这类形态按定义出界 |
+| 正交区并发语义 | 区（region）的并行活动 | fork / join、区内并行、区计数类主张按定义出界 |
 
-一个 confirmed source-level behavioral issue 至少需要：
+时间与并发相关的验证属**研究内容三**；本文不产出时钟与不变式，因此也不承担它们的验证。
 
-1. 对应 raw/source element 或明确缺失的 source-level behavior；
-2. 与 `NL` 或 raw/source 内部行为一致性之间的冲突、遗漏或不可闭合证据；
-3. 可审计的 evidence bundle，例如 diagnostics、simulation/probe、verification/check hint、trace、人工裁决说明；
-4. 明确说明它不是单纯 expression debt、conversion artifact 或中间表示 artifact。
+⚠️ 由此导出一条工程后果：`invariant` 谓词处在尴尬位置——它在闭合词表里，但它**最自然的
+用法（在所有时刻恒成立）出界**。v46 的越界类里正有 2 条是这么判掉的。
 
-## 5. 与历史 Better STM 框架的关系
+## 2. 边界如何在论文里出现
 
-Better STM 主框架已经 superseded。旧框架中的 no-regression、attribution boundary、anti-gaming 等纪律若后续有价值，必须从 cold archive / asset map 中显式迁移到 issue lifecycle 语境，不能自动保留为 active evaluation framework。
+**只在问题定义阶段出现一次，一句话带过，然后不再提。**
+
+写法是：本文的建模对象是 $M = (S, E, V, Tr, A)$，不含时钟与正交区；语料中一份需求要求
+fork / join 并发结构与秒级时间约束，其忠实模型在 $M$ 中无法表达，故该需求派生的 pair
+不在本文研究范围内。
+
+⛔ **不要做的三件事**：
+
+1. 不要把它展开成「四点保证这不是剔除不利样本」式的辩护——边界写在问题定义里，
+   语料自然落在界外，这本身就不需要辩护。
+2. 不要把它做成一个 RQ 或一节独立分析。
+3. 不要反过来声称「这些模型没有并发 / 时间问题」——恰恰相反，上游论文记录的最大一类语义
+   问题正是缺正交区（18 条）。我们排除的是**我们无法判断的那部分**，不是不存在的那部分。
+
+判据只读需求文本，先验可判，与任何运行结果无关。完整判据与阈值敏感性实测见
+[../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
+
+## 3. 支持范围
+
+| 范围 | 角色 | 说明 |
+| :-- | :-- | :-- |
+| 离散 FSM | 主范围 | 状态、事件、迁移是基础对象 |
+| 层次状态机 HSM | 主范围 | 允许复合态 / 嵌套态；包含关系与默认入口是可断言对象 |
+| EFSM | 主范围 | 变量、守卫条件、动作 / 效果在 $M$ 内，可作为断言对象 |
+| 离散 UML / SysML-like statechart 子集 | 输入形态 | 语料以 PlantUML 交付；不声称覆盖 arbitrary UML / SysML |
+| 时钟、不变式、正交区 | 界外 | 见 §1 |
+
+## 4. 可断言的行为表达
+
+一条义务能否进入本方法，取决于它能否落成闭合词表里的谓词调用。词表 19 个谓词按求值机制
+分三族——结构 10、仿真 6、有界模型检查 3。
+
+| 表达 | 可断言的形态 | 承载谓词族 |
+| :-- | :-- | :-- |
+| 状态声明 / 叶态与复合态之分 | 该路径上是否声明了这个状态 | 结构 |
+| 事件、变量声明 | 是否声明 | 结构 |
+| 迁移（源、触发、目标） | 是否存在这条边 | 结构 |
+| 包含关系、复合态默认入口、子态数量 | 层次结构性质 | 结构 |
+| 迁移效果、状态的进入 / 持续 / 退出动作 | 是否挂了该动作 | 结构 |
+| 同源同触发的守卫可区分性 | 是否互相可区分 | 结构 |
+| 可达性、驻留、事件消费、终止、变量增量 | 跑起来会怎样 | 仿真 |
+| 界内恒成立、界内响应、保持至某事件 | 有界范围内是否恒成立 | 有界模型检查 |
+
+三族的证据强度递进：结构族回答「模型里写没写」，仿真族回答「跑起来会怎样」，
+有界模型检查族回答「在有界范围内是否恒成立」。**只有后两族能回答行为性问题**，
+而它们都要求模型具有可执行语义——这是论文里论证「为什么需要中间表示」的落点。
+
+⚠️ **词表的表达力边界会限制能测什么，这一点必须如实写。** 一条义务无法用这 19 个谓词表达
+时，系统必须记为**覆盖缺口**，不许换个近似谓词蒙混过去。v46 里已知的两处具体后果：
+
+1. PlantUML 无变量声明语法，全语料作者声明变量数为 0，变量类义务在这条链上难以成立
+   （台账变量类记录只有 2 条，`hit@1` 8.3%）。
+2. `response_within` 在 324 格中零生成，台账侧也只被引用 1 次。
+
+## 5. 与被评审模型的表达力落差
+
+语料以 **PlantUML** 交付。PlantUML 是**绘图记法**：它规定图怎么画，不定义执行语义——
+没有「一步」的概念，没有事件消费规则，没有守卫求值次序。因此仿真族与有界模型检查族的问题
+**在 PlantUML 上没有定义**，不是难以回答。
+
+方法因此先把 PlantUML 编译成带形式语义的状态机 DSL，谓词在 DSL 模型上求值。这次编译不是
+无损的，其损耗在 v46 多报侧被单独量化为**表示债务**（按条目占 46.5%）。这一块的口径见
+[terminology_policy.md](./terminology_policy.md) §2 与
+[../discover_matrix/docs/findings/representation_debt.md](../discover_matrix/docs/findings/representation_debt.md)。
+
+⛔ **判定表示债务必须回读作者写的 `stm0.puml`，不读编译产物 `model.fcstm`。**
+只读编译产物会把编译损失当成模型缺陷。
 
 ## 6. 禁止外推
 
 - 不外推到 arbitrary UML / SysML 全语义。
-- 不外推到 timed automata / hybrid automata。
-- 不把 `fcstm` 支持的语法范围等同于 paper1 的研究对象范围。
-- 不把 model runnable 等同于 model behavior correct。
-- 不把 scenario / property pass 等同于 issue closure，除非 source-level issue 与 evidence 链完整。
+- 不外推到时间自动机 / 混成自动机。
+- 不把 `fcstm` / `pyfcstm` 支持的语法范围等同于本文的研究对象范围——中间表示是介质，不是对象。
+- 不把「模型可执行」等同于「模型行为正确」。
+- 不把断言求值为真等同于「该处无缺陷」——只等于「在该条义务的这个操作化下未观察到违反」。
+
+## 7. 相对上一版改了什么、为什么
+
+| 改动 | 为什么 |
+| :-- | :-- |
+| 研究对象从「existing raw/source state-machine artifacts」改写为显式五元组 $M = (S, E, V, Tr, A)$，并写明不含 $C$ / $Inv$ / 正交区 | 旧版只用 headline / careful / out-of-scope 三档定性描述，没有给出形式化边界；论文 §Problem Formulation 需要可引用的定义 |
+| 新增 §2「边界如何在论文里出现」，明确一句话带过、不展开辩护、不做 RQ | 用户明确要求：边界在问题定义阶段给清，语料自然落在界外即可，不要节外生枝 |
+| 新增 §4 可断言行为表达与三族谓词的映射，新增 §5 与 PlantUML 的表达力落差 | 旧版只说「哪些表达可进入 issue lifecycle」，没有说清「凭什么机械化」；这两节是 contribution 1 的直接支撑 |
+| 删除全部 repair 口径：`confirmed issue 的最低要求`、closure / regression、post-Confirm export | paper1 收窄为 issue discover，repair 另立后续论文 |
+| 删除「与历史 Better STM 框架的关系」一节 | Better STM 框架已两代前作废，且相关资产已归档；保留只会诱导旧 wording 回流。历史入口仍在 [../archive/](../archive/) |
+| EFSM 从「careful / annotated」升为主范围 | $M$ 含 $V$；变量与守卫本就在建模对象内，旧版的降级档与 $M$ 的定义矛盾 |

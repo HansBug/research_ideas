@@ -6,7 +6,7 @@
 
 1. v24 发布核验：指令文件**自身的改动日志**逐字写着某命题「应判 `grounded-extra`（A 的判定正确）」，
    而禁读清单列了十来项独独漏了指令文件自身。
-2. v25 公平性 review：`HIT_CRITERION.md` 在**必读白名单**上，且两份指令都承诺它「不含任何分组信息」——
+2. v25 公平性 review：`docs/protocol/hit_criterion.md` 在**必读白名单**上，且两份指令都承诺它「不含任何分组信息」——
    该承诺为假（§3 的四种形态各配一个真实语料实例，带 `EXP-` 标识符与真实状态名）。
 3. 同一次 review：刚入库的 `annotation_*.json`（上一轮**完整答案**）不在禁读清单内。
 
@@ -31,10 +31,10 @@ import pytest
 MATRIX = pathlib.Path(__file__).resolve().parent.parent / "discover_matrix"
 
 #: 交给判定者的材料（白名单本身）。
-JUDGE_FACING = ("HIT_CRITERION_FOR_JUDGES.md",)
+JUDGE_FACING = ("docs/judges/hit_criterion_for_judges.md",)
 
 #: 指令文件：只有 `## ⛔` 之前的部分交给判定者。
-INSTRUCTION_FILES = ("ONEPASS_JUDGE_PROMPT.md", "BLIND_JUDGE_PROMPT.md")
+INSTRUCTION_FILES = ("docs/judges/onepass_instructions.md", "docs/judges/blind_judge_prompt.md")
 
 #: 往轮判定的指纹。三类：台账/issue 标识符、pair 编号、裁定动词。
 _VERDICT = re.compile(
@@ -66,7 +66,7 @@ def test_judge_facing_material_has_no_verdicts(name: str) -> None:
     assert not hits, (
         f"{name} 含往轮判定指纹 {sorted(set(hits))}。\n"
         "交给判定者的材料必须只含**原则**与**合成实例**（`Sys.*` 占位名）。\n"
-        "真实语料实例留在维护版本 `HIT_CRITERION.md`，它永不进入判定者的白名单。"
+        "真实语料实例留在维护版本 `docs/protocol/hit_criterion.md`，它永不进入判定者的白名单。"
     )
 
 

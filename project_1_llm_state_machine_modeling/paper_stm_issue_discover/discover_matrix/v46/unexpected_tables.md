@@ -3,7 +3,7 @@
 ⚠️ **本文件整份由 `unexpected_verdicts/G*.jsonl` 生成**（`../rebuild_unexpected.py`）。**不要手工编辑**，也不要在别处保存这些表的副本——
 手工副本无法随裁定变更同步，会让同一目录内出现两个互斥的答案。
 
-裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)，逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)。
+裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)，逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)。
 
 ---
 

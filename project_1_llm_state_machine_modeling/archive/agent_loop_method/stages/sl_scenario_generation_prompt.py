@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from method.schema import ScenarioStep, TestScenario
-from method.stages.sl_prompt_common import (
+from archive.agent_loop_method.schema import ScenarioStep, TestScenario
+from archive.agent_loop_method.stages.sl_prompt_common import (
     PROMPTS_ROOT,
     fenced_json,
     fenced_text,
@@ -142,7 +142,7 @@ freeze.  This is prompt generation only; do not call any provider.
 Additional PR-1B contract:
 - Use NL + current DSL + inspect JSON + design summary + GroundingMap.
 - Output strict JSON with a top-level `scenarios` list compatible with
-  method.schema.TestScenario / ScenarioStep.
+  archive.agent_loop_method.schema.TestScenario / ScenarioStep.
 - Do not change the DSL and do not invent requirements not grounded in NL.
 - Respect pyfcstm simulation semantics: when `initial_state` is omitted, the
   runtime starts at the root and the first empty `cycle()` dispatches the

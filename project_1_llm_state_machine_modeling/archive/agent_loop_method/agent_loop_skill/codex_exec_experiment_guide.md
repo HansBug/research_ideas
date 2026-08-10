@@ -9,7 +9,7 @@
 ```bash
 source venv/bin/activate
 set -a; source .env; set +a
-python -m project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs --case-set all --out-root runs/codex_exec_skill/<run_id>
+python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.codex_exec_skill_runs --case-set all --out-root runs/codex_exec_skill/<run_id>
 ```
 
 默认非敏感配置为：`CODEX_EXEC_DEFAULT_CONFIG=model_provider=airouter`。解析优先级固定为：tracked default -> `.env` -> process env -> CLI default -> extra -> override；最终必须展开成一个或多个 `codex exec -c key=value`，并在 `run_manifest.json` / `env.redacted.json` / `command.redacted.txt` 中以脱敏形式记录。正式实验必须使用 `codex exec --json`，不得使用 `--ephemeral`。
@@ -24,9 +24,9 @@ python -m project_1_llm_state_machine_modeling.method.experiments.codex_exec_ski
 
 ## 2. 禁止项与允许项
 
-禁止调用：`method.loop.run_agent_loop(...)`、PR-D representative runner、PR-E1 real-run runner、任何一键 full staged runner。M3 不能把 E1 运行结果包装成 E2 skill 产物。
+禁止调用：`archive.agent_loop_method.loop.run_agent_loop(...)`、PR-D representative runner、PR-E1 real-run runner、任何一键 full staged runner。M3 不能把 E1 运行结果包装成 E2 skill 产物。
 
-允许使用：仓库搜索、论文材料、`method.stages.api` / `method.stages.sc_control` / `method.stages.sl_prompt_api`、SD deterministic tools、SL prompt generators、pyfcstm parse/build/inspect/sim utilities。Codex 可以发挥 mature-agent 能力组织 scratch scripts、局部检查、重试和自我修复，但过程必须落盘并可审计。
+允许使用：仓库搜索、论文材料、`archive.agent_loop_method.stages.api` / `archive.agent_loop_method.stages.sc_control` / `archive.agent_loop_method.stages.sl_prompt_api`、SD deterministic tools、SL prompt generators、pyfcstm parse/build/inspect/sim utilities。Codex 可以发挥 mature-agent 能力组织 scratch scripts、局部检查、重试和自我修复，但过程必须落盘并可审计。
 
 ## 3. 每例 artifact package
 

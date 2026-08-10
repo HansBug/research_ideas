@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from method.schema import (
+from archive.agent_loop_method.schema import (
     ScenarioResult,
     ScenarioStep,
     SimFeedback,

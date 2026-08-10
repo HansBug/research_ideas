@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from method.schema import SemanticFeedback
+from archive.agent_loop_method.schema import SemanticFeedback
 
 
 def _span_to_dict(span: Any) -> dict[str, Any] | None:

@@ -1,7 +1,7 @@
 """Canonical full-staged agent-loop entry for project_1.
 
 PR-C wires the PR-B1 runtime driver and PR-B2 LLM stage adapters into the
-public ``method.loop.run_agent_loop`` façade.  Therefore
+public ``archive.agent_loop_method.loop.run_agent_loop`` façade.  Therefore
 
 ``run_agent_loop(nl, LoopConfig())``
 
@@ -19,7 +19,7 @@ import uuid
 from dataclasses import asdict, is_dataclass
 from typing import Any, Optional
 
-from method.llm_stages import (
+from archive.agent_loop_method.llm_stages import (
     ChatProvider,
     LLMStageConfig,
     LLMStageRun,
@@ -32,8 +32,8 @@ from method.llm_stages import (
     run_sl10_repair_review_llm,
     run_sl10b_delta_review_llm,
 )
-from method.schema import AgentLoopResult, LoopConfig, StageContext, StageResultMeta, ReviewRunMeta
-from method.staged_runtime import (
+from archive.agent_loop_method.schema import AgentLoopResult, LoopConfig, StageContext, StageResultMeta, ReviewRunMeta
+from archive.agent_loop_method.staged_runtime import (
     FullStagedRuntimeAdapters,
     RepairRequest,
     ScenarioGenerationRequest,
@@ -44,10 +44,10 @@ from method.staged_runtime import (
     _compact_sl9_input_for_prompt,
     _repair_memory_for_prompt,
 )
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
-from method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
-from method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt
+from archive.agent_loop_method.stages.ids import ALL_STAGE_SPECS, StageId, StageStatus
+from archive.agent_loop_method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
 
 RUN_RECORD_SCHEMA_VERSION = "pr-c.default-full-staged-runtime.v1"
 
@@ -84,7 +84,7 @@ def build_planned_stage_graph(config: Optional[LoopConfig] = None) -> dict[str, 
     Each node has the same trace fields that later runtime stage records must
     expose: ``enabled``, ``ran``, ``status`` and ``skipped_reason``.  The graph
     is intentionally a plan; actual run-record stage graphs are written by
-    ``method.staged_runtime`` with the executed sequence.
+    ``archive.agent_loop_method.staged_runtime`` with the executed sequence.
     """
     cfg = config or LoopConfig()
     nodes: list[dict[str, Any]] = []
@@ -419,7 +419,7 @@ def _lg_c2_context_redaction_blocked_run(
 
 
 def _scenario_coverage_adapter(current_dsl: str, scenarios: list[Any]) -> tuple[dict[str, Any], Any]:
-    from method.stages.sd_tools import run_sd5a_scenario_coverage
+    from archive.agent_loop_method.stages.sd_tools import run_sd5a_scenario_coverage
 
     return run_sd5a_scenario_coverage(current_dsl, scenarios)
 
@@ -436,7 +436,7 @@ def _normalize_scenarios_for_runtime(scenarios: list[Any]) -> list[Any]:
     valid non-default transition probes into weak-oracle failures.
     """
 
-    from method.schema import ScenarioStep
+    from archive.agent_loop_method.schema import ScenarioStep
 
     normalized: list[Any] = []
     for scenario in scenarios:
@@ -701,7 +701,7 @@ def run_agent_loop(
     if seed_dsl is not None and cfg.condition_id == "full_staged_v1":
         raise ValueError(
             "LoopConfig() default full_staged_v1 must not use seed_dsl/hot-start DSL; "
-            "use method.experiments.ablation for deterministic replay/ablation diagnostics."
+            "use archive.agent_loop_method.experiments.ablation for deterministic replay/ablation diagnostics."
         )
     if cfg.condition_id == "full_staged_v1" and llm_provider is not None:
         raise ValueError("default full_staged_v1 must use real_env provider; provider injection requires an explicit non-default condition")
@@ -720,7 +720,7 @@ def run_agent_loop(
         provider = RealEnvLLMProvider()
     llm_cfg = _llm_stage_config(cfg)
     adapters = _build_runtime_adapters(cfg, llm_cfg=llm_cfg, provider=provider)
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     result = run_full_staged_langgraph_runtime(
         nl,

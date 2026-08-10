@@ -1,6 +1,22 @@
 > **Cold archive / deprecated historical snapshots.** 本目录只保存已经脱离当前主线的历史快照、旧 ledger、旧检索记录和迁移前证据。这里的内容不作为当前 seed、baseline、eligibility、pipeline 结果或论文主实验事实源。
 
-# archive/ — 冷归档历史快照入口
+# archive/ — 本工作区内部的冷归档快照入口
+
+> ⚠️ **仓库里有两个 `archive/`，别搞混：**
+>
+> | 路径 | 内容 |
+> | :-- | :-- |
+> | **本目录**（`paper_stm_issue_discover/archive/`） | 本论文工作区自己的历史快照：R1.5–R1.7 种子语料、R5.7 Better STM 全树 |
+> | [../../archive/](../../archive/) | project_1 层的**已停用旧路线**：旧 agent loop 基础设施、Path-1 评测链、Path-1/Path-2 指南 |
+>
+> 两个都不参与本文任何结论。当前入口一律回到 [../README.md](../README.md)。
+>
+> **本目录有两个快照，各配自己的 README**：
+>
+> | 快照 | 一句话 | 入口 |
+> | :-- | :-- | :-- |
+> | [r1_5_to_r1_7_seed_corpus_snapshot/](./r1_5_to_r1_7_seed_corpus_snapshot/) | 旧 `seed_corpus/` 的检索轮次与筛选台账 | [README.md](./r1_5_to_r1_7_seed_corpus_snapshot/README.md) |
+> | [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | 已废弃的 Better STM 评价框架全树（889 条目），含旧 `pipeline/evaluation/` | [README.md](./r5_7_better_stm_snapshot/README.md) ＋ [PATH_MAPPING.md](./r5_7_better_stm_snapshot/PATH_MAPPING.md) |
 
 
 ## 0. 归档来源与时间考据

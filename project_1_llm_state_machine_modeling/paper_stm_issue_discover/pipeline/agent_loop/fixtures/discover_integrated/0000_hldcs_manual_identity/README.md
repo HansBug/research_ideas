@@ -71,8 +71,8 @@ make discover-demo DISCOVER_OUT=runs/paper1/discover/manual-0000-identity
 ```bash
 make discover-custom \
   DISCOVER_CASE=llms_emp_stm_results_0000_manual_identity \
-  DISCOVER_NL=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity/nl.txt \
-  DISCOVER_FCSTM=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity/STM_0.fcstm \
+  DISCOVER_NL=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity/nl.txt \
+  DISCOVER_FCSTM=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity/STM_0.fcstm \
   DISCOVER_OUT=runs/paper1/discover/manual-0000-identity
 ```
 

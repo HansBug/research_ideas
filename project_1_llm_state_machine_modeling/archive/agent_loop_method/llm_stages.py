@@ -29,9 +29,9 @@ import time
 from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any, Callable, Literal, Optional, Protocol
 
-from method.gpt_client import chat as real_env_chat
-from method.gpt_client import get_default_model
-from method.schema import (
+from archive.agent_loop_method.gpt_client import chat as real_env_chat
+from archive.agent_loop_method.gpt_client import get_default_model
+from archive.agent_loop_method.schema import (
     FixPlan,
     FixRequestBatch,
     GroundingMap,
@@ -43,14 +43,14 @@ from method.schema import (
     StageResultMeta,
     TestScenario,
 )
-from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
-from method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
-from method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
-from method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
-from method.stages.sl_scenario_generation_prompt import build_sl5_scenario_generation_prompt, parse_sl5_scenario_generation_response
-from method.stages.sl_prompt_common import strip_fence
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.stages.sl_delta_review_prompt import build_sl10b_delta_review_prompt, parse_sl10b_delta_review_response
+from archive.agent_loop_method.stages.sl_initial_modeling_prompt import build_sl1_initial_modeling_prompt, parse_sl1_initial_modeling_response
+from archive.agent_loop_method.stages.sl_model_review_prompt import build_sl7_model_review_prompt, parse_sl7_model_review_response
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl10_repair_review_prompt import build_sl10_repair_review_prompt, parse_sl10_repair_review_response
+from archive.agent_loop_method.stages.sl_scenario_generation_prompt import build_sl5_scenario_generation_prompt, parse_sl5_scenario_generation_response
+from archive.agent_loop_method.stages.sl_prompt_common import strip_fence
 
 
 SECRET_TEXT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -207,7 +207,7 @@ class MockLLMProvider:
 
 
 class RealEnvLLMProvider:
-    """OpenAI-compatible provider backed by ``method.gpt_client``.
+    """OpenAI-compatible provider backed by ``archive.agent_loop_method.gpt_client``.
 
     The provider reads environment variables only through ``gpt_client``.  It
     never reads a ``.env`` file directly.
@@ -289,7 +289,7 @@ def estimate_prompt_tokens(
 ) -> int:
     """Lightweight pre-request prompt-token estimate for budget gating.
 
-    The default intentionally mirrors ``method.gpt_client``'s chars/4 proxy so
+    The default intentionally mirrors ``archive.agent_loop_method.gpt_client``'s chars/4 proxy so
     PR-E1 does not gain a hard dependency on tokenizer packages.  If a local
     environment already has ``tiktoken`` and explicitly asks for
     ``tiktoken_optional``, use it as a best-effort estimate; otherwise fall back

@@ -11,9 +11,9 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from method.langgraph.instrumentation.common import _hash_payload
-from method.llm_stages import LLMStageConfig, estimate_prompt_tokens
-from method.stages.ids import StageId
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_payload
+from archive.agent_loop_method.llm_stages import LLMStageConfig, estimate_prompt_tokens
+from archive.agent_loop_method.stages.ids import StageId
 
 LG_C2_CONTEXT_SUBGRAPH_SCHEMA_VERSION = "lg-c2.context-subgraph.v1"
 

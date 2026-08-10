@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from method.gpt_client import chat
-from method.schema import TestScenario
-from method.stages.sl_scenario_generation_prompt import (
+from archive.agent_loop_method.gpt_client import chat
+from archive.agent_loop_method.schema import TestScenario
+from archive.agent_loop_method.stages.sl_scenario_generation_prompt import (
     build_sl5_scenario_generation_prompt,
     parse_sl5_scenario_generation_response,
 )

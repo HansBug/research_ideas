@@ -8,8 +8,8 @@ from typing import Any, Callable
 
 import pytest
 
-from method.run_record import read_agent_loop_run_record
-from method.schema import (
+from archive.agent_loop_method.run_record import read_agent_loop_run_record
+from archive.agent_loop_method.schema import (
     DesignDiagnosticItem,
     DesignFeedback,
     LoopConfig,
@@ -22,8 +22,8 @@ from method.schema import (
     StageResultMeta,
     TestScenario,
 )
-from method.staged_runtime import FullStagedRuntimeAdapters, RepairRequest, ScenarioGenerationRequest
-from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.staged_runtime import FullStagedRuntimeAdapters, RepairRequest, ScenarioGenerationRequest
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
 
 
 def _meta(stage_id: StageId, *, ok: bool = True, status: StageStatus | None = None) -> StageResultMeta:
@@ -135,7 +135,7 @@ def _lg_f1_config(tmp_path: Path, *, run_id: str, condition_id: str | None = Non
 
 
 def _require_lg_f1_api() -> tuple[Callable[..., dict[str, Any]], Callable[..., dict[str, Any]]]:
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     run_experiment = getattr(lg, "run_lg_f1_resume_experiment", None)
     resume_from_checkpoint = getattr(lg, "resume_lg_f1_from_checkpoint", None)
@@ -216,10 +216,10 @@ def test_lg_f1_durable_sqlite_resume_report_has_schema_and_append_only_evidence(
     assert record.environment["baseline_comparison_method"] == "independent_uninterrupted_baseline"
     assert record.environment["baseline_comparison_verdict"] == "consistent"
     assert record.environment["verdict_scope"] == "append_only_stage_replay_and_independent_baseline_comparison"
-    assert record.environment["resume_cli_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume"
-    assert record.environment["resume_cli_pythonpath_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.experiments.checkpoint_resume"
-    assert record.environment["resume_cli_legacy_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.pr_lg_f1_resume_experiment"
-    assert record.environment["resume_cli_legacy_package_entrypoint"] == "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment"
+    assert record.environment["resume_cli_entrypoint"] == "python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.checkpoint_resume"
+    assert record.environment["resume_cli_pythonpath_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m archive.agent_loop_method.experiments.checkpoint_resume"
+    assert record.environment["resume_cli_legacy_entrypoint"] == "PYTHONPATH=project_1_llm_state_machine_modeling python -m archive.agent_loop_method.pr_lg_f1_resume_experiment"
+    assert record.environment["resume_cli_legacy_package_entrypoint"] == "python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.pr_lg_f1_resume_experiment"
     assert record.environment["resume_cli_workdir"] == "repo_root"
     assert record.environment["resume_cli_requires_pythonpath"] is False
     assert "post-repair validation" in record.environment["lg_f1_stage_replay_explanation"]
@@ -327,7 +327,7 @@ def test_lg_f1_resumed_runs_are_not_main_result_eligible(tmp_path: Path) -> None
 
 
 def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path: Path) -> None:
-    from method.experiments.checkpoint_resume import main
+    from archive.agent_loop_method.experiments.checkpoint_resume import main
 
     out_dir = tmp_path / "cli"
     rc = main(
@@ -356,15 +356,15 @@ def test_lg_f1_resume_experiment_cli_writes_machine_readable_artifacts(tmp_path:
 
 
 def test_lg_f1_resume_experiment_repo_root_module_entrypoints_are_reproducible() -> None:
-    repo_root = Path(__file__).resolve().parents[4]
+    repo_root = Path(__file__).resolve().parents[5]
     import os
 
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
 
     for module_name in (
-        "project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume",
-        "project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment",
+        "project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.checkpoint_resume",
+        "project_1_llm_state_machine_modeling.archive.agent_loop_method.pr_lg_f1_resume_experiment",
     ):
         completed = subprocess.run(
             [sys.executable, "-m", module_name, "--help"],

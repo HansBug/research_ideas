@@ -5,13 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from method.agents.multistep.identify_state import identify_state
-from method.agents.multistep.identify_event import identify_event
-from method.agents.multistep.identify_variable import identify_variable
-from method.agents.multistep.identify_transition import identify_transition
-from method.agents.multistep.identify_action import identify_action
-from method.agents.multistep.build_pyfcstm import build_pyfcstm
-from method.schema import ModelArtifact
+from archive.agent_loop_method.agents.multistep.identify_state import identify_state
+from archive.agent_loop_method.agents.multistep.identify_event import identify_event
+from archive.agent_loop_method.agents.multistep.identify_variable import identify_variable
+from archive.agent_loop_method.agents.multistep.identify_transition import identify_transition
+from archive.agent_loop_method.agents.multistep.identify_action import identify_action
+from archive.agent_loop_method.agents.multistep.build_pyfcstm import build_pyfcstm
+from archive.agent_loop_method.schema import ModelArtifact
 
 
 @dataclass

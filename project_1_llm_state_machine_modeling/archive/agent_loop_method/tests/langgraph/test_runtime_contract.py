@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from method import loop
-from method.run_record import read_agent_loop_run_record
-from method.schema import (
+from archive.agent_loop_method import loop
+from archive.agent_loop_method.run_record import read_agent_loop_run_record
+from archive.agent_loop_method.schema import (
     DesignDiagnosticItem,
     DesignFeedback,
     LoopConfig,
@@ -29,13 +29,13 @@ from method.schema import (
     StepResult,
     TestScenario,
 )
-from method.staged_runtime import (
+from archive.agent_loop_method.staged_runtime import (
     FullStagedRuntimeAdapters,
     _LLMRetryExhausted,
     RepairRequest,
     ScenarioGenerationRequest,
 )
-from method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageId, StageStatus
 
 
 def _meta(stage_id: StageId, *, ok: bool = True, status: StageStatus | None = None) -> StageResultMeta:
@@ -110,7 +110,7 @@ def _adapters() -> FullStagedRuntimeAdapters:
 
 
 def test_langgraph_compat_smoke_exposes_versions_and_stategraph() -> None:
-    from method.langgraph_runtime import langgraph_compat_smoke
+    from archive.agent_loop_method.langgraph_runtime import langgraph_compat_smoke
 
     smoke = langgraph_compat_smoke()
 
@@ -124,7 +124,7 @@ def test_langgraph_compat_smoke_exposes_versions_and_stategraph() -> None:
 
 
 def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validation_source() -> None:
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     context = StageContext(nl="waiver contract", current_dsl=_stable_dsl())
     selected = DesignFeedback(
@@ -307,7 +307,7 @@ def test_lg_b3_waiver_entry_envelope_contract_separates_repair_patch_and_validat
         )
 
 def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> None:
-    from method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
+    from archive.agent_loop_method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
 
     planned = loop.build_planned_stage_graph(LoopConfig())
     registry = build_langgraph_node_registry()
@@ -366,7 +366,7 @@ def test_langgraph_node_registry_is_not_opaque_and_matches_planned_graph() -> No
 
 
 def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     result = run_full_staged_langgraph_runtime(
         "LangGraph StateGraph should preserve canonical evidence.",
@@ -393,7 +393,7 @@ def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path:
     assert env["graph_runtime_backend"] == "langgraph"
     assert env["graph_runtime_status"] == "enabled"
     assert env["instrumentation_layer"] == "langgraph"
-    assert env["stage_semantics_module"] == "method.staged_runtime"
+    assert env["stage_semantics_module"] == "archive.agent_loop_method.staged_runtime"
     assert "delegated_stage_semantics_runner" not in env
     assert env["langgraph_version"] != "unknown"
     assert env["graph_runtime_id"].startswith("langgraph:")
@@ -406,15 +406,15 @@ def test_langgraph_stategraph_writes_metadata_and_preserves_run_record(tmp_path:
     assert env["checkpoint_resume_smoke"]["real_agent_loop_resume_supported"] is False
     assert env["checkpoint_resume_smoke"]["fix_log_append_only"] is True
     assert env["checkpoint_resume_smoke"]["final_fix_log_count"] == 3
-    assert record.run_config["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
-    assert record.run_config["stage_semantics_module"] == "method.staged_runtime"
+    assert record.run_config["runtime_implementation"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert record.run_config["stage_semantics_module"] == "archive.agent_loop_method.staged_runtime"
     assert record.run_config["graph_node_registry"]["opaque_wrapper"] is False
     assert record.run_config["graph_node_registry"]["delegated_monolithic_runtime"] is False
     assert record.final_artifacts["main_result_eligible"] is False
 
 
 def test_graph_config_hash_changes_with_run_config(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     def run_with(max_iterations: int, run_id: str) -> str:
         result = run_full_staged_langgraph_runtime(
@@ -450,7 +450,7 @@ def test_loop_config_has_no_runtime_backend_option_and_default_entry_is_langgrap
 
 
 def test_run_agent_loop_routes_default_path_through_langgraph_with_mock_provider(tmp_path: Path) -> None:
-    from method.llm_stages import MockLLMProvider
+    from archive.agent_loop_method.llm_stages import MockLLMProvider
 
     sl1 = {
         "candidate_dsl": _stable_dsl(),
@@ -483,7 +483,7 @@ def test_run_agent_loop_routes_default_path_through_langgraph_with_mock_provider
     record = read_agent_loop_run_record(result.run_record_path or "")
     assert record.environment["graph_runtime_backend"] == "langgraph"
     assert record.environment["graph_runtime_status"] == "enabled"
-    assert record.run_config["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert record.run_config["runtime_implementation"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
     assert record.run_config["langgraph_called_from_loop"] is True
     assert record.run_config["canonical_runtime_backend"] == "langgraph"
     assert record.final_artifacts["main_result_eligible"] is False
@@ -501,8 +501,8 @@ def test_run_agent_loop_routes_default_path_through_langgraph_with_mock_provider
 
 
 def test_default_langgraph_runtime_does_not_call_monolithic_staged_runtime(monkeypatch, tmp_path: Path) -> None:
-    from method.llm_stages import MockLLMProvider
-    import method.staged_runtime as staged_runtime
+    from archive.agent_loop_method.llm_stages import MockLLMProvider
+    import archive.agent_loop_method.staged_runtime as staged_runtime
 
     def forbidden_monolithic_runtime(*_args: Any, **_kwargs: Any) -> Any:
         raise AssertionError("monolithic staged runtime must not be called by default LangGraph path")
@@ -537,7 +537,7 @@ def test_default_langgraph_runtime_does_not_call_monolithic_staged_runtime(monke
 
 
 def test_checkpoint_resume_smoke_uses_langgraph_history_and_append_only_fixlog() -> None:
-    from method.langgraph_runtime import _checkpoint_resume_smoke
+    from archive.agent_loop_method.langgraph_runtime import _checkpoint_resume_smoke
 
     smoke = _checkpoint_resume_smoke()
 
@@ -557,7 +557,7 @@ def test_checkpoint_resume_smoke_uses_langgraph_history_and_append_only_fixlog()
 
 
 def test_targeted_scenario_refresh_preserves_previous_oracle_by_name() -> None:
-    from method.staged_runtime import _merge_scenario_sets_by_name
+    from archive.agent_loop_method.staged_runtime import _merge_scenario_sets_by_name
 
     previous = [
         TestScenario(name="default_init", description="root smoke"),
@@ -612,7 +612,7 @@ def _run_langgraph_mock(
     condition_id: str | None = None,
     record_policy: dict[str, Any] | None = None,
 ) -> Any:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     return run_full_staged_langgraph_runtime(
         "LG-A1 Command routing should preserve graph evidence.",
@@ -791,7 +791,7 @@ def _local_reject_review(_request: RepairRequest) -> tuple[RepairReviewFeedback,
 
 def test_command_routing_no_next_action_as_primary_source() -> None:
     import inspect
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     source = inspect.getsource(lg._build_graph)
 
@@ -808,7 +808,7 @@ def test_command_routing_no_next_action_as_primary_source() -> None:
 
 def test_lg_b1_validation_subgraph_replaces_monolithic_validation_pass(tmp_path: Path) -> None:
     import inspect
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     build_graph_source = inspect.getsource(lg._build_graph)
     validation_subgraph_source = inspect.getsource(lg._build_validation_subgraph)
@@ -2315,7 +2315,7 @@ def _assert_lg_a2_store_metadata(record: Any, *, expected_status: str = "no_leak
 
 
 def test_store_compat_smoke_put_get_search_delete_and_get_store() -> None:
-    from method.langgraph_runtime import langgraph_store_compat_smoke
+    from archive.agent_loop_method.langgraph_runtime import langgraph_store_compat_smoke
 
     smoke = langgraph_store_compat_smoke()
 
@@ -2328,7 +2328,7 @@ def test_store_compat_smoke_put_get_search_delete_and_get_store() -> None:
 
 
 def test_store_transient_backend_replaces_global_dict(tmp_path: Path) -> None:
-    from method import langgraph_runtime as lg
+    from archive.agent_loop_method import langgraph_runtime as lg
 
     before_transients = dict(lg._TRANSIENT_OBJECTS)
     record = _lg_record(_run_langgraph_mock(tmp_path, run_id="lg-a2-backend-replaces-global"))
@@ -2590,7 +2590,7 @@ def test_store_metadata_in_run_record(tmp_path: Path) -> None:
 
 
 def test_lg_d1_operator_event_schema_is_jsonl_safe() -> None:
-    from method.langgraph_runtime import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, build_lg_d1_operator_event
+    from archive.agent_loop_method.langgraph_runtime import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, build_lg_d1_operator_event
 
     event = build_lg_d1_operator_event(
         run_id="lg-d1-schema",
@@ -2626,7 +2626,7 @@ def test_lg_d1_operator_event_schema_is_jsonl_safe() -> None:
 
 
 def test_lg_d1_llm_progress_event_uses_allowlist_for_raw_chunk_shapes() -> None:
-    from method.langgraph_runtime import build_lg_d1_operator_event
+    from archive.agent_loop_method.langgraph_runtime import build_lg_d1_operator_event
 
     event = build_lg_d1_operator_event(
         run_id="lg-d1-no-raw-chunk",
@@ -2655,7 +2655,7 @@ def test_lg_d1_llm_progress_event_uses_allowlist_for_raw_chunk_shapes() -> None:
 
 
 def test_lg_d1_generic_operator_event_sanitizes_raw_chunk_and_token_like_fields() -> None:
-    from method.langgraph_runtime import build_lg_d1_operator_event
+    from archive.agent_loop_method.langgraph_runtime import build_lg_d1_operator_event
 
     event = build_lg_d1_operator_event(
         run_id="lg-d1-generic-no-raw",
@@ -2690,7 +2690,7 @@ def test_lg_d1_generic_operator_event_sanitizes_raw_chunk_and_token_like_fields(
 
 
 def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
-    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+    from archive.agent_loop_method.langgraph_runtime import _run_graph_with_lg_d1_stream
 
     class EmptyAfterSideEffectApp:
         def __init__(self) -> None:
@@ -2731,7 +2731,7 @@ def test_lg_d1_stream_empty_after_side_effect_does_not_invoke_twice() -> None:
 
 
 def test_lg_d1_stream_typeerror_after_side_effect_does_not_invoke_twice() -> None:
-    from method.langgraph_runtime import _run_graph_with_lg_d1_stream
+    from archive.agent_loop_method.langgraph_runtime import _run_graph_with_lg_d1_stream
 
     class TypeErrorAfterSideEffectApp:
         def __init__(self) -> None:
@@ -2779,7 +2779,7 @@ def test_lg_d1_stream_off_preserves_run_record_and_result(tmp_path: Path) -> Non
             adapters=_adapters_with(initial_modeling=_initial_modeling_llm_run_with_stream_usage),
         )
     )
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     off_result = run_full_staged_langgraph_runtime(
         "LG-D1 stream-off control should preserve academic evidence.",
@@ -2846,7 +2846,7 @@ def test_lg_d1_langgraph_stream_emits_node_stage_llm_and_terminal_events(tmp_pat
 
 
 def test_lg_d1_operator_log_tee_reconstructs_progress_summary(tmp_path: Path) -> None:
-    from method.langgraph_runtime import reconstruct_lg_d1_stream_summary_from_jsonl
+    from archive.agent_loop_method.langgraph_runtime import reconstruct_lg_d1_stream_summary_from_jsonl
 
     record = _lg_record(
         _run_langgraph_mock(
@@ -2878,7 +2878,7 @@ def test_lg_d1_operator_log_tee_reconstructs_progress_summary(tmp_path: Path) ->
 
 
 def test_lg_d1_llm_stream_flag_not_regressed_for_real_env_config(monkeypatch) -> None:
-    from method.langgraph_runtime import lg_d1_llm_stream_runtime_metadata
+    from archive.agent_loop_method.langgraph_runtime import lg_d1_llm_stream_runtime_metadata
 
     monkeypatch.delenv("LLM_STREAM", raising=False)
     monkeypatch.delenv("LLM_STREAM_INCLUDE_USAGE", raising=False)
@@ -2934,7 +2934,7 @@ def test_lg_g1_trace_export_disabled_by_default_preserves_academic_evidence(tmp_
 
 
 def test_lg_g1_trace_export_policy_requires_boolean_enabled() -> None:
-    from method import langgraph_runtime as lg
+    from archive.agent_loop_method import langgraph_runtime as lg
 
     with pytest.raises(ValueError, match="enabled must be a boolean"):
         lg._lg_g1_trace_export_policy(
@@ -3005,7 +3005,7 @@ def test_lg_g1_local_trace_export_writes_hash_only_safe_summary(tmp_path: Path) 
 
 
 def test_lg_g1_trace_export_requires_persisted_run_record_when_enabled() -> None:
-    from method import langgraph_runtime as lg
+    from archive.agent_loop_method import langgraph_runtime as lg
 
     with pytest.raises(ValueError, match="run_record_path"):
         lg._augment_run_record_with_lg_g1_trace_export(
@@ -3016,9 +3016,9 @@ def test_lg_g1_trace_export_requires_persisted_run_record_when_enabled() -> None
 
 
 def test_lg_g1_local_trace_export_blocks_secret_like_payload(tmp_path: Path) -> None:
-    from method import langgraph_runtime as lg
-    from method.run_record import write_agent_loop_run_record
-    from method.schema import AgentLoopRunRecord
+    from archive.agent_loop_method import langgraph_runtime as lg
+    from archive.agent_loop_method.run_record import write_agent_loop_run_record
+    from archive.agent_loop_method.schema import AgentLoopRunRecord
 
     record = AgentLoopRunRecord(
         schema_version="test",
@@ -3068,7 +3068,7 @@ def _blocking_design_feedback() -> tuple[DesignFeedback, StageResultMeta]:
 
 def test_lg_b2_repair_finalize_missing_patch_fails_loud(monkeypatch: pytest.MonkeyPatch) -> None:
     import inspect
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     class CapturingStateGraph:
         def __init__(self, *_args: Any, **_kwargs: Any) -> None:
@@ -3104,7 +3104,7 @@ def test_lg_b2_repair_finalize_missing_patch_fails_loud(monkeypatch: pytest.Monk
 
 
 def test_lg_b2_repair_subgraph_registry_exposes_stage_level_nodes() -> None:
-    from method.langgraph_runtime import build_langgraph_node_registry
+    from archive.agent_loop_method.langgraph_runtime import build_langgraph_node_registry
 
     registry = build_langgraph_node_registry()
     repair_node = next(node for node in registry["nodes"] if node["node_id"] == "repair_path")
@@ -3123,7 +3123,7 @@ def test_lg_b2_repair_subgraph_registry_exposes_stage_level_nodes() -> None:
 
 def test_lg_b2_repair_subgraph_not_opaque_old_repair_path_wrapper() -> None:
     import inspect
-    import method.langgraph_runtime as lg
+    import archive.agent_loop_method.langgraph_runtime as lg
 
     build_graph_source = inspect.getsource(lg._build_graph)
     repair_subgraph_source = inspect.getsource(lg._build_repair_subgraph)
@@ -3367,7 +3367,7 @@ def _canonical_without_lg_e3(record: Any) -> dict[str, Any]:
 # PR-LG-C1 reducer + JSON-safe graph-state readiness contract tests.
 
 def test_lg_c1_contract_declares_reducer_and_live_object_boundaries() -> None:
-    from method.langgraph_runtime import (
+    from archive.agent_loop_method.langgraph_runtime import (
         LG_C1_REDUCER_STATE_SCHEMA_VERSION,
         build_lg_c1_graph_state_contract,
     )
@@ -3402,7 +3402,7 @@ def test_lg_c1_contract_declares_reducer_and_live_object_boundaries() -> None:
 
 
 def test_lg_c1_append_only_reducer_merges_full_state_updates_without_duplicates() -> None:
-    from method.langgraph_runtime import _lg_c1_append_only_reducer
+    from archive.agent_loop_method.langgraph_runtime import _lg_c1_append_only_reducer
 
     first = [{"entry_id": "1", "phase": "SD-8"}, {"entry_id": "2", "phase": "SL-9"}]
     full_state_update = [
@@ -3448,7 +3448,7 @@ def test_lg_c1_run_record_has_json_safe_reducer_readiness_and_mirror_consistency
 
 
 def test_lg_c1_readiness_detects_corrupted_graph_state_mirror() -> None:
-    from method.langgraph_runtime import _build_lg_c1_graph_state_readiness
+    from archive.agent_loop_method.langgraph_runtime import _build_lg_c1_graph_state_readiness
 
     record = SimpleNamespace(
         stage_records=[{"stage_id": "SC-X", "stage_kind": "control", "status": "ok", "ok": True}],
@@ -3566,7 +3566,7 @@ def test_lg_c1_mirrors_non_empty_fixlog_and_repair_history_without_reordering(tm
 
 
 def test_lg_e3_registry_declares_fixed_non_llm_toolnode_wrappers() -> None:
-    from method.langgraph_runtime import build_lg_e3_toolnode_wrapper_registry
+    from archive.agent_loop_method.langgraph_runtime import build_lg_e3_toolnode_wrapper_registry
 
     registry = build_lg_e3_toolnode_wrapper_registry()
 
@@ -3602,7 +3602,7 @@ def test_lg_e3_registry_declares_fixed_non_llm_toolnode_wrappers() -> None:
 
 
 def test_lg_e3_success_path_records_fixed_tool_invocations_without_changing_canonical_evidence(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     cfg_base = dict(
         condition_family="test_profile",
@@ -3664,7 +3664,7 @@ def test_lg_e3_success_path_records_fixed_tool_invocations_without_changing_cano
 
 
 def test_lg_e3_repair_path_wraps_sd8_and_sd10_without_changing_fixlog(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     def design(context: StageContext) -> tuple[DesignFeedback, StageResultMeta]:
         if context.current_dsl == "lg-e3-needs-repair":
@@ -3807,7 +3807,7 @@ def test_lg_e3_waiver_continuation_keeps_downstream_fixed_wrappers_after_lg_b3_m
 
 
 def test_lg_e3_safe_summary_redacts_dsl_like_and_prompt_like_scalar_fields() -> None:
-    from method.langgraph_runtime import _safe_lg_e3_tool_summary
+    from archive.agent_loop_method.langgraph_runtime import _safe_lg_e3_tool_summary
 
     raw_payload = {
         "before_dsl": "state SecretBefore { [*] -> Hidden; }",
@@ -3860,7 +3860,7 @@ def test_lg_e3_safe_summary_redacts_dsl_like_and_prompt_like_scalar_fields() -> 
 def test_lg_e2_contract_declares_send_ordering_and_hash_scope() -> None:
     from langgraph.types import Send
 
-    from method.langgraph_runtime import (
+    from archive.agent_loop_method.langgraph_runtime import (
         LG_E2_SEND_PARALLEL_SCHEMA_VERSION,
         build_lg_e2_send_parallel_contract,
     )
@@ -3884,7 +3884,7 @@ def test_lg_e2_contract_declares_send_ordering_and_hash_scope() -> None:
 
 
 def test_lg_e2_canonical_order_uses_frozen_scenario_index_before_name() -> None:
-    from method.langgraph_runtime import _lg_e2_canonicalize_worker_results
+    from archive.agent_loop_method.langgraph_runtime import _lg_e2_canonicalize_worker_results
 
     shuffled = [
         {
@@ -3918,7 +3918,7 @@ def test_lg_e2_canonical_order_uses_frozen_scenario_index_before_name() -> None:
 
 
 def test_lg_e2_metadata_handles_setup_error_without_scenario_results() -> None:
-    from method.langgraph_runtime import _lg_e2_metadata_for_feedback
+    from archive.agent_loop_method.langgraph_runtime import _lg_e2_metadata_for_feedback
 
     metadata = _lg_e2_metadata_for_feedback(
         enabled_requested=True,
@@ -3944,7 +3944,7 @@ def test_lg_e2_metadata_handles_setup_error_without_scenario_results() -> None:
 
 
 def test_lg_e2_selected_feedback_digest_uses_scenario_index_for_first_blocking() -> None:
-    from method.langgraph_runtime import _lg_e2_selected_feedback_digest
+    from archive.agent_loop_method.langgraph_runtime import _lg_e2_selected_feedback_digest
 
     scenario_set = ScenarioSet(
         scenario_set_id="lg-e2-first-blocking-order",
@@ -4032,7 +4032,7 @@ def _lg_e2_trace_event(record: Any) -> dict[str, Any]:
 
 
 def test_lg_e2_send_parallel_preserves_serial_canonical_sd6_evidence(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     cfg_base = dict(
         condition_family="test_profile",
@@ -4118,7 +4118,7 @@ def test_lg_e2_fallback_when_sim_thread_safety_is_not_declared(tmp_path: Path) -
 
 
 def test_lg_e2_worker_mutation_is_isolated_and_canonical_serial_is_used(tmp_path: Path) -> None:
-    from method.langgraph_runtime import run_full_staged_langgraph_runtime
+    from archive.agent_loop_method.langgraph_runtime import run_full_staged_langgraph_runtime
 
     def mutating_worker_sim(
         _dsl: str,
@@ -4188,7 +4188,7 @@ def _initial_modeling_llm_run_with_retry_attempts(_nl: str, _context: StageConte
 
 
 def test_lg_d2_policy_hash_is_canonical_and_recorded(tmp_path: Path) -> None:
-    from method.langgraph_runtime import build_lg_d2_llm_node_envelope_policy
+    from archive.agent_loop_method.langgraph_runtime import build_lg_d2_llm_node_envelope_policy
 
     policy_a = build_lg_d2_llm_node_envelope_policy()
     policy_b = build_lg_d2_llm_node_envelope_policy()
@@ -4348,7 +4348,7 @@ def test_lg_d2_local_contract_exception_is_not_disguised_as_provider_error(tmp_p
 
 
 def test_lg_d2_flow_log_fallback_signature_keeps_repeated_iteration_events() -> None:
-    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+    from archive.agent_loop_method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
 
     record = SimpleNamespace(
         run_id="lg-d2-repeated-flow-fallback",
@@ -4389,7 +4389,7 @@ def test_lg_d2_flow_log_fallback_signature_keeps_repeated_iteration_events() -> 
 
 
 def test_lg_d2_flow_log_fallback_keeps_same_iteration_repeated_node_entries() -> None:
-    from method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
+    from archive.agent_loop_method.langgraph_runtime import _lg_d2_operator_events_from_flow_logs
 
     record = SimpleNamespace(
         run_id="lg-d2-same-iteration-rework-collapse",
@@ -4427,7 +4427,7 @@ def test_lg_d2_flow_log_fallback_keeps_same_iteration_repeated_node_entries() ->
 
 
 def test_lg_d2_flow_log_fallback_consumes_existing_reducer_event_count_only() -> None:
-    from method.langgraph_runtime import _lg_d2_envelope_event, _lg_d2_operator_events_from_flow_logs, build_lg_d2_llm_node_envelope_policy
+    from archive.agent_loop_method.langgraph_runtime import _lg_d2_envelope_event, _lg_d2_operator_events_from_flow_logs, build_lg_d2_llm_node_envelope_policy
 
     policy = build_lg_d2_llm_node_envelope_policy()
     existing = [
@@ -4479,7 +4479,7 @@ def test_lg_d2_flow_log_fallback_consumes_existing_reducer_event_count_only() ->
 
 
 def test_lg_d2_provider_status_code_classification_precedes_generic_timeout_and_connection_words() -> None:
-    from method.langgraph_runtime import _lg_d2_error_kind_from_exception
+    from archive.agent_loop_method.langgraph_runtime import _lg_d2_error_kind_from_exception
 
     assert _lg_d2_error_kind_from_exception(RuntimeError("HTTP 504 Gateway Timeout from Cloudflare")) == "provider_504"
     assert _lg_d2_error_kind_from_exception(RuntimeError("Connection failed with upstream HTTP 502")) == "provider_502"

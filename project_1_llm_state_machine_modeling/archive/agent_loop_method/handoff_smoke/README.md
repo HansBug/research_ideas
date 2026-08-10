@@ -1,4 +1,4 @@
-# `method.handoff_smoke`
+# `archive.agent_loop_method.handoff_smoke`
 
 > **LG-M1-F provenance note（2026-06-08）**：本目录是 historical PR-3 handoff smoke artifact，用于证明 Path1/Path2 当时能接入 agent-loop infrastructure。下面的 `source .env` / `--real-llm` 命令只适用于显式 handoff smoke 或后续真实 provider 验证；它不是 LG-M1-F docs/provenance gate，也不代表当前 tests-only 验收需要 provider。当前推荐 method 入口见 [../README.md](../README.md)。
 
@@ -14,7 +14,7 @@ Run from repository root:
 ```bash
 source .env
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  venv/bin/python -m method.handoff_smoke.runner --real-llm \
+  venv/bin/python -m archive.agent_loop_method.handoff_smoke.runner --real-llm \
   --out runs/pr3_handoff_smoke \
   --summary runs/pr3_handoff_smoke/summary.json \
   --max-retries 2

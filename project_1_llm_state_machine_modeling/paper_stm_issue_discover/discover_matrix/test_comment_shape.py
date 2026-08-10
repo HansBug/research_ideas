@@ -31,7 +31,7 @@ def _full_verdicts(pattern=(1, 0, 1)) -> dict:
     # ⚠️ 分母是 `REPORTABLE`（99 条），不是台账全部（126 条）。差的 27 条是 `00x8` 的 NL 越界
     # 记录：那份 NL 要求 fork/join 与秒级时间约束，忠实模型在 M 中无法表示，v35 起先验不进网格。
     # 把它们放进判定表会被 `validate` 判为「网格被改错」—— 而那条检查是对的，见
-    # NL_SCOPE_RULE.md §五。v23/v24 的历史判定表确实含 `00x8`（那两代跑过），
+    # docs/protocol/nl_scope_rule.md §五。v23/v24 的历史判定表确实含 `00x8`（那两代跑过），
     # 但本 fixture 模拟的是**当前**口径。
     verdicts: dict[str, object] = {}
     for record_id in sorted(mk.REPORTABLE):
@@ -132,7 +132,7 @@ def test_a_hit_must_state_how_the_identity_holds() -> None:
 
     上一代次有两条模型产出触及了正确的元素、却得出与台账**相反**的结论，而唯一的防线（并列
     呈现）当时在真实路径上输出零行。要求填形态的作用不是记录，是**强制做一次方向比对** ——
-    填不出 `HIT_CRITERION.md` §3 四种形态里的哪一种，就说明没做过那次比对。
+    填不出 `docs/protocol/hit_criterion.md` §3 四种形态里的哪一种，就说明没做过那次比对。
     """
     verdicts = {rid: {"claude": [1, 0, 1]} for rid in sorted(mk._ledger_ids())}
     problems = mk.validate({"": None} and verdicts, {}, 3)
@@ -149,11 +149,11 @@ def test_only_the_capability_band_is_asked_for_a_direction() -> None:
 
 
 def test_an_unknown_direction_form_is_refused() -> None:
-    """四种形态来自 HIT_CRITERION.md §3，自由文本会让这个字段退化成摆设。"""
+    """四种形态来自 docs/protocol/hit_criterion.md §3，自由文本会让这个字段退化成摆设。"""
     verdicts = {rid: {"claude": [1, 0, 1]} for rid in sorted(mk._ledger_ids())}
     for rid in mk.REPORTABLE:
         verdicts[rid]["direction"] = {"claude": "差不多吧"}
-    assert [p for p in mk.validate(verdicts, {}, 3) if "不在 HIT_CRITERION" in p]
+    assert [p for p in mk.validate(verdicts, {}, 3) if "不在 docs/protocol/hit_criterion.md" in p]
 
 
 def test_a_miss_needs_no_direction() -> None:

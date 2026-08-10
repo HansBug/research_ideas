@@ -1,4 +1,4 @@
-# `method/` 端到端例子 — Phase G v3 (bug-finding scenarios)
+# `archive/agent_loop_method/` 端到端例子 — Phase G v3 (bug-finding scenarios)
 
 > **目的**：展示 method 端到端能力（multistep modeling → scenariogen → sim feedback），并通过 **6 类 mutation 的 differential detection matrix** 验证 sim feedback 抓 bug 的能力。
 >
@@ -444,7 +444,7 @@ status: converged   tokens: 37,605
 
 在 `loop.py` Stage 3 scenariogen 之后插一个**纯本地**的覆盖率检查：
 
-新建 `method/scenariogen_validate.py`，提供 6 个 **DSL-shape generic** mutator
+新建 `archive/agent_loop_method/scenariogen_validate.py`，提供 6 个 **DSL-shape generic** mutator
 （不绑定具体 state/var 名）：
 
 - `M1_guard_off_by_one`：每个 `>= N` 试 `>= N-1`
@@ -524,11 +524,11 @@ Phase J 端到端 acceptance。
   values come from NL, NOT from the DSL" + "Cycle-counting consistency" 两段
 - `agents/scenariogen/generate.py`：`generate_scenarios(..., extra_directive=...)`
   支持 prompt-side targeted revision
-- `method/scenariogen_validate.py` **（新建）**：6 个 DSL-generic mutator +
+- `archive/agent_loop_method/scenariogen_validate.py` **（新建）**：6 个 DSL-generic mutator +
   `validate_coverage()` + `coverage_directive()`
-- `method/loop.py` Stage 3：scenariogen → coverage check → 最多 2 次 targeted
+- `archive/agent_loop_method/loop.py` Stage 3：scenariogen → coverage check → 最多 2 次 targeted
   retry，把每次 attempt 的 status 写入 `result.scenariogen_coverage`
-- `method/schema.py`：`AgentLoopResult` 加 `scenariogen_coverage`
+- `archive/agent_loop_method/schema.py`：`AgentLoopResult` 加 `scenariogen_coverage`
 
 ### 历史入口资产（v3，ephemeral）
 

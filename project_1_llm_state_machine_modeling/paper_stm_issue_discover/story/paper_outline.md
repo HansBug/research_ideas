@@ -1,115 +1,344 @@
-# paper_outline.md — paper1 新主线论文结构草案
+# paper_outline.md — 论文结构
 
-本文件是写作结构草案，不是最终正文，不包含最终实验数字。
+> 本文件是写作结构，不是正文，也不复制实验数字（数字的唯一来源是
+> [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)）。
 
-## 1. Introduction
+## 0. 骨架：导师给的那条大逻辑
 
-目标：让读者理解为什么已有状态机制品需要 feedback-driven issue discovery and closure。
+**章节顺序必须照它排，每一环都要显式扣住上一环。** 导师原话：
 
-要点：
+> 解决什么问题 == 为什么这个问题有价值 == 现有方法存在的问题 == 你的方法 ==
+> 验证必须扣住问题特征和要 claim 的 contribution == 结果分析来支撑 contribution，
+> 并回到问题部分
 
-1. LLM 和建模工具可以产生状态机式制品，但已有制品往往存在行为层问题。
-2. 问题不只是模型是否 runnable，也不是表达语言是否更强，而是 source-level behavioral issue 是否能被发现、经 Repair-Confirm 处理并最终在 source 层闭合。
-3. 描述性状态机、folded event、guard/action/event 混淆等会削弱后续 simulation / verification feedback。
-4. 本文提出一个围绕 existing raw/source STM artifact 的 issue lifecycle workflow。
-5. 贡献需写成 feedback-driven LLM refinement loop、simulation / formal-verification-enabled executable feedback integration、source-level repair output and evaluation setup；ledger / audit / attribution boundary 只能作为方法和评价纪律，不作为主贡献。
+映射到章节：
 
-## 2. Background and Motivation
+| 环 | 章节 | 必须扣住什么 |
+| :-- | :-- | :-- |
+| 解决什么问题 | §1.1、§3 | 任务定义与建模对象边界 |
+| 为什么有价值 | §1.2 | 下游可用性、复核成本、可累积性 |
+| 现有方法的问题 | §1.3、§2 | 三条 gap：判据不可复算 / 缺定位归因 / 无法回归 |
+| 你的方法 | §4 | 每个设计点对应上面某条 gap 或某条问题特征 |
+| 验证 | §5 | 每个 RQ 对应一条 contribution，不设无归属的 RQ |
+| 结果分析支撑 contribution 并回到问题 | §6、§7 | 每张表回答哪个 RQ、支撑哪条 contribution、回到 §1 的哪条 gap |
 
-要点：
+⛔ **验收判据**：写完后逐节自问「这一节服务上表哪一环」。答不上来的节要么删，要么并入别处。
 
-1. 状态机制品：raw/source STM、intermediate executable semantic representation、trace。
-2. 工具反馈：diagnostics / inspect、simulation/probe、verification/check hints。
-3. 为什么 simulation / verification 需要更细行为语义，但本文不把中间表示本身作为贡献。
-4. 为什么 Better STM / which STM is better 容易滑向 specification quality 或 modeling language 争论。
-5. 为什么可信评价仍需要 trace / run record / closure evidence chain。
+---
 
-## 3. Problem Formulation
+## §1 Introduction
 
-定义：
+### 1.1 解决什么问题
 
-```text
-Input:  NL + raw/source STM_0
-Output: confirmed issue ledger + repair/change ledger + fresh canonical raw/source STM_k + semantic change/correspondence ledger + closure/regression ledger
-```
+1. LLM 已能从需求生成状态机式制品，但生成物不能直接用。
+2. 问题随之从「能不能生成」变成「怎么知道生成的这一份哪里不对」。
+3. 三层困难：判据从哪来 / 什么样的操作化才算表达对了（伪代理）/ 行为性问题在绘图记法上无定义。
+4. 任务的精确形态：`<NL, STM_0>` → 已发布 issue + 支撑断言 + 证据链。
 
-必须区分：
+### 1.2 为什么这个问题有价值
 
-- candidate issue vs confirmed source-level behavioral issue；
-- conversion / representation readiness vs repair gain；
-- intermediate candidate vs raw/source-level output；
-- closure vs regression；
-- unsupported / untraceable / unjudgeable。
+1. 下游（模型检查、测试生成、代码生成）会放大而非发现错误。
+2. 人工逐份复核的成本与手写模型相当——那样 LLM 就没有意义。
+3. 判据可累积：断言可反复求值，一次性评审因而变成持续防护。
 
-## 4. Method
+### 1.3 现有方法存在的问题
 
-建议小节：
+⛔ **这一段直接用导师给的差异化叙述**：现有的很多 detection 方法报告错误，
+**缺少错误的上下文信息**，一方面需要人工进行繁重的复核，
+另一方面也不便于进行错误修复后的回归确认。
 
-1. Source ingestion and trace
-2. Intermediate executable semantic representation
-3. B-discover once: root assessment and immutable checks
-4. B-repair: full-batch `fix/reject` and atomic model publication
-5. B-confirm: full-batch `accept/reject` and successor chains
-6. Deterministic loop control and B-final evidence gate
-7. One-time post-Confirm semantic-root bundle and fresh canonical raw/source `STM_k` export
-8. Source-level closure and regression audit
-9. Run record and eligibility discipline
+拆三条：**G1** 判据不可复算 / **G2** 缺少定位与归因 / **G3** 无法回归。
 
-写作纪律：
+补一条我们自己的反面观察：把形式化工具裸给自主 agent 效果很差——
+会乱用工具、一个劲摸索，吃基础设施而不产生对应回报。这条直接引出 §1.4 的洞察。
 
-- 不把 fcstm 写成贡献。
-- 不把 ledger / audit / evidence infrastructure 写成贡献；它们是 method discipline 与 evaluation protocol。
-- 不把 conversion success 写成 repair gain。
-- 不把 LLM preference 写成最终 judge。
-- 不把 unavailable projection 静默计入 success。
+### 1.4 我们的做法与贡献
 
-## 5. Experiments
+1. **核心洞察**：受限谓词词表本身就是一次建模。先把「模型可能在哪些方面不符合需求」建模成
+   19 个谓词的闭合词表，再让 LLM 只做「义务 → 谓词调用」这一件映射。
+2. **两条 contribution**（措辞以 [paper_story.md](./paper_story.md) §6 为准）：
+   C-I 谓词逻辑元模型与断言体系；C-II 带上下文的发现使复核与回归确认可行。
+3. 一句话结果预告，**必须带 $\le$**。
 
-当前只能写 plan，不写 result。
+---
 
-建议实验层次：
+## §2 Related Work
 
-1. Pilot feasibility：小规模跑通 issue ledger、trace、repair、post-Confirm semantic-root export、canonical raw/source `STM_k` 与 closure audit。
-2. Post-pilot rubric freeze：基于真实 output shape 冻结 closure / partial / regression / unjudgeable 判据。
-3. Baseline contract：三层 baseline 可在 pilot 后定义：
-   - issue discovery；
-   - known confirmed issue repair / closure；
-   - black-box end-to-end。
-4. Formal experiment：样本、reference issue ledger、eligibility、cost / retry / failure accounting。
+四条轴，每条写「他们做到哪、我们补什么」：
 
-## 6. Results
+1. LLM 生成行为模型 / 状态机——本文语料的来源，同时是被评审对象的产生方式。
+2. 形式化建模与验证工具（模型检查、DSL、静态检查）——求值机制的来源。⛔ 不主张谁更好。
+3. LLM 辅助的缺陷检测 / 评审 / 规约生成——**最近的一轴，差异化落点就是 §1.3 的三条 gap**。
+4. 表示层引入的假象——CEGAR 的 spurious counterexample、静态分析框架的
+   program representation fault、MDE 的 semantics preservation。
+   我们的新处只在把它做成**评测归因侧的可扣除量**。
 
-当前尚无正式结果。后续结果应围绕：
+---
 
-- discovered candidate issues；
-- confirmed issues；
-- closed / partially closed / not closed issues；
-- regression-introduced count；
-- unsupported / untraceable / unjudgeable cases；
-- baseline comparison under frozen contract；
-- cost / retry / non-convergence。
+## §3 Problem Formulation
 
-## 7. Discussion
+### 3.1 建模对象
 
-要点：
+$$
+M = (S, E, V, Tr, A)
+$$
 
-1. 中间表示为什么有必要，但为什么不是本文贡献。
-2. diagnostics / simulation / verification feedback 各自优势和局限。
-3. source-level projection 的困难。
-4. scenario/property generation 过拟合风险。
-5. 明确 future work 边界：后续可以研究面向控制系统的建模 DSL / agentic modeling 方向，但这不是 paper1 的贡献。
+不含时钟变量与不变式，不含正交区并发语义；时间与并发的验证属另一研究内容。
 
-## 8. Threats to Validity / Limitations
+⚠️ **语料的边界外情形在这里一句话带过**：语料中一份需求要求 fork / join 与秒级时间约束，
+其忠实模型在 $M$ 中无法表达，故该需求派生的 pair 不在本文研究范围内。
+⛔ 不展开辩护、不做成 RQ、不在后文重提。详见 [model_scope.md](./model_scope.md) §2。
 
-必须包括：
+### 3.2 任务
 
-- scope 限制：discrete FSM / HSM / statechart-like subset。
-- 不覆盖 arbitrary UML / SysML / timed / hybrid automata。
-- baseline fairness 依赖 pilot 后 output shape。
-- LLM judge / human adjudication 风险。
-- source trace 和 raw export 可能 unsupported。
-- 不把 pilot calibration 当正式主结果。
+输入 / 输出的形式化定义，以及三个必须区分的对象：需求义务、断言、发现。
 
-## 9. Conclusion
+### 3.3 什么算一条合格的发现
 
-总结应回到：本文研究现有状态机制品上的 issue discovery and closure，不是建模语言优劣或 Better STM 偏好判断。
+三条准入：可机械求值、可回溯到需求原句与模型元素、其操作化不是伪代理。
+给出被明令禁止的替换形态（边存在冒充可达）。
+
+---
+
+## §4 Method
+
+### 4.1 总览
+
+八阶段图 + 定向反馈回路。⚠️ 明确「循环 ≠ 重试」。
+
+### 4.2 谓词逻辑元模型（C-I 的主体）
+
+1. 三族划分与 19 个谓词全表，逐族说明它回答什么。
+2. **词表的由来**：从现实需求、技术文档与规约、学术文献三类领域资料归纳。
+   给两个逐条挂钩示例（`stays_in` ← UML run-to-completion；`persists_until` ← until 的标准定义）。
+   ⛔ 不表述为「从这批 pair 归纳」。
+3. 闭合性的两个后果：可复算 + 测不了的显式暴露为覆盖缺口。
+
+### 4.3 需求拆分与义务集（覆盖性的来源）
+
+全覆盖拆分 → 义务 → `verification_kind` / 量词 / 触发 / 结果 / 覆盖义务。
+**说明覆盖性为什么来自构造**：分母是需求的义务集，不是模型的可疑点集。
+
+### 4.4 义务到断言的转换
+
+角色划分（`primary` / `supporting`）、元素绑定、静态预检。
+
+### 4.5 审查与定向反馈
+
+需求审查、断言审查各查什么；定向反馈的形态；恒真恒假检查。
+
+### 4.6 求值
+
+1. 为什么需要中间表示：PlantUML 无执行语义，行为性问题在它上面没有定义。
+2. 三族的求值机制。
+3. **拒答**：求不出来时不猜。⚠️ 副作用在 §7 如实交代。
+
+### 4.7 归因绑定与结果裁决
+
+把每个求值为假挂回模型元素；哪些够格发布。
+
+### 4.8 回归防护（C-I 的第三条性质）
+
+求值为真的断言构成防护面；模型改动后重放。
+⚠️ 明确标注这是方法性质，本文未测规模。
+
+### 4.9 降级而非崩溃
+
+内部配额耗尽时封存产物落盘。**理由要写**：反过来做会让最难的样本系统性消失。
+
+---
+
+## §5 Evaluation Design
+
+⛔ **本章的每一条都必须能回答「它验证哪条 contribution」。**
+
+### 5.1 RQ
+
+| RQ | 问题 | 验证哪条 contribution | 扣住 §1 的哪条 |
+| :-- | :-- | :-- | :-- |
+| **RQ1** | 由需求义务转换来的断言体系，能覆盖多少已知缺陷？哪类缺陷覆盖得到、哪类覆盖不到？ | C-I 的覆盖性 | 问题特征：判据从哪来 |
+| **RQ2** | 三族证据各承载多少覆盖能力？可执行语义是否必要？ | C-I 的表达力边界 | 问题特征：行为性问题在图上无定义 |
+| **RQ3** | 未被已知缺陷认领的产出是什么？每一条能否被逐条归因裁定？ | C-II 的上下文完整性 | G1 判据不可复算、G2 缺定位归因 |
+| **RQ4** | 覆盖能力在重复运行下是否稳定？是方法的边界还是执行模型的边界？ | C-I 的能力归属 | 为什么有价值：可累积 |
+
+⚠️ **RQ3 的设计意图要写明白**：多报侧能被逐条裁定成五类，**这件事本身就是 C-II 的证据**——
+如果发现不带上下文，这样的逐条裁定根本做不了。它不只是一个 precision 分析。
+
+⚠️ **一条被删掉的候选 RQ**：「回归防护面有多大」目前没有数据（v46 未统计），
+**不得写成 RQ**，只能在 §4.8 与 §7 作为方法性质与未来工作出现。
+
+### 5.2 语料
+
+来源、10 份需求、6 个生成方、上游作者的参考模型、逐 pair 溯源元数据（行列、SHA-256）。
+选它的理由：生成方是真实 LLM、缺陷分布自然发生、带一个独立外部对照。
+⚠️ 明确 54 pair 不是 54 个独立样本，是 9 份需求 × 6 份模型。
+
+### 5.3 缺陷台账（分母）
+
+1. 三方对照标注：需求原文 / 被评审模型 / 参考模型。
+2. 每条记录带什么：缺陷陈述、双侧原文、$M$ 元素、归因层、断言组。
+3. 四个归因层的定义。⚠️ `over_specification` 指**被评审模型**多写了，
+   与多报侧的「过度规定」方向相反。
+4. **必须交代标注过程**：谁标的、什么时候标的、是否在看过方法产出之后标的、
+   与命中判定是否同一人。⛔ 若时序上晚于方法产出，覆盖率就不是覆盖率。
+5. **台账的已知缺口**：与上游论文自己记录的问题清单做外部对照，写明缺口分布。
+   所有覆盖率数字都必须读作「在一个已知不完整的分母上的覆盖率」。
+6. 断言组的实际构成（负控覆盖极少、不可求值的散文恢复项多于 `primary`）——如实写。
+
+### 5.4 执行方与网格
+
+$$
+54\ \text{pair} \times 2\ \text{模型} \times 3\ \text{轮}
+$$
+
+- ⚠️ **为什么只用 2 个执行模型**（导师原话：「为什么一定要跑那么多 llm 呢？
+  选择几个代表性的就可以了。核心还是围绕论文的 motivation 和 contribution 来设计实验」）：
+  两个前沿模型足以区分「方法的能力边界」与「某个执行模型的能力边界」，这正是 RQ4 要问的；
+  堆模型数量不服务任何 RQ。
+- ⚠️ 区分执行方（2）与生成方（6）。
+- 为什么 3 轮：LLM 有采样随机性，单轮无法区分「能找到」与「碰巧找到」。
+
+### 5.5 指标
+
+`hit@1` / `hit@3` / `hit@all` 三口径的定义与各自回答什么。⛔ 三者必须同时报。
+
+多报侧：条目与去重两套分母。⛔ 两套必须同时报，只报一套会得出相反的主要矛盾。
+
+### 5.6 命中判定
+
+唯一标准：两侧命题是否指向同一个作者源缺陷。四种被认可的等价形态 + 一种被明令禁止的替换。
+⚠️ 如实写判定者数量、有无一致性系数、有多少位缺判据文字。
+
+### 5.7 多报侧裁定
+
+五类定义（真漏记 / 表示债务 / 无需求依据 / 假阳性 / 越界）+ 判定链路的顺序及其理由。
+⛔ 顺序不可颠倒，尤其范畴判定必须前置于归属判定。
+⛔ 判定表示债务必须回读作者源，不读编译产物。
+
+### 5.8 证据链与可复现性
+
+逐节点记录、逐次 LLM 调用记录、内容哈希、判定与产物分离。给一条完整的追溯路径示例。
+
+---
+
+## §6 Results
+
+⛔ **每小节开头一句话：本小节回答哪个 RQ、支撑哪条 contribution。**
+
+### 6.1 RQ1 覆盖侧总体
+
+三口径 + 双执行模型 + 逐轮极差（采样噪声底）。
+
+⛔ **同一小节内必须给出上界性说明**，不许拖到 Threats：
+两条使数字虚高的通道（不具判别力的谓词 / 拒答文案回灌）+ 逐级扣除表 + 不可复核位的数量与方向。
+**结论只能写成 $\mathrm{hit@1} \le$ 某值。**
+
+⛔ **算力与覆盖率同表给出**：调用数、输入输出 token、机时、每命中位的输出 token。
+
+### 6.2 RQ1 分层
+
+按归因层、按 $M$ 元素、按谓词分别给三口径。
+
+- 需求点名层显著高于合式性层——给出机制推论（流程只有需求驱动一个入口），
+  ⚠️ 同时写明它与「合式性缺陷本身更难」在本数据上不可分离，以及能分离两者的实验是什么。
+- ⛔ 谓词分层**不得读成选型建议**：谓词与缺陷类型共线，须先做词表消融。
+
+### 6.3 RQ2 证据族的供需与必要性
+
+1. 台账侧（需要什么族）与产出侧（实际用了什么族）的构成落差。
+2. 按「表达它最少需要哪一族」三分，给宽 / 严两套口径，两套都必须给。
+3. ⛔ 残值不是「放弃可执行语义后的上限」，是**悲观边界**——理由要写清。
+4. 有界模型检查一档几乎无读数：⛔ 正确结论是「这批语料缺乏足以到达该层面的案例」，
+   不是「它没用」。给出支持该读法的独立证据（台账人工标注不受方法供给能力限制），
+   以及两个无法排除的混淆因素。
+
+### 6.4 RQ4 稳定性与能力归属
+
+1. 命中格数的双峰分布；三个池子（稳定命中 / 不稳定 / 零命中）及其含义。
+2. `hit@3` 与 `hit@all` 的差：能力与稳定性是两个独立问题。
+3. 两执行模型的能力边界重合度 → 零命中是方法的缺口而非某模型的缺口。
+   ⚠️ 但只有两个模型，对更强模型不提供证据。
+4. ⚠️ 零命中里有一部分落在需求驱动层——**这是对「缺的只是模型驱动入口」这一读法的反证**，
+   真实图景是两块缺口并存。
+
+### 6.5 RQ3 多报侧
+
+1. 归并方式与两套分母；五类分布表。
+2. **表示债务**：子类、编译时发生了什么、两个案例（含作者源行号）。
+   ⚠️ 归属的三种处置及其后果，说明本文为什么选「单独成类报告」。
+   ⚠️ 不宜外推；论文主张的是审查动作而不是这个数字。
+3. **无需求依据**：子类与三个案例；成因至少两种（提示侧抽取倾向 / 证据包字段缺失）。
+4. **假阳性**：按断言四槽位分类。
+5. **越界**：⚠️ 不得用它论证语料已扫干净（自证），也不构成对 §3.1 边界排除的检验。
+6. **净增量**：如实给数与其不稳定性。⛔ 不作为卖点。
+7. ⛔ **回到 C-II**：这一整套逐条裁定之所以做得了，是因为每条发现带需求出处、
+   元素锚点与可复算判据。**这就是 C-II 的证据。**
+
+---
+
+## §7 Discussion
+
+1. **回到 §1 的三条 gap**，逐条说本文填了哪一部分、剩下什么。
+2. **为什么受限词表比自由 agent 更有效**——把 §1.3 末的反面观察在此收束。
+3. 可执行语义的必要性与它的代价（编译损耗）是同一枚硬币的两面。
+4. 表示债务作为一类**评测归因**问题的一般意义：给定一条评审链、一个语料、一个检测器，
+   能算出多报里有多大比例应归因于中间表示。
+5. **修复与回归确认**——⚠️ **只一小段，捎带提及，不展开**：
+   每条发现带可执行判据与元素锚点，因而便于定位修复点，也便于修复后重放同一套断言做回归确认。
+   ⛔ 不承诺修复效果、不给修复数据、不把它写成 future work 的主体。
+6. 对后续研究的指导：要检验有界模型检查这一档，需要引入更深的案例。
+
+---
+
+## §8 Threats to Validity
+
+必须包括，每条都要有对应的量或明确的「未量化」：
+
+1. **覆盖率是上界**，命中侧的对称审计未做。
+2. **无外部对照**，只报绝对量，不说明相对好多少。
+3. **判定层是独立误差源**：单一判定者、无一致性系数；多报侧的关键一步按定义不可机械复核。
+4. **部分判定位缺逐位判据**，写明数量与方向（对我们有利还是不利）。
+5. **台账有已知缺口**，且部分 pair 无台账记录——不得读作「这些模型无缺陷」。
+6. **54 pair 不是 54 个独立样本**，族间离散度大，不报到不代表精度的位数。
+7. **建模对象边界**：不含时钟、不变式、正交区；不外推到 arbitrary UML / SysML。
+8. **词表表达力边界**：具体后果（某谓词在本语料上不具判别力、某谓词零生成）。
+9. **拒答文案回灌**未量化。
+10. **方法在本批语料上迭代**，实验的作用是判断改动是否有效。
+    ⛔ 但方法的由来按领域资料归纳表述——不解释留出集，那个问题在论证结构里不出现。
+
+---
+
+## §9 Conclusion
+
+回到：本文把「模型哪里不符合需求」变成一个可机械求值的问题，
+贡献是谓词逻辑元模型与断言体系，以及由此得到的带上下文的发现。
+⛔ 不以「发现了多少」收尾，也不以修复展望收尾。
+
+---
+
+## §10 待补的对照与审计（不进正文，进写作 checklist）
+
+以下每一项缺失都会被审稿人直接问到，且都不需要重跑全量网格。清单与代价估计见报告 §9：
+朴素基线、阶段消融、表示债务的第二判定者、台账撰写过程的交代、命中形态的构成、
+拒答回灌量的统计、命中位按实际支撑族重算、规则领域出处注释补齐、有界模型检查用量查清。
+
+⛔ **朴素基线是第一优先**：没有它，覆盖率没有参照系，无法说明这套循环换来了什么。
+
+---
+
+## 11. 相对上一版改了什么、为什么
+
+| 改动 | 为什么 |
+| :-- | :-- |
+| 新增 §0「骨架」并按导师那条大逻辑重排全篇 | 导师原话给的是论文结构骨架，旧版是「Intro / Background / Problem / Method / Experiments / Results / Discussion」的通用模板，没有把「问题—价值—现有方法—方法—验证—结果回到问题」这条链显式扣起来 |
+| 新增 §5.1 RQ 表，每个 RQ 标注它验证哪条 contribution、扣住 §1 哪条 | 导师明确「核心还是围绕论文的 motivation 和 contribution 来设计实验，并定义 RQ 来进行论述」；旧版通篇没有 RQ |
+| 显式写出「回归防护面有多大」被排除为 RQ 的理由 | 无数据的 RQ 不能写；但删掉时必须留下记录，否则后续 agent 会再把它加回来 |
+| §5.4 新增「为什么只用 2 个执行模型」的论证 | 导师质疑「为什么一定要跑那么多 llm」，这条必须在论文里正面回答，且答案要挂在 RQ4 上 |
+| §3.1 把建模对象边界写成一句话带过 + 明令不展开 | 用户明确要求；旧版没有这条边界，v46 报告里的四点辩护也不进论文 |
+| 删除 §Method 里的 B-repair / B-confirm / B-final / canonical export / closure 与 regression audit 小节 | paper1 收窄为 discover |
+| 删除「当前只能写 plan，不写 result」「尚无正式结果」等表述 | 324 格全量实验已完成 |
+| §6 每小节强制标注「回答哪个 RQ、支撑哪条 contribution」 | 导师要求「结果分析来支撑 contribution，并回到问题部分」；旧版的 Results 只是指标清单 |
+| §7 修复只保留一小段并明令不展开 | 导师：「可以捎带提一下用于修复，但不宜多提，这篇文章毕竟不做这个」 |
+| §8 Threats 从原则性清单改为逐条带量或带「未量化」标记 | 旧版的 threats 是「baseline fairness 依赖 pilot」这类占位；现在每条都有实测对应 |
+| 新增 §10 待补对照清单，并标明朴素基线为第一优先 | 旧版把 baseline 写成「pilot 后再定义」；现在它是最硬的缺口 |
+| **保留**：不把中间表示 / ledger / audit 写成贡献、不把 LLM 偏好当最终裁判、不把无法投影静默计入成功 | 三条写作纪律与新口径不冲突，已并入各节的 ⛔ 条款 |

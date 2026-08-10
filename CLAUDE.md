@@ -28,7 +28,7 @@
 - `phd_proposal/` - LaTeX格式的博士开题报告文档
   - `phd_proposal_report/` - 主开题报告
   - `phd_proposal_literature_review/` - 文献综述文档
-- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[method/](./project_1_llm_state_machine_modeling/method/) 是 agent-loop / pyfcstm / run-record 等方法基础设施入口，[eval/](./project_1_llm_state_machine_modeling/eval/) 是 project_1 评测与审计入口
+- `project_1_llm_state_machine_modeling/` - 研究内容一：基于LLM的状态机结构化建模；其中 [project_1_llm_state_machine_modeling/talks/](./project_1_llm_state_machine_modeling/talks/) 是 project_1 内部正式导师讨论文库，用于记录高优先级论文路线与实验边界意见，[paper_stm_issue_discover/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/) 是**第一篇论文（STM issue discover）的完整工作区**——实现、语料、台账、实验、报告全都在里面，[archive/](./project_1_llm_state_machine_modeling/archive/) 是已停用但完整保留的旧路线（旧 agent loop 基础设施、Path-1 评测链、Path-1/2 指南）
 - `project_2_verification_scenario_generation/` - 研究内容二：验证场景与性质生成
 - `project_3_profile_based_verification/` - 研究内容三：基于验证剖面的状态机验证
 - `project_4_iterative_model_repair/` - 研究内容四：迭代式模型修复
@@ -168,6 +168,55 @@ GitHub PR / issue 的 body 与 comment 是施工流程、review 状态和协作�
 4. 论文工作区或文库可以记录稳定研究阶段、实验协议、数据 eligibility、文献筛选标准、run record 和可复现证据链；但这些记录必须服务于研究复核，而不是替代 GitHub PR / issue 的施工流程状态。
 5. 若已有仓库文件与 GitHub PR / issue 对同一施工状态说法不一致，动态流程状态以 GitHub PR / issue 为准；仓库文件应删除、收敛或改写为长期规则，不能形成第二流程真源。
 6. 后续伞 PR 与子 PR 的进度同步应优先更新 GitHub body / comment；仓库正文只在需要沉淀新的长期研究事实、结构纪律或数据总账时修改。
+
+### 9.5 资产归属纪律：顶层只放公共资产
+
+一个 project 目录下的**顶层子路径，只允许放跨论文复用的公共资产**；凡是与某一篇论文
+直接绑定的实现、语料、台账、评测、实验产物、报告，一律收进**该论文自己的 subdir**。
+
+判据很简单：**问一句「换一篇论文还用得上吗」**。
+
+- 用得上（语料库、基线文献、工具、跨论文的讨论纪要）→ 留在 project 顶层。
+- 用不上（某篇论文的评测脚本、它的缺陷台账、它的代次实验记录、它的报告）
+  → 进那篇论文的 subdir。
+
+**为什么这条是纪律而不是偏好**：归属不清会让「这份数据服务于哪个结论」变得无法回答。
+paper1 曾出现过实验脚本在 `eval/`、台账在 `eval/discover_matrix/manual_review/`、
+被评测的实现在 `paper_stm_repair/pipeline/` 的三处分裂，导致同一批测试散落两个目录、
+同一份口径被两处引用；重构时才发现 `eval/tests/` 的 10 个测试测的全是
+`eval/discover_matrix/` 的脚本，纯属历史漂移。
+
+配套规则：
+
+1. **弃用的路线整体进 `archive/`，不删除。** archive 的目标是**日后可取用**，所以每个
+   归档子目录必须配一份复活导引，写清：这是什么、属于哪条路线、为什么弃用、
+   **怎么重新跑起来**（环境变量、依赖与版本 pin、入口命令、验证方式、数据依赖）、
+   以及搬迁时同步改了什么。
+2. **搬迁一律用 `git mv`**，不要 delete + create，否则 `git log --follow` 断掉。
+3. **搬迁前先查目录深度锚点。** 大量脚本用 `Path(__file__).parents[N]` 数层级来定位仓库根；
+   改变深度会让它们**静默**解析到错误目录——不是报错，是产出空结果。
+   评测类代码尤其危险：空输入会被读成「没有命中」而不是「路径错了」。
+   要么保持深度不变，要么把锚点改成鲁棒写法并跑全量测试验证。
+4. **搬迁前后必须做机械对拍**：比对 `git ls-files -s` 的 (路径 → blob) 映射，
+   把差异分成纯改名 / 内容修改 / 新增 / 删除四类，后三类逐条解释。
+   ⚠️ 只比对哈希集合是不够的——空文件共享同一个 blob 哈希，会掩盖新增与删除。
+5. **`.gitignore` 的规则跟着路径走。** 路径一变，原本生效的排除规则会失配，
+   于是本该被忽略的产物（判定样本、密钥、中间件）**被静默纳入提交**。
+   搬迁后必须复核跟踪集合与搬迁前逐一致。
+6. **迭代型实验的产物按「口径 / 代次」两轴组织，不要平铺。** 一个跑了几十代的实验目录，
+   如果所有文档平铺在一层，几十份文件里既有仍然生效的判定口径，也有早已被推翻的代次快照，
+   读者无从分辨哪份还作数。默认分成四类：
+   - `protocol/` —— **永久口径**：判定标准、分母规则、分类学、出处政策。改它等于改研究规则。
+   - `judges/` —— 交给判定者的运行材料。⚠️ 它与 `protocol/` 的**物理分离本身就是防泄漏机制**，
+     不得因为"内容重复"而合并（实测：约定式隔离合规率 0/2，物理拆分 2/2）。
+   - `findings/` —— 跨代次仍然有效的发现与缺陷登记。
+   - `generations/vNN/` —— 按代次归档的事前登记与事后分析。**归档不是删除**：
+     代次分析是"这条规则当初为什么加"的唯一载体，删了就无法回答引入动机。
+7. **合并文档前必须先证明包含关系。** 两份看起来重复的文档，常常各自带着对方没有的细节。
+   合并前逐字 diff，给出「A 的内容是 B 的真子集」的证明；证明不了就两存。
+   措辞有差异的段落一律保留双方，不做"看起来一样就删"。
+8. **删除任何被测试按路径读取的文件前，先查该测试缺文件时的行为。** 若它是 `pytest.skip`，
+   删掉会让检查**静默消失**而测试全绿——这比测试变红危险得多。
 
 ### 10. 阶段化流水线的失败处理：只有两种情况允许整格崩
 
@@ -1122,7 +1171,7 @@ talks/
 - 不得把并发/时间列为 project_1 的方法主张或创新点
 - 不得把并发/时间类问题在 project_1 的评测中记为"方法未能检出"——它们不在断言对象内
 - 也不得反过来声称"这些模型没有并发/时间问题"（基线论文的最大语义类正是 missing regions）
-- 详见 [project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)
+- 详见 [project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md)
 
 **由这条边界导出的两项永久裁定，二者互不相干，不得混谈：**
 
@@ -1131,15 +1180,15 @@ talks/
    6 个 pair 恰好末位为 8。**它们不进评测网格、不进命中分母**，故全量网格恒为
    `54 pair × 2 模型 × 3 轮 = 324 格`，本条裁定单独作用后台账剩 `126 - 27 = 99` 条；能力分母另需扣除按逐条 `boundary_ruling` 剔除的 `EIS-0043-02`，故实际为 **98** 条——两种剔除来源不同，不可混谈。判据只读 `nl.txt`、
    先验、与运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。
-   见 [NL_SCOPE_RULE.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/NL_SCOPE_RULE.md)。
+   见 [NL_SCOPE_RULE.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/nl_scope_rule.md)。
 2. **hold-out 永久不用。** 不划分留出集，也**不在论文里解释这件事**：谓词词表与 prompt 的由来
    一律陈述为从真实设计与系统规约归纳，不以任何 pair 为依据，「为什么不留出」在本方法的论证
    结构里根本不出现。见
-   [METHOD_PROVENANCE_POLICY.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/METHOD_PROVENANCE_POLICY.md)。
+   [METHOD_PROVENANCE_POLICY.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/method_provenance_policy.md)。
 
 ⛔ 把裁定 2（不许因样本表现或参与度改分母）套到裁定 1 上，会得出「排除 `00x8` = 剔除不利样本」
 这个**错误**结论。已实际发生过一次，代价是把网格擅自改成 60 pair / 360 格的误启动。工具层由
-[test_scope_vs_holdout_are_different.py](./project_1_llm_state_machine_modeling/eval/discover_matrix/test_scope_vs_holdout_are_different.py)
+[test_scope_vs_holdout_are_different.py](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/test_scope_vs_holdout_are_different.py)
 钉住：`metrics_at_k.REPORTABLE` 已扣除越界记录，且越界记录若混入判定表会直接报「网格被改错」。
 
 时间与并发相关的验证仍属**研究内容三**；由于研究内容一不产出时钟与不变式，其时间属性来源
@@ -1327,7 +1376,7 @@ Reviewer 必须对每一条新增规则给出「通用原则 / 疑似特判 / �
 
    ⚠️ **project_1 不设 hold-out / 留出集**，方法就在这批 pair 上迭代；论文按「从领域学术资料与
    技术规约归纳而来」表述方法的由来。这条口径与配套的四项工程要求见
-   [project_1_llm_state_machine_modeling/eval/discover_matrix/METHOD_PROVENANCE_POLICY.md](./project_1_llm_state_machine_modeling/eval/discover_matrix/METHOD_PROVENANCE_POLICY.md)。
+   [project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/method_provenance_policy.md](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/method_provenance_policy.md)。
    取消留出**不取消**泄漏审查——上面那条抽象化自检就是泄漏审查在本口径下的落法。
 
 ### 3.5.2 迭代型实验的指标口径：`metric@k`
@@ -1368,7 +1417,7 @@ run record 里没有代码版本字段，一次运行归属于哪个 commit 只�
 是否作弊的判断交给作者自述。事前登记因此必须与代码同批 push，且**不能只写在 `runs/` 下**：
 `runs/` 全目录被 `.gitignore` 排除，写在那里的登记既进不了仓库，PR comment 里引用它的路径
 也是死链。正确落点是对应 eval 目录（project_1 是
-[eval/discover_matrix/](./project_1_llm_state_machine_modeling/eval/discover_matrix/)，
+[discover_matrix/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/)，
 命名沿用 `Vxx_PREREGISTERED.md`）。
 
 若某次登记事后才补交，必须在文件头如实写明「运行后补交，提交动作本身不证明它写在运行之前」，

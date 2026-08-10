@@ -9,7 +9,7 @@
 
 **命中率不在这里。** 命中要人工判定，判定表只有 v21 与 v22 有（更早的代次判定表没入库，只在
 各自的 PR comment 里）。硬把它们凑进同一张表，等于把不同判定口径的数字并排放 —— 而口径本身
-在这些代次之间变过（`HIT_CRITERION.md` §6 记着已用语义同一性原则修正过的结论）。所以这张表
+在这些代次之间变过（`docs/protocol/hit_criterion.md` §6 记着已用语义同一性原则修正过的结论）。所以这张表
 只给可从产物复算的量，命中率一列留给判定表能覆盖的代次。
 """
 
@@ -26,7 +26,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RUNS = ROOT / "runs" / "paper1"
 #: 格目录下最新文件在这个窗口内被改过，即判为「进行中」而非「失败」。
-#: 单格实测耗时 10–40 分钟（某格曾达 40 分钟，见 `POST_V22_BACKLOG.md` L-4），故取 45 分钟。
+#: 单格实测耗时 10–40 分钟（某格曾达 40 分钟，见 `docs/generations/v22/backlog.md` L-4），故取 45 分钟。
 _IN_FLIGHT_WINDOW = 45 * 60
 
 
@@ -263,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
         if skipped:
             print(f"\n跳过的非轮次目录：{skipped}")
         print("\n⚠️ **命中率只有判定表已入库的代次才有。** 更早代次的判定只存在于各自的 PR "
-              "comment 里，而判定口径在这些代次之间变过（见 `HIT_CRITERION.md` §6），"
+              "comment 里，而判定口径在这些代次之间变过（见 `docs/protocol/hit_criterion.md` §6），"
               "把它们并排放等于把不同口径的数字放在一列。")
     else:
         for row in rows:

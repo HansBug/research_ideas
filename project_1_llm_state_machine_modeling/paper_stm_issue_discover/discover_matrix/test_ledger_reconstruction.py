@@ -16,7 +16,7 @@ yielded.  Twelve verdicts across eight cells, ten of them hits.  Anything else
 means the path sets are wrong.
 
 Run:
-    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/eval/discover_matrix
+    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
 """
 
 from __future__ import annotations

@@ -6,8 +6,8 @@
 
 | | 说的是什么 | 依据 |
 | :-- | :-- | :-- |
-| 不设 hold-out | **不许**因样本表现或参与规则编写而改分母 | METHOD_PROVENANCE_POLICY.md |
-| `00x8` 越界 | 有些规约本来就不是本方法要建模的对象 | NL_SCOPE_RULE.md |
+| 不设 hold-out | **不许**因样本表现或参与规则编写而改分母 | docs/protocol/method_provenance_policy.md |
+| `00x8` 越界 | 有些规约本来就不是本方法要建模的对象 | docs/protocol/nl_scope_rule.md |
 
 把前者套到后者上，就会得出「排除 00x8 = 剔除不利样本」这个错误结论。事实相反：被排除集里
 `0018` 的 `hit@1` = 66.7%，高于全量均值 53.9% —— 若目的是挑数字，不会把它一起排掉。
@@ -87,7 +87,7 @@ def test_the_refusal_message_says_it_is_not_about_00x8() -> None:
     verdicts = {r: {"claude": [1], "gpt": [1]} for r in M.REPORTABLE[1:]}
     text = " ".join(M.validate(verdicts, {}, rounds=1, require_direction=False))
     assert "00x8" in text
-    assert "NL_SCOPE_RULE.md" in text
+    assert "docs/protocol/nl_scope_rule.md" in text
 
 
 def test_an_out_of_scope_record_in_the_table_is_refused_too() -> None:

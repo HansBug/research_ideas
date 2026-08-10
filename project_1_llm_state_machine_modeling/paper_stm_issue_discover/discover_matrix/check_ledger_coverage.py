@@ -6,7 +6,7 @@ instead, on the belief that the frozen ledger had been lost in the 2026-07-29 ma
 rebuild. That belief was wrong: the file is in the repository, was committed by `94074e4e`
 on 2026-07-29 22:01, its SHA-256 matches the figure published in issue #166, and **47 of 47
 findings carry an `eval_assert`** (44 of them with extractable model-element paths). The
-reconstruction only ever covered 4 pairs / 5 findings, and `HIT_CRITERION.md` §7 explicitly
+reconstruction only ever covered 4 pairs / 5 findings, and `docs/protocol/hit_criterion.md` §7 explicitly
 forbids computing hit figures from it. Reading the wrong file understated binding-level
 coverage by a factor of ~9.
 
@@ -166,7 +166,7 @@ def main() -> int:
           + f"；其中 {sum(1 for e in entries if recon_assert.get(e))} / {len(entries)} "
             f"条有可提取的 binding\n")
     if provenance != "frozen":
-        print("⚠️ 未使用 frozen ledger —— HIT_CRITERION.md §7 禁止基于重建版计算命中数字\n")
+        print("⚠️ 未使用 frozen ledger —— docs/protocol/hit_criterion.md §7 禁止基于重建版计算命中数字\n")
     print(f"issue #166 的 expected issue：**{len(results)}** 条\n")
     print("| 交代结果 | 条数 | 含义 |")
     print("| --- | ---: | --- |")
@@ -211,7 +211,7 @@ def main() -> int:
                 "same_pair_only = 该 pair 有新条目但 binding 不相交，须人工确认；"
                 "unaccounted = 该 pair 无任何可入条目，必须为 0 或逐条解释。"
                 "⚠️ 早前版本读的是仅覆盖 4 个 pair 的 expected_issues_reconstructed.json，"
-                "并据此称『仅 5 条可做 binding 比对』——那违反了 HIT_CRITERION.md §7，已更正。",
+                "并据此称『仅 5 条可做 binding 比对』——那违反了 docs/protocol/hit_criterion.md §7，已更正。",
             "ledger_provenance": provenance,
             "ledger_path": str(frozen if provenance == "frozen" else "reconstructed"),
             # Spell out `unaccounted` even when zero: a reader should not have to infer it

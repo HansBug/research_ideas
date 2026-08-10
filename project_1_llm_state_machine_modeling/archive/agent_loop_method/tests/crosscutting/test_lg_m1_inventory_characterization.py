@@ -20,26 +20,26 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+REPO_ROOT = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 TESTS_ROOT = METHOD_ROOT / "tests"
 BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
 EXPERIMENT_MODULES = [
-    "method.pr_e1_real_runs",
-    "method.experiments.real_run_matrix",
-    "method.pr_lg_f1_resume_experiment",
-    "method.experiments.checkpoint_resume",
-    "method.pr_d_representative",
-    "method.experiments.representative_cases",
-    "method.pr2a_loop",
-    "method.experiments.ablation.deterministic_loop",
+    "archive.agent_loop_method.pr_e1_real_runs",
+    "archive.agent_loop_method.experiments.real_run_matrix",
+    "archive.agent_loop_method.pr_lg_f1_resume_experiment",
+    "archive.agent_loop_method.experiments.checkpoint_resume",
+    "archive.agent_loop_method.pr_d_representative",
+    "archive.agent_loop_method.experiments.representative_cases",
+    "archive.agent_loop_method.pr2a_loop",
+    "archive.agent_loop_method.experiments.ablation.deterministic_loop",
 ]
 LG_M1_C1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D1_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_B_ADDITIVE_STAGE_MODULES = {
-    "method.stages.api",
-    "method.stages.sc_control",
-    "method.stages.sl_prompt_api",
+    "archive.agent_loop_method.stages.api",
+    "archive.agent_loop_method.stages.sc_control",
+    "archive.agent_loop_method.stages.sl_prompt_api",
 }
 LG_M1_B_ADDITIVE_TEST_COUNT = 7
 LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT = 3
@@ -47,15 +47,15 @@ LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT = 4
 LG_M1_C2_EXPECTED_TEST_PR0_NON_LEGACY_CONTRACT_COUNT = 52
 LG_M1_C2_EXPECTED_TEST_PR0_LEGACY_DIRECT_COUNT = 0
 LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
-    "project_1_llm_state_machine_modeling/method/loop.py",
-    "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/loop.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
 }
 LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D3_EXPECTED_COLLECTION_DELTA = 7
 LG_M1_G_EXPECTED_COLLECTION_DELTA = 4
 LG_M1_D3_REMOVED_FACADE_IMPORTS = {
     (
-        "project_1_llm_state_machine_modeling/method/experiments/checkpoint_resume.py",
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/experiments/checkpoint_resume.py",
         "from_import",
         "run_lg_f1_resume_experiment",
         None,
@@ -64,46 +64,46 @@ LG_M1_D3_REMOVED_FACADE_IMPORTS = {
 LG_M1_D3_REMOVED_DIRECT_SYMBOLS = {"run_lg_f1_resume_experiment"}
 
 LG_M1_E_TEST_PATH_MIRROR_MAP = {
-    "project_1_llm_state_machine_modeling/method/tests/test_gpt_client.py":
-        "project_1_llm_state_machine_modeling/method/tests/llm/test_gpt_client.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_a_inventory_characterization.py":
-        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_c1_experiments_entrypoints.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/test_experiments_entrypoints.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d1_langgraph_foundation.py":
-        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_foundation.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d2_langgraph_instrumentation.py":
-        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_instrumentation.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_lg_m1_d3_langgraph_nodes_subgraphs_core.py":
-        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_nodes_subgraphs_core.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr0_stage_contract.py":
-        "project_1_llm_state_machine_modeling/method/tests/stages/test_stage_contract.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr1a_sd_tools.py":
-        "project_1_llm_state_machine_modeling/method/tests/stages/test_sd_tools.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr1b_sl_prompt_generators.py":
-        "project_1_llm_state_machine_modeling/method/tests/stages/test_sl_prompt_generators.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr2a_deterministic_loop.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/ablation/test_deterministic_loop.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr2b_llm_review_integration.py":
-        "project_1_llm_state_machine_modeling/method/tests/llm/test_llm_review_integration.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr3_handoff_smoke.py":
-        "project_1_llm_state_machine_modeling/method/tests/handoff_smoke/test_handoff_smoke.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_b1_deterministic_runtime.py":
-        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_full_staged_runtime_contract.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_b2_llm_stage_adapters.py":
-        "project_1_llm_state_machine_modeling/method/tests/llm/test_llm_stage_adapters.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_c_default_entry.py":
-        "project_1_llm_state_machine_modeling/method/tests/crosscutting/test_default_agent_loop_entry.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_d_representative.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/test_representative_cases.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_e1_real_runs.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/test_real_run_matrix.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_e1_scenario_normalization.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/test_scenario_normalization.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_langgraph_runtime.py":
-        "project_1_llm_state_machine_modeling/method/tests/langgraph/test_runtime_contract.py",
-    "project_1_llm_state_machine_modeling/method/tests/test_pr_lg_f1_resume_experiment.py":
-        "project_1_llm_state_machine_modeling/method/tests/experiments/test_checkpoint_resume.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_gpt_client.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/llm/test_gpt_client.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_lg_m1_a_inventory_characterization.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/crosscutting/test_lg_m1_inventory_characterization.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_lg_m1_c1_experiments_entrypoints.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/test_experiments_entrypoints.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_lg_m1_d1_langgraph_foundation.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/langgraph/test_foundation.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_lg_m1_d2_langgraph_instrumentation.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/langgraph/test_instrumentation.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_lg_m1_d3_langgraph_nodes_subgraphs_core.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/langgraph/test_nodes_subgraphs_core.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr0_stage_contract.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/stages/test_stage_contract.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr1a_sd_tools.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/stages/test_sd_tools.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr1b_sl_prompt_generators.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/stages/test_sl_prompt_generators.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr2a_deterministic_loop.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/ablation/test_deterministic_loop.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr2b_llm_review_integration.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/llm/test_llm_review_integration.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr3_handoff_smoke.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/handoff_smoke/test_handoff_smoke.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_b1_deterministic_runtime.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/crosscutting/test_full_staged_runtime_contract.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_b2_llm_stage_adapters.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/llm/test_llm_stage_adapters.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_c_default_entry.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/crosscutting/test_default_agent_loop_entry.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_d_representative.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/test_representative_cases.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_e1_real_runs.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/test_real_run_matrix.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_e1_scenario_normalization.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/test_scenario_normalization.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_langgraph_runtime.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/langgraph/test_runtime_contract.py",
+    "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/test_pr_lg_f1_resume_experiment.py":
+        "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests/experiments/test_checkpoint_resume.py",
 }
 
 
@@ -136,15 +136,15 @@ def _scan_langgraph_facade_consumers() -> dict[str, Any]:
         module = ast.parse(path.read_text(encoding="utf-8"))
         alias_names: set[str] = set()
         for node in ast.walk(module):
-            if isinstance(node, ast.ImportFrom) and node.module == "method.langgraph_runtime":
+            if isinstance(node, ast.ImportFrom) and node.module == "archive.agent_loop_method.langgraph_runtime":
                 for alias in node.names:
                     entries.append({"module_path": rel, "kind": "from_import", "symbol": alias.name, "asname": alias.asname})
             elif isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "method.langgraph_runtime":
+                    if alias.name == "archive.agent_loop_method.langgraph_runtime":
                         alias_names.add(alias.asname or "langgraph_runtime")
                         entries.append({"module_path": rel, "kind": "module_import", "symbol": alias.name, "asname": alias.asname})
-            elif isinstance(node, ast.ImportFrom) and node.module == "method":
+            elif isinstance(node, ast.ImportFrom) and node.module == "archive.agent_loop_method":
                 for alias in node.names:
                     if alias.name == "langgraph_runtime":
                         alias_names.add(alias.asname or alias.name)
@@ -181,7 +181,7 @@ def _scan_stage_api() -> dict[str, Any]:
                     if isinstance(target, ast.Name) and (target.id.isupper() or target.id.endswith("_ID")) and not target.id.startswith("_"):
                         constants.append(target.id)
         modules.append({
-            "module": f"method.stages.{path.stem}",
+            "module": f"archive.agent_loop_method.stages.{path.stem}",
             "path": str(path.relative_to(REPO_ROOT)),
             "functions": funcs,
             "classes": classes,
@@ -208,7 +208,7 @@ def _scan_legacy_contract_tests() -> dict[str, Any]:
         if "__pycache__" in py_file.parts or py_file.name == "legacy_loop.py":
             continue
         text = py_file.read_text(encoding="utf-8")
-        if "method.legacy_loop" in text or "legacy_loop" in text:
+        if "archive.agent_loop_method.legacy_loop" in text or "legacy_loop" in text:
             active_import_paths.append(str(py_file.relative_to(REPO_ROOT)))
     return {
         "active_import_paths": active_import_paths,
@@ -223,9 +223,9 @@ def _scan_legacy_contract_tests() -> dict[str, Any]:
 
 
 def _stable_graph_contract() -> dict[str, Any]:
-    from method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
-    from method.loop import build_planned_stage_graph
-    from method.schema import LoopConfig
+    from archive.agent_loop_method.langgraph_runtime import build_langgraph_node_registry, graph_registry_consistency
+    from archive.agent_loop_method.loop import build_planned_stage_graph
+    from archive.agent_loop_method.schema import LoopConfig
 
     planned = build_planned_stage_graph(LoopConfig())
     registry = build_langgraph_node_registry()
@@ -302,7 +302,7 @@ def test_lg_m1_a_facade_stage_and_legacy_inventory_match_current_observable_surf
     assert set(fixture_facade["direct_symbols"]) - set(current_facade["direct_symbols"]) == LG_M1_D3_REMOVED_DIRECT_SYMBOLS
     assert set(current_facade["direct_symbols"]) - set(fixture_facade["direct_symbols"]) == set()
     assert set(current_facade["reexporter_paths_checked"]) == set(fixture_facade["reexporter_paths_checked"])
-    assert "project_1_llm_state_machine_modeling/method/loop.py" in current_facade["reexporter_paths_checked"]
+    assert "project_1_llm_state_machine_modeling/archive/agent_loop_method/loop.py" in current_facade["reexporter_paths_checked"]
 
     current_stage = _scan_stage_api()
     fixture_stage = baseline["stage_api_scan"]
@@ -342,12 +342,12 @@ def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider
     assert runtime["source"]["type"] == "committed_historical_agent_loop_record_gzip"
     assert Path(runtime["source"]["path"]).exists()
     assert runtime["source"]["record_status"] == "success"
-    assert runtime["environment"]["runner"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
-    assert runtime["environment"]["loop_entrypoint"] == "method.loop.run_agent_loop"
+    assert runtime["environment"]["runner"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert runtime["environment"]["loop_entrypoint"] == "archive.agent_loop_method.loop.run_agent_loop"
     assert runtime["environment"]["graph_runtime_backend"] == "langgraph"
     assert runtime["environment"]["graph_runtime_id"] == "langgraph:pr-langgraph.stategraph.v1"
     assert runtime["environment"]["node_edge_schema_version"] == "pr-langgraph.stage-nodes.v1"
-    assert runtime["run_config"]["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert runtime["run_config"]["runtime_implementation"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
     assert runtime["run_config"]["canonical_runtime_backend"] == "langgraph"
     assert runtime["run_config"]["graph_node_registry"]["opaque_wrapper"] is False
     assert runtime["run_config"]["graph_node_registry"]["delegated_monolithic_runtime"] is False
@@ -361,7 +361,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
     rows = [
         *rows,
         {
-            "module": "method.experiments.ablation.deterministic_loop",
+            "module": "archive.agent_loop_method.experiments.ablation.deterministic_loop",
             "import_exit_code": 0,
             "help_exit_code": 0,
             "help_usage_first_line": "",
@@ -398,7 +398,7 @@ def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
 def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_is_current() -> None:
     baseline = _load_baseline()
     proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/method/tests"],
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "project_1_llm_state_machine_modeling/archive/agent_loop_method/tests"],
         cwd=REPO_ROOT,
         text=True,
         stdout=subprocess.PIPE,

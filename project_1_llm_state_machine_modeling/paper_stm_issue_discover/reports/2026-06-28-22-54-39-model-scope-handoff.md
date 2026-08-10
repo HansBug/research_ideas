@@ -78,7 +78,7 @@ R5.6 应在 [archived experiment_design/scope/](../archive/r5_7_better_stm_snaps
 # [cmd-scope-summary] CMD-SCOPE-1 / CMD-SCOPE-2 / CMD-SCOPE-3 / CMD-SCOPE-4 / CMD-SCOPE-5
 python - <<'PY'
 import json, collections, pathlib
-base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile')
+base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/llms_emp_profile')
 case=[json.loads(l) for l in (base/'llms_emp_case_matrix.jsonl').read_text().splitlines() if l.strip()]
 clusters=[json.loads(l) for l in (base/'llms_emp_cluster_profiles.jsonl').read_text().splitlines() if l.strip()]
 partial=[json.loads(l) for l in (base/'llms_emp_partial_attribution_ledger.jsonl').read_text().splitlines() if l.strip()]

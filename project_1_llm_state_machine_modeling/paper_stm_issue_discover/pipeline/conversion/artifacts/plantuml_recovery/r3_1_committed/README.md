@@ -34,7 +34,7 @@ workdir.zip
 在仓库根目录执行：
 
 ```bash
-cd project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed
+cd project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed
 sha256sum -c workdir.zip.sha256
 unzip -l workdir.zip | head
 mkdir -p /tmp/r3_1_plantuml_recovery_workdir
@@ -46,7 +46,7 @@ find /tmp/r3_1_plantuml_recovery_workdir -maxdepth 2 -type f | head
 
 ```bash
 export PLANTUML_JAR=/abs/path/to/plantuml.jar
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_conversion.cli recover-plantuml \
   --run-id r3.1-plantuml-recovery-v0 \
   --created-at 2026-06-25T12:00:00+00:00
@@ -55,7 +55,7 @@ python -m paper_stm_repair_conversion.cli recover-plantuml \
 生成后可以删除解压态目录，只保留 `workdir.zip`、`workdir.zip.sha256`、`manifest.json` 与本 README：
 
 ```bash
-rm -rf project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir
+rm -rf project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir
 ```
 
 ## 学术解释边界

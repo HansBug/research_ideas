@@ -93,7 +93,7 @@ pyfcstm 运行时会把 `!` forced transition 展开为多个 leaf-level 行为�
 
 ## 4. sources/ T0+🟢 分层抽样口径
 
-数据集为我们自建的 [`../sources/`](../sources/) 控制系统 NL 文库；按以下规则筛选 Path 1 / Path 2 各自的 evaluation 子集：
+数据集为我们自建的 [`../sources/`](../../sources/) 控制系统 NL 文库；按以下规则筛选 Path 1 / Path 2 各自的 evaluation 子集：
 
 ### 4.1 T0 时间级筛选
 
@@ -104,7 +104,7 @@ pyfcstm 运行时会把 `!` forced transition 展开为多个 leaf-level 行为�
 3. 文本含 "timeout / time-out / delay / counting down / counts down / debounce / hysteresis" 等隐式时序词 → 非 T0
 4. STM.md §0 已标 "代表时间级别" 字段，优先复用该标签
 
-[`../sources/SUMMARY.md`](../sources/SUMMARY.md) 中样本已有人工 T0 / T1 / T2 / T3 标注；优先复用，标签不齐时按上述规则补判。
+[`../sources/SUMMARY.md`](../../sources/SUMMARY.md) 中样本已有人工 T0 / T1 / T2 / T3 标注；优先复用，标签不齐时按上述规则补判。
 
 ### 4.2 评级筛选
 
@@ -136,7 +136,7 @@ pyfcstm 运行时会把 `!` forced transition 展开为多个 leaf-level 行为�
 
 ### 4.5 不再使用 structure_event_driven 8 cases
 
-原 v3 sprint plan §4.2 把 Path 1 dataset 锁定在 `structure_event_driven` 8 cases。**v4 已切换到 sources/**：原因是 structure_event 9 个 case GT 均含 `reference_history_states_count ≥ 1`（每个 case 至少有一个 `.H` history pseudo-state），与 pyfcstm 形式不支持的范围冲突；按 §4.3 排除规则全部剔除后 dataset 为空。改用 sources/ 后我们对 reference 5-component IR 有完全的人工构建控制权，paper claim "small-scale manual benchmark" 更清晰，与 [评测口径分析 §6.4 第 5 条](../discussions/2026-04-15-14-51-21-AI-讨论-baselines双绿输入文本与sources样例对比及评测口径分析.md) 的建议一致。
+原 v3 sprint plan §4.2 把 Path 1 dataset 锁定在 `structure_event_driven` 8 cases。**v4 已切换到 sources/**：原因是 structure_event 9 个 case GT 均含 `reference_history_states_count ≥ 1`（每个 case 至少有一个 `.H` history pseudo-state），与 pyfcstm 形式不支持的范围冲突；按 §4.3 排除规则全部剔除后 dataset 为空。改用 sources/ 后我们对 reference 5-component IR 有完全的人工构建控制权，paper claim "small-scale manual benchmark" 更清晰，与 [评测口径分析 §6.4 第 5 条](../../discussions/2026-04-15-14-51-21-AI-讨论-baselines双绿输入文本与sources样例对比及评测口径分析.md) 的建议一致。
 
 ## 5. 签字 markdown 格式约定
 

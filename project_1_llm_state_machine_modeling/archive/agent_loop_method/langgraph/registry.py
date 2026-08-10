@@ -2,7 +2,7 @@
 
 The registry describes the observable StateGraph contract.  LG-C2 context
 engineering identifiers are injected by the public facade in
-``method.langgraph_runtime`` so this foundation module does not import the
+``archive.agent_loop_method.langgraph_runtime`` so this foundation module does not import the
 facade and does not own C-lane context behavior.
 """
 
@@ -13,8 +13,8 @@ from typing import Any
 
 from langgraph.graph import END, START
 
-from method.langgraph.constants import LANGGRAPH_RUNTIME_BACKEND, NODE_EDGE_SCHEMA_VERSION
-from method.stages.ids import ALL_STAGE_SPECS, StageId
+from archive.agent_loop_method.langgraph.constants import LANGGRAPH_RUNTIME_BACKEND, NODE_EDGE_SCHEMA_VERSION
+from archive.agent_loop_method.stages.ids import ALL_STAGE_SPECS, StageId
 
 
 def canonical_stage_ids() -> list[str]:
@@ -27,7 +27,7 @@ def build_langgraph_node_registry(*, context_subgraph_id: str, context_node_ids:
     """Return PR-langgraph's explicit StateGraph node/edge registry.
 
     ``context_subgraph_id`` and ``context_node_ids`` are identifier-only values
-    injected by ``method.langgraph_runtime``.  The context-engineering subgraph
+    injected by ``archive.agent_loop_method.langgraph_runtime``.  The context-engineering subgraph
     behavior, payload assembly, redaction guard, and prompt evidence remain out
     of this D1 foundation module.
     """
@@ -202,7 +202,7 @@ def build_langgraph_node_registry(*, context_subgraph_id: str, context_node_ids:
         "instrumentation_layer": LANGGRAPH_RUNTIME_BACKEND,
         "notes": [
             "LangGraph owns the default orchestration path; no public staged/langgraph backend switch remains.",
-            "method.staged_runtime is reused only as the canonical stage-semantics/helper library.",
+            "archive.agent_loop_method.staged_runtime is reused only as the canonical stage-semantics/helper library.",
         ],
     }
 

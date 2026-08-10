@@ -31,7 +31,7 @@ Grades (defined in `REVIEW_SPEC.md`, one per difference):
     uncertain   evidence insufficient; the blocker is recorded
 
 `out_of_scope` marks a difference as `concurrency` or `timing` so the two classes
-this study's problem definition excludes (see `GROUND_TRUTH_LIMITATIONS.md`) can be
+this study's problem definition excludes (see `docs/protocol/ground_truth_limitations.md`) can be
 counted separately rather than silently dropped or silently included.
 
 Usage:

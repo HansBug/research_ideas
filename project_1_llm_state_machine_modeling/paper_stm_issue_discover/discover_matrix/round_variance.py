@@ -16,7 +16,7 @@ The mapping from a published issue to a `EIS-*` ledger entry is a *mechanical pr
 matches on the ledger's `primary_predicate` plus the distinctive model elements named in its
 assertion, and it is wrong whenever a defect is expressible in more than one predicate. It is
 here to make the rounds comparable to each other, not to settle whether a defect was found --
-`HIT_CRITERION.md` §5 reserves that for a person, and this script prints the caveat with the
+`docs/protocol/hit_criterion.md` §5 reserves that for a person, and this script prints the caveat with the
 numbers rather than in a footnote.
 
 Usage: round_variance.py <run_dir> [<run_dir> ...] [--json]
@@ -409,7 +409,7 @@ def main() -> int:
     print(f"\n不稳定的格（轮次间不一致）: {len(report['unstable_cells'])} / {len(report['cells'])}")
     for c in report["unstable_cells"]:
         print(f"  ⚠ {c}: published {report['cells'][c]['published']}")
-    print("\n⚠ EIS 映射是机械代理（predicate + 元素重叠），不能替代 HIT_CRITERION.md §5 的人工判定。")
+    print("\n⚠ EIS 映射是机械代理（predicate + 元素重叠），不能替代 docs/protocol/hit_criterion.md §5 的人工判定。")
     return 0
 
 

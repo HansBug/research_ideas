@@ -1,6 +1,6 @@
 # 60 pair 人工审阅数据
 
-作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见 [../MANUAL_REVIEW_SPEC.md](../MANUAL_REVIEW_SPEC.md)，命中判据见 [../HIT_CRITERION.md](../HIT_CRITERION.md)，分母的已知缺口见 [../GROUND_TRUTH_LIMITATIONS.md](../GROUND_TRUTH_LIMITATIONS.md)。
+作者生成 STM_0 相对论文参考 STM_0 的逐条差异判定，**60/60 全覆盖**。判定原则见 [manual_review_spec.md](../docs/protocol/manual_review_spec.md)，命中判据见 [hit_criterion.md](../docs/protocol/hit_criterion.md)，分母的已知缺口见 [ground_truth_limitations.md](../docs/protocol/ground_truth_limitations.md)。
 
 完整报告与讨论：Issue [#171](https://github.com/HansBug/research_ideas/issues/171)。
 

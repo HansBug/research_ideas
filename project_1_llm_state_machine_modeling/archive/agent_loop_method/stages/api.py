@@ -9,10 +9,10 @@ chat client, and does not call the full-loop driver.
 
 from __future__ import annotations
 
-from method.stages.ids import ALL_STAGE_SPECS, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageKind, StageSpec, StageStatus
-from method.stages.sc_control import SC_CONTROL_SCHEMA_VERSION, build_stage_control_summary, canonical_stage_ids, stage_specs_by_kind
-from method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
-from method.stages.sd_tools import (
+from archive.agent_loop_method.stages.ids import ALL_STAGE_SPECS, STAGE_SPECS_BY_ID, FeedbackSource, StageId, StageKind, StageSpec, StageStatus
+from archive.agent_loop_method.stages.sc_control import SC_CONTROL_SCHEMA_VERSION, build_stage_control_summary, canonical_stage_ids, stage_specs_by_kind
+from archive.agent_loop_method.stages.sd_context import BuildResult, build_model_from_dsl, update_context_with_build
+from archive.agent_loop_method.stages.sd_tools import (
     DEFAULT_WARNING_REPAIR_BUDGET,
     freeze_scenario_set,
     mark_warning_repair_attempt,
@@ -24,7 +24,7 @@ from method.stages.sd_tools import (
     run_sd8_fix_plan,
     run_sd10_repair_review,
 )
-from method.stages.sl_prompt_api import (
+from archive.agent_loop_method.stages.sl_prompt_api import (
     build_sl1_initial_modeling_prompt,
     build_sl5_scenario_generation_prompt,
     compact_sl5_design_summary_for_prompt,

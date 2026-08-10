@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from method.stages.sl_prompt_common import fenced_json, fenced_text, message_pack, parse_json_response, require_one_of, to_jsonable
+from archive.agent_loop_method.stages.sl_prompt_common import fenced_json, fenced_text, message_pack, parse_json_response, require_one_of, to_jsonable
 
 MODEL_REVIEW_CATEGORIES: tuple[str, ...] = (
     "nl_fidelity",

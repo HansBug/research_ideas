@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-import method.llm_stages as llm_stages
-import method.loop as loop
-import method.schema as schema
-from method.llm_stages import LLMStageConfig, MockLLMProvider
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
-from method.staged_runtime import RepairRequest
-from method.stages.ids import StageId
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
+import archive.agent_loop_method.llm_stages as llm_stages
+import archive.agent_loop_method.loop as loop
+import archive.agent_loop_method.schema as schema
+from archive.agent_loop_method.llm_stages import LLMStageConfig, MockLLMProvider
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from archive.agent_loop_method.staged_runtime import RepairRequest
+from archive.agent_loop_method.stages.ids import StageId
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
 
 
 def _good_dsl() -> str:
@@ -542,7 +542,7 @@ def test_pr_c_run_record_redaction_failure_fails_closed_without_secret(monkeypat
         raise RuntimeError("simulated redaction crash")
 
     monkeypatch.setattr(loop, "RealEnvLLMProvider", lambda: FakeRealProvider())
-    monkeypatch.setattr("method.llm_stages.redact_run_record_payload", broken_redactor)
+    monkeypatch.setattr("archive.agent_loop_method.llm_stages.redact_run_record_payload", broken_redactor)
     cfg = schema.LoopConfig(output_dir=str(tmp_path), run_id="pr-c-redaction-fail-closed")
 
     result = loop.run_agent_loop(f"Start moves Idle to Active. leaked token LLM_API_KEY={secret}", cfg)
@@ -712,7 +712,7 @@ def test_pr_c_run_record_write_failure_does_not_return_success(monkeypatch: pyte
     def fail_write(*_args: object, **_kwargs: object) -> None:
         raise OSError("simulated disk failure")
 
-    monkeypatch.setattr("method.staged_runtime.write_agent_loop_run_record", fail_write)
+    monkeypatch.setattr("archive.agent_loop_method.staged_runtime.write_agent_loop_run_record", fail_write)
     result = loop.run_agent_loop("Start moves Idle to Active.", cfg, llm_provider=provider)
 
     assert result.status == "spec_failed"
@@ -722,7 +722,7 @@ def test_pr_c_run_record_write_failure_does_not_return_success(monkeypatch: pyte
 
 
 def test_lg_c2_context_subgraph_registry_exposes_context_nodes() -> None:
-    from method.langgraph_runtime import build_langgraph_node_registry, build_lg_c2_context_subgraph_contract
+    from archive.agent_loop_method.langgraph_runtime import build_langgraph_node_registry, build_lg_c2_context_subgraph_contract
 
     contract = build_lg_c2_context_subgraph_contract()
     registry = build_langgraph_node_registry()
@@ -744,7 +744,7 @@ def test_lg_c2_context_subgraph_registry_exposes_context_nodes() -> None:
 
 
 def test_lg_c2_sl9_context_metadata_records_budget_hash_and_redaction_status() -> None:
-    from method.langgraph_runtime import assemble_lg_c2_prompt_context
+    from archive.agent_loop_method.langgraph_runtime import assemble_lg_c2_prompt_context
 
     request = _prompt_budget_repair_request(marker="LG_C2_HASH_MARKER")
     payload, meta = loop._select_sl9_prompt_payload(request, LLMStageConfig(max_prompt_tokens=128_000))
@@ -859,7 +859,7 @@ def test_lg_c2_sl10_context_metadata_compacts_only_when_over_budget_and_is_canon
 
 
 def test_lg_c2_redaction_guard_allows_non_secret_token_accounting_fields() -> None:
-    from method.langgraph_runtime import assemble_lg_c2_prompt_context
+    from archive.agent_loop_method.langgraph_runtime import assemble_lg_c2_prompt_context
 
     result = assemble_lg_c2_prompt_context(
         stage_id=StageId.SL_9_REPAIR.value,
@@ -886,7 +886,7 @@ def test_lg_c2_redaction_guard_allows_non_secret_token_accounting_fields() -> No
 
 
 def test_lg_c2_redaction_guard_blocks_secret_like_context_before_provider() -> None:
-    from method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
+    from archive.agent_loop_method.langgraph_runtime import LG_C2_ContextRedactionBlocked, assemble_lg_c2_prompt_context
 
     provider_call_count = {"count": 0}
 

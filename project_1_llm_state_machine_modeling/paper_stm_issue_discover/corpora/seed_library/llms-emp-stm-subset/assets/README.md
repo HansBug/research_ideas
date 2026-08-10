@@ -99,7 +99,7 @@ STM_0: @startuml | [*] --> HumanDriving ...
 复跑命令：
 
 ```bash
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/extract_llms_emp_feedback_final.py \
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tools/extract_llms_emp_feedback_final.py \
   --extracted-at 2026-07-19T06:00:00+00:00
 ```
 

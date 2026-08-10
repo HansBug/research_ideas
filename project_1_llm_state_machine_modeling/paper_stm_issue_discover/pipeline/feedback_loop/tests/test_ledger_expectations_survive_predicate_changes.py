@@ -27,7 +27,7 @@ import pytest
 from paper_stm_feedback_loop.assertions.runtime import EvalEnvironment
 
 PROJECT = pathlib.Path(__file__).resolve().parents[4]   # project_1_llm_state_machine_modeling
-LEDGER = (PROJECT / "eval" / "discover_matrix" / "manual_review"
+LEDGER = (PROJECT / "paper_stm_issue_discover" / "discover_matrix" / "manual_review"
           / "expected_issue_set.json")
 SEEDS = pathlib.Path(__file__).resolve().parents[3] / "selected_seed_examples"
 

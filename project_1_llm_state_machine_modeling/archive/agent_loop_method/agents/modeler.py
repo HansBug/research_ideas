@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from method.gpt_client import chat
-from method.schema import ModelArtifact, SpecJson
-from method.stages.sl_initial_modeling_prompt import (
+from archive.agent_loop_method.gpt_client import chat
+from archive.agent_loop_method.schema import ModelArtifact, SpecJson
+from archive.agent_loop_method.stages.sl_initial_modeling_prompt import (
     build_sl1_initial_modeling_prompt,
     extract_candidate_dsl_or_legacy,
 )

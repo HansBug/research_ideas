@@ -17,7 +17,7 @@ import ast, json, pathlib, re, collections
 # `discover_matrix/` 调用它会拿到 FileNotFoundError，而不是审计结果。锚到文件自身位置。
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
+LEDGER = ROOT / "paper_stm_issue_discover/discover_matrix/manual_review/expected_issue_set.json"
 SRC = ROOT / "paper_stm_issue_discover/pipeline/feedback_loop/src/paper_stm_feedback_loop"
 SEEDS = ROOT / "paper_stm_issue_discover/selected_seed_examples"
 #: Held-out pairs first -- those are the ones a reported number depends on -- plus the four

@@ -4,8 +4,8 @@ import time
 
 import pytest
 
-from method import gpt_client
-from method.gpt_client import DEFAULT_REQUEST_TIMEOUT_SECONDS, LLMRequestTimeoutError, get_request_timeout_seconds
+from archive.agent_loop_method import gpt_client
+from archive.agent_loop_method.gpt_client import DEFAULT_REQUEST_TIMEOUT_SECONDS, LLMRequestTimeoutError, get_request_timeout_seconds
 
 
 def test_gpt_client_default_request_timeout_is_fail_fast(monkeypatch: pytest.MonkeyPatch) -> None:

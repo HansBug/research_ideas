@@ -3,7 +3,7 @@
 **这是 v46 的唯一入口。** 所有 v46 材料集中在本目录，本文件给核心结论与统计，细节引向各 sub md。
 
 - 网格：**54 pair × 2 模型（claude / gpt）× 3 轮 = 324 格**（`00x8` 永久排除，见
-  [NL_SCOPE_RULE.md](../NL_SCOPE_RULE.md)）
+  [nl_scope_rule.md](../docs/protocol/nl_scope_rule.md)）
 - 判定分母：**98 条台账记录 × 2 臂 × 3 轮 = 588 位**
 
 ---
@@ -19,7 +19,7 @@
 | gpt `hit@1` | 142/294 = 48.3% | 171/294 = 58.2% | +9.9pp |
 
 ⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计
-（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：**分母内带逐位判据的
+（[representation_debt.md](../docs/findings/representation_debt.md) §4.7）。已量化的规模：**分母内带逐位判据的
 340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。
 PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。
 逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
@@ -46,7 +46,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 ## 二、多报侧（unexpected issue）
 
 未被任何台账记录认领的产出，归并为同质簇后**逐条人工裁定**。
-最初 293 簇中，13 条经复核确认**内容已被现有台账记录承载**，按定义不属意外发现，移出至
+最初 304 簇中，14 条经复核确认**内容已被现有台账记录承载**，按定义不属意外发现，移出至
 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)；
 另有 2 条的断言在冻结制品上求值为 **True**（模型满足该义务），属**真阴性**——正确地不产出任何
 issue，两侧都不存在，记于
@@ -62,7 +62,7 @@ issue，两侧都不存在，记于
 | ❌ 假阳性 | 23 | 8.0% | 20 | 16.3% | 1.15 | 4 |
 | 🚫 越界 | 10 | 3.5% | 5 | 4.1% | 2.00 | 3 |
 | ✅ **真漏记** | 2 | 0.7% | 2 | 1.6% | 1.00 | 1 |
-| **合计** | **288** | 100% | **123** | 100% | **2.33** | 23 |
+| **合计** | **288** | 100% | **124** | 100% | **2.32** | 23 |
 
 ⚠️ **两套分母给出相反的主要矛盾**：按条目读是「编译债务最大」，按去重读是「断言侧过度规定最大」。
 原因是表示债务的条目/去重比 4.47 远高于无 NL 依据的 1.78——同一处损失被反复重述的程度高得多。
@@ -81,9 +81,9 @@ issue，两侧都不存在，记于
 ### 三条可直接引用的结论
 
 1. **多报的最大成分不是模型的问题。** 134 条目（29 处不同内容）是 PlantUML → FCSTM 编译的
-   信息损失——作者在源制品上已逐字表达，是 IR 装不下。见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
+   信息损失——作者在源制品上已逐字表达，是 IR 装不下。见 [representation_debt.md](../docs/findings/representation_debt.md)。
 2. **净增量是 2 条。** 全部 288 条目中只有 `0014-4` 与 `0010-2` 通过了「事实为真 + 作者源确实没写 +
-   NL 有逐字依据 + 台账未记」四条判据。**论文里能说的是 2，不是 286。**
+   NL 有逐字依据 + 台账未记」四条判据。**论文里能说的是 2，不是 288。**
 3. **多报以单次采样噪声为主**：174/288（60%）只出现在 6 格中的 1 格。
 
 成分与子类体系见 [composition.md](./composition.md)；裁定判据见
@@ -122,16 +122,16 @@ issue，两侧都不存在，记于
 | [ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl) | 13 条内容已被台账承载、不进桶的簇 |
 | [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl) | 2 条断言求值为 True 的真阴性 |
 | [cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) | 派生：逐簇索引（`pair` / `verdict` / `subclass` / `merge_key` / `cells_of_6` / `predicate_families`） |
-| [merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv) | 派生：123 个去重组及其自然语言合并理由 |
+| [merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv) | 派生：124 个去重组及其自然语言合并理由 |
 | [subclass_table.tsv](./unexpected_verdicts/subclass_table.tsv) | 派生：子类双分母统计 |
 | [by_pair.tsv](./unexpected_verdicts/by_pair.tsv) | 派生：pair × 大类分布 |
 | [final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) | 派生：真漏记的根因归并 |
 
 **裁定口径**（跨代次通用，故留在上级目录）：
-[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)（五类定义与判定流程）、
-[HIT_CRITERION.md](../HIT_CRITERION.md)（什么算命中）、
-[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务）、
-[METHOD_PROVENANCE_POLICY.md](../METHOD_PROVENANCE_POLICY.md)（方法出处与分母口径：台账记录
+[unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)（五类定义与判定流程）、
+[hit_criterion.md](../docs/protocol/hit_criterion.md)（什么算命中）、
+[representation_debt.md](../docs/findings/representation_debt.md)（表示债务）、
+[method_provenance_policy.md](../docs/protocol/method_provenance_policy.md)（方法出处与分母口径：台账记录
 同等参与度量，不因参与过规则编写而剔出分母）。
 
 **重建**：改多报侧裁定只能改 `unexpected_verdicts/G*.jsonl`，然后跑

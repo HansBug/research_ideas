@@ -1,15 +1,15 @@
 """LG-M1-D3 split module for validation subgraph.
 
 This module owns the physical implementation moved out of
-``method.langgraph_runtime``.  It imports LG-C1 graph-state contracts and shared
-runtime helpers from ``method.langgraph.core`` without importing the legacy
+``archive.agent_loop_method.langgraph_runtime``.  It imports LG-C1 graph-state contracts and shared
+runtime helpers from ``archive.agent_loop_method.langgraph.core`` without importing the legacy
 facade, preserving the academic evidence path while making the D3 architecture
 readable by file name.
 """
 
 from __future__ import annotations
 
-from method.langgraph.core import *  # noqa: F403 - D3 compatibility split keeps shared helper names private.
+from archive.agent_loop_method.langgraph.core import *  # noqa: F403 - D3 compatibility split keeps shared helper names private.
 
 
 def _d3_state_graph_factory() -> Any:
@@ -17,7 +17,7 @@ def _d3_state_graph_factory() -> Any:
 
     import sys
 
-    facade = sys.modules.get("method.langgraph_runtime")
+    facade = sys.modules.get("archive.agent_loop_method.langgraph_runtime")
     if facade is not None and hasattr(facade, "StateGraph"):
         return getattr(facade, "StateGraph")
     return StateGraph
@@ -65,7 +65,7 @@ def _build_validation_subgraph(
 ) -> Any:
     """Build the LG-B1 stage-level validation subgraph.
 
-    The canonical stage semantics remain in ``method.staged_runtime`` helpers
+    The canonical stage semantics remain in ``archive.agent_loop_method.staged_runtime`` helpers
     and adapters, while LangGraph now owns the SD-2→SL-7 validation routing.
     """
 

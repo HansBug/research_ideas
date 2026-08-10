@@ -15,7 +15,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from method.schema import AgentLoopRunRecord
+from archive.agent_loop_method.schema import AgentLoopRunRecord
 
 RUN_RECORD_SUFFIX = ".agent_loop.json.gz"
 

@@ -9,7 +9,7 @@ from langgraph.config import get_store
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.memory import InMemoryStore
 
-from method.langgraph.instrumentation.common import _package_version
+from archive.agent_loop_method.langgraph.instrumentation.common import _package_version
 
 def langgraph_store_compat_smoke() -> dict[str, Any]:
     """Run a focused LangGraph Store smoke for LG-A2 transient object storage.

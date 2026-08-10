@@ -13,7 +13,7 @@
 由 [../rebuild_unexpected.py](../rebuild_unexpected.py) 从 `unexpected_verdicts/G*.jsonl` 机器生成。
 **本文件不保存任何一张交叉表的副本**，只写结论与判据；逐簇判据见
 [unexpected_evidence.md](./unexpected_evidence.md)，裁定口径见
-[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
+[unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
 
 ## 一、最重要的两条结论
 
@@ -38,7 +38,7 @@ collision_avoidance_deactive --> collision_avoidance_active :
 
 作者写的是一条**完全合法的析取守卫**，NL 12 的四个激活源一个不缺。发现模型报的
 「四个激活源被压成一个融合事件、模型无法只凭其中一个激活」，指的是**下沉之后**的形态。
-[FUSED_EVENT_POLICY.md](../FUSED_EVENT_POLICY.md) 对此已有既定裁定：断言阶段必须接受合并事件
+[fused_event_policy.md](../docs/protocol/fused_event_policy.md) 对此已有既定裁定：断言阶段必须接受合并事件
 并记录表示限制，而**「表示限制被如实记录、但记录本身不构成发现」**。
 
 同理，`variable_declared(X)=False` 这一族**没有判别力**：PlantUML 无变量声明语法，
@@ -84,7 +84,7 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
 
 所以「表示债务」这一裁定的准确含义是：**断言报告的现象在 `model.fcstm` 上客观为真，
 但它描述的是我们的编译损失，不是作者建模的缺陷。** 发现模型没做错——它看到什么报什么；
-错的是把这类报告计入「模型缺陷」。完整论述见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
+错的是把这类报告计入「模型缺陷」。完整论述见 [representation_debt.md](../docs/findings/representation_debt.md)。
 
 ## 二、终态分布：读表须知
 
@@ -230,10 +230,10 @@ NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scop
 4. **范畴错置（`N-KIND`，8 条目 / 7 去重）** —— 属谓词选择问题：`dist_to_front` 是被比较的量不是信号，
    `Send` 是输出动作不是输入事件。
 5. **测量链侧待修项** —— 已登记于
-   [PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)，本桶内涉及
+   [defects_registered.md](../docs/findings/predicates/defects_registered.md)，本桶内涉及
    P-1（`0046-8`）、P-2 / P-3（`0044-4`）、P-4（`0054-5` 与 `0026-3`）。
    ⚠️ 与「谓词词表保持不动」不冲突，两者范围不同：**冻结的是谓词词表**（不增删谓词、
-   不改现有谓词族的语义），这些是**求值侧**的缺陷，另案登记于 [PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)，按「已实施 / 未实施」两栏维护，不通过改 prompt 绕过。
+   不改现有谓词族的语义），这些是**求值侧**的缺陷，另案登记于 [defects_registered.md](../docs/findings/predicates/defects_registered.md)，按「已实施 / 未实施」两栏维护，不通过改 prompt 绕过。
 
 ## 五、两条裁定规则
 
@@ -279,7 +279,7 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 与全部派生 tsv，并在字段缺失、`merge_key` 跨 `verdict` / `subclass` / `pair` 时拒绝执行。
 
 台账权威源是 [manual_review/expected_issue_set.json](../manual_review/expected_issue_set.json)（126 条）；
-同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[HIT_CRITERION.md](../HIT_CRITERION.md) §7
+同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[hit_criterion.md](../docs/protocol/hit_criterion.md) §7
 明令禁止用它算命中。
 
 ## 七、本裁定自身的可靠性边界
@@ -290,7 +290,7 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 2. **`D1` / `D2` 分界有一处脆弱点。** `dist_to_front<15` 在本批 pair 里出现两次，
    清洗名极其形近（`dist_to_front_15_highway` vs `dist_to_front_15_extra_lane_true`），
    **不可从簇自身文本判定**，必须回读 `stm0.puml` 那一行并确认它对应哪句 NL。
-   受影响 ≤4 条（占表示债务 134 条目的 3.0%），判据见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
+   受影响 ≤4 条（占表示债务 134 条目的 3.0%），判据见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
 3. **不设「待定」。** 证据不足不构成一个裁定类别——取不到证据就去取：静态读不动时直接实跑
    `SimulationAPI` 投喂事件看机器动没动（`0044-4`），或用 `FBMCQAPI` 做 bound 扫描取反例 frames
    （`0044-2`）。⚠️ `FBMCQAPI` 在结构最破的制品上恰恰不可用，遇 `UnsupportedEvidence` 的下一跳

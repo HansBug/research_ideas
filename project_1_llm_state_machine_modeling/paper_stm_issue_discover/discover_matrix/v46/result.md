@@ -11,7 +11,7 @@ GitHub PR（CLAUDE.md §9）。
 
 代码 `ca41369e`（`src` 启动时零脏改动）｜54 pair × 2 模型 × 3 轮 = 324 格｜7h05m｜落盘 324/324、耗尽 0
 分母：**98 条**台账记录 × 2 臂 × 3 轮 = **588 位**。扣除 28 条：27 条 `00x8` NL 越界
-（[NL_SCOPE_RULE.md](../NL_SCOPE_RULE.md)）+ 1 条 `boundary_ruling: out_of_scope`
+（[nl_scope_rule.md](../docs/protocol/nl_scope_rule.md)）+ 1 条 `boundary_ruling: out_of_scope`
 （`EIS-0043-02`，独立边界裁定，见 [audit.md](./audit.md) §3）。
 
 | 口径 | v37 | v46 |
@@ -22,7 +22,7 @@ GitHub PR（CLAUDE.md §9）。
 | claude / gpt `hit@1` | 44.9% / 48.3% | 62.6% / 58.2% |
 
 ⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计
-（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：**分母内带逐位判据的
+（[representation_debt.md](../docs/findings/representation_debt.md) §4.7）。已量化的规模：**分母内带逐位判据的
 340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。
 PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。
 逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。

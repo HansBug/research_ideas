@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 
 
-REPO = Path(__file__).resolve().parents[4]
+REPO = Path(__file__).resolve().parents[5]
 assert (REPO / "project_1_llm_state_machine_modeling").is_dir(), "REPO root detection failed"
-SKILL_ROOT = REPO / "project_1_llm_state_machine_modeling" / "method" / "agent_loop_skill"
+SKILL_ROOT = REPO / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method" / "agent_loop_skill"
 HEALTH = SKILL_ROOT / "health_check.py"
 
 
@@ -25,16 +25,16 @@ def test_skill_docs_recommend_stage_api_not_full_loop_or_symlink_programming() -
     stages = _read(SKILL_ROOT / "stages" / "README.md")
     combined = "\n".join([entry, tools, prompts, stages])
 
-    assert "method.stages.api" in combined
-    assert "method.stages.sc_control" in combined
-    assert "method.stages.sl_prompt_api" in combined
+    assert "archive.agent_loop_method.stages.api" in combined
+    assert "archive.agent_loop_method.stages.sc_control" in combined
+    assert "archive.agent_loop_method.stages.sl_prompt_api" in combined
     assert "程序化调用" in combined
     assert "symlink" in stages.lower()
     assert "人类可读" in stages
 
     # Full-loop mentions are allowed only as boundary / ban language.
     for line in combined.splitlines():
-        if "method.loop.run_agent_loop" in line:
+        if "archive.agent_loop_method.loop.run_agent_loop" in line:
             assert any(marker in line for marker in ["不得", "禁止", "不要", "不是", "不调用"]), line
 
 
@@ -50,4 +50,4 @@ def test_health_check_reports_stage_api_contract() -> None:
     by_name = {item["name"]: item for item in checks}
     assert "stage_api_contract" in by_name
     assert by_name["stage_api_contract"]["ok"] is True
-    assert "method.stages.api" in by_name["stage_api_contract"]["detail"]
+    assert "archive.agent_loop_method.stages.api" in by_name["stage_api_contract"]["detail"]

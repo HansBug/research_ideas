@@ -6,7 +6,7 @@
 手工副本一旦与真源分岔，读者无从判断哪一份有效。
 
 全量 288 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。
-裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)；逐簇判据见
+裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)；逐簇判据见
 [unexpected_evidence.md](./unexpected_evidence.md)；机器可读真源在
 [unexpected_verdicts/](./unexpected_verdicts/)，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason`。
 
@@ -123,7 +123,7 @@
 ## 🚫 越界 `OOS-*`
 
 **划分维度**：按「越的是哪条边界」切。边界定义见
-[../NL_SCOPE_RULE.md](../NL_SCOPE_RULE.md)。
+[../nl_scope_rule.md](../docs/protocol/nl_scope_rule.md)。
 
 | 子类 | 含义 |
 | :-- | :-- |

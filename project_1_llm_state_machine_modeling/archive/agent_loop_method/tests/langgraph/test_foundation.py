@@ -1,9 +1,9 @@
 """LG-M1-D1 LangGraph foundation split characterization tests.
 
 These tests lock the D1 contract only: foundation modules exist, the public
-``method.langgraph_runtime`` facade remains stable, registry output is
+``archive.agent_loop_method.langgraph_runtime`` facade remains stable, registry output is
 canonically equivalent to the LG-M1-A baseline, and D1 does not smuggle C/E lane
-runtime state or behavior into ``method.langgraph``.
+runtime state or behavior into ``archive.agent_loop_method.langgraph``.
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+REPO_ROOT = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 BASELINE_PATH = METHOD_ROOT / "tests" / "fixtures" / "lg_m1_a_baseline.json"
 
@@ -75,36 +75,36 @@ def test_lg_m1_d1_foundation_modules_do_not_reverse_import_runtime_facade() -> N
         for node in ast.walk(module):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "method.langgraph_runtime":
+                    if alias.name == "archive.agent_loop_method.langgraph_runtime":
                         forbidden.append(f"{path.relative_to(REPO_ROOT)} imports {alias.name}")
             elif isinstance(node, ast.ImportFrom):
-                if node.module == "method.langgraph_runtime":
-                    forbidden.append(f"{path.relative_to(REPO_ROOT)} imports from method.langgraph_runtime")
-                if node.module == "method" and any(alias.name == "langgraph_runtime" for alias in node.names):
-                    forbidden.append(f"{path.relative_to(REPO_ROOT)} imports method.langgraph_runtime via method re-export")
+                if node.module == "archive.agent_loop_method.langgraph_runtime":
+                    forbidden.append(f"{path.relative_to(REPO_ROOT)} imports from archive.agent_loop_method.langgraph_runtime")
+                if node.module == "archive.agent_loop_method" and any(alias.name == "langgraph_runtime" for alias in node.names):
+                    forbidden.append(f"{path.relative_to(REPO_ROOT)} imports archive.agent_loop_method.langgraph_runtime via method re-export")
     assert forbidden == []
 
 
 def test_lg_m1_d1_facade_constants_and_runtime_identity_stay_stable() -> None:
-    from method.langgraph import constants as foundation_constants
+    from archive.agent_loop_method.langgraph import constants as foundation_constants
 
-    facade = importlib.import_module("method.langgraph_runtime")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
     baseline = _load_baseline()
     runtime_identity = baseline["runtime_identity"]
 
     assert facade.GRAPH_RUNTIME_SCHEMA_VERSION == foundation_constants.GRAPH_RUNTIME_SCHEMA_VERSION
     assert facade.NODE_EDGE_SCHEMA_VERSION == foundation_constants.NODE_EDGE_SCHEMA_VERSION
     assert foundation_constants.GRAPH_RUNTIME_ID == runtime_identity["environment"]["graph_runtime_id"]
-    assert facade.run_full_staged_langgraph_runtime.__module__ == "method.langgraph_runtime"
-    assert runtime_identity["run_config"]["runtime_implementation"] == "method.langgraph_runtime.run_full_staged_langgraph_runtime"
+    assert facade.run_full_staged_langgraph_runtime.__module__ == "archive.agent_loop_method.langgraph_runtime"
+    assert runtime_identity["run_config"]["runtime_implementation"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
 
 
 def test_lg_m1_d1_registry_foundation_matches_facade_and_lg_m1_a_hash() -> None:
-    from method.langgraph import registry as foundation_registry
-    from method.loop import build_planned_stage_graph
-    from method.schema import LoopConfig
+    from archive.agent_loop_method.langgraph import registry as foundation_registry
+    from archive.agent_loop_method.loop import build_planned_stage_graph
+    from archive.agent_loop_method.schema import LoopConfig
 
-    facade = importlib.import_module("method.langgraph_runtime")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
     planned = build_planned_stage_graph(LoopConfig())
     planned_stage_order = [node.get("stage_id") for node in planned.get("nodes", [])]
     facade_registry = facade.build_langgraph_node_registry()
@@ -115,7 +115,7 @@ def test_lg_m1_d1_registry_foundation_matches_facade_and_lg_m1_a_hash() -> None:
 
     assert foundation_output == facade_registry
     assert facade.graph_registry_consistency is not foundation_registry.graph_registry_consistency
-    assert facade.graph_registry_consistency.__module__ == "method.langgraph_runtime"
+    assert facade.graph_registry_consistency.__module__ == "archive.agent_loop_method.langgraph_runtime"
     consistency = facade.graph_registry_consistency(planned, facade_registry)
     foundation_consistency = foundation_registry.graph_registry_consistency(planned, facade_registry)
     assert consistency == foundation_consistency
@@ -130,9 +130,9 @@ def test_lg_m1_d1_registry_foundation_matches_facade_and_lg_m1_a_hash() -> None:
 
 
 def test_lg_m1_d1_registry_context_identifiers_are_injected_without_c_lane_behavior() -> None:
-    from method.langgraph import registry as foundation_registry
+    from archive.agent_loop_method.langgraph import registry as foundation_registry
 
-    facade = importlib.import_module("method.langgraph_runtime")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
     fake = foundation_registry.build_langgraph_node_registry(
         context_subgraph_id="fake_context_subgraph",
         context_node_ids=["fake_collect", "fake_guard"],

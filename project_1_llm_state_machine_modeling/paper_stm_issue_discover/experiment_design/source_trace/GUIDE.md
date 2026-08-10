@@ -59,24 +59,24 @@ issue_id -> trace_id[]
 新增或修改 source trace schema / fixture 后，必须至少运行：
 
 ```bash
-python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests/test_source_trace_schema.py -q
+python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests/test_source_trace_schema.py -q
 ```
 
 若改动 evaluation 目录，建议运行：
 
 ```bash
-python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q
+python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests -q
 ```
 
 若改动跨 pipeline 合同，建议运行组合 smoke：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m pytest \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/evaluation/tests -q
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tests \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/tests \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/evaluation/tests -q
 ```
 
 ## 6. Review gate

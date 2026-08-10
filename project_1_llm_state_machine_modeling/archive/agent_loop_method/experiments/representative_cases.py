@@ -2,7 +2,7 @@
 
 This module is intentionally small and stdlib-only.  PR-D needs two things:
 
-1. run the canonical ``method.loop.run_agent_loop(nl, LoopConfig())`` entry on
+1. run the canonical ``archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig())`` entry on
    the two representative NL inputs that #14 exposed; and
 2. turn the resulting ``AgentLoopRunRecord`` files into an issue-comment-ready,
    secret-safe evidence summary.
@@ -25,18 +25,18 @@ from typing import Callable, Iterable, Sequence
 
 if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
     # Allow repo-root package execution, for example
-    # ``python -m project_1_llm_state_machine_modeling.method.experiments.representative_cases``.
-    # The method implementation keeps absolute ``method.*`` imports to preserve
+    # ``python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.representative_cases``.
+    # The method implementation keeps absolute ``archive.agent_loop_method.*`` imports to preserve
     # the historical ``PYTHONPATH=project_1_llm_state_machine_modeling`` workflow;
     # package-mode execution therefore needs the project package root on sys.path.
     # This bootstrap does not read ``.env`` and does not touch provider config.
-    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
 
-from method.loop import LoopConfig, run_agent_loop
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
-from method.schema import AgentLoopResult, AgentLoopRunRecord
+from archive.agent_loop_method.loop import LoopConfig, run_agent_loop
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, AgentLoopRunRecord
 
 
 PATH1_CARA_NL = """At run time, CARA coordinates the Caregiver Interface, Blood Pressure Monitor, Algorithm, and Pump Monitors around an infusion pump that moves fluid into the patient, while sensor readings are stored in a shared buffer for software access. The pump has manual and autocontrol modes. In manual mode, pump speed is set with the built-in switch and the caregiver sets a default flow rate directly on the pump for manual operation, while in autocontrol mode pump speed is set by a control voltage from an external source. The Algorithm component controls infusion rate and records infusion-related data in log files; patient blood pressure is used to compute the infusion rate, with higher pressure producing a lower flow rate. The Caregiver Interface lets the caregiver modify target blood pressure and initiate or terminate algorithmic pump control, and it also displays and sounds error messages. In the Mode_Control_Algorithm hierarchy, CARA has manual and autocontrol-related mode-control states plus an Ask_StartAC submode; within Ask_StartAC, the setpoint can be changed and pressing StartAC enters AutocontrolInit. During normal autocontrol, CARA controls flow rate only while there are no pump-operation complications. If a pump fault such as fluid-tubing occlusion occurs, the pump activates alarm signals, the caregiver removes the fault, and when CARA was controlling the pump the software releases control. As a cross-component fallback, CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual causes CA_mode to become Manual, making manual operation the shared recovery target."""

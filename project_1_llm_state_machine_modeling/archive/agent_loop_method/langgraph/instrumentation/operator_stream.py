@@ -1,7 +1,7 @@
 """LG-D1 operator stream helpers for the LangGraph runtime.
 
 This module owns prompt-safe operator events, JSONL stream summaries, and the
-tee-style graph stream runner.  It does not import ``method.langgraph_runtime``;
+tee-style graph stream runner.  It does not import ``archive.agent_loop_method.langgraph_runtime``;
 the runtime module remains the compatibility facade.
 """
 
@@ -12,13 +12,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-from method.langgraph.registry import build_langgraph_node_registry as _build_registry
-from method.langgraph.subgraphs.context_engineering import LG_C2_CONTEXT_NODE_IDS, LG_C2_CONTEXT_SUBGRAPH_ID
-from method.langgraph.instrumentation.common import _hash_file, _hash_payload, _jsonable
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult
-from method.staged_runtime import _RunState, _hash_text, _utc_now
-from method.stages.ids import StageId
+from archive.agent_loop_method.langgraph.registry import build_langgraph_node_registry as _build_registry
+from archive.agent_loop_method.langgraph.subgraphs.context_engineering import LG_C2_CONTEXT_NODE_IDS, LG_C2_CONTEXT_SUBGRAPH_ID
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_file, _hash_payload, _jsonable
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult
+from archive.agent_loop_method.staged_runtime import _RunState, _hash_text, _utc_now
+from archive.agent_loop_method.stages.ids import StageId
 
 LG_D1_OPERATOR_EVENT_SCHEMA_VERSION = "lg-d1.operator-event.v1"
 
@@ -300,7 +300,7 @@ def lg_d1_llm_stream_runtime_metadata(
 ) -> dict[str, Any]:
     """Return prompt-safe LG-D1 metadata about provider stream discipline."""
 
-    from method.gpt_client import get_stream_enabled, get_stream_include_usage_enabled
+    from archive.agent_loop_method.gpt_client import get_stream_enabled, get_stream_include_usage_enabled
 
     stream_rows = _llm_stream_usage_from_interactions(llm_interactions or [])
     observed_values = [row.get("stream") for row in stream_rows if isinstance(row.get("stream"), bool)]
@@ -593,7 +593,7 @@ def _write_lg_d1_operator_artifacts(
     full_events = _merge_operator_events([], operator_events)
     full_events = _merge_operator_events(full_events, _stage_result_operator_events(record))
     full_events = _merge_operator_events(full_events, _llm_progress_operator_events(record))
-    from method.langgraph.instrumentation.retry_timeout import _lg_d2_operator_events_from_flow_logs
+    from archive.agent_loop_method.langgraph.instrumentation.retry_timeout import _lg_d2_operator_events_from_flow_logs
 
     full_events = _merge_operator_events(full_events, _lg_d2_operator_events_from_flow_logs(record, existing_events=full_events))
     full_events.append(_terminal_operator_event(record, run_record_path_hash=run_record_path_hash))
@@ -654,7 +654,7 @@ def _augment_run_record_with_lg_d1_operator_log(
         operator_events=operator_events,
         graph_stream_status=graph_stream_status,
     )
-    from method.langgraph.instrumentation.retry_timeout import (
+    from archive.agent_loop_method.langgraph.instrumentation.retry_timeout import (
         LG_D2_LLM_NODE_ENVELOPE_EVENT_SCHEMA_VERSION,
         LG_D2_LLM_NODE_ENVELOPE_INSTRUMENTATION_LAYER,
         LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION,

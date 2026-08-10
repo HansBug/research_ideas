@@ -14,7 +14,7 @@ that bundle must reproduce those numbers.  That part is skipped when the bundle
 is not on disk, since `runs/` is untracked.
 
 Run:
-    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/eval/discover_matrix
+    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ import build_gist  # noqa: E402
 import check_false_positives  # noqa: E402
 
 LEDGER = json.loads((HERE / "known_false_positives.json").read_text())
-#: `eval/discover_matrix` -> repo root is three levels up.
+#: `paper_stm_issue_discover/discover_matrix` -> repo root is three levels up.
 ROOT = HERE.resolve().parents[2]
 FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 
@@ -116,7 +116,7 @@ def test_the_hit_criterion_document_stays_wired_to_the_code():
 
     import re
 
-    doc = (HERE / "HIT_CRITERION.md").read_text()
+    doc = (HERE / "docs/protocol/hit_criterion.md").read_text()
     src = (HERE / "build_gist.py").read_text()
 
     # The document's claim about the two branches has to match the code.
@@ -124,7 +124,7 @@ def test_the_hit_criterion_document_stays_wired_to_the_code():
     assert "if not want_events <= bound:" in src
     # Family is checked only on the no-trigger side.
     trigger_branch = src[src.index("if want_events:") : src.index("else:", src.index("if want_events:"))]
-    assert "families" not in trigger_branch, "trigger branch now checks family; update HIT_CRITERION.md"
+    assert "families" not in trigger_branch, "trigger branch now checks family; update docs/protocol/hit_criterion.md"
 
     # And the counts the document quotes have to be recomputable from the ledger.
     ledger_path = build_gist._expected_ledger_path()

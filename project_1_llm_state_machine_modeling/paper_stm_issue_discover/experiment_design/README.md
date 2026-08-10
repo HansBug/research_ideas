@@ -1,10 +1,26 @@
-# experiment_design/ — source-level issue lifecycle 实验设计入口
+# experiment_design/ — 早期实验设计脚手架（已被 discover_matrix 取代）
 
-本目录现在只维护 paper1 后续实验协议的 **active scaffold**。2026-07-07 战略校准后，paper1 不再以 Better STM / which STM is better 作为 headline evaluation framework；R5.7 的 Better STM definition、repair target taxonomy、objective metric framework、constructed `STM_k` / blind adjudication prompt 与 dry-run 资产已经整体迁入 cold archive：[../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。
+> 🔴 **本目录不在当前运行路径上，也不是 paper1 的实验设计真源。**
+>
+> | 你想找 | 去哪 |
+> | :-- | :-- |
+> | 论文实际的实验协议、判定口径、命中判据 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) |
+> | 实验结果与代次对比 | [../discover_matrix/](../discover_matrix/) |
+> | 本目录两份 v0 schema 的落地形态 | [../pipeline/evaluation/](../pipeline/evaluation/) |
+>
+> 本目录是 2026-07「source-level issue lifecycle」阶段的设计脚手架。它当时规划的多数协议块
+> **都没有实现，也不再计划实现**：paper1 已收窄为 **issue discover 单独成篇**，repair 另立后续论文。
+> 实际落地的只有两份 v0 字段合同（issue ledger、source trace）。
+>
+> ⚠️ **下表「当前 active 职责」中除前两项外均已作废。** Repair dispositions、Confirm decisions、
+> deterministic B loop、B-final、post-Confirm export、closure / regression audit **都不再是 paper1 的
+> 待建项**——它们属于后续 repair 论文的范围。表格原样保留仅为追溯当时的设计意图。
 
-当前 active 实验问题是：给定 `NL + raw/source STM_0`，一次 Discover 能发现哪些 source-level behavioral issues，多轮 Repair-Confirm 能否处理全部 issue chains，并最终在 raw/source 层审计 closure 与 regression。
+本目录保存 paper1 早期实验协议脚手架。2026-07-07 战略校准后，paper1 不再以 Better STM / which STM is better 作为 headline evaluation framework；R5.7 的 Better STM definition、repair target taxonomy、objective metric framework、constructed `STM_k` / blind adjudication prompt 与 dry-run 资产已经整体迁入 cold archive：[../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。
 
-## 1. 当前 active 职责
+当时设定的实验问题是：给定 `NL + raw/source STM_0`，一次 Discover 能发现哪些 source-level behavioral issues，多轮 Repair-Confirm 能否处理全部 issue chains，并最终在 raw/source 层审计 closure 与 regression。**后半句（Repair-Confirm / closure / regression）已于 2026-08 随论文收窄作废**；当前实验问题只剩前半句，且其协议以 [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) 为准。
+
+## 1. 当时规划的 active 职责（多数已作废，见页首）
 
 | 未来协议块 | 当前状态 | 稳定 owner / 入口 |
 |---|---|---|
@@ -40,6 +56,7 @@ R5.7 资产已经从本目录移出。若需要追溯旧讨论，请只从 archi
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-08-11 | 按 issue discover 收窄口径加导引头：标注本目录不在运行路径上，Repair-Confirm / B-final / closure / regression 协议块作废，实验设计真源改为 [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/)。 |
 | 2026-07-17 00:32:36 | 对齐 Issue #152：active 协议块改为 Discover roots/checks、Repair dispositions、Confirm decisions/successors、deterministic B loop 与一次性 C audit。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 后新增 [source_trace/](./source_trace/) 合同入口，并将 source trace / projection 从未定义更新为 v0 trace contract 已定义 / raw export 未实现。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 后新增 [issue_lifecycle/](./issue_lifecycle/) 合同入口，并将前三个协议块从“未定义”更新为 v0 contract 已定义 / runner 未实现。 |

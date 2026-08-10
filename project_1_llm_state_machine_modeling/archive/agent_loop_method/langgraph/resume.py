@@ -1,13 +1,13 @@
 """LG-M1-D3 / LG-F1 durable checkpoint-resume implementation.
 
-The historical facade ``method.langgraph_runtime`` still exposes compatibility
+The historical facade ``archive.agent_loop_method.langgraph_runtime`` still exposes compatibility
 wrappers, but experiments and new code import this implementation module so
 ``method/experiments`` no longer reverse-imports the facade.
 """
 
 from __future__ import annotations
 
-from method.langgraph.core import *  # noqa: F403 - LG-F1 shares the default runtime implementation helpers.
+from archive.agent_loop_method.langgraph.core import *  # noqa: F403 - LG-F1 shares the default runtime implementation helpers.
 
 def _lg_f1_actual_interrupt_node(interrupt_after: str) -> str:
     """Map LG-F1 human/stage breakpoints onto the parent graph checkpoint boundary.
@@ -161,12 +161,12 @@ def _lg_f1_runtime_config(
         "real_agent_loop_nested_subgraph_resume_supported": False,
         "real_agent_loop_json_checkpoint_supported": False,
         "resume_run_main_result_eligible": False,
-        "resume_cli_entrypoint": "python -m project_1_llm_state_machine_modeling.method.experiments.checkpoint_resume",
+        "resume_cli_entrypoint": "python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.checkpoint_resume",
         "resume_cli_workdir": "repo_root",
         "resume_cli_requires_pythonpath": False,
-        "resume_cli_pythonpath_entrypoint": "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.experiments.checkpoint_resume",
-        "resume_cli_legacy_entrypoint": "PYTHONPATH=project_1_llm_state_machine_modeling python -m method.pr_lg_f1_resume_experiment",
-        "resume_cli_legacy_package_entrypoint": "python -m project_1_llm_state_machine_modeling.method.pr_lg_f1_resume_experiment",
+        "resume_cli_pythonpath_entrypoint": "PYTHONPATH=project_1_llm_state_machine_modeling python -m archive.agent_loop_method.experiments.checkpoint_resume",
+        "resume_cli_legacy_entrypoint": "PYTHONPATH=project_1_llm_state_machine_modeling python -m archive.agent_loop_method.pr_lg_f1_resume_experiment",
+        "resume_cli_legacy_package_entrypoint": "python -m project_1_llm_state_machine_modeling.archive.agent_loop_method.pr_lg_f1_resume_experiment",
         "resume_diff_report_path": resume_diff_report_path,
         "resume_diff_report_schema_version": LG_F1_RESUME_RECONCILIATION_SCHEMA_VERSION,
         "lg_f1_requested_interrupt_after": requested_interrupt_after,
@@ -201,7 +201,7 @@ def _lg_f1_runtime_config(
         allow_main_result_eligible=False,
         resolved_loop_config=resolved,
         run_config_extra={
-            "runtime_implementation": "method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "runtime_implementation": "archive.agent_loop_method.langgraph_runtime.run_lg_f1_resume_experiment",
             "langgraph_called_from_loop": False,
             "canonical_runtime_backend": "langgraph",
             "graph_node_registry": registry,
@@ -215,7 +215,7 @@ def _lg_f1_runtime_config(
             "lg_e3_toolnode_wrapper_registry": build_lg_e3_toolnode_wrapper_registry(),
             "lg_e3_toolnode_wrapper_llm_tool_choice_exposed": False,
             "llm_stream_required": initial_lg_d1_stream_metadata["llm_stream_required"],
-            "stage_semantics_module": "method.staged_runtime",
+            "stage_semantics_module": "archive.agent_loop_method.staged_runtime",
             "lg_f1_resume_experiment": True,
             "resume_run_main_result_eligible": False,
             "resumed_from_checkpoint": bool(resumed_from_checkpoint),
@@ -228,9 +228,9 @@ def _lg_f1_runtime_config(
         },
         environment_extra={
             **metadata,
-            "runner": "method.langgraph_runtime.run_lg_f1_resume_experiment",
-            "stage_semantics_module": "method.staged_runtime",
-            "loop_entrypoint": "method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "runner": "archive.agent_loop_method.langgraph_runtime.run_lg_f1_resume_experiment",
+            "stage_semantics_module": "archive.agent_loop_method.staged_runtime",
+            "loop_entrypoint": "archive.agent_loop_method.langgraph_runtime.run_lg_f1_resume_experiment",
             "record_schema_version": "pr-c.default-full-staged-runtime.v1",
             "lg_d1_operator_log_enabled": bool(operator_stream_enabled),
             "lg_d1_instrumentation_layer": LG_D1_INSTRUMENTATION_LAYER,

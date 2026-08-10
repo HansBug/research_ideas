@@ -16,7 +16,7 @@ The end-to-end arm re-creates the old refs behaviour rather than reverting the f
 because the detector's job is to catch a *recurrence*.
 
 Run:
-    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/eval/discover_matrix
+    PYTHONPATH=<repo root> pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
 """
 
 from __future__ import annotations

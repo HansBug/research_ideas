@@ -17,14 +17,14 @@ from pathlib import Path
 
 # Add project root to path so `from eval...` works
 HERE = Path(__file__).resolve()
-PROJ = HERE.parent.parent.parent
+PROJ = HERE.parent.parent.parent.parent   # 归档下沉一层：archive/path1_evaluation/demo -> project_1
 sys.path.insert(0, str(PROJ))
 
-from eval.annotate.orchestrate import annotate_pair  # noqa: E402
-from eval.review.render import render_pack  # noqa: E402
+from archive.path1_evaluation.annotate.orchestrate import annotate_pair  # noqa: E402
+from archive.path1_evaluation.review.render import render_pack  # noqa: E402
 
 
-EVAL_ROOT = PROJ / "eval"
+EVAL_ROOT = PROJ / "archive" / "path1_evaluation"
 DATA = EVAL_ROOT / "data"
 RAW_DIR = EVAL_ROOT / "review" / "raw"
 PACKS_DIR = EVAL_ROOT / "review" / "packs"

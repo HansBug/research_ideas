@@ -1,8 +1,24 @@
-# reports 研究报告文库
+# reports/ — 阶段性研究报告（按日期命名）
+
+> 🔴 **本目录**没有**当前实验的结果报告。** 全部 10 份都是 2026-06 至 07 的阶段性材料：
+> 语料准入、转换恢复、负证据、scope handoff，以及两份 v0 字段合同说明。
+>
+> | 你想找 | 去哪 |
+> | :-- | :-- |
+> | **v46 全量矩阵的双侧结论（当前唯一完整实验报告）** | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
+> | 逐格 / 逐轮结果、代次对比 | [../discover_matrix/](../discover_matrix/) |
+> | Issue #161 Java frontend 技术报告 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) |
+>
+> ⚠️ **每代次实验报告不落在本目录。** 按仓库纪律，代次结果发在 GitHub PR comment，
+> 判据与事前登记落在 [../discover_matrix/](../discover_matrix/)，给导师的自包含报告落在
+> [../../talks/](../../talks/)。本目录只沉淀更早的、与单次运行无关的阶段性结论。
+>
+> ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/) 与
+> [../corpora/](../corpora/) 下的 JSON / JSONL / registry。
 
 ## 1. 文库定位
 
-本目录保存 `paper_stm_repair/` 下仍处于 active 主路径的人类可读研究报告：主要是 R5/R5.5 seed readiness、conversion readiness、negative evidence、scope handoff、主 seed profile 的历史快照，以及战略转向后形成的 source-level issue lifecycle 合同报告。机器事实源仍以 [../pipeline/](../pipeline/) 和 [../corpora/](../corpora/) 下 JSON / JSONL / registry / archive 为准。
+本目录保存 `paper_stm_issue_discover/` 下仍处于 active 主路径的人类可读研究报告：主要是 R5/R5.5 seed readiness、conversion readiness、negative evidence、scope handoff、主 seed profile 的历史快照，以及战略转向后形成的 source-level issue lifecycle 合同报告。机器事实源仍以 [../pipeline/](../pipeline/) 和 [../corpora/](../corpora/) 下 JSON / JSONL / registry / archive 为准。
 
 R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁入 cold archive：[../archive/r5_7_better_stm_snapshot/reports/](../archive/r5_7_better_stm_snapshot/reports/)。它们不再作为本目录 active report 表的一部分。
 
@@ -10,6 +26,7 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | report | 类型 | 当前使用方式 |
 |---|---|---|---|
+| 2026-07-19 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) | PlantUML Java frontend | **本表中与当前语料关系最直接的一份**：Issue #161 把 PlantUML canonical 从 SCXML 路线换成 Java source frontend，60 例 active 语料由此产生。技术路线报告，不是实验结果。 |
 | 2026-07-08 14:03:59 | [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | source trace contract | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
 | 2026-07-08 10:15:00 | [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md) | issue ledger contract | source issue ledger v0 合同报告；定义 candidate / confirmed / rejected / out-of-scope / insufficient-evidence gate，不是实验结果。 |
 | 2026-06-29 19:55:45 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | PlantUML blocked recovery | `llms-emp` 三个原 blocked 已恢复为 partial；conversion recovery 不计 repair gain。 |

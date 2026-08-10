@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 SKILL_ROOT = Path(__file__).resolve().parent
-REPO = SKILL_ROOT.parents[2]
+REPO = SKILL_ROOT.parents[3]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 HEALTH = SKILL_ROOT / "health_check.py"
@@ -87,7 +87,7 @@ def test_agent_loop_skill_e2e_boundaries_are_self_contained() -> None:
     e2e = _read(SKILL_ROOT / "e2e_ref_model_guide.md")
 
     for text in [entry, e2e]:
-        assert "method.loop.run_agent_loop" in text
+        assert "archive.agent_loop_method.loop.run_agent_loop" in text
         assert "PR-D representative runner" in text
         assert "一键 full staged runner" in text
         assert "不得" in text or "禁止" in text
@@ -153,7 +153,7 @@ def test_agent_loop_skill_codex_exec_experiment_contract() -> None:
 
 
 def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executable_calls(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import write_forbidden_call_check
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import write_forbidden_call_check
 
     run_dir = tmp_path / "run"
     run_dir.mkdir()
@@ -169,8 +169,8 @@ def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executabl
                         "type": "item.completed",
                         "item": {
                             "type": "command_execution",
-                            "command": "/bin/bash -lc \"sed -n '1,20p' project_1_llm_state_machine_modeling/method/agent_loop_skill/SKILL.md\"",
-                            "aggregated_output": "禁止调用 method.loop.run_agent_loop(...)，这里只是文档约束。",
+                            "command": "/bin/bash -lc \"sed -n '1,20p' project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/SKILL.md\"",
+                            "aggregated_output": "禁止调用 archive.agent_loop_method.loop.run_agent_loop(...)，这里只是文档约束。",
                         },
                     },
                     ensure_ascii=False,
@@ -180,7 +180,7 @@ def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executabl
                         "type": "item.completed",
                         "item": {
                             "type": "command_execution",
-                            "command": "/bin/bash -lc \"python - <<'PY'\nfrom method.loop import run_agent_loop\nrun_agent_loop()\nPY\"",
+                            "command": "/bin/bash -lc \"python - <<'PY'\nfrom archive.agent_loop_method.loop import run_agent_loop\nrun_agent_loop()\nPY\"",
                             "aggregated_output": "",
                         },
                     },
@@ -199,7 +199,7 @@ def test_codex_exec_forbidden_call_scan_ignores_doc_mentions_but_flags_executabl
 
 
 def test_codex_exec_json_stream_audit_rejects_attached_runtime_note(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
 
     events = tmp_path / "codex_events.jsonl"
     events.write_text(
@@ -221,7 +221,7 @@ def test_codex_exec_json_stream_audit_rejects_attached_runtime_note(tmp_path) ->
 
 
 def test_codex_exec_json_stream_audit_ignores_marker_text_inside_tool_output(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
 
     events = tmp_path / "codex_events.jsonl"
     events.write_text(
@@ -254,7 +254,7 @@ def test_codex_exec_json_stream_audit_ignores_marker_text_inside_tool_output(tmp
 
 
 def test_codex_exec_json_stream_audit_accepts_core_exec_events(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import codex_json_stream_audit
 
     events = tmp_path / "codex_events.jsonl"
     events.write_text(
@@ -278,7 +278,7 @@ def test_codex_exec_json_stream_audit_accepts_core_exec_events(tmp_path) -> None
 
 
 def test_codex_exec_prompt_marks_runner_owned_artifacts_as_harness_owned() -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import build_codex_prompt, codex_exec_cases
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import build_codex_prompt, codex_exec_cases
 
     prompt = build_codex_prompt(codex_exec_cases("all", case_keys=["path1_abs"])[0], Path("runs/tmp/path1_abs"), "tmp")
 
@@ -297,8 +297,8 @@ def test_codex_exec_prompt_marks_runner_owned_artifacts_as_harness_owned() -> No
 
 
 def test_codex_exec_runner_rewrites_runner_owned_artifacts_after_child_overwrite(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs import run_one_case
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import codex_exec_cases
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.codex_exec_skill_runs import run_one_case
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import codex_exec_cases
 
     fake_codex = tmp_path / "fake_codex"
     fake_codex.write_text(
@@ -369,7 +369,7 @@ for event in [
 
 
 def test_codex_exec_build_external_case_supports_nl_only_and_paper_dir(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.agent_loop_skill.codex_exec_experiment import build_external_codex_exec_case
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import build_external_codex_exec_case
 
     nl_only = build_external_codex_exec_case(
         case_id="custom nl only!",
@@ -415,7 +415,7 @@ def test_codex_exec_runner_dry_run_accepts_external_nl_only_and_paper_dir(tmp_pa
         [
             sys.executable,
             "-m",
-            "project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs",
+            "project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.codex_exec_skill_runs",
             "--dry-run",
             "--env-file",
             "",
@@ -454,7 +454,7 @@ def test_codex_exec_runner_dry_run_accepts_external_nl_only_and_paper_dir(tmp_pa
         [
             sys.executable,
             "-m",
-            "project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs",
+            "project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.codex_exec_skill_runs",
             "--dry-run",
             "--env-file",
             "",
@@ -483,7 +483,7 @@ def test_codex_exec_runner_dry_run_accepts_external_nl_only_and_paper_dir(tmp_pa
 
 
 def test_codex_exec_refresh_existing_run_root_records_split_provenance(tmp_path) -> None:
-    from project_1_llm_state_machine_modeling.method.experiments.codex_exec_skill_runs import refresh_existing_run_root
+    from project_1_llm_state_machine_modeling.archive.agent_loop_method.experiments.codex_exec_skill_runs import refresh_existing_run_root
 
     run_dir = tmp_path / "root" / "case_a"
     checks_dir = run_dir / "checks"

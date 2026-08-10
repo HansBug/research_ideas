@@ -19,13 +19,13 @@ except ImportError:  # pragma: no cover - Python 3.10 fallback.
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
-from method.langgraph.instrumentation.common import _hash_payload, _jsonable
-from method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES
-from method.langgraph.instrumentation.tool_wrappers import _lg_e3_fixed_tool_call
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult, ScenarioResult, ScenarioSet, SimFeedback, StageContext, StageResultMeta
-from method.staged_runtime import FullStagedRuntimeAdapters, FullStagedRuntimeConfig, _hash_text, _meta
-from method.stages.ids import FeedbackSource, StageId, StageStatus
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_payload, _jsonable
+from archive.agent_loop_method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES
+from archive.agent_loop_method.langgraph.instrumentation.tool_wrappers import _lg_e3_fixed_tool_call
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, ScenarioResult, ScenarioSet, SimFeedback, StageContext, StageResultMeta
+from archive.agent_loop_method.staged_runtime import FullStagedRuntimeAdapters, FullStagedRuntimeConfig, _hash_text, _meta
+from archive.agent_loop_method.stages.ids import FeedbackSource, StageId, StageStatus
 
 LG_E2_SEND_PARALLEL_SCHEMA_VERSION = "lg-e2.send-parallel-sd6.v1"
 

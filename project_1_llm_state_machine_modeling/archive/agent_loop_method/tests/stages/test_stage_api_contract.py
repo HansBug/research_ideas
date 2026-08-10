@@ -13,17 +13,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-from method.agent_loop_skill.health_check import STAGE_FACADE_DENY_TERMS
+from archive.agent_loop_method.agent_loop_skill.health_check import STAGE_FACADE_DENY_TERMS
 
 TEST_FILE = Path(__file__).resolve()
 METHOD_ROOT = TEST_FILE.parents[2]
-PROJECT_ROOT = METHOD_ROOT.parent
+PROJECT_ROOT = METHOD_ROOT.parent.parent
 REPO_ROOT = PROJECT_ROOT.parent
 STAGES_ROOT = METHOD_ROOT / "stages"
 
 
 def test_stage_api_exports_deterministic_tools_and_prompt_builders_without_provider() -> None:
-    from method.stages import api
+    from archive.agent_loop_method.stages import api
 
     expected = {
         "StageId",
@@ -64,14 +64,14 @@ def test_stage_api_exports_deterministic_tools_and_prompt_builders_without_provi
     assert not hasattr(api, "run_agent_loop")
     assert not hasattr(api, "RealEnvLLMProvider")
     source = inspect.getsource(api)
-    assert "method.loop" not in source
+    assert "archive.agent_loop_method.loop" not in source
     assert "gpt_client" not in source
     assert "load_dotenv" not in source
     assert "LLM_API_KEY" not in source
 
 
 def test_sc_control_documents_scope_and_exposes_planned_stage_helpers() -> None:
-    from method.stages import sc_control
+    from archive.agent_loop_method.stages import sc_control
 
     doc = sc_control.__doc__ or ""
     assert "ids.py" in doc
@@ -93,7 +93,7 @@ def test_sc_control_documents_scope_and_exposes_planned_stage_helpers() -> None:
 
 
 def test_sl_prompt_api_is_facade_not_prompt_implementation() -> None:
-    from method.stages import sl_prompt_api
+    from archive.agent_loop_method.stages import sl_prompt_api
 
     doc = sl_prompt_api.__doc__ or ""
     assert "facade" in doc.lower()
@@ -116,7 +116,7 @@ def test_stage_api_import_and_sc_summary_work_without_llm_env() -> None:
     for key in ["LLM_ENDPOINT", "LLM_API_KEY", "LLM_MODEL"]:
         env.pop(key, None)
     script = (
-        "from method.stages import api; "
+        "from archive.agent_loop_method.stages import api; "
         "summary = api.build_stage_control_summary(); "
         "assert summary[\"provider_free\"] is True; "
         "assert summary[\"full_loop_free\"] is True; "

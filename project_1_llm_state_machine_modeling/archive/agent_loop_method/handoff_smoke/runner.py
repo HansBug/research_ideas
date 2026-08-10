@@ -19,12 +19,12 @@ from typing import Any, Iterable
 
 import pandas as pd
 
-from method.gpt_client import get_default_model
-from method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
-from method.run_record import is_path_result_eligible, read_agent_loop_run_record
-from method.schema import GroundedElement, GroundingMap, TestScenario
-from method.stages.ids import StageId
-from method.stages.sl_model_review_prompt import parse_sl7_model_review_response
+from archive.agent_loop_method.gpt_client import get_default_model
+from archive.agent_loop_method.experiments.ablation.deterministic_loop import DeterministicLoopConfig, ReviewPolicy, run_deterministic_ablation_loop
+from archive.agent_loop_method.run_record import is_path_result_eligible, read_agent_loop_run_record
+from archive.agent_loop_method.schema import GroundedElement, GroundingMap, TestScenario
+from archive.agent_loop_method.stages.ids import StageId
+from archive.agent_loop_method.stages.sl_model_review_prompt import parse_sl7_model_review_response
 
 
 @dataclass

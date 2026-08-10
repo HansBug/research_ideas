@@ -27,7 +27,7 @@
 
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+由 `archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
 
 ## 失败语义
 
@@ -46,7 +46,7 @@
 ## PR-1A 工具入口与策略
 
 ```python
-from method.stages.sd_tools import run_sd4_design, mark_warning_repair_attempt
+from archive.agent_loop_method.stages.sd_tools import run_sd4_design, mark_warning_repair_attempt
 
 design_feedback, meta = run_sd4_design(context, policy_profile="generated_candidate")
 blocking_keys = [item.instance_key for item in design_feedback.blocking_items]

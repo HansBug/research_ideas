@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from method.schema import FixPlan, FixRequestBatch, RevisedFixPlan
-from method.stages.sl_prompt_common import fenced_json, fenced_text, load_grammar_digest, message_pack
+from archive.agent_loop_method.schema import FixPlan, FixRequestBatch, RevisedFixPlan
+from archive.agent_loop_method.stages.sl_prompt_common import fenced_json, fenced_text, load_grammar_digest, message_pack
 
 
 def build_sl9_repair_prompt(

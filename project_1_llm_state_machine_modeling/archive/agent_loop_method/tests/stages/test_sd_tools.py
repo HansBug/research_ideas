@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-import method.schema as schema
-from method.schema import (
+import archive.agent_loop_method.schema as schema
+from archive.agent_loop_method.schema import (
     BudgetState,
     DesignFeedback,
     FixPlan,
@@ -14,9 +14,9 @@ from method.schema import (
     ScenarioSet,
     StageContext,
 )
-from method.stages.ids import StageId, StageStatus
-from method.stages.sd_context import build_model_from_dsl
-from method.stages.sd_tools import (
+from archive.agent_loop_method.stages.ids import StageId, StageStatus
+from archive.agent_loop_method.stages.sd_context import build_model_from_dsl
+from archive.agent_loop_method.stages.sd_tools import (
     DEFAULT_WARNING_REPAIR_BUDGET,
     freeze_scenario_set,
     run_sd2_parse,
@@ -109,7 +109,7 @@ state Root {
 
 
 def test_per_stage_public_modules_reexport_sd_facade_functions() -> None:
-    from method.stages import sd_design, sd_fix_plan, sd_parse, sd_repair_review, sd_scenario_coverage, sd_semantic, sd_sim
+    from archive.agent_loop_method.stages import sd_design, sd_fix_plan, sd_parse, sd_repair_review, sd_scenario_coverage, sd_semantic, sd_sim
 
     assert sd_parse.run_sd2_parse is run_sd2_parse
     assert sd_semantic.run_sd3_semantic is run_sd3_semantic

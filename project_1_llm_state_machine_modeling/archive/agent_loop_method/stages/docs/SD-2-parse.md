@@ -24,7 +24,7 @@
 
 ## 依赖关系
 
-由 `method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
+由 `archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS` 统一登记，禁止在 PR-1A/PR-1B 重新定义 stage id。
 
 ## 失败语义
 
@@ -43,10 +43,10 @@
 ## PR-1A 工具入口
 
 ```python
-from method.stages.sd_tools import run_sd2_parse
+from archive.agent_loop_method.stages.sd_tools import run_sd2_parse
 
 feedback, meta = run_sd2_parse(current_dsl, context)
 assert meta.stage_id == "SD-2"
 ```
 
-`run_sd2_parse` 复用 `method.feedback.parse.check_parse`，不调用 LLM、不读取 `.env`。
+`run_sd2_parse` 复用 `archive.agent_loop_method.feedback.parse.check_parse`，不调用 LLM、不读取 `.env`。

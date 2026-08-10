@@ -1,10 +1,25 @@
 # seed_library — 上游 `NL -> STM_0` seed 方法 / 来源文库
 
+> 🟢 **论文语料的实际出处在本目录。** 60 例 `<NL, STM_0>` 全部来自条目
+> [llms-emp-stm-subset/](./llms-emp-stm-subset/)，其 `assets/extracted/pairs.jsonl` 是 pair 池定义；
+> 经 [../../pipeline/conversion/](../../pipeline/conversion/) 与
+> [../../pipeline/representation/](../../pipeline/representation/) 加工后，
+> 由 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) 消费。
+> 人读镜像在 [../../selected_seed_examples/](../../selected_seed_examples/)。
+>
+> ⚠️ **本目录另外 35 个条目目录都不是论文语料**（36 个条目目录，另加 `schemas/` 与 `tools/`
+> 两个非条目目录），只是候选池与检索证据。别把 registry 里的条目当成实验样本。
+>
+> ⚠️ **下文「本论文主贡献仍是后续的无人化反馈驱动修正循环」已作废。** 2026-08 导师定调把
+> paper1 收窄为 **issue discover 单独成篇**，repair 另立后续论文；本文的贡献口径是
+> **谓词逻辑元模型与断言体系**加**差异化叙述**，以 [../../README.md](../../README.md) §2 为准。
+> 本目录的收录标准本身不受影响——seed 就是 seed。
+
 ## 0. 定位
 
-本目录是第一篇论文 `paper_stm_repair` 的 seed library，服务于 `NL + raw/source STM_0 -> issue discovery / repair / closure` 任务。它记录能说明 `STM_0` 从自然语言需求、用例、场景、系统描述或文本规格生成 / 派生 / 人工构造而来的上游方法与来源。
+本目录是第一篇论文 `paper_stm_issue_discover` 的 seed library，服务于 `NL + raw/source STM_0 -> issue discovery` 任务。它记录能说明 `STM_0` 从自然语言需求、用例、场景、系统描述或文本规格生成 / 派生 / 人工构造而来的上游方法与来源。
 
-**核心边界**：seed library 不是本论文的 repair baseline，也不是四个代表性样例集合本身。旧 `NL -> STM` generation baseline 在这里作为上游 seed 方法集合、转换压力、相关工作和种子候选来源入账；本论文主贡献仍是后续的无人化反馈驱动修正循环。
+**核心边界**：seed library 不是本论文的 repair baseline，也不是代表性样例集合本身。旧 `NL -> STM` generation baseline 在这里作为上游 seed 方法集合、转换压力、相关工作和种子候选来源入账。
 
 三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录 source-level issue discovery / repair / closure 的 repair / feedback 近邻；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
 
@@ -59,7 +74,7 @@
 
 ## 1.8 smoke 用代表性样例入口
 
-上级 [selected_seed_examples/](../../selected_seed_examples/) 是当前固定维护的 smoke 用代表性种子样例迷你文库。它故意放在 `paper_stm_repair/` 根路径下，而不是放在本 `seed_library/` 内：本目录继续作为上游 seed 方法 / 来源事实总账，`selected_seed_examples/` 只把少量已核验的一手 `<NL, STM_0>` pair 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件，服务后续转换器、诊断器、修正循环和评价协议的最小连通性自检。当前样例不是最终实验集合，也不是主结果样本规模上限。
+上级 [selected_seed_examples/](../../selected_seed_examples/) 是当前固定维护的 smoke 用代表性种子样例迷你文库。它故意放在 `paper_stm_issue_discover/` 根路径下，而不是放在本 `seed_library/` 内：本目录继续作为上游 seed 方法 / 来源事实总账，`selected_seed_examples/` 只把少量已核验的一手 `<NL, STM_0>` pair 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件，服务后续转换器、诊断器、修正循环和评价协议的最小连通性自检。当前样例不是最终实验集合，也不是主结果样本规模上限。
 
 | 分组 | 条目 | 作用 |
 |---|---|---|
@@ -67,7 +82,7 @@
 | 条件 XML 样例 | `ttool-ai-smd-subset` | TTool XML / SMD/T0 切片压力源；不计现成 final pool。 |
 | 仅复跑线索补充 | `fsm-bench-20`、`designing-fsm-gpt4` | 后续可复跑构造 seed，但复跑前不计 author first-source pair。 |
 
-当前 smoke 用代表性样例为 [llms-emp-deepseek-microwave](../../selected_seed_examples/llms-emp-deepseek-microwave/)、[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/) 和 [sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)。其中 `ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前四例 selected smoke 移除，只保留在 registry / evidence 中作为未来 TTool XML / SMD 切片或 synthetic probe 专项线索；当前四例均来自一手 `NL + generated STM_0` pair。
+历史 smoke 用代表性四例为 [llms-emp-deepseek-microwave](../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-deepseek-microwave/)、[llms-emp-gpt4o-hldcs](../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-kimi-autonomous-collision/) 和 [sefm-ssc7-umple](../../pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/)。⚠️ 这四例**已于 PR #162 迁出** [../../selected_seed_examples/](../../selected_seed_examples/)（该目录现为 60 例正式语料），只作 legacy contract，不是论文语料。其中 `ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前四例 selected smoke 移除，只保留在 registry / evidence 中作为未来 TTool XML / SMD 切片或 synthetic probe 专项线索；当前四例均来自一手 `NL + generated STM_0` pair。
 
 ## 2. 收录范围
 

@@ -19,11 +19,11 @@ from pathlib import Path
 from typing import Sequence
 
 if __package__ and __package__.startswith("project_1_llm_state_machine_modeling."):
-    _PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
     if str(_PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(_PROJECT_ROOT))
 
-from method.agent_loop_skill.codex_exec_experiment import (  # noqa: E402
+from archive.agent_loop_method.agent_loop_skill.codex_exec_experiment import (  # noqa: E402
     CODEX_EXEC_ENV_KEYS,
     REPO_ROOT,
     M3_AGENT_ARTIFACTS,

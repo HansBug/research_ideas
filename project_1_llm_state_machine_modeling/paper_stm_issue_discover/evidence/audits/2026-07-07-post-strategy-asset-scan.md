@@ -79,14 +79,14 @@ Result summary:
 
 | group | matched lines | unique files | interpretation |
 |---|---:|---:|---|
-| `paper_stm_repair/pipeline/evaluation` | 9593 | 658 | R5.7.5 constructed / blind adjudication artifacts 高度集中，应由 `PR-better-archive` 处理。 |
-| `paper_stm_repair/experiment_design/better_adjudication_dry_run` | 114 | 22 | 20 个 constructed cases 与 suite index，archive。 |
-| `paper_stm_repair/pipeline/representation` | 113 | 13 | `.fcstm` / converted bundle 可保留为 infrastructure，但需防止 conversion gain。 |
+| `paper_stm_issue_discover/pipeline/evaluation` | 9593 | 658 | R5.7.5 constructed / blind adjudication artifacts 高度集中，应由 `PR-better-archive` 处理。 |
+| `paper_stm_issue_discover/experiment_design/better_adjudication_dry_run` | 114 | 22 | 20 个 constructed cases 与 suite index，archive。 |
+| `paper_stm_issue_discover/pipeline/representation` | 113 | 13 | `.fcstm` / converted bundle 可保留为 infrastructure，但需防止 conversion gain。 |
 | `project_1_llm_state_machine_modeling/talks` | 89 | 4 | 2026-07-07 记录为 active strategic；2026-06-12 Better STM 口径部分 superseded。 |
-| `paper_stm_repair/experiment_design/repair_target_adjudication` | 71 | 5 | R5.7.4 static adjudication，archive。 |
-| `paper_stm_repair/experiment_design/metrics` | 69 | 2 | objective metric framework 围绕 Better STM，archive。 |
-| `paper_stm_repair/STATUS.md` | 7 | 1 | 顶层状态表仍有 R5.7 / Better STM active-style 行，`PR-story-reset` 必须改写。 |
-| `paper_stm_repair/pipeline/readiness_audit` | 67 | 5 | readiness / handoff 有价值但需从旧 R6 wording 改为 issue lifecycle。 |
+| `paper_stm_issue_discover/experiment_design/repair_target_adjudication` | 71 | 5 | R5.7.4 static adjudication，archive。 |
+| `paper_stm_issue_discover/experiment_design/metrics` | 69 | 2 | objective metric framework 围绕 Better STM，archive。 |
+| `paper_stm_issue_discover/STATUS.md` | 7 | 1 | 顶层状态表仍有 R5.7 / Better STM active-style 行，`PR-story-reset` 必须改写。 |
+| `paper_stm_issue_discover/pipeline/readiness_audit` | 67 | 5 | readiness / handoff 有价值但需从旧 R6 wording 改为 issue lifecycle。 |
 | `method/` | 26 | 9 | `repair_target` 多为 runtime field；active infra，不等于 R5.7 taxonomy。 |
 | `paper_v1/` | 5 | 3 | 旧 Path-1/Path-2 与 pyfcstm contribution wording，historical。 |
 
@@ -94,11 +94,11 @@ Result summary:
 
 | group | matched lines | unique files | interpretation |
 |---|---:|---:|---|
-| `paper_stm_repair/pipeline/evaluation` | 12209 | 634 | judge manifests / blind outputs / Better checklist 仍为最大旧框架集中区。 |
-| `paper_stm_repair/pipeline/conversion` | 3094 | 10 | conversion recovery JSON 命中 broad keywords；可 active，但要保留非 contribution 归因。 |
-| `paper_stm_repair/corpora/seed_library` | 141 | 30 | seed provenance active；不支撑 method effectiveness。 |
-| `paper_stm_repair/experiment_design/metrics` | 127 | 2 | old objective metrics archive。 |
-| `paper_stm_repair/reports/2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md` | 106 | 1 | full blind adjudication report，archive。 |
+| `paper_stm_issue_discover/pipeline/evaluation` | 12209 | 634 | judge manifests / blind outputs / Better checklist 仍为最大旧框架集中区。 |
+| `paper_stm_issue_discover/pipeline/conversion` | 3094 | 10 | conversion recovery JSON 命中 broad keywords；可 active，但要保留非 contribution 归因。 |
+| `paper_stm_issue_discover/corpora/seed_library` | 141 | 30 | seed provenance active；不支撑 method effectiveness。 |
+| `paper_stm_issue_discover/experiment_design/metrics` | 127 | 2 | old objective metrics archive。 |
+| `paper_stm_issue_discover/reports/2026-07-05-07-18-31-r5-7-5-full-blind-adjudication-dry-run.md` | 106 | 1 | full blind adjudication report，archive。 |
 | `paper_v1/` | 31 | 3 | old judge / pyfcstm / contribution / Path comparison wording，historical。 |
 
 ## 4. 代表性命中与判读
@@ -107,7 +107,7 @@ Result summary:
 |---|---|---|
 | `paper_v1/README.md` 仍写 “`<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正任务”。 | 旧主线入口可能被误读为 active。 | A-022 `historical`，由 `PR-story-reset` 防止旧 headline 回流。 |
 | `talks/2026-07-07-...md` 明确 “Better STM 不再作为 paper1 active headline evaluation framework”。 | 这是覆盖旧口径的战略锚点。 | A-002 `active`。 |
-| `paper_stm_repair/STATUS.md` R5.7.2 / R5.7.4 / R5.7.5 行仍为 active-style 状态表。 | 顶层入口会继续把旧协议当当前状态。 | A-004 `update`；R5.7 资产由 A-006--A-013 `archive`。 |
+| `paper_stm_issue_discover/STATUS.md` R5.7.2 / R5.7.4 / R5.7.5 行仍为 active-style 状态表。 | 顶层入口会继续把旧协议当当前状态。 | A-004 `update`；R5.7 资产由 A-006--A-013 `archive`。 |
 | `experiment_design/quality_model/better_stm_definition.md` 与 `repair_target_taxonomy.md`。 | 旧 Better STM framework 核心资产。 | A-006 `archive`。 |
 | `experiment_design/protocols/better_adjudication_*`。 | blind adjudication prompt/schema 可能被误作 source-level closure judge。 | A-008 `archive`；后续 `PR-eval-rubric` 只读借鉴。 |
 | `pipeline/evaluation/dry_run_examples/r5_7_5_*` 下大量 judge outputs。 | constructed `STM_k` 和 LLM judge dry-run 容易被误报成 method effectiveness。 | A-012 `archive`。 |
@@ -146,7 +146,7 @@ Observed realpath:
 ## 7. 审计结论
 
 1. R5.7 / Better STM-facing 资产实际覆盖面很大，尤其集中在 `experiment_design/quality_model`、`experiment_design/protocols`、`experiment_design/better_adjudication_dry_run`、`pipeline/evaluation/dry_run_examples/r5_7_5_*` 和 R5.7 reports；后续必须由 `PR-better-archive` 全量迁入 archive snapshot。
-2. 顶层 `paper_stm_repair` root docs 与 `story/` 仍有旧 framing，必须先由 `PR-story-reset` 改成 source-level issue discovery / closure。
+2. 顶层 `paper_stm_issue_discover` root docs 与 `story/` 仍有旧 framing，必须先由 `PR-story-reset` 改成 source-level issue discovery / closure。
 3. conversion / representation / readiness / method runtime 仍是后续链路必要基础，但必须加 attribution boundary：它们是 intermediate representation infrastructure，不是 paper1 contribution 或 repair gain。
 4. `paper_v1/` 和旧 `discussions/` 是 historical context，不能恢复旧 hard comparison、pyfcstm contribution 或 judge-centric 主线。
 5. #145 已关闭为 superseded historical context；后续不得从 #145 body 直接继承 active R6 计划。

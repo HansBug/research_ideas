@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from method.experiments.representative_cases import (
+from archive.agent_loop_method.experiments.representative_cases import (
     FULL_STAGED_REQUIRED_STAGE_IDS,
     RepresentativeCase,
     _schema_validation_error,
@@ -18,9 +18,9 @@ from method.experiments.representative_cases import (
     summarize_run,
     summaries_to_jsonable,
 )
-from method.run_record import write_agent_loop_run_record
-from method.schema import AgentLoopResult, AgentLoopRunRecord
-from method.stages.ids import STAGE_SPECS_BY_ID, StageStatus
+from archive.agent_loop_method.run_record import write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, AgentLoopRunRecord
+from archive.agent_loop_method.stages.ids import STAGE_SPECS_BY_ID, StageStatus
 
 
 def _case() -> RepresentativeCase:

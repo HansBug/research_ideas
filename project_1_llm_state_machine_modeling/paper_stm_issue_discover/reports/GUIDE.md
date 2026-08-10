@@ -1,6 +1,6 @@
 # reports/GUIDE.md — 研究报告维护规范
 
-本文件约束 `paper_stm_repair/reports/` 的 Markdown report 维护。目标是让报告能直接支撑 paper story、实验设计和 reviewer 审查，同时不把 Markdown 变成第二机器事实源。
+本文件约束 `paper_stm_issue_discover/reports/` 的 Markdown report 维护。目标是让报告能直接支撑 paper story、实验设计和 reviewer 审查，同时不把 Markdown 变成第二机器事实源。
 
 ## 1. 事实源优先级
 

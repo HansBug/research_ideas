@@ -335,7 +335,7 @@ class PredicateAPI:
         state-shaped ones, refuse for expressions -- which took three sets of
         judgement, three exemptions, a dedicated exception type and a dedicated
         seal path.  The third was measured to constrain nothing (counts in
-        `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`): every pair
+        `paper_stm_issue_discover/discover_matrix/docs/findings/predicates/observations.md`): every pair
         have an empty author-owned variable table, so "the table is empty" carried
         no information and the seal fired for any pair at all.
 
@@ -490,7 +490,7 @@ class PredicateAPI:
         Measured on this fixture: with `Idle --go--> Pick --> Warm`, `target='Root.Warm'`
         gives True and `target='Root.Pick'` gives False, on the same model, for no reason
         the model is answerable for. The same shape has produced published findings before
-        (counts in `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`).
+        (counts in `paper_stm_issue_discover/discover_matrix/docs/findings/predicates/observations.md`).
 
         Scope, and the reason for it is not what it first looks like. `is_pseudo` is set by
         the `pseudo` keyword alone (`pyfcstm/dsl/listener.py:650`), and the validator forbids
@@ -536,7 +536,7 @@ class PredicateAPI:
         into its initial child and nothing else.  Corpus-wide that is right for 523
         of 567 pinnable configurations and wrong for the other 44, where the chain
         runs 2 to 7 edges deep.  One of those was published as a confirmed defect
-        (see `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`): pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
+        (see `paper_stm_issue_discover/discover_matrix/docs/findings/predicates/observations.md`): pair 0050's `AutonomousMode` settles `SubState1 -> SubState2 ->
         SubState3 -> FinalWaittr_0005` before anything can consume
         `human_steering...`, and the requirement's obligation *is* met from the
         settled position -- `occupancy_after` answers True when pinned there, and
@@ -970,7 +970,7 @@ class PredicateAPI:
         # counts an edge as unconditional only when it carries neither guard nor
         # event, so `[*] -> RunningState : /Activate_Pump` was "conditional" and
         # the predicate refused -- on a substantial share of corpus composites, counted in
-            # `eval/discover_matrix/PREDICATE_OBSERVATIONS.md` -- with a
+            # `paper_stm_issue_discover/discover_matrix/docs/findings/predicates/observations.md` -- with a
         # message about a guard the edge does not have.  Nothing is ambiguous
         # about one entry, so answer from it.
         if len(entries) == 1:

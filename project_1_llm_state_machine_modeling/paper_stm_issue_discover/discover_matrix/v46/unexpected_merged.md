@@ -30,7 +30,7 @@
 13 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在
 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
 判「同根」的硬判据（数作者源上的引用次数）见
-[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md) 「先做零步」。
+[unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md) 「先做零步」。
 
 按**对命中的影响**分四类（jsonl 的 `disposition` 字段）：
 
@@ -41,7 +41,7 @@
 | 同根但该格未建立记录 | 3 | `0006-2` `0036-8` `0047-9` | 逐格复核维持未命中 |
 | 报的是已退役判据 | 3 | `0050-2` `0050-3` `0050-4` | 台账 `EIS-0050-01` 的 `basis_superseded_by_ruling` 明写原判据已放弃 |
 
-**移出 ≠ 记命中**：13 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [HIT_CRITERION.md](../HIT_CRITERION.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
+**移出 ≠ 记命中**：13 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [hit_criterion.md](../docs/protocol/hit_criterion.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
 
 ## 三、⚪ 断言在冻结制品上为真：真阴性，两侧都不存在
 
@@ -56,7 +56,7 @@
 **不是模型缺陷，是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**——作者在源制品上
 已逐字表达，是中间表示装不下。机制见
 [unexpected_adjudication.md §一之二](./unexpected_adjudication.md)，
-完整论述见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)，
+完整论述见 [representation_debt.md](../docs/findings/representation_debt.md)，
 条目 / 去重 / 稳定性见 [unexpected_tables.md](./unexpected_tables.md) 表 2。
 
 子类按「**丢失的是哪一条区分**」切，⛔ 谓词族不参与判类：
@@ -72,7 +72,7 @@
 **关键分界线**（各自都踩过坑）：`D1` vs `D2` 看被指串**是不是一个完整析取支**；
 `D2` vs `D3` 看该量写在**守卫侧**还是 `/` **之后的效果槽**；`D5` 要通过正向计数测试
 （枚举分量归类结果 ≥2 种），**不是兜底类**。判定流程见
-[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
+[unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。
 
 ## 五、📄 无 NL 依据 / ❌ 假阳性 / 🚫 越界
 
@@ -98,7 +98,7 @@ R-REGION 规则）、`OOS-INV`（`0017-7` / `0027-6` 的不变式 + 并发保持
 [unexpected_adjudication.md §三之二](./unexpected_adjudication.md)。
 
 **测量链侧待修项**已登记于
-[PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)（本桶内涉及
+[defects_registered.md](../docs/findings/predicates/defects_registered.md)（本桶内涉及
 `0046-8` / `0044-4` / `0054-5` / `0026-3`），登记区分**词表**与**实现**：谓词词表冻结（不增删谓词，否则作废跨代次可比性），求值实现的缺陷该修就修——P-1 / P-2 已实施，P-3 / P-4 未实施。
 
 ## 六、相对上一版的改动

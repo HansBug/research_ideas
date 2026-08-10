@@ -7,10 +7,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from method.langgraph.instrumentation.common import _hash_file, _hash_payload
-from method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES, _LG_D1_SECRET_VALUE_PATTERNS
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult, LoopConfig
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_file, _hash_payload
+from archive.agent_loop_method.langgraph.instrumentation.operator_stream import _LG_D1_ACADEMIC_EVIDENCE_SOURCES, _LG_D1_SECRET_VALUE_PATTERNS
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, LoopConfig
 
 LG_G1_TRACE_EXPORT_SCHEMA_VERSION = "lg-g1.safe-trace-export.v1"
 

@@ -1,8 +1,25 @@
-# R5 确定性冒烟与 seed library 准备度审计
+# readiness_audit/ — 语料准入审计（结论已固化，不再重跑）
+
+> 🟡 **本目录回答的是「哪些 seed 能用」这个已经答完的问题。** 60 例语料已据此选定并冻结，
+> 因此它不参与任何一格实验，只作为**语料选择的证据链**。
+>
+> | 问题 | 答案 |
+> | :-- | :-- |
+> | 在运行路径上吗 | 不在。结论固化在 [handoff/](./handoff/)；重跑只为复验证据链 |
+> | 它的产出被谁消费 | 语料选择决策；60 例最终形态见 [../representation/reports/llms_emp_r45_java_60/](../representation/reports/llms_emp_r45_java_60/) |
+> | 包名 | `paper_stm_repair_smoke`（旧名，且与目录名也不同——本目录原名 `pipeline/smoke/`） |
+> | 测试规模 | 8 个（本目录测试最少；主要资产是**已提交的 report**，不是测试） |
+> | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
+>
+> ⚠️ **本目录的「四例」与论文语料无关。** 那是历史 smoke fixture，用于验证转换 / 表示桥 / 评价门
+> 接口是否连通；论文语料是 60 例（实验网格 54 例）。两套统计不得混用。
+>
+> ⚠️ **`*.md` 一律不是事实源。** 所有统计必须能从 `*.json` / `*.jsonl` / `records_index.json` /
+> `archive_manifest.json` 复算。
 
 ## 0. 定位
 
-本目录是 `paper_stm_repair/` 的 **R5 修正前准备度审计** 工作区，用于在进入 R6 修正循环骨架前，审计 `<NL, STM_0>` 输入能否稳定走到内部可机检 `.fcstm` 表示，并把可进入后续阶段的证据、阻塞原因和交接目标结构化写盘。
+本目录是 `paper_stm_issue_discover/` 的 **R5 修正前准备度审计** 工作区，用于在进入 R6 修正循环骨架前，审计 `<NL, STM_0>` 输入能否稳定走到内部可机检 `.fcstm` 表示，并把可进入后续阶段的证据、阻塞原因和交接目标结构化写盘。
 
 R5 只回答：当前 seed 资源池中哪些原装 `STM_0` 能进入内部可机检 `.fcstm` 表示，哪些只能 `partial` / `blocked` / `not_applicable` / `needs_generation` / `missing_asset`，以及这些状态的原因是什么。R5.5 在 R5 事实源之上，只对 `llms-emp-stm-subset` 这一主 seed 池做 60 pair / 10 NL cluster 深度画像、partial 归因、blocked probe 与 R5.6 边界交接。
 
@@ -14,7 +31,15 @@ R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不�
 
 ### 1.1 选定四例冒烟
 
-选定四例来自 [../../selected_seed_examples/](../../selected_seed_examples/)，每例必须消费 committed 上游制品，不在 R5 重写上游事实。
+⚠️ **路径已漂移，请勿照此重跑。** 生成器 `cli.py` 的 `SELECTED_DIR` 仍指向
+[../../selected_seed_examples/](../../selected_seed_examples/)，但该目录在 PR #162 之后已改为
+60 个 `llms_emp_feedback_final_NNNN/`，**不再包含下表的四个 `example_id`**。四例输入现居
+[../conversion/fixtures/r3_selected_seed_examples/](../conversion/fixtures/r3_selected_seed_examples/)。
+因此 `run-selected` 只能复现 committed report，不宜按当前代码重跑；`validate` 亦已报出
+index archive 缺失与 R6/R7/R8 handoff 计数不符（该命令只打印 ERROR 并返回 0，不是门禁）。
+这属于语料换代后的已知欠账，**不影响任何论文结论**——四例本就不是论文语料。
+
+下表为历史四例的 committed 审计口径，每例消费 committed 上游制品，不在 R5 重写上游事实。
 
 | example_id | 原始格式 | R5 审计重点 |
 |---|---|---|
@@ -130,26 +155,26 @@ R5 发现不一致时，只记录 R5 blocker；不得在 R5 静默修改 selecte
 ## 6. 验收命令
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
-python -m pytest project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
+python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/tests
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_smoke.cli run-selected
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_smoke.cli run-llms-emp-profile
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src \
 python -m paper_stm_repair_smoke.cli validate
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m pytest \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests \
-  project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/tests
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tests \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests \
+  project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/tests
 
 git diff --check
 ```

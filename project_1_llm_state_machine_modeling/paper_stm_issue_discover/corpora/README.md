@@ -1,4 +1,25 @@
-# corpora/ — 第一篇论文三类文库入口
+# corpora/ — 语料与文献库入口
+
+> **导航页。** 本目录下有**四个**子库，职责互不重叠。它只解释分工与阅读顺序，**不承载事实总账**。
+>
+> | 子目录 | 是什么 | 在运行路径上？ | 入口 |
+> | :-- | :-- | :-- | :-- |
+> | [seed_library/](./seed_library/) | 上游 `NL -> STM_0` seed 方法 / 来源文献库。**论文语料的实际出处在这里**（`llms-emp-stm-subset`） | 🟢 | [SUMMARY.md](./seed_library/SUMMARY.md) |
+> | [nl_segmentation/](./nl_segmentation/) | **需求边界人工标注（数据，不是文献）**。决定 discover 的 `nl_segments` 键空间 | 🟢 | [README.md](./nl_segmentation/README.md) |
+> | [repair_baselines/](./repair_baselines/) | 模型修复 / 补全 / refinement 近邻工作文献库 | 🟡 | [SUMMARY.md](./repair_baselines/SUMMARY.md) |
+> | [nl_datasets/](./nl_datasets/) | 控制系统纯 NL 数据源文献库；仅脚手架，尚未逐条填充 | 🔴 | [SUMMARY.md](./nl_datasets/SUMMARY.md) |
+>
+> 口径：🟢 当前运行路径 ｜ 🟡 服务相关工作与后续论文 ｜ 🔴 脚手架 / 未启用
+>
+> ⚠️ **[repair_baselines/](./repair_baselines/) 的定位已随论文收窄而变。** paper1 已收窄为
+> **issue discover 单独成篇**，repair 另立后续论文；因此本子库不再是 paper1 的 baseline 对照，
+> 而是**相关工作 + 后续论文的 baseline 储备**。其内部 README / GUIDE / SUMMARY 仍按
+> 「repair / closure 主线」措辞书写，那是文献库自身的收录口径，**不代表 paper1 的主张**。
+>
+> ⚠️ **[nl_segmentation/](./nl_segmentation/) 不是文献库**，因此没有 `GUIDE.md` / `SUMMARY.md`
+> 三件套，只有 `README.md` + `overrides.json` + `PROVENANCE.md`。10 份 NL 中有 1 份的需求编号
+> 在机器层面无唯一解（编号不在行首、点号混用、编号重复、同句有裸数值），故由人工标注一次
+> 作为**数据**；该标注只回答「这份规格分成几条需求」，不回答「模型有什么缺陷」，**不构成 oracle 泄漏**。
 
 ## 0. 定位
 

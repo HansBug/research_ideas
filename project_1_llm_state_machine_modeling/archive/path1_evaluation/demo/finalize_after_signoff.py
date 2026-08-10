@@ -17,15 +17,15 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve()
-PROJ = HERE.parent.parent.parent
+PROJ = HERE.parent.parent.parent.parent   # 归档下沉一层：archive/path1_evaluation/demo -> project_1
 sys.path.insert(0, str(PROJ))
 
-from eval.aggregate import write_results  # noqa: E402
-from eval.report import UnsignedRowsError, finalize_all  # noqa: E402
-from eval.review.load import load_packs  # noqa: E402
+from archive.path1_evaluation.aggregate import write_results  # noqa: E402
+from archive.path1_evaluation.report import UnsignedRowsError, finalize_all  # noqa: E402
+from archive.path1_evaluation.review.load import load_packs  # noqa: E402
 
 
-EVAL_ROOT = PROJ / "eval"
+EVAL_ROOT = PROJ / "archive" / "path1_evaluation"
 PACKS_DIR = EVAL_ROOT / "review" / "packs"
 RAW_DIR = EVAL_ROOT / "review" / "raw"
 DATA = EVAL_ROOT / "data"

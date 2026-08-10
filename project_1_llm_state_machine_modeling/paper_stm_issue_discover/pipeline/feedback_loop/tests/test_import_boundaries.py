@@ -8,8 +8,8 @@ from pathlib import Path
 
 FORBIDDEN_RUNTIME_IMPORT_PREFIXES = (
     "paper_stm_repair_loop",
-    "method.loop",
-    "method.run_record",
+    "archive.agent_loop_method.loop",
+    "archive.agent_loop_method.run_record",
 )
 
 
@@ -62,8 +62,8 @@ import builtins
 import importlib
 FORBIDDEN_RUNTIME_IMPORT_PREFIXES = (
     "paper_stm_repair_loop",
-    "method.loop",
-    "method.run_record",
+    "archive.agent_loop_method.loop",
+    "archive.agent_loop_method.run_record",
 )
 real_import = builtins.__import__
 real_import_module = importlib.import_module

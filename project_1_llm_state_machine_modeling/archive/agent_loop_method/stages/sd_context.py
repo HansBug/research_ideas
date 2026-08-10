@@ -10,8 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from method.feedback.semantic import _diag_to_dict
-from method.schema import StageContext
+from archive.agent_loop_method.feedback.semantic import _diag_to_dict
+from archive.agent_loop_method.schema import StageContext
 
 
 @dataclass
@@ -31,7 +31,7 @@ def build_model_from_dsl(dsl_text: str) -> BuildResult:
 
     The returned diagnostics are JSON-friendly dictionaries derived from the
     same structured pyfcstm ``ModelDiagnostic`` objects consumed by
-    ``method.feedback.semantic``. ``ok`` means grammar parse succeeded and no
+    ``archive.agent_loop_method.feedback.semantic``. ``ok`` means grammar parse succeeded and no
     error-severity semantic diagnostic was emitted.
     """
     try:

@@ -1,68 +1,97 @@
-# paper_stm_repair/SUMMARY.md — 顶层轻量总账
+# SUMMARY.md — 轻量总账与阅读入口
 
-本文件是 `paper_stm_repair/` 的轻量总账入口，用于从 `README.md -> SUMMARY.md -> STATUS.md -> GUIDE.md` 快速理解当前积累和下一步。机器事实、运行结果和完整制品仍以具体 JSON / registry / report / ledger 为准；本文件不做第二事实源。
+> 本文件只做**入口与索引**，不做第二事实源。
+> ⛔ 实验数字一律回 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) 核对；
+> 判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；
+> 动态施工状态一律以 GitHub PR / issue 为准。
 
-## 1. 当前一句话状态
+## 1. 一句话状态
 
-paper1 当前已经完成战略转向后的资产清账，并将 active 主线重置为 **source-level behavioral issue discovery and closure**：给定 `NL + raw/source STM_0`，通过中间语义执行表示执行一次 Discover，再以多轮 Repair-Confirm 处理全部 issue chains，最后回到 raw/source 层做 closure / regression audit。
+paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），
+一次完整的全量实验（**54 pair × 2 执行模型 × 3 轮 = 324 格**）已完成，
+工作重心转入**补外部对照与判定层审计 + 论文写作**。
 
-当前 contribution 口径已进一步收敛为：**feedback-driven LLM refinement loop + diagnostics / simulation / formal-verification feedback integration + source-level repair/evaluation setup**。ledger、audit、trace、run record 和 attribution boundary 只是方法 / 评价 / 可复现纪律，不能作为 headline contribution。
+两条 contribution：**谓词逻辑元模型与断言体系本身** > **带上下文的发现使复核与回归确认可行**。
 
-最小 source issue ledger v0 与 source trace v0 已定义；真实 repair loop、pilot、final evaluation rubric、baseline contract 和正式实验协议均尚未完成。
-
-## 2. 当前事实源
+## 2. 事实源索引
 
 | 类型 | 入口 | 作用 |
-|---|---|---|
-| 战略讨论 | [../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md](../talks/2026-07-07-导师-paper1发现修正与BetterSTM归档.md) | 当前最高优先级导师路线：paper1 淡化 fcstm，主打 loop + simulation / verification feedback + issue closure。 |
-| 资产地图 | [evidence/ledgers/paper1_strategy_asset_map.md](./evidence/ledgers/paper1_strategy_asset_map.md) | 标定哪些资产 active / update / archive / historical。 |
-| 扫描审计 | [evidence/audits/2026-07-07-post-strategy-asset-scan.md](./evidence/audits/2026-07-07-post-strategy-asset-scan.md) | 记录 Better STM / `STM_k` / contribution drift 等风险命中分布。 |
-| 当前状态 | [STATUS.md](./STATUS.md) | 记录已完成、未完成和下一步依赖。 |
-| 后续纪律 | [GUIDE.md](./GUIDE.md) | 约束后续 agent 如何读资产、写 story、避免 claim 漂移。 |
-| story 入口 | [story/README.md](./story/README.md) | 进入 paper story / task boundary / terminology / claim-evidence。 |
-| issue lifecycle | [experiment_design/issue_lifecycle/README.md](./experiment_design/issue_lifecycle/README.md) | 当前 v0 candidate / confirmed / rejected / out-of-scope / insufficient evidence 合同。 |
-| source trace | [experiment_design/source_trace/README.md](./experiment_design/source_trace/README.md) | raw/source ↔ intermediate trace、projection status 与 negative attribution gate 合同。 |
-| machine contract | [pipeline/evaluation/schemas/source_issue_ledger.schema.json](./pipeline/evaluation/schemas/source_issue_ledger.schema.json), [pipeline/evaluation/tests/test_source_issue_ledger_schema.py](./pipeline/evaluation/tests/test_source_issue_ledger_schema.py) | issue ledger schema、fixture 与 pytest gate。 |
-| trace machine contract | [pipeline/evaluation/schemas/source_trace.schema.json](./pipeline/evaluation/schemas/source_trace.schema.json), [pipeline/evaluation/tests/test_source_trace_schema.py](./pipeline/evaluation/tests/test_source_trace_schema.py) | source trace schema、fixture 与 pytest gate。 |
+| :-- | :-- | :-- |
+| 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、两条 contribution、建模对象边界、目录导航 |
+| 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
+| **实验事实** | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含，读完不需跳转 |
+| 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
+| 实验产地 | [discover_matrix/](./discover_matrix/) | 台账、判定表、代次记录、分析脚本、全量审计数据 |
+| 方法实现 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) | 当前活的实现（八阶段 + 定向反馈循环） |
+| 语料 | [selected_seed_examples/](./selected_seed_examples/) | 60 个 pair，各含 `nl.txt`、`stm0.puml` 与溯源元数据 |
+| 论文叙事 | [story/](./story/) | thesis、章节结构与 RQ、claim-evidence、任务边界、建模对象、术语 |
+| 当前状态 | [STATUS.md](./STATUS.md) | 已完成 / 未完成 / 可声称 / 不可声称 / 风险 |
+| 工作纪律 | [GUIDE.md](./GUIDE.md) | 事实源优先级、口径纪律、数字纪律、公平性纪律、验收清单、静态检查 |
 
-## 3. 资产状态概览
+## 3. 阅读入口（按任务）
 
-| 类别 | 当前处理 | 后续入口 |
-|---|---|---|
-| Root docs 和 story | 已转向 source-level issue lifecycle 口径；仍需后续 review 持续防止旧 wording 回流。 | [README.md](./README.md), [story/](./story/) |
-| R5.7 / Better STM-facing 资产 | 已迁入 [archive/r5_7_better_stm_snapshot/](./archive/r5_7_better_stm_snapshot/)；只作 historical / superseded / calibration-only。 | archive snapshot |
-| conversion / representation / pyfcstm 相关基础设施 | 可继续作为中间语义执行表示和工具反馈 infrastructure；当前 pyfcstm gitlink 已在伞分支直接更新，paper1 adapter 仍待阶段实现。 | [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 当前路线 |
-| seed / corpus / baseline 候选 | 可作为未来 protocol 输入来源，但本阶段不冻结样本分母或 baseline contract。 | pilot 后实验设计阶段；动态顺序见 [#100](https://github.com/HansBug/research_ideas/pull/100) |
-| reports / paper_v1 / discussions | 只作历史动机、negative evidence 或旧路线 provenance。 | 后续 archive / story 引用时必须降级 |
-| issue ledger v0 | 已定义最小 schema / fixture / pytest gate；只覆盖合同分支，不是实验结果。 | [experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/), [pipeline/evaluation/](./pipeline/evaluation/) |
-| source trace v0 | 已定义最小 schema / fixture / pytest gate；覆盖 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 | [experiment_design/source_trace/](./experiment_design/source_trace/), [pipeline/evaluation/](./pipeline/evaluation/) |
+| 我要做什么 | 读什么 |
+| :-- | :-- |
+| 理解这篇论文 | [README.md](./README.md) → 实验报告。两份读完即可完整理解方法与结果 |
+| 写论文某一节 | [story/paper_outline.md](./story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./story/terminology_policy.md) 核措辞 |
+| 复算某个数字 | [discover_matrix/README.md](./discover_matrix/README.md) 导航页 |
+| 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
+| 查某个 pair 的原文 | [selected_seed_examples/](./selected_seed_examples/) |
+| 追溯某条结论的来源 | [evidence/](./evidence/) |
+| 考古（历史路线） | [archive/](./archive/)（本工作区快照）、[../archive/](../archive/)（已停用旧路线） |
 
-## 4. 下一步依赖
+## 4. 资产状态概览
 
-1. 已完成的 issue ledger v0 与 source trace v0 是 runtime v1 的迁移输入，后续实现不得绕过其 attribution / negative gate，但也不得把 v0 直接冒充真实 loop 输出。
-2. 先交付完整 Discover Agent，同时落下最小 shared kernel、schema-safe pyfcstm adapter、records/context/renderer、工具、prompt、runner、CLI 与 stage smoke。
-3. 再依次交付完整 Repair Agent 与 Confirm Agent；Repair 处理当前全部 pending nodes，Confirm 审查全部 dispositions，reject 只追加 successor 并回 Repair。
-4. 三个阶段完成后，由无顶层 Agent/prompt、只按 typed stage result 转移的确定性 controller 组织闭环，再由独立 post-Confirm semantic-root export bundle 一次性生成 fresh canonical raw/source `STM_k` 并执行 closure audit。
-5. 动态 subPR slug、状态和前置依赖只维护在 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)；pilot 产出真实 canonical raw/source `STM_k`、semantic change/correspondence ledger 与 closure audit 后，才能冻结 final rubric 与 baseline contract。
+| 类别 | 状态 | 入口 |
+| :-- | :-- | :-- |
+| 论文叙事（story） | 已按 discover 口径整体改写 | [story/](./story/) |
+| 方法实现 | active，已跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
+| 输入准备与表示桥、语料准入检查 | active，作为 infrastructure | [pipeline/conversion/](./pipeline/conversion/)、[pipeline/representation/](./pipeline/representation/)、[pipeline/readiness_audit/](./pipeline/readiness_audit/) |
+| 上一版单 Agent 实现 | 已不在运行路径上 | [pipeline/agent_loop/](./pipeline/agent_loop/) |
+| 实验与评测 | active，v46 全量已完成 | [discover_matrix/](./discover_matrix/) |
+| 语料与更广候选集 | active | [selected_seed_examples/](./selected_seed_examples/)、[corpora/](./corpora/) |
+| repair 期合同（issue lifecycle、source trace、资产地图） | **已随 repair 搁置**，只作历史背景与后续 repair 论文的迁移输入 | [experiment_design/](./experiment_design/)、[evidence/ledgers/](./evidence/ledgers/) |
+| R5.7 / Better STM-facing 资产 | 已归档，只作 historical / superseded / calibration-only 引用 | [archive/](./archive/) |
+| Path-1 评测链、旧 agent loop 基础设施、Path-1/Path-2 指南 | 已停用，完整保留可复活，不参与本文任何结论 | [../archive/](../archive/) |
+| 阶段性报告 | 历史材料 | [reports/](./reports/) |
 
-## 5. 禁止误读
+## 5. 下一步依赖（按优先级）
 
-- 不再把 Better STM / which STM is better 作为 paper1 active headline question。
-- 不把 constructed `STM_k` dry-run 或 blind adjudication 写成真实 repair-loop result。
-- 不把 `fcstm` / `pyfcstm` 写成 paper1 contribution。
-- 不把 ledger / audit / evidence bookkeeping 写成 paper1 contribution。
-- 不把 conversion / normalization / lowering 算成 method gain。
-- 不在 pilot 前冻结 final metrics、baseline contract 或 judge prompt。
-- 不把 folded event / ugly expression 自动升级为 confirmed source-level behavioral issue。
+1. **朴素基线**——本文目前没有任何外部对照，这是审稿人第一问。同样的执行模型与语料，
+   不走八阶段循环、一个提示直接列不符之处，在同一分母上是多少。
+2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、
+   是否在看过方法产出之后标的、与命中判定是否同一人。
+3. **判定层的第二意见**——双侧结论目前共用一个单人判定的误差源。
+4. **循环各阶段的消融**——两个审查阶段与静态预检占算力大头却无单独收益证据。
+5. **若干纯统计项**——命中形态构成、拒答回灌量、命中位按实际支撑族重算。
+6. 方法侧改进（模型驱动巡检入口、收断言侧过度规定、补中间表示损失、降方差、收需求集规模）
+   影响下一代次，不阻塞写作。
 
-## 6. 更新日志
+逐项理由与受阻原因见 [STATUS.md](./STATUS.md) §3。
 
-| 时间 | 更新内容 |
-|---|---|
-| 2026-07-17 00:32:36 | 对齐 Issue #152 与伞 PR #100：删除旧 active subPR 路由，固定一次 Discover、多轮 Repair-Confirm、确定性顶层 controller 与 pilot 后冻结评价/baseline 的稳定能力顺序。 |
-| 2026-07-08 14:03:59 | `PR-source-trace` 后同步总账：最小 source trace v0 已落到 source_trace 文档、schema、六个 fixture 与 pytest gate；真实 loop / patch export / closure audit 仍未运行。 |
-| 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步总账：最小 issue ledger v0 已落到 issue lifecycle 文档、schema、六个 fixture 与 pytest gate；真实 loop / pilot 仍未运行。 |
-| 2026-07-07 23:40:00 | `PR-better-archive` 后同步总账：R5.7 / Better STM-facing 资产已迁入 cold archive，下一步依赖从 `PR-issue-ledger` 开始。 |
-| 2026-07-07 22:10:00 | SUMMARY 补充 contribution 口径修正：主贡献是 loop + executable feedback integration；ledger / audit 只作评价和证据链纪律。 |
-| 2026-07-07 21:20:00 | SUMMARY 改为 source-level issue discovery and closure 总账；R5.7 Better STM-facing 资产降级为 historical，并在 `PR-better-archive` 后迁入 cold archive。 |
-| 2026-07-07 20:44:08 | 资产清账完成，新增 asset map 与 scan audit 作为后续 story reset / archive / issue lifecycle PR 的事实入口。 |
+## 6. 禁止误读
+
+- 不把本文读成 discover + repair 闭环——repair 是后续论文。
+- 不把「loop + verification feedback」「中间表示」「ledger / audit」写成 contribution。
+- 不把「发现了多少问题」当成贡献。
+- 不把覆盖率写成点估计或区间估计——它只能作为上界，且必须与算力代价一起给。
+- 不把多报侧读成误报率；不只报一套分母。
+- 不把台账当缺陷全集；不把无台账记录的 pair 读作「这些模型无缺陷」。
+- 不把两个执行模型的差异读成「某个模型更适合这项任务」。
+- 不据谓词分层给出词表选型建议。
+- 不声称「这些模型没有并发 / 时间问题」——我们排除的是无法判断的部分。
+- 不在本工作区维护 PR / review / CI 等动态施工状态。
+
+## 7. 相对上一版改了什么、为什么
+
+| 改动 | 为什么 |
+| :-- | :-- |
+| §1 一句话状态从「资产清账完成、active 主线为 source-level issue discovery **and closure**、真实 repair loop 尚未运行」改为「已收窄为 discover 单独成篇、324 格全量实验已完成」 | 旧版写于实验之前，且口径已被 2026-08-07 / 08-08 定调取代 |
+| §2 事实源表把实验报告标为**全部数字的唯一来源**，并显式声明本文件不做第二事实源 | 旧版的事实源表指向 asset map、scan audit、issue ledger schema 等 repair 期合同；且旧版容易被当成数字来源 |
+| 新增 §3 按任务分叉的阅读入口 | 旧版只有一条线性阅读顺序，实际使用中「写论文」「复算数字」「改方法」三类任务读的东西完全不同 |
+| §4 资产状态表新增「repair 期合同已搁置但文件仍在」一行 | 那批文件仍在原地，不写清会被后续 agent 当成 active 框架 |
+| §5 下一步依赖从「先交付 Discover Agent，再依次交付 Repair / Confirm Agent，最后由确定性 controller 组织闭环」改为「补外部对照与审计」 | Discover 已实现并跑通全量；Repair / Confirm 已移出本文范围；当前真实缺口是对照而非实现 |
+| §6 禁止误读全面重写 | 旧版七条中五条针对 Better STM 与 `fcstm`，已两代前作废 |
+| 删除全部 GitHub PR / issue 链接（`#100` / `#152`） | 仓库根 §9：动态流程状态只维护在 GitHub |
+| **保留并改写**：不把 `fcstm` / ledger / audit 写成 contribution、不把 conversion 算成 gain | 与新口径一致，且仍是真实的措辞回流风险 |
+| **保留**：R5.7 / Better STM 资产只作 historical / calibration-only 引用 | 归档结论未变 |

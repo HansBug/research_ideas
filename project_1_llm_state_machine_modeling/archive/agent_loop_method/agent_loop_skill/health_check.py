@@ -12,8 +12,8 @@ mention provider/full-loop entrypoint names even inside comments/docstrings.
 Usage from repository root:
 
 ```
-python project_1_llm_state_machine_modeling/method/agent_loop_skill/health_check.py
-python project_1_llm_state_machine_modeling/method/agent_loop_skill/health_check.py --format json
+python project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/health_check.py
+python project_1_llm_state_machine_modeling/archive/agent_loop_method/agent_loop_skill/health_check.py --format json
 ```
 """
 
@@ -29,16 +29,16 @@ from typing import Iterable
 
 SKILL_ROOT = Path(__file__).resolve().parent
 METHOD_ROOT = SKILL_ROOT.parent
-PROJECT_ROOT = METHOD_ROOT.parent
+PROJECT_ROOT = METHOD_ROOT.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     # Keep the documented clean command runnable from repo root without relying
     # on a caller-provided PYTHONPATH while still avoiding any provider/.env load.
     sys.path.insert(0, str(PROJECT_ROOT))
 
 STAGE_FACADE_DENY_TERMS = (
-    "method.loop",
-    "method.llm_stages",
-    "method.gpt_client",
+    "archive.agent_loop_method.loop",
+    "archive.agent_loop_method.llm_stages",
+    "archive.agent_loop_method.gpt_client",
     "RealEnvLLMProvider",
     "run_agent_loop",
     "os.environ",
@@ -131,7 +131,7 @@ def _check_forbidden_top_runner(root: Path) -> CheckResult:
         "AGENT_LOOP_SKILL.md": _read(root / "AGENT_LOOP_SKILL.md"),
         "e2e_ref_model_guide.md": _read(root / "e2e_ref_model_guide.md"),
     }
-    required = ["method.loop.run_agent_loop", "PR-D representative runner", "一键 full staged runner"]
+    required = ["archive.agent_loop_method.loop.run_agent_loop", "PR-D representative runner", "一键 full staged runner"]
     failures: list[str] = []
     for name, text in docs.items():
         missing = _contains_all(text, required)
@@ -275,7 +275,7 @@ def _check_no_case_specific_optimization(root: Path) -> CheckResult:
 
 def _check_stage_api_contract(root: Path) -> CheckResult:
     try:
-        from method.stages import api, sc_control, sl_prompt_api
+        from archive.agent_loop_method.stages import api, sc_control, sl_prompt_api
     except Exception as exc:  # pragma: no cover - reported as health detail
         return CheckResult("stage_api_contract", False, f"stage API import failed: {exc!r}")
 
@@ -312,7 +312,7 @@ def _check_stage_api_contract(root: Path) -> CheckResult:
             _read(root / "stages" / "README.md"),
         ]
     )
-    doc_terms = ["method.stages.api", "method.stages.sc_control", "method.stages.sl_prompt_api", "程序化调用"]
+    doc_terms = ["archive.agent_loop_method.stages.api", "archive.agent_loop_method.stages.sc_control", "archive.agent_loop_method.stages.sl_prompt_api", "程序化调用"]
     doc_missing = _contains_all(docs, doc_terms)
 
     ok = (
@@ -337,7 +337,7 @@ def _check_stage_api_contract(root: Path) -> CheckResult:
     return CheckResult(
         "stage_api_contract",
         ok,
-        "method.stages.api / sc_control / sl_prompt_api are documented no-provider skill facades" if ok else "; ".join(details),
+        "archive.agent_loop_method.stages.api / sc_control / sl_prompt_api are documented no-provider skill facades" if ok else "; ".join(details),
     )
 
 

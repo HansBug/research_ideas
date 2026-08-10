@@ -1,6 +1,6 @@
-# `method/` 架构与 LG-M1 current facts
+# `archive/agent_loop_method/` 架构与 LG-M1 current facts
 
-本文档是 `project_1_llm_state_machine_modeling/method/` 的架构入口，用于说明当前功能命名、LangGraph 模块化、测试镜像与 historical provenance 的边界。若只想快速知道“现在该从哪里调用”，请先读 [README.md](./README.md) 的功能入口地图；若要追溯 LG-M1 的重构证据链，请继续阅读本文。
+本文档是 `project_1_llm_state_machine_modeling/archive/agent_loop_method/` 的架构入口，用于说明当前功能命名、LangGraph 模块化、测试镜像与 historical provenance 的边界。若只想快速知道“现在该从哪里调用”，请先读 [README.md](./README.md) 的功能入口地图；若要追溯 LG-M1 的重构证据链，请继续阅读本文。
 
 相关入口：
 
@@ -24,11 +24,11 @@
 
 | 维度 | 当前事实 | 证据 / 入口 |
 |---|---|---|
-| 默认完整 runtime | `method.loop.run_agent_loop(...)` 仍是 canonical public entry；默认 backend 为 LangGraph full staged runtime | [loop.py](./loop.py)、[langgraph_runtime.py](./langgraph_runtime.py)、[langgraph/core.py](./langgraph/core.py) |
-| Stage API | 外部工具箱/skill 应优先调用 `method.stages.*` 的 Pythonic API；这些入口不读 `.env`、不调 provider、不调 full loop | [stages/api.py](./stages/api.py)、[stages/sc_control.py](./stages/sc_control.py)、[stages/sl_prompt_api.py](./stages/sl_prompt_api.py) |
-| Experiment entrypoints | 新文档和新代码优先使用 `method.experiments.*` 功能命名入口 | [experiments/](./experiments/) |
-| LangGraph physical layout | `method/langgraph/` 已承载 constants/state/registry/checkpointing/instrumentation/subgraphs/nodes/core/resume；`method.langgraph_runtime` 是 public compatibility facade | [langgraph/](./langgraph/)、[langgraph_runtime.py](./langgraph_runtime.py) |
-| Tests mirror | `method/tests/` 已按功能域镜像迁移；root flat `test*.py` 已清空 | [tests/](./tests/) |
+| 默认完整 runtime | `archive.agent_loop_method.loop.run_agent_loop(...)` 仍是 canonical public entry；默认 backend 为 LangGraph full staged runtime | [loop.py](./loop.py)、[langgraph_runtime.py](./langgraph_runtime.py)、[langgraph/core.py](./langgraph/core.py) |
+| Stage API | 外部工具箱/skill 应优先调用 `archive.agent_loop_method.stages.*` 的 Pythonic API；这些入口不读 `.env`、不调 provider、不调 full loop | [stages/api.py](./stages/api.py)、[stages/sc_control.py](./stages/sc_control.py)、[stages/sl_prompt_api.py](./stages/sl_prompt_api.py) |
+| Experiment entrypoints | 新文档和新代码优先使用 `archive.agent_loop_method.experiments.*` 功能命名入口 | [experiments/](./experiments/) |
+| LangGraph physical layout | `archive/agent_loop_method/langgraph/` 已承载 constants/state/registry/checkpointing/instrumentation/subgraphs/nodes/core/resume；`archive.agent_loop_method.langgraph_runtime` 是 public compatibility facade | [langgraph/](./langgraph/)、[langgraph_runtime.py](./langgraph_runtime.py) |
+| Tests mirror | `archive/agent_loop_method/tests/` 已按功能域镜像迁移；root flat `test*.py` 已清空 | [tests/](./tests/) |
 | 当前测试基线 | 最终 `432 passed, 6 warnings`；历史 LG-M1-F gate 为 `412 passed, 6 warnings` | PR39 / PR22 final review；LG-M1-E / [PR #75](https://github.com/HansBug/research_ideas/pull/75) 与 LG-M1-F gates |
 | 当前 PR 边界 | PR39 / LG-M1-G final 已完成 runtime integration、四例 retained evidence、CI/comment 与三路 review closure；LangGraph 仍只是 orchestration/instrumentation 实现层，不改变 SC/SD/SL 学术语义 | [PR #39](https://github.com/HansBug/research_ideas/pull/39) / [PR #22](https://github.com/HansBug/research_ideas/pull/22) |
 | 下一步 | PR22 伞形分支进入最终 ready-to-merge；后续若扩展真实 resume/更多样本，应另开 hardening/experiment PR | [PR #22](https://github.com/HansBug/research_ideas/pull/22) |
@@ -38,7 +38,7 @@
 ### 2.1 默认 agent-loop 入口
 
 ```text
-method.loop.run_agent_loop(nl, LoopConfig())
+archive.agent_loop_method.loop.run_agent_loop(nl, LoopConfig())
 ```
 
 该入口保持 Path1/Path2 主实验语义：默认 `experiment_default/full_staged_v1`、默认 LangGraph backend、默认真实 provider adapter（由进程环境变量提供），并写出完整 `AgentLoopRunRecord`。LG-M1 维护性重构不得改变默认 stage 顺序、FixLog、eligibility、provider/stream 纪律或 run-record canonical 字段。
@@ -64,7 +64,7 @@ LG-M1-B 后，skill/toolbox 不需要也不应该直接调用 full loop 来生�
 - [stages/sl_prompt_api.py](./stages/sl_prompt_api.py)：`SL-*` prompt generator facade。
 - [agent_loop_skill/AGENT_LOOP_SKILL.md](./agent_loop_skill/AGENT_LOOP_SKILL.md)：给 Codex / Claude Code 使用的 repo-local skill 文档。
 
-这些入口的核心约束：不读 `.env`、不调真实 provider、不调用 `method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器；外部 agent 应自行组合 prompt、LLM 调用、SD deterministic tools 与 NFRR/waiver evidence。
+这些入口的核心约束：不读 `.env`、不调真实 provider、不调用 `archive.agent_loop_method.loop.run_agent_loop(...)` 作为一键 ref-model 生成器；外部 agent 应自行组合 prompt、LLM 调用、SD deterministic tools 与 NFRR/waiver evidence。
 
 ### 2.3 Experiment entrypoints 与 compatibility shim
 
@@ -82,7 +82,7 @@ Shim 保留的理由是旧 PR comment reproduction path、历史脚本和 run-re
 LG-M1-D1/D2/D3 后的当前物理结构：
 
 ```text
-method/langgraph/
+archive/agent_loop_method/langgraph/
 ├── constants.py                  # runtime / registry identity constants
 ├── state.py                      # graph state / compatibility state helpers
 ├── registry.py                   # node registry + consistency checker
@@ -117,7 +117,7 @@ LG-M1-F 不要求把所有 `PR-*` / `LG-*` / `pr_*` 字符串清零。正确处�
 | 类别 | 可保留示例 | 保留理由 | 后续策略 |
 |---|---|---|---|
 | schema/evidence identity | `LG-C1`、`LG-D1`、`LG-E2`、`LG-F1`、`pr-langgraph.stage-nodes.v1` | 已进入 run record、schema version、historical evidence 或 fixture；随意改名会破坏复现 | 保留，并在文档解释不是当前施工残留 |
-| compatibility shim | `method.pr_e1_real_runs`、`method.pr_lg_f1_resume_experiment`、`method.pr_d_representative`、`method.pr2a_loop` | 支持旧命令、旧 PR comment reproduction path 与历史脚本 | 新文档优先功能入口；shim 标注 compatibility-only |
+| compatibility shim | `archive.agent_loop_method.pr_e1_real_runs`、`archive.agent_loop_method.pr_lg_f1_resume_experiment`、`archive.agent_loop_method.pr_d_representative`、`archive.agent_loop_method.pr2a_loop` | 支持旧命令、旧 PR comment reproduction path 与历史脚本 | 新文档优先功能入口；shim 标注 compatibility-only |
 | historical PR provenance | `PR-B2`、`PR-C`、`PR-E1`、`PR-E2`、`issue #21`、`PR-3` | 解释 prompt、repair chain、skill、handoff smoke 的来源 | 正文压缩为 provenance；不要写成“当前阶段” |
 | test function historical names | `test_pr_e1_*`、`test_lg_m1_*` | 改函数名对学术收益低且可能扰动 characterization baseline | 文件路径已功能化；函数名可保留为 M/backlog |
 | frozen baseline fixture | 旧 flat test path、historical scan snapshot | 用于证明迁移前后 path normalization 与 coverage 未丢 | 保留在 fixture / characterization test，并明确 frozen baseline |
@@ -138,7 +138,7 @@ rg -n "test_pr|test_lg_m1|pr_[a-z0-9]|PR[-_][A-Za-z0-9][A-Za-z0-9_-]*|LG[-_][A-Z
 LG-M1-E 后测试树当前按功能域组织：
 
 ```text
-method/tests/
+archive/agent_loop_method/tests/
 ├── stages/
 ├── langgraph/
 ├── experiments/
@@ -153,9 +153,9 @@ method/tests/
 ```bash
 source venv/bin/activate
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest --collect-only -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 PYTHONPATH=project_1_llm_state_machine_modeling \
-  python -m pytest -q project_1_llm_state_machine_modeling/method/tests
+  python -m pytest -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 ```
 
 旧 method tests flat path 只允许出现在 frozen baseline / path normalization test 中；不得作为当前运行命令或当前入口出现。
@@ -178,7 +178,7 @@ LG-M1-A 捕获的 baseline 仍是重要 provenance，但它不是当前结构：
 | 子 PR | 状态 | 核心产物 | 四例策略 |
 |---|---|---|---|
 | LG-M1-A / [#66](https://github.com/HansBug/research_ideas/pull/66) | ✅ | inventory、ARCHITECTURE skeleton、baseline fixture、characterization tests | 未跑；baseline-only |
-| LG-M1-B / [#68](https://github.com/HansBug/research_ideas/pull/68) | ✅ | `method.stages.*` Pythonic API、skill contract / health | 未跑；API/docs-only |
+| LG-M1-B / [#68](https://github.com/HansBug/research_ideas/pull/68) | ✅ | `archive.agent_loop_method.stages.*` Pythonic API、skill contract / health | 未跑；API/docs-only |
 | LG-M1-C1 / [#70](https://github.com/HansBug/research_ideas/pull/70) | ✅ | experiments entrypoints 功能命名 + shim | 未跑；import/CLI equivalence |
 | LG-M1-C2 / [#72](https://github.com/HansBug/research_ideas/pull/72) | ✅ | ablation 归位、古老 legacy active API 清理 | 已按用户 override 跑四例 |
 | LG-M1-D1 / [#69](https://github.com/HansBug/research_ideas/pull/69) | ✅ | LangGraph constants/state/registry foundation | 未跑；foundation-only |

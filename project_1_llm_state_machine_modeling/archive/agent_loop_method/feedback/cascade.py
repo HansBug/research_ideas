@@ -10,11 +10,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from method.feedback.parse import check_parse
-from method.feedback.semantic import check_semantic
-from method.feedback.sim import check_sim
-from method.schema import FeedbackBundle, SimFeedback, StageResultMeta, TestScenario
-from method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageStatus
+from archive.agent_loop_method.feedback.parse import check_parse
+from archive.agent_loop_method.feedback.semantic import check_semantic
+from archive.agent_loop_method.feedback.sim import check_sim
+from archive.agent_loop_method.schema import FeedbackBundle, SimFeedback, StageResultMeta, TestScenario
+from archive.agent_loop_method.stages.ids import FEEDBACK_SOURCE_TO_STAGE_ID, STAGE_SPECS_BY_ID, StageStatus
 
 
 def make_feedback_stage_meta(

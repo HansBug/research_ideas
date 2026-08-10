@@ -1,6 +1,6 @@
 """SC control-node registration for LG-M1-D3.
 
-The node closures are still built in ``method.langgraph.core._build_graph`` so
+The node closures are still built in ``archive.agent_loop_method.langgraph.core._build_graph`` so
 they can close over runtime-local transient store state without a large parameter
 object.  This module owns the SC lane node identifiers and physical
 ``graph.add_node`` registration step.

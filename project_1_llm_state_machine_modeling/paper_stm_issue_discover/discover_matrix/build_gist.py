@@ -716,7 +716,7 @@ def main() -> None:
         raise SystemExit(
             f"refusing to write into {out}: it is under `runs/`. Run bundles are evidence and "
             "analysis products must not be mixed into them -- see the same rule in "
-            "V21_PREREGISTERED_CALIBRE.md §二.5."
+            "docs/generations/v21/preregistered_calibre.md §二.5."
         )
     combined: list[dict] = []
     for source in sources:

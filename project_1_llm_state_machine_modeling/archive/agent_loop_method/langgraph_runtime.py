@@ -1,6 +1,6 @@
 """Compatibility facade for the default LangGraph runtime.
 
-LG-M1-D3 moves the implementation into ``method.langgraph`` modules while this
+LG-M1-D3 moves the implementation into ``archive.agent_loop_method.langgraph`` modules while this
 file keeps historical import paths and run-record identity stable.
 """
 
@@ -9,13 +9,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from method.llm_stages import ChatProvider
-from method.schema import AgentLoopResult, LoopConfig
-from method.staged_runtime import FullStagedRuntimeAdapters
-from method.langgraph import core as _core
-from method.langgraph.core import *  # noqa: F403 - legacy compatibility facade intentionally re-exports private helpers.
-from method.langgraph.subgraphs.validation import _ValidationSubgraphState, _build_validation_subgraph
-from method.langgraph.subgraphs.waiver import (
+from archive.agent_loop_method.llm_stages import ChatProvider
+from archive.agent_loop_method.schema import AgentLoopResult, LoopConfig
+from archive.agent_loop_method.staged_runtime import FullStagedRuntimeAdapters
+from archive.agent_loop_method.langgraph import core as _core
+from archive.agent_loop_method.langgraph.core import *  # noqa: F403 - legacy compatibility facade intentionally re-exports private helpers.
+from archive.agent_loop_method.langgraph.subgraphs.validation import _ValidationSubgraphState, _build_validation_subgraph
+from archive.agent_loop_method.langgraph.subgraphs.waiver import (
     _WaiverSubgraphState,
     _build_waiver_continuation_subgraph,
     _build_waiver_entry_envelope,
@@ -26,9 +26,9 @@ from method.langgraph.subgraphs.waiver import (
     _waiver_kind_from_patch,
     _waiver_tail_start_stage,
 )
-from method.langgraph.subgraphs.repair import _RepairSubgraphState, _build_repair_subgraph
-from method.langgraph import resume as _resume
-from method.langgraph.resume import (
+from archive.agent_loop_method.langgraph.subgraphs.repair import _RepairSubgraphState, _build_repair_subgraph
+from archive.agent_loop_method.langgraph import resume as _resume
+from archive.agent_loop_method.langgraph.resume import (
     _lg_f1_actual_interrupt_node,
     _lg_f1_append_only_audit,
     _lg_f1_checkpoint_id_hash,

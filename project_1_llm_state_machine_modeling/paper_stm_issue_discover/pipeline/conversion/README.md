@@ -1,8 +1,49 @@
-# R3 转换合同与转换器 v0
+# conversion/ — PlantUML → canonical JSON（输入准备链第一段）
+
+> 🟡 **产物已冻结，按需重跑。** 本目录不是方法主张，是**输入准备**：把作者生成的 PlantUML / Umple
+> `STM_0` 转成结构化 canonical，交给 [../representation/](../representation/) 降到 `.fcstm`，
+> 最终喂给 [../feedback_loop/](../feedback_loop/)。
+>
+> | 问题 | 答案 |
+> | :-- | :-- |
+> | 在运行路径上吗 | 间接。60 例产物已封存；只有换语料或改 Java frontend 时才重跑 |
+> | 包名 | `paper_stm_repair_conversion`（旧名，有意保留，见 [../README.md](../README.md) §4） |
+> | 测试规模 | 144 个 |
+> | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
+>
+> ⚠️ **两条路线并存，统计不得混用**：
+>
+> | 路线 | 对象 | 状态 |
+> | :-- | :-- | :-- |
+> | **Java source frontend** | LLMS-EMP 60 例（论文语料） | 🟢 active。见 [java/plantuml-state-frontend/](./java/plantuml-state-frontend/README.md) |
+> | SCXML → legacy canonical | 历史 4 例 smoke | 🔴 只作 legacy contract，见 [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) |
+>
+> **本目录归因纪律是硬约束**：转换 / normalization 带来的可解析性改善单独归因，
+> loss ledger 中 `repair_contribution_allowed` 恒为 `false`，不得计入方法效果。
+
+## 0. 有什么
+
+| 路径 | 内容 |
+| :-- | :-- |
+| [java/plantuml-state-frontend/](./java/plantuml-state-frontend/) | 🟢 active 前端。Java + PlantUML 官方 API，产出 `r4_5.plantuml_source_canonical.v1` |
+| [src/paper_stm_repair_conversion/](./src/paper_stm_repair_conversion/) | Python 编排层：`cli.py`、`toolchain.py`、`models.py`、`report.py`、`schema.py`、`evidence_integrity.py`、`adapters/`、`normalization/` |
+| [tools/](./tools/) | 三个脚本：`run_llms_emp_r45.py`（60 例重放）、`build_llms_emp_pair_pages.py`（三元组页面）、`extract_llms_emp_feedback_final.py`（上游抽取） |
+| [schemas/](./schemas/) | 6 份 JSON Schema：canonical STM、conversion report、loss ledger、normalization ledger、plantuml source canonical、recovery report |
+| [normalization/](./normalization/) | R3.1 PlantUML pre-SCXML 规范化微型工作区（[README](./normalization/README.md) / [GUIDE](./normalization/GUIDE.md)） |
+| [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) | 历史 4 例 smoke 输入（legacy contract，非论文语料） |
+| [reports/](./reports/) | conversion report、loss ledger、recovery report、`canonical/`、`toolchain_exports/` |
+| [artifacts/](./artifacts/) | 高基数运行制品压缩包（[README](./artifacts/README.md)） |
+| [tests/](./tests/) | 144 个测试，6 个文件 |
+| [TOOLCHAINS.md](./TOOLCHAINS.md) | 外部工具链（Java / PlantUML / Umple）调研与配置记录 |
+
+⚠️ **`src/` 下不止 README §2 路径树列出的那几个文件**：还有 `evidence_integrity.py` 与
+`normalization/` 子包；`tools/` 也有三个脚本而非一个。下方 §2 的路径树是**节选**，不是清单。
+
+---
 
 > **R4.5 PlantUML override（Issue #161）**：本 README 下文的“PlantUML canonical 必须来自官方 SCXML”只适用于历史 R3 四例 smoke。LLMS-EMP 60 例的 active PlantUML 路线已改为 [Java source frontend](./java/plantuml-state-frontend/README.md)：raw source canonical 是语义主路径，PlantUML `StateDiagram/Entity/Link` 是差分证据，SCXML 只保留为历史/附件，不能再作为 PlantUML canonical 真源。
 
-本目录是第一篇论文 `paper_stm_repair` 的 R3 转换层：把隔离在 [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) 中的四个历史静态 `<NL, STM_0>` 冒烟样例转换、部分转换或阻塞裁决到 R3 规范化 STM JSON，并生成 conversion report 与 loss ledger。
+本目录是第一篇论文 `paper_stm_issue_discover` 的 R3 转换层：把隔离在 [fixtures/r3_selected_seed_examples/](./fixtures/r3_selected_seed_examples/) 中的四个历史静态 `<NL, STM_0>` 冒烟样例转换、部分转换或阻塞裁决到 R3 规范化 STM JSON，并生成 conversion report 与 loss ledger。
 
 ## 1. 定位
 
@@ -76,7 +117,7 @@ pip install -r requirements.txt
 运行 R3 CLI：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_conversion.cli convert-selected
 ```
 
@@ -87,8 +128,8 @@ R3 需要真实外部工具链。缺少这些工具时会直接失败并给出�
 | 工具 | 何时需要 | 配置方式 | 复验命令 |
 |---|---|---|---|
 | Java runtime | PlantUML jar / Umple jar | 安装 JRE/JDK，确保 `java -version` 可用 | `java -version` |
-| PlantUML | 转换 `.puml` 冒烟样例 | 推荐 `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或安装 PATH 中的 `plantuml`；或放到 `tools/plantuml.jar` | `java -jar $PLANTUML_JAR -version`；`java -jar $PLANTUML_JAR -checkonly project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml`；`java -jar $PLANTUML_JAR -tscxml .../stm0.puml` |
-| Umple | 转换 `.ump` 冒烟样例 | 推荐 `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到 `tools/umple.jar` | `java -jar $UMPLE_JAR --version`；`java -jar $UMPLE_JAR -g Nothing project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/stm0.ump`；`java -jar $UMPLE_JAR -g Scxml .../stm0.ump` |
+| PlantUML | 转换 `.puml` 冒烟样例 | 推荐 `export PLANTUML_JAR=/abs/path/to/plantuml.jar`；或安装 PATH 中的 `plantuml`；或放到 `tools/plantuml.jar` | `java -jar $PLANTUML_JAR -version`；`java -jar $PLANTUML_JAR -checkonly project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/fixtures/r3_selected_seed_examples/llms-emp-gpt4o-hldcs/stm0.puml`；`java -jar $PLANTUML_JAR -tscxml .../stm0.puml` |
+| Umple | 转换 `.ump` 冒烟样例 | 推荐 `export UMPLE_JAR=/abs/path/to/umple.jar`；或放到 `tools/umple.jar` | `java -jar $UMPLE_JAR --version`；`java -jar $UMPLE_JAR -g Nothing project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/fixtures/r3_selected_seed_examples/sefm-ssc7-umple/stm0.ump`；`java -jar $UMPLE_JAR -g Scxml .../stm0.ump` |
 
 官方下载入口：
 
@@ -213,11 +254,11 @@ R3 report 仍是四例转换器 v0 smoke 固化样例；R3.1 report 是 failed P
 R3 最低验收：schema JSON 可由 `jsonschema` 校验；四例均有 conversion report；PlantUML 三例必须有官方 syntax preflight / SCXML evidence；Umple 至少 partial 并记录 timer-like loss；当前四例不得包含 TTool；本地 pytest 通过；缺工具时必须 loud fail 且不能依赖已提交的 SCXML 固化样例。
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m paper_stm_repair_conversion.cli convert-selected
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src \
-pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tests
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
+pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tests
 ```
 
 LLMS-EMP 60 例 Java 路线额外要求：固定 jar SHA、Java compile、Python subprocess contract、60 例 source-to-canonical-to-FCSTM 结构覆盖、attribution-safe mandatory bundle、代表性 runtime probe，以及逐例人工/LLM 阅读 raw PlantUML 与 FCSTM。Java subprocess 返回的 `r4_5.plantuml_source_canonical.v1` 必须在 Python wrapper 内通过 [plantuml_source_canonical.schema.json](./schemas/plantuml_source_canonical.schema.json) 的 Draft 2020-12 校验后才能进入 lowering；缺字段、未知字段或非法 transition/metadata 必须 fail-closed。该 schema 也进入 implementation-tree hash，不能在不使 frozen evidence 失效的情况下静默变化。机器 parse/inspect 通过不能替代逐例语义验收；本路线不主张双向无损。证据入口见 [LLMS-EMP 60 例报告](../representation/reports/llms_emp_r45_java_60/SUMMARY.md)，逐组 NL/PlantUML/FCSTM 三元组、三个原始文件与三合一 Markdown 见 [PAIR_INDEX.md](../representation/reports/llms_emp_r45_java_60/PAIR_INDEX.md)。

@@ -1,4 +1,46 @@
-# R4.5 规范化 STM 到 fcstm 表示桥
+# representation/ — canonical → `.fcstm` 表示桥（**discover 的输入根在这里**）
+
+> 🟢 **本目录在运行路径上，但角色容易被忽略：它产出 discover 每次真正读的那个目录。**
+>
+> [`feedback_loop/discover/cli.py`](../feedback_loop/src/paper_stm_feedback_loop/discover/cli.py)
+> 的 `REPORT_ROOT` 硬指向 [`reports/llms_emp_r45_java_60/`](./reports/llms_emp_r45_java_60/)：
+>
+> ```text
+> reports/llms_emp_r45_java_60/
+>   pairs/<NNNN>/            nl.txt、plantuml.puml、fcstm.fcstm、README.md
+>   source_traces/<pair_id>.json
+>   working_contracts/<pair_id>.json
+>   MANUAL_REVIEW.jsonl      60 行人工复核台账（loader 会强校验）
+>   PUBLICATION_SEAL.json    发布封印
+> ```
+>
+> [../../selected_seed_examples/](../../selected_seed_examples/) 是这份内容的**逐字节镜像副本**，
+> 供人阅读；已核对 pair `0000` 两侧 `nl.txt` / `.fcstm` 的 SHA-256 相同。
+>
+> | 问题 | 答案 |
+> | :-- | :-- |
+> | 包名 | `paper_stm_repair_representation`（旧名，有意保留，见 [../README.md](../README.md) §4） |
+> | 测试规模 | 129 个 |
+> | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
+> | 能直接打开 `.fcstm` 当输入吗 | ⛔ 不能。必须走唯一 loader `load_attribution_safe_working_bundle`（见 §2） |
+>
+> ⚠️ **`.fcstm` 是编译产物，不是作者源。** 判缺陷读 `plantuml.puml`；只读 `.fcstm`
+> 会把编译债务（`FinalWait*`、`R45RouteToken` 等 compiler-owned 支架）当成模型缺陷。
+
+## 0. 有什么
+
+| 路径 | 内容 |
+| :-- | :-- |
+| [reports/llms_emp_r45_java_60/](./reports/llms_emp_r45_java_60/) | 🟢 **active 60 例证据目录 = discover 的输入根**。含 `pairs/`、`fcstm/`、`canonical/`、`source_traces/`、`working_contracts/`、`case_reports/`、`parse_inspect/`、[SUMMARY.md](./reports/llms_emp_r45_java_60/SUMMARY.md)、[PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md) |
+| [src/paper_stm_repair_representation/](./src/paper_stm_repair_representation/) | `plantuml_source_lowering.py`（active 60 例）、`plantuml_source_audit.py`（独立 AST 审计）、`plantuml_working_contract.py`、`plantuml_working_bundle.py`（唯一 loader）、`manual_pair_review.py`、`lowering.py`（历史 4 例）、`pyfcstm_names.py`、`cli.py` |
+| [schemas/](./schemas/) | 6 份 JSON Schema：export report、export loss ledger、lowering inventory、manual pair review、name mapping、working fcstm contract |
+| [reports/fcstm_exports/](./reports/fcstm_exports/) | 🔴 历史 4 例 legacy 输出 |
+| [tests/](./tests/) | 129 个测试，5 个文件 |
+
+⚠️ 下方 §2 的路径树是**节选**：`src/` 还有 `plantuml_source_audit.py` 与 `manual_pair_review.py`，
+`tests/` 还有 `test_plantuml_source_lowering.py`。
+
+---
 
 > **LLMS-EMP 60 例 active 路线**：Issue #161 后，PlantUML 不再走 `SCXML -> legacy canonical -> lowering.py`。active 路径是 [Java source frontend](../conversion/java/plantuml-state-frontend/README.md) -> `plantuml_source_lowering.py` -> [60 例证据目录](./reports/llms_emp_r45_java_60/SUMMARY.md)。下文四例 R3 smoke 仍保留为历史合同，不得与新 60 例统计混用。
 
@@ -78,7 +120,7 @@ from pathlib import Path
 from paper_stm_repair_representation import load_attribution_safe_working_bundle
 
 bundle = load_attribution_safe_working_bundle(
-    Path("project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"),
+    Path("project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60"),
     "0000",
 )
 discover_input = bundle.discover_view()
@@ -101,11 +143,11 @@ pip install -e ./pyfcstm
 普通重放不得覆盖已经绑定人工审阅的冻结目录，应显式使用新的 replay 目录：
 
 ```bash
-make -C project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/java/plantuml-state-frontend fetch compile
+make -C project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/java/plantuml-state-frontend fetch compile
 
-PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/run_llms_emp_r45.py \
-  --output-dir project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60_replay
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tools/run_llms_emp_r45.py \
+  --output-dir project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60_replay
 ```
 
 若输出目录已存在 `MANUAL_REVIEW.md`、`MANUAL_REVIEW.jsonl` 或 `PUBLICATION_SEAL.json`，runner 必须拒绝覆盖。只有明确执行本轮正式替换时才允许增加 `--replace-reviewed-output`；runner 仍先在 sibling staging 目录完成 60 例，再原子替换，不发布 partial batch。机器 parse/inspect/AST audit 不能自动继承旧人工 PASS。
@@ -113,8 +155,8 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion
 冻结证据完成后，可重新生成面向 GitHub 人工浏览的 60 个 NL/PlantUML/FCSTM 三元组目录：
 
 ```bash
-python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/tools/build_llms_emp_pair_pages.py \
-  --manual-review-jsonl project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.jsonl
+python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tools/build_llms_emp_pair_pages.py \
+  --manual-review-jsonl project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60/MANUAL_REVIEW.jsonl
 ```
 
 入口为 [reports/llms_emp_r45_java_60/PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md)。每个目录包含 `nl.txt`、`plantuml.puml`、`fcstm.fcstm` 和三合一 `README.md`；页面同时展示 ownership、macro、source-static/simulation/transition capability、至少两条互不重复且绑定 NL/PlantUML/FCSTM/source-root 的 semantic correspondence，以及每个 required risk occurrence 的独立 evidence assessment。生成器必须验证 source/class implementation identity、pair-pool bytes、manifest machine/supporting inventory、实际文件 hash、working contract hash、review-subject hash、60 行顺序、逐例原文锚点和 obligation-level assessment，再通过 sibling staging 原子发布。dirty replay 只能生成显式 `development_only` 页面与 seal；`MANUAL_REVIEW.md` 只是从 `MANUAL_REVIEW.jsonl` 确定性生成的阅读面，不能作为独立事实源。
@@ -122,7 +164,7 @@ python project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion
 导出四个 selected seed examples：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
 python -m paper_stm_repair_representation.cli export-selected
 ```
 
@@ -137,8 +179,8 @@ R4.5 report item 和每个样例的 `lowering_inventory.json.source_traceability
 运行 R4.5 tests：
 
 ```bash
-PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
-python -m pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
+PYTHONPATH=pyfcstm:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
+python -m pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests
 ```
 
 ## 4. R5.7.4 裁决样例补充 bundle 已归档
@@ -189,11 +231,11 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 每次修改 exporter 后运行：
 
 ```bash
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
 python -m paper_stm_repair_representation.cli export-selected
 
-PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/src \
-pytest -q project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/tests
+PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
+pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests
 ```
 
 验收重点：四例 parse/inspect 均为 `ok`；summary 为 `{"examples": 4, "converted": 4, "partial": 0, "blocked": 0}`；`llms-emp-deepseek-microwave` 必须追溯到 R3.1 pre-SCXML normalization replay；`repair_contribution_allowed` 始终为 `false`；TTool XML 与 `unified-uml-synthetic-0000` 不混入当前四例。

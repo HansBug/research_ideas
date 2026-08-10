@@ -21,10 +21,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from method.gpt_client import chat
-from method.schema import FeedbackBundle, ModelArtifact, TestScenario
-from method.stages.sl_repair_prompt import build_sl9_repair_prompt
-from method.stages.sl_prompt_common import strip_fence
+from archive.agent_loop_method.gpt_client import chat
+from archive.agent_loop_method.schema import FeedbackBundle, ModelArtifact, TestScenario
+from archive.agent_loop_method.stages.sl_repair_prompt import build_sl9_repair_prompt
+from archive.agent_loop_method.stages.sl_prompt_common import strip_fence
 
 
 _PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts" / "repair"

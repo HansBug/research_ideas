@@ -9,7 +9,7 @@ Three columns matter and they are established three different ways:
 
   **n/N** -- expected defects matched. `N` is the ledger's count for the pair; `n` comes from
   the same mechanical proxy `round_variance.py` uses (element overlap, predicate as a
-  tiebreaker). A proxy, and `HIT_CRITERION.md` §5 reserves the verdict for a person.
+  tiebreaker). A proxy, and `docs/protocol/hit_criterion.md` §5 reserves the verdict for a person.
 
   **unexpected** -- published issues no ledger entry claims. This is *not* the same as
   "fabricated". The ledger is 126 entries over 60 pairs assembled by hand; a real defect

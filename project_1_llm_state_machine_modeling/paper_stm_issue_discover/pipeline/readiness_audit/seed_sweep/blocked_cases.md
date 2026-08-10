@@ -1,6 +1,6 @@
 # Migration notice: `blocked_cases.md`
 
-> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_repair/reports/`；本文件只保留 redirect notice，避免形成第二事实源。
+> 本文件是旧 pipeline 路径下的 human-facing Markdown 入口。R5.5.1 路径重构已将完整阅读结论迁移到 `paper_stm_issue_discover/reports/`；本文件只保留 redirect notice，避免形成第二事实源。
 
 ## Canonical human-facing report
 

@@ -2,15 +2,15 @@
 
 > **本文件目标**：任何新 Claude / codex session 进入 `dev/path1-hard-comparison` branch 后，按本指引可直接接管，把 Path 1 quick experiment 推进到 sprint 末。
 >
-> **前置阅读**：先读 [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则），再读本文件。
+> **前置阅读**：先读 [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则），再读本文件。
 >
-> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；method/ + eval/ 全套实装完成，Path 1 实验目录与评测协议已切到 sources/ + 5-component manual eval）
+> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；archive/agent_loop_method/ + eval/ 全套实装完成，Path 1 实验目录与评测协议已切到 sources/ + 5-component manual eval）
 
 ## 1. 路线定位
 
 Path 1 = **硬刚路线**，主张：**在与 baseline 论文同 protocol（component-level manual eval）下，把 method 应用到工业控制系统真实 NL 上，相对 baseline 最强 strategy（Hybrid）跑出显著更高的 5-component manual-eval F1**。
 
-> **v3 修订说明**：原 v1/v2 把对手简化为 single-prompt 是错的。[structure_event_driven](../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/DESC.md) 论文里**最强 strategy 是 Hybrid**（先 Single-Prompt 出 Umple 草稿，再用 Structure-Driven 多步迭代细化），GPT-4o 上 macro-F1 = 0.6559 / Claude 3.5 Sonnet 单 prompt = 0.7029。Path 1 主对手应是 Hybrid 在 GPT-5.5 上的重跑结果，而非任何 single-prompt 版本。
+> **v3 修订说明**：原 v1/v2 把对手简化为 single-prompt 是错的。[structure_event_driven](../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/DESC.md) 论文里**最强 strategy 是 Hybrid**（先 Single-Prompt 出 Umple 草稿，再用 Structure-Driven 多步迭代细化），GPT-4o 上 macro-F1 = 0.6559 / Claude 3.5 Sonnet 单 prompt = 0.7029。Path 1 主对手应是 Hybrid 在 GPT-5.5 上的重跑结果，而非任何 single-prompt 版本。
 >
 > **v4 修订说明**：原 v1-v3 把 dataset 锁定在 `structure_event_driven` 8 cases 上是错的 — 实际查 GT 后发现 8/8 cases 的 `reference_history_states_count >= 1`（每个 case 至少有一个 `.H` history pseudo-state），而 pyfcstm 形式上不支持 history pseudo-state，按"排除含 parallel/history 的 NL"规则会把整个 dataset 排除掉。Path 1 因此切换到**我们自建的 `sources/` T0+🟢 子集**（5-10 条工业控制系统 NL，FSM/EFSM/HSM 分层抽样），与 Path 2 共用 sources/ 池子但选样规模和 metric 不同。同时评测组件从 paper §IV 原口径的 7 类简化为 **5 类**（剔除 pyfcstm 不主张覆盖的 parallel_regions / history_states）。
 
@@ -20,7 +20,7 @@ Path 1 = **硬刚路线**，主张：**在与 baseline 论文同 protocol（comp
 
 ### 1.2 与 6 个主力 baseline 的方法学差异化
 
-完整 6-baseline 对照表见 [discussion §4.4](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#44-6-个主力-baseline-方法学全景v3-新增)。Path 1 sprint 阶段**只与 structure_event_driven Hybrid 对照**（但跑在我们的 sources/ T0+🟢 子集上，而非 structure_event 原数据集），其他 5 个 baseline（llms_emp / ttool-ai / IEC 61499 / Llama3 Umple / Automated Statechart Automotive）作为方向定后正式 paper 阶段的工作。
+完整 6-baseline 对照表见 [discussion §4.4](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#44-6-个主力-baseline-方法学全景v3-新增)。Path 1 sprint 阶段**只与 structure_event_driven Hybrid 对照**（但跑在我们的 sources/ T0+🟢 子集上，而非 structure_event 原数据集），其他 5 个 baseline（llms_emp / ttool-ai / IEC 61499 / Llama3 Umple / Automated Statechart Automotive）作为方向定后正式 paper 阶段的工作。
 
 **sprint 范围声明（必须能向 reviewer 解释）**：
 
@@ -34,8 +34,8 @@ Path 1 = **硬刚路线**，主张：**在与 baseline 论文同 protocol（comp
 
 ### 1.3 Path 1 学术 framing 三要点
 
-1. **Protocol comparability** 强 — 评测协议直接 adapt 自 [structure_event_driven](../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/DESC.md) §IV manual eval protocol（5-component instance-level P/R/F1 + strict cascade，剔除 pyfcstm 不主张的 2 类组件）
-2. **Reproducibility** 强 — baseline 复现代码在 [`baseline_structure_event.py`](../reproduction/baselines/baseline_structure_event.py)，sources/ NL 公开在仓库 [`sources/`](../sources/)；evaluation 全程 audit-trail 留痕（见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) §1.3）
+1. **Protocol comparability** 强 — 评测协议直接 adapt 自 [structure_event_driven](../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/DESC.md) §IV manual eval protocol（5-component instance-level P/R/F1 + strict cascade，剔除 pyfcstm 不主张的 2 类组件）
+2. **Reproducibility** 强 — baseline 复现代码在 [`baseline_structure_event.py`](../../reproduction/baselines/baseline_structure_event.py)，sources/ NL 公开在仓库 [`sources/`](../../sources/)；evaluation 全程 audit-trail 留痕（见 [`../eval/PROTOCOL.md`](../../archive/path1_evaluation/PROTOCOL.md) §1.3）
 3. **Construct validity 担当** — sources/ 真实工业控制系统 NL 直接对接 paper 主问题；paper §6 limitations 显式承认 5-component 是 paper §IV 7-component 的子集 + sprint $N$=5-10 是小规模 benchmark，正式 paper 阶段需扩到 30-50 cases 并补 inter-rater agreement
 
 ### 1.4 Path 1 lift 学术意义
@@ -48,7 +48,7 @@ Path 1 = **硬刚路线**，主张：**在与 baseline 论文同 protocol（comp
 
 > **Phase H (judge) 跳过说明**：sprint 阶段不接入 LLM-as-judge 第 4 个 feedback channel；`A_full_ours = parse+semantic+sim` 三通道（含 scenariogen self-managed 覆盖率）。判定 sprint 信号时也无 ex1 judge 贡献。Judge 留作方向定后正式 paper 阶段补充，原 v3 contribution 列表的 "Reachability witness as structured prompt input" 与 "LLM-as-judge as in-loop semantic feedback" 两条仍是 paper §1 contribution 候选，但不依赖 sprint 验证。
 
-完整 6 条 contribution 见 [discussion §4.5](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#45-我们的核心创新点v3-新增)。
+完整 6 条 contribution 见 [discussion §4.5](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md#45-我们的核心创新点v3-新增)。
 
 ## 2. 接管前自检
 
@@ -59,9 +59,9 @@ Path 1 = **硬刚路线**，主张：**在与 baseline 论文同 protocol（comp
 git branch --show-current
 # 应该输出: dev/path1-hard-comparison
 
-# 2. 确认 method/ + eval/ 共同基础已 fork 自 main
-ls project_1_llm_state_machine_modeling/method/ project_1_llm_state_machine_modeling/eval/ 2>/dev/null
-# method/: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py scenariogen_validate.py
+# 2. 确认 archive/agent_loop_method/ + eval/ 共同基础已 fork 自 main
+ls project_1_llm_state_machine_modeling/archive/agent_loop_method/ project_1_llm_state_machine_modeling/eval/ 2>/dev/null
+# archive/agent_loop_method/: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py scenariogen_validate.py
 # eval/:   PROTOCOL.md extract/ annotate/ review/ aggregate.py report.py demo/ data/
 
 # 3. 确认 pyfcstm 已安装
@@ -72,7 +72,7 @@ python -c "from pyfcstm.dsl import parse_with_grammar_entry; print('ok')"
 # 代码绝不直接读取 .env 文件本身，只读 os.environ
 [ -n "$LLM_ENDPOINT" ] && [ -n "$LLM_API_KEY" ] && [ -n "$LLM_MODEL" ] && echo "env ok"
 # 若 ok 不出现，shell 里跑：source .env  然后重试
-# 该 proxy 是 OpenAI-compatible，sprint 实验主路 (method/loop) 走这一个 endpoint；
+# 该 proxy 是 OpenAI-compatible，sprint 实验主路 (archive/agent_loop_method/loop) 走这一个 endpoint；
 # 切换 model 只改 LLM_MODEL 环境变量，不动 client 代码
 
 # 5. 确认评测双 annotator CLI 配置（与 LLM_* 解耦，独立 .env 项）
@@ -85,7 +85,7 @@ test -f project_1_llm_state_machine_modeling/reproduction/baselines/baseline_str
 # 注意：需要 verify 该代码支持把 LLM provider 切换到 GPT-5.5，且能跑 Hybrid strategy（4 strategy 中的最强）；详见 §5 实验脚本
 
 # 7. 查 sprint 进度
-cat project_1_llm_state_machine_modeling/method/STATUS.md 2>/dev/null || echo "no STATUS yet"
+cat project_1_llm_state_machine_modeling/archive/agent_loop_method/STATUS.md 2>/dev/null || echo "no STATUS yet"
 ```
 
 若 1-3、5-6 任一不通过，**停下来**，先确认 main 上 PR #11 是否已合入 + 本 branch 是否已 rebase 到 main — Path 1 branch 不应当独立做共同基础。
@@ -150,17 +150,17 @@ columns:
 - NL 中明确含 history-restore 语义（如 "resume to where it was before"）
 - NL 只描述硬件 IO，无明确 STM 抽象的（state machine 隐性）
 
-## 4. method/ 共同基础调用方式
+## 4. archive/agent_loop_method/ 共同基础调用方式
 
 Phase 0-3 已在 main 上落地（PR #11 commit `ff1e90ff`），Path 1 sprint 跑两个 method 标签：
 
 ### 4.1 `A0_strong` — baseline structure_event Hybrid 在 GPT-5.5 + sources/ NL 上重跑
 
-调用现有复现代码（不在 method/ 共同基础内，在 reproduction/baselines/）：
+调用现有复现代码（不在 archive/agent_loop_method/ 共同基础内，在 reproduction/baselines/）：
 
 ```python
 from reproduction.baselines.baseline_structure_event import run_hybrid  # 通用 NL 入口
-from method.gpt_client import get_llm_client  # 共同基础，统一走仓库根 .env
+from archive.agent_loop_method.gpt_client import get_llm_client  # 共同基础，统一走仓库根 .env
 
 result = run_hybrid(
     nl_text=row["nl_text"],       # sources/ NL，与 A_full_ours 同 input
@@ -173,15 +173,15 @@ result = run_hybrid(
 **sprint Phase 0 必须 verify**：
 
 1. `baseline_structure_event.py` 接口能接受 **NL string + 外部 llm_client**（不要 hardcode 在 structure_event case_id 列表里）
-2. 如果原代码 hardcode 了 GPT-4o client 或 structure_event case 索引，需要花 30min-1h 重构为通用 NL 入口 + 外部 client 注入（统一走 method.gpt_client）
+2. 如果原代码 hardcode 了 GPT-4o client 或 structure_event case 索引，需要花 30min-1h 重构为通用 NL 入口 + 外部 client 注入（统一走 archive.agent_loop_method.gpt_client）
 
 ### 4.2 `A_full_ours` — 我们的 full agent loop（无 judge）
 
-调用 method/ 共同基础（与 Path 2 完全一致的接口）：
+调用 archive/agent_loop_method/ 共同基础（与 Path 2 完全一致的接口）：
 
 ```python
-from method.loop import run_agent_loop
-from method.schema import LoopConfig, AgentLoopResult
+from archive.agent_loop_method.loop import run_agent_loop
+from archive.agent_loop_method.schema import LoopConfig, AgentLoopResult
 
 result: AgentLoopResult = run_agent_loop(
     nl=row["nl_text"],
@@ -190,7 +190,7 @@ result: AgentLoopResult = run_agent_loop(
         n_iter=3,
         feedback_sources=["parse", "semantic", "sim"],  # Phase H (judge) 跳过
         modeling_mode="multi_step",                     # MTI 6-step (default)
-        # llm_model 默认 None；None 时 method.gpt_client 从 env LLM_MODEL 读取
+        # llm_model 默认 None；None 时 archive.agent_loop_method.gpt_client 从 env LLM_MODEL 读取
         # 想强制指定模型时再显式传入字符串
     ),
 )
@@ -201,16 +201,16 @@ result: AgentLoopResult = run_agent_loop(
 # result.scenariogen_coverage   : Phase E v3 (f) 的 6-mutation 覆盖率自检结果
 ```
 
-### 4.2a `method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
+### 4.2a `archive/agent_loop_method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
 
 实验主路所有 LLM 调用（spec / model / repair / NL summary / baseline Hybrid 内部）**全部走这一个 client**。
 
-**评测 annotator 例外**：`eval/annotate/{claude,codex}.py` 走 `claude` / `codex` CLI subprocess，不经 `gpt_client`，配置项是 `.env` 里独立的 `CLAUDE_CMD/MODEL` + `CODEX_CMD/MODEL` 四件套。详见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) §1.2。
+**评测 annotator 例外**：`eval/annotate/{claude,codex}.py` 走 `claude` / `codex` CLI subprocess，不经 `gpt_client`，配置项是 `.env` 里独立的 `CLAUDE_CMD/MODEL` + `CODEX_CMD/MODEL` 四件套。详见 [`../eval/PROTOCOL.md`](../../archive/path1_evaluation/PROTOCOL.md) §1.2。
 
 **约束**：代码**绝不**用 `python-dotenv` 或其他方式直接读 `.env` 文件；只读 `os.environ`。运行前由 shell `source .env` 把三件套（及 annotator 四件套）加载到环境变量。
 
 ```python
-# method/gpt_client.py 骨架
+# archive/agent_loop_method/gpt_client.py 骨架
 import os
 from openai import OpenAI
 
@@ -232,9 +232,9 @@ def get_default_model() -> str:
 
 ### 4.3 DSL 格式差异处理
 
-A0_strong 输出 Umple，A_full_ours 输出 pyfcstm DSL。两者在评测 §6 之前需要先做 component 抽取归一化（两个 parser 都抽出 5 类组件后再走 instance-level manual eval）。**这块归一化代码已是 PR #11 共同基础的一部分**，在 [`../eval/extract/umple.py`](../eval/extract/umple.py) 与 [`../eval/extract/pyfcstm.py`](../eval/extract/pyfcstm.py) 实现，统一输出 5-component `ComponentSet`（states / transitions / guards / actions / hierarchical_states）。
+A0_strong 输出 Umple，A_full_ours 输出 pyfcstm DSL。两者在评测 §6 之前需要先做 component 抽取归一化（两个 parser 都抽出 5 类组件后再走 instance-level manual eval）。**这块归一化代码已是 PR #11 共同基础的一部分**，在 [`../eval/extract/umple.py`](../../archive/path1_evaluation/extract/umple.py) 与 [`../eval/extract/pyfcstm.py`](../../archive/path1_evaluation/extract/pyfcstm.py) 实现，统一输出 5-component `ComponentSet`（states / transitions / guards / actions / hierarchical_states）。
 
-## 5. 实验脚本 `method/run_path1.py`
+## 5. 实验脚本 `archive/agent_loop_method/run_path1.py`
 
 CLI 接口（Phase 4 开工时由 Path 1 branch 实现，本指引固定接口规范）：
 
@@ -244,7 +244,7 @@ CLI 接口（Phase 4 开工时由 Path 1 branch 实现，本指引固定接口�
 source .env
 
 # 然后跑 run_path1（model 走 env LLM_MODEL，CLI 不需要传）
-python -m method.run_path1 \
+python -m archive.agent_loop_method.run_path1 \
   --samples project_1_llm_state_machine_modeling/eval/data/sources_path1.parquet \
   --methods A0_strong,A_full_ours \
   --n-iter 3 \
@@ -257,20 +257,20 @@ python -m method.run_path1 \
 method 字段映射（在 run_path1.py 内部分发）：
 
 - `A0_strong` → 调 `reproduction.baselines.baseline_structure_event.run_hybrid(nl_text=..., llm_client=get_llm_client())`，输出 Umple text
-- `A_full_ours` → 调 `method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A_full", n_iter=3, feedback_sources=["parse","semantic","sim"], modeling_mode="multi_step"))`，输出 pyfcstm DSL
+- `A_full_ours` → 调 `archive.agent_loop_method.loop.run_agent_loop(nl=..., config=LoopConfig(condition="A_full", n_iter=3, feedback_sources=["parse","semantic","sim"], modeling_mode="multi_step"))`，输出 pyfcstm DSL
 
 实现要点：
 
 1. **checkpoint**：每条样本跑完立即写盘一份，不等全部跑完
 2. **失败容忍**：单条样本 GPT 5xx 重试 3 次后跳过，记 `status="api_failed"`，不中止整个 batch
 3. **token tracking**：每条 sample 记 input/output token，落到 `eval/data/preds/<case>/_token_log.json`
-4. **DSL 格式归一化**：A0_strong 出 Umple，A_full_ours 出 pyfcstm DSL，由 [`../eval/extract/`](../eval/extract/) 抽 5 类组件后再进 §6 manual eval（不再写额外归一化代码，复用 PR #11 已有）
+4. **DSL 格式归一化**：A0_strong 出 Umple，A_full_ours 出 pyfcstm DSL，由 [`../eval/extract/`](../../archive/path1_evaluation/extract/) 抽 5 类组件后再进 §6 manual eval（不再写额外归一化代码，复用 PR #11 已有）
 
-## 6. 评测协议（adapt 自 [structure_event_driven 论文 §IV](../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/paper_content.txt) 的 manual evaluation scheme）
+## 6. 评测协议（adapt 自 [structure_event_driven 论文 §IV](../../baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/paper_content.txt) 的 manual evaluation scheme）
 
 > **v3 修订**：v2 此节有 3 处隐藏不一致 — actions 范围、strict cascade rule、overall F1 计算 — 已全部修正与 baseline §IV-B/C 一致；不一致的部分（manual 评测 → LLM-judge alignment）在新 §6.4 显式说明 + 给出后续补偿动作。
 >
-> **v4 修订**：基于 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) 已落地的 manual-eval 基础设施，本节从原 v3 的 7 类组件 + manual eval 概念描述，更新为 **5 类组件** + **LLM-初审 + 人类签字** 操作流（保留 strict cascade + 语义等价判定原则）。**详细协议以 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) 为准**，本节为 Path 1 视角的接口说明 + 与 baseline 协议的对齐声明。
+> **v4 修订**：基于 [`../eval/PROTOCOL.md`](../../archive/path1_evaluation/PROTOCOL.md) 已落地的 manual-eval 基础设施，本节从原 v3 的 7 类组件 + manual eval 概念描述，更新为 **5 类组件** + **LLM-初审 + 人类签字** 操作流（保留 strict cascade + 语义等价判定原则）。**详细协议以 [`../eval/PROTOCOL.md`](../../archive/path1_evaluation/PROTOCOL.md) 为准**，本节为 Path 1 视角的接口说明 + 与 baseline 协议的对齐声明。
 
 ### 6.1 5 类组件定义（**adapt 自 baseline §IV-B**）
 
@@ -282,7 +282,7 @@ method 字段映射（在 run_path1.py 内部分发）：
 | `actions` | transition 上 /effect 子句（**仅 transition actions**） | 表达式集合 | **baseline §IV-B 明确排除 state entry/exit/do actions** |
 | `hierarchical_states` | composite state 名集合 | 名称集合 | superstate 含相同 substates 视为等价 |
 
-> **v4 删除 `parallel_regions` / `history_states`**：pyfcstm 形式上不支持这两类（A_full_ours 输出结构性为 0），paper 不主张覆盖这两类。paper §6 limitations 显式声明本研究评测 5-component 是 baseline §IV 7-component 的子集；结论不外推到 parallel_regions / history_states。组件 IR 抽取统一走 [`../eval/extract/`](../eval/extract/) 的 5-component `ComponentSet`。
+> **v4 删除 `parallel_regions` / `history_states`**：pyfcstm 形式上不支持这两类（A_full_ours 输出结构性为 0），paper 不主张覆盖这两类。paper §6 limitations 显式声明本研究评测 5-component 是 baseline §IV 7-component 的子集；结论不外推到 parallel_regions / history_states。组件 IR 抽取统一走 [`../eval/extract/`](../../archive/path1_evaluation/extract/) 的 5-component `ComponentSet`。
 
 ### 6.2 P/R/F1 计算（**与 baseline §IV-C 一致**）
 
@@ -304,15 +304,15 @@ baseline §IV-A 用 manual single-author evaluation 判定语义等价（"compon
 
 **paper 中正式评测协议也采用人工评测**，与 baseline 完全对齐 — §6.4 表中 Semantic equivalence 行标 "一致" 即指此。
 
-#### 实操辅助流程（**已实装于 [`../eval/`](../eval/)，仅 sprint 内部提效，paper 中不进 protocol description**）
+#### 实操辅助流程（**已实装于 [`../eval/`](../../archive/path1_evaluation/)，仅 sprint 内部提效，paper 中不进 protocol description**）
 
-为让单评测者在 sprint 时间内完成 10-20 runs × 5 组件 = 50-100 评审单元，采用 **双 LLM 初审 + 人类签字** 流程（详见 [`../eval/PROTOCOL.md`](../eval/PROTOCOL.md) §1.2）：
+为让单评测者在 sprint 时间内完成 10-20 runs × 5 组件 = 50-100 评审单元，采用 **双 LLM 初审 + 人类签字** 流程（详见 [`../eval/PROTOCOL.md`](../../archive/path1_evaluation/PROTOCOL.md) §1.2）：
 
 1. **双 LLM 初审**：claude（`claude-opus-4-7`）+ codex（`gpt-5.5`）各自对每个 (ref_instance, pred_instance) 对独立给出 TP/FP/FN 提案 + rationale + confidence；落 `eval/review/raw/<case>/<cond>/<kind>/{claude,codex}.json`
-2. **中文 markdown 评审包**：[`../eval/review/render.py`](../eval/review/render.py) 把两份提案合并为 `eval/review/packs/<case>/<cond>/<kind>.md`，包顶含 NL 原文 + ref/pred 模型全文
+2. **中文 markdown 评审包**：[`../eval/review/render.py`](../../archive/path1_evaluation/review/render.py) 把两份提案合并为 `eval/review/packs/<case>/<cond>/<kind>.md`，包顶含 NL 原文 + ref/pred 模型全文
 3. **自动预勾选**：双 annotator 完全一致 → 默认 `[x] 采纳 Claude`（heading `✅`）；不一致 → 留空（heading `🔴` 需复议）；单票 → 留空（heading `🟡`）
 4. **人类签字**：评测者逐行确认；audit-trail 全程留痕（`auto_marked` / `user_choice` / `user_final_status` / `user_note` 四列）
-5. **签字后汇总**：[`../eval/demo/finalize_after_signoff.py`](../eval/demo/finalize_after_signoff.py) → `eval/results/full_annotations.parquet`（26 列，paper-claim 唯一信源）+ `REPORT.md`（中文 audit-trail 报告）+ `summary.csv`（P/R/F1）；任一未签字行 → `UnsignedRowsError` refuse to finalize
+5. **签字后汇总**：[`../eval/demo/finalize_after_signoff.py`](../../archive/path1_evaluation/demo/finalize_after_signoff.py) → `eval/results/full_annotations.parquet`（26 列，paper-claim 唯一信源）+ `REPORT.md`（中文 audit-trail 报告）+ `summary.csv`（P/R/F1）；任一未签字行 → `UnsignedRowsError` refuse to finalize
 
 **paper §4 evaluation 仅描述人工评测协议**，双 LLM 预审作为 internal tooling 仅在 §6 / appendix 简短提及（"to improve evaluator efficiency, we used two independent LLM annotators to propose initial classifications which were then manually verified row-by-row by the author; rows where the two annotators agreed were auto-pre-marked with the agreed label and confirmed by the author; rows where they disagreed required explicit author decision"）。这是工业界 SE 论文常用做法 — LLM-assisted labeling 但 final label 视为 human gold；双 annotator 设计额外提供 inter-LLM agreement signal 帮助评测者聚焦低置信度 / 分歧行。
 
@@ -340,7 +340,7 @@ baseline §IV-A 用 manual single-author evaluation 判定语义等价（"compon
 
 ## 7. 结果落盘 schema
 
-> **v4 修订**：实验输出与评测产物分离 — 实验脚本只产 `predictions.parquet`（每 sample × method 的预测 + token），评测产物（P/R/F1 / audit-trail）走 [`../eval/`](../eval/) 的 `full_annotations.parquet` + `REPORT.md` + `summary.csv` 三件套，不重复定义；本节仅描述实验脚本侧的预测表。
+> **v4 修订**：实验输出与评测产物分离 — 实验脚本只产 `predictions.parquet`（每 sample × method 的预测 + token），评测产物（P/R/F1 / audit-trail）走 [`../eval/`](../../archive/path1_evaluation/) 的 `full_annotations.parquet` + `REPORT.md` + `summary.csv` 三件套，不重复定义；本节仅描述实验脚本侧的预测表。
 
 ### 7.1 `eval/data/preds/<case_id>/{A0_strong,A_full_ours}.{json,txt}`
 
@@ -354,7 +354,7 @@ baseline §IV-A 用 manual single-author evaluation 判定语义等价（"compon
 
 schema 与 PR #11 演习用的 2 case (`automatic-elevator-controller` / `abs-fsm-brake-control`) 完全一致。
 
-### 7.2 评测产物（由 [`../eval/`](../eval/) pipeline 产出，不由 run_path1.py 直接写）
+### 7.2 评测产物（由 [`../eval/`](../../archive/path1_evaluation/) pipeline 产出，不由 run_path1.py 直接写）
 
 ```text
 eval/review/raw/<case>/<cond>/<kind>/{claude,codex}.json   # 双 annotator 原始 JSON
@@ -375,7 +375,7 @@ sprint 末 Phase 6 必须产出，**Claude 整理不下结论**。最低字段�
 1. **§1 实验配置**：sources/ T0+🟢 子集组成（FSM / EFSM / HSM 各几条）、GPT 模型版本（gpt-5.5 主跑 / claude-opus-4-7 + gpt-5.5 评测 annotator）、迭代轮数 $N$
 2. **§2 主结果表**：`A0_strong` (Hybrid on sources/ NL @ GPT-5.5) vs `A_full_ours` 的 5 类组件 P/R/F1 + overall-F1，行=组件，列=method（数据源：`eval/results/full_annotations.parquet`）
 3. **§3 lift 分布**：每个 case 单独的 lift（不必出图，给 markdown 表）
-4. **§4 signal 判定**：按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) 的 S1/S2/S3/S4 把当前数据归类
+4. **§4 signal 判定**：按 [discussion §4.1](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) 的 S1/S2/S3/S4 把当前数据归类
 5. **§5 confounders 列表**：API 失败 / 全轮 parse 失败 / token 截断的样本 + 评审中 🔴 不一致 / 🟡 单票被人工裁定行的分布，逐一列出
 6. **§6 Claude 的方向建议 + rationale**：写明依据，不强推
 7. **§7 后续 paper 工作量预估**：若选 Path 1，1-2 个月内要补的工作（扩 sources/ 到 30-50 cases / cross-vendor / 完整 ablation A1/A2/A3 / 接 Phase H judge 补 7-component 维度 等）
@@ -387,9 +387,9 @@ sprint 末 Phase 6 必须产出，**Claude 整理不下结论**。最低字段�
 | sources/ T0+🟢 strata 抽不齐 | FSM/EFSM/HSM 某类不足 | 缩 strata 比例；若总数仍 $< 5$，把"显式时间词"判定放宽到"无 specific time literal"（保留 timeout / delay 等抽象时间词）；在 PATH1_REPORT §1 披露实际选样 |
 | 双 LLM annotator 一致率过低 | `eval/review/packs/` 中 🔴 / 🟡 行占比 $> 30\%$ | annotator prompt 用 fixed seed；分歧行强制人工裁定（已是 protocol 默认）；在 PATH1_REPORT §5 confounder 中列分歧分布 |
 | Ground-truth 构建工时超标 | $N$=5-10 cases 写 reference 5-component IR 太慢 | 跑 LLM-propose-ref pipeline（在 `eval/refgen/` 实装，sprint 演习后补，每 case 节约 ~15 min）；或临时缩到 $N$=3-5 |
-| F1 lift 过低（$< 5$pp）信号不显著 | `A_full_ours` 没比 `A0_strong` 好多少 | 按 [discussion §4.1](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S4 处理，在 PATH1_REPORT.md §6 给出"信号弱"判定，由用户综合判断 |
+| F1 lift 过低（$< 5$pp）信号不显著 | `A_full_ours` 没比 `A0_strong` 好多少 | 按 [discussion §4.1](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md) S4 处理，在 PATH1_REPORT.md §6 给出"信号弱"判定，由用户综合判断 |
 | `baseline_structure_event.py` 不接受外部 NL | Phase 0 verify 时发现接口 hardcode 了 structure_event case 索引 | 花 30min-1h 重构为通用 NL 入口 + 外部 client 注入；fallback 用 single-prompt baseline 替代 Hybrid（在 PATH1_REPORT §1 明确披露），不阻塞 sprint |
-| A0_strong 和 A_full_ours DSL 格式不同导致评测不公平 | Umple 抽 transitions / pyfcstm 抽 transitions 算出不同语义 | [`../eval/extract/`](../eval/extract/) 已统一为 5-component `ComponentSet`；不一致样本标 confounder，PATH1_REPORT §6 披露 |
+| A0_strong 和 A_full_ours DSL 格式不同导致评测不公平 | Umple 抽 transitions / pyfcstm 抽 transitions 算出不同语义 | [`../eval/extract/`](../../archive/path1_evaluation/extract/) 已统一为 5-component `ComponentSet`；不一致样本标 confounder，PATH1_REPORT §6 披露 |
 
 ## 10. 完成度自检 checklist
 
@@ -402,7 +402,7 @@ sprint Phase 7 收口前用此 checklist 核验，缺哪条补哪条：
 - [ ] `python eval/demo/finalize_after_signoff.py` 成功跑完（无 `UnsignedRowsError`）
 - [ ] `eval/results/REPORT.md` + `full_annotations.parquet` + `summary.csv` 三件套产出
 - [ ] `paper_v1/PATH1_REPORT.md` 含 §8 全 7 节
-- [ ] `method/STATUS.md` 更新 Path 1 进度行
+- [ ] `archive/agent_loop_method/STATUS.md` 更新 Path 1 进度行
 - [ ] GitHub PR #9 已 update（PR 描述含 PATH1_REPORT 关键数字摘要）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%（超过 30% 则方法实现可疑）
 
@@ -416,7 +416,7 @@ sprint Phase 7 收口前用此 checklist 核验，缺哪条补哪条：
 NL input (sources/ T0+🟢 case from industrial control NL corpus)
       |
       v
-  [Multi-step Modeling]  走 method/gpt_client.py (LLM_MODEL from env)
+  [Multi-step Modeling]  走 archive/agent_loop_method/gpt_client.py (LLM_MODEL from env)
       |  6 步 MTI 流水 (identify_state → identify_event → identify_variable →
       |                identify_transition → identify_action → build_pyfcstm)
       v
@@ -435,7 +435,7 @@ NL input (sources/ T0+🟢 case from industrial control NL corpus)
   feedback_bundle (JSON schema)
       |
       v
-  [Cascaded Repair]      走 method/gpt_client.py
+  [Cascaded Repair]      走 archive/agent_loop_method/gpt_client.py
       |  4 个 fix sub-prompt：fix_parse / fix_sem / fix_sim / fix_judge(占位)
       |  按 earliest-failing channel 路由 + 共享 pyfcstm grammar reference
       v
@@ -451,7 +451,7 @@ NL input (sources/ T0+🟢 case from industrial control NL corpus)
 
 1. **MTI 6-step Multi-step Modeler**（PR #11 Phase F 实装）：NL → 6 步流水（identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm）→ pyfcstm DSL
    - **设计目的**：把"自由文本"压成 5 个结构化 list 后再 assemble DSL，避免单 prompt 直接面对 NL 时陷入语言细节歧义；与 sprint plan v3 的"Spec-driven LLM"概念一致
-   - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`method/prompts/_pyfcstm_grammar.md`)
+   - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`archive/agent_loop_method/prompts/_pyfcstm_grammar.md`)
    - 替代方案 single_prompt（同代码内 `LoopConfig.modeling_mode="single_prompt"`）作 ablation 对照
 2. **ScenarioGen**（PR #11 Phase G+E v3 实装）：NL + 模型 → 多 step BDD scenarios + 6 mutation 覆盖率自检
    - **scenariogen self-validation**：scenariogen 后自动跑 6-mutation 覆盖率检查；任一类未被 catch → 用 `extra_directive` retry 直到覆盖

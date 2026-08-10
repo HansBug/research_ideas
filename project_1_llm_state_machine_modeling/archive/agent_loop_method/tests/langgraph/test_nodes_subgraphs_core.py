@@ -1,7 +1,7 @@
 """LG-M1-D3 LangGraph nodes / subgraphs / core split characterization tests.
 
 These tests lock D3's maintainability refactor boundary: the default runtime
-implementation moves into method.langgraph modules, the historical facade keeps
+implementation moves into archive.agent_loop_method.langgraph modules, the historical facade keeps
 public identity stable, experiments import the non-facade F1 implementation, and
 LG-C1 graph-state helper names remain centralized in core.py for auditability.
 """
@@ -13,36 +13,36 @@ import importlib
 from pathlib import Path
 from typing import Any
 
-from method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
-from method.schema import AgentLoopResult, AgentLoopRunRecord
+from archive.agent_loop_method.run_record import read_agent_loop_run_record, write_agent_loop_run_record
+from archive.agent_loop_method.schema import AgentLoopResult, AgentLoopRunRecord
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "method"
+REPO_ROOT = Path(__file__).resolve().parents[5]
+METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 LANGGRAPH_ROOT = METHOD_ROOT / "langgraph"
 
 EXPECTED_MODULES = {
-    "method.langgraph.core": [
+    "archive.agent_loop_method.langgraph.core": [
         "_GraphLoopState",
         "_build_graph",
         "run_full_staged_langgraph_runtime",
         "_refresh_graph_state_readiness_after_operator_log",
     ],
-    "method.langgraph.resume": [
+    "archive.agent_loop_method.langgraph.resume": [
         "_lg_f1_checkpoint_id_hash",
         "resume_lg_f1_from_checkpoint",
         "run_lg_f1_resume_experiment",
     ],
-    "method.langgraph.subgraphs.validation": ["_ValidationSubgraphState", "_build_validation_subgraph"],
-    "method.langgraph.subgraphs.repair": ["_RepairSubgraphState", "_build_repair_subgraph"],
-    "method.langgraph.subgraphs.waiver": [
+    "archive.agent_loop_method.langgraph.subgraphs.validation": ["_ValidationSubgraphState", "_build_validation_subgraph"],
+    "archive.agent_loop_method.langgraph.subgraphs.repair": ["_RepairSubgraphState", "_build_repair_subgraph"],
+    "archive.agent_loop_method.langgraph.subgraphs.waiver": [
         "_WaiverSubgraphState",
         "_build_waiver_continuation_subgraph",
         "_build_waiver_entry_envelope",
     ],
-    "method.langgraph.nodes.sc": ["SC_NODE_IDS", "register_sc_nodes"],
-    "method.langgraph.nodes.sd": ["SD_NODE_IDS", "register_sd_nodes"],
-    "method.langgraph.nodes.sl": ["SL_NODE_IDS", "register_sl_nodes"],
+    "archive.agent_loop_method.langgraph.nodes.sc": ["SC_NODE_IDS", "register_sc_nodes"],
+    "archive.agent_loop_method.langgraph.nodes.sd": ["SD_NODE_IDS", "register_sd_nodes"],
+    "archive.agent_loop_method.langgraph.nodes.sl": ["SL_NODE_IDS", "register_sl_nodes"],
 }
 
 
@@ -62,17 +62,17 @@ def test_lg_m1_d3_expected_modules_are_importable_and_own_symbols() -> None:
 
 
 def test_lg_m1_d3_facade_keeps_public_identity_and_reexports_moved_objects() -> None:
-    facade = importlib.import_module("method.langgraph_runtime")
-    core = importlib.import_module("method.langgraph.core")
-    resume = importlib.import_module("method.langgraph.resume")
-    validation = importlib.import_module("method.langgraph.subgraphs.validation")
-    repair = importlib.import_module("method.langgraph.subgraphs.repair")
-    waiver = importlib.import_module("method.langgraph.subgraphs.waiver")
+    facade = importlib.import_module("archive.agent_loop_method.langgraph_runtime")
+    core = importlib.import_module("archive.agent_loop_method.langgraph.core")
+    resume = importlib.import_module("archive.agent_loop_method.langgraph.resume")
+    validation = importlib.import_module("archive.agent_loop_method.langgraph.subgraphs.validation")
+    repair = importlib.import_module("archive.agent_loop_method.langgraph.subgraphs.repair")
+    waiver = importlib.import_module("archive.agent_loop_method.langgraph.subgraphs.waiver")
 
-    assert facade.run_full_staged_langgraph_runtime.__module__ == "method.langgraph_runtime"
-    assert facade.run_lg_f1_resume_experiment.__module__ == "method.langgraph_runtime"
-    assert facade.resume_lg_f1_from_checkpoint.__module__ == "method.langgraph_runtime"
-    assert facade.graph_registry_consistency.__module__ == "method.langgraph_runtime"
+    assert facade.run_full_staged_langgraph_runtime.__module__ == "archive.agent_loop_method.langgraph_runtime"
+    assert facade.run_lg_f1_resume_experiment.__module__ == "archive.agent_loop_method.langgraph_runtime"
+    assert facade.resume_lg_f1_from_checkpoint.__module__ == "archive.agent_loop_method.langgraph_runtime"
+    assert facade.graph_registry_consistency.__module__ == "archive.agent_loop_method.langgraph_runtime"
 
     assert facade._build_graph is core._build_graph
     assert facade._GraphLoopState is core._GraphLoopState
@@ -97,13 +97,13 @@ def test_lg_m1_d3_langgraph_and_experiments_do_not_reverse_import_runtime_facade
             for node in _module_imports(path):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        if alias.name == "method.langgraph_runtime":
+                        if alias.name == "archive.agent_loop_method.langgraph_runtime":
                             forbidden.append(f"{rel} imports {alias.name}")
                 elif isinstance(node, ast.ImportFrom):
-                    if node.module == "method.langgraph_runtime":
-                        forbidden.append(f"{rel} imports from method.langgraph_runtime")
-                    if node.module == "method" and any(alias.name == "langgraph_runtime" for alias in node.names):
-                        forbidden.append(f"{rel} imports method.langgraph_runtime via method re-export")
+                    if node.module == "archive.agent_loop_method.langgraph_runtime":
+                        forbidden.append(f"{rel} imports from archive.agent_loop_method.langgraph_runtime")
+                    if node.module == "archive.agent_loop_method" and any(alias.name == "langgraph_runtime" for alias in node.names):
+                        forbidden.append(f"{rel} imports archive.agent_loop_method.langgraph_runtime via method re-export")
     assert forbidden == []
 
 
@@ -118,9 +118,9 @@ def test_lg_m1_d3_lg_c1_helpers_are_core_only() -> None:
 
 
 def test_lg_m1_d3_node_registration_modules_preserve_top_level_node_ids() -> None:
-    sc = importlib.import_module("method.langgraph.nodes.sc")
-    sd = importlib.import_module("method.langgraph.nodes.sd")
-    sl = importlib.import_module("method.langgraph.nodes.sl")
+    sc = importlib.import_module("archive.agent_loop_method.langgraph.nodes.sc")
+    sd = importlib.import_module("archive.agent_loop_method.langgraph.nodes.sd")
+    sl = importlib.import_module("archive.agent_loop_method.langgraph.nodes.sl")
 
     assert sc.SC_NODE_IDS == (
         "sc0_start",
@@ -161,12 +161,12 @@ def test_lg_m1_d3_node_registration_modules_preserve_top_level_node_ids() -> Non
 
 def test_lg_m1_d3_f1_experiment_imports_resume_implementation_not_facade() -> None:
     source = (METHOD_ROOT / "experiments" / "checkpoint_resume.py").read_text(encoding="utf-8")
-    assert "from method.langgraph.resume import run_lg_f1_resume_experiment" in source
-    assert "method.langgraph_runtime" not in source
+    assert "from archive.agent_loop_method.langgraph.resume import run_lg_f1_resume_experiment" in source
+    assert "archive.agent_loop_method.langgraph_runtime" not in source
 
 
 def test_lg_m1_d3_graph_trace_final_artifacts_include_validation_subgraph_summary(tmp_path: Path) -> None:
-    core = importlib.import_module("method.langgraph.core")
+    core = importlib.import_module("archive.agent_loop_method.langgraph.core")
     record_path = tmp_path / "d3-validation-trace.agent_loop.json.gz"
     write_agent_loop_run_record(
         AgentLoopRunRecord(

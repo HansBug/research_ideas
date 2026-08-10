@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from method.stages.ids import ALL_STAGE_SPECS, StageKind, StageSpec
+from archive.agent_loop_method.stages.ids import ALL_STAGE_SPECS, StageKind, StageSpec
 
 SC_CONTROL_SCHEMA_VERSION = "lg-m1-b.stage-control.v1"
 
@@ -44,7 +44,7 @@ def build_stage_control_summary() -> dict[str, Any]:
         "control_stage_ids": [spec.stage_id for spec in grouped.get(StageKind.CONTROL.value, [])],
         "deterministic_stage_ids": [spec.stage_id for spec in grouped.get(StageKind.DETERMINISTIC.value, [])],
         "llm_stage_ids": [spec.stage_id for spec in grouped.get(StageKind.LLM.value, [])],
-        "source": "method.stages.ids.ALL_STAGE_SPECS",
+        "source": "archive.agent_loop_method.stages.ids.ALL_STAGE_SPECS",
         "provider_free": True,
         "full_loop_free": True,
     }

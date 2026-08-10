@@ -274,7 +274,7 @@ R5 后对主实验 seed 方向的归纳见 [R5 `llms-emp` 方向性分析报告]
 # [cmd-readiness-summary] CMD-READINESS-1 / CMD-READINESS-2 / CMD-READINESS-3
 python - <<'PY'
 import json
-p='project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/seed_sweep/sweep_report.json'
+p='project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/seed_sweep/sweep_report.json'
 d=json.load(open(p))
 print(d['summary'])
 print({k:d['meta'][k] for k in ['entry_dir_count','registry_entry_count','unregistered_entry_count','repair_contribution_allowed']})
@@ -287,7 +287,7 @@ PY
 python - <<'PY'
 import json, collections, pathlib, zipfile
 root=pathlib.Path('.')
-p=root/'project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/seed_sweep/records_index.json'
+p=root/'project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/seed_sweep/records_index.json'
 rows=json.load(open(p))['records']
 print(collections.Counter(r.get('status') for r in rows))
 blocked=[r for r in rows if r.get('status')=='blocked']
@@ -309,7 +309,7 @@ PY
 # [cmd-readiness-r552-current] CMD-READINESS-6
 python - <<'PY'
 import json, pathlib, collections
-base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/llms_emp_profile')
+base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/llms_emp_profile')
 rows=[json.loads(l) for l in (base/'llms_emp_case_matrix.jsonl').read_text().splitlines() if l.strip()]
 print(collections.Counter(r['conversion_status'] for r in rows))
 for pid in ['llms_emp_stm_results_0018','llms_emp_stm_results_0028','llms_emp_stm_results_0037']:

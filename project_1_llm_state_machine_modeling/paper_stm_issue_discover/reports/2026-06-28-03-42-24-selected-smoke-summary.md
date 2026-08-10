@@ -58,7 +58,7 @@
 # [cmd-smoke-summary] CMD-SMOKE-1 / CMD-SMOKE-4
 python - <<'PY'
 import json
-p='project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/selected_examples/smoke_report.json'
+p='project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/selected_examples/smoke_report.json'
 d=json.load(open(p))
 print(d['summary'])
 print({'git_dirty': d['generation_context']['git_dirty'], 'git_dirty_path_count': d['generation_context']['git_dirty_path_count'], 'repair_contribution_allowed': d['repair_contribution_allowed']})
@@ -69,7 +69,7 @@ PY
 # [cmd-smoke-records] CMD-SMOKE-2 / CMD-SMOKE-3
 python - <<'PY'
 import json, pathlib
-base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/readiness_audit/selected_examples/smoke_records')
+base=pathlib.Path('project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/selected_examples/smoke_records')
 for fp in sorted(base.glob('*.json')):
     r=json.load(open(fp))
     print(fp.name, r['status'], all(r['checks'].values()), r['upstream_r3']['status'], r['upstream_r45']['parse_status']+'/'+r['upstream_r45']['inspect_status'], r['upstream_r45']['loss_count'])

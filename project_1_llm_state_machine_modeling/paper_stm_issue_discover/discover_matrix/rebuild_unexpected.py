@@ -40,7 +40,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 VERDICTS = HERE / "v46" / "unexpected_verdicts"
 SEEDS = HERE.parents[1] / "paper_stm_issue_discover" / "selected_seed_examples"
 
-#: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
+#: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 docs/protocol/unexpected_taxonomy.md。
 ORDER = (
     "VALID_UNRECORDED",
     "REPRESENTATION_DEBT",
@@ -169,7 +169,7 @@ def write_evidence(rows: list[dict]) -> None:
     out = [
         "# v46 意外发现逐簇判据（全 %d 条）" % len(rows), "",
         "[unexpected_adjudication.md](./unexpected_adjudication.md) 的证据附件。",
-        "裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。", "",
+        "裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)。", "",
         "⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`../rebuild_unexpected.py`），jsonl 是真源。**",
         "改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。", "",
         "| 裁定 | 簇数 |", "| :-- | --: |",
@@ -303,7 +303,7 @@ def write_tables(rows: list[dict]) -> None:
         "⚠️ **本文件整份由 `unexpected_verdicts/G*.jsonl` 生成**"
         "（`../rebuild_unexpected.py`）。**不要手工编辑**，也不要在别处保存这些表的副本——",
         "手工副本无法随裁定变更同步，会让同一目录内出现两个互斥的答案。", "",
-        "裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)，"
+        "裁定口径见 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md)，"
         "逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)。", "",
         "---", "", "## 表 0　分母闭合", "",
         "| 去向 | 条数 | 说明 |", "| :-- | --: | :-- |",

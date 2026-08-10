@@ -11,7 +11,7 @@
 本研究的贡献是**从真实模型归纳问题类型与判定能力** —— 语料是研究对象本身，不是留出测试集。这与工具
 论文、实证研究里「看遍全部语料写规则，然后报告工具在这些语料上找到什么」是同一种设计。
 
-而 hold-out 在此的实际后果是把分母掐死到 2 条（`DENOMINATOR_EXHAUSTION.md`：126 → 0）。一个把可测
+而 hold-out 在此的实际后果是把分母掐死到 2 条（`docs/generations/v22/denominator_exhaustion.md`：126 → 0）。一个把可测
 总体摧毁到 2 条的纪律，保护不了任何主张。
 
 **仍然全额生效的是另一条线**：不得把答案或不该可见的信息喂进去（§3.5 条款 1–3 —— prompt / gate /
@@ -51,7 +51,7 @@ import metrics_at_k as mak  # noqa: E402  —— 比率闸门的**唯一归属�
 RUNS = HERE.parents[2] / "runs" / "paper1"
 
 #: 「运行代理式主张」的**候选**指纹：闭词表无法把结构主张绑到瞬时伪状态（`Junction*`/`Join*`/
-#: `fork*`/`choice*`），产出方于是改用下游可占据后继。见 `HIT_CRITERION.md` §4.5。
+#: `fork*`/`choice*`），产出方于是改用下游可占据后继。见 `docs/protocol/hit_criterion.md` §4.5。
 #:
 #: ## ⚠️ 故意过宽，且这个方向是有意选的
 #:
@@ -141,7 +141,7 @@ def positions(generation: str, verdicts_path: pathlib.Path) -> list[dict]:
 
 
 def proxy_reading_bound(generation: str, pos_rows: list[dict]) -> dict | None:
-    """读法 A 的**上限**（`HIT_CRITERION.md` §4.5 要求并列报出）。
+    """读法 A 的**上限**（`docs/protocol/hit_criterion.md` §4.5 要求并列报出）。
 
     读法 A（把 issue 的命题读成它引用的 requirement）需要逐条命题人工匹配，**机械算不出来**。
     但它的上限可以：把每条**候选**代理式 issue 所在 (pair, 臂, 轮) 的**全部**未命中位都当成命中。
@@ -326,7 +326,7 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
 
     # ---- 读法 A 的上限（§4.5 强制并列）----
     bound = proxy_reading_bound(generation, pos_rows)
-    out.append("#### `HIT_CRITERION.md` §4.5 强制并列：伪状态**运行代理**式主张的双读法\n")
+    out.append("#### `docs/protocol/hit_criterion.md` §4.5 强制并列：伪状态**运行代理**式主张的双读法\n")
     if bound is None:
         out.append("本代次**无**代理式 issue，两读法数值相同。\n")
     else:

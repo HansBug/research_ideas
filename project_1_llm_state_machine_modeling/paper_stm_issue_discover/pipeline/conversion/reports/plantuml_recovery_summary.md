@@ -103,8 +103,8 @@
 ## 文件与证据
 
 - JSON report: `plantuml_recovery_report.json`
-- normalization ledger: `project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/reports/plantuml_normalization_ledger.jsonl`
+- normalization ledger: `project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/reports/plantuml_normalization_ledger.jsonl`
 - generator code commit: `daefb2b2b40272838329d5be56b13f10125f308e`；该字段记录写出 report 前的 clean 代码提交，承载 report 的 artifact commit 可以是后续提交。
 - generator worktree dirty: `False`
 - canonical STM 不由 normalizer 直接生成；所有 recovered 判定均基于官方 PlantUML SCXML。
-- full workdir archive: `project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip`；report 中 `raw_candidate_path` / `normalized_candidate_path` / `structured_export_path` 对应 zip 内 member 路径。
+- full workdir archive: `project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip`；report 中 `raw_candidate_path` / `normalized_candidate_path` / `structured_export_path` 对应 zip 内 member 路径。

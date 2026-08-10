@@ -6,11 +6,11 @@ import json
 from collections import Counter
 from typing import Any
 
-from method.langgraph.instrumentation.common import _hash_canonical_payload, _hash_payload, _jsonable, _canonical_json_payload
-from method.langgraph.instrumentation.operator_stream import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, _sanitize_lg_d1_operator_payload
-from method.staged_runtime import _LLMRetryExhausted, _RunState, _append_flow_log, _append_stage, _hash_text, _meta, _utc_now
-from method.schema import StageResultMeta
-from method.stages.ids import StageId, StageStatus
+from archive.agent_loop_method.langgraph.instrumentation.common import _hash_canonical_payload, _hash_payload, _jsonable, _canonical_json_payload
+from archive.agent_loop_method.langgraph.instrumentation.operator_stream import LG_D1_OPERATOR_EVENT_SCHEMA_VERSION, _sanitize_lg_d1_operator_payload
+from archive.agent_loop_method.staged_runtime import _LLMRetryExhausted, _RunState, _append_flow_log, _append_stage, _hash_text, _meta, _utc_now
+from archive.agent_loop_method.schema import StageResultMeta
+from archive.agent_loop_method.stages.ids import StageId, StageStatus
 
 LG_D2_LLM_NODE_ENVELOPE_SCHEMA_VERSION = "lg-d2.llm-node-envelope.v1"
 

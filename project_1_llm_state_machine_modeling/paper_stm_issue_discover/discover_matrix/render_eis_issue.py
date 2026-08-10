@@ -123,8 +123,8 @@ def main() -> int:
         "",
         "本集合的断言对象是 **FSM / HSM / EFSM**，即 $M = (S, E, V, Tr, A)$；"
         "**时钟 $C$、不变式 $Inv$ 与正交区并发执行语义不在断言对象内**。"
-        "判据来自 [MANUAL_REVIEW_SPEC.md](https://github.com/HansBug/research_ideas/blob/main/"
-        "project_1_llm_state_machine_modeling/eval/discover_matrix/MANUAL_REVIEW_SPEC.md) "
+        "判据来自 [manual_review_spec.md](https://github.com/HansBug/research_ideas/blob/main/"
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/manual_review_spec.md) "
         "的六行硬规则：数量与结构断言（「有 N 个 X」）在范围内；"
         "「区域之间是否同时活跃」在范围外；定时器动作属 $A$、定时器事件属 $E$、"
         "零时守卫属 $V$，三者均在范围内；真正的时长约束（`execTime`）在范围外。",
@@ -150,8 +150,8 @@ def main() -> int:
         "范围外的条目在复核阶段就已被扣除。复检中有 3 条需重新论证归因基础"
         "（`0043`#2、`0047`#0、`0056`#3），重新论证后仍在范畴内。",
         "",
-        "**与 [GROUND_TRUTH_LIMITATIONS.md](https://github.com/HansBug/research_ideas/blob/main/"
-        "project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)"
+        "**与 [ground_truth_limitations.md](https://github.com/HansBug/research_ideas/blob/main/"
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md)"
         " §2 的口径差异（必须声明）**：§2 按**对象**排除正交并发相关候选；"
         "本轮按**断言形式**排除——对象是正交区、但断言写成 $S$ 内的存在性或数量命题时判为范围内。"
         "本轮口径**更窄**，因此本集合含有若干在 §2 口径下会被整条排除的条目"
@@ -660,8 +660,8 @@ def main() -> int:
         "——这个自相矛盾审稿人一定会问。",
         "",
         "**理由二：这个错误本仓库已经犯过一次。** "
-        "[GROUND_TRUTH_LIMITATIONS.md](https://github.com/HansBug/research_ideas/blob/main/"
-        "project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md)"
+        "[ground_truth_limitations.md](https://github.com/HansBug/research_ideas/blob/main/"
+        "project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md)"
         " §4 记录的正是它：#166 台帐的「正向断言可执行」门槛建立在 6 个底层原语上，"
         "直接把整类问题挡在门外。**用工具当前能力反向定义研究边界，会让偏差变成不可见**"
         "——一旦排除，「谓词面缺什么」就不再是可报告的结论，而是被静默吸收的系统性缺口。",
@@ -843,7 +843,7 @@ def main() -> int:
         "初版之所以判为丢失，是因为检索 `ledger.json` 时用的 glob 不匹配 `.omx` 这个点开头的目录。",
         "",
         f"本节数字已改用 frozen ledger 重算（来源：`{prov}`）。"
-        f"这也纠正了一处违规：`HIT_CRITERION.md` §7 明文规定"
+        f"这也纠正了一处违规：`docs/protocol/hit_criterion.md` §7 明文规定"
         f"「不要再基于重建版计算或引用任何命中数字」，而初版读的正是那份仅覆盖 4 个 pair 的重建物。",
         "",
         "关系仍然是：**本集合即台帐**，#166 的 47 条作为一份"

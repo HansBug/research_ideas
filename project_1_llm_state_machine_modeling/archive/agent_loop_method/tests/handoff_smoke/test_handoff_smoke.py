@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from method.handoff_smoke.runner import load_handoff_config, run_handoff_smoke
-from method.run_record import read_agent_loop_run_record
-from method.stages.ids import StageId
+from archive.agent_loop_method.handoff_smoke.runner import load_handoff_config, run_handoff_smoke
+from archive.agent_loop_method.run_record import read_agent_loop_run_record
+from archive.agent_loop_method.stages.ids import StageId
 
 
 CONFIG_ROOT = Path(__file__).resolve().parents[2] / "handoff_smoke" / "configs"
@@ -94,7 +94,7 @@ def test_pr3_handoff_real_llm_mode_records_provider_metadata(tmp_path: Path, mon
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("archive.agent_loop_method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -156,7 +156,7 @@ def test_pr3_handoff_real_llm_mode_retries_schema_invalid_output(tmp_path: Path,
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("archive.agent_loop_method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -205,7 +205,7 @@ def test_pr3_handoff_real_llm_mode_retries_provider_error(tmp_path: Path, monkey
             {"prompt_tokens": 7, "completion_tokens": 5, "total_tokens": 12, "model": "mock-review-model"},
         )
 
-    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("archive.agent_loop_method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
@@ -235,7 +235,7 @@ def test_pr3_handoff_real_llm_mode_marks_invalid_after_retry_exhausted(tmp_path:
     def fake_chat(**kwargs):
         return ("not-json", {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2, "model": "mock-review-model"})
 
-    monkeypatch.setattr("method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
+    monkeypatch.setattr("archive.agent_loop_method.experiments.ablation.deterministic_loop.llm_chat", fake_chat)
 
     summary = run_handoff_smoke(
         cfg,
