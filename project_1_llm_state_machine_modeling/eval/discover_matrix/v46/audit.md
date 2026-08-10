@@ -12,7 +12,7 @@
 | 该 commit 是否在远端 | 是 | `git branch -r --contains ca41369e` |
 | 启动时 `src` 脏改动 | **0 files** | `CODE_VERSION.txt` |
 | `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订。**覆盖侧 588 位不受影响**（命中判定读的是产出文本与台账，不重新求值断言）；**多报侧分母受影响**，见下一行。**复现该 324 格运行须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
-| 多报侧分母的求值口径 | 桶内计入 286；其中 `0044-2` 与 `0054-1` 不计入：`0044-2` 与 `0054-1` 的断言按**当前**谓词语义在冻结制品上求值为 **True**（模型满足该义务），属真阴性、两侧都不存在，记于 [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。**复现该判定须当前 HEAD，不是 `ca41369e`。** 这是一次运行后的口径变更，方向是缩小多报侧分母（对我们不利的方向） | `not_produced.jsonl` 的 `assertion` / `value_on_frozen_artifact` 字段逐条可复算 |
+| 多报侧分母的求值口径 | 桶内计入 288；`0044-2` 与 `0054-1` 本就不在桶内：`0044-2` 与 `0054-1` 的断言按**当前**谓词语义在冻结制品上求值为 **True**（模型满足该义务），属真阴性、两侧都不存在，记于 [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。**复现该判定须当前 HEAD，不是 `ca41369e`。** 这是一次运行后的口径变更，方向是缩小多报侧分母（对我们不利的方向） | `not_produced.jsonl` 的 `assertion` / `value_on_frozen_artifact` 字段逐条可复算 |
 | 网格 | 54 pair × 2 模型 × 3 轮 = 324 | `GRID.txt`，含 `00x8`: 无 |
 | 启动时刻 | `2026-08-09T20:09:52Z` | `WALLCLOCK.txt` |
 | 完成时刻 / 墙钟 | `2026-08-10T03:15:41Z` / **7h05m49s** | 同上 |
@@ -120,7 +120,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 - 命中位 360 由部分已发布 issue 支撑（一个命中位可由同格多条 issue 共同支撑），
   其余产出未被任何台账记录认领。
 - 这批未认领产出**已归并为同质簇并逐条人工裁定**（八个并行判定组 + 一组回读原件复核）：
-  原 293 簇中 13 簇内容已被台账记录承载、2 簇的断言在冻结制品上求值为真（真阴性），
+  最初 304 簇中 14 簇内容已被台账记录承载、2 簇的断言在冻结制品上求值为真（真阴性），
   均按定义移出，**本侧分母 288 条目 / 124 去重 / 43 pair**。
 
 **结论**：「产出变多」既不是纯粹的发现能力增强，也不是纯粹的噪声增加——
