@@ -12,7 +12,7 @@ GitHub PR（CLAUDE.md §9）。
 代码 `ca41369e`（`src` 启动时零脏改动）｜54 pair × 2 模型 × 3 轮 = 324 格｜7h05m｜落盘 324/324、耗尽 0
 分母：**98 条**台账记录 × 2 臂 × 3 轮 = **588 位**。扣除 28 条：27 条 `00x8` NL 越界
 （[NL_SCOPE_RULE.md](../NL_SCOPE_RULE.md)）+ 1 条 `boundary_ruling: out_of_scope`
-（`EIS-0043-02`，独立裁定；该裁定原先未被工具执行，由 [V46_AUDIT.md](./audit.md) §3 发现并更正）。
+（`EIS-0043-02`，独立裁定；该裁定原先未被工具执行，由 [audit.md](./audit.md) §3 发现并更正）。
 
 | 口径 | v37 | v46 |
 | :-- | --: | --: |
@@ -23,12 +23,12 @@ GitHub PR（CLAUDE.md §9）。
 
 **成本**：output token 9.91M → **17.18M（1.73×）**，节点耗时 50.8 → **88.0 机时**。
 每百万 output token 命中位数 27.6 → **21.2（−23%）**——提升有相当部分是多花算力换来的。
-详见 [V46_AUDIT.md](./audit.md) §5。
+详见 [audit.md](./audit.md) §5。
 
 （原 293 条中 13 条经复核确认内容已被台账承载、按定义不属意外发现，已移出，分母 280），结论是
 **只有 23 类（8.2%）是真实的台账漏记，归并到根因后 4 条；占比最大的 129 类（46.1%）
 不是模型缺陷，而是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**。
-详见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)
+详见 [unexpected_adjudication.md](./unexpected_adjudication.md)
 与 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
 
 ⚠️ **由此产生一条口径要求**：引用本代次任何多报数字时**必须分解**为
@@ -64,7 +64,7 @@ v46 口径：**一条 issue 只记给它确实陈述了其命题的那条记录*
 ## 4. 审计
 
 完整审计（溯源冻结、数据完整性、抽查判定、分母更正、成本、盲区）见
-[V46_AUDIT.md](./audit.md)。
+[audit.md](./audit.md)。
 
 ## 5. 判定证据
 

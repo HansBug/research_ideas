@@ -103,23 +103,23 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 | 裁定 | 簇数 | 占比 |
 | :-- | --: | --: |
-| 表示债务（R4.5 编译损失，非模型缺陷） | 129 | 46.1% |
-| 无 NL 依据（过度规定） | 100 | 35.7% |
-| 假阳性（元素其实存在） | 24 | 8.6% |
-| **真实台账漏记** | **23** | **8.2%** |
-| 越界（M 边界外） | 4 | 1.4% |
+| 表示债务 | 129 | 46.4% |
+| 无 NL 依据 | 116 | 41.7% |
+| 假阳性 | 22 | 7.9% |
+| 真漏记 | 1 | 0.4% |
+| 越界 | 10 | 3.6% |
 
 **结论**：「产出变多」既不是纯粹的发现能力增强，也不是纯粹的噪声增加——
 **最大的一块（46.1%）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**。
 23 簇真漏记归并到根因后只有 4 条，且**全部 ≤3/6 格，无一稳定复现**。
 
-详见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)（结论与交叉表）、
-[V46_UNEXPECTED_MERGED.md](./unexpected_merged.md)（归并后的问题）、
-[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)（278 簇逐条判据）、
+详见 [unexpected_adjudication.md](./unexpected_adjudication.md)（结论与交叉表）、
+[unexpected_merged.md](./unexpected_merged.md)（归并后的问题）、
+[unexpected_evidence.md](./unexpected_evidence.md)（278 簇逐条判据）、
 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
-出现几次）实现，见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md) 表 A。
+出现几次）实现，见 [unexpected_adjudication.md](./unexpected_adjudication.md) 表 A。
 **大多数只出现在 1 个格里**，即多报以单次采样噪声为主。
 
 ## 7. 残留缺陷（v47 入口，按严重度）

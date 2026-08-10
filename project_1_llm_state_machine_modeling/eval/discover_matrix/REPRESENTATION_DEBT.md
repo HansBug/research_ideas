@@ -1,9 +1,9 @@
 # 表示债务（representation debt）：现象、机理、以及在 paper 里怎么写
 
 本文件把 v46 意外发现裁定中最重要的一项结论固化为长期研究事实。
-实测数据与逐簇判据见 [V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md)、
-[V46_UNEXPECTED_EVIDENCE.md](./v46/unexpected_evidence.md)、
-[V46_UNEXPECTED_MERGED.md](./v46/unexpected_merged.md)。
+实测数据与逐簇判据见 [unexpected_adjudication.md](./v46/unexpected_adjudication.md)、
+[unexpected_evidence.md](./v46/unexpected_evidence.md)、
+[unexpected_merged.md](./v46/unexpected_merged.md)。
 
 ## 〇、定义
 
@@ -210,7 +210,7 @@ UML 记法里 `/` 前是触发、后是效果，**作者分得清清楚楚**。�
 不得以「方法的一部分」写进方法章节。
 
 ⛔ **本研究的谓词词表保持不动**，理由见
-[V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md) 表 B 下方。
+[unexpected_adjudication.md](./v46/unexpected_adjudication.md) 表 B 下方。
 
 ### 4.4 诚实性叙述：写成机制陈述，不写成忏悔
 
@@ -247,7 +247,7 @@ UML 记法里 `/` 前是触发、后是效果，**作者分得清清楚楚**。�
 
 ### 4.6 一并交代的负面结果
 
-[V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md) 表 A 第一行：
+[unexpected_adjudication.md](./v46/unexpected_adjudication.md) 表 A 第一行：
 **23 条真漏记全部 ≤3/6 格，无一达到 ≥4 格；而唯二的 6/6 全满格是表示债务。**
 
 > 模型确实能找到台账外的真缺陷，但**找不稳**；它稳定重复报出的，反而是编译债务。

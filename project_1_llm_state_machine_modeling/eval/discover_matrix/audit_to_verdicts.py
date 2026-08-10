@@ -34,7 +34,7 @@
 用法::
 
     audit_to_verdicts.py --generation matrix-v46-full --audit /tmp/v46_audit.json \
-        --out verdicts/v46_tiers.json
+        --out v46/verdicts/v46_tiers.json
 """
 
 from __future__ import annotations

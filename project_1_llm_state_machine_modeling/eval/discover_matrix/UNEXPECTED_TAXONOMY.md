@@ -73,8 +73,8 @@ v46 的两个反向实例，同一判据、同一基准：
 ⚠️ `is_ended()` 不是合法查询；`init cold;` 会被默认注入。 `0044-2` 的三次 bound 扫描证明「首个违反帧永远在 release 之后的
 terminated 帧」，这是纯读代码得不出的结论。
 
-本文件是裁定规范；实测分布见 [V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md)，
-逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./v46/unexpected_evidence.md)。
+本文件是裁定规范；实测分布见 [unexpected_adjudication.md](./v46/unexpected_adjudication.md)，
+逐簇判据见 [unexpected_evidence.md](./v46/unexpected_evidence.md)。
 
 ## 〇之一、⛔ 一切计数都必须给**两套分母**
 

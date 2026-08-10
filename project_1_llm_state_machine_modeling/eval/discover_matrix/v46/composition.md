@@ -2,7 +2,7 @@
 
 全量 278 条目逐条阅读裁定（四个大类各一个独立分析员，每类要求「不许有其他类」）。
 裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)；逐簇判据见
-[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)；
+[unexpected_evidence.md](./unexpected_evidence.md)；
 机器可读原始产物在 [unexpected_verdicts/composition/](./unexpected_verdicts/composition/)
 （`D.json` / `N.json` / `F.json` / `V.json`，各含逐簇 `subclass` 与 `merge_key`）。
 
