@@ -128,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     for f in to_true:
         key = f"{f['record']}|{f['cell']}"
         entry = human.get(key, {})
-        entry["hit"] = "True"
+        entry["hit"] = True
         entry["equivalence_form"] = f.get("equivalence_form") or entry.get("equivalence_form")
         entry["argument"] = f.get("argument") or entry.get("argument")
         entry["recheck"] = "v46 逐格复核翻转：原判未命中系匹配器漏配"
