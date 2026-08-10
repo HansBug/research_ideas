@@ -18,7 +18,7 @@
 引用任何命中数字前，先确认用的是 frozen ledger 而非 `expected_issues_reconstructed.json` ——后者仅覆盖 4 个 pair，且已知把 `EXP-0029-SH-001` 写严，据它算出的命中率是错的。
 
 ⛔ **引用任何多报 / over-report 数字前，必读 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)。**
-v46 实测：未匹配台账的 293 个产出簇里 **111 簇（37.9%）不是模型缺陷，而是我们自己 R4.5 编译
+v46 实测：未匹配台账的 293 类去重产出里 **123 类（42.0%）不是模型缺陷，而是我们自己 R4.5 编译
 （PlantUML → FCSTM）的信息损失**——作者在 `stm0.puml` 里已逐字写全，`model.fcstm` 装不下才被压平，
 且压平已由 `fcstm_meta.json` 的债务码如实登记。**把它们计入多报会同时高估模型的乱报程度、
 又掩盖编译链的问题。** 该文件给出定义、三条操作化判据、实例与论文表述口径。
@@ -50,7 +50,7 @@ v46 的八个独立判定组里有七组栽在这一点上。
 - [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) —— 结论与三张交叉表
   （裁定×稳定性、谓词族×裁定、三大类细分），含 R-CONJ 规则与本轮更正记录。
 - [V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md) —— 按**根因**归并的问题清单：
-  6 条真漏记逐条带作者源行号判据，14 簇应并入台账逐条带并入目标。
+  4 条真漏记逐条带作者源行号判据，14 簇应并入台账逐条带并入目标。
 - [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md) —— 293 簇逐条判据（事实 / NL / 说明）。
 
 机器可读原始数据在 [unexpected_verdicts/](./unexpected_verdicts/)：

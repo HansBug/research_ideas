@@ -1,24 +1,20 @@
 # v46 意外发现逐簇判据（全 293 条）
 
-本文件是 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件：
-每一簇的**事实**、**NL 依据**、**归并/翻转说明**逐条列出，供复核。
+[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件，逐条列出事实 / NL 依据 / 说明。
 
 ⚠️ **本文件由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 生成，jsonl 是真源。**
-修改裁定请改 jsonl 再重建本文件，不要直接编辑本文件——直接编辑会在下次重建时静默丢失。
+改裁定请改 jsonl 再重建本文件；直接编辑本文件会在下次重建时静默丢失。
 
-字段：`裁定 ｜ 出现格数/6 ｜ 谓词族`；**事实**=从制品或作者源引出的可核验事实；
-**NL**=自然语言依据或缺乏依据；**说明**=同源归并、翻转痕迹、保留意见。
-
-| 裁定 | 含义 | 簇数 |
-| :-- | :-- | --: |
-| ✅ 真漏记 | — | 26 |
-| 🔗 应并入台账 | — | 14 |
-| ⚙️ 表示债务 | — | 111 |
-| 📄 无 NL 依据 | — | 90 |
-| ❌ 假阳性 | — | 43 |
-| 🚫 越界 | — | 4 |
-| ❓ 待定 | — | 5 |
-| | **合计** | **293** |
+| 裁定 | 簇数 |
+| :-- | --: |
+| ✅ 真漏记 | 23 |
+| 🔗 应并入台账 | 14 |
+| ⚙️ 表示债务 | 123 |
+| 📄 无 NL 依据 | 93 |
+| ❌ 假阳性 | 31 |
+| 🚫 越界 | 4 |
+| ❓ 待定 | 5 |
+| **合计** | **293** |
 
 ---
 
@@ -130,7 +126,7 @@
 - **NL**：NL 3 只说 active mode 有 orthogonal regions 未给数；NL 1 的 'three' 指整张图而非 CollisionAvoidance 作用域
 - **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-6 同型 ｜【更正】原写「与 0027-1 同型」是失效引用：0027-1 实为融合事件（表示债务），pair 0027 的越界簇是 invariant 类的 0027-6。
 
-## pair 0009 — 17 簇　`假阳性×16 表示债务×1`
+## pair 0009 — 17 簇　`假阳性×9 表示债务×8`
 
 **0009-1** ｜ ⚙️ 表示债务 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
@@ -138,23 +134,23 @@
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
 - **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-**0009-2** ｜ ❌ 假阳性 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-2** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_rear<5 && vel>30 是上述融合事件 named 串的第二个析取支，作者在 stm0.puml 的 collision_avoidance_deactive --> collision_avoidance_active 守卫里逐字写出
 - **NL**：NL 12 把它列为 'or' 备选之一，未要求独立事件声明
-- **说明**：与簇 0009-1 同源；同属 opaque_transition_label_semantics 表示债务
+- **说明**：与簇 0009-1 同源；同属 opaque_transition_label_semantics 表示债务 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-3** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_front<15 && high_way=true 是该融合事件 named 串的第三个析取支（注意路径里的 dist_to_front_15_extra_lane_true 是 NL 7/9 的城区变道条件，属另一条边），作者源已逐字表达
 - **NL**：NL 12 'the front distance being less than 15 meters in highway mode' 为 'or' 备选之一
-- **说明**：与簇 0009-1 同源；簇 0009-14/16 是同一主张的重复表述
+- **说明**：与簇 0009-1 同源；簇 0009-14/16 是同一主张的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-4** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-4** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_front<10 && urban_way=true 是该融合事件 named 串的第四个析取支，作者源逐字写出
 - **NL**：NL 12 'or 10 meters in urban mode' 为备选之一
-- **说明**：与簇 0009-1 同源；簇 0009-15/17 是同一主张的重复表述
+- **说明**：与簇 0009-1 同源；簇 0009-15/17 是同一主张的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
 **0009-5** ｜ ❌ 假阳性 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
@@ -174,17 +170,17 @@
 - **NL**：NL 13 同上
 - **说明**：与簇 0009-5 同源
 
-**0009-8** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0009-8** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
-- **事实**：model.fcstm 仅有 def int R45RouteToken = 0（转换器路由变量），但 dist_to_front 在作者源 stm0.puml 中以 dist_to_front>=25 / dist_to_front<25 && extra_lane=true / dist_to_front<15 && extra_lane=true 等守卫文本逐字出现；PlantUML 本身无变量声明语法，全语料 33 份制品无一声明任何作者变量（grep 'def ' 只命中 R45RouteToken）
+- **事实**：model.fcstm 仅有 def int R45RouteToken = 0（转换器路由变量），但 dist_to_front 在作者源 stm0.puml 中以 dist_to_front>=25 / dist_to_front<25 && extra_lane=true / dist_to_front<15 && extra_lane=true 等守卫文本逐字出现；PlantUML 本身无变量声明语法，全语料 60 份制品（33 份只含注入的 R45RouteToken，另 27 份无任何 def）无一声明任何作者变量（grep 'def ' 只命中 R45RouteToken）
 - **NL**：NL 3/5/7/9/12 使用 `dist_to_front<25` 等条件，但要求的是条件本身，作者源已表达
-- **说明**：与 0036 人工复核 diff#4 判定同类：作者源已表达即属表示债务（E3），不得记为模型缺陷；对照 0006 的真缺陷是『作者源里连递减文本都没有』。与簇 0009-9/10/11/12 同源
+- **说明**：与 0036 人工复核 diff#4 判定同类：作者源已表达即属表示债务（E3），不得记为模型缺陷；对照 0006 的真缺陷是『作者源里连递减文本都没有』。与簇 0009-9/10/11/12 同源 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-9** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0009-9** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：extra_lane 在作者源守卫 'dist_to_front<25 && extra_lane=true'、'dist_to_front<15 && extra_lane=true' 中逐字出现；制品内唯一 def 为 R45RouteToken
 - **NL**：NL 3/7/9 的 `extra_lane=true` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源，表示债务而非缺陷
+- **说明**：与簇 0009-8 同源，表示债务而非缺陷 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
 **0009-10** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
@@ -204,17 +200,17 @@
 - **NL**：NL 12 的 `vel>30` 已被守卫文本承载
 - **说明**：与簇 0009-8 同源
 
-**0009-13** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：rationale 关于 dist_to_front_25 语义为 '>=25' 的核对属实（named 串确为 'dist_to_front>=25'），但 dist_to_front<25 本身以 dist_to_front_25_extra_lane_true named 'dist_to_front<25 && extra_lane=true' 逐字存在于制品；且作者源 enter_hwy --> cruise : dist_to_front>=25 是对 NL 3 歧义的互补守卫消歧
 - **NL**：NL 3 只给出一个联合条件却指向 cruise 与 lane_change 两个目标，本身有歧义；rationale 主张的『enter_hwy 应在 dist_to_front<25 单独触发下转入 cruise』与 NL 5（dist<25 且有邻道时进 lane_change）相矛盾
-- **说明**：0009 人工复核 diff#1 判该互补守卫 similar 并称『语义上说得通且判定性更强，甚至优于参考』
+- **说明**：0009 人工复核 diff#1 判该互补守卫 similar 并称『语义上说得通且判定性更强，甚至优于参考』 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-14** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-3：dist_to_front<15 && high_way=true 是融合守卫的第三析取支，作者源逐字写出
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-3 同源，仅断言签名的清洗名不同（dist_to_front_15_highway）
+- **说明**：与簇 0009-3 同源，仅断言签名的清洗名不同（dist_to_front_15_highway） ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
 **0009-15** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
@@ -630,7 +626,7 @@
 - **NL**：NL 4 提及 in (auto final)，未规定标识符字面形式
 - **说明**：断言钉死 auto_final 路径；真缺陷已由台账 EIS-0020-02 记录
 
-## pair 0022 — 3 簇　`真漏记×2 假阳性×1`
+## pair 0022 — 3 簇　`无×2 假阳性×1`
 
 **0022-1** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
@@ -638,17 +634,17 @@
 - **NL**：NL 2 明确把开机信号定名为 `start`（『The system can be turned on with the `start` signal』），故 NL 不要求另立一个 power_on 事件；NL 1 的 'powered on' 与 NL 2 的 start 指同一刺激
 - **说明**：要求独立 power_on 事件是把 NL 1 与 NL 2 当成两个不同刺激；本 pair 台账为 0 条，但这一条不应补入
 
-**0022-2** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `initial_target` ｜ 判定组 G5
+**0022-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `initial_target` ｜ 判定组 G5
 
-- **事实**：根级初始边指向 PoweredOn 而非 Operate（声明表中 PoweredOn 与 Operate 同为根下顶层状态；rationale 引模型文本 `[*] -> PoweredOn`），initial_target(composite='', child='Operate') 为 False 事实成立
-- **NL**：NL 1 『Once the device is powered on, the system enters the `Operate` state』——上电即进入 Operate，而模型上电后停在名为 PoweredOn 的状态，须再吃一个 start 才进 Operate，与 NL 1 直接矛盾
-- **说明**：张力点：NL 2 的 keyOff 隐含需要一个关机/待机去处，故『根下不得有 Operate 以外的顶层态』这一强读法有商榷余地；但模型把该态命名为 PoweredOn 使矛盾坐实。与簇 0022-3 同源，去重合并。本 pair 台账 0 条，属真空白
+- **事实**：根级初始边指向 PoweredOn 而非 Operate 属实，但同一份 NL（md5 c74d44e9）下 6 个作者**全部**加了顶层前置态：0003 PoweredOff、0012 Off、0032 OffState、0042 Off、0052 Off、0022 PoweredOn，无一直连 Operate
+- **NL**：NL 1「Once the device is powered on, the system enters the Operate state」+ NL 2 的 start 与 keyOff——参考读法是「上电→前置态→start→Operate」，NL 不要求根初始直指 Operate
+- **说明**：【对抗性复核推翻 · 主判采纳】原判 VALID_UNRECORDED 不成立：0022 在结构上不是异类，6/6 作者同形。残留的只是命名保真度瑕疵（叫 PoweredOn 却仍需 start），属 S 层一个名字的措辞，不构成元素级缺陷。另：同组 0022-1 已判 FALSE_POSITIVE，理由是「NL 1 的 powered on 与 NL 2 的 start 指同一刺激」，而原 0022-2 的成立前提恰是把两者当两个刺激——同一文件不能既判 A 又判 ¬A，此矛盾随本次推翻消解。⚠️ 不判 FALSE_POSITIVE：事实在制品上为真，不符合「主张与制品相反」的定义。
 
-**0022-3** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
+**0022-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
-- **事实**：声明表中 PoweredOn 是根下顶层状态，NL 命名过的状态只有 Operate、Idle、`Accelerating or Cruising`、Braking，PoweredOn 是模型自增结构
-- **NL**：NL 1 只把通电与进入 Operate 直接关联，未命名任何中间态；NL 2/3 也未命名
-- **说明**：与台账 EIS-0046-03『NL 未提到待机态；额外增加 Idle 态与 Start Mission 事件，属 over-specification』同缺陷类。保留意见：NL 2 的 keyOff 需要一个去处，若 keyOff 指向 PoweredOn 则该态部分有隐含依据——本包无迁移表，无法核验去向。与簇 0022-2 同源
+- **事实**：PoweredOn 是根下顶层状态属实；但 6/6 同组作者均有此形态，非 0022 独有的自增结构
+- **NL**：NL 1/2 的参考读法含前置态
+- **说明**：【对抗性复核推翻 · 主判采纳】与 0022-2 同源，一并推翻。原援引的 EIS-0046-03 类比不成立——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，start 是 NL 2 逐字点名的。
 
 ## pair 0023 — 9 簇　`真漏记×6 无×3`
 
@@ -1102,7 +1098,7 @@
 - **NL**：NL 7 要求进入时启动计时
 - **说明**：只需一个 entry 动作，不需时钟变量，在 M 界内
 
-## pair 0036 — 9 簇　`无×4 假阳性×4 应并入台账×1`
+## pair 0036 — 9 簇　`无×4 表示债务×4 应并入台账×1`
 
 **0036-1** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `state_declared` ｜ 判定组 G6
 
@@ -1110,17 +1106,17 @@
 - **NL**：NL 4 During flight 是环境性时段限定，未点名为可占据状态
 - **说明**：0036 人工复核 diff#6 判 Region2 与参考同构为 correct；与 0036-4/5/9 同源
 
-**0036-2** ｜ ❌ 假阳性 ｜ 5/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0036-2** ｜ ⚙️ 表示债务 ｜ 5/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
-- **事实**：model.fcstm 无任何作者变量（全语料 33 份制品的 def 只有 R45RouteToken），但作者源 stm0.puml 写的是 'Attack --> AttackReady : Attack Complete / UAV Count Decreased'，递减以 UML 标准 trigger / effect 槽位表达；FCSTM 未切分 / 是前端 lowering 债务
+- **事实**：model.fcstm 无任何作者变量（全语料 60 份制品（33 份只含注入的 R45RouteToken，另 27 份无任何 def）的 def 只有 R45RouteToken），但作者源 stm0.puml 写的是 'Attack --> AttackReady : Attack Complete / UAV Count Decreased'，递减以 UML 标准 trigger / effect 槽位表达；FCSTM 未切分 / 是前端 lowering 债务
 - **NL**：NL 4 'the number of UAVs in the swarm decreases accordingly' 要求递减，作者源已表达
-- **说明**：0036 人工复核 diff#4 逐字判『作者源已表达…属表示债务。台帐判 E3 正确』，台账 status=representation_boundary；对照 0006 的真缺陷（EXP-0006-EA-001）是作者源里连递减文本都没有。与簇 0036-6/7 同源
+- **说明**：0036 人工复核 diff#4 逐字判『作者源已表达…属表示债务。台帐判 E3 正确』，台账 status=representation_boundary；对照 0006 的真缺陷（EXP-0006-EA-001）是作者源里连递减文本都没有。与簇 0036-6/7 同源 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0036-3** ｜ ❌ 假阳性 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0036-3** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：作者源 stm0.puml 的标签 'Attack Complete / UAV Count Decreased' 在 UML 记法上已把触发与效果分开，正是本条 rationale 要求的修法；融合成单一事件名 Attack_Complete_UAV_Count_Decreased 发生在 FCSTM lowering（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics），不是作者把效果嵌进事件名
 - **NL**：NL 4 'After completing the attack' 确点名该刺激，但制品已在 / 前给出该触发
-- **说明**：与簇 0036-2 同源，同属 E3 表示债务；本条主张与制品相反
+- **说明**：与簇 0036-2 同源，同属 E3 表示债务；本条主张与制品相反 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
 **0036-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G6
 
@@ -1134,17 +1130,17 @@
 - **NL**：NL 4 只要求『收到任务分配信息则进入攻击状态』，未规定源状态必须叫 flight
 - **说明**：该断言的 source 绑定依赖簇 0036-1 虚构的 flight 状态；0036 人工复核 diff#6 判该边 correct。与簇 0036-9 同源
 
-**0036-6** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `effect_declared` ｜ 判定组 G6
+**0036-6** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `effect_declared` ｜ 判定组 G6
 
 - **事实**：Attack -> AttackReady : /Attack_Complete_UAV_Count_Decreased 确无 effect{} 块，但该 effect 在作者源里写在 / 之后（'Attack Complete / UAV Count Decreased'），缺失来自前端未切分 /
 - **NL**：NL 4 要求攻击完成后数量减少，作者源已在 effect 槽位表达
-- **说明**：与簇 0036-2 同源；此谓词在 0006/0026/0046 是真缺陷断言，区别在那几例作者源无任何递减文本，0036 有
+- **说明**：与簇 0036-2 同源；此谓词在 0006/0026/0046 是真缺陷断言，区别在那几例作者源无任何递减文本，0036 有 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0036-7** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0036-7** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：与簇 0036-2 同一事实，仅变量命名换成 number_of_UAVs_in_the_swarm
 - **NL**：NL 4 同上
-- **说明**：与簇 0036-2 同源，属同一 E3 表示债务的重复表述
+- **说明**：与簇 0036-2 同源，属同一 E3 表示债务的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
 **0036-8** ｜ 🔗 应并入台账 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G6
 
@@ -1698,7 +1694,7 @@
 - **NL**：NL 4 『if the door is closed with zero time set』中 'zero time' 是烹饪时间量的一个取值，不是一个独立被跟踪的量；NL 5 要求跟踪的量是 cooking time（『the cooking time is displayed and updated』）
 - **说明**：断言把取值误当量。真正的缺口（无 cooking time 量、timer 启停与显示更新缺失）已由台账 EIS-0055-01 记录，故此处也不构成台账漏记
 
-## pair 0056 — 3 簇　`越界×1 无×1 假阳性×1`
+## pair 0056 — 3 簇　`越界×1 无×1 表示债务×1`
 
 **0056-1** ｜ 🚫 越界 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G6
 
@@ -1712,19 +1708,19 @@
 - **NL**：NL 2 'Before the mission is completed' 预设完成条件，但未要求它是一个状态
 - **说明**：0056 人工复核 diff#4 判该编码为 correct，并称『用事件而非 count==0 表达完成条件，比参考更贴 NL 原文』
 
-**0056-3** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0056-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：作者源 stm0.puml 写的是 'AttackState --> SearchState : Attack Complete [Decrease UAV Count]'，触发 Attack Complete 与方括号内容在 UML 记法上是分开的；融合成 Attack_Complete_Decrease_UAV_Count 发生在 FCSTM lowering（R45.DEBT.opaque_transition_label_semantics）
 - **NL**：NL 4 'After completing the attack' 确点名该刺激，制品已在方括号前给出该触发
-- **说明**：本 pair 的真缺陷是递减被放进 guard 槽位而非 effect 槽位，已记为 EIS-0056-02（人工复核 diff#2）；本条主张的『事件名融合』是其下游的表示债务，不构成独立新发现
+- **说明**：本 pair 的真缺陷是递减被放进 guard 槽位而非 effect 槽位，已记为 EIS-0056-02（人工复核 diff#2）；本条主张的『事件名融合』是其下游的表示债务，不构成独立新发现 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-## pair 0057 — 6 簇　`无×4 真漏记×1 假阳性×1`
+## pair 0057 — 6 簇　`无×5 假阳性×1`
 
-**0057-1** ｜ ✅ 真漏记 ｜ 2/6 格 ｜ `event_consumed` ｜ 判定组 G8
+**0057-1** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_consumed` ｜ 判定组 G8
 
-- **事实**：Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected 三个事件均已声明，但 CA 的入口触发是模型自造的 Possible_collision_detected（台账 EIS-0057-01 亦确认『Possible collision detected 把系统送进 CA』），三个具体事件只落在 CA.Frontend / CA.RearEnd / CA.Pedestrian 各自的 Idle→Active 上，CA 作用域不消费它们
-- **NL**：NL 2『This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected』要求这三者之一即可激活子机；模型下只检测到前向碰撞并不能激活 CA
-- **说明**：台账仅 1 条 initial_target，未覆盖入口触发被替换为自造聚合事件这一缺陷，属真漏记。保留意见：谓词形式 event_consumed(source=CA) 是『进入 CA 的义务』的弱代理（进入 CA 的边源在 CA 之外），形式不精确但实质结论成立
+- **事实**：作者源 stm0.puml:22 `[*] --> CA : Possible collision detected` 只有一条边、一个响应（进 CA）；三个具名事件 :5/:11/:17 分别驱动各区 Idle→Active。事件名是 NL 2 从句去掉三个并列项后的逐字压缩，非自造
+- **NL**：NL 2「becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——三项析取，期望响应相同（子机变 active）
+- **说明**：【对抗性复核推翻 · 主判采纳】命中仓库自身 FUSED_EVENT_POLICY.md L379 的许可条件：「合并事件代表多个 NL 备选，只当 source trace 支持同一析取且**期望响应相同**」——两条都满足，故属许可的合并。该判据同时把 0017/0047 干净分开：那两处是同一事件名导向三个**不同**目标（F/R/P），响应不同，不在许可内。0057 反而是该 NL 组里唯一按 L379 正确分工的模型（响应不同处用具名事件，响应相同处用聚合事件）。⚠️ 不判 FALSE_POSITIVE：事实为真，只是义务已被政策许可的形态履行。
 
 **0057-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G8
 

@@ -90,7 +90,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 **逐角色 output token（v46）**：`assertion_converter` 54.7%、`requirement_splitter` 34.4%、
 `requirement_reviewer` 5.0%、`assertion_reviewer` 2.9%、`result_adjudicator` 2.9%。
 
-**逐节点耗时（v46）**：`convert_assertions` 49.2%、`split_requirements` 38.9%、
+**逐节点耗时（v46）**：`convert_assertions` 49.2%、`split_requirements` 37.8%、
 `review_requirements` 5.7%、`review_assertions` 3.4%、`adjudicate_results` 2.6%。
 **前两者合计 88%**，且都随需求条数线性增长 —— 与 §7 第 1 条残留缺陷同源。
 
@@ -105,16 +105,16 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 | 裁定 | 簇数 | 占比 |
 | :-- | --: | --: |
-| 表示债务（R4.5 编译损失，非模型缺陷） | 111 | 37.9% |
-| 无 NL 依据（过度规定） | 90 | 30.7% |
-| 假阳性（元素其实存在） | 43 | 14.7% |
-| **真实台账漏记** | **26** | **8.9%** |
+| 表示债务（R4.5 编译损失，非模型缺陷） | 123 | 42.0% |
+| 无 NL 依据（过度规定） | 93 | 31.7% |
+| 假阳性（元素其实存在） | 31 | 10.6% |
+| **真实台账漏记** | **23** | **7.8%** |
 | 应并入已有台账（换谓词导致漏配） | 14 | 4.8% |
 | 待定 / 越界 | 9 | 3.1% |
 
 **结论**：「产出变多」既不是纯粹的发现能力增强，也不是纯粹的噪声增加——
-**最大的一块（37.9%）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**。
-26 簇真漏记归并到根因后只有 6 条，且**全部 ≤3/6 格，无一稳定复现**。
+**最大的一块（42.0%）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**。
+23 簇真漏记归并到根因后只有 4 条，且**全部 ≤3/6 格，无一稳定复现**。
 
 详见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)（结论与交叉表）、
 [V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md)（归并后的问题）、
