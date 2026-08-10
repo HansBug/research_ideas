@@ -9,9 +9,9 @@
 | 裁定 | 簇数 |
 | :-- | --: |
 | ✅ 真漏记 | 23 |
-| 🔗 应并入台账 | 14 |
+| 🔗 应并入台账 | 13 |
 | ⚙️ 表示债务 | 129 |
-| 📄 无 NL 依据 | 99 |
+| 📄 无 NL 依据 | 100 |
 | ❌ 假阳性 | 24 |
 | 🚫 越界 | 4 |
 | **合计** | **293** |
@@ -106,13 +106,13 @@
 - **NL**：NL 4 『During flight』为语境状语，未命名状态
 - **说明**：与簇 0006-1 完全同源（仅路径前缀不同：根级 flight vs UAVSwarmStateMachine.flight），去重时合并
 
-## pair 0007 — 3 簇　`应并入台账×1 无×1 越界×1`
+## pair 0007 — 3 簇　`无×2 越界×1`
 
-**0007-1** ｜ 🔗 应并入台账 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G7
+**0007-1** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G7
 
-- **事实**：根 scope 除 CollisionDetection、CollisionAvoidance、OperationalControls 三个复合状态外还直接声明了 state InitialState named 'InitialState'（真实状态，[*] -> InitialState，且只有入边 CollisionAvoidance -> InitialState、无出边），共 4 个直接非伪子状态
-- **NL**：NL 1 'There are three region in this diagram'
-- **说明**：判定只用层次子状态计数，不依赖并发语义。但计数偏差完全由两条已记台账造成：EIS-0007-01（InitialState 被写成真实死端状态）与 EIS-0007-03（OperationalControls 整棵为 NL 未提及的臆造子树）；归并时应视为已记缺陷的计数侧面，不宜再计一条新缺陷 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0007-01/03：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
+- **事实**：根 scope 直接子为 CollisionDetection / CollisionAvoidance / OperationalControls / InitialState 共 4 个，issue 四者并列枚举、未指认哪一个多余。与 0037 的关键差别：InitialState 在 model.fcstm:59 有**独立 state 声明**，`[*] -> InitialState`（:62）是**另一条语句**，二者可各自变动；而 0037 的三个死端叶在 stm0.puml 中无独立声明。
+- **NL**：NL 1「There are three region in this diagram」未规定根直接子恰为 3；且台账自陈 Phase-I 中 InitialState 在根层「语义连通」，其出现在根层本身不是缺陷
+- **说明**：【逐格复核改判】原判 MERGE_INTO_LEDGER 不成立。A 组 8 格裁定：「根层多一个子」与「初始迁移落在死端」是同一元素上的**两处不同失误**——保留 4 个根子但让 InitialState 带出边，台账缺陷即消失而本主张仍为 False；删掉 OperationalControls 使计数变 3，则 `[*] -> InitialState` 分毫未动而台账缺陷完整保留。落 NO_NL_BASIS：计数义务本身无 NL 依据。
 
 **0007-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G7
 
@@ -1160,7 +1160,7 @@
 
 - **事实**：路径表可直接数出 ActiveState 的直接子共 7 个非伪状态：FrontendCollision、FrontendCollisionRegion、Inactive、PedestrianCollision、PedestrianCollisionRegion、RearEndCollision、RearEndCollisionRegion，不等于 3
 - **NL**：NL 1 『There are three region in this diagram』为数量断言；NL 3 『The orthogonal regions of the active mode』把这三个区域归属于 active mode，故以 ActiveState 为 scope 合理
-- **说明**：在 M 边界内：主张只涉及直接子数量，不依赖并发语义，与台账 EIS-0006-01/EIS-0046-02 把区域数量判为『数量/结构问题，不是并发风格问题』的口径一致。四个多余子中的 FrontendCollision/RearEndCollision/PedestrianCollision 正是台账 EIS-0037-01[reaches] 所指的死端叶，二者同根不同面，去重时注意 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0037-01：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
+- **说明**：在 M 边界内：主张只涉及直接子数量，不依赖并发语义，与台账 EIS-0006-01/EIS-0046-02 把区域数量判为『数量/结构问题，不是并发风格问题』的口径一致。四个多余子中的 FrontendCollision/RearEndCollision/PedestrianCollision 正是台账 EIS-0037-01[reaches] 所指的死端叶，二者同根不同面，去重时注意 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0037-01：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。 ｜【逐格复核确认】A 组按「是不是同一处建模失误」重裁：stm0.puml 中三个死端叶无独立 state 声明，唯一来源就是那三条检测边，故结构侧与行为侧是同一条语句的两面。对应 4 个格位已翻为命中并入命中侧（run1-claude/run1-gpt/run2-claude/run3-claude）。
 
 **0037-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
