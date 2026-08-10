@@ -46,6 +46,13 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 **存在明确裁定要求剔出能力分母，而 `metrics_at_k` 读的是 `in_scope`（对 126 条全为 `True`，
 它记的不是这件事），裁定未被执行。** 首份报告的分母因此为 99 而非 98。
 
+📌 **同时必须记下：`full_tables.py` 本来就正确输出了双分母** —— 表 2 说明里明写
+「其中 1 条经独立边界裁定为 `out_of_scope`……剔除后：360/588 = 61.2%」。
+**工具没错，是首份报告只抄了前一个数字。** 这是本轮第三次同形态失误（另两次：误读
+`metrics_at_k` 的拒算原因、把 `adjudication_recheck` 的被拒列表当成裁定）——
+共同点是把工具输出当**结论**引用，而不是当**需要读完的材料**。这三个工具恰恰都是设计来
+强迫读者停下来看的。
+
 - **修复**：`metrics_at_k._out_of_scope_record_ids()` 改为同时读 `boundary_ruling`；
   由 [test_scope_vs_holdout_are_different.py](./test_scope_vs_holdout_are_different.py)
   的 `test_a_boundary_ruling_in_the_ledger_is_actually_honoured` 钉住。
