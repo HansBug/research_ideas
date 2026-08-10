@@ -1,58 +1,114 @@
 # v46 意外发现归并后的问题清单
 
 ⚠️ **本文件的簇级数字由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 汇出，jsonl 是真源。**
+⛔ **全部交叉表只有一个产地**：[unexpected_tables.md](./unexpected_tables.md)，由
+[../rebuild_unexpected.py](../rebuild_unexpected.py) 机器生成。**本文件不保存任何一张交叉表的副本。**
 
 簇不是缺陷。同一个缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出，
-本文件把 278 簇按**根因**归并（原 293 条中 13 条内容已被台账承载、按定义不属意外发现，见 §二）。逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，
-结论与交叉表见 [unexpected_adjudication.md](./unexpected_adjudication.md)。
+因此一切计数都给两套分母：**条目数**（原始簇数）与**去重数**（不同 `merge_key` 的个数，
+去重单元 = `(pair, 根因)`；同 pair 同一处失误合并计 1，不同 pair 不合并）。
 
-## 一、✅ 真实台账漏记（4 条根因 / 23 簇）
+桶内 **278 条目 / 117 去重 / 42 个 pair**。逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)，
+结论与判据链见 [unexpected_adjudication.md](./unexpected_adjudication.md)，
+成分与子类含义见 [composition.md](./composition.md)。
 
-归并比 5.8:1。**这 4 条是 v46 相对台账的净增量。**
-⚠️ 原列 6 条，其中 `0022-EXTRA` 与 `0057-ENTRY` 已被对抗性复核推翻，详见
+## 一、✅ 真实台账漏记：1 条
+
+**`0014-4`（`V1` 惰性散文占位）是 v46 相对台账的唯一净增量。**
+[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) 只有一行。
+
+作者源 `stm0.puml:26` 把 NL 3 要求发出的 Obstacle Detected 信号写成 PlantUML **描述行**
+（`EmergencyStopping: Obstacle Detected`）而非动作语法，`EmergencyStopping` 内因此无任何
+`enter` / `during` 动作；台账 `EIS-0014-03`（`nl_evidence` 只引「Emergency Stop」）与
+`EIS-0014-04`（scope 是 `InMotion.Approaching`）均不覆盖。逐条判据见
 [unexpected_adjudication.md §三](./unexpected_adjudication.md)。
-⚠️ 补入台账会使 `hit@all` 下降（这 23 簇全部 ≤3/6），不是「分母不变故无影响」。
 
-逐条根因、并入的簇与作者源判据见
-[unexpected_adjudication.md §三](./unexpected_adjudication.md) 与
-[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv)。
+⚠️ 它只出现在 6 格中的 2 格；补入台账会使 `hit@all` 下降，不是「分母不变故无影响」。
 
-## 二、🔗 内容已被台账承载者：**不属意外发现，已移出分母**
+## 二、🔗 内容已被台账承载者：不属意外发现，不在分母内
 
-原 293 条中的 13 条经复核确认与现有台账记录**同根**，按定义不是意外发现，
-已物理移出到 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
-**本文件其余各节的分母是 280。**
+13 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在
+[unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
+判「同根」的硬判据（数作者源上的引用次数）见
+[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md) 「先做零步」。
 
-⚠️ 它们此前被做成第六个裁定类别 `MERGE_INTO_LEDGER`，那是分类错误——
-该问题回答的是「这条产出该不该在桶里」，与其余五类回答的「这条产出是什么」不是同一个问题。
+按**对命中的影响**分四类（jsonl 的 `disposition` 字段）：
 
-13 条按**对命中的影响**分四类（`disposition` 字段）：
-
-| disposition | 条数 | 含义 |
-| :-- | --: | :-- |
-| 冗余复述 | 6 | 目标记录在全部格已由同格另一条 issue 认领，无格可翻 |
-| 同根但该格未建立记录 | 3 | 逐格复核维持未命中 |
-| 报的是已退役判据 | 3 | `0050-2/3/4`——台账 `basis_superseded_by_ruling` 明写原判据已放弃 |
-
-**移出 ≠ 记命中**：13 条里只有 1 条产生了新增命中（+4 位，`hit@1` 360→364）。
-
-## 三、⚙️ 表示债务（4 个子类 / 129 簇）
-
-**不是模型缺陷，是我们自己 R4.5 编译的信息损失。** 详见 [unexpected_adjudication.md §一之二](./unexpected_adjudication.md)。
-
-| 子类 | 簇数 | 涉及 pair | 作者源实际写法 |
+| disposition | 条数 | 簇 | 含义 |
 | :-- | --: | :-- | :-- |
-| `D2` 析取守卫被压成单一事件名 | 73 | 0009 0019 0027 0029 0039 0049 0056 0059 | `a \| b & c \| d` 一条合法析取守卫 |
-| `D1` 守卫文本未成为变量声明 | 45 | 0000 0009 0010 0016 0019 0020 0029 0030 0036 0046 0049 0050 0059 | `front_distance > 10` 写在守卫里；PlantUML 无变量声明语法 |
-| `D3` `trigger / effect` 未切分 | 9 | 0016 0036 0046 | `Attack Complete / UAV Count Decreased` |
-| `D4` 注入伪态 / 区语义偏移 | 2 | 0027 0043 | 作者写了合法的区内 `[*]`，R4.5 另注入 `UnspecifiedInitial` |
+| 真漏配 | 1 | `0037-1` | 对应格位原判未命中，已逐格复核翻转并入命中侧 |
+| 冗余复述 | 6 | `0006-3` `0016-2` `0016-11` `0026-4` `0035-1` `0035-2` | 目标记录在全部 6 格已由同格另一条 issue 认领，无格可翻 |
+| 同根但该格未建立记录 | 3 | `0006-2` `0036-8` `0047-9` | 逐格复核维持未命中 |
+| 报的是已退役判据 | 3 | `0050-2` `0050-3` `0050-4` | 台账 `EIS-0050-01` 的 `basis_superseded_by_ruling` 明写原判据已放弃 |
 
-## 四、其余非发现（128 簇）
+**移出 ≠ 记命中**：13 条里只有 `0037-1` 产生了新增命中（+4 位，`hit@1` 360 → 364）。
 
-`无 NL 依据` 100 + `假阳性` 24 + `越界` 4 = 128。**不设「待定」。**子类分布见主文档表 C，逐簇判据见证据附件。
+## 三、⚪ 断言在冻结制品上为真：真阴性，两侧都不存在
 
-**其中 `N0`（4 簇）需单独跟进**：`0054-1` `0054-5` `0046-8` `0026-3` 的义务来自谓词被操作化的方式而非 NL，
-`0054-5` 是构造性不可满足（NL 2/10 恰恰许可该迁移，谓词却禁止），属 CLAUDE.md §13 类缺陷。
+2 条（`0044-2`、`0054-1`）的断言在冻结制品上求值为 **True**——被测模型**满足**该义务，
+因而正确地不产出任何 issue。它既不在覆盖侧（无对应台账记录），也不在多报侧（无产出可判）。
+明细见 [unexpected_verdicts/not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。
 
-**`0056-1` 已裁定 `OUT_OF_SCOPE`**（R-REGION 规则，见 [unexpected_adjudication.md §三](./unexpected_adjudication.md)）：
-作者源 `stm0.puml:10` 是正交区分隔符，region 0 恰为三个 Area，NL 义务已满足；5≠3 系拍平后跨区求和。
+由此闭合：`278 + 13 + 2 = 293`（[unexpected_tables.md](./unexpected_tables.md) 表 0）。
+
+## 四、⚙️ 表示债务：按条目最大的一块
+
+**不是模型缺陷，是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**——作者在源制品上
+已逐字表达，是中间表示装不下。机制见
+[unexpected_adjudication.md §一之二](./unexpected_adjudication.md)，
+完整论述见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)，
+条目 / 去重 / 稳定性见 [unexpected_tables.md](./unexpected_tables.md) 表 2。
+
+子类按「**丢失的是哪一条区分**」切，⛔ 谓词族不参与判类：
+
+| 子类 | 丢失的区分 | 作者源实际写法 |
+| :-- | :-- | :-- |
+| `D1` 析取备选融合 | 备选之间的可分性（`or` 被强化成 `and`） | `a \| b & c \| d` 一条合法析取守卫，整条被压成一个原子事件名 |
+| `D2` 原子子表达式不可寻址 | 该量 / 该条件是一个可寻址的一等实体 | `front_distance > 10` 只活在守卫文本里；PlantUML 无变量声明语法 |
+| `D3` 槽位焊死 | 槽位角色（哪段是触发、哪段是效果） | `Attack Complete / UAV Count Decreased` 未在 `/` 处切分 |
+| `D5` 跨通道打包 | 一簇同时跨 ≥2 个损失通道 | 索要串里既含析取支又含合取分量 |
+| `D4` 结构性下沉债务 | 谁是真正的初始态 / 层次深度 | 作者写了合法的区内 `[*]`，R4.5 另注入 `UnspecifiedInitial` |
+
+**关键分界线**（各自都踩过坑）：`D1` vs `D2` 看被指串**是不是一个完整析取支**；
+`D2` vs `D3` 看该量写在**守卫侧**还是 `/` **之后的效果槽**；`D5` 要通过正向计数测试
+（枚举分量归类结果 ≥2 种），**不是兜底类**。判定流程见
+[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
+
+## 五、📄 无 NL 依据 / ❌ 假阳性 / 🚫 越界
+
+**不设「待定」**——证据不足不构成一个裁定类别，取不到证据就实跑
+`SimulationAPI` / `FBMCQAPI` 取反例。三类的子类分布见
+[unexpected_tables.md](./unexpected_tables.md) 表 2，含义见 [composition.md](./composition.md)。
+
+三条按整改价值排序的结论：
+
+1. **拆分类过度规定是唯一系统性的一支**：`N-SPLIT`（要求把复合条件拆成独立元素）的
+   ≥4 格簇数是全部子类里最高的，不是单次采样噪声；`N-SPLIT-PROSE`（NL 只给散文、无标识符，
+   报告者必须自己造名）的条目/去重比是全部子类里最高的，因为**造名空间无上界**。
+   两者合计 50 条目 / 16 去重，属 prompt 侧可收敛项。
+2. **语境措辞与承载相位被过度指定**（`N-CTX` + `N-FORM`，33 条目 / 20 去重）：NL 的统称词、
+   语境状语、`indicating that…` / `where the … is …` 式语义注解都不构成元素义务。
+3. **假阳性以名字槽差与类别槽差为主**（`FP-N` + `FP-K`）：承载者其实在场，
+   只是标识符字面不同、或以 `action` 而非 `event` 存在。⚠️ 后者的直接成因是证据包的路径清单
+   **不列 action**，见 [unexpected_adjudication.md §五](./unexpected_adjudication.md)。
+
+**越界（`OOS-*`）**三个子类：`OOS-FLATTEN`（`0023` 的正交区展平产物被当作作者缺失迁移——
+参考模型同样零事件零迁移，不可归因于被测模型）、`OOS-REGION`（`0056-1` / `0007-3` 的区数量义务，
+R-REGION 规则）、`OOS-INV`（`0017-7` / `0027-6` 的不变式 + 并发保持，双重越界）。判据与风险披露见
+[unexpected_adjudication.md §三之二](./unexpected_adjudication.md)。
+
+**测量链侧待修项**已登记于
+[PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)（本桶内涉及
+`0046-8` / `0044-4` / `0054-5`），**只登记不修**：中途改谓词会作废 v37→v46 全部跨代次可比性。
+
+## 六、相对上一版的改动
+
+- 交叉表统一归口到 [unexpected_tables.md](./unexpected_tables.md)，本文件只留链接与结论。
+  **理由**：副本与真源分岔过一次，代价是同一目录内两份文件对净增量给出互斥的答案。
+- 分母切换为清洗后的口径（桶内 278 条目 / 117 去重），并新增 §三 把真阴性单列，使
+  `278 + 13 + 2 = 293` 在本文件内即可闭合。**理由**：真阴性既不在覆盖侧也不在多报侧，
+  混进任一侧都会让该侧分母失真。
+- §二 的分类改为直接取 `ledger_accounted.jsonl` 的 `disposition` 字段并列出簇号。
+  **理由**：该表此前不可追溯到具体记录，无法复核。
+- 子类改用 `rebuild_unexpected.py` 校验的 `D*` / `N-*` / `FP-*` / `OOS-*` / `V1` 体系，
+  §四 只保留划分维度与分界线，不再复述条目数。**理由**：条目数属交叉表内容，只应有一个产地。
