@@ -37,7 +37,14 @@ HERE = pathlib.Path(__file__).resolve().parent
 LED = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
 RUNS = HERE.parents[2] / "runs" / "paper1"
 # hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
-REPORTABLE: set = set()
+#
+# ⛔ 这里原先是个**空集字面量**，于是每条记录都被标成「不进分母」——一个判定者会读到的
+# 资格标签，长期与事实相反。分母口径只有一个归属地（`metrics_at_k`），从那里取。
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import metrics_at_k as _mk  # noqa: E402
+
+REPORTABLE: set = set(_mk.REPORTABLE)
 # EIS-0047-03 干净但被 initialization_anchored 门结构性封死（预注册 §9.1）。它若报未命中，
 # 那是门的抑制，不是能力缺口 —— 判定时必须看见这句话，否则会被记成未命中。
 BLOCKED = {"EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）：两条编码都绑 "
