@@ -1,7 +1,8 @@
 # 已登记的谓词侧缺陷（只登记，不修）
 
-v46 意外发现裁定过程中，有 6 个簇的 False **不是制品缺陷，而是谓词被操作化的方式造成的**
-（[UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) 的 `N0` 子类）。
+v46 意外发现裁定过程中，有 6 个簇的 False **不是制品缺陷，而是谓词被操作化的方式造成的**——
+其中 5 条属 `N0` 子类（`0054-1` `0054-5` `0046-8` `0026-3` `0044-2`，裁定为 `NO_NL_BASIS`），
+另 1 条 `0044-4` 属 `F3`（裁定为 `FALSE_POSITIVE`，因其主张与制品相反这一条更强更靠前）。
 
 ⛔ **谓词逻辑本轮保持不动。** 本文件只做登记，不含任何修改。理由见
 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 表 B 下方：
@@ -15,7 +16,7 @@ v46 意外发现裁定过程中，有 6 个簇的 False **不是制品缺陷，�
 
 ## P-1 `persists_until` 在 release 达成后不解除义务
 
-**位置**：`paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py:1802-1808`
+**位置**：`paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py:1802-1806`
 
 **实现逐字**：
 
@@ -56,7 +57,7 @@ query = (
 
 ## P-2 `stays_in` 把「事件被忽略」与「离开了状态」压成同一个 False
 
-**位置**：`predicate_api.py:1404-1405`
+**位置**：`predicate_api.py:1407-1408`（注释在 1404-1406）
 
 **实现逐字**：
 
@@ -115,6 +116,6 @@ NL 2/10 恰恰**许可**该迁移，谓词却禁止它。按 [CLAUDE.md](../../.
 ```bash
 cd project_1_llm_state_machine_modeling
 F=paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py
-sed -n '1798,1812p' $F   # P-1：check invariant <= N: (release) || active(state)
-sed -n '1398,1410p' $F   # P-2：if trigger not in self._consumed(view): return False
+sed -n '1798,1808p' $F   # P-1：1802-1806 是 query，check invariant <= N: (release) || active(state)
+sed -n '1398,1410p' $F   # P-2：1407-1408 是那两行，1404-1406 是自陈用意的注释
 ```

@@ -176,6 +176,29 @@ def write_evidence(rows: list[dict]) -> None:
     (HERE / "V46_UNEXPECTED_EVIDENCE.md").write_text("\n".join(out))
 
 
+def write_subclass_table(rows: list[dict]) -> None:
+    """表 C 的机器可读版。
+
+    子类标签此前**不在任何机器可读源里**，只能手工维护——这是表 C 反复出错的结构性根因
+    （簇数、`中位出现`、`≥4 格` 三列各错过一次）。现在 `subclass` 是 jsonl 的字段，
+    本表由它算出，正文里的表 C 应当对着它核。
+    """
+
+    import statistics
+
+    buckets: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
+    for r in rows:
+        if r.get("subclass"):
+            buckets[(r["verdict"], r["subclass"])].append(r["_cells"])
+    with (VERDICTS / "subclass_table.tsv").open("w") as fh:
+        w = csv.writer(fh, delimiter="\t")
+        w.writerow(["verdict", "subclass", "簇数", "中位出现_of_6", "ge4格"])
+        for (verdict, sub), cells in sorted(buckets.items()):
+            w.writerow([verdict, sub, len(cells),
+                        int(statistics.median(sorted(cells))),
+                        sum(1 for c in cells if c >= 4)])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="只校验，不写盘")
@@ -202,8 +225,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     write_tsvs(rows)
+    write_subclass_table(rows)
     write_evidence(rows)
-    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / V46_UNEXPECTED_EVIDENCE.md")
+    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / subclass_table.tsv / V46_UNEXPECTED_EVIDENCE.md")
     print("⚠️ 正文里的表 A / 表 B / 表 C 与各处叙述数字仍需人工核对——本脚本不改正文。")
     return 0
 
