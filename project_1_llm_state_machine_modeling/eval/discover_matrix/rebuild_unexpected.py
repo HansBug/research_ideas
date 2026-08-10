@@ -2,7 +2,11 @@
 
 ## 为什么要有这个脚本
 
-意外发现裁定有**一个真源**（`unexpected_verdicts/G1..G8.jsonl`）与**四份派生物**
+意外发现裁定有**一个真源**（`unexpected_verdicts/G1..G8.jsonl`，五类）与**五份派生物**。
+另有一份**同级但不在本桶内**的 `ledger_accounted.jsonl`：内容已被台账记录承载的产出
+**不属于意外发现**，已物理移出，不进分母。
+
+原真源与派生物
 （两个 tsv、一份逐簇证据 md、一份根因 tsv）。本目录已经手工重建过四次，每次都出错：
 
 | 次 | 错法 |
@@ -36,25 +40,29 @@ HERE = pathlib.Path(__file__).resolve().parent
 VERDICTS = HERE / "unexpected_verdicts"
 SEEDS = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
 
-#: 六类裁定。⛔ 没有第七类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
-#: `UNCERTAIN` 仍列在这里只是为了让**残留**的待定项能被 --check 抓出来并报错，不是承认它合法。
+#: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
 ORDER = (
     "VALID_UNRECORDED",
-    "MERGE_INTO_LEDGER",
     "REPRESENTATION_DEBT",
     "NO_NL_BASIS",
     "FALSE_POSITIVE",
     "OUT_OF_SCOPE",
-    "UNCERTAIN",
 )
 LABEL = {
     "VALID_UNRECORDED": "✅ 真漏记",
-    "MERGE_INTO_LEDGER": "🔗 应并入台账",
     "REPRESENTATION_DEBT": "⚙️ 表示债务",
     "NO_NL_BASIS": "📄 无 NL 依据",
     "FALSE_POSITIVE": "❌ 假阳性",
     "OUT_OF_SCOPE": "🚫 越界",
-    "UNCERTAIN": "❓ 待定（不应存在）",
+}
+
+#: ⛔ 这些标签曾经存在，现已作废，出现即报错。
+#: `MERGE_INTO_LEDGER` —— 内容已被台账承载者**不属于意外发现**，已物理移出到
+#: `ledger_accounted.jsonl`，不进本桶分母（这正是它当初不该作为一类存在的原因）。
+#: `UNCERTAIN` —— 证据不足不是裁定类别，取不到证据就去取。
+RETIRED = {
+    "MERGE_INTO_LEDGER": "内容已被台账承载者不属意外发现，应移入 ledger_accounted.jsonl",
+    "UNCERTAIN": "证据不足不是裁定类别，回读原件或实跑 API 后裁死",
 }
 
 
@@ -70,8 +78,13 @@ def load() -> list[dict]:
             for field in ("cluster", "verdict", "fact", "nl"):
                 if not (record.get(field) or "").strip():
                     raise SystemExit(f"{path.name}:{lineno} 缺字段 {field}：{record.get('cluster')}")
-            if record["verdict"] not in ORDER:
-                raise SystemExit(f"{record['cluster']} 的裁定 {record['verdict']} 不在六类内")
+            verdict = record["verdict"]
+            if verdict in RETIRED:
+                raise SystemExit(
+                    f"{record['cluster']} 用了已作废的标签 {verdict}：{RETIRED[verdict]}"
+                )
+            if verdict not in ORDER:
+                raise SystemExit(f"{record['cluster']} 的裁定 {verdict} 不在五类内")
             record["_group"] = path.stem
             rows.append(record)
     seen = collections.Counter(r["cluster"] for r in rows)
@@ -212,13 +225,6 @@ def main(argv: list[str] | None = None) -> int:
     for k in ORDER:
         if counts[k]:
             print(f"  {LABEL[k]:16} {counts[k]:4}  {counts[k] / len(rows):5.1%}")
-
-    if counts["UNCERTAIN"]:
-        stuck = [r["cluster"] for r in rows if r["verdict"] == "UNCERTAIN"]
-        print(f"\n❌ 还有 {counts['UNCERTAIN']} 条待定：{stuck}", file=sys.stderr)
-        print("   「待定」不是裁定类别——取不到证据就去取原件，取到了就裁。"
-              "见 UNEXPECTED_TAXONOMY.md。", file=sys.stderr)
-        return 1
 
     if args.check:
         print("\n✅ --check 模式，未写盘")

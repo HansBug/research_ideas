@@ -27,9 +27,9 @@ GitHub PR（CLAUDE.md §9）。
 每百万 output token 命中位数 27.6 → **21.2（−23%）**——提升有相当部分是多花算力换来的。
 详见 [V46_AUDIT.md](./V46_AUDIT.md) §5。
 
-✅ **多报侧已判定**（本节于 2026-08-10 更新，原写「未判定」已作废）：未被台账认领的产出
-归并为 293 个同质簇后逐条人工裁定，结论是
-**只有 23 类（7.8%）是真实的台账漏记，归并到根因后 4 条；占比最大的 129 类（44.0%）
+✅ **多报侧已判定**（本节于 2026-08-10 更新，原写「未判定」已作废）：未被台账认领的产出归并为同质簇后逐条人工裁定
+（原 293 条中 13 条经复核确认内容已被台账承载、按定义不属意外发现，已移出，分母 280），结论是
+**只有 23 类（8.2%）是真实的台账漏记，归并到根因后 4 条；占比最大的 129 类（46.1%）
 不是模型缺陷，而是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**。
 详见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)
 与 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)。
@@ -42,7 +42,7 @@ GitHub PR（CLAUDE.md §9）。
 
 ## 1.5 ⚠️ `hit@k` 已上修（2026-08-10 逐格复核）
 
-`MERGE_INTO_LEDGER` 这一类的存在暴露出命中侧被低估：那些产出是模型**确实找到了**、
+**内容已被台账承载**的那 13 条产出暴露出命中侧被低估：它们是模型**确实找到了**、
 但匹配器没认出对应哪条台账记录的缺陷。16 个候选格位逐格人工复核后**翻转 4 个**
 （全部在 `EIS-0037-01`）。
 
@@ -54,7 +54,8 @@ GitHub PR（CLAUDE.md §9）。
 
 翻转依据：`0037` 的三个死端叶在 `stm0.puml` 中**无独立 `state` 声明**，唯一来源就是那三条检测边，
 故「这三个叶不该是直接子」与「这三条边不该指向它们」是同一条语句的两面。
-详见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) 的 `MERGE_INTO_LEDGER` 一节。
+详见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) 的「先做零步」一节，
+以及 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
 
 **复算方式**（翻转清单已入库，上修可被他人独立重推）：
 

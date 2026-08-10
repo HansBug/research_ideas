@@ -3,7 +3,7 @@
 ⚠️ **本文件的簇级数字由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 汇出，jsonl 是真源。**
 
 簇不是缺陷。同一个缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出，
-本文件把 293 簇按**根因**归并。逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)，
+本文件把 280 簇按**根因**归并（原 293 条中 13 条内容已被台账承载、按定义不属意外发现，见 §二）。逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)，
 结论与交叉表见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)。
 
 ## 一、✅ 真实台账漏记（4 条根因 / 23 簇）
@@ -17,17 +17,26 @@
 [V46_UNEXPECTED_ADJUDICATION.md §三](./V46_UNEXPECTED_ADJUDICATION.md) 与
 [unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv)。
 
-## 二、🔗 内容已被台账承载（13 簇）
+## 二、🔗 内容已被台账承载者：**不属意外发现，已移出分母**
 
-⚠️ **本类不等于命中。** 13 条按对命中的影响分四类：真漏配 1（`0037-1`，4 格已补回）、冗余复述 6、同根但该格未建立记录 6、判错 1（`0007-1` 已改判 `NO_NL_BASIS`，故不在这 13 条内）。详见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) 的 `MERGE_INTO_LEDGER` 一节。
+原 293 条中的 13 条经复核确认与现有台账记录**同根**，按定义不是意外发现，
+已物理移出到 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
+**本文件其余各节的分母是 280。**
 
-**这些不是漏记，是匹配环节的问题**：台账已有该缺陷，但产出换了个谓词或换了个命名，
-按签名归并的匹配器就对不上了。典型是 `terminates` → `persists_until`。
+⚠️ 它们此前被做成第六个裁定类别 `MERGE_INTO_LEDGER`，那是分类错误——
+该问题回答的是「这条产出该不该在桶里」，与其余五类回答的「这条产出是什么」不是同一个问题。
+该标签已作废，`rebuild_unexpected.py` 见到即报错。
 
-**逐条清单见 [unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv)**（由 `rebuild_unexpected.py` 从 jsonl 真源生成，不手工维护——本目录曾因手写此表四次出错）。
+13 条按**对命中的影响**分四类（`disposition` 字段）：
 
-并入目标与理由写在各簇 jsonl 的 `note` 字段，渲染在 [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)。
+| disposition | 条数 | 含义 |
+| :-- | --: | :-- |
+| 真漏配 | 1 | `0037-1`，对应 4 个格位原判未命中，已逐格复核翻转并入命中侧 |
+| 冗余复述 | 6 | 目标记录在全部格已由同格另一条 issue 认领，无格可翻 |
+| 同根但该格未建立记录 | 3 | 逐格复核维持未命中 |
+| 报的是已退役判据 | 3 | `0050-2/3/4`——台账 `basis_superseded_by_ruling` 明写原判据已放弃 |
 
+**移出 ≠ 记命中**：13 条里只有 1 条产生了新增命中（+4 位，`hit@1` 360→364）。
 
 ## 三、⚙️ 表示债务（4 个子类 / 129 簇）
 
