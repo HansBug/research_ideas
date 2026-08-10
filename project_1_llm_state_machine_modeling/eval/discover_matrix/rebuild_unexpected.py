@@ -77,7 +77,8 @@ def load() -> list[dict]:
             if not line.strip():
                 continue
             record = json.loads(line)
-            for field in ("cluster", "verdict", "fact", "nl"):
+            for field in ("cluster", "verdict", "fact", "nl", "subclass",
+                          "merge_key", "merge_reason"):
                 if not (record.get(field) or "").strip():
                     raise SystemExit(f"{path.name}:{lineno} 缺字段 {field}：{record.get('cluster')}")
             verdict = record["verdict"]
@@ -132,11 +133,11 @@ def write_tsvs(rows: list[dict]) -> None:
     with (VERDICTS / "cluster_index.tsv").open("w") as fh:
         w = csv.writer(fh, delimiter="\t")
         w.writerow(["cluster", "pair", "verdict", "subclass", "merge_key",
-                    "cells_of_6", "predicate_families", "judged_by"])
+                    "merge_size", "cells_of_6", "predicate_families", "judged_by"])
         for r in sorted(rows, key=lambda r: r["cluster"]):
             w.writerow([r["cluster"], r["cluster"][:4], r["verdict"],
-                        r.get("subclass", ""), r.get("merge_key", ""), r["_cells"],
-                        "|".join(r["_fams"]), r["_group"]])
+                        r["subclass"], r["merge_key"], r.get("merge_size", 1),
+                        r["_cells"], "|".join(r["_fams"]), r["_group"]])
 
     by_pair: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
     for r in rows:
@@ -204,6 +205,38 @@ def _distinct(rows: list[dict]) -> int:
     return len({r.get("merge_key") or r["cluster"] for r in rows})
 
 
+def write_merge_groups(rows: list[dict]) -> None:
+    """合并审计表：**每个 merge_key 一行**，可直接与 `cluster_index.tsv` 的同名列 join。
+
+    这张表回答的是「**为什么这几条被判成同一件事**」——去重是把分母改小的操作，
+    改小分母必须能被复核，否则「129 条其实只有 27 处」这句话无从验证。
+    因此每组都带一句自然语言 `merge_reason`，单成员组也写明「单条，无合并」，
+    不留空——空值与「没写理由」在表里长得一样。
+    """
+
+    groups: dict[str, list[dict]] = collections.defaultdict(list)
+    for r in rows:
+        groups[r["merge_key"]].append(r)
+    with (VERDICTS / "merge_groups.tsv").open("w") as fh:
+        w = csv.writer(fh, delimiter="\t")
+        w.writerow(["merge_key", "verdict", "subclass", "pair", "成员数",
+                    "成员簇", "累计格次", "merge_reason"])
+        for key, group in sorted(groups.items()):
+            members = sorted(r["cluster"] for r in group)
+            w.writerow([key, group[0]["verdict"], group[0]["subclass"],
+                        group[0]["cluster"][:4], len(group), " ".join(members),
+                        sum(r["_cells"] for r in group), group[0]["merge_reason"]])
+    spanning = [
+        k for k, g in groups.items()
+        if len({r["verdict"] for r in g}) > 1 or len({r["subclass"] for r in g}) > 1
+        or len({r["cluster"][:4] for r in g}) > 1
+    ]
+    if spanning:
+        raise SystemExit(
+            f"merge_key 跨了 verdict / subclass / pair，去重单元被破坏：{spanning}"
+        )
+
+
 def write_subclass_table(rows: list[dict]) -> None:
     """表 C 的机器可读版，含**两套分母**。
 
@@ -253,10 +286,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {LABEL[k]:16} {counts[k]:>6} {counts[k] / len(rows):>7.1%} "
               f"{d:>6} {d / total_distinct:>7.1%} {len(group) / d:>6.2f}")
 
-    missing_key = [r["cluster"] for r in rows if not r.get("merge_key")]
-    if missing_key:
-        print(f"\n⚠️ {len(missing_key)} 条缺 merge_key，已各自单独计一个去重单元"
-              f"（去重数因此偏大、比值偏小）：{missing_key[:8]}", file=sys.stderr)
+
 
     if args.check:
         print("\n✅ --check 模式，未写盘")
@@ -264,8 +294,9 @@ def main(argv: list[str] | None = None) -> int:
 
     write_tsvs(rows)
     write_subclass_table(rows)
+    write_merge_groups(rows)
     write_evidence(rows)
-    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / subclass_table.tsv / V46_UNEXPECTED_EVIDENCE.md")
+    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / subclass_table.tsv / merge_groups.tsv / V46_UNEXPECTED_EVIDENCE.md")
     print("⚠️ 正文里的表 A / 表 B / 表 C 与各处叙述数字仍需人工核对——本脚本不改正文。")
     return 0
 

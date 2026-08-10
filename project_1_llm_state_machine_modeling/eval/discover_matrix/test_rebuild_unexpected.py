@@ -37,7 +37,8 @@ def _seed(tmp: pathlib.Path, records: list[dict]) -> pathlib.Path:
 
 
 def _rec(cluster: str, verdict: str, **kw) -> dict:
-    base = {"cluster": cluster, "verdict": verdict, "fact": "某事实", "nl": "某 NL 依据"}
+    base = {"cluster": cluster, "verdict": verdict, "fact": "某事实", "nl": "某 NL 依据",
+            "subclass": "X1", "merge_key": f"{cluster[:4]}-某根因", "merge_reason": "单条，无合并。"}
     base.update(kw)
     return base
 
@@ -45,9 +46,9 @@ def _rec(cluster: str, verdict: str, **kw) -> dict:
 @pytest.fixture()
 def wired(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> pathlib.Path:
     verdicts = _seed(tmp_path, [
-        _rec("0017-1", "VALID_UNRECORDED"),
-        _rec("0017-2", "REPRESENTATION_DEBT"),
-        _rec("0029-1", "NO_NL_BASIS"),
+        _rec("0017-1", "VALID_UNRECORDED", subclass="V1", merge_key="0017-三碰撞塌缩"),
+        _rec("0017-2", "REPRESENTATION_DEBT", subclass="D1", merge_key="0017-析取融合"),
+        _rec("0029-1", "NO_NL_BASIS", subclass="N-SPLIT", merge_key="0029-合取拆分"),
     ])
     monkeypatch.setattr(R, "VERDICTS", verdicts)
     monkeypatch.setattr(R, "HERE", tmp_path)
@@ -144,9 +145,9 @@ def test_dual_denominator_uses_merge_key(
     """同一 merge_key 的多条簇只算一个去重单元。"""
 
     verdicts = _seed(tmp_path, [
-        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
-        _rec("0029-2", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
-        _rec("0029-3", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
+        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量", merge_reason="三条同一处损失。"),
+        _rec("0029-2", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量", merge_reason="三条同一处损失。"),
+        _rec("0029-3", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量", merge_reason="三条同一处损失。"),
         _rec("0017-1", "VALID_UNRECORDED", subclass="V1", merge_key="0017-三碰撞检测塌缩"),
     ])
     monkeypatch.setattr(R, "VERDICTS", verdicts)
@@ -164,19 +165,53 @@ def test_dual_denominator_uses_merge_key(
     assert valid["条目数"] == "1" and valid["去重数"] == "1"
 
 
-def test_missing_merge_key_is_reported_not_silently_bucketed(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+def test_missing_merge_reason_fails(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """缺 merge_key 时兜底方向对我们有利（去重数偏大），所以必须响亮报出。"""
+    """去重是把分母改小的操作，必须能被复核——没写理由就不许合并。"""
+
+    rec = _rec("0029-1", "REPRESENTATION_DEBT")
+    rec["merge_reason"] = ""
+    verdicts = _seed(tmp_path, [rec])
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    with pytest.raises(SystemExit, match="缺字段 merge_reason"):
+        R.main([])
+
+
+def test_merge_key_may_not_span_verdict_or_pair(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """同一个 merge_key 跨 verdict / subclass / pair，说明去重单元被破坏。"""
 
     verdicts = _seed(tmp_path, [
-        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1"),
-        _rec("0029-2", "REPRESENTATION_DEBT", subclass="D1"),
+        _rec("0029-1", "REPRESENTATION_DEBT", merge_key="共用key"),
+        _rec("0019-1", "NO_NL_BASIS", merge_key="共用key"),
+    ])
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    with pytest.raises(SystemExit, match="去重单元被破坏"):
+        R.main([])
+
+
+def test_merge_groups_table_is_emitted_and_joinable(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """merge_groups.tsv 的 merge_key 必须能与 cluster_index.tsv 的同名列 join 上。"""
+
+    verdicts = _seed(tmp_path, [
+        _rec("0029-1", "REPRESENTATION_DEBT", merge_key="0029-零作者变量", merge_reason="两条同源。"),
+        _rec("0029-2", "REPRESENTATION_DEBT", merge_key="0029-零作者变量", merge_reason="两条同源。"),
     ])
     monkeypatch.setattr(R, "VERDICTS", verdicts)
     monkeypatch.setattr(R, "HERE", tmp_path)
     R.main([])
-    assert "缺 merge_key" in capsys.readouterr().err
+    groups = list(csv.DictReader((tmp_path / "unexpected_verdicts" / "merge_groups.tsv").open(), delimiter="\t"))
+    index = list(csv.DictReader((tmp_path / "unexpected_verdicts" / "cluster_index.tsv").open(), delimiter="\t"))
+    assert {g["merge_key"] for g in groups} == {r["merge_key"] for r in index}
+    row = groups[0]
+    assert row["成员数"] == "2" and row["成员簇"] == "0029-1 0029-2"
+    assert row["merge_reason"] == "两条同源。"
 
 
 def test_merge_key_does_not_cross_pairs(

@@ -72,7 +72,8 @@ v46 的八个独立判定组里有七组栽在这一点上。
 `G1`–`G8.jsonl`（八个判定组逐簇裁定）、`VERIFY.jsonl`（回读原件复核）、
 `cluster_index.tsv`（280 簇 × 裁定 × 稳定性 × 谓词族 × 判定组）、
 `ledger_accounted.jsonl`（13 条内容已被台账承载者，**不进意外发现分母**）、
-`by_pair.tsv`、`final_rootcause.tsv`。
+`by_pair.tsv`、`final_rootcause.tsv`、`subclass_table.tsv`（子类双分母）、
+`merge_groups.tsv`（**去重审计**：每组的成员、累计格次与自然语言合并理由，`merge_key` 可 join）。
 
 **谓词词表在本轮裁定后保持不动**——失真源在编译不在谓词，理由见
 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 表 B 下方。

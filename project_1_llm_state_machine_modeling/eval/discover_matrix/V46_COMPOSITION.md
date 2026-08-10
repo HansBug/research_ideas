@@ -12,6 +12,34 @@
 - **去重数**：不同 `merge_key` 的个数，去重单元 = `(pair, 根因)`。
   同 pair 同一处失误合并计 1；**不同 pair 即使类型相同也不合并**（不同制品上的不同实例）。
 
+## ⛔ 去重可审计：每一次合并都有理由
+
+去重把分母改小，**改小分母必须能被复核**——否则「129 条其实只有 27 处」这句话无从验证。
+因此每个 `merge_key` 组都带一句自然语言 `merge_reason`，单成员组也写明「单条，无合并」，
+**不留空**（空值与「没写理由」在表里长得一样）。
+
+**审计入口**：[unexpected_verdicts/merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)
+—— 119 组，字段 `merge_key | verdict | subclass | pair | 成员数 | 成员簇 | 累计格次 | merge_reason`。
+`merge_key` 列可直接与 [cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) 的同名列 **join**，
+逐簇追到它属于哪一组、为什么被判为重复。
+
+**42 个多成员组、77 个单成员组。** 合并规模前八：
+
+| merge_key | 大类 | 子类 | 成员数 |
+| :-- | :-- | :-- | --: |
+| `0029-作者量与条件不可寻址` | REPRESENTATION_DEBT | `D2` | 11 |
+| `0019-作者量与条件不可寻址` | REPRESENTATION_DEBT | `D2` | 10 |
+| `0027-三碰撞检测融合` | REPRESENTATION_DEBT | `D1` | 10 |
+| `0039-碰撞激活四路析取融合` | REPRESENTATION_DEBT | `D1` | 9 |
+| `0009-碰撞激活四路析取融合` | REPRESENTATION_DEBT | `D1` | 8 |
+| `0016-攻击完成与UAV减量槽位焊死` | REPRESENTATION_DEBT | `D3` | 8 |
+| `0017-三碰撞检测塌缩为单一泛化事件` | NO_NL_BASIS | `N-SPLIT-PROSE` | 8 |
+| `0019-碰撞激活四路析取融合` | REPRESENTATION_DEBT | `D1` | 8 |
+
+⛔ **工具层三道硬门**（`rebuild_unexpected.py`）：`merge_key` / `merge_reason` / `subclass`
+任一缺失即 `SystemExit`；`merge_key` 跨 `verdict` / `subclass` / `pair` 即报「去重单元被破坏」。
+配套测试 13 项。
+
 ⚠️ **条目/去重比本身是数据**：比值高有两种解释——「该缺陷天然被多个谓词命中」（缺陷属性）
 与「产出侧在重复报同一件事」（产出质量问题）。**四个分析员独立判断，全部指向后者**，
 依据一致：膨胀集中在**同一个谓词**内部（`D1` 57 簇里 52 条是 `event_declared`；
