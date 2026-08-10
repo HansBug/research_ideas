@@ -11,13 +11,13 @@
 
 | 裁定 | 含义 | 簇数 |
 | :-- | :-- | --: |
-| ✅ 真漏记 | 事实成立 + NL 有依据 + 台账未记 | 26 |
-| 🔗 应并入台账 | 是已有台账记录换了个谓词，不计新增 | 14 |
-| ⚙️ 表示债务 | 作者源已表达，失真来自 R4.5 下沉，非模型缺陷 | 111 |
-| 📄 无 NL 依据 | 事实成立但 NL 不要求，属过度规定 | 90 |
-| ❌ 假阳性 | 断言所指元素其实存在，主张与制品相反 | 43 |
-| 🚫 越界 | 依赖正交并发 / 不变式，在 M 边界外 | 3 |
-| ❓ 待定 | 证据不足或仓库自身判据有张力 | 6 |
+| ✅ 真漏记 | — | 26 |
+| 🔗 应并入台账 | — | 14 |
+| ⚙️ 表示债务 | — | 111 |
+| 📄 无 NL 依据 | — | 90 |
+| ❌ 假阳性 | — | 43 |
+| 🚫 越界 | — | 4 |
+| ❓ 待定 | — | 5 |
 | | **合计** | **293** |
 
 ---
@@ -128,7 +128,7 @@
 
 - **事实**：CollisionAvoidance 的 named 串记录 [PlantUML concurrent region 0..3]：region1=AutomaticBraking+BrakingComplete、region2=SteeringControl+SteeringComplete、region3=AlertSystem+AlertComplete（region0 为空），作者确实写了三个非空并发区；谓词数的是 6 个直接子状态
 - **NL**：NL 3 只说 active mode 有 orthogonal regions 未给数；NL 1 的 'three' 指整张图而非 CollisionAvoidance 作用域
-- **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-1 同型
+- **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-6 同型 ｜【更正】原写「与 0027-1 同型」是失效引用：0027-1 实为融合事件（表示债务），pair 0027 的越界簇是 invariant 类的 0027-6。
 
 ## pair 0009 — 17 簇　`假阳性×16 表示债务×1`
 
@@ -1698,13 +1698,13 @@
 - **NL**：NL 4 『if the door is closed with zero time set』中 'zero time' 是烹饪时间量的一个取值，不是一个独立被跟踪的量；NL 5 要求跟踪的量是 cooking time（『the cooking time is displayed and updated』）
 - **说明**：断言把取值误当量。真正的缺口（无 cooking time 量、timer 启停与显示更新缺失）已由台账 EIS-0055-01 记录，故此处也不构成台账漏记
 
-## pair 0056 — 3 簇　`待定×1 无×1 假阳性×1`
+## pair 0056 — 3 簇　`越界×1 无×1 假阳性×1`
 
-**0056-1** ｜ ❓ 待定 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G6
+**0056-1** ｜ 🚫 越界 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G6
 
-- **事实**：SearchState 的直接非伪子态确为 5 个：Area1、Area2、Area3、NoIntercept、Intercepted；后两个连同自造事件 Intercept_Resolved 在 NL 中无任何出处
-- **NL**：NL 2 'it operates within three different state areas' 只枚举三个区域；NL 3 只要求被拦截即转 FormationAdjustment，未要求为拦截状态另建记账区
-- **说明**：⚠️ 判定有张力，需下游复核：0056 人工复核 diff#3 确把该拦截记账区判为 extra（过度规约）且认定它正是 EIS-0056-01 冲突的来源，先例 EIS-0032-02 也把过度规约升为台账条目；但同一复核的 diff#0 又写明『cardinality(scope=SearchState, count=3) 会因第二区域的两个状态而返回 false，这是谓词无法表达区域数的又一处缺口』，即把这次 False 归为谓词缺口。若按后者口径应降为 FALSE_POSITIVE ｜【主判终裁】仓库自身人工复核内部张力：diff#3 判 extra 过度规约，diff#0 又把 cardinality False 归为谓词缺口，待人工裁定
+- **事实**：作者源 stm0.puml:10 是正交区分隔符 `--`：SearchState 实为两个区，region0={Area1,Area2,Area3}、region1={NoIntercept,Intercepted}（model.fcstm:9 的 [PlantUML concurrent region 0/1] 标注逐字确认）。NL 2 的 three different state areas 由 region0 的三个 Area 兑现，义务在作者源上已满足；5≠3 只在 R4.5 把两区拍平成兄弟、跨区求和之后才出现。
+- **NL**：NL 2 'it operates within three different state areas' —— 按区数读，制品本已是三个
+- **说明**：【主判终裁 · 两个独立判定 agent 收敛】判 OUT_OF_SCOPE，与 0007-3 同型同判。判据：含正交区的制品上，cardinality 主张在 M 内成立当且仅当该违规在『区感知读法』下依然存活。该判据可证伪且先于本裁定存在——0037（源内无 --，7≠3 是单区真实计数）、0002（盈余是游离 InitialState）、0013（盈余是 NL 未枚举的克隆态）三处均按此判据保留在 M 内，方向对方法不利。原 diff#0 与 diff#3 并不真冲突：diff#0 问『三个区够不够』并自带 out_of_scope:concurrency，diff#3 问『多出的两个该不该在』且判 extra；产出主张把 diff#3 的结论挂到了 diff#0 已判无表达力的仪器上。该过度规约的可断言后果已由 EIS-0056-01（guard_distinguishable）承担，再计一条等于同一缺陷数两遍。
 
 **0056-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G6
 
