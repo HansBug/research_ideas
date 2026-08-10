@@ -37,7 +37,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 LED = json.loads((HERE / "manual_review" / "expected_issue_set.json").read_text())
 RUNS = HERE.parents[2] / "runs" / "paper1"
 # hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
-HOLD, REPORTABLE, BURNED_RECORDS, BURNED_PAIRS = set(), set(), {}, set()
+REPORTABLE: set = set()
 # EIS-0047-03 干净但被 initialization_anchored 门结构性封死（预注册 §9.1）。它若报未命中，
 # 那是门的抑制，不是能力缺口 —— 判定时必须看见这句话，否则会被记成未命中。
 BLOCKED = {"EIS-0047-03": "被 initialization_anchored 门封死（预注册 §9.1）：两条编码都绑 "
@@ -100,9 +100,7 @@ for rnd, base in rounds:
         if arm and this_arm != arm: continue
         shown += 1
         f = cell/"discover-completed.json"
-        if pair in BURNED_PAIRS: tag = "已烧毁-整格"
-        elif pair in HOLD: tag = "HOLDOUT"
-        else: tag = "hist"
+        tag = "可报" if any(r["id"] in REPORTABLE for r in expected(pair)) else "不进分母"
         if not f.exists():
             fail = cell/"discover-failed.json"
             print(f"\n{'='*100}\n{gen} run{rnd} {pair}-{this_arm} [{tag}]  ** {'FAILED: '+json.loads(fail.read_text()).get('error_type','?') if fail.exists() else 'IN PROGRESS'} **")
@@ -119,13 +117,12 @@ for rnd, base in rounds:
             print("-- 台账期望（可判定） --")
             for r in expected(pair):
                 rid = r["id"]
-                if rid in BURNED_RECORDS:
-                    elig = f"已烧毁 @ {BURNED_RECORDS[rid].get('since_commit','?')}，不作能力主张"
-                elif rid in REPORTABLE:
+                # 两种资格，见 build_gist 同处注释。
+                if rid in REPORTABLE:
                     elig = "★可报——承载能力主张"
                     if rid in BLOCKED: elig += f"，但 {BLOCKED[rid]}"
                 else:
-                    elig = "共演化观测"
+                    elig = "不进能力分母（NL 越界或边界裁定剔除）"
                 print(f"   {rid}  {r['layer']}/{r.get('direction')}  pred={r.get('primary_predicate')}  [{elig}]")
                 print(f"      {r['statement'][:LIM_LED]}")
         print(f"-- 模型产出（attribution: {[x.get('attribution_status') for x in iss]}） --")

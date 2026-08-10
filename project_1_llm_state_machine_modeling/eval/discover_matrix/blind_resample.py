@@ -61,7 +61,6 @@ OUT = HERE / "blind_sample"
 #: 四位 pair id 的任何出现形式，含 `EIS-0035-02` 与 `llms_emp_feedback_final_0035`。
 _LEAK = re.compile(r"\b\d{4}\b|EIS-|llms_emp_feedback_final")
 _BAND_WORDS = ("调优", "留出", "已烧毁", "可报", "hold-out", "holdout", "tuned", "burned")
-TUNED_PAIRS = ("0000", "0006", "0029", "0050")
 
 
 def _ledger() -> dict[str, dict]:
@@ -111,9 +110,10 @@ def _blind_output(pair: str, arm: str, rounds: int, generation: str = "v22") -> 
 
 
 def _band(pair: str, record_id: str, reportable: set[str]) -> str:
-    if pair in TUNED_PAIRS:
-        return "hist"
-    return "reportable" if record_id in reportable else "burned"
+    """两种资格，不是三种。分带随 hold-out 于 2026-08-09 一并废止。"""
+
+    del pair
+    return "reportable" if record_id in reportable else "out_of_scope"
 
 
 def _units_from_runs(generation: str, ledger: dict, reportable: set[str]) -> list[dict]:

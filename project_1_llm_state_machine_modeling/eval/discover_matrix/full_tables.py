@@ -49,7 +49,6 @@ if str(HERE) not in sys.path:
 import metrics_at_k as mak  # noqa: E402  —— 比率闸门的**唯一归属地**，不在此重实现
 
 RUNS = HERE.parents[2] / "runs" / "paper1"
-TUNED_PAIRS = ("0000", "0006", "0029", "0050")
 
 #: 「运行代理式主张」的**候选**指纹：闭词表无法把结构主张绑到瞬时伪状态（`Junction*`/`Join*`/
 #: `fork*`/`choice*`），产出方于是改用下游可占据后继。见 `HIT_CRITERION.md` §4.5。

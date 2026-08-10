@@ -121,14 +121,13 @@ def test_a_burned_cell_shows_its_records_with_the_burn_recorded(tmp_path) -> Non
     rows = json.loads(matches[0].read_text())["expected_records_for_judgment"]
     ids = {row["record"] for row in rows}
     assert "EIS-0032-02" in ids, rows
-    # ⚠️ 这条曾断言 `EIS-0032-02` 可报。v23 把它按动机烧毁了（`incumbent considered:` 约束的
-    # 实例表用了它 primary 绑定末段的元素名，且给出了真值判定），所以现在该格全部记录都是
-    # 已烧毁或共演化观测。**测试跟着资格走，不跟着某条记录走** —— 断言改成「每条记录都带明确
-    # 资格标注」，这才是这个包必须保证的东西。
+    # **测试跟着资格走，不跟着某条记录走** —— 断言是「每条记录都带明确资格标注」，
+    # 这才是这个包必须保证的东西。资格只剩两种：可报，或不进分母（NL 越界 / 边界裁定剔除）；
+    # 分带随 hold-out 于 2026-08-09 一并废止。
     for row in rows:
         assert row["eligibility"], row
         assert any(
-            marker in row["eligibility"] for marker in ("可报", "已烧毁", "共演化", "不可判定")
+            marker in row["eligibility"] for marker in ("可报", "越界", "边界裁定")
         ), row
 
 

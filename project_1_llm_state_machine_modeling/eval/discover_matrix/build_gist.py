@@ -275,7 +275,6 @@ def _eis_sha256() -> str:
 
 # hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
 _REPORTABLE = frozenset()
-_BURNED_RECORDS = {}
 
 
 def _round_tag(src: pathlib.Path) -> str:
@@ -324,16 +323,14 @@ def expected_records_for_judgment(rec) -> list[tuple[str, str, str]]:
         if str(record.get("pair", ""))[-4:] != pair:
             continue
         rid = str(record["id"])
-        if rid in _BURNED_RECORDS:
-            eligibility = f"已烧毁 @ {_BURNED_RECORDS[rid].get('since_commit', '?')}，不作能力主张"
-        elif rid in _REPORTABLE:
+        # 只剩两种资格。分带随 hold-out 于 2026-08-09 一并废止，「共演化观测」这个标签
+        # 不再有对应的对象——留着它只会把越界记录贴成「参与过规则编写」，而那是两回事。
+        if rid in _REPORTABLE:
             eligibility = "★可报——承载能力主张"
-        elif record.get("in_scope") is True and record.get(
-            "expressible_with_closed_vocabulary"
-        ) is True:
-            eligibility = "共演化观测"
+        elif record.get("boundary_ruling") == "out_of_scope":
+            eligibility = "边界裁定剔除（表示层产物而非作者缺陷），不进能力分母"
         else:
-            eligibility = "不可判定（超出问题定义边界或闭词表无法表达）"
+            eligibility = "NL 越界（00x8），先验不进网格也不进分母"
         rows.append((rid, str(record.get("layer") or "?"), eligibility))
     if not rows:
         rows.append(("（本 pair 在 EIS 台账里无记录）", "—", "—"))
