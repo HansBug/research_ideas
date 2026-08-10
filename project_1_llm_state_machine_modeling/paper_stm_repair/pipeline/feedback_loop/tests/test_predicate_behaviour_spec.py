@@ -118,6 +118,39 @@ FLAWED_SELF_LOOP = RICH.replace("    Idle -> Idle : /tick;\n", "")
 #: predicate collapsed "ignored" into "departed".
 TICK_LEAVES_IDLE = RICH.replace("    Idle -> Idle : /tick;\n", "    Idle -> Outer : /tick;\n")
 
+#: Nothing is consumed here, yet the configuration moves anyway: the chain
+#: `A1 -> A2 -> A3` carries completion edges, which fire on their own cycle.
+#: This is the shape that makes "unconsumed" and "unchanged" different facts.
+COMPLETION_CHAIN = """state Root {
+    event ping;
+    state Loop {
+        state A1;
+        state A2;
+        state A3;
+        [*] -> A1;
+        A1 -> A2;
+        A2 -> A3;
+    }
+    [*] -> Loop;
+}
+"""
+
+#: `other` is declared but consumed nowhere, so it reaches both refusals --
+#: `[*]` before any state is entered, and a composite subject -- without being
+#: consumed first.
+GATED = """state Root {
+    event go;
+    event other;
+    state Mode {
+        state Inner;
+        state Done;
+        [*] -> Inner;
+        Inner -> Done : /go;
+    }
+    [*] -> Mode : /go;
+}
+"""
+
 #: The model declares no variable of the author's own.
 NO_VARIABLES = """state Root {
     event go;
@@ -437,6 +470,32 @@ def test_stays_in_answers_occupancy_not_consumption():
     assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.done") is True
     # A trigger that genuinely moves the system is still not staying.
     assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.go") is False
+
+
+def test_stays_in_reads_the_run_not_the_consumption_flag():
+    """Unconsumed does not imply unchanged, and the gates apply either way.
+
+    Answering True on an unconsumed trigger -- the first attempt at the fix
+    above -- is wrong for the same reason answering False was: it substitutes a
+    flag for the run.  Completion and guard edges fire in the same cycle
+    whatever the trigger does, so a chain `A1 -> A2 -> A3` leaves `A1` behind
+    while nothing at all is consumed.  Measured on that shape, the flag-reading
+    version said True while `occupancy_after` said the state was gone -- two
+    predicates asserting opposite facts about one run.
+
+    The same shortcut sat above the `[*]` and composite refusals, so both fired
+    only when the trigger happened to be consumed.  On pair 0000, where no state
+    is entered until `Power_On` itself fires, `stays_in([*], <other event>)`
+    answered True instead of refusing -- and a composite binding, the mistake
+    the refusal exists to catch, passed silently.
+    """
+
+    assert call(COMPLETION_CHAIN, "event_consumed", source="Root.Loop.A1", trigger="Root.ping") is False
+    assert call(COMPLETION_CHAIN, "stays_in", source="Root.Loop.A1", trigger="Root.ping") is False
+
+    for source in ("[*]", "Root.Mode"):
+        with pytest.raises(UnsupportedEvidence):
+            call(GATED, "stays_in", source=source, trigger="Root.other")
 
 
 def test_event_consumed_separates_handled_from_ignored():

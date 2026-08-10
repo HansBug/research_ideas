@@ -367,8 +367,10 @@ the answer:
   `stays_in(source=X, trigger=<the event>)`. Its False is the finding -- the run leaves X's
   scope on that event, so nothing the sentence says happens within X can hold. The two are
   independently violable in one direction: a scope can consume the event and still exit.
-  (The reverse does not hold -- `stays_in` itself requires the trigger be consumed, so its
-  False adds nothing new when the parent is already False.)
+  (The reverse does not hold -- `stays_in` answers on occupancy alone, so when the parent
+  `event_consumed` is already False this one comes back True: nothing consumed the event,
+  so nothing moved. Read that True as "no residency violation", never as "the scope
+  reacted"; the parent's False is the finding there.)
   ⚠️ `stays_in` **refuses any composite**, not merely an inner one. When X is a composite --
   which it is in most conditional-activation sentences -- bind this second Requirement to the
   declared entry leaf of X, not to X; binding X makes the assertion raise instead of answer. This second one is what

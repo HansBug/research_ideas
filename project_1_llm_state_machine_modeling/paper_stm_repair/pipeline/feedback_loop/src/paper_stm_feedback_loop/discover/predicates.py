@@ -486,8 +486,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "stays_in",
         FAMILY_BEHAVIOR,
         "after this trigger the system remains in the same state",
-        "an event that should be ignored causes a transition; a required "
-        "self-loop is missing",
+        "an event that should be ignored causes a transition",
         ("source", "trigger"),
         "one bounded witness",
         "simulate(...) consumed_events and final.is_active(source)",
@@ -498,16 +497,17 @@ PREDICATES: tuple[Predicate, ...] = (
             "is, including a self-loop described in words. False means the model "
             "does move on that event, and that is the finding. When the sentence "
             "instead requires a response and the worry is that none exists, that is "
-            "event_consumed."
+            "event_consumed -- which is also where a missing self-loop shows up, since "
+            "this predicate cannot tell an ignored event from a declared one."
         ),
         field_specs=(
             ('source', 'the configuration that must not change'),
-            ('trigger', 'the declared event path; the predicate requires it be consumed AND the state unchanged'),
+            ('trigger', 'the declared event path; the predicate answers on occupancy alone -- whether the configuration still holds `source` after the trigger cycle, consumed or not'),
         ),
         examples=(
-            'stays_in(source="Sys.ModeA", trigger="Sys.noop")  # True only for a declared self-loop',
+            'stays_in(source="Sys.ModeA", trigger="Sys.noop")  # True whenever the run is still in ModeA afterwards',
             'stays_in(source="Sys.ModeA", trigger="Sys.evt")  # False when the event moves the system',
-            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # False when this declared event is simply ignored here, so no self-loop exists',
+            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # True when the event is simply ignored here -- ignoring is not leaving. Ask event_declared/event_consumed for the missing self-loop',
         ),
     ),
     Predicate(
@@ -672,7 +672,7 @@ PREDICATES: tuple[Predicate, ...] = (
         "premature exit from a state that must persist",
         ("state", "release", "bound"),
         "holds for every run up to the bound, and says nothing beyond it",
-        "fbmcq('check exists_always <= k: ...')",
+        "fbmcq('check invariant <= k' per release-frame case split; weak until)",
         "fbmcq",
         nl_index="a state is held CONTINUOUSLY until a later condition: \"remains ... until\", \"is maintained while\"",
         nl_cue=(

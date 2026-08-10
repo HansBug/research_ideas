@@ -1401,26 +1401,30 @@ class PredicateAPI:
         # question is asked from; here it states what is being claimed, so it is guarded.
         self._reject_transient_subject("stays_in", source=source)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
-        # ⛔ An ignored event is not a departure.
+        # ⛔ An ignored event is not a departure -- but consumption is not this
+        # predicate's business at all, so it is not consulted.
         #
-        # This used to `return False` whenever the trigger was not consumed, on
-        # the grounds that an ignored event otherwise looks like a declared
-        # self-loop.  It does -- but "no self-loop is declared" and "the machine
-        # left the state" are two different facts, and this predicate is asked
-        # the second one.  Collapsing them makes False unusable as evidence:
-        # measured on pair 0054, feeding `Reached_Cruising_Cruise` at
-        # `Approaching` gives `consumed=[] fired=[] active=[..., Approaching]`
-        # -- the machine did not move an inch, and the answer was False.  A
-        # published issue then claimed the run had left the state, which is the
-        # opposite of what the artifact does.
+        # Two spellings were wrong before this one, in opposite directions.
+        # Returning False whenever the trigger was unconsumed collapsed "no
+        # self-loop is declared" into "the machine left": measured on pair 0054,
+        # feeding `Reached_Cruising_Cruise` at `Approaching` gives
+        # `consumed=[] fired=[] active=[..., Approaching]` -- it did not move an
+        # inch, and the answer was False.  Returning True in that case is just as
+        # wrong, because "unconsumed" does not imply "unchanged": completion and
+        # guard edges fire in the same cycle regardless of the trigger.  Measured
+        # on a three-node completion chain `A1 -> A2 -> A3`, an unconsumed `ping`
+        # left `A1` inactive while this predicate answered True and
+        # `occupancy_after` answered False -- two predicates asserting opposite
+        # facts about one run.  That early return also sat *above* the `[*]` and
+        # composite gates below, so both only fired when the trigger happened to
+        # be consumed: `stays_in([*], other)` and `stays_in(<composite>, other)`
+        # answered True instead of refusing.
         #
-        # So: an unconsumed trigger means the configuration is unchanged, which
-        # is exactly what "stays in" asks about.  Answer on the occupancy.  The
-        # missing-self-loop question belongs to a predicate that asks it -- e.g.
-        # `event_consumed(source, trigger)`, which reports the same fact without
-        # mislabelling it as a departure.
-        if trigger not in self._consumed(view):
-            return True
+        # The occupancy comparison at the tail already answers the question for
+        # both cases: nothing moved -> `source` still active -> True.  The
+        # missing-self-loop question belongs to a predicate that asks it --
+        # `event_consumed(source, trigger)` behaviourally, `edge_declared`
+        # structurally.
         if source == PSEUDO_INITIAL:
             # The *deepest* state of the initial configuration, not its ancestry.
             # An observation reports the whole chain root..leaf, and the root is
@@ -1830,10 +1834,14 @@ class PredicateAPI:
         #
         # Correct bounded until, by case split on the frame where `release`
         # first holds.  For each k, assume it has not held before k, then require
-        # the obligation through k.  Every path is covered by exactly one k (its
-        # own first-release frame, or the last k when release never fires), and
-        # no query ever looks past that frame -- which is precisely the window
-        # the broken spelling overran.
+        # the obligation through k.  A path whose first release is at frame m is
+        # covered by every k <= min(m, N); the tightest is k = m, and no query
+        # looks past that frame -- which is precisely the window the broken
+        # spelling overran.  A path that releases at frame 0 satisfies no
+        # assumption and is left unconstrained, which is right: the obligation
+        # was discharged before it began.  This is *weak* until -- a run that
+        # never releases but never leaves the state answers True -- which is the
+        # only reading available under a bounded horizon.
         #
         # Rejected alternative: locate k with `check reach <= k: release`, then
         # `check invariant <= k-1`.  `reach` is existential and monotone in k, so
@@ -1841,12 +1849,28 @@ class PredicateAPI:
         # single k.  Also rejected: frame subscripts -- `active("S", 0)` parses
         # but the binder refuses it ("Frame-local predicates only allow
         # omitted/current frame selectors").
-        guard = f'{head}check reach <= {horizon}: !({release});'
-        if not self._formal_holds(guard):
-            # No run keeps `release` false, so every case-split query below is
-            # vacuously true.  Reporting True here would read "obligation met"
-            # when nothing was actually checked.
-            return False
+        #
+        # Also rejected: a vacuity guard `check reach <= N: !(release)` in front,
+        # returning False when no run keeps `release` false.  That condition says
+        # `release` holds at every frame of every run -- exactly the case whose
+        # answer is True -- so the guard only ever converted correct Trues into
+        # False.  Measured on a sink state whose release condition holds
+        # throughout: the invariant held, the guard refused, the predicate said
+        # False.  It also does not catch the vacuity it was written for, since an
+        # infeasible `assume` makes the engine exit without a stable result and
+        # `_formal_holds` turns that into `UnsupportedEvidence` -- a refusal to
+        # answer, never a silent True.
+        #
+        # One case the split still cannot decide: `release` already holds at
+        # frame 0 on every run.  Then every k >= 1 assumes something infeasible
+        # and the predicate refuses to answer, where the truth is True -- the
+        # obligation was discharged before the first step.  Settling frame 0
+        # separately would need `check invariant <= 0`, which the grammar
+        # rejects (bounds start at 1), and the alternative -- inferring
+        # "infeasible assumption" from the engine's non-terminal exit -- would
+        # rest on a failure message rather than on a verdict.  So this case is
+        # left as a refusal: a coverage gap per CLAUDE.md §10, never a wrong
+        # answer, and on such a model the until-claim asserts nothing anyway.
         for k in range(1, horizon + 1):
             assumptions = " ".join(f"assume at {j}: !({release});" for j in range(k))
             query = (
