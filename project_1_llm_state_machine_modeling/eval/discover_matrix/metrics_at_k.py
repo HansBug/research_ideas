@@ -108,15 +108,30 @@ def _all_record_ids() -> tuple[str, ...]:
 
 
 def _out_of_scope_record_ids() -> tuple[str, ...]:
-    """NL 越界（`00x8`）记录 —— 不进分母，也不算「缺失」。"""
+    """不进分母的记录：NL 越界（`00x8`）+ 台账已裁定 `boundary_ruling: out_of_scope` 的。
 
-    excluded = set(nl_scope_filter.excluded_pairs())
+    两个来源，都必须扣，且都不算「缺失」：
+
+    1. **NL 越界**：`00x8` 六个 pair 的规约要求 fork/join 与秒级时间约束，忠实模型在
+       $M$ 中无法表示（NL_SCOPE_RULE.md）。
+    2. **逐条边界裁定**：台账记录自带 `boundary_ruling`，`out_of_scope` 者由独立裁定
+       判为「表示层产物而非作者缺陷」，其 `boundary_effect` 明写「从能力分母剔除」。
+
+    ⚠️ 第 2 条一度**没有被执行**：本模块原先只看 `pair`，而台账的 `in_scope` 字段对
+    126 条全为 `True`（它记的不是这件事），于是 `EIS-0043-02` 虽被裁定剔除却仍进了分母，
+    v46 首份报告的 `hit@1` 因此偏高 0.4pp。裁定写在数据里而工具不读，等于没裁定 ——
+    所以这里直接读 `boundary_ruling`，而不是依赖任何人记得手工扣。
+    """
+
+    excluded_pairs = set(nl_scope_filter.excluded_pairs())
     payload = json.loads(LEDGER.read_text())
-    return tuple(
-        str(record["id"])
-        for record in (payload.get("records") or ())
-        if str(record.get("pair", "")) in excluded
-    )
+    out: list[str] = []
+    for record in payload.get("records") or ():
+        if str(record.get("pair", "")) in excluded_pairs:
+            out.append(str(record["id"]))
+        elif record.get("boundary_ruling") == "out_of_scope":
+            out.append(str(record["id"]))
+    return tuple(out)
 
 
 OUT_OF_SCOPE = _out_of_scope_record_ids()

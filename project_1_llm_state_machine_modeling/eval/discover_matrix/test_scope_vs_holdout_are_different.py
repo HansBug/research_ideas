@@ -29,20 +29,48 @@ import nl_scope_filter as N  # noqa: E402
 
 
 def test_the_denominator_excludes_out_of_scope_records() -> None:
-    """分母 = 台账全部 − NL 越界。99 而不是 126。"""
+    """分母 = 台账全部 − NL 越界 − 逐条边界裁定。98 而不是 126。
 
-    assert len(M.OUT_OF_SCOPE) == 27
-    assert len(M.REPORTABLE) == 99
+    27 条 NL 越界（`00x8`）+ 1 条 `boundary_ruling: out_of_scope`（`EIS-0043-02`，
+    独立裁定判为表示层产物、`boundary_effect` 明写「从能力分母剔除」）。
+    """
+
+    assert len(M.OUT_OF_SCOPE) == 28
+    assert len(M.REPORTABLE) == 98
     assert len(M.REPORTABLE) + len(M.OUT_OF_SCOPE) == len(M._all_record_ids())
     assert not set(M.REPORTABLE) & set(M.OUT_OF_SCOPE)
 
 
-def test_out_of_scope_is_exactly_the_00x8_family() -> None:
-    """越界集由 NL 判定导出，不是手写的 id 清单 —— 手写清单会和 nl_scope_filter 漂移。"""
+def test_out_of_scope_is_exactly_the_00x8_family_plus_ruled_records() -> None:
+    """越界集由 NL 判定 + 台账裁定共同导出，不是手写 id 清单（手写会与两个来源漂移）。"""
 
     assert N.excluded_pairs() == ["0008", "0018", "0028", "0038", "0048", "0058"]
-    pairs = {record[4:8] for record in M.OUT_OF_SCOPE}
-    assert pairs == set(N.excluded_pairs())
+    nl_side = {r for r in M.OUT_OF_SCOPE if r[4:8] in set(N.excluded_pairs())}
+    assert len(nl_side) == 27
+    ruled = set(M.OUT_OF_SCOPE) - nl_side
+    assert ruled == {"EIS-0043-02"}, ruled
+
+
+def test_a_boundary_ruling_in_the_ledger_is_actually_honoured() -> None:
+    """裁定写在数据里而工具不读，等于没裁定。
+
+    `EIS-0043-02` 的 `boundary_effect` 明写「从能力分母剔除」，而 `in_scope` 字段对
+    126 条全为 True（它记的不是这件事）。工具原先只按 pair 扣，于是这条虽被裁定却仍
+    进了分母 —— v46 首份报告的 hit@1 因此偏高 0.4pp。
+    """
+
+    import json
+    import pathlib
+
+    payload = json.loads(pathlib.Path(M.LEDGER).read_text())
+    ruled = [r for r in payload["records"] if r.get("boundary_ruling") == "out_of_scope"]
+    assert ruled, "台账里应存在被裁定越界的记录，否则本测试测不到东西"
+    for record in ruled:
+        assert record["id"] not in set(M.REPORTABLE), (
+            f'{record["id"]} 被裁定 out_of_scope 却仍在分母内'
+        )
+        # 该记录的 in_scope 仍为 True —— 正是不能依赖它的原因。
+        assert record.get("in_scope") is True
 
 
 def test_a_missing_in_scope_record_is_still_refused() -> None:
