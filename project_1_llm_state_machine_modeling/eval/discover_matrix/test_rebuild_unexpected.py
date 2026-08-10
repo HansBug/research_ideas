@@ -28,7 +28,7 @@ import rebuild_unexpected as R  # noqa: E402
 
 
 def _seed(tmp: pathlib.Path, records: list[dict]) -> pathlib.Path:
-    verdicts = tmp / "unexpected_verdicts"
+    verdicts = tmp / "v46" / "unexpected_verdicts"
     verdicts.mkdir(parents=True, exist_ok=True)
     (verdicts / "G1.jsonl").write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in records)
@@ -74,7 +74,7 @@ def test_retired_labels_are_rejected_not_rendered(
     with pytest.raises(SystemExit, match=match):
         R.main([])
     # 关键：拒绝时不得留下半成品派生物，否则下游会读到只重建了一半的表。
-    assert not (tmp_path / "V46_UNEXPECTED_EVIDENCE.md").exists()
+    assert not (tmp_path / "v46" / "unexpected_evidence.md").exists()
 
 
 def test_all_derived_artifacts_are_rebuilt_together(wired: pathlib.Path) -> None:
@@ -82,8 +82,8 @@ def test_all_derived_artifacts_are_rebuilt_together(wired: pathlib.Path) -> None
 
     assert R.main([]) == 0
     for name in ("cluster_index.tsv", "by_pair.tsv", "final_rootcause.tsv"):
-        assert (wired / "unexpected_verdicts" / name).is_file(), name
-    assert (wired / "V46_UNEXPECTED_EVIDENCE.md").is_file()
+        assert (wired / "v46" / "unexpected_verdicts" / name).is_file(), name
+    assert (wired / "v46" / "unexpected_evidence.md").is_file()
 
 
 def test_verdicts_pass_through_untouched(wired: pathlib.Path) -> None:
@@ -92,7 +92,7 @@ def test_verdicts_pass_through_untouched(wired: pathlib.Path) -> None:
     R.main([])
     index = {
         row["cluster"]: row["verdict"]
-        for row in csv.DictReader((wired / "unexpected_verdicts" / "cluster_index.tsv").open(), delimiter="\t")
+        for row in csv.DictReader((wired / "v46" / "unexpected_verdicts" / "cluster_index.tsv").open(), delimiter="\t")
     }
     assert index == {
         "0017-1": "VALID_UNRECORDED",
@@ -105,7 +105,7 @@ def test_evidence_covers_every_cluster(wired: pathlib.Path) -> None:
     """逐簇证据不许抽样——少一簇，那一簇的判据就没人能复核。"""
 
     R.main([])
-    text = (wired / "V46_UNEXPECTED_EVIDENCE.md").read_text()
+    text = (wired / "v46" / "unexpected_evidence.md").read_text()
     for cluster in ("0017-1", "0017-2", "0029-1"):
         assert f"**{cluster}**" in text, cluster
 
@@ -136,7 +136,7 @@ def test_unknown_verdict_label_fails(
 
 def test_check_mode_does_not_write(wired: pathlib.Path) -> None:
     assert R.main(["--check"]) == 0
-    assert not (wired / "V46_UNEXPECTED_EVIDENCE.md").exists()
+    assert not (wired / "v46" / "unexpected_evidence.md").exists()
 
 
 def test_dual_denominator_uses_merge_key(
@@ -156,7 +156,7 @@ def test_dual_denominator_uses_merge_key(
     rows = {
         (r["verdict"], r["subclass"]): r
         for r in csv.DictReader(
-            (tmp_path / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t"
+            (tmp_path / "v46" / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t"
         )
     }
     debt = rows[("REPRESENTATION_DEBT", "D1")]
@@ -206,8 +206,8 @@ def test_merge_groups_table_is_emitted_and_joinable(
     monkeypatch.setattr(R, "VERDICTS", verdicts)
     monkeypatch.setattr(R, "HERE", tmp_path)
     R.main([])
-    groups = list(csv.DictReader((tmp_path / "unexpected_verdicts" / "merge_groups.tsv").open(), delimiter="\t"))
-    index = list(csv.DictReader((tmp_path / "unexpected_verdicts" / "cluster_index.tsv").open(), delimiter="\t"))
+    groups = list(csv.DictReader((tmp_path / "v46" / "unexpected_verdicts" / "merge_groups.tsv").open(), delimiter="\t"))
+    index = list(csv.DictReader((tmp_path / "v46" / "unexpected_verdicts" / "cluster_index.tsv").open(), delimiter="\t"))
     assert {g["merge_key"] for g in groups} == {r["merge_key"] for r in index}
     row = groups[0]
     assert row["成员数"] == "2" and row["成员簇"] == "0029-1 0029-2"
@@ -228,7 +228,7 @@ def test_merge_key_does_not_cross_pairs(
     R.main([])
     row = next(
         r for r in csv.DictReader(
-            (tmp_path / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t")
+            (tmp_path / "v46" / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t")
         if r["subclass"] == "D1"
     )
     assert row["条目数"] == "2" and row["去重数"] == "2" and row["涉及pair数"] == "2"

@@ -191,7 +191,9 @@ def write_evidence(rows: list[dict]) -> None:
             if (r.get("note") or "").strip():
                 out.append(f"- **说明**：{r['note']}")
             out.append("")
-    (HERE / "v46" / "unexpected_evidence.md").write_text("\n".join(out))
+    target = HERE / "v46" / "unexpected_evidence.md"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("\n".join(out))
 
 
 def _distinct(rows: list[dict]) -> int:
