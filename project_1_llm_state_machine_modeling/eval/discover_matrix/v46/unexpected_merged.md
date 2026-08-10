@@ -3,7 +3,7 @@
 ⚠️ **本文件的簇级数字由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 汇出，jsonl 是真源。**
 
 簇不是缺陷。同一个缺陷会以不同谓词、不同命名、不同 roll-up 粒度反复产出，
-本文件把 280 簇按**根因**归并（原 293 条中 13 条内容已被台账承载、按定义不属意外发现，见 §二）。逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)，
+本文件把 278 簇按**根因**归并（原 293 条中 13 条内容已被台账承载、按定义不属意外发现，见 §二）。逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)，
 结论与交叉表见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)。
 
 ## 一、✅ 真实台账漏记（4 条根因 / 23 簇）
@@ -25,13 +25,11 @@
 
 ⚠️ 它们此前被做成第六个裁定类别 `MERGE_INTO_LEDGER`，那是分类错误——
 该问题回答的是「这条产出该不该在桶里」，与其余五类回答的「这条产出是什么」不是同一个问题。
-该标签已作废，`rebuild_unexpected.py` 见到即报错。
 
 13 条按**对命中的影响**分四类（`disposition` 字段）：
 
 | disposition | 条数 | 含义 |
 | :-- | --: | :-- |
-| 真漏配 | 1 | `0037-1`，对应 4 个格位原判未命中，已逐格复核翻转并入命中侧 |
 | 冗余复述 | 6 | 目标记录在全部格已由同格另一条 issue 认领，无格可翻 |
 | 同根但该格未建立记录 | 3 | 逐格复核维持未命中 |
 | 报的是已退役判据 | 3 | `0050-2/3/4`——台账 `basis_superseded_by_ruling` 明写原判据已放弃 |
@@ -48,8 +46,6 @@
 | `D1` 守卫文本未成为变量声明 | 45 | 0000 0009 0010 0016 0019 0020 0029 0030 0036 0046 0049 0050 0059 | `front_distance > 10` 写在守卫里；PlantUML 无变量声明语法 |
 | `D3` `trigger / effect` 未切分 | 9 | 0016 0036 0046 | `Attack Complete / UAV Count Decreased` |
 | `D4` 注入伪态 / 区语义偏移 | 2 | 0027 0043 | 作者写了合法的区内 `[*]`，R4.5 另注入 `UnspecifiedInitial` |
-
-
 
 ## 四、其余非发现（128 簇）
 

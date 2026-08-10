@@ -40,13 +40,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 VERDICTS = HERE / "v46" / "unexpected_verdicts"
 SEEDS = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
 
-#: 六类裁定。⛔ 没有第七类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
+#: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
 ORDER = (
     "VALID_UNRECORDED",
     "REPRESENTATION_DEBT",
     "NO_NL_BASIS",
     "FALSE_POSITIVE",
-    "PREDICATE_ARTIFACT",
     "OUT_OF_SCOPE",
 )
 LABEL = {
@@ -54,7 +53,6 @@ LABEL = {
     "REPRESENTATION_DEBT": "⚙️ 表示债务",
     "NO_NL_BASIS": "📄 无 NL 依据",
     "FALSE_POSITIVE": "❌ 假阳性",
-    "PREDICATE_ARTIFACT": "🔧 谓词产物",
     "OUT_OF_SCOPE": "🚫 越界",
 }
 
@@ -87,7 +85,7 @@ def load() -> list[dict]:
                     f"{record['cluster']} 用了已作废的标签 {verdict}：{RETIRED[verdict]}"
                 )
             if verdict not in ORDER:
-                raise SystemExit(f"{record['cluster']} 的裁定 {verdict} 不在六类内")
+                raise SystemExit(f"{record['cluster']} 的裁定 {verdict} 不在五类内")
             record["_group"] = path.stem
             rows.append(record)
     seen = collections.Counter(r["cluster"] for r in rows)
@@ -169,9 +167,9 @@ def write_evidence(rows: list[dict]) -> None:
         by_pair[r["cluster"][:4]].append(r)
     out = [
         "# v46 意外发现逐簇判据（全 %d 条）" % len(rows), "",
-        "[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件。",
-        "裁定口径见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)。", "",
-        "⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`rebuild_unexpected.py`），jsonl 是真源。**",
+        "[unexpected_adjudication.md](./unexpected_adjudication.md) 的证据附件。",
+        "裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。", "",
+        "⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`../rebuild_unexpected.py`），jsonl 是真源。**",
         "改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。", "",
         "| 裁定 | 簇数 |", "| :-- | --: |",
     ]

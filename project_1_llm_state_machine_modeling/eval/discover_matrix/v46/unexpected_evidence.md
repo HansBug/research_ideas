@@ -1,20 +1,19 @@
-# v46 意外发现逐簇判据（全 280 条）
+# v46 意外发现逐簇判据（全 278 条）
 
-[V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md) 的证据附件。
+[unexpected_adjudication.md](./unexpected_adjudication.md) 的证据附件。
 裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
 
-⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`rebuild_unexpected.py`），jsonl 是真源。**
+⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`../rebuild_unexpected.py`），jsonl 是真源。**
 改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。
 
 | 裁定 | 簇数 |
 | :-- | --: |
 | ✅ 真漏记 | 1 |
 | ⚙️ 表示债务 | 129 |
-| 📄 无 NL 依据 | 115 |
+| 📄 无 NL 依据 | 116 |
 | ❌ 假阳性 | 22 |
-| 🔧 谓词产物 | 3 |
 | 🚫 越界 | 10 |
-| **合计** | **280** |
+| **合计** | **278** |
 
 ---
 
@@ -24,7 +23,7 @@
 
 - **事实**：制品把量与阈值一起压进事件名：event front_distance_10 named 'front_distance > 10'，并以 HumanDrivingMode -> AutonomousMode : /front_distance_10 使用；全模型除工具生成的 def int R45RouteToken 外无任何变量声明
 - **NL**：NL 第 4 句逐字写 'when front_distance > 10'，是显式的量加数值阈值，而非信号名
-- **说明**：变量 V 在 M 边界内；与台账 EIS-0000-02（三个接管条件被压成单一事件标签 Human_Steering_Cmd_Brake_Pressed_in_AutoFinal）同缺陷家族，台账枚举了事件融合却未枚举变量被压入事件名这一条 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：变量 V 在 M 边界内；与台账 EIS-0000-02（三个接管条件被压成单一事件标签 Human_Steering_Cmd_Brake_Pressed_in_AutoFinal）同缺陷家族，台账枚举了事件融合却未枚举变量被压入事件名这一条。
 
 ## pair 0002 — 2 簇　`无×2`
 
@@ -100,7 +99,7 @@
 
 - **事实**：根 scope 直接子为 CollisionDetection / CollisionAvoidance / OperationalControls / InitialState 共 4 个，issue 四者并列枚举、未指认哪一个多余。与 0037 的关键差别：InitialState 在 model.fcstm:59 有**独立 state 声明**，`[*] -> InitialState`（:62）是**另一条语句**，二者可各自变动；而 0037 的三个死端叶在 stm0.puml 中无独立声明。
 - **NL**：NL 1「There are three region in this diagram」未规定根直接子恰为 3；且台账自陈 Phase-I 中 InitialState 在根层「语义连通」，其出现在根层本身不是缺陷
-- **说明**：【逐格复核改判】原判 MERGE_INTO_LEDGER 不成立。A 组 8 格裁定：「根层多一个子」与「初始迁移落在死端」是同一元素上的**两处不同失误**——保留 4 个根子但让 InitialState 带出边，台账缺陷即消失而本主张仍为 False；删掉 OperationalControls 使计数变 3，则 `[*] -> InitialState` 分毫未动而台账缺陷完整保留。落 NO_NL_BASIS：计数义务本身无 NL 依据。
+- **说明**：A 组 8 格裁定：「根层多一个子」与「初始迁移落在死端」是同一元素上的**两处不同失误**——保留 4 个根子但让 InitialState 带出边，台账缺陷即消失而本主张仍为 False；删掉 OperationalControls 使计数变 3，则 `[*] -> InitialState` 分毫未动而台账缺陷完整保留。落 NO_NL_BASIS：计数义务本身无 NL 依据。
 
 **0007-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G7
 
@@ -112,7 +111,7 @@
 
 - **事实**：CollisionAvoidance 的 named 串记录 [PlantUML concurrent region 0..3]：region1=AutomaticBraking+BrakingComplete、region2=SteeringControl+SteeringComplete、region3=AlertSystem+AlertComplete（region0 为空），作者确实写了三个非空并发区；谓词数的是 6 个直接子状态
 - **NL**：NL 3 只说 active mode 有 orthogonal regions 未给数；NL 1 的 'three' 指整张图而非 CollisionAvoidance 作用域
-- **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-6 同型 ｜【更正】原写「与 0027-1 同型」是失效引用：0027-1 实为融合事件（表示债务），pair 0027 的越界簇是 invariant 类的 0027-6。
+- **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-6 同型。
 
 ## pair 0009 — 17 簇　`表示债务×14 无×3`
 
@@ -120,103 +119,103 @@
 
 - **事实**：路径里有 pedestrian_detected_dist_to_rear_5_vel_30_... 这一融合事件，独立的 pedestrian_detected 确不存在
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
-- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举。
 
 **0009-2** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_rear<5 && vel>30 是上述融合事件 named 串的第二个析取支，作者在 stm0.puml 的 collision_avoidance_deactive --> collision_avoidance_active 守卫里逐字写出
 - **NL**：NL 12 把它列为 'or' 备选之一，未要求独立事件声明
-- **说明**：与簇 0009-1 同源；同属 opaque_transition_label_semantics 表示债务 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0009-1 同源；同属 opaque_transition_label_semantics 表示债务。
 
 **0009-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_front<15 && high_way=true 是该融合事件 named 串的第三个析取支（注意路径里的 dist_to_front_15_extra_lane_true 是 NL 7/9 的城区变道条件，属另一条边），作者源已逐字表达
 - **NL**：NL 12 'the front distance being less than 15 meters in highway mode' 为 'or' 备选之一
-- **说明**：与簇 0009-1 同源；簇 0009-14/16 是同一主张的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0009-1 同源；簇 0009-14/16 是同一主张的重复表述。
 
 **0009-4** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_front<10 && urban_way=true 是该融合事件 named 串的第四个析取支，作者源逐字写出
 - **NL**：NL 12 'or 10 meters in urban mode' 为备选之一
-- **说明**：与簇 0009-1 同源；簇 0009-15/17 是同一主张的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0009-1 同源；簇 0009-15/17 是同一主张的重复表述。
 
 **0009-5** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：front_inactive_rear_inactive_pedestrian_inactive 的 named 串是 'front_inactive && rear_inactive && pedestrian_inactive'，作者在 collision_avoidance_active --> collision_avoidance_deactive 上写的是一条合法合取守卫，front_inactive 逐字在内
 - **NL**：NL 13 'as indicated by the conditions front_inactive, rear_inactive, and pedestrian_inactive' 是合取，一条合取守卫即为忠实编码
-- **说明**：与簇 0009-6/7 同源；事件名融合同属 R4.5 opaque_transition_label_semantics 降级 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-6/7 同源；事件名融合同属 R4.5 opaque_transition_label_semantics 降级。
 
 **0009-6** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：rear_inactive 是同一合取守卫 'front_inactive && rear_inactive && pedestrian_inactive' 的第二个合取项
 - **NL**：NL 13 同上
-- **说明**：与簇 0009-5 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-5 同源。
 
 **0009-7** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：pedestrian_inactive 是同一合取守卫的第三个合取项
 - **NL**：NL 13 同上
-- **说明**：与簇 0009-5 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-5 同源。
 
 **0009-8** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：model.fcstm 仅有 def int R45RouteToken = 0（转换器路由变量），但 dist_to_front 在作者源 stm0.puml 中以 dist_to_front>=25 / dist_to_front<25 && extra_lane=true / dist_to_front<15 && extra_lane=true 等守卫文本逐字出现；PlantUML 本身无变量声明语法，全语料 60 份制品（33 份只含注入的 R45RouteToken，另 27 份无任何 def）无一声明任何作者变量（grep 'def ' 只命中 R45RouteToken）
 - **NL**：NL 3/5/7/9/12 使用 `dist_to_front<25` 等条件，但要求的是条件本身，作者源已表达
-- **说明**：与 0036 人工复核 diff#4 判定同类：作者源已表达即属表示债务（E3），不得记为模型缺陷；对照 0006 的真缺陷是『作者源里连递减文本都没有』。与簇 0009-9/10/11/12 同源 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与 0036 人工复核 diff#4 判定同类：作者源已表达即属表示债务（E3），不得记为模型缺陷；对照 0006 的真缺陷是『作者源里连递减文本都没有』。与簇 0009-9/10/11/12 同源。
 
 **0009-9** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：extra_lane 在作者源守卫 'dist_to_front<25 && extra_lane=true'、'dist_to_front<15 && extra_lane=true' 中逐字出现；制品内唯一 def 为 R45RouteToken
 - **NL**：NL 3/7/9 的 `extra_lane=true` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源，表示债务而非缺陷 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0009-8 同源，表示债务而非缺陷。
 
 **0009-10** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_exit 在事件 dist_to_exit_2 named 'dist_to_exit<2' 与 dist_to_exit_0_7 named 'dist_to_exit<0.7' 中逐字出现
 - **NL**：NL 4/5/8 的 `dist_to_exit<2` / `<0.7` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-8 同源。
 
 **0009-11** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_rear 在融合守卫的析取支 '(dist_to_rear<5 && vel>30)' 中逐字出现
 - **NL**：NL 12 的 `dist_to_rear<5` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-8 同源。
 
 **0009-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：vel 在同一析取支 '(dist_to_rear<5 && vel>30)' 中逐字出现
 - **NL**：NL 12 的 `vel>30` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-8 同源。
 
 **0009-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：rationale 关于 dist_to_front_25 语义为 '>=25' 的核对属实（named 串确为 'dist_to_front>=25'），但 dist_to_front<25 本身以 dist_to_front_25_extra_lane_true named 'dist_to_front<25 && extra_lane=true' 逐字存在于制品；且作者源 enter_hwy --> cruise : dist_to_front>=25 是对 NL 3 歧义的互补守卫消歧
 - **NL**：NL 3 只给出一个联合条件却指向 cruise 与 lane_change 两个目标，本身有歧义；rationale 主张的『enter_hwy 应在 dist_to_front<25 单独触发下转入 cruise』与 NL 5（dist<25 且有邻道时进 lane_change）相矛盾
-- **说明**：0009 人工复核 diff#1 判该互补守卫 similar 并称『语义上说得通且判定性更强，甚至优于参考』 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：0009 人工复核 diff#1 判该互补守卫 similar 并称『语义上说得通且判定性更强，甚至优于参考』。
 
 **0009-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-3：dist_to_front<15 && high_way=true 是融合守卫的第三析取支，作者源逐字写出
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-3 同源，仅断言签名的清洗名不同（dist_to_front_15_highway） ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0009-3 同源，仅断言签名的清洗名不同（dist_to_front_15_highway）
 
 **0009-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-4：dist_to_front<10 && urban_way=true 是融合守卫的第四析取支
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-4 同源，仅清洗名不同（dist_to_front_10_urban） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-4 同源，仅清洗名不同（dist_to_front_10_urban）
 
 **0009-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-3/14；路径里形近的 dist_to_front_15_extra_lane_true 属 NL 7/9 的城区变道条件，不是本条主张的高速危险条件
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-3 同源，第三种清洗名（dist_to_front_15_high_way_true） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-3 同源，第三种清洗名（dist_to_front_15_high_way_true）
 
 **0009-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-4/15
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-4 同源，第三种清洗名（dist_to_front_10_urban_way_true） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
+- **说明**：与簇 0009-4 同源，第三种清洗名（dist_to_front_10_urban_way_true）
 
 ## pair 0010 — 1 簇　`表示债务×1`
 
@@ -224,7 +223,7 @@
 
 - **事实**：冻结路径中不存在任何变量声明，数值条件被改建成两个事件名 Front_Distance_10 与 Front_Distance_10_2（后者的 _2 后缀说明同一条件被复制成两个事件），front_distance 变量确不存在
 - **NL**：NL 第 4 句『when front_distance > 10, auto transport to autonomous state』逐字给出变量名 front_distance 与数值比较守卫
-- **说明**：6/6 格稳定命中，hit@all=1。落在 M=(S,E,V,Tr,A) 的 V 与 Tr 守卫上，未涉时钟/不变式/并发。台账 5 条（occupancy_after / state_declared / terminates / reaches / event_consumed）无一覆盖变量与守卫缺失，属真漏记；实质危害是数值守卫不可求值，front_distance 的取值无法影响迁移 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：6/6 格稳定命中，hit@all=1。落在 M=(S,E,V,Tr,A) 的 V 与 Tr 守卫上，未涉时钟/不变式/并发。台账 5 条（occupancy_after / state_declared / terminates / reaches / event_consumed）无一覆盖变量与守卫缺失，属真漏记；实质危害是数值守卫不可求值，front_distance 的取值无法影响迁移。
 
 ## pair 0011 — 1 簇　`无×1`
 
@@ -324,7 +323,7 @@
 
 - **事实**：路径里有 pedestrian_detected_dist_to_rear_5_vel_30_... 这一融合事件，独立的 pedestrian_detected 确不存在
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
-- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举。
 
 **0016-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G8
 
@@ -336,25 +335,25 @@
 
 - **事实**：路径中只有融合名 Attack_Finished_Decrease_UAV_swarm_count，把『攻击完成』刺激与『减少 UAV 数量』效果压进同一个事件名；不存在任何仅承载攻击完成刺激的独立事件
 - **NL**：NL 4『After completing the attack, the number of UAVs in the swarm decreases accordingly』把完成攻击（刺激）与数量减少（效果）分述为两件事
-- **说明**：实质危害是减量只存在于事件名里，模型无变量亦无 effect 表达式承载它。台账 3 条均未覆盖。与簇 0016-6/12 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：实质危害是减量只存在于事件名里，模型无变量亦无 effect 表达式承载它。台账 3 条均未覆盖。与簇 0016-6/12 同源。
 
 **0016-5** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G8
 
 - **事实**：路径中无 number_of_UAVs_in_the_swarm，也无任何作者声明变量；仅有编译器路由变量 R45RouteToken
 - **NL**：NL 4『the number of UAVs in the swarm decreases accordingly』
-- **说明**：与簇 0016-1/7/9/10 同源（同一缺失变量的不同命名） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-1/7/9/10 同源（同一缺失变量的不同命名）
 
 **0016-6** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：Attack_Finished 是路径中 Attack_Finished_Decrease_UAV_swarm_count 的子串，融合成立；独立的 Attack_Finished 事件确未声明
 - **NL**：NL 4『After completing the attack, ...』
-- **说明**：与簇 0016-4/12 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-4/12 同源。
 
 **0016-7** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G8
 
 - **事实**：路径中无 uav_count；唯一变量 R45RouteToken 是编译器路由变量，不承载 UAV 语义
 - **NL**：NL 4『the number of UAVs in the swarm decreases accordingly』要求一个可递减的数量
-- **说明**：与簇 0016-1/5/9/10 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-1/5/9/10 同源。
 
 **0016-8** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G8
 
@@ -366,19 +365,19 @@
 
 - **事实**：无作者声明变量（仅 R45RouteToken），且 AttackState.Attacking 上由 Attack_Finished_Decrease_UAV_swarm_count 触发的迁移未声明任何负向效果
 - **NL**：NL 4『After completing the attack, the number of UAVs in the swarm decreases accordingly』同时要求变量与其递减效果
-- **说明**：与簇 0016-1/5/7/10 同源；本簇把变量缺失与效果缺失合并为同一处修复，表述最完整 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-1/5/7/10 同源；本簇把变量缺失与效果缺失合并为同一处修复，表述最完整。
 
 **0016-10** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `effect_declared` ｜ 判定组 G8
 
 - **事实**：AttackState.Attacking 上 Attack_Finished_Decrease_UAV_swarm_count 触发的迁移无对任何数量变量的负向效果，模型仅有 R45RouteToken 路由变量
 - **NL**：NL 4『the number of UAVs in the swarm decreases accordingly』
-- **说明**：与簇 0016-9 同源（效果侧） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-9 同源（效果侧）
 
 **0016-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中不存在 attack_completed；唯一相关事件是融合名 Attack_Finished_Decrease_UAV_swarm_count
 - **NL**：NL 4『After completing the attack, ...』
-- **说明**：与簇 0016-4/6 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-4/6 同源。
 
 ## pair 0017 — 11 簇　`无×10 越界×1`
 
@@ -386,37 +385,37 @@
 
 - **事实**：路径中事件仅有 collision_detected 与 Collision_avoided，frontend/rear_end/pedestrian 三个具体检测事件一个都不存在——三种刺激被塌缩成一个泛化事件
 - **NL**：NL 2 逐字并列点名三种检测：『a possible frontend collision, rear-end collision or collision with pedestrian is detected』
-- **说明**：该 pair 台账为 0 条，属真漏记。可与 pair 0057 对照：同一份 NL 下 0057 确实分别声明了 Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected，说明三事件可分是该 NL 的通行读法而非过度指定。本簇为 0017-2/3/4/5/6/9/11 的合并表述 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：该 pair 台账为 0 条，属真漏记。可与 pair 0057 对照：同一份 NL 下 0057 确实分别声明了 Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected，说明三事件可分是该 NL 的通行读法而非过度指定。本簇为 0017-2/3/4/5/6/9/11 的合并表述。
 
 **0017-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有泛化事件 collision_detected，无任何承载前向碰撞的独立事件
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/4/11 同源（前向刺激的不同命名） ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/4/11 同源（前向刺激的不同命名）
 
 **0017-3** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，无行人碰撞的独立事件
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/6/9 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/6/9 同源。
 
 **0017-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，frontend_collision_detected 未声明
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/2/11 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/2/11 同源。
 
 **0017-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，rear_end_collision_detected 未声明
 - **NL**：NL 2『rear-end collision ... is detected』
-- **说明**：与簇 0017-1 同源；追尾刺激在本 pair 只被本簇单独点出 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1 同源；追尾刺激在本 pair 只被本簇单独点出。
 
 **0017-6** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，pedestrian_collision_detected 未声明
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/3/9 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/3/9 同源。
 
 **0017-7** ｜ 🚫 越界 ｜ 1/6 格 ｜ `invariant` ｜ 判定组 G8
 
@@ -434,7 +433,7 @@
 
 - **事实**：路径中只有 collision_detected，collision_with_pedestrian_detected 未声明
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/3/6 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/3/6 同源。
 
 **0017-10** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G8
 
@@ -446,7 +445,7 @@
 
 - **事实**：路径中只有泛化的 collision_detected，possible_frontend_collision 未声明
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/2/4 同源。注意与 0057-6 判定相反：0057 实际声明了 Frontend_collision_detected，本 pair 没有 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与簇 0017-1/2/4 同源。注意与 0057-6 判定相反：0057 实际声明了 Frontend_collision_detected，本 pair 没有。
 
 ## pair 0019 — 23 簇　`表示债务×19 无×4`
 
@@ -454,139 +453,139 @@
 
 - **事实**：路径中无独立 pedestrian_detected；仅有融合事件 pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_hwy_mode_or_10_in_urban_mode
 - **NL**：NL 12 反引号逐字点名 pedestrian_detected，句式为析取式独立触发
-- **说明**：析取融合，NL 的任一即可变成模型的须全满足 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：析取融合，NL 的任一即可变成模型的须全满足。
 
 **0019-2** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无 dist_to_rear_5_vel_30 独立事件
 - **NL**：NL 12 第二析取项
-- **说明**：与 0019-1 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-1 同源。
 
 **0019-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无高速模式前距独立事件
 - **NL**：NL 12 第三析取项
-- **说明**：与 0019-1 同源；与 0019-8/23 同一元素不同拼法 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-1 同源；与 0019-8/23 同一元素不同拼法。
 
 **0019-4** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无城市模式前距<10 独立名字
 - **NL**：NL 12 第三析取项后半
-- **说明**：与 0019-9 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-9 同一元素。
 
 **0019-5** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：只有 front_inactive_rear_inactive_pedestrian_inactive
 - **NL**：NL 13 逐个点名三者
-- **说明**：合取融合，弱于析取融合 ｜【R-CONJ 主判裁决】NL 13 为合取，事件框架指向错误修法；归入变量缺口计一次。
+- **说明**：合取融合，弱于析取融合。
 
 **0019-6** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无独立 rear_inactive
 - **NL**：NL 13
-- **说明**：与 0019-5 同源 ｜【R-CONJ 主判裁决】NL 13 为合取，事件框架指向错误修法；归入变量缺口计一次。
+- **说明**：与 0019-5 同源。
 
 **0019-7** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无独立 pedestrian_inactive
 - **NL**：NL 13
-- **说明**：与 0019-5 同源 ｜【R-CONJ 主判裁决】NL 13 为合取，事件框架指向错误修法；归入变量缺口计一次。
+- **说明**：与 0019-5 同源。
 
 **0019-8** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：dist_to_front_15_in_highway_mode 不存在
 - **NL**：NL 12
-- **说明**：与 0019-3 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-3 同一元素。
 
 **0019-9** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：dist_to_front_10_in_urban_mode 不存在
 - **NL**：NL 12
-- **说明**：与 0019-4 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-4 同一元素。
 
 **0019-10** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无单独 extra_lane 名字
 - **NL**：NL 3 extra_lane=true
-- **说明**：与 0019-11/16 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-11/16 同一元素。
 
 **0019-11** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无 extra_lane_is_available
 - **NL**：NL 7/9
-- **说明**：与 0019-10 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-10 同源。
 
 **0019-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无单独 dist_to_front_15
 - **NL**：NL 7/9
-- **说明**：与 0019-22 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-22 同一元素。
 
 **0019-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：8 个名字逐一核对均不存在
 - **NL**：NL 3/5/7/9/12/13
-- **说明**：roll-up，归并时作父条目不独立计数 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：roll-up，归并时作父条目不独立计数。
 
 **0019-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：四个碰撞激活触发均无独立名字
 - **NL**：NL 12 三项析取
-- **说明**：roll-up；析取融合中语义后果最硬的一条 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：roll-up；析取融合中语义后果最硬的一条。
 
 **0019-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G3
 
 - **事实**：全部路径无任何变量声明；R45RouteToken 是投影注入的路由令牌
 - **NL**：NL 3/5/7/9/12 同一量三个阈值
-- **说明**：V 是 M 的一员，整模型 V 为空，台账三条均未涉及 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：V 是 M 的一员，整模型 V 为空，台账三条均未涉及。
 
 **0019-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G3
 
 - **事实**：无 bare extra_lane
 - **NL**：NL 3
-- **说明**：谓词选 variable_declared 比 0019-10/11 更贴合 NL ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：谓词选 variable_declared 比 0019-10/11 更贴合 NL。
 
 **0019-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G3
 
 - **事实**：只有阈值事件 dist_to_exit_2/0_7，无变量
 - **NL**：NL 4/5/8
-- **说明**：V 缺失同类 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：V 缺失同类。
 
 **0019-18** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G3
 
 - **事实**：dist_to_rear 只作融合事件名片段
 - **NL**：NL 12
-- **说明**：V 缺失同类 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：V 缺失同类。
 
 **0019-19** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G3
 
 - **事实**：vel 只作融合事件名片段
 - **NL**：NL 12
-- **说明**：V 缺失同类 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：V 缺失同类。
 
 **0019-20** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：三个单独名字均不存在
 - **NL**：NL 13
-- **说明**：是 0019-5/6/7 的 roll-up ｜【R-CONJ 主判裁决】NL 13 为合取，事件框架指向错误修法；归入变量缺口计一次。
+- **说明**：是 0019-5/6/7 的 roll-up。
 
 **0019-21** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无 dist_to_front_lt_25
 - **NL**：NL 3/5
-- **说明**：该融合事件正是台账 EIS-0019-01 论证守卫不可区分的同一对象——台账承认后果却未记融合本身 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：该融合事件正是台账 EIS-0019-01 论证守卫不可区分的同一对象——台账承认后果却未记融合本身。
 
 **0019-22** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：无 dist_to_front_lt_15
 - **NL**：NL 7/9
-- **说明**：与 0019-12 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-12 同一元素。
 
 **0019-23** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：该串只作长融合事件后缀
 - **NL**：NL 12 第三析取项整句
-- **说明**：与 0019-3+0019-4 是同一元素两种切法 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0019-3+0019-4 是同一元素两种切法。
 
 ## pair 0020 — 2 簇　`表示债务×1 假阳性×1`
 
@@ -594,7 +593,7 @@
 
 - **事实**：唯一变量是注入的 R45RouteToken；阈值折叠成 event front_distance_10
 - **NL**：NL 4 逐字命名 front_distance 并给阈值比较
-- **说明**：台账 EIS-0020-01/02 均为 event_declared 类，未覆盖变量缺失 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：台账 EIS-0020-01/02 均为 event_declared 类，未覆盖变量缺失。
 
 **0020-2** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `containment/state_declared` ｜ 判定组 G1
 
@@ -614,13 +613,13 @@
 
 - **事实**：根级初始边指向 PoweredOn 而非 Operate 属实，但同一份 NL（md5 c74d44e9）下 6 个作者**全部**加了顶层前置态：0003 PoweredOff、0012 Off、0032 OffState、0042 Off、0052 Off、0022 PoweredOn，无一直连 Operate
 - **NL**：NL 1「Once the device is powered on, the system enters the Operate state」+ NL 2 的 start 与 keyOff——参考读法是「上电→前置态→start→Operate」，NL 不要求根初始直指 Operate
-- **说明**：【对抗性复核推翻 · 主判采纳】原判 VALID_UNRECORDED 不成立：0022 在结构上不是异类，6/6 作者同形。残留的只是命名保真度瑕疵（叫 PoweredOn 却仍需 start），属 S 层一个名字的措辞，不构成元素级缺陷。另：同组 0022-1 已判 FALSE_POSITIVE，理由是「NL 1 的 powered on 与 NL 2 的 start 指同一刺激」，而原 0022-2 的成立前提恰是把两者当两个刺激——同一文件不能既判 A 又判 ¬A，此矛盾随本次推翻消解。⚠️ 不判 FALSE_POSITIVE：事实在制品上为真，不符合「主张与制品相反」的定义。
+- **说明**：残留的只是命名保真度瑕疵（叫 PoweredOn 却仍需 start），属 S 层一个名字的措辞，不构成元素级缺陷。另：同组 0022-1 已判 FALSE_POSITIVE，理由是「NL 1 的 powered on 与 NL 2 的 start 指同一刺激」，而原 0022-2 的成立前提恰是把两者当两个刺激——同一文件不能既判 A 又判 ¬A，此矛盾随本次推翻消解。⚠️ 不判 FALSE_POSITIVE：事实在制品上为真，不符合「主张与制品相反」的定义。
 
 **0022-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
 - **事实**：PoweredOn 是根下顶层状态属实；但 6/6 同组作者均有此形态，非 0022 独有的自增结构
 - **NL**：NL 1/2 的参考读法含前置态
-- **说明**：【对抗性复核推翻 · 主判采纳】与 0022-2 同源，一并推翻。原援引的 EIS-0046-03 类比不成立——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，start 是 NL 2 逐字点名的。
+- **说明**：与 0022-2 同源，一并推翻。原援引的 EIS-0046-03 类比不成立——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，start 是 NL 2 逐字点名的。
 
 ## pair 0023 — 9 簇　`越界×6 无×3`
 
@@ -628,19 +627,19 @@
 
 - **事实**：PumpControl 内除 [*] -> PumpState、[*] -> WaterState、[*] -> MethaneState 三条初始迁移外没有任何迁移，全模型未声明任何 event；PumpControl 的 named 串记录 [PlantUML concurrent region 0/1/2] 分别只装一个子态
 - **NL**：NL 4 'The system can also transition to the WaterState substate'、NL 5 'the system can transition to the MethaneState substate'
-- **说明**：实质缺陷是三个替代子态被写成三个并发区各自的默认入口、区间零迁移；判定只用 Tr 层事实，不依赖并发语义。与簇 0023-2/3/7/8/9 同源；本 pair 台账 0 条 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：实质缺陷是三个替代子态被写成三个并发区各自的默认入口、区间零迁移；判定只用 Tr 层事实，不依赖并发语义。与簇 0023-2/3/7/8/9 同源；本 pair 台账 0 条。
 
 **0023-2** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：制品中 PumpState 没有任何出边（PumpControl 内只有三条 [*] -> 子态 的初始迁移），到 WaterState 无任何路径
 - **NL**：NL 3 'first transitions to the PumpState' 加 NL 4 'can also transition to the WaterState substate'
-- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：与簇 0023-1 同源。
 
 **0023-3** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：制品中 PumpState 没有任何出边，到 MethaneState 无任何路径；PumpControl 内不存在 tr 连接三个子态
 - **NL**：NL 3 加 NL 5 'Similarly, the system can transition to the MethaneState substate'
-- **说明**：与簇 0023-1/0023-2 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：与簇 0023-1/0023-2 同源。
 
 **0023-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `action_declared` ｜ 判定组 G7
 
@@ -664,19 +663,19 @@
 
 - **事实**：PumpControl 内三个子状态之间零迁移，仅有 [*] -> PumpState / [*] -> WaterState / [*] -> MethaneState；模型连一个 event 都没声明，无从触发子态切换
 - **NL**：NL 4 与 NL 5 均以 'can transition to' 要求运行期可切换到 WaterState / MethaneState
-- **说明**：与簇 0023-1/2/3 同源，是该缺陷覆盖面最完整的表述 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：与簇 0023-1/2/3 同源，是该缺陷覆盖面最完整的表述。
 
 **0023-8** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：从 PumpControl 出发只有三条并列初始迁移，无任何后续迁移可抵达 WaterState（若初始落在 PumpState 或 MethaneState 则永不可达）
 - **NL**：NL 4 'The system can also transition to the WaterState substate'
-- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：与簇 0023-1 同源。
 
 **0023-9** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：从 PumpControl 出发无任何迁移可抵达 MethaneState；PumpControl 内没有任何非初始迁移
 - **NL**：NL 5 'the system can transition to the MethaneState substate'
-- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
+- **说明**：与簇 0023-1 同源。
 
 ## pair 0024 — 4 簇　`假阳性×2 无×2`
 
@@ -736,31 +735,31 @@
 
 - **事实**：路径里有 pedestrian_detected_dist_to_rear_5_vel_30_... 这一融合事件，独立的 pedestrian_detected 确不存在
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
-- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举。
 
 **0027-2** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G7
 
 - **事实**：全模型只声明一个事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected named 'Frontend Collision or Rear-end Collision or Collision with Pedestrian detected'，再无任何其他 event，三个独立碰撞事件确不存在
 - **NL**：NL 2 逐字并列 'a possible frontend collision, rear-end collision or collision with pedestrian is detected'
-- **说明**：同一 NL 的 pair 0007 声明了 Frontend_Detected / Rear_end_Detected / Pedestrian_Detected 三个独立事件，证明拆分是参考意图且在 M 内可表达；与台账 EIS-0000-02（多条件压成单一事件标签）同缺陷类，台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同一 NL 的 pair 0007 声明了 Frontend_Detected / Rear_end_Detected / Pedestrian_Detected 三个独立事件，证明拆分是参考意图且在 M 内可表达；与台账 EIS-0000-02（多条件压成单一事件标签）同缺陷类，台账对本 pair 未枚举。
 
 **0027-3** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G7
 
 - **事实**：唯一激活路径是 DetectingState -> junction1 : /Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected 加 junction1 -> ActiveState；以 frontend_collision_detected 为触发的边不存在，该独立事件本身也未声明
 - **NL**：NL 2 把 frontend collision 列为使子机激活的触发之一
-- **说明**：与簇 0027-2 同源（融合事件派生）；'直达边' 这一形式要求偏严——经 junction 路由本身合法，实质缺陷是独立触发不存在 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2 同源（融合事件派生）；'直达边' 这一形式要求偏严——经 junction 路由本身合法，实质缺陷是独立触发不存在。
 
 **0027-4** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G7
 
 - **事实**：制品中不存在任何以 rear_end_collision_detected 为触发的迁移，也未声明该事件；唯一检测触发是融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected
 - **NL**：NL 2 把 rear-end collision 列为使子机激活的触发之一
-- **说明**：与簇 0027-2/0027-3 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2/0027-3 同源。
 
 **0027-5** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G7
 
 - **事实**：制品中不存在任何以 collision_with_pedestrian_detected 为触发的迁移，也未声明该事件；仅有融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected
 - **NL**：NL 2 把 collision with pedestrian 列为使子机激活的触发之一
-- **说明**：与簇 0027-2/0027-3/0027-4 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2/0027-3/0027-4 同源。
 
 **0027-6** ｜ 🚫 越界 ｜ 1/6 格 ｜ `invariant` ｜ 判定组 G7
 
@@ -772,13 +771,13 @@
 
 - **事实**：模型未声明 possible_frontend_collision；唯一事件是融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected，其名字包含 'Frontend Collision' 作为子串，属融合
 - **NL**：NL 2 'a possible frontend collision ... is detected'
-- **说明**：与簇 0027-2 同源，是融合事件的一个分量侧面 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2 同源，是融合事件的一个分量侧面。
 
 **0027-8** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G7
 
 - **事实**：模型未声明 collision_with_pedestrian；融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected 把它作为子串吞并
 - **NL**：NL 2 'collision with pedestrian is detected'
-- **说明**：与簇 0027-2/0027-7 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2/0027-7 同源。
 
 **0027-9** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_consumed` ｜ 判定组 G7
 
@@ -790,25 +789,25 @@
 
 - **事实**：模型未声明 possible_frontend_collision_is_detected；只有融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected
 - **NL**：NL 2 'a possible frontend collision ... is detected'
-- **说明**：与簇 0027-7 是同一发现的措辞变体，与簇 0027-2 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-7 是同一发现的措辞变体，与簇 0027-2 同源。
 
 **0027-11** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G7
 
 - **事实**：模型未声明 collision_with_pedestrian_is_detected；只有融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected
 - **NL**：NL 2 'collision with pedestrian is detected'
-- **说明**：与簇 0027-8 是同一发现的措辞变体，与簇 0027-2 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-8 是同一发现的措辞变体，与簇 0027-2 同源。
 
 **0027-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `edge_declared/event_declared` ｜ 判定组 G7
 
 - **事实**：三个 event_declared 分量成立：制品只有融合事件 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected；但 edge_declared 分量要求 ActiveState -> ActiveState 自环，制品中 ActiveState 根本没有任何出边
 - **NL**：NL 2 要求三类碰撞各自可使子机激活
-- **说明**：融合部分成立且与簇 0027-2 同源；ActiveState 自环这一分量无 NL 依据——NL 2 要的是从检测态进入 ActiveState，不是 ActiveState 上的自触发，归并时应剥离该分量 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：融合部分成立且与簇 0027-2 同源；ActiveState 自环这一分量无 NL 依据——NL 2 要的是从检测态进入 ActiveState，不是 ActiveState 上的自触发，归并时应剥离该分量。
 
 **0027-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G7
 
 - **事实**：possible_frontend_collision_detected 与 collision_with_pedestrian_detected 均未声明；制品 stm_text 中唯一事件声明是 Frontend_Collision_or_Rear_end_Collision_or_Collision_with_Pedestrian_detected
 - **NL**：NL 2 分别点名 frontend collision 与 collision with pedestrian 两个检测刺激
-- **说明**：与簇 0027-2/0027-7/0027-8 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0027-2/0027-7/0027-8 同源。
 
 ## pair 0029 — 27 簇　`表示债务×20 无×7`
 
@@ -816,25 +815,25 @@
 
 - **事实**：融合事件 display name 用 | 析取四项，无独立 pedestrian_detected
 - **NL**：NL 12 用 or 逐字列出四个替代激活原因
-- **说明**：与 0029-2/3/4/22/23/25/26 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-2/3/4/22/23/25/26 同源。
 
 **0029-2** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：第二析取项无独立事件
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-3** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：第三析取项无独立事件
 - **NL**：NL 12
-- **说明**：与 0029-22 同一主张不同拼写 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-22 同一主张不同拼写。
 
 **0029-4** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：第四析取项无独立事件
 - **NL**：NL 12
-- **说明**：与 0029-23 同一主张 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-23 同一主张。
 
 **0029-5** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G1
 
@@ -858,67 +857,67 @@
 
 - **事实**：全模型唯一变量是注入的 R45RouteToken
 - **NL**：NL 2/11 写成变量取值比较
-- **说明**：与 0029-9~18/24 同源，可归并为一条 V 缺失；台账 5 条无一涉及变量 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-9~18/24 同源，可归并为一条 V 缺失；台账 5 条无一涉及变量。
 
 **0029-9** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：无 urban_way 变量
 - **NL**：NL 2/11
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-10** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：dist_to_front 只在事件名中
 - **NL**：NL 3/5/7/9/12 同一量四个阈值
-- **说明**：同源；危害最重，四阈值互不相关 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源；危害最重，四阈值互不相关。
 
 **0029-11** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：extra_lane 只作事件名后缀
 - **NL**：NL 3/5/7/9
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：无 auto_finished 变量
 - **NL**：NL 6/10
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：无 intersection 变量
 - **NL**：NL 7
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：dist_to_rear 只在融合事件名内
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：vel 只在融合事件名内
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0029-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：front_inactive 只在融合事件名内，无变量
 - **NL**：NL 13 明确称之为 condition，对应 M 的 V
-- **说明**：取变量框架，弃 0029-5 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：取变量框架，弃 0029-5。
 
 **0029-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：rear_inactive 无变量
 - **NL**：NL 13
-- **说明**：取变量框架，弃 0029-6 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：取变量框架，弃 0029-6。
 
 **0029-18** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：pedestrian_inactive 无变量
 - **NL**：NL 13
-- **说明**：取变量框架，弃 0029-7 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：取变量框架，弃 0029-7。
 
 **0029-19** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G1
 
@@ -942,31 +941,31 @@
 
 - **事实**：析取项无独立事件
 - **NL**：NL 12
-- **说明**：与 0029-3 同一主张 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-3 同一主张。
 
 **0029-23** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：析取项无独立事件
 - **NL**：NL 12
-- **说明**：与 0029-4 同一主张 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-4 同一主张。
 
 **0029-24** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G1
 
 - **事实**：pedestrian_detected 无变量声明
 - **NL**：NL 12 把它归为 condition
-- **说明**：与 0029-1 合为一条，勿双计 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0029-1 合为一条，勿双计。
 
 **0029-25** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：四项确因融合缺失
 - **NL**：NL 12 四项 or 并列
-- **说明**：聚合越界纳入了合取分量；归并时只保留析取子集 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：聚合越界纳入了合取分量；归并时只保留析取子集。
 
 **0029-26** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G1
 
 - **事实**：四目标恰为融合事件四个 | 分量
 - **NL**：NL 12
-- **说明**：表述最准确的一条 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：表述最准确的一条。
 
 **0029-27** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G1
 
@@ -980,7 +979,7 @@
 
 - **事实**：唯一变量是 R45RouteToken；阈值折叠成事件名 front_distance_10
 - **NL**：NL 4 逐字点名 front_distance 并做数值比较
-- **说明**：0030 台账三条均未覆盖变量侧 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：0030 台账三条均未覆盖变量侧。
 
 ## pair 0032 — 5 簇　`假阳性×3 无×2`
 
@@ -1066,13 +1065,13 @@
 
 - **事实**：model.fcstm 无任何作者变量（全语料 60 份制品（33 份只含注入的 R45RouteToken，另 27 份无任何 def）的 def 只有 R45RouteToken），但作者源 stm0.puml 写的是 'Attack --> AttackReady : Attack Complete / UAV Count Decreased'，递减以 UML 标准 trigger / effect 槽位表达；FCSTM 未切分 / 是前端 lowering 债务
 - **NL**：NL 4 'the number of UAVs in the swarm decreases accordingly' 要求递减，作者源已表达
-- **说明**：0036 人工复核 diff#4 逐字判『作者源已表达…属表示债务。台帐判 E3 正确』，台账 status=representation_boundary；对照 0006 的真缺陷（EXP-0006-EA-001）是作者源里连递减文本都没有。与簇 0036-6/7 同源 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：0036 人工复核 diff#4 逐字判『作者源已表达…属表示债务。台帐判 E3 正确』，台账 status=representation_boundary；对照 0006 的真缺陷（EXP-0006-EA-001）是作者源里连递减文本都没有。与簇 0036-6/7 同源。
 
 **0036-3** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：作者源 stm0.puml 的标签 'Attack Complete / UAV Count Decreased' 在 UML 记法上已把触发与效果分开，正是本条 rationale 要求的修法；融合成单一事件名 Attack_Complete_UAV_Count_Decreased 发生在 FCSTM lowering（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics），不是作者把效果嵌进事件名
 - **NL**：NL 4 'After completing the attack' 确点名该刺激，但制品已在 / 前给出该触发
-- **说明**：与簇 0036-2 同源，同属 E3 表示债务；本条主张与制品相反 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0036-2 同源，同属 E3 表示债务；本条主张与制品相反。
 
 **0036-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G6
 
@@ -1090,13 +1089,13 @@
 
 - **事实**：Attack -> AttackReady : /Attack_Complete_UAV_Count_Decreased 确无 effect{} 块，但该 effect 在作者源里写在 / 之后（'Attack Complete / UAV Count Decreased'），缺失来自前端未切分 /
 - **NL**：NL 4 要求攻击完成后数量减少，作者源已在 effect 槽位表达
-- **说明**：与簇 0036-2 同源；此谓词在 0006/0026/0046 是真缺陷断言，区别在那几例作者源无任何递减文本，0036 有 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0036-2 同源；此谓词在 0006/0026/0046 是真缺陷断言，区别在那几例作者源无任何递减文本，0036 有。
 
 **0036-7** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：与簇 0036-2 同一事实，仅变量命名换成 number_of_UAVs_in_the_swarm
 - **NL**：NL 4 同上
-- **说明**：与簇 0036-2 同源，属同一 E3 表示债务的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：与簇 0036-2 同源，属同一 E3 表示债务的重复表述。
 
 **0036-9** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G6
 
@@ -1118,25 +1117,25 @@
 
 - **事实**：pedestrian_detected 只作融合名子串
 - **NL**：NL 12 析取列举
-- **说明**：与 0039-2/3/4/6/7/8/17/19 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-2/3/4/6/7/8/17/19 同源。
 
 **0039-2** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：dist_to_rear_5_vel_30 仅子串
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0039-3** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：HighwayMode 前距无独立事件
 - **NL**：NL 12
-- **说明**：与 0039-7/17 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-7/17 同一元素。
 
 **0039-4** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：UrbanMode 前距仅尾段
 - **NL**：NL 12
-- **说明**：与 0039-8 同一元素 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-8 同一元素。
 
 **0039-5** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
@@ -1148,19 +1147,19 @@
 
 - **事实**：四触发全为子串
 - **NL**：NL 12
-- **说明**：roll-up，与 0039-19 重复 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：roll-up，与 0039-19 重复。
 
 **0039-7** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无独立 dist_to_front_15_in_HighwayMode
 - **NL**：NL 12
-- **说明**：与 0039-3/17 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-3/17 同一缺陷。
 
 **0039-8** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无独立 dist_to_front_10_in_UrbanMode
 - **NL**：NL 12
-- **说明**：与 0039-4 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-4 同一缺陷。
 
 **0039-9** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
 
@@ -1184,61 +1183,61 @@
 
 - **事实**：只有 dist_to_front_25_extra_lane_true；除 R45RouteToken 外无变量
 - **NL**：NL 3/5 分别命名两条件
-- **说明**：合取压合后 NL 3 分支不可表达 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：合取压合后 NL 3 分支不可表达。
 
 **0039-13** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：extra_lane_true 仅子串
 - **NL**：NL 3/5/7/9
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0039-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：只有 dist_to_front_15_extra_lane_true
 - **NL**：NL 7/9
-- **说明**：与 0039-3/7/17 的 NL 依据不同 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-3/7/17 的 NL 依据不同。
 
 **0039-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 dist_to_front_lt_25
 - **NL**：NL 3/5
-- **说明**：与 0039-12 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-12 同一缺陷。
 
 **0039-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 dist_to_front_lt_15
 - **NL**：NL 7/9
-- **说明**：与 0039-14 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-14 同一缺陷。
 
 **0039-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 dist_to_front_15_highway
 - **NL**：NL 12
-- **说明**：与 0039-3/7 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-3/7 同一缺陷。
 
 **0039-18** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `initial_target/state_declared` ｜ 判定组 G4
 
 - **事实**：事实为真：model.fcstm:94/95 两状态声明在根状态直属层，与 model.fcstm:16 的 AutonomousMode 平级，无复合容器。作者源同样没有——stm0.puml 全文仅三处 `state X {`（4/10/24 行），碰撞避免部分在 44/46/48 行以顶层裸迁移写出，故非表示债务。对照 0049 作者在 stm0.puml:37 写了 `state CollisionAvoidance {`，可见是作者写法差异
 - **NL**：NL 12/13 只逐字点名两个状态名；『the collision avoidance system』是指代子系统的统称词，NL 未要求存在同名复合状态，也未规定其层次归属
-- **说明**：【终裁】把 NL 的统称词当被点名元素，是 N1 命名字面主义的典型形态。⚠️ 不判越界：`grep -cE '^[[:space:]]*--[[:space:]]*$' stm0.puml` = 0，源内无正交区，按 R-REGION 与 0037-1/0007-1 先例走单区读法；且本簇主张的是 containment/层次，属 M 内对象，未主张区数量义务或 invariant。上一轮以「必要性依赖正交读法」收待定，是把『为何需要容器』的动机与『主张能否在 M 内表述』混谈了。
+- **说明**：把 NL 的统称词当被点名元素，是 N1 命名字面主义的典型形态。⚠️ 不判越界：`grep -cE '^[[:space:]]*--[[:space:]]*$' stm0.puml` = 0，源内无正交区，按 R-REGION 与 0037-1/0007-1 先例走单区读法；且本簇主张的是 containment/层次，属 M 内对象，未主张区数量义务或 invariant。
 
 **0039-19** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：四者均子串
 - **NL**：NL 12
-- **说明**：与 0039-6 重复 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0039-6 重复。
 
 **0039-20** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：两条件均无独立声明
 - **NL**：NL 3/5
-- **说明**：roll-up ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：roll-up。
 
 **0039-21** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：两条件均不存在
 - **NL**：NL 7/9
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 ## pair 0043 — 1 簇　`表示债务×1`
 
@@ -1246,33 +1245,27 @@
 
 - **事实**：PumpControl.UnspecifiedInitial 存在，PumpState 在更深一层 Region1 下
 - **NL**：NL 1+3 要求 PumpState 为首个进入的子态
-- **说明**：台账 EIS-0043-01 审 containment，本条审初始入口与冷启动可达，未覆盖 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：台账 EIS-0043-01 审 containment，本条审初始入口与冷启动可达，未覆盖。
 
-## pair 0044 — 4 簇　`假阳性×2 无×1 谓词产物×1`
+## pair 0044 — 3 簇　`假阳性×2 无×1`
 
 **0044-1** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `action_declared` ｜ 判定组 G2
 
 - **事实**：路径列表不含动作声明，无法核验 EmergencyStopping 相位
 - **NL**：NL 3 未逐字规定 entry 相位
-- **说明**：需 FCSTM 动作块 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0044 model.fcstm 第 31-33 行：`state EmergencyStopping named "EmergencyStopping" { ｜【成分分析改判】FALSE_POSITIVE→NO_NL_BASIS：见 V46_COMPOSITION.md
-
-**0044-2** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G2
-
-- **事实**：Approaching 全部出边只有两条：model.fcstm:24 `/Arrived_Stop_Send_Arrived`（经 :35 落 Stopping）与 model.fcstm:27 `/Obstacle_Detected`（经 :36 落 EmergencyStopping）。实跑 fbmcq 反例 frames=[0:Approaching,1:Approaching,2:EmergencyStopping,3:terminated,4:terminated]，bound 扫描：bound=1 holds；bound=2 首次失败。**三次反例的首个违反帧无一例外都在 release 达成之后的 terminated 帧**
-- **NL**：NL 10『The system remains in the Approaching substate ... until it is ready to stop or decelerate』是定性描述；NL 2 明确要求到站与障碍两种离开，Approaching 的两条出边正对应这两种
-- **说明**：【终裁 · 实测而非推断】造成 False 的不是任何一条出边，而是谓词的操作化方式：`predicate_api.py:1802-1808` 把 persists_until 编成覆盖整个 horizon 的有界不变式 `(release) || active(state)`，**不是真正的 until**——release 达成后义务不解除，只要 release 状态不是吸收态，下一帧必然违反。作者在 stm0.puml:22-23 明写 `Stopping --> [*]` / `EmergencyStopping --> [*]`，故该不变式在**作者原件上同样不可满足**，与 R4.5 无关 → 排除表示债务（反例里 token 两阶段路由被折叠成单步，债务码未参与）。模型对 NL 10 是满足的，故非制品缺陷。⚠️ 谓词侧待修（CLAUDE.md §13）：persists_until 应在 release 首次成立后解除义务，否则**对任何有终止路径的模型恒为 False**。与 0044-4 不同源。
+- **说明**：需 FCSTM 动作块。
 
 **0044-3** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：无独立事件 Send
 - **NL**：NL 9 要求的是输出动作不是输入事件
-- **说明**：同句在 0034 被台账 EIS-0034-04 按输出动作缺失记录 ｜【回读原件复核翻转】NO_NL_BASIS→FALSE_POSITIVE：0044 model.fcstm 第 14-16 行：`state Approaching named "Approaching" { during abstr
+- **说明**：同句在 0034 被台账 EIS-0034-04 按输出动作缺失记录。
 
 **0044-4** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G2
 
 - **事实**：`transition:7` 原文是 model.fcstm:19 `Accelerating -> Cruising : /Reached_Cruising_Cruise;`——**不是 Approaching 的出边**（Approaching 只有 index 12 与 15）。实跑 SimulationAPI 钉在 Approaching 投喂 Reached_Cruising_Cruise：consumed=[]、unconsumed=[该事件]、fired=[]、active=[root,InMotion,InMotion.Approaching]——**机器原地未动，仍在 Approaching**。对照钉在 Accelerating 投同一事件则 consumed 并进入 Cruising
 - **NL**：NL 5 把该信号绑死在 Accelerating→Cruising；NL 未要求 Approaching 上有该事件的自环
-- **说明**：【终裁 · 实测而非推断】断言主张「运行离开了 Approaching、trace 指向 transition:7」与制品完全相反：没有任何迁移被触发，事件被忽略，Approaching 持续活动。两个谓词侧成因：① `predicate_api.py:1404-1405` 的 `if trigger not in self._consumed(view): return False` 按设计把「事件被忽略」直接判 False；② `predicate_api.py:664-672` 的 `if not fired and unconsumed:` 分支在「什么都没发生」时把锚点落到**声明该事件的**迁移上，于是 model_refs 出现 transition:7，被生产者误读成 fired trace。旁证：同一记录里 occupancy_after 的 model_refs 与它逐字相同却 result=True，说明该锚点是静态查表不是执行轨迹。取假阳性而非无 NL 依据，因「主张与制品相反」这一条更强更靠前。⚠️ 谓词侧待修：stays_in 把「事件被忽略」与「离开了状态」压成同一个 False。与 0044-2 不同源。
+- **说明**：断言主张「运行离开了 Approaching、trace 指向 transition:7」与制品完全相反：没有任何迁移被触发，事件被忽略，Approaching 持续活动。两个谓词侧成因：① `predicate_api.py:1404-1405` 的 `if trigger not in self._consumed(view): return False` 按设计把「事件被忽略」直接判 False；② `predicate_api.py:664-672` 的 `if not fired and unconsumed:` 分支在「什么都没发生」时把锚点落到**声明该事件的**迁移上，于是 model_refs 出现 transition:7，被生产者误读成 fired trace。旁证：同一记录里 occupancy_after 的 model_refs 与它逐字相同却 result=True，说明该锚点是静态查表不是执行轨迹。取假阳性而非无 NL 依据，因「主张与制品相反」这一条更强更靠前。⚠️ 谓词侧待修：stays_in 把「事件被忽略」与「离开了状态」压成同一个 False。与 0044-2 不同源。
 
 ## pair 0046 — 9 簇　`表示债务×5 无×4`
 
@@ -1280,25 +1273,25 @@
 
 - **事实**：证据包只给出路径表（状态/事件/变量），不暴露 during/entry/exit 动作，无法从中核验 UAVSwarmStateMachine.SearchRegion.Searching 是否声明了 during 动作；路径表中该状态名也未带 rationale 所述的 '[PlantUML body] Target Search State' 注解
 - **NL**：NL 2 『continuously performs target search tasks』——是否必须落成 during 动作、还是由驻留 Searching 状态本身表达，NL 未明示
-- **说明**：缺的是动作声明清单（或制品源文本）与参考模型的动作承载方式；补上任一即可裁定 ｜【回读原件复核翻转】UNCERTAIN→NO_NL_BASIS：0046 model.fcstm:12 Searching 为叶子状态无花括号体，全文件 grep abstract 命中 0 处
+- **说明**：缺的是动作声明清单（或制品源文本）与参考模型的动作承载方式；补上任一即可裁定。
 
 **0046-2** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表中唯一变量是编译器路由变量 R45RouteToken，不存在 uav_count 或任何语义等价的作者变量
 - **NL**：NL 4 『the number of UAVs in the swarm decreases accordingly』明确点名一个可跟踪数量
-- **说明**：V 属 M 边界内；与簇 0046-6（同一变量的另一命名）、0046-3（该变量上的效应）同源；姊妹 pair 0006 的台账以 EIS-0006-02 记录了同一 NL 句的缺口，0046 台账遗漏 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：V 属 M 边界内；与簇 0046-6（同一变量的另一命名）、0046-3（该变量上的效应）同源；姊妹 pair 0006 的台账以 EIS-0006-02 记录了同一 NL 句的缺口，0046 台账遗漏。
 
 **0046-3** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `effect_declared` ｜ 判定组 G5
 
 - **事实**：uav_count 变量在声明表中根本不存在（仅 R45RouteToken），故 Attacking 上以 Attack_Completed_UAV_Count_Decreased 触发的迁移不可能带对 uav_count 的负向效应
 - **NL**：NL 4 『After completing the attack, the number of UAVs in the swarm decreases accordingly』
-- **说明**：与姊妹 pair 台账 EIS-0006-02[effect_declared] 同缺陷类；0046 台账未枚举；与簇 0046-2/6 同根，去重时应合并为一条『计数量与其递减效应整体缺失』 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与姊妹 pair 台账 EIS-0006-02[effect_declared] 同缺陷类；0046 台账未枚举；与簇 0046-2/6 同根，去重时应合并为一条『计数量与其递减效应整体缺失』。
 
 **0046-4** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：声明表只有 Attack_Completed_UAV_Count_Decreased，无独立 Attack_Completed；事件名把触发（攻击完成）与效应（数量减少）焊在一起
 - **NL**：NL 4 把二者明确分成触发与后果两段：『After completing the attack, the number of UAVs ... decreases』
-- **说明**：效应被编码进事件名是 0046 的核心融合缺陷；与簇 0046-9 同源（同一事件的另一命名） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：效应被编码进事件名是 0046 的核心融合缺陷；与簇 0046-9 同源（同一事件的另一命名）
 
 **0046-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G5
 
@@ -1310,7 +1303,7 @@
 
 - **事实**：声明表无任何表示集群规模的作者变量，仅 R45RouteToken
 - **NL**：NL 4 『the number of UAVs in the swarm』
-- **说明**：与簇 0046-2 是同一缺失的两种命名（uav_count / number_of_UAVs_in_the_swarm），去重时必须合并，不得计两次 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0046-2 是同一缺失的两种命名（uav_count / number_of_UAVs_in_the_swarm），去重时必须合并，不得计两次。
 
 **0046-7** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G5
 
@@ -1328,7 +1321,7 @@
 
 - **事实**：声明表无 Completing_the_attack，也无任何只表示『攻击完成』的事件；只有融合事件 Attack_Completed_UAV_Count_Decreased
 - **NL**：NL 4 『After completing the attack』
-- **说明**：与簇 0046-4 是同一缺失的两种命名，去重时必须合并 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0046-4 是同一缺失的两种命名，去重时必须合并。
 
 ## pair 0047 — 8 簇　`无×8`
 
@@ -1336,49 +1329,49 @@
 
 - **事实**：事件仅 Brake_Applied/Collision_Avoided/Collision_Detected
 - **NL**：NL 2 并列点名三种检测
-- **说明**：CAS 下有三子态，单一 Collision_Detected 无法决定进哪个；不依赖并发 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：CAS 下有三子态，单一 Collision_Detected 无法决定进哪个；不依赖并发。
 
 **0047-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 RearEnd_Collision_Detected
 - **NL**：NL 2
-- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：同源。
 
 **0047-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 Pedestrian_Collision_Detected
 - **NL**：NL 2
-- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：同源。
 
 **0047-4** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 possible_frontend_collision
 - **NL**：NL 2
-- **说明**：与 0047-1/7 同一缺陷 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：与 0047-1/7 同一缺陷。
 
 **0047-5** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无追尾专用检测事件
 - **NL**：NL 2
-- **说明**：绑定名 rear 是截断标识符，但缺陷实体成立 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：绑定名 rear 是截断标识符，但缺陷实体成立。
 
 **0047-6** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 collision_with_pedestrian
 - **NL**：NL 2
-- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：同源。
 
 **0047-7** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 frontend_collision
 - **NL**：NL 2
-- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：同源。
 
 **0047-8** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：三个分型检测一个都没有
 - **NL**：NL 2
-- **说明**：roll-up ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：roll-up。
 
 ## pair 0049 — 25 簇　`表示债务×14 无×11`
 
@@ -1386,61 +1379,61 @@
 
 - **事实**：四者均只作融合事件子串
 - **NL**：NL 12 析取列举
-- **说明**：析取融合语义损失确凿 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：析取融合语义损失确凿。
 
 **0049-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：只有 front_inactive_rear_inactive_pedestrian_inactive
 - **NL**：NL 13 三者反引号点名（and 合取）
-- **说明**：⚠️G2 判 VALID，G1 对同形 0029-5/6/7 判 NO_NL_BASIS——待主判裁决 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：⚠️G2 判 VALID，G1 对同形 0029-5/6/7 判 NO_NL_BASIS——待主判裁决。
 
 **0049-3** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：pedestrian_detected 仅前缀子串
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0049-4** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：dist_to_rear_5_vel_30 仅中段子串
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0049-5** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：front_inactive 仅前缀子串
 - **NL**：NL 13
-- **说明**：同 0049-2 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：同 0049-2。
 
 **0049-6** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：HighwayMode 前距仅子串
 - **NL**：NL 12
-- **说明**：与 0049-24 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0049-24 同源。
 
 **0049-7** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：UrbanMode 前距仅末段
 - **NL**：NL 12
-- **说明**：与 0049-25 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0049-25 同源。
 
 **0049-8** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：rear_inactive 仅中段子串
 - **NL**：NL 13
-- **说明**：同 0049-2 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：同 0049-2。
 
 **0049-9** ｜ 📄 无 NL 依据 ｜ 4/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：pedestrian_inactive 仅末段子串
 - **NL**：NL 13
-- **说明**：同 0049-2 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：同 0049-2。
 
 **0049-10** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：model.fcstm:5 `event dist_to_front_25 named "dist_to_front>=25";` —— 比较符在编译产物里逐字保留，与作者源 stm0.puml:10 `enter_hwy --> cruise : dist_to_front>=25` 完全一致；互补分支同样在场：model.fcstm:6 `event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true"`
 - **NL**：NL 3/5 要求的 `<25 && extra_lane` 恰好落在通往 lane_change 的边上，制品已满足
-- **说明**：【终裁】断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。 ｜【成分分析改判】FALSE_POSITIVE→NO_NL_BASIS：见 V46_COMPOSITION.md
+- **说明**：断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。
 
 **0049-11** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1458,37 +1451,37 @@
 
 - **事实**：七个条件全为子串
 - **NL**：NL 12+13
-- **说明**：是 0049-1 与 0049-2 的并集，归并时合为一条 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：是 0049-1 与 0049-2 的并集，归并时合为一条。
 
 **0049-14** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G2
 
 - **事实**：唯一变量是 R45RouteToken，阈值烘焙进事件名
 - **NL**：NL 3/5/7/9/12 同一量多阈值
-- **说明**：属 M 的 V，在边界内 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：属 M 的 V，在边界内。
 
 **0049-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G2
 
 - **事实**：无 extra_lane 变量
 - **NL**：NL 3/7/9
-- **说明**：同源；是 0049-11/20 的正确刻画 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源；是 0049-11/20 的正确刻画。
 
 **0049-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G2
 
 - **事实**：无 dist_to_exit 变量
 - **NL**：NL 4/5/8
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0049-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G2
 
 - **事实**：无 dist_to_rear 变量
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0049-18** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G2
 
 - **事实**：无 vel 变量
 - **NL**：NL 12
-- **说明**：同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：同源。
 
 **0049-19** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1506,13 +1499,13 @@
 
 - **事实**：模式限定前距危险只埋在融合事件里
 - **NL**：NL 12 独立析取触发源
-- **说明**：事件名系模型自拟但实质主张成立 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：事件名系模型自拟但实质主张成立。
 
 **0049-22** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：确无标识符为 dist_to_front_lt_25 的独立事件；但 NL 要求的条件本身在场：model.fcstm:6 的 `dist_to_front<25 && extra_lane=true`，挂在 model.fcstm:27/30 两条通往 lane_change 的边上；作者源 stm0.puml:11/14 逐字同形
 - **NL**：NL 3 与 NL 5 两处出现 `dist_to_front<25` 时都与 `extra_lane=true` 合取，NL 全文无一处把它作为独立触发源
-- **说明**：【终裁】实质诉求是把合取式拆成裸事件，适用 R-CONJ：拆开会把 AND 变 OR，指向错误修法。与同 pair 的 15 米孪生簇 0049-12/0049-23 同口径。⚠️ 与同源的 0049-10 分裁：0049-10 断言「比较符不可判定」被 named 串直接证伪（事实为假→假阳性），本簇陈述的「无该标识符」字面为真（事实为真→无 NL 依据）。
+- **说明**：实质诉求是把合取式拆成裸事件，适用 R-CONJ：拆开会把 AND 变 OR，指向错误修法。与同 pair 的 15 米孪生簇 0049-12/0049-23 同口径。⚠️ 与同源的 0049-10 分裁：0049-10 断言「比较符不可判定」被 named 串直接证伪（事实为假→假阳性），本簇陈述的「无该标识符」字面为真（事实为真→无 NL 依据）
 
 **0049-23** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1524,13 +1517,13 @@
 
 - **事实**：只作融合事件子串
 - **NL**：NL 12
-- **说明**：与 0049-6 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0049-6 同源。
 
 **0049-25** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：只作融合事件末段
 - **NL**：NL 12
-- **说明**：与 0049-7 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与 0049-7 同源。
 
 ## pair 0050 — 1 簇　`表示债务×1`
 
@@ -1538,7 +1531,7 @@
 
 - **事实**：只有事件 _front_distance_10，无变量 front_distance
 - **NL**：NL 4 逐字命名该量并与阈值 10 比较
-- **说明**：台账 EIS-0050-01 未涉及，属真漏记 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：台账 EIS-0050-01 未涉及，属真漏记。
 
 ## pair 0052 — 2 簇　`无×2`
 
@@ -1568,13 +1561,7 @@
 - **NL**：NL 5 含义说明
 - **说明**：与 0053-1 同源
 
-## pair 0054 — 6 簇　`假阳性×3 谓词产物×2 无×1`
-
-**0054-1** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G3
-
-- **事实**：Approaching 处无自环
-- **NL**：NL 10 未要求显式消费或自环
-- **说明**：谓词操作化产生的义务，非 NL 义务
+## pair 0054 — 5 簇　`假阳性×3 无×2`
 
 **0054-2** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
@@ -1586,19 +1573,19 @@
 
 - **事实**：只有输入触发 _obstacle_detected，无任何承载 Obstacle Detected 输出信号的名字（对比 0024 有两个）
 - **NL**：NL 3 sends the Obstacle Detected signal
-- **说明**：同类在 0024 已被台账记为 EIS-0024-04，0054 台账 0 条故为漏记 ｜【回读原件复核翻转】VALID_UNRECORDED→FALSE_POSITIVE：0054 model.fcstm 第 29-32 行：`state EmergencyStopping named "EmergencyStopping" {
+- **说明**：同类在 0024 已被台账记为 EIS-0024-04，0054 台账 0 条故为漏记。
 
 **0054-4** ｜ ❌ 假阳性 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G3
 
 - **事实**：路径确无名为 Send 的事件；但 rationale 自陈 Approaching 声明了 during 动作，无法判断该动作是否即 Send
 - **NL**：NL 9 要求输出动作而非输入事件
-- **说明**：需补取 InMotion.Approaching 的 during 动作原文后重判 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0054 model.fcstm 第 13-15 行：`state Approaching named "Approaching" { during abstr
+- **说明**：需补取 InMotion.Approaching 的 during 动作原文后重判。
 
-**0054-5** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G3
+**0054-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G3
 
-- **事实**：断言以 release=false、bound=5 执行，对任何符合 NL 的模型都必然为假
-- **NL**：NL 2/10 恰恰许可 Approaching → Stopping
-- **说明**：构造性不可满足；建议登记为谓词侧待修项
+- **事实**：断言以 `release=false` 执行，语义为「必须永远停留在 Approaching」。模型有终止路径，故求值为 False——事实成立。
+- **NL**：NL 10「remains ... until it is ready to stop or decelerate」是**定性描述**且明确带释放条件；NL 2/10 恰恰许可 Approaching → Stopping。NL 从未要求无限驻留。
+- **说明**：定性表述被强化为时序不变式：`release=false` 把「保持到某条件」读成「永远保持」。
 
 **0054-6** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G3
 
@@ -1620,7 +1607,7 @@
 
 - **事实**：作者源 stm0.puml:10 是正交区分隔符 `--`：SearchState 实为两个区，region0={Area1,Area2,Area3}、region1={NoIntercept,Intercepted}（model.fcstm:9 的 [PlantUML concurrent region 0/1] 标注逐字确认）。NL 2 的 three different state areas 由 region0 的三个 Area 兑现，义务在作者源上已满足；5≠3 只在 R4.5 把两区拍平成兄弟、跨区求和之后才出现。
 - **NL**：NL 2 'it operates within three different state areas' —— 按区数读，制品本已是三个
-- **说明**：【主判终裁 · 两个独立判定 agent 收敛】判 OUT_OF_SCOPE，与 0007-3 同型同判。判据：含正交区的制品上，cardinality 主张在 M 内成立当且仅当该违规在『区感知读法』下依然存活。该判据可证伪且先于本裁定存在——0037（源内无 --，7≠3 是单区真实计数）、0002（盈余是游离 InitialState）、0013（盈余是 NL 未枚举的克隆态）三处均按此判据保留在 M 内，方向对方法不利。原 diff#0 与 diff#3 并不真冲突：diff#0 问『三个区够不够』并自带 out_of_scope:concurrency，diff#3 问『多出的两个该不该在』且判 extra；产出主张把 diff#3 的结论挂到了 diff#0 已判无表达力的仪器上。该过度规约的可断言后果已由 EIS-0056-01（guard_distinguishable）承担，再计一条等于同一缺陷数两遍。
+- **说明**：判 OUT_OF_SCOPE，与 0007-3 同型同判。判据：含正交区的制品上，cardinality 主张在 M 内成立当且仅当该违规在『区感知读法』下依然存活。该判据可证伪且先于本裁定存在——0037（源内无 --，7≠3 是单区真实计数）、0002（盈余是游离 InitialState）、0013（盈余是 NL 未枚举的克隆态）三处均按此判据保留在 M 内，方向对方法不利。原 diff#0 与 diff#3 并不真冲突：diff#0 问『三个区够不够』并自带 out_of_scope:concurrency，diff#3 问『多出的两个该不该在』且判 extra；产出主张把 diff#3 的结论挂到了 diff#0 已判无表达力的仪器上。该过度规约的可断言后果已由 EIS-0056-01（guard_distinguishable）承担，再计一条等于同一缺陷数两遍。
 
 **0056-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G6
 
@@ -1632,7 +1619,7 @@
 
 - **事实**：作者源 stm0.puml 写的是 'AttackState --> SearchState : Attack Complete [Decrease UAV Count]'，触发 Attack Complete 与方括号内容在 UML 记法上是分开的；融合成 Attack_Complete_Decrease_UAV_Count 发生在 FCSTM lowering（R45.DEBT.opaque_transition_label_semantics）
 - **NL**：NL 4 'After completing the attack' 确点名该刺激，制品已在方括号前给出该触发
-- **说明**：本 pair 的真缺陷是递减被放进 guard 槽位而非 effect 槽位，已记为 EIS-0056-02（人工复核 diff#2）；本条主张的『事件名融合』是其下游的表示债务，不构成独立新发现 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
+- **说明**：本 pair 的真缺陷是递减被放进 guard 槽位而非 effect 槽位，已记为 EIS-0056-02（人工复核 diff#2）；本条主张的『事件名融合』是其下游的表示债务，不构成独立新发现。
 
 ## pair 0057 — 6 簇　`无×5 假阳性×1`
 
@@ -1640,7 +1627,7 @@
 
 - **事实**：作者源 stm0.puml:22 `[*] --> CA : Possible collision detected` 只有一条边、一个响应（进 CA）；三个具名事件 :5/:11/:17 分别驱动各区 Idle→Active。事件名是 NL 2 从句去掉三个并列项后的逐字压缩，非自造
 - **NL**：NL 2「becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected」——三项析取，期望响应相同（子机变 active）
-- **说明**：【对抗性复核推翻 · 主判采纳】命中仓库自身 FUSED_EVENT_POLICY.md L379 的许可条件：「合并事件代表多个 NL 备选，只当 source trace 支持同一析取且**期望响应相同**」——两条都满足，故属许可的合并。该判据同时把 0017/0047 干净分开：那两处是同一事件名导向三个**不同**目标（F/R/P），响应不同，不在许可内。0057 反而是该 NL 组里唯一按 L379 正确分工的模型（响应不同处用具名事件，响应相同处用聚合事件）。⚠️ 不判 FALSE_POSITIVE：事实为真，只是义务已被政策许可的形态履行。
+- **说明**：命中仓库自身 FUSED_EVENT_POLICY.md L379 的许可条件：「合并事件代表多个 NL 备选，只当 source trace 支持同一析取且**期望响应相同**」——两条都满足，故属许可的合并。该判据同时把 0017/0047 干净分开：那两处是同一事件名导向三个**不同**目标（F/R/P），响应不同，不在许可内。0057 反而是该 NL 组里唯一按 L379 正确分工的模型（响应不同处用具名事件，响应相同处用聚合事件）。⚠️ 不判 FALSE_POSITIVE：事实为真，只是义务已被政策许可的形态履行。
 
 **0057-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `edge_declared` ｜ 判定组 G8
 
@@ -1678,106 +1665,106 @@
 
 - **事实**：路径里有 pedestrian_detected_dist_to_rear_5_vel_30_... 这一融合事件，独立的 pedestrian_detected 确不存在
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
-- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举。
 
 **0059-2** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _dist_to_rear_5_vel_30；该串仅作为子串出现在四合一融合事件 _pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_highway_dist_to_front_10_in_urban 中
 - **NL**：NL 12 逐字给出 `dist_to_rear<5 & vel>30` 作为并列的激活触发之一
-- **说明**：与簇 0059-1 同源（同一融合事件的第二个分支） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-1 同源（同一融合事件的第二个分支）
 
 **0059-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _dist_to_front_15_in_highway；仅作为子串存在于四合一融合事件中（注意 _dist_to_front_15_extra_lane_true 是城市换道条件，非此触发）
 - **NL**：NL 12 『the front distance being less than 15 meters in highway mode』
-- **说明**：与簇 0059-1 同源（第三个分支） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-1 同源（第三个分支）
 
 **0059-4** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _dist_to_front_10_in_urban；仅作为子串存在于四合一融合事件中
 - **NL**：NL 12 『... or 10 meters in urban mode』
-- **说明**：与簇 0059-1 同源（第四个分支） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-1 同源（第四个分支）
 
 **0059-5** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：声明表只有 _front_inactive_rear_inactive_pedestrian_inactive，无独立 _front_inactive
 - **NL**：NL 13 逐字点名 `front_inactive` 为解除条件之一
-- **说明**：NL 13 为合取，故该条返回迁移行为等价，缺陷在声明层（三个 NL 逐字点名的信号无一被单独声明）；强度弱于 0059-1~4；与 0059-6/7/14 同源 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：NL 13 为合取，故该条返回迁移行为等价，缺陷在声明层（三个 NL 逐字点名的信号无一被单独声明）；强度弱于 0059-1~4；与 0059-6/7/14 同源。
 
 **0059-6** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _rear_inactive，仅存在于 _front_inactive_rear_inactive_pedestrian_inactive
 - **NL**：NL 13 逐字点名 `rear_inactive`
-- **说明**：与簇 0059-5 同源；合取融合，行为等价，声明层缺陷 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：与簇 0059-5 同源；合取融合，行为等价，声明层缺陷。
 
 **0059-7** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _pedestrian_inactive，仅存在于 _front_inactive_rear_inactive_pedestrian_inactive
 - **NL**：NL 13 逐字点名 `pedestrian_inactive`
-- **说明**：与簇 0059-5 同源；合取融合，行为等价，声明层缺陷 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：与簇 0059-5 同源；合取融合，行为等价，声明层缺陷。
 
 **0059-8** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：四个断言对应的 _pedestrian_detected / _dist_to_rear_5_vel_30 / _dist_to_front_15_in_highway / _dist_to_front_10_in_urban 均不在声明表中，只有四合一融合事件
 - **NL**：NL 12 用『or』并列四个激活触发
-- **说明**：与簇 0059-1/2/3/4 完全同源，只是打包成一条 issue；去重时应合并为一条 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-1/2/3/4 完全同源，只是打包成一条 issue；去重时应合并为一条。
 
 **0059-9** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：整份声明表中唯一的变量是编译器路由变量 R45RouteToken，不存在作者变量 dist_to_front；该量只以子串形式烧进事件名 _dist_to_front_25_extra_lane_true / _dist_to_front_15_extra_lane_true
 - **NL**：NL 3/5 给出 `dist_to_front<25`，NL 7/9 给出 `dist_to_front<15`，均为对数值量的比较
-- **说明**：本 pair 作者变量数为 0 是系统性缺陷，簇 9-13 是它的五个投影；V 属 M 边界内。若判定政策认为参考模型同样不带变量，需另行核对参考侧再决定归属 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：本 pair 作者变量数为 0 是系统性缺陷，簇 9-13 是它的五个投影；V 属 M 边界内。若判定政策认为参考模型同样不带变量，需另行核对参考侧再决定归属。
 
 **0059-10** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表无 extra_lane 变量，仅 R45RouteToken；extra_lane 只作为 _dist_to_front_25_extra_lane_true / _dist_to_front_15_extra_lane_true 的名字片段存在
 - **NL**：NL 3 『the availability of an extra lane (`extra_lane=true`)』
-- **说明**：与簇 0059-9 同源（作者变量词表为空） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-9 同源（作者变量词表为空）
 
 **0059-11** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表无 dist_to_exit 变量；只有事件 _dist_to_exit_2 与 _dist_to_exit_0_7
 - **NL**：NL 4/5 `dist_to_exit<2`，NL 8 `dist_to_exit<0.7`
-- **说明**：与簇 0059-9 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-9 同源。
 
 **0059-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表无 dist_to_rear 变量，仅 R45RouteToken
 - **NL**：NL 12 `dist_to_rear<5`
-- **说明**：与簇 0059-9 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-9 同源。
 
 **0059-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表无 vel 变量，仅 R45RouteToken
 - **NL**：NL 12 `vel>30`
-- **说明**：与簇 0059-9 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-9 同源。
 
 **0059-14** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：_front_inactive / _rear_inactive / _pedestrian_inactive 三者均不在声明表中，只有 _front_inactive_rear_inactive_pedestrian_inactive
 - **NL**：NL 13 逐字并列三个条件名
-- **说明**：与簇 0059-5/6/7 完全同源，打包版；合取融合行为等价，缺陷在声明层 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：与簇 0059-5/6/7 完全同源，打包版；合取融合行为等价，缺陷在声明层。
 
 **0059-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：_pedestrian_detected、_dist_to_rear_5_vel_30、_dist_to_front_15_in_highway_dist_to_front_10_in_urban 三者均未单独声明，只有四合一融合事件
 - **NL**：NL 12 的析取分支
-- **说明**：与簇 0059-8 同源，只是把前距两档并成一条；去重时合并 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0059-8 同源，只是把前距两档并成一条；去重时合并。
 
 **0059-16** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：声明表有 _dist_to_front_25_extra_lane_true，无独立 _dist_to_front_25
 - **NL**：NL 3 括注 `dist_to_front<25` 为一个独立命名条件；NL 5 同名复用
-- **说明**：NL 中该条件始终与 extra_lane 合取出现，故行为等价，属声明层/粒度缺陷，强度最弱；根因与簇 0059-9/10（无作者变量，守卫烧进事件名）相同 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：NL 中该条件始终与 extra_lane 合取出现，故行为等价，属声明层/粒度缺陷，强度最弱；根因与簇 0059-9/10（无作者变量，守卫烧进事件名）相同。
 
 **0059-17** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：extra_lane=true 只出现在 _dist_to_front_25_extra_lane_true 与 _dist_to_front_15_extra_lane_true 两个合取事件名内，无独立 _extra_lane_true
 - **NL**：NL 3 括注 `extra_lane=true`
-- **说明**：与簇 0059-16 同源；NL 从未单独使用该条件，强度弱 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：与簇 0059-16 同源；NL 从未单独使用该条件，强度弱。
 
 **0059-18** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G5
 
 - **事实**：无独立 _dist_to_front_15；只有 _dist_to_front_15_extra_lane_true（城市换道）与四合一融合事件中的 dist_to_front_15_in_highway 片段
 - **NL**：NL 7/9 `dist_to_front<15`
-- **说明**：与簇 0059-16/17 同源；合取融合，声明层缺陷 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
+- **说明**：与簇 0059-16/17 同源；合取融合，声明层缺陷。

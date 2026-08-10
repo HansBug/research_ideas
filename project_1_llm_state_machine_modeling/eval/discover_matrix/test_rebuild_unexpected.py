@@ -125,12 +125,12 @@ def test_missing_evidence_field_fails_loudly(
 def test_unknown_verdict_label_fails(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """六类之外没有第七类。新造标签必须撞墙，否则分类学形同虚设。"""
+    """五类之外没有第六类。新造标签必须撞墙，否则分类学形同虚设。"""
 
     verdicts = _seed(tmp_path, [_rec("0017-1", "PROBABLY_FINE")])
     monkeypatch.setattr(R, "VERDICTS", verdicts)
     monkeypatch.setattr(R, "HERE", tmp_path)
-    with pytest.raises(SystemExit, match="不在六类内"):
+    with pytest.raises(SystemExit, match="不在五类内"):
         R.main([])
 
 

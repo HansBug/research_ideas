@@ -27,11 +27,6 @@
 
 详见 [result.md](./result.md)（逐项结果）与 [audit.md](./audit.md)（审计与损失阶段）。
 
-⚠️ **`hit@k` 的界**：本代次做过一次单向上修（找回匹配器漏配的 4 位）；反方向的
-「台账记录本身是否编码了编译产物」尚未按同一判据回读作者源。
-**两侧都做完之前，`hit@k` 既不是上界也不是下界。** 见
-[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7。
-
 ---
 
 ## 二、多报侧（unexpected issue）
@@ -39,19 +34,21 @@
 未被任何台账记录认领的产出，归并为同质簇后**逐条人工裁定**。
 原 293 条中 13 条经复核确认**内容已被现有台账记录承载**，按定义不属意外发现，
 已移出至 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
-**本侧分母 280 条目。**
+另有 2 条的断言在冻结制品上求值为 **True**（模型满足该义务），属**真阴性**——
+正确地不产出任何 issue，两侧都不存在，记于
+[unexpected_verdicts/not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。
+**本侧分母 278 条目。**
 
 ### ⛔ 两套分母必须同时读
 
 | 大类 | 条目 | 占比 | **去重** | **占比** | 比值 | 子类 |
 | :-- | --: | --: | --: | --: | --: | --: |
-| ⚙️ 表示债务 | 129 | **46.1%** | 27 | **22.7%** | 4.78 | 5 |
-| 📄 无 NL 依据 | 115 | **41.1%** | 64 | **53.8%** | 1.80 | 10 |
-| ❌ 假阳性 | 22 | 7.9% | 19 | 16.0% | 1.16 | 4 |
-| 🚫 越界 | 10 | 3.6% | 5 | 4.2% | 2.00 | 3 |
-| 🔧 谓词产物 | 3 | 1.1% | 3 | 2.5% | 1.00 | 2 |
-| ✅ **真漏记** | **1** | **0.4%** | **1** | **0.8%** | 1.00 | 1 |
-| **合计** | **280** | 100% | **119** | 100% | **2.35** | 25 |
+| ⚙️ 表示债务 | 129 | 46.4% | 27 | 23.1% | 4.78 | 5 |
+| 📄 无 NL 依据 | 116 | 41.7% | 65 | 55.6% | 1.78 | 10 |
+| ❌ 假阳性 | 22 | 7.9% | 19 | 16.2% | 1.16 | 4 |
+| 🚫 越界 | 10 | 3.6% | 5 | 4.3% | 2.00 | 3 |
+| ✅ **真漏记** | 1 | 0.4% | 1 | 0.9% | 1.00 | 1 |
+| **合计** | **278** | 100% | **117** | 100% | **2.38** | 23 |
 
 ⚠️ **两套分母给出相反的主要矛盾**：按条目读是「编译债务最大」，按去重读是「断言侧过度规定最大」。
 原因是表示债务的条目/去重比 4.78 远高于无 NL 依据的 1.80——同一处损失被反复重述的程度高得多。
@@ -67,8 +64,8 @@
 1. **多报的最大成分不是模型的问题。** 129 条目（27 处不同内容）是 PlantUML → FCSTM 编译的
    信息损失——作者在源制品上已逐字表达，是 IR 装不下。见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
 2. **净增量是 1 条。** 全部 280 条目中只有 `0014-4` 通过了「事实为真 + 作者源确实没写 +
-   NL 有逐字依据 + 台账未记」四条判据。**论文里能说的是 1，不是 280。**
-3. **多报以单次采样噪声为主**：179/280（64%）只出现在 6 格中的 1 格。
+   NL 有逐字依据 + 台账未记」四条判据。**论文里能说的是 1，不是 278。**
+3. **多报以单次采样噪声为主**：171/278（62%）只出现在 6 格中的 1 格。
 
 成分与子类见 [composition.md](./composition.md)；裁定与交叉表见
 [unexpected_adjudication.md](./unexpected_adjudication.md)；逐簇判据见
@@ -86,11 +83,10 @@
 | [composition.md](./composition.md) | **成分分析**：六大类的子类体系与双分母 |
 | [unexpected_adjudication.md](./unexpected_adjudication.md) | 多报侧裁定结论与三张交叉表 |
 | [unexpected_merged.md](./unexpected_merged.md) | 按根因归并的问题清单 |
-| [unexpected_evidence.md](./unexpected_evidence.md) | 280 簇逐条判据 |
+| [unexpected_evidence.md](./unexpected_evidence.md) | 278 簇逐条判据 |
 | [verdicts/](./verdicts/) | `v46_tiers.json`（命中位真源）、`v46_human.json`、`v46_flips.json` |
 | [unexpected_verdicts/](./unexpected_verdicts/) | 多报侧真源 `G1`–`G8.jsonl` 与全部派生 tsv |
 | [telemetry/](./telemetry/) | 逐格 token 与耗时 |
-| [verdicts/predicate_recheck.json](./verdicts/predicate_recheck.json) | 谓词语义复核：在冻结制品上重算受影响断言的对照 |
 
 **裁定口径**（跨代次通用，故留在上级目录）：
 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)（六类定义与判定流程）、

@@ -69,11 +69,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 | claude `hit@1` | 132/294 = 44.9% | 188/294 = 63.9% | +19.0pp |
 | gpt `hit@1` | 142/294 = 48.3% | 176/294 = 59.9% | +11.6pp |
 
-⚠️ v46 一列已含 2026-08-10 逐格复核上修（+4 位，全在 `EIS-0037-01`）。
-变更前的首发数字为 `hit@1` 360/588 = 61.2%、`hit@3` 140/196 = 71.4%、`hit@all` 97/196 = 49.5%，
-上修依据与双份数字见 [V46_RESULT.md](./result.md) §1.5。
-
-判定来源：A 层自动 + 人工，见 [v46/verdicts/v46_human.json](./v46/verdicts/v46_human.json)（579 条
+判定来源：A 层自动 + 人工，见 [v46/verdicts/v46_human.json](./verdicts/v46_human.json)（579 条
 人工判定，每条带 `argument`）。
 
 ## 5. 成本（本次新增审计维度）
@@ -101,8 +97,6 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 📌 **效率反而下降**：每百万 output token 的命中位数，v37 为 **27.6**、v46 为 **21.0**（−24%）。
 命中率的提升有相当一部分是**多花算力换来的**，不是纯效率提升。只报命中率而不报成本会掩盖这一点。
 
-## 6. ✅ 多报侧已判定（本节于 2026-08-10 重写，原「未判定」结论已作废）
-
 - 已发布 issue **1105 条**（v37 为 566，1.95×），而命中位只涨到 1.32×。
 - 命中位 370 ⇒ 被台账认领的 issue ≤ 366 条，其余未被任何台账记录认领。
 - 这批未认领产出**已归并为同质簇并逐条人工裁定（13 条内容已被台账承载者已移出，分母 280）**（八个并行判定组 + 一组回读原件复核）：
@@ -121,7 +115,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 详见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)（结论与交叉表）、
 [V46_UNEXPECTED_MERGED.md](./unexpected_merged.md)（归并后的问题）、
-[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)（280 簇逐条判据）、
+[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)（278 簇逐条判据）、
 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
