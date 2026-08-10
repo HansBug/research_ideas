@@ -27,12 +27,17 @@ if str(HERE) not in sys.path:
 import rebuild_unexpected as R  # noqa: E402
 
 
-def _seed(tmp: pathlib.Path, records: list[dict]) -> pathlib.Path:
+def _seed(tmp: pathlib.Path, records: list[dict], *, sidecars: bool = True) -> pathlib.Path:
     verdicts = tmp / "v46" / "unexpected_verdicts"
     verdicts.mkdir(parents=True, exist_ok=True)
     (verdicts / "G1.jsonl").write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in records)
     )
+    if sidecars:
+        # 桶外两份归档凑满闭合总数，否则 `write_tables` 会（正确地）拒绝执行。
+        spare = R.ORIGINAL_TOTAL - len(records)
+        (verdicts / "ledger_accounted.jsonl").write_text("\n".join('{"x":1}' for _ in range(spare)))
+        (verdicts / "not_produced.jsonl").write_text("")
     return verdicts
 
 
@@ -212,6 +217,38 @@ def test_merge_groups_table_is_emitted_and_joinable(
     row = groups[0]
     assert row["成员数"] == "2" and row["成员簇"] == "0029-1 0029-2"
     assert row["merge_reason"] == "两条同源。"
+
+
+def test_every_cross_table_is_machine_generated(wired: pathlib.Path) -> None:
+    """交叉表只许有一个产地。
+
+    这些表原先手工维护在三份 md 里，而机器派生的 tsv 各自正确——每次裁定变更后正文
+    与真源分岔。实测代价：正文说净增量 4 条 / 23 簇，`final_rootcause.tsv` 只有 1 行，
+    同一目录内两份文件对同一问题给出互斥的头条结论。
+    """
+
+    assert R.main([]) == 0
+    text = (wired / "v46" / "unexpected_tables.md").read_text()
+    for table in ("表 0", "表 1", "表 2", "表 3", "表 4", "表 5"):
+        assert table in text, table
+    assert "不要手工编辑" in text
+
+
+def test_closure_is_asserted_not_narrated(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """桶内 + 两份归档必须凑满最初簇总数，对不上就拒绝重建。
+
+    `293` 此前只是三份 md 里的一句断言，目录里没有任何文件能证明它——审计者无法验证
+    「13 条与 2 条确实是从 293 里移出的、没有第三批被悄悄丢掉」。现在它是算出来的。
+    """
+
+    verdicts = _seed(tmp_path, [_rec("0017-1", "VALID_UNRECORDED")], sidecars=False)
+    (verdicts / "ledger_accounted.jsonl").write_text('{"x":1}')  # 1 + 1 != 293
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    with pytest.raises(SystemExit, match="分母不闭合"):
+        R.main([])
 
 
 def test_merge_key_does_not_cross_pairs(

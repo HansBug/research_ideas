@@ -38,11 +38,9 @@ if str(HERE) not in sys.path:
 
 import metrics_at_k as mk  # noqa: E402
 
-BAND_TITLES = {
-    "hold": "全部记录（{n} 条）",
-    "burned": "（已废弃分带）{n} 条",
-    "hist": "（已废弃分带）{n} 条",
-}
+#: 只剩一个分母。分带随 hold-out 于 2026-08-09 一并废止（METHOD_PROVENANCE_POLICY.md §一.1），
+#: 台账全部记录同等参与度量，没有哪一条因为参与过规则编写而被单独成带或剔出分母。
+BAND_TITLES = {"hold": "可报告记录（{n} 条）"}
 LAYERS = ("wellformedness", "nl_named", "over_specification", "nl_contradiction")
 THRESHOLD = 4
 
@@ -135,9 +133,6 @@ def render(payload: dict, generation: str, rounds: int) -> str:
             + "\n  - ".join(problems)
         )
     ledger = _ledger()
-    bands: dict[str, list[str]] = collections.defaultdict(list)
-    for record_id in verdicts:
-        bands[mk.band_of(record_id)].append(record_id)
 
     reportable = list(mk.REPORTABLE)
     coverage = collections.Counter(
@@ -162,9 +157,9 @@ def render(payload: dict, generation: str, rounds: int) -> str:
 
     header = ["记录", "层", "缺陷简述", *[f"r{i}" for i in range(1, rounds + 1)], "备注"]
 
-    out.append(f"\n## {BAND_TITLES['hold'].format(n=len(bands['hold']))}\n")
-    out.append(_table(header, _rows(verdicts, bands["hold"], ledger, rounds)))
-    ratios = _ratios(verdicts, bands["hold"], rounds)
+    out.append(f"\n## {BAND_TITLES['hold'].format(n=len(reportable))}\n")
+    out.append(_table(header, _rows(verdicts, reportable, ledger, rounds)))
+    ratios = _ratios(verdicts, reportable, rounds)
     if ratios:
         out.append("\n" + " · ".join(f"**{k}** {v}" for k, v in ratios.items()) + "\n")
 
@@ -183,13 +178,11 @@ def render(payload: dict, generation: str, rounds: int) -> str:
         "\n**这张表是空的，空本身是结论** —— 没有任何一层达到阈值。\n"
     )
 
-    for band in ("burned", "hist"):
-        if not bands[band]:
-            continue
-        out.append(f"\n## {BAND_TITLES[band].format(n=len(bands[band]))}\n")
-        out.append("逐轮结果与依据如下。**本节不给任何比率** —— 给了它就会被引用，"
-                   "而这些条目所在的格已因参与规则编写而失去支撑主张的资格。\n")
-        out.append(_table(header, _rows(verdicts, bands[band], ledger, rounds)))
+    dropped = sorted(r for r in verdicts if r not in set(reportable))
+    if dropped:
+        out.append(f"\n## 不计入分母（{len(dropped)} 条）\n")
+        out.append("经边界裁定判为表示层产物而非作者缺陷，原始判定保留、不进能力分母。\n")
+        out.append(_table(header, _rows(verdicts, dropped, ledger, rounds)))
 
     return "\n".join(out) + "\n"
 

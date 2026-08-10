@@ -8,7 +8,7 @@
 | :-- | :-- |
 | `ratio_gate()` | **仍是唯一归属地** —— `full_tables.py` 调它，不重实现 |
 | `MEASURED_CHURN` / `MIN_POSITIONS` / `MIN_CLUSTERS` | 仍有效（已改为全分母口径） |
-| `band_of()` / `REPORTABLE` | **已退化为平凡实现** —— hold-out 与分带机制已于 2026-08-09 永久移除 |
+| 分带 | **已移除** —— hold-out 与分带机制已于 2026-08-09 永久废止；只剩 `REPORTABLE` 一个分母 |
 | `main()` 的按带输出 | **作废**，改用 `full_tables.py` |
 
 ⚠️ **不要用本文件的 `main()` 报覆盖率。** 用：
@@ -123,15 +123,26 @@ def _out_of_scope_record_ids() -> tuple[str, ...]:
     所以这里直接读 `boundary_ruling`，而不是依赖任何人记得手工扣。
     """
 
+    return _nl_out_of_scope_ids() + _boundary_ruled_ids()
+
+
+def _nl_out_of_scope_ids() -> tuple[str, ...]:
+    """`00x8` 家族：先验越界，从未进过网格。"""
+
     excluded_pairs = set(nl_scope_filter.excluded_pairs())
     payload = json.loads(LEDGER.read_text())
-    out: list[str] = []
-    for record in payload.get("records") or ():
-        if str(record.get("pair", "")) in excluded_pairs:
-            out.append(str(record["id"]))
-        elif record.get("boundary_ruling") == "out_of_scope":
-            out.append(str(record["id"]))
-    return tuple(out)
+    return tuple(str(r["id"]) for r in payload.get("records") or ()
+                 if str(r.get("pair", "")) in excluded_pairs)
+
+
+def _boundary_ruled_ids() -> tuple[str, ...]:
+    """逐条边界裁定剔除：跑过、判过，事后才被裁定为表示层产物。"""
+
+    excluded_pairs = set(nl_scope_filter.excluded_pairs())
+    payload = json.loads(LEDGER.read_text())
+    return tuple(str(r["id"]) for r in payload.get("records") or ()
+                 if str(r.get("pair", "")) not in excluded_pairs
+                 and r.get("boundary_ruling") == "out_of_scope")
 
 
 OUT_OF_SCOPE = _out_of_scope_record_ids()
@@ -224,15 +235,26 @@ def validate(verdicts: dict, over: dict, rounds: int, require_direction: bool = 
             "⚠️ 这里说的**不是** `00x8`：那 27 条是 NL 越界记录，先验不在分母内，"
             "本检查已把它们扣除（见 NL_SCOPE_RULE.md）"
         )
-    # 越界记录出现在判定表里同样要报 —— 它们不该被跑、更不该被判，一旦出现说明网格错了。
-    # 这条与上面互为镜像：一个防「范围内的被漏掉」，一个防「范围外的被混入」。
-    intruders = [record for record in OUT_OF_SCOPE if record in verdicts]
-    if intruders:
+    # 两条排除来源在这里必须分开，因为它们的**合法性相反**。
+    #
+    # `00x8` 是先验越界：它们不该被跑、更不该被判，出现在判定表里就说明网格被改错了。
+    # `boundary_ruling` 是事后裁定：那条记录**跑过也判过**，之后才被独立裁定判为表示层
+    # 产物并剔出分母 —— 它留在判定表里是正常的，原始判定本就该保留。
+    #
+    # 合并成一句话报错的代价是实测过的：`EIS-0043-02` 触发了这条，报错却说「NL 越界 /
+    # `00x8` / 网格被改错了」，与实际原因完全不符，且使真源工具对一份正确的判定表拒算，
+    # 于是声称的数字只能靠别的脚本复现。
+    nl_intruders = [r for r in _nl_out_of_scope_ids() if r in verdicts]
+    if nl_intruders:
         problems.append(
-            f"判定表里混入 {len(intruders)} 条 NL 越界记录：{intruders}。`00x8` 对应的 NL 要求 "
+            f"判定表里混入 {len(nl_intruders)} 条 NL 越界记录：{nl_intruders}。`00x8` 对应的 NL 要求 "
             "fork/join 与秒级时间约束，其忠实模型在 M = (S, E, V, Tr, A) 中无法表示，先验不进"
             "网格也不进分母（NL_SCOPE_RULE.md）。它们出现在这里意味着网格被改错了"
         )
+    ruled = sorted({r for r in OUT_OF_SCOPE if r in verdicts} - set(nl_intruders))
+    if ruled:
+        print(f"ℹ️ 判定表含 {len(ruled)} 条 boundary_ruling 剔除记录（{ruled}），"
+              "其原始判定保留、不计入分母", file=sys.stderr)
     for cell, series in sorted(over.items()):
         if len(series) != rounds:
             problems.append(f"over[{cell}] 有 {len(series)} 轮，应为 {rounds}")
@@ -277,13 +299,6 @@ def _direction_problems(verdicts: dict) -> list[str]:
                     f"{sorted(DIRECTIONS)}"
                 )
     return problems
-
-
-def band_of(record_id: str) -> str:
-    """恒返回 ``"hold"``。分带机制已随 hold-out 一并移除，见模块顶部说明。"""
-
-    del record_id
-    return "hold"
 
 
 #: 比率闸门（§3.5.2 补充条款）。覆盖率类指标**以比率形式**报出，须同时满足三条；任一不满足时该带
@@ -419,7 +434,7 @@ def report_band(verdicts: dict, ids: list[str], name: str, rounds: int) -> None:
             print(f"   {label:24} {raw}  {kind}")
         return
     print(header)
-    band_key = {"全部记录": "reportable"}.get(name)
+    band_key = {"可报告记录": "reportable"}.get(name)
     if band_key is None:
         band_key = "hist" if "历史" in name else ("burned" if "烧毁" in name else "")
     failed = ratio_gate(sorted(ids), triples, band_key)
@@ -540,12 +555,17 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print("!! --force：以下数字不得引用", file=sys.stderr)
 
-    bands: dict[str, list[str]] = collections.defaultdict(list)
-    for record_id in verdicts:
-        bands[band_of(record_id)].append(record_id)
-    report_band(verdicts, bands["hold"], "全部记录", args.rounds)
-    report_band(verdicts, bands["burned"], "已烧毁 hold-out（方法+样本共演化观测，不作能力主张）", args.rounds)
-    report_band(verdicts, bands["hist"], "历史格（共同演化观测，不作能力主张）", args.rounds)
+    # 分母 = REPORTABLE，**不是判定表里出现的全部 id**。
+    #
+    # 这里原先按后者算，于是工具报 366/594 而全部文档报 360/588 —— 差的正是
+    # `EIS-0043-02` 这条已被边界裁定剔除、但原始判定仍保留在表里的记录。后果不是
+    # 「数字略有出入」，而是**声称的数字无法用真源工具复算**，审计者只能改用别的脚本。
+    # 剔除口径写在 `_out_of_scope_record_ids()` 里，度量就必须用同一个口径。
+    reportable = [r for r in verdicts if r in set(REPORTABLE)]
+    dropped = [r for r in verdicts if r not in set(REPORTABLE)]
+    if dropped:
+        print(f"（已从分母剔除 {len(dropped)} 条：{sorted(dropped)}）")
+    report_band(verdicts, reportable, "可报告记录", args.rounds)
     report_over(over)
     for record_id, why in BLOCKED.items():
         if record_id in verdicts:

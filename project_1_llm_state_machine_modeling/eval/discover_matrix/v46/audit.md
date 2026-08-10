@@ -1,7 +1,7 @@
 # v46 全量 324 格：运行结果审计
 
 审计对象：`runs/paper1/matrix-v46-full`（本地，`runs/` 被 gitignore；证据以本目录下的
-判定表、遥测表与本文件为准）。审计执行于结果发布之后，**发现并更正了一处分母错误**（§3）。
+判定表、遥测表与本文件为准）。
 
 ## 0. 冻结与溯源
 
@@ -10,7 +10,7 @@
 | 运行代码 | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `CODE_VERSION.txt`，`written_before_launch: yes` |
 | 该 commit 是否在远端 | 是 | `git branch -r --contains ca41369e` |
 | 启动时 `src` 脏改动 | **0 files** | `CODE_VERSION.txt` |
-| 运行至今 `src` 是否被改 | **否** | `git log ca41369e..HEAD -- .../feedback_loop/src/` 为空 |
+| `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订；**v46 数据不受影响**（受影响断言在冻结制品上的对照已核，裁定不变）。**复现 v46 须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
 | 网格 | 54 pair × 2 模型 × 3 轮 = 324 | `GRID.txt`，含 `00x8`: 无 |
 | 启动时刻 | `2026-08-09T20:09:52Z` | `WALLCLOCK.txt` |
 | 完成时刻 / 墙钟 | `2026-08-10T03:15:41Z` / **7h05m49s** | 同上 |
@@ -31,7 +31,7 @@
 抽样含 `EIS-0026-01` —— 台账自陈「`cardinality(scope=SearchingState,count=3)` 恰好为真
 但理由完全错误」，判未命中避开了该假阳性陷阱。
 
-## 3. ⚠️ 审计发现的分母错误（已更正）
+## 3. 边界裁定：`EIS-0043-02` 剔出能力分母
 
 `EIS-0043-02` 的台账字段：
 
@@ -43,34 +43,39 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
                    该记录的前提只在 R4.5 把两区摊平成顺序子态后才成立 —— 为表示层产物，非作者缺陷。
 ```
 
-**存在明确裁定要求剔出能力分母，而 `metrics_at_k` 读的是 `in_scope`（对 126 条全为 `True`，
-它记的不是这件事），裁定未被执行。** 首份报告的分母因此为 99 而非 98。
+**该裁定的执行位置**：`metrics_at_k._out_of_scope_record_ids()` 同时读 `in_scope` 与
+`boundary_ruling` —— `in_scope` 对 126 条全为 `True`，它记的不是这件事，所以边界裁定必须
+另走 `boundary_ruling` 字段。由
+[test_scope_vs_holdout_are_different.py](../test_scope_vs_holdout_are_different.py) 的
+`test_a_boundary_ruling_in_the_ledger_is_actually_honoured` 钉住。
 
-📌 **同时必须记下：`full_tables.py` 本来就正确输出了双分母** —— 表 2 说明里明写
-「其中 1 条经独立边界裁定为 `out_of_scope`……剔除后：360/588 = 61.2%」。
-**工具没错，是首份报告只抄了前一个数字。** 这是本轮第三次同形态失误（另两次：误读
-`metrics_at_k` 的拒算原因、把 `adjudication_recheck` 的被拒列表当成裁定）——
-共同点是把工具输出当**结论**引用，而不是当**需要读完的材料**。这三个工具恰恰都是设计来
-强迫读者停下来看的。
-
-- **修复**：`metrics_at_k._out_of_scope_record_ids()` 改为同时读 `boundary_ruling`；
-  由 [test_scope_vs_holdout_are_different.py](../test_scope_vs_holdout_are_different.py)
-  的 `test_a_boundary_ruling_in_the_ledger_is_actually_honoured` 钉住。
+- **口径**：`full_tables.py` 表 2 说明里同时给出双分母 —— 99 记录（594 位）与剔除后的
+  98 记录（588 位）。**本文件与 [result.md](./result.md) 一律采用 98 记录 / 588 位。**
 - **影响**：该记录在 v37 与 v46 **都是 6/6**，故只同等抬高两侧绝对值，**差值几乎不变**。
 - 全库扫描确认这是**唯一**一条「在分母内但 `boundary_effect` 要求剔除」的记录。
 
-## 4. 更正后的最终结果（分母 98 条 × 2 臂 × 3 轮 = 588 位）
+## 4. 最终结果（分母 98 条 × 2 臂 × 3 轮 = 588 位）
 
 | 口径 | v37 | **v46** | 差 |
 | :-- | --: | --: | --: |
-| `hit@1` | 274/588 = 46.6% | **364/588 = 61.9%** | **+15.3pp** |
-| `hit@3` | 106/196 = 54.1% | **141/196 = 71.9%** | **+17.8pp** |
-| `hit@all` | 77/196 = 39.3% | **98/196 = 50.0%** | **+10.7pp** |
-| claude `hit@1` | 132/294 = 44.9% | 188/294 = 63.9% | +19.0pp |
-| gpt `hit@1` | 142/294 = 48.3% | 176/294 = 59.9% | +11.6pp |
+| `hit@1` | 274/588 = 46.6% | **360/588 = 61.2%** | **+14.6pp** |
+| `hit@3` | 106/196 = 54.1% | **140/196 = 71.4%** | **+17.3pp** |
+| `hit@all` | 77/196 = 39.3% | **97/196 = 49.5%** | **+10.2pp** |
+| claude `hit@1` | 132/294 = 44.9% | 185/294 = 62.9% | +18.0pp |
+| gpt `hit@1` | 142/294 = 48.3% | 175/294 = 59.5% | +11.2pp |
 
-判定来源：A 层自动 + 人工，见 [v46/verdicts/v46_human.json](./verdicts/v46_human.json)（579 条
-人工判定，每条带 `argument`）。
+⚠️ **上表的 `hit@k` 只能作为上界读。** 多报侧已做表示债务审计（§6），**命中侧的对称审计
+尚未做**（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：
+**351 个命中位中 51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）不依赖
+其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
+缺陷模型与忠实模型。逐位清单见
+[verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
+
+判定来源：A 层自动 + 人工，见 [verdicts/v46_human.json](./verdicts/v46_human.json)（575 条
+人工判定，每条带 `argument`；其中 351 条判为命中，且全部带 `equivalence_form`）。
+📌 **判定覆盖的缺口**：588 位中 **19 位**在该文件里没有对应条目（15 位判为命中、4 位判为
+未命中），涉及 `EIS-0002-01` / `EIS-0002-03` / `EIS-0009-02` / `EIS-0029-02` / `EIS-0029-04` /
+`EIS-0037-01` / `EIS-0039-01` / `EIS-0057-01`；**这 19 位无逐格 `argument` 可复核**。
 
 ## 5. 成本（本次新增审计维度）
 
@@ -97,30 +102,33 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 📌 **效率反而下降**：每百万 output token 的命中位数，v37 为 **27.6**、v46 为 **21.0**（−24%）。
 命中率的提升有相当一部分是**多花算力换来的**，不是纯效率提升。只报命中率而不报成本会掩盖这一点。
 
-- 已发布 issue **1105 条**（v37 为 566，1.95×），而命中位只涨到 1.32×。
-- 命中位 370 ⇒ 被台账认领的 issue ≤ 366 条，其余未被任何台账记录认领。
-- 这批未认领产出**已归并为同质簇并逐条人工裁定（13 条内容已被台账承载者已移出，分母 280）**（八个并行判定组 + 一组回读原件复核）：
+## 6. 多报侧（未被台账认领的产出）
 
-| 裁定 | 簇数 | 占比 |
-| :-- | --: | --: |
-| 表示债务 | 129 | 46.4% |
-| 无 NL 依据 | 116 | 41.7% |
-| 假阳性 | 22 | 7.9% |
-| 真漏记 | 1 | 0.4% |
-| 越界 | 10 | 3.6% |
+- 已发布 issue **1105 条**（v37 为 566，1.95×），而命中位只涨到 1.31×（274 → 360）。
+- 命中位 360 由部分已发布 issue 支撑（一个命中位可由同格多条 issue 共同支撑），
+  其余产出未被任何台账记录认领。
+- 这批未认领产出**已归并为同质簇并逐条人工裁定**（八个并行判定组 + 一组回读原件复核）：
+  原 293 簇中 13 簇内容已被台账记录承载、2 簇的断言在冻结制品上求值为真（真阴性），
+  均按定义移出，**本侧分母 278 条目 / 117 去重 / 42 pair**。
 
 **结论**：「产出变多」既不是纯粹的发现能力增强，也不是纯粹的噪声增加——
-**最大的一块（46.1%）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**。
-23 簇真漏记归并到根因后只有 4 条，且**全部 ≤3/6 格，无一稳定复现**。
+**最大的一块（表示债务）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**；
+而通过全部四条判据的**净增量只有 1 条**（`0014-4`），且它只出现在 6 格中的 2 格，
+无稳定复现。
 
-详见 [unexpected_adjudication.md](./unexpected_adjudication.md)（结论与交叉表）、
+📌 **五类分布、双分母、谓词族 × 裁定、稳定性与合并规模的全部交叉表，由
+[rebuild_unexpected.py](../rebuild_unexpected.py) 从 `unexpected_verdicts/G*.jsonl`
+机器生成于唯一产地 [unexpected_tables.md](./unexpected_tables.md)。本文件不留副本**——
+副本与真源分岔过一次，代价是同一目录内两份文件对净增量给出互斥答案。
+
+判据与定义另见 [unexpected_evidence.md](./unexpected_evidence.md)（278 簇逐条判据）、
 [unexpected_merged.md](./unexpected_merged.md)（归并后的问题）、
-[unexpected_evidence.md](./unexpected_evidence.md)（278 簇逐条判据）、
+[UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)（裁定口径）、
 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
-出现几次）实现，见 [unexpected_adjudication.md](./unexpected_adjudication.md) 表 A。
-**大多数只出现在 1 个格里**，即多报以单次采样噪声为主。
+出现几次）实现，见 [unexpected_tables.md](./unexpected_tables.md) 表 4。
+**171/278（62%）只出现在 1 个格里**，即多报以单次采样噪声为主。
 
 ## 7. 残留缺陷（v47 入口，按严重度）
 
@@ -133,7 +141,9 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
    违反 CLAUDE.md §10，不污染结果。
 3. **「多」与「缺」方向相反的系统性盲区** —— 模型看到异常却把「多余」读成「缺失」；
    9 处未命中同属此形态。
-4. ~~多报侧未判定~~ —— 已于 2026-08-10 完成判定，见 §6。
+4. **命中侧的表示债务审计未做** —— 多报侧已查、命中侧尚未查，两侧失效模式方向相同（都偏
+   乐观），故本代 `hit@k` 只能作为上界（§4）。待办是对参与度量的 98 条台账记录逐条回读
+   `stm0.puml`，见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7。
 
 ## 8. 复算
 

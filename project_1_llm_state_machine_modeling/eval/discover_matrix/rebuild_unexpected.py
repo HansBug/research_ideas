@@ -146,18 +146,16 @@ def write_tsvs(rows: list[dict]) -> None:
         for pair in sorted(by_pair):
             w.writerow([pair, sum(by_pair[pair].values()), *(by_pair[pair][k] for k in ORDER)])
 
-    groups: dict[str, dict[str, list[str]]] = collections.defaultdict(lambda: collections.defaultdict(list))
+    groups: dict[str, list[str]] = collections.defaultdict(list)
     for r in rows:
-        if r["verdict"] in ("VALID_UNRECORDED", "MERGE_INTO_LEDGER"):
-            groups[r["verdict"]][r["cluster"][:4]].append(r["cluster"])
+        if r["verdict"] == "VALID_UNRECORDED":
+            groups[r["cluster"][:4]].append(r["cluster"])
     with (VERDICTS / "final_rootcause.tsv").open("w") as fh:
         w = csv.writer(fh, delimiter="\t")
         w.writerow(["root_id", "pair", "终裁", "簇数", "并入的簇"])
-        for verdict, tag in (("VALID_UNRECORDED", "台账漏记"), ("MERGE_INTO_LEDGER", "并入台账")):
-            for pair in sorted(groups[verdict]):
-                members = sorted(groups[verdict][pair])
-                w.writerow([f"{pair}-{'ROOT' if verdict == 'VALID_UNRECORDED' else 'MERGE'}",
-                            pair, tag, len(members), " ".join(members)])
+        for pair in sorted(groups):
+            members = sorted(groups[pair])
+            w.writerow([f"{pair}-ROOT", pair, "台账漏记", len(members), " ".join(members)])
 
 
 def write_evidence(rows: list[dict]) -> None:
@@ -265,6 +263,150 @@ def write_subclass_table(rows: list[dict]) -> None:
                         sum(1 for c in cells if c >= 4)])
 
 
+#: 桶外的两份归档，与桶内条目合计必须等于最初的簇总数。
+SIDECARS = (
+    ("ledger_accounted.jsonl", "内容已被台账记录承载，按定义不属意外发现"),
+    ("not_produced.jsonl", "断言在冻结制品上求值为 True，模型满足义务——真阴性，两侧都不存在"),
+)
+ORIGINAL_TOTAL = 293
+
+
+def _bucket_rows(rows: list[dict], verdict: str) -> list[dict]:
+    return [r for r in rows if r["verdict"] == verdict]
+
+
+def _dual(group: list[dict], tot_items: int, tot_distinct: int) -> tuple[int, int]:
+    return len(group), _distinct(group)
+
+
+def write_tables(rows: list[dict]) -> None:
+    """全部交叉表的**唯一**产地。
+
+    这些表此前手工维护在三份 md 里，而机器派生的 tsv 各自正确——于是每次裁定变更后
+    正文与真源分岔。实测一次分岔的代价：正文说净增量 4 条 / 23 簇，`final_rootcause.tsv`
+    只有 1 行，同一目录内两份文件对同一问题给出互斥的头条结论。手工表没有任何一张是
+    算不出来的，所以全部收进来；正文只许引用本文件，不许自带副本。
+    """
+
+    import statistics
+
+    n, nd = len(rows), _distinct(rows)
+    out = [
+        "# v46 多报侧全量统计表", "",
+        "⚠️ **本文件整份由 `unexpected_verdicts/G*.jsonl` 生成**"
+        "（`../rebuild_unexpected.py`）。**不要手工编辑**，也不要在别处保存这些表的副本——",
+        "副本与真源分岔过一次，代价是同一目录内两份文件对净增量给出 1 与 4 两个互斥答案。", "",
+        "裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)，"
+        "逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)。", "",
+        "---", "", "## 表 0　分母闭合", "",
+        "| 去向 | 条数 | 说明 |", "| :-- | --: | :-- |",
+        f"| 多报侧桶内 | {n} | 本文件其余各表的分母 |",
+    ]
+    total = n
+    for name, why in SIDECARS:
+        path = VERDICTS / name
+        cnt = sum(1 for line in path.read_text().splitlines() if line.strip()) if path.is_file() else 0
+        total += cnt
+        out.append(f"| [{name}](./unexpected_verdicts/{name}) | {cnt} | {why} |")
+    out += [f"| **最初簇总数** | **{total}** | |", ""]
+    if total != ORIGINAL_TOTAL:
+        raise SystemExit(
+            f"分母不闭合：桶内 {n} + 两份归档 = {total}，应为 {ORIGINAL_TOTAL}。"
+            "有条目被悄悄丢掉或重复计入了"
+        )
+
+    out += [
+        "---", "", "## 表 1　大类分布（双分母）", "",
+        "去重单元 = `(pair, 根因)`；同 pair 同一处失误合并计 1，不同 pair 不合并。", "",
+        "| 大类 | 条目数 | 占比 | 去重数 | 占比 | 条目/去重 | 子类数 |",
+        "| :-- | --: | --: | --: | --: | --: | --: |",
+    ]
+    for k in ORDER:
+        g = _bucket_rows(rows, k)
+        if not g:
+            continue
+        d = _distinct(g)
+        subs = len({r["subclass"] for r in g if r.get("subclass")})
+        out.append(f"| {LABEL[k]} | {len(g)} | {len(g)/n:.1%} | {d} | {d/nd:.1%} | "
+                   f"{len(g)/d:.2f} | {subs} |")
+    allsubs = len({(r["verdict"], r["subclass"]) for r in rows if r.get("subclass")})
+    out += [f"| **合计** | **{n}** | 100% | **{nd}** | 100% | **{n/nd:.2f}** | {allsubs} |", "",
+            "⚠️ **两套分母给出不同的主要矛盾**，只报一套会得出错误的整改优先级。", ""]
+
+    out += ["---", "", "## 表 2　子类分布（双分母）", ""]
+    for k in ORDER:
+        g = _bucket_rows(rows, k)
+        if not g:
+            continue
+        out += [f"### {LABEL[k]}　{len(g)} 条目 / {_distinct(g)} 去重", "",
+                "| 子类 | 条目数 | 去重数 | 条目/去重 | 涉及 pair | 中位出现_of_6 | ≥4 格 |",
+                "| :-- | --: | --: | --: | --: | --: | --: |"]
+        by_sub: dict[str, list[dict]] = collections.defaultdict(list)
+        for r in g:
+            by_sub[r.get("subclass") or "—"].append(r)
+        for sub, grp in sorted(by_sub.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            cells = [r["_cells"] for r in grp]
+            d = _distinct(grp)
+            out.append(f"| `{sub}` | {len(grp)} | {d} | {len(grp)/d:.2f} | "
+                       f"{len({r['cluster'][:4] for r in grp})} | "
+                       f"{int(statistics.median(sorted(cells)))} | "
+                       f"{sum(1 for c in cells if c >= 4)} |")
+        out.append("")
+
+    out += ["---", "", "## 表 3　谓词族 × 裁定", "",
+            "一簇可挂多个谓词族，故行和大于条目数。", "",
+            "| 谓词族 | " + " | ".join(LABEL[k] for k in ORDER if counts_of(rows, k)) + " | 行和 |",
+            "| :-- | " + " | ".join("--:" for k in ORDER if counts_of(rows, k)) + " | --: |"]
+    fam: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    for r in rows:
+        for f in r["_fams"]:
+            if f:
+                fam[f][r["verdict"]] += 1
+    live = [k for k in ORDER if counts_of(rows, k)]
+    for f in sorted(fam, key=lambda f: -sum(fam[f].values())):
+        out.append(f"| `{f}` | " + " | ".join(str(fam[f][k]) for k in live)
+                   + f" | {sum(fam[f].values())} |")
+    out += ["| **合计** | " + " | ".join(
+        str(sum(fam[f][k] for f in fam)) for k in live)
+        + f" | {sum(sum(c.values()) for c in fam.values())} |", ""]
+
+    out += ["---", "", "## 表 4　稳定性（出现格数 × 裁定）", "",
+            "全网格每簇最多出现在 6 格（2 模型 × 3 轮）。", "",
+            "| 大类 | " + " | ".join(f"{i} 格" for i in range(1, 7)) + " | 合计 | ≥4 格占比 |",
+            "| :-- | " + " | ".join("--:" for _ in range(6)) + " | --: | --: |"]
+    tot = collections.Counter()
+    for k in live:
+        g = _bucket_rows(rows, k)
+        c = collections.Counter(r["_cells"] for r in g)
+        for i in range(1, 7):
+            tot[i] += c[i]
+        hi = sum(c[i] for i in (4, 5, 6))
+        out.append(f"| {LABEL[k]} | " + " | ".join(str(c[i]) for i in range(1, 7))
+                   + f" | {len(g)} | {hi/len(g):.0%} |")
+    out += ["| **合计** | " + " | ".join(f"**{tot[i]}**" for i in range(1, 7))
+            + f" | **{n}** | {sum(tot[i] for i in (4,5,6))/n:.0%} |", "",
+            f"**{tot[1]}/{n}（{tot[1]/n:.0%}）只出现在 1 个格里**——"
+            "多报以单次采样噪声为主，不是系统性行为。", ""]
+
+    out += ["---", "", "## 表 5　合并规模前 10", "",
+            "全部 %d 组及其自然语言合并理由见 "
+            "[merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)。" % nd, "",
+            "| merge_key | 成员数 | 大类 |", "| :-- | --: | :-- |"]
+    mg: dict[str, list[dict]] = collections.defaultdict(list)
+    for r in rows:
+        mg[r.get("merge_key") or r["cluster"]].append(r)
+    for key, grp in sorted(mg.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:10]:
+        out.append(f"| `{key}` | {len(grp)} | {LABEL[grp[0]['verdict']]} |")
+    multi = sum(1 for g in mg.values() if len(g) > 1)
+    out += ["", f"{nd} 组 = {multi} 个多成员组 + {nd - multi} 个单成员组。", ""]
+
+    (HERE / "v46" / "unexpected_tables.md").write_text("\n".join(out))
+
+
+def counts_of(rows: list[dict], verdict: str) -> int:
+    return sum(1 for r in rows if r["verdict"] == verdict)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="只校验，不写盘")
@@ -296,8 +438,9 @@ def main(argv: list[str] | None = None) -> int:
     write_subclass_table(rows)
     write_merge_groups(rows)
     write_evidence(rows)
-    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / subclass_table.tsv / merge_groups.tsv / V46_UNEXPECTED_EVIDENCE.md")
-    print("⚠️ 正文里的表 A / 表 B / 表 C 与各处叙述数字仍需人工核对——本脚本不改正文。")
+    write_tables(rows)
+    print("\n✅ 已重建 cluster_index.tsv / by_pair.tsv / final_rootcause.tsv / "
+          "subclass_table.tsv / merge_groups.tsv / unexpected_evidence.md / unexpected_tables.md")
     return 0
 
 

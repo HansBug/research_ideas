@@ -52,7 +52,7 @@ def test_ratios_appear_only_in_the_capability_band() -> None:
     sections = text.split("\n## ")
     with_ratio = [s.split("\n", 1)[0] for s in sections if "hit@1" in s]
     assert len(with_ratio) == 1, with_ratio
-    assert "全部记录" in with_ratio[0]
+    assert "可报告记录" in with_ratio[0]
 
 
 def test_the_header_carries_no_fraction_over_the_full_ledger() -> None:
@@ -79,13 +79,16 @@ def test_the_threshold_table_is_a_real_table() -> None:
     assert "不设 hold-out" in rendered
 
 
-def test_the_band_holds_every_ledger_record() -> None:
-    """hold-out 移除后，唯一一节必须装下**全部**台账记录，不得有记录被静默丢掉。"""
+def test_the_band_holds_every_reportable_record() -> None:
+    """能力那一节必须装下**全部**可报告记录，且**只**装它们。
+
+    两个方向都要锁：少一条是「更改分母」，多一条是把已被边界裁定剔除的记录混进能力主张。
+    后者曾真实发生——度量按判定表里出现的全部 id 算，报出 366/594，而全部文档报 360/588。
+    """
     text = _rendered()
-    band = text.split("## 全部记录", 1)[1].split("\n## ", 1)[0]
+    band = text.split("## 可报告记录", 1)[1].split("\n## ", 1)[0]
     for record_id in mk.REPORTABLE:
         assert record_id in band, record_id
-    # 共演化条目不得混进这一节。
     for record_id in sorted(mk._ledger_ids()):
         if record_id in mk.REPORTABLE:
             continue
