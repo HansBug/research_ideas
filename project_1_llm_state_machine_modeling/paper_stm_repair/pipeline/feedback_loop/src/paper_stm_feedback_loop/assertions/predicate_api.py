@@ -1401,6 +1401,16 @@ class PredicateAPI:
         # question is asked from; here it states what is being claimed, so it is guarded.
         self._reject_transient_subject("stays_in", source=source)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
+        #: provenance: UML 2.5.1 §14.2.3.9.1 -- an event that triggers no
+        #: transition in the current configuration is *discarded*; discarding
+        #: leaves the configuration untouched, so "was it consumed" and "did the
+        #: machine leave" are independent questions.
+        #: provenance: UML 2.5.1 §14.2.3.9.1 (run-to-completion) -- completion
+        #: transitions are enabled by the completion of their source's activity,
+        #: not by any event occurrence, so they fire within the same step
+        #: whatever the dispatched event was. Hence "unconsumed" does not imply
+        #: "unchanged" either, and only the resulting configuration answers this.
+        #
         # ⛔ An ignored event is not a departure -- but consumption is not this
         # predicate's business at all, so it is not consulted.
         #
@@ -1820,6 +1830,16 @@ class PredicateAPI:
         head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
         horizon = _budget(bound, "bound", DEFAULT_BOUND)
 
+        #: provenance: Pnueli 1977 / Manna-Pnueli, *Temporal Verification of
+        #: Reactive Systems* -- `p U q` obligates `p` only on the prefix strictly
+        #: before `q` first holds; once `q` holds the obligation is discharged.
+        #: An invariant over the whole horizon is `G(p | q)`, a strictly stronger
+        #: and different formula.
+        #: provenance: Biere et al. 2003, *Bounded Model Checking* §"bounded
+        #: semantics of LTL" -- over a finite horizon with no loop witness, until
+        #: is read in its *weak* form: a run that never releases but never
+        #: violates `p` is not a counterexample within the bound.
+        #
         # ⛔ `check invariant <= N: (release) || active(state)` is NOT until.
         #
         # That spelling makes the obligation hold over the *whole* horizon, so it
