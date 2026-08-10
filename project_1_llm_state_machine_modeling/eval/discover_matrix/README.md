@@ -57,6 +57,10 @@ v46 的八个独立判定组里有七组栽在这一点上。
   （裁定×稳定性、谓词族×裁定、三大类细分），含 R-CONJ 规则与本轮更正记录。
 - [V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md) —— 按**根因**归并的问题清单。
 - [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md) —— 280 簇逐条判据（事实 / NL / 说明）。
+- [V46_COMPOSITION.md](./V46_COMPOSITION.md) —— **成分分析**：六大类的子类体系、
+  **两套分母**（条目数 / 去重数）与占比。⛔ 引用任何计数前必读——
+  条目数会把「一个缺陷被报了 12 次」读成「12 个缺陷」。
+  机器可读产物在 [unexpected_verdicts/composition/](./unexpected_verdicts/composition/)。
 - [PREDICATE_DEFECTS_REGISTERED.md](./PREDICATE_DEFECTS_REGISTERED.md) —— 裁定中实测出的 4 项
   谓词侧缺陷（**只登记不修**）。⚠️ `persists_until` 在 release 后不解除义务，
   **对任何有终止路径的模型恒为 False**；修复前其 False 不能作缺陷证据。

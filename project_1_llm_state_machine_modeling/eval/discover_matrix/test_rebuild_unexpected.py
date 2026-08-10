@@ -7,6 +7,8 @@
    根本不属意外发现）都曾短暂存在过；留着它们重建等于把「没查」和「不该在这」冒充成裁定。
 3. **裁定原样透传。** 重建器不做判定，jsonl 说什么就是什么。
 4. **缺字段直接失败。** 判据不全的裁定不是裁定，不能靠空字符串蒙混过关。
+5. **两套分母都要出。** 只报条目数会把「一个缺陷被报了 12 次」读成「12 个缺陷」；
+   缺 `merge_key` 时必须**响亮报出**，因为静默兜底的方向恰好对我们有利（去重数偏大、比值偏小）。
 """
 
 from __future__ import annotations
@@ -122,15 +124,76 @@ def test_missing_evidence_field_fails_loudly(
 def test_unknown_verdict_label_fails(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """五类之外没有第六类。新造标签必须撞墙，否则分类学形同虚设。"""
+    """六类之外没有第七类。新造标签必须撞墙，否则分类学形同虚设。"""
 
     verdicts = _seed(tmp_path, [_rec("0017-1", "PROBABLY_FINE")])
     monkeypatch.setattr(R, "VERDICTS", verdicts)
     monkeypatch.setattr(R, "HERE", tmp_path)
-    with pytest.raises(SystemExit, match="不在五类内"):
+    with pytest.raises(SystemExit, match="不在六类内"):
         R.main([])
 
 
 def test_check_mode_does_not_write(wired: pathlib.Path) -> None:
     assert R.main(["--check"]) == 0
     assert not (wired / "V46_UNEXPECTED_EVIDENCE.md").exists()
+
+
+def test_dual_denominator_uses_merge_key(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """同一 merge_key 的多条簇只算一个去重单元。"""
+
+    verdicts = _seed(tmp_path, [
+        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
+        _rec("0029-2", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
+        _rec("0029-3", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
+        _rec("0017-1", "VALID_UNRECORDED", subclass="V1", merge_key="0017-三碰撞检测塌缩"),
+    ])
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    assert R.main([]) == 0
+    rows = {
+        (r["verdict"], r["subclass"]): r
+        for r in csv.DictReader(
+            (tmp_path / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t"
+        )
+    }
+    debt = rows[("REPRESENTATION_DEBT", "D1")]
+    assert debt["条目数"] == "3" and debt["去重数"] == "1" and debt["条目去重比"] == "3.00"
+    valid = rows[("VALID_UNRECORDED", "V1")]
+    assert valid["条目数"] == "1" and valid["去重数"] == "1"
+
+
+def test_missing_merge_key_is_reported_not_silently_bucketed(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    """缺 merge_key 时兜底方向对我们有利（去重数偏大），所以必须响亮报出。"""
+
+    verdicts = _seed(tmp_path, [
+        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1"),
+        _rec("0029-2", "REPRESENTATION_DEBT", subclass="D1"),
+    ])
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    R.main([])
+    assert "缺 merge_key" in capsys.readouterr().err
+
+
+def test_merge_key_does_not_cross_pairs(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """不同 pair 即使缺陷类型相同也不合并——那是不同制品上的不同实例。"""
+
+    verdicts = _seed(tmp_path, [
+        _rec("0019-1", "REPRESENTATION_DEBT", subclass="D1", merge_key="0019-零作者变量"),
+        _rec("0029-1", "REPRESENTATION_DEBT", subclass="D1", merge_key="0029-零作者变量"),
+    ])
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    R.main([])
+    row = next(
+        r for r in csv.DictReader(
+            (tmp_path / "unexpected_verdicts" / "subclass_table.tsv").open(), delimiter="\t")
+        if r["subclass"] == "D1"
+    )
+    assert row["条目数"] == "2" and row["去重数"] == "2" and row["涉及pair数"] == "2"

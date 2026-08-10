@@ -8,11 +8,12 @@
 
 | 裁定 | 簇数 |
 | :-- | --: |
-| ✅ 真漏记 | 23 |
+| ✅ 真漏记 | 1 |
 | ⚙️ 表示债务 | 129 |
-| 📄 无 NL 依据 | 100 |
-| ❌ 假阳性 | 24 |
-| 🚫 越界 | 4 |
+| 📄 无 NL 依据 | 115 |
+| ❌ 假阳性 | 22 |
+| 🔧 谓词产物 | 3 |
+| 🚫 越界 | 10 |
 | **合计** | **280** |
 
 ---
@@ -379,43 +380,43 @@
 - **NL**：NL 4『After completing the attack, ...』
 - **说明**：与簇 0016-4/6 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-## pair 0017 — 11 簇　`真漏记×8 无×2 越界×1`
+## pair 0017 — 11 簇　`无×10 越界×1`
 
-**0017-1** ｜ ✅ 真漏记 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-1** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中事件仅有 collision_detected 与 Collision_avoided，frontend/rear_end/pedestrian 三个具体检测事件一个都不存在——三种刺激被塌缩成一个泛化事件
 - **NL**：NL 2 逐字并列点名三种检测：『a possible frontend collision, rear-end collision or collision with pedestrian is detected』
-- **说明**：该 pair 台账为 0 条，属真漏记。可与 pair 0057 对照：同一份 NL 下 0057 确实分别声明了 Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected，说明三事件可分是该 NL 的通行读法而非过度指定。本簇为 0017-2/3/4/5/6/9/11 的合并表述
+- **说明**：该 pair 台账为 0 条，属真漏记。可与 pair 0057 对照：同一份 NL 下 0057 确实分别声明了 Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected，说明三事件可分是该 NL 的通行读法而非过度指定。本簇为 0017-2/3/4/5/6/9/11 的合并表述 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0017-2** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有泛化事件 collision_detected，无任何承载前向碰撞的独立事件
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/4/11 同源（前向刺激的不同命名）
+- **说明**：与簇 0017-1/4/11 同源（前向刺激的不同命名） ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0017-3** ｜ ✅ 真漏记 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-3** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，无行人碰撞的独立事件
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/6/9 同源
+- **说明**：与簇 0017-1/6/9 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0017-4** ｜ ✅ 真漏记 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，frontend_collision_detected 未声明
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/2/11 同源
+- **说明**：与簇 0017-1/2/11 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0017-5** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，rear_end_collision_detected 未声明
 - **NL**：NL 2『rear-end collision ... is detected』
-- **说明**：与簇 0017-1 同源；追尾刺激在本 pair 只被本簇单独点出
+- **说明**：与簇 0017-1 同源；追尾刺激在本 pair 只被本簇单独点出 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0017-6** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-6** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，pedestrian_collision_detected 未声明
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/3/9 同源
+- **说明**：与簇 0017-1/3/9 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
 **0017-7** ｜ 🚫 越界 ｜ 1/6 格 ｜ `invariant` ｜ 判定组 G8
 
@@ -429,11 +430,11 @@
 - **NL**：NL 1『There are three region in this diagram』说的是三个区域这一结构事实，未要求存在一个名为 region 的单数状态元素
 - **说明**：命名字面主义；且其实质读法（三个正交区域）落在 NL 3 的并发语义上，按边界同样越界。两条路都不支持把它计为 M 内发现
 
-**0017-9** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-9** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 collision_detected，collision_with_pedestrian_detected 未声明
 - **NL**：NL 2『... or collision with pedestrian is detected』
-- **说明**：与簇 0017-1/3/6 同源
+- **说明**：与簇 0017-1/3/6 同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
 **0017-10** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G8
 
@@ -441,11 +442,11 @@
 - **NL**：NL 3『concurrent activation different of collision avoidance controls』把 collision avoidance controls 用作对 F/R/P 的统称，未要求另设一个同名容器元素
 - **说明**：命名字面主义；与 0057-5 同型
 
-**0017-11** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
+**0017-11** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有泛化的 collision_detected，possible_frontend_collision 未声明
 - **NL**：NL 2『a possible frontend collision ... is detected』
-- **说明**：与簇 0017-1/2/4 同源。注意与 0057-6 判定相反：0057 实际声明了 Frontend_collision_detected，本 pair 没有
+- **说明**：与簇 0017-1/2/4 同源。注意与 0057-6 判定相反：0057 实际声明了 Frontend_collision_detected，本 pair 没有 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
 ## pair 0019 — 23 簇　`表示债务×19 无×4`
 
@@ -621,25 +622,25 @@
 - **NL**：NL 1/2 的参考读法含前置态
 - **说明**：【对抗性复核推翻 · 主判采纳】与 0022-2 同源，一并推翻。原援引的 EIS-0046-03 类比不成立——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，start 是 NL 2 逐字点名的。
 
-## pair 0023 — 9 簇　`真漏记×6 无×3`
+## pair 0023 — 9 簇　`越界×6 无×3`
 
-**0023-1** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-1** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：PumpControl 内除 [*] -> PumpState、[*] -> WaterState、[*] -> MethaneState 三条初始迁移外没有任何迁移，全模型未声明任何 event；PumpControl 的 named 串记录 [PlantUML concurrent region 0/1/2] 分别只装一个子态
 - **NL**：NL 4 'The system can also transition to the WaterState substate'、NL 5 'the system can transition to the MethaneState substate'
-- **说明**：实质缺陷是三个替代子态被写成三个并发区各自的默认入口、区间零迁移；判定只用 Tr 层事实，不依赖并发语义。与簇 0023-2/3/7/8/9 同源；本 pair 台账 0 条
+- **说明**：实质缺陷是三个替代子态被写成三个并发区各自的默认入口、区间零迁移；判定只用 Tr 层事实，不依赖并发语义。与簇 0023-2/3/7/8/9 同源；本 pair 台账 0 条 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
-**0023-2** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-2** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：制品中 PumpState 没有任何出边（PumpControl 内只有三条 [*] -> 子态 的初始迁移），到 WaterState 无任何路径
 - **NL**：NL 3 'first transitions to the PumpState' 加 NL 4 'can also transition to the WaterState substate'
-- **说明**：与簇 0023-1 同源
+- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
-**0023-3** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-3** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：制品中 PumpState 没有任何出边，到 MethaneState 无任何路径；PumpControl 内不存在 tr 连接三个子态
 - **NL**：NL 3 加 NL 5 'Similarly, the system can transition to the MethaneState substate'
-- **说明**：与簇 0023-1/0023-2 同源
+- **说明**：与簇 0023-1/0023-2 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
 **0023-4** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `action_declared` ｜ 判定组 G7
 
@@ -659,23 +660,23 @@
 - **NL**：NL 5 'indicating that the pump is controlling or monitoring the methane flow'，同样只是状态语义说明
 - **说明**：与簇 0023-4/0023-5 同源
 
-**0023-7** ｜ ✅ 真漏记 ｜ 3/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-7** ｜ 🚫 越界 ｜ 3/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：PumpControl 内三个子状态之间零迁移，仅有 [*] -> PumpState / [*] -> WaterState / [*] -> MethaneState；模型连一个 event 都没声明，无从触发子态切换
 - **NL**：NL 4 与 NL 5 均以 'can transition to' 要求运行期可切换到 WaterState / MethaneState
-- **说明**：与簇 0023-1/2/3 同源，是该缺陷覆盖面最完整的表述
+- **说明**：与簇 0023-1/2/3 同源，是该缺陷覆盖面最完整的表述 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
-**0023-8** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-8** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：从 PumpControl 出发只有三条并列初始迁移，无任何后续迁移可抵达 WaterState（若初始落在 PumpState 或 MethaneState 则永不可达）
 - **NL**：NL 4 'The system can also transition to the WaterState substate'
-- **说明**：与簇 0023-1 同源
+- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
-**0023-9** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
+**0023-9** ｜ 🚫 越界 ｜ 1/6 格 ｜ `reaches` ｜ 判定组 G7
 
 - **事实**：从 PumpControl 出发无任何迁移可抵达 MethaneState；PumpControl 内没有任何非初始迁移
 - **NL**：NL 5 'the system can transition to the MethaneState substate'
-- **说明**：与簇 0023-1 同源
+- **说明**：与簇 0023-1 同源 ｜【成分分析改判】VALID_UNRECORDED→OUT_OF_SCOPE：见 V46_COMPOSITION.md
 
 ## pair 0024 — 4 簇　`假阳性×2 无×2`
 
@@ -1247,15 +1248,15 @@
 - **NL**：NL 1+3 要求 PumpState 为首个进入的子态
 - **说明**：台账 EIS-0043-01 审 containment，本条审初始入口与冷启动可达，未覆盖 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-## pair 0044 — 4 簇　`假阳性×3 无×1`
+## pair 0044 — 4 簇　`假阳性×2 无×1 谓词产物×1`
 
-**0044-1** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `action_declared` ｜ 判定组 G2
+**0044-1** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `action_declared` ｜ 判定组 G2
 
 - **事实**：路径列表不含动作声明，无法核验 EmergencyStopping 相位
 - **NL**：NL 3 未逐字规定 entry 相位
-- **说明**：需 FCSTM 动作块 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0044 model.fcstm 第 31-33 行：`state EmergencyStopping named "EmergencyStopping" {
+- **说明**：需 FCSTM 动作块 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0044 model.fcstm 第 31-33 行：`state EmergencyStopping named "EmergencyStopping" { ｜【成分分析改判】FALSE_POSITIVE→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0044-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G2
+**0044-2** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G2
 
 - **事实**：Approaching 全部出边只有两条：model.fcstm:24 `/Arrived_Stop_Send_Arrived`（经 :35 落 Stopping）与 model.fcstm:27 `/Obstacle_Detected`（经 :36 落 EmergencyStopping）。实跑 fbmcq 反例 frames=[0:Approaching,1:Approaching,2:EmergencyStopping,3:terminated,4:terminated]，bound 扫描：bound=1 holds；bound=2 首次失败。**三次反例的首个违反帧无一例外都在 release 达成之后的 terminated 帧**
 - **NL**：NL 10『The system remains in the Approaching substate ... until it is ready to stop or decelerate』是定性描述；NL 2 明确要求到站与障碍两种离开，Approaching 的两条出边正对应这两种
@@ -1329,57 +1330,57 @@
 - **NL**：NL 4 『After completing the attack』
 - **说明**：与簇 0046-4 是同一缺失的两种命名，去重时必须合并 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-## pair 0047 — 8 簇　`真漏记×8`
+## pair 0047 — 8 簇　`无×8`
 
-**0047-1** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-1** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：事件仅 Brake_Applied/Collision_Avoided/Collision_Detected
 - **NL**：NL 2 并列点名三种检测
-- **说明**：CAS 下有三子态，单一 Collision_Detected 无法决定进哪个；不依赖并发
+- **说明**：CAS 下有三子态，单一 Collision_Detected 无法决定进哪个；不依赖并发 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-2** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 RearEnd_Collision_Detected
 - **NL**：NL 2
-- **说明**：同源
+- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-3** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 Pedestrian_Collision_Detected
 - **NL**：NL 2
-- **说明**：同源
+- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-4** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-4** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 possible_frontend_collision
 - **NL**：NL 2
-- **说明**：与 0047-1/7 同一缺陷
+- **说明**：与 0047-1/7 同一缺陷 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-5** ｜ ✅ 真漏记 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-5** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无追尾专用检测事件
 - **NL**：NL 2
-- **说明**：绑定名 rear 是截断标识符，但缺陷实体成立
+- **说明**：绑定名 rear 是截断标识符，但缺陷实体成立 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-6** ｜ ✅ 真漏记 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-6** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 collision_with_pedestrian
 - **NL**：NL 2
-- **说明**：同源
+- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-7** ｜ ✅ 真漏记 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-7** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：无 frontend_collision
 - **NL**：NL 2
-- **说明**：同源
+- **说明**：同源 ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-**0047-8** ｜ ✅ 真漏记 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
+**0047-8** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
 - **事实**：三个分型检测一个都没有
 - **NL**：NL 2
-- **说明**：roll-up
+- **说明**：roll-up ｜【成分分析改判】VALID_UNRECORDED→NO_NL_BASIS：见 V46_COMPOSITION.md
 
-## pair 0049 — 25 簇　`表示债务×14 无×10 假阳性×1`
+## pair 0049 — 25 簇　`表示债务×14 无×11`
 
 **0049-1** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1435,11 +1436,11 @@
 - **NL**：NL 13
 - **说明**：同 0049-2 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
 
-**0049-10** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
+**0049-10** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：model.fcstm:5 `event dist_to_front_25 named "dist_to_front>=25";` —— 比较符在编译产物里逐字保留，与作者源 stm0.puml:10 `enter_hwy --> cruise : dist_to_front>=25` 完全一致；互补分支同样在场：model.fcstm:6 `event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true"`
 - **NL**：NL 3/5 要求的 `<25 && extra_lane` 恰好落在通往 lane_change 的边上，制品已满足
-- **说明**：【终裁】断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。
+- **说明**：【终裁】断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。 ｜【成分分析改判】FALSE_POSITIVE→NO_NL_BASIS：见 V46_COMPOSITION.md
 
 **0049-11** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1567,9 +1568,9 @@
 - **NL**：NL 5 含义说明
 - **说明**：与 0053-1 同源
 
-## pair 0054 — 6 簇　`无×3 假阳性×3`
+## pair 0054 — 6 簇　`假阳性×3 谓词产物×2 无×1`
 
-**0054-1** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G3
+**0054-1** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G3
 
 - **事实**：Approaching 处无自环
 - **NL**：NL 10 未要求显式消费或自环
@@ -1593,7 +1594,7 @@
 - **NL**：NL 9 要求输出动作而非输入事件
 - **说明**：需补取 InMotion.Approaching 的 during 动作原文后重判 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0054 model.fcstm 第 13-15 行：`state Approaching named "Approaching" { during abstr
 
-**0054-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G3
+**0054-5** ｜ 🔧 谓词产物 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G3
 
 - **事实**：断言以 release=false、bound=5 执行，对任何符合 NL 的模型都必然为假
 - **NL**：NL 2/10 恰恰许可 Approaching → Stopping

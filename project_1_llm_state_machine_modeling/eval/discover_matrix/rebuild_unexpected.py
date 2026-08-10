@@ -40,12 +40,13 @@ HERE = pathlib.Path(__file__).resolve().parent
 VERDICTS = HERE / "unexpected_verdicts"
 SEEDS = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
 
-#: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
+#: 六类裁定。⛔ 没有第七类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
 ORDER = (
     "VALID_UNRECORDED",
     "REPRESENTATION_DEBT",
     "NO_NL_BASIS",
     "FALSE_POSITIVE",
+    "PREDICATE_ARTIFACT",
     "OUT_OF_SCOPE",
 )
 LABEL = {
@@ -53,6 +54,7 @@ LABEL = {
     "REPRESENTATION_DEBT": "⚙️ 表示债务",
     "NO_NL_BASIS": "📄 无 NL 依据",
     "FALSE_POSITIVE": "❌ 假阳性",
+    "PREDICATE_ARTIFACT": "🔧 谓词产物",
     "OUT_OF_SCOPE": "🚫 越界",
 }
 
@@ -84,7 +86,7 @@ def load() -> list[dict]:
                     f"{record['cluster']} 用了已作废的标签 {verdict}：{RETIRED[verdict]}"
                 )
             if verdict not in ORDER:
-                raise SystemExit(f"{record['cluster']} 的裁定 {verdict} 不在五类内")
+                raise SystemExit(f"{record['cluster']} 的裁定 {verdict} 不在六类内")
             record["_group"] = path.stem
             rows.append(record)
     seen = collections.Counter(r["cluster"] for r in rows)
@@ -129,9 +131,11 @@ def cells_and_families(rows: list[dict]) -> None:
 def write_tsvs(rows: list[dict]) -> None:
     with (VERDICTS / "cluster_index.tsv").open("w") as fh:
         w = csv.writer(fh, delimiter="\t")
-        w.writerow(["cluster", "pair", "verdict", "cells_of_6", "predicate_families", "judged_by"])
+        w.writerow(["cluster", "pair", "verdict", "subclass", "merge_key",
+                    "cells_of_6", "predicate_families", "judged_by"])
         for r in sorted(rows, key=lambda r: r["cluster"]):
-            w.writerow([r["cluster"], r["cluster"][:4], r["verdict"], r["_cells"],
+            w.writerow([r["cluster"], r["cluster"][:4], r["verdict"],
+                        r.get("subclass", ""), r.get("merge_key", ""), r["_cells"],
                         "|".join(r["_fams"]), r["_group"]])
 
     by_pair: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
@@ -189,8 +193,19 @@ def write_evidence(rows: list[dict]) -> None:
     (HERE / "V46_UNEXPECTED_EVIDENCE.md").write_text("\n".join(out))
 
 
+def _distinct(rows: list[dict]) -> int:
+    """去重数 = 不同 `merge_key` 的个数。
+
+    ⛔ 缺 `merge_key` 的记录**各自单独计一个**（用 cluster 号兜底），而不是被丢掉——
+    丢掉会让去重数偏小、比值偏大，方向恰好是「显得产出更冗余」，是有利于我们的错，
+    因此更要防。缺失会在 `main()` 里报出来。
+    """
+
+    return len({r.get("merge_key") or r["cluster"] for r in rows})
+
+
 def write_subclass_table(rows: list[dict]) -> None:
-    """表 C 的机器可读版。
+    """表 C 的机器可读版，含**两套分母**。
 
     子类标签此前**不在任何机器可读源里**，只能手工维护——这是表 C 反复出错的结构性根因
     （簇数、`中位出现`、`≥4 格` 三列各错过一次）。现在 `subclass` 是 jsonl 的字段，
@@ -199,15 +214,20 @@ def write_subclass_table(rows: list[dict]) -> None:
 
     import statistics
 
-    buckets: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
+    buckets: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
     for r in rows:
         if r.get("subclass"):
-            buckets[(r["verdict"], r["subclass"])].append(r["_cells"])
+            buckets[(r["verdict"], r["subclass"])].append(r)
     with (VERDICTS / "subclass_table.tsv").open("w") as fh:
         w = csv.writer(fh, delimiter="\t")
-        w.writerow(["verdict", "subclass", "簇数", "中位出现_of_6", "ge4格"])
-        for (verdict, sub), cells in sorted(buckets.items()):
-            w.writerow([verdict, sub, len(cells),
+        w.writerow(["verdict", "subclass", "条目数", "去重数", "条目去重比",
+                    "涉及pair数", "中位出现_of_6", "ge4格"])
+        for (verdict, sub), group in sorted(buckets.items()):
+            cells = [r["_cells"] for r in group]
+            distinct = _distinct(group)
+            w.writerow([verdict, sub, len(group), distinct,
+                        f"{len(group) / distinct:.2f}",
+                        len({r["cluster"][:4] for r in group}),
                         int(statistics.median(sorted(cells))),
                         sum(1 for c in cells if c >= 4)])
 
@@ -221,10 +241,22 @@ def main(argv: list[str] | None = None) -> int:
     cells_and_families(rows)
     counts = collections.Counter(r["verdict"] for r in rows)
 
-    print(f"真源 {len(rows)} 簇 / {len({r['cluster'][:4] for r in rows})} 个 pair")
+    total_distinct = _distinct(rows)
+    print(f"真源 {len(rows)} 条目 / {total_distinct} 去重 / "
+          f"{len({r['cluster'][:4] for r in rows})} 个 pair")
+    print(f"  {'裁定':16} {'条目数':>6} {'占比':>7} {'去重数':>6} {'占比':>7} {'比值':>6}")
     for k in ORDER:
-        if counts[k]:
-            print(f"  {LABEL[k]:16} {counts[k]:4}  {counts[k] / len(rows):5.1%}")
+        if not counts[k]:
+            continue
+        group = [r for r in rows if r["verdict"] == k]
+        d = _distinct(group)
+        print(f"  {LABEL[k]:16} {counts[k]:>6} {counts[k] / len(rows):>7.1%} "
+              f"{d:>6} {d / total_distinct:>7.1%} {len(group) / d:>6.2f}")
+
+    missing_key = [r["cluster"] for r in rows if not r.get("merge_key")]
+    if missing_key:
+        print(f"\n⚠️ {len(missing_key)} 条缺 merge_key，已各自单独计一个去重单元"
+              f"（去重数因此偏大、比值偏小）：{missing_key[:8]}", file=sys.stderr)
 
     if args.check:
         print("\n✅ --check 模式，未写盘")
