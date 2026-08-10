@@ -67,13 +67,15 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 ⚠️ **上表的 `hit@k` 只能作为上界读。** 多报侧已做表示债务审计（§6），**命中侧的对称审计
 尚未做**（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：
-**351 个命中位中 51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）不依赖
-（**351 与 360 的差**：人工表覆盖 594 位中的 575 位、含 351 个命中判定，其中 6 位属被剔出分母的 `EIS-0043-02`，故分母内为 345；另有 15 个命中位无人工条目，345 + 15 = 360。上界性的量化用人工表的 351 作分母，因为只有它带逐位 `argument`。）
-
-**下界**：扣掉那 10 位仅靠变量缺失成立的命中，`hit@1` 为 350/588 = **59.5%**。真值落在 [59.5%, 61.2%] 之间。
-其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
+**人工表覆盖的 351 个命中位中，51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）
+不依赖其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
 缺陷模型与忠实模型。逐位清单见
 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
+
+**下界**：扣掉那 10 位，`hit@1` 为 350/588 = **59.5%**。真值落在 **[59.5%, 61.2%]** 之间。
+
+📌 **351 与 360 的换算**：人工表覆盖 594 位中的 575 位，含 351 个命中判定；其中 6 位属被剔出
+分母的 `EIS-0043-02`，故分母内 345；另有 15 个命中位无人工条目，`345 + 15 = 360`。
 
 判定来源：A 层自动 + 人工，见 [verdicts/v46_human.json](./verdicts/v46_human.json)（575 条
 人工判定，每条带 `argument`；其中 351 条判为命中，且全部带 `equivalence_form`）。
@@ -99,9 +101,9 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 **逐角色 output token（v46）**：`assertion_converter` 54.7%、`requirement_splitter` 34.4%、
 `requirement_reviewer` 5.0%、`assertion_reviewer` 2.9%、`result_adjudicator` 2.9%。
 
-**逐节点耗时（v46）**：`convert_assertions` 49.2%、`split_requirements` 37.8%、
+**逐节点耗时（v46）**：`convert_assertions` 49.2%、`split_requirements` **38.9%**、
 `review_requirements` 5.7%、`review_assertions` 3.4%、`adjudicate_results` 2.6%。
-**前两者合计 88%**，且都随需求条数线性增长 —— 与 §7 第 1 条残留缺陷同源。
+**前两者合计 88.1%**，且都随需求条数线性增长 —— 与 §7 第 1 条残留缺陷同源。
 
 📌 **效率反而下降**：每百万 output token 的命中位数，v37 为 **27.6**、v46 为 **21.0**（−24%）。
 命中率的提升有相当一部分是**多花算力换来的**，不是纯效率提升。只报命中率而不报成本会掩盖这一点。
@@ -136,12 +138,18 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 ## 7. 残留缺陷（v47 入口，按严重度）
 
-1. **需求集规模失控** —— 中位 15 条，12 格超 60、最大 100；超 60 条的 12 格里 3 格降级
-   （25%，全局 2.8%），全部是 gpt 臂、全部落在同一份 NL 的六个 pair（条件从句最密集）。
+1. **需求集规模失控** —— 中位 15 条，最大 **99**；按末次修订计，需求集超 60 的有 13 格，
+   其中 **4 格降级（30.8%，全局 2.8%）**：`run1/0039-gpt`、`run2/0009-gpt`、`run3/0039-gpt`、
+   `run3/0049-gpt` —— **全部是 gpt 臂**。（计数基准写明：取每格最后一次 `split_requirements`
+   状态更新里的去重需求 id 数；换成「跨修订取最大」会多出 2 格，降级集不变。）
    耗时侧亦印证：`convert_assertions` + `split_requirements` 占 88% 且随条数线性增长。
    **应加需求集规模约束或合并策略，而不是继续修单个门。**
 2. **schema 校验失败缺节点内原地重试** —— `responder._retryable_error` 对 `ValueError`
-   返回 `False`，而 pydantic 的 `ValidationError` 是其子类；本代 7 次整格冷启动重跑全由此而来。
+   返回 `False`，而 pydantic 的 `ValidationError` 是其子类；本代 7 次整格冷启动重跑里 **6 次**由此而来。
+   ⛔ **第 7 次是另一回事，必须分开记**：`run2/0019-gpt` 抛的是
+   `ValueError: no-progress gate rejected repeated AssertionScript semantics` ——
+   内部阶段的配额/门耗尽，按 [CLAUDE.md](../../../../CLAUDE.md) §10 属**必须降级、不得抛出**的一类，
+   与 schema 那条逃生口不同源。并进同一条统计会让它彻底看不见。
    违反 CLAUDE.md §10，不污染结果。
 3. **「多」与「缺」方向相反的系统性盲区** —— 模型看到异常却把「多余」读成「缺失」；
    9 处未命中同属此形态。

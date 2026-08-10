@@ -221,9 +221,9 @@ NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scop
 1. **表示债务被当成模型缺陷（129 条目 / 27 去重，按条目最大的一块）** —— 断言锚在下沉后的形态上。
    根治办法有二：让断言阶段能看到 `stm0.puml`；或在谓词层区分
    「作者未表达」与「下沉未保留」。前者更彻底，后者改动更小。
-2. **要求把复合条件 / 散文析取拆成独立元素（`N-SPLIT` + `N-SPLIT-PROSE`，50 条目 / 16 去重）**
+2. **要求把复合条件 / 散文析取拆成独立元素（`N-SPLIT` + `N-SPLIT-PROSE`，49 条目 / 15 去重）**
    —— ⚠️ **这一支不是采样噪声**：`N-SPLIT` 的 ≥4 格簇数是全部子类里最高的，
-   说明它是系统性读法偏差，属 prompt 侧可收敛项。`N-SPLIT-PROSE` 的条目/去重比 8.00 也是最高，
+   说明它是系统性读法偏差，属 prompt 侧可收敛项。`N-SPLIT-PROSE` 的条目/去重比 8.00 很高（全库最高的是 `D1` 的 8.14），
    成因明确：NL 只给散文、不给标识符，报告者必须自己造名，**造名空间无上界**。
 3. **语境措辞与承载相位被过度指定（`N-CTX` + `N-FORM`，33 条目 / 20 去重）** —— 属 prompt 侧可收敛：
    NL 的统称词、语境状语、`indicating that…` / `where the … is …` 式语义注解都不构成元素义务。
@@ -231,7 +231,7 @@ NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scop
    `Send` 是输出动作不是输入事件。
 5. **测量链侧待修项** —— 已登记于
    [PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)，本桶内涉及
-   P-1（`0046-8`）、P-2 / P-3（`0044-4`）、P-4（`0054-5`）。
+   P-1（`0046-8`）、P-2 / P-3（`0044-4`）、P-4（`0054-5` 与 `0026-3`）。
    ⚠️ 与「谓词词表保持不动」不冲突，两者范围不同：**冻结的是谓词词表**（不增删谓词、
    不改现有谓词族的语义），这些是**求值侧**的缺陷，另案登记于 [PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)，按「已实施 / 未实施」两栏维护，不通过改 prompt 绕过。
 
@@ -255,9 +255,9 @@ NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scop
 
 证据包的路径清单只列 `state` / `event` / `variable`，**不列 action**。据此判「模型未声明 X」
 在三份 train-control 制品（0004 / 0044 / 0054，同一份 NL）上系统性出错：
-`Send`（`0004:18`、`0044:15`、`0054:14` 的 `during abstract Send`）、
-`SendObstacleDetected`（`0004:33`、`0054:31`）、
-`EmergencyStopSendObstacleDetected`（`0044:32`）**全部以状态局部的
+`Send`（`0004/model.fcstm:18`、`0044/model.fcstm:15`、`0054/model.fcstm:14` 的
+`during abstract Send`）、`SendObstacleDetected`（`0004/model.fcstm:33`、
+`0054/model.fcstm:31`）、`EmergencyStopSendObstacleDetected`（`0044/model.fcstm:32`）**全部以状态局部的
 `enter` / `during abstract` 声明真实存在**，只是不出现在路径清单里。
 这类簇落假阳性的 `FP-K`（类别槽差：承载者以 `action` 存在，断言按 `event` 索要）。
 
@@ -290,7 +290,7 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 2. **`D1` / `D2` 分界有一处脆弱点。** `dist_to_front<15` 在本批 pair 里出现两次，
    清洗名极其形近（`dist_to_front_15_highway` vs `dist_to_front_15_extra_lane_true`），
    **不可从簇自身文本判定**，必须回读 `stm0.puml` 那一行并确认它对应哪句 NL。
-   受影响 ≤4 条（3.1%），判据见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
+   受影响 ≤4 条（占表示债务 129 条目的 3.1%），判据见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
 3. **不设「待定」。** 证据不足不构成一个裁定类别——取不到证据就去取：静态读不动时直接实跑
    `SimulationAPI` 投喂事件看机器动没动（`0044-4`），或用 `FBMCQAPI` 做 bound 扫描取反例 frames
    （`0044-2`）。⚠️ `FBMCQAPI` 在结构最破的制品上恰恰不可用，遇 `UnsupportedEvidence` 的下一跳

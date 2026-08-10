@@ -223,7 +223,7 @@
 
 - **事实**：冻结路径中不存在任何变量声明，数值条件被改建成两个事件名 Front_Distance_10 与 Front_Distance_10_2（后者的 _2 后缀说明同一条件被复制成两个事件），front_distance 变量确不存在
 - **NL**：NL 第 4 句『when front_distance > 10, auto transport to autonomous state』逐字给出变量名 front_distance 与数值比较守卫
-- **说明**：6/6 格稳定命中，hit@all=1。落在 M=(S,E,V,Tr,A) 的 V 与 Tr 守卫上，未涉时钟/不变式/并发。台账 5 条（occupancy_after / state_declared / terminates / reaches / event_consumed）无一覆盖变量与守卫缺失，属真漏记；实质危害是数值守卫不可求值，front_distance 的取值无法影响迁移。
+- **说明**：6/6 格稳定命中，hit@all=1。落在 M=(S,E,V,Tr,A) 的 V 与 Tr 守卫上，未涉时钟/不变式/并发。台账 5 条（occupancy_after / state_declared / terminates / reaches / event_consumed）无一覆盖变量与守卫缺失。⛔ 仍判表示债务而非漏记：作者在 stm0.puml 上写了该守卫，是编译丢了可寻址性；实质危害是数值守卫不可求值，front_distance 的取值无法影响迁移。
 
 ## pair 0011 — 1 簇　`无×1`
 
@@ -385,7 +385,7 @@
 
 - **事实**：路径中事件仅有 collision_detected 与 Collision_avoided，frontend/rear_end/pedestrian 三个具体检测事件一个都不存在——三种刺激被塌缩成一个泛化事件
 - **NL**：NL 2 逐字并列点名三种检测：『a possible frontend collision, rear-end collision or collision with pedestrian is detected』
-- **说明**：该 pair 台账为 0 条，属真漏记。可与 pair 0057 对照：同一份 NL 下 0057 确实分别声明了 Frontend_collision_detected / Rear_end_collision_detected / Pedestrian_collision_detected，说明三事件可分是该 NL 的通行读法而非过度指定。本簇为 0017-2/3/4/5/6/9/11 的合并表述。
+- **说明**：该 pair 台账为 0 条。⛔ 仍判无 NL 依据：NL 只有散文并列，未给任何标识符，报告者必须自造分型名。与 pair 0057 的对照说明三事件**可**分（0057 确实分别声明了三个检测事件），但「可分」不等于「NL 要求分」，而 VALID_UNRECORDED 要求逐字 NL 依据。本簇为 0017-2/3/4/5/6/9/11 的合并表述。
 
 **0017-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
@@ -1531,7 +1531,7 @@
 
 - **事实**：只有事件 _front_distance_10，无变量 front_distance
 - **NL**：NL 4 逐字命名该量并与阈值 10 比较
-- **说明**：台账 EIS-0050-01 未涉及，属真漏记。
+- **说明**：台账 EIS-0050-01 未涉及本条内容。⛔ 但这不是漏记：作者源已逐字表达，缺的是 R4.5 编译产物里的可寻址性，故判表示债务。
 
 ## pair 0052 — 2 簇　`无×2`
 

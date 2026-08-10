@@ -259,7 +259,7 @@ def write_subclass_table(rows: list[dict]) -> None:
             w.writerow([verdict, sub, len(group), distinct,
                         f"{len(group) / distinct:.2f}",
                         len({r["cluster"][:4] for r in group}),
-                        int(statistics.median(sorted(cells))),
+                        f"{statistics.median(sorted(cells)):g}",
                         sum(1 for c in cells if c >= 4)])
 
 
@@ -349,7 +349,7 @@ def write_tables(rows: list[dict]) -> None:
             d = _distinct(grp)
             out.append(f"| `{sub}` | {len(grp)} | {d} | {len(grp)/d:.2f} | "
                        f"{len({r['cluster'][:4] for r in grp})} | "
-                       f"{int(statistics.median(sorted(cells)))} | "
+                       f"{statistics.median(sorted(cells)):g} | "
                        f"{sum(1 for c in cells if c >= 4)} |")
         out.append("")
 
@@ -388,14 +388,18 @@ def write_tables(rows: list[dict]) -> None:
             f"**{tot[1]}/{n}（{tot[1]/n:.0%}）只出现在 1 个格里**——"
             "多报以单次采样噪声为主，不是系统性行为。", ""]
 
-    out += ["---", "", "## 表 5　合并规模前 10", "",
+    out += ["---", "", "## 表 5　多成员合并组（成员数 >= 4）", "",
             "全部 %d 组及其自然语言合并理由见 "
             "[merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)。" % nd, "",
             "| merge_key | 成员数 | 大类 |", "| :-- | --: | :-- |"]
     mg: dict[str, list[dict]] = collections.defaultdict(list)
     for r in rows:
         mg[r.get("merge_key") or r["cluster"]].append(r)
-    for key, grp in sorted(mg.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:10]:
+    # ⛔ 不用「前 N」：成员数并列时按字典序截断会静默丢掉同规模的组（实测成员数 8 的有 7 个，
+    # 取前 10 只列出 6 个）。改为阈值，凡到阈值的一个不落。
+    for key, grp in sorted(mg.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        if len(grp) < 4:
+            break
         out.append(f"| `{key}` | {len(grp)} | {LABEL[grp[0]['verdict']]} |")
     multi = sum(1 for g in mg.values() if len(g) > 1)
     out += ["", f"{nd} 组 = {multi} 个多成员组 + {nd - multi} 个单成员组。", ""]
