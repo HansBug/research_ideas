@@ -486,18 +486,20 @@ PREDICATES: tuple[Predicate, ...] = (
         "stays_in",
         FAMILY_BEHAVIOR,
         "after this trigger the system remains in the same state",
-        "an event that should be ignored causes a transition",
+        "the run does not remain in this state after the trigger cycle",
         ("source", "trigger"),
         "one bounded witness",
-        "simulate(...) consumed_events and final.is_active(source)",
+        "simulate(...) then compare the active configuration against source",
         "simulate",
         nl_index="an event must leave the mode unchanged: \"is ignored\", \"has no effect\", \"remains in\", \"continues to\"",
         nl_cue=(
             "the sentence says a stimulus must not move the system out of where it "
-            "is, including a self-loop described in words. False means the model "
-            "does move on that event, and that is the finding. When the sentence "
+            "is, including a self-loop described in words. False means the run is no "
+            "longer in `source` after that cycle -- which may be a completion or guard "
+            "edge rather than the trigger, so do not report it as \"the event moved the "
+            "system\" without checking `event_consumed`. When the sentence "
             "instead requires a response and the worry is that none exists, that is "
-            "event_consumed -- which is also where a missing self-loop shows up, since "
+            "event_consumed; the *declaration* of a self-loop is edge_declared(s, t, s), since "
             "this predicate cannot tell an ignored event from a declared one."
         ),
         field_specs=(
@@ -507,7 +509,7 @@ PREDICATES: tuple[Predicate, ...] = (
         examples=(
             'stays_in(source="Sys.ModeA", trigger="Sys.noop")  # True whenever the run is still in ModeA afterwards',
             'stays_in(source="Sys.ModeA", trigger="Sys.evt")  # False when the event moves the system',
-            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # True when the event is simply ignored here -- ignoring is not leaving. Ask event_declared/event_consumed for the missing self-loop',
+            'stays_in(source="Sys.ModeA", trigger="Sys.other")  # True when the event is simply ignored here -- ignoring is not leaving. A missing self-loop is edge_declared(source, trigger, source) -- not event_declared, which is True whenever the event exists anywhere',
         ),
     ),
     Predicate(

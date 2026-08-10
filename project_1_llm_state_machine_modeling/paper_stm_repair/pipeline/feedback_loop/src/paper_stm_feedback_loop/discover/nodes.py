@@ -4068,7 +4068,16 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
         _edge_probe: dict[str, Any] = {}
 
         def _author_declares_edge(source: str, trigger: str) -> bool | None:
-            """作者源里该 scope 是否消费该事件。None 表示无法判定（此时调用方不放行）。"""
+            """作者在该 scope 上声明了以该事件为触发的**出**边吗。
+
+            两问，不是一问。消费该事件是必要条件，但不充分：完成边与守卫边和被派发的事件
+            无关地在同一 cycle 触发，于是一个既声明自环、又带完成边的叶态会同时给出
+            `event_consumed=True` 与 `stays_in=False` —— 追踪显示事件是在**下一个**状态上
+            被消费的，离开是那条完成边造成的。此时把退出算作者的，等于把编译期路由发布成
+            作者缺陷。所以自环在场即不放行。
+
+            None 表示无法判定（此时调用方不放行）。
+            """
 
             if "api" not in _edge_probe:
                 try:
@@ -4083,7 +4092,12 @@ def bind_attribution(state: DiscoverGraphState) -> DiscoverGraphState:
             if api is None:
                 return None
             try:
-                return bool(api.event_consumed(source=source, trigger=trigger))
+                if not api.event_consumed(source=source, trigger=trigger):
+                    return False
+                # 自环在场 -> 该事件的作者边不是出边，退出另有其因。
+                return not bool(
+                    api.edge_declared(source=source, trigger=trigger, target=source)
+                )
             except Exception:
                 # 谓词自己拒答（例如 scope 形状不合法）也算无法判定，不放行。
                 return None
@@ -4409,11 +4423,18 @@ def _claim_is_about_declaration(predicate: str | None) -> bool:
 
 #: 谓词 -> 其 False 的见证者是「一条作者声明的、从被点名 scope 出发、以被点名 trigger 为事件的迁移」。
 #:
-#: 只有 `stays_in`。为什么可以只靠 `event_consumed` 把「作者写了边」与「运行确实离开」钉在一起：
-#: `stays_in` **拒绝复合态**（实测报错原文：「every observation reports the whole chain root..leaf,
-#: so a composite subject is satisfied by any of its substates」），所以 subject 必是叶态；叶态没有
-#: 内部可去处，作者在其上声明的该事件迁移只能是出边 —— 自环会让 `stays_in` 为真，而这条分支的前提
-#: 正是它为假。因此两者同时成立时，离开是作者那条边造成的，不是路由载体造成的。
+#: 只有 `stays_in`，且**必须同时排除自环**。
+#:
+#: `stays_in` 拒绝复合态（报错原文：「every observation reports the whole chain root..leaf,
+#: so a composite subject is satisfied by any of its substates」），所以 subject 必是叶态。
+#:
+#: ⛔ 原先的论证到此为止，理由是「自环会让 `stays_in` 为真，而本分支的前提正是它为假」。
+#: **该论证不成立**：`stays_in` 读的是这一个 cycle 结束时的占用，而完成边与守卫边与被派发的
+#: 事件无关地在同一 cycle 触发。实测一个既声明自环又带完成边的叶态：
+#: `edge_declared(S,e,S)=True`、`event_consumed(S,e)=True`、`stays_in(S,e)=False` ——
+#: 追踪显示 `e` 是在**下一个**状态 T 上被消费的，离开 S 的是那条完成边。于是「作者写了出边」
+#: 这个结论会被一条与该事件无关的编译期路由满足，把编译债务发布成作者缺陷。
+#: 所以除了两条原有条件，还要求作者在该 scope 上**没有**声明该事件的自环。
 _AUTHOR_EDGE_WITNESSES_FALSE = frozenset({"stays_in"})
 
 
@@ -4451,8 +4472,9 @@ def _carrier_only_and_author_declared_it(
     1. 谓词在 `_AUTHOR_EDGE_WITNESSES_FALSE` 内 —— 见该常量的注释，这是叶态约束让判据可靠的地方。
     2. 每个被排除的元素角色都是 `carrier`。有一个不是，证据就还搭在别的东西上，那时它两边都说不了。
        角色映射缺失时保守地不放行（`roles` 为空意味着没有合同，退回原行为）。
-    3. 作者在该 scope 上确实声明了以该 trigger 为事件的迁移。这一条由 `event_consumed` 回答，
-       不是文本正则 —— 谓词语义与要问的问题逐字吻合。
+    3. 作者在该 scope 上确实声明了以该 trigger 为事件的**出**边。由 `event_consumed` 与
+       `edge_declared(source, trigger, source)` 两问回答，不是文本正则：消费是必要条件，
+       自环在场则退出另有其因（完成边同 cycle 触发），此时不放行。
 
     :param debt_refs: 该断言证据触碰到的、被排除的元素引用。
     :param predicate: 该断言所属需求的谓词。

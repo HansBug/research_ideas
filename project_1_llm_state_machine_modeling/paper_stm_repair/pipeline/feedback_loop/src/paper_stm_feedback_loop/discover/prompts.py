@@ -43,8 +43,8 @@ REQUIREMENT_REVIEWER_PROMPT += """
 Check `named_elements` row by row -- this table has no deterministic gate behind it, so if you
 do not check it nobody does. Two things, and both need your judgement rather than a pattern:
 
-1. **One element per row.** When the sentence names several things ("human steering cmd, brake
-   pressed"), each needs its own row. But punctuation does not decide this: a specification that
+1. **One element per row.** When the sentence names several things ("lid opened, tray
+   removed"), each needs its own row. But punctuation does not decide this: a specification that
    quotes a whole signal name, punctuation included, has named **one** element -- copy it
    verbatim and do not split it. Ask what the sentence names, not what characters it contains.
    A deterministic comma check was tried here and rejected a correct verbatim quotation on every
@@ -367,10 +367,11 @@ the answer:
   `stays_in(source=X, trigger=<the event>)`. Its False is the finding -- the run leaves X's
   scope on that event, so nothing the sentence says happens within X can hold. The two are
   independently violable in one direction: a scope can consume the event and still exit.
-  (The reverse does not hold -- `stays_in` answers on occupancy alone, so when the parent
-  `event_consumed` is already False this one comes back True: nothing consumed the event,
-  so nothing moved. Read that True as "no residency violation", never as "the scope
-  reacted"; the parent's False is the finding there.)
+  (The reverse does not hold -- `stays_in` answers on occupancy alone, so a False here says
+  only that the run is no longer in X after the trigger cycle. It does **not** say the trigger
+  moved it: completion and guard edges fire in the same cycle whatever was dispatched, so
+  `event_consumed` False and `stays_in` False can hold together. Never read this False as
+  "the scope reacted and then left".)
   ⚠️ `stays_in` **refuses any composite**, not merely an inner one. When X is a composite --
   which it is in most conditional-activation sentences -- bind this second Requirement to the
   declared entry leaf of X, not to X; binding X makes the assertion raise instead of answer. This second one is what
@@ -378,8 +379,9 @@ the answer:
   its own scope -- the declaration reads fine and the run still exits.
   Like the entry obligation below, this second Requirement is entailed by the first rather than
   stated on its own, so declare it: `derivation = {"kind": "activation_residency",
-  "parent_requirement_id": "<the event_consumed Requirement's id>"}`, and bind the same `source`
-  the parent binds. Undeclared, the reviewer reads it as an addition with no NL source.
+  "parent_requirement_id": "<the event_consumed Requirement's id>"}`, and bind `source` to the
+  entry leaf named above -- the derivation gate accepts the parent's own scope or any element
+  inside it, so `X.<leaf>` is legal here even though the parent binds `X`. Undeclared, the reviewer reads it as an addition with no NL source.
 ⚠️ **Segment disposition, before anything else.** Every NL segment gets exactly one of
 `covered` / `out_of_scope` / `ambiguous` / `context`, and `covered` **asserts that some Requirement
 you emit carries that segment's obligation** -- a deterministic check rejects the set if any

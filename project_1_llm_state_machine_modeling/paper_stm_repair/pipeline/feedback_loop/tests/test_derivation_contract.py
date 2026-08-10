@@ -270,8 +270,12 @@ def test_licensed_table_is_closed_and_small() -> None:
     """闭集本身是这条规则的一部分：加项要过 review，否则「机械派生」就成了任意口子。"""
 
     assert set(_LICENSED_DERIVATIONS) == {ENTRY, RESIDENCY}
-    for kind, (parent_predicate, parent_key, child_key) in _LICENSED_DERIVATIONS.items():
+    for kind, (parent_predicate, parent_key, child_key, relation) in _LICENSED_DERIVATIONS.items():
         assert parent_predicate and parent_key and child_key, kind
+        assert relation in {"same", "within"}, (kind, relation)
+    # `activation_residency` 必须放宽到 within，否则与 `stays_in` 的复合拒绝、以及 prompt
+    # 「绑 X 的入口叶」这条指示交集为空——绑 X 则谓词 raise，绑叶则本门开单（CLAUDE.md §13）。
+    assert _LICENSED_DERIVATIONS[RESIDENCY][3] == "within"
 
 
 # ---------------------------------------------------------------- 析取占位符

@@ -19,12 +19,25 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
 SRC = ROOT / "paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop"
+SEEDS = ROOT / "paper_stm_repair/selected_seed_examples"
 #: Held-out pairs first -- those are the ones a reported number depends on -- plus the four
 #: historical cells, which are audited too so a regression there is still visible.
 HISTORICAL = {"0000", "0006", "0029", "0050"}
+
+
+def _all_corpus_pairs() -> set[str]:
+    """全语料 pair 号。
+
+    ⛔ 这里原先写 `run_grid.resolve()`，而本模块从未 import `run_grid` —— 于是这个
+    「运行前泄漏门」自诞生起就是 `NameError`，**一次也没跑通过**。任何引用它作为
+    已审计凭据的说法都不成立。审计范围本就该是全语料：泄漏进的是 prompt，而 prompt
+    对所有 pair 生效，按格集裁剪审计范围没有意义。
+    """
+
+    return {p.name[-4:] for p in SEEDS.iterdir() if p.is_dir() and p.name[-4:].isdigit()}
 # hold-out 与分带机制已于 2026-08-09 永久移除：方法在这批 pair 上迭代，全部记录同等参与度量。
 # 审计范围改为全部 pair —— 不再有「留出/历史」之分。
-AUDITED = set(run_grid.resolve()) | HISTORICAL
+AUDITED = _all_corpus_pairs() | HISTORICAL
 GENERIC = {
     "source","target","trigger","scope","child","parent","variable","count","kind","sign","phase",
     "within_cycles","bound","release","condition","composite","state","event","True","False","None",

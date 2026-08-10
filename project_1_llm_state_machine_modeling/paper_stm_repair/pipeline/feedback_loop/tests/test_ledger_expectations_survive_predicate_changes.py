@@ -122,3 +122,63 @@ def test_occupancy_primaries_still_measure_what_the_ledger_recorded() -> None:
         "处置：先判定台账那条是否仍成立，再决定是改台账还是回退谓词；两者都要在报告里声明"
         "「本代次起台账期望值已变，与前代不可直接比较」。"
     )
+
+
+# --------------------------------------------------------------------------
+# 全谓词覆盖：上面那条只认 `occupancy_after(` 且只看 11 个 pair，于是台账里四条
+# `stays_in` / `persists_until` primary **一条都没被它测到** —— 而这两个谓词恰好是
+# 后来被改语义的那两个。一条「改动是否动了尺子」的测试放过了它要防的那次改动。
+#
+# 这里不再按谓词名匹配，直接把表达式喂给运行时求值：台账写什么就测什么，新增谓词
+# 自动进入覆盖面，不需要有人记得回来加正则。
+# --------------------------------------------------------------------------
+
+
+def _all_measured_primaries() -> list[tuple[str, str, bool]]:
+    if not LEDGER.is_file():
+        return []
+    out = []
+    for record in json.loads(LEDGER.read_text()).get("records") or []:
+        for assertion in record.get("assertions") or []:
+            if assertion.get("role") != "primary":
+                continue
+            measured = assertion.get("measured_by_batch")
+            if measured in (None, "None"):
+                continue
+            expression = str(assertion.get("expression") or "").strip()
+            if not expression:
+                continue
+            out.append((str(record["id"]), expression,
+                        str(measured).strip().lower() == "true"))
+    return out
+
+
+@pytest.mark.parametrize(
+    ("record_id", "expression", "expected"),
+    [pytest.param(r, e, v, id=r) for r, e, v in _all_measured_primaries()],
+)
+def test_every_measured_primary_still_measures_what_the_ledger_recorded(
+    record_id: str, expression: str, expected: bool
+) -> None:
+    """台账记下的每一个 primary 真值，在当前实现下必须原样再现。
+
+    尺子变了而台账没变，等于两代次的数字不可比 —— 这正是本文件存在的理由。拒答也算变化：
+    台账记的是 True/False，一次 `UnsupportedEvidence` 意味着那条记录再也无法被度量。
+    """
+
+    match = re.search(r"['\"]([A-Za-z_][A-Za-z0-9_]*)\.", expression)
+    if not match:
+        pytest.skip(f"{record_id}: 表达式里没有全限定名，无法定位种子模型")
+    model = SEEDS / match.group(1) / "model.fcstm"
+    if not model.is_file():
+        pytest.skip(f"no seed model for {match.group(1)}")
+    env = EvalEnvironment(model_text=model.read_text())
+    try:
+        got = eval(expression, dict(env.globals))  # noqa: S307 - 台账自己的表达式
+    except Exception as exc:  # noqa: BLE001
+        pytest.fail(f"{record_id} 的 primary 现在无法求值（{type(exc).__name__}: {exc}）"
+                    f"——台账记的是 {expected}，拒答同样是漂移")
+    assert bool(got) is expected, (
+        f"{record_id}: 台账记 {expected}，现在是 {got}。改动动了尺子，"
+        f"两代次的数字不再可比"
+    )

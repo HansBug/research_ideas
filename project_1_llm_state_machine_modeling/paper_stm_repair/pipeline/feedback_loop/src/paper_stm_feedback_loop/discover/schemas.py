@@ -562,14 +562,19 @@ class NamedElement(StrictBaseModel):
     kind: Literal["state", "event", "variable"]
     #: 一行一个要素这条纪律**不做 validator**（CLAUDE.md §11）：「这句话点名了一个要素还是
     #: 几个」是语义判断，无法只看字段值唯一判定。曾把它做成词法门（含逗号即拒），结果在
-    #: `0014` 上打死一个完全正确的回答——规范逐字引用的信号名 `"Arrived/Stop, Send Arrived"`
-    #: 天然含逗号，而它的 `declared_match` 非 null 且正确。2928 行里 190 行被误拒，该 pair 18/18 撞死。
-    #: 纪律归 description 与生成端 prompt，检查归评审端。
+    #: ⛔ 这里曾有一条「含并列连接词即拒」的 validator，已按 CLAUDE.md §11 撤除：它把**语义判断**
+    #: （句子点名了几个要素）实现成了**词法判断**（字符串里有没有逗号），于是任何被规范用引号框成
+    #: 单一信号名的带标点标签都会被误拒，且该拒绝无出路——正确答案也过不去。
+    #: 纪律归本 description 与生成端 prompt，检查归评审端。
+    #:
+    #: ⛔ 本 description 的例子**必须是合成的**。它随结构化输出进入模型上下文，写语料里的原句
+    #: 等于把该 NL 家族的答案交出去。合成例子与 `prompts.py` 的 worked example 保持同一套
+    #: （`lid opened, tray removed` / `Sys.*`），三者在全语料的命中数均为 0。
     name_in_sentence: str = Field(
         min_length=1,
         description=(
             "句子里的原措辞，逐字。不是路径，不做规范化——它是「谁点的名」的证据。"
-            "一行只放一个要素：句子并列点名多个时（如「human steering cmd, brake pressed」）"
+            "一行只放一个要素：句子并列点名多个时（如「lid opened, tray removed」）"
             "拆成多行，每行一个。但**逐字优先**：若规范用引号把带标点的整体框成一个信号名，"
             "那就是一个要素，照抄不拆。标点不决定要素个数，语义才决定。"
         ),

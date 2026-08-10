@@ -41,6 +41,7 @@ truth value this layer can invent.
 from __future__ import annotations
 
 import re
+import time
 from typing import Any
 
 from .exceptions import UnsupportedEvidence
@@ -57,6 +58,11 @@ PSEUDO_INITIAL = "[*]"
 #: the fired-transition derivation less likely to stay unambiguous.
 DEFAULT_CYCLES = 1
 DEFAULT_BOUND = 5
+
+#: 有界 until 的案例分解把一次查询变成最多 `bound` 次。引擎只有 per-process 墙钟，
+#: 外层没有任何总量上限，于是最坏情形是 `bound x 单次墙钟`。这条把总量收在约两次查询的
+#: 量级上；超时按拒答处理——分解没走完就什么都没判定，给任何一个 bool 都是猜。
+_PERSISTS_UNTIL_WALL_SECONDS = 120.0
 #: Cycles a termination probe drives before concluding the model cannot finish.
 TERMINATION_CYCLES = 6
 
@@ -1423,9 +1429,11 @@ class PredicateAPI:
         # wrong, because "unconsumed" does not imply "unchanged": completion and
         # guard edges fire in the same cycle regardless of the trigger.  Measured
         # on a three-node completion chain `A1 -> A2 -> A3`, an unconsumed `ping`
-        # left `A1` inactive while this predicate answered True and
-        # `occupancy_after` answered False -- two predicates asserting opposite
-        # facts about one run.  That early return also sat *above* the `[*]` and
+        # left `A1` inactive while this predicate still answered True.  (The
+        # tempting second witness -- that `occupancy_after` disagreed -- is not
+        # one: it short-circuits on the same unconsumed check, so it answers
+        # False for any unconsumed trigger regardless of where the run ended up.)
+        # That early return also sat *above* the `[*]` and
         # composite gates below, so both only fired when the trigger happened to
         # be consumed: `stays_in([*], other)` and `stays_in(<composite>, other)`
         # answered True instead of refusing.
@@ -1881,25 +1889,80 @@ class PredicateAPI:
         # `_formal_holds` turns that into `UnsupportedEvidence` -- a refusal to
         # answer, never a silent True.
         #
-        # One case the split still cannot decide: `release` already holds at
-        # frame 0 on every run.  Then every k >= 1 assumes something infeasible
-        # and the predicate refuses to answer, where the truth is True -- the
-        # obligation was discharged before the first step.  Settling frame 0
-        # separately would need `check invariant <= 0`, which the grammar
-        # rejects (bounds start at 1), and the alternative -- inferring
-        # "infeasible assumption" from the engine's non-terminal exit -- would
-        # rest on a failure message rather than on a verdict.  So this case is
-        # left as a refusal: a coverage gap per CLAUDE.md §10, never a wrong
-        # answer, and on such a model the until-claim asserts nothing anyway.
+        # Once `release` is forced true by some frame m -- a completion edge into
+        # the release state is enough -- every k > m assumes something no run can
+        # satisfy, and the engine exits without a stable result.  Reported as a
+        # refusal that made the predicate non-monotone in `bound` and made it
+        # decline exactly the paradigm satisfying case: measured on the corpus,
+        # `persists_until(0027 BrakeControlState, active(junction2))` answered
+        # True at bound 1 and refused at 2..6.
+        #
+        # But an exhausted case split is not missing information: if no run keeps
+        # `release` false through frame k-1, then every run has already discharged
+        # the obligation, and the conjunction over the feasible k *is* the answer.
+        # So infeasibility ends the loop with True rather than raising.
+        #
+        # Distinguishing it from a genuine solver failure does not rest on reading
+        # a message.  Re-ask the same assumptions against an unsatisfiable body:
+        # `check invariant <= k: false` is refuted by any feasible assumption (it
+        # exhibits a witness) and can only fail to terminate when the assumptions
+        # admit no run at all.
+        # The split turns one query into up to `horizon`.  Each carries the engine's own
+        # per-process wall (60 s by default) and a False short-circuits at k=1, but a True
+        # runs them all -- so on the two largest pairs, where a *single* query already
+        # exhausts that wall, the worst case is `horizon x 60 s` with nothing above it
+        # (`--assertion-timeout-seconds` has no default, and `_eval_with_timeout` cannot
+        # arm SIGALRM in a worker thread).  A cumulative deadline caps it at roughly one
+        # query's budget beyond the first, and expires as a refusal -- an unfinished split
+        # decides nothing, so reporting either bool would be a guess.
+        deadline = time.monotonic() + _PERSISTS_UNTIL_WALL_SECONDS
         for k in range(1, horizon + 1):
+            if time.monotonic() > deadline:
+                raise UnsupportedEvidence(
+                    f"the bounded until split exhausted its {_PERSISTS_UNTIL_WALL_SECONDS:.0f}s "
+                    f"budget after {k - 1} of {horizon} cases on this model; the obligation is "
+                    "not decidable within it, so it is a coverage gap rather than a verdict"
+                )
             assumptions = " ".join(f"assume at {j}: !({release});" for j in range(k))
             query = (
                 f"{head}{assumptions} "
                 f'check invariant <= {k}: active("{state}") || ({release});'
             )
-            if not self._formal_holds(query):
+            try:
+                holds = self._formal_holds(query)
+            except UnsupportedEvidence:
+                if self._assumptions_are_infeasible(head, assumptions, k):
+                    return True
+                raise
+            if not holds:
                 return False
         return True
+
+    def _assumptions_are_infeasible(self, head: str, assumptions: str, k: int) -> bool:
+        """No run satisfies these assumptions -- and the binding itself is fine.
+
+        Asked against a body no run can satisfy: a feasible assumption set refutes
+        `invariant: false` at once by exhibiting a witness, an infeasible one has
+        nothing to exhibit and fails.  Two probes, not one, because a fabricated
+        state or event name makes *every* query fail -- reading that single failure
+        as infeasibility turned a binding error into a silent True, which the
+        fabricated-path spec caught.  So the control probe runs first, without the
+        assumptions: if the model cannot answer even then, the fault is the binding
+        and the original refusal stands.
+        """
+
+        try:
+            control = self._formal_holds(f"{head}check invariant <= {k}: false;")
+        except UnsupportedEvidence:
+            return False
+        if control:
+            # `false` held, so no run reaches frame k at all; nothing was assumed away.
+            return False
+        try:
+            self._formal_holds(f"{head}{assumptions} check invariant <= {k}: false;")
+        except UnsupportedEvidence:
+            return True
+        return False
 
     # ---- formal plumbing ---------------------------------------------
     def _note_formal(self, result: Any) -> None:

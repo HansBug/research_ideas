@@ -151,6 +151,18 @@ GATED = """state Root {
 }
 """
 
+#: `release` is forced true by a completion edge, so no run can keep it false past
+#: frame 1.  The bounded until is satisfied -- trivially, the obligation discharges --
+#: but every case-split query beyond that frame assumes something no run satisfies.
+FORCED_RELEASE = """state Root {
+    event go;
+    state S;
+    state R;
+    [*] -> S;
+    S -> R;
+}
+"""
+
 #: The model declares no variable of the author's own.
 NO_VARIABLES = """state Root {
     event go;
@@ -480,8 +492,9 @@ def test_stays_in_reads_the_run_not_the_consumption_flag():
     flag for the run.  Completion and guard edges fire in the same cycle
     whatever the trigger does, so a chain `A1 -> A2 -> A3` leaves `A1` behind
     while nothing at all is consumed.  Measured on that shape, the flag-reading
-    version said True while `occupancy_after` said the state was gone -- two
-    predicates asserting opposite facts about one run.
+    version said True while the trace showed `A1` no longer active.  (`occupancy_after`
+    is not a usable second witness here -- it short-circuits on the same unconsumed
+    check, so it answers False for any unconsumed trigger whatever the run did.)
 
     The same shortcut sat above the `[*]` and composite refusals, so both fired
     only when the trigger happened to be consumed.  On pair 0000, where no state
@@ -496,6 +509,23 @@ def test_stays_in_reads_the_run_not_the_consumption_flag():
     for source in ("[*]", "Root.Mode"):
         with pytest.raises(UnsupportedEvidence):
             call(GATED, "stays_in", source=source, trigger="Root.other")
+
+
+def test_persists_until_is_monotone_when_the_release_is_forced():
+    """An exhausted case split is an answer, not a refusal.
+
+    Once `release` is forced true by some frame -- a completion edge into the release
+    state is enough -- every deeper case assumes something no run satisfies.  Treated
+    as a failure that made the predicate non-monotone in `bound` and made it decline
+    the paradigm *satisfying* case: measured on the corpus, `0027`'s
+    `BrakeControlState until active(junction2)` answered True at bound 1 and refused
+    at 2..6.  If no run keeps `release` false through the frame, every run has already
+    discharged the obligation, so the conjunction over the feasible cases is the answer.
+    """
+
+    for bound in (1, 2, 3, 5):
+        assert call(FORCED_RELEASE, "persists_until",
+                    state="Root.S", release='active("Root.R")', bound=bound) is True, bound
 
 
 def test_event_consumed_separates_handled_from_ignored():

@@ -1327,10 +1327,21 @@ def trigger_consuming_predicate_findings(
 #:
 #: 这张表是「派生」这个概念的全部内容。它是闭集，加项要过 review —— 否则 `derivation`
 #: 就从「一小组具名蕴含」退化成「绕过 NL 审查的任意口子」。
-_LICENSED_DERIVATIONS: dict[str, tuple[str, str, str]] = {
-    # kind: (父谓词, 父侧绑定键, 子侧绑定键)
-    "entry_follows_cardinality": ("cardinality", "scope", "composite"),
-    "activation_residency": ("event_consumed", "source", "source"),
+#: kind: (父谓词, 父侧绑定键, 子侧绑定键, 绑定关系)
+#:
+#: 绑定关系 `"same"` 要求两侧绑同一个元素；`"within"` 允许子侧绑父侧作用域**内**的元素。
+#:
+#: ⛔ `activation_residency` 必须是 `"within"`，否则四条约束交集为空（CLAUDE.md §13）：
+#: (i) 父 `event_consumed` 绑的是 X 本身，而条件激活句里的 X 多数是复合态；
+#: (ii) `stays_in` 拒绝任何复合主体（复合被其任一子态满足，主张恒真）；
+#: (iii) prompt 因此要求子侧绑 X 的声明入口叶；
+#: (iv) 本门若要求两侧同名，(ii) 与 (iii) 就没有共同解——绑 X 则谓词 raise，绑叶则本门开单。
+#: 满足全部四条的形状：父 `event_consumed(source=X)`，子 `stays_in(source=X.<入口叶>)`。
+#: 放宽的是 (iv)，理由是它的前提在此语境下不成立：入口叶在 X 的作用域**内**，
+#: 「运行是否留在 X」正是通过它观察的，不是另一个作用域上的新主张。
+_LICENSED_DERIVATIONS: dict[str, tuple[str, str, str, str]] = {
+    "entry_follows_cardinality": ("cardinality", "scope", "composite", "same"),
+    "activation_residency": ("event_consumed", "source", "source", "within"),
 }
 
 
@@ -1384,7 +1395,7 @@ def derivation_contract_findings(
                 f"and ground the requirement in an NL segment, or remove the requirement."
             )
             continue
-        parent_predicate, parent_key, child_key = licensed
+        parent_predicate, parent_key, child_key, relation = licensed
         parent = by_id.get(parent_id)
         if parent is None:
             findings.append(
@@ -1411,11 +1422,22 @@ def derivation_contract_findings(
             continue
         parent_value = str((getattr(parent, "predicate_bindings", None) or {}).get(parent_key) or "").strip()
         child_value = str((getattr(item, "predicate_bindings", None) or {}).get(child_key) or "").strip()
-        if not parent_value or parent_value != child_value:
+        if relation == "within":
+            ok = bool(parent_value) and (
+                child_value == parent_value or child_value.startswith(f"{parent_value}.")
+            )
+            expectation = (
+                f"the same element as `{parent_key}`, or one inside it "
+                f"(`{parent_value}.<leaf>`)"
+            )
+        else:
+            ok = bool(parent_value) and parent_value == child_value
+            expectation = f"the same element as `{parent_key}`"
+        if not ok:
             findings.append(
                 f"{rid} binds `{child_key}={child_value or '<empty>'}` while its parent "
                 f"{parent_id!r} binds `{parent_key}={parent_value or '<empty>'}`. The entailment is "
-                f"only about the parent's own scope, so the two must name the same element; a "
+                f"about the parent's own scope, so `{child_key}` must name {expectation}; a "
                 f"derived obligation on a different scope is a new claim and needs its own NL "
                 f"source."
             )
