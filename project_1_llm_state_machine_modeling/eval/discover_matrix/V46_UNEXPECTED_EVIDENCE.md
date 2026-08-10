@@ -1,19 +1,19 @@
 # v46 意外发现逐簇判据（全 293 条）
 
-[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件，逐条列出事实 / NL 依据 / 说明。
+[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件。
+裁定口径见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)。
 
-⚠️ **本文件由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 生成，jsonl 是真源。**
-改裁定请改 jsonl 再重建本文件；直接编辑本文件会在下次重建时静默丢失。
+⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`rebuild_unexpected.py`），jsonl 是真源。**
+改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。
 
 | 裁定 | 簇数 |
 | :-- | --: |
 | ✅ 真漏记 | 23 |
 | 🔗 应并入台账 | 14 |
 | ⚙️ 表示债务 | 123 |
-| 📄 无 NL 依据 | 93 |
-| ❌ 假阳性 | 31 |
+| 📄 无 NL 依据 | 96 |
+| ❌ 假阳性 | 33 |
 | 🚫 越界 | 4 |
-| ❓ 待定 | 5 |
 | **合计** | **293** |
 
 ---
@@ -1168,7 +1168,7 @@
 - **NL**：NL 3 『concurrent activation different of collision avoidance controls』中 'collision avoidance controls' 是指代这些具体控制的复数普通名词，NL 未要求存在一个与该短语整体同名的状态或集合元素
 - **说明**：字面抽名导致的过度规定，与 0046-7/0006-1 的 Flight 同一模式
 
-## pair 0039 — 21 簇　`表示债务×16 无×4 待定×1`
+## pair 0039 — 21 簇　`表示债务×16 无×5`
 
 **0039-1** ｜ ⚙️ 表示债务 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G4
 
@@ -1272,11 +1272,11 @@
 - **NL**：NL 12
 - **说明**：与 0039-3/7 同一缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-**0039-18** ｜ ❓ 待定 ｜ 1/6 格 ｜ `initial_target/state_declared` ｜ 判定组 G4
+**0039-18** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `initial_target/state_declared` ｜ 判定组 G4
 
-- **事实**：无 collision_avoidance_system 复合容器；两状态与 AutonomousMode 平级
-- **NL**：NL 12 只点名初始占用，未要求该复合状态
-- **说明**：缺迁移清单；且必要性依赖正交读法（边界外）
+- **事实**：事实为真：model.fcstm:94/95 两状态声明在根状态直属层，与 model.fcstm:16 的 AutonomousMode 平级，无复合容器。作者源同样没有——stm0.puml 全文仅三处 `state X {`（4/10/24 行），碰撞避免部分在 44/46/48 行以顶层裸迁移写出，故非表示债务。对照 0049 作者在 stm0.puml:37 写了 `state CollisionAvoidance {`，可见是作者写法差异
+- **NL**：NL 12/13 只逐字点名两个状态名；『the collision avoidance system』是指代子系统的统称词，NL 未要求存在同名复合状态，也未规定其层次归属
+- **说明**：【终裁】把 NL 的统称词当被点名元素，是 N1 命名字面主义的典型形态。⚠️ 不判越界：`grep -cE '^[[:space:]]*--[[:space:]]*$' stm0.puml` = 0，源内无正交区，按 R-REGION 与 0037-1/0007-1 先例走单区读法；且本簇主张的是 containment/层次，属 M 内对象，未主张区数量义务或 invariant。上一轮以「必要性依赖正交读法」收待定，是把『为何需要容器』的动机与『主张能否在 M 内表述』混谈了。
 
 **0039-19** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G4
 
@@ -1304,7 +1304,7 @@
 - **NL**：NL 1+3 要求 PumpState 为首个进入的子态
 - **说明**：台账 EIS-0043-01 审 containment，本条审初始入口与冷启动可达，未覆盖 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-## pair 0044 — 4 簇　`假阳性×2 待定×2`
+## pair 0044 — 4 簇　`假阳性×3 无×1`
 
 **0044-1** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `action_declared` ｜ 判定组 G2
 
@@ -1312,11 +1312,11 @@
 - **NL**：NL 3 未逐字规定 entry 相位
 - **说明**：需 FCSTM 动作块 ｜【回读原件复核翻转】UNCERTAIN→FALSE_POSITIVE：0044 model.fcstm 第 31-33 行：`state EmergencyStopping named "EmergencyStopping" {
 
-**0044-2** ｜ ❓ 待定 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G2
+**0044-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G2
 
-- **事实**：无法定位造成 persists_until 为 False 的出边
-- **NL**：NL 10 支持保持义务
-- **说明**：需迁移表；可能与 0044-4 同源
+- **事实**：Approaching 全部出边只有两条：model.fcstm:24 `/Arrived_Stop_Send_Arrived`（经 :35 落 Stopping）与 model.fcstm:27 `/Obstacle_Detected`（经 :36 落 EmergencyStopping）。实跑 fbmcq 反例 frames=[0:Approaching,1:Approaching,2:EmergencyStopping,3:terminated,4:terminated]，bound 扫描：bound=1 holds；bound=2 首次失败。**三次反例的首个违反帧无一例外都在 release 达成之后的 terminated 帧**
+- **NL**：NL 10『The system remains in the Approaching substate ... until it is ready to stop or decelerate』是定性描述；NL 2 明确要求到站与障碍两种离开，Approaching 的两条出边正对应这两种
+- **说明**：【终裁 · 实测而非推断】造成 False 的不是任何一条出边，而是谓词的操作化方式：`predicate_api.py:1802-1808` 把 persists_until 编成覆盖整个 horizon 的有界不变式 `(release) || active(state)`，**不是真正的 until**——release 达成后义务不解除，只要 release 状态不是吸收态，下一帧必然违反。作者在 stm0.puml:22-23 明写 `Stopping --> [*]` / `EmergencyStopping --> [*]`，故该不变式在**作者原件上同样不可满足**，与 R4.5 无关 → 排除表示债务（反例里 token 两阶段路由被折叠成单步，债务码未参与）。模型对 NL 10 是满足的，故非制品缺陷。⚠️ 谓词侧待修（CLAUDE.md §13）：persists_until 应在 release 首次成立后解除义务，否则**对任何有终止路径的模型恒为 False**。与 0044-4 不同源。
 
 **0044-3** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1324,11 +1324,11 @@
 - **NL**：NL 9 要求的是输出动作不是输入事件
 - **说明**：同句在 0034 被台账 EIS-0034-04 按输出动作缺失记录 ｜【回读原件复核翻转】NO_NL_BASIS→FALSE_POSITIVE：0044 model.fcstm 第 14-16 行：`state Approaching named "Approaching" { during abstr
 
-**0044-4** ｜ ❓ 待定 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G2
+**0044-4** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `stays_in` ｜ 判定组 G2
 
-- **事实**：无法核验 transition:7 的声明源作用域
-- **NL**：NL 5/10
-- **说明**：归因未定；与 0044-2 可能同源
+- **事实**：`transition:7` 原文是 model.fcstm:19 `Accelerating -> Cruising : /Reached_Cruising_Cruise;`——**不是 Approaching 的出边**（Approaching 只有 index 12 与 15）。实跑 SimulationAPI 钉在 Approaching 投喂 Reached_Cruising_Cruise：consumed=[]、unconsumed=[该事件]、fired=[]、active=[root,InMotion,InMotion.Approaching]——**机器原地未动，仍在 Approaching**。对照钉在 Accelerating 投同一事件则 consumed 并进入 Cruising
+- **NL**：NL 5 把该信号绑死在 Accelerating→Cruising；NL 未要求 Approaching 上有该事件的自环
+- **说明**：【终裁 · 实测而非推断】断言主张「运行离开了 Approaching、trace 指向 transition:7」与制品完全相反：没有任何迁移被触发，事件被忽略，Approaching 持续活动。两个谓词侧成因：① `predicate_api.py:1404-1405` 的 `if trigger not in self._consumed(view): return False` 按设计把「事件被忽略」直接判 False；② `predicate_api.py:664-672` 的 `if not fired and unconsumed:` 分支在「什么都没发生」时把锚点落到**声明该事件的**迁移上，于是 model_refs 出现 transition:7，被生产者误读成 fired trace。旁证：同一记录里 occupancy_after 的 model_refs 与它逐字相同却 result=True，说明该锚点是静态查表不是执行轨迹。取假阳性而非无 NL 依据，因「主张与制品相反」这一条更强更靠前。⚠️ 谓词侧待修：stays_in 把「事件被忽略」与「离开了状态」压成同一个 False。与 0044-2 不同源。
 
 ## pair 0046 — 9 簇　`表示债务×5 无×4`
 
@@ -1442,7 +1442,7 @@
 - **NL**：NL 2 蕴含存在激活前的未活动配置
 - **说明**：与台账 EIS-0047-03 同一缺陷的结构侧面，应归并
 
-## pair 0049 — 25 簇　`表示债务×14 无×9 待定×2`
+## pair 0049 — 25 簇　`表示债务×14 无×10 假阳性×1`
 
 **0049-1** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1498,11 +1498,11 @@
 - **NL**：NL 13
 - **说明**：同 0049-2 ｜【R-CONJ 主判裁决】NL 以 and 连接，拆成独立事件会把 AND 变 OR，指向错误修法；同一缺口按变量框架计一次。
 
-**0049-10** ｜ ❓ 待定 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
+**0049-10** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
-- **事实**：存在独立事件 dist_to_front_25，但无法判定是 <25 还是 >=25 的投影
-- **NL**：NL 3/5 dist_to_front<25
-- **说明**：需 FCSTM 迁移标签原文；与 0049-22 同源
+- **事实**：model.fcstm:5 `event dist_to_front_25 named "dist_to_front>=25";` —— 比较符在编译产物里逐字保留，与作者源 stm0.puml:10 `enter_hwy --> cruise : dist_to_front>=25` 完全一致；互补分支同样在场：model.fcstm:6 `event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true"`
+- **NL**：NL 3/5 要求的 `<25 && extra_lane` 恰好落在通往 lane_change 的边上，制品已满足
+- **说明**：【终裁】断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。
 
 **0049-11** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1570,11 +1570,11 @@
 - **NL**：NL 12 独立析取触发源
 - **说明**：事件名系模型自拟但实质主张成立 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-**0049-22** ｜ ❓ 待定 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
+**0049-22** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 
-- **事实**：dist_to_front_lt_25 不存在但有 dist_to_front_25
-- **NL**：NL 3/5
-- **说明**：与 0049-10 同源
+- **事实**：确无标识符为 dist_to_front_lt_25 的独立事件；但 NL 要求的条件本身在场：model.fcstm:6 的 `dist_to_front<25 && extra_lane=true`，挂在 model.fcstm:27/30 两条通往 lane_change 的边上；作者源 stm0.puml:11/14 逐字同形
+- **NL**：NL 3 与 NL 5 两处出现 `dist_to_front<25` 时都与 `extra_lane=true` 合取，NL 全文无一处把它作为独立触发源
+- **说明**：【终裁】实质诉求是把合取式拆成裸事件，适用 R-CONJ：拆开会把 AND 变 OR，指向错误修法。与同 pair 的 15 米孪生簇 0049-12/0049-23 同口径。⚠️ 与同源的 0049-10 分裁：0049-10 断言「比较符不可判定」被 named 串直接证伪（事实为假→假阳性），本簇陈述的「无该标识符」字面为真（事实为真→无 NL 依据）。
 
 **0049-23** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `event_declared` ｜ 判定组 G2
 

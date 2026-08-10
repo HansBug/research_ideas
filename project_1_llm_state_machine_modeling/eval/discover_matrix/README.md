@@ -55,6 +55,12 @@ v46 的八个独立判定组里有七组栽在这一点上。
 - [V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md) —— 按**根因**归并的问题清单：
   4 条真漏记逐条带作者源行号判据，14 簇应并入台账逐条带并入目标。
 - [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md) —— 293 簇逐条判据（事实 / NL / 说明）。
+- [PREDICATE_DEFECTS_REGISTERED.md](./PREDICATE_DEFECTS_REGISTERED.md) —— 裁定中实测出的 4 项
+  谓词侧缺陷（**只登记不修**）。⚠️ `persists_until` 在 release 后不解除义务，
+  **对任何有终止路径的模型恒为 False**；修复前其 False 不能作缺陷证据。
+
+派生物由 [rebuild_unexpected.py](./rebuild_unexpected.py) 从 jsonl 真源一键重建
+（`--check` 可用于 CI）；残留「待定」会被它以退出码 1 拒绝。
 
 机器可读原始数据在 [unexpected_verdicts/](./unexpected_verdicts/)：
 `G1`–`G8.jsonl`（八个判定组逐簇裁定）、`VERIFY.jsonl`（回读原件复核）、
