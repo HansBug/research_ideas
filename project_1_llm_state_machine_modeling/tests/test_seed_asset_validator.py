@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SEED_LIBRARY = REPO_ROOT / "project_1_llm_state_machine_modeling" / "paper_stm_repair" / "corpora" / "seed_library"
+SEED_LIBRARY = REPO_ROOT / "project_1_llm_state_machine_modeling" / "paper_stm_issue_discover" / "corpora" / "seed_library"
 VALIDATOR = SEED_LIBRARY / "tools" / "validate_seed_assets.py"
 UNIFIED = "unified-uml-multimodal-validation"
 SEFM = "sefm-llm-state-machine"
@@ -27,6 +27,12 @@ def _copy_seed_library_subset(tmp_path: Path, *seed_ids: str) -> Path:
     for seed_id in seed_ids or (UNIFIED,):
         shutil.copytree(SEED_LIBRARY / seed_id, base / seed_id)
     return base
+
+
+def _validated_pairs_path(base: Path, seed_id: str) -> Path:
+    registry_path = base / seed_id / "seed_resource_registry.json"
+    registry = json.loads(registry_path.read_text())
+    return base / seed_id / registry["extracted_summary"]["pairs_jsonl"]
 
 
 def test_seed_asset_validator_accepts_unmodified_unified_trace(tmp_path: Path) -> None:
@@ -174,7 +180,7 @@ def test_seed_asset_validator_accepts_unmodified_llms_emp_xlsx_trace(tmp_path: P
 
 def test_seed_asset_validator_rejects_tampered_llms_emp_metadata(tmp_path: Path) -> None:
     base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
-    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    pairs_path = _validated_pairs_path(base, LLMS_EMP)
     rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
     rows[0]["llm"] = "BROKEN_LLM"
     rows[0]["model_source"] = "BROKEN_SOURCE"
@@ -203,7 +209,7 @@ def test_seed_asset_validator_rejects_tampered_llms_emp_metadata(tmp_path: Path)
 
 def test_seed_asset_validator_rejects_tampered_llms_emp_xlsx_locator(tmp_path: Path) -> None:
     base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
-    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    pairs_path = _validated_pairs_path(base, LLMS_EMP)
     rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
     rows[0]["source_locator"] = rows[0]["source_locator"].replace("row=0", "row=9999")
     pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")
@@ -333,7 +339,7 @@ def test_seed_asset_validator_rejects_pair_state_drift_from_registry(tmp_path: P
     """Eligible generated rows must not silently keep stale conditional state."""
 
     base = _copy_seed_library_subset(tmp_path, LLMS_EMP)
-    pairs_path = base / LLMS_EMP / "assets" / "extracted" / "pairs.jsonl"
+    pairs_path = _validated_pairs_path(base, LLMS_EMP)
     rows = [json.loads(line) for line in pairs_path.read_text().splitlines() if line.strip()]
     rows[0]["eligibility_state"] = "conditional_final_pool"
     pairs_path.write_text("\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n")

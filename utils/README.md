@@ -21,6 +21,7 @@ python -m utils.llm init --from-env --profile gpt-5.5 --context-window-tokens 10
 default: gpt-5.5
 profiles:
   gpt-5.5:
+    adapter: openai
     base_url: https://api.example.invalid
     api_key: replace-me
     model: gpt-5.5
@@ -46,11 +47,24 @@ git check-ignore -v .llmconfig.yml
 ### 2.1 `utils.llm`
 
 ```python
-from utils.llm import LLMConfig, LLMRegistry, load_llm_registry
+from utils.llm import (
+    LLMConfig,
+    LLMModelFactoryError,
+    LLMRegistry,
+    adapter_name,
+    collect_usage_sources,
+    create_chat_model,
+    default_stream_usage,
+    load_llm_registry,
+    model_kwargs,
+    normalize_model_output_usage,
+    normalize_usage,
+)
 ```
 
 ```python
 class LLMConfig(BaseModel):
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str
@@ -58,7 +72,7 @@ class LLMConfig(BaseModel):
     max_output_tokens: int | None = None
 ```
 
-只有 `model` 必填。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
+只有 `model` 必填；`adapter` 可省略且严格默认为 `openai`。`adapter` 显式选择 LangChain client 与传输协议，不表示实际 provider 或 endpoint：`openai` 与 `openai-responses` 都使用 `ChatOpenAI`，但分别固定走 Chat Completions 与 Responses；`anthropic`、`deepseek` 分别对应 `ChatAnthropic`、`ChatDeepSeek`。运行时不根据 model 名或 host 猜测传输协议。其他字段为 `None` 时，Agent 构造模型时不传对应参数。`LLMRegistry` 是只读 `Mapping[str, LLMConfig]`：
 
 ```python
 registry = load_llm_registry()
@@ -85,6 +99,7 @@ AgentSpec(
     output_schema: type[BaseModel] | None = None,
     limits: Mapping[str, int | float | None] | None = None,
     require_tool_call: bool = False,
+    retry_missing_structured_output: bool = False,
 )
 ```
 
@@ -102,6 +117,8 @@ spec = AgentSpec(
 ```
 
 限制键只有 `model_calls`、`tool_calls`、`turns`、`seconds`。未设置限制时不因为调用次数、轮数或时间主动失败；同一轮的多个已注册业务工具调用也正常交给 LangGraph `ToolNode` 执行。`tools` 同时是 allowlist：未知工具、业务工具与结构化终止在同一轮混合时，在 ToolNode 执行前直接失败；工具异常和结构化输出校验失败仍按运行错误处理。这些是行为边界，不是复杂预算策略。
+
+`require_tool_call=True` 要求整次运行至少成功调用过一个业务工具。对于 provider 偶发以空白或普通文本结束、但方法协议明确要求结构化终止的 Agent，可显式设置 `retry_missing_structured_output=True`：runtime 会保留完整、符合 provider tool-message 协议的可见历史，追加一条带 hash 的恢复上下文，并在这条恢复路径中要求模型选择业务工具或结构化终止工具。如果 provider 把末尾损坏的结构化调用保存在 `invalid_tool_calls` 或原始 `tool_calls` 中，runtime 会把该次失败提交记为 `rejected` 并从回放历史中排除。若末尾是参数无法解析、从未执行且名称属于当前 allowlist 的业务工具调用，也允许以相同方式保留拒绝审计并重试；动态 mandatory resolver 仍优先强制当前尚未完成的具体工具。正常业务工具调用缺少结果、未知工具、混合调用、历史中段损坏或无法归因的悬空调用一律 fail-closed，不会伪造工具结果。该机制只在 graph 已结束且 `structured_response` 缺失时启动一次，不限制整次运行的模型调用、工具调用、时间或 token，也不解析普通文本伪造结构化结果。
 
 限制计数是整个 `run` 的累计值；compact summary transport 也计入显式 `model_calls`，但不计业务 turn/tool。`context_window_tokens` 与 `max_output_tokens` 都是可选配置；缺省时把容量交给 provider，不在本地擅自猜测数值。
 
@@ -145,22 +162,31 @@ app.run(
     model_call_options: Mapping[str, Any] | None = None,
 ) -> AgentRunResult
 
-await app.arun(input_text, context=context, renderer="auto", think_mode=False, ...) -> AgentRunResult
+await app.arun(input_text, context=context, renderer="auto", think_mode=False,
+               tool_choice_resolver=None, tool_choice_policy_name=None, ...) -> AgentRunResult
 ```
 
 `renderer` 使用 `auto`、`rich`、`jsonl` 或 `quiet`；`log_level` 使用标准 logging 的 `DEBUG`、`INFO`、`WARNING`、`ERROR`。`INFO` 显示 Agent 阶段、模型可见输出、工具参数/结果和最终结果；heartbeat 只在 `DEBUG` 显示。`auto` 会按终端环境选择适合的人类可读输出；`arun` 是已有 event loop 时的入口；`run` 只用于普通同步脚本。`model_call_options` 只作用于当前推理，不能携带 secret、覆盖 profile 身份或重复设置 think/reasoning；允许的键为 `temperature`、`top_p`、`stop`、`seed`、`verbosity` 与 `max_tokens`，其中只有 `max_tokens` 可以覆盖单次 output reserve。
 
-`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。模型请求默认 `streaming=True`、`stream_usage=True`，也可以在 `model_options` 中显式覆盖；YAML 不保存这些单次运行参数。某些兼容 endpoint 不接受 usage stream option 时，下游可以显式传 `stream_usage=False`，缺少 terminal usage 时记录 `unavailable`。
+`think_mode` 默认关闭，所有模型都必须显式传入 `True` 才会开启 provider 的 thinking/reasoning 模式；`reasoning_effort` 只有在 `think_mode=True` 时才可传入。`openai-responses` adapter 在 think-off 时统一发送 `reasoning_effort=none`，不按模型名或 endpoint 猜测；因此只应给接受该 Responses reasoning 合同的 profile 使用。当前 Anthropic adapter 不开放 extended thinking，因为 Anthropic 不允许 thinking 与框架的强制工具选择同时使用；显式开启时配置阶段直接失败，不静默弱化必用工具合同。模型请求默认 `streaming=True`；`stream_usage` 的安全默认值由 runtime adapter 统一决定：Anthropic 与官方 OpenAI endpoint 默认开启，DeepSeek 与其他 OpenAI-compatible endpoint 默认关闭，调用方仍可在 `model_options` 中显式覆盖。Anthropic adapter 还会在底座层自动安装官方 `AnthropicPromptCachingMiddleware`，以 5 分钟 ephemeral cache 标记静态 system prompt、工具定义和可缓存消息前缀；业务 Agent、prompt 和工具不感知 provider 细节。每次调用的 `input_tokens`、`output_tokens`、`total_tokens`、`cache_read`、`cache_creation` 以及可用时的 `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` 都写入 audit/result；原始 Anthropic usage 仅提供未缓存输入量时，runtime 会把缓存读取和写入量补回真实 input/total 口径。YAML 不保存这些单次运行参数；缺少 terminal usage 时审计记录 `unavailable`。`seed`、`verbosity` 等 OpenAI 专属调用参数不会透传给 Anthropic。
 
-官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
+当某个方法阶段存在由 Controller 定义、但参数必须由 Agent 生成的必用工具顺序时，
+可以同时传入 `tool_choice_resolver` 与稳定的 `tool_choice_policy_name`。resolver 在每次
+主模型调用前返回一个必用业务工具名或 `None`；返回工具名时 runtime 临时隐藏结构化
+终止 surface，并把该轮可见工具面收窄为这一个工具，既避免 LangChain `ToolStrategy`
+把指定工具覆盖成 `tool_choice=any`，也避免 provider 忽略精确工具选择后改调其他工具。
+resolver 返回 `None` 后恢复完整工具面与正常结构化输出。该接口不能用于代替 Agent 生成业务参数或
+裁决结果；policy 名会进入行为指纹和 audit，二者必须同时提供。
 
-DeepSeek profile 使用官方 LangChain integration `langchain-deepseek` 的 `ChatDeepSeek`，由该 adapter 负责保留 `reasoning_content` 并支持 tool loop；默认仍是 `think_mode=False`，显式 `--enable-think` 才启用思考。OpenAI/Claude 等其他 OpenAI-compatible profile 继续使用 `ChatOpenAI`。两条路径都保持 `streaming=True`、LangGraph structured output、同一 Rich 事件顺序和同一 audit 契约，不在 runtime 手写 provider 消息转换或 JSON 后处理。
+官方依据：OpenAI [reasoning effort](https://developers.openai.com/api/docs/guides/reasoning) 与 [gpt-5.5 model page](https://developers.openai.com/api/docs/models/gpt-5.5)；Z.AI [GLM-5.2](https://docs.z.ai/guides/llm/glm-5.2) 与 [Thinking Mode](https://docs.z.ai/guides/capabilities/thinking-mode)；DeepSeek [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) 与 [API quick start](https://api-docs.deepseek.com/guides/reasoning_model)。
+
+`adapter: openai` 使用 `langchain-openai` 的 `ChatOpenAI` 与 Chat Completions；`adapter: openai-responses` 使用同一官方集成的 Responses transport，适用于 Codex/Responses-compatible endpoint。`adapter: anthropic` 使用 `langchain-anthropic` 的 `ChatAnthropic` 与原生 Messages API；`adapter: deepseek` 使用 `langchain-deepseek` 的 `ChatDeepSeek`。DeepSeek 虽兼容 OpenAI Chat Completions，但专用 adapter 会保留 `reasoning_content`、DeepSeek model profile 和 tool/structured-output 兼容语义，因此不降级为普通 `ChatOpenAI`。Anthropic `base_url` 必须是 API 根地址，例如 `https://api.anthropic.com` 或中转站根地址，由 SDK 追加 `/v1/messages`。各路径保持 `streaming=True`、LangGraph `ToolStrategy`、同一 Rich 事件顺序和同一 audit 契约，不在 runtime 手写 provider 消息转换或 JSON 后处理。
 
 Rich 输出按 LLM I/O 顺序组织：`MODEL INPUT` 是本轮交给模型的 system/user/tool messages，并在 provider transport 开始前立即显示；`MODEL OUTPUT` 是流式 assistant 文本、完整 tool call 或结构化 call，完整 tool call 在 ToolNode 进入工具函数前已经显示；工具返回后立即显示 `TOOL RESULT -> NEXT MODEL INPUT`，下一轮 input 再把它作为 `[tool]` message 交给模型。`CONTEXT` 只保留两行消耗摘要，结构化最终结果只在 `AGENT COMPLETE` 中完整展示一次。同步和异步 callable 都由 LangChain `StructuredTool` / LangGraph ToolNode 执行，运行时不自行调度或 await 业务工具。
 
 结构化结果通过 `create_agent(response_format=ToolStrategy(YourSchema))` 交给 LangGraph 官方 tool-calling structured output。这里显式指定官方 `ToolStrategy`，用于保持 `model_copy()` 改造前由 `RunnableBinding` 触发的跨 provider 行为，避免 OpenAI-compatible provider 被 AutoStrategy 误选为其不支持的 provider-native `response_format`。运行时不把普通 assistant 文本自行 `json.loads` 成结果，也不为某个 provider 另写一套结构化后处理；provider 不支持或返回无效结构时保留原始失败诊断。
 
-官方 tool-calling fallback 的 schema 校验重试由 LangGraph 自己管理；默认不额外加隐藏重试上限，以保持“未配置预算就不限制”的契约。需要为不兼容 provider 设置止损时，显式传 `limits`（例如 `model_calls` 或 `seconds`），失败结果会保留 `structured_output_invalid`/provider 诊断和 audit `finish`。
+官方 tool-calling fallback 的 schema 校验重试由 LangGraph 自己管理；默认不额外增加恢复路径。只有 AgentSpec 显式开启 `retry_missing_structured_output` 时，才在 graph 无结构化终止后追加一次可审计恢复上下文。需要为不兼容 provider 设置止损时，显式传 `limits`（例如 `model_calls` 或 `seconds`），失败结果会保留 `structured_output_invalid`/provider 诊断和 audit `finish`。
 
 终端按消息顺序显示：第一次模型请求显示一次 system/user 消息，后续请求只显示新增的 tool 消息；已经显示的历史不会每轮重复打印。assistant 输出、tool 参数和 tool 返回紧随对应消息出现。超长可见内容保留头尾，中间只做明确的长度标记；`audit_out` 仍保存完整的可审计内容。每个 tool Panel 都明确标出 `name`、`tool_call_id`、`status`、`arguments`，结果 Panel 还标出 `result`；工具异常会标出安全的 `error`，DEBUG 时补充异常类型和 provider request id 等诊断字段。现有块内附带紧凑耗时：input 为 `t=+X.XXXs`，assistant/tool request 为 `model=X.XXXs` 和可用时的 `first_chunk=X.XXXs`，tool result/error 为 `queue=X.XXXs` 与 `execution=X.XXXs`，最终块为整次 run duration；不另建 timing Panel。
 
@@ -181,13 +207,15 @@ result = app.run("分析这些事实", context=context, renderer="rich")
 每个 primary turn 结束后只输出一个最多两行的 `CONTEXT` Panel，保持高信号而不重复历史：
 
 ```text
-turn 2 · 487 in + 96 out = 583 · cache=320 · reasoning=0
+turn 2 · 487 in + 96 out = 583 · cache_read=320 · cache_creation=0 · reasoning=0
 context ~1,240/1,050,000 tokens (0.1%) · compact@892,500 (85%) not required
 ```
 
 第一行只说明本轮核心消耗 `input + output = total`，provider 返回时追加 `cache`/`reasoning`；第二行只说明整体上下文的 `used/window`、占比和百分比，再给 compact 阈值及状态。`~` 表示使用了 LangChain 公共估算补足 provider 未返回的输入锚点；不会把 output/reasoning 重复加进 input，也不会从 input 扣除 cache。provider 没有 terminal usage 时第一行明确标记 unavailable，第二行仍可使用公共估算。达到阈值且还要继续时标记 `REQUIRED`，最终轮标记 `run ending`。compact 生命周期使用 `compaction_started`、`compaction_summary`、`compaction_completed`/`compaction_failed`；官方 summary transport 也发出带 `model_call_id` 的 `model_started`/`model_completed` 事件，但 Rich 不再重复渲染一套 MODEL INPUT/OUTPUT 面板。
 
-`AGENT RUN` 启动面板是本次实验的行为配置快照，固定展示会改变模型决策或运行边界的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、retry/timeout、system/tools/input/context 的行为指纹、system/task 字符数、context 页数、工具 allowlist/数量/是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、原始 prompt 或文件路径；长度和 hash 只用于复现实验输入，不代替 `MODEL INPUT` 的实际可见消息。
+`AGENT RUN` 启动面板是本次实验的行为配置快照，固定展示会改变模型决策或运行边界的有效配置：profile/model、实际 adapter、脱敏 config/endpoint fingerprint、stream/stream_usage、think/reasoning、sampling、SDK retry / transport retry / timeout、system/tools/input/context 的行为指纹、system/task 字符数、context 页数、工具 allowlist/数量/是否必须调用、结构化输出策略、显式 limits、context/max-output/safe-input 容量来源，以及 compact ratio/threshold/summary 保留策略。它不会显示 raw endpoint、API key、原始 prompt 或文件路径；长度和 hash 只用于复现实验输入，不代替 `MODEL INPUT` 的实际可见消息。
+
+底层 provider SDK 默认保持 `max_retries=0`，避免不可审计的静默重试。`AgentApp` 在完整 ModelResponse 形成之前遇到 `RemoteProtocolError`、`incomplete chunked read`、连接/读取超时、HTTP 408/409/429/500/502/503/504 等瞬时传输故障时，会对同一有效 ModelRequest 最多透明重发两次，默认等待 `5s`、`20s`，provider 给出数值型 `Retry-After` 时优先采用。重发严格保留 profile、model、messages、tools、tool choice、response schema 与推理参数；不完整响应从 Agent history 丢弃，业务工具只在完整响应返回后执行。每个 provider attempt 仍有独立 usage，`transport_retry` audit record 和实时事件记录请求指纹、失败/成功 model call ID、attempt、等待时间、错误与恢复/耗尽结果；两次重发均失败时 run 以 `provider_error` 结束，不切换模型、endpoint 或代理。
 
 ```python
 AgentEvent(

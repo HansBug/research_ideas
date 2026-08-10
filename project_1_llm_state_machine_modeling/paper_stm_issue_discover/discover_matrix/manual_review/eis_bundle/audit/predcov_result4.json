@@ -1,0 +1,623 @@
+{
+ "batch": 4,
+ "groups": [
+  "NL06",
+  "NL08"
+ ],
+ "criterion": "对 extra 条目，判定标准是：被违反的性质是否为 NL 逐字陈述的义务（如 NL06 S2 的三子态枚举 → cardinality 可用），还是仅由 NL 沉默的封闭世界读法推出（如『PumpState 内部必须为空』）。后者按 BRIEF 要求 4 视为存在性的对偶，记 expressible: false。",
+ "items": [
+  {
+   "case": "0002",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0002.PumpControl\", child=\"llms_emp_feedback_final_0002.PumpControl.PumpState\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL06 S3 逐字 'The system first transitions to the PumpState substate'。PumpControl 唯一初始边指向 NL 中不存在的 InitialState，单入口分支从它作答 → PumpState 不是进入点。实测 False，缺陷被捕获。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0002",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", within_cycles=3)",
+   "predicates": [
+    "reaches"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL06 S3/S4/S5 要求系统能进入三个子态。实测 within_cycles=3 与 6 均为 False（非 bound artifact）；WaterState / MethaneState 同为 False。参考侧靠区域初始边可达 PumpState，故可归因生成侧。注意 BRIEF 提示『参考三子态无出边』只涉及『离开 PumpControl』，本断言问的是『进入』，不受影响。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0002",
+   "diff_index": 2,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": true,
+   "assertion": "cardinality(scope=\"llms_emp_feedback_final_0002.PumpControl\", count=3)",
+   "predicates": [
+    "cardinality"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "后果型断言而非存在性：NL06 S2 逐字枚举『there are three main substates: PumpState, WaterState, and MethaneState』，多出的 InitialState 使非伪直接子态变 4。实测 count=3 → False，count=4 → True。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0002",
+   "diff_index": 3,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "event_declared(event=\"llms_emp_feedback_final_0002.Deactivate_Pump\") -> True（现有字段；纯存在性，多出元素确实存在，抓不到缺陷）",
+    "state_declared(state=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", kind=\"leaf\") -> False（但这是「NL 沉默 ⇒ 必须是叶态」的封闭性断言，NL06 从未陈述 PumpState 内部为空）",
+    "cardinality(scope=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", count=0) -> False（同上，沉默封闭，非 NL 陈述义务）",
+    "terminates(scope=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0002.Deactivate_Pump\") -> False（NL06 五句从未要求终止，参考侧也不终止 → 非义务）",
+    "initial_target(composite=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", child=\"llms_emp_feedback_final_0002.PumpControl.PumpState.RunningState\") -> True",
+    "containment(parent=\"llms_emp_feedback_final_0002.PumpControl\", child=\"llms_emp_feedback_final_0002.PumpControl.PumpState\") -> True",
+    "cardinality(scope=\"llms_emp_feedback_final_0002.PumpControl\", count=4) -> True",
+    "event_consumed(source=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0002.Deactivate_Pump\") -> False（但 PumpState 本身不可达已由 0002#1 记账，不可归因于本条）",
+    "occupancy_after(source=\"llms_emp_feedback_final_0002.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0002.Deactivate_Pump\", target=\"llms_emp_feedback_final_0002.PumpControl.PumpState.FinalWaittr_0004\") -> False（同上，归因 0002#1）"
+   ],
+   "shape": "良性过度规定（自造 4 个事件 + 自造更深一层）：19 谓词只能写出多出元素的存在性（返回 True）；唯一返回 False 的替代形态是「NL 沉默 ⇒ 该处必须为空/叶/不终止」的封闭性断言，不是 NL 陈述的义务。可归因于本条的真实后果不存在（与台帐 benign 判定一致）。",
+   "closest_gap": "真词表缺口：缺「最小性 / 非 NL 点名元素不得出现」谓词；且缺一个能区分「NL 逐字陈述的枚举」（如 S2 的三子态，可用 cardinality）与「NL 沉默」（如 PumpState 内部，只能沉默封闭）的口径。"
+  },
+  {
+   "case": "0013",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "cardinality(scope=\"llms_emp_feedback_final_0013.PumpControl\", count=3)",
+   "predicates": [
+    "cardinality"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL06 S2 逐字枚举三个子态。FCSTM 投影下 PumpControl 有七个非伪直接子态（三正主 + 四克隆）。实测 count=3 → False，count=7 → True。不依赖『直接子态 vs 后代』之争。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0013",
+   "diff_index": 2,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "event_declared(event=\"llms_emp_feedback_final_0013.Transition_to_Methane\") -> True（现有字段；纯存在性）",
+    "guard_distinguishable(source=\"llms_emp_feedback_final_0013.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0013.Water_Flow_Detected\") -> True",
+    "stays_in(source=\"llms_emp_feedback_final_0013.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0013.Water_Flow_Detected\") -> False，但 NL06 S4/S5 逐字说 \"The system can also transition to the WaterState substate\"，即 NL 正面许可离开 PumpState → 正确模型也不满足该断言，不是缺陷断言",
+    "occupancy_after(source=\"llms_emp_feedback_final_0013.PumpControl.PumpState\", trigger=\"llms_emp_feedback_final_0013.Water_Flow_Detected\", target=\"llms_emp_feedback_final_0013.PumpControl.WaterState\") -> True",
+    "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0013.PumpControl.WaterState\", within_cycles=3) -> True",
+    "terminates(scope=\"llms_emp_feedback_final_0013.PumpControl\") -> False（NL06 从未要求终止 → 非义务）",
+    "cardinality(scope=\"llms_emp_feedback_final_0013.PumpControl\", count=3) -> False，但归因于 0013#0 的四个克隆态，不可归因于本条",
+    "reaches(source=\"llms_emp_feedback_final_0013.PumpControl.WaterStateA\", target=\"llms_emp_feedback_final_0013.PumpControl.MethaneState\", within_cycles=3) -> False，但这是跨正交区可达性，属 project_1 明确排除的并发语义，且状态本身也是 0013#0 的内容"
+   ],
+   "shape": "同 0002#3 的良性过度规定型：自造事件与子态间迁移只能写成存在性（True）；返回 False 的形态要么是 NL 正面许可的行为（stays_in），要么归因于邻近 problem（cardinality），要么不是 NL 义务（terminates）。",
+   "closest_gap": "同 0002#3：缺最小性谓词；另外 stays_in 在此暴露一个反向陷阱——NL 许可的行为会让『不应变化』型断言错误地返回 False。"
+  },
+  {
+   "case": "0033",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0033.PumpControl\", child=\"llms_emp_feedback_final_0033.PumpControl.PumpState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL06 S2 逐字 'Within the PumpControl state, there are three main substates: ...'。FCSTM 确认 PumpState/WaterState/MethaneState 与 PumpControl 平级（root 直属），PumpControl 内只有三个 InvalidInitialtr 占位。实测 False；另测 state_declared('...PumpControl.PumpState', 'any') = False（该路径根本不存在）。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0033",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": false,
+   "attempted": [
+    "initial_target(composite=\"llms_emp_feedback_final_0033.PumpControl\", child=\"llms_emp_feedback_final_0033.PumpControl.PumpState\") -> None（现有字段不可执行；UnsupportedEvidence: \"'...PumpControl' declares 3 unconditional initial edges, so entry is genuinely ambiguous and no single initial child can be named\"）",
+    "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0033.PumpControl.PumpState\", within_cycles=3) -> False，但该路径根本不存在（PumpState 是 root 直属），与 0033#0 同一事实；reaches 对不存在目标静默返回 False，不区分「不存在」与「存在但不可达」",
+    "occupancy_after(source=\"[*]\", trigger=\"llms_emp_feedback_final_0033.begin\", target=\"llms_emp_feedback_final_0033.PumpControl.PumpState\") -> False，同上，联合了 0033#0",
+    "occupancy_after(source=\"llms_emp_feedback_final_0033.PumpControl\", trigger=\"llms_emp_feedback_final_0033.Activate_Pump\", target=\"llms_emp_feedback_final_0033.PumpState\") -> True",
+    "state_declared(state=\"llms_emp_feedback_final_0033.PumpControl\", kind=\"composite\") -> True",
+    "cardinality(scope=\"llms_emp_feedback_final_0033.PumpControl\", count=0) -> False，但「PumpControl 无子态」不是正确模型应满足的性质",
+    "containment(parent=\"llms_emp_feedback_final_0033.PumpControl\", child=\"llms_emp_feedback_final_0033.PumpControl.InvalidInitialtr_0005\") -> True（缺陷元素的存在性）",
+    "cardinality(scope=\"llms_emp_feedback_final_0033.PumpControl\", count=3) -> True（FALSE PASS：三个 InvalidInitial 标记被计入，NL 的枚举基数断言反而成立）"
+   ],
+   "shape": "「复合状态必须恰有一个有效默认进入点，且该进入点落在其子作用域内」写不出来：三条无条件初始边直接让 initial_target 主动 refuse（返回 None，按 BRIEF 不算可表述）；19 谓词里没有任何谓词能数初始边条数，也没有谓词能表达「进入点唯一 / 进入点合法」。所有能返回 False 的替代形态都退化成 0033#0（层次错位）的同一事实。",
+   "closest_gap": "真词表缺口：缺 initial_edge_count / unique_default_entry / entry_is_in_scope 一类谓词；initial_target 的 refuse 语义把整个「多默认进入点」族变成不可判定（与 BRIEF 坑 2、坑 3 同源但方向相反：坑 3 是正向放过，此处是直接拒答）。"
+  },
+  {
+   "case": "0033",
+   "diff_index": 3,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": true,
+   "assertion": "event_consumed(source=\"[*]\", trigger=\"llms_emp_feedback_final_0033.Activate_Pump\")",
+   "predicates": [
+    "event_consumed"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "后果型断言：NL06 S1 逐字 'The system begins in the PumpControl state' —— 冷启动即应在 PumpControl 内，故 PumpControl 的进入事件必须在第一周期可被消费。自造的 begin 被挂在根初始边（[*] -> PumpControl : /begin），冷启动配置只有 root，什么都消费不了 → 实测 False。另测 occupancy_after('[*]', begin, PumpState) = False。警告：reaches('[*]', PumpState, 3) = True —— reaches 每周期提供全字母表会自动打开 begin 门，从而掩盖该缺陷，本族不能用 reaches 断言。",
+   "rewrote_from": "event_declared(event=\"llms_emp_feedback_final_0033.Water_Flow_Stabilized\")  （实测 True，纯存在性，抓不到缺陷）"
+  },
+  {
+   "case": "0043",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0043.PumpControl\", child=\"llms_emp_feedback_final_0043.PumpControl.PumpState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL06 S2 的枚举要求 PumpControl 的顶层分解就是三个具名子态；生成侧换成 Region1 + Region2。实测 containment = False。关键发现：现有字段 cardinality(scope=PumpControl, count=3) 实测 **True**，是 FALSE PASS —— Region1 + Region2 + 投影合成的 UnspecifiedInitial 恰好凑成 3。另测 cardinality(...,2) = False，但「恰有 2 个子态」不是正确模型性质，不能当断言。",
+   "rewrote_from": "cardinality(scope=\"llms_emp_feedback_final_0043.PumpControl\", count=3)  （实测 True，被合成节点凑数掩盖）"
+  },
+  {
+   "case": "0043",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0043.PumpControl\", child=\"llms_emp_feedback_final_0043.PumpControl.Region1\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "PumpControl 层级无默认进入点，投影注入 UnspecifiedInitial；单入口分支从它作答 → ≠ Region1，实测 False。另测更贴 NL S3 的 reaches('[*]', PumpControl.Region1.PumpState, 4) = False。注意决定答案的元素正是投影合成的 UnspecifiedInitial（在该 pair 的 attribution_exclusions 内），归因上属 representation debt 风险，需在使用该断言时声明。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0043",
+   "diff_index": 2,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "state_declared(state=\"llms_emp_feedback_final_0043.PumpControl.Region2.Idle\", kind=\"any\") -> True（现有字段；纯存在性）",
+    "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0043.PumpControl.Region2.Idle\", within_cycles=4) -> False，但 reaches(\"[*]\", PumpControl.Region1.PumpState, 4) 同为 False → 不可达归因于 0043#1 的 UnspecifiedInitial，不可归因于 Region2",
+    "cardinality(scope=\"llms_emp_feedback_final_0043.PumpControl\", count=3) -> True（FALSE PASS：Region1 + Region2 + 合成 UnspecifiedInitial = 3，多出的整区反而让 NL 枚举断言成立）",
+    "containment(parent=\"llms_emp_feedback_final_0043.PumpControl\", child=\"llms_emp_feedback_final_0043.PumpControl.Region2\") -> True",
+    "cardinality(scope=\"llms_emp_feedback_final_0043.PumpControl.Region2\", count=0) -> False（沉默封闭：NL 从未陈述 Region2 内部为空，该断言不是 NL 义务）"
+   ],
+   "shape": "良性过度规定 + 掩盖效应：整个凭空发明的并发区不但没有可归因后果，反而使 NL S2 的枚举基数断言从 False 变 True（合成 UnspecifiedInitial 帮它凑数）。只能写存在性（True）或沉默封闭（False 但非义务）。",
+   "closest_gap": "两个缺口叠加：(1) 缺最小性谓词；(2) cardinality 把投影合成节点（UnspecifiedInitial / InvalidInitial* / FinalWait*）计入非伪直接子态，使「NL 枚举基数」这一族断言在有合成节点时不可信 —— 既会 false pass（0043、0033），也会被合成节点数量左右。"
+  },
+  {
+   "case": "0043",
+   "diff_index": 3,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "event_declared(event=\"llms_emp_feedback_final_0043._Water_Flow_Detected\") -> True（现有字段；纯存在性）",
+    "guard_distinguishable(source=\"llms_emp_feedback_final_0043.PumpControl.Region1.PumpState\", trigger=\"llms_emp_feedback_final_0043._Water_Flow_Detected\") -> True",
+    "stays_in(source=\"llms_emp_feedback_final_0043.PumpControl.Region1.PumpState\", trigger=\"llms_emp_feedback_final_0043._Water_Flow_Detected\") -> False，但 NL06 S4/S5 正面许可 PumpState -> WaterState，正确模型也不满足该断言",
+    "occupancy_after(source=\"llms_emp_feedback_final_0043.PumpControl.Region1.PumpState\", trigger=\"llms_emp_feedback_final_0043._Water_Flow_Detected\", target=\"llms_emp_feedback_final_0043.PumpControl.Region1.WaterState\") -> True"
+   ],
+   "shape": "同 0013#2：自造事件 + 子态间迁移的良性过度规定，只能写存在性（True）；返回 False 的 stays_in 形态被 NL S4/S5 的正面许可否掉。",
+   "closest_gap": "同 0002#3 / 0013#2：缺最小性谓词。"
+  },
+  {
+   "case": "0053",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0053.PumpControl\", child=\"llms_emp_feedback_final_0053.PumpControl.PumpRegion\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "三条初始边都写在各自 wrapper 内部，PumpControl 层级无默认进入点，投影注入 UnspecifiedInitial → 实测 False。另测 reaches('[*]', PumpControl.PumpRegion.PumpState, 3) = False。同 0043#1，决定答案的是合成 UnspecifiedInitial（attribution_exclusions），使用时需声明 representation debt 风险。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0000",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "occupancy_after(source=\"llms_emp_feedback_final_0000.HumanDrivingMode\", trigger=\"llms_emp_feedback_final_0000.Power_Off\", target=\"llms_emp_feedback_final_0000.FinalState\")",
+   "predicates": [
+    "occupancy_after"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S6 逐字 'when power off, it will transit to final state'（无状态前件）。生成侧唯一的 Power Off 边源端是顶层伪初始，运行态没有断电出边 → 实测 False，且未触发 horizon 自检（非 bound artifact）。同族补充实测：terminates(scope=HumanDrivingMode, trigger=Power_Off) = False、terminates(scope='[*]') = False、event_consumed(HumanDrivingMode, Power_Off) = False —— 三者都能独立捕获『FinalState 只是普通状态、机器永不终止』。",
+   "rewrote_from": "occupancy_after(...) → 期望 True 实得 False；补充 terminates(...) → False（FinalState 不是终态边界）  【原字段是散文，不可直接执行，已抽成表达式】"
+  },
+  {
+   "case": "0000",
+   "diff_index": 5,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0000.Human_Steering_Cmd\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S5 逐字点名三个接管条件；投影只声明单一复合事件 Human_Steering_Cmd_Brake_Pressed_in_AutoFinal。实测 event_declared(Human_Steering_Cmd) = False，event_declared(Brake_Pressed) = False —— 捕获『三条件压成不可分解事件』这一面。残留面（in (auto final) 是状态条件）不可表述，见 gap_shapes 第 4 条：edge_declared(trigger=\"\") -> None（'trigger must be a non-empty path'）；guard_distinguishable(AutoFinal, 复合事件) -> True；reaches(AutoFinal -> HumanDrivingMode, 1) -> True（reaches 提供全字母表，复合事件立刻可用，掩盖『仅凭处于 AutoFinal 不会交还控制权'）；response_within(...) -> None（fbmcq analysis_bound_exceeded）。",
+   "rewrote_from": "event_declared(...) → False（模型未声明可单独触发的 human steering cmd 事件）。注意：…… 【原字段是散文，已抽成表达式；其对 in-state 缺口的判断经实测确认】",
+   "partial": true,
+   "residual_gap": "「存在一条以 in-state 为守卫、无事件触发的接管边」——19 谓词写不出（实测确认）"
+  },
+  {
+   "case": "0010",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "occupancy_after(source=\"[*]\", trigger=\"llms_emp_feedback_final_0010.Power_On\", target=\"llms_emp_feedback_final_0010.HumanDriving\")",
+   "predicates": [
+    "occupancy_after"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S3 逐字 'when power on, the system turn into human driving mode'。生成侧顶层初始边无触发，Power_On 被挪到 HumanDriving -> Autonomous → 冷启动给 Power_On 反而离开 HumanDriving，实测 False。另测 edge_declared('[*]', Power_On, HumanDriving) = False。",
+   "rewrote_from": "occupancy_after(...) → 期望 True 实得 False（…）；补充 edge_declared(...) → False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0010",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "state_declared(state=\"llms_emp_feedback_final_0010.Autonomous\", kind=\"composite\")",
+   "predicates": [
+    "state_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S2 逐字 'The autonomous mode has sub-states and is represented by a sub machine state.'。<<submachine>> 只是 PlantUML body 文字，Autonomous 实为叶态，AutonomousIdle/Active/Final 被声明成 root 直属兄弟 → 实测 False。另测 containment(Autonomous, Autonomous.AutonomousActive) = False。参考侧同样违反 S2，故 oracle 是 NL 不是参考。",
+   "rewrote_from": "state_declared(...) → 期望 True 实得 False；补充 containment(...) → False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0010",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "terminates(scope=\"llms_emp_feedback_final_0010.HumanDriving\", trigger=\"llms_emp_feedback_final_0010.Power_Off\")",
+   "predicates": [
+    "terminates"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S6 要求断电进入终态。Power Off 指向名为 AutonomousFinal 的普通状态，模型无终态伪状态 → 实测 False；terminates(scope='[*]') 也为 False（冷启动亦无法完成）。",
+   "rewrote_from": "terminates(...) → 期望 True 实得 False；补充 terminates(scope=\"[*]\") → False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0010",
+   "diff_index": 5,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "reaches(source=\"llms_emp_feedback_final_0010.AutonomousFinal\", target=\"llms_emp_feedback_final_0010.HumanDriving\", within_cycles=3)",
+   "predicates": [
+    "reaches"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S5 第三项 in (auto final) 应能触发交还控制权。AutonomousFinal 被声明却是绝对吸收态 → 实测 False（reaches 每周期提供全部已声明事件仍出不去，足证吸收；BRIEF 另测 within_cycles=4 亦为 False，非 bound artifact）。",
+   "rewrote_from": "reaches(...) → 期望 True 实得 False（…）  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0010",
+   "diff_index": 6,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "event_consumed(source=\"llms_emp_feedback_final_0010.AutonomousActive\", trigger=\"llms_emp_feedback_final_0010.Power_Off\")",
+   "predicates": [
+    "event_consumed"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S6 无状态前件，构成全局断电义务。自动驾驶三个态都不消费 Power Off → 实测 False。",
+   "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0010",
+   "diff_index": 7,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "event_declared(event=\"llms_emp_feedback_final_0010.Front_Distance_10\") -> True（现有字段自己就标注 True；纯存在性）",
+    "occupancy_after(source=\"llms_emp_feedback_final_0010.HumanDriving\", trigger=\"llms_emp_feedback_final_0010.Front_Distance_10_2\", target=\"llms_emp_feedback_final_0010.Autonomous\") -> True（NL S4 仍被满足）",
+    "guard_distinguishable(source=\"llms_emp_feedback_final_0010.HumanDriving\", trigger=\"llms_emp_feedback_final_0010.Front_Distance_10_2\") -> True",
+    "event_consumed(source=\"llms_emp_feedback_final_0010.Autonomous\", trigger=\"llms_emp_feedback_final_0010.Front_Distance_10\") -> True",
+    "occupancy_after(source=\"llms_emp_feedback_final_0010.Autonomous\", trigger=\"llms_emp_feedback_final_0010.Front_Distance_10\", target=\"llms_emp_feedback_final_0010.AutonomousIdle\") -> True",
+    "stays_in(source=\"llms_emp_feedback_final_0010.Autonomous\", trigger=\"llms_emp_feedback_final_0010.Front_Distance_10\") -> False，但这是「NL 对 <=10 沉默 ⇒ 不应发生任何事」的沉默封闭，非 NL 陈述义务",
+    "cardinality(scope=\"llms_emp_feedback_final_0010\", count=2) -> False，但归因于 0010#3 的层次扁平化（root 有 5 个子态），不可归因于本条"
+   ],
+   "shape": "良性过度规定：自造的 <=10 事件是 Autonomous 唯一出边，去掉它反而使 Autonomous 成吸收态 —— 该 extra 严格增加可达性而非破坏可达性。19 谓词只能写出存在性（True）或沉默封闭（False 但非义务）。",
+   "closest_gap": "同 NL06 侧：缺最小性谓词；另需一个能表达「NL 对该阈值另一侧沉默，故不得引入新分支」的口径。"
+  },
+  {
+   "case": "0020",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0020.Power_On\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S3 逐字点名 power on 与 human driving mode；模型里根本没有 Power On 事件（初始迁移无条件）→ 实测 False。注意行为形式不可用：event_consumed('[*]', Power_On) 实测 None（SimulationRuntimeEventError: 'Cannot resolve event path ...Power_On'），未声明事件无法用 B 族谓词断言。参考虽把它编码成带触发初始边（本身是良构性缺陷），但 S3 逐字点名而模型完全缺该事件，归因生成侧成立。",
+   "rewrote_from": "event_declared(...) → False；配套 edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0020.Power_On\", target=\"llms_emp_feedback_final_0020.HumanDrivingMode\") → False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0020",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0020.human_steering_cmd\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S5 逐字点名三条件；投影只有复合事件 human_steering_cmd_brake_pressed。实测 human_steering_cmd = False、brake_pressed = False。残留 in-state 面不可表述：reaches(AutoFinalState -> HumanDrivingMode, 1) = True（复合事件被全字母表提供，掩盖『仅凭处于 auto final 不会交还控制权』）。",
+   "rewrote_from": "event_declared(...) → False（无可单独触发的事件）；\"以 in-state 为守卫、无事件的接管边\"这一形状 19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+   "partial": true,
+   "residual_gap": "in-state 为守卫、无事件触发的接管边（实测确认不可表述）"
+  },
+  {
+   "case": "0030",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "state_declared(state=\"llms_emp_feedback_final_0030.Autonomous.AutoFinal\", kind=\"any\")",
+   "predicates": [
+    "state_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S2 + S5 共同要求 autonomous 内存在可被 in (auto final) 指代的子态；制品内只有 Navigating <-> Parking，标签里的 [*] 不声明状态 → 实测 False。另测 containment(Autonomous, Autonomous.AutoFinal) = False 亦为 False。**更正现有字段的补充项**：terminates(scope=Autonomous) 实测为 **True**（经 R45RouteToken 路由回 HumanDriving 再 Power_Off 终止），不是字段里写的 False，不能当证据。",
+   "rewrote_from": "state_declared(...) → False；补充 terminates(scope=\"...0030.Autonomous\") → False  【补充项实测为 True，已剔除】"
+  },
+  {
+   "case": "0030",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "event_consumed(source=\"llms_emp_feedback_final_0030.Autonomous.Navigating\", trigger=\"llms_emp_feedback_final_0030.Power_Off\")",
+   "predicates": [
+    "event_consumed"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S6 无状态前件的全局断电义务；只有 HumanDriving --> [*] : Power Off，自动驾驶期间无法断电 → 实测 False。",
+   "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0030",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0030.Brake_Pressed\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "NL08 S5 逐字点名三条件；FCSTM 只声明 event Human_Steering_Cmd_Brake_Pressed named 'Human Steering Cmd / Brake Pressed / [*]'（斜杠与 [*] 被当普通字符）。实测 Brake_Pressed = False、Human_Steering_Cmd = False。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0040",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "event_consumed(source=\"llms_emp_feedback_final_0040.Autonomous.AutoInitial\", trigger=\"llms_emp_feedback_final_0040.Power_Off\")",
+   "predicates": [
+    "event_consumed"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "同 0030#3：NL08 S6 全局断电义务，自动驾驶侧无 Power Off → 实测 False。",
+   "rewrote_from": "event_consumed(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0040",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0040.human_steering_cmd\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "作者写了显式析取 human_steering_cmd || brake_pressed || in (AutoFinal)，但 PlantUML 视整串为自由文本 trigger，投影成单一事件。实测 human_steering_cmd = False、brake_pressed = False。残留 in-state 面不可表述：reaches(Autonomous.AutoFinal -> HumanDriving, 1) = True。",
+   "rewrote_from": "event_declared(...) → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+   "partial": true,
+   "residual_gap": "in-state 为守卫、无事件触发的接管边（实测确认不可表述）"
+  },
+  {
+   "case": "0040",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "occupancy_after(source=\"llms_emp_feedback_final_0040.HumanDriving\", trigger=\"llms_emp_feedback_final_0040.front_distance_10\", target=\"llms_emp_feedback_final_0040.Autonomous.AutoInitial\")",
+   "predicates": [
+    "occupancy_after"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "复合状态的初始迁移带触发（[*] -> AutoInitial : /Enter_Autonomous_Mode）：front_distance>10 送进 Autonomous 后无任何子态激活 → 实测 False（within_cycles=3 亦为 False，非 bound artifact）。另测 event_consumed('[*]', Enter_Autonomous_Mode) = False。**重要**：结构形式抓不到 —— initial_target(Autonomous, AutoInitial) 实测 **True**，正是 BRIEF 坑 3（initial_target 从单一入口作答，即使它带触发也正向放过），只有行为形式 occupancy_after 能捕获。",
+   "rewrote_from": "occupancy_after(...) → 期望 True 实得 False  【原字段是散文，已抽成表达式】"
+  },
+  {
+   "case": "0050",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\")",
+   "predicates": [
+    "event_declared"
+   ],
+   "measured": false,
+   "measured_raw": "False",
+   "note": "三条件压成跨行自由文本标签，投影为单一事件 human_steering_cmd_nor_brake_pressed_nor_in_auto_final。实测 human_steering_cmd = False、brake_pressed = False。残留 in-state 面不可表述：reaches(AutonomousMode.SubState3 -> HumanDrivingMode, 1) = True。",
+   "rewrote_from": "event_declared(...) → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达  【原字段是散文，已抽成表达式；in-state 缺口经实测确认】",
+   "partial": true,
+   "residual_gap": "in-state 为守卫、无事件触发的接管边（实测确认不可表述）"
+  }
+ ],
+ "totals": {
+  "expressible": 25,
+  "not_expressible": 6,
+  "total": 31
+ },
+ "by_predicate": {
+  "initial_target": 3,
+  "reaches": 2,
+  "cardinality": 2,
+  "containment": 2,
+  "event_consumed": 4,
+  "occupancy_after": 3,
+  "event_declared": 6,
+  "state_declared": 2,
+  "terminates": 1
+ },
+ "gap_shapes": [
+  {
+   "id": "G1",
+   "name": "良性过度规定的后果不可断言（只能写存在性或沉默封闭）",
+   "cases": [
+    "0002#3",
+    "0013#2",
+    "0043#3",
+    "0010#7"
+   ],
+   "detail": "19 谓词对多出元素只能写 event_declared / state_declared / containment 的存在性形式（一律返回 True）。唯一返回 False 的替代形态是「NL 沉默 ⇒ 此处必须为空 / 叶 / 不变 / 不终止」的封闭性断言（state_declared(kind='leaf')、cardinality(scope=X, count=0)、stays_in、terminates），但这些性质 NL 从未陈述，正确模型不必满足，因此是存在性的对偶而不是缺陷断言。",
+   "closest_gap": "缺一个「最小性 / 非 NL 点名元素不得出现」谓词，以及一个区分「NL 逐字陈述的枚举」与「NL 沉默」的口径。"
+  },
+  {
+   "id": "G2",
+   "name": "投影合成节点污染 NL 枚举基数断言（false pass 与掩盖效应）",
+   "cases": [
+    "0043#0",
+    "0043#2",
+    "0033#1"
+   ],
+   "detail": "cardinality 数「非伪直接子状态」，把投影合成的 UnspecifiedInitial / InvalidInitialtr_* 计入。实测：0043 的 cardinality(PumpControl, 3) = True（Region1 + Region2 + UnspecifiedInitial），0033 的 cardinality(PumpControl, 3) = True（三个 InvalidInitialtr）—— 两个都是 NL S2 枚举断言的 FALSE PASS，且 0043 的多出整区反而把断言从 False 推成 True。",
+   "closest_gap": "cardinality 需要一个「只数作者声明的状态」模式，或需要一个能显式排除合成节点的作用域参数。"
+  },
+  {
+   "id": "G3",
+   "name": "「复合状态恰有一个有效默认进入点」不可表述",
+   "cases": [
+    "0033#1"
+   ],
+   "detail": "多条无条件初始边使 initial_target 抛 UnsupportedEvidence（返回 None：'declares 3 unconditional initial edges, so entry is genuinely ambiguous'）。19 谓词无法数初始边条数，也无法表达「进入点唯一」或「进入目标在子作用域内」。能返回 False 的替代形态都退化成邻近 diff 的同一事实。",
+   "closest_gap": "缺 initial_edge_count / unique_default_entry / entry_target_in_scope 一类谓词。"
+  },
+  {
+   "id": "G4",
+   "name": "「以 in-state 为守卫、无事件触发的接管边」不可表述（残留面，已计入 expressible 的条目仍带此缺口）",
+   "cases": [
+    "0000#5",
+    "0020#4",
+    "0030#4",
+    "0040#3",
+    "0050#4"
+   ],
+   "detail": "实测四条路都堵死：(1) edge_declared(trigger=\"\") -> None（UnsupportedEvidence: 'predicate binding trigger must be a non-empty path'）；(2) guard_distinguishable(源, 复合事件) -> True（单目标空真）；(3) reaches(AutoFinal -> Human, 1) 在 0000/0020/0030/0040/0050 全为 True —— reaches 每周期提供全部已声明事件，复合事件立刻可用，把「仅凭处于 auto final 不会交还控制权」完全掩盖；(4) response_within(...) -> None（FBMCQUnsupportedEvidence: analysis_bound_exceeded）。可表述的只有『三条件被压成单一复合事件』这一面（event_declared = False）。",
+   "closest_gap": "缺 guard / in-state 条件 / completion-transition（无事件触发边）三类谓词；reaches 缺一个「限定可提供事件集合」的参数。"
+  },
+  {
+   "id": "G5",
+   "name": "未声明事件无法用 B 族行为谓词断言",
+   "cases": [
+    "0020#3"
+   ],
+   "detail": "event_consumed(source='[*]', trigger='...0020.Power_On') 实测 None（SimulationRuntimeEventError: Cannot resolve event path）。NL 点名但模型完全缺失的事件只能用 event_declared 断言，无法同时表达『该事件应在冷启动被消费』。",
+   "closest_gap": "B 族谓词对未声明事件应有一个可判定的 False 语义（或需要 precondition 依赖机制）。"
+  },
+  {
+   "id": "G6",
+   "name": "reaches 对不存在的目标路径静默返回 False",
+   "cases": [
+    "0033#0",
+    "0033#1"
+   ],
+   "detail": "reaches('[*]', '...0033.PumpControl.PumpState', 3) = False，但该路径根本不存在（PumpState 是 root 直属）。谓词不区分「状态不存在」与「状态存在但不可达」，会把层次错位缺陷与可达性缺陷混成同一个 False，破坏逐 diff 归因。",
+   "closest_gap": "reaches 应对未声明目标 refuse（像 cardinality 对未声明 scope 那样），而不是返回 False。"
+  },
+  {
+   "id": "G7",
+   "name": "initial_target 正向放过带触发的初始边（BRIEF 坑 3 的实测确认）",
+   "cases": [
+    "0040#4"
+   ],
+   "detail": "0040 的 Autonomous 只有一条初始边 [*] -> AutoInitial : /Enter_Autonomous_Mode（带触发）。initial_target(Autonomous, AutoInitial) 实测 True，结构形式完全放过；只有 occupancy_after(HumanDriving, front_distance_10, Autonomous.AutoInitial) = False 能捕获。",
+   "closest_gap": "该族必须改用 B 族（occupancy_after / event_consumed(source='[*]')）断言；结构族本身缺一个「初始边不得携带触发」的谓词。"
+  }
+ ],
+ "field_corrections": [
+  {
+   "case": "0043",
+   "diff_index": 0,
+   "issue": "现有 assertable cardinality(scope=PumpControl, count=3) 实测 True —— FALSE PASS，被合成 UnspecifiedInitial 凑数掩盖",
+   "action": "重写为 containment(PumpControl, PumpControl.PumpState) = False"
+  },
+  {
+   "case": "0033",
+   "diff_index": 1,
+   "issue": "现有 assertable initial_target(PumpControl, PumpControl.PumpState) 实测 None（UnsupportedEvidence，三条无条件初始边）",
+   "action": "判不可表述（G3）"
+  },
+  {
+   "case": "0030",
+   "diff_index": 2,
+   "issue": "现有字段的补充项 terminates(scope='...0030.Autonomous') 声称 False，实测为 True",
+   "action": "剔除该补充项；主断言 state_declared(Autonomous.AutoFinal, 'any') = False 仍成立"
+  },
+  {
+   "case": "0033",
+   "diff_index": 3,
+   "issue": "现有 assertable event_declared(Water_Flow_Stabilized) 实测 True（纯存在性）",
+   "action": "改用台帐 harm_assertion 的 event_consumed('[*]', Activate_Pump) = False"
+  },
+  {
+   "case": "多条",
+   "diff_index": -1,
+   "issue": "NL08 侧 12 条的 assertable 字段是含箭头与中文说明的散文，不能直接执行",
+   "action": "已抽成纯表达式并实跑，rewrote_from 保留原样"
+  }
+ ]
+}

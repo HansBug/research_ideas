@@ -27,8 +27,8 @@
 │   └── phd_proposal_literature_review/         # 文献综述（LaTeX）
 │
 ├── project_1_llm_state_machine_modeling/       # 研究内容一：LLM 状态机结构化建模
-│   ├── method/                                 # agent-loop / pyfcstm / run-record 等方法基础设施
-│   └── eval/                                   # project_1 评测与人工审计入口
+│   ├── paper_stm_issue_discover/               # 第一篇论文（STM issue discover）完整工作区
+│   └── archive/agent_loop_method/              # 已停用但完整保留的旧 agent-loop 方法基础设施
 ├── project_2_verification_scenario_generation/ # 研究内容二：验证场景与性质生成
 ├── project_3_profile_based_verification/       # 研究内容三：基于验证剖面的状态机验证
 ├── project_4_iterative_model_repair/           # 研究内容四：迭代式模型修复
@@ -85,9 +85,9 @@
 
 `AGENTS.md` 是 [CLAUDE.md](./CLAUDE.md) 的软链接，更新仓库级 AI 指南时只改 [CLAUDE.md](./CLAUDE.md)。
 
-### [project_1_llm_state_machine_modeling/method/README.md](./project_1_llm_state_machine_modeling/method/README.md)
+### [project_1_llm_state_machine_modeling/archive/agent_loop_method/README.md](./project_1_llm_state_machine_modeling/archive/agent_loop_method/README.md)
 
-`project_1` agent-loop 方法基础设施入口，用于接手 NL → pyfcstm DSL 的阶段化建模、反馈、修复、run record 和 smoke / handoff 工作。涉及真实 LLM、pyfcstm、fake / replay、run record 或 Path 1 / Path 2 共享基础设施时，优先从这里进入。
+`project_1` 旧 agent-loop 方法基础设施入口（**已停用，完整保留可复活**），覆盖 NL → pyfcstm DSL 的阶段化建模、反馈、修复、run record 和 smoke / handoff 工作。它不参与第一篇论文（STM issue discover）的任何结论；需要回溯旧 agent loop、Path 1 / Path 2 共享基础设施或历史 run record 时才从这里进入。
 
 ### [llm_model_landscape/README.md](./llm_model_landscape/README.md)、[llm_model_landscape/GUIDE.md](./llm_model_landscape/GUIDE.md) 与 [llm_model_landscape/SUMMARY.md](./llm_model_landscape/SUMMARY.md)
 

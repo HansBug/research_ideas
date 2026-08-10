@@ -1,0 +1,50 @@
+{
+  "case": "0045",
+  "diffs": [
+    {
+      "verdict": "problem",
+      "ref": "DoorShut --> DoorShut: Cancel/CancelTimer\\nDoorShutWithItem --> ReadytoCook: Cooking Time Entered/Display Cooking Time, Update Cooking Time\\nReadytoCook --> DoorShutWithItem: Cancel/Cancel Timer\\nReadytoCook --> Cooking: Start/Start Timer\\nCooking --> DoorOpenWithItem: Door Opened/Stop Timer\\nCooking --> ReadytoCook: Cancel/Stop Timer",
+      "gen": "DoorShut --> DoorShut : Cancel\\nDoorShutWithItem --> ReadytoCook : Cooking Time Entered\\nReadytoCook --> DoorShutWithItem : Cancel\\nReadytoCook --> Cooking : Start\\nCooking --> DoorOpenWithItem : Door Opened\\nCooking --> ReadytoCook : Cancel",
+      "reason": "gen 全模型没有任何迁移效果或状态动作（FCSTM 投影中 16 条迁移全部只有 `/事件` 形式、无一个 effect 子句）。其中多项是 NL 点名的：NL 第 5 句「entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated」点名了显示与更新烹饪时间；NL 第 6 句「the system returns to DoorShutWithItem, canceling or updating the cooking time」点名了取消/更新烹饪时间；NL 第 7 句「the system transitions to the Cooking state, where the timer starts」点名了启动定时器；NL 第 8 句「opening the door stops the timer」点名了停止定时器。这些 NL 点名的动作在 gen 中完全没有对应元素。按口径 4，定时器动作属普通 action，在本研究范围内，故不标 timing。六处属同一成因（作者只提取了事件、系统性丢弃了斜杠后的效果），合并为一条。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "ReadytoCook --> ReadytoCook: Coooking Time Entered/ Display Cooking Time. Update Cooking Time",
+      "gen": "（无 ReadytoCook 自环）",
+      "reason": "NL 第 5、6 句都没有说在 ReadytoCook 状态下再次输入烹饪时间会自环停留：第 5 句讲的是从 DoorShutWithItem 进入 ReadytoCook，第 6 句讲的是 Cancel 返回 DoorShutWithItem。因此这条自环是参考比 NL 更具体的内容，按口径 2 不算 gen 的问题。另外参考该行的触发名拼成了 `Coooking Time Entered`（三个 o），与它自己在 DoorShutWithItem 那条边上使用的 `Cooking Time Entered` 不一致，属参考侧笔误。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "DoorOpenWithItem --> ReadytoCook: Door Closed[Time Remaining]",
+      "gen": "DoorOpenWithItem --> ReadytoCook : Cooking Time Entered",
+      "reason": "NL 第 4 句原文是「From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered」——即到 ReadytoCook 的条件被 NL 明确写成「if cooking time is entered」。gen 逐字遵循了 NL；参考此处用的是 `Door Closed[Time Remaining]`，与 NL 第 4 句后半分句不一致。判 correct（gen 满足 NL 义务），并记录参考与 NL 在此处的口径分歧。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "DoorOpenWithItem --> DoorShutWithItem: Door Closed[Zero Time]",
+      "gen": "DoorOpenWithItem --> DoorShutWithItem : Door Closed [zero time set]",
+      "reason": "NL 第 4 句前半「to DoorShutWithItem if the door is closed with zero time set」被满足，事件 + 守卫结构与参考一致（`Door Closed` + 零时守卫），仅守卫文本大小写与措辞不同。按口径 4，零时守卫属普通 guard，在范围内，此处无缺陷。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*] --> DoorShut\\nDoorShut --> DoorShut: Cancel/...\\nDoorShut --> DoorOpen: Door Opened\\nDoorOpen --> DoorShut: Door Closed\\nDoorOpen --> DoorOpenWithItem: Item Placed\\nDoorOpenWithItem --> DoorOpen: Item Removed\\nDoorShutWithItem --> DoorOpenWithItem: Door Opened\\nDoorShutWithItem --> ReadytoCook: Cooking Time Entered/...\\nReadytoCook --> DoorShutWithItem: Cancel/...\\nReadytoCook --> DoorOpenWithItem: Door Opened\\nReadytoCook --> Cooking: Start/...\\nCooking --> DoorOpenWithItem: Door Opened/...\\nCooking --> ReadytoCook: Cancel/...",
+      "gen": "（以上 13 条迁移的源、目标、触发在 gen 中逐条一致，仅斜杠后的效果被省略，另行记账）",
+      "reason": "NL 第 1、2、3、5、6、7、8 句涉及的六个状态（DoorShut、DoorOpen、DoorOpenWithItem、DoorShutWithItem、ReadytoCook、Cooking）与全部状态转移关系在 gen 中完整存在且与参考同名同触发。根初始边 `[*] --> DoorShut` 无触发，合规。良构性检查通过：六个状态全部有出边，无死端、无吸收态、无不可达状态，非初始边全部带触发、无即发 completion 边（FCSTM 投影确认为扁平六状态十六迁移模型）。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "Cooking --> DoorShutWithItem: Timer Expired'",
+      "gen": "Cooking --> DoorShutWithItem : Timer Expired",
+      "reason": "NL 第 8 句「if the timer expires, the system moves to DoorShutWithItem」被满足。参考该行末尾多了一个游离的单引号 `Timer Expired'`，gen 的事件名是干净的。按口径 4，定时器事件属普通 event，在范围内。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 1,
+  "extra_count": 0,
+  "notes": "拆分粒度原则：以「一个可独立修复的缺陷成因」为一条 diff。本 case 六处缺失的迁移效果（CancelTimer、Display/Update Cooking Time ×2、Start Timer、Stop Timer ×2）是同一个系统性成因——作者在转写时只取了斜杠前的事件名、整体丢弃了斜杠后的效果，因此合并为一条 problem 并在 ref/gen 字段列出全部六处，而不是拆成六条。13 条与参考完全对应的迁移按对象归并为一条 correct；NL 措辞与参考不一致的两条（zero time、cooking time entered）因涉及 NL/参考口径分歧而单独立条。\n\n逐句核对 NL（8 句）：\nNL1「The microwave starts in the DoorShut state. From this state, the system can either remain in DoorShut if a Cancel action is performed or transition to the DoorOpen state when the door is opened」——满足：`[*] --> DoorShut`（无触发）、`DoorShut --> DoorShut : Cancel`、`DoorShut --> DoorOpen : Door Opened`。Cancel 的效果（参考的 CancelTimer）NL 未点名。\nNL2「When the Door Opened action occurs in the DoorShut state, the system transitions to the DoorOpen state. The door can be closed to return to the DoorShut state」——满足：`DoorOpen --> DoorShut : Door Closed`。\nNL3「In the DoorOpen state, placing an item inside the microwave transitions the system to DoorOpenWithItem. If the item is removed, the system returns to DoorOpen」——满足：Item Placed / Item Removed 双向边齐备。\nNL4「From DoorOpenWithItem, the system can transition to DoorShutWithItem if the door is closed with zero time set or to ReadytoCook if cooking time is entered」——满足，且两条边的条件均逐字对应 NL（到 ReadytoCook 用 Cooking Time Entered，此处 gen 比参考更贴合 NL）。\nNL5「In the DoorShutWithItem state, opening the door transitions the system back to DoorOpenWithItem, while entering cooking time takes the system to ReadytoCook, where the cooking time is displayed and updated」——迁移部分满足；「displayed and updated」这一 NL 点名动作缺失。\nNL6「In the ReadytoCook state, if the Cancel action is performed, the system returns to DoorShutWithItem, canceling or updating the cooking time. If the door is opened, the system transitions to DoorOpenWithItem」——迁移部分满足；「canceling or updating the cooking time」动作缺失。\nNL7「When the Start action is performed in ReadytoCook, the system transitions to the Cooking state, where the timer starts」——迁移满足；「the timer starts」动作缺失。\nNL8「In the Cooking state, opening the door stops the timer and the system transitions to DoorOpenWithItem, while if the timer expires, the system moves to DoorShutWithItem. A Cancel action transitions the system back to ReadytoCook」——三条迁移全部满足；「stops the timer」动作缺失。\n\n范围外说明：本 case 涉及的 Start Timer / Stop Timer / Cancel Timer 动作、Timer Expired 事件、Zero Time 守卫按口径 4 均属普通 action / event / guard，在本研究范围内，故全部未标 out_of_scope。模型中不存在真正的时长约束。\n\n参考模型自身问题：\n(1) `DoorOpenWithItem --> ReadytoCook: Door Closed[Time Remaining]` 与 NL 第 4 句后半「to ReadytoCook if cooking time is entered」的措辞不一致。\n(2) `ReadytoCook --> ReadytoCook: Coooking Time Entered/...` 触发名拼错（三个 o），与自身其他行的 `Cooking Time Entered` 不一致。\n(3) `Cooking --> DoorShutWithItem: Timer Expired'` 末尾多一个游离单引号。\n(4) 该自环的效果分隔写成 `Display Cooking Time. Update Cooking Time`（句点而非逗号），与另一行的写法不一致。"
+}

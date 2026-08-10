@@ -1,0 +1,146 @@
+{
+  "schema_version": "known-fp-v2",
+  "why": "An issue outside the expected ledger is not automatically noise. The ledger (issue #166) records only defects the 60-case classification supported, so a finding it does not list can still be grounded in the pair's NL. Mixing the two kinds understates precision when a grounded extra is counted as a false positive, and overstates it when a fabricated one is waved through as 'extra insight'. Each entry below was adjudicated against the model text and the NL, with the deciding evidence recorded so a reader can re-derive the call rather than trust the label.",
+  "adjudicated_at": "2026-07-29",
+  "adjudicated_against": "runs/paper1/matrix-v16",
+  "how_to_use": "Adjudications are per run: `(run, cell, requirement_id)` is the key, because requirement ids come from the splitter and are reused across runs for different claims -- `0006-claude/REQ-001` is the substate count in matrix-v16 and a missing mission-complete state in matrix-v18. `check_false_positives.py <audit_dir> --run <name>` replays one run's adjudications against a bundle. For scoring a *new* run, use `detect_fabrications.py`, which re-derives each defect class from the model and needs no ids at all.",
+  "fabricated": [
+    {
+      "cell": "0050-gpt-5.5",
+      "requirement_id": "REQ-005",
+      "title": "自治运行返回条件组事件后未进入 HumanDrivingMode",
+      "defect_class": "eventless-completion-swallows-event",
+      "why_fabricated": "The obligation holds in the model. `occupancy_after` answers True when pinned at AutonomousMode.FinalWaittr_0005, firing the token route transition:0/transition:15. It answers False from every position an eventless completion edge leaves -- SubState1/2/3 and the composite -- firing only transitions 6/7/8, which are the eventless edges. Raising within_cycles does not help: False at 1..9.",
+      "secondary_cause": "within_cycles=2 stopped the simulation at SubState3, one step short of the converter-owned FinalWaittr_0005, so attribution saw no exclusion and marked the binding safe. 0050-claude bound the same requirement, reached FinalWaittr_0005, and was correctly filed as representation_debt -- the same wrong False, filtered only because its horizon was larger.",
+      "pinned_by": "feedback_loop/tests/test_eventless_completion_swallows_event.py",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0029-claude-opus-4-7",
+      "requirement_id": "REQ-006",
+      "title": "HighwayMode 的初始子状态不是 enter_hwy",
+      "defect_class": "initial-target-omits-deciding-entry-from-refs",
+      "why_fabricated": "The converter gives HighwayMode a synthetic unconditional default entry `[*] -> UnspecifiedInitial` alongside the authored `[*] -> enter_hwy : if [R45RouteToken == 5]`. UnspecifiedInitial is listed in the pair's attribution_exclusions, so a False resting on it is representation debt by policy. initial_target(HighwayMode, enter_hwy) is False and initial_target(HighwayMode, UnspecifiedInitial) is True, yet the failing call's model_refs name only HighwayMode and enter_hwy -- attribution has no exclusion to match and marks it safe.",
+      "pinned_by": "feedback_loop/tests/test_initial_target_refs_the_entry_it_read.py",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0029-claude-opus-4-7",
+      "requirement_id": "REQ-014",
+      "title": "UrbanMode 的初始子状态不是 enter_urban",
+      "defect_class": "initial-target-omits-deciding-entry-from-refs",
+      "why_fabricated": "Same shape as REQ-006 on the sibling composite: `[*] -> enter_urban : if [R45RouteToken == 12]` plus synthetic `[*] -> UnspecifiedInitial`, the latter excluded from attribution and absent from the failing call's refs.",
+      "pinned_by": "feedback_loop/tests/test_initial_target_refs_the_entry_it_read.py",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0006-claude-opus-4-7",
+      "requirement_id": "REQ-003",
+      "title": "Searching 下 Interception_Detected 未使系统进入 FormationAdjustment",
+      "defect_class": "false-over-too-small-a-horizon",
+      "run": "matrix-v17-partial-stopped",
+      "why_fabricated": "The obligation holds. The model routes Searching --Interception_Detected--> Intercepted and then --(completion edge)--> FormationAdjustment, so occupancy_after answers True at within_cycles=2 and False at the default of 1. The completion edge sits *after* the trigger, which the settle before the trigger cannot absorb, and the producer used the default. The converter prompt already claimed a gate stopped exactly this ('publishing one is the failure this gate exists to stop') and no gate did.",
+      "secondary_cause": "Prompt guidance added in the previous round -- count the declared steps before choosing within_cycles -- did not hold: the producer used the default anyway. That is why the check now lives in the predicate rather than in the prose.",
+      "pinned_by": "feedback_loop/tests/test_eventless_completion_swallows_event.py"
+    },
+    {
+      "run": "matrix-v16",
+      "cell": "0029-gpt-5.5",
+      "requirement_id": "REQ-007",
+      "title": "HighwayMode 入口未选择 enter_hwy",
+      "defect_class": "initial-target-omits-deciding-entry-from-refs",
+      "why_fabricated": "The same class as 0029-claude's REQ-006 under a different requirement id -- which is why an id-keyed ledger undercounted this class two-to-four. `initial_target(HighwayMode, enter_hwy)` is False because the converter's synthetic unconditional entry targets `UnspecifiedInitial`, and the failing call did not name it, so attribution marked the binding safe.",
+      "pinned_by": "feedback_loop/tests/test_initial_target_refs_the_entry_it_read.py"
+    },
+    {
+      "run": "matrix-v16",
+      "cell": "0029-gpt-5.5",
+      "requirement_id": "REQ-019",
+      "title": "UrbanMode 入口未选择 enter_urban",
+      "defect_class": "initial-target-omits-deciding-entry-from-refs",
+      "why_fabricated": "Sibling composite, same shape as REQ-007.",
+      "pinned_by": "feedback_loop/tests/test_initial_target_refs_the_entry_it_read.py"
+    }
+  ],
+  "grounded": [
+    {
+      "cell": "0000-gpt-5.5",
+      "requirement_ids": [
+        "REQ-006B1",
+        "REQ-006B2"
+      ],
+      "titles": [
+        "AutoNavigating 中 Power_Off 未进入 FinalState",
+        "AutoFinal 中 Power_Off 未进入 FinalState"
+      ],
+      "why_grounded": "Further instances of the ledger's own EXP-0000-IT-001. The model's only Power_Off edge leaves the pseudo-initial, so no running state has a Power_Off exit at all -- these name two more states the same defect reaches. The ledger lists one instance because the criterion needs one, not because the others are wrong.",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0006-claude-opus-4-7",
+      "requirement_ids": [
+        "REQ-001"
+      ],
+      "titles": [
+        "UAVSwarmStateMachine 的直接子状态数量不等于三"
+      ],
+      "why_grounded": "The NL says the swarm 'operates within three different state areas'; UAVSwarmStateMachine declares four direct substates (FormationAdjustment, Attack, Searching, Intercepted). The root-level UnspecifiedInitial is outside the composite and does not affect the count, so the mismatch is in the authored model.",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0006-gpt-5.5",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002"
+      ],
+      "titles": [
+        "缺少任务完成状态，持续搜索释放条件无法声明",
+        "UAVSwarmStateMachine 未直接包含正好三个非伪状态区域"
+      ],
+      "why_grounded": "REQ-002 is the same four-versus-three mismatch 0006-claude found. REQ-001 rests on the NL's 'Before the mission is completed, the UAV swarm continuously performs target search tasks': the sentence conditions the search on a mission-completed notion the model declares no state for, so the release condition cannot be stated.",
+      "run": "matrix-v16"
+    },
+    {
+      "cell": "0006-claude-opus-4-7",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002"
+      ],
+      "titles": [
+        "模型未声明‘任务完成(MissionComplete)’状态",
+        "UAVSwarmStateMachine 直接子状态数量与 NL 声明不一致"
+      ],
+      "run": "matrix-v18",
+      "why_grounded": "Same two facts 0006-gpt found in matrix-v16 under different requirement ids: the NL's 'Before the mission is completed' conditions the search on a mission-completed notion the model declares no state for, and 'three different state areas' disagrees with the four direct substates UAVSwarmStateMachine declares."
+    },
+    {
+      "run": "matrix-v16",
+      "cell": "0029-gpt-5.5",
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-003"
+      ],
+      "titles": [
+        "AutonomousMode 内部缺少 InitialState 局部子状态声明",
+        "AutonomousMode 内部缺少 initial 转换目标 InitialState"
+      ],
+      "why_grounded": "These *are* the ledger's EXP-0029-SH-001 -- `state AutonomousMode` is declared as a leaf while `InitialState` sits at root level -- so the defect was detected, not fabricated. They score as a miss because the requirement binds the proposed path `AutonomousMode.InitialState` rather than the declared root `InitialState`, and the hit criterion needs both named states matched with only one level of parent/child tolerance. A representation problem in the finding, not a false positive."
+    },
+    {
+      "run": "matrix-v16",
+      "cell": "0029-gpt-5.5",
+      "requirement_ids": [
+        "REQ-030A",
+        "REQ-030B",
+        "REQ-030C",
+        "REQ-030D",
+        "REQ-030E"
+      ],
+      "titles": [
+        "UrbanMode.<substate> 完成退出目标 UrbanMode.FinishState 未声明 (x5)"
+      ],
+      "why_grounded": "NL sentence 10 -- 'The system exits the UrbanMode state by transitioning to FinishState once auto_finished=true' -- with the definite article introduced by sentence 6 for HighwayMode, so one shared FinishState. The model declares it *inside* HighwayMode and routes UrbanMode's `auto_finished_true` to it on token 26, which is the same merge defect the ledger records as EXP-0029-IT-001 seen from the other side. Grounded, though stated five times over and phrased from the converter's viewpoint ('UrbanMode lacks FinishState') rather than as the misplacement it is."
+    }
+  ],
+  "id_matching_caveat": "`check_false_positives.py` keys on (cell, requirement_id), and requirement ids come from the splitter -- they change between runs on the same cell and between profiles on the same pair. So a cleared entry reads as 'fixed' and a recurrence under a new id reads as 'unadjudicated'. Use `detect_fabrications.py`, which re-derives each class from the model, as the gate; this file is the adjudication record and the historical cross-check."
+}

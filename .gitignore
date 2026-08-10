@@ -337,15 +337,15 @@ artifacts/
 # research_ideas: R3.1 PlantUML recovery keeps high-cardinality artifacts as
 # a small committed archive under the conversion workspace.  Keep the extracted
 # workdir ignored so PR review does not explode into thousands of files.
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/README.md
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/README.md
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/manifest.json
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip.sha256
-project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir/
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/README.md
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/README.md
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/manifest.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip.sha256
+project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -895,7 +895,7 @@ luac.out
 *.src.rock
 *.zip
 # R3.1 recovery archives are intentionally committed as single zip files to avoid thousands of loose PR artifacts.
-!project_1_llm_state_machine_modeling/paper_stm_repair/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/artifacts/plantuml_recovery/r3_1_committed/workdir.zip
 # degree_requirements 原始邮件/讨论档案按用户要求以加密 zip 入库；口令只保存在本地 .env
 !degree_requirements/encrypted_archives/
 !degree_requirements/encrypted_archives/*.zip
@@ -1239,3 +1239,53 @@ fabric.properties
 .claude
 # 学术讨论稿 PDF 导出（本地预览用，不入库；md 是 source of truth）
 project_ex1_llm_judge_for_stm/discussions/*.pdf
+
+### Run bundles
+# `runs/` holds execution records: one directory per cell, each with a per-node
+# record stream, full LLM prompts and raw responses, and sealed assertion
+# payloads.  A single 8-cell matrix is tens of thousands of files -- one
+# `git add -A` swept 33450 of them into a commit.
+#
+# They are deliberately not versioned.  What makes a run reproducible is the
+# frozen input pair plus the committed code and the git commit recorded inside
+# each run record; the record stream itself is an artifact of one execution, not
+# a source.  Evidence that needs to outlive a run is published as a gist and
+# linked from the PR, where it can also be read without a clone.
+/runs/
+
+# 盲判样本：`sample.json` 含数百 KB 管线产出快照，不入库（可用 blind_resample.py --seed 复现）。
+#
+# 但 `key.json`（16K）**必须入库** —— 它是 `unit_id → (记录, 臂, 带)` 的映射，而盲判结果文件以
+# `unit_id` 为键。没有它，`hit@k` 与代次间对比**外部无法复算**：发布核验实测「能发现可报带表格里那个
+# 多出的 ✅，只因本机恰好还留着当代次的 key」。更糟的是这个路径已被覆盖过一次 —— 上一代次两位盲判者
+# 的 `sample_id` 与当前 key 不同，那份 key 已不存在，于是上一代次的基线不可复算。
+#
+# 判定者只拿 `sample.json`，所以 key 入库不构成泄漏。
+project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/blind_sample/*
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/blind_sample/key.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/blind_sample/key.*.json
+
+# 一次标注：**判定产物必须入库，样本可选**。
+#
+# ## 为什么这条规则原来是错的
+#
+# 原注释写「sample.json 含全部已发布 issue 文本，不入库（可用 build_onepass_sample.py 复现）」，
+# 然后用一条 `onepass_sample/*` 把整个目录排除了。
+#
+# `sample.json` 确实可复现。但 **`annotation_A/B.json` 不可复现** —— 它们是**判定产物**，是标注者的
+# 判断，没有任何脚本能重新生成。而我用「可复现」这个只对其中一个成立的理由排除了两者。
+#
+# 后果（v24 发布核验查明）：`κ_label`、`fabricated` 计数、`boundary` 分布这些数在 `verdicts/*.json`
+# 里只是**记录下来的标量**（不含 issue 标签、不含 `over` 字段）—— **任何人都无法复算它们，包括我自己
+# 在下一代次**。体积 528 K，不是问题。
+#
+# 所以：判定产物（`annotation_*.json`）与归档（`archive*/`）入库；`sample.json` 也入库，因为它是判定
+# 的比对对象，缺了它标注结果无法解读。
+# key.json 与归档必须入库 —— 它是 alias → (记录, 带) 的映射，没有它派生的 hit@k 外部不可复算。
+project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/*
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/key.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/key.*.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/annotation_*.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/sample.json
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/archive_v1_no_nl/
+!project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/onepass_sample/archive_v1_no_nl/*

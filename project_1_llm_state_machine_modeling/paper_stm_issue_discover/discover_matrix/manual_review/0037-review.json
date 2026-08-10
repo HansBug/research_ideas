@@ -1,0 +1,92 @@
+{
+ "case": "0037",
+ "group": "NL07",
+ "llm": "Kimi",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "front_inactive --> avoid_frontend_collision（检测直接把该区推进避撞控制）",
+   "gen": "Inactive --> FrontendCollision : Frontend Collision Detected（FrontendCollision 为隐式声明的无出边叶状态）；三个 *CollisionRegion 复合状态无任何入边",
+   "reason": "三条检测边指向的是死端叶状态 FrontendCollision / RearEndCollision / PedestrianCollision，而真正含控制逻辑的 FrontendCollisionRegion / RearEndCollisionRegion / PedestrianCollisionRegion 没有任何入边，因此 BrakingControl / SteeringControl / EmergencyStop 全部不可达；检测一次后整机卡在死端叶状态，ActiveState 也无外出边。违反 NL 第2、3句（检测应导致对应避撞控制被激活）。",
+   "assertable": "occupancy_after(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", trigger=\"llms_emp_feedback_final_0037.Frontend_Collision_Detected\", target=\"llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion\") → 期望 True 实得 False；补充 reaches(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", target=\"llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion.BrakingControl\", within_cycles=5) → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "state Collision_Avoidance { ... -- ... -- ... }（三个正交区，可并发激活）",
+   "gen": "state ActiveState { state FrontendCollisionRegion {...} state RearEndCollisionRegion {...} state PedestrianCollisionRegion {...} }（无 `--`，三者是同一区里的顺序子状态）",
+   "reason": "名字叫 Region 但结构是顺序嵌套复合状态，同一时刻只能激活一个，丢失 NL 第1、3句要求的正交并发语义（属正交并发类差异，本研究建模对象不含正交并发）。",
+   "assertable": "无：19 谓词中没有 region / concurrency 谓词，FCSTM 也无法表示正交区（区信息仅以 named 字符串注释保留），该类断言在当前词表下不可写；台帐同样以 E2c observation 排除。",
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "每区有 X_inactive 常备态，避撞后回到常备态",
+   "gen": "ActiveState 内有 Inactive 常备态，三个 Region 内的控制都有 `--> Inactive : Collision Avoided` 返回边",
+   "reason": "常备态 + 返回武装的形状与参考一致（尽管因上条 problem 这些返回边实际不可达），这一设计意图是 NL07 六个 pair 中较贴近参考的。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考未建模子机激活)",
+   "gen": "InitialState -up-> ActiveState : Collision Detected，并另有三个按类型区分的检测事件",
+   "reason": "NL 第2句的激活被显式表达，且同时保留了 Frontend / Rear-End / Pedestrian 三个类型化检测事件（比 0017/0027 的单一事件更贴近 NL 第2句的枚举）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考带入 dist_to_front / dist_to_rear / vel / urban / highway 等 NL 未提及的量化守卫",
+   "gen": "(不可能生成)",
+   "reason": "NL07 只有 3 句 46 词、无任何具体迁移，参考的阈值内容不可从输入推出，F1 ground truth 不可达（0037 0.5 → 0.8）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏记两条语法错误（`stm ...`、`[X] -down-> [Y]`，resolved YES）；grammar 栏 None；semantic 栏记 \"1. missing regions\"（semantic_resolved=1.0）。论文这条语义记录与我的第 2 个 problem 同指（但它自称已修复，实际制品仍是顺序嵌套复合状态，只是名字改成了 Region，属未真正解决）。我的第 1 个 problem（检测边指向死端、控制不可达）论文完全没记，而且它是 format→semantic 两轮改写累积出来的。F1 0.5 → 0.8。",
+ "vs_ledger": "台帐 1 条 E1：EXP-0037-TR-001（collision_controls_unreachable_from_detection_targets）↔ 我的第 1 个 problem，证据一致；另有 1 条 E2c observation 对应我的第 2 个 problem（并发类，因无 region 谓词被排除）。两者与我的判定完全对齐。",
+ "notes": "0037 是台帐与我判定吻合度最高的 NL07 pair。其\"Region\"命名是论文语义修复阶段贴上的标签，实际结构未改为正交区，属论文 semantic_resolved=1.0 的虚假闭环。",
+ "_source_file": "NL07-b.json",
+ "cross_reference": {
+  "case": "0037",
+  "group": "NL07",
+  "llm": "Kimi",
+  "counts": {
+   "correct": 0,
+   "similar": 2,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 1,
+  "paper": {
+   "format": "1.syntax error: stm CollisionAvoidanceSystem 2. syntax error: [FrontendCollision] -down-> [BrakingControl] : Brake Signal Received",
+   "grammar": null,
+   "semantic": "1. missing regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.5,
+   "f1_phase2": 0.8
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0037-TR-001"
+   ],
+   "e1_categories": [
+    "TR"
+   ]
+  },
+  "assertable_problems": 1
+ }
+}

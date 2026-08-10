@@ -1,0 +1,58 @@
+{
+  "case": "0021",
+  "nl_group": "NL02",
+  "diffs": [
+    {
+      "verdict": "correct",
+      "ref": "Initial_State --> Braking_State : Signal_sent_successfully",
+      "gen": "InitialState --> BrakingState : Brake Signal Received",
+      "reason": "NL 第2句 \"When the basic braking device receives a brake signal, it transitions from the initial state to the braking state\"。生成方的触发名 \"Brake Signal Received\" 比参考的 \"Signal_sent_successfully\" 更贴 NL 原文，两者语义同为\"制动信号成功抵达\"，按口径 1 判 correct。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "Initial_State --> Running_State : Signal_sending_failed ；Running_State --> Initial_State : Send_signal_feedback ；Braking_State --> Initial_State : Send_signal_feedback",
+      "gen": "InitialState --> OperationalState : Signal Transmission Fails ；OperationalState --> InitialState : Signal Feedback Sent ；BrakingState --> InitialState : Signal Feedback Sent",
+      "reason": "NL 第2句后两句 \"If the signal transmission fails, it proceeds to the operational state. Once the signal feedback is sent, it returns to the initial state\" 全部实现，且两条反馈回边都在。参考称之为 Running_State，生成方称 OperationalState，NL 原文用 \"operational state\"，命名差异按口径 1 不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签）",
+      "gen": "BrakingState --> ClampingState : Entering Clamping State ；ClampingState: Brake Caliper Clamping State",
+      "reason": "NL 第3句 \"After entering the braking state, the system transitions to the brake caliper clamping state\"。NL 的\"after entering\"更接近 completion 迁移（参考写法），生成方新造了一个名为 \"Entering Clamping State\" 的显式事件，是另一种说得通的读法，且顺带避免了参考侧的抢占缺陷（见下条）。状态命名 ClampingState vs Brake_Caliper_Closed_State 按口径 1 不计问题。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "uncertain",
+      "ref": "Braking_State --> Brake_Caliper_Closed_State（无标签）与 Braking_State --> Initial_State : Send_signal_feedback 同源并存",
+      "gen": "BrakingState 的两条出边都带触发（Entering Clamping State / Signal Feedback Sent）",
+      "reason": "参考侧存疑：参考中 Braking_State 同时有一条无标签 completion 边和一条带触发边，按 UML 语义 completion 迁移会在进入 Braking_State 后立即触发，使 `Braking_State --> Initial_State : Send_signal_feedback` 永不可达；`Running_State --> Brake_Caliper_Relaxed_State`（无标签）对 `Running_State --> Initial_State : Send_signal_feedback` 同理。NL 第2、3句同时要求这两种行为并存，说明参考此处不良构。卡点：无法据参考判断 NL 第3句究竟应为 completion 迁移还是显式事件，故生成方为其加触发不判 problem。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "similar",
+      "ref": "Running_State --> Brake_Caliper_Relaxed_State ；Brake_Caliper_Relaxed_State（状态本身）",
+      "gen": "（无制动钳松开状态，也无对应迁移）",
+      "reason": "NL 三句中完全没有出现\"制动钳松开/relaxed\"这一状态或行为，参考的 Brake_Caliper_Relaxed_State 属比 NL 更具体的部分，按口径 2 不算生成方问题。另注参考侧该状态无任何出边（吸收态），且其无标签入边会抢占 Running_State 的反馈出边。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "extra",
+      "ref": "（参考中 Brake_Caliper_Closed_State 无任何出边）",
+      "gen": "ClampingState --> BrakingState : Clamping Released",
+      "reason": "NL 三句都没有规定离开\"制动钳夹紧\"状态的行为（NL 第3句只说进入夹紧状态），参考也没有这条边，属生成方新增。它虽然消除了夹紧状态的死端，但引入了 NL 未授权的\"松开后回到制动态\"语义，故记 extra。",
+      "out_of_scope": null
+    },
+    {
+      "verdict": "correct",
+      "ref": "[*] --> Initial_State",
+      "gen": "[*] --> InitialState",
+      "reason": "NL 第2句以 \"from the initial state\" 为起点，两侧初始迁移都无触发、目标一致，良构。",
+      "out_of_scope": null
+    }
+  ],
+  "problem_count": 0,
+  "extra_count": 1,
+  "notes": "拆分粒度原则：一条 diff = 一个可独立修复的现象。把\"给 NL3 迁移加触发\"（similar，建模选择）与\"参考同源无标签边抢占\"（uncertain，参考侧缺陷）分成两条，因为二者判据来源不同；参考多出的 relaxed 分支单列，因为它是一个独立的元素级差异。\n\nNL 逐句核对：\n1 \"represents the train's basic braking device, which serves as the final execution unit\"：满足（整体建模基础制动装置，无额外结构义务）。\n2a \"When the basic braking device receives a brake signal, it transitions from the initial state to the braking state\"：满足。\n2b \"If the signal transmission fails, it proceeds to the operational state\"：满足（OperationalState）。\n2c \"Once the signal feedback is sent, it returns to the initial state\"：满足，且 OperationalState 与 BrakingState 两侧都有反馈回边。\n3 \"After entering the braking state, the system transitions to the brake caliper clamping state\"：满足（BrakingState --> ClampingState），触发写法与参考不同但不违反 NL。\n\n良构性检查（生成方）：初始边无触发；四个状态全部可达且均有出边，无死端、无吸收态；无复合态因此不存在默认子态问题；所有迁移都有触发，无 completion 边抢占。本 case 是 12 例中最干净的之一，无 problem。\n参考侧存疑位置：(a) `Braking_State --> Brake_Caliper_Closed_State` 与 `Running_State --> Brake_Caliper_Relaxed_State` 两条无标签 completion 边会使同源的 Send_signal_feedback 出边不可达；(b) Brake_Caliper_Closed_State 与 Brake_Caliper_Relaxed_State 均为无出边吸收态；(c) Brake_Caliper_Relaxed_State 与 NL 无对应。"
+}

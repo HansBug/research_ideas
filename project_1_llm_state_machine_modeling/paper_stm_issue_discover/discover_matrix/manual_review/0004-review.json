@@ -1,0 +1,113 @@
+{
+ "case": "0004",
+ "group": "NL01",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "DoorsClosing 是叶子状态（参考模型只写 [*]-->DoorsClosing 和 DoorsClosing --> InMotion）",
+   "gen": "state DoorsClosing {\\n  [*] --> DoorsClosing\\n}",
+   "reason": "作者把 DoorsClosing 写成复合状态，且其内部初始伪状态指向的正是它自己（PlantUML 名字全局解析），构成初始目标越出子域的畸形结构。NL 第 4 句只把三个子状态授予 InMotion，从未给 DoorsClosing 任何子状态，所以这既是无 NL 依据的多余层次，也是语义未定义的结构缺陷。R4.5 投影确认了这一点：FCSTM 里生成了 state InvalidInitialtr_0002 named 'PlantUML initial target outside child scope: DoorsClosing'，并且因为 DoorsClosing 变成复合状态，出边被降级成 !DoorsClosing -> InMotion，退出语义也随之改变。这不是命名或写法差异，是真实结构问题。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0004.DoorsClosing', kind='leaf')  # 当前 False；等价写法 cardinality(scope='llms_emp_feedback_final_0004.DoorsClosing', count=0)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*]-->DoorsClosing / DoorsClosing --> InMotion: Closed/SendDeparted / InMotion --> Stopping: Arrived/Stop, Send Arrived / InMotion --> EmergencyStopping: ObstacleDetected",
+   "gen": "[*] --> DoorsClosing / DoorsClosing --> InMotion : Closed/SendDeparted / InMotion --> Stopping : Arrived/Stop, Send Arrived / InMotion --> EmergencyStopping : Obstacle Detected",
+   "reason": "顶层四条边的 source-trigger-target 与参考完全一致，触发器文本仅有 ObstacleDetected 与 'Obstacle Detected' 的空格差异，属于同一事件的命名风格差异，不构成语义差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "state InMotion{ [*]-->Accelerating; Accelerating --> Cruising: Reached Cruising/Cruise; Accelerating --> Approaching: Approached/Decelerate; Cruising --> Approaching: Approached/Decelerate }",
+   "gen": "state InMotion { [*] --> Accelerating; Accelerating --> Cruising : Reached Cruising/Cruise; Accelerating --> Approaching : Approached/Decelerate; Cruising --> Approaching : Approached/Decelerate }",
+   "reason": "InMotion 复合状态、三个子状态、默认子状态与三条内部迁移全部与参考一致，也逐条覆盖 NL 第 4、5、6、7 句。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Accelerating: Entry/Accelerate",
+   "gen": "state Accelerating { Accelerating: entry/Accelerate }",
+   "reason": "NL 第 8 句明确点名 'Entry/Accelerate' 动作，作者以带相位前缀的 entry/ 形式挂在 Accelerating 上，FCSTM 保留为 enter abstract Accelerate，与参考语义一致；大小写差异不算问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Approaching: Entry/Send",
+   "gen": "state Approaching { Approaching: do/Send }",
+   "reason": "NL 第 9 句只说 'the system sends the Send signal and continues to approach the destination'，未指定相位；参考选 entry，作者选 do。两者都能读通，且作者的 do 相位更贴合 'continues to' 的持续语义。FCSTM 保留为 during abstract Send，动作没有丢失，只是相位不同，判 similar 而非 problem。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected",
+   "gen": "state EmergencyStopping { EmergencyStopping: entry/Emergency Stop; EmergencyStopping: do/Send Obstacle Detected }",
+   "reason": "NL 第 3 句要求 EmergencyStopping 含 'Emergency Stop' 动作并发送 'Obstacle Detected' 信号，未指定相位。作者拆成 entry + do 两条带相位动作，FCSTM 保留为 enter abstract EmergencyStop 与 during abstract SendObstacleDetected，语义完整。参考侧反而把状态名拼错成 EmergencyStoping（少一个 p）导致动作挂到了孤立状态上，见本 pair 的 uncertain 条。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, Send Obstacle Detected（状态名少一个 p，动作名 Sop 拼错）",
+   "gen": "state EmergencyStopping { entry/Emergency Stop; do/Send Obstacle Detected }",
+   "reason": "参考模型自身有缺陷：迁移目标写 EmergencyStopping，动作行写 EmergencyStoping，PlantUML 名字解析下这会额外生成第 6 个孤立状态 EmergencyStoping，且真正的 EmergencyStopping 在解析后没有任何动作。也就是说 NL 第 3 句要求的两个动作在参考模型里事实上是缺失的。若论文的 Phase-I/II F1 是按参考元素集合计数，这个孤立状态与错挂动作会污染分母。此点无法由作者模型承担，按 REVIEW_SPEC 记为 uncertain。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Approaching: Approaching（参考模型中的一行空描述）",
+   "gen": "（作者模型没有这一行）",
+   "reason": "参考模型写了 'Approaching: Approaching' 这条与状态同名的空描述行，既不是动作也不是约束，疑似作者人工重建时对 NL 第 10 句 'remains in the Approaching substate' 的转写残留。它不承载语义，因此作者模型没有它不算丢失；但它说明参考模型并未建模 NL 第 10 句的持续性义务，仅靠 InMotion 的组退出边间接满足。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文只记了 format 栏 'syntax error (Assumed diagram type: state) entry/Accelerate'（已 resolved），grammar / semantic 栏均为 None，f1_phase1 = f1_phase2 = 0.8372。我判的 1 个 problem（DoorsClosing 畸形复合状态 + 越界初始）论文完全没记录；论文两阶段 F1 相同也说明 Phase-II 语义检查没有触碰这个结构。值得注意的是 0004 的 F1（0.837）明显低于同组 0054/0024（0.9545），差距很可能正来自这个多出来的嵌套 DoorsClosing 与其伪状态，但论文并未把它写进任何幻觉栏。",
+ "vs_ledger": "台帐 0004 状态为 candidate_only、expected_issue_count = 0，唯一观察是 E2c/state_action_adapter_missing（entry/do action 无结构化查询门面）。我判的 problem 台帐没有记为 E1，也没有作为 candidate 观察记录下来——这是台帐的一处漏项：source 侧证据直接（puml 第 4-6 行），断言也写得出（state_declared kind='leaf'），只是判 False 依赖的子节点 compiler:state:...DoorsClosing.InvalidInitialtr_0002 在 attribution_exclusions 里，属于 representation_boundary 而非无问题，建议至少补一条 E2 观察。",
+ "notes": "0004 是 NL01 组里动作保留最完整的模型之一（Accelerating entry、Approaching do、EmergencyStopping entry+do 全部进入 FCSTM 的 enter/during abstract），语义层面几乎与参考等价，唯一真实缺陷是 DoorsClosing 的畸形复合结构。参考模型自身的 EmergencyStoping 拼写缺陷影响的是参考侧而非本 pair。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0004",
+  "group": "NL01",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 3,
+   "similar": 2,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 2
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": "syntax error (Assumed diagram type: state) entry/Accelerate",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.8372093023,
+   "f1_phase2": 0.8372093023
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

@@ -1,0 +1,309 @@
+{
+  "audit_scope": {
+    "pipeline": "discover (split_requirements -> review_requirements -> convert_assertions -> precheck_and_seal -> review_assertions -> release_results -> bind_attribution -> adjudicate_results -> publish)",
+    "root": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop",
+    "rendered_prompts_dumped_to": "/tmp/prompt_audit/*.txt (authored variants exclude the 16.9 KB pyfcstm FCSTM grammar guide appendix)",
+    "rendered_sizes_chars": {
+      "REQUIREMENT_SPLITTER_PROMPT": 60920,
+      "REQUIREMENT_REVIEWER_PROMPT": 29959,
+      "ASSERTION_CONVERTER_PROMPT": 64861,
+      "ASSERTION_REVIEWER_PROMPT": 35321,
+      "RESULT_ADJUDICATOR_PROMPT": 2531,
+      "vocabulary_prompt()": 18739,
+      "callable_prompt()": 18446,
+      "ASSERTION_ENVIRONMENT_API_DOCS": 2400
+    }
+  },
+
+  "files_reviewed": [
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/prompts.py", "role": "all five system prompts: REQUIREMENT_SPLITTER_PROMPT (split_requirements), REQUIREMENT_REVIEWER_PROMPT (review_requirements), ASSERTION_CONVERTER_PROMPT (convert_assertions), ASSERTION_REVIEWER_PROMPT (review_assertions), RESULT_ADJUDICATOR_PROMPT (adjudicate_results); also injects pyfcstm FCSTM grammar guide + FBMCQ capability boundary + PREDICATE_EVIDENCE_BOUNDARY", "lines": 686},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py", "role": "the 19-predicate closed vocabulary (PREDICATES table: meaning/proves/strength/caveat/field_specs/examples), PREDICATE_OPTIONS, signature_of(), vocabulary_prompt() shown to both requirement stages, callable_prompt() shown to both assertion stages, procedure_mismatch() gate", "lines": 981},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/renderer.py", "role": "user-message payload builder for all five nodes; carries the only per-model guidance the LLM gets: declared_model_vocabulary note, terminating_transitions_note, initial_entries_note, compiler_owned_variables_note", "lines": 339},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/environment.py", "role": "ASSERTION_ENVIRONMENT_API_DOCS, injected into convert_assertions and review_assertions payloads as `evidence_api`", "lines": 95},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py", "role": "actual predicate implementations, compared against what the prompts claim they do", "lines": 1737},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/nodes.py", "role": "node wiring: which prompt goes to which node, deterministic gates run on the splitter output, _pseudo_state_facts / _model_vocabulary that feed the payload", "lines": 3682},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/capability.py", "role": "deterministic four-step gates (redundant_proposal_findings, initialization_anchored_findings, termination_proposal_findings) that hard-fail a RequirementSet before review; non-vacuity and reference gates", "lines": 980},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/schemas.py", "role": "structured-output schema seen by the provider; checked for Field(description=...) prompt surface -- there is NONE, so the schema contributes only the PredicateName Literal and role/evidence_family enums", "lines": 760},
+    {"path": "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop/discover/responder.py", "role": "checked for max_output_tokens / truncation limits: --max-output-tokens defaults to None (cli.py:57), so no configured output cap", "lines": 393}
+  ],
+
+  "structural_finding": {
+    "headline": "There is no defect-direction checklist anywhere in the pipeline. The prompts are strictly NL-obligation-driven: a candidate issue can only exist if (a) an NL segment states it as an obligation, AND (b) one of the 19 predicates can express it. Neither the 8 directions nor any equivalent taxonomy is ever named to a producer -- by design.",
+    "evidence": [
+      "prompts.py:7 'Do not judge satisfaction, write assertions, use tools, or use hidden expected issues.' / 'do not emit a benchmark issue taxonomy'",
+      "prompts.py:19 'This rule does not import a hidden issue taxonomy'",
+      "prompts.py:223 'Do not hard-code benchmark-specific partitions or expected issues.'",
+      "prompts.py:6 'Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement.'",
+      "prompts.py:526 'Derive the Requirement from the natural language, not from the model. You are shown the model so you can spell its identifiers correctly and see what it declares -- not so you can read the obligation off it.'"
+    ],
+    "consequence": "The only per-direction signal a producer ever sees is the one-line `exposes:` field of each predicate, rendered by predicates.py:754 (`lines.append(f\"    exposes: {item.proves}\")`). That is 19 short phrases inside an 18.7 KB vocabulary block. Nothing tells the model to sweep for dead ends, absorbing states, spurious events, clone states, unexpanded submachines, or pseudostate type errors when the NL does not phrase them as obligations."
+  },
+
+  "by_direction": [
+    {
+      "direction": "reachability",
+      "human_count": 26,
+      "guided": true,
+      "adequacy": "不足",
+      "evidence": "predicates.py:410-411 `reaches` -- meaning 'within a bounded number of cycles this target is reachable from here' / proves 'an unreachable target: a broken chain or dead branch'; predicates.py:437-439 `terminates` -- 'the model actually finishes' / 'premature or impossible completion: the final state is unreachable, or the path to it is guard-blocked'; prompts.py:151-157 step 1 '\"on shutdown it transits to the final state\" / \"the run ends\" / \"the mode finishes\" -> `terminates`. ... Read `terminating_transitions` in your input'",
+      "note": "Two predicates exist and both are described. What is entirely absent is any instruction to look for reachability defects the NL does not phrase as an obligation: the words 'dead end', 'absorbing', 'sink', 'deadlock', 'livelock' occur zero times in every authored prompt (grep -ic over the four rendered prompts with the grammar guide stripped: deadlock=0/0/0/0, absorb=0/0/0/0; the only 'dead' hits are the literal state name `Sys.Dead` inside `reaches`/`invariant` worked examples). 'The whole machine cannot terminate' has no obligation form at all -- and renderer.py:81 actively normalises it: 'If this list is empty, nothing ends the run -- a completion claim is then about reaching a declared state'. A model with no terminating transitions is therefore presented to the producer as an ordinary shape, not as a candidate finding. Step 1 (prompts.py:151-157) further routes every termination sentence to `terminates`, whose implementation (predicate_api.py:1449-1478) offers the whole declared alphabet over TERMINATION_CYCLES and returns True on any witness -- a witness-style over-approximation that under-reports."
+    },
+    {
+      "direction": "entry",
+      "human_count": 25,
+      "guided": true,
+      "adequacy": "不足",
+      "evidence": "predicates.py:190-191 `initial_target` -- 'entering this composite starts in this child' / proves 'wrong or missing initial child; entry lands in the wrong mode'; prompts.py:158-160 step 1 '\"the system begins in X\" / \"entering M starts in X\" -> `initial_target`. Read `initial_entries` in your input: it shows each composite's declared entries and whether each is unconditional, which is what decides this claim.'; renderer.py:87-112 `initial_entries_note`, incl. the converter_generated warning at renderer.py:92-98; prompts.py:180-187 and prompts.py:235 make `initial_target` one of the two predicates whose False *is* the finding",
+      "note": "Best-covered direction on paper, but the two commonest observed forms are unreachable through it. (1) A *triggered* initial edge: verified live -- for `[*] -> TurnOn : /Start` the payload the LLM receives says `{\"unconditional\": false, \"trigger\": \"Root.Start\"}` while `initial_target(composite=\"Root\", child=\"Root.TurnOn\")` returns **True**. No predicate can express 'the initial edge shall carry no trigger', and nothing in any prompt warns that `initial_target` ignores the trigger. (2) Competing entries: predicate_api.py:922-927 raises when 2+ entries and none unconditional, and renderer.py:99-105 tells the producer to fall back to `edge_declared(source=\"[*]\", ...)` or `occupancy_after(source=\"[*]\", ...)` -- both positive existence/behaviour claims that a model with several competing entry edges satisfies. 'Multiple competing entries is itself a defect' is stated nowhere. 'default sub' / 'default substate' occurs 0 times in every prompt."
+    },
+    {
+      "direction": "guard",
+      "human_count": 22,
+      "guided": true,
+      "adequacy": "不足",
+      "evidence": "predicates.py:280-281 `guard_distinguishable` -- 'a shared source and trigger cannot reach two targets indistinguishably' / proves 'non-determinism: overlapping or absent discriminating guards'; prompts.py:19-21 splitter distinguishability obligation ('a correct model must provide non-overlapping guards or another source-grounded discriminator'); prompts.py:38-40 reviewer counterpart; prompts.py:89 converter polarity rule ('Write it bare. Do not negate it')",
+      "note": "Covers exactly one of the three observed forms -- two declared targets under one source/event. Missing: (a) '缺守卫' on a *single* transition has no predicate at all; `guard_distinguishable` on a single target returns vacuous True (verified live: `guard_distinguishable(source=\"Root.TurnOn\", trigger=\"Root.Go\")` -> True with one outgoing edge), because predicate_api.py:1007 returns `not bool(conflicting_targets(...))` and predicate_api.py:1048 short-circuits `len({targets}) <= 1 -> return False (not indistinguishable)`. (b) '条件被折进事件名' is explicitly waived (see counterproductive_instructions #2). Also prompts.py:82 downgrades the hard case: 'This helper proves indistinguishability only for empty or identical guards; an unsupported guarded case is a limitation, not an issue.'"
+    },
+    {
+      "direction": "hierarchy",
+      "human_count": 21,
+      "guided": true,
+      "adequacy": "部分充分（containment 充分，复合态未展开为无）",
+      "evidence": "prompts.py:17 'Containment language: phrases such as substate, inside, within, belongs to, or contains are structural obligations. Produce a structure/containment requirement in addition to any transition-effect requirement, and preserve the declared parent scope for named states. Do not treat a transition that reaches a state as proof that the state is contained by the required parent.'; predicates.py:171-172 `containment` -- 'this child is (or is not) a substate of this parent' / proves 'misplaced substate; a region attached to the wrong parent'; prompts.py:35 reviewer 'Explicit substate/inside/within/belongs-to language is a structure/containment obligation and must not be represented only as an effect transition.'; predicates.py:98-99 `state_declared` proves 'missing or spurious state; a composite written as a leaf'",
+      "note": "containment/错误嵌套/作用域错 are genuinely well guided -- prompts.py:17 is the single most direction-specific instruction in the whole system, and prompts.py:180-187 protects it from being turned into an existence proposal. '复合态未展开（`<<submachine>>` 只是文字）' is not: 'submachine' appears once in all four authored prompts, and only as a permission to weaken -- prompts.py:62 'When the API does not expose a dedicated submachine flag, accept the strongest defensible compound-state proxy (for example, non-leaf composite with substates) if the limitation is stated.' Nothing says a state whose *name or stereotype* claims substructure while `state_declared(kind=\"composite\")` is False is a finding, and no worked example uses kind=\"composite\" as the violated claim."
+    },
+    {
+      "direction": "effect_action",
+      "human_count": 10,
+      "guided": true,
+      "adequacy": "不足",
+      "evidence": "predicates.py:257-258 `action_declared` -- 'this state declares an entry, exit or during action' / proves 'a missing declared action; an action attached to the wrong phase'; predicates.py:235-236 `effect_declared` -- proves 'a missing or wrong-signed declared effect'; predicates.py:387-389 `variable_delta_after`; prompts.py:45 'The five that predicates produce are structure, relation, effect, simulation and fbmcq. `effect_declared` is the direct declared-effect evidence and `variable_delta_after` the runtime one'; prompts.py:63 reviewer quantitative-effect rule",
+      "note": "Variable effects (变量递减缺失) are well covered -- prompts.py:63 plus the whole precondition/dependent shape at prompts.py:259-272 and worked Example 3 (prompts.py:617-642) is built around exactly this case. entry/exit actions are not: `action_declared` has no worked example anywhere (prompts.py:571-670 uses state_declared / occupancy_after / edge_declared / variable_declared / variable_delta_after / invariant only), no routing rule maps NL wording like 'on entering X it shall Y' to it, and its own caveat limits it -- predicates.py:263-265 'Reports whether the phase declares any action at all, not what the action does.' So a wrong-but-present entry action is unreportable, and a missing one is only reachable if the splitter happens to pick a predicate it was never shown in use."
+    },
+    {
+      "direction": "pseudostate",
+      "human_count": 9,
+      "guided": false,
+      "adequacy": "无",
+      "evidence": "无。grep -ci over the four rendered authored prompts: fork=0/0/0/0, history=0/0/0/0; the apparent 'join' and 'junction' hits are substrings of 'joint trigger' (prompts.py:6) and 'natural-language conjunction' (prompts.py:46) -- there is no fork/join/junction/choice guidance in any prompt. The only pseudostate vocabulary is predicates.py:106 `kind` = '\"pseudo\" (an initial/final marker)', which does not name fork, join, junction or choice at all.",
+      "note": "Also inexpressible: no predicate takes a pseudostate *type*, so '声明了但类型错配' (e.g. a choice written as a junction) has no candidate check even if a producer wanted to write one. `state_declared(state=..., kind=\"pseudo\")` can only say 'this path is some pseudostate'. Furthermore prompts.py:146-160 step 1 pushes producers *away* from pseudostates: 'Entry into a state and termination of a run have no names in this notation; they are written `[*]`. So there is nothing to bind and nothing to propose' -- which is right for initial/final and silently wrong for fork/join/junction/choice, which do have declarations."
+    },
+    {
+      "direction": "event",
+      "human_count": 5,
+      "guided": true,
+      "adequacy": "不足（且有反向禁令）",
+      "evidence": "predicates.py:147-148 `event_declared` -- 'the model declares an event at this qualified path' / proves 'an event the NL names that the model never declares'; predicates.py:343-345 `event_consumed` proves 'a dangling event no transition consumes; an event silently ignored in the state where the NL requires a response'",
+      "note": "Covers only NL-names-an-event-the-model-lacks. The two observed forms are both blocked. '三个条件被压成一个复合事件名' is explicitly instructed away three times (prompts.py:46, 62, 240) -- see counterproductive_instructions #2. '自造事件' (the model declares an event the NL never mentions) has no predicate: the vocabulary is entirely positive/existence-oriented and there is no 'spurious element' predicate, nor any instruction to compare the declared event set against the NL in that direction. predicates.py:99 does say 'missing or **spurious** state' for `state_declared`, but `state_declared(kind=\"any\")` returning True cannot be turned into a finding -- an assertion is only a finding when it is False."
+    },
+    {
+      "direction": "cardinality",
+      "human_count": 5,
+      "guided": true,
+      "adequacy": "不足",
+      "evidence": "predicates.py:300-301 `cardinality` -- 'this scope declares exactly this many non-pseudo states' / proves 'a missing or duplicated mode in an enumerated set'; prompts.py:110-117 converter 'Cardinality and scope' + 'Cardinality evidence gate'; prompts.py:120-127 reviewer counterpart",
+      "note": "Four dedicated prompt blocks, more than any other direction -- but all four sit on the *assertion* side, where the count is already frozen. The place the number is chosen is the splitter, whose only description of the predicate is predicates.py:300-301 plus the field spec at predicates.py:308 ('count: an integer; pseudo-states are not counted'), which does not mention converter-generated substates at all. Meanwhile prompts.py:111 narrows the scope: 'Do not widen it to an exact count of all top-level states, and do not invent member names solely from the current model.' 克隆件 (duplicated modes) is named only inside `proves` and has no worked example or routing rule."
+    }
+  ],
+
+  "predicate_description_gaps": [
+    {
+      "predicate": "initial_target",
+      "behaviour": "Ignores the trigger and the guard on a single declared entry edge: `_initial_child_of` returns that edge's target whatever labels it (predicate_api.py:876-898, comment 'A single declared entry *is* the entry, whatever labels it'). Verified live on `[*] -> TurnOn : /Start`: `initial_target(composite=\"Root\", child=\"Root.TurnOn\")` -> True, while the payload the same LLM reads says `{\"composite\": \"Root\", \"target\": \"Root.TurnOn\", \"unconditional\": false, \"trigger\": \"Root.Start\"}`.",
+      "described": false,
+      "where": "predicates.py:190 meaning 'entering this composite starts in this child'; predicates.py:191 proves 'wrong or missing initial child; entry lands in the wrong mode'; predicates.py:196-199 field_specs -- composite: 'the declared composite whose entry is claimed', child: 'the declared substate that entry must land on'. No caveat field is set on this predicate at all, so `vocabulary_prompt()` and `callable_prompt()` render no `boundary:` line for it.",
+      "consequence": "A producer that reads renderer.py:88-89 ('Entry takes an `unconditional` edge when one exists; a guarded or triggered entry is only taken when its condition already holds') will conclude a triggered entry means the composite does NOT start there, pick `initial_target` to state 'the system begins in X', and get True. The 'initial edge carries a trigger' defect is positively passed. Worse, there is no other predicate that could express it: `edge_declared(source=\"[*]\", trigger=..., target=...)` can only assert an edge *exists*, never that it must carry no trigger."
+    },
+    {
+      "predicate": "guard_distinguishable",
+      "behaviour": "Vacuously True whenever the source/trigger has only one target. predicate_api.py:1048 `if len({str(getattr(r,'to_path','')) for r in rows}) <= 1: return False` (not indistinguishable) and predicate_api.py:1007 `return not bool(conflicting_targets(...))` on the empty-conflict path. Verified live: single outgoing edge -> True. It only *raises* when there is no matching transition at all (predicate_api.py:998-1003).",
+      "described": false,
+      "where": "predicates.py:280 meaning 'a shared source and trigger cannot reach two targets indistinguishably'; predicates.py:288-290 field_specs -- source: 'the declared source state the alternatives leave from', trigger: 'the declared shared event path; raises when no transition leaves source on it'; predicates.py:291-295 examples give True/False/raises but no single-target case. The word 'shared' and 'the alternatives' hint at multiplicity, but nothing states that one target makes the answer unconditionally True.",
+      "consequence": "This is precisely the shape of the observed '条件被折进事件名' defect: the model collapses two NL-distinguished outcomes into one transition, so the source/event has one target, and the distinguishability requirement -- which prompts.py:19-21 mandates for exactly this NL shape -- comes back True. The requirement is filed satisfied and the defect vanishes. The prompt block that mandates the requirement (prompts.py:19-21) and the one that fixes its polarity (prompts.py:89) both assume 2+ declared targets."
+    },
+    {
+      "predicate": "cardinality",
+      "behaviour": "Counts every non-pseudo direct substate, including converter-synthesised ones. predicate_api.py:1089-1090 `rows = states(parent=scope, recursive=False, exact=True); return len([r for r in rows if not bool(r.is_pseudo)]) == want`. Converter artefacts such as `UnspecifiedInitial`, `FinalWaittr_*`, `InvalidInitialtr_*` carry `is_pseudo=False` and are counted, so a scope whose author-owned children are 2 plus one synthetic node satisfies count=3.",
+      "described": "partial -- on the assertion side only",
+      "where": "predicates.py:301 proves 'a missing or duplicated mode in an enumerated set'; predicates.py:307-308 field_specs -- scope: 'the declared enclosing state whose DIRECT substates are counted', count: 'an integer; pseudo-states are not counted'. That is the whole description the **Requirement Splitter** and **Requirement Reviewer** see (vocabulary_prompt() renders exactly these fields), and it never mentions converter-generated states. The warning exists only downstream, in prompts.py:115 ('record in `limitations` that the count includes every declared non-pseudo direct substate, converter-generated ones among them') and prompts.py:125.",
+      "consequence": "The stage that chooses the number cannot know the number is contaminated. On 0043.PumpControl the composition is Region1 + Region2 + a synthetic node, and `cardinality(0043.PumpControl, 3) = True` -- the NL's 'three' is satisfied by two author states plus one converter artefact, so the cardinality defect reports as satisfied. The two downstream blocks only require a *limitation string*; they do not change the verdict, and a True verdict never becomes an issue no matter what limitation is attached."
+    },
+    {
+      "predicate": "reaches",
+      "behaviour": "(a) Silent False on a target the model does not declare -- verified live: `reaches(source=\"Root.Outer\", target=\"Root.NoSuchState\", within_cycles=3)` -> False with no refusal, because `_reaches_within`'s `hit()` only string-matches `cycle.active_states` (predicate_api.py:1431-1438) and nothing checks the target exists. (b) Pseudostates never appear in `active_states`, so a pseudo target is a constant False by the same path. (c) No horizon self-check -- verified live: `reaches(..., within_cycles=1)` -> False and `reaches(..., within_cycles=3)` -> True on the same binding, returned silently. Its sibling `occupancy_after` has exactly this self-check and raises instead (predicate_api.py:1109-1134: 'occupancy_after is False over N cycle(s) but True over M, so the answer is about the horizon rather than the model').",
+      "described": "partial -- only the trigger-blindness is described",
+      "where": "predicates.py:417-422 caveat 'Reachability here is a bounded witness, not a proof: it runs the model forward and reports whether the target was occupied within the cycle budget. It ignores triggers, so it cannot stand in for occupancy_after.'; predicates.py:426 field spec within_cycles 'cycle budget; default 3. Every declared event is offered each cycle, so this ignores which trigger caused it'. Nothing about undeclared targets, nothing about pseudo targets, and no counterpart to the `occupancy_after` horizon refusal.",
+      "consequence": "Three ways a `reaches` False is not evidence, and the prompt warns about none of them. Because the default budget is 3 and the reviewer is told only 'require an adequate horizon' (prompts.py:62), a too-small horizon publishes a bounded artefact as a reachability defect -- the failure prompts.py:127 calls 'the failure this gate exists to stop', with no gate behind it for `reaches`. In the other direction, offering the entire declared alphabet every cycle makes `reaches` an over-approximation of the environment, so a genuinely dead-end or absorbing state can still be witnessed and the reachability obligation reports satisfied."
+    },
+    {
+      "predicate": "variable_declared",
+      "behaviour": "Returns False for any route-control variable, by design: predicate_api.py:782-790 strips `compiler:route_control:` names out of the answer. On this corpus that is the only declared variable in most pairs -- `R45RouteToken` etc. -- so `variable_declared` is effectively constant-False and every quantitative-effect requirement becomes a precondition-False.",
+      "described": true,
+      "where": "predicates.py:123-127 caveat 'Route-control variables the converter generated are not counted: the effect facade drops them from every answer, so reporting one as declared would promise evidence no other call can deliver.'; renderer.py:120-128 compiler_owned_variables_note 'Created by the converter for its own routing, not by the model's author. ... If the NL requires a quantity and `variables` above is empty, this model has no variable of its own to carry it: name the variable it should have declared and assert that name's existence, rather than binding one of these.'; renderer.py:36-45 splits `variables` from `compiler_owned_variables_not_usable_as_evidence`; prompts.py:63 reviewer counterpart.",
+      "consequence": "This one IS adequately described -- arguably the best-documented behaviour in the system. The residual risk is not prompt-side: the resulting precondition-False is a legitimate issue per prompts.py:298, but attribution can still route it to `excluded_findings` as representation_debt (prompts.py:73), and nothing in the prompts tells a producer that the finding it is writing has a high chance of being excluded rather than published."
+    },
+    {
+      "predicate": "action_declared",
+      "behaviour": "Phase-presence only: predicate_api.py:984 `return bool(getattr(rows[0], field, ()) or ())`. Cannot see what the action does, and returns False (not a refusal) for a state the model does not declare (predicate_api.py:973-975).",
+      "described": true,
+      "where": "predicates.py:263-266 caveat 'Reports whether the phase declares any action at all, not what the action does.'",
+      "consequence": "Described, but never demonstrated: `action_declared` appears in no worked Requirement object (prompts.py:392-519) and no worked assertion object (prompts.py:571-670), and only once in the callable reference example list (predicates.py:809). With 10 human-found effect/action items and no routing rule from NL action wording to this predicate, the splitter has little reason to reach for it."
+    },
+    {
+      "predicate": "terminates",
+      "behaviour": "A witness search over the whole declared alphabet: predicate_api.py:1463 `offered = [trigger] if trigger else self._declared_alphabet()`, then `_bounded_witness` over TERMINATION_CYCLES returns True on the first run that ends. So 'can the model finish at all under some event sequence', not 'the model finishes as specified'.",
+      "described": "partial",
+      "where": "predicates.py:441 strength 'one bounded witness'; predicates.py:446-447 field_specs -- scope: 'the configuration to start from, or \"[*]\" for a cold start', trigger: 'optional; when given only that event is offered, otherwise every declared event is'. No caveat field. prompts.py:151-157 pushes every termination sentence here.",
+      "consequence": "'整机不能终止' can only be caught by `terminates(scope=\"[*]\")` returning False -- but prompts.py:211 and predicates.py:726-730 make `[*]` legal only when `behavior_phase == \"initialization\"`, and capability.py:687-714 hard-fails a RequirementSet that anchors a termination-phase claim at `[*]`. So the natural way to state 'the machine must be able to finish' is refused by a deterministic gate, and the alternative (`terminates` from a named running state) succeeds as soon as any event sequence from that state ends the run."
+    },
+    {
+      "predicate": "occupancy_after",
+      "behaviour": "Default `within_cycles=1`, with a horizon self-check that RAISES `UnsupportedEvidence` when a larger horizon would answer True (predicate_api.py:1109-1134).",
+      "described": true,
+      "where": "predicates.py:332 field spec 'within_cycles: how many cycles to run; default 1'; prompts.py:117 'Multi-step response gate: count the declared steps before choosing `within_cycles`. `occupancy_after` defaults to 1, which observes only the immediate successor'; prompts.py:127 reviewer counterpart.",
+      "consequence": "Well described. Noted only for contrast: the identical hazard on `reaches` gets neither the self-check nor the prompt block."
+    }
+  ],
+
+  "counterproductive_instructions": [
+    {
+      "quote": "Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement.",
+      "where": "prompts.py:6 (REQUIREMENT_SPLITTER_PROMPT base), reinforced by prompts.py:7 'The current FCSTM and inspect diagnostics are orientation evidence only. Never rewrite an NL requirement to agree with the current model, and never turn a tool warning into a requirement.' and prompts.py:526 'Derive the Requirement from the natural language, not from the model.'",
+      "why": "Correct as an anti-gold-leakage rule, but it makes the issue space exactly the set of NL obligations. Every direction whose defect is a property of the *model* rather than a restatement of a sentence is structurally unreachable: dead ends and absorbing states (reachability), spurious/self-invented events (event), clone states (cardinality), fork/join/junction type errors (pseudostate), and an unexpanded `<<submachine>>` (hierarchy). That is roughly 40 of the 153 human-counted items sitting in directions the splitter is forbidden to open a requirement for."
+    },
+    {
+      "quote": "If the model exposes one combined event for a natural-language conjunction or disjunction, use that exact declared event and state the representation limitation; do not invent separate atomic events from punctuation or an opaque label.",
+      "where": "prompts.py:46 (ASSERTION_CONVERTER_PROMPT); the same waiver appears three more times -- prompts.py:62 'do not require nonexistent atomic events or reject solely because punctuation suggests an AND/OR interpretation', prompts.py:89 'If the FCSTM exposes one combined event for several NL alternatives, use it as one transparent representation proxy, state that the alternatives cannot be separated', prompts.py:104 'Do not keep requesting revisions solely because ... one combined event cannot separate several NL alternatives'; and on the requirement side prompts.py:240 'A source-authored combined event may represent several NL alternatives only when the supplied source trace supports the same disjunction and the expected response is identical'",
+      "why": "This is the single most direct suppression in the system. '三个条件被压成一个复合事件名' is the defect; the prompt names that exact shape and classifies it as a representation limitation to be *disclosed*, not a contradiction to be asserted False. It also collaterally kills the '条件被折进事件名' form of the guard direction, because once the merged event is accepted as the trigger there is only one target and `guard_distinguishable` is vacuously True."
+    },
+    {
+      "quote": "This helper proves indistinguishability only for empty or identical guards; an unsupported guarded case is a limitation, not an issue.",
+      "where": "prompts.py:82 (ASSERTION_CONVERTER_PROMPT); reviewer counterpart prompts.py:98 'Treat unsupported overlap between non-identical guarded transitions as a stated limitation, not as a confirmed conflict.'",
+      "why": "Downgrades the hardest and commonest guard case -- two non-identical guards that actually overlap -- from a finding to prose. Combined with predicate_api.py:1063-1067, which raises `UnsupportedEvidence` when `guards_overlap` cannot decide, an overlapping-guard defect produces neither True nor False but a refusal, and the prompt pre-authorises treating that as acceptable."
+    },
+    {
+      "quote": "Do not require all modes or all substates when the NL has no universal quantifier and the selected representative configurations cover the declared scope.",
+      "where": "prompts.py:62 (ASSERTION_REVIEWER_PROMPT), alongside 'A finite, semantically justified set of hot-start configurations with an explicit limitation is acceptable when the NL does not provide an unbounded quantifier; do not demand an impossible 100% enumeration merely because a requirement is phrased broadly.'",
+      "why": "Sanctions sampling. When the NL says 'in any operating mode, X shall ...', the reviewer is told not to insist on covering every mode -- so a defect present in only one of several modes (a common shape for the reachability and entry directions) is legitimately never probed."
+    },
+    {
+      "quote": "If this list is empty, nothing ends the run -- a completion claim is then about reaching a declared state, or, when no declared state carries the sentence's completion notion at all, step 4 applies and you propose the name.",
+      "where": "renderer.py:81-85 (`terminating_transitions_note`, injected into the splitter, requirement-reviewer and converter payloads)",
+      "why": "Presents 'this model has no terminating transition at all' as a routine modelling choice to be worked around, not as a candidate finding. '无终态 / 整机不能终止' is the second-largest cluster inside the 26-item reachability direction, and the only per-model note that mentions it steers the producer away from reporting it."
+    },
+    {
+      "quote": "Do not keep requesting another revision only to classify an unobservable completion boundary, domain-specific state-region label, or missing quantity more finely; state the limitation in the assertion description and accept the strongest defensible finite check.",
+      "where": "prompts.py:62 (ASSERTION_REVIEWER_PROMPT convergence clause), reinforced at prompts.py:104",
+      "why": "Written to stop revision-loop death (a real prior failure), but it makes 'attach a limitation string' a universally available exit from any hard evidence question. prompts.py:113 and prompts.py:123 add a `Limitation non-waiver` counter-rule, but that counter-rule is scoped to 'source, trigger, destination, hierarchy, or effect mismatch' -- it does not cover cardinality, distinguishability, entry-trigger, or reachability."
+    },
+    {
+      "quote": "[NEGATIVE FINDING] No concurrency or timing prohibition exists.",
+      "where": "grep -iE '\\bclock\\b|\\breal-time\\b|\\bconcurren|\\bparallel\\b|orthogonal' over prompts.py, predicates.py and renderer.py returns zero matches; 'timing' appears only twice and both are *preservation* instructions -- prompts.py:6 'Preserve quantifiers, scope, ordering, modes, conditions, timing, effects, termination, and exclusivity stated by the source' and prompts.py:223 'Preserve `quantifier`, `trigger`, `expected_outcome`, `timing`, `limitations`'",
+      "why": "The audit question asked whether a concurrency/time ban is worded broadly enough to also repel in-scope items such as 'NL names three substates and the model has one'. It is not, because no such ban exists at all. The suppression of in-scope items runs entirely through the 'representation limitation' wording (5 occurrences: prompts.py:46, 62 x2, 89, 104), not through a concurrency or timing exclusion."
+    }
+  ],
+
+  "output_limits": [
+    {
+      "quote": "[NONE FOUND] No prompt anywhere caps the number of requirements, assertions or issues, and no prompt says 'prioritise the most important' or 'report at most N'.",
+      "where": "grep -inE 'at most|no more than|maximum of|top [0-9]|most important|prioriti' over prompts.py, predicates.py, renderer.py, environment.py: zero matches. The only quantity instructions push the other way -- prompts.py:47 'Every Requirement must have at least one assertion and requirement_mapping must be complete', prompts.py:214 'its keys must match `nl_segments` **exactly** -- one entry per frozen segment id, no more and no fewer, including the segments you did not turn into requirements. A set listing only the covered ones is rejected before review.', prompts.py:296 'Always emit `issues` and `excluded_findings` explicitly, as `[]` when there is nothing to put in them.'"
+    },
+    {
+      "quote": "parser.add_argument(\"--max-output-tokens\", type=int)",
+      "where": "cli.py:57 -- no `default=`, so the value is None and responder.py:212-221 passes no `max_tokens` / `max_completion_tokens` at all. There is no configured output cap in the pipeline.",
+      "note": "Truncation is nevertheless a known real phenomenon at the provider level for this node: renderer.py:56 records 'pair 0029's 36 exit rows added 8.5 KB to a 2 KB vocabulary, and its requirement splitter is the one call in the corpus whose response the gateway truncates.' That is a payload-size effect, not a prompt instruction."
+    },
+    {
+      "quote": "MAX_REQUIREMENT_REVIEW_REPAIRS = 5 / MAX_REQUIREMENT_CONTRACT_REPAIRS = 5 / MAX_ASSERTION_REVIEW_REPAIRS = 5 / MAX_ASSERTION_PRECHECK_REPAIRS = 5 / MAX_PRECHECK_ROUNDS = 12",
+      "where": "nodes.py:84-100",
+      "note": "Not an output-length limit, but a real truncation of the issue set: a RequirementSet that trips a deterministic gate five times is abandoned, and every requirement in it -- including the ones that were fine -- is lost. capability.py:563 and predicate_api.py:840-844 both record concrete pairs where this happened ('five rounds and the run dies'; 'Two of pair 0029's requirements were lost that way in one cell')."
+    }
+  ],
+
+  "prompt_vs_impl_mismatches": [
+    {
+      "predicate": "initial_target",
+      "prompt_says": "renderer.py:87-89 (`initial_entries_note`, in the splitter/reviewer/converter payload): 'Declared entries per composite. Entry takes an `unconditional` edge when one exists; a guarded or triggered entry is only taken when its condition already holds. `initial_target` claims are decided against this'. Combined with predicates.py:190 'entering this composite starts in this child', a producer reads: a triggered entry does not decide entry, so `initial_target` should be False for it.",
+      "impl_does": "predicate_api.py:876-898 returns the single declared entry's target regardless of trigger or guard -- 'A single declared entry *is* the entry, whatever labels it. pyfcstm counts an edge as unconditional only when it carries neither guard nor event, so `[*] -> RunningState : /Activate_Pump` was \"conditional\" and the predicate refused -- on 22 of the corpus's 169 composites'. Reproduced: model `[*] -> TurnOn : /Start`, payload `{\"unconditional\": false, \"trigger\": \"Root.Start\"}`, `initial_target(composite=\"Root\", child=\"Root.TurnOn\")` -> True.",
+      "where": "renderer.py:87-89 vs assertions/predicate_api.py:876-898",
+      "severity": "the direct prompt-side cause of the '带触发的初始边' miss"
+    },
+    {
+      "predicate": "initial_target",
+      "prompt_says": "renderer.py:99-105: 'When a composite lists two or more entries and none is unconditional, `initial_target` cannot answer at all and raises.' The implicature is that the single-entry case answers correctly.",
+      "impl_does": "predicate_api.py:882-898 short-circuits on `len(entries) == 1` *before* any unconditional test, so the single-entry case answers from an edge the note has just told the producer is not decisive. The raise described in the note only covers `len(entries) >= 2 and no unconditional` (predicate_api.py:922-927).",
+      "where": "renderer.py:99-105 vs assertions/predicate_api.py:882-927",
+      "severity": "same root cause, stated as a second visible inconsistency in the payload text"
+    },
+    {
+      "predicate": "guard_distinguishable",
+      "prompt_says": "prompts.py:89 'When an accepted Requirement says alternative targets must be distinguishable, its predicate is `guard_distinguishable(source=..., trigger=...)` and it is *already* in the positive direction: True means no proven overlapping targets, False identifies the conflict.' predicates.py:280 'a shared source and trigger cannot reach two targets indistinguishably'.",
+      "impl_does": "Also returns True when there is exactly one target -- predicate_api.py:1048 (`len(targets) <= 1 -> not indistinguishable`) and predicate_api.py:1007 (`not bool(conflicting_targets(...))` over an empty conflict set). 'True means no proven overlapping targets' is technically consistent, but the prompt never says that 'no alternatives declared at all' is one of the ways to get True, which is exactly the defect state.",
+      "where": "prompts.py:89 / predicates.py:280 vs assertions/predicate_api.py:1004-1007, 1040-1048",
+      "severity": "the direct prompt-side cause of the '同事件两目标不可区分' miss whenever the model has collapsed the alternatives"
+    },
+    {
+      "predicate": "cardinality",
+      "prompt_says": "predicates.py:308 (rendered to the Requirement Splitter and Requirement Reviewer): 'count: an integer; pseudo-states are not counted'. predicates.py:300 'this scope declares exactly this many non-pseudo states'.",
+      "impl_does": "predicate_api.py:1089-1090 counts every direct substate with `is_pseudo == False`, which includes converter-synthesised nodes (`UnspecifiedInitial`, `FinalWaittr_*`, `InvalidInitialtr_*`) -- these are ordinary states in the inspect table, not pseudostates. The converter and reviewer prompts know this (prompts.py:115, 125) but the requirement stages do not.",
+      "where": "predicates.py:300-308 (via vocabulary_prompt(), predicates.py:749-764) vs assertions/predicate_api.py:1089-1090; the missing warning is present only at prompts.py:115 and prompts.py:125",
+      "severity": "makes `cardinality` return True on models whose author-owned mode count is wrong (measured: cardinality(0043.PumpControl, 3) = True over Region1 + Region2 + a synthetic node)"
+    },
+    {
+      "predicate": "reaches",
+      "prompt_says": "prompts.py:62 (reviewer) 'What you can require is an adequate horizon: `within_cycles` on `occupancy_after` / `reaches`, `bound` on Family P.' and prompts.py:127 'A False produced by too small a horizon is a bounded artifact, not a defect, and publishing one is the failure this gate exists to stop.' Both sentences name `reaches` alongside `occupancy_after` as if the two behave the same way.",
+      "impl_does": "`occupancy_after` has a horizon self-check that raises rather than returning a bounded False (predicate_api.py:1109-1134). `reaches` has none -- predicate_api.py:1273-1287 goes straight to `_reaches_within`, which returns a plain False. Verified: same binding, `within_cycles=1` -> False, `within_cycles=3` -> True, both silent. The prompt's 'gate' exists in code for one of the two predicates it names.",
+      "where": "prompts.py:62, 117, 127 vs assertions/predicate_api.py:1109-1134 (has the check) and 1273-1287 (does not)",
+      "severity": "both directions: fabricated reachability defects from a short horizon, and no refusal to alert the reviewer"
+    },
+    {
+      "predicate": "reaches",
+      "prompt_says": "predicates.py:417-422 caveat names exactly one boundary -- 'It ignores triggers, so it cannot stand in for occupancy_after.' prompts.py:362 repeats it: '`reaches` ignores triggers and cannot stand in for `occupancy_after`.'",
+      "impl_does": "Two further silent-False boundaries go unmentioned. (a) An undeclared but well-formed target returns False, not a refusal -- verified: `reaches(source=\"Root.Outer\", target=\"Root.NoSuchState\", within_cycles=3)` -> False. Its Family-S sibling `cardinality` refuses in the analogous case ('the model declares no state at ..., so it has no substates to count. A count over a scope that does not exist decides nothing', predicate_api.py:1084-1088), and `guard_distinguishable` refuses too (predicate_api.py:999-1003); `reaches` alone answers. (b) `hit()` matches only `cycle.active_states` (predicate_api.py:1431-1438), which never contains a pseudostate, so a pseudo target is a constant False.",
+      "where": "predicates.py:417-422 and prompts.py:362 vs assertions/predicate_api.py:1273-1287, 1431-1438; contrast predicate_api.py:1080-1088 and 998-1003",
+      "severity": "a `reaches` False can mean 'not reachable', 'you spelled it wrong', 'that is a pseudostate' or 'your horizon was short', and the prompt distinguishes none of them"
+    },
+    {
+      "predicate": "terminates",
+      "prompt_says": "predicates.py:446 field spec 'scope: the configuration to start from, or \"[*]\" for a cold start'; predicates.py:452 example `terminates(scope=\"[*]\")  # can the model finish at all from a cold start`; predicates.py:725-728 'That is true even when the claim is about the run ending: `terminates(scope=\"[*]\")` asks whether a cold start can finish, and the anchor is still the initial configuration.'",
+      "impl_does": "The call is legal, but the *requirement* carrying it is hard-rejected upstream unless `behavior_phase == \"initialization\"`: capability.py:687-714 `initialization_anchored_findings` raises in nodes.py:1246-1250 ('requirements are anchored or named against what the frozen model already says'), and prompts.py:211/524 forbid `[*]` outside initialization. A whole-machine 'can it ever finish' claim is naturally phase=termination, so the vocabulary advertises a call the requirement contract will not let through.",
+      "where": "predicates.py:446-452, 725-728 vs discover/capability.py:687-714 + prompts.py:211, 524, 543",
+      "severity": "removes the only expressible form of '整机不能终止'"
+    },
+    {
+      "predicate": "state_declared",
+      "prompt_says": "predicates.py:106 'kind: one of \"leaf\" (no substates), \"composite\" (has substates), \"pseudo\" (an initial/final marker), or \"any\" (declared at all)'.",
+      "impl_does": "predicate_api.py:750-758 accepts a wider alias set than the prompt lists -- 'leaf'|'simple', 'composite'|'submachine'|'compound', 'pseudo'|'pseudostate', 'any'|'declared'|''. Harmless in itself, but the schema Literal is built from the prompt's four values (predicates.py:576), and the prompt's gloss of 'pseudo' as 'an initial/final marker' is narrower than the model's own `is_pseudo` flag, which is how fork/join/junction/choice fall out of the vocabulary's field of view entirely.",
+      "where": "predicates.py:106 vs assertions/predicate_api.py:750-758",
+      "severity": "minor on its own; contributes to the pseudostate direction being invisible"
+    },
+    {
+      "predicate": "guard_distinguishable / FBMCQ",
+      "prompt_says": "prompts.py:351 (FBMCQ_CAPABILITY_BOUNDARY) 'Use `conflicting_targets(source=..., event=...)` for guard indistinguishability; it already ranges over every valuation and refuses to answer rather than guessing.'",
+      "impl_does": "`conflicting_targets` is not callable from an assertion. environment.py:19-23 states the opposite: 'There is no `simulate`, no `fbmcq`, no `states`, no `transitions`, no `transition_exists`, no `path`, no `topology`.' The only reachable name is the predicate `guard_distinguishable`. FBMCQ_CAPABILITY_BOUNDARY is defined at prompts.py:350-353 and, on inspection, is never appended to any prompt -- it is dead text superseded by PREDICATE_EVIDENCE_BOUNDARY (prompts.py:355-366), which correctly says `guard_distinguishable`. Worth confirming before relying on either quote.",
+      "where": "prompts.py:350-353 (unreferenced) vs assertions/environment.py:19-23 and prompts.py:358",
+      "severity": "no live effect found, but it is a stale contradiction sitting in the prompt module"
+    }
+  ],
+
+  "top_three_prompt_side_causes_of_under_detection": [
+    {
+      "rank": 1,
+      "cause": "The pipeline can only report what the NL states as an obligation, and nothing tells it to look for model-side defects.",
+      "quote": "prompts.py:6 'Cover every normative NL segment; mark descriptive context as context rather than inventing a requirement.' + prompts.py:526 'Derive the Requirement from the natural language, not from the model. You are shown the model so you can spell its identifiers correctly and see what it declares -- not so you can read the obligation off it.' + prompts.py:7 'never turn a tool warning into a requirement ... do not emit a benchmark issue taxonomy.'",
+      "why": "This is a deliberate anti-leakage design and it is why the 19 `exposes:` phrases in predicates.py are the only defect-direction signal in a ~60 KB prompt. Every direction whose defect is a property of the artefact rather than a restatement of a sentence -- dead ends and absorbing states, an empty terminating set, self-invented events, clone states, fork/join/junction/choice type errors, an unexpanded `<<submachine>>` -- has no entry point. Roughly 40 of the 153 human items sit in shapes the splitter is instructed not to open a requirement for."
+    },
+    {
+      "rank": 2,
+      "cause": "Three merged-representation waivers convert real defects into 'representation limitations' to be disclosed rather than asserted.",
+      "quote": "prompts.py:46 'If the model exposes one combined event for a natural-language conjunction or disjunction, use that exact declared event and state the representation limitation; do not invent separate atomic events from punctuation or an opaque label.' / prompts.py:62 'do not require nonexistent atomic events or reject solely because punctuation suggests an AND/OR interpretation' / prompts.py:82 'This helper proves indistinguishability only for empty or identical guards; an unsupported guarded case is a limitation, not an issue.'",
+      "why": "These name the observed defect shapes almost verbatim -- '三个条件被压成一个复合事件名' and '条件被折进事件名' -- and pre-classify them as acceptable. The counter-rule that would stop this (prompts.py:113, 123 `Limitation non-waiver`) is scoped to 'source, trigger, destination, hierarchy, or effect mismatch' and does not reach event-merging or distinguishability. The knock-on is worse than the direct loss: once the merged event is accepted as the trigger, the source/event has a single target and `guard_distinguishable` returns vacuous True, so the distinguishability requirement that prompts.py:19-21 mandates for exactly this NL shape files as satisfied."
+    },
+    {
+      "rank": 3,
+      "cause": "The two predicates the entry and guard directions depend on return True in precisely the defective configuration, and no prompt text warns of it.",
+      "quote": "predicates.py:190-191 (all the splitter and reviewer are told about `initial_target`) 'asserts: entering this composite starts in this child / exposes: wrong or missing initial child; entry lands in the wrong mode' -- no `caveat` field is set, so no `boundary:` line is rendered; and predicates.py:280 'asserts: a shared source and trigger cannot reach two targets indistinguishably' with no statement that one target yields True.",
+      "why": "Verified live: `[*] -> TurnOn : /Start` gives `initial_target(\"Root\",\"Root.TurnOn\") = True` while the same payload shows the producer `unconditional: false, trigger: Root.Start`; and a single-target source/event gives `guard_distinguishable = True`. Both are silent positive passes on the defect, so 'entry' (25 items) and 'guard' (22 items) -- the two largest directions after reachability -- fail closed. The prompt makes it worse by asserting the opposite semantics at renderer.py:88-89 ('a guarded or triggered entry is only taken when its condition already holds'), so a producer that reasons correctly from the payload still gets True and files the requirement satisfied. Neither behaviour is expressible any other way: no predicate can say 'the initial edge shall carry no trigger', and none can say 'this transition shall have a guard'."
+    }
+  ]
+}

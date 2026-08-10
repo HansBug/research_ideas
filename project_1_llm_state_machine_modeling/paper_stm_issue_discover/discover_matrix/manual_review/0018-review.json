@@ -1,0 +1,141 @@
+{
+ "case": "0018",
+ "group": "NL04",
+ "llm": "GPT-4",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "state fork1 <>; state choice1 <>; state Junction3 <>; state Join2 <> …",
+   "gen": "state fork1 <<fork>>; state choice1 <<choice>>; state Junction3 <<junction>>; state join2 <<join>> …（8 个伪状态全部带正确 stereotype）",
+   "reason": "本组唯一把伪状态类型全部显式声明的一份，FCSTM 投影确认为 pseudo state；参考自身只写成退化的 state X <>，作者源在这一点上比参考更规范。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0018.fork1', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "fork1 --> choice3;  choice3 --> ChargedFlash;  choice3 --> Junction3:[Charged=true]",
+   "gen": "choice3 从未声明；choice1 --> fork2（自造 fork）、fork2 --> ChargedFlash、choice1 --> ChargedFlash : memFull=true",
+   "reason": "NL 第 5、7 句要求闪光分支挂在 fork1 --> choice3 之下并由 choice3 直连 Junction3；本模型删掉 choice3、自造一个 fork2 顶替，并让 ChargedFlash 从 choice1 进入（还重复测一次 memFull=true，与 AutoFocus --> choice1 的守卫冗余，且 choice1 --> fork2 无守卫，两条出边在 memFull=true 时不可区分）。缺 choice3、缺 fork1 --> choice3、缺 choice3 --> Junction3 三处均源于此。与台帐 EXP-0018-SH-001 一致。",
+   "assertable": "state_declared(state='choice3', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Join2 --> Fork2;  Fork2 --> Junction2;  Fork2 --> Flash",
+   "gen": "join2 --> Junction2;  join2 --> Flash : activated（Fork2 被旁路，fork2 挪去服务 ChargedFlash 分支）",
+   "reason": "NL 第 11 句要求 Join2 先进入 Fork2，再由 Fork2 分出 Junction2 与 Flash；本模型把两条边直接挂在 join2 上，Fork2 在拍照分支中不存在。与台帐 EXP-0018-TR-001 一致。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0018.join2', trigger='<无触发>', target='llms_emp_feedback_final_0018.fork2')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "TurnOn: execTime=[(2,s,max),(2,s,min)]；AutoFocus (2,1)；DetLight (1,0)；ChargedFlash (4,2)；WriteMemory (3,2)",
+   "gen": "5 处执行时间全部消失（Phase-I 的 I20 还有 2 sec / 1-2 sec / <1 sec / 2-4 sec / 2-3 sec，Phase-II 重写后全删）",
+   "reason": "NL 第 1、3、4、5、9 句共 5 处最大/最小执行时间在最终制品里一处不剩，是本组时间信息丢失最彻底的一份。时间类差异标 out_of_scope: timing；19 谓词无状态 timing 查询，无法断言（同台帐 E2c）。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "timing"
+  },
+  {
+   "verdict": "similar",
+   "ref": "choice2 --> Join2（无守卫）;  choice2 --> Join1 : [sunny=true]",
+   "gen": "choice2 --> join2 : sunny=false;  choice2 --> join1 : sunny=true",
+   "reason": "把 NL 第 8 句读成 choice 伪状态的互补二分支（sunny 真去 Join1、假去 Join2）在 UML 上是惯用且确定的写法，而参考的『无守卫 + sunny=true』这一对在 sunny 为真时本身就是不确定的。该读法语义说得通、不违反 NL，故按规范判 similar——此处我明确不同意台帐 EXP-0018-GC-001 把它列为 problem。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0018.choice2', trigger='<必须是无守卫边，19 谓词无法表达>', target='llms_emp_feedback_final_0018.join2')",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "NL 第 6 句：The transition occurs when Charged=true",
+   "gen": "ChargedFlash --> Junction3 : Charged=true",
+   "reason": "本模型把 Charged=true 挂在 ChargedFlash --> Junction3，与 NL 第 6 句字面一致（参考反而挂在 choice3 --> Junction3，NL 与参考在此互相矛盾）；这也是台帐对 0038 所要求的位置。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0018.ChargedFlash', trigger='llms_emp_feedback_final_0018.Charged_true', target='llms_emp_feedback_final_0018.Junction3')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*] --> TurnOn; TurnOn --> fork1; fork1 --> AutoFocus; fork1 --> DetLight; AutoFocus --> choice1:[memFull=true]; DetLight --> choice2; Junction3 --> Join2; Join1 --> Junction2; Junction2 --> TakePicture; TakePicture --> WriteMemory; WriteMemory --> Junction1; Junction1 --> TurnOff; TurnOff --> [*]; Flash --> Terminate",
+   "gen": "同名同向 14 条边均存在（join1/join2 大小写不同）",
+   "reason": "主干拓扑扁平且与参考同构，含正确的 memFull 守卫位置与全局终态。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0018.AutoFocus', trigger='llms_emp_feedback_final_0018.memFull_true', target='llms_emp_feedback_final_0018.choice1')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Join1 / Join2",
+   "gen": "join1 / join2（小写）；guard 写成裸标签 memFull=true / Charged=true / sunny=true 而非 [ ... ]",
+   "reason": "命名大小写与守卫记法差异；NL 原文本身也把条件写成裸表达式，属写法不同不影响语义。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0018.join2', kind='pseudo')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "[*] --> TurnOn（无触发）;  Junction1 --> TurnOff（无触发）",
+   "gen": "[*] --> TurnOn : Start;  Junction1 --> TurnOff : end",
+   "reason": "自造 Start / end 两个事件；UML 不允许初始迁移带触发，junction 出边也不应带触发，NL 中均无对应事件，属 over-specification。",
+   "assertable": "event_declared(event='llms_emp_feedback_final_0018.Start')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1; choice1 --> Junction1; fork/join 无正交区域; state X <> 退化; NL 第 6 句与参考的 Charged=true 位置冲突",
+   "gen": "—",
+   "reason": "参考侧存疑同 0008。此外本 case 的论文 F1 从 Phase-I 0.8696 掉到 Phase-II 0.3448（TP 30→10），但 Phase-II 制品是扁平且伪状态类型齐备的版本，其中至少 17 个参考命名节点与 14 条参考同向边仍在，TP=10 与制品内容不符；Phase-I 的 I20 反而是层层错嵌的版本却拿到 TP=30。这说明论文的元素重合式 F1 主要奖励名字出现、对层次与可达性不敏感，且本行计数很可能人工失误。这属度量有效性问题，无法用当前证据判定哪一侧数值正确。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 1,
+ "vs_paper": "论文：format 栏『syntax error: choice2 --> Join1 when : sunny=true』(resolved YES)；grammar 栏『1. transition can not connect the state within composite state and composite state itself』(resolved YES)；语义栏『1.incorrect expression of join, fork, junction』，semantic_resolved=0.0。F1 Phase-I 0.8696 → Phase-II 0.3448。论文语义栏的指控在这份最终制品上其实不成立——它是本组唯一把 fork/choice/join/junction 全部正确 stereotype 化的模型；论文未记录我判的三个真问题（choice3 缺失、Fork2 旁路、时间全丢）。",
+ "vs_ledger": "台帐 status=mixed，3 条 E1：EXP-0018-SH-001（choice3 缺失）对应我的第 2 条；EXP-0018-TR-001（fork2 接错分支 / Join2-Fork2 缺失）对应我的第 3 条；EXP-0018-GC-001（choice2 --> join2 被 sunny=false 收窄）我判为 similar，明确不同意升级为 problem，理由是 choice 伪状态的互补二分支是合法读法而参考的无守卫写法自身不确定。observation camera_timing_adapter_missing（E2c）对应我的第 4 条 timing。",
+ "notes": "GPT-4 的 Phase-II 制品在伪状态建模上是全组最规范的，真实缺陷集中在闪光分支重接（丢 choice3、自造 fork2、ChargedFlash 从 choice1 进入）与 Fork2 旁路，加上执行时间被 Phase-II 重写全部删除。3 个 problem 中 1 条标 timing，范围内 2 条。本 case 是论文 F1 度量最可疑的一例：制品变好而 TP 从 30 掉到 10。",
+ "_source_file": "NL04-0018.json",
+ "cross_reference": {
+  "case": "0018",
+  "group": "NL04",
+  "llm": "GPT-4",
+  "counts": {
+   "correct": 3,
+   "similar": 2,
+   "problem": 3,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "timing": 1
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": "syntax error: choice2 --> Join1 when : sunny=true",
+   "grammar": "1. transition can't connect the state within composite state and composite state itself",
+   "semantic": "1.incorrect expression of join, fork, junction",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.8695652174,
+   "f1_phase2": 0.3448275862
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0018-GC-001",
+    "EXP-0018-SH-001",
+    "EXP-0018-TR-001"
+   ],
+   "e1_categories": [
+    "GC",
+    "SH",
+    "TR"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

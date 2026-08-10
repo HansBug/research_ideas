@@ -1,0 +1,124 @@
+{
+ "case": "0056",
+ "group": "NL03",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "similar",
+   "ref": "state Raster_Scanning { r1 -- r2 -- r3 }（三个正交区域）",
+   "gen": "state SearchState { Area1 --> Area2 --> Area3 --> Area1  --  NoIntercept <-> Intercepted }",
+   "reason": "NL 第 2 句『operates within three different state areas』也可读作『在三个区域间轮转』；本模型显式给出 Area1/Area2/Area3 三个区域态并循环遍历，数量断言在这一读法下满足。正交与否属并发类差异，单独标注；参考的『三个正交区域』只是其中一种读法。注意 cardinality(scope=SearchState, count=3) 会因第二区域的两个状态而返回 false，这是谓词无法表达区域数的又一处缺口。",
+   "assertable": "cardinality(scope='llms_emp_feedback_final_0056.SearchState', count=3)  # 实际 5 个直接子状态，返回 false",
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "problem",
+   "ref": "拦截只有一种后果：Fly_Along_the_Path --> Formation_Adjustment",
+   "gen": "SearchState.NoIntercept --> SearchState.Intercepted : Intercepted  与  SearchState --> FormationAdjustment : Intercepted 同时使能",
+   "reason": "同一 Intercepted 事件在同一活动配置下有两个可达目标（区域内的 Intercepted 态、composite 出边到 FormationAdjustment），且两者都无区分守卫，构成不可区分的冲突目标；若内层胜出，NL 第 3 句『被拦截即转入编队调整』就不成立。FCSTM 投影同时含 NoIntercept -> Intercepted : /Intercepted 与 Area* -> [*] : /Intercepted（token=9，即出到 FormationAdjustment），冲突可直接确认。",
+   "assertable": "guard_distinguishable(source='llms_emp_feedback_final_0056.SearchState.NoIntercept', trigger='llms_emp_feedback_final_0056.Intercepted')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Strike_the_Target: exit/ NumberofCru--",
+   "gen": "AttackState --> SearchState : Attack Complete [Decrease UAV Count]",
+   "reason": "递减被写在 UML 的 guard 槽位 [...] 而不是 effect 槽位 /，语义读作『若 Decrease UAV Count 成立则迁移』，与『迁移时执行递减』不同，且该条件不可满足。这与 0016/0036/0046 写在 / 后的情形有本质区别：那三例是前端未切分 / 造成的 lowering 债务，本例是作者把动作放进了错误的记法槽位。因此我不认同台帐对 0056 沿用 E3。",
+   "assertable": "effect_declared(source='llms_emp_feedback_final_0056.AttackState', trigger='llms_emp_feedback_final_0056.Attack_Complete', variable='uav_count', sign='negative')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "参考无拦截状态记账区域",
+   "gen": "第二区域 NoIntercept <-> Intercepted，含自造事件 Intercept Resolved",
+   "reason": "NL 未要求为拦截状态单独建区域，也没有『拦截解除』事件；属额外元素，并且正是第 2 条冲突的来源。",
+   "assertable": "state_declared(state='llms_emp_feedback_final_0056.SearchState.NoIntercept', kind='leaf')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Raster_Scanning --> [*]: when (NumberofCru == 0)",
+   "gen": "SearchState --> [*] : Mission Complete",
+   "reason": "本组唯一在顶层给出 final 且从搜索态发出的一例，NL 第 2 句『任务完成之前持续搜索』被正确编码；用事件而非 count==0 表达完成条件，比参考更贴 NL 原文。",
+   "assertable": "terminates(scope='[*]', trigger='llms_emp_feedback_final_0056.Mission_Complete')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "Fly_Along_the_Path_2 --> Strike_the_Target : Mission_assignment...;  Formation_Adjustment --> Fly_Along_the_Path;  Strike_the_Target --> Fly_Along_the_Path_2 : Strike_successful",
+   "gen": "SearchState --> AttackState : Task Assignment Received;  FormationAdjustment --> SearchState : Adjustment Complete;  AttackState --> SearchState : Attack Complete [...]",
+   "reason": "NL 第 3、4 句的四条主干边（去/回各两条）全部到位，从 composite 发出使其在任意区域态生效，属合理泛化。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0056.SearchState', trigger='llms_emp_feedback_final_0056.Task_Assignment_Received', target='llms_emp_feedback_final_0056.AttackState')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Search_for_the_Target --> Search_for_the_Target（自环，无触发）",
+   "gen": "Area1 --> Area2 --> Area3 --> Area1（均无触发，completion 迁移）",
+   "reason": "区域间轮转用无触发 completion 迁移，参考第三区域也只是无触发自环，两者对『如何在区域间移动』都未给出具体条件，等价地含糊。",
+   "assertable": "edge_declared(source='llms_emp_feedback_final_0056.SearchState.Area1', trigger='', target='llms_emp_feedback_final_0056.SearchState.Area2')  # 19 谓词无法表达『无触发边』，trigger 必填 str",
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Raster_Scanning: do / Target_search",
+   "gen": "无 do 动作，也无描述行",
+   "reason": "同本组其他 case 统一按 similar 不计问题数；0056 与 0016 一样连描述行都没有。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0056.SearchState', phase='during')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "Strike_the_Target --> Strike_the_Target : Intercepted_by_UAV_interception",
+   "gen": "SearchState --> FormationAdjustment : Intercepted（从搜索 composite 发出）",
+   "reason": "参考在打击态把拦截处理成自环，与 NL 第 3 句相反；本 case 恰好选了 NL 忠实读法（拦截一律转编队调整），却会因此与参考不匹配而计入 FP/FN。此外 when (NumberofCru == 0)、第三区域 do/Determine_a_new_target 同样无 NL 依据。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 1,
+ "vs_paper": "论文：format/grammar 栏 None；语义栏『1. missing regions』，semantic_resolved=1.0。F1 Phase-I 0.2222 → Phase-II 0.4545（TP 5→10）。论文的 'missing regions' 在本 case 确实被修（加了 -- 并发区域），但论文没记录真正的两个缺陷：Intercepted 事件双重消费造成的不可区分冲突、以及递减被写进 guard 槽位。我判的 problem 论文 0 条命中。",
+ "vs_ledger": "台帐 status=representation_boundary，0 条 E1，唯一 observation 为 uav_concurrency_or_textual_effect_boundary（E3，理由『作者源已包含相应文本或区域』）。我部分不同意：对 0016/0036/0046 的 / effect 写法 E3 成立，但 0056 把递减写成 [Decrease UAV Count] 即 guard，属记法槽位错误而非前端 lowering 债务，应升为 EA/GC 类问题（我的第 3 条）。第 2 条（Intercepted 冲突目标）可用 guard_distinguishable 直接断言，台帐完全未收，属明确的 E1 候选。",
+ "notes": "Claude 是本组唯一同时做到『三个区域态 + 顶层终态 + 四条主干边完整』的一份，Phase-II F1 0.4545 属第三高；它的两个真实缺陷都不是论文说的 missing regions，而是自造的拦截记账区域引入的事件冲突、以及把递减动作误放进 guard。本 case 也提供两处谓词缺口证据：区域数无法断言、『必须是无触发/无守卫边』无法用 edge_declared 表达（trigger 为必填 str）。",
+ "_source_file": "NL03-0056.json",
+ "cross_reference": {
+  "case": "0056",
+  "group": "NL03",
+  "llm": "Claude",
+  "counts": {
+   "correct": 2,
+   "similar": 3,
+   "problem": 2,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {
+   "concurrency": 1
+  },
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.2222222222,
+   "f1_phase2": 0.4545454545
+  },
+  "ledger": {
+   "status": "representation_boundary",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 2
+ }
+}

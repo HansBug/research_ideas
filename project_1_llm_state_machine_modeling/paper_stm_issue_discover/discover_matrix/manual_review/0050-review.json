@@ -1,0 +1,104 @@
+{
+ "case": "0050",
+ "group": "NL08",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> human_mode : power_on；human_mode 简单状态",
+   "gen": "[*] --> HumanDrivingMode : Power On；state HumanDrivingMode { }",
+   "reason": "NL 第1、3句满足。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考无 front_distance)",
+   "gen": "HumanDrivingMode --> AutonomousMode : [front_distance > 10]",
+   "reason": "NL 第4句满足，且是全库唯一用方括号守卫语法写条件的 pair（语义上比写成事件名更贴切；pyfcstm 仍把整串当事件名，属表示层限制而非作者缺陷）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "human_mode --> [*] : power_off 与 autonomous_mode --> [*] : power_off",
+   "gen": "HumanDrivingMode --> [*] : Power Off 与 AutonomousMode --> [*] : Power Off",
+   "reason": "NL 第5句断电义务在两个模式上全覆盖，与参考逐条一致。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考未声明 autonomous_mode 状态体，其 in (auto_final) 无指代对象)",
+   "gen": "state AutonomousMode { [*] --> SubState1 ... SubState3 --> [*] }",
+   "reason": "NL 第2句满足；末端 `SubState3 --> [*]` 为 in (auto final) 提供了可指代的终态边界，优于参考。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "参考把三条件拆成三条独立边",
+   "gen": "AutonomousMode --> HumanDrivingMode : human steering cmd\\nor brake pressed\\nor in (auto final)",
+   "reason": "三个接管条件压成一个跨行自由文本标签，投影为单一事件，任一单独条件都不能触发接管；`in (auto final)` 作为状态条件被塞进事件名，处于自动驾驶终态边界时不会自动交还控制权。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0050.human_steering_cmd\") → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考无子状态)",
+   "gen": "SubState1 --> SubState2 --> SubState3（全部为无触发完成迁移）",
+   "reason": "子状态是占位命名且用无事件完成迁移串联，进入自动驾驶后无需任何输入即自行跑到终态，内部结构语义空洞；但 NL 未对子状态内容作任何约束，故不记为问题，仅记差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考 NL 第5句三条边中两条方向写反、human_steering_cmd 双向并存；漏掉第4句；未建 autonomous 复合状态",
+   "gen": "(生成方在第2、4句优于参考)",
+   "reason": "garbled 第5句读法无法定案、参考自身不自洽；这解释了为何 0050 明明是全组最忠实的制品，F1（0.7857）却低于缺陷最多的 0010（0.88）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 1,
+ "extra_count": 0,
+ "vs_paper": "论文：format/grammar/semantic 三栏全空（resolved 全为 None），plantuml 15/15、grammar 17/17，F1 0.7857 → 0.7857；核对列 I 与列 AE 完全一致，制品未被改动。此处论文\"零记录\"与我的判断基本吻合（我只判出 1 个 problem），与 0010 的零记录形成鲜明对比：同样是零记录，一个是真干净，一个是漏检 5 条。",
+ "vs_ledger": "台帐 0 条（status: no_supported_finding）。我判的唯一 problem（三条件压成单一自由文本标签、in(auto final) 未按状态条件接线）台帐与论文都没有；它属于\"标签编码\"类，台帐的 E1 口径要求与 NL 明确语句直接冲突，而该缺陷需先定案 garbled 第5句的读法，故台帐留空可以理解。",
+ "notes": "0050 是 NL08 六个 pair 中对 NL 最忠实的：第1–4句全对、第5句断电部分两模式全覆盖，只在三条件的标签编码上有缺陷。它与 0010 构成\"质量与 F1 反序\"的核心证据（0050 1 个问题 / F1 0.786；0010 6 个问题 / F1 0.88）。",
+ "_source_file": "NL08-d.json",
+ "cross_reference": {
+  "case": "0050",
+  "group": "NL08",
+  "llm": "Claude",
+  "counts": {
+   "correct": 4,
+   "similar": 1,
+   "problem": 1,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.7857142857,
+   "f1_phase2": 0.7857142857
+  },
+  "ledger": {
+   "status": "no_supported_finding",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 1
+ }
+}

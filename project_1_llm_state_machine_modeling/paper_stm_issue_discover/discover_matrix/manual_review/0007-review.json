@@ -1,0 +1,108 @@
+{
+ "case": "0007",
+ "group": "NL07",
+ "llm": "GPT-4o",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "state Collision_Avoidance { ... -- ... -- ... }（三个正交区）",
+   "gen": "state CollisionAvoidance { -- ... -- ... -- ... }（三个有内容的并发区）",
+   "reason": "NL 第1、3句要求三个正交区并发激活；生成方与参考一样用 `--` 表达并发区，在这一机制上一致。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "(参考的每个区都由 [*] --> X_inactive 无条件进入，随后由检测条件激活)",
+   "gen": "[*] --> InitialState（InitialState 为无出边叶状态；CollisionDetection / CollisionAvoidance / OperationalControls 均无入边）",
+   "reason": "顶层唯一初始迁移落在 InitialState，而 InitialState 只有入边没有出边，整机永久停在该状态：检测流程与避撞控制都不可达，`CollisionAvoidance --> InitialState : Collision Resolved` 回来后也再也出不去（无法重新武装）。这是对 NL 第2句（检测到碰撞时子机becomes active）的硬性违反。核对 workbook：Phase-I（列 I）里 InitialState 是**包含检测流程的复合状态**，语义连通；论文语义修复阶段把它改成空叶状态并把检测流程拆成同级 CollisionDetection，才造成不可达——属修复引入缺陷。",
+   "assertable": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", within_cycles=5) → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "[*] --> front_inactive / rear_inactive / pedestrian_inactive（无触发的初始迁移）",
+   "gen": "[*] --> AutomaticBraking : Start Braking（三个区的初始迁移都带触发：Start Braking / Steering Engaged / Alerts Activated）",
+   "reason": "三个区的初始迁移各自带一个模型中无人产生的触发事件，因此即使进入 CollisionAvoidance 也没有任何控制被激活，违反 NL 第2、3句\"检测即激活\"的语义（UML 亦不允许初始迁移带触发）。",
+   "assertable": "occupancy_after(source=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", trigger=\"llms_emp_feedback_final_0007.Collision_Mode_Active\", target=\"llms_emp_feedback_final_0007.CollisionAvoidance.AutomaticBraking\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "(参考与 NL 都没有任何运维/自检/通信内容)",
+   "gen": "state OperationalControls { [*] --> FeedbackControl : Signal Feedback ; [*] --> SystemCheck : Health Check ; [*] --> CommunicationControl : Communicate Control }",
+   "reason": "整棵子树是 NL 完全未提及的臆造内容（信号反馈、健康检查、通信控制），且无任何入边（死代码），内部还在同一个非正交区里放了三条初始迁移（非确定初始）。属 over-specification 叠加结构缺陷。",
+   "assertable": "state_declared(state=\"llms_emp_feedback_final_0007.OperationalControls\", kind=\"composite\") → True（元素确实存在但 NL 无对应义务）；reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.OperationalControls\", within_cycles=5) → False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "区↔碰撞类型（front / rear / pedestrian 各一区）",
+   "gen": "区↔执行机构（制动 / 转向 / 报警各一区），三种碰撞类型另放在 CollisionDetection 里",
+   "reason": "NL 第3句只说\"正交区允许不同避撞控制并发激活\"，并未规定区必须按碰撞类型划分；按执行机构划分是对该句的字面读法，且三种碰撞类型在检测复合状态里有各自状态，故不算违反 NL，仅记差异。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考的区体不以 `--` 开头，恰好三个区)",
+   "gen": "state CollisionAvoidance { -- ...（区体以分隔符开头）",
+   "reason": "首行 `--` 产生一个空的第 0 区（FCSTM 投影确认 `[PlantUML concurrent region 0] states=-; transitions=-`），严格按 NL 第1句数区会得到 4 个隔间。空区无行为、语义无害，故记 similar；注意这是论文作者手改语义阶段的共同书写习惯（0007/0017/0027 都有）。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "front_inactive --> avoid_frontend_collision: dist_to_front<10 & urban=true / dist_to_front<15 & highway=true；rear: dist_to_rear<5 & vel>30 等",
+   "gen": "(任何 LLM 都不可能生成这些阈值)",
+   "reason": "NL07 只有 3 句 46 词、一条具体迁移都没给，而参考模型带入了 dist_to_front / dist_to_rear / vel / urban / highway 等 NL 完全未提及的量化守卫。这些内容不可从输入推出，使 NL07 的 F1 ground truth 不可达，也使\"缺失守卫\"类差异无法作为生成方的缺陷；同时参考自己把\"每种碰撞类型对应各自控制\"的耦合固化了下来，而 NL 并未明说。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 1,
+ "vs_paper": "论文：format/grammar 栏 None（plantuml 30/30、grammar 31/31）；semantic 栏记 \"1. use region instead of state in composite state\"（semantic_resolved=1.0）；F1 0.8197 → 0.8308。论文这条语义记录说的是\"应改用区而非嵌套状态\"，与我的 3 条判定完全不重叠；更关键的是我的第 1 个 problem（整机停在 InitialState）正是论文语义修复阶段引入的，而该阶段自称 resolved=1.0。",
+ "vs_ledger": "台帐 1 条：EXP-0007-TR-001（collision_avoidance_pipeline_unreachable）↔ 我的第 1 个 problem。我另有 1 个 problem（三个区初始迁移带触发 ⇒ 进入活动模式后无控制被激活）和 1 个 extra（OperationalControls 臆造且不可达）台帐与论文都没有。",
+ "notes": "0007 与 0000 同属\"论文修复引入缺陷\"：Phase-I 的 InitialState 是承载检测流程的复合状态，语义阶段拆开后整机不可达。可断言性良好（reaches / occupancy_after 均可正面断言）。并发本身与参考一致，故本 pair 无 concurrency 类问题。",
+ "_source_file": "NL07-a.json",
+ "cross_reference": {
+  "case": "0007",
+  "group": "NL07",
+  "llm": "GPT-4o",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 2,
+   "extra": 1,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 3,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. use region instead of state in composite state",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.8196721311,
+   "f1_phase2": 0.8307692308
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0007-TR-001"
+   ],
+   "e1_categories": [
+    "TR"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

@@ -1,0 +1,81 @@
+{
+ "case": "0028",
+ "group": "NL04",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "@startuml [*] --> TurnOn; state fork1 <>; fork1 --> AutoFocus; fork1 --> DetLight; … Junction2 --> TakePicture; TakePicture --> WriteMemory; … TurnOff --> [*]（数字相机）",
+   "gen": "@startuml state DoorShut as \"Door Shut\" <<initial>>; … DoorOpenWithItem --> ReadytoCook : Cooking Time Entered; ReadytoCook --> Cooking : Start; Cooking --> DoorShutWithItem : Timer Expired（微波炉）",
+   "reason": "整份制品是微波炉状态机，NL04 是数字相机：TurnOn / fork1 / AutoFocus / DetLight / ChargedFlash / Junction1-3 / Join1-2 / Fork2 / Flash / TakePicture / WriteMemory / TurnOff 一个都不存在，与参考、与 NL 11 句的元素重合为零。领域完全错配。与台帐 EXP-0028-DA-001 一致。",
+   "assertable": "state_declared(state='TurnOn', kind='any') and state_declared(state='AutoFocus', kind='any') and state_declared(state='DetLight', kind='any') and state_declared(state='TakePicture', kind='any')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "[*] --> TurnOn",
+   "gen": "state DoorShut as \"Door Shut\" <<initial>>（用 stereotype 而非 [*] --> 表示初态）",
+   "reason": "即便就微波炉本身而论，<<initial>> 只是一个 stereotype，PlantUML 不会据此建立初始伪状态，投影因此插入 UnspecifiedInitial，模型无入口、6 个状态全不可达。此条在领域已错配的前提下意义有限，仅作制品缺陷如实记录。",
+   "assertable": "initial_target(composite='llms_emp_feedback_final_0028', child='llms_emp_feedback_final_0028.DoorShut')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "workbook STM Results 第 30 行：I30(Generation PlantUML) / U30(Result with Format Checking) / AD30(Semmantic Hallucinations) / AE30(Result with Semantic Checking) / AG30(Resolved) / AH-AJ(TP,FP,FN)",
+   "gen": "I30 与 U30 都是相机模型（含 stm CameraSystem、TurnOn、fork1、AutoFocus、DetLight、choice1-3、ChargedFlash、Junction1-3、Join1-2、Fork2、Flash、Terminate、TakePicture、WriteMemory、TurnOff）；只有 AE30 突变为微波炉",
+   "reason": "我核实了原始 workbook，判断这是数据错位而非 Llama 的建模失败，依据四点：(1) 阶段谱系上 Phase-I(I30) 与格式检查(U30) 都是相机，语义检查(AE30) 突变为微波炉，而语义反馈 AD30 写的是『1. missing transitions 2. interaction error』，是对相机模型的合理反馈，AG30 却记 Resolved=1.0——用一份微波炉模型不可能解决相机模型的 missing transitions，这条 resolved 无法成立，说明论文 Phase-II 的解决率至少被这一行污染。(2) AE30 也不是微波炉那一行的复制：微波炉是第 27 行（case 0025），U27=AE27，669 字符、sha 7069ab0f…；AE30 是 900 字符、sha 57c45db2…，是第三份独立制品（多出 state X as \"...\" 声明）。(3) 论文自己的 Phase-II 计数 TP=11 / FP=15 / FN=23，TP+FN=34 正好等于相机参考的元素总数（0008/0018/0038/0048/0058 五个同组行的 TP+FN 全为 34），而 TP=11>0 对一份与相机零名字重合的微波炉模型在算术上不可能——即这组计数不可能是在 AE30 上算出来的。(4) 该行 Phase-I 计数 TP=20 / FN=24 合计 44，与五个同组行统一使用的 34 也不一致，说明第 30 行在制品与计数两侧都异常。结论：台帐的 DA 条目作为对『已发表制品』的陈述是正确且可断言的，但不能被读成『Llama 生成了错误领域的模型』这一 LLM 能力结论；本 case 应从按 LLM 的质量统计中排除，并单列为数据完整性问题。",
+   "assertable": "state_declared(state='TurnOn', kind='any')  # 对制品成立，但归因需要 workbook 阶段谱系证据，不在 19 谓词射程内",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "choice1 --> Join1; choice1 --> Junction1; fork/join 无正交区域; state X <> 退化; NL 第 6 句与参考的 Charged=true 位置冲突",
+   "gen": "—",
+   "reason": "参考侧存疑同 0008，对本 case 无实际影响（制品与参考零重合），但在计算本组 FN 时同样生效。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏『1.syntax error: stm CameraSystem 2. syntax error: TurnOff --> [*]』(resolved YES，两条都是针对相机模型的)；grammar 栏 None；语义栏『1. missing transitions 2. interaction error』，semantic_resolved=1.0。F1 Phase-I 0.5556 → Phase-II 0.3667。论文完全没有察觉领域错配：它的 format 反馈针对相机、语义反馈也针对相机、却把 resolved 记成 1.0，且 Phase-II 的 TP/FP/FN 不可能来自微波炉制品。我判的第 1 条（领域错配）论文未记录，第 2 条（无初始伪状态）论文未记录。",
+ "vs_ledger": "台帐 status=expected_issues_found，唯一条目 EXP-0028-DA-001（camera_requirement_replaced_by_microwave_model），对应我的第 1 条，作为制品陈述成立且 eval_assert 已返回 contradicts。台帐未记录第 2 条（<<initial>> 不构成初始伪状态），也未在 limitations 中标注该 case 的归因边界——建议补一条说明：DA 计数 1 例全部来自本 case，且该例属 workbook 数据错位，不宜进入 per-LLM 能力比较。",
+ "notes": "本 case 是全 60 例唯一的 DA。核实结论：算作者问题还是数据异常——制品层面是真问题（可断言、可修复目标明确），归因层面是论文 workbook 的数据错位，不是 Llama 的领域失败，因为同一行的 Phase-I 与格式检查输出都是结构完整的相机模型，且论文自己的 Phase-II 计数在算术上不可能取自这份微波炉制品。两个 problem 与其他五例不可比，本 case 应在按 LLM 的统计中排除并单列。",
+ "_source_file": "NL04-0028.json",
+ "cross_reference": {
+  "case": "0028",
+  "group": "NL04",
+  "llm": "Llama",
+  "counts": {
+   "correct": 0,
+   "similar": 0,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 2
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 2,
+  "paper": {
+   "format": "1.syntax error: stm CameraSystem 2. syntax error: TurnOff --> [*]",
+   "grammar": null,
+   "semantic": "1. missing transitions 2. interaction error",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.5555555556,
+   "f1_phase2": 0.3666666667
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0028-DA-001"
+   ],
+   "e1_categories": [
+    "DA"
+   ]
+  },
+  "assertable_problems": 2
+ }
+}

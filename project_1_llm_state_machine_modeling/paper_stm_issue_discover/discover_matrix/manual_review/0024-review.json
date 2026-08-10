@@ -1,0 +1,117 @@
+{
+ "case": "0024",
+ "group": "NL01",
+ "llm": "Llama",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "Accelerating: Entry/Accelerate",
+   "gen": "Accelerating: Accelerating（与状态同名的空描述，无任何动作）",
+   "reason": "NL 第 8 句逐字要求 'Entry/Accelerate' 动作。作者模型里 Accelerating 只有一行与自身同名的空描述，Accelerate 这个动作在全模型不存在（FCSTM 中 Accelerating 仅有 named 'Accelerating\\n[PlantUML body] Accelerating'，无 enter abstract）。这是丢失 NL 明确点名的动作。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0024.InMotion.Accelerating', phase='entry')  # 当前 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "Approaching: Entry/Send",
+   "gen": "Approaching --> InMotion:exit/Send",
+   "reason": "NL 第 9 句的 Send 是系统发出的输出信号。作者把它写成一条迁移的标签，PlantUML 下整串 'exit/Send' 成为触发器；FCSTM 确认 event exit_Send named 'exit/Send'，即输出动作被反转成必须由环境提供的输入事件，方向完全相反。同时 Approaching 不再声明任何动作。这与相位差异（0004 的 do/Send）性质不同，是真实语义错误。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0024.InMotion.Approaching', phase='exit')  # 当前 False；不依赖 action 门面的替代写法：not event_declared(event='llms_emp_feedback_final_0024.exit_Send')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "（参考模型中 Approaching 无任何出边，仅靠 InMotion 的组退出边离开）",
+   "gen": "Approaching --> InMotion:exit/Send",
+   "reason": "同一行文本还造成第二个独立后果：Approaching 多出一条指向自身外层复合状态 InMotion 的迁移。UML 下这等价于 InMotion 的自迁移，退出并重入复合状态、重跑内部初始，把运动阶段重置回 Accelerating；FCSTM 确认被路由成 InMotion -> InMotion : if [R45RouteToken == 7]。NL 第 10 句明确要求 'remains in the Approaching substate ... until it is ready to stop or decelerate'，该边在既不 ready to stop 也不 decelerate 的条件下离开 Approaching，直接违反这条 remain-until 义务。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0024.InMotion.Approaching', event='llms_emp_feedback_final_0024.exit_Send')  # 台帐已实测 false/contradicts；性质族替代写法 persists_until(state='...InMotion.Approaching', release='active(\"llms_emp_feedback_final_0024.Stopping\")', bound=4)",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "EmergencyStoping:... Send Obstacle Detected",
+   "gen": "EmergencyStopping --> InMotion:exit/Send Obstacle Detected",
+   "reason": "与 Approaching 同一类错误：NL 第 3 句要求 EmergencyStopping 发送 'Obstacle Detected' 信号，作者把这个输出写成迁移标签，FCSTM 生成 event exit_Send_Obstacle_Detected named 'exit/Send Obstacle Detected'，输出动作被反转为输入事件，EmergencyStopping 也不再声明任何动作。",
+   "assertable": "action_declared(state='llms_emp_feedback_final_0024.EmergencyStopping', phase='exit')  # 当前 False；替代写法 not event_declared(event='llms_emp_feedback_final_0024.exit_Send_Obstacle_Detected')",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "extra",
+   "ref": "（参考模型中 EmergencyStopping 无任何出边）",
+   "gen": "EmergencyStopping --> InMotion:exit/Send Obstacle Detected",
+   "reason": "除动作反转外，这行还凭空造出一条从 EmergencyStopping 回到 InMotion 的恢复边。NL 全文没有任何 EmergencyStopping 的出边，也没有 obstacle 清除后恢复运行的描述；参考模型同样没有。因为 NL 并未对 EmergencyStopping 给出显式的 remain/only/never 义务（不同于 Approaching 的第 10 句），按台帐 UA 口径不足以升级为违规，故记 extra。但从领域语义看，障碍物导致的紧急停车自动回到运动状态是安全性上最不该凭空添加的行为。",
+   "assertable": "not transition_exists(source='llms_emp_feedback_final_0024.EmergencyStopping', event='llms_emp_feedback_final_0024.exit_Send_Obstacle_Detected')  # 写得出，但缺 NL 显式禁止依据，不宜作为 E1",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "EmergencyStoping:Entry/Emergency Sop, ...",
+   "gen": "EmergencyStopping: Emergency Stop",
+   "reason": "NL 第 3 句未指定 'Emergency Stop' 的相位，作者写成无相位描述文本，FCSTM 只并入 named 字符串而不生成 lifecycle action。因为 NL 没给相位且动作文本保留，判 similar；但要记录投影后它是惰性文本，不可执行。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "Approaching: Approaching（参考也有同名空描述）",
+   "gen": "DoorsClosing: Doors are closing / Cruising: Cruising / Approaching: Approaching",
+   "reason": "三行与状态同名或纯自然语言的描述，不承载语义也不违反 NL；参考模型里同样存在 'Approaching: Approaching'。属于注释性差异，不计问题。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "[*]-->DoorsClosing / DoorsClosing --> InMotion / InMotion --> Stopping / InMotion --> EmergencyStopping / InMotion 复合与三条内部迁移 / [*]-->Accelerating",
+   "gen": "同结构、同触发器文本",
+   "reason": "顶层初始边、四条顶层迁移、InMotion 复合状态、三个子状态归属、内部默认子状态与三条内部迁移全部与参考一致，覆盖 NL 第 1、2、4、5、6、7 句。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 4,
+ "extra_count": 1,
+ "vs_paper": "论文只记 format 栏 'syntax error: stm TrainSystem'（已 resolved），grammar / semantic 栏均为 None，f1_phase1 = f1_phase2 = 0.9545（并列本组最高）。我判的 4 个 problem 与 1 个 extra 论文全部未记录。特别值得注意的是内部一致性问题：论文给 0014 记了 grammar 幻觉 'cannot connect internal state to the composite state itself.'，而 0024 里 'Approaching --> InMotion' 正是同一构造，论文却给 0024 记 grammar_accuracy 23/23、无 grammar 幻觉。同一条语法规则在两个 case 上判定相反，说明论文的 grammar 检查不是稳定可复现的口径。",
+ "vs_ledger": "台帐 0024 状态 mixed，1 条 E1：EXP-0024-UA-001（approaching_unauthorized_exit_send，eval_assert = not transition_exists(source=...Approaching, event=...exit_Send)，false/contradicts），正对应我的第 3 个 problem。台帐把这一行的 UA 后果记了，但没有分离出同一行的 EA 后果（Send 输出被反转成输入事件），因为动作侧受 E2c/state_action_adapter_missing 限制。我的第 1、2、4 个 problem 均属动作类，台帐未记为 E1，可由 E2c 解释；第 5 条 extra（EmergencyStopping → InMotion）台帐未记，理由成立：NL 对 EmergencyStopping 没有显式 remain/only/never 义务，写成 E1 会引入闭世界假设。",
+ "notes": "0024 是 'action 被降级成事件' 的另一个关键样本，两处都由作者把 exit/... 写在迁移标签上造成，属作者侧问题而非表示层降级。它同时暴露了一个跨记录的方法学问题：论文给它的 F1 是本组并列最高（0.9545），而它实际上有 4 个真实问题加 1 处过度指定——元素级 F1 对 '动作写在哪个元素上'、'输出是否被反转成输入' 这两类错误几乎不敏感。",
+ "_source_file": "NL01-NL02.json",
+ "cross_reference": {
+  "case": "0024",
+  "group": "NL01",
+  "llm": "Llama",
+  "counts": {
+   "correct": 1,
+   "similar": 2,
+   "problem": 4,
+   "extra": 1,
+   "uncertain": 0
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 5,
+  "paper": {
+   "format": "syntax error: stm TrainSystem",
+   "grammar": null,
+   "semantic": null,
+   "semantic_resolved": null,
+   "f1_phase1": 0.9545454545,
+   "f1_phase2": 0.9545454545
+  },
+  "ledger": {
+   "status": "mixed",
+   "e1_ids": [
+    "EXP-0024-UA-001"
+   ],
+   "e1_categories": [
+    "UA"
+   ]
+  },
+  "assertable_problems": 4
+ }
+}

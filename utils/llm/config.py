@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
@@ -17,6 +17,7 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    adapter: Literal["openai", "openai-responses", "anthropic", "deepseek"] = "openai"
     base_url: str | None = None
     api_key: SecretStr | None = None
     model: str = Field(min_length=1)
@@ -95,6 +96,7 @@ class LLMConfig(BaseModel):
                 display_host = f"[{host}]" if ":" in host else host
                 endpoint_ref = f"{parsed.scheme}://{display_host}{f':{port}' if port is not None else ''}"
         return {
+            "adapter": self.adapter,
             "model": self.model,
             "base_url_ref": endpoint_ref,
             "api_key_configured": self.api_key is not None,

@@ -1,0 +1,97 @@
+{
+ "case": "0053",
+ "group": "NL06",
+ "llm": "Claude",
+ "diffs": [
+  {
+   "verdict": "problem",
+   "ref": "state PumpControl { [*] --> PumpState; -- ; [*] --> WaterState; -- ; [*] --> MethaneState } —— 每个区域都有初始边",
+   "gen": "state PumpControl { state PumpRegion { [*] --> PumpState }; state WaterRegion { [*] --> WaterState }; state MethaneRegion { [*] --> MethaneState } } —— PumpControl 自身层级没有任何初始边；FCSTM 投影注入 PumpControl.UnspecifiedInitial",
+   "reason": "NL 3 明确 \"The system first transitions to the PumpState substate\"。生成侧的三条初始边都写在各自的 wrapper 内部，PumpControl 这一层没有默认进入点，投影因此注入 UnspecifiedInitial——进入 PumpControl 后三个 wrapper 一个都不会被进入，PumpState 不可达。台帐未记录，但这与台帐已接受为 E1 的 EXP-0019-IT-001 是完全同型的证据（作者源未写初始边 + 投影注入 UnspecifiedInitial + initial_target 结构族断言），且 0053 连一条意图性的替代边都没有（对比 0029 至少写了 HighwayMode --> enter_hwy : enter），排除理由比 0029 更弱。",
+   "assertable": "initial_target(composite=\"llms_emp_feedback_final_0053.PumpControl\", child=\"llms_emp_feedback_final_0053.PumpControl.PumpRegion\")",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "两个 -- 分隔符把 PumpControl 分成三个正交并发区，三个具名子态可同时活跃",
+   "gen": "没有任何 -- 分隔符；PumpRegion / WaterRegion / MethaneRegion 是同一个区域内的三个顺序兄弟复合态，彼此之间零迁移",
+   "reason": "论文对该 case 记的 semantic hallucination 是 \"1. missing regions\" 且声称 semantic_resolved = 1.0，但我审的这份 Phase-II 制品里没有任何区域分隔符，区域缺失依然存在。后果是实质的：三个 wrapper 在顺序语义下互斥，最多只有一个具名子态能活跃，且它们之间没有任何迁移，PumpControl 整体是惰性的（结合上一条，实际上一个都进不去）。并发结构本身超出本研究 FSM/HSM/EFSM 范围故标 out_of_scope，但「三主子态从可同时活跃退化为互斥且互不可达」是真实的语义损失。",
+   "assertable": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0053.PumpControl.WaterRegion.WaterState\", within_cycles=3)",
+   "predicate_exists": true,
+   "out_of_scope": "concurrency"
+  },
+  {
+   "verdict": "similar",
+   "ref": "PumpState / WaterState / MethaneState 是 PumpControl 的直接子态",
+   "gen": "三者各被一个 1:1 的 wrapper 复合态包住（PumpRegion ⊃ PumpState 等），成为 PumpControl 的孙态；PumpControl 的直接非伪子态仍恰好是三个",
+   "reason": "同意台帐 E2a 的排除理由，且认为它在 0053 上最成立：NL 2 用的是 \"substates\"（UML 中涵盖任意层级），没有 direct/immediate 限定；三个 wrapper 与三个具名子态严格一一对应、每个 wrapper 只为承载一个具名子态而存在，不引入任何新的具名行为。NL 2 的枚举内容（顶层分解恰三项、每项承载一个点名子态）在结构上被保留，cardinality(PumpControl, 3) 也仍然成立。属纯结构重构。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "三个子态无描述文字",
+   "gen": "PumpState : Pump activated or controlled、WaterState : Water flow control/monitoring、MethaneState : Methane flow control/monitoring",
+   "reason": "三行描述分别忠实对应 NL 3/4/5 的语义说明，不引入新状态、事件或迁移，属无害注解。",
+   "assertable": null,
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考模型零 declared event、零行为迁移",
+   "gen": "同样零 declared event、零行为迁移（FCSTM 中无任何 event 声明，只有 tr_0001..tr_0004 四条进入/初始边）",
+   "reason": "0053 确实零声明事件——我核实了 FCSTM 投影。但参考模型同样零事件零迁移，根源是 NL06 五句话通篇没有命名任何触发条件，因此不可归因于 LLM。对可用性的后果：B 族六个谓词与 P 族三个谓词在这份制品上全部空转或 raise，只有 S 族十个结构谓词可用，NL06 全组只可能产出结构族 E1（台帐实际正是如此：0002 用 initial_child、0033 用 states）。故标 uncertain 记录这一范围性事实。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考把三个主子态写成三个正交并发区，三者同时活跃",
+   "gen": "生成侧写成三个顺序兄弟 wrapper",
+   "reason": "参考模型自身可疑：NL 3 的 \"first transitions to PumpState\" 与 NL 4/5 的 \"can also transition to\" 是顺序性措辞，在并发区读法下无意义；NL 通篇无 region / concurrent / parallel / simultaneously 字样。三个主子态是并发还是顺序在 NL 中欠定——若按顺序读法，0053 的三 wrapper 结构反而更贴近 NL 的措辞。这直接影响论文把 \"missing regions\" 记为语义幻觉的合理性。",
+   "assertable": null,
+   "predicate_exists": false,
+   "out_of_scope": "concurrency"
+  }
+ ],
+ "problem_count": 2,
+ "extra_count": 0,
+ "vs_paper": "论文记了一条 semantic hallucination \"1. missing regions\"，semantic_resolved = 1.0；plantuml_accuracy 17/17、grammar 12/12；f1_phase1 = 0.4667，f1_phase2 = 0.9091。与 0033 一样存在记录与制品不符：论文声称 missing regions 已修复，但这份 Phase-II 制品没有任何 -- 分隔符。论文也未记录 PumpControl 缺默认进入点这一真实缺陷。f1_phase2 = 0.9091 明显偏高——它把三个 wrapper 当成了与参考三区域的对应物。",
+ "vs_ledger": "台帐 0053 状态为 candidate_only，一条 E2a 观察 pump_hierarchy_or_concurrency_ambiguity。我认同该排除理由适用于 wrapper 层次这一点（我判 similar），这也是三个 E2a case 中该理由最站得住的一例。但台帐漏掉了两条我判为 problem 的内容：PumpControl 完全没有初始边（可用 initial_target 断言，与台帐已接受的 EXP-0019-IT-001 同型且排除理由比 0029 更弱）、以及区域结构缺失导致三主子态从可同时活跃退化为互斥且互不可达。",
+ "notes": "0053 是「层次写得体面、入口忘了写」的典型：wrapper 一一对应、描述忠实、无任何发明成分（零 extra，本组唯一），但 PumpControl 这一层既没有初始边也没有区域分隔符，于是整个复合态惰性。它同时是本组两个零声明事件 case 之一（另一个是 0023），而零事件源于 NL 与参考本身。",
+ "_source_file": "NL06-b.json",
+ "cross_reference": {
+  "case": "0053",
+  "group": "NL06",
+  "llm": "Claude",
+  "counts": {
+   "correct": 0,
+   "similar": 2,
+   "problem": 2,
+   "extra": 0,
+   "uncertain": 2
+  },
+  "out_of_scope": {
+   "concurrency": 2
+  },
+  "problems_in_scope": 1,
+  "paper": {
+   "format": null,
+   "grammar": null,
+   "semantic": "1. missing regions",
+   "semantic_resolved": 1.0,
+   "f1_phase1": 0.4666666667,
+   "f1_phase2": 0.9090909091
+  },
+  "ledger": {
+   "status": "candidate_only",
+   "e1_ids": [],
+   "e1_categories": []
+  },
+  "assertable_problems": 2
+ }
+}

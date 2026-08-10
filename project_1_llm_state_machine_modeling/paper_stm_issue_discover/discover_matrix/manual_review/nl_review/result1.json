@@ -1,0 +1,353 @@
+{
+ "batch": 1,
+ "groups": [
+  "NL05",
+  "NL07",
+  "NL09"
+ ],
+ "reviewed": 19,
+ "nl_sentences": {
+  "NL05": [
+   "The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode.",
+   "From the InitialState, the system can transition to either HighwayMode or UrbanMode based on conditions: `high_way=true` for HighwayMode or `urban_way=true` for UrbanMode.",
+   "In the HighwayMode state, the system begins in the enter_hwy substate, and can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`).",
+   "If the system is in lane_change, it can return to cruise once the lane change is completed or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`).",
+   "In the cruise substate, if the distance to the front vehicle becomes less than 25 meters (`dist_to_front<25`) and there is an extra lane available, the system transitions to lane_change. The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`).",
+   "The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition.",
+   "In UrbanMode, the system begins in the enter_urban substate. From here, it can transition to lane_change_urban if the distance to the front vehicle is less than 15 meters (`dist_to_front<15`) and an extra lane is available, or straight if the road ahead is clear, or intersection if it detects an intersection (`intersection=true`).",
+   "In the lane_change_urban substate, the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`).",
+   "In the straight substate, if the system detects an intersection, it transitions to the intersection substate. If the distance to the front vehicle becomes less than 15 meters (`dist_to_front<15`) and an extra lane is available, it transitions to lane_change_urban.",
+   "The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied.",
+   "The system supports dynamic transitions between HighwayMode and UrbanMode based on the conditions `urban_way=true` and `high_way=true`, respectively, facilitating seamless mode shifts during the drive.",
+   "The collision avoidance system is initially in the collision_avoidance_deactive state. It transitions to collision_avoidance_active when certain conditions are met, such as detecting pedestrians (`pedestrian_detected`), the rear distance being less than 5 meters with a velocity over 30 km/h (`dist_to_rear<5 & vel>30`), or the front distance being less than 15 meters in highway mode or 10 meters in urban mode.",
+   "Once in the collision_avoidance_active state, the collision avoidance system returns to the collision_avoidance_deactive state when there is no active danger, as indicated by the conditions `front_inactive`, `rear_inactive`, and `pedestrian_inactive`."
+  ],
+  "NL07": [
+   "There are three region in this diagram",
+   "This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.",
+   "The orthogonal regions of the active mode of collision avoidance allow for concurrent activation different of collision avoidance controls."
+  ],
+  "NL09": [
+   "Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states.",
+   "The system can be turned on with the `start` signal and turned off with the `keyOff` signal.",
+   "Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping."
+  ]
+ },
+ "nl_source": {
+  "NL05": "pairs/{0009,0019,0029,0049,0059}/nl.txt（五份逐字相同）= Dataset.xlsx sheet Dataset 行 47 col C",
+  "NL07": "pairs/0047/nl.txt = Dataset.xlsx 行 48 col C",
+  "NL09": "pairs/0032/nl.txt = Dataset.xlsx 行 51 col C"
+ },
+ "items": [
+  {
+   "case": "0009",
+   "group": "NL05",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "边 cruise / lane_change --dist_to_exit<2--> FinishState（参考侧对应目标是局部出口态 exit_hwy）",
+   "nl_evidence": "NL 第 6 句逐字把 FinishState 的触发指派为 auto_finished：\"The HighwayMode ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition.\"；NL 第 5 句把 dist_to_exit<2 指派给另一个动作：\"The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)\"（NL 第 4 句对 lane_change 同）。生成侧把 dist_to_exit<2 直接接到 NL 点名的 FinishState 上，违反 NL 6 的显式触发指派。",
+   "note": "关键纠正：参考侧的状态标识符 exit_hwy 在 NL 中**从未出现**（NL 4/5 只有散文 \"exit the highway\"），参考原文 `cruise --> exit_hwy: dist_to_exit<2` 是参考独有。因此若把本条框成「缺 exit_hwy 状态」，应判 reference_only；它之所以仍可入 E1，靠的是对 NL 点名元素 FinishState 的显式触发指派被违反 = nl_contradiction，而不是 nl_named。台帐已收 EXP-0009-IT-001（highway_exit_collapsed_into_finish），admissibility 无争议。残留风险：若把 NL 4/5 的 \"exit the highway\" 读成「离开 HighwayMode」，NL 6 的排他性即被削弱，本条会退回 reference_only。",
+   "e1_admissible": true,
+   "admissible_ground": "违反 NL 显式义务"
+  },
+  {
+   "case": "0009",
+   "group": "NL05",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "exit_urban 状态（生成侧完全未声明，0.7 km 城市出口条件被接到 FinishState）",
+   "nl_evidence": "NL 第 8 句逐字含状态标识符 exit_urban：\"the system transitions to straight if the lane change is complete or to exit_urban if the distance to the urban exit is less than 0.7 kilometers (`dist_to_exit<0.7`)\"。",
+   "note": "本批最干净的一条 nl_named：NL 直接给出标识符 exit_urban，生成侧无该状态。与同 case 的 d2 形成对照——高速侧的 exit_hwy 未被 NL 点名，城市侧的 exit_urban 被点名，两条不可同等归因。台帐未记录本条。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0009",
+   "group": "NL05",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "FinishState 的层次归属（应为 AutonomousMode 级共享终态，生成侧落在 HighwayMode 内部）",
+   "nl_evidence": "NL 第 6 句 \"The HighwayMode ends when the system transitions to FinishState\" 与 NL 第 10 句 \"The system exits the UrbanMode state by transitioning to FinishState once `auto_finished=true` is satisfied\" 两句用**同一裸名 FinishState**、无冠词区分，即 NL 逐字点名了这一个被两模式共享的元素。",
+   "note": "判据含「错位」，FinishState 被 NL 逐字点名且在生成侧错位，nl_named 成立。另有更强的备用依据（nl_contradiction）：FinishState ⊂ HighwayMode ⟹ 进入它并不使 HighwayMode 结束，直接违反 NL 6 \"The HighwayMode ends when...\"。已用 FCSTM 核实：llms_emp_feedback_final_0009.fcstm:22 `state FinishState` 位于 `state HighwayMode` 块内（第 18 行）。台帐未记录。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0019",
+   "group": "NL05",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "wellformedness",
+   "element": "enter_hwy 两条同事件、均无守卫、指向互斥目标（cruise / lane_change）的边所缺的可区分守卫",
+   "nl_evidence": "NL 第 3 句只给**一个**合并条件从句覆盖**两个**目标：\"…can transition to cruise or lane_change based on the distance to the front vehicle (`dist_to_front<25`) and the availability of an extra lane (`extra_lane=true`)\"。NL 全文没有点名任何用于区分这两个分支的守卫或条件。",
+   "note": "**本次复核要抓的典型实例**：审阅者先引 NL 3、再补一条 NL 之外的建模规范（\"两个目标互斥，模型必须给出可区分依据\"），并自认消歧信息在参考侧——\"参考侧靠 cruise 无守卫消歧，0009/0049 靠互补守卫消歧\"。所以 nl_named 不成立。但该缺陷可仅凭模型自身判定（FCSTM 中共享同一 event `dist_to_front_25_extra_lane_true` 且均无守卫），符合 wellformedness 的首要判据「无需 oracle，仅凭模型自身即可判定」，故仍可入 E1；台帐已收 EXP-0019-GC-001 佐证。注意这条改判把它从**上界层**移进**下界层**。",
+   "e1_admissible": true,
+   "admissible_ground": "良构性，无需 oracle"
+  },
+  {
+   "case": "0019",
+   "group": "NL05",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "CollisionAvoidanceSystem 的初始迁移目标 collision_avoidance_deactive（生成侧无任何初始边）",
+   "nl_evidence": "NL 第 12 句首句逐字：\"The collision avoidance system is initially in the collision_avoidance_deactive state.\" —— 既点名状态标识符，又以 \"is initially in\" 明确要求该初态关系存在。",
+   "note": "batch1.json 记录的词法 trigger 是 'NL 1'，实为 \"NL 12\" 的前缀误配（词法伪命中），但内容对得上，不影响归层。本条同时满足 wellformedness（复合态无默认子态，FCSTM 注入 CollisionAvoidanceSystem.UnspecifiedInitial），两条路径都可入 E1。台帐已收 EXP-0019-IT-001。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0019",
+   "group": "NL05",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "模式级完成边 HighwayMode --auto_finished=true--> FinishState 与 UrbanMode --auto_finished=true--> FinishState（生成侧把源收窄到叶态 ExitHighway / exit_urban）",
+   "nl_evidence": "NL 第 6 句的主语就是复合态本体：\"**The HighwayMode** ends when the system transitions to FinishState, triggered by the `auto_finished=true` condition.\"；NL 第 10 句同型：\"The system exits **the UrbanMode state** by transitioning to FinishState once `auto_finished=true` is satisfied.\" —— source、target、trigger 三者 NL 全部逐字点名。",
+   "note": "强 nl_named：被点名的边其三个构成要素都在 NL 原文里，生成侧把 source 错位到出口叶态，导致 auto_finished=true 在 cruise / lane_change / enter_hwy / straight / intersection 处不被消费。nl_contradiction 的备用依据同样成立。台帐与论文均未记录。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0019",
+   "group": "NL05",
+   "diff_index": 5,
+   "was": "nl_named",
+   "verdict": "wellformedness",
+   "element": "两条初始边上的自造触发事件：`[*] --> AutonomousMode : Autonomous mode start` 与 `[*] --> InitialState : Start of autonomous driving mode`",
+   "nl_evidence": "NL 第 1 句 \"The system begins in the AutonomousMode state, which transitions into the InitialState substate, marking the starting point of the autonomous driving mode.\" 未命名任何触发事件——这是 NL **沉默**，不是 NL 点名。审阅 reason 自己写的就是「从未命名任何触发事件」。",
+   "note": "改判依据不来自 NL，而来自良构性枚举第 2 项「带触发的初始边」：两条边都是 `[*] -->` 且带 trigger，UML 不允许初始迁移携带触发事件，无需 oracle 亦无需 NL 即可判定。verdict 是 extra，HEAD 版 stratify_candidates.py 会把它归 over_specification（同属 admissible）；两条路径都可入 E1。",
+   "e1_admissible": true,
+   "admissible_ground": "良构性（带触发的初始边）为主依据；按 EXTRA_POLICY.md 的有害性检验亦通过——FCSTM 已核实两条边的 trigger 保留进投影（llms_emp_feedback_final_0019.fcstm:75 `[*] -> AutonomousMode : /Autonomous_mode_start;`、:63 `[*] -> InitialState : /Start_of_autonomous_driving_mode;`），顶层默认进入被闸在一个 NL 从未命名的事件上，可用 initial_target / reaches 写出行为类正面断言。"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "AutonomousMode 的复合性与子态归属（InitialState / HighwayMode / UrbanMode 全部降为顶层平级叶/复合态）",
+   "nl_evidence": "NL 第 1 句逐字含 \"substate\" 一词：\"The system begins in the AutonomousMode state, which transitions into the **InitialState substate**\" —— 直接点名 InitialState 是 AutonomousMode 的子态，因而 AutonomousMode 必须是复合态。生成侧从未打开 AutonomousMode 复合括号（plantuml.puml:2-8 中 AutonomousMode 是顶层叶态）。",
+   "note": "**assertable 需要重新实例化**：现取 containment(parent=AutonomousMode, child=AutonomousMode.HighwayMode)，但 NL 并未点名这条归属——NL 第 2 句 \"From the InitialState, the system can transition to either HighwayMode or UrbanMode\" 只说迁移不说包含，NL 第 3/7 句只说 enter_hwy ⊂ HighwayMode、enter_urban ⊂ UrbanMode。审阅 reason 中「NL 2/7 把 HighwayMode、UrbanMode 也置于该自动驾驶模式之内」在 NL 原文里没有支撑。要留在 nl_named 范围内，谓词应改为 containment(parent=…AutonomousMode, child=…AutonomousMode.InitialState)。归层仍判 confirmed（diff 作为一个单元含被点名的 InitialState 归属）。台帐已收 EXP-0029-SH-001。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "wellformedness",
+   "element": "enter_hwy 两条同事件、均无守卫、指向互斥目标的边所缺的可区分守卫（与 0019 d1 同型）",
+   "nl_evidence": "NL 第 3 句同上：一个合并条件从句覆盖两个目标，NL 未点名任何可区分守卫。审阅 reason 自认 \"NL 3 的联合条件从句虽有歧义，但不授权模型对两个目标给出相同判据\"——即该义务不来自 NL。",
+   "note": "同 0019 d1：nl_named 不成立，但可仅凭模型自身判定，落 wellformedness，仍可入 E1。台帐已收 EXP-0029-GC-001。同样是从上界层移入下界层。",
+   "e1_admissible": true,
+   "admissible_ground": "良构性，无需 oracle"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "边 cruise --dist_to_exit<2--> FinishState（同一模型内 lane_change 却走 exit_hwy）",
+   "nl_evidence": "NL 第 4 句 \"…or exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)\" 与 NL 第 5 句 \"The system can also exit the highway if the distance to the exit is less than 2 kilometers (`dist_to_exit<2`)\" 对同一条件给出同一动作；NL 第 6 句把 FinishState 的触发指派为 auto_finished=true。生成侧对 NL 4 与 NL 5 给出两个不同作用域的目标，并把其中一个接到 FinishState。",
+   "note": "本条比 0009 d2 / 0049 d2 更硬：生成模型自身就声明了 exit_hwy（plantuml.puml:17 `lane_change --> exit_hwy : dist_to_exit<2`），却让 cruise 直连 FinishState，是模型内自相矛盾，判定不需要参考。仍**不是** nl_named——exit_hwy 这个标识符 NL 未点名。台帐已收 EXP-0029-IT-001。",
+   "e1_admissible": true,
+   "admissible_ground": "违反 NL 显式义务"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "HighwayMode / UrbanMode 的默认子态 enter_hwy / enter_urban（生成侧改用「父态 --> 子态 + 自造 enter 事件」，无 `[*]` 初始边）",
+   "nl_evidence": "NL 第 3 句逐字 \"In the HighwayMode state, **the system begins in the enter_hwy substate**\"；NL 第 7 句逐字 \"In UrbanMode, **the system begins in the enter_urban substate**\" —— 两句都点名了初态标识符并明确要求该初态关系存在。",
+   "note": "强 nl_named。同时满足 wellformedness（FCSTM 在 HighwayMode 与 UrbanMode 内各注入一个 UnspecifiedInitial，复合态默认进入点未定义），两条路径都可入 E1。台帐把它排除为 E2b parent_to_child_initial_semantics，与 0019 已接受的同型 EXP-0019-IT-001 标准不一致（此为 verdict 层争议，不影响归层）。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 4,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "FinishState 的层次归属（被绑进 HighwayMode，UrbanMode 与 AutonomousMode 的完成路径变成跨层边）",
+   "nl_evidence": "同 0009 d4：NL 第 6 句与 NL 第 10 句用同一裸名 FinishState 指同一个被两模式共享的终态，NL 逐字点名该元素。",
+   "note": "nl_named（被点名元素错位）成立；备用 nl_contradiction 依据：FinishState ⊂ HighwayMode ⟹ 进入它不使 HighwayMode 结束，违反 NL 6。台帐的 EXP-0029-IT-001 只覆盖 cruise 那条边，未覆盖本作用域后果。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0029",
+   "group": "NL05",
+   "diff_index": 6,
+   "was": "nl_named",
+   "verdict": "uncertain_stratum",
+   "element": "第三条完成边：平级叶态 AutonomousMode --auto_finished=true--> FinishState（NL 6/10 只要求两条）",
+   "nl_evidence": "NL 第 6 句给 HighwayMode 一条、NL 第 10 句给 UrbanMode 一条模式级完成关系；NL 全文没有任何 AutonomousMode → FinishState 的语句。依据是 NL **沉默**（未要求），不是 NL **点名**，故 nl_named 不成立。",
+   "note": "卡点：题面四层没有承接「生成侧凭空多出、其错误性只由 NL 沉默支撑」这一方向的桶。(a) reference_only 的定义是「只存在于参考、NL 未点名」，本条方向相反（只存在于生成侧）；(b) 该边不触犯任何 wellformedness 枚举模式，而 0029 唯一可用的良构性后果（层次丢失）已由 d0 计入，再走此路会重复计数；(c) 仓库 HEAD 的 stratify_candidates.py 已明确为此新增第 5 层 over_specification 并列入 admissible，本条 verdict=extra 会短路到该层（✓ 可入）。按仓库现行政策 ✓，按题面四层无归属，故不硬判。",
+   "e1_admissible": false,
+   "admissible_ground": null,
+   "excluded_ground": "按 /tmp/nlcheck/EXTRA_POLICY.md 的「可归因 ∧ 有害」判据判**不可入**：(a) 审阅者给出的 assertable 为**空字符串**，未给出任何负面后果断言；(b) FCSTM 显示该边投影为 llms_emp_feedback_final_0029.fcstm:108 `AutonomousMode -> HighwayMode : /auto_finished_true effect { R45RouteToken = 25; }` 配 :25 `[*] -> FinishState : if [R45RouteToken == 25]`，其行为后果「完成时 HighwayMode 变为活跃」正是同 case d4（FinishState 被私有化进 HighwayMode）的后果，而「完成可从未进入任何模式的前置态发生」是同 case d0（AutonomousMode 降为平级叶态）的后果——两条都已单独计入，再收本条即**重复计数**。去重后只剩「与两条模式级完成边冗余」，属无害装饰性增补。"
+  },
+  {
+   "case": "0049",
+   "group": "NL05",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "边 cruise / lane_change --dist_to_exit<2--> FinishState（与 0009 d2 同型）",
+   "nl_evidence": "NL 第 6 句显式把 FinishState 的触发指派为 auto_finished=true；NL 第 4/5 句把 dist_to_exit<2 指派给 \"exit the highway\" 这一另一动作。生成侧把两者合并到 NL 点名的 FinishState 上。",
+   "note": "同 0009 d2：exit_hwy 标识符 NL 未点名，故不是 nl_named；可入 E1 的依据是 NL 6 的显式触发指派被违反。台帐已收 EXP-0049-IT-001（highway_exit_collapsed_into_nested_finish）。",
+   "e1_admissible": true,
+   "admissible_ground": "违反 NL 显式义务"
+  },
+  {
+   "case": "0049",
+   "group": "NL05",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "FinishState 的层次归属（首次出现在 state HighwayMode 块内，UrbanMode 侧 straight / intersection 的完成边全部导向 HighwayMode 内部）",
+   "nl_evidence": "同 0009 d4：NL 第 6 句与 NL 第 10 句用同一裸名 FinishState，NL 逐字点名该元素。",
+   "note": "nl_named（被点名元素错位）成立，备用 nl_contradiction 依据同上。台帐 issue 的 subtype 已有 nested_finish 字样但 eval_assert 只否证 dist_to_exit<2 那条边，未把「共享终态被私有化」写成独立命题。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0059",
+   "group": "NL05",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "边 enter_hwy --dist_to_front<25 & extra_lane=true--> lane_change（生成侧只有 enter_hwy --> cruise）",
+   "nl_evidence": "NL 第 3 句逐字：\"In the HighwayMode state, the system begins in the enter_hwy substate, and **can transition to cruise or lane_change** based on…\" —— source 与两个 target 全部逐字点名，且以 \"can transition to … or …\" 明确要求该二选一关系存在。",
+   "note": "强 nl_named（verdict 强度另有争议——审阅者自注参考侧 enter_hwy --> cruise 无标签、在 FCSTM 下是每周期 completion 迁移，参考自身的 lane_change 分支实际失效——但那是 verdict 层问题，不影响归层）。**顺带发现一处批次外口径不一致**：0039 d1 是同一发现（同样删掉 enter_hwy --> lane_change），词法层却归入 reference_only（trigger '参考自身'）。按 NL 第 3 句两条都应是 nl_named，说明 reference_only 那一层自身也存在高估。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named（NL 逐字点名该元素）"
+  },
+  {
+   "case": "0047",
+   "group": "NL07",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "顶层入口 `[*] --> CollisionAvoidanceSystem`（无触发，上电即无条件激活整个避撞子机）",
+   "nl_evidence": "NL 第 2 句是显式义务：\"This sub-machine becomes active when a possible frontend collision, rear-end collision or collision with pedestrian is detected.\" —— 仅在检测到碰撞时激活。NL 未给出任何状态或事件标识符（只有散文描述），故不是 nl_named；assertable 里的 trigger 名 `Collision_Detected` 取自生成模型自己的事件词表（plantuml.puml:5 `Idle --> Braking : Collision Detected`），不是 NL 原文。",
+   "note": "不可能是 reference_only：审阅者已自注「参考模型对激活条件同样保持沉默，故此条依据的是 NL 原文而非参考」，参考 PlantUML 里确实没有任何顶层入口。残留风险：NL07 是子机图，可辩称激活条件属父机职责、不在本图作用域内；但 NL 第 2 句确在给模型的输入里，生成侧写成无条件激活，仍判显式义务冲突。台帐已收 EXP-0047-IT-001（collision_avoidance_activated_without_detection）。",
+   "e1_admissible": true,
+   "admissible_ground": "违反 NL 显式义务"
+  },
+  {
+   "case": "0032",
+   "group": "NL09",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "uncertain_stratum",
+   "element": "OperateState 下多插的一层 Region 包装（IdleRegion / AccelerateRegion / BrakeRegion）",
+   "nl_evidence": "NL09 三句话都没有出现 Region 这一层；NL 第 3 句 \"Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping.\" 只要求存在子态间迁移，**并未禁止再嵌一层**。审阅 reason 里的「只许可一层子态」在 NL 原文中没有支撑，且审阅者自己写明「多出的 Region 包装层是 NL 与参考都没有的元素」。",
+   "note": "**确认不是 nl_named**——这是「引了 NL 但 NL 既没点名也没禁止该元素」的实例。卡点同 0029 d6（gen-only 过度规约在题面四层无归属桶）。特别注意**重复计数风险**：本条的良构性后果（三个 Region 均无默认子态）已由同 case 的 d1 单独计入并归 wellformedness——FCSTM 已核实 llms_emp_feedback_final_0032.fcstm 第 12 / 24 / 40 行各注入一个 `state UnspecifiedInitial`——所以不可把 d2 也走 wellformedness。HEAD 版脚本归 over_specification（✓ 可入）。",
+   "e1_admissible": false,
+   "admissible_ground": null,
+   "excluded_ground": "按 /tmp/nlcheck/EXTRA_POLICY.md 判**不可入**：(a) assertable 是存在性形状（cardinality / state_declared(kind='leaf')）且自标 predicate_exists=false，写不出行为类负面后果断言；(b) 其唯一有害后果——三个 Region 均为无默认子态的复合态、AcceleratingState 无入边——已由同 case 的 d1 单独计入并归 wellformedness（FCSTM 核实 llms_emp_feedback_final_0032.fcstm:12/24/40 各注入一个 `state UnspecifiedInitial`），再收本条即重复计数。剩余部分是纯层级装饰。"
+  },
+  {
+   "case": "0032",
+   "group": "NL09",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "NL 点名的单一状态 `Accelerating or Cruising`（生成侧拆成 AcceleratingState + CruisingState，并自造 `Reach Speed` 触发）",
+   "nl_evidence": "NL 第 1 句把它作为三元枚举中的**一个反引号状态**逐字列出：\"it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states\"。反引号包裹 + 三元并列 + 参考侧同名单态 `AcceleratingorCruising` 三者一致，支持把它读成一个被点名的状态标识符而非散文析取。生成侧没有与之对应的单一状态。",
+   "note": "判据「NL 点名的元素缺失或错位」成立：被点名元素在生成侧被错位实现为两态 + 一条 NL 中不存在的 `Reach Speed` 内部触发（该边还是复合态指向自身子态）。审阅 verdict 是 extra，故 HEAD 版脚本会短路到 over_specification（同属 admissible），两条路径都可入 E1。残留风险：若把 \"Accelerating or Cruising\" 读作散文析取，则拆成两态属合法精化，本条退回 over_specification。",
+   "e1_admissible": true,
+   "admissible_ground": "nl_named 为主依据且**不依赖** EXTRA_POLICY.md 的有害性检验：NL 第 1 句反引号逐字点名单一状态 `Accelerating or Cruising`，生成侧未实现该被点名元素。该命题与同 case d1 的「AcceleratingState 不可达」不同，不重复计数。"
+  }
+ ],
+ "totals": {
+  "confirmed": 10,
+  "reference_only": 0,
+  "wellformedness": 3,
+  "nl_contradiction": 4,
+  "uncertain_stratum": 2
+ },
+ "admissibility": {
+  "point_value": 17,
+  "of": 19,
+  "not_admissible_rows": [
+   "0029#6",
+   "0032#2"
+  ],
+  "reference_only_rows": [],
+  "note": "19 条中 **0 条**是 reference_only（无一条是「只存在于参考、NL 未点名」的不可归因差异）。剔除的 2 条都是 verdict=extra 的 gen-only 过度规约，按 EXTRA_POLICY.md 的有害性检验 + 跨 diff 去重判不可入。**点值 = 17 / 19。**"
+ },
+ "reclassified_out_of_nl_named": {
+  "count": 9,
+  "to_wellformedness": [
+   "0019#1",
+   "0019#5",
+   "0029#1"
+  ],
+  "to_nl_contradiction": [
+   "0009#2",
+   "0029#2",
+   "0049#2",
+   "0047#2"
+  ],
+  "floor_impact": "7 条（3 wellformedness + 4 nl_contradiction）从「只算上界」的 nl_named 层移入 STRATIFICATION.md 定义的**下界层**，即下界应上调，而不是上界下调。",
+  "to_not_admissible": [
+   "0029#6",
+   "0032#2"
+  ]
+ },
+ "cited_nl_but_nl_did_not_name": [
+  {
+   "row": "0019#1 / 0029#1",
+   "what": "引 NL 3，但 NL 3 只给一个合并条件从句覆盖 cruise 与 lane_change 两个目标，没有点名任何可区分守卫；审阅者自认「参考侧靠 cruise 无守卫消歧」，消歧信息在参考侧。"
+  },
+  {
+   "row": "0009#2 / 0029#2 / 0049#2",
+   "what": "引 NL 4/5 的 \"exit the highway\"，但参考侧的状态标识符 exit_hwy 在 NL 中从未出现；可入 E1 的真实依据是 NL 6 对 FinishState 的显式触发指派被违反。"
+  },
+  {
+   "row": "0019#5",
+   "what": "引 NL 1「从未命名任何触发事件」= NL 沉默；真实依据是 UML 良构性（带触发的初始边）。"
+  },
+  {
+   "row": "0029#6",
+   "what": "引 NL 6/10 去数「只该有两条」= NL 沉默，不是 NL 点名。"
+  },
+  {
+   "row": "0032#2",
+   "what": "引 NL 3 断言「只许可一层子态」——NL 3 原文并无此禁止；审阅者自己写明该 Region 层「NL 与参考都没有」。"
+  },
+  {
+   "row": "0047#2",
+   "what": "引 NL 第 2 句，但那是显式义务冲突而非元素点名；assertable 里的 Collision_Detected 取自生成模型自己的事件词表。"
+  }
+ ],
+ "byproduct_findings": [
+  "committed stratification.json / STRATIFICATION.md（45/89/2/6/12，区间 47–136）已**过期**：仓库 HEAD 的 stratify_candidates.py 实际输出 33/2/4/78/31/6，区间 66–144，并新增第 5 层 over_specification（verdict=extra 短路命中）。batch1.json 派生自过期 JSON。本批 19 条里的 4 条 extra（0019#5、0029#6、0032#2、0032#3）在 HEAD 版脚本下已不在 nl_named 层，真正需要 nl_named 复核的只有 15 条。",
+  "0039#1 与 0059#1 是同一发现（都删掉 enter_hwy --> lane_change），词法层却分别归入 reference_only 与 nl_named。按 NL 第 3 句逐字点名 cruise 与 lane_change，两条都应是 nl_named——说明 reference_only 层自身也存在高估，不只是 nl_named 高估。",
+  "0029#0 的 assertable 取 containment(AutonomousMode, HighwayMode)，但 NL 只点名了 InitialState 是 AutonomousMode 的 substate（NL 第 1 句 \"InitialState substate\"）。要留在 nl_named 范围内，谓词实例应换成 containment(AutonomousMode, AutonomousMode.InitialState)。",
+  "0019#2 的词法 trigger 记为 'NL 1'，实为 'NL 12' 的前缀误配；内容无误，但说明 r'NL\\s*\\d' 这条正则会把 NL 10–13 误报成 NL 1。"
+ ],
+ "evidence_checks_run": [
+  "NL 原文：pairs/{0009,0019,0029,0049,0059,0047,0032}/nl.txt 全文逐句读取并编号，与 Dataset.xlsx 行 47/48/51 col C 逐字核对一致。",
+  "参考模型：Dataset.xlsx 行 47/48/51 col D 全文读取（openpyxl）。",
+  "生成模型：pairs/<case>/plantuml.puml 全文读取（7 份）。",
+  "FCSTM 投影抽查：llms_emp_feedback_final_0009.fcstm 确认 `state FinishState` 位于 `state HighwayMode` 块内；llms_emp_feedback_final_0032.fcstm 确认 IdleRegion / AccelerateRegion / BrakeRegion 各注入一个 UnspecifiedInitial，且 AcceleratingState 无任何入边。",
+  "重跑 stratify_candidates.py（无 --json，未写盘）并用 classify() 对 19 条逐条复算 stale vs HEAD 归层。"
+ ],
+ "policy_applied": "题面四层 + /tmp/nlcheck/EXTRA_POLICY.md（sibling 复核提出的 extra 判据：可归因 ∧ 有害；存在性断言不算有害证据）。本批 4 条 verdict=extra 全部按该判据复算，并额外做了跨 diff 去重检查。",
+ "totals_e1_admissible": {
+  "admissible": 17,
+  "not_admissible": 2
+ }
+}

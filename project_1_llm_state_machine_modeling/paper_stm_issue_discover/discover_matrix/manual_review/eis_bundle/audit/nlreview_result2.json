@@ -1,0 +1,229 @@
+{
+ "batch": 2,
+ "groups": [
+  "NL03",
+  "NL06"
+ ],
+ "nl_sentences": {
+  "NL03": [
+   "This state machine model describes the state transitions of a UAV swarm.",
+   "Before the mission is completed, the UAV swarm continuously performs target search tasks, during which it operates within three different state areas.",
+   "When the UAV swarm is intercepted, it transitions to the formation adjustment state.",
+   "During flight, if task assignment information is received, it enters the attack state. After completing the attack, the number of UAVs in the swarm decreases accordingly."
+  ],
+  "NL06": [
+   "The system begins in the PumpControl state, from which it can transition to different substates based on specific conditions.",
+   "Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState.",
+   "The system first transitions to the PumpState substate, where the pump is activated or controlled.",
+   "The system can also transition to the WaterState substate, indicating that the pump is controlling or monitoring the water flow.",
+   "Similarly, the system can transition to the MethaneState substate, indicating that the pump is controlling or monitoring the methane flow."
+  ]
+ },
+ "items": [
+  {
+   "case": "0006",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "搜索期间的三个状态区域（模型一个区域都没有，Searching/Intercepted/FormationAdjustment/Attack 全平铺）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"it operates within three different state areas\"，三区域是 NL 自己给出的数量断言，不依赖参考模型。",
+   "note": "FCSTM 投影确认 UAVSwarmStateMachine 体内只有单一区域。残留风险：NL 未定义 \"state area\" 的操作化口径（同组 0056/diff0 审阅者自己承认可读作『三个区域态间轮转』），因此 E1 谓词必须先固定口径；但『NL 点名了三个状态区域』这一naming事实成立。"
+  },
+  {
+   "case": "0006",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "攻击完成后 UAV 数量递减这一 effect（AttackingTarget --> Searching : Attack Complete 只有 trigger）",
+   "nl_evidence": "NL03 第 4 句逐字含 \"After completing the attack, the number of UAVs in the swarm decreases accordingly.\"",
+   "note": "本批最强的 naming：NL 直接点名递减这一动作，与参考的 exit/ NumberofCru-- 写法无关。FCSTM 确认该边无 effect 块。"
+  },
+  {
+   "case": "0006",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "任务完成/终结语义（模型内无任何 final、无任何 mission-complete 事件）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"Before the mission is completed\"，该条件在 NL 中逐字出现并被用作搜索行为的时间上界。",
+   "note": "FCSTM 确认 0006 只有 Adjustment_Complete / Attack_Complete 两个局部完成事件，无 final、无 mission 级完成。可入 E1 的命题只能是弱形式『存在可达的任务完成表示』；参考的 when (NumberofCru == 0) 条件与顶层 final 位置属 reference_only，不得写进 expected issue（审阅者自己在 0006/diff9 已承认 NumberofCru==0 无 NL 依据）。"
+  },
+  {
+   "case": "0016",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "Region2 / Region3 的层次归属（PlantUML 首次出现作用域把它们做成 Region1 -> Region2 -> Region3 三层包含）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"three different state areas\"；三层包含使占据 Region3 等于同时占据 Region1、Region2，三个区域不再是三个『不同』区域。",
+   "note": "FCSTM 确认 SearchMission { Region1 { Region2 { Region3 } } }。属层次结构/语义一致性问题，在 project_1 范围内。本条是『三区域』族里最弱的一条：若把 NL 第 2 句只操作化成纯计数，三个区域按名字确实存在，本条会退到 reference_only。"
+  },
+  {
+   "case": "0016",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "顶层终结/任务完成的可达性（唯一 --> [*] 边被投影成 InvalidFinaltr_0008『final boundary outside source ancestry』，模型无任何有效 final）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"Before the mission is completed\"。",
+   "note": "重要更正：审阅者写的『提前完成 + 完成条件错置』其中『完成条件错置』一半是 reference_only（NL 从未给出完成条件的形式，审阅者在 0026/diff4 自己承认参考的 count==0 是推断）。但事实层面比审阅者写的更严重——FCSTM 显示 Search -> InvalidFinaltr_0008，源状态因三个同名 Search 碰撞落在 Region1.Search，final 边界越出祖先链，故模型根本没有有效终结。terminates([*]) 失败可归因于 NL 第 2 句，故仍可入 E1，但 expected issue 必须只断言『存在可达的任务完成』，不得断言完成条件或 final 层级。"
+  },
+  {
+   "case": "0026",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "搜索期间的三个状态区域（SearchingState 只有单区域，三个兄弟态是搜索/编队/攻击三种模式）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"during which it operates within three different state areas\"；该模型的三个兄弟态中有两个正是 NL 第 3、4 句的编队调整态与攻击态，因此不是第 2 句所指的『搜索期间的三个区域』。",
+   "note": "naming 成立。注意审阅者自己标注的谓词缺口：cardinality(SearchingState, count=3) 恰好为真，会产生假阳性——这是谓词问题不是分层问题，但 E1 落地时必须换谓词。"
+  },
+  {
+   "case": "0026",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "攻击完成后 UAV 数量递减这一 effect（AttackState --> TargetSearchingState : Attack Completed 只有 trigger）",
+   "nl_evidence": "NL03 第 4 句逐字含 \"the number of UAVs in the swarm decreases accordingly\"。",
+   "note": "FCSTM 确认该边无 effect 块。与 0006/diff2 同型，最强 naming 类。"
+  },
+  {
+   "case": "0036",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "包住三个区域的『目标搜索』composite（参考的 Raster_Scanning，带 do / Target_search）；本模型 Region1 / Region2 直接挂在根上",
+   "nl_evidence": "NL03 第 2 句只逐字含 \"the UAV swarm continuously performs target search tasks\"（一个活动/任务），全文没有点名任何代表搜索的『状态』；RasterScanning 这个名字只出现在参考模型 Dataset.xlsx 行 20 的 `state Raster_Scanning { ... }`。",
+   "note": "改判理由：(1) 断言的元素名直接取自参考；(2) 从『during which』推到『必须有一个 composite 包住区域』是一次建模惯例推理，不是 NL 点名；(3) 参考的 Raster_Scanning 里同样装着 NL 第 3、4 句的编队调整与打击区域，即它实际等于『整个任务』，而 0036 的机器根提供了同一层语义；(4) 审阅者自己在 0006/diff0 把同类包壳判为 similar 并称『只是机器名包壳』，同一事实在 0036 升级为 problem 属组内不一致。区域数量不足另有 0036/diff1 单列，不受本条影响。这是本批最典型的『审阅者引了 NL 但该元素 NL 没点名』实例之一。"
+  },
+  {
+   "case": "0036",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "任务完成/终结语义（两个根级区域各自内循环，无任何 final、无任何完成事件）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"Before the mission is completed\"。",
+   "note": "FCSTM 确认 0036 只有 Interception_Detected / Formation_Adjusted / Task_Assignment_Received / Attack_Complete_UAV_Count_Decreased 四个事件，无 final。与 0006/diff3 同型。E1 命题同样只能取弱形式。"
+  },
+  {
+   "case": "0046",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "搜索期间的三个状态区域（只有 SearchRegion / MissionRegion 两个顺序子态，且 MissionRegion 是任务记账，实质搜索区域只有一个）",
+   "nl_evidence": "NL03 第 2 句逐字含 \"three different state areas\"。",
+   "note": "FCSTM 确认 UAVSwarmStateMachine 只有 SearchRegion、MissionRegion 两个子态。与 0006/diff1、0026/diff0 同族。谓词缺口（cardinality 数出 4 个叶态）属谓词问题不影响分层。"
+  },
+  {
+   "case": "0046",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "顶层 final 状态（模型有 Mission Completed 事件与 MissionComplete 状态，但没有任何 final，且 MissionRegion --> SearchRegion : Start Mission 可无限回切）",
+   "nl_evidence": "NL03 第 2 句只逐字含 \"Before the mission is completed\"，NL 全文没有点名 final 状态、也没有要求机器停机或禁止重新开始任务；参考侧的 `Raster_Scanning --> [*]: when (NumberofCru == 0)` 是参考自行推断（审阅者在 0026/diff4、0006/diff9 自己承认 NL 未给出完成条件形式）。",
+   "note": "改判理由：NL 第 2 句可归因的最强命题是『存在可达的任务完成表示』，而 0046 已经有 Mission_Completed 事件 + MissionComplete 状态，FCSTM 也确认 SearchRegion 的四条 -> [*] : /Mission_Completed 出口边存在，即任务完成在作者源中确实被表示。剩下的『没有 final / 会振荡』只对得上参考的顶层终态写法，NL 未点名。审阅者自己在 0026/diff4 认可『显式 Mission Completed 事件至少与参考的 count==0 同等忠实，甚至更贴 NL』，同一标准应适用于 0046。这是与 0006/0016/0036 三条终结项的分界线：那三例根本没有任何有效完成表示，本例有。"
+  },
+  {
+   "case": "0056",
+   "diff_index": 1,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "Intercepted 事件的目标：SearchState --> FormationAdjustment 与区域内 NoIntercept --> Intercepted 同触发、同活动配置、均无区分守卫",
+   "nl_evidence": "NL03 第 3 句逐字含 \"When the UAV swarm is intercepted, it transitions to the formation adjustment state.\" —— NL 显式规定了拦截的唯一后果。",
+   "note": "仍可入 E1，只改层。改判理由：NL 点名的那条迁移在模型里是存在的（SearchState --> FormationAdjustment : Intercepted），没有缺失元素；真正的缺陷是模型引入了一条 NL 未点名的竞争迁移，使 NL 第 3 句的显式义务不再被保证，属与显式义务矛盾。事实比审阅者的条件式表述更硬：FCSTM 中 NoIntercept -> Intercepted : /Intercepted 与 NoIntercept -> [*] : /Intercepted effect { R45RouteToken = 9 } 同源同触发且都无守卫，构成硬不确定；在原 PlantUML 上按 UML 深层源优先，内层胜出，NL 第 3 句被确定性违反。竞争边的来源（额外拦截区域）是 0056/diff3，NL 未点名。"
+  },
+  {
+   "case": "0002",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "PumpControl 的初始边落点（生成侧 [*] --> InitialState，应为 PumpState）",
+   "nl_evidence": "NL06 第 3 句逐字含 \"The system first transitions to the PumpState substate\"，PumpState 被逐字点名为首个落点。",
+   "note": "本批 NL06 侧最强 naming。FCSTM 确认 PumpControl 内只有 [*] -> InitialState。也可读作 nl_contradiction（违反第 3 句显式义务），但缺失/错位的元素本身被 NL 逐字点名，故保留 nl_named。"
+  },
+  {
+   "case": "0002",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "PumpControl 多出的第四个非伪子态 InitialState（非伪直接子态由三个变四个）",
+   "nl_evidence": "NL06 第 2 句逐字含 \"there are three main substates: PumpState, WaterState, and MethaneState\"，是全 60 例中少见的逐个点名 + 计数断言。",
+   "note": "仍可入 E1，只改层。改判理由：NL 点名的三个子态在模型中都存在（FCSTM 确认 PumpControl 含 PumpState / WaterState / MethaneState / InitialState），没有 NL 点名元素缺失或错位；被违反的是第 2 句的封闭枚举与计数，属与显式义务矛盾。残留风险（\"main\" 漏洞）：若把第 2 句读成『三个主子态 + 允许辅助子态』，多一个 InitialState 未必违反；但本例 InitialState 占据了唯一初始落点且是 PumpControl 内唯一可达状态，事实上就是主子态，因此矛盾成立。 || 与 /tmp/nlcheck/EXTRA_POLICY.md 的交叉核对：本条原 verdict 是 extra，其 assertable 为 cardinality（结构类，非行为类），按该政策的机械近似会落到『存在性断言 -> 不可入』一侧；但按其正式判据（可归因 ∧ 有害），本条有害性可断言（InitialState 为死端且使三个具名子态全部不可达，reaches 失败），故仍应可入。两条路线结论一致，只是理由不同——本次判定走的是 NL 第 2 句显式枚举这条独立路线，不依赖有害性。"
+  },
+  {
+   "case": "0002",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "自造事件 Activate Pump / Deactivate Pump / Start Monitoring / Stop Monitoring，以及 PumpState 内嵌 RunningState 等更深层子态",
+   "nl_evidence": "NL06 五句全文没有命名任何触发事件，也没有描述比三个子态更深的层次；理由句本身写的就是『NL06 全文没有命名任何触发事件』，即 NL 在此是沉默而非点名。第 1 句的 \"based on specific conditions\" 甚至反向为触发条件留了口子。",
+   "note": "改判理由：这是词法判据最典型的假阳性——命中词是 \"NL0\"（reason 里的 \"NL06\"），语义上是『NL 未点名』。方向也与 reference_only 的原始定义相反（元素只存在于生成侧，参考侧也没有），但可归因性结论相同：NL 沉默 => 不可从 NL 导出 expected issue，不入 E1。拆分建议：本条 gen 侧夹带了一个真正的良构性事实——三条初始迁移 [*] --> RunningState : Activate Pump / [*] --> MonitoringWaterFlow : Start Monitoring / [*] --> MonitoringMethaneFlow : Start Monitoring 全部带 trigger，UML 不允许；若单列为独立发现即属 wellformedness、可入 E1（同组 0016/diff5 就是这样单列的）。但那是新增发现，不是本条的改判。 || 与 EXTRA_POLICY.md 一致：原 verdict 为 extra，assertable 为 event_declared（纯存在性），按『可归因 ∧ 有害』判据属无害装饰性增补，不可入 E1；本次按 NL 未点名判 reference_only，结论相同。"
+  },
+  {
+   "case": "0013",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "PumpControl 体内七个具名状态（PumpState / WaterState / MethaneState + 克隆件 PumpStateA / WaterStateA / PumpStateB / MethaneStateB）",
+   "nl_evidence": "NL06 第 2 句逐字含 \"there are three main substates: PumpState, WaterState, and MethaneState\"。",
+   "note": "仍可入 E1，只改层。改判理由：三个 NL 点名子态都在 PumpControl 内且位置正确（FCSTM 确认），没有 NL 点名元素缺失；被违反的是第 2 句的枚举与计数。本例对 \"main\" 漏洞免疫：额外的四个状态是三个被点名子态的克隆（Pump 系三个、Water 系两个、Methane 系两个），无法解释成与三个主子态无关的辅助态，因此与逐个点名直接矛盾。"
+  },
+  {
+   "case": "0013",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "自造六个事件（Water Flow Detected / Methane Flow Detected / Water Flow Controlled / Transition to Methane / Methane Flow Controlled / Transition to Water）与子态间迁移",
+   "nl_evidence": "NL06 全文没有命名任何触发事件；命中词是 reason 里的 \"NL06\"，语义为 NL 沉默。",
+   "note": "改判理由同 0002/diff3：NL 沉默不可归因，不入 E1。另需修正 reason 的一处事实偏差：审阅者写『NL 从未描述三个子态之间的任何迁移』并不准确——NL06 第 4 句 \"The system can also transition to the WaterState substate\"、第 5 句 \"can transition to the MethaneState substate\" 确实描述了进入 Water/Methane 的迁移；真正无 NL 依据的是事件名与反向边（如 WaterState --> MethaneState : Transition to Methane）。这一偏差进一步说明本条不属 nl_named。 || 与 EXTRA_POLICY.md 一致：extra + event_declared 存在性断言，无害性一侧，不可入 E1；与本次 reference_only 结论相同。"
+  },
+  {
+   "case": "0033",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "confirmed",
+   "element": "PumpState / WaterState / MethaneState 的层次归属：三者被声明成 PumpControl 的兄弟（顶层），而非 PumpControl 的子态",
+   "nl_evidence": "NL06 第 2 句逐字含 \"Within the PumpControl state, there are three main substates: PumpState, WaterState, and MethaneState\" —— 三个元素被逐字点名，且 \"Within\" 明确要求它们在 PumpControl 之内。",
+   "note": "FCSTM 确认 PumpState / WaterState / MethaneState 与 PumpControl 平级，PumpControl 内只剩三个 InvalidInitialtr 占位。NL 点名元素整体错位，naming 成立且不受『直接子态 vs 后代』之争影响（它们不在 PumpControl 的任何层级内）。本批 NL06 侧与 0002/diff0 并列最强。"
+  },
+  {
+   "case": "0033",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "自造七个事件 begin / Activate Pump / Monitor Water Flow / Monitor Methane Flow / Pump Deactivated / Water Flow Stabilized / Methane Flow Stabilized 与三条终结边",
+   "nl_evidence": "NL06 全文没有命名任何触发事件，也从未提到停用、稳定或终止；命中词是 reason 里的 \"NL06\"，语义为 NL 沉默。",
+   "note": "改判理由同 0002/diff3。附带说明：本条 gen 侧夹带两类结构事实——(a) 根初始边 [*] -down-> PumpControl : begin 带 trigger，属 wellformedness（带触发初始边），若单列可入 E1；(b) 三条 PumpState --> [*] 投影为 InvalidFinaltr_0006/0008/0010『final boundary outside source ancestry』，但这是 diff0 层次错位的下游后果，且不在给定良构性枚举内。以 event_declared(Water_Flow_Stabilized) 为断言的本条本身不可归因于 NL。 || 与 EXTRA_POLICY.md 的交叉核对：extra + event_declared 存在性断言 -> 不可入。注意本条有害性其实非零（三条终结边投影为 InvalidFinaltr），若按有害性一侧重判可能翻转；但该有害后果的根因是 diff0 的层次错位，已单独可入，故不重复计。"
+  },
+  {
+   "case": "0043",
+   "diff_index": 0,
+   "was": "nl_named",
+   "verdict": "nl_contradiction",
+   "element": "PumpControl 的分解成员：直接子态为 Region1 / Region2，其中 Region2 装的是 NL 完全没有的 Idle / Active",
+   "nl_evidence": "NL06 第 2 句逐字含 \"there are three main substates: PumpState, WaterState, and MethaneState\"；按直接子态读为 2 ≠ 3，按后代读为 7 个具名后代 ≠ 3。",
+   "note": "仍可入 E1，只改层。改判理由：三个 NL 点名子态都在 PumpControl 之内（FCSTM 确认 PumpControl > Region1 > PumpState/WaterState/MethaneState），且同 case 的 diff4 已承认『必须是直接子态』不是 NL 唯一读法，故不宜按『NL 点名元素错位』计；被违反的是第 2 句的枚举与计数。残留风险同 0002/diff2 的 \"main\" 漏洞。"
+  },
+  {
+   "case": "0043",
+   "diff_index": 2,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "整个自造的 Region2 区域，含 Idle / Active 两个状态与 [Activation Signal] / [Deactivation Signal] 两个事件",
+   "nl_evidence": "NL06 五句里没有 Idle、Active、Activation Signal、Deactivation Signal 中的任何一个概念，NL 全文对此沉默；命中词是 reason 里的 \"NL06\"。",
+   "note": "改判理由：本条断言的元素（state_declared(PumpControl.Region2.Idle)）NL 完全未点名，不属 nl_named。它唯一的 NL 挂钩是『把第 2 句的三项分解挤成两项』，而该命题已由同 case 的 diff0 承载并已判为可入 E1；若把本条也计为 nl_contradiction，等于对同一个 NL 第 2 句命题重复计数。故作为独立发现不入 E1。 || 与 EXTRA_POLICY.md 一致：extra + state_declared 存在性断言，不可入 E1；与本次 reference_only 结论相同（其可断言的负面后果已由同 case diff0 承载）。"
+  },
+  {
+   "case": "0043",
+   "diff_index": 3,
+   "was": "nl_named",
+   "verdict": "reference_only",
+   "element": "自造四个事件 [Water Flow Detected] / [Methane Flow Detected] / [Water Flow Completed] / [Methane Flow Completed] 与 Region1 内四条迁移",
+   "nl_evidence": "NL06 全文没有命名任何触发事件；命中词是 reason 里的 \"NL06\"，语义为 NL 沉默。",
+   "note": "改判理由同 0013/diff2，包括同一处 reason 偏差：NL 第 4、5 句确实描述了进入 WaterState / MethaneState 的迁移，无 NL 依据的是事件名与回边。 || 与 EXTRA_POLICY.md 一致：extra + event_declared 存在性断言，不可入 E1；与本次 reference_only 结论相同。"
+  }
+ ],
+ "totals": {
+  "confirmed": 11,
+  "reference_only": 7,
+  "wellformedness": 0,
+  "nl_contradiction": 4,
+  "uncertain_stratum": 0
+ }
+}

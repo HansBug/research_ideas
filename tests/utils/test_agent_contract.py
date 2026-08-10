@@ -3,11 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from utils.agent import AgentSpec
+from utils.agent.demo import DemoAnswer
 from utils.agent.runtime import (
+    _adapter_prompt_cache_middleware,
     _build_context_manifest,
+    _default_stream_usage,
     _normalize_context,
+    _validate_adapter_call_options,
     _validate_model_options,
 )
 from utils.llm import LLMConfig
@@ -46,6 +51,15 @@ def test_model_call_options_cannot_change_tool_or_retry_contract() -> None:
         _validate_model_call_options({"reasoning_effort": "high"})
 
 
+def test_anthropic_rejects_openai_only_call_options() -> None:
+    config = LLMConfig(model="claude-opus-4-7", adapter="anthropic")
+
+    _validate_adapter_call_options(config, {"temperature": 0, "max_tokens": 100})
+    for key in ("seed", "verbosity"):
+        with pytest.raises(ValueError, match="adapter=anthropic"):
+            _validate_adapter_call_options(config, {key: 1 if key == "seed" else "low"})
+
+
 def test_output_symlink_loop_is_a_structured_config_error(tmp_path: Path) -> None:
     from utils.agent.runtime import AgentError, _validate_output_paths
 
@@ -64,6 +78,38 @@ def test_agent_spec_tools_are_the_registration_allowlist() -> None:
     assert spec.tool_names == ("lookup",)
 
 
+def test_missing_structured_output_retry_needs_output_schema() -> None:
+    with pytest.raises(ValueError, match="retry_missing_structured_output"):
+        AgentSpec(
+            name="invalid-structured-retry",
+            system_prompt="answer",
+            retry_missing_structured_output=True,
+        )
+
+
+def test_demo_answer_requires_timezone_aware_iso_timestamps() -> None:
+    valid = DemoAnswer.model_validate(
+        {
+            "summary": "done",
+            "base_time": "2026-07-24T03:19:20-04:00",
+            "offset_hours": 51.25,
+            "target_time": "2026-07-26T06:34:20-04:00",
+            "evidence_ids": ["system-time-001", "math-expression-001"],
+        }
+    )
+    assert valid.base_time.tzinfo is not None
+    assert valid.target_time.tzinfo is not None
+
+    for field, value in (
+        ("base_time", "2026-07-24T03:19:20-04:00 (EDT)"),
+        ("target_time", "2026-07-26T06:34:20"),
+    ):
+        payload = valid.model_dump(mode="json")
+        payload[field] = value
+        with pytest.raises(ValidationError):
+            DemoAnswer.model_validate(payload)
+
+
 def test_think_off_pins_official_reasoning_defaults() -> None:
     from utils.agent.runtime import _resolve_inference_options
 
@@ -77,7 +123,11 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
     assert enabled is False
     assert options["reasoning_effort"] == "none"
 
-    deepseek_config = LLMConfig(model="deepseek-v4-flash", base_url="https://api.deepseek.com")
+    deepseek_config = LLMConfig(
+        model="deepseek-v4-flash",
+        adapter="deepseek",
+        base_url="https://api.deepseek.com",
+    )
     options, enabled = _resolve_inference_options(
         deepseek_config,
         model_call_options=None,
@@ -86,6 +136,29 @@ def test_think_off_pins_official_reasoning_defaults() -> None:
     )
     assert enabled is False
     assert options["extra_body"] == {"thinking": {"type": "disabled"}}
+
+    responses_config = LLMConfig(
+        model="relay-model",
+        adapter="openai-responses",
+        base_url="https://relay.example/v1",
+    )
+    options, enabled = _resolve_inference_options(
+        responses_config,
+        model_call_options=None,
+        think_mode=False,
+        reasoning_effort=None,
+    )
+    assert enabled is False
+    assert options == {"reasoning_effort": "none"}
+
+    options, enabled = _resolve_inference_options(
+        responses_config,
+        model_call_options=None,
+        think_mode=True,
+        reasoning_effort="max",
+    )
+    assert enabled is True
+    assert options == {"reasoning_effort": "max"}
 
     with pytest.raises(ValueError, match="reasoning_effort requires think_mode=True"):
         _resolve_inference_options(
@@ -101,7 +174,12 @@ def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
 
     app = AgentApp.from_config(
         AgentSpec(name="deepseek", system_prompt="answer"),
-        LLMConfig(model="deepseek-v4-flash", base_url="https://api.deepseek.com", api_key="test-key"),
+        LLMConfig(
+            model="deepseek-v4-flash",
+            adapter="deepseek",
+            base_url="https://api.deepseek.com",
+            api_key="test-key",
+        ),
         profile="deepseek-v4-flash",
     )
     assert type(app.model).__module__.split(".", 1)[0] == "langchain_deepseek"
@@ -116,9 +194,135 @@ def test_deepseek_profiles_use_the_official_langchain_adapter() -> None:
     assert sources == {"context_window": "official_profile", "max_output": "official_profile"}
 
 
-def test_dependency_versions_record_both_provider_adapters() -> None:
+def test_openai_responses_profiles_use_the_responses_transport() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="responses", system_prompt="answer"),
+        LLMConfig(
+            model="glm-5.2",
+            adapter="openai-responses",
+            base_url="https://relay.example/v1",
+            api_key="test-key",
+            max_output_tokens=128_000,
+        ),
+        profile="glm-5.2",
+    )
+
+    assert type(app.model).__module__.split(".", 1)[0] == "langchain_openai"
+    assert app.adapter_name == "langchain-openai/responses"
+    assert app.model.use_responses_api is True
+    assert app.model.max_tokens == 128_000
+
+
+def test_anthropic_profiles_use_the_official_langchain_adapter() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="anthropic", system_prompt="answer"),
+        LLMConfig(
+            model="claude-opus-4-7",
+            adapter="anthropic",
+            base_url="https://api.anthropic.com",
+            api_key="test-key",
+            max_output_tokens=128_000,
+        ),
+        profile="claude-opus-4-7-official",
+    )
+
+    assert type(app.model).__module__.split(".", 1)[0] == "langchain_anthropic"
+    assert app.adapter_name == "langchain-anthropic/messages"
+    assert app.model.streaming is True
+    assert app.model.max_tokens == 128_000
+    assert app.model.anthropic_api_url == "https://api.anthropic.com"
+
+    middleware = _adapter_prompt_cache_middleware(app.config)
+    assert len(middleware) == 1
+    assert type(middleware[0]).__name__ == "AnthropicPromptCachingMiddleware"
+    assert middleware[0].ttl == "5m"
+    assert middleware[0].min_messages_to_cache == 0
+    assert middleware[0].unsupported_model_behavior == "raise"
+
+
+def test_non_anthropic_adapters_do_not_install_anthropic_prompt_cache() -> None:
+    assert _adapter_prompt_cache_middleware(LLMConfig(model="gpt-5.5")) == []
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        (LLMConfig(model="gpt-5.5"), True),
+        (
+            LLMConfig(
+                model="gpt-5.5",
+                adapter="openai",
+                base_url="https://relay.example/v1",
+            ),
+            False,
+        ),
+        (
+            LLMConfig(
+                model="claude-opus-4-7",
+                adapter="anthropic",
+                base_url="https://relay.example",
+            ),
+            True,
+        ),
+        (
+            LLMConfig(
+                model="deepseek-v4-flash",
+                adapter="deepseek",
+                base_url="https://api.deepseek.com",
+            ),
+            False,
+        ),
+    ],
+)
+def test_stream_usage_default_is_owned_by_the_adapter_runtime(
+    config: LLMConfig,
+    expected: bool,
+) -> None:
+    assert _default_stream_usage(config) is expected
+
+
+def test_explicit_stream_usage_overrides_the_adapter_default() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="explicit-stream-usage", system_prompt="answer"),
+        LLMConfig(
+            model="deepseek-v4-flash",
+            adapter="deepseek",
+            base_url="https://api.deepseek.com",
+            api_key="test-key",
+        ),
+        model_options={"stream_usage": True},
+    )
+
+    assert app.model.stream_usage is True
+
+
+def test_adapter_default_does_not_infer_from_model_or_endpoint() -> None:
+    from utils.agent import AgentApp
+
+    app = AgentApp.from_config(
+        AgentSpec(name="explicit-adapter", system_prompt="answer"),
+        LLMConfig(
+            model="claude-opus-4-7",
+            base_url="https://api.anthropic.com",
+            api_key="test-key",
+        ),
+    )
+
+    assert type(app.model).__module__.split(".", 1)[0] == "langchain_openai"
+    assert app.adapter_name == "langchain-openai/chat-completions"
+
+
+def test_dependency_versions_record_all_provider_adapters() -> None:
     from utils.agent.runtime import _dependency_versions
 
     versions = _dependency_versions()
     assert "langchain-openai" in versions
+    assert "langchain-anthropic" in versions
     assert "langchain-deepseek" in versions
+    assert "anthropic" in versions

@@ -1,0 +1,108 @@
+{
+ "case": "0040",
+ "group": "NL08",
+ "llm": "DeepSeek",
+ "diffs": [
+  {
+   "verdict": "correct",
+   "ref": "[*] --> human_mode : power_on；human_mode 简单状态",
+   "gen": "[*] --> HumanDriving : Power On；HumanDriving : Human Driving Mode",
+   "reason": "NL 第1、3句满足。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "correct",
+   "ref": "(参考无 front_distance；参考未声明 autonomous 状态体)",
+   "gen": "HumanDriving --> Autonomous : front_distance > 10；state Autonomous { AutoInitial, AutoFinal }",
+   "reason": "NL 第2、4句满足，且 AutoFinal 为具名子状态，两点均优于参考。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "autonomous_mode --> [*] : power_off",
+   "gen": "只有 HumanDriving --> [*] : Power Off",
+   "reason": "自动驾驶激活期间无法断电，NL 第5句断电义务只覆盖一半作用域（参考两边都有）。",
+   "assertable": "event_consumed(source=\"llms_emp_feedback_final_0040.Autonomous.AutoInitial\", trigger=\"llms_emp_feedback_final_0040.Power_Off\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "参考把三条件拆成三条独立边",
+   "gen": "Autonomous --> HumanDriving : human_steering_cmd || brake_pressed || in (AutoFinal)",
+   "reason": "作者写出了显式析取，但 PlantUML 标签是自由文本，投影得到单一事件 `human_steering_cmd_brake_pressed_in_AutoFinal`：单独的 human_steering_cmd 无法触发接管，处于 AutoFinal 也不会自动交还控制权。论文 SysML 语法检查 13/13 全通过未报警。",
+   "assertable": "event_declared(event=\"llms_emp_feedback_final_0040.human_steering_cmd\") → False；\"以 in-state 为守卫、无事件的接管边\"19 谓词无法表达",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "problem",
+   "ref": "(参考无对应元素；NL 未要求任何进入 autonomous 内部的额外事件)",
+   "gen": "state Autonomous { [*] --> AutoInitial : Enter Autonomous Mode }",
+   "reason": "复合状态的初始迁移带触发事件：front_distance>10 把系统送进 Autonomous 后，必须再等一个模型里无人产生的 `Enter Autonomous Mode` 事件才会激活子状态，即进入自动驾驶后无任何子状态处于激活。UML 初始迁移不允许带触发，这是结构与行为双重缺陷，论文与台帐均未记录。",
+   "assertable": "occupancy_after(source=\"llms_emp_feedback_final_0040.HumanDriving\", trigger=\"llms_emp_feedback_final_0040.front_distance_10\", target=\"llms_emp_feedback_final_0040.Autonomous.AutoInitial\") → 期望 True 实得 False",
+   "predicate_exists": true,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "similar",
+   "ref": "(参考无对应元素)",
+   "gen": "AutoInitial --> AutoFinal : Auto Process Complete",
+   "reason": "NL 未指定 autonomous 内部行为，自造事件按必要发明处理。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  },
+  {
+   "verdict": "uncertain",
+   "ref": "参考 NL 第5句三条边中两条方向写反、human_steering_cmd 双向并存；漏掉第4句；未建 autonomous 复合状态",
+   "gen": "(生成方在第2、4句优于参考)",
+   "reason": "garbled 第5句读法无法定案、参考自身不自洽，这也解释了 0040 为何两阶段 F1 都只有 0.4167——它把三条件放在 NL 要求的方向上，恰好与错向的参考不匹配。",
+   "assertable": null,
+   "predicate_exists": null,
+   "out_of_scope": null
+  }
+ ],
+ "problem_count": 3,
+ "extra_count": 0,
+ "vs_paper": "论文：format 栏记 \"syntax error：stm DrivingSystem [...]\"（resolved YES）；grammar 栏 None；semantic 栏记 \"1. Duplicated composite state.\"（semantic_resolved=0.0）；F1 0.4167 → 0.4167。核对列 AE：论文其实已删掉重复的 `Autonomous : Autonomous Mode` 描述行，却把 resolved 记为 0.0，且 F1 分毫未动；同样的\"描述行 + 复合状态\"写法在 0020 里未被标记，语义标注口径不一致。我判的 3 个 problem 论文均未记。",
+ "vs_ledger": "台帐 1 条：EXP-0040-IT-001 ↔ 我的自动驾驶侧无断电。我另有 2 个 problem（接管条件压成单一事件；复合状态初始迁移带触发导致进入后无子状态激活）台帐与论文都没记。",
+ "notes": "0040 是\"NL 忠实度高但 F1 最低\"的典型：第1–4句全部满足且优于参考，却因参考模型漏掉 front_distance、把接管边方向写反而被 F1 重罚（0.4167，与 0000 的 Phase-I 并列全组最低）。",
+ "_source_file": "NL08-d.json",
+ "cross_reference": {
+  "case": "0040",
+  "group": "NL08",
+  "llm": "DeepSeek",
+  "counts": {
+   "correct": 2,
+   "similar": 1,
+   "problem": 3,
+   "extra": 0,
+   "uncertain": 1
+  },
+  "out_of_scope": {},
+  "problems_in_scope": 3,
+  "paper": {
+   "format": "syntax error：stm DrivingSystem [Driving System State Machine]",
+   "grammar": null,
+   "semantic": "1. Duplicated composite state.",
+   "semantic_resolved": 0.0,
+   "f1_phase1": 0.4166666667,
+   "f1_phase2": 0.4166666667
+  },
+  "ledger": {
+   "status": "expected_issues_found",
+   "e1_ids": [
+    "EXP-0040-IT-001"
+   ],
+   "e1_categories": [
+    "IT"
+   ]
+  },
+  "assertable_problems": 3
+ }
+}

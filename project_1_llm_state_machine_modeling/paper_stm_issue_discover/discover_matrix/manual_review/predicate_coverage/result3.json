@@ -1,0 +1,503 @@
+{
+ "batch": 3,
+ "groups": [
+  "NL05",
+  "NL07"
+ ],
+ "items": [
+  {
+   "case": "0009",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "not edge_declared(source=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0009.dist_to_exit_2\", target=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.FinishState\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 6 逐字把 FinishState 的进入触发指派为 auto_finished=true；NL 4/5 把 dist_to_exit<2 指派给「驶离高速」这一另一动作。正确模型不应存在 cruise --dist_to_exit<2--> FinishState 这条边。实测 edge_declared 本体 True（边确实存在），故 not 形式 False，缺陷被捕获。oracle 用的是 NL 而非参考（参考的 exit_hwy 标识符 NL 未点名）。",
+   "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0009.dist_to_exit_2\", target=\"llms_emp_feedback_final_0009.AutonomousMode.HighwayMode.FinishState\"))  —— 实跑抛 TypeError: 'bool' object is not iterable（BRIEF 坑 1），必须去掉 any()"
+  },
+  {
+   "case": "0009",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "state_declared(state=\"llms_emp_feedback_final_0009.AutonomousMode.UrbanMode.exit_urban\", kind=\"any\")",
+   "predicates": [
+    "state_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 8 逐字点名状态标识符 exit_urban（\"or to exit_urban if the distance to the urban exit is less than 0.7 kilometers\"）。生成侧未声明该状态，FCSTM 投影 UrbanMode 只有 enter_urban / lane_change_urban / straight / intersection。现有 assertable 直接跑通并返回 False，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0009",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0009.AutonomousMode\", child=\"llms_emp_feedback_final_0009.AutonomousMode.FinishState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 6/10 用同一裸名 FinishState 指同一个被两模式共享的终态，应位于 AutonomousMode 层级。FCSTM 第 22 行 `state FinishState` 落在 `state HighwayMode` 块内，故 AutonomousMode 的直接子态里没有 FinishState。现有 assertable 直接跑通并返回 False，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0019",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "guard_distinguishable(source=\"llms_emp_feedback_final_0019.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0019.dist_to_front_25_extra_lane_true\")",
+   "predicates": [
+    "guard_distinguishable"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 3 用一个合并条件从句覆盖 cruise / lane_change 两个目标，未点名任何区分守卫；本条仅凭模型自身可判：FCSTM 24-25 行两条边共享同一 event 且均无守卫。guard_distinguishable 因此返回 False（两目标、守卫重叠）。注意 BRIEF 坑 2 在这里不触发——本例是双目标，不是单目标空集空真。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0019",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0019.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0019.CollisionAvoidanceSystem.collision_avoidance_deactive\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 12 首句 \"The collision avoidance system is initially in the collision_avoidance_deactive state\" 是显式初态要求。FCSTM 第 71 行唯一初始边是 `[*] -> UnspecifiedInitial`（投影注入），_initial_child_of 从这条唯一入口作答 → UnspecifiedInitial ≠ collision_avoidance_deactive → False。坑 3 在此不适用（该初始边不带触发）。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0019",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "occupancy_after(source=\"llms_emp_feedback_final_0019.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0019.auto_finished_true\", target=\"llms_emp_feedback_final_0019.AutonomousMode.FinishState\")",
+   "predicates": [
+    "occupancy_after"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 6 的主语是复合态本体（\"The HighwayMode ends when...\"）、NL 10 同型，source/target/trigger 三者 NL 全部逐字点名。生成侧把完成边的源收窄到出口叶态 ExitHighway，cruise 上 auto_finished=true 根本不被消费。实测：默认 within_cycles（=1）False；within_cycles=3 也 False（无 horizon 自检拒答，因为更大 horizon 同样 False）；旁证 event_consumed(cruise, auto_finished_true) = False。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0019",
+   "diff_index": 5,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": true,
+   "assertion": "event_consumed(source=\"[*]\", trigger=\"llms_emp_feedback_final_0019.high_way_true\")",
+   "predicates": [
+    "event_consumed"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "harmful extra：两条初始边各自被凭空加了触发事件，冷启动因此什么都不提交（配置只有 root），NL 1 的「begins in AutonomousMode → InitialState substate」不成立，NL 2 的分派从上电起不可达。断言表达的是后果而非「多出的事件存在」。对照实测：event_consumed(AutonomousMode.InitialState, high_way_true) = True，说明 False 来自冷启动未提交而不是边不存在。",
+   "rewrote_from": "event_declared(event=\"llms_emp_feedback_final_0019.Autonomous_mode_start\")  —— 该字段只断言多出元素的存在性（实测 True），是前提不是缺陷；改用台帐 harm_assertion 的后果形式"
+  },
+  {
+   "case": "0029",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0029.AutonomousMode\", child=\"llms_emp_feedback_final_0029.AutonomousMode.InitialState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 1 逐字含 \"InitialState substate\"，故 AutonomousMode 必须是含 InitialState 的复合态。FCSTM 第 96-97 行显示 AutonomousMode 与 InitialState 是两个平级叶态。旁证 state_declared(AutonomousMode, kind=\"composite\") = False。原字段 containment(AutonomousMode, AutonomousMode.HighwayMode) 实测也是 False，但 NL 从未点名这条归属（NL 2 只说迁移不说包含），按 review_note 重新实例化到 NL 点名的 InitialState 上以保持 nl_named 层内自洽。",
+   "rewrote_from": "containment(parent=\"llms_emp_feedback_final_0029.AutonomousMode\", child=\"llms_emp_feedback_final_0029.AutonomousMode.HighwayMode\")  —— 实测 False 但 oracle 不在 NL（NL 未点名该归属），按 review_note 换成 InitialState"
+  },
+  {
+   "case": "0029",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "guard_distinguishable(source=\"llms_emp_feedback_final_0029.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0029.dist_to_front_25_extra_lane_true\")",
+   "predicates": [
+    "guard_distinguishable"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "与 0019 d1 同型：FCSTM 34-35 行 enter_hwy 两条出边共享同一 event、均无守卫、目标不同。仅凭模型自身可判，无需 oracle。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0029",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "not edge_declared(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.dist_to_exit_2\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "本条是模型内自相矛盾：生成侧自己声明了 lane_change --dist_to_exit<2--> exit_hwy（FCSTM 39 行），却让 cruise 同条件直连 FinishState（37 行），把局部退出与 NL 6 的全局完成混为一谈。判定不需要参考。",
+   "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.dist_to_exit_2\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\"))  —— 实跑抛 TypeError（坑 1），去掉 any()"
+  },
+  {
+   "case": "0029",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0029.HighwayMode\", child=\"llms_emp_feedback_final_0029.HighwayMode.enter_hwy\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 3 \"the system begins in the enter_hwy substate\" 是显式初态要求。HighwayMode 有 5 条初始边，唯一无条件的是 `[*] -> UnspecifiedInitial`（FCSTM 28 行），_initial_child_of 从它作答 → False。同型孪生条 initial_target(UrbanMode, UrbanMode.enter_urban)（NL 7）实测也是 False；两条合成 all([...]) 同样 False。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0029",
+   "diff_index": 4,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0029.AutonomousMode\", child=\"llms_emp_feedback_final_0029.AutonomousMode.FinishState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "同 0009 d4：NL 6/10 的裸名 FinishState 是两模式共享终态，生成侧把它绑进 HighwayMode（FCSTM 21 行），且 AutonomousMode 本身还退化成叶态。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0029",
+   "diff_index": 5,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "event_declared(event=\"llms_emp_feedback_final_0029.enter_\") -> True（多出元素确实存在，是前提不是缺陷）",
+    "not event_declared(event=\"llms_emp_feedback_final_0029.enter_\") -> False（只是把存在性取反，仍是存在性）",
+    "stays_in(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.enter_\") -> False（非区分性：正确模型里该事件根本不存在，stays_in 同样 False）",
+    "occupancy_after(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.auto_finished_true\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\", within_cycles=3) -> True（NL 6 义务仍然成立，无被违反的义务可断言）"
+   ],
+   "shape": "benign extra：自造 initial / enter_ 事件。enter_ 被降为组边确实带来 NL 未授权的复位行为，但唯一可写的形式 stays_in(cruise, enter_) 在正确模型上也是 False（事件不存在 ⇒ 不被消费），完全非区分；另一半 initial 边是承重的（删掉它 InitialState/HighwayMode/UrbanMode 全部不可达），两半互相抵消。NL05 未点名任何进入类事件，因此没有正面义务可被打破。",
+   "closest_gap": "真词表缺口：缺一个「该事件/该边不应存在」或「组边不得对已推进子态产生未授权复位」的谓词；现有 19 个谓词只能表达存在性或非区分的行为等价。",
+   "rewrote_from": "event_declared(event=\"llms_emp_feedback_final_0029.enter_\")"
+  },
+  {
+   "case": "0029",
+   "diff_index": 6,
+   "verdict": "extra",
+   "stratum": "over_specification_benign",
+   "expressible": false,
+   "attempted": [
+    "guard_distinguishable(source=\"llms_emp_feedback_final_0029.AutonomousMode\", trigger=\"llms_emp_feedback_final_0029.auto_finished_true\") -> True（无冲突目标，没抓住）",
+    "not edge_declared(source=\"llms_emp_feedback_final_0029.AutonomousMode\", trigger=\"llms_emp_feedback_final_0029.auto_finished_true\", target=\"llms_emp_feedback_final_0029.HighwayMode\") -> False（只是多出边的存在性取反）",
+    "not occupancy_after(source=\"llms_emp_feedback_final_0029.AutonomousMode\", trigger=\"llms_emp_feedback_final_0029.auto_finished_true\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\", within_cycles=2) -> False（形式上是后果，但它编码的是 NL05 从未给出的禁令，等于把多出边自身的行为换个说法）",
+    "occupancy_after(source=\"llms_emp_feedback_final_0029.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0029.auto_finished_true\", target=\"llms_emp_feedback_final_0029.HighwayMode.FinishState\", within_cycles=3) -> True（NL 6 义务仍成立）"
+   ],
+   "shape": "benign extra：第三条以平级叶态 AutonomousMode 为源的完成边（投影为 AutonomousMode --> HighwayMode : auto_finished + token 25）。NL 6/10 只把完成义务授予模式级，对 AutonomousMode 这个起点态没有任何义务；该边与 initial 边触发不同、不竞争，两条模式级完成义务均仍成立。所以没有被违反的义务，只能写存在性或存在性的行为改写。",
+   "closest_gap": "真词表缺口：缺一个「除 NL 授权的源之外不得有同触发同目标的额外完成关系」类的封闭性/唯一性谓词；19 谓词全是正面存在或正面可达，无法表达「不应多出」。",
+   "rewrote_from": "（原 assertable 为 null）"
+  },
+  {
+   "case": "0039",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "edge_declared(source=\"llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0039.dist_to_front_25_extra_lane_true\", target=\"llms_emp_feedback_final_0039.AutonomousMode.HighwayMode.lane_change\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 3 逐字 \"can transition to cruise or lane_change\"，source 与两个 target 全部点名。FCSTM 24 行只有无标签的 enter_hwy -> cruise，没有 enter_hwy -> lane_change。现有 assertable 直接跑通，沿用。注：oracle 取 NL 而非参考（参考自身的 enter_hwy --> cruise 也无标签、在 FCSTM 语义下会以 completion 边抢占它自己声明的 lane_change 分支）。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0039",
+   "diff_index": 5,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": true,
+   "assertion": "guard_distinguishable(source=\"llms_emp_feedback_final_0039.AutonomousMode.InitialState\", trigger=\"llms_emp_feedback_final_0039.high_way_true\")",
+   "predicates": [
+    "guard_distinguishable"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "harmful extra：两条父复合态指向自身后代的边被投影成对每个后代都追加一条同触发出边，于是 InitialState 上 high_way=true 同时有 NL 2 的 InitialState-->HighwayMode 与组边 InitialState-->区域 final 两个不同目标且无区分守卫 —— NL 2 的分派变成非确定。断言表达后果，落点是 NL 点名的 InitialState + high_way=true。旁证：urban_way_true 同样 False；而 occupancy_after(InitialState, high_way_true, HighwayMode, 2) = True，说明必须用 guard_distinguishable 而不是 occupancy_after 才能看到该后果。",
+   "rewrote_from": "（原 assertable 为 null；本式取自台帐 harm_assertion 并已实跑）"
+  },
+  {
+   "case": "0049",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "not edge_declared(source=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0049.dist_to_exit_2\", target=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.FinishState\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "同 0009 d2：NL 6 把 FinishState 的进入触发独占给 auto_finished=true，生成侧把 dist_to_exit<2（NL 4/5 的局部驶离高速）也接到 FinishState（FCSTM 31 行）。",
+   "rewrote_from": "not any(edge_declared(source=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0049.dist_to_exit_2\", target=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.FinishState\"))  —— 实跑抛 TypeError（坑 1），去掉 any()"
+  },
+  {
+   "case": "0049",
+   "diff_index": 3,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "containment(parent=\"llms_emp_feedback_final_0049.AutonomousMode\", child=\"llms_emp_feedback_final_0049.AutonomousMode.FinishState\")",
+   "predicates": [
+    "containment"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "同 0009 d4 / 0029 d4：共享终态被私有化进 HighwayMode（FCSTM 21 行）。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0049",
+   "diff_index": 4,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": true,
+   "assertion": "guard_distinguishable(source=\"llms_emp_feedback_final_0049.AutonomousMode.HighwayMode.cruise\", trigger=\"llms_emp_feedback_final_0049.auto_finished_true\")",
+   "predicates": [
+    "guard_distinguishable"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "harmful extra：三条子态级完成边冗余于顶层组边。后果落在 NL 点名的 cruise 上——cruise 同时有自造的 cruise-->HighwayMode.FinishState（FCSTM 32 行）与投影出的 cruise-->区域 final（38 行），同触发、目标不同、无区分守卫，NL 6 的完成在 cruise 处非确定。断言表达后果而非「多出的三条边存在」。台帐对照：straight / intersection 上同一形式为 True（那两条被投影到同一区域 final 目标），冲突只发生在 cruise。",
+   "rewrote_from": "（原 assertable 为 null；本式取自台帐 harm_assertion 并已实跑）"
+  },
+  {
+   "case": "0059",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "nl_named",
+   "expressible": true,
+   "assertion": "edge_declared(source=\"llms_emp_feedback_final_0059.AutonomousMode.HighwayMode.enter_hwy\", trigger=\"llms_emp_feedback_final_0059._dist_to_front_25_extra_lane_true\", target=\"llms_emp_feedback_final_0059.AutonomousMode.HighwayMode.lane_change\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "同 0039 d1：NL 3 点名的 enter_hwy → lane_change 分支被删除，FCSTM 22 行只剩无标签 enter_hwy -> cruise。现有 assertable 直接跑通，沿用。",
+   "rewrote_from": ""
+  },
+  {
+   "case": "0007",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", within_cycles=5)",
+   "predicates": [
+    "reaches"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "顶层唯一初始迁移落在无出边叶态 InitialState，CollisionDetection / CollisionAvoidance / OperationalControls 均无入边，整机永久停在 InitialState。断言是「模型自己声明的检测入口必须从上电可达」——纯良构性，无需 oracle，也不涉及 NL07 的并发要求。within_cycles 默认（=1）与 5 实测都是 False；目标是 gen 自己声明的状态，故在修好的模型上会是 True（可区分）。",
+   "rewrote_from": "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", within_cycles=5) → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  },
+  {
+   "case": "0007",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "occupancy_after(source=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", trigger=\"llms_emp_feedback_final_0007.Collision_Mode_Active\", target=\"llms_emp_feedback_final_0007.CollisionAvoidance.AutomaticBraking\")",
+   "predicates": [
+    "occupancy_after"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "CollisionAvoidance 的三条初始迁移各带一个触发（Start Braking / Steering Engaged / Alerts Activated），UML 不允许初始迁移带触发，且这些事件无人产生 —— 进入 CollisionAvoidance 后没有任何控制被激活。默认 within_cycles 与 3 实测都是 False。坑 3 在此得到验证：结构族的 initial_target(CollisionAvoidance, AutomaticBraking) 抛 UnsupportedEvidence（\"3 initial edges and none of them is taken unconditionally\"）= 不可判定，只有行为族形式能给出 False。旁证 event_consumed(CollisionAvoidance.AutomaticBraking, Braking_Done) = True，说明该状态本身是活的，False 纯粹来自入口。",
+   "rewrote_from": "occupancy_after(source=\"llms_emp_feedback_final_0007.CollisionDetection.PossibleCollision\", trigger=\"llms_emp_feedback_final_0007.Collision_Mode_Active\", target=\"llms_emp_feedback_final_0007.CollisionAvoidance.AutomaticBraking\") → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  },
+  {
+   "case": "0007",
+   "diff_index": 3,
+   "verdict": "extra",
+   "stratum": "over_specification",
+   "expressible": false,
+   "attempted": [
+    "state_declared(state=\"llms_emp_feedback_final_0007.OperationalControls\", kind=\"composite\") -> True（多出子树确实存在，是前提不是缺陷）",
+    "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.OperationalControls\", within_cycles=5) -> False，但**非区分**：对照实测 reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.NoSuchStateAtAll\", within_cycles=3) -> False，即一个干脆不声明该元素的正确模型会给出同样的 False",
+    "reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.OperationalControls.FeedbackControl\", within_cycles=6) -> False（同上，非区分）",
+    "guard_distinguishable(source=\"[*]\", trigger=\"llms_emp_feedback_final_0007.Signal_Feedback\") -> 抛 UnsupportedEvidence（guard_distinguishable 拒绝 [*]）",
+    "guard_distinguishable(source=\"llms_emp_feedback_final_0007.OperationalControls\", trigger=\"llms_emp_feedback_final_0007.Signal_Feedback\") -> 抛 UnsupportedEvidence（无该源出边）",
+    "terminates(scope=\"llms_emp_feedback_final_0007.OperationalControls\") -> False，但 NL07 没有终止义务，非区分",
+    "cardinality(scope=\"llms_emp_feedback_final_0007\", count=3) -> False，但「三个区」出自 NL07 S1，是并发/正交区要求，落在 project_1 断言对象之外，不得使用"
+   ],
+   "shape": "harmful extra，但其有害性全部封闭在多出元素内部：(a) 整棵 OperationalControls 子树零入边 = 死代码；(b) 它自己的三条带触发初始迁移挤在同一个非正交区里 = 自身入口非确定。两者都不违反任何对 NL 点名元素的义务（NL07 通篇无标识符），因此只能写「这个多出的元素存在 / 不可达」。而「多出元素必须可达」并不是正确模型满足的性质——正确模型根本没有它，且实测证明 reaches 对不存在的目标同样返回 False。",
+   "closest_gap": "两个真词表缺口叠加：(1) 缺「声明但不可达」与「根本未声明」的区分——reaches 对不存在目标返回 False 而非拒答，使可达性无法充当 extra 的后果断言；(2) 缺任何能触及初始边守卫/触发的谓词——同一区多条带触发初始边导致的入口非确定既进不了 initial_target（抛 UnsupportedEvidence）也进不了 guard_distinguishable（拒绝 source=\"[*]\"）。",
+   "rewrote_from": "state_declared(state=\"llms_emp_feedback_final_0007.OperationalControls\", kind=\"composite\") → True（元素确实存在但 NL 无对应义务）；reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0007.OperationalControls\", within_cycles=5) → False"
+  },
+  {
+   "case": "0027",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "reaches(source=\"llms_emp_feedback_final_0027.ActiveState\", target=\"llms_emp_feedback_final_0027.DetectingState\", within_cycles=5)",
+   "predicates": [
+    "reaches"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "ActiveState 是吸收陷阱：自身零出边，三个区末端 junction2 / junction3 / ActiveState.InitialState 全是死端，进去后 DetectingState 再也不可达。断言是「模型自己声明的检测态必须能被重新到达」——纯良构性、无需 oracle、与并发无关（参考侧 dist_to_front>15 之类阈值完全没用上）。默认 within_cycles、5、6 实测均为 False；旁证 terminates(ActiveState) = False（机器既不能重新武装也不能终止）。",
+   "rewrote_from": "reaches(source=\"llms_emp_feedback_final_0027.ActiveState\", target=\"llms_emp_feedback_final_0027.DetectingState\", within_cycles=5) → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  },
+  {
+   "case": "0037",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "all([reaches(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", target=\"llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion.BrakingControl\", within_cycles=5), reaches(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", target=\"llms_emp_feedback_final_0037.ActiveState.RearEndCollisionRegion.SteeringControl\", within_cycles=5), reaches(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", target=\"llms_emp_feedback_final_0037.ActiveState.PedestrianCollisionRegion.EmergencyStop\", within_cycles=5)])",
+   "predicates": [
+    "reaches"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "三条检测边指向死端叶态 FrontendCollision / RearEndCollision / PedestrianCollision，真正含控制逻辑的三个 *CollisionRegion 零入边，于是 BrakingControl / SteeringControl / EmergencyStop 全部不可达。选 reaches 形式而不是原字段的 occupancy_after，是因为原字段的理由引的是 NL07 S2/S3（S3 是并发要求，出 project_1 范围）；「模型自己声明的控制状态必须可达」是无 oracle 的良构性依据。单条 reaches(Inactive, BrakingControl, 5) 与合成 all([...]) 实测均为 False；原 occupancy_after 形式（默认 cycles 与 3）实测也是 False，可作等价备用。",
+   "rewrote_from": "occupancy_after(source=\"llms_emp_feedback_final_0037.ActiveState.Inactive\", trigger=\"llms_emp_feedback_final_0037.Frontend_Collision_Detected\", target=\"llms_emp_feedback_final_0037.ActiveState.FrontendCollisionRegion\") → 期望 True 实得 False；补充 reaches(...BrakingControl, within_cycles=5) → False  —— 改用无 oracle 的良构性形式并覆盖三个区"
+  },
+  {
+   "case": "0047",
+   "diff_index": 0,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "all([state_declared(state=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.RearEnd.Idle\", kind=\"any\"), state_declared(state=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian.Idle\", kind=\"any\")])",
+   "predicates": [
+    "state_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "PlantUML 状态名是全局标识：Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 的同名引用指向 Frontend 内那一批，两个复合态实际只含投影注入的 InvalidInitialtr_0005 / _0009（\"initial target outside child scope: CollisionAvoidanceSystem.Frontend.Idle\"）。断言取无 oracle 的良构性依据（两个复合态没有任何属于自己的合法子态），刻意不引 reason 里的 NL07 S1「three region」/ S3「orthogonal regions」——那是并发要求，出 project_1 范围。单条 state_declared(RearEnd.Idle) 与 containment(Pedestrian, Pedestrian.Idle) 实测均 False；cardinality(RearEnd, count=3) = False 亦可作不依赖具体名字的等价形式。与同 case d1 的元素不同（d1 是 CollisionAvoidanceSystem 自身无初始子态），不构成重复计数。",
+   "rewrote_from": "state_declared(state=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.RearEnd.Idle\", kind=\"any\") → 期望 True 实得 False；补充 containment(parent=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Pedestrian.Idle\") → False  —— 抽出表达式并用 all() 一次覆盖两个塌缩的复合态"
+  },
+  {
+   "case": "0047",
+   "diff_index": 1,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Frontend\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "CollisionAvoidanceSystem 有三个子状态却无初始子状态，投影注入 UnspecifiedInitial 并以 `[*] -> UnspecifiedInitial` 作为唯一入口（FCSTM 35/39 行），连唯一存活的 Frontend 也进不去。旁证 reaches(source=\"[*]\", target=\"...Frontend.Idle\", within_cycles=5) = False（UnspecifiedInitial 唯一出边是 /Collision_Avoided → 直接退出整个子机）。",
+   "rewrote_from": "initial_target(composite=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\", child=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem.Frontend\") → 期望 True 实得 False；补充 reaches(...) → False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  },
+  {
+   "case": "0047",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "nl_contradiction",
+   "expressible": true,
+   "assertion": "edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0047.Collision_Detected\", target=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\")",
+   "predicates": [
+    "edge_declared"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "NL 第 2 句是显式义务：子机仅在检测到碰撞时 becomes active。生成侧写 `[*] -> CollisionAvoidanceSystem`（无触发），上电即无条件激活。实测 False。重要注记：trigger 名 Collision_Detected 取自生成模型自己的事件表（NL07 通篇不给任何事件/状态标识符），所以这条断言只能在读过 gen 词表之后写出，无法仅凭 NL 生成——这是 NL07 组普遍存在的绑定依赖。旁证 event_consumed(source=\"[*]\", trigger=\"...Collision_Detected\") = False（冷启动落在 UnspecifiedInitial，检测事件不被接受），但该 False 与 d1 的入口缺陷混淆，故不作为主式。",
+   "rewrote_from": "edge_declared(source=\"[*]\", trigger=\"llms_emp_feedback_final_0047.Collision_Detected\", target=\"llms_emp_feedback_final_0047.CollisionAvoidanceSystem\") → 期望 True 实得 False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  },
+  {
+   "case": "0057",
+   "diff_index": 2,
+   "verdict": "problem",
+   "stratum": "wellformedness",
+   "expressible": true,
+   "assertion": "initial_target(composite=\"llms_emp_feedback_final_0057.CA\", child=\"llms_emp_feedback_final_0057.CA.Frontend\")",
+   "predicates": [
+    "initial_target"
+   ],
+   "measured": true,
+   "measured_raw": "False",
+   "note": "CA 有三个子状态却无初始子状态，`Possible collision detected` 把系统送进 CA 后落到注入的 UnspecifiedInitial（FCSTM 29-30 行），FCIdle / RCIdle / PCIdle 三路控制全部不可达。取良构性依据，不引 NL07 S3 的并发要求。旁证 reaches(source=\"[*]\", target=\"...CA.Frontend.FCIdle\", within_cycles=5) = False，两式合成 all([...]) 也为 False。台帐记录 initial_target(CA, Frontend/RearEnd/Pedestrian) 三式全 False 与此一致。",
+   "rewrote_from": "initial_target(composite=\"llms_emp_feedback_final_0057.CA\", child=\"llms_emp_feedback_final_0057.CA.Frontend\") → 期望 True 实得 False；补充 reaches(source=\"[*]\", target=\"llms_emp_feedback_final_0057.CA.Frontend.FCIdle\", within_cycles=5) → False  —— 原字段带散文后缀，本次抽出可执行表达式"
+  }
+ ],
+ "totals": {
+  "expressible": 26,
+  "not_expressible": 3
+ },
+ "by_predicate": {
+  "edge_declared": 6,
+  "containment": 4,
+  "guard_distinguishable": 4,
+  "initial_target": 4,
+  "reaches": 3,
+  "state_declared": 2,
+  "occupancy_after": 2,
+  "event_consumed": 1
+ },
+ "unused_predicates": [
+  "variable_declared",
+  "event_declared",
+  "effect_declared",
+  "action_declared",
+  "cardinality",
+  "stays_in",
+  "variable_delta_after",
+  "terminates",
+  "invariant",
+  "response_within",
+  "persists_until"
+ ],
+ "gap_shapes": [
+  "【benign extra 无义务可断言】0029 d5 / 0029 d6。多出元素本身没有被违反的义务：唯一可写的形式要么是存在性（event_declared / not edge_declared），要么在正确模型上同样为 False 的非区分行为式（stays_in(cruise, enter_)）。已实测所有相关 NL 义务仍为 True（occupancy_after(cruise, auto_finished_true, FinishState, 3) = True），故没有正面断言可写。缺口：缺「该元素不应存在」/「除授权源外不得有额外同触发关系」这类封闭性谓词。",
+  "【extra 的死代码无法用可达性表达】0007 d3。reaches(source=\"[*]\", target=<多出元素>) 返回 False，但实测 reaches(source=\"[*]\", target=<根本不存在的状态>) 也返回 False，因此该形式无法区分「声明了但不可达」与「正确模型压根没声明」。缺口：可达性谓词对不存在目标返回 False 而非拒答，使它不能充当 over-specification 的后果断言。",
+  "【初始边的守卫/触发碰不到】0007 d3（同一区多条带触发初始边导致入口非确定）。initial_target 在「多条初始边且无一条无条件」时抛 UnsupportedEvidence（= 不可判定，不算 False）；guard_distinguishable 明确拒绝 source=\"[*]\"。缺口：19 谓词中没有任何一个能对初始边的触发或守卫作断言，坑 3 的另一面。"
+ ],
+ "observations": [
+  "BRIEF 坑 1 在本批实证命中 3 条：0009 d2 / 0029 d2 / 0049 d2 的现有 assertable 都写成 not any(edge_declared(...))，实跑抛 TypeError: 'bool' object is not iterable，全部改写为 not edge_declared(...) 后返回 False。",
+  "BRIEF 坑 2（guard_distinguishable 单目标空集空真）在本批未触发：0019 d1 / 0029 d1 都是同源同触发双目标，返回 False；该谓词在这两条上工作正常。",
+  "BRIEF 坑 3 的两种表现都实测到：0007 d2 的 initial_target(CollisionAvoidance, AutomaticBraking) 抛 UnsupportedEvidence 而不是 False（只能改用 occupancy_after）；guard_distinguishable(source=\"[*]\") 被直接拒绝。",
+  "NL05 的核心争议条（0019 d1 / 0029 d1「同事件、都无守卫、两个目标」）确认仅凭模型自身可判：guard_distinguishable 两条实测均 False，无需 oracle。",
+  "NL07 的七条量化守卫（dist_to_front<10 / dist_to_rear<5 / vel>30 / vel>60 / urban=true 等）在本批 9 条 NL07 断言里一条都没用上——所有断言只绑定 gen 侧自己声明的元素，故本批不存在「阈值 oracle 不可达」导致的不可表述。",
+  "NL07 的并发依据被系统性替换：0047 d0 / 0037 d0 / 0057 d2 的原 reason 都引 NL07 S1「three region」或 S3「orthogonal regions / concurrent activation」，本次一律改用无 oracle 的良构性依据（塌缩复合态无自有子态 / 控制状态不可达 / 复合态无默认子态）写断言。唯一只能靠并发支撑的候选形式 cardinality(root, count=3)（0007 d3）按 project_1 范围边界弃用。",
+  "0047 d2 暴露一个绑定依赖：断言必须写出 trigger=Collision_Detected，而该名字来自 gen 自己的事件表（NL07 通篇不给标识符），所以这条断言无法仅凭 NL 授权生成，只能在读过 gen 词表后写出。"
+ ],
+ "harness": {
+  "python": "/home/zhangshaoang/oo-projects/research_ideas/venv/bin/python",
+  "runner": "/tmp/predcheck/run3.py",
+  "raw_probe_logs": [
+   "/tmp/predcheck/o_sanity.json",
+   "/tmp/predcheck/o_nl05.json",
+   "/tmp/predcheck/o_nl07.json",
+   "/tmp/predcheck/o_extra.json",
+   "/tmp/predcheck/o_final.json"
+  ],
+  "env": "build_eval_environment(timeout_seconds=60, fbmcq_solver_timeout_ms=5000, fbmcq_max_bound=3, fbmcq_process_wall_seconds=15.0)"
+ }
+}

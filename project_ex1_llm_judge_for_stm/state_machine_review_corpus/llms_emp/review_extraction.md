@@ -22,10 +22,12 @@
 
 ## 3. reviewer 资质与人数
 
-- **reviewer 总人数**：N（论文中具体数未在中文 DESC 详写；论文方法学说明 reviewer 是经验丰富的 SE 研究者）
-- **资质**：🟢 SE 研究者（论文作者团队的高年级研究人员）
-- **是否独立**：☑ 多人独立评分后聚合
-- **是否报告 inter-rater agreement**：☑ 是（论文方法学含语法准确率 / 语义一致性 F1 等指标，含 reviewer 间一致性讨论）
+- **reviewer 总人数**：⚠️ **论文未交代评测阶段的人数**。论文只交代了数据集*构建*团队（§3.3：G_Search 5 人、G_Model 5 人，每人 >100 小时建模经验，共投入 524 人时），评测阶段（§4.7 的 $Acc_S$ 与 $F1$ 两项人工指标）由几人、按什么流程执行，全文未写
+- **资质**：🟡 仅对构建团队有交代（SE 研究者），评测者资质未单独说明
+- **是否独立**：⚠️ **未交代**。论文未描述评测阶段的独立评分与聚合机制，也未描述分歧消解流程
+- **是否报告 inter-rater agreement**：☒ **否**。对 `paper_content.txt` 全文检索 `kappa` / `inter-rater` / `interrater` / `agreement` **零命中**。$Acc_S$（语义一致性）与 $F1$（按 grammar point 计）是人工计数指标，不是评分者间一致性指标——两者不可互换。论文 §4.2(4) 另明写 "we **assume** the reference model is semantically correct"，即参考模型的正确性是假设、未独立验证；§4.4 自认 "all validations must be performed manually, potentially limiting the comprehensiveness"
+
+> 此处此前记作「☑ 是（含 reviewer 间一致性讨论）」，与原文冲突。该错误会污染 LLM-as-Judge 的 noise-floor 校准口径——把一个**没有**人类一致性基线的研究当成有基线的来对标。修正依据：`baselines/llms_emp/paper_content.txt` 全文检索，以及 §3.3 / §4.2 / §4.4 / §4.7 逐节核对。
 
 ## 4. review 数据 schema
 

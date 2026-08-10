@@ -11,6 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import httpx
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManager
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, SystemMessage
@@ -944,6 +945,200 @@ def test_provider_error_is_rendered_immediately_after_input(monkeypatch: Any) ->
     assert failed.data["timing_source"] == "provider_callback"
     assert "MODEL OUTPUT | FAILED" in writer.snapshot()
     assert result.status == "failed"
+    assert not any(event.kind == "transport_retry_scheduled" for event in events)
+
+
+def test_retryable_stream_failure_replays_request_without_repeating_tool(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0, 0.0))
+    writer = _ProbeWriter()
+    _patch_terminal_console(monkeypatch, writer)
+    tool_calls: list[str] = []
+    model_calls = {"count": 0}
+
+    def observe(value: str) -> dict[str, str]:
+        """Return one deterministic observation."""
+
+        tool_calls.append(value)
+        return {"value": value}
+
+    class RetryOnceModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(
+            self,
+            messages: list[Any],
+            stop: list[str] | None = None,
+            **kwargs: Any,
+        ):
+            model_calls["count"] += 1
+            if model_calls["count"] == 1:
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(content="discarded partial response")
+                )
+                raise httpx.RemoteProtocolError("incomplete chunked read")
+            if model_calls["count"] == 2:
+                yield ChatGenerationChunk(
+                    message=AIMessageChunk(
+                        content="",
+                        tool_call_chunks=[
+                            {
+                                "name": "observe",
+                                "args": '{"value":"evidence"}',
+                                "id": "observe-once",
+                                "index": 0,
+                            }
+                        ],
+                    )
+                )
+                return
+            yield ChatGenerationChunk(
+                message=AIMessageChunk(content="completed after transport recovery")
+            )
+
+    model = RetryOnceModel()
+    audit = tmp_path / "transport-retry.jsonl"
+    events: list[AgentEvent] = []
+    result = AgentApp._for_test(
+        AgentSpec(
+            name="transport-retry",
+            system_prompt="Use observe once, then answer.",
+            tools=(observe,),
+        ),
+        LLMConfig(model="gpt-4o-mini"),
+        model,
+    ).run(
+        "run",
+        renderer="rich",
+        on_event=events.append,
+        audit_out=audit,
+    )
+
+    assert result.status == "success", result.error
+    assert model_calls["count"] == 3
+    assert tool_calls == ["evidence"]
+    assert result.final_text == "completed after transport recovery"
+    assert "discarded partial response" not in result.final_text
+    assert result.model_calls_used == 3
+    assert [item["status"] for item in result.usage] == [
+        "failed",
+        "completed",
+        "completed",
+    ]
+    retries = [
+        event for event in events if event.kind == "transport_retry_scheduled"
+    ]
+    recovered = [
+        event for event in events if event.kind == "transport_retry_recovered"
+    ]
+    assert len(retries) == len(recovered) == 1
+    assert retries[0].data["attempt_no"] == 1
+    assert retries[0].data["next_attempt_no"] == 2
+    assert retries[0].data["partial_response_observed"] is True
+    assert recovered[0].data["attempt_no"] == 2
+    assert retries[0].data["turn"] == recovered[0].data["turn"] == 1
+    assert (
+        retries[0].data["request_fingerprint"]
+        == recovered[0].data["request_fingerprint"]
+    )
+    records = [
+        json.loads(line)
+        for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    retry_records = [
+        item for item in records if item.get("record") == "transport_retry"
+    ]
+    assert [item["operation"] for item in retry_records] == [
+        "scheduled",
+        "recovered",
+    ]
+    completed_tools = [
+        item
+        for item in records
+        if item.get("record") == "action"
+        and item.get("name") == "observe"
+        and item.get("status") == "completed"
+    ]
+    assert len(completed_tools) == 1
+    rendered = writer.snapshot()
+    assert "MODEL TRANSPORT | RETRY SCHEDULED" in rendered
+    assert "MODEL TRANSPORT | RECOVERED" in rendered
+
+
+def test_retryable_stream_failure_stops_after_two_replays(
+    monkeypatch: Any,
+    tmp_path: Path,
+) -> None:
+    import utils.agent.runtime as runtime
+
+    monkeypatch.setattr(runtime, "_TRANSPORT_RETRY_DELAYS", (0.0, 0.0))
+    model_calls = {"count": 0}
+
+    class AlwaysFailingModel(ChatOpenAI):
+        def __init__(self) -> None:
+            super().__init__(
+                model="gpt-4o-mini",
+                api_key="sk-test-not-real",
+                streaming=True,
+            )
+
+        async def _astream(
+            self,
+            messages: list[Any],
+            stop: list[str] | None = None,
+            **kwargs: Any,
+        ):
+            model_calls["count"] += 1
+            yield ChatGenerationChunk(message=AIMessageChunk(content="partial"))
+            raise httpx.RemoteProtocolError("incomplete chunked read")
+
+    model = AlwaysFailingModel()
+    events: list[AgentEvent] = []
+    audit = tmp_path / "transport-retry-exhausted.jsonl"
+    result = AgentApp._for_test(
+        AgentSpec(name="transport-retry-exhausted", system_prompt="Answer."),
+        LLMConfig(model="gpt-4o-mini"),
+        model,
+    ).run(
+        "run",
+        renderer="quiet",
+        on_event=events.append,
+        audit_out=audit,
+    )
+
+    assert result.status == "failed"
+    assert result.error and result.error["code"] == "provider_error"
+    assert model_calls["count"] == 3
+    assert result.model_calls_used == 3
+    assert len(
+        [event for event in events if event.kind == "transport_retry_scheduled"]
+    ) == 2
+    exhausted = [
+        event for event in events if event.kind == "transport_retry_exhausted"
+    ]
+    assert len(exhausted) == 1
+    assert exhausted[0].data["attempt_no"] == 3
+    records = [
+        json.loads(line)
+        for line in audit.read_text(encoding="utf-8").splitlines()
+    ]
+    retry_records = [
+        item for item in records if item.get("record") == "transport_retry"
+    ]
+    assert [item["operation"] for item in retry_records] == [
+        "scheduled",
+        "scheduled",
+        "exhausted",
+    ]
 
 
 def test_tool_error_is_rendered_after_request_without_fake_result(monkeypatch: Any, tmp_path: Path) -> None:
