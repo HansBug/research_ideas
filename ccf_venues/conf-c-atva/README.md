@@ -1,6 +1,6 @@
 # ATVA README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 |---|---|---|---|
 | Series / main site | [ATVA official site](https://atva-conference.org/) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP ATVA index](https://dblp.org/db/conf/atva/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | 2026-07-13 复查：[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates；未来年度不得伪造 | `2026-07-13 19:11:00` |
+| 最新年度入口 | [APLAS-ATVA 2026](https://conf.researchr.org/home/aplas-atva-2026) | ⚠️ **2026-08-07 更正**：ATVA 2026 与 APLAS 2026 合办，官方年度页托管在 researchr 联合 slug `aplas-atva-2026`，此前「未检索到」的结论对 2026 已不成立；`atva-conference.org` series 站长期停更在 2025，**不能作为「是否公布」的判据**。2027/2028 仍未公开 edition 主页 / CFP / important dates；未来年度不得伪造 | `2026-07-13 19:11:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -79,7 +79,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ATVA index](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP ATVA index](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | 🟣 通知后 / camera-ready 已过 | [APLAS-ATVA 2026](https://conf.researchr.org/home/aplas-atva-2026) | [ATVA Research Papers](https://conf.researchr.org/track/aplas-atva-2026/atva-2026) | [Important Dates](https://conf.researchr.org/dates/aplas-atva-2026) | [HotCRP `atva26`](https://atva26.hotcrp.com/) | [Program（Access denied）](https://conf.researchr.org/program/aplas-atva-2026/program-aplas-atva-2026/) | 未公布 | [DBLP](https://dblp.org/db/conf/atva/index.html) | 2026-05-19 待补时刻 AoE / UTC-12h | 2026-05-21 待补时刻 AoE / UTC-12h | 2026-07-23 待补时刻 AoE / UTC-12h | 2026-12-01..2026-12-05 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [ATVA 2025](https://conf.researchr.org/home/atva-2025) | 未公布 | 未公布 | 未公布 | 未公布 | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/atva2025) | 未公布 | 未公布 | 未公布 | 2025-10-27..2025-10-31 | 21 papers / 1 volume | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [ATVA 2024](https://atva-conference.org/2024/) | 未公布 | [Important Dates](https://atva-conference.org/2024/important-dates/) | 未公布 | [Program / Accepted](https://atva-conference.org/2024/program/) | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 2024 待补精确日期 | 28 papers / 2 volumes | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [ATVA 2023](https://atva-conference.org/2023/) | 未公布 | [Important Dates](https://atva-conference.org/2023/?page_id=47) | 未公布 | [Program / Accepted](https://atva-conference.org/2023/?page_id=34) | [Proceedings](https://link.springer.com/conference/atva) | [DBLP](https://dblp.org/db/conf/atva/index.html) | 未公布 | 未公布 | 未公布 | 2023 待补精确日期 | 38 papers / 2 volumes | 🟡 部分核验 |
@@ -89,11 +89,11 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；[ATVA official site](https://atva-conference.org/) 仍未公开 2026/2027/2028 edition 主页 / CFP / important dates，未公布年度保留占位与核查记录，不预设 CFP。
+- ⚠️ **2026-08-07 更正**：ATVA **2026** 官方年度页存在于 [`aplas-atva-2026`](https://conf.researchr.org/home/aplas-atva-2026)（与 APLAS 合办），已补齐 dates / artifact / 会期；`2027`、`2028` 与 `2029+` 复查仍未公开 edition 主页 / CFP / important dates。后续巡检必须同时探测 `aplas-atva-YYYY` 等合办 slug。未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 ATVA 2028 官方年页。
 - 2027 计数口径：未发现 ATVA 2027 官方年页。
 - 2026：命令行访问 atva-conference.org 个别路径可能出现 406 / 证书或 WAF 问题；用户允许忽略证书风险，但 404/未公布仍不能当作有效来源。
-- 2026 计数口径：截至 2026-07-13 未检索到独立 ATVA 2026 官方年页 / CFP / dates；researchr APLAS-ATVA 候选入口未作为正式事实写入。
+- 2026 计数口径：官方 [program 页](https://conf.researchr.org/program/aplas-atva-2026/program-aplas-atva-2026/) 为 `Access denied`（需登录），accepted papers 与论文数量待补；notification 已于 2026-07-23 完成，名单很可能存在但对匿名访客不可见，**不得据此写计数**。（⚠️ 此前「未检索到独立官方年页」的结论已于 2026-08-07 作废，根因是合办 slug。）
 - 2022 计数口径：已核验独立年度页；Springer proceedings 写 21 regular + 5 tool + 1 invited，Springer TOC 显示 27 papers；EasyChair CFP 仅作历史 fallback。
 
 ## 8. TIMELINE.md 同步提示
@@ -108,6 +108,7 @@ ATVA 聚焦自动化验证与分析、模型检查、程序分析、系统验证
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | **重大更正**：2026 行由 `⏳ 已检索未公布` 改为 `🟣 通知后 / camera-ready 已过`。ATVA 2026 与 **APLAS 2026 合办**，官方页托管在 researchr 联合 slug **`aplas-atva-2026`**，按 `atva-YYYY` 探测必然 404 —— 这是本库连续三年记为「未检索到独立官方年页」的直接原因。已补齐官方主页 / CFP / important dates（全部 AoE / UTC-12h）/ HotCRP / 会期 2026-12-01..05 Hong Kong HKUST。另注 `atva-conference.org` series 站长期停更在 2025，不可作为判据。 |
 | `2026-07-13 19:11:00` | 常态化刷新：复查 ATVA official site，仍无 2026/2027/2028 edition 官方主页 / CFP / important dates；对应年度页继续保守占位。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

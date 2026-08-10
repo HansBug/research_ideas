@@ -1,6 +1,6 @@
 # EASE 2027 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -45,8 +45,9 @@
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
-| Main / Technical / Research track | [EASE 2027 Research Papers](https://conf.researchr.org/track/ease-2027/ease-2027-papers) | 未公布 | 未公布 | 🟡 关注 | P2 观察时优先读取 main / technical / research track；当前未公布 submission dates。 |
+| Main / Technical / Research track | [EASE 2027 Research Papers](https://conf.researchr.org/track/ease-2027/ease-2027-papers) | 未公布 | 未公布 | 🟡 关注 | P2 观察时优先读取 main / technical / research track。⚠️ **2026-08-07 核验：CFP 确未发布** —— track 页官方逐字 `Call for Papers` / `You can expect more information about the call for papers soon.` / `This page will have information about the submission and selection process and list the important dates.`；`dates/ease-2027` 页**表头已建但解析出 0 行 date row**（属 [../../GUIDE.md](../../GUIDE.md) §16.6.2 的第三种入口语义「页面已建、chair 尚未填」，**不同于 404**）。历年 research abstract 约在 1 月中旬，但**不得据历史节奏预填日期**；CFP 预计 2026-09..11 上线，列高频复查。 |
 | Data / Tool / Industry / Special session | 未公布 | 未公布 | 未公布 | 🟡 按需 | 不能与 main track count 混算；有强相关 LLM / data / verification 主题时单独记录。 |
+| 官方已公布的完整 track 结构（**2026-08-07 新增**） | [EASE 2027](https://conf.researchr.org/home/ease-2027) | 未公布 | 未公布 | ⚪ 参考 | home 页逐字：`EASE 2027 welcomes high-quality submissions ... for the following tracks: **full research papers, short papers & emerging results, industry, posters & vision, journal-first, and a doctoral symposium.** There will also be co-located events, including workshops and tutorials`。仅 full research papers 属主链，其余不混入 main track count。会期 `Tue 15 - Fri 18 June 2027`、Hanoi, Vietnam 已核验。 |
 
 ## 5. 论文名录与数量
 
@@ -84,5 +85,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：会期 `2027-06-15..18` / Hanoi 与「research CFP 未发布」逐字复核**一致，无变更**；补入 home 页已公布的六个 track 官方清单，并把 dates 页状态精确化为「表头已建、0 行 date row」（对应 [../../GUIDE.md](../../GUIDE.md) §16.6.2 的第三种入口语义，不同于 404）。CFP 预计 2026-09..11 上线，列高频复查。 |
 | `2026-07-13 19:11:00` | 常态化刷新：升级 EASE 2027 Hanoi 官方主页与会期，保守记录 submission dates 未公布。 |
 | `2026-06-05 17:23` | PR-9 初始化 EASE 2027 年度 README，记录官方链接、投稿日期、程序 / proceedings / DBLP fallback、计数口径和待补项。 |

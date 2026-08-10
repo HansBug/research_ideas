@@ -1,6 +1,6 @@
 # SQJ 2026 README
 
-> 信息更新时间：`2026-07-13 19:27:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -72,6 +72,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | `Quantum Software Quality` 的 `Open` 状态与 `20 December 2026` deadline 经 `rd.springer.com/collections/iaiffbgcbf` 官方正文核验；15 条 collection 中仅此 1 条 Open；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 / scope | [Springer SQJ](https://link.springer.com/journal/11219)；[Aims and scope](https://link.springer.com/journal/11219/aims-and-scope) | `2026-06-05 17:21` | 官方入口可用；scope 面向 software quality。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/11219/submission-guidelines)；[Submit manuscript](https://submission.nature.com/new-submission/11219/3) | `2026-06-05 17:21` | 常规投稿入口已记录，按 rolling submission 处理。 |
 | Special issue / topical collection | [Quantum Software Quality](https://link.springer.com/collections/iaiffbgcbf)；[Software Quality in an AI-Driven World](https://link.springer.com/collections/bjjddgfaei) | `2026-07-13 19:27:00` | Quantum Software Quality open，deadline 为 2026-12-20 待补时刻；AI-Driven World Closed。 |
@@ -89,5 +90,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：`Quantum Software Quality` 由官方确认 **`Submission status: Open`**，`Submission deadline` 逐字 `20 December 2026`，可从 `🟡` 升为确认开放窗口（editors: Samuel Sepulveda / Ricardo Pérez-Castillo / Jianjun Zhao；主题含 `Testing, Debugging, and Verification`、`Generative AI for Software Quality`）；`Software Quality in an AI-Driven World` 仍 `Closed`。SQJ 全量 15 条 collection 中**仅此 1 条 Open，无新增**。⚠️ Closed collection 页不再回显 deadline，历史日期 `2026-03-30` 本轮**无法再逐字复核**，保留为历史记录。取证域为 `rd.springer.com`。 |
 | `2026-07-13 19:27:00` | 常态化刷新：新增 Quantum Software Quality open collection，记录 submission deadline 2026-12-20 待补时刻；确认 AI-Driven World Closed。 |
 | `2026-06-05 17:21` | 初始化 SQJ 2026 年度 README，记录 Springer / DBLP 入口、volume baseline、topical collection 状态与 project 相关性。 |

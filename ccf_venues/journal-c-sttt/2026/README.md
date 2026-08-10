@@ -1,6 +1,6 @@
 # STTT 2026 README
 
-> 信息更新时间：`2026-07-13 19:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -69,6 +69,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | STTT 在 Springer 侧**无 collections 页**（`rd.springer.com/journal/10009/collections` 为 HTTP 404）、`updates` 页全量仅 1 条，均经 `rd.` 域官方正文核验；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 / scope | [Springer STTT](https://link.springer.com/journal/10009)；[Springer aims and scope](https://link.springer.com/journal/10009/aims-and-scope) | `2026-06-05 11:58` | 官方入口与 scope 可用，scope 明确 tool-supported development / verification 与 technology transfer。 |
 | Author guidelines / submission | [Springer submission guidelines](https://link.springer.com/journal/10009/submission-guidelines)；[Equinocs submission system](https://equinocs.cs.tu-dortmund.de/home) | `2026-06-05 11:58` | 投稿指南与 Equinocs 入口可用；Equinocs 页面命令行只显示 loading 壳，未获公开可审计正文登录后流程。 |
 | Special issue / journal updates | [Springer journal updates](https://link.springer.com/journal/10009/updates)；[Special issue guidelines](https://link.springer.com/journal/10009/updates/25280072) | `2026-07-13 19:30:00` | 本年度未发现 active dated CFP；已出版 special issue / section 仅作为计数风险记录。 |
@@ -87,5 +88,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：✅ 结论获得**更强证据**——Springer 侧 STTT **根本没有 collections 页**（`rd.springer.com/journal/10009/collections` 为 **HTTP 404**），而非「有页但无内容」；`journal/10009/updates` 全量仅 1 条 `Special issue guidelines`（无日期）。⚠️ 新线索：ETAPS 2027 官方 iFS 分会页逐字 `iFS'27 will organize journal special issues in STTT and FAC, for which the authors of selected papers will be invited to submit.` —— 属 **conference-based invited special issue，不是公开 CFP**，普通投稿者无法直接投，仅作长期线索登记。rolling 入口 Equinocs 为 Angular SPA 壳，内容层未取得可审计正文。 |
 | `2026-07-13 19:30:00` | 常态化刷新：确认 STTT 2026 rolling / online-first 为当前入口，未发现 active dated CFP；保留 Equinocs SPA 与 conference-based special issue 计数 caveat。 |
 | `2026-06-05 11:58` | 初始化 STTT 2026 年度 README，记录 Springer / Equinocs / DBLP 核心入口、special issue 计数风险与 DBLP `entry article` baseline。 |

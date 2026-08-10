@@ -1,6 +1,6 @@
 # VMCAI README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -49,7 +49,7 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 |---|---|---|---|
 | Series / main site | [VMCAI official pages on researchr](https://conf.researchr.org/series/VMCAI) | 长期入口，年度信息仍以年度页 / CFP 为准 | `2026-06-05 09:15` |
 | DBLP venue page | [DBLP VMCAI index](https://dblp.org/db/conf/vmcai/index.html) | 仅作论文名录与计数 fallback | `2026-06-05 09:15` |
-| 最新年度入口 | ⏳ 已检索未公布 | 2026-07-13 复查：VMCAI 2026 已结束；2027/2028/2029+ 未发现官方主页 / CFP / important dates，未来年度不得伪造 | `2026-07-13 19:11:00` |
+| 最新年度入口 | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | ⚠️ **2026-08-07 更正：VMCAI 2027 官方站已上线**（researchr 使用**大写 slug** `VMCAI-2027`，小写探测会漏），submission `2026-09-16 AoE / UTC-12h`、第 28 届 Mexico City、co-located POPL 2027；2028/2029+ 仍未发现官方主页 / CFP / important dates，未来年度不得伪造 | `2026-08-07 20:30:00` |
 | 论文集 / 出版商入口 | 未公布 | 历史年度优先用年度 proceedings；缺失时用 DBLP fallback | `2026-06-05 09:15` |
 
 ## 5. 核心人员情报
@@ -71,7 +71,7 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP VMCAI index](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP VMCAI index](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [`2027`](./2027/README.md) | 🟢 投稿中 | [VMCAI 2027](https://conf.researchr.org/home/VMCAI-2027) | [CFP](https://conf.researchr.org/track/VMCAI-2027/VMCAI-2027-papers) | [Important Dates](https://conf.researchr.org/dates/VMCAI-2027) | [EasyChair `vmcai2027`](https://easychair.org/conferences/?conf=vmcai2027) | 未公布 | 未公布 | [DBLP VMCAI index](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 2026-09-16 待补时刻 AoE / UTC-12h | 2026-11-06 待补时刻 AoE / UTC-12h | 2027-01-11..2027-01-12 | 未公布 | 🟡 部分核验 |
 | [`2026`](./2026/README.md) | ✅ 已结束 / 待 proceedings | [VMCAI 2026](https://conf.researchr.org/home/VMCAI-2026) | [CFP](https://conf.researchr.org/track/VMCAI-2026/VMCAI-2026-papers) | [Important Dates](https://conf.researchr.org/dates/VMCAI-2026) | 未公布 | [Program / Accepted](https://conf.researchr.org/program/VMCAI-2026/program-VMCAI-2026/) | 未公布 | [DBLP](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 2025-09-15 待补时刻 | 2025-11-06 待补时刻 | 2026-01-12..2026-01-13 | 未公布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [VMCAI 2025](https://conf.researchr.org/home/VMCAI-2025) | 未公布 | [Important Dates](https://conf.researchr.org/dates/VMCAI-2025) | 未公布 | [Program / Accepted](https://conf.researchr.org/program/VMCAI-2025/program-VMCAI-2025/) | [Proceedings](https://dblp.org/rec/conf/vmcai/2025-1) | [DBLP](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 2024-10-01 待补时刻 | 2024-11-11 待补时刻 | 2025-01-20..2025-01-21 | DBLP Part I/II 待拆 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [VMCAI 2024](https://conf.researchr.org/home/VMCAI-2024) | 未公布 | [Important Dates](https://conf.researchr.org/dates/VMCAI-2024) | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/vmcai/index.html) | 未公布 | 2023-09-07 待补时刻 | 2023-10-11 待补时刻 | 2024-01-15..2024-01-16 | Springer/DBLP 待拆 | 🟡 部分核验 |
@@ -82,9 +82,9 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、tool、artifact、industry、workshop、co-located event 不得混算。
-- `2027`、`2028` 与 `2029+` 已于 2026-07-13 复查；未发现官方主页 / CFP / important dates，未公布年度保留占位与核查记录，不预设 CFP。
+- `2027`、`2028` 与 `2029+` 曾于 2026-07-13 复查并判为「未发现官方主页 / CFP / important dates」；⚠️ **该判断已于 2026-08-07 对 2027 作废**（官方站已上线，见 [2027/README.md](./2027/README.md)）；**2028 与 2029+ 仍未发现官方主页 / CFP / important dates**，未公布年度保留占位与核查记录，不预设 CFP。
 - 2028 计数口径：未发现 VMCAI 2028 官方年页。
-- 2027 计数口径：未发现 VMCAI 2027 官方年页。
+- 2027 计数口径：会期未到，accepted 未公布；后续须按 regular / tool / case study 三类分别计数，不与 POPL umbrella 混算。（⚠️ 此前「未发现 VMCAI 2027 官方年页」的结论已于 2026-08-07 作废。）
 - 2026 计数口径：2026 会期已结束；proceedings / DBLP 尚未稳定落地。
 - 2025 计数口径：Part I/II 需拆 paper category；不与 POPL umbrella 混算。
 - 2024 计数口径：artifact 与 research papers 分列待补。
@@ -101,6 +101,7 @@ VMCAI 聚焦验证、模型检查、抽象解释、程序分析和相关工具�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2027 行由 `⏳ 已检索未公布` 升级为 `🟢 投稿中` —— 官方站已上线（**researchr 使用大写 slug `VMCAI-2027`，小写探测会漏**），submission `2026-09-16 AoE / UTC-12h`、notification `2026-11-06`、camera `2026-11-20`，第 28 届 Mexico City、co-located POPL 2027、EasyChair `vmcai2027`。 |
 | `2026-07-13 19:11:00` | 常态化刷新：确认 VMCAI 2026 会期已结束并改为 `✅ 已结束 / 待 proceedings`；复查 2027/2028 未发现官方主页 / CFP / important dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

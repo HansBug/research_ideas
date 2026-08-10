@@ -1,6 +1,6 @@
 # SPIN 2026 README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -14,7 +14,7 @@
 | 官方 CFP | [CFP](https://spin-web.github.io/SPIN2026/cfp) |
 | Important Dates | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) |
 | Submission system | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) |
-| Program / accepted papers | 未公布 |
+| Program / accepted papers | [SPIN 2026 Program + Accepted papers](https://spin-web.github.io/SPIN2026/program) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/spin/index.html) |
 | 当前阶段状态 | ✅ 已结束 |
@@ -27,7 +27,7 @@
 | CFP / Call for Papers | [CFP / Call for Papers](https://spin-web.github.io/SPIN2026/cfp) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
 | Important Dates | [Important Dates](https://spin-web.github.io/SPIN2026/cfp) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
 | Submission system | [EasyChair SPIN 2026](https://easychair.org/conferences/?conf=spin2026) | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
-| Program / accepted papers | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
+| Program / accepted papers | [SPIN 2026 Program](https://spin-web.github.io/SPIN2026/program) | 2026-08-07 核验：完整 program 与独立 `Accepted papers` 清单已发布，共 7 篇（含 Best Paper Award） | `2026-08-07 20:05:00` |
 | Proceedings | 未公布 | ⏳ 已检索未公布或待补 | `2026-07-13 10:27:51` |
 | DBLP 年度页 | [DBLP 年度页](https://dblp.org/db/conf/spin/index.html) | 官方 / 出版商 / DBLP fallback，具体口径见备注 | `2026-07-13 10:27:51` |
 
@@ -53,8 +53,8 @@
 
 | 字段 | 内容 |
 |---|---|
-| 论文数量 | 未公布 |
-| 计数状态 | 🟡 部分核验 |
+| 论文数量 | 7（官方 program 页 `Accepted papers` 清单逐条统计） |
+| 计数状态 | 🟡 部分核验（官方名录已闭合；Springer LNCS 卷与 DBLP `spin2026` 年度页均未发布，后者 2026-08-07 复查为 HTTP 404） |
 | 论文名录 / accepted papers | 未公布 |
 | Proceedings | 未公布 |
 | DBLP 年度页 | [DBLP](https://dblp.org/db/conf/spin/index.html) |
@@ -93,6 +93,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**官方 program 与独立 `Accepted papers` 清单已发布**，Program / accepted papers 由 `未公布` 改为官方入口，论文数量补为 **7 篇**（含 Best Paper Award）。计数状态说明官方名录已闭合但 Springer LNCS 卷与 DBLP `spin2026` 年度页均未发布（后者复查为 HTTP 404）。 |
 | `2026-07-13 10:27:51` | 常态化刷新：确认 SPIN 2026 已结束，保留 proceedings / DBLP 待补。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：补齐 CFP 明确给出的 EasyChair SPIN 2026 submission website，避免投稿入口留空。 |
 | `2026-06-05 09:15` | PR-3 初始化 SPIN 2026 年度 README，记录年度核心 URL、important dates、track 边界、论文数量口径与待补项。 |

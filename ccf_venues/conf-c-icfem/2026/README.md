@@ -1,6 +1,6 @@
 # ICFEM 2026 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -90,6 +90,8 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-08 03:40:00` | 轮次 12 I 级修复：还原 §3 第 38 行备注列的官方逐字 —— 上一轮 AoE 后缀统一脚本误把该行的 `23:59 AoE (UTC-12)` 当成待补的裸 `AoE`，改成了畸形的 `23:59 AoE / UTC-12 (UTC-12)`。本页官方逐字为 `All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)`（见第 39-41 行），日期列 `23:59 AoE / UTC-12` 自 PR #35 起即正确、本 PR 未改动。根因是校验器把括号形态判成裸 AoE，已在 [../../GUIDE.md](../../GUIDE.md) §12.4 第 13 步修正。 |
+| `2026-08-07 20:25:00` | 常态化刷新：三条主轨日期、时区口径（官方逐字 `All deadlines are 23:59 AoE (Anywhere on Earth, UTC-12)`）与会期 `2026-11-17..20` Southampton 逐字复核**一致，无变更**；`Program` 仍为 `TBA`，无 accepted papers / proceedings。补记官方已公布四位 keynote speakers（Nathalie Bertrand / Xiaowei Huang / Ekaterina Komendantskaya / Rod Chapman，标题均 `[Updating soon]`）、会场 Leonardo Royal Grand Harbour Hotel 与 co-located workshop FMAS 2026。⚠️ ICFEM 无稳定 series 站点，每年换 `icfemYYYY.github.io`；`icfem2027.github.io` 复查为 404，2027 页面上线前无法提前探测。 |
 | `2026-07-13 19:11:00` | 常态化刷新：将 ICFEM 2026 阶段改为 `🟡 已截稿`，复查 Important Dates 中 notification / camera-ready / 会期仍可核验。 |
 | `2026-06-06 10:16` | 根据 PR #35 main-ready review 核验官方 Important Dates，将 ICFEM 2026 abstract / full paper / notification / camera-ready 精确到 `23:59 AoE / UTC-12`。 |
 | `2026-06-05 11:12` | 修复 ICFEM 2026 program 口径：`#program` 当前为 TBA，仅作占位线索，不写成 accepted papers / 论文名录。 |

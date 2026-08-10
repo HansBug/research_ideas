@@ -1,6 +1,6 @@
 # ICSE 2028 README
 
-> 信息更新时间：`2026-07-13 19:13:21`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -8,7 +8,7 @@
 |---|---|
 | Venue | ICSE |
 | 年份 | 2028 |
-| 地点 | Hawaii（仅由 ICSE 2028 introduction 预告；年度主页当前 Access denied） |
+| 地点 | Hawaii, USA（ICSE 指导委员会官方站逐字 `ICSE 2028: Apr 2028` / `Hawaii, USA`；researchr 年度主页当前 Access denied） |
 | 官方 series page | [ICSE series](https://conf.researchr.org/series/icse) |
 | 官方年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) |
 | 官方 CFP | 未公布 |
@@ -66,7 +66,8 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
-| 官方年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | `2026-07-13 19:13:21` | 页面 HTTP 可访问，但内容为 Access denied；不视为完整年度主页。 |
+| 官方年度主页 | [ICSE 2028 home](https://conf.researchr.org/home/icse-2028) | `2026-08-07 20:05:00` | 页面 HTTP 200 但内容为 `Access denied`（需登录），不视为完整年度主页；属「官方入口已定位，正文未取得可审计快照」。 |
+| ICSE 指导委员会官方站 | [icse-conferences.org](http://www.icse-conferences.org/) | `2026-08-07 20:05:00` | **本轮新增的权威来源**，逐字 `ICSE 2028: Apr 2028` / `Hawaii, USA`（仅月/年粒度，按纪律不硬落日期）。⚠️ `conf.researchr.org/series/icse` 只列到 2027，**单靠 researchr 会漏掉 ICSE 2028 / 2029**；ICSE 未来年度的真源是 icse-conferences.org，本库 venue 根 README 的核心链接索引此前缺该入口，属结构性漏检点。同页另公布 **ICSE 2029: Apr 2029 / Tokyo, Japan**。 |
 | 官方预告 | [Introduction to ICSE 2028 in Hawaii](https://conf.researchr.org/details/icse-2025/icse-2025-main-icse-plenaries/12/Introduction-to-ICSE-2028-in-Hawaii) | `2026-07-13 19:13:21` | 可证明 ICSE 2028 in Hawaii 预告存在；未给 CFP / dates。 |
 | 官方 CFP / Dates | 未公布 | `2026-07-13 19:13:21` | 已复查仍未公布。 |
 | DBLP fallback | ⏳ 已检索未公布 | `2026-06-04 21:10` | DBLP 2028 年度页未公开。 |
@@ -82,6 +83,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：新增权威来源 **[icse-conferences.org](http://www.icse-conferences.org/)**（ICSE 指导委员会官方站），逐字 `ICSE 2028: Apr 2028` / `Hawaii, USA`，证据等级高于此前引用的 ICSE 2025 plenary 详情页；补入官方**月份粒度** `Apr 2028`（按纪律不硬落日期）。同轮记录 researchr series 页只到 2027 的结构性漏检点。 |
 | `2026-07-13 19:13:21` | 常态化刷新：复查 ICSE 2028，Hawaii 仍仅为官方预告，正式 CFP / dates 未公布。 |
 | `2026-06-04 22:20` | 补充更新日志降序提示，并同步本轮 review 后的格式 / 状态维护口径。 |
 | `2026-06-04 21:10` | 初始化 ICSE 2028 年度 README。 |

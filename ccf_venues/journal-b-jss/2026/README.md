@@ -1,6 +1,6 @@
 # JSS 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -88,6 +88,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。ScienceDirect 直连 `HTTP 403`、代理返回 Elsevier **CAPTCHA**（Reference number `a276112438d633ad`），三个 public special issue 的当前状态与是否新增均未取得快照，deadline 全部沿用 `2026-07-13` 已核验值。**其中 `Software Quality Assurance for Artificial Intelligence`（`2026-08-31`）距核验基准日仅 24 天，时效最紧，建议人工浏览器优先复核。**✅ 同轮澄清一处历史 caveat：[Editorial Manager JSS](https://www.editorialmanager.com/jssoftware/default.aspx) 的 `Important Message: Site under development. Do not use for live manuscript submission.` 横幅经比对在无关期刊（`editorialmanager.com/scico`、`editorialmanager.com/jss`）上逐字相同，判定为**平台对匿名访客的通用占位横幅，不构成 JSS 投稿系统故障**，此前的「待再核验」注记可据此收敛。 |
 | `2026-07-13 19:10:00` | 常态化刷新：更新 JSS public special issue 机会并核实三个独立 CFP 直链；排除 AST selected papers 通用机会。 |
 | `2026-06-06 00:58` | PR-10 实现后 review 收尾：复核 JSS AI Techniques special issue 官方 URL 仍存在 CLI 403/WAF caveat，当前只保留官方 URL 与 access caveat，不升级为完全核验事实。 |
 | `2026-06-05 17:21` | 初始化 JSS 2026 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

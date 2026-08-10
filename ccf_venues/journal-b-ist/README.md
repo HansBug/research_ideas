@@ -97,6 +97,7 @@
 - 2027/2028/2029+ 未发现可命令行核验的官方年度卷期或 dated CFP；不预设未来卷号。
 - ScienceDirect 与 DBLP 对年度 volume / article 归属可能存在差异；publisher all issues / special issue 页面优先，DBLP 只作 bibliographic fallback。
 - Articles in Press 是 online-first 状态，会迁移到正式卷期；年度计数不得与卷期文章双算。
+- ⚠️ **2026-08-07 复查失败（覆盖下方 2026-07-13 记录的时效判断）**：ScienceDirect 直连 HTTP 403、经渲染代理返回 Elsevier CAPTCHA（含 Reference number 与 UTC 时间戳），**两个 special issue 的当前 Open/Closed 状态本轮均未取得官方快照**。其中 `Human Factor in Generative AI`（deadline `2026-07-31`）按已记录日期**已逾期**，但不得据推断改写为 Closed（同轮 ASE Journal 已出现两例官方延期先例）；`Green Software Evolution`（`2026-08-28`）沿用已核验值。rolling 投稿入口 [Editorial Manager `infsof`](https://www.editorialmanager.com/infsof/default.aspx) 本轮 HTTP 200 可读，通道有效。
 - 2026-07-13 复查：IST 常规投稿 rolling；当前 public calls 维护 [Human Factor in Generative AI](https://www.sciencedirect.com/special-issue/329824/human-factor-in-generative-ai-trust-usability-and-responsible-adoption)（2026-07-31）与 [Green Software Evolution](https://www.sciencedirect.com/special-issue/330286/green-software-evolution)（2026-08-28，注意不采用旧 2026-08-15 口径）。
 - ScienceDirect special issue 页面在 CLI 环境可能返回 WAF/403；仍保留官方 URL 与待补时刻 caveat，后续需人工浏览器复核正文。
 

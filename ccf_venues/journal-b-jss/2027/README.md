@@ -1,6 +1,6 @@
 # JSS 2027 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -85,5 +85,6 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。`Software Architecture in a Digital Society`（`2027-01-31`）因 ScienceDirect 直连 403 / 代理 CAPTCHA 未取得官方快照，deadline 沿用 `2026-07-13` 已核验值并标注本轮未复核；2027 年度卷期与 DBLP volume set 仍未公布。 |
 | `2026-07-13 19:10:00` | 常态化复查：记录 JSS Software Architecture in a Digital Society public special issue 跨年 deadline 2027-01-31；未发现 2027 官方卷期 / DBLP 年度页。 |
 | `2026-06-05 17:21` | 初始化 JSS 2027 年度 README，记录 ScienceDirect / Editorial Manager / DBLP 入口、volume baseline、special issue 状态与 project 相关性。 |

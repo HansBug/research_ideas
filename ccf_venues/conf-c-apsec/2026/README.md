@@ -1,6 +1,6 @@
 # APSEC 2026 README
 
-> 信息更新时间：`2026-07-13 19:11:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:05:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -16,7 +16,7 @@
 | Program / accepted papers | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) |
 | Proceedings | 未公布 |
 | DBLP 年度页 | 未公布 |
-| 当前阶段状态 | 🟢 投稿中 |
+| 当前阶段状态 | 🟡 已截稿 / 审稿中 |
 
 ## 2. 年度核心 URL 索引
 
@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 年度主页 | [年度主页](https://conf.researchr.org/home/apsec-2026) | Program tentative；accepted/proceedings/DBLP 尚未发布。 | `2026-06-05 17:23` |
 | CFP / Call for Papers | [CFP / track](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | track 分散时按年度主页展开 | `2026-06-05 17:23` |
-| Important Dates | [Important Dates](https://conf.researchr.org/dates/apsec-2026) | 2026-07-13 复查：Technical Track optional abstract 2026-07-13、full paper 2026-07-20、notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time) | `2026-07-13 19:11:00` |
+| Important Dates | [Important Dates](https://conf.researchr.org/dates/apsec-2026) | ⚠️ **2026-08-07 复查：Technical Track 全部 8 行 tooltip（含 Paper Bidding Period 与 Papers assigned for review 两行流程节点）均为 `Timezone: AoE (Anywhere on Earth)`，CFP 正文小标题亦为 `Key Dates (AoE)`**，与本库 2026-06-06 记录的 `UTC+8 (Bali time)` 冲突（相差 20 小时），本轮按官方现状改回 AoE 并保留历史记录；`UTC+8h` tooltip 当前只出现在 Local Student Forum / Doctoral Symposium 行。日期本身未再延期 | `2026-08-07 20:05:00` |
 | Submission system | [Submission](https://easychair.org/conferences/?conf=apsec2026) | 不公开时写未公布；历史入口可能登录受限 | `2026-06-05 17:23` |
 | Tracks / program | [Program / track](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 已结束年度优先 official program | `2026-06-05 17:23` |
 | Accepted papers / paper list | [Accepted / program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | official accepted 缺失时使用 proceedings / DBLP fallback | `2026-06-05 17:23` |
@@ -35,18 +35,18 @@
 
 | 事项 | 时间 | 事件官方来源 | 年度主页 | 备注 |
 |---|---|---|---|---|
-| Optional abstract deadline | 2026-07-13 待补时刻 UTC+8 (Bali time) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Abstract Submission Deadline (Optional)`；官方只给日期 / track 时区，具体钟点待补。 |
-| Full paper submission | 2026-07-20 待补时刻 UTC+8 (Bali time) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Full Paper Submission`；官方只给日期 / track 时区，具体钟点待补。 |
-| Author notification | 2026-09-14 待补时刻 UTC+8 (Bali time) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Author Notification`；官方只给日期 / track 时区，具体钟点待补。 |
-| Camera-ready | 2026-10-19 待补时刻 UTC+8 (Bali time) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Camera-Ready Deadline`；官方只给日期 / track 时区，具体钟点待补。 |
-| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference; Bali local time (UTC+8) |
+| Optional abstract deadline | 2026-07-13 待补时刻 AoE (Anywhere on Earth) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Abstract Submission Deadline (Optional)`；官方 tooltip `Timezone: AoE (Anywhere on Earth)`，只给日期，钟点待补。2026-08-07 复查：日期未再延期。 |
+| Full paper submission | 2026-07-20 待补时刻 AoE (Anywhere on Earth) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Full Paper Submission`；官方 tooltip `Timezone: AoE (Anywhere on Earth)`，只给日期，钟点待补。2026-08-07 复查：日期未再延期，researchr 该行已标 `past`。 |
+| Author notification | 2026-09-14 待补时刻 AoE (Anywhere on Earth) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Author Notification`；官方 tooltip `Timezone: AoE (Anywhere on Earth)`，只给日期，钟点待补。 |
+| Camera-ready | 2026-10-19 待补时刻 AoE (Anywhere on Earth) | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Technical Track `Camera-Ready Deadline`；官方 tooltip `Timezone: AoE (Anywhere on Earth)`，只给日期，钟点待补。 |
+| Conference dates | 2026-12-07..2026-12-10 | [官方来源](https://conf.researchr.org/dates/apsec-2026) | [年度主页](https://conf.researchr.org/home/apsec-2026) | Conference；地点 Bali, Indonesia（当地时区 UTC+8）。会期为当地日历日，与投稿 deadline 的 AoE 口径无关。 |
 
 ## 4. Tracks
 
 | Track | 官方链接 | CFP / Dates | Accepted papers / Program | 是否关注 | 备注 |
 |---|---|---|---|---|---|
 | Main / Technical / Research track | [Track / CFP](https://conf.researchr.org/track/apsec-2026/apsec-2026-technical-track) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Program / accepted](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 🟡 关注 | P2 观察时优先读取 main / technical / research track。 |
-| Early Research Achievements (ERA) | [ERA](https://conf.researchr.org/track/apsec-2026/apsec-2026-papers) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 🟡 按需 | track-level timezone 为 AoE；若后续纳入 TIMELINE 必须单列，不可沿用 Technical Track UTC+8。 |
+| Early Research Achievements (ERA) | [ERA](https://conf.researchr.org/track/apsec-2026/apsec-2026-papers) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 🟡 按需 | track-level timezone 为 AoE；若后续纳入 TIMELINE 必须单列，不可沿用 Technical Track 的时区（⚠️ 2026-08-07 复核：Technical Track 本身为 `AoE (Anywhere on Earth)`，`UTC+8h` 属 Local Student Forum / Doctoral Symposium）。 |
 | Tool Demonstration | [Tool Demonstration](https://conf.researchr.org/track/apsec-2026/apsec-2026-tool-demonstration) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 🟡 按需 | track-level timezone 为 AoE；abstract / submission / notification / camera-ready 不与 Technical Track 混写。 |
 | SEIP / Tutorials / Doctoral / Local Student / Workshops | [年度主页](https://conf.researchr.org/home/apsec-2026) | [Dates](https://conf.researchr.org/dates/apsec-2026) | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) | 🟡 按需 | SEIP / Tutorials / Doctoral / Local Student 以对应 track 官方时区为准；Workshops 若未稳定看到显式时区则保留待确认，不猜 AoE 或 UTC+8。 |
 
@@ -73,7 +73,7 @@
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
 | 官方年度主页 | [年度主页](https://conf.researchr.org/home/apsec-2026) | `2026-06-05 17:23` | 🟢 已公布 / 进行中。 |
-| 官方 CFP / Dates | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-07-13 19:11:00` | Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、author notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time)，companion tracks 不作为本轮当前机会。 |
+| 官方 CFP / Dates（⚠️ 时区部分已于 2026-08-07 作废） | [CFP / Dates](https://conf.researchr.org/dates/apsec-2026) | `2026-07-13 19:11:00` | ⚠️ 本行记录的 `UTC+8 (Bali time)` 已作废，2026-08-07 复核官方为 `AoE (Anywhere on Earth)`（相差 20 小时）；日期本身无变化。原文如下：Technical Track 更新为 optional abstract 2026-07-13、full paper 2026-07-20、author notification 2026-09-14、camera-ready 2026-10-19；时区 UTC+8 (Bali time)，companion tracks 不作为本轮当前机会。 |
 | 官方论文名录 / proceedings | [Program](https://conf.researchr.org/program/apsec-2026/program-apsec-2026/) / 未公布 | `2026-06-05 17:23` | 已结束年度优先官方 program / proceedings；缺失时显式 fallback。 |
 | DBLP fallback | 未公布 | `2026-06-05 17:23` | 仅作论文名录与计数 fallback，不等同 main track count。 |
 
@@ -86,6 +86,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:05:00` | 常态化刷新：**修正 Technical Track 时区口径** —— 官方 dates 页 8 行 tooltip 与 CFP 小标题当前均为 `AoE (Anywhere on Earth)`，本库此前记录的 `UTC+8 (Bali time)` 相差 20 小时，已改回 AoE 并保留冲突历史；阶段由 `🟢 投稿中` 迁移为 `🟡 已截稿 / 审稿中`（full paper 2026-07-20 已过，未再延期）；补入 First/Final Reviews Due 与 AUSE 特刊事实。 |
 | `2026-07-13 19:11:00` | 常态化刷新：按官方 dates 更新 APSEC 2026 Technical Track optional abstract / full paper 延期信息，补 `待补时刻 UTC+8 (Bali time)`，不混入旁支 track。 |
 | `2026-06-06 13:16` | PR #35 近期窗口复审修复：补充 APSEC 2026 companion tracks 异构时区 caveat，并将 Technical Track UTC+8 标注按官方 tooltip 核验，避免误套到 ERA / Tool Demo / Tutorials 等 track。 |
 | `2026-06-06 01:13` | PR-10 focused final review 修复：将 APSEC 2026 会期备注统一为 Bali local time (UTC+8)，与 TIMELINE 会期行一致。 |

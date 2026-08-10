@@ -1,6 +1,6 @@
 # SCP 2026 README
 
-> 信息更新时间：`2026-07-13 19:18:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -86,6 +86,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。ScienceDirect `about/call-for-papers` 与 `special-issues` 两个入口均为直连 `HTTP 403` / 代理 **CAPTCHA**（`Are you a robot?`），无法确认是否有新增 public CFP；维持「rolling、无普通投稿者可行动 public dated CFP」结论。✅ rolling 投稿入口 [Editorial Manager `scico`](https://www.editorialmanager.com/scico/default.aspx) 本轮 HTTP 200 可读（其 `Site under development` 横幅为平台通用占位，非期刊级状态）。失败类型由 `WAF/403` 精确化为 **CAPTCHA**，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。 |
 | `2026-07-13 19:18:00` | 常态化刷新：确认 SCP 2026 以常规 rolling 为主，未发现普通投稿者直接相关公开 active dated CFP；selected / invitation collections 不列为通用机会。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 SCP 2026 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为未获公开可审计正文，只保留 DBLP baseline / rolling 投稿入口。 |
 | `2026-06-05 18:05` | PR-8 初始化 SCP 2026 年度 README，记录 ScienceDirect 官方入口、rolling / special issue 口径、volume / DBLP fallback 与待补项。 |

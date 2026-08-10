@@ -1,6 +1,6 @@
 # IST 2026 README
 
-> 信息更新时间：`2026-07-13 19:10:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -88,6 +88,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：⚠️ **本轮未能复核**。ScienceDirect 全路径阻断——直连 `HTTP 403`，经第三方渲染代理 `r.jina.ai` 返回 **Elsevier CAPTCHA**（`Are you a robot?` + Reference number `a2760cf01c6478c9` / `a2760e4cc864f2f7` + UTC 时间戳 `2026-08-07 11:48:08` / `11:49:04`），4 次重试全同；`elsevier.com` 备用入口 302 回 ScienceDirect 后同样 403。**`Human Factor in Generative AI`（deadline `2026-07-31`）在本轮核验基准日已逾期，但官方 Open/Closed 状态未取得快照，不得据推断改写为 Closed**（同轮 ASE Journal 已出现两例官方延期先例）；`Green Software Evolution`（`2026-08-28`）沿用 `2026-07-13` 已核验值。✅ rolling 投稿入口 [Editorial Manager `infsof`](https://www.editorialmanager.com/infsof/default.aspx) 本轮 HTTP 200 可读，通道确认有效。失败类型由笼统的 `WAF/403` 精确化为 **CAPTCHA**，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1。 |
 | `2026-07-13 19:10:00` | 常态化刷新：升级 Human Factor GenAI 与 Green Software Evolution 为 public calls，记录 2026-07-31 / 2026-08-28 deadline 并保留待补时刻与 ScienceDirect CLI/WAF caveat。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：把 IST 2026 candidate special issue 行显式降级为“候选 / 未核验”，并说明未公开可审计核验前不可视为当前可投窗口。 |
 | `2026-06-05 18:24` | PR-8 review 前自查修复：将 IST 2026 的 ScienceDirect special issue、editorial roster 与 volume / issue 正文状态降级为未获公开可审计正文，只保留 DBLP baseline / rolling 投稿入口。 |

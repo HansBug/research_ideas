@@ -1,6 +1,6 @@
 # Requirements Engineering 2026 README
 
-> 信息更新时间：`2026-07-13 19:15:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:25:00`（Asia/Shanghai）
 
 ## 1. 年度基本信息
 
@@ -71,6 +71,7 @@
 
 | 类型 | 链接 | 核查时间 | 结论 |
 |---|---|---|---|
+| 取证域披露（2026-08-07） | — | `2026-08-07 20:05:00` | 本轮 RE Journal 全量 6 条 collection 的 `Closed` 状态经 `rd.springer.com/journal/766/collections` 官方正文核验；0 条 Open、0 条 Upcoming；取证域：`rd.springer.com`（`link.springer.com` 同路径为 F5 `Client Challenge` JS 壳，见 [../../GUIDE.md](../../GUIDE.md) §16.6.1） |
 | 期刊主页 | [Springer Requirements Engineering](https://link.springer.com/journal/766) | `2026-06-05 11:57` | 官方期刊入口可用。 |
 | Author guidelines / submission | [Submission guidelines](https://link.springer.com/journal/766/submission-guidelines)；[Submit manuscript](https://submission.springernature.com/new-submission/766/3) | `2026-06-05 11:57` | 常规投稿入口可用，按 rolling submission 处理。 |
 | Special issue / topical collection | [REFSQ 2026](https://link.springer.com/collections/gidfjjdijf)；[30th Anniversary](https://link.springer.com/collections/hegaifabjh)；[LLM collection](https://link.springer.com/collections/deebijccbh) | `2026-07-13 19:15:00` | 三项 2026 collections 均已 Closed；关键历史 deadline 见 §4，当前可投口径回到常规 rolling。 |
@@ -88,6 +89,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:25:00` | 常态化刷新：✅ 结论从推断升级为**官方全量证据**。经 `rd.springer.com/journal/766/collections` 取得官方正文，RE Journal 全量 **6 条 collection 中 0 条 Open、0 条 Upcoming**（REFSQ 2026 / 30th Anniversary / LLM collection / RE 2025 / RE 2024 / CS Open Access SDG 3 全部 Closed），本库「当前只剩常规 rolling」完全成立，且**无任何新开放 public collection**。⚠️ Springer 的 Closed collection 页不再回显 deadline 字段，本库记录的 `2026-04-30` / `2026-06-20` / `2026-06-29` 三个历史日期本轮**无法再逐字复核**，保留为历史记录。 |
 | `2026-07-13 19:15:00` | 常态化刷新：确认 REFSQ 2026、30th Anniversary、Rethinking RE in LLM age 均 Closed，当前可行动入口为常规 rolling；保留历史 deadline 与待补时刻 caveat。 |
 | `2026-06-06 11:46` | PR #35 近期窗口复审修复：将 Requirements Engineering 30th Anniversary collection 明确标为 By Invite Only / 邀请制开放，避免误读为普通可投窗口。 |
 | `2026-06-05 12:47` | 专项复核 2026 三个 Springer collections：保留 LLM submission deadline 的明确日期，并将 LLM revision / final decision 的月份信息写为备注，不硬凑具体日期。 |

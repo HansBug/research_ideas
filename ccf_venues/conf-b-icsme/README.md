@@ -1,6 +1,6 @@
 # ICSME README
 
-> 信息更新时间：`2026-07-13 13:30:00`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -52,7 +52,7 @@ ICSME 是软件维护与演化核心会议，覆盖软件演化、维护、重�
 | Series / main site | [ICSME official series](https://icsme.github.io/)；[researchr ICSME series](https://conf.researchr.org/series/ICSME) | 年度独立站点 / researchr / 官方组织站点并行 | `2026-06-05 17:35` |
 | Latest year homepage | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | 2027 仅见 accessDenied 壳、2028 仍未公布；未公布年度写 `⏳ 已检索未公布` | `2026-07-13 13:30` |
 | CFP / Call for Papers | 见 §6 年度信息汇总 | 2026 Research Track 已通知；track 分散时在年度 README 展开 | `2026-07-13 13:30` |
-| Important Dates | 见 §6 年度信息汇总 | 2026 Research Track camera-ready 仍按年度页记 TBD；researchr dates / official CFP 优先 | `2026-07-13 13:30` |
+| Important Dates | 见 §6 年度信息汇总 | ⚠️ 2026-08-07 更正：2026 Research Track camera-ready 已由官方公布为 **`2026-06-26 23:59 AoE`**（此前本库记 TBD）；researchr dates / official CFP 优先 | `2026-07-13 13:30` |
 | Submission system | 见 §6 年度信息汇总 | 历史系统可能失效，失效时保留待复核 | `2026-06-05 17:35` |
 | Program / accepted papers | 见 §6 年度信息汇总 | 已结束年度优先 official program / accepted papers | `2026-06-05 17:35` |
 | Proceedings | 见 §6 年度信息汇总 | publisher proceedings 优先，DBLP 仅作 fallback | `2026-06-05 17:35` |
@@ -77,8 +77,8 @@ ICSME 是软件维护与演化核心会议，覆盖软件演化、维护、重�
 | 年份 | 阶段状态 | 官方主页 | CFP | Important Dates | Submission system | Program / Accepted papers | Proceedings | DBLP 年度页 | Abstract deadline | Submission deadline | Notification | 会期 | 论文数量 | 核验状态 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---:|---|
 | [2028](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2027](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [2026](./2026/README.md) | 🟣 通知后 | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | [Important Dates](https://conf.researchr.org/dates/icsme-2026) | [EasyChair](https://easychair.org/conferences/?conf=icsme2026) | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | 未公布 | ⏳ 已检索未公布 | 2026-02-27 待补时刻 | 2026-03-06 待补时刻 | 2026-05-29 待补时刻 | 2026-09-14..2026-09-18 | 未公布 | 🟡 部分核验 |
+| [2027](./2027/README.md) | ⏳ 待官网（槽位已建未发布） | [ICSME 2027（Access denied，正文未取得可审计快照）](https://conf.researchr.org/home/icsme-2027) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
+| [2026](./2026/README.md) | 🔵 会期临近 / program 已排定 | [ICSME 2026](https://conf.researchr.org/home/icsme-2026) | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | [Important Dates](https://conf.researchr.org/dates/icsme-2026) | [EasyChair](https://easychair.org/conferences/?conf=icsme2026) | [Research Track](https://conf.researchr.org/track/icsme-2026/icsme-2026-papers) | 未公布 | ⏳ 已检索未公布 | 2026-02-27 待补时刻 | 2026-03-06 待补时刻 | 2026-05-29 待补时刻 | 2026-09-14..2026-09-18 | Research Papers Track 51（官方 track 页 event 列表去重；official-program-level 计数，IEEE Xplore 卷与 DBLP 年度页均未上线） | 🟡 部分核验 |
 | [2025](./2025/README.md) | ✅ 已结束 | [ICSME 2025](https://conf.researchr.org/home/icsme-2025) | [Research Track](https://conf.researchr.org/track/icsme-2025/icsme-2025-papers) | [Research Track](https://conf.researchr.org/track/icsme-2025/icsme-2025-papers) | [EasyChair](https://easychair.org/conferences/?conf=icsme2025) | [Research Track](https://conf.researchr.org/track/icsme-2025/icsme-2025-papers) | [DBLP 2025](https://dblp.org/db/conf/icsm/icsme2025) | [DBLP 2025](https://dblp.org/db/conf/icsm/icsme2025) | 2025-03-06 待补时刻 | 2025-03-13 待补时刻 | 2025-06-05 待补时刻 | 2025-09-07..2025-09-12 | 102（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
 | [2024](./2024/README.md) | ✅ 已结束 | [ICSME 2024 Research Track](https://conf.researchr.org/track/icsme-2024/icsme-2024-papers) | [Research Track](https://conf.researchr.org/track/icsme-2024/icsme-2024-papers) | [Research Track](https://conf.researchr.org/track/icsme-2024/icsme-2024-papers) | [EasyChair](https://easychair.org/conferences/?conf=icsme2024) | [Research Track](https://conf.researchr.org/track/icsme-2024/icsme-2024-papers) | [DBLP 2024](https://dblp.org/db/conf/icsm/icsme2024) | [DBLP 2024](https://dblp.org/db/conf/icsm/icsme2024) | 2024-04-04 待补时刻 | 2024-04-11 待补时刻 | 2024-06-13 待补时刻 | 2024-10-06..2024-10-11 | 89（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
 | [2023](./2023/README.md) | ✅ 已结束 | [ICSME 2023 Research Track](https://conf.researchr.org/track/icsme-2023/icsme-2023-papers) | [Research Track](https://conf.researchr.org/track/icsme-2023/icsme-2023-papers) | [Research Track](https://conf.researchr.org/track/icsme-2023/icsme-2023-papers) | [EasyChair](https://easychair.org/my/conference?conf=icsme2023) | [Research Track](https://conf.researchr.org/track/icsme-2023/icsme-2023-papers) | [DBLP 2023](https://dblp.org/db/conf/icsm/icsme2023) | [DBLP 2023](https://dblp.org/db/conf/icsm/icsme2023) | 2023-04-20 待补时刻 | 2023-04-27 待补时刻 | 2023-06-24 待补时刻 | 2023-10-01..2023-10-06 | 70（DBLP inproceedings fallback；track 拆分待复核） | 🟡 部分核验 |
@@ -88,7 +88,7 @@ ICSME 是软件维护与演化核心会议，覆盖软件演化、维护、重�
 
 - 已结束年度优先使用官方 accepted papers / program / proceedings；若只能用 DBLP，必须显式标注 fallback。
 - Research / main conference、industry、tool、journal-first、registered report、artifact、workshop、co-located event 不得混算。
-- `2026` Research Papers Track 已通知，camera-ready 在本库仍按官方日期页记录为 `TBD` / 未明确公开；会期为 `2026-09-14..2026-09-18` Benevento, Italy。
+- `2026` Research Papers Track 已通知，⚠️ **2026-08-07 更正：camera-ready 已由官方公布为 `2026-06-26 23:59 AoE`**（此前本库记 `TBD` / 未明确公开），且官方 track 页逐字 `All submission dates are at 23:59 AoE (Anywhere on Earth)`；会期为 `2026-09-14..2026-09-18` Benevento, Italy。
 - `2027`、`2028` 与 `2029+` 均已做公开入口检索；`2026-07-13` 复查 `home/icsme-2027` 返回 accessDenied 壳、`home/icsme-2028` 为 404，未获得公开可审计 CFP / Important Dates；未公布年度保留占位与核查记录，不预设 CFP。
 - 本 venue 的 dated events 已按事件发生年份同步到 [../TIMELINE.md](../TIMELINE.md)；后续修改 deadline 必须同步更新年度 README、根表与 Mermaid。
 
@@ -103,6 +103,7 @@ ICSME 是软件维护与演化核心会议，覆盖软件演化、维护、重�
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🟣 通知后` 迁移为 `🔵 会期临近 / program 已排定`，并补入 Research Papers Track 51 篇 official-program-level 计数；2027 的 researchr 入口由「accessDenied 壳」精确化为 **HTTP 200 + Access denied（槽位已建且已配置 Research Papers Track，尚未公开发布）**，列为高频复查。 |
 | `2026-07-13 13:30:00` | 常态化刷新 ICSME：确认 2026 已通知、camera-ready 仍按官方页记 TBD、会期 `2026-09-14..2026-09-18`；复查 2027/2028 未获公开可审计 CFP / dates。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |

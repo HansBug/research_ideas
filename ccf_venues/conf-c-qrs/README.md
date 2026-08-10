@@ -1,6 +1,6 @@
 # QRS README
 
-> 信息更新时间：`2026-07-13 10:27:51`（Asia/Shanghai）
+> 信息更新时间：`2026-08-07 20:15:00`（Asia/Shanghai）
 
 ## 1. 基本信息
 
@@ -81,7 +81,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | [`2028`](./2028/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/qrs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
 | [`2027`](./2027/README.md) | ⏳ 已检索未公布 | ⏳ 已检索未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | [DBLP](https://dblp.org/db/conf/qrs/index.html) | 未公布 | 未公布 | 未公布 | 未公布 | 未公布 | 🟡 部分核验 |
-| [`2026`](./2026/README.md) | 🔵 会期临近 | [QRS 2026](https://qrs26.techconf.org/) | [CFP](https://qrs26.techconf.org/download/CFP-QRS-2026.pdf) | [Important Dates](https://qrs26.techconf.org/) | [Submission](https://qrs26.techconf.org/submission) | 未公布 | [Proceedings policy](https://qrs26.techconf.org/track/proceeding) | [DBLP](https://dblp.org/db/conf/qrs/index.html) | 2026-04-08 待补时刻 | 2026-04-22 待补时刻 | 2026-06-01 待补时刻 | 2026-07-22..2026-07-25 | 官网统计 71/278 regular acceptance；official accepted list / DBLP 2026 年度页尚未发布 | 🟡 部分核验 |
+| [`2026`](./2026/README.md) | ✅ 已结束 / 待 proceedings | [QRS 2026](https://qrs26.techconf.org/) | [CFP](https://qrs26.techconf.org/download/CFP-QRS-2026.pdf) | [Important Dates](https://qrs26.techconf.org/) | [Submission](https://qrs26.techconf.org/submission) | 未公布 | [Proceedings policy](https://qrs26.techconf.org/track/proceeding) | [DBLP](https://dblp.org/db/conf/qrs/index.html) | 2026-04-08 待补时刻 | 2026-04-22 待补时刻 | 2026-06-01 待补时刻 | 2026-07-22..2026-07-25 | 官网统计 71/278 regular acceptance；official accepted list / DBLP 2026 年度页尚未发布 | 🟡 部分核验 |
 | [`2025`](./2025/README.md) | ✅ 已结束 | [QRS 2025](https://qrs25.techconf.org/) | [CFP](https://qrs25.techconf.org/download/CFP-QRS-2025.pdf) | [Important Dates](https://qrs25.techconf.org/) | [Submission](https://qrs25.techconf.org/submission) | 未发现独立稳定 accepted/program URL；以 proceedings policy / DBLP fallback | [Proceedings policy](https://qrs25.techconf.org/track/proceeding) | [DBLP](https://dblp.org/db/conf/qrs/qrs2025.html) | 未公布 | 2025-04-15 待补时刻 | 2025-05-30 待补时刻 | 2025-07-16..2025-07-20 | DBLP `inproceedings` 72；官网统计 regular acceptance 65/269；二者不是同一口径 | 🟡 部分核验 |
 | [`2024`](./2024/README.md) | ✅ 已结束 | [QRS 2024](https://qrs24.techconf.org/) | [CFP](https://qrs24.techconf.org/download/CFP-QRS-2024.pdf) | [Important Dates](https://qrs24.techconf.org/) | [Submission](https://qrs24.techconf.org/submission) | 未发现独立稳定 accepted/program URL；以 proceedings policy / DBLP fallback | [Proceedings policy](https://qrs24.techconf.org/track/proceeding) | [DBLP](https://dblp.org/db/conf/qrs/qrs2024.html) | 2024-03-18 待补时刻 | 2024-03-25 待补时刻 | 2024-05-07 待补时刻 | 2024-07-01..2024-07-05 | DBLP `inproceedings` 71；DBLP / IEEE proceedings fallback，不等于 main research papers | 🟡 部分核验 |
 | [`2023`](./2023/README.md) | ✅ 已结束 | [QRS 2023](https://qrs23.techconf.org/) | [CFP](https://qrs23.techconf.org/download/01-CFP-QRS-2023.pdf) | [Important Dates](https://qrs23.techconf.org/) | [Submission](https://qrs23.techconf.org/submission) | 官网首页公告 final program / accepted list，但未发现独立稳定 URL；以 proceedings policy / DBLP fallback | [Proceedings policy](https://qrs23.techconf.org/track/proceeding) | [DBLP](https://dblp.org/db/conf/qrs/qrs2023.html) | 2023-07-31 待补时刻 | 2023-08-07 待补时刻 | 2023-09-21 待补时刻 | 2023-10-22..2023-10-26 | DBLP `inproceedings` 70；DBLP / IEEE proceedings fallback，不等于 main research papers | 🟡 部分核验 |
@@ -106,6 +106,7 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| `2026-08-07 20:15:00` | 常态化刷新：2026 行阶段由 `🔵 会期临近` 迁移为 `✅ 已结束 / 待 proceedings`（会期 `2026-07-22..25` 已结束）。⚠️ 同轮记录**出版方实质变更**：官方主页 News 逐字 `2026-07-24 — QRS 2026 Proceedings and Companion will be published by Springer as part of LNCS`（QRS 历年为 IEEE proceedings），且 Proceedings policy 页尚未同步，两个官方页面口径不一致；卷号 / ISBN / DOI 待补。 |
 | `2026-07-13 10:27:51` | 常态化刷新 QRS 2026：确认通知/终稿阶段已过、会期 2026-07-22..25 临近；2027/2028 保守复查未见官方年度信息。 |
 | `2026-06-09 18:52:22` | PR #91 终态收口：将索引核验行从复核动作改为已完成证据链与后续升级条件，避免把本轮证据核验责任留作未闭合动作。 |
 | `2026-06-09 18:18:06` | 修复 PR #91 CCF emoji 一致性复查：将根 README `CCF 等级` 元信息行改为 🏆/🥈/🥉 单 emoji，具体 CCF 官方证据继续落在 §1.1 索引表 CCF 行。 |
