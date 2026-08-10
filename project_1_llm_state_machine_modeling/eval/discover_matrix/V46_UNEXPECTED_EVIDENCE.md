@@ -1,21 +1,24 @@
 # v46 意外发现逐簇判据（全 293 条）
 
 本文件是 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件：
-每一簇的**事实**、**NL 依据**、**归并/翻转说明**逐条列出，供复核。机器可读版在
-[unexpected_verdicts/](./unexpected_verdicts/)（`G*.jsonl` + `cluster_index.tsv`）。
+每一簇的**事实**、**NL 依据**、**归并/翻转说明**逐条列出，供复核。
+
+⚠️ **本文件由 [unexpected_verdicts/](./unexpected_verdicts/) 的 `G*.jsonl` 生成，jsonl 是真源。**
+修改裁定请改 jsonl 再重建本文件，不要直接编辑本文件——直接编辑会在下次重建时静默丢失。
 
 字段：`裁定 ｜ 出现格数/6 ｜ 谓词族`；**事实**=从制品或作者源引出的可核验事实；
 **NL**=自然语言依据或缺乏依据；**说明**=同源归并、翻转痕迹、保留意见。
 
-| 裁定 | 含义 |
-| :-- | :-- |
-| ✅ 真漏记 | 事实成立 + NL 有依据 + 台账未记 |
-| 🔗 应并入台账 | 是已有台账记录换了个谓词，不计新增 |
-| ⚙️ 表示债务 | 作者源已表达，失真来自 R4.5 下沉，非模型缺陷 |
-| 📄 无 NL 依据 | 事实成立但 NL 不要求，属过度规定 |
-| ❌ 假阳性 | 断言所指元素其实存在，主张与制品相反 |
-| 🚫 越界 | 依赖正交并发 / 不变式，在 M 边界外 |
-| ❓ 待定 | 证据不足或仓库自身判据有张力 |
+| 裁定 | 含义 | 簇数 |
+| :-- | :-- | --: |
+| ✅ 真漏记 | 事实成立 + NL 有依据 + 台账未记 | 26 |
+| 🔗 应并入台账 | 是已有台账记录换了个谓词，不计新增 | 14 |
+| ⚙️ 表示债务 | 作者源已表达，失真来自 R4.5 下沉，非模型缺陷 | 111 |
+| 📄 无 NL 依据 | 事实成立但 NL 不要求，属过度规定 | 90 |
+| ❌ 假阳性 | 断言所指元素其实存在，主张与制品相反 | 43 |
+| 🚫 越界 | 依赖正交并发 / 不变式，在 M 边界外 | 3 |
+| ❓ 待定 | 证据不足或仓库自身判据有张力 | 6 |
+| | **合计** | **293** |
 
 ---
 
@@ -81,7 +84,7 @@
 - **NL**：NL 8 'when motion begins, marked by the \\'Entry/Accelerate\\' action' 点名的是 entry 动作，'when motion begins' 描述的是进入 InMotion 的默认初始语义，未要求独立事件
 - **说明**：本 pair 恰是全语料少数把 entry 动作写对的制品（对比 0014 把整串降级成 event Entry_Accelerate，即 EIS-0014-02）；此处要求 motion_begins 事件属过度规定
 
-## pair 0006 — 4 簇　`无×2 表示债务×2`
+## pair 0006 — 4 簇　`无×2 应并入台账×2`
 
 **0006-1** ｜ 📄 无 NL 依据 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G5
 
@@ -89,17 +92,17 @@
 - **NL**：NL 4 『During flight』为语境状语，NL 未把 flight 命名为状态或范围
 - **说明**：与簇 0006-4 同源（同一主张的根级与包壳级两种路径写法），也与 0046-5/0046-7 同一误报模式
 
-**0006-2** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
+**0006-2** ｜ 🔗 应并入台账 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
 - **事实**：声明表无任何任务完成态或完成事件：状态仅 Searching/Intercepted/Attack.AttackingTarget/FormationAdjustment.AdjustingFormation/UnspecifiedInitial，事件仅 Adjustment_Complete/Attack_Complete/Interception_Detected/Task_Assignment_Received（对比姊妹 pair 0046 有 MissionComplete 状态与 Mission_Completed 事件）
 - **NL**：NL 2 『Before the mission is completed』预设存在任务完成这一终结条件
-- **说明**：⚠️ 实为台账 EIS-0006-03[terminates]『没有终态、没有完成事件，永远无法结束』的同一缺陷、另一谓词表述，匹配器未归并。判定成立，但计入统计前必须与 EIS-0006-03 去重，不得当作台账漏记的新增发现 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：⚠️ 实为台账 EIS-0006-03[terminates]『没有终态、没有完成事件，永远无法结束』的同一缺陷、另一谓词表述，匹配器未归并。判定成立，但计入统计前必须与 EIS-0006-03 去重，不得当作台账漏记的新增发现 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0006-03：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
-**0006-3** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G5
+**0006-3** ｜ 🔗 应并入台账 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G5
 
 - **事实**：声明表中唯一变量是编译器路由变量 R45RouteToken，作者变量词表为空，无表示集群 UAV 数量的变量
 - **NL**：NL 4 『the number of UAVs in the swarm decreases accordingly』
-- **说明**：与台账 EIS-0006-02[effect_declared]（递减效应缺失）同根：变量不存在是效应不存在的前置。台账记的是效应侧，本簇是声明侧，可视为漏记的另一面，但去重时应与 EIS-0006-02 合并计一处缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与台账 EIS-0006-02[effect_declared]（递减效应缺失）同根：变量不存在是效应不存在的前置。台账记的是效应侧，本簇是声明侧，可视为漏记的另一面，但去重时应与 EIS-0006-02 合并计一处缺陷 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0006-02：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
 **0006-4** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
@@ -107,13 +110,13 @@
 - **NL**：NL 4 『During flight』为语境状语，未命名状态
 - **说明**：与簇 0006-1 完全同源（仅路径前缀不同：根级 flight vs UAVSwarmStateMachine.flight），去重时合并
 
-## pair 0007 — 3 簇　`表示债务×1 无×1 越界×1`
+## pair 0007 — 3 簇　`应并入台账×1 无×1 越界×1`
 
-**0007-1** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G7
+**0007-1** ｜ 🔗 应并入台账 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G7
 
 - **事实**：根 scope 除 CollisionDetection、CollisionAvoidance、OperationalControls 三个复合状态外还直接声明了 state InitialState named 'InitialState'（真实状态，[*] -> InitialState，且只有入边 CollisionAvoidance -> InitialState、无出边），共 4 个直接非伪子状态
 - **NL**：NL 1 'There are three region in this diagram'
-- **说明**：判定只用层次子状态计数，不依赖并发语义。但计数偏差完全由两条已记台账造成：EIS-0007-01（InitialState 被写成真实死端状态）与 EIS-0007-03（OperationalControls 整棵为 NL 未提及的臆造子树）；归并时应视为已记缺陷的计数侧面，不宜再计一条新缺陷 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：判定只用层次子状态计数，不依赖并发语义。但计数偏差完全由两条已记台账造成：EIS-0007-01（InitialState 被写成真实死端状态）与 EIS-0007-03（OperationalControls 整棵为 NL 未提及的臆造子树）；归并时应视为已记缺陷的计数侧面，不宜再计一条新缺陷 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0007-01/03：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
 **0007-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G7
 
@@ -331,7 +334,7 @@
 - **NL**：NL 10 同句，未要求声明该状态或条件元素
 - **说明**：与簇 0014-3/0014-7 同源
 
-## pair 0016 — 12 簇　`表示债务×10 无×2`
+## pair 0016 — 12 簇　`表示债务×8 应并入台账×2 无×2`
 
 **0016-1** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G8
 
@@ -339,11 +342,11 @@
 - **NL**：NL 9 逐字点名 'a pedestrian is detected' 为独立触发条件
 - **说明**：与台账 EIS-0030-03 同缺陷类（融合事件），台账对本 pair 未枚举 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-**0016-2** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G8
+**0016-2** ｜ 🔗 应并入台账 ｜ 2/6 格 ｜ `state_declared` ｜ 判定组 G8
 
 - **事实**：路径中只有 Finished_Region1_Search / Finished_Region2_Search / Finished_Region3_Search，没有任何 mission-complete 的状态或事件，搜索的释放条件由第三区域搜索完成承担
 - **NL**：NL 2『Before the mission is completed, the UAV swarm continuously performs target search tasks』把任务完成作为持续搜索的释放条件
-- **说明**：实为台账 EIS-0016-03 [terminates]『既无 mission-complete 事件也无顶层终态』的同一缺陷侧面，属匹配环节未对上而非台账漏记；断言把它固定成『必须是一个 state』属形式过度指定，实质缺陷成立。与簇 0016-11 同源 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：实为台账 EIS-0016-03 [terminates]『既无 mission-complete 事件也无顶层终态』的同一缺陷侧面，属匹配环节未对上而非台账漏记；断言把它固定成『必须是一个 state』属形式过度指定，实质缺陷成立。与簇 0016-11 同源 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0016-03：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
 **0016-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G8
 
@@ -393,11 +396,11 @@
 - **NL**：NL 4『the number of UAVs in the swarm decreases accordingly』
 - **说明**：与簇 0016-9 同源（效果侧） ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
 
-**0016-11** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G8
+**0016-11** ｜ 🔗 应并入台账 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G8
 
 - **事实**：路径中无 mission_completed，也无顶层终态；搜索结束条件落在 Finished_Region3_Search 上
 - **NL**：NL 2『Before the mission is completed, the UAV swarm continuously performs target search tasks』
-- **说明**：与簇 0016-2 同源；同为台账 EIS-0016-03 的侧面，非真正漏记 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：与簇 0016-2 同源；同为台账 EIS-0016-03 的侧面，非真正漏记 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0016-03：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
 **0016-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G8
 
@@ -1155,13 +1158,13 @@
 - **NL**：NL 4 未规定源状态名
 - **说明**：与簇 0036-5 同源
 
-## pair 0037 — 2 簇　`表示债务×1 无×1`
+## pair 0037 — 2 簇　`应并入台账×1 无×1`
 
-**0037-1** ｜ ⚙️ 表示债务 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G5
+**0037-1** ｜ 🔗 应并入台账 ｜ 4/6 格 ｜ `cardinality` ｜ 判定组 G5
 
 - **事实**：路径表可直接数出 ActiveState 的直接子共 7 个非伪状态：FrontendCollision、FrontendCollisionRegion、Inactive、PedestrianCollision、PedestrianCollisionRegion、RearEndCollision、RearEndCollisionRegion，不等于 3
 - **NL**：NL 1 『There are three region in this diagram』为数量断言；NL 3 『The orthogonal regions of the active mode』把这三个区域归属于 active mode，故以 ActiveState 为 scope 合理
-- **说明**：在 M 边界内：主张只涉及直接子数量，不依赖并发语义，与台账 EIS-0006-01/EIS-0046-02 把区域数量判为『数量/结构问题，不是并发风格问题』的口径一致。四个多余子中的 FrontendCollision/RearEndCollision/PedestrianCollision 正是台账 EIS-0037-01[reaches] 所指的死端叶，二者同根不同面，去重时注意 ｜【主判终裁】回读作者源 stm0.puml：该量/该备选作者已逐字表达，融合发生在 R4.5 下沉（fcstm_meta 声明 R45.DEBT.opaque_transition_label_semantics）。按 FUSED_EVENT_POLICY.md「表示限制被如实记录、但记录本身不构成发现」，非模型缺陷。
+- **说明**：在 M 边界内：主张只涉及直接子数量，不依赖并发语义，与台账 EIS-0006-01/EIS-0046-02 把区域数量判为『数量/结构问题，不是并发风格问题』的口径一致。四个多余子中的 FrontendCollision/RearEndCollision/PedestrianCollision 正是台账 EIS-0037-01[reaches] 所指的死端叶，二者同根不同面，去重时注意 ｜【更正】前一版误降为表示债务，实为应并入 EIS-0037-01：作者源本身即缺该元素，非 R4.5 下沉造成；但台账已记，故不计新增。
 
 **0037-2** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
