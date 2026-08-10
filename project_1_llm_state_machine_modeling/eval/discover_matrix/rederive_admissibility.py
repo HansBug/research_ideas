@@ -49,7 +49,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-PIPELINE_SRC = ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src"
+PIPELINE_SRC = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop/src"
 if str(PIPELINE_SRC) not in sys.path:
     sys.path.insert(0, str(PIPELINE_SRC))
 

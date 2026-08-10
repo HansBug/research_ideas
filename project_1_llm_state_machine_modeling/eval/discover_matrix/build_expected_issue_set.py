@@ -45,8 +45,8 @@ from collections import Counter, defaultdict
 HERE = pathlib.Path(__file__).resolve().parent
 MR = HERE / "manual_review"
 PROJECT = HERE.parents[1]
-CORPUS = (PROJECT / "paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60")
-FEEDBACK_SRC = PROJECT / "paper_stm_repair/pipeline/feedback_loop/src"
+CORPUS = (PROJECT / "paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60")
+FEEDBACK_SRC = PROJECT / "paper_stm_issue_discover/pipeline/feedback_loop/src"
 
 FAMILY = {
     "state_declared": "S", "variable_declared": "S", "event_declared": "S",

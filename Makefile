@@ -1,7 +1,7 @@
 .PHONY: discover discover-demo discover-pair discover-custom discover-test \
 	legacy-discover legacy-discover-demo legacy-discover-pair legacy-discover-custom legacy-discover-test
 
-FEEDBACK_LOOP_DIR := project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop
+FEEDBACK_LOOP_DIR := project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop
 PYTHON ?= python
 
 # The default discover entry points are the independent paper1 feedback_loop
@@ -31,7 +31,7 @@ discover-test:
 
 .PHONY: legacy-discover legacy-discover-demo legacy-discover-pair legacy-discover-custom legacy-discover-test
 
-DISCOVER_SRC := project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/src
+DISCOVER_SRC := project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/src
 DISCOVER_ROOT := $(CURDIR)/project_1_llm_state_machine_modeling
 DISCOVER_PYTHONPATH := $(DISCOVER_SRC):$(DISCOVER_ROOT):$(CURDIR)
 DISCOVER_OUT ?= runs/paper1/discover/demo
@@ -44,7 +44,7 @@ DISCOVER_CASE ?= manual-0000-identity
 DISCOVER_NL ?= $(DISCOVER_DEMO_ROOT)/nl.txt
 DISCOVER_FCSTM ?= $(DISCOVER_DEMO_ROOT)/STM_0.fcstm
 
-LEGACY_DISCOVER_DEMO_ROOT := project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity
+LEGACY_DISCOVER_DEMO_ROOT := project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/fixtures/discover_integrated/0000_hldcs_manual_identity
 LEGACY_DISCOVER_CASE ?= llms_emp_stm_results_0000_manual_identity
 LEGACY_DISCOVER_NL ?= $(LEGACY_DISCOVER_DEMO_ROOT)/nl.txt
 LEGACY_DISCOVER_FCSTM ?= $(LEGACY_DISCOVER_DEMO_ROOT)/STM_0.fcstm
@@ -78,4 +78,4 @@ legacy-discover:
 
 legacy-discover-test:
 	PYTHONPATH=$(DISCOVER_PYTHONPATH) python -m pytest -q \
-		project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/agent_loop/tests
+		project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/tests

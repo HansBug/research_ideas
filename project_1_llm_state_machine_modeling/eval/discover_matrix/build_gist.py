@@ -38,7 +38,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 REPORT = (
     ROOT
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60"
 )
 PROFILE = {"gpt": "gpt-5.5", "claude": "claude-opus-4-7"}
 

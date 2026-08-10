@@ -41,7 +41,7 @@ import sys
 
 SEED = (
     pathlib.Path(__file__).resolve().parents[2]
-    / "paper_stm_repair"
+    / "paper_stm_issue_discover"
     / "selected_seed_examples"
 )
 

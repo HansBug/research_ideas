@@ -10,7 +10,7 @@
 # 用法: launch_single_pair_diag.sh <out_dir> <pair> <profile> <rounds> [max_try]
 set -u
 REPO=/home/zhangshaoang/oo-projects/research_ideas
-FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
+FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 OUT="$(readlink -m "$1")"; PAIR="$2"; PROFILE="$3"; ROUNDS="${4:-3}"; MAXTRY="${5:-6}"
 SHORT="${PROFILE%%-*}"
 

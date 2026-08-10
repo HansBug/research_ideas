@@ -35,7 +35,7 @@ import check_false_positives  # noqa: E402
 LEDGER = json.loads((HERE / "known_false_positives.json").read_text())
 #: `eval/discover_matrix` -> repo root is three levels up.
 ROOT = HERE.resolve().parents[2]
-FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
+FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 
 
 @pytest.mark.parametrize("entry", LEDGER["fabricated"], ids=lambda e: f"{e['cell']}-{e['requirement_id']}")

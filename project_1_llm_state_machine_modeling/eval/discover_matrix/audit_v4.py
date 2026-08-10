@@ -23,7 +23,7 @@ from typing import Any, Iterator
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SOURCE_TRACES = (
     ROOT
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation"
     / "reports/llms_emp_r45_java_60/source_traces"
 )
 

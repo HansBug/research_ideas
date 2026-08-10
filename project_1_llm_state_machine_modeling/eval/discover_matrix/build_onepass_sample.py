@@ -81,7 +81,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "onepass_sample"
 RUNS = HERE.parents[2] / "runs" / "paper1"
-SEED = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
+SEED = HERE.parents[1] / "paper_stm_issue_discover" / "selected_seed_examples"
 _LEAK = re.compile(r"\b\d{4}\b|EIS-|llms_emp_feedback_final")
 #: 仍然要扫这些词：**带划分虽已废止，但样本里出现它们仍是泄漏** —— 它们会告诉标注者
 #: 「这条记录曾被特殊对待」，而那是标注者不该知道的分组信息。

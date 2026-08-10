@@ -35,7 +35,7 @@ _FAMILY_ORDER = ("S", "B", "P")
 def _predicate_names() -> tuple[dict[str, str], list[str]]:
     """从 pyfcstm 侧的谓词定义读族归属，避免在本文件里复制一份。"""
 
-    root = HERE.parent.parent / "paper_stm_repair/pipeline/feedback_loop/src"
+    root = HERE.parent.parent / "paper_stm_issue_discover/pipeline/feedback_loop/src"
     sys.path.insert(0, str(root))
     from paper_stm_feedback_loop.discover.predicates import (  # noqa: E402
         PREDICATE_ORDER,

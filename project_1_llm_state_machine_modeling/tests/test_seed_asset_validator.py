@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SEED_LIBRARY = REPO_ROOT / "project_1_llm_state_machine_modeling" / "paper_stm_repair" / "corpora" / "seed_library"
+SEED_LIBRARY = REPO_ROOT / "project_1_llm_state_machine_modeling" / "paper_stm_issue_discover" / "corpora" / "seed_library"
 VALIDATOR = SEED_LIBRARY / "tools" / "validate_seed_assets.py"
 UNIFIED = "unified-uml-multimodal-validation"
 SEFM = "sefm-llm-state-machine"

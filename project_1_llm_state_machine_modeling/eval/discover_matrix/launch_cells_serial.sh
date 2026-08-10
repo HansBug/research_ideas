@@ -11,7 +11,7 @@
 # Usage: launch_cells_serial.sh <out_dir> <max_parallel> <pair...>
 set -u
 REPO=/home/zhangshaoang/oo-projects/research_ideas
-FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
+FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 # Resolve before the `cd` below: a relative out-dir silently pointed at
 # $FL/runs/... after the chdir, the log redirections failed, and every cell
 # exited instantly with "no such file or directory" while the launcher happily

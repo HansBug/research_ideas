@@ -38,7 +38,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 VERDICTS = HERE / "v46" / "unexpected_verdicts"
-SEEDS = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
+SEEDS = HERE.parents[1] / "paper_stm_issue_discover" / "selected_seed_examples"
 
 #: 五类裁定。⛔ 没有第六类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
 ORDER = (

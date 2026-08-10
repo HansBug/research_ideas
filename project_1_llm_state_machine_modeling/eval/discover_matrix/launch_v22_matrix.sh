@@ -4,7 +4,7 @@
 # 格集从盘上读（run_grid.py），不在本文件里维护第二份。
 set -u
 REPO=/home/zhangshaoang/oo-projects/research_ideas
-FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
+FL="$REPO/project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 CFG="$REPO/.llmconfig.yml"
 BASE="${BASE:-$REPO/runs/paper1/matrix-v22}"
 # The grid is read from disk, not typed. A literal here was wrong once already -- it carried
@@ -28,7 +28,7 @@ MAX="${MAX:-8}"; MAXTRY=6
 # 本地，别人无法核对，而这正是审查「实验是否公平」时最先要查的东西。
 if [ "${SKIP_VERSION_GATE:-0}" != "1" ]; then
   DIRTY="$(cd "$REPO" && git status --porcelain -- \
-    "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src")"
+    "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop/src")"
   if [ -n "$DIRTY" ]; then
     echo "refusing to run: pipeline src 有未提交改动 —— 该次运行将无法归属到某个 commit" >&2
     echo "$DIRTY" >&2; exit 1
@@ -45,7 +45,7 @@ mkdir -p "$BASE"
   echo "branch: $(git rev-parse --abbrev-ref HEAD)"
   echo "written_before_launch: yes"
   echo "pipeline_src_diff_vs_commit: $(git status --porcelain -- \
-    project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src | wc -l) files"
+    project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop/src | wc -l) files"
 } > "$BASE/CODE_VERSION.txt"
 echo "code version -> $BASE/CODE_VERSION.txt: $(head -1 "$BASE/CODE_VERSION.txt")"
 # 格集也要在开跑**前**写下，理由与代码版本相同但故障形态更隐蔽：目录是逐格创建的，所以

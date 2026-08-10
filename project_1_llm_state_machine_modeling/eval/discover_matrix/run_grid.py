@@ -37,9 +37,9 @@ REPO = HERE.parents[2]
 RUNS = REPO / "runs" / "paper1"
 P1 = REPO / "project_1_llm_state_machine_modeling"
 #: 语料的权威 pair 目录 —— 每个 pair 一个子目录，内含 `nl.txt` 与 `fcstm.fcstm`。
-CORPUS = P1 / "paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60/pairs"
+CORPUS = P1 / "paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60/pairs"
 #: 流水线实际读的输入。`--pair-id llms_emp_feedback_final_XXXX` 解析到这里。
-SEEDS = P1 / "paper_stm_repair/selected_seed_examples"
+SEEDS = P1 / "paper_stm_issue_discover/selected_seed_examples"
 
 _CELL = re.compile(r"^(\d{4})-(claude|gpt)$")
 _PAIR = re.compile(r"^\d{4}$")

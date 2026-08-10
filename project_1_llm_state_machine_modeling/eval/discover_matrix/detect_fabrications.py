@@ -41,10 +41,10 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.resolve().parents[2]
-FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop"
+FEEDBACK_LOOP = ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop"
 REPORT = (
     ROOT
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60"
 )
 
 if str(FEEDBACK_LOOP / "src") not in sys.path:

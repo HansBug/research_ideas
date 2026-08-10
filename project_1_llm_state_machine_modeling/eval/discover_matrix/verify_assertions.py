@@ -34,9 +34,9 @@ PREDCHECK = pathlib.Path("/tmp/predcheck")
 #: wrong and every evaluation came back as ModuleNotFoundError, i.e. "inconclusive",
 #: which would have silently reported zero coverage.
 PROJECT = HERE.parents[1]
-CORPUS = (PROJECT / "paper_stm_repair/pipeline/representation/reports"
+CORPUS = (PROJECT / "paper_stm_issue_discover/pipeline/representation/reports"
           / "llms_emp_r45_java_60")
-FEEDBACK_SRC = PROJECT / "paper_stm_repair/pipeline/feedback_loop/src"
+FEEDBACK_SRC = PROJECT / "paper_stm_issue_discover/pipeline/feedback_loop/src"
 
 CLOSED = {
     "state_declared": "S", "variable_declared": "S", "event_declared": "S",

@@ -11,7 +11,7 @@ to be extractable on demand rather than transcribed once by hand.
 
 Source: `Experiment Results.xlsx`, sheet `STM Results` (63 rows x 38 columns), from
 the paper's public Drive folder, vendored under
-`paper_stm_repair/corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/`.
+`paper_stm_issue_discover/corpora/seed_library/llms-emp-stm-subset/assets/raw/drive_download/`.
 
 Column map (1-indexed), read off the two header rows:
 
@@ -44,7 +44,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.resolve().parents[2]
 WORKBOOK = (
     ROOT
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/corpora/seed_library"
     / "llms-emp-stm-subset/assets/raw/drive_download/Experiment Results.xlsx"
 )
 LEDGER = (

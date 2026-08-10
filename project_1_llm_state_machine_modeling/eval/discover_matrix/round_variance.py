@@ -99,7 +99,7 @@ def _verification_kind_of() -> "Callable[[str], str | None]":
     global _KIND_FN
     if _KIND_FN is not None:
         return _KIND_FN
-    src = HERE.parents[1] / "paper_stm_repair" / "pipeline" / "feedback_loop" / "src"
+    src = HERE.parents[1] / "paper_stm_issue_discover" / "pipeline" / "feedback_loop" / "src"
     if src.is_dir() and str(src) not in sys.path:
         sys.path.insert(0, str(src))
     try:

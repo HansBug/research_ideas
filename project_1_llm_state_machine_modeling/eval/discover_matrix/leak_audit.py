@@ -18,8 +18,8 @@ import ast, json, pathlib, re, collections
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 LEDGER = ROOT / "eval/discover_matrix/manual_review/expected_issue_set.json"
-SRC = ROOT / "paper_stm_repair/pipeline/feedback_loop/src/paper_stm_feedback_loop"
-SEEDS = ROOT / "paper_stm_repair/selected_seed_examples"
+SRC = ROOT / "paper_stm_issue_discover/pipeline/feedback_loop/src/paper_stm_feedback_loop"
+SEEDS = ROOT / "paper_stm_issue_discover/selected_seed_examples"
 #: Held-out pairs first -- those are the ones a reported number depends on -- plus the four
 #: historical cells, which are audited too so a regression there is still visible.
 HISTORICAL = {"0000", "0006", "0029", "0050"}

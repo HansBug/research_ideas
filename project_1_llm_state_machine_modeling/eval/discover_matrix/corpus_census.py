@@ -1,8 +1,8 @@
 """Structural census of all 60 FCSTM STM_0 models, read via pyfcstm."""
 import json, pathlib, re, sys
 
-R = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation/reports/llms_emp_r45_java_60")
-sys.path.insert(0, "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src")
+R = pathlib.Path("/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60")
+sys.path.insert(0, "/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop/src")
 from paper_stm_feedback_loop.assertions import build_eval_environment
 
 

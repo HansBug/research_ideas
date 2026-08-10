@@ -25,9 +25,9 @@ import sys
 from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-CORPUS = (ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline"
+CORPUS = (ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline"
           / "representation/reports/llms_emp_r45_java_60")
-DATASET = (ROOT / "project_1_llm_state_machine_modeling/paper_stm_repair/corpora/seed_library"
+DATASET = (ROOT / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/corpora/seed_library"
            / "llms-emp-stm-subset/assets/raw/drive_download/Dataset.xlsx")
 
 # Words that carry no identifying information once the surrounding name is fixed.  Chosen

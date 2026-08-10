@@ -38,12 +38,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 REPORTS = (
     REPO
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/representation"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation"
     / "reports/llms_emp_r45_java_60"
 )
 FL_SRC = (
     REPO
-    / "project_1_llm_state_machine_modeling/paper_stm_repair/pipeline/feedback_loop/src"
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/feedback_loop/src"
 )
 if str(FL_SRC) not in sys.path:
     sys.path.insert(0, str(FL_SRC))
