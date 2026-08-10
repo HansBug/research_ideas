@@ -45,6 +45,9 @@ v46 的八个独立判定组里有七组栽在这一点上。
 
 未匹配台账的 293 个同质簇已逐条人工裁定，四份产物：
 
+- [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) —— **裁定规范**。六类的定义、
+  判定标准、典型例子、短路判定流程、取证清单与常见误判速查。**判任何一条未匹配产出前必读。**
+  ⛔ 六类之外没有第七类，**不设「待定」**——证据不足不是裁定类别，取不到证据就去取。
 - [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md) —— **裁决原则级**。表示债务的定义、
   操作化判据、机理、实例，以及论文表述口径。引用多报数字前必读。
 - [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) —— 结论与三张交叉表
