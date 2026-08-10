@@ -10,9 +10,9 @@
 | :-- | --: |
 | ✅ 真漏记 | 23 |
 | 🔗 应并入台账 | 14 |
-| ⚙️ 表示债务 | 123 |
-| 📄 无 NL 依据 | 96 |
-| ❌ 假阳性 | 33 |
+| ⚙️ 表示债务 | 129 |
+| 📄 无 NL 依据 | 99 |
+| ❌ 假阳性 | 24 |
 | 🚫 越界 | 4 |
 | **合计** | **293** |
 
@@ -126,7 +126,7 @@
 - **NL**：NL 3 只说 active mode 有 orthogonal regions 未给数；NL 1 的 'three' 指整张图而非 CollisionAvoidance 作用域
 - **说明**：'CollisionAvoidance 下恰好三个区' 是正交区数量义务，落在 M 边界外；且按区计数制品本已是三个非空区，'不是三个' 只在把区换算成子状态时才成立。与簇 0027-6 同型 ｜【更正】原写「与 0027-1 同型」是失效引用：0027-1 实为融合事件（表示债务），pair 0027 的越界簇是 invariant 类的 0027-6。
 
-## pair 0009 — 17 簇　`假阳性×9 表示债务×8`
+## pair 0009 — 17 簇　`表示债务×14 无×3`
 
 **0009-1** ｜ ⚙️ 表示债务 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
@@ -152,23 +152,23 @@
 - **NL**：NL 12 'or 10 meters in urban mode' 为备选之一
 - **说明**：与簇 0009-1 同源；簇 0009-15/17 是同一主张的重复表述 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-5** ｜ ❌ 假阳性 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-5** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：front_inactive_rear_inactive_pedestrian_inactive 的 named 串是 'front_inactive && rear_inactive && pedestrian_inactive'，作者在 collision_avoidance_active --> collision_avoidance_deactive 上写的是一条合法合取守卫，front_inactive 逐字在内
 - **NL**：NL 13 'as indicated by the conditions front_inactive, rear_inactive, and pedestrian_inactive' 是合取，一条合取守卫即为忠实编码
-- **说明**：与簇 0009-6/7 同源；事件名融合同属 R4.5 opaque_transition_label_semantics 降级
+- **说明**：与簇 0009-6/7 同源；事件名融合同属 R4.5 opaque_transition_label_semantics 降级 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-6** ｜ ❌ 假阳性 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-6** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：rear_inactive 是同一合取守卫 'front_inactive && rear_inactive && pedestrian_inactive' 的第二个合取项
 - **NL**：NL 13 同上
-- **说明**：与簇 0009-5 同源
+- **说明**：与簇 0009-5 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-7** ｜ ❌ 假阳性 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-7** ｜ 📄 无 NL 依据 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：pedestrian_inactive 是同一合取守卫的第三个合取项
 - **NL**：NL 13 同上
-- **说明**：与簇 0009-5 同源
+- **说明**：与簇 0009-5 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：合取项（front_inactive && rear_inactive && pedestrian_inactive）被索要成独立事件，适用 R-CONJ；同 NL 的 0019/0029/0039/0049/0059 五份制品全判此。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
 **0009-8** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
@@ -182,23 +182,23 @@
 - **NL**：NL 3/7/9 的 `extra_lane=true` 已被守卫文本承载
 - **说明**：与簇 0009-8 同源，表示债务而非缺陷 ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-10** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0009-10** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_exit 在事件 dist_to_exit_2 named 'dist_to_exit<2' 与 dist_to_exit_0_7 named 'dist_to_exit<0.7' 中逐字出现
 - **NL**：NL 4/5/8 的 `dist_to_exit<2` / `<0.7` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源
+- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-11** ｜ ❌ 假阳性 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0009-11** ｜ ⚙️ 表示债务 ｜ 2/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：dist_to_rear 在融合守卫的析取支 '(dist_to_rear<5 && vel>30)' 中逐字出现
 - **NL**：NL 12 的 `dist_to_rear<5` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源
+- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-12** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
+**0009-12** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `variable_declared` ｜ 判定组 G6
 
 - **事实**：vel 在同一析取支 '(dist_to_rear<5 && vel>30)' 中逐字出现
 - **NL**：NL 12 的 `vel>30` 已被守卫文本承载
-- **说明**：与簇 0009-8 同源
+- **说明**：与簇 0009-8 同源 ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与同 pair 的 0009-8/0009-9 同形（量只在守卫文本里，PlantUML 无变量声明语法）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
 **0009-13** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
@@ -212,23 +212,23 @@
 - **NL**：NL 12 列为 'or' 备选之一
 - **说明**：与簇 0009-3 同源，仅断言签名的清洗名不同（dist_to_front_15_highway） ｜【复核统一标签】原判 FALSE_POSITIVE，但其 note 自陈「作者源已表达/属表示债务」，且断言所指元素在 IR 上确实不存在，不符合假阳性定义（元素其实存在、主张与制品相反）。三条判据全中（IR 上事实为真 + 作者源已逐字表达 + fcstm_meta 有债务码），改判表示债务。
 
-**0009-15** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-15** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-4：dist_to_front<10 && urban_way=true 是融合守卫的第四析取支
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-4 同源，仅清洗名不同（dist_to_front_10_urban）
+- **说明**：与簇 0009-4 同源，仅清洗名不同（dist_to_front_10_urban） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-16** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-16** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-3/14；路径里形近的 dist_to_front_15_extra_lane_true 属 NL 7/9 的城区变道条件，不是本条主张的高速危险条件
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-3 同源，第三种清洗名（dist_to_front_15_high_way_true）
+- **说明**：与簇 0009-3 同源，第三种清洗名（dist_to_front_15_high_way_true） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
-**0009-17** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
+**0009-17** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G6
 
 - **事实**：同簇 0009-4/15
 - **NL**：NL 12 列为 'or' 备选之一
-- **说明**：与簇 0009-4 同源，第三种清洗名（dist_to_front_10_urban_way_true）
+- **说明**：与簇 0009-4 同源，第三种清洗名（dist_to_front_10_urban_way_true） ｜【dry-run 复核修正】原判 FALSE_POSITIVE 系批量改判未改完的残留：与其 note 自陈的同源簇 0009-3/0009-4 同形（析取守卫的分支）。「仅出现在另一元素的 named 串或标识符子串内」不算元素存在，不符合假阳性定义。
 
 ## pair 0010 — 1 簇　`表示债务×1`
 

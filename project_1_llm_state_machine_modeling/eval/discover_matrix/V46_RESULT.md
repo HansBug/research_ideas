@@ -27,7 +27,7 @@ GitHub PR（CLAUDE.md §9）。
 
 ✅ **多报侧已判定**（本节于 2026-08-10 更新，原写「未判定」已作废）：未被台账认领的产出
 归并为 293 个同质簇后逐条人工裁定，结论是
-**只有 23 类（7.8%）是真实的台账漏记，归并到根因后 4 条；占比最大的 123 类（42.0%）
+**只有 23 类（7.8%）是真实的台账漏记，归并到根因后 4 条；占比最大的 129 类（44.0%）
 不是模型缺陷，而是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**。
 详见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)
 与 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)。
