@@ -54,7 +54,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 强迫读者停下来看的。
 
 - **修复**：`metrics_at_k._out_of_scope_record_ids()` 改为同时读 `boundary_ruling`；
-  由 [test_scope_vs_holdout_are_different.py](./test_scope_vs_holdout_are_different.py)
+  由 [test_scope_vs_holdout_are_different.py](../test_scope_vs_holdout_are_different.py)
   的 `test_a_boundary_ruling_in_the_ledger_is_actually_honoured` 钉住。
 - **影响**：该记录在 v37 与 v46 **都是 6/6**，故只同等抬高两侧绝对值，**差值几乎不变**。
 - 全库扫描确认这是**唯一**一条「在分母内但 `boundary_effect` 要求剔除」的记录。
@@ -71,16 +71,16 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 ⚠️ v46 一列已含 2026-08-10 逐格复核上修（+4 位，全在 `EIS-0037-01`）。
 变更前的首发数字为 `hit@1` 360/588 = 61.2%、`hit@3` 140/196 = 71.4%、`hit@all` 97/196 = 49.5%，
-上修依据与双份数字见 [V46_RESULT.md](./V46_RESULT.md) §1.5。
+上修依据与双份数字见 [V46_RESULT.md](./result.md) §1.5。
 
-判定来源：A 层自动 + 人工，见 [verdicts/v46_human.json](./verdicts/v46_human.json)（579 条
+判定来源：A 层自动 + 人工，见 [v46/verdicts/v46_human.json](./v46/verdicts/v46_human.json)（579 条
 人工判定，每条带 `argument`）。
 
 ## 5. 成本（本次新增审计维度）
 
-数据源为各格 `telemetry_summary`，导出工具 [run_telemetry.py](./run_telemetry.py)，
+数据源为各格 `telemetry_summary`，导出工具 [run_telemetry.py](../run_telemetry.py)，
 逐格明细 [telemetry/v46_cells.json](./telemetry/v46_cells.json)、
-对照 [telemetry/v37_summary.json](./telemetry/v37_summary.json)。
+对照 [telemetry/v37_summary.json](../telemetry/v37_summary.json)。
 
 | 项 | v37 | v46 | 比值 |
 | :-- | --: | --: | --: |
@@ -119,13 +119,13 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 **最大的一块（46.1%）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**。
 23 簇真漏记归并到根因后只有 4 条，且**全部 ≤3/6 格，无一稳定复现**。
 
-详见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)（结论与交叉表）、
-[V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md)（归并后的问题）、
-[V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)（280 簇逐条判据）、
-[REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
+详见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)（结论与交叉表）、
+[V46_UNEXPECTED_MERGED.md](./unexpected_merged.md)（归并后的问题）、
+[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)（280 簇逐条判据）、
+[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
-出现几次）实现，见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 表 A。
+出现几次）实现，见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md) 表 A。
 **大多数只出现在 1 个格里**，即多报以单次采样噪声为主。
 
 ## 7. 残留缺陷（v47 入口，按严重度）
@@ -145,7 +145,7 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 ```bash
 cd project_1_llm_state_machine_modeling/eval/discover_matrix
-python verdict_tiers.py     --generation matrix-v46-full --verdicts verdicts/v46_human.json --audit /tmp/a.json
+python verdict_tiers.py     --generation matrix-v46-full --verdicts v46/verdicts/v46_human.json --audit /tmp/a.json
 python audit_to_verdicts.py --generation matrix-v46-full --audit /tmp/a.json --out /tmp/v.json
 python metrics_at_k.py      /tmp/v.json --no-direction-check      # 分母自动扣除 28 条越界记录
 python full_tables.py       --generation v46-full --verdicts /tmp/v.json

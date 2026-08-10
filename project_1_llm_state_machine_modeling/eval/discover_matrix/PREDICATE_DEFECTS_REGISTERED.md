@@ -5,7 +5,7 @@ v46 意外发现裁定过程中，有 6 个簇的 False **不是制品缺陷，�
 另 1 条 `0044-4` 属 `F3`（裁定为 `FALSE_POSITIVE`，因其主张与制品相反这一条更强更靠前）。
 
 ⛔ **谓词逻辑本轮保持不动。** 本文件只做登记，不含任何修改。理由见
-[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 表 B 下方：
+[V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md) 表 B 下方：
 中途改谓词会作废 v37→v46 全部跨代次可比性，而这些缺陷不影响本轮结论的方向
 （它们只制造多报，不制造漏检）。
 

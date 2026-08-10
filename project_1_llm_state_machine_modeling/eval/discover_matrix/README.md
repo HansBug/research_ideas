@@ -41,39 +41,15 @@ v46 的八个独立判定组里有七组栽在这一点上。
 - `calibration_matrix_v11.json` 保存该校准所需的输入。运行目录按设计不被跟踪，上一个已经丢了，所以校准的输入必须自己留一份。
 - 真台账一旦恢复即自动优先（`_expected_ledger_path()`），且所用来源会写入每个审计制品的 `expected_ledger_provenance` 字段——命中率是头号数字，读者必须能自己看出它是不是建立在重建物上，而不是听谁说。
 
-## v46 意外发现裁定（2026-08）
+## v46 全量矩阵（2026-08）
 
-未匹配台账的 同质簇已逐条人工裁定（原 293 条中 13 条内容已被台账承载、按定义不属意外发现，已移出，分母 280），四份产物：
+⛔ **v46 的全部材料集中在 [v46/](./v46/)，唯一入口是 [v46/README.md](./v46/README.md)**
+——核心结论、覆盖侧与多报侧统计都在那里，细节引向各 sub md。
 
-- [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) —— **裁定规范**。五类的定义、
-  判定标准、典型例子、短路判定流程、取证清单与常见误判速查。**判任何一条未匹配产出前必读。**
-  ⛔ 五类之外没有第六类，**不设「待定」**——证据不足不是裁定类别，取不到证据就去取。
-  ⛔ **先做零步**：内容已被台账记录承载者按定义**不属意外发现**，不进本桶分母，
-  移入 `unexpected_verdicts/ledger_accounted.jsonl`。此前它被错做成第六类 `MERGE_INTO_LEDGER`，
-  已作废，`rebuild_unexpected.py` 见到即报错。
-- [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md) —— **裁决原则级**。表示债务的定义、
-  操作化判据、机理、实例，以及论文表述口径。引用多报数字前必读。
-- [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) —— 结论与三张交叉表
-  （裁定×稳定性、谓词族×裁定、三大类细分），含 R-CONJ 规则与本轮更正记录。
-- [V46_UNEXPECTED_MERGED.md](./V46_UNEXPECTED_MERGED.md) —— 按**根因**归并的问题清单。
-- [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md) —— 280 簇逐条判据（事实 / NL / 说明）。
-- [V46_COMPOSITION.md](./V46_COMPOSITION.md) —— **成分分析**：六大类的子类体系、
-  **两套分母**（条目数 / 去重数）与占比。⛔ 引用任何计数前必读——
-  条目数会把「一个缺陷被报了 12 次」读成「12 个缺陷」。
-  机器可读产物在 [unexpected_verdicts/composition/](./unexpected_verdicts/composition/)。
-- [PREDICATE_DEFECTS_REGISTERED.md](./PREDICATE_DEFECTS_REGISTERED.md) —— 裁定中实测出的 4 项
-  谓词侧缺陷（**只登记不修**）。⚠️ `persists_until` 在 release 后不解除义务，
-  **对任何有终止路径的模型恒为 False**；修复前其 False 不能作缺陷证据。
+跨代次通用的裁定口径留在本目录：
+[UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)（多报侧六类定义与判定流程，**判任何一条
+未匹配产出前必读**）、[REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)（表示债务，
+**引用多报数字前必读**）、[PREDICATE_DEFECTS_REGISTERED.md](./PREDICATE_DEFECTS_REGISTERED.md)。
 
-派生物由 [rebuild_unexpected.py](./rebuild_unexpected.py) 从 jsonl 真源一键重建
-（`--check` 可用于 CI）；残留「待定」会被它以退出码 1 拒绝。
-
-机器可读原始数据在 [unexpected_verdicts/](./unexpected_verdicts/)：
-`G1`–`G8.jsonl`（八个判定组逐簇裁定）、`VERIFY.jsonl`（回读原件复核）、
-`cluster_index.tsv`（280 簇 × 裁定 × 稳定性 × 谓词族 × 判定组）、
-`ledger_accounted.jsonl`（13 条内容已被台账承载者，**不进意外发现分母**）、
-`by_pair.tsv`、`final_rootcause.tsv`、`subclass_table.tsv`（子类双分母）、
-`merge_groups.tsv`（**去重审计**：每组的成员、累计格次与自然语言合并理由，`merge_key` 可 join）。
-
-**谓词词表在本轮裁定后保持不动**——失真源在编译不在谓词，理由见
-[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 表 B 下方。
+派生物由 [rebuild_unexpected.py](./rebuild_unexpected.py) 从 `v46/unexpected_verdicts/G*.jsonl`
+一键重建（`--check` 可用于 CI）。

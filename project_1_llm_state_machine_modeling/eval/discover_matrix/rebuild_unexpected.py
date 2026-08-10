@@ -37,7 +37,7 @@ import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-VERDICTS = HERE / "unexpected_verdicts"
+VERDICTS = HERE / "v46" / "unexpected_verdicts"
 SEEDS = HERE.parents[1] / "paper_stm_repair" / "selected_seed_examples"
 
 #: 六类裁定。⛔ 没有第七类，也不设「待定」——证据不足不是裁定类别，见 UNEXPECTED_TAXONOMY.md。
@@ -191,7 +191,7 @@ def write_evidence(rows: list[dict]) -> None:
             if (r.get("note") or "").strip():
                 out.append(f"- **说明**：{r['note']}")
             out.append("")
-    (HERE / "V46_UNEXPECTED_EVIDENCE.md").write_text("\n".join(out))
+    (HERE / "v46" / "unexpected_evidence.md").write_text("\n".join(out))
 
 
 def _distinct(rows: list[dict]) -> int:

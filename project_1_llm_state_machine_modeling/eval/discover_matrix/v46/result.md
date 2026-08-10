@@ -11,8 +11,8 @@ GitHub PR（CLAUDE.md §9）。
 
 代码 `ca41369e`（`src` 启动时零脏改动）｜54 pair × 2 模型 × 3 轮 = 324 格｜7h05m｜落盘 324/324、耗尽 0
 分母：**98 条**台账记录 × 2 臂 × 3 轮 = **588 位**。扣除 28 条：27 条 `00x8` NL 越界
-（[NL_SCOPE_RULE.md](./NL_SCOPE_RULE.md)）+ 1 条 `boundary_ruling: out_of_scope`
-（`EIS-0043-02`，独立裁定；该裁定原先未被工具执行，由 [V46_AUDIT.md](./V46_AUDIT.md) §3 发现并更正）。
+（[NL_SCOPE_RULE.md](../NL_SCOPE_RULE.md)）+ 1 条 `boundary_ruling: out_of_scope`
+（`EIS-0043-02`，独立裁定；该裁定原先未被工具执行，由 [V46_AUDIT.md](./audit.md) §3 发现并更正）。
 
 | 口径 | v37 | v46 |
 | :-- | --: | --: |
@@ -25,14 +25,14 @@ GitHub PR（CLAUDE.md §9）。
 
 **成本**：output token 9.91M → **17.18M（1.73×）**，节点耗时 50.8 → **88.0 机时**。
 每百万 output token 命中位数 27.6 → **21.2（−23%）**——提升有相当部分是多花算力换来的。
-详见 [V46_AUDIT.md](./V46_AUDIT.md) §5。
+详见 [V46_AUDIT.md](./audit.md) §5。
 
 ✅ **多报侧已判定**（本节于 2026-08-10 更新，原写「未判定」已作废）：未被台账认领的产出归并为同质簇后逐条人工裁定
 （原 293 条中 13 条经复核确认内容已被台账承载、按定义不属意外发现，已移出，分母 280），结论是
 **只有 23 类（8.2%）是真实的台账漏记，归并到根因后 4 条；占比最大的 129 类（46.1%）
 不是模型缺陷，而是我们自己 R4.5 编译（PlantUML → FCSTM）的信息损失**。
-详见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)
-与 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)。
+详见 [V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md)
+与 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
 
 ⚠️ **由此产生一条口径要求**：引用本代次任何多报数字时**必须分解**为
 「真多报 / 表示债务 / NL 无依据」三类。只报总多报率会同时高估模型的乱报程度、
@@ -54,7 +54,7 @@ GitHub PR（CLAUDE.md §9）。
 
 翻转依据：`0037` 的三个死端叶在 `stm0.puml` 中**无独立 `state` 声明**，唯一来源就是那三条检测边，
 故「这三个叶不该是直接子」与「这三条边不该指向它们」是同一条语句的两面。
-详见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) 的「先做零步」一节，
+详见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md) 的「先做零步」一节，
 以及 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
 
 **复算方式**（翻转清单已入库，上修可被他人独立重推）：
@@ -66,11 +66,11 @@ python3 apply_hit_corrections.py --flips verdicts/v46_flips.json --dry-run
 
 该脚本只接受显式 `(record, cell, hit)` 三元组、只允许上调、并强制打印变更前后双份数字。
 逐格裁定理由写在 [verdicts/v46_flips.json](./verdicts/v46_flips.json) 的 `argument` 字段，
-以及 [verdicts/v46_human.json](./verdicts/v46_human.json) 对应键的 `recheck` 字段。
+以及 [v46/verdicts/v46_human.json](./v46/verdicts/v46_human.json) 对应键的 `recheck` 字段。
 
 ⚠️ **另有一格未计入**：`EIS-0047-03 @ run2/0047-gpt` 经复核应为命中
 （`occupancy_after` 与台账指向同一处失误，证据族为 simulation），
-但按 [CONDITIONAL_ACTIVATION_RULE.md](./CONDITIONAL_ACTIVATION_RULE.md) §二，
+但按 [CONDITIONAL_ACTIVATION_RULE.md](../CONDITIONAL_ACTIVATION_RULE.md) §二，
 **该记录整条不得计入发现能力**（谓词选型规则的引入动机正是它反复漏检）。已在判定表留痕，不计入。
 
 ⚠️ **既有不一致，本轮未擅自修**：`EIS-0047-03` **当前仍在 `hit@k` 分母内并贡献 3 个命中位**，
@@ -82,7 +82,7 @@ python3 apply_hit_corrections.py --flips verdicts/v46_flips.json --dry-run
 | 扣除 provenance 排除项 | 361/582 = 62.0% | 140/194 = 72.2% | 97/194 = 50.0% |
 
 ⚠️ **本次上修是单向的**（只找回被漏配的命中，未做下调侧复核）。
-反方向的缺口见 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md) §4.7：
+反方向的缺口见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7：
 台账记录本身是否编码了编译产物，尚未按同一判据回读作者源。
 **两侧都做完之前，`hit@k` 既不是上界也不是下界。**
 
@@ -115,13 +115,13 @@ v46 口径：**一条 issue 只记给它确实陈述了其命题的那条记录*
 ## 4. 审计
 
 完整审计（溯源冻结、数据完整性、抽查判定、分母更正、成本、盲区）见
-[V46_AUDIT.md](./V46_AUDIT.md)。
+[V46_AUDIT.md](./audit.md)。
 
 ## 5. 判定证据
 
-- [verdicts/v46_human.json](./verdicts/v46_human.json)：**579 条人工判定，每条带 `argument`；
+- [v46/verdicts/v46_human.json](./v46/verdicts/v46_human.json)：**579 条人工判定，每条带 `argument`；
   命中的 351 条另带 `equivalence_form`**
-- [verdicts/v46_tiers.json](./verdicts/v46_tiers.json)：99 记录 × 2 臂 × 3 轮的 1/0/null 判定表
+- [v46/verdicts/v46_tiers.json](./v46/verdicts/v46_tiers.json)：99 记录 × 2 臂 × 3 轮的 1/0/null 判定表
 - `adjudication_recheck` 终检 28 对「同形态判出两种结果」，逐对读完、**0 处改判**；
   28 对分属 9 族，均为工具按元素重合度配对的假阳性。运行期该工具抓到过一处真判错
   （`EIS-0034-02`，方向为「命中被判成未命中」，与 v41 那 6 位同向），已就地更正。

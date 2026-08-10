@@ -1401,11 +1401,26 @@ class PredicateAPI:
         # question is asked from; here it states what is being claimed, so it is guarded.
         self._reject_transient_subject("stays_in", source=source)
         view = self._simulate(source=source, trigger=trigger, cycles=1)
-        # Both halves matter.  Without the consumption check an ignored event
-        # looks identical to a declared self-loop, so the missing-self-loop
-        # defect this predicate advertises could never be observed.
+        # ⛔ An ignored event is not a departure.
+        #
+        # This used to `return False` whenever the trigger was not consumed, on
+        # the grounds that an ignored event otherwise looks like a declared
+        # self-loop.  It does -- but "no self-loop is declared" and "the machine
+        # left the state" are two different facts, and this predicate is asked
+        # the second one.  Collapsing them makes False unusable as evidence:
+        # measured on pair 0054, feeding `Reached_Cruising_Cruise` at
+        # `Approaching` gives `consumed=[] fired=[] active=[..., Approaching]`
+        # -- the machine did not move an inch, and the answer was False.  A
+        # published issue then claimed the run had left the state, which is the
+        # opposite of what the artifact does.
+        #
+        # So: an unconsumed trigger means the configuration is unchanged, which
+        # is exactly what "stays in" asks about.  Answer on the occupancy.  The
+        # missing-self-loop question belongs to a predicate that asks it -- e.g.
+        # `event_consumed(source, trigger)`, which reports the same fact without
+        # mislabelling it as a departure.
         if trigger not in self._consumed(view):
-            return False
+            return True
         if source == PSEUDO_INITIAL:
             # The *deepest* state of the initial configuration, not its ancestry.
             # An observation reports the whole chain root..leaf, and the root is
@@ -1799,12 +1814,48 @@ class PredicateAPI:
         # that accept it.
         pinned = self._hot_startable(state)
         head = f'init state("{pinned}"); ' if pinned and pinned != "root" else ""
-        query = (
-            f"{head}"
-            f"check invariant <= {_budget(bound, 'bound', DEFAULT_BOUND)}: "
-            f'({release}) || active("{state}");'
-        )
-        return self._formal_holds(query)
+        horizon = _budget(bound, "bound", DEFAULT_BOUND)
+
+        # ⛔ `check invariant <= N: (release) || active(state)` is NOT until.
+        #
+        # That spelling makes the obligation hold over the *whole* horizon, so it
+        # is never discharged once `release` fires.  If the release state is not
+        # absorbing -- and almost none are, every model here has terminating
+        # paths -- the very next frame satisfies neither disjunct and the answer
+        # is False.  Measured: a hand-built model `S -rel-> R -go-> T`, which
+        # satisfies "S until R" by construction, came back False at bound>=2 with
+        # the counterexample `S, R, T`; the first violating frame sat *after* the
+        # release frame.  A predicate that answers False on a model built to
+        # satisfy it cannot serve as evidence of anything.
+        #
+        # Correct bounded until, by case split on the frame where `release`
+        # first holds.  For each k, assume it has not held before k, then require
+        # the obligation through k.  Every path is covered by exactly one k (its
+        # own first-release frame, or the last k when release never fires), and
+        # no query ever looks past that frame -- which is precisely the window
+        # the broken spelling overran.
+        #
+        # Rejected alternative: locate k with `check reach <= k: release`, then
+        # `check invariant <= k-1`.  `reach` is existential and monotone in k, so
+        # it witnesses *some* path, not the per-path release frame; there is no
+        # single k.  Also rejected: frame subscripts -- `active("S", 0)` parses
+        # but the binder refuses it ("Frame-local predicates only allow
+        # omitted/current frame selectors").
+        guard = f'{head}check reach <= {horizon}: !({release});'
+        if not self._formal_holds(guard):
+            # No run keeps `release` false, so every case-split query below is
+            # vacuously true.  Reporting True here would read "obligation met"
+            # when nothing was actually checked.
+            return False
+        for k in range(1, horizon + 1):
+            assumptions = " ".join(f"assume at {j}: !({release});" for j in range(k))
+            query = (
+                f"{head}{assumptions} "
+                f'check invariant <= {k}: active("{state}") || ({release});'
+            )
+            if not self._formal_holds(query):
+                return False
+        return True
 
     # ---- formal plumbing ---------------------------------------------
     def _note_formal(self, result: Any) -> None:

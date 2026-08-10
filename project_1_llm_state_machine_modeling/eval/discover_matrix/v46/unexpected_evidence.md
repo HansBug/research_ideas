@@ -1,7 +1,7 @@
 # v46 意外发现逐簇判据（全 280 条）
 
-[V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md) 的证据附件。
-裁定口径见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)。
+[V46_UNEXPECTED_ADJUDICATION.md](./unexpected_adjudication.md) 的证据附件。
+裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
 
 ⚠️ **本文件由 `unexpected_verdicts/G*.jsonl` 生成（`rebuild_unexpected.py`），jsonl 是真源。**
 改裁定请改 jsonl 再跑重建；直接编辑本文件会在下次重建时静默丢失。

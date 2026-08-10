@@ -8,7 +8,7 @@
 
 判据：台账中存在一条记录**与本条同根**——由同一处建模失误导致，哪怕表现面不同。
 判「同根」的硬判据见下方专节。命中者移入
-[unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)，
+[unexpected_verdicts/ledger_accounted.jsonl](./v46/unexpected_verdicts/ledger_accounted.jsonl)，
 并在那里记录其 `disposition`（真漏配 / 冗余复述 / 同根但该格未建立记录 / 报的是已退役判据）。
 
 ⚠️ **这一步曾被错误地做成第六个裁定类别 `MERGE_INTO_LEDGER`。** 那是分类错误：
@@ -76,8 +76,8 @@ v46 的两个反向实例，同一判据、同一基准：
 ⚠️ `is_ended()` 不是合法查询；`init cold;` 会被默认注入。 `0044-2` 的三次 bound 扫描证明「首个违反帧永远在 release 之后的
 terminated 帧」，这是纯读代码得不出的结论。
 
-本文件是裁定规范；实测分布见 [V46_UNEXPECTED_ADJUDICATION.md](./V46_UNEXPECTED_ADJUDICATION.md)，
-逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)。
+本文件是裁定规范；实测分布见 [V46_UNEXPECTED_ADJUDICATION.md](./v46/unexpected_adjudication.md)，
+逐簇判据见 [V46_UNEXPECTED_EVIDENCE.md](./v46/unexpected_evidence.md)。
 
 ## 〇之一、⛔ 一切计数都必须给**两套分母**
 

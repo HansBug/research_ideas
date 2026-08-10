@@ -24,7 +24,7 @@ collision_avoidance_deactive --> collision_avoidance_active :
 
 作者写的是一条**完全合法的析取守卫**，NL 12 的四个激活源一个不缺。发现模型报的
 「四个激活源被压成一个融合事件、模型无法只凭其中一个激活」，指的是**下沉之后**的形态。
-[FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md) 对此已有既定裁定：断言阶段必须接受合并事件
+[FUSED_EVENT_POLICY.md](../FUSED_EVENT_POLICY.md) 对此已有既定裁定：断言阶段必须接受合并事件
 并记录表示限制，而**「表示限制被如实记录、但记录本身不构成发现」**。
 
 同理，`variable_declared(X)=False` 这一族**没有判别力**：PlantUML 无变量声明语法，
@@ -167,7 +167,7 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
 
 `N0` 单列的理由：这 5 条（`0054-1` `0054-5` `0046-8` `0026-3` `0044-2`）的义务来自**谓词被操作化的方式**
 而非 NL，其中 `0054-5` 是构造性不可满足（`NL 2/10` 恰恰许可该迁移，谓词却禁止它）——
-按 [CLAUDE.md](../../../CLAUDE.md) §13 属「多道门交集为空」类缺陷，另案登记，
+按 [CLAUDE.md](../../../../CLAUDE.md) §13 属「多道门交集为空」类缺陷，另案登记，
 不能只当成一次过度规定。⚠️ 登记不等于本轮修改——谓词词表保持不动。
 
 ## 三、4 条真实台账漏记（根因级）
@@ -190,7 +190,7 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
   台账 `EIS-0042-01` 的参考读法逐字为「上电→Off→start→Operate」，正是这个形状。
   残留的只是「叫 PoweredOn 却仍需 start」这一命名保真度瑕疵，不构成元素级缺陷。
 - **`0057-ENTRY`（原判真漏记 → `NO_NL_BASIS`）**：命中本仓库
-  [FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md) L379 的**许可条件**——「合并事件代表多个 NL
+  [FUSED_EVENT_POLICY.md](../FUSED_EVENT_POLICY.md) L379 的**许可条件**——「合并事件代表多个 NL
   备选，只当 source trace 支持同一析取且**期望响应相同**」。`[*] --> CA : Possible collision detected`
   只有一条边、一个响应（进 CA），两条都满足。该判据同时把 0017/0047 干净分开：那两处是
   **同一事件名导向三个不同目标**（F/R/P），响应不同，不在许可内。
@@ -300,14 +300,14 @@ for c in $(grep -ho 'R45\.DEBT\.[a-z_]*' */fcstm_meta.json | sort -u); do
 sed -n '33p' llms_emp_feedback_final_0029/stm0.puml         # → 合法析取守卫
 ```
 
-台账权威源是 [manual_review/expected_issue_set.json](./manual_review/expected_issue_set.json)（126 条）；
-同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[HIT_CRITERION.md](./HIT_CRITERION.md) §7
+台账权威源是 [manual_review/expected_issue_set.json](../manual_review/expected_issue_set.json)（126 条）；
+同目录 `expected_issues_reconstructed.json` 只覆盖 4 个 pair，[HIT_CRITERION.md](../HIT_CRITERION.md) §7
 明令禁止用它算命中。
 
 ## 七、这次裁定自身的可靠性边界
 
 1. **八个判定组的质量不齐。** 只有 2 组（G1、G7）主动回读了 `model.fcstm`，只有 1 组（G6）
-   回读了 `stm0.puml` 并查了 [FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md)。表示债务这条
+   回读了 `stm0.puml` 并查了 [FUSED_EVENT_POLICY.md](../FUSED_EVENT_POLICY.md)。表示债务这条
    主结论来自 G6 一家，但它给的四条断言我已逐条独立复算（见 §六），全部证实。
 2. **`grep` 只能定位不能裁定。** 我自己按 `front_distance` 检索 0010 的作者源、得出「作者源亦无、
    可能真缺陷」，实际作者写的是 `Front Distance > 10`（有空格）。逐条读原文行才改正。
@@ -316,11 +316,11 @@ sed -n '33p' llms_emp_feedback_final_0029/stm0.puml         # → 合法析取�
    现存 4 条真发现中无弱代理项。
 4. **不设「待定」。** 曾短暂存在 5 条，全部因判定者手里的证据包不含迁移表 / 动作块 / 比较符——
    那是**取证不足**不是判据不足。回读原件（`0049`/`0039`）或**实跑 `FBMCQAPI`/`SimulationAPI`
-   取反例 trace**（`0044`）后全部裁死。裁定口径见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)。
+   取反例 trace**（`0044`）后全部裁死。裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
 
 ## 八、相对上一版的改动
 
-⚠️ **本节只记「改了什么、为什么」，不保留任何已作废的数字**（[CLAUDE.md](../../../CLAUDE.md) §3.6）。
+⚠️ **本节只记「改了什么、为什么」，不保留任何已作废的数字**（[CLAUDE.md](../../../../CLAUDE.md) §3.6）。
 当前值一律以 §二 的主表为准。
 
 **更正 8（最新）**：`MERGE_INTO_LEDGER` **整类作废**。它回答的是「这条产出该不该在桶里」，
@@ -354,7 +354,7 @@ sed -n '33p' llms_emp_feedback_final_0029/stm0.puml         # → 合法析取�
 
 **更正 4**：5 条待定全部裁死，**「待定」不再是裁定类别**。
 其中 `0044-2`/`0044-4` 是实跑 `FBMCQAPI`/`SimulationAPI` 取反例 trace 裁定的。
-由此登记 4 项谓词侧缺陷于 [PREDICATE_DEFECTS_REGISTERED.md](./PREDICATE_DEFECTS_REGISTERED.md)。
+由此登记 4 项谓词侧缺陷于 [PREDICATE_DEFECTS_REGISTERED.md](../PREDICATE_DEFECTS_REGISTERED.md)。
 
 **更正 3**：三路 review 返工——12 簇由假阳性改判表示债务（其 note 自陈「属表示债务」）；
 推翻 2 条真漏记（`0022-EXTRA` 因同 NL 组 6/6 作者同形、`0057-ENTRY` 因命中 L379 许可条件）；

@@ -1,8 +1,8 @@
 # v46 意外发现成分分析：六大类的子类、双分母与占比
 
 全量 280 条目逐条阅读裁定（四个大类各一个独立分析员，每类要求「不许有其他类」）。
-裁定口径见 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md)；逐簇判据见
-[V46_UNEXPECTED_EVIDENCE.md](./V46_UNEXPECTED_EVIDENCE.md)；
+裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)；逐簇判据见
+[V46_UNEXPECTED_EVIDENCE.md](./unexpected_evidence.md)；
 机器可读原始产物在 [unexpected_verdicts/composition/](./unexpected_verdicts/composition/)
 （`D.json` / `N.json` / `F.json` / `V.json`，各含逐簇 `subclass` 与 `merge_key`）。
 

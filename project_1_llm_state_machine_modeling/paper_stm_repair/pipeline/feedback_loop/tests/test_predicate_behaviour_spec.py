@@ -111,6 +111,13 @@ FLAWED_TERMINATION = RICH.replace("    Done -> [*] : /fin;\n", "")
 #: The self-loop on `Idle` is gone, so `tick` moves nothing and is not consumed.
 FLAWED_SELF_LOOP = RICH.replace("    Idle -> Idle : /tick;\n", "")
 
+#: `tick` is consumed at `Idle` but routes away from it.  This is the only shape
+#: that makes `stays_in` false: an *unconsumed* trigger leaves the configuration
+#: unchanged, which is what the predicate asks about, so deleting the self-loop
+#: (`FLAWED_SELF_LOOP`) no longer discriminates -- it used to only because the
+#: predicate collapsed "ignored" into "departed".
+TICK_LEAVES_IDLE = RICH.replace("    Idle -> Idle : /tick;\n", "    Idle -> Outer : /tick;\n")
+
 #: The model declares no variable of the author's own.
 NO_VARIABLES = """state Root {
     event go;
@@ -220,7 +227,7 @@ DISCRIMINATION = [
         "stays_in",
         dict(source="Root.Idle", trigger="Root.tick"),
         RICH,
-        FLAWED_SELF_LOOP,
+        TICK_LEAVES_IDLE,
     ),
     (
         "variable_delta_after",
@@ -408,17 +415,27 @@ def test_occupancy_after_from_the_pseudo_initial():
     assert call(RICH, "occupancy_after", source="[*]", trigger="Root.go", target="Root.Idle") is False
 
 
-def test_stays_in_requires_the_event_to_be_consumed():
-    """A self-loop holds; an event nothing consumes does not count as staying.
+def test_stays_in_answers_occupancy_not_consumption():
+    """An ignored event is not a departure.
 
-    Without the consumption check every unhandled event looked like a self-loop,
-    because the configuration is indeed unchanged.
+    This used to assert False for an unconsumed trigger, on the grounds that an
+    ignored event otherwise looks like a declared self-loop.  It does -- but
+    "no self-loop is declared" and "the machine left the state" are two
+    different facts, and this predicate is asked the second one.  Collapsing
+    them made False unusable as evidence: on pair 0054 the machine did not move
+    an inch and the answer was still False, so a published issue claimed the run
+    had left the state -- the opposite of what the artifact does.
+
+    The missing-self-loop question has its own predicate; see
+    `test_event_consumed_separates_handled_from_ignored` directly below, which
+    reports the same fact without mislabelling it as a departure.
     """
 
     assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.tick") is True
-    # `done` leaves Idle unchanged only because nothing consumes it there.
-    assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.done") is False
-    # And a trigger that genuinely moves the system is not staying either.
+    # `done` is not consumed at Idle, so the configuration is unchanged -- which
+    # is exactly what "stays in" asks about.
+    assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.done") is True
+    # A trigger that genuinely moves the system is still not staying.
     assert call(RICH, "stays_in", source="Root.Idle", trigger="Root.go") is False
 
 

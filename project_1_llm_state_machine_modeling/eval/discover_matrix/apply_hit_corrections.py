@@ -35,8 +35,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-TIERS = HERE / "verdicts" / "v46_tiers.json"
-HUMAN = HERE / "verdicts" / "v46_human.json"
+TIERS = HERE / "v46" / "verdicts" / "v46_tiers.json"
+HUMAN = HERE / "v46" / "verdicts" / "v46_human.json"
 
 
 def out_of_scope() -> set[str]:
