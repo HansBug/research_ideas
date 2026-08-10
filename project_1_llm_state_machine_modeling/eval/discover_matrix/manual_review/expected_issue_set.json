@@ -785,12 +785,12 @@
    "assertions": [
     {
      "role": "primary",
-     "expression": "stays_in(source='llms_emp_feedback_final_0005.DoorShut', trigger='llms_emp_feedback_final_0005.Cancel')",
+     "expression": "edge_declared(source='llms_emp_feedback_final_0005.DoorShut', trigger='llms_emp_feedback_final_0005.Cancel', target='llms_emp_feedback_final_0005.DoorShut')",
      "predicates": [
-      "stays_in"
+      "edge_declared"
      ],
      "families": [
-      "B"
+      "A"
      ],
      "elements": [
       "llms_emp_feedback_final_0005.Cancel",
@@ -798,12 +798,13 @@
      ],
      "measured_by_batch": "False",
      "source": "predicate_coverage/resultNone.json",
-     "rewrote_from": null,
+     "rewrote_from": "stays_in(source=DoorShut, trigger=Cancel)",
      "supersedes": null,
-     "measured": "False"
+     "measured": "False",
+     "context": "本记录的义务是结构性的：reference_side 是一条自环**迁移**、element_of_M 是 Tr。原 primary 用行为谓词 stays_in 表达它，读的是「运行是否离开」而非「自环是否声明」——实测该制品上 stays_in=True（Cancel 不被消费、配置未动），edge_declared=False（自环确实不存在）。改用 edge_declared 后 primary 与 statement 同指一件事，且可取 False。"
     }
    ],
-   "primary_predicate": "stays_in",
+   "primary_predicate": "edge_declared",
    "assertion_count": 1,
    "has_negative_control": false,
    "expressible_with_closed_vocabulary": true,
@@ -2468,7 +2469,7 @@
    "pair": "0012",
    "group": "NL09",
    "llm": "GPT-4",
-   "statement": "Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态：任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态。因此 NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立，而 Operate --keyOff--> Off 之后的再次启动一般不可达。按 UML 完成迁移优先级读则更严重，start 直接不可达。注意 pyfcstm 按声明顺序选边（fcstm 第 24 行 start 边在第 25 行无触发边之前），故同周期竞争由 start 胜出——所以『无触发边吃掉 start 信号』这一说法需要修正为『Off 不可驻留』，不能用 occupancy_after 暴露。",
+   "statement": "Off 出边中存在一条无触发迁移，使 Off 不再是稳定等待态：任何没有 start 事件的周期都会不可逆地落入 Terminate 汇态。因此 NL 第 1、2 句要求的 start→Operate 只有在上电后第一个周期立刻给出 start 才成立，而 Operate --keyOff--> Off 之后的再次启动一般不可达。按 UML 完成迁移优先级读则更严重，start 直接不可达。注意 pyfcstm 按声明顺序选边（fcstm 第 24 行 start 边在第 25 行无触发边之前），故同周期竞争由 start 胜出——所以『无触发边吃掉 start 信号』这一说法需要修正为『Off 不可驻留』。该不可驻留可由 occupancy_after 暴露：corroborating 断言 occupancy_after(Off, start, Operate) 实测为 False，因为 occupancy_after 还要求 trigger 被消费，而无触发 completion 边使 start 在 Off 根本不被消费。",
    "basis_superseded_by_ruling": null,
    "reference_side": "Off --> [*]: keyOff（有触发的终止边）",
    "generated_side": "Off --> Terminate（无触发）",

@@ -100,16 +100,19 @@ v46 的两个反向实例，同一判据、同一基准：
 
 ## 〇、判定前必须取齐的证据
 
-⚠️ **顺序不能颠倒，颠倒会系统性判错**（v46 八个判定组里七组栽在第 2 步没做）：
+⚠️ **顺序不能颠倒，颠倒会系统性判错。第 2 步是最容易被跳过、代价也最大的一步**——
+v46 八个判定组里只有一组做了它，也只有那一组识别出编译债务：
 
 | # | 材料 | 回答什么 | 不看的后果 |
 | --: | :-- | :-- | :-- |
-| 3 | `fcstm_meta.json` 的 `source_static_reason_codes` | 编译器认不认这笔损失 | 无法区分「作者没写」与「编译没留」 |
+| 1 | `model.fcstm` **全文**（含 `action` 块） | 事实到底成不成立 | 把以 `action` 形式存在的元素判成缺失（`FP-K`） |
+| 2 | **`stm0.puml` 作者源逐行** | 缺的是作者没写，还是编译没留 | 把编译债务记成模型缺陷——**最大一类，129 簇** |
+| 3 | `fcstm_meta.json` 的 `source_static_reason_codes` | 编译器认不认这笔损失 | 无法确认该类损失已被自申报 |
 | 4 | `nl.txt` **逐句** | NL 到底要求什么 | 把统称词、语境状语、语义注解当成元素义务 |
-| 5 | `manual_review/expected_issue_set.json` | 台账记没记 | 把已记缺陷当成新发现，**分母虚高**（原 13/293 即此） |
+| 5 | `manual_review/expected_issue_set.json` | 台账记没记 | 把已记缺陷当成新发现，**分母虚高**（13/293 即此） |
 | 6 | 同 NL 组的其他 pair（`md5sum */nl.txt` 分组） | 参考意图是什么 | 把参考读法当成异类，或反之 |
-| 7 | **同 pair 的兄弟簇及其已定裁定** | 组内是否自洽 | 0009 的 9 条错判全部源于组内不自洽 |
-| 8 | [FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md) | 融合事件该怎么判 | **最大一类（129 簇）的实际操作规则在那里**：「表示限制被如实记录、但记录本身不构成发现」 |
+| 7 | **同 pair 的兄弟簇及其已定裁定** | 组内是否自洽 | 同一缺口的两种框架各判一次，或同一文件既判 A 又判 ¬A |
+| 8 | [FUSED_EVENT_POLICY.md](./FUSED_EVENT_POLICY.md) | 融合事件该怎么判 | **最大一类的实际操作规则在那里**：「表示限制被如实记录、但记录本身不构成发现」 |
 
 ⚠️ **`grep` 只能定位，不能裁定。** 实测反例：按 `front_distance` 检索 0010 的作者源得出
 「作者源亦无」，作者实写 `Front Distance > 10`（大写、有空格）。**必须逐行读原文。**
@@ -453,11 +456,16 @@ R4.5 的 PlantUML → FCSTM 有损编译。**不是模型缺陷。**
 > 「`CollisionAvoidance` 下恰好三个区」。且按区计数制品**本已是三个非空区**，
 > 「不是三个」只在把区换算成子状态时才成立。
 
-**`0056-1` —— R-REGION 的判例**
+**`0056-1` —— R-REGION 的判例（`OOS-REGION`）**
 > 作者源 `stm0.puml:10` 是正交区分隔符 `--`，`SearchState` 实为两区：
 > `region0={Area1,Area2,Area3}`、`region1={NoIntercept,Intercepted}`。
 > **NL 2 的「three different state areas」由 region 0 的三个 Area 兑现，义务在作者源上已满足**；
 > `cardinality=5≠3` 只在 R4.5 拍平、跨区求和后才出现。
+
+**`0023-7` —— 展平产物（`OOS-FLATTEN`，本类条目最多的一个 merge key）**
+> 事实陈述完全属实且不提区语义：`PumpControl` 内三子态之间零迁移、全模型无 `event` 声明。
+> 但作者用 `--` 写了三个并发区，展平后三条区内默认入口变成三条竞争初始边，
+> 「区间零迁移」正是展平的直接后果，**参考模型在同一处也是如此**。
 
 ### R-REGION 的可证伪性（必须与结论同批披露）
 该规则在**四处给出对方法不利的保留**，说明它不是为某一条现造的：
@@ -475,11 +483,15 @@ R4.5 的 PlantUML → FCSTM 有损编译。**不是模型缺陷。**
 
 | 症状 | 多半应判 | 为什么 |
 | :-- | :-- | :-- |
-| 「模型未声明信号 X」而 X 是输出动作 | `FALSE_POSITIVE` | 路径清单不列 `action`，须读原件全文 |
-| 「量 X 未声明为变量」 | `REPRESENTATION_DEBT` | PlantUML 无变量声明语法，作者变量 0/60 |
-| 「融合事件应拆成 N 个独立事件」 | 先查作者源 | 作者写了析取守卫 → 债务；作者自己塌缩了 → 真漏记 |
-| 「应存在名为 `<NL 里的统称词>` 的状态」 | `NO_NL_BASIS` | 命名字面主义 |
-| 「状态 X 应有 `during` 动作」 | `NO_NL_BASIS` | NL 的 `indicating that…` 是语义注解不是动作义务 |
-| 「某复合态下应恰好三个区」 | `OUT_OF_SCOPE` | 区数量义务在 M 外 |
-| 断言的 scope 在模型里查不到 | `NO_NL_BASIS`（`N5`） | 自造前提导致的空洞真 |
-| 台账里有条记录讲的好像是同一件事 | **不进本桶** | 判「同根」：作者源上该元素是否**仅被**台账所指那条语句引用（`grep -c`）。移入 `ledger_accounted.jsonl` |
+| 「模型未声明信号 X」而 X 是输出动作 | `FALSE_POSITIVE`（`FP-K`） | 路径清单不列 `action`，须读原件全文 |
+| 「量 X 未声明为变量」 | `REPRESENTATION_DEBT`（`D2`） | PlantUML 无变量声明语法，作者变量 0/60 |
+| 「融合事件应拆成 N 个独立事件」 | 先查作者源 | 作者逐字写了析取守卫 → `D1` 债务；作者自己把散文析取塌缩成一个泛化名 → `N-SPLIT-PROSE`（NL 未给标识符，造名空间无上界）；作者写的是合取 → `N-SPLIT` |
+| 「应存在名为 `<NL 里的统称词>` 的状态」 | `NO_NL_BASIS`（`N-FUSE`） | 上位范畴词不是元素 |
+| 「应存在名为 `<NL 里的语境状语>` 的状态」 | `NO_NL_BASIS`（`N-CTX`） | 状语背景不是元素 |
+| 「状态 X 应有 `during` 动作」 | `NO_NL_BASIS`（`N-FORM`） | NL 的 `indicating that…` 是语义注解不是动作义务 |
+| 「X 应持续保持 / 恒不变」而 NL 只写了 `continuously` | `NO_NL_BASIS`（`N-MODAL`） | 定性表述被强化为时序不变式 |
+| 「根下应恰好 N 个子」而 NL 只是列举 | `NO_NL_BASIS`（`N-CLOSED`） | NL 的枚举默认不封闭 |
+| 「某复合态下应恰好三个区」 | `OUT_OF_SCOPE`（`OOS-REGION`） | 区数量义务在 M 外 |
+| 「复合态内子态之间零迁移」而作者源用 `--` 写了并发区 | `OUT_OF_SCOPE`（`OOS-FLATTEN`） | 该现象是展平产物，参考模型同样如此 |
+| 断言的 scope 在模型里查不到 | `NO_NL_BASIS`（`N-ANCHOR`） | 自造前提导致的空洞真 |
+| 台账里有条记录讲的好像是同一件事 | **不进本桶** | 判「同根」：作者源上该元素是否**仅被**台账所指那条语句引用（`grep -c`）。移入 [ledger_accounted.jsonl](./v46/unexpected_verdicts/ledger_accounted.jsonl) |
