@@ -22,8 +22,8 @@ GitHub PR（CLAUDE.md §9）。
 | claude / gpt `hit@1` | 44.9% / 48.3% | 62.6% / 58.2% |
 
 ⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计
-（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：**人工表覆盖的
-346 个命中位中，51 位（14.7%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。
+（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：**分母内带逐位判据的
+340 个命中位中，51 位（15.0%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。
 PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。
 逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
 
@@ -35,9 +35,9 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 **极性**与**「把它发布出去」的指示**。计入上界的理由与变量缺失同源，故上界应按两条通道
 一起读，而不是只按 `variable_declared` 一条。
 
-📌 **351 与 360 的换算**：人工表覆盖 594 位中的 574 位，含 351 个命中判定；其中 6 位属被剔出
-分母的 `EIS-0043-02`，故分母内 346；另有 15 个命中位无人工条目，`345 + 15 = 360`。上界性的
-量化以 351 为分母，因为只有人工表带逐位 `argument`。
+📌 **346 与 355 的换算**：人工表覆盖 594 位中的 574 位，含 346 个命中判定；其中 6 位属被剔出
+分母的 `EIS-0043-02`，故分母内 340；另有 15 个命中位无人工条目，`340 + 15 = 355`。上界性的
+量化以 340 为分母，因为只有人工表带逐位 `argument`，且那 15 位未被筛查——故 51 是下界。
 
 ## 2. ⚠️ 两代判定口径不同，本对比是**下界**
 
@@ -76,8 +76,8 @@ PlantUML 无变量声明语法，作者变量全语料 0/60，故该谓词的 Fa
 
 ## 5. 判定证据
 
-- [verdicts/v46_human.json](./verdicts/v46_human.json)：**575 条人工判定，每条带 `argument`；
-  其中 346 条判为命中，且这 351 条全部带 `equivalence_form`**（命中位与等价论证一一对应）
+- [verdicts/v46_human.json](./verdicts/v46_human.json)：**574 条人工判定，每条带 `argument`；
+  其中 346 条判为命中，且这 346 条全部带 `equivalence_form`**（命中位与等价论证一一对应）
 - [verdicts/v46_tiers.json](./verdicts/v46_tiers.json)：99 记录 × 2 臂 × 3 轮的 1/0/null 判定表
   （`EIS-0043-02` 由边界裁定剔出能力分母，度量时按 98 条计）
 - [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)：命中位中
