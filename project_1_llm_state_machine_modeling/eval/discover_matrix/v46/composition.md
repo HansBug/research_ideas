@@ -5,7 +5,7 @@
 [../rebuild_unexpected.py](../rebuild_unexpected.py) 生成。本文件**不保存任何一份副本**：
 手工副本一旦与真源分岔，读者无从判断哪一份有效。
 
-全量 286 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。
+全量 288 条目逐条阅读裁定，各大类由独立分析员分别负责，每类要求「不许有其他类」。
 裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)；逐簇判据见
 [unexpected_evidence.md](./unexpected_evidence.md)；机器可读真源在
 [unexpected_verdicts/](./unexpected_verdicts/)，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason`。
@@ -28,7 +28,7 @@
 **不留空**（空值与「没写理由」在表里长得一样）。
 
 **审计入口**：[unexpected_verdicts/merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)
-—— **123 组 = 44 个多成员组 + 79 个单成员组**，字段
+—— **124 组 = 45 个多成员组 + 79 个单成员组**，字段
 `merge_key | verdict | subclass | pair | 成员数 | 成员簇 | 累计格次 | merge_reason`。
 `merge_key` 列可直接与
 [unexpected_verdicts/cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv)
@@ -47,7 +47,7 @@
 
 ## ⛔ 头条结论：净增量是 2 条
 
-**286 条目里，通过「事实为真 + 作者源确实没写 + NL 有逐字依据 + 台账未记」四条判据的只有
+**288 条目里，通过「事实为真 + 作者源确实没写 + NL 有逐字依据 + 台账未记」四条判据的只有
 `0014-4`**（`EmergencyStopping` 的发送信号写成裸描述行）。它站得住靠的是**台账自身的不一致**：
 同一份 NL 下 0024（写法更强，只是挂错元素）与 0034（完全没写）都记了 E1，
 唯独 0014（严格弱于 0024、实质等同 0034）判 `similar` 未记；

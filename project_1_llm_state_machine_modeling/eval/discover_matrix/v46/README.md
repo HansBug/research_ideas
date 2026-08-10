@@ -12,19 +12,28 @@
 
 | 口径 | v37 | **v46** | 差 |
 | :-- | --: | --: | --: |
-| `hit@1` | 274/588 = 46.6% | **361/588 = 61.4%** | **+14.8pp** |
-| `hit@3` | 106/196 = 54.1% | **141/196 = 71.9%** | **+17.8pp** |
-| `hit@all` | 77/196 = 39.3% | **97/196 = 49.5%** | **+10.2pp** |
-| claude `hit@1` | 132/294 = 44.9% | 187/294 = 63.6% | +18.7pp |
-| gpt `hit@1` | 142/294 = 48.3% | 174/294 = 59.2% | +10.9pp |
+| `hit@1` | 274/588 = 46.6% | **355/588 = 60.4%** | **+13.8pp** |
+| `hit@3` | 106/196 = 54.1% | **139/196 = 70.9%** | **+16.8pp** |
+| `hit@all` | 77/196 = 39.3% | **95/196 = 48.5%** | **+9.2pp** |
+| claude `hit@1` | 132/294 = 44.9% | 184/294 = 62.6% | +17.7pp |
+| gpt `hit@1` | 142/294 = 48.3% | 171/294 = 58.2% | +9.9pp |
 
 ⚠️ **`hit@k` 只能作为上界读。** 命中侧尚未做与多报侧对称的表示债务审计
 （[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：**人工表覆盖的
-352 个命中位中，51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）不依赖其它事实**。
+346 个命中位中，51 位（14.7%）在判据里引用「变量未声明」，其中 10 位（2.9%）不依赖其它事实**。
 PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。
 逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
 
-**下界**：扣掉那 10 位，`hit@1` 为 351/588 = **59.7%**。真值落在 **[59.7%, 61.4%]** 之间。
+📌 **第三条通道（本代次结果产出后才定位，已在代码侧关闭）**：pydantic 会把**类 docstring**
+折进 `model_json_schema()`，经 `get_format_instructions()` 进入需求拆分器的 system prompt。
+`schemas.py` 中三个类的 docstring 曾含设计依据性文字（含跨代次的谓词形成率一类聚合观察），
+因此进入过该 prompt。边界：只影响 `RequirementSet` 一棵树，`AssertionScript` /
+`RequirementReview` / `AssertionReview` 未受影响；文本**不含任何 pair 标识、台账记录 id 或
+逐样本答案**，是聚合量而非样本级信息。现已把这些文字移出 docstring（改为 `#:` 注释，pydantic
+不读），复扫全部 pydantic 模型的 `format_instructions` 无残留。**该通道计入上界的理由与前两条
+相同：它使 `hit@k` 只能作为上界读。**
+
+⛔ **这是上界，不是区间估计。** 已知扣除项有两档：仅靠变量缺失成立的 10 位 → `345/588 = 58.7%`；引用了变量缺失的全部 51 位 → `304/588 = 51.7%`。此外**谓词拒答文案**那条通道尚未量化，命中侧的表示债务审计亦未做。因此可写的只有 `hit@1 ≤ 60.4%`，真实下界未知。
 
 📌 **另一条不经 prompt 的通道**：谓词拒答文案会进入生成者的下一轮上下文。实测
 `predicate_api.py:1524` 的 `UnsupportedEvidence` 原文——「variable 'uav_count' is not
@@ -39,7 +48,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 量化以 351 为分母，因为只有人工表带逐位 `argument`。
 
 **成本**：output token 9.91M → 17.18M（1.73×），节点耗时 50.8 → 88.0 机时。
-每百万 output token 命中位数 27.6 → **19.3（−30%）**——提升有相当部分是多花算力换来的。
+每百万 output token 命中位数 27.6 → **20.4（−26%）**——提升有相当部分是多花算力换来的。
 
 详见 [result.md](./result.md)（逐项结果）与 [audit.md](./audit.md)（审计与损失阶段）。
 
@@ -53,21 +62,21 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 另有 2 条的断言在冻结制品上求值为 **True**（模型满足该义务），属**真阴性**——正确地不产出任何
 issue，两侧都不存在，记于
 [unexpected_verdicts/not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。
-**本侧分母 286 条目 / 123 去重 / 43 pair。**
+**本侧分母 288 条目 / 124 去重 / 43 pair。**
 
 ### ⛔ 两套分母必须同时读
 
 | 大类 | 条目 | 占比 | **去重** | **占比** | 比值 | 子类 |
 | :-- | --: | --: | --: | --: | --: | --: |
-| ⚙️ 表示债务 | 132 | 46.2% | 29 | 23.6% | 4.55 | 5 |
+| ⚙️ 表示债务 | 132 | 46.5% | 29 | 24.2% | 4.47 | 5 |
 | 📄 无 NL 依据 | 119 | 41.6% | 67 | 54.5% | 1.78 | 10 |
 | ❌ 假阳性 | 23 | 8.0% | 20 | 16.3% | 1.15 | 4 |
 | 🚫 越界 | 10 | 3.5% | 5 | 4.1% | 2.00 | 3 |
 | ✅ **真漏记** | 2 | 0.7% | 2 | 1.6% | 1.00 | 1 |
-| **合计** | **286** | 100% | **123** | 100% | **2.33** | 23 |
+| **合计** | **288** | 100% | **123** | 100% | **2.33** | 23 |
 
 ⚠️ **两套分母给出相反的主要矛盾**：按条目读是「编译债务最大」，按去重读是「断言侧过度规定最大」。
-原因是表示债务的条目/去重比 4.55 远高于无 NL 依据的 1.78——同一处损失被反复重述的程度高得多。
+原因是表示债务的条目/去重比 4.47 远高于无 NL 依据的 1.78——同一处损失被反复重述的程度高得多。
 **只报一套会得出错误的整改优先级。**
 
 ⛔ **上表是本目录**唯一**允许的多报侧摘要。** 其余全部交叉表（分母闭合、子类双分母、
@@ -76,17 +85,17 @@ issue，两侧都不存在，记于
 **不要在别处另存副本。**
 
 去重单元 = `(pair, 根因)`；同 pair 同一处失误合并计 1，不同 pair 不合并。
-**123 组 = 44 个多成员组 + 79 个单成员组**，每组的成员与**自然语言合并理由**见
+**124 组 = 45 个多成员组 + 79 个单成员组**，每组的成员与**自然语言合并理由**见
 [unexpected_verdicts/merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv)（`merge_key`
 可与 [unexpected_verdicts/cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) 直接 join）。
 
 ### 三条可直接引用的结论
 
-1. **多报的最大成分不是模型的问题。** 132 条目（29 处不同内容）是 PlantUML → FCSTM 编译的
+1. **多报的最大成分不是模型的问题。** 134 条目（29 处不同内容）是 PlantUML → FCSTM 编译的
    信息损失——作者在源制品上已逐字表达，是 IR 装不下。见 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)。
-2. **净增量是 2 条。** 全部 286 条目中只有 `0014-4` 与 `0010-2` 通过了「事实为真 + 作者源确实没写 +
+2. **净增量是 2 条。** 全部 288 条目中只有 `0014-4` 与 `0010-2` 通过了「事实为真 + 作者源确实没写 +
    NL 有逐字依据 + 台账未记」四条判据。**论文里能说的是 2，不是 286。**
-3. **多报以单次采样噪声为主**：174/286（61%）只出现在 6 格中的 1 格。
+3. **多报以单次采样噪声为主**：174/288（60%）只出现在 6 格中的 1 格。
 
 成分与子类体系见 [composition.md](./composition.md)；裁定判据见
 [unexpected_adjudication.md](./unexpected_adjudication.md) 与
@@ -105,7 +114,7 @@ issue，两侧都不存在，记于
 | [unexpected_tables.md](./unexpected_tables.md) | **多报侧全部交叉表的唯一产地**（机器生成，勿手改） |
 | [unexpected_adjudication.md](./unexpected_adjudication.md) | 多报侧裁定结论与判据 |
 | [unexpected_merged.md](./unexpected_merged.md) | 按根因归并的问题清单 |
-| [unexpected_evidence.md](./unexpected_evidence.md) | 286 簇逐条判据 |
+| [unexpected_evidence.md](./unexpected_evidence.md) | 288 簇逐条判据 |
 | [telemetry/](./telemetry/) | 逐格 token 与耗时 |
 
 **判定真源** [verdicts/](./verdicts/)：
@@ -120,7 +129,7 @@ issue，两侧都不存在，记于
 
 | 文件 | 内容 |
 | :-- | :-- |
-| `G1.jsonl` – `G9.jsonl` | **手工裁定真源**，286 簇按判定组分文件，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason` / `fact` / `nl`，另有可选的 `root` / `note` |
+| `G1.jsonl` – `G9.jsonl` | **手工裁定真源**，288 簇按判定组分文件，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason` / `fact` / `nl`，另有可选的 `root` / `note` |
 | [ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl) | 13 条内容已被台账承载、不进桶的簇 |
 | [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl) | 2 条断言求值为 True 的真阴性 |
 | [cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) | 派生：逐簇索引（`pair` / `verdict` / `subclass` / `merge_key` / `cells_of_6` / `predicate_families`） |

@@ -194,22 +194,25 @@ class FrozenDiscoverInputs(StrictBaseModel):
 
 
 class RequirementSourceContext(StrictBaseModel):
-    """`Requirement.source_context` 的结构，取代原先的 `dict[str, Any]`。
+    #: ⛔ 以下为设计依据，**不进 docstring**：pydantic 会把类 docstring 折进
+    #: `model_json_schema()`，经 `get_format_instructions()` 直达 system prompt。
+    #: 源码里 grep `__doc__` 搜不到这条通道——它在 pydantic 内部。
+    #: ⚠️ `dict[str, Any]` 在 JSON Schema 里退化成 `{"additionalProperties": true}` —— `Any` 把类型
+    #:     信息全擦掉，生产者看到的就是「随便填」。实测后果：产出里稳定出现 `nl_parent`（80 次）这个**两边都没要求的键**，而消费侧只读
+    #:     `behavior_phase`。
+    #:
+    #:     ⚠️ `basis` 曾被我误判为生产者发明 —— 它其实是 `prompts.py` 明确要求的（「always emit it, with
+    #:     `basis` and `behavior_phase`」）。那份契约一直存在，只是**存在于 prompt 而不在 schema** ——
+    #:     这正是本次迁移要消除的分裂。
+    #:
+    #:     改成模型后，键名与取值范围由类型自己承载，随 `model_json_schema()` 一起到达生产者，
+    #:     也不再需要靠 `json_schema_extra` 手工贴一份说明（那份会与实际校验脱同步）。
+    #:
+    #:     ⚠️ `extra="forbid"` 由 `StrictBaseModel` 继承而来，所以发明的键会被**明确拒绝**并进入
+    #:     契约修复循环，而不是静默留在产物里。
 
-    ⚠️ `dict[str, Any]` 在 JSON Schema 里退化成 `{"additionalProperties": true}` —— `Any` 把类型
-    信息全擦掉，生产者看到的就是「随便填」。实测后果：产出里稳定出现 `nl_parent`（80 次）这个**两边都没要求的键**，而消费侧只读
-    `behavior_phase`。
+    """`Requirement.source_context` 的结构，取代原先的 `dict[str, Any]`。"""
 
-    ⚠️ `basis` 曾被我误判为生产者发明 —— 它其实是 `prompts.py` 明确要求的（「always emit it, with
-    `basis` and `behavior_phase`」）。那份契约一直存在，只是**存在于 prompt 而不在 schema** ——
-    这正是本次迁移要消除的分裂。
-
-    改成模型后，键名与取值范围由类型自己承载，随 `model_json_schema()` 一起到达生产者，
-    也不再需要靠 `json_schema_extra` 手工贴一份说明（那份会与实际校验脱同步）。
-
-    ⚠️ `extra="forbid"` 由 `StrictBaseModel` 继承而来，所以发明的键会被**明确拒绝**并进入
-    契约修复循环，而不是静默留在产物里。
-    """
 
     behavior_phase: (
         Literal["structure", "initialization", "operation", "termination"] | None
@@ -250,27 +253,30 @@ class RequirementSourceContext(StrictBaseModel):
 
 
 class RequirementDerivation(StrictBaseModel):
-    """一条 Requirement 是**从另一条 Requirement 机械派生**的，而不是从某句 NL 长出来的。
+    #: ⛔ 以下为设计依据，**不进 docstring**：pydantic 会把类 docstring 折进
+    #: `model_json_schema()`，经 `get_format_instructions()` 直达 system prompt。
+    #: 源码里 grep `__doc__` 搜不到这条通道——它在 pydantic 内部。
+    #: ## 为什么需要这个字段
+    #:
+    #:     Splitter 与 Requirement Reviewer 此前有一处**直接冲突**，实测让派生义务在多数格里被删掉：
+    #:
+    #:     - splitter 侧写着「Whenever you form a `cardinality` Requirement on a composite, form exactly
+    #:       one entry Requirement on that same composite too. **This trigger is mechanical: it does not
+    #:       depend on recognising a phrasing.**」
+    #:     - reviewer 侧的常设指令是「Do not add a semantic distinction merely because the current FCSTM
+    #:       exposes a convenient state, event, transition, or variable」，并且它**看不到**上面那条触发器
+    #:       （实测：该触发器文本只存在于 splitter prompt，reviewer / converter / adjudicator 全为 0 命中）。
+    #:
+    #:     于是 reviewer 按自己的规则判「无 NL 出处 → 语义添加 → 删」，而它是对的 —— 它无从分辨
+    #:     「凭 FCSTM 方便就加的义务」和「从一条 NL-grounded 义务蕴含出来的义务」。
+    #:
+    #:     **两者的差别无法从产物推断，只能由 splitter 申报。** 这个模型就是那份申报：带上它，
+    #:     reviewer 就有了可判定的判据（见 `kind`）；不带它，reviewer 的原规则不变。
+    #:
+    #:     ⚠️ 这不是给派生义务的免检通道。reviewer 仍可删，只是必须点明是四条判据里的哪一条不满足。
 
-    ## 为什么需要这个字段
+    """一条 Requirement 是**从另一条 Requirement 机械派生**的，而不是从某句 NL 长出来的。"""
 
-    Splitter 与 Requirement Reviewer 此前有一处**直接冲突**，实测让派生义务在多数格里被删掉：
-
-    - splitter 侧写着「Whenever you form a `cardinality` Requirement on a composite, form exactly
-      one entry Requirement on that same composite too. **This trigger is mechanical: it does not
-      depend on recognising a phrasing.**」
-    - reviewer 侧的常设指令是「Do not add a semantic distinction merely because the current FCSTM
-      exposes a convenient state, event, transition, or variable」，并且它**看不到**上面那条触发器
-      （实测：该触发器文本只存在于 splitter prompt，reviewer / converter / adjudicator 全为 0 命中）。
-
-    于是 reviewer 按自己的规则判「无 NL 出处 → 语义添加 → 删」，而它是对的 —— 它无从分辨
-    「凭 FCSTM 方便就加的义务」和「从一条 NL-grounded 义务蕴含出来的义务」。
-
-    **两者的差别无法从产物推断，只能由 splitter 申报。** 这个模型就是那份申报：带上它，
-    reviewer 就有了可判定的判据（见 `kind`）；不带它，reviewer 的原规则不变。
-
-    ⚠️ 这不是给派生义务的免检通道。reviewer 仍可删，只是必须点明是四条判据里的哪一条不满足。
-    """
 
     kind: Literal["entry_follows_cardinality", "activation_residency"] = Field(
         description=(
@@ -537,26 +543,29 @@ class Requirement(StrictBaseModel):
 
 
 class NamedElement(StrictBaseModel):
-    """One element the NL names, and whether the model declares it.
+    #: ⛔ 以下为设计依据，**不进 docstring**：pydantic 会把类 docstring 折进
+    #: `model_json_schema()`，经 `get_format_instructions()` 直达 system prompt。
+    #: 源码里 grep `__doc__` 搜不到这条通道——它在 pydantic 内部。
+    #: ## 为什么这是字段而不是散文
+    #:
+    #:     v37 的最大单项损失是需求层没形成义务：135 个未命中位（占全部未命中的 39%）的台账谓词
+    #:     从未被写进需求集，其中事件类 37 位。v40 把「差集扫描」写成散文后，`event_declared` 的
+    #:     形成格数从 4/36 涨到 23/35，**但调用真值是 110 True / 17 False** —— 模型开始写它了，
+    #:     却仍绑在制品已声明的名字上，那种检查按构造只能为真。`event_consumed` 更彻底：跨两代
+    #:     102 次调用，False 恒为 0。
+    #:
+    #:     本仓库对同一现象有可复算的度量：落在 typed 槽位的规则遵守率 96–100%（`strategies`
+    #:     11,826/11,842；`nl_parent` 1,489/1,489），落在 free-text 里当协议用的 25–38%
+    #:     （`incumbent considered:` 305/803）。散文说不动的事，槽位能。
+    #:
+    #:     所以枚举**方向**在这里被做成结构：`name_in_sentence` 必填，`declared_match` 是比对结果
+    #:     而不是选择。填这张表就是在做「句子点名了什么 → 模型有没有」，而不是反过来。
+    #:
+    #:     provenance: IEEE 29148-2018 §5.2 —— 规范点名的每个要素构成一条独立于其行为的义务；
+    #:     形式语义中的预设（presupposition）。
 
-    ## 为什么这是字段而不是散文
+    """One element the NL names, and whether the model declares it."""
 
-    v37 的最大单项损失是需求层没形成义务：135 个未命中位（占全部未命中的 39%）的台账谓词
-    从未被写进需求集，其中事件类 37 位。v40 把「差集扫描」写成散文后，`event_declared` 的
-    形成格数从 4/36 涨到 23/35，**但调用真值是 110 True / 17 False** —— 模型开始写它了，
-    却仍绑在制品已声明的名字上，那种检查按构造只能为真。`event_consumed` 更彻底：跨两代
-    102 次调用，False 恒为 0。
-
-    本仓库对同一现象有可复算的度量：落在 typed 槽位的规则遵守率 96–100%（`strategies`
-    11,826/11,842；`nl_parent` 1,489/1,489），落在 free-text 里当协议用的 25–38%
-    （`incumbent considered:` 305/803）。散文说不动的事，槽位能。
-
-    所以枚举**方向**在这里被做成结构：`name_in_sentence` 必填，`declared_match` 是比对结果
-    而不是选择。填这张表就是在做「句子点名了什么 → 模型有没有」，而不是反过来。
-
-    provenance: IEEE 29148-2018 §5.2 —— 规范点名的每个要素构成一条独立于其行为的义务；
-    形式语义中的预设（presupposition）。
-    """
 
     schema_name: Literal["NamedElement"] = "NamedElement"
     kind: Literal["state", "event", "variable"]

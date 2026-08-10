@@ -275,7 +275,7 @@ SIDECARS = (
     ("ledger_accounted.jsonl", "内容已被台账记录承载，按定义不属意外发现"),
     ("not_produced.jsonl", "断言在冻结制品上求值为 True，模型满足义务——真阴性，两侧都不存在"),
 )
-ORIGINAL_TOTAL = 302
+ORIGINAL_TOTAL = 304
 
 
 def _bucket_rows(rows: list[dict], verdict: str) -> list[dict]:

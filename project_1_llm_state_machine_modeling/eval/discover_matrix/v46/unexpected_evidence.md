@@ -1,4 +1,4 @@
-# v46 意外发现逐簇判据（全 286 条）
+# v46 意外发现逐簇判据（全 288 条）
 
 [unexpected_adjudication.md](./unexpected_adjudication.md) 的证据附件。
 裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)。
@@ -9,21 +9,33 @@
 | 裁定 | 簇数 |
 | :-- | --: |
 | ✅ 真漏记 | 2 |
-| ⚙️ 表示债务 | 132 |
+| ⚙️ 表示债务 | 134 |
 | 📄 无 NL 依据 | 119 |
 | ❌ 假阳性 | 23 |
 | 🚫 越界 | 10 |
-| **合计** | **286** |
+| **合计** | **288** |
 
 ---
 
-## pair 0000 — 1 簇　`表示债务×1`
+## pair 0000 — 3 簇　`表示债务×3`
 
 **0000-1** ｜ ⚙️ 表示债务 ｜ 5/6 格 ｜ `variable_declared` ｜ 判定组 G9
 
 - **事实**：model.fcstm 全文只有一条 def——`def int R45RouteToken = 0;`（model.fcstm:1，R4.5 注入的路由变量），无任何 `def front_distance`；该量连同阈值被整体压进事件名 `event front_distance_10 named "front_distance > 10";`（model.fcstm:5），并在 model.fcstm:20 以 `/front_distance_10` 作触发使用。variable_declared(front_distance)=False 属实。产出于 6/6 格（run1-3 × claude/gpt 各 1 条）。
 - **NL**：NL08 第 4 句逐字写 `when front_distance > 10, auto transport to autonomous state`——是量加数值阈值，不是信号名。
 - **说明**：作者源 stm0.puml:12 `HumanDrivingMode --> AutonomousMode : front_distance > 10` 已逐字写出该量与比较（逐行读确认，非词法检索），PlantUML 无变量声明语法，失真发生在 R4.5 lowering；fcstm_meta.json 的 source_static_reason_codes 含 R45.DEBT.opaque_transition_label_semantics。子类四问：损失在标签内（非 D4）；该标签无 `/` 也无 `[]`（非 D3）；被指实体只有 front_distance 一类（非 D5）；标签无析取支（非 D1）→ D2。台账 EIS-0000-01（Power Off 挂在伪初始）与 EIS-0000-02（三接管条件融合）均不涉变量侧。与 v46 的 0000-1 同判定，格数由 5/6 增至 6/6（本轮 run3/0000-gpt 亦产出该主张）。
+
+**0000-2** ｜ ⚙️ 表示债务 ｜ 6/6 格 ｜ `event_declared` ｜ 判定组 G9
+
+- **事实**：model.fcstm:6 只有 `event Human_Steering_Cmd_Brake_Pressed_in_AutoFinal named "Human Steering Cmd, Brake Pressed, in (AutoFinal)";`，不存在 `event Human_Steering_Cmd`；该融合事件是 AutoNavigating 唯一的接管触发（model.fcstm:14）。event_declared("…Human_Steering_Cmd")=False 属实。产出于 6/6 格。
+- **NL**：NL08 第 4 句逐字含 `human steering cmd`，用 `when receive` 引出——范畴是被接收的刺激（E），索要事件不构成范畴错置。
+- **说明**：作者源 stm0.puml:13 `AutonomousMode --> HumanDrivingMode : Human Steering Cmd, Brake Pressed, in (AutoFinal)` 逐字写出三个并列项，被指串恰为第一项 → D1。⚠️ 本簇出现在多报侧而不在台账侧：台账 EIS-0000-02 的判据经主裁定从熔合换成 `stays_in(AutoNavigating, 融合事件)=False`（过度许可），熔合被明文排除出归因依据（`basis_superseded_by_ruling`：「NL 未授权析取解释，故『缺少可单独触发的事件』不能作为归因依据」）。与 0050-2/0050-3 同口径。按 FUSED_EVENT_POLICY「表示限制被如实记录、但记录本身不构成发现」，本簇不计净增量。
+
+**0000-3** ｜ ⚙️ 表示债务 ｜ 5/6 格 ｜ `event_declared` ｜ 判定组 G9
+
+- **事实**：同 0000-2，被指串为第二个并列项 `Brake Pressed`：model.fcstm 事件表无 `event Brake_Pressed`。event_declared("…Brake_Pressed")=False 属实。产出于 5/6 格（run3/claude 将两项合并为一条 issue 发布）。
+- **NL**：NL08 第 4 句逐字含 `brake pressed`，同为 `when receive` 引出的刺激。
+- **说明**：与 0000-2 同源，同一条作者编辑（stm0.puml:13）。
 
 ## pair 0002 — 2 簇　`无×2`
 

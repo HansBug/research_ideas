@@ -14,7 +14,7 @@
 
 ⛔ **引用任何多报 / over-report 数字前，必读 [REPRESENTATION_DEBT.md](./REPRESENTATION_DEBT.md)。**
 v46 实测：未匹配台账的 **286 个同质簇（去重到 123 处不同内容）**里，
-**132 簇 / 29 处（条目 46.2% / 去重 23.6%）不是模型缺陷，而是我们自己 R4.5 编译
+**134 簇 / 30 处（条目 46.5% / 去重 24.2%）不是模型缺陷，而是我们自己 R4.5 编译
 （PlantUML → FCSTM）的信息损失**——作者在 `stm0.puml` 里已逐字写全，`model.fcstm` 装不下才被压平，
 且压平已由 `fcstm_meta.json` 的债务码如实登记。**把它们计入多报会同时高估模型的乱报程度、
 又掩盖编译链的问题。** 该文件给出定义、三条操作化判据、实例与论文表述口径。
@@ -76,7 +76,7 @@ wc -c "$L" && sha256sum "$L"
 
 | 文件 | 内容 |
 | :-- | :-- |
-| [V40_PREREGISTERED.md](./V40_PREREGISTERED.md) ｜ [V41](./V41_PREREGISTERED.md) ｜ [V43](./V43_PREREGISTERED.md) ｜ [V44](./V44_PREREGISTERED.md) ｜ [V45](./V45_PREREGISTERED.md) ｜ [v46](./v46/preregistered.md) ｜ [v46r](./V46R_PREREGISTERED.md) | 各代次事前登记（判据、达标档位、回归红旗） |
+| [V40_PREREGISTERED.md](./V40_PREREGISTERED.md) ｜ [V41](./V41_PREREGISTERED.md) ｜ [V43](./V43_PREREGISTERED.md) ｜ [V44](./V44_PREREGISTERED.md) ｜ [V45](./V45_PREREGISTERED.md) ｜ [v46](./v46/preregistered.md) | 各代次事前登记（判据、达标档位、回归红旗） |
 | [CONDITIONAL_ACTIVATION_RULE.md](./CONDITIONAL_ACTIVATION_RULE.md) | 一条仍在生效的 prompt 规则的引入动机与通用性证据（§3.5.-1 要求） |
 | [V23_MOTIVE_AUDIT.md](./V23_MOTIVE_AUDIT.md) | 引入动机溯源——泄漏审查（CLAUDE.md §3.5.-1）的材料 |
 | [V24_REPORT_DETERMINED.md](./V24_REPORT_DETERMINED.md) | v24 与判定无关的已定部分 |

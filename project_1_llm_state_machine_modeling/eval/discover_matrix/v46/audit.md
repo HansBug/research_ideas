@@ -7,36 +7,15 @@
 
 | 项 | 值 | 核验方式 |
 | :-- | :-- | :-- |
-| 运行代码（288 格） | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `matrix-v46-full/CODE_VERSION.txt`，`written_before_launch: yes` |
-| 运行代码（36 格） | `92da821a734bdb2756f6ec35e1c5a0a3f1882ba5` | `matrix-v46r/CODE_VERSION.txt`，`written_before_launch: yes`，`dirty_src: 0` |
-| 哪 36 格 | `0000` `0010` `0020` `0030` `0040` `0050` × 2 臂 × 3 轮。该家族共用一份 NL，其 `name_in_sentence` 字段描述与 reviewer prompt 的示例串改为与语料无交集的合成串后重跑。事前登记（判据、档位、回归红旗、替换口径）见 [V46R_PREREGISTERED.md](../V46R_PREREGISTERED.md)，于开跑前推送 | `git show 92da821a --stat` |
-| ⛔ 复现 | **两批分别复现**：288 格 `git checkout ca41369e`，36 格 `git checkout 92da821a`。两批除示例串外还差若干谓词求值语义，合成网格因此是代码版本混杂的，不藏 | 两份 `CODE_VERSION.txt` |
+| 运行代码 | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `CODE_VERSION.txt`，`written_before_launch: yes`，`dirty_src: 0` |
+| 复现 | `git checkout ca41369e` | `CODE_VERSION.txt` |
 | 该 commit 是否在远端 | 是 | `git branch -r --contains ca41369e` |
 | 启动时 `src` 脏改动 | **0 files** | `CODE_VERSION.txt` |
 | `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订。**覆盖侧 588 位不受影响**（命中判定读的是产出文本与台账，不重新求值断言）；**多报侧分母受影响**，见下一行。**复现该 324 格运行须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
 | 多报侧分母的求值口径 | 桶内计入 286；其中 `0044-2` 与 `0054-1` 不计入：`0044-2` 与 `0054-1` 的断言按**当前**谓词语义在冻结制品上求值为 **True**（模型满足该义务），属真阴性、两侧都不存在，记于 [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。**复现该判定须当前 HEAD，不是 `ca41369e`。** 这是一次运行后的口径变更，方向是缩小多报侧分母（对我们不利的方向） | `not_produced.jsonl` 的 `assertion` / `value_on_frozen_artifact` 字段逐条可复算 |
 | 网格 | 54 pair × 2 模型 × 3 轮 = 324 | `GRID.txt`，含 `00x8`: 无 |
-| 启动时刻 | 288 格 `2026-08-09T20:09:52Z`｜36 格 `2026-08-10T11:55:24Z` | 两份 `WALLCLOCK.txt` |
-| 完成时刻 / 墙钟 | 288 格 `2026-08-10T03:15:41Z` / **7h05m49s**（4 并发）｜36 格 `2026-08-10T13:00:52Z` / **1h05m**（18 并发） | 同上 |
-### 定向重跑的双份数字（[V46R_PREREGISTERED.md](../V46R_PREREGISTERED.md) §四 的报告义务）
-
-那六个 pair 的判定位整体替换前后：
-
-| 口径 | 替换前 | 替换后 |
-| :-- | --: | --: |
-| `hit@1` | 359/588 = 61.1% | **361/588 = 61.4%** |
-| `hit@3` | 139/196 = 70.9% | **141/196 = 71.9%** |
-| `hit@all` | 97/196 = 49.5% | **97/196 = 49.5%** |
-
-事前登记把档位写在开跑之前：受示例串影响的五条记录在替换前是 30/30，替换后 **28/30**，
-落 **A 档**（≥24/30，「示例影响小，原数字大体反映能力」）。四条回归红旗**均未触发**
-（36 格收据齐、无 `.try`、降级未见异常、其它记录变化在 ±2 内、多报侧无新类别）。
-
-六个 pair 整体 79/96 → 81/96：非受影响记录的双向波动（`EIS-0010-01` +2、`EIS-0030-02` +1、
-`EIS-0040-03` +1，对 `EIS-0010-04` −1、`EIS-0040-02` −1）量级与代次内采样方差同阶，
-盖过了示例串本身的影响。
-
-
+| 启动时刻 | `2026-08-09T20:09:52Z` | `WALLCLOCK.txt` |
+| 完成时刻 / 墙钟 | `2026-08-10T03:15:41Z` / **7h05m49s** | 同上 |
 ## 1. 数据完整性（全部通过）
 
 | 检查 | 结果 |
@@ -80,20 +59,29 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 
 | 口径 | v37 | **v46** | 差 |
 | :-- | --: | --: | --: |
-| `hit@1` | 274/588 = 46.6% | **361/588 = 61.4%** | **+14.8pp** |
-| `hit@3` | 106/196 = 54.1% | **141/196 = 71.9%** | **+17.8pp** |
-| `hit@all` | 77/196 = 39.3% | **97/196 = 49.5%** | **+10.2pp** |
-| claude `hit@1` | 132/294 = 44.9% | 187/294 = 63.6% | +18.7pp |
-| gpt `hit@1` | 142/294 = 48.3% | 174/294 = 59.2% | +10.9pp |
+| `hit@1` | 274/588 = 46.6% | **355/588 = 60.4%** | **+13.8pp** |
+| `hit@3` | 106/196 = 54.1% | **139/196 = 70.9%** | **+16.8pp** |
+| `hit@all` | 77/196 = 39.3% | **95/196 = 48.5%** | **+9.2pp** |
+| claude `hit@1` | 132/294 = 44.9% | 184/294 = 62.6% | +17.7pp |
+| gpt `hit@1` | 142/294 = 48.3% | 171/294 = 58.2% | +9.9pp |
 
 ⚠️ **上表的 `hit@k` 只能作为上界读。** 多报侧已做表示债务审计（§6），**命中侧的对称审计
 尚未做**（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：
-**人工表覆盖的 352 个命中位中，51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）
+**人工表覆盖的 346 个命中位中，51 位（14.7%）在判据里引用「变量未声明」，其中 10 位（2.9%）
 不依赖其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
 缺陷模型与忠实模型。逐位清单见
 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
 
-**下界**：扣掉那 10 位，`hit@1` 为 351/588 = **59.7%**。真值落在 **[59.7%, 61.4%]** 之间。
+📌 **第三条通道（本代次结果产出后才定位，已在代码侧关闭）**：pydantic 会把**类 docstring**
+折进 `model_json_schema()`，经 `get_format_instructions()` 进入需求拆分器的 system prompt。
+`schemas.py` 中三个类的 docstring 曾含设计依据性文字（含跨代次的谓词形成率一类聚合观察），
+因此进入过该 prompt。边界：只影响 `RequirementSet` 一棵树，`AssertionScript` /
+`RequirementReview` / `AssertionReview` 未受影响；文本**不含任何 pair 标识、台账记录 id 或
+逐样本答案**，是聚合量而非样本级信息。现已把这些文字移出 docstring（改为 `#:` 注释，pydantic
+不读），复扫全部 pydantic 模型的 `format_instructions` 无残留。**该通道计入上界的理由与前两条
+相同：它使 `hit@k` 只能作为上界读。**
+
+⛔ **这是上界，不是区间估计。** 已知扣除项有两档：仅靠变量缺失成立的 10 位 → `345/588 = 58.7%`；引用了变量缺失的全部 51 位 → `304/588 = 51.7%`。此外**谓词拒答文案**那条通道尚未量化，命中侧的表示债务审计亦未做。因此可写的只有 `hit@1 ≤ 60.4%`，真实下界未知。
 
 📌 **另一条不经 prompt 的通道**：谓词拒答文案会进入生成者的下一轮上下文。实测
 `predicate_api.py:1524` 的 `UnsupportedEvidence` 原文——「variable 'uav_count' is not
@@ -107,7 +95,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 分母的 `EIS-0043-02`，故分母内 346；另有 15 个命中位无人工条目，`345 + 15 = 360`。
 
 判定来源：A 层自动 + 人工，见 [verdicts/v46_human.json](./verdicts/v46_human.json)（574 条
-人工判定，每条带 `argument`；其中 352 条判为命中，且全部带 `equivalence_form`）。
+人工判定，每条带 `argument`；其中 346 条判为命中，且全部带 `equivalence_form`）。
 📌 **判定覆盖的缺口**：588 位中 **20 位**在该文件里没有对应条目（15 位判为命中、4 位判为
 未命中），涉及 `EIS-0002-01` / `EIS-0002-03` / `EIS-0009-02` / `EIS-0029-02` / `EIS-0029-04` /
 `EIS-0037-01` / `EIS-0039-01` / `EIS-0057-01`；**这 20 位无逐格 `argument` 可复核**。
@@ -134,7 +122,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 `review_requirements` 5.7%、`review_assertions` 3.4%、`adjudicate_results` 2.6%。
 **前两者合计 88.1%**，且都随需求条数线性增长 —— 与 §7 第 1 条残留缺陷同源。
 
-📌 **效率反而下降**：每百万 output token 的命中位数，v37 为 **27.6**、v46 为 **19.3**（−30%）。
+📌 **效率反而下降**：每百万 output token 的命中位数，v37 为 **27.6**、v46 为 **20.4**（−26%）。
 命中率的提升有相当一部分是**多花算力换来的**，不是纯效率提升。只报命中率而不报成本会掩盖这一点。
 
 ## 6. 多报侧（未被台账认领的产出）
@@ -144,7 +132,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
   其余产出未被任何台账记录认领。
 - 这批未认领产出**已归并为同质簇并逐条人工裁定**（八个并行判定组 + 一组回读原件复核）：
   原 293 簇中 13 簇内容已被台账记录承载、2 簇的断言在冻结制品上求值为真（真阴性），
-  均按定义移出，**本侧分母 286 条目 / 123 去重 / 43 pair**。
+  均按定义移出，**本侧分母 288 条目 / 124 去重 / 43 pair**。
 
 **结论**：「产出变多」既不是纯粹的发现能力增强，也不是纯粹的噪声增加——
 **最大的一块（表示债务）根本不是模型的问题，是我们自己编译链的信息损失被当成了缺陷**；
@@ -156,14 +144,14 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 机器生成于唯一产地 [unexpected_tables.md](./unexpected_tables.md)。本文件不留副本**——
 副本与真源分岔过一次，代价是同一目录内两份文件对净增量给出互斥答案。
 
-判据与定义另见 [unexpected_evidence.md](./unexpected_evidence.md)（286 簇逐条判据）、
+判据与定义另见 [unexpected_evidence.md](./unexpected_evidence.md)（288 簇逐条判据）、
 [unexpected_merged.md](./unexpected_merged.md)（归并后的问题）、
 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)（裁定口径）、
 [REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md)（表示债务的定义与论文口径）。
 
 ⚠️ CLAUDE.md §3.5.2 要求的 `over@1` / `over@any` 口径：本轮以**稳定性维度**（簇在 6 格中
 出现几次）实现，见 [unexpected_tables.md](./unexpected_tables.md) 表 4。
-**174/286（61%）只出现在 1 个格里**，即多报以单次采样噪声为主。
+**174/288（60%）只出现在 1 个格里**，即多报以单次采样噪声为主。
 
 ## 7. 残留缺陷（v47 入口，按严重度）
 

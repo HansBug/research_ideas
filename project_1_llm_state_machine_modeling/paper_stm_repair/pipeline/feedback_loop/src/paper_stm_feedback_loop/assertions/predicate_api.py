@@ -1274,10 +1274,17 @@ class PredicateAPI:
         # default of 1.  Prompt guidance to count the declared steps did not hold;
         # the producer chose the default anyway.
         #
-        # Safe to refuse rather than answer, because a genuine defect does not
-        # become satisfied at a longer horizon.  Measured on the corpus's credited
-        # findings (ids in `eval/discover_matrix/PREDICATE_OBSERVATIONS.md`) are False at every horizon
-        # from 1 to 8, while the bounded artifacts flip at the second cycle.
+        #: provenance: UML 2.5.1 §14.2.3.9.1 (run-to-completion) -- completion
+        #: transitions and their cascades belong to the *same* step as the event
+        #: that enabled them, so a target reached only after further eventless
+        #: steps was not reached "on this trigger".  An answer that flips with the
+        #: horizon is therefore a statement about the chosen bound, not about the
+        #: model, and the honest response is to refuse and name the bound that
+        #: would decide it.
+        #
+        # ⛔ 这条门此前的注释拿「台账已认定的发现在 1..8 上恒为 False」作标定依据。
+        # 那是用**评测答案**校准一道决定「哪些 False 能成为发现」的活门，属 §3.5 条款 1。
+        # 已改为只依据上面的 UML 语义：判据不看任何一条台账记录，也不需要看。
         for larger in range(asked + 1, min(asked + _HORIZON_PROBE, MAX_BUDGET) + 1):
             if self._occupies(
                 source=source, trigger=trigger, target=target, cycles=larger
@@ -1931,14 +1938,16 @@ class PredicateAPI:
             try:
                 holds = self._formal_holds(query)
             except UnsupportedEvidence:
-                if self._assumptions_are_infeasible(head, assumptions, k):
+                if self._assumptions_are_infeasible(head, assumptions, k, release):
                     return True
                 raise
             if not holds:
                 return False
         return True
 
-    def _assumptions_are_infeasible(self, head: str, assumptions: str, k: int) -> bool:
+    def _assumptions_are_infeasible(
+        self, head: str, assumptions: str, k: int, release: str
+    ) -> bool:
         """No run satisfies these assumptions -- and the binding itself is fine.
 
         Asked against a body no run can satisfy: a feasible assumption set refutes
@@ -1951,6 +1960,17 @@ class PredicateAPI:
         and the original refusal stands.
         """
 
+        # ⛔ 控制探针必须**也带上 `release` 里的名字**，否则它只证明了 `head` 能绑。
+        # 伪造名若只出现在 assumptions 里（`release` 就是这种情形），不带它的控制探针会
+        # 顺利返回，于是「绑定坏了」被读成「假设不可行」，谓词答 True。实测：
+        # `persists_until(S, release='active("Root.Ghost")')` 对不存在的 `Ghost` 答 True，
+        # 而真实语料里 `release` 写成未声明状态名的表达式成百上千条。方向是假阴性
+        # （压低发现），但它同样让「未命中」不可信。
+        # 用重言式探它：名字都能绑时 `R || !R` 恒真，绑不上则与真实查询同样失败。
+        try:
+            self._formal_holds(f"{head}check invariant <= {k}: ({release}) || !({release});")
+        except UnsupportedEvidence:
+            return False
         try:
             control = self._formal_holds(f"{head}check invariant <= {k}: false;")
         except UnsupportedEvidence:

@@ -528,6 +528,22 @@ def test_persists_until_is_monotone_when_the_release_is_forced():
                     state="Root.S", release='active("Root.R")', bound=bound) is True, bound
 
 
+def test_persists_until_refuses_a_fabricated_name_inside_the_release_expression():
+    """伪造名藏在**表达式参数**里时同样必须拒答。
+
+    `test_a_fabricated_path_never_answers_true` 只伪造第一个路径类 kwarg，对
+    `persists_until` 就是 `state`，永远测不到 `release`。而 `release` 是表达式，
+    上游的引用门也不查它内部的名字——于是一个不存在的状态名可以一路走到求值层。
+    实测后果：控制探针只带 `head`、不带 `release`，于是「绑定坏了」被读成「假设不可行」，
+    谓词答 True。方向是假阴性（压低发现），但它同样让「未命中」不可信；真实语料里
+    `release` 写成未声明状态名的表达式成百上千条。
+    """
+
+    with pytest.raises(UnsupportedEvidence):
+        call(RICH, "persists_until", state="Root.Idle",
+             release='active("Root.NoSuchState")', bound=3)
+
+
 def test_event_consumed_separates_handled_from_ignored():
     assert call(RICH, "event_consumed", source="Root.Idle", trigger="Root.go") is True
     assert call(RICH, "event_consumed", source="Root.Idle", trigger="Root.done") is False
