@@ -52,6 +52,47 @@ SD-8 FixRequestBatch -> SL-9 per-request accept/reject + repair -> SL-10(NL + Fi
 2. **自 2026-06-08 起休眠。** 最后一次内容变更是 `1a66e7e9`（2026-06-08 17:37:26，
    PR39 / LG-M1-G 收口），此后到归档为止无功能改动。
 
+⚠️ 「与 discover 零耦合」**不等于**「没人依赖它」。见下一节。
+
+## 1.5 ⚠️ 它不是死代码——**项目级活测试也 import 本目录**
+
+**这一条历史版本写错了**（§9 与 [../README.md](../README.md) 都曾说「仍被活测试 import 的是
+`path1_evaluation` 与 `path1_path2_guides`」，把本目录排除在外）。**实测本目录同样被 import**：
+
+| 引用方 | 从本目录 import 的符号 |
+|---|---|
+| [../../tests/test_pyfcstm_feedback_migration.py](../../tests/test_pyfcstm_feedback_migration.py) | `from archive.agent_loop_method.agents.scenariogen.generate import _extract_model_elements`（**私有符号**）<br>`from archive.agent_loop_method.feedback.parse import check_parse`<br>`from archive.agent_loop_method.feedback.semantic import check_semantic` |
+| [../../tests/helpers/path_branch_smoke.py](../../tests/helpers/path_branch_smoke.py) | 同上三个 |
+
+复核命令：
+
+```bash
+grep -rn "archive\.agent_loop_method" project_1_llm_state_machine_modeling/tests/
+```
+
+实测 `project_1_llm_state_machine_modeling/tests`（40 个测试）里有 **7 个**直接测这三个符号：
+5 个 `test_parse_feedback_* / test_semantic_feedback_*` + 2 个 `test_scenariogen_*`。
+
+**推论（这是最容易踩的一条）：改
+[feedback/parse.py](./feedback/parse.py)、[feedback/semantic.py](./feedback/semantic.py)、
+[agents/scenariogen/generate.py](./agents/scenariogen/generate.py) 的公开行为会直接弄红 CI**，
+而且弄红的是**两棵不同的测试树**——CI 的 "Run pyfcstm feedback migration smoke tests" 一步同时跑
+`project_1_llm_state_machine_modeling/tests` 与 `archive/agent_loop_method/tests`
+（见 [../../../.github/workflows/project1-pyfcstm-feedback.yml](../../../.github/workflows/project1-pyfcstm-feedback.yml)），
+所以只跑本目录的 §5 gate **不足以**证明改动安全，必须**两棵都跑**：
+
+```bash
+cd <repo root>
+PYTHONPATH=project_1_llm_state_machine_modeling venv/bin/python -m pytest -q \
+  project_1_llm_state_machine_modeling/tests \
+  project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
+```
+
+实测基线（2026-08-11）：前者 `40 passed`；后者 `2 failed, 414 passed`（那 2 个是预期失败，见 §5）。
+
+⚠️ `_extract_model_elements` 是**私有符号**（带下划线），却被活测试直接 import——
+所以本目录里连"内部实现"也不能随便改名。
+
 ## 2. 不要在这里找什么（防误认）
 
 | 你想找 | 不在这里，去这里 |
@@ -169,14 +210,25 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
   venv/bin/python -m archive.agent_loop_method.experiments.real_run_matrix
 ```
 
-其他带 `__main__` 的模块：
+其他带 `__main__` 的模块（实测 `grep -l __main__`）：
 [experiments/checkpoint_resume.py](./experiments/checkpoint_resume.py)、
 [experiments/representative_cases.py](./experiments/representative_cases.py)、
 [experiments/codex_exec_skill_runs.py](./experiments/codex_exec_skill_runs.py)、
 [handoff_smoke/runner.py](./handoff_smoke/runner.py)、
 [agent_loop_skill/health_check.py](./agent_loop_skill/health_check.py)，
-以及四个纯 compatibility shim（`pr_e1_real_runs.py` / `pr_lg_f1_resume_experiment.py` /
-`pr_d_representative.py` / `pr2a_loop.py`——新代码不要用这四个）。
+以及三个 compatibility shim：[pr_e1_real_runs.py](./pr_e1_real_runs.py) /
+[pr_lg_f1_resume_experiment.py](./pr_lg_f1_resume_experiment.py) /
+[pr_d_representative.py](./pr_d_representative.py)。
+
+⚠️ 更正一处：[pr2a_loop.py](./pr2a_loop.py) 也是 compatibility shim，但它**没有 `__main__`**
+（实测 `grep -c __main__ pr2a_loop.py` 为 0），所以 `python -m archive.agent_loop_method.pr2a_loop`
+**什么都不会做**（静默退出，不报错）。它只是个 re-export 层，把
+`experiments.ablation.deterministic_loop` 的 `DeterministicLoopConfig` / `ReviewPolicy` /
+`run_deterministic_ablation_loop` / `run_pr2a_deterministic_loop` 转出来。
+要跑确定性消融，直接调
+`archive.agent_loop_method.experiments.ablation.deterministic_loop.run_deterministic_ablation_loop`。
+
+上述四个 shim **新代码都不要用**。
 
 不想跑整条 loop、只想复用确定性工具或 prompt 的话，走 facade：
 [stages/api.py](./stages/api.py)、[stages/sc_control.py](./stages/sc_control.py)、
@@ -193,7 +245,10 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
 ```
 
 **归档后实测基线：`2 failed, 414 passed, 6 warnings`（416 collected）。**
-（2026-08-11 02:36 本地实测；与搬迁前基线一致。）
+（2026-08-11 本地复测确认；与搬迁前基线一致。）
+
+⚠️ **这棵树不是完整 gate。** 本目录还有 3 个模块被**项目级**测试树 import，
+只跑上面这条命令看不到那 7 个测试——见 §1.5，那里给了必须两棵一起跑的命令。
 
 那 2 个失败是**搬迁前就存在的**，与归档无关，且**在干净 clone 上必然失败**：
 
@@ -267,16 +322,80 @@ health check 立刻失败，而内容看起来"完全正常"。** 归档/搬运�
 
 它记录的是**路径清单快照 + 硬编码 collection delta**：`stage_api_scan.modules`、
 `experiment_cli_import_baseline.modules`、`facade_reexport_scan.reexporter_paths_checked`
-是模块路径列表；`collection` 则记录 `count = 382`（LG-M1-A 时刻）加上一串
-具名 delta（`lg_m1_c1_experiments_entrypoints: 5`、`lg_m1_d1_langgraph_foundation: 5`、
-`lg_m1_d2_langgraph_instrumentation: 5`、`lg_m1_d3_langgraph_nodes_subgraphs_core: 7`、
-`lg_m1_g_final_integration_stabilization: 4`），最终 `current_expected_count_after_c1_d1_b_d2_c2_d3_and_g = 416`。
+是模块路径列表；`collection` 记录 `count = 382`（LG-M1-A 时刻）加上一串增量，
+最终 `current_expected_count_after_c1_d1_b_d2_c2_d3_and_g = 416`。
 实测当前 `pytest --collect-only` 恰为 **416**。
 
-**推论：增删任何一个测试函数都会让
-`test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_is_current`
-失败。** 这是有意的漂移门，不是 bug。复活并要加测试时，**必须同时在 fixture 里
-登记一条新的具名 delta**，而不是去改 `count`——改 `count` 等于把历史基线抹掉。
+#### ⚠️ 算术核对：**具名 delta 只解释了 26，不是 34**
+
+**这一点历史版本没写清，照旧版做（"只在 fixture 里登记一条新的具名 delta"）测试仍然红。**
+真实账本分两处，**必须两处一起改**：
+
+`tests/fixtures/lg_m1_a_baseline.json` 的 `collection.expected_deltas` 里只有 **5 条**具名 delta：
+
+| key | count |
+|---|---|
+| `lg_m1_c1_experiments_entrypoints` | 5 |
+| `lg_m1_d1_langgraph_foundation` | 5 |
+| `lg_m1_d2_langgraph_instrumentation` | 5 |
+| `lg_m1_d3_langgraph_nodes_subgraphs_core` | 7 |
+| `lg_m1_g_final_integration_stabilization` | 4 |
+
+合计 **26**。而 `382 + 26 = 408 ≠ 416`。**缺的 8 不在 fixture 里，而在测试文件的模块常量里**
+（[tests/crosscutting/test_lg_m1_inventory_characterization.py](./tests/crosscutting/) 第 37-55 行）：
+
+| 常量 | 值 | 在 fixture 中有具名 delta 吗 |
+|---|---|---|
+| `LG_M1_B_ADDITIVE_TEST_COUNT` | **+7** | ❌ 没有 |
+| `LG_M1_C2_DELETED_LEGACY_ONLY_TEST_COUNT` | **−3** | ❌ 没有 |
+| `LG_M1_C2_ADDITIVE_ABLATION_CONTRACT_TEST_COUNT` | **+4** | ❌ 没有 |
+
+B 与 C2 这两代的增量**只体现在 fixture 的 `current_expected_count_after_*` 链式字段里**，
+没有对应的 `expected_deltas` 条目。完整链条（`382 → 416`）：
+
+| 步 | 算式 | fixture 字段 | 值 |
+|---|---|---|---|
+| 起点 | — | `count` | 382 |
+| C1+D1 | `382 + 5 + 5` | `current_expected_count_after_c1_and_d1` | 392 |
+| B+D2 | `392 + 7 + 5` | `current_expected_count_after_c1_d1_b_and_d2` | 404 |
+| C2 | `404 − 3 + 4` | `current_expected_count_after_c1_d1_b_d2_and_c2` | 405 |
+| D3 | `405 + 7` | `current_expected_count_after_c1_d1_b_d2_c2_and_d3` | 412 |
+| G | `412 + 4` | `current_expected_count_after_c1_d1_b_d2_c2_d3_and_g` | **416** |
+
+即 `26 + 7 + 4 − 3 = 34`，`382 + 34 = 416`。
+
+#### 加 N 个测试的完整照办步骤（四改，缺一仍红）
+
+把新一代记作 `H`，新增 `N` 个测试函数：
+
+1. **加模块常量**（测试文件顶部，第 37-55 行那一批旁边）：
+   ```python
+   LG_M1_H_EXPECTED_COLLECTION_DELTA = N
+   ```
+2. **加 fixture 具名 delta**（`collection.expected_deltas` 下），必须带 `reason`：
+   ```json
+   "lg_m1_h_<短名>": {"count": N, "reason": "LG-M1-H adds ... without changing runtime semantics."}
+   ```
+3. **加 fixture 新的链尾字段**——⛔ **不要改任何已有的 `current_expected_count_after_*`，
+   也不要改 `count`**（改 `count` 等于抹掉历史基线）：
+   ```json
+   "current_expected_count_after_c1_d1_b_d2_c2_d3_g_and_h": 416 + N
+   ```
+4. **延长断言链**（`test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_is_current`
+   末尾，约第 423 与第 445-446 行）：
+   - 在那批 `assert deltas[...]["count"] == LG_M1_*` 后面追加
+     `assert deltas["lg_m1_h_<短名>"]["count"] == LG_M1_H_EXPECTED_COLLECTION_DELTA`
+   - 追加 `expected_h_count = expected_count + LG_M1_H_EXPECTED_COLLECTION_DELTA`
+   - 追加 `assert expected_h_count == baseline["collection"]["current_expected_count_after_..._g_and_h"]`
+   - **把最后那句 `assert int(match.group(1)) == expected_count` 改成 `== expected_h_count`**
+
+**为什么只做第 2 步不够**：那个测试只对 5 个**写死的 key** 做 `assert deltas[k]["count"] == 常量`，
+fixture 里多出来的第 6 个 key **根本不会被读到**；而末尾那句
+`assert int(match.group(1)) == expected_count` 里的 `expected_count` 是从
+`count` + 各**模块常量**一路算出来的（不读你新加的 delta），仍然等于 416，
+于是 `416 != 416 + N`，**测试照样红**。
+
+**推论：增删任何一个测试函数都会让这个测试失败。** 这是有意的漂移门，不是 bug。
 同理，重命名模块也必须同步 fixture 里的路径清单（本轮归档就是这样处理的）。
 
 ### 6.4 顶层调用别写成双前缀
@@ -354,7 +473,7 @@ health check 立刻失败，而内容看起来"完全正常"。** 归档/搬运�
 | 内部 import 全量重写 | `method.*` → `archive.agent_loop_method.*`。改动前实测有 **407 处** `method.` import 语句散落在 **90 个文件**；改动后本目录下 **100 个 `.py` + 31 个非 `.py`** 文件被改，新增行中含 `archive.agent_loop_method` 的共 **767 行**。非 `.py` 那 31 个是四份原件（`README.md` / `ARCHITECTURE.md` / `STATUS.md` / `EXAMPLES.md`）、`agent_loop_skill/` 的 6 份文档、`handoff_smoke/` 的 2 份文档、[stages/docs/](./stages/docs/) 的 18 份 per-stage 规范，以及 [tests/fixtures/lg_m1_a_baseline.json](./tests/fixtures/)（`runtime_identity.environment.runner` / `loop_entrypoint`、`run_config.runtime_implementation`、`collection.command` / `collection.scope` 等字符串） |
 | skill 文档与 health check | [agent_loop_skill/](./agent_loop_skill/) 下 `AGENT_LOOP_SKILL.md`、`health_check.py`、`test_health.py`、`codex_exec_experiment.py`、`codex_exec_experiment_guide.md`、`e2e_ref_model_guide.md`、`prompts.md`、`tools.md`、`stages/README.md` 同步改模块名。⚠️ `health_check.py` 会断言 skill 文档里出现 `archive.agent_loop_method.stages.api`，**所以文档与代码必须同批改**——搬迁中途只改了代码没改文档时，`tests/agent_loop_skill/test_stage_api_health.py` 的两个测试立刻失败 |
 | CI workflow | [../../../.github/workflows/project1-pyfcstm-feedback.yml](../../../.github/workflows/project1-pyfcstm-feedback.yml) 的 "Run pyfcstm feedback migration smoke tests" 步骤：`method/tests` → `archive/agent_loop_method/tests`。⚠️ 同文件里 "Export Path 1/Path 2 representative artifacts" 步骤的 `git show ${PATH*_REF}:.../eval/data/...` 与 `.../paper_v1/...` **保持旧路径未动**——那是历史 commit 内容，改了就取不到（见 §6.1） |
-| 项目级 tests 的 import | [../../tests/test_pyfcstm_feedback_migration.py](../../tests/test_pyfcstm_feedback_migration.py)、[../../tests/helpers/path_branch_smoke.py](../../tests/helpers/path_branch_smoke.py) 改为 `from archive.path1_evaluation.extract.pyfcstm import ...` / `from archive.path1_path2_guides.selection.ref_stms.verify_pyfcstm_static import ...`（这两处属 [../path1_evaluation/](../path1_evaluation/) 与 [../path1_path2_guides/](../path1_path2_guides/) 的引用，见各自导引） |
+| 项目级 tests 的 import | [../../tests/test_pyfcstm_feedback_migration.py](../../tests/test_pyfcstm_feedback_migration.py) 与 [../../tests/helpers/path_branch_smoke.py](../../tests/helpers/path_branch_smoke.py) 各改了 **5 行 import**，横跨**三个**归档目录：`archive.agent_loop_method.agents.scenariogen.generate` / `archive.agent_loop_method.feedback.parse` / `archive.agent_loop_method.feedback.semantic`（**本目录**，见 §1.5）、`archive.path1_evaluation.extract.pyfcstm`（见 [../path1_evaluation/ARCHIVE_README.md](../path1_evaluation/ARCHIVE_README.md) §2）、`archive.path1_path2_guides.selection.ref_stms.verify_pyfcstm_static`（见 [../path1_path2_guides/ARCHIVE_README.md](../path1_path2_guides/ARCHIVE_README.md) §3）。⚠️ 历史版本把本目录排除在外，是错的 |
 | import 边界门的禁止名单 | [../../paper_stm_issue_discover/pipeline/feedback_loop/tests/test_import_boundaries.py](../../paper_stm_issue_discover/pipeline/feedback_loop/tests/test_import_boundaries.py) 的 `FORBIDDEN_RUNTIME_IMPORT_PREFIXES`：`method.loop` / `method.run_record` → `archive.agent_loop_method.loop` / `archive.agent_loop_method.run_record`（两处：模块顶层常量 + 子进程 sentinel 内联副本，必须一起改，漏一处门就形同虚设） |
 | `.gitignore` | `c13033d2` 中有 20 行路径前缀随目录迁移调整 |
 

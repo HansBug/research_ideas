@@ -1,10 +1,27 @@
 # Path 2 — 差异化路线（Differentiation）接管指引
 
+> 📌 **读这份文件前先看这里（2026-08-11 归档时添加）**
+>
+> 本文件是**冻结的历史指南**，正文与命令保留写作当时（2026 年 5–6 月）的目录名，**未作改写**——
+> 改动它们等于篡改当时的陈述。但那些目录后来搬过家，所以文中出现旧路径时按下表换算：
+>
+> | 文中写的 | 现在在哪 |
+> | :-- | :-- |
+> | `project_1_llm_state_machine_modeling/method/` | `project_1_llm_state_machine_modeling/archive/agent_loop_method/`（模块名同步变为 `archive.agent_loop_method.*`） |
+> | `project_1_llm_state_machine_modeling/eval/` | `project_1_llm_state_machine_modeling/archive/path1_evaluation/`（其中 `discover_matrix/` 去了 `paper_stm_issue_discover/`） |
+> | `project_1_llm_state_machine_modeling/paper_v1/` | 就是本目录 `archive/path1_path2_guides/` |
+> | `project_1_llm_state_machine_modeling/paper_stm_repair/` | `project_1_llm_state_machine_modeling/paper_stm_issue_discover/` |
+>
+> ⚠️ **Markdown 链接的 target 已经更新过**，点击可达；但**链接的显示文本仍是旧路径**。
+> 照显示文本手敲会走错，以上表为准。
+>
+> 复活说明见 [ARCHIVE_README.md](./ARCHIVE_README.md)。
+
 > **本文件目标**：任何新 Claude / codex session 进入 `dev/path2-differentiation` branch 后，按本指引可直接接管，把 Path 2 quick experiment 推进到 sprint 末。
 >
 > **前置阅读**：先读 [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则），再读本文件。
 >
-> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；archive/agent_loop_method/ + eval/ 全套实装完成，Phase H judge 跳过，5-intrinsic 简化为 4-intrinsic + 可选 audit-trail 抽查）
+> **版本**：v4（2026-05-27 — PR #11 共同基础落地后定稿；method/ + eval/ 全套实装完成，Phase H judge 跳过，5-intrinsic 简化为 4-intrinsic + 可选 audit-trail 抽查）
 
 ## 1. 路线定位
 
@@ -34,7 +51,7 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 **关键观察**：6 个 baseline 中，3 个已有 in-loop feedback（#2 llms_emp / #3 IEC 61499 / #6 ttool-ai）。"我们 first to do in-loop feedback" 不成立。但是：
 
 1. **没有任何 baseline 同时做 parse + semantic + sim 三路并列反馈**：llms_emp 只 a+b（grammar / semantics rule-based），ttool-ai 主要 a+b（JSON / syntax），IEC 61499 主要 c（simulation 但需人介入）。Path 2 sprint 做的是 parse + sem + sim 三路 + **scenariogen 自管 6-mutation 覆盖率自检** 作为 in-loop bug-finding probes，覆盖 syntax / semantics / executability / bug-detection 4 个正交维度。
-2. **没有任何 baseline 做 scenario-based mutation-aware bug-finding probes in loop**：PR #11 Phase E v3 (f) 实装的 `archive/agent_loop_method/scenariogen_validate.py` 在 scenariogen 之后自动对 model 应用 6 类典型 LLM bug 突变 (M1-M6) 跑 sim 自检覆盖率，覆盖率不足时 directive 反馈让 scenariogen 补 probes。这是工具链独有能力。
+2. **没有任何 baseline 做 scenario-based mutation-aware bug-finding probes in loop**：PR #11 Phase E v3 (f) 实装的 `method/scenariogen_validate.py` 在 scenariogen 之后自动对 model 应用 6 类典型 LLM bug 突变 (M1-M6) 跑 sim 自检覆盖率，覆盖率不足时 directive 反馈让 scenariogen 补 probes。这是工具链独有能力。
 3. **没有任何 baseline 做 speculative validation from runtime**：pyfcstm `SimulationRuntime` 在 execute transition 前 speculatively validate，其他工具链不给。
 4. **没有任何 baseline 做 fully automated control system NL-to-STM**：IEC 61499 是唯一做控制系统 + simulation feedback，但需要人类评论介入；其他 baseline 不做控制系统（家电 / domain model / 通用 reactive system / 系统级 spec）。
 5. **没有任何 baseline 提出 reference-free evaluation protocol**：所有 baseline 都依赖 reference STM 做 F1 评测。控制系统真实场景下不存在 canonical reference STM（同一需求可对应多个等价 STM），ref-based F1 在 construct level 就不成立。
@@ -64,9 +81,9 @@ Path 2 = **差异化路线**，主张：**在真实控制系统语料上跑出 i
 git branch --show-current
 # 应该输出: dev/path2-differentiation
 
-# 2. 确认 archive/agent_loop_method/ + eval/ 共同基础已 fork 自 main
-ls project_1_llm_state_machine_modeling/archive/agent_loop_method/ project_1_llm_state_machine_modeling/eval/ 2>/dev/null
-# archive/agent_loop_method/: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py scenariogen_validate.py
+# 2. 确认 method/ + eval/ 共同基础已 fork 自 main
+ls project_1_llm_state_machine_modeling/method/ project_1_llm_state_machine_modeling/eval/ 2>/dev/null
+# method/: agents/ feedback/ loop.py schema.py prompts/ gpt_client.py scenariogen_validate.py
 # eval/:   PROTOCOL.md extract/ annotate/ review/ aggregate.py report.py demo/ data/
 
 # 3. 确认 pyfcstm 已安装
@@ -82,7 +99,7 @@ python -c "from pyfcstm.simulate import SimulationRuntime; print('ok')"
 # 代码绝不直接读取 .env 文件本身，只读 os.environ
 [ -n "$LLM_ENDPOINT" ] && [ -n "$LLM_API_KEY" ] && [ -n "$LLM_MODEL" ] && echo "env ok"
 # 若 ok 不出现，shell 里跑：source .env  然后重试
-# 该 proxy 是 OpenAI-compatible，sprint 实验主路 (archive/agent_loop_method/loop) 走这一个 endpoint；
+# 该 proxy 是 OpenAI-compatible，sprint 实验主路 (method/loop) 走这一个 endpoint；
 # 切换 model 只改 LLM_MODEL 环境变量，不动 client 代码
 
 # 6. (可选) 确认评测 annotator CLI — 仅在跑 §6 audit-trail 抽查时需要
@@ -90,7 +107,7 @@ python -c "from pyfcstm.simulate import SimulationRuntime; print('ok')"
 which claude codex
 
 # 7. 查 sprint 进度
-cat project_1_llm_state_machine_modeling/archive/agent_loop_method/STATUS.md 2>/dev/null || echo "no STATUS yet"
+cat project_1_llm_state_machine_modeling/method/STATUS.md 2>/dev/null || echo "no STATUS yet"
 ```
 
 若 1-3、5 任一不通过，**停下来**，先确认 main 上 PR #11 是否已合入 + 本 branch 是否已 rebase 到 main — Path 2 branch 不应当独立做共同基础。第 6 步仅在跑可选 audit-trail 抽查时是阻塞条件。
@@ -135,7 +152,7 @@ columns:
 - meta: dict  # {domain, n_states_estimate, has_hierarchy, ...}
 ```
 
-## 4. archive/agent_loop_method/ 共同基础调用方式
+## 4. method/ 共同基础调用方式
 
 Phase 0-3 已在 main 上落地（PR #11 commit `ff1e90ff`），Path 2 sprint 跑两个 method 标签：
 
@@ -161,7 +178,7 @@ result = run_agent_loop(
 
 ### 4.2 `A_full_ours` — 我们的 full agent loop（无 judge）
 
-调用 archive/agent_loop_method/ 共同基础（与 Path 1 完全一致的接口）：
+调用 method/ 共同基础（与 Path 1 完全一致的接口）：
 
 ```python
 from archive.agent_loop_method.loop import run_agent_loop
@@ -182,7 +199,7 @@ result: AgentLoopResult = run_agent_loop(
 
 Path 2 特有：**不需要 reference**，evaluation 走 4-intrinsic（parse / sem / sim / reach）而非 component F1。可选 §6 audit-trail 抽查时使用 [`../eval/`](../../archive/path1_evaluation/) 基础设施做小规模 manual eval 校准。
 
-### 4.3 `archive/agent_loop_method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
+### 4.3 `method/gpt_client.py` 统一 LLM client（Phase 0 已实装于 PR #11）
 
 实验主路所有 LLM 调用（spec / model / repair / NL summary）**全部走这一个 client**。
 
@@ -191,7 +208,7 @@ Path 2 特有：**不需要 reference**，evaluation 走 4-intrinsic（parse / s
 **约束**：代码**绝不**用 `python-dotenv` 或其他方式直接读 `.env` 文件；只读 `os.environ`。运行前由 shell `source .env` 把三件套加载到环境变量。
 
 ```python
-# archive/agent_loop_method/gpt_client.py 骨架
+# method/gpt_client.py 骨架
 import os
 from openai import OpenAI
 
@@ -211,7 +228,7 @@ def get_default_model() -> str:
 
 > **proxy 模型覆盖说明**：当前 LLM_ENDPOINT 提供的 OpenAI-compatible 代理只挂 GPT 系列。cross-vendor sanity 跑 Claude 不在 sprint 范围。
 
-## 5. 实验脚本 `archive/agent_loop_method/run_path2.py`
+## 5. 实验脚本 `method/run_path2.py`
 
 CLI 接口（Phase 5 开工时由 Path 2 branch 实现，本指引固定接口规范）：
 
@@ -380,7 +397,7 @@ sprint Phase 7 收口前用此 checklist 核验：
 - [ ] `eval/results/sprint_path2/predictions.parquet` 已落盘，每条样本含 A0_baseline / A_full_ours 两行
 - [ ] `eval/results/sprint_path2/summary.json` 含 §7.2 全字段（4-intrinsic + 可选 audit-trail subset）
 - [ ] `paper_v1/PATH2_REPORT.md` 含 §8 全 8 节
-- [ ] `archive/agent_loop_method/STATUS.md` 更新 Path 2 进度行
+- [ ] `method/STATUS.md` 更新 Path 2 进度行
 - [ ] GitHub PR #10 已 update（PR 描述含 PATH2_REPORT 关键数字摘要）
 - [ ] Confounder 样本数 $\le$ 总样本数 30%
 
@@ -394,7 +411,7 @@ sprint Phase 7 收口前用此 checklist 核验：
 NL input (sources/ T0+🟢 case from real industrial control system paper)
       |
       v
-  [Multi-step Modeling]  走 archive/agent_loop_method/gpt_client.py (LLM_MODEL from env)
+  [Multi-step Modeling]  走 method/gpt_client.py (LLM_MODEL from env)
       |  6 步 MTI 流水 (identify_state → identify_event → identify_variable →
       |                identify_transition → identify_action → build_pyfcstm)
       v
@@ -413,7 +430,7 @@ NL input (sources/ T0+🟢 case from real industrial control system paper)
   feedback_bundle (JSON schema)
       |
       v
-  [Cascaded Repair]      走 archive/agent_loop_method/gpt_client.py
+  [Cascaded Repair]      走 method/gpt_client.py
       |  4 个 fix sub-prompt：fix_parse / fix_sem / fix_sim / fix_judge(占位)
       |  按 earliest-failing channel 路由 + 共享 pyfcstm grammar reference
       v
@@ -429,7 +446,7 @@ NL input (sources/ T0+🟢 case from real industrial control system paper)
 
 1. **MTI 6-step Multi-step Modeler**（PR #11 Phase F 实装）：NL → 6 步流水（identify_state → identify_event → identify_variable → identify_transition → identify_action → build_pyfcstm）→ pyfcstm DSL
    - **设计目的**：把"自由文本"压成 5 个结构化 list 后再 assemble DSL，避免单 prompt 直接面对控制系统 NL（含传感器 / 执行器 / 联锁 / 故障恢复等多重信息）时陷入语言细节歧义；与 sprint plan v3 "Spec-driven LLM" 概念一致
-   - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`archive/agent_loop_method/prompts/_pyfcstm_grammar.md`)
+   - **prompt 全英文**（paper 投稿英文，统一）；共享 pyfcstm grammar reference (`method/prompts/_pyfcstm_grammar.md`)
    - 替代方案 single_prompt（同代码内 `LoopConfig.modeling_mode="single_prompt"`）作 A0_baseline
 2. **ScenarioGen**（PR #11 Phase G+E v3 实装）：NL + 模型 → 多 step BDD scenarios + 6 mutation 覆盖率自检
    - **scenariogen self-validation**：scenariogen 后自动跑 6-mutation 覆盖率检查；任一类未被 catch → 用 `extra_directive` retry 直到覆盖

@@ -13,10 +13,31 @@
    评测协议、mutation 自校验思路、证据边界纪律），后续研究内容二/三/四以及
    第二篇论文都可能直接取用。删掉等于把这些资产连同复活可能性一起丢弃。
 
-补充一条现实提醒：**归档区不是纯死代码。**
-[path1_evaluation/](./path1_evaluation/) 与 [path1_path2_guides/](./path1_path2_guides/)
-仍被 `project_1_llm_state_machine_modeling/tests/` 里的活测试 import（见各自导引），
-所以改动它们会直接影响 CI。
+补充一条现实提醒：**归档区不是纯死代码，而且是三条路线全都不是。**
+`project_1_llm_state_machine_modeling/tests/` 下的活测试
+（[../tests/test_pyfcstm_feedback_migration.py](../tests/test_pyfcstm_feedback_migration.py)
+与 [../tests/helpers/path_branch_smoke.py](../tests/helpers/path_branch_smoke.py)）
+各有 5 行 import 横跨**三个**归档目录：
+
+| 归档目录 | 被 import 的模块 | 详见 |
+|---|---|---|
+| [agent_loop_method/](./agent_loop_method/) | `feedback.parse`、`feedback.semantic`、`agents.scenariogen.generate`（`_extract_model_elements`，私有符号） | [其导引 §1.5](./agent_loop_method/ARCHIVE_README.md) |
+| [path1_evaluation/](./path1_evaluation/) | `extract.pyfcstm`；另有测试**无条件读** `data/refs/` 与 `data/preds/` 下 4 份 JSON | [其导引 §2](./path1_evaluation/ARCHIVE_README.md) |
+| [path1_path2_guides/](./path1_path2_guides/) | `selection.ref_stms.verify_pyfcstm_static`（含 `_EXTERNAL_RE` / `_severity` 两个私有符号） | [其导引 §3](./path1_path2_guides/ARCHIVE_README.md) |
+
+⚠️ **别以为 `agent_loop_method/` 是例外**——历史版本的本节把它排除在外，是错的。
+改这三处任何一个的公开行为（乃至上述私有符号的名字）都会直接弄红 CI。
+
+复核命令：
+
+```bash
+grep -rn "archive\." project_1_llm_state_machine_modeling/tests/
+```
+
+⛔ 另有一条与"影响 CI"不同性质的风险：
+[path1_evaluation/demo/rerender_packs.py](./path1_evaluation/demo/rerender_packs.py)
+会**静默覆写人工签字**（已实际损坏过一次）。跑任何 `path1_evaluation` 的 demo 前，
+先读 [其导引 §4](./path1_evaluation/ARCHIVE_README.md) 开头那一节。
 
 ## 1. 三条路线一览
 
@@ -48,13 +69,33 @@
 
 不管哪条路线，都按同一顺序走，不要跳步：
 
-1. **读该路线的 `ARCHIVE_README.md`**（本文件表格第 6 列），先看「复活地雷」一节。
-   有些地雷（例如依赖 git 历史而非工作树）会让"看起来正常"的复活静默失败。
+1. **读该路线的 `ARCHIVE_README.md`**（本文件表格第 6 列），先看它的地雷一节
+   （`agent_loop_method` 是 §6「复活地雷」；`path1_evaluation` 是 §4 开头的
+   ⛔ 签字覆写警告；`path1_path2_guides` 是 §2 的死命令 + §6 的链接口径）。
+   有些地雷（例如依赖 git 历史而非工作树）会让"看起来正常"的复活静默失败；
+   还有一个（签字覆写）会**静默销毁不可再生的人工数据**。
 2. **确认 submodule 与依赖**：`git submodule update --init --recursive`，
    然后 `venv/bin/pip install -e ./pyfcstm`。当前 pin 为
    `901f30e981c29eb8e304b33d61985652d2e85b2e`（`v0.6.0-181-g901f30e9`）。
-3. **先跑离线 gate**（各导引给出具体命令），确认代码本身还能 import、还能过测试，
-   再考虑接真实 LLM。
+3. **先跑离线 gate**，确认代码本身还能 import、还能过测试，再考虑接真实 LLM。
+   ⚠️ 三条路线的 gate **不是各自目录下的 `tests/`**，别默认那样找：
+
+   | 路线 | 离线 gate | 实测基线（2026-08-11） |
+   |---|---|---|
+   | [agent_loop_method/](./agent_loop_method/) | 自己的 [tests/](./agent_loop_method/tests/) + 项目级 `tests/`，**两棵都要跑** | `2 failed, 414 passed`（那 2 个是**预期失败**，见其导引 §5）+ `40 passed` |
+   | [path1_evaluation/](./path1_evaluation/) | **自己的 `tests/` 是空的**，只能跑项目级 `tests/`（其中仅 4 个测试碰它） | `40 passed` |
+   | [path1_path2_guides/](./path1_path2_guides/) | 同上（其中 3 个测试碰它）；`verify_pyfcstm_static.py` 另可当 CLI 单跑 | `40 passed` |
+
+   项目级 gate 的通用命令（不联网、不需 `.env`、约 16 秒）：
+
+   ```bash
+   cd <repo root>
+   PYTHONPATH=project_1_llm_state_machine_modeling \
+     venv/bin/python -m pytest -q project_1_llm_state_machine_modeling/tests
+   ```
+
+   ⚠️ `40 passed` 只证明「代码没烂、路径没错」，**不证明任何一条流水线还能出数**——
+   各导引里都写了它验不到什么，先读那一节再决定要不要接 provider。
 4. **再接真实 provider**：shell 里 `set -a; source .env; set +a`。
    注意三条路线的 env 契约**不一样**——`agent_loop_method` 用 `LLM_*` 三件套，
    `path1_evaluation` 用 `CLAUDE_CMD` / `CLAUDE_MODEL` / `CODEX_CMD` / `CODEX_MODEL`
@@ -67,6 +108,11 @@
 1. 本文件：确认三条路线各是什么、纪律是什么、当前活代码在哪。
 2. 目标路线的 `ARCHIVE_README.md`：复活前置条件与地雷。
 3. 该目录**原有**的文档（`README.md` / `ARCHITECTURE.md` / `STATUS.md` / `PROTOCOL.md` 等）：
-   设计细节与历史 provenance。⚠️ 这些是**冻结时的原件**，其中的路径、模块名和命令
-   多数已随归档失效；各 `ARCHIVE_README.md` 里都有一节列出已知的文档腐烂项，
-   先读那一节再读原件。
+   设计细节与历史 provenance。⚠️ 这些是**冻结时的原件**，腐烂程度**三条路线不一样**，
+   别一概而论——各 `ARCHIVE_README.md` 的腐烂项一节写了各自的真实状态，先读那一节：
+
+   | 路线 | 原件当前状态 |
+   |---|---|
+   | [agent_loop_method/](./agent_loop_method/) | 路径与模块名**已同步改过**（可用）；**失准的是内容与数字**，尤其测试基线（原件写 `432 passed`，实际 416 collected）。见其 §7 |
+   | [path1_path2_guides/](./path1_path2_guides/) | Markdown 链接 **target 已全部改好、可点击**；⚠️ 但**显示文本仍是旧路径**（41 处），按文本手敲会走错；三份文件顶部各有换算 banner。见其 §6 |
+   | [path1_evaluation/](./path1_evaluation/) | `PROTOCOL.md` 的链接**已修好**；`README.md` 只有 1 个链接且可达，但它**正文里的裸命令**（`PYTHONPATH=. python eval/demo/run_demo.py` 一类）全部失效。见其 §6 |

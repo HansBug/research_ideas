@@ -1,5 +1,22 @@
 # `paper_v1/` — 第一篇论文工作区
 
+> 📌 **读这份文件前先看这里（2026-08-11 归档时添加）**
+>
+> 本文件是**冻结的历史指南**，正文与命令保留写作当时（2026 年 5–6 月）的目录名，**未作改写**——
+> 改动它们等于篡改当时的陈述。但那些目录后来搬过家，所以文中出现旧路径时按下表换算：
+>
+> | 文中写的 | 现在在哪 |
+> | :-- | :-- |
+> | `project_1_llm_state_machine_modeling/method/` | `project_1_llm_state_machine_modeling/archive/agent_loop_method/`（模块名同步变为 `archive.agent_loop_method.*`） |
+> | `project_1_llm_state_machine_modeling/eval/` | `project_1_llm_state_machine_modeling/archive/path1_evaluation/`（其中 `discover_matrix/` 去了 `paper_stm_issue_discover/`） |
+> | `project_1_llm_state_machine_modeling/paper_v1/` | 就是本目录 `archive/path1_path2_guides/` |
+> | `project_1_llm_state_machine_modeling/paper_stm_repair/` | `project_1_llm_state_machine_modeling/paper_stm_issue_discover/` |
+>
+> ⚠️ **Markdown 链接的 target 已经更新过**，点击可达；但**链接的显示文本仍是旧路径**。
+> 照显示文本手敲会走错，以上表为准。
+>
+> 复活说明见 [ARCHIVE_README.md](./ARCHIVE_README.md)。
+
 ## 0. 2026-06-12 后当前第一篇新主线入口
 
 > **重要更新**：2026-06-12 导师讨论后，本目录保留为 2026-05 Direction-Decision Sprint / Path-1 / Path-2 历史工作区。第一篇论文主线已经从早期 Path-1 hard comparison / `NL -> STM` 生成口径，转向 **`<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动状态机修正任务**。当前新主线入口请读 [../paper_stm_repair/README.md](../../paper_stm_issue_discover/README.md)；本目录旧 `NL -> STM` / hard comparison 口径不再作为当前第一篇事实真源。
@@ -20,7 +37,7 @@
 
 本目录**当前阶段**（2026-05-26 起 30 小时窗口）承担的核心任务是：
 
-1. 在 main 分支稳定 `archive/agent_loop_method/` 共同基础（agent loop + pyfcstm 反馈 + ex1 judge）
+1. 在 main 分支稳定 `method/` 共同基础（agent loop + pyfcstm 反馈 + ex1 judge）
 2. fork 两个 branch（`dev/path1-hard-comparison` / `dev/path2-differentiation`）
 3. 各自跑 quick experiment 产出决策证据
 4. 提两个 PR 不合并，等用户综合判断后选定方向
@@ -61,8 +78,8 @@ paper_v1/
 3. 根据当前所在 branch 选读：
    - 若在 `dev/path1-hard-comparison`：读 [PATH1_HARD_COMPARISON_GUIDE.md](./PATH1_HARD_COMPARISON_GUIDE.md)
    - 若在 `dev/path2-differentiation`：读 [PATH2_DIFFERENTIATION_GUIDE.md](./PATH2_DIFFERENTIATION_GUIDE.md)
-   - 若在 `main`：两份 GUIDE 都读，但**只能动 `archive/agent_loop_method/` 共同基础**，不能动 path 特有的 evaluation 代码
-4. `archive/agent_loop_method/STATUS.md`（如果存在，查 sprint 当前进度）
+   - 若在 `main`：两份 GUIDE 都读，但**只能动 `method/` 共同基础**，不能动 path 特有的 evaluation 代码
+4. `method/STATUS.md`（如果存在，查 sprint 当前进度）
 
 ## 5. 与 project_1 其他目录的关系
 
@@ -82,7 +99,7 @@ Sprint 阶段所有 LLM 调用统一走仓库根 `.env`（已 gitignore）中的
 
 **运行前必须 shell `source .env`**；代码**绝不直接读** `.env` 文件，只读 `os.environ`。切换模型（GPT-5.5 → GPT-5.4 → Claude → Qwen → DeepSeek）只改 `LLM_MODEL` + 重新 source，代码不动。
 
-`archive/agent_loop_method/gpt_client.py` 是 sprint 中唯一允许实例化 OpenAI-compatible client 的位置；所有 agent / baseline replication 都 inject 这个 client。
+`method/gpt_client.py` 是 sprint 中唯一允许实例化 OpenAI-compatible client 的位置；所有 agent / baseline replication 都 inject 这个 client。
 
 详细约束见 [PATH1_HARD_COMPARISON_GUIDE.md §4.2a](./PATH1_HARD_COMPARISON_GUIDE.md#42a-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0) 与 [PATH2_DIFFERENTIATION_GUIDE.md §4.3](./PATH2_DIFFERENTIATION_GUIDE.md#43-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0)。
 

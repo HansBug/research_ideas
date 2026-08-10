@@ -2,7 +2,7 @@
 
 ## 为什么需要这条测试
 
-台账（`eval/discover_matrix/manual_review/expected_issue_set.json`）是判定的**参照物**，我下意识把它当成
+台账（`paper_stm_issue_discover/discover_matrix/manual_review/expected_issue_set.json`）是判定的**参照物**，我下意识把它当成
 固定的。但它的 `measured_by_batch` 字段是**用谓词实测出来的** —— 谓词语义一改，它就可能过期。
 
 2026-08-07 修 `_occupies` 的窗口起点时，我查过「改动是否正确」（双侧测试）、「改动是否有效果」（噪声底），

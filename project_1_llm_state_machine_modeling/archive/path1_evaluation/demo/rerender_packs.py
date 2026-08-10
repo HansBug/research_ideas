@@ -3,6 +3,16 @@
 用于：调整 markdown 排版 / 增减字段（如本次新增 NL 原文 + ref/pred 模型全文）后，
 不浪费 token 重新生成 packs。
 """
+
+# ⛔ 危险：本脚本会**覆写** `review/packs/` 下的评审包，其中包含**人工签字**
+# （`- [x] 采纳 Claude` / `- [x] 采纳 gpt-5.5` 形式的勾选）。重渲染会把已勾选
+# 回退成未勾选，且不提示、不备份 —— 签字是人做的判断，脚本无从恢复。
+#
+# 2026-08-11 的一次归档审计照 README 跑了它一次，6 行签字被清空，靠 `git checkout` 才复原。
+#
+# 跑它之前：确认 `git status` 干净，跑完用 `git diff` 逐行看清改了什么；
+# 只要看到 `- [x]` 变 `- [ ]`，一律 `git checkout --` 回滚，不要提交。
+
 from __future__ import annotations
 
 import json

@@ -12,7 +12,7 @@ BASE="${BASE:-$REPO/runs/paper1/matrix-v22}"
 # claims to be pre-registered. See `run_grid.py`.
 # `CORPUS=1` 取全语料（54 pair）。它是**显式**来源，不进 run_grid 的自动优先级 —— 见该模块
 # docstring：把语料放进自动链，会让一个没有 runs 的 checkout 静默宣称全语料就是格集。
-RG="$REPO/project_1_llm_state_machine_modeling/eval/discover_matrix/run_grid.py"
+RG="$REPO/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/run_grid.py"
 read -r -a PAIRS <<< "$("$REPO/venv/bin/python" "$RG" ${CORPUS:+--corpus} ${GRID:+--grid "$GRID"})"
 [ "${#PAIRS[@]}" -gt 0 ] || { echo "refusing to run: could not determine the grid" >&2; exit 1; }
 echo "grid: ${#PAIRS[@]} pairs -- ${PAIRS[*]}"
