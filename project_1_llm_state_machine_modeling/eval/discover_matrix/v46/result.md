@@ -27,17 +27,6 @@ GitHub PR（CLAUDE.md §9）。
 PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分缺陷模型与忠实模型。
 逐位清单见 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。
 
-📌 **第三条通道（本代次结果产出后才定位，已在代码侧关闭）**：pydantic 会把**类 docstring**
-折进 `model_json_schema()`，经 `get_format_instructions()` 进入需求拆分器的 system prompt。
-`schemas.py` 中三个类的 docstring 曾含设计依据性文字（含跨代次的谓词形成率一类聚合观察），
-因此进入过该 prompt。边界：只影响 `RequirementSet` 一棵树，`AssertionScript` /
-`RequirementReview` / `AssertionReview` 未受影响；文本**不含任何 pair 标识、台账记录 id 或
-逐样本答案**，是聚合量而非样本级信息。现已把这些文字移出 docstring（改为 `#:` 注释，pydantic
-不读），复扫全部 pydantic 模型的 `format_instructions` 无残留。**该通道计入上界的理由与前两条
-相同：它使 `hit@k` 只能作为上界读。**
-
-⛔ **这是上界，不是区间估计。** 已知扣除项有两档：仅靠变量缺失成立的 10 位 → `345/588 = 58.7%`；引用了变量缺失的全部 51 位 → `304/588 = 51.7%`。此外**谓词拒答文案**那条通道尚未量化，命中侧的表示债务审计亦未做。因此可写的只有 `hit@1 ≤ 60.4%`，真实下界未知。
-
 📌 **另一条不经 prompt 的通道**：谓词拒答文案会进入生成者的下一轮上下文。实测
 `predicate_api.py:1524` 的 `UnsupportedEvidence` 原文——「variable 'uav_count' is not
 observable in the simulation state. **If the NL requires a quantity this model has no variable

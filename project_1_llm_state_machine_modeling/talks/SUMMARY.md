@@ -4,8 +4,8 @@
 
 | 字段 | 当前状态 |
 |---|---|
-| 正式导师讨论记录数 | 3 |
-| 最近更新时间 | 2026-07-07 15:17:40 |
+| 正式导师讨论记录数 | 3（另收 1 篇实验结论记录，见 §2） |
+| 最近更新时间 | 2026-08-10 22:30:00 |
 | 当前第一篇论文主倾向 | source-level behavioral issue discovery and closure / discover-and-refine loop |
 | `NL -> STM` 定位 | seed construction / baseline source / related work，不再作为第一篇主贡献 |
 | `fcstm` / `pyfcstm` 定位 | intermediate semantic representation / executable medium，只服务 diagnostics / simulation / verification / refinement，不作为 paper1 contribution |
@@ -21,6 +21,7 @@
 
 | 日期 | 记录 | 核心结论 | 状态 |
 |---|---|---|---|
+| 2026-08-10 | [2026-08-10-实验-v46全量矩阵双侧结论.md](./2026-08-10-实验-v46全量矩阵双侧结论.md) | **实验结论记录，非导师意见。** 一次完整实验 324 格：覆盖侧 `hit@1` 355/588 = 60.4%（**必须标为上界**）、`hit@3` 70.9%、`hit@all` 48.5%；多报侧 288 条目 / 124 去重，**最大成分 46.5% 是 PlantUML → FCSTM 的编译损失而非模型缺陷**，相对台账净增量仅 2 条。两条机制性结论：合式性层比 NL 点名层低 22.4pp（流水线只有 NL 驱动一个入口）；命中呈双峰分布（37 满格 / 23 零命中），`hit@3` 与 `hit@all` 差 22.4pp 说明瓶颈在稳定性。 | 🟢 |
 | 2026-07-07 | [2026-07-07-导师-paper1发现修正与BetterSTM归档.md](./2026-07-07-导师-paper1发现修正与BetterSTM归档.md) | 第一篇不再以 Better STM / which STM is better 作为 active 评价框架，转向 source-level behavioral issue discovery and closure；`fcstm` 下沉为中间语义执行介质；R5.7 / Better STM-facing 资产应全量归档；baseline 按问题发现、已知问题修复 / 精化、黑盒端到端三层重排。 | 🟢 |
 | 2026-06-12 | [2026-06-12-导师-两篇论文转向与模型修正定调.md](./2026-06-12-导师-两篇论文转向与模型修正定调.md) | 第一篇从 `NL -> STM` 生成转为 `<NL, STM_0> -> STM_k / Better STM` 的无人化反馈驱动修正；`fcstm` / DSL 继续弱化为内部载体；baseline 转为 seed/source/converter/comparison；第二篇转向 agent-based SLR 方法学。其中 Better STM active framework 已被 2026-07-07 记录覆盖，但转向已有模型反馈修正、弱化 DSL、baseline 角色重排等背景仍有效。 | 🟡 |
 | 2026-06-04 | [2026-06-04-导师-第一篇论文路线与E1E2定位.md](./2026-06-04-导师-第一篇论文路线与E1E2定位.md) | 第一篇更倾向 Path-1；Path-2 可拆成另一篇；E1/E2 是同一底座在自建 agent-loop 与成熟 agent 框架下的实验对照；弱化 `fcstm` 名称仍有效，但第一篇主任务边界已被 2026-06-12 和 2026-07-07 记录连续更新。 | 🟡 |

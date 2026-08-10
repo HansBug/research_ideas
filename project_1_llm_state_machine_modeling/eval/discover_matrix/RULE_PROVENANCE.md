@@ -39,8 +39,13 @@ UML 规范条款。
 条目 ID（`EXP-0000-IT-001`）、语料统计（"51 of 219 False results"、"704 bindings across 58 of the 60
 pairs"、"22 of the corpus's 169 composites"）。
 
-这不是泄漏进实验（已查：无 `__doc__`/`inspect.getsource` 用法，8 个探针在 66 格 record 中全部 0 命中），
-但它污染规则编写侧。
+⛔ **判断某段文本是否进入实验，不能只 grep `__doc__` / `inspect.getsource`。**
+pydantic 会把类 docstring 折进 `model_json_schema()`，而结构化输出的 schema 契约正由它生成——
+这条通道在源码里搜不到，它在库内部。**因此：凡是 schema 类的 docstring，一律视同 prompt 文本；
+普通函数/模块的 docstring 与 `#:` 注释不进 payload。**
+
+判定方式只有一种可靠：**在末端拦截真实 payload**（system message 全文 + tool schema），
+逐条扫描，而不是静态推断。除此之外的结果邻接文本污染的是规则编写侧，不是实验侧。
 
 **用途限制（推导者必须遵守并自查）**：
 
