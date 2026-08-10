@@ -29,6 +29,14 @@ PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失
 
 **下界**：扣掉那 10 位，`hit@1` 为 350/588 = **59.5%**。真值落在 **[59.5%, 61.2%]** 之间。
 
+📌 **另一条不经 prompt 的通道**：谓词拒答文案会进入生成者的下一轮上下文。实测
+`predicate_api.py:1524` 的 `UnsupportedEvidence` 原文——「variable 'uav_count' is not
+observable in the simulation state. **If the NL requires a quantity this model has no variable
+for, assert that variable's existence as a `precondition`**」——出现在 `run1/0006-claude` 的
+`findings` 里，而 `EIS-0006-02` 是 6/6。它交出的不是元素名（那是生产者自己先绑的），是
+**极性**与**「把它发布出去」的指示**。计入上界的理由与变量缺失同源，故上界应按两条通道
+一起读，而不是只按 `variable_declared` 一条。
+
 📌 **351 与 360 的换算**：人工表覆盖 594 位中的 575 位，含 351 个命中判定；其中 6 位属被剔出
 分母的 `EIS-0043-02`，故分母内 345；另有 15 个命中位无人工条目，`345 + 15 = 360`。上界性的
 量化以 351 为分母，因为只有人工表带逐位 `argument`。
