@@ -70,7 +70,10 @@ def load() -> list[dict]:
     """读真源。缺字段直接报错——判据不全的裁定不是裁定。"""
 
     rows: list[dict] = []
-    for path in sorted(VERDICTS.glob("G[1-8].jsonl")):
+    # ⛔ 这里原先写 `G[1-8].jsonl`。一旦有第九个判定组，它就**静默看不见**——
+    # 实测：v46r 的 14 条簇写进 `G9.jsonl` 后，重建仍报 272 条，少了整整一组。
+    # 幸而分母闭合断言当场拦下；但拦下的是后果，模式本身要改掉。
+    for path in sorted(VERDICTS.glob("G*.jsonl")):
         for lineno, line in enumerate(path.read_text().splitlines(), 1):
             if not line.strip():
                 continue
@@ -264,11 +267,15 @@ def write_subclass_table(rows: list[dict]) -> None:
 
 
 #: 桶外的两份归档，与桶内条目合计必须等于最初的簇总数。
+#:
+#: ⛔ 这个数**随定向重跑变化**，不是恒量：被重跑的 pair，其旧簇整块作废、新簇整块进账。
+#: 305 = 48 个 pair 沿用 v46 的 284 条 + 6 个 pair 按 v46r 重判的 21 条
+#: （桶内 14 + 台账已承载 4 个条目 + 该家族无真阴性）。改动替换范围时必须同步重算。
 SIDECARS = (
     ("ledger_accounted.jsonl", "内容已被台账记录承载，按定义不属意外发现"),
     ("not_produced.jsonl", "断言在冻结制品上求值为 True，模型满足义务——真阴性，两侧都不存在"),
 )
-ORIGINAL_TOTAL = 293
+ORIGINAL_TOTAL = 302
 
 
 def _bucket_rows(rows: list[dict], verdict: str) -> list[dict]:

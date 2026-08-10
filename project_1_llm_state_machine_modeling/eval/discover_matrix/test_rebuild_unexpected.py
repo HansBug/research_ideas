@@ -234,6 +234,28 @@ def test_every_cross_table_is_machine_generated(wired: pathlib.Path) -> None:
     assert "不要手工编辑" in text
 
 
+def test_a_ninth_judging_group_is_not_silently_invisible(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """真源的文件名模式不许把某一组排除在外。
+
+    原先写的是 `G[1-8].jsonl`。v46r 的 14 条簇写进 `G9.jsonl` 后，重建**静默**少读了
+    整整一组——闭合断言拦下了后果，但模式本身才是缺陷：判定组数量本就会随代次增长。
+    """
+
+    verdicts = _seed(tmp_path, [_rec("0017-1", "VALID_UNRECORDED")], sidecars=False)
+    (verdicts / "G9.jsonl").write_text(json.dumps(_rec("0029-1", "NO_NL_BASIS"), ensure_ascii=False))
+    (verdicts / "ledger_accounted.jsonl").write_text(
+        "\n".join('{"x":1}' for _ in range(R.ORIGINAL_TOTAL - 2)))
+    (verdicts / "not_produced.jsonl").write_text("")
+    monkeypatch.setattr(R, "VERDICTS", verdicts)
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    assert R.main([]) == 0
+    clusters = {row["cluster"] for row in csv.DictReader(
+        (verdicts / "cluster_index.tsv").open(), delimiter="\t")}
+    assert clusters == {"0017-1", "0029-1"}, "G9 被漏读了"
+
+
 def test_closure_is_asserted_not_narrated(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

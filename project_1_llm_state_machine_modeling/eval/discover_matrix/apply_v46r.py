@@ -121,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"v46r 簇里有不属于这六个 pair 的：{bad}")
     removed = 0
     rewritten: dict[pathlib.Path, list[str]] = {}
-    for path in sorted(VERDICTS.glob("G[1-8].jsonl")):
+    for path in sorted(VERDICTS.glob("G*.jsonl")):
         keep = []
         for line in path.read_text().splitlines():
             if not line.strip():
