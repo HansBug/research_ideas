@@ -295,7 +295,7 @@ def write_tables(rows: list[dict]) -> None:
         "# v46 多报侧全量统计表", "",
         "⚠️ **本文件整份由 `unexpected_verdicts/G*.jsonl` 生成**"
         "（`../rebuild_unexpected.py`）。**不要手工编辑**，也不要在别处保存这些表的副本——",
-        "副本与真源分岔过一次，代价是同一目录内两份文件对净增量给出 1 与 4 两个互斥答案。", "",
+        "手工副本无法随裁定变更同步，会让同一目录内出现两个互斥的答案。", "",
         "裁定口径见 [UNEXPECTED_TAXONOMY.md](../UNEXPECTED_TAXONOMY.md)，"
         "逐簇判据见 [unexpected_evidence.md](./unexpected_evidence.md)。", "",
         "---", "", "## 表 0　分母闭合", "",

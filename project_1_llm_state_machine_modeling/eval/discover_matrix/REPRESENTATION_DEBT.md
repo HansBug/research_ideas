@@ -88,7 +88,7 @@ R4.5 的做法是把整段文本清洗成一个合法标识符充当事件名。
 [unexpected_tables.md](./v46/unexpected_tables.md) 表 2；判类规则见
 [UNEXPECTED_TAXONOMY.md](./UNEXPECTED_TAXONOMY.md) §2。
 
-### 例 1：析取守卫 → 一个事件名（`D1`，57 簇 / 7 处，最大一块）
+### 例 1：析取守卫 → 一个事件名（`D1`，规模见 [表 2](./v46/unexpected_tables.md)，最大一块）
 
 `llms_emp_feedback_final_0029/stm0.puml:33`，作者原文：
 
@@ -109,7 +109,7 @@ event pedestrian_detected_dist_to_rear_5_vel_30_dist_to_front_15_in_highway_dist
 discover 于是报告「四个激活源被压成一个融合事件，模型无法只凭检测到行人激活」。
 **这句话对 `model.fcstm` 字字属实，对作者的建模完全冤枉。**
 
-### 例 2：变量 → 烧进事件名（`D2`，49 簇 / 11 处）
+### 例 2：变量 → 烧进事件名（`D2`，规模见 [表 2](./v46/unexpected_tables.md)）
 
 **PlantUML 没有变量声明语法**——无法写 `int front_distance;`，量只能写进守卫文本。
 0000 的作者写 `front_distance > 10`，下沉后成为 `event front_distance_10 named "front_distance > 10"`。
@@ -120,7 +120,7 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 ——33 份的唯一 `def` 是转换器注入的 `R45RouteToken`，另 27 份连一行 `def` 都没有，
 **作者变量 0/60**。即它在本语料上不携带任何判别信息。
 
-### 例 3：`trigger / effect` 焊死（`D3`，18 簇 / 4 处）
+### 例 3：`trigger / effect` 焊死（`D3`，规模见 [表 2](./v46/unexpected_tables.md)）
 
 作者写 `Attacking --> SearchMission : Attack Finished / Decrease UAV swarm count`。
 UML 记法里 `/` 前是触发、后是效果，**作者分得清清楚楚**。下沉未切分 `/`，
@@ -288,7 +288,7 @@ UML 记法里 `/` 前是触发、后是效果，**作者分得清清楚楚**。�
 **参与度量的台账记录中，是否有记录本身编码的是编译产物？** 若有，则相应的「命中」是命中在
 债务上，`hit@k` 的分子分母同时失真。
 
-**规模已量化**：全部 **351 个命中位**中，**51 位（14.5%）**的判据里引用了「变量未声明」，
+**规模已量化**：人工表覆盖的 **351 个命中位**（分母内 345 位 + 剔出分母的 `EIS-0043-02` 六位）中，**51 位（14.5%）**的判据里引用了「变量未声明」，
 其中 **10 位（2.8%）**不依赖任何其它事实——即该命中完全建立在这一条上。逐位清单见
 [variable_grounded_hits.json](./v46/verdicts/variable_grounded_hits.json)。
 

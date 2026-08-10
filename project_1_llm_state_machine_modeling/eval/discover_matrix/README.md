@@ -32,14 +32,29 @@ v46 的八个独立判定组里，只有回读了作者源的那一组识别出�
 - `audit_v4.py` —— `build_gist.py` 的两个依赖：`_walk`（按键名递归取值，因为不同节点把同名字段写在不同深度）与 `_segment_macro_sources`（从 frozen trace 的排除表反推被转换器拆成多段的源迁移）。
 - `launch_cells_serial.sh` —— 串行启动单元格的历史脚本，保留作参考。
 
-## 预期缺陷台账：已丢失，已重建，已校准
+## 预期缺陷台账：原件，已校验
 
-命中判据需要 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`。该文件从未被 git 跟踪，已在 2026-07-29 重装中丢失，且无法从已发布的 bundle 恢复—— bundle 保留了判定结果，没保留判据所解析的 `eval_assert` 原文。
+命中判据读 `.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json`。
+当前装着的是**原件**：370994 字节，SHA-256
+`03d8756650c079229dacb7fc2d7700ca98fda44f3c4648fd308e4f8e24ac955e`，与 issue #166 正文
+「机器总账 SHA-256」逐字符一致；来源记录见同目录 `PROVENANCE.md`，找回过程见
+[HIT_CRITERION.md](./HIT_CRITERION.md) §7。
 
-- `expected_issues_reconstructed.json` 是重建物，覆盖 8 格矩阵用到的 4 对。权威内容来自 issue #166（它对这 4 对的记录与丢失台账逐项一致）；机器可核验的路径集是对着各 pair 自己的 `fcstm.fcstm` 解析出来的，每条都附上它所指的缺陷边原文。`EXP-0006-EA-001` 的 `eval_assert` 是**原件**（在会话记录里幸存），其余四条是重建。
-- **重建物不以"看起来合理"被接受。** `test_ledger_reconstruction.py` 要求它在 matrix-v11（最后一次在真台账下产出的矩阵）上复现该台账给出的 12 条判定、其中 10 条命中。判据对"某条预期缺陷究竟点名了哪些路径"高度敏感——无触发事件时要求状态**全匹配**，多列一个状态就会把真命中判成漏。0029 的结构缺陷正是这种情形：#166 描述为三个兄弟状态，而 v11 的命中项只绑定了两个。
-- `calibration_matrix_v11.json` 保存该校准所需的输入。运行目录按设计不被跟踪，上一个已经丢了，所以校准的输入必须自己留一份。
-- 真台账一旦恢复即自动优先（`_expected_ledger_path()`），且所用来源会写入每个审计制品的 `expected_ledger_provenance` 字段——命中率是头号数字，读者必须能自己看出它是不是建立在重建物上，而不是听谁说。
+复核命令：
+
+```bash
+L=../../../.omx/specs/autoresearch-paper1-llms-emp-60-expected-issues/ledger.json
+wc -c "$L" && sha256sum "$L"
+```
+
+- 该文件**不被 git 跟踪**（体积与来源所限），所以每台机器都要自己装一份并核 SHA。
+  它丢失过一次（2026-07-29 重装），因此这条校验不是形式主义。
+- `_expected_ledger_path()` 优先取原件；实际所用来源写入每个审计制品的
+  `expected_ledger_provenance` 字段——命中率是头号数字，读者必须能自己看出它建立在
+  什么之上，而不是听谁说。
+- `expected_issues_reconstructed.json` 与 `calibration_matrix_v11.json` 是原件缺席时的
+  退路（覆盖 8 格矩阵用到的 4 对），`test_ledger_reconstruction.py` 要求它在 matrix-v11
+  上复现该台账给出的 12 条判定、其中 10 条命中。**v46 未使用退路**。
 
 ## v46 全量矩阵（2026-08）
 
@@ -54,3 +69,20 @@ v46 的八个独立判定组里，只有回读了作者源的那一组识别出�
 
 派生物由 [rebuild_unexpected.py](./rebuild_unexpected.py) 从 `v46/unexpected_verdicts/G*.jsonl`
 一键重建（`--check` 可用于 CI）。
+
+## 历代材料索引
+
+事前登记与历代分析结果不被正文引用，但删不得——事前登记的全部价值来自它写在运行之前。
+
+| 文件 | 内容 |
+| :-- | :-- |
+| [V40_PREREGISTERED.md](./V40_PREREGISTERED.md) ｜ [V41](./V41_PREREGISTERED.md) ｜ [V43](./V43_PREREGISTERED.md) ｜ [V44](./V44_PREREGISTERED.md) ｜ [V45](./V45_PREREGISTERED.md) ｜ [v46](./v46/preregistered.md) | 各代次事前登记（判据、达标档位、回归红旗） |
+| [V23_MOTIVE_AUDIT.md](./V23_MOTIVE_AUDIT.md) | 引入动机溯源——泄漏审查（CLAUDE.md §3.5.-1）的材料 |
+| [V24_REPORT_DETERMINED.md](./V24_REPORT_DETERMINED.md) | v24 与判定无关的已定部分 |
+| [V25_ABLATION_RESULT.md](./V25_ABLATION_RESULT.md) | 判定装置消融结果 |
+| [OVERREPORT_ADJUDICATION_V23.md](./OVERREPORT_ADJUDICATION_V23.md) | v22 数据的多报核验 |
+| [OBLIGATION_SOURCE_GAP.md](./OBLIGATION_SOURCE_GAP.md) | `wellformedness` 漏检的构造性根因 |
+| [DENOMINATOR_EXHAUSTION.md](./DENOMINATOR_EXHAUSTION.md) | ⛔ hold-out 时代，结论已作废，仅供追溯 |
+
+⛔ 纯施工台账（进度、试跑计划、变更清单、已撤销提案）不入库——它们属 GitHub PR / issue，
+见 [CLAUDE.md](../../../CLAUDE.md) §9。

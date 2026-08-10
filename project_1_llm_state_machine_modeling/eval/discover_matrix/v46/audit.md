@@ -10,7 +10,8 @@
 | 运行代码 | `ca41369e46c09eafe6bfbfe64c3754b02c6d8fee` | `CODE_VERSION.txt`，`written_before_launch: yes` |
 | 该 commit 是否在远端 | 是 | `git branch -r --contains ca41369e` |
 | 启动时 `src` 脏改动 | **0 files** | `CODE_VERSION.txt` |
-| `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订；**v46 数据不受影响**（受影响断言在冻结制品上的对照已核，裁定不变）。**复现 v46 须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
+| `ca41369e` 之后 `src` 的变更 | `predicate_api.py` 的 `persists_until` / `stays_in` 有语义修订。**覆盖侧 588 位不受影响**（命中判定读的是产出文本与台账，不重新求值断言）；**多报侧分母受影响**，见下一行。**复现该 324 格运行须 `git checkout ca41369e`** | `git log ca41369e..HEAD -- .../feedback_loop/src/` |
+| 多报侧分母的求值口径 | 桶内 278 而非 280：`0044-2` 与 `0054-1` 的断言按**当前**谓词语义在冻结制品上求值为 **True**（模型满足该义务），属真阴性、两侧都不存在，记于 [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl)。**复现该判定须当前 HEAD，不是 `ca41369e`。** 这是一次运行后的口径变更，方向是缩小多报侧分母（对我们不利的方向） | `not_produced.jsonl` 的 `assertion` / `value_on_frozen_artifact` 字段逐条可复算 |
 | 网格 | 54 pair × 2 模型 × 3 轮 = 324 | `GRID.txt`，含 `00x8`: 无 |
 | 启动时刻 | `2026-08-09T20:09:52Z` | `WALLCLOCK.txt` |
 | 完成时刻 / 墙钟 | `2026-08-10T03:15:41Z` / **7h05m49s** | 同上 |
@@ -67,6 +68,9 @@ boundary_rationale: 唯一容器为真正 PlantUML 正交区者；按正交语�
 ⚠️ **上表的 `hit@k` 只能作为上界读。** 多报侧已做表示债务审计（§6），**命中侧的对称审计
 尚未做**（[REPRESENTATION_DEBT.md](../REPRESENTATION_DEBT.md) §4.7）。已量化的规模：
 **351 个命中位中 51 位（14.5%）在判据里引用「变量未声明」，其中 10 位（2.8%）不依赖
+（**351 与 360 的差**：人工表覆盖 594 位中的 575 位、含 351 个命中判定，其中 6 位属被剔出分母的 `EIS-0043-02`，故分母内为 345；另有 15 个命中位无人工条目，345 + 15 = 360。上界性的量化用人工表的 351 作分母，因为只有它带逐位 `argument`。）
+
+**下界**：扣掉那 10 位仅靠变量缺失成立的命中，`hit@1` 为 350/588 = **59.5%**。真值落在 [59.5%, 61.2%] 之间。
 其它事实**。PlantUML 无变量声明语法、作者变量全语料 0/60，故「变量缺失」本身不能区分
 缺陷模型与忠实模型。逐位清单见
 [verdicts/variable_grounded_hits.json](./verdicts/variable_grounded_hits.json)。

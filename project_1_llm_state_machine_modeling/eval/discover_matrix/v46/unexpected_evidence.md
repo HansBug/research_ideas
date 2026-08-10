@@ -10,8 +10,8 @@
 | :-- | --: |
 | ✅ 真漏记 | 1 |
 | ⚙️ 表示债务 | 129 |
-| 📄 无 NL 依据 | 116 |
-| ❌ 假阳性 | 22 |
+| 📄 无 NL 依据 | 115 |
+| ❌ 假阳性 | 23 |
 | 🚫 越界 | 10 |
 | **合计** | **278** |
 
@@ -613,13 +613,13 @@
 
 - **事实**：根级初始边指向 PoweredOn 而非 Operate 属实，但同一份 NL（md5 c74d44e9）下 6 个作者**全部**加了顶层前置态：0003 PoweredOff、0012 Off、0032 OffState、0042 Off、0052 Off、0022 PoweredOn，无一直连 Operate
 - **NL**：NL 1「Once the device is powered on, the system enters the Operate state」+ NL 2 的 start 与 keyOff——参考读法是「上电→前置态→start→Operate」，NL 不要求根初始直指 Operate
-- **说明**：残留的只是命名保真度瑕疵（叫 PoweredOn 却仍需 start），属 S 层一个名字的措辞，不构成元素级缺陷。另：同组 0022-1 已判 FALSE_POSITIVE，理由是「NL 1 的 powered on 与 NL 2 的 start 指同一刺激」，而原 0022-2 的成立前提恰是把两者当两个刺激——同一文件不能既判 A 又判 ¬A，此矛盾随本次推翻消解。⚠️ 不判 FALSE_POSITIVE：事实在制品上为真，不符合「主张与制品相反」的定义。
+- **说明**：残留的只是命名保真度瑕疵（叫 PoweredOn 却仍需 start），属 S 层一个名字的措辞，不构成元素级缺陷。⛔ 不判 FALSE_POSITIVE：事实在制品上为真，不符合「主张与制品相反」的定义。与同组 0022-1 的一致性：那条判 FALSE_POSITIVE 的理由是「NL 1 的 powered on 与 NL 2 的 start 指同一刺激」，本条据同一读法成立——两者不冲突。
 
 **0022-3** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `state_declared` ｜ 判定组 G5
 
 - **事实**：PoweredOn 是根下顶层状态属实；但 6/6 同组作者均有此形态，非 0022 独有的自增结构
 - **NL**：NL 1/2 的参考读法含前置态
-- **说明**：与 0022-2 同源，一并推翻。原援引的 EIS-0046-03 类比不成立——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，start 是 NL 2 逐字点名的。
+- **说明**：与 0022-2 同源：6/6 同组作者均有此形态。EIS-0046-03 不构成类比——那条是「额外增加 Idle 态**与 Start Mission 事件**」，而 0022 未增加任何事件，`start` 是 NL 2 逐字点名的。
 
 ## pair 0023 — 9 簇　`越界×6 无×3`
 
@@ -1373,7 +1373,7 @@
 - **NL**：NL 2
 - **说明**：roll-up。
 
-## pair 0049 — 25 簇　`表示债务×14 无×11`
+## pair 0049 — 25 簇　`表示债务×14 无×10 假阳性×1`
 
 **0049-1** ｜ ⚙️ 表示债务 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1429,11 +1429,11 @@
 - **NL**：NL 13
 - **说明**：同 0049-2。
 
-**0049-10** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
+**0049-10** ｜ ❌ 假阳性 ｜ 1/6 格 ｜ `event_declared` ｜ 判定组 G2
 
 - **事实**：model.fcstm:5 `event dist_to_front_25 named "dist_to_front>=25";` —— 比较符在编译产物里逐字保留，与作者源 stm0.puml:10 `enter_hwy --> cruise : dist_to_front>=25` 完全一致；互补分支同样在场：model.fcstm:6 `event dist_to_front_25_extra_lane_true named "dist_to_front<25 && extra_lane=true"`
 - **NL**：NL 3/5 要求的 `<25 && extra_lane` 恰好落在通往 lane_change 的边上，制品已满足
-- **说明**：断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串就写着 `dist_to_front>=25`，主张与制品相反 → 事实为假 → 假阳性（表示债务的首要条件「事实为真」不成立）。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」——这条 >=25 正是台账认定的正确写法，被本簇当缺陷报。
+- **说明**：断言主张「无法判定是 <25 还是 >=25 的投影」，而 discover 所读的同一份 model.fcstm 第 5 行 named 串逐字写着 `dist_to_front>=25`，互补分支亦在场（第 6 行）——四槽全对、属性实际成立而断言仍判假，故为 FP-0。旁证：台账 EIS-0019-01 自述「0009/0049 靠互补守卫消歧」，这条 >=25 正是台账认定的正确写法。
 
 **0049-11** ｜ 📄 无 NL 依据 ｜ 3/6 格 ｜ `event_declared` ｜ 判定组 G2
 
@@ -1579,7 +1579,7 @@
 
 - **事实**：路径确无名为 Send 的事件；但 rationale 自陈 Approaching 声明了 during 动作，无法判断该动作是否即 Send
 - **NL**：NL 9 要求输出动作而非输入事件
-- **说明**：需补取 InMotion.Approaching 的 during 动作原文后重判。
+- **说明**：证据已取：作者源 stm0.puml:10 `Approaching : do/Send`，编译为 model.fcstm:14 `during abstract Send;`。承载者以 **action** 存在而断言按 **event** 索要，属类别槽差，故 FP-K。
 
 **0054-5** ｜ 📄 无 NL 依据 ｜ 1/6 格 ｜ `persists_until` ｜ 判定组 G3
 
