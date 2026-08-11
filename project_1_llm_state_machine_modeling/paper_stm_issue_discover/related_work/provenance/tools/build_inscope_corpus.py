@@ -272,6 +272,7 @@ def main(argv: list[str] | None = None) -> int:
         "in_scope_cases": corpus.in_scope,
         "unique_papers": corpus.unique_papers,
         "shards": args.shards,
+        "cases": [c.to_json() for c in corpus.cases],
         "defects": [c.to_json() for c in corpus.cases if c.defect],
         "domains": domain_counts,
     }

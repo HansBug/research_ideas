@@ -1,0 +1,130 @@
+"""按谓词聚合证据：独立来源数 + 领域覆盖 + 缺口。
+
+⭐ **计数单位是「互相独立的真实系统」，⛔ 不是「条目数」。** 同一篇论文里摘出三句话
+支撑同一条谓词，那仍然只是**一个**来源 —— 否则「多源」这条要求就被同一篇论文自己满足了。
+
+⛔ **这里算出来的一切都不是比例。** `sources/` 不是抽样框（它的收录标准恰好选中了要测的
+那个性质），任何 K/N 都是在因变量上做选择。见
+`discover_matrix/docs/protocol/method_provenance_policy.md` §一.5。
+
+⭐ 领域多样性判据：N 个源应覆盖 min(3, N) 个以上不同领域。
+
+用法：
+
+    python aggregate_evidence.py --phase-a phaseA.json --external cd.json --out agg.json
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from collections import defaultdict
+from pathlib import Path
+
+#: 19 条谓词的族归属，与 `discover/predicates.py` 的 family 字段一致
+FAMILY = {
+    "state_declared": "S", "variable_declared": "S", "event_declared": "S",
+    "containment": "S", "initial_target": "S", "edge_declared": "S",
+    "effect_declared": "S", "action_declared": "S", "guard_distinguishable": "S",
+    "cardinality": "S",
+    "occupancy_after": "B", "event_consumed": "B", "stays_in": "B",
+    "variable_delta_after": "B", "reaches": "B", "terminates": "B",
+    "invariant": "P", "response_within": "P", "persists_until": "P",
+}
+
+#: 用户在 L2 子 PR 上给的目标：每条谓词尽量不少于这个数的独立真实系统
+TARGET_SOURCES = 6
+#: policy §一.5 的硬下限
+MIN_SOURCES = 3
+
+
+def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool:
+    return n_domains >= min(3, n_sources)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--phase-a", type=Path, help="界内语料提取结果（来源 B）")
+    parser.add_argument("--external", type=Path, nargs="*", default=[], help="来源 C/D 结果")
+    parser.add_argument("--out", type=Path)
+    args = parser.parse_args(argv)
+
+    # (predicate) -> {source_key: {"kind": ..., "domain": ..., "n_quotes": int}}
+    evidence: dict[str, dict[str, dict]] = defaultdict(dict)
+
+    if args.phase_a and args.phase_a.is_file():
+        for f in json.loads(args.phase_a.read_text(encoding="utf-8")):
+            pred = f.get("predicate")
+            key = f"sources/{f.get('directory')}"
+            slot = evidence[pred].setdefault(
+                key, {"kind": "real_system", "domain": f.get("domain", "?"), "n_quotes": 0}
+            )
+            slot["n_quotes"] += 1
+
+    for path in args.external:
+        path = Path(path)
+        if not path.is_file():
+            continue
+        for f in json.loads(path.read_text(encoding="utf-8")):
+            pred = f.get("predicate")
+            key = f.get("identifier") or f.get("title")
+            slot = evidence[pred].setdefault(
+                key,
+                {
+                    "kind": "literature",
+                    "domain": f.get("system_or_domain", "?"),
+                    "read_level": f.get("read_level"),
+                    "title": f.get("title"),
+                    "n_quotes": 0,
+                },
+            )
+            slot["n_quotes"] += 1
+
+    rows = []
+    for pred, family in sorted(FAMILY.items(), key=lambda kv: (kv[1], kv[0])):
+        srcs = evidence.get(pred, {})
+        real = {k: v for k, v in srcs.items() if v["kind"] == "real_system"}
+        lit = {k: v for k, v in srcs.items() if v["kind"] == "literature"}
+        domains = {v["domain"] for v in srcs.values() if v["domain"] and v["domain"] != "?"}
+        rows.append(
+            {
+                "predicate": pred,
+                "family": family,
+                "real_systems": len(real),
+                "literature": len(lit),
+                "total_sources": len(srcs),
+                "domains": sorted(domains),
+                "n_domains": len(domains),
+                "diversity_ok": _domain_diversity_ok(len(srcs), len(domains)),
+                "meets_target": len(srcs) >= TARGET_SOURCES,
+                "meets_minimum": len(srcs) >= MIN_SOURCES,
+                "source_keys": sorted(srcs),
+            }
+        )
+
+    width = max(len(r["predicate"]) for r in rows)
+    print(f"{'谓词'.ljust(width)}  族  真实系统  文献  合计  领域数  多样性  达标(>={TARGET_SOURCES})")
+    for r in rows:
+        flag = "✅" if r["meets_target"] else ("🟡" if r["meets_minimum"] else "⛔")
+        div = "✅" if r["diversity_ok"] else "⛔"
+        print(
+            f"{r['predicate'].ljust(width)}  {r['family']}  "
+            f"{r['real_systems']:>8}  {r['literature']:>4}  {r['total_sources']:>4}  "
+            f"{r['n_domains']:>6}  {div:>5}  {flag}"
+        )
+
+    below = [r["predicate"] for r in rows if not r["meets_target"]]
+    print(f"\n未达 {TARGET_SOURCES} 源的谓词（{len(below)}）：{', '.join(below) if below else '无'}")
+    nodiv = [r["predicate"] for r in rows if not r["diversity_ok"]]
+    print(f"领域多样性不足（{len(nodiv)}）：{', '.join(nodiv) if nodiv else '无'}")
+
+    if args.out:
+        args.out.write_text(
+            json.dumps({"rows": rows, "evidence": {k: v for k, v in evidence.items()}}, ensure_ascii=False, indent=1),
+            encoding="utf-8",
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
