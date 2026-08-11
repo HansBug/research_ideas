@@ -4,15 +4,16 @@
 
 | 项 | 数量 / 状态 |
 |---|---|
-| active human-facing reports | 9 |
+| active human-facing reports | **11** |
 | archived R5.7 Better STM reports | 6，见 [../archive/r5_7_better_stm_snapshot/reports/](../archive/r5_7_better_stm_snapshot/reports/) |
 | 已部分 superseded / current-status-overridden reports | 5（R5.5.2 覆盖 R5 seed readiness、R5 directional analysis、main seed profile、scope handoff、negative evidence report 中的 blocked/current-status 部分） |
 | 当前主入口 | 当前状态数字优先读 [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md)；10 cluster / 60 pair 历史画像再读 [2026-06-29-00-03-56-llms-emp-main-seed-profile.md](./2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 |
+| ⛔ 实验结果**不在本目录** | 逐格 / 逐轮 / 代次对比在 [../discover_matrix/](../discover_matrix/)；v46 全量矩阵的自包含报告在 [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)。本表 11 份**没有一份是代次结果**。 |
 | 机器 / 一手事实源位置 | [../pipeline/readiness_audit/](../pipeline/readiness_audit/)；[../corpora/](../corpora/) |
 
 本 SUMMARY 不复制完整大表。row-level canonical facts 以 [../pipeline/](../pipeline/) 下 JSON / JSONL / ZIP / committed artifact，以及 [../corpora/](../corpora/) 下的一手 raw / extracted assets 为准。
 
-> **历史口径提醒**：下方 active report 总表中的 R5 / R5.5 报告是 **pre-R5.7 / pre-strategy-reset historical reports**。它们可能保留 “Better STM”、`STM_k` 或早期 scope wording，但这些 wording 只反映当时的方向性探索；不得作为当前 paper1 的 active evaluation framework、method result、baseline contract 或 `fcstm` contribution 证据。当前 story / contribution / evaluation 口径以 [../README.md](../README.md)、[../story/README.md](../story/README.md) 与 [../experiment_design/README.md](../experiment_design/README.md) 为准。
+> **历史口径提醒**：下方 active report 总表中的 R5 / R5.5 报告是 **pre-R5.7 / pre-strategy-reset historical reports**。它们可能保留 “Better STM”、`STM_k` 或早期 scope wording，但这些 wording 只反映当时的方向性探索；不得作为当前 paper1 的 active evaluation framework、method result、baseline contract 或 `fcstm` contribution 证据。当前 story / contribution / evaluation 口径以 [../README.md](../README.md)、[../story/README.md](../archive/r8_discover_repair_story/story/README.md) 与 [../experiment_design/README.md](../experiment_design/README.md) 为准。
 
 ## 2. Active report 总表
 
@@ -20,6 +21,8 @@
 
 | report | 精确时间 | 类型 | 状态 | 核心结论一句话 |
 |---|---|---|---|---|
+| [2026-08-11-post-refactor-e2e-smoke.md](./2026-08-11-post-refactor-e2e-smoke.md) | 2026-08-11 | 重构后 e2e smoke | 🟢 | 大规模目录重构后的端到端验证：`0000` × claude / gpt 各 1 轮，两格均 completed / coverage=full / 零降级零重试，输入哈希与搬迁前逐字节相同，发现的 4 条与 v46 逐条对应。⛔ **工程验证，数字不得进论文统计**。 |
+| [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) | 2026-07-19 | PlantUML Java frontend | 🟢 | **本表中与当前语料关系最直接的一份**：Issue #161 放弃 `PlantUML -> SCXML -> canonical` 路线，改用 Java source frontend，60 例 active 语料由此产生。技术路线报告，不是实验结果。 |
 | [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | 2026-07-08 14:03:59 | source trace contract | 🟢 | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
 | [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md) | 2026-07-08 10:15:00 | issue ledger contract | 🟢 | source issue ledger v0 合同报告；定义 candidate / confirmed / rejected / out-of-scope / insufficient-evidence gate，不是实验结果。 |
 | [2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md](./2026-06-29-19-55-45-r5-5-2-plantuml-blocked-recovery.md) | 2026-06-29 19:55:45 | PlantUML blocked recovery | 🟢 | `llms-emp` 三个原 blocked 已恢复为 partial；conversion recovery 不计 repair gain。 |
@@ -57,6 +60,7 @@
 
 | 时间 | 更新 |
 |---|---|
+| 2026-08-11 | 补录两份**此前在本总账中完全缺席**的 report：`2026-07-19-issue-161-plantuml-java-frontend.md` 与 `2026-08-11-post-refactor-e2e-smoke.md`；active report 计数由 9 更正为 11。⚠️ 两份都早已在 [README.md](./README.md) §2 的 active 表里，只有本 SUMMARY 漏登——**两张表必须同增同减**，新增 report 时不要只改一处。同时补「实验结果不在本目录」的入口行。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace contract report，并把 active report 计数从 8 更新为 9。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 issue ledger contract report，并把 active report 计数从 7 更新为 8。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后补充 R5 / R5.5 active report 的 historical wording 提醒，避免早期 Better STM / `STM_k` wording 被误读为当前 active 口径。 |

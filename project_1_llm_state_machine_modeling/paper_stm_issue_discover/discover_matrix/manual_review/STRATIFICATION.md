@@ -1,5 +1,30 @@
 # 候选分层：154 条计入问题里哪些能成为 expected issue
 
+> 🔴 **本文件已被取代，且它的数字连自己的生成源都对不上了。不要引用本文件的任何数字。**
+>
+> | | 本文件（下文正文） | [FINAL_STRATIFICATION.md](./FINAL_STRATIFICATION.md) | 机器事实源 |
+> | :-- | :-- | :-- | :-- |
+> | 结论形态 | **区间** 47 – 136 | **点值** 129 | — |
+> | 分层基线 | 154 条计入问题 | 同 | [stratification.json](./stratification.json) `totals.in_scope = 154` |
+> | 词法区间 | 47 – 136 | 引作 66 – 144 | [stratification.json](./stratification.json) `admissible_floor = 66` / `admissible_upper = 144` |
+> | 层构成 | 良构 45 / NL 矛盾 2 / NL 点名 89 / 仅参考 6 / 未归层 12，**无 `over_specification` 层** | 七层，含 `over_specification` | [stratification.json](./stratification.json) `by_stratum`：良构 33 / NL 点名 78 / **over_specification 31** / NL 矛盾 2 / 仅参考 4 / 未归层 6 |
+> | 可入 | 上界 136 | 129 | [final_stratification.json](./final_stratification.json) `summary.admissible = **126**` |
+>
+> **三点必须一起看：**
+>
+> 1. **本文件被 [FINAL_STRATIFICATION.md](./FINAL_STRATIFICATION.md) 取代**——后者把本文件末尾「仍需人工的两步」
+>    （复核 `nl_named`、归层 `unclassified`）实际做完了，因此从区间收敛到点值。取代关系是**完成**，不是**推翻**。
+> 2. **本文件的正文数字连 [stratification.json](./stratification.json) 都对不上**：该 JSON 由
+>    [../stratify_candidates.py](../stratify_candidates.py) 重新生成过，`over_specification` 层（31 条）
+>    在本文件正文里**根本不存在**，下界也因此从 47 变成 66。所以本文件不只是「旧版本」，是**与自己的生成源脱钩的旧版本**——
+>    重跑一次脚本就会得到另一份内容。
+> 3. **`FINAL_STRATIFICATION.md` 的 129 也已经不是当前值**：`final_stratification.json` 现记 `admissible = 126`，
+>    与台账 [expected_issue_set.json](./expected_issue_set.json) 的 126 条一致。要引数字请**直接读 JSON**，
+>    两份 `.md` 都只是某一时刻的散文快照。
+>
+> 本文件**保留不删**：它记录了「区间 → 点值」这一步是怎么走的，以及为什么 `nl_named` 只能当上界。
+> 但凡涉及具体数字，一律以上表右两列为准。
+
 Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 问的是「154 条候选如何入账」。本文件把它从一个立场表态变成一个**可复算的数字**：分层由 [../stratify_candidates.py](../stratify_candidates.py) 产出，判据、触发词与逐条归属全部落盘在 [stratification.json](./stratification.json)，任何一行都可以被推翻。
 
 ## 为什么不能整体入账

@@ -1,58 +1,138 @@
-# experiment_design/GUIDE.md — 后续实验设计维护规范
+# GUIDE.md — 下一轮实验的设计纪律
 
-## 1. 总原则
+> 本文件**不复制**仓库根 [CLAUDE.md](../../../CLAUDE.md) 的条文，只挑出真正约束「下一轮实验设计」
+> 的那几条，说明它们在本目录的落法。条文原文一律回根文件读。
+>
+> ⚠️ **引用时必须带章名。** 根 `CLAUDE.md` 有两套独立编号：
+> 「仓库级一般性工作规范」的 §1–§13，与「学术研究仓库 Review 口径规范」的 §1–§4（含 §3.5.x）。
+> 只写「§10」会歧义。本页一律写成「〈章名〉§n」。
 
-本目录只维护 paper1 当前主线的实验设计纪律：**Discover once -> Repair full batch -> Confirm all dispositions -> Repair-Confirm until all chains close -> one-time raw/source closure / regression audit**。
+## 0. 本目录能产出什么、不能产出什么
 
-旧 R5.7 / Better STM-facing 规则已经归档到 [../archive/r5_7_better_stm_snapshot/](../archive/r5_7_better_stm_snapshot/)。它们可以作为 historical / calibration / anti-pattern 参考，但不能直接作为 active guardrail、正式 metric、baseline contract 或 judge prompt。
+| 能 | 不能 |
+| :-- | :-- |
+| 下一轮实验的**方案**：要回答什么问题、怎么测、成本多少、依赖什么 | 判定口径、命中判据、分母定义、分类学 |
+| 事前登记的**草稿**（正式版落到 protocol / generations 目录） | 已跑完实验的结果、代次对比表 |
+| 明确的 TODO 与阻塞项 | 「暂定如此」的半成品规则 |
 
-## 2. Active protocol 必须围绕的对象
+**一条规则只能有一个归属地。** 若某条设计在本目录成熟到可以约束运行，
+它必须搬到 [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/)，
+并从本目录删除，而不是两处并存。
 
-| 对象 | 必须回答的问题 | 最低证据 |
-|---|---|---|
-| candidate issue | 为什么怀疑 raw/source `STM_0` 存在行为问题？ | `NL`、raw/source element、intermediate diagnostics / simulation / check feedback、问题描述；具体字段见 [issue_lifecycle/issue_ledger_contract.md](./issue_lifecycle/issue_ledger_contract.md)。 |
-| Discover root assessment | 该 root 是否有足够依据进入 `fix`，还是只能由 Repair reasoned reject？ | Discover 发布的 `confirmed/candidate_only` assessment、immutable checks、证据片段与 attribution boundary；v0 允许 `nl_grounded_behavioral_issue` 与 `raw_internal_inconsistency` 两条 confirmed path。 |
-| repair/change | 本轮对每个 pending node 做了 `fix` 还是 `reject`，理由与实际改动是什么？ | 完整 disposition batch、change ledger、source trace、输入输出 hash、模型 diff、LLM / deterministic step 记录。 |
-| B-confirm | 本轮每个 disposition 是否可接受；若不可接受，如何在同一 issue chain 上追加 successor？ | typed expected-outcome match、当前模型检查结果、完整自然语言理由、successor linkage 与因果记录。 |
-| source trace | confirmed issue 的 raw/source 元素如何对应到中间表示元素？ | [source_trace/source_trace_contract.md](./source_trace/source_trace_contract.md)、trace ledger、negative attribution gate。 |
-| canonical source export | accepted repair 如何进入 validated post-Confirm semantic-root bundle，并全量生成 fresh raw/source `STM_k`？ | accepted semantic delta、root correspondence、region/body/lifecycle/order、deletion tombstone、unsupported export 记录；不消费裸 `.fcstm`。 |
-| closure / regression | B-final 后生成 canonical source artifact 时，问题是否闭合，是否引入新问题？ | final raw/source `STM_k`、semantic change/correspondence ledger、隐藏/独立审计、失败 / unknown 入账；B-confirm accept 不能单独冒充 source closure。 |
+## 1. 事前登记：必须在看到结果之前 push
 
-## 3. 禁止直接继承的 archived 内容
+依据：〈学术研究仓库 Review 口径规范〉**§3.5.1「开跑实验前必须先 push」**。
 
-| archived 内容 | 为什么不能直接继承 | 若未来要复用怎么办 |
-|---|---|---|
-| Better STM gate / `can_claim_better_stm` | endpoint 已被战略校准覆盖。 | 在 `PR-eval-rubric` 重新定义为 issue closure / regression verdict。 |
-| repair target taxonomy | 旧 taxonomy 面向 Better STM target，不等同 confirmed source-level issue。 | 已由 [issue_lifecycle/source_level_issue_definition.md](./issue_lifecycle/source_level_issue_definition.md) 重建为 v0 issue status / family；后续 pilot 后再扩展。 |
-| objective metric framework | 旧指标围绕 Better STM gate。 | pilot 后基于真实 canonical source export / closure ledger 重建。 |
-| constructed `STM_k` suite | 候选是人工 / 确定性构造，不是真实 repair-loop 输出。 | 只能作 leakage / anti-gaming calibration 参考。 |
-| blind adjudication prompt / schema | 旧 prompt 裁决 Better STM，不裁决 source-level issue closure。 | 若需要 LLM judge，必须另建 source-level closure prompt 并做 blind / leakage 审计。 |
-| `pipeline/evaluation/` schemas | 旧 schema 混合 R4/R5.7 gate。 | 若 diagnostic / scenario 字段仍有价值，必须在新 schema 中改名和重定义。 |
+要点（回原文核实，此处只列本目录的落法）：
 
-## 4. 后续新增文件规则
+1. 判据、达标档位、回归红旗、机制判据的**全部价值来自「它们写在看到结果之前」**，
+   而这一点只有**远端时间戳**能证明。写完放本地 = 把是否作弊的判断交给作者自述。
+2. **登记不得只写在 `runs/` 下**——`runs/` 全目录被 `.gitignore` 排除，写在那里既进不了仓库，
+   PR comment 引用它的路径也是死链。
+3. 本工作区的实际落点惯例是
+   [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md) 与
+   [../discover_matrix/docs/generations/](../discover_matrix/docs/generations/)`<vNN>/preregistered.md`。
+   ⚠️ 根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`；
+   **该路径与命名在本仓库当前结构下都不存在**，以实际惯例为准，见 [next_round.md](./next_round.md) 的 TODO。
+4. 事后补交的登记，**必须在文件头如实写明「运行后补交，提交动作本身不证明它写在运行之前」**，
+   并附可查旁证。v46 的登记就是这么写的，照抄那个写法。
 
-1. 新增 `README.md` / `SUMMARY.md` / `GUIDE.md` 或 schema 时，必须说明它属于 `draft`、`pilot-only`、`frozen protocol candidate` 还是 `formal experiment`。
-2. 不得在 pilot 前冻结 final numeric thresholds、baseline contract、primary endpoint 或 judge prompt。
-3. 不得把 archived dry-run 的 score、schema-valid、leakage=0、judge agreement 写成 repair effectiveness。
-4. 每条实验 claim 都必须明确分母：pre-registered pool、scope pool、eligible issue、confirmed issue、repair attempt、closure-eligible issue 或 regression-audit unit。
-5. partial / failed / unknown / out-of-scope / unsupported projection 必须入账，不能静默丢弃。
+**本目录的设计稿不是事前登记。** 从 `next_round.md` 里挑一项去跑时，
+必须另写一份该代次的 `preregistered.md` 并 push，不能拿设计稿顶替。
 
-## 5. 与 story / pipeline 的分工
+## 2. 指标：`@k` 三口径同时报，一个都不能少
 
-| 路径 | 职责 |
-|---|---|
-| [../story/](../story/) | 论文 thesis、contribution、claims-to-avoid、terminology。 |
-| [../pipeline/](../pipeline/) | conversion / representation / readiness / future loop runtime 的机器制品。 |
-| [../evidence/](../evidence/) | 资产清账、审计、trace / ledger 等可复现证据。 |
-| [../archive/](../archive/) | superseded historical snapshots；不是 active truth。 |
+依据：〈学术研究仓库 Review 口径规范〉**§3.5.2「迭代型实验的指标口径：`metric@k`」**。
 
-若 story、pipeline 与 experiment design 对同一概念发生冲突，优先回到 2026-07-07 导师记录和 [../evidence/ledgers/paper1_strategy_asset_map.md](../evidence/ledgers/paper1_strategy_asset_map.md) 判断；不要用 archived Better STM wording 覆盖当前主线。
+- 覆盖侧：`hit@1`（单轮期望产出）/ `hit@3`（能力边界内）/ `hit@all`（稳定性），**三者必须一起给，且逐条目列出**。
+- 多报侧：`over@1`（每轮平均多报数）/ `over@any`（三轮中出现过多报的条目数）。
+- 判据：`hit@3` 高而 `hit@all` 低 = 能力够、稳定性不足；两者都低才是能力问题。
+  说「某条稳定命中」时，指的**必须**是 `hit@all = 1`。
 
-## 6. 更新日志
+**计算一律走 [../discover_matrix/metrics_at_k.py](../discover_matrix/metrics_at_k.py)，不手搓。**
+v46 的呈现链是 `audit_to_verdicts.py` → `full_tables.py`，下一轮沿用。
+
+⚠️ **分母的两处永久裁定必须先读再动**，且**互不相干、不得混谈**：
+`00x8` 系列六个 pair 的先验排除（见
+[../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)），
+与 hold-out 永久不用（见
+[../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)）。
+工具层由 `../discover_matrix/test_scope_vs_holdout_are_different.py` 钉住。
+
+## 3. review 分两段，职责泾渭分明
+
+依据：〈学术研究仓库 Review 口径规范〉**§3.5.0**，配合 **§3.5「实验公平性与学术可靠性审查（必查项）」**
+与 **§3.5.-1「泄漏审查不能只靠读文本」**。
+
+**运行前 review —— 代码正确性 + 实验公平性。**
+查泄漏、prompt 作弊、针对特定 case 的特化、评测口径迁就结果、自证式验证。
+⛔ **一旦发现疑似学术上站不住的情形，直接禁止进入运行环节**，不允许「先跑了再说」。
+
+审查范围有两条容易漏的：
+
+1. **是全部进入模型的文本，不是本轮改动的那部分**，且包括**运行时生成**的文本
+   （gate 报错、revision feedback、渲染器插入的说明）——静态 grep prompt 常量抓不到它们。
+2. **最可靠的判据是查引入动机（`git log -S` 读 commit body），不是列举形态。**
+   按形态列举永远漏——已连栽三轮。
+
+**运行后 review —— 根因分析 + 事实核验。**
+每个数字可复算、判定准确、因果归因成立、未达成项的根因定位。
+
+两段失败后果不同：前者不通过 → 不准跑；后者不通过 → 报告就地更正，必要时该代次数据作废。
+
+## 4. 只有两种情况允许整格崩
+
+依据：〈仓库级一般性工作规范〉**§10**。
+
+允许整格失败、不落盘的只有：**(1) model provider 侧错误**（鉴权 / 限流 / 超时 / 5xx / 模型下线）；
+**(2) schema 死活对不上**——而第 2 类是逃生口不是许可，一旦发生本身就是必须修的 bug。
+
+**除此之外一律降级，不许抛。** 配额耗尽、契约门、致命门、谓词拒答、上游工具报错、覆盖不全，
+**全都不是崩的理由**。降级 = 把已拿到的东西封存并继续往下走，未满足的义务记成结构化诊断
+（quarantine / coverage_gap / unmet_contract），让这一格带着残缺产物落盘。
+
+**这一条在 v46 上有实测背书**：324 格中 9 格降级（claude 1 / gpt 8），全部保留产物并进统计。
+反过来做会让最难的样本系统性地从数据里消失——而最容易耗尽配额的恰恰是缺陷最硬的那些格。
+
+设计下一轮时的落法：**任何新增阶段，先写它的降级路径与降级诊断字段，再写正常路径。**
+降级路径必须与正常路径一样有测试。
+
+## 5. 采样不确定性不能掩盖结构性失败
+
+依据：〈仓库级一般性工作规范〉**§12**，与 **§13「多道门的审计单位是交集」** 配套读。
+
+- 同一格反复失败时，先比**失败签名**（输入 + 失败消息的哈希）。签名重复 = 结构性死路，
+  此时重试的**期望收益为零**，该修设计不该加 `MAXTRY`。
+- 内层的 `_assertion_contract_failure_signatures` 只在格**内部**生效；
+  **外层 shell 重试看不到它**，所以外层也必须做同样判别。
+- **不要用「锁 seed」回避**：锁 seed 只把结构性死路变成必然复现，且实验本身需要采样多样性
+  来估计稳定性（`hit@3` / `hit@all` 的意义就在这里）。
+- 新增任何一道会拒绝的门之前，必须写出「满足本门且同时满足既有各门的一个具体形状」，
+  写不出就不许加；**还要问被拒绝的那一方握不握有能改的那个字段**（v46 首跑撞出的降级格就是这么来的）。
+
+## 6. 报告纪律
+
+- **自包含**（〈学术研究仓库 Review 口径规范〉§3.7）：每轮报告独立可读，含本轮完整结果表、
+  **覆盖全部已完成代次的历代对比表**（标注代码版本与配置差异）、判定口径说明与相对上轮的口径变化、
+  未达成项与待裁定项。
+- **就地更正**（同章 §3.6）：发现已发布材料有误时**直接改原件**，不发更正件；
+  原件内保留一节「相对上一版的改动」，只记改了什么、为什么改，不复述错误结论；
+  配套 gist / bundle / 脚本产物必须同步更新。
+- **`hit@k` 当前只能写成上界。** v46 已识别两条虚高通道（不具判别力的谓词、拒答文案回灌），
+  ⛔ 论文里不得出现不带 `≤` 的 60.4%，也不得写成点估计或区间估计。
+
+## 7. 流程状态不进仓库
+
+依据：〈仓库级一般性工作规范〉**§9**。
+
+PR 进度、review 状态、CI / Codecov、子 PR 拆分、merge 进度、watch 进展一律维护在
+GitHub PR / issue，**不写进本目录**。本目录只沉淀长期有效的实验设计结论。
+
+⚠️ 上一代脚手架恰恰违反过这条：归档件里大量出现「伞 PR #100」「Issue #152」
+的施工状态表，现在读起来全是死信息。**不要重蹈。**
+
+## 8. 更新日志
 
 | 时间 | 更新内容 |
-|---|---|
-| 2026-07-17 00:32:36 | 对齐 Issue #152：区分 Discover root assessment、Repair disposition、B-confirm 决议与 C closure；删除 strict-confirm-before-repair / post-repair rediscovery 旧顺序。 |
-| 2026-07-08 14:03:59 | `PR-source-trace` 后同步 GUIDE：source trace v0 已定义，后续 projection / closure 必须消费 trace ledger 并尊重 negative attribution gate。 |
-| 2026-07-08 10:15:00 | `PR-issue-ledger` 后同步 GUIDE：candidate / confirmed issue 已有 v0 字段合同和两条 confirmed path，但仍不冻结 final metrics / baseline。 |
-| 2026-07-07 23:40:00 | `PR-better-archive` 后重写 GUIDE：移除 active Better STM gate 维护纪律，改为 source-level issue lifecycle protocol 设计纪律。 |
+| :-- | :-- |
+| 2026-08-11 | 初始化。按 paper1 收窄为 issue discover 后的形态，挑选真正适用的根 `CLAUDE.md` 条款并说明本目录落法。 |

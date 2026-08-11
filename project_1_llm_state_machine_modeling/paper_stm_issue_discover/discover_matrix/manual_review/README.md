@@ -24,11 +24,27 @@
 重算：
 
 ```bash
-venv/bin/python project_1_llm_state_machine_modeling/eval/discover_matrix/aggregate_manual_review.py \
+venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/aggregate_manual_review.py \
     <单 case 判定输入目录> /tmp/refcmp/agg
-venv/bin/python project_1_llm_state_machine_modeling/eval/discover_matrix/render_refcmp_issue.py \
+venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/render_refcmp_issue.py \
     /tmp/refcmp/agg/audit <审计 gist id> <可读 gist id>
 ```
+
+## 候选分层：三份同名文件，只有一份是当前的
+
+「154 条计入问题里哪些能成为 expected issue」这个问题，本目录下有三代产物。**按下表取用，不要按文件名猜。**
+
+| 文件 | 状态 | 用途 |
+| --- | --- | --- |
+| [expected_issue_set.json](./expected_issue_set.json) | 🟢 **台账权威源** | **126 条**。命中率的分母只能从这里来 |
+| [final_stratification.json](./final_stratification.json) | 🟢 当前 | 逐行分层点值，`summary.admissible = 126`，与上一行一致 |
+| [FINAL_STRATIFICATION.md](./FINAL_STRATIFICATION.md) | 🟡 方法说明可用、数字已漂 | 讲清楚四批 NL 复核怎么做的；但正文写的 **129** 早于 JSON 的 126 |
+| [stratification.json](./stratification.json) | 🟡 仅历史 | 词法分层基线，区间 66 – 144 |
+| [STRATIFICATION.md](./STRATIFICATION.md) | 🔴 **已被取代** | 区间 47 – 136，且与 `stratification.json` 也已脱钩（缺 `over_specification` 层）。**不要引用其中任何数字**，见该文件顶部说明 |
+
+一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑
+[../stratify_candidates.py](../stratify_candidates.py) 或
+[../merge_manual_stratification.py](../merge_manual_stratification.py) 不会更新它们。
 
 ## 组间信度（双盲复审）
 

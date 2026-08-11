@@ -4,7 +4,12 @@
 
 `evidence/` 已按 R5.5.1 路径重构为四类历史证据索引：[ledgers/README.md](./ledgers/README.md)、[audits/README.md](./audits/README.md)、[matrices/README.md](./matrices/README.md)、[traces/README.md](./traces/README.md)。本目录保留 R0/R1 证据链，但不再作为当前 corpus 事实真源。
 
-2026-07-07 战略转向后，本目录新增 [ledgers/paper1_strategy_asset_map.md](./ledgers/paper1_strategy_asset_map.md) 与 [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md)，作为 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的清账入口。它们只做资产地图与静态扫描审计，不移动文件、不重写 story、不报告方法效果；其中历史 handoff slug 不代表当前施工路线，动态路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
+> ⚠️ **2026-08-11 归档**：`ledgers/paper1_strategy_asset_map.md` 与 `ledgers/legacy_asset_inheritance.md`
+> 已迁入 [../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。
+> 前者把 thesis 定义成 repair/refinement + Better STM，后者是 07-07 转向的施工地图；两者的口径都已被
+> 「paper1 只做 issue discover」覆盖，只作历史追溯。下文提到它们的地方一律指归档后的新路径。
+
+2026-07-07 战略转向后，本目录曾新增 [paper1_strategy_asset_map.md](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md)（已归档）与 [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md)，作为 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的清账入口。它们只做资产地图与静态扫描审计，不移动文件、不重写 story、不报告方法效果；其中历史 handoff slug 不代表当前施工路线，动态路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 
 当前事实源：seed 看 [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) 与 [../corpora/seed_library/REGISTRY.md](../corpora/seed_library/REGISTRY.md)，repair baseline 看 [../corpora/repair_baselines/SUMMARY.md](../corpora/repair_baselines/SUMMARY.md)，纯 NL 数据源看 [../corpora/nl_datasets/SUMMARY.md](../corpora/nl_datasets/SUMMARY.md)，转换 / 表示 / readiness 看 [../pipeline/conversion/README.md](../pipeline/conversion/README.md)、[../pipeline/representation/README.md](../pipeline/representation/README.md)、[../pipeline/readiness_audit/README.md](../pipeline/readiness_audit/README.md)，人类结论看 [../reports/SUMMARY.md](../reports/SUMMARY.md)。
 
@@ -21,11 +26,11 @@
 
 | 类别 | 文件 | 作用 | 当前性 |
 |---|---|---|---|
-| ledger | [ledgers/paper1_strategy_asset_map.md](./ledgers/paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图，把 paper1 相关文件 / PR / issue / comment 分为 `active`、`update`、`archive`、`historical`，并指定 downstream PR。 | 当前清账入口 |
+| ledger | [→ archive/…/evidence_ledgers/paper1_strategy_asset_map.md](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图，把 paper1 相关文件 / PR / issue / comment 分为 `active`、`update`、`archive`、`historical`，并指定 downstream PR（含 `PR-repair-runner` 等 repair 行）。 | 已归档，历史追溯 |
 | ledger | [ledgers/upstream_fact_ledger.md](./ledgers/upstream_fact_ledger.md) | 上游 PR、导师讨论、旧分支和仓库事实等级。 | 历史审计 |
 | ledger | [ledgers/source_coverage_ledger.md](./ledgers/source_coverage_ledger.md) | R1 来源覆盖、去重闭合和未深审边界。 | 历史审计 |
 | ledger | [ledgers/artifact_availability_ledger.md](./ledgers/artifact_availability_ledger.md) | 代码、数据、结果、artifact 可获取性台账。 | 历史审计 |
-| ledger | [ledgers/legacy_asset_inheritance.md](./ledgers/legacy_asset_inheritance.md) | `paper_v1/`、旧 baseline、旧 source 继承边界。 | 历史审计 |
+| ledger | [→ archive/…/evidence_ledgers/legacy_asset_inheritance.md](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/legacy_asset_inheritance.md) | `paper_v1/`、旧 baseline、旧 source 继承边界；其 §3 把 thesis 定义成 `<NL, STM_0> -> STM_k / Better STM` repair / refinement。 | 已归档，历史追溯 |
 | audit | [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md) | PR-asset-map 静态扫描审计报告，记录 Better STM / `STM_k` / adjudication / repair target / conversion gain 关键词命中、`paper_v1/` 命中与 `CLAUDE.md` / `AGENTS.md` 去重事实。 | 当前清账证据 |
 | audit | [audits/baseline_asset_audit.md](./audits/baseline_asset_audit.md) | R1 baseline / seed / converter / comparison 资产审计总账。 | 历史审计 |
 | audit | [audits/strict_seed_literature_survey.md](./audits/strict_seed_literature_survey.md) | strict seed 调研定义、排除码、分级标准和初始事实台账。 | 历史审计 |
@@ -45,6 +50,7 @@
 
 | 时间 | 更新 |
 |---|---|
+| 2026-08-11 13:40:00 | `paper1_strategy_asset_map.md` 与 `legacy_asset_inheritance.md` 随 repair 期资产迁入 [../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)；总账与子路径 README 的链接同步改指归档路径，`ledgers/` 剩三份 R0/R1 历史台账。 |
 | 2026-07-07 19:57:36 | 新增 PR-asset-map 资产清账地图与静态扫描审计入口，记录 R5.7 / Better STM-facing 资产后续归档、story reset、issue lifecycle、conversion attribution boundary 与 `paper_v1` historical 口径。 |
 | 2026-06-29 11:46:00 | 同步 evidence 根三件套与子 README 的当前事实源回跳，补齐 conversion / representation / readiness / reports 入口。 |
 | 2026-06-29 03:08:00 | 补齐 evidence 四个子路径 README，并在总账中增加子路径阅读入口。 |

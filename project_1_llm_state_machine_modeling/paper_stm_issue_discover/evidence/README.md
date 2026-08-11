@@ -31,7 +31,7 @@
 
 | 子路径 | 职责 | 入口 |
 |---|---|---|
-| [ledgers/](./ledgers/) | 上游事实、来源覆盖、artifact 可获取性、旧资产继承边界台账，以及 2026-07-07 战略转向后的 active / update / archive / historical 资产地图。 | [ledgers/README.md](./ledgers/README.md) |
+| [ledgers/](./ledgers/) | 上游事实、来源覆盖、artifact 可获取性台账。⚠️ 旧资产继承边界与 2026-07-07 战略资产地图两份已随 repair 期资产迁入 [../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。 | [ledgers/README.md](./ledgers/README.md) |
 | [audits/](./audits/) | R1 baseline / strict seed 审计口径、执行方案，以及 PR-asset-map 静态扫描审计报告。 | [audits/README.md](./audits/README.md) |
 | [matrices/](./matrices/) | 候选 baseline 与格式转换压力矩阵。 | [matrices/README.md](./matrices/README.md) |
 | [traces/](./traces/) | 分支局部资产与消费决策追踪。 | [traces/README.md](./traces/README.md) |

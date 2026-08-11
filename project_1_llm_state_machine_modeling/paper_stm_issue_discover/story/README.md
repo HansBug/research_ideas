@@ -1,99 +1,127 @@
-# story/README.md — 论文叙事入口
+# story/README.md — 论文叙事入口（placeholder 版）
 
-本目录维护 paper1 的论文叙事：thesis、贡献口径、章节结构、claim-evidence 映射、
-任务边界、建模对象与术语。
+> ⚠️ **本目录当前是 placeholder。** 上一版七份文档已归档；本版只保留**论文的结构骨架**
+> 与**已经确定的内容**，其余全部以显式 `TODO(后续PR)` 区块占位，细节交给后续 PR。
+>
+> 不要把本目录当成写作素材库读——它现在是一张**待填的施工图**。
 
-> ⚠️ **本目录已按 2026-08-07 / 08-08 导师定调整体改写。**
-> paper1 收窄为 **issue discover 单独成篇**，repair 另立后续论文。
-> 历史文档里的「多轮 Repair-Confirm」「closure / regression audit」「loop 是 headline
-> contribution」等表述**全部作废**，只允许在解释历史转向时出现。
+## 1. 当前定位（paper1 = 只做 STM issue discover）
 
-## 1. 当前 thesis
+【导师原话】「**discover 部分单独成一篇文章**」「repair 不会简单的，特别是要高质量 repair」。
 
-给定一份自然语言需求 `NL` 与一份由 LLM 从该需求生成的状态机模型 `STM_0`，
-**把「这个模型哪里不符合需求」变成一个可机械求值的问题**：把需求全覆盖地拆成义务，
-把每条义务转换成受限谓词逻辑上的断言，在被评审模型上求值——
-为假者构成一条带可执行判据与闭合证据链的发现，为真者构成回归防护。
+由此：paper1 收窄为 **状态机模型的 issue discover，单独成篇**；repair 另立后续论文，
+本文只在讨论一节**捎带提及一小段**，不展开、不承诺效果、不给数据。
 
-## 2. 两条 contribution
+正式记录：[../../talks/2026-08-08-导师-paper1收窄为issue-discover.md](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md)
 
-1. **谓词逻辑元模型与断言体系本身**，而不是「发现了多少问题」。
-   断言由 NL 全覆盖拆分出的需求条目转换而来，因而覆盖性来自构造；
-   求值为假的挂钩 issue，为真的构成回归防护。
-2. **带上下文的发现**（导师原话可直接用于 Intro motivation）：现有的很多 detection 方法
-   报告错误，缺少错误的上下文信息——一方面需要人工进行繁重的复核，另一方面也不便于进行
-   错误修复后的回归确认。本方法给出的是可执行判据 + 闭合证据链。
+## 2. ⚠️ 依据强度标记：全目录通用
 
-⚠️ 修复只在讨论一节**捎带提及一小段**，不展开、不承诺效果、不给数据。
+本目录每一条陈述都必须能看出它的依据强度。**五档标记在所有文件中统一使用**：
+
+| 标记 | 含义 | 能不能直接写进论文 |
+| :-- | :-- | :-- |
+| 【导师原话】 | 逐字引自正式导师讨论记录 | 能，是硬依据 |
+| 【v46 实测】 | 有 324 格全量实验数据支撑，数字须回报告核对 | 能，但须遵守该数字自带的口径约束 |
+| 【仓库裁定】 | 已固化在 `discover_matrix/docs/protocol/` 或 `CLAUDE.md` 的研究规则 | 能，改它等于改研究规则 |
+| 【AI 建议·待确认】 | 从上述三类推演出的设计提案，**尚未经人确认** | ⛔ 不能，须先裁定 |
+| 【待定】 | 已知有多个候选方案，且哪个对尚不清楚 | ⛔ 不能 |
+
+⛔ **`/tmp/placeholders/BLUEPRINT.md` 里的绝大多数内容属第四档。** 九节骨架、四个 RQ、
+三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**，
+导师原话只有那 8 句。本目录已按此区分标注，后续 PR 不得把第四档悄悄升格为第一档。
 
 ## 3. 文件职责
 
-| 顺序 | 文件 | 职责 | 不能替代什么 |
+| 顺序 | 文件 | 职责 | 当前完成度 |
 | --: | :-- | :-- | :-- |
-| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题、价值、现有方法的问题、方法洞察、两条 contribution、可说 / 不可说的话、审稿人风险 | 不替代正文；不替代 claim 的证据核对 |
-| 2 | [paper_outline.md](./paper_outline.md) | 章节结构，按导师那条大逻辑排；含 RQ 定义与每节的验收判据 | 不替代正文；不复制实验数字 |
-| 3 | [claim_evidence_map.md](./claim_evidence_map.md) | 每条 claim 的证据、强度、允许 / 禁止写法 | 不做数字的第二事实源——数字一律回实验报告核对 |
-| 4 | [task_boundary.md](./task_boundary.md) | 输入输出、方法内外、人类角色、失败与不确定状态 | 不定义指标口径 |
-| 5 | [model_scope.md](./model_scope.md) | 建模对象 $M = (S, E, V, Tr, A)$、可断言的行为表达、禁止外推 | 不把中间表示定义为研究对象 |
-| 6 | [terminology_policy.md](./terminology_policy.md) | 术语中英口径、四组易混术语、指标写法、禁用词 | 不定义 run record 字段 |
+| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题 / 价值 / 现有方法的问题 / 方法洞察 / 三条 contribution / 任务边界 / 可说与不可说 | 骨架完整，contribution 形状待裁定 |
+| 2 | [paper_outline.md](./paper_outline.md) | 九节章节骨架 + 4 个 RQ + T1/T2 实验分层 + 待补对照清单 | 骨架完整，RQ 与实验分层待裁定 |
+| 3 | [claim_evidence_map.md](./claim_evidence_map.md) | claim → 证据映射、强度、允许 / 禁止写法 | v46 已有的已填，新增 claim 待补证据 |
+| 4 | [model_scope.md](./model_scope.md) | 建模对象 $M = (S, E, V, Tr, A)$、表达力边界、fork/join 处置 | 基本完整 |
+| 5 | [terminology_policy.md](./terminology_policy.md) | 术语中英口径、易混术语、指标写法、禁用词 | 基本完整 |
 
-**推荐阅读顺序**：想理解论文说什么 → 1、2；想写某一节 → 2 找结构、3 核 claim、6 核措辞；
-想核任何数字 → 直接去实验报告。
+**推荐阅读顺序**：想理解论文说什么 → 1、2；想写某一节 → 2 找结构、3 核 claim、5 核措辞；
+**想核任何数字 → 直接去实验报告，不从本目录转抄**。
+
+### 3.1 ⚠️ `task_boundary.md` 去哪了
+
+上一版有第六份 `task_boundary.md`（任务定义 / 输入输出 / 方法内外 / 人类角色 / 失败状态）。
+本版**不再单列**，其内容按以下方式并入：
+
+| 原 `task_boundary.md` 章节 | 现落点 |
+| :-- | :-- |
+| §1 任务定义、§2 输入、§3 产出 | [paper_story.md](./paper_story.md) §6.1–§6.3 |
+| §4 方法内外 | [paper_story.md](./paper_story.md) §6.4 |
+| §5 人类角色 | [paper_story.md](./paper_story.md) §6.5 |
+| §6 失败与不确定状态（拒答 / 覆盖缺口 / 隔离 / 降级 / 不可判定） | [paper_story.md](./paper_story.md) §6.6 |
+| 「参考模型不是输入」「台账不是输入」两条硬约束 | [paper_story.md](./paper_story.md) §6.2，并在 [terminology_policy.md](./terminology_policy.md) §2.1 的术语条目里重复钉住 |
+
+合并理由：任务边界是**叙事的一部分**（论文 §1.4 与 §3 都要用它），单列会造成两处维护。
+⛔ 后续 PR 若发现该合并使叙事文件过长，可以再拆回，但**拆回时必须同步改本表**。
 
 ## 4. 上游事实源与优先级
 
+冲突时按此顺序裁定：
+
 | 级别 | 来源 | 用途 |
 | --: | :-- | :-- |
-| 1 | 2026-08-07 / 08-08 导师定调 | 论文收窄、两条 contribution、RQ 设计原则、修复不展开。⚠️ 口头，尚未落成正式 talks 记录；原话摘录在 [../README.md](../README.md) §2 |
-| 2 | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含 |
-| 3 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据——改它们等于改研究规则 |
-| 4 | [../README.md](../README.md)、[../GUIDE.md](../GUIDE.md)、[../STATUS.md](../STATUS.md) | 工作区口径、纪律与当前状态 |
-| 5 | [../../talks/](../../talks/) 的更早导师记录 | 历史转向的背景；被后续记录覆盖的部分不得作为 active 依据 |
+| 1 | 用户 / 导师当前明确指令 | 一切之上 |
+| 2 | [../../talks/2026-08-08-导师-paper1收窄为issue-discover.md](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) | 论文收窄、contribution 口径、RQ 设计原则、谓词由来口径、修复不展开 |
+| 3 | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含 |
+| 4 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据——改它们等于改研究规则 |
+| 5 | [../README.md](../README.md)、[../GUIDE.md](../GUIDE.md)、[../STATUS.md](../STATUS.md) | 工作区口径、纪律与当前状态 |
+| 6 | `/tmp/placeholders/BLUEPRINT.md` 一类的 AI 推演材料 | **只作提案**，不得作为依据陈述 |
 
 ⛔ **施工流程状态**（PR 进度、review 状态、CI）以 GitHub PR / issue 为准，本目录不维护。
 
-## 5. 历史框架处理
+## 5. ⚠️ 三处已知冲突：本目录不做决定，只标出来
 
-| 历史框架 | 当前状态 |
-| :-- | :-- |
-| discover + repair 合成一篇 | 已作废（2026-08-07 / 08-08）。repair 另立后续论文 |
-| loop + executable feedback integration 作为 headline contribution | 已作废（同上），降为方法支撑 |
-| Better STM / which STM is better | 两代前已作废；资产在 [../archive/](../archive/) |
-| source-level closure / regression audit 作为评价框架 | 已作废，随 repair 一并移出本文 |
-| Path-1 / Path-2 评测链、旧 agent loop 基础设施 | 已停用，在 [../../archive/](../../archive/)，完整保留可复活，不参与本文任何结论 |
+后续 PR 必须逐条裁定。**在裁定之前，相关章节不得定稿。**
 
-⚠️ 与 repair 期一并搁置但**文件仍在**的资产：
-[../experiment_design/issue_lifecycle/](../experiment_design/issue_lifecycle/)、
-[../experiment_design/source_trace/](../experiment_design/source_trace/)、
-[../evidence/ledgers/](../evidence/ledgers/)。它们只作历史背景与后续 repair 论文的迁移输入，
-**不得作为本文的方法或评价框架引用**。
+| # | 冲突 | 双方 | 落点 |
+| --: | :-- | :-- | :-- |
+| **X1** | RQ2 的证据来源里出现「**留出集**」 | BLUEPRINT 的 RQ 表 **vs** 仓库已确立的「**hold-out 永久不用**」（[method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)） | [paper_outline.md](./paper_outline.md) `TODO-O4` |
+| **X2** | T1/T2 两层实验的形态 | BLUEPRINT 的分层基于 **v35 时期**（当时想省成本、只跑子集）**vs** v46 已跑完 **324 格全量** | [paper_outline.md](./paper_outline.md) `TODO-O5` |
+| **X3** | contribution「现有 detection 方法**缺少错误的上下文信息**」按字面写会被反驳 | 导师原话 **vs** 模型检查的反例轨迹就是上下文、有文献把状态图改动反向映射回需求、有工作给 provenance | [paper_story.md](./paper_story.md) `TODO-S2` |
 
-## 6. Reviewer challenge 快答
+## 6. TODO 索引
 
-完整对照表在 [claim_evidence_map.md](./claim_evidence_map.md) §4，这里只放三条最常问的。
+全部 TODO 区块的汇总。**每个 TODO 在其所在文件中有完整的三段说明**（缺什么 / 做完长什么样 / 材料在哪）。
 
-**Q：这是不是在证明某种建模语言 / DSL 更好？**
+| ID | 文件 | 一句话 | 阻塞什么 |
+| :-- | :-- | :-- | :-- |
+| `TODO-S1` | paper_story | contribution 定三条还是两条，以及三条之间的映射 | §1.4、§6 定稿 |
+| `TODO-S2` | paper_story | **X3**：「缺上下文」claim 的可辩护收窄 | Intro motivation、C-III |
+| `TODO-S3` | paper_story | 领域分析这条论证链的实际交付物（19 行映射表） | 整篇方法合法性 |
+| `TODO-S4` | paper_story | Related Work 四条轴的实际文献填充 | §2 |
+| `TODO-S5` | paper_story | 「裸给工具效果差」这条反面观察缺可引用证据 | §1.3 末、§7.2 |
+| `TODO-O1` | paper_outline | §3 领域分析节的交付形态与验收判据 | §3（承重结构） |
+| `TODO-O2` | paper_outline | 建模对象边界落 §1 还是 §3（九节无独立 Problem Formulation） | §1、§3 分工 |
+| `TODO-O3` | paper_outline | 4 个 RQ 定稿（两套候选） | §5、§6 全章 |
+| `TODO-O4` | paper_outline | **X1**：留出集 vs hold-out 永久不用 | RQ2 |
+| `TODO-O5` | paper_outline | **X2**：T1/T2 形态重做 | §5 实验设置 |
+| `TODO-O6` | paper_outline | ref 翻转率实验的可行性实测（参考模型转换成功率） | RQ3 |
+| `TODO-O7` | paper_outline | 判别效力 / 覆盖性指标的定义与工程 | RQ3 |
+| `TODO-O8` | paper_outline | 待补对照与审计清单的执行（朴素基线第一优先） | §6、§8 |
+| `TODO-O9` | paper_outline | 投稿 venue 与排期重做 | 全篇节奏 |
+| `TODO-C1` | claim_evidence_map | contribution 定稿后回填 claim 编号与措辞 | C2/C3/C4 |
+| `TODO-C2` | claim_evidence_map | 表达力边界 claim 缺证据（映射表未产出） | RQ1 |
+| `TODO-C3` | claim_evidence_map | 判别效力 claim 缺数据（ref 翻转率未跑） | RQ3 |
+| `TODO-C4` | claim_evidence_map | 无外部对照 → 一切相对性 claim 不可写 | §6、§8 |
+| `TODO-M1` | model_scope | fork/join：不展开（当前定）与 BLUEPRINT 四层 finding 方案的取舍留档 | §3.1 一句话 |
+| `TODO-M2` | model_scope | 19 个谓词逐条挂领域出处 | §3、§4.2 |
+| `TODO-M3` | model_scope | `invariant` 谓词的处置（最自然用法出界） | §4.2、§8 |
+| `TODO-T1` | terminology_policy | 三条 contribution 的英文措辞 | 全篇英文稿 |
+| `TODO-T2` | terminology_policy | 领域分析相关新术语的中英口径 | §3 |
 
-不是。中间表示只是求值介质——行为性问题在 PlantUML 上没有定义，必须编译到带形式语义的
-表示上才能求值。而且这次编译自身有已量化的损耗，我们如实报告它，不把它算成收益。
+## 7. placeholder 阶段的退出判据
 
-**Q：贡献是不是「跑了一个大实验，找到了六成缺陷」？**
+本目录可以摘掉 placeholder 标记，当且仅当：
 
-不是。贡献是谓词逻辑元模型与断言体系；覆盖率是支撑它的证据，不是贡献本身。
-且该数字只能作为上界读，并且必须与算力代价一起给。
+1. `TODO-S1` / `TODO-S2` / `TODO-O3` / `TODO-O4` / `TODO-O5` 五项已裁定——它们决定**论文的形状**，
+   其余 TODO 决定内容的丰俭。
+2. §3 领域分析的交付形态已确定（`TODO-O1`），哪怕表还没填满。
+3. [claim_evidence_map.md](./claim_evidence_map.md) 中不存在「有 claim、无证据、无 TODO」的条目。
 
-**Q：那些没被已知缺陷认领的产出，是不是误报？**
-
-不是。逐条读完后这个读法是错的：按条目计最大的一块是评审入口的编译损失，
-既不是被评审模型的缺陷，也不是方法的误判。见 [claim_evidence_map.md](./claim_evidence_map.md) C11–C12。
-
-## 7. 相对上一版改了什么、为什么
-
-| 改动 | 为什么 |
-| :-- | :-- |
-| thesis 从「source-level behavioral issue discovery **and closure**」收窄为「问题发现 + 断言体系」 | 导师定调 discover 单独成篇 |
-| contribution 从三条改为两条 | 同上 |
-| 文件职责表新增每份的「不能替代什么」，并新增「数字一律回实验报告核对」 | 旧版的 claim map 曾是唯一的 evidence 表，容易变成数字的第二事实源 |
-| 新增 §4 上游事实源的五级优先级 | 旧版只列四个来源、无优先级；而现在同时存在导师口头定调、实验报告、判定口径文档三类事实源，冲突时必须有裁定顺序 |
-| §5 历史框架表新增「repair 期资产虽在但不得引用」的显式提示 | `experiment_design/issue_lifecycle/`、`source_trace/`、`evidence/ledgers/` 文件仍在原地，不写清会被后续 agent 当成 active 框架 |
-| Reviewer 快答从「是不是证明 fcstm 更好 / 是不是定义 better specification」换成三条当前会被问的 | 旧两问针对的框架已两代前作废 |
+⛔ **不以「文档看起来完整」作为退出判据。** 上一版就是七份写得很完整、但 contribution 形状
+其实还没定的文档；那种完整度会让后续 agent 误以为可以直接照着写正文。

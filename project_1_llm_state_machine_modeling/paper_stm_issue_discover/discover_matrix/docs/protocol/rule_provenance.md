@@ -20,17 +20,44 @@ $$\forall C \in \mathrm{Composite},\ |\mathrm{children}(C)| \ge 1 \Rightarrow \e
 
 ## 处置：让盲态成为构造事实，而不是声明
 
-**由一位对失败分析完全盲的执行者从规范推导该表。** 明确隔离清单：
+**由一位对失败分析完全盲的执行者从规范推导该表。** 隔离清单如下，
+**一律按目录写，不按文件名通配**（理由见下一小节）：
 
 | 类别 | 禁止 |
 | :-- | :-- |
-| 本目录的分析文档 | 全部 `.md` |
-| 判定与样本 | `manual_review/`、`verdicts/`、`onepass_sample/`、`blind_sample/` |
+| 分析与协议文档 | `discover_matrix/docs/` **整个目录**（`findings/`、`generations/`、`protocol/`、`judges/` 全在其下，本文件自身也在内） |
+| 代次报告 | `discover_matrix/` 下的**全部代次目录** `v*/`（当前为 `v46/`；新开一代即自动落入本条，无需改名单） |
+| 判定与样本 | `manual_review/`、`verdicts/`、`onepass_sample/`、`blind_sample/`、`telemetry/` |
+| 结果性数据 | `discover_matrix/` **顶层的全部 `*.json`**（台账重建、已发布运行清单、已知假阳性、校准矩阵都在这一层） |
 | 运行产物 | 仓库根 `runs/` |
-| 按名 | 含 `EXPECTED`、`ISSUE`、`BOTTLENECK`、`LIMITATION`、`HIT_` 的任何文件 |
 
 **应当读**：`CLAUDE.md` 的建模对象边界、`pyfcstm` DSL 规约与 `diagnostics/codes.yaml`、现有谓词词表、
 UML 规范条款。
+
+### 为什么改成按目录（2026-08-11）
+
+本条此前写的是**按文件名通配**：「含 `EXPECTED`、`ISSUE`、`BOTTLENECK`、`LIMITATION`、`HIT_` 的任何
+文件」。文档树化把这些文件改成小写并移进 `docs/` 子目录后，**五个通配符同时失配**。实测（2026-08-11，
+在 `discover_matrix/` 下，排除 `__pycache__` 与 `manual_review/eis_bundle/`）：
+
+```bash
+# 旧名单实际命中：0
+find . -type f \( -name '*EXPECTED*' -o -name '*ISSUE*' -o -name '*BOTTLENECK*' \
+                  -o -name '*LIMITATION*' -o -name '*HIT_*' \) | wc -l
+# 它们的小写同物：20
+find . -type f \( -iname '*expected*' -o -iname '*issue*' -o -iname '*bottleneck*' \
+                  -o -iname '*limitation*' -o -iname '*hit_*' \) | wc -l
+```
+
+那 20 个里就包括 [ground_truth_limitations.md](../protocol/ground_truth_limitations.md)、
+[hit_criterion.md](../protocol/hit_criterion.md)、
+[predicate_bottleneck.md](../generations/v24/predicate_bottleneck.md)、
+`manual_review/expected_issue_set.json`。**名单看上去仍然完整，防护已经全死。**
+
+这与 [blind_judge_prompt.md](../judges/blind_judge_prompt.md) 改动日志 v3 记的是同一次事故的同一个
+教训：那份文件的 `V2*.md` / `OVERREPORT_*.md` 两个通配符也在同一次重组中失配，已改为按目录。
+**「按形态列举永远漏」在路径层的形态就是「按文件名通配永远漏」** —— 目录不会因文件改名而漏，
+文件名会。新增禁读对象时若只能想到文件名，说明它缺一个该归进去的目录。
 
 ### ⚠️ 「结果邻接」类文件：必读，但用途受限
 

@@ -87,8 +87,8 @@ and attribution_boundary.source_level_claim_allowed == true
 
 | 编号 / 引用键 | source_id | 事实源 | 类型 | 用途 | 关键锚点 |
 |---|---|---|---|---|---|
-| [src-issue-def] | `issue_lifecycle_definition` | [source_level_issue_definition.md](../experiment_design/issue_lifecycle/source_level_issue_definition.md) | `md` | 支撑 candidate / confirmed / rejected / out-of-scope / insufficient-evidence 术语与 Q11=A raw-internal path。 | §2--§6 |
-| [src-ledger-contract] | `issue_ledger_contract` | [issue_ledger_contract.md](../experiment_design/issue_lifecycle/issue_ledger_contract.md) | `md` | 支撑字段语义与 repair eligibility gate。 | §3--§5 |
+| [src-issue-def] | `issue_lifecycle_definition` | [source_level_issue_definition.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/source_level_issue_definition.md) | `md` | 支撑 candidate / confirmed / rejected / out-of-scope / insufficient-evidence 术语与 Q11=A raw-internal path。 | §2--§6 |
+| [src-ledger-contract] | `issue_ledger_contract` | [issue_ledger_contract.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/issue_ledger_contract.md) | `md` | 支撑字段语义与 repair eligibility gate。 | §3--§5 |
 | [src-schema] | `source_issue_schema` | [source_issue_ledger.schema.json](../pipeline/evaluation/schemas/source_issue_ledger.schema.json) | `schema` | 机器可校验字段、enum、if/then gate、evidence path 与 attribution boundary。 | `$defs.issue`, `$defs.*_evidence_item`, `allOf[]` |
 | [src-fixtures] | `source_issue_fixtures` | [source_issue_ledger fixtures](../pipeline/evaluation/fixtures/source_issue_ledger/) | `json` | 六个 synthetic contract fixture，覆盖 v0 分支。 | `*.json#/issues[0]` |
 | [src-tests] | `source_issue_tests` | [test_source_issue_ledger_schema.py](../pipeline/evaluation/tests/test_source_issue_ledger_schema.py) | `source-code` | schema metaschema、fixture validation、负例 mutation、Markdown link check。 | `test_*` functions |

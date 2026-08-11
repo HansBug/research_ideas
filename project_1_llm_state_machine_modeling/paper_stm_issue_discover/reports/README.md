@@ -1,7 +1,15 @@
 # reports/ — 阶段性研究报告（按日期命名）
 
-> 🔴 **本目录**没有**当前实验的结果报告。** 全部 10 份都是 2026-06 至 07 的阶段性材料：
-> 语料准入、转换恢复、负证据、scope handoff，以及两份 v0 字段合同说明。
+> 🔴 **本目录**没有**当前实验的结果报告。** 共 **11** 份，跨 2026-06 至 2026-08：
+>
+> | 份数 | 时间 | 是什么 |
+> | --: | :-- | :-- |
+> | 7 | 2026-06 | 语料准入、转换恢复、负证据、directional analysis、scope handoff、主 seed profile、selected smoke |
+> | 2 | 2026-07-08 | issue ledger / source trace 两份 v0 字段合同说明 |
+> | 1 | 2026-07-19 | Issue #161 PlantUML Java frontend 技术路线报告——当前 60 例语料的由来 |
+> | 1 | 2026-08-11 | 重构后 e2e smoke。⛔ **工程验证，不是研究性运行，数字不得进论文统计** |
+>
+> 也就是说：**没有一份是代次实验结果**，哪怕最新那份是 08 月的。
 >
 > | 你想找 | 去哪 |
 > | :-- | :-- |
@@ -46,10 +54,10 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 ## 4. 推荐阅读顺序
 
-1. 想理解当前 issue lifecycle 合同：先读 [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md)，再读 [../experiment_design/issue_lifecycle/README.md](../experiment_design/issue_lifecycle/README.md)。
-2. 想理解当前 source trace 合同：先读 [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md)，再读 [../experiment_design/source_trace/README.md](../experiment_design/source_trace/README.md)。
+1. 想理解当前 issue lifecycle 合同：先读 [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md)，再读 [../experiment_design/issue_lifecycle/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/README.md)。
+2. 想理解当前 source trace 合同：先读 [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md)，再读 [../experiment_design/source_trace/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/README.md)。
 3. 想理解当前 seed / conversion readiness：先读 [SUMMARY.md](./SUMMARY.md)，再读 R5.5.2 recovery report 和 main seed profile。
-4. 想理解当前 paper1 story / contribution：不要从 archived R5.7 报告开始；应读 [../README.md](../README.md) 与 [../story/README.md](../story/README.md)。
+4. 想理解当前 paper1 story / contribution：不要从 archived R5.7 报告开始；应读 [../README.md](../README.md) 与 [../story/README.md](../archive/r8_discover_repair_story/story/README.md)。
 5. 想追溯 R5.7 为什么被归档：读 [../archive/r5_7_better_stm_snapshot/README.md](../archive/r5_7_better_stm_snapshot/README.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md)。
 
 ## 5. 维护纪律

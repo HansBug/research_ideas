@@ -166,7 +166,7 @@ for, assert that variable's existence as a `precondition`**」——出现在 `r
 ## 8. 复算
 
 ```bash
-cd project_1_llm_state_machine_modeling/eval/discover_matrix
+cd project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix
 python verdict_tiers.py     --generation matrix-v46-full --verdicts v46/verdicts/v46_human.json --audit /tmp/a.json
 python audit_to_verdicts.py --generation matrix-v46-full --audit /tmp/a.json --out /tmp/v.json
 python metrics_at_k.py      /tmp/v.json --no-direction-check      # 分母自动扣 27 条 00x8 越界 + 1 条 boundary_ruling（来源不同，不可混谈）

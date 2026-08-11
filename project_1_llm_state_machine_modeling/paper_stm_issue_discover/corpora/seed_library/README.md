@@ -21,7 +21,7 @@
 
 **核心边界**：seed library 不是本论文的 repair baseline，也不是代表性样例集合本身。旧 `NL -> STM` generation baseline 在这里作为上游 seed 方法集合、转换压力、相关工作和种子候选来源入账。
 
-三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录 source-level issue discovery / repair / closure 的 repair / feedback 近邻；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
+三类文库交叉入口：[../repair_baselines/](../repair_baselines/) 记录模型修正 / 补全 / refinement 的 repair / feedback 近邻（服务 §Related Work 与后续 repair 论文，**不是 paper1 的 baseline**）；[../nl_datasets/](../nl_datasets/) 记录只有 NL、尚未闭合 `STM_0` 生成关系的数据源。若同一对象跨库出现，必须在各自 `SUMMARY.md` 中按 seed / repair / NL 角色切片并互链。
 
 ## 1. 阅读顺序
 
@@ -72,9 +72,14 @@
 - [GUIDE.md](./GUIDE.md) §3.5 规定 `assets/` 一手来源纪律、trace validator 与 `storage_mode` 分级。
 - 每个重点条目的 `assets/README.md` 必须中文说明 raw / extracted 映射、Python 加载方法和审计不变量。
 
-## 1.8 smoke 用代表性样例入口
+## 1.8 论文语料的人读镜像入口
 
-上级 [selected_seed_examples/](../../selected_seed_examples/) 是当前固定维护的 smoke 用代表性种子样例迷你文库。它故意放在 `paper_stm_issue_discover/` 根路径下，而不是放在本 `seed_library/` 内：本目录继续作为上游 seed 方法 / 来源事实总账，`selected_seed_examples/` 只把少量已核验的一手 `<NL, STM_0>` pair 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件，服务后续转换器、诊断器、修正循环和评价协议的最小连通性自检。当前样例不是最终实验集合，也不是主结果样本规模上限。
+上级 [selected_seed_examples/](../../selected_seed_examples/) 是 **60 个 pair 的人读镜像**，把已核验的一手 `<NL, STM_0>` 展开成可直接读取的 `nl.txt` 与 `stm0.*` 源文件。它故意放在 `paper_stm_issue_discover/` 根路径下，而不是放在本 `seed_library/` 内：本目录继续作为上游 seed 方法 / 来源事实总账，它只承载展开后的 pair。
+
+⚠️ **本节标题与下述定性此前写的是「smoke 用代表性样例 / 少量 pair / 不是最终实验集合」，已作废。** 现状是：那 60 个 pair **就是**论文语料，全部来自本库条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，v46 全量矩阵已在其上跑完。两点必须同时记住：
+
+1. **实验网格是 54 个，不是 60**——末位为 `8` 的 6 个 pair 按建模对象边界永久排除，见 [selected_seed_examples/README.md](../../selected_seed_examples/README.md) 顶部；
+2. **跑实验的输入不从这个镜像读**——`discover/cli.py` 的 `REPORT_ROOT` 硬指向 [../../pipeline/representation/reports/llms_emp_r45_java_60/](../../pipeline/representation/reports/llms_emp_r45_java_60/)，镜像只供人阅读（两侧已核对逐字节相同）。
 
 | 分组 | 条目 | 作用 |
 |---|---|---|

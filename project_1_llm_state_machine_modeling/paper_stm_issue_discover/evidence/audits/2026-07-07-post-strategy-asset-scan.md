@@ -2,7 +2,7 @@
 
 ## 0. 审计目的
 
-本报告记录 PR-asset-map 的静态扫描证据，用于支撑 [../ledgers/paper1_strategy_asset_map.md](../ledgers/paper1_strategy_asset_map.md) 中的 `active / update / archive / historical` 决策。
+本报告记录 PR-asset-map 的静态扫描证据，用于支撑 [../ledgers/paper1_strategy_asset_map.md](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md) 中的 `active / update / archive / historical` 决策。
 
 审计边界：
 

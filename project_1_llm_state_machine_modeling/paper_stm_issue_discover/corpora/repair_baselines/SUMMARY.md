@@ -1,8 +1,18 @@
 # repair_baselines/SUMMARY.md
 
+> 🟡 **本总账的条目、分级与统计全部有效；只有「它们服务谁」变了。**
+>
+> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
+> 因此下文反复出现的 `source-level issue discovery / repair / closure` 是**本文库自身的收录口径**，
+> **不是 paper1 的主线**；「严格全绿 baseline 仍为 0」这类结论现在读作「作为**后续 repair 论文**
+> baseline 的成熟度」，而不是「paper1 缺 baseline」——**paper1 不做 repair，本就无从对照**。
+>
+> paper1 对本文库的两个用途：§Related Work 靶子文献（说明「现有 detection 方法报告错误但缺少
+> 错误的上下文信息」），以及后续论文的 baseline 储备。收录标准不变，详见 [README.md](./README.md) 顶部。
+
 ## 0. 论文集整体概况
 
-本目录服务于第一篇论文 source-level issue discovery / repair / closure 主线，记录 STM 修正任务 baseline 与近邻工作。当前按更严格的实验 baseline 硬定义重新收紧：**真正 baseline 必须同时满足输入含 `NL` 与 `STM_0`，且 `STM_0` 能明确追溯为由同一 `NL` 生成 / 派生；仅有 `STM + error / tests / oracle / diagnostics` 的工作不能称为本文 baseline。**
+本目录记录 STM 修正任务 baseline 与近邻工作，按上文口径服务于**后续 repair 论文**与 paper1 的 §Related Work。当前按更严格的实验 baseline 硬定义重新收紧：**真正 baseline 必须同时满足输入含 `NL` 与 `STM_0`，且 `STM_0` 能明确追溯为由同一 `NL` 生成 / 派生；仅有 `STM + error / tests / oracle / diagnostics` 的工作不能称为本文 baseline。**
 
 阶段性结论因此改为：**当前 24 个入库条目中，严格全绿 baseline 仍为 0；`completion-sysml-gwt` 只是唯一 P0 路线近邻 / 条件对照，其余条目应降级为 generation-feedback、repair-engine near-neighbor、异构形式化近邻、模型一致性 / completion 近邻或 negative evidence。**
 

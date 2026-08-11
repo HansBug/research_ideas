@@ -1,4 +1,20 @@
 # 最终分层：可入 expected issue = 129 条（点值）
+> 🟡 **本文件记录的是当时那次分层的结论（点值 129），已被机器源超出。**
+>
+> | | 值 | 来源 |
+> | :-- | --: | :-- |
+> | 本文件正文 | **129** | 2026-07 那次分层的人工裁决结果 |
+> | [`final_stratification.json`](./final_stratification.json) 的 `summary.admissible` | **126** | 机器源，当前值 |
+> | [`expected_issue_set.json`](./expected_issue_set.json) 实际条数 | **126** | 台账真源，与上一行一致 |
+>
+> 差 3 条的来历未在本文件内记录，需要时去查 `final_stratification.json` 的 `complaints`
+> 与 `rows` 字段。**引用数字一律以 JSON 为准；本文件的价值在于它记录了各条的
+> 分层理由与裁决过程，那部分仍然有效。**
+>
+> ⚠️ 又：本文件与同目录的 [`STRATIFICATION.md`](./STRATIFICATION.md) 是**前后两版**，
+> 后者更旧（区间 47–136、无 `over_specification` 层）。三份同名同题材料里
+> **只有 JSON 是当前的**。
+
 
 Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 问「154 条候选如何入账」。词法分层只能给出区间 **66 – 144**，因为 `nl_named` 层的判据是「理由里提到 NL」，而那不等于「NL 点名了缺失的那个元素」。本轮把全部需要人工的行逐条判完，**收敛到点值**。
 

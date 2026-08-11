@@ -92,8 +92,14 @@ $$
 | [story/](./story/) | 论文叙事：outline、claim-evidence 映射、术语口径 | 写论文 |
 | [archive/](./archive/) | 本工作区**内部**的历史快照（R1.5–R1.7 种子语料、R5.7 Better STM） | 考古 |
 
-其它入口：[GUIDE.md](./GUIDE.md)（工作纪律）、[SUMMARY.md](./SUMMARY.md)（总账）、
+其它入口：[**TODO.md**](./TODO.md)（**本论文所有待办的唯一清单**，带复选框）、
+[GUIDE.md](./GUIDE.md)（工作纪律）、[SUMMARY.md](./SUMMARY.md)（总账）、
 [STATUS.md](./STATUS.md)（当前状态）。
+
+⚠️ **`story/` 与 `experiment_design/` 目前是 placeholder**——结构在、细节缺，
+每一处待补都写成了显式 `TODO(后续PR)` 区块。上一版（内容不差，是赶工版）
+归档在 [archive/r8_discover_repair_story/](./archive/r8_discover_repair_story/) 与
+[archive/r7_issue_lifecycle_scaffold/](./archive/r7_issue_lifecycle_scaffold/)，各配复活导引。
 
 ## 7. 推荐阅读顺序
 

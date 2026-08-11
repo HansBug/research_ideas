@@ -26,6 +26,12 @@
 >
 > ⚠️ **`.fcstm` 是编译产物，不是作者源。** 判缺陷读 `plantuml.puml`；只读 `.fcstm`
 > 会把编译债务（`FinalWait*`、`R45RouteToken` 等 compiler-owned 支架）当成模型缺陷。
+>
+> ⚠️ **下文含一段已作废的路线描述。** 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，
+> repair 另立后续论文。因此 §2 末段（`Discover → Repair → Confirm → B-final → post-Confirm export`
+> 那条链）与 §8 对 [../evaluation/](../evaluation/) 的定性都已过期，两处均已就地标注。
+> **本目录自身的职责没变**——它仍然产出 discover 每次真正读的那个目录，上文的表照旧有效。
+> paper1 当前的贡献口径见 [../../README.md](../../README.md) §2。
 
 ## 0. 有什么
 
@@ -102,9 +108,23 @@ active 60 例同时保留两层资格：
 本路线不再以双向无损或最小文本修改为目标，而采用两个职责不同的单向投影：
 
 ```text
-PlantUML STM0 -> attribution-safe FCSTM working bundle
+PlantUML STM0 -> attribution-safe FCSTM working bundle          ← 🟢 这一条在运行路径上
 validated post-Confirm semantic-root export bundle -> fresh canonical PlantUML STM_k
+                                                                 ← 🔴 已作废，见下
 ```
+
+> ### 🔴 后向投影（第二条）已随论文收窄作废
+>
+> paper1 已收窄为 **issue discover 单独成篇**，**不做 repair、不做 Confirm、不产 `STM_k`**。
+> 因此「post-Confirm semantic-root export bundle」「B-final」「后向投影属于未来独立 source-export PR」
+> 这一整条后续路线**不再是本论文的计划**，也不再有承接它的下游阶段。
+>
+> 紧接的三段（后向投影的消费对象、`repair_authorized=false` / `main_result=not_run` 的口径、
+> `bind_confirmed_issues()` 对 confirmed issue 与 Repair target 的约束）**保留不删**，因为它们
+> 描述的是**代码当前真实的 fail-closed 行为**：这些开关确实存在、确实全部关着，读代码的人需要知道为什么。
+> 但**不要把它们读成「待建的下一步」**——它们现在是永久关闭状态，不是未开放状态。
+>
+> 前向投影（第一条）不受影响，它就是 discover 的输入来源。
 
 前向投影只负责保存 source semantic roots、隔离 compiler-owned scaffolding，并确保 Discover/Repair/Confirm 的 main-result issue 不被转换伪影污染；它消费当前 attribution-safe working bundle。后向投影属于未来独立 source-export PR：只有通过 B-final 与 Confirm 的 post-Confirm semantic-root export bundle 才能授权输出，它消费 `source_owned + issue-bound agent_created` semantic roots、accepted disposition/change ledger、region/body/lifecycle/order 信息与 deletion tombstone，折叠 compiler macro 后重新生成完整 PlantUML。后向投影不消费裸 `.fcstm`，也不把当前 `working_fcstm_contract.v2` 当作可逆制品；它不保留原排版、不追求最小 diff、不声称通用 round-trip 或全局 behavior equivalence。
 
@@ -243,7 +263,11 @@ pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline
 ## 8. 与上下游关系
 
 - 上游 R3：[../conversion/README.md](../conversion/README.md) 提供规范化 JSON、conversion report 与 loss ledger。
-- 历史 R4/R5.7 evaluation：[../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) 已冷归档；active [../evaluation/README.md](../evaluation/README.md) 只是 future source-level closure / regression placeholder。
+- 历史 R4/R5.7 evaluation：[../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/](../../archive/r5_7_better_stm_snapshot/pipeline/evaluation/) 已冷归档。
+  ⚠️ **原文「active [../evaluation/](../evaluation/) 只是 future source-level closure / regression placeholder」已作废**：
+  该目录**不是 placeholder，也不再计划往下建**——它是两份 v0 schema 的残留脚手架，`closure` / `regression`
+  已随论文收窄不再是评测终点（见 [../evaluation/README.md](../evaluation/README.md) 顶部）。
+  **paper1 的评测在 [../../discover_matrix/](../../discover_matrix/)，不在 `evaluation/`。**
 - 下游 R5 只消费 R4.5 已提交 `.fcstm` / report，不应在 R5 再补写 exporter。
 
 ## 9. 学术注意点

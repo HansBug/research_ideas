@@ -4,7 +4,7 @@
 
 本 GUIDE 约束种子文库的后续维护。种子文库只回答一个问题：哪些上游工作或来源能提供、描述或帮助构造 `<NL, STM_0>`，且其中 `STM_0` 与 `NL` 存在可追踪的生成 / 派生 / 人工建模关系。
 
-不得把种子文库写成本论文修正基线文库；若同一工作也包含 repair / feedback / completion 环节，应在 [../repair_baselines/](../repair_baselines/) 另行登记其修正能力，并在两边交叉链接。若对象只有控制系统 NL 输入、尚未闭合 `NL -> STM_0`，应留在 [../nl_datasets/](../nl_datasets/)。
+不得把种子文库写成修正基线文库（那是 [../repair_baselines/](../repair_baselines/) 的职责；paper1 收窄为 issue discover 后已不做 repair，本论文没有修正基线）；若同一工作也包含 repair / feedback / completion 环节，应在 [../repair_baselines/](../repair_baselines/) 另行登记其修正能力，并在两边交叉链接。若对象只有控制系统 NL 输入、尚未闭合 `NL -> STM_0`，应留在 [../nl_datasets/](../nl_datasets/)。
 
 ## 2. REGISTRY + SUMMARY 分工规则
 
@@ -71,7 +71,7 @@
 
 | 字段 | 允许值 / 写法 | 说明 |
 |---|---|---|
-| 生成者 | 人工 / 规则算法 / NLP工具 / LLM / 多阶段流水线 / 混合 | 只描述 `STM_0` 的产生方式；不要把本论文后续修正循环混入种子阶段。 |
+| 生成者 | 人工 / 规则算法 / NLP工具 / LLM / 多阶段流水线 / 混合 | 只描述 `STM_0` 的产生方式；不要把下游的发现 / 修正环节混入种子阶段。 |
 | LLM参与 | 是 / 否 / 可能 / 不适用 | “可能”必须在说明列给出证据不足原因。 |
 | NL类型 | 需求文本 / 用例 / 场景文本 / 系统描述 / 标准文档 / 合成需求 / 来源文档 / 非NL | 用中文写，不再使用 `non-structured` 等英文短语。 |
 | STM类型 | FSM / HSM / EFSM / UML statechart / SysML STM / PlantUML / Mermaid / Umple / 协议FSM / 非STM | 协议FSM、非STM默认不计控制系统四例。 |
@@ -192,7 +192,7 @@ JSON schema 位于 [schemas/seed_resource_registry.schema.json](./schemas/seed_r
 ## 7. 禁止事项
 
 - 禁止新增根层横向台账作为第二事实源。
-- 禁止把旧 `NL -> STM` 生成基线改写成本论文修正基线。
+- 禁止把旧 `NL -> STM` 生成基线改写成修正基线（本论文不做 repair，修正近邻一律登记到 [../repair_baselines/](../repair_baselines/)）。
 - 禁止把 protocol / standard FSM、BPMN/process、Petri/CSP/Event-B/TLA+/LTL/STL、repair-only、co-exist-only、sequence/formal scenario 等误计为 `final_pool_ready` 或 `conditional_final_pool`。
 - 禁止把“本地有 `seed_desc.md` / `artifacts.md`”误写成“作者公开了 `<NL, STM_0>` 原生配对”。
 - 禁止在仓库文件中维护 PR 流程状态、review 状态、ready gate、commit / push / merge 进度。

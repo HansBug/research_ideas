@@ -264,7 +264,7 @@ NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scop
 ## 六、可复算路径
 
 ```bash
-cd project_1_llm_state_machine_modeling/paper_stm_repair/selected_seed_examples
+cd project_1_llm_state_machine_modeling/paper_stm_issue_discover/selected_seed_examples
 grep -h "^\s*def " */model.fcstm | sort | uniq -c          # → 33× R45RouteToken，无作者变量
 # ⚠️ 债务码必须按【制品数】数——每码在两个数组各列一次，uniq -c 会得到 2 倍
 for c in $(grep -ho 'R45\.DEBT\.[a-z_]*' */fcstm_meta.json | sort -u); do

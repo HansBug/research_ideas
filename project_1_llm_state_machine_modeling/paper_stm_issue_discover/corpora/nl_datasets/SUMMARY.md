@@ -11,7 +11,7 @@
 | 文库 | 角色 |
 |---|---|
 | [../seed_library/](../seed_library/) | 上游 `NL -> STM_0` seed 方法 / 来源 |
-| [../repair_baselines/](../repair_baselines/) | source-level issue discovery / repair / closure 修正近邻 |
+| [../repair_baselines/](../repair_baselines/) | 模型修正 / 补全 / refinement 近邻工作。**不是 paper1 的 baseline**——paper1 收窄为 issue discover 后不做 repair；现服务 §Related Work 与后续 repair 论文 |
 | [./](./) | 控制系统纯 NL 输入来源 |
 
 ## 2. emoji / enum 标准

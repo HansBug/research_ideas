@@ -4,14 +4,19 @@
 
 本 SUMMARY 是种子文库的研究结论与统计摘要入口；它承接 R1.7 有界快照 v4，而不是全域普查。旧 `seed_corpus/` 的横向台账与原始检索材料已归档到 [../../archive/r1_5_to_r1_7_seed_corpus_snapshot/](../../archive/r1_5_to_r1_7_seed_corpus_snapshot/)。逐条一手资源明细以 [REGISTRY.md](./REGISTRY.md) 和单条目 `seed_resource_registry.json` 为准。
 
-核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，不是本论文 `STM_0 -> STM_k` 修正基线；[selected_seed_examples/README.md](../../selected_seed_examples/README.md) 已将当前四个 smoke 用代表性种子样例整理到 `paper_stm_issue_discover/` 根路径，但四例不是最终实验集合或主结果样本上限。
+核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，**不是修正基线文库**（那是 [../repair_baselines/](../repair_baselines/) 的职责，且 paper1 收窄为 issue discover 后已不做 repair）。
+
+⚠️ **下面这句已作废**：~~[selected_seed_examples/](../../selected_seed_examples/) 是当前四个 smoke 用代表性种子样例，四例不是最终实验集合或主结果样本上限。~~
+现状是：[selected_seed_examples/](../../selected_seed_examples/) 已是 **60 个 pair 的人读镜像**，
+且**就是**论文语料——全部来自本库条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，
+实验网格 **54 个**（末位为 `8` 的 6 个按建模对象边界永久排除）。它不再是「smoke 用四例」。
 
 ### 1.1 三类文库关系
 
 | 文库 | 当前角色 | 本 SUMMARY 的使用边界 |
 |---|---|---|
 | [./](./) | 上游 `NL -> STM_0` seed 方法 / 来源 | 种子池当前事实入口；仍需逐案例冻结版本、哈希、泄漏边界和数据质量 caveat。 |
-| [../repair_baselines/](../repair_baselines/) | source-level issue discovery / repair / closure repair / feedback 近邻 | 只用于 baseline / related work / 对照边界；不提供种子。 |
+| [../repair_baselines/](../repair_baselines/) | 模型修正 / 补全 / refinement 近邻 | 只用于 related work / 边界论证与后续 repair 论文储备；**不是 paper1 的 baseline**，也不提供种子。 |
 | [../nl_datasets/](../nl_datasets/) | 只有 NL、尚未闭合 `STM_0` 生成关系的数据源 | 不提前计为 seed；生成并记录 `STM_0` 后才可 crosslink 到本库。 |
 
 
@@ -49,7 +54,14 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | conditional seed pool | `ttool-ai-smd-subset` | 条件进入代表性样例集合 | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
 | pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
 
-固定 smoke 用代表性样例集合：[llms-emp-deepseek-microwave](../../selected_seed_examples/llms-emp-deepseek-microwave/)、[llms-emp-gpt4o-hldcs](../../selected_seed_examples/llms-emp-gpt4o-hldcs/)、[llms-emp-kimi-autonomous-collision](../../selected_seed_examples/llms-emp-kimi-autonomous-collision/) 和 [sefm-ssc7-umple](../../selected_seed_examples/sefm-ssc7-umple/)。`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 已从当前四例 selected smoke 移除，只保留为未来 TTool XML / SMD 切片或 synthetic probe 专项线索。后续若替换样例，必须回到一手条目 `assets/`、[REGISTRY.md](./REGISTRY.md) 和本目录 README 同步记录原因。
+⚠️ **本段原写的「固定 smoke 用代表性样例集合」四例已不存在，四个链接全部指向已删除的目录，故删去。**
+它们是 `llms-emp-deepseek-microwave` / `llms-emp-gpt4o-hldcs` / `llms-emp-kimi-autonomous-collision` / `sefm-ssc7-umple`；
+`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 当时已被移出该四例。
+
+**现状**：[../../selected_seed_examples/](../../selected_seed_examples/) 下是 **60 个 `llms_emp_feedback_final_NNNN/`**，
+全部来自 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，即论文语料本身（实验网格 54 个）。
+四例 smoke 时代已经过去，替换样例的旧流程随之作废；语料变更现在要回到
+[REGISTRY.md](./REGISTRY.md)、条目 `assets/` 与 [../../pipeline/representation/](../../pipeline/representation/) 的证据目录同步。
 
 ## 2. 关键统计表
 
@@ -75,7 +87,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | 作者原生 `<NL, STM_0>` pair | 作者或原始制品直接提供的输入 NL 与生成出的 $STM_0$ 配对；不是我们后续复跑、人工补造或从论文截图猜出的 pair。 |
 | 可重建 `<NL, STM_0>` pair | 可以根据论文、附录、示例、图表或代码重建出来的配对，但作者未直接提供原始 pair。 |
 | 配对索引 / case 对齐 | case id、文件名、表格编号或显式映射能稳定把 NL 与 STM_0 对齐。 |
-| 可计种子候选 | 后续可作为 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 实验输入来源；必须再做逐案例冻结、哈希、泄漏检查和数据质量 caveat 标注。 |
+| 可计种子候选 | 后续可作为 `NL + raw/source STM_0 -> issue discover` 实验输入来源；必须再做逐案例冻结、哈希、泄漏检查和数据质量 caveat 标注。 |
 
 **一手 registry 角色定义**：从一手 registry 起，是否可作为现成 generated seed 只看 [REGISTRY.md](./REGISTRY.md) 的 `recommended_role` 与 validator 输出；旧“严格种子 / 条件种子”只保留为文献层 `NL -> STM_0` 方法证据标签，不能直接决定 实验输入。
 
@@ -92,7 +104,7 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 
 | 类型 | 定义 | 典型用途 | 进入当前种子池的默认态度 |
 |---|---|---|---|
-| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、泄漏风险和数据质量 caveat 也可冻结，则最接近真实实验 seed。 | 作为 `NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
+| 严格种子 | 有较清楚证据表明存在 `NL -> STM_0`，且输出属于 T0 范围内 FSM / HSM / EFSM / statechart；若资源可用性、泄漏风险和数据质量 caveat 也可冻结，则最接近真实实验 seed。 | 作为 `NL + raw/source STM_0 -> issue discover` 的优先候选来源、论文 story 中的上游 seed 证据。 | 优先考虑，但仍需逐案例冻结 NL、STM_0、pair 对齐、许可、版本 / 哈希和泄漏边界。 |
 | 条件种子 / 方法证据 | `NL -> STM_0` 关系基本成立，但存在合成 NL、只可论文级重建、需要切片、验证导向、中间层、可变性、完整原生 pair 未公开等限制。 | 作为候选 seed、方法证据、转换器压力或 related work 论证；用于说明上游 seed 生态比严格可用样本更宽。 | 不能自动进入当前种子池；必须先解决具体限制，或明确只作为方法证据 / 备选。 |
 | 边界 / 相关工作 / 哨兵 | 与 `NL -> STM` 或状态机建模相关，但不满足当前 seed 定义；常见原因包括输入不是 NL-only、输出不是目标 STM family、方向相反、只是 protocol / standard-doc / behavior-tree / goal-model / sequence / formal-spec 中间链路。 | 用于 related work、边界论证和防误收，帮助说明哪些工作不能冒充本论文 seed。 | 默认不进入当前种子池；除非后续有独立证据证明可切出合格 `<NL, STM_0>` pair。 |
 | 仅元数据 | 目前只有 BibTeX、DOI、标题或少量元信息，全文或关键制品未拿到，无法判断是否满足 `NL -> T0 STM-family`。 | 保留人工下载 / 后续核验队列，避免遗漏潜在证据。 | 不进入当前种子池，也不作为正向结论；只能标记为待核。 |

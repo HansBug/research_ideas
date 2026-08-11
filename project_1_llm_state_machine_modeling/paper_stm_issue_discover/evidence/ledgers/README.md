@@ -1,6 +1,11 @@
 # ledgers/ — 历史事实账本入口
 
-> **硬边界**：本子路径保存 R0/R1 阶段形成的历史事实账本，以及 2026-07-07 战略转向后的 paper1 资产清账地图。它不是当前 seed / baseline / NL dataset 的事实真源；当前事实必须回到 [../../corpora/](../../corpora/) 与对应 SUMMARY。
+> **硬边界**：本子路径保存 R0/R1 阶段形成的历史事实账本。它不是当前 seed / baseline / NL dataset 的事实真源；当前事实必须回到 [../../corpora/](../../corpora/) 与对应 SUMMARY。
+>
+> ⚠️ **2026-08-11 归档**：`paper1_strategy_asset_map.md`（2026-07-07 转向的施工地图）与
+> `legacy_asset_inheritance.md`（把 thesis 定义成 repair / refinement + Better STM）两份已迁入
+> [../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。
+> 它们的口径已被「paper1 只做 issue discover」覆盖，本目录只剩三份 R0/R1 历史台账。
 
 ## 1. 什么时候读这里
 
@@ -10,17 +15,17 @@
 | 想确认当前 `llms-emp-stm-subset` 是否进入主 seed 池 | 否 | 应读 [../../corpora/seed_library/SUMMARY.md](../../corpora/seed_library/SUMMARY.md) 和 [../../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md](../../reports/2026-06-29-00-03-56-llms-emp-main-seed-profile.md)。 |
 | 想写论文 claim 或主实验数字 | 否 | ledger 只能作为 provenance；claim 必须回到当前 report / machine source。 |
 | 想排查旧分支资产为什么被继承或排除 | 是 | 这里有 legacy asset inheritance。 |
-| 想判断某个 Better STM / `STM_k` / adjudication / repair target 资产后续应保留、改写、归档还是只作历史证据 | 是 | [paper1_strategy_asset_map.md](./paper1_strategy_asset_map.md) 是 PR-asset-map 的主资产地图。 |
+| 想判断某个 Better STM / `STM_k` / adjudication / repair target 资产后续应保留、改写、归档还是只作历史证据 | 是 | [paper1_strategy_asset_map.md](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md) 是 PR-asset-map 的主资产地图。 |
 
 ## 2. 本子路径文件清单
 
 | 文件 | 内容 | 推荐阅读场景 | 禁止误用 |
 |---|---|---|---|
-| [paper1_strategy_asset_map.md](./paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图。 | 追溯 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的资产来源；动态施工顺序见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。 | 不能把 `archive` 资产继续当 active 方法协议；不能把 `active` conversion / representation 资产写成 method gain；地图中的旧 PR slug 是历史 handoff。 |
+| [→ 已归档 paper1_strategy_asset_map.md](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md) | 2026-07-07 战略转向后的资产清账地图（已迁出本目录）。 | 追溯 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的资产来源；动态施工顺序见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。 | 不能把 `archive` 资产继续当 active 方法协议；不能把 `active` conversion / representation 资产写成 method gain；地图中的旧 PR slug 是历史 handoff。 |
 | [upstream_fact_ledger.md](./upstream_fact_ledger.md) | 上游 PR、导师讨论、旧分支、仓库事实等级。 | 解释某个事实为何被采信或降级。 | 不能替代当前 PR body / report / registry。 |
 | [source_coverage_ledger.md](./source_coverage_ledger.md) | R1 检索来源覆盖、去重闭合和未深审边界。 | 解释 search coverage 与未覆盖风险。 | 不能直接推出当前 seed eligibility。 |
 | [artifact_availability_ledger.md](./artifact_availability_ledger.md) | 代码、数据、结果、artifact 可获取性历史台账。 | 追溯某论文资源当时是否可得。 | 不能当作当前可下载状态，正式实验前必须重新核验。 |
-| [legacy_asset_inheritance.md](./legacy_asset_inheritance.md) | `paper_v1/`、旧 baseline、旧 source 继承边界。 | 判断旧资产能否作为 provenance 或线索。 | 不能把旧二手 parquet / derived asset 当一手资源。 |
+| [→ 已归档 legacy_asset_inheritance.md](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/legacy_asset_inheritance.md) | `paper_v1/`、旧 baseline、旧 source 继承边界（已迁出本目录）。 | 判断旧资产能否作为 provenance 或线索。 | 不能把旧二手 parquet / derived asset 当一手资源。 |
 
 ## 3. 与其他 evidence 子路径的关系
 

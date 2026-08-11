@@ -34,8 +34,8 @@
 两份 schema 的设计报告（属稳定合同说明，不是实验结果）：
 [2026-07-08-10-15-00-pr-issue-ledger-contract.md](../../reports/2026-07-08-10-15-00-pr-issue-ledger-contract.md)、
 [2026-07-08-14-03-59-pr-source-trace-contract.md](../../reports/2026-07-08-14-03-59-pr-source-trace-contract.md)；
-对应设计入口 [../../experiment_design/issue_lifecycle/](../../experiment_design/issue_lifecycle/) 与
-[../../experiment_design/source_trace/](../../experiment_design/source_trace/)。
+对应设计入口 [../../experiment_design/issue_lifecycle/](../../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/) 与
+[../../experiment_design/source_trace/](../../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/)。
 
 ## 怎么用
 

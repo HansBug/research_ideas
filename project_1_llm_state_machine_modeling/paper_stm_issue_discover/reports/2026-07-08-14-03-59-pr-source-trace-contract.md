@@ -23,10 +23,10 @@ source trace 因此是 source-level attribution 和 closure evidence 的桥，�
 
 | 路径 | 作用 |
 |---|---|
-| [../experiment_design/source_trace/README.md](../experiment_design/source_trace/README.md) | source trace 入口。 |
-| [../experiment_design/source_trace/GUIDE.md](../experiment_design/source_trace/GUIDE.md) | 后续 agent 维护规范。 |
-| [../experiment_design/source_trace/source_trace_contract.md](../experiment_design/source_trace/source_trace_contract.md) | Source Trace Contract v0 主合同。 |
-| [../experiment_design/source_trace/fixtures/README.md](../experiment_design/source_trace/fixtures/README.md) | 六个 synthetic fixtures 的人类可读入口。 |
+| [../experiment_design/source_trace/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/README.md) | source trace 入口。 |
+| [../experiment_design/source_trace/GUIDE.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/GUIDE.md) | 后续 agent 维护规范。 |
+| [../experiment_design/source_trace/source_trace_contract.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/source_trace_contract.md) | Source Trace Contract v0 主合同。 |
+| [../experiment_design/source_trace/fixtures/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/fixtures/README.md) | 六个 synthetic fixtures 的人类可读入口。 |
 
 ### 3.2 Machine artifacts
 

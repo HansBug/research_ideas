@@ -1,5 +1,15 @@
 # nl_datasets — 控制系统纯 NL 数据源文库
 
+> 🔴 **脚手架，尚未逐条填充；且它服务的实验已经跑完了。**
+>
+> 本库的立库目的是「为后续构造 `<NL, STM_0>` 提供入口」。但 paper1 的语料已经定了——
+> 60 例全部来自 [../seed_library/llms-emp-stm-subset/](../seed_library/llms-emp-stm-subset/)，
+> v46 全量矩阵已跑完。**本库对 paper1 不再有输入职责**，只作为后续论文换语料时的检索起点。
+>
+> 另：2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
+> 下文（及 [SUMMARY.md](./SUMMARY.md)）描述 [../repair_baselines/](../repair_baselines/) 角色时
+> 沿用的 `repair / closure` 措辞，是那个文库自身的收录口径，不是 paper1 的主线。
+
 ## 0. 定位
 
 本目录用于收集控制系统自然语言需求、用例、场景、系统描述、标准片段与教学案例等纯 NL 输入来源，服务于第一篇论文后续构造 `<NL, STM_0>` 的实验入口。
@@ -36,7 +46,7 @@
 ## 4. 与上游文库的关系
 
 - [../seed_library/](../seed_library/) 负责 `NL -> STM_0` 的 seed 方法 / 来源。
-- [../repair_baselines/](../repair_baselines/) 负责 source-level issue discovery / repair / closure 的修正近邻。
+- [../repair_baselines/](../repair_baselines/) 负责模型修正 / 补全 / refinement 的近邻工作（服务 §Related Work 与后续 repair 论文，不是 paper1 的 baseline）。
 - 本库只负责纯 NL 数据源；不把只有 NL 的对象提前当 seed。
 - 若某个 NL 来源后续完成 `STM_0` 构造，应在本库 `SUMMARY.md` 的 `seed_library crosslink` 字段记录对应 seed slug；seed library 侧反向回链字段由后续一致性 PR 统一补齐，避免本脚手架 PR 单方面改写 seed 总账。
 

@@ -1455,9 +1455,11 @@ run record 里没有代码版本字段，一次运行归属于哪个 commit 只�
 价值来自「它们写在看到结果之前」，而这一点只有远端时间戳能证明——写完就放在本地，等于把
 是否作弊的判断交给作者自述。事前登记因此必须与代码同批 push，且**不能只写在 `runs/` 下**：
 `runs/` 全目录被 `.gitignore` 排除，写在那里的登记既进不了仓库，PR comment 里引用它的路径
-也是死链。正确落点是对应 eval 目录（project_1 是
-[discover_matrix/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/)，
-命名沿用 `Vxx_PREREGISTERED.md`）。
+也是死链。正确落点是该论文的实验目录（project_1 是
+[discover_matrix/docs/generations/](./project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/generations/)，
+**每代次一个子目录、登记文件名为 `preregistered.md`**，例如 `docs/generations/v46/preregistered.md`）。
+⚠️ 旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）已于 2026-08-11 的文档树化中废弃，
+历史文件已迁入上述结构，不要沿用旧写法。
 
 若某次登记事后才补交，必须在文件头如实写明「运行后补交，提交动作本身不证明它写在运行之前」，
 并附可查的旁证（如文件时间戳与该代次首条 run record 的时间差）；不得让读者误以为它是事前推送的。

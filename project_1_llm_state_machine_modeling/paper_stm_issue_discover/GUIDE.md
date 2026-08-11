@@ -9,7 +9,7 @@
 2. [STATUS.md](./STATUS.md)：已完成 / 未完成事实，以及当前不可声称的话。
 3. 本文件：工作纪律。
 4. 按任务分叉：
-   - 写论文 → [story/README.md](./story/README.md)
+   - 写论文 → [story/README.md](./archive/r8_discover_repair_story/story/README.md)
    - 看结果、复算数字 → [discover_matrix/README.md](./discover_matrix/README.md)
    - 改方法 / 谓词 / 提示词 → 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/)
    - 查某个 pair 的原文 → [selected_seed_examples/](./selected_seed_examples/)
@@ -39,7 +39,7 @@
 
 1. **本文只做发现，不做修复。** repair 另立后续论文。修复只在讨论一节**一小段**捎带提及，
    不展开、不承诺效果、不给数据。
-2. **两条 contribution 的措辞以 [story/paper_story.md](./story/paper_story.md) §6 为准**，
+2. **两条 contribution 的措辞以 [story/paper_story.md](./archive/r8_discover_repair_story/story/paper_story.md) §6 为准**，
    顺序不得调换：谓词逻辑元模型与断言体系 > 带上下文的发现。
 3. **贡献不是「发现了多少问题」。** 覆盖率是支撑贡献的证据，不是贡献本身。
 4. **谓词词表的由来一律表述为「从领域分析、真实文献与技术资料调研归纳而来，应用于 54 个案例，
@@ -91,7 +91,7 @@
 
 ## 6. 术语纪律
 
-术语裁定表在 [story/terminology_policy.md](./story/terminology_policy.md)。四组最易混的，
+术语裁定表在 [story/terminology_policy.md](./archive/r8_discover_repair_story/story/terminology_policy.md)。四组最易混的，
 在此重复一遍，因为它们都实际发生过误读：
 
 | 组 | 区分 |
@@ -114,8 +114,8 @@
 或任何充当 PR / issue 流程真源的文件。
 
 ⚠️ **已随 repair 一并搁置但文件仍在原地**的资产：
-[experiment_design/issue_lifecycle/](./experiment_design/issue_lifecycle/)、
-[experiment_design/source_trace/](./experiment_design/source_trace/)、
+[experiment_design/issue_lifecycle/](./archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/)、
+[experiment_design/source_trace/](./archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/)、
 [evidence/ledgers/](./evidence/ledgers/)、[pipeline/agent_loop/](./pipeline/agent_loop/)。
 它们只作历史背景与后续 repair 论文的迁移输入，**不得作为本文的方法或评价框架引用**。
 本工作区内部的历史快照在 [archive/](./archive/)；已停用的旧路线（Path-1 评测链、旧 agent loop
@@ -191,7 +191,7 @@ rg -n "ready to merge|等待 merge|本轮 CI|Codecov|subPR|sub PR" \
 | 新增 §7 归属纪律与 §9 验收清单 | 旧版无归属纪律；验收清单把散落各处的 ⛔ 收成一张可逐条自查的表 |
 | §10 静态检查从「查 Better STM / source-level 旧术语」改为查 repair 口径回流、点估计、单套分母、误报率、动态状态 | 旧检查项防的是两代前的风险；当前风险已换 |
 | 删除 §2 旧 active 主线（一次 Discover + 多轮 Repair-Confirm + B-final + C 阶段 closure audit 的完整生命周期图） | paper1 收窄为 discover |
-| 删除 §3 旧术语表（raw/source `STM_0`、candidate / confirmed issue、canonical source export、B-confirm、closure / regression audit） | 全部是 repair 期术语；仍有效的部分已迁入 [story/terminology_policy.md](./story/terminology_policy.md) |
+| 删除 §3 旧术语表（raw/source `STM_0`、candidate / confirmed issue、canonical source export、B-confirm、closure / regression audit） | 全部是 repair 期术语；仍有效的部分已迁入 [story/terminology_policy.md](./archive/r8_discover_repair_story/story/terminology_policy.md) |
 | 删除 §4 资产使用纪律的 `active / update / archive / historical` 四态表 | 该表依赖 `evidence/ledgers/paper1_strategy_asset_map.md`，而那份资产地图本身已随 repair 搁置；仍需保留的信息（哪些资产不得作 active 引用）已改写进 §7 |
 | 删除 §6 PR 施工纪律（empty PR、三路 review、C/I 清零） | 属跨仓库通用流程，已在仓库根 CLAUDE.md §4 与 §9 维护；本地重复一份会形成第二真源 |
 | **保留并迁移**：C/I/M 分级口径（工程洁癖默认 M，只有影响学术目标 / 事实准确性 / 证据链 / 可复现性的才升级） | 仍然有效，且是本仓库的 review 基线；现由仓库根 CLAUDE.md「学术研究仓库 Review 口径规范」统一维护，本文件不再复制 |
