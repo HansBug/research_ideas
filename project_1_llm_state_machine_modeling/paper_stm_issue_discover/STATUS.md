@@ -14,7 +14,7 @@
 
 | 类别 | 状态 | 入口 |
 | :-- | :-- | :-- |
-| 论文口径收窄（discover 单独成篇、**三条** contribution） | 已完成 | [README.md](./README.md) §2、[story/paper_story.md](./story/paper_story.md) §7「Contributions」⚠️ 此前本行写「两条」且链接指向归档版，均已更正（2026-08-11，PR #180） §6 |
+| 论文口径收窄（discover 单独成篇、**三条** contribution） | 已完成 | [README.md](./README.md) §2、[story/paper_story.md](./story/paper_story.md) §7「Contributions」⚠️ 此前本行写「两条」且链接指向归档版，均已更正（2026-08-11，PR #180） |
 | 建模对象边界（$M = (S, E, V, Tr, A)$，不含时钟 / 不变式 / 正交区） | 已完成，先验可判 | [story/model_scope.md](./story/model_scope.md)、[discover_matrix/docs/protocol/nl_scope_rule.md](./discover_matrix/docs/protocol/nl_scope_rule.md) |
 | 方法出处口径（按领域资料归纳表述；hold-out 永久移除） | 口径已完成，工程落地未完成（见 §3） | [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md) |
 | 语料（60 pair，逐 pair 溯源元数据含行列与 SHA-256） | 已完成 | [selected_seed_examples/](./selected_seed_examples/) |

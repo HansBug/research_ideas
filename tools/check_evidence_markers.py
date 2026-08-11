@@ -53,6 +53,12 @@ SCOPE = (
     "GUIDE.md",
     "STATUS.md",
     "SUMMARY.md",
+    # ⚠️ 2026-08-12 补登记。这三个文件本轮新增,且它们里有 19 处 `【】`——其中两处按
+    # `story/README.md` §2 应写作 `〔〕`。⛔ 不登记,"档位标记齐全" 在新目录上就是无人看守的。
+    "related_work/README.md",
+    "related_work/CONTINGENCY_L1.md",
+    "related_work/CONTINGENCY_L2.md",
+    "related_work/assertion_output_form_evidence.md",
 )
 
 _MARK = re.compile(r"【([^】]*)】")
