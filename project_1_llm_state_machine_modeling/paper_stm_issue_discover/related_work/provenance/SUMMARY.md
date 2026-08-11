@@ -298,6 +298,21 @@
 | PSSM 一致性套件 | ⛔ **整条作废**（[PENDING_DECISIONS.md](../../PENDING_DECISIONS.md) §A3）—— ⭐ 我们从未声称与 PSSM 一致，⛔ 不为一个不作的主张取证 |
 | 把任何谓词移出实现 | ⛔ **禁止**（588 冻结）。⛔ ③ 类在 Limitations 明写一句，⛔ 不隐瞒、⛔ 也不删 |
 
+## 9. ⛔⛔ C3 覆盖审计点名、⭐ 归下一轮的六项（⚠️ 前两项未做之前有话不能说）
+
+⛔ 完整审计见 [coverage_audit.md](./coverage_audit.md)。⭐ 按「不做就有话不能说」排序：
+
+| # | 项 | ⛔ 不做的后果 |
+| --: | :-- | :-- |
+| **1** | ⛔ **清掉伪缺口** —— ⚠️ 已核实两个实例：同一份 PDF 一路取到、另一路登记成头号缺口（`curl -k` 一个开关之差；「需要 OCR」的诊断本身是错的） | ⛔⛔ **任何「在本轮覆盖内未见 X」的 claim 在此之前都不能写** —— ⚠️ 它陈述的是**工具状态**而不是**文献状态** |
+| **2** | ⛔ **进入两条被反复指路却从未打开的传统**：**一致性测试 / 测试预言**（⭐ 仿真族 6 条的语义原产地，⚠️ 四路各自指过路）· **model smell / UML 缺陷分类学**（⭐ 结构族 10 条的天然出处，⚠️ 五路各自指过路） | ⛔ 「`cardinality` / `stays_in` / `action_declared` 在领域里没有对应检查」这类陈述**不成立** —— ⭐ 已有五份日志说它们大概率就在那里 |
+| **3** | ⛔ **Q2 的 (iii) 侧补检索**（GSN / assurance case · witness & certificate · RV verdict · rule provenance · 可复现失败用例） | ⛔ C-③ 的「唯一空缺是 (iii)」**暂不可定稿**（[c3_differentiation.md](./c3_differentiation.md) 开头〈更正 3〉） |
+| **4** | ⚠️ **「这个缺陷真的发生了」这一侧** —— ⛔ 全轮 `prevalence` 0 次；⭐ 唯一的频次数据全落在 BMC 三条，⛔ 而那是最不需要论证的三条 | ⚠️ 19 条里只有 3 条有**强形式**普遍性（确实会错），⛔ 其余只有弱形式（有人认为该查） |
+| **5** | ⚠️ **控制 / 自动化共同体自己的文献**（IFAC-PapersOnLine 2015+ 是 OA · **WODES 0 次** · IEEE CASE 0 次 · RESS 0 次） | ⭐ 「这类检查在领域里反复出现」最强的说法人**是这个领域自己**，⛔ 不是软工会议 |
+| **6** | ⭐ **补扫综述表** —— ⛔ 我的筛法因**列数检查**（综述表 13 列 vs 普通表 19 列）静默跳过了 23 行，⚠️ 其中 2 篇与 L2 高度相关（`Model Checking of Statechart Models: Survey and Research Directions` 2004 · `Formalizing UML State Machines for Automated Verification — A Survey` 2023） | ⭐ 跨形式主义综述的单位收益最高（[CONTINGENCY_L2.md](../CONTINGENCY_L2.md) §4.1 已警告过这个坑的另一个变体） |
+
+⭐ **第 1 与第 3 项的补检索本轮已启动**（作者机构库回收 8 篇付费墙论文 + (iii) 五条线），⛔ 结果回来后就地更新本文件与 [c3_differentiation.md](./c3_differentiation.md)。
+
 ## 更新日志
 
 | 时间 | 内容 |
