@@ -27,7 +27,7 @@
 | :-- | :-- |
 | **C-① 结果完整性**（真值封存） | ⭐⭐ 「生产者不能做自己的检查者」—— Beyer FSE 2015（⭐ 同一工具对**自己**的误报只否掉 **21%**、对**别人**的 **93%**）+ Huang ICLR 2024（⭐ 有 oracle 75.8→**89.7**、⛔ 无 oracle 75.8→**38.1**） |
 | **C-② 可靠性 + 受控** | ⭐ CheckEval EMNLP 2025（α **0.09→0.48**）+ ⭐⭐ SemGraft ICSE 2018（⭐ 刻意构造 Angelix′ 使搜索空间相同、⛔ 唯一差别是 oracle：「不到一半」→ **12/12**） |
-| **C-③ 锚定 + 证据链** | ⭐⭐ Infer CACM 2019（⭐ **同一分析、同一 FP 率**，处置率 ≈0 → **&gt;70%**）+ ⭐⭐ Baldur FSE 2023（⭐ 只抽掉诊断输出 → ⛔ **全部修复增益消失**） |
+| **C-③ 锚定 + 证据链** | ⭐⭐ Infer CACM 2019（⭐ **同一分析、同一 FP 率**，处置率 ≈0 → **&gt;70%**）+ ⭐⭐ Baldur FSE 2023（⭐ 只抽掉诊断输出 → ⛔ **按推理成本归一后，增益不再超过纯生成基线**） |
 
 ⭐ 论文口径与引用形态见 [../story/paper_story.md](../story/paper_story.md) §7 各 contribution 下的「学术口径与引证」块；⭐ 归属索引见 [../story/claim_evidence_map.md](../story/claim_evidence_map.md) §0.6。
 

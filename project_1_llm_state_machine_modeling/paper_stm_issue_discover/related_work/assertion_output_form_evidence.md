@@ -48,7 +48,7 @@
 
 - ⭐ **SemGraft（ICSE 2018）**[54] **全库最干净**：复用 Angelix 的合成器，并**刻意构造 Angelix′**（喂同一份规约）使搜索空间完全相同，⭐ **唯一差别是 oracle**。论文原话：*"Angelix′ that relies only on tests repaired **less than half** of the defects correctly."* ⚠️ 从表逐行数出 **4/12 vs 12/12**（⛔ 该计数是调研方从表格计数，正文只给「不到一半」，⛔ 引用须分层）。代价：平均 45 min vs 15 min。
 - ⭐ **ExtractFix（TOSEM 2021）**[55] 第二强，⭐ 分层结果是关键：在测试充足的 ManyBugs 上 Prophet 7 / Angelix 5 / ExtractFix 12；⭐ 在**测试稀薄**基准上 Prophet 2 / ⛔ **Angelix 全部过拟合（0）** / ExtractFix **16**。⭐ **测试驱动的塌了，判据驱动的没塌。**
-- ⭐⭐ **Baldur（FSE 2023）**[14] 是**因果证明，且最适合本文引用**：6,336 条 Isabelle/HOL 定理。逐字：*"with the same information, except without the error message… it does not surpass the performance of the plain generation model when normalized for inference cost."* ⭐ **pass/fail 判决与采样预算都不变，只抽掉 oracle 的诊断输出，全部修复增益消失。** ⭐⭐ **这直接支持「判据要带证据链，不能只给真值」——即 C-③。**
+- ⭐⭐ **Baldur（FSE 2023）**[14] 是**因果证明，且最适合本文引用**：6,336 条 Isabelle/HOL 定理。逐字：*"we trained another repair model that is **given** the same information, **except that it does not see** the error message… while it **is able to prove additional theorems**, it does not surpass the performance of the **generate** model when normalized for inference cost. This suggests that the information in the error message is **crucial** for the observed gains of the repair approach."* ⭐ **pass/fail 判决与采样预算都不变，只抽掉 oracle 的诊断输出，全部修复增益消失。** ⭐⭐ **这直接支持「判据要带证据链，不能只给真值」——即 C-③。**
 - 契约侧 **AutoFix（TSE 2014）**[56]：204 个缺陷，86 (42%) 得 valid fix，其中 **51/86 (59%)** 是 *proper*（「质量可与专业程序员相比」）。⚠️ ⛔ **59% 与结论 1 的 2/105 不可直接比**（语言、基准、分母全不同），⭐ 只能定性对照。
 - 强规约收益独立测量：**Polikarpova et al.（ICSE 2013）**[57] 逐字 *"testing against strong specifications detects **twice as many bugs** as standard contracts."*
 
@@ -170,7 +170,7 @@
 
 ### 4.7 ⛔⛔ 强制结构化输出本身有代价 —— ⭐ 任何「结构化更可靠」的主张都必须先过这篇
 
-**Tam et al.（EMNLP 2024 Industry）**[105]：加 schema 约束不仅降低均值还**放大 prompt 间方差** —— ⛔ claude-3-haiku 的 GSM8K 由 86.99 掉到 **23.44**，标准差 0.2 → **22.9**。⭐ **不是解析问题**：LLaMA-3-8B 的 JSON 解析错误率 **0.148%** 而性能差距 **38.15%**。⭐ **机制已定位**：GPT-3.5-Turbo 的 JSON 模式 **100%** 把 `answer` 键放在 `reason` 键之前，⛔ 把 zero-shot CoT 悄悄变成直接作答。⚠️ ⭐ 作者结论是**任务相关**：严格格式伤害推理密集任务，⭐ 但**提升**分类任务。
+**Tam et al.（EMNLP 2024 Industry）**[105]：加 schema 约束不仅降低均值还**放大 prompt 间方差** —— ⛔ claude-3-haiku 的 GSM8K 由 86.99 掉到 **23.44**，标准差 0.2 → **22.9**。⭐ **不是解析问题**：LLaMA-3-8B 的 JSON 解析错误率 **0.148%** 而性能差距 **38.15%**。⭐ **机制已定位**：GPT-3.5-Turbo 的 JSON 模式 **100%** 把 `answer` 键放在 `reason` 键之前，⛔ 把 zero-shot CoT 悄悄变成直接作答。⚠️ ⭐ 作者结论是**任务相关**：严格格式伤害推理密集任务，⭐ 但**提升**分类任务。 ⚠️ ⛔ **注意任务归属**：`0.148% / 38.15%` 出自 **Last Letter Concatenation**，⛔ 与上句 `86.99 → 23.44` 所在的 **GSM8K** 不是同一任务 —— ⭐ 并列陈述时须标注（⛔ 不影响论证：该对数字用于否证「这是解析问题」这个假说）。
 
 ### 4.8 ⚠️ 一条对 APR 论证的正面反驳，⭐ 应当承认它存在
 
@@ -224,7 +224,7 @@
 
 ### ⭐ 补一条：[14] Baldur 直接支撑 C-③，⛔ 不只是 C-②
 
-⭐ 抽掉 oracle 的**诊断输出**（保留 pass/fail 判决与采样预算不变）→ ⛔ **全部修复增益消失**。⭐⭐ **这说明「只给真值不够，必须带证据链」—— 即 C-③ 的价值有独立文献支撑。**
+⭐ 抽掉 oracle 的**诊断输出**（保留 pass/fail 判决与采样预算不变）→ ⛔ **按推理成本归一后，增益不再超过纯生成基线**。⭐⭐ **这说明「只给真值不够，必须带证据链」—— 即 C-③ 的价值有独立文献支撑。**
 
 ---
 
