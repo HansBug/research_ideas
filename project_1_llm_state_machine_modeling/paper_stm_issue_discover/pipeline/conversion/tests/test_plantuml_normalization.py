@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from paper_stm_repair_conversion.normalization.plantuml import normalize_plantuml
-from paper_stm_repair_conversion.normalization.semantic_audit import audit_plantuml_semantic_preservation
+from paper_stm_conversion.normalization.plantuml import normalize_plantuml
+from paper_stm_conversion.normalization.semantic_audit import audit_plantuml_semantic_preservation
 
 
 def test_quoted_endpoint_alias_is_low_risk_and_preserves_label():
@@ -105,7 +105,7 @@ def test_code_rules_match_documented_plantuml_rules_registry():
     import json
     from pathlib import Path
 
-    from paper_stm_repair_conversion.normalization.plantuml import RULES
+    from paper_stm_conversion.normalization.plantuml import RULES
 
     root = Path(__file__).resolve().parents[1]
     registry = json.loads((root / "normalization" / "plantuml_rules.json").read_text(encoding="utf-8"))

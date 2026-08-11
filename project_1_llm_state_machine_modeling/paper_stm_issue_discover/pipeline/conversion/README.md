@@ -5,7 +5,7 @@
 > | 问题 | 答案 |
 > | :-- | :-- |
 > | 在运行路径上吗 | 间接。60 例产物已封存；只有换语料或改 Java frontend 时才重跑 |
-> | 包名 | `paper_stm_repair_conversion`（旧名，有意保留，见 [../README.md](../README.md) §4） |
+> | 包名 | `paper_stm_conversion`（旧名，有意保留，见 [../README.md](../README.md) §4） |
 > | 测试规模 | 144 个 |
 > | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
 >
@@ -23,7 +23,7 @@
 | 路径 | 内容 |
 | :-- | :-- |
 | [java/plantuml-state-frontend/](./java/plantuml-state-frontend/) | 🟢 active 前端。Java + PlantUML 官方 API，产出 `r4_5.plantuml_source_canonical.v1` |
-| [src/paper_stm_repair_conversion/](./src/paper_stm_repair_conversion/) | Python 编排层：`cli.py`、`toolchain.py`、`models.py`、`report.py`、`schema.py`、`evidence_integrity.py`、`adapters/`、`normalization/` |
+| [src/paper_stm_conversion/](./src/paper_stm_conversion/) | Python 编排层：`cli.py`、`toolchain.py`、`models.py`、`report.py`、`schema.py`、`evidence_integrity.py`、`adapters/`、`normalization/` |
 | [tools/](./tools/) | 三个脚本：`run_llms_emp_r45.py`（60 例重放）、`build_llms_emp_pair_pages.py`（三元组页面）、`extract_llms_emp_feedback_final.py`（上游抽取） |
 | [schemas/](./schemas/) | 6 份 JSON Schema：canonical STM、conversion report、loss ledger、normalization ledger、plantuml source canonical、recovery report |
 | [normalization/](./normalization/) | R3.1 PlantUML pre-SCXML 规范化微型工作区（[README](./normalization/README.md) / [GUIDE](./normalization/GUIDE.md)） |
@@ -68,7 +68,7 @@ conversion/
 │       ├── manifest.json
 │       ├── workdir.zip
 │       └── workdir.zip.sha256
-├── src/paper_stm_repair_conversion/
+├── src/paper_stm_conversion/
 │   ├── cli.py
 │   ├── models.py
 │   ├── report.py
@@ -114,7 +114,7 @@ pip install -r requirements.txt
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_conversion.cli convert-selected
+python -m paper_stm_conversion.cli convert-selected
 ```
 
 ### 4.2 Java / PlantUML / Umple
@@ -251,7 +251,7 @@ R3 最低验收：schema JSON 可由 `jsonschema` 校验；四例均有 conversi
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_conversion.cli convert-selected
+python -m paper_stm_conversion.cli convert-selected
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/tests

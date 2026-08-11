@@ -218,7 +218,7 @@ def test_recover_plantuml_report_schema_and_eligibility_gates(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_conversion.cli",
+        "paper_stm_conversion.cli",
         "recover-plantuml",
         "--pair-source",
         str(pairs),

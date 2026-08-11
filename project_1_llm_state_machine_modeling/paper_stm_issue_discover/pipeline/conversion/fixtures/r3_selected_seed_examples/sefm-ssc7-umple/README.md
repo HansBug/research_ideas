@@ -60,7 +60,7 @@ SSC7 软件（SSC7S）与第（ii）到第（viii）部分交互。条码扫描�
 - 上游 R4.5 输出：[pipeline representation model.fcstm](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/model.fcstm)、[name_mapping.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/name_mapping.json)、[lowering_inventory.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/lowering_inventory.json)、[parse_inspect_report.json](../../pipeline/representation/reports/fcstm_exports/sefm-ssc7-umple/parse_inspect_report.json)。
 - 当前状态：`fcstm_meta.json` 中 `parse_status=ok`、`inspect_status=ok`、`repair_contribution_allowed=false`。
 - 口径说明：R4.5 从 Umple 官方 SCXML canonical 导出可被 pyfcstm parse/inspect 的 smoke `.fcstm`；event+guard 经 pseudo relay 降低，`after(60)` 等 timing loss 继续只作 caveat。
-- 维护纪律：若 R3 canonical、R4.5 exporter 或 [../../pipeline/representation/reports/fcstm_export_report.json](../../pipeline/representation/reports/fcstm_export_report.json) 变化，必须先重新生成 R4.5 reports，再运行 `python -m paper_stm_repair_representation.cli sync-selected-fcstm` 同步本目录；不得手工只改本目录 [model.fcstm](./model.fcstm)。
+- 维护纪律：若 R3 canonical、R4.5 exporter 或 [../../pipeline/representation/reports/fcstm_export_report.json](../../pipeline/representation/reports/fcstm_export_report.json) 变化，必须先重新生成 R4.5 reports，再运行 `python -m paper_stm_representation.cli sync-selected-fcstm` 同步本目录；不得手工只改本目录 [model.fcstm](./model.fcstm)。
 
 ### 6.1 哈希差异说明
 

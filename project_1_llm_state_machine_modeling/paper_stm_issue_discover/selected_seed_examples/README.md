@@ -6,7 +6,7 @@
 > | :-- | :-- |
 > | 当前 discover 从哪读输入 | [../pipeline/representation/reports/llms_emp_r45_java_60/](../pipeline/representation/reports/llms_emp_r45_java_60/) 的 `pairs/<NNNN>/`。硬编码在 `discover/cli.py` 的 `REPORT_ROOT` |
 > | 本目录与那份输入的关系 | **逐字节相同的镜像副本**。已核对 pair `0000` 两侧 `nl.txt` / `.fcstm` 的 SHA-256 一致 |
-> | 谁还读本目录 | 只有已退役的 `paper_stm_repair_loop.inputs.load_pair()`（[../pipeline/agent_loop/](../pipeline/agent_loop/)，不在运行路径上） |
+> | 谁还读本目录 | 只有已退役的 `paper_stm_repair_loop.inputs.load_pair()`（[../archive/r9_agent_loop_pipeline/](../archive/r9_agent_loop_pipeline/)，2026-08-11 已归档，不在运行路径上） |
 > | 有多少个 pair | 目录里 60 个；**实验网格 54 个** |
 >
 > ⚠️ **60 ≠ 54。** 末位为 `8` 的 6 个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）**永久排除**：它们同源于一份要求 fork/join 并发与秒级时间约束的需求，其忠实模型在 $M = (S, E, V, Tr, A)$ 中无法表达，属**建模对象边界**而非样本取舍。判据只读 `nl.txt`、与任何运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。故全量网格恒为 `54 pair × 2 执行模型 × 3 轮 = 324 格`。

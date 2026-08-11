@@ -27,18 +27,18 @@
 
 ⚠️ **第二档的边界必须硬守：「导师未反对」不等于背书。** 背书要求**存在一句导师逐字原话，且那句话直接针对这个判断**；讨论记录里写成「我方提出（导师未反对）」的内容，一律不得标为背书，应标【AI 建议·待确认】或写成「我方提出 · 导师未反对」。判据是：**能不能把那句支撑用的导师原话逐字列出来**。列不出就不是背书。
 
-⛔ **[blueprint_proposal.md](./blueprint_proposal.md) 里的绝大多数内容属【AI 建议·待确认】。** 九节骨架、四个 RQ、三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**。[2026-08-08 导师讨论记录](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) 中逐字加粗的导师原话共 **10 处**（此前本页写「8 句」，系少计，已更正）：discover 单独成篇 / repair 不会简单 / 修复只捎带提及 / 业务建模的重要性 / 那条大逻辑 / 缺上下文信息那条差异化叙述 / 规则从领域分析归纳 / 归纳的规则指导 prompt 设计 / 不必跑那么多 LLM / fork-join 可做专门分析。⚠️ 其中最后一条**已被 2026-08-11 的处置取代**（不展开、不单开 RQ），见该记录 §5.2 与 [model_scope.md](./model_scope.md) §2。后续 PR 不得把【AI 建议·待确认】悄悄升格为【导师原话】。
+⛔ **[blueprint_proposal.md](./blueprint_proposal.md) 里的绝大多数内容属【AI 建议·待确认】。** 九节骨架、四个 RQ、它那套三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**。⚠️ 其中**它那套三条 contribution 的分法与 T1/T2 分层已于 2026-08-11 被用户裁定取代**（前者换成了另外三条，后者整体作废），见本页 §5；引用 blueprint 时不得再把这两项当候选陈列。[2026-08-08 导师讨论记录](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) 中逐字加粗的导师原话共 **10 处**（此前本页写「8 句」，系少计，已更正）：discover 单独成篇 / repair 不会简单 / 修复只捎带提及 / 业务建模的重要性 / 那条大逻辑 / 缺上下文信息那条差异化叙述 / 规则从领域分析归纳 / 归纳的规则指导 prompt 设计 / 不必跑那么多 LLM / fork-join 可做专门分析。⚠️ 其中最后一条**已被 2026-08-11 的处置取代**（不展开、不单开 RQ），见该记录 §5.2 与 [model_scope.md](./model_scope.md) §2。后续 PR 不得把【AI 建议·待确认】悄悄升格为【导师原话】。
 
 ## 3. 文件职责
 
 | 顺序 | 文件 | 职责 | 当前完成度 |
 | --: | :-- | :-- | :-- |
-| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题 / 价值 / 现有方法的问题 / 方法洞察 / contribution（**三条 vs 两条未裁定**，见 `TODO-S1`；正文按三条排布只为让结构成立） / 任务边界 / 可说与不可说 | 骨架完整，contribution 形状待裁定 |
-| 2 | [paper_outline.md](./paper_outline.md) | 九节章节骨架 + 4 个 RQ + T1/T2 实验分层 + 待补对照清单 | 骨架完整，RQ 与实验分层待裁定 |
+| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题 / 价值 / 现有方法的问题 / 方法洞察 / contribution（✅ **三条已裁定 2026-08-11**，见 `TODO-S1`；**形状已定、强度未定**） / 任务边界 / 可说与不可说 | 骨架完整；contribution 形状已定，三条各自的 claim 强度待文献调研 |
+| 2 | [paper_outline.md](./paper_outline.md) | 九节章节骨架 + 4 个 RQ + 实验设置 + 待补对照清单 | 骨架完整；✅ T1/T2 分层已作废（`TODO-O5`，2026-08-11），⚠️ RQ 仍不可裁定 |
 | 3 | [claim_evidence_map.md](./claim_evidence_map.md) | claim → 证据映射、强度、允许 / 禁止写法 | v46 已有的已填，新增 claim 待补证据 |
 | 4 | [model_scope.md](./model_scope.md) | 建模对象 $M = (S, E, V, Tr, A)$、表达力边界、fork/join 处置 | 基本完整 |
 | 5 | [terminology_policy.md](./terminology_policy.md) | 术语中英口径、易混术语、指标写法、禁用词 | 基本完整 |
-| 6 | [blueprint_proposal.md](./blueprint_proposal.md) | ⛔ **提案，不是依据**：九节骨架 / 四 RQ / T1-T2 / ref 翻转率 / 来源类映射的 AI 推演原料，另含导师 6 句原话 | 全篇【AI 建议·待确认】，引用须标档位 |
+| 6 | [blueprint_proposal.md](./blueprint_proposal.md) | ⛔ **提案，不是依据**：九节骨架 / 四 RQ / T1-T2 / ref 翻转率 / 来源类映射的 AI 推演原料。⛔ **不含导师原话**——原「导师原话」一节已整节删除（此前抄的 6 句里有 1 句 talks 中根本不存在、1 句是两句拼接、另漏 4 句），原话唯一真源是 talks 记录 | 全篇【AI 建议·待确认】，引用须标档位 |
 
 **推荐阅读顺序**：想理解论文说什么 → 1、2；想写某一节 → 2 找结构、3 核 claim、5 核措辞；**想核任何数字 → 直接去实验报告，不从本目录转抄**。
 
@@ -71,17 +71,31 @@
 
 ⛔ **施工流程状态**（PR 进度、review 状态、CI）以 GitHub PR / issue 为准，本目录不维护。
 
-## 5. 已知冲突：X1 已裁定，X2 / X3 仍待裁定
+### ⛔ 正文只讲 v46——reader 视角下没有 v25 / v35 / v37
+
+【用户明确裁定 2026-08-11】**论文正文与一切对外材料只基于 v46 陈述。站在 paper reader 的视角，v25、v35、v37 等中间代次根本没存在过。**
+
+理由不是保密，是**论证链不完整**：用跨代增量论证某条机制生效（「v25 是 X，v46 变成 Y，所以它起作用」），前半截引用了一个读者从未见过、也无从核验的对象。这类论证在内部复盘里完全合法，搬进正文就变成不可核验的断言。
+
+**由此导出的判定纪律**：判断某条机制 / 规则「是否生效」时，判据必须**只用 v46 单代数据**能复算出来。若只有跨代对比才能证明，正确结论是「**在 v46 单代数据上无法证明生效**」——这是一个合法且必须如实报告的结论，⛔ 不要为了给个漂亮答案而绕回旧代次。
+
+⚠️ **本条只管论文叙事面。** 内部代次记录（`../discover_matrix/v46/result.md` 一类）**仍须保留**历代对比表，那是根 [CLAUDE.md](../../../CLAUDE.md) §3.7 的要求，与本条不冲突。⚠️ v37 另有一条更强的指令（用户 2026-08-10）：连内部对比都不要拿它和 v46 比。两条范围不同，不要混用。
+
+## 5. 已知冲突：X1 / X2 已裁定，只剩 X3（等文献调研，不等人拍板）
 
 **在裁定之前，相关章节不得定稿。**
 
 | # | 冲突 | 双方 | 落点 | 状态 |
 | --: | :-- | :-- | :-- | :-- |
 | **X1** | RQ2 的证据来源里出现「**留出集**」 | BLUEPRINT 的 RQ 表 **vs** [method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md) 的不设留出集 | [paper_outline.md](./paper_outline.md) §5.1 | ✅ **已裁定 2026-08-11：永久不设留出集** |
-| **X2** | T1/T2 两层实验的形态 | BLUEPRINT 的分层基于 **v35 时期**（当时想省成本、只跑子集）**vs** v46 已跑完 **324 格全量** | [paper_outline.md](./paper_outline.md) `TODO-O5` | ⚠️ 待裁定 |
-| **X3** | contribution「现有 detection 方法**缺少错误的上下文信息**」按字面写会被反驳 | 导师原话 **vs** 模型检查的反例轨迹就是上下文、有文献把状态图改动反向映射回需求、有工作给 provenance | [paper_story.md](./paper_story.md) `TODO-S2` | ⚠️ 待裁定 |
+| **X2** | T1/T2 两层实验的形态 | BLUEPRINT 的分层基于 **v35 时期**（当时想省成本、只跑子集）**vs** v46 已跑完 **324 格全量** | [paper_outline.md](./paper_outline.md) §5.5 / `TODO-O5` | ✅ **已裁定 2026-08-11：T1/T2 分层作废** |
+| **X3** | contribution「现有 detection 方法**缺少错误的上下文信息**」按字面写会被反驳 | 导师原话 **vs** 模型检查的反例轨迹就是上下文、有文献把状态图改动反向映射回需求、有工作给 provenance | [paper_story.md](./paper_story.md) `TODO-S2` | 🔍 **先调研再裁定**（2026-08-11 定调） |
 
 **X1 的裁定内容**【用户明确裁定 2026-08-11】：谓词逻辑元模型**来自领域调研**（文献、标准、技术资料），不来自这批 pair；方法的由来既然与 pair 无关，就不存在「在训练样本上评测」这个问题，因此留出集**没有任何存在必要**。RQ2 的证据来源就是已有的 v46 全量 324 格。⛔ 论文里**一笔带过即可，不专门辩护**——「为什么不留出」在本方法的论证结构里根本不出现。口径见 [method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md) §一.1。
+
+**X2 的裁定内容**【用户明确裁定 2026-08-11】：用户原话「**老的说法可以丢了，现在不谈人工的事情**」。T1/T2 分层的全部动机是**省人工判定成本**（只在采样出的 18 pair 上做吃判定的深度层），而 v46 已跑完 324 格全量、588 个判定位已逐位判定，该动机不再成立。由此：⛔ **实验节不按 T1/T2 分层组织**，主实验就是 §5.4 的 324 格全量；⛔ **正文不谈人工判定成本**，机械指标（断言数、需求覆盖率、ref 翻转率、残留 False、scope gate 触发分布）若要单列，其理由只能是它们回答某个 RQ，**不得再写成「这一层不吃人工判定」**。⚠️ 这条只废掉分层与那条动机，**不废掉机械指标本身**——它们的口径与可行性仍分别挂在 `TODO-O6` / `TODO-O7` 上。
+
+**X3 的定调**【用户明确定调 2026-08-11】：**先调研再裁定，不是等人拍板。** 前 LLM 时代肯定有人做过证据链一类的工作，真正要查清的是 **LLM 之后有没有人做、做到什么程度**；调研结果出来之前，「缺上下文」这条 claim 的收窄形状无法确定。因此 `TODO-S2` 的解锁条件是**文献调研**（与 `TODO-S4` 是同一批工作，应合并做一次），不是一次人工裁定。
 
 ## 6. TODO 索引
 
@@ -89,35 +103,35 @@
 
 | ID | 文件 | 一句话 | 阻塞什么 |
 | :-- | :-- | :-- | :-- |
-| `TODO-S1` | paper_story | contribution 定三条还是两条，以及三条之间的映射 | §1.4、§6 定稿 |
-| `TODO-S2` | paper_story | **X3**：「缺上下文」claim 的可辩护收窄 | Intro motivation、C-III |
+| ~~`TODO-S1`~~ | paper_story | ✅ **已裁定 2026-08-11：contribution 三条**（① 基于模型转换 + 模型形式化检查 / 仿真 / 验证的模型错误发现方法；② 基于归纳后的谓词逻辑的断言体系；③ issue 证据链体系），逐字内容见 [paper_story.md](./paper_story.md) §7 | 不再阻塞形状；⚠️ **三条各自的 claim 强度仍未定**，待文献调研 |
+| `TODO-S2` | paper_story | **X3**：「缺上下文」claim 的可辩护收窄——🔍 **解锁条件是文献调研**，不是人工裁定 | Intro motivation、C-③ |
 | `TODO-S3` | paper_story | 领域分析这条论证链的实际交付物（19 行映射表） | 整篇方法合法性 |
 | `TODO-S4` | paper_story | Related Work 四条轴的实际文献填充 | §2 |
 | `TODO-S5` | paper_story | 「裸给工具效果差」这条反面观察缺可引用证据 | §1.3 末、§7.2 |
 | `TODO-O1` | paper_outline | §3 领域分析节的交付形态与验收判据 | §3（承重结构） |
 | `TODO-O2` | paper_outline | 建模对象边界落 §1 还是 §3（九节无独立 Problem Formulation） | §1、§3 分工 |
-| `TODO-O3` | paper_outline | 4 个 RQ 定稿（两套候选） | §5、§6 全章 |
+| `TODO-O3` | paper_outline | 4 个 RQ 定稿（两套候选）——⚠️ 前置 `TODO-S1` 已解锁，但【用户明确裁定 2026-08-11】RQ **现在仍不可裁定**：「得先设定好 paper story / outline / contribution 后来决定」 | §5、§6 全章 |
 | ~~`TODO-O4`~~ | paper_outline | ✅ **X1 已裁定 2026-08-11：永久不设留出集**，见 §5 | 不再阻塞 RQ2 |
-| `TODO-O5` | paper_outline | **X2**：T1/T2 形态重做 | §5 实验设置 |
+| ~~`TODO-O5`~~ | paper_outline | ✅ **X2 已裁定 2026-08-11：T1/T2 分层作废**，正文不谈人工判定成本，见 §5 | 不再阻塞 §5 实验设置的分层结构 |
 | `TODO-O6` | paper_outline | ref 翻转率实验的可行性实测（参考模型转换成功率） | RQ3 |
 | `TODO-O7` | paper_outline | 判别效力 / 覆盖性指标的定义与工程 | RQ3 |
 | `TODO-O8` | paper_outline | 待补对照与审计清单的执行（朴素基线第一优先） | §6、§8 |
 | `TODO-O9` | paper_outline | 投稿 venue 与排期重做 | 全篇节奏 |
-| `TODO-C1` | claim_evidence_map | contribution 定稿后回填 claim 编号与措辞 | C2/C3/C4 |
+| `TODO-C1` | claim_evidence_map | contribution 三条的形状已定，回填 claim 编号与措辞——⚠️ 现在卡在**每条的强度**（待文献调研）与 `TODO-O3`（RQ 一一对应） | C2/C3/C4 |
 | `TODO-C2` | claim_evidence_map | 表达力边界 claim 缺证据（映射表未产出） | RQ1 |
 | `TODO-C3` | claim_evidence_map | 判别效力 claim 缺数据（ref 翻转率未跑） | RQ3 |
 | `TODO-C4` | claim_evidence_map | 无外部对照 → 一切相对性 claim 不可写 | §6、§8 |
 | `TODO-M1` | model_scope | fork/join：不展开（当前定）与 BLUEPRINT 四层 finding 方案的取舍留档 | §3.1 一句话 |
 | `TODO-M2` | model_scope | 19 个谓词逐条挂领域出处 | §3、§4.2 |
 | `TODO-M3` | model_scope | `invariant` 谓词的处置（最自然用法出界） | §4.2、§8 |
-| `TODO-T1` | terminology_policy | 三条 contribution 的英文措辞 | 全篇英文稿 |
+| `TODO-T1` | terminology_policy | 三条 contribution 的英文措辞——三条的中文形状已定（2026-08-11），⚠️ 第三条的措辞仍受 X3 阻塞 | 全篇英文稿 |
 | `TODO-T2` | terminology_policy | 领域分析相关新术语的中英口径 | §3 |
 
 ## 7. placeholder 阶段的退出判据
 
 本目录可以摘掉 placeholder 标记，当且仅当：
 
-1. `TODO-S1` / `TODO-S2` / `TODO-O3` / `TODO-O5` **四项**已裁定——它们决定**论文的形状**，其余 TODO 决定内容的丰俭。✅ 原第五项 `TODO-O4`（留出集）**已于 2026-08-11 裁定：永久不设留出集**，从退出判据中移除。
+1. `TODO-S2` / `TODO-O3` **两项**已裁定——它们决定**论文的形状**，其余 TODO 决定内容的丰俭。✅ 原五项中已有三项于 2026-08-11 出清：`TODO-O4`（留出集）**永久不设留出集**、`TODO-S1`（contribution）**定为三条**、`TODO-O5`（**X2**）**T1/T2 分层作废**，三项均从退出判据中移除。⚠️ 剩下两项的解锁条件互不相同：`TODO-S2` 等**文献调研**（X3），`TODO-O3` 等 story / outline / contribution **强度**先落地。
 2. §3 领域分析的交付形态已确定（`TODO-O1`），哪怕表还没填满。
 3. [claim_evidence_map.md](./claim_evidence_map.md) 中不存在「有 claim、无证据、无 TODO」的条目。
 

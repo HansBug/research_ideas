@@ -97,7 +97,7 @@ def _repo_relative(repo_root: Path, path: Path) -> str:
 
 def _current_implementation_sha256(repo_root: Path) -> str:
     try:
-        from paper_stm_repair_conversion.evidence_integrity import (
+        from paper_stm_conversion.evidence_integrity import (
             relevant_implementation_sha256,
         )
     except ImportError as exc:
@@ -116,7 +116,7 @@ def _current_implementation_sha256(repo_root: Path) -> str:
 @lru_cache(maxsize=1)
 def _current_java_frontend_build() -> dict[str, Any]:
     try:
-        from paper_stm_repair_conversion.adapters.plantuml_source import (
+        from paper_stm_conversion.adapters.plantuml_source import (
             java_frontend_build_identity,
         )
     except ImportError as exc:
@@ -126,7 +126,7 @@ def _current_java_frontend_build() -> dict[str, Any]:
 
 def _current_java_frontend_source_identity() -> dict[str, Any]:
     try:
-        from paper_stm_repair_conversion.adapters.plantuml_source import (
+        from paper_stm_conversion.adapters.plantuml_source import (
             java_frontend_source_identity,
         )
     except ImportError as exc:
@@ -559,7 +559,7 @@ def load_attribution_safe_working_bundle(
             "manifest implementation-tree hash is stale; replay and review are required"
         )
     try:
-        from paper_stm_repair_conversion.adapters.plantuml_source import (
+        from paper_stm_conversion.adapters.plantuml_source import (
             java_frontend_source_identity,
         )
 

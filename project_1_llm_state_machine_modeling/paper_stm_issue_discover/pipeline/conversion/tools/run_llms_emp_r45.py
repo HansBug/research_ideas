@@ -36,7 +36,7 @@ PYFCSTM_SRC = REPO_ROOT / "pyfcstm"
 for source_root in (CONVERSION_SRC, REPRESENTATION_SRC, PYFCSTM_SRC):
     sys.path.insert(0, str(source_root))
 
-from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
+from paper_stm_conversion.adapters.plantuml_source import (  # noqa: E402
     PLANTUML_SHA256,
     PLANTUML_VERSION,
     java_frontend_build_identity,
@@ -44,17 +44,17 @@ from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
     parse_plantuml_source,
     resolve_plantuml_jar,
 )
-from paper_stm_repair_conversion.evidence_integrity import (  # noqa: E402
+from paper_stm_conversion.evidence_integrity import (  # noqa: E402
     IMPLEMENTATION_ROOTS,
     relevant_implementation_sha256,
 )
-from paper_stm_repair_representation.plantuml_source_lowering import (  # noqa: E402
+from paper_stm_representation.plantuml_source_lowering import (  # noqa: E402
     lower_plantuml_source,
 )
-from paper_stm_repair_representation.plantuml_source_audit import (  # noqa: E402
+from paper_stm_representation.plantuml_source_audit import (  # noqa: E402
     audit_lowered_artifact,
 )
-from paper_stm_repair_representation.plantuml_working_contract import (  # noqa: E402
+from paper_stm_representation.plantuml_working_contract import (  # noqa: E402
     bind_inspect_diagnostics,
     build_review_obligations,
     validate_working_contract,

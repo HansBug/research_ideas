@@ -7,7 +7,7 @@ from pathlib import Path
 
 # R5 tests intentionally include snapshot counts for the current frozen seed_library
 # census. If seed_library entries/assets/pairs change in later PRs, rerun
-# `paper_stm_repair_smoke.cli run-seed-sweep` and update these numbers together
+# `paper_stm_smoke.cli run-seed-sweep` and update these numbers together
 # with the committed sweep artifacts; do not silently relax the evidence contract.
 
 def repo_root() -> Path:
@@ -118,8 +118,8 @@ def test_handoff_files_are_pre_repair_only():
 
 
 def test_validate_reports_no_llm_or_env_boundary():
-    from paper_stm_repair_smoke.cli import load_index_payloads as cli_load_index_payloads
-    from paper_stm_repair_smoke.cli import validate_no_llm_or_env_boundary
+    from paper_stm_smoke.cli import load_index_payloads as cli_load_index_payloads
+    from paper_stm_smoke.cli import validate_no_llm_or_env_boundary
 
     index = load(READINESS / "seed_sweep/records_index.json")
     handoff_docs = {

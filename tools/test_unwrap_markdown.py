@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from unwrap_markdown import unwrap
+from tools.unwrap_markdown import unwrap
 
 
 class TestJoinsParagraphs:

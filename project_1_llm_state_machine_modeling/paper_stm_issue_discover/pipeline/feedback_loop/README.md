@@ -1,6 +1,6 @@
 # feedback_loop/ — 当前活的 discover 实现
 
-> 🟢 **这里是 paper1 唯一在跑的方法实现。** 改方法、改谓词、改提示词都在本目录。上一版实现在 [../agent_loop/](../agent_loop/)，已退出运行路径，别改错地方。
+> 🟢 **这里是 paper1 唯一在跑的方法实现。** 改方法、改谓词、改提示词都在本目录。上一版实现已于 2026-08-11 归档到 [../../archive/r9_agent_loop_pipeline/](../../archive/r9_agent_loop_pipeline/)，已退出运行路径，别改错地方。
 
 ## 1. 它做什么
 
@@ -105,4 +105,4 @@ python -m paper_stm_feedback_loop.discover --help
 - [../README.md](../README.md)：pipeline 导航与「哪个目录在跑」判定表
 - [../../discover_matrix/](../../discover_matrix/)：评测、台账、判定口径、代次结果
 - [../../discover_matrix/docs/protocol/](../../discover_matrix/docs/protocol/)：判定口径文档；**改它们等于改研究规则**
-- [../agent_loop/README.md](../agent_loop/README.md)：上一版实现的设计记录
+- [../../archive/r9_agent_loop_pipeline/agent_loop/README.md](../../archive/r9_agent_loop_pipeline/agent_loop/README.md)：上一版实现的设计记录（⚠️ 2026-08-11 已归档，复活导引见 [ARCHIVE_README.md](../../archive/r9_agent_loop_pipeline/ARCHIVE_README.md)）

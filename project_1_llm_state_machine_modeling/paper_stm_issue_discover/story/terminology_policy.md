@@ -164,8 +164,9 @@
 ## 7. 待定的术语
 
 > **TODO(后续PR) `TODO-T1`**：**三条 contribution 的英文措辞。**
-> - **为什么现在做不了**：contribution 是三条还是两条尚未裁定（`TODO-S1`），  且第三条的**形状**受冲突 X3 阻塞（`TODO-S2`）。措辞跟着形状走。
-> - **需要定的几个词**：「谓词逻辑元模型」（predicate-logic metamodel? predicate metamodel?   ⚠️ metamodel 在 MDE 里有确定含义，用它要确认不会误导）；  「全覆盖的可执行断言体系」；「闭合证据链」（closed evidence chain? traceable evidence chain?）。
+> - **中文形状已定**【用户明确裁定 2026-08-11】，三条逐字为：  ① **基于模型转换 + 模型形式化检查 / 仿真 / 验证的模型错误发现方法**；  ② **基于归纳后的谓词逻辑的断言体系**（⚠️ **它就是谓词逻辑元模型本身**，只是从「用于构建断言」的角度陈述，⛔ 不要在英文里把元模型与断言体系拆成两个并列名词）；  ③ **issue 证据链体系**。原文见 [paper_story.md](./paper_story.md) §7。
+> - **为什么仍做不了**：第三条的**形状**受冲突 X3 阻塞（`TODO-S2`，解锁条件是文献调研）；  且三条各自的 **claim 强度**尚未定（用户明示待文献调研），  而英文措辞里的强度词（novel / first / general…）跟着强度走。⛔ 在强度定下来之前不得选定这类词。
+> - **需要定的几个词**：「模型错误发现方法」（model defect discovery? issue discovery?  ⚠️ 要与 detection 一词的既有用法拉开距离）；  「谓词逻辑元模型 / 断言体系」（predicate-logic metamodel? predicate metamodel?   ⚠️ metamodel 在 MDE 里有确定含义，用它要确认不会误导；⚠️ 这两个中文词现在指**同一个东西**，英文里也应当只有一个主名词 + 一个从属说明）；  「issue 证据链体系」（closed evidence chain? traceable evidence chain?）。
 > - **做完之后应该长什么样**：三条 contribution 的中英对照，各附一句「为什么不用另一个词」。
 
 > **TODO(后续PR) `TODO-T2`**：**「领域分析」一节的新术语中英口径。**

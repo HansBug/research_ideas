@@ -47,7 +47,7 @@ find /tmp/r3_1_plantuml_recovery_workdir -maxdepth 2 -type f | head
 ```bash
 export PLANTUML_JAR=/abs/path/to/plantuml.jar
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_conversion.cli recover-plantuml \
+python -m paper_stm_conversion.cli recover-plantuml \
   --run-id r3.1-plantuml-recovery-v0 \
   --created-at 2026-06-25T12:00:00+00:00
 ```

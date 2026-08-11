@@ -2,7 +2,7 @@
 
 # R3 selected_seed_examples 转换 v0 摘要
 
-本文件由 `python -m paper_stm_repair_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。
+本文件由 `python -m paper_stm_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。
 
 | example_id | 上游 NL | 原始 STM_0 | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | syntax | structured export | losses | 说明 |
 |---|---|---|---|---|---:|---:|---|---|---|---|---:|---|

@@ -1,6 +1,6 @@
 ### 0.1 断言对象边界
 
-本集合的断言对象是 **FSM / HSM / EFSM**，即 $M = (S, E, V, Tr, A)$；**时钟 $C$、不变式 $Inv$ 与正交区并发执行语义不在断言对象内**。判据来自 [MANUAL_REVIEW_SPEC.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/eval/discover_matrix/MANUAL_REVIEW_SPEC.md) 的六行硬规则：数量与结构断言（「有 N 个 X」）在范围内；「区域之间是否同时活跃」在范围外；定时器动作属 $A$、定时器事件属 $E$、零时守卫属 $V$，三者均在范围内；真正的时长约束（`execTime`）在范围外。
+本集合的断言对象是 **FSM / HSM / EFSM**，即 $M = (S, E, V, Tr, A)$；**时钟 $C$、不变式 $Inv$ 与正交区并发执行语义不在断言对象内**。判据来自 [manual_review_spec.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/manual_review_spec.md) 的六行硬规则：数量与结构断言（「有 N 个 X」）在范围内；「区域之间是否同时活跃」在范围外；定时器动作属 $A$、定时器事件属 $E$、零时守卫属 $V$，三者均在范围内；真正的时长约束（`execTime`）在范围外。
 
 **418 → 153 的三道过滤（后文不再重复）：**
 
@@ -12,7 +12,7 @@
 
 剩余 153 条经逐条复检全部落在范畴内。**这个 153/153 必须读作「对已过滤集合的复检未发现漏剔」，不是「原始差异集天然全在范畴内」**——范围外的条目在复核阶段就已被扣除。复检中有 3 条需重新论证归因基础（`0043`#2、`0047`#0、`0056`#3），重新论证后仍在范畴内。
 
-**与 [GROUND_TRUTH_LIMITATIONS.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md) §2 的口径差异（必须声明）**：§2 按**对象**排除正交并发相关候选；本轮按**断言形式**排除——对象是正交区、但断言写成 $S$ 内的存在性或数量命题时判为范围内。本轮口径**更窄**，因此本集合含有若干在 §2 口径下会被整条排除的条目（上述 3 条 disputed 即是）。引用两份文档的排除数时不得互换。
+**与 [ground_truth_limitations.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md) §2 的口径差异（必须声明）**：§2 按**对象**排除正交并发相关候选；本轮按**断言形式**排除——对象是正交区、但断言写成 $S$ 内的存在性或数量命题时判为范围内。本轮口径**更窄**，因此本集合含有若干在 §2 口径下会被整条排除的条目（上述 3 条 disputed 即是）。引用两份文档的排除数时不得互换。
 
 **继承 §2 的强制披露**：本分母系统性排除了基线论文最大的一类语义问题（`missing regions`），原因是该类不在本轮断言对象内，**而非方法未能检出**；同样**不得**据此声称「这些模型没有并发类问题」。
 

@@ -10,7 +10,7 @@
 >
 > | 问题 | 答案 |
 > | :-- | :-- |
-> | 包名 | `paper_stm_repair_representation`（旧名，有意保留，见 [../README.md](../README.md) §4） |
+> | 包名 | `paper_stm_representation`（旧名，有意保留，见 [../README.md](../README.md) §4） |
 > | 测试规模 | 129 个 |
 > | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
 > | 能直接打开 `.fcstm` 当输入吗 | ⛔ 不能。必须走唯一 loader `load_attribution_safe_working_bundle`（见 §2） |
@@ -24,7 +24,7 @@
 | 路径 | 内容 |
 | :-- | :-- |
 | [reports/llms_emp_r45_java_60/](./reports/llms_emp_r45_java_60/) | 🟢 **active 60 例证据目录 = discover 的输入根**。含 `pairs/`、`fcstm/`、`canonical/`、`source_traces/`、`working_contracts/`、`case_reports/`、`parse_inspect/`、[SUMMARY.md](./reports/llms_emp_r45_java_60/SUMMARY.md)、[PAIR_INDEX.md](./reports/llms_emp_r45_java_60/PAIR_INDEX.md) |
-| [src/paper_stm_repair_representation/](./src/paper_stm_repair_representation/) | `plantuml_source_lowering.py`（active 60 例）、`plantuml_source_audit.py`（独立 AST 审计）、`plantuml_working_contract.py`、`plantuml_working_bundle.py`（唯一 loader）、`manual_pair_review.py`、`lowering.py`（历史 4 例）、`pyfcstm_names.py`、`cli.py` |
+| [src/paper_stm_representation/](./src/paper_stm_representation/) | `plantuml_source_lowering.py`（active 60 例）、`plantuml_source_audit.py`（独立 AST 审计）、`plantuml_working_contract.py`、`plantuml_working_bundle.py`（唯一 loader）、`manual_pair_review.py`、`lowering.py`（历史 4 例）、`pyfcstm_names.py`、`cli.py` |
 | [schemas/](./schemas/) | 6 份 JSON Schema：export report、export loss ledger、lowering inventory、manual pair review、name mapping、working fcstm contract |
 | [reports/fcstm_exports/](./reports/fcstm_exports/) | 🔴 历史 4 例 legacy 输出 |
 | [tests/](./tests/) | 129 个测试，5 个文件 |
@@ -59,7 +59,7 @@ representation/
 │   ├── manual_pair_review.schema.json
 │   ├── name_mapping.schema.json
 │   └── working_fcstm_contract.schema.json
-├── src/paper_stm_repair_representation/
+├── src/paper_stm_representation/
 │   ├── __init__.py
 │   ├── cli.py
 │   ├── lowering.py              # 历史四例 canonical lowering / .fcstm render / report 入口
@@ -117,7 +117,7 @@ validated post-Confirm semantic-root export bundle -> fresh canonical PlantUML S
 ```python
 from pathlib import Path
 
-from paper_stm_repair_representation import load_attribution_safe_working_bundle
+from paper_stm_representation import load_attribution_safe_working_bundle
 
 bundle = load_attribution_safe_working_bundle(
     Path("project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/reports/llms_emp_r45_java_60"),
@@ -165,7 +165,7 @@ python project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/co
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
-python -m paper_stm_repair_representation.cli export-selected
+python -m paper_stm_representation.cli export-selected
 ```
 
 预期摘要：
@@ -232,7 +232,7 @@ R4.5 的人类可读报告也必须能直接回到上游输入：下表中的 `�
 
 ```bash
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
-python -m paper_stm_repair_representation.cli export-selected
+python -m paper_stm_representation.cli export-selected
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src \
 pytest -q project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/tests

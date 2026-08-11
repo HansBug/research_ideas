@@ -42,7 +42,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 论文叙事（story） | 已按 discover 口径整体改写 | [story/](./story/) |
 | 方法实现 | active，已跑通全量 | [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 输入准备与表示桥、语料准入检查 | active，作为 infrastructure | [pipeline/conversion/](./pipeline/conversion/)、[pipeline/representation/](./pipeline/representation/)、[pipeline/readiness_audit/](./pipeline/readiness_audit/) |
-| 上一版单 Agent 实现 | 已不在运行路径上 | [pipeline/agent_loop/](./pipeline/agent_loop/) |
+| 上一版单 Agent 实现 | 已归档（2026-08-11），完整保留可复活 | [archive/r9_agent_loop_pipeline/](./archive/r9_agent_loop_pipeline/) |
 | 实验与评测 | active，v46 全量已完成 | [discover_matrix/](./discover_matrix/) |
 | 语料与更广候选集 | active | [selected_seed_examples/](./selected_seed_examples/)、[corpora/](./corpora/) |
 | repair 期合同（issue lifecycle、source trace、资产地图） | **已随 repair 搁置**，只作历史背景与后续 repair 论文的迁移输入 | [experiment_design/](./experiment_design/)、[evidence/ledgers/](./evidence/ledgers/) |

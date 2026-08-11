@@ -8,12 +8,12 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-from paper_stm_repair_conversion.adapters.plantuml_source import parse_plantuml_source
-from paper_stm_repair_representation.plantuml_source_audit import audit_lowered_artifact
-from paper_stm_repair_representation.plantuml_source_lowering import (
+from paper_stm_conversion.adapters.plantuml_source import parse_plantuml_source
+from paper_stm_representation.plantuml_source_audit import audit_lowered_artifact
+from paper_stm_representation.plantuml_source_lowering import (
     lower_plantuml_source,
 )
-from paper_stm_repair_representation.plantuml_working_contract import (
+from paper_stm_representation.plantuml_working_contract import (
     bind_inspect_diagnostics,
     build_review_obligations,
     validate_working_contract,

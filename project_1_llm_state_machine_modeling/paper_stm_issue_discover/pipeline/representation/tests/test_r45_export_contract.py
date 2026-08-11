@@ -42,7 +42,7 @@ def test_cli_regenerates_export_reports_in_tmp_path(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_representation.cli",
+        "paper_stm_representation.cli",
         "export-selected",
         "--reports-dir",
         str(out),
@@ -203,7 +203,7 @@ def test_committed_reports_do_not_embed_local_absolute_paths():
 
 
 def test_inspect_fcstm_diagnostics_preserve_nested_spans_as_json_safe_schema():
-    from paper_stm_repair_representation.lowering import inspect_fcstm
+    from paper_stm_representation.lowering import inspect_fcstm
 
     source = """def int counter = 0;
 state Root {
@@ -246,7 +246,7 @@ state Root {
 
 
 def test_guard_variable_uses_fcstm_safe_identifier_for_special_token():
-    from paper_stm_repair_representation.lowering import FCSTMExporter, inspect_fcstm
+    from paper_stm_representation.lowering import FCSTMExporter, inspect_fcstm
 
     canonical = {
         "schema_version": "r3.canonical_stm.v0",
@@ -288,7 +288,7 @@ def test_cli_syncs_selected_seed_example_fcstm_snapshots_in_tmp_path(tmp_path):
     cmd_export = [
         sys.executable,
         "-m",
-        "paper_stm_repair_representation.cli",
+        "paper_stm_representation.cli",
         "export-selected",
         "--reports-dir",
         str(reports_out),
@@ -296,7 +296,7 @@ def test_cli_syncs_selected_seed_example_fcstm_snapshots_in_tmp_path(tmp_path):
     cmd_sync = [
         sys.executable,
         "-m",
-        "paper_stm_repair_representation.cli",
+        "paper_stm_representation.cli",
         "sync-selected-fcstm",
         "--reports-dir",
         str(reports_out),
@@ -369,7 +369,7 @@ def test_committed_selected_seed_examples_include_synced_fcstm_snapshots():
         assert meta["inspect_status"] == item["inspect_status"] == "ok"
         assert meta["repair_contribution_allowed"] is False
         assert meta["attribution"] == "representation_lowering_not_repair"
-        from paper_stm_repair_representation.lowering import inspect_fcstm
+        from paper_stm_representation.lowering import inspect_fcstm
 
         assert inspect_fcstm(selected_fcstm.read_text(encoding="utf-8"), selected_fcstm)["parse_status"] == "ok"
 

@@ -9,30 +9,30 @@ from pathlib import Path
 
 import pytest
 
-import paper_stm_repair_representation.plantuml_working_bundle as working_bundle_module
-from paper_stm_repair_conversion.adapters.plantuml_source import (
+import paper_stm_representation.plantuml_working_bundle as working_bundle_module
+from paper_stm_conversion.adapters.plantuml_source import (
     java_frontend_build_identity,
     java_frontend_source_identity,
     parse_plantuml_source,
 )
-from paper_stm_repair_conversion.evidence_integrity import (
+from paper_stm_conversion.evidence_integrity import (
     relevant_implementation_sha256,
 )
-from paper_stm_repair_representation.plantuml_source_audit import audit_lowered_artifact
-from paper_stm_repair_representation.plantuml_source_lowering import (
+from paper_stm_representation.plantuml_source_audit import audit_lowered_artifact
+from paper_stm_representation.plantuml_source_lowering import (
     lower_plantuml_source,
 )
-from paper_stm_repair_representation.manual_pair_review import (
+from paper_stm_representation.manual_pair_review import (
     RISK_ASSESSMENT_BY_TAG,
     _fcstm_anchor_matches_element,
     fcstm_evidence_anchors,
     plantuml_evidence_anchor,
 )
-from paper_stm_repair_representation.plantuml_working_bundle import (
+from paper_stm_representation.plantuml_working_bundle import (
     WorkingBundleError,
     load_attribution_safe_working_bundle,
 )
-from paper_stm_repair_representation.plantuml_working_contract import (
+from paper_stm_representation.plantuml_working_contract import (
     bind_inspect_diagnostics,
     build_review_obligations,
 )

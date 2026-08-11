@@ -2,7 +2,7 @@
 
 # R3.1 PlantUML pre-SCXML normalization / recovery 摘要
 
-本文件由 `python -m paper_stm_repair_conversion.cli recover-plantuml` 生成。它是 R3.1 conversion eligibility 证据，不是 Better STM repair 实验结果。
+本文件由 `python -m paper_stm_conversion.cli recover-plantuml` 生成。它是 R3.1 conversion eligibility 证据，不是 Better STM repair 实验结果。
 
 ## 机器摘要快照（非 canonical 结论源）
 

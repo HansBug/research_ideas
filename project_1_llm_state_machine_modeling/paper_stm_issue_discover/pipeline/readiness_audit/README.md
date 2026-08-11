@@ -6,7 +6,7 @@
 > | :-- | :-- |
 > | 在运行路径上吗 | 不在。结论固化在 [handoff/](./handoff/)；重跑只为复验证据链 |
 > | 它的产出被谁消费 | 语料选择决策；60 例最终形态见 [../representation/reports/llms_emp_r45_java_60/](../representation/reports/llms_emp_r45_java_60/) |
-> | 包名 | `paper_stm_repair_smoke`（旧名，且与目录名也不同——本目录原名 `pipeline/smoke/`） |
+> | 包名 | `paper_stm_smoke`（旧名，且与目录名也不同——本目录原名 `pipeline/smoke/`） |
 > | 测试规模 | 8 个（本目录测试最少；主要资产是**已提交的 report**，不是测试） |
 > | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
 >
@@ -20,7 +20,7 @@
 
 R5 只回答：当前 seed 资源池中哪些原装 `STM_0` 能进入内部可机检 `.fcstm` 表示，哪些只能 `partial` / `blocked` / `not_applicable` / `needs_generation` / `missing_asset`，以及这些状态的原因是什么。R5.5 在 R5 事实源之上，只对 `llms-emp-stm-subset` 这一主 seed 池做 60 pair / 10 NL cluster 深度画像、partial 归因、blocked probe 与 R5.6 边界交接。
 
-> 兼容说明：本目录由旧 `pipeline/smoke/` 重命名而来，Python 包名和命令入口暂保留 `paper_stm_repair_smoke`，用于避免破坏既有测试和 run record；新的路径语义以 `readiness_audit/` 为准，后续若重命名包名必须提供迁移测试。
+> 兼容说明：本目录由旧 `pipeline/smoke/` 重命名而来，Python 包名和命令入口暂保留 `paper_stm_smoke`，用于避免破坏既有测试和 run record；新的路径语义以 `readiness_audit/` 为准，后续若重命名包名必须提供迁移测试。
 
 R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不调用真实 LLM，不读取 `.env`，不把 conversion / normalization / 表示转换收益计入修正收益。
 
@@ -91,7 +91,7 @@ readiness_audit/
 ├── schemas/
 │   ├── selected_smoke_report.schema.json
 │   └── seed_sweep_report.schema.json
-├── src/paper_stm_repair_smoke/
+├── src/paper_stm_smoke/
 │   └── cli.py
 └── tests/
     └── test_r5_smoke_contract.py
@@ -150,16 +150,16 @@ PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipelin
 python -m pytest project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/tests
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_smoke.cli run-selected
+python -m paper_stm_smoke.cli run-selected
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error
+python -m paper_stm_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
-python -m paper_stm_repair_smoke.cli run-llms-emp-profile
+python -m paper_stm_smoke.cli run-llms-emp-profile
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src \
-python -m paper_stm_repair_smoke.cli validate
+python -m paper_stm_smoke.cli validate
 
 PYTHONPATH=project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/readiness_audit/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/representation/src:project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/conversion/src \
 python -m pytest \

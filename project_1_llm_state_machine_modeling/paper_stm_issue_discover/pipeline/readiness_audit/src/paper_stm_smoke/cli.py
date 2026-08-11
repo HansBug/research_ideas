@@ -329,7 +329,7 @@ def run_selected(_: argparse.Namespace) -> int:
         "created_at": now_iso(),
         "repo_commit": git_commit(),
         "generation_context": generation_context(
-            "python -m paper_stm_repair_smoke.cli run-selected",
+            "python -m paper_stm_smoke.cli run-selected",
             [SCHEMA_DIR / "selected_smoke_report.schema.json"],
         ),
         "repair_contribution_allowed": False,
@@ -578,8 +578,8 @@ def convert_pair_record(entry_id: str, row: dict[str, Any], registry: dict[str, 
             scxml_path.parent.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(recovery.zip_path) as zf:
                 scxml_path.write_bytes(zf.read(member))
-            from paper_stm_repair_conversion.adapters.scxml import ScxmlOptions, convert_scxml
-            from paper_stm_repair_representation.lowering import FCSTMExporter, inspect_fcstm
+            from paper_stm_conversion.adapters.scxml import ScxmlOptions, convert_scxml
+            from paper_stm_representation.lowering import FCSTMExporter, inspect_fcstm
 
             result = convert_scxml(
                 scxml_path,
@@ -957,7 +957,7 @@ def run_seed_sweep(args: argparse.Namespace) -> int:
                     "record_count": len(pair_records),
                     "schema_version": "r5.seed_sweep_pair_record.v0",
                     "internal_root": member_root,
-                    "generation_command": "python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error",
+                    "generation_command": "python -m paper_stm_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error",
                     "bytes": zip_path.stat().st_size,
                 })
             else:
@@ -998,7 +998,7 @@ def run_seed_sweep(args: argparse.Namespace) -> int:
         "repo_commit": git_commit(),
         "denominator_freeze_commit": git_commit(),
         "generation_context": generation_context(
-            "python -m paper_stm_repair_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error",
+            "python -m paper_stm_smoke.cli run-seed-sweep --max-per-pair-seconds 30 --continue-on-error",
             [SCHEMA_DIR / "seed_sweep_report.schema.json"],
         ),
         "seed_library_dir": rel(SEED_LIBRARY_DIR),

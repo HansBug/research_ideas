@@ -43,9 +43,25 @@ def test_all_feedback_loop_sources_have_no_legacy_import() -> None:
                 ), path
 
 
+LEGACY_SRC = (
+    Path(__file__).resolve().parents[5]
+    / "project_1_llm_state_machine_modeling/paper_stm_issue_discover"
+    / "archive/r9_agent_loop_pipeline/agent_loop/src"
+)
+
+
 def test_feedback_loop_makefile_does_not_inject_legacy_pipeline_source() -> None:
     makefile = Path(__file__).resolve().parents[1] / "Makefile"
     text = makefile.read_text(encoding="utf-8")
+    # 旧 agent_loop 于 2026-08-11 归档到 archive/r9_agent_loop_pipeline/。⚠️ 归档之后
+    # 原先断言的 "pipeline/agent_loop/src" 这个字符串再也不可能出现，该断言随之变成
+    # 永真 —— 守卫绿着但已不再守任何东西。这是本会话里同一个文件第二次静默失效
+    # （上一次是它检查一个已不可能存在的模块名 method.loop），所以这里同时钉住新路径
+    # 与「新路径必须真实存在」，让下一次搬迁直接把测试打红而不是悄悄放行。
+    assert LEGACY_SRC.is_dir(), (
+        f"归档路径已失效：{LEGACY_SRC}。搬迁后必须同步本文件，否则下面的断言会变成永真。"
+    )
+    assert "archive/r9_agent_loop_pipeline/agent_loop/src" not in text
     assert "pipeline/agent_loop/src" not in text
     assert "paper_stm_repair_loop" not in text
 
@@ -53,9 +69,11 @@ def test_feedback_loop_makefile_does_not_inject_legacy_pipeline_source() -> None
 def test_runtime_sentinel_with_legacy_package_available() -> None:
     feedback_src = Path(__file__).resolve().parents[1] / "src"
     repo = Path(__file__).resolve().parents[5]
-    legacy_src = (
-        repo
-        / "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/src"
+    # ⚠️ Python 会静默忽略 PYTHONPATH 里不存在的条目。若这里指向一个已被搬走的路径，
+    # 本测试仍然通过，但它声称的前提「legacy 包可导入」根本没成立 —— 空转的绿灯。
+    legacy_src = LEGACY_SRC
+    assert legacy_src.is_dir(), (
+        f"legacy 包源码路径不存在：{legacy_src}；本测试的前提未成立，不能算通过。"
     )
     code = r'''
 import builtins

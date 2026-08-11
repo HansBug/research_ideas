@@ -510,7 +510,7 @@ def run_recovery(
         "generator_worktree_dirty": bool(generator_git_status),
         "generator_git_status_porcelain": generator_git_status,
         "artifact_commit_note": "If this committed report is reviewed at a later PR head, compare generator_code_commit with the parent/code commit used to generate artifacts rather than requiring repo_commit to equal the artifact commit itself.",
-        "generation_command": generation_command or "python -m paper_stm_repair_conversion.cli recover-plantuml",
+        "generation_command": generation_command or "python -m paper_stm_conversion.cli recover-plantuml",
         "schema_version": "r3.1.plantuml_recovery.v0",
         "conversion_contract": "R3.1 only normalizes PlantUML before official -tscxml; canonical STM must still come from official SCXML.",
         "temporary_probe_reference": {
@@ -697,7 +697,7 @@ def write_recovery_summary(path: Path, report: dict[str, Any]) -> None:
         "",
         "# R3.1 PlantUML pre-SCXML normalization / recovery 摘要",
         "",
-        "本文件由 `python -m paper_stm_repair_conversion.cli recover-plantuml` 生成。它是 R3.1 conversion eligibility 证据，不是 Better STM repair 实验结果。",
+        "本文件由 `python -m paper_stm_conversion.cli recover-plantuml` 生成。它是 R3.1 conversion eligibility 证据，不是 Better STM repair 实验结果。",
         "",
         "## 机器摘要快照（非 canonical 结论源）",
         "",

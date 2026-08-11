@@ -8,10 +8,10 @@ from pathlib import Path
 IMPLEMENTATION_ROOTS = (
     "pipeline/conversion/java/plantuml-state-frontend/src/main/java",
     "pipeline/conversion/java/plantuml-state-frontend/Makefile",
-    "pipeline/conversion/src/paper_stm_repair_conversion/adapters/plantuml_source.py",
-    "pipeline/conversion/src/paper_stm_repair_conversion/evidence_integrity.py",
+    "pipeline/conversion/src/paper_stm_conversion/adapters/plantuml_source.py",
+    "pipeline/conversion/src/paper_stm_conversion/evidence_integrity.py",
     "pipeline/conversion/schemas/plantuml_source_canonical.schema.json",
-    "pipeline/representation/src/paper_stm_repair_representation",
+    "pipeline/representation/src/paper_stm_representation",
     "pipeline/representation/schemas/working_fcstm_contract.schema.json",
     "pipeline/representation/schemas/manual_pair_review.schema.json",
     "pipeline/evaluation/schemas/source_issue_ledger.schema.json",

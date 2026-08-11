@@ -74,7 +74,7 @@ v46 已跑完 **54 pair × 2 执行模型 × 3 轮 = 324 格**，覆盖侧 `hit@
 | **参考侧误报** | ref 上 False 但 buggy 上 True | 断言方向搞反 |
 
 **为什么值得做**：判定方法学里记着一条改判——`EIS-0029-05` 从 2/6 改判为 **0/6**，理由是产出断的那条「在**参考模型上同样为 False**，无法区分合规与不合规」（见 [../discover_matrix/docs/protocol/verdict_methodology.md](../discover_matrix/docs/protocol/verdict_methodology.md)「全人工也不行，而且已经出过错」一节）。
-> ⛔ **「132 位 / 只逮到 1 例」是 v35 的口径，不是 v46 的 588 位。** `verdict_methodology.md` 第 14 / 31 / 160 行三处明写该数出自 **v35（132 判定位）**；v46 是 **588 位**，同类情形在 588 位里共有几例**从未统计过**。另注意 v35 那 132 位上的**作用域误判共两处**（`EIS-0032-01` 与 `EIS-0029-05`），其中只有 `EIS-0029-05` 是「参考模型上同样为 False」这一形态——「1 例」指的是**这一形态**，不是「误判总数 1 处」。⛔ 引用前必须先在 v46 的裁定记录里核对，**不得把 v35 的数当 v46 的材料用**。同一警告已在 [../story/paper_outline.md](../story/paper_outline.md) §5.6 标出；本节此前是漏标的一份，已补。
+> ⛔ **「132 位 / 只逮到 1 例」是 v35 的口径，不是 v46 的 588 位。** [`verdict_methodology.md`](../discover_matrix/docs/protocol/verdict_methodology.md) 有三处明写该数出自 **v35（132 判定位）**——§一「全自动做不到」的「实测（v35，132 判定位）」、§一「全人工也不行，而且已经出过错」的「v35 那一轮，我在 132 位上犯了两处」、§六 更新日志 2026-08-08 条的「28/132 位自动确认」；v46 是 **588 位**，同类情形在 588 位里共有几例**从未统计过**。另注意 v35 那 132 位上的**作用域误判共两处**（`EIS-0032-01` 与 `EIS-0029-05`），其中只有 `EIS-0029-05` 是「参考模型上同样为 False」这一形态——「1 例」指的是**这一形态**，不是「误判总数 1 处」。⛔ 引用前必须先在 v46 的裁定记录里核对，**不得把 v35 的数当 v46 的材料用**。同一警告已在 [../story/paper_outline.md](../story/paper_outline.md) §5.6 标出；本节此前是漏标的一份，已补。
 
 **v35 那一轮全人工扫了 132 个位、只逮到这 1 例；ref 翻转率能把这项检查自动化到全部断言上。** 它同时也是 §6.2 那条「不具判别力的谓词」问题的通用检测器：`variable_declared` 在任何模型上都为真，ref 翻转率会把它整批打出来。
 
@@ -258,8 +258,7 @@ v46 已跑完 **54 pair × 2 执行模型 × 3 轮 = 324 格**，覆盖侧 `hit@
 
 这一节不是实验，是**必须先裁定、否则实验设计无从下手**的几个冲突。
 
-**当前状态**：§5.3（留出集）与 §5.5（fork/join）**已裁定**，保留在此仅作留档与防复发；
-仍待裁定的是 §5.1（领域分析的交付形态）、§5.2（T1/T2 分层）、§5.4（表示债务的归属）。
+**当前状态**：§5.2（T1/T2 分层）、§5.3（留出集）、§5.5（fork/join）**均已裁定**（T1/T2 于 2026-08-11 由用户裁定作废——「老的说法可以丢了，现在不谈人工的事情」；T1 的动机是省人工判定成本，v46 跑完 324 格全量后该动机已不成立），保留在此仅作留档与防复发。仍待裁定的只剩 §5.1（领域分析的交付形态）与 §5.4（表示债务的归属）。
 
 ### 5.1 §3「领域分析与谓词元模型」是承重结构，但它还不存在
 
@@ -377,9 +376,10 @@ v46 §4.4 已经写了三类来源（现实需求 / 技术文档与规约 / 学�
 > ✅ **已完成（2026-08-11，commit `aab12c4c`）：根 `CLAUDE.md` 的路径已与实际一致。**
 >
 > - 本条此前登记「根 `CLAUDE.md` 仍引用 `project_1_llm_state_machine_modeling/eval/discover_matrix/...`   与 `Vxx_PREREGISTERED.md` 命名」。**该登记在写下时就已过期**——同一个 commit `aab12c4c`   已经改掉了。核实结果：
->   - 根 `CLAUDE.md` 第 1213 / 1222 / 1226 / 1230 / 1418 行的 `ground_truth_limitations.md`、    `nl_scope_rule.md`、`method_provenance_policy.md`、`test_scope_vs_holdout_are_different.py`     **已全部指向 `paper_stm_issue_discover/discover_matrix/...`，文件名已小写**。
->   - 根 `CLAUDE.md` 第 1461 行明写：「⚠️ 旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）    **已于 2026-08-11 的文档树化中废弃**，历史文件已迁入上述结构，不要沿用旧写法」。
->   - 全文仅第 223 / 226 行仍出现 `eval/discover_matrix/`，但那是**举历史漂移为反例**的说明文字，    不是活引用。
+>   - 根 `CLAUDE.md` 共 5 处引用 `ground_truth_limitations.md`、`nl_scope_rule.md`、`method_provenance_policy.md`、`test_scope_vs_holdout_are_different.py`：4 处在〈核心技术概念〉§状态机形式化里「**研究内容一（project_1 / paper1）的建模对象边界**」之后那一段连同其下两项永久裁定与 ⛔ 段，第 5 处在 §3.5.-1「泄漏审查不能只靠读文本」的「⚠️ **project_1 不设 hold-out / 留出集**」一句。这 5 处的**链接 target 已全部指向 `paper_stm_issue_discover/discover_matrix/...` 且文件名已小写**。
+>   - ⚠️ **但「文件名已小写」只对 target 成立，对可见链接文字不成立**：上述永久裁定两条里写的仍是 `[NL_SCOPE_RULE.md](...nl_scope_rule.md)` 与 `[METHOD_PROVENANCE_POLICY.md](...method_provenance_policy.md)`——**链接文字是大写、target 是小写**，读者按可见文字去 grep 会找不到文件。这是根 `CLAUDE.md` 自己待修的点，⛔ 不在本目录的改动范围内，只在此登记。
+>   - 根 `CLAUDE.md` §3.5.1「开跑实验前必须先 push」里「**要一起推的不只是代码，还有事前登记。**」那一段明写：「⚠️ 旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）已于 2026-08-11 的文档树化中废弃，历史文件已迁入上述结构，不要沿用旧写法」。
+>   - 全文仅 §9.5「资产归属纪律：顶层只放公共资产」里「**为什么这条是纪律而不是偏好**」那一段仍出现 `eval/discover_matrix/`（同一自然段内两处：`eval/discover_matrix/manual_review/` 与 `eval/discover_matrix/` 的脚本），但那是**举历史漂移为反例**的说明文字，不是活引用。
 > - ⚠️ **仍存在一处小口径差**（不足以单列 TODO，记在这里）：根 `CLAUDE.md` 规定登记落点为   `discover_matrix/docs/generations/<vNN>/preregistered.md`，而 v46 的登记实际在   [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md)   （`docs/generations/` 下目前只有 v21–v25、v40–v45）。下一代次按根 `CLAUDE.md` 的落点写即可。
 
 > **TODO(后续PR)**：决定 `source_issue_ledger` schema 里已作废的 repair 侧字段怎么处理

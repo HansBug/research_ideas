@@ -6,12 +6,20 @@
 >
 > | 路径 | 内容 |
 > | :-- | :-- |
-> | **本目录**（`paper_stm_issue_discover/archive/`） | 本论文工作区自己的历史快照：R1.5–R1.7 种子语料、R5.7 Better STM 全树、R7 issue lifecycle 脚手架、R8 论文叙事 |
-> | [../../archive/](../../archive/) | project_1 层的**已停用旧路线**：旧 agent loop 基础设施、Path-1 评测链、Path-1/Path-2 指南 |
+> | **本目录**（`paper_stm_issue_discover/archive/`） | 本论文工作区自己的历史快照：R1.5–R1.7 种子语料、R5.7 Better STM 全树、R7 issue lifecycle 脚手架、R8 论文叙事、R9 单 Agent discover 实现 |
+> | [../../archive/](../../archive/) | project_1 层的**已停用旧路线**：`agent_loop_method/`（16-stage LangGraph **建模** loop）、Path-1 评测链、Path-1/Path-2 指南 |
 >
 > 两个都不参与本文任何结论。当前入口一律回到 [../README.md](../README.md)。
 >
-> **本目录有四个快照，各配自己的 README**（按阶段先后排）：
+> ⛔ **两边各有一个「agent loop」，是完全不同的两样东西，按包名区分：**
+>
+> | 对象 | 包名 | 任务 |
+> | :-- | :-- | :-- |
+> | 本目录 [r9_agent_loop_pipeline/](./r9_agent_loop_pipeline/) | `paper_stm_repair_loop` | `<NL, STM_0>` → **issue discover** |
+> | project_1 层 [../../archive/agent_loop_method/](../../archive/agent_loop_method/) | `archive.agent_loop_method.*` | NL → **STM 生成**（Path-1 / Path-2） |
+> | 当前活的实现 [../pipeline/feedback_loop/](../pipeline/feedback_loop/) | `paper_stm_feedback_loop` | `<NL, STM_0>` → issue discover（**在用**） |
+>
+> **本目录有五个快照，各配自己的 README**（按阶段先后排）：
 >
 > | 快照 | 一句话 | 入口 |
 > | :-- | :-- | :-- |
@@ -19,6 +27,7 @@
 > | [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | 已废弃的 Better STM 评价框架全树（889 条目），含旧 `pipeline/evaluation/` | [README.md](./r5_7_better_stm_snapshot/README.md) ＋ [PATH_MAPPING.md](./r5_7_better_stm_snapshot/PATH_MAPPING.md) |
 > | [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) | 2026-07 repair 期实验设计脚手架（25 份）＋ 两份 repair 期资产台账（2 份）。⭐ 其中 `issue_lifecycle/` 约八成是**仍然有效的 discover 材料** | [README.md](./r7_issue_lifecycle_scaffold/README.md) |
 > | [r8_story_pre_rebuild/](./r8_story_pre_rebuild/) | 2026-08-11 凌晨那一版 `story/`（7 份）。⚠️ **不是 repair 期遗物**——已是 discover 口径，归档是因为要重搭骨架 | [README.md](./r8_story_pre_rebuild/README.md) |
+> | [r9_agent_loop_pipeline/](./r9_agent_loop_pipeline/) | 上一版**单 Agent discover 实现**（原 `pipeline/agent_loop/`，219 份，包 `paper_stm_repair_loop`）。⭐ 代码完整可跑，当前实现的 `assertions/` 就是从它移植的 | [ARCHIVE_README.md](./r9_agent_loop_pipeline/ARCHIVE_README.md) |
 
 
 ## 0. 归档来源与时间考据
@@ -50,6 +59,7 @@
 | [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | R5.7 / Better STM / constructed `STM_k` / blind adjudication / repair target taxonomy / objective metric framework cold snapshot；含 moved `experiment_design/`、`pipeline/evaluation/` 和 R5.7 reports。 | 只用于 historical provenance / calibration / anti-gaming 参考；不得作为 active method source、evaluation gate、baseline contract 或 repair effectiveness evidence。 |
 | [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) | 2026-07 source-level issue lifecycle 脚手架：`experiment_design/`（顶层三件套、顶层 3 份、`issue_lifecycle/` 11 份、`source_trace/` **10** 份、`metrics/` 1 份，共 25 份）＋ `evidence_ledgers/`（2 份 repair 期资产台账）。 | 协议块整体退役，不得恢复为 active 实验设计。但 `issue_lifecycle/` 的六个状态定义、两条 confirmation 路径、conversion artifact 归因边界与 6 个 fixture 仍可作为新规则的取材来源——取用前先读其 README §3。⚠️ 对应的 JSON schema / fixture / pytest **未随之归档**，仍在 [../pipeline/evaluation/](../pipeline/evaluation/) 在线。 |
 | [r8_story_pre_rebuild/](./r8_story_pre_rebuild/) | 2026-08-11 凌晨重写的那一版 `story/`：thesis、两条 contribution、章节骨架与四个 RQ、C1–C15 claim–证据对照、任务边界、建模对象、术语政策，共 7 份。 | ⚠️ **归档理由是「要重搭骨架」，不是「内容过时」**——其 discover 口径与当前一致。写新 `story/` 或论文任一节前应先读其 README §3。⛔ 不得从中转抄任何实验数字。 |
+| [r9_agent_loop_pipeline/](./r9_agent_loop_pipeline/) | 上一版单 Agent discover 实现（原 `pipeline/agent_loop/`）：包 `paper_stm_repair_loop`，一个顶层 Discover Agent ＋ 20 个工具 ＋ `eval_env/` 求值环境 ＋ 10 个 pydantic 契约 ＋ D01–D12 缺陷能力 fixture，219 份、约 29.4k 行 Python、266 个测试。 | ⚠️ **归档理由是「编排范式换了」，不是「代码不能用」**——当前 [../pipeline/feedback_loop/](../pipeline/feedback_loop/) 的 `assertions/` 整体移植自它的 `eval_env/`（源提交 `c8c1ccba`）。代码完整可跑（`make legacy-discover-test`，`1 failed, 265 passed`，那 1 个是归档前就有的哈希腐烂）。⭐ D01–D12 fixture、两个隔离 reviewer 的 prompt、Controller 的五条防自证纪律仍可取用。⛔ 不得从中取任何实验数字。复活步骤见 [ARCHIVE_README.md](./r9_agent_loop_pipeline/ARCHIVE_README.md) §4。 |
 
 ## 3. 维护纪律
 
@@ -68,4 +78,5 @@
 
 | 时间 | 更新内容 |
 |---|---|
+| 2026-08-11 | 新增快照 [r9_agent_loop_pipeline/](./r9_agent_loop_pipeline/)（原 `pipeline/agent_loop/`，上一版单 Agent discover 实现）。219 个被跟踪文件全部 `git mv` rename，blob 逐一比对完全一致；在此之上只做归档允许的机械变换：4 处路径深度锚点重算（`config.py` 的 `PAPER_ROOT`、`test_discover_cli.py` 的仓库根相对串、`probe_discover_evidence_choice.py` 的 `parents[6]→[7]`、仓库根 `Makefile` 三处）＋ 8 条相对链接深度重算（其中 1 条是**指向错文件而非死链**的隐性伤）。归档前后 `pytest` 同为 `1 failed, 265 passed`。同步更新本文件的双 archive 消歧表（两边各有一个「agent loop」，按包名区分）、[../SUMMARY.md](../SUMMARY.md)、[../GUIDE.md](../GUIDE.md)、[../TODO.md](../TODO.md)、[../selected_seed_examples/README.md](../selected_seed_examples/README.md) 共 4 条活引用。⚠️ `pipeline/feedback_loop/` 下另有 2 处旧路径**有意未改**，理由见 [r9_agent_loop_pipeline/ARCHIVE_README.md](./r9_agent_loop_pipeline/ARCHIVE_README.md) §5.2。 |
 | 2026-08-11 | 新增两个快照：[r8_story_pre_rebuild/](./r8_story_pre_rebuild/)（原 `story/`，7 份）与 [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/)（原 `experiment_design/` 25 份 ＋ 原 `evidence/ledgers/` 两份 repair 期台账）。34 个文件全部 `git mv` rename，内容未改。同步补第 5–7 条维护纪律，并修正 [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) 的 README / PATH_MAPPING 中指向 `story/`、`experiment_design/`、`evidence/ledgers/` 的 8 条链接。 |

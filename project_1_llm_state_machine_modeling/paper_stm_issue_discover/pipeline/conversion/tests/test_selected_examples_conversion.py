@@ -118,7 +118,7 @@ def test_cli_regenerates_four_example_report(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_conversion.cli",
+        "paper_stm_conversion.cli",
         "convert-selected",
         "--reports-dir",
         str(out),
@@ -170,7 +170,7 @@ def test_cli_fails_loudly_when_required_toolchains_missing(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_conversion.cli",
+        "paper_stm_conversion.cli",
         "convert-selected",
         "--reports-dir",
         str(out),
@@ -197,7 +197,7 @@ def test_cli_fails_loudly_when_configured_plantuml_path_is_invalid(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_conversion.cli",
+        "paper_stm_conversion.cli",
         "convert-selected",
         "--reports-dir",
         str(out),
@@ -399,7 +399,7 @@ def test_cli_invokes_configured_external_toolchains(tmp_path):
     cmd = [
         sys.executable,
         "-m",
-        "paper_stm_repair_conversion.cli",
+        "paper_stm_conversion.cli",
         "convert-selected",
         "--reports-dir",
         str(out),

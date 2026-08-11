@@ -107,7 +107,7 @@
 
 **理由一：$A$ 就在 paper1 的问题定义里。** paper1 锚定 $M = (S, E, V, Tr, A)$，排除的只有时钟 $C$、不变式 $Inv$ 与正交并发。而这 14 条里 **8 条落在 $A$**。把它们排除，等于 paper1 声称覆盖 $A$ 分量、却对 $A$ 的内容无法断言——这个自相矛盾审稿人一定会问。
 
-**理由二：这个错误本仓库已经犯过一次。** [GROUND_TRUTH_LIMITATIONS.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/eval/discover_matrix/GROUND_TRUTH_LIMITATIONS.md) §4 记录的正是它：#166 台帐的「正向断言可执行」门槛建立在 6 个底层原语上，直接把整类问题挡在门外。**用工具当前能力反向定义研究边界，会让偏差变成不可见**——一旦排除，「谓词面缺什么」就不再是可报告的结论，而是被静默吸收的系统性缺口。
+**理由二：这个错误本仓库已经犯过一次。** [ground_truth_limitations.md](https://github.com/HansBug/research_ideas/blob/main/project_1_llm_state_machine_modeling/paper_stm_issue_discover/discover_matrix/docs/protocol/ground_truth_limitations.md) §4 记录的正是它：#166 台帐的「正向断言可执行」门槛建立在 6 个底层原语上，直接把整类问题挡在门外。**用工具当前能力反向定义研究边界，会让偏差变成不可见**——一旦排除，「谓词面缺什么」就不再是可报告的结论，而是被静默吸收的系统性缺口。
 
 **理由三：要扩的量很小、方向很明确。** 这 14 条不是 14 个方向，而是五个具体缺口：
 

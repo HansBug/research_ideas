@@ -29,14 +29,14 @@ REPRESENTATION_SRC = PAPER_ROOT / "pipeline/representation/src"
 sys.path.insert(0, str(CONVERSION_SRC))
 sys.path.insert(0, str(REPRESENTATION_SRC))
 
-from paper_stm_repair_conversion.evidence_integrity import (  # noqa: E402
+from paper_stm_conversion.evidence_integrity import (  # noqa: E402
     relevant_implementation_sha256,
 )
-from paper_stm_repair_conversion.adapters.plantuml_source import (  # noqa: E402
+from paper_stm_conversion.adapters.plantuml_source import (  # noqa: E402
     java_frontend_build_identity,
     java_frontend_source_identity,
 )
-from paper_stm_repair_representation.manual_pair_review import (  # noqa: E402
+from paper_stm_representation.manual_pair_review import (  # noqa: E402
     manual_review_observation_digest,
     validate_manual_pair_review,
 )

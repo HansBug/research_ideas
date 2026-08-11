@@ -11,7 +11,9 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-REPO_ROOT = Path(__file__).resolve().parents[6]
+# 归档深度调整（2026-08-11）：本树迁入 `archive/r9_agent_loop_pipeline/` 后到仓库根多了一层，
+# 故 parents[6] -> parents[7]。
+REPO_ROOT = Path(__file__).resolve().parents[7]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 

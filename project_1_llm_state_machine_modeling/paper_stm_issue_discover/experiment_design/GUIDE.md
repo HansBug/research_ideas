@@ -22,7 +22,7 @@
 
 1. 判据、达标档位、回归红旗、机制判据的**全部价值来自「它们写在看到结果之前」**，而这一点只有**远端时间戳**能证明。写完放本地 = 把是否作弊的判断交给作者自述。
 2. **登记不得只写在 `runs/` 下**——`runs/` 全目录被 `.gitignore` 排除，写在那里既进不了仓库，PR comment 引用它的路径也是死链。
-3. 落点为 [../discover_matrix/docs/generations/](../discover_matrix/docs/generations/)`<vNN>/preregistered.md`。✅ 这与根 `CLAUDE.md` 第 1458–1462 行**一致**——该处已明确规定「每代次一个子目录、登记文件名为 `preregistered.md`」，并写明「旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）**已于 2026-08-11 的文档树化中废弃**」。⚠️ 本条此前写的是「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名在本仓库当前结构下都不存在」——**这条陈述在写下时就已过期**：同一个 commit `aab12c4c` 已经把根 `CLAUDE.md` 改好了。已更正。⚠️ 唯一残留的小口径差：v46 的登记实际在 [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md) 而非 `docs/generations/v46/`。**新代次一律按上面的落点写**，不要沿用 v46 的位置。
+3. 落点为 [../discover_matrix/docs/generations/](../discover_matrix/docs/generations/)`<vNN>/preregistered.md`。✅ 这与根 `CLAUDE.md` §3.5.1「开跑实验前必须先 push」里「**要一起推的不只是代码，还有事前登记。**」那一段**一致**——该处已明确规定「每代次一个子目录、登记文件名为 `preregistered.md`」，并写明「旧命名 `Vxx_PREREGISTERED.md`（平铺在实验目录根）**已于 2026-08-11 的文档树化中废弃**」。⚠️ 本条此前写的是「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名在本仓库当前结构下都不存在」——**这条陈述在写下时就已过期**：同一个 commit `aab12c4c` 已经把根 `CLAUDE.md` 改好了。已更正。⚠️ 唯一残留的小口径差：v46 的登记实际在 [../discover_matrix/v46/preregistered.md](../discover_matrix/v46/preregistered.md) 而非 `docs/generations/v46/`。**新代次一律按上面的落点写**，不要沿用 v46 的位置。
 4. 事后补交的登记，**必须在文件头如实写明「运行后补交，提交动作本身不证明它写在运行之前」**，并附可查旁证。v46 的登记就是这么写的，照抄那个写法。
 
 **本目录的设计稿不是事前登记。** 从 `next_round.md` 里挑一项去跑时，必须另写一份该代次的 `preregistered.md` 并 push，不能拿设计稿顶替。
@@ -95,5 +95,5 @@ PR 进度、review 状态、CI / Codecov、子 PR 拆分、merge 进度、watch 
 
 | 时间 | 更新内容 |
 | :-- | :-- |
-| 2026-08-11 | 更正 §1 第 3 条：此前称「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名不存在」，经核实**该陈述在写下时即已过期**——同一 commit `aab12c4c` 已把根 `CLAUDE.md` 改为 `discover_matrix/docs/generations/<vNN>/preregistered.md`，第 1461 行明写旧命名已废弃。同时把 §2 的 hold-out 一项按【用户明确裁定 2026-08-11】改为已定口径。 |
+| 2026-08-11 | 更正 §1 第 3 条：此前称「根 `CLAUDE.md` 写的是 `eval/discover_matrix/` 下的 `Vxx_PREREGISTERED.md`，该路径与命名不存在」，经核实**该陈述在写下时即已过期**——同一 commit `aab12c4c` 已把根 `CLAUDE.md` 改为 `discover_matrix/docs/generations/<vNN>/preregistered.md`，§3.5.1「开跑实验前必须先 push」的「**要一起推的不只是代码，还有事前登记。**」一段明写旧命名已废弃。同时把 §2 的 hold-out 一项按【用户明确裁定 2026-08-11】改为已定口径。 |
 | 2026-08-11 | 初始化。按 paper1 收窄为 issue discover 后的形态，挑选真正适用的根 `CLAUDE.md` 条款并说明本目录落法。 |

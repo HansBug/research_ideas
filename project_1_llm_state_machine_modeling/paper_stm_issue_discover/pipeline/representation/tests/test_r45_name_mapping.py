@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from paper_stm_repair_representation.pyfcstm_names import NameRegistry
+from paper_stm_representation.pyfcstm_names import NameRegistry
 
 
 def test_name_registry_uses_pyfcstm_identifier_tools_and_stable_collision_suffix():

@@ -18,8 +18,12 @@ class _Registry:
         return object()
 
 
+# 归档深度调整（2026-08-11）：路径由 `pipeline/agent_loop/` 改为
+# `archive/r9_agent_loop_pipeline/agent_loop/`。下面另外两个常量指向本树之外（selected_seed_examples/
+# 与 pipeline/representation/），不受归档影响，保持原样。
 MANUAL_IDENTITY_DIR = Path(
-    "project_1_llm_state_machine_modeling/paper_stm_issue_discover/pipeline/agent_loop/"
+    "project_1_llm_state_machine_modeling/paper_stm_issue_discover/"
+    "archive/r9_agent_loop_pipeline/agent_loop/"
     "fixtures/discover_integrated/0000_hldcs_manual_identity"
 )
 FORMAL_SELECTED_SEED_DIR = Path(

@@ -365,7 +365,7 @@ def _write_summary(path: Path, reports: list[dict[str, Any]], loss_rows: list[di
     lines = [
         "# R3 selected_seed_examples 转换 v0 摘要",
         "",
-        "本文件由 `python -m paper_stm_repair_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。",
+        "本文件由 `python -m paper_stm_conversion.cli convert-selected` 生成，是 R3 reviewer fixture；它不是最终实验结果。",
         "",
         "| example_id | 上游 NL | 原始 STM_0 | 格式 | status | 状态数 | 迁移数 | timing | hierarchy | syntax | structured export | losses | 说明 |",
         "|---|---|---|---|---|---:|---:|---|---|---|---|---:|---|",
@@ -448,7 +448,7 @@ def convert_selected(args: argparse.Namespace) -> int:
         raise SystemExit("selected_seed_examples input audit failed; inspect selected_seed_examples_input_audit.json")
     write_json(reports_dir / "selected_seed_examples_input_audit.json", {"items": audit})
 
-    conversion_command = "python -m paper_stm_repair_conversion.cli convert-selected"
+    conversion_command = "python -m paper_stm_conversion.cli convert-selected"
     run_id = args.run_id
     reports: list[dict[str, Any]] = []
     loss_rows: list[dict[str, Any]] = []
@@ -475,7 +475,7 @@ def convert_selected(args: argparse.Namespace) -> int:
 
 def recover_plantuml(args: argparse.Namespace) -> int:
     repo_root = _repo_root_from_cwd()
-    generation_command = "python -m paper_stm_repair_conversion.cli recover-plantuml"
+    generation_command = "python -m paper_stm_conversion.cli recover-plantuml"
     run_dir = repo_root / args.run_dir
     report = run_recovery(
         repo_root=repo_root,

@@ -91,7 +91,7 @@
 
 ⛔ **不得在本工作区新建** `progress.md`、`task-packets/`、`agent_provenance.md` 或任何充当 PR / issue 流程真源的文件。
 
-⚠️ **已随 repair 一并搁置但文件仍在原地**的资产：[experiment_design/issue_lifecycle/](./archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/)、[experiment_design/source_trace/](./archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/)、[evidence/ledgers/](./evidence/ledgers/)、[pipeline/agent_loop/](./pipeline/agent_loop/)。它们只作历史背景与后续 repair 论文的迁移输入，**不得作为本文的方法或评价框架引用**。本工作区内部的历史快照在 [archive/](./archive/)；已停用的旧路线（Path-1 评测链、旧 agent loop 基础设施）在 [../archive/](../archive/)，完整保留可复活，不参与本文任何结论。
+⚠️ **已随 repair 一并搁置但文件仍在原地**的资产：[experiment_design/issue_lifecycle/](./archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/)、[experiment_design/source_trace/](./archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/)、[evidence/ledgers/](./evidence/ledgers/)、[archive/r9_agent_loop_pipeline/](./archive/r9_agent_loop_pipeline/)（原 `pipeline/agent_loop/`，2026-08-11 归档）。它们只作历史背景与后续 repair 论文的迁移输入，**不得作为本文的方法或评价框架引用**。本工作区内部的历史快照在 [archive/](./archive/)；已停用的旧路线（Path-1 评测链、旧 agent loop 基础设施）在 [../archive/](../archive/)，完整保留可复活，不参与本文任何结论。
 
 ## 8. 改动纪律
 

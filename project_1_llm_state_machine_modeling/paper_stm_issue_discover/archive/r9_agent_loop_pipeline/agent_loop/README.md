@@ -4,13 +4,13 @@
 >
 > | 问题 | 答案 |
 > | :-- | :-- |
-> | 当前活的实现在哪 | [../feedback_loop/](../feedback_loop/)，包 `paper_stm_feedback_loop` |
-> | 本目录的包名 | `paper_stm_repair_loop`（旧名，见 [../README.md](../README.md) §4） |
+> | 当前活的实现在哪 | [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)，包 `paper_stm_feedback_loop` |
+> | 本目录的包名 | `paper_stm_repair_loop`（旧名，见 [../../../pipeline/README.md](../../../pipeline/README.md) §4） |
 > | 入口还能跑吗 | 能，但**前缀已改**：`make legacy-discover-*`，不是 `make discover-*` |
 > | 为什么保留 | 一次性代码搬运与 golden fixture 来源；作为架构对照的历史记录 |
 > | 测试规模 | 266 个（`make legacy-discover-test`） |
 >
-> ⚠️ **`make discover-demo` / `make discover-test` 现在转发到 [../feedback_loop/](../feedback_loop/)。** 本文件下文 §8、§10 里写的这两条命令**已经不指向本目录**——正确的 legacy 入口见 §8.0。
+> ⚠️ **`make discover-demo` / `make discover-test` 现在转发到 [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)。** 本文件下文 §8、§10 里写的这两条命令**已经不指向本目录**——正确的 legacy 入口见 §8.0。
 >
 > ⚠️ **本目录没有自己的 `Makefile`。** 所有 `make` 目标都定义在**仓库根 `Makefile`** 里。
 >
@@ -18,15 +18,15 @@
 
 ## 0. 与当前实现的架构差异（这是本目录唯一的现存价值）
 
-| 维度 | 本目录（旧） | [../feedback_loop/](../feedback_loop/)（当前） |
+| 维度 | 本目录（旧） | [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)（当前） |
 | :-- | :-- | :-- |
 | 编排 | 一个顶层 Discover Agent + 11 个工具，Agent 自行决定调用顺序 | 确定性 LangGraph StateGraph，阶段固定 |
 | 审查 | Agent 主动调 `review_discovery_coverage`，内含两个隔离 reviewer | 每个生产阶段配一个审查者，路由强制打回 |
 | 断言来源 | Agent 自由撰写表达式，由注册门禁事后拒绝 | 先验闭合的 19 谓词词表 |
-| 输入根 | [../../selected_seed_examples/](../../selected_seed_examples/)（`load_pair()`） | `../representation/reports/llms_emp_r45_java_60/` |
+| 输入根 | [../../../selected_seed_examples/](../../../selected_seed_examples/)（`load_pair()`） | `../representation/reports/llms_emp_r45_java_60/` |
 | 失败语义 | 门禁拒绝可导致整次 attempt 终止 | 降级落盘，带结构化诊断 |
 
-下文是这一版的完整设计记录，**按历史材料阅读**，其中「paper1 核心贡献是 feedback-driven loop」「Repair / Confirm 后续阶段」等表述均已被 2026-08 的收窄定调作废：paper1 只做 issue discover，贡献口径以 [../../README.md](../../README.md) §2 为准。
+下文是这一版的完整设计记录，**按历史材料阅读**，其中「paper1 核心贡献是 feedback-driven loop」「Repair / Confirm 后续阶段」等表述均已被 2026-08 的收窄定调作废：paper1 只做 issue discover，贡献口径以 [../../../README.md](../../../README.md) §2 为准。
 
 ---
 
@@ -225,7 +225,7 @@ System prompt 要求同一个 Discover run 完成：
 
 ### 8.0 当前正确的 legacy 入口（本节为更名后补正）
 
-根 `Makefile` 已把无前缀的 `discover*` 目标让给 [../feedback_loop/](../feedback_loop/)。要跑**本目录**必须用 `legacy-` 前缀：
+根 `Makefile` 已把无前缀的 `discover*` 目标让给 [../../../pipeline/feedback_loop/](../../../pipeline/feedback_loop/)。要跑**本目录**必须用 `legacy-` 前缀：
 
 ```bash
 source .env
@@ -262,7 +262,7 @@ make legacy-discover-demo \
   DISCOVER_OUT=runs/paper1/discover/manual-0000
 ```
 
-`legacy-discover-demo` 使用隔离在 `fixtures/discover_integrated/0000_hldcs_manual_identity/` 下的人工 FCSTM identity 工程样例，不占用正式 60 例 [../../selected_seed_examples/](../../selected_seed_examples/)。需要运行正式 pair 时使用 `make legacy-discover-pair DISCOVER_PAIR=llms_emp_feedback_final_NNNN`。
+`legacy-discover-demo` 使用隔离在 `fixtures/discover_integrated/0000_hldcs_manual_identity/` 下的人工 FCSTM identity 工程样例，不占用正式 60 例 [../../../selected_seed_examples/](../../../selected_seed_examples/)。需要运行正式 pair 时使用 `make legacy-discover-pair DISCOVER_PAIR=llms_emp_feedback_final_NNNN`。
 
 `--profile` 是本次运行唯一的模型选择入口。Discover 主 Agent、语义覆盖 reviewer 和对抗性漏报 reviewer 必须使用同一个 profile；两个 reviewer 只分离角色、system prompt、上下文和审计目录，不允许切换到其他模型。
 

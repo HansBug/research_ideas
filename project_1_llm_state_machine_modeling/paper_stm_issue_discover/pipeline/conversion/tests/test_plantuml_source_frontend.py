@@ -14,16 +14,16 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
-from paper_stm_repair_conversion.adapters.plantuml_source import (
+from paper_stm_conversion.adapters.plantuml_source import (
     parse_plantuml_source,
     resolve_plantuml_jar,
 )
-from paper_stm_repair_conversion.adapters import plantuml_source as plantuml_adapter
-from paper_stm_repair_conversion.evidence_integrity import (
+from paper_stm_conversion.adapters import plantuml_source as plantuml_adapter
+from paper_stm_conversion.evidence_integrity import (
     IMPLEMENTATION_ROOTS,
     relevant_implementation_sha256,
 )
-from paper_stm_repair_representation.manual_pair_review import (
+from paper_stm_representation.manual_pair_review import (
     _fcstm_anchor_matches_element,
     fcstm_evidence_anchors,
     plantuml_evidence_anchor,
@@ -1365,7 +1365,7 @@ def test_java_frontend_build_and_execution_are_process_safe():
         "-c",
         (
             "import json; "
-            "from paper_stm_repair_conversion.adapters.plantuml_source "
+            "from paper_stm_conversion.adapters.plantuml_source "
             "import parse_plantuml_source; "
             f"result=parse_plantuml_source({source!r}, example_id='parallel'); "
             "print(json.dumps({'status': result['status']}))"
