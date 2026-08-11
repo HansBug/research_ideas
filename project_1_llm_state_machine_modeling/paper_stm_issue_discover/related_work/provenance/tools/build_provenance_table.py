@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -74,6 +75,77 @@ MIN_SOURCES = 3
 TARGET_SOURCES = 6
 
 
+def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool:
+    return n_domains >= min(3, n_sources)
+
+
+#: ⛔ 裁定者逐条点名的**扣分项**，⛔ 必须与数字同时出现 —— ⚠️ 否则读者会按面值读。
+#: ⭐ 这些是**语义判断的产物**，⛔ 机械聚合看不到（它只会数不同的 identifier）。
+KNOWN_CAVEATS = {
+    "response_within": (
+        "⛔ **对应关系有一处系统性缺口**：文献里的 Response 模式几乎一律是**无界** eventually "
+        "（`G(p → F q)`），⛔ 而本谓词的界是**步数**。⚠️ 裁定者在多条上反复记「我方谓词的"
+        "『有界步数』这一要素引文里没有」。⭐ 真正带步数界的只有少数几条（如「before the next "
+        "tick is consumed」）。⛔ 论文里不得把无界 Response 的普遍性直接转给有界形式"
+    ),
+    "persists_until": (
+        "⚠️ **同源折扣**：多条出自同一作者组的同一微波炉案例（SoSyM 论文与 Sismic 工具），"
+        "⛔ 不算独立观测"
+    ),
+    "invariant": (
+        "⚠️ **同源折扣**：Dwyer 系模式目录的多条已按 DOI 归一为一个来源；⛔ 另有若干条出自"
+        "同一作者组。⭐ 但本条的量化工业证据（VTT 3923 条工业性质、Ford 三个量产控制器）确实互相独立"
+    ),
+    "terminates": (
+        "⛔ **只硬证了谓词定义的一半**：17 条候选里 10 条用 **deadlock-freedom** 顶替，⛔ 已被裁定"
+        "改判或拒收。⭐ 裁定者指出这暴露的是**词表缺一条进展类谓词**（决定性反证：RoboTool 把"
+        " termination 与 deadlock freedom 做成**两条不同断言**，且对某些系统明确期望「不终止」"
+        "而同时要求无死锁）。⛔ 见 [SUMMARY.md](./SUMMARY.md) §4.5.1"
+    ),
+    "containment": (
+        "⛔ **文献侧 0/6，且失败是结构性的**：裁定者逐字「`containment` 的『正确』需要**外部规约"
+        "作参照**，⛔ 而语言层良构性规则**天生给不出**『这个子态该挂在谁下面』」。⛔ 见 §4.5.2"
+    ),
+    "cardinality": (
+        "⛔ **两轮 15 条全数不通过。** ⭐ 决定性判据：本谓词的特征在 **N 的出处是需求文本**，"
+        "⛔ 而 15 条的 N 全部来自语言 / 元模型 / 作者策略。⭐ 可落稿的表述见 §4.1"
+    ),
+    "variable_declared": (
+        "⚠️ **词表形状待确认**：`state_declared` 明写「缺失**或多余**」而本条没写，⛔ 而证据里有"
+        "多条落在「已声明但未使用」方向。⭐ 是笔误还是设计选择，交 R1"
+    ),
+    "variable_delta_after": (
+        "⚠️ **恰好 3 源，⛔ 踩在下限上**；⛔ 且**界内语料侧为 0** —— ⭐ 全部来自文献"
+    ),
+    "event_declared": (
+        "⚠️ **仅 3 源，⛔ 踩在下限上**。⭐ 但它是 ② 类，⛔ 不靠这个成立"
+    ),
+}
+
+
+_DOI = re.compile(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
+_ARXIV = re.compile(r"(?:arxiv[:\s/]*)?(\d{4}\.\d{4,5})", re.I)
+
+
+def canonical_source(finding: dict) -> str:
+    """一篇论文一个键。⛔ 与 `aggregate_evidence.canonical_source` 必须同口径 ——
+    ⚠️ 两处不一致会让总账与逐条表报出不同的来源数。"""
+    ident = finding.get("identifier") or ""
+    m = _DOI.search(ident)
+    if m:
+        return "doi:" + m.group(0).rstrip(".,;)").lower()
+    if "arxiv" in ident.lower():
+        m = _ARXIV.search(ident)
+        if m:
+            return "arxiv:" + m.group(1)
+    m = re.search(r"https?://([^\s?#]+)", ident)
+    if m:
+        return "url:" + m.group(1).rstrip("/.,;").lower()
+    if ident.strip():
+        return "raw:" + re.sub(r"\s+", " ", ident.strip()).lower()[:120]
+    return "title:" + re.sub(r"[^a-z0-9]+", " ", (finding.get("title") or "").lower()).strip()
+
+
 def _load(path: Path | None) -> list:
     if path and path.is_file():
         return json.loads(path.read_text(encoding="utf-8"))
@@ -83,60 +155,27 @@ def _load(path: Path | None) -> list:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--corpus", type=Path, required=True, help="裁定后的语料层证据")
-    p.add_argument("--external", type=Path, required=True, help="C+D 全部证据")
-    p.add_argument("--cd-verdicts", type=Path, help="C+D 的裁定结果；缺省则视为全部未裁定")
+    p.add_argument("--external", type=Path, required=True, help="⭐ **已裁定通过**的外部证据（consolidate 的产物）")
+    p.add_argument("--unjudged", type=int, default=0, help="尚未裁定、故未计入的外部证据条数（如实写进表注）")
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
 
     corpus = _load(args.corpus)
-    external = _load(args.external)
-    verdicts = {v["item_id"]: v for v in _load(args.cd_verdicts)}
-
-    # C+D 的 item_id 是按组内顺序编的，需与 prep 时同序重建
-    GROUPS = {
-        "fv-temporal": ["invariant", "response_within", "persists_until"],
-        "reach": ["reaches", "terminates", "stays_in"],
-        "runtime": ["occupancy_after", "variable_delta_after", "event_consumed"],
-        "decl": ["state_declared", "variable_declared", "event_declared"],
-        "edge": ["edge_declared", "action_declared", "effect_declared"],
-        "struct": ["containment", "initial_target", "guard_distinguishable", "cardinality"],
-    }
-    by_group: dict[str, list] = defaultdict(list)
-    for f in external:
-        for g, preds in GROUPS.items():
-            if f.get("predicate") in preds:
-                by_group[g].append(f)
-                break
-
-    kept_ext = []
-    ext_rejected = defaultdict(int)
-    for g, items in by_group.items():
-        for i, f in enumerate(items, 1):
-            v = verdicts.get(f"{g}-{i}")
-            if v is None:
-                continue  # ⛔ 未裁定的一律不计入，⛔ 不给「疑罪从无」
-            if v["verdict"] == "ACCEPT":
-                kept_ext.append(f)
-            elif v["verdict"] == "WRONG_PREDICATE" and v.get("corrected_predicate") in FAMILY:
-                h = dict(f)
-                h["predicate"] = v["corrected_predicate"]
-                h["_reassigned_from"] = f["predicate"]
-                kept_ext.append(h)
-            else:
-                ext_rejected[v["verdict"]] += 1
+    kept_ext = _load(args.external)
 
     real: dict[str, dict[str, str]] = defaultdict(dict)
     for f in corpus:
         real[f["predicate"]][f["directory"]] = f.get("domain", "?")
     lit: dict[str, dict[str, dict]] = defaultdict(dict)
     for f in kept_ext:
-        lit[f["predicate"]][f.get("identifier") or f.get("title")] = f
+        lit[f["predicate"]][canonical_source(f)] = f
 
     lines = [
         "# 19 条谓词的出处三类分级",
         "",
-        "> ⛔ **本表只收经过对抗裁定的证据。** ⚠️ 语料层裁定砍掉 56%、文献层见下 —— "
-        "⛔ 拿裁定前的数字建表会系统性高估。裁定判据与可靠性审计见 [methodology.md](./methodology.md)。",
+        "> ⛔ **本表只收经过对抗裁定的证据。** ⚠️ 语料层 315 → 143（**45%**）、文献层 269 → "
+        f"{len(kept_ext)}（⛔ 另剔除 9 条自证式取证" + (f"，⚠️ 另有 {args.unjudged} 条尚未裁定、**未计入**" if args.unjudged else "") + "）"
+        " —— ⛔ 拿裁定前的数字建表会系统性高估。裁定判据与可靠性审计见 [methodology.md](./methodology.md)。",
         "",
         "> **档位标记**：分类与来源数为【实测】；「② 的理由」列为【AI 建议·待确认】，⛔ 须人工确认。",
         "",
@@ -174,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
             note.append("⛔ 未达 3 源下限")
         elif total < TARGET_SOURCES and not is_meta:
             note.append(f"⚠️ **{total}** 源，⛔ 未达 6 源目标档")
+        if not _domain_diversity_ok(nr, len(doms)):
+            note.append(f"⚠️ 语料侧只覆盖 **{len(doms)}** 个领域，⛔ 主张须限定或靠文献侧补")
+        if pred in KNOWN_CAVEATS:
+            note.append(KNOWN_CAVEATS[pred])
         a, pri, pub = LEDGER[pred]
         lines.append(
             f"| `{pred}` | {FAMILY_CN[fam]} | {a} | {pri} | {pub} | **{cls}** | "
@@ -196,12 +239,6 @@ def main(argv: list[str] | None = None) -> int:
     for pred, why in META_DEFINED.items():
         lines.append(f"| `{pred}` | {why} |")
 
-    if ext_rejected:
-        lines += ["", "## ⛔ 文献侧裁定的拒收分布", "",
-                  "| verdict | 条数 |", "| :-- | --: |"]
-        for k, v in sorted(ext_rejected.items(), key=lambda kv: -kv[1]):
-            lines.append(f"| `{k}` | {v} |")
-
     lines += ["", "## 更新日志", "",
               "| 时间 | 内容 |", "| :-- | :-- |",
               "| 2026-08-12 | 建立。由 `build_provenance_table.py` 从**裁定后**的证据生成。 |", ""]
@@ -209,7 +246,6 @@ def main(argv: list[str] | None = None) -> int:
     args.out.write_text("\n".join(lines), encoding="utf-8")
     print(f"写出 {args.out}")
     print(f"三类计数：① {counts['①']} · ② {counts['②']} · ③ {counts['③']}")
-    print(f"文献侧拒收：{dict(ext_rejected)}")
     for r in rows_meta:
         print(f"  {r['predicate']:24s} {r['cls']}  真实系统 {r['real']:>3}  文献 {r['lit']:>3}  合计 {r['total']:>3}")
     return 0

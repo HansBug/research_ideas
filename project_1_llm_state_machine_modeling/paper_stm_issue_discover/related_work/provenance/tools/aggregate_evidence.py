@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -40,6 +41,37 @@ MIN_SOURCES = 3
 
 def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool:
     return n_domains >= min(3, n_sources)
+
+
+_DOI = re.compile(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
+_ARXIV = re.compile(r"(?:arxiv[:\s/]*)?(\d{4}\.\d{4,5})", re.I)
+
+
+def canonical_source(finding: dict) -> str:
+    """把 identifier 归一到「一篇论文一个键」。
+
+    ⚠️ **这不是洁癖，是修一个真实的计数缺陷。** 同一篇论文在不同条目里的 identifier
+    写法各异 —— 实测 Dwyer ICSE 1999 出现过 `DOI 10.1145/302405.302672`、
+    `DOI: 10.1145/302405.302672 ; 全文 PDF: …`、`https://matthewbdwyer.github.io/psp/`
+    等 **6 种**写法，⛔ 按原样去重会把它算成 6 个独立来源。⭐ 而「多源」这条要求
+    的全部意义就在于**源要互相独立**。
+
+    归一优先级：DOI → arXiv ID → URL 的 host+path（去 query）→ 标题。
+    """
+    ident = finding.get("identifier") or ""
+    m = _DOI.search(ident)
+    if m:
+        return "doi:" + m.group(0).rstrip(".,;)").lower()
+    if "arxiv" in ident.lower():
+        m = _ARXIV.search(ident)
+        if m:
+            return "arxiv:" + m.group(1)
+    m = re.search(r"https?://([^\s?#]+)", ident)
+    if m:
+        return "url:" + m.group(1).rstrip("/.,;").lower()
+    if ident.strip():
+        return "raw:" + re.sub(r"\s+", " ", ident.strip()).lower()[:120]
+    return "title:" + re.sub(r"[^a-z0-9]+", " ", (finding.get("title") or "").lower()).strip()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -67,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         for f in json.loads(path.read_text(encoding="utf-8")):
             pred = f.get("predicate")
-            key = f.get("identifier") or f.get("title")
+            key = canonical_source(f)
             slot = evidence[pred].setdefault(
                 key,
                 {
