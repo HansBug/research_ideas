@@ -28,7 +28,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 我要做什么 | 读什么 |
 | :-- | :-- |
 | 理解这篇论文 | [README.md](./README.md) → 实验报告。两份读完即可完整理解方法与结果 |
-| 写论文某一节 | [story/paper_outline.md](./archive/r8_story_pre_rebuild/story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./archive/r8_story_pre_rebuild/story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./archive/r8_story_pre_rebuild/story/terminology_policy.md) 核措辞 |
+| 写论文某一节 | [story/paper_outline.md](./story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./story/terminology_policy.md) 核措辞 |
 | 复算某个数字 | [discover_matrix/README.md](./discover_matrix/README.md) 导航页 |
 | 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 查某个 pair 的原文 | [selected_seed_examples/](./selected_seed_examples/) |
