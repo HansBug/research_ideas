@@ -12,36 +12,50 @@
 结论与判据链见 [unexpected_adjudication.md](./unexpected_adjudication.md)，
 成分与子类含义见 [composition.md](./composition.md)。
 
-## 一、✅ 真实台账漏记：1 条
+## 一、✅ 真实台账漏记：2 条
 
-**`0014-4`（`V1` 惰性散文占位）是 v46 相对台账的唯一净增量。**
-[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) 只有一行。
+**`0014-4` 与 `0010-2`（均为 `V1`）是 v46 相对台账的净增量。**
+[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) 有两行——
+`0014-ROOT`（并入 `0014-4`）与 `0010-ROOT`（并入 `0010-2`），与
+[unexpected_tables.md](./unexpected_tables.md) 表 1 的「✅ 真漏记 2 条目 / 2 去重」一致。
 
-作者源 `stm0.puml:26` 把 NL 3 要求发出的 Obstacle Detected 信号写成 PlantUML **描述行**
-（`EmergencyStopping: Obstacle Detected`）而非动作语法，`EmergencyStopping` 内因此无任何
-`enter` / `during` 动作；台账 `EIS-0014-03`（`nl_evidence` 只引「Emergency Stop」）与
-`EIS-0014-04`（scope 是 `InMotion.Approaching`）均不覆盖。逐条判据见
-[unexpected_adjudication.md §三](./unexpected_adjudication.md)。
+**`0014-4`（惰性散文占位）**：作者源 `stm0.puml:26` 把 NL 3 要求发出的 Obstacle Detected 信号
+写成 PlantUML **描述行**（`EmergencyStopping: Obstacle Detected`）而非动作语法，
+`EmergencyStopping` 内因此无任何 `enter` / `during` 动作；台账 `EIS-0014-03`
+（`nl_evidence` 只引「Emergency Stop」）与 `EIS-0014-04`（scope 是 `InMotion.Approaching`）
+均不覆盖。逐条判据见 [unexpected_adjudication.md §三](./unexpected_adjudication.md)。
 
-⚠️ 它只出现在 6 格中的 2 格；补入台账会使 `hit@all` 下降，不是「分母不变故无影响」。
+**`0010-2`（接管作用域不足）**：接管迁移只存在于一个子态上（`model.fcstm:17`
+`AutonomousActive -> HumanDriving : /Human_Steering_Cmd;`、`:18` 的 `/Brake_Pressed;`），
+而 `Autonomous`（`:9`）本身是可被占据的叶态、`AutonomousIdle`（`:10`）由 `:15` 进入，
+两者都不消费 `Human_Steering_Cmd` / `Brake_Pressed`，也没有任何出边通向 `HumanDriving`——
+即自动驾驶模式里除 `AutonomousActive` 之外的每一处，接管信号都被静默丢弃。NL08 第 4 句逐字
+`transit to human driving mode when receive human steering cmd, brake pressed`，
+**未给任何源态限定**；参考模型写在模式一级（`autonomous_mode --> human_mode : human_steering_cmd`），
+同 NL 组 6 个作者中 `0000` / `0030` / `0040` / `0050` 四个也都挂在模式一级，故模式级锚定是本 NL 的
+通行读法而非过度指定。作者源 `stm0.puml:15/16` 同样只写了这两条，编译无损失，故不是表示债务。
+⚠️ 与 `EIS-0010-04` 在 `AutonomousFinal` 这一半上有交叠，论文若引本条，净增量应只记
+`Autonomous` 与 `AutonomousIdle` 那一半。
+
+⚠️ 两条都不稳定复现：`0014-4` 只出现在 6 格中的 2 格，`0010-2` 出现在 3 格（三轮的 claude）；
+补入台账会使 `hit@all` 下降，不是「分母不变故无影响」。
 
 ## 二、🔗 内容已被台账承载者：不属意外发现，不在分母内
 
-13 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在
+14 条经复核确认与现有台账记录**同根**，按定义不是意外发现，物理存放在
 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)。
 判「同根」的硬判据（数作者源上的引用次数）见
 [unexpected_taxonomy.md](../docs/protocol/unexpected_taxonomy.md) 「先做零步」。
 
-按**对命中的影响**分四类（jsonl 的 `disposition` 字段）：
+按**对命中的影响**分三类（jsonl 的 `disposition` 字段）：
 
 | disposition | 条数 | 簇 | 含义 |
 | :-- | --: | :-- | :-- |
 | 真漏配 | 1 | `0037-1` | 内容对应 `EIS-0037-01`，属匹配器漏配，移出本桶 |
-| 冗余复述 | 6 | `0006-3` `0016-2` `0016-11` `0026-4` `0035-1` `0035-2` | 目标记录在全部 6 格已由同格另一条 issue 认领，无格可翻 |
+| 冗余复述 | 10 | `0006-3` `0016-2` `0016-11` `0026-4` `0035-1` `0035-2` `0010-A1` `0020-A1` `0030-A1` `0040-A1` | 目标记录在全部 6 格已由同格另一条 issue 认领，无格可翻 |
 | 同根但该格未建立记录 | 3 | `0006-2` `0036-8` `0047-9` | 逐格复核维持未命中 |
-| 报的是已退役判据 | 3 | `0050-2` `0050-3` `0050-4` | 台账 `EIS-0050-01` 的 `basis_superseded_by_ruling` 明写原判据已放弃 |
 
-**移出 ≠ 记命中**：13 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [hit_criterion.md](../docs/protocol/hit_criterion.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
+**移出 ≠ 记命中**：14 条全部只是「不属于意外发现」，无一产生新增命中。`0037-1` 的命中判定按 [hit_criterion.md](../docs/protocol/hit_criterion.md) §4.2 的引用次数判据裁定为未命中——模型点名的多余子是四个，含台账认定正确的 `Inactive`，是严格超集而非同一处失误。
 
 ## 三、⚪ 断言在冻结制品上为真：真阴性，两侧都不存在
 
@@ -111,5 +125,15 @@ R-REGION 规则）、`OOS-INV`（`0017-7` / `0027-6` 的不变式 + 并发保持
   混进任一侧都会让该侧分母失真。
 - §二 的分类改为直接取 `ledger_accounted.jsonl` 的 `disposition` 字段并列出簇号。
   **理由**：该表此前不可追溯到具体记录，无法复核。
+- §一 的条数按真源 [unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv)
+  的实际行数与 [unexpected_tables.md](./unexpected_tables.md) 表 1 的「✅ 真漏记」一栏改写，
+  并补入 `0010-2` 的判据（取自 `G9.jsonl` 该簇的 `fact` / `nl` / `note`）。**理由**：真源是该 tsv
+  与机器生成的表 1，本节是叙述性文本；v46r 整块替换新增了 `0010-2` 这条 `VALID_UNRECORDED`，
+  而本节未随之更新，与本目录的 `README.md`、`audit.md` 及表 1 四处口径相左。
+- §二 的条数与 disposition 表按真源 `ledger_accounted.jsonl` 实测重写：条数取该文件实际行数，
+  三类的条数与簇号逐一对齐该文件的 `disposition` 字段。**理由**：真源是该 jsonl，本节是叙述性文本；
+  v46r 整块替换改动过该文件的成员集合（`0050-*` 家族的旧簇整体离开本文件，另有四条 `*-A1` 进入），
+  而本节未随之更新，与本文件 §三 已经写对的闭合式 `288 + 14 + 2 = 304` 自相矛盾。
+  原表中「报的是已退役判据」一行整行删除：该 disposition 在真源里已无任何成员。
 - 子类改用 `rebuild_unexpected.py` 校验的 `D*` / `N-*` / `FP-*` / `OOS-*` / `V1` 体系，
   §四 只保留划分维度与分界线，不再复述条目数。**理由**：条目数属交叉表内容，只应有一个产地。

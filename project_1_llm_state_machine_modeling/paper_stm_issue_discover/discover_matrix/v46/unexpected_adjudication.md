@@ -102,7 +102,7 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
 该簇在 6 个格（2 臂 × 3 轮）中出现了几次，与仓库既定的 `@k` 口径同源。
 
 **（3）多报以单次采样噪声为主**：174/288（60%）只出现在 1 个格里。
-唯一那条真漏记出现在 2 格，而唯二的 6/6 全满格是表示债务——这不奇怪：
+两条真漏记分别出现在 2 格与 3 格，而仅有的三个 6/6 全满格都是表示债务——这不奇怪：
 表示债务是制品的确定性属性，每次都能看见；真正的新发现靠的是采样运气。
 **含义是——即便模型确实找到了台账外的真缺陷，它也找得不稳。**
 
@@ -133,19 +133,40 @@ R4.5 是 **PlantUML 表达力 > FCSTM 表达力** 时的有损编译。PlantUML 
 **正确做法是在归因侧对已产出的结果打标**：凡 `*_declared` 返回 False，查该制品的债务码，
 命中则计入债务报告而非缺陷。该实现**不触及谓词层**。
 
-## 三、唯一一条净增量：`0014-4`
+## 三、两条净增量：`0014-4` 与 `0010-2`
 
-[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) 只有一行。
+[unexpected_verdicts/final_rootcause.tsv](./unexpected_verdicts/final_rootcause.tsv) 有两行；
+两条的逐条判据字段（`fact` / `nl` / `note`）分别在 `unexpected_verdicts/G7.jsonl` 与
+`G9.jsonl` 的对应簇上，下表与本节文字均以那两处为准。
 
 | 根因 | pair | 缺陷 | 作者源判据 |
 | :-- | :-- | :-- | :-- |
 | `0014-ROOT` | 0014 | NL 3「发出 Obstacle Detected 信号」被吞进状态名描述串，`EmergencyStopping` 内无任何 `enter`/`during` 动作 | `stm0.puml:26` 写 `EmergencyStopping: Obstacle Detected`（PlantUML **描述行**，不是动作语法）；对照同一份 NL 的 0054:18 `do/Send Obstacle Detected`、0004 `during abstract SendObstacleDetected` —— 该输出动作在 $M$ 内可表达且是参考意图，作者用错了语法 |
+| `0010-ROOT` | 0010 | 接管迁移只挂在 `AutonomousActive` 一个子态上，自动驾驶模式的其余每一处都静默丢弃接管信号 | `stm0.puml:15/16` 只写了 `AutonomousActive --> HumanDriving : Human Steering Cmd` 与 `: Brake Pressed`，模式一级与 `AutonomousIdle` 上**根本没写**；编译产物 `model.fcstm:17/18` 与作者源在这点上逐条一致，不存在 R4.5 损失，故不落表示债务 |
 
-**台账未覆盖，逐条核对**：`EIS-0014-03` 的 `nl_evidence` 只引「Emergency Stop」，
+**`0014-4` 台账未覆盖，逐条核对**：`EIS-0014-03` 的 `nl_evidence` 只引「Emergency Stop」，
 `EIS-0014-04` 的 scope 是 `InMotion.Approaching`，二者均不涉及 `EmergencyStopping` 上的
 Obstacle Detected 输出动作。⚠️ 正确修法是**动作**而非独立事件，归并时按 $M$ 的 `A` 记。
 
-⚠️ **它出现在 6 格中的 2 格**，不稳定；补入台账会使 `hit@all` 下降，不是「分母不变故无影响」。
+**`0010-2` 事实与 NL 依据**：`Autonomous`（`model.fcstm:9`）本身是可被占据的叶态，
+由 `model.fcstm:14` 的 `HumanDriving -> Autonomous : /Power_On;` 进入；`AutonomousIdle`
+（`model.fcstm:10`）由 `model.fcstm:15` 进入。两者都不消费 `Human_Steering_Cmd` /
+`Brake_Pressed`，也没有任何出边通向 `HumanDriving`。NL08 第 4 句逐字
+`transit to human driving mode when receive human steering cmd, brake pressed`，
+**未给任何源态限定**；参考模型写在模式一级（`autonomous_mode --> human_mode : human_steering_cmd`）。
+⚠️ 模式级锚定不是过度指定：同 NL 组 6 个作者里 `0000`(:13)、`0030`(:16)、`0040`(:12)、
+`0050`(:17) 四个都把该边挂在模式一级——对照 `N-ANCHOR` 的判例 `0022-2`，那里同组 6 个作者无一如此。
+
+**`0010-2` 台账未覆盖，逐条核对**：该 pair 台账 5 条无一覆盖——`EIS-0010-02` 是层次缺失，
+`EIS-0010-04` 只覆盖 `AutonomousFinal` 是绝对吸收态（其 statement 反而把 human steering cmd 与
+brake pressed 拆成两条独立边这件事记为优点，说明台账问的是「三条件是否拆开」而非
+「作用域是否覆盖整个模式」），`EIS-0010-01/03/05` 分别是 Power On 误置、Power Off 不终止、
+自动驾驶侧不消费 Power Off。⚠️ 与 `EIS-0010-04` 在 `AutonomousFinal` 这一半上有交叠，
+论文若引本条，净增量应只记 `Autonomous` 与 `AutonomousIdle` 那一半。
+
+⚠️ **两条都不稳定**：`0014-4` 出现在 6 格中的 2 格，`0010-2` 出现在 3 格（三轮的 claude），
+见 [unexpected_tables.md](./unexpected_tables.md) 表 4；补入台账会使 `hit@all` 下降，
+不是「分母不变故无影响」。
 
 ### 三之二、越界的两个家族
 
@@ -203,7 +224,7 @@ $M$ 无正交区故被展平成三条竞争初始边，「区间零迁移」是*
 NL 1/2/3/4/5 的全部内容都被满足」，另一条 diff 自带 `out_of_scope: concurrency`；
 **参考模型同样零事件零迁移**，根源是 NL06 五句话通篇未命名任何触发条件，不可归因于被测模型。
 
-### 三之三、内容已被台账承载的 13 条
+### 三之三、内容已被台账承载的 14 条
 
 明细与 `disposition` 见
 [unexpected_verdicts/ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl)，
@@ -304,9 +325,18 @@ grep -cE "^[[:space:]]*--[[:space:]]*$" llms_emp_feedback_final_0056/stm0.puml  
 - 全部交叉表统一归口到 [unexpected_tables.md](./unexpected_tables.md)（由 `G*.jsonl` 机器生成），
   本文件不再保存副本。**理由**：副本与真源分岔过一次，代价是同一目录内两份文件对净增量
   给出互斥的答案。
-- 分母与子类体系切换为清洗后的口径：桶内 288 条目 / 124 去重，另 13 条移入
+- 分母与子类体系切换为清洗后的口径：桶内 288 条目 / 124 去重，另 14 条移入
   `ledger_accounted.jsonl`、2 条移入 `not_produced.jsonl`。**理由**：「内容是否已被台账承载」
   回答的是「该不该在桶里」，与五类回答的「这条产出是什么」不是同一个问题，混在一起会让分母虚高。
 - 子类改用 `rebuild_unexpected.py` 校验的 `D*` / `N-*` / `FP-*` / `OOS-*` / `V1` 体系。
   **理由**：旧体系按谓词族与判定组混切，同形簇会分裂到不同子类；新体系按「丢失/多要的是哪一条区分」切，
   并由工具层三道硬门（`merge_key` / `merge_reason` / `subclass` 缺失即拒绝重建）保证可审计。
+- §三之三 标题与本节的「移入 `ledger_accounted.jsonl` 的条数」按真源 `ledger_accounted.jsonl`
+  实测行数改写。**理由**：真源是该 jsonl，本文件是叙述性文档；v46r 整块替换改动过该文件的成员集合，
+  而这两处散文未随之更新，与本文件 §开头已经写对的闭合式 `288 + 14 + 2 = 304` 自相矛盾。
+- §三 的标题与 §二（3）的真漏记条数改按真源 `final_rootcause.tsv`（两行）叙述，并按 `G9.jsonl`
+  的 `fact` / `nl` / `note` 补入 `0010-2` 的根因行与逐条判据。**理由**：v46r 新增了 `0010-2`，
+  这两处散文未随之更新，与本文件 §一「净增量是 2 条」自相矛盾。
+- §二（3）的 6/6 全满格个数经回真源核对后改为**三个**：`cluster_index.tsv` 里
+  `cells_of_6 == 6` 的簇是 `0000-2` / `0010-1` / `0050-1`，与 [unexpected_tables.md](./unexpected_tables.md)
+  表 4「6 格」一列的合计 3 一致；三者仍全部是表示债务，故该句的论点不变，只改数量。
