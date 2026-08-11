@@ -266,7 +266,7 @@ v46 的两个反向实例，同一判据、同一基准：
 > 两种形态：断言的 scope / source 绑定到一个**模型里查不到的路径**（`0057-2`：制品无 `Inactive` 状态，「`Inactive --X--> CA` 这条边缺失」是自造前提导致的空洞真）；或 NL 义务真实存在、但被钉死在 NL 并未指定的那个位置上（`0022-2`：NL 未要求根初始边直指 `Operate`，同组 6 个作者无一直连）。识别信号：事实成立，但把它「修好」会与另一条 NL 冲突。
 
 **`N-MODAL` 定性表述被强化为时序不变式** —— 例 `0054-5` / `0046-8`
-> NL 的 `continuously` / `remains` 是定性描述，被读成状态驻留不变式。`0054-5` 更进一步：`release=false` 把「保持到某条件」读成「永远保持」，**构造性不可满足**。这类义务来自**断言被构造的方式**而非 NL，按 [CLAUDE.md](../../../../../CLAUDE.md) §13 属「多道门交集为空」类缺陷，**另案登记于 [docs/findings/predicates/defects_registered.md](../findings/predicates/defects_registered.md)**。
+> NL 的 `continuously` / `remains` 是定性描述，被读成状态驻留不变式。`0054-5` 更进一步：`release=false` 把「保持到某条件」读成「永远保持」，**构造性不可满足**。这类义务来自**断言被构造的方式**而非 NL，按 [CLAUDE.md](../../../../../CLAUDE.md) §13「多道门的审计单位是交集」属同一类缺陷（多道门的合法解空间交起来为空），**另案登记于 [docs/findings/predicates/defects_registered.md](../findings/predicates/defects_registered.md)**。
 
 **`N-CLOSED` 把 NL 的枚举读成封闭计数义务** —— 例 `0007-1` / `0022-3`
 > NL 列举了若干元素，断言据此要求「恰好这些、不许多」。NL 的枚举默认不封闭，计数义务需要 NL 明写。识别信号：断言并列枚举若干元素却**未指认哪一个多余**。

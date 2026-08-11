@@ -17,6 +17,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
@@ -27,6 +29,18 @@ HISTORICAL_RECORD = (
     / "2026-06-08-052552-pr39-agent-loop-langgraph-final-four-case-evidence"
     / "path1-abs-agent-loop-success"
     / "pr-e1-path1_abs-default-lg_m1_g_signature_gate_20f104e8-43fe4970.agent_loop.json.gz"
+)
+
+#: Shown when the PR39 retained-evidence record is not on disk. Names the commit so
+#: the skip is traceable to a decision rather than reading as an unexplained gap.
+#: Kept textually in sync with the copy in
+#: ``tests/crosscutting/test_lg_m1_inventory_characterization.py`` -- the two test
+#: files share no module, and importing across them just for a string would couple
+#: two otherwise independent characterization suites.
+HISTORICAL_RECORD_ABSENT_REASON = (
+    "PR39 retained evidence is not in the repository: `/runs/` is gitignored and commit "
+    "6920d5f6 (2026-07-28) removed the tracked copy. Expected on a clean clone and in "
+    "CI -- see ARCHIVE_README.md section 5. Restore the record under runs/ to re-enable."
 )
 
 MOVED_SYMBOLS: dict[str, list[str]] = {
@@ -207,7 +221,19 @@ def test_lg_m1_d2_runtime_identity_and_graph_registry_facade_stay_stable() -> No
     assert facade.build_langgraph_node_registry()["runtime_backend"] == "langgraph"
 
 
+@pytest.mark.skipif(
+    not HISTORICAL_RECORD.exists(),
+    reason=HISTORICAL_RECORD_ABSENT_REASON,
+)
 def test_lg_m1_d2_historical_evidence_read_only_drift_gate() -> None:
+    """The historical record is read, summarised, and left byte-identical.
+
+    Unlike the contract test in `tests/crosscutting/`, every assertion here is about
+    the record itself, so there is nothing left to check once it is absent -- hence a
+    whole-test skip rather than a split. What this gate protects is still worth having
+    when the record is restored: it proves the suite treats retained evidence as a
+    read-only input, by re-hashing and re-stat'ing after the read.
+    """
     before_hash = _sha256(HISTORICAL_RECORD)
     before_mtime = HISTORICAL_RECORD.stat().st_mtime_ns
     record = _load_historical_record()

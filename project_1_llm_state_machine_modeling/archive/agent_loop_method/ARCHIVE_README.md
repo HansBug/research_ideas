@@ -244,28 +244,34 @@ PYTHONPATH=project_1_llm_state_machine_modeling \
   venv/bin/python -m pytest -q project_1_llm_state_machine_modeling/archive/agent_loop_method/tests
 ```
 
-**归档后实测基线：`2 failed, 414 passed, 6 warnings`（416 collected）。**
-（2026-08-11 本地复测确认；与搬迁前基线一致。）
+**当前实测基线：`414 passed, 2 skipped, 6 warnings`（417 collected）。**
+（2026-08-12 本地复测确认。）
+
+⚠️ **2026-08-12 之前这里是 `2 failed, 414 passed`（416 collected）。** 那 2 个失败已改为 skip，见 §5.1。
 
 ⚠️ **这棵树不是完整 gate。** 本目录还有 3 个模块被**项目级**测试树 import，
 只跑上面这条命令看不到那 7 个测试——见 §1.5，那里给了必须两棵一起跑的命令。
 
-那 2 个失败是**搬迁前就存在的**，与归档无关，且**在干净 clone 上必然失败**：
+### 5.1 PR39 retained evidence 缺失：已加 skip 守卫（2026-08-12）
 
-| 失败测试 | 原因 |
-|---|---|
-| `tests/crosscutting/test_lg_m1_inventory_characterization.py::test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider` | 断言 `runs/2026-06-08-052552-pr39-.../*.agent_loop.json.gz` 存在 |
-| `tests/langgraph/test_instrumentation.py::test_lg_m1_d2_historical_evidence_read_only_drift_gate` | 同一份 retained evidence 文件 |
+那份 retained evidence 被 commit `6920d5f6`（2026-07-28「`runs/` 移出版本控制」，删 155 文件 / 79718 行）移出版本控制，且 `runs/` 被 [../../../.gitignore](../../../.gitignore)（`/runs/`）整目录排除。**它在干净 clone 与 CI 上都不存在**，两个依赖它的测试因此必然失败。
 
-原因：`runs/` 被 [../../../.gitignore](../../../.gitignore)（`/runs/`）整目录排除，
-那两份 PR39 retained evidence **从来没进过仓库**，两个测试也**没有 skip 守卫**。
-所以「复活时看到 2 failed」是**预期状态**，不是你弄坏了什么。若要让它们通过，
-需要先把对应 run record 恢复到 `runs/` 下。
+⚠️ **本节先前把这称为「预期状态」，并说这两个测试「没有 skip 守卫」。** 后者是对的诊断，前者不是可接受的终态：它使 [CI](../../../.github/workflows/project1-pyfcstm-feedback.yml) 的第一步 **exit 1**，而该 workflow 是 fail-fast 的 —— 后面三步（paper STM contract tests / Path 1&2 导出 / Path 1&2 smoke）**每次都被 skipped、从未真正执行过**。也就是说这两个测试不只是让 CI 红，它们**遮住了整条 CI 的其余部分**。
 
-⚠️ 顺带一条：CI（[../../../.github/workflows/project1-pyfcstm-feedback.yml](../../../.github/workflows/project1-pyfcstm-feedback.yml)）
-的 "Run pyfcstm feedback migration smoke tests" 步骤会跑这整棵测试树，因此**该步骤在
-CI 上也会因这 2 个测试而红**。这不是归档引入的（改路径前跑的是同一棵树），
-但它意味着**不能把「CI 绿」当作本目录健康的判据**。
+现处置如下：
+
+| 测试 | 处置 | 为什么这样处置 |
+|---|---|---|
+| `tests/crosscutting/...::test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider` | **拆开**：18 条基线内容断言照常跑（**现在通过**），存在性探测移入新测试 `test_lg_m1_a_runtime_identity_source_record_is_present_on_disk`，由 `skipif` 守 | 该测试只有 1 条断言依赖缺失文件。整体 skip 会连带废掉另外 18 条 —— 那 18 条与 run record 无关，跑在已入库的 fixture 上 |
+| `tests/langgraph/test_instrumentation.py::test_lg_m1_d2_historical_evidence_read_only_drift_gate` | 整体 `skipif` | 它的**每一条**断言都是关于那份记录的（第一行就在读它），文件缺失后无可检查者 |
+
+两处 skip 理由为同一段文案，逐字点明 commit 号与本节位置，因此 skip 是**可追溯到一次决策**的，不是不明来由的沉默。
+
+**若要让它们重新运行**：把那份 run record 恢复到 `runs/` 下，两个 skip 会自动转为实跑，无需改代码。
+
+⚠️ **一处遗留不实陈述**：fixture `tests/fixtures/lg_m1_a_baseline.json` 里 `runtime_identity.source.type` 逐字是 `committed_historical_agent_loop_record_gzip` —— **声称已入库，而它已被移出版本控制**。该字段的断言仍在跑（它是 fixture 事实，不是磁盘事实）。未改：重写冻结 fixture 是比加 skip 守卫更大的决定，留待复活时一并处理。
+
+**收集数从 416 变为 417**（拆分净 +1）。该变化按既有形式登记为一个具名 delta `archive_ci_skip_guards`（含 reason），而不是直接把 416 改成 417 —— 那会丢掉「谁加的、为什么加」。416 作为历史航点保留在同一份 fixture 里。
 
 ## 6. ⚠️ 复活地雷（最重要的一节）
 

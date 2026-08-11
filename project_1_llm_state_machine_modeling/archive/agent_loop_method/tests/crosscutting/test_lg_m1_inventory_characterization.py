@@ -19,11 +19,21 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 METHOD_ROOT = REPO_ROOT / "project_1_llm_state_machine_modeling" / "archive" / "agent_loop_method"
 TESTS_ROOT = METHOD_ROOT / "tests"
 BASELINE_PATH = TESTS_ROOT / "fixtures" / "lg_m1_a_baseline.json"
+
+#: Shown when the PR39 retained-evidence record is not on disk. Names the commit so
+#: the skip is traceable to a decision rather than reading as an unexplained gap.
+HISTORICAL_RECORD_ABSENT_REASON = (
+    "PR39 retained evidence is not in the repository: `/runs/` is gitignored and commit "
+    "6920d5f6 (2026-07-28) removed the tracked copy. Expected on a clean clone and in "
+    "CI -- see ARCHIVE_README.md section 5. Restore the record under runs/ to re-enable."
+)
 EXPERIMENT_MODULES = [
     "archive.agent_loop_method.pr_e1_real_runs",
     "archive.agent_loop_method.experiments.real_run_matrix",
@@ -53,6 +63,11 @@ LG_M1_C2_ALLOWED_ACTIVE_LEGACY_REFERENCES = {
 LG_M1_D2_EXPECTED_COLLECTION_DELTA = 5
 LG_M1_D3_EXPECTED_COLLECTION_DELTA = 7
 LG_M1_G_EXPECTED_COLLECTION_DELTA = 4
+#: Not an LG-M1 work package -- this one is post-archive maintenance, kept in the same
+#: registered-delta form so the count change stays as auditable as the six before it.
+#: Splitting the run-record existence probe out of the graph-contract test added one
+#: test; see `test_lg_m1_a_runtime_identity_source_record_is_present_on_disk`.
+ARCHIVE_CI_SKIP_GUARD_COLLECTION_DELTA = 1
 LG_M1_D3_REMOVED_FACADE_IMPORTS = {
     (
         "project_1_llm_state_machine_modeling/archive/agent_loop_method/experiments/checkpoint_resume.py",
@@ -113,6 +128,19 @@ def _lg_m1_e_mirror_path(path: str) -> str:
 
 def _load_baseline() -> dict[str, Any]:
     return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+
+
+def _historical_record_path() -> Path:
+    """Resolve the baseline's run-record path against the repo root, not the cwd.
+
+    The baseline stores it relative (`runs/...`), and the assertion this replaces
+    called `Path(...).exists()` on that string directly -- so its outcome depended on
+    where pytest happened to be invoked from. That matters here beyond tidiness:
+    `pytest.mark.skipif` is evaluated at collection time, so a cwd-relative probe can
+    disagree with the assertion inside the test body and produce a test that is
+    skipped in one invocation and failing in another.
+    """
+    return REPO_ROOT / _load_baseline()["runtime_identity"]["source"]["path"]
 
 
 def _sha256_json(payload: object) -> str:
@@ -340,7 +368,10 @@ def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider
 
     runtime = baseline["runtime_identity"]
     assert runtime["source"]["type"] == "committed_historical_agent_loop_record_gzip"
-    assert Path(runtime["source"]["path"]).exists()
+    # The `.exists()` check that used to sit here now lives in its own test below.
+    # Keeping it inline made this test fail for a reason unrelated to the eighteen
+    # baseline-content assertions around it, and a whole-test skip would have taken
+    # all of them down with it -- see that test's docstring.
     assert runtime["source"]["record_status"] == "success"
     assert runtime["environment"]["runner"] == "archive.agent_loop_method.langgraph_runtime.run_full_staged_langgraph_runtime"
     assert runtime["environment"]["loop_entrypoint"] == "archive.agent_loop_method.loop.run_agent_loop"
@@ -351,6 +382,29 @@ def test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider
     assert runtime["run_config"]["canonical_runtime_backend"] == "langgraph"
     assert runtime["run_config"]["graph_node_registry"]["opaque_wrapper"] is False
     assert runtime["run_config"]["graph_node_registry"]["delegated_monolithic_runtime"] is False
+
+
+@pytest.mark.skipif(
+    not _historical_record_path().exists(),
+    reason=HISTORICAL_RECORD_ABSENT_REASON,
+)
+def test_lg_m1_a_runtime_identity_source_record_is_present_on_disk() -> None:
+    """The baseline's ``runtime_identity`` points at a real file.
+
+    Split out of the contract test above so that a missing run record costs one
+    assertion instead of nineteen. The record is gitignored (`/runs/` in the repo
+    `.gitignore`) and commit ``6920d5f6`` took it out of version control, so on any
+    clean clone -- and in CI -- this is skipped rather than failed. That is the
+    documented expectation, not a defect: see `ARCHIVE_README.md` section 5, which
+    named the missing skip guard here as the thing to fix.
+
+    Restoring the record under `runs/` makes this run again; nothing else needs to
+    change. The baseline still claims `type` is
+    ``committed_historical_agent_loop_record_gzip``, and that claim is now false --
+    but it is a fixture fact, checked above, and rewriting the frozen fixture is a
+    larger decision than adding this guard.
+    """
+    assert _historical_record_path().exists()
 
 
 def test_lg_m1_a_experiment_cli_baseline_is_import_or_help_only() -> None:
@@ -443,4 +497,13 @@ def test_lg_m1_a_pytest_collection_baseline_plus_registered_c1_d1_and_b_deltas_i
     assert expected_d3_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_and_d3"]
     expected_count = expected_d3_count + LG_M1_G_EXPECTED_COLLECTION_DELTA
     assert expected_count == baseline["collection"]["current_expected_count_after_c1_d1_b_d2_c2_d3_and_g"]
-    assert int(match.group(1)) == expected_count
+    # Post-archive maintenance step. The run-record existence probe moved out of
+    # `test_lg_m1_a_graph_contract_and_runtime_identity_are_stable_without_provider`
+    # into its own skipping test, so the tree collects one more test than at LG-M1-G.
+    assert (
+        deltas["archive_ci_skip_guards"]["count"]
+        == ARCHIVE_CI_SKIP_GUARD_COLLECTION_DELTA
+    )
+    expected_current_count = expected_count + ARCHIVE_CI_SKIP_GUARD_COLLECTION_DELTA
+    assert expected_current_count == baseline["collection"]["current_expected_count_after_archive_ci_skip_guards"]
+    assert int(match.group(1)) == expected_current_count

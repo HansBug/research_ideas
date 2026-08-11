@@ -6,13 +6,13 @@
 
 paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），一次完整的全量实验（**54 pair × 2 执行模型 × 3 轮 = 324 格**）已完成，工作重心转入**补外部对照与判定层审计 + 论文写作**。
 
-两条 contribution：**谓词逻辑元模型与断言体系本身** > **带上下文的发现使复核与回归确认可行**。
+**三条** contribution〔用户明确裁定 2026-08-11〕：① **基于模型转换 + 形式化检查 / 仿真 / 验证的错误发现方法**（独有的是**真值封存**）> ② **基于归纳后的谓词逻辑的断言体系**（⚠️ 这一条就是元模型本身）> ③ **issue 证据链体系**。⚠️ 此前本行写「两条」，系 2026-08-08 的旧口径，已被 08-11 裁定取代；真源是 [story/paper_story.md](./story/paper_story.md) §7。
 
 ## 2. 事实源索引
 
 | 类型 | 入口 | 作用 |
 | :-- | :-- | :-- |
-| 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、两条 contribution、建模对象边界、目录导航 |
+| 论文口径基准 | [README.md](./README.md) | 这篇论文做什么、**三条** contribution、建模对象边界、目录导航 |
 | 导师定调 | [../talks/](../talks/) | 最高优先级路线依据。⚠️ 2026-08-07 / 08-08 的收窄定调为口头，原话摘录在 [README.md](./README.md) §2 |
 | **实验事实** | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含，读完不需跳转 |
 | 判定口径 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 命中判据、多报五类、方法出处、建模对象边界判据、规则出处纪律。**改它们等于改研究规则** |
@@ -28,7 +28,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 我要做什么 | 读什么 |
 | :-- | :-- |
 | 理解这篇论文 | [README.md](./README.md) → 实验报告。两份读完即可完整理解方法与结果 |
-| 写论文某一节 | [story/paper_outline.md](./archive/r8_story_pre_rebuild/story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./archive/r8_story_pre_rebuild/story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./archive/r8_story_pre_rebuild/story/terminology_policy.md) 核措辞 |
+| 写论文某一节 | [story/paper_outline.md](./story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./story/terminology_policy.md) 核措辞 |
 | 复算某个数字 | [discover_matrix/README.md](./discover_matrix/README.md) 导航页 |
 | 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 查某个 pair 的原文 | [selected_seed_examples/](./selected_seed_examples/) |

@@ -4,11 +4,11 @@
 
 ## 1. 默认阅读顺序
 
-1. [README.md](./README.md)：口径基准。这篇论文做什么、两条 contribution、建模对象边界、目录导航。
+1. [README.md](./README.md)：口径基准。这篇论文做什么、**三条** contribution（2026-08-11 裁定，⚠️ 此前为两条）、建模对象边界、目录导航。
 2. [STATUS.md](./STATUS.md)：已完成 / 未完成事实，以及当前不可声称的话。
 3. 本文件：工作纪律。
 4. 按任务分叉：
-   - 写论文 → [story/README.md](./archive/r8_story_pre_rebuild/story/README.md)
+   - 写论文 → [story/README.md](./story/README.md)
    - 看结果、复算数字 → [discover_matrix/README.md](./discover_matrix/README.md)
    - 改方法 / 谓词 / 提示词 → 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/)
    - 查某个 pair 的原文 → [selected_seed_examples/](./selected_seed_examples/)
@@ -22,7 +22,7 @@
 | 级别 | 来源 | 管什么 |
 | --: | :-- | :-- |
 | 1 | 用户当前明确指令 | 一切 |
-| 2 | 2026-08-07 / 08-08 导师定调 | 论文收窄、两条 contribution、RQ 设计原则、修复不展开。⚠️ 口头，原话摘录在 [README.md](./README.md) §2 |
+| 2 | 2026-08-07 / 08-08 导师定调 | 论文收窄、**当时定的两条 contribution**、RQ 设计原则、修复不展开。⚠️ 这一行是**历史事实**，⛔ 不要改成三条——三条是 **2026-08-11** 由用户另行裁定的，见 [README.md](./README.md) §2 与 [story/paper_story.md](./story/paper_story.md) §7。⚠️ 口头，原话摘录在 [README.md](./README.md) §2 |
 | 3 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据。**改它们等于改研究规则** |
 | 4 | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源** |
 | 5 | [README.md](./README.md) / 本文件 / [STATUS.md](./STATUS.md) / [story/](./story/) | 口径、纪律、状态、叙事 |
@@ -35,7 +35,7 @@
 ### 3.1 硬约束
 
 1. **本文只做发现，不做修复。** repair 另立后续论文。修复只在讨论一节**一小段**捎带提及，不展开、不承诺效果、不给数据。
-2. **两条 contribution 的措辞以 [story/paper_story.md](./archive/r8_story_pre_rebuild/story/paper_story.md) §6 为准**，顺序不得调换：谓词逻辑元模型与断言体系 > 带上下文的发现。
+2. **三条 contribution 的措辞以 [story/paper_story.md](./story/paper_story.md) §7「Contributions」为准**⚠️ 此前本条写「两条」、指归档版、且引的 §6 在现行版是「任务边界」不是 contribution——三处均已更正（2026-08-11，PR #180），顺序不得调换：谓词逻辑元模型与断言体系 > 带上下文的发现。
 3. **贡献不是「发现了多少问题」。** 覆盖率是支撑贡献的证据，不是贡献本身。
 4. **谓词词表的由来一律表述为「从领域分析、真实文献与技术资料调研归纳而来，应用于 54 个案例，并据此指导 prompt 设计」。** ⛔ 不表述为「从这批 pair 归纳」；⛔ 论文里不解释留出集——那个问题在本方法的论证结构里不出现。
 5. **建模对象边界只在问题定义处出现一次，一句话带过。** 不展开辩护、不做成 RQ、不在后文重提。
@@ -71,7 +71,7 @@
 
 ## 6. 术语纪律
 
-术语裁定表在 [story/terminology_policy.md](./archive/r8_story_pre_rebuild/story/terminology_policy.md)。四组最易混的，在此重复一遍，因为它们都实际发生过误读：
+术语裁定表在 [story/terminology_policy.md](./story/terminology_policy.md)。四组最易混的，在此重复一遍，因为它们都实际发生过误读：
 
 | 组 | 区分 |
 | :-- | :-- |
@@ -158,7 +158,7 @@ rg -n "ready to merge|等待 merge|本轮 CI|Codecov|subPR|sub PR" \
 | 新增 §7 归属纪律与 §9 验收清单 | 旧版无归属纪律；验收清单把散落各处的 ⛔ 收成一张可逐条自查的表 |
 | §10 静态检查从「查 Better STM / source-level 旧术语」改为查 repair 口径回流、点估计、单套分母、误报率、动态状态 | 旧检查项防的是两代前的风险；当前风险已换 |
 | 删除 §2 旧 active 主线（一次 Discover + 多轮 Repair-Confirm + B-final + C 阶段 closure audit 的完整生命周期图） | paper1 收窄为 discover |
-| 删除 §3 旧术语表（raw/source `STM_0`、candidate / confirmed issue、canonical source export、B-confirm、closure / regression audit） | 全部是 repair 期术语；仍有效的部分已迁入 [story/terminology_policy.md](./archive/r8_story_pre_rebuild/story/terminology_policy.md) |
+| 删除 §3 旧术语表（raw/source `STM_0`、candidate / confirmed issue、canonical source export、B-confirm、closure / regression audit） | 全部是 repair 期术语；仍有效的部分已迁入 [story/terminology_policy.md](./story/terminology_policy.md) |
 | 删除 §4 资产使用纪律的 `active / update / archive / historical` 四态表 | 该表依赖 `evidence/ledgers/paper1_strategy_asset_map.md`，而那份资产地图本身已随 repair 搁置；仍需保留的信息（哪些资产不得作 active 引用）已改写进 §7 |
 | 删除 §6 PR 施工纪律（empty PR、三路 review、C/I 清零） | 属跨仓库通用流程，已在仓库根 CLAUDE.md §4 与 §9 维护；本地重复一份会形成第二真源 |
 | **保留并迁移**：C/I/M 分级口径（工程洁癖默认 M，只有影响学术目标 / 事实准确性 / 证据链 / 可复现性的才升级） | 仍然有效，且是本仓库的 review 基线；现由仓库根 CLAUDE.md「学术研究仓库 Review 口径规范」统一维护，本文件不再复制 |

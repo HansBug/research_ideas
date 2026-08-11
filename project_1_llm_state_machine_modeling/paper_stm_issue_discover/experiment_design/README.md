@@ -37,7 +37,7 @@
 
 | 归档材料 | 为什么仍有价值 | 与 v46 结果的对应 |
 | :-- | :-- | :-- |
-| [issue_lifecycle/source_level_issue_definition.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/source_level_issue_definition.md) §5 **conversion artifact 归因边界** | 它在 2026-07 就把「问题来自 conversion / lowering / normalization 而非源模型」单列成一个不可计入方法产出的类别 | 这正是 v46 §7.5 的 **⚙️ 表示债务**，按条目占多报侧 **46.5%**、是最大一块。**当时的处置与现在不同**：归档文件写的是 `rejected_conversion_artifact`（拒掉），v46 选的是「单独成类报告」并把归属留给导师裁定 |
+| [issue_lifecycle/source_level_issue_definition.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/source_level_issue_definition.md) §5 **conversion artifact 归因边界** | 它在 2026-07 就把「问题来自 conversion / lowering / normalization，而非 raw/source STM」（§2 术语表逐字）单列成一个不可计入方法产出的类别 | 这正是 v46 §7.5 的 **⚙️ 表示债务**，按条目占多报侧 **46.5%**、是最大一块。**当时的处置与现在不同**：归档文件写的是 `rejected_conversion_artifact`（拒掉），v46 选的是「单独成类报告」并把归属留给导师裁定 |
 | 同上 §4 **folded event / expression debt 默认只能 `candidate_only`** | 「作者把多个东西压成一个名字，不等于源模型错了」这条判断当时就立住了 | 对应 v46 §7.5 的子类 `D1` 析取备选融合（61 条目）与 `D3` 槽位焊死（18 条目） |
 | 同上 §3 **两条 confirmation 路径**及其证据要求 | `nl_grounded_behavioral_issue` 要求 NL 证据 + 源模型证据 + typed behavior 证据三者齐备；`raw_internal_inconsistency` 则**允许无 NL 证据**，但必须给出「为什么此处不需要 NL」的 rationale | 第二条路径直指 v46 §6.3 的 `wellformedness` 层（27 条记录，`hit@1` 48.1%，且零命中里占 10 条）——**当时已经预见到「有一类缺陷不从任何 NL 句子推出」，只是没有落成运行入口**。v46 §9 的第一项「补一条模型驱动的巡检入口」本质上就是把这条路径实装 |
 | 同上 §2 **六个状态定义**（`candidate_only` / `confirmed` / `rejected_conversion_artifact` / `rejected_other` / `out_of_scope` / `insufficient_evidence`） | 五个是纯 discover 侧分类 | 与 v46 §7.2 的五类裁定同构但不同名，且 `insufficient_evidence` 对应现在的**谓词拒答**机制（v46 §4.2 ⚠️） |
