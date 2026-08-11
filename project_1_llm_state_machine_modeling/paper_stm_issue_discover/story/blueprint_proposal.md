@@ -75,9 +75,9 @@
 
 ⛔ **这一节已作废，只作历史留痕。** 它是**当时基于 v35 提的**（动机是省人工判定成本）；v46 已跑完 324 格全量，〔用户明确裁定 2026-08-11〕**T1/T2 分层整体作废**，主实验即 324 格全量，正文不谈人工判定成本。现行口径见 [paper_outline.md](./paper_outline.md) §6.5「`TODO-O5`（冲突 **X2**）已裁定：T1/T2 分层作废」。
 
-## ref 翻转率实验（AI 建议，零判定成本）
+## ref 翻转率实验（AI 建议，零判定成本） ⚠️ **⛔ 2026-08-12 更正：该自称为假。** ⭐ 它成立的前提是参考模型形态，⛔ 而该形态已作废；⭐ 人工修复形态下实测 10–20 h（经济版）。见 [../discover_matrix/docs/findings/ref_flip_feasibility.md](../discover_matrix/docs/findings/ref_flip_feasibility.md) §9.5。
 
-⚠️ **实验本身没有作废，但标题里「零判定成本」这条立项理由已作废**：〔用户明确裁定 2026-08-11〕正文不谈人工判定成本，它进正文的理由只能是它回答某个 RQ。现行口径见 [paper_outline.md](./paper_outline.md) §6.6「ref 翻转率实验」，前置实测挂在 `TODO-O6`。
+⚠️ **实验本身没有作废，但标题里「零判定成本」这条立项理由已作废**：〔用户明确裁定 2026-08-11〕正文不谈人工判定成本，它进正文的理由只能是它回答某个 RQ。现行口径见 [paper_outline.md](./paper_outline.md) §6.6「ref 翻转率实验」，前置实测挂在 `TODO-O6`。 ⚠️ **⛔ 2026-08-12 更正：该自称为假。** ⭐ 它成立的前提是参考模型形态，⛔ 而该形态已作废；⭐ 人工修复形态下实测 10–20 h（经济版）。见 [../discover_matrix/docs/findings/ref_flip_feasibility.md](../discover_matrix/docs/findings/ref_flip_feasibility.md) §9.5。
 
 把为 pair X 生成的整套断言，拿去在**同一份 NL 的参考模型**上重新执行。预期：在错误模型上为 False 的断言，应当在参考模型上翻成 True。
 
