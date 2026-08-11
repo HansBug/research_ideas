@@ -106,6 +106,9 @@ class Predicate:
 
 PREDICATES: tuple[Predicate, ...] = (
     # ---- Family S: artifact declarations -------------------------------
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 3 个界内真实系统（3 领域）+ 2 篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "state_declared",
         FAMILY_STRUCTURE,
@@ -135,6 +138,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'state_declared(state="Sys.Ghost", kind="any")  # only asks whether it exists at all',
         ),
     ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 4 个界内真实系统（3 领域）+ 3 篇文献佐证；那是加分，不是必需。
+    #: ⚠️ 词表形状待确认：本条未写「多余」，而 state_declared 写了。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "variable_declared",
         FAMILY_STRUCTURE,
@@ -173,6 +180,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'variable_declared(variable="Sys.units")  # raises: variables take no path prefix',
         ),
     ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 1 个界内真实系统（1 领域）+ 2 篇文献佐证；那是加分，不是必需。
+    #: ⚠️ 仅 3 源、踩在下限上；但它是 ② 类，不靠这个成立。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "event_declared",
         FAMILY_STRUCTURE,
@@ -205,6 +216,8 @@ PREDICATES: tuple[Predicate, ...] = (
             'event_declared(event="evt")  # raises: events take the qualified path',
         ),
     ),
+    #: universality: ③ 无外部依据 —— 裁定后仅 1 源，未达 3 源下限。Limitations 必须明写。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "containment",
         FAMILY_STRUCTURE,
@@ -239,6 +252,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'omission goes unreported.',
         ),
     ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 14 篇独立文献。
+    #: 代表来源：The STATEMATE Semantics of Statecharts (10.1145/235321.235322)；State Chart XML (SCXML): State Machine Notat (www.w3.org)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "initial_target",
         FAMILY_STRUCTURE,
@@ -272,6 +288,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'initial_target(composite="Sys.Outer", child="Sys.Outer.Other")  # False when entry lands elsewhere',
         ),
     ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 10 个界内真实系统（6 领域）+ 5 篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "edge_declared",
         FAMILY_STRUCTURE,
@@ -305,6 +324,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'edge_declared(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Other")  # False when the edge points elsewhere',
         ),
     ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 5 个界内真实系统（3 领域）+ 3 篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "effect_declared",
         FAMILY_STRUCTURE,
@@ -335,6 +357,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'effect_declared(source="Sys.Charging", trigger="Sys.pulse", variable="charge_level", sign="positive")  # False when the model declares no variable under that name',
         ),
     ),
+    #: universality: ② 元模型定义性 —— 判据由元模型定义直接给出，不需要外部出处。
+    #: 另有 8 个界内真实系统（4 领域）+ 0 篇文献佐证；那是加分，不是必需。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "action_declared",
         FAMILY_STRUCTURE,
@@ -364,6 +389,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'action_declared(state="Sys.ModeB", phase="during")  # False when no during action is declared',
         ),
     ),
+    #: universality: ① 有领域证据 —— 4 个界内真实系统（3 领域）+ 11 篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；An Operational Semantics for Stateflow (10.1007/s10009-007-0049-7)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "guard_distinguishable",
         FAMILY_STRUCTURE,
@@ -392,6 +420,8 @@ PREDICATES: tuple[Predicate, ...] = (
             'guard_distinguishable(source="Sys.Leaf", trigger="Sys.pick")  # raises: no such transition, so undecidable',
         ),
     ),
+    #: universality: ③ 无外部依据 —— 裁定后仅 2 源，未达 3 源下限。Limitations 必须明写。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "cardinality",
         FAMILY_STRUCTURE,
@@ -421,6 +451,9 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
     ),
     # ---- Family B: runtime behaviour ------------------------------------
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 5 篇独立文献。
+    #: 代表来源：A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)；UmpleRun: a Dynamic Analysis Tool for Textua (ceur-ws.org)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "occupancy_after",
         FAMILY_BEHAVIOR,
@@ -450,6 +483,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'occupancy_after(source="Sys.ModeA", trigger="Sys.evt", target="Sys.Outer", within_cycles=2)  # composite target, two cycles',
         ),
     ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（2 领域）+ 10 篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；Argos: an Automaton-Based Synchronous Langua (10.1016/S0096-0551(01)00016-9)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "event_consumed",
         FAMILY_BEHAVIOR,
@@ -482,6 +518,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'event_consumed(source="Sys.ModeB", trigger="Sys.evt")  # False when the event is silently ignored here',
         ),
     ),
+    #: universality: ① 有领域证据 —— 5 个界内真实系统（5 领域）+ 3 篇独立文献。
+    #: 代表来源：State-Based Testing: Industrial Evaluation o (10.1109/ISSRE.2012.17)；Mode Confusion Analysis of a Flight Guidance (shemesh.larc.nasa.gov)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "stays_in",
         FAMILY_BEHAVIOR,
@@ -512,6 +551,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'stays_in(source="Sys.ModeA", trigger="Sys.other")  # True when the event is simply ignored here -- ignoring is not leaving. A missing self-loop is edge_declared(source, trigger, source) -- not event_declared, which is True whenever the event exists anywhere',
         ),
     ),
+    #: universality: ① 有领域证据 —— 0 个界内真实系统（0 领域）+ 3 篇独立文献。
+    #: 代表来源：UmpleRun: a Dynamic Analysis Tool for Textua (ceur-ws.org)；Mode Confusion Analysis of a Flight Guidance (shemesh.larc.nasa.gov)。
+    #: ⚠️ 恰好 3 源、踩在下限上；界内语料侧为 0。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "variable_delta_after",
         FAMILY_BEHAVIOR,
@@ -543,6 +586,9 @@ PREDICATES: tuple[Predicate, ...] = (
             'variable_delta_after(source="Sys.ModeA", trigger="Sys.consume", variable="fuel_reserve", sign="negative")  # False when the model declares no variable under that name',
         ),
     ),
+    #: universality: ① 有领域证据 —— 3 个界内真实系统（3 领域）+ 17 篇独立文献。
+    #: 代表来源：Using FRET to Create, Analyze and Monitor Re (ntrs.nasa.gov)；STATEMATE: A Working Environment for the Dev (10.1109/32.54292)。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "reaches",
         FAMILY_BEHAVIOR,
@@ -578,6 +624,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'reaches(source="Sys.ModeA", target="Sys.Dead", within_cycles=3)  # False: unreachable within the budget',
         ),
     ),
+    #: universality: ① 有领域证据 —— 2 个界内真实系统（1 领域）+ 7 篇独立文献。
+    #: 代表来源：PLC Implementation of Symbolic, Modular Supe (10.1016/j.ifacol.2018.06.317)；Supremica--An Efficient Tool for Large-Scale (10.1016/j.ifacol.2017.08.427)。
+    #: ⚠️ 只硬证了定义的一半：17 条候选里 10 条用 deadlock-freedom 顶替，已被裁定改判或拒收。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "terminates",
         FAMILY_BEHAVIOR,
@@ -606,6 +656,10 @@ PREDICATES: tuple[Predicate, ...] = (
         ),
     ),
     # ---- Family P: quantified properties --------------------------------
+    #: universality: ① 有领域证据 —— 41 个界内真实系统（10 领域）+ 28 篇独立文献。
+    #: 代表来源：Using Abstraction and Model Checking to Dete (10.1109/32.730543)；Execution and Verification of UML State Mach (10.1007/978-3-319-10431-7_22)。
+    #: ⚠️ 同源折扣：Dwyer 系已按 DOI 归一为一个来源。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "invariant",
         FAMILY_PROPERTY,
@@ -639,6 +693,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'invariant(scope=\'Sys.ModeA\', condition=\'!active("Sys.ModeB")\', bound=2)  # False when ModeB is reachable in two steps',
         ),
     ),
+    #: universality: ① 有领域证据 —— 17 个界内真实系统（6 领域）+ 19 篇独立文献。
+    #: 代表来源：User-friendly Model Checking Integration in  (download.fortiss.org)；A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)。
+    #: ⚠️ 对应关系缺口：文献的 Response 模式几乎一律是无界 eventually，本谓词的界是步数。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "response_within",
         FAMILY_PROPERTY,
@@ -667,6 +725,10 @@ PREDICATES: tuple[Predicate, ...] = (
             'response_within(trigger="Sys.evt", response="Sys.Never", bound=3, source="Sys.ModeA")  # False: no run answers in time',
         ),
     ),
+    #: universality: ① 有领域证据 —— 23 个界内真实系统（8 领域）+ 13 篇独立文献。
+    #: 代表来源：A Method for Testing and Validating Executab (10.1007/s10270-018-0676-3)；Formal Methods Case Studies for DO-333 (NASA (shemesh.larc.nasa.gov)。
+    #: ⚠️ 同源折扣：多条出自同一作者组的同一微波炉案例。
+    #: 逐条锚点与扣分项见 related_work/provenance/predicate_provenance.md。
     Predicate(
         "persists_until",
         FAMILY_PROPERTY,
