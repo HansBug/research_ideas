@@ -27,17 +27,18 @@
 
 ⚠️ **第二档的边界必须硬守：「导师未反对」不等于背书。** 背书要求**存在一句导师逐字原话，且那句话直接针对这个判断**；讨论记录里写成「我方提出（导师未反对）」的内容，一律不得标为背书，应标【AI 建议·待确认】或写成「我方提出 · 导师未反对」。判据是：**能不能把那句支撑用的导师原话逐字列出来**。列不出就不是背书。
 
-⛔ **`/tmp/placeholders/BLUEPRINT.md` 里的绝大多数内容属【AI 建议·待确认】。** 九节骨架、四个 RQ、三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**。[2026-08-08 导师讨论记录](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) 中逐字加粗的导师原话共 **10 处**（此前本页写「8 句」，系少计，已更正）：discover 单独成篇 / repair 不会简单 / 修复只捎带提及 / 业务建模的重要性 / 那条大逻辑 / 缺上下文信息那条差异化叙述 / 规则从领域分析归纳 / 归纳的规则指导 prompt 设计 / 不必跑那么多 LLM / fork-join 可做专门分析。⚠️ 其中最后一条**已被 2026-08-11 的处置取代**（不展开、不单开 RQ），见该记录 §5.2 与 [model_scope.md](./model_scope.md) §2。后续 PR 不得把【AI 建议·待确认】悄悄升格为【导师原话】。
+⛔ **[blueprint_proposal.md](./blueprint_proposal.md) 里的绝大多数内容属【AI 建议·待确认】。** 九节骨架、四个 RQ、三条 contribution 的分法、T1/T2 分层、ref 翻转率实验、来源类映射表——**全部是 AI 建议**。[2026-08-08 导师讨论记录](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) 中逐字加粗的导师原话共 **10 处**（此前本页写「8 句」，系少计，已更正）：discover 单独成篇 / repair 不会简单 / 修复只捎带提及 / 业务建模的重要性 / 那条大逻辑 / 缺上下文信息那条差异化叙述 / 规则从领域分析归纳 / 归纳的规则指导 prompt 设计 / 不必跑那么多 LLM / fork-join 可做专门分析。⚠️ 其中最后一条**已被 2026-08-11 的处置取代**（不展开、不单开 RQ），见该记录 §5.2 与 [model_scope.md](./model_scope.md) §2。后续 PR 不得把【AI 建议·待确认】悄悄升格为【导师原话】。
 
 ## 3. 文件职责
 
 | 顺序 | 文件 | 职责 | 当前完成度 |
 | --: | :-- | :-- | :-- |
-| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题 / 价值 / 现有方法的问题 / 方法洞察 / 三条 contribution / 任务边界 / 可说与不可说 | 骨架完整，contribution 形状待裁定 |
+| 1 | [paper_story.md](./paper_story.md) | 叙事主干：问题 / 价值 / 现有方法的问题 / 方法洞察 / contribution（**三条 vs 两条未裁定**，见 `TODO-S1`；正文按三条排布只为让结构成立） / 任务边界 / 可说与不可说 | 骨架完整，contribution 形状待裁定 |
 | 2 | [paper_outline.md](./paper_outline.md) | 九节章节骨架 + 4 个 RQ + T1/T2 实验分层 + 待补对照清单 | 骨架完整，RQ 与实验分层待裁定 |
 | 3 | [claim_evidence_map.md](./claim_evidence_map.md) | claim → 证据映射、强度、允许 / 禁止写法 | v46 已有的已填，新增 claim 待补证据 |
 | 4 | [model_scope.md](./model_scope.md) | 建模对象 $M = (S, E, V, Tr, A)$、表达力边界、fork/join 处置 | 基本完整 |
 | 5 | [terminology_policy.md](./terminology_policy.md) | 术语中英口径、易混术语、指标写法、禁用词 | 基本完整 |
+| 6 | [blueprint_proposal.md](./blueprint_proposal.md) | ⛔ **提案，不是依据**：九节骨架 / 四 RQ / T1-T2 / ref 翻转率 / 来源类映射的 AI 推演原料，另含导师 6 句原话 | 全篇【AI 建议·待确认】，引用须标档位 |
 
 **推荐阅读顺序**：想理解论文说什么 → 1、2；想写某一节 → 2 找结构、3 核 claim、5 核措辞；**想核任何数字 → 直接去实验报告，不从本目录转抄**。
 
@@ -66,7 +67,7 @@
 | 3 | [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源**，自包含 |
 | 4 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据——改它们等于改研究规则 |
 | 5 | [../README.md](../README.md)、[../GUIDE.md](../GUIDE.md)、[../STATUS.md](../STATUS.md) | 工作区口径、纪律与当前状态 |
-| 6 | `/tmp/placeholders/BLUEPRINT.md` 一类的 AI 推演材料 | **只作提案**，不得作为依据陈述 |
+| 6 | [blueprint_proposal.md](./blueprint_proposal.md) 一类的 AI 推演材料 | **只作提案**，不得作为依据陈述 |
 
 ⛔ **施工流程状态**（PR 进度、review 状态、CI）以 GitHub PR / issue 为准，本目录不维护。
 

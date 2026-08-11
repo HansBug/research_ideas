@@ -56,7 +56,7 @@ $$ 54\ \text{pair} \times 2\ \text{执行模型} \times 3\ \text{轮} = 324\ \te
 > - **曾经有过的另一个方案**（记录在案，以免后续 PR 以为没考虑过）：  导师当时的建议是「fork/join 这种效果差，是不是因为并发引起的问题，恰恰可以在 RQ 中进行   专门的分析，也是重要的 finding」；BLUEPRINT 据此提出**四层写法**——   ① 量化边界（真实语料中一定比例的需求族落在 $M$ 表示能力之外）；  ② **最有意思的一条**：不排除它会发生什么——把超出表示能力的需求族放进来，     方法**不会表现差，它会在错的东西上得高分**（可表达的部分照常命中计分，     并发义务从未形成、分母里根本没有它们）→ **表达力边界如果不显式声明，     评测会系统性高估方法覆盖面，且高估方向与直觉相反**；  ③ 机制：义务只能从「元模型可表达」与「NL 可绑定」的交集里长出来；  ④ 设计含义：这类方法必须**显式声明并强制**表示能力边界，而不是事后发现。
 > - ⚠️ **这个方案有一个当前无法满足的前提**：② 的数字（`0018` 的 `hit@1` 高于全量均值）  **是 v35 时期的**，而 `00x8` 系列在 v46 里**根本没跑**——它们不在网格内。  要把 ② 写成 finding，**必须重跑被排除的 6 个 pair**，而那与「它们不在研究对象内」  这条口径直接冲突。⛔ 也不得用 v35 的旧数充当 v46 的证据。
 > - **做完之后应该长什么样**：一条明确的裁定（维持「不展开」/ 改为四层 finding），  以及若维持不展开，把 ②③④ 的洞察**移到 §7 讨论的「表达力边界作为方法组成部分」那一段**——   ⚠️ 但那一段本身与「一句话带过」也有张力（见 [paper_outline.md](./paper_outline.md) §7 第 4 条）。
-> - **材料在哪**：导师建议与最终处置见   [../../talks/2026-08-08-导师-paper1收窄为issue-discover.md](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) §5.2；  四层写法见 `/tmp/placeholders/BLUEPRINT.md` §fork/join；  判据见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
+> - **材料在哪**：导师建议与最终处置见   [../../talks/2026-08-08-导师-paper1收窄为issue-discover.md](../../talks/2026-08-08-导师-paper1收窄为issue-discover.md) §5.2；  四层写法见 [blueprint_proposal.md](./blueprint_proposal.md) §fork/join；  判据见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
 
 ---
 

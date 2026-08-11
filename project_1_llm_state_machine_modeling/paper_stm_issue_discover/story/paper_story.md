@@ -79,7 +79,7 @@ LLM 已经能从自然语言需求生成状态机式制品，但生成出来的�
 > - **为什么现在做不了**：这目前是**开发过程中的经验判断**，没有可引用的实验。  审稿人会问「你怎么知道」，而「我们试过，不行」在论文里不成立。
 > - **候选做法**【AI 建议·待确认】：作为消融的一支——同样的语料与执行模型，  不给闭合词表、把 pyfcstm 的裸接口连同文档一起给 agent，比对产出。  ⚠️ 注意 BLUEPRINT 里的 M0–M3 消融方案**已被其作者自行撤回**（理由：核心主张是设计型贡献，  评价方式是覆盖性与有效性，不是与稻草人对打），撤回后 M1/M2/M3 全部降为 future work。  若现在要把「裸工具对照」捡回来，**必须先说明它为什么不是稻草人**。
 > - **做完之后这一节应该长什么样**：要么补上一个小规模对照并在 §6 给数，  要么把这条降级为 Discussion 里的一段经验陈述、明确标为未量化。
-> - **材料在哪**：`/tmp/placeholders/BLUEPRINT.md` §M0–M3 消融；  现有阶段消融的登记见 v46 报告 §9「必须补的对照与审计」。
+> - **材料在哪**：[blueprint_proposal.md](./blueprint_proposal.md) §M0–M3 消融；  现有阶段消融的登记见 v46 报告 §9「必须补的对照与审计」。
 
 ---
 
@@ -118,15 +118,15 @@ LLM 已经能从自然语言需求生成状态机式制品，但生成出来的�
 - **`stays_in`** ← UML 2.5.1 §14.2.3.9.1 的 run-to-completion 规则：一个在当前配置下不触发任何迁移的事件会被**丢弃**，而丢弃不改变配置。**所以「事件有没有被消费」与「机器有没有离开」是两个独立问题**——该谓词不能用前者近似后者。
 - **`persists_until`** ← 时序逻辑中 until 的标准定义：`p U q` 只约束 `q` 首次成立**之前**的前缀；「整个区间上 `p` 或 `q` 恒成立」是一个严格更强的不同公式。有界情形取弱形式，界内既未释放也未违反的运行不算反例。
 
-⚠️【v46 实测】**当前只有 15 处规则挂了出处注释，19 个谓词未逐条挂钩**——这是已登记的工程欠账。其中**落在谓词本身上的只有 3 处**：`occupancy_after`、`stays_in`、`persists_until`（`pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py` 第 1277 / 1417+1421 / 1848+1853 行）。**其余 16 个谓词一处都没有。** 另外 9 处 `provenance:` 注释挂在 schema、renderer、capability、nodes 等非谓词位置，1 处挂在 `_require_well_formed_names` 这个辅助方法上，都不能算作谓词的逐条挂钩。
+⚠️【v46 实测】**当前只有 15 处规则挂了出处注释，19 个谓词未逐条挂钩**——这是已登记的工程欠账。其中**落在具体谓词上的是 5 条注释、覆盖 3 个谓词**：`occupancy_after`、`stays_in`、`persists_until`（`pipeline/feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py` 第 1277 / 1417+1421 / 1848+1853 行）。**其余 16 个谓词一处都没有。** 余下 10 条都不能算谓词的逐条挂钩：9 条在非谓词位置（`capability.py` 3、`nodes.py` 2、`schemas.py` 2、`renderer.py` 1、`predicates.py` 的 `presupposes()` 1），1 条在 `_require_well_formed_names` 这个辅助方法上（`predicate_api.py:387`）。⚠️ **`5 + 9 + 1 = 15` 才闭合**——早先写成 `3 + 9 + 1` 是把「谓词数 3」当成了「注释数」，那 3 个谓词其实由 5 条注释覆盖（`stays_in` 与 `persists_until` 各占 2 条）。
 
 > **TODO(后续PR) `TODO-S3`**：把「规则从领域分析归纳」这条论证链**做实**。
-> - **为什么现在做不了**：这条论证链**成立与否，取决于领域分析这一节是不是真的、可复现的**。目前只有 **3** 个谓词逐条挂了钩（`occupancy_after` / `stays_in` / `persists_until`），其余 **16** 个谓词没有可查证的外部依据。⛔ **不要写成「2 个 / 17 个」**——那是照抄 v46 报告 §4.4「举例两个」的说法，把**举例数**当成了实际标注数；实际数以源码里的 `provenance:` 注释为准，用 `grep -rn "provenance:" pipeline/feedback_loop/src/paper_stm_feedback_loop/` 可复算（共 15 处，其中 3 处落在谓词上）。导师那句话把领域分析从「加分项」变成了**承重结构**：**整篇论文的方法合法性挂在它上面**。
+> - **为什么现在做不了**：这条论证链**成立与否，取决于领域分析这一节是不是真的、可复现的**。目前只有 **3** 个谓词逐条挂了钩（`occupancy_after` / `stays_in` / `persists_until`），其余 **16** 个谓词没有可查证的外部依据。⛔ **不要写成「2 个 / 17 个」**——那是照抄 v46 报告 §4.4「举例两个」的说法，把**举例数**当成了实际标注数；实际数以源码里的 `provenance:` 注释为准，用 `grep -rn "provenance:" pipeline/feedback_loop/src/paper_stm_feedback_loop/` 可复算（共 15 条，其中 5 条落在 3 个谓词上）。导师那句话把领域分析从「加分项」变成了**承重结构**：**整篇论文的方法合法性挂在它上面**。
 > - **交付物**【AI 建议·待确认】：一节领域分析 + **一张 19 行映射表**，列为   `谓词 | 族(S/B/P) | 归纳自哪类领域来源 | 具体文献/标准锚点 | 在 M=(S,E,V,Tr,A) 上如何实例化 | 该来源类下未实例化的部分`。  **最后一列是「表达力边界」这条 RQ 的直接输入。**
 > - ⛔ **不做成 SLR，也不要在论文里报「我们调查了 N 篇」**——报**锚定关系**比报数量有说服力。
 > - **写法四步线性**：领域分析 → 归纳谓词语义 → 元模型指导 prompt 设计 → 在 54 案例上应用。
 > - **候选来源类映射**（BLUEPRINT 凭记忆给出，⚠️ **每一条都必须自己核**，未核者不得写进论文）：  性质规约模式目录（Dwyer/Avrunin/Corbett ICSE 1999）↔ `invariant`/`reaches`/`response_within`/`persists_until`/`terminates`；  模式目录之目录（Autili et al. TSE 2015）↔ 覆盖性论证；  实时模式（Konrad & Cheng ICSE 2005）↔ ⚠️ 整族未实例化（$M$ 无 $C$ 与 $Inv$）；  UML statechart 良构性（OMG UML superstructure）↔ `state_declared`/`containment`/`initial_target`/`edge_declared`/`cardinality`/`guard_distinguishable`；  模型一致性规则（Egyed 一系）↔ 需求-模型一致性；  控制系统领域标准（IEC 61131-3 / IEC 61499、ISO 26262）↔ 领域相关性；  上游缺陷类目 ↔ 与四层归因对齐。
-> - **材料在哪**：口径见   [../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)、  [../discover_matrix/docs/protocol/rule_provenance.md](../discover_matrix/docs/protocol/rule_provenance.md)；  欠账登记见 v46 报告 §4.4 与 §9；来源类候选见 `/tmp/placeholders/BLUEPRINT.md` §领域分析的来源类映射。
+> - **材料在哪**：口径见   [../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md)、  [../discover_matrix/docs/protocol/rule_provenance.md](../discover_matrix/docs/protocol/rule_provenance.md)；  欠账登记见 v46 报告 §4.4 与 §9；来源类候选见 [blueprint_proposal.md](./blueprint_proposal.md) §领域分析的来源类映射。
 
 ### 5.3 断言由全覆盖的需求拆分转换而来，因而天然具备覆盖性
 
@@ -248,7 +248,7 @@ LLM 已经能从自然语言需求生成状态机式制品，但生成出来的�
 >
 >   | | 分法 | 来源 |
 >   | :-- | :-- | :-- |
->   | **A（三条）** | ① 谓词逻辑元模型（19 谓词 / 三族，从领域分析归纳）② 全覆盖可执行断言体系（自带覆盖性；False 子集构成 issue，**整个集合是回归套件**）③ 闭合证据链（issue → 断言 → 需求条目 → NL 原句 / PlantUML 元素） | `/tmp/placeholders/BLUEPRINT.md`，**AI 归纳** |
+>   | **A（三条）** | ① 谓词逻辑元模型（19 谓词 / 三族，从领域分析归纳）② 全覆盖可执行断言体系（自带覆盖性；False 子集构成 issue，**整个集合是回归套件**）③ 闭合证据链（issue → 断言 → 需求条目 → NL 原句 / PlantUML 元素） | [blueprint_proposal.md](./blueprint_proposal.md)，**AI 归纳** |
 >   | **B（两条）** | C-I 谓词逻辑元模型与断言体系（含覆盖性 / 可求值 / 回归防护三条性质）；C-II 带上下文的发现使复核与回归确认可行 | 归档前那一版 story，亦为 AI 归纳 |
 >
 >   **导师原话只支持一件事**：核心贡献是**谓词元模型与断言体系本身**，加上「缺上下文」  那条差异化叙述。①②③ 与 C-I/C-II 之间的切分方式**都是我们自己加的**。
