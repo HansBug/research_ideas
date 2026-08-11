@@ -24,10 +24,12 @@
 
 原文 **Definition 3（Transition Descriptions）**逐字（提取文本第 578–583 行，PDF 第 8 页）：
 
-> `TransDescr is the set of transition descriptions d = ⟨after, guard, actions⟩ where:`
-> `– after ∈ N constrains the delay before firing t.`
-> `– guard is a propositional formula that must evaluate to true to enable t.`
-> `– actions is a sequence of actions executed when t is fired.`
+> ```
+> TransDescr is the set of transition descriptions d = ⟨after, guard, actions⟩ where:
+>   – after ∈ N constrains the delay before firing t.
+>   – guard is a propositional formula that must evaluate to true to enable t.
+>   – actions is a sequence of actions executed when t is fired.
+> ```
 
 ⭐⭐ **`after` 是迁移描述三元组的第一个分量，⛔ 不是可选注解。** 每一条迁移描述都携带一个「触发前的延迟约束」。⛔ 而本文的建模对象是 $M = (S, E, V, Tr, A)$，**无时钟 $C$、无不变式 $Inv$** —— ⭐ 一个逐迁移强制的 `after ∈ N` 就是时间语义在对象内部。
 
