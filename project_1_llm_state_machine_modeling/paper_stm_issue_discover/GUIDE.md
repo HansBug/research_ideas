@@ -4,7 +4,7 @@
 
 ## 1. 默认阅读顺序
 
-1. [README.md](./README.md)：口径基准。这篇论文做什么、两条 contribution、建模对象边界、目录导航。
+1. [README.md](./README.md)：口径基准。这篇论文做什么、**三条** contribution（2026-08-11 裁定，⚠️ 此前为两条）、建模对象边界、目录导航。
 2. [STATUS.md](./STATUS.md)：已完成 / 未完成事实，以及当前不可声称的话。
 3. 本文件：工作纪律。
 4. 按任务分叉：
@@ -22,7 +22,7 @@
 | 级别 | 来源 | 管什么 |
 | --: | :-- | :-- |
 | 1 | 用户当前明确指令 | 一切 |
-| 2 | 2026-08-07 / 08-08 导师定调 | 论文收窄、两条 contribution、RQ 设计原则、修复不展开。⚠️ 口头，原话摘录在 [README.md](./README.md) §2 |
+| 2 | 2026-08-07 / 08-08 导师定调 | 论文收窄、**当时定的两条 contribution**、RQ 设计原则、修复不展开。⚠️ 这一行是**历史事实**，⛔ 不要改成三条——三条是 **2026-08-11** 由用户另行裁定的，见 [README.md](./README.md) §2 与 [story/paper_story.md](./story/paper_story.md) §7。⚠️ 口头，原话摘录在 [README.md](./README.md) §2 |
 | 3 | [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/) | 判定口径、方法出处口径、建模对象边界判据。**改它们等于改研究规则** |
 | 4 | [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | **全部实验数字的唯一来源** |
 | 5 | [README.md](./README.md) / 本文件 / [STATUS.md](./STATUS.md) / [story/](./story/) | 口径、纪律、状态、叙事 |
