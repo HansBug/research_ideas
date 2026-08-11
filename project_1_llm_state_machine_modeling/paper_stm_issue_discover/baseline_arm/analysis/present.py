@@ -47,6 +47,13 @@ from typing import Any
 _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
+# ⭐ `analysis/` → `src/` 这个方向的 import 是合理的：分析要读实现声明的语料位置。
+# ⛔ 反方向不许（`src/` 是被测对象，它的依赖面被隔离测试钉死）。
+# ⚠️ 这里刻意 import 而不是复制一份路径常量——复制就是第二真源，而语料路径一旦漂移，
+# 两臂读的就是不同的输入，且看不出来。
+_SRC = _HERE.parents[0] / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 from runner import REPORT_ROOT  # noqa: E402
 
@@ -241,6 +248,23 @@ def render_pair(
         evidence = str(record.get("nl_evidence") or "").strip()
         if evidence:
             lines.append(f"**NL 出处**：{evidence}")
+            lines.append("")
+        # ⭐⭐ 这个字段**必须**渲染，⛔ 它不是「答案」而是**判据本身的修正**：它记着 statement
+        # 里的哪一部分归因依据**已被裁定撤回**、换用了什么判据。
+        #
+        # ⚠️ 初版漏了它，代价是实测出来的：X1 判定组按已撤回的 statement 判 `EIS-0000-02` 命中，
+        # 而主臂判定者按改后的判据判未命中——跨臂对拍时表现为 5 位分歧，根因是**两侧在读不同的
+        # 台账命题**。⛔ 那是判定伪影，方向抬高 X1。
+        #
+        # ⭐ 全语料只有 2 条非空（`EIS-0000-02` / `EIS-0050-01`），影响 12 位。
+        superseded = str(record.get("basis_superseded_by_ruling") or "").strip()
+        if superseded:
+            lines.append(
+                "⛔ **本条的原判据已被裁定部分撤回，判定时必须按撤回后的判据读，"
+                "⛔ 不得按上面 statement 里已被放弃的那部分归因：**"
+            )
+            lines.append("")
+            lines.append(f"> {superseded}")
             lines.append("")
     lines.append("## 四、X1 六格产出")
     lines.append("")

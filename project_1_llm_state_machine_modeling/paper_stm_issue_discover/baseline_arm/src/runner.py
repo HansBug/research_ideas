@@ -54,8 +54,19 @@ from schema import NaiveReview  # noqa: E402
 #: prompt 的唯一真源。⛔ 不在本文件内联副本（理由见 ../prompt/README.md 开头）。
 PROMPT_FILE = _HERE.parents[0] / "prompt" / "naive_v1.txt"
 
-#: 输入语料根。与主臂 `discover/cli.py` 的 `REPORT_ROOT` 指向同一处——⭐ 这是两臂**唯一**的
-#: 共用项（§4B.1）：同一份 `nl.txt` 与同一份上游原始 `plantuml.puml`。
+#: 输入语料根。与主臂 `discover/cli.py` 的 `REPORT_ROOT` 指向**同一个目录**。
+#:
+#: ⛔⛔ **但两臂读的不是同一份文件，此前这里写错了。** 实测（`grep -rn 'plantuml|\.puml'` 主臂
+#: 源码树只有一处注释命中）：
+#:
+#:   * X1  读 `pairs/<case>/nl.txt` + `pairs/<case>/plantuml.puml`（**作者源**）
+#:   * 主臂读 `pairs/<case>/nl.txt` + `pairs/<case>/fcstm.fcstm`（**编译产物**）
+#:     + `source_traces/` + `working_contracts/`
+#:
+#: ⭐ 唯一真正共用的是 `nl.txt`。⚠️ 这**不是**不公平——模型转换是 C-① 的一环，所以主臂只能看
+#: 自己转换出来的中间表示，那是方法自身的代价。⛔ 但它必须被披露，因为**台账缺陷是按作者源标的**：
+#: 转换既会擦掉缺陷（pair 0000 的 `state HumanDrivingMode { }` 空复合体在 fcstm 里变成普通
+#: state），也会注入编译噪声。⚠️ 两个方向都对主臂不利。见 `preregistered.md` §9.1。
 #: ⚠️ `_HERE.parents[1]` 已经是 `paper_stm_issue_discover`（初版误加了一层 `.parent`，指到了
 #: `project_1_llm_state_machine_modeling`，`test_real_corpus_has_54_in_scope_pairs` 抓住了它）。
 REPORT_ROOT = (

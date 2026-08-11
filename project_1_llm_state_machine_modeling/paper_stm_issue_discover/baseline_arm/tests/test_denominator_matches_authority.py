@@ -28,7 +28,7 @@ PAPER = ARM.parent
 REPO_ROOT = ARM.parents[3]
 MATRIX = PAPER / "discover_matrix"
 
-sys.path.insert(0, str(ARM / "src"))
+sys.path.insert(0, str(ARM / "analysis"))
 
 import present  # noqa: E402
 import verdicts  # noqa: E402

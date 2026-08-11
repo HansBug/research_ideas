@@ -44,22 +44,38 @@
 
 ```
 baseline_arm/
-├── README.md              ← 本文件
-├── preregistered.md       ← ⭐ 事前登记；⛔ 跑格之前已 push，远端时间戳可证
+├── README.md                 ← 本文件
+├── preregistered.md          ← ⭐ 事前登记；⛔ 跑格之前已 push，远端时间戳可证
+├── judging_instructions.md   ← ⭐ 判定指令，发给每个判定组的**物理同一份**文本
 ├── prompt/
-│   ├── naive_v1.txt       ← ⭐ prompt 唯一真源（代码从这里读，⛔ 不内联副本）
-│   └── README.md          ← 设计说明 + 三栏表 + 泄漏审查记录
-├── src/
-│   ├── schema.py          ← 最小输出契约：issue / where / reason 三个自由文本字段
-│   ├── runner.py          ← 单格执行（⛔ 零 import 主臂）
-│   ├── launch.py          ← 324 格编排，幂等、可中断续跑
-│   └── present.py         ← 判定材料生成（并列呈现，⛔ 不匹配、⛔ 不判定）
+│   ├── naive_v1.txt          ← ⭐ prompt 唯一真源（代码从这里读，⛔ 不内联副本）
+│   └── README.md             ← 设计说明 + 三栏表 + 泄漏审查记录
+├── src/          ← ⭐ **对照臂实现**（被测对象）。⛔ 零 import 主臂
+│   ├── schema.py             ← 最小输出契约：issue / where / reason 三个自由文本字段
+│   ├── runner.py             ← 单格执行
+│   └── launch.py             ← 324 格编排，幂等、可中断续跑
+├── analysis/     ← ⭐ **评测分析**（测量工具）。⭐ 与主臂**共用判定链**
+│   ├── present.py            ← 判定材料生成（并列呈现，⛔ 不匹配、⛔ 不判定）
+│   ├── verdicts.py           ← 判定表骨架 / C 层闸 / 格式 A→B 转换
+│   ├── merge_verdicts.py     ← 合并各判定组结果并过闸
+│   └── recheck.py            ← 横向复核（同形态判出两种结果的定位）
 ├── tests/
 └── results/
-    ├── smoke/             ← ⭐ prompt 冻结证据（见 §5）
-    ├── verdicts_x1.json   ← 逐位人工判定表（与 `v46_human.json` 同构）
-    └── ...                ← 指标、多报侧裁定、与主臂并排的对照表
+    ├── smoke/                ← ⭐ prompt 冻结证据（见 §5）
+    ├── verdicts_x1.json      ← 逐位人工判定表（与 `v46_human.json` 同构）
+    └── ...                   ← 指标、多报侧裁定、与主臂并排的对照表
 ```
+
+### 3.1 ⭐⭐ `src/` 与 `analysis/` 的分界是**学术边界**，⛔ 不是文件组织偏好
+
+| | `src/` | `analysis/` |
+| :-- | :-- | :-- |
+| 角色 | **被测对象** | **测量工具** |
+| 隔离 | ⛔ **零 import 主臂**（`paper_stm_feedback_loop` / `pyfcstm` 一个模块都不许进） | ⭐ **共用主臂判定链**（`adjudication_recheck` 的 `element_forms` / `coverage`、`metrics_at_k` 的分母口径） |
+| 理由 | 它是「三条 contribution 一条都没给」这句话的**唯一机械证据** | 两臂必须用**同一把尺子**量；各写一份实现会漂移，⚠️ 而那比违反隔离更严重——它会让两臂的分母或元素抽取悄悄不同 |
+| 由谁钉住 | [tests/test_isolation.py](./tests/test_isolation.py) 四层检查 | [tests/test_denominator_matches_authority.py](./tests/test_denominator_matches_authority.py) 与权威实现逐条对拍 |
+
+⚠️ **方向也是硬的**：`analysis/` → `src/` 的 import 合理（分析要读实现声明的语料位置，⛔ 且不能复制一份路径常量——那会让两臂读到不同输入而看不出来）；⛔ 反方向不许。
 
 ⭐ 按仓库根 [CLAUDE.md](../../../CLAUDE.md) §9.5「顶层只放公共资产」：X1 的资产**只服务这一篇论文**，⛔ 故收在论文 subdir 内，⛔ 不放 project_1 顶层。
 
