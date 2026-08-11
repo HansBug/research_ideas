@@ -108,6 +108,7 @@ def unwrap(text: str) -> str:
     buf: str | None = None          # paragraph or list item being accumulated
     quote_buf: str | None = None    # blockquote run being accumulated
     fence: str | None = None
+    quoted_fence: str | None = None  # fence opened inside a `>` blockquote
     prev_blank = True
 
     def flush() -> None:
@@ -121,6 +122,14 @@ def unwrap(text: str) -> str:
 
     for raw in lines:
         line = raw.rstrip()
+
+        if quoted_fence is not None:
+            # Verbatim passthrough until the quote's closing fence. Matching on the
+            # de-quoted body keeps a `> ``` ` closer recognisable.
+            out.append(raw)
+            if QUOTE.sub("", line, count=1).strip().startswith(quoted_fence):
+                quoted_fence = None
+            continue
 
         if fence is not None:
             out.append(raw)
@@ -144,6 +153,23 @@ def unwrap(text: str) -> str:
 
         if QUOTE.match(line):
             body = QUOTE.sub("", line, count=1)
+            # ⛔ A fenced code block *inside* a blockquote. `FENCE` cannot see it --
+            # its `^\s{0,3}` never matches past the `> ` prefix -- so without this
+            # branch the fence line, the code, and the closing fence all fall through
+            # to the prose folding below and collapse into a single line reading
+            # ```` > ```python code ``` ````. That is silent corruption of source
+            # code, and it happened for real: a `PredicateName = Literal[...]`
+            # excerpt quoted inside a `>` block was destroyed by this tool.
+            fm = FENCE.match(body)
+            if fm:
+                if quote_buf is not None:
+                    out.append(quote_buf)
+                    quote_buf = None
+                flush()
+                out.append(raw)
+                quoted_fence = fm.group(1)[0] * 3
+                prev_blank = False
+                continue
             if quote_buf is None:
                 flush()
                 if body.strip():

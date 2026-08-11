@@ -220,3 +220,35 @@ def test_ordered_list_inside_blockquote_too() -> None:
     src = "> 步骤：\n> 1. 先看这个\n> 2. 再看那个\n"
     out = unwrap(src)
     assert "> 1. 先看这个" in out and "> 2. 再看那个" in out
+
+
+def test_fenced_code_inside_a_blockquote_is_not_folded() -> None:
+    """⛔ 引用块里的代码围栏必须逐字保留。
+
+    `FENCE` 的 ``^\\s{0,3}`` 越不过 ``> `` 前缀，所以在补 `quoted_fence` 之前，
+    围栏行、代码行、收尾围栏会一起掉进散文折叠分支，被压成一行
+    ``> ```python code ``` ``。**这是对源代码的静默损坏**，且已真实发生过一次：
+    一段引在 `>` 块里的 ``PredicateName = Literal[...]`` 摘录被本工具毁掉。
+    """
+    src = (
+        "> 说明如下：\n"
+        ">\n"
+        "> ```python\n"
+        "> PredicateName = Literal[tuple(PREDICATE_ORDER)]  # type: ignore\n"
+        "> x = 1\n"
+        "> ```\n"
+        ">\n"
+        "> 所以它是同一律。\n"
+    )
+    assert unwrap(src) == src
+
+
+def test_quoted_fence_does_not_swallow_the_rest_of_the_file() -> None:
+    """收尾围栏必须被认出来，否则其后的一切都进不了折叠。"""
+    src = "> ```\n> code\n> ```\n\n这段\n应该折叠。\n"
+    assert unwrap(src) == "> ```\n> code\n> ```\n\n这段应该折叠。\n"
+
+
+def test_tilde_fence_inside_blockquote() -> None:
+    src = "> ~~~\n> a  b\n> ~~~\n"
+    assert unwrap(src) == src

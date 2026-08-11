@@ -737,6 +737,7 @@ $$ 54\ \text{pair} \times 2\ \text{执行模型} \times 3\ \text{轮} = 324\ \te
 8. **词表表达力边界**：`variable_declared` 在本语料上不具判别力；`response_within` 零生成。
 9. **拒答文案回灌**未量化。
 10. **方法在本批语料上迭代**，实验的作用是判断改动是否有效。⛔ 但方法的由来按领域资料归纳表述——**不解释留出集**，那个问题在论证结构里不出现。✅ 已裁定（2026-08-11，永久不设留出集）；⛔ 也**不要在 Threats 里为「为什么不留出」辩护**。
+11. ⭐ **判据健全性：若干谓词把某些形式主义**显式允许**的构造判为缺陷**【仓库裁定 2026-08-11】。例：`predicates.py` 的 `initial_target` 措辞为「wrong or missing initial child」、`guard_distinguishable` 为「non-determinism: overlapping or absent discriminating guards」，⚠️ 而 UML §14.2.3.2 / §14.2.3.4.5 对前者**显式列出两种都合法的解读**。⛔ **这不是出处问题**——本文的证据轴是**普遍性**（这类检查在领域实践中反复出现），⛔ 不主张依从任何规范，故不构成自相矛盾（口径见 [../discover_matrix/docs/protocol/method_provenance_policy.md](../discover_matrix/docs/protocol/method_provenance_policy.md) §一.3）。⭐ **它是健全性问题**：本方法会标记某些在特定形式主义下合法的模型。⛔ 必须如实写在这里，并说明我们的判据锚在**需求**而非形式主义的合法性上。⚠️ 未量化：不知道有多少条发现属于此类。
 
 ---
 
