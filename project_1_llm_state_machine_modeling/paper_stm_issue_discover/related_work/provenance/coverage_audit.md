@@ -55,7 +55,21 @@
 
 ⛔ `model smell` 全文出现 **12 次**，**每一次都在「本分片没有 / 下一轮该换到这个方向」的语境里**；⛔ 从未有外部检索把它当轴打过。⚠️ **五路各自指过路。**
 
-⭐ 最高价值单点：**Torre et al. 的 687→119 条一致性规则表（106 位专家验证）** —— ⚠️ 一路称它「本该是最强单条证据」，⛔ 且**已把入口定位到 Carleton SQUALL 的技术报告页**，⛔ 然后没去取。⭐ 一次取件可能同时给 `reaches` / `state_declared` / `edge_declared` / `containment` / `initial_target` 供血。
+✅ **最高价值单点已取到**：**Torre et al. 的 UML 一致性规则** —— ⭐ TR（1605 行）与**博士论文（9022 行）**均已全文入手，见 [recovery_log.md](./recovery_log.md)。
+
+⛔⛔ **但本节上一版对它的描述被证伪，须更正**：⚠️ 原写「Torre et al. **JSS 2018**（含 **687→119** 条规则 + **106 位专家验证**）」—— ⭐ 取件后逐字核实，**那是把三篇论文的事实混成了一篇**：
+
+| 篇 | 逐字事实 |
+| :-- | :-- |
+| **TR SCE-15-01** | **603 → 116**（「We then consolidated a set of **116** UML consistency rules」） |
+| **博士论文 / JSS 2018** | **687 → 119**（「an initial set of **687** UML consistency rules … finally coalesced into **119**」） |
+| **SQJ 2022** | ⭐ **106 位专家**，⛔ 且验的是 **116** 条（「**106 respondents** completed the questionnaire, resulting in a response rate of 23.3%」） |
+
+⭐ **只有博士论文把三者统一。** ⛔ 引用时必须按篇分开说。
+
+⚠️ **另两处元数据同样被证伪**（详见 [recovery_log.md](./recovery_log.md)）：⛔ Salsa ASE 2001 的作者是 **Sims / Cleaveland / Butts / Ranville**（Reactive Systems + **Ford**），⛔ 既不是 Heimdahl 也不是 Heitmeyer；⭐ Bögli 那篇的真实标题是 **"Temporal Logics Meet Real-World Software Requirements: A Reality Check"**。
+
+⭐ **另外**：原建议的头号入口 `squall.sce.carleton.ca` **已下线**（⚠️ DNS 解析到 IP 但 80 端口 filtered）—— ⭐ **这解释了前几路为什么卡住：URL 是对的，服务器不在公网了**。可用替代是 **Carleton Scholaris/DSpace**。
 
 ### 3 ⚠️ 建议补 · 控制 / 自动化工程共同体自己的文献
 
@@ -73,7 +87,11 @@
 
 ⭐ 补法：① 开源模型语料实证（Lindholmen dataset · models-db · GenMyModel 语料）配 `defect` / `smell` / `violation frequency`；② ⭐ **变异算子分类学**（Stateflow / EFSM mutation operators —— ⭐ 其算子表本身就是「工程界认为哪些地方会错」的经验编码，⛔ 且直接命中 `effect_declared` 的方向维度）。
 
-## ⛔⛔ 最伤覆盖声明的一条：**伪缺口**
+## ✅ 最伤覆盖声明的一条：**伪缺口** —— ⭐ **已闭合（2026-08-12）**
+
+⭐ **两条已全部取到全文**，⛔ 且原诊断的错因逐条查清。⭐ 回收还顺带取到另外 7 篇付费墙论文（10 个目标 9 个成功），⛔ 并**证伪了三处元数据**。详见 [recovery_log.md](./recovery_log.md)。
+
+⚠️ 下面保留原始指控的记述，⛔ 因为它说明了**这类缺陷长什么样**：
 
 ⚠️ C3 逐字核实出**两个实例** —— ⛔ 同一份 PDF，一路取到了、另一路把它登记成头号缺口，⛔ **两路互不知道**：
 
@@ -86,7 +104,9 @@
 
 ⭐ **配套的结构性发现**：付费墙**不是随机噪声，⛔ 它与证据强度正相关**。失败记录打中的是 Heitmeyer TOSEM 1996 · Heimdahl & Leveson TSE 1996 · Torre et al. JSS 2018 · Autili TSE 2015 · Vu/Haxthausen SCP 2017 · Bögli FormaliSE 2025 · Lange & Chaudron 系 · Salsa ASE 2001 —— ⛔ **每一条都被某一路评为该谓词的最强候选**。⭐ 结果是证据表被系统性地向「开放获取的、较新的、arXiv 的、工具文档的」那一侧倾斜。
 
-⭐ **成本极低、收益极高的补法**：本轮取件策略是「官方站 → 失败 → 放弃」，⛔ **从未系统尝试作者机构库** —— ⚠️ 而它在本轮已被**三次验证有效**（KIT 取到 ArDoCo、White Rose 取到 Walkinshaw、DTU Orbit 取到联锁 PDF）。⭐ 逐篇走：① 作者主页 ② 机构 repository ③ Unpaywall / OpenAlex 的 `best_oa_location` ④ arXiv / HAL ⑤ CiteSeerX。
+✅ **该补法已执行，⭐ 10 个目标 9 个取到全文**（见 [recovery_log.md](./recovery_log.md)）。⭐ 唯一真缺口是 Lange, Chaudron & Muskens, IEEE Software 2006 —— ⛔ 8 条入口逐条在册，⭐ 且其内容与已取到的博士论文重叠，实质不构成缺口。
+
+⭐⭐ **回收顺带产出三条可复用结论，⛔ 其中一条推翻了本节的一个前提**：⛔ 「Unpaywall / OpenAlex 的 `best_oa_location`」这一步**并不可靠** —— ⚠️ Autili 那条**三大聚合器齐报 `CLOSED` 且三家都错了**，⭐ 破局靠 **OpenAIRE API** 的 `originalId` 字段（⛔ 那是三家都丢掉的）。⭐ 另两条：⛔ 下载后必须 `file` + `pdfinfo` 双查（本轮抓到两类伪 PDF：DTIC 的 1408 字节维护页 · Zenodo 的 763 字节反爬页）；⚠️ Unpaywall 对占位邮箱直接 HTTP 422。
 
 ## ⚠️ 三条「没坦白的少于 3 篇支撑」
 
@@ -104,4 +124,5 @@
 
 | 时间 | 内容 |
 | :-- | :-- |
+| 2026-08-12 | ⭐ 伪缺口与付费墙回收完成（10 个目标 9 个全文）；⛔ 本节对 Torre 的描述被证伪并更正（687→119 与 106 专家不在同一篇）；⛔ 「Unpaywall/OpenAlex 的 best_oa_location」这一步被证明不可靠。 |
 | 2026-08-12 | 建立。记录 C3 的三条机械硬事实、已照改的三条、经核对部分不成立的一条（含我自己工具的列数检查缺陷）、必补但归下一轮的四项、伪缺口与付费墙偏置、三条未坦白的弱支撑。 |
