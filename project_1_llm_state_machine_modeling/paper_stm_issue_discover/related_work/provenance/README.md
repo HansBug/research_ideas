@@ -51,17 +51,24 @@
 
 | 路径 | 是什么 |
 | :-- | :-- |
-| [predicate_provenance.md](./predicate_provenance.md) | ⭐ **19 行出处三类表**（本轨核心产物） |
-| [SUMMARY.md](./SUMMARY.md) | 索引表 + C-③ 差异化结论 + 对 `story/` 的建议 |
+| [SUMMARY.md](./SUMMARY.md) | ⭐ **总账入口** —— 一页结论 + 三类计数 + 四条坏消息 + 元模型级发现 + Q3 定档 + 对 `story/` 的建议 |
+| [predicate_provenance.md](./predicate_provenance.md) | ⭐ **19 行出处三类表**（逐条含扣分项） |
+| [c3_differentiation.md](./c3_differentiation.md) | ⭐ **Q2 · C-③ 差异化** —— 三要素战况 + 三条已知反例的原文定位 + 可证伪命题 |
+| [corpus_scan_findings.md](./corpus_scan_findings.md) | ⭐ 界内语料两轮穷尽扫描的三条发现 |
+| [methodology.md](./methodology.md) | ⭐ 四层编制 · 裁定层的失败模式与双向可靠性审计 · 六条方法局限 |
+| ⛔ [coverage_audit.md](./coverage_audit.md) | ⛔ **C3 覆盖审计：这轮漏了什么** —— ⚠️ **它推翻了两处 claim 形状，⛔ 引用本目录任何结论前必读** |
 | [tools/](./tools/) | 可复现的机械工具，见下 |
 
-### `tools/` 三件
+### `tools/` 六件
 
 | 工具 | 干什么 | ⛔ 边界 |
 | :-- | :-- | :-- |
 | [build_inscope_corpus.py](./tools/build_inscope_corpus.py) | 按边界门三条合取筛出 `sources/` 界内条目，**只抽 `### 1. 原文摘录` 节**，按领域轮转分片 | ⛔ 筛法是**准入门**，⛔ 不是任何比例的分母 |
 | [verify_quotes.py](./tools/verify_quotes.py) | 核验每条引文是否**逐字**存在于摘录节 | ⛔ **只做定位不做裁定**：它答「这句话在不在那里」，⛔ 不答「它算不算义务」 |
-| [aggregate_evidence.py](./tools/aggregate_evidence.py) | 按谓词聚合**独立来源数**与领域覆盖 | ⭐ 计数单位是**互相独立的真实系统**，⛔ 不是条目数 |
+| [aggregate_evidence.py](./tools/aggregate_evidence.py) | 按谓词聚合**独立来源数**与领域覆盖 | ⭐ 计数单位是**互相独立的真实系统**，⛔ 不是条目数；⭐ 标识符按 DOI/arXiv 归一（⚠️ 否则同一篇会被算成多个） |
+| [verify_citations.py](./tools/verify_citations.py) | 解析 DOI / arXiv 核验引用真实存在 | ⛔ 只做存在性与题录比对，⛔ 不做内容裁定 |
+| [detect_self_citation.py](./tools/detect_self_citation.py) | ⛔ 查「拿本研究自己的材料当独立领域证据」 | ⭐ 分三层：种子语料（剔除）· baseline（标注）· 一般收藏（无问题） |
+| [build_provenance_table.py](./tools/build_provenance_table.py) | 生成 19 行三类表 | ⛔ **只吃经过对抗裁定的证据** |
 
 ⛔ **钉命令不钉数** —— 下列数字随扩库变化，交付时现跑：
 
