@@ -106,16 +106,55 @@
 5. C/I 修复必须配套回归测试、复验命令、真实路径或 dry-run 证据；M 级工程建议可以记录为 follow-up，不应阻塞研究节奏。
 6. 若仓库没有 Codecov 或 coverage comment，不得虚构覆盖率证据；可以说明使用本地测试、GitHub Actions smoke 或真实制品回归作为 coverage proxy，并明确其局限。
 
-### 5. LLM 调用、`.env` 与真实运行边界
+### 5. LLM 调用、模型配置与真实运行边界
 
-涉及真实 LLM、hosted API、LLM-as-Judge、LLM review、baseline replication 或 agent-loop 运行时，默认遵循以下规则：
+涉及真实 LLM、hosted API、LLM-as-Judge、LLM review、baseline replication 或 agent-loop 运行时，
+默认遵循以下规则。
 
-1. 运行真实 LLM 前必须在 shell 中 `source .env`；`.env` 是本地配置入口，不应被代码直接解析。
-2. 代码只读取 `os.environ` 中的配置；切换 endpoint、key 或 model 时，通过修改并重新 `source .env` 完成，避免代码分支混入模型配置。
-3. 默认测试应使用 fake、mock、fixture 或 replay；prompt generator 不应自动调用 provider，也不应读取 `.env`。
-4. 真实 API 调用必须显式启用，并在运行记录中保存精确 `model_id`、provider、region（如适用）、调用日期、endpoint / pricing / model 来源链接、prompt、raw output、usage、错误和重试信息。
-5. secret、API key、bearer token、proxy token 等敏感信息必须脱敏；脱敏策略和结果应能被审计，不能把 secret 写入 run record、PR comment、日志或测试 fixture。
-6. 如果某次真实运行因为配置缺失、provider drift、模型不可用或访问失败而降级，应明确记录降级原因，不得把 fake/replay 结果冒充真实 LLM 结果。
+#### 5.1 模型配置的真源是 `.llmconfig.yml`，不是 `.env`
+
+⚠️ **这一条 2026-08-11 更正过。** 此前本节写「运行真实 LLM 前必须 `source .env`；代码只读
+`os.environ`」——那描述的是**已归档的旧 agent loop**，与当前运行时不符，并已实际造成误导
+（一次把「`.env` 不存在」误判成鉴权失败、杀掉了 4 个正在正常运行的格子）。
+
+**当前运行时（`paper_stm_feedback_loop` 及其它走 `utils/llm/` 的代码）：**
+
+1. 配置真源是仓库根的 **`.llmconfig.yml`**（`600` 权限，**不入库**）。
+   它是一份 profile 表：每个 profile 直接写 `adapter` / `base_url` / `api_key` / `model` /
+   `context_window_tokens` / `max_output_tokens`。样例见
+   [.llmconfig.example.yml](./.llmconfig.example.yml)。
+2. **运行时刻意拒绝从环境变量静默取凭据**（见 `utils/llm/config.py` 的
+   `LLMConfig` docstring）。所以**不需要也不应该** `source .env`——仓库根本没有 `.env`。
+3. 切换模型靠 **`--profile <名字>`**，不靠改环境变量。当前可用的 profile 名即
+   `.llmconfig.yml` 里的键（如 `gpt-5.5`、`claude-opus-4-7`）。
+4. 只有一个环境变量参与决议：**`LLM_CONFIG_FILE`**，用于把配置指向别处；
+   未设置时取仓库根的 `.llmconfig.yml`。
+5. `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL` **只被一处使用**——
+   `python -m utils.llm init --from-env`，即把环境变量**一次性转写成** profile 的引导命令。
+   它们不是运行时入口。
+6. 配置自检：`python -m utils.llm list` 看有哪些 profile、
+   `python -m utils.llm validate` 校验、`python -m utils.llm show <profile>` 看单个。
+
+**已归档的旧 agent loop（`archive/agent_loop_method/`）走的是另一套**：它直接读
+`os.environ` 的 `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`，取不到就抛 `KeyError`。
+复活它才需要 `set -a; source .env; set +a` 这类做法。
+⛔ **两套机制并存，不要混。** 判据很简单：**代码走 `utils/llm/` 就是 `.llmconfig.yml`，
+直接 `os.environ[...]` 取三件套的就是旧 loop。**
+
+#### 5.2 其余边界（不随配置机制变化）
+
+1. 默认测试应使用 fake、mock、fixture 或 replay；prompt generator 不应自动调用 provider，
+   也不应读取任何凭据来源。
+2. 真实 API 调用必须显式启用，并在运行记录中保存精确 `model_id`、provider、region（如适用）、
+   调用日期、endpoint / pricing / model 来源链接、prompt、raw output、usage、错误和重试信息。
+3. secret、API key、bearer token、proxy token 等敏感信息必须脱敏；脱敏策略和结果应能被审计，
+   不能把 secret 写入 run record、PR comment、日志或测试 fixture。
+   ⚠️ `.llmconfig.yml` 里是明文凭据，**永远不要 `cat` 它、不要把它的内容贴进任何输出**；
+   要看有哪些 profile 用 `python -m utils.llm list`。
+4. 如果某次真实运行因为配置缺失、provider drift、模型不可用或访问失败而降级，
+   应明确记录降级原因，不得把 fake/replay 结果冒充真实 LLM 结果。
+5. **配置缺失不等于鉴权失败。** 看不到预期的配置文件或环境变量时，先用上面的自检命令确认
+   真实机制，再判断是不是真的没凭据——**不要据此杀正在跑的进程**。
 
 ### 6. Run record 与实验可复现证据链
 
