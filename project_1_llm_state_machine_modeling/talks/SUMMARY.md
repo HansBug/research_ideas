@@ -12,7 +12,7 @@
 | Better STM 定位 | R5.7 阶段性评价框架；active headline framework 已被覆盖，Better STM-facing 资产应全量归档 |
 | Path-2 定位 | 可作为后续控制系统差异化论文继续展开；不压进第一篇主线 |
 | E1/E2 定位 | 同一方法底座或工具链在不同 agent 编排形态下的实验条件，不主打 Hybrid story |
-| 当前核心贡献口径 | 两条：① **谓词逻辑元模型与断言体系本身**（不是"发现了多少问题"），断言由 NL 全覆盖需求条目转换而来、天然具备覆盖性，为真的部分构成回归防护；② 导师点名的差异化叙述——现有 detection 方法**缺少错误的上下文信息**，导致人工复核繁重且无法做修复后回归确认。⛔ issue closure / regression audit / discover-and-refine loop **不再是主贡献** |
+| 当前核心贡献口径 | ⚠️ **三条**【用户明确裁定 2026-08-11】：① **基于模型转换 + 模型形式化检查 / 仿真 / 验证的模型错误发现方法**（⭐ 本条独有的是**真值封存**：断言执行完但真值封存，审查者只看得到可执行性、看不到真假）；② **基于归纳后的谓词逻辑的断言体系**（⚠️ 这一条**就是元模型本身**，只是从「用于构建断言」的角度陈述）；③ **issue 证据链体系**。⛔ **此前本行写「两条」，是 2026-08-08 的旧口径，已被取代。** ⛔ 另删去了原文的「天然具备覆盖性」——现行写法是「**覆盖性的分母来自需求侧**」，⚠️ 「全覆盖」是交给 LLM 的指令、由另一个 LLM 审查，其完整性**未测量**，⛔ 分母来自需求侧不等于分母完整。真源：[paper_stm_issue_discover/story/paper_story.md](../paper_stm_issue_discover/story/paper_story.md) §7。 |
 | 谓词词表由来的论文口径 | 从**领域分析、真实文献与技术资料调研**归纳，应用于 54 个案例，并据此指导 prompt 设计。⛔ 不表述为"从这批 pair 归纳" |
 | 建模对象边界 | $M = (S, E, V, Tr, A)$，不含时钟与正交区。fork/join 那份需求在**问题定义阶段**即落在界外，一句话带过，**不单开 RQ、不做辩护** |
 | 第二篇当前倾向 | 从 `sources` 文库综述 / corpus paper 转向带 human audit gates 的 agent-based SLR 方法学与 benchmark / evidence-package 评价框架 |
@@ -36,7 +36,7 @@
 | 约束 / 建议 | 来源等级 | 后续落点 |
 |---|---|---|
 | 第一篇论文优先推进并尽快进入可写作状态；一篇文章不能放太多内容，必须有明确 scope。 | 导师直接表达 / 正式定调 | paper1 R6/R7/R8 节奏、scope 与写作计划。 |
-| paper1 contribution 不是状态机表达、`fcstm`、`pyfcstm` 或 DSL，而是 loop + diagnostics / simulation / formal verification feedback。 | 导师直接表达 / 正式定调 | title、abstract、contribution、method framing。 |
+| ⛔ **已作废（2026-08-11）**：~~paper1 contribution 不是状态机表达、`fcstm`、`pyfcstm` 或 DSL，而是 loop + diagnostics / simulation / formal verification feedback。~~ ⚠️ 这条**曾被标为「导师直接表达 / 正式定调」，但它已被 2026-08-07 / 08-08 的收窄定调取代**，且现行 `paper_story.md` §13 的**禁语表**逐字列着「贡献是 feedback loop + verification feedback —— 已被 2026-08-07 / 08-08 定调取代」。⛔ 保留原文划删只为留痕，⛔ 不得再据此写 title / abstract / contribution。现行三条见本表「当前核心贡献口径」行。 | ⛔ 已被取代 | ⛔ 不再适用 |
 | 必须列举当前能仿真 / 验证的行为表达，并论证这些表达对控制系统行为和功能质量的重要性。 | 导师直接表达 / 正式定调 | model scope、motivation、method boundary、threats。 |
 | 当前 active 主问题改为 source-level behavioral issue discovery and closure，不再问抽象的 “which STM is better”。 | 用户会后理解 / 待导师确认 | story、RQ、metric、baseline、experiment protocol。 |
 | `fcstm` 只作为 intermediate semantic representation / executable medium；最终评价必须回到 raw/source issue、patch/projection/explanation。 | 导师直接表达 + 用户会后理解 | method boundary、run record、trace map、source-level projection。 |
