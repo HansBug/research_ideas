@@ -125,7 +125,7 @@ post-Confirm export bundle 相关的一切——它们只在有修复动作时�
 | `metrics/` 的全部占位 | 已完成的全量实验报告 | [../../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) |
 | `source_trace` v0 的 active 角色 | R4.5 `source_trace_base.v1`（identity-only、`closure_claim_allowed=false`） | [../../pipeline/representation/README.md](../../pipeline/representation/README.md) |
 | 两份 v0 字段合同的机器形态 | 仍在线，未被取代 | [../../pipeline/evaluation/](../../pipeline/evaluation/)（见 §3.1 末） |
-| `paper1_strategy_asset_map.md` 中 A-005 `story/` 行的处置 | 该目录已于同日归档 | [../r8_discover_repair_story/](../r8_discover_repair_story/) |
+| `paper1_strategy_asset_map.md` 中 A-005 `story/` 行的处置 | 该目录已于同日归档 | [../r8_story_pre_rebuild/](../r8_story_pre_rebuild/) |
 | Better STM 期的历史资产入口 | 上一代 cold archive | [../r5_7_better_stm_snapshot/](../r5_7_better_stm_snapshot/) |
 
 ## 5. 原路径 → 新路径映射

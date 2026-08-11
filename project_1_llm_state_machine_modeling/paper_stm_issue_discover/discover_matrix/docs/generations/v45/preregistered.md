@@ -1,7 +1,6 @@
 # v45 缩小验证 事前登记
 
-> 文件写于运行启动之前；本次提交发生在运行启动之后，提交动作本身不证明它写在运行之前。
-> 旁证：`runs/paper1/matrix-v45-verify/V45_PREREGISTERED_NOTE.txt` 的写入时间早于该代次首条 run record。
+> 文件写于运行启动之前；本次提交发生在运行启动之后，提交动作本身不证明它写在运行之前。旁证：`runs/paper1/matrix-v45-verify/V45_PREREGISTERED_NOTE.txt` 的写入时间早于该代次首条 run record。
 
 ```
 v45-verify 事前登记（缩小验证集）

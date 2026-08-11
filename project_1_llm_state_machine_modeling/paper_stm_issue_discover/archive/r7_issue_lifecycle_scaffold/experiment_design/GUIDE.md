@@ -41,7 +41,7 @@
 
 | 路径 | 职责 |
 |---|---|
-| [../story/](../../r8_discover_repair_story/story/) | 论文 thesis、contribution、claims-to-avoid、terminology。 |
+| [../story/](../../r8_story_pre_rebuild/story/) | 论文 thesis、contribution、claims-to-avoid、terminology。 |
 | [../pipeline/](../../../pipeline/) | conversion / representation / readiness / future loop runtime 的机器制品。 |
 | [../evidence/](../../../evidence/) | 资产清账、审计、trace / ledger 等可复现证据。 |
 | [../archive/](../../) | superseded historical snapshots；不是 active truth。 |

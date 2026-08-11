@@ -1,8 +1,6 @@
 # pipeline/ — 方法实现与输入准备链路
 
-> **导航页。** 本目录是 paper1（STM issue discover）的**代码**所在处：一条准备链
-> （PlantUML → canonical JSON → `.fcstm`）加一条发现链（NL + `.fcstm` → issue + 断言）。
-> 评测与结果**不在这里**，在 [../discover_matrix/](../discover_matrix/)。
+> **导航页。** 本目录是 paper1（STM issue discover）的**代码**所在处：一条准备链（PlantUML → canonical JSON → `.fcstm`）加一条发现链（NL + `.fcstm` → issue + 断言）。评测与结果**不在这里**，在 [../discover_matrix/](../discover_matrix/)。
 
 ## 1. 先看一眼：哪个目录在跑，哪个不在
 
@@ -19,8 +17,7 @@
 
 口径：🟢 当前运行路径 ｜ 🟡 产物已冻结、按需重跑 ｜ 🔴 不在运行路径上
 
-⚠️ **改方法请改 [feedback_loop/](./feedback_loop/)，不要改 [agent_loop/](./agent_loop/)。**
-两者的目录结构、fixture 名、prompt 都长得很像，改错地方不会报错，只会毫无效果。
+⚠️ **改方法请改 [feedback_loop/](./feedback_loop/)，不要改 [agent_loop/](./agent_loop/)。** 两者的目录结构、fixture 名、prompt 都长得很像，改错地方不会报错，只会毫无效果。
 
 ## 2. 数据流：一格实验从哪读到哪写
 
@@ -37,14 +34,9 @@ flowchart TD
 
 三点容易踩错：
 
-1. **discover 的输入根不是 [../selected_seed_examples/](../selected_seed_examples/)**，而是
-   `representation/reports/llms_emp_r45_java_60/`。前者是内容逐字节相同的镜像副本，供人阅读；
-   已核对 pair `0000` 的 `nl.txt` 与 `.fcstm` 两侧 SHA-256 一致。只有退役的
-   `paper_stm_repair_loop.inputs.load_pair()` 才读 `selected_seed_examples/`。
-2. **运行产物写 `runs/`，而 `runs/` 全目录被 `.gitignore` 排除。** 事前登记、判据、报告
-   必须落到 [../discover_matrix/](../discover_matrix/)，写进 `runs/` 等于没提交。
-3. **网格是 54 pair，不是 60。** 末位为 `8` 的 6 个 pair 因建模对象边界排除，判据只读
-   `nl.txt`；见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
+1. **discover 的输入根不是 [../selected_seed_examples/](../selected_seed_examples/)**，而是 `representation/reports/llms_emp_r45_java_60/`。前者是内容逐字节相同的镜像副本，供人阅读；已核对 pair `0000` 的 `nl.txt` 与 `.fcstm` 两侧 SHA-256 一致。只有退役的 `paper_stm_repair_loop.inputs.load_pair()` 才读 `selected_seed_examples/`。
+2. **运行产物写 `runs/`，而 `runs/` 全目录被 `.gitignore` 排除。** 事前登记、判据、报告必须落到 [../discover_matrix/](../discover_matrix/)，写进 `runs/` 等于没提交。
+3. **网格是 54 pair，不是 60。** 末位为 `8` 的 6 个 pair 因建模对象边界排除，判据只读 `nl.txt`；见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
 
 ## 3. 怎么用
 
@@ -86,8 +78,7 @@ PYTHONPATH=$P/readiness_audit/src:$P/representation/src:$P/conversion/src \
 python -m pytest $P/conversion/tests $P/representation/tests $P/readiness_audit/tests $P/evaluation/tests
 ```
 
-各套当前规模：`conversion` 144、`representation` 129、`readiness_audit` 8、`evaluation` 45，
-合计 326；`feedback_loop` 另有 1755，`agent_loop` 266。
+各套当前规模：`conversion` 144、`representation` 129、`readiness_audit` 8、`evaluation` 45，合计 326；`feedback_loop` 另有 1755，`agent_loop` 266。
 
 ## 4. Python 包名与目录名不一致（有意保留）
 
@@ -101,19 +92,14 @@ python -m pytest $P/conversion/tests $P/representation/tests $P/readiness_audit/
 | `agent_loop/` | `paper_stm_repair_loop` | 旧名 |
 | `feedback_loop/` | `paper_stm_feedback_loop` | 新包，本来就不带 `repair` |
 
-**这是有意为之，不是遗漏。** 改包名会同时打断已提交的 run record、report 里的
-`generator_cli_sha256`、implementation-tree hash 与全部 `PYTHONPATH`；留待单独一轮做，
-届时必须配迁移测试。看到 `paper_stm_repair_*` 时按上表对应即可。
+**这是有意为之，不是遗漏。** 改包名会同时打断已提交的 run record、report 里的 `generator_cli_sha256`、implementation-tree hash 与全部 `PYTHONPATH`；留待单独一轮做，届时必须配迁移测试。看到 `paper_stm_repair_*` 时按上表对应即可。
 
 ## 5. 归因纪律（会影响论文结论，不是工程偏好）
 
-1. conversion / normalization / lowering 带来的**可解析性改善单独归因**，不得计入方法效果。
-   全部 loss ledger 中 `repair_contribution_allowed` 恒为 `false`。
-2. 上游 `llms-emp` 论文作者自己的 Phase-II checking 收益**不属于本方法**；58 例取 Phase-II 输出，
-   `0054/0055` 回退 Phase-I，两者都不得写成本研究的产出。
+1. conversion / normalization / lowering 带来的**可解析性改善单独归因**，不得计入方法效果。全部 loss ledger 中 `repair_contribution_allowed` 恒为 `false`。
+2. 上游 `llms-emp` 论文作者自己的 Phase-II checking 收益**不属于本方法**；58 例取 Phase-II 输出，`0054/0055` 回退 Phase-I，两者都不得写成本研究的产出。
 3. 编译器自造的支架元素（`FinalWait*`、`R45RouteToken` 等）**不得升级为作者缺陷**。
-4. 判缺陷读**作者源**（`plantuml.puml`），不读编译产物（`.fcstm`）——只读后者会把编译债务
-   当成模型缺陷。
+4. 判缺陷读**作者源**（`plantuml.puml`），不读编译产物（`.fcstm`）——只读后者会把编译债务当成模型缺陷。
 
 ## 6. 与工作区其它目录的关系
 

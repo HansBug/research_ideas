@@ -188,12 +188,9 @@ git submodule update --init --recursive
 pip install -e ./pyfcstm
 ```
 
-涉及真实 LLM 调用时，配置真源是仓库根的 **`.llmconfig.yml`**（`600` 权限，不入库）。
-它是一份 profile 表，每个 profile 直接写 `adapter` / `base_url` / `api_key` / `model` 等字段；
-样例见 [.llmconfig.example.yml](./.llmconfig.example.yml)。
+涉及真实 LLM 调用时，配置真源是仓库根的 **`.llmconfig.yml`**（`600` 权限，不入库）。它是一份 profile 表，每个 profile 直接写 `adapter` / `base_url` / `api_key` / `model` 等字段；样例见 [.llmconfig.example.yml](./.llmconfig.example.yml)。
 
-**切换模型靠 `--profile <名字>`，不靠环境变量。** 运行时刻意拒绝从环境变量静默取凭据，
-所以**不需要 `source .env`**（仓库也没有 `.env`）。自检：
+**切换模型靠 `--profile <名字>`，不靠环境变量。** 运行时刻意拒绝从环境变量静默取凭据，所以**不需要 `source .env`**（仓库也没有 `.env`）。自检：
 
 ```bash
 python -m utils.llm list              # 有哪些 profile
@@ -203,10 +200,7 @@ python -m utils.llm show <profile>    # 看单个 profile
 
 ⚠️ `.llmconfig.yml` 内含明文凭据，不要 `cat` 它、不要把内容贴进任何输出。
 
-⛔ **已归档的旧 agent loop（`project_1_llm_state_machine_modeling/archive/agent_loop_method/`）
-走的是另一套**：它直接读 `os.environ` 的 `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`。
-两套机制并存，判据是——代码走 `utils/llm/` 就用 `.llmconfig.yml`，
-直接 `os.environ[...]` 取三件套的才是旧 loop。
+⛔ **已归档的旧 agent loop（`project_1_llm_state_machine_modeling/archive/agent_loop_method/`）走的是另一套**：它直接读 `os.environ` 的 `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`。两套机制并存，判据是——代码走 `utils/llm/` 就用 `.llmconfig.yml`，直接 `os.environ[...]` 取三件套的才是旧 loop。
 
 ## 关键技术栈
 

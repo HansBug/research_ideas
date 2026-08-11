@@ -42,9 +42,7 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 | [stratification.json](./stratification.json) | 🟡 仅历史 | 词法分层基线，区间 66 – 144 |
 | [STRATIFICATION.md](./STRATIFICATION.md) | 🔴 **已被取代** | 区间 47 – 136，且与 `stratification.json` 也已脱钩（缺 `over_specification` 层）。**不要引用其中任何数字**，见该文件顶部说明 |
 
-一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑
-[../stratify_candidates.py](../stratify_candidates.py) 或
-[../merge_manual_stratification.py](../merge_manual_stratification.py) 不会更新它们。
+一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑 [../stratify_candidates.py](../stratify_candidates.py) 或 [../merge_manual_stratification.py](../merge_manual_stratification.py) 不会更新它们。
 
 ## 组间信度（双盲复审）
 

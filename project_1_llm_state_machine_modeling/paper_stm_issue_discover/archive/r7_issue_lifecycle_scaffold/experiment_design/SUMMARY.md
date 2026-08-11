@@ -25,7 +25,7 @@
 
 ## 4. 下一步阅读路径
 
-1. 当前 story 与贡献口径：先读 [../README.md](../../../README.md) 和 [../story/README.md](../../r8_discover_repair_story/story/README.md)。
+1. 当前 story 与贡献口径：先读 [../README.md](../../../README.md) 和 [../story/README.md](../../r8_story_pre_rebuild/story/README.md)。
 2. 资产归档依据：读 [../evidence/ledgers/paper1_strategy_asset_map.md](../evidence_ledgers/paper1_strategy_asset_map.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../../r5_7_better_stm_snapshot/PATH_MAPPING.md)。
 3. 后续实验设计：先读 [Issue #152](https://github.com/HansBug/research_ideas/issues/152)、[issue_lifecycle/README.md](./issue_lifecycle/README.md) 与 [source_trace/README.md](./source_trace/README.md)，再到 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100) 查询动态施工顺序；不要从 archive 直接恢复旧 Better STM gate。
 

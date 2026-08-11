@@ -158,8 +158,12 @@ def unwrap(text: str) -> str:
                 out.append(">")
                 quote_buf = None
             else:
-                # A table or heading inside a quote still needs its own line.
-                if _standalone(body):
+                # A table, heading **or list item** inside a quote still needs its own
+                # line. Omitting LIST here folded `> - a` / `> - b` into one line and
+                # destroyed the list -- the rendered output became a single paragraph
+                # reading "- a - b". Blockquoted lists are common in these docs
+                # (口径表、优先级说明), so this was not a corner case.
+                if _standalone(body) or LIST.match(body):
                     out.append(quote_buf)
                     quote_buf = "> " + body
                 else:

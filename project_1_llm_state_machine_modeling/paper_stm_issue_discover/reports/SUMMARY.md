@@ -13,7 +13,7 @@
 
 本 SUMMARY 不复制完整大表。row-level canonical facts 以 [../pipeline/](../pipeline/) 下 JSON / JSONL / ZIP / committed artifact，以及 [../corpora/](../corpora/) 下的一手 raw / extracted assets 为准。
 
-> **历史口径提醒**：下方 active report 总表中的 R5 / R5.5 报告是 **pre-R5.7 / pre-strategy-reset historical reports**。它们可能保留 “Better STM”、`STM_k` 或早期 scope wording，但这些 wording 只反映当时的方向性探索；不得作为当前 paper1 的 active evaluation framework、method result、baseline contract 或 `fcstm` contribution 证据。当前 story / contribution / evaluation 口径以 [../README.md](../README.md)、[../story/README.md](../archive/r8_discover_repair_story/story/README.md) 与 [../experiment_design/README.md](../experiment_design/README.md) 为准。
+> **历史口径提醒**：下方 active report 总表中的 R5 / R5.5 报告是 **pre-R5.7 / pre-strategy-reset historical reports**。它们可能保留 “Better STM”、`STM_k` 或早期 scope wording，但这些 wording 只反映当时的方向性探索；不得作为当前 paper1 的 active evaluation framework、method result、baseline contract 或 `fcstm` contribution 证据。当前 story / contribution / evaluation 口径以 [../README.md](../README.md)、[../story/README.md](../archive/r8_story_pre_rebuild/story/README.md) 与 [../experiment_design/README.md](../experiment_design/README.md) 为准。
 
 ## 2. Active report 总表
 

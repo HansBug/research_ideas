@@ -2,13 +2,9 @@
 
 > 🔴 **脚手架，尚未逐条填充；且它服务的实验已经跑完了。**
 >
-> 本库的立库目的是「为后续构造 `<NL, STM_0>` 提供入口」。但 paper1 的语料已经定了——
-> 60 例全部来自 [../seed_library/llms-emp-stm-subset/](../seed_library/llms-emp-stm-subset/)，
-> v46 全量矩阵已跑完。**本库对 paper1 不再有输入职责**，只作为后续论文换语料时的检索起点。
+> 本库的立库目的是「为后续构造 `<NL, STM_0>` 提供入口」。但 paper1 的语料已经定了—— 60 例全部来自 [../seed_library/llms-emp-stm-subset/](../seed_library/llms-emp-stm-subset/)，v46 全量矩阵已跑完。**本库对 paper1 不再有输入职责**，只作为后续论文换语料时的检索起点。
 >
-> 另：2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
-> 下文（及 [SUMMARY.md](./SUMMARY.md)）描述 [../repair_baselines/](../repair_baselines/) 角色时
-> 沿用的 `repair / closure` 措辞，是那个文库自身的收录口径，不是 paper1 的主线。
+> 另：2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。下文（及 [SUMMARY.md](./SUMMARY.md)）描述 [../repair_baselines/](../repair_baselines/) 角色时沿用的 `repair / closure` 措辞，是那个文库自身的收录口径，不是 paper1 的主线。
 
 ## 0. 定位
 

@@ -12,18 +12,11 @@
 >
 > **三点必须一起看：**
 >
-> 1. **本文件被 [FINAL_STRATIFICATION.md](./FINAL_STRATIFICATION.md) 取代**——后者把本文件末尾「仍需人工的两步」
->    （复核 `nl_named`、归层 `unclassified`）实际做完了，因此从区间收敛到点值。取代关系是**完成**，不是**推翻**。
-> 2. **本文件的正文数字连 [stratification.json](./stratification.json) 都对不上**：该 JSON 由
->    [../stratify_candidates.py](../stratify_candidates.py) 重新生成过，`over_specification` 层（31 条）
->    在本文件正文里**根本不存在**，下界也因此从 47 变成 66。所以本文件不只是「旧版本」，是**与自己的生成源脱钩的旧版本**——
->    重跑一次脚本就会得到另一份内容。
-> 3. **`FINAL_STRATIFICATION.md` 的 129 也已经不是当前值**：`final_stratification.json` 现记 `admissible = 126`，
->    与台账 [expected_issue_set.json](./expected_issue_set.json) 的 126 条一致。要引数字请**直接读 JSON**，
->    两份 `.md` 都只是某一时刻的散文快照。
+> 1. **本文件被 [FINAL_STRATIFICATION.md](./FINAL_STRATIFICATION.md) 取代**——后者把本文件末尾「仍需人工的两步」   （复核 `nl_named`、归层 `unclassified`）实际做完了，因此从区间收敛到点值。取代关系是**完成**，不是**推翻**。
+> 2. **本文件的正文数字连 [stratification.json](./stratification.json) 都对不上**：该 JSON 由    [../stratify_candidates.py](../stratify_candidates.py) 重新生成过，`over_specification` 层（31 条）   在本文件正文里**根本不存在**，下界也因此从 47 变成 66。所以本文件不只是「旧版本」，是**与自己的生成源脱钩的旧版本**——    重跑一次脚本就会得到另一份内容。
+> 3. **`FINAL_STRATIFICATION.md` 的 129 也已经不是当前值**：`final_stratification.json` 现记 `admissible = 126`，   与台账 [expected_issue_set.json](./expected_issue_set.json) 的 126 条一致。要引数字请**直接读 JSON**，   两份 `.md` 都只是某一时刻的散文快照。
 >
-> 本文件**保留不删**：它记录了「区间 → 点值」这一步是怎么走的，以及为什么 `nl_named` 只能当上界。
-> 但凡涉及具体数字，一律以上表右两列为准。
+> 本文件**保留不删**：它记录了「区间 → 点值」这一步是怎么走的，以及为什么 `nl_named` 只能当上界。但凡涉及具体数字，一律以上表右两列为准。
 
 Issue [#171](https://github.com/HansBug/research_ideas/issues/171) 裁决点 1 问的是「154 条候选如何入账」。本文件把它从一个立场表态变成一个**可复算的数字**：分层由 [../stratify_candidates.py](../stratify_candidates.py) 产出，判据、触发词与逐条归属全部落盘在 [stratification.json](./stratification.json)，任何一行都可以被推翻。
 

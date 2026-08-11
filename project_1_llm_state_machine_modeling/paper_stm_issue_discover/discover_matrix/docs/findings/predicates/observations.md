@@ -1,8 +1,6 @@
 # 谓词层的实测观测与已发布判定
 
-从 `assertions/predicate_api.py` 的 docstring / 注释里移出的**计数与判定**。移出理由见
-[docs/protocol/rule_provenance.md](../../protocol/rule_provenance.md)「结果邻接类文件」一节：那些文件是公理推导的必读项，含实验结果
-会污染规则编写侧。
+从 `assertions/predicate_api.py` 的 docstring / 注释里移出的**计数与判定**。移出理由见 [docs/protocol/rule_provenance.md](../../protocol/rule_provenance.md)「结果邻接类文件」一节：那些文件是公理推导的必读项，含实验结果会污染规则编写侧。
 
 ## 判别标准（本次执行时修正过一次）
 
@@ -14,11 +12,9 @@
 
 ⚠️ **原标准是「保留为什么这样实现、移出在哪些样本上观测到多少」，执行时发现它会把定位一起移走。**
 
-定位类（16 行）兼有机制说明作用：它告诉后来者**去哪里能重现这个行为**。移走它会降低可维护性 ——
-下一个改 `_occupies` 的人失去了「在 0018 上能看到」这个入口。
+定位类（16 行）兼有机制说明作用：它告诉后来者**去哪里能重现这个行为**。移走它会降低可维护性 ——下一个改 `_occupies` 的人失去了「在 0018 上能看到」这个入口。
 
-**修正后的标准是：移出计数与判定（多少个、发布了没有），保留定位（在哪能看到）。** 前者是结果，
-后者是复现指引。
+**修正后的标准是：移出计数与判定（多少个、发布了没有），保留定位（在哪能看到）。** 前者是结果，后者是复现指引。
 
 ## 移出的 9 处
 
@@ -30,14 +26,11 @@
 
 v20 hold-out 集上，同一形状（对瞬时伪状态发问）**产生了 17 条已发布发现**，落在 `0018` 与 `0038`。
 
-⚠️ 该函数 docstring 里另一条**保留**的观测更重要且属于定位类：语料对 `pseudo` 关键字的标注**不一致**
-（`0018` 标了九个路由结点、`0048` 标了两个、`0038` 一个没标）。它是「用规则检测语料自身不一致」这类错误
-的实证，[docs/generations/v25/wellformedness_axioms.md](../../generations/v25/wellformedness_axioms.md) §二③ 据此剔除了一条候选公理。
+⚠️ 该函数 docstring 里另一条**保留**的观测更重要且属于定位类：语料对 `pseudo` 关键字的标注**不一致**（`0018` 标了九个路由结点、`0048` 标了两个、`0038` 一个没标）。它是「用规则检测语料自身不一致」这类错误的实证，[docs/generations/v25/wellformedness_axioms.md](../../generations/v25/wellformedness_axioms.md) §二③ 据此剔除了一条候选公理。
 
 ### `_settle_cycles`（原 L511）
 
-**matrix-v16 把其中一个 settle 链发布为确认缺陷**：`0050` 的 `AutonomousMode` 沿
-`SubState1 -> SubState2 -> …` settle 2 到 7 条边深。
+**matrix-v16 把其中一个 settle 链发布为确认缺陷**：`0050` 的 `AutonomousMode` 沿 `SubState1 -> SubState2 -> …` settle 2 到 7 条边深。
 
 ### `_initial_child_of` 的 `field` 内联（原 L945、L976）
 
@@ -51,11 +44,9 @@ v20 hold-out 集上，同一形状（对瞬时伪状态发问）**产生了 17 �
 
 ### `_occupies`（原 L1299）
 
-横轴非单调这个缺陷被发现前的两项代价：跨 **v22+v23** 共 **51 / 219** 个 False 结果（**23.3%**）在更小的
-horizon 上为 True，每一个都作为发现发布了。
+横轴非单调这个缺陷被发现前的两项代价：跨 **v22+v23** 共 **51 / 219** 个 False 结果（**23.3%**）在更小的 horizon 上为 True，每一个都作为发现发布了。
 
-📌 该缺陷的完整分析（含它曾被误归类为语义边界）见
-[docs/generations/v24/predicate_bottleneck.md](../../generations/v24/predicate_bottleneck.md) 与 `defects_registered.md`。
+📌 该缺陷的完整分析（含它曾被误归类为语义边界）见 [docs/generations/v24/predicate_bottleneck.md](../../generations/v24/predicate_bottleneck.md) 与 `defects_registered.md`。
 
 ### `terminates`（原 L1665）
 

@@ -13,7 +13,7 @@
 | 原路径 | `paper_stm_issue_discover/story/` |
 | 内容冻结时间 | 2026-08-11 凌晨（七份文件的 §「相对上一版改了什么」记录了那次重写的逐条动机） |
 | 归档时间 | 2026-08-11 |
-| 归档动作 | `git mv story archive/r8_discover_repair_story/story`，7 个文件全部为 rename，内容未改；只机械调整了相对链接深度（详见 §6） |
+| 归档动作 | `git mv story archive/r8_story_pre_rebuild/story`，7 个文件全部为 rename，内容未改；只机械调整了相对链接深度（详见 §6） |
 | 内容口径 | 已是 discover-only 口径；2026-08-07 / 08-08 导师定调已吸收 |
 
 ## 1. 这是什么
@@ -57,7 +57,8 @@ paper1 的论文叙事真源：thesis、两条 contribution、章节骨架与 RQ
 | 核心洞察「受限谓词词表本身就是一次建模」 | [story/paper_story.md](./story/paper_story.md) §5.1 | 含三族划分、19 谓词全表，以及两个可直接写进论文的领域出处挂钩示例（`stays_in` ← UML 2.5.1 run-to-completion；`persists_until` ← until 的标准定义） |
 | 「把形式化工具裸给自主 agent 效果很差」这条反面立论 | [story/paper_story.md](./story/paper_story.md) §4 末、§5.1 | 它是 §5.1 洞察的反面证据，也是回答「这不就是让 LLM 报缺陷吗」的主要弹药 |
 | C1–C15 的强度分档（`实测-强/中/弱`、`方法性质-未测`、`推论`） | [story/claim_evidence_map.md](./story/claim_evidence_map.md) §1–§2 | 五档口径能表达「有实测但只是上界」「有数据但对口径敏感」两种最常见情形，重搭时不必重造 |
-| 12 条 forbidden claims 与其理由、替代写法 | [story/claim_evidence_map.md](./story/claim_evidence_map.md) §3 | 每条对应一次真实的措辞回流风险，删掉会重犯 |
+| ⭐ **§3 Problem Formulation 整节**（建模对象 / 任务 / 什么算一条合格的发现） | [story/paper_outline.md](./story/paper_outline.md) §3 | **新九节把 §3 让给了「领域分析与谓词元模型」，这一节因此没有落点**——而导师定调要求建模对象边界在「问题定义阶段」给出。⛔ **取回它，不要重写。** 对应 `TODO.md` A 组「建模对象边界该落 §1 还是 §3」 |
+| **14** 条 forbidden claims 与其理由、替代写法 | [story/claim_evidence_map.md](./story/claim_evidence_map.md) §3 | 每条对应一次真实的措辞回流风险，删掉会重犯 |
 | 九条 reviewer challenge 对照 | [story/claim_evidence_map.md](./story/claim_evidence_map.md) §4；[story/paper_story.md](./story/paper_story.md) §13 | 覆盖「60.4% 相对什么」「分母是你们自己标的」「多报这么多 precision 呢」等必被问到的问题 |
 | 四组易混术语 | [story/terminology_policy.md](./story/terminology_policy.md) §1 | 「作者」（生成模型的 LLM）vs 上游论文作者；生成方 6 vs 执行方 2；`over_specification`（模型多写）vs 过度规定（断言多要）；条目 / 去重 / 逐格三层计数。这四组每一组混用都会让读者得出与数据相反的结论 |
 | 指标写法的三条硬约束 | [story/terminology_policy.md](./story/terminology_policy.md) §3 | `hit@1` 必带 $\le$、三口径同报、覆盖率与算力同报 |
@@ -96,7 +97,12 @@ paper1 的论文叙事真源：thesis、两条 contribution、章节骨架与 RQ
 | [story/README.md](./story/README.md) §5 「repair 期资产虽在但不得引用，文件仍在原地」 | 那批资产已于同日归档 | [../r7_issue_lifecycle_scaffold/](../r7_issue_lifecycle_scaffold/) |
 | 工作区口径、纪律与当前状态 | 工作区入口三件套（由另一路 PR 维护） | [../../README.md](../../README.md)、[../../GUIDE.md](../../GUIDE.md)、[../../STATUS.md](../../STATUS.md) |
 
-⚠️ **没有一份新文件「取代」了本目录的叙事内容本身**——新 `story/` 目前是空的，等待重搭骨架。
+⚠️ **没有一份新文件「取代」了本目录的叙事内容本身。**
+新 `story/` 已在同一批（commit `aab12c4c`）落了 **6 份 placeholder**——**结构在、细节缺**，
+每处待补都是显式 `TODO(后续PR)` 区块。
+⛔ **不要因为本目录「看起来更完整」就照着它写正文**：它的 contribution 写成两条、
+RQ 表已定稿，而这些恰恰是新 placeholder 明令「未裁定、不得定稿」的东西。
+正确用法是按下面 §3.1 逐条取材，而不是整份沿用。
 在新骨架落地之前，本目录仍是叙事口径最完整的一份材料，只是不再是 active 事实源。
 
 ## 5. 原路径 → 新路径映射

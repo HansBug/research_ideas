@@ -2,12 +2,7 @@
 
 ## 使用边界
 
-该模型只用于解除 `PR-discover` 的 smoke 阻塞，不属于自动 PlantUML -> FCSTM
-转换结果，不进入 paper1 正式效果统计，也不能作为 reference repair。加载的 source pair
-固定为 `llms_emp_feedback_final_0000`；run source 仍采用 `fcstm_identity`，因此
-`stm0.puml` 只负责保存 feedback-final source provenance。人工建模过程中实际参考过的
-phase-I Generation PlantUML 另存为 [phase_i_generation_provenance.puml](./phase_i_generation_provenance.puml)，
-只作为 derivation provenance，不得替代 selected source hash。
+该模型只用于解除 `PR-discover` 的 smoke 阻塞，不属于自动 PlantUML -> FCSTM 转换结果，不进入 paper1 正式效果统计，也不能作为 reference repair。加载的 source pair 固定为 `llms_emp_feedback_final_0000`；run source 仍采用 `fcstm_identity`，因此 `stm0.puml` 只负责保存 feedback-final source provenance。人工建模过程中实际参考过的 phase-I Generation PlantUML 另存为 [phase_i_generation_provenance.puml](./phase_i_generation_provenance.puml)，只作为 derivation provenance，不得替代 selected source hash。
 
 ## 人工裁决
 
@@ -26,8 +21,5 @@ phase-I Generation PlantUML 另存为 [phase_i_generation_provenance.puml](./pha
 ## 仍然保留的 source-level 风险
 
 1. NL 的 power-off 是否应当在 autonomous 模式同样生效，原文没有给出明确作用域。
-2. `Front Distance > 10` 仍是 source 中的 condition-like opaque event；它属于
-   expression debt / semantic opacity 候选，不能仅因没有被恢复为 guard 就算 confirmed issue。
-3. phase-I PlantUML 自身的层级与 NL 冲突已经通过人工裁决消解，并仅作为
-   derivation provenance 保留；正式 loaded source pair 是 feedback-final `AE2`。因此该模型只能作为
-   conversion-safe pilot，不能用于测量方法发现该层级问题的能力。
+2. `Front Distance > 10` 仍是 source 中的 condition-like opaque event；它属于 expression debt / semantic opacity 候选，不能仅因没有被恢复为 guard 就算 confirmed issue。
+3. phase-I PlantUML 自身的层级与 NL 冲突已经通过人工裁决消解，并仅作为 derivation provenance 保留；正式 loaded source pair 是 feedback-final `AE2`。因此该模型只能作为 conversion-safe pilot，不能用于测量方法发现该层级问题的能力。

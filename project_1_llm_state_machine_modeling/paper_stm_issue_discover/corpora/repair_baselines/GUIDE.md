@@ -10,8 +10,7 @@
 > | 下文「`NL + raw/source STM_0 -> source-level issue discovery / repair / closure` 主线」 | 🟡 读作**本文库自身的收录口径**，不是 paper1 的任务定义 |
 > | 「本文 baseline」「严格全绿 baseline」这类措辞 | 🔴 paper1 **不做 repair，没有 repair baseline 可对照**。这些等级现在的含义是「作为后续 repair 论文 baseline 的成熟度」 |
 >
-> paper1 当前对本文库的两个用途：§Related Work 靶子文献，以及后续论文的 baseline 储备。
-> 贡献口径见 [../../README.md](../../README.md) §2，定位变更见 [README.md](./README.md) 顶部。
+> paper1 当前对本文库的两个用途：§Related Work 靶子文献，以及后续论文的 baseline 储备。贡献口径见 [../../README.md](../../README.md) §2，定位变更见 [README.md](./README.md) 顶部。
 
 ## 1. 目标与边界
 

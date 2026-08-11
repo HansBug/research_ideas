@@ -1,7 +1,6 @@
 # readiness_audit/ — 语料准入审计（结论已固化，不再重跑）
 
-> 🟡 **本目录回答的是「哪些 seed 能用」这个已经答完的问题。** 60 例语料已据此选定并冻结，
-> 因此它不参与任何一格实验，只作为**语料选择的证据链**。
+> 🟡 **本目录回答的是「哪些 seed 能用」这个已经答完的问题。** 60 例语料已据此选定并冻结，因此它不参与任何一格实验，只作为**语料选择的证据链**。
 >
 > | 问题 | 答案 |
 > | :-- | :-- |
@@ -11,11 +10,9 @@
 > | 测试规模 | 8 个（本目录测试最少；主要资产是**已提交的 report**，不是测试） |
 > | 调 LLM 吗 | 不。不读 `.env`，不调 provider |
 >
-> ⚠️ **本目录的「四例」与论文语料无关。** 那是历史 smoke fixture，用于验证转换 / 表示桥 / 评价门
-> 接口是否连通；论文语料是 60 例（实验网格 54 例）。两套统计不得混用。
+> ⚠️ **本目录的「四例」与论文语料无关。** 那是历史 smoke fixture，用于验证转换 / 表示桥 / 评价门接口是否连通；论文语料是 60 例（实验网格 54 例）。两套统计不得混用。
 >
-> ⚠️ **`*.md` 一律不是事实源。** 所有统计必须能从 `*.json` / `*.jsonl` / `records_index.json` /
-> `archive_manifest.json` 复算。
+> ⚠️ **`*.md` 一律不是事实源。** 所有统计必须能从 `*.json` / `*.jsonl` / `records_index.json` / `archive_manifest.json` 复算。
 
 ## 0. 定位
 
@@ -31,13 +28,7 @@ R5 **不是**主实验，不执行 repair / fix loop，不生成 `STM_k`，不�
 
 ### 1.1 选定四例冒烟
 
-⚠️ **路径已漂移，请勿照此重跑。** 生成器 `cli.py` 的 `SELECTED_DIR` 仍指向
-[../../selected_seed_examples/](../../selected_seed_examples/)，但该目录在 PR #162 之后已改为
-60 个 `llms_emp_feedback_final_NNNN/`，**不再包含下表的四个 `example_id`**。四例输入现居
-[../conversion/fixtures/r3_selected_seed_examples/](../conversion/fixtures/r3_selected_seed_examples/)。
-因此 `run-selected` 只能复现 committed report，不宜按当前代码重跑；`validate` 亦已报出
-index archive 缺失与 R6/R7/R8 handoff 计数不符（该命令只打印 ERROR 并返回 0，不是门禁）。
-这属于语料换代后的已知欠账，**不影响任何论文结论**——四例本就不是论文语料。
+⚠️ **路径已漂移，请勿照此重跑。** 生成器 `cli.py` 的 `SELECTED_DIR` 仍指向 [../../selected_seed_examples/](../../selected_seed_examples/)，但该目录在 PR #162 之后已改为 60 个 `llms_emp_feedback_final_NNNN/`，**不再包含下表的四个 `example_id`**。四例输入现居 [../conversion/fixtures/r3_selected_seed_examples/](../conversion/fixtures/r3_selected_seed_examples/)。因此 `run-selected` 只能复现 committed report，不宜按当前代码重跑；`validate` 亦已报出 index archive 缺失与 R6/R7/R8 handoff 计数不符（该命令只打印 ERROR 并返回 0，不是门禁）。这属于语料换代后的已知欠账，**不影响任何论文结论**——四例本就不是论文语料。
 
 下表为历史四例的 committed 审计口径，每例消费 committed 上游制品，不在 R5 重写上游事实。
 

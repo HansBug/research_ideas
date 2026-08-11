@@ -191,3 +191,32 @@ class TestAmbiguousWidthPunctuation:
     def test_latin_context_keeps_its_spaces(self, text: str, expected: str):
         """The same glyph between Latin words is a real separator."""
         assert unwrap(text) == expected
+
+
+def test_list_inside_blockquote_keeps_one_item_per_line() -> None:
+    """引用块里的列表不能被折成一行。
+
+    首版只对表格/标题在引用块内另起行，漏了列表项，于是
+
+        > **优先级**：
+        > - P0 —— …
+        > - P1 —— …
+
+    被折成 `> **优先级**：- P0 —— … - P1 —— …`，渲染出来是一个段落而不是列表。
+    这类写法在本仓库的口径说明里很常见，不是边角情形。
+    """
+
+    src = (
+        "> **优先级口径**：\n"
+        "> - **P0** —— 会让 claim 站不住\n"
+        "> - **P1** —— 成稿必须有\n"
+    )
+    out = unwrap(src)
+    assert out.count("\n> - ") == 2, out
+    assert "P0** —— 会让 claim 站不住 - **P1" not in out
+
+
+def test_ordered_list_inside_blockquote_too() -> None:
+    src = "> 步骤：\n> 1. 先看这个\n> 2. 再看那个\n"
+    out = unwrap(src)
+    assert "> 1. 先看这个" in out and "> 2. 再看那个" in out

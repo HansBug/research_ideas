@@ -2,8 +2,7 @@
 
 > 🟡 **本子库服务相关工作与后续论文，不是 paper1 的 baseline 对照。**
 >
-> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
-> 因此本目录 24 个入库条目的角色变了：
+> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。因此本目录 24 个入库条目的角色变了：
 >
 > | 用途 | 现状 |
 > | :-- | :-- |
@@ -11,10 +10,7 @@
 > | paper1 的实验 baseline 对照 | 🔴 不适用。本文不做 repair，无从对照 |
 > | 后续 repair 论文的 baseline 储备 | 🟢 这是它现在的主要长期价值 |
 >
-> ⚠️ **下文所有「source-level issue discovery / repair / closure 主线」措辞是本文库自身的
-> 收录口径，不代表 paper1 的主张。** paper1 的贡献口径见 [../../README.md](../../README.md) §2；
-> 「多轮 Repair-Confirm」「B-final」「closure / regression 作为主线」这类表述在 paper1 语境下均已作废。
-> 本文库的收录标准不因此变化——repair 近邻工作仍然照原标准收。
+> ⚠️ **下文所有「source-level issue discovery / repair / closure 主线」措辞是本文库自身的收录口径，不代表 paper1 的主张。** paper1 的贡献口径见 [../../README.md](../../README.md) §2；「多轮 Repair-Confirm」「B-final」「closure / regression 作为主线」这类表述在 paper1 语境下均已作废。本文库的收录标准不因此变化——repair 近邻工作仍然照原标准收。
 
 ## 0. 定位
 

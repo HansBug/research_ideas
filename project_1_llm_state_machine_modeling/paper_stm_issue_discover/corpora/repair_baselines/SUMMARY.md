@@ -2,13 +2,9 @@
 
 > 🟡 **本总账的条目、分级与统计全部有效；只有「它们服务谁」变了。**
 >
-> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。
-> 因此下文反复出现的 `source-level issue discovery / repair / closure` 是**本文库自身的收录口径**，
-> **不是 paper1 的主线**；「严格全绿 baseline 仍为 0」这类结论现在读作「作为**后续 repair 论文**
-> baseline 的成熟度」，而不是「paper1 缺 baseline」——**paper1 不做 repair，本就无从对照**。
+> 2026-08 导师定调把 paper1 **收窄为 issue discover 单独成篇**，repair 另立后续论文。因此下文反复出现的 `source-level issue discovery / repair / closure` 是**本文库自身的收录口径**，**不是 paper1 的主线**；「严格全绿 baseline 仍为 0」这类结论现在读作「作为**后续 repair 论文** baseline 的成熟度」，而不是「paper1 缺 baseline」——**paper1 不做 repair，本就无从对照**。
 >
-> paper1 对本文库的两个用途：§Related Work 靶子文献（说明「现有 detection 方法报告错误但缺少
-> 错误的上下文信息」），以及后续论文的 baseline 储备。收录标准不变，详见 [README.md](./README.md) 顶部。
+> paper1 对本文库的两个用途：§Related Work 靶子文献（说明「现有 detection 方法报告错误但缺少错误的上下文信息」），以及后续论文的 baseline 储备。收录标准不变，详见 [README.md](./README.md) 顶部。
 
 ## 0. 论文集整体概况
 
@@ -30,10 +26,7 @@
 | 人工下载 / 待全文队列 | 0 条（本轮用户已补齐并全文入库） |
 | 候选待核 / 降级 / 排除 | 8 条（不计入 24 个入库条目；见 §2.1 与 §9） |
 
-> 注：本目录不替代 [../seed_library/](../seed_library/)；`designing-fsm-gpt4`、`ttool-ai`、`llms-emp`、`fsm-gen-iec-61499` 等若同时具备 seed 与 repair/feedback 线索，必须按“seed 关系”和“repair 能力”分开记录。
-> 注：`completion-sysml-gwt` 明确使用 GWT/Gherkin 需求 + partial SysML state machine 并补全 transitions，是当前唯一进入路线近邻 / 条件对照的 P0 条目；但其 `STM_0` / partial SMD 是否严格由同一组 NL 生成仍需二次核验，因此暂列“路线近邻 / 条件对照”。
-> 注：`flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、`designing-fsm-gpt4-repair` 等虽有强 repair / refinement 机制，但不满足“repair 输入同时含 NL 与由该 NL 生成的 STM_0”的硬门槛，不能写成本文 baseline。
-> 注：纯 NL 数据源不在本 SUMMARY 中入账，应回到 [../nl_datasets/](../nl_datasets/)；只有闭合 `NL -> STM_0` 后才可再 crosslink 到 [../seed_library/](../seed_library/)。
+> 注：本目录不替代 [../seed_library/](../seed_library/)；`designing-fsm-gpt4`、`ttool-ai`、`llms-emp`、`fsm-gen-iec-61499` 等若同时具备 seed 与 repair/feedback 线索，必须按“seed 关系”和“repair 能力”分开记录。注：`completion-sysml-gwt` 明确使用 GWT/Gherkin 需求 + partial SysML state machine 并补全 transitions，是当前唯一进入路线近邻 / 条件对照的 P0 条目；但其 `STM_0` / partial SMD 是否严格由同一组 NL 生成仍需二次核验，因此暂列“路线近邻 / 条件对照”。注：`flowrepair-stateflow-cps`、`execution-partial-state-machine-models`、`designing-fsm-gpt4-repair` 等虽有强 repair / refinement 机制，但不满足“repair 输入同时含 NL 与由该 NL 生成的 STM_0”的硬门槛，不能写成本文 baseline。注：纯 NL 数据源不在本 SUMMARY 中入账，应回到 [../nl_datasets/](../nl_datasets/)；只有闭合 `NL -> STM_0` 后才可再 crosslink 到 [../seed_library/](../seed_library/)。
 
 ## 1. emoji / enum 标准
 

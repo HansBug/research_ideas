@@ -42,7 +42,7 @@
 | 「第一篇是 `<NL, STM_0> -> STM_k / Better STM` repair / refinement」 | [legacy_asset_inheritance.md](./legacy_asset_inheritance.md) §3 | paper1 = issue discover 单独成篇；见 [../../../README.md](../../../README.md) §1–§2 |
 | 「主线是 source-level behavioral issue discovery **and closure**」 | [paper1_strategy_asset_map.md](./paper1_strategy_asset_map.md) §0 | closure 与 repair 另立后续论文 |
 | 下游 PR 聚合视图（`PR-repair-runner` / `PR-raw-export` / `PR-eval-rubric` / `PR-loop-pilot` …） | 同上 §4 | 已不是施工路线。动态施工状态一律以 GitHub PR / issue 为准，仓库文件不维护 |
-| A-005 `story/` 行标 `update`、A-004 root docs 行标 `update` | 同上 §3 | 两处均已另行处理：`story/` 已归档至 [../../r8_discover_repair_story/](../../r8_discover_repair_story/)；root docs 由另一路 PR 重写 |
+| A-005 `story/` 行标 `update`、A-004 root docs 行标 `update` | 同上 §3 | 两处均已另行处理：`story/` 已归档至 [../../r8_story_pre_rebuild/](../../r8_story_pre_rebuild/)；root docs 由另一路 PR 重写 |
 | 表中大量 `active` 判定 | 同上 §3 | 只反映 2026-07-07 当时的状态，不代表当前。判断当前状态回 [../../../README.md](../../../README.md) 第 6 节导航 |
 
 ## 4. 原路径 → 新路径映射

@@ -2,27 +2,19 @@
 
 ## 为什么有这一代
 
-v43 作废。它加的 `NamedElement._one_element_per_row` validator 用词法判据冒充语义判断，
-在 `0014` 上打死一个**完全正确的回答**（规范逐字引用的信号名 `"Arrived/Stop, Send Arrived"`
-天然含逗号，其 `declared_match` 非 null 且正确），18/18 撞死、5 格耗尽。落盘的 24 格也可能是
-被迫改写 `named_elements` 才通过的，因此**整代数据不可用**。
+v43 作废。它加的 `NamedElement._one_element_per_row` validator 用词法判据冒充语义判断，在 `0014` 上打死一个**完全正确的回答**（规范逐字引用的信号名 `"Arrived/Stop, Send Arrived"` 天然含逗号，其 `declared_match` 非 null 且正确），18/18 撞死、5 格耗尽。落盘的 24 格也可能是被迫改写 `named_elements` 才通过的，因此**整代数据不可用**。
 
-v44 = v43 的两项改动**保留**，但把「一行一个要素」从 validator 迁到
-description + 生成端 prompt + **评审端 prompt**（CLAUDE.md §11）。
+v44 = v43 的两项改动**保留**，但把「一行一个要素」从 validator 迁到 description + 生成端 prompt + **评审端 prompt**（CLAUDE.md §11）。
 
 ## 基线：v41，同 6 pair
 
-97 判定位，**命中 57 = 58.8%**；全分母 102 位则 57/102 = 55.9%。
-分段（修好的 `loss_stages`，按绑定与期望真值判）：① 6 ｜ ② 14 ｜ ③ 0 ｜ ④ 1 ｜ ⑤ 7 ｜ ⑥ 0 ｜ ⑦ 12。
+97 判定位，**命中 57 = 58.8%**；全分母 102 位则 57/102 = 55.9%。分段（修好的 `loss_stages`，按绑定与期望真值判）：① 6 ｜ ② 14 ｜ ③ 0 ｜ ④ 1 ｜ ⑤ 7 ｜ ⑥ 0 ｜ ⑦ 12。
 
 ## 本轮改动
 
-1. `named_elements` 一行一个要素——**纪律**在 `name_in_sentence` / `declared_match` 的
-   description 与 splitter prompt，**检查**在 requirement reviewer prompt（新增条款），
-   纠正走既有修订循环。**schema 里没有任何相关 validator。**
+1. `named_elements` 一行一个要素——**纪律**在 `name_in_sentence` / `declared_match` 的 description 与 splitter prompt，**检查**在 requirement reviewer prompt（新增条款），纠正走既有修订循环。**schema 里没有任何相关 validator。**
 2. 关系缺失类主张用结构谓词（converter prompt 例外条款，v43 未验证，本轮继续）。
-3. responder：`parsed` 缺失时从 `raw.tool_calls` 重放校验，让被库吞掉的真实 `ValidationError`
-   浮出来且不被误判为可重试。
+3. responder：`parsed` 缺失时从 `raw.tool_calls` 重放校验，让被库吞掉的真实 `ValidationError` 浮出来且不被误判为可重试。
 
 ## 判据（分母 102，基线 57）
 
@@ -51,6 +43,5 @@ description + 生成端 prompt + **评审端 prompt**（CLAUDE.md §11）。
 
 ## 本轮射程外（其变化不得归因于本轮）
 
-- ⑦ 的 12 位（`EIS-0014-03`×6、`EIS-0049-01`×5、`EIS-0014-04`×1）：台账写法机械不可判，
-  已人读确认为真未命中。
+- ⑦ 的 12 位（`EIS-0014-03`×6、`EIS-0049-01`×5、`EIS-0014-04`×1）：台账写法机械不可判，已人读确认为真未命中。
 - ② 里的 `guard_distinguishable` 9 位（`EIS-0039-02`×5、`EIS-0049-03`×4）：无针对性改动。

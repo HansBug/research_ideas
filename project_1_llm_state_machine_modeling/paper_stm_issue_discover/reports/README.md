@@ -17,12 +17,9 @@
 > | 逐格 / 逐轮结果、代次对比 | [../discover_matrix/](../discover_matrix/) |
 > | Issue #161 Java frontend 技术报告 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) |
 >
-> ⚠️ **每代次实验报告不落在本目录。** 按仓库纪律，代次结果发在 GitHub PR comment，
-> 判据与事前登记落在 [../discover_matrix/](../discover_matrix/)，给导师的自包含报告落在
-> [../../talks/](../../talks/)。本目录只沉淀更早的、与单次运行无关的阶段性结论。
+> ⚠️ **每代次实验报告不落在本目录。** 按仓库纪律，代次结果发在 GitHub PR comment，判据与事前登记落在 [../discover_matrix/](../discover_matrix/)，给导师的自包含报告落在 [../../talks/](../../talks/)。本目录只沉淀更早的、与单次运行无关的阶段性结论。
 >
-> ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/) 与
-> [../corpora/](../corpora/) 下的 JSON / JSONL / registry。
+> ⚠️ 本目录**机器事实源为零**；统计一律回到 [../pipeline/](../pipeline/) 与 [../corpora/](../corpora/) 下的 JSON / JSONL / registry。
 
 ## 1. 文库定位
 
@@ -57,7 +54,7 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 1. 想理解当前 issue lifecycle 合同：先读 [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md)，再读 [../experiment_design/issue_lifecycle/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/issue_lifecycle/README.md)。
 2. 想理解当前 source trace 合同：先读 [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md)，再读 [../experiment_design/source_trace/README.md](../archive/r7_issue_lifecycle_scaffold/experiment_design/source_trace/README.md)。
 3. 想理解当前 seed / conversion readiness：先读 [SUMMARY.md](./SUMMARY.md)，再读 R5.5.2 recovery report 和 main seed profile。
-4. 想理解当前 paper1 story / contribution：不要从 archived R5.7 报告开始；应读 [../README.md](../README.md) 与 [../story/README.md](../archive/r8_discover_repair_story/story/README.md)。
+4. 想理解当前 paper1 story / contribution：不要从 archived R5.7 报告开始；应读 [../README.md](../README.md) 与 [../story/README.md](../archive/r8_story_pre_rebuild/story/README.md)。
 5. 想追溯 R5.7 为什么被归档：读 [../archive/r5_7_better_stm_snapshot/README.md](../archive/r5_7_better_stm_snapshot/README.md) 与 [../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md](../archive/r5_7_better_stm_snapshot/PATH_MAPPING.md)。
 
 ## 5. 维护纪律

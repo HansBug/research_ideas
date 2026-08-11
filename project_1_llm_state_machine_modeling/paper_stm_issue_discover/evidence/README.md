@@ -1,7 +1,6 @@
 # evidence/ — 历史审计与证据索引入口
 
-> 🔴 **本目录不在当前运行路径上，全部内容是 R0/R1 时期的历史审计材料。**
-> 它回答的是「当年为什么这样分工」，不回答「现在的事实是什么」。
+> 🔴 **本目录不在当前运行路径上，全部内容是 R0/R1 时期的历史审计材料。** 它回答的是「当年为什么这样分工」，不回答「现在的事实是什么」。
 >
 > | 你想找 | 去哪 |
 > | :-- | :-- |
@@ -9,11 +8,9 @@
 > | 当前语料事实 | [../corpora/seed_library/SUMMARY.md](../corpora/seed_library/SUMMARY.md) |
 > | 当前方法实现 | [../pipeline/feedback_loop/](../pipeline/feedback_loop/) |
 >
-> ⚠️ **不要从本目录选样本、定 baseline 或引统计。** 这里的候选矩阵与筛选台账全部是 R1 口径，
-> 已被 [../corpora/](../corpora/) 的三件套取代。
+> ⚠️ **不要从本目录选样本、定 baseline 或引统计。** 这里的候选矩阵与筛选台账全部是 R1 口径，已被 [../corpora/](../corpora/) 的三件套取代。
 >
-> 本目录只有 Markdown，**无代码、无测试、无机器事实源**。四个子目录各配 `README.md`：
-> [ledgers/](./ledgers/)、[audits/](./audits/)、[matrices/](./matrices/)、[traces/](./traces/)。
+> 本目录只有 Markdown，**无代码、无测试、无机器事实源**。四个子目录各配 `README.md`：[ledgers/](./ledgers/)、[audits/](./audits/)、[matrices/](./matrices/)、[traces/](./traces/)。
 
 `evidence/` 只保存 R0/R1 以来形成的历史审计材料、上游证据索引、候选矩阵和分支追踪。它不是当前 corpus 事实真源，也不负责冻结 seed、repair baseline、NL dataset、转换器协议或主实验结果。
 

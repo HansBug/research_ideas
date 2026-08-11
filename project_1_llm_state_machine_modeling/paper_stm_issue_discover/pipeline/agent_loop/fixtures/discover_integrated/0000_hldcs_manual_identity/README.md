@@ -2,11 +2,7 @@
 
 ## 1. 定位
 
-本目录复用正式 selected seed `llms_emp_feedback_final_0000` 的原始 NL 与最终
-PlantUML source pair metadata，但使用一份逐项记录人工裁决的 FCSTM，专门解除
-`PR-discover` 的工程 smoke 阻塞。它已经与正式 60 例选择池隔离，只能通过
-`discover-custom` 作为工程 fixture 使用，不覆盖正式 0000，也不替代 PlantUML ->
-FCSTM 系统转换器的修复。
+本目录复用正式 selected seed `llms_emp_feedback_final_0000` 的原始 NL 与最终 PlantUML source pair metadata，但使用一份逐项记录人工裁决的 FCSTM，专门解除 `PR-discover` 的工程 smoke 阻塞。它已经与正式 60 例选择池隔离，只能通过 `discover-custom` 作为工程 fixture 使用，不覆盖正式 0000，也不替代 PlantUML -> FCSTM 系统转换器的修复。
 
 Discover pair id 固定为：
 
@@ -29,8 +25,7 @@ llms_emp_stm_results_0000_manual_identity
 
 ## 3. Discover 输入语义
 
-该 fixture 不进入默认 pair registry。`make discover-demo` 使用现有 custom CLI，
-把 [STM_0.fcstm](./STM_0.fcstm) 同时作为 source identity 与 intermediate model：
+该 fixture 不进入默认 pair registry。`make discover-demo` 使用现有 custom CLI，把 [STM_0.fcstm](./STM_0.fcstm) 同时作为 source identity 与 intermediate model：
 
 ```text
 discover_source_policy = fcstm_identity
@@ -47,19 +42,13 @@ source PUML    = stm0.puml，即 llms_emp_feedback_final_0000 selected feedback-
 derivation PUML= phase_i_generation_provenance.puml，仅记录人工 authoring provenance
 ```
 
-这样可以继续验证 Discover Agent 的 guide、tool、scenario/property、structured
-submission 与 append-only record 链，同时确定性排除 PlantUML lowering difference
-成为 candidate issue。代价是本 pilot 不能回答“是否发现了原始 PlantUML 的问题”。
+这样可以继续验证 Discover Agent 的 guide、tool、scenario/property、structured submission 与 append-only record 链，同时确定性排除 PlantUML lowering difference 成为 candidate issue。代价是本 pilot 不能回答“是否发现了原始 PlantUML 的问题”。
 
-注意：`source_meta.json` 中的 source pair、locator、selected stage 与 `stm0_sha256`
-必须跟正式 selected seed `llms_emp_feedback_final_0000` 保持一致；`8fd2...` 只允许
-出现在 phase-I derivation provenance 字段/文件中，不能再被同一路径 `stm0.puml` 声称。
+注意：`source_meta.json` 中的 source pair、locator、selected stage 与 `stm0_sha256` 必须跟正式 selected seed `llms_emp_feedback_final_0000` 保持一致；`8fd2...` 只允许出现在 phase-I derivation provenance 字段/文件中，不能再被同一路径 `stm0.puml` 声称。
 
 ## 4. 运行
 
-仓库根 Makefile 已将该 fixture 设为真实 demo 默认值。正式 `discover-pair` 默认值仍是
-`llms_emp_feedback_final_0000`，二者不会在 selected 目录中争用同一 pair ID。真实运行前
-仍须遵守 `.env` 规则：
+仓库根 Makefile 已将该 fixture 设为真实 demo 默认值。正式 `discover-pair` 默认值仍是 `llms_emp_feedback_final_0000`，二者不会在 selected 目录中争用同一 pair ID。真实运行前仍须遵守 `.env` 规则：
 
 ```bash
 source .env
@@ -86,9 +75,7 @@ make discover-custom \
 4. `ExitAutonomous`：`AutoInitial -> AutoFinal -> HumanDriving`。
 5. `PowerOff`：从 `HumanDriving` 进入 terminated boundary。
 
-`Front Distance > 10` 按正式 selected seed PlantUML / 官方 SCXML 口径保留为 named event。
-A 阶段不利用 NL 将其重构为变量或 guard；这种 condition-like label 的表达债只可
-作为 Discover 的候选触发信号，不能自动升级为 source-level confirmed issue。
+`Front Distance > 10` 按正式 selected seed PlantUML / 官方 SCXML 口径保留为 named event。A 阶段不利用 NL 将其重构为变量或 guard；这种 condition-like label 的表达债只可作为 Discover 的候选触发信号，不能自动升级为 source-level confirmed issue。
 
 ## 6. 学术边界
 

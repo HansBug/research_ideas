@@ -4,8 +4,7 @@
 
 对分配给你的每一条差异，判定它**能否用 19 个封闭谓词写出一条可执行的正面断言**，并**实际跑一遍**。
 
-「可执行的正面断言」定义：一个只用 19 个封闭谓词 + `all`/`any`/`not`/`len` 组成的表达式，
-描述**正确模型应当满足**的性质，在这个有缺陷的模型上**实测返回 `False`**。
+「可执行的正面断言」定义：一个只用 19 个封闭谓词 + `all`/`any`/`not`/`len` 组成的表达式，描述**正确模型应当满足**的性质，在这个有缺陷的模型上**实测返回 `False`**。
 
 - 返回 `False` → 该缺陷可被断言捕获 ✓
 - 返回 `True` → 你的断言写错了（它在缺陷模型上成立，说明它没抓住缺陷），重写
@@ -54,8 +53,7 @@ print(r.value)   # True / False / None
 ## 材料
 
 - 你的清单：`/tmp/predcheck/batch<N>.json`，`items[]` 每条含 `case` / `group` / `llm` / `diff_index` / `verdict` / `stratum` / `assertable`（现有字段，**可能有错，仅作参考**） / `reason_head`
-- 完整 reason / ref / gen：`manual_review/<case>-review.json` 的 `diffs[<diff_index>]`
-  （根目录 `/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/eval/discover_matrix/`）
+- 完整 reason / ref / gen：`manual_review/<case>-review.json` 的 `diffs[<diff_index>]`（根目录 `/home/zhangshaoang/oo-projects/research_ideas/project_1_llm_state_machine_modeling/eval/discover_matrix/`）
 - NL 原文：`<R>/pairs/<case>/nl.txt`、作者模型 `<R>/pairs/<case>/plantuml.puml`、**FCSTM 投影 `<R>/fcstm/llms_emp_feedback_final_<case>.fcstm`**
 - 谓词实现（查签名与语义）：`.../feedback_loop/src/paper_stm_feedback_loop/assertions/predicate_api.py`
 - 谓词注册表：`.../feedback_loop/src/paper_stm_feedback_loop/discover/predicates.py` 的 `PREDICATE_ORDER`
@@ -90,8 +88,7 @@ print(r.value)   # True / False / None
 1. **每条都要实跑**，`measured_raw` 填实际返回值的字符串。没跑的不许标 `expressible: true`。
 2. 若现有 `assertable` 能直接跑通且返回 False，沿用它并把 `rewrote_from` 留空；否则重写并填上原样。
 3. **不可表述的要写清形态**（`shape`），并列出你尝试过什么（`attempted`）。合并同类形态到 `gap_shapes`。
-4. `verdict` 为 `extra` 的条目一样要做——它们的断言应表达**后果**（`reaches`/`terminates`/`occupancy_after` 等），
-   而不是「这个多出的元素存在」（那是前提不是缺陷）。若只能写出存在性，标 `expressible: false` 并说明。
+4. `verdict` 为 `extra` 的条目一样要做——它们的断言应表达**后果**（`reaches`/`terminates`/`occupancy_after` 等），而不是「这个多出的元素存在」（那是前提不是缺陷）。若只能写出存在性，标 `expressible: false` 并说明。
 5. 不要修改任何仓库文件。只写 `/tmp/predcheck/` 下的文件。
 
 最后在报告里给：`totals`、按谓词的条数、以及**全部不可表述条目的形态清单**。

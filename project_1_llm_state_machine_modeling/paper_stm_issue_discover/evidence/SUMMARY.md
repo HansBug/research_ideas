@@ -4,10 +4,7 @@
 
 `evidence/` 已按 R5.5.1 路径重构为四类历史证据索引：[ledgers/README.md](./ledgers/README.md)、[audits/README.md](./audits/README.md)、[matrices/README.md](./matrices/README.md)、[traces/README.md](./traces/README.md)。本目录保留 R0/R1 证据链，但不再作为当前 corpus 事实真源。
 
-> ⚠️ **2026-08-11 归档**：`ledgers/paper1_strategy_asset_map.md` 与 `ledgers/legacy_asset_inheritance.md`
-> 已迁入 [../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。
-> 前者把 thesis 定义成 repair/refinement + Better STM，后者是 07-07 转向的施工地图；两者的口径都已被
-> 「paper1 只做 issue discover」覆盖，只作历史追溯。下文提到它们的地方一律指归档后的新路径。
+> ⚠️ **2026-08-11 归档**：`ledgers/paper1_strategy_asset_map.md` 与 `ledgers/legacy_asset_inheritance.md` 已迁入 [../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。前者把 thesis 定义成 repair/refinement + Better STM，后者是 07-07 转向的施工地图；两者的口径都已被「paper1 只做 issue discover」覆盖，只作历史追溯。下文提到它们的地方一律指归档后的新路径。
 
 2026-07-07 战略转向后，本目录曾新增 [paper1_strategy_asset_map.md](../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md)（已归档）与 [audits/2026-07-07-post-strategy-asset-scan.md](./audits/2026-07-07-post-strategy-asset-scan.md)，作为 story reset、Better STM 归档、issue/source-trace 合同与后续阶段实现的清账入口。它们只做资产地图与静态扫描审计，不移动文件、不重写 story、不报告方法效果；其中历史 handoff slug 不代表当前施工路线，动态路线见 [伞 PR #100](https://github.com/HansBug/research_ideas/pull/100)。
 

@@ -2,10 +2,7 @@
 
 > **硬边界**：本子路径保存 R0/R1 阶段形成的历史事实账本。它不是当前 seed / baseline / NL dataset 的事实真源；当前事实必须回到 [../../corpora/](../../corpora/) 与对应 SUMMARY。
 >
-> ⚠️ **2026-08-11 归档**：`paper1_strategy_asset_map.md`（2026-07-07 转向的施工地图）与
-> `legacy_asset_inheritance.md`（把 thesis 定义成 repair / refinement + Better STM）两份已迁入
-> [../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。
-> 它们的口径已被「paper1 只做 issue discover」覆盖，本目录只剩三份 R0/R1 历史台账。
+> ⚠️ **2026-08-11 归档**：`paper1_strategy_asset_map.md`（2026-07-07 转向的施工地图）与 `legacy_asset_inheritance.md`（把 thesis 定义成 repair / refinement + Better STM）两份已迁入 [../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/](../../archive/r7_issue_lifecycle_scaffold/evidence_ledgers/)。它们的口径已被「paper1 只做 issue discover」覆盖，本目录只剩三份 R0/R1 历史台账。
 
 ## 1. 什么时候读这里
 

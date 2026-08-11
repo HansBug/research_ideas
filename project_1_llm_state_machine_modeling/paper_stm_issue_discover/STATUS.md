@@ -1,26 +1,21 @@
 # STATUS.md — 当前状态
 
-> 本文件只记录**长期研究事实**的完成状态。
-> ⛔ PR 进度、review 状态、CI、子 PR 排期一律以 GitHub PR / issue 为准，本文件不维护。
-> ⛔ 数字不在此定义——全部实验数字的唯一来源是
-> [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)（下称「报告」）。
+> 本文件只记录**长期研究事实**的完成状态。⛔ PR 进度、review 状态、CI、子 PR 排期一律以 GitHub PR / issue 为准，本文件不维护。⛔ 数字不在此定义——全部实验数字的唯一来源是 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md)（下称「报告」）。
 
 ## 1. 当前阶段
 
 **一次完整的全量实验已完成，工作重心转入「补对照与审计 + 论文写作」。**
 
-方法实现、语料、缺陷台账、判定口径、双侧结果与全量审计数据均已就位；
-缺的不是数据规模，而是**外部对照**（本文目前没有任何基线）与**判定层的第二意见**。
+方法实现、语料、缺陷台账、判定口径、双侧结果与全量审计数据均已就位；缺的不是数据规模，而是**外部对照**（本文目前没有任何基线）与**判定层的第二意见**。
 
-论文口径已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**，
-repair 另立后续论文。
+论文口径已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**，repair 另立后续论文。
 
 ## 2. 已完成事实
 
 | 类别 | 状态 | 入口 |
 | :-- | :-- | :-- |
-| 论文口径收窄（discover 单独成篇、两条 contribution） | 已完成 | [README.md](./README.md) §2、[story/paper_story.md](./archive/r8_discover_repair_story/story/paper_story.md) §6 |
-| 建模对象边界（$M = (S, E, V, Tr, A)$，不含时钟 / 不变式 / 正交区） | 已完成，先验可判 | [story/model_scope.md](./archive/r8_discover_repair_story/story/model_scope.md)、[discover_matrix/docs/protocol/nl_scope_rule.md](./discover_matrix/docs/protocol/nl_scope_rule.md) |
+| 论文口径收窄（discover 单独成篇、两条 contribution） | 已完成 | [README.md](./README.md) §2、[story/paper_story.md](./archive/r8_story_pre_rebuild/story/paper_story.md) §6 |
+| 建模对象边界（$M = (S, E, V, Tr, A)$，不含时钟 / 不变式 / 正交区） | 已完成，先验可判 | [story/model_scope.md](./archive/r8_story_pre_rebuild/story/model_scope.md)、[discover_matrix/docs/protocol/nl_scope_rule.md](./discover_matrix/docs/protocol/nl_scope_rule.md) |
 | 方法出处口径（按领域资料归纳表述；hold-out 永久移除） | 口径已完成，工程落地未完成（见 §3） | [discover_matrix/docs/protocol/method_provenance_policy.md](./discover_matrix/docs/protocol/method_provenance_policy.md) |
 | 语料（60 pair，逐 pair 溯源元数据含行列与 SHA-256） | 已完成 | [selected_seed_examples/](./selected_seed_examples/) |
 | 缺陷台账（人工三方对照标注，全量 126 条，可判 98 条） | 已完成，但**有已知缺口** | [discover_matrix/docs/protocol/ground_truth_limitations.md](./discover_matrix/docs/protocol/ground_truth_limitations.md) |
@@ -60,13 +55,13 @@ repair 另立后续论文。
 | 补中间表示的损失 | 三个子类看起来是可修的编译实现问题（析取触发可保留成多个事件、守卫里的量可保留成变量声明），不需要放弃可执行语义 |
 | 降低方差 | 相当一部分记录处在「能找到但找不稳」 |
 | 收需求集规模 | 断言转换与需求拆分两阶段合计占节点耗时大头且随需求条数线性增长，既是算力主要去向也是降级主要来源 |
-| 统计回归防护面的规模 | [story/claim_evidence_map.md](./archive/r8_discover_repair_story/story/claim_evidence_map.md) C13 目前只能写成方法性质 |
+| 统计回归防护面的规模 | [story/claim_evidence_map.md](./archive/r8_story_pre_rebuild/story/claim_evidence_map.md) C13 目前只能写成方法性质 |
 
 ### 3.3 写作侧
 
 | 项 | 状态 |
 | :-- | :-- |
-| 章节结构与 RQ 定义 | 已完成，见 [story/paper_outline.md](./archive/r8_discover_repair_story/story/paper_outline.md) |
+| 章节结构与 RQ 定义 | 已完成，见 [story/paper_outline.md](./archive/r8_story_pre_rebuild/story/paper_outline.md) |
 | 正文 | 未开始 |
 | 投稿目标 venue | 未定，见根目录 [ccf_venues/](../../ccf_venues/) |
 

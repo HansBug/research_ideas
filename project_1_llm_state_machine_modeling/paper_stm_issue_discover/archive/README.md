@@ -18,7 +18,7 @@
 > | [r1_5_to_r1_7_seed_corpus_snapshot/](./r1_5_to_r1_7_seed_corpus_snapshot/) | 旧 `seed_corpus/` 的检索轮次与筛选台账 | [README.md](./r1_5_to_r1_7_seed_corpus_snapshot/README.md) |
 > | [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | 已废弃的 Better STM 评价框架全树（889 条目），含旧 `pipeline/evaluation/` | [README.md](./r5_7_better_stm_snapshot/README.md) ＋ [PATH_MAPPING.md](./r5_7_better_stm_snapshot/PATH_MAPPING.md) |
 > | [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) | 2026-07 repair 期实验设计脚手架（25 份）＋ 两份 repair 期资产台账（2 份）。⭐ 其中 `issue_lifecycle/` 约八成是**仍然有效的 discover 材料** | [README.md](./r7_issue_lifecycle_scaffold/README.md) |
-> | [r8_discover_repair_story/](./r8_discover_repair_story/) | 2026-08-11 凌晨那一版 `story/`（7 份）。⚠️ **不是 repair 期遗物**——已是 discover 口径，归档是因为要重搭骨架 | [README.md](./r8_discover_repair_story/README.md) |
+> | [r8_story_pre_rebuild/](./r8_story_pre_rebuild/) | 2026-08-11 凌晨那一版 `story/`（7 份）。⚠️ **不是 repair 期遗物**——已是 discover 口径，归档是因为要重搭骨架 | [README.md](./r8_story_pre_rebuild/README.md) |
 
 
 ## 0. 归档来源与时间考据
@@ -40,7 +40,7 @@
 | 当前 R5/R5.5 human-facing conclusions | [../reports/SUMMARY.md](../reports/SUMMARY.md) | 只作为 provenance 或 negative evidence 背景。 |
 | R5.7 Better STM historical assets | [r5_7_better_stm_snapshot/README.md](./r5_7_better_stm_snapshot/README.md) | 只解释 superseded Better STM 阶段，不作为当前事实。 |
 | 当前实验协议、判定口径、命中判据 | [../discover_matrix/docs/protocol/](../discover_matrix/docs/protocol/) | [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) 只解释 2026-07 repair 期的设计意图；其 `issue_lifecycle/` 可作为 issue 状态定义与 fixture 的取材来源。 |
-| 论文叙事、contribution、claim 与术语 | 新 `story/`（重搭中）；数字回 [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | [r8_discover_repair_story/](./r8_discover_repair_story/) 是重搭前那一版的完整快照，口径与当前一致，可作为起草参考。 |
+| 论文叙事、contribution、claim 与术语 | 新 `story/`（重搭中）；数字回 [../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) | [r8_story_pre_rebuild/](./r8_story_pre_rebuild/) 是重搭前那一版的完整快照，口径与当前一致，可作为起草参考。 |
 
 ## 2. 快照清单
 
@@ -48,8 +48,8 @@
 |---|---|---|
 | [r1_5_to_r1_7_seed_corpus_snapshot/](./r1_5_to_r1_7_seed_corpus_snapshot/) | PR-R1.8-B 从旧 `seed_corpus/` 迁出的历史审计快照；含 legacy ledgers、search rounds、raw search results。 | 只用于追溯早期检索、筛选、排除和迁移哨兵；不要直接引用为当前事实。 |
 | [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) | R5.7 / Better STM / constructed `STM_k` / blind adjudication / repair target taxonomy / objective metric framework cold snapshot；含 moved `experiment_design/`、`pipeline/evaluation/` 和 R5.7 reports。 | 只用于 historical provenance / calibration / anti-gaming 参考；不得作为 active method source、evaluation gate、baseline contract 或 repair effectiveness evidence。 |
-| [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) | 2026-07 source-level issue lifecycle 脚手架：`experiment_design/`（顶层三件套、`issue_lifecycle/` 11 份、`source_trace/` 11 份、`metrics/` 1 份，共 25 份）＋ `evidence_ledgers/`（2 份 repair 期资产台账）。 | 协议块整体退役，不得恢复为 active 实验设计。但 `issue_lifecycle/` 的六个状态定义、两条 confirmation 路径、conversion artifact 归因边界与 6 个 fixture 仍可作为新规则的取材来源——取用前先读其 README §3。⚠️ 对应的 JSON schema / fixture / pytest **未随之归档**，仍在 [../pipeline/evaluation/](../pipeline/evaluation/) 在线。 |
-| [r8_discover_repair_story/](./r8_discover_repair_story/) | 2026-08-11 凌晨重写的那一版 `story/`：thesis、两条 contribution、章节骨架与四个 RQ、C1–C15 claim–证据对照、任务边界、建模对象、术语政策，共 7 份。 | ⚠️ **归档理由是「要重搭骨架」，不是「内容过时」**——其 discover 口径与当前一致。写新 `story/` 或论文任一节前应先读其 README §3。⛔ 不得从中转抄任何实验数字。 |
+| [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/) | 2026-07 source-level issue lifecycle 脚手架：`experiment_design/`（顶层三件套、顶层 3 份、`issue_lifecycle/` 11 份、`source_trace/` **10** 份、`metrics/` 1 份，共 25 份）＋ `evidence_ledgers/`（2 份 repair 期资产台账）。 | 协议块整体退役，不得恢复为 active 实验设计。但 `issue_lifecycle/` 的六个状态定义、两条 confirmation 路径、conversion artifact 归因边界与 6 个 fixture 仍可作为新规则的取材来源——取用前先读其 README §3。⚠️ 对应的 JSON schema / fixture / pytest **未随之归档**，仍在 [../pipeline/evaluation/](../pipeline/evaluation/) 在线。 |
+| [r8_story_pre_rebuild/](./r8_story_pre_rebuild/) | 2026-08-11 凌晨重写的那一版 `story/`：thesis、两条 contribution、章节骨架与四个 RQ、C1–C15 claim–证据对照、任务边界、建模对象、术语政策，共 7 份。 | ⚠️ **归档理由是「要重搭骨架」，不是「内容过时」**——其 discover 口径与当前一致。写新 `story/` 或论文任一节前应先读其 README §3。⛔ 不得从中转抄任何实验数字。 |
 
 ## 3. 维护纪律
 
@@ -68,4 +68,4 @@
 
 | 时间 | 更新内容 |
 |---|---|
-| 2026-08-11 | 新增两个快照：[r8_discover_repair_story/](./r8_discover_repair_story/)（原 `story/`，7 份）与 [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/)（原 `experiment_design/` 25 份 ＋ 原 `evidence/ledgers/` 两份 repair 期台账）。34 个文件全部 `git mv` rename，内容未改。同步补第 5–7 条维护纪律，并修正 [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) 的 README / PATH_MAPPING 中指向 `story/`、`experiment_design/`、`evidence/ledgers/` 的 8 条链接。 |
+| 2026-08-11 | 新增两个快照：[r8_story_pre_rebuild/](./r8_story_pre_rebuild/)（原 `story/`，7 份）与 [r7_issue_lifecycle_scaffold/](./r7_issue_lifecycle_scaffold/)（原 `experiment_design/` 25 份 ＋ 原 `evidence/ledgers/` 两份 repair 期台账）。34 个文件全部 `git mv` rename，内容未改。同步补第 5–7 条维护纪律，并修正 [r5_7_better_stm_snapshot/](./r5_7_better_stm_snapshot/) 的 README / PATH_MAPPING 中指向 `story/`、`experiment_design/`、`evidence/ledgers/` 的 8 条链接。 |

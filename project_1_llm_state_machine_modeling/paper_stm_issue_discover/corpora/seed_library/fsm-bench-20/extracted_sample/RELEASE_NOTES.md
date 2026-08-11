@@ -1,9 +1,6 @@
 # Release Notes — v1.0.0
 
-**FSM-Bench-20 publication release**  
-**Date:** 2026-06-02  
-**Git tag:** `v1.0.0`  
-**Author:** Cesar Andres Sanchez
+**FSM-Bench-20 publication release** **Date:** 2026-06-02 **Git tag:** `v1.0.0` **Author:** Cesar Andres Sanchez
 
 ---
 
@@ -41,9 +38,7 @@ The tag freezes:
 
 ## Final benchmark statistics (140-run freeze)
 
-Campaign manifest: **`20260602T195520Z`**  
-Finalized: **`2026-06-02T21:02:56 UTC`**  
-Runs completed: **140/140** (seven Ollama models × 20 systems)
+Campaign manifest: **`20260602T195520Z`** Finalized: **`2026-06-02T21:02:56 UTC`** Runs completed: **140/140** (seven Ollama models × 20 systems)
 
 | Metric | Result |
 |--------|--------|

@@ -1,19 +1,10 @@
 # seed_library — 上游 `NL -> STM_0` seed 方法 / 来源文库
 
-> 🟢 **论文语料的实际出处在本目录。** 60 例 `<NL, STM_0>` 全部来自条目
-> [llms-emp-stm-subset/](./llms-emp-stm-subset/)，其 `assets/extracted/pairs.jsonl` 是 pair 池定义；
-> 经 [../../pipeline/conversion/](../../pipeline/conversion/) 与
-> [../../pipeline/representation/](../../pipeline/representation/) 加工后，
-> 由 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) 消费。
-> 人读镜像在 [../../selected_seed_examples/](../../selected_seed_examples/)。
+> 🟢 **论文语料的实际出处在本目录。** 60 例 `<NL, STM_0>` 全部来自条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，其 `assets/extracted/pairs.jsonl` 是 pair 池定义；经 [../../pipeline/conversion/](../../pipeline/conversion/) 与 [../../pipeline/representation/](../../pipeline/representation/) 加工后，由 [../../pipeline/feedback_loop/](../../pipeline/feedback_loop/) 消费。人读镜像在 [../../selected_seed_examples/](../../selected_seed_examples/)。
 >
-> ⚠️ **本目录另外 35 个条目目录都不是论文语料**（36 个条目目录，另加 `schemas/` 与 `tools/`
-> 两个非条目目录），只是候选池与检索证据。别把 registry 里的条目当成实验样本。
+> ⚠️ **本目录另外 35 个条目目录都不是论文语料**（36 个条目目录，另加 `schemas/` 与 `tools/` 两个非条目目录），只是候选池与检索证据。别把 registry 里的条目当成实验样本。
 >
-> ⚠️ **下文「本论文主贡献仍是后续的无人化反馈驱动修正循环」已作废。** 2026-08 导师定调把
-> paper1 收窄为 **issue discover 单独成篇**，repair 另立后续论文；本文的贡献口径是
-> **谓词逻辑元模型与断言体系**加**差异化叙述**，以 [../../README.md](../../README.md) §2 为准。
-> 本目录的收录标准本身不受影响——seed 就是 seed。
+> ⚠️ **下文「本论文主贡献仍是后续的无人化反馈驱动修正循环」已作废。** 2026-08 导师定调把 paper1 收窄为 **issue discover 单独成篇**，repair 另立后续论文；本文的贡献口径是 **谓词逻辑元模型与断言体系**加**差异化叙述**，以 [../../README.md](../../README.md) §2 为准。本目录的收录标准本身不受影响——seed 就是 seed。
 
 ## 0. 定位
 

@@ -1,15 +1,10 @@
 # SUMMARY.md — 轻量总账与阅读入口
 
-> 本文件只做**入口与索引**，不做第二事实源。
-> ⛔ 实验数字一律回 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) 核对；
-> 判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；
-> 动态施工状态一律以 GitHub PR / issue 为准。
+> 本文件只做**入口与索引**，不做第二事实源。⛔ 实验数字一律回 [../talks/2026-08-10-实验-v46全量矩阵双侧结论.md](../talks/2026-08-10-实验-v46全量矩阵双侧结论.md) 核对；判定口径一律回 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)；动态施工状态一律以 GitHub PR / issue 为准。
 
 ## 1. 一句话状态
 
-paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），
-一次完整的全量实验（**54 pair × 2 执行模型 × 3 轮 = 324 格**）已完成，
-工作重心转入**补外部对照与判定层审计 + 论文写作**。
+paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独成篇**（repair 另立后续论文），一次完整的全量实验（**54 pair × 2 执行模型 × 3 轮 = 324 格**）已完成，工作重心转入**补外部对照与判定层审计 + 论文写作**。
 
 两条 contribution：**谓词逻辑元模型与断言体系本身** > **带上下文的发现使复核与回归确认可行**。
 
@@ -33,7 +28,7 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 | 我要做什么 | 读什么 |
 | :-- | :-- |
 | 理解这篇论文 | [README.md](./README.md) → 实验报告。两份读完即可完整理解方法与结果 |
-| 写论文某一节 | [story/paper_outline.md](./archive/r8_discover_repair_story/story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./archive/r8_discover_repair_story/story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./archive/r8_discover_repair_story/story/terminology_policy.md) 核措辞 |
+| 写论文某一节 | [story/paper_outline.md](./archive/r8_story_pre_rebuild/story/paper_outline.md) 找结构 → [story/claim_evidence_map.md](./archive/r8_story_pre_rebuild/story/claim_evidence_map.md) 核 claim → [story/terminology_policy.md](./archive/r8_story_pre_rebuild/story/terminology_policy.md) 核措辞 |
 | 复算某个数字 | [discover_matrix/README.md](./discover_matrix/README.md) 导航页 |
 | 改方法 / 谓词 / 提示词 | 先读 [discover_matrix/docs/protocol/](./discover_matrix/docs/protocol/)，再动 [pipeline/feedback_loop/](./pipeline/feedback_loop/) |
 | 查某个 pair 的原文 | [selected_seed_examples/](./selected_seed_examples/) |
@@ -57,15 +52,12 @@ paper1 已按 2026-08-07 / 08-08 导师定调收窄为 **issue discover 单独�
 
 ## 5. 下一步依赖（按优先级）
 
-1. **朴素基线**——本文目前没有任何外部对照，这是审稿人第一问。同样的执行模型与语料，
-   不走八阶段循环、一个提示直接列不符之处，在同一分母上是多少。
-2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、
-   是否在看过方法产出之后标的、与命中判定是否同一人。
+1. **朴素基线**——本文目前没有任何外部对照，这是审稿人第一问。同样的执行模型与语料，不走八阶段循环、一个提示直接列不符之处，在同一分母上是多少。
+2. **台账撰写过程的交代**——台账是能力分母，必须写清谁标的、何时标的、是否在看过方法产出之后标的、与命中判定是否同一人。
 3. **判定层的第二意见**——双侧结论目前共用一个单人判定的误差源。
 4. **循环各阶段的消融**——两个审查阶段与静态预检占算力大头却无单独收益证据。
 5. **若干纯统计项**——命中形态构成、拒答回灌量、命中位按实际支撑族重算。
-6. 方法侧改进（模型驱动巡检入口、收断言侧过度规定、补中间表示损失、降方差、收需求集规模）
-   影响下一代次，不阻塞写作。
+6. 方法侧改进（模型驱动巡检入口、收断言侧过度规定、补中间表示损失、降方差、收需求集规模）影响下一代次，不阻塞写作。
 
 逐项理由与受阻原因见 [STATUS.md](./STATUS.md) §3。
 

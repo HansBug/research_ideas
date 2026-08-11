@@ -6,10 +6,7 @@
 
 核心口径：种子文库记录上游 `NL -> STM_0` 方法 / 来源集合，**不是修正基线文库**（那是 [../repair_baselines/](../repair_baselines/) 的职责，且 paper1 收窄为 issue discover 后已不做 repair）。
 
-⚠️ **下面这句已作废**：~~[selected_seed_examples/](../../selected_seed_examples/) 是当前四个 smoke 用代表性种子样例，四例不是最终实验集合或主结果样本上限。~~
-现状是：[selected_seed_examples/](../../selected_seed_examples/) 已是 **60 个 pair 的人读镜像**，
-且**就是**论文语料——全部来自本库条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，
-实验网格 **54 个**（末位为 `8` 的 6 个按建模对象边界永久排除）。它不再是「smoke 用四例」。
+⚠️ **下面这句已作废**：~~[selected_seed_examples/](../../selected_seed_examples/) 是当前四个 smoke 用代表性种子样例，四例不是最终实验集合或主结果样本上限。~~ 现状是：[selected_seed_examples/](../../selected_seed_examples/) 已是 **60 个 pair 的人读镜像**，且**就是**论文语料——全部来自本库条目 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，实验网格 **54 个**（末位为 `8` 的 6 个按建模对象边界永久排除）。它不再是「smoke 用四例」。
 
 ### 1.1 三类文库关系
 
@@ -54,14 +51,9 @@ smoke 用代表性样例目录见上级 [selected_seed_examples/README.md](../..
 | conditional seed pool | `ttool-ai-smd-subset` | 条件进入代表性样例集合 | 需 SMD/T0 切片、时间/信号/guard/action 规范化与 incoherency 泄漏隔离。 |
 | pipeline-only supplement | `fsm-bench-20`、`designing-fsm-gpt4` | 不进入 author first-source final pool | 只有 NL/code/prompt/schema 或未配对 run artifacts；复跑必须另建 run record。 |
 
-⚠️ **本段原写的「固定 smoke 用代表性样例集合」四例已不存在，四个链接全部指向已删除的目录，故删去。**
-它们是 `llms-emp-deepseek-microwave` / `llms-emp-gpt4o-hldcs` / `llms-emp-kimi-autonomous-collision` / `sefm-ssc7-umple`；
-`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 当时已被移出该四例。
+⚠️ **本段原写的「固定 smoke 用代表性样例集合」四例已不存在，四个链接全部指向已删除的目录，故删去。** 它们是 `llms-emp-deepseek-microwave` / `llms-emp-gpt4o-hldcs` / `llms-emp-kimi-autonomous-collision` / `sefm-ssc7-umple`；`ttool-automatedbraking-xml` 与 `unified-uml-synthetic-0000` 当时已被移出该四例。
 
-**现状**：[../../selected_seed_examples/](../../selected_seed_examples/) 下是 **60 个 `llms_emp_feedback_final_NNNN/`**，
-全部来自 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，即论文语料本身（实验网格 54 个）。
-四例 smoke 时代已经过去，替换样例的旧流程随之作废；语料变更现在要回到
-[REGISTRY.md](./REGISTRY.md)、条目 `assets/` 与 [../../pipeline/representation/](../../pipeline/representation/) 的证据目录同步。
+**现状**：[../../selected_seed_examples/](../../selected_seed_examples/) 下是 **60 个 `llms_emp_feedback_final_NNNN/`**，全部来自 [llms-emp-stm-subset/](./llms-emp-stm-subset/)，即论文语料本身（实验网格 54 个）。四例 smoke 时代已经过去，替换样例的旧流程随之作废；语料变更现在要回到 [REGISTRY.md](./REGISTRY.md)、条目 `assets/` 与 [../../pipeline/representation/](../../pipeline/representation/) 的证据目录同步。
 
 ## 2. 关键统计表
 

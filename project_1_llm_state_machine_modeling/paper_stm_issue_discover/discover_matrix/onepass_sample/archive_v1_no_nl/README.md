@@ -1,16 +1,13 @@
 # v1（无 NL）样本的两份标注 —— 已作废，保留作证据
 
-`sample_id = 2aa86c9b524515d1`，对**不含 NL 原文**的样本所做。合流工具现在会拒绝它们（`sample_id` 不符），
-这是正确行为。
+`sample_id = 2aa86c9b524515d1`，对**不含 NL 原文**的样本所做。合流工具现在会拒绝它们（`sample_id` 不符），这是正确行为。
 
 ## 为什么保留
 
 它们是「样本缺 NL 会造成什么」的**实证**：
 
-- 两位标注者在 **17/249** 条上分歧，其中 **12 条塌缩成同一个可核查的事实问题** —— `containment(Join2,
-  Fork2)` 是否误读 NL
-- 我读 NL 原文裁决：`"In the Fork2 state, **which is part of the Join2 substate**, ..."` —— NL 确实主张
-  包含关系，判 `fabricated` 的那一方事实前提为假
+- 两位标注者在 **17/249** 条上分歧，其中 **12 条塌缩成同一个可核查的事实问题** —— `containment(Join2, Fork2)` 是否误读 NL
+- 我读 NL 原文裁决：`"In the Fork2 state, **which is part of the Join2 substate**, ..."` —— NL 确实主张包含关系，判 `fabricated` 的那一方事实前提为假
 - 裁决后分歧 35 → 23（14.1% → 9.2%），`fabricated` 差距 17 条 → 5 条
 
 **所以那个「两倍差」不是判定者主观性，是一条共享事实错误被重复了 12 次。**

@@ -9,15 +9,9 @@
 > | 谁还读本目录 | 只有已退役的 `paper_stm_repair_loop.inputs.load_pair()`（[../pipeline/agent_loop/](../pipeline/agent_loop/)，不在运行路径上） |
 > | 有多少个 pair | 目录里 60 个；**实验网格 54 个** |
 >
-> ⚠️ **60 ≠ 54。** 末位为 `8` 的 6 个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）**永久排除**：
-> 它们同源于一份要求 fork/join 并发与秒级时间约束的需求，其忠实模型在
-> $M = (S, E, V, Tr, A)$ 中无法表达，属**建模对象边界**而非样本取舍。判据只读 `nl.txt`、
-> 与任何运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。
-> 见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。
-> 故全量网格恒为 `54 pair × 2 执行模型 × 3 轮 = 324 格`。
+> ⚠️ **60 ≠ 54。** 末位为 `8` 的 6 个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）**永久排除**：它们同源于一份要求 fork/join 并发与秒级时间约束的需求，其忠实模型在 $M = (S, E, V, Tr, A)$ 中无法表达，属**建模对象边界**而非样本取舍。判据只读 `nl.txt`、与任何运行结果无关；且被排除集里 `0018` 的 `hit@1` 高于全量均值——**它不是「剔除不利样本」**。见 [../discover_matrix/docs/protocol/nl_scope_rule.md](../discover_matrix/docs/protocol/nl_scope_rule.md)。故全量网格恒为 `54 pair × 2 执行模型 × 3 轮 = 324 格`。
 >
-> ⚠️ **判缺陷读 `stm0.puml`，不读 `model.fcstm`。** 后者是编译产物；只读它会把编译债务
-> （compiler-owned 支架元素）当成模型缺陷。
+> ⚠️ **判缺陷读 `stm0.puml`，不读 `model.fcstm`。** 后者是编译产物；只读它会把编译债务（compiler-owned 支架元素）当成模型缺陷。
 
 目录中的 60 个子目录与默认 [`pairs.jsonl`](../corpora/seed_library/llms-emp-stm-subset/assets/extracted/pairs.jsonl) 一一对应，不提供 manual、compat 或临时旁路。
 

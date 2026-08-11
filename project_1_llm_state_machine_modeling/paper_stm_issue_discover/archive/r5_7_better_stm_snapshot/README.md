@@ -42,7 +42,7 @@ R5.7 的 Better STM 框架在阶段性上有价值：它暴露了 attribution bo
 
 | 需要判断什么 | 当前入口 |
 |---|---|
-| paper1 当前任务与贡献口径 | [../../README.md](../../README.md), [../../story/README.md](../r8_discover_repair_story/story/README.md) |
+| paper1 当前任务与贡献口径 | [../../README.md](../../README.md), [../../story/README.md](../r8_story_pre_rebuild/story/README.md) |
 | 资产清账和归档决策依据 | [../../evidence/ledgers/paper1_strategy_asset_map.md](../r7_issue_lifecycle_scaffold/evidence_ledgers/paper1_strategy_asset_map.md), [../../evidence/audits/2026-07-07-post-strategy-asset-scan.md](../../evidence/audits/2026-07-07-post-strategy-asset-scan.md) |
 | 后续 source-level issue lifecycle protocol | [../../experiment_design/README.md](../r7_issue_lifecycle_scaffold/experiment_design/README.md) |
 | 后续 evaluation placeholder | [../../pipeline/evaluation/README.md](../../pipeline/evaluation/README.md) |

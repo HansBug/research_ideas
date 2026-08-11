@@ -5,7 +5,7 @@
 ## ttool-ai-automatedbraking
 
 - locator: `nl_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/AutomatedBraking/automatedbraking.md;stm0_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/AutomatedBraking/automatedbraking.xml`
-- NL preview: When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends out a warning message. Nearby cars that are in danger can then react according to the information provided within the 
+- NL preview: When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends out a warning message. Nearby cars that are in danger can then react according to the information provided within the
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -29,7 +29,7 @@
 ## ttool-ai-platooning
 
 - locator: `nl_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/platooning/platoonings.md;stm0_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/platooning/platoonings.xml`
-- NL preview: Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions. A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.  1. A vehicle can 
+- NL preview: Platooning is a transportation technique that consists in grouping trucks or vehicles together to reduce CO2 emissions. A platoon consists of one or several vehicles, the first one in the platoon playing the role of the platoon leader, the other ones playing the role of followers.  1. A vehicle can
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -41,7 +41,7 @@
 ## ttool-ai-incoherency_automatedbraking
 
 - locator: `nl_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/incoherencies/specification_automatedbraking.md;stm0_member=ttool-ai-f2c52282cb7a826c31e7ab512356d42230c6d321/incoherencies/automatedbraking.xml`
-- NL preview: When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends out a warning message. Nearby cars that are in danger can then react according to the information provided within the 
+- NL preview: When a dangerous situation occurs that forces the driver, or the car itself, to perform a manoeuvre, this can endanger other vehicles. In order to warn other vehicles, the car sends out a warning message. Nearby cars that are in danger can then react according to the information provided within the
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 
