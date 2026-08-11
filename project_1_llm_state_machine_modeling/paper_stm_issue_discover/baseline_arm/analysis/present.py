@@ -285,6 +285,19 @@ def render_pair(
         if not cell["issues"]:
             lines.append("⚠️ **本格未报任何 issue。**")
             lines.append("")
+        # ⭐ `analysis` 必须呈现，⛔ 初版读进来却从不渲染。理由：它是基线**唯一**的「已想到但
+        # 未发布」通道，对应主臂那四类落空区块（`excluded_findings` / `coverage_gaps` / …）。
+        # ⚠️ 不渲染它 → 判定者看不见基线的思考 → 方向是**低估基线**。
+        # ⛔ 但它明确标注不计入命中：命中只能由 `issues` 里的条目承载。
+        analysis = str(cell.get("analysis") or "").strip()
+        if analysis:
+            lines.append(
+                "⛔ **以下是该格的整体分析，⛔ 不计入命中**（命中只能由上面编号的 issue 承载）；"
+                "⭐ 呈现它是为了让判定者看到基线想到了什么："
+            )
+            lines.append("")
+            lines.append(f"> {analysis}")
+            lines.append("")
         for index, issue in enumerate(cell["issues"], 1):
             lines.append(f"**[{index}]** {str(issue.get('issue') or '').strip()}")
             lines.append("")
@@ -342,8 +355,18 @@ def main(argv: list[str] | None = None) -> int:
             f"{seq}\t{pair}\t{len(pair_records)}\t{pools.get('full', 0)}\t"
             f"{pools.get('near', 0)}\t{pools.get('unstable', 0)}\t{pools.get('zero', 0)}"
         )
-    # ⛔ 池归属只进这个文件，判定者不读它（见模块 docstring 的物理分离）。
-    (out_dir / "judging_order.tsv").write_text("\n".join(order_lines) + "\n", encoding="utf-8")
+    # ⛔ 池归属只进这个文件，且它**不在判定者的目录树里**。
+    #
+    # ⚠️ 初版把它写在 `out_dir/`、材料写在 `out_dir/materials/` —— 同一棵树差一层。判定者被指向
+    # out-dir 时一个 `ls` 就能看见它，而唯一约束他的那份指令**没有点它的名**。⛔ 按 present.py
+    # 自己引的实测数据（约定式隔离合规率 0/2），「他不会去看」不是保护。
+    #
+    # ⭐ 现在写到 `<out_dir>.audit/`：物理上是**兄弟目录**，判定者不会误入。
+    audit_dir = out_dir.parent / f"{out_dir.name}.audit"
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    (audit_dir / "judging_order.tsv").write_text(
+        "\n".join(order_lines) + "\n", encoding="utf-8"
+    )
 
     print(
         f"wrote {len(order)} pair materials to {materials} "

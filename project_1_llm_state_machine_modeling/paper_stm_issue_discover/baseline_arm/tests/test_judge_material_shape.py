@@ -135,10 +135,18 @@ def test_materials_carry_no_pool_membership(built: dict[str, Path]) -> None:
 def test_pool_membership_lives_only_in_the_order_file(built: dict[str, Path]) -> None:
     """⭐ 物理分离：池只在 `judging_order.tsv` 里，判定者不读那个文件。"""
 
-    order = (built["out"] / "judging_order.tsv").read_text(encoding="utf-8")
+    out = built["out"]
+    audit = out.parent / f"{out.name}.audit" / "judging_order.tsv"
+    order = audit.read_text(encoding="utf-8")
     assert "pool_full" in order and "pool_zero" in order, (
         "the order file is where pool membership belongs -- it is the audit trail for "
         "whether the judging sequence was really stratified"
+    )
+    # ⭐ 且它必须**不在**判定者的目录树里：初版写在 out_dir/ 与 materials/ 只差一层，
+    # 判定者一个 `ls` 就能看见，而指令没点它的名。
+    assert not (out / "judging_order.tsv").exists(), (
+        "the pool file must live outside the judge's directory tree, not one level above "
+        "the materials"
     )
 
 
@@ -212,7 +220,7 @@ def test_missing_cell_is_reported_as_null_not_zero(tmp_path: Path) -> None:
 def test_position_count_is_exactly_588(built: dict[str, Path]) -> None:
     """⭐ 588 = 98 × 2 × 3。⛔ 少一位就是改分母。"""
 
-    order = (built["out"] / "judging_order.tsv").read_text(encoding="utf-8").splitlines()
+    order = _order_lines(built)
     total = sum(int(line.split("\t")[2]) for line in order[1:])
     assert total == 98, f"pair records must sum to 98, got {total}"
     assert total * 6 == 588
@@ -224,7 +232,7 @@ def test_judging_order_is_stratified_not_sequential(built: dict[str, Path]) -> N
     ⚠️ 这条是 fallback 零成本的前提：任何时刻中断，已判集合都自动分层代表。
     """
 
-    order = (built["out"] / "judging_order.tsv").read_text(encoding="utf-8").splitlines()
+    order = _order_lines(built)
     pairs = [line.split("\t")[1] for line in order[1:]]
     assert pairs != sorted(pairs), (
         "the judging order is plain pair order; then an interrupted run yields a "
@@ -246,3 +254,9 @@ def test_judging_order_is_stratified_not_sequential(built: dict[str, Path]) -> N
         f"{same_neighbour}/{len(dominant) - 1} adjacent pairs share a dominant pool; "
         "the interleave is not working"
     )
+
+
+def _order_lines(built: dict[str, Path]) -> list[str]:
+    out = built["out"]
+    audit = out.parent / f"{out.name}.audit" / "judging_order.tsv"
+    return audit.read_text(encoding="utf-8").splitlines()

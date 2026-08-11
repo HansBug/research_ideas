@@ -194,9 +194,24 @@ def test_task_statement_is_explicit() -> None:
         "the task statement must explicitly ask for non-conformances between model and spec"
     )
     assert "specification" in lowered and "state machine" in lowered
-    assert "as many or as few" in lowered, (
-        "the baseline must be free to decide how many issues to report"
+    # ⭐ 断言的是**形式要求**（模型有权自行决定报几条），⛔ 不是某句措辞——按仓库根
+    # `CLAUDE.md` §13 第 3 条，钉住措辞的测试会把旧形状锁死在原地。
+    # ⚠️ 初版写的是 `"as many or as few" in lowered`，那正是钉措辞。
+    free_count = any(
+        re.search(pattern, lowered)
+        for pattern in (
+            r"as many or as few",
+            r"however many",
+            r"any number of",
+            r"you decide how many",
+        )
     )
+    assert free_count, (
+        "the task statement must leave the number of reported issues to the model; "
+        "no phrasing in the recognised set was found"
+    )
+    # ⛔ 并且不得同时出现上限（那会抵消这条自由）
+    assert not re.search(r"at most \d+|no more than \d+", lowered)
 
 
 def test_retry_feedback_carries_only_structural_information() -> None:
