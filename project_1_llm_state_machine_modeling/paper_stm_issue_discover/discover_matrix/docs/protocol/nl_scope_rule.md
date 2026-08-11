@@ -94,7 +94,7 @@
 | 记录 | 根因 |
 | :-- | :-- |
 | `EIS-0000-02` | 事件粒度不可表达，需 `event_cardinality`（单点） |
-| `EIS-0047-02` | 复合态无默认入口，属「pyfcstm 已报」子类，见 [裁定](./rulings/wellformedness_attribution.md) |
+| `EIS-0047-02` | 复合态无默认入口。⛔ **此处原写「属「pyfcstm 已报」子类」，该归因为假**——占位符由本仓库自己的表示层合成，pyfcstm 零参与，[对应裁定](./rulings/wellformedness_attribution.md)已于 2026-08-11 作废。⚠️ 本行其余内容是 **v24** 口径，按代次纪律保留不改；该记录在 **v46 已是 6/6**，不再是全 0 |
 
 ## 八、筛选后仍在的提分点
 

@@ -352,6 +352,15 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
     out.append("#### 逐问题类型命中小计 —— 「哪类缺陷发现得好」\n")
     out.append("比率是否够格报由 `metrics_at_k.ratio_gate()` 裁定（**闸门的唯一归属地**，本文件不重实现）。"
                "⛔ = 该层分母或粒度不满足，比率不可作描述性结论，只看原始计数。\n")
+    # ⚠️ 本表沿用表 2 的「全部记录」口径，**含**边界裁定为 out_of_scope 的记录，因此逐层求和
+    # 得到的是含越界分母，不等于已发布材料引用的那个数。不标口径会让复算者从本表往下算出
+    # 另一个「全体 hit@1」，与 v46/README、result.md、audit.md、导师报告里的数字对不上 ——
+    # 实测就发生过（60.8% vs 60.4%）。数字一个不动，只把两个口径都摆明。
+    if oos:
+        _oos_ids = "、".join("`" + r["record_id"] + "`" for r in oos)
+        out.append(f"⚠️ **本表口径 = 全部 {len(pos_rows)} 条（含越界 {len(oos)} 条：{_oos_ids}）。**"
+                   f"⛔ 逐层求和得到的是**含越界**分母，**不是**已发布材料引用的口径 —— "
+                   f"后者已剔除越界记录，见本节末尾的两行对照。\n")
     out.append("| 问题类型（layer） | 记录 | 判定位 | 命中位 | hit@1 | hit@3 | hit@all | 闸门 |")
     out.append("| :-- | --: | --: | --: | --: | --: | --: | :-: |")
     gated: list[tuple[str, list[str]]] = []
@@ -378,8 +387,16 @@ def render(generation: str, verdicts_path: pathlib.Path) -> str:
         out.append("")
     # 全体一行也过闸门 —— 它才是报告里最常被引用的那个数。
     whole = mak.ratio_gate([r["record_id"] for r in pos_rows], n_pos)
-    out.append(f"**全体 `hit@1` = {hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%**，闸门 "
+    out.append(f"**全体 `hit@1`（含越界口径）= {hit_pos}/{n_pos} = {hit_pos / n_pos * 100:.1f}%**，闸门 "
                + ("✅ 够格报为描述性比率" if not whole else "⛔ " + "；".join(whole)) + "。")
+    if oos:
+        # ⛔ 这一行才是对外口径。缺了它，读者会把上一行当成「那个 60.4%」。
+        _k = sum(len(r["claude"] or []) + len(r["gpt"] or []) for r in oos)
+        _kh = sum(_hits(r["claude"]) + _hits(r["gpt"]) for r in oos)
+        out.append(f"📌 **对外口径（剔除越界）= {hit_pos - _kh}/{n_pos - _k} = "
+                   f"{(hit_pos - _kh) / (n_pos - _k) * 100:.1f}%** —— "
+                   f"`v46/README.md`、`result.md`、`audit.md` 与导师报告引用的是**这一个**。"
+                   f"⛔ 不要从上面的逐层表往下自行求和，那是含越界口径。")
     infer = mak.ratio_gate([r["record_id"] for r in pos_rows], n_pos, inferential=True)
     out.append(f"跨代次差的**显著性**：" + ("✅ 可断言" if not infer else "⛔ " + "；".join(infer)) + "\n")
     out.append("⚠️ `hit@3` / `hit@all` 按 **(记录, 臂)** 计数，不是按记录 —— 一条记录在两臂上可以"

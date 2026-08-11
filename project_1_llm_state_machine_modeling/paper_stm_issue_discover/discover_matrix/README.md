@@ -55,9 +55,9 @@ discover_matrix/
 | [fused_event_policy.md](./docs/protocol/fused_event_policy.md) | 合并事件的既定裁定（断言阶段必须接受，L379 给出许可条件） |
 | [rule_provenance.md](./docs/protocol/rule_provenance.md) | 每条进入 prompt / gate 的规则的引入动机与领域出处 |
 | [rules/conditional_activation.md](./docs/protocol/rules/conditional_activation.md) | 一条仍在生效的 prompt 规则，附通用性证据 |
-| [rulings/wellformedness_attribution.md](./docs/protocol/rulings/wellformedness_attribution.md) | ⚠️ **已裁定、未落地**（2026-08-11 复核）——它主张把「上游可检出」的缺陷移出能力分子与分母，但**v46 实测被它移出的记录数为 0**；`REPORTABLE` 的 98 条只扣了 `00x8` 越界 27 条与逐条边界裁定 1 条，没有第三个来源。⛔ 此前本表写「仍在生效」是文档错误。 |
+| [rulings/wellformedness_attribution.md](./docs/protocol/rulings/wellformedness_attribution.md) | ⛔ **已作废**（2026-08-11）——承重前提「pyfcstm 已报」经实测为假（占位符是本仓库自己的表示层造的，pyfcstm 零命中），故不采纳；且它本来就从未落地——它主张把「上游可检出」的缺陷移出能力分子与分母，但**v46 实测被它移出的记录数为 0**；`REPORTABLE` 的 98 条只扣了 `00x8` 越界 27 条与逐条边界裁定 1 条，没有第三个来源。⛔ 此前本表写「仍在生效」是文档错误。 |
 
-⚠️ `rulings/wellformedness_attribution.md`（**已裁定但未落地**，见上表）与 [docs/generations/v25/wellformedness_axioms.md](./docs/generations/v25/wellformedness_axioms.md)（**未冻结的规则草案，其规范依据已被 UML 核对推翻**）是两份不同性质的文件，**不要混用、不要合并** ——合并会让死提案和活口径共享同一个标题。
+⚠️ `rulings/wellformedness_attribution.md`（**已作废**，见上表）与 [docs/generations/v25/wellformedness_axioms.md](./docs/generations/v25/wellformedness_axioms.md)（**未冻结的规则草案，其规范依据已被 UML 核对推翻**）是两份不同性质的文件，**不要混用、不要合并** ——合并会让死提案和活口径共享同一个标题。
 
 ## 3. `docs/judges/` —— 判定者运行材料
 
