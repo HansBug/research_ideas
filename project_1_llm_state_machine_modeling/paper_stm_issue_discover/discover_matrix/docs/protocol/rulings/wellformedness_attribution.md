@@ -7,7 +7,7 @@
 > | 查证 | 结果 |
 > | :-- | :-- |
 > | 占位符谁造的 | **本仓库自己的** [`plantuml_source_lowering.py`](../../../../pipeline/representation/src/paper_stm_representation/plantuml_source_lowering.py)（`UnspecifiedInitial` 在 `prepare_missing_initial_helpers()`，`InvalidInitial<id>` 在 `render_initial()`）。pyfcstm submodule 对这两个名字与那句 `outside child scope` **全库零命中** |
-> | pyfcstm 实际报了什么 | 交付给模型的那些制品上，`INIT` 家族诊断 **0 条**。⚠️ 反事实：把占位符行删掉再跑，`E_INITIAL_TRANSITION_INVALID` 立刻出现 —— 即**我们的投影在 pyfcstm 看到模型之前就把缺陷补掉了** |
+> | pyfcstm 实际报了什么 | 交付给模型的制品上，**那 6 个入口类 pair 的 `INIT` 家族诊断确为 0 条**。⚠️ **但全语料不是 0** —— 复算得 `W_INITIAL_UNCONDITIONAL_MISSING` **22 条 / 15 个 pair**（`0000 0002 0007 0008 0014 0016 0017 0018 0019 0030 0033 0040 0042 0050 0057`），其中 `0000` 那条原文正是 `EIS-0000-01` 描述的缺陷。⛔ **此前本处写「INIT 家族诊断为 0 条」是错的，已就地更正。** 更准确的表述是：**诊断存在，但不对模型可见** —— `discover/renderer.py` 只把 `working_contract.summary` 的三个 status key（`simulation_status` / `source_static_discovery_status` / `diagnostic_binding_status`）投进 prompt，**逐条诊断记录不进模型上下文**。 ⚠️ 反事实：把占位符行删掉再跑，`E_INITIAL_TRANSITION_INVALID` 立刻出现 —— 即**我们的投影在 pyfcstm 看到模型之前就把缺陷补掉了** |
 > | 是否落地 | **从未**。`REPORTABLE = 98 = 126 − 27（`00x8` 越界）− 1（逐条 `boundary_ruling`）`，没有第三个来源；`metrics_at_k.py` / `verdict_tiers.py` 等对「上游可检出」零命中 |
 > | 它点名的 9 条今天在哪 | 只剩 4 条在能力分母内（`0035-01` / `0032-01` / `0047-01` / `0047-02`）。另 5 条被**别的**规则移走（4 条 `00x8`、1 条 `boundary_ruling`）—— ⛔ **不得当成本裁定已生效的证据** |
 > | §五 的预言 | 「该层在 v25 没有可做的能力改动」**已被证伪**：`EIS-0047-02` 从 v24 的 0/6 变为 v46 的 **6/6** |
