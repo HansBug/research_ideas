@@ -71,6 +71,35 @@ def in_scope_cases(report_root: Path | None = None) -> list[str]:
     return kept
 
 
+def own_process_chain() -> set[str]:
+    """自己 + 全部进程祖先的 pid。
+
+    ⚠️ **初版只排除 `os.getpid()`，于是这道检查把自己拒了。** 包裹本进程的 shell
+    （`bash -c '... launch.py ...'`）、`nohup`、`timeout` 都会在自己之上留下**含相同命令行**的
+    祖先进程，它们逐个都会命中特征串。⛔ 排除集必须是整条祖先链，⛔ 不是单个 pid。
+
+    ⭐ 这个 bug 的形态值得记：一道安全检查把**保护对象本身**当成了威胁。
+    """
+
+    chain: set[str] = set()
+    pid = os.getpid()
+    while pid > 0 and str(pid) not in chain:
+        chain.add(str(pid))
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        except OSError:
+            break
+        # comm 字段可能含空格与括号，取最后一个 ')' 之后再切。
+        tail = stat[stat.rfind(")") + 1 :].split()
+        if len(tail) < 2:
+            break
+        try:
+            pid = int(tail[1])
+        except ValueError:
+            break
+    return chain
+
+
 def find_stale_workers() -> list[str]:
     """上一次编排留下的工作进程。⛔ 有残留就不许开跑。"""
 
@@ -81,13 +110,12 @@ def find_stale_workers() -> list[str]:
         ).stdout
     except Exception:  # pragma: no cover - defensive
         return []
-    own_pid = str(os.getpid())
+    mine = own_process_chain()
     hits: list[str] = []
     for line in out.splitlines():
         if not any(n in line for n in needles):
             continue
-        # 本进程自己的命令行当然会命中，按 pid 排除；其余一律报出来由人判断。
-        if line.split(maxsplit=1)[0] == own_pid:
+        if line.split(maxsplit=1)[0] in mine:
             continue
         hits.append(line.strip())
     return hits
