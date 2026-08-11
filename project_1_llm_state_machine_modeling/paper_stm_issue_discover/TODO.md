@@ -35,9 +35,9 @@
 ## B. 领域考据（导师点名要重点展开）
 
 * [ ] **P0 · 补齐 19 个谓词的领域出处。** 实测：**只有 3 个**挂了 `provenance` 注释（`occupancy_after` / `stays_in` / `persists_until`），**16 个空白**。全库 15 条标注里 6 条不可引用——「形式语义中的预设」×2、「需求工程通则」、「需求可追溯性通则」、以及 **2 条指向本仓库自己的 `CLAUDE.md`**。而 `docs/protocol/method_provenance_policy.md` R1 要求出处必须是**可查证的外部文献、标准或工具规约**，为空则「补出处或从方法章节移除」。
-* [ ] **P0 · 修 `method_provenance_policy.md` R1 自己的漏洞。** 它的示例里就写了「`#: provenance: 需求工程通则 —— …`」这种不可查证的写法，难怪实际标注里出现了 4 条同类。规范自身要先自洽。
+* [x] **✅ 已修（2026-08-12，PR [#183](https://github.com/HansBug/research_ideas/pull/183)）· `method_provenance_policy.md` R1 自己的漏洞。** ⚠️ 逐条核实为真，⛔ 且比本条登记的**更严重**——上一版给的**三个示例三个都违反**该文件自己的 §一.3：① `UML 2.5.1 §14.2.3.4（… **必须是** …）` 取的是**要求**而非存在性事实（符合性论证）；② `FCSTM grammar guide` 是**工具规约**，⛔ §一.3 表格逐字把它列为「不是出处」，⚠️ 且它引的正是明令不得充当语义权威的 `pyfcstm` 一系；③ `需求工程通则` 不可查证。⭐ 已整块重写为按三类给形态的示例，并加三条硬要求（先写分类 / ① 类须落到具体篇目与领域覆盖 / 只取存在性事实），⛔ 三个旧示例各自错在哪逐条留痕。
 * [ ] **P1 · 建 19 行谓词→领域来源映射表。** ⚠️ **本条与上面「补齐 19 个谓词的领域出处」是同一件事的两面，应一并做**——出处注释是代码侧的落地，映射表是论文侧的呈现，分开做会漂。 列：`谓词 | 族(S/B/P) | 归纳自哪类领域来源 | 具体文献/标准锚点 | 在 $M$ 上如何实例化 | 该来源类下未实例化的部分`。最后一列是 RQ1「表达力边界」的直接输入。候选来源类（**AI 凭记忆给出，必须自己核**）：Dwyer/Avrunin/Corbett ICSE 1999 property specification patterns、Autili et al. TSE 2015、Konrad & Cheng ICSE 2005 real-time patterns（⚠️ 整族未实例化，因 $M$ 无 $C$ 与 $Inv$）、OMG UML superstructure 状态机约束、Egyed 一系 model consistency rules、IEC 61131-3 / 61499、ISO 26262。
-* [ ] **P1 · 查 OMG PSSM（Precise Semantics of UML State Machines）。** 它是 6 个仿真族谓词最正当的规范出处，**全库一次未提**。
+* [x] **⛔ 不适用（2026-08-12）· 查 OMG PSSM —— ⛔ 整条作废，⛔ 不是「做完了」。** ⚠️ 本条的前提是「PSSM 是仿真族谓词最正当的**规范出处**」，⛔ **而那个前提已被裁定推翻**：〔用户明确裁定 2026-08-11〕「我们这套谓词逻辑是我们自己定义的啊，我们和某个官方不绝对一致又说明的了什么呢」。⭐ 证据轴是**普遍性**不是**符合性** —— ⛔ 我们不作任何符合性主张，⛔ 因此不为一个不作的主张取证（见 [PENDING_DECISIONS.md](./PENDING_DECISIONS.md) §A3）。⚠️ 仿真族谓词的正当性改由**领域普遍性证据**承担，见 [related_work/provenance/](./related_work/provenance/)。
 * [ ] **P2 · 处理 4 个「台账侧 primary 计数为 0」的谓词。** `variable_declared` / `variable_delta_after` / `invariant` / `response_within`——它们的共同点是**台账从未把它们用作 primary**，⛔ **不是「从未被激活」**。实际使用情况差别极大（v46 报告 §6.6 谓词表）：
 
   | 谓词 | 台账侧 | 其中 primary | 产出侧已发布 | 产出侧生成 | 发布率 |
