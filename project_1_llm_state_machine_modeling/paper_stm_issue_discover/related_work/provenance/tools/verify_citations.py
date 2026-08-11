@@ -58,7 +58,7 @@ def _get(url: str, timeout: float = 20.0) -> bytes | None:
         return None
 
 
-def resolve_doi(doi: str) -> dict | None:
+def _resolve_crossref(doi: str) -> dict | None:
     raw = _get(f"https://api.crossref.org/works/{urllib.parse.quote(doi)}")
     if raw is None:
         return None
@@ -66,14 +66,38 @@ def resolve_doi(doi: str) -> dict | None:
         msg = json.loads(raw)["message"]
     except (ValueError, KeyError):
         return None
-    title = (msg.get("title") or [""])[0]
     parts = (msg.get("issued") or {}).get("date-parts") or [[None]]
     return {
-        "title": title,
+        "title": (msg.get("title") or [""])[0],
         "year": parts[0][0] if parts and parts[0] else None,
         "venue": (msg.get("container-title") or [""])[0] or msg.get("publisher", ""),
         "type": msg.get("type", ""),
+        "registry": "crossref",
     }
+
+
+def _resolve_datacite(doi: str) -> dict | None:
+    """DataCite 注册的 DOI（arXiv 的 `10.48550/*` 全在这里，⛔ Crossref 查不到）。"""
+    raw = _get(f"https://api.datacite.org/dois/{urllib.parse.quote(doi, safe='')}")
+    if raw is None:
+        return None
+    try:
+        attrs = json.loads(raw)["data"]["attributes"]
+    except (ValueError, KeyError):
+        return None
+    titles = attrs.get("titles") or [{}]
+    return {
+        "title": titles[0].get("title", ""),
+        "year": attrs.get("publicationYear"),
+        "venue": (attrs.get("publisher") or ""),
+        "type": (attrs.get("types") or {}).get("resourceTypeGeneral", ""),
+        "registry": "datacite",
+    }
+
+
+def resolve_doi(doi: str) -> dict | None:
+    """先 Crossref 再 DataCite。⚠️ 两家分工不同，⛔ 只查一家会把真论文判成不存在。"""
+    return _resolve_crossref(doi) or _resolve_datacite(doi)
 
 
 def resolve_arxiv(arxiv_id: str) -> dict | None:
@@ -116,26 +140,32 @@ def check(finding: dict, threshold: float) -> dict:
         out["status"] = "LOCAL_CORPUS"
         return out
 
+    # ⚠️ 标识符字段常是复合串（"arXiv:2508.00630v2 / DOI 10.48550/arXiv.2508.00630 / https://…"）。
+    # ⛔ 首版按「DOI 优先」取，于是对 arXiv 论文拿到 10.48550 前缀去查 Crossref —— 那是 DataCite
+    # 的地盘，必然查不到，真论文被判成 NOT_RESOLVED。⭐ 改为 arXiv 优先，DOI 兜底。
+    m_arxiv = _ARXIV.search(ident) if ("arxiv" in ident.lower() or _ARXIV.fullmatch(ident.strip())) else None
     m_doi = _DOI.search(ident)
-    m_arxiv = _ARXIV.search(ident) if ("arxiv" in ident.lower() or _ARXIV.fullmatch(ident)) else None
 
     meta = None
-    if m_doi:
-        meta = resolve_doi(m_doi.group(1))
-        if meta is None:
-            out["status"] = "DOI_NOT_RESOLVED"
-    elif m_arxiv:
+    tried = []
+    if m_arxiv:
+        tried.append("arxiv")
         meta = resolve_arxiv(m_arxiv.group(1))
-        if meta is None:
-            out["status"] = "ARXIV_NOT_RESOLVED"
-    elif ident.startswith("http"):
-        out["status"] = "REACHABLE_URL" if _get(ident) is not None else "URL_UNREACHABLE"
-        return out
-    else:
-        out["status"] = "NO_USABLE_IDENTIFIER"
-        return out
-
+    if meta is None and m_doi:
+        tried.append("doi")
+        meta = resolve_doi(m_doi.group(1))
     if meta is None:
+        urls = re.findall(r"https?://\S+", ident)
+        if not tried and urls:
+            out["status"] = "REACHABLE_URL" if _get(urls[0].rstrip(".,;")) is not None else "URL_UNREACHABLE"
+            return out
+        if not tried:
+            out["status"] = "NO_USABLE_IDENTIFIER"
+            return out
+        out["status"] = "ARXIV_NOT_RESOLVED" if tried == ["arxiv"] else "DOI_NOT_RESOLVED"
+        # ⭐ 解析不到时退一步只测可达性，⛔ 免得把「我们的解析器不认」报成「这篇不存在」
+        if urls and _get(urls[0].rstrip(".,;")) is not None:
+            out["status"] += "_BUT_URL_REACHABLE"
         return out
 
     out["resolved_title"] = meta["title"]
