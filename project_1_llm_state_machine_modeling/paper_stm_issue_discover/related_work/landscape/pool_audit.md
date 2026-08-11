@@ -10,24 +10,30 @@
 
 ⭐ 判据用**双条件**，对 **669 行主表**逐行判，任一为真即剔除：① 「形式主义」列命中界外关键词；② 「主类」列 emoji ∈ {⏱️ 时间/时钟自动机, 🌊 混成/随机, 🕸️ Petri 网}。
 
+⛔⛔ **本节数字于 2026-08-12 经独立核验更正，⭐ 并落盘为可复现脚本 [boundary_gate.py](./boundary_gate.py)。**
+
 | 判据 | 剔除行数 |
 | :-- | ---: |
-| 仅「形式主义」列命中 | 76 |
-| 仅「主类」emoji 命中 | 18 |
-| 两者同时命中 | 148 |
-| **合计剔除** | **242 / 669（36.2%）** |
-| **界内候选池** | **427** |
-| ⚠️ 其中 2022 年起 | **34** |
+| 仅「形式主义」列命中 | **99** |
+| 仅「主类」emoji 命中 | **14** |
+| 两者同时命中 | **152** |
+| **合计剔除** | **265 / 669（39.6%）** |
+| **界内候选池** | **404** |
+| ⭐ 其中 2022 年起 | **34**（⭐ 这一个数初版就是对的） |
 
-剔除集的「主类」分布：⏱️ 94 · 📦 68 · 🌊 45 · 🕸️ 27 · 🔣 5 · 🔌 3。剔掉的主要是：时间自动机及其工具生态（UPPAAL 系、TIOA、参数化/代价/博弈 TA 变体）· 概率与统计模型检查器（PRISM、MRMC、VESTA、Ymer）· Petri 网全族（P/T、CPN、GSPN、PNML/ISO 15909）· 进程代数与 BIP 系（mCRL2、BIP/D-Finder）· 混成自动机与 CPS 连续动力学。
+⚠️ **初版报的是 `242 / 427`、拆分 `76 / 18 / 148`，⛔ 那组数不可复现。** ⭐ 病因不是算错，是**只用散文描述界外关键词**（「UPPAAL 系、PRISM/MRMC、CPN/GSPN、mCRL2/BIP、混成」）而不给词表、不给脚本。⚠️ 独立复核者按那段散文反推得 `261 / 408`，且 `仅emoji` 与 `两者同时` 两项**无论怎么收窄词表都到不了 18 / 148**。
 
-### ⛔⛔ 单靠那一列会漏 40 行
+⛔⛔ **而这恰恰是初版自己用来批评上一版「692 行里 212 行」的同一条罪状** —— ⭐⭐ **一个依赖词表的计数，词表就是它的一部分**；把百分比写进文档而把词表留在脑子里，等于交出一个不可复核的数。⭐ 现已把词表与判据全部落进脚本，`python3 boundary_gate.py --audit` 可逐项复现。
 
-⚠️ 实测 **40 行**「形式主义」列干净、却在**标题 / 论文角色 / 关键特性**里含界外词。逐条看过，分三类：
+剔除集的「主类」分布（⭐ 脚本实测）：⏱️ **94** · 📦 **86** · 🌊 **45** · 🕸️ **27** · 🔣 **6** · 🔌 **6** · 🧩 **1**。⚠️ 那 1 行 🧩（界内 emoji）是被**关键词判据**捞走的 —— ⭐ 说明两条判据确实各自独立起作用。剔掉的主要是：时间自动机及其工具生态（UPPAAL 系、TIOA、参数化/代价/博弈 TA 变体）· 概率与统计模型检查器（PRISM、MRMC、VESTA、Ymer）· Petri 网全族（P/T、CPN、GSPN、PNML/ISO 15909）· 进程代数与 BIP 系（mCRL2、BIP/D-Finder）· 混成自动机与 CPS 连续动力学。
+
+### ⚠️ 「单靠那一列会漏」这个诊断只**部分**成立
+
+⚠️ 初版称实测 **40 行**「形式主义」列干净、却在**标题 / 论文角色 / 关键特性**里含界外词。逐条看过，分三类：
 
 | 类 | 例 | 后果 |
 | :-- | :-- | :-- |
-| ⛔ **真界外、被门漏掉** | `turtle-a-real-time-uml-profile`（RT-LOTOS + RTL）· `translating-uml-state-machines-to-coloured-petri-nets`（目标是 CPN）· `a-runtime-environment-for-contract-automata`（用 UPPAAL 做 validation）· `modelling-and-verification-of-timed-robotic-controllers` · `towards-verifying-safety-properties-of-real-time-probabilistic`（PTA/PRISM） | ⛔ 若只按列过滤，这些会**混进界内池** |
+| ⚠️ **原列为「真界外、被门漏掉」，⛔ 但两个举例是错的** | ⛔ `translating-uml-state-machines-to-coloured-petri-nets` 的形式主义列**逐字含 `CPN`**；⛔ `towards-verifying-safety-properties-of-real-time-probabilistic` 的该列**同时含 `PTA` 与 `PRISM`` —— ⭐ 三个词都在词表里，**这两行本就该被判据①捞走**，⛔ 不是「列干净」的反例。⚠️ `turtle-a-real-time-uml-profile` 的该列含 `RT-LOTOS`，它能逃掉只说明初版实际词表**不含 LOTOS**（现已补入）。⭐ 只有 `a-runtime-environment-for-contract-automata` 的列确实干净（`Contract Automata / CARE`），⚠️ **但判它「真界外」也可疑** —— 形式主义本体是 Contract Automata（无时钟），UPPAAL 只是外挂的 validation 手段，⛔ 「用了 UPPAAL」≠「对象是时间自动机」 | ⭐⭐ **诊断因此要改**：至少部分漏网是**词表不全**，⛔ 不是「那一列不够」。⚠️ **两者的修法完全不同**：前者补词（已做），后者才需要多列判据 |
 | ⭐ **部分可用** | HUGO（`model-checking-and-code-generation-for-uml-state-machines-and-collaborations`）：PROMELA/SPIN 分支**界内**、UPPAAL 分支界外 · RoboChart 系：本体界内、`timed primitives` 与 CSP 语义分支界外 · `institution-based-encoding...CASL-SPASS`：界内（"simple UML" 已排除并发） | ⭐ 必须**落到具体章节**才能用 |
 | ⚠️ **误报** | `counter-machines-and-counter-languages`（术语是 `real-time counter machine`）· `difference-decision-diagrams`（服务时钟约束但对象是 BDD 变体） | ⚠️ 不应剔除 |
 
@@ -58,11 +64,15 @@
 
 全仓目录名匹配 `ocl|well.?form|constraint` 只有 9 个，其中 6 个是时间自动机 / Petri 网（界外）、2 个是 `well-formed CRSM`（fork-join 并发，界外）。⛔ **OCL 本体、UML well-formedness rule 检查器、模型 smell / anti-pattern 检测在起点池里一篇都没有。**
 
-界内那 3 篇全为「部分」：`automating-verification-of-state-machines-with-reactive-designs-and-isabelle-utp`（RoboChart 的 well-formedness 机械化，⚠️ CSP 语义分支界外）· `robochart-modelling-and-verification-of-robotic-applications`（metamodel + well-formedness，⚠️ timed primitives 界外）· `modelling-system-of-systems-interface-contract-behaviour`（SysML/OCL 契约视图，⚠️ 是本池**唯一**沾 OCL 的界内条目）。
+界内那 3 篇全为「部分」：`automating-verification-of-state-machines-with-reactive-designs-and-isabelle-utp`（RoboChart 的 well-formedness 机械化，⚠️ CSP 语义分支界外）· `robochart-modelling-and-verification-of-robotic-applications`（metamodel + well-formedness，⚠️ timed primitives 界外）· `modelling-system-of-systems-interface-contract-behaviour`（SysML/OCL 契约视图）。⛔⛔ **初版称它是「本池唯一沾 OCL 的界内条目」，那是错的**，⚠️ 且错因是**同一份文件里用了两套检索方法论** —— 对 LLM 用 17 列全字段扫（还特意宣传），对 OCL 却退回目录名 grep。⭐ 用 17 列扫 `\bOCL\b|well.?formed|smell|anti-pattern` 得 **9** 行，界内的除上述 3 篇外还有：`coordinating-robotic-tasks-and-systems-with-rfsm-statecharts`（🔣 2012，构造方式含 **Ecore/OCL**，⭐ 比那篇 SysML 契约视图更贴近类目③）· `verification-of-succinct-hierarchical-state-machines`（🧩 2007）· `compatibility-checking-for-asynchronously-communicating-software`（🔌 2014）。⭐ **行动结论不受影响**：新增的 3 篇全在 2022 年以前，故「不满足 2022+ 门槛、须外检索」仍然成立。
 
 ### ⚠️ 类目 ⑥ 只有三处「附属」出现，⛔ 不能计为代表作
 
 `constabl`（fuzz-testing workflow 是可执行语义论文的子模块）· `a-model-based-test-script-generation-framework`（mutation analysis 作测试脚本质量的评估手段）· `baselines/designing-fsm-specifications-from-requirements-gpt4`（mutation machine repair）。⛔ 三者主贡献都不在这一类。
+
+⚠️⚠️ **一处 population 不一致，已更正**：⛔ 初版 §2 说类目⑤「起点池根本没有 = 0」（口径 = 669 行主表），⚠️ 却在 §5.3 把 `baselines/designing-fsm-...-gpt4` 算作**同时落 ②⑤⑥** —— ⛔ 两处口径打架（后者把 `baselines/` 也算进起点池）。⭐ **且按 §5-A 判据第一问，该篇修的是它自己生成的 DFSM，属生成后自评，⑤ 这一格本就不该给它。** ⛔ **连带后果**：§5.3 那条「D 档判据已出现至少 1 例」的观察**唯一例证消失**，⭐ 该观察已相应下调（见 §5.3）。
+
+⚠️ 另注：`constabl` 的形式主义是 `concurrent statecharts / arbitrary interleaving`，⛔ 按 §0.1.1「正交区并发语义」**本应界外**，⚠️ 却被当作界内池条目参与了类目④的计数。
 
 ---
 
@@ -72,15 +82,19 @@
 
 ⛔ **`state_machine_types/` 侧 = 0 篇。** 在 669 行的标题+角色+核心功能+关键特性上扫 `自然语言|natural language|traceab|追溯`，只有 3 命中，逐条看过全部不相关（`ltlmop` 是 structured English → LTL 综合属生成侧 · `atac` 是时间自动机构造属界外 · `dsd` 的 "traceable stack" 指运行时决策历史）。
 
-⭐ 检查侧候选全部来自 `baselines/`，**$k = 3$**：
+⭐ 检查侧候选全部来自 `baselines/`，⛔⛔ **$k = 2$（2026-08-12 更正，初版报 3）**：
 
 | slug | 年份 | 侧别 | 形式主义 | 关键事实 |
 | :-- | :-- | :-- | :-- | :-- |
 | `inference-time-intervention-requirement-verification` | 2025 | ⭐ **检查侧**（两问皆是） | ⚠️ **邻域**（Capella/SysML 架构模型图，⛔ 非 $M$） | 输入 = 需求文本 + **已存在**的模型表示，输出 = 逐需求 `fulfilled / not fulfilled` |
 | `mcet` | 2025 | ⭐ **检查侧**（两问皆是） | ⚠️ **邻域**（sequence diagram，⛔ 非 $M$） | requirement atoms 逐条比对 + 多检查器 + self-consistency + issue aggregation。⚠️ 自陈「没有处理状态机特有语义」 |
-| `ai-driven-consistency-sysml-diagrams` | 2024 | ⭐ **检查侧**（⚠️ 但需求侧是**形式化规则**不是 NL 条款） | ⚠️ **邻域**（SysML UCD/BD） | 输出 = **JSON 不一致列表** + 自动修复 |
+| ~~`ai-driven-consistency-sysml-diagrams`~~ | 2024 | ⛔⛔ **误判，已剔除（2026-08-12）** | ⚠️ 邻域（SysML UCD/BD） | ⛔ **两问全败。** ⚠️ 初版的「需求侧是形式化规则不是 NL 条款」这句措辞把**问②失败**粉饰成了「问②的一种变体」—— ⭐ 实际是**根本没有需求侧**：全文 `requirement` 只出现 3 次，且全在 related work / future work / 参考文献（L157 · L1256「extending our framework for additional diagram types such as **requirement** [diagrams]」· L1293），任务是 **UCD↔BD 两图互检**。⛔ **问①同样失败**：L75「ensure the internal consistency of **LLM-generated** diagrams」· L531-535「stages U1-5 and B1-5 … focusing on **generating** … following this, stages C1-3 are dedicated to **verifying**」· L1106「We evaluated the outlined processes of **diagram generation**, inconsistency identification, and inconsistency resolution」—— ⭐⭐ **三案例评测检的每一张图都是它自己用 TTool-AI 生成的**，这就是「生成后自评」 |
 
-⚠️⚠️ **三篇没有一篇的对象是 $M$。** ⛔ 层 1 **无权**判定它们计不计入界内 $k$ —— 这取决于层 2 读正文后能否找到讲界内对象的段落。⭐ 因此层 3 会面对两种可能：**界内 $k=0$**（→ 由两段式是否存在决定 B/C 档）或 **界内 $k=1\ldots3$**（→ B 档专设子情况 / A 档）。
+⚠️⚠️ **三篇没有一篇的对象是 $M$。** ⛔ 层 1 **无权**判定它们计不计入界内 $k$ —— 这取决于层 2 读正文后能否找到讲界内对象的段落。⭐ 因此层 3 会面对两种可能：**界内 $k=0$**（→ 由两段式是否存在决定 B/C 档）或 **界内 $k \in \{1, 2\}$**（→ B 档专设子情况）。
+
+⛔⛔ **初版还写了「A 档」这条分支，那是错的**：⚠️ §2 判据是 `k ≥ 3 → A 档`，⭐ 而正确计数是 **$k = 2$** —— **A 档分支在正确计数下根本不可达**。⛔ 若不更正，层 3 会为一个不存在的分支做预案。
+
+⚠️⚠️ **加重情节，且这一条比算错更严重**：⛔ 同一条「生成后自评不算评审侧」的判据（§5-A 判据第一问），初版用它**踢掉了** `chatgpt-uml-assessment`，却对 `ai-driven` **网开一面** —— ⭐ 而后者「自评」的程度更彻底（连检查者都是 LLM 自己）。⛔⛔ **判定标准的选择性执行本身就是学术可靠性问题**，⛔ 不是分类口味问题。
 
 ### ⭐ 离「界内检查侧」最近的一篇，⛔ 但第二层判据不成立
 
@@ -145,19 +159,39 @@
 | Q2 检查侧 | 3（**全部对象越界**）；界内 **0** | ⛔ 界内 **0%** | ⛔ **整片** |
 | Q5 评审侧 2022+ | 3–4（**全部对象越界**）；界内 **0** | ⛔ 界内 **0%** | ⛔ **四路 venue 族全要跑** |
 
-### 5.2 ⛔ 失配的结构性原因（已实测确认）
+### 5.2 ⛔⛔ 初版的因果论证**不成立**，⭐ 且它错在我漏引了两个词
 
-`state_machine_types/DESC_GUIDE.md` §3 明写「主要创新在算法、验证、综合或转换方法，但对形式主义本体没有新增证据的论文」**默认不建 `desc.md`** —— ⚠️ **而那正是 Q1 的整个 ①②③④ 四类**。
+⚠️⚠️ **初版在这里写了一整套解释**：`DESC_GUIDE.md` §3 拒收「纯方法/纯工具的缺陷发现工作」→ 起点池按「模型本体谱系」建库 → **系统性遗漏**那一类 → 类目分布失真。⛔ **该论证已于 2026-08-12 经独立核验推翻。**
 
-⭐ 后果：起点池按「**模型本体谱系**」建库。所以「一篇给出新语义的验证工作」进得来，而「一篇纯粹用 SPIN 检查某类状态机的方法论文」**按规则本该被拒**。⚠️ 池子里那 12 篇 ① 类，多半是因为**顺带提出了新形式主义或新语义**才进来的。
+#### ⛔ 病因一：漏引改变了规则含义
 
-⛔⛔ **因此这条失配对 Q1 的伤害不是「篇数不够」，而是「按现有池子归纳出来的类目分布会失真」**：⚠️ 它**偏向**「带本体贡献的验证工作」，**系统性遗漏**「纯方法 / 纯工具的缺陷发现工作」。⭐ 层 3 若直接按起点池篇数给各类目排大小，会得出「模型检查最大、LLM 评审不存在」的结论 —— ⛔ **那反映的是建库口径，不是领域。**
+⭐ `DESC_GUIDE.md` §3 第 4 条**逐字**是：
 
-⭐ 同一原因解释了 ⑤ 与 ⑥ 的整片为 0：LLM 评审、mutation / 差分测试**从不产出新形式主义**。
+> ```
+> 4. 主要创新在算法、验证、综合或转换方法，但对形式主义本体、构造方式和基础设施没有新增可用证据的论文。
+> ```
+
+⛔⛔ **初版引用时丢掉了「、构造方式和基础设施」与「可用」。** ⚠️ 而丢掉的那两项**正是工具论文的立身之处**。⭐ 同一份 `README.md` §1 更把「**标准/基础设施**：交换格式、Schema、XML/JSON 载体、元模型承载、运行时、**工具链**、互操作设施」列为**第 3 优先收录**。
+
+#### ⛔ 病因二：结论被池子本身证伪
+
+⭐ 实测：论文角色含工具类词 **163** 行 · 论文角色/核心功能含验证/检查 **178** 行 · 两者交集且主类界内 **62** 行。⭐ 本方抽验，以下**全部在池子里**：`the-model-checker-spin` · `nusmv-a-new-symbolic-model-verifier` · `uppaal-40` · `torx-automated-model-based-testing`（另有 `kronos` `hytech` `mrmc` `vesta` `ymer` `tina` `tapaal-20` `fdr3` `aalpy` `sismic` 等）。
+
+⛔⛔ **纯工具的缺陷发现工作在池子里成堆，⛔ 不是被系统性遗漏。**
+
+#### ⭐⭐ 真实的偏斜是另一回事
+
+⭐ 那些工具论文**压倒性地是 2018 年以前、且形式主义界外**（时间自动机 / Petri 网 / 概率）。⭐ 所以起点池对 Q1 的真实缺口是 **「近年 × 界内」这一格**，⛔ 不是「方法/工具类整体缺席」。
+
+⚠️⚠️ **为什么这个更正很重要**：⭐ §5 是本文件唯一的**解释性**章节，层 3 会据它决定外检索的靶子。⛔ 按错误诊断去补「纯方法/纯工具」，会补到一堆池子里**已经有**的东西，而 **2022+ 的真缺口照旧**。
+
+⭐ **仍然成立的部分**：类目 ⑤（LLM 评审）与 ⑥（变形/差分）在池子里为 0 —— ⛔ 但正确的解释是**时间**（2022 年后才兴起的方向，而池子的重心在 2018 年前），⛔ **不是**「它们不产出新形式主义所以被规则拒收」。
 
 ### 5.3 ⚠️ 对 Q1-D 档（换轴）的一条观察，⛔ 不构成换轴条件
 
-`CONTINGENCY_L1.md` §1-D 档判据第一条是「同一篇论文同时落进 ≥3 个候选类目」。⭐ 本轮筛选中**已出现至少 1 例**：`designing-fsm-specifications-from-requirements-gpt4` 同时落 ②⑤⑥。另有两例落 2 类（`verifying-and-monitoring-uml-models-with-observer-automata` 落 ①④ · `constabl` 落 ④⑥）。
+`CONTINGENCY_L1.md` §1-D 档判据第一条是「同一篇论文同时落进 ≥3 个候选类目」。⛔⛔ **初版称「已出现至少 1 例」（`designing-fsm-...-gpt4` 落 ②⑤⑥），⭐ 该例证已于 2026-08-12 撤回** —— ⚠️ 它落 ⑤ 是靠把「生成后自评」算成评审侧，而 §5-A 判据第一问明确排除（见上节的 population 更正）。⭐ 去掉 ⑤ 后它只落 2 类。
+
+⭐ **现状：无一例落 ≥3 类。** 落 2 类的有两例（`verifying-and-monitoring-uml-models-with-observer-automata` 落 ①④ · `constabl` 落 ④⑥）。⛔ **D 档判据第一条未被满足。**
 
 ⚠️ 筛选过程中确实需要反复回答「**这一篇的判据从哪来**」才能归类。⛔ 一例不构成换轴条件，记录在此供层 3 判断。
 
@@ -166,7 +200,9 @@
 ## 6. ⛔ 层 1 答不了的（一律标「层 1 无法判定」）
 
 1. ⛔ **一切数值判断。** 实测 `grep -l '^##.*\(实验\|评测\|评估\|Evaluation\)' state_machine_types/*/desc.md` = **0** —— `DESC_GUIDE.md` 的 9 个必答问题里**没有一条**问「它测了什么、得了什么数」。
-   - ⚠️ **例外与陷阱**：`baselines/*/DESC.md` 有「实验结果总结」段。⛔ 但本文件引用的 69/6/92%/87%、85%/77%、100%/0%/40% 等数字**全部出自我方 DESC.md 的转述**，⛔ **不是原文核验过的** —— 层 2 必须回 `paper_content.txt` 逐条复核。
+   - ⛔⛔ **初版此处的免责声明与本文件内容不对应，已更正。** ⚠️ 它写「本文件引用的 69/6/92%/87%、85%/77%、100%/0%/40% 等数字全部出自我方转述」—— ⛔ **那些数字在本文件里一个都没出现**（grep 全文零命中）；⚠️ 而它**漏标了本文件真正转述的那个数**：`llms_emp` 的 **107** 案例。
+   - ⭐ **好消息**：独立核验已把那四组数**全部回 `paper_content.txt` 核过，全部与原文一致** —— `ai-driven` 的 Table 4 `Total 36 33 6 69 30 30.5 60.5/69` 与 L1119「92% of detected inconsistencies were relevant … automatic resolution of 87%」· `rebeca` 的 L771-779「39 correct lines out of 48, achieving an 85% success rate … Ticket Service shows 77%」· `designing-fsm` 的 Table 2/3/4（100%/100% · 100%/0% · 40%）。⭐ **层 2 对这四组的复核义务可就地销账。**
+   - ⚠️ **但 `ai-driven` 论文自身有内部不一致**：L1119 写 false positive 率 8%（→92%），L1194 又写 **7%**（→93%）。⛔ 引用时必须指明取哪一处。
 2. ⛔ **「形式主义」判定全是表格级的。** 凡标「部分」的，具体哪一节界内、哪一节界外，⛔ 层 1 给不出章节号。
 3. ⛔ **Q2 三篇检查侧工作的第二层五列表**（义务提取人工 / 自动、判据锚定粒度、可否重放、覆盖缺口怎么处理）—— ⛔ 层 1 全部答不了。⚠️ 且按 §2 前置纪律 ①，这四列**只进对照表、不进计数**。
 
