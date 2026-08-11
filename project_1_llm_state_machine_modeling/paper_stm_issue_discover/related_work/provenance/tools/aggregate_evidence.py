@@ -85,7 +85,10 @@ def main(argv: list[str] | None = None) -> int:
         srcs = evidence.get(pred, {})
         real = {k: v for k, v in srcs.items() if v["kind"] == "real_system"}
         lit = {k: v for k, v in srcs.items() if v["kind"] == "literature"}
-        domains = {v["domain"] for v in srcs.values() if v["domain"] and v["domain"] != "?"}
+        # ⛔ 领域多样性**只在语料侧算**。⚠️ 文献侧的 `system_or_domain` 是自由文本，
+        # 几乎一条一个唯一串 —— 把它当领域数会得出「invariant 覆盖 41 个领域」这种假数。
+        # ⭐ 文献侧的领域分散度是**定性**的，由各检索轨在 gap 报告里逐条说明，⛔ 不在此处编数。
+        domains = {v["domain"] for v in real.values() if v["domain"] and v["domain"] != "?"}
         rows.append(
             {
                 "predicate": pred,
@@ -93,9 +96,9 @@ def main(argv: list[str] | None = None) -> int:
                 "real_systems": len(real),
                 "literature": len(lit),
                 "total_sources": len(srcs),
-                "domains": sorted(domains),
-                "n_domains": len(domains),
-                "diversity_ok": _domain_diversity_ok(len(srcs), len(domains)),
+                "corpus_domains": sorted(domains),
+                "n_corpus_domains": len(domains),
+                "corpus_diversity_ok": _domain_diversity_ok(len(real), len(domains)),
                 "meets_target": len(srcs) >= TARGET_SOURCES,
                 "meets_minimum": len(srcs) >= MIN_SOURCES,
                 "source_keys": sorted(srcs),
@@ -103,20 +106,21 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     width = max(len(r["predicate"]) for r in rows)
-    print(f"{'谓词'.ljust(width)}  族  真实系统  文献  合计  领域数  多样性  达标(>={TARGET_SOURCES})")
+    print(f"{'谓词'.ljust(width)}  族  真实系统  文献  合计  语料领域  语料多样性  达标(>={TARGET_SOURCES})")
     for r in rows:
         flag = "✅" if r["meets_target"] else ("🟡" if r["meets_minimum"] else "⛔")
-        div = "✅" if r["diversity_ok"] else "⛔"
+        div = "✅" if r["corpus_diversity_ok"] else "⛔"
         print(
             f"{r['predicate'].ljust(width)}  {r['family']}  "
             f"{r['real_systems']:>8}  {r['literature']:>4}  {r['total_sources']:>4}  "
-            f"{r['n_domains']:>6}  {div:>5}  {flag}"
+            f"{r['n_corpus_domains']:>8}  {div:>9}  {flag}"
         )
 
     below = [r["predicate"] for r in rows if not r["meets_target"]]
     print(f"\n未达 {TARGET_SOURCES} 源的谓词（{len(below)}）：{', '.join(below) if below else '无'}")
-    nodiv = [r["predicate"] for r in rows if not r["diversity_ok"]]
-    print(f"领域多样性不足（{len(nodiv)}）：{', '.join(nodiv) if nodiv else '无'}")
+    nodiv = [r["predicate"] for r in rows if not r["corpus_diversity_ok"]]
+    print(f"⚠️ 语料侧领域多样性不足（{len(nodiv)}）：{', '.join(nodiv) if nodiv else '无'}")
+    print("⛔ 文献侧的领域分散度是定性的，见各检索轨的 gap 报告；此处不编数。")
 
     if args.out:
         args.out.write_text(
