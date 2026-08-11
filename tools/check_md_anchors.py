@@ -25,8 +25,12 @@ import pathlib
 import re
 import sys
 
-#: 一行内指向某个 .md 的相对链接。
-_LINK = re.compile(r"\]\((\.{1,2}/[^)\s#]+\.md)")
+#: 锚点的目标可以有两种写法，缺一不可：
+#:   ① markdown 链接    ``[名](./x.md)``
+#:   ② 反引号文件名      ``` `x.md` ```  ← ⚠️ 实测 L1/L2 对 story 的锚点几乎全是这种
+#: 只认 ① 会漏掉一整簇——那次「改 §10 未重锚」的 11 处失配正是这样躲过去的，
+#: 而它恰恰是本工具要防的那个事故。
+_LINK = re.compile(r"\]\((\.{1,2}/[^)\s#]+\.md)\)|`([^`\s]+\.md)`")
 #: 直角引号包起来的片段。⚠️ 允许内部出现强调标记，故不排除 * 与 `。
 _FRAG = re.compile(r"「([^「」\n]{%d,})」" % 6)
 #: 省略号——含它的片段本就不是逐字引用，跳过而不是误报。
@@ -65,11 +69,18 @@ def scan(root: pathlib.Path) -> list[tuple[str, int, str, str]]:
             continue
         cache: dict[pathlib.Path, str] = {}
         for lineno, line in enumerate(lines, 1):
-            for lm in _LINK.finditer(line):
-                target = (md.parent / lm.group(1)).resolve()
+            # ⛔ 片段归给**最近的前一个**目标，不是窗口内所有目标。
+            # 一行里出现两个链接 + 一个 §号在本库很常见；判给所有链接会把
+            # 属于 A 的片段也报到 B 头上（实测误报 4 处）。
+            hits = list(_LINK.finditer(line))
+            for idx, lm in enumerate(hits):
+                raw = lm.group(1) or lm.group(2)
+                nxt = hits[idx + 1].start() if idx + 1 < len(hits) else len(line)
+                target = (md.parent / raw).resolve()
                 if not target.is_file() or target == md.resolve():
                     continue                    # 断链归 check_md_links 管
-                window = line[lm.end(): lm.end() + _SPAN]
+                # 窗口在下一个目标处截断——那之后的片段归下一个目标。
+                window = line[lm.end(): min(lm.end() + _SPAN, nxt)]
                 # 片段必须在链接之后，且链接与片段之间出现过 §号。
                 for fm in _FRAG.finditer(window):
                     if "§" not in window[: fm.start()]:
@@ -84,7 +95,7 @@ def scan(root: pathlib.Path) -> list[tuple[str, int, str, str]]:
                             cache[target] = ""
                     if normalize(frag) not in cache[target]:
                         bad.append((str(md.relative_to(root)), lineno,
-                                    lm.group(1), frag))
+                                    raw, frag))
     return bad
 
 

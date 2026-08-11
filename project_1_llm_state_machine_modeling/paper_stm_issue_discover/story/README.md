@@ -106,7 +106,7 @@
 | ~~`TODO-S1`~~ | paper_story | ✅ **已裁定 2026-08-11：contribution 三条**（① 基于模型转换 + 模型形式化检查 / 仿真 / 验证的模型错误发现方法；② 基于归纳后的谓词逻辑的断言体系；③ issue 证据链体系），逐字内容见 [paper_story.md](./paper_story.md) §7 | 不再阻塞形状；⚠️ **三条各自的 claim 强度仍未定**，待文献调研 |
 | `TODO-S2` | paper_story | **X3**：「缺上下文」claim 的可辩护收窄——🔍 **解锁条件是文献调研**，不是人工裁定 | Intro motivation、C-③ |
 | `TODO-S3` | paper_story | 领域分析这条论证链的实际交付物（19 行映射表） | 整篇方法合法性 |
-| `TODO-S4` | paper_story | Related Work 四条轴的实际文献填充 | §2 |
+| `TODO-S4` | paper_story | Related Work **五条轴**的实际文献填充（轴 5 已于 2026-08-11 由候选转正并入主表） | §2 |
 | `TODO-S5` | paper_story | 「裸给工具效果差」这条反面观察缺可引用证据 | §1.3 末、§8 讨论第 2 条 |
 | `TODO-O1` | paper_outline | §4 领域分析节的交付形态与验收判据 | §4（承重结构） |
 | ~~`TODO-O2`~~ | paper_outline | ✅ **已裁定 2026-08-11：恢复独立的 Problem Formulation 节（§3 问题形式化），全篇十节**，原 §3 起顺延一位；§编号自此冻结 | 不再阻塞；建模对象边界唯一落点为 §3.1 |

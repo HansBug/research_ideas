@@ -60,7 +60,7 @@
 
 | 时间 | 更新 |
 |---|---|
-| 2026-08-11 | 补录两份**此前在本总账中完全缺席**的 report：`2026-07-19-issue-161-plantuml-java-frontend.md` 与 `2026-08-11-post-refactor-e2e-smoke.md`；active report 计数由 9 更正为 11。⚠️ 两份都早已在 [README.md](./README.md) §2 的 active 表里，只有本 SUMMARY 漏登——**两张表必须同增同减**，新增 report 时不要只改一处。同时补「实验结果不在本目录」的入口行。 |
+| 2026-08-11 | 补录两份**此前在本总账中完全缺席**的 report：`2026-07-19-issue-161-plantuml-java-frontend.md` 与 `2026-08-11-post-refactor-e2e-smoke.md`；active report 计数由 9 更正为 11。⚠️ 两份都早已在 [README.md](./README.md) §2 的 active 表里，只有本 SUMMARY 漏登——**两张表必须同增同减**，新增 report 时不要只改一处。同时补上「每代次实验报告不落在本目录」这条口径的入口行。 |
 | 2026-07-08 14:03:59 | `PR-source-trace` 新增 source trace contract report，并把 active report 计数从 8 更新为 9。 |
 | 2026-07-08 10:15:00 | `PR-issue-ledger` 新增 issue ledger contract report，并把 active report 计数从 7 更新为 8。 |
 | 2026-07-08 00:20:00 | `PR-better-archive` review 后补充 R5 / R5.5 active report 的 historical wording 提醒，避免早期 Better STM / `STM_k` wording 被误读为当前 active 口径。 |

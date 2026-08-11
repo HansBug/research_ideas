@@ -174,7 +174,7 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 
 - **多报率必须分解**为「真多报 / 表示债务 / NL 无依据」三类。只报总多报率会同时高估模型的乱报程度、又掩盖编译链的问题。
 - **命中率的敏感性必须量化，不能只说「不受影响」。** 「台账分母不变」是同义反复；科学问题是「若把这 1 条补进台账会怎样」。⚠️ **`hit@1` / `hit@3` 的变动很小，但 `hit@all` 只会下降**——那条真漏记只出现在 **2/6** 格，按定义会稀释稳定性指标。这与 §4.6 是同一事实的两面，**必须同时给出三个口径的区间**，不得只说「不受影响」。
-- **oracle 不完备性被量化**：这 1 条漏记构成 [docs/protocol/ground_truth_limitations.md](../protocol/ground_truth_limitations.md) §6「台账非完备集」的经验确认。据此 `hit@k` 应读作**对已知缺陷集的覆盖率**，而非召回率。另须履行 [docs/protocol/hit_criterion.md](../protocol/hit_criterion.md) §4.5 的双读法并列义务。
+- **oracle 不完备性被量化**：这 1 条漏记构成 [docs/protocol/ground_truth_limitations.md](../protocol/ground_truth_limitations.md) §7 那句分母表述「它不是 60 个模型缺陷的完备集」的经验确认。据此 `hit@k` 应读作**对已知缺陷集的覆盖率**，而非召回率。另须履行 [docs/protocol/hit_criterion.md](../protocol/hit_criterion.md) §4.5 的双读法并列义务。
 
 ### 4.6 一并交代的负面结果
 

@@ -137,3 +137,32 @@ def test_the_real_regression_shape(tmp_path: pathlib.Path) -> None:
     )
     bad = scan(tmp_path)
     assert len(bad) == 1 and "尚未纳入" in bad[0][3]
+
+
+def test_backtick_filename_counts_as_anchor_target(tmp_path: pathlib.Path) -> None:
+    """⭐ 反引号写法必须认——漏掉它就漏掉了本工具要防的那个事故。
+
+    实测：`CONTINGENCY_L1/L2.md` 对 `paper_story.md` 的锚点几乎全写成
+    ``` `paper_story.md` §10「片段」 ```。只认 markdown 链接时，那次「改 §10
+    未重锚」造成的 11 处失配**一条都报不出来**——而它正是建这个工具的起因。
+    """
+    _w(tmp_path, "story.md", "## 10 相关工作\n\n五条轴，轴 5 已确立。\n")
+    _w(tmp_path, "plan.md", "见 `story.md` §10「还有一条尚未纳入的轴」。\n")
+    bad = scan(tmp_path)
+    assert len(bad) == 1 and "尚未纳入" in bad[0][3]
+
+
+def test_fragment_belongs_to_nearest_preceding_target(tmp_path: pathlib.Path) -> None:
+    """⛔ 片段归最近的前一个目标，不是窗口内所有目标。
+
+    一行里两个链接 + 一个 §号在本库很常见。判给所有链接会把属于 A 的片段
+    也报到 B 头上——实测因此误报 4 处，而那 4 处的片段本身逐字正确。
+    """
+    _w(tmp_path, "a.md", "甲文件里确有这一句\n")
+    _w(tmp_path, "b.md", "乙文件里确有这一句\n")
+    _w(
+        tmp_path,
+        "ref.md",
+        "见 [甲](./a.md) §1「甲文件里确有这一句」与 [乙](./b.md) §2「乙文件里确有这一句」。\n",
+    )
+    assert scan(tmp_path) == []
