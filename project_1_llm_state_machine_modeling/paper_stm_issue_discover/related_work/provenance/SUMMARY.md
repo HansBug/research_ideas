@@ -59,13 +59,57 @@
 
 ⛔ 按伞 PR §4.2，⛔ 不许只报好的。
 
-### 4.1 ⛔ `cardinality` 是最弱的一条，⛔ 且弱在**对应关系**上
+### 4.1 ⛔⛔ `cardinality` 找不到同口径出处，⭐ 但这条坏消息可以转成第二档贡献声明
 
-⚠️ 负责该谓词的检索轨**主动坦白**（逐字）：
+【实测】**两轮共 15 条候选，⛔ 通过 0 条。** ⚠️ 第一轮 8 条全数不通过后，我另开一路**只查这一条**，⭐ 补到 7 条新证据（全部 `full_text`、且该路逐条 `curl` 原始页面复核过引文）；⛔ **带前批判例约束送裁后，仍然 0/7。**
 
-> ⛔ 我**没有**找到任何一条直接证据形如「检查模型枚举出的模式个数是否恰好等于自然语言需求所说的那个数」。我实际交上来的 8 条是两类替代证据，⛔ **二者都比谓词定义弱一层，不能冒充**。
+⭐⭐ **裁定者读了源码，给出一条比原判据更锋利的判别线** —— 已逐字复核：
 
-⭐ 找到的是「**作用域内元素计数约束**」（MAB `db_0137` 的 at least two states、Eclipse UML2 的 at most one initial vertex 等）—— ⭐ 它们证明「对状态机内某类元素做计数约束」是常规项，⛔ **不证明「必须恰好等于需求说的那个数」**。
+| 源码事实（逐字） | 位置 |
+| :-- | :-- |
+| `"""This scope declares exactly this many **non-pseudo** direct substates."""` + 实现里 `if bool(row.is_pseudo): continue` | `assertions/predicate_api.py` `def cardinality` |
+| 「`cardinality(scope, count)` is **exact** and it is the **only counting predicate** -- ⛔ **there is no at-least form, and no way to write one**」 | `discover/prompts.py` 的 Cardinality evidence gate |
+| 「Counting the **declared non-pseudo substates** of a scope ranges over the whole scope by construction」 | `discover/capability.py` |
+
+⭐ **由此得到的判据**：
+
+> ⭐ 本谓词的特征**不在「比较是精确的」**，⭐ 而在 **N 的出处是需求文本**。
+
+⛔ **15 条全部失败于同一点：N 的出处全是语言 / 元模型 / 作者策略，⛔ 没有一条来自需求文本。** 失败按被计对象分四类：
+
+| 被计的对象 | ⛔ 为什么不算 |
+| :-- | :-- |
+| **初始 / 历史 / 默认这类角色元素**（UML `->size() <= 1` · Modelica "one and only one initial" · MAB `jc_0531c` · itemis · LLM4SFC 的 "exactly one initial step"） | ⛔ 我们的实现**逐行剔除伪状态** —— ⭐ 对象在实现层面就互斥。⭐ 且期望值 1 由元模型固定，⛔ 不由需求给出。⭐ 这些一律改判 `initial_target` |
+| **标识符命名空间**（OPC UA 的 BrowseName / StateNumber 唯一、SCXML 的 id 唯一） | ⛔ 见下方专条 |
+| **真实子状态，⛔ 但只给单侧界**（MAB `db_0137` 的 at least two · OPC UA 的 at least one · SCXML 的 at least one child） | ⛔ 下界不是精确计数；⚠️ 且 `db_0137` 的 Rationale 逐字是「Redundant descriptions impair **readability**」与「Generated code includes unnecessary state variables」—— ⭐ 那是**风格约束** |
+| **与状态集合无关的关联多重度**（AUTOSAR 的 "exactly one ModeDeclarationGroupPrototype"） | ⚠️ 这是 15 条里**意图最接近**的一条，⛔ 但它数的是**组原型**；⭐ 成员数在同一句里逐字写作 "**multiple** / **several** ModeDeclarations" —— ⛔ 恰恰是任意 N 的反面 |
+
+#### ⛔ 一处我自己的提法被裁定者纠正了
+
+⚠️ 我原先问「『禁止重复 / 成员唯一』算不算 `cardinality` 的**另一半**」。⛔ **这个提法本身错了** —— 裁定者逐字：
+
+> 「本谓词**没有两半**，只有**一个等式与两个失败方向**。『缺了一个』与『重复了一个』是同一个 `count == N` 不成立的两种成因，⭐ 由**同一次计数**裁定。」
+
+⛔ 而标识符唯一性与它**外延几乎不相交**，反例很硬：⭐ 模型把 NL 的一个模式铺成 `Cooling` 与 `CoolingActive` 两个状态 —— ⭐ 这正是「重复了一个」，⛔ 而这两个名字**互不相同**、通过一切 id 唯一性检查，⛔ 却让计数变成 N+1。⚠️ 反过来，真的重名在我们的栈里**活不到谓词层**（`_require_well_formed_names` 与路径唯一性在解析层就拦掉了）。
+
+#### ⭐⭐ 可直接落稿的表述（⛔ 只用证据支持得住的那一层）
+
+> 状态机元模型普遍对某一作用域内的元素个数施加多重度约束 —— UML 2.5.1 将每个 region 内的 initial 与 history 顶点限定为 `->size() <= 1`，OPC UA Part 16 要求具体状态机至少声明一个 State，Modelica 要求每台状态机有且仅有一个 initial 实例 —— ⭐ 可见「**对作用域内元素计数并与预期值比对**」是这类元模型的常规良构性手段；⛔ 但这些规约中的预期值**一律由元模型自身固定**，且多为 0/1 的**单侧**界，⭐ 而 `cardinality(scope, count)` 将预期值改由**需求文本声明的枚举**给出。**据我们所知，尚未见到把计数义务的期望值锚定到自然语言需求所枚举的成员集上的既有检查。**
+
+⭐ **这句话的好处**：它只用证据支持得住的那一层（⭐ 计数是常规良构手段），⛔ 把差额（**N 的出处**）明写成新颖点 —— ⭐ 于是这条坏消息**转成了第二档贡献声明**，⛔ 而不是继续当欠账。
+
+⛔ **配套禁止项**：⛔ 不得写「领域里常做状态计数检查，故本谓词有依据」—— ⚠️ 那既是频次论证又是符合性论证，⛔ 且审稿人抽查 UML / OPC UA 会立刻发现引的是**单侧界**。
+
+#### ⚠️ 两条流程问题（⛔ 已回流）
+
+1. ⛔ **补充轮的 7 条里有 1 条是已拒条目的逐字重投**（MAB `db_0137`）—— ⭐ 说明前批的判决理由**没有回到检索侧**，⛔ 名义 7 条实为 6 条新证据。
+2. ⚠️ **OMG UML 2.5.1 与前批的 Eclipse UML2 `validateInitialVertex` 是同一事实的规约与实现两面** —— ⛔ 日后任何 UML 家族证据被采纳时**不得按面值计两个独立观测**。
+
+### 4.1b ⛔ 一条与 `cardinality` 无关、⭐ 但值得单独收下的副产品
+
+⭐ **LLM4SFC**（arXiv:2512.06787, 2025）虽然作为 `cardinality` 出处不成立，⛔ 但它有一条**真正的新信息**：它把结构计数做成对 **LLM 生成制品**的第一道检查，并**按模型统计违规率**（GPT-4o 的 initial step 错误占其全部错误的 **43.18%**）。
+
+⭐ 这支撑的是 **C-① 侧的动机**（「LLM 生成的控制状态模型真的会把结构搞错」），⛔ **不是** `cardinality` 的出处。⛔ 引用时**只能**引它 p.3 的自陈做法与违规率，⚠️ **绝不可**引它对 IEC 61131-3 的转述 —— ⭐ 该文 p.2 与 p.3 自相矛盾（p.2 断言 SFC「exactly one initial step」，p.3 承认「IEC 61131-3 allows multiple initial steps, **we** enforce a single initial step」）。
 
 ### 4.2 ⚠️ 来源独立性有折扣，⛔ 数字不能按面值读
 
