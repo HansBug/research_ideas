@@ -53,7 +53,9 @@
 | :-- | :-- |
 | [SUMMARY.md](./SUMMARY.md) | ⭐ **总账入口** —— 一页结论 + 三类计数 + 四条坏消息 + 元模型级发现 + Q3 定档 + 对 `story/` 的建议 |
 | [predicate_provenance.md](./predicate_provenance.md) | ⭐ **19 行出处三类表**（逐条含扣分项） |
-| [c3_differentiation.md](./c3_differentiation.md) | ⭐ **Q2 · C-③ 差异化** —— 三要素战况 + 三条已知反例的原文定位 + 可证伪命题 |
+| [c3_differentiation.md](./c3_differentiation.md) | ⭐ **Q2 · C-③ 差异化** —— 三要素战况 + 三条已知反例的原文定位。⚠️ 它的「唯一空缺是 (iii)」**已作废** |
+| ⭐⭐ [c3_iii_supplement.md](./c3_iii_supplement.md) | ⭐⭐ **C-③ 措辞的最终依据** —— ⛔ 它推翻了「唯一空缺是 (iii)」，⭐ 并给出跨五条线不变、有**六处独立自证**的 gap 陈述 |
+| [recovery_log.md](./recovery_log.md) | ⭐ 伪缺口与付费墙回收（10 个目标 9 个全文）+ ⛔ **三处被证伪的元数据** |
 | [corpus_scan_findings.md](./corpus_scan_findings.md) | ⭐ 界内语料两轮穷尽扫描的三条发现 |
 | [methodology.md](./methodology.md) | ⭐ 四层编制 · 裁定层的失败模式与双向可靠性审计 · 六条方法局限 |
 | ⛔ [coverage_audit.md](./coverage_audit.md) | ⛔ **C3 覆盖审计：这轮漏了什么** —— ⚠️ **它推翻了两处 claim 形状，⛔ 引用本目录任何结论前必读** |
