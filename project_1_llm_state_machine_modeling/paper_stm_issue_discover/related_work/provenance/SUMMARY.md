@@ -27,7 +27,13 @@
 
 ⛔ **这些都是库存量，⛔ 不是任何比例的分母。** `sources/` 的收录标准恰好选中了要测的那个性质 —— ⛔ 任何 K/N 都是在因变量上做选择（[method_provenance_policy.md](../../discover_matrix/docs/protocol/method_provenance_policy.md) §一.5）。
 
-⚠️ **规模的诚实说法**：本轮**不是**系统性综述。⛔ 不得写成 systematic literature review / mapping study，⛔ 也不得说「据我们所知不存在 X」—— ⭐ 只能说「**在本轮覆盖的 venue 族与年份窗内未见 X**」并附覆盖范围。
+⚠️ **规模的诚实说法**：本轮**不是**系统性综述。⛔ 不得写成 systematic literature review / mapping study，⛔ 也不得说「据我们所知不存在 X」。
+
+⛔⛔ **一处必须更正的口径（2026-08-12，C3 覆盖审计）**：⚠️ 上一版这里写「只能说『在本轮覆盖的 **venue 族**与年份窗内未见 X』」—— ⛔ **那句话本身不可写**。⭐ C3 逐字核实：**没有任何一路枚举过任何一个 venue**。实际发现层只有三个 —— ① Google WebSearch · ② arXiv 元数据 API · ③ 本地语料 grep；⚠️ DBLP 只用过 2 次且都是元数据核对，ACM DL 与 IEEE Xplore 的**全部出现都是 403**，Scopus / WoS / Google Scholar / snowballing **各 0 次**，**ISSTA 0 次**、**TOSEM 实际取到全文 0 篇**。⛔ 那些 venue 名出现在日志里，只是因为某篇被 Google 命中的论文恰好发表在那里。
+
+⭐ **当下就能诚实写出的最强口径是检索式的**：「在附录列出的 N 条查询串上，经 Google WebSearch、arXiv 元数据检索与本仓库 454 篇界内语料的全文检索，未检出 X。」⭐ 各路 `search_log` 已把查询串记全，⛔ 汇编即可。⚠️ 要保住「venue 族」这个词，唯一低成本办法是跑 DBLP 的 per-venue BibTeX 批量导出 —— ⭐ 约一天，⛔ 归下一轮。
+
+⛔ **另一条须声明的边界**：全轮**非英文检索 0 次**，⚠️ 而本研究的语料本身含印尼语、德语等真实系统论文 —— ⭐ 这是一个**未声明的语言边界**，⛔ 论文里必须说。
 
 ## 2. Q1 · 19 条谓词的出处三类分级
 
