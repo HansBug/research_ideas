@@ -26,6 +26,7 @@ R5.7 / Better STM / constructed `STM_k` / blind adjudication 报告链已经迁�
 
 | 时间 | report | 类型 | 当前使用方式 |
 |---|---|---|---|
+| 2026-08-11 | [2026-08-11-post-refactor-e2e-smoke.md](./2026-08-11-post-refactor-e2e-smoke.md) | 重构后 e2e smoke | 大规模目录重构后的端到端验证：`0000` × claude / gpt 各 1 轮，两格均 completed / coverage=full / 零降级零重试，输入哈希与搬迁前逐字节相同，发现的 4 条与 v46 逐条对应。⛔ **工程验证，数字不得进论文统计**。 |
 | 2026-07-19 | [2026-07-19-issue-161-plantuml-java-frontend.md](./2026-07-19-issue-161-plantuml-java-frontend.md) | PlantUML Java frontend | **本表中与当前语料关系最直接的一份**：Issue #161 把 PlantUML canonical 从 SCXML 路线换成 Java source frontend，60 例 active 语料由此产生。技术路线报告，不是实验结果。 |
 | 2026-07-08 14:03:59 | [2026-07-08-14-03-59-pr-source-trace-contract.md](./2026-07-08-14-03-59-pr-source-trace-contract.md) | source trace contract | source trace v0 合同报告；定义 raw/source ↔ intermediate trace、projection status 与 negative attribution gate，不是实验结果。 |
 | 2026-07-08 10:15:00 | [2026-07-08-10-15-00-pr-issue-ledger-contract.md](./2026-07-08-10-15-00-pr-issue-ledger-contract.md) | issue ledger contract | source issue ledger v0 合同报告；定义 candidate / confirmed / rejected / out-of-scope / insufficient-evidence gate，不是实验结果。 |
