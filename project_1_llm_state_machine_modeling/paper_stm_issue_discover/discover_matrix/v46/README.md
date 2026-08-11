@@ -58,9 +58,9 @@ issue，两侧都不存在，记于
 | 大类 | 条目 | 占比 | **去重** | **占比** | 比值 | 子类 |
 | :-- | --: | --: | --: | --: | --: | --: |
 | ⚙️ 表示债务 | 134 | 46.5% | 30 | 24.2% | 4.47 | 5 |
-| 📄 无 NL 依据 | 119 | 41.6% | 67 | 54.5% | 1.78 | 10 |
-| ❌ 假阳性 | 23 | 8.0% | 20 | 16.3% | 1.15 | 4 |
-| 🚫 越界 | 10 | 3.5% | 5 | 4.1% | 2.00 | 3 |
+| 📄 无 NL 依据 | 119 | 41.3% | 67 | 54.0% | 1.78 | 10 |
+| ❌ 假阳性 | 23 | 8.0% | 20 | 16.1% | 1.15 | 4 |
+| 🚫 越界 | 10 | 3.5% | 5 | 4.0% | 2.00 | 3 |
 | ✅ **真漏记** | 2 | 0.7% | 2 | 1.6% | 1.00 | 1 |
 | **合计** | **288** | 100% | **124** | 100% | **2.32** | 23 |
 
@@ -119,7 +119,7 @@ issue，两侧都不存在，记于
 | 文件 | 内容 |
 | :-- | :-- |
 | `G1.jsonl` – `G9.jsonl` | **手工裁定真源**，288 簇按判定组分文件，每簇带 `verdict` / `subclass` / `merge_key` / `merge_reason` / `fact` / `nl`，另有可选的 `root` / `note` |
-| [ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl) | 13 条内容已被台账承载、不进桶的簇 |
+| [ledger_accounted.jsonl](./unexpected_verdicts/ledger_accounted.jsonl) | 14 条内容已被台账承载、不进桶的簇 |
 | [not_produced.jsonl](./unexpected_verdicts/not_produced.jsonl) | 2 条断言求值为 True 的真阴性 |
 | [cluster_index.tsv](./unexpected_verdicts/cluster_index.tsv) | 派生：逐簇索引（`pair` / `verdict` / `subclass` / `merge_key` / `cells_of_6` / `predicate_families`） |
 | [merge_groups.tsv](./unexpected_verdicts/merge_groups.tsv) | 派生：124 个去重组及其自然语言合并理由 |
