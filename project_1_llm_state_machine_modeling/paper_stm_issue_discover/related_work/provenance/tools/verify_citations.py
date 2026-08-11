@@ -100,23 +100,37 @@ def resolve_doi(doi: str) -> dict | None:
     return _resolve_crossref(doi) or _resolve_datacite(doi)
 
 
-def resolve_arxiv(arxiv_id: str) -> dict | None:
-    raw = _get(f"http://export.arxiv.org/api/query?id_list={urllib.parse.quote(arxiv_id)}")
+def _resolve_arxiv_abs(arxiv_id: str) -> dict | None:
+    """从 `arxiv.org/abs/<id>` 的 HTML 取题录。
+
+    ⚠️ **这是 `export.arxiv.org` 的替代路径，不是备份。** 实测该 API 在本仓库的运行环境
+    **不可达**（连 12 s 都超时），而 `arxiv.org/abs/` 与 DataCite 都通。⛔ 只走 API 会把
+    一批真实论文报成「未解析」—— ⭐ 而「我们的解析器不认」与「这篇不存在」是两回事，
+    ⛔ 混淆的代价是把幻觉审查变成噪声。
+    """
+    raw = _get(f"https://arxiv.org/abs/{urllib.parse.quote(arxiv_id)}")
     if raw is None:
         return None
     text = raw.decode("utf-8", "replace")
-    if "<entry>" not in text:
-        return None
-    m_title = re.search(r"<entry>.*?<title>(.*?)</title>", text, re.S)
-    m_pub = re.search(r"<entry>.*?<published>(\d{4})", text, re.S)
+    m_title = re.search(r'<meta name="citation_title" content="([^"]+)"', text)
+    if not m_title:
+        m_title = re.search(r'<h1 class="title[^"]*">\s*(?:<span[^>]*>.*?</span>)?\s*(.*?)\s*</h1>', text, re.S)
+    m_date = re.search(r'<meta name="citation_date" content="(\d{4})', text)
     if not m_title:
         return None
+    title = re.sub(r"<[^>]+>", "", m_title.group(1))
     return {
-        "title": re.sub(r"\s+", " ", m_title.group(1)).strip(),
-        "year": int(m_pub.group(1)) if m_pub else None,
+        "title": re.sub(r"\s+", " ", title).strip(),
+        "year": int(m_date.group(1)) if m_date else None,
         "venue": "arXiv",
         "type": "preprint",
+        "registry": "arxiv-abs",
     }
+
+
+def resolve_arxiv(arxiv_id: str) -> dict | None:
+    """DataCite（arXiv 的 DOI 全在这里）优先，⛔ 失败再退到 abs 页；⛔ API 已弃用，见上。"""
+    return _resolve_datacite(f"10.48550/arXiv.{arxiv_id}") or _resolve_arxiv_abs(arxiv_id)
 
 
 def check(finding: dict, threshold: float) -> dict:
