@@ -30,6 +30,8 @@ sys.path.insert(0, HERE)
 
 import checklist                                    # noqa: E402
 import fillblocks as fb                             # noqa: E402
+import newfields as NF                              # noqa: E402
+import nl_zh                                        # noqa: E402
 import sources as S                                 # noqa: E402
 from pumlmodel import PumlModel                     # noqa: E402
 
@@ -179,10 +181,23 @@ def section_material(pair, model, records):
         + f"，共 {len(segs)} 段。台账里的「NL 第 N 句」按这套编号读。"
     )
     lines.append("")
-    lines.append("| 段 id | 原文 |")
-    lines.append("| :-- | :-- |")
+    lines.append(
+        "⛔ **译文是给人判缺陷用的，⛔ 不是给人读着舒服用的。** 它严格直译，"
+        "⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息；状态名 / 事件名 / 变量名一律保留英文原样，"
+        "技术术语保留英文并在括号里给中文。"
+        "⭐ 原文含糊的地方译文**照样含糊**，只用 `〔译者存疑：…〕` 点出这里没说清 —— "
+        "⛔ 替它消歧就等于替你做了本轮要你自己做的判断。"
+        "原文的语法 / 拼写错误照直译并加 `〔原文如此：…〕`。"
+        "⭐ 译文是**辅助**，⛔ 判据仍以英文原文为准；两者不一致时以原文为准并请回报。"
+        "口径见 [nl_zh.py](./nl_zh.py)。"
+    )
+    lines.append("")
+    lines.append("| 段 id | 原文 | 中文严格翻译 |")
+    lines.append("| :-- | :-- | :-- |")
     for sid, txt in segs:
-        lines.append(f"| `{sid}` | {esc(txt)} |")
+        zh = nl_zh.translate(pair, sid)
+        lines.append(f"| `{sid}` | {esc(txt)} | "
+                     f"{esc(zh) if zh else '⛔ 缺译文 —— 见 nl_zh.py'} |")
     lines.append("")
     lines.append("<details><summary>NL 原始字节（带物理行号）</summary>")
     lines.append("")
@@ -640,39 +655,269 @@ def section_checklist(pair, model, segs, records, saved):
 
 # ------------------------------------------------------------------ §5 新增登记
 
+def _ex(slot, pair, field=None, limit=300):
+    """渲染一条真实台账样例。⛔ 取不到就返回 None，⛔ 不编。"""
+    rec = NF.exemplar(slot, pair)
+    if rec is None:
+        return None
+    val = rec.get(field) if field else None
+    return rec, (clip(val, limit) if val else None)
+
+
 def section_new(pair, saved):
     lines = []
     lines.append("## §5 新增 issue 登记")
     lines.append("")
     lines.append(
         "把 §3 采纳的、§4 查出的、以及你自行发现的缺陷登记在这里。"
-        "⭐ 模板给了两条，不够就照格式往下加（编号连续即可）。"
+        "⭐ 登记区默认给两条，不够就照格式往下加（`NEW-" + pair + "-03`、`-04` …，编号连续即可）。"
     )
     lines.append("")
     lines.append(
         "⛔ 登记前先过三道门：① 它在 $M = (S, E, V, Tr, A)$ 内吗（⛔ 无时钟 / 无并发）？"
         "② 它在**作者源**上成立吗（⛔ 不能只在投影上成立）？"
-        "③ 它和 §2 已有条目是同一个缺陷吗（是则走「并入」而不是新增）？"
+        "③ 它和 §2 已有条目是同一个缺陷吗（是则回 §2 走「修正」，⛔ 不要在这里新开一条）？"
     )
     lines.append("")
-    lines.append(fb.render(f"NEW-{pair}", "new", fb.NEW_TEMPLATE.format(pair=pair),
-                           saved.get(f"NEW-{pair}")))
+    lines.append(
+        "⚠️ 下面所有样例都取自现有台账 "
+        "[expected_issue_set.json](../expected_issue_set.json) 的**真实条目**，⛔ 一条都没有编。"
+        "⭐ 但样例会**避开本 pair 所属的 NL 组**（本 pair 属 `"
+        + str(S.nl_group(pair)) + "`）—— 同一份 NL 生成 6 个制品，"
+        "拿兄弟 pair 的缺陷当格式样例等于把答案先告诉你。"
+    )
     lines.append("")
-    lines.append("**谓词参考**（19 个封闭谓词，`primary_predicate` 只能取其一或留空）")
+
+    # ---------------------------------------------------------- §5.1 字段表
+    lines.append("### §5.1 字段表（⭐ 你只填第一层）")
+    lines.append("")
+    lines.append("| 层 | 字段 | 一句话 | 留空的含义 |")
+    lines.append("| :-- | :-- | :-- | :-- |")
+    lines.append("| ⭐ 必填 | `statement` | 缺陷是什么 | ⛔ 不许留空 |")
+    lines.append("| ⭐ 必填 | `generated_side` | 模型里哪一处（行号或元素名） | ⛔ 不许留空 |")
+    lines.append("| ⭐ 必填 | `nl_evidence` | NL 段 id；NL 未明说就写 `无` | "
+                 "⛔ 不许留空（⭐ 写 `无` 才算判过） |")
+    lines.append("| ⭐ 必填 | `direction` | 8 类之一 | ⛔ 不许留空，归不进就选 `unclassified` |")
+    lines.append("| ⭐ 必填 | `depth` | 表层 / 中层 / 深层 | ⛔ 不许留空 |")
+    lines.append("| ⚠️ 可选 | `reference_side` | 参考模型对应处 | ⭐ 留空 = 没看 / 参考侧无对应 |")
+    lines.append("| ⚠️ 可选 | `primary_predicate` | 19 谓词之一 | "
+                 "⭐ 留空 = 未判；写 `无` = 判过了、词表覆盖不到 |")
+    lines.append("| ⚠️ 可选 | `layer` | 4 层之一 | ⭐ 留空 = 未判 |")
+    lines.append("| ⭐ 脚本推导 | `id` `pair` `group` `llm` `in_scope` `element_of_M` "
+                 "`expressible_with_closed_vocabulary` `layer_basis` `upstream` | "
+                 "由 [newfields.py](./newfields.py) 的 `derive()` 算出 | ⛔ **一律不填** |")
+    lines.append("| ⭐ 合并时补 | `assertions` `assertion_count` `has_negative_control` "
+                 "`replay` `verdict` `homogeneity_*` `automatable` `decided_by` | "
+                 "要跑断言器 / 要全库重算，本目录做不了 | ⛔ **一律不填** |")
+    lines.append("")
+    lines.append(
+        "⛔ **为什么不让你填 `element_of_M`**：它只是对 `generated_side` 已经点到的那一处做分类，"
+        "不带新信息。台账里同一个 `direction` 会落到 3 到 5 种不同的 `element_of_M`"
+        "（`guard` 方向就横跨 `Tr` / `A` / `S` / `E` / `V` 五种），手填只会引入噪声。"
+        "⭐ `derive()` 改从你给的**作者源行号**反查那一行是状态声明、迁移还是状态动作 —— 那是确定性的。"
+        "⭐ 所以 `generated_side` 里**带上行号**比写元素名更有用。"
+    )
+    lines.append("")
+
+    # ---------------------------------------------------------- §5.2 逐字段
+    lines.append("### §5.2 逐字段怎么填")
+    lines.append("")
+
+    got = _ex("statement", pair, "statement", 320)
+    lines.append("#### `statement` ⭐ 必填")
+    lines.append("")
+    lines.append(
+        "⭐ 写**缺陷是什么**，不是写「哪里不一样」。判据：读完这一句，"
+        "另一个人能不能独立到作者源上复核它成立与否。"
+        "⭐ 现有条目的写法是审阅 agent 的 `reason` 逐字，可以照那个密度写。"
+    )
+    lines.append("")
+    if got:
+        rec, val = got
+        lines.append(f"真实样例（`{rec['id']}`，`{rec['direction']}` / `{rec['layer']}`）：")
+        lines.append("")
+        lines.append(f"> {val}")
+        lines.append("")
+    lines.append(
+        "⚠️ **写成一段，⛔ 不要换行**。回收器只把 `" + "` / `".join(NF.FIELD_NAMES)
+        + "` 这几个名字当作新字段起点，其余行都会并进当前字段 —— "
+        "⭐ 所以你可以在 `statement` 里放冒号、放引文，⛔ 但请别自己起一个像字段名的行。"
+    )
+    lines.append("")
+
+    got = _ex("generated_side", pair, "generated_side", 200)
+    lines.append("#### `generated_side` ⭐ 必填")
+    lines.append("")
+    lines.append(
+        "⭐ 指到**作者源 PlantUML 的具体一处**：优先写 §1.3 的行号（写 `:12` 或 `第 12 行`），"
+        "再附上那一行的元素名或原文片段。⭐ 缺失类缺陷写「（无此边）」这类否定描述也算合法 —— "
+        "台账里就有。"
+    )
+    lines.append("")
+    if got:
+        rec, val = got
+        lines.append(f"真实样例（`{rec['id']}`）：`{val}`")
+        lines.append("")
+    lines.append(
+        "⛔ 带行号才能让 `derive()` 推出 `element_of_M`；只写元素名时，"
+        "只有你同时填了结构族 `primary_predicate` 才推得出来。"
+    )
+    lines.append("")
+
+    lines.append("#### `nl_evidence` ⭐ 必填（⭐ 但「写 `无`」是合法答案）")
+    lines.append("")
+    empty_n, total_n = NF.nl_evidence_empty_count()
+    lines.append(
+        "⭐ 写本 pair §1.2 表里的**段 id**（如 `" + segs_hint(pair) + "`），多个用逗号分隔，"
+        "后面可以再跟一句逐字引文。"
+    )
+    lines.append("")
+    lines.append(
+        "⛔⛔ **写 `无` 是有意义的答案，⛔ 不是偷懒** —— 它表示「NL 未明说，本条属模型内生问题」。"
+        f"现台账 **{empty_n} / {total_n}** 条正是这种情况（合式性层按定义就不要求 NL 依据）。"
+        "⛔ 但**留空**不等于 `无`：留空会被校验判成没填。"
+    )
+    lines.append("")
+    got = _ex("nl_evidence", pair, "nl_evidence", 200)
+    if got:
+        rec, val = got
+        lines.append(f"真实样例（`{rec['id']}`，有 NL 依据）：{val}")
+        lines.append("")
+    got = _ex("nl_evidence_empty", pair, None)
+    if got:
+        rec, _ = got
+        lines.append(
+            f"真实样例（`{rec['id']}`，`layer = {rec['layer']}`，`nl_evidence` 为空）："
+            f"{clip(rec['statement'], 160)}"
+        )
+        lines.append("")
+
+    lines.append("#### `direction` ⭐ 必填")
+    lines.append("")
+    dc = NF.direction_counts()
+    lines.append(
+        "⭐ 取值就是台账 98 条 `REPORTABLE` 实际用过的 8 类，⛔ 不要造新取值。"
+        "括号里是台账现有条目数 —— ⭐ **数字越小的方向越可能是台账的盲区，越值得看**。"
+    )
+    lines.append("")
+    lines.append("| 取值 | 台账条数 | 指什么 |")
+    lines.append("| :-- | --: | :-- |")
+    for d, what in DIRECTION_MEANING:
+        lines.append(f"| `{d}` | {dc.get(d, 0)} | {what} |")
+    lines.append("")
+    lines.append(
+        "⚠️ 全 126 条台账里还有第 9 个取值 `pseudostate`（9 条），"
+        "但它**全部落在 `00x8` 越界 pair** 上 —— 那 6 个 pair 的 fork/join 伪状态不在 $M$ 内，"
+        "⛔ 故本轮不设该取值。"
+    )
+    lines.append("")
+
+    lines.append("#### `depth` ⭐ 必填")
+    lines.append("")
+    lines.append(
+        "⭐ 判据是**读懂它需要看几个地方**：一处 = 表层，两处之间的关系 = 中层，"
+        "需要沿执行路径推理或跨多个状态比对 = 深层。"
+    )
+    lines.append("")
+    lines.append("| 档 | 判据 | 示意（⛔ 非台账原文） |")
+    lines.append("| :-- | :-- | :-- |")
+    lines.append("| 表层 | 单点存在性 / 拼写 | 「`FinishState` 没有 `state` 声明」 |")
+    lines.append("| 中层 | 单点关系 | 「`InMotion` 有三个子态但没有区域初始边」 |")
+    lines.append("| 深层 | 跨状态推理 / 隐含冲突 / 运行时后果 | "
+                 "「接管迁移只挂在一个子态上，自动模式其余每一处都把接管信号静默丢弃」 |")
+    lines.append("")
+    lines.append(
+        "⛔ **台账没有 `depth` 字段** —— 它是本轮新引入的，所以上面三行是判据示意，⛔ 不是台账原文。"
+        "⭐ §2 每条下方的「⚠️ 深度存疑」只看断言形状（单存在性谓词 + 无佐证断言）机械提示，"
+        "⛔ 同样不是裁决。"
+    )
+    lines.append("")
+
+    lines.append("#### `reference_side` ⚠️ 可选")
+    lines.append("")
+    lines.append(
+        "⭐ 参考模型（§1.4）里对应的那一处。⛔ **参考模型不是正确答案** —— "
+        "语料里多处出现参考侧比生成侧更差的情形，填它只是为了让后续复核有个对照。"
+        "⭐ 留空完全可以。"
+    )
+    lines.append("")
+    got = _ex("reference_side", pair, "reference_side", 200)
+    if got:
+        rec, val = got
+        lines.append(f"真实样例（`{rec['id']}`）：{val}")
+        lines.append("")
+
+    lines.append("#### `primary_predicate` ⚠️ 可选（⭐ 写 `无` 本身就是发现）")
+    lines.append("")
+    npp, total_n = NF.no_primary_predicate_count()
+    lines.append(
+        "⭐ 19 个封闭谓词里选一个能承载这条主张的。⛔⛔ **选不出来时写 `无`** —— "
+        "那说明**现有词表覆盖不到这个缺陷**，⭐ 而那正是方法重构（M1）要吸收的输入，"
+        f"⛔ 不是不登记的理由。现台账已有 **{npp} / {total_n}** 条没有 primary 谓词。"
+        "⭐ 写 `无` 时请在 `statement` 末尾补一句缺口在哪。"
+    )
     lines.append("")
     for fam, preds in S.PREDICATES.items():
         lines.append(f"- **{fam} 族**：" + "、".join(f"`{p}`" for p in preds))
     lines.append("")
     lines.append(
-        "⚠️ 已知谓词缺口（写 `primary_predicate` 时留意）："
+        "⚠️ 已知谓词缺口（选谓词时留意）："
         "`guard_distinguishable` 在单目标时空真返回 `True`；"
         "`initial_target` 看不到**带触发**的初始边；"
         "`variable_declared` 对投影的 `R45RouteToken` 按设计返回 `False`；"
         "「无事件、以 in-state 为守卫」的迁移形状**没有承载谓词**。"
-        "⭐ 谓词写不出来**不是**不登记的理由 —— 留空并在理由里写明词表缺口。"
     )
     lines.append("")
+
+    lines.append("#### `layer` ⚠️ 可选")
+    lines.append("")
+    lc = NF.layer_counts()
+    lines.append("| 取值 | 台账条数 | 判据（⭐ 台账 `layer_basis` 原话） |")
+    lines.append("| :-- | --: | :-- |")
+    for lay, basis in NF.layer_basis_table().items():
+        lines.append(f"| `{lay}` | {lc.get(lay, 0)} | {esc(basis)} |")
+    lines.append("")
+    lines.append(
+        "⛔ 若你勾了 `wellformedness` 之外的任何一层，`nl_evidence` 就**不能**是 `无` —— "
+        "那三层按定义都要求 NL 逐字依据。[validate.py](./validate.py) 会把这种组合报成 `E`。"
+    )
+    lines.append("")
+
+    # ---------------------------------------------------------- §5.3 登记区
+    lines.append("### §5.3 登记区")
+    lines.append("")
+    lines.append(
+        "⭐ 直接在下面的块里填。⛔ 只有 `FILL:BEGIN` / `FILL:END` 之间的内容会被 "
+        "[collect.py](./collect.py) 收走，块外写的东西重跑生成器就没了。"
+    )
+    lines.append("")
+    key = f"NEW-{pair}"
+    kept = saved.get(key)
+    if fb.is_stale_template(kept, "new", pair):
+        # ⭐ 旧版空模板 —— 换成当前字段表。⛔ 只在**逐字全等**时才换，
+        # 作者已经填过的旧模板照原样留住。
+        kept = None
+    lines.append(fb.render(key, "new", fb.new_template(pair), kept))
+    lines.append("")
     return "\n".join(lines)
+
+
+DIRECTION_MEANING = [
+    ("hierarchy", "层次归属：谁该是谁的子态、复合括号有没有打开"),
+    ("reachability", "可达性与终止：进得去 / 出得来 / 停得下"),
+    ("entry", "入口：初始边、初始目标、进入某状态时落到哪"),
+    ("guard", "守卫：条件写没写、写对没写对、能不能区分多条出边"),
+    ("effect_action", "效应与状态动作：entry / exit / 迁移效应"),
+    ("event", "事件：触发词缺失、拼错、被并成一个复合名"),
+    ("cardinality", "基数：NL 点名了 N 个而模型给了 M 个"),
+    ("unclassified", "以上都归不进（⭐ 归不进本身值得在 statement 里说明）"),
+]
+
+
+def segs_hint(pair):
+    """给出本 pair 真实存在的第一个段 id，供 `nl_evidence` 的填写示例用。"""
+    segs, _ = S.nl_segments(pair)
+    return segs[0][0] if segs else "NL-L001"
 
 
 # ------------------------------------------------------------------ 组装

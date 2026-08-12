@@ -112,6 +112,30 @@ def nl_segments(pair):
     return out, "line_split"
 
 
+@functools.lru_cache(maxsize=1)
+def _nl_group_by_digest():
+    """NL 全文 digest → 组名（`NL01` … `NL10`）。
+
+    ⭐ 真源是 `<pair>-review.json` 的 `group` 字段 —— 台账只覆盖 48 个 pair，
+    其中 `NL02` 组（`0001` `0011` `0021` `0031` `0041` `0051`）**台账 0 条**，
+    只查台账会漏掉这一组。
+    """
+    out = {}
+    for pair in ALL_PAIRS:
+        rv = review_json(pair)
+        g = (rv or {}).get("group") or (rv or {}).get("nl_group")
+        if not g:
+            continue
+        out.setdefault(hashlib.sha256(nl_text(pair).encode("utf-8")).hexdigest()[:12], g)
+    return out
+
+
+def nl_group(pair):
+    """该 pair 所属的 NL 组名。⭐ 同组 6 个 pair 共用同一份 NL 规约。"""
+    digest = hashlib.sha256(nl_text(pair).encode("utf-8")).hexdigest()[:12]
+    return _nl_group_by_digest().get(digest)
+
+
 # ---------------------------------------------------------------- 参考模型
 
 @functools.lru_cache(maxsize=1)

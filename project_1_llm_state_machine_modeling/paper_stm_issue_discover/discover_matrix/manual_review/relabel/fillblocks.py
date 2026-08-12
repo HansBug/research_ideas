@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import re
 
+import newfields as NF
+
 FENCE = "~~~"
 _RE_BEGIN = re.compile(r"^<!--\s*FILL:BEGIN\s+key=(?P<key>\S+)\s+kind=(?P<kind>\S+)\s*-->\s*$")
 _RE_END = re.compile(r"^<!--\s*FILL:END\s+key=(?P<key>\S+)\s*-->\s*$")
@@ -34,7 +36,17 @@ CANDIDATE_TEMPLATE = """裁决: [ ] 采纳(补入台账)  [ ] 不采纳  [ ] 待
 理由:
 补入后的 statement:"""
 
-NEW_TEMPLATE = """### NEW-{pair}-01
+# ⭐ 新增 issue 的字段与模板由 [newfields.py](./newfields.py) 定义 —— 那里同时放着
+# 枚举、填写指引和脚本推导，⛔ 不要在本文件里另开一份，两处会立刻走偏。
+def new_template(pair, count=2):
+    return NF.template(pair, count)
+
+
+# ⛔ 历史模板。⭐ 留着**只为识别「原样未填的旧模板」** —— 幂等注回是按 key 做的，
+# 若不认出旧模板，字段表改版后旧骨架会被当成「人工内容」永久保留，
+# 新字段永远出不来（实测：改版后重跑 54 份，§5 全部还是旧的 10 字段表）。
+# ⚠️ 只做**逐字全等**匹配：作者若已经在旧模板上填了任何东西，就不算旧模板，原样保留。
+LEGACY_NEW_TEMPLATES = ["""### NEW-{pair}-01
 statement:
 layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction
 direction:
@@ -54,7 +66,14 @@ nl_evidence:
 depth: [ ] 表层  [ ] 中层  [ ] 深层
 primary_predicate:
 证据(作者源行号):
-来源: [ ] §3候选  [ ] §4清单  [ ] 自行发现"""
+来源: [ ] §3候选  [ ] §4清单  [ ] 自行发现"""]
+
+
+def is_stale_template(body, kind, pair=""):
+    """⭐ 该块是不是某个**历史版本的空模板**（因而可以安全换成当前模板）。"""
+    if body is None or kind != "new":
+        return False
+    return any(body.strip() == t.format(pair=pair).strip() for t in LEGACY_NEW_TEMPLATES)
 
 PAIR_TEMPLATE = """本 pair 整体判断: [ ] 台账在本 pair 上够用  [ ] 偏浅但方向对  [ ] 有实质遗漏  [ ] 需推倒重写
 台账现有条目是否偏浅（整体）: [ ] 否  [ ] 部分  [ ] 是
@@ -107,7 +126,7 @@ def is_untouched(body, kind, pair=""):
     defaults = {
         "ledger": LEDGER_TEMPLATE,
         "candidate": CANDIDATE_TEMPLATE,
-        "new": NEW_TEMPLATE.format(pair=pair),
+        "new": new_template(pair),
         "pair": PAIR_TEMPLATE,
     }
     d = defaults.get(kind)

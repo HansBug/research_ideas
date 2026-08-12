@@ -13,19 +13,30 @@
 三类检查：
 
 1. **完整性** —— 每条台账记录都裁了没、每个候选都裁了没、勾了「修正 / 拆分」有没有
-   写出修正后的 statement、新增条目的必填字段齐不齐。
+   写出修正后的 statement、新增条目的**必填 5 项**齐不齐、
+   `direction` / `depth` / `layer` / `primary_predicate` 的取值在不在枚举内。
+   ⭐ 这一类**全部是确定性判据**（枚举成员、非空、字段间的定值一致性），故一律报 `E`。
 2. **⛔ 建模对象边界** —— 新增条目不许落在 $M = (S, E, V, Tr, A)$ 之外：
    ⛔ 无时钟 / 计时 / 秒级约束，⛔ 无不变式，⛔ 无正交区并发（fork / join / 同时活跃）。
-   判据是词法关键词命中，⚠️ **会误伤**（例如状态恰好叫 `fork`），所以命中报 `W` 让人复核，
-   ⛔ 不自动删。只有 `00x8` 越界 pair 出现工作单才报 `E`。
-3. **去重** —— 新增条目之间、新增条目与本 pair 现有台账条目之间的近重复。
-   判据是元素名集合 + 归一化文本的 Jaccard，⚠️ 同样只报 `W`。
+   判据是对 `statement`（也就是**主张本身**）做词法关键词命中，
+   ⚠️ **会误伤**（元素恰好叫 `Timer` / `fork`），所以命中报 `W` 让人复核，⛔ 不自动删。
+   ⛔ 只有两处报 `E`：`00x8` 越界 pair 出现了工作单；`direction` 取了 8 类之外的值。
+   ⚠️ ⛔ 词法门**不扫 `generated_side`** —— 那是定位串，引用一行叫 `Timer` 的状态
+   不使主张越界。越界与否看的是主张要不要时钟 / 并发语义，⛔ 不是名字里有没有那些词。
+3. **去重** —— 新增条目之间、新增条目与本 pair 现有台账条目之间的近重复。三条判据：
+   同一作者源行号；同 `direction` + 命中同一批模型元素名；归一化文本 Jaccard。
+   ⚠️ 三条都只报 `W` —— 「是不是同一个缺陷」是语义判断，⛔ 不能做成确定性门。
+
+⛔ **为什么第 2、3 类只报 `W`**：按 [CLAUDE.md](../../../../../CLAUDE.md) §11，
+只有能被完美判定的约束才允许做成会一票否决的门。「这条主张需不需要时钟语义」
+与「这两条是不是同一个缺陷」都要语义解释，做成 `E` 会把正确答案挡在门外。
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime
+import functools
 import json
 import os
 import re
@@ -35,7 +46,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import collect as C                                # noqa: E402
+import newfields as NF                             # noqa: E402
 import sources as S                                # noqa: E402
+from pumlmodel import PumlModel                    # noqa: E402
 
 # ⛔ 建模对象边界之外的词。命中只报 W —— 判据是词法，会误伤。
 OUT_OF_SCOPE_CUES = [
@@ -47,9 +60,13 @@ OUT_OF_SCOPE_CUES = [
     (r"\bwithin\s+\d|在\s*\d+\s*(秒|毫秒)内", "时限约束"),
 ]
 
-REQUIRED_NEW_FIELDS = ["statement", "layer", "element_of_M", "depth"]
+# ⭐ 新增条目的必填 / 可选字段口径唯一真源是 [newfields.py](./newfields.py)，
+# ⛔ 不要在本文件里另抄一份 —— 抄了就会与模板走偏。
+REQUIRED_NEW_FIELDS = list(NF.REQUIRED_FIELDS)
 DECISION_FIELD = "裁决"
 DEPTH_FIELD = "深度"
+
+_RE_ENUM_SPLIT = re.compile(r"[,，/、\s]+")
 
 
 def _norm_tokens(text):
@@ -72,6 +89,70 @@ def _text(field):
     if isinstance(field, str):
         return field.strip()
     return ""
+
+
+def _enum_values(field):
+    """勾选行取 `chosen`；自由文本行按分隔符切开。⭐ 两种写法都收。"""
+    if isinstance(field, dict):
+        return [v for v in (field.get("chosen") or []) if v]
+    t = _text(field)
+    if not t:
+        return []
+    return [x for x in _RE_ENUM_SPLIT.split(t) if x]
+
+
+def _enum_check(rep, pair, nid, fields, name, allowed, required):
+    """检查枚举字段。返回唯一取值（没有 / 非法时返回 `None`）。
+
+    ⭐ 三条判据都是**确定性**的（有没有、是不是单值、在不在集合内），故一律报 `E`。
+    """
+    vals = _enum_values(fields.get(name))
+    if not vals:
+        if required:
+            rep.E(pair, nid,
+                  f"必填项 `{name}` 未选 —— 取值只能是 "
+                  + "、".join(f"`{a}`" for a in allowed))
+        return None
+    if len(vals) > 1:
+        rep.E(pair, nid, f"`{name}` 是单值字段，却给了 {vals}")
+        return None
+    if vals[0] not in allowed:
+        rep.E(pair, nid,
+              f"`{name} = {vals[0]}` 不在枚举内。允许取值："
+              + "、".join(f"`{a}`" for a in allowed)
+              + ("。⭐ 归不进就选 `unclassified`，⛔ 不要造新取值"
+                 if "unclassified" in allowed else ""))
+        return None
+    return vals[0]
+
+
+@functools.lru_cache(maxsize=None)
+def _known_seg_ids(pair):
+    return {sid for sid, _ in S.nl_segments(pair)[0]}
+
+
+_RE_SEG_REF = re.compile(r"\bNL-[A-Z]\d{3}\b")
+
+
+def _seg_refs(text):
+    return set(_RE_SEG_REF.findall(text or ""))
+
+
+@functools.lru_cache(maxsize=None)
+def _model_vocabulary(pair):
+    """本 pair 作者源里出现过的元素名（状态 / 触发词 / 变量），小写。
+
+    ⭐ 去重判据用它把「点到同一个模型元素」与「只是用词雷同」区分开。
+    """
+    model = PumlModel(S.puml_text(pair), pair)
+    out = set()
+    for name in model.states:
+        out.add(name.lower())
+    for trig in model.triggers():
+        out |= {t.lower() for t in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", trig)}
+    for var in model.variable_candidates():
+        out.add(var.lower())
+    return out
 
 
 class Report:
@@ -143,56 +224,123 @@ def validate_pair(pair, data, rep):
             rep.W(pair, "PAIR", "§0 未给整体判断")
 
     # ---------------------------------------------------------- 新增条目
+    vocab = _model_vocabulary(pair) if data["new_issues"] else set()
     new_sigs = []
     for rec in data["new_issues"]:
         nid = rec["id"]
         f = rec["fields"]
+
+        # ---- ③-a 完整性：必填 5 项
         stmt = _text(f.get("statement"))
         if not stmt:
-            rep.E(pair, nid, "新增条目无 `statement`")
-        for name in ("layer", "element_of_M", "depth"):
-            if not _chosen(f.get(name)):
-                rep.E(pair, nid, f"新增条目未选 `{name}`")
-            elif len(_chosen(f.get(name))) > 1 and name != "element_of_M":
-                rep.E(pair, nid, f"新增条目 `{name}` 多选：{_chosen(f.get(name))}")
-        layer = (_chosen(f.get("layer")) or [""])[0]
-        if layer and layer != "wellformedness" and not _text(f.get("nl_evidence")):
+            rep.E(pair, nid, "必填项 `statement` 为空 —— 没写出缺陷是什么")
+        gen = _text(f.get("generated_side"))
+        if not gen:
             rep.E(pair, nid,
-                  f"`layer = {layer}` 需要 NL 逐字依据，但 `nl_evidence` 为空"
-                  "（只有 `wellformedness` 层可以没有）")
-        if not _text(f.get("证据(作者源行号)")) and not _text(f.get("证据")):
-            rep.W(pair, nid, "未给作者源行号 —— 无行号的主张后续无法复核")
+                  "必填项 `generated_side` 为空 —— 没指出模型里哪一处"
+                  "（写 §1.3 的行号如 `:12`，或元素名）")
+        nle = _text(f.get("nl_evidence"))
+        if not nle:
+            rep.E(pair, nid,
+                  "必填项 `nl_evidence` 为空。⛔ 留空 ≠ 写 `无`："
+                  "NL 未明说就**显式写 `无`**（那表示本条属模型内生问题，是合法答案）；"
+                  "留空只能表示还没判")
+
+        # ---- ③-a 完整性：枚举取值
+        direction = _enum_check(rep, pair, nid, f, "direction", NF.DIRECTIONS,
+                                required=True)
+        _enum_check(rep, pair, nid, f, "depth", NF.DEPTHS, required=True)
+        layer = _enum_check(rep, pair, nid, f, "layer", NF.LAYERS, required=False)
         pp = _text(f.get("primary_predicate"))
-        if pp and pp not in S.ALL_PREDICATES:
+        if pp and not NF.is_none_mark(pp) and pp not in S.ALL_PREDICATES:
             rep.E(pair, nid,
                   f"`primary_predicate = {pp}` 不在 19 谓词封闭词表内。"
-                  "⭐ 写不出谓词就留空并在理由里写明词表缺口，⛔ 不要造新谓词名")
+                  "⭐ 写不出谓词就写 `无` 并在 `statement` 末尾写明词表缺口，"
+                  "⛔ 不要造新谓词名")
 
-        # ⛔ 边界
-        blob = " ".join([stmt, _text(f.get("nl_evidence")), _text(f.get("direction"))])
+        # ---- ③-a 完整性：字段间的定值一致性（⭐ 确定性，故报 E）
+        if layer and layer != "wellformedness" and NF.is_none_mark(nle):
+            rep.E(pair, nid,
+                  f"`layer = {layer}` 按台账定义要求 NL 逐字依据，"
+                  "但 `nl_evidence` 写的是「无」。⛔ 二者不能并存："
+                  "要么改 `layer` 为 `wellformedness`，要么给出 NL 段 id")
+        if nle and not NF.is_none_mark(nle) and not _known_seg_ids(pair) & _seg_refs(nle):
+            rep.W(pair, nid,
+                  f"`nl_evidence` 里没认出本 pair 的段 id（本 pair 的段 id 形如 "
+                  f"`{sorted(_known_seg_ids(pair))[0]}`）—— ⭐ 写段 id 才能机械回链到 §1.2")
+        for bad in _seg_refs(nle) - _known_seg_ids(pair):
+            rep.E(pair, nid, f"`nl_evidence` 引用了本 pair 不存在的段 id `{bad}`")
+
+        # ---- 行号与 element_of_M 推导
+        refs = NF.parse_line_refs(gen)
+        n_lines = len(S.puml_text(pair).splitlines())
+        for r in refs:
+            if r > n_lines:
+                rep.E(pair, nid,
+                      f"`generated_side` 引用了作者源第 {r} 行，但该文件只有 {n_lines} 行")
+        elem, basis = NF.derive_element_of_M(pair, gen, pp if pp not in ("",) else None)
+        if elem is None:
+            rep.W(pair, nid,
+                  "推不出 `element_of_M` —— " + basis
+                  + "。⭐ 在 `generated_side` 里加上作者源行号即可自动推出")
+
+        # ---- ③-b ⛔ 建模对象边界门
+        # ⛔ 只扫 `statement`（主张本身）。`generated_side` 是定位串，
+        # 引用一行叫 `Timer` 的状态不使主张越界。
         for pattern, label in OUT_OF_SCOPE_CUES:
-            if re.search(pattern, blob, flags=re.I):
+            if re.search(pattern, stmt, flags=re.I):
                 rep.W(pair, nid,
                       f"⛔ 疑似越界（{label}）—— project_1 的建模对象 "
-                      "$M = (S, E, V, Tr, A)$ 无时钟、无不变式、无正交区。"
-                      "⚠️ 词法判据会误伤（元素恰好叫 fork 之类），请人工确认")
+                      "$M = (S, E, V, Tr, A)$ 无时钟 $C$、无不变式 $Inv$、无正交区。"
+                      "⚠️ 判据是词法，会误伤（元素恰好叫 `Timer` / `fork` 仍在范围内）："
+                      "请自问「这条主张成立与否需不需要时钟或并发语义」，"
+                      "不需要就忽略本条")
                 break
-        new_sigs.append((nid, stmt, _norm_tokens(stmt)))
 
-    # ---------------------------------------------------------- 去重
+        new_sigs.append({
+            "id": nid, "stmt": stmt, "gen": gen,
+            "direction": direction,
+            "tokens": _norm_tokens(stmt + " " + gen),
+            "elements": _norm_tokens(stmt + " " + gen) & vocab,
+            "lines": set(refs),
+        })
+
+    # ---------------------------------------------------------- ③-c 去重
     for i in range(len(new_sigs)):
         for j in range(i + 1, len(new_sigs)):
-            sim = _jaccard(new_sigs[i][2], new_sigs[j][2])
-            if sim >= 0.6:
-                rep.W(pair, f"{new_sigs[i][0]}~{new_sigs[j][0]}",
-                      f"两条新增条目高度相似（元素/词 Jaccard {sim:.2f}）—— 是不是同一缺陷？")
-    for nid, stmt, toks in new_sigs:
-        for rid, rec in ledger.items():
-            sim = _jaccard(toks, _norm_tokens(rec.get("statement")))
-            if sim >= 0.5:
-                rep.W(pair, nid,
-                      f"与现有台账 `{rid}` 高度相似（Jaccard {sim:.2f}）—— "
-                      "若是同一缺陷，应改成对 `" + rid + "` 走「修正」而不是新增")
+            a, b = new_sigs[i], new_sigs[j]
+            key = f"{a['id']}~{b['id']}"
+            shared_line = a["lines"] & b["lines"]
+            if shared_line:
+                rep.W(pair, key,
+                      f"两条新增条目指向同一作者源行 {sorted(shared_line)} —— 是不是同一缺陷？")
+            elif (a["direction"] and a["direction"] == b["direction"]
+                    and a["elements"] & b["elements"]):
+                rep.W(pair, key,
+                      f"两条新增条目同 `direction = {a['direction']}` 且都点到 "
+                      f"{sorted(a['elements'] & b['elements'])} —— 是不是同一缺陷？")
+            else:
+                sim = _jaccard(a["tokens"], b["tokens"])
+                if sim >= 0.6:
+                    rep.W(pair, key,
+                          f"两条新增条目高度相似（词 Jaccard {sim:.2f}）—— 是不是同一缺陷？")
+
+    for sig in new_sigs:
+        for rid, rec in sorted(ledger.items()):
+            led_tokens = _norm_tokens((rec.get("statement") or "")
+                                      + " " + (rec.get("generated_side") or ""))
+            hit = sig["elements"] & led_tokens & vocab
+            same_dir = sig["direction"] and sig["direction"] == rec.get("direction")
+            sim = _jaccard(sig["tokens"], led_tokens)
+            why = None
+            if same_dir and hit:
+                why = (f"同 `direction = {sig['direction']}` 且都点到 {sorted(hit)}")
+            elif sim >= 0.5:
+                why = f"词 Jaccard {sim:.2f}"
+            if why:
+                rep.W(pair, sig["id"],
+                      f"与现有台账 `{rid}` 疑似重复（{why}）—— "
+                      f"若是同一缺陷，应回 §2 对 `{rid}` 走「修正」而不是在 §5 新增")
 
     # ---------------------------------------------------------- 其他
     for key in data["orphans"]:

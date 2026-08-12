@@ -29,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import fillblocks as fb                            # noqa: E402
+import newfields as NF                             # noqa: E402
 import sources as S                                # noqa: E402
 
 SCHEMA = "paper1.relabel.result.v1"
@@ -45,11 +46,23 @@ def parse_choice(line):
     return chosen, allopts
 
 
-def parse_fields(body):
+def parse_fields(body, known=None, choice_fields=None):
     """把一个填写块解析成 {字段名: 值}。
 
     值的形态有两种：勾选行 → `{"chosen": [...], "options": [...]}`；
     自由文本行 → 字符串（可跨行，直到下一个已知字段名）。
+
+    ⭐ `known` 给定时，**只有这些名字**能起一个新字段，其余带冒号的行一律并进当前字段。
+    ⛔ 不给 `known` 会踩一个真坑：作者在 `statement` 里另起一行写
+    「NL 第 3 句：…」，`NL 第 3 句` 恰好匹配字段名正则，于是那一行被当成新字段，
+    `statement` 被就地截断而且**不报错**。§5 的新增登记块因此一律传 `known`。
+
+    ⭐ `choice_fields` 给定时，**只有这些名字**可能被读成勾选行；其余一律读成文本。
+    ⛔ 这条同样是实测出来的：作者写 `generated_side: [*] --> FinalState`，
+    值里的 `[*]` 让旧判据（「值里同时有 `[` 和 `]` 就是勾选行」）把它读成一个
+    **零选项的勾选行**，于是 `generated_side` 变成空 —— ⚠️ 而 `[*]` 恰恰是
+    PlantUML 初始 / 终态伪状态的写法，⛔ 入口类缺陷的定位串几乎必然带它。
+    ⭐ 兜底：即使没给 `choice_fields`，也只有在真的解析出选项时才算勾选行。
     """
     out = {}
     raw = []
@@ -60,16 +73,18 @@ def parse_fields(body):
                 out[cur] += "\n"
             continue
         m = _RE_FIELD.match(line)
-        if m and "[" in m.group(2) and "]" in m.group(2):
+        if m and known is not None and m.group(1).strip() not in known:
+            m = None
+        if m is not None:
             name, rest = m.group(1).strip(), m.group(2)
-            chosen, opts = parse_choice(rest)
-            out[name] = {"chosen": chosen, "options": opts}
-            cur = None
-            continue
-        if m:
-            name, rest = m.group(1).strip(), m.group(2).strip()
-            out[name] = rest
-            cur = name if isinstance(out[name], str) else None
+            if choice_fields is None or name in choice_fields:
+                chosen, opts = parse_choice(rest)
+                if opts:
+                    out[name] = {"chosen": chosen, "options": opts}
+                    cur = None
+                    continue
+            out[name] = rest.strip()
+            cur = name
             continue
         if cur and isinstance(out.get(cur), str):
             out[cur] = (out[cur] + "\n" + line.strip()).strip()
@@ -110,7 +125,12 @@ def parse_checklist(body):
 
 
 def parse_new(body, pair):
-    """解析 §5 的新增登记块。返回 [{id, ...}]。"""
+    """解析 §5 的新增登记块。返回 [{id, pair, fields, derived}]。
+
+    ⭐ `fields` 是人工填的 8 项（5 必填 + 3 可选）；`derived` 是
+    [newfields.py](./newfields.py) `derive()` 当下能算出来的部分 ——
+    ⛔ 算不出来的字段留 `None` 并在 `pending` 里写明为什么，⛔ 不猜。
+    """
     chunks = re.split(r"^###\s+", body, flags=re.M)
     out = []
     for chunk in chunks:
@@ -121,8 +141,11 @@ def parse_new(body, pair):
         nid = head.strip()
         if not re.match(r"^NEW-\d{4}-\d+", nid):
             continue
-        fields = parse_fields(rest)
+        fields = parse_fields(rest, known=NF.FIELD_NAMES,
+                              choice_fields=NF.CHOICE_FIELDS)
         rec = {"id": nid, "pair": pair, "fields": fields}
+        if not _is_blank_new(rec):
+            rec["derived"] = NF.derive(pair, nid, fields)
         out.append(rec)
     return out
 
