@@ -304,9 +304,7 @@
 
 ### C.1 三个 RQ（逐字）
 
-> `1: How well do reasoning and non-reasoning LLMs generate state machines using a single-prompt technique?`
-> `2: How much do the multi-step generation strategies improve state machine generation for non-reasoning LLMs compared to the single-prompt technique from RQ1?`
-> `3: How well do the multi-step generation strategies from RQ2 generalize to reasoning LLMs for state machine generation?`
+> `1: How well do reasoning and non-reasoning LLMs generate state machines using a single-prompt technique?` `2: How much do the multi-step generation strategies improve state machine generation for non-reasoning LLMs compared to the single-prompt technique from RQ1?` `3: How well do the multi-step generation strategies from RQ2 generalize to reasoning LLMs for state machine generation?`
 
 ### C.2 ⭐ ground-truth 规模（**M**，Table I 逐字抄）
 
@@ -329,8 +327,7 @@
 
 ⭐ 逐字（§IV-A）：
 
-> `"Therefore, we manually evaluate the outputs from the generation strategies."`
-> `"To streamline the evaluation process, we adopt an approach focused on efficiency and consistency. A single author conducts the evaluation for a given designed approach."`
+> `"Therefore, we manually evaluate the outputs from the generation strategies."` `"To streamline the evaluation process, we adopt an approach focused on efficiency and consistency. A single author conducts the evaluation for a given designed approach."`
 
 ⭐ 逐字（§V-G Internal validity）：
 
@@ -349,8 +346,7 @@
 
 **第一层 · 匹配是什么？** ⭐⭐ **人的语义等价判断，⛔ 不是状态名字符串匹配，⛔ 也不是结构同构。** 逐字（§IV-A / §IV-B）：
 
-> `"To minimize bias, the evaluation protocol focuses on identifying exact or near-exact matches between the generated outputs and the ground-truth state machine. In essence, if two components are intended to represent the same concept (e.g., the same state or action), they are graded as equivalent, even if their names differ."`
-> `"The first category includes the generated components that have an exact match or semantic match with the ground-truth model (true positives). This also includes the components which are named differently than in the ground-truth model but serve the same purpose (superstates or parallel regions that contain the same set of matching substates for instance)."`
+> `"To minimize bias, the evaluation protocol focuses on identifying exact or near-exact matches between the generated outputs and the ground-truth state machine. In essence, if two components are intended to represent the same concept (e.g., the same state or action), they are graded as equivalent, even if their names differ."` `"The first category includes the generated components that have an exact match or semantic match with the ground-truth model (true positives). This also includes the components which are named differently than in the ground-truth model but serve the same purpose (superstates or parallel regions that contain the same set of matching substates for instance)."`
 
 ⭐ **并且他们明确说了为什么不能自动化**，逐字（§IV-A）：
 
