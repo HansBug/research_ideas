@@ -72,6 +72,27 @@ curl -sL -A "Mozilla/5.0" "https://export.arxiv.org/api/query?id_list=2310.18361
 
 A8 在自查中发现，它为两条候选**按惯例拼出**了 `10.1145/3652620.…` 与 `10.1016/j.csi.2025.104013`，⛔ 而两者它都没有实际访问过，⭐ 于是全部删除改标「待补」。⭐ 这正是 L2 那次事故要求建立的行为。
 
+### 2.4 ⭐ A3（IEEE Xplore）的 8 个重点 DOI —— ⭐ **8/8 全部真实**
+
+| DOI | 标题（Crossref 解析） |
+| :-- | :-- |
+| `10.1109/MODELS67397.2025.00014` | MCeT: Behavioral Model Correctness Evaluation using Large… |
+| `10.1109/ASEW67777.2025.00033` | On Effectiveness of Formal Model Repair by Large Languag… |
+| `10.1109/TSE.2026.3690186` | Process Fragment Recommendation in Process Modeling: Are… |
+| `10.1109/IWQoS65803.2025.11143461` | Unleashing the Power of LLM to Infer State Machine From… |
+| `10.1109/ETFA65518.2025.11205687` | LLM-based Iterative Refinement of Finite-State Machines… |
+| `10.1109/RAMS50514.2026.11424511` | Validating Design Models for Their Application in Model-… |
+| `10.1109/SECON68281.2026.11579014` | Poster: Automated Extraction of Protocol State Machines… |
+| `10.1109/MODELS-C68889.2025.00079` | Coupling LLMs and Model-Driven Engineering to Support Sy… |
+
+⭐ A3 自陈「98 个引用 DOI 已机械核对全部来自原始响应，零拼造」。⭐ 抽验 8 条全对，⭐ 与自陈一致。
+
+### 2.5 ⭐ A8 的第二次自我更正（⛔ 关于 MCeT 仓库怎么找到的）
+
+⭐ A8 先说三个正向 artifact 都来自 GitHub 检索，⛔ 复查后更正：`Huawei-TTE/MCeT` **是从 MCeT 论文 PDF 的链接注解里解析出来的**，⛔ 只有后两个来自仓库检索。
+
+⭐⭐ **这个更正让原结论变强**：⭐ GitHub topic 检索的正向命中比原先说的**还要少**，⛔ 于是「**资产要走论文的 replication package，不要指望 GitHub 检索**」这条更成立。
+
 ---
 
 ## 3. ⭐ 资产机械核验
@@ -104,23 +125,39 @@ A8 在自查中发现，它为两条候选**按惯例拼出**了 `10.1145/365262
 
 ## 4. ⛔ 复核未通过 / 待澄清
 
-### 4.1 ⚠️ S1 的 OSF 复现包：⭐ 我这边**取不到** —— ⭐⭐ **但关键数字已由 PDF 独立证实，⛔ 本条降级**
+### 4.1 ⭐ S1 的 OSF 复现包：⛔ 初判「取不到」是**我探错了** —— ⭐ **已结，且双方哈希一致**
 
-A8 称「改走 OSF JSON API 拿到 `03.Data_Extraction.xlsx` —— 86 篇 × 43 字段」。⛔ 主 session 复现失败：
+⛔ **我的错误**：探测时**漏了 query string**。⭐ `g5by9` 是**匿名 view-only 项目**，token 逐字写在 S1 PDF 参考文献第 112 条里。
+
+| 请求 | 状态 |
+| :-- | :-: |
+| `https://api.osf.io/v2/nodes/g5by9/files/osfstorage/` | ⛔ **401**（我最初只试了这个） |
+| ⭐ `…/files/osfstorage/?view_only=5c10c1e56be3480d8d25e017b4276f7a` | ⭐ **200** |
+| ⭐ `https://osf.io/download/8vpkj/?view_only=<同上>` | ⭐ **200**，76325 B |
+| `https://osf.io/g5by9/`（网页） | ⚠️ 200 但 4207 B **SPA 壳** —— ⭐ 这一条判断是对的 |
+
+⭐⭐ **主 session 独立下载后与 A8 的文件 sha256 完全相同**：
 
 ```
-https://api.osf.io/v2/nodes/g5by9/                            → 401 Authentication credentials were not provided
-https://api.osf.io/v2/nodes/g5by9/files/osfstorage/           → 401
-https://files.osf.io/v1/resources/g5by9/providers/osfstorage/ → 403
-https://osf.io/g5by9/                                         → 200，⛔ 但只有 4207 字节（SPA 壳）
-https://api.osf.io/v2/registrations/g5by9/                    → 404
+5a396fe4e3c1b5e292342469172106349dbfb464da783d0a4b91cb31b1e67279  S1_data_extraction.xlsx  (76325 B)
 ```
 
-⛔ **这一条要紧**：§3.2 / §3.3 那批形态分布（`Non-agentic 83/86`、`Grammar-constrained 1/86`、`42% 无基线对照`）是本轨**唯一有分母的分布**，⭐ M1 的建议会压在它上面。
+⭐ 结构：sheet `framework`，⚠️ **表头在第 2 行**，89 行有标题、其中 **86 行有 `Publication_Year`**（= 86 篇 primary），⭐ 另 3 行（`P020` `P044` `P083`）是空壳并入行。
 
-⭐⭐ **处置：⛔ 不等 A8，主 session 自己去取 PDF 独立复算。** ⭐ 结果见下面 §4.2 —— ⭐ **那批数字逐条对上，⛔ 本条从 C 降为 M。**
+⭐⭐ **教训（⛔ 记给后续所有人）：⛔ 401 不等于不可得。** ⭐ 匿名 view-only 链接靠 query string 鉴权，⛔ 掐掉 query string 去探必然 401 —— ⭐ 而这与「需要登录」在状态码上**完全无法区分**。⭐ **凡遇 401/403，先回原文找有没有 token，再下结论。**
 
-⭐ **仍然成立的部分**：⛔ **候选论文名单**（A8 说从 xlsx 过滤出 30/89 行、人工判后得 23 条）**依赖 xlsx**，⛔ 而 PDF 正文与 122 条参考文献里**没有 86 篇 primary study 名录**。⭐ 故：**分布数字可核，⛔ 名单来源待 A8 澄清。**
+### 4.1b ⛔⛔ A8 承认一处表述误导，⭐ 且它改变了证据链
+
+⭐ A8 逐字：「**这是我的表述错误，你复现不了的直接原因在我**」。
+
+⛔ 它用 xlsx 的**列名**（`Autonomy Level` × `Execution Structure`）做了小节标题，⭐ 足以让人以为数字出自那个需要 token 的文件。⭐ **实际的来源分工是**：
+
+| 内容 | 真实来源 | 鉴权 |
+| :-- | :-- | :-- |
+| ⭐ §3.2 / §3.3 的**聚合数字** | ⭐ **公开 PDF 正文** | ⭐ **无需鉴权** |
+| §2.1 的 23 条候选**名单** | xlsx 单元格 | 需 view_only token |
+
+⭐⭐ **这个更正让证据链变强而非变弱**：⭐ 承重数字的主来源是**无鉴权公开 PDF 的正文散文句**，⛔ 比藏在 token 后面的表格更好追。
 
 ### 4.2 ⭐⭐ 独立复算：⭐ **S1 的分布数字逐条对上，⛔ 且不是从柱高目测的**
 
@@ -139,7 +176,8 @@ python -m tools.pdf_extractor -i S1.pdf -o S1.txt -m text   # 49 页
 | A8 报的 | ⭐ PDF 逐字 | 出处 | 对上？ |
 | :-- | :-- | :-- | :-: |
 | Non-agentic 83 (96.5%) / Agentic 3 (3.5%) | `Non-agentic (n=83, 96.5%)` `Agentic (n=3, 3.5%)` | Fig. 20 | ⭐ ✅ |
-| Iterative 44 / Single-pass 35 / Pipeline 26 / Tool-augmented 26 | `n=44` `n=35` `n=26` `n=26`；⭐ 组合数 `14 30` `26 9` `2 24` `3 23` | Fig. 21 | ⭐ ✅ |
+| Iterative 44 / Single-pass 35 / Pipeline 26 / Tool-augmented 26 | ⭐ 正文逐字 `iterative execution … appearing in 44 studies, while pipeline and tool-augmented structures are each reported in 26 studies. Single-pass execution appears in 35 studies` | §RQ2 正文 + Fig. 21 | ⭐ ✅ **四个总数** |
+| ⛔ 「只用这一种 / 组合」拆分 14-30 / 26-9 / 2-24 / 3-23 | ⚠️ **数字对，⛔ 但哪一半是「只用」是推断** | Fig. 21 图内 | ⛔ **降为 I 级**，见 §4.3 |
 | Grammar-constrained 仅 1 (1%) | `Grammar-constrained` … `1  (1%)` | Fig. 19 | ⭐ ✅ |
 | Metamodel retrieval 仅 1 (1%) | `Metamodel retrieval` … `1 (1%)` | Fig. 18 | ⭐ ✅ |
 | 微调 9/86 (10.5%) | `(n=9, 10.5%)` / `No fine-tuning (n=77, 89.5%)` | Fig. 17 | ⭐ ✅ |
@@ -148,6 +186,28 @@ python -m tools.pdf_extractor -i S1.pdf -o S1.txt -m text   # 49 页
 | Post-hoc human review 38 | `Post-Hoc Human Review(n=38)` | Fig. 附录 | ⭐ ✅ |
 
 ⛔ **一处 A8 未报、⭐ 而对我们更重要的数**（见下面 §6）。
+
+### 4.3 ⛔⛔ 我自己在 §4.2 里犯的错：⭐ 把一个推断标成了已核验
+
+⛔ **上一版的 §4.2 把 Fig. 21 的「只用这一种 / 组合」拆分（`14 30` `26 9` `2 24` `3 23`）标成了 ⭐ ✅。** ⛔ **那是错的**，⭐ 由 A8 在答复里主动挂出来。
+
+⭐ **为什么它看起来像已核验**：⭐ 四组数的**和完全对得上** —— $14+30=44$、$26+9=35$、$2+24=26$、$3+23=26$。⭐ 于是「哪两个数配哪一行」是**确定的**。
+
+⛔⛔ **但「哪一个是『只用这一种』、哪一个是『组合』」在正文里没写**，⭐ 只能按图例顺序推。⭐ 推出来的结果虽然合理（⭐ single-pass 多为「只用」、pipeline / tool-augmented 多为「组合」符合直觉），⛔ **但合理不等于已核**。
+
+⭐⭐ **这是一个值得记住的失败形态：⛔ 一致性检查通过 ≠ 语义已确认。** ⭐ 和数对上只证明了**配对**，⛔ 证明不了**标签归属**。⚠️ 而「数字自洽」给人的确定感非常强 —— ⭐ 强到我在写日志时没有停下来问「图例顺序我核过吗」。
+
+⭐ **处置**：该行在本日志与后续所有引用中标 **I 级**，⛔ 不得写成事实句。⭐ 四个**总数**不受影响（⭐ 它们有正文散文句背书）。
+
+### 4.4 ⚠️ S1 自身有一处**源内不一致**（⛔ A8 报，⭐ 属实且须记）
+
+⭐ `Post-Hoc Human Review` 的篇数：⛔ **论文正文说 38，⭐ 而它自己的复现包算出 39。**
+
+⭐ **处置**：⛔ 引用这一格时必须写「**38（正文）/ 39（复现包）**」，⛔ 或者干脆不用这一格。⚠️ 我在上一版日志里单写了 38 并标 ✅ —— ⛔ **那个 ✅ 只证明「A8 抄对了正文」，⛔ 不证明「38 是对的」。**
+
+### 4.5 ⚠️ 一个会撞上的读数陷阱（⭐ A8 提前挡下）
+
+⛔ S1 正文另有一处 `(40%)` **极像**全语料的无基线率，⛔ 但它是 **`Model Generation` 子集**（62 篇里 25 篇）。⭐ 与摘要那句 `36 papers (42%)` **分母不同，不矛盾**。⛔ 引用时不要混。
 
 ---
 
