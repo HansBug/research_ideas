@@ -192,10 +192,7 @@ $$\text{参考 RTL} \equiv \text{YAML}$$
 ⭐ **原文的全部 realism 证据（逐字抄，⛔ 一条不漏）：**
 
 **① 定性 —— 一个 I2C 对照（§3.6 NL Distribution）**：
-> "Qualitatively, our specifications share the narrative structure found in real-world datasheets. For instance, we compare the example in Figure 3 with a standard I2C-Master/Slave Core specification (32):
-> • **LLM-FSM Spec**: 'After reset, the controller stays idle until the host asserts a read request (rd_req = 1), at which point it enters the mode-validation phase.'
-> • **Real-World I2C Spec**: 'In the idle state, the core leaves the buses free and will be waiting for command. If there is a transaction in MODE bit from '0' to '1', the core will go to start, and will act as Master.'
-> Both descriptions utilize a similar narrative structure."
+> "Qualitatively, our specifications share the narrative structure found in real-world datasheets. For instance, we compare the example in Figure 3 with a standard I2C-Master/Slave Core specification (32): • **LLM-FSM Spec**: 'After reset, the controller stays idle until the host asserts a read request (rd_req = 1), at which point it enters the mode-validation phase.' • **Real-World I2C Spec**: 'In the idle state, the core leaves the buses free and will be waiting for command. If there is a transaction in MODE bit from '0' to '1', the core will go to start, and will act as Master.' Both descriptions utilize a similar narrative structure."
 
 **② 定量 —— 词数（§3.6）**：
 > "Quantitatively, the real-world I2C specification, which describes a 7-state machine, contains 346 words. In our dataset, the subset of 7-state FSMs (41 problems) has an average length of 373.1 words. This consistency is also observed in other protocols. These comparisons confirm that our generated specifications closely mirror real-world application standards in terms of verbosity and information density."
@@ -255,12 +252,12 @@ $$\text{参考 RTL} \equiv \text{YAML}$$
 ⭐⭐ **`adverse_results` 的处理（⭐ 这一格对我们直接可借鉴）**：
 
 1. ⭐ **主结果对自己不利也照写**：18 个模型 × 3 条评测管线，**总体平均 Pass@1 只有 41.1%**。逐字：
-   > "across 18 frontier models and three evaluation pipelines, the overall average Pass@1 is only 41.1%"
+> "across 18 frontier models and three evaluation pipelines, the overall average Pass@1 is only 41.1%"
 2. ⭐ **最好的模型也报它掉下去的那一档**：Claude-4.5-Sonnet 总分 **80.3%**，⛔ 但 hard tier **65.6%**。逐字：
-   > "Claude-4.5-Sonnet achieves the highest score of 80.3%, yet its performance drops to 65.6% on the hard tier."
+> "Claude-4.5-Sonnet achieves the highest score of 80.3%, yet its performance drops to 65.6% on the hard tier."
 3. ⭐⭐ **管线间的巨大不一致被单独立成一个 finding，⛔ 没有藏**：Gemini-2.5-Pro 在 Spec→YAML→RTL 上 **70.4%**，在 Spec→SystemC 上只有 **17.9%**。⭐ 原文把它写成小节标题："Different evaluation pipelines lead to sharply different outcomes across models"。
 4. ⭐⭐ **一个「削弱自己动机」的结论也照写**：⭐ Spec→RTL 与 Spec→YAML→RTL 平均分接近，⭐ 原文据此说**模型不需要显式重建 FSM 结构**。⛔ 这实际上削弱了「中间表示有用」这条叙事，⭐ 但他们照写了。逐字：
-   > "the Spec → RTL and Spec → YAML → RTL pipelines yield similar average accuracies, indicating that modern LLMs are able to perform finite-state reasoning directly in RTL without explicitly reconstructing the FSM structure in YAML."
+> "the Spec → RTL and Spec → YAML → RTL pipelines yield similar average accuracies, indicating that modern LLMs are able to perform finite-state reasoning directly in RTL without explicitly reconstructing the FSM structure in YAML."
 5. ⭐ **等价门通过率随难度下滑（95.7% → 82.1% → 62.4%）照写，⛔ 未粉饰**，⭐ 只补一句「仍足以靠加预算或分层生成扩展」。
 6. ⚠️ **Yosys soundness 的限定语照写**（"for all executions explored by the checker"）—— ⭐ 这是主动标注自己方法的上界。
 7. ⭐ **四类失败模式逐类列出**（§4.3 Error analysis）：⛔ Syntax errors · ⛔ **Incorrect timing semantics** · ⛔ **State or transition mistakes** · ⛔ Formatting errors。
