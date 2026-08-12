@@ -108,7 +108,7 @@
 | Deadlock | No successor state exists | ⭐ **this work** |
 | Resource limit | State explosion or memory limit | ⭐ **this work** |
 
-⭐⭐ **这张表的做法直接可搬**：⭐ 闭合类目 + 逐类挂外部出处 + **显式标出哪几类没有先例**。⭐ 这正是本仓库 [../provenance/](../provenance/) 三类分级在干的事，⛔ 而他们把它做进了正文表格。
+⭐⭐ **这张表的做法直接可搬**：⭐ 闭合类目 + 逐类挂外部出处 + **显式标出哪几类没有先例**。⭐ 这正是本仓库 [../../provenance/](../../provenance/) 三类分级在干的事，⛔ 而他们把它做进了正文表格。
 
 ⭐ 唯一的 tie-break 也写死了：**M** · §7「A generation for which the model checker finds no runnable configuration counts as a configuration-binding failure, since a missing configuration is an interface failure.」
 
@@ -239,12 +239,11 @@
 ### 1. ⭐ 可取之处
 
 1. ⭐⭐ **「不用 LLM 当 judge」这条有了一个可引的、同期的、明确的先例。** ⭐ 我们 v46 的 `adjudicate_results` 与两个 review 节点全是 LLM，⭐ 而这篇在一个**同样是 NL→形式规约**的任务上明确拒绝了 LLM-as-judge，理由一句话（judge 会引入 benchmark 本要避免的同一批偏置）。⭐ M1 若要把裁决端换成 sound oracle，⭐ 这是最干净的一条外部支撑。
-2. ⭐⭐ **「pass ≠ 有内容」这条给了我们一个可搬的两级探针，⭐ 而且我们缺的正是它。** ⭐ 我们的谓词求值只判「该谓词返回 True/False」，⛔ 从不问「这条断言是不是**空转**」。⭐ 他们的两道探针几乎可以逐字移植到我们的断言脚本上：
+2. ⭐⭐ **「pass ≠ 有内容」这条给了我们一个可搬的两级探针，⭐ 而且我们缺的正是它。** ⭐ 我们的谓词求值只判「该谓词返回 True/False」，⛔ 从不问「这条断言是不是**空转**」。⭐ 实测代价数据现成：30 条通过里只 12 条 substantive、⭐ 只 5 条 mutation-surviving，⭐ 作者一句「The plain correct rate therefore overstates genuine capability by roughly 2.5 times」。⛔ **而我们的 hit@1 60.4% 里有多少是空转，目前完全不知道。** ⭐ 他们的两道探针几乎可以逐字移植到我们的断言脚本上：
    - **substantive 探针**：断言涉及的元素在仿真里**动过**（>1 状态）∧ 所查性质不是重言式 ∧ 不是纯类型 / well-formedness 不变式
    - **mutation 探针**：把断言里的性质换成常真，重跑；⭐ **若结果不变，这条断言什么都没查**
-   ⭐ 实测代价数据现成：30 条通过里只 12 条 substantive、⭐ 只 5 条 mutation-surviving，⭐ 作者一句「The plain correct rate therefore overstates genuine capability by roughly 2.5 times」。⛔ **我们的 hit@1 60.4% 里有多少是空转，目前完全不知道。**
 3. ⭐⭐ **报「区间」而不是报「一个数」这个做法，⭐ 恰好对上我们 −15.82pp 的表述困境。** ⭐ 他们的处理是：把所有本来会被默默做掉的判定选择**列出来、逐档量化、明说每一档在回答哪个不同的问题**，⭐ 然后说「不同档不是同一个量的竞争估计」。⭐ 我们的 `hit@1` / `hit@3` / `hit@all` 已经是这个形状的雏形，⭐ 但还缺「口径档」这一维（⭐ 例如：命中判据松紧、多报是否计入、是否要求断言承重）。
-4. ⭐ **闭合类目 + 逐类挂出处 + 显式标出「无先例」那几类**（Table 4）—— ⭐ 这与我们 [../provenance/](../provenance/) 的三类分级是同一件事，⛔ 但他们把它做成了正文表格的一列。⭐ 我们的 19 条完全可以照这个版式排。
+4. ⭐ **闭合类目 + 逐类挂出处 + 显式标出「无先例」那几类**（Table 4）—— ⭐ 这与我们 [../../provenance/](../../provenance/) 的三类分级是同一件事，⛔ 但他们把它做成了正文表格的一列。⭐ 我们的 19 条完全可以照这个版式排。
 5. ⭐ **人工标注的报告版式可以整套照抄**：⭐ 双读 + Cohen $\kappa$ + 序数加权 $\kappa$（⭐ 因为档位有序）+ 机械代理复验 + **主动披露非盲**。⭐ G1 正在做 33–49 人时的全量重标，⭐ 这套版式直接决定那批工作在审稿人眼里值多少。⚠️ ⭐ 特别注意他们对机械代理的自我限制：**同源的代理只能证「标注是否一致」，⛔ 不能证「难度定义是否独立成立」** —— ⭐ 这句话我们做任何自动化复验时都会用得上。
 6. ⭐ **`gold` / `silver` 那个分层思路**：⛔ 不要按「质量高低」分层，⭐ 要按**声明强度**分层，⭐ 每层只写它能证的那一句。⭐ 我们台账「LLM 生成、人类校验 0 条」这个现状，⭐ 与其一口气全部重标，⭐ 不如先按声明强度切开。
 

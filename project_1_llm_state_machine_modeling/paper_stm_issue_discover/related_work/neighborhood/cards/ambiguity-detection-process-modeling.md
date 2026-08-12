@@ -268,8 +268,7 @@ $$H_{\mathrm{norm}} = \frac{-\sum_{i=1}^{K} p_i \log_2 p_i}{\log_2 |Y|}$$
 
 ⭐ artifact 仓库的 README 明写 detection prompt 有**两个变体**：
 
-> ⭐ `ambiguity_detection` —— 输入含 MBD 诊断结果
-> ⭐ `ambiguity_detection_without_diagnosis` —— ⛔ **不含 MBD**，`"Compares the two models structurally and semantically (no MBD), then traces each structural difference back to ambiguous narrative text"`
+> ⭐ `ambiguity_detection` —— 输入含 MBD 诊断结果⭐ `ambiguity_detection_without_diagnosis` —— ⛔ **不含 MBD**，`"Compares the two models structurally and semantically (no MBD), then traces each structural difference back to ambiguous narrative text"`
 
 ⛔⛔ **即：作者手里有「有 MBD vs 无 MBD」的消融装置，⛔ 但论文正文一个字都没报这个对照的结果。** ⭐ 而这恰恰是全文最想知道的数字 —— ⭐⭐ **MBD 这一跳到底贡献了多少？** ⛔ 如果不用 MBD、只让 LLM 直接比两个模型也能找到同样的歧义，⭐ 那本文的核心贡献就退化成「多次生成看熵」这一半。⛔ **原文未提供。**
 

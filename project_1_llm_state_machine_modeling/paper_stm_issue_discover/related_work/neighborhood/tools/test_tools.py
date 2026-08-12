@@ -254,6 +254,25 @@ class TestRevisionDrift:
 
 
 class TestShellDetection:
+    def test_source_extensions_catch_the_second_shell_kind(self):
+        """⛔ 第二种空壳：⭐ **有一堆文件，⛔ 但一行源码都没有**。
+
+        ⚠️ **真实事故**：某论文仓库 25 个 blob、⭐ 其中 24 个「非文档」，⛔ 于是初版
+        工具判 🟢 —— ⭐ 但那 24 个**全是 PDF 报告与 CSV**，⛔ `.py` / `.ipynb` / `.sh`
+        一个都没有。⭐ 论文自称公开了实验代码，⛔ 公开的其实是**实验产物**。
+
+        ⭐ 第一种空壳（只剩 README）好认；⛔ **这第二种在任何「文件数」指标上都健康。**
+        """
+        from verify_assets import _DOC_ONLY, _SOURCE_EXT  # noqa: PLC0415
+
+        for ext in (".py", ".ipynb", ".sh", ".java", ".cpp"):
+            assert ext in _SOURCE_EXT
+        #: ⛔ 产物类后缀绝不能算源码
+        for ext in (".pdf", ".csv", ".png", ".xlsx", ".json", ".xml"):
+            assert ext not in _SOURCE_EXT
+        #: ⭐ 两个集合不相交 —— ⛔ 否则同一个文件会被两边计数
+        assert not (_DOC_ONLY & _SOURCE_EXT)
+
     def test_doc_extensions_cover_the_flowfsm_case(self):
         """⭐ FlowFSM 空壳只含 `README.md` 与 `.gitignore` —— 两者都必须算文档。
 

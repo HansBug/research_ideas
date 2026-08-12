@@ -5,11 +5,26 @@
 ⛔ 但里面只有 `README.md` 和 `.gitignore`，README 自己写着 source code will be shared
 later。⭐ 只查 HTTP 状态码会把它判成 🟢，⛔ 而它实际是 🟠。
 
-⭐ 因此本脚本对 GitHub 仓库**不只查存在性，还查内容**：文件数、是否只剩文档、
-有无 release、有无 license、HEAD commit。⭐ 判 🟢 的门槛是「**取下来有东西**」。
+⭐ 因此本脚本对 GitHub 仓库**不只查存在性，还查内容**：文件数、⭐ **源码文件数**、
+是否只剩文档、有无 release、有无 license、HEAD commit。⭐ 判 🟢 的门槛是
+「**取下来有东西，⭐ 且那些东西里有代码**」。
 
-⚠️ **本脚本只做机械判定，⛔ 不做终裁。** 例如「有 30 个文件但全是图片」它判 🟢，
-⭐ 而人看了应该判 🟠。机械结果进 `assets.md` 的「核验证据」列，⭐ emoji 由写卡的人定。
+⚠️ **本脚本只做机械判定，⛔ 不做终裁。** ⭐ 机械结果进 `assets.md` 的「核验证据」列，
+⭐ emoji 由写卡的人定。
+
+## ⛔⛔ 三个本工具**测不出来**的坑（⭐ 必须人工补）
+
+1. ⛔ **「取到的够不够复现」测不出来。** ⚠️ 实例：某仓库 1764 个文件、664 个非文档，
+   ⭐ 机械判 🟢；⛔ 而人判 🟠，理由是「⭐ 仅含部分示例和结果文件，⛔ **非冻结完整
+   benchmark**，⛔ 无 release / license / 依赖锁」。
+2. ⛔⛔ **论文引用的 ref 与仓库默认分支可能不是一回事。** ⚠️ 实例：TLA+-Bench 的
+   真实产物在 `reveiwer-release` 分支（⭐ 注意作者拼错了 reviewer），⛔ 而默认分支
+   `main` 装的是**他们上一篇论文**的 206 条规约、⛔ 且**没有 license**。
+   ⭐⭐ **对裸仓库 URL 跑本工具会既错过真产物、又谎报「license 无」。**
+   ⭐ **务必按论文引用的那个 ref 去核。**
+3. ⛔ **Google Drive / 裸网盘链接的可变性测不出来。** ⚠️ 实例：某工作的实现只放在一个
+   Google Drive 文件夹里，⛔ 无版本控制、无 license，⭐ 而其中两个文件的日期**晚于论文** ——
+   ⛔ 即取到的**不是论文背后那一版**。
 
 用法::
 
@@ -32,6 +47,20 @@ _GH = re.compile(r"github\.com/([\w.\-]+)/([\w.\-]+?)(?:\.git)?(?:/|$)", re.I)
 
 #: ⭐ 只有这些后缀算「文档」。⛔ 一个仓库若**全部**文件都落在这里，就是空壳。
 _DOC_ONLY = {".md", ".txt", ".rst", ".gitignore", ".gitattributes", ".license"}
+
+#: ⭐⭐ 源码后缀。⛔ **「非文档文件多」不等于「有代码」。**
+#:
+#: ⚠️ **真实事故（本轮第二种空壳）**：某篇论文的仓库有 25 个 blob、⭐ 其中 24 个「非文档」，
+#: ⛔ 于是工具判 🟢 —— ⭐ 但那 24 个**全是 PDF 报告与 CSV**，⛔ `.py` / `.ipynb` / `.sh`
+#: 一个都没有。⭐ 论文自称公开了实验代码，⛔ 实际公开的是**实验产物**。
+#:
+#: ⭐ 第一种空壳（只剩 README）好认；⛔ **这第二种「满但没有代码」的更隐蔽**，
+#: ⭐ 因为它在任何「文件数」指标上都健康。
+_SOURCE_EXT = {
+    ".py", ".ipynb", ".java", ".js", ".ts", ".c", ".cc", ".cpp", ".h", ".hpp",
+    ".go", ".rs", ".rb", ".sh", ".bash", ".pl", ".scala", ".kt", ".cs", ".m",
+    ".r", ".jl", ".lua", ".php", ".swift", ".ml", ".hs", ".sql",
+}
 
 
 def _gh_api(path: str) -> dict | list | None:
@@ -88,8 +117,19 @@ def probe_github(owner: str, repo: str) -> dict:
         return ("." + n.rsplit(".", 1)[-1]).lower() if "." in n else n.lower()
 
     non_doc = [f for f in files if _ext(f) not in _DOC_ONLY]
-    #: ⭐⭐ 空壳判据：没有任何非文档文件。⛔ 这正是 FlowFSM 那一类。
+    src = [f for f in files if _ext(f) in _SOURCE_EXT]
+    #: ⭐⭐ 空壳判据一：没有任何非文档文件。⛔ 这是 FlowFSM 那一类。
     shell = len(files) > 0 and not non_doc
+    #: ⭐⭐ 空壳判据二：⛔ **有一堆文件但一行源码都没有**（⭐ 全是 PDF / CSV / 图）。
+    no_source = bool(non_doc) and not src
+    if shell:
+        suggest = "🟠 空壳"
+    elif no_source:
+        suggest = "🟠 无源码"
+    elif src:
+        suggest = "🟢"
+    else:
+        suggest = "🟠"
     return {
         "kind": "github",
         "reachable": True,
@@ -101,11 +141,13 @@ def probe_github(owner: str, repo: str) -> dict:
         "n_files": len(files),
         "n_files_truncated": truncated,
         "n_non_doc_files": len(non_doc),
+        "n_source_files": len(src),
         "n_releases": n_rel,
         "is_shell": shell,
+        "no_source": no_source,
         "sample_files": sorted(files)[:12],
         #: ⭐ 机械建议，⛔ 不是终裁
-        "suggest": "🟠 空壳" if shell else ("🟢" if non_doc else "🟠"),
+        "suggest": suggest,
     }
 
 
@@ -148,9 +190,10 @@ def main(argv: list[str] | None = None) -> int:
         if r.get("kind") == "github":
             ev = (
                 f"HEAD `{(r.get('head_sha') or '')[:10]}` · 文件 {r.get('n_files')}"
-                f"（非文档 {r.get('n_non_doc_files')}）· release {r.get('n_releases')}"
-                f" · license {r.get('license') or '无'}"
+                f"（非文档 {r.get('n_non_doc_files')} · ⭐ **源码 {r.get('n_source_files')}**）"
+                f" · release {r.get('n_releases')} · license {r.get('license') or '无'}"
                 + ("⛔ **空壳**" if r.get("is_shell") else "")
+                + ("⛔ **有文件但零源码**" if r.get("no_source") else "")
                 + ("⚠️ 树被截断" if r.get("n_files_truncated") else "")
             ) if r.get("reachable") else r.get("note", "")
         else:
