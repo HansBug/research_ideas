@@ -8,7 +8,11 @@
 
 ## 1. 外部锚点：原论文自己记录了什么
 
-原论文（Wang et al. 2025, Internetware，DOI 10.1145/3755881.3755926）的公开 workbook `Experiment Results.xlsx` / sheet `STM Results` 对 60 个生成结果逐 case 记录三类问题，各带 `Resolved` 标记。它是唯一可用的外部对照，因为它的判定方式与我们不同：**它对着作者重建的参考模型算 grammar-point F1**，而我们**仅凭 NL 建立正向命题、禁止使用参考模型**。
+原论文（Wang et al. 2025, Internetware，DOI 10.1145/3755881.3755926）的公开 workbook `Experiment Results.xlsx` / sheet `STM Results` 对 60 个生成结果逐 case 记录三类问题，各带 `Resolved` 标记。它是**台账构建期唯一可用的外部交叉核对源** —— ⛔ **不是 `hit@1` 的参照系**（⚠️ 按 L1 的 Q3 四条门它缺门①③：被检对象是该论文自己生成的模型、且全篇无缺陷 recall，逐条筛除见 [related_work/landscape/search_ledger.md](../../../related_work/landscape/search_ledger.md) 的 N-19）。
+
+⭐ 之所以**可用于交叉核对**，正**因为**它的判定方式与我们不同，而我们**仅凭 NL 建立正向命题、禁止使用参考模型**。⭐⭐ **同一个属性在两种用途下符号相反**：判定方式不同 → 作独立第二来源**有价值**，作性能参照系**不可用**。
+
+⚠️ **它的判定方式不是一种，是四种**（⛔ 本句 2026-08-12 更正 —— 原文写「它对着作者重建的参考模型算 grammar-point F1」，⚠️ 那**只描述了其中一类**）：**format** 由 PlantUML checker **自动**报 · **grammar** 人工对照 SysML 标准 · **semantic** 人工对照 55 条语义 · ⭐ **只有 requirements-consistency 这一类才走参考模型的 grammar-point F1**。
 
 语义 / 需求一致性类共 50 条，散布 41 个 case：
 
