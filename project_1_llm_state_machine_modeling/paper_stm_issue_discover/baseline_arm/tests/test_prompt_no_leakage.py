@@ -229,3 +229,62 @@ def test_retry_feedback_carries_only_structural_information() -> None:
         assert banned not in lowered, (
             f"retry feedback mentions {banned!r}; it must stay purely structural"
         )
+
+
+# ⛔⛔ 以下两条是 2026-08-12 补的：初版的模式表里**没有臂身份词**，于是它放过了一次真实泄漏。
+#
+# 泄漏形态：pydantic 把**类 docstring** 放进 `model_json_schema()` 的**顶层 `description`**。
+# 两个类 docstring 当时写着「基线报出的一条不符之处」「主臂是八阶段循环……X1 是单次调用」
+# 「五类多报分类」「C-③」——即**告诉了模型它是一个对照实验里的基线臂**。
+#
+# ⚠️ `_schema_descriptions()` 本来就序列化了整个 schema，所以它**看得见**那段文本；
+#    ⛔ 漏掉它的原因是禁词表里只有「谓词名 / 该找什么」这类词，**没有臂身份词**。
+#    ⭐ 这是「测试断言了错误的东西」的典型：扫对了地方、查错了内容。
+
+ARM_IDENTITY_TERMS = (
+    # 臂与实验设计
+    "主臂", "基线", "对照", "baseline", "control arm",
+    "八阶段", "eight-stage", "单次调用", "single call",
+    # contribution 编号与本项目内部口径
+    "C-①", "C-②", "C-③", "contribution",
+    "多报", "over-report", "五类",
+    # 本仓库内部引用
+    "伞 PR", "#179", "§4B",
+)
+
+
+def test_schema_carries_no_arm_identity() -> None:
+    """⛔ schema 不得透露「这是一个对照实验的某一臂」。
+
+    ⭐ 判据：模型看到 schema 时，不应知道自己在参与比较、也不应知道另一臂是什么样。
+    ⚠️ 这与「不许点名该找什么缺陷」是**两种不同的泄漏**，⛔ 必须分开断言。
+    """
+
+    blob = _schema_descriptions()
+    hits = sorted(t for t in ARM_IDENTITY_TERMS if t in blob)
+    assert not hits, (
+        f"schema 泄漏臂身份: {hits}\n"
+        f"⚠️ 最常见的原因是把说明写成了**类 docstring**——pydantic 会把它放进顶层 "
+        f"description。⭐ 改成 `#` 注释即可。\nschema 全文:\n{blob}"
+    )
+
+
+def test_class_docstrings_are_absent_from_schema() -> None:
+    """⛔ 结构性防线：两个模型类**不得有 docstring**。
+
+    ⭐ 上一条测的是「有没有泄漏这些词」，⛔ 这一条测的是「有没有这个泄漏**通道**」——
+    通道堵死了，将来写什么都不会漏。⚠️ 只有前一条时，改文案的人很容易再打开通道。
+    """
+
+    for cls in (x1_schema.NaiveIssue, x1_schema.NaiveReview):
+        assert cls.__doc__ is None, (
+            f"{cls.__name__} 有 docstring，它会进 model_json_schema() 的顶层 description "
+            f"并因此进入生产者上下文。⭐ 改写成类定义**上方**的 `#` 注释。\n"
+            f"当前内容: {cls.__doc__!r}"
+        )
+
+    d = x1_schema.NaiveReview.model_json_schema()
+    assert "description" not in d, f"schema 顶层仍有 description: {d.get('description')!r}"
+    assert "description" not in d["$defs"]["NaiveIssue"], (
+        f"NaiveIssue 仍有 description: {d['$defs']['NaiveIssue'].get('description')!r}"
+    )
