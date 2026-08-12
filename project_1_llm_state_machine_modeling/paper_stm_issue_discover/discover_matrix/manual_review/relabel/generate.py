@@ -58,6 +58,58 @@ def clip(text, n):
     return t if len(t) <= n else t[: n - 1] + "…"
 
 
+def regroup_unmatched(entries, model):
+    """把去重组再按「所指的模型元素」并一层。
+
+    ⚠️ `export_unmatched.py` 的去重只按逐字文本，同一主张换个说法就分成两组
+    （实测 0000 的 X1 侧 12 组里有 6 组都在说 `HumanDrivingMode` 的空状态体）。
+    这里再并一次：
+
+    - X1 侧有多报桶回链的，直接按**簇**并 —— 那是人工判过的同一主张。
+    - 否则按「该 issue 文本里点到的模型元素集合」并 —— 元素集合相同的多半同根。
+    - 都没有就退回逐字。
+
+    ⛔ 并组只影响**展示**，每组仍逐条列出成员原文，不丢信息。
+    """
+    element_tokens = set()
+    for name in model.states:
+        element_tokens.add(name.lower())
+    for trig in model.triggers():
+        for tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", trig):
+            element_tokens.add(tok.lower())
+    for var in model.variable_candidates():
+        element_tokens.add(var.lower())
+
+    groups = {}
+    for e in entries:
+        adj = e.get("adjudicated") or {}
+        if adj.get("cluster"):
+            key = ("cluster", adj["cluster"])
+        else:
+            blob = f"{e.get('issue') or ''} {e.get('where') or ''}"
+            # ⛔ 必须用**有序**元组而不是 frozenset —— `str(frozenset)` 的元素顺序
+            # 随 PYTHONHASHSEED 变，会让同一份材料每次生成出不同的行序，幂等直接失效
+            # （实测：54 份里有 16 份每跑一次就变一次）。
+            hit = tuple(sorted({t.lower() for t in
+                                re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", blob)
+                                if t.lower() in element_tokens}))
+            key = ("elem", hit) if hit else ("text", e.get("key"))
+        g = groups.setdefault(key, {
+            "key": key, "arm": e["arm"], "cells": set(), "members": [],
+            "adjudicated": adj or None,
+        })
+        g["cells"] |= set(e.get("cells") or [])
+        g["members"].append(e)
+        if adj and not g["adjudicated"]:
+            g["adjudicated"] = adj
+    out = list(groups.values())
+    for g in out:
+        g["cell_count"] = len(g["cells"])
+        g["members"].sort(key=lambda m: -m.get("cell_count", 0))
+    out.sort(key=lambda g: (-g["cell_count"], str(g["key"])))
+    return out
+
+
 # ------------------------------------------------------------------ §1 原料
 
 def section_material(pair, model, records):
@@ -72,9 +124,11 @@ def section_material(pair, model, records):
     lines.append("## §1 判断所需的全部原料")
     lines.append("")
     lines.append(
-        f"生成方 LLM **{meta.get('llm')}**；来源系统 **{meta.get('model_source')} / "
-        f"{meta.get('model_name')}**；被测制品取自作者 workbook 的 "
-        f"`{meta.get('selected_stage_column')}`（单元格 `{meta.get('selected_stage_cell')}`）。"
+        # ⛔ 全部走 esc()：`model_name` 等字段里有真实换行，直接插进段落会造成
+        # Markdown 段内硬折行（CommonMark 把软换行渲染成一个空格，中文段落会多出空格）。
+        f"生成方 LLM **{esc(meta.get('llm'))}**；来源系统 **{esc(meta.get('model_source'))} / "
+        f"{esc(meta.get('model_name'))}**；被测制品取自作者 workbook 的 "
+        f"`{esc(meta.get('selected_stage_column'))}`（单元格 `{esc(meta.get('selected_stage_cell'))}`）。"
         f"NL 与 5 个兄弟 pair 共用（同一份规约生成 6 个制品）。"
     )
     lines.append("")
@@ -277,7 +331,7 @@ _DIFF_VERDICT_NOTE = {
 }
 
 
-def section_candidates(pair, records, saved):
+def section_candidates(pair, model, records, saved):
     lines = []
     keys = []
     lines.append("## §3 候选新增 issue（⭐ 挖深的入口）")
@@ -415,51 +469,73 @@ def section_candidates(pair, records, saved):
         lines.append("本 pair 无。")
         lines.append("")
     else:
-        x1 = [e for e in um if e["arm"] == "X1"]
-        v46 = [e for e in um if e["arm"] == "v46"]
+        x1 = regroup_unmatched([e for e in um if e["arm"] == "X1"], model)
+        v46 = regroup_unmatched([e for e in um if e["arm"] == "v46"], model)
+        raw_x1 = sum(e["cell_count"] for e in um if e["arm"] == "X1")
+        raw_v46 = sum(e["cell_count"] for e in um if e["arm"] == "v46")
         lines.append(
-            f"共 **{len(um)}** 个去重组（X1 {len(x1)} / 主臂 {len(v46)}），"
-            "已按「出现的格数」降序排。⭐ **出现格数越多越值得看** —— "
-            "六格里出现五六次的主张，不太可能是单次采样噪声。"
+            f"X1 臂 **{raw_x1}** 条未认领 issue 并成 **{len(x1)}** 组；"
+            f"主臂 **{raw_v46}** 条机械未匹配 issue 并成 **{len(v46)}** 组。"
+            "⭐ **出现格数越多越值得看** —— 六格里出现五六次的主张，不太可能是单次采样噪声。"
         )
         lines.append("")
         if x1:
-            lines.append(f"#### §3.3a X1 臂未认领 {len(x1)} 组（⭐ 全部已有多报侧裁定）")
+            lines.append(f"#### §3.3a X1 臂未认领 {len(x1)} 组")
             lines.append("")
             lines.append(
-                "「已有裁定」指它已被归入 X1 的多报桶并给了 verdict。"
+                "⭐ 这些**全部已有多报侧裁定**（已归入 X1 的多报桶并给了 verdict）。"
                 "⛔ 那些裁定是**另一轮**判定者做的，你可以推翻 —— "
                 "尤其 `NO_NL_BASIS`：它只说「NL 没有逐字依据」，"
-                "⭐ 而合式性层的缺陷本来就不要求 NL 依据。"
+                "⭐ 而合式性层的缺陷本来就不要求 NL 依据（台账自己有 30 条这样的记录）。"
             )
             lines.append("")
-            lines.append("| 格数 | 裁定 | 子类 | issue | where |")
+            lines.append("| 格数 | 裁定 | 子类 | 簇 | issue（组内各说法） |")
             lines.append("| --: | :-- | :-- | :-- | :-- |")
-            for e in x1:
-                adj = e.get("adjudicated") or {}
+            for g in x1:
+                adj = g.get("adjudicated") or {}
+                texts = []
+                seen = set()
+                for m in g["members"]:
+                    t = clip(m.get("issue"), 110)
+                    if t not in seen:
+                        seen.add(t)
+                        texts.append(t)
+                body = "<br>".join(texts[:3]) + ("<br>…" if len(texts) > 3 else "")
                 lines.append(
-                    f"| {e['cell_count']} | `{adj.get('verdict') or '—'}` | "
-                    f"`{adj.get('subclass') or '—'}` | {clip(e.get('issue'), 150)} | "
-                    f"{clip(e.get('where'), 70)} |")
+                    f"| {g['cell_count']} | `{adj.get('verdict') or '—'}` | "
+                    f"`{adj.get('subclass') or '—'}` | `{adj.get('cluster') or '—'}` | "
+                    f"{body} |")
             lines.append("")
         if v46:
-            shown = v46[:40]
+            shown = v46[:30]
             lines.append(f"#### §3.3b 主臂 v46 机械未匹配 {len(v46)} 组"
-                         + (f"（列出出现格数最多的 {len(shown)} 组）" if len(v46) > len(shown) else ""))
+                         + (f"（列出出现格数最多的 {len(shown)} 组）"
+                            if len(v46) > len(shown) else ""))
             lines.append("")
             lines.append(
                 "⛔ **主臂的多报簇没有逐条回链到格**（`G*.jsonl` 只给 `cells_of_6` 计数、"
-                "不给成员清单），所以这里**无法**标出哪些已被裁定。"
-                "本 pair 的多报侧裁定另见 §3.4，需要你自己对照。"
+                "不给成员清单），所以这里**无法**标出哪些已被裁定 —— "
+                "本 pair 的多报侧裁定另见 §3.4，需自行对照。"
+                "⚠️ 全语料有 **102 条**主臂未匹配 issue 落在 6 个 pair"
+                "（`0005` `0015` `0025` `0035` `0042` `0045`）上却**零多报簇**，"
+                "即那 6 个 pair 的这一栏完全没有被裁定过。"
             )
             lines.append("")
-            lines.append("| 格数 | issue | 需求 | rationale（截断） |")
+            lines.append("| 格数 | issue（组内各说法） | 需求 | rationale（截断） |")
             lines.append("| --: | :-- | :-- | :-- |")
-            for e in shown:
+            for g in shown:
+                texts, seen = [], set()
+                for m in g["members"]:
+                    t = clip(m.get("issue"), 100)
+                    if t not in seen:
+                        seen.add(t)
+                        texts.append(t)
+                body = "<br>".join(texts[:3]) + ("<br>…" if len(texts) > 3 else "")
+                rid = sorted({r for m in g["members"]
+                              for r in (m.get("requirement_ids") or [])})
                 lines.append(
-                    f"| {e['cell_count']} | {clip(e.get('issue'), 120)} | "
-                    f"{clip(','.join(e.get('requirement_ids') or []), 30)} | "
-                    f"{clip(e.get('reason'), 160)} |")
+                    f"| {g['cell_count']} | {body} | {clip(','.join(rid), 30)} | "
+                    f"{clip(g['members'][0].get('reason'), 160)} |")
             lines.append("")
         key = f"UM-{pair}"
         keys.append(key)
@@ -632,7 +708,7 @@ def build_doc(pair, saved):
     body.append(s2)
     keys += k2
 
-    s3, k3 = section_candidates(pair, records, saved)
+    s3, k3 = section_candidates(pair, model, records, saved)
     body.append(s3)
     keys += k3
 

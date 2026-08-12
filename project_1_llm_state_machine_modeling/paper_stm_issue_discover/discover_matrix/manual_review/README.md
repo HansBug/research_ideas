@@ -44,6 +44,12 @@ venv/bin/python project_1_llm_state_machine_modeling/paper_stm_issue_discover/di
 
 一句话：**数字读 JSON，读法读 `.md`。** 两份 `.md` 都是某一时刻的散文快照，重跑 [../stratify_candidates.py](../stratify_candidates.py) 或 [../merge_manual_stratification.py](../merge_manual_stratification.py) 不会更新它们。
 
+## ⭐ 人工全量重标：[relabel/](./relabel/)
+
+⛔ **上表的 126 条全部由 LLM agent 生成，人类校验 0 条**，双盲复审只覆盖 12/60 且是二元 case 级。[relabel/](./relabel/) 是为**逐 pair 人工重标**准备的工作区：54 份自包含工作单（原料 + 逐条裁决区 + 候选新增 + 逐 pair 深度检查清单）加生成 / 回收 / 校验工具，入口见 [relabel/README.md](./relabel/README.md)，进度见 [relabel/PROGRESS.md](./relabel/PROGRESS.md)。
+
+⛔ **重标不修改本目录的台账。** [expected_issue_set.json](./expected_issue_set.json) 保持冻结 —— 它是 v46 与 X1 两轮判定所依据的比对对象；重标产物只落在 `relabel/` 内，合并回台账需要单独的裁定与 PR。
+
 ## 组间信度（双盲复审）
 
 `reliability/` 下是 **12 例分层样本的双盲复审**，用于给出全量审阅结构上无法计算的组间信度（全量 60 case 零重叠，且 [../aggregate_manual_review.py](../aggregate_manual_review.py) 把重复审阅当作错误报出）。样本覆盖全部 10 个 NL 组、6 个 LLM、原审 `problem` 数 0–6 全区间；两个审阅者互不可见，也不可见原审结果与 `_summary.json`。

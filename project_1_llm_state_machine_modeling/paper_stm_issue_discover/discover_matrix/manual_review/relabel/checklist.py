@@ -252,6 +252,18 @@ def build(model, nl_segs, records, pair):
             "机械判据：`dst ∉ scope ∪ descendants(scope) ∪ ancestors(scope) ∪ 顶层态`。"
             + _covered_note([t.src, t.dst], R),
         ))
+    for s in model.empty_composites():
+        n += 1
+        st = model.states[s]
+        items.append(Item(
+            f"HIER-{n:02d}",
+            f"`{s}`（:{st.decl_line}）写成了 `state {s} {{ }}` 但**体内是空的**"
+            "（零子态、零内部迁移）。作者是想建复合态却没填，还是只是记法冗余？"
+            "⚠️ 单看这一点**不构成缺陷** —— UML 里空体仍是 simple state；"
+            "承重的只能是「NL 要求它有子结构而这里没有」。",
+            "机械判据：`state X {` 开块、无子态、scope 内无迁移。"
+            + _covered_note([s], R),
+        ))
     for name, use_line, use_scope, decl_line, parent in model.forward_references():
         n += 1
         items.append(Item(
