@@ -39,7 +39,15 @@ TARGET_SOURCES = 6
 MIN_SOURCES = 3
 
 
-def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool:
+def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool | None:
+    """N 个源应覆盖 min(3, N) 个以上不同领域；⭐ 无源时返回 None（**不适用**）。
+
+    ⚠️ ⛔ **2026-08-12 修**：原实现在 `n_sources == 0` 时 `min(3, 0) == 0`，⭐ 判据**恒真** ——
+    ⛔ 于是语料侧 0 源的 `containment` 与 `variable_delta_after` 拿到「多样性 ✅」，
+    ⛔ 而 2 源 1 领域的 `initial_target` 反被标 ⛔。⭐ 任何读工具输出的人会得到相反印象。
+    """
+    if n_sources == 0:
+        return None
     return n_domains >= min(3, n_sources)
 
 
@@ -64,7 +72,12 @@ _LOCAL_TO_WORK = {
     #: Heitmeyer, Jeffords, Labaw, ACM TOSEM 5(3), 1996（SCR 自动一致性检查）
     "hjl96_ase01/A.txt": "doi:10.1145/234426.234431",
     #: Heimdahl & Leveson, IEEE TSE 22(6), 1996（层次状态机需求的完备性与一致性）
-    "main/heimdahl_tse96.txt": "doi:10.1109/32.503933",
+    #: ⚠️ ⛔ **2026-08-12 更正**：此处原写 `doi:10.1109/32.503933`，⛔ 而该 DOI **不存在**
+    #: （Crossref 返回 `Resource not found`）。⭐ 真实 DOI 由 Crossref 核出为 `10.1109/32.508311`
+    #: （题录逐字吻合：Completeness and consistency in hierarchical state-based requirements,
+    #: TSE 22(6):363-377, 1996）。⛔ 那个假 DOI 来自更早一轮某条已通过裁定的证据 —— ⭐ 即
+    #: **裁定层不核验引用真实性**，⛔ 而 Q1/C+D 证据基从未跑过 `verify_citations.py`。
+    "main/heimdahl_tse96.txt": "doi:10.1109/32.508311",
     #: ⭐ Torre 等的 UML 一致性规则工作：⭐ TR SCE-15-01（2016）与博士论文（2018）
     #: 是**同一项系统映射研究**的两个版本 —— ⛔ 规则表逐条同号同文，⛔ 不得计两个来源。
     "paperA.txt": "work:torre-uml-consistency-rules",
@@ -80,6 +93,24 @@ _LOCAL_TO_WORK = {
     #: OMG UML 2.5.1（formal/2017-12-05）
     "uml251/uml251.txt": "url:omg.org/spec/uml/2.5.1",
 }
+
+
+#: ⭐⭐ **已核实的键别名**：⛔ 左侧是**经核验不存在或非规范**的标识符，⭐ 右侧是核验过的正确键。
+#:
+#: ⚠️ ⛔ **为什么需要它**：⭐ 同标题归并会保留字典序最小的键，⛔ 而那可能恰好是**假的**那个。
+#: ⭐ 实测：`10.1109/32.503933` 与 `10.1109/32.508311` 指向同一篇（Heimdahl & Leveson,
+#: TSE 22(6):363-377, 1996），⛔ 而前者在 Crossref 上返回 `Resource not found`、
+#: ⭐ 后者题录逐字吻合。⛔ 让假 DOI 当代表键，等于把一条不可解析的引用写进交付表。
+#:
+#: ⛔ **准入**：⭐ 只收**逐条核验过**的别名（⭐ 核验方式写在注释里），⛔ 不许凭相似度加。
+_KEY_ALIASES = {
+    #: ⭐ Crossref 实测：`503933` → `Resource not found`；`508311` → 题录吻合
+    "doi:10.1109/32.503933": "doi:10.1109/32.508311",
+}
+
+
+def _apply_alias(key: str) -> str:
+    return _KEY_ALIASES.get(key, key)
 
 
 def _local_work_key(ident: str) -> str | None:
@@ -152,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         for f in json.loads(path.read_text(encoding="utf-8")):
             pred = f.get("predicate")
-            key = canonical_source(f)
+            key = _apply_alias(canonical_source(f))
             slot = evidence[pred].setdefault(
                 key,
                 {
@@ -164,6 +195,37 @@ def main(argv: list[str] | None = None) -> int:
                 },
             )
             slot["n_quotes"] += 1
+
+    #: ⭐⭐ **同标题归并**（2026-08-12 新增）—— ⛔ 修一个 `canonical_source` **在结构上修不了**的缺陷。
+    #:
+    #: ⚠️ `canonical_source` 逐条处理，⛔ **看不到别的条目**，⭐ 因此同一篇论文若在不同条目里
+    #: 分别用了 DOI 与 arXiv ID（⭐ 或 DOI 与出版社 PDF URL），⛔ 会被算成两个独立来源。
+    #: ⚠️ 【实测 2026-08-12】敌意评审在 5 条谓词上抓到这一形态：`guard_distinguishable`
+    #: （Heimdahl & Leveson 的两个 DOI 串，⛔ 其中一个还不存在）· `event_consumed`
+    #: （arXiv + DOI）· `invariant`（DOI + 出版社 PDF）· `reaches` / `response_within`
+    #: （同一篇 Specification Patterns for Robotic Missions 的 arXiv + DOI）。
+    #:
+    #: ⛔ **归并判据从严**：⭐ 只在**同一条谓词内**、⭐ 且标准化后标题**完全相同且非空**时合并；
+    #: ⛔ 不做模糊匹配（⚠️ 那会把不同论文错并，⭐ 而错并的方向是把数字做小、更难被发现）。
+    #: ⭐ 每次合并都写进 `merged_by_title`，⛔ 便于审计。
+    merge_log: list[dict] = []
+    for pred, srcs in evidence.items():
+        by_title: dict[str, list[str]] = defaultdict(list)
+        for key, slot in srcs.items():
+            #: ⚠️ ⛔ `.lower()` **不可省** —— ⭐ 少了它，`[^a-z0-9]` 会把大写字母当分隔符替换掉，
+            #: ⛔ 于是仅大小写不同的同一标题会被判为两个（⭐ 实测：`Model-Checking … Logics`
+            #: 与 `Model-checking … logics` 因此漏并）。
+            norm = re.sub(r"[^a-z0-9]+", " ", (slot.get("title") or "").lower()).strip()
+            if norm:
+                by_title[norm].append(key)
+        for norm, keys in by_title.items():
+            if len(keys) < 2:
+                continue
+            keep = sorted(keys)[0]  #: ⭐ 取字典序最小者为代表，⛔ 结果与输入顺序无关
+            for drop in sorted(keys)[1:]:
+                srcs[keep]["n_quotes"] += srcs[drop]["n_quotes"]
+                del srcs[drop]
+                merge_log.append({"predicate": pred, "title": norm[:80], "kept": keep, "merged": drop})
 
     rows = []
     for pred, family in sorted(FAMILY.items(), key=lambda kv: (kv[1], kv[0])):
@@ -190,11 +252,17 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
 
+    if merge_log:
+        print(f"⭐ 同标题归并 {len(merge_log)} 处（⛔ 否则会重复计数）：")
+        for m in merge_log:
+            print(f"   {m['predicate']:<24} {m['merged']}  →  {m['kept']}")
+        print()
+
     width = max(len(r["predicate"]) for r in rows)
     print(f"{'谓词'.ljust(width)}  族  真实系统  文献  合计  语料领域  语料多样性  达标(>={TARGET_SOURCES})")
     for r in rows:
         flag = "✅" if r["meets_target"] else ("🟡" if r["meets_minimum"] else "⛔")
-        div = "✅" if r["corpus_diversity_ok"] else "⛔"
+        div = {True: "✅", False: "⛔", None: "n/a"}[r["corpus_diversity_ok"]]
         print(
             f"{r['predicate'].ljust(width)}  {r['family']}  "
             f"{r['real_systems']:>8}  {r['literature']:>4}  {r['total_sources']:>4}  "
@@ -209,7 +277,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.out:
         args.out.write_text(
-            json.dumps({"rows": rows, "evidence": {k: v for k, v in evidence.items()}}, ensure_ascii=False, indent=1),
+            json.dumps(
+                {"rows": rows, "evidence": dict(evidence), "merged_by_title": merge_log},
+                ensure_ascii=False, indent=1,
+            ),
             encoding="utf-8",
         )
     return 0

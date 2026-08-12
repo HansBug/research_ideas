@@ -87,7 +87,13 @@
 
 ⚠️ 按旧的**符合性**口径读，发现 2 是坏消息：方法过半产出靠的那几条谓词找不到出处。⛔ **按三类口径读，结论相反。**
 
-⭐ 建模义务类谓词（`event_declared` `containment` `initial_target` `variable_delta_after` 等）正是**② 元模型定义性**的典型 —— ⭐ 「模型里用到的事件必须被声明」这件事**不需要外部文献背书，它就是元模型的定义**。
+⚠️⚠️ ⛔ **本段已于 2026-08-12 更正。** ⭐ 上一版写的是「⭐ 建模义务类谓词（`event_declared` `containment` `initial_target` `variable_delta_after` 等）正是 **② 元模型定义性**的典型」—— ⛔ **这句话不成立**：⭐ 那 4 条里**只有 1 条**是 ②（`event_declared`），⛔ `containment` 是 **③**、⛔ `initial_target` 与 `variable_delta_after` 都是 **①**。
+
+⭐ **两个集合的交集只有一条**：⭐ 「建模义务」是本文件的**语料标签**（5 条：`initial_target` `event_consumed` `event_declared` `containment` `variable_delta_after`），⭐ 「②」是[出处分级](./predicate_provenance.md)的**类别**（6 条：`event_declared` `variable_declared` `state_declared` `edge_declared` `action_declared` `effect_declared`）—— ⭐ 交集 = `{event_declared}`。⛔ 两者**不是同一个划分**，⛔ 不得互相代入。
+
+⭐ **仍然成立的那一层**（⛔ 也是本发现真正的价值）：⭐ 「模型里用到的事件必须被声明」这件事**不需要外部文献背书 —— 它就是元模型的定义**；⭐ 而语料扫描确认这类义务在真实需求文本里系统性不出现，⭐ 二者**互不矛盾、各说各的**。⛔ 错的只是把两个集合当成了一个。
+
+⚠️ ⭐ [evidence_distribution.md](./evidence_distribution.md) §3.2 有一处**方向相反**的同型错误（⭐ 「6 条 ② 正是建模义务的典型」），⭐ 已同时更正。
 
 ⭐⭐ **而发现 1 给了这条判断一个经验佐证，⛔ 不再只是一句断言**：我们**穷尽扫过** 313 个界内案例、310 篇独立论文，⭐ 确认这类义务在真实系统需求文本里**系统性地不出现** —— ⛔ 不是我们没找到，是**这类文本不谈这件事**。⭐ 它们由定义支撑，⛔ 本来就不该向领域频次索取背书。
 
