@@ -57,7 +57,19 @@ from pathlib import Path
 _VOLATILE = {"revision", "schema_version"}
 
 _IDX = re.compile(r"L(\d+)-(\d+)-")
-_PRED = re.compile(r"\s*([a-z_]+)\s*\(")
+#: ⛔⛔ **必须用 `findall` 取谓词「集合」，⛔ 不能用 `match` 取第一个。**
+#:
+#: ⚠️ **真实缺陷（对抗复核查出）**：初版是 `re.compile(r"\s*([a-z_]+)\s*\(")` + `.match`，
+#: ⛔ 它要求表达式**以** `谓词名(` 开头 —— ⭐ 而合取式形如 `(occupancy_after(...) and ...)`
+#: **以 `(` 开头**，于是返回空串。⭐ 空串是个垃圾桶：⛔ **392 个「抵消」里有 235（60%）
+#: 落在含空串的序列中**，⭐ 而最高频的「抵消」形状是 `(occupancy_after, '', occupancy_after)`
+#: —— ⛔ **主谓词从未变过，变的只是括号包裹。**
+#:
+#: ⭐ 改成集合提取后，⭐ 近一半（45.5%）的「抵消」暴露出真实形态：
+#: ⛔ **不是换谓词，⭐ 而是加了一个 `*_declared` 合取前件又删掉** ——
+#: ⭐⭐ 那属仓库 `CLAUDE.md` §13 的**门冲突**签名，⛔ **不是「随机游走」**。
+_PRED_ALL = re.compile(r"\b([a-z_]{3,})\s*\(")
+_NOT_PRED = {"is", "and", "or", "not", "true", "false", "if", "else", "len", "str", "int"}
 
 
 def _canon(a: dict) -> str:
@@ -70,8 +82,14 @@ def _expr(a: dict) -> str:
 
 
 def _pred(a: dict) -> str:
-    m = _PRED.match(a.get("expression") or "")
-    return m.group(1) if m else ""
+    """⭐ 返回表达式里**全部**谓词名的规范化集合（⛔ 不是第一个）。
+
+    ⭐ 空串表示**没解析出任何谓词** —— ⛔ 调用方必须把它当「未能解析」单独计数，
+    ⛔ **不得与真实的谓词值混在一起比较**（⭐ 否则空串会充当一个假的「共同值」，
+    ⭐ 制造出大量并不存在的「回到旧值」）。
+    """
+    names = [n for n in _PRED_ALL.findall(a.get("expression") or "") if n not in _NOT_PRED]
+    return "+".join(sorted(set(names)))
 
 
 #: ⭐⭐ **三个粒度必须同时报，⛔ 单看任何一个都会得出错误结论。**

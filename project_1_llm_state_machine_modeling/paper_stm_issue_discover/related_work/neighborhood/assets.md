@@ -68,7 +68,7 @@
 | ⭐⭐ **Agentic LLM traces for Simulink Model Repair** | 🟢 | ⭐ **192 次运行的 JSONL 会话日志** + 原始与变异 Simulink 模型 + 变异注入器 + 测试 oracle + 消融设置 | DataCite DOI [`10.5281/zenodo.19819244`](https://doi.org/10.5281/zenodo.19819244)，⭐ 10 文件 ≈ **162 MB** |
 | ⭐⭐ **LLM4MDE 映射研究复现包** | 🟢 | ⭐ **86 篇 × 43 字段**的完整抽取表 | ⭐ `sha256 5a396fe4e3c1…`（76325 B）。⚠️ **需 `?view_only=` token**（⭐ token 在论文参考文献第 112 条） |
 | ⭐ **TSE 2026 片段推荐复现包** | 🟢 | ⭐ **1.80 GB**，md5 已公布，⭐ CC-BY-4.0 | [`10.5281/zenodo.15110021`](https://doi.org/10.5281/zenodo.15110021)；⭐ 配套数据集 [`10.5281/zenodo.13955920`](https://doi.org/10.5281/zenodo.13955920)（395 MB） |
-| ⭐ **107 个 SysML 行为模型** | 🟢 | ⭐ 36 activity · ⭐⭐ **36 state machine** · 35 sequence（⭐ 含 NL 需求与人工评分） | ⭐ 本地已冻结 parquet 并记三个 SHA-256（⭐ 见 [`baselines/llms_emp/ASSETS.md`](../../../baselines/llms_emp/ASSETS.md)） |
+| ⚠️ **SysML 行为模型数据集** | 🟡 | ⛔⛔ **论文称 107 个，⭐ 实测去重后只有 65 个不同条目**（⭐ 35 组重复 · 42 行冗余 · 9 行无 PlantUML）—— ⭐ 于是「36 个状态机」实际约 **20–23 个**。⚠️ 且 `diagram_type` 列**是推断的**（⭐ 6 行标 `stm` 的其实叫 activity diagram），⛔ **用前必须重新定型** | ⭐ 本地已冻结 parquet 并记三个 SHA-256（⭐ 见 [`baselines/llms_emp/ASSETS.md`](../../../baselines/llms_emp/ASSETS.md)） |
 | ⭐ **AutoSpec 逐迭代产物** | 🟢 | ⭐ `grammar_iterN` / `fandango_output_iterN` / `evaluation_iterN` / `FINAL_REPORT_iterK` | ⭐⭐ **论文缺的逐轮数字可从这里重算** |
 | ⚠️ **AutoSpec 实现** | 🟠 | ≈187 KB Python | ⛔ **裸 Google Drive**，⛔ 无版本控制、无 license，⚠️ **两个文件日期晚于论文** —— ⛔ 取到的不是论文那一版 |
 | ⭐ **TLA+-Bench 数据** | 🟢 | ⭐ **403 金标 + 897 银标** `.tla` + 每条结果 + `reproduce.py`（⭐ **不查模型即可重算表 5/6**） | ⚠️ 在 `reveiwer-release` 分支（⭐ 见 §1.2） |
@@ -87,7 +87,7 @@
 | 口径 | 数字 |
 | :-- | :-- |
 | ⭐ 机械判可取的仓库 | ⭐ **7 / 12**（⛔ 4 个「有文件无源码」+ 1 个空壳） |
-| ⭐⭐ **实际取到手的数据集** | ⭐⭐ **6** —— ⭐ 86×43 抽取表 · 192 次 agent trace · 107 个 SysML 模型（⭐ 含 36 状态机）· 403+897 TLA+ 规约 · 1.8 GB 片段推荐包 · AutoSpec 逐迭代产物 |
+| ⭐⭐ **实际取到手的数据集** | ⭐⭐ **6** —— ⭐ 86×43 抽取表 · 192 次 agent trace · ⚠️ SysML 行为模型集（⛔ **论文称 107，实测去重后 65**，⭐ 状态机约 20–23）· 403+897 TLA+ 规约 · 1.8 GB 片段推荐包 · AutoSpec 逐迭代产物 |
 | ⭐ prompt 完全公开的 | ⭐ **5**（⭐ Event-B Agent · MCeT · LADEX · TSE · AutoSpec） |
 | ⛔ 人工金标**未**公开的 | ⛔ **至少 3**（SpecGPT 210 人时 · ProtocolGPT 72 人时 · MCeT 的 1524+347 条判定标签） |
 
@@ -95,7 +95,9 @@
 
 ⚠️ **但有一个系统性缺口**：⭐ **代码与数据常常公开，⛔ 而「人工判定的那一层」几乎从不公开。** ⭐ MCeT 是最典型的：⛔ 代码 🟢、prompt 🟢、数据集 🟢、ground truth 🟢，⛔ **而 precision 全部依据的 1524+347 条人工判定标签 ⚪** —— ⭐⭐ **于是它可以被重跑，⛔ 但不能被复算。**
 
-⭐⭐ **这对我们有直接含义**：⭐ 我们的 574 位逐位判据 + 288 簇五类裁定**如果公开，会是这条线上少见的东西**。
+⭐⭐ **这对我们有直接含义**：⚠️ ⛔ **但不要把这句话说满。** ⭐ 支撑它的是「人工金标**未**公开的：**至少 3**」—— ⭐「至少」二字自己就承认了**没做系统普查**（⛔ 12 个仓库里只查了 3 个）。⭐ 而**反例就在同一张表里**：⭐ 那份 SysML 行为模型集**含人工评分且已公开**；⭐ LADEX 另外公开了 κ 校准协议。
+
+⭐⭐ **可以说的是：已核 3 例未公开、1 例公开，⛔ 未做系统普查。**
 
 ---
 
@@ -103,10 +105,12 @@
 
 | license | 仓库数 |
 | :-- | --: |
-| ⛔ **无 / NOASSERTION** | ⛔ **9 / 12** |
+| ⛔ **无 / NOASSERTION** | ⚠️ **8 / 12 + 1 待定** |
 | Apache-2.0 | 1 |
 | BSD-3-Clause | 1 |
-| ⚠️ 分支相关 | 1 |
+| ⚠️ **分支相关（⛔ 默认分支读数是错的）** | 1 |
+
+⚠️ ⛔ **首版这里写「9/12」，⭐ 而它把 §1.2 那个已知错误的单元格算了进去** —— ⭐ `tla_benchmark` 在论文引用的 `reveiwer-release` 分支上**是有 LICENSE 的**。
 
 ⛔⛔ **无 license 在美国法下默认是 all rights reserved。** ⭐ 即：⛔ **M1 若要复用 MCeT 的 prompt 或 Event-B Agent 的代码，⛔ 严格说需要先解决授权** —— ⚠️ 这一点在本领域几乎无人提及，⛔ 但它是真实约束。
 

@@ -190,7 +190,7 @@
 - ⛔ `"Pay attention to the rationality of the State between Traditions"`（⚠️ ⛔ 原文拼写如此，`Traditions` 应为 `Transitions`）
 - ⛔ `"Don't over-design"`
 
-⭐⭐ **这一格的裁定：⭐ 它的反馈是「把规则名用祈使句复述一遍」，⛔ 既没有反例（哪条路径违反了）、⛔ 也没有轨迹（在哪一步违反）、⛔ 也没有定位（哪个元素）。** ⛔ **所以「语义层只修好 37–43%」这个结果，⭐ 与「反馈内容极其贫瘱」是分不开的** —— ⭐ 论文自己也是这么归因的（§6.4「the lack of an optimal model-checking feedback mechanism」）。
+⭐⭐ **这一格的裁定：⭐ 它的反馈是「把规则名用祈使句复述一遍」，⛔ 既没有反例（哪条路径违反了）、⛔ 也没有轨迹（在哪一步违反）、⛔ 也没有定位（哪个元素）。** ⛔ **所以「语义层只修好 37–43%」这个结果，⭐ 与「反馈内容极其贫瘠」是分不开的** —— ⭐ 论文自己也是这么归因的（§6.4「the lack of an optimal model-checking feedback mechanism」）。
 
 ⚠️⚠️ ⭐ **这对 M1 是一条很硬的可取之处：⭐ 我们的 `precheck_and_seal` 已经是 pyfcstm 真求值，⭐ 能给出「哪条断言在哪个状态上求值为假」。⭐ 换句话说，⭐ 这篇论文点名要的那个东西（counterexample / simulation trace 当反馈），⭐⭐ 我们已经有了 —— ⛔ 而我们的问题不在这里，⛔ 在于它被放在求值端而不是裁决端。** ⭐ 所以**这篇不能当成「我们该去做反例反馈」的依据，⭐ 而应当当成「反例反馈的必要性有外部背书」的依据。**
 
@@ -411,7 +411,7 @@
 | :-- | :-- | :-- |
 | 闭合性 | ⭐ 闭合 | ⭐ 闭合 |
 | ⛔ **谁选** | ⛔⛔ **人 ＋ 工具** —— ⭐ 检测端由人逐条比对 55 条、由 PlantUML checker 报格式，⛔ 然后规则机械注入。⛔ **LLM 只消费，⛔ 不选** | ⭐⭐ **LLM 在每条需求上自动选** |
-| ⭐⭐ **出处分级** | ⭐⭐ **55/55 全部挂 UML/SysML 规约条款号** —— ⛔ 即**全部是「② 元模型定义性」**，⛔ **没有一条是「① 领域文献证据」，⛔ 也没有一条是「③ 无外部依据」** | ⭐ **① 有领域证据 12 · ② 元模型定义性 6 · ③ 无外部依据 1**（→ [../provenance/](../provenance/)） |
+| ⭐⭐ **出处分级** | ⭐⭐ **55/55 全部挂 UML/SysML 规约条款号** —— ⛔ 即**全部是「② 元模型定义性」**，⛔ **没有一条是「① 领域文献证据」，⛔ 也没有一条是「③ 无外部依据」** | ⭐ **① 有领域证据 12 · ② 元模型定义性 6 · ③ 无外部依据 1**（→ [../../provenance/](../../provenance/)） |
 | ⛔ **29 条规则的出处** | ⛔⛔ **无出处 —— ⭐ 全部从 Phase-I 的实测幻觉倒推手写**（⭐ 见下方） | ⭐ 三类分级 |
 | ⭐ 输出粒度 | ⛔ 反馈是**自然语言祈使句**，⛔ 不挂规则 ID、⛔ 不给定位、⛔ 不给反例 | ⭐ 断言脚本挂谓词，⭐ 可机械求值 |
 | ⭐ 覆盖率自陈 | ⭐ 4 条标「PlantUML 表达不了」 | ⚠️ 我们实测只用到 15/19 |
@@ -571,7 +571,7 @@
 | **②** | ⭐⭐ **「修好一个引入一个」（regression）是我们没测过的机制。** ⭐ 逐字 "fixing one issue can introduce new ones"。⭐⭐ **可直接搬的动作：⭐ 我们的逐轮账目前只记「净变化」，⛔ 应当拆成「本轮新命中」与「本轮丢失原有命中」两栏。** ⛔ 若真有回归，⭐ 那么「第 3–5 轮零收益」的正确读法是「修与坏相抵」，⛔ 而不是「什么都没发生」—— ⛔ **两者对 M1 的含义完全相反** | ⭐ **M**（⭐ 原文明写机制；⛔ 但它自己也没给回归的量化数字 → 我方动作是 I） |
 | **③** | ⭐⭐ **逐实例判定台账公开 ＋ 与论文数字精确对账。** ⭐ `Hallucinations` 298 行、`resolved=yes = 144` 与论文 `144` 逐位一致。⭐⭐ **这是本轮所有卡片里对账最干净的一篇。** ⭐ 我们的 574 位逐位判据 ＋ 288 簇裁定应当照这个形态发布：⭐ **一行一实例 ＋ 归类列 ＋ 是否解决列 ＋ 修法列**，⭐ 使外部审查者能独立重算主结果 | ⭐ **M**（⭐ 我方实取并对账） |
 | **④** | ⭐⭐ **闭合清单逐条挂规约条款号（55/55）。** ⭐ 这是比 SoSyM 那篇（8/38 挂文献）更严的出处形态。⭐ **对我们的用处是校准而非模仿**：⭐ 它的出处**只有**我们三类里的第 ② 类（元模型定义性），⛔ 一条领域文献都没有。⭐⭐ **所以我们的 `① 12 · ② 6 · ③ 1` 在出处**维度**上比它宽（⭐ 我们有领域证据轴），⭐ 在**覆盖率**上比它窄（⛔ 19 vs 55）。⭐ 两条都可写** | ⭐ **M**（⭐ 我方实取 `Source` 列逐行核过） |
-| **⑤** | ⭐ **主动标出「工具表达不了、所以查不了」的条目**（⭐ 4 条 `No Support in PlantUML`）。⭐ 与我们 [ground_truth_limitations.md](../../discover_matrix/docs/protocol/ground_truth_limitations.md) 同一性质，⭐ 且是已发表的先例 | ⭐ **M** |
+| **⑤** | ⭐ **主动标出「工具表达不了、所以查不了」的条目**（⭐ 4 条 `No Support in PlantUML`）。⭐ 与我们 [ground_truth_limitations.md](../../../discover_matrix/docs/protocol/ground_truth_limitations.md) 同一性质，⭐ 且是已发表的先例 | ⭐ **M** |
 | **⑥** | ⭐⭐ **不利结果的写法：⭐ 不是「坦白承认」，⭐ 而是「以此立论」。** ⭐ 摘要最后三句全是负面结论，⭐ 并把「厘清限制、指出方向」明写成贡献。⭐⭐ **我们的 `−15.82pp` 应当照这个写：⛔ 不是「我们的方法比朴素基线差 15.82pp」，⭐ 而是「我们量化了自我批判型反馈在语义层的收益上限，⛔ 并定位到缺的是可靠判定装置」** | ⭐ **M** |
 | **⑦** | ⭐ **归因到自家机制而非模型能力**（⭐ "the lack of an optimal model-checking feedback mechanism **in our study**"）。⭐ 这个措辞很值得学 —— ⭐ 它把负面结果变成可改进项，⛔ 而不是变成「LLM 不行」的悲观结论 | ⭐ **M** |
 
@@ -579,7 +579,7 @@
 
 | # | 陷阱 | ⚠️ 它踩没踩我们踩过的坑 |
 | :-: | :-- | :-- |
-| **①** | ⛔⛔⛔ **规则从被评测样本本身归纳，⛔ 且无 hold-out —— ⭐ 这是本卡最严重的一条。** ⭐ 流程逐字："**Based on the findings of RQ1**, we introduced model-checking rules **to address the hallucinations identified in Tables 8–10.** **Each rule targets a specific hallucination type**"。⛔⛔ **即：⭐ Phase-I 在 30 个样本上观察到哪里出错 → ⭐ 为那些错各写一条规则 → ⛔ Phase-II 在**同一批 30 个样本**上评测那些规则。** ⭐ 所以 Table 11 的解决率**全部是 in-sample**，⛔ 而论文从未标注这一点，⛔ 也没有留出集 | ⛔⛔ **这正是本仓库 [CLAUDE.md](../../../../../CLAUDE.md) §3.5.-1 第 1 条「按引入动机反向标注」要抓的形态** —— ⭐ 每条规则的引入动机就是「某个样本没做对」。⭐⭐ **而我们对同一问题有明确口径**（⭐ [method_provenance_policy.md](../../discover_matrix/docs/protocol/method_provenance_policy.md)：⭐ 不设 hold-out，⛔ 但方法的由来一律陈述为从领域资料归纳，⛔ 且配套做抽象化自检）。⭐⭐ **这篇是「不设这条纪律会怎样」的现成反面样本：⛔ 29 条规则里，⭐ 像 `Don't miss out Final State` 这样的措辞抽象化之后确实是通用建模原则，⛔ 但像 `No explicit prompt not to use ActivityPartitions` 这样的就纯粹是对某次实测的补丁 —— ⛔ 它甚至不是一条规则，⛔ 而是一句关于 prompt 缺了什么的笔记** |
+| **①** | ⛔⛔⛔ **规则从被评测样本本身归纳，⛔ 且无 hold-out —— ⭐ 这是本卡最严重的一条。** ⭐ 流程逐字："**Based on the findings of RQ1**, we introduced model-checking rules **to address the hallucinations identified in Tables 8–10.** **Each rule targets a specific hallucination type**"。⛔⛔ **即：⭐ Phase-I 在 30 个样本上观察到哪里出错 → ⭐ 为那些错各写一条规则 → ⛔ Phase-II 在**同一批 30 个样本**上评测那些规则。** ⭐ 所以 Table 11 的解决率**全部是 in-sample**，⛔ 而论文从未标注这一点，⛔ 也没有留出集 | ⛔⛔ **这正是本仓库 [CLAUDE.md](../../../../../CLAUDE.md) §3.5.-1 第 1 条「按引入动机反向标注」要抓的形态** —— ⭐ 每条规则的引入动机就是「某个样本没做对」。⭐⭐ **而我们对同一问题有明确口径**（⭐ [method_provenance_policy.md](../../../discover_matrix/docs/protocol/method_provenance_policy.md)：⭐ 不设 hold-out，⛔ 但方法的由来一律陈述为从领域资料归纳，⛔ 且配套做抽象化自检）。⭐⭐ **这篇是「不设这条纪律会怎样」的现成反面样本：⛔ 29 条规则里，⭐ 像 `Don't miss out Final State` 这样的措辞抽象化之后确实是通用建模原则，⛔ 但像 `No explicit prompt not to use ActivityPartitions` 这样的就纯粹是对某次实测的补丁 —— ⛔ 它甚至不是一条规则，⛔ 而是一句关于 prompt 缺了什么的笔记** |
 | **②** | ⛔⛔ **`temperature = 0` 单次跑，⛔ 无 `@k`，⛔ 且把消除方差当优点。** ⭐ 于是它无法区分「稳定被漏」与「偶尔被漏」。⚠️ ⭐ 更该批评的是：⭐ **它引用了 [65]（"Evaluation of LLMs should not ignore non-determinism"）却选了相反做法，⛔ 且未讨论该文主张** | ⛔ **我们 `hit@1 / hit@3 / hit@all` 三口径同报，⭐ 这一点上我们明确更强。⛔ 不要因为它是 CCF 会议论文就采纳它的单次跑口径** |
 | **③** | ⛔⛔ **macro / micro 两套口径在同一篇里混用且不标注。** ⭐ §1 给的是 micro 分数（`31/72` `56/150`），⛔ 而 §6.4 引的百分数（`36.89%` `42.14%` `83.33%` `16.67%`）是**逐规则 macro**。⭐ 我方复算确认了这一点（⭐ 语义 macro = 36.89% ✅ 而 micro = 43.06%）。⛔⛔ **落差不小：⭐ 需求一致性 micro = 37.33% 而 macro = 47.80%，⭐ 差 10.5pp** | ⚠️ ⭐ **注意方向不是单向自利的**：⭐ STM 的 macro（42.14%）**高于** micro（39.13%），⛔ 而 ACT 的 macro（83.33%）**低于** micro（88.89%）。⭐ **所以这不是「口径迁就结果」，⛔ 而是「口径未声明」** —— ⛔ 按本仓库 §3.5 第 4 条应记为口径缺陷而非公平性问题。⭐ 我们报任何率时必须**明写 micro 还是 macro** |
 | **④** | ⛔⛔ **主要判定全人工，⛔ 无 $\kappa$、⛔ 无第三方、⛔ 无自动检查器。** ⭐ 论文自己承认 PlantUML "lacks built-in capabilities for SysML syntax and semantic checking. Consequently, **all validations must be performed manually**" | ⛔ **这是「自证式验证」的一种**（§3.5 第 5 条）。⭐ 我们的人工判定同样是自判，⛔ 但判据先落盘、⭐ 逐位可复算、⭐ 且求值端有 pyfcstm 兜底。⭐⭐ **它连一个自动求值器都没有 —— ⛔ 这是我们相对它的结构性优势，⭐ 应当写出来** |
