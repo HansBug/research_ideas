@@ -224,7 +224,14 @@
 | ⛔ SpecGPT | ⭐ 2 类 | ⛔ **人按协议选** |
 | ⛔ LADEX | ⭐ 6+5 条约束 | ⛔ **无选择步骤** |
 | ⛔ SoSyM 2026 | ⭐ 38 条规则 | ⛔ **按阶段三份硬编码名单** |
-| ⭐ **我们** | ⭐⭐ **19 条谓词** | ⭐ **LLM 自动选** |
+| ⭐⭐ **RunVS**（SAC 2025） | ⛔⛔ **LLM 自由生成集合**（⭐ 生成完冻结成有限集） | ⭐⭐ **决策树的信息增益** —— ⛔ **LLM 完全不参与选类** |
+| ⭐ **我们** | ⭐⭐ **19 条谓词**（⭐ 人写） | ⭐ **LLM 自动选** |
+
+⭐⭐⭐ **RunVS 那一行值得单独看：⭐ 它是我们的精确镜像。** ⭐ 逐字：`we do not require the user to provide the set of predicates … instead discover these predicates using a large language model` · `The predicate with the highest information gain is selected`。
+
+⭐⭐ **即「LLM 该放在词表的哪一端」在文献里存在一个被论证过的相反选择** —— ⭐ 我们把人放在造词表端、LLM 放在选类端；⭐ 它反过来。⭐ **这是至今最干净的一条对照。**
+
+⚠️ ⛔ **但不要拿它的谓词条数与我们的 19 条比**：⭐ 它的「谓词」是**程序分析 / SyGuS 意义上的原子谓词**（⭐ 对程序状态求值的布尔表达式，如 `ncrit <= 1`），⛔ **不是我们那种「对模型提问的检查算子」** —— ⭐ 同名不同物。
 
 ⭐⭐ **三个先例的闭合集合分别是 3 类、3 类、4 类函数** —— ⛔ **我们的 19 条比它们大一个量级**。⭐ Event-B Agent 的四类**全部被用到**（38.36 / 33.62 / 18.97 / 9.10%），⛔ **而我们只用到 15/19。**
 
@@ -277,6 +284,37 @@
 1. ⭐⭐⭐ **先修第 0 轮，⛔ 再动裁决者**（§4.3）
 2. ⭐⭐ **§11 的准入判据加第二问：「能不能只看半成品判定」**（⭐ 它机械解释了 `named_elements` 那次事故）
 3. ⭐⭐ **拆掉两个 LLM 自评 reviewer，⭐ token 改花在「换粒度重问」**
+
+---
+
+## 9.5 ⭐⭐ 缺陷分类学：⭐ 邻域有现成的，⛔ 但**四个我们最需要的格子它一个都没有**
+
+⭐ 横向卡 [`cards/_taxonomy-and-semantic-feedback.md`](./cards/_taxonomy-and-semantic-feedback.md) 核了三份分类学。
+
+⚠️ **先更正一条**：⛔ 初筛记的「三份」实为**两份** —— ⭐ 那份「38 项指标」**就是**另一份（BEF4LLM）去掉 validity（⭐ $16+15+7=38$，⭐ 同一作者组，⭐ 前者明写引用后者）。⭐ 但复核时**新登记了一份真正独立的**：⭐ 8 类（`extraction` · `compilation` · `recognition` · `typing` · `structure` · `hallucination` · `omission` · `cosmetic fidelity`），⭐ **唯一同时带方向轴与深度轴的**，⭐ 对 G1 的 `direction` / `depth` 字段有直接先例。
+
+### 9.5.1 ⭐ 我们接得住的
+
+| 我们的族 | 邻域覆盖 |
+| :-- | :-- |
+| ⭐ **结构族 10 条** | ⭐ **基本是领域共识** —— ⭐ 与一份分类学的第 2 类对上 4/5，⭐ 与另一份的 syntactic 维对上约 14/16 |
+
+⭐⭐ **即：⛔ 结构族不是新东西。**
+
+### 9.5.2 ⛔⛔ 四个空缺（⭐ 两个方向）
+
+| # | 空缺 | ⭐ 含义 |
+| :-: | :-- | :-- |
+| **1** | ⛔ **变量维**：⭐ 一份逐字 `this paper **ignores node attributes**`，⭐ 另一份逐字 `data objects **omitted** … outside the scope` | ⭐⭐ **我们 `variable_declared` / `variable_delta_after` 从未作 primary，⛔ 不能归因为「词表漏了一类」** —— ⭐ **邻域一份都没有**。⭐ 这是**开放机会**，⛔ 但同时意味着**没有外部依据可挂** |
+| **2** | ⛔ **时序性质**：⭐ 最接近的只是行为**相似度**，⛔ 不是行为**性质** | ⭐ 与 L2 已记的 `response_within` 缺口**是同一个问题的两面**，⛔ 不是两个独立问题 |
+| **3** | ⚠️ **反方向：⭐ 我们对 pragmatic 维 0/15 覆盖**（⭐ size / density / connector interplay / partitionability） | ⭐ 看起来与任务定义正交，⚠️ 但正交性不彻底 |
+| **4** | ⛔⛔ **`nl_evidence` 零先例**：⭐ 三份**全部**把判据锚在参考模型 / 元模型 / XSD 上，⛔ **没有一份拿「NL 原文哪一句」当真值** | ⭐⭐ **这既是我们的真新意，⛔ 也说明 G1 得自己定口径** |
+
+⭐⭐⭐ **一句必须先引的原话**：⭐ 其中一份逐字写着 `automated comparison of a graph model with the natural language description **may be unreliable**` —— ⭐⭐ **那是审稿人会拿来打我们的原话，⭐ 最好我们先引它、⭐ 再说我们怎么处理。**
+
+### 9.5.3 ⚠️ 一处必须对齐的口径
+
+⛔ 「**只用到 15/19**」这个说法有两个不同口径：⭐ **「从未作为 primary」** 是 4 条（`variable_declared` · `variable_delta_after` · `response_within` · `invariant`）；⛔ 而 L2 的「台账断言数」列里**只有 `invariant` 是 0**。⭐⭐ **两个数不能互换引用，⛔ G1 需先对齐。**
 
 ---
 
