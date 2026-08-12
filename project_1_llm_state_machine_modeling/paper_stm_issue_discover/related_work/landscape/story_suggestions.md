@@ -4,7 +4,9 @@
 
 ⛔ **L1 不裁定强度档位**（`CONTINGENCY_L1.md` §0.1.2 全档通用禁语）。⭐ 下表「强度」栏写的是**本轮证据能支撑到哪一档**，⛔ 最终定档归 R1。
 
-⚠️ **本轮全部建议的证据级别**：除三篇 S1 预判件（SoSyM / nl2postcond / MCeT）为全文级外，⛔ **其余均为摘要级 / 题录级**，⚠️ 层 2 精读回来后可能推翻。
+⚠️ **本轮证据级别（2026-08-12 层 2 回来后更新）**：⭐ **全文级**：SoSyM 2026 · nl2postcond · MCeT · GWT 补全 · Automata Models（arXiv v2）· SEET@ICSE 2026 · Reinpold · Wang。⚠️ **部分获取**：SoSyM 2021（Abstract + 附录 A–D + 作者 Lean artifact 为一手，⛔ 正文 §1–§8 与全部图闭放未获取）。⛔ **其余仍为摘要级 / 题录级**。
+
+⛔⛔ **层 2 精读推翻了两条初版建议的前提**（已就地改写）：⚠️ S-1 的依据从「§I 一版、三条限定」改为「**四版、§IX 零限定**」；⭐ S-3 从「暂不改，等层 2」升为**有文献托底的差异化主落点**。
 
 ---
 
@@ -13,8 +15,8 @@
 | 字段 | 内容 |
 | :-- | :-- |
 | **改哪一句** | [paper_story.md](../../story/paper_story.md) §7 C-① 下的 **⚠️ 新颖性强度未定（待 L1/L2）** |
-| **改成什么** | ⚠️ **新颖性强度上限为「与既有工作不同」** —— ⛔ 在本轮覆盖范围内**不支持**更高档位。⭐ 理由是一条具名的既有 first 主张在字面上覆盖本文的任务形状（见依据），⛔ 而本文能站住的三条差别里有两条按前置纪律只进对照表、不进计数 |
-| **依据** | ⭐ **MCeT**（Ahmed 等，MODELS 2025，DOI [`10.1109/MODELS67397.2025.00014`](https://doi.org/10.1109/MODELS67397.2025.00014)）原文第 129–131 行**逐字**：`To the best of our knowledge, MCeT is the first LLM-based approach to evaluate a behavioral diagram model against free-style requirements texts, detecting discrepancies between`。⭐ 三条限定**没有一条给我方空间**：**LLM-based**（我方也是）· **behavioral diagram model**（⚠️ 状态机也是 behavioral diagram）· **free-style requirements texts**（我方也是）。⭐ 本方已逐字核实该段 |
+| **改成什么** | ⚠️ **新颖性强度上限为「与既有工作不同」** —— ⛔ 在本轮覆盖范围内**不支持**更高档位。⭐ 理由是一条具名的既有 first 主张在字面上覆盖本文的任务形状（见依据），⛔ 而本文能站住的三条差别里有两条按前置纪律只进对照表、不进计数。⚠️⚠️ **按 §IX 那一版读，连这个上限都可能偏高** —— ⛔ L1 不裁定档位（§0.1.2），⭐ 这条事实原样交 R1 |
+| **依据** | ⭐⭐ **MCeT**（Ahmed 等，MODELS 2025，DOI [`10.1109/MODELS67397.2025.00014`](https://doi.org/10.1109/MODELS67397.2025.00014)）**把这个 first 说了四遍，⛔ 限定词逐级脱落到零**：Abstract（L27–29，⛔ 无 LLM-based）· §I（L129–132，四个限定）· Contributions (1)（L137–139，丢 LLM-based）· ⛔⛔ **§IX Conclusions（L1044–1047）逐字 `To the best of our knowledge, MCeT is the first approach to perform fully automated evaluation of a behavioral model against its requirements.` —— 一个限定都没有**。⚠️ 而 Conclusion 恰是最常被摘引的位置。⛔ **「制品不同」这条防线被它自己的文本掏空**：L330–332 逐字 `the technique can be easily adapted to process any other modeling language`；L56–58 的 behavioral diagram 定义**含 state changes**；L955–957 `we aim to expand our study into other types of behavioral models as part of our future work` —— ⚠️⛔ **我方要做的事，被它在正文里点名为 future work**。⭐ 四处本方均已逐字核实 |
 | **强度** | ⭐ **「与既有工作不同」** |
 | **不做会怎样** | ⛔ 审稿人只要检索到 MCeT，就会问「你们和 MCeT 的区别是什么，为什么这也算新」。⚠️ ⭐ **更糟的是**：若我方在正文里用了任何高于该档的措辞，那句 first 会被直接引来打脸 —— ⛔ 而它是**同一年、同一 venue 层级、同一任务形状**的工作 |
 
@@ -34,15 +36,28 @@
 
 ---
 
-## ⭐⭐ S-3 · §5.1「让测不了的东西显式暴露」—— ⚠️ 最可能的差异化落点，⛔ 但待层 2 确认
+## ⭐⭐ S-3 · §5.1「让测不了的东西显式暴露」—— ⭐ **层 2 已确认，升为差异化主落点**
 
 | 字段 | 内容 |
 | :-- | :-- |
-| **改哪一句** | [paper_story.md](../../story/paper_story.md) §5.1 的 **它让测不了的东西显式暴露** |
-| **改成什么** | ⏳ **暂不改，等层 2**。⭐ 若层 2 确认下述事实，则可补一句「在本轮覆盖范围内，既有工作对未能形式化的义务采取静默跳过，未见把它登记成显式缺口的做法」+ 覆盖范围声明 |
-| **依据** | ⭐ **`Completion of SysML state machines from GWT requirements`**（SoSyM 23(6):1455–1491，DOI [`10.1007/s10270-024-01228-3`](https://doi.org/10.1007/s10270-024-01228-3)）是本轮**唯一**「界内 + 需求逐条可追溯且把追溯物化成模型元素」的篇目。⚠️ 它对未能形式化的需求有三种策略（**pessimistic 跳过 / optimistic 部分生成 / default 填默认值**），⛔ **但跳过项是否被显式登记成覆盖缺口，摘要说不清**。⭐ 旁证：**Daikon**（TSE 2001）grammar 之外的不变量**不报也不记缺口**；**Zrelli JSS 2026** 的分类器**必然输出一个标签** → 疑似静默近似；**PSPWizard**（Autili TSE'15）的「某模式在某逻辑下不可表达则省略映射」是最接近的先例，⛔ 但那是**工具能力表**而非**逐条义务的缺口账** |
-| **强度** | ⏳ **待定**（层 2 确认后方可定） |
-| **不做会怎样** | ⚠️ 这是 C-② 在界内 $k = 0$ 之后**最可能站住的差异化落点**。⛔ 若层 2 发现 GWT 那篇其实登记了缺口，这条落点就没了，⭐ 必须及早知道 |
+| **改哪一句** | [paper_story.md](../../story/paper_story.md) §5.1 第 3 点，逐字 **它让测不了的东西显式暴露** |
+| **改成什么** | ⭐ **保留原句**，其后补一句**限定式**对照 + 一张四列表：「在本轮覆盖的界内与邻域工作中，未见把『表达不了的义务』记成显式缺口的做法」+ 覆盖范围声明 |
+| **依据** | ⭐⭐ **四条相互独立、机制各不相同，⛔ 不是同一条的四种说法**（下表） |
+| **强度** | ⭐ **高** —— 三处一手全文 + 一处附录级一手，⭐ 逐条有 §号与逐字片段 |
+| **不做会怎样** | ⛔ C-② 的差异化会被迫压回「**选谓词的自动化**」这一条，⚠️ 而 **Zrelli JSS 2026 在那一条上与我们同形**（闭合集合 + 选类交给模型）—— ⛔ 一旦 R1 改判它计入对照，**C-② 直接降档且无退路**。⭐⭐ **覆盖缺口显式化是目前唯一四篇全都不做的那一项。** |
+
+### ⭐ 四条机制各异的证据
+
+| 工作 | 表达不了时做什么 | 有无缺口账 | 逐字定位 |
+| :-- | :-- | :-- | :-- |
+| ⭐⭐ **GWT 补全**（SoSyM 23(6)） | **静默跳过** | ⛔ **无** | §8 `detected violations **should be** signalled`（⛔ 模态祈使，⭐ 全文 `warn` **仅 1 次**、`uncovered` **0**）· §9 Validator 是**布尔闸门** · ⭐⭐ §12 **作者自陈** `Even if this paper **does not explicitly address** these two features … **requirements that are not satisfied by any model element**`（归将来式） |
+| **Automata Models**（MODELS 2025） | **正则近似** | ⛔ 无 | §III `bug descriptions themselves are often **not regular** … producing regular languages that **approximate** the bug` · §V 多余接受词作 `don't care` |
+| **EMI / 观察者自动机**（SoSyM 2021） | **改换形式化装置** | ⛔ 无 | Abstract 的 Büchi ↔ observer 二分；⭐ 前身 MODELS 2019 §IV.B 逐字 `not sufficiently expressive to encode all linear time properties and in particular **liveness** properties` |
+| **Daikon**（TSE 2001） | **grammar 之外不报** | ⛔ 无 | 固定模板集穷举实例化，⛔ 模板外的不变量不报也不记 |
+
+⚠️ **一处必须保留的边界**：⭐ GWT 的 §12 是**作者自陈**，按 §0.1.7 第 2 条 ⭐⭐ **它是少数几条能合法进 Motivation 的材料**；⛔ 而其余三条是我方的对照观察，⛔ **只能进 Related Work**。
+
+⚠️ **另一处**：GWT 的 Appendix A.3 记录了一个**更坏的实例** —— `REQ−2.1` 不是被跳过，⛔ 是**被翻译后产生了错误模型而无人察觉**（两个 guard 不互斥），⭐ 靠**外部模型检查器 + 人工纠正**兜底。⚠️ 引用时可用，⛔ 但要注意它说明的是「静默」的后果，⛔ 不是「跳过」本身。
 
 ---
 

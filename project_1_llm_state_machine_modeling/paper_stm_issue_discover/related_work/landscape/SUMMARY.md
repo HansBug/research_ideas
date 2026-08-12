@@ -112,10 +112,14 @@
 | :-- | :-: | :-: | :-- | :-- |
 | **MCeT**（MODELS 2025） | ✅ | ✅ | ⭐ 是 | ⚠️ UML 序列图 → **邻域** |
 | **Requirements Satisfiability with In-Context Learning**（RE 2024，DOI [`10.1109/RE59067.2024.00025`](https://doi.org/10.1109/RE59067.2024.00025)） | ✅ | ✅（逐条对 8 条 GDPR 需求判满足/不满足） | ⭐ 是 | ⚠️ 文本设计描述 → **邻域** |
-| **Completion of SysML state machines from GWT requirements**（SoSyM 23(6)，DOI [`10.1007/s10270-024-01228-3`](https://doi.org/10.1007/s10270-024-01228-3)） | ✅（**已有的部分 SysML 状态机**） | ⚠️ 待层 2 | ⏳ **待裁定** | ⭐ 状态机 → **界内** |
+| **Completion of SysML state machines from GWT requirements**（SoSyM 23(6)，DOI [`10.1007/s10270-024-01228-3`](https://doi.org/10.1007/s10270-024-01228-3)） | ✅（**已有的部分 SysML 状态机**） | ⛔ **否（只有正面锚）** | ⛔ **不计入**（⭐ 层 2 全文已裁定） | ⭐ 状态机 → **界内** |
 | `inference-time-intervention` / `ai-driven-consistency-sysml` | ✅ | ✅ / ⚠️ | 邻域 | Capella/SysML 架构图 · UCD/BD |
 
-$$k_{\text{界内}} = 0 \ (+1\ \text{待裁定}), \qquad k_{\text{邻域}} = 2$$
+$$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
+
+⭐ **那个「+1 待裁定」已由层 2 全文精读结掉**：⛔ GWT 那篇的 `«satisfy»` 关系**只从已生成的模型片段指向需求**（§4），⚠️ **失败的需求没有任何模型元素，因此没有链接、也没有任何反向记号** —— ⭐ 追溯图是一份**成功清单**，⛔ 不是覆盖账。而 §8 Listing 5 行 5–7 的三道检查是**生成闸门**（`Only if the validation is successful it is possible to move on to the translation phase`），⛔ 不是输出。⭐⭐ **它是「带静默闸门的生成器」，⛔ 不是检查侧工作。**
+
+⚠️ ⛔ **一个悬空的待裁定项会带着交付通过全部关口**（§0.1.1 自己点名的风险）；⭐ 现已结掉。
 
 ⛔⛔ **$k_{\text{邻域}}$ 于 2026-08-12 由 3 更正为 2**：⚠️ `ai-driven-consistency-sysml-diagrams` 被误判为检查侧，⭐ 实际**两问全败** —— 全文无需求条目（`requirement` 仅 3 次且全在 related work / future work / 参考文献），任务是 UCD↔BD 两图互检；且三案例评测检的**每一张图都是它自己用 TTool-AI 生成的**。⛔ **连带后果**：`k ≥ 3 → A 档` 那条分支在正确计数下**不可达**。⚠️ **加重情节**：同一条「生成后自评不算」的判据踢掉了 `chatgpt-uml-assessment` 却对它网开一面 —— ⛔ **判定标准的选择性执行本身就是学术可靠性问题**。逐条证据见 [pool_audit.md](./pool_audit.md) §3。
 
@@ -138,7 +142,13 @@ $$k_{\text{界内}} = 0 \ (+1\ \text{待裁定}), \qquad k_{\text{邻域}} = 2$$
 
 `Completion of SysML state machines from GWT` 是本轮**唯一**「界内 + 需求逐条可追溯（且**把追溯关系物化成模型元素**）」的篇目。⚠️ 它对未能形式化的需求有三种策略：**pessimistic 跳过 / optimistic 部分生成 / default 填默认值**。⛔ 但**跳过项是否被显式登记成覆盖缺口，摘要说不清**。
 
-⭐⭐ **若层 2 确认「跳过即静默」，这正是 `paper_story.md` §5.1「它让测不了的东西显式暴露」的差异化落点。** ⛔ 层 2 必须核这一点 —— 它是本轮最高价值的单条待核事实。
+⭐⭐ **层 2 全文已确认「跳过即静默」，⛔ 三条独立证据同向**：
+
+1. ⭐ **§8 那句是模态祈使，不是已实现的产出物**：`In any case, detected violations **should be signalled** to the System Analyst with proper warnings` —— ⛔ `should be` 是建议。⭐ 实测：全文 `warn` **仅 1 次**（就是这句）、`uncovered` / `not covered` **0 命中**；§9 Tool Layer 的三个组件里**没有任何一个产出报告或清单**，`Validator` 的职责逐字是「Only if the validation is successful it is possible to move on to the translation phase」—— ⭐ 一个**布尔闸门**。
+2. ⭐⭐ **§12 作者自陈本文没做这件事**（⭐ 最硬的一条）：`Even if this paper **does not explicitly address** these two features … the verification of completeness **could be addressed by** constructing some SysML model queries that retrieve "model anomalies" as isolated states, transitions that are not mapped on any requirements or **requirements that are not satisfied by any model element**` —— ⭐ 「未被任何模型元素满足的需求」被作者**逐字点名**，⛔ 但归入将来式，且前置一句明写「this paper does not explicitly address」。
+3. ⚠️ **两个真实跳过实例，落盘处只有正文散文**：Appendix A.3 的 `REQ−4.1 is **only partially matched**` 与 `The translation of all the detected requirement patterns **but the REQ−2.1**`。⛔⛔ **REQ−2.1 更严重**：它不是被跳过，⚠️ 是**被翻译后产生了错误模型而无人察觉**（两个 guard 不互斥导致非确定），⭐ 靠**外部模型检查器 + 人工纠正**兜底 —— ⛔ 本方法既不检出也不登记。
+
+⭐⭐ **裁定：`paper_story.md` §5.1「它让测不了的东西显式暴露」是站得住的差异化落点。** ⭐ 且 §12 那句是**作者自陈** —— ⭐⭐ 按 §0.1.7 第 2 条，**这是少数几条能合法进 Motivation 的材料**（⛔ 我方检索出来的空格不能）。
 
 ### ⚠️ 两条术语陷阱（⛔ 后续检索必须显式排除）
 
@@ -301,13 +311,14 @@ $$k_{\text{界内}} = 0 \ (+1\ \text{待裁定}), \qquad k_{\text{邻域}} = 2$$
 
 | # | 待核 | 为什么它最要紧 |
 | :-- | :-- | :-- |
-| **1** | ⭐⭐ `Completion of SysML state machines from GWT` 的**跳过项是否被显式登记成覆盖缺口** | ⭐ 若「跳过即静默」，这就是 §5.1「让测不了的东西显式暴露」的差异化落点 |
-| **2** | `Scaling Assessment of Student Models with LLMs`（SEET@ICSE 2026，DOI [`10.1145/3786580.3786985`](https://doi.org/10.1145/3786580.3786985)）**是否含状态机图** | ⭐ 唯一一条 ②可能为真的 2022+ 候选；若含，它从邻域升为界内 |
-| **3** | MCeT 的分母 **135** 在正文或附录中是否印出 | ⚠️ 本轮三式反推一致（134.9/135.1/135.0），⛔ 但正文 grep `\b135\b` 零命中 |
-| **4** | `baselines/*/DESC.md` 里那批数字（69/6/92%/87% · 85%/77% · 100%/0%/40%） | ⛔ **全部出自我方转述，不是原文核验过的** |
-| **5** | `Automata Models for Effective Bug Pattern Description`（MODELS 2025，DOI [`10.1109/MODELS67397.2025.00017`](https://doi.org/10.1109/MODELS67397.2025.00017)） | ⭐ 与 C-② 的「闭合词表」形状最接近的界内一篇 |
-| **6** | LLM4MDE 映射的 **11 篇 Model Validation 具名清单** | ⭐ 把 Q5 计数从 3 提高或证否的最短路径 |
-| **7** | `Unified verification and monitoring of executable UML specifications`（SoSyM 2021） | ⭐ 把**性质本身写成 UML 状态机**（观察者自动机），界内、形状最相邻 |
+| **1** | ⭐⭐ **已核完（层 2 全文）**：GWT 那篇**确认「跳过即静默」** | ⭐⭐ **本轮最高价值的确认** —— 见 §3.3 |
+| **2** | ⛔ **已核完**：`Scaling Assessment of Student Models`（SEET@ICSE 2026）**不含状态机** | ⭐ 作者自陈评测限于 class + activity diagram（§5 External Validity）；全文 `state machine` **0 命中** → ⭐ **维持邻域** |
+| **3** | ⛔ **已核完**：MCeT 的分母 **135 未印，且公开制品也算不出来** | ⭐ 全文三位数频次表 `135` 零命中；⚠️ 且 Table III 的第二个分母（**14**）同样只能反推 —— ⭐⭐ **这篇的体例就是只印分子与百分比、从不印分母**，⛔ 不是 135 这一处的偶然遗漏。⛔ 其公开制品的人工真值是**自由散文**（84 个 `.score`），⚠️ **切成 135 条离散 issue 的那一步既没印也没放进制品** |
+| **4** | ⭐ **已核完（部分）**：`baselines/*/DESC.md` 那四组转述数字**全部与原文一致** | ⭐ 层 2 已回 `paper_content.txt` 逐条核（`ai-driven` Table 4 · `rebeca` L771-779 · `designing-fsm` Table 2/3/4）→ ⭐ **该项义务可销账** |
+| **5** | ⛔⛔ **已核完，且前提是错的**：`Automata Models for Effective Bug Pattern Description` **既无目录、也不界内** | ⛔ `catalog` / `taxonomy` / `predefined` 全文**各 0 命中**；其 "bug pattern" 是**对单个 bug 现学的 DFA**（`we apply automata learning to identify patterns in failures`）。⛔ 被查制品是 **Java 代码 / 运行系统**（§III `The set of failed tests, called bugs`；§X-A `given in Java code`）→ ⭐ **归邻域**。⭐ 其价值改为 §3.3 的**又一个反面参照**（§III 逐字 `producing regular languages that approximate the bug` + §V 的 `don't care` 松弛） |
+| **6** | ⏳ 未做：LLM4MDE 映射的 **11 篇 Model Validation 具名清单** | ⭐ 把 Q5 计数从 3 提高或证否的最短路径 |
+| **7** | ⛔ **已核完**：`Unified verification and monitoring of executable UML specifications`（SoSyM **2021**） | ⭐⭐ **它的观察者自动机守卫底层是「任意无副作用 C 表达式」**（Appendix C.1 逐字 `any C expression without side effect on model execution can be used`）→ ⛔ **不是闭合词表**。性质**人手写**（Appendix A.2 `expressed as PUSMs from the system requirements`）。表达不了时**改换自动机类别**（Büchi ↔ observer）⛔ 而非记缺口。⚠️ **2021 年，⛔ 进不了 2022+ 门槛**。⚠️ 证据级别混合：Abstract + 附录 A–D + 作者 Lean artifact 为一手，⛔ **正文 §1–§8 与全部图未获取**（闭放，四处交叉确认） |
+| **8** | ⛔⛔ **新增（C2 反驳发现）**：Q3 漏筛了 Wang et al. Internetware 2025 的 workbook | ⚠️ 而 `ground_truth_limitations.md` 逐字称它「**唯一可用的外部对照**」—— 见 §4.2b |
 
 ---
 
