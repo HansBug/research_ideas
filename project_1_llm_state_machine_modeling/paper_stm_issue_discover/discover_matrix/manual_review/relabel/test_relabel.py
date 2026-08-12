@@ -1,14 +1,17 @@
 """重标工作区的回归测试。
 
-钉住七件**出错就会静默毁掉这轮人工工作**的事：
+钉住八件**出错就会静默毁掉这轮人工工作**的事：
 
 1. ⛔ 生成器不许改台账。
 2. ⛔ `00x8` 越界 pair 不许有工作单。
-3. ⭐ 生成器幂等，且重跑**不吃掉**人工填写的内容。
+3. ⭐ 生成器幂等 —— 连跑两次产物逐字节相同，且重跑**不吃掉**人工填写的内容。
 4. ⭐ 每份工作单自包含 —— 台账里该 pair 的每一条都有裁决区。
 5. ⭐ §1.2 的 NL 表是三列，且**每一段都真有中文译文**（⛔ 不许留 TODO 占位）。
-6. ⭐ §5 的新增字段块能被 `collect.py` 完整解析回来（⛔ 含带冒号的多行 statement）。
-7. ⭐ 三条校验（边界 / 去重 / 完整性）各有正反用例 —— ⛔ 只测「能报错」不算，
+6. ⭐ 译文与语料的机械对拍：9 份 JSON 按 **sha8** 一一对上 9 份唯一 NL，逐段 `en`
+   与原文逐字节相等且能拼回全文，⛔ 对不上必须**抛异常**而不是静默跳过（正反用例都测）；
+   ⭐ 逐段判读提示与整份 `translator_notes` 都不许缺。
+7. ⭐ §5 的新增字段块能被 `collect.py` 完整解析回来（⛔ 含带冒号的多行 statement）。
+8. ⭐ 三条校验（边界 / 去重 / 完整性）各有正反用例 —— ⛔ 只测「能报错」不算，
    还得测「不该报的时候不报」，否则一条恒报的规则也能通过测试。
 
 跑法：`python3 -m pytest test_relabel.py -q`（在本目录下）。
@@ -16,6 +19,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import copy
 import hashlib
 import os
 import re
@@ -118,6 +123,24 @@ def test_generate_is_idempotent_and_preserves_human_input():
         assert "重跑必须留住" in rec["理由"]
 
 
+def test_two_consecutive_full_runs_are_byte_identical():
+    """⭐ 连跑两次，54 份产物**逐字节相同**。
+
+    ⚠️ 与上一条的差别：那条测的是「重跑不吃人工填写」，走的是单个 pair；
+    这条测的是**全量**材料侧的稳定性 —— ⛔ 只要有一处把当前时间、集合序或字典序写进正文，
+    每次重跑就是一个假 diff，人工填写与材料更新混在一起再也分不开。
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        digests = []
+        for _ in range(2):
+            subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
+                            "--out", tmp], check=True, capture_output=True)
+            digests.append({f: _sha(os.path.join(tmp, f))
+                            for f in sorted(os.listdir(tmp)) if f.endswith(".md")})
+        assert len(digests[0]) == len(S.IN_SCOPE_PAIRS)
+        assert digests[0] == digests[1], "两次全量生成的产物不逐字节相同"
+
+
 @pytest.mark.parametrize("seed", ["0", "1", "12345"])
 def test_generation_is_deterministic_across_hash_seeds(seed):
     """⛔ 生成结果不许随 `PYTHONHASHSEED` 变。
@@ -209,6 +232,10 @@ def test_no_hard_wrapping_inside_paragraphs():
         os.path.dirname(os.path.dirname(HERE)))))
     targets = [os.path.join(HERE, f) for f in sorted(os.listdir(HERE))
                if f.endswith(".md")]
+    # ⭐ 译文目录里的验收依据也算 —— ⛔ 它是入库文档，不是外部附件
+    trans = os.path.join(HERE, "translations")
+    targets += [os.path.join(trans, f) for f in sorted(os.listdir(trans))
+                if f.endswith(".md")]
     proc = subprocess.run(
         [sys.executable, "-m", "tools.unwrap_markdown", "--check", *targets],
         cwd=repo, capture_output=True, text=True)
@@ -272,7 +299,7 @@ def test_no_stale_translations_left_behind():
     """⚠️ 反向：译文表里不许留下已经对不上任何在评 pair 的孤儿键。"""
     used = set()
     for pair in S.IN_SCOPE_PAIRS:
-        d = nl_zh.digest(pair)
+        d = nl_zh.digest8(pair)
         for sid, _ in S.nl_segments(pair)[0]:
             used.add((d, sid))
     orphan = [(d, s) for d, segs in nl_zh.TRANSLATIONS.items()
@@ -290,23 +317,132 @@ def test_translations_do_not_break_the_markdown_table():
 
 def test_out_of_scope_nl_group_has_no_translation():
     """⛔ `00x8` 组不生成工作单，故译文表**不该**收它 —— 收了就说明有人想给它做工作单。"""
-    d = nl_zh.digest("0008")
-    assert d not in nl_zh.TRANSLATIONS
+    assert nl_zh.digest8("0008") not in nl_zh.TRANSLATIONS
 
 
 def test_translation_keeps_state_names_in_english():
     """⭐ 状态名 / 变量名一律保留英文原样 —— 抽查两组里逐字出现的标识符。"""
     checks = {
-        "b7425c44960b": ["AutonomousMode", "InitialState", "HighwayMode", "UrbanMode",
-                         "enter_hwy", "lane_change", "dist_to_front", "auto_finished",
-                         "collision_avoidance_deactive"],
-        "934e19bd4ae2": ["DoorShut", "DoorOpen", "DoorOpenWithItem",
-                         "DoorShutWithItem", "ReadytoCook", "Cooking"],
+        "b7425c44": ["AutonomousMode", "InitialState", "HighwayMode", "UrbanMode",
+                     "enter_hwy", "lane_change", "dist_to_front", "auto_finished",
+                     "collision_avoidance_deactive"],
+        "934e19bd": ["DoorShut", "DoorOpen", "DoorOpenWithItem",
+                     "DoorShutWithItem", "ReadytoCook", "Cooking"],
     }
     for digest, names in checks.items():
         blob = " ".join(nl_zh.TRANSLATIONS[digest].values())
         for name in names:
             assert name in blob, f"{digest} 的译文里丢了标识符 {name}"
+
+
+# ============================================== 译文 JSON 与语料的机械对拍
+
+def test_every_translation_file_matches_a_real_nl_by_sha8():
+    """⭐ 9 份 JSON 的 `sha8` 必须各自对上一份在评语料的 `nl.txt`，⛔ 且一一对应。
+
+    ⚠️ 这是回填的**唯一**匹配依据 —— 译文不带 pair 号，只带 sha8。若 `nl.txt` 改了字节，
+    sha8 变化，这里就会红；⛔ 静默跳过的后果是那 6 个 pair 整份缺译而没人发现。
+    """
+    files = nl_zh._raw()                                       # noqa: SLF001
+    by_sha8 = {}
+    for pair in S.IN_SCOPE_PAIRS:
+        by_sha8.setdefault(nl_zh.digest8(pair), []).append(pair)
+    assert len(by_sha8) == 9, f"在评 54 个 pair 应只覆盖 9 份唯一 NL，实得 {len(by_sha8)}"
+    assert set(files) == set(by_sha8), (
+        f"译文文件与语料的 sha8 集合不等：\n"
+        f"  只在译文里：{sorted(set(files) - set(by_sha8))}\n"
+        f"  只在语料里：{sorted(set(by_sha8) - set(files))}")
+    for sha8, pairs in by_sha8.items():
+        assert len(pairs) == 6, f"{sha8} 覆盖 {len(pairs)} 个 pair，应为 6"
+        # ⭐ sha8 是 sha256 的真前缀，⛔ 不是别的什么摘要
+        full = hashlib.sha256(S.nl_text(pairs[0]).encode("utf-8")).hexdigest()
+        assert full.startswith(sha8)
+
+
+def test_translation_en_concatenates_back_to_the_raw_nl():
+    """⛔ 逐段 `en` 拼回去必须还原 `nl.txt` —— ⚠️ 拼接口径**因份而异**。
+
+    `0000` 走人工分段（切点在行内），逐段 `en` **直接**拼接即得原文；其余 8 份按物理行切，
+    需用 `\\n` 拼接。⭐ 两种口径都试，⛔ 但**必须有一种逐字节还原**；
+    ⚠️ 只要一份都还原不了，就说明译文对着另一版原文写的，⛔ 那份译文全部作废。
+
+    ⭐ 另外逐段比一遍 `en == 原文段`：⛔ 整篇拼接相等而段边界错位，只有逐段比才抓得住。
+    """
+    for sha8, (name, j) in nl_zh._raw().items():               # noqa: SLF001
+        pair = next(p for p in S.IN_SCOPE_PAIRS if nl_zh.digest8(p) == sha8)
+        raw = S.nl_text(pair)
+        ens = [s["en"] for s in j["segments"]]
+        assert any(c == raw or c == raw.rstrip("\n")
+                   for c in ("".join(ens), "\n".join(ens), "\n".join(ens) + "\n")), \
+            f"{name} 的 en 无论直接拼还是换行拼都还原不出 {pair} 的 nl.txt"
+        segs, _ = S.nl_segments(pair)
+        assert len(segs) == len(ens), f"{name} 段数 {len(ens)} ≠ 语料分段数 {len(segs)}"
+        for (sid, txt), en in zip(segs, ens):
+            assert en == txt, f"{name} 的 {sid} 段 en 与原文不逐字节相等"
+
+
+@contextlib.contextmanager
+def _mock_raw(payload):
+    """临时替换 `nl_zh._raw()` 的返回值。⭐ 只用于在本文件内制造反例。"""
+    original = nl_zh._raw                                      # noqa: SLF001
+    nl_zh._raw = lambda: payload                               # noqa: SLF001
+    try:
+        yield
+    finally:
+        nl_zh._raw = original                                  # noqa: SLF001
+
+
+def test_translation_mismatch_raises_instead_of_skipping():
+    """⛔ 对不上要**报错**，⛔ 不许静默跳过 —— 正反两面都测。
+
+    ⚠️ 只测「正常时不报错」等于没测：一个永远返回 `None` 的装载器也能过。
+    所以这里把一份 JSON 的 `en` 改坏、再塞一个孤儿 sha8，
+    ⭐ 断言它**确实**抛 `TranslationMismatch`；⛔ 最后再验一遍不动数据时不抛。
+    """
+    real = copy.deepcopy(dict(nl_zh._raw()))                   # noqa: SLF001
+
+    broken = copy.deepcopy(real)
+    broken["f1c3dc88"][1]["segments"][0]["en"] += " 混入的一个字"
+    with _mock_raw(broken):
+        with pytest.raises(nl_zh.TranslationMismatch, match="逐字节"):
+            nl_zh._store.__wrapped__()                         # noqa: SLF001
+
+    orphan = copy.deepcopy(real)
+    orphan["deadbeef"] = ("nl_9999.json", {"sha8": "deadbeef", "segments": []})
+    with _mock_raw(orphan):
+        with pytest.raises(nl_zh.TranslationMismatch, match="对不上任何在评 pair"):
+            nl_zh._store.__wrapped__()                         # noqa: SLF001
+
+    # ⛔ 反反面：不动数据时**不许**抛 —— 否则上面两条对一个恒抛的实现也成立
+    with _mock_raw(real):
+        nl_zh._store.__wrapped__()                             # noqa: SLF001
+
+
+def test_every_nl_segment_has_a_reading_note():
+    """⭐ 按 SPEC 每段都要有判读提示 —— ⛔ 缺提示等于把歧义判断悄悄推给读者。"""
+    assert nl_zh.missing_notes() == []
+
+
+def test_every_nl_has_translator_notes():
+    """⭐ 整份 NL 层面的观察（术语表 / 跨句歧义 / 原文质量）9 份都得有。"""
+    for pair in S.IN_SCOPE_PAIRS:
+        tn = nl_zh.translator_notes(pair)
+        assert tn and len(tn) > 200, f"{pair} 的 translator_notes 缺失或过短"
+
+
+def test_worksheet_carries_notes_and_translator_notes():
+    """⭐ 54 份工作单都要有逐段提示与整份观察，⛔ 且提示要逐段挂到真实段 id 上。"""
+    for pair in S.IN_SCOPE_PAIRS:
+        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
+            doc = fh.read()
+        assert "⭐ 逐段判读提示" in doc, f"{pair} 缺逐段判读提示区"
+        assert "⭐ 整份 NL 层面的观察" in doc, f"{pair} 缺整份 NL 观察区"
+        assert "./translations/TRANSLATION_SPEC.md" in doc, f"{pair} 未挂译文验收依据"
+        assert f"./translations/{nl_zh.source_file(pair)}" in doc, f"{pair} 未挂译文 JSON"
+        block = doc.split("⭐ 逐段判读提示")[1].split("</details>")[0]
+        for sid, _txt in S.nl_segments(pair)[0]:
+            assert f"- `{sid}`：" in block, f"{pair} 的提示区缺 {sid}"
+            assert "⛔ 译者未给提示" not in block, f"{pair} 的提示区有空提示"
 
 
 # ==================================================================== §5 字段块

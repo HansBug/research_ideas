@@ -159,7 +159,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 重档九份：`0007`（清单 48）· `0010`（台账 5 + 候选 5）· `0019` · `0029`（台账 5 + 清单 38）· `0034`（台账 6）· `0046` · `0047` · `0049` · `0059`（候选 5 + 清单 39）。
 
-⭐ 建议**先做 `0010` 与 `0059`**：前者台账与候选都密集，后者有 3 条真漏记。两份做完就能判出「台账到底偏浅到什么程度」，再决定后面 52 份要不要调整口径 —— ⛔ 若要调，记进 §八。
+⭐ 建议**先做 `0010` 与 `0059`**：前者台账与候选都密集，后者有 3 条真漏记。两份做完就能判出「台账到底偏浅到什么程度」，再决定后面 52 份要不要调整口径 —— ⛔ 若要调，记进 §九。
 
 ⭐ 另一条排序建议：**12 个 pair 台账 0 条**（`0001` `0003` `0011` `0017` `0021` `0022` `0023` `0031` `0041` `0051` `0052` `0054`）。它们不是「没问题」—— X1 的 13 条真漏记里有 5 条正落在这些 pair 上（`0001` `0011` `0017` `0022` `0054`）。⛔ 台账 0 条的 pair 是**漏记风险最高**的地方，不是最省事的地方。
 
@@ -201,7 +201,43 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 ⚠️ 「无 primary」「无断言」「replay 未确认」这三组高度重合 —— 它们**是同一批 11 条记录**，只是从三个角度看。⛔ 不要把它们相加当成 34 条。
 
-## 七、文件
+## 七、⭐ 译文暴露的台账问题
+
+⭐ 为把 9 份唯一 NL 逐段精译进工作单（见 [translations/](./translations/)），译者按 [TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) **通读了全部 9 份原文并逐段登记歧义**。⚠️ 这是本工作区第一次有人**只看 NL、不看台账**地把这 9 份读完 —— 于是暴露出两件只有从 NL 侧才看得见的事。⛔ 它们**不改台账**（[expected_issue_set.json](../expected_issue_set.json) 本轮零改动），只作为重标时的复核指引。
+
+⚠️ **本节数字的分母口径**：以下按 **99 条**（126 条扣掉 `00x8` 的 27 条）与 **98 条**（99 条再扣按 `boundary_ruling` 剔除的 `EIS-0043-02`）两种口径分别给出，⛔ 两个数都对，⛔ 别混用。分层计数在 99 条口径下为 `nl_named` 52 · `wellformedness` 28 · `nl_contradiction` 13 · `over_specification` 6；在 98 条口径下 `wellformedness` 为 27，其余不变。
+
+### 7.1 ⛔ `nl_contradiction` 里有 2 条 `nl_evidence` 为空
+
+13 条 `nl_contradiction` 中有 2 条的 `nl_evidence` 是空串，⛔ 而它们的 `layer_basis` 都写着「**与 NL 的显式义务矛盾**」。⚠️ 这两条**性质不同**，⛔ 不要一起处理。
+
+**`EIS-0005-02`**（pair `0005`，NL10 微波炉，`decided_by = lexical`，`direction = hierarchy`）：`nl_evidence` 与 `upstream.ledger_statements` **都是空的**。⭐ 译者在不知道有这条记录的情况下独立确认：**该份 NL 全篇零处提及包含关系** —— 不出现 `composite state` / `substate` / `inside` / `within` / `contains` / `nested` 中的任何一个，唯一的 `inside` 是第 3 句「placing an item **inside** the microwave」（把物品放进炉腔），⛔ 与状态层次无关。译者给这份 NL 的全局提示原话是：「本份 NL 的层次判读证据全部是**间接**证据；判读者需自行裁定「互为迁移目标」是否蕴含「不得互为祖先后代」—— **原文本身没有回答这个问题**」。
+
+⚠️ 该记录的 `statement` 里确实提到「违反 NL 第 4/5/6/8 句把二者当互斥替代配置的处理」，⛔ 但那是**从迁移拓扑推断出来的**，⛔ 不是原文写下的义务；⭐ 它真正硬的那一条依据是 `reference_side` 写的「**六个状态全部平级（扁平）**」—— ⛔ **那是参考模型依据，⛔ 不是 NL 矛盾**。而 §二.3 已经说过参考模型**不是正确答案**。⭐ 重标时这一条应重点复核 `layer` 归属：它更像 `wellformedness`（模型自身即可判定：四层嵌套使 `active(DoorShutWithItem)` 蕴含 `active(DoorOpenWithItem)`），⛔ 而不是 `nl_contradiction`。
+
+**`EIS-0024-03`**（pair `0024`，NL01 列车，`decided_by = batch5_spotcheck`，`direction = hierarchy`）：⭐ **独立复核结论：它与上一条不是同一种毛病。** 该记录的 `statement` 逐字引了 NL 第 10 句「remains in the Approaching substate ... until it is ready to stop or decelerate」，⭐ 而原文第 10 句确为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」—— **引文属实，省略号只略去了 while nearing the destination**。⭐ 所以它的依据**确实落在 NL 上**，⛔ 不是模型自身、也不是参考模型；`nl_evidence` 为空纯属**记账遗漏**：证据躺在 `statement` 正文里，没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它和 `EIS-0005-02` 打成了同一类。
+
+⚠️ **但结论要连限定一起写**：NL 第 10 句只给了**驻留义务**，⛔ 它**没有**给出离开 Approaching 的 trigger（触发）、guard（守卫）或目标状态 —— 译者对该段的判读提示逐字写着「无法映射到任何具体迁移；判读「缺失迁移」时本句不构成明确约束」。⭐ 「这条边违反了它」这个结论还需要两步 NL 未提供的推导：其一，UML 下指向外层复合状态的迁移等价于该复合状态的自迁移，会重跑内部初始而把阶段重置回 `Accelerating`；其二，作者侧标签 `exit/Send` 的触发条件是什么，原文与模型都没说。⭐ 故重标时：`layer = nl_contradiction` **站得住**，`nl_evidence` 应补成 `NL-L010` 并附原句，⛔ 同时须标注该句**欠指定**（见下一节）。
+
+### 7.2 ⚠️ 52 条 `nl_named` 都有 `nl_evidence`，⛔ 但被引的句子常常欠指定
+
+⭐ 先把话说准，⛔ 免得下一轮读者读反：**这不是「台账把 NL 欠指定当成了违反」**。⭐ 台账的分层设计**本来就区分**了哪一层需要 NL 依据 —— `wellformedness` 28 条里 24 条 `nl_evidence` 为空（98 条口径下为 27 条里 23 条）、`over_specification` 6 条里 5 条为空，⭐ **那是设计如此**，⛔ 不是漏填：这两层按定义不靠 NL 判定。而 52 条 `nl_named` **一条不缺**，每条都逐字引了 NL 原句（形如「NL 第 N 句逐字含 "…"」，中位长度 127 字符）。
+
+⛔ **真正的问题在别处：这 52 条的依据「够不够硬」，现台账没有任何字段记录。** ⚠️ 逐字引用只证明「NL 里有这句话」，⛔ 不证明「这句话足以支撑一条违反判定」。⭐ 译者在 9 份 NL 上反复撞见同一形态 —— 被引的句子本身把关键槽位空着：
+
+| 欠指定形态 | 实例（⭐ 均取自 [translations/](./translations/) 的 `note` / `translator_notes`） |
+| :-- | :-- |
+| ⛔ **迁移不写源状态** | `nl_0000`：六条需求里四条（第 3、4、5、6 段）描述迁移，**没有一条写明源状态**，只写目标 —— 「从哪来」在这份 NL 里系统性缺失。`nl_0001`：三条迁移里两条未指明源状态，代词 `it` 一路指代 the basic braking device（装置本身）**而非某个具体状态**。`nl_0005`：第 2、3、6、8 句的后半句均未重述源状态，全靠上下文推断 |
+| ⛔ **不写触发 / 守卫** | `nl_0002`：第 3、4、5 句分别用 first / can also / Similarly 引入三个 substate，**三句都没有给出触发事件、守卫条件或源状态**，「何时切换」只有 `based on specific conditions` 这一空壳。`nl_0003`：**全篇未给出任何一条迁移的方向、配对与守卫**，只说 transitions between / depending on actions like…，故模型的环形迁移拓扑在本 NL 下既无正面依据也无反面依据 |
+| ⛔ **并列项无连接词** | `nl_0000` 第 5 段：`human steering cmd, brake pressed, in (auto final)` 三项**只用逗号并列**，是合取（and）、析取（or）还是顺序发生，⛔ 无法判定。`nl_0009` 第 13 句：三个 `*_inactive` 条件之间是「且」还是「或」同样未明说 |
+| ⛔ **零情态动词** | `nl_0006`：**全篇没有一处使用情态动词**（无 can / will / must / should / may），四句全是一般现在时陈述句。⚠️ 后果是原文对「进入某状态后**能否离开**」始终沉默 —— 第 3 句说了进入 formation adjustment state，⛔ 但全篇没有任何文字规定它之后必须、可以或不能离开 |
+| ⛔ **文字与守卫表达式不一致** | `nl_0009` 共 **6 处**（守卫数与目标数不匹配 · 同一表达式描述详略不一 · **单位口径冲突** · 状态名 `exit_urban` 悬空 · `respectively` 配对方向歧义 · 列举内部表达式缺失）。⭐ 其中最硬的是**单位口径冲突**：`dist_to_front` 按**米**解读（25 米 / 15 米）、`dist_to_exit` 按**千米**解读（2 千米 / 0.7 千米），⛔ 两者同属 `dist_to_*` 命名族、同为**裸数字**、全文未声明单位。⚠️ **模型只搬运裸表达式，因此这一混用在模型层面完全不可见** —— 只比对表达式字符串会整个漏掉它，⛔ 反过来也不能因为模型没有单位声明就判它违反 NL |
+| ⛔ **驻留义务无出口** | `nl_0004` 第 10 句（即 §7.1 那条 `EIS-0024-03` 引的句子）：`until it is ready to stop or decelerate` **未给出对应的 trigger、guard 或目标状态**；且 decelerate 在第 6、7 句已是**进入** Approaching 的动作，此处却成了**离开**的条件之一，⛔ 原文未说明二者关系 |
+| ⛔ **信息密度过低** | `nl_0007`：全份仅 46 词三句，**对状态集、事件集、变量、迁移守卫、退出条件均无任何约束** —— ⚠️ 判缺陷时大量模型元素属于「NL 未规定」，⛔ 不能记为违反 |
+
+⭐ **建议（重标时执行）**：在裁决区增加**一个可选标记**，让判读者能标出「**该条的 NL 依据欠指定**」—— ⭐ 即「原文确实有这句话，⛔ 但这句话没写源状态 / 没写触发 / 没写连接词，因此它支撑不起「模型违反了它」这个判定」。⚠️ 这个标记与「保留 / 修正 / 删除」**正交**：⛔ 一条依据欠指定的记录不一定要删，⭐ 它可能只是该降层（`nl_named` → `wellformedness`）或该改写 `statement`。⛔ 现台账把「有 `nl_evidence`」与「依据成立」当成一回事，⚠️ 而这 9 份 NL 说明前者远弱于后者。
+
+## 八、文件
 
 | 文件 | 作用 |
 | :-- | :-- |
@@ -213,18 +249,22 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | [pumlmodel.py](./pumlmodel.py) | 作者源 PlantUML 的轻量解析器 |
 | [checklist.py](./checklist.py) | §4 清单的逐 pair 生成 |
 | [fillblocks.py](./fillblocks.py) | 填写块格式、提取与再注入 |
-| [test_relabel.py](./test_relabel.py) | 回归测试（18 项，`python3 -m pytest test_relabel.py -q`） |
+| [nl_zh.py](./nl_zh.py) | 译文装载 + 与语料的机械对拍（⛔ 对不上就抛，不静默跳过） |
+| [translations/](./translations/) | 9 份唯一 NL 的中文严格翻译 JSON（⭐ `generate.py` 的输入，⛔ 必须入库才能复现） |
+| [translations/TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) | 译文的验收依据（⭐ 交给译者的原样规格） |
+| [test_relabel.py](./test_relabel.py) | 回归测试（`python3 -m pytest test_relabel.py -q`） |
 | [unmatched_issues.json](./unmatched_issues.json) | §3.3 的数据（入库，使工作单自包含） |
 | [PROGRESS.md](./PROGRESS.md) | 进度看板（⛔ 由脚本重写，不要手改） |
 | `<pair>.md` | 54 份工作单 |
 | `relabel_result.json` | 回收产物（跑 `collect.py` 后出现） |
 
-## 八、口径变更记录
+## 九、口径变更记录
 
 ⭐ 任何对判据、字段、深度分档、边界规则的改动都记在这里，并写明改动前后各是什么。⛔ 中途放宽判据而不记录，等于让这轮重标失去可复核性。
 
 | 时间 | 改动 | 理由 |
 | :-- | :-- | :-- |
+| 2026-08-13 | §1.2 的中文译文由手写常量换成 [translations/](./translations/) 下的 9 份精翻 JSON，并新增「逐段判读提示」与「整份 NL 层面的观察」两个折叠区 | 原手写译文只有逐段直译、⛔ 无歧义登记；判读者判「违反」时缺的正是「这一句到底说清了没有」 |
 | 2026-08-12 | 建立本工作区，判据初版 | 台账 0 条人类校验，需全量重标 |
 
 ### 6.2.1 ⛔ 一处更正：41 与 51 的差是**大小写**，⛔ 不是证据范围

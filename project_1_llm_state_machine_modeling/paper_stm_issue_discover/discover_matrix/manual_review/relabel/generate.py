@@ -60,6 +60,50 @@ def clip(text, n):
     return t if len(t) <= n else t[: n - 1] + "…"
 
 
+def oneline(text):
+    """压成一行，⛔ 但**不**转义 `|` —— 用在列表项里，那里的竖线不撕表格。
+
+    ⚠️ 与 `esc()` 的差别只在这一点上；⛔ 别拿 `esc()` 顶替，
+    它会把 `dist_to_rear<5 & vel>30` 里的竖线换成 `\\|`，读者看到的就不是原文了。
+    """
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def as_paragraphs(text):
+    """把多行文本铺成「一行一段、段间空行」。
+
+    ⛔ 目的不是排版好看，是**过 `tools/unwrap_markdown --check`**：CommonMark 把段内
+    软换行渲染成一个空格，两个汉字之间折行就会多出一个空格。译者写的
+    `translator_notes` 是按逻辑块换行的，⭐ 每块之间补一个空行即可，⛔ 不许直接原样塞进去。
+
+    ⚠️ 行首的 `#` 会被降级成加粗：工作单本身用 `##`/`###` 组织，
+    ⛔ 让译者的小标题参与进来会把文档大纲搅乱。
+
+    ⭐ 连续的列表项之间**不**插空行 —— unwrap 把每个列表项当独立逻辑行，
+    ⛔ 硬插空行只会把紧凑列表变成松散列表，多出一堆无谓的段落间距。
+    """
+    listish = re.compile(r"^([-*+]|\d{1,9}[.)])\s+")
+    kept = []
+    for raw in str(text or "").splitlines():
+        ln = raw.strip()
+        if not ln:
+            continue
+        m = re.match(r"^#{1,6}\s+(.*)$", ln)
+        if m:
+            ln = f"**{m.group(1).strip()}**"
+        kept.append(ln)
+    out = []
+    for i, ln in enumerate(kept):
+        out.append(ln)
+        nxt = kept[i + 1] if i + 1 < len(kept) else None
+        if nxt is not None and listish.match(ln) and listish.match(nxt):
+            continue
+        out.append("")
+    return out
+
+
+
+
 def regroup_unmatched(entries, model):
     """把去重组再按「所指的模型元素」并一层。
 
@@ -183,13 +227,26 @@ def section_material(pair, model, records):
     lines.append("")
     lines.append(
         "⛔ **译文是给人判缺陷用的，⛔ 不是给人读着舒服用的。** 它严格直译，"
-        "⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息；状态名 / 事件名 / 变量名一律保留英文原样，"
-        "技术术语保留英文并在括号里给中文。"
-        "⭐ 原文含糊的地方译文**照样含糊**，只用 `〔译者存疑：…〕` 点出这里没说清 —— "
-        "⛔ 替它消歧就等于替你做了本轮要你自己做的判断。"
-        "原文的语法 / 拼写错误照直译并加 `〔原文如此：…〕`。"
+        "⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息（⛔ 含不补主语、不补量词、"
+        "不补逻辑连接词）；状态名 / 事件名 / 变量名 / 守卫表达式一律**保留英文原样**，"
+        "建模术语保留英文并在紧跟的括号里给中文。"
+        "⭐ 原文含糊的地方译文**照样含糊** —— ⛔ 替它消歧就等于替你做了本轮要你自己做的判断。"
         "⭐ 译文是**辅助**，⛔ 判据仍以英文原文为准；两者不一致时以原文为准并请回报。"
-        "口径见 [nl_zh.py](./nl_zh.py)。"
+    )
+    lines.append("")
+    lines.append(
+        "⭐ 两种方括号标注的含义：`〔原文如此：…〕` 指**原文自身**有语法 / 拼写 / 数格错误，"
+        "译文照直译并说明错在哪 —— ⛔ 它不是译文的错，⛔ 也不构成模型的缺陷；"
+        "`〔译者存疑：…〕` 指**原文这里没说清**（谁是主语、并列项是「且」还是「或」、"
+        "源状态是哪个），⭐ 它直接决定判缺陷时这一句**能不能**用来说模型「违反」了什么。"
+    )
+    lines.append("")
+    lines.append(
+        "口径与验收依据："
+        "[translations/TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md)；"
+        "本份译文的原始 JSON："
+        f"[translations/{nl_zh.source_file(pair)}](./translations/{nl_zh.source_file(pair)})；"
+        "装载与对拍：[nl_zh.py](./nl_zh.py)。"
     )
     lines.append("")
     lines.append("| 段 id | 原文 | 中文严格翻译 |")
@@ -199,6 +256,33 @@ def section_material(pair, model, records):
         lines.append(f"| `{sid}` | {esc(txt)} | "
                      f"{esc(zh) if zh else '⛔ 缺译文 —— 见 nl_zh.py'} |")
     lines.append("")
+
+    # ---- 逐段判读提示：⛔ 不进表格 —— note 常常比整行原文还长，塞进单元格会把表格撑垮
+    lines.append("<details><summary>⭐ 逐段判读提示（该段约束了哪个元素 · 歧义点 · "
+                 "边界外部分）—— 判「违反」前先读这里</summary>")
+    lines.append("")
+    lines.append(
+        "⛔ 提示只陈述「原文这一句说了什么、没说什么」，⛔ 不含任何裁决 —— "
+        "⭐ 「所以模型应该怎样」是本轮要你自己填的，⛔ 材料不替你填。"
+    )
+    lines.append("")
+    for sid, _txt in segs:
+        nt = nl_zh.note(pair, sid)
+        lines.append(f"- `{sid}`：{oneline(nt) if nt else '⛔ 译者未给提示'}")
+    lines.append("")
+    lines.append("</details>")
+    lines.append("")
+
+    # ---- 整份 NL 层面的观察
+    tn = nl_zh.translator_notes(pair)
+    if tn:
+        lines.append("<details><summary>⭐ 整份 NL 层面的观察（术语表 · 跨句反复出现的歧义 · "
+                     "原文质量问题）</summary>")
+        lines.append("")
+        lines += as_paragraphs(tn)
+        lines.append("</details>")
+        lines.append("")
+
     lines.append("<details><summary>NL 原始字节（带物理行号）</summary>")
     lines.append("")
     lines.append("```text")
