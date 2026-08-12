@@ -252,6 +252,20 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 | 类 | 篇数 | 2022+ | 计为满 3 篇？ |
 | :-- | ---: | ---: | :-- |
 | (i) 性质规约模式目录（Dwyer'98/'99 · PROPEL'02 · Prospec'03 · Autili TSE'15 · Menghi TSE'21） | 6 | **0** | ⛔ **否** —— 按 §4.2 #1 标注「仅 6 篇支撑（其中 2022+ 计 0 篇）」 |
+
+⭐⭐ **「2022+ = 0」这个数已于 2026-08-12 从「没找到」升级为「找到了三条、逐条因边界门出局」** —— ⭐ 后者是**强得多**的交付形态：
+
+| 2022+ 模式目录 | 出局理由（⭐ 逐条核过） |
+| :-- | :-- |
+| **UPPAAL 模式目录**（IST 2022，DOI [`10.1016/j.infsof.2022.107100`](https://doi.org/10.1016/j.infsof.2022.107100)） | ⛔ **界外**：UPPAAL / TCTL / timed observer automata |
+| ⭐⭐ **QUARTET**（Menghi 等，**TSE 49(4):2741–2760, 2023**，DOI [`10.1109/TSE.2022.3230059`](https://doi.org/10.1109/TSE.2022.3230059)） | ⛔ **界外**：目标逻辑 PRCTL，正文逐字 `interpreted over discrete-time Markov reward models … states labelled with probabilities and rewards`，算子含步界 $\phi_1 U^N_J \phi_2$，后端 PRISM —— ⭐ **概率 + 奖励 + 步界三样全中**。⭐ **全文 21 页已读** |
+| **PSSM doActivity 模式**（TSE 50, 2024，DOI [`10.1109/TSE.2024.3422845`](https://doi.org/10.1109/TSE.2024.3422845)） | ⛔ **界外（部分可用）**：11 条模式内容**全在 doActivity 并发与正交区上**。⭐ **全文 17 页已读**。⚠️ 但它自陈用途逐字是 `patterns on a checklist to be used in model reviews or automated static analysis tools`，⭐ **是本轮最接近「闭合词表 + 逐条机械检查」的一例** |
+
+⭐⭐ **QUARTET 同时给「近年后继外流」这条提供了一手证据**：正文逐字 `we extended our previous catalog of patterns and its DSL [35], [36], [37]`，⭐ **其中 [35] 正是 Menghi TSE'21** —— ⛔ 同一团队、同一目录的量化扩展，⭐ 而它落到了界外。⚠️ **但「全部」仍不可写**（另两条候选未核）。
+
+⚠️ **三条目录全部自陈不闭合** —— ⭐ QUARTET 全文四处，例如 `patterns are (by definition) not meant to be exhaustive` · `the catalog can be extended over time`。⭐ 使「模式目录自陈不闭合」从**两例变三例**。
+
+⭐ **「选模式」仍是人**：QUARTET 的自动化是 **DSL → PRCTL → PRISM 的翻译**，⛔ 不是「决定检查什么」 —— ⭐ 与 Dwyer 一系判定完全一致。
 | (ii) 标准化可执行语义 / 静态约束（SCXML · PSSM · OCL-USE · EVL · CSUR'23 综述） | 5 | 2 | ✅ 是 |
 
 ⭐⭐ **两个模式目录都自陈不闭合**：Menghi TSE'21 明写 pattern system **not intended to be exhaustive or static**；ICSE'23 NIER 明写 **preliminary catalog**，且自陈「几乎没有关于时序规约质量属性的既有定义」。⭐ 唯一自称闭合的是 **EARS 的 5 个模板**，⛔ 但它作用于**需求文本**而非模型。
@@ -379,7 +393,10 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 
 | # | 未登记的角度 | 为什么要紧 |
 | :-- | :-- | :-- |
-| **11** ⭐⭐ | **期刊族整体缺席**：TSE / TOSEM / EMSE / IST / JSS / STVR / SQJ / FAoC | ⛔⛔ **本文引的界内关键篇目几乎全出自这些期刊** —— Menghi **TSE**'21 · Autili **TSE**'15 · Zrelli **JSS** 2026 · Daikon **TSE** 2001 · UPPAAL 模式目录 **IST** 2022。⚠️ 一片被反复取数却既没扫也没声明的富矿，⭐ 是「未见 X」句式最脆的地方。⭐ **下一轮最高收益** |
+| **11** | ~~期刊族整体缺席~~ → ⭐ **已补**（+6000 条，2022–2026 八家） | ⭐ 结果：`LLM ∩ STM` = **4 / 6000**，⛔ **无一在已有状态机上找缺陷**；`assertion\|contract\|invariant` ∩ 状态机族制品 = **0 / 6000**。⭐ **五问仍一问未换档。** ⚠️ 三条口径限制见下 |
+| **11a** ⛔⛔ | ⚠️ **补轮的入口是 OpenAlex 不是 DBLP** | ⛔ DBLP 当时持续 500/503，⭐ 只完成 38/40 格的题录数交叉核对。⚠️ 两个入口成员集**不同质**（early-access 年 vs 卷年、online-first 是否计入），⛔ **未做逐条集合比对** |
+| **11b** ⛔⛔ | ⚠️ **四家期刊的「0」只等同于标题级零** | ⛔ Elsevier / Springer 不向 Crossref 交摘要 —— 实测摘要可得率 **EMSE 43% · JSS 40% · IST 35% · SQJ 28%**（⭐ 而 TSE 98% · TOSEM/STVR 100%）。⚠️ **IST / JSS 恰是我方取数最多的两家** |
+| **11c** ⛔⛔ | ⚠️ **补期刊族又漏了四家** | ⛔ **ASEJ**（Automated Software Engineering，⚠️ **原任务书名单里就没有它**）· **SCP** · ⭐⭐ **JOT**（⚠️ **ECMFA 2019 起在此出版**）· ⭐⭐ **IET Software**（⚠️ **§6.3 第 1 条那条唯一直接讲状态机的他人自陈就出自它**）。⭐ **下一轮最高收益仍在期刊侧** |
 | **12** ⭐⭐ | **2026 年卷全线未扫** | ⛔ **声明的窗（2022–2026）与实际扫的窗（到 2025）不一致**，⚠️ 差的正是最近一年，⭐ 而 Q5 全部计数只认 2022+ |
 | **13** ⭐⭐ | **形式化方法 / 测试族整体缺席**：FormaliSE · NFM · iFM+FMAS · SEFM · FASE · TACAS · SPIN · ISSTA · ICST · ICFEM · SANER | ⛔ C3 的引用追踪**恰好在 FormaliSE 2025 与 FMAS@iFM 2025 各捞到一条 Q4 候选** |
 | **14** ⭐ | **反向雪球（读参考文献表）** | ⭐ MCeT / SoSyM 2026 / Completion-of-SysML 的 related work 是同类工作最密的一处 |

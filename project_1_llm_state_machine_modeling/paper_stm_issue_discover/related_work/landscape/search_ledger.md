@@ -14,7 +14,8 @@
 | :-- | ---: | :-- |
 | 初轮（ICSE/FSE/ASE 主会 + MODELS/SoSyM/RE/REJ/ECMFA） | **2748** | ⚠️ 成分见 §3 的口径警告 |
 | C3 补轮（卫星卷 + Companion + REFSQ + ASE-W） | **+2406** | ICSE 卫星全族 · FSE Companion 三年 · MODELS Companion 四年 · MODELS 2022 主会 · REFSQ 主会+workshop 五年 · ASE workshop 三年 |
-| **合计** | **5154** | ⭐ **覆盖扩大 88%，⛔ 五问一问都没换档** |
+| 期刊族补轮（TSE/TOSEM/EMSE/IST/JSS/STVR/SQJ/FAoC，2022–2026） | **+6000** | ⚠️ **入口是 OpenAlex 不是 DBLP**（DBLP 当时 500/503），⛔ DBLP 只用于题录数交叉核对（38/40 格） |
+| **合计** | **11154** | ⭐ **覆盖较初轮扩大 306%，⛔ 五问仍一问未换档** |
 
 ⭐⭐ **那个「没换档」本身是一次独立稳健性检验。** ⛔ 但它**不能**写成「说明该方向为空」（§0.1.7）—— ⭐ 只能写成「**覆盖扩大 88% 后落档不变**」。
 
@@ -128,3 +129,7 @@ LLM  = \bLLM\b|large language|\bGPT\b|ChatGPT
 | ICSE 卫星卷**不是** `icse<year>-nier` | ⛔ C3 先按此探了 13 个 key，**全返 0** —— 全是工具性零 | ⭐ 卷名是 `conf/icse/nier<year>`；⛔ **先抓 `https://dblp.org/db/conf/icse/index.html` 枚举卷名** |
 | Semantic Scholar `/paper/search` 对匿名请求硬性 429 | ⛔ 连续 6 次重试全败 | ⭐ 同 API 的 `/paper/{id}/citations` 端点畅通；⛔ **不要把 search 端点的失败当成命中 0** |
 | DBLP 关键词检索是标题级全词 AND | 长查询串必 0 | ⛔ 其 0 是**工具性零**，⭐ 只能读作「该词组合不同时出现在任何标题里」 |
+| ⛔⛔ **DBLP API 的 `h` 参数在 `toc:` / `stream:` facet 下实际封顶 100** | ⚠️ 返回 `@computed=100` 而 `@total=284`，⛔ **返回码是 200、不报错** | ⛔⛔ 不带 `f=` 翻页而直接读 `hit` 数组，会把 284 条的卷**静默截成 100 条** —— ⭐ 必须读 `@total` 并翻页 |
+| ⚠️ **IEEE / Wiley 期刊在 OpenAlex 里按 early-access 年计年，⛔ 不按卷年** | ⭐ 实证：某篇的 `publication_year` 是 2022，卷是 49 → 2023。⚠️ 按年拉 TSE 只得 895 条，按卷得 1051 条 | ⭐ 用 `biblio.volume` 过滤，⛔ 不用 `publication_year` |
+| ⛔⛔ **Elsevier / Springer 不向 Crossref 交摘要** | ⚠️ 实测摘要可得率：TOSEM 100% · STVR 100% · TSE 98% · FAoC 91%，⛔ 而 **EMSE 43% · JSS 40% · IST 35% · SQJ 28%** | ⛔⛔ **那四家的所有「0」只等同于标题级零**，⚠️ 不得与 TSE/TOSEM 的 0 混为一谈 |
+| ⛔⛔ **词表对「NL → 时序逻辑」整条线失灵** | ⚠️ 实证：Zrelli 等 JSS 2026（`NL requirements → CTL specifications`）在 6000 条 dump 里**只被 `LLM` 一列抓到**，`STM` / `SPEC` / `CONF` / `REV` 全空 | ⛔ 这是**系统性假阴性**，⛔ 不是「跑了 0 命中」。⭐ 词表缺 `temporal logic` / `LTL` / `CTL` / `formalization` |
