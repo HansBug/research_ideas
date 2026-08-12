@@ -66,7 +66,7 @@ PROMPT_FILE = _HERE.parents[0] / "prompt" / "naive_v1.txt"
 #: ⭐ 唯一真正共用的是 `nl.txt`。⚠️ 这**不是**不公平——模型转换是 C-① 的一环，所以主臂只能看
 #: 自己转换出来的中间表示，那是方法自身的代价。⛔ 但它必须被披露，因为**台账缺陷是按作者源标的**：
 #: 转换既会擦掉缺陷（pair 0000 的 `state HumanDrivingMode { }` 空复合体在 fcstm 里变成普通
-#: state），也会注入编译噪声。⚠️ 两个方向都对主臂不利。见 `preregistered.md` §9.1。
+#: state），也会注入编译噪声。⚠️ ⛔ 两个方向都对主臂不利 —— ⛔⛔ 2026-08-12 更正：**这句不成立**。擦除方向确实存在但很小（5 个空复合体被压平、14 处身份重映射、16 行动作丢原文）；⛔ 而**显式化方向是净增益**（40 个合成状态 100% 是诊断命名，⛔ 诊断结论被直接写进状态名）。⭐ 活体激活口径下 main-only 9 位 = 1.53pp。见 talk §5.6.2。见 `preregistered.md` §9.1。
 #: ⚠️ `_HERE.parents[1]` 已经是 `paper_stm_issue_discover`（初版误加了一层 `.parent`，指到了
 #: `project_1_llm_state_machine_modeling`，`test_real_corpus_has_54_in_scope_pairs` 抓住了它）。
 REPORT_ROOT = (
