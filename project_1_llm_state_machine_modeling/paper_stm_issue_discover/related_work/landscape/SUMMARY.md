@@ -26,6 +26,22 @@
 
 ⛔⛔ **它与我们的差别落在制品类型上，⛔ 不落在任务形状上。** ⚠️ 这句话无论 N-3 怎么裁都成立。
 
+### 1.1 ⭐⭐ 【用户明确决策 2026-08-13】MCeT = **邻域标杆**，⛔ **不作对照系**
+
+〔用户明确决策〕逐字：**「MCeT 这个没有对照价值啊，你说这玩意是顺序图，我们是状态机，本身都不是一类制品，没法直接碰的……MCeT 顶多算是邻域标杆这样的，不过还是很有价值的，对 X1 那边的可能是个参考。」**
+
+| 项 | 裁定 | ⛔ 后续约束 |
+| :-- | :-- | :-- |
+| 作 `hit@1` 对照系 / baseline | ⛔ **不作** | ⛔ 不得把它的 `34.1%` / `68.1%` 与本文任何数并列或换算 |
+| 定位 | ⭐ **邻域标杆**（neighborhood landmark） | ⭐ Related Work 主动引、主动划界；⛔ 不进对照表 |
+| 对 X1 的参考价值 | ⭐ **保留**（见 §4.2.1） | ⭐ 仅作**设计参考**，⛔ 不作可比数字 |
+
+⭐ **裁定理由是分类学层面的**：顺序图是**交互轨迹的偏序**，状态机是**状态 / 迁移 / 守卫的结构** —— ⛔ 两者的缺陷分类学不共享。⭐⭐ 这把门② 从「一个可被其余三门补偿的技术性缺项」升格为**不可比**。
+
+⛔⛔ **这条裁定没有处理、⚠️ 也不得顺势并掉的一件事**：⭐ 「不作对照系」解决的是**能不能拿它的数字比**；⛔ 它**不解决**「它那句零限定的 first 会不会被审稿人引来打我们」—— ⭐ 那是**写作风险**。
+
+⭐⭐ **写作风险的处置是主动划界**：在 Related Work 里显著地引它，**明说它做顺序图、我们做状态机**。⛔⛔ **但不要用「制品不同」当论据去挡那句 first** —— ⚠️ 下面「⛔ 「制品不同」这条防线被 MCeT 自己的文本掏空」一节已证明：⭐ 它自陈技术可轻易适配任何建模语言，⛔ 这条挡板一推就倒。⭐ 差异化必须落在 §5 那三条（**缺口挂在哪一格 · 裁决在被判对象上求值 · 可重放**）上。
+
 ### ⛔⛔ 而且它自己声称了一个「首个」—— ⚠️ 说了**四遍**，限定词逐级脱落
 
 ⛔⛔ **本节初版有一条错误的「纠正」，已于 2026-08-12 删除并改写。** ⚠️ 初版称核验者的引文「the first approach to perform fully automated evaluation of a behavioral model against its requirements」是**引文失真**、「原文不是这个措辞」—— ⛔ **原文就是这个措辞**，逐字在 §IX Conclusions 第 1044–1047 行。⭐ 核验者引的是 §IX，⛔ 而我只查了 §I 就宣布它失真。
@@ -144,8 +160,8 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 
 ⭐⭐ **层 2 全文已确认「跳过即静默」，⛔ 三条独立证据同向**：
 
-1. ⭐ **§8 那句是模态祈使，不是已实现的产出物**：`In any case, detected violations **should be signalled** to the System Analyst with proper warnings` —— ⛔ `should be` 是建议。⭐ 实测：全文 `warn` **仅 1 次**（就是这句）、`uncovered` / `not covered` **0 命中**；§9 Tool Layer 的三个组件里**没有任何一个产出报告或清单**，`Validator` 的职责逐字是「Only if the validation is successful it is possible to move on to the translation phase」—— ⭐ 一个**布尔闸门**。
-2. ⭐⭐ **§12 作者自陈本文没做这件事**（⭐ 最硬的一条）：`Even if this paper **does not explicitly address** these two features … the verification of completeness **could be addressed by** constructing some SysML model queries that retrieve "model anomalies" as isolated states, transitions that are not mapped on any requirements or **requirements that are not satisfied by any model element**` —— ⭐ 「未被任何模型元素满足的需求」被作者**逐字点名**，⛔ 但归入将来式，且前置一句明写「this paper does not explicitly address」。
+1. ⭐ **§8 那句是模态祈使，不是已实现的产出物**：`In any case, detected violations **should be signalled** to the System Analyst with proper warnings` —— ⛔ `should be` 是建议。⭐ 实测：全文 `warn` **仅 1 次**（就是这句）、`uncovered` / `not covered` **0 命中**；⭐ **该论文 §9** Tool Layer 的三个组件里**没有任何一个产出报告或清单**，`Validator` 的职责逐字是「Only if the validation is successful it is possible to move on to the translation phase」—— ⭐ 一个**布尔闸门**。
+2. ⭐⭐ **该论文 §12 作者自陈本文没做这件事**（⭐ 最硬的一条）：`Even if this paper **does not explicitly address** these two features … the verification of completeness **could be addressed by** constructing some SysML model queries that retrieve "model anomalies" as isolated states, transitions that are not mapped on any requirements or **requirements that are not satisfied by any model element**` —— ⭐ 「未被任何模型元素满足的需求」被作者**逐字点名**，⛔ 但归入将来式，且前置一句明写「this paper does not explicitly address」。
 3. ⚠️ **两个真实跳过实例，落盘处只有正文散文**：Appendix A.3 的 `REQ−4.1 is **only partially matched**` 与 `The translation of all the detected requirement patterns **but the REQ−2.1**`。⛔⛔ **REQ−2.1 更严重**：它不是被跳过，⚠️ 是**被翻译后产生了错误模型而无人察觉**（两个 guard 不互斥导致非确定），⭐ 靠**外部模型检查器 + 人工纠正**兜底 —— ⛔ 本方法既不检出也不登记。
 
 ⭐⭐ **裁定：`paper_story.md` §5.1「它让测不了的东西显式暴露」是站得住的差异化落点。** ⭐ 且 §12 那句是**作者自陈** —— ⭐⭐ 按 §0.1.7 第 2 条，**这是少数几条能合法进 Motivation 的材料**（⛔ 我方检索出来的空格不能）。
@@ -231,7 +247,23 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 2. ⛔⛔ **X1 复刻的恰好是已知的弱臂**：MCeT 摘要 L33–35 逐字 `directly asking an LLM to compare a diagram to requirements finds less than 35% of issues that experienced engineers can find` —— ⚠️ **朴素直问就是 MCeT 的 holistic 臂**，它已被量过（34.1% vs 组合臂 68.1%），⭐ 是两条臂里差的那条。
 3. ⚠️ **三种不可换算是把双刃剑**：⭐ 它的有效结论是「外部数字不可搬进来」，⛔ **但它同时意味着我们的 60.4% 也不可被外部读懂**。
 
-⛔ **L1 不裁定这一条**（⚠️ 它是 X1 的实验设计问题，不是文献版图问题），⭐ 原样上交 R1 与伞 PR。
+#### ⭐⭐ 2026-08-13 更新：用户已裁定其中两条
+
+⭐ 按 §1.1 的裁定，上述三条加重情节的处置如下 —— ⛔ **注意只裁掉了两条半，第 1 条剩一半仍待答**：
+
+| # | 处置 |
+| :-- | :-- |
+| **1** | ⭐ **裁掉一半**：「拿它的数字比」⛔ **已排除**（不同类制品）。⚠️ ⛔ **但「把 MCeT 适配到状态机上跑一遍」是另一件事** —— ⭐ 作者自陈可适配、实现公开，⛔ **这个不做的理由仍需一个明确答复**（⚠️ 候选答复：适配后它已不是 MCeT，而是我们替它设计的一个新方法，⛔ 那样的对照系其强弱由我们决定 → 稻草人风险反而更大）。⭐ 该半条上交 R1 |
+| **2** | ⭐ **转为正面价值**，见 §4.2.1 —— ⛔ 「复刻弱臂」这个指控在**不作对照**的前提下不成立，⭐ 反而变成 X1 朴素臂的**先验与 prompt 参照** |
+| **3** | ⭐ **保留为写作约束**：⛔ 「我们的 60.4% 不可被外部读懂」仍然成立，⭐ 故正文必须**自带口径说明**，⛔ 不得裸报数字 |
+
+### 4.2.1 ⭐ MCeT 对 X1 的参考价值（⭐ 用户裁定明确保留）
+
+⭐ **三条，⛔ 全是设计参考，⛔ 不是可比数字**：
+
+1. ⭐⭐ **X1 的朴素臂 = MCeT 的 holistic 臂。** ⚠️ 「朴素直问在这个任务族上大约什么量级」**已被别人量过**（顺序图上 34.1%）。⛔ 不可与我方 `hit@1` 比，⭐ 但给 X1 一个**先验**：⚠️ 若 X1 朴素臂显著高于该量级，应回头查 prompt 是否无意泄漏。
+2. ⭐ **它的 holistic prompt 公开** —— ⭐ X1 拟朴素臂措辞时可对照，⛔ **避免把朴素臂写弱（稻草人是 X1 的头号学术风险）**。⭐ 有据胜过凭空拟。
+3. ⚠️ **它的 issue 判定靠两名作者人工 Yes/No（$\kappa = 0.79$）** —— ⭐ 印证 X1「全人工判定 hit」的必要性，⛔ 也预示工作量量级。
 
 ### 4.3 ⭐ 用途声明
 
