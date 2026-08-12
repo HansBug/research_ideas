@@ -134,7 +134,7 @@ KNOWN_CAVEATS = {
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from aggregate_evidence import canonical_source  # noqa: E402
+from aggregate_evidence import _apply_alias, canonical_source, merge_by_title  # noqa: E402
 
 
 def _load(path: Path | None) -> list:
@@ -159,7 +159,17 @@ def main(argv: list[str] | None = None) -> int:
         real[f["predicate"]][f["directory"]] = f.get("domain", "?")
     lit: dict[str, dict[str, dict]] = defaultdict(dict)
     for f in kept_ext:
-        lit[f["predicate"]][canonical_source(f)] = f
+        key = _apply_alias(canonical_source(f))
+        slot = lit[f["predicate"]].setdefault(key, {"title": f.get("title"), "n_quotes": 0})
+        slot["n_quotes"] += 1
+        slot.update({k: v for k, v in f.items() if k not in slot})
+    #: ⭐⭐ **必须与 `aggregate_evidence` 用同一个归并函数。**
+    #:
+    #: ⚠️ ⛔ 2026-08-12 实测：此处原本**只做 `canonical_source`、不做同标题归并**，
+    #: ⛔ 于是本表比总账多出 **5 个来源**（`reaches` / `event_consumed` / `invariant` /
+    #: `response_within` / `initial_target`）。⭐ 这与「`canonical_source` 曾被复制两份」
+    #: 是同一类缺陷的第三次发作 —— ⛔ 凡「两处都要做同一件事」，必须共用一个函数。
+    merge_by_title(lit)
 
     lines = [
         "# 19 条谓词的出处三类分级",

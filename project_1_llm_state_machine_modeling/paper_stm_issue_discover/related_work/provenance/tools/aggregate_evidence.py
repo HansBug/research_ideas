@@ -215,6 +215,39 @@ def canonical_source(finding: dict) -> str:
     return "title:" + re.sub(r"[^a-z0-9]+", " ", (finding.get("title") or "").lower()).strip()
 
 
+def merge_by_title(evidence: dict) -> list[dict]:
+    """同一谓词内、标准化标题完全相同的键合并为一个来源。
+
+    ⚠️ ⛔ **这个函数必须被所有消费者共用。** `canonical_source` 逐条处理、看不到别的
+    条目，因此同一篇论文若在不同条目里分别用了 DOI 与 arXiv ID，会被算成两个来源。
+    ⛔ **2026-08-12 实测：该逻辑最初只写在 `aggregate_evidence.main()` 里，
+    于是 `build_provenance_table` 不做归并、逐条表比总账多出 5 个来源。**
+    ⭐ 这与「`canonical_source` 曾被复制两份」是同一类缺陷的第三次发作 ——
+    ⛔ 凡是「两处都要做同一件事」的实现，必须共用一个函数，不能各写各的。
+
+    ⛔ 归并判据从严：只在同一谓词内、标准化后标题完全相同且非空时合并；不做模糊匹配。
+    """
+    merge_log: list[dict] = []
+    for pred, srcs in evidence.items():
+        by_title: dict[str, list[str]] = defaultdict(list)
+        for key, slot in srcs.items():
+            #: ⚠️ ⛔ `.lower()` 不可省 —— 少了它，`[^a-z0-9]` 会把大写字母当分隔符替换掉，
+            #: 于是仅大小写不同的同一标题会被判为两个。
+            norm = re.sub(r"[^a-z0-9]+", " ", (slot.get("title") or "").lower()).strip()
+            if norm:
+                by_title[norm].append(key)
+        for norm, keys in by_title.items():
+            if len(keys) < 2:
+                continue
+            keep = sorted(keys)[0]
+            for drop in sorted(keys)[1:]:
+                srcs[keep]["n_quotes"] += srcs[drop]["n_quotes"]
+                srcs[keep]["is_baseline"] = srcs[keep].get("is_baseline") or srcs[drop].get("is_baseline")
+                del srcs[drop]
+                merge_log.append({"predicate": pred, "title": norm[:80], "kept": keep, "merged": drop})
+    return merge_log
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--phase-a", type=Path, help="界内语料提取结果（来源 B）")
@@ -292,24 +325,7 @@ def main(argv: list[str] | None = None) -> int:
             #: ⭐ 同一系统在不同条目里的写法不同（⭐ 常带括注），⭐ 取首段做归一
             named_systems[f["predicate"]].add(ns.split("（")[0].split(" —— ")[0].strip()[:60])
 
-    merge_log: list[dict] = []
-    for pred, srcs in evidence.items():
-        by_title: dict[str, list[str]] = defaultdict(list)
-        for key, slot in srcs.items():
-            #: ⚠️ ⛔ `.lower()` **不可省** —— ⭐ 少了它，`[^a-z0-9]` 会把大写字母当分隔符替换掉，
-            #: ⛔ 于是仅大小写不同的同一标题会被判为两个（⭐ 实测：`Model-Checking … Logics`
-            #: 与 `Model-checking … logics` 因此漏并）。
-            norm = re.sub(r"[^a-z0-9]+", " ", (slot.get("title") or "").lower()).strip()
-            if norm:
-                by_title[norm].append(key)
-        for norm, keys in by_title.items():
-            if len(keys) < 2:
-                continue
-            keep = sorted(keys)[0]  #: ⭐ 取字典序最小者为代表，⛔ 结果与输入顺序无关
-            for drop in sorted(keys)[1:]:
-                srcs[keep]["n_quotes"] += srcs[drop]["n_quotes"]
-                del srcs[drop]
-                merge_log.append({"predicate": pred, "title": norm[:80], "kept": keep, "merged": drop})
+    merge_log = merge_by_title(evidence)
 
     rows = []
     for pred, family in sorted(FAMILY.items(), key=lambda kv: (kv[1], kv[0])):
