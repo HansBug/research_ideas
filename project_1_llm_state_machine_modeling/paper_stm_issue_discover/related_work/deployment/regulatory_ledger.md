@@ -10,9 +10,9 @@
 
 ## 0. 一句话结论
 
-⛔ **Q1 = 无。** 在本轮覆盖的**七本**功能安全 / 安全生命周期标准中，**没有任何一条条款约束「把需求文档 / 设计模型 / 工作产品交给外部第三方处理」**；⭐ 其中 **IEC 61508-1:2010 §1.2 m) 用逐字条文把「安全策略与安全服务」明确排除出自身范围**，⭐ **ISO/SAE 21434:2021 §1 Scope 用逐字条文声明「本文件不规定与网络安全相关的具体技术或解决方案」**——⭐ 这两条把 Q1 的否定结论从「查不到」升级为「标准自己说了不管」。⚠️ **ISO 26262 Part 8 的 DIA 机制确实是「责任划分」而非「数据驻留」**，⭐ 先验判断被逐字条文证实；⛔ 且 §5.1 c) 的目标恰恰是「identify the **work products to be exchanged**」——⛔ **它是共享制品的授权机制，不是禁止外发的依据**，⛔ 反向引用会被审稿人一击打穿。
+⛔ **Q1 = 无。** 在本轮覆盖的**九本**功能安全 / 软件保证标准中，**没有任何一条条款约束「把需求文档 / 设计模型 / 工作产品交给外部第三方处理」**；⭐ 其中 **IEC 61508-1:2010 §1.2 m) 用逐字条文把「安全策略与安全服务」明确排除出自身范围**，⭐ **ISO/SAE 21434:2021 §1 Scope 用逐字条文声明「本文件不规定与网络安全相关的具体技术或解决方案」**——⭐ 加上 **EN 50716:2023 Introduction 出现的、与 IEC 61508-1 §1.2 m) 措辞高度重合的同一句排除**——⭐ **三处彼此独立的自陈排除**把 Q1 的否定结论从「查不到」升级为「**这一族在设计上就不管这件事**」。⚠️ **ISO 26262 Part 8 的 DIA 机制确实是「责任划分」而非「数据驻留」**，⭐ 先验判断被逐字条文证实；⛔ 且 §5.1 c) 的目标恰恰是「identify the **work products to be exchanged**」——⛔ **它是共享制品的授权机制，不是禁止外发的依据**，⛔ 反向引用会被审稿人一击打穿。
 
-⚠️ ⛔ **「Q1 = 无」的有效范围必须写死**：⭐ 本轮实际核验了 **7 本标准**（⭐ IEC 61508-1、IEC 61508-3、ISO 26262-2、ISO 26262-6、ISO 26262-8、ISO/SAE 21434、IEC 62304）+ 2 份邻接文件（⭐ ISO/IEC TR 5469、IEC 62443-4-1）；⭐ 另在并行分组未回报后由主 session 补做 **IEC 62304**（⛔ 结论同为「无」）；⛔ **DO-178C / DO-330 与 EN 50128 / EN 50716 两族本轮未完成核验**（⭐ 见 §1.7-1.8）。⛔ 因此结论只能表述为「**在本轮覆盖的上述标准内未见**」，⛔ **不得**表述为「功能安全标准里都没有」。⭐ 另有一条**唯一的邻接命中**：⭐ **IEC 62443-4-1:2018 §5.9「SM-7: Development environment security」**（⭐ 顺着 IEC 61508-1 §1.2 k) 的 NOTE 5 官方指引找到，⭐ 且其 Scope 逐字锚定「industrial automation and control systems」的**开发者**）——⛔ 但**条文在付费墙内未核验**，⛔ 二手描述指向的是**开发环境完整性**而非「禁止外发」，⛔ 详见 §1.5b。
+⭐ **任务清单上的标准已全部覆盖**：⭐ IEC 61508-1、IEC 61508-3、ISO 26262-2、ISO 26262-6、ISO 26262-8、ISO/SAE 21434、IEC 62304、DO-178C / DO-330、EN 50128 / EN 50716，⭐ 另加 4 份邻接文件（⭐ ISO/IEC TR 5469、IEC 62443-4-1、IEC 81001-5-1、EU 2022/1645 Part-IS）。⚠️ ⛔ **但证据强度限定必须随结论带走**：⭐ 可断言的是「**clause 级 / annex 级**不存在保密条款」，⛔ **不能**断言深层编号里的单条要求也不存在（⭐ 详见 §1.9）。⭐ 邻接文件中有**三条正面命中**：① ⭐ **IEC 62443-4-1:2018 §5.9「SM-7: Development environment security」**（⭐ 顺着 IEC 61508-1 §1.2 k) 的 NOTE 5 官方指引找到，⭐ Scope 逐字锚定「industrial automation and control systems」的**开发者**，⛔ 条文 🔴，⭐ 见 §1.5b）；② ⭐ **IEC 81001-5-1:2021 §5.1.2「Development environment SECURITY」+ §4.1.5「SOFTWARE ITEMS from third-party suppliers」**（⛔ 条文 🔴，⭐ 见 §2.7e）；③ ⭐⭐ **EU 2022/1645（Part-IS）**（⭐ 2025-10-16 起适用，🟢 全文已核验，⭐ 见 §2.7c）——⭐ 其 **IS.D.OR.200(a)(13)** 是本台账中**唯一一条明文规定 confidentiality 义务的强制条文**。⚠️⚠️ ⛔ 另有一条**对本研究不利**的监管动向必须单独看：⭐ **EASA NPA 2025-07(A)** 逐字要求「**avoiding the double development and verification with AI tools**」，⛔ 直指 project_1→2/3 的闭环形态（⭐ 见 §2.7d）。
 
 ⭐ **Q2 = 有，⭐ 而且比预期强——⛔ 但没有一条能推出「必须私域部署」。** ⭐ **确实存在直接管到「把制品交给第三方处理」这个动作的成文条款**，⭐ 且可核验到条款级：⭐ 美国 **NIST SP 800-171 Rev 2 §3.1.20** 的 DISCUSSION 逐字点名 SaaS 云服务；⭐ **DFARS 252.204-7012 (a)** 的 `Technical information` 定义逐字包含 "specifications, standards… engineering data… data sets"，⭐ 即**需求文档与设计模型本身**；⭐ 欧盟 **VDA ISA2027** 逐字把 "AI tools (e.g., AI chatbots, AI agents)" 定义为受控外部 IT 服务；⭐ 中国**保密法第三十一条(三)**禁止用非涉密系统处理国家秘密。
 
@@ -60,9 +60,15 @@
 | ISO/IEC TR 5469 | 2024 | §1 Scope 第三项 | "use of AI systems to **design and develop** safety related functions" | ⛔ 不覆盖保密，⭐ **但正面承认本文的使用场景** | [preview PDF](https://cdn.standards.iteh.ai/samples/81283/a480bab0b69c4335986c2b0de971308d/ISO-IEC-TR-5469-2024.pdf) | 🟢 |
 | **IEC 62443-4-1** | 2018 | **§5.9** | `SM-7: Development environment security`（⭐ 目录标题；⛔ 条文付费墙） | ⭐ **唯一邻接命中**（⛔ 条文未核验） | [preview PDF](https://cdn.standards.iteh.ai/samples/21445/5d9b618cf732432b83b4e17e0e7b24cf/IEC-62443-4-1-2018.pdf) | 🟢 目录 / 🔴 条文 |
 | IEC 62443-4-1 | 2018 | §1 Scope | "…process requirements for the secure development of **products used in industrial automation and control systems**… These requirements apply to the **developer and maintainer** of the product, but not to the integrator or user…" | ⭐ 域匹配度最高 | 同上 | 🟢 |
-| DO-178C / DO-330 | 2011 | — | ⛔ **本轮未核验** | ⛔ **未知** | — | ⛔ 未完成（⭐ 见 §1.7-1.8） |
-| EN 50128 / EN 50716 | 2011+A2:2020 / 2023 | — | ⛔ **本轮未核验**（⭐ 仅确认 EN 50716:2023 已取代 EN 50128 与 EN 50657，⭐ 后者 2023-11 撤销，🟡） | ⛔ **未知** | — | ⛔ 未完成（⭐ 见 §1.7-1.8） |
-| IEC 62304 | 2006 (+A1:2015) | 完整目录 Clause 1-9 | 目录中**无**任何保密 / 数据保护 / 第三方数据处理条款 | ⛔ 不覆盖 | [preview PDF](https://cdn.standards.iteh.ai/samples/11630/3af7c2dc38c8489781331a49a001b0ff/IEC-62304-2006.pdf) | 🟢 |
+| DO-178C / DO-330 | 2011 | 完整目录 Sec 1-12 + Annex A/B | 目录中**无**任何 security / confidentiality / data protection 条款；⭐ FAA 对照文档 `security` 0 命中 | ⛔ 不覆盖 | [FAA Differences Tool](https://www.faa.gov/sites/faa.gov/files/aircraft/air_cert/design_approvals/air_software/differences_tool.pdf) | 🟡 |
+| DO-178C | 2011 | §7.2.7 | `Archive, Retrieval, and Release`（⚠️ ⛔ **不是**「Protection against Unauthorized Changes」） | ⛔ 不覆盖（⭐ 完整性，⛔ 非保密性） | 同上 | 🟡 |
+| DO-356A | 2018 | 官方描述 | "This document **does not provide guidelines concerning the structure of an individual organization or how the responsibilities for certification activities are divided.**" | ⛔ **明确不覆盖（自陈）** | [rtca.org/security](https://www.rtca.org/security/) | 🟢 |
+| **EN 50716** | 2023 | **Introduction** | "This document **does not specify the requirements for the development, implementation, maintenance and/or operation of security policies or security services** needed to meet cybersecurity requirements…" | ⛔ **明确排除（第三处自陈）** | [NSAI 官方样张](https://i2.saiglobal.com/mpc2v/preview/1412600409546.pdf?sku=1348800_SAIG_NSAI_NSAI_3361513) | 🟢 |
+| EN 50128 | 2011 | §1.8 | "This European Standard is **not intended to address commercial issues**. These should be addressed as an essential part of any contractual agreement." | ⛔ 不覆盖 | [SIST 官方样张](https://cdn.standards.iteh.ai/samples/20508/f059ecdf1111415dbf91a13af058154c/SIST-EN-50128-2011.pdf) | 🟢 |
+| IEC 62304 | 2006 (+A1:2015) | 完整目录 Clause 1-9 | 目录中**无**任何保密 / 数据保护条款；⭐ Clause 8 只有 8.1/8.2/8.3，⛔ 无第四子条 | ⛔ 不覆盖 | [preview PDF](https://cdn.standards.iteh.ai/samples/11630/3af7c2dc38c8489781331a49a001b0ff/IEC-62304-2006.pdf) | 🟢 |
+| IEC 62304 | 2006 | **Introduction** | "This standard **does not specify an organizational structure for the MANUFACTURER or which part of the organization is to perform which PROCESS, ACTIVITY, or TASK.**" | ⛔ **明确不覆盖（自陈免责）** | 同上 | 🟢 |
+| **EU 2022/1645**（Part-IS） | 2022，⭐ **2025-10-16 起适用** | **IS.D.OR.200(a)(13)** | "…**protects the confidentiality of any information that the organisation may have received from other organisations**, according to its level of sensitivity." | ⭐⭐ **唯一明文 confidentiality 强制条文** | [CELEX:32022R1645](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R1645) | 🟢 |
+| IEC 81001-5-1 | 2021 | **§5.1.2** | `Development environment SECURITY` | ⭐ 间接相关 | [IEC 官方 preview](https://webstore.iec.ch/en/iec_catalog/product/preview/?id=L3B1Yi9wZGYvcHJldmlldy9pbmZvX2llYzgxMDAxLTUtMXtlZDEuMH1iLnBkZg%3D%3D) | 🟢 标题 / 🔴 正文 |
 
 ### 1.2 IEC 61508（通用功能安全）· 结论：⛔ **明确排除，证据等级最高**
 
@@ -136,26 +142,37 @@
 
 ⭐ **工具 / 第三方钩子**：⭐ SOUP（Software of Unknown Provenance）机制位于 Clause 5.3（Software ARCHITECTURAL design）项下，⛔ 具体子条编号落在 preview 之外（🔴）。⚠️ ⛔ 但可确认的是：⭐ SOUP 机制的规制对象是**引入的第三方软件组件的已知缺陷与性能**，⛔ **不是把自己的数据交给第三方**——⛔ 二者方向相反，⛔ 不得混引。来源：[IEC 62304:2006 preview PDF](https://cdn.standards.iteh.ai/samples/11630/3af7c2dc38c8489781331a49a001b0ff/IEC-62304-2006.pdf)。
 
-### 1.7-1.8 DO-178C / DO-330（航空）、EN 50128 / EN 50716（铁路）· ⛔ **本轮未完成**
+### 1.7 DO-178C / DO-330（航空）· 结论：⛔ **无**
 
-⭐ **一项可用的版本事实**（🟡 二手，⛔ 未经 CENELEC 官方页核验）：**EN 50716:2023** 已取代 **EN 50128:2011** 与 **EN 50657:2017**，⭐ 后两者于 **2023 年 11 月撤销**，⭐ 且新标准**保留了 EN 50128 的章节编号**。⛔ 论文若引铁路标准，⛔ **不得继续把 EN 50128 当作现行唯一标准**。
+⭐ **完整目录逐条核对**：DO-178C（2011-12-13）Section 1-12 + Annex A/B 中**无任何 section 标题涉及 security / confidentiality / data protection**。⭐ 对 FAA 官方 138 页《DO-178B/C Differences Tool》做机械检索：`security` **0**、`confidential` **0**、`cloud` **0**、`unauthorized` **0**、`third part` **0**、`disclos` **0**、`proprietar` **0**。来源：[FAA/AVS DO-178B/C Differences Tool](https://www.faa.gov/sites/faa.gov/files/aircraft/air_cert/design_approvals/air_software/differences_tool.pdf)（🟡 官方 FAA 文档复制 DO-178C 目录）。
 
-⛔ **如实记录：这两族的并行核验分组在本轮截止时未回报，⛔ 因此本台账对其条款内容不给出任何结论。** ⛔ **不得**因为 IEC 61508 与 ISO 26262 都查出「无」，⛔ 就把这三本一并推定为「无」——⛔ 那是用先验替代证据，⛔ 正是本目录 [README.md](./README.md) 要求避免的做法。
+⚠️⚠️ ⛔ **一处必须纠正的编号，⛔ 且它正是任务点名的那类误读**：⛔ **DO-178C §7.2.7 不是「Protection against Unauthorized Changes」，⭐ 而是「Archive, Retrieval, and Release」。** ⭐ Section 7.2 的完整子条为：`7.2.1 Configuration Identification` / `7.2.2 Baselines and Traceability` / `7.2.3 Problem Reporting, Tracking, and Corrective Action` / `7.2.4 Change Control` / `7.2.5 Change Review` / `7.2.6 Configuration Status Accounting` / `7.2.7 Archive, Retrieval, and Release`。⭐「protection against unauthorized changes」是 Table 7-1 的行标签，⭐ 指向 **§7.2.7.b(1)**（🟡 二手：[AdaCore DO-178C 变更说明 §4.1.2](https://www.adacore.com/uploads/books/DO178C-ED12C-Changes_and_Improvements-Sep2012.pdf)）。⛔ **注意措辞是 unauthorized *changes*（修改），⛔ 不是 disclosure（泄露）**——⛔ 它是**完整性**条款，⛔ 与保密无关。
 
-⭐ **下一轮的预设重点（⛔ 均为待验假设，⛔ 非结论）**：
+⚠️ ⛔ **附一条方法论警告**：⛔ 核验过程中，⛔ 搜索引擎摘要**凭空编造**了「7.2.7 Protection / 7.2.8 Media Selection / 7.2.9 Release / 7.2.10 Data Retention」这一**并不存在**的条款结构来迎合提问。⛔ 这正是本仓库「机械代理只能定位不能裁定」的活体案例：⛔ **凡 DO 系条款号，⛔ 一律不得采信搜索摘要。**
 
-| 标准 | 待查重点 | ⚠️ 需特别分清的误读风险 |
-| :-- | :-- | :-- |
-| DO-178C（2011-12） | §7 Configuration Management 的 protection 条款；§12.2 Tool Qualification 的判定准则 | ⛔ CM 里的 "protection" 管的是**完整性 / 防未授权修改**，⛔ 大概率**不是保密性**——⛔ 须逐条分清 |
-| DO-330（2011） | TQL（Tool Qualification Level）体系 | ⭐ 这是 LLM 作为工具时的**主要钩子**，⛔ 但与数据去向无关 |
-| DO-326A / ED-202A、DO-356A | 航空适航网络安全过程 | ⭐ 最可能命中的一本，⛔ 本轮完全未查 |
-| EN 50716:2023 | ⭐ 须先确认它取代 EN 50128 / EN 50657 的生效与撤销日期 | ⛔ 不得继续把 EN 50128 当作现行唯一标准 |
-| EN 50128:2011+A2:2020 | Clause 5（Software Management and Organization）中的 supplier / subcontractor 内容；⭐ Clause 6.7 与 Annex A 的 tools | 同上 |
-| IEC 62304:2006+A1:2015 | SOUP 条款（5.3.3 / 5.3.4 / 7.1.2 / 8.1.2）；⭐ 并须确认是否已有 Ed. 2.0 | ⛔ SOUP 管的是**已知缺陷与性能**，⛔ 不是数据保密 |
+⭐ **工具钩子（本节的正面价值）**：⭐ DO-178C **§12.2**（`12.2.1 Determining if Tool Qualification is Needed` / `12.2.2 Determining the Tool Qualification Level` / `12.2.3 Tool Qualification Process`）+ **Table 12-1**（TQL 矩阵）。⭐ §12.2.2 三准则逐字（🟡 两独立来源一致）：「a. Criteria 1: A tool whose output is part of the airborne software and thus could insert an error. b. Criteria 2: A tool that automates verification process(es) and thus could fail to detect an error… c. Criteria 3: A tool that, within the scope of its intended use, could fail to detect an error.」⛔ **三条准则只问「工具会不会引入或漏检错误」，⛔ 完全不问工具跑在哪、⛔ 数据发给谁。**
 
-⚠️ ⛔ **覆盖边界声明**：⭐ 本台账 §0 的「Q1 = 无」这一结论，⛔ **其有效范围仅限于本轮实际核验过的七份标准**（⭐ IEC 61508-1、IEC 61508-3、ISO 26262-2、ISO 26262-6、ISO 26262-8、ISO/SAE 21434、IEC 62304，⭐ 外加 IEC 62443-4-1 与 ISO/IEC TR 5469）。⛔ **不得**表述为「功能安全标准里都没有」，⛔ 只能表述为「**在本轮覆盖的上述标准内未见**」。
+⭐ **DO-330** 官方摘要：「a tool is a computer program… used to help develop, transform, test, analyze, produce or modify another program… This document explains the process and objectives for qualifying tools.」（🟢 [my.rtca.org DO-330](https://my.rtca.org/productdetails?id=a1B36000001IcfkEAC)，⛔ 条文 🔴）。⭐ 对 DO-330 objective 逐条枚举表（Eclipse/Validas 41 页）扫 `cloud` / `confidential` / `third party` / `remote` / `premise` → **全 0 命中**。⚠️ ⛔ DO-330 §11.2.2 的 "Tool operational environment" 指的是**技术执行环境**（🟡 AdaCore 举例为 "upgrade of the workstation"），⛔ 判据是 equivalence，⛔ **不是 ownership 或 locality**——⛔ 不得误读为「部署位置」。
 
----
+⭐ **DO-326A / ED-202A** 官方摘要：保护对象是「**intentional unauthorized electronic interaction to aircraft safety**」——⛔ 即**飞机**，⛔ 不是研发环境。⭐ **DO-356A** 更有一句自我免责（🟢 [rtca.org/security](https://www.rtca.org/security/)）：「This document **does not provide guidelines concerning the structure of an individual organization or how the responsibilities for certification activities are divided.** No such guidance should be inferred」。
+
+### 1.8 EN 50128 / EN 50716（铁路）· 结论：⛔ **无，⭐ 且是第三处「标准自陈排除」**
+
+⚠️ **版本事实（🟢 官方正文已核验）**：**EN 50716:2023**（2023-10-30，dop 2024-10-30，**dow 2026-10-30**）封面逐字：「Supersedes EN 50128:2011; EN 50128:2011/AC:2014; EN 50657:2017; EN 50128:2011/A1:2020; EN 50128:2011/A2:2020; EN 50657:2017/A1:2023」。⛔ **不得继续把 EN 50128 当作现行唯一标准。** ⭐ 新标准**刻意保留原章节编号**。
+
+⭐⭐ **EN 50716:2023 Introduction 的逐字排除声明**（🟢 官方样张已核验）：
+
+> "This document **does not specify the requirements for the development, implementation, maintenance and/or operation of security policies or security services** needed to meet cybersecurity requirements that may be needed by the safety-related system. Cyber attacks can affect not only the operation but also the functional safety of a system. For cybersecurity, appropriate standards should be applied."
+
+⭐ **注意这句与 IEC 61508-1:2010 §1.2 m) 的措辞高度重合**——⭐ 这不是巧合，⛔ 而是功能安全标准族的**共同自我定位**：⛔ 它们**系统性地把 security 排除在自身范围之外**。⭐ 这使 Q1 的否定结论从「三本各自没有」上升为「**这一族在设计上就不管这件事**」，⭐ 是本台账可写进论文的最强结构性论断。
+
+⭐ **EN 50128:2011 §1.8** 另有一句：「This European Standard is **not intended to address commercial issues**. These should be addressed as an essential part of any contractual agreement.」——⛔ 把商务与合同事项整体推给合同。
+
+⭐ **工具钩子**：⭐ 两版**同号同名**的 **§6.7「Support tools and languages」** + **Table 1「Relation between tool class and applicable subclauses」**；⭐ 预存软件另见 §7.3.4.7 与 §6.5.4.16（⭐ §1.5 逐字：「for tools in **6.7** are fulfilled」）。⭐ 对 16 页官方样张（⭐ 封面 + 完整目录 + Foreword + Introduction + Clause 1 + Clause 2）扫 `confidential` / `data protection` / `third part` / `supplier` / `subcontract` / `proprietar` / `non-disclosure` / `privacy` → **0 命中**（⭐ `security` 仅命中上述**排除声明**）。来源：[SIST EN 50128:2011 preview](https://cdn.standards.iteh.ai/samples/20508/f059ecdf1111415dbf91a13af058154c/SIST-EN-50128-2011.pdf)、[NSAI I.S. EN 50716:2023 样张](https://i2.saiglobal.com/mpc2v/preview/1412600409546.pdf?sku=1348800_SAIG_NSAI_NSAI_3361513)。
+
+### 1.9 ⚠️ Q1 覆盖边界的一条诚实限定（⛔ 必须随结论一起带走）
+
+⛔ **所有免费 preview 只覆盖「封面 + 完整目录 + Scope + 部分定义 + 前若干页正文」。** ⭐ 因此可断言的是「**clause 级 / annex 级**不存在保密条款」；⛔ **不能**断言埋在 `5.1.x` / `6.5.4.x` 这类深层编号里的**单条要求**也不存在。⛔ 以下条文**均未直接核验**：DO-178C §7.2.7 正文、IEC 62304 SOUP 子条、IEC 81001-5-1 §5.1.2 正文、ISO 26262-8 §5.4.3、ISO/SAE 21434 Clause 7 正文。
 
 ## 2. Q2 · 其余各族（逐族）
 
@@ -410,6 +427,42 @@
 
 ⚠️ `unece.org` 直连返回 **403**，⭐ 改用 EUR-Lex 转载的 OJ 版本（OJ L 82, 9.3.2021）；⛔ 该版本自带声明「Only the original UN/ECE texts have legal effect under international public law」，⛔ 引用时须标注。
 
+### 2.7c 行业机制 · 欧盟航空 Part-IS · ⭐⭐ **航空侧唯一的正面命中，⭐ 且是强制性立法**
+
+⭐ **本节四条由主 session 亲自 `curl` EUR-Lex 官方全文抽取并逐字核对**（⛔ 依 §3.8）。⭐ **Commission Delegated Regulation (EU) 2022/1645**（2022-07-14 通过，OJ L 248, 26.9.2022，⭐ **自 2025-10-16 起适用**）。
+
+| 条款 | 逐字原文 | 触发前提 | 是否覆盖 | 核验 |
+| :-- | :-- | :-- | :-- | :-- |
+| **Part 21 新增 21.A.239A**（⭐ 由 2022/1645 插入 Reg. 748/2012） | "In addition to the design management system required by point 21.A.239, **the design organisation shall establish, implement and maintain an information security management system** in accordance with Commission Delegated Regulation (EU) 2022/1645 in order to ensure the proper management of information security risks **which may have an impact on aviation safety**." | ⭐ 持 DOA 的**设计组织** + ⚠️ **风险须可能影响航空安全** | ⭐ **间接相关（⭐ 强制性）** | 🟢 |
+| Part 21 新增 21.A.139A | ⭐ 同一公式，⛔ 对象为**生产组织** | 持 POA 的生产组织 | ⭐ 间接相关 | 🟢 |
+| **IS.D.OR.205(a)** | "The organisation shall identify all of its elements, which could be exposed to information security risks. That shall include: (1) the organisation's activities, facilities and resources, as well as **the services the organisation operates, provides, receives or maintains**; (2) the equipment, systems, **data and information** that contribute to the functioning of the elements listed in point (1)." | 同上 | ⭐⭐ **关键钩子**：⭐ "services the organisation **receives**" 足以涵盖外部托管模型 API | 🟢 |
+| **IS.D.OR.200(a)(13)** | "…**protects the confidentiality of any information that the organisation may have received from other organisations**, according to its level of sensitivity." | 同上 | ⭐⭐ **本台账中唯一一条明文规定 confidentiality 义务的强制条文** | 🟢 |
+| **IS.D.OR.235(a)** | "The organisation shall ensure that **when contracting any part of the activities referred to in point IS.D.OR.200 to other organisations, the contracted activities comply with the requirements of this Regulation and the contracted organisation works under its oversight.**" | 同上 | ⭐ 直接覆盖「外包给他方」 | 🟢 |
+
+⚠️ ⛔ **限定必须写满，⛔ 否则是过度主张**：⛔ Part-IS 全程以「**with potential impact on aviation safety**」为闸门，⛔ **它不是通用的 IP 保密制度**；⛔ 且 IS.D.OR.200(a)(13) 保护的是「**从其他组织收到的**信息」，⛔ 不是组织自己的设计资料。⛔ 因此它能支撑的是「⭐ 航空设计组织须把外部 AI 服务纳入 ISMS 风险评估与合同监督」，⛔ **不是**「不得使用外部 AI 服务」。
+
+### 2.7d ⚠️⚠️ 行业机制 · EASA NPA 2025-07(A) · ⛔ **一条直接约束本研究架构的监管动向**
+
+⭐ **本条由主 session 亲自下载 EASA 官方 PDF 提取核对。** ⭐ EASA NPA 2025-07(A) 在说明 DS.AI 的范围排除时逐字写道：
+
+> "Some exclusions from the scope of the DS have been identified, to avoid the risk of innovative AI technology contributing to any fatalities or uncontained environmental effect, to prevent the use of online learning techniques which are not compatible with the current approval frameworks, to limit the use of AI techniques (symbolic or hybrid-AI) that do not yet fall within the technical scope of this DS and **to ensure human oversight at development time when using generative AI techniques by avoiding the double development and verification with AI tools.**"
+
+⭐ 同一文件另有一句（⭐ 关于覆盖面）：「While **generative AI tools and general-purpose models are not yet fully covered**, the current proposal creates a flexible foundation for adaptation as technology evolves.」来源：[EASA NPA 2025-07(A)](https://www.easa.europa.eu/en/downloads/142702/en)，🟢 已核验。
+
+⛔⛔ **这条对本仓库的意义远超「私域部署」这个话题，⛔ 必须单独上报**：⛔ 它要求**避免用 AI 工具同时做开发与验证**（"avoiding the double development and verification with AI tools"），⛔ 而这正是 **project_1（LLM 建模）→ project_2/3（生成性质并验证）→ project_4（修复）** 这条闭环的形态。⚠️ ⛔ **必须同时说清它的性质与边界**：(1) ⛔ **NPA = Notice of Proposed Amendment，⭐ 是征求意见稿，⛔ 不是生效规章**；(2) ⛔ 适用域是**航空**，⛔ 不自动外推到汽车 / 轨交 / 医疗；(3) ⛔ 该句出现在**范围排除**的说明段，⛔ 不是一条编号要求。⭐ **但它是一条真实的监管方向信号**，⛔ 且**对我们不利**——⛔ 论文若要主张全自动闭环，⛔ 应当预先处理它，⛔ 而不是等审稿人提出。
+
+### 2.7e 行业机制 · IEC 81001-5-1:2021（医疗健康软件安全生命周期）· ⭐ **医疗侧唯一命中**
+
+| 条款 | 逐字原文（⭐ 目录标题） | 是否覆盖 | 核验 |
+| :-- | :-- | :-- | :-- |
+| **§5.1.2** | `Development environment SECURITY`（⭐ 位于 5.1 Software development planning 项下，⭐ p.21） | ⭐ **间接相关**：⭐ 医疗侧唯一直接命名「研发环境安全」的条款 | 🟢 标题 / 🔴 正文 |
+| **§4.1.5** | `SOFTWARE ITEMS from third-party suppliers`（⭐ p.19） | ⭐ 间接相关 | 🟢 标题 / 🔴 正文 |
+| §1 Scope | "This document defines the LIFE CYCLE requirements for development and maintenance of HEALTH SOFTWARE needed to support conformance to IEC 62443-4-1… by increasing the SECURITY of **SOFTWARE LIFE CYCLE PROCESSES themselves**." | ⭐ 间接相关（⭐ 注意「life cycle processes themselves」这一措辞） | 🟢 |
+
+⭐ **与 §1.5b 的 IEC 62443-4-1 §5.9（SM-7 Development environment security）构成同一模式**：⭐ 医疗与工控两侧**各自**把「研发环境安全」立为规范性条款，⭐ 且 81001-5-1 明言其目的是支撑 IEC 62443-4-1 的符合性。⛔ **但两者的条文正文都在付费墙内未核验**，⛔ 不得据标题断言其内容禁止外发。
+
+⚠️ **IEC 62304 Ed 2.0 状态纠错**（🟡 国家机构镜像，⛔ IEC 官方 dashboard 被 Cloudflare 拦截）：⛔ 项目仍处 **CD 阶段（stage 30.20）**，⛔ **尚未发布**。⛔ 若干厂商博客称「2026 年 FDIS / 发布」与此矛盾，⛔ **不可采信**。
+
 ### 2.8 商业秘密法（欧盟 TSD）· 结论：⭐ **法理最强，⛔ 但是推论，⛔ 无判例**
 
 | 文件 | 年份 | 条款 | 逐字原文 | 是否覆盖 | 来源 | 核验状态 |
@@ -440,7 +493,8 @@
 | ISO 26262-2:2018 | 完整目录 + Introduction | `grep` 六词 | ⛔ **无**；⭐ 网络安全仅 Annex E（informative） |
 | ISO/SAE 21434:2021 | Scope + Introduction 逐 Clause 说明 | 逐条读 | ⛔ **明确排除**：§1「不规定具体技术或解决方案」；⭐ Clause 7 = 责任划分 |
 | ISO/IEC TR 5469:2024 | 完整目录 Clause 1-11 + Annex A-D、Scope | 逐条读 | ⛔ **无**数据驻留条款；⭐ 但 Scope 正面涵盖本文场景 |
-| DO-178C / DO-330、EN 50128 / EN 50716 | ⛔ 见 §1.7-1.8 | ⛔ 并行核验未回报 | ⛔ **本轮如实标为未完成** |
+| DO-178C / DO-330 | 完整目录 Sec 1-12 + Annex A/B | ⭐ FAA 138 页官方对照文档 `grep` 七词 | ⛔ **无**：⭐ 七词全部 0 命中；⚠️ ⛔ §7.2.7 实为 `Archive, Retrieval, and Release` |
+| EN 50128 / EN 50716 | 完整目录 + Introduction + Clause 1-2 | ⭐ 官方样张 `grep` 八词 | ⛔ **无，⭐ 且显式排除**：⭐ EN 50716 Introduction 逐字排除 security policies / services |
 | IEC 62304:2006 | 完整目录 Clause 1-9 | ⭐ 主 session 补做：`grep` 五词 + 逐条读目录 | ⛔ **无**（⭐ 唯一 `third party` 命中属 `manufacturer` 定义用语） |
 
 ### 3.2 Q2 各族 · ⛔ 明确的否定项
@@ -550,7 +604,10 @@ grep -ni "confidential\|proprietar\|third part\|data protect\|disclos" /tmp/iso2
 | ISO/IEC TR 5469:2024 §10.3.5 正文 | ⛔ 落在 preview 范围外 | 🔴，⛔ **不据标题推断内容** |
 | IEC 61508-3 全文词频 | ⛔ preview 仅 15 页 | ⛔ 结论只表述为「**完整目录**中无此类条款」，⛔ 不表述为「全文无此词」 |
 | prEN IEC 61508-1:2025 | ⭐ 第三版制定中，⛔ 未核验其是否新增安全防护条款 | ⏳ 待核验 |
-| **DO-178C / DO-330、EN 50128 / EN 50716** | ⛔ **本轮未完成**：⛔ 并行核验分组在截止时未回报 | ⛔ **如实标为未完成**，⛔ 不得据先验填写。⭐ 见 §1.7-1.8 |
+| DO-178C §7.2.7 正文、DO-330 条文 | ⛔ RTCA 付费出版物 | 🔴，⭐ 目录与三准则有两处独立二手互证 🟡 |
+| IEC 81001-5-1 §5.1.2 / §4.1.5 正文 | ⛔ 付费墙 | 🔴，⛔ **不得据标题断言其禁止外发** |
+| EASA NPA 2025-07(A) | ⭐ 原文已核验，⛔ 但性质是**征求意见稿**非生效规章 | 🟢 原文 / ⚠️ ⛔ 引用须标明非规章地位 |
+| IEC 62304 Ed 2.0 | ⭐ 仍处 CD 阶段（stage 30.20），⛔ 未发布 | 🟡（⛔ IEC dashboard 被 Cloudflare 拦截，⛔ 用国家机构镜像） |
 | IEC 62304 SOUP 子条编号（5.3.x / 7.x / 8.x） | ⛔ preview 范围外 | 🔴，⛔ 仅确认 SOUP 位于 Clause 5.3 项下 |
 | ISO 26262-8 §5.4.3（DIA 内容 11 项） | ⛔ preview 范围外 | 🔴 |
 | ISO/SAE 21434 Clause 7 正文 + Annex C（CIA 内容） | ⛔ preview 范围外 | 🔴 |
