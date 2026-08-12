@@ -108,7 +108,65 @@
 
 ⚠️ ⛔ **不得把这条解释用成免责声明。** ⭐ 它同时意味着一件对我们不利的事：⭐ 若定向检索**找到了**出处，则「⛔ 不存在同口径出处」这个说法作废，⛔ 必须改口。⭐ 两种结果都要如实写。
 
-### 3.4 ⭐ 这个解释顺带解释了「暴露格恰好是这两条」
+### 3.3b ⭐⭐⭐ 补强轮把这个解释从「我们的推断」抬成「**两份已发表工作的显式声明**」
+
+⭐ §3.3 原本是**裁定者的推断**。定向补强轮（2026-08-12）取到了两处**逐字**材料，⭐ 它们各自独立地把「模型 ↔ 需求文本」这一类检查**显式排除**在自己的研究范围外。⛔ 两条均由我亲自回原文核验（⛔ 不据 agent 转述入账）。
+
+**① Lange 等（2003）—— ⭐ 给出了实质理由**
+
+> ⭐ 「Hence we **exclude the relations with requirements** and implementation artefacts. The main reason for this is that automated checking the consistency and completeness of the relation between requirements and design and between design and implementation **require very different techniques or may even turn out to be infeasable without significant human contributions.**」
+
+⭐ 出处：C. Lange, M.R.V. Chaudron, J. Muskens, L.J. Somers, H.M. Dortmans, *An Empirical Investigation in Quantifying Inconsistency and Incompleteness of UML Designs*, 2003（⭐ 本地全文 `lange_umlinconsist03.txt:108-115`，⚠️ 双栏版式，⭐ 引文需按右栏还原）。⭐ **这是 Lange 一系里唯一显式建模状态机的那篇**。
+
+**② Torre 等（2016 / 2018）—— ⭐ 作为系统映射研究的成文排除准则**
+
+> ⭐ 「EPs which discussed consistency rules between UML diagrams and other **non-UML sources of data, such as requirements** or source code.」
+
+⭐ 出处：Torre, Labiche, Genero, Elaasar, *A systematic identification of consistency rules for UML diagrams*, TR SCE-15-01 2nd version, Carleton University, 2016（⭐ 本地全文 `paperA.txt:1512-1513`，⭐ 第 3 节**第 5 条排除准则**；⭐ 博士论文版同义处 `paperA_thesis.txt:7618`）。
+
+⚠️⚠️ **两者性质不同，⛔ 不得混谈**：
+
+| | 性质 | ⭐ 能支撑什么 |
+| :-- | :-- | :-- |
+| Lange 2003 | ⭐ **实质性理由** —— 「需要很不一样的技术，⭐ 甚至可能在没有大量人工介入时不可行」 | ⭐ 这一类检查**在方法上**被认为是另一个问题 |
+| Torre SMS | ⭐ **方法学范围界定** —— 一条筛文准则 | ⭐ 该类规则**在这份 116 条目录里的缺席是构造性的** |
+
+⭐⭐ **由此，`containment` / `cardinality` / `state_declared` 这几条在既有规则目录里找不到出处，⛔ 不是「领域不需要这种检查」的证据，⭐ 而是「既有目录按准则不收这一类」的直接后果。**
+
+⛔⛔ **三条不得逾越的边界**（⚠️ 开采者自己也主动划了同样的线，逐字：「⛔ 我没有据此反推『这些检查不常见』」）：
+
+1. ⛔ 两份文献说的是「**我们不做**」，⛔ **不是**「没人做」。⛔ 不得把范围声明读成存在性否证。
+2. ⛔ 不得据此主张「**因此我们的谓词有依据**」—— ⭐ 那是把缺口当依据。⭐ 它支撑的只是「⭐ 缺席是构造性的」这一层。
+3. ⚠️ Torre 的排除是**筛文准则**，⛔ 与 Lange 的**方法学判断**不同量级；⭐ 引用时须分别标明。
+
+⭐ 另有一条**同型的反向论证**（异味/规则目录一路给出）：实践指南把「条件与动作拆到不同迁移段」当作推荐做法，⭐ 说明**无动作的迁移段合法且常见** —— ⛔ 因而领域里不可能存在「迁移必须带效果」这种普适规则。⭐ 于是 `effect_declared` 的支撑**只可能来自需求侧**，⛔ 模型侧的通用规则目录在原理上取不到它。⭐ 这与 §3.3 是同一个结构。
+
+### 3.4 ⭐⭐ 仓库对这条指控**已有常设机制**，⛔ 且它主动扣自己的分
+
+⭐ 本回应最强的一环不是任何论证，⭐ 而是一条**已经执行过**的工程纪律。[rule_provenance.md](../../discover_matrix/docs/protocol/rule_provenance.md) 开篇就承认了这个问题的要害（逐字）：
+
+> 「⭐ 这条判据很强，⛔ 但它只能**事后**判。⭐ 而一旦我已经详细分析过『哪些缺陷没被发现』，我写的任何新规则都落在它的射程内 —— ⛔ **即使那条规则确实来自规范**。」
+
+⭐ 处置方式**不是声明**，⭐ 而是换掉主张的**类型**：
+
+| | 主张形态 | 可核验性 |
+| :-- | :-- | :-- |
+| ⛔ 自己写 + 事后论证 | 「⭐ 若我没见过样本也会写这条」 | ⛔ **不可核验**（⛔ 我见过了，⛔ 反事实不可观测） |
+| ⭐ 盲态执行者写 | 「⭐ 一位**没见过样本**的人写出了这条」 | ⭐ **可核验**（⭐ 隔离清单可查、⭐ 产出可复核） |
+
+⭐ 配套的是一份**按目录**（⛔ 不按文件名通配）的机械隔离清单，⭐ 覆盖全部分析文档、代次报告、判定样本、结果性数据与 `runs/`。⚠️ 改成按目录**是一次真实事故的产物**：文档树化把文件改成小写并移进子目录后，⛔ 旧的五个文件名通配符**同时失配**，⛔ 名单看上去仍然完整而防护已经全死。
+
+⭐⭐ **而机制真的在扣分**。v25 那次改动的 commit body 末尾逐字写着：
+
+> 「⭐ **按引入动机排除 `EIS-0043-02` / `EIS-0048-04` / `EIS-0038-02` 三条不计入能力**」
+
+⭐ 另有 [conditional_activation.md](../../discover_matrix/docs/protocol/rules/conditional_activation.md) 公开登记「本规则的引入动机确实是 `EIS-0047-03` 漏检。**动机据此登记在案。**」；⭐ v21 的预注册记「四个可报 pair 中有三条记录参与了修法设计」，⛔ 并据此剔除。
+
+⛔ **一个从案例反推词表的项目，不会建一套主动从自己能力分子里扣案例的机制。**
+
+⚠️ ⛔⛔ **但必须严格标定适用范围，⛔ 不得扩大**：这条纪律管的是**进入 prompt / gate 的规则**与 **v25 合式性公理**；⛔ 它把「现有谓词词表」列在盲态执行者的**应当读**清单里 —— ⭐ 也就是说 **19 条谓词本身是该流程的既有输入，⛔ 不是它的产物**。⛔ 谓词自身的来源要单独审计，⭐ 见 [predicate_motive_audit.md](./predicate_motive_audit.md)。
+
+### 3.5 ⭐ 这个解释顺带解释了「暴露格恰好是这两条」
 
 ⭐ §4 的机械判据（**③ 类** ∧ **台账断言进入前 1/3**）独立地把暴露收敛到 `containment` 与 `cardinality` **两格** —— ⭐ 而 §3.3 的结构性解释**事先**就指出这两条共享同一个失败机制。⭐ 两条互不相干的路径指向同一对谓词。
 
