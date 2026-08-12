@@ -49,7 +49,7 @@
 
 ## 四、判定流程
 
-1. **重建判定材料**：33 + 15 = 48 份 per-pair 材料（[materials/](./materials/)、[materials_s2/](./materials_s2/)），每份含 NL 全文、PlantUML 作者源全文、涉及的台账 `statement` 全文（含 `nl_evidence` 与 `basis_superseded_by_ruling`）、以及被审格的**完整未截断**产出（issues 的 title + rationale + assertion_ids、已发布断言表、以及四类「落空」区块并明确标注不计入命中）。生成器 [build_materials.py](./build_materials.py)。
+1. **重建判定材料**：33 + 15 = 48 份 per-pair 材料（`materials/`（⛔ 判定材料为中间产物、未入库；⭐ 可用 `build_materials.py` 重建）、`materials_s2/`（⛔ 判定材料为中间产物、未入库；⭐ 可用 `build_materials_s2.py` 重建）），每份含 NL 全文、PlantUML 作者源全文、涉及的台账 `statement` 全文（含 `nl_evidence` 与 `basis_superseded_by_ruling`）、以及被审格的**完整未截断**产出（issues 的 title + rationale + assertion_ids、已发布断言表、以及四类「落空」区块并明确标注不计入命中）。生成器 [build_materials.py](./build_materials.py)。
 2. **判定**：13 个并行判定组（R1–R8 判 80 位、S1–S5 判 25 位），全部收到**物理同一份**指令 [rejudge_instructions.md](./rejudge_instructions.md)，其 §2 与 §3 逐字取自 [baseline_arm/judging_instructions.md](/home/zhangshaoang/oo-projects/research_ideas-3/project_1_llm_state_machine_modeling/paper_stm_issue_discover/baseline_arm/judging_instructions.md)。另加 §四反自利纪律：「只有当该格产出明确指向同一个模型元素与同一个缺陷事实、且你能把蕴含链一句话说清时，才判 `hit: true`。说不清就判 `hit: false`。」
 3. **对抗性回读复核**（对应主臂 v46 的「一组回读原件复核」）：V1 复核全部 miss→hit 翻转、V2 复核全部 hit→hit 维持位，任务是**尽力推翻**。两组各自只读材料，不读仓库。
 4. **主 session 裁定**：我逐位回读了全部 27 个第一阶段 `hit: true` 的原文，并做了两类机械核查（载体是否在 `excluded_findings` 内、同一条 issue 是否已被别的台账记录认领）。⭐ 裁定**只在收紧方向发生**，共收紧 5 位，全部在 miss 样本侧（即全部降低翻转率）。
@@ -196,8 +196,8 @@
 | :-- | :-- |
 | [sample.py](./sample.py) / [sample.json](./sample.json) | 第一阶段抽样器与样本清单（60 miss + 20 hit），种子 `20260812` |
 | [sample_ext.py](./sample_ext.py) / [sample_ext.json](./sample_ext.json) | 反向对照补样（+25） |
-| [build_materials.py](./build_materials.py) / [materials/](./materials/) | 33 份第一阶段判定材料 |
-| [build_materials_s2.py](./build_materials_s2.py) / [materials_s2/](./materials_s2/) | 15 份第二阶段判定材料 |
+| [build_materials.py](./build_materials.py) / `materials/`（⛔ 判定材料为中间产物、未入库；⭐ 可用 `build_materials.py` 重建） | 33 份第一阶段判定材料 |
+| [build_materials_s2.py](./build_materials_s2.py) / `materials_s2/`（⛔ 判定材料为中间产物、未入库；⭐ 可用 `build_materials_s2.py` 重建） | 15 份第二阶段判定材料 |
 | [rejudge_instructions.md](./rejudge_instructions.md) | 发给全部 13 个判定组的**物理同一份**指令 |
 | [verdicts/R1..R8.json](./verdicts/) · [verdicts/S1..S5.json](./verdicts/) | 13 个判定组的原始输出（105 位，含逐位论证） |
 | [verdicts/V1_recheck.json](./verdicts/) · [verdicts/V2_recheck.json](./verdicts/) | 两个对抗性复核组的输出 |
