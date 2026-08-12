@@ -312,7 +312,7 @@
 
 > ⚠️ **闭合词表的成员构成由本文评测语料的需求分布决定；外推到其它需求集需另行验证。**
 
-⚠️ ⛔ **待核**：⭐ 「那 750 条来自评测 pair」是推断，⛔ 尚未打开 Issue #170 §1.1 原文逐字确认。⭐ 详见 [evidence_distribution.md](./evidence_distribution.md) §3.4b。
+⭐⭐ **已核实（2026-08-12）**：⭐ Issue #170 §1 逐字「⭐ 单独运行 Requirement Splitter…`gpt-5.5`，**60/60 pair** 成功，**750 条需求**」—— ⛔ 确来自评测 pair，⭐ 本条成立。⭐ 详见 [evidence_distribution.md](./evidence_distribution.md) §3.4b。
 
 ## 8. ⛔ 本轨**没有**做的事
 
