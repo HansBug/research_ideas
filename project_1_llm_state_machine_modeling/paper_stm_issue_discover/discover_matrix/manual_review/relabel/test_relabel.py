@@ -667,6 +667,141 @@ def test_translation_notes_do_not_miscount_what_the_source_text_says():
             f"nl_0003 的 zh 里还留着原文没有的 {ident}"
 
 
+# ==================== 译文侧唯一一道机械门：字面量不许在 zh 里消失（I-C）
+
+def test_zh_keeps_every_literal_the_source_text_gives():
+    """⭐ 正面：9 份译文的 `zh` 都要保住 `en` 的反引号表达式与阿拉伯数字。
+
+    ⚠️ 这是**第一道作用于 `zh` 的门**（见 [README.md](./README.md) §12）——
+    ⛔ 前三道（`artifact_leaks` / `original_ref_errors`）全在管 `note`，
+    ⛔ 译文本身此前零机械覆盖。⭐ 门只覆盖字面量存活，⛔ 不覆盖「译得对不对」。
+    """
+    bad = {}
+    for name, payload in nl_zh._raw().values():                # noqa: SLF001
+        drops = nl_zh.zh_literal_drops(payload)
+        if drops:
+            bad[name] = drops
+    assert bad == {}, "译文丢了原文的字面量：\n" + "\n".join(
+        f"{n}:\n  " + "\n  ".join(v) for n, v in sorted(bad.items()))
+
+
+def test_zh_literal_gate_actually_fires():
+    """⛔ 反面：门必须**真的**拦得住 —— ⚠️ 只测「干净时不报」等于没测。
+
+    ⭐ 两条判据各一个反例，⛔ 外加三组正例防止实现恒抛：
+    ① 干净文本；② ⚠️ **英文数词必须放行** —— `three` 译作「三个」是正常的，
+    ⛔ 本门只管阿拉伯数字（SPEC 第 10 条）；③ ⚠️ **同一数字出现两次只需活一次** ——
+    ⛔ 门判存在不判次数，否则中文语序合并同类项就会被误伤。
+    """
+    clean = {"segments": [
+        {"seg": "1",
+         "en": "1. There are three lanes when `dist_to_front<25` and 2 kilometers remain. ",
+         "zh": "1. 当 `dist_to_front<25` 且还剩 2 千米时有三条车道。"},
+    ]}
+    assert nl_zh.zh_literal_drops(clean) == []
+
+    def drops(zh):
+        payload = copy.deepcopy(clean)
+        payload["segments"][0]["zh"] = zh
+        return nl_zh.zh_literal_drops(payload)
+
+    # ① 反引号表达式被译掉 / 改写
+    hit = drops("1. 当前车距离小于 25 且还剩 2 千米时有三条车道。")
+    assert any("`dist_to_front<25`" in h for h in hit), hit
+
+    # ② 阿拉伯数字被改写成中文数字（⛔ SPEC 第 10 条禁止）
+    hit = drops("1. 当 `dist_to_front<25` 且还剩两千米时有三条车道。")
+    assert any("`2`" in h for h in hit), hit
+
+    # ③ ⭐ 英文数词放行 —— `three` 译作「三条」不许报
+    assert all("three" not in h for h in drops(
+        "1. 当 `dist_to_front<25` 且还剩 2 千米时有三条车道。"))
+
+    # ④ ⭐ 只判存在不判次数：en 里 25 出现两次，zh 里只出现一次也放行
+    twice = {"segments": [{
+        "seg": "1",
+        "en": "1. If the distance is less than 25 meters (`dist_to_front<25`), go. ",
+        "zh": "1. 如果距离小于 25 米（`dist_to_front<25`），就走。"}]}
+    assert nl_zh.zh_literal_drops(twice) == []
+
+    # ⑤ ⭐ 小数按整串比对，⛔ 不许只匹配到 `0`
+    frac = {"segments": [{"seg": "1",
+                          "en": "1. less than 0.7 kilometers. ",
+                          "zh": "1. 小于 0 千米。"}]}
+    assert any("`0.7`" in h for h in nl_zh.zh_literal_drops(frac))
+
+
+def test_zh_literal_drop_raises_at_load_time():
+    """⛔ 装载期就要抛，⛔ 不许降级 —— ⚠️ 译文里没了守卫表达式，判读者就无锚可比。"""
+    real = copy.deepcopy(dict(nl_zh._raw()))                   # noqa: SLF001
+    dirty = copy.deepcopy(real)
+    # ⭐ `b7425c44`（nl_0009）段 3 的 zh 带着 `dist_to_front<25`，⛔ 抹掉它必须炸
+    seg = dirty["b7425c44"][1]["segments"][2]
+    assert "`dist_to_front<25`" in seg["zh"], "本测试前提要重定：段 3 的 zh 没有该表达式"
+    seg["zh"] = seg["zh"].replace("（`dist_to_front<25`）", "")
+    with _mock_raw(dirty):
+        with pytest.raises(nl_zh.ZhLiteralDrop, match="丢了原文的字面量"):
+            nl_zh._store.__wrapped__()                         # noqa: SLF001
+    # ⛔ 反反面：不动数据时**不许**抛
+    with _mock_raw(real):
+        nl_zh._store.__wrapped__()                             # noqa: SLF001
+
+
+def test_zh_fidelity_fixes_do_not_regress():
+    """⛔ I-C 回归：2026-08-13 逐段核对 `zh` 时改掉的 6 处，⛔ 不许回潮。
+
+    ⚠️ 与 I-B 同法：先把「事实是什么」逐字钉在 `en` 或同份 `translator_notes` 上，
+    ⛔ 再断言错的说法不在 —— ⭐ 换个措辞重写也会先炸在前提校验上。
+    """
+    def payload(nl_id):
+        return next(pl for _, pl in nl_zh._raw().values()      # noqa: SLF001
+                    if pl["nl_id"] == nl_id)
+
+    def zh(pl, seg):
+        return next(s["zh"] for s in pl["segments"] if s["seg"] == seg)
+
+    # ① nl_0005 段 1：`starts in` 是「起始于（初始状态）」，⛔ 不是「启动（通电）」
+    p5 = payload("0005")
+    en1 = next(s["en"] for s in p5["segments"] if s["seg"] == "1")
+    assert "The microwave starts in the DoorShut state" in en1, "本测试前提要重定"
+    assert "微波炉起始于 DoorShut 状态" in zh(p5, "1")
+    assert "微波炉在 DoorShut 状态中启动" not in zh(p5, "1")
+
+    # ② nl_0009 段 4：`if` 必须是「如果」，⛔ 不许弱化成「…时」；`once` 必须是「一旦」
+    p9 = payload("0009")
+    en4 = next(s["en"] for s in p9["segments"] if s["seg"] == "4")
+    assert " once the lane change is completed" in en4 and " if the distance" in en4
+    assert "一旦变道完成" in zh(p9, "4") and "如果到出口的距离" in zh(p9, "4")
+    assert "在变道完成后" not in zh(p9, "4")
+
+    # ③ nl_0009 段 12：并列条件也用逗号连接，⛔ 不许说「一律用 and / or / with」
+    en12 = next(s["en"] for s in p9["segments"] if s["seg"] == "12")
+    assert "pedestrians (`pedestrian_detected`), the rear distance" in en12, \
+        "第 12 句居然不用逗号并列了 —— 本测试前提要重定"
+    assert "一律用英文" not in zh(p9, "12")
+
+    # ④ nl_0004 段 8：⛔ 不许把制品记法名 PlantUML 印进译文（词法门不覆盖 zh）
+    p4 = payload("0004")
+    assert all("PlantUML" not in s["zh"] and "plantuml" not in s["zh"].lower()
+               for s in p4["segments"])
+    assert "UML 关键字 entry 为小写" in p4["translator_notes"], \
+        "整份观察改了措辞 —— 段 8 的〔原文如此〕要跟着对拍"
+
+    # ⑤ nl_0007 段 1：尾随空格是全语料通例，⛔ 不许在单句上写成「多出一个空格」
+    p7 = payload("0007")
+    ens = [s["en"] for s in p7["segments"]]
+    assert ens[0].endswith(" ") and ens[1].endswith(" "), "本测试前提要重定"
+    assert "多出一个空格" not in zh(p7, "1"), "第 2 句同样有尾随空格，⛔ 单点第 1 句是失衡的"
+    assert "第 1、2 句行尾各多出一个空格" in p7["translator_notes"], \
+        "整份观察仍应保留该格式事实 —— ⛔ 改准不删光"
+
+    # ⑥ nl_0006：`transition` 在同一份 NL 里只许有一种译法（SPEC 第 4 条）
+    p6 = payload("0006")
+    blob = "".join(s["zh"] for s in p6["segments"])
+    assert "状态迁移" in blob, "段 1 的术语括注变了 —— 本测试前提要重定"
+    assert "转移" not in blob, "nl_0006 同时用了「迁移」与「转移」译 transition"
+
+
 def test_worksheet_warns_that_notes_never_assert_about_the_artifact():
     """⭐ 54 份工作单的提示区都要挂那句「提示不含制品断言、请自己去 §1.3 核对」。
 

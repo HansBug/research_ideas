@@ -89,6 +89,16 @@ class NoteOriginalRefError(RuntimeError):
     """
 
 
+class ZhLiteralDrop(RuntimeError):
+    """`zh` 把 `en` 里的**字面量**弄丢了（反引号表达式 / 阿拉伯数字）。⛔ 装载期即抛。
+
+    ⚠️ 前三道门全在管 `note` / `translator_notes`，⛔ 一道都不碰 `zh` —— 也就是说
+    **译文本身此前零机械覆盖**（见 [README.md](./README.md) §11.3 第 5 条）。⭐ 这一道只
+    补上其中能被**完美判定**的那一小片：守卫表达式与数字必须原样活到译文里。
+    ⛔ 「这句译得对不对」不可机械判定，⛔ 按 §11 不许进门，仍靠 SPEC 与人工复核。
+    """
+
+
 # ⛔ 制品指涉的**词法**判据。按 [CLAUDE.md](../../../../../../CLAUDE.md) §11，
 # 只有能被完美判定的约束才允许做成会一票否决的门，故这里放的全是**看字符串就能唯一判定**的东西：
 #
@@ -206,6 +216,54 @@ def original_ref_errors(payload, seg_ids=None):
     return out
 
 
+# ⛔ 译文侧的**字面量存活**判据。⚠️ 前三道门全作用于 `note` / `translator_notes`，
+# ⛔ `zh` 此前一个机械判据都没有。⭐ 这里只放两条**看字符串就能唯一判定**的
+# （[CLAUDE.md](../../../../../../CLAUDE.md) §11）：
+#
+# 1. **反引号表达式** —— `en` 里 `` `dist_to_front<25` `` 这样的整段必须在 `zh` 里逐字出现。
+#    ⭐ 反引号在本语料里**专用于**守卫表达式与标识符（SPEC 第 3 条要求它们保留英文原样），
+#    ⛔ 从不用于普通英文短语，故「必须原样出现」没有例外解释空间。
+# 2. **阿拉伯数字** —— `en` 里出现的每一串阿拉伯数字（含 `0.7` 这样的小数）必须在 `zh` 里
+#    出现。⚠️ 这条要成为**可完美判定**的，前提是 SPEC 第 10 条那句house rule：
+#    ⛔ 阿拉伯数字一律照抄成阿拉伯数字，⛔ 不许改写成中文数字。⭐ 有了那条，
+#    「25 在不在 zh 里」就只有一个正确答案；⛔ 没有那条，「二十五」算不算数就得靠人判。
+#    ⭐ 英文数词（`three` / `one`）不在本条管辖内 —— 它们不是阿拉伯数字，译作「三个」正常。
+#
+# ⚠️ **只判存在，⛔ 不判次数**：`nl_0009` 段 5 里 `25` 出现两次（散文一次、表达式一次），
+# ⛔ 中文按语序可能只写一次。⭐ 计数会引入需要解释的例外，⛔ 存在性不会。
+#
+# ⭐ **离线误伤面**（改动前的 55 段实测）：反引号 27 处、阿拉伯数字 75 处，⛔ 两条**各 0 拒**。
+#
+# ⛔ **量过但没做**的两条，理由见 [README.md](./README.md) §12.3：
+# 双引号标签（9 处 / 0 拒）—— 英文双引号不像反引号那样专用于标识符；
+# 句数对齐（55 段 / 0 不等）—— 缩写、省略号与〔…〕内的句读会让「不等即错」不成立。
+_ZH_BACKTICK = re.compile(r"`[^`\n]+`")
+_ZH_DIGITS = re.compile(r"\d+(?:\.\d+)?")
+
+
+def zh_literal_drops(payload):
+    """列出 `zh` 丢掉的 `en` 字面量，⛔ 干净时返回空表。
+
+    ⭐ 两条判据都只做子串比对，⛔ 不做任何语义解释；⛔ 只看同一条记录的 `en` 与 `zh`，
+    ⛔ 不看上下文。⚠️ 它抓不到「译错了」，⭐ 只抓「守卫表达式或数字在译文里没了」——
+    ⛔ 后者是 SPEC 第 3 / 第 10 条的硬性要求，⛔ 也是判读者拿译文比对制品时的锚点。
+    """
+    out = []
+    for s in payload.get("segments") or []:
+        en, zh, seg = s.get("en") or "", s.get("zh") or "", s.get("seg")
+        for lit in dict.fromkeys(_ZH_BACKTICK.findall(en)):
+            if lit not in zh:
+                out.append(f"segments[{seg}].zh 丢了 en 的反引号表达式 {lit}")
+        # ⚠️ 数字必须按**整串**比对，⛔ 不能用子串 —— `25` 里含 `2`，
+        # ⛔ 子串比对会让「2 千米」被译成「两千米」这种真丢失被 `dist_to_front<25` 掩盖掉。
+        zh_nums = set(_ZH_DIGITS.findall(zh))
+        for num in dict.fromkeys(_ZH_DIGITS.findall(en)):
+            if num not in zh_nums:
+                out.append(f"segments[{seg}].zh 丢了 en 的数字 `{num}`"
+                           f"（⛔ 阿拉伯数字须照抄，⛔ 不许改写成中文数字，见 SPEC 第 10 条）")
+    return out
+
+
 def digest(pair):
     """该 pair 的 NL 全文 sha256 前 12 位 —— 与 `overrides.json` 的键同口径。"""
     return hashlib.sha256(S.nl_text(pair).encode("utf-8")).hexdigest()[:12]
@@ -260,6 +318,9 @@ def _store():
        第四道管「讲了不该讲的（制品）」，⛔ 第五道管「讲原文但引错了」的**词法可判定子集**
        （句号越界 / 段 id 不存在 / 引文不逐字）。⛔ 语义部分（数错、范围说错）不可机械判定，
        按 §11 不进门，见 [README.md](./README.md) §11 的人工复核清单。
+    6. **译文丢了原文的字面量** —— 见 `zh_literal_drops()`。⚠️ 前五道全在管提示，
+       ⛔ 这是唯一一道作用于 `zh` 的门：守卫表达式与阿拉伯数字必须原样活到译文里。
+       ⛔ 「译得对不对」仍不可机械判定，见 [README.md](./README.md) §12 的人工复核清单。
     """
     by_sha8 = _pairs_by_sha8()
     trans, notes, tnotes = {}, {}, {}
@@ -286,6 +347,12 @@ def _store():
                 f"{name} 的判读提示里有指不到原文的引用（共 {len(bad_refs)} 处）—— "
                 f"⛔ 提示会被逐字印进 6 份工作单，引错位置等于把判读者指到别的句子上"
                 f"（见 README §11）：\n  " + "\n  ".join(bad_refs))
+        drops = zh_literal_drops(j)
+        if drops:
+            raise ZhLiteralDrop(
+                f"{name} 的译文丢了原文的字面量（共 {len(drops)} 处）—— "
+                f"⛔ 判读者要拿 `zh` 与制品逐条比对，⛔ 守卫表达式或数字一旦在译文里消失，"
+                f"⛔ 这条比对就无锚可依（见 README §12）：\n  " + "\n  ".join(drops))
         zh_map, note_map = {}, {}
         for (sid, txt), js in zip(segs, jsegs):
             if js.get("en") != txt:
