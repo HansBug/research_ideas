@@ -208,6 +208,30 @@ def main(argv: list[str] | None = None) -> int:
     #: ⛔ **归并判据从严**：⭐ 只在**同一条谓词内**、⭐ 且标准化后标题**完全相同且非空**时合并；
     #: ⛔ 不做模糊匹配（⚠️ 那会把不同论文错并，⭐ 而错并的方向是把数字做小、更难被发现）。
     #: ⭐ 每次合并都写进 `merged_by_title`，⛔ 便于审计。
+    #: ⭐⭐ **具名真实系统轴**（2026-08-12 新增）。
+    #:
+    #: ⚠️ ⛔ **为什么单列一条轴而不是把它并进 `real_systems`**：⭐ `real_systems` 数的是
+    #: **我们语料库 `sources/` 里的条目**，⛔ 而文献侧同样含大量具名真实系统
+    #: （⭐ A-7E OFP · TCAS II · Darlington SDS1 · Volvo XC90 …）。⛔ 把后者并进前者会改变
+    #: 一个已冻结列的语义；⭐ 单列则两边都能看，⛔ 且不动任何既有数字。
+    #:
+    #: ⛔ **判据写死，⛔ 不许事后放宽**：⭐ ① `named_system` 非空且不以 `NONE` 开头；
+    #: ⭐ ② 裁定者的 `_named_ok` **不得**为 `overstated`（⚠️ 实测 11 条被判夸大）。
+    #: ⛔ 未经裁定的条目不计入本轴。
+    named_systems: dict[str, set[str]] = defaultdict(set)
+    for path in args.external:
+        path = Path(path)
+        if not path.is_file():
+            continue
+        for f in json.loads(path.read_text(encoding="utf-8")):
+            ns = (f.get("named_system") or "").strip()
+            if not ns or ns.upper().startswith("NONE"):
+                continue
+            if f.get("_named_ok") == "overstated":
+                continue
+            #: ⭐ 同一系统在不同条目里的写法不同（⭐ 常带括注），⭐ 取首段做归一
+            named_systems[f["predicate"]].add(ns.split("（")[0].split(" —— ")[0].strip()[:60])
+
     merge_log: list[dict] = []
     for pred, srcs in evidence.items():
         by_title: dict[str, list[str]] = defaultdict(list)
@@ -243,6 +267,10 @@ def main(argv: list[str] | None = None) -> int:
                 "real_systems": len(real),
                 "literature": len(lit),
                 "total_sources": len(srcs),
+                "named_real_systems": sorted(named_systems.get(pred, ())),
+                "n_named_real_systems": len(named_systems.get(pred, ())),
+                #: ⭐ 语料侧条目 + 文献侧具名系统 —— ⛔ 两者都是「真实系统」，⭐ 只是来路不同
+                "real_systems_total": len(real) + len(named_systems.get(pred, ())),
                 "corpus_domains": sorted(domains),
                 "n_corpus_domains": len(domains),
                 "corpus_diversity_ok": _domain_diversity_ok(len(real), len(domains)),
