@@ -108,6 +108,32 @@ class TestParseTables:
         assert len(parse_tables(f)) == 1
 
 
+class TestMergeGlobDefault:
+    def test_default_glob_is_strict(self):
+        """⛔ 默认 glob 必须限定成 `A*_*.md`。
+
+        ⚠️ 检索 agent 会往同一目录写临时抓取物（实测有 `paper_clean.md`、
+        `atlas.txt`、`hal.html`）。⭐ `paper_clean.md` 是一篇论文的清洗正文 ——
+        ⛔ 里面的表格长得**很像**候选表（有 `|`、有标题、有年份），⛔ 被解析进来
+        不会报错，⭐ 只会让候选数虚高并混入不存在的条目。
+
+        ⚠️ **诚实记录**：本轮那个文件恰好贡献 0 行，⛔ 所以这道防护实际上没拦住
+        任何东西。⭐ 保留它是因为**下一个临时文件不一定这么无害**。
+        """
+        import argparse
+        import inspect
+
+        import merge_candidates  # noqa: PLC0415
+
+        src = inspect.getsource(merge_candidates.main)
+        assert '"A*_*.md"' in src, "⛔ 默认 glob 被放宽了"
+        assert 'glob("*.md")' not in src
+
+        ap = argparse.ArgumentParser()
+        ap.add_argument("--glob", default="A*_*.md")
+        assert ap.parse_args([]).glob == "A*_*.md"
+
+
 class TestBehavioralRegex:
     """⛔ 回归：`automat` 前缀会把「自动化」当成「自动机」。
 

@@ -100,11 +100,17 @@ def pick(rec: dict, *keys: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--src", type=Path, default=Path("/tmp/l3/search"))
+    #: ⛔⛔ 默认 glob **必须**是 `A*_*.md` 而不是 `*.md`。
+    #: ⚠️ 实测：检索 agent 会往同一目录写临时抓取物（`paper_clean.md`、`atlas.txt`、
+    #: `hal.html` …）。⛔ 用 `*.md` 会把 `paper_clean.md` 里的**论文正文表格**
+    #: 当成候选表解析进来 —— ⭐ 而且它长得很像候选表（有 `|`、有标题、有年份），
+    #: ⛔ **不会报错，只会让候选数虚高且混入不存在的条目**。
+    ap.add_argument("--glob", default="A*_*.md", help="⛔ 别放宽成 *.md")
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--markdown", action="store_true")
     args = ap.parse_args(argv)
 
-    files = sorted(args.src.glob("*.md"))
+    files = sorted(args.src.glob(args.glob))
     if not files:
         print(f"⛔ {args.src} 下没有 .md，检索还没产出。", file=sys.stderr)
         return 2
