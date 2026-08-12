@@ -104,7 +104,7 @@ A8 在自查中发现，它为两条候选**按惯例拼出**了 `10.1145/365262
 
 ## 4. ⛔ 复核未通过 / 待澄清
 
-### 4.1 ⛔⛔ S1 的 OSF 复现包：⭐ 我这边**取不到**
+### 4.1 ⚠️ S1 的 OSF 复现包：⭐ 我这边**取不到** —— ⭐⭐ **但关键数字已由 PDF 独立证实，⛔ 本条降级**
 
 A8 称「改走 OSF JSON API 拿到 `03.Data_Extraction.xlsx` —— 86 篇 × 43 字段」。⛔ 主 session 复现失败：
 
@@ -118,9 +118,77 @@ https://api.osf.io/v2/registrations/g5by9/                    → 404
 
 ⛔ **这一条要紧**：§3.2 / §3.3 那批形态分布（`Non-agentic 83/86`、`Grammar-constrained 1/86`、`42% 无基线对照`）是本轨**唯一有分母的分布**，⭐ M1 的建议会压在它上面。
 
-⭐ **处置**：已向 A8 追问确切请求路径、数字究竟读自 xlsx 单元格还是 PDF 图注、以及文件是否还在盘上（要 `sha256sum`）。⛔ **在澄清之前，§3.2 / §3.3 的数字一律标「来源受限、待复核」，⛔ 不得写成事实句。**
+⭐⭐ **处置：⛔ 不等 A8，主 session 自己去取 PDF 独立复算。** ⭐ 结果见下面 §4.2 —— ⭐ **那批数字逐条对上，⛔ 本条从 C 降为 M。**
 
-⚠️ **一个必须排除的可能**：⛔ 若那些数字是从 PDF **柱状图里目测**的，则它们不可靠 —— ⭐ 目测柱高与读单元格是两个证据级别。
+⭐ **仍然成立的部分**：⛔ **候选论文名单**（A8 说从 xlsx 过滤出 30/89 行、人工判后得 23 条）**依赖 xlsx**，⛔ 而 PDF 正文与 122 条参考文献里**没有 86 篇 primary study 名录**。⭐ 故：**分布数字可核，⛔ 名单来源待 A8 澄清。**
+
+### 4.2 ⭐⭐ 独立复算：⭐ **S1 的分布数字逐条对上，⛔ 且不是从柱高目测的**
+
+⭐ 主 session 自取 PDF（⛔ 不经 A8）：
+
+```bash
+curl -sL -A "Mozilla/5.0" -o S1.pdf "https://wilson008.github.io/papers/2026-llm4mde-sms.pdf"
+# http=200  size=1506033  application/pdf
+sha256sum S1.pdf
+# 98d17a600e95030b9d31866986b33a9e1a198b3c80df968df8841afb6b3a26b9
+python -m tools.pdf_extractor -i S1.pdf -o S1.txt -m text   # 49 页
+```
+
+⭐⭐ **关键性质：这些数字是图注里的显式 `n` 与 `%`，⛔ 不是柱高。** ⭐ 例如 Fig. 19 的文本层逐字就是 `Grammar-constrained` … `1  (1%)`。⭐ **「目测柱状图」这个风险不成立。**
+
+| A8 报的 | ⭐ PDF 逐字 | 出处 | 对上？ |
+| :-- | :-- | :-- | :-: |
+| Non-agentic 83 (96.5%) / Agentic 3 (3.5%) | `Non-agentic (n=83, 96.5%)` `Agentic (n=3, 3.5%)` | Fig. 20 | ⭐ ✅ |
+| Iterative 44 / Single-pass 35 / Pipeline 26 / Tool-augmented 26 | `n=44` `n=35` `n=26` `n=26`；⭐ 组合数 `14 30` `26 9` `2 24` `3 23` | Fig. 21 | ⭐ ✅ |
+| Grammar-constrained 仅 1 (1%) | `Grammar-constrained` … `1  (1%)` | Fig. 19 | ⭐ ✅ |
+| Metamodel retrieval 仅 1 (1%) | `Metamodel retrieval` … `1 (1%)` | Fig. 18 | ⭐ ✅ |
+| 微调 9/86 (10.5%) | `(n=9, 10.5%)` / `No fine-tuning (n=77, 89.5%)` | Fig. 17 | ⭐ ✅ |
+| **42% 无基线对照** | ⭐ 正文逐字 `Fig. 38 shows that 36 papers (42%) do not include any baseline at all, evaluating the proposed approach in isolation` | §RQ4 | ⭐ ✅ |
+| Model Generation 62/86 | ⭐ 正文逐字 `Model Generation is the most frequently addressed task, appearing in 62 of the 86` | §RQ1 | ⭐ ✅ |
+| Post-hoc human review 38 | `Post-Hoc Human Review(n=38)` | Fig. 附录 | ⭐ ✅ |
+
+⛔ **一处 A8 未报、⭐ 而对我们更重要的数**（见下面 §6）。
+
+---
+
+## 6. ⭐⭐ 主 session 自己从 S1 挖出的、⛔ 比 A8 报的更要紧的四个数
+
+⭐ 全部逐字取自上面那份已核哈希的 PDF。
+
+### 6.1 ⭐⭐ **`Model Validation` 只有 11/86** —— ⭐ 这是我们这个任务的真实分母
+
+⭐ Fig. 2 的 MDE 任务分布（N=86）逐字：
+
+| 任务 | 篇数 |
+| :-- | --: |
+| Model Generation | **62** |
+| Model Completion / Repair | 12 |
+| ⭐⭐ **Model Validation** | ⭐⭐ **11** |
+| Model Transformation | 10 |
+| Code Generation | 5 |
+| Model Migration | 3 |
+| DSL Engineering | 3 |
+| Metamodeling | 1 |
+
+⭐⭐ **这一格是本轨到目前为止最有用的单条事实。** ⭐ 它同时说明两件事：⭐ **我们做的事在 LLM4MDE 里确实是少数派（11/86 ≈ 12.8%）**，⛔ **但不是空白** —— ⚠️ 所以「据我们所知未见」这类话仍然不能随便写（⭐ 与 L1/L2 的既有裁定一致）。
+
+⚠️ **⛔ 注意这 11 篇里有多少是行为模型、多少是类图 / 元模型，S1 没有交叉列出。** ⭐ 那正是 L3 要自己去数的。
+
+### 6.2 ⭐ Model Validation 这一类的**自我披露率反常地高**
+
+⭐ 正文逐字：`Model Validation papers discuss approach limitations in all cases (100%) and also discuss LLM limitations at a comparatively high rate (91%)`。
+
+⭐ 而 `Code Generation` 那一类 `report low reproducibility support (20%)`。⭐ **做验证的人对自己方法的局限更诚实** —— ⭐ 这对我们怎么写 −15.82pp 是个正面信号：⛔ 这一类的读者预期本来就包含「你要讲清局限」。
+
+### 6.3 ⚠️ **成本几乎没人评**：`only 21 papers evaluate the computational or financial cost of their approach, whereas 65 do not`
+
+⚠️ ⭐ 我们手上有一个 **212.6×** 的成本比 —— ⭐ 在一个 **76%（65/86）不谈成本**的领域里，⭐ 这既是可写的差异化，⛔ 也意味着**没有同行数字可比**。
+
+### 6.4 ⭐ 可复现支持 61/86，⛔ 但威胁有效性只有 49/86
+
+⭐ 正文逐字：`61 papers report reproducibility support` · `Threats to validity is provided in 49 papers, meaning that around half of the primary studies still` …
+
+⚠️ ⛔ **「report reproducibility support」是论文自陈，⛔ 不等于我们能取到东西。** ⭐ L3 的资产核验就是要量化这两者之间的差 —— ⭐ 若自陈 71% 而实际可取远低于此，⭐ **那个差本身是一条可写的发现**。
 
 ---
 
@@ -128,4 +196,4 @@ https://api.osf.io/v2/registrations/g5by9/                    → 404
 
 | 时间 | 动作 |
 | :-- | :-- |
-| 2026-08-13 | 建档。核 A8 的 12 个标识符（12/12 真）· 核 S2 引用错误（属实）· 验资产工具对 3 个已知真值（3/3 哈希一致）· 核 A8 三个正向 artifact（3/3 非空壳）· ⛔ **OSF 复现包复现失败，已追问** |
+| 2026-08-13 | 建档。核 A8 的 12 个标识符（12/12 真）· 核 S2 引用错误（属实）· 验资产工具对 3 个已知真值（3/3 哈希一致）· 核 A8 三个正向 artifact（3/3 非空壳）· ⚠️ OSF 复现包取不到，⭐ 但自取 S1 PDF 独立复算，⭐ 8 个分布数字逐条对上（⛔ 且是图注显式 n/%，非目测）· ⭐⭐ 另挖出 `Model Validation 11/86` 等四个 A8 未报的数 |
