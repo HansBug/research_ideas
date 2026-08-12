@@ -210,7 +210,7 @@ scope: [x] 越界·时钟或不变式
 
 #### 3.6.4 [validate.py](./validate.py) 在这一块上会报什么
 
-⚠️ **下表力求列全**：⛔ 2026-08-13 之前它漏了三条 `E`（`nl_evidence = 无` 撞 NL 依据层、段 id 不存在、`primary_predicate` 越表），⭐ 判读者按表准备却被没写进文档的门挡住。⭐ 现已补齐并与 [validate.py](./validate.py) 逐条对齐。
+⚠️ **下表力求列全**：⛔ 2026-08-13 之前它漏了三条 `E` 与一条 `W`（`nl_evidence = 无` 撞 NL 依据层、段 id 不存在、`primary_predicate` 越表；另漏了 `basis = 模型自身` 却引了段 id 的那条 `W`），⭐ 判读者按表准备却被没写进文档的门挡住。⭐ 现已补齐并与 [validate.py](./validate.py) 逐条对齐。
 
 | 情形 | 级别 | 判据类型 |
 | :-- | :-: | :-- |
@@ -224,6 +224,7 @@ scope: [x] 越界·时钟或不变式
 | `generated_side` 引用的行号超出作者源总行数 | `E` | 确定性 |
 | `basis = NL欠指定`，而 `statement` 里出现「违反」类措辞 | `W` | ⚠️ 词法，会误伤 |
 | `basis = 参考模型`（依据强度不足，待裁定） | `W` | 确定性提示，⛔ 但不阻塞 |
+| `basis = 模型自身`，`nl_evidence` 却引了本 pair 的段 id | `W` | 确定性提示（⭐ 两者不矛盾，⛔ 但若其实靠 NL 才成立就该改 `basis`） |
 | 勾了 `界内`，而 `statement` 命中时钟 / 并发词 | `W` | ⚠️ 词法，会误伤 |
 | `nl_evidence` 有内容但认不出本 pair 的段 id | `W` | 确定性提示（⭐ 写段 id 才能机械回链） |
 | 推不出 `element_of_M`（`generated_side` 没给行号，`primary_predicate` 也定不了） | `W` | 确定性提示 |
@@ -233,20 +234,24 @@ scope: [x] 越界·时钟或不变式
 
 ⚠️⚠️ **`nl_evidence = 无` 这条门只对 `nl_named` / `nl_contradiction` 生效** —— ⛔ 它此前写的是「除 `wellformedness` 外都要 NL 依据」，⛔ 于是把 `over_specification` 一并拦下，造出一个**不可满足**的门（[CLAUDE.md](../../../../../CLAUDE.md) §13 的空交集）。判据来自台账自己的 `layer_basis` 原话：`over_specification` = 「生成方凭空多出，且造成可断言的负面后果」，⛔ **一个字都没提 NL**；REPORTABLE 98 条里这一层的 6 条也有 **5 条 `nl_evidence` 为空**，⭐ 那是设计如此。⛔ 旧门给的两条出路都走不通 —— 改 `layer = wellformedness` 是误分类（良构性 ≠ 凭空多出），「给出段 id」按定义不存在 —— ⛔ 唯一能过门的做法是把 `layer` 留空，⛔ 于是这一层在新增条目里被系统性抹掉，无法与既有 98 条并表。
 
-⭐ **按 §13 的要求，写出一个「满足本门且同时满足既有各门」的具体形状**（⛔ 它由 [test_relabel.py](./test_relabel.py) 的 `test_over_specification_has_a_shape_that_satisfies_every_gate` 机械钉住，`E` 与 `W` 都必须为空）：
+⭐ **按 §13 的要求，写出一个「满足本门且同时满足既有各门」的具体形状**（⛔ 它由 [test_relabel.py](./test_relabel.py) 的 `test_over_specification_has_a_shape_that_satisfies_every_gate` 机械钉住，该条目自身的 `E` 与 `W` 都必须为空）：
+
+⚠️ ⛔ **与 §3.6.3 同一条纪律：形状仍取自永久排除的 `0008`。** ⛔ 不得用任何**在评 pair** 的真实制品当样例 —— 那等于把 `basis` / `layer` / `direction` / `depth` 该怎么归类的**答案**先发给该 pair 的判读者，而字段归类恰恰是本轮要人自己做的判断（[CLAUDE.md](../../../../../CLAUDE.md) §3.5.-1 的出处问题：产物里若出现一条与 README 逐字雷同的记录，「它是人独立归类的吗」就无法回答）。⭐ 这条纪律由 `test_readme_gate_shape_example_stays_off_the_graded_pairs` 机械钉住。
 
 ```text
-statement: 生成侧凭空多出一条通往 ClampingLoseState 的迁移，该状态没有任何出边，进入后再也回不到主流程
-generated_side: :14 OperationalState --> ClampingLoseState
+statement: 生成侧凭空多写了一条进入 fork1 的边：第 5 行已经在 TurnOn 内部给出一条通往 fork1 的初始边，第 8 行又给出 TurnOn --> fork1。原文只要求「TurnOn 之后到 fork1」这一件事。多出来的那条造成可断言的后果：控制一进入 TurnOn 就被第 5 行的初始边带走，第 8 行那条边此后没有任何执行路径能走到，属不可达边。
+generated_side: :8（TurnOn --> fork1），另见 :5
 basis: 模型自身
 nl_evidence: 无
 layer: over_specification
 scope: 界内
 direction: reachability
-depth: 中层
+depth: 深层
 ```
 
-⭐ 关键是 `basis = 模型自身` 与 `layer = over_specification` **可以并存**：`basis` 说依据来自作者源（不看 NL 就能看出这个元素是多出来的、且后果可断言），`layer` 说它属于台账的「凭空多出」那一层。⛔ 这两层都不要求 NL 逐字依据，故 `nl_evidence` 写 `无` 是**正确答案**，不是漏填。
+⭐ 关键是 `basis = 模型自身` 与 `layer = over_specification` **可以并存**：`basis` 说依据来自作者源（不看 NL 就能看出这条边是多出来的、且后果可断言），`layer` 说它属于台账的「凭空多出」那一层。⛔ 这两层都不要求 NL 逐字依据，故 `nl_evidence` 写 `无` 是**正确答案**，不是漏填。
+
+⚠️ 拿它和 §3.6.3 那条对照着看更清楚：**两条讲的是同一份材料里 `fork1` 附近的事，⛔ 但不是同一条缺陷、也不落在同一层** —— §3.6.3 说的是「`fork1` 归属没声明」（良构性，`wellformedness`），这一条说的是「多写了一条边、且它不可达」（凭空多出，`over_specification`）。⭐ 现象相邻不等于层相同，`layer` 判的是缺陷种类，⛔ 不是现象位置。
 
 ## 四、命令
 
@@ -331,10 +336,12 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | ⛔ 无 `primary_predicate`（不可分层） | 11 | `0025`(2) `0034`(2) `0035`(2) `0005` `0015` `0033` `0045` `0055` |
 | ⛔ 无任何断言表达式 | 11 | 同上 |
 | ⚠️ 主断言未被复算确认（`replay ≠ captured`） | 12 | 上述 11 条 + `0007`(1) |
-| ⚠️ 非 wellformedness 层却无 `nl_evidence` | 7 | `0002` `0005` `0007` `0024` `0032` `0039` `0046` |
+| ⚠️ `nl_named` / `nl_contradiction` 层却无 `nl_evidence` | 2 | `0005` `0024` |
 | ⚠️ 深度存疑（主谓词属存在性类且无佐证断言） | 18 | `0009`(3) `0024`(3) `0005`(2) `0014`(2) `0029`(2) `0049`(2) `0030` `0034` `0039` `0059` |
 
 ⚠️ 「无 primary」「无断言」「replay 未确认」这三组高度重合 —— 它们**是同一批 11 条记录**，只是从三个角度看。⛔ 不要把它们相加当成 34 条。
+
+⚠️ **`nl_evidence` 那一行 2026-08-13 由 7 条收窄为 2 条**：旧判据是「除 `wellformedness` 外都标」，⛔ 于是把 `over_specification` 的 5 条（`EIS-0002-03` `EIS-0007-03` `EIS-0032-02` `EIS-0039-02` `EIS-0046-03`）也标了出来 —— ⛔ 而那一层的 `layer_basis` 一个字不提 NL，`nl_evidence` 为空是**设计如此**（见 §3.6.4 结尾）。⛔ 旧文案渲染在这 5 条的**裁决块正上方**，与 [validate.py](./validate.py) 的同一道门给出**相反**的教法（[CLAUDE.md](../../../../../CLAUDE.md) §13 第 2 条）。⭐ 现在两处共用 `NF.NL_GROUNDED_LAYERS` 这一个真源。
 
 ## 七、⭐ 译文暴露的台账问题
 
@@ -346,7 +353,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 13 条 `nl_contradiction` 中有 2 条的 `nl_evidence` 是空串，⛔ 而它们的 `layer_basis` 都写着「**与 NL 的显式义务矛盾**」。⭐ 逐条复核后，**两条都是记账遗漏** —— 依据都躺在各自的 `statement` 正文里、没抄进字段。⚠️ 但两条的**待裁定点不同**：`EIS-0005-02` 的依据是从迁移拓扑**推断**出来的（故 `layer` 归属待裁），`EIS-0024-03` 引的是原文**逐字**一句（故 `layer` 站得住，待裁的是那一句本身欠指定）。⛔ 下面分开写。
 
-**`EIS-0005-02`**（pair `0005`，NL10 微波炉，`decided_by = lexical`，`direction = hierarchy`）：`nl_evidence` 与 `upstream.ledger_statements` **都是空的**。⭐ 这是**记账遗漏** —— 依据躺在 `statement` 正文里（它逐句点了 NL 第 4/5/6/8 句），⛔ 没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它捞了出来。⭐ 重标时应把 `nl_evidence` 补成对应段 id 并附原句。
+**`EIS-0005-02`**（pair `0005`，NL10 微波炉，`decided_by = lexical`，`direction = hierarchy`）：`nl_evidence` 与 `upstream.ledger_statements` **都是空的**。⭐ 这是**记账遗漏** —— 依据躺在 `statement` 正文里（它逐句点了 NL 第 4/5/6/8 句），⛔ 没抄进字段，于是机械检查（§6.3 的「`nl_named` / `nl_contradiction` 层却无 `nl_evidence`」）把它捞了出来。⭐ 重标时应把 `nl_evidence` 补成对应段 id 并附原句。
 
 ⭐ **一个属实、且对判读有用的事实**：译者在不知道有这条记录的情况下独立确认，**该份 NL 全篇零处提及包含关系** —— 不出现 `composite state` / `substate` / `inside` / `within` / `contains` / `nested` 中的任何一个，唯一的 `inside` 是第 3 句「placing an item **inside** the microwave」（把物品放进炉腔），⛔ 与状态层次无关。译者给这份 NL 的全局提示原话是：「本份 NL 的层次判读证据全部是**间接**证据；判读者需自行裁定「互为迁移目标」是否蕴含「不得互为祖先后代」—— **原文本身没有回答这个问题**」。
 
@@ -357,7 +364,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 ⭐ **那么这条该怎么办**：`layer` 落 `nl_contradiction` 还是 `nl_named`，取决于判读者如何裁定「NL 把二者当互斥替代配置」是**显式义务**还是**从迁移拓扑推断出来的读法** —— ⚠️ 这一步原文没有回答，⛔ 故本节**不预设结论**，只标为待裁定。⛔ 若有人要改这条的 `layer`，论证必须建立在第 4/5/6/8 句上，⛔ 不得再用「NL 零处提及包含关系」这个词汇缺失来推。
 
-**`EIS-0024-03`**（pair `0024`，NL01 列车，`decided_by = batch5_spotcheck`，`direction = hierarchy`）：⭐ **独立复核结论：它与上一条同属记账遗漏，⛔ 但待裁定点不同。** 该记录的 `statement` 逐字引了 NL 第 10 句「remains in the Approaching substate ... until it is ready to stop or decelerate」，⭐ 而原文第 10 句确为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」—— **引文属实，省略号只略去了 while nearing the destination**。⭐ 所以它的依据**确实落在 NL 上**，⛔ 不是模型自身、也不是参考模型；`nl_evidence` 为空纯属**记账遗漏**：证据躺在 `statement` 正文里，没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它捞了出来。
+**`EIS-0024-03`**（pair `0024`，NL01 列车，`decided_by = batch5_spotcheck`，`direction = hierarchy`）：⭐ **独立复核结论：它与上一条同属记账遗漏，⛔ 但待裁定点不同。** 该记录的 `statement` 逐字引了 NL 第 10 句「remains in the Approaching substate ... until it is ready to stop or decelerate」，⭐ 而原文第 10 句确为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」—— **引文属实，省略号只略去了 while nearing the destination**。⭐ 所以它的依据**确实落在 NL 上**，⛔ 不是模型自身、也不是参考模型；`nl_evidence` 为空纯属**记账遗漏**：证据躺在 `statement` 正文里，没抄进字段，于是机械检查（§6.3 的「`nl_named` / `nl_contradiction` 层却无 `nl_evidence`」）把它捞了出来。
 
 ⚠️ **但结论要连限定一起写**：NL 第 10 句只给了**驻留义务**，⛔ 它**没有**给出离开 Approaching 的 trigger（触发）、guard（守卫）或目标状态 —— 译者对该段的判读提示逐字写着「无法映射到任何具体迁移；判读「缺失迁移」时本句不构成明确约束」。⭐ 「这条边违反了它」这个结论还需要两步 NL 未提供的推导：其一，UML 下指向外层复合状态的迁移等价于该复合状态的自迁移，会重跑内部初始而把阶段重置回 `Accelerating`；其二，作者侧标签 `exit/Send` 的触发条件是什么，原文与模型都没说。⭐ 故重标时：`layer = nl_contradiction` **站得住**，`nl_evidence` 应补成 `NL-L010` 并附原句，⛔ 同时须标注该句**欠指定**（见下一节）。
 
@@ -408,7 +415,11 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 | 时间 | 改动 | 理由 |
 | :-- | :-- | :-- |
-| 2026-08-13 | ⛔ **译文的 `note` / `translator_notes` 全量剥离制品断言**（9 份共 100 处替换），[TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 增第 8 条硬纪律，[nl_zh.py](./nl_zh.py) 加装载期机械门 `artifact_leaks()`，工作单提示区加制品免责声明 | ⛔ 一份 NL 服务 6 个 pair，讲制品的提示对其中 5 份必然为假 —— 见下方 §十 |
+| 2026-08-13 | ⛔ [sources.py](./sources.py) 的 `no_nl_evidence` 风险标记由「除 `wellformedness` 外都标」收窄为 `NF.NL_GROUNDED_LAYERS`（§6.3 该行由 7 条变 **2 条**） | ⛔ 旧文案渲染在 5 条 `over_specification` 的**裁决块正上方**，与 [validate.py](./validate.py) 同一道门给出相反教法（[CLAUDE.md](../../../../../CLAUDE.md) §13 第 2 条）—— ⛔ 判读者会照上面那句判 |
+| 2026-08-13 | ⛔ §3.6.4 的「可满足形状」样例由**在评 pair** `0001` 的真实制品换成永久排除的 `0008`，并加测试钉住 | ⛔ 旧样例把 `basis` / `layer` / `direction` / `depth` 的**归类答案**先发给了 `0001` 的判读者，而归类正是本轮要人做的判断（§3.5.-1 的出处问题） |
+| 2026-08-13 | ⛔ 译文 `note` / `translator_notes` 再修 **4 处**：`nl_0001` 一条关于原文的**假事实**（「三条迁移中也只有一条带触发词」）+ `clamping lose` 举例；`nl_0009` 两处从制品反推的举例 | ⛔ 前者是剥离时**新写错**的（NL 第 2 句三条迁移各自都带触发），且与同段自己的话打架；后两者违反 SPEC 第 8 条（举例只可能来自某一份制品） |
+| 2026-08-13 | ⭐ 新增 §10.6：更正「误伤面已量化」的说法（⛔ 数字 8/9、60 → **9/9、96**；⛔ 方法：那量的是**查全**不是误伤面），并补一次 gate-naive 误伤探针 | ⛔ 在已知脏的文本上跑量的是查全；「修后 0」是自证（剥离脚本对着门迭代）——[CLAUDE.md](../../../../../CLAUDE.md) §3.5 第 5 条 |
+| 2026-08-13 | ⛔ **译文的 `note` / `translator_notes` 全量剥离制品断言**（9 份共 101 处替换），[TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 增第 8 条硬纪律，[nl_zh.py](./nl_zh.py) 加装载期机械门 `artifact_leaks()`，工作单提示区加制品免责声明 | ⛔ 一份 NL 服务 6 个 pair，讲制品的提示对其中 5 份必然为假 —— 见下方 §十 |
 | 2026-08-13 | ⛔ `nl_evidence = 无` 与 `layer` 冲突的那道 `E` 由「除 `wellformedness` 外都拦」收窄为「只拦 `nl_named` / `nl_contradiction`」（新增 `NF.NL_GROUNDED_LAYERS`）；§3.6.4 的门清单补齐此前漏掉的三条 `E` | ⛔ 旧门让 `over_specification` **无解**（CLAUDE.md §13 的空交集）：该层的 `layer_basis` 一个字不提 NL，台账既有 6 条里 5 条 `nl_evidence` 本就为空 |
 | 2026-08-13 | ⛔ 撤回 §7.1 关于 `EIS-0005-02` 的推论，并把 [newfields.py](./newfields.py) docstring、[validate.py](./validate.py) 报错正文、工作单 §5 说明里以它为例的 `basis` 分层 rationale 全部换成抽象表述 | ⛔ 「NL 零处提及包含关系 ⇒ 依据在参考模型上」是 non sequitur；⭐ 分层设计本身对、该留，⛔ 但不该靠一个立不住的案例支撑 |
 | 2026-08-13 | §5 新增登记块由 8 字段平铺改为**三层结构**：新增 `basis`（依据层，4 选 1）与 `scope`（边界层，4 选 1），必填由 5 项变 7 项（其中 4 项是勾选）；越界条目只需 ① 事实层 + `scope`，且 `in_scope = False`、**不计入缺陷统计**；[validate.py](./validate.py) 增加依据自洽检查与 `scope` 感知的边界检查 | 依据强度此前无处记录（§7.2 的建议落地），且越界的东西此前**无处可写** —— 只能不记，于是「这份 NL 要求了 $M$ 之外的东西」被伪装成「没人发现」 |
@@ -463,7 +474,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 ⭐ **原则：`note` / `translator_notes` 只讲原文，⛔ 一个字都不讲制品。** ⭐ 这与 [TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 的本意一致（译者的职责是转述原文与标歧义），⛔ 是执行时越界了。
 
-1. ⛔ **剥离**：9 份 JSON 共 **100 处**替换，删掉所有「模型里有 / 没有 X」「$A$ 中无 Y」「不存在以 Z 为目标的迁移」「模型补出了…」「模型记作…」、文件名 `plantuml.puml`、以及原文未点名的标识符（`InitialState`、`FormationAdjustment`、`R45RouteToken` 一类）。
+1. ⛔ **剥离**：9 份 JSON 共 **101 处**替换（⭐ 89 + 11 + 1 三批，逐份 7 / 12 / 11 / 10 / 1 / 7 / 17 / 8 / 28），删掉所有「模型里有 / 没有 X」「$A$ 中无 Y」「不存在以 Z 为目标的迁移」「模型补出了…」「模型记作…」、文件名 `plantuml.puml`、以及原文未点名的标识符（`InitialState`、`FormationAdjustment`、`R45RouteToken` 一类）。
 2. ⭐ **保留**：一切**关于原文**的观察 —— 「原文未给该迁移的触发条件」「全篇无情态动词」「单位未声明」「这一句有两种读法」。⚠️ 剥离**不等于删光**：这些欠指定观察正是判读的核心材料，⛔ 删了就把 §7.2 那七种形态一起删了。
 3. ⭐ **改成把核对权交回读者**：原本「模型中不存在 X」的地方，现在写「⭐ 本句是否被满足须自行到 §1.3 逐行核对，⛔ 本提示不代为回答」。
 4. ⭐ **声明同步**：工作单提示区新增一句「⚠️⚠️ 提示里也不含任何关于本 pair 制品的断言」，并指向 §1.3（作者源，带行号）与 §4（按本 pair 现算的清单）。⛔ 只改数据不改声明会留下更糟的局面 —— ⛔ 旧声明会继续劝读者不要去核。
@@ -478,3 +489,25 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 ⚠️ **两条判据都只作用于 `note` 与 `translator_notes`，⛔ 不碰 `zh`** —— 译文必须逐字跟着原文走，原文若真写了「模型」就照译。
 
 ⛔ **门过了不等于合规。** ⭐ 语义部分（不含上述词却仍在断言制品）靠 SPEC 第 8 条纪律与人工评审兜底。⭐ 回归测试见 [test_relabel.py](./test_relabel.py) 的 `test_no_translation_note_mentions_the_artifact`（正面：现有 9 份必须干净）与 `test_artifact_leak_gate_actually_fires` / `test_artifact_leak_raises_at_load_time`（反面：门必须真的拦得住，⛔ 且不许恒抛）。
+
+### 10.6 ⛔ 这道门量过什么、⛔ 没量过什么（⚠️ 不要把两者混为一谈）
+
+⚠️ **本节存在的理由**：本轮修复报告的初稿写过一句「误伤面已离线量化 —— 修前 9 份中 8 份命中（约 60 个位点），修后 0」。⛔ **那句话两处都不对**，就地更正如下（[CLAUDE.md](../../../../../CLAUDE.md) §3.6）。
+
+| 量了什么 | 口径 | 实测 |
+| :-- | :-- | --: |
+| ⭐ **查全**（门能抓住多少**已知**泄漏） | 对 `6fdc1c3f` 的 9 份**修前**译文跑 `artifact_leaks()` | **9 / 9 份命中，共 96 个位点** |
+| ⛔ **误伤面**（门会拒掉多少**本该通过**的文本） | —— | ⚠️ 见下 |
+
+⛔ **数字更正**：修前是 **9/9 份、96 位点**，⛔ 不是 8/9、60。⭐ `nl_0004` 语义上确是唯一干净的一份（§10.3 的 8/9 说的是**制品断言**这件事，那个数没错），⛔ 但它的 `note` 里写了 `PlantUML`，词法门照样命中 2 处 —— ⚠️ **「语义干净的份数」与「词法门命中的份数」是两个量，⛔ 不能互相顶替。**
+
+⛔ **方法更正（⭐ 这条比数字重要）**：上面那 96 个位点是在**已知脏**的文本上跑出来的，⭐ 它量的是**查全**，⛔ 不是误伤面。⛔ 而「修后 0」更不能算证据 —— **剥离脚本本就是对着这道门迭代出来的**，用它的产物去证明门不误伤属于[自证式验证](../../../../../CLAUDE.md)（§3.5 第 5 条）。
+
+⭐ **真正的误伤面要拿门没见过的、本该通过的文本来测。** 本轮做了一次这样的探针，⚠️ 但它有明确局限，⛔ 不足以当作「误伤面已量化」：
+
+- **语料**：9 份译文的 **`zh` 字段**，共 **55 段**。⭐ 选它的理由是它**gate-naive** —— 剥离那 101 处改动**一个字都没碰 `zh`**（机械对拍：55 段全部逐字节未变），所以这批文本从未对着这道门迭代过；⭐ 而按 SPEC，`zh` 与 `note` 一样是**只讲原文**的文本。
+- **做法**：把两条判据原样套到 `zh` 上（⚠️ 门实际**不**作用于 `zh`，这里只是借它当语料）。
+- **结果**：**4 / 55 段（7%）会被拒**。逐条看：`nl_0001` 段 1 与 `nl_0006` 段 1 命中禁用词「模型」，⛔ 而那是因为**原文自己写着 `state machine model`** —— ⭐ 这两条是**确凿的误伤**；`nl_0004` 段 8 命中 `plantuml`，它谈的是原文把 `Entry` 写成大写、与 UML / PlantUML 的关键字大小写不符，⚠️ 按「只讲原文」算也偏误伤；`nl_0003` 段 3 出现「模型侧」，⭐ 那是**真命中**。⭐ 即 **3 处误伤 + 1 处真命中**。
+- **推论**：⛔ 这道门对「原文本身就在谈 model / PlantUML」这一类**合规**表述**确有误伤**，⭐ 量级约 5%（3/55）。⚠️ 撞上时的正确做法是改写措辞（如「原文用语 `state machine model`」→ 说成「原文第 1 句给出的被建模对象名」），⛔ 不是放宽门。
+
+⚠️ **这个探针不能被当成误伤面的定论**：① 语料是 `zh` 而不是 `note`，两者体裁不同；② `n = 55` 太小；③ 「哪几条算误伤」是我读出来的，⛔ 不是机械判定。⭐ 结论只能写成：**误伤确实存在、量级约 5%、成因单一（原文自己提到 model / PlantUML）**，⛔ 而不是「误伤面已量化」。

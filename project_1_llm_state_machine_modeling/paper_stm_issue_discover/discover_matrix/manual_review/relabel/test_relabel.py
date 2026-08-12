@@ -441,6 +441,43 @@ def test_no_translation_note_mentions_the_artifact():
         f"{n}:\n  " + "\n  ".join(v) for n, v in sorted(bad.items()))
 
 
+def test_nl_0001_note_does_not_miscount_the_triggers_the_source_text_gives():
+    """⛔ I-A 回归：剥离制品断言时，`nl_0001` 的转向**新写出了一条关于原文的假事实**。
+
+    ⚠️ 逐字（当时印在 `0001` `0011` `0021` `0031` `0041` `0051` 六份工作单上）：
+    「…在原文中都没有依据，**三条迁移中也只有一条带触发词**」。⛔ 它是假的 ——
+    NL 第 2 句给出的三条迁移**各自都带一个触发**（`receives a brake signal` /
+    `the signal transmission fails` / `the signal feedback is sent`），
+    ⭐ 没有触发的是**第 3 句**那条（braking → brake caliper clamping）。
+    ⛔ 而且它与同一段自己的话打架：前面刚写「原文三句只点到…**三个信号**」。
+
+    ⚠️ 危害形态与 C-① 同类，只是对象从制品换成原文：判读者据此可能记下一条并不存在的
+    缺陷（「制品给两条迁移编了原文没给的触发」），⛔ 而这类记录会进入重标产物。
+    """
+    payload = next(pl for _, pl in nl_zh._raw().values()          # noqa: SLF001
+                   if pl["nl_id"] == "0001")
+    tn = payload["translator_notes"]
+    seg2 = next(s["en"] for s in payload["segments"] if s["seg"] == "2")
+    seg3 = next(s["en"] for s in payload["segments"] if s["seg"] == "3")
+
+    # ⭐ 先把「事实是什么」逐字钉在原文上，⛔ 不靠记忆
+    for cue in ("receives a brake signal",
+                "the signal transmission fails",
+                "the signal feedback is sent"):
+        assert cue in seg2, f"NL 第 2 句里找不到触发 {cue!r}"
+    assert not re.search(r"\b(when|if|once|upon|after receiv)", seg3, flags=re.I), \
+        "NL 第 3 句居然带触发词了 —— 本测试的前提要重定"
+
+    # ⛔ 那句假事实不许在（含换个说法再犯）
+    assert "三条迁移中也只有一条带触发词" not in tn
+    assert not re.search(r"三条迁移[^。；]{0,12}(只有一条|仅一条|只有 ?1 ?条)", tn), tn
+
+    # ⭐ 全组六份工作单里也不许残留
+    for pair in ("0001", "0011", "0021", "0031", "0041", "0051"):
+        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
+            assert "只有一条带触发词" not in fh.read(), f"{pair}.md 还印着那句假事实"
+
+
 def test_artifact_leak_gate_actually_fires():
     """⛔ 反面：门必须**真的**拦得住 —— ⚠️ 只测「干净时不报」等于没测。
 
@@ -554,12 +591,17 @@ def _entry(pair, idx=1, **over):
     return "\n".join(out)
 
 
-def _validate_new(pair, *entries):
+def _validate_new(pair, *entries, allow_ledger=False):
     """⭐ 走真实链路：`parse_new` 解析 → `validate_pair` 校验。返回 Report。
 
     ⛔ 固定用台账 0 条的 pair，否则「台账条目未裁决」的 E 会淹掉被测信号。
+
+    ⚠️ `allow_ledger=True` 只给**永久排除**的 `00x8` 用：它们有台账条目却**没有工作单**，
+    所以喂空 `ledger` 必然带出「找不到裁决区」的 `E`。⭐ 调用方须自行用
+    `_msgs_for()` 按条目 key 过滤，⛔ 不许直接看全表。
     """
-    assert not S.ledger_records(pair), f"{pair} 有台账条目，不适合当本测试的载体"
+    if not allow_ledger:
+        assert not S.ledger_records(pair), f"{pair} 有台账条目，不适合当本测试的载体"
     data = {
         "pair": pair,
         "summary": {"本 pair 整体判断": {"chosen": ["台账在本 pair 上够用"], "options": []}},
@@ -574,6 +616,12 @@ def _validate_new(pair, *entries):
 
 def _msgs(rep, level=None):
     return [i["msg"] for i in rep.items if level is None or i["level"] == level]
+
+
+def _msgs_for(rep, key, level=None):
+    """⭐ 只取某一条记录（按 `key`）上的消息 —— ⛔ 用于台账非空的载体 pair。"""
+    return [i["msg"] for i in rep.items
+            if i["key"] == key and (level is None or i["level"] == level)]
 
 
 def test_new_issue_field_block_round_trips_through_collect():
@@ -1173,20 +1221,111 @@ def test_over_specification_has_a_shape_that_satisfies_every_gate():
 
     ⭐ 下面这条就是那个「具体形状」，⛔ 它必须同时过**全部**门：`E` 与 `W` 都为空。
     """
-    shape = _entry(
-        "0001",
-        statement="生成侧凭空多出一条通往 ClampingLoseState 的迁移，"
-                  "该状态没有任何出边，进入后再也回不到主流程",
-        generated_side=":14 OperationalState --> ClampingLoseState",
-        basis="模型自身",          # ⭐ 依据只在作者源上，⛔ 不在 NL 上
-        nl_evidence="无",          # ⭐ 按定义 NL 对这个凭空多出的元素什么也没说
-        layer="over_specification",
-        scope="界内",
-        direction="reachability",
-        depth="中层")
-    rep = _validate_new("0001", shape)
-    assert _msgs(rep, "E") == [], _msgs(rep, "E")
-    assert _msgs(rep, "W") == [], _msgs(rep, "W")
+    fields = _readme_gate_shape()
+    shape = "\n".join(["### NEW-0008-01"] + [f"{k}: {v}" for k, v in fields.items()])
+    rep = _validate_new("0008", shape, allow_ledger=True)
+    assert _msgs_for(rep, "NEW-0008-01", "E") == [], _msgs_for(rep, "NEW-0008-01", "E")
+    assert _msgs_for(rep, "NEW-0008-01", "W") == [], _msgs_for(rep, "NEW-0008-01", "W")
+    # ⛔ 形状本身必须还是那一组取值 —— 换了任何一项，这条测试就不再是 §13 要的那个证明
+    assert fields["basis"] == "模型自身"
+    assert fields["layer"] == "over_specification"
+    assert fields["nl_evidence"] == "无"
+    assert fields["scope"] == "界内"
+
+
+def _readme_gate_shape():
+    """从 [README.md](./README.md) §3.6.4 结尾那个 ```text 块里读出字段表。
+
+    ⭐ 直接读 README，⛔ 不在测试里另抄一份 —— 抄了两份就会各改各的，
+    而 README 那段自称「由本测试机械钉住」。
+    """
+    with open(os.path.join(HERE, "README.md"), encoding="utf-8") as fh:
+        readme = fh.read()
+    head = readme.index("按 §13 的要求，写出一个")
+    body = readme[head:readme.index("## 四、命令", head)]
+    blocks = re.findall(r"```text\n(.*?)```", body, flags=re.S)
+    assert len(blocks) == 1, f"§3.6.4 里应当只有一个形状块，实得 {len(blocks)}"
+    out = {}
+    for line in blocks[0].strip().splitlines():
+        k, _, v = line.partition(":")
+        out[k.strip()] = v.strip()
+    return out
+
+
+def test_risk_flag_and_validate_gate_agree_on_which_layers_need_nl_evidence():
+    """⛔ I-B 回归：两处规范文本对同一件事给出**相反**的教法（§13 第 2 条）。
+
+    ⚠️ 2026-08-13 出过一次：[validate.py](./validate.py) 的门已经收窄成
+    `NF.NL_GROUNDED_LAYERS`（只拦 `nl_named` / `nl_contradiction`），
+    ⛔ 而 [sources.py](./sources.py) 的 `no_nl_evidence` 风险标记还写着
+    `layer != "wellformedness"` —— ⛔ 于是它对 5 条 `over_specification` 说
+    「该层按定义需要 NL 逐字依据」，而 README 同一个 commit 里写着「那是设计如此」。
+
+    ⛔ 落点极其要命：这个标记渲染在「自动风险标记」块里，**紧挨着该条的裁决块上方** ——
+    ⛔ 判读者在动笔那一行之前读到的最后一句话，就是那条相反的教法。
+    """
+    base = next(r for r in S.ledger_records("0001") or S.ledger_records(reportable_only=True))
+    for layer in NF.LAYERS:
+        rec = dict(base, layer=layer, nl_evidence="")
+        flagged = any(k == "no_nl_evidence" for k, _ in S.risk_flags(rec))
+        assert flagged == (layer in NF.NL_GROUNDED_LAYERS), (
+            f"`{layer}` 上风险标记与 validate 的门不一致："
+            f"标记 {flagged} / 门 {layer in NF.NL_GROUNDED_LAYERS}")
+        # ⛔ 反向：validate 那道门必须给出同一个答案（⭐ 走真实链路，⛔ 不看常量）
+        rep = _validate_new("0001", _entry("0001", layer=layer, nl_evidence="无"))
+        gated = any("要求 NL 逐字依据" in m for m in _msgs(rep, "E"))
+        assert gated == flagged, (
+            f"`{layer}`：validate 门 {gated} / 风险标记 {flagged} —— "
+            "⛔ 两处对同一件事说了相反的话")
+
+    # ⛔ 实测影响面：收窄后只剩这两条，⛔ 五条 `over_specification` 不再被标
+    marked = sorted(r["id"] for r in S.ledger_records(reportable_only=True)
+                    if r["pair"] not in S.OUT_OF_SCOPE_PAIRS
+                    and any(k == "no_nl_evidence" for k, _ in S.risk_flags(r)))
+    assert marked == ["EIS-0005-02", "EIS-0024-03"], marked
+
+    # ⛔ 落地检查：那 5 份工作单的裁决块上方不许再有相反教法
+    for pair in ("0002", "0007", "0032", "0039", "0046"):
+        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
+            text = fh.read()
+        assert "非 wellformedness 层却无" not in text, f"{pair}.md 还印着旧教法"
+        assert "该层按定义需要 NL 逐字依据" not in text, f"{pair}.md 还印着旧教法"
+
+
+def test_readme_gate_shape_example_stays_off_the_graded_pairs():
+    """⛔ I-C 回归：§3.6.4 的「可满足形状」样例不许取自任何**在评 pair** 的真实制品。
+
+    ⚠️ 2026-08-13 出过一次：那段样例本来写的是 pair `0001` 的一条真实、字段填齐、
+    可直接登记的发现（`:14 OperationalState --> ClampingLoseState`，作者源第 14 行逐字如此）。
+    ⛔ 它给的不只是事实（`0001.md` 的清单里本来就有），⛔ 而是 `basis` / `layer` /
+    `direction` / `depth` **该怎么归类的答案** —— 而字段归类正是本轮要判读者自己做的判断。
+    ⛔ 后果按 [CLAUDE.md](../../../../../CLAUDE.md) §3.5.-1：产物里若出现一条与 README
+    逐字雷同的记录，「它是人独立发现并归类的吗」将无法回答。
+
+    ⭐ 判据不看措辞，看**指向**：把样例块里出现的标识符逐一拿去比对 —— 凡是「在某个在评
+    pair 的作者源里出现、却不在 `0008` 的作者源里」的，一律判为指向在评 pair。
+    ⭐ 这与 `test_every_exemplar_slot_resolves_off_group`（§5 样例跨组回避）、
+    `test_readme_worked_example_can_never_be_collected_as_a_real_judgement`（§3.6.3 用
+    `0008`）是同一条纪律的第三处落点 —— ⛔ 此前只钉了前两处，§3.6.4 是漏的那一处。
+    """
+    fields = _readme_gate_shape()
+    text = " ".join(fields.values())
+    idents = set(re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", text))
+    safe = set(re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", S.puml_text("0008")))
+    safe |= {"over_specification", "reachability", "hierarchy", "guard", "entry",
+             "effect_action", "event", "cardinality", "unclassified"}
+    for pair in S.IN_SCOPE_PAIRS:
+        own = set(re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", S.puml_text(pair)))
+        bad = (idents & own) - safe
+        assert not bad, (
+            f"§3.6.4 的样例指向了在评 pair {pair} 的制品元素 {sorted(bad)} —— "
+            "⛔ 换成 0008 或不指向任何在评 pair 的抽象样例")
+    # ⛔ 反面自检：判据本身必须抓得住那条被撤掉的旧样例，⚠️ 否则这条测试是摆设
+    stale = {"statement": "生成侧凭空多出一条通往 ClampingLoseState 的迁移",
+             "generated_side": ":14 OperationalState --> ClampingLoseState"}
+    stale_idents = set(re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", " ".join(stale.values())))
+    own_0001 = set(re.findall(r"[A-Za-z][A-Za-z0-9_]{2,}", S.puml_text("0001")))
+    assert (stale_idents & own_0001) - safe, "判据抓不住旧样例 —— 它就白写了"
 
 
 def test_completeness_rejects_a_segment_id_that_does_not_exist():

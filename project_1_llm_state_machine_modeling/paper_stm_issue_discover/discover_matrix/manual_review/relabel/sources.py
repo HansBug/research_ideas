@@ -242,10 +242,26 @@ def risk_flags(rec):
         ))
     if not (rec.get("assertions") or []):
         flags.append(("no_assertion", "⛔ 无任何断言表达式。"))
-    if not (rec.get("nl_evidence") or "").strip() and rec.get("layer") != "wellformedness":
+    # ⚠️ 这个标记只对**按台账自己的 `layer_basis` 定义确实要求 NL 逐字依据**的两层生效。
+    # ⛔ 2026-08-13 之前它写作 `layer != "wellformedness"`，于是把 `over_specification`
+    # 一并标了出来 —— 而那一层的 `layer_basis` 是「生成方凭空多出，且造成可断言的负面后果」，
+    # 一个字都没提 NL，既有 6 条里 5 条 `nl_evidence` 本就为空，⭐ 那是设计如此、不是漏填。
+    # ⛔ 这个标记渲染在裁决块**正上方**，是判读者动笔前读到的最后一句话；与
+    # [validate.py](./validate.py) 的同一道门给出相反教法，会直接把判读结论带偏
+    # （[CLAUDE.md](../../../../../CLAUDE.md) §13 第 2 条）。判据的唯一真源是
+    # `newfields.NL_GROUNDED_LAYERS`，⛔ 不在本文件另抄一份。
+    # ⭐ 延迟导入：`newfields` 在模块级导入本文件，⛔ 顶层 import 会成环。
+    import newfields as _NF
+    if (not (rec.get("nl_evidence") or "").strip()
+            and rec.get("layer") in _NF.NL_GROUNDED_LAYERS):
         flags.append((
             "no_nl_evidence",
-            "⚠️ 非 wellformedness 层却无 `nl_evidence` —— 该层按定义需要 NL 逐字依据。",
+            f"⚠️ `layer = {rec.get('layer')}` 却无 `nl_evidence` —— 这一层的台账定义"
+            f"（「{_NF.layer_basis_table().get(rec.get('layer'))}」）要求 NL 逐字依据。"
+            "⭐ 依据多半躺在 `statement` 正文里没抄进字段，重标时补上段 id 即可。"
+            "⚠️ 仅 `nl_named` / `nl_contradiction` 会被标；"
+            "`wellformedness` 与 `over_specification` 两层**不要求** NL 依据，"
+            "⛔ 它们的 `nl_evidence` 为空是设计如此，不是漏填。",
         ))
     if rec.get("boundary_ruling"):
         flags.append((
