@@ -28,6 +28,15 @@ description**，且模式表必须含臂身份词——初版只扫了前者、�
 一眼可见，⛔ 不需要门。
 
 ⭐ `issues` 允许为空列表：**「这份模型符合需求」是一个合法答案**，不是失败。
+
+⚠️⚠️ **2026-08-12 的一次过度修复，⛔ 记在这里免得重犯**：为了去掉臂身份泄漏，初版把两个
+类 docstring **整段删掉**——⛔ 但那两段里还带着**唯一的对象级说明**（「一条不符之处」）。
+X1-v2 全网格重跑后**零产出格从 9 涨到 22**（claude 侧 0/162 → 8/162，Fisher `p=0.0072`），
+⛔ 而那一版运行**分不开**「去臂身份」与「去对象说明」这两个通道。
+
+⭐ 所以本版把对象级说明**加回到 `Field(description=...)`**（中性英文、⛔ 不提另一臂、⛔ 不提
+实验设计），⛔ 而不是加回 docstring。⭐ **判据是：去掉的必须只是「它在参与一个比较」这件事，
+⛔ 不能连「它被要求做什么」一起去掉。**
 """
 
 from __future__ import annotations
@@ -38,7 +47,12 @@ from pydantic import BaseModel, Field
 # 一条不符之处。三个字段全是自由文本。
 # ⛔ 不要写成 docstring：它会进 model_json_schema() 的顶层 description。
 class NaiveIssue(BaseModel):
-    issue: str = Field(description="What the non-conformance is.")
+    issue: str = Field(
+        description=(
+            "One non-conformance between the model and the specification. "
+            "Free text."
+        )
+    )
     where: str = Field(description="Which part of the model this concerns.")
     reason: str = Field(description="Why you consider this a non-conformance.")
 
@@ -58,7 +72,10 @@ class NaiveIssue(BaseModel):
 class NaiveReview(BaseModel):
     analysis: str | None = Field(
         default=None,
-        description="Optional: your overall analysis after reading both inputs.",
+        description=(
+            "Optional: your overall analysis after reading both inputs, before "
+            "listing the non-conformances."
+        ),
     )
     issues: list[NaiveIssue] = Field(
         default_factory=list,
