@@ -186,3 +186,40 @@ v46 claude 三轮基线：28/36 = 77.8%。
 4. **单轮无法区分能力与稳定性**：⛔ 不报 `hit@3` / `hit@all`。
 5. **干预是 oracle-informed 的**（§2.4），⛔ 不是方法改进。
 6. **同时改了 splitter 与 reviewer 两处**，本实验不能区分二者各自的贡献。
+
+---
+
+## 8 · 修订 A（v2 干预）—— 只修操纵，不动判据
+
+**登记时间**：2026-08-12 18:4x，**写在 v1 的任何命中判定产生之前**。此刻手上只有 v1 的操纵检查中间数据（各格需求集里出现了哪些谓词），⛔ 没有任何 hit 数据。
+
+### 8.1 为什么修
+
+v1 把扫描块 append 到 splitter prompt 的**最末尾**，于是它排在两样东西**后面**：
+
+1. 一节自称 `=== Binding output contract (final, overrides anything above) ===`；
+2. 一段 `Derive the Requirement from the natural language, not from the model. You are shown the model so you can spell its identifiers correctly and see what it declares -- not so you can read the obligation off it.`
+
+v1 跑到一半时的中间观察：干预臂需求条数确实变多（如 0005 的 22 vs 18），但四条扫描谓词几乎没多出来；且 0010 的**两条臂**都在 rev1 写了 `reaches`、rev2 又都被 reviewer 删掉。
+
+⭐ **一个排在「自称最终且覆盖以上全部」的小节后面、又与一条反复强调的规则表面冲突的指令，如果没被执行，那是操纵本身的缺陷，⛔ 不是关于假设的证据。** 按 §4.2 的操纵检查下限，这种情况本来就只能判「数据不足」。
+
+### 8.2 改了什么
+
+`X1_STRUCTURAL_SWEEP=2`：
+
+1. **位置**：扫描块从「prompt 末尾」改为**插到 `=== Binding output contract (final...) ===` 之前**。
+2. **新增一段**（`X1_SWEEP_RECONCILIATION`）：显式调和「不要从模型读出义务」那条规则——它禁止的是把**义务**读自制品，而不是禁止用制品判断 NL 的哪些要求值得检查；每条扫描仍是句子给主张、模型只给候选绑定。
+
+⛔ **没有改**：四条扫描的内容、reviewer 追加块、§4 的全部达标判据与红旗、TARGET / REGRESSION 位集、pair 选择、模型、轮数。
+
+### 8.3 纪律
+
+| 约束 | 内容 |
+|:--|:--|
+| 判据不动 | §4 的 9/14、6/14、≤1 位、五条红旗、50% 操纵下限**逐字不变** |
+| v1 不作废 | v1 结果**全量报告**，⛔ 不得替换、不得只报 v2 |
+| 对照臂复用 | 对照臂 prompt 在三种模式下逐字节相同（`41a1795c131857c0`），故 v2 复用同一份对照臂产出，不重跑 |
+| 哈希留证 | 对照 `41a1795c131857c0` · v1 `4044419f4541193f`（len 99782）· v2 `9ecadc392a23a20c`（len 100652）。v1 哈希不变，即 v1 数据仍可复现 |
+
+⚠️ **这是一次操纵强化，不是假设修改**：操纵检查失败允许加强操纵，⛔ 不允许改结果判据。若 v2 的操纵检查仍 < 50%，则本实验对 H-SPLIT 与 H-REVERSE **都不给结论**，如实记为「干预无法被有效实施」。

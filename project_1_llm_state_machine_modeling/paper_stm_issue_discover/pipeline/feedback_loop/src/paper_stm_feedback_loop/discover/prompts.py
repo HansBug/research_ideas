@@ -1150,6 +1150,49 @@ Requirement that will evidently return True is kept for the same reason containm
 the discharged obligation is the evidence.
 """
 
-if _os.environ.get("X1_STRUCTURAL_SWEEP") == "1":
+# --- v2: placement fix, written after the v1 manipulation check, before any hit data -------
+#
+# v1 appended the block to the very end of the splitter prompt, which put it AFTER two things
+# that argue the other way:
+#
+#   * a section headed `=== Binding output contract (final, overrides anything above) ===`,
+#     which by its own wording claims the last word; and
+#   * the paragraph `Derive the Requirement from the natural language, not from the model. You
+#     are shown the model so you can spell its identifiers correctly and see what it declares --
+#     not so you can read the obligation off it.`
+#
+# The v1 manipulation check came back weak, and a block that sits behind a self-declared
+# override and an apparently contradicting rule is a defect in the MANIPULATION, not evidence
+# about the hypothesis. v2 changes only where the text goes and adds one paragraph reconciling
+# it with the "not from the model" rule. ⛔ The hit criteria in the preregistration are NOT
+# touched, and v1's results are reported in full rather than replaced.
+X1_SWEEP_RECONCILIATION = """
+**How this squares with "derive the Requirement from the natural language, not from the
+model".** That rule stands, and these sweeps obey it. It forbids reading the *obligation* off
+the artifact -- inventing a requirement because the model happens to contain something, or
+rewriting what the NL demands to match what the model does. It does not forbid using the
+artifact to see *which of the NL's demands are worth checking*, which is what
+`declared_model_vocabulary` is already for on every other Requirement. In every sweep above the
+sentence supplies the claim and the model supplies only the candidate binding. A sweep
+Requirement with no sentence behind it violates the rule and must not be written; a sweep
+Requirement whose claim the NL states is exactly what the rule is protecting, because the
+disagreement between the two is the finding you exist to surface.
+"""
+
+_FINAL_CONTRACT_MARKER = "\n\n=== Binding output contract (final, overrides anything above) ==="
+
+_sweep_mode = _os.environ.get("X1_STRUCTURAL_SWEEP")
+if _sweep_mode == "1":
     REQUIREMENT_SPLITTER_PROMPT += X1_STRUCTURAL_SWEEP_SPLITTER
+    REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER
+elif _sweep_mode == "2":
+    _head, _sep, _tail = REQUIREMENT_SPLITTER_PROMPT.partition(_FINAL_CONTRACT_MARKER)
+    if not _sep:  # the marker moved; fail loudly rather than silently degrade to v1
+        raise RuntimeError(
+            "X1_STRUCTURAL_SWEEP=2 could not find the final-contract marker in "
+            "REQUIREMENT_SPLITTER_PROMPT; refusing to fall back to end-append silently"
+        )
+    REQUIREMENT_SPLITTER_PROMPT = (
+        _head + X1_STRUCTURAL_SWEEP_SPLITTER + X1_SWEEP_RECONCILIATION + _sep + _tail
+    )
     REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER
