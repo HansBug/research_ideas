@@ -46,6 +46,54 @@ def _domain_diversity_ok(n_sources: int, n_domains: int) -> bool:
 _DOI = re.compile(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
 _ARXIV = re.compile(r"(?:arxiv[:\s/]*)?(\d{4}\.\d{4,5})", re.I)
 
+#: 本地抽取全文路径 —— ⭐ 开采本地 PDF 时 identifier 写作「文件路径:行号」。
+_LOCAL = re.compile(r"(/tmp/[\w/.\-]+\.txt)")
+
+#: ⭐⭐ **本地抽取文件 → 出版物**的显式映射。
+#:
+#: ⚠️ **为什么必须显式列表而不能靠正则**：⭐ 判断「`paperA.txt` 与 `paperA_thesis.txt`
+#: 是同一项工作的技术报告版与博士论文版」是一次**学术判断**，⛔ 不是字符串相似度问题。
+#: ⭐ 落在这张表里就必须能说清依据；⛔ 表外的路径按 `file:<basename>` 归一（⭐ 至少去掉行号），
+#: ⛔ 但那只是止损，⭐ 新增开采源时应当在此登记。
+#:
+#: ⚠️ **这条修的是一个真实缺陷**（2026-08-12 补强轮实测）：⭐ 8 条 `guard_distinguishable`
+#: 证据实际只来自 **4 份文档**，⛔ 而按含行号的原始串归一会算成 **8 个独立来源** ——
+#: ⭐ 裁定者已独立指出「⛔ 写普遍性时按 4 计，不按 9 计」。⛔ 这与 docstring 里记的
+#: 「Dwyer 一篇被算成 6 个」是**同一个缺陷、新的触发条件**。
+_LOCAL_TO_WORK = {
+    #: Heitmeyer, Jeffords, Labaw, ACM TOSEM 5(3), 1996（SCR 自动一致性检查）
+    "hjl96_ase01/A.txt": "doi:10.1145/234426.234431",
+    #: Heimdahl & Leveson, IEEE TSE 22(6), 1996（层次状态机需求的完备性与一致性）
+    "main/heimdahl_tse96.txt": "doi:10.1109/32.503933",
+    #: ⭐ Torre 等的 UML 一致性规则工作：⭐ TR SCE-15-01（2016）与博士论文（2018）
+    #: 是**同一项系统映射研究**的两个版本 —— ⛔ 规则表逐条同号同文，⛔ 不得计两个来源。
+    "paperA.txt": "work:torre-uml-consistency-rules",
+    "paperA_thesis.txt": "work:torre-uml-consistency-rules",
+    #: Lange & Chaudron 一系（⭐ 2003 那篇是唯一显式建模状态机的）
+    "lange_umlinconsist03.txt": "work:lange-uml-inconsistency",
+    "lange_thesis.txt": "work:lange-uml-inconsistency",
+    "lange_ease04.txt": "work:lange-uml-inconsistency",
+    "lange_step05.txt": "work:lange-uml-inconsistency",
+    "lange_exp_techreport.txt": "work:lange-uml-inconsistency",
+    #: OORTs（UMD TR CS-TR-4353 / UMIACS-TR-2002-33）
+    "oort_tr4353.txt": "url:cs.umd.edu/projects/softeng/eseg/papers/cs-tr4353.pdf",
+    #: OMG UML 2.5.1（formal/2017-12-05）
+    "uml251/uml251.txt": "url:omg.org/spec/uml/2.5.1",
+}
+
+
+def _local_work_key(ident: str) -> str | None:
+    """本地抽取路径 → 出版物键；⛔ 未登记时退回 `file:<basename>`（⭐ 已去行号）。"""
+    hits = _LOCAL.findall(ident)
+    if not hits:
+        return None
+    for path in hits:
+        for suffix, work in _LOCAL_TO_WORK.items():
+            if path.endswith(suffix):
+                return work
+    #: ⛔ 未登记：⭐ 至少把行号去掉，⛔ 否则同一文件的不同行会被算成不同来源
+    return "file:" + hits[0].rsplit("/", 1)[-1].lower()
+
 
 def canonical_source(finding: dict) -> str:
     """把 identifier 归一到「一篇论文一个键」。
@@ -56,7 +104,9 @@ def canonical_source(finding: dict) -> str:
     等 **6 种**写法，⛔ 按原样去重会把它算成 6 个独立来源。⭐ 而「多源」这条要求
     的全部意义就在于**源要互相独立**。
 
-    归一优先级：DOI → arXiv ID → URL 的 host+path（去 query）→ 标题。
+    归一优先级：DOI → arXiv ID → **本地抽取全文路径** → URL 的 host+path（去 query）→ 标题。
+
+    ⭐ 「本地抽取全文路径」这一档是 2026-08-12 补强轮新增的，⛔ 见 `_LOCAL_TO_WORK`。
     """
     ident = finding.get("identifier") or ""
     m = _DOI.search(ident)
@@ -66,6 +116,9 @@ def canonical_source(finding: dict) -> str:
         m = _ARXIV.search(ident)
         if m:
             return "arxiv:" + m.group(1)
+    local = _local_work_key(ident)
+    if local:
+        return local
     m = re.search(r"https?://([^\s?#]+)", ident)
     if m:
         return "url:" + m.group(1).rstrip("/.,;").lower()

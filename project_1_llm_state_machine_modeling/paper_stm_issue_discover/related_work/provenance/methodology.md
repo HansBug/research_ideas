@@ -138,6 +138,23 @@
 
 ⚠️ **为什么这条要单独审**：⛔ 按 §3.5.-1，泄漏可以表现为「不含任何台账标识符的**答案形状**」。⭐ 而 `#: universality:` 的内容恰好是「这类检查在领域里常见」这种**关于领域的一般事实** —— ⛔ 它不告诉模型任何一个具体样本该报什么。
 
+## 4.75 ⛔⛔ 新失败模式：**引文截断点系统性地落在原文自我限定处**
+
+⚠️ 【实测】2026-08-12 补强轮的裁定抓到**两处互不相识**的同型缺陷 —— ⭐ 提交者的 `[…]` **恰好吞掉削弱己方主张的那半句**：
+
+| 条目 | 被引到的部分 | ⛔ 被吞掉的紧邻下一句（⭐ 我已回原文逐字复核） |
+| :-- | :-- | :-- |
+| ⭐ OORTs Reading 7（`cardinality`） | 「⭐ …If not, then information has been **omitted** from the design」/「…information in the design is **extraneous**」 | ⛔ 「**If so, then make sure this combination makes sense**」/⛔「**If so, make sure that this split makes sense**」—— ⭐ 原文**明确允许**图上状态数不等于 N |
+| ⭐ Heitmeyer TOSEM 1996（`guard_distinguishable`） | 「⭐ our tool found **57 Disjointness errors**」 | ⛔ 「**Although many of the 57 instances … are undoubtedly errors, a few probably are not**, since some detected events may be impossible」 |
+
+⛔⛔ **两处的后果不同，⛔ 但机制相同**：⭐ 前者**直接推翻**了提交者的核心论证（「双向卡死 / 恰好相等」）；⭐ 后者只是须把「57 例确诊」降级为「57 例报出、作者判定多数确为错误」。
+
+⭐⭐ **为什么必须单独立一条**：⛔ 这个模式**对机械核验完全免疫** —— ⭐ 被引的每一个字都是真的，`verify_quotes.py` 会全部判 `FOUND`。⛔ 它也不同于 [§3 已记的「自证套路」](#-一个必须记住的红旗提取者的自证套路本身可被证伪)（⭐ 那是提交者**为自己辩护的措辞**可被证伪）；⭐ 这一条是**引文边界的偏置**，⛔ 与措辞无关。
+
+⭐ **可执行的对策**（⛔ 裁定者已自发做到，⭐ 应固化为要求）：⛔ 凡引文含 `[…]` 或止于句号前，⭐ 裁定者**必须把被省略处与紧邻下一句读出来**。⭐ 三位 `cardinality` 裁定者里，抓到 OORTs 那处的那位自陈逐字：「⭐ **转折点在于我没有停在提交者引到的地方**」。
+
+⚠️ ⛔ **我自己也栽在这一处**：⭐ 那段全文当时就在终端输出里，⭐ 我读了却只引前半，并据此对外说过「双向卡死」。⛔ 这说明该对策**不是**给 subagent 的额外要求，⭐ 而是给**任何**引用者的。
+
 ## 4.8 ⛔⛔ 一个**同型复发**的流程缺陷：判例清单挂在「路」上，⛔ 而不是挂在「谓词」上
 
 ⚠️ 【实测】MAAB `db_0137` 在 2026-08-12 的补强轮被**第三次**提交给 `cardinality`。⛔ 它前两次都被拒过，⭐ 第二次那回本身就已经是「已拒条目的逐字重投」（[SUMMARY.md](./SUMMARY.md) §4.1 已记）。

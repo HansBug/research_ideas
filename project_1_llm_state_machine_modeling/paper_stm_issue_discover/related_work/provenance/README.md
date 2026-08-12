@@ -57,6 +57,7 @@
 | ⭐⭐ [c3_iii_supplement.md](./c3_iii_supplement.md) | ⭐⭐ **C-③ 措辞的最终依据** —— ⛔ 它推翻了「唯一空缺是 (iii)」，⭐ 并给出跨五条线不变、有**六处独立自证**的 gap 陈述 |
 | [recovery_log.md](./recovery_log.md) | ⭐ 伪缺口与付费墙回收（10 个目标 9 个全文）+ ⛔ **三处被证伪的元数据** |
 | [corpus_scan_findings.md](./corpus_scan_findings.md) | ⭐ 界内语料两轮穷尽扫描的三条发现 |
+| ⭐ [uml251_constraints.md](./uml251_constraints.md) | ⭐⭐ **OMG UML 2.5.1 Ch.14 全部 47 条 constraint 的开采** —— ⭐ `containment` 的结构性解释拿到正面证据（**0/47**、`Vertex` 元类无 Constraints 小节，⭐ 经 Eclipse UML2 交叉验证）；⛔⛔ **含一条对我方论证的更正**（⭐ 缺席有两种成因，只有一种支持我们）；⛔ 并记录 `guard_distinguishable` 与 `variable_declared` **不得引 UML** |
 | ⭐ [predicate_motive_audit.md](./predicate_motive_audit.md) | ⭐⭐ **19 条谓词自身的引入动机审计** —— ⭐ 逐条 `git log -S` 查引入 commit，分「系统性 / 语料统计 / 具体样本 / 查不到」四类。⭐ 结论 **A 19 · B 0 · C 0 · D 0**，⛔ 但审计者主动指出 commit body 干净不等于清白（⭐ docstring 指认的 derivation 文档另有接触面），⭐ 并登记 6 条应打折记录**交裁定不自裁** |
 | ⭐ [evidence_distribution.md](./evidence_distribution.md) | ⭐⭐ **对「词表是照着案例反推的」这一指控的正面回应** —— ⭐ 案例用量与上游证据量的秩相关为 **−0.562**（⛔ 拟合会留下正相关）· ⭐ 分布形状由**义务类型分裂**解释 · ⭐ 两条 ③ 共享同一个结构性失败机制。⛔ 被问到「弱证据谓词怎么办」时读这份 |
 | [methodology.md](./methodology.md) | ⭐ 四层编制 · 裁定层的失败模式与双向可靠性审计 · 六条方法局限 |

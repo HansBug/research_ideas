@@ -123,27 +123,18 @@ KNOWN_CAVEATS = {
 }
 
 
-_DOI = re.compile(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
-_ARXIV = re.compile(r"(?:arxiv[:\s/]*)?(\d{4}\.\d{4,5})", re.I)
+#: ⭐⭐ **从 `aggregate_evidence` 导入，⛔ 不再复制一份。**
+#:
+#: ⚠️ 此处原本是一份**逐字复制**的 `canonical_source`，⭐ 其 docstring 自己写着
+#: 「⛔ 与 `aggregate_evidence.canonical_source` 必须同口径 —— ⚠️ 两处不一致会让总账与
+#: 逐条表报出不同的来源数」。⛔ **2026-08-12 这条预言应验了**：给 `aggregate_evidence`
+#: 补本地抽取路径归一（`_LOCAL_TO_WORK`）后，⛔ 这一份没跟上，⭐ 两处会给出不同的来源数。
+#:
+#: ⛔ 靠注释提醒「记得改两处」的机制必然失效 —— ⭐ 改成导入，⛔ 让它在结构上不可能漂。
+import sys
 
-
-def canonical_source(finding: dict) -> str:
-    """一篇论文一个键。⛔ 与 `aggregate_evidence.canonical_source` 必须同口径 ——
-    ⚠️ 两处不一致会让总账与逐条表报出不同的来源数。"""
-    ident = finding.get("identifier") or ""
-    m = _DOI.search(ident)
-    if m:
-        return "doi:" + m.group(0).rstrip(".,;)").lower()
-    if "arxiv" in ident.lower():
-        m = _ARXIV.search(ident)
-        if m:
-            return "arxiv:" + m.group(1)
-    m = re.search(r"https?://([^\s?#]+)", ident)
-    if m:
-        return "url:" + m.group(1).rstrip("/.,;").lower()
-    if ident.strip():
-        return "raw:" + re.sub(r"\s+", " ", ident.strip()).lower()[:120]
-    return "title:" + re.sub(r"[^a-z0-9]+", " ", (finding.get("title") or "").lower()).strip()
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from aggregate_evidence import canonical_source  # noqa: E402
 
 
 def _load(path: Path | None) -> list:
