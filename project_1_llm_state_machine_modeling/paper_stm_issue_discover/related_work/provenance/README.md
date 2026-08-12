@@ -60,7 +60,7 @@
 | ⭐ [boundary_gate_audit.md](./boundary_gate_audit.md) | ⭐⭐ **边界门审计（746 → 313）** —— ⭐ 实现层可回收 **0**（⭐ 无同义写法漏配、无空值、无上游漏登记）；⛔ 但查出**门比它的自述理由更严**（⭐ `T0` 作为「无显式时钟」的代理，⛔ 多排除了 139 条不带显式时钟的 `T1`）。⛔ **主 session 裁定：本 PR 内不放宽**，⭐ 三条理由均独立于「它对证据薄的谓词有无帮助」 |
 | ⭐ [uml251_constraints.md](./uml251_constraints.md) | ⭐⭐ **OMG UML 2.5.1 Ch.14 全部 47 条 constraint 的开采** —— ⭐ `containment` 的结构性解释拿到正面证据（**0/47**、`Vertex` 元类无 Constraints 小节，⭐ 经 Eclipse UML2 交叉验证）；⛔⛔ **含一条对我方论证的更正**（⭐ 缺席有两种成因，只有一种支持我们）；⛔ 并记录 `guard_distinguishable` 与 `variable_declared` **不得引 UML** |
 | ⭐ [predicate_motive_audit.md](./predicate_motive_audit.md) | ⭐⭐ **19 条谓词自身的引入动机审计** —— ⭐ 逐条 `git log -S` 查引入 commit，分「系统性 / 语料统计 / 具体样本 / 查不到」四类。⭐ 结论 **A 19 · B 0 · C 0 · D 0**，⛔ 但审计者主动指出 commit body 干净不等于清白（⭐ docstring 指认的 derivation 文档另有接触面），⭐ 并登记 6 条应打折记录**交裁定不自裁** |
-| ⭐ [evidence_distribution.md](./evidence_distribution.md) | ⭐⭐ **对「词表是照着案例反推的」这一指控的正面回应** —— ⭐ 案例用量与上游证据量的秩相关为 **−0.562**（⛔ 拟合会留下正相关）· ⭐ 分布形状由**义务类型分裂**解释 · ⭐ 两条 ③ 共享同一个结构性失败机制。⛔ 被问到「弱证据谓词怎么办」时读这份 |
+| ⭐ [evidence_distribution.md](./evidence_distribution.md) | ⭐⭐ **对「词表是照着案例反推的」这一指控的正面回应** —— ⭐ 案例用量与上游证据量的秩相关为 **−0.562**（⚠️ ⛔ **该 rho 只证伪指控的全称形式，⛔ 不能鉴别「是否拟合」** —— ⭐ 它与 §3 的语体解释共线，⭐ 且「高证据谓词是装饰」这一对立假设同样预言负相关；⭐ 见 evidence_distribution §1.1）· ⭐ 分布形状由**义务类型分裂**解释 · ⭐ 两条 ③ 共享同一个结构性失败机制。⛔ 被问到「弱证据谓词怎么办」时读这份 |
 | [methodology.md](./methodology.md) | ⭐ 四层编制 · 裁定层的失败模式与双向可靠性审计 · 六条方法局限 |
 | ⛔ [coverage_audit.md](./coverage_audit.md) | ⛔ **C3 覆盖审计：这轮漏了什么** —— ⚠️ **它推翻了两处 claim 形状，⛔ 引用本目录任何结论前必读** |
 | [tools/](./tools/) | 可复现的机械工具，见下 |

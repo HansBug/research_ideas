@@ -110,7 +110,7 @@ git log -S"<谓词名>" --format='%h %ai %s' --all --reverse -- '*predicates.py'
 
 ### ⭐ 一条对我方有利、但必须同时报告的观察
 
-⭐ **接触面与证据强度呈反向分布。** ⛔ 上表 5 个 `EXP` 挂钩集中在 `containment` `effect_declared` `guard_distinguishable` `occupancy_after` `initial_target`；⭐ 而 [predicate_provenance.md](./predicate_provenance.md) 里领域证据最弱的两条 ③ 类是 `containment`（文献 1 源）与 `cardinality`（文献 0 源）。⭐ 二者只在 `containment` 上重合。⭐ 反过来，**5 条完全无挂钩的谓词**（`edge_declared` `event_consumed` `variable_delta_after` `reaches` `response_within`）里，`edge_declared` 有 15 个界内真实系统来源、`response_within` 有 19 篇文献 —— ⛔ 即「最干净的谓词恰好也是证据最厚的」这一说法**不成立**，⭐ 两个维度基本独立。⭐ 这与 [evidence_distribution.md](./evidence_distribution.md) 报的秩相关 **−0.562**（拟合会留下正相关）方向一致，⛔ 但那份用的是台账用量，本文件用的是设计文档引用量，⭐ 是两个不同的量，⛔ 不可互相引证。
+⭐ **接触面与证据强度呈反向分布。** ⛔ 上表 5 个 `EXP` 挂钩集中在 `containment` `effect_declared` `guard_distinguishable` `occupancy_after` `initial_target`；⭐ 而 [predicate_provenance.md](./predicate_provenance.md) 里领域证据最弱的两条 ③ 类是 `containment`（文献 1 源）与 `cardinality`（文献 0 源）。⭐ 二者只在 `containment` 上重合。⭐ 反过来，**5 条完全无挂钩的谓词**（`edge_declared` `event_consumed` `variable_delta_after` `reaches` `response_within`）里，`edge_declared` 有 15 个界内真实系统来源、`response_within` 有 19 篇文献 —— ⛔ 即「最干净的谓词恰好也是证据最厚的」这一说法**不成立**，⭐ 两个维度基本独立。⭐ 这与 [evidence_distribution.md](./evidence_distribution.md) 报的秩相关 **−0.562**（⚠️ ⛔ **该表述已作废** —— ⭐ 那个 rho 与语体解释共线、⛔ 无鉴别力，⭐ 见 [evidence_distribution.md](./evidence_distribution.md) §1.1）方向一致，⛔ 但那份用的是台账用量，本文件用的是设计文档引用量，⭐ 是两个不同的量，⛔ 不可互相引证。
 
 ## v25 那次 revert 的始末：纪律被真正执行过的证据
 
