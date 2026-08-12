@@ -169,7 +169,11 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 | ⛔ **元素召回不是缺陷召回** | 生成侧的组件级 P/R（states F1 0.90 / guards 0.23 / actions 0.00） | ⚠️ 分子分母都是**模型元素**；⭐ 一个能复现 90% 状态的生成器，对「这个模型里有哪些错」**一个字都没说** |
 | ⛔ **相对差不是绝对覆盖** | 人工检视一系的「CBR 比 UCDR 多检出 15.6% seeded defects」 | ⛔ 两技术之比，⚠️ 不是任一技术的绝对覆盖率 |
 
-⭐⭐ **LASHED 与 SoSyM §6.3 是同一困难在两个不同形式主义上的独立现身** —— ⭐ 说明「缺分母」是这一任务族的**结构性状况**，⛔ 不是某一篇的疏漏。
+⭐ **LASHED 与 SoSyM §6.3 是同一困难在两个不同形式主义上的独立现身。**
+
+⚠️⚠️ ⛔ **但「说明这是任务族的**结构性状况**」这句已于 2026-08-12 降级** —— ⭐ 按 §4.2 #1：**仅 2 篇支撑**。⛔ 从 2 例推一个关于「任务族」的全称性质是全称化。⭐ **合法表述**：「⭐ 至少两篇工作（不同形式主义）**各自独立地**报告了同一困难」，⛔ 不写「这是任务族的结构性状况」。
+
+⚠️ **同表另两行同样只有单例支撑**，⛔ 亦按 §4.2 #1 标注：「元素召回不是缺陷召回」**仅 1 篇**（生成侧组件级 P/R）· 「相对差不是绝对覆盖」**仅 1 篇**（CBR vs UCDR 的 15.6%）。⭐ 三条**类型**各自成立，⛔ 但**普遍性**都没有分母支撑。
 
 ### 4.2 ⭐ 最强的机械负结果（⛔ 但已被正确设界）
 
@@ -184,6 +188,15 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 | `(LLM\|large language model\|GPT\|ChatGPT)` | 343 / 2748（⚠️ 与「设计/模型制品」求交后仅 **15**） |
 
 ⭐ **本方抽验复现**：ICSE 2025 主会实测 **246 条题录**（与报数一致）· 状态机命中 **0** · UML/SysML/MDE **1** · LLM **58** · review/inspection **0**。⭐ 方法可复现。
+
+⛔⛔ **但这张表有三条口径边界，⚠️ 初版一条都没声明**（2026-08-12 由 C3 补）：
+
+1. ⛔⛔ **它是纯标题级正则（`title-only`）。** ⚠️ 读者会把 `conformance 0/2748` 读成**三族近年没有 conformance 工作**。⭐ 反证：MODELS 2023 主会标题里**就有** *An Experimental Evaluation of Conformance Testing Techniques in Active Automata Learning* —— ⭐ **那个 0 是「该族标题」的 0**。⚠️ 同理 ICSE'23 NIER 的 *Anti-Patterns in Temporal Specifications* 标题不含 STM 词，⛔ 标题级扫描对那条线**不灵**。
+2. ⛔⛔ **2748 是三个成分不同质的数相加**：**ICSE 剔了卫星卷**（896 = 纯主会）、**ASE 含卫星卷**（1096 含 industry / tool demo / NIER）。⛔ 两者按不同口径进同一个分母 —— ⭐ 这正是「**比率只能跨同类分母比**」：⚠️ **成分差异在合计数上完全看不见**。
+3. ⚠️ **PACMSE v1 121 / v2 242 与「FSE 主会 393」是两段不同年份的口径拼接**（393 = ESEC/FSE 2022+2023；FSE 2024/2025 主会改发 PACMSE），⛔ 不是并列关系。
+4. ⛔ **「343 与『设计/模型制品』求交后仅 15」的求交词表没给** —— ⚠️ 这与 `pool_audit.md` §1 自己刚立的规矩逐字冲突：⭐ **同一份交付里，边界门落了脚本，这个求交没落。**
+
+⭐ **完整台账见 [search_ledger.md](./search_ledger.md)** —— ⛔ 该文件是 Q3-B 档的**硬义务**，⚠️ 初版整体缺失，由 C3 发现后补。
 
 ⚠️⚠️ **但这句话只对主会成立，⛔ 不对 ICSE 卫星卷成立。** ⭐ ICSE 的 NIER / SEIP / SEET / Companion 在 DBLP 是**独立卷**，本轮只扫了主会卷。⛔ 实证后果：ICSE'23 NIER 的 *Anti-Patterns (Smells) in Temporal Specifications* **不在**那 896 条里，是靠关键词检索才捞到的。
 
@@ -243,7 +256,19 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 
 ⭐⭐ **两个模式目录都自陈不闭合**：Menghi TSE'21 明写 pattern system **not intended to be exhaustive or static**；ICSE'23 NIER 明写 **preliminary catalog**，且自陈「几乎没有关于时序规约质量属性的既有定义」。⭐ 唯一自称闭合的是 **EARS 的 5 个模板**，⛔ 但它作用于**需求文本**而非模型。
 
-⭐ **(i) 类 2022+ 为零，本身是一条对 story 有用的观察**：⚠️ 界内模式目录这条线的近年后继**全部外流** —— 要么外流到界外（UPPAAL 模式目录，IST 2022，TCTL + timed observer automata），要么外流到邻域（RTL/SVA、代码契约）。⛔ 这条只能进 Related Work + 覆盖范围声明，⛔ 不得进 Motivation（§0.1.7）。
+⚠️⚠️ **「(i) 类 2022+ 为零」与「近年后继全部外流」两条已于 2026-08-12 降级** —— ⛔ C3 覆盖 challenge 在 Dwyer 前向引用图（1674 篇被引，168 篇 2022+）里找到**至少 3 条未外流的 2022+ 后继候选**：
+
+| 编号 | 篇目 | 为什么它冲击这条断言 |
+| :-- | :-- | :-- |
+| **N-01** | *Mission Specification Patterns for Mobile Robots: Providing Support for Quantitative Properties*，IEEE TSE 49（2023），DOI [`10.1109/TSE.2022.3230059`](https://doi.org/10.1109/TSE.2022.3230059) | ⭐⭐ **Menghi TSE'21 同一条线的 2022+ 后继**；⚠️ "quantitative" 有引入概率 / 实时的风险，⏳ **边界门待核** |
+| **N-02** | *Specifying Temporal Properties in UML Using Patterns: A Tool-Supported Approach*，MODELS Companion（2023），DOI [`10.1109/MODELS-C59198.2023.00071`](https://doi.org/10.1109/MODELS-C59198.2023.00071) | ⭐⭐ **模式目录 + 工具支持，落在 UML 上、2022+** |
+| **N-03** | *Towards A Catalogue of Requirement Patterns for Space Robotic Missions*，FMAS@iFM（2025），DOI [`10.4204/EPTCS.436.12`](https://doi.org/10.4204/EPTCS.436.12) | ⭐ 2025 年的需求模式目录；⚠️ 标题自带 "Towards"，⭐ 很可能又是一个自陈不闭合的 preliminary catalog |
+
+⛔ **三条都还没读正文、边界门都没落到叶子**，⚠️ 所以**不主张原断言为假**。⭐ 但按 §4.2 #1，那句「**全部**」建立在 **2 例**分母上，⛔ **已站不住**。
+
+⭐ **降级后的合法表述**：「**在本轮覆盖内所见的近年后继落在界外或邻域**（⚠️ **仅 2 例支撑**）」，⛔ 不写「全部外流」。⛔ 这条只能进 Related Work + 覆盖范围声明，⛔ 不得进 Motivation（§0.1.7）。
+
+⚠️ **连带**：若 N-01/N-02/N-03 中任一条通过边界门，**(i) 类从「仅 6 篇支撑（2022+ 计 0）」变为满 3 篇** —— ⛔ **这不动 Q4 的档位**（A 档要求「≥3 篇界内**闭合词表交给自动化**」，仍是 0），⭐ 但**推翻这条外流断言**。
 
 ### 5.3 ⭐⭐ 邻域：应答「这不就是把 SVA 那套搬到状态机上吗」的弹药
 
@@ -261,7 +286,9 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 
 ### 5.4 ⛔ 一条必须上报、不由 L1 自裁的升级项
 
-**Zrelli 等 JSS 2026 是本轮唯一「闭合集合 + 选类交给模型」同时成立的工作。** ⭐ 它按 §0.1.1 判为**邻域**，⛔ 但正因如此把 B 档子情况的触发条件顶到了边界线上：
+⚠️⚠️ **「唯一」已于 2026-08-12 降级为「≥2 篇」。** ⛔ C3 在 Dwyer 引用图里找到同形候选：*Translating Requirements in Property Specification Patterns using LLMs*（AI4CC-IPS-RCRA-SPIRIT@AI\*IA 2024，⛔ **无 DOI，仅题录级待核**）—— ⭐ **预定义模式集 + LLM 选模式**，形状与 Zrelli 逐项对应。
+
+⭐ Zrelli 等 JSS 2026 是本轮「闭合集合 + 选类交给模型」同时成立的工作**之一**（⚠️ **仅 2 例支撑，其中 1 例仅题录级**）。 ⭐ 它按 §0.1.1 判为**邻域**，⛔ 但正因如此把 B 档子情况的触发条件顶到了边界线上：
 
 - 维持邻域判定 → 界内 $k = 0$ → 常规 B 档，C-② 强度停在「与既有工作不同」，差异化落点是「**选谓词的自动化**」。
 - 若 R1 改判计入对照 → 触发 B 档「1–2 篇闭合词表」子情况 → ⛔ **对 contribution 的后果按 A 档执行**：C-② 直接降档。
@@ -331,18 +358,47 @@ $$k_{\text{界内}} = 0, \qquad k_{\text{邻域}} = 2$$
 
 **入口**：DBLP publication search API（含 `venue:` 过滤）· DBLP 会议卷 TOC 全量抓取后本地 grep · JOT contents · conf.researchr · WebSearch · 三次一手 PDF 取件。
 
-### ⛔ 明确没跑的（⚠️ 「未见」的边界就在这里）
+### ⛔ 明确没跑的（⚠️ 「未见」的边界就在这里）—— ⭐ 2026-08-12 经 C3 补轮更新
 
-1. ⛔ **ACM DL / IEEE Xplore / Scopus / WoS 的字段化或全文检索** —— 全轮未做。⚠️ **这是本轮最大的假阴性来源**：凡「标题不含关键词但正文做了该事」的论文，本轮**系统性看不见**。
-2. ⛔ **ICSE 卫星卷**（NIER / SEIP / SEET / Companion）与 **FSE workshop / Industry track** —— 未扫。⚠️ 已有实证后果（见 §4.2）。
-3. ⛔ **MODELS 2022 主会** TOC 已下载未扫；**MODELS Companion / Workshops 2022–2025 全部**未扫（⚠️ 本族最大未扫区块）；**STAF 系 LLM4MDE 2024 / LLM4SE 2025–2026 工作坊**一篇未扫。
-4. ⛔ **REFSQ 2022–2026**（CCF B，本族天然邻居）与 **REW 2022–2025** —— 完全未跑。
-5. ⛔ **前向引用追踪**（MCeT · SoSyM · Dwyer'99 · mCUTE · Nejati'19 的 citing papers）—— 未做。⭐ 这是补 Q1 ⑤ 与 Q3 的下一个最高收益动作。
-6. ⛔ **ECMFA 2022（JOT 21(3)）与 2026（JOT 25(3)）** · **SoSyM vol 21–22** · **MODELSWARD** —— 未扫。
-7. ⛔ **Simulink / Stateflow 侧的 Model Advisor 规则集与 Design Verifier 性质模板** —— ⚠️ 一片极可能存在闭合规则集的工业侧材料，完全未查。
-8. ⛔ **Runtime verification 规约语言族**（Salt / LOLA / TeSSLa / MOP）—— 其 pattern 层可能有闭合词表形态。
-9. ⛔ **非英文文献**（CNKI / 万方）与工业白皮书。
-10. ⚠️ **两串 DBLP 关键词查询因 HTTP 429 未取回**（`requirements traceability state machine` · `statechart consistency requirements`）—— ⛔ 计为未跑，不是零命中。
+⭐ **覆盖已从 2748 条扩到 5154 条（+2406，+88%）**，⛔ **五问一问都没换档** —— ⭐ 那本身是一次独立稳健性检验，⛔ 但**不能**写成「说明该方向为空」（§0.1.7）。
+
+| 原 # | 状态 |
+| :-- | :-- |
+| 1 · ACM DL / IEEE Xplore / Scopus / WoS 字段化或全文检索 | ⛔ **仍未跑** —— ⚠️ **本轮最大假阴性来源**。⭐ 已用 OpenAlex 10 串做**摘要级**部分缓解，⛔ 不等于全文检索 |
+| 2 · ICSE 卫星卷 · FSE workshop / Industry | ⭐ **已跑**（1445 条）。⚠️ 剩余：ICSE SEIP/SEET 若在 DBLP 另立卷 —— ⛔ 本轮枚举未见独立卷，**该推定未独立复核** |
+| 3 · MODELS 2022 主会 · MODELS Companion 全部 · STAF LLM4MDE/LLM4SE | ⭐ **前两项已跑**（577 条）。⛔ **STAF 系工作坊仍一篇未扫** |
+| 4 · REFSQ 2022–2026 · REW | ⭐ **REFSQ 主会 + workshop 已全跑**（261 条）。⛔ **REW 仍未跑** |
+| 5 · 前向引用追踪 | ⭐ **MCeT · SoSyM 2026 · Dwyer'99 三条已跑**。⛔ **mCUTE · Nejati'19 未跑** |
+| 6 · ECMFA 2022/2026 · SoSyM vol 21–22 · MODELSWARD | ⛔ **仍未跑** |
+| 7 · Simulink Model Advisor · SDV 性质模板 | ⚠️ **入口已定位、内容待人工核验**：两条 404、一条动态壳。⭐ `hisf_` 规则集与 SDV Example Properties 子库经搜索摘要确认存在，⛔ 全表未取件 |
+| 8 · RV 规约语言族（Salt/LOLA/TeSSLa/MOP） | ⛔ **仍未跑** |
+| 9 · 非英文文献 · 工业白皮书 | ⛔ **仍未跑** |
+| 10 · 两串 429 未取回 | ⭐ **两串均已取回**：`requirements traceability state machine` 命中 1 条（CSER 2012，⛔ 不过门槛）· `statechart consistency requirements` **跑了 0 命中**。⚠️ 两个数都是 **DBLP 标题级 AND** 的弱结果 |
+
+### ⛔ C3 新发现的「没跑」（⚠️ 初版既没跑、也没登记）
+
+| # | 未登记的角度 | 为什么要紧 |
+| :-- | :-- | :-- |
+| **11** ⭐⭐ | **期刊族整体缺席**：TSE / TOSEM / EMSE / IST / JSS / STVR / SQJ / FAoC | ⛔⛔ **本文引的界内关键篇目几乎全出自这些期刊** —— Menghi **TSE**'21 · Autili **TSE**'15 · Zrelli **JSS** 2026 · Daikon **TSE** 2001 · UPPAAL 模式目录 **IST** 2022。⚠️ 一片被反复取数却既没扫也没声明的富矿，⭐ 是「未见 X」句式最脆的地方。⭐ **下一轮最高收益** |
+| **12** ⭐⭐ | **2026 年卷全线未扫** | ⛔ **声明的窗（2022–2026）与实际扫的窗（到 2025）不一致**，⚠️ 差的正是最近一年，⭐ 而 Q5 全部计数只认 2022+ |
+| **13** ⭐⭐ | **形式化方法 / 测试族整体缺席**：FormaliSE · NFM · iFM+FMAS · SEFM · FASE · TACAS · SPIN · ISSTA · ICST · ICFEM · SANER | ⛔ C3 的引用追踪**恰好在 FormaliSE 2025 与 FMAS@iFM 2025 各捞到一条 Q4 候选** |
+| **14** ⭐ | **反向雪球（读参考文献表）** | ⭐ MCeT / SoSyM 2026 / Completion-of-SysML 的 related work 是同类工作最密的一处 |
+| **15** ⭐⭐ | **两份现成的第三方候选池**：LLM4MDE 映射（EMSE 2026）的 **86 篇具名清单** · **N-08**（CoRR 2026 UML×LLM 综述）的清单 | ⛔ **跨类漏登记** —— ⚠️ 前者只藏在 §7 待核第 6 项，覆盖声明的读者看不到它没跑 |
+| **16** ⭐ | **同类工业规则集只登记了 Simulink 一家**：Eclipse OCL / USE / EVL / Epsilon · Papyrus · MagicDraw / EA 的内置校验规则 | ⛔ §5.4「都没有一篇把表达不了的义务显式记成缺口」正是工业规则集最可能证否的地方 —— ⭐ 已找到反例线索（见下） |
+| **17** | **Semantic Scholar `/paper/search` 端点** | ⛔ 匿名请求硬性 429，⭐ 需 API key 重试 |
+| **18** | **ASE 2022 若有 workshop 卷** | ⚠️ DBLP `conf/kbse` 下无 `ase2022w`，⛔ 该缺席**未独立复核** |
+
+### ⭐⭐ 一条对 §5.4 的反驳线索（⚠️ 摘要级，⛔ 三条限制）
+
+⭐ [MathWorks 高完整性建模指南 ↔ Model Advisor 映射表](https://www.mathworks.com/help/slcheck/ref/model-advisor-checks-for-high-integrity-systems-modeling-guidelines.html) 的做法与我方断言相反：一套带稳定编号的规则集（Stateflow 侧 `hisf_XXXX`），⭐⭐ **且该映射表显式列出「哪些指南没有对应的检查」并给出理由 —— 逐字 `automation isn't possible`**。
+
+⛔ **三条限制**：① **摘要级**，全表未取件（动态壳 + 404 拦住）；② 对象是 **Stateflow**，并行状态与 temporal logic 有相当部分**落在边界门外**；③ 它是**工具指南而非文献**，⭐ 按 §0.1.8 只能作**存在性移交**，⛔ 不作规范性出处、⛔ 不由 L1 定级。
+
+### ⭐ C3 新命中的 18 条候选
+
+⛔ **全部标题 / 摘要级，一篇正文都没读**；⛔ 边界门判定同为**待核初判**。⭐ 完整表见 [search_ledger.md](./search_ledger.md)。⚠️ 其中三条会改变已有表述：**N-01/N-02/N-03**（冲击「近年后继全部外流」，见 §5.2）· **N-06**（冲击 §5.4 的**唯一**那个措辞）· **N-18**（⭐ *Formalizing UML State Machines for Automated Verification – A Survey*，CSUR 2023，⚠️ **仓库 `state_machine_types/` 已收全文，⛔ 而本份交付五问一次都没用它** —— ⭐ 一份 2022+ 界内综述闲置，同时 Q1 各类目在为 2022+ 发愁）。
+
+⭐ 另两条应正式进 Q3 的逐条筛除记录（⭐ 使筛除记录从 14+ 增至 16+）：**N-10**（NDSS 2023，⛔ 缺门① —— 模型是它自己学出来的，属生成后自评）· **N-11**（EASE 2023，⛔ 缺门② —— 对象是需求文本、执行者是人）。
 
 ### ⚠️ 一条事实纠正
 
