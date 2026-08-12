@@ -29,14 +29,27 @@ description**，且模式表必须含臂身份词——初版只扫了前者、�
 
 ⭐ `issues` 允许为空列表：**「这份模型符合需求」是一个合法答案**，不是失败。
 
-⚠️⚠️ **2026-08-12 的一次过度修复，⛔ 记在这里免得重犯**：为了去掉臂身份泄漏，初版把两个
-类 docstring **整段删掉**——⛔ 但那两段里还带着**唯一的对象级说明**（「一条不符之处」）。
-X1-v2 全网格重跑后**零产出格从 9 涨到 22**（claude 侧 0/162 → 8/162，Fisher `p=0.0072`），
-⛔ 而那一版运行**分不开**「去臂身份」与「去对象说明」这两个通道。
+## ⛔⛔ 2026-08-12：一次走错的「修复」，⭐ 记在这里免得重犯
 
-⭐ 所以本版把对象级说明**加回到 `Field(description=...)`**（中性英文、⛔ 不提另一臂、⛔ 不提
-实验设计），⛔ 而不是加回 docstring。⭐ **判据是：去掉的必须只是「它在参与一个比较」这件事，
-⛔ 不能连「它被要求做什么」一起去掉。**
+去掉臂身份泄漏后（本版），X1-v2 全网格重跑显示 **claude 侧零产出格 0 → 8**（Fisher `p=0.0072`）。
+⚠️ 当时误判为「删 docstring 连带删掉了唯一的对象级说明」，于是做了 v3——把说明加回
+`Field(description=...)`。
+
+⛔⛔ **那个前提是错的。** 逐字对拍 git：**v1 与本版的 `Field(description=...)` 完全相同**
+（`"What the non-conformance is."` 等三条一字未改）。⭐ 被删掉的只有**顶层**中文总括，
+⛔ 而字段级语义**从未丢失**。
+
+⛔ 于是 v3 实际上是**给对照臂免费加了 v1 本来没有的信息**（`"One non-conformance between the
+model and the specification. Free text."`）——⛔ 那是**弱化对照的反面**：**强化**它。gpt 侧产出
+因此 +22% 越界。v3 已回滚。
+
+⭐ **v3 附带证明了一件有用的事**：加回字段级说明后 claude 侧沉默 **8 → 9**（Fisher `p=1.0000`，
+零回补），⛔ 所以沉默**不是**「缺说明」造成的，⭐ 而是**去掉臂身份本身**造成的——即 v1 的
+X1 产出确实被那句臂身份说明抬高了。
+
+⭐⭐ **判据（以后照这条走）**：对照臂的 schema 只允许含**结构性**说明（这个字段放什么类型的
+东西），⛔ 不允许含**语义性**定义（什么算一处不符）。⚠️ 后者在主臂那边是靠 19 个谓词与契约
+给的、属方法本身（C-②），⛔ 免费告诉对照臂等于送方法。
 """
 
 from __future__ import annotations
@@ -47,12 +60,7 @@ from pydantic import BaseModel, Field
 # 一条不符之处。三个字段全是自由文本。
 # ⛔ 不要写成 docstring：它会进 model_json_schema() 的顶层 description。
 class NaiveIssue(BaseModel):
-    issue: str = Field(
-        description=(
-            "One non-conformance between the model and the specification. "
-            "Free text."
-        )
-    )
+    issue: str = Field(description="What the non-conformance is.")
     where: str = Field(description="Which part of the model this concerns.")
     reason: str = Field(description="Why you consider this a non-conformance.")
 
@@ -72,10 +80,7 @@ class NaiveIssue(BaseModel):
 class NaiveReview(BaseModel):
     analysis: str | None = Field(
         default=None,
-        description=(
-            "Optional: your overall analysis after reading both inputs, before "
-            "listing the non-conformances."
-        ),
+        description="Optional: your overall analysis after reading both inputs.",
     )
     issues: list[NaiveIssue] = Field(
         default_factory=list,
