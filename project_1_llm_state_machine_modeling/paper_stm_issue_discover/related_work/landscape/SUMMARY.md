@@ -26,37 +26,44 @@
 
 ⛔⛔ **它与我们的差别落在制品类型上，⛔ 不落在任务形状上。** ⚠️ 这句话无论 N-3 怎么裁都成立。
 
-### ⛔⛔ 而且它自己声称了一个「首个」，⭐ 直接压在 C-① 的定位上
+### ⛔⛔ 而且它自己声称了一个「首个」—— ⚠️ 说了**四遍**，限定词逐级脱落
 
-⚠️ **本条是独立核验溢出发现的，⛔ 而前面五路调研通篇没提。** MCeT 原文第 129–131 行**逐字**：
+⛔⛔ **本节初版有一条错误的「纠正」，已于 2026-08-12 删除并改写。** ⚠️ 初版称核验者的引文「the first approach to perform fully automated evaluation of a behavioral model against its requirements」是**引文失真**、「原文不是这个措辞」—— ⛔ **原文就是这个措辞**，逐字在 §IX Conclusions 第 1044–1047 行。⭐ 核验者引的是 §IX，⛔ 而我只查了 §I 就宣布它失真。
 
-> ```
-> To the best of our knowledge, MCeT is the first LLM-
-> based approach to evaluate a behavioral diagram model against
-> free-style requirements texts, detecting discrepancies between
-> ```
+⭐⭐ **这次失误的形态值得记下**：⛔ 我核的是「这句引文**和我正在看的那一段**对不对得上」，⭐ 而正确的核法是「这句引文**在全文任何地方**存不存在」。⚠️ **一篇论文可以把同一个主张说四遍、每遍限定词都不同** —— ⛔ 只核一处就宣布失真，等于用局部否定全局。
 
-⭐ **本方逐字核实过这段**（⚠️ 顺带纠正核验者的一处引文失真：它转述为「the first approach to perform fully automated evaluation of a behavioral model against its requirements」，⛔ **原文不是这个措辞** —— 原文是「the first **LLM-based** approach」，且限定语是「**behavioral diagram model**」与「**free-style requirements texts**」）。
+#### 四个版本（⛔ 限定词逐级脱落）
 
-⭐⭐ **三条限定给我们留了空间，⛔ 但必须逐条守住，且都不是「制品不同」这一条**：
-
-| MCeT 的限定 | ⭐ 我们的位置 | ⛔ 注意 |
+| 位置 | 逐字原文 | 限定词 |
 | :-- | :-- | :-- |
-| **LLM-based** | 我们也是 | ⛔ 这一条**不给我们空间** |
-| **behavioral diagram model** | ⚠️ 状态机也是 behavioral diagram | ⛔ 这一条**也不给空间** —— ⚠️ 不要指望「序列图 ≠ 状态机」能挡住一个说「behavioral diagram model」的 first 主张 |
-| **evaluate against free-style requirements texts** | 我们也是 | ⛔ 同样不给空间 |
+| **Abstract**（L27–29） | `we propose MCeT, the first fully automated tool to evaluate the correctness of a behavioral model, sequence diagrams in particular, against its corresponding requirements text` | ⛔ 无 LLM-based · ⛔ 无 free-style · ⚠️ 有软化语 "sequence diagrams in particular" |
+| **§I**（L129–132） | `To the best of our knowledge, MCeT is the first LLM-based approach to evaluate a behavioral diagram model against free-style requirements texts` | ⭐ **四个**：LLM-based · behavioral **diagram** model · **free-style** · issue 解释用自然语言 |
+| **§I Contributions (1)**（L137–139） | `We propose the first automated behavioral model evaluation approach to evaluate a behavioral diagram model against its free-style requirements textual description` | ⛔ 丢 LLM-based；留 diagram + free-style |
+| ⛔⛔ **§IX Conclusions**（L1044–1047） | `To the best of our knowledge, MCeT is the first approach to perform fully automated evaluation of a behavioral model against its requirements.` | ⛔⛔ **一个都没有** |
 
-⛔⛔ **结论：这个 first 主张在字面上覆盖我们。** ⭐ 我们能站住的差异化**不在任务上**，只在 §1 那张表的后两行 —— **判定可机械求值** 与 **可重放**。⚠️ 而按 §2 前置纪律 ①，那两项**只进对照表、不进计数** —— ⭐ 也就是说它们撑不起「新颖性」，⛔ 只撑得起「与既有工作不同」。
+⛔⛔ **按 §IX 那一版读，这个 first 字面覆盖任何「自动评估行为模型 vs 需求」的工作，⛔ 包括我们** —— ⚠️ 而 Conclusion 恰是审稿人与后续引用者最常摘的位置。⭐ 初版据 §I 排的那张「三条限定给我们留了空间」的表因此**不是有效的空间分析**：它分析的是四个版本里限定**最多**的一版。
 
-⭐ **这是 L1 对 C-① 强度上限最直接的一条输入**：⛔ 在本轮覆盖范围内，C-① 的新颖性档位**不应高于「与既有工作不同」**。⛔ L1 不裁定档位（§0.1.2 禁语），⭐ 但这条事实必须原样交给 R1。
+#### ⛔ 「制品不同」这条防线被 MCeT 自己的文本掏空
+
+| 逐字原文 | 位置 | 后果 |
+| :-- | :-- | :-- |
+| `In our current approach, we process sequence diagrams in PlantUML, however, the technique can be easily adapted to process any other modeling language.` | L330–332 | ⛔ **作者自陈技术可轻易适配任何建模语言** |
+| `Behavioral diagrams, e.g., activity diagrams, sequence …`（其定义含 state changes 与 responses to external events） | L56–58 | ⚠️ **状态机落在它自己的 behavioral diagram 定义之内** |
+| `we aim to expand our study into other types of behavioral models as part of our future work` | L955–957 | ⚠️ ⛔ **我们做的事，被这篇 MODELS 2025 在正文里点名为 future work** |
+
+#### ⭐ 唯一真实的挡板，⛔ 但它是对冲不是收回
+
+⭐ §VII External Validity（L955–957）自陈 `our approach may not generalize to other types of behavioral models` —— ⚠️ 那是对**实验外部效度**的对冲，⛔ **不是对首创主张的收回**，⚠️ 且它与 L332 的「易于适配」在同一篇里互相矛盾。⛔ 引用它等于把两句话一起端上桌。
+
+⭐⭐ **结论比初版更硬**：⛔ 在本轮覆盖范围内，C-① 的新颖性档位**不应高于「与既有工作不同」** —— ⚠️ 而按 §IX 那一版，**连这个上限都可能偏高**。⛔ L1 不裁定档位（§0.1.2），⭐ 这条事实原样交 R1。
 
 ⭐ 三处**真实**的差别（⛔ 按 §2 前置纪律 ①，后两项只进对照表列、⛔ 不进计数）：
 
 | 差别 | MCeT | 本文 |
 | :-- | :-- | :-- |
 | **制品** | UML 序列图 | 状态机（$M = (S,E,V,Tr,A)$） |
-| **判定是否可机械求值** | ⛔ 全程 LLM 自然语言判定；issue 是散文 | ⭐ 可机械求值的断言 |
-| **可否重放** | ⛔ 未见重放机制 | ⭐ 断言可在制品上独立复算 |
+| **判定是否可机械求值** | ⚠️ ⛔ **初版写「issue 是散文、无字段结构」，那不准，已改。** ⭐ 实测其 `prompts/*.json` 制品：**裁决是 LLM 自报的 Yes/No 离散标签**，带 JSON 信封、Correctness/Completeness 类型轴、requirement-atom / diagram-atom 定位（`"Correct?" : "Yes/No answer"` / `"Complete?" : "Yes/No answer"`）。⛔ **不要再写「无字段结构」—— 制品在手的审稿人一查就翻。** ⭐ 真正的差别是：**裁决由 LLM 自己吐出，⛔ 不是在制品上按可判定过程求值出来的** | ⭐ 断言在制品上求值 |
+| **可否重放** | ⛔ 结论不变，⭐ 现有一手依据：prompts / 源码 / 输入 / 人工真值（散文态）**已公开**，⛔ **但「135 条离散 issue 的切分」与「两名作者对每条 issue 的 Yes/No 判定」都没公开** → ⭐ 第三方可以**重跑** MCeT，⛔ **不能独立复算任何一条 issue 的真伪** | ⭐ 断言可在制品上独立复算 |
 
 ⚠️ **`baselines/mcet/` 的评级需要重估，⛔ 但「旧口径打的应升级」这个提法前提错了。** ⭐ 实测 [`baselines/GUIDE.md`](../../../baselines/GUIDE.md) §3.5 的四级 emoji 表，**其定义本身就是任务绑定的** —— 🟢 逐字要求「输出必须是状态机族模型…与『自然语言自动生成状态机模型』任务直接可比」。⛔ **在那张表自己的定义下，🟠 是正确的编码**（MCeT 的输出确实不是状态机族模型），⭐ 四级里没有任何一级能表达「issue-discover 口径下最近的可比对象」。⭐⭐ **这张表缺的是一个维度，⛔ 不是缺一次调档。**
 
@@ -171,6 +178,37 @@ $$k_{\text{界内}} = 0 \ (+1\ \text{待裁定}), \qquad k_{\text{邻域}} = 2$$
 ⚠️⚠️ **但这句话只对主会成立，⛔ 不对 ICSE 卫星卷成立。** ⭐ ICSE 的 NIER / SEIP / SEET / Companion 在 DBLP 是**独立卷**，本轮只扫了主会卷。⛔ 实证后果：ICSE'23 NIER 的 *Anti-Patterns (Smells) in Temporal Specifications* **不在**那 896 条里，是靠关键词检索才捞到的。
 
 ⚠️ **另一条工具性零，⛔ 不得当证据**：一次检索用了无效的 DBLP venue key `venue:FSE:`（正确是 `venue:SIGSOFT FSE:`），⛔ 其返回的 0 是**工具性零**而非事实性零。⭐ 已用正确 key 重跑。
+
+### 4.2b ⛔⛔ Q3 漏掉了一个候选，⚠️ 而仓库另一份文件称它「唯一可用的外部对照」
+
+⛔⛔ **这是一处仓库内自相矛盾，由 C2 反驳发现。** [`discover_matrix/docs/protocol/ground_truth_limitations.md`](../../discover_matrix/docs/protocol/ground_truth_limitations.md) 逐字写着：
+
+> ```
+> 原论文（Wang et al. 2025, Internetware，DOI 10.1145/3755881.3755926）的公开 workbook
+> `Experiment Results.xlsx` / sheet `STM Results` 对 60 个生成结果逐 case 记录三类问题，
+> 各带 `Resolved` 标记。它是唯一可用的外部对照，因为它的判定方式与我们不同：
+> 它对着作者重建的参考模型算 grammar-point F1，而我们仅凭 NL 建立正向命…
+> ```
+
+⛔ **而 L1 的全部交付物里，`Internetware` 出现 0 次**（`grep -c` 于 `SUMMARY.md` / `pool_audit.md` / `CONTINGENCY_L1.md` / `story_suggestions.md` / `adjudication_sosym.md` 全为 0）。⚠️ **同一批 54 pair 所依据的那 60 个模型，其原论文的人工问题清单，在 Q3 的 14+ 条逐条筛除里一次都没出现。**
+
+⚠️ 按 `CONTINGENCY_L1.md` §0.1.5 第 1 条，**任何一个「0 篇」都必须附可复现筛除记录** —— ⛔ 这一条候选**连筛都没筛**。
+
+⭐ **它大概率过不了门①**（它对着作者重建的参考模型算 grammar-point F1，属生成后自评），⛔ **但那是判据，不是豁免**：⚠️ 「它不合格」必须**写出来**，⛔ 不能靠没提到。⭐ 已列为层 2 待核第 1 项。
+
+⚠️⚠️ **两份仓库文件对同一对象给出相反定位** —— 一份称「唯一可用的外部对照」，另一份的筛除记录里零出现。⛔ 审稿人只需要引其中一份。⭐ **必须收口**：要么在 Q3 里正式筛除它并写明理由，要么更正 `ground_truth_limitations.md` 的措辞。
+
+### 4.2c ⚠️ 「为什么必须自建」这个答案，⛔ 只答了一半
+
+⛔ C2 反驳指出：Q3 的筛除记录回答的是「**文献里有没有可换算的数字**」，⚠️ 而 X1 质询问的是「**你们能不能跑一个外部对照**」。⭐ **两者不是同一个问题**，⛔ 而 §4.1 的三条不可换算**全部只适用于搬运数字，一条都不适用于运行别人的方法**。
+
+⚠️ 三条加重情节：
+
+1. ⭐ **最近的候选可运行**：MCeT 四门里只失守门②，⛔ 而门② 是**我们自己划的**形式主义边界。它的实现、prompt、评测数据集全部公开（L140–142），⛔ 且作者自陈技术可轻易适配任何建模语言（L332）。⚠️ 所以「不能比」目前的真实内容是「**没试过**」，⛔ 不是「不可能」。
+2. ⛔⛔ **X1 复刻的恰好是已知的弱臂**：MCeT 摘要 L33–35 逐字 `directly asking an LLM to compare a diagram to requirements finds less than 35% of issues that experienced engineers can find` —— ⚠️ **朴素直问就是 MCeT 的 holistic 臂**，它已被量过（34.1% vs 组合臂 68.1%），⭐ 是两条臂里差的那条。
+3. ⚠️ **三种不可换算是把双刃剑**：⭐ 它的有效结论是「外部数字不可搬进来」，⛔ **但它同时意味着我们的 60.4% 也不可被外部读懂**。
+
+⛔ **L1 不裁定这一条**（⚠️ 它是 X1 的实验设计问题，不是文献版图问题），⭐ 原样上交 R1 与伞 PR。
 
 ### 4.3 ⭐ 用途声明
 
