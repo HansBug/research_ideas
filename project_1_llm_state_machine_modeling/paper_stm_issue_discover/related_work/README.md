@@ -2,13 +2,17 @@
 
 ⭐ 本目录放**与外部工作的关系**：调研预案、以及已完成的文献证据。⛔ 它不是论文集（⛔ 无单论文目录、⛔ 无 `paper.pdf`）—— ⭐ 那类材料在 [../../baselines/](../../baselines/) 与 project_1 的 [sources/](../../sources/) / [state_machine_types/](../../state_machine_types/)。
 
-## 三份文件，⭐ 分属三类调研
+## 目录内容，⭐ 分属三类调研
 
-| 文件 | 类别 | 状态 | 它回答什么 |
+| 路径 | 类别 | 状态 | 它回答什么 |
 | :-- | :-- | :-- | :-- |
 | [CONTINGENCY_L1.md](./CONTINGENCY_L1.md) | ⭐ **L1 · 技术版图与对照系** | ⏳ **预案，未开跑** | 别人做到哪一步、谁能当 `60.4%` 的参照系 |
-| [CONTINGENCY_L2.md](./CONTINGENCY_L2.md) | ⭐ **L2 · 主张根基与差异化** | ⏳ **预案，未开跑** | 19 条谓词凭什么成立、C-③ 的差异化能说多硬 |
+| [CONTINGENCY_L2.md](./CONTINGENCY_L2.md) | ⭐ **L2 · 主张根基与差异化** | 📋 **预案**（⚠️ §3 整节与 §6.2/§6.3 已作废） | 19 条谓词凭什么成立、C-③ 的差异化能说多硬 |
+| ⭐ [provenance/](./provenance/) | ⭐ **L2 的产出物** | 🚧 **进行中**（PR [#183](https://github.com/HansBug/research_ideas/pull/183)） | ⭐ 19 行出处三类表 + C-③ 差异化结论 + 对 story 的建议。⭐ 入口读 [provenance/README.md](./provenance/README.md) |
+| ⏳ `landscape/` | L1 的产出物 | ⏳ **未建** | —— |
 | ⭐ [assertion_output_form_evidence.md](./assertion_output_form_evidence.md) | ⭐⭐ **第三类 · 方法学借力论证** | ✅ **已完成（2026-08-12，116 篇）** | ⭐ 「可机械求值断言 + 需求绑定」这种**输出形态**本身，文献里已建立了什么 |
+
+⚠️ **两份 CONTINGENCY 是**预案**，⛔ 不是结论** —— 它们列的是「若调研结果落在某一档，story 该怎么改」。⭐ **L2 的实际结论在 [provenance/](./provenance/)**，⛔ 不在 `CONTINGENCY_L2.md` 里。
 
 ## ⭐⭐ 关于第三类：它不归 L1，⛔ 也不归 L2
 
