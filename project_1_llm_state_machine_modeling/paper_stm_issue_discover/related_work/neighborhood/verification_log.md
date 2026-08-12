@@ -126,6 +126,29 @@ A8 在自查中发现，它为两条候选**按惯例拼出**了 `10.1145/365262
 
 ⭐⭐ **这个更正让原结论变强**：⭐ GitHub topic 检索的正向命中比原先说的**还要少**，⛔ 于是「**资产要走论文的 replication package，不要指望 GitHub 检索**」这条更成立。
 
+### 2.6 ⭐⭐ 全量核验：⭐ **57 个标识符，⛔ 零伪造**
+
+⭐ 从 21 张卡里机械抽出全部 DOI 与 arXiv id（⭐ 去重后 **57 个：38 DOI + 19 arXiv**），⭐ 复用 L2 的 [`verify_citations.py`](../provenance/tools/verify_citations.py) 跑全量：
+
+```bash
+python3 provenance/tools/verify_citations.py --findings /tmp/l3/cites.json --out /tmp/l3/cite_report.json
+```
+
+⚠️ ⛔ **报告里的 53 条 `TITLE_MISMATCH` 是假信号** —— ⭐ 我传入的 `title` 字段是**空的**（⭐ 只抽了标识符），⛔ 于是标题相似度恒为 0。⭐ **它们实际全部解析成功且解析到的标题合理。**
+
+⭐ **真正需要看的只有 4 条**，⭐ 逐条查明：
+
+| 标识符 | 判定 | 原因 |
+| :-- | :-- | :-- |
+| `10.1145/` | ⭐ **我的正则截断** | ⛔ 不是引用，⭐ 是一个被切碎的片段 |
+| `10.1007/s10664-026-10923-2.pdf` | ⭐ **我的正则多吃了 `.pdf`** | ⭐ 真正的 DOI `10.1007/s10664-026-10923-2` **已核为真** |
+| `10.5281/zenodo.21310317` | ⭐ **确实不存在** | ⭐ handle API 返回 `responseCode 100`（⛔ 不存在）—— ⭐ **与抽卡 agent 的报告一致**：⭐ 论文自陈「resolves on publication」，⛔ 即 DOI **尚未铸造** |
+| `10.5281/zenodo.19819245` | ⭐ **真实存在** | ⭐ handle API 返回 `responseCode 1`；⛔ DataCite 取不到内容（⭐ 该记录已被作者删除，⭐ 见 §4.7） |
+
+⭐⭐ **结论：⛔ 57 个标识符里没有一个是编造的。** ⚠️ 两个「解析失败」是**我自己的抽取正则**造成的，⭐ 一个是**尚未铸造的 DOI**，⭐ 一个是**已删除但 handle 仍在的真实记录**。
+
+⚠️ ⛔ **顺带暴露了 L2 那个工具的一处口径缺陷**：⭐ 它把 DataCite 的 DOI 一律走 Crossref 与 handle，⛔ **而不查 DataCite** —— ⭐ 于是 Zenodo 记录会被判 `DOI_NOT_RESOLVED`。⭐ 本轮靠人工补了 DataCite 查询（⭐ 判据见 §1.2）。
+
 ---
 
 ## 3. ⭐ 资产机械核验
@@ -304,6 +327,22 @@ python -m tools.pdf_extractor -i S1.pdf -o S1.txt -m text   # 49 页
 ⭐ 正文逐字：`61 papers report reproducibility support` · `Threats to validity is provided in 49 papers, meaning that around half of the primary studies still` …
 
 ⚠️ ⛔ **「report reproducibility support」是论文自陈，⛔ 不等于我们能取到东西。** ⭐ L3 的资产核验就是要量化这两者之间的差 —— ⭐ 若自陈 71% 而实际可取远低于此，⭐ **那个差本身是一条可写的发现**。
+
+---
+
+### 4.7 ⚠️ 一份**已被作者删除**的资产（⛔ 而我们持有副本）
+
+⭐ `10.5281/zenodo.19819244`（*Agentic LLM traces for Simulink Model Repair*）：
+
+| 查询 | 结果 |
+| :-- | :-- |
+| handle API | ⭐ `responseCode 1`（存在） |
+| DataCite | ⭐ `findable`，⭐ 标题正确，2026，`Dataset` |
+| ⛔ **实际访问** | ⛔⛔ **HTTP 410** —— `removal_reason` 逐字 **`test-record`**，`removal_date` **2026-05-03**；⛔ 全部文件 URL 现均 410 |
+
+⭐ **我们持有本地完整副本**（⭐ 10 文件 / **162,663,460 B**，⭐ md5 全部实算）。⛔ **但无法与官方校验和交叉验证** —— ⭐ 那份校验和随记录一起没了。
+
+⭐⭐ **这是一个值得记的资产风险形态**：⛔ **元数据仍然 findable、DOI 仍然解析、⛔ 而内容已经不在了。** ⭐ 任何只查 DOI 是否解析的核验都会把它判成 🟢。
 
 ---
 
