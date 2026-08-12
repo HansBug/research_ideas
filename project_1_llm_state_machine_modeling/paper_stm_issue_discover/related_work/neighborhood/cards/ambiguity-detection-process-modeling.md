@@ -293,7 +293,7 @@ $$H_{\mathrm{norm}} = \frac{-\sum_{i=1}^{K} p_i \log_2 p_i}{\log_2 |Y|}$$
 
 | 资源类型 | 状态 | URL / 路径 | ⭐ 核验证据 |
 | :-- | :-: | :-- | :-- |
-| 论文全文 | ⭐ 🟢 | [arXiv:2604.10884](https://arxiv.org/abs/2604.10884)；⭐ 本地 [paper.pdf](../../../baselines/ambiguity-detection-elimination-executable-process-modeling/paper.pdf) | ⭐ `curl` abs 页 HTTP **200**；⭐ 本地 `paper.pdf` 1.24 MB + `paper_content.txt` 44.9 KB，⭐ 11 页文字层完整可读 |
+| 论文全文 | ⭐ 🟢 | [arXiv:2604.10884](https://arxiv.org/abs/2604.10884)；⭐ 本地 [paper.pdf](../../../../baselines/ambiguity-detection-elimination-executable-process-modeling/paper.pdf) | ⭐ `curl` abs 页 HTTP **200**；⭐ 本地 `paper.pdf` 1.24 MB + `paper_content.txt` 44.9 KB，⭐ 11 页文字层完整可读 |
 | ⭐⭐ **实验代码** | ⛔⛔ **⚪** | ⛔ **不存在** | ⛔⛔ **HEAD `362fcfbf019550592a8ae6b8197e204876dedb1f`，25 个 blob，其中 `.py` / `.ipynb` / `.js` / `.sh` / `.java` = 0 个。** ⭐ 全部文件是：⭐ 15 个 PDF · 4 个 `.bpmn` · 2 个 `.png`×4 · 1 个 `.csv` · 1 个 `README.md` · **1 个 25.4 MB 的 `tool-demo-movie.mp4`**。⛔ **生成 pipeline、熵计算、MBD 求解器、AST 归一化全部无源码。** ⛔ license 无 |
 | ⭐ **数据集 / Benchmark** | ⭐ 🟢 | [`input-data/test_data.csv`](https://github.com/ionmatei/ambiguity-detection/blob/main/input-data/test_data.csv) + 4 份 policy PDF | ⭐ 实际下载：**1001 条数据行**，17 列（`Health_Check` / `Fasting_Blood_Glucose` / `HbA1c` / `eGFR` / `Urinary_Protein` / `ID` / `Age` / …）。⚠️⚠️ **与 README 及论文所称的「100 synthetic patient records」不符** —— ⭐ 见 F2。⛔ **无 ground truth**（⭐ 本方法的前提就是没有） |
 | ⭐ 代表模型 | ⭐ 🟢 | `city-{1,2}/city_N_{reference,target}.bpmn` | ⭐ 4 个 BPMN 2.0 XML 实际存在：City 1 reference 14198 B / target 13210 B；City 2 reference 23115 B / target 29050 B。⭐ 另有 4 张对应 PNG |

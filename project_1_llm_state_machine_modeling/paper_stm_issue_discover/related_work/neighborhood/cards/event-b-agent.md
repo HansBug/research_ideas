@@ -51,8 +51,7 @@
 所有 refinement step 走完 ⇒ 终态模型
 ```
 
-⭐ 阶段自陈（§1 逐字）：`(1) Refinement Stratey Planning. ... (2) Model Synthesis. ... (3) Model & Proof Repair.`
-⭐⭐ **神经符号分工的自陈（§4.1 逐字，⭐ 这段是全文最该抄的一段）**：`Event-B Agent adopts a neurosymbolic design, where semantic tasks such as refinement planning, model synthesis, and repair are delegated to specialized LLMs, while deterministic components handle the rest. Model checkers, SMT solvers, and theorem provers verify synthesized models, pattern matching identifies candidate repair rules from the proof state, and atomic repair functions apply updates to models and proofs. This separation combines the flexibility of LLMs with the reliability of symbolic reasoning, achieving both semantic versatility and soundness.`〔M〕
+⭐ 阶段自陈（§1 逐字）：`(1) Refinement Stratey Planning. ... (2) Model Synthesis. ... (3) Model & Proof Repair.` ⭐⭐ **神经符号分工的自陈（§4.1 逐字，⭐ 这段是全文最该抄的一段）**：`Event-B Agent adopts a neurosymbolic design, where semantic tasks such as refinement planning, model synthesis, and repair are delegated to specialized LLMs, while deterministic components handle the rest. Model checkers, SMT solvers, and theorem provers verify synthesized models, pattern matching identifies candidate repair rules from the proof state, and atomic repair functions apply updates to models and proofs. This separation combines the flexibility of LLMs with the reliability of symbolic reasoning, achieving both semantic versatility and soundness.`〔M〕
 
 ### B2 · 每次 LLM 调用的角色
 
