@@ -448,11 +448,18 @@ def test_worksheet_carries_notes_and_translator_notes():
 # ==================================================================== §5 字段块
 
 def _entry(pair, idx=1, **over):
-    """拼一条 §5 新增登记。⭐ 值为 `None` 表示那一行整个不写（模拟漏填）。"""
+    """拼一条 §5 新增登记。⭐ 值为 `None` 表示那一行整个不写（模拟漏填）。
+
+    ⭐ 默认是一条**填齐的、界内的、依据自洽的**条目：`basis = 模型自身` 配
+    `nl_evidence = 无`，`scope = 界内`。⛔ 这样每个用例只需覆写它要测的那一项，
+    被测信号不会被别的 `E` 淹掉。
+    """
     fields = {
         "statement": "顶层没有任何进入 InitialState 的初始边，冷启动落点未定义。",
         "generated_side": ":2 [*] --> InitialState",
+        "basis": "模型自身",
         "nl_evidence": "无",
+        "scope": "界内",
         "direction": "entry",
         "depth": "中层",
     }
@@ -485,7 +492,7 @@ def _msgs(rep, level=None):
 
 
 def test_new_issue_field_block_round_trips_through_collect():
-    """⭐ 人工填的 8 个字段必须能被 `collect.py` 原样收回来。"""
+    """⭐ 人工填的 10 个字段必须能被 `collect.py` 原样收回来。"""
     body = _entry("0001", 1, primary_predicate="initial_target",
                   reference_side="参考侧有 [*] --> Init", layer="wellformedness")
     recs = C.parse_new(body, "0001")
@@ -494,7 +501,9 @@ def test_new_issue_field_block_round_trips_through_collect():
     assert recs[0]["id"] == "NEW-0001-01"
     assert f["statement"].startswith("顶层没有任何")
     assert f["generated_side"] == ":2 [*] --> InitialState"
+    assert f["basis"] == "模型自身"
     assert f["nl_evidence"] == "无"
+    assert f["scope"] == "界内"
     assert f["direction"] == "entry"
     assert f["depth"] == "中层"
     assert f["primary_predicate"] == "initial_target"
@@ -507,14 +516,131 @@ def test_new_issue_block_parses_the_checkbox_form_from_the_real_template():
             .replace("statement:", "statement: BrakingState 的出边把两个事件并成一个名字")
             .replace("generated_side:", "generated_side: 第 8 行")
             .replace("nl_evidence:", "nl_evidence: NL-L003")
+            .replace("[ ] NL显式义务", "[x] NL显式义务")
+            .replace("[ ] 界内", "[x] 界内")
             .replace("[ ] guard ", "[x] guard ")
             .replace("[ ] 深层", "[x] 深层"))
     recs = C.parse_new(body, "0001")
     assert len(recs) == 1
     f = recs[0]["fields"]
+    assert f["basis"]["chosen"] == ["NL显式义务"]
+    assert f["scope"]["chosen"] == ["界内"]
     assert f["direction"]["chosen"] == ["guard"]
     assert f["depth"]["chosen"] == ["深层"]
     assert f["nl_evidence"] == "NL-L003"
+
+
+# ---- ⭐ 三层结构本身
+
+def test_the_field_block_is_organised_in_three_layers():
+    """⭐ 三层必须在模板里**看得见** —— ⛔ 只在文档里讲、模板里不体现等于没做。"""
+    body = NF.template("0001", count=1)
+    order = [ln for ln in body.splitlines() if ln.startswith("---")]
+    assert order == [NF.SEP_FACT, NF.SEP_BASIS, NF.SEP_SCOPE,
+                     NF.SEP_AXIS, NF.SEP_OPTIONAL]
+    # ⭐ 每层的字段必须落在自己那一段里
+    def between(a, b):
+        seg = body.split(a, 1)[1].split(b, 1)[0]
+        return [ln.split(":", 1)[0] for ln in seg.splitlines() if ":" in ln]
+    assert between(NF.SEP_FACT, NF.SEP_BASIS) == ["statement", "generated_side"]
+    assert between(NF.SEP_BASIS, NF.SEP_SCOPE) == ["basis", "nl_evidence"]
+    assert between(NF.SEP_SCOPE, NF.SEP_AXIS) == ["scope"]
+    assert between(NF.SEP_AXIS, NF.SEP_OPTIONAL) == ["direction", "depth"]
+
+
+def test_layer_separators_are_not_parsed_as_content():
+    """⛔ 分层小标题不是字段，⛔ 也不许被并进上一个字段的值里。
+
+    ⚠️ 这条是设计时就看得见的坑：`--- ② 依据层 · … ---` 紧跟在 `generated_side:`
+    之后，而它不匹配字段名正则（行首是 `-`），于是会被**并进 `generated_side`** ——
+    定位串静默多出一整行，行号解析与去重判据一起脏掉。
+    """
+    body = (NF.template("0001", count=1)
+            .replace("generated_side:", "generated_side: :5"))
+    f = C.parse_new(body, "0001")[0]["fields"]
+    assert f["generated_side"] == ":5", f["generated_side"]
+    for sep in NF.SEPARATORS:
+        assert sep not in str(f), f"分层小标题 {sep!r} 混进了字段值"
+    assert "_raw_lines" not in f
+
+
+def test_readme_worked_example_can_never_be_collected_as_a_real_judgement():
+    """⛔ README §3.6.3 的填好样例不许被当成真实判读回收。
+
+    三重保险，⭐ 三条都测：① 它写在 README 里，而 [collect.py](./collect.py) 只读
+    54 份 `<pair>.md`；② README 里**没有** `FILL` 哨兵，`fb.extract` 抽不出任何块；
+    ③ 它用的 pair 是 `0008` —— 永久排除、**不生成工作单**，所以那个 id
+    永远不可能出现在任何被回收的文件里。
+    """
+    with open(os.path.join(HERE, "README.md"), encoding="utf-8") as fh:
+        readme = fh.read()
+    assert "NEW-0008-01" in readme, "README 的填好样例不见了"
+    assert fb.extract(readme) == {}, "README 里出现了 FILL 哨兵 —— 会被误当成填写块"
+    assert "0008" in S.OUT_OF_SCOPE_PAIRS
+    assert not os.path.exists(os.path.join(HERE, "0008.md"))
+    # ⭐ 样例引的段 id 与作者源行号必须是**真的**
+    assert "NL-L001" in {sid for sid, _ in S.nl_segments("0008")[0]}
+    src = S.puml_text("0008").splitlines()
+    assert src[4].strip() == "[*] --> fork1: After (2 s)", "样例引的第 5 行对不上作者源"
+    assert src[7].strip() == "TurnOn --> fork1"
+    # ⛔ 全量回收一遍：样例不许出现在产物里
+    for pair in S.IN_SCOPE_PAIRS:
+        data = C.collect_pair(pair, os.path.join(HERE, f"{pair}.md"))
+        assert data["new_issues"] == [], f"{pair} 的 §5 被预填了"
+
+
+def test_out_of_scope_and_in_scope_are_told_apart_by_the_scope_field():
+    """⭐ 边界层的判据是判读者勾的 `scope`，⛔ 不是词法命中。"""
+    assert NF.is_out_of_scope("越界·时钟或不变式")
+    assert NF.is_out_of_scope("越界·并发或正交区")
+    assert not NF.is_out_of_scope("界内")
+    assert not NF.is_out_of_scope(None)
+    # ⛔ 取值里不许含 `_enum_values` 的分隔符，否则单值会被切成多值
+    for v in NF.SCOPES + NF.BASES:
+        assert V._RE_ENUM_SPLIT.split(v) == [v], f"{v} 含分隔符，会被切开"
+
+
+def test_derive_marks_an_out_of_scope_entry_as_not_a_defect():
+    """⛔ 标了越界的**不得计入缺陷统计** —— 但也**不许丢**。"""
+    oos = NF.derive("0001", "NEW-0001-01",
+                    {"generated_side": ":5", "scope": "越界·时钟或不变式"})
+    assert oos["in_scope"] is False
+    assert oos["counts_as_defect"] is False
+    assert oos["boundary_ruling"] == "out_of_scope"
+    assert "越界·时钟或不变式" in oos["boundary_effect"]
+
+    inside = NF.derive("0001", "NEW-0001-02",
+                       {"generated_side": ":5", "scope": "界内"})
+    assert inside["in_scope"] is True and inside["counts_as_defect"] is True
+    assert inside["boundary_ruling"] is None
+
+    # ⛔ 没勾 `scope` 时不许默认「在界内」—— 未判就必须显形
+    unknown = NF.derive("0001", "NEW-0001-03", {"generated_side": ":5"})
+    assert unknown["in_scope"] is None and unknown["counts_as_defect"] is None
+    assert "in_scope" in unknown["pending"]
+
+
+def test_progress_counts_exclude_out_of_scope_entries():
+    """⛔ 越界条目进「越界」栏，⛔ 不进「新增」栏 —— 两栏都要对。"""
+    data = {
+        "pair": "0001", "summary": None,
+        "ledger": [], "candidates": [], "checklist": [],
+        "new_issues": C.parse_new("\n\n".join([
+            _entry("0001", 1),
+            _entry("0001", 2, scope="越界·并发或正交区",
+                   statement="NL 要求两个区域同时活跃，模型无正交区。"),
+            _entry("0001", 3, scope="越界·时钟或不变式",
+                   statement="NL 要求 2 秒后迁移，模型无时钟。"),
+        ]), "0001"),
+        "orphans": {}, "untouched_keys": [],
+    }
+    row = V.pair_progress("0001", data)
+    assert row["new"] == 1, "越界条目被算进了缺陷统计"
+    assert row["out_of_scope"] == 2
+    counted, oos = V.new_issue_split(data)
+    assert len(counted) == 1 and len(oos) == 2
+    # ⭐ 越界条目仍然完整落盘 —— ⛔ 不许被丢掉
+    assert len(data["new_issues"]) == 3
 
 
 def test_multiline_statement_with_colons_is_not_truncated():
@@ -558,7 +684,8 @@ def test_derive_fills_element_of_M_from_the_author_source_line():
 def test_derive_reports_the_fields_it_cannot_produce():
     """⛔「脚本推导」必须是一句可核对的话：算不出来的要列进 `pending`。"""
     d = NF.derive("0001", "NEW-0001-01",
-                  {"generated_side": ":5", "primary_predicate": "edge_declared"})
+                  {"generated_side": ":5", "primary_predicate": "edge_declared",
+                   "scope": "界内"})
     assert d["pair"] == "0001" and d["group"] == "NL02" and d["in_scope"] is True
     assert d["llm"] == S.source_meta("0001")["llm"]
     assert d["element_of_M"] == "Tr"
@@ -573,7 +700,10 @@ def test_field_table_and_template_stay_in_sync():
     names = [ln.split(":", 1)[0] for ln in body.splitlines() if ":" in ln]
     assert names == NF.FIELD_NAMES
     assert NF.REQUIRED_FIELDS + NF.OPTIONAL_FIELDS == NF.FIELD_NAMES
-    assert len(NF.REQUIRED_FIELDS) == 5 and len(NF.OPTIONAL_FIELDS) == 3
+    assert len(NF.REQUIRED_FIELDS) == 7 and len(NF.OPTIONAL_FIELDS) == 3
+    # ⭐ 勾选字段必须都在字段表里，⛔ 否则模板给了勾选行而回收器按自由文本读
+    assert set(NF.CHOICE_FIELDS) <= set(NF.FIELD_NAMES)
+    assert set(NF.REQUIRED_WHEN_OUT_OF_SCOPE) <= set(NF.REQUIRED_FIELDS)
 
 
 def test_every_exemplar_slot_resolves_off_group():
@@ -651,6 +781,28 @@ def test_boundary_gate_is_a_warning_not_a_hard_gate():
     assert [i["level"] for i in rep.items if "疑似越界" in i["msg"]] == ["W"]
 
 
+def test_boundary_gate_stays_quiet_when_the_author_already_marked_it_out_of_scope():
+    """⭐ 反例：已经自己勾了越界的**不再提醒** —— ⛔ 再报一遍只是噪声。
+
+    ⚠️ 这一条和上面几条是一对：词法门只在「勾了界内、而文本像越界」时才说话。
+    """
+    rep = _validate_new("0001", "\n".join([
+        "### NEW-0001-01",
+        "statement: NL 要求 2 秒的 timer 超时迁移，模型无时钟可承载。",
+        "generated_side: :5",
+        "scope: 越界·时钟或不变式",
+    ]))
+    assert not any("疑似越界" in m for m in _msgs(rep))
+
+
+def test_boundary_warning_names_the_scope_the_author_actually_chose():
+    """⭐ 提醒里要写清「你勾的是界内」并给出改法 —— ⛔ 否则判读者不知道要动哪个字段。"""
+    rep = _validate_new("0001", _entry(
+        "0001", statement="Cooking 缺少 30 秒 timer 到期后的出边。"))
+    msg = next(m for m in _msgs(rep, "W") if "疑似越界" in m)
+    assert "`界内`" in msg and "不计入缺陷统计" in msg
+
+
 def test_out_of_scope_pair_worksheet_is_a_hard_error():
     """⛔ 这一条相反：`00x8` 出现工作单是确定性事实，必须报 `E`。"""
     with tempfile.TemporaryDirectory() as tmp:
@@ -723,6 +875,104 @@ def test_dedup_is_a_warning_not_a_hard_gate():
     assert all(i["level"] == "W" for i in rep.items if "同一缺陷" in i["msg"])
 
 
+# ---- ④⭐ 依据自洽（② 依据层）
+
+def test_basis_nl_obligation_requires_a_segment_id():
+    """⛔ 正例：依据在 NL 上，就必须指到**哪一段**。"""
+    rep = _validate_new("0001", _entry(
+        "0001", basis="NL显式义务", nl_evidence="NL 第 2 句说了"))
+    assert any("给不出本 pair 的 NL 段 id" in m for m in _msgs(rep, "E"))
+    # ⛔ 写 `无` 同样不行 —— 依据自称在 NL 上，却又说没有 NL 依据
+    rep = _validate_new("0001", _entry("0001", basis="NL显式义务", nl_evidence="无"))
+    assert any("给不出本 pair 的 NL 段 id" in m for m in _msgs(rep, "E"))
+
+
+def test_basis_underspecified_also_requires_a_segment_id():
+    """⭐ `NL欠指定` 同样要指到那一句 —— ⛔ 不指出来就无法复核它到底欠在哪。"""
+    rep = _validate_new("0001", _entry("0001", basis="NL欠指定", nl_evidence="无"))
+    assert any("给不出本 pair 的 NL 段 id" in m for m in _msgs(rep, "E"))
+
+
+def test_basis_with_a_segment_id_passes():
+    """⛔ 反例：给了真段 id 的 NL 类依据不许报 `E` —— 恒报的规则等于没有规则。"""
+    for basis in NF.NL_BASED_BASES:
+        rep = _validate_new("0001", _entry(
+            "0001", basis=basis,
+            nl_evidence="NL-L002 逐字含 'it transitions from the initial state'",
+            layer="nl_named" if basis == "NL显式义务" else None))
+        assert _msgs(rep, "E") == [], (basis, _msgs(rep, "E"))
+
+
+def test_model_intrinsic_basis_may_write_none_for_nl_evidence():
+    """⛔ 反例：`模型自身` + `无` 是最常见的正确组合，⛔ 不许报错。"""
+    rep = _validate_new("0001", _entry("0001", basis="模型自身", nl_evidence="无"))
+    assert _msgs(rep, "E") == []
+    assert not any("basis" in m for m in _msgs(rep, "W"))
+
+
+def test_underspecified_basis_must_not_claim_a_violation():
+    """⛔ 标了「NL 欠指定」就**不得**同时声称模型「违反」了 NL。
+
+    ⭐ 分两半判，⛔ 不许混：`layer = nl_contradiction` 是两个枚举字段的定值冲突，
+    只看字段值就能判定 → `E`；`statement` 里写没写「违反」要读文意、会误伤
+    （例如判读者写的是「不违反」）→ 只能 `W`。判据见 [CLAUDE.md] §11。
+    """
+    hard = _validate_new("0001", _entry(
+        "0001", basis="NL欠指定", nl_evidence="NL-L002", layer="nl_contradiction"))
+    assert any("不能并存" in m and "欠指定" in m for m in _msgs(hard, "E"))
+
+    soft = _validate_new("0001", _entry(
+        "0001", basis="NL欠指定", nl_evidence="NL-L002",
+        statement="模型违反了 NL 第 2 句要求的源状态。"))
+    assert any("出现了「违反」类措辞" in m for m in _msgs(soft, "W"))
+    assert _msgs(soft, "E") == []          # ⛔ 词法判据不许升级成 E
+
+
+def test_underspecified_basis_worded_as_unspecified_is_accepted():
+    """⛔ 反例：改写成「原文未规定」之后不许再报 —— 那正是我们要的写法。"""
+    rep = _validate_new("0001", _entry(
+        "0001", basis="NL欠指定", nl_evidence="NL-L002",
+        statement="NL 第 2 句未指明该迁移的源状态，模型自行选择了 InitialState 这一读法。"))
+    assert _msgs(rep, "E") == []
+    assert not any("违反" in m for m in _msgs(rep, "W"))
+
+
+def test_reference_model_basis_cannot_be_recorded_as_an_nl_contradiction():
+    """⛔ 这正是 `EIS-0005-02` 的病灶：参考模型依据被记成了「与 NL 显式义务矛盾」。"""
+    rep = _validate_new("0001", _entry(
+        "0001", basis="参考模型", nl_evidence="无", layer="nl_contradiction"))
+    msgs = _msgs(rep, "E")
+    assert any("参考模型" in m and "不能并存" in m for m in msgs)
+    assert any("EIS-0005-02" in m for m in msgs)
+
+
+def test_reference_model_basis_alone_is_flagged_as_insufficient():
+    """⭐ 参考模型不是正确答案 —— 单靠它支撑的条目要提示「待裁定」。"""
+    rep = _validate_new("0001", _entry("0001", basis="参考模型", nl_evidence="无"))
+    assert any("单独不足以" in m for m in _msgs(rep, "W"))
+    assert _msgs(rep, "E") == []           # ⛔ 但它是允许登记的，⛔ 不是硬错
+
+
+def test_model_intrinsic_basis_conflicts_with_an_nl_layer():
+    """⛔ `模型自身` 与 `nl_named` / `nl_contradiction` 是定值冲突 → `E`。"""
+    for layer in ("nl_named", "nl_contradiction"):
+        rep = _validate_new("0001", _entry(
+            "0001", basis="模型自身", nl_evidence="NL-L002", layer=layer))
+        assert any("`basis = 模型自身`" in m and "不能并存" in m
+                   for m in _msgs(rep, "E")), layer
+    # ⛔ 反例：与 `wellformedness` 并存是正常的
+    ok = _validate_new("0001", _entry(
+        "0001", basis="模型自身", nl_evidence="无", layer="wellformedness"))
+    assert _msgs(ok, "E") == []
+
+
+def test_basis_checks_are_silent_when_basis_is_not_filled_yet():
+    """⛔ 反例：`basis` 还没勾时，依据自洽检查不许瞎报 —— 那时该报的是「必填项未选」。"""
+    rep = _validate_new("0001", _entry("0001", basis=None, nl_evidence="无"))
+    assert any("必填项 `basis` 未选" in m for m in _msgs(rep, "E"))
+    assert not any("不能并存" in m for m in _msgs(rep))
+
+
 # ---- ③⭐ 完整性
 
 @pytest.mark.parametrize("field", ["statement", "generated_side", "nl_evidence"])
@@ -740,10 +990,32 @@ def test_completeness_flags_a_missing_required_enum_field(field):
 def test_completeness_accepts_a_fully_filled_entry():
     """⛔ 反例：填齐的条目不许报任何 `E`。"""
     rep = _validate_new("0001", _entry(
-        "0001", nl_evidence="NL-L002 逐字含 'it transitions from the initial state'",
+        "0001", basis="NL显式义务",
+        nl_evidence="NL-L002 逐字含 'it transitions from the initial state'",
         primary_predicate="initial_target", layer="nl_named",
         reference_side="参考侧写了 [*] --> Init"))
     assert _msgs(rep, "E") == []
+
+
+def test_completeness_of_an_out_of_scope_entry_needs_only_the_fact_layer():
+    """⭐ 越界条目只需 ① 事实层两项 + `scope`。
+
+    ⛔ 硬要它填 `basis` / `direction` / `depth` 只会逼判读者瞎勾一个 ——
+    它不是缺陷，谈「依据强度」「缺陷方向」本来就没有意义。
+    """
+    rep = _validate_new("0001", "\n".join([
+        "### NEW-0001-01",
+        "statement: NL 要求本状态在 2 秒后自动迁移，模型里没有任何时间语义可承载它。",
+        "generated_side: :5",
+        "scope: 越界·时钟或不变式",
+    ]))
+    assert _msgs(rep, "E") == [], _msgs(rep, "E")
+
+
+def test_an_entry_with_no_scope_at_all_is_a_hard_error():
+    """⛔ 反例：`scope` 是必填 —— 不填就是边界层没判，⛔ 不许默认成「界内」。"""
+    rep = _validate_new("0001", _entry("0001", scope=None))
+    assert any("必填项 `scope` 未选" in m for m in _msgs(rep, "E"))
 
 
 def test_completeness_rejects_a_direction_outside_the_enum():
@@ -814,12 +1086,31 @@ def test_untouched_template_produces_no_new_issue_records():
     assert data["new_issues"] == []
 
 
-def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text():
-    """⭐ 字段表改版后重跑：原样未填的旧模板要被换掉，⛔ 填过的一个字都不许动。"""
-    legacy = fb.LEGACY_NEW_TEMPLATES[0].format(pair="0001")
+@pytest.mark.parametrize("legacy", [
+    fb.LEGACY_NEW_TEMPLATES[0].format(pair="0001"),      # 第一代：10 字段平铺
+    NF.template_v2("0001"),                              # 第二代：8 字段、无三层
+])
+def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text(legacy):
+    """⭐ 字段表改版后重跑：原样未填的旧模板要被换掉，⛔ 填过的一个字都不许动。
+
+    ⛔ 少了这条，改版当天的后果很具体：54 份工作单的 §5 会**永远停在旧字段表**上 ——
+    幂等注回是按 key 做的，旧骨架会被当成「人工内容」原样保留，三层字段一个都出不来。
+    """
     assert fb.is_stale_template(legacy, "new", "0001")
     assert not fb.is_stale_template(legacy + "\nstatement: 我写的", "new", "0001")
     assert not fb.is_stale_template(NF.template("0001"), "new", "0001")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "0001.md")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(fb.render("NEW-0001", "new", legacy))
+        subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
+                        "--pairs", "0001", "--out", tmp],
+                       check=True, capture_output=True)
+        with open(path, encoding="utf-8") as fh:
+            swapped = fh.read()
+        assert NF.SEP_BASIS in swapped, "原样未填的旧模板没有被换成三层模板"
+        assert "basis: [ ]" in swapped and "scope: [ ]" in swapped
 
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "0001.md")
@@ -832,3 +1123,51 @@ def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text():
         with open(path, encoding="utf-8") as fh:
             after = fh.read()
         assert "我写的判断" in after
+
+
+def test_a_filled_three_layer_block_survives_regeneration():
+    """⭐ 幂等的正面用例：三层块**填过之后**重跑生成器，一个字都不许变。"""
+    pair = "0001"
+    filled = "\n".join([
+        "### NEW-0001-01",
+        NF.SEP_FACT,
+        "statement: ClampingState 没有任何出边，进入后永远留在那里。",
+        "generated_side: :8, :9",
+        NF.SEP_BASIS,
+        "basis: [x] 模型自身  [ ] NL显式义务",
+        "nl_evidence: 无",
+        NF.SEP_SCOPE,
+        "scope: [x] 界内",
+        NF.SEP_AXIS,
+        "direction: [x] reachability",
+        "depth: [x] 中层",
+    ])
+    with tempfile.TemporaryDirectory() as tmp:
+        src = os.path.join(HERE, f"{pair}.md")
+        dst = os.path.join(tmp, f"{pair}.md")
+        shutil.copy(src, dst)
+        with open(dst, encoding="utf-8") as fh:
+            text = fh.read()
+        with open(dst, "w", encoding="utf-8") as fh:
+            fh.write(text.replace(NF.template(pair), filled, 1))
+
+        for _ in range(2):
+            subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
+                            "--pairs", pair, "--out", tmp],
+                           check=True, capture_output=True)
+        parsed = C.collect_pair(pair, dst)
+        assert len(parsed["new_issues"]) == 1
+        f = parsed["new_issues"][0]["fields"]
+        assert f["generated_side"] == ":8, :9"
+        assert f["basis"]["chosen"] == ["模型自身"]
+        assert f["scope"]["chosen"] == ["界内"]
+        assert f["direction"]["chosen"] == ["reachability"]
+        d = parsed["new_issues"][0]["derived"]
+        assert d["in_scope"] is True and d["counts_as_defect"] is True
+
+        # ⭐ 第三次不该再产生任何改动
+        before = _sha(dst)
+        subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
+                        "--pairs", pair, "--out", tmp],
+                       check=True, capture_output=True)
+        assert _sha(dst) == before

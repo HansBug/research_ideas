@@ -1,12 +1,27 @@
 """§5 新增 issue 的**字段定义、填写模板、填写指引与脚本推导**。
 
-⭐ 字段分三层，⛔ 人工只填第一层：
+⭐ 登记块按**三层**组织。三层不是三种详略，是三个**互相独立、必须分开回答**的问题：
 
-| 层 | 字段 |
-| :-- | :-- |
-| ⭐ 人工必填（5） | `statement` · `generated_side` · `nl_evidence` · `direction` · `depth` |
-| ⚠️ 人工可选（3） | `reference_side` · `primary_predicate` · `layer` |
-| ⭐ 脚本推导（其余） | `id` · `pair` · `group` · `llm` · `in_scope` · `element_of_M` · `expressible_with_closed_vocabulary` · `assertions` · `assertion_count` · `upstream` · `homogeneity_*` · `automatable` … |
+| 层 | 问题 | 字段 |
+| :-- | :-- | :-- |
+| ① 事实层 | ⭐ 你**看到了什么**（⛔ 只描述现象，不下判断），在**哪一处** | `statement` · `generated_side` |
+| ② 依据层 | ⛔ **凭什么**说它是缺陷 | `basis` · `nl_evidence`（+ 可选 `reference_side` · `layer`） |
+| ③ 边界层 | ⛔ 它在 $M = (S, E, V, Tr, A)$ **内**吗 | `scope` |
+| ④ 分类轴 | 并表统计用（⛔ 不是新的一层） | `direction` · `depth`（+ 可选 `primary_predicate`） |
+
+⛔ **为什么依据层要单列 `basis` 而不是复用 `layer`**：台账的 `layer` 把**四种强度完全
+不同**的依据混在同一个轴上，实测已经造成过一次归类错。`EIS-0005-02` 被记为
+`nl_contradiction`（与 NL 显式义务矛盾），但独立复核发现该份 NL **全篇零处提及包含关系**，
+它真正硬的那条依据是 `reference_side` 写的「六个状态全部平级」—— ⛔ 那是**参考模型**依据，
+而 [README.md](./README.md) §二.3 已声明参考模型**不是正确答案**。
+四种依据的强度序：`模型自身` ≥ `NL显式义务` > `NL欠指定` > `参考模型`，
+⭐ 分开记之后，「这条依据够不够硬」才第一次成为可查询的字段。
+
+⛔ **为什么边界层要单列 `scope` 而不是靠词法拦**：判读者发现的若是时钟 / 不变式 / 并发
+问题，那**不是缺陷、也不是漏判**，而是**不在建模对象内**（CLAUDE.md「研究内容一的建模
+对象边界」）。它必须能被登记下来（那本身是关于语料的事实），但**不得计入缺陷统计**。
+⚠️ 词法关键词只能提醒，⛔ 不能代替这个判断：`generated_side` 里引用一行标签写着
+`After (2 s)` 的迁移，不使主张越界；反过来一条不含任何关键词的主张也可能需要并发语义。
 
 ⛔ **为什么不让人填 `element_of_M`**：它是对 `generated_side` 已经点到的那一处做**分类**，
 不带新信息。实测台账里同一个 `direction` 会落到 3 到 5 种不同的 `element_of_M`
@@ -44,22 +59,95 @@ DEPTHS = ["表层", "中层", "深层"]
 
 LAYERS = list(S.LAYERS)          # wellformedness / nl_named / over_specification / nl_contradiction
 
-REQUIRED_FIELDS = ["statement", "generated_side", "nl_evidence", "direction", "depth"]
+# ------------------------------------------------------------------ ② 依据层
+
+# ⭐ 四种依据，⛔ **强度不同**，⛔ 不许合并成一个「有没有依据」的布尔。
+# ⚠️ 取值里不许出现空格、`/`、`,`、`、` —— `validate._enum_values` 会按这些字符
+# 切自由文本写法，取值含分隔符会被切成两个值而报「单值字段却给了两个」。
+BASES = ["NL显式义务", "NL欠指定", "模型自身", "参考模型"]
+
+BASIS_MEANING = [
+    ("NL显式义务",
+     "NL 里有一句**说清楚了**的义务（源状态 / 触发 / 目标 / 守卫 中该有的都有），"
+     "而模型没做到。⭐ 这是最硬的 NL 依据，⛔ 必须给出段 id。"),
+    ("NL欠指定",
+     "NL 里**有**相关句子，⛔ 但那句话把关键槽位空着（不写源状态 / 不写触发 / "
+     "并列项无连接词 / 无情态动词），因此它**支撑不起「模型违反了它」**。"
+     "⭐ 仍然登记，⛔ 但结论只能写成「原文未规定，模型自行选择了一种读法」，"
+     "⛔ 不得写成「违反」。见 [README.md](./README.md) §7.2 的七种欠指定形态。"),
+    ("模型自身",
+     "⭐ 不看 NL、不看参考模型，只读作者源就能判定（良构性）—— "
+     "如引用了未声明的元素、复合态无区域初始边、吸收态。⭐ `nl_evidence` 写 `无` 即可。"),
+    ("参考模型",
+     "⛔ **只有**参考模型那样建、生成侧没那样建。⚠️ 参考模型**不是正确答案**"
+     "（§1.4 与 README §二.3），⛔ 故这一种依据**单独不足以**支撑一条缺陷；"
+     "⭐ 选它等于说「本条待裁定」，请在 `statement` 里写明还缺什么才站得住。"),
+]
+
+NL_BASED_BASES = ("NL显式义务", "NL欠指定")
+
+# ⭐ `basis` → `layer` 的**已知**对应。⛔ 不是双射：`NL显式义务` 既可能落 `nl_named`
+# （NL 点名了缺失元素）也可能落 `nl_contradiction`（与显式义务矛盾），故只给提示。
+BASIS_TO_LAYER = {
+    "模型自身": ("wellformedness", "模型自身即可判定，不需要 NL 也不需要参考模型"),
+    "NL显式义务": (None, "⭐ 视主张形态落 `nl_named`（NL 点名了那个缺失或错位的元素）"
+                        "或 `nl_contradiction`（与 NL 的显式义务矛盾）"),
+    "NL欠指定": (None, "⛔ **不得**落 `nl_contradiction` —— 欠指定的句子不构成显式义务，"
+                      "谈不上与它矛盾"),
+    "参考模型": (None, "⛔ 台账四层**没有**「参考模型依据」这一层。"
+                      "`EIS-0005-02` 正是把参考模型依据记成了 `nl_contradiction`"
+                      "（见 README §7.1）"),
+}
+
+# ------------------------------------------------------------------ ③ 边界层
+
+# ⭐ 越界不是缺陷、也不是漏判，而是「不在建模对象内」。⛔ 取值同样不许含分隔符。
+IN_SCOPE_VALUE = "界内"
+SCOPES = [IN_SCOPE_VALUE, "越界·时钟或不变式", "越界·并发或正交区", "越界·其他"]
+
+SCOPE_MEANING = [
+    (IN_SCOPE_VALUE,
+     "⭐ 主张只涉及 $S$ / $E$ / $V$ / $Tr$ / $A$ —— 状态、事件、变量、迁移、动作与层次。"),
+    ("越界·时钟或不变式",
+     "⛔ 主张成立与否需要时钟变量 $C$ 或状态不变式 $Inv$："
+     "「N 秒后应当迁移」「该状态最长驻留 T」「进入时须满足某不变式」。"),
+    ("越界·并发或正交区",
+     "⛔ 主张需要并发语义：fork / join 伪状态、「两个区域是否同时活跃」、区间同步。"),
+    ("越界·其他",
+     "⚠️ 确属 $M$ 之外但不属上面两类。⛔ 请在 `statement` 里写清越在哪里 —— "
+     "这一档若堆积，说明边界定义本身需要复查。"),
+]
+
+
+def is_out_of_scope(value):
+    """⭐ 该 `scope` 取值是不是「越界」。⛔ 判据是前缀，不是关键词命中。"""
+    return bool(value) and str(value).startswith("越界")
+
+
+# ------------------------------------------------------------------ 字段清单
+
+# ⭐ 必填 7 项里有 **5 项是勾选**（`basis` `scope` `direction` `depth` 与可选的 `layer`），
+# ⛔ 真正要动笔写的只有 `statement` / `generated_side` / `nl_evidence` 三项，
+# 且 `nl_evidence` 在 `basis = 模型自身` 时写一个 `无` 就够。
+REQUIRED_FIELDS = ["statement", "generated_side", "basis", "nl_evidence",
+                   "scope", "direction", "depth"]
 OPTIONAL_FIELDS = ["reference_side", "primary_predicate", "layer"]
 
 # ⭐ 只有这些名字能在填写块里起一个新字段。⛔ 其余带冒号的行一律并进当前字段 ——
 # 否则作者在 `statement` 里写「NL 第 3 句：…」就会被解析器当成新字段名而截断。
 FIELD_NAMES = REQUIRED_FIELDS + OPTIONAL_FIELDS
 
-# ⭐ 只有这三个是勾选行；其余一律读成自由文本。
+# ⭐ 只有这些是勾选行；其余一律读成自由文本。
 # ⛔ 这条是硬的：`generated_side` 的值里几乎必然出现 `[*]`（PlantUML 的伪状态写法），
 # 若把它当勾选行解析，值会变成空的零选项勾选行 —— 入口类缺陷会整类丢失。
-CHOICE_FIELDS = ["direction", "depth", "layer"]
+CHOICE_FIELDS = ["basis", "scope", "direction", "depth", "layer"]
+
+# ⛔ **越界条目不要求填分类轴与依据层** —— 它不是缺陷，谈「缺陷方向」「依据强度」
+# 没有意义，硬要求只会逼判读者瞎勾一个。⭐ 越界条目只需事实层 + `scope`。
+REQUIRED_WHEN_OUT_OF_SCOPE = ["statement", "generated_side", "scope"]
 
 # ⭐ 显式的「已判定为无」标记。⛔ 留空 = 没填；写 `无` = 判过了，结论是没有。
 NONE_MARKS = ("无", "none", "None", "N/A", "n/a", "—", "-")
-
-SEPARATOR = "--- 以上 5 项必填 · 以下 3 项可留空 ---"
 
 
 def is_none_mark(text):
@@ -68,6 +156,19 @@ def is_none_mark(text):
 
 # ------------------------------------------------------------------ 填写模板
 
+# ⭐ 分层小标题。⛔ 它们**不是字段** —— `collect.parse_fields` 按本清单逐字剔除，
+# 否则紧跟在 `generated_side:` 之后的那一行会被并进 `generated_side` 的值里。
+# ⚠️ 因此这里**不许出现半角冒号**：`fillblocks.is_untouched` 用 `":" in line` 判
+# 「冒号后写了东西」，半角冒号会让空模板被误判成已填。
+SEP_FACT = "--- ① 事实层 · 看到了什么（⛔ 只写现象，不下判断） ---"
+SEP_BASIS = "--- ② 依据层 · 凭什么说它是缺陷（⭐ basis 决定 nl_evidence 怎么写） ---"
+SEP_SCOPE = "--- ③ 边界层 · 它在 M = (S, E, V, Tr, A) 内吗 ---"
+SEP_AXIS = "--- ④ 分类轴 · 并表统计用（⛔ 越界条目可不填） ---"
+SEP_OPTIONAL = "--- ⑤ 以下三项可留空 ---"
+
+SEPARATORS = [SEP_FACT, SEP_BASIS, SEP_SCOPE, SEP_AXIS, SEP_OPTIONAL]
+
+
 def _choice_line(name, options):
     return f"{name}: " + "  ".join(f"[ ] {o}" for o in options)
 
@@ -75,12 +176,18 @@ def _choice_line(name, options):
 def entry_template(pair, index):
     return "\n".join([
         f"### NEW-{pair}-{index:02d}",
+        SEP_FACT,
         "statement:",
         "generated_side:",
+        SEP_BASIS,
+        _choice_line("basis", BASES),
         "nl_evidence:",
+        SEP_SCOPE,
+        _choice_line("scope", SCOPES),
+        SEP_AXIS,
         _choice_line("direction", DIRECTIONS),
         _choice_line("depth", DEPTHS),
-        SEPARATOR,
+        SEP_OPTIONAL,
         "reference_side:",
         "primary_predicate:",
         _choice_line("layer", LAYERS),
@@ -89,6 +196,26 @@ def entry_template(pair, index):
 
 def template(pair, count=2):
     return "\n\n".join(entry_template(pair, i) for i in range(1, count + 1))
+
+
+# ⛔ 历史模板（8 字段、无三层结构）。⭐ 留着**只为识别「原样未填的旧块」**：
+# 幂等注回是按 key 做的，若不认出旧模板，字段表改版后旧骨架会被当成「人工内容」
+# 永久保留，三层字段永远出不来。⚠️ 只做逐字全等匹配（见 `fillblocks.is_stale_template`）。
+def template_v2(pair, count=2):
+    def one(index):
+        return "\n".join([
+            f"### NEW-{pair}-{index:02d}",
+            "statement:",
+            "generated_side:",
+            "nl_evidence:",
+            _choice_line("direction", DIRECTIONS),
+            _choice_line("depth", DEPTHS),
+            "--- 以上 5 项必填 · 以下 3 项可留空 ---",
+            "reference_side:",
+            "primary_predicate:",
+            _choice_line("layer", LAYERS),
+        ])
+    return "\n\n".join(one(i) for i in range(1, count + 1))
 
 
 # ------------------------------------------------------------------ 台账统计（供指引正文用）
@@ -239,8 +366,19 @@ PENDING_AT_MERGE = {
 }
 
 
+def field_value(fields, name):
+    """取一个字段的**单值**：勾选行取第一个勾选项，自由文本行取整串。取不到返回 `None`。"""
+    v = fields.get(name)
+    if isinstance(v, dict):
+        ch = v.get("chosen") or []
+        return ch[0] if ch else None
+    if isinstance(v, str):
+        return v.strip() or None
+    return None
+
+
 def derive(pair, nid, fields):
-    """把人工填的 8 个字段补成一条**接近台账形态**的记录。
+    """把人工填的 10 个字段补成一条**接近台账形态**的记录。
 
     ⛔ 这不是「合并回台账」—— 它只把当下能确定的部分算出来，
     剩下的列在 `pending` 里，⛔ 不留空白假装齐了。
@@ -249,25 +387,33 @@ def derive(pair, nid, fields):
         v = fields.get(name)
         return v.strip() if isinstance(v, str) else ""
 
-    def one(name):
-        v = fields.get(name)
-        ch = v.get("chosen") if isinstance(v, dict) else None
-        return ch[0] if ch else None
-
     pp = txt("primary_predicate")
     pp = None if (not pp or is_none_mark(pp)) else pp
-    elem, basis = derive_element_of_M(pair, txt("generated_side"), pp)
-    layer = one("layer")
-    return {
+    elem, elem_basis = derive_element_of_M(pair, txt("generated_side"), pp)
+    layer = field_value(fields, "layer")
+    basis = field_value(fields, "basis")
+    scope = field_value(fields, "scope")
+    oos = is_out_of_scope(scope)
+
+    # ⛔ 越界条目**不计入缺陷统计**。⭐ 它仍然落盘 —— 「这份语料要求了 $M$ 之外的东西」
+    # 本身是关于语料的事实，⛔ 丢掉它等于把边界问题伪装成「没人发现」。
+    out = {
         "id": nid,
         "pair": pair,
         "group": S.nl_group(pair),
         "llm": S.source_meta(pair).get("llm"),
-        "in_scope": True,
+        "in_scope": (not oos) if scope else None,
+        "counts_as_defect": (not oos) if scope else None,
+        "boundary_ruling": "out_of_scope" if oos else None,
+        "boundary_effect": (f"⛔ 不计入缺陷统计（人工重标标为「{scope}」）"
+                            if oos else None),
+        "boundary_ruled_by": "manual_relabel" if oos else None,
+        "basis": basis,
         "element_of_M": elem,
-        "element_of_M_basis": basis,
+        "element_of_M_basis": elem_basis,
         "expressible_with_closed_vocabulary": pp is not None,
         "layer_basis": layer_basis_table().get(layer) if layer else None,
+        "layer_hint_from_basis": BASIS_TO_LAYER.get(basis, (None, None))[1] if basis else None,
         "upstream": {
             "source": "manual_relabel",
             "worksheet": f"{pair}.md",
@@ -276,3 +422,6 @@ def derive(pair, nid, fields):
         },
         "pending": dict(PENDING_AT_MERGE),
     }
+    if scope is None:
+        out["pending"]["in_scope"] = "⛔ `scope` 未填 —— 边界层没判，不敢默认它在界内"
+    return out

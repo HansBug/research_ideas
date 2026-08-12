@@ -69,11 +69,23 @@ primary_predicate:
 来源: [ ] §3候选  [ ] §4清单  [ ] 自行发现"""]
 
 
+# ⭐ 第二代（8 字段、无三层结构）由 [newfields.py](./newfields.py) 的 `template_v2()`
+# 逐字重建 —— ⛔ 别在这里再抄一份字面量：`DIRECTIONS` / `LAYERS` 一改，抄件就对不上，
+# 于是 54 份工作单的旧块会被当成人工内容永久保留，三层字段永远出不来。
+LEGACY_NEW_TEMPLATE_BUILDERS = [NF.template_v2]
+
+
 def is_stale_template(body, kind, pair=""):
-    """⭐ 该块是不是某个**历史版本的空模板**（因而可以安全换成当前模板）。"""
+    """⭐ 该块是不是某个**历史版本的空模板**（因而可以安全换成当前模板）。
+
+    ⚠️ 只做**逐字全等**匹配：作者若已经在旧模板上填了任何东西，就不算旧模板，原样保留。
+    """
     if body is None or kind != "new":
         return False
-    return any(body.strip() == t.format(pair=pair).strip() for t in LEGACY_NEW_TEMPLATES)
+    if any(body.strip() == t.format(pair=pair).strip() for t in LEGACY_NEW_TEMPLATES):
+        return True
+    return any(body.strip() == build(pair).strip()
+               for build in LEGACY_NEW_TEMPLATE_BUILDERS)
 
 PAIR_TEMPLATE = """本 pair 整体判断: [ ] 台账在本 pair 上够用  [ ] 偏浅但方向对  [ ] 有实质遗漏  [ ] 需推倒重写
 台账现有条目是否偏浅（整体）: [ ] 否  [ ] 部分  [ ] 是

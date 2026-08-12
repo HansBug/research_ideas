@@ -72,6 +72,12 @@ def parse_fields(body, known=None, choice_fields=None):
             if cur:
                 out[cur] += "\n"
             continue
+        # ⭐ §5 的分层小标题不是内容，⛔ 也不是字段。
+        # ⛔ 不剔除的后果很具体：`--- ② 依据层 · … ---` 紧跟在 `generated_side:` 之后，
+        # 而它不匹配字段名正则（行首是 `-`），于是会被**并进 `generated_side` 的值**里 ——
+        # 定位串静默多出一整行小标题，行号解析与去重判据都跟着脏掉。
+        if line.strip() in NF.SEPARATORS:
+            continue
         m = _RE_FIELD.match(line)
         if m and known is not None and m.group(1).strip() not in known:
             m = None
@@ -241,7 +247,15 @@ def main():
             "pairs": len(result),
             "ledger_records_seen": sum(len(v["ledger"]) for v in result.values()),
             "candidates_seen": sum(len(v["candidates"]) for v in result.values()),
+            # ⛔ `new_issues` 是登记总数；⭐ 计入缺陷统计的只有 `new_issues_in_scope`。
+            # 越界条目照常落盘（那是关于语料的事实），⛔ 但不是缺陷。
             "new_issues": sum(len(v["new_issues"]) for v in result.values()),
+            "new_issues_in_scope": sum(
+                1 for v in result.values() for r in v["new_issues"]
+                if not NF.is_out_of_scope(NF.field_value(r.get("fields") or {}, "scope"))),
+            "new_issues_out_of_scope": sum(
+                1 for v in result.values() for r in v["new_issues"]
+                if NF.is_out_of_scope(NF.field_value(r.get("fields") or {}, "scope"))),
             "checklist_items": sum(len(c["items"]) for v in result.values()
                                    for c in v["checklist"]),
             "checklist_checked": sum(1 for v in result.values() for c in v["checklist"]
