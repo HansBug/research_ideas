@@ -533,6 +533,140 @@ def test_artifact_leak_raises_at_load_time():
         nl_zh._store.__wrapped__()                             # noqa: SLF001
 
 
+# ============================ 提示讲原文也得讲对：词法可判定的那一小块（I-B）
+
+def test_no_translation_note_points_at_a_nonexistent_place_in_the_source():
+    """⭐ 正面：9 份译文里所有**指向原文的引用**都要指得到。
+
+    ⚠️ 这是 2026-08-13 第二轮全量核对的回归门（见 [README.md](./README.md) §11）：
+    上一轮剥掉「讲制品」之后，还剩一类零机械覆盖的错 —— ⛔ **讲原文、但讲错了**。
+    ⭐ 其中只有三种能被完美判定（[CLAUDE.md] §11），全放在 `original_ref_errors()`：
+    句号越界、段 id 不存在、引文与 `en` 不逐字。⛔ 数错 / 范围说错不可机械判定，靠人工复核。
+    """
+    bad = {}
+    for sha8, (name, payload) in nl_zh._raw().items():         # noqa: SLF001
+        pair = next(p for p in S.IN_SCOPE_PAIRS if nl_zh.digest8(p) == sha8)
+        segs, _ = S.nl_segments(pair)
+        errs = nl_zh.original_ref_errors(payload, [sid for sid, _ in segs])
+        if errs:
+            bad[name] = errs
+    assert bad == {}, "译文提示里有指不到原文的引用：\n" + "\n".join(
+        f"{n}:\n  " + "\n  ".join(v) for n, v in sorted(bad.items()))
+
+
+def test_original_ref_gate_actually_fires():
+    """⛔ 反面：门必须**真的**拦得住 —— ⚠️ 只测「干净时不报」等于没测。
+
+    ⭐ 三条判据各一个反例，⛔ 外加两组正例防止实现恒抛：
+    ① 干净文本；② ⚠️ **示意写法必须放行** —— `"either ... or"`、`"begins in X"`
+    这类含省略号或单大写字母占位符的引文不是逐字引用，⛔ 拒了就是误伤
+    （离线实测：不跳过则 86 条 ASCII 引文里 8 条被误拒，全是示意写法）。
+    """
+    clean = {"segments": [
+        {"seg": "1", "en": "1. The system begins in the PumpControl state. ",
+         "zh": "1. 系统起始于 PumpControl。",
+         "note": "第 1 句只点了 PumpControl，未给出触发。"},
+        {"seg": "2", "en": "2. It then moves on. ",
+         "zh": "2. 随后它继续。", "note": "第 2 句无新元素。"},
+    ], "translator_notes": "原文两句，引一句原样：\"begins in the PumpControl state\"。"}
+    ids = ["NL-L001", "NL-L002"]
+    assert nl_zh.original_ref_errors(clean, ids) == []
+
+    def errs(**over):
+        payload = copy.deepcopy(clean)
+        if "note" in over:
+            payload["segments"][0]["note"] = over["note"]
+        if "tn" in over:
+            payload["translator_notes"] = over["tn"]
+        return nl_zh.original_ref_errors(payload, ids)
+
+    # ① 定位式 · 句号越界（本份只有 2 段）
+    hit = errs(note="见第 5 句的说明。")
+    assert any("第 5 句" in h and "只有 2 段" in h for h in hit), hit
+    assert errs(note="见第 2 句的说明。") == []          # ⭐ 边界内必须放行
+
+    # ② 定位式 · 段 id 不存在
+    hit = errs(tn="详见 NL-L007 那一段。")
+    assert any("NL-L007" in h for h in hit), hit
+    assert errs(tn="详见 NL-L002 那一段。") == []        # ⭐ 存在的 id 必须放行
+
+    # ③ 引用式 · 引文与 en 对不上（⛔ 差一个词就算）
+    hit = errs(note="原文写的是 \"begins in the PumpState state\"。")
+    assert any("PumpState" in h for h in hit), hit
+
+    # ④ ⭐ 示意写法放行 —— ⛔ 这两条不许报，否则门会误伤合规文本
+    assert errs(note="原文用 \"either ... or\" 结构，也写作 \"begins in X\"。") == []
+    assert errs(note="\"the conditions A, B, and C\" 之间的连接词未给出。") == []
+
+    # ⑤ ⭐ 非 ASCII 引文不在本条管辖内（中文引号内容不参与逐字比对）
+    assert errs(note="译文把它写作 \"起始于 PumpControl\"。") == []
+
+
+def test_original_ref_error_raises_at_load_time():
+    """⛔ 装载期就要抛，⛔ 不许降级 —— ⚠️ 引错位置会把判读者指到别的句子上。"""
+    real = copy.deepcopy(dict(nl_zh._raw()))                   # noqa: SLF001
+    dirty = copy.deepcopy(real)
+    # ⭐ `f1c3dc88`（nl_0000）只有 6 段，⛔ 引「第 9 段」必然指不到
+    dirty["f1c3dc88"][1]["segments"][0]["note"] += "（详见第 9 段）"
+    with _mock_raw(dirty):
+        with pytest.raises(nl_zh.NoteOriginalRefError, match="指不到原文"):
+            nl_zh._store.__wrapped__()                         # noqa: SLF001
+    # ⛔ 反反面：不动数据时**不许**抛
+    with _mock_raw(real):
+        nl_zh._store.__wrapped__()                             # noqa: SLF001
+
+
+def test_translation_notes_do_not_miscount_what_the_source_text_says():
+    """⛔ I-B 回归：第二轮全量核对里逐条打掉的**关于原文的假事实**，⛔ 不许回潮。
+
+    ⚠️ 每一条都先把「事实是什么」逐字钉在 `en` 上，⛔ 再断言那句错话不在 ——
+    ⭐ 这样即便日后有人换个说法重写，前半段的前提校验也会先炸。
+    """
+    def payload(nl_id):
+        return next(pl for _, pl in nl_zh._raw().values()      # noqa: SLF001
+                    if pl["nl_id"] == nl_id)
+
+    # ① nl_0000：`final state` 原文第 6 段就有，⛔ 不许再说它「未出现于原文」
+    p0 = payload("0000")
+    en0 = "".join(s["en"] for s in p0["segments"])
+    assert "final state" in en0, "NL-0000 里居然没有 final state —— 本测试前提要重定"
+    assert "initial pseudostate（初始伪状态）、final state（终态）" not in p0["translator_notes"]
+
+    # ② nl_0000：第 5 段确实写了 mode，⛔ 不许把它排除在 mode 组之外
+    seg5 = next(s["en"] for s in p0["segments"] if s["seg"] == "5")
+    assert "human driving mode" in seg5
+    assert "第 1、2、3 段用 mode" not in p0["translator_notes"]
+
+    # ③ nl_0006：代词 it 只有 3 次（第 2、3、4 段各一次），⛔ 不是 4 次
+    p6 = payload("0006")
+    n_it = sum(len(re.findall(r"\bit\b", s["en"])) for s in p6["segments"])
+    assert n_it == 3, f"NL-0006 的 it 实测 {n_it} 次 —— 本测试前提要重定"
+    assert not re.search(r"代词 it[^。]{0,20}4 次", p6["translator_notes"])
+
+    # ④ nl_0009：第 13 句的三个条件也是裸标识符，⛔ 不许说「其余布尔条件一律 x=true」
+    p9 = payload("0009")
+    seg13 = next(s["en"] for s in p9["segments"] if s["seg"] == "13")
+    for bare in ("`front_inactive`", "`rear_inactive`", "`pedestrian_inactive`"):
+        assert bare in seg13, f"NL-0009 第 13 句里找不到 {bare}"
+    note12 = next(s["note"] for s in p9["segments"] if s["seg"] == "12")
+    assert "NL 其余布尔条件一律写作" not in note12
+
+    # ⑤ nl_0009：单位在散文里给过（"2 kilometers"），⛔ 不许说「全文未声明单位」
+    seg4 = next(s["en"] for s in p9["segments"] if s["seg"] == "4")
+    assert "2 kilometers" in seg4
+    blob = p9["translator_notes"] + "".join(s["note"] for s in p9["segments"])
+    assert "全文未声明单位" not in blob
+    assert "NL 全文未声明 `dist_to_exit` 的单位" not in blob
+
+    # ⑥ nl_0003：译文的〔译者存疑〕里不许再指认原文没有的事件名
+    p3 = payload("0003")
+    en3 = "".join(s["en"] for s in p3["segments"])
+    for ident in ("Accelerate Signal", "Brake Signal", "Stop Signal"):
+        assert ident not in en3, f"NL-0003 原文里居然有 {ident} —— 本测试前提要重定"
+        assert all(ident not in s["zh"] for s in p3["segments"]), \
+            f"nl_0003 的 zh 里还留着原文没有的 {ident}"
+
+
 def test_worksheet_warns_that_notes_never_assert_about_the_artifact():
     """⭐ 54 份工作单的提示区都要挂那句「提示不含制品断言、请自己去 §1.3 核对」。
 

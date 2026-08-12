@@ -80,6 +80,15 @@ class NoteArtifactLeak(RuntimeError):
     """
 
 
+class NoteOriginalRefError(RuntimeError):
+    """`note` / `translator_notes` 里指向原文的引用**指不到**。⛔ 装载期即抛。
+
+    ⚠️ 与 `NoteArtifactLeak` 对称：那一条抓「讲了制品」，⛔ 这一条抓「讲原文但引错了」。
+    ⭐ 只覆盖词法可判定的三种（句号越界 / 段 id 不存在 / 引文不逐字），⛔ 数错、
+    范围说错这类**语义**错误不在门内，按 [CLAUDE.md] §11 只能靠人工复核。
+    """
+
+
 # ⛔ 制品指涉的**词法**判据。按 [CLAUDE.md](../../../../../../CLAUDE.md) §11，
 # 只有能被完美判定的约束才允许做成会一票否决的门，故这里放的全是**看字符串就能唯一判定**的东西：
 #
@@ -136,6 +145,67 @@ def artifact_leaks(payload):
     return out
 
 
+# ⛔ 「提示讲原文、⛔ 但讲错了」这一类的**词法可判定子集**。⚠️ 绝大部分这类错误
+# （「三条迁移中只有一条带触发词」「it 出现 4 次」「全文未声明单位」）**不可机械判定** ——
+# 判它们要读懂原文、要数语义单位，按 [CLAUDE.md](../../../../../../CLAUDE.md) §11
+# **不许进 validator**，只能靠 SPEC 纪律与人工复核（见
+# [TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 第 9 条与
+# [README.md](./README.md) §11）。⭐ 这里只放三条**看字符串就能唯一判定**的：
+#
+# 1. **定位式 · 句号越界** —— 提示写「第 N 句 / 第 N 段」时 N 必须落在 `[1, 段数]` 内。
+# 2. **定位式 · 段 id 不存在** —— 提示写 `NL-M003` / `NL-L012` 时该 id 必须在本份的段集合里。
+# 3. **引用式 · 引文对不上** —— 提示里双引号内的**纯 ASCII 片段**必须在本份 `en` 里逐字出现。
+#
+# ⚠️ 第 3 条要跳过两类**示意写法**，⛔ 否则会误伤合规文本（离线实测：不跳过则 86 条引文里
+# 8 条被拒，全是示意写法）：含省略号 `...` / `…` 的（`"either ... or"`、`"triggered by ..."`），
+# 以及含**单个大写字母占位符**的（`"begins in X"`、`"the conditions A, B, and C"`）。
+# ⭐ 跳过规则本身也是纯词法的，⛔ 不需要任何语义解释。
+_QUOTED = re.compile(r'"([^"\n]{2,80})"')
+_ASCII_FRAG = re.compile(r"[A-Za-z0-9 ,.'/<>=_&\-]+")
+_SCHEMA_LETTER = re.compile(r"(?:^| )[A-Z](?:$|[ ,])")
+_SENT_REF = re.compile(r"第\s*(\d+)\s*[句段]")
+_SEG_ID_REF = re.compile(r"NL-[A-Z]\d+")
+
+
+def original_ref_errors(payload, seg_ids=None):
+    """列出提示里**指向原文的引用**中词法可判定为错的那些，⛔ 干净时返回空表。
+
+    ⭐ 三条判据见上方注释。`seg_ids` 是本份 NL 的段 id 列表（`sources.nl_segments()`
+    给出）；⛔ 不传时跳过第 2 条 —— 段 id 不写在 JSON 里，只有装载期才知道。
+
+    ⛔ 只判「这条引用指得到吗」，⛔ 不判「这句话说得对不对」。⚠️ 后者不可机械判定，
+    ⛔ 因此**不许**为它加门（§11）。
+    """
+    segs = payload.get("segments") or []
+    n = len(segs)
+    en = " ".join(s.get("en") or "" for s in segs)
+    ids = set(seg_ids or ())
+    fields = [("translator_notes", payload.get("translator_notes") or "")]
+    fields += [(f"segments[{s.get('seg')}].note", s.get("note") or "") for s in segs]
+
+    out = []
+    for where, text in fields:
+        for m in _SENT_REF.finditer(text):
+            k = int(m.group(1))
+            if not 1 <= k <= n:
+                out.append(f"{where} 引用「{m.group(0)}」，⛔ 但本份 NL 只有 {n} 段")
+        if ids:
+            for sid in _SEG_ID_REF.findall(text):
+                if sid not in ids:
+                    out.append(f"{where} 引用段 id `{sid}`，⛔ 但本份 NL 的段集合里没有它")
+        for m in _QUOTED.finditer(text):
+            frag = m.group(1)
+            if not _ASCII_FRAG.fullmatch(frag):
+                continue                       # ⭐ 不是纯 ASCII 引文，⛔ 不在本条管辖内
+            if "..." in frag or "…" in frag:
+                continue                       # ⭐ 省略号示意写法
+            if _SCHEMA_LETTER.search(frag):
+                continue                       # ⭐ 单大写字母占位符示意写法
+            if frag not in en:
+                out.append(f"{where} 引用原文 \"{frag}\"，⛔ 但本份 NL 的 en 里没有这串字")
+    return out
+
+
 def digest(pair):
     """该 pair 的 NL 全文 sha256 前 12 位 —— 与 `overrides.json` 的键同口径。"""
     return hashlib.sha256(S.nl_text(pair).encode("utf-8")).hexdigest()[:12]
@@ -186,6 +256,10 @@ def _store():
        整篇相等而段边界错位，逐段比才抓得住。
     4. **提示里指涉了制品** —— 见 `artifact_leaks()`。⚠️ 前三道管「译文对不对得上原文」，
        第四道管「提示有没有越界去讲原文之外的东西」，⛔ 两件事都会让工作单带错误事实。
+    5. **提示里指向原文的引用指不到** —— 见 `original_ref_errors()`。⚠️ 与第四道对称：
+       第四道管「讲了不该讲的（制品）」，⛔ 第五道管「讲原文但引错了」的**词法可判定子集**
+       （句号越界 / 段 id 不存在 / 引文不逐字）。⛔ 语义部分（数错、范围说错）不可机械判定，
+       按 §11 不进门，见 [README.md](./README.md) §11 的人工复核清单。
     """
     by_sha8 = _pairs_by_sha8()
     trans, notes, tnotes = {}, {}, {}
@@ -206,6 +280,12 @@ def _store():
         if len(jsegs) != len(segs):
             raise TranslationMismatch(
                 f"{name} 有 {len(jsegs)} 段，而 {pairs[0]} 的 NL 分成 {len(segs)} 段")
+        bad_refs = original_ref_errors(j, [sid for sid, _ in segs])
+        if bad_refs:
+            raise NoteOriginalRefError(
+                f"{name} 的判读提示里有指不到原文的引用（共 {len(bad_refs)} 处）—— "
+                f"⛔ 提示会被逐字印进 6 份工作单，引错位置等于把判读者指到别的句子上"
+                f"（见 README §11）：\n  " + "\n  ".join(bad_refs))
         zh_map, note_map = {}, {}
         for (sid, txt), js in zip(segs, jsegs):
             if js.get("en") != txt:
