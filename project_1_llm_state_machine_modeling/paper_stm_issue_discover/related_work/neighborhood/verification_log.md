@@ -27,6 +27,25 @@ curl -sL -A "Mozilla/5.0 (research-check)" \
 
 ⭐⭐ **判别启发式（⛔ 值得记住）：**⭐ **当一批核验「全灭」时，先怀疑工具，⛔ 再怀疑数据。** ⭐ 真实的伪造是零散的（L2 那次是 183 条里 1 条），⛔ 整齐划一的失败几乎总是工具问题。
 
+### 1.2 ⛔⛔ **DataCite 的 DOI 在 Crossref 上查是「不存在」** —— ⭐ 看起来与伪造一模一样
+
+⭐ 核 `10.5281/zenodo.19819244`（一份 Zenodo 数据集）时，Crossref 返回**查不到**。⛔ 若照搬 L2 那套「Crossref 404 即假 DOI」的判据，⭐ **它会被当成伪造引用**。
+
+⛔ **真相**：⭐ DOI 有多个注册机构。⭐ **Crossref 管学术出版物，DataCite 管数据集 / 软件 / 预印本仓库**（Zenodo · figshare · Dryad · OSF）。⭐ 一个 DataCite DOI **不在 Crossref 库里是正常的**。
+
+```bash
+# ⛔ 查 Crossref：查不到
+curl -s "https://api.crossref.org/works/10.5281/zenodo.19819244"
+
+# ⭐ 查 DataCite：拿到
+curl -sL "https://api.datacite.org/dois/10.5281/zenodo.19819244"
+# → Agentic LLM traces for Simulink Model Repair | 2026 | Dataset
+```
+
+⭐⭐ **判别规则**：⛔ `10.5281/*`（Zenodo）· `10.6084/*`（figshare）· `10.17605/*`（OSF）· `10.5061/*`（Dryad）**一律走 DataCite**。⭐ 更稳的做法是先打 `https://doi.org/api/handles/<doi>` —— ⭐ 它对**任何**注册机构的 DOI 都能答「这个 handle 存不存在」。
+
+⚠️ ⭐ **这条与 §1.1 是同一类问题**：⛔ **工具的「没找到」被读成事实的「不存在」。** ⭐ 而资产核验里 DataCite DOI 只会越来越多（⭐ replication package 基本都在 Zenodo），⛔ 这个坑迟早会踩。
+
 ---
 
 ## 2. ⭐ 引用真实性核验
@@ -86,6 +105,20 @@ A8 在自查中发现，它为两条候选**按惯例拼出**了 `10.1145/365262
 | `10.1109/MODELS-C68889.2025.00079` | Coupling LLMs and Model-Driven Engineering to Support Sy… |
 
 ⭐ A3 自陈「98 个引用 DOI 已机械核对全部来自原始响应，零拼造」。⭐ 抽验 8 条全对，⭐ 与自陈一致。
+
+### 2.4b ⭐ A4（语义检索）的 7 个重点标识符 —— ⭐ **7/7 全部真实**
+
+| 标识符 | 注册机构 | 解析到 |
+| :-- | :-- | :-- |
+| `10.1007/s10270-026-01388-4` | Crossref | On the consistency of state machines, use cases and block diag… |
+| `10.1007/s10664-026-10923-2` | Crossref | The impact of critique on LLM-based model generation from natu… |
+| ⚠️ `10.5281/zenodo.19819244` | ⭐ **DataCite** | Agentic LLM traces for Simulink Model Repair · 2026 · **Dataset** |
+| `arXiv:2607.23425` | arXiv | TLA+-Bench: An Execution-Grounded Benchmark and Dataset for Natu… |
+| `arXiv:2511.17977` | arXiv | Synthesizing Precise Protocol Specs from Natural Language for Ef… |
+| `arXiv:2602.07032` | arXiv | LLM-FSM: Scaling Large Language Models for Finite-State Reasonin… |
+| `arXiv:2510.25890` | arXiv | ATLAS: A Layered Constraint-Guided Framework for Structured Arti… |
+
+⚠️ 第三行就是 §1.2 那个坑的现场。
 
 ### 2.5 ⭐ A8 的第二次自我更正（⛔ 关于 MCeT 仓库怎么找到的）
 
