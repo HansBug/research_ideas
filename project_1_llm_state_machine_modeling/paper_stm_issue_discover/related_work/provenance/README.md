@@ -57,11 +57,12 @@
 | ⭐⭐ [c3_iii_supplement.md](./c3_iii_supplement.md) | ⭐⭐ **C-③ 措辞的最终依据** —— ⛔ 它推翻了「唯一空缺是 (iii)」，⭐ 并给出跨五条线不变、有**六处独立自证**的 gap 陈述 |
 | [recovery_log.md](./recovery_log.md) | ⭐ 伪缺口与付费墙回收（10 个目标 9 个全文）+ ⛔ **三处被证伪的元数据** |
 | [corpus_scan_findings.md](./corpus_scan_findings.md) | ⭐ 界内语料两轮穷尽扫描的三条发现 |
+| ⭐ [evidence_distribution.md](./evidence_distribution.md) | ⭐⭐ **对「词表是照着案例反推的」这一指控的正面回应** —— ⭐ 案例用量与上游证据量的秩相关为 **−0.562**（⛔ 拟合会留下正相关）· ⭐ 分布形状由**义务类型分裂**解释 · ⭐ 两条 ③ 共享同一个结构性失败机制。⛔ 被问到「弱证据谓词怎么办」时读这份 |
 | [methodology.md](./methodology.md) | ⭐ 四层编制 · 裁定层的失败模式与双向可靠性审计 · 六条方法局限 |
 | ⛔ [coverage_audit.md](./coverage_audit.md) | ⛔ **C3 覆盖审计：这轮漏了什么** —— ⚠️ **它推翻了两处 claim 形状，⛔ 引用本目录任何结论前必读** |
 | [tools/](./tools/) | 可复现的机械工具，见下 |
 
-### `tools/` 六件
+### `tools/` 七件
 
 | 工具 | 干什么 | ⛔ 边界 |
 | :-- | :-- | :-- |
@@ -71,6 +72,7 @@
 | [verify_citations.py](./tools/verify_citations.py) | 解析 DOI / arXiv 核验引用真实存在 | ⛔ 只做存在性与题录比对，⛔ 不做内容裁定 |
 | [detect_self_citation.py](./tools/detect_self_citation.py) | ⛔ 查「拿本研究自己的材料当独立领域证据」 | ⭐ 分三层：种子语料（剔除）· baseline（标注）· 一般收藏（无问题） |
 | [build_provenance_table.py](./tools/build_provenance_table.py) | 生成 19 行三类表 | ⛔ **只吃经过对抗裁定的证据** |
+| ⭐ [analyze_evidence_distribution.py](./tools/analyze_evidence_distribution.py) | ⭐ 复算「案例用量 × 上游证据量」的秩相关、族聚合与暴露格 | ⛔ **只出数不做判断**：⭐ 「这个分布说明了什么」写在 [evidence_distribution.md](./evidence_distribution.md)。⭐ 台账用量从 `build_provenance_table.py` **导入**，⛔ 不复制（⛔ 否则变成第二事实源） |
 
 ⛔ **钉命令不钉数** —— 下列数字随扩库变化，交付时现跑：
 
