@@ -107,10 +107,35 @@
 | Venue | **MODELS 2024 主会**，pp. 13–24（⭐ 本轮唯一一条落在 MODELS **主会**的命中） |
 | DOI | `10.1145/3640310.3674091` · DBLP `conf/models/LopezFV24` |
 | ⭐ 作者 | José Antonio Hernández López, Máté Földiák, **Dániel Varró** |
-| 读到什么程度 | ⛔ **仅摘要**（⛔ ACM DL 403，⛔ 全文未取得，⛔ 见 §5.2） |
-| 判定 | ⏳ **承重性未判定** |
+| 读到什么程度 | ⭐ **全文**（⛔ ACM DL 403，⭐ 改由作者 Zenodo artifact [10.5281/zenodo.12742459](https://doi.org/10.5281/zenodo.12742459) 取得 accepted version；⭐ 已将其摘要与出版方摘要逐字比对，⭐ 归一化后完全一致） |
+| 判定 | ⛔ **装饰** |
 
-⚠️ ⭐ **作者身份提高了这条的分量**：⭐ Dániel Varró 是 MDE 社区的核心人物之一，⭐ 也是本文所用查询语言 VIATRA / VQL 生态的主要作者。⭐ 即「⛔ 专有 API 与工业模型的 IP 保护不相容」这句话，⭐ 出自该领域权威之口，⛔ 而非边缘作者的顺带一提。
+⚠️ ⭐ **作者身份本来提高了这条的分量**：⭐ Dániel Varró 是 MDE 社区的核心人物之一，⭐ 也是本文所用查询语言 VIATRA / VQL 生态的主要作者。⛔ **但读完全文后，⛔ 这条依然只能判装饰。**
+
+⭐ **IP 动机的全部两处（⛔ 没有第三处，⛔ 都在第 1 页）**：
+
+> ⭐ **Abstract**：“Since the technology is proprietary and accessible solely through an API, its use may be incompatible with the strict protection of intellectual properties in industrial models. While there are open-source LLM alternatives, they often lack the power of proprietary models and require extensive data fine-tuning to realize their full potential.”
+
+> ⭐ **§1 Introduction**：“Nevertheless, these proprietary LLMs are only accessible exclusively through an API, which inevitably creates barriers for new research and progress. Moreover, its use might conflict with the strict protection of intellectual properties in industrial models.”
+
+⭐ **词频（⭐ 我方独立复算，⚠️ ⭐ 已做连字符与 ﬁ/ﬂ 合字归一化——⛔ 不归一化会漏计，⭐ 见 §5.2 末条）**：
+
+| 词 | 次数 | 位置 |
+| :-- | --: | :-- |
+| `intellectual propert` | **2** | ⛔ 全在 **p1**（Abstract 1 + §1 1） |
+| `industrial` | **2** | ⛔ 即上述两句，⛔ 无其他出现 |
+| `privacy` / `confidential` / `on-premise` / `secur*` / `sensitive` / `locally` | **0** | ⛔ 全文均无 |
+| `proprietar*` | 12 | ⭐ 其余 10 次均为中性描述（⛔ 如「用专有模型造合成数据集」） |
+
+⛔⛔ **三条决定性证据**：
+
+1. ⛔ **§5 Discussion 自己列出了它要讨论什么，⛔ IP 不在其中**：“In this section, we delve into various implications and limitations of our work. Specifically, we explore how engineers can use the fine-tuned LLMs and how this approach can be extended to other model query languages. Additionally, we discuss limitations concerning the prompt strategy, as well as considerations regarding model and data licenses.”
+2. ⚠️ ⛔ **§5 确实提了一个法律问题，⛔ 但那是另一件事**——⭐ 是 OpenAI ToS 禁止用其输出训练竞品（“Use Output to develop models that compete with OpenAI”），⛔ 与「工业模型的 IP 保密」无关。⛔ **不要把这两者混为一条。**
+3. ⛔ **§6.1 与 §7 重述「用小开源模型」这个目标时，⛔ 把 IP 理由剥掉了**：§7 逐字为「…harnesses the generation capabilities of powerful proprietary models to guide small open-source models in the text-to-VQL task.」⛔ 纯工具性表述，⛔ 无动机。
+
+⭐ **三条 RQ 逐字**（⛔ 全部只问合成数据集质量与微调增益，⛔ 无一涉及部署 / 保密）：RQ1 查询是否符合自然语言规约；RQ2 合成数据集的复杂度与语言覆盖；RQ3 微调后相对基座模型的提升幅度。⭐ 实验用的是 **DeepSeek Coder 1b / 7b、CodeLlama 7b**（⭐ 数据集生成侧用 ChatGPT）。⭐ 核心 claim：“the fine-tuned versions of the open-source models significantly outperform the base models, **with one achieving performance comparable to ChatGPT**.”
+
+⭐⭐ **对我们的用法**：⭐ 这是 **MODELS 主会**上一条干净的「⭐ 微调后的开源小模型可与 ChatGPT 打平」的先例（⭐ 与 §2.4 相互印证）。⛔ 但它**不能**用来支撑「保密动机已被论证」——⛔ 它自己 9 页正文里一次都没回头看那个动机。⭐ 证据级别 **M**。
 
 ⭐ **摘要逐字**：
 
@@ -122,13 +147,32 @@
 
 | 字段 | 值 |
 | :-- | :-- |
-| Venue | **REFSQ 2026**（Springer LNCS），pp. 336–351 |
+| Venue | **REFSQ 2026**（Springer LNCS 16497），pp. 336–351 |
 | DOI | `10.1007/978-3-032-21423-2_23` · DBLP `conf/refsq/ChouAD26` |
-| ⭐ 作者 | Cheng Yi Chou, Fatma Basak Aydemir, **Fabiano Dalpiaz** |
-| 读到什么程度 | ⛔ **仅完整摘要**（⭐ 经 `rd.springer.com` 取得，⛔ 正文付费墙） |
-| 判定 | ⏳ **承重性未判定**；⛔ 摘要内**未见**保密动机 |
+| ⭐ 作者 | Cheng Yi Chou, Fatma Başak Aydemir, **Fabiano Dalpiaz**（⭐ 均 Utrecht University） |
+| 读到什么程度 | ⭐ **全文 16 页**（⭐ 经 Dalpiaz 个人主页自存版取得，⛔ Springer 付费墙已绕过） |
+| 判定 | ⛔ **装饰**（⭐ 但比 §2.2 强半档：⭐ 有 1 次实质回指） |
 
-⚠️ ⭐ **作者身份同样关键**：⭐ Fabiano Dalpiaz 是 RE 社区在「用户故事 → 概念模型」这条线上的代表性学者，⭐ 而文中作为基线的 **Visual Narrator 正是他自己的工具**。⛔ 这意味着这篇不是外围比较，⛔ 而是该子领域权威给出的自家基准对照。
+⚠️ ⭐ **作者身份关键**：⭐ Fabiano Dalpiaz 是 RE 社区在「用户故事 → 概念模型」这条线上的代表性学者，⭐ 而文中作为基线的 **Visual Narrator 正是他自己的工具**。⛔ 这不是外围比较，⛔ 而是该子领域权威给出的自家基准对照。
+
+⭐⭐ **§1 Introduction 那段是本轮在整个 MDE / RE 侧找到的最好的一段动机文字，⭐ 逐字全录**（⭐ 它把 on-premise、privacy、开放性、可控性一次说全）：
+
+> “Owing to their reduced parameter count and narrower training scope, SLMs can exhibit more predictable behavior and lower hallucination rates in constrained domains. Their lighter computational footprint enables cost-efficient fine-tuning and **on-premise deployment, which is particularly attractive for industrial settings with privacy or resource constraints**. Moreover, SLMs are often open, less bound to contractual limitations and specific deployment platforms… These characteristics position SLMs as a promising alternative for scenarios where transparency, controllability, and efficiency are critical.”
+
+⭐ **唯一的回指在 §5.1 Implications for practice**（⭐ 逐字）：
+
+> “However, industrial adoption requires attention to **data confidentiality**, explainability, and validation workflows to ensure that generated models remain trustworthy and compliant with organizational standards. In such cases, **SLMs have an advantage over LLMs for resource consumption, ease of on-premise deployment, and more predictable behavior**.”
+
+⭐ **词频（⭐ 我方独立复算，⭐ 已做合字归一）**：`privacy` **1**（§1）、`on-premise` **2**（§1 + §5.1）、`confidential` **1**（§5.1）、`locally` **1**（§3.1）；⛔ `intellectual propert` / `proprietar` / `secur*` / `sensitive` 均为 **0**。
+
+⛔ **为什么仍判装饰**：⛔ 5 条 RQ 全部只问「完整性 / 有效性 / 错误剖面」，⛔ 无一涉及隐私或部署；⛔ §3.3 评估设计、§4 结果、§5.2 threats to validity 全部零提及；⛔ **§6 Conclusions 收束时把隐私动机整个丢掉了**，⭐ 改用纯效率口径：“The SLMs demonstrate competitive performance, thereby serving as practical alternatives **where computational efficiency is a priority**.”
+
+⚠️⚠️ **两条必须带走的事实，⛔ 都对我们不利**：
+
+1. ⛔ **结论是小模型没赢，⛔ 而且连十年前的规则式方法都没赢**。⭐ §4.1 逐字：“It is remarkable how, although the variants of VN are from a decade ago, they are still up-to-part (if not better) than the examined SLMs.” ⭐ §6 逐字：“GPT-o1 performs consistently better than the other models… The SLMs demonstrate competitive performance…**yet, they do not outperform the lightweight, NLP-based Visual Narrator**.”
+2. ⚠️ ⛔ **它说的「Qwen-14B」不是原版 Qwen-14B**，⭐ 而是 **DeepSeek-R1-Distill-Qwen-14B**（⭐ 论文脚注给出 HuggingFace 链接）。⛔ 摘要里简称成「Qwen-14B」有歧义；⛔ 我们若引用它做「Qwen 级模型表现」的论据，⛔ 会引错对象。
+
+⭐ 证据级别 **M**（⭐ 全文逐字 + 我方独立复算词频）。
 
 ⭐ **摘要逐字（关键段）**：
 
