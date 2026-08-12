@@ -1179,6 +1179,43 @@ Requirement whose claim the NL states is exactly what the rule is protecting, be
 disagreement between the two is the finding you exist to surface.
 """
 
+# v2 also has to resolve a rule conflict that v1 walked straight into. The closed-vocabulary
+# catalogue rendered by `predicates.vocabulary_prompt()` carries, on `occupancy_after`, the
+# routing hint: "This is the default for event-driven behaviour; edge_declared is only for
+# claims about what the artifact contains." That hint is per-predicate, sits in the catalogue
+# the splitter is told to scan first, and points the other way from sweep 1. It is the most
+# plausible reason `edge_declared` was written into the requirement set in 0 of 324 v46 cells
+# despite being the ledger's primary for 7 REPORTABLE records -- the supply gap is not an
+# oversight, it is what the catalogue instructs.
+#
+# Per CLAUDE.md §13 the fix is not to add a louder rule but to make the two jointly
+# satisfiable by saying which yields and why. Neither actually has to yield here: the two
+# predicates ask different questions and both are owed. `nl_cue` is rendered ONLY into the
+# splitter and requirement-reviewer prompts (prompts.py:546, :563); the converter and asserter
+# read `callable_prompt()` instead. So this paragraph stays inside the question-selection
+# boundary and touches no evaluation semantics. It is applied in mode 2 only, so v1's prompt
+# hash -- and therefore v1's reproducibility -- is untouched.
+X1_SWEEP_CATALOGUE_PRECEDENCE = """
+**One routing hint in the catalogue needs reading carefully here, and it is the reason this
+sweep exists.** Under `occupancy_after` the catalogue says it is the default for event-driven
+behaviour and that `edge_declared` is "only for claims about what the artifact contains". Both
+halves stand. But the transition sweep **is** a claim about what the artifact contains -- it is
+precisely the case the second half licenses, not an exception to it. So for a sentence that
+names a transition you owe **both** Requirements, not a choice between them:
+
+- `occupancy_after(source, trigger, target)` asks whether the running machine ends up there.
+  Its False is consistent with a missing edge, a guard that never opens, an unreachable source,
+  or a competing edge winning -- it does not say which.
+- `edge_declared(source, trigger, target)` asks whether the artifact declares the edge at all.
+  Its False says the transition is absent, and its True is what makes the other one's False
+  mean "declared but not taken".
+
+Emitting only the behavioral one is what leaves "the edge is simply not there" unsayable, and
+that is a defect the specification plainly states and the artifact plainly lacks. ⛔ Do not
+drop the `occupancy_after` Requirement in favour of the `edge_declared` one either; they are
+separately violable and each gets its own verdict.
+"""
+
 _FINAL_CONTRACT_MARKER = "\n\n=== Binding output contract (final, overrides anything above) ==="
 
 _sweep_mode = _os.environ.get("X1_STRUCTURAL_SWEEP")
@@ -1193,6 +1230,11 @@ elif _sweep_mode == "2":
             "REQUIREMENT_SPLITTER_PROMPT; refusing to fall back to end-append silently"
         )
     REQUIREMENT_SPLITTER_PROMPT = (
-        _head + X1_STRUCTURAL_SWEEP_SPLITTER + X1_SWEEP_RECONCILIATION + _sep + _tail
+        _head
+        + X1_STRUCTURAL_SWEEP_SPLITTER
+        + X1_SWEEP_CATALOGUE_PRECEDENCE
+        + X1_SWEEP_RECONCILIATION
+        + _sep
+        + _tail
     )
     REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER

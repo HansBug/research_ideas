@@ -223,3 +223,32 @@ v1 跑到一半时的中间观察：干预臂需求条数确实变多（如 0005
 | 哈希留证 | 对照 `41a1795c131857c0` · v1 `4044419f4541193f`（len 99782）· v2 `9ecadc392a23a20c`（len 100652）。v1 哈希不变，即 v1 数据仍可复现 |
 
 ⚠️ **这是一次操纵强化，不是假设修改**：操纵检查失败允许加强操纵，⛔ 不允许改结果判据。若 v2 的操纵检查仍 < 50%，则本实验对 H-SPLIT 与 H-REVERSE **都不给结论**，如实记为「干预无法被有效实施」。
+
+### 8.4 修订 A.2 —— v2 还要化解一处规则冲突（仍在 v1 出任何 hit 数据之前）
+
+查 v1 为什么 `edge_declared` 一条都没多出来时，发现的不是 prompt 位置问题，而是**闭词表自己在往反方向指路**。`predicates.py` 里 `occupancy_after` 的 `nl_cue` 写着：
+
+> `the sentence describes what the running system does when a named stimulus arrives. This is the default for event-driven behaviour; edge_declared is only for claims about what the artifact contains.`
+
+这段由 `vocabulary_prompt()` 渲染进 splitter prompt（`prompts.py:546`）与 requirement reviewer prompt（`:563`），且 prompt 明确要求「先扫这张表再读目录」。
+
+⭐ **这解释了一个此前只当作现象记录的数字**：`edge_declared` 是 7 条 REPORTABLE 记录（42 位）的 primary，而 324 格里写进需求集的是 **0**。⛔ 那不是疏忽，**是词表照着教的结果**——`occupancy_after` 被写了 2256 条，正是这条 routing hint 的下游。
+
+**按 CLAUDE.md §13 处理**：审计单位是交集，修法不是加一条更大声的规则，而是说清哪条让步、为什么。这里**两条都不用让步**——两个谓词问的本就是不同的问题，且都欠着：
+
+- `occupancy_after` 为假：运行没到那儿。⛔ 但它与「边缺失 / 守卫恒闭 / 源态不可达 / 竞争边胜出」四种情形都相容，**不指认是哪一种**。
+- `edge_declared` 为假：制品里根本没有这条边。它的**真**又恰是让前者的假读成「声明了但没走」的前提。
+
+v2 因此加一段（`X1_SWEEP_CATALOGUE_PRECEDENCE`）：句子点名一条迁移时**两条都欠**，⛔ 不是二选一，也不许反过来丢掉 `occupancy_after`。
+
+**边界核查**：`nl_cue` 只渲染进 splitter 与 requirement reviewer 两处；assertion converter / reviewer 读的是 `callable_prompt()`，不含 `nl_cue`。故这段仍在「只动提问侧」的边界内，**未触及任何求值语义**。⛔ 也没有改 `predicates.py`——冲突在 prompt 层化解，共享机制一字未动。
+
+**哈希**（v1 与对照臂**未被本次修订改动**，v1 数据仍可复现）：
+
+| 模式 | splitter sha256[:16] | len |
+|:--|:--|--:|
+| 对照 | `41a1795c131857c0` | 95589 |
+| v1 | `4044419f4541193f` | 99782 |
+| v2 | `dbd03de8e28f4950` | 101995 |
+
+⛔ §4 的达标判据、红旗、位集、pair、模型、轮数**仍然一字未动**。
