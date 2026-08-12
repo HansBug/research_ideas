@@ -108,6 +108,59 @@ class TestParseTables:
         assert len(parse_tables(f)) == 1
 
 
+class TestBehavioralRegex:
+    """⛔ 回归：`automat` 前缀会把「自动化」当成「自动机」。
+
+    ⚠️ **真实事故**：初版判据用了 `automat`，⭐ 于是 `P059`（*Evaluating the Quality
+    of Class **Diagrams** … and **Automation***，⛔ 类图论文）被判成行为类。
+    ⭐ 实测全表 `automat\\w*` 共 11 次命中，⛔ **只有 1 次是 `automata`**，
+    其余是 `Automation` / `automating` / `automatic` / `automated` / `AutomationML`。
+
+    ⭐ 这属 `CLAUDE.md` §11 点名的那类错误：⛔ **词法判据冒充语义判断**。
+    """
+
+    @pytest.mark.parametrize(
+        "text",
+        ["Findings, Guidelines and Automation", "automating the process", "AutomationML", "fully automated"],
+    )
+    def test_automation_words_are_not_behavioral(self, text):
+        from analyze_s1_corpus import _BEHAVIORAL  # noqa: PLC0415
+
+        assert not _BEHAVIORAL.search(text), f"⛔ 「{text}」被误判为行为类"
+
+    @pytest.mark.parametrize("text", ["timed automata", "a finite automaton", "hybrid automata models"])
+    def test_real_automaton_words_still_match(self, text):
+        from analyze_s1_corpus import _BEHAVIORAL  # noqa: PLC0415
+
+        assert _BEHAVIORAL.search(text)
+
+    @pytest.mark.parametrize(
+        "text",
+        ["UML (sequence diagram)", "BPMN 2.0", "Statechart", "state machine", "Scenario-based behavioral models"],
+    )
+    def test_core_behavioral_terms_match(self, text):
+        from analyze_s1_corpus import _BEHAVIORAL  # noqa: PLC0415
+
+        assert _BEHAVIORAL.search(text)
+
+    def test_class_diagram_is_not_behavioral(self):
+        """⭐ 最直接的反例：类图是结构图，⛔ 不是行为模型。"""
+        from analyze_s1_corpus import _BEHAVIORAL  # noqa: PLC0415
+
+        assert not _BEHAVIORAL.search("UML (Class Diagram) | UML class diagrams | Modeling artifacts")
+
+    def test_artifact_fields_exclude_title_and_input(self):
+        """⛔ 判制品不看标题、不看输入。
+
+        ⚠️ 真实反例 `P050`：输入里提到 `UML activity diagram`，⛔ 但它做的是**转换
+        工具推荐**，输出是 relevance scores —— ⭐ 把输入算进去会误判。
+        """
+        from analyze_s1_corpus import _ARTIFACT_FIELDS  # noqa: PLC0415
+
+        assert "Titles" not in _ARTIFACT_FIELDS
+        assert "Input_Artifact_Type" not in _ARTIFACT_FIELDS
+
+
 class TestShellDetection:
     def test_doc_extensions_cover_the_flowfsm_case(self):
         """⭐ FlowFSM 空壳只含 `README.md` 与 `.gitignore` —— 两者都必须算文档。
