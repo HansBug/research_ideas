@@ -187,6 +187,72 @@ class TestBehavioralRegex:
         assert "Input_Artifact_Type" not in _ARTIFACT_FIELDS
 
 
+class TestRevisionDrift:
+    """⛔ 回归：判据粒度决定能不能看见 drift。
+
+    ⚠️ **真实事故**：初版只用全字段逐字节哈希，⛔ 得抵消率 **1.0%**，⭐ 于是判
+    「外部文献那条 drift 假设在我们数据上不成立」。⛔⛔ **那是假阴性** ——
+    ⭐ 换到 `expression` 粒度是 **35.8%**、⭐ 换到谓词名粒度是 **43.7%**。
+
+    ⭐ 根因：⛔ 4519 次编辑里 3106 次（69%）**只改散文字段**，⭐ 任何措辞变化都让
+    全字段哈希不同，⛔ 于是「回到旧值」几乎不可能发生。
+
+    ⭐⭐ **判据太严与太松同样危险** —— ⛔ 前者把真信号判成不存在。
+    """
+
+    def test_three_grains_are_all_reported(self):
+        from measure_revision_drift import _GRAINS  # noqa: PLC0415
+
+        names = [n for n, _ in _GRAINS]
+        assert names == ["全字段", "只 expression", "只谓词名"], "⛔ 三个粒度缺一不可"
+
+    @pytest.mark.parametrize(
+        "expr,want",
+        [
+            ("initial_target(composite='a', child='b')", "initial_target"),
+            ("  occupancy_after( x )", "occupancy_after"),
+            ("edge_declared(src='S1')", "edge_declared"),
+            ("", ""),
+            ("42 + 1", ""),
+        ],
+    )
+    def test_predicate_extraction(self, expr, want):
+        from measure_revision_drift import _pred  # noqa: PLC0415
+
+        assert _pred({"expression": expr}) == want
+
+    def test_prose_only_edit_invisible_at_expression_grain(self):
+        """⭐ 只改 `rationale` 的编辑：⛔ 全字段看是「改了」，⭐ expression 粒度看是「没改」。"""
+        from measure_revision_drift import _canon, _expr  # noqa: PLC0415
+
+        a = {"assertion_id": "X", "expression": "f(1)", "rationale": "因为甲"}
+        b = {"assertion_id": "X", "expression": "f(1)", "rationale": "因为乙"}
+        assert _canon(a) != _canon(b)
+        assert _expr(a) == _expr(b)
+
+    def test_ordering_key_uses_two_numbers(self):
+        """⛔ 排序必须按 (loop, seq) 两段数字。
+
+        ⚠️ 只按文件名字符串排，⛔ 序号位数变化时会错序 —— ⭐ 而错序会让
+        「改了又改回来」**凭空出现**（⛔ 假阳性），⭐ 与上面那个假阴性是一对。
+        """
+        from measure_revision_drift import _IDX  # noqa: PLC0415
+
+        m = _IDX.match("L000-000023-convert-assertions-state-update")
+        assert m and (int(m.group(1)), int(m.group(2))) == (0, 23)
+        assert sorted(["L000-000009-x", "L000-000100-x"], key=lambda s: tuple(int(g) for g in _IDX.match(s).groups())) == [
+            "L000-000009-x",
+            "L000-000100-x",
+        ]
+
+    def test_volatile_fields_excluded(self):
+        """⛔ `revision` 每轮必变，⭐ 参与比较会让所有断言都显得改过。"""
+        from measure_revision_drift import _VOLATILE, _canon  # noqa: PLC0415
+
+        assert "revision" in _VOLATILE
+        assert _canon({"expression": "f(1)", "revision": 1}) == _canon({"expression": "f(1)", "revision": 5})
+
+
 class TestShellDetection:
     def test_doc_extensions_cover_the_flowfsm_case(self):
         """⭐ FlowFSM 空壳只含 `README.md` 与 `.gitignore` —— 两者都必须算文档。
