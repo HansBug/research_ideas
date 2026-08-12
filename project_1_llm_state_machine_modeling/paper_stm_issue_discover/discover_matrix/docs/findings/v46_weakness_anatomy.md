@@ -269,4 +269,4 @@
 | ⛔⛔ **没有任何公平改动能拉低 baseline** | 两个最大降低项（`b1-terse` −20%、`b3-nodomain` −11%）⛔ 都不公平；⭐ 而 `b2-noquantitycue` 是反例——那句公平该留的话**本身在降低** baseline |
 | ⛔ **temperature 无法对齐** | `claude-opus-4-7` 对 `temperature` 返回 **400**——⛔ 两臂在该维度**根本无法对齐**，⭐ 须进 Threats |
 
-⭐ 承重文献：**Baltes et al.**（EMSE, arXiv:2508.15503）SE 社区指南 **Guideline 5「use suitable baselines」**；**Thakur et al.**（arXiv:2406.12624）judges 对明显错误召回 96–98%、⛔ 对 **under-specified 仅 23–34%**——⭐ 这正是「缩短 baseline 记录会伤它而不碰能力」的机制。
+⭐ 承重文献：**Baltes et al.**（EMSE, arXiv:2508.15503）SE 社区指南 **Guideline 7「use suitable baselines」**（⚠️ 初稿误作 G5——⛔ **G5 是 human validation**）；**Thakur et al.**（arXiv:2406.12624）judges 对明显错误召回 96–98%、⛔ 对 **under-specified 仅 23–34%**——⭐ 这正是「缩短 baseline 记录会伤它而不碰能力」的机制。

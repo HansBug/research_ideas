@@ -39,7 +39,7 @@
 
 ⭐ **证据**：用 75 条记录的**流式 `partial_json`**（真实 token 生成顺序）确认——两个审查节点 **25/25 次都先吐 `"decision"`、后写 `rationale`**，⛔ 且 `content` 全部只含 `tool_use`、**零 `thinking` 块**。
 
-⭐ 与 **Tam et al. (EMNLP 2024)** 点名的失效形态逐字对应：⛔ **结构化输出强制模型先给结论、再补理由，⛔ 等于禁掉了 CoT**。
+⚠️ **Tam et al. (EMNLP 2024, Industry Track)** 的实测观察是 **GPT-3.5-Turbo 在 JSON-mode 下 100% 未遵守作者自设的 reason-first 键序**（⛔ 初稿写成「结构化输出**强制**先给结论」——⛔ 那是过度概括，已更正；⚠️ 且这非该文首要失效形态）。
 
 ⭐⭐ **这正好解释了「assertion 生成没形成 CoT」——⛔ 不是没写 CoT，是 schema 结构上不允许。**
 
