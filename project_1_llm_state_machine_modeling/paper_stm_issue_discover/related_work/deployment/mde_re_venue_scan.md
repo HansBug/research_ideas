@@ -6,7 +6,7 @@
 
 ## 0. 一句话结论
 
-⭐ **在 MDE / RE 的 9 个 venue、43 个 venue-年份、3,740 条题录里，⛔「因保密 / 合规所以必须用本地或开源模型」这条论证极其罕见**：⛔ 全库只有 **2 篇**明确写出了这条因果——⭐ Hachm et al.（SAM 2025 @ MODELS-C，⭐ 措辞是「公司政策要求 on-premise」）与 ⭐ Hernández López, Földiák & Varró 的 Text2VQL（MODELS 2024 主会，⭐ 措辞是「专有 API 与工业模型的 IP 保护不相容」）。⛔ 其中**唯一读到全文的那篇是装饰**：Hachm et al. 全文 11 页，⛔ 该动机的全部词次集中在第 2 页的摘要与引言两段，⛔ 此后**零回指**，⛔ 连唯一的模型选型句都改用「to ensure consistency」当理由。⏳ Text2VQL 因 ACM DL 403 **未取得全文，⛔ 承重性未判定**（⭐ 但从摘要看它的技术路线直接由该动机推出，⭐ 结构上最像承重，⭐ 见 §2.2）。⭐ 与之对照，⭐ 同一批检索里 **SE 期刊侧（TSE / TOSEM / EMSE）这条论证是成立且反复出现的**，⭐ 至少 6 篇把它做成了承重（⭐ 日志分析与代码任务为主；⛔ 其中 5 篇为**摘要级**判定，⭐ 仅 Zhong et al. 由前一轮读过全文）。⭐⭐ **因此本轮最有用的产出不是「找到了支撑」，⛔ 而是一条边界**：⭐ 这条动机在 SE 侧有先例可援，⛔ 但在我们自己的投稿目标社区（MODELS / RE / REFSQ / SoSyM / REJ）里**尚未成为惯用论证**，⛔ 审稿人不会默认接受它。
+⭐ **在 MDE / RE 的 9 个 venue、43 个 venue-年份、3,740 条题录里，⛔「因保密 / 合规所以必须用本地或开源模型」这条论证极其罕见**：⛔ 全库只有 **2 篇**明确写出了这条因果——⭐ Hachm et al.（SAM 2025 @ MODELS-C，⭐ 措辞是「公司政策要求 on-premise」）与 ⭐ Hernández López, Földiák & Varró 的 Text2VQL（MODELS 2024 主会，⭐ 措辞是「专有 API 与工业模型的 IP 保护不相容」）。⛔⛔ **两篇都读到了全文，⛔ 两篇都是装饰。** ⛔ Hachm et al. 全文 11 页，⛔ 该动机的全部词次集中在第 2 页的摘要与引言两段，⛔ 此后**零回指**，⛔ 连唯一的模型选型句都改用「to ensure consistency」当理由；⛔ Text2VQL 全文 12 页，⛔ IP 论证只出现 **2 次且全在第 1 页**，⛔ 其后 9 页零回指，⛔ 三条 RQ 全部只问合成数据质量与微调增益，⛔ 且 `privacy` / `confidential` / `on-premise` / `secur*` 在全文出现 **0** 次。⭐ 第三篇最接近的是 REFSQ 2026 的 Chou–Aydemir–Dalpiaz（⭐ §2.3），⭐ 它在 §5.1「Implications for practice」有**唯一一次实质回指**，⛔ 但 RQ、评估设计、threats、结论仍全部不涉及，⛔ 收束时改用纯效率口径，⛔ 故同样判装饰。⭐ 与之对照，⭐ 同一批检索里 **SE 期刊侧（TSE / TOSEM / EMSE）这条论证是成立且反复出现的**，⭐ 至少 6 篇把它做成了承重（⭐ 日志分析与代码任务为主；⛔ 其中 5 篇为**摘要级**判定，⭐ 仅 Zhong et al. 由前一轮读过全文）。⭐⭐ **因此本轮最有用的产出不是「找到了支撑」，⛔ 而是一条边界**：⭐ 这条动机在 SE 侧有先例可援，⛔ 但在我们自己的投稿目标社区（MODELS / RE / REFSQ / SoSyM / REJ）里**尚未成为惯用论证**，⛔ 审稿人不会默认接受它。
 
 ⚠️ ⭐ **另有一条反向发现，⛔ 它比上面那条更该影响我们的写法**：⭐ MDE / RE 社区并非不用开源小模型——⭐ 本轮至少 3 篇用了（⭐ 含本地 Ollama 部署与 Qwen-14B）——⛔ 但它们给出的理由是 **transparency / reproducibility / accessibility**，⛔ **不是保密**。⭐ 逐字见 §2.4 与 §2.5。⛔ 也就是说，⭐ 在这个社区里「为什么用开源小模型」已经有一套**既有且不同**的标准答案；⛔ 我们若改用保密动机，⛔ 是在跟一个已被占据的位置竞争，⛔ 而不是在填空白。
 
@@ -100,7 +100,7 @@
 
 ⭐ **它对我们的价值**：⭐ 这是**目前唯一一条能引的、出自 MDE 正式会议论文的、明确写着「公司政策要求 on-premise」的句子**，⭐ 且带真实工业项目背景（MATISSE）。⛔ **但只能引作「他人也这么设定问题」，⛔ 不能引作「这条约束已被论证」**——⛔ 它自己都没论证，⛔ 一句引文之后就再没管过。⭐ 证据级别 **M**（⭐ 一手全文逐字 + 我方独立复算词频）。
 
-### 2.2 ⏳ Hernández López, Földiák, Varró — *Text2VQL: Teaching a Model Query Language to Open-Source Language Models with ChatGPT*
+### 2.2 ⛔ Hernández López, Földiák, Varró — *Text2VQL: Teaching a Model Query Language to Open-Source Language Models with ChatGPT*
 
 | 字段 | 值 |
 | :-- | :-- |
@@ -137,13 +137,31 @@
 
 ⭐⭐ **对我们的用法**：⭐ 这是 **MODELS 主会**上一条干净的「⭐ 微调后的开源小模型可与 ChatGPT 打平」的先例（⭐ 与 §2.4 相互印证）。⛔ 但它**不能**用来支撑「保密动机已被论证」——⛔ 它自己 9 页正文里一次都没回头看那个动机。⭐ 证据级别 **M**。
 
+#### ⭐ 补充：同组 2026 年的后续工作，⭐ 把保密动机说得明确得多
+
+⚠️⚠️ ⛔ **这是一份 workshop 讲稿幻灯（18 页 PPT），⛔ 不是论文正文，⛔ 绝不可当作 Text2VQL 的正文证据引用。** ⭐ 但它值得单独记一笔，⛔ 因为它显示同一课题组两年后**主动把保密提到了台前**。
+
+⭐ Földiák, Hernández López, Buffoni, **Varró**, *Text2MQL: Fine-tuning Open-source Language Models for Model Query Languages Using ChatGPT*，**MODPROD Workshop 2026**，CC BY 4.0。⭐ 其第 6 页「AI assistance」把动机列成 bullet，⭐ 逐字（⭐ 我方已下载幻灯 PDF 亲自核对）：
+
+```text
+AI assistance
+• Sensitive industrial applications
+• Domain models and queries might be confidential
+• State of the art LLMs are proprietary
+• Lack of public examples
+• Excluded from LLM training data
+• State of the art LLMs are large and expensive
+```
+
+⭐ **注意 `confidential` 这个词**：⛔ 它在 Text2VQL 论文正文里出现 **0** 次，⭐ 而在这份 2026 幻灯里成了第二条。⭐ 其微调模型也扩到了 CodeLLama (8B)、DeepSeekCoder (1.3B / 7B)、**Qwen2.5 Coder (1.5B / 7B)、Qwen3 (1.7B / 8B)**。⭐ 证据级别 **S**（⭐ 一手幻灯逐字，⛔ 但载体是 PPT 而非同行评审论文，⛔ 学术分量弱）。
+
 ⭐ **摘要逐字**：
 
 > “Since the technology is proprietary and accessible solely through an API, its use may be incompatible with the strict protection of intellectual properties in industrial models. While there are open-source LLM alternatives, they often lack the power of proprietary models and require extensive data fine-tuning to realize their full potential. Furthermore, open-source datasets tailored for MDE tasks are scarce, posing challenges for training such models effectively.”
 
 ⭐ **为什么它值得继续追**：⭐ 这是**结构上最像承重的一条**——⛔ 摘要里那句 IP 保护不是随口一提，⭐ 它直接推出了整篇论文的技术路线（⭐ 用 ChatGPT 合成数据集 → ⭐ 参数高效微调 DeepSeek Coder 1b / 7b 与 CodeLlama 7b → ⭐ 让开源小模型能写 VQL 查询）。⭐ 若「IP 保护」这句被抽掉，⛔「为什么不直接用 GPT-4 写 VQL」就没有答案了。⚠️ ⛔ **但这只是从摘要推断的结构，⛔ 不是读到正文的判定**——⛔ 按本文件自定的判据，⛔ 未读全文一律标「未判定」。⭐ 证据级别 **S**（⭐ 摘要逐字属 M，⛔ 承重性推断属 I）。
 
-### 2.3 ⏳ Chou, Aydemir, Dalpiaz — *A Comparative Study of Large and Small Language Models for Domain Model Extraction*
+### 2.3 ⛔ Chou, Aydemir, Dalpiaz — *A Comparative Study of Large and Small Language Models for Domain Model Extraction*
 
 | 字段 | 值 |
 | :-- | :-- |
@@ -332,11 +350,11 @@
 
 ⛔ 本文件所有否定陈述，⛔ **只在 §1 覆盖表列出的 43 个 venue-年份内成立**。⛔ 具体地：
 
-1. ⛔ 结论建立在 **DBLP 题录（3,740 条，完整）+ 摘要（MDE/RE 侧 1,029 份、SE 期刊侧 2,122 份）** 之上，⛔ **不是全文**。⛔ 一篇在正文某处写了「因为保密所以用本地模型」而**标题与摘要都没写**的论文，⛔ 本轮**扫不到**。⛔ 这是本轮最大的假阴性来源，⛔ 无法用现有手段消除。
+1. ⚠️ ⛔ **必须区分「筛选面」与「判定面」，⛔ 二者深度不同**。⭐ **筛选**建立在 **DBLP 题录（3,740 条，完整）+ 摘要（MDE/RE 侧 1,029 份、SE 期刊侧 2,122 份）** 之上，⛔ **不是全文**；⭐ 而**判定**（承重 vs 装饰）对 MDE / RE 侧的 3 篇关键命中**读了全文并逐字复算词频**（⭐ §2.1 / §2.2 / §2.3）。⛔⛔ **由此导出本轮最大的假阴性来源**：⛔ 一篇在正文某处写了「因为保密所以用本地模型」而**标题与摘要都没写**的论文，⛔ 本轮**根本扫不到**。⛔ 这个缺口用现有手段无法消除（⛔ 全文检索需要出版方授权，⛔ ACM DL 与 IEEE Xplore 均已 403）。⛔ **故所有「零命中」严格说都是「标题与摘要层零命中」，⛔ 不等于「正文层零命中」。**
 2. ⛔ MDE / RE 侧的 LLM 论文摘要覆盖率是 **129/137（94.2%）**；⛔ 缺的 8 条见 §5.3。
 3. ⛔ 本轮**未覆盖**：⛔ ICSE 主会、FSE、ASE、ISSTA、ICSME、SANER、MSR、ICST 的 proceedings，⛔ 以及 IST / JSS / SCP 等期刊。⛔ 对这些 venue 本文件**不下任何结论**。
 4. ⛔ STAF workshops（2024 / 2025）**只做了题录级扫描**，⛔ 未取摘要；⛔ 其「零命中」证据力弱于其他 venue。
-5. ⛔ §2.6 的 SE 期刊承重判定**均为摘要级**（⛔ 除 Zhong et al. 由前一轮读过全文），⛔ 未逐篇读全文；⛔ 按本文件自定判据，⛔ 它们严格说应标「摘要级推断」。
+5. ⛔ §2.6 的 SE 期刊承重判定**均为摘要级**（⛔ 除 Zhong et al. 由前一轮读过全文），⛔ 未逐篇读全文；⛔ 按本文件自定判据，⛔ 它们严格说应标「摘要级推断」。⚠️ ⛔ **这是本文件内部一处口径不对称，⛔ 必须说明**：⭐ MDE / RE 侧的 3 条命中都读了全文才判装饰，⛔ 而 SE 侧的 6 条只看摘要就判承重。⛔ 若对 SE 侧也施加同等严格度，⛔ 那 6 条里可能有一部分同样会掉成装饰。⛔ **故「SE 侧成立、MDE 侧不成立」这个对比本身带有方向性偏差，⛔ 不应作为强结论使用**，⛔ 只能说「⭐ SE 侧至少在摘要层把该动机写进了贡献句，⛔ 而 MDE / RE 侧连摘要层都基本没有」。
 
 ### 5.2 ⛔ 访问受限记录
 
@@ -345,11 +363,12 @@
 | `dblp.org` 主站 | ⛔ **全程 503 / 连接超时** | ⭐ 已改用官方镜像 `dblp.uni-trier.de`（⭐ 全部成功）；⛔ `dblp.dagstuhl.de` 亦超时 |
 | **OpenAlex API** | ⛔ **429，日额度耗尽**（⛔ 共享出口 IP，⛔ 「Insufficient budget…Resets at midnight UTC」） | ⛔ 放弃该路线，⭐ 改用 Semantic Scholar |
 | **arXiv API** | ⛔ 未使用（⭐ 前一轮已知 429） | ⭐ 改用单篇 `arxiv.org/abs` 与 `arxiv.org/html`（⭐ 均成功） |
-| **ACM DL** (`dl.acm.org`) | ⛔ **403（Cloudflare）** | ⛔ **Text2VQL 全文未取得**，⛔ 故 §2.2 只能标「仅摘要」 |
+| **ACM DL** (`dl.acm.org`) | ⛔ **403（Cloudflare）**，⛔ `r.jina.ai` 代理亦撞 CAPTCHA | ⭐ 已绕行：⭐ Text2VQL 全文改由作者 **Zenodo artifact** 取得（⭐ accepted version；⭐ 已与出版方摘要逐字比对确认同一文本） |
 | `link.springer.com` | ⛔ **返回 3,038 字节拦截页** | ⭐ 已绕行 `rd.springer.com`（⭐ 全部 14 篇成功） |
 | **HAL** (`hal.science`) | ⛔ **Anubis 反爬（PoW 挑战）** | ⭐ 已绕过并取得 Hachm et al. 全文 |
 | **SCITEPRESS** | ⛔ 未取得摘要 | ⛔ MODELSWARD 2 篇缺摘要 |
 | **Semantic Scholar** | ⚠️ ⛔ **静默限流**：⛔ 批量请求时返回 `{"data":[]}` 而非 429 | ⛔⛔ **这一条差点造成误判**——⭐ 首轮 39 篇单篇查询**全部返回 0 结果**，⛔ 看起来像「这些论文不存在」；⭐ 加上 HTTP 码检测与重试后**全部 39 篇命中**。⛔ 若不做这一步，⛔ 本文件会凭空多出 39 条假否定 |
+| **PDF 合字（ligature）** | ⚠️ ⛔ **不是访问问题，⛔ 是计数陷阱** | ⛔⛔ **本轮实际栽过一次**：⭐ 我用 ASCII `grep -i confidential` 在 REFSQ 那篇上得到 **0**，⛔ 差点据此判定「该文无 confidentiality 表述」；⭐ 实际上 PDF 里是 `conﬁdentiality`（⭐ U+FB01 ﬁ 合字），⛔ ASCII 模式匹配不到。⛔ 同理跨行连字符（`se-\ncurity`）也会漏计。⭐ **§2.1 / §2.2 / §2.3 的全部词频均已按「合字归一 + 去跨行连字符」重算。** ⛔ 后续任何在 PDF 文本上做的「出现 0 次」断言，⛔ 都必须先做这两步归一化 |
 
 ### 5.3 ⛔ 已知数据缺口
 
@@ -375,7 +394,7 @@
 
 1. ⭐ **保密动机可以写，⛔ 但必须引 SE 侧、⛔ 不能引 MDE/RE 侧**。⭐ 最好的三条是 TOSEM 的 Zhong et al. 与 LibreLog、⭐ TSE 的 MASDP。⛔ 若在 MODELS / RE 投稿时声称「这是本社区的共识动机」，⛔ 审稿人只需翻三年目录就能反驳。
 2. ⭐⭐ **认真考虑不把保密当主动机。** ⭐ §2.4 证明「用方法把开源小模型抬到与 SOTA 平价」在 MODELS 上**不挂保密也能发**；⛔ 而 §2.5 证明这个社区选开源小模型的既有理由是**可复现性与透明性**。⭐ 后者对我们是**更便宜**的动机——⛔ 它不需要我们去论证任何法规或企业政策（⛔ 而 Q1 / Q2 至今为空），⭐ 且与「可断言可追溯」的卖点天然同向。
-3. ⚠️ ⛔ **§2.3 那篇 REFSQ 2026 必须在 related work 里正面处理，⛔ 躲不掉。** ⭐ 它在**同一个 venue 族、同一个任务（需求→领域模型）、同一批模型（含 Qwen）**上已经比过一轮，⛔ 结论是小模型「competitive but less consistent」且被 GPT-o1 压过。⛔ 我们若主张平价，⛔ 就是在直接反驳一篇 REFSQ 论文，⛔ 需要比它更强的证据；⛔ 而 [README.md](./README.md) 已记录主臂 `hit@1` **60.4%** vs 朴素基线 **76.2%**（⛔ Δ = −15.82pp），⛔ 目前**拿不出**这个证据。
+3. ⚠️⚠️ ⛔ **§2.3 那篇 REFSQ 2026 必须在 related work 里正面处理，⛔ 躲不掉，⛔ 而且它是本轮对我们最不利的一条。** ⭐ 它在**同一个 venue 族、同一个任务（需求 → 领域模型）、同一批模型（Llama3-8B 与 Qwen 系 14B）**上已经比过一轮，⛔ 结论是 GPT-o1 全面胜出、⛔ 小模型「competitive but less consistent」；⛔⛔ **更糟的是它还报告小模型打不过一个十年前的规则式工具**——⭐ 逐字：“It is remarkable how, although the variants of VN are from a decade ago, they are still up-to-part (if not better) than the examined SLMs.” ⛔ 我们若主张平价，⛔ 就是在直接反驳一篇由该子领域权威署名的 REFSQ 论文，⛔ 需要比它更强的证据；⛔ 而 [README.md](./README.md) 已记录主臂 `hit@1` **60.4%** vs 朴素基线 **76.2%**（⛔ Δ = −15.82pp），⛔ 目前**拿不出**这个证据。⭐ 建议的处理是**收窄主张**：⛔ 不说「小模型能打平 SOTA」，⭐ 而说「⭐ 在**可断言、可追溯**这个维度上，⭐ 方法带来的收益不依赖模型规模」——⛔ 后者才是我们真正有数据的那一格。
 
 ---
 

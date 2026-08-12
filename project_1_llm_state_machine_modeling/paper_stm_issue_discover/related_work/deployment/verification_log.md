@@ -79,3 +79,33 @@
 ⭐⭐ **而我们的方法两样都有。** ⭐ 仓库已实测：⛔ 自我批判那部分**吃掉 79% token 而净收益 ≈ 0**。⭐⭐ **所以合起来给出一个比任一单独证据都更硬的预测**：⛔ **砍掉自我批判环、⭐ 保留分解脚手架、⭐ 换到弱模型上跑**——⭐ 那正是文献预测本方法生效的区间。⭐ 这与 M1 已确立的设计原则一（⛔ 不要问「这写得对吗」，⭐ 要告诉它「还有这些没查」）**同向**。
 
 ⛔ **本条不推翻既有裁定**，⭐ 只给它补一条区分维度。⛔ 是否据此调整路线排序，⛔ 归 R1 / M1，⛔ 不在 N1a 权限内。
+
+## V3 · ⛔⛔ Chou–Aydemir–Dalpiaz (REFSQ 2026)——⭐ 全部证实，⛔ 且比转述更狠，⭐ 但它埋着一个反向支点
+
+**对象**：Chou, Aydemir, **Dalpiaz**, *A Comparative Study of Large and Small Language Models for Domain Model Extraction*, ⭐ **REFSQ 2026**, LNCS pp. 336–351, DOI [10.1007/978-3-032-21423-2_23](https://doi.org/10.1007/978-3-032-21423-2_23)。
+
+⭐ **核验方式**：⛔ Springer 要鉴权（303 → idp），⭐ 改从 **Dalpiaz 个人主页自存版**取 PDF 全文（`papers/chou-ayde-dalp-26-refsq.pdf`）并提取，⭐ 逐字核摘要、§4.1 与结论段。
+
+⚠️ ⛔ **先纠一处转述混淆**：⭐ REFSQ 2026 有**两篇**相关论文，⛔ 汇报措辞里被并成了一条——⭐ 本篇（Chou–Aydemir–Dalpiaz，**领域模型抽取**）与 ⭐ Mallya–Ferrari–Zadenoori–Dąbrowski 的 *From Online User Feedback to Requirements*（**用户反馈**，⭐ 那句「open, lightweight alternatives **to improve transparency and reproducibility**」出自后者）。⭐ [mde_re_venue_scan.md](./mde_re_venue_scan.md) 的**正文分得很清楚**，⛔ 混淆只在汇报层。
+
+### ⛔ 事实（⭐ 逐字）
+
+⭐ 摘要：「We compare **GPT-o1, Llama3-8B, and Qwen-14B** with the rule-based **Visual Narrator** using nine datasets … **GPT-o1 outperformed the smaller language models** and matched or exceeded Visual Narrator in most tasks. Small language models produced **competitive but less consistent** results, revealing efficiency–accuracy trade-offs.」
+
+⭐ §4.1：「It is remarkable how, although the variants of VN are **from a decade ago**, they are still up-to-part (**if not better**) than the examined SLMs.」
+
+⛔⛔ **统计部分转述里没有，⭐ 而它比措辞更硬**：⭐ Friedman 检验双指标均显著（⭐ validity $p = 0.0001246$、⭐ completeness $p = 0.003283$）；⭐ 事后 Nemenyi + Cohen's $d$ 确认 **GPT-o1 在 validity 上显著优于 Llama3-8B（$p = 0.0029$, $d = 2.343$）与 Qwen-14B（$p = 0.0056$, $d = 1.929$）**。⛔ **$d \approx 2$ 是极大效应量**，⛔ 不是边缘差异。
+
+### ⛔ 对我们的威胁
+
+⛔ 在**同一 venue 族、同一任务家族（需求文本 → 模型）、同一批小模型（⭐ 连 Qwen 都对上）**上，⛔ 已经有人做过统计检验，⛔ 结论是**小模型显著更差且效应量极大**，⛔ 且署名者是该子领域权威、⛔ 基线还是他自己的工具。⛔ **我们若主张平价，就是在直接反驳一篇 REFSQ 论文，⛔ 需要比它更强的证据——⛔ 而我们目前拿不出。**
+
+### ⭐⭐ 但同一页埋着一个反向支点，⛔ 转述里漏了
+
+⭐ 同一组检验里还有一句：⭐ GPT-o1 显著优于两个小模型，⛔ **但对 VN-P 不显著（$p = 0.3543$, $d = 0.842$）**。⭐⭐ **也就是说：⛔ 连 GPT-o1 都没能在统计上打赢一个十年前的规则式工具。**
+
+⭐⭐ 这直接削弱**「裸覆盖率数字」这条轴本身的意义**——⛔ 而那恰恰是我们正在输的那条轴。⭐ 它给出的推论是：⛔ 在这个任务家族上，⛔ LLM 之间比覆盖率**未必是有意义的比较维度**，⭐ 差异化应当落到**产出形态**（⭐ 可求值断言、⭐ 可追溯证据链）上。
+
+⭐ **另一条界限也要说清**：⛔ 它比的是**裸跑 vs 裸跑**（⭐ structured template prompting，⛔ 无方法层）。⭐ 我们要主张的是**小模型 + 方法 vs 小模型裸跑**——⭐ **那正是它没做的那个比较**。⛔ 故它**不证伪我们**，⭐ 但它**钉死了我们必须超过的基线**，⛔ 且必须在 Related Work 里正面处理，⛔ 躲不掉。
+
+⭐ **证据等级 M**（⭐ 一手 PDF 逐字 + ⭐ 统计量原文）。
