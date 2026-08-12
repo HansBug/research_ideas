@@ -143,3 +143,15 @@
 ### ⛔ 合并推论
 
 ⛔ **本轮 §3.2 推荐的「换到弱模型上跑」，⛔ 在选型层面已被证据反对。** ⭐ C2 的处置建议成立且可执行：⭐ **加一条大开放权重臂**（⭐ 如 Qwen3.5-397B / DeepSeek / gpt-oss-120b）——⭐ 那是**分离「开放权重」与「小」的唯一手段**。⭐ 因为可复现性只推得出**开放权重**，⛔ 推不出**小**；⛔ 而同一厂商同时供 397B 与 27B，⛔ 连「必须用中国法域模型」都带不出「必须小」。
+
+## V5 · ⚠️ V3 的一处收回：⛔ Dalpiaz 那篇的「Qwen-14B」**不是基础 Qwen**
+
+⭐ **核验**：一手 PDF §3 逐字——
+
+> Llama3-8B (an instruction-tuned variant with 8 billion parameters from Meta's Llama series), and **DeepSeek-R1-Distill-Qwen-14B**³ (a 14-billion-parameter **distilled** model from the Qwen series, optimized through knowledge distillation for improved inference efficiency)
+
+⭐ 脚注 3 给出 HF 链接 `deepseek-ai/DeepSeek-R1-Distill-Qwen-14B`。
+
+⛔ **故 V3 里「⭐ 连 Qwen 都对上」这句要收回。** ⭐ 它测的是 **R1 蒸馏的推理模型**，⛔ 与 `route_selection_and_v47_plan.md` 推荐的 `Qwen3.6-27B`（⭐ 通用 dense，⭐ 2026-04）**不同谱系、⛔ 且早约两代**。
+
+⭐ **影响**：⛔ 威胁的**方向与效应量仍成立**（⛔ 同 venue、⛔ 同任务家族、⛔ 小模型显著更差），⛔ 但**不能说成「他们已经测过我们要用的那个模型」**。⭐ 这是一处**精度修正**，⛔ 不是威胁解除。
