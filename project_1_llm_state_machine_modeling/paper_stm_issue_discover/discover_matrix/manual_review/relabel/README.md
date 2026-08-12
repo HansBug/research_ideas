@@ -137,7 +137,7 @@
 | `模型自身` | 不看 NL、不看参考模型，只读作者源就能判定（良构性） | ⭐ 可以独立成立。`nl_evidence` 写 `无` |
 | `参考模型` | ⛔ **只有**参考模型那样建、生成侧没那样建 | ⛔ **单独不足以**支撑一条缺陷 —— 勾它等于说「本条待裁定」 |
 
-⛔ **为什么要把它从 `layer` 里拆出来**：台账的 `layer` 把这四种依据混在同一个轴上，⚠️ 实测已经造成过一次归类错 —— `EIS-0005-02` 被记成 `nl_contradiction`，而它真正硬的那条依据是**参考模型**（见 §7.1）。⭐ 拆开之后，「这条依据够不够硬」第一次成为可查询的字段，而不是要重读 statement 才能猜。
+⛔ **为什么要把它从 `layer` 里拆出来**：台账的 `layer` 是按**缺陷种类**分的（缺失 / 凭空多出 / 与义务矛盾 / 良构性），却被同时当成**依据来源**的轴在用 —— ⚠️ 两者并不同构。⛔ 最直接的证据是：四层里**没有任何一个槽位**对应「依据来自参考模型」，⛔ 而这一种依据按 §二.3 **单独不足以**支撑一条缺陷。于是这类记录只能被硬塞进四层中的某一层，⛔ 依据强度就此丢失、且丢得不留痕迹。⭐ 拆开之后，「这条依据够不够硬」第一次成为可查询的字段，而不是要重读 statement 才能猜。
 
 ⛔ **`NL欠指定` 不是「弱一点的违反」，⛔ 是「不能说违反」。** §7.2 那张表里的七种形态（不写源状态 / 不写触发 / 并列项无连接词 / 零情态动词 / 文字与守卫表达式不一致 / 驻留义务无出口 / 信息密度过低）全部落在这一档。
 
@@ -210,18 +210,43 @@ scope: [x] 越界·时钟或不变式
 
 #### 3.6.4 [validate.py](./validate.py) 在这一块上会报什么
 
+⚠️ **下表力求列全**：⛔ 2026-08-13 之前它漏了三条 `E`（`nl_evidence = 无` 撞 NL 依据层、段 id 不存在、`primary_predicate` 越表），⭐ 判读者按表准备却被没写进文档的门挡住。⭐ 现已补齐并与 [validate.py](./validate.py) 逐条对齐。
+
 | 情形 | 级别 | 判据类型 |
 | :-- | :-: | :-- |
 | 必填项缺失 / 枚举取值不在集合内 / 单值字段给了多个 | `E` | 确定性 |
 | `basis` 是 `NL显式义务` 或 `NL欠指定`，却给不出本 pair 的段 id | `E` | 确定性 |
-| `basis = NL欠指定` 或 `参考模型`，却把 `layer` 记成 `nl_contradiction` | `E` | 确定性（⚠️ 后者即 `EIS-0005-02` 的病灶） |
+| `basis = NL欠指定` 或 `参考模型`，却把 `layer` 记成 `nl_contradiction` | `E` | 确定性 |
 | `basis = 模型自身`，却把 `layer` 记成 `nl_named` / `nl_contradiction` | `E` | 确定性 |
+| `layer` 是 `nl_named` / `nl_contradiction`，而 `nl_evidence` 写的是「无」 | `E` | 确定性（⚠️ ⛔ 只对这两层生效，见下方说明） |
+| `nl_evidence` 引用了本 pair **不存在**的段 id | `E` | 确定性（段 id 集合是封闭的） |
+| `primary_predicate` 不在 19 谓词封闭词表内 | `E` | 确定性（词表是封闭的；⭐ 写不出就写 `无`） |
+| `generated_side` 引用的行号超出作者源总行数 | `E` | 确定性 |
 | `basis = NL欠指定`，而 `statement` 里出现「违反」类措辞 | `W` | ⚠️ 词法，会误伤 |
 | `basis = 参考模型`（依据强度不足，待裁定） | `W` | 确定性提示，⛔ 但不阻塞 |
 | 勾了 `界内`，而 `statement` 命中时钟 / 并发词 | `W` | ⚠️ 词法，会误伤 |
+| `nl_evidence` 有内容但认不出本 pair 的段 id | `W` | 确定性提示（⭐ 写段 id 才能机械回链） |
+| 推不出 `element_of_M`（`generated_side` 没给行号，`primary_predicate` 也定不了） | `W` | 确定性提示 |
 | 与另一条新增条目、或与本 pair 某条台账记录疑似重复 | `W` | ⚠️ 启发式，⛔ 不自动判重 |
 
 ⛔ **为什么一半只报 `W`**：按 [CLAUDE.md](../../../../../CLAUDE.md) §11，只有能被**完美判定**的约束才允许做成会一票否决的门。「这条主张需不需要时钟语义」「这两条是不是同一个缺陷」「这句话算不算在说违反」都要语义解释，做成 `E` 会把正确答案挡在门外。⭐ 反过来，「勾了 A 就不能同时勾 B」只看两个枚举字段的值，⛔ 不需要任何语义解释，故报 `E`。
+
+⚠️⚠️ **`nl_evidence = 无` 这条门只对 `nl_named` / `nl_contradiction` 生效** —— ⛔ 它此前写的是「除 `wellformedness` 外都要 NL 依据」，⛔ 于是把 `over_specification` 一并拦下，造出一个**不可满足**的门（[CLAUDE.md](../../../../../CLAUDE.md) §13 的空交集）。判据来自台账自己的 `layer_basis` 原话：`over_specification` = 「生成方凭空多出，且造成可断言的负面后果」，⛔ **一个字都没提 NL**；REPORTABLE 98 条里这一层的 6 条也有 **5 条 `nl_evidence` 为空**，⭐ 那是设计如此。⛔ 旧门给的两条出路都走不通 —— 改 `layer = wellformedness` 是误分类（良构性 ≠ 凭空多出），「给出段 id」按定义不存在 —— ⛔ 唯一能过门的做法是把 `layer` 留空，⛔ 于是这一层在新增条目里被系统性抹掉，无法与既有 98 条并表。
+
+⭐ **按 §13 的要求，写出一个「满足本门且同时满足既有各门」的具体形状**（⛔ 它由 [test_relabel.py](./test_relabel.py) 的 `test_over_specification_has_a_shape_that_satisfies_every_gate` 机械钉住，`E` 与 `W` 都必须为空）：
+
+```text
+statement: 生成侧凭空多出一条通往 ClampingLoseState 的迁移，该状态没有任何出边，进入后再也回不到主流程
+generated_side: :14 OperationalState --> ClampingLoseState
+basis: 模型自身
+nl_evidence: 无
+layer: over_specification
+scope: 界内
+direction: reachability
+depth: 中层
+```
+
+⭐ 关键是 `basis = 模型自身` 与 `layer = over_specification` **可以并存**：`basis` 说依据来自作者源（不看 NL 就能看出这个元素是多出来的、且后果可断言），`layer` 说它属于台账的「凭空多出」那一层。⛔ 这两层都不要求 NL 逐字依据，故 `nl_evidence` 写 `无` 是**正确答案**，不是漏填。
 
 ## 四、命令
 
@@ -319,13 +344,20 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 ### 7.1 ⛔ `nl_contradiction` 里有 2 条 `nl_evidence` 为空
 
-13 条 `nl_contradiction` 中有 2 条的 `nl_evidence` 是空串，⛔ 而它们的 `layer_basis` 都写着「**与 NL 的显式义务矛盾**」。⚠️ 这两条**性质不同**，⛔ 不要一起处理。
+13 条 `nl_contradiction` 中有 2 条的 `nl_evidence` 是空串，⛔ 而它们的 `layer_basis` 都写着「**与 NL 的显式义务矛盾**」。⭐ 逐条复核后，**两条都是记账遗漏** —— 依据都躺在各自的 `statement` 正文里、没抄进字段。⚠️ 但两条的**待裁定点不同**：`EIS-0005-02` 的依据是从迁移拓扑**推断**出来的（故 `layer` 归属待裁），`EIS-0024-03` 引的是原文**逐字**一句（故 `layer` 站得住，待裁的是那一句本身欠指定）。⛔ 下面分开写。
 
-**`EIS-0005-02`**（pair `0005`，NL10 微波炉，`decided_by = lexical`，`direction = hierarchy`）：`nl_evidence` 与 `upstream.ledger_statements` **都是空的**。⭐ 译者在不知道有这条记录的情况下独立确认：**该份 NL 全篇零处提及包含关系** —— 不出现 `composite state` / `substate` / `inside` / `within` / `contains` / `nested` 中的任何一个，唯一的 `inside` 是第 3 句「placing an item **inside** the microwave」（把物品放进炉腔），⛔ 与状态层次无关。译者给这份 NL 的全局提示原话是：「本份 NL 的层次判读证据全部是**间接**证据；判读者需自行裁定「互为迁移目标」是否蕴含「不得互为祖先后代」—— **原文本身没有回答这个问题**」。
+**`EIS-0005-02`**（pair `0005`，NL10 微波炉，`decided_by = lexical`，`direction = hierarchy`）：`nl_evidence` 与 `upstream.ledger_statements` **都是空的**。⭐ 这是**记账遗漏** —— 依据躺在 `statement` 正文里（它逐句点了 NL 第 4/5/6/8 句），⛔ 没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它捞了出来。⭐ 重标时应把 `nl_evidence` 补成对应段 id 并附原句。
 
-⚠️ 该记录的 `statement` 里确实提到「违反 NL 第 4/5/6/8 句把二者当互斥替代配置的处理」，⛔ 但那是**从迁移拓扑推断出来的**，⛔ 不是原文写下的义务；⭐ 它真正硬的那一条依据是 `reference_side` 写的「**六个状态全部平级（扁平）**」—— ⛔ **那是参考模型依据，⛔ 不是 NL 矛盾**。而 §二.3 已经说过参考模型**不是正确答案**。⭐ 重标时这一条应重点复核 `layer` 归属：它更像 `wellformedness`（模型自身即可判定：四层嵌套使 `active(DoorShutWithItem)` 蕴含 `active(DoorOpenWithItem)`），⛔ 而不是 `nl_contradiction`。
+⭐ **一个属实、且对判读有用的事实**：译者在不知道有这条记录的情况下独立确认，**该份 NL 全篇零处提及包含关系** —— 不出现 `composite state` / `substate` / `inside` / `within` / `contains` / `nested` 中的任何一个，唯一的 `inside` 是第 3 句「placing an item **inside** the microwave」（把物品放进炉腔），⛔ 与状态层次无关。译者给这份 NL 的全局提示原话是：「本份 NL 的层次判读证据全部是**间接**证据；判读者需自行裁定「互为迁移目标」是否蕴含「不得互为祖先后代」—— **原文本身没有回答这个问题**」。
 
-**`EIS-0024-03`**（pair `0024`，NL01 列车，`decided_by = batch5_spotcheck`，`direction = hierarchy`）：⭐ **独立复核结论：它与上一条不是同一种毛病。** 该记录的 `statement` 逐字引了 NL 第 10 句「remains in the Approaching substate ... until it is ready to stop or decelerate」，⭐ 而原文第 10 句确为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」—— **引文属实，省略号只略去了 while nearing the destination**。⭐ 所以它的依据**确实落在 NL 上**，⛔ 不是模型自身、也不是参考模型；`nl_evidence` 为空纯属**记账遗漏**：证据躺在 `statement` 正文里，没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它和 `EIS-0005-02` 打成了同一类。
+⛔⛔ **2026-08-13 撤回本节此前的一个推论。** 旧版由上面那个事实推出「所以该记录的真实依据是 `reference_side` 写的『六个状态全部平级（扁平）』，是参考模型依据、不是 NL 矛盾」，并据此建议把 `layer` 降成 `wellformedness`。⛔ **这个推论不成立，⛔ 两条理由都硬**：
+
+1. ⛔ **它是 non sequitur。** 该记录的论证根本**不依赖**包含关系词汇 —— `statement` 引的是 NL 第 4/5/6/8 句的**互斥性**（逐句复核属实：第 4 句 `From DoorOpenWithItem, the system can transition to DoorShutWithItem … or to ReadytoCook`、第 5 句 `opening the door transitions the system back to DoorOpenWithItem`、第 6 句 `the system returns to DoorShutWithItem` / `transitions to DoorOpenWithItem`、第 8 句 `the system transitions to DoorOpenWithItem, while if the timer expires, the system moves to DoorShutWithItem` —— 这四句确实把那两个状态当成由相反的开 / 关门事件到达的往返两端）。⛔ 「NL 没写 `substate` 这个词」与「依据不在 NL 上」在逻辑上无关。⚠️ 另外 `reference_side` 是**每条记录都填了**的字段（REPORTABLE 98 条全部非空），⛔ 它非空并不能说明谁是「真正的依据」。
+2. ⛔ **归 `wellformedness` 实质上是错的。** 四层嵌套本身完全良构；说它是缺陷，必须先知道那两个状态**应当**互斥 —— 而这个「应当」只能来自 NL 或参考模型，⛔ 不可能「模型自身即可判定」。
+
+⭐ **那么这条该怎么办**：`layer` 落 `nl_contradiction` 还是 `nl_named`，取决于判读者如何裁定「NL 把二者当互斥替代配置」是**显式义务**还是**从迁移拓扑推断出来的读法** —— ⚠️ 这一步原文没有回答，⛔ 故本节**不预设结论**，只标为待裁定。⛔ 若有人要改这条的 `layer`，论证必须建立在第 4/5/6/8 句上，⛔ 不得再用「NL 零处提及包含关系」这个词汇缺失来推。
+
+**`EIS-0024-03`**（pair `0024`，NL01 列车，`decided_by = batch5_spotcheck`，`direction = hierarchy`）：⭐ **独立复核结论：它与上一条同属记账遗漏，⛔ 但待裁定点不同。** 该记录的 `statement` 逐字引了 NL 第 10 句「remains in the Approaching substate ... until it is ready to stop or decelerate」，⭐ 而原文第 10 句确为「The system remains in the Approaching substate while nearing the destination, until it is ready to stop or decelerate.」—— **引文属实，省略号只略去了 while nearing the destination**。⭐ 所以它的依据**确实落在 NL 上**，⛔ 不是模型自身、也不是参考模型；`nl_evidence` 为空纯属**记账遗漏**：证据躺在 `statement` 正文里，没抄进字段，于是机械检查（§6.3 的「非 wellformedness 层却无 `nl_evidence`」）把它捞了出来。
 
 ⚠️ **但结论要连限定一起写**：NL 第 10 句只给了**驻留义务**，⛔ 它**没有**给出离开 Approaching 的 trigger（触发）、guard（守卫）或目标状态 —— 译者对该段的判读提示逐字写着「无法映射到任何具体迁移；判读「缺失迁移」时本句不构成明确约束」。⭐ 「这条边违反了它」这个结论还需要两步 NL 未提供的推导：其一，UML 下指向外层复合状态的迁移等价于该复合状态的自迁移，会重跑内部初始而把阶段重置回 `Accelerating`；其二，作者侧标签 `exit/Send` 的触发条件是什么，原文与模型都没说。⭐ 故重标时：`layer = nl_contradiction` **站得住**，`nl_evidence` 应补成 `NL-L010` 并附原句，⛔ 同时须标注该句**欠指定**（见下一节）。
 
@@ -376,6 +408,9 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 | 时间 | 改动 | 理由 |
 | :-- | :-- | :-- |
+| 2026-08-13 | ⛔ **译文的 `note` / `translator_notes` 全量剥离制品断言**（9 份共 100 处替换），[TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 增第 8 条硬纪律，[nl_zh.py](./nl_zh.py) 加装载期机械门 `artifact_leaks()`，工作单提示区加制品免责声明 | ⛔ 一份 NL 服务 6 个 pair，讲制品的提示对其中 5 份必然为假 —— 见下方 §十 |
+| 2026-08-13 | ⛔ `nl_evidence = 无` 与 `layer` 冲突的那道 `E` 由「除 `wellformedness` 外都拦」收窄为「只拦 `nl_named` / `nl_contradiction`」（新增 `NF.NL_GROUNDED_LAYERS`）；§3.6.4 的门清单补齐此前漏掉的三条 `E` | ⛔ 旧门让 `over_specification` **无解**（CLAUDE.md §13 的空交集）：该层的 `layer_basis` 一个字不提 NL，台账既有 6 条里 5 条 `nl_evidence` 本就为空 |
+| 2026-08-13 | ⛔ 撤回 §7.1 关于 `EIS-0005-02` 的推论，并把 [newfields.py](./newfields.py) docstring、[validate.py](./validate.py) 报错正文、工作单 §5 说明里以它为例的 `basis` 分层 rationale 全部换成抽象表述 | ⛔ 「NL 零处提及包含关系 ⇒ 依据在参考模型上」是 non sequitur；⭐ 分层设计本身对、该留，⛔ 但不该靠一个立不住的案例支撑 |
 | 2026-08-13 | §5 新增登记块由 8 字段平铺改为**三层结构**：新增 `basis`（依据层，4 选 1）与 `scope`（边界层，4 选 1），必填由 5 项变 7 项（其中 4 项是勾选）；越界条目只需 ① 事实层 + `scope`，且 `in_scope = False`、**不计入缺陷统计**；[validate.py](./validate.py) 增加依据自洽检查与 `scope` 感知的边界检查 | 依据强度此前无处记录（§7.2 的建议落地），且越界的东西此前**无处可写** —— 只能不记，于是「这份 NL 要求了 $M$ 之外的东西」被伪装成「没人发现」 |
 | 2026-08-13 | §1.2 的中文译文由手写常量换成 [translations/](./translations/) 下的 9 份精翻 JSON，并新增「逐段判读提示」与「整份 NL 层面的观察」两个折叠区 | 原手写译文只有逐段直译、⛔ 无歧义登记；判读者判「违反」时缺的正是「这一句到底说清了没有」 |
 | 2026-08-12 | 建立本工作区，判据初版 | 台账 0 条人类校验，需全量重标 |
@@ -392,3 +427,54 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | narrative + 占位符、**不区分**大小写（⭐ 即 `risk_flags` 的实现） | **51** |
 
 ⭐ **41 与 51 是同一判据在同一范围下的两个版本，⛔ 差别只在是否匹配大写 `FCSTM`——恰好 10 条记录只以大写形式出现。** ⚠️ 初稿的 30/46/51 阶梯**中途换了大小写约定**；⭐ 自洽的阶梯是 **30/36/41** 或 **45/46/51**。
+
+## 十、⛔⛔ 一次材料事故：译文的判读提示曾把**别人的制品**当成你的
+
+⚠️ **这一节是判读者必须知道的事。** ⛔ 若你在 **2026-08-13 之前**读过任何一份工作单的「⭐ 逐段判读提示」或「⭐ 整份 NL 层面的观察」，⛔ 你读到的关于**被测制品**的事实**可能是假的** —— ⭐ 请把当时基于那些提示形成的判断重新过一遍。
+
+### 10.1 现象
+
+⛔ 提示里出现过这样的句子（逐字）：
+
+- 「模型 `PumpControl` 内**不存在**任何以 `PumpState` 为目标的迁移」—— ⛔ 而读到这句话的 `0013.md` 对应的制品里有 **7 条**（`0033` 6 条、`0043` 5 条、`0023` / `0053` 各 3 条）。
+- 「$V$ 中**没有**任何此类变量，$A$ 中**也没有**对应的赋值动作」（指 UAV 数量递减）—— ⛔ 而 `0016` 写着 `Attack Finished / Decrease UAV swarm count`，5 个兄弟里 **4 个**都有。
+- 「`exit_urban` … NL 其余各句与**模型中均无此状态**」—— ⛔ 而 `0019` `0029` `0039` `0049` `0059` **全部含** `exit_urban`。
+
+⚠️ **最有害的是「不存在」型断言** —— ⛔ 它会把判读者的结论**直接反过来**：要么记下一条并不存在的缺陷，要么把自己读对的东西改掉。⛔ 而这些句子印在一句免责声明底下：「提示只陈述原文这一句说了什么、没说什么，不含任何裁决」—— ⛔ **声明恰恰在劝读者不要去核。**
+
+### 10.2 根因：**NL 分组** × **制品断言**
+
+⭐ 一份 NL 对应 **6 个 pair**（同一份 NL 由 6 个 LLM 各生成一个制品）。[generate.py](./generate.py) 按 **NL 分组**取 `note` 与 `translator_notes`，⛔ 于是同组 6 份工作单拿到**逐字相同**的文本。⛔ 而译者写这些文本时锚在**编号最小那个 pair 的生成模型**上 —— ⛔ 那句话对当事的 1 份为真、对另外 5 份基本为假。
+
+⚠️ 分组口径是 **NL 全文 sha8**，⛔ **不是末位数字**：`nl_0002` 的组是 `0002 0013 0023 0033 0043 0053`，`nl_0003` 的组是 `0003 0012 0022 0032 0042 0052`，⛔ 两组交错。
+
+⛔ **归属已被机械钉死**：每一组的断言 **100% 命中该组编号最小那个 pair 的生成制品**，而对**参考模型** 4 组是 `0/N` —— ⭐ 这排除了「译者写的其实是参考模型」这个善意解释。⚠️ 顺带说明本可避免：**同组 6 个 pair 的参考模型是同一份**，锚在参考模型上不会出事，⛔ 锚在生成模型上则必然出事。
+
+### 10.3 量级
+
+| 口径 | 数 |
+| :-- | --: |
+| 受影响的 NL 组 | **8 / 9**（只有 `nl_0004` 干净） |
+| 可机械核验的制品断言 | **79** 条 |
+| 其中在**至少一个兄弟 pair** 上为假 | **68** 条（**86%**） |
+| 带着关于自己制品的假事实的工作单 | **40 / 54**（**74%**）—— 8 组 × 5 个非当事 pair |
+
+### 10.4 修法
+
+⭐ **原则：`note` / `translator_notes` 只讲原文，⛔ 一个字都不讲制品。** ⭐ 这与 [TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) 的本意一致（译者的职责是转述原文与标歧义），⛔ 是执行时越界了。
+
+1. ⛔ **剥离**：9 份 JSON 共 **100 处**替换，删掉所有「模型里有 / 没有 X」「$A$ 中无 Y」「不存在以 Z 为目标的迁移」「模型补出了…」「模型记作…」、文件名 `plantuml.puml`、以及原文未点名的标识符（`InitialState`、`FormationAdjustment`、`R45RouteToken` 一类）。
+2. ⭐ **保留**：一切**关于原文**的观察 —— 「原文未给该迁移的触发条件」「全篇无情态动词」「单位未声明」「这一句有两种读法」。⚠️ 剥离**不等于删光**：这些欠指定观察正是判读的核心材料，⛔ 删了就把 §7.2 那七种形态一起删了。
+3. ⭐ **改成把核对权交回读者**：原本「模型中不存在 X」的地方，现在写「⭐ 本句是否被满足须自行到 §1.3 逐行核对，⛔ 本提示不代为回答」。
+4. ⭐ **声明同步**：工作单提示区新增一句「⚠️⚠️ 提示里也不含任何关于本 pair 制品的断言」，并指向 §1.3（作者源，带行号）与 §4（按本 pair 现算的清单）。⛔ 只改数据不改声明会留下更糟的局面 —— ⛔ 旧声明会继续劝读者不要去核。
+
+### 10.5 落的门
+
+⛔ [nl_zh.py](./nl_zh.py) 的 `artifact_leaks()` 在**装载期**检查，违反即抛 `NoteArtifactLeak`，⛔ 工作单生成不了。⭐ 按 [CLAUDE.md](../../../../../CLAUDE.md) §11，门里**只放能完美判定的约束**，故两条判据都只看字符串：
+
+1. ⛔ `note` / `translator_notes` 不得含 `模型` / `制品` / `生成侧` / `参考侧` / `作者源` / `plantuml` / `puml` / `fcstm`（ASCII 部分不区分大小写）。⭐ 谈 UML 语义仍然可以 —— `UML` 不在表内。
+2. ⛔ 提示里出现的**驼峰或下划线标识符**，必须在**本份 NL 自己的 `en`** 里逐字出现过。⭐ 这是同一文档内两个字段之间的确定性一致性检查；⚠️ 反过来 `dist_to_front` / `DoorOpenWithItem` 这类原文点了名的标识符**必须放行**，⛔ 否则译文没法讲原文点了什么。
+
+⚠️ **两条判据都只作用于 `note` 与 `translator_notes`，⛔ 不碰 `zh`** —— 译文必须逐字跟着原文走，原文若真写了「模型」就照译。
+
+⛔ **门过了不等于合规。** ⭐ 语义部分（不含上述词却仍在断言制品）靠 SPEC 第 8 条纪律与人工评审兜底。⭐ 回归测试见 [test_relabel.py](./test_relabel.py) 的 `test_no_translation_note_mentions_the_artifact`（正面：现有 9 份必须干净）与 `test_artifact_leak_gate_actually_fires` / `test_artifact_leak_raises_at_load_time`（反面：门必须真的拦得住，⛔ 且不许恒抛）。

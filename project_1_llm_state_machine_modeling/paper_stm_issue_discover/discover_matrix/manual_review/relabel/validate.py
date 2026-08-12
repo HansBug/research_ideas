@@ -34,7 +34,7 @@
    必须说同一件事。确定性的部分报 `E`：
    ⛔ 勾了 `NL显式义务` / `NL欠指定` 却给不出本 pair 的段 id；
    ⛔ 勾了 `NL欠指定` 或 `参考模型` 却把 `layer` 记成 `nl_contradiction`
-   （⚠️ 后者正是 `EIS-0005-02` 的病灶，见 [README.md](./README.md) §7.1）；
+   （⚠️ 后者之所以要拦：台账四层里**没有**「参考模型依据」的槽位）；
    ⛔ 勾了 `模型自身` 却把 `layer` 记成 `nl_named` / `nl_contradiction`。
    ⭐ 需要读文意的部分只报 `W`：勾了 `NL欠指定` 却在 `statement` 里写「违反」
    （欠指定的句子不构成显式义务，谈不上违反）；勾了 `参考模型`（依据强度不足）。
@@ -179,9 +179,9 @@ def _check_basis(rep, pair, nid, basis, layer, nle, cited, stmt):
     符合 [CLAUDE.md](../../../../../CLAUDE.md) §11 对「门」的准入要求）；
     需要读文意才能判定的报 `W`。
 
-    ⚠️ 这一层之所以单独存在，是因为台账的 `layer` 把四种强度不同的依据混在一个轴上，
-    实测已经造成过一次归类错（`EIS-0005-02`：真正的依据是**参考模型**，
-    却被记成 `nl_contradiction`，见 [README.md](./README.md) §7.1）。
+    ⚠️ 这一层之所以单独存在，是因为台账的 `layer` 是按**缺陷种类**分的，却被同时当成
+    **依据来源**的轴在用；⛔ 而四层里**没有**「依据来自参考模型」的槽位，
+    于是这类记录只能被硬塞进某一层，依据强度就此丢失。见 `newfields.py` 模块 docstring。
     """
     if not basis:
         return
@@ -205,9 +205,12 @@ def _check_basis(rep, pair, nid, basis, layer, nle, cited, stmt):
     if basis == "参考模型" and layer == "nl_contradiction":
         rep.E(pair, nid,
               "`basis = 参考模型` 与 `layer = nl_contradiction` 不能并存 —— "
-              "⛔ 参考模型不是 NL。⚠️ 这正是 `EIS-0005-02` 的病灶："
-              "它真正的依据是参考侧「六个状态全部平级」，却被记成了与 NL 显式义务矛盾"
-              "（见 [README.md](./README.md) §7.1）")
+              "⛔ 参考模型不是 NL，与它不同谈不上「与 NL 的显式义务矛盾」。"
+              "⚠️ 台账四层里**没有**「参考模型依据」的槽位，"
+              "⛔ 这类记录只能被硬塞进某一层，依据强度就此丢失 —— "
+              "⭐ 那正是本轮把 `basis` 单列出来的原因。"
+              "⭐ 请把 `layer` 留空（等于「本条待裁定」），"
+              "并在 `statement` 里写明还缺什么这条才站得住")
     if basis == "模型自身" and layer in ("nl_named", "nl_contradiction"):
         rep.E(pair, nid,
               f"`basis = 模型自身` 与 `layer = {layer}` 不能并存 —— "
@@ -346,11 +349,20 @@ def validate_pair(pair, data, rep):
                   "⛔ 不要造新谓词名")
 
         # ---- 完整性：字段间的定值一致性（⭐ 确定性，故报 E）
-        if layer and layer != "wellformedness" and NF.is_none_mark(nle):
+        # ⚠️ 这道门只对**按台账定义确实要求 NL 依据**的两层生效，见 `NF.NL_GROUNDED_LAYERS`。
+        # ⛔ 2026-08-13 之前它写作 `layer != "wellformedness"`，于是把 `over_specification`
+        # 一并拦下 —— 而那一层的 `layer_basis` 是「生成方凭空多出，且造成可断言的负面后果」，
+        # 一个字都没提 NL；台账既有 6 条里 5 条 `nl_evidence` 本就为空。⛔ 结果是空交集
+        # （CLAUDE.md §13）：改 `wellformedness` 是误分类，给段 id 按定义不存在，
+        # 唯一能过门的做法是把 `layer` 留空 —— 这一层于是在新增条目里被系统性抹掉。
+        if layer in NF.NL_GROUNDED_LAYERS and NF.is_none_mark(nle):
             rep.E(pair, nid,
-                  f"`layer = {layer}` 按台账定义要求 NL 逐字依据，"
-                  "但 `nl_evidence` 写的是「无」。⛔ 二者不能并存："
-                  "要么改 `layer` 为 `wellformedness`，要么给出 NL 段 id")
+                  f"`layer = {layer}` 的台账定义是「{NF.layer_basis_table().get(layer)}」，"
+                  "⛔ 它要求 NL 逐字依据，但 `nl_evidence` 写的是「无」。"
+                  "⛔ 二者不能并存：要么给出 NL 段 id，"
+                  "要么改 `layer` —— ⭐ 只读模型就能判定的走 `wellformedness`，"
+                  "⭐ 生成方凭空多出并造成负面后果的走 `over_specification`"
+                  "（⭐ 这一层**允许** `nl_evidence = 无`）")
         cited = _known_seg_ids(pair) & _seg_refs(nle)
         if nle and not NF.is_none_mark(nle) and not cited:
             rep.W(pair, nid,

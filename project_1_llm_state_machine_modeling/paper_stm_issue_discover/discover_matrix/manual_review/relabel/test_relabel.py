@@ -423,6 +423,91 @@ def test_every_nl_segment_has_a_reading_note():
     assert nl_zh.missing_notes() == []
 
 
+# ================================================== 判读提示不许指涉被测制品（C-①）
+
+def test_no_translation_note_mentions_the_artifact():
+    """⛔ 9 份译文的 `note` / `translator_notes` 里不许有**任何**制品指涉。
+
+    ⚠️ 这是 2026-08-13 审计查出的 C 级问题的回归门（见 [README.md](./README.md) §十）：
+    一份 NL 服务 6 个 pair，译文按 NL 分组注入，⛔ 于是一句关于某一份制品的话会被逐字印进
+    6 份工作单、对其中 5 份为假。⭐ 实测规模：79 条可核验断言里 68 条在至少一个兄弟上为假。
+    """
+    bad = {}
+    for name, payload in nl_zh._raw().values():                # noqa: SLF001
+        leaks = nl_zh.artifact_leaks(payload)
+        if leaks:
+            bad[name] = leaks
+    assert bad == {}, "译文提示里有制品指涉：\n" + "\n".join(
+        f"{n}:\n  " + "\n  ".join(v) for n, v in sorted(bad.items()))
+
+
+def test_artifact_leak_gate_actually_fires():
+    """⛔ 反面：门必须**真的**拦得住 —— ⚠️ 只测「干净时不报」等于没测。
+
+    ⭐ 四个反例逐一覆盖两条判据，⛔ 外加一个「干净」正例防止实现恒抛：
+    禁用词（中文入口词 `模型`）、制品文件名（`plantuml.puml`）、
+    `translator_notes` 与 `note` 两个字段各测一次、以及原文里没有的驼峰标识符。
+    """
+    clean = {"segments": [{"seg": "1",
+                           "en": "1. The system begins in the PumpControl state. ",
+                           "zh": "1. 系统起始于 PumpControl。",
+                           "note": "约束初始点：起点是 PumpControl，原文未给出触发。"}],
+             "translator_notes": "原文只有一句，未点名任何事件名。"}
+    assert nl_zh.artifact_leaks(clean) == []
+
+    def leaks(**over):
+        payload = copy.deepcopy(clean)
+        if "note" in over:
+            payload["segments"][0]["note"] = over["note"]
+        if "tn" in over:
+            payload["translator_notes"] = over["tn"]
+        return nl_zh.artifact_leaks(payload)
+
+    # ① 中文入口词，note 侧
+    hit = leaks(note="模型中不存在任何以 PumpState 为目标的迁移。")
+    assert any("`模型`" in h and "segments[1].note" in h for h in hit)
+
+    # ② 制品文件名，translator_notes 侧
+    hit = leaks(tn="见 plantuml.puml 的两条 -- 分隔符。")
+    assert any("`plantuml`" in h and "translator_notes" in h for h in hit)
+
+    # ③ 原文里没有的驼峰标识符（⛔ 只可能来自某一份制品）
+    hit = leaks(note="起点其实落在 InitialState 上。")
+    assert any("`InitialState`" in h for h in hit)
+
+    # ④ 原文里没有的下划线标识符
+    hit = leaks(note="守卫写作 dist_to_front>=25。")
+    assert any("`dist_to_front`" in h for h in hit)
+
+    # ⑤ ⭐ 正例复核：原文**点了名**的标识符必须放行，⛔ 否则译文没法讲原文点了什么
+    assert leaks(note="本句唯一点名的状态是 PumpControl。") == []
+
+
+def test_artifact_leak_raises_at_load_time():
+    """⛔ 装载期就要抛，⛔ 不许降级成「这一份跳过」—— ⚠️ 材料错了就不该产出工作单。"""
+    real = copy.deepcopy(dict(nl_zh._raw()))                   # noqa: SLF001
+    dirty = copy.deepcopy(real)
+    dirty["f1c3dc88"][1]["segments"][0]["note"] += "（模型中无此状态）"
+    with _mock_raw(dirty):
+        with pytest.raises(nl_zh.NoteArtifactLeak, match="指涉了被测制品"):
+            nl_zh._store.__wrapped__()                         # noqa: SLF001
+    # ⛔ 反反面：不动数据时**不许**抛
+    with _mock_raw(real):
+        nl_zh._store.__wrapped__()                             # noqa: SLF001
+
+
+def test_worksheet_warns_that_notes_never_assert_about_the_artifact():
+    """⭐ 54 份工作单的提示区都要挂那句「提示不含制品断言、请自己去 §1.3 核对」。
+
+    ⚠️ 旧版页面上立的是「提示只陈述原文、不含任何裁决」，⛔ 而提示里恰恰藏着假的制品事实 ——
+    ⛔ 声明反过来在劝读者不要去核。⭐ 故声明必须与新纪律同步，⛔ 不能只改数据不改声明。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
+            block = fh.read().split("⭐ 逐段判读提示")[1].split("</details>")[0]
+        assert "不含任何关于本 pair 制品的断言" in block, f"{pair} 的提示区缺制品免责声明"
+
+
 def test_every_nl_has_translator_notes():
     """⭐ 整份 NL 层面的观察（术语表 / 跨句歧义 / 原文质量）9 份都得有。"""
     for pair in S.IN_SCOPE_PAIRS:
@@ -938,12 +1023,18 @@ def test_underspecified_basis_worded_as_unspecified_is_accepted():
 
 
 def test_reference_model_basis_cannot_be_recorded_as_an_nl_contradiction():
-    """⛔ 这正是 `EIS-0005-02` 的病灶：参考模型依据被记成了「与 NL 显式义务矛盾」。"""
+    """⛔ 参考模型不是 NL，与它不同谈不上「与 NL 的显式义务矛盾」。
+
+    ⚠️ 本测试只断言**形式要求**（哪两个取值不能并存、报错要指出一条出路），
+    ⛔ 不钉住报错正文里举了哪个案例 —— 钉住案例会把措辞锁死在原地
+    （[CLAUDE.md](../../../../../CLAUDE.md) §13 第 3 条）。⭐ 事实上这条报错 2026-08-13
+    换过例子：旧版拿 `EIS-0005-02` 当教科书案例，⛔ 而那个推论不成立（见 README §7.1）。
+    """
     rep = _validate_new("0001", _entry(
         "0001", basis="参考模型", nl_evidence="无", layer="nl_contradiction"))
     msgs = _msgs(rep, "E")
     assert any("参考模型" in m and "不能并存" in m for m in msgs)
-    assert any("EIS-0005-02" in m for m in msgs)
+    assert any("layer" in m and "留空" in m for m in msgs), msgs
 
 
 def test_reference_model_basis_alone_is_flagged_as_insufficient():
@@ -1056,14 +1147,46 @@ def test_blank_nl_evidence_is_not_the_same_as_writing_none():
     assert not any("nl_evidence" in m for m in _msgs(explicit, "E"))
 
 
-def test_none_nl_evidence_conflicts_with_a_non_wellformedness_layer():
-    """⛔ 除 `wellformedness` 外三层按定义都要 NL 逐字依据 —— 与 `无` 不能并存。"""
-    rep = _validate_new("0001", _entry(
-        "0001", nl_evidence="无", layer="nl_named"))
-    assert any("不能并存" in m for m in _msgs(rep, "E"))
-    ok = _validate_new("0001", _entry(
-        "0001", nl_evidence="无", layer="wellformedness"))
-    assert _msgs(ok, "E") == []
+def test_none_nl_evidence_conflicts_with_an_nl_grounded_layer():
+    """⛔ 只有 `nl_named` / `nl_contradiction` 两层按台账定义要 NL 逐字依据。
+
+    ⚠️ 判据来自 `layer_basis` 原话，⛔ 不是「除 `wellformedness` 外都要」：
+    `over_specification` 的原话是「生成方凭空多出，且造成可断言的负面后果」，
+    ⛔ 一个字没提 NL，台账既有 6 条里也有 5 条 `nl_evidence` 为空。
+    """
+    assert set(NF.NL_GROUNDED_LAYERS) == {"nl_named", "nl_contradiction"}
+    for layer in NF.NL_GROUNDED_LAYERS:
+        rep = _validate_new("0001", _entry("0001", nl_evidence="无", layer=layer))
+        assert any("不能并存" in m for m in _msgs(rep, "E")), layer
+    for layer in ("wellformedness", "over_specification"):
+        ok = _validate_new("0001", _entry("0001", nl_evidence="无", layer=layer))
+        assert _msgs(ok, "E") == [], (layer, _msgs(ok, "E"))
+
+
+def test_over_specification_has_a_shape_that_satisfies_every_gate():
+    """⭐ CLAUDE.md §13 要求的「满足本门且同时满足既有各门的一个具体形状」，⛔ 机械钉住。
+
+    ⚠️ 2026-08-13 之前 `over_specification` 的合法解空间是**空的**：`nl_evidence` 按定义
+    只能写 `无`（NL 对凭空多出的元素什么也没说），而当时那道门要求非 `wellformedness` 层
+    必须给段 id；改 `layer = wellformedness` 是误分类，段 id 按定义不存在，
+    ⛔ 唯一能过门的做法是把 `layer` 留空 —— 于是这一层在新增条目里被系统性抹掉。
+
+    ⭐ 下面这条就是那个「具体形状」，⛔ 它必须同时过**全部**门：`E` 与 `W` 都为空。
+    """
+    shape = _entry(
+        "0001",
+        statement="生成侧凭空多出一条通往 ClampingLoseState 的迁移，"
+                  "该状态没有任何出边，进入后再也回不到主流程",
+        generated_side=":14 OperationalState --> ClampingLoseState",
+        basis="模型自身",          # ⭐ 依据只在作者源上，⛔ 不在 NL 上
+        nl_evidence="无",          # ⭐ 按定义 NL 对这个凭空多出的元素什么也没说
+        layer="over_specification",
+        scope="界内",
+        direction="reachability",
+        depth="中层")
+    rep = _validate_new("0001", shape)
+    assert _msgs(rep, "E") == [], _msgs(rep, "E")
+    assert _msgs(rep, "W") == [], _msgs(rep, "W")
 
 
 def test_completeness_rejects_a_segment_id_that_does_not_exist():
