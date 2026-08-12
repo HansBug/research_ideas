@@ -15,7 +15,9 @@
 | 初轮（ICSE/FSE/ASE 主会 + MODELS/SoSyM/RE/REJ/ECMFA） | **2748** | ⚠️ 成分见 §3 的口径警告 |
 | C3 补轮（卫星卷 + Companion + REFSQ + ASE-W） | **+2406** | ICSE 卫星全族 · FSE Companion 三年 · MODELS Companion 四年 · MODELS 2022 主会 · REFSQ 主会+workshop 五年 · ASE workshop 三年 |
 | 期刊族补轮（TSE/TOSEM/EMSE/IST/JSS/STVR/SQJ/FAoC，2022–2026） | **+6000** | ⚠️ **入口是 OpenAlex 不是 DBLP**（DBLP 当时 500/503），⛔ DBLP 只用于题录数交叉核对（38/40 格） |
-| **合计** | **11154** | ⭐ **覆盖较初轮扩大 306%，⛔ 五问仍一问未换档** |
+| 形式化方法 / 测试族补轮（FormaliSE · NFM · iFM · FMAS · SEFM · FASE · TACAS · SPIN · ISSTA · ICST · ICFEM · SANER，73 卷） | **+2908** | ⭐ 73/73 卷 http=200；⛔ 70 条 STM/SPEC 命中中**界内 0 · 邻域 11 · 界外 59** |
+| 2026 年卷补轮 | **+405** | ⭐ 4 卷已扫（STM/SPEC 全零）；⛔ **7 个主会卷 DBLP 尚未编目**（⚠️ 那是 404 不是零命中） |
+| **合计** | **14467** | ⭐ **覆盖较初轮扩大 426%，⛔ 五问仍一问未换档** |
 
 ⭐⭐ **那个「没换档」本身是一次独立稳健性检验。** ⛔ 但它**不能**写成「说明该方向为空」（§0.1.7）—— ⭐ 只能写成「**覆盖扩大 88% 后落档不变**」。
 
@@ -110,7 +112,9 @@ LLM  = \bLLM\b|large language|\bGPT\b|ChatGPT
 
 ---
 
-## 4. ⭐⭐ 一条对「都没有一篇把表达不了的义务显式记成缺口」的反驳线索
+## 4. ⭐⭐ 反驳线索：⛔ 「记不记缺口」不是有效判据，⭐ 「缺口挂在哪」才是
+
+⚠️⚠️ **本节结论已于 2026-08-12 修正。** ⛔ 原标题写「都没有一篇把表达不了的义务显式记成缺口」—— ⭐ **那句话站不住**：⚠️ 后续正文级核验发现至少 **QUARTET（TSE 2023）三层缺口机制** 与本节这条工业先例。⭐⭐ **正确的判据是「缺口挂在什么上」**：既有工作挂在**规约语言 / 工具的能力**上（换一份模型不变），⭐ 本方挂在**「这条需求 × 这份模型」那一格**上（换一份模型会变）。
 
 ⚠️ **摘要级，⛔ 三条限制必须同时说明。** [MathWorks 高完整性建模指南 ↔ Model Advisor 检查映射表](https://www.mathworks.com/help/slcheck/ref/model-advisor-checks-for-high-integrity-systems-modeling-guidelines.html) 的做法与我方断言相反：
 
@@ -118,6 +122,29 @@ LLM  = \bLLM\b|large language|\bGPT\b|ChatGPT
 - ⭐⭐ **该映射表显式列出「哪些指南没有对应的 Model Advisor 检查」，并给出理由 —— 逐字是 `automation isn't possible`。**
 
 ⛔ **三条限制**：① **摘要级**，`hisf_` 全表与「无检查项」清单**均未逐条取件**（C3-40/41 的动态壳与 404 拦住了）；② 对象是 **Stateflow**，其并行状态与 temporal logic 有相当部分**落在边界门外**，⛔ 不可整体当界内；③ 它是**工具指南而非文献**，⭐ 按 §0.1.8 只能作「这类检查在领域实践中反复出现」的**存在性移交**，⛔ 不作规范性出处、⛔ 不由 L1 定级。
+
+---
+
+## 4b. ⭐⭐ N-19 · Q3 逐条筛除记录的最特殊一条
+
+⚠️ **它特殊在：它提供的 60 个模型就是本文的被测语料。** ⛔ 而它此前**从未进入 Q3 的筛除记录**（由 C2 反驳发现）。
+
+> **Wang, Ge, Liu, Cao, Chen, Hu**, *Generating SysML Behavior Models via Large Language Models: an Empirical Study*, **Internetware 2025, pp. 366–377**, DOI [`10.1145/3755881.3755926`](https://doi.org/10.1145/3755881.3755926)。⭐ **证据级：正文 + 一手制品级**（全文 1189 行 + 公开 workbook 7 sheet 均本地冻结）。
+
+| 门 | 判定 | 依据 |
+| :-- | :-: | :-- |
+| ① 已有模型上找缺陷 | ⛔ **缺** | ⭐ 被检对象是该论文 Phase-I **自己生成的 60 个模型**（workbook 的 `Generation PlantUML` 列），属**生成后自评**；检查动作全人工（§4.4 逐字 `all validations must be performed manually`）。⚠️ **steelman**：若把「方法」读作人工检视，门① 可辩称通过 —— ⛔ **但那立刻把它推进 B 档**（执行者是人）。⭐ 两条读法都到不了四门全中 |
+| ② 状态机类制品 | ⭐ **中** | PlantUML SysML 状态机图。⚠️ 但其最大语义类是 `STM missing Regions`（20 条）—— ⛔ **正交区落在 $M$ 之外** |
+| ③ recall / coverage | ⛔ **缺（决定性）** | ⭐ 逐条判它报的每个数：`>90%` 是**元素准确率**（分母是生成模型自身的语法点）· 语义 F1 的 TP/FP/FN **全是 grammar point 且对着参考模型算** → **元素召回** · `31/72` `56/150` 是**修复率**（`Resolved / Hallucination Numbers`，分母 = 自己找到的条数）。⭐⭐ **全文 `recall` 只出现一次，且说的是别人的数** |
+| ④ 口径可复现 | ⭐ **中（就其所报之数）** | ⭐ 修复率分母**印在表里**且可从公开 workbook 复算 —— ⭐ **这一点优于 MCeT**（后者两个分母全篇未印）。⛔ 但判定者未写明（无标注人数、无 $\kappa$）、缺陷**非植入**（总体不可知）、离散项切分未落盘 |
+
+⛔ **结论：中 ②④、缺 ①③。缺③ 不可换算** —— ⚠️ 缺陷不是植入的，真实总体不可知，检出步的 FN 无定义。
+
+⚠️ **与另两条「缺分母」候选的区别**：LASHED 与 SoSyM 是**作者自陈**做不了 recall，⛔ 而本篇**从未声称**要做 recall —— ⭐ 故它可加进「不可换算」的**类型**说明，⛔ **不得**与两条自陈同列计入分母支撑。
+
+### ⭐⭐ 顺带核准一处事实：状态机数是 **36** 不是 34
+
+⚠️ 该论文内部不一致：§1 contributions 与 Table 2 Total 行都写 **36**，⛔ 而 §3.4 散文写 34。⭐ **裁定 36**，判据是算术：`36 + 34 + 35 = 105 ≠ 107`，而 `36 + 36 + 35 = 107` ✓ —— ⭐ 而 107 是全篇反复出现的总数。
 
 ---
 
@@ -132,4 +159,6 @@ LLM  = \bLLM\b|large language|\bGPT\b|ChatGPT
 | ⛔⛔ **DBLP API 的 `h` 参数在 `toc:` / `stream:` facet 下实际封顶 100** | ⚠️ 返回 `@computed=100` 而 `@total=284`，⛔ **返回码是 200、不报错** | ⛔⛔ 不带 `f=` 翻页而直接读 `hit` 数组，会把 284 条的卷**静默截成 100 条** —— ⭐ 必须读 `@total` 并翻页 |
 | ⚠️ **IEEE / Wiley 期刊在 OpenAlex 里按 early-access 年计年，⛔ 不按卷年** | ⭐ 实证：某篇的 `publication_year` 是 2022，卷是 49 → 2023。⚠️ 按年拉 TSE 只得 895 条，按卷得 1051 条 | ⭐ 用 `biblio.volume` 过滤，⛔ 不用 `publication_year` |
 | ⛔⛔ **Elsevier / Springer 不向 Crossref 交摘要** | ⚠️ 实测摘要可得率：TOSEM 100% · STVR 100% · TSE 98% · FAoC 91%，⛔ 而 **EMSE 43% · JSS 40% · IST 35% · SQJ 28%** | ⛔⛔ **那四家的所有「0」只等同于标题级零**，⚠️ 不得与 TSE/TOSEM 的 0 混为一谈 |
+| ⛔⛔ **`STM` 正则有盲区，会系统性低估** | ⚠️ 不含 `model-based testing` / `transition system` / `Simulink` / `SysML` / `protocol state`；⛔ 且 `\bOCL\b` 打不中写全称的 `Object Constraint Language` | ⭐ **实证：ICST 主会五卷 348 篇 STM 恒为 0 就是这个原因** —— 至少 6 条明显相关题录未被计入 |
+| ⚠️ **`REV` 正则在 SE 类 venue 无判别力** | 18 条命中里 SANER 占 10、ISSTA 占 3，⛔ 逐条看全是 code review / user review / literature review；⚠️ 另有一条是 `Tunnel Inspection` 的**词面误击** | ⭐ 该列不宜单独作判据 |
 | ⛔⛔ **词表对「NL → 时序逻辑」整条线失灵** | ⚠️ 实证：Zrelli 等 JSS 2026（`NL requirements → CTL specifications`）在 6000 条 dump 里**只被 `LLM` 一列抓到**，`STM` / `SPEC` / `CONF` / `REV` 全空 | ⛔ 这是**系统性假阴性**，⛔ 不是「跑了 0 命中」。⭐ 词表缺 `temporal logic` / `LTL` / `CTL` / `formalization` |

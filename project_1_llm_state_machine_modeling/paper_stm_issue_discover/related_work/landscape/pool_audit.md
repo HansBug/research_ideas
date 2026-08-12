@@ -122,7 +122,7 @@
 
 | slug | 年份 | 形式主义 | 关键事实 |
 | :-- | :-- | :-- | :-- |
-| `mcet` | 2025 | ⚠️ 邻域（sequence diagram） | ⭐ 唯一一篇把「自动查错」做成公开工具 + 公开数据集 + 公开 prompt |
+| `mcet` | 2025 | ⚠️ 邻域（sequence diagram） | ⭐ 起点池内**唯一**把「自动查错」做成公开工具 + 公开数据集 + 公开 prompt 的一篇（⚠️ **仅就起点池 91 篇而言**，⛔ 不是关于领域的断言） |
 | `ai-driven-consistency-sysml-diagrams` | 2024 | ⚠️ 邻域（SysML UCD/BD） | ⭐ 评测分母说得清；MODELS 2024，DOI `10.1145/3640310.3674079`，Zenodo 工件齐 |
 | `inference-time-intervention-requirement-verification` | 2025 | ⚠️ 邻域（Capella/SysML 架构图） | precision 导向评测；⛔ 无公开代码 / 数据 |
 | `chatgpt-uml-assessment` | 2023 | ⚠️ 邻域（类图 + OCL） | ⛔ **是「生成后自评」** —— 按 §5-A 档判据第一问「输入里的模型是不是别人给的」为**否**，⛔ 不应计入评审侧 |
