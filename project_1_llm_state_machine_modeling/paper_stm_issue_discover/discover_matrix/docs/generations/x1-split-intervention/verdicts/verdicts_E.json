@@ -1,0 +1,79 @@
+[
+  {
+    "pair": "0009",
+    "verdicts": [
+      {
+        "record_id": "EIS-0009-01",
+        "arm": "甲",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0009-01 的命题是：高速侧 `cruise --> FinishState : dist_to_exit<2`（作者源第 44 行）与 `lane_change --> FinishState : dist_to_exit<2`（第 48 行）这两条边不该存在，因为 NL 6 逐字把 FinishState 的触发指派给 auto_finished=true，而 NL 4/5 的 dist_to_exit<2 是「驶离高速」这一局部退出动作。产出 甲 的 4 条 issue 分别是：[1] exit_urban 未声明（城市侧、NL-L008）、[2] UrbanMode 无本地 FinishState（NL-L010）、[3][4] CollisionAvoidanceSystem 的融合事件（NL-L012/L013）。四条中没有任何一条提到高速侧的 dist_to_exit<2、也没有任何一条主张 FinishState 的入边触发被错误指派。[1] 虽然提到 dist_to_exit_0_7，但那是 NL 8 的城市出口（作者源第 61 行），与第 44/48 行是不同的作者编辑、不同的 NL 句、不同的目标状态，属 §2.2「不同缺陷共用状态名」——不能借城市侧的发现覆盖高速侧的边。故不命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0009-01",
+        "arm": "乙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "同上口径：台账要求的是高速侧第 44/48 行 dist_to_exit<2 直连 FinishState 与 NL 6 显式触发指派的冲突（primary_predicate = edge_declared）。产出 乙 的 3 条 issue 是 [1] exit_urban 缺失、[2] UrbanMode 作用域内缺 FinishState、[3] CAS 七个独立事件未声明，均未主张任何一条 FinishState 入边的触发条件被错误指派，也未提及高速侧的 dist_to_exit<2。[1] 指向的是第 61 行的 0.7 公里城市出口，与第 44/48 行是不同作者编辑。故不命中。",
+        "note": "乙 的「被归因策略排除的发现」仅 1 条（ISSUE-EXCL-REQ-049-CAS-reachability，关于 CollisionAvoidanceSystem 可达性），与本记录无关，不构成「发现了但未发布」。"
+      },
+      {
+        "record_id": "EIS-0009-01",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "产出 丙 的 8 条 issue 中，[1] 是 exit_urban 缺失（NL-L008、作者源第 61 行相关），[2]–[8] 全部是 CollisionAvoidanceSystem 的七个独立触发/去活事件未单独声明（NL-L012/L013、作者源第 78/81 行）。没有任何一条触及高速侧第 44/48 行的 dist_to_exit<2 → FinishState 边，也没有任何一条主张 FinishState 的入边触发被错误指派。故不命中。",
+        "note": "丙 列有 1 条被证据角色制度静默的观察 AST-REQ-006-2（REQ-006，supporting_false）。若 REQ-006 派生自 NL 第 6 句，则它有可能与本记录相关；但材料未给出该断言的内容，无法核实，仅作为「可能发现了但未发布」的不确定线索记录，按 §三 一律不算命中。"
+      },
+      {
+        "record_id": "EIS-0009-02",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 EIS-0009-02 的主命题（primary_predicate = state_declared）是：NL 8 逐字点名 exit_urban，而生成侧未声明该状态、并把 dist_to_exit<0.7 接到了 FinishState 上（作者源第 61 行 `lane_change_urban --> FinishState : dist_to_exit<0.7`；exit_urban 在全文出现 0 次）。产出 甲 [1]「UrbanMode 未声明 exit_urban 子状态」逐字主张同一件事：援引 NL-L008，指出模型未在 UrbanMode 内声明 exit_urban，并要求把 lane_change_urban 的 dist_to_exit_0_7 出边改指该状态。甲 [1] 还额外指出模型改以退出路由到 HighwayMode 表达该退出，与台账所述「该 FinishState 实际位于 HighwayMode 内部，城市出口动作会把系统送进 HighwayMode」为同一现象。两个命题指向作者源同一条编辑（第 61 行及其缺失的目标状态）。直接对应，命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0009-02",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "产出 乙 [1]「UrbanMode 内缺失 exit_urban 子状态」援引 NL-L008，主张 lane_change_urban 在 dist_to_exit<0.7 时应进入 exit_urban，而模型未在 UrbanMode 内声明该状态，state_declared 返回 False，并要求接入 lane_change_urban -/dist_to_exit_0_7-> exit_urban 的边。这与台账 EIS-0009-02 的主命题（primary_predicate = state_declared，「生成侧既没有声明 exit_urban，也把 0.7 公里的城市出口条件接到了 FinishState 上」）是同一命题，锚在作者源第 61 行这一条编辑上（exit_urban 全文引用次数为 0）。乙 未展开台账后半段的跨模式作用域后果，但那是同一处失误的下游描述，不影响同一性判定。直接对应，命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0009-02",
+        "arm": "丙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "产出 丙 [1]「UrbanMode 下缺失 exit_urban 子状态」援引 NL-L008，明确断言 exit_urban 应被声明而模型未声明（涉及元素含 AutonomousMode.UrbanMode.exit_urban、lane_change_urban、dist_to_exit_0_7），并提出补充声明该子状态并将 lane_change_urban 对应出边指向它。这与台账 EIS-0009-02 的主命题（state_declared(exit_urban) 为 False，0.7 公里条件被错接）指向作者源第 61 行同一条编辑。判定口径与对 甲[1]、乙[1] 完全一致。直接对应，命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0009-03",
+        "arm": "甲",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "台账 EIS-0009-03 的命题（primary_predicate = containment）是：参考模型只有一个位于 AutonomousMode 层级、被两模式共享的 FinishState，而生成侧把它嵌进了 HighwayMode，于是 UrbanMode 的 auto_finished 完成路径被路由回 HighwayMode 再进入 HighwayMode.FinishState。作者源里 FinishState 从未用 state 关键字声明，只作为迁移目标出现在第 44、48、61、68、69 行；PlantUML 在首次引用处隐式创建它，即第 44 行的 `cruise --> FinishState`，位于 HighwayMode 内——整条 containment 事实由这一条作者编辑决定。产出 甲 [2]「UrbanMode 未声明 FinishState 子状态」逐字断言了同一条事实：「FinishState 仅在 HighwayMode 内被声明，UrbanMode 未声明同名子状态」，并援引 NL-L010 指出 UrbanMode 因此缺少 NL 规定的结束承载状态。两者主张的是同一处失误——FinishState 的层次归属错误使 UrbanMode 的完成路径落到 HighwayMode 内部。按 §2.3，修复方案不同（台账主张上提到 AutonomousMode 层共享，甲 主张在 UrbanMode 内补声明）不得用作否定判据。§2.2 各禁止项均不适用：这不是不同缺陷共用状态名（两者都在说 FinishState 的所在位置），不是更弱的命题（甲 断言了当前归属为错，而非仅断言某物存在），也不是以结构存在性冒充行为验证（台账本条的 primary_predicate 本身即 containment 这一结构谓词）。命中。",
+        "note": ""
+      },
+      {
+        "record_id": "EIS-0009-03",
+        "arm": "乙",
+        "hit": true,
+        "equivalence_form": "直接对应",
+        "argument": "产出 乙 [2]「UrbanMode 内缺失作用域局部的 FinishState 完成态」主张：NL-L010 要求 UrbanMode 通过 auto_finished=true 转移到其自身作用域的 FinishState，但「模型只在 HighwayMode 内声明 FinishState，UrbanMode 作用域内没有对应实例」，state_declared(UrbanMode.FinishState) 为 False，且 straight 收 auto_finished=true 的行为义务因目标不存在而无法满足。这与台账 EIS-0009-03「生成侧把它嵌进 HighwayMode，导致 UrbanMode 的 auto_finished 完成路径…进入 HighwayMode.FinishState」指向作者源同一条编辑——第 44 行首次引用处对 FinishState 的隐式创建，它单独决定了 FinishState 的 containment。乙 [2] 的内容与 甲 [2] 实质相同，故按完全相同的严格度给出相同判定。§2.2 无一项适用。命中。",
+        "note": "乙 的排除条目 ISSUE-EXCL-REQ-049-CAS-reachability 属 CollisionAvoidanceSystem 可达性，与本记录无关。"
+      },
+      {
+        "record_id": "EIS-0009-03",
+        "arm": "丙",
+        "hit": false,
+        "equivalence_form": null,
+        "argument": "台账 EIS-0009-03 要求主张 FinishState 的层次归属错误（它被嵌在 HighwayMode 内，而非 AutonomousMode 层被两模式共享）。产出 丙 的 8 条 issue 中，[1] 只涉及 exit_urban 的缺失（已计入 EIS-0009-02），[2]–[8] 全部是 CollisionAvoidanceSystem 的七个独立事件未声明。整份产出没有出现 FinishState 这一元素，也没有任何关于 UrbanMode 完成路径目标、状态包含关系或跨层归属的主张。既无直接对应，也不存在可写出的蕴含链——丙 [1] 的 exit_urban 缺失为假并不蕴含 FinishState 被错误嵌入 HighwayMode 为假（台账本身即声明这两条相互独立）。按 §2.5 的告诫，元素同区域、同属 UrbanMode 出口话题都不构成蕴含关系。不命中。",
+        "note": "丙 的被证据角色制度静默观察 AST-REQ-006-2（REQ-006，supporting_false）内容未在材料中给出，无法判断是否与 FinishState 归属相关；按 §三，即使相关也不算命中。"
+      }
+    ]
+  }
+]
