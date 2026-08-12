@@ -1034,3 +1034,207 @@ ASSERTION_CONVERTER_PROMPT += """
 === Binding output contract (final, overrides anything above) ===
 Every assertion must declare `role` (`primary`/`supporting`/`precondition`), `coverage_key`, `aggregation_group`, `evidence_family`, `rationale`, and a `failure_message` beginning with `[REQ-...][AST-...]`. `expression` is a bare boolean expression -- no `assert`, no trailing message. `depends_on` lists the assertion ids that must evaluate **True** before this one runs; leave it empty when there are none, and never point it outside the same Requirement. Every Requirement needs at least one `primary`, and every `precondition` must be named in some assertion's `depends_on` -- an unreferenced one means the primary forgot the dependency. Add a `strategies` entry per Requirement. Do not emit a bounded formal query whose truth value cannot change when the defect is present.
 """
+
+
+# ---------------------------------------------------------------------------
+# X1 intervention arm (experiment `x1-split-intervention`, 2026-08-12).
+#
+# WHAT THIS IS. A *diagnostic probe*, not a method candidate. The two-arm
+# comparison found the main arm losing to a naive single-shot baseline by
+# 15.0pp, and the loss stratified almost entirely onto positions whose ledger
+# `primary_predicate` never appeared in the cell's requirement set (41.8% vs
+# 80.2%). That stratification is observational -- the stratifying variable is
+# the pipeline's own output -- so it cannot rule out the reverse reading, that
+# the splitter declines to ask precisely the questions the downstream machine
+# could not have answered anyway. This block is the intervention that separates
+# the two: it widens ONLY the question-selection stage and leaves the
+# verification machine (assertion conversion, sealing, predicate evaluation,
+# release, attribution, adjudication) byte-identical.
+#
+# INTRODUCTION MOTIVE (CLAUDE.md §3.5.-1, recorded honestly). The four sweeps
+# below were chosen after observing which predicates the splitter under-supplies
+# relative to the ledger's demand: `edge_declared` was primary for 7 REPORTABLE
+# records (42 positions) and was written into the requirement set in 0 of them;
+# `reaches`, `event_consumed` and `guard_distinguishable` were the next three
+# largest gaps. That is oracle-informed, and it is why this block must never be
+# reported as a method improvement.
+#
+# DOMAIN PROVENANCE (separate from the motive, and it is what makes the block
+# admissible as a probe at all). All four are textbook static analyses of a
+# finite state machine, stated over the closed vocabulary and independent of any
+# sample: reachability of declared states, declaration of a specified
+# transition, determinism of outgoing edges sharing a trigger, and acceptance of
+# an event in the scope that is supposed to react to it. No pair, state, event
+# or ledger entry is named anywhere below; the text is uniform across all cells.
+#
+# Gated on an environment variable so the control and treatment arms run from
+# one source tree and differ only by this string.
+# ---------------------------------------------------------------------------
+
+import os as _os
+
+X1_STRUCTURAL_SWEEP_SPLITTER = """
+
+=== Structural sweep (in addition to the NL decomposition above, never instead of it) ===
+
+The decomposition above is driven by what the sentences say, and it enumerates the states,
+events and variables a sentence names. That leaves a whole class of obligations unasked: a
+specification can state a behavior whose *structural precondition* the model gets wrong, and
+no element-existence check will notice. Four such properties are decidable from the closed
+vocabulary. Run each sweep over the model and emit a Requirement wherever the NL supplies the
+claim and the model supplies the candidate binding.
+
+1. **Named transitions -- `edge_declared`.** Extend the element scan, in the same direction, to
+   the *transitions* a sentence names. Whenever a sentence says that some trigger takes the
+   machine from one place to another -- "on X the system goes to Y", "X returns it to Y", "after
+   X it enters Y" -- that sentence names an edge. Compare the triple against the transitions the
+   FCSTM declares, and where the model declares no such edge emit
+   `edge_declared(source=..., trigger=..., target=...)`; its False says the transition the
+   sentence describes is not in the artifact. Bind all three verbatim from
+   `declared_model_vocabulary` where the elements exist. Where the sentence's endpoint is itself
+   undeclared, the element scan's existence Requirement stands and the edge Requirement stands
+   beside it -- a transition claim about an undeclared endpoint reports the transition, never the
+   missing endpoint. This obligation is **not** discharged because the same trigger already
+   appears as another Requirement's `trigger`: a claim that the machine *behaves* a certain way
+   and a claim that the artifact *declares* the edge are separately violable, and the behavioral
+   one alone cannot distinguish "edge missing" from "edge present but not taken".
+
+2. **Reachability -- `reaches`.** For each state the NL requires the machine to be able to
+   occupy, ask whether the model can actually get there:
+   `reaches(source=<the entry or an established mode>, target=<the state>, within_cycles=<a
+   bound large enough for the path the NL describes>)`. A state that is declared but unreachable
+   passes every existence check and still cannot happen. Emit this where the NL asserts that the
+   machine enters, resumes, returns to or ends in a state; do not emit it for a state the NL only
+   mentions descriptively. Do **not** bind a `trigger` on this predicate.
+
+3. **Event consumption -- `event_consumed`.** For each event the NL says the machine reacts to
+   *in a named scope*, ask whether that scope accepts it:
+   `event_consumed(source=<the scope>, trigger=<the event>)`. Its False says the event is
+   silently ignored there, which is the difference between "the machine handles X" and "X is
+   declared somewhere in the machine". Emit this wherever the NL binds a reaction to a scope.
+
+4. **Guard distinguishability -- `guard_distinguishable`.** Beyond the shared-condition rule
+   stated earlier, whenever the NL requires that a trigger's outcome in a scope be *determined*
+   -- one outcome, not a choice -- and the model leaves that scope on that trigger by more than
+   one edge, emit `guard_distinguishable(source=..., trigger=...)`. Its False says the model may
+   take either edge.
+
+**Discipline for all four, and it is the same discipline as everywhere else in this prompt.**
+These remain NL-grounded obligations: the model supplies only the *candidate*, exactly as
+`declared_model_vocabulary` already supplies candidates for every other Requirement, and the NL
+supplies the *claim*. Fill `source_segment_ids` with the segments that supply the claim. Do not
+emit one of these because the model looks odd and no sentence speaks to it -- an unsourced
+structural observation is a tool warning, and turning tool warnings into requirements is
+forbidden above and stays forbidden here. Where a sweep finds nothing to claim, emit nothing:
+silence is a legitimate outcome of a sweep, not a gap in it. And a sweep Requirement that will
+evidently return True is still worth writing -- the discharged obligation is the evidence that
+the property was checked at all.
+"""
+
+X1_STRUCTURAL_SWEEP_REVIEWER = """
+Structural-sweep review. The splitter is now required to run four sweeps over the model --
+named transitions (`edge_declared`), reachability (`reaches`), event consumption
+(`event_consumed`) and guard distinguishability (`guard_distinguishable`) -- emitting a
+Requirement wherever the NL supplies the claim and the model supplies the candidate binding. A
+Requirement produced by one of these sweeps is **not** an import of FCSTM-observed behavior and
+must not be deleted on that ground, nor on the ground that it adds a distinction the FCSTM
+merely happens to expose: the model contributed only the binding, which is what
+`declared_model_vocabulary` contributes to every Requirement in the set. Judge it on whether the
+NL really makes the claim it asserts. Delete it when no segment supports the claim, or when it
+restates what another Requirement already asserts under the same predicate on the same bindings.
+Keep it when the NL states the behavior and the Requirement asks whether the artifact declares
+the structure that behavior needs -- in particular, keep an `edge_declared` Requirement that sits
+beside a behavioral Requirement about the same trigger, because "the edge is absent" and "the
+edge is present but not taken" are different defects and only the pair separates them. A sweep
+Requirement that will evidently return True is kept for the same reason containment ones are:
+the discharged obligation is the evidence.
+"""
+
+# --- v2: placement fix, written after the v1 manipulation check, before any hit data -------
+#
+# v1 appended the block to the very end of the splitter prompt, which put it AFTER two things
+# that argue the other way:
+#
+#   * a section headed `=== Binding output contract (final, overrides anything above) ===`,
+#     which by its own wording claims the last word; and
+#   * the paragraph `Derive the Requirement from the natural language, not from the model. You
+#     are shown the model so you can spell its identifiers correctly and see what it declares --
+#     not so you can read the obligation off it.`
+#
+# The v1 manipulation check came back weak, and a block that sits behind a self-declared
+# override and an apparently contradicting rule is a defect in the MANIPULATION, not evidence
+# about the hypothesis. v2 changes only where the text goes and adds one paragraph reconciling
+# it with the "not from the model" rule. ⛔ The hit criteria in the preregistration are NOT
+# touched, and v1's results are reported in full rather than replaced.
+X1_SWEEP_RECONCILIATION = """
+**How this squares with "derive the Requirement from the natural language, not from the
+model".** That rule stands, and these sweeps obey it. It forbids reading the *obligation* off
+the artifact -- inventing a requirement because the model happens to contain something, or
+rewriting what the NL demands to match what the model does. It does not forbid using the
+artifact to see *which of the NL's demands are worth checking*, which is what
+`declared_model_vocabulary` is already for on every other Requirement. In every sweep above the
+sentence supplies the claim and the model supplies only the candidate binding. A sweep
+Requirement with no sentence behind it violates the rule and must not be written; a sweep
+Requirement whose claim the NL states is exactly what the rule is protecting, because the
+disagreement between the two is the finding you exist to surface.
+"""
+
+# v2 also has to resolve a rule conflict that v1 walked straight into. The closed-vocabulary
+# catalogue rendered by `predicates.vocabulary_prompt()` carries, on `occupancy_after`, the
+# routing hint: "This is the default for event-driven behaviour; edge_declared is only for
+# claims about what the artifact contains." That hint is per-predicate, sits in the catalogue
+# the splitter is told to scan first, and points the other way from sweep 1. It is the most
+# plausible reason `edge_declared` was written into the requirement set in 0 of 324 v46 cells
+# despite being the ledger's primary for 7 REPORTABLE records -- the supply gap is not an
+# oversight, it is what the catalogue instructs.
+#
+# Per CLAUDE.md §13 the fix is not to add a louder rule but to make the two jointly
+# satisfiable by saying which yields and why. Neither actually has to yield here: the two
+# predicates ask different questions and both are owed. `nl_cue` is rendered ONLY into the
+# splitter and requirement-reviewer prompts (prompts.py:546, :563); the converter and asserter
+# read `callable_prompt()` instead. So this paragraph stays inside the question-selection
+# boundary and touches no evaluation semantics. It is applied in mode 2 only, so v1's prompt
+# hash -- and therefore v1's reproducibility -- is untouched.
+X1_SWEEP_CATALOGUE_PRECEDENCE = """
+**One routing hint in the catalogue needs reading carefully here, and it is the reason this
+sweep exists.** Under `occupancy_after` the catalogue says it is the default for event-driven
+behaviour and that `edge_declared` is "only for claims about what the artifact contains". Both
+halves stand. But the transition sweep **is** a claim about what the artifact contains -- it is
+precisely the case the second half licenses, not an exception to it. So for a sentence that
+names a transition you owe **both** Requirements, not a choice between them:
+
+- `occupancy_after(source, trigger, target)` asks whether the running machine ends up there.
+  Its False is consistent with a missing edge, a guard that never opens, an unreachable source,
+  or a competing edge winning -- it does not say which.
+- `edge_declared(source, trigger, target)` asks whether the artifact declares the edge at all.
+  Its False says the transition is absent, and its True is what makes the other one's False
+  mean "declared but not taken".
+
+Emitting only the behavioral one is what leaves "the edge is simply not there" unsayable, and
+that is a defect the specification plainly states and the artifact plainly lacks. ⛔ Do not
+drop the `occupancy_after` Requirement in favour of the `edge_declared` one either; they are
+separately violable and each gets its own verdict.
+"""
+
+_FINAL_CONTRACT_MARKER = "\n\n=== Binding output contract (final, overrides anything above) ==="
+
+_sweep_mode = _os.environ.get("X1_STRUCTURAL_SWEEP")
+if _sweep_mode == "1":
+    REQUIREMENT_SPLITTER_PROMPT += X1_STRUCTURAL_SWEEP_SPLITTER
+    REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER
+elif _sweep_mode == "2":
+    _head, _sep, _tail = REQUIREMENT_SPLITTER_PROMPT.partition(_FINAL_CONTRACT_MARKER)
+    if not _sep:  # the marker moved; fail loudly rather than silently degrade to v1
+        raise RuntimeError(
+            "X1_STRUCTURAL_SWEEP=2 could not find the final-contract marker in "
+            "REQUIREMENT_SPLITTER_PROMPT; refusing to fall back to end-append silently"
+        )
+    REQUIREMENT_SPLITTER_PROMPT = (
+        _head
+        + X1_STRUCTURAL_SWEEP_SPLITTER
+        + X1_SWEEP_CATALOGUE_PRECEDENCE
+        + X1_SWEEP_RECONCILIATION
+        + _sep
+        + _tail
+    )
+    REQUIREMENT_REVIEWER_PROMPT += X1_STRUCTURAL_SWEEP_REVIEWER

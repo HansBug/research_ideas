@@ -173,14 +173,16 @@ discover 于是报告「四个激活源被压成一个融合事件，模型无�
 ### 4.5 必须一并交代的实验口径修正
 
 - **多报率必须分解**为「真多报 / 表示债务 / NL 无依据」三类。只报总多报率会同时高估模型的乱报程度、又掩盖编译链的问题。
-- **命中率的敏感性必须量化，不能只说「不受影响」。** 「台账分母不变」是同义反复；科学问题是「若把这 1 条补进台账会怎样」。⚠️ **`hit@1` / `hit@3` 的变动很小，但 `hit@all` 只会下降**——那条真漏记只出现在 **2/6** 格，按定义会稀释稳定性指标。这与 §4.6 是同一事实的两面，**必须同时给出三个口径的区间**，不得只说「不受影响」。
-- **oracle 不完备性被量化**：这 1 条漏记构成 [docs/protocol/ground_truth_limitations.md](../protocol/ground_truth_limitations.md) §7 那句分母表述「它不是 60 个模型缺陷的完备集」的经验确认。据此 `hit@k` 应读作**对已知缺陷集的覆盖率**，而非召回率。另须履行 [docs/protocol/hit_criterion.md](../protocol/hit_criterion.md) §4.5 的双读法并列义务。
+- **命中率的敏感性必须量化，不能只说「不受影响」。** 「台账分母不变」是同义反复；科学问题是「若把这 2 条补进台账会怎样」。⚠️ **已按真源实算**：基线 `hit@1` 355/588 = 60.4%、`hit@3` 139/196 = 70.9%、`hit@all` 95/196 = 48.5%；补入两条后分母由 196 个 (记录, 臂) 增至 200、由 588 个 (记录, 臂, 轮) 增至 600，得 `hit@1` 360/600 = 60.0%（**−0.37pp**）、`hit@all` 96/200 = 48.0%（**−0.47pp**）、`hit@3` 落在 141/200 = 70.5%（−0.42pp）与 142/200 = 71.0%（+0.08pp）之间。⚠️ **「`hit@all` 只会下降」这一结论方向不变**，且现在是确定值：`0014-4` 只出现 2/6 格，任何一臂都凑不满三轮，对 `hit@all` 的贡献恒为 0；`0010-2` 的 3 格全在 claude 臂，只为 claude 加一个满轮。⚠️ 但 `hit@3` 的**符号已不确定**：`0014-4` 那 2 格落在同一臂还是分属两臂，在现存材料里不可考（`/tmp/unexp_pkg` 的证据包与 `cluster_index.tsv` 都只记 `2/6`，不记逐格身份；v46 的 run record 已不在 `runs/` 下），故只能给区间。这与 §4.6 是同一事实的两面，**必须同时给出三个口径的区间**，不得只说「不受影响」。
+- **oracle 不完备性被量化**：这 2 条漏记构成 [docs/protocol/ground_truth_limitations.md](../protocol/ground_truth_limitations.md) §7 那句分母表述「它不是 60 个模型缺陷的完备集」的经验确认。据此 `hit@k` 应读作**对已知缺陷集的覆盖率**，而非召回率。另须履行 [docs/protocol/hit_criterion.md](../protocol/hit_criterion.md) §4.5 的双读法并列义务。
 
 ### 4.6 一并交代的负面结果
 
-[unexpected_tables.md](../../v46/unexpected_tables.md) 表 4：**唯一那条真漏记只出现在 2/6 格；而全表仅有的两个 6/6 全满格都是表示债务。**
+[unexpected_tables.md](../../v46/unexpected_tables.md) 表 4：**两条真漏记分别只出现在 2/6 与 3/6 格；而全表仅有的三个 6/6 全满格（`0000-2` / `0010-1` / `0050-1`）都是表示债务。**
 
-> 模型确实能找到台账外的真缺陷，但**找不稳**；它稳定重复报出的，反而是编译债务。
+> 模型确实能找到台账外的真缺陷，但**没有一条在两个臂上都稳定复现**；在全部六格里稳定重复报出的，反而只有编译债务。
+
+⚠️ **「找不稳」必须按臂说，不能一刀切**——两条漏记的不稳定机制不同：`0014-4` 的 2 格在任何一臂上都凑不满三轮，属采样运气；而 `0010-2` 的 3 格全在 claude 臂，即它在 claude 上满轮稳定、在 gpt 上零命中，那是**臂间能力差**而非采样噪声。把两者混成一句「找不稳」，会把一个可归因的差异说成随机性。
 
 这条不好听，但它是「`hit@3` 与 `hit@all` 必须分开报」这一口径的最强辩护——只报单轮数字，这个区别根本看不见。
 
@@ -212,3 +214,19 @@ sed -n '33p' llms_emp_feedback_final_0029/stm0.puml                # 合法析�
 grep -n "Front Distance" llms_emp_feedback_final_0010/stm0.puml    # 量写在守卫文本里（9/12/18 行）
 grep -n "Attack Finished" llms_emp_feedback_final_0016/stm0.puml   # trigger / effect 已用 / 分槽（34 行）
 ```
+
+§4.5 那三个口径的基线值与 §4.6 的稳定性事实：
+
+```bash
+cd project_1_llm_state_machine_modeling/paper_stm_issue_discover
+python discover_matrix/metrics_at_k.py discover_matrix/v46/verdicts/v46_tiers.json | head -8
+# 逐簇出现格数（6/6 全满格与两条真漏记的 2/6、3/6 都在这张表里）
+awk -F'\t' 'NR==1 || $3=="VALID_UNRECORDED" || $7=="6"' \
+  discover_matrix/v46/unexpected_verdicts/cluster_index.tsv
+```
+
+## 六、相对上一版的改动
+
+- §4.5 与 §4.6 的真漏记条数、以及 §4.6 的 6/6 全满格个数，改按真源 [final_rootcause.tsv](../../v46/unexpected_verdicts/final_rootcause.tsv)（两行）与 [cluster_index.tsv](../../v46/unexpected_verdicts/cluster_index.tsv)（`cells_of_6 == 6` 的簇为 `0000-2` / `0010-1` / `0050-1`）叙述。**理由**：v46r 整块替换新增了 `0010-2`，这两节的散文未随之更新，与同文件 §4.3 与 §4.6 末段自相矛盾。
+- §4.5 的命中率敏感性**重算**而非改数字：结论方向（`hit@all` 只会下降）不变，但由定性变为确定值 −0.47pp；`hit@3` 因 `0014-4` 的逐格身份不可考而改为给区间（−0.42pp 至 +0.08pp），符号不再确定。
+- §4.6 的「找不稳」拆成两种机制：`0014-4` 是采样运气，`0010-2` 是臂间能力差（3 格全在 claude）。**理由**：`0010-2` 在 claude 臂上其实是满轮稳定的，原句会把可归因的臂间差异说成随机性。

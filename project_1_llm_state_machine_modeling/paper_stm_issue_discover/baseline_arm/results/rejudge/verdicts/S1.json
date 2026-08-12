@@ -1,0 +1,30 @@
+{
+  "judged_by": "S1",
+  "positions": {
+    "EIS-0029-03|run1/0029-gpt": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0029-03 的命题是：作者源里 cruise 在 dist_to_exit<2 下应走局部退出 exit_hwy（与 lane_change 同语义），却被接到 FinishState。已发布 issue [8]（ISSUE-cruise-dist_to_exit-target，assertion AST-REQ-018-1 为 False）逐字指出「规范要求 cruise 中 dist_to_exit<2 后占据 HighwayMode.exit_hwy，但模型中的对应转移到达 FinishState」，二者锚在作者源同一条语句 `cruise --> FinishState : dist_to_exit<2` 上（该条转移在作者源中只被写了这一次），只是措辞不同：一个从「模型内部与 lane_change 不一致」切入，一个从「目标态错误」切入，指向同一处作者编辑。同时 AST-REQ-016-1（lane_change --> exit_hwy）为 True，说明本格确实把两条同条件边的目标分开核对过，未混淆对象。"
+    },
+    "EIS-0032-02|run1/0032-claude": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "issue",
+      "argument": "台账 EIS-0032-02 的命题是：作者源在 Operate 与叶子态之间多加了 NL 与参考都没有的 Region 包装层（IdleRegion / AccelerateRegion / BrakeRegion），属过度规约。已发布 issue [2]（ISSUE-IDLE-EXTRA-IDLEREGION，AST-REQ-005-1 为 False）与 issue [3]（ISSUE-BRAKING-EXTRA-BRAKEREGION，AST-REQ-007-1 为 False）分别逐字指出「模型在 OperateState 与 IdleState/BrakingState 之间引入了 IdleRegion/BrakeRegion 复合层」，即证明该合取命题中的两个合取项（IdleRegion 层多余、BrakeRegion 层多余）为假。蕴含链一句话：多包一层 Region ⟺ 该 Region 是 NL 未许可的额外层级，锚在作者源 `state IdleRegion { ... }`（26-28 行）与 `state BrakeRegion { ... }`（35-37 行）这两条只出现一次的编辑上，与台账指的是同一处建模失误。"
+    },
+    "EIS-0032-02|run3/0032-claude": {
+      "hit": true,
+      "equivalence_form": "合取项之一",
+      "carrier": "issue",
+      "argument": "同上位。本格已发布 issue [2]（ISSUE-Idle-not-direct-substate，AST-REQ-003A-1 为 False）与 issue [3]（ISSUE-Braking-not-direct-substate，AST-REQ-003C-1 为 False）逐字指出「模型将 IdleState/BrakingState 声明在中间层 IdleRegion/BrakeRegion 之内」，并明确给出修法「移除多余的 IdleRegion/BrakeRegion 层级」，即台账「多出的 Region 包装层属过度规约」这一合取命题中两个合取项为假。指向的是作者源同两条 Region 块编辑，不是别的失误。"
+    },
+    "EIS-0044-01|run2/0044-claude": {
+      "hit": true,
+      "equivalence_form": "直接对应",
+      "carrier": "issue",
+      "argument": "台账 EIS-0044-01 的命题是：作者建了 InMotion 复合状态与三个子状态，却漏了内部初始伪状态，使进入 InMotion 后默认活动子态不是 NL 要求的 Accelerating。已发布 issue [1]（ISSUE-REQ-010-InMotion-initial，AST-REQ-010-1 initial_target:InMotion:Accelerating 为 False）的结论句为「作者未把 InMotion 的默认初始迁移指向 Accelerating」，与台账指的是作者源 `state InMotion { ... }` 块内缺少 `[*] --> Accelerating` 这同一处（也是唯一一处）缺失编辑——补上该初始迁移同时消解两个命题，是同一条编辑的两面。该 rationale 中提到 UnspecifiedInitial 只是对「默认入口没落到 Accelerating」的说明，其结论仍落在作者源缺失的初始迁移上，未把编译债务当作缺陷本体。"
+    }
+  },
+  "note": "0029 位与 0044 位均逐条核对了作者源相应行，确认两个主张锚在同一条只出现一次的作者语句上；0032 两位按台账的多 Region 合取命题判为合取项之一（本格只证到 IdleRegion 与 BrakeRegion 两项，未单独主张 AccelerateRegion 层多余——run1 的 issue [1] 讲的是合成名被拆分，不作为本位的承载依据）。"
+}
