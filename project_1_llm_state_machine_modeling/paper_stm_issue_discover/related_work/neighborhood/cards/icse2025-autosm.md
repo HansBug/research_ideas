@@ -87,8 +87,9 @@
 
 **② 「每一段都定义在一个形式化执行模型上，相邻段之间建立 refinement / trace inclusion 关系」**（M，摘要 ＋ §X 逐字）：
 
-> 摘要："To ensure the correctness of the generated symbolic model, **each stage is designed based on a formal execution model and the model transformations are proven sound.**"
-> §X："The insight of our framework is that **we break down the entire process into multiple steps, where each defined within a formal model and refinement relations are established between them.**"
+> ⭐ **摘要**："To ensure the correctness of the generated symbolic model, **each stage is designed based on a formal execution model and the model transformations are proven sound.**"
+
+> ⭐ **§X**："The insight of our framework is that **we break down the entire process into multiple steps, where each defined within a formal model and refinement relations are established between them.**"
 
 **③ 「中间对象要选在人能直观校验的那一层」**（M，§VIII "Guarantee for trustworthiness" 逐字）：
 
@@ -195,8 +196,7 @@
 
 ⭐⭐ **合计 11 段（⭐ 按上图的可数环节）· 其中 LLM 4 段**（⭐ S1 的 `Parse` · S2 的 `Validate` · S2 的 `View` · S3 的 top spec 合成）· ⭐ **确定性 6 段** · ⭐ **人 2 段**（⭐ 手工分块 · S2 的 `Interact`）。
 
-⚠️⚠️ ⭐ **评测时人环被关掉**（M，两处逐字）：⭐ §V-B "When evaluating our overall approach for automatic modeling in Section VII-C, **we do not allow any user interaction for repairing.**" ⭐ §VII-B "we do not introduce any user-interaction."
-⭐⭐ **所以自动化评测下的实际流水线是：S1（LLM）→ S2 只跑 ①②（两次 LLM）→ ③ 检测但不修 → S3 → S4。** ⛔ **修复循环在自动模式下退化成"检测到就放弃"。**
+⚠️⚠️ ⭐ **评测时人环被关掉**（M，两处逐字）：⭐ §V-B "When evaluating our overall approach for automatic modeling in Section VII-C, **we do not allow any user interaction for repairing.**" ⭐ §VII-B "we do not introduce any user-interaction." ⭐⭐ **所以自动化评测下的实际流水线是：S1（LLM）→ S2 只跑 ①②（两次 LLM）→ ③ 检测但不修 → S3 → S4。** ⛔ **修复循环在自动模式下退化成"检测到就放弃"。**
 
 ⚠️ ⭐ **top specification 由 LLM 合成这一点很容易漏**（M，§V-C 逐字）："We first collect all of the signatures of the local process $\mathcal{P}_r$, then **incorporate in-context few-shot learning to teach LLMs how to give a top specification** $\mathcal{P}_t$." ⭐ 即 S3 **不是纯确定性** —— ⛔ 角色进程的重写是确定性的（T1–T8），⭐ 但**顶层进程（协议初始化、角色实例化、`!` 复制）是 LLM 生成的**。⚠️ ⛔ **而这一部分没有 soundness 证明覆盖** —— ⭐ Lemma 1 证的是 $T$ 的 soundness，⛔ 不是 $\mathcal{P}_t$ 的正确性。
 

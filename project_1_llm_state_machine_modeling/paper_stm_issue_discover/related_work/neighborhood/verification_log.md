@@ -149,6 +149,22 @@ python3 provenance/tools/verify_citations.py --findings /tmp/l3/cites.json --out
 
 ⚠️ ⛔ **顺带暴露了 L2 那个工具的一处口径缺陷**：⭐ 它把 DataCite 的 DOI 一律走 Crossref 与 handle，⛔ **而不查 DataCite** —— ⭐ 于是 Zenodo 记录会被判 `DOI_NOT_RESOLVED`。⭐ 本轮靠人工补了 DataCite 查询（⭐ 判据见 §1.2）。
 
+### 2.7 ⛔⛔ 抓到一篇**外部论文里的伪造引用**（⭐ 而它是那篇某条批评的唯一依据）
+
+⭐ CoDIT 2026 那篇 SCP 的参考文献 **[7]** 写作 *Revisiting Iterative Self-Verification in LLMs*，⭐ 标识符 `arXiv:2501.01234`。
+
+⛔⛔ **实际访问该 id：⭐ 它是 *Impact of QCD sum rules coupling constants on neutron stars structure*** —— ⭐ 一篇中子星物理论文。
+
+⛔⛔⛔ **而 [7] 正是那篇批评「LLM 迭代自检」的唯一文献依据。** ⚠️ 同文另有两条参考文献带 literal `XXXXXXX` 占位 DOI 且 Crossref 无匹配（⭐ 记强嫌疑待核）。
+
+⭐⭐ **两条含义**：⭐ ① **那篇对迭代自检的批评在文献层面是悬空的**，⛔ 我们不得引它当外部支持；⭐ ② ⚠️ **伪造引用不是只发生在我们这边** —— ⭐ 这反过来说明 [L2 那条纪律](../provenance/)（**裁定层必须核验引用真实性**）是对的，⛔ 而且对**外部论文**也要执行。
+
+### 2.8 ⛔⛔ 又一个静默失败：⭐ `grep` 在 PDF 抽取文本上**静默返回空**
+
+⚠️ 抽卡 agent 报告：⭐ 在 `pdf_extractor` 产出的 `.txt` 上用 `grep` 查词，⛔ **连一个确定存在的常见词都返回空**，⛔ **既不报错也不返回非零退出码**。⭐ 它据此一度写下「零命中」，⛔ 复核时改用 Python 逐串扫描才发现。
+
+⭐⭐ **后续抽卡一律用 Python 扫，⛔ 不要用 `grep` 判「原文有没有提到某词」。** ⭐ 这与 §1.1（arXiv API 静默空响应）、§1.2（DataCite 走 Crossref）是同一族问题。
+
 ---
 
 ## 3. ⭐ 资产机械核验

@@ -70,12 +70,14 @@
 
 ⭐ 论文原文逐字给出 5 个 phase：
 
-> `"This process consisted of five core phases:`
-> `1. Requirement Structuring: Converting raw textual requirements into a formal format.`
-> `2. Use Case Template Transformation and Test Case Generation: Converting structured requirements into UCS, and automatically deriving test cases from the UCS, with manual adjustments as needed.`
-> `3. Test Case Review and Iterative Requirement Refinement: Combining human evaluation with LLM-assisted analysis of test cases to detect omission or ambiguities. UCSs are then updated based on feedback to enhance clarity and completeness.`
-> `4. Consistency Validation with activity diagram: Validating consistency using Algorithm 2 with the corresponding activity diagram.`
-> `5. Consistency Validation with state machine diagram: Validating consistency using Algorithm 3 with the state machine diagram of a business object."`
+```text
+"This process consisted of five core phases:
+1. Requirement Structuring: Converting raw textual requirements into a formal format.
+2. Use Case Template Transformation and Test Case Generation: Converting structured requirements into UCS, and automatically deriving test cases from the UCS, with manual adjustments as needed.
+3. Test Case Review and Iterative Requirement Refinement: Combining human evaluation with LLM-assisted analysis of test cases to detect omission or ambiguities. UCSs are then updated based on feedback to enhance clarity and completeness.
+4. Consistency Validation with activity diagram: Validating consistency using Algorithm 2 with the corresponding activity diagram.
+5. Consistency Validation with state machine diagram: Validating consistency using Algorithm 3 with the state machine diagram of a business object."
+```
 
 ⭐ 画成线：
 
@@ -279,12 +281,14 @@
 
 ⭐ **但 Algorithm 2 的实现是两侧同时初始化为全集、再逐个减掉匹配项** —— ⭐ 逐字：
 
-> `"Output: (AbnStep, AbnBO), a set of the abnormal steps and a set of the abnormal business objects in the steps`
-> `1: AbnBO←{boj}, AbnStep ←BF ∪ altFk, where boj∈ BO, 1≤j≤m, m is the number of business object BO in g, BF is the basic flow of the use case template usecaseT, altFk is alternative/exception flows of stepk in BF, 1≤k≤n;`
-> `…`
-> `5:   if boj = business_objectk, where sk = < Pre-conditionsk [Previous_Stepk], actork, actionk, business_objectk, [to_actork], [Post-conditionsk] > then`
-> `6:    AbnStep←AbnStep-{sk}`
-> `7:    AbnBO←AbnBO-{boj}"`
+```text
+"Output: (AbnStep, AbnBO), a set of the abnormal steps and a set of the abnormal business objects in the steps
+1: AbnBO←{boj}, AbnStep ←BF ∪ altFk, where boj∈ BO, 1≤j≤m, m is the number of business object BO in g, BF is the basic flow of the use case template usecaseT, altFk is alternative/exception flows of stepk in BF, 1≤k≤n;
+…
+5:   if boj = business_objectk, where sk = < Pre-conditionsk [Previous_Stepk], actork, actionk, business_objectk, [to_actork], [Post-conditionsk] > then
+6:    AbnStep←AbnStep-{sk}
+7:    AbnBO←AbnBO-{boj}"
+```
 
 ⭐⭐ **于是两个残差集的含义分别是**：
 

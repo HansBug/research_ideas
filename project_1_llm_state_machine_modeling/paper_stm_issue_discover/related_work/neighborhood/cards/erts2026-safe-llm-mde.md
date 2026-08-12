@@ -81,8 +81,9 @@
 
 ⭐ 论文两处逐字写 "we cannot conclude"（M，§4 与 §5）：
 
-> §4: "on which **we cannot conclude** based on this first evaluation"
-> §5: "**These evaluations do not enable indeed to conclude about the effectiveness of the safety auto-correction mechanism.**"
+> ⭐ **§4**: "on which **we cannot conclude** based on this first evaluation"
+
+> ⭐ **§5**: "**These evaluations do not enable indeed to conclude about the effectiveness of the safety auto-correction mechanism.**"
 
 ⚠️⚠️ ⭐ 而它保留的唯一正向主张**没有数据支撑**（M，§4 逐字）：
 
@@ -237,17 +238,11 @@
 
 ⭐ **打分公式逐字抄下**（M，§3）：
 
-$$
-\mathrm{Score}(e,u,s,p) = 100 \cdot (1 - e/s) \quad \text{if } e > 0 \land s > 0
-$$
+$$ \mathrm{Score}(e,u,s,p) = 100 \cdot (1 - e/s) \quad \text{if } e > 0 \land s > 0 $$
 
-$$
-\mathrm{Score}(e,u,s,p) = 100 + 100 \cdot (1 - u/p) \quad \text{if } e = 0 \land p > 0
-$$
+$$ \mathrm{Score}(e,u,s,p) = 100 + 100 \cdot (1 - u/p) \quad \text{if } e = 0 \land p > 0 $$
 
-$$
-\mathrm{Score}(e,u,s,p) = 100 \quad \text{if } e = 0 \land p = 0
-$$
+$$ \mathrm{Score}(e,u,s,p) = 100 \quad \text{if } e = 0 \land p = 0 $$
 
 ⭐ 其中 $e$ ＝ 残余语法错误数 · $s$ ＝ 被检查的语法规则数 · $u$ ＝ 未满足安全性质数 · $p$ ＝ 被验证性质总数（M，逐字）。
 
@@ -296,7 +291,14 @@ $$
 
 ⛔⛔ **原文未提供 —— 全文没有出现任何 LLM 型号。**
 
-⭐ 已实际核验：⭐ 对 29,062 B 全文做 `grep -i "gpt\|claude\|llm model\|openai\|mistral\|gemini\|deepseek"`，⛔ **零命中**。⭐ 配套 GitHub README 只说（M，逐字）："You will need either an **OpenAI** key, a **MistralAI** key, or a **LLM server**." ⛔ 未指明本次实验用的是哪一个。
+⭐ 已实际核验（⭐ 用 Python 逐串扫全文 28,886 字符，⛔ **不用 `grep`** —— ⚠️ 本轮实测 `grep` 在这个文件上**静默失败**、连 `properties` 都数不到，⛔ 若据其结果会把「grep 失败」误读成「零命中」）：
+
+| 检索串 | 命中 | 说明 |
+| :-- | :-: | :-- |
+| `claude` · `openai` · `mistral` · `gemini` · `deepseek` · `llama` · `o3` · `o4` | ⭐ **0** | ⛔ 全部零命中 |
+| `gpt` / `GPT` | ⚠️ **1** | ⛔⛔ **唯一一处在参考文献 [6] 的题名里**，逐字："Javier Cámara, Javier Troya, Lola Burgueño, and Antonio Vallecillo. On the assessment of generative AI in modeling tasks: an experience report with **ChatGPT** and UML. *Software and Systems Modeling*, 22, 2023." ⭐ **即它是被引论文的标题，⛔ 不是本文用的模型** |
+
+⭐ 配套 GitHub README 只说（M，逐字）："You will need either an **OpenAI** key, a **MistralAI** key, or a **LLM server**." ⛔ 未指明本次实验用的是哪一个。
 
 | 项 | 值 |
 | :-- | :-- |
@@ -383,7 +385,7 @@ $$
 ## F. 存疑与未核项
 
 1. ⚠️⚠️ **两个标题并存，⛔ 无法判定哪个是会议正式题录** —— ⭐ PDF 内页 ＋ HAL `title_s` 一致为 "Towards **Reliable** LLM-Based Model Driven Engineering: when **Full** Syntax Checking and **Formal** Verification Join the Loop"；⛔ 而 Apvrille 主页 publications 列表写 "Towards **Safe** LLM-Based Model Driven Engineering: when Syntax Checking and **Safety Formal** Verification Join the Loop"（⭐ 即任务书用的那个）。⭐ 已试入口：HAL API（`title_s`）· PDF 两页（cover ＋ 正文）· 作者主页 HTML（逐字取到该行）· ⛔ DBLP（**ERTS 2026 proceedings 尚未建档**）· ⛔ Crossref（无 DOI）。⭐⭐ **本卡以 PDF 内页为准；⛔ 若后续引用，建议以 HAL 题录为正式题名并在脚注记另一形。**
-2. ⚠️⚠️ **LLM 型号未能确认** —— ⛔ 已试：全文 grep（`gpt|claude|openai|mistral|gemini|deepseek|llm model` **零命中**）· 配套 GitHub README（⭐ 只说需要 OpenAI / MistralAI key 或本地 server）· ⛔ HAL 元数据无。⛔ **这是本卡最重的缺口**（见 [B6](#b6--模型)）。
+2. ⚠️⚠️ **LLM 型号未能确认** —— ⛔ 已试：⭐ 全文逐串扫（⭐ `claude` / `openai` / `mistral` / `gemini` / `deepseek` / `llama` 全部 0；⭐ `gpt` 唯一一处在参考文献 [6] 的题名 `ChatGPT` 里）· 配套 GitHub README（⭐ 只说需要 OpenAI / MistralAI key 或本地 server）· ⛔ HAL 元数据无。⛔ **这是本卡最重的缺口**（见 [B6](#b6--模型)）。<br>⚠️⚠️ **附一条工具教训（⭐ 值得写进本轨的检索纪律）**：⛔ **`grep` 在 `pdf_extractor` 产出的这个 `.txt` 上静默失败** —— ⭐ 同一条命令连 `properties`（⭐ 实际出现十余次）都返回空，⛔ 既不报错也不返回 0。⭐⭐ **若把它当成"零命中"，就会得出"论文没提某个词"的错误结论。** ⭐ **本卡改用 Python 逐串扫描复核，⛔ 后续抽卡建议一律如此。**
 3. ⚠️⚠️ **`AvatarSyntaxChecker.java` 未能取到** —— ⛔ 已试 4 条路（`raw/master` 直取 → `418`；换 UA＋Referer → `418`；解 `js-refresh` challenge 换 token → `418`；`r.jina.ai` → `400 unexpected challenge`）。⭐ 症状是 `gitlab.telecom-paris.fr` 部署了 `go-away` 反爬（⭐ Anubis 的一个分支）。⚠️ ⛔ **按本仓库口径这是"访问异常"，⛔ 不得记为"文件不存在"** —— ⭐ 入口路径明确且 ref 已 pin 在 `master`，⭐ SoSyM 卡曾从同一 GitLab 取到其它文件。⛔ 故 [D](#d-资产) 判 🟠。
 4. ⚠️ **语法内环的上限参数是否独立于 20** —— ⭐ 逐字只有一处间接表述 "each potentially containing **up to 20** syntax verification sub-loops"，⛔ 论文没有独立声明语法环的 cap 参数，⛔ 也没说它是否与安全环共用同一个配置项。
 5. ⚠️ **T4 的性质生成算法未给** —— ⭐ 逐字只有 "the tool generates a set of safety properties for each SMD"。⭐ 「每 state 一条可达性」是从 Table 1 的 `(/N states)` 分母口径**推出**的（S），⛔ 论文未写生成算法，⛔ 也未说 deadlock-freedom 是每 SMD 一条还是全局一条。
