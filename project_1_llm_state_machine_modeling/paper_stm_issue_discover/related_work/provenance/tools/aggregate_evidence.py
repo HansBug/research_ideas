@@ -110,7 +110,8 @@ _KEY_ALIASES = {
 
 
 def _apply_alias(key: str) -> str:
-    return _KEY_ALIASES.get(key, key)
+    key = _KEY_ALIASES.get(key, key)
+    return _SOURCE_FAMILIES.get(key, key)
 
 
 def _local_work_key(ident: str) -> str | None:
@@ -124,6 +125,62 @@ def _local_work_key(ident: str) -> str | None:
                 return work
     #: ⛔ 未登记：⭐ 至少把行号去掉，⛔ 否则同一文件的不同行会被算成不同来源
     return "file:" + hits[0].rsplit("/", 1)[-1].lower()
+
+
+#: ⭐⭐ **本文 baseline 来源**：⛔ 这些论文被本研究定位为**对照 / 相关工作**。
+#:
+#: ⚠️ [methodology.md](../methodology.md) §4.5 已定纪律：⭐ 「**保留但必须标注** —— ⭐ 引它说
+#: 『该领域确实这么做』是正当的相关工作用法，⛔ **但不得混在独立文献里不作声**」。
+#: ⛔ 而 2026-08-12 的敌意评审实测：⭐ 这 3 条仍在交付表里**未加任何标注**，
+#: ⚠️ 且其所在行的备注列正在用来源数说「⭐ 同时有 N 个领域证据来源 —— 让 claim 更硬」。
+#: ⛔ **拿自己的对照工作把自己的 claim 说硬，且不作声。**
+#:
+#: ⭐ 现改为**工具层强制**：⛔ 命中即在行内标出 `baseline_sources`，⛔ 不靠人记得。
+#: ⚠️ ⛔ **它们不被剔除** —— ⭐ 引用相关工作本身合法，⛔ 缺的只是标注。
+_BASELINE_MARKERS = (
+    "2508.03215",      #: sysmbench —— A System Model Generation Benchmark from NL Requirements
+    "2510.14348",      #: Automated Extraction of Protocol State Machines from 3GPP
+    "sysmbench",
+    "agentic-flow",
+)
+
+
+#: ⭐⭐ **同一事实的规约面与实现面**：⛔ 不得按面值计两个独立观测。
+#:
+#: ⚠️ [SUMMARY.md](../SUMMARY.md) §4.1 已定：⭐ 「**OMG UML 2.5.1 与前批的 Eclipse UML2
+#: `validateInitialVertex` 是同一事实的规约与实现两面** —— ⛔ 日后任何 UML 家族证据
+#: 被采纳时**不得按面值计两个独立观测**」。⛔ 而实测该规则**未被施行**：
+#: `initial_target` 同时含两个键。⭐ 现改为工具层归并。
+#:
+#: ⛔ **准入从严**：⭐ 只收「⭐ 后者是前者的**参考实现或逐条转写**」这类关系
+#: （⛔ 依据写在注释里），⛔ 不许凭「同一组织」或「主题相近」合并。
+_SOURCE_FAMILIES = {
+    #: ⭐ Eclipse UML2 把 OMG UML 规范的 constraint **逐条实现**成 `validate*` 方法
+    #: （⭐ 实测方法名与数量 1:1 吻合：Region 4 / State 5 / Pseudostate 9 / Transition 9）
+    "url:download.eclipse.org/modeling/mdt/uml2/javadoc/2.1.1/org/eclipse/uml2/uml/region.html":
+        "work:omg-uml-2.5.1",
+    "url:www.omg.org/spec/uml/2.5.1/pdf": "work:omg-uml-2.5.1",
+    "url:omg.org/spec/uml/2.5.1": "work:omg-uml-2.5.1",
+}
+
+#: ⭐ 工具文档 / 语言规范 / 开源实现 —— ⛔ 用于报告来源**构成**。
+#:
+#: ⚠️ [coverage_audit.md](../coverage_audit.md) 点名要求：⭐ 「`initial_target` 的来源里
+#: 同行评议为零……⛔ **这个构成必须写进表**，⚠️ 否则审稿人一查就是『你们最基础的
+#: 一条谓词全靠 MathWorks 文档』」。⛔ 该要求此前未执行，⭐ 现改为工具层自动输出。
+_TOOLDOC = re.compile(
+    r"mathworks|itemis|eclipse|omg\.org|w3\.org|scxml|readthedocs|spesml|/docs?\.|github\.com",
+    re.I,
+)
+
+
+def _is_toolset_source(key: str) -> bool:
+    return bool(_TOOLDOC.search(key))
+
+
+def _is_baseline(finding: dict) -> bool:
+    blob = ((finding.get("identifier") or "") + " " + (finding.get("title") or "")).lower()
+    return any(m in blob for m in _BASELINE_MARKERS)
 
 
 def canonical_source(finding: dict) -> str:
@@ -192,9 +249,12 @@ def main(argv: list[str] | None = None) -> int:
                     "read_level": f.get("read_level"),
                     "title": f.get("title"),
                     "n_quotes": 0,
+                    "is_baseline": _is_baseline(f),
                 },
             )
             slot["n_quotes"] += 1
+            if _is_baseline(f):
+                slot["is_baseline"] = True
 
     #: ⭐⭐ **同标题归并**（2026-08-12 新增）—— ⛔ 修一个 `canonical_source` **在结构上修不了**的缺陷。
     #:
@@ -267,6 +327,10 @@ def main(argv: list[str] | None = None) -> int:
                 "real_systems": len(real),
                 "literature": len(lit),
                 "total_sources": len(srcs),
+                #: ⛔ 本文 baseline 来源（⭐ 保留但必须标注，见 `_BASELINE_MARKERS`）
+                "baseline_sources": sorted(k for k, v in srcs.items() if v.get("is_baseline")),
+                #: ⭐ 来源构成：⛔ 工具文档 / 规范 / 开源实现 占多少（⭐ coverage_audit 点名要求）
+                "n_tooldoc_sources": sum(1 for k in srcs if _is_toolset_source(k)),
                 "named_real_systems": sorted(named_systems.get(pred, ())),
                 "n_named_real_systems": len(named_systems.get(pred, ())),
                 #: ⭐ 语料侧条目 + 文献侧具名系统 —— ⛔ 两者都是「真实系统」，⭐ 只是来路不同

@@ -40,10 +40,18 @@
 
 ## ⭐ 付费墙回收：8 篇里 7 篇取到全文
 
-| # | 论文 | 状态 | ⭐ 破局入口 | ⭐ 它补的谓词 |
+> ⚠️⚠️ ⛔⛔ **末列已于 2026-08-12 更正。** ⭐ 上一版该列写的是「⭐ 它补的谓词」，⛔ 内容是取件时的**预期**；⛔ 敌意评审复算后发现 **8 行里 6 行不成立** —— ⭐ 例如第 2 行声称补 `reaches`·`state_declared`·`edge_declared`·`containment`·`initial_target` 五条，⛔ 而后续实际送审的是 `guard_distinguishable`×3 与 `event_consumed`×2，**声称的五条一条都没有**；⭐ 第 3/4/4b/5 行送审 **0** 条。
+>
+> ⛔⛔ **这个错误的后果比列错更重**：⭐ 它与覆盖审计的「10 个目标 9 个取到全文 ✅」连读，⛔ 会把**取件成功**读成**证据补齐**。⚠️ 而覆盖审计真正的那条结构性发现 —— ⭐ 「⛔ 付费墙**不是随机噪声**，⭐ 它与证据强度**正相关**……⛔ 每一条都被某一路评为该谓词的**最强候选**」—— ⛔ **恰恰没有被这轮回收解决**：⭐ 最强候选取到了，⛔ 然后没产出证据。
+>
+> ⭐ **现改为记录实况**：⛔ 末列改为「⭐ 后续实际送审 / 裁定存活」，⛔ 不再写预期。
+>
+> ⚠️ ⛔ **另一条必须一起读**：⭐ 本文件正文中的逐字引文**未经对抗裁定**（⭐ 如 Vu 的 `SI-R-5`、Salsa 的 "either B or C"、Bögli 的 89/32、Lange 的 Table 4.2 频次）。⛔ 而 [predicate_provenance.md](./predicate_provenance.md) 开头写明「**本表只收经过对抗裁定的证据**」—— ⛔ **照本文件落稿会引到未裁定材料。**
+
+| # | 论文 | 状态 | ⭐ 破局入口 | ⭐ 后续实际送审 / 裁定存活 |
 | --: | :-- | :-- | :-- | :-- |
-| 1 | **Heitmeyer, Jeffords & Labaw, ACM TOSEM 5(3), 1996** | ✅ 全文 **1891 行** | ⭐ CiteSeerX → **Wayback 快照**（NRL preprint，页眉自述将刊于 TOSEM 5(3):231-261） | `event_consumed` · `guard_distinguishable` —— ⭐ **A-7E OFP 真实工业数据**：「The mode transition tables together contain a total of **700 rows** … our tool found **57 Disjointness errors**」 |
-| 2 | **Torre et al., UML 一致性规则** | ✅ 全文 ×2（TR 1605 行 + **博士论文 9022 行**） | ⭐ **Carleton Scholaris/DSpace** —— ⚠️ 原建议的 `squall.sce.carleton.ca` **已下线**（DNS 解析到 IP 但 80 端口 filtered，⭐ 这解释了前几路为什么卡住：**URL 是对的，服务器不在公网了**） | `reaches` · `state_declared` · `edge_declared` · `containment` · `initial_target` |
+| 1 | **Heitmeyer, Jeffords & Labaw, ACM TOSEM 5(3), 1996** | ✅ 全文 **1891 行** | ⭐ CiteSeerX → **Wayback 快照**（NRL preprint，页眉自述将刊于 TOSEM 5(3):231-261） | ⭐ **送审 3 条 / 存活 3 条**，全部落在 `guard_distinguishable`（⛔ 声称的 `event_consumed` 实际由别的来源补上）。⭐ A-7E OFP 的 700 行 / 57 处 Disjointness 数据已入表，⚠️ **但必须带上原文紧邻的限定**「Although many of the 57 … **a few probably are not**」 |
+| 2 | **Torre et al., UML 一致性规则** | ✅ 全文 ×2（TR 1605 行 + **博士论文 9022 行**） | ⭐ **Carleton Scholaris/DSpace** —— ⚠️ 原建议的 `squall.sce.carleton.ca` **已下线**（DNS 解析到 IP 但 80 端口 filtered，⭐ 这解释了前几路为什么卡住：**URL 是对的，服务器不在公网了**） | ⛔ **声称的五条一条都没有**。⭐ 实际送审 `guard_distinguishable`×3 + `event_consumed`×2，⭐ 存活 4 条。⚠️ 其中 `guard_distinguishable` 那条（规则 #13）的**工具执行数据被裁定否掉** —— ⭐ 裁定者 clone 了论文自己的 OCL 仓库，⛔ 查出规则 13 的实际编码是 `entry->size()=1`，**与守卫可区分性无关** |
 | 3 | **Autili et al., IEEE TSE 2015** | ✅ 全文 **1419 行** | ⭐⭐ **三大聚合器齐报 CLOSED 且三家都错了** —— 破局靠 **OpenAIRE API** 的 `originalId` 数组暴露了 `oai:zenodo.org:14573492`，⛔ 那是 Unpaywall / OpenAlex / Semantic Scholar 都丢掉的字段 | Dwyer 之后最被引的统一模式目录（⭐ 自陈「40 new or extended patterns」） |
 | 4 | **Vu, Haxthausen & Peleska, SCP 133(2), 2017** | ✅ 全文 **1753 行** | ⭐ `orbit.dtu.dk` 被 Cloudflare 拦（`Just a moment...`，带 cookie jar / UA / Referer 重试 3 次全败）—— ⭐⭐ **换主机名到 `backend.orbit.dtu.dk/ws/files/<id>/<name>.pdf` 即通**，file ID 相同、无挑战 | `invariant`（互斥进路）· `persists_until`（sequential release）· `terminates`（进路释放） |
 | 4b | ⭐ **Vu 的 DTU 博士论文（299 页 / 13126 行）** | ✅ 全文 | 同上 | ⭐ **比论文更适用** —— 带编号的安全不变式目录 `SI-R-1..7` + guard/update 形式的 `SR-*` / `RR-*` 规则。⭐ 逐字一例：「**SI-R-5** Two routes that share the last section **must not** be occupied at the same time」+ 形式化 |
