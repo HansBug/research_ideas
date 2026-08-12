@@ -33,3 +33,49 @@
 ⚠️ ⛔ **而 B 目前一个数都没有**（⭐ N1b 硬依赖 M1）。⛔ 故本轮 N1a **不得**把这条句式写进任何结论性表述，⭐ 只能登记为「⭐ 若 N1b 落在噪声内则可用」的**条件性素材**。
 
 ⭐ **证据等级**：⭐ 引文 **M**（⭐ 一手 PDF 逐字）；⛔ 其学术分量 **弱**（⛔ preprint、⛔ 未评审、⛔ 作者自陈 preliminary、⛔ 八模型样本）。⛔ **可引作「他人也这么论证过」的先例，⛔ 不可引作权威依据。**
+
+## V2 · ⭐⭐⭐ Abdulkarim et al. 的 crossover——⭐ 全部证实，⭐⭐ 且它把小模型路线从「退路」变成「⭐ 方法被预测生效的那个区间」
+
+**对象**：[arXiv:2604.00275](https://arxiv.org/abs/2604.00275)，*Structure- and Event-Driven Frameworks for State Machine Modeling with Large Language Models*，Abdulkarim / Boyd / Bridi / Tufenkjian / **Boqi Chen** / **Gunter Mussbacher**（McGill），⭐ **2026-03-31**。⛔ **arXiv preprint，⛔ 录用状态未核**。
+
+⭐ **核验方式**：下载 PDF 全文提取，⭐ 逐字读 Table III–VI 与 RQ3 结论段。
+
+### ⭐ 事实（⭐ 全部一手核过）
+
+| 策略 | Claude 3.5 Sonnet $F_1$ | GPT-4o $F_1$ |
+| :-- | --: | --: |
+| **Single-Prompt Baseline** | ⭐ **0.7029**（⭐ 最高） | 0.5431 |
+| Structure-Driven SMF | 0.5026 | 0.6260 |
+| Event-Driven SMF | 0.3052 | 0.3735 |
+| Hybrid Approach | 0.6336 | ⭐ **0.6559**（⭐ 最高） |
+
+⭐ **crossover 干净且方向明确**：⭐ 在 Claude 3.5 Sonnet 上**朴素单提示打败全部三个多阶段框架**；⛔ 在 GPT-4o 上**多阶段反超**。⭐ 作者自己的解释逐字：
+
+> while non-reasoning LLMs benefit from multi-step generation strategies, such strategies **may interfere with the inherent step-by-step reasoning process of reasoning LLMs**
+
+### ⭐⭐⭐ 它对我们意味着什么
+
+⭐ 我们主臂跑的是**真正的 reasoning 模型**（`gpt-5.5` / `claude-opus-4-7`），⛔ 而我们的方法是**多阶段流水线**。⭐⭐ **这篇论文恰好预测了我们观察到的方向**——⛔ 多阶段脚手架在强推理模型上会**干扰**而非帮助。⭐ 也就是说，⛔ 我们的 −15.82pp **不是孤立的实现失败**，⭐ 而是一个**同制品域已被记录的现象**。
+
+⭐⭐ **由此，小模型路线的性质变了**：⛔ 它不是「打不过 SOTA 所以退到小模型」，⭐ 而是「**多阶段脚手架这类干预，其适用区间本来就是能力较弱的模型**」——⭐ 而这有同制品域的已发表证据。
+
+### ⛔⛔ 但有五条限定，⛔ 一条都不能省
+
+1. ⛔ **它是 preprint**，⛔ $n = 8$ 个建模问题、⛔ 只测 2 个模型。⛔ 证据基础薄。
+2. ⛔⛔ **作者自陈污染了 crossover 的幅度**，⭐ 逐字：「the strict post-processor module for HTML tables **may suppress valid LLM outputs** that are not fully compliant, hence influencing the final result」。⭐⭐ **这正是本仓库 `CLAUDE.md` §11 那条纪律的外部案例**——⛔ 故**方向可信，⛔ 幅度不可信**。⭐⭐ 且它给我们一条**必须先做的自查**：⛔ **在把 −15.82pp 归因于「多阶段干扰」之前，必须先排除我们自己的契约门 / 致命门吃掉了正确产出。**
+3. ⚠️ ⛔ **它的「reasoning vs non-reasoning」轴是自定义的**：⛔ 它把 **Claude 3.5 Sonnet 归为 reasoning-focused**，⛔ 而那并不是 o1 式的 test-time-compute 推理模型。⛔ 故这可能是**两个模型之间的个体差异**，⛔ 而非一条「推理/非推理」定律。⛔ **不得引作定律。**
+4. ⚠️ **任务不同**：⭐ 它做的是状态机**生成**，⛔ 我们做的是状态机**缺陷发现**。⭐ **同制品、邻近任务**，⛔ **不是同任务**——⛔ 不得写成「同任务域」。
+5. ⛔⛔ **它反过来也能伤我们**：⭐ 若「多阶段只在弱模型上有用」成立，⛔ 审稿人可以说「⛔ 那你的方法只对明年就会过时的弱模型有用」。⭐ 这条必须在 Q5 里有预答。
+
+### ⛔ 它与仓库既有裁定的关系：⭐ 不是矛盾，⭐ 是一条必要的区分
+
+⚠️ [`route_selection_and_v47_plan.md`](../../discover_matrix/docs/findings/route_selection_and_v47_plan.md) §一 写「⛔ 换弱模型只会让『想到该问什么』更差」，⭐ 依据是 Huang (ICLR 2024) 与 Stroebl 不可能性定理。⛔ **两处原文我都读过，⭐ 它们并不冲突**——⭐ 因为**干预类型不同**：
+
+| 干预类型 | 机制 | ⭐ 对弱模型 |
+| :-- | :-- | :-- |
+| ⛔ **自我批判**（Huang / Stroebl / ⛔ 我们现在的 loop） | ⛔ 让模型判断自己的产出对不对 | ⛔ **更差**——⛔ 判断能力正是弱模型缺的 |
+| ⭐ **多阶段分解**（Abdulkarim 的 SMF） | ⭐ 给模型一个子任务脚手架，⭐ 替它做规划 | ⭐ **更好**——⭐ 它补的正是弱模型缺的规划 |
+
+⭐⭐ **而我们的方法两样都有。** ⭐ 仓库已实测：⛔ 自我批判那部分**吃掉 79% token 而净收益 ≈ 0**。⭐⭐ **所以合起来给出一个比任一单独证据都更硬的预测**：⛔ **砍掉自我批判环、⭐ 保留分解脚手架、⭐ 换到弱模型上跑**——⭐ 那正是文献预测本方法生效的区间。⭐ 这与 M1 已确立的设计原则一（⛔ 不要问「这写得对吗」，⭐ 要告诉它「还有这些没查」）**同向**。
+
+⛔ **本条不推翻既有裁定**，⭐ 只给它补一条区分维度。⛔ 是否据此调整路线排序，⛔ 归 R1 / M1，⛔ 不在 N1a 权限内。

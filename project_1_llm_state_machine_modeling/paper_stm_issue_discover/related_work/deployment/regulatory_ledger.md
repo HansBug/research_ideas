@@ -8,13 +8,29 @@
 
 ---
 
+## 0b. ⭐⭐ 三层论证强度裁定（⭐ 本台账的核心产出）
+
+⛔ **「必须私域部署」这句话必须拆成三层分别裁定，⛔ 混谈是本轮最容易犯、⛔ 也最致命的错误。**
+
+| 层次 | 能否立住 | 依据与边界 |
+| :-: | :-- | :-- |
+| **(a) 不能用**未获相应授权的**公有商用 LLM 端点** | ✅ **能立住，⭐ 且有多条彼此独立的路径**（⭐ 命中任一即可）。⚠️ ⛔ **但措辞必须带「未获授权」限定**——⛔ 不能写成「公有云 SOTA 模型一律不能用」：⛔ OpenAI `ChatGPT Enterprise and API Platform` 已于 2026-01-09 取得 FedRAMP 20x Class C（≡ Moderate） | ① ⭐ **中国等保**（GB/T 22239-2019 §8.2.4.5 a) / §9.2.4.5 a)）：⭐ 三级及以上时「云服务客户数据」须存境内——⭐ **唯一不需要任何前置认定的路径**，⭐ 而工业控制系统定级三级极常见（🟡 需人工复核条款号）；② ⭐ **美国国防**（DFARS 252.204-7012 (b)(2)(ii)(D) + NIST 800-171 §3.1.20/§3.1.3）：⭐ CDI 须 FedRAMP Moderate 等效，⛔ 普通商用端点不满足（🟢）；③ ⭐ **美国出口管制**（ITAR §120.54(b)(1)(ii)、EAR §734.18(b)(ii)）：⭐ 加密安全港结构性不可满足（🟢）；④ ⭐ **欧盟汽车业**（VDA ISA 1.3.3 + 5.1.2 very high + ISA2027 6.1.1）：⭐ 审批 + 内容级加密 + 第三方审计（🟢）；⑤ ⭐ **中国保密**（保密法第二十九条第二款、第三十一条(三)）：⛔ 仅涉密场景（🟢） |
+| **(b) 不能用任何第三方公有云 LLM（⭐ 含境内 / 含政府云）** | ⚠️ **仅在涉密场景立住，⛔ 普通商业场景立不住** | ✅ ⭐ 立得住：⭐ 中国保密法第三十一条(三)（⭐ 管**系统性质**而非地理位置）+ 军工保密资质管理办法第六条（⭐ 受托方须持证）。⛔ 立不住：⛔ 等保 §8.2.6.1 **明文容纳**第三方云服务商（⭐ 选型 + SLA + 保密协议）；⛔ 工信部办法第二十三条对委托处理要求的是**核验与签约**而非禁止；⛔ DFARS 的解是**用已授权政府云**；⛔ Anthropic 官方称 **ITAR 数据可经 Bedrock 处理** |
+| **(c) 必须私域部署** | ❌ **立不住，⛔ 无任何成文依据** | ⛔ 没有任何一条现行法规或标准要求「私域部署」。🔻 ⛔ 反向证据更强：⛔ 中国政务指引（⭐ 比工业更敏感的场景）明确要求用「**已完成网信部门备案的模型产品和服务**」并「**充分利用互联网算力和模型资源**」；⛔ Azure OpenAI 已达 IL6 / Top Secret，⛔ Bedrock 已达 IL5；⛔ OpenAI 提供 ZDR + 区域驻留。⚠️⚠️ ⛔ **且存在一个反直觉的致命反例**：⛔ 若制品已定密为国家秘密，⛔ 企业自建的普通私有服务器**仍是「非涉密信息系统」**，⛔ 照样违反保密法第三十一条(三)——⛔ **涉密场景下「私域部署」本身也不合规**，⭐ 必须是经保密测评审查合格的涉密信息系统 |
+
+⛔ **给论文的落笔建议**：⭐ 把主张收缩到 **(a)**；⭐ **(b)** 必须加「涉密（军工/航天）分支」限定词；⛔ **(c) 放弃法规论证路径**，⭐ 改用**非法规论据**——⭐ 可控性、可审计性、**可复现性**（⭐ hosted API 存在 provider drift，⛔ 而论文实验需要版本冻结与离线复现）。⭐ 后者与本仓库既有实践直接吻合，⭐ 且**不需要任何法规依据**，⭐ 建议作为主论证。
+
 ## 0. 一句话结论
 
 ⛔ **Q1 = 无。** 在本轮覆盖的六本功能安全标准中，**没有任何一条条款约束「把需求文档 / 设计模型 / 工作产品交给外部第三方处理」**；⭐ 其中 **IEC 61508-1:2010 §1.2 m) 用逐字条文把「安全策略与安全服务」明确排除出自身范围**，⭐ **ISO/SAE 21434:2021 §1 Scope 用逐字条文声明「本文件不规定与网络安全相关的具体技术或解决方案」**——⭐ 这两条把 Q1 的否定结论从「查不到」升级为「标准自己说了不管」。⚠️ **ISO 26262 Part 8 的 DIA 机制确实是「责任划分」而非「数据驻留」**，⭐ 先验判断被逐字条文证实；⛔ 且 §5.1 c) 的目标恰恰是「identify the **work products to be exchanged**」——⛔ **它是共享制品的授权机制，不是禁止外发的依据**，⛔ 反向引用会被审稿人一击打穿。
 
-⭐ **Q2 = 有，但都带前置认定，且没有一条直接推出「必须私域部署」。** ⭐ 最强的一条落在**中国保密法族**与**美国国防供应链族**（详见 §2，以各分组 agent 回报为准）；⛔ 但**三层论证强度必须分清**：(a)「不能用境外 LLM API」**可立**；(b)「不能用任何第三方公有云 LLM」**需前置认定**；(c)「必须私域部署」⛔ **无法由任何成文依据直接推出**——⛔ 因为主流厂商已提供 ZDR / 区域驻留 / 政府云授权（见 §3.4），⛔ 它们在合规层面填掉了 (c) 的必要性。
+⭐ **Q2 = 有，⭐ 而且比预期强——⛔ 但没有一条能推出「必须私域部署」。** ⭐ **确实存在直接管到「把制品交给第三方处理」这个动作的成文条款**，⭐ 且可核验到条款级：⭐ 美国 **NIST SP 800-171 Rev 2 §3.1.20** 的 DISCUSSION 逐字点名 SaaS 云服务；⭐ **DFARS 252.204-7012 (a)** 的 `Technical information` 定义逐字包含 "specifications, standards… engineering data… data sets"，⭐ 即**需求文档与设计模型本身**；⭐ 欧盟 **VDA ISA2027** 逐字把 "AI tools (e.g., AI chatbots, AI agents)" 定义为受控外部 IT 服务；⭐ 中国**保密法第三十一条(三)**禁止用非涉密系统处理国家秘密。
 
-⭐ **档位建议：B。** ⛔ 不是 A（Q1 全空，Q2 无一条覆盖「设计阶段制品交给第三方处理」这个动作本身），⛔ 也不是 C（依据确实存在，只是落在非功能安全族且带前置条件）。
+⛔ **但这些条款的形态高度一致：⛔ 它们是「条件性允许 + 合规义务」，⛔ 不是「禁止」。** ⛔ 而且**三层论证强度必须分清**（详见 §0b）：(a)「不能用**未获授权的**商用 LLM 端点」**可立**；(b)「不能用任何第三方公有云 LLM」**仅涉密场景可立**；(c)「必须私域部署」⛔ **明确证伪**——⛔ 国防部自己在 GenAI.mil 上用 Gemini / Grok / ChatGPT 处理 CUI（IL5），⛔ Azure OpenAI 已达 IL6/Top Secret，⛔ 中国政务指引要求「充分利用互联网算力和模型资源」，⛔ 且涉密场景下**私域部署本身也不合规**。
+
+⭐ **档位建议：B。** ⛔ 不是 A——⛔ A 要求「≥1 条成文、可引、且明确覆盖设计阶段制品交给第三方处理」**且** SE 文献里 ≥3 篇承重使用；⭐ 前半条**已满足**（⭐ NIST 3.1.20 / DFARS 7012 / VDA ISA2027 都够格），⛔ 但**后半条不在本路职责内**（⛔ 由 se_motivation_survey 一路判定），⛔ 且这些依据**都无法支撑论文实际想说的那句话（必须私域部署）**。⛔ 也不是 C——⛔ 依据确实存在且可引。⭐ **B 的含义在此处很具体：⭐ 可以写成 motivation，⛔ 但不得让任何 claim 依赖它，⛔ 且必须自陈证据等级与适用边界。**
+
+⚠️⚠️ ⛔ **本路最重要的一条建议**：⛔ 与其把动机挂在法规上（⛔ 挂不住，⛔ 且反证遍地），⭐ 不如挂在**可复现性**上——⭐ hosted API 存在 provider drift，⛔ 而论文实验需要版本冻结与离线复现。⭐ 这条**不需要任何法规依据**，⭐ 与本仓库既有实践直接吻合，⭐ 且审稿人无法用「可是 Azure OpenAI 有 IL6」来反驳。
 
 ---
 
@@ -126,7 +142,7 @@
 
 ## 2. Q2 · 其余各族（逐族）
 
-### 2.1 出口管制 · 美国 ITAR / EAR · ⭐⭐⭐ **全台账最强的一条：⭐ 加密安全港在 LLM 推理场景下结构性不可满足**
+### 2.1 出口管制 · 美国 ITAR / EAR · ⭐⭐⭐ **论证最锋利的一条（⛔ 适用面最窄）：⭐ 加密安全港在 LLM 推理场景下结构性不可满足**
 
 ⭐ **本节四条 eCFR 引文由主 session 亲自 `curl` eCFR 官方 API 抽取并逐字核对**（⛔ 非采信代理转述，⛔ 依仓库 §3.8 与「机械代理只能定位不能裁定」）。
 
@@ -149,7 +165,11 @@
 
 ⛔ **但适用面必须自陈清楚，⛔ 否则会被一击打穿**：⛔ 上述结论**只对受管制物项成立**。⛔ 若制品是 **EAR99**（⛔ 绝大多数民用工业控制软件文档都是），⛔ 则根本不在管制范围内，⛔ 安全港的可满足性问题**不发生**。⛔ **不得把「ITAR/EAR 管制场景下不能用公有云 LLM」写成「工业场景下不能用公有云 LLM」。**
 
-⚠️ **注意一个反向事实**：⭐ 加密安全港的存在本身说明立法者**允许**把受控技术数据放到境外云——⛔ 只要云商拿不到明文。⭐ 这正是机密计算 / 同态推理的立法空间；⛔ 也意味着**私域部署不是唯一合规解**，⛔ 只是当前唯一成熟的解。
+⚠️⚠️ ⛔ **必须紧跟一条反向事实，⛔ 否则上面的论证会被一击打穿：⛔ 加密安全港不可满足 ≠ 第三方云不可用。**
+
+⛔ 安全港只是**若干合规路径之一**。⛔ 另一条路径是让「release to a foreign person」这件事**根本不发生**——⭐ 即基础设施位于美国境内、⭐ 运维人员限于美国人。⭐ AWS GovCloud 正是这样的环境。⭐ 而 **Anthropic 官方支持页逐字写道：「ITAR data can only be processed in Claude via AWS Bedrock, which is IL5 accredited.」**（来源：[Anthropic Public Sector FAQs](https://support.claude.com/en/articles/13756069-public-sector-faqs)，🟢 已核验）——⛔ **即受 ITAR 管制的数据在合规环境下是可以交给第三方托管 LLM 处理的。**
+
+⛔ **因此 §2.1 的正确净结论是**：⭐ ITAR / EAR **排除了普通商用 LLM 端点**（⛔ 因为既不满足加密安全港，⛔ 也无法保证不向外国人释放），⛔ **但没有排除第三方托管 LLM 服务本身**，⛔ **更推不出「必须私域部署」**。⭐ 加密安全港的存在反而说明立法者**原则上允许**把受控技术数据放到外部环境——⛔ 只要拿不到明文；⭐ 这也是机密计算 / 同态推理的立法空间。
 
 ### 2.1b 出口管制 · 中国 · 结论：⭐ **立法形态已涵盖，⛔ 但清单为空 → ⛔ 现行无义务**
 
@@ -162,7 +182,10 @@
 | 出口管制法 | 第十二条第三款（catch-all） | "清单之外的货物、技术和服务，出口经营者**知道或者应当知道**，或者得到通知，可能存在以下风险的，应当申请许可：（一）危害国家安全和利益；（二）被用于…大规模杀伤性武器…；（三）被用于恐怖主义目的。" | ⛔ 间接相关（⛔ 需三类风险 + knowledge 要件） | 同上 | 🟢 |
 | 两用物项出口管制条例（国务院令 792 号，2024-12-01） | 第二条第三款 | "…包括两用物项的贸易性出口及对外赠送、展览、合作、援助和**以其他方式进行的转移**…" | ⭐ 间接相关（⭐ deemed export 口径最宽处，⭐ 无形转移明文纳入） | [gov.cn 792 号令](https://www.gov.cn/zhengce/content/202410/content_6981399.htm) | 🟢 |
 | ⭐ 两用物项出口管制清单（商务部等 2024 年第 51 号）§二（二）「关于技术的说明」 | 说明第 1、2 项 | "1．『技术』是指在产品的研发、生产或使用过程中所需的专门信息和知识…**对技术的出口管制不适用于公共领域信息、基础科学研究中的技术或普通专利申请所必需的知识。** 2．技术资料包括：蓝图、平面图、图表、**模型**、公式、**工程设计和技术规格**、手册与规程…" | ⚠️ ⭐ **形态命中、⛔ 对象不命中**（⭐ 见下） | [清单 PDF](https://picpolicy.mofcom.gov.cn/file/20241120/56691732080580306.pdf) | 🟢（⭐ 说明部分；⛔ 700 余项条目未逐条核验） |
-| 禁止出口限制出口技术目录（商务部/科技部 2023 年第 57 号），⭐ **30 页全文逐条通读** | 涉软全部条目 | `083915X 计算机应用技术`、`086502X 计算机通用软件编制技术`（⭐ 巨型机 / 并行计算）、`086501X 信息处理技术`（⭐ 中文与少数民族语言处理、汉字识别、CAD 图纸档案管理、个性化推荐）、`206503X 基础软件安全增强技术` | ⛔ **不覆盖（⭐ 否定结论，⭐ 全文核验）**。⭐ 机械复核：「工业控制」0、「嵌入式」0、「需求」0、「状态机」0、「工业软件」0 | [目录全文 PDF](https://www.most.gov.cn/tztg/202312/W020231221620858841394.pdf) | 🟢 |
+| 禁止出口限制出口技术目录（商务部/科技部 2023 年第 57 号） | ⭐ **通用**软件类条目 | `083915X 计算机应用技术`、`086502X 计算机通用软件编制技术`（⭐ 巨型机 / 并行计算）、`086501X 信息处理技术`（⭐ 中文与少数民族语言处理、汉字识别、CAD 图纸档案管理、个性化推荐）、`206503X 基础软件安全增强技术` | ⛔ **不覆盖**：⭐ 机械复核「工业控制」0、「嵌入式」0、「状态机」0、「工业软件」0 —— ⛔ **无通用工业控制软件条目** | [目录全文 PDF](https://www.most.gov.cn/tztg/202312/W020231221620858841394.pdf) | 🟢 |
+| ⭐ **同上，限制出口部分 序号 71，编号 `203912X` 无人机技术** | ⭐ **第 5 项** | "5.**无人机飞行控制系统（自主导航、路径及避障规划等相关的算法及软件）**" | ⭐⭐ **覆盖该细分领域**：⭐ 管制客体**正是控制系统的算法与软件** | 同上 | 🟢 |
+
+⚠️ ⛔ **一处跨来源冲突已由主 session 亲自回原文裁定（依 §3.8）。** ⛔ 两路并行调研对同一份目录给出相反读数：⛔ 一路称「全文通读，⛔ 涉软条目均不覆盖」，⭐ 另一路称「序号 71 含无人机飞控软件」。⭐ 主 session 下载官方 PDF（30 页）并 `grep` 核对：⭐ **后者正确**。⭐ 第 71 条位于**限制出口部分**（⭐ 该部分自文本第 226 行起，⭐ 条目在第 952-965 行），⭐ 第 5 项逐字为「无人机飞行控制系统（自主导航、路径及避障规划等相关的算法及软件）」。⛔ **前一路的错误来自检索词选择**：⛔ 它只搜了「工业控制 / 嵌入式 / 状态机 / 工业软件」等通用词，⛔ 命中 0 即断言不存在，⛔ 而目录是按**领域**（无人机 / 航天 / 激光）而非按**技术形态**编排的。⭐ **准确表述应是**：⛔ 目录中**没有通用的工业控制软件条目**，⭐ **但存在以控制系统算法与软件为客体的领域性条目**。⛔ **不得沿用「目录里完全没有控制软件」这个说法。**
 | 技术进出口管理条例（国务院令 331 号，⭐ 经 2011/2019/2020 三次修订） | **第五条** | "**国家准许技术的自由进出口**；但是，法律、行政法规另有规定的除外。" | ⛔ **不覆盖**（⭐ 默认自由原则） | [司法部国家行政法规库](http://xzfg.moj.gov.cn/front/law/detail?LawID=575) | 🟢 |
 | 技术进出口管理条例 | 第二十八至三十条 | "第二十九条 属于禁止出口的技术，不得出口。第三十条 属于限制出口的技术，实行许可证管理；未经许可，不得出口。" | ⛔ 不覆盖（⛔ 完全绑定目录，⛔ 目录无条目） | 同上 | 🟢 |
 
@@ -193,7 +216,77 @@
 
 ⭐ **Data Act Art. 32 是欧盟数据族唯一可留的一条**，⛔ 但必须写清它把缓解义务放在 **provider** 身上而非禁止 deployer 外发。⭐ 可用表述：欧盟已就非个人数据的第三国政府调取风险作出成文回应，⭐ 从立法层面确认「把非个人工业数据交给受第三国管辖的云服务」存在被承认的法律风险。适用日期 2025-09-12（Art. 50）。
 
-### 2.3 国防供应链（美国 DFARS / NIST SP 800-171 / CMMC）· ⭐ **英文世界里唯一直接管到这个动作的一族，⛔ 但它是「条件性允许」而非「禁止」**
+### 2.2b 数据出境 / 数据主权 · 中国部分 · 结论：⛔ **主轴是「不出境」，⛔ 不是「不出企业」**
+
+⚠️ ⛔ **先纠三处条号错误（⛔ 任务描述与常见二手资料均沿用了旧条号，⛔ 论文若照抄会被当场抓住）**：
+
+| 常见说法 | ⭐ 实际 |
+| :-- | :-- |
+| 《网络安全法》第三十七条（CIIO 境内存储） | ⛔ **已不是第三十七条。** ⭐ 网安法经 2025-10-28 修正、**2026-01-01 施行**，⭐ 境内存储条款现为**第三十九条**；⭐ 新第三十七条改为「采购网络产品服务的国家安全审查」 |
+| 《保密法实施条例》国务院令第 788 号 | ⛔ 实为**国务院令第 786 号**（2024-07-10 公布，2024-09-01 施行） |
+| 《武器装备科研生产单位保密资格审查认证管理办法》 | ⛔ 现行版本是**《武器装备科研生产单位保密资质管理办法》**（2025-07-01 施行），⭐「资格」已改「资质」，⭐ 三级改两级；⛔ 2016 年国保发〔2016〕15 号同时废止 |
+
+| 法规 | 年份 | 条款 | 逐字原文（节录） | 触发前提 | 是否覆盖 | 来源 | 核验 |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| 数据安全法 | 2021 | 第三十一条 | 「关键信息基础设施的运营者…重要数据的出境安全管理，适用《中华人民共和国网络安全法》的规定；其他数据处理者…重要数据的出境安全管理办法，由国家网信部门会同国务院有关部门制定。」 | ⚠️ 须先被认定为**重要数据** + 行为构成**出境** | ⛔ 间接相关 | [cac.gov.cn](https://www.cac.gov.cn/2021-06/11/c_1624994566919140.htm) | 🟢 |
+| 数据安全法 | 2021 | 第三十六条 | 「非经中华人民共和国主管机关批准，境内的组织、个人不得向外国司法或者执法机构提供存储于中华人民共和国境内的数据。」 | ⛔ 接收方须是**外国司法或执法机构** | ⛔ **不覆盖**（⛔ LLM 厂商不是司法执法机构）。⚠️ 可作「境外厂商受外国法域强制调取」的**风险论证**起点，⛔ 那是论证不是条款 | 同上 | 🟢 |
+| 个人信息保护法 | 2021 | 第三十八 / 三十九 / 四十条 | 跨境提供个人信息的三条路径、单独同意、CIIO 境内存储 | ⛔ 文档须含**个人信息** | ⛔ **不覆盖**（⛔ 工程需求文档与状态机模型通常不含个人信息） | [npc.gov.cn](http://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html) | 🟢 |
+| 数据出境安全评估办法（网信办令第 11 号） | 2022 | 第四条 | 「数据处理者向境外提供数据，有下列情形之一的，应当…申报数据出境安全评估：（一）数据处理者向境外提供**重要数据**；…」 | ⚠️ 须先被认定为重要数据 | ⛔ 间接相关 | [cac.gov.cn](https://www.cac.gov.cn/2022-07/07/c_1658811536396503.htm) | 🟢 |
+| **促进和规范数据跨境流动规定（网信办令第 16 号）** | 2024 | **第二条** | 「数据处理者应当按照相关规定识别、申报重要数据。**未被相关部门、地区告知或者公开发布为重要数据的，数据处理者不需要作为重要数据申报数据出境安全评估。**」 | 无 | 🔻 ⛔ **对本 story 最强的不利条款** | [cac.gov.cn](https://www.cac.gov.cn/2024-03/22/c_1712776611775634.htm) | 🟢 |
+| 同上 | 2024 | **第三条** | 「国际贸易、跨境运输、**学术合作**、**跨国生产制造**和市场营销等活动中收集和产生的数据向境外提供，不包含个人信息或者重要数据的，**免予申报**数据出境安全评估…」 | 无 | 🔻 ⛔ **第二条不利条款**：⛔ 学术合作与跨国制造场景**明文豁免** | 同上 | 🟢 |
+| 网络数据安全管理条例（国务院令第 790 号） | 2025-01-01 | 第三十七条 | 「…**但未被相关地区、部门告知或者公开发布为重要数据的，不需要将其作为重要数据申报数据出境安全评估**。」 | 重要数据认定 | ⛔ 间接（⛔ 再次重申豁免） | [国务院令转载](https://www.mee.gov.cn/zcwj/gwywj/202410/t20241003_1087417.shtml) | 🟢 |
+| 同上 | 2025 | 第六十二条(四) | 「重要数据，是指特定领域、特定群体、特定区域或者达到一定精度和规模，一旦遭到篡改、破坏、泄露或者非法获取、非法利用，可能**直接**危害国家安全…的数据。」 | — | ⭐ 定义条款；⚠️ 注意「**直接**危害」这一限定 | 同上 | 🟢 |
+| **网络安全法（2025 修正）** | ⭐ **2026-01-01 施行** | **第三十九条**（⛔ 原第三十七条） | 「关键信息基础设施的运营者在中华人民共和国境内运营中收集和产生的个人信息和重要数据应当在境内存储。因业务需要，确需向境外提供的，应当…进行安全评估…」 | ⚠️ 主体须是 **CIIO** | ⛔ 间接相关 | [cac.gov.cn 2025 修正版](https://www.cac.gov.cn/2025-12/29/c_1768735112911946.htm) | 🟢 |
+| 工业和信息化领域数据安全管理办法（试行） | 2023 | 第八条 | 「…工业和信息化领域数据分类类别包括但不限于**研发数据**、生产运行数据、管理数据、运维数据、业务服务数据等。」 | — | ⭐ **明确把「研发数据」列为分类类别**，⭐ 是工程文档最容易挂上的钩子 | [gov.cn](https://www.gov.cn/zhengce/zhengceku/2022-12/14/content_5731918.htm) | 🟢 |
+| 同上 | 2023 | 第二十一条 | 「…重要数据和核心数据，**法律、行政法规有境内存储要求的**，应当在境内存储，确需向境外提供的，应当依法依规进行数据出境安全评估。」 | ⛔ 双重前提：重要/核心数据 **且** 另有法规规定境内存储 | ⛔ 间接相关 | 同上 | 🟢 |
+| 同上 | 2023 | 第二十三条 | 「工业和信息化领域数据处理者**委托他人开展数据处理活动的**，应当通过签订合同协议等方式，明确委托方与受托方的数据安全责任和义务。委托处理重要数据和核心数据的，应当对受托方的数据安全保护能力、资质进行核验。」 | ⭐ 委托处理（⭐ 调用第三方 LLM API 属此） | ⭐ **直接覆盖「委托第三方处理」这一动作**——⛔ 但要求的是**核验与签约**，⛔ **不是禁止** | 同上 | 🟢 |
+| 汽车数据安全管理若干规定（试行） | 2021 | 第三条 | 重要数据枚举六项（⭐ 地理信息、车辆流量、充电网运行数据、车外视频图像、10 万人以上个人信息等） | — | ⛔ **不覆盖**：⛔ 枚举六项**全部是运行期数据**，⛔ 无一项是设计/需求文档 | [cac.gov.cn](https://www.cac.gov.cn/2021-08/20/c_1631049984897667.htm) | 🟢 |
+
+### 2.3 中国保密法族 · ⭐⭐ **强制力最高，⛔ 覆盖面最窄，⛔ 且含一个反直觉结论**
+
+⭐ **本节保密法四条（第二十九、三十、三十一、六十四条）由主 session 亲自 `curl` npc.gov.cn 官方全文抽取并逐字核对**（⛔ 依 §3.8）。⭐ 该法第六十五条确认「本法自 2024 年 5 月 1 日起施行」。
+
+| 法规 | 年份 | 条款 | 逐字原文 | 触发前提 | 是否覆盖 | 来源 | 核验 |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| **保守国家秘密法（2024 第二次修订）** | 2024-05-01 | **第二十九条** | 「禁止非法复制、记录、存储国家秘密。**禁止未按照国家保密规定和标准采取有效保密措施，在互联网及其他公共信息网络或者有线和无线通信中传递国家秘密。**禁止在私人交往和通信中涉及国家秘密。」 | ⚠️ 内容**必须已被依法定密为国家秘密** | ⭐ **直接覆盖** | [npc.gov.cn](http://www.npc.gov.cn/npc/c2/c30834/202402/t20240227_434859.html) | 🟢 |
+| 同上 | 2024 | **第三十一条(三)** | 「…任何组织和个人不得有下列行为：…**（三）使用非涉密信息系统、非涉密信息设备存储或者处理国家秘密**；…」 | 同上 | ⭐⭐ **最硬的一条，⭐ 且它管的不是「出境」而是「系统性质」** | 同上 | 🟢 |
+| 同上 | 2024 | 第三十条 | 「存储、处理国家秘密的计算机信息系统…按照涉密程度实行分级保护。涉密信息系统应当按照国家保密规定和标准规划、建设、运行、维护…经检查合格后，方可投入使用…」 | 同上 | ⭐ 直接覆盖 | 同上 | 🟢 |
+| 同上 | 2024 | 第三十六条 | 「开展涉及国家秘密的数据处理活动…应当符合国家保密规定。…**防范数据汇聚、关联引发的泄密风险。**」 | 同上 | ⭐ 直接覆盖，⭐ 且「汇聚、关联引发泄密」正对应**把大量非密文档喂给同一模型**的场景 | 同上 | 🟢 |
+| 同上 | 2024 | **第六十四条** | 「机关、单位对履行职能过程中产生或者获取的**不属于国家秘密但泄露后会造成一定不利影响的事项，适用工作秘密管理办法采取必要的保护措施。工作秘密管理办法另行规定。**」 | 主体须是**机关、单位** | ⚠️ ⛔ **关键中间层，⛔ 但目前是空转条款**——⛔《工作秘密管理办法》**尚未公布** | 同上 | 🟢 |
+| 保密法实施条例（国务院令**第 786 号**） | 2024-09-01 | **第四十一条** | 「机关、单位应当加强对互联网使用的保密管理。机关、单位工作人员**使用智能终端产品等应当符合国家保密规定**，不得违反有关规定使用非涉密信息系统、信息设备存储、处理、传输国家秘密。」 | 机关、单位 + 国家秘密 | ⭐ 直接覆盖 | [gov.cn](https://www.gov.cn/zhengce/zhengceku/202407/content_6963934.htm) | 🟢 |
+| 同上 | 2024 | 第三十三条 | 「涉密信息系统应当由国家保密行政管理部门设立或者授权的机构进行检测评估，并经设区的市级以上保密行政管理部门审查合格，方可投入使用。」 | 同上 | ⚠️ ⛔ **注意：⛔ 这要求的不是「私域部署」，⭐ 而是「经保密测评审查合格的涉密信息系统」** | 同上 | 🟢 |
+| **武器装备科研生产单位保密资质管理办法** | ⭐ **2025-07-01 施行** | 第六条 | 「承担涉密武器装备科研生产任务的企业事业单位应当…取得相应等级的军工保密资质。涉密武器装备科研生产任务应当由具有相应等级的军工保密资质单位承担。**承包单位分包的涉密武器装备科研生产任务涉及国家秘密的，应当由具有相应等级的军工保密资质单位承担。**」 | 承担涉密武器装备任务 | ⭐ **间接但很强**：⭐ 意味着**受托处理方本身必须持证**——⛔ 境外 LLM 厂商永无可能持证 | [gjbmj.gov.cn](https://www.gjbmj.gov.cn/n1/2025/0604/c419767-40494024.html) | 🟢 |
+
+⭐ **三分判定（⛔ 本次调研最容易出错处，⛔ 必须写清）**：⭐ **普通商用工程需求文档**（⭐ 民用汽车 ECU、电梯、微波炉、通用工控）→ **商业秘密**，⛔ 保密法**完全不适用**；⛔ 商业秘密受《反不正当竞争法》保护，⛔ 但那是**权利救济**而非**管制义务**，⛔ 它不禁止你把自己的商业秘密发给谁，⛔ **不能用它论证「不得外发」**。⭐ **机关、单位的非密敏感事项** → **工作秘密**（第六十四条），⛔ 但配套办法**至今未公布**，⛔ 只能作为「立法趋势」，⛔ 不能当现行禁令。⭐ **军工 / 航天 / 涉密武器装备任务下的需求与设计文档** → 依法定密后是**国家秘密**，⭐ 此时本族条款硬性适用。
+
+⚠️⚠️ ⛔ **一个反直觉但必须写进论文的点：私域部署 ≠ 涉密合规。** ⛔ 若制品已被定密为国家秘密，⛔ 企业自建的**普通私有服务器仍然是「非涉密信息系统」**，⛔ 照样违反保密法第三十一条(三)。⭐ 涉密场景要求的是**经保密行政管理部门检测评估、设区的市级以上审查合格的涉密信息系统**（保密法第三十条、实施条例第三十三条），⛔ 这比「私域部署」严格得多，⛔ 且是完全不同的一套标准。⛔ **论文若写「因为涉密所以要私域部署」，⛔ 在保密专业读者眼里是外行话**——⭐ 正确表述是「涉密场景下**连私域部署都不够**，⭐ 必须是通过分级保护测评的涉密信息系统」。
+
+### 2.4 中国网络安全等级保护 · ⭐ **对 (a) 层适用面最宽的一条，⛔ 但核验等级只有 🟡**
+
+| 标准 | 年份 | 条款 | 逐字原文 | 触发前提 | 是否覆盖 | 核验 |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| GB/T 22239-2019 | 2019 | **8.2.4.5 a)**（第三级） | 「应确保云服务客户数据、用户个人信息等**存储于中国境内**，如需出境应遵循国家相关规定；」 | ⭐ 定级第三级 + 采用云计算 | ⭐⭐ **直接覆盖**，⭐ 且「客户数据」**不限于个人信息或重要数据**——⭐ 是本轮对普通工程文档**唯一无需前置认定**的境内化要求 | 🟡 |
+| GB/T 22239-2019 | 2019 | 8.2.1.1（第三级） | 「应保证云计算基础设施位于中国境内。」 | 同上 | ⭐ 直接覆盖 | 🟡 |
+| GB/T 22239-2019 | 2019 | 8.2.7.1（第三级） | 「云计算平台的运维地点应位于中国境内，境外对境内云计算平台实施运维操作应遵循国家相关规定。」 | 同上 | ⭐ 直接覆盖 | 🟡 |
+| GB/T 22239-2019 | 2019 | 9.2.1.1 / 9.2.4.5 a) / 9.2.7.1（第四级） | ⭐ 与第三级同义，逐字一致 | 定级第四级 | ⭐ 直接覆盖 | 🟡 |
+| GB/T 22239-2019 | 2019 | **8.2.6.1 云服务商选择**（第三级） | 「a) 应选择安全合规的云服务商…；b) 应在服务水平协议中规定云服务的各项服务内容和具体技术指标；…d) 应在服务水平协议中规定服务合约到期时，完整提供云服务客户数据，并承诺相关数据在云计算平台上清除；e) 应与选定的云服务商签署保密协议，要求其不得泄露云服务客户数据。」 | 同上 | 🔻 ⛔ **对 (b)/(c) 层的致命反证**：⛔ 等保三级**明文预设并容纳使用第三方云服务商**，⭐ 路径是**选型 + SLA + 保密协议**，⛔ 不是禁止 | 🟡 |
+| 网络安全等级保护条例 | — | — | — | — | ⚪ **查无此法**：⛔ 仅有 2018-06-27 公安部征求意见稿；⭐ 2025 年列入国务院立法工作计划「**预备制定**」，⛔ 至今未出台。⛔ **论文中不得引用为现行法规** | ⚪ |
+
+⛔ **🟡 核验等级说明**：⭐ 官方免费预览入口在 [openstd.samr.gov.cn](https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=BAFB47E8874764186BDB7865E8344DAF)，⛔ 但为 JS 渲染页面，⛔ `curl` 不可取；⛔ 政府网站托管副本为**无文本层扫描件**，⛔ OCR 路径不通。⭐ 上表条文与条款号系从中科院合肥物质科学研究院托管的**可检索文本版 PDF** 逐字提取，⭐ 三级/四级两处相同条文交叉一致。⚠️ ⛔ **正式引用前必须人工在 openstd 官方预览页复核一次条款号。**
+
+### 2.5 中国生成式 AI 专门法规 · ⚠️ **语义最直接命中，⛔ 但主体错位，⛔ 且含最强反向证据**
+
+| 法规 | 年份 | 条款 | 逐字原文 | 触发前提 | 是否覆盖 | 来源 | 核验 |
+| :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
+| 生成式人工智能服务管理暂行办法 | 2023-08-15 | **第二条第三款** | 「行业组织、企业、教育和科研机构…研发、应用生成式人工智能技术，**未向境内公众提供生成式人工智能服务的，不适用本办法的规定。**」 | — | ⚠️ **双刃**：⭐ 企业私域部署**不受本办法约束**（⭐ 利于可行性论证），⛔ 但**这不构成「必须私域部署」的禁令** | [cac.gov.cn](https://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm) | 🟢 |
+| 同上 | 2023 | **第十一条** | 「提供者对使用者的输入信息和使用记录应当依法履行保护义务，不得收集非必要个人信息，不得非法留存**能够识别使用者身份的**输入信息和使用记录，不得非法向他人提供使用者的输入信息和使用记录。」 | — | 🔻 ⛔ **如实判定：不覆盖工程制品**。⛔ 义务主体是**提供者**不是用户；⛔ 保护对象限于「能够识别使用者身份的」输入信息与个人信息，⛔ **技术内容本身不在射程**。⛔ 把这条写成「禁止用户外发技术文档」是**误读** | 同上 | 🟢 |
+| 同上 | 2023 | 第二十条 | 「对来源于中华人民共和国境外向境内提供生成式人工智能服务不符合法律、行政法规和本办法规定的，国家网信部门应当通知有关机构采取技术措施和其他必要措施予以处置。」 | 境外服务向境内提供 | ⭐ **间接但对 (a) 层有用**：⭐ 境外主流 LLM 服务在华**不具备合法提供服务的地位**。⚠️ ⛔ 但制裁对象是**服务提供方与网络接入**，⛔ 不是对企业用户设定「不得外发」义务 | 同上 | 🟢 |
+| **政务领域人工智能大模型部署应用指引**（中央网信办、国家发展改革委，2025-10） | 2025 | 四、(四) 严格落实保密要求 | 「…严格落实『**涉密不上网、上网不涉密**』等保密纪律要求，采取加装保密『护栏』等措施，**防止国家秘密、工作秘密和敏感信息等输入非涉密人工智能大模型**，防范敏感数据汇聚、关联引发的泄密风险。…」 | ⚠️ ⛔ 适用主体是「**政务部门**」，⛔ 不是企业 | ⭐⭐ **本轮语义最直接命中的成文表述** | [cac.gov.cn](https://www.cac.gov.cn/2025-10/10/c_1761819469929310.htm) | 🟢 |
+| 同上 | 2025 | 三、(一) 规范部署 | 「对于智能问答、辅助文书起草等通用性较强…的场景，**需采用市场上成熟，并已完成网信部门备案的模型产品和服务**。…在保障安全和不泄露国家秘密、工作秘密和敏感信息等的前提下，**充分利用互联网算力和模型资源**，开展政务领域人工智能大模型部署应用。」 | 同上 | 🔻🔻 ⛔ **对 (c) 层的最强不利证据**：⛔ 官方在**比工业更敏感**的政务场景，⭐ 明确要求用「已完成网信部门备案的市场化模型产品和服务」并「**充分利用互联网算力和模型资源**」，⛔ **恰恰不是「必须私域部署」** | 同上 | 🟢 |
+| 保密宣传口径（国安部 / 各地保密部门 AI 保密提示） | 2024-2025 | — | 「不得将涉密文件、图片、音频、视频等信息，以拍照、输入、复制以及其他任何形式，部分或者全部使用生成式人工智能工具进行处理」 | 涉密信息 | 🟡 ⛔ **宣传材料，⛔ 非规范性文件**。⛔ 不得当作法规条款引用，⭐ 可作「监管态度」佐证 | [湖北省科技厅转载](https://kjt.hubei.gov.cn/kjdt/ztzl/kjaq/kjaqdxal/202504/t20250423_5626302.shtml) | 🟡 |
+| 国资委 / 国防科工局禁止性通知 | — | — | — | — | ⚪ **未检索到**任何公开的「禁止向公有云上传敏感数据」通知。⭐ 国资委公开文件均为**推进类**。⛔ 若存在应为内部发文，⛔ **不可在论文中假定其存在** | [sasac.gov.cn](http://www.sasac.gov.cn/n2588025/n2643314/c32881575/content.html) | ⚪ |
+
+### 2.6 国防供应链（美国 DFARS / NIST SP 800-171 / CMMC）· ⭐ **英文世界里唯一直接管到这个动作的一族，⛔ 但它是「条件性允许」而非「禁止」**
 
 ⭐ **本节的 DFARS 三条由主 session 亲自 `curl` acquisition.gov 全文抽取并逐字核对**（⛔ 非采信代理转述，⛔ 依仓库 §3.8 纪律）。⭐ 版本标记：条款标题为 `SAFEGUARDING COVERED DEFENSE INFORMATION AND CYBER INCIDENT REPORTING (MAY 2024)`，⭐ 页面标注 DFARS Change 05/07/2026。
 
@@ -204,13 +297,60 @@
 | DFARS 252.204-7012 | MAY 2024 | (a) 定义 `Covered defense information` | "unclassified controlled technical information or other information, as described in the Controlled Unclassified Information (CUI) Registry… that requires safeguarding or dissemination controls… and is— (1) Marked or otherwise identified in the contract… and provided to the contractor by or on behalf of DoD…; or (2) **Collected, developed, received, transmitted, used, or stored by or on behalf of the contractor** in support of the performance of the contract." | — | ⭐ **关键**：⭐ (2) 明确覆盖承包商**自己开发**的制品，⛔ 不限于政府交付物 | 同上 | 🟢 |
 | DFARS 252.204-7012 | MAY 2024 | (b)(2)(i) | 非政府运营 IT 服务的承包商系统，⭐ 适用 NIST SP 800-171（⭐ 以招标发布时生效版为准，⛔ 或经 Contracting Officer 授权） | 同上 | ⭐ 间接相关（⭐ 引入 800-171 控制项） | 同上 | 🟢 |
 | DFARS 252.204-7012 | MAY 2024 | (b)(1)(i) | 云计算服务落入 DFARS 252.239-7010《Cloud Computing Services》 | ⛔ 仅当系统是**为政府运营**的 IT 服务 | ⛔ 间接相关（⛔ 触发条件较窄） | 同上 | 🟢 |
-| NIST SP 800-171 / CMMC(32 CFR 170) | — | — | ⏳ 由并行分组核验 | — | ⏳ | — | ⏳ |
+| NIST SP 800-171 | Rev. 2 (2020) | **3.1.20** | "**Verify and control/limit connections to and use of external systems.**" ⭐ DISCUSSION: "External systems are systems or components of systems for which organizations typically have **no direct supervision and authority over the application of security requirements and controls** or the determination of the effectiveness of implemented controls…" | 系统需处理 CUI | ⭐ **直接覆盖**（⭐ 第三方 LLM API 即 external system） | [NIST SP 800-171r2 PDF](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171r2.pdf) | 🟢 |
+| NIST SP 800-171 | Rev. 2 (2020) | **3.1.3** | "**Control the flow of CUI in accordance with approved authorizations.**" ⭐ DISCUSSION: "Information flow control regulates **where information can travel** within a system and between systems (versus who can access the information)…" | 同上 | ⭐ **直接覆盖**（⭐ 把制品送出组织边界即 CUI flow） | 同上 | 🟢 |
+| NIST SP 800-171 | Rev. 2 | 3.1.20 DISCUSSION | "This requirement also addresses the use of external systems for the processing, storage, or transmission of CUI, **including accessing cloud services (e.g., infrastructure as a service, platform as a service, or software as a service) from organizational systems.**" | 同上 | ⭐⭐ **直接覆盖**：⭐ SaaS 明文点名，⭐ LLM API 即 SaaS | 同上 | 🟢 |
+| NIST SP 800-171 | Rev. 2 | 3.1.3 DISCUSSION | "Flow control restrictions include the following: **keeping export-controlled information from being transmitted in the clear to the Internet**; … and limiting information transfers between organizations based on data structures and content." | 同上 | ⭐ 直接覆盖 | 同上 | 🟢 |
+| NIST SP 800-171 | Rev. 2 | 3.1.22 + DISCUSSION | "Control CUI posted or processed on publicly accessible systems." ⭐ DISCUSSION: "This requirement addresses **systems that are controlled by the organization** and accessible to the public…" | 同上 | ⛔ **不覆盖第三方 LLM API**——⛔ 常被误引 | 同上 | 🟢 |
+| NIST SP 800-171 | **Rev. 3 (2024-05)** | **03.01.20 a.** | "**Prohibit the use of external systems unless the systems are specifically authorized.**" | ⚠️ ⛔ **DoD 尚未采纳** | ⚠️ ⭐ **全部条款中唯一的「默认禁止」式表述**，⛔ 但对 DoD 承包商**当前不生效** | [NIST SP 800-171r3 PDF](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171r3.pdf) | 🟢 |
+| 32 CFR 170.2（CMMC，IBR 条款） | 89 FR 83214 | — | "(9) SP 800-171… **Revision 2**, February 2020 (includes updates as of January 28, 2021), (NIST SP 800-171 R2); IBR approved for §§170.4(b) and 170.14(a) through (c)." | — | ⭐ **关键**：⭐ 确认 CMMC 锁定 **Rev 2** | [eCFR 32 CFR 170](https://www.ecfr.gov/current/title-32/subtitle-B/chapter-XX/part-170) | 🟢 |
+| **DFARS 252.204-7021** | **NOV 2025**（90 FR 43575） | **(d)(2)** | "**Only process, store, or transmit FCI or CUI on contractor information systems that have a CMMC status at the CMMC level required in paragraph (d)(1) of this clause, or higher**" | 合同含 CMMC 条款 | ⭐⭐ **直接覆盖，⭐ 且这是本族最接近「禁止」的一条** | [eCFR 252.204-7021](https://www.ecfr.gov/current/title-48/chapter-2/subchapter-H/part-252/subpart-252.2/section-252.204-7021) | 🟢 |
+| CMMC, 32 CFR | **170.16(c)(2)** | — | "**An OSA may use a cloud environment to process, store, or transmit CUI**… under the following circumstances: (i) The CSP product or service offering is FedRAMP Authorized at the FedRAMP Moderate (or higher) baseline…; **or** (ii)… meets security requirements equivalent to those established by the FedRAMP Moderate (or higher) baseline." | Level 2 | ⛔ **条件性允许**（⚠️ 逐字 "**may use**"） | 同上 | 🟢 |
+| CMMC, 32 CFR | 170.16(c)(3)(ii) / 170.19(c)(2) Table 4 | — | "The ESP services used to meet OSA requirements are **assessed within the scope of the OSA's assessment against all Level 2 security requirements**." | ⭐ 供方被判为 ESP 而非 CSP | ⭐ **直接覆盖，⭐ 门槛更高** | 同上 | 🟢 |
+| 32 CFR 2002.14（CUI 本体） | current | (c)(1) | "Authorized holders must take reasonable precautions to guard against unauthorized disclosure of CUI. They must include the following measures…: (1) **Establish controlled environments in which to protect CUI from unauthorized access or disclosure**…" | — | ⛔ 间接（⛔「controlled environment」未定义为「私域」） | [eCFR 32 CFR 2002.14](https://www.ecfr.gov/current/title-32/subtitle-B/chapter-XX/part-2002/section-2002.14) | 🟢 |
+| **NARA CUI Registry · Controlled Technical Information** | current | — | "…**Examples of technical information include research and engineering data, engineering drawings, and associated lists, specifications, standards, process sheets, manuals, technical reports, technical orders, catalog-item identifications, data sets, studies and analyses and related information, and computer software executable code and source code.**" ⭐ Banner: `CUI//SP-CTI` | — | ⭐⭐⭐ **本轮对「需求文档 / 设计模型属于受控信息」最直接的官方证据** | [archives.gov CUI Registry](https://www.archives.gov/cui/registry/category-detail/controlled-technical-info) | 🟢 |
+| DFARS 252.204-7012 | MAY 2024 | (a) 定义 `Technical information` | "technical data or computer software, as those terms are defined in… DFARS 252.227-7013… **Examples of technical information include research and engineering data, engineering drawings, and associated lists, specifications, standards, process sheets, manuals, technical reports…, data sets, studies and analyses…, and computer software executable code and source code.**" | — | ⭐⭐⭐ **决定性**：⭐「需求文档 = specifications / standards」「设计模型 = engineering data / data sets」 | [acquisition.gov](https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.) | 🟢 |
+| NIST SP 800-53 | Rev. 5 | SA-9 | "a. Require that providers of external system services comply with organizational security and privacy requirements…" ⭐ DISCUSSION: "…**The responsibility for managing risks from the use of external system services remains with authorizing officials.**" | — | ⛔ 直接覆盖，⛔ 但同为**条件性** | [NIST SP 800-53r5](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf) | 🟢 |
 
 ⭐ **这是整份台账里唯一一条**逐字点名「把受控信息交给外部云服务处理」**这个具体动作的成文规范**，⭐ 且它是**免费公开全文、可核验到条款级**的。⭐ 论证链条完整：(1) 军用 / 航天控制系统的技术数据构成 `controlled technical information`；(2) 承包商**自己开发**的相关制品即构成 `covered defense information`（⭐ 定义 (2) 项）；(3) 一旦要把它交给外部云服务 store / process / transmit，⭐ 就触发 FedRAMP Moderate 等效要求 + (c)-(g) 的事故报告、恶意软件、介质保全、取证访问、损害评估等一整套义务。
 
-⛔ **但必须钉死一件事：它是「条件性允许」，⛔ 不是「禁止」。** ⛔ 条文写的是 "**shall require and ensure that the cloud service provider meets** security requirements equivalent to… FedRAMP Moderate"——⛔ 即**满足即可用**。⛔ **不得把它引成「不得使用云服务」**，⛔ 这与 ISO 26262 DIA 是同一类误读。⚠️ 且由于主流云厂商的政府云版本已有 FedRAMP 授权（⏳ 具体授权状态由并行分组核验，⛔ 以 FedRAMP Marketplace 官方记录为准），⛔ **这条依据推不出「必须私域部署」**，⭐ 只能推出「不能用普通商用端点」。
+⛔ **但必须钉死一件事：它是「条件性允许」，⛔ 不是「禁止」。** ⛔ 条文写的是 "**shall require and ensure that the cloud service provider meets** security requirements equivalent to… FedRAMP Moderate"——⛔ 即**满足即可用**。⛔ **不得把它引成「不得使用云服务」**，⛔ 这与 ISO 26262 DIA 是同一类误读。
 
-### 2.4 行业机制 · 欧盟汽车业 TISAX / VDA ISA · ⭐⭐ **本轮 Q2 最强、且是第一手 XLSX 逐格核验**
+⚠️⚠️ ⛔ **而且「满足」这个条件今天已被实际满足了——⛔ 这是对整条 story 最致命的一组反向事实**（🟢 官方来源已核验）：
+
+| 事实 | 时间 | 来源 |
+| :-- | :-- | :-- |
+| ⭐ Azure OpenAI Service 获 **FedRAMP High** 授权（Azure Government），⭐ 并获 DISA 的 **DoD IL4 / IL5** 临时授权（⭐ 含 GPT-4o） | 2024-09 | [Azure Government DevBlog](https://devblogs.microsoft.com/azuregov/azure-openai-fedramp-high-for-government/) |
+| ⭐ Azure OpenAI 进一步获授权至 **IL6 与 Top Secret**，⭐ 覆盖全部美国政府数据密级 | 2025 | [Azure Government DevBlog](https://devblogs.microsoft.com/azuregov/azure-openai-authorization/) |
+| ⭐ Amazon Bedrock 上的 Claude 与 Llama 模型获 **FedRAMP High + DoD IL4/5**（AWS GovCloud） | 2025-05 | [AWS What's New](https://aws.amazon.com/about-aws/whats-new/2025/05/amazon-bedrock-models-fedramp-high-dod-il-4-5-govcloud/) |
+| ⭐ OpenAI GPT / GPT OSS / NVIDIA Nemotron 亦获 **FedRAMP High + IL4/5**（Bedrock GovCloud） | 2026-06 | [AWS What's New](https://aws.amazon.com/about-aws/whats-new/2026/06/addl-bedrock-model-fedramp-il-5-govcloud/) |
+| ⭐ **「ITAR data can only be processed in Claude via AWS Bedrock, which is IL5 accredited.」** | — | [Anthropic Public Sector FAQs](https://support.claude.com/en/articles/13756069-public-sector-faqs) |
+| ⛔ 反面：**Claude Enterprise on AWS Marketplace 未获 FedRAMP 授权**；⭐ 有 FedRAMP 需求者须用 C4G 或经 Bedrock GovCloud / Vertex Assured Workloads 访问 | — | 同上 |
+
+⛔⛔ **而最致命的一击来自国防部自己**（🟢 官方新闻稿已核验）：
+
+| 事实 | 逐字原文 | 日期 | 来源 |
+| :-- | :-- | :-- | :-- |
+| ⛔ **DoD 自建 GenAI.mil 平台，⛔ 上面跑的是第三方商用前沿模型，⛔ 且认证处理 CUI** | "Security is paramount, and **all tools on GenAI.mil are certified for Controlled Unclassified Information (CUI) and Impact Level 5 (IL5)**, making them secure for operational use."；⭐ 首发为 "**Google Cloud's Gemini for Government**" | 2025-12-09 | [war.gov Release 4354916](https://www.war.gov/News/Releases/Release/Article/4354916/the-war-department-unleashes-ai-on-new-genaimil-platform/) |
+| ⛔ 扩展至 xAI | "…allow all military and civilian personnel to use xAI's capabilities at Impact Level 5 (IL5), enabling the **secure handling of Controlled Unclassified Information (CUI)** in daily workflows." | 2025-12-22 | [war.gov Release 4366573](https://www.war.gov/News/Releases/Release/Article/4366573/the-war-department-to-expand-ai-arsenal-on-genaimil-with-xai/) |
+| ⛔ 扩展至 OpenAI | "…a partnership with OpenAI to integrate ChatGPT into GenAI.mil… make OpenAI's advanced large language models readily available to all 3 million Department personnel." | 2026-02-09 | [war.gov Release 4401775](https://www.war.gov/News/Releases/Release/Article/4401775/genaimils-rapid-expansion-continues-with-openai-partnership/) |
+
+⛔ **用国防供应链条款论证「必须私域部署」，⛔ 而国防部本身正在用第三方商用模型处理 CUI——⛔ 这是审稿人最容易找到、⛔ 也最难回应的反例。**
+
+⭐ **主流端点的 FedRAMP 实况**（⭐ 取自 GSA FedRAMP Marketplace 服务端数据，🟢 已核验）：⭐ **Amazon Bedrock@GovCloud** = FedRAMP High + DoD IL2/IL4/IL5/IL6；⭐ **Azure OpenAI@Azure Government** = High + IL4/IL5WI（⚠️ `IL5WI` = Workload Isolation，⛔ 需额外配置，⛔ 且不在 US DoD Central/East 的原生 IL5 服务清单内）；⭐ **Vertex AI@Assured Workloads** = High + IL2/IL4/IL5；⚠️⚠️ ⭐ **OpenAI `ChatGPT Enterprise and API Platform` 已于 2026-01-09 取得 FedRAMP 20x Class C（≡ Moderate）认证**，⛔ 认证对象名称明确含 "API Platform"（[Marketplace FR2533155773](https://www.fedramp.gov/marketplace/products/FR2533155773/)）；⛔ **Anthropic 作为 CSP 在 605 个条目中零命中**（⭐ Claude 的合规路径是经 Bedrock GovCloud / Vertex，⛔ 而非自持授权）。
+
+⛔ **净后果（⛔ 与直觉相反，⛔ 必须如实写）**：⭐ 这一族确实**直接管到了这个动作**，⛔ 但它给出的合规解是「**用已获授权的云上 LLM**」，⛔ **不是「自己部署」**。⛔ 且由于 OpenAI API Platform 已取得 Moderate 认证，⛔ **连「商用端点一律不合规」这句话都不再成立**——⭐ 准确表述只能是「**不能使用未取得 FedRAMP Moderate 授权或等效认定的端点**」（⭐ 例如直连 `api.anthropic.com`）。
+
+⭐ **那这一族还能支撑什么？⭐ 四条经得起条款核对的替代论证**：
+
+1. ⭐⭐ **(c)-(g) 义务是真正的实践卡点，⭐ 且独立于 FedRAMP 状态。** ⭐ 7012(b)(2)(ii)(D) 是**两个并列条件**：⭐ FedRAMP 等效 **and** CSP 须 comply with (c)-(g)——⭐ 72 小时向 dibnet.dod.mil 报告网络事件、向 DC3 提交恶意软件、保存镜像与包捕获、按需向 DoD 提供取证访问。⛔ **普通商用 ToS 不提供这些。** ⭐ 这条可引、可核，⛔ 且不依赖「禁止」措辞。
+2. ⭐ **合规工程成本可量化。** 🟡 DoD CIO 的 FedRAMP Moderate Equivalency 备忘录要求 3PAO 出具 100% 合规的 BoE（SSP / SAP / SAR / CRM / 已闭环 POA&M），⛔ 不允许 3PAO 评估产生的 POA&M、⛔ 不允许自证；⭐ CMMC 170.19(c)(2)(ii) 要求 CSP 出具 CRM 并写进 SSP。
+3. ⭐ **可选模型集被 region 与授权边界严重收窄**：⭐ 实际只有 `Bedrock@GovCloud` / `Azure OpenAI@Azure Gov` / `Vertex@Assured Workloads` 少数组合，⛔ 且政府 region 的模型版本通常**滞后于 commercial**。⭐ 这是「可用性与新鲜度」论证。
+4. ⭐ **非 CSP 路径门槛更高**：⭐ 若供方被判为 ESP 而非 CSP，⭐ 须按**全部** Level 2 要求纳入 OSA 评估范围。
+
+⚠️ ⛔ **两条必须写进论文的边界**：(1) ⛔ **触发前提是 DoD 合同 + CDI/CUI**——⛔ 若场景无 DoD nexus（⛔ 普通民用控制系统），⛔ 本族**完全不适用**，⛔ 其适用面比「工业场景」窄得多；(2) ⛔ **引用 Rev 3 的 03.01.20(a) 必须同时声明 Class Deviation 2024-O0013 使 Rev 2 仍为现行标准**（🟡 该 Deviation 为二手佐证，⛔ 官方 PDF 站点 curl 超时，⛔ 但与 32 CFR 170.2 的 IBR 🟢 相互印证），⛔ 否则构成误引，⛔ 且这恰是最容易被抓住的一处。
+
+### 2.7 行业机制 · 欧盟汽车业 TISAX / VDA ISA · ⭐⭐ **唯一逐字点名 AI 工具的一条（⭐ 第一手 XLSX 逐格核验）**
 
 ⭐ **这是整份台账里唯一「直接覆盖」且**逐字点名 AI 工具**的成文依据。** ⭐ 它不是立法，⛔ 而是欧盟汽车供应链事实上的准入机制（TISAX label 是 OEM 采购的门槛）。
 
@@ -238,11 +378,11 @@
 
 ⚠️ ⛔ **适用面收窄警告**：⭐ 该论证对**汽车供应链**成立（TISAX 是事实准入门槛），⛔ 对一般工业控制系统不成立。⛔ 若论文语料覆盖 BSN / Elevator / Microwave 这类非汽车系统，⛔ **不得把汽车业结论外推过去**。
 
-### 2.4a 行业机制 · ISO/IEC 27001:2022 Annex A 5.23（⭐ ISA 1.3.3 的上游对标项）
+### 2.7a 行业机制 · ISO/IEC 27001:2022 Annex A 5.23（⭐ ISA 1.3.3 的上游对标项）
 
 ⭐ VDA ISA 1.3.3 在其 XLSX 的对标列中指向 **ISO/IEC 27001:2022 Annex A 5.23**。⭐ 该控制项标题逐字为 **"Information security for use of cloud services"**，⭐ 是 2022 版**新增**控制项（⛔ 2013 版中不存在，⛔ 当时云服务归入供方关系章节）。🟡 其控制文本（要求就云服务的**获取、使用、管理与退出**建立符合组织信息安全要求的流程）**仅有二手来源**，⛔ 正文在 ISO 付费墙内，⛔ 标 🟡。⛔ 论文若引用，⛔ 只应引**标题与新增事实**，⛔ 不得逐字引控制文本。二手出处：[ISMS.online A.5.23](https://www.isms.online/iso-27001/annex-a-2022/5-23-information-security-use-of-cloud-services-2022/)、[Advisera](https://advisera.com/iso27001/control-5-23-information-security-for-use-of-cloud-services/)。
 
-### 2.4b 行业机制 · UNECE R155 / R156 · 结论：⛔ **间接相关，⛔ 需跨一步不小的推理**
+### 2.7b 行业机制 · UNECE R155 / R156 · 结论：⛔ **间接相关，⛔ 需跨一步不小的推理**
 
 | 文件 | 年份 | 条款 | 逐字原文 | 是否覆盖 | 来源 | 核验状态 |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -253,7 +393,7 @@
 
 ⚠️ `unece.org` 直连返回 **403**，⭐ 改用 EUR-Lex 转载的 OJ 版本（OJ L 82, 9.3.2021）；⛔ 该版本自带声明「Only the original UN/ECE texts have legal effect under international public law」，⛔ 引用时须标注。
 
-### 2.5 商业秘密法（欧盟 TSD）· 结论：⭐ **法理最强，⛔ 但是推论，⛔ 无判例**
+### 2.8 商业秘密法（欧盟 TSD）· 结论：⭐ **法理最强，⛔ 但是推论，⛔ 无判例**
 
 | 文件 | 年份 | 条款 | 逐字原文 | 是否覆盖 | 来源 | 核验状态 |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -270,7 +410,45 @@
 
 ## 3. ⛔ 否定结果清单（查了但没有的）
 
-⏳ 待 Q2 回报后补全。⭐ Q1 部分已确立的否定项见 §1。
+⭐ **本节是本轮的高价值产出，⛔ 不是失败记录。** ⭐ 每条都写明「查了什么版本 / 查了哪些部分 / 用什么检索 / 结论为无」。
+
+### 3.1 功能安全标准族 · ⛔ 全部为无
+
+| 对象 | 查了什么 | 检索方式 | 结论 |
+| :-- | :-- | :-- | :-- |
+| IEC 61508-1:2010 | 完整 Scope §1.1-1.4 | 关键词 + 逐条读 a)-n) | ⛔ **明确排除**：§1.2 l)/m) 逐字排除安全防护措施与安全策略要求 |
+| IEC 61508-3:2010 | 完整目录 Clause 1-8 + Annex A-G、完整 Scope §1.1 a)-j) | `grep` 五词 + 逐条读 | ⛔ **无**任何保密 / 数据保护 / 第三方数据处理条款；⛔ 五词命中 0 |
+| ISO 26262-8:2018 | 完整目录 Clause 1-16 + Annex A、完整 Scope、Clause 5 全部 preview 正文 | `grep` 六词 + 逐条读 | ⛔ **无**；⭐ 支持过程枚举 12 项无一涉及；⭐ Clause 5 = 责任划分 |
+| ISO 26262-6:2018 | 完整目录 + Introduction + §5.2 | `grep` 六词 | ⛔ **无**；⭐ 网络安全仅一处 "can" 级 NOTE |
+| ISO 26262-2:2018 | 完整目录 + Introduction | `grep` 六词 | ⛔ **无**；⭐ 网络安全仅 Annex E（informative） |
+| ISO/SAE 21434:2021 | Scope + Introduction 逐 Clause 说明 | 逐条读 | ⛔ **明确排除**：§1「不规定具体技术或解决方案」；⭐ Clause 7 = 责任划分 |
+| ISO/IEC TR 5469:2024 | 完整目录 Clause 1-11 + Annex A-D、Scope | 逐条读 | ⛔ **无**数据驻留条款；⭐ 但 Scope 正面涵盖本文场景 |
+| DO-178C / DO-330 / EN 50128 / EN 50716 / IEC 62304 | ⏳ 见 §1.6-§1.8 | ⏳ | ⏳ 并行核验未回报，⛔ **本轮如实标为未完成** |
+
+### 3.2 Q2 各族 · ⛔ 明确的否定项
+
+| 对象 | 结论 | 依据 |
+| :-- | :-- | :-- |
+| GDPR | ⛔ **不适用**（⛔ 前提不成立，⛔ 非成本高） | Art. 2(1) + Art. 4(1)：⛔ 工程制品无个人数据 |
+| EU AI Act | ⛔ **不适用** | ⛔ 无任何条款规制输入数据保密性；⛔ 不落入 Art. 6 / Annex III |
+| EU Data Act Ch. II 商业秘密条款 | ⛔ **场景错位** | ⛔ Art. 1(2)(a) 锁定 connected product 的 IoT 运行数据 |
+| 中国《个人信息保护法》 | ⛔ **不适用** | ⛔ 工程制品通常不含个人信息 |
+| 中国《汽车数据安全管理若干规定》 | ⛔ **不覆盖** | ⛔ 第三条枚举六项**全部是运行期数据**，⛔ 无一项是设计/需求文档 |
+| 中国《生成式 AI 暂行办法》第十一条 | ⛔ **不覆盖工程制品** | ⛔ 义务主体是提供者；⛔ 保护对象限「能识别使用者身份的」输入与个人信息 |
+| 中国《网络安全等级保护条例》 | ⚪ **查无此法** | ⛔ 仅 2018 征求意见稿；⛔ 2025 年仍为「预备制定」 |
+| 中国《工作秘密管理办法》 | ⚪ **未公布** | ⛔ 保密法第六十四条授权制定，⛔ 至今空转 |
+| 国资委 / 国防科工局「禁止向公有 LLM 上传敏感数据」通知 | ⚪ **公开渠道查无此文** | ⛔ 公开文件均为推进类；⛔ **不可假定内部发文存在** |
+| 欧盟 / 成员国 DPA「禁止企业向公有 LLM 输入商业敏感数据」正式指引 | ⚪ **未找到** | ⛔ Garante 2023 令针对个人数据；⛔ EDPB 两份文件是 GDPR 风险方法学 |
+| 「上传公有 LLM 即丧失商业秘密保护」的欧盟判例 | ⚪ **无** | ⛔ 唯一同形态判决在美国且事实特殊 |
+| 中国禁止/限制出口技术目录中的**通用**工业控制软件条目 | ⛔ **无** | ⭐ 但存在**领域性**条目（⭐ 无人机飞控算法及软件），⛔ 见 §2.1b 的冲突裁定 |
+
+### 3.3 ⛔ 三条明令禁止的引用方式（⛔ 每条都会被审稿人一击打穿）
+
+1. ⛔ **不得**把 ISO 26262-8 Clause 5 / DIA 引成「须签接口协议 → 故不得外发」。⛔ §5.1 c) 的目标是「identify the **work products to be exchanged**」，⛔ 它是**共享机制**；⛔ 且 §5.2 NOTE 2 使其对不承担安全责任的 LLM 供方**根本不适用**。
+2. ⛔ **不得**把 DFARS 252.204-7012 (b)(2)(ii)(D) 引成「不得使用云服务」。⛔ 条文是 "shall require and ensure that the cloud service provider **meets** security requirements equivalent to… FedRAMP Moderate"——⭐ **满足即可用**。
+3. ⛔ **不得**把中国《出口管制法》第二条第二款「包括技术资料等数据」单独拎出来当作「工程文档受管制」的证据。⛔ 它只扩展**载体形态**，⛔ 不新增管制对象；⛔ 第四条明定「管制清单」是唯一开关。
+
+⛔ **另加一条自查纪律**：⭐ 上述三条误读有共同结构——⛔ **把「规范如何做某事」的条款读成「禁止做某事」**。⭐ 引用任何一条依据前，⛔ 先问「它是在**授权并规范**这个动作，⛔ 还是在**禁止**这个动作」。
 
 ### 3.4 ⚠️ 反向证据：厂商侧合规能力已填掉「必须私域部署」的必要性
 
