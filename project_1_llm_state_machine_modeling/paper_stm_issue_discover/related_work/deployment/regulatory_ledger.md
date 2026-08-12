@@ -8,6 +8,22 @@
 
 ---
 
+## 0. 一句话结论
+
+⛔ **Q1 = 无。** 在本轮覆盖的**七本**功能安全 / 安全生命周期标准中，**没有任何一条条款约束「把需求文档 / 设计模型 / 工作产品交给外部第三方处理」**；⭐ 其中 **IEC 61508-1:2010 §1.2 m) 用逐字条文把「安全策略与安全服务」明确排除出自身范围**，⭐ **ISO/SAE 21434:2021 §1 Scope 用逐字条文声明「本文件不规定与网络安全相关的具体技术或解决方案」**——⭐ 这两条把 Q1 的否定结论从「查不到」升级为「标准自己说了不管」。⚠️ **ISO 26262 Part 8 的 DIA 机制确实是「责任划分」而非「数据驻留」**，⭐ 先验判断被逐字条文证实；⛔ 且 §5.1 c) 的目标恰恰是「identify the **work products to be exchanged**」——⛔ **它是共享制品的授权机制，不是禁止外发的依据**，⛔ 反向引用会被审稿人一击打穿。
+
+⚠️ ⛔ **「Q1 = 无」的有效范围必须写死**：⭐ 本轮实际核验了 **7 本标准**（⭐ IEC 61508-1、IEC 61508-3、ISO 26262-2、ISO 26262-6、ISO 26262-8、ISO/SAE 21434、IEC 62304）+ 2 份邻接文件（⭐ ISO/IEC TR 5469、IEC 62443-4-1）；⭐ 另在并行分组未回报后由主 session 补做 **IEC 62304**（⛔ 结论同为「无」）；⛔ **DO-178C / DO-330 与 EN 50128 / EN 50716 两族本轮未完成核验**（⭐ 见 §1.7-1.8）。⛔ 因此结论只能表述为「**在本轮覆盖的上述标准内未见**」，⛔ **不得**表述为「功能安全标准里都没有」。⭐ 另有一条**唯一的邻接命中**：⭐ **IEC 62443-4-1:2018 §5.9「SM-7: Development environment security」**（⭐ 顺着 IEC 61508-1 §1.2 k) 的 NOTE 5 官方指引找到，⭐ 且其 Scope 逐字锚定「industrial automation and control systems」的**开发者**）——⛔ 但**条文在付费墙内未核验**，⛔ 二手描述指向的是**开发环境完整性**而非「禁止外发」，⛔ 详见 §1.5b。
+
+⭐ **Q2 = 有，⭐ 而且比预期强——⛔ 但没有一条能推出「必须私域部署」。** ⭐ **确实存在直接管到「把制品交给第三方处理」这个动作的成文条款**，⭐ 且可核验到条款级：⭐ 美国 **NIST SP 800-171 Rev 2 §3.1.20** 的 DISCUSSION 逐字点名 SaaS 云服务；⭐ **DFARS 252.204-7012 (a)** 的 `Technical information` 定义逐字包含 "specifications, standards… engineering data… data sets"，⭐ 即**需求文档与设计模型本身**；⭐ 欧盟 **VDA ISA2027** 逐字把 "AI tools (e.g., AI chatbots, AI agents)" 定义为受控外部 IT 服务；⭐ 中国**保密法第三十一条(三)**禁止用非涉密系统处理国家秘密。
+
+⛔ **但这些条款的形态高度一致：⛔ 它们是「条件性允许 + 合规义务」，⛔ 不是「禁止」。** ⛔ 而且**三层论证强度必须分清**（详见 §0b）：(a)「不能用**未获授权的**商用 LLM 端点」**可立**；(b)「不能用任何第三方公有云 LLM」**仅涉密场景可立**；(c)「必须私域部署」⛔ **明确证伪**——⛔ 国防部自己在 GenAI.mil 上用 Gemini / Grok / ChatGPT 处理 CUI（IL5），⛔ Azure OpenAI 已达 IL6/Top Secret，⛔ 中国政务指引要求「充分利用互联网算力和模型资源」，⛔ 且涉密场景下**私域部署本身也不合规**。
+
+⭐ **档位建议：B。** ⛔ 不是 A——⛔ A 要求「≥1 条成文、可引、且明确覆盖设计阶段制品交给第三方处理」**且** SE 文献里 ≥3 篇承重使用；⭐ 前半条**已满足**（⭐ NIST 3.1.20 / DFARS 7012 / VDA ISA2027 都够格），⛔ 但**后半条不在本路职责内**（⛔ 由 se_motivation_survey 一路判定），⛔ 且这些依据**都无法支撑论文实际想说的那句话（必须私域部署）**。⛔ 也不是 C——⛔ 依据确实存在且可引。⭐ **B 的含义在此处很具体：⭐ 可以写成 motivation，⛔ 但不得让任何 claim 依赖它，⛔ 且必须自陈证据等级与适用边界。**
+
+⚠️⚠️ ⛔ **本路最重要的一条建议**：⛔ 与其把动机挂在法规上（⛔ 挂不住，⛔ 且反证遍地），⭐ 不如挂在**可复现性**上——⭐ hosted API 存在 provider drift，⛔ 而论文实验需要版本冻结与离线复现。⭐ 这条**不需要任何法规依据**，⭐ 与本仓库既有实践直接吻合，⭐ 且审稿人无法用「可是 Azure OpenAI 有 IL6」来反驳。
+
+---
+
 ## 0b. ⭐⭐ 三层论证强度裁定（⭐ 本台账的核心产出）
 
 ⛔ **「必须私域部署」这句话必须拆成三层分别裁定，⛔ 混谈是本轮最容易犯、⛔ 也最致命的错误。**
@@ -19,20 +35,6 @@
 | **(c) 必须私域部署** | ❌ **立不住，⛔ 无任何成文依据** | ⛔ 没有任何一条现行法规或标准要求「私域部署」。🔻 ⛔ 反向证据更强：⛔ 中国政务指引（⭐ 比工业更敏感的场景）明确要求用「**已完成网信部门备案的模型产品和服务**」并「**充分利用互联网算力和模型资源**」；⛔ Azure OpenAI 已达 IL6 / Top Secret，⛔ Bedrock 已达 IL5；⛔ OpenAI 提供 ZDR + 区域驻留。⚠️⚠️ ⛔ **且存在一个反直觉的致命反例**：⛔ 若制品已定密为国家秘密，⛔ 企业自建的普通私有服务器**仍是「非涉密信息系统」**，⛔ 照样违反保密法第三十一条(三)——⛔ **涉密场景下「私域部署」本身也不合规**，⭐ 必须是经保密测评审查合格的涉密信息系统 |
 
 ⛔ **给论文的落笔建议**：⭐ 把主张收缩到 **(a)**；⭐ **(b)** 必须加「涉密（军工/航天）分支」限定词；⛔ **(c) 放弃法规论证路径**，⭐ 改用**非法规论据**——⭐ 可控性、可审计性、**可复现性**（⭐ hosted API 存在 provider drift，⛔ 而论文实验需要版本冻结与离线复现）。⭐ 后者与本仓库既有实践直接吻合，⭐ 且**不需要任何法规依据**，⭐ 建议作为主论证。
-
-## 0. 一句话结论
-
-⛔ **Q1 = 无。** 在本轮覆盖的六本功能安全标准中，**没有任何一条条款约束「把需求文档 / 设计模型 / 工作产品交给外部第三方处理」**；⭐ 其中 **IEC 61508-1:2010 §1.2 m) 用逐字条文把「安全策略与安全服务」明确排除出自身范围**，⭐ **ISO/SAE 21434:2021 §1 Scope 用逐字条文声明「本文件不规定与网络安全相关的具体技术或解决方案」**——⭐ 这两条把 Q1 的否定结论从「查不到」升级为「标准自己说了不管」。⚠️ **ISO 26262 Part 8 的 DIA 机制确实是「责任划分」而非「数据驻留」**，⭐ 先验判断被逐字条文证实；⛔ 且 §5.1 c) 的目标恰恰是「identify the **work products to be exchanged**」——⛔ **它是共享制品的授权机制，不是禁止外发的依据**，⛔ 反向引用会被审稿人一击打穿。
-
-⭐ **Q2 = 有，⭐ 而且比预期强——⛔ 但没有一条能推出「必须私域部署」。** ⭐ **确实存在直接管到「把制品交给第三方处理」这个动作的成文条款**，⭐ 且可核验到条款级：⭐ 美国 **NIST SP 800-171 Rev 2 §3.1.20** 的 DISCUSSION 逐字点名 SaaS 云服务；⭐ **DFARS 252.204-7012 (a)** 的 `Technical information` 定义逐字包含 "specifications, standards… engineering data… data sets"，⭐ 即**需求文档与设计模型本身**；⭐ 欧盟 **VDA ISA2027** 逐字把 "AI tools (e.g., AI chatbots, AI agents)" 定义为受控外部 IT 服务；⭐ 中国**保密法第三十一条(三)**禁止用非涉密系统处理国家秘密。
-
-⛔ **但这些条款的形态高度一致：⛔ 它们是「条件性允许 + 合规义务」，⛔ 不是「禁止」。** ⛔ 而且**三层论证强度必须分清**（详见 §0b）：(a)「不能用**未获授权的**商用 LLM 端点」**可立**；(b)「不能用任何第三方公有云 LLM」**仅涉密场景可立**；(c)「必须私域部署」⛔ **明确证伪**——⛔ 国防部自己在 GenAI.mil 上用 Gemini / Grok / ChatGPT 处理 CUI（IL5），⛔ Azure OpenAI 已达 IL6/Top Secret，⛔ 中国政务指引要求「充分利用互联网算力和模型资源」，⛔ 且涉密场景下**私域部署本身也不合规**。
-
-⭐ **档位建议：B。** ⛔ 不是 A——⛔ A 要求「≥1 条成文、可引、且明确覆盖设计阶段制品交给第三方处理」**且** SE 文献里 ≥3 篇承重使用；⭐ 前半条**已满足**（⭐ NIST 3.1.20 / DFARS 7012 / VDA ISA2027 都够格），⛔ 但**后半条不在本路职责内**（⛔ 由 se_motivation_survey 一路判定），⛔ 且这些依据**都无法支撑论文实际想说的那句话（必须私域部署）**。⛔ 也不是 C——⛔ 依据确实存在且可引。⭐ **B 的含义在此处很具体：⭐ 可以写成 motivation，⛔ 但不得让任何 claim 依赖它，⛔ 且必须自陈证据等级与适用边界。**
-
-⚠️⚠️ ⛔ **本路最重要的一条建议**：⛔ 与其把动机挂在法规上（⛔ 挂不住，⛔ 且反证遍地），⭐ 不如挂在**可复现性**上——⭐ hosted API 存在 provider drift，⛔ 而论文实验需要版本冻结与离线复现。⭐ 这条**不需要任何法规依据**，⭐ 与本仓库既有实践直接吻合，⭐ 且审稿人无法用「可是 Azure OpenAI 有 IL6」来反驳。
-
----
 
 ## 1. Q1 · 功能安全标准（逐本）
 
@@ -56,9 +58,11 @@
 | ISO/SAE 21434 | 2021 | §1 Scope | "This document **does not prescribe specific technology or solutions** related to cybersecurity." | ⛔ **不覆盖（标准自陈排除）** | [preview PDF](https://cdn.standards.iteh.ai/samples/iso/iso-sae-21434-2021/d10b253f4fa94db482416f4fc608d83a/iso-sae-21434-2021.pdf) | 🟢 |
 | ISO/SAE 21434 | 2021 | Clause 7（Introduction 描述） | "Clause 7 (Distributed cybersecurity activities) includes requirements for **assigning responsibilities** for cybersecurity activities between customer and supplier." | ⛔ 不覆盖（⭐ 与 26262 DIA 同构：**责任划分**） | 同上 | 🟢 |
 | ISO/IEC TR 5469 | 2024 | §1 Scope 第三项 | "use of AI systems to **design and develop** safety related functions" | ⛔ 不覆盖保密，⭐ **但正面承认本文的使用场景** | [preview PDF](https://cdn.standards.iteh.ai/samples/81283/a480bab0b69c4335986c2b0de971308d/ISO-IEC-TR-5469-2024.pdf) | 🟢 |
-| DO-178C / DO-330 | 2011 | — | 见 §1.6 | 见 §1.6 | 见 §1.6 | 见 §1.6 |
-| EN 50128 / EN 50716 | 2011+A2:2020 / 2023 | — | 见 §1.7 | 见 §1.7 | 见 §1.7 | 见 §1.7 |
-| IEC 62304 | 2006+A1:2015 | — | 见 §1.8 | 见 §1.8 | 见 §1.8 | 见 §1.8 |
+| **IEC 62443-4-1** | 2018 | **§5.9** | `SM-7: Development environment security`（⭐ 目录标题；⛔ 条文付费墙） | ⭐ **唯一邻接命中**（⛔ 条文未核验） | [preview PDF](https://cdn.standards.iteh.ai/samples/21445/5d9b618cf732432b83b4e17e0e7b24cf/IEC-62443-4-1-2018.pdf) | 🟢 目录 / 🔴 条文 |
+| IEC 62443-4-1 | 2018 | §1 Scope | "…process requirements for the secure development of **products used in industrial automation and control systems**… These requirements apply to the **developer and maintainer** of the product, but not to the integrator or user…" | ⭐ 域匹配度最高 | 同上 | 🟢 |
+| DO-178C / DO-330 | 2011 | — | ⛔ **本轮未核验** | ⛔ **未知** | — | ⛔ 未完成（⭐ 见 §1.7-1.8） |
+| EN 50128 / EN 50716 | 2011+A2:2020 / 2023 | — | ⛔ **本轮未核验**（⭐ 仅确认 EN 50716:2023 已取代 EN 50128 与 EN 50657，⭐ 后者 2023-11 撤销，🟡） | ⛔ **未知** | — | ⛔ 未完成（⭐ 见 §1.7-1.8） |
+| IEC 62304 | 2006 (+A1:2015) | 完整目录 Clause 1-9 | 目录中**无**任何保密 / 数据保护 / 第三方数据处理条款 | ⛔ 不覆盖 | [preview PDF](https://cdn.standards.iteh.ai/samples/11630/3af7c2dc38c8489781331a49a001b0ff/IEC-62304-2006.pdf) | 🟢 |
 
 ### 1.2 IEC 61508（通用功能安全）· 结论：⛔ **明确排除，证据等级最高**
 
@@ -102,7 +106,7 @@
 
 ⛔ **但它同样不含数据驻留条款**：完整目录（Clause 1-11 + Annex A-D）中最接近的是 §10.3.5「Protection of the data and parameters」，⛔ 从其所在章节（10.3「Increase the reliability of components containing AI technology」）判断，⛔ 它讨论的是**模型数据与参数的完整性/可靠性**，⛔ 而非「不得把输入数据发给第三方」。⛔ 正文在 preview 之外，⛔ 标 🔴，⛔ **不据标题推断内容**。
 
-### 1.5b IEC 62443-4-1:2018（工控产品安全开发生命周期）· ⭐⭐ **本轮 Q1 族最强的一条，且是顺着 61508 的官方指引找到的**
+### 1.5b IEC 62443-4-1:2018（工控产品安全开发生命周期）· ⭐⭐ **Q1 族唯一的邻接命中，且是顺着 61508 的官方指引找到的**
 
 ⭐ **发现路径本身就是证据链**：IEC 61508-1:2010 §1.2 k) 的 NOTE 5 逐字写「Other IEC/ISO standards address this subject in depth; see ISO/IEC/TR 19791 and **IEC 62443 series**」——⭐ 即 IEC 61508 把安全防护主题**官方外包**给了 IEC 62443。⭐ 顺此线索命中 **IEC 62443-4-1:2018《Security for industrial automation and control systems — Part 4-1: Secure product development lifecycle requirements》**。
 
@@ -126,17 +130,30 @@
 
 来源：[IEC 62443-4-1:2018 preview PDF](https://cdn.standards.iteh.ai/samples/21445/5d9b618cf732432b83b4e17e0e7b24cf/IEC-62443-4-1-2018.pdf)。
 
-### 1.6 DO-178C / DO-330（航空）· ⏳ 待并入
+### 1.6 IEC 62304（医疗器械软件）· 结论：⛔ **无**
 
-⏳ 由并行分组核验中，⛔ 结果回报后并入。⚠️ ⛔ RTCA 文档为付费出版物，⛔ 预期多数条款只能标 🔴 或 🟡。⭐ 预设重点：DO-178C §7（Configuration Management）中的 protection 条款管的是**完整性/防篡改**而非**保密性**，⛔ 需逐条分清；⭐ DO-330 的 TQL 体系与 DO-178C §12.2 是**工具钩子**。
+⭐ **本节由主 session 在并行分组未回报后亲自补做。** IEC 62304:2006 的**完整目录**（⭐ Clause 1 Scope / 2 Normative references / 3 Terms and definitions / 4 General requirements / 5 Software development PROCESS / 6 Software maintenance PROCESS / 7 Software RISK MANAGEMENT PROCESS / 8 Software configuration management PROCESS / 9 Software problem resolution PROCESS + Annexes）**不含任何保密、数据保护或第三方数据处理条款**。⭐ 在 preview 覆盖范围内对 `confidential` / `third part` / `outsourc` / `disclos` / `data protect` 五词检索，⭐ 唯一命中是术语定义中的 "that person or by a third party on that person's behalf"（⭐ 属 `manufacturer` 定义用语），⛔ **与数据外发无关**。
 
-### 1.7 EN 50128 / EN 50716（铁路）· ⏳ 待并入
+⭐ **工具 / 第三方钩子**：⭐ SOUP（Software of Unknown Provenance）机制位于 Clause 5.3（Software ARCHITECTURAL design）项下，⛔ 具体子条编号落在 preview 之外（🔴）。⚠️ ⛔ 但可确认的是：⭐ SOUP 机制的规制对象是**引入的第三方软件组件的已知缺陷与性能**，⛔ **不是把自己的数据交给第三方**——⛔ 二者方向相反，⛔ 不得混引。来源：[IEC 62304:2006 preview PDF](https://cdn.standards.iteh.ai/samples/11630/3af7c2dc38c8489781331a49a001b0ff/IEC-62304-2006.pdf)。
 
-⏳ 由并行分组核验中，⛔ 结果回报后并入。⭐ 需确认 EN 50716:2023 取代 EN 50128 与 EN 50657 的生效/撤销日期。
+### 1.7-1.8 DO-178C / DO-330（航空）、EN 50128 / EN 50716（铁路）· ⛔ **本轮未完成**
 
-### 1.8 IEC 62304（医疗器械软件）· ⏳ 待并入
+⭐ **一项可用的版本事实**（🟡 二手，⛔ 未经 CENELEC 官方页核验）：**EN 50716:2023** 已取代 **EN 50128:2011** 与 **EN 50657:2017**，⭐ 后两者于 **2023 年 11 月撤销**，⭐ 且新标准**保留了 EN 50128 的章节编号**。⛔ 论文若引铁路标准，⛔ **不得继续把 EN 50128 当作现行唯一标准**。
 
-⏳ 由并行分组核验中，⛔ 结果回报后并入。⭐ 预设重点：SOUP 机制管的是**已知缺陷与性能**，⛔ 不是数据保密，⛔ 需逐条分清。
+⛔ **如实记录：这两族的并行核验分组在本轮截止时未回报，⛔ 因此本台账对其条款内容不给出任何结论。** ⛔ **不得**因为 IEC 61508 与 ISO 26262 都查出「无」，⛔ 就把这三本一并推定为「无」——⛔ 那是用先验替代证据，⛔ 正是本目录 [README.md](./README.md) 要求避免的做法。
+
+⭐ **下一轮的预设重点（⛔ 均为待验假设，⛔ 非结论）**：
+
+| 标准 | 待查重点 | ⚠️ 需特别分清的误读风险 |
+| :-- | :-- | :-- |
+| DO-178C（2011-12） | §7 Configuration Management 的 protection 条款；§12.2 Tool Qualification 的判定准则 | ⛔ CM 里的 "protection" 管的是**完整性 / 防未授权修改**，⛔ 大概率**不是保密性**——⛔ 须逐条分清 |
+| DO-330（2011） | TQL（Tool Qualification Level）体系 | ⭐ 这是 LLM 作为工具时的**主要钩子**，⛔ 但与数据去向无关 |
+| DO-326A / ED-202A、DO-356A | 航空适航网络安全过程 | ⭐ 最可能命中的一本，⛔ 本轮完全未查 |
+| EN 50716:2023 | ⭐ 须先确认它取代 EN 50128 / EN 50657 的生效与撤销日期 | ⛔ 不得继续把 EN 50128 当作现行唯一标准 |
+| EN 50128:2011+A2:2020 | Clause 5（Software Management and Organization）中的 supplier / subcontractor 内容；⭐ Clause 6.7 与 Annex A 的 tools | 同上 |
+| IEC 62304:2006+A1:2015 | SOUP 条款（5.3.3 / 5.3.4 / 7.1.2 / 8.1.2）；⭐ 并须确认是否已有 Ed. 2.0 | ⛔ SOUP 管的是**已知缺陷与性能**，⛔ 不是数据保密 |
+
+⚠️ ⛔ **覆盖边界声明**：⭐ 本台账 §0 的「Q1 = 无」这一结论，⛔ **其有效范围仅限于本轮实际核验过的七份标准**（⭐ IEC 61508-1、IEC 61508-3、ISO 26262-2、ISO 26262-6、ISO 26262-8、ISO/SAE 21434、IEC 62304，⭐ 外加 IEC 62443-4-1 与 ISO/IEC TR 5469）。⛔ **不得**表述为「功能安全标准里都没有」，⛔ 只能表述为「**在本轮覆盖的上述标准内未见**」。
 
 ---
 
@@ -423,7 +440,8 @@
 | ISO 26262-2:2018 | 完整目录 + Introduction | `grep` 六词 | ⛔ **无**；⭐ 网络安全仅 Annex E（informative） |
 | ISO/SAE 21434:2021 | Scope + Introduction 逐 Clause 说明 | 逐条读 | ⛔ **明确排除**：§1「不规定具体技术或解决方案」；⭐ Clause 7 = 责任划分 |
 | ISO/IEC TR 5469:2024 | 完整目录 Clause 1-11 + Annex A-D、Scope | 逐条读 | ⛔ **无**数据驻留条款；⭐ 但 Scope 正面涵盖本文场景 |
-| DO-178C / DO-330 / EN 50128 / EN 50716 / IEC 62304 | ⏳ 见 §1.6-§1.8 | ⏳ | ⏳ 并行核验未回报，⛔ **本轮如实标为未完成** |
+| DO-178C / DO-330、EN 50128 / EN 50716 | ⛔ 见 §1.7-1.8 | ⛔ 并行核验未回报 | ⛔ **本轮如实标为未完成** |
+| IEC 62304:2006 | 完整目录 Clause 1-9 | ⭐ 主 session 补做：`grep` 五词 + 逐条读目录 | ⛔ **无**（⭐ 唯一 `third party` 命中属 `manufacturer` 定义用语） |
 
 ### 3.2 Q2 各族 · ⛔ 明确的否定项
 
@@ -493,7 +511,30 @@ grep -ni "confidential\|proprietar\|third part\|data protect\|disclos" /tmp/iso2
 
 ### 4.2 Q2 检索链路
 
-⏳ 待并行分组回报后补全。
+| 族 | 主入口（⭐ 均为免费公开全文） | 抓取方式 | 命中 |
+| :-- | :-- | :-- | :-- |
+| 美国出口管制 | `ecfr.gov` 官方 renderer API | `curl` + HTML 剥标签 + 定位条款 | ⭐ ITAR §120.54(a)(5)/(b)(1)(ii)/(b)(2)/(c)；⭐ EAR §734.18(a)(5)/(b)/(c) |
+| 美国国防供应链 | `acquisition.gov`、`ecfr.gov`（32 CFR 170 / 48 CFR 252）、`nvlpubs.nist.gov`、`archives.gov`、`war.gov`、`fedramp.gov` | `curl` + 文本提取 | ⭐ DFARS 7012 (a)/(b)(1)/(b)(2)(i)/(b)(2)(ii)(D)、7021(d)(2)、7010；⭐ 800-171 R2 3.1.3/3.1.20/3.1.22 + R3 03.01.20；⭐ CMMC 170.2/170.16/170.19；⭐ CUI Registry CTI；⭐ 800-53 SA-9 |
+| 中国 | `npc.gov.cn`、`gov.cn`、`cac.gov.cn`、`mofcom.gov.cn`、`most.gov.cn`、`gjbmj.gov.cn`、`moj.gov.cn` | `curl` + 多编码解码 + 条号定位；⭐ 目录 PDF 走 `pdf_extractor` | ⭐ 保密法 29/30/31/64；⭐ 数安法 21/31/36；⭐ 11 号令 4/5；⭐ 16 号令 2/3/7；⭐ 790 号令 37/62；⭐ 网安法 39；⭐ 出口管制法 2/4/12；⭐ 目录 203912X |
+| 欧盟 | `eur-lex.europa.eu`（CELEX 全文 HTML） | 抓取 + 条款定位 | ⭐ GDPR 2/4/28/44-49；⭐ Data Act 32/23/4/5；⭐ AI Act 2/6/25/78；⭐ TSD 2(1)/4(3)(b)；⭐ UN R155/R156（OJ 转载） |
+| TISAX / VDA ISA | `portal.enx.com` 官方 XLSX | ⭐ 下载 `isa6-en.xlsx` 与 `isa2027-en.xlsx`，⭐ 解 `sharedStrings.xml` 逐格比对 | ⭐ Glossary AI 词条；⭐ 1.3.3 / 5.1.2 / 5.3.4 / 6.1.1 / 6.1.2；⭐ Handbook 2.8 §4.3.3 |
+| 厂商合规实况 | `openai.com`、`support.claude.com`、`aws.amazon.com`、`learn.microsoft.com`、`devblogs.microsoft.com`、`fedramp.gov/marketplace` | WebFetch / WebSearch + 官方页核对 | ⭐ ZDR / EU 驻留；⭐ Bedrock IL5；⭐ Azure OpenAI IL4/5WI/IL6；⭐ OpenAI 20x Class C |
+
+⭐ **机械对拍范例**（⭐ TISAX AI 词条为 ISA2027 新增的证明）：⭐ 对两份官方 XLSX 的 `sharedStrings.xml` 全文件检索 `AI` / `artificial intelligence` / `machine learning` / `LLM`——⭐ `isa6-en.xlsx` **命中 0**，⭐ `isa2027-en.xlsx` **命中 1**（⭐ 即 Glossary `Cloud/external IT service` 词条）。
+
+### 4.3 ⭐ 主 session 亲自复核的条款（⛔ 依仓库 §3.8 与「机械代理只能定位不能裁定」）
+
+⛔ **凡承重结论所依赖的条文，⛔ 均不采信代理转述，⛔ 由主 session 重新抓原文逐字核对**：
+
+| 条款 | 复核方式 | 结果 |
+| :-- | :-- | :-- |
+| EAR 15 CFR §734.18(a)(5)/(b) | `curl` eCFR API | ✅ 与转述一致 |
+| ITAR 22 CFR §120.54(a)(5)/(b)(1)/(b)(2)/(c) | `curl` eCFR API | ✅ 一致；⚠️ ⛔ 但代理称定义在 `§120.55`——⛔ **实为 §120.54(b)(1)**，⛔ 已更正 |
+| DFARS 252.204-7012 (a)/(b)(2)(ii)(D) | `curl` acquisition.gov | ✅ 一致 |
+| NIST SP 800-171 Rev 2 §3.1.3 / §3.1.20 | ⭐ 下载官方 PDF 提取 | ✅ 一致 |
+| 保密法（2024）第 29/30/31/64 条 | `curl` npc.gov.cn | ✅ 一致；⭐ 并确认第六十五条施行日期 |
+| 中国禁止/限制出口技术目录 `203912X` | ⭐ 下载官方 PDF 提取 + `grep` | ⚠️ ⛔ **两代理结论相反，⭐ 已裁定**（⭐ 见 §2.1b） |
+| Anthropic「ITAR data … via AWS Bedrock」 | WebFetch 官方支持页 | ✅ 一致；⛔ **推翻了本台账早先版本对 §2.1 的过强表述**，⛔ 已就地更正 |
 
 ---
 
@@ -509,5 +550,20 @@ grep -ni "confidential\|proprietar\|third part\|data protect\|disclos" /tmp/iso2
 | ISO/IEC TR 5469:2024 §10.3.5 正文 | ⛔ 落在 preview 范围外 | 🔴，⛔ **不据标题推断内容** |
 | IEC 61508-3 全文词频 | ⛔ preview 仅 15 页 | ⛔ 结论只表述为「**完整目录**中无此类条款」，⛔ 不表述为「全文无此词」 |
 | prEN IEC 61508-1:2025 | ⭐ 第三版制定中，⛔ 未核验其是否新增安全防护条款 | ⏳ 待核验 |
-| DO-178C / DO-330 / EN 50128 / EN 50716 / IEC 62304 | ⏳ 并行核验中 | ⏳ |
-| Q2 全族 | ⏳ 并行核验中 | ⏳ |
+| **DO-178C / DO-330、EN 50128 / EN 50716** | ⛔ **本轮未完成**：⛔ 并行核验分组在截止时未回报 | ⛔ **如实标为未完成**，⛔ 不得据先验填写。⭐ 见 §1.7-1.8 |
+| IEC 62304 SOUP 子条编号（5.3.x / 7.x / 8.x） | ⛔ preview 范围外 | 🔴，⛔ 仅确认 SOUP 位于 Clause 5.3 项下 |
+| ISO 26262-8 §5.4.3（DIA 内容 11 项） | ⛔ preview 范围外 | 🔴 |
+| ISO/SAE 21434 Clause 7 正文 + Annex C（CIA 内容） | ⛔ preview 范围外 | 🔴 |
+| ISO/IEC TR 5469 §10.3.5 正文 | ⛔ preview 范围外 | 🔴 |
+| IEC 62443-4-1 §5.9（SM-7）条文 | ⛔ 付费墙 | 🔴，⛔ 仅目录标题 🟢 |
+| GB/T 22239-2019 全部条款号 | ⛔ openstd 官方预览为 JS 页面；⛔ 政府副本为无文本层扫描件；⛔ 本机无 OCR | 🟡，⚠️ ⛔ **正式引用前必须人工在 openstd 复核** |
+| DoD CIO FedRAMP Moderate Equivalency 备忘录 | ⛔ Akamai WAF 403 | 🟡（⭐ 有 NDIA 公开简报佐证） |
+| Class Deviation 2024-O0013 Rev.1 | ⛔ acq.osd.mil 超时 | 🟡（⭐ 与 32 CFR 170.2 的 IBR 🟢 互证） |
+| DoDI 5230.24 / DoDI 5200.48 | ⛔ esd.whs.mil Akamai WAF 403 | 🔴，⭐ 其角色由 DFARS 7012(a) 与 NARA Registry 两处 🟢 互证 |
+| 两用物项出口管制清单 700 余项具体条目 | ⛔ 仅核验「清单说明」第 1-6 页 | 🔴 |
+| 2023 年目录中航空航天 / 轨道交通相关条目的穷举 | ⛔ 仅确认无人机飞控（`203912X`）一处形态 | 🔴 |
+| 各行业「重要数据」具体目录 | ⛔ 须按工信 / 能源 / 交通分别查证 | 🔴 |
+| ITAR §120.17 / EAR §734.15（release / deemed export 一般规则） | ⛔ 本轮未展开 | 🔴，⚠️ ⛔ §2.1 的「回落到一般规则评估」这一步**未逐条核验** |
+| 各军种 CIO 生成式 AI 备忘录（Army 2024-06、DON） | ⛔ doncio.navy.mil 连接超时 | 🔴 |
+| OpenAI ChatGPT Gov / trust center | ⛔ Cloudflare 403 | 🔴 |
+| 中国《保密法》2010 版旧条号 | ⛔ 本轮未核验（⛔ 任务假设为第二十五条） | ⚪ |
