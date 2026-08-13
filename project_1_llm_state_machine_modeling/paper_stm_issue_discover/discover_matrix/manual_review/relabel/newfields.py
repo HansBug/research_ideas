@@ -322,18 +322,11 @@ def primary_predicate_counts():
                    if r.get("primary_predicate"))
 
 
-def layer_basis_table():
-    """台账里每个 `layer` 对应的 `layer_basis` 原话。这就是台账分层判据的真源。"""
-    out = {}
-    for r in S.ledger_records(reportable_only=True):
-        out.setdefault(r["layer"], r["layer_basis"])
-    return out
-
-
-#: 台账四层里**按其 `layer_basis` 原话确实要求 NL 逐字依据**的两层。
-#: 只被 [sources.py](./sources.py) 的风险标记用来读**既有**台账记录 ——
-#: 新增登记块没有 `layer` 字段，故校验器不再引用它。
-NL_GROUNDED_LAYERS = ("nl_named", "nl_contradiction")
+# ⛔ 2026-08-13 一并删除：`layer_basis_table()` 与 `NL_GROUNDED_LAYERS`。
+# 两者的**唯一**消费者是 [sources.py](./sources.py) 的 `risk_flags`，
+# 而那两条标记（逐条印出该记录的 `layer` 与 `layer_basis` 原话、催判读者补 `nl_evidence`）
+# 随工作单 §2 剥掉十项旧元数据一起删了。
+# ⛔ 留着不用的常量比删干净更糟：下一个人会以为那一栏还印着。
 
 LAYERS = list(S.LAYERS)
 

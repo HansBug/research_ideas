@@ -292,28 +292,37 @@ _RE_PROJECTION_ARTIFACT = re.compile(
 
 
 def _narrative(rec):
-    parts = [rec.get("statement") or "", rec.get("generated_side") or "",
-             rec.get("reference_side") or "", rec.get("layer_basis") or ""]
-    for a in rec.get("assertions") or []:
-        parts += [str(a.get("expression") or ""), str(a.get("context") or ""),
-                  str(a.get("rewrote_from") or "")]
-    return " ".join(parts)
+    """风险标记的判据文本。
+
+    ⛔ **只读工作单 §2 仍然印出来的那几项**（`statement` + 参考侧 / 生成侧）。
+    2026-08-13 之前它还读 `layer_basis` 与全部断言表达式 —— 那些字段现在不再呈现，
+    ⚠️ 继续读它们会让标记**无法被判读者核对**：页面上找不到触发它的那句话，
+    于是提示只能被当成「系统说的」照单全收，而这恰恰是自动标记最该避免的用法。
+    """
+    return " ".join([rec.get("statement") or "",
+                     rec.get("generated_side") or "",
+                     rec.get("reference_side") or ""])
 
 
 def risk_flags(rec):
-    """自动风险标记。⛔ 这些是**提示**，不是裁决 —— 打了标记不等于该条不成立。"""
+    """自动风险标记。⛔ 这些是**提示**，不是裁决 —— 打了标记不等于该条不成立。
+
+    ⛔⛔ **判据只许读工作单 §2 仍然印出来的字段。** 2026-08-13 的剥旧元数据一轮里，
+    读已隐藏字段的五类标记整体删除：`lexical`（读 `decided_by`）、`no_primary`
+    （读 `primary_predicate`）、`no_assertion`（读断言组）、`no_nl_evidence`
+    （读 `layer` + `nl_evidence`）、以及 `replay`（读 `replay`）。
+
+    ⚠️ 其中 `replay` 那条最要紧：它把流水线的复算结论**逐字印在裁决块正上方**
+    （「主断言未被复算确认」）。判读者要独立判这一条成不成立，而这句话先一步告诉他
+    流水线怎么判的 —— 那是锚定，不是提示。⛔ 剩下四类的问题同类但轻一些：
+    它们援引页面上已经看不到的字段，判读者无从核对。
+    """
     flags = []
-    if rec.get("decided_by") == "lexical":
-        flags.append((
-            "lexical",
-            "只过正则未二读 —— `decided_by = lexical`，该条从未经过 NL 复读或有害性检验，"
-            "分层依据只有词法匹配。",
-        ))
     nar = _narrative(rec)
     if _RE_PROJECTION_STRONG.search(nar):
         flags.append((
             "projection_named",
-            "读了投影 —— statement / 断言里直接提到 fcstm 或「投影」。"
+            "读了投影 —— statement 或证据行里直接提到 fcstm 或「投影」。"
             "投影是本仓库的 `plantuml_source_lowering.py`，它会合成作者从未写过的元素；"
             "请核对该条主张在**作者源 PlantUML** 上是否同样成立。",
         ))
@@ -324,79 +333,15 @@ def risk_flags(rec):
             "（`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken` / `_GaStep*`）。"
             "作者源里没有这些元素，请核对主张在作者源上如何表述。",
         ))
-    if not rec.get("primary_predicate"):
-        flags.append((
-            "no_primary",
-            "不可分层 —— 无 `primary_predicate`，该条没有可执行的主断言，"
-            "命中判定只能靠人读。",
-        ))
-    if not (rec.get("assertions") or []):
-        flags.append(("no_assertion", "无任何断言表达式。"))
-    # ⚠️ 这个标记只对**按台账自己的 `layer_basis` 定义确实要求 NL 逐字依据**的两层生效。
-    # ⛔ 2026-08-13 之前它写作 `layer != "wellformedness"`，于是把 `over_specification`
-    # 一并标了出来 —— 而那一层的 `layer_basis` 是「生成方凭空多出，且造成可断言的负面后果」，
-    # 一个字都没提 NL，既有 6 条里 5 条 `nl_evidence` 本就为空，⭐ 那是设计如此、不是漏填。
-    # ⛔ 这个标记渲染在裁决块**正上方**，是判读者动笔前读到的最后一句话；与
-    # [validate.py](./validate.py) 的同一道门给出相反教法，会直接把判读结论带偏
-    # （[CLAUDE.md](../../../../../CLAUDE.md) §13 第 2 条）。判据的唯一真源是
-    # `newfields.NL_GROUNDED_LAYERS`，⛔ 不在本文件另抄一份。
-    # ⭐ 延迟导入：`newfields` 在模块级导入本文件，⛔ 顶层 import 会成环。
-    import newfields as _NF
-    if (not (rec.get("nl_evidence") or "").strip()
-            and rec.get("layer") in _NF.NL_GROUNDED_LAYERS):
-        flags.append((
-            "no_nl_evidence",
-            f"`layer = {rec.get('layer')}` 却无 `nl_evidence` —— 这一层的台账定义"
-            f"（「{_NF.layer_basis_table().get(rec.get('layer'))}」）要求 NL 逐字依据。"
-            "依据多半躺在 `statement` 正文里没抄进字段，重标时补上段 id 即可。"
-            "仅 `nl_named` / `nl_contradiction` 会被标；"
-            "`wellformedness` 与 `over_specification` 两层**不要求** NL 依据，"
-            "它们的 `nl_evidence` 为空是设计如此，不是漏填。",
-        ))
     if rec.get("boundary_ruling"):
         flags.append((
             "boundary",
             f"已有边界裁定 `{rec.get('boundary_ruling')}`："
             f"{rec.get('boundary_rationale') or '（无理由记录）'}",
         ))
-    if (rec.get("replay") or {}).get("verdict") not in ("captured",):
-        flags.append((
-            "replay",
-            f"replay 状态为 `{(rec.get('replay') or {}).get('verdict')}`"
-            f"（value = {(rec.get('replay') or {}).get('value')}）—— 主断言未被复算确认。",
-        ))
     if rec.get("pending_statement_rewrite"):
         flags.append(("pending_rewrite", "该条 statement 已被登记为待重写。"))
     return flags
-
-
-def shallow_hint(rec):
-    """「可能偏浅」的机械提示。不是裁决 —— 判读者仍要自己判这一条成不成立、够不够深。
-
-    判据只看**断言形状**，不看内容：单个存在性谓词、单元素、无佐证断言 → 提示可能偏浅。
-
-    ⚠️ 2026-08-13 由 `depth_hint` 更名：工作单的 `depth`（表层 / 中层 / 深层）字段
-    已删除，旧名会让人以为这里在提示该往那个字段里填什么。它提示的是**台账这一条**
-    可能只说到「某元素不存在」而没说到「因此运行时会怎样」。
-    """
-    prim = rec.get("primary_predicate")
-    existence = {"state_declared", "event_declared", "variable_declared",
-                 "effect_declared", "action_declared", "edge_declared", "containment"}
-    n_assert = len(rec.get("assertions") or [])
-    elems = set()
-    for a in rec.get("assertions") or []:
-        elems |= set(a.get("elements") or [])
-    reasons = []
-    if prim in existence:
-        reasons.append(f"主谓词 `{prim}` 属存在性 / 声明类")
-    if n_assert <= 1:
-        reasons.append(f"断言数 {n_assert}（无佐证）")
-    if len(elems) <= 1:
-        reasons.append(f"点名元素 {len(elems)} 个")
-    if not rec.get("has_negative_control"):
-        reasons.append("无负控")
-    shallow = prim in existence and n_assert <= 1
-    return shallow, reasons
 
 
 # ---------------------------------------------------------------- 审阅 diff
@@ -440,6 +385,37 @@ def unadopted_diffs(pair):
 
 def adopted_diff_ids(pair):
     return _ledger_diff_index().get(f"{pair}-review.json", {})
+
+
+#: `gen` 字段**逐字否认作者制品在该处有东西**的两种写法。
+#: ⛔ 判据只认这两种字面形态，⛔ 不做语义推断 —— 见 `denies_artifact_defect()`。
+_GEN_DENIAL_DASHES = ("—", "-", "", "无")
+_GEN_DENIAL_PHRASE = "不可能生成"
+
+
+def denies_artifact_defect(diff):
+    """这条审阅 diff 的 `gen` 字段是不是**逐字否认作者制品在该处有问题**？
+
+    ⚠️⚠️ **这类记录与其余候选不是同一个物种，⛔ §3 必须把它们分出来单列。**
+
+    座标系的判定测试全部锚在**作者源 PlantUML** 上（类型学 §3.0）。而这一类记录的
+    `gen` 侧写的是「—」或「(不可能生成)」，即逐字声明**作者制品在该处什么都没有、
+    也不该有**；它真正主张的是**参考模型 / 真值的有效性**（「参考侧含 NL 推不出的内容，
+    任何 LLM 都无法复现却会计入 FN」），⛔ 不是一种缺陷形态。这类在制品内指不出任何
+    一处，卡在轴 0。
+
+    ⛔⛔ **所以它们不得被拿去当「新座标系覆盖不到」的证据。** 座标系没覆盖到它们是
+    因为它们本来就不在座标系要描述的对象集合里 —— ⛔ 那不是缺口。⭐ 真缺口只有一处，
+    见 [candidate_mapping.py](./candidate_mapping.py) 的 `BLOCKERS` 说明。
+
+    判据是**字面**的，故可被读者在页面上自行核对（渲染出来的「生成侧：—」那一行就是
+    依据）：`gen` 去空白后为破折号 / 空 / 「无」，或含「不可能生成」。
+    ⛔ 刻意**不**做语义推断 —— 相邻还有一族 `gen` 写「(生成方在第 2、4 句优于参考)」
+    的记录（全语料 5 条），它们同样不指认制品缺陷，⚠️ 但「优于参考」是一句**相对评价**
+    而非否认，字面判据吃不进来，故本函数**不收**它们；要处理那一族需要另立判据。
+    """
+    gen = (diff.get("gen") or "").strip()
+    return gen in _GEN_DENIAL_DASHES or _GEN_DENIAL_PHRASE in gen
 
 
 # ---------------------------------------------------------------- 多报侧裁定

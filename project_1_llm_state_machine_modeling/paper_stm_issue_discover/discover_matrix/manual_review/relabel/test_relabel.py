@@ -35,8 +35,10 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import candidate_mapping as CM  # noqa: E402
 import collect as C            # noqa: E402
 import fillblocks as fb        # noqa: E402
+import ledger_mapping as LM    # noqa: E402
 import newfields as NF         # noqa: E402
 import nl_zh                   # noqa: E402
 import sources as S            # noqa: E402
@@ -2038,18 +2040,21 @@ def test_worksheets_stay_under_the_line_budget():
     | :-- | --: | --: | :-- |
     | 早期 | 620 | 596 | 自包含：NL 原文译文 + 五个勾选字段全部取值 + 19 谓词搬进来 |
     | 2026-08-13 | 605 | 588 | 三处清理（删前言 / 删结构摘要 / 加「怎么填」），档跟着收 |
-    | 本轮 | **650** | **616** | 换成条件式座标系 |
+    | 2026-08-13 | 650 | 616 | 换成条件式座标系：+27 行五个轴取值、+13 行 Dwyer 句式骨架 |
+    | 本轮 | **650**（不动） | **606** | 剥旧元数据（−）与渲染座标映射（+）**大致相抵** |
 
-    本轮**上调 45 行**，逐条对得上，不是文字长回来了：
+    本轮档位**保持 650 不动**，因为两个方向的量级相当、净效果是中位小幅下降：
 
-    - +27 行：五个轴的每个取值各占表格一行（4 + 7 + 4 + 9 + 3），每行带中文名与判定测试。
-    - +13 行：Dwyer 的 8 个模式 + 5 个作用域，作为 ③ 的句式骨架。
-    - +若干：两支各起一节的小标题、分界提示、已知缺口表。
-    - −若干：旧的五张勾选字段表（`basis` / `scope` / `direction` / `depth` / `layer`）
-      与 19 谓词表整体删除。
+    - **−**：§2 每条台账记录剥掉十项字段行（约 −12 行/条，含表头）与整节断言组
+      （约 −3 至 −7 行/条），每份再删两张图例（断言角色 + 谓词三族，共约 −14 行/份）。
+    - **+**：§2 每条记录、§3 每个候选各加一块座标映射（映射成功约 +12 行，
+      映射不上约 +8 行），全语料 240 块。
 
-    净增 28 行（中位 588 → 616）。档设 650 留出约 5% 余量：够再加一两条取值，
-    但抄回 HOWTO 任何一整节都会立刻突破。反面的下界同样要守：不许瘦到把材料抽走了。
+    中位 616 → 606。⚠️ 档**不跟着下调**：净增量由「该 pair 的候选数减台账条目数」主导，
+    逐份有正有负（实测 −34 至 +45），⛔ 把档收到贴着中位会让候选密集的那几份
+    （如 `0029` 938 行）频繁擦线，⛔ 而它们长是因为**材料本来就多**，不是文字松。
+    上界防「说明性文字借着改版长回来」，⭐ 650 对 606 留约 7% 余量。
+    反面的下界同样要守：不许瘦到把材料抽走了。
     """
     counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
     median = counts[len(counts) // 2]
@@ -2126,81 +2131,421 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
 
 # ==================================================================== 术语英中双写
 
-def test_every_displayed_layer_value_carries_its_chinese_and_its_verbatim_basis():
-    """⭐ `layer` 每一处展示值都必须带**中文名**与**该条自己的 `layer_basis` 逐字原话**。
+#: 2026-08-13 从工作单 §2 剥掉的十项台账旧元数据。
+#: ⛔ 这份清单是下面几条测试的**唯一**真源，⛔ 不在别处另抄。
+STRIPPED_LEDGER_FIELDS = [
+    "layer", "direction", "element_of_M", "decided_by", "primary_predicate",
+    "nl_evidence", "verdict", "replay",
+]
 
-    ⛔ 判据不是「文档里有个 layer 表」，⭐ 而是**逐条**：该 pair 每条台账记录的
-    `layer` 取值都得在它自己那张字段表里写成 `` `wellformedness`（良构性）——判据原话：… ``。
-    ⚠️ 旧版写的是「判据原话见 HOWTO.md §D.4」—— ⛔ 最需要判据的一栏跳得最远。
+
+def test_the_stripped_ledger_metadata_is_gone_everywhere():
+    """⛔⛔ 剥掉的十项 + 两张图例 + 整节断言组，在 54 份里必须**零命中**。
+
+    ⚠️ 为什么这是一条**学术**纪律而不是排版纪律：本轮要判读者回答的是
+    「我们这套框架有没有漏掉东西」。⛔ 那十项里有七项是框架给这一条贴的标签
+    （四层归因、八方向、$M$ 分量、分层判定来源、主谓词……），⛔ 先把它们印在题面上，
+    判读者就只会在既有格子之间挑一个 —— ⛔ 问题被答案定义掉了。
+    ⛔ `verdict` / `replay` 更直接：那是流水线的判定与复算结论，等于标准答案。
+
+    判据分四层，⛔ 缺一层都会留下**静默**的残骸：
+    ① 字段表行（`| \\`layer\\`（归因层） |` 这种）一行都不许剩；
+    ② 两张图例（断言角色、谓词三族）与「**断言组**」小节整体消失；
+    ③ [terms.py](./terms.py) 里服务它们的常量与 helper 必须删干净 ——
+       ⛔ 留一个不用的常量会让下一个人以为那一栏还印着；
+    ④ [sources.py](./sources.py) 的风险标记不许再读它们 ——
+       ⚠️ 标记渲染在裁决块**正上方**，是判读者动笔前读到的最后一句话。
+    """
+    # ① 字段表行：判据钉在**表格单元格**形态上，⛔ 不是全文包含 ——
+    #    台账 statement 原文里就有「layer」「verdict」这类词，那是数据，不该被判成残骸。
+    #
+    # ⚠️ 范围**只到 §2**。⛔ 不能拿去扫全文：`nl_evidence` 仍然是 §5 要判读者**自己填**
+    # 的一个字段（它出现在填写模板与 §B.4 说明里）。⭐ 本轮删的是「把台账那一条**已经
+    # 填好的** `nl_evidence` 印给判读者看」，⛔ 不是把这个字段从新增登记块里拿掉 ——
+    # ⚠️ 两件事同名但相反，混起来会把 §5 的必填项一起误删。
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        sec2 = _section(doc, "## §2 ", "## §3 ")
+        for name in STRIPPED_LEDGER_FIELDS:
+            assert not re.search(rf"^\|\s*`{re.escape(name)}`", sec2, re.M), \
+                f"{pair}.md 的 §2 还留着 `{name}` 的字段表行"
+        for gone in ("| 同质组 |", "| 上游 |"):
+            assert gone not in sec2, f"{pair}.md 的 §2 还留着 `{gone}`"
+
+    # ② 两张图例与断言组小节
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for gone in ("**断言组**", "**断言组的四个角色**", "**谓词三族**",
+                     "应有实测值", "无任何断言表达式"):
+            assert gone not in doc, f"{pair}.md 还留着「{gone}」"
+
+    # ③ terms.py：常量与 helper 都不许剩
+    for gone in ("LAYER_ZH", "ELEMENT_ZH", "DECIDED_BY_ZH", "VERDICT_ZH", "REPLAY_ZH",
+                 "ROLE_ZH", "FAMILY_ZH", "PREDICATE_ZH", "DIRECTION_MEANING",
+                 "DIRECTION_ZH", "DIRECTION_WHAT", "FIELD_ZH",
+                 "layer_cell", "direction_cell", "element_cell", "decided_by_cell",
+                 "predicate_cell", "verdict_cell", "role_label", "family_label"):
+        assert not hasattr(T, gone), f"`terms.{gone}` 还在 —— 它服务的那一栏已经不印了"
+    # 生成器也不许再引用它们
+    gen_src = _read(os.path.join(HERE, "generate.py"))
+    for gone in ("T.layer_cell", "T.direction_cell", "T.element_cell",
+                 "T.decided_by_cell", "T.predicate_cell", "T.verdict_cell",
+                 "T.role_label", "T.family_label", "T.FIELD_ZH", "_fmt_assertions"):
+        assert gone not in gen_src, f"generate.py 还在调用 `{gone}`"
+
+    # ④ 风险标记：既不许读隐藏字段，也不许在文案里提它们
+    src = _read(os.path.join(HERE, "sources.py"))
+    body = src[src.index("def risk_flags"):src.index("def review_json")]
+    for name in STRIPPED_LEDGER_FIELDS + ["assertions", "has_negative_control"]:
+        assert f'rec.get("{name}")' not in body, \
+            f"risk_flags 还从记录里读 `{name}` —— 那一栏判读者已经看不到了"
+    assert not hasattr(S, "shallow_hint"), \
+        "`sources.shallow_hint` 还在 —— 它的四条理由全部援引已隐藏字段"
+    for gone in ("NL_GROUNDED_LAYERS", "layer_basis_table"):
+        assert not hasattr(NF, gone), f"`newfields.{gone}` 还在 —— 唯一消费者已删"
+
+    # 落地复核：真跑一遍 `risk_flags`，⛔ 结果文案里不许出现那些字段名
+    for pair in S.IN_SCOPE_PAIRS:
+        for rec in S.ledger_records(pair):
+            for _, msg in S.risk_flags(rec):
+                for name in ("primary_predicate", "decided_by", "nl_evidence", "replay"):
+                    assert name not in msg, \
+                        f"{rec['id']} 的风险标记文案还在提 `{name}`：{msg[:60]}"
+
+
+def test_every_mapped_axis_value_is_written_in_both_languages():
+    """⭐ §2 / §3 里印出来的每一个座标取值都必须 `english（中文）`，⛔ 不许留裸标识符。
+
+    ⚠️ 这是上面两条被删测试留下的职责：旧字段不印了，⛔ 但**新座标的取值仍然要印**，
+    ⛔ 而「判读者看到一串裸英文标识符不知道它什么意思」这个问题原样还在。
+    判据是**逐条逐轴**比对渲染出的单元格，⛔ 不是「文档里能搜到某个中文词」——
+    ⚠️ 后者会被别处偶然出现的同一个词蒙过去。
     """
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
-        assert "判据原话见" not in doc, f"{pair}.md 还留着「判据原话见 …」的跳转"
+        recs = [(r["id"], LM.for_record(r["id"])) for r in S.ledger_records(pair)]
+        recs += [(k, CM.for_candidate(k)) for k, v in CM.candidate_index().items()
+                 if v["pair"] == pair]
+        for key, m in recs:
+            if not m or not m.get("mappable"):
+                continue
+            for axis in CM.AXES:
+                val = m.get(axis)
+                if not val:
+                    continue
+                cell = f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |"
+                assert "仓库未定义" not in cell, f"{key} 的 {axis} 取值没有中文名"
+                assert cell in doc, f"{key} 的 {axis} 没按英中双写渲染：{cell}"
+
+
+# ==================================================================== 座标映射
+#
+# ⭐ 本组钉住 2026-08-13 新增的两份映射（台账 99 条 + 候选 141 条 = 240 个对象）。
+# ⚠️ 这批映射是**一次大规模判定**，⛔ 若它只存在于渲染结果里，事后既无法复核也无法重算。
+
+
+def _section(doc, start, end):
+    """截出 `start` 到 `end` 之间的一段正文。⛔ 找不到 `start` 就是调用方写错了标题。"""
+    i = doc.index(start)
+    j = doc.find(end, i)
+    return doc[i:] if j < 0 else doc[i:j]
+
+
+def _all_mappings():
+    """`{对象 id: (映射记录, 它属于哪个 pair)}` —— 240 个对象一份不落。"""
+    out = {}
+    for pair in S.IN_SCOPE_PAIRS:
         for rec in S.ledger_records(pair):
-            want = T.layer_cell(rec)
-            assert "⛔ 该取值的中文名仓库未定义" not in want, \
-                f"{rec['id']} 的 layer `{rec.get('layer')}` 没有中文名"
-            assert want in doc, f"{rec['id']} 的 layer 单元格没按英中双写 + 判据原话渲染"
-            assert (rec.get("layer_basis") or "") in doc, \
-                f"{rec['id']} 的 `layer_basis` 原话没进工作单"
+            out[rec["id"]] = (LM.for_record(rec["id"]), pair)
+    for key, meta in CM.candidate_index().items():
+        out[key] = (CM.for_candidate(key), meta["pair"])
+    return out
 
 
-def test_every_displayed_enum_value_is_written_in_both_languages():
-    """⭐ §2 字段表里的 `direction` / `element_of_M` / `decided_by` / `primary_predicate` /
-    `verdict` / `replay` 展示值一律 `english（中文）`，⛔ 不许留裸英文标识符。
+def test_all_240_objects_have_a_mapping_or_an_explicit_refusal():
+    """⭐ 台账 99 + 候选 141 = **240** 个对象，每一个都得有取值或明确的「映射不上」。
 
-    ⛔ 判据是**逐条逐字段**比对 [terms.py](./terms.py) 渲染出的单元格，
-    ⭐ 而不是「文档里能搜到某个中文词」——⚠️ 后者会被别处偶然出现的同一个词蒙过去。
+    ⛔ 不许有第三种状态。⚠️ 缺一条的后果是**静默**的：工作单会照常渲染出一个空白格，
+    而判读者没法分辨「我们判过但判不出来」与「我们压根没判」——
+    ⭐ 前者是有价值的数据（它度量新座标系对现有材料的覆盖度），后者是漏工。
+    """
+    led, cand = LM.stats(), CM.stats()
+    assert led["total"] == 99, f"台账映射 {led['total']} 条，应为 99"
+    assert cand["total"] == 141, f"候选映射 {cand['total']} 条，应为 141"
+    assert led["mapped"] + led["unmapped"] == 99
+    assert cand["mapped"] + cand["unmapped"] == 141
+    for key, (m, _pair) in _all_mappings().items():
+        assert m is not None, f"{key} 没有映射记录"
+        assert isinstance(m.get("mappable"), bool), f"{key} 的 `mappable` 不是布尔"
+        assert (m.get("evidence") or "").strip(), f"{key} 没给逐字依据"
+
+
+def test_the_candidate_index_matches_what_the_worksheets_render():
+    """⛔ `candidate_mapping.candidate_index()` 的 key 必须与 54 份工作单**真渲染出来**
+    的候选块 key 逐一相等。
+
+    ⚠️ 这一条把两套编号规则钉在一起。⛔ 否则映射文件按一套规则枚举、生成器按另一套渲染，
+    两边各自「完整」，⭐ 而对不上的那些格会安静地空着 —— 没有任何一条断言会红。
+    """
+    rendered = set()
+    for pair in S.IN_SCOPE_PAIRS:
+        for key, _body in fb.extract(_read(_ws(pair))).items():
+            if key.split("-")[0] in ("VU", "DIFF", "UM"):
+                rendered.add(key)
+    indexed = set(CM.candidate_index())
+    assert rendered == indexed, (
+        f"只在工作单里：{sorted(rendered - indexed)[:5]}；"
+        f"只在索引里：{sorted(indexed - rendered)[:5]}")
+    assert len(indexed) == 141, f"候选 {len(indexed)} 个，应为 141"
+
+
+def test_every_rendered_mapping_matches_the_mapping_file():
+    """⛔⛔ 映射文件与渲染结果**逐块机械对拍** —— 240 个对象一个不漏。
+
+    ⚠️ 这是「映射真的印上去了」的唯一硬保障。⭐ 判据分两面：
+    ① 文件里说有取值的，渲染结果里必须逐轴出现那一行；
+    ② 文件里说映射不上的，渲染结果里必须出现卡点抬头**和**那条 `note` 原话。
+
+    ⛔ 第二面不能省：只测 ① 的话，把「映射不上」渲染成一片空白也能全绿，
+    ⚠️ 而那恰恰是最该让判读者看见的一类 —— 「这一条我们也没判出来」本身就是信号。
+    """
+    docs = {p: _read(_ws(p)) for p in S.IN_SCOPE_PAIRS}
+    for key, (m, pair) in _all_mappings().items():
+        doc = docs[pair]
+        if m.get("mappable"):
+            for axis in CM.AXES:
+                val = m.get(axis)
+                if not val:
+                    continue
+                row = f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |"
+                assert row in doc, f"{key} 的 {axis} 没渲染进 {pair}.md：{row}"
+            assert m["evidence"] in doc, f"{key} 的逐字依据没渲染进 {pair}.md"
+        else:
+            zh = CM.BLOCKER_ZH.get(m.get("blocker"))
+            head = f"**我方没能映射**（卡点：{zh[0]}）" if zh else "**我方没能映射**"
+            assert head in doc, f"{key} 的「没能映射」抬头没渲染进 {pair}.md"
+            assert m["note"] in doc, f"{key} 的卡点理由没渲染进 {pair}.md"
+
+
+def test_the_mapping_is_always_marked_as_our_own_inference():
+    """⛔⛔ 每一处映射都必须标明**这是我方推断、判读者的裁决优先**。
+
+    ⚠️ 映射块印在裁决块**正上方**，是判读者动笔前读到的最后一样东西。
+    ⛔ 不写明它是推断，判读者会把它当成已经定下来的分类，
+    于是「裁决」退化成对我方判断的复读 —— ⛔ 而本轮要的恰恰是他独立的那一份。
+
+    ⚠️ 候选侧还要多一层：候选**本身尚未被认定**，映射的是「若它成立属于哪一格」。
+    ⛔ 少这一句，判读者会以为这 141 条已经都是认定过的缺陷了。
     """
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
+        n_ledger = len(S.ledger_records(pair))
+        n_cand = sum(1 for v in CM.candidate_index().values() if v["pair"] == pair)
+        n_map = doc.count("**我方到新座标系的映射（推断，供参考）**")
+        assert n_map == n_ledger + n_cand, \
+            f"{pair}.md 有 {n_ledger + n_cand} 个对象却只有 {n_map} 块映射"
+        assert "你的裁决优先" in doc, f"{pair}.md 的映射块少了「你的裁决优先」"
+        # ⚠️ 两句抬头分属两侧，⛔ 故各自按该侧**真有对象**时才要求 ——
+        # ⛔ 一律要求会在「台账 0 条」的 pair 上误报（如 0001）。
+        if n_ledger:
+            assert "不是已经定下来的事实" in doc, \
+                f"{pair}.md 的台账映射没写明它是推断"
+        if n_cand:
+            assert "**不代表它成立**" in doc, \
+                f"{pair}.md 的候选映射没写明「映射不代表它成立」"
+
+
+def test_the_only_taxonomy_gap_is_orthogonal_regions():
+    """⭐⭐ 240 个对象里，卡在**座标系本身**的只有一处：**正交区域及其数量**。
+
+    ⚠️ 这是本轮最要紧的一条结构性发现，⛔ 也是最容易被读错的一条。
+    `mappable: false` 一共 86 条（台账 4 + 候选 82），⛔ 但其中绝大多数**不是**
+    座标系覆盖不到：
+
+    - `unit_of_record`：一个 id 底下坐着多条异质主张，逐条各自都能落格。
+      ⚠️ `UM-` 前缀尤其如此 —— 一块对应工作单 §3.3 **整张表**（全语料 619 组）。
+    - `not_a_defect_claim`：它根本不主张作者制品有毛病（真值有效性 / 语料元数据 / 来源）。
+
+    ⛔ **只有 `taxonomy` 那一档能算作新座标系的缺口。** 它全部指向同一处：
+    轴 A 的 7 个取值里没有 region，且类型学 §3.7 明写正交区并发语义界外、
+    「不得取为维度取值」。⭐ 而它是由**三批互不通气的判定者**独立撞到的
+    （台账侧 4 条、`DIFF-` 侧 7 条、`UM-` 侧 1 条）—— ⭐ 故它是真缺口，⛔ 不是判读噪声。
+    """
+    assert set(CM.BLOCKERS) == {"unit_of_record", "not_a_defect_claim", "taxonomy"}
+    by_blocker = CM.stats()["by_blocker"]
+    assert "unlabelled" not in by_blocker, \
+        f"有映射不上的候选没标卡点类别：{by_blocker}"
+    # 台账侧的 4 条无法映射，⛔ 全部是同一处缺口
+    led_unmapped = LM.stats()["unmapped_ids"]
+    assert len(led_unmapped) == 4, f"台账映射不上的应为 4 条，实为 {led_unmapped}"
+    for rid in led_unmapped:
+        note = LM.for_record(rid)["note"]
+        assert "region" in note or "区域" in note, \
+            f"{rid} 不是区域缺口，那这条测试的前提就变了：{note[:80]}"
+    # 候选侧的 taxonomy 卡点同样全部是区域缺口
+    tax = [k for k, m in CM.load().items() if m.get("blocker") == "taxonomy"]
+    assert tax, "一条 taxonomy 卡点都没有 —— 分类多半漏标了"
+    for key in tax:
+        note = CM.for_candidate(key)["note"]
+        assert "region" in note or "区域" in note or "正交" in note, \
+            f"{key} 标了座标系卡点却不是区域缺口：{note[:80]}"
+    # ⛔ 反面：登记单位与「不是缺陷主张」两类**不许**被算成座标系缺口
+    assert by_blocker.get("unit_of_record", 0) > by_blocker.get("taxonomy", 0), \
+        "登记单位卡点竟少于座标系卡点 —— 分类口径多半被改错了"
+
+
+def test_the_denial_species_is_separated_from_the_real_candidates():
+    """⭐ `gen` 侧逐字否认作者制品有问题的那一族，§3 必须**单列**并写明它不算覆盖缺口。
+
+    ⚠️ 它们与其余候选不是同一个物种：座标系的判定测试全部锚在**作者源 PlantUML** 上，
+    而这类记录的 `gen` 写的是「—」或「(不可能生成)」，主张的是**参考模型 / 真值的有效性**。
+    ⛔ 它们在制品内指不出任何一处，卡在轴 0。
+
+    ⛔⛔ **所以不得拿它们当「新座标系覆盖不到」的证据** —— 座标系没覆盖到它们，
+    是因为它们本来就不在座标系要描述的对象集合里。⛔ 那不是缺口。
+
+    ⚠️ 判据本身必须是**字面**的，⭐ 这样读者能在页面上自行核对（就是那行「生成侧：—」）；
+    ⛔ 刻意不做语义推断，边界见 `sources.denies_artifact_defect()` 的 docstring。
+    """
+    assert S.denies_artifact_defect({"gen": "—"})
+    assert S.denies_artifact_defect({"gen": "(不可能生成)"})
+    assert S.denies_artifact_defect({"gen": "(任何 LLM 都不可能生成这些阈值)"})
+    # ⛔ 反面：真的指认了制品某处的，不许被误判进来
+    assert not S.denies_artifact_defect({"gen": "ClampingState --> InitialState"})
+    assert not S.denies_artifact_defect({"gen": "（作者模型没有该状态与该边）"})
+    # ⚠️ 「优于参考」那一族字面判据吃不进来，⛔ 这是有意的，别悄悄扩大
+    assert not S.denies_artifact_defect({"gen": "(生成方在第2、4句优于参考)"})
+
+    found = 0
+    for pair in S.IN_SCOPE_PAIRS:
+        denials = [(i, d) for i, d in S.unadopted_diffs(pair)
+                   if d.get("verdict") in ("problem", "extra", "uncertain")
+                   and S.denies_artifact_defect(d)]
+        doc = _read(_ws(pair))
+        if not denials:
+            assert "§3.2a-2" not in doc, f"{pair}.md 无此族却起了 §3.2a-2 一节"
+            continue
+        found += len(denials)
+        assert "§3.2a-2" in doc, f"{pair}.md 有 {len(denials)} 条却没单列"
+        assert "不能**算作「新座标系覆盖不到」" in doc, \
+            f"{pair}.md 的 §3.2a-2 没写明它不算覆盖缺口"
+        for i, _d in denials:
+            key = f"DIFF-{pair}-{i:02d}"
+            head = doc.index("§3.2a-2")
+            assert doc.index(f"##### {key} ") > head, f"{key} 没落在 §3.2a-2 之下"
+    assert found == 12, f"全语料该族应为 12 条，实为 {found}"
+
+
+def test_the_mapping_gates_actually_fire():
+    """⛔ 两份映射的装载期门必须**真的会抛** —— ⚠️ 只测「正常情况能装载」不算。
+
+    ⭐ 最要紧的是 `evidence` 逐字子串那道门：它是防伪造的**唯一**机械手段。
+    ⚠️ 改写过的「依据」看起来同样通顺，⛔ 但它证明不了映射者真的读过原文。
+    """
+    import json as _json
+
+    def _write(tmp, payload):
+        path = os.path.join(tmp, "m.json")
+        with open(path, "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, ensure_ascii=False)
+        return path
+
+    good = dict(CM.for_candidate("VU-0001-01"))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ① 依据不是逐字子串 → 抛
+        bad = dict(good, evidence="我随手编的一句看起来很通顺的依据")
+        with pytest.raises(CM.MappingError, match="逐字子串"):
+            CM.load(_write(tmp, {"mappings": [bad]}))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ② 少了对象 → 抛（⛔ 不许静默留空白格）
+        with pytest.raises(CM.MappingError, match="没有映射"):
+            CM.load(_write(tmp, {"mappings": [good]}))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ③ 走 element 支却给了逻辑轴 → 抛
+        bad = dict(good, defect_locus="element", defect_element="state",
+                   defect_qualifier="missing", defect_logic_kind="unreachable")
+        with pytest.raises(CM.MappingError):
+            CM.load(_write(tmp, {"mappings": [bad]}))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ④ 越枚举 → 抛
+        bad = dict(good, defect_reference="我编的一个取值")
+        with pytest.raises(CM.MappingError, match="不在枚举内"):
+            CM.load(_write(tmp, {"mappings": [bad]}))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ⑤ 标了映射不上却不说卡在哪 → 抛
+        bad = dict(good, mappable=False, note="", defect_locus=None,
+                   defect_element=None, defect_qualifier=None,
+                   defect_logic_kind=None, defect_reference=None)
+        with pytest.raises(CM.MappingError, match="没写卡在哪"):
+            CM.load(_write(tmp, {"mappings": [bad]}))
+    with tempfile.TemporaryDirectory() as tmp:
+        # ⑥ 卡点标签越枚举 → 抛
+        bad = dict(good, mappable=False, blocker="我编的卡点", note="x",
+                   defect_locus=None, defect_element=None, defect_qualifier=None,
+                   defect_logic_kind=None, defect_reference=None)
+        with pytest.raises(CM.MappingError, match="不在"):
+            CM.load(_write(tmp, {"mappings": [bad]}))
+    # 台账侧同一道门
+    led = dict(LM.for_record("EIS-0000-01"))
+    with tempfile.TemporaryDirectory() as tmp:
+        bad = dict(led, evidence="同样是我编的一句依据")
+        with pytest.raises(LM.MappingError, match="逐字子串"):
+            LM.load(_write(tmp, {"mappings": [bad]}))
+
+
+def test_the_mapping_was_not_derived_from_the_old_fields():
+    """⛔ 映射必须是从 `statement` / 描述正文推导的，⛔ 不是拿旧字段机械换算。
+
+    ⚠️ 这条测不了「判定者当时想了什么」，⭐ 但能测一件**必要条件**：
+    若映射是从旧 `direction` / `element_of_M` 机械换算来的，
+    ⛔ 那两者之间会存在一个**函数关系** —— 同一个旧值必然映到同一个新值。
+    ⭐ 实测不存在这种关系，说明至少不是逐一换算出来的。
+
+    ⚠️ 这不是充分条件（⛔ 一份精心伪造的映射照样能通过），
+    ⭐ 真正的防线是 `evidence` 逐字子串那道门 + 判定者输入里**故意不含**旧字段。
+    """
+    by_direction, by_element_of_M = {}, {}
+    collisions = 0
+    for pair in S.IN_SCOPE_PAIRS:
         for rec in S.ledger_records(pair):
-            for label, cell in (
-                ("direction", T.direction_cell(rec.get("direction"))),
-                ("element_of_M", T.element_cell(rec.get("element_of_M"))),
-                ("decided_by", T.decided_by_cell(rec.get("decided_by"))),
-                ("primary_predicate", T.predicate_cell(rec.get("primary_predicate"))),
-                ("verdict/replay", T.verdict_cell(rec)),
-            ):
-                assert "仓库未定义" not in cell, \
-                    f"{rec['id']} 的 {label} 取值在仓库里查不到语义：{cell}"
-                assert cell in doc, f"{rec['id']} 的 {label} 没按英中双写渲染：{cell}"
+            m = LM.for_record(rec["id"])
+            if not m.get("mappable"):
+                continue
+            new = (m.get("defect_element"), m.get("defect_logic_kind"))
+            for old, table in ((rec.get("direction"), by_direction),
+                               (rec.get("element_of_M"), by_element_of_M)):
+                if old is None:
+                    continue
+                if old in table and table[old] != new:
+                    collisions += 1
+                table.setdefault(old, new)
+    assert collisions > 0, (
+        "每个旧 `direction` / `element_of_M` 取值都恰好映到同一个新取值 —— "
+        "这正是「拿旧字段机械换算」会有的形状，⛔ 请复核映射是怎么产生的")
 
 
-def test_element_of_M_uses_the_definition_from_claude_md():
-    """⛔ `element_of_M` 的五个中文名必须与仓库根 `CLAUDE.md` 的定义逐字一致。
+def test_the_element_axis_maps_onto_the_M_from_claude_md():
+    """⛔ 维度 A 到 $M$ 分量的映射，其分量字母必须与仓库根 `CLAUDE.md` 的定义对得上。
 
-    ⚠️ 这一条钉的是**出处**而不是措辞：$M = (S, E, V, Tr, A)$ 里
+    ⚠️ 这一条钉的是**出处**：$M = (S, E, V, Tr, A)$ 里
     S=状态集合 E=事件集合 V=变量集合 Tr=迁移集合 A=动作集合 是 `CLAUDE.md`
-    「核心技术概念」一节写下的，⛔ 不是本目录自己编的。⭐ 谁改了 `terms.ELEMENT_ZH`
-    又没回去改 `CLAUDE.md`，这条会红。
+    「核心技术概念」一节写下的，⛔ 不是本目录自己编的。
+
+    ⚠️ 2026-08-13 由 `test_element_of_M_uses_the_definition_from_claude_md` 改写：
+    原版钉的是 `terms.ELEMENT_ZH`（台账 `element_of_M` 展示值的中文名），
+    ⛔ 而那一栏已经不印了。⭐ 但 `newfields.ELEMENT_TO_M` 仍在
+    `derive()` 里活着，⭐ 所以「分量字母出自 CLAUDE.md」这条出处纪律要接着钉住 ——
+    ⛔ 不能因为展示没了就把出处一起丢掉。
     """
     root = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", ".."))
     claude = _read(os.path.join(root, "CLAUDE.md"))
     for key, zh in (("S", "状态集合"), ("E", "事件集合"), ("V", "变量集合"),
                     ("Tr", "迁移集合"), ("A", "动作集合")):
-        assert T.ELEMENT_ZH[key] == zh
         assert f"{key}={zh}" in claude, f"CLAUDE.md 里找不到 {key}={zh} 这个定义"
-
-
-def test_predicate_chinese_is_a_translation_of_the_official_meaning():
-    """⭐ 19 个谓词的中文必须**逐条挂着官方英文原话**，⛔ 且原话要与谓词目录逐字一致。
-
-    ⛔ 这是「不许自己编中文」的机械化：中文允许是译文，⛔ 但英文原话必须能在
-    `discover/predicates.py` 里逐字找到 —— ⭐ 于是读者可以自行复核译得对不对。
-    """
-    cat = os.path.join(
-        HERE, "..", "..", "..", "pipeline", "feedback_loop", "src",
-        "paper_stm_feedback_loop", "discover", "predicates.py")
-    src = _read(os.path.abspath(cat))
-    assert set(T.PREDICATE_ZH) == set(S.ALL_PREDICATES), \
-        "terms.PREDICATE_ZH 与 sources.ALL_PREDICATES 的谓词集合不一致"
-    for name, (fam, zh, en) in T.PREDICATE_ZH.items():
-        assert fam in ("S", "B", "P")
-        assert zh.strip(), f"{name} 没有中文"
-        # ⭐ 目录里的长 `meaning` 是跨行字面量，⛔ 故按去空白后的子串比
-        flat = re.sub(r'"\s*\n\s*"', "", src)
-        assert en in flat, f"{name} 的英文原话与 predicates.py 对不上：{en}"
+    assert set(NF.ELEMENT_TO_M.values()) <= {"S", "E", "V", "Tr", "A"}, \
+        "ELEMENT_TO_M 映到了 $M$ 之外的分量"
+    assert set(NF.ELEMENT_TO_M) == set(NF.DEFECT_ELEMENTS) - {"other"}, \
+        "维度 A 除 `other` 外每个取值都该有 $M$ 分量"
 
 
 def test_no_relative_link_in_any_generated_md_is_dead():
@@ -2502,24 +2847,29 @@ def test_the_howto_inline_section_stays_short():
         assert n <= 16, f"{pair}.md 的「怎么填」有 {n} 行非空 —— ⛔ 超档"
 
 
-# ⭐ 本轮清理**之前**的那个 commit。⛔ 必须写死，⚠️ 不能用 `HEAD` ——
-# 本轮一旦落成 commit，`HEAD` 就是清理**之后**的状态，⛔ 那条断言会变成拿自己比自己。
-CLEANUP_BASELINE = "b609ee8f"
+# ⭐ 本轮改动**之前**的那个 commit（Part 1 已落地、Part 2 尚未落地）。
+# ⛔ 必须写死，⚠️ 不能用 `HEAD` —— 本轮一旦落成 commit，`HEAD` 就是改动**之后**的状态，
+# ⛔ 那条断言会变成拿自己比自己。
+# ⚠️ 2026-08-13 由 `b609ee8f` 前移到 `d974b1e0`：上一版量的是「换条件式座标系」那一轮，
+# ⛔ 本轮（剥旧元数据 + 渲染映射）与它方向相反，继续拿旧基线量会把两轮的净效果混在一起。
+CLEANUP_BASELINE = "d974b1e0"
 
 
-def test_the_line_count_change_is_accounted_for_pair_by_pair():
-    """行数变化必须**逐份**说得清，不许只看中位。
+def test_the_line_count_change_is_bounded_pair_by_pair():
+    """行数变化必须**逐份**有界，不许只看中位。
 
-    ⚠️ **本轮方向变了，故判据也变了。** 上一轮的净效果是行数下降（删前言 / 删结构摘要），
-    那时钉的是「每一份都必须比基线短」。本轮把 §5 换成条件式座标系，
-    27 个取值 + Dwyer 13 行句式骨架**必然**让每份变长（净 +28 行，见
-    `test_worksheets_stay_under_the_line_budget` 的档位表）——
-    再钉「必须变短」就会逼人把判定测试从工作单里搬走，而那正是自包含要的东西。
+    ⚠️ **本轮的增量是有符号的，故不能再钉一个正区间。** 本轮同时做两件相反的事：
 
-    所以改钉**增量有界且一致**：逐份与基线比，增量必须落在 [+10, +60] 行之间。
-    上界防「说明性文字借着改版长回来」；下界防「某份其实没换成新块」——
-    若某份增量接近 0，说明它的 §5 没被替换（旧模板没被认出来），
-    而那是一种**静默**失败：工作单会永远停在旧字段表上。
+    - **减**：§2 每条台账记录剥掉十项字段行 + 整节断言组，每份再删两张图例（约 −14 行/份）。
+    - **加**：§2 每条记录、§3 每个候选各多一块座标映射（约 +8 至 +14 行/块）。
+
+    ⭐ 于是净增量由 **该 pair 的候选数减台账条目数** 主导，逐份有正有负 ——
+    实测落在 [−34, +45]。所以这一条只负责**防跑飞**（档取 [−60, +70]，约 1.5 倍余量），
+    ⛔ 不再兼职「每份都确实换过了」。
+
+    ⚠️ 那个职责移交给 `test_every_rendered_mapping_matches_the_mapping_file` ——
+    ⭐ 它逐块比对映射文件与渲染结果，比行数区间准得多：
+    ⛔ 行数落在区间内也可能是某份根本没渲染映射、却因为别处多了几行而蒙混过关。
     """
     probe = subprocess.run(["git", "-C", HERE, "cat-file", "-e",
                             f"{CLEANUP_BASELINE}^{{commit}}"], capture_output=True)
@@ -2534,9 +2884,9 @@ def test_the_line_count_change_is_accounted_for_pair_by_pair():
             pytest.skip(f"{rel} 不在基线 commit 里")
         a = len(old.stdout.splitlines())
         b = len(_read(_ws(pair)).splitlines())
-        if not (10 <= b - a <= 60):
+        if not (-60 <= b - a <= 70):
             bad.append(f"{pair}: {a} → {b}（{b - a:+d}）")
-    assert not bad, "这些工作单的增量不在 [+10, +60] 区间：" + "、".join(bad)
+    assert not bad, "这些工作单的增量不在 [−60, +70] 区间：" + "、".join(bad)
 
 
 # ---------------------------------------------------------------- ③b 逐条钉住 parser 行为

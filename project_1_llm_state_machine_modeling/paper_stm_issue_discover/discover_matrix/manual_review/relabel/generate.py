@@ -38,8 +38,10 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import candidate_mapping as CM                      # noqa: E402
 import checklist                                    # noqa: E402
 import fillblocks as fb                             # noqa: E402
+import ledger_mapping as LM                         # noqa: E402
 import newfields as NF                              # noqa: E402
 import nl_zh                                        # noqa: E402
 import sources as S                                 # noqa: E402
@@ -497,22 +499,57 @@ def build_nl_doc(dirname):
 
 # ------------------------------------------------------------------ §2 台账逐条
 
-def _fmt_assertions(rec):
-    out = []
-    for a in rec.get("assertions") or []:
-        role = T.role_label(a.get("role"))
-        expr = a.get("expression")
-        measured = a.get("measured")
-        extra = []
-        if a.get("families"):
-            extra.append("族 " + "/".join(T.family_label(f) for f in a["families"]))
-        if measured is not None:
-            extra.append(f"实测 `{measured}`")
-        if a.get("demoted_because"):
-            extra.append("" + a["demoted_because"])
-        suffix = f"（{'；'.join(extra)}）" if extra else ""
-        out.append(f"  - {role} · `{expr}`{suffix}")
-    return out or ["  - **无任何断言表达式**"]
+#: 映射块的抬头。⛔ 每一处映射都必须带着它 —— 见 `_fmt_mapping()` 的 docstring。
+MAPPING_CAVEAT = (
+    "**我方到新座标系的映射（推断，供参考）** —— "
+    "这是我们读该条正文后自己判的，不是已经定下来的事实。"
+    "你不同意就按你自己的判断填下面的裁决与理由，**你的裁决优先**。"
+)
+
+#: 候选侧映射块的抬头。⚠️ 比台账侧多一层保留：候选本身尚未被认定。
+CANDIDATE_MAPPING_CAVEAT = (
+    "**我方到新座标系的映射（推断，供参考）** —— "
+    "映射的是「**若这条线索成立**，它属于哪一格」，"
+    "**不代表它成立**；它是不是一条真缺陷，正是要你判的。"
+    "你不同意就按你自己的判断填下面的裁决与理由，**你的裁决优先**。"
+)
+
+
+def _fmt_mapping(rec, caveat=MAPPING_CAVEAT):
+    """把一条映射渲染成工作单里的一小节。
+
+    ⛔⛔ **`caveat` 不许省。** 这一整块是**我方推断**，而它印在裁决块正上方 ——
+    判读者动笔前读到的最后一样东西。⚠️ 不写明它是推断，判读者会把它当成已经定下来的
+    分类，于是「裁决」退化成对我方判断的复读，⛔ 而本轮要的恰恰是他独立的那一份。
+
+    映射不上时印出卡点类别与理由原话，⛔ 不留空白：判读者需要知道
+    「这一条我们也没判出来」，⭐ 那本身就是要他重点看的信号。
+    """
+    out = [caveat, ""]
+    if not rec:
+        out += ["（本条尚无映射记录。）", ""]
+        return out
+    if not rec.get("mappable"):
+        blocker = rec.get("blocker")
+        zh = CM.BLOCKER_ZH.get(blocker)
+        head = f"**我方没能映射**（卡点：{zh[0]}）" if zh else "**我方没能映射**"
+        out += [head, "", f"- {esc(rec.get('note'))}", ""]
+        if zh:
+            out += [f"- 这类卡点的含义：{zh[1]}", ""]
+        return out
+    out += ["| 轴 | 我方判的取值 |", "| :-- | :-- |"]
+    for axis in ("defect_locus", "defect_element", "defect_qualifier",
+                 "defect_logic_kind", "defect_reference"):
+        val = rec.get(axis)
+        if not val:
+            continue
+        out.append(f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |")
+    out.append("")
+    out.append(f"- 依据（原文逐字片段）：{esc(rec.get('evidence'))}")
+    if (rec.get("note") or "").strip():
+        out.append(f"- 判定说明：{esc(rec.get('note'))}")
+    out.append("")
+    return out
 
 
 def section_ledger(pair, records, saved):
@@ -534,58 +571,22 @@ def section_ledger(pair, records, saved):
         f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.1）。"
     )
     lines.append("")
-    # ⭐ 展示值的中文与判据**逐条内联**在下面每张字段表里（⛔ 只印该条自己的那一个取值，
-    # ⛔ 不把四层 / 八方向全列一遍）。⚠️ 唯一例外是断言组的**角色**与**族**：它们在同一条
-    # 记录里就要出现四五次，逐处展开会把表撑爆，⭐ 故整份工作单印一次图例。
-    lines.append("**断言组的四个角色**（下面每条记录的「断言组」里会用到）：")
-    lines.append("")
-    lines.append("| 角色 | 应有实测值 | 作用 |")
-    lines.append("| :-- | :-: | :-- |")
-    for role in ("primary", "negative_control", "corroborating", "recovered_unverified"):
-        want = {"primary": "`False`", "negative_control": "**`True`**",
-                "corroborating": "`False` 或 `True`", "recovered_unverified": "—"}[role]
-        lines.append(f"| {T.role_label(role)} | {want} | {T.ROLE_ZH[role][1]} |")
-    lines.append("")
-    lines.append("**谓词三族**（决定一条主张要用什么证据）：")
-    lines.append("")
-    lines.append("| 族 | 它是什么 |")
-    lines.append("| :-- | :-- |")
-    for f in ("S", "B", "P"):
-        lines.append(f"| {T.family_label(f)} | {T.FAMILY_ZH[f][1]} |")
-    lines.append("")
     for rec in records:
         rid = rec["id"]
         keys.append(rid)
         flags = S.risk_flags(rec)
-        shallow, shallow_reasons = S.shallow_hint(rec)
         lines.append(f"### {rid}")
         lines.append("")
-        lines.append("| 字段 | 值 |")
-        lines.append("| :-- | :-- |")
-        # ⭐ **逐条内联该条自己那一个取值的中文名 + 判据原话** —— ⛔ 不再写「判据原话见
-        # HOWTO §D.4」这类跳转：最需要判据的那一栏此前恰恰是跳得最远的一栏。
-        # ⛔ 也**不**在这里把四层 / 八方向 / 六种判定来源全列一遍：这是**已填的展示值**，
-        # ⭐ 判读者要读懂的只有它自己这一个；全列一遍是给「要填的字段」用的（见 §5.2 前的图例）。
-        # ⚠️ `layer` 的判据取该条记录**自己的** `layer_basis`（台账里的分层判据真源），
-        # ⛔ 不从本文件、也不从 HOWTO 抄一份近似表述。
-        lines.append(f"| `layer`（{T.FIELD_ZH['layer']}） | {T.layer_cell(rec)} |")
-        lines.append(f"| `direction`（{T.FIELD_ZH['direction']}） | "
-                     f"{T.direction_cell(rec.get('direction'))} |")
-        lines.append(f"| `element_of_M`（{T.FIELD_ZH['element_of_M']}） | "
-                     f"{T.element_cell(rec.get('element_of_M'))} |")
-        lines.append(f"| `decided_by`（{T.FIELD_ZH['decided_by']}） | "
-                     f"{T.decided_by_cell(rec.get('decided_by'))} |")
-        lines.append(f"| `primary_predicate`（{T.FIELD_ZH['primary_predicate']}） | "
-                     f"{T.predicate_cell(rec.get('primary_predicate'))} |")
-        lines.append(f"| `nl_evidence`（{T.FIELD_ZH['nl_evidence']}） | "
-                     f"{esc(rec.get('nl_evidence')) if (rec.get('nl_evidence') or '').strip() else '空'} |")
-        lines.append(f"| `verdict` / `replay`（{T.FIELD_ZH['verdict']} / "
-                     f"{T.FIELD_ZH['replay']}） | {T.verdict_cell(rec)} |")
-        lines.append(f"| 同质组 | `{rec.get('homogeneity_group')}`（组大小 {rec.get('homogeneity_group_size')}） |")
-        up = rec.get("upstream") or {}
-        lines.append(f"| 上游 | `{up.get('review_file')}` diff #{up.get('diff_index')}"
-                     f"；旧台账 {esc(up.get('ledger_e1_ids_on_this_pair')) if up.get('ledger_e1_ids_on_this_pair') else '无'} |")
-        lines.append("")
+        # ⛔⛔ 这里**只印三样**：statement 原文、参考侧 / 生成侧证据行、以及我方到新座标
+        # 系的映射。2026-08-13 剥掉的十项（`layer` / `direction` / `element_of_M` /
+        # `decided_by` / `primary_predicate` / `nl_evidence` / `verdict` / `replay` /
+        # 同质组 / 上游）与整节断言组都**不再呈现**。
+        #
+        # ⚠️ 剥掉的理由不是嫌长，是**锚定**：那十项里有七项是我们自家框架给这一条贴的标签
+        # （四层归因、八方向、$M$ 分量、分层判定来源、主谓词……），⛔ 而本轮要判读者回答的
+        # 恰恰是「这套框架有没有漏掉东西」。⛔ 先把框架的答案印在题面上，判读者就只会在
+        # 那些格子之间挑一个。⛔ `verdict` / `replay` 更直接：它们是流水线的判定与复算结论，
+        # ⛔ 印出来等于先告诉判读者「标准答案」。
         lines.append("**statement 原文**")
         lines.append("")
         lines.append("> " + (rec.get("statement") or "").replace("\n", "\n> "))
@@ -594,22 +595,12 @@ def section_ledger(pair, records, saved):
             lines.append(f"- 参考侧：{esc(rec.get('reference_side'))}")
             lines.append(f"- 生成侧：{esc(rec.get('generated_side'))}")
             lines.append("")
-        lines.append("**断言组**")
-        lines.append("")
-        lines.extend(_fmt_assertions(rec))
-        lines.append("")
+        lines.extend(_fmt_mapping(LM.for_record(rid)))
         if flags:
             lines.append("**自动风险标记**")
             lines.append("")
             for _, msg in flags:
                 lines.append(f"- {msg}")
-            lines.append("")
-        if shallow:
-            lines.append(
-                "**可能偏浅**：" + "；".join(shallow_reasons)
-                + "。请判它是否只说到了「某元素不存在」而没说到"
-                  "「因此运行时会怎样」。若能加深，走「修正」并写出更强的 statement。"
-            )
             lines.append("")
         lines.append(fb.render(rid, "ledger", fb.LEDGER_TEMPLATE, saved.get(rid)))
         lines.append("")
@@ -677,6 +668,7 @@ def section_candidates(pair, model, records, saved):
                              + "、".join(f"`{m}`" for m in r["members"][:8])
                              + (" …" if len(r["members"]) > 8 else ""))
                 lines.append("")
+            lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
             lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
             lines.append("")
 
@@ -701,33 +693,67 @@ def section_candidates(pair, model, records, saved):
                     if d.get("verdict") in ("problem", "extra", "uncertain")]
         rest = [(i, d) for i, d in unadopted
                 if d.get("verdict") not in ("problem", "extra", "uncertain")]
-        if priority:
-            lines.append(f"#### §3.2a 判为 problem / extra / uncertain 的 {len(priority)} 条（设裁决区）")
+        # ⚠️⚠️ 这两族**不是同一个物种**，⛔ 故分成两节印，⛔ 不混在一张表里。
+        # 判据是字面的、可在页面上自行核对（就是下面那行「生成侧：—」），
+        # 定义与理由见 `sources.denies_artifact_defect()`。
+        claims = [(i, d) for i, d in priority if not S.denies_artifact_defect(d)]
+        denials = [(i, d) for i, d in priority if S.denies_artifact_defect(d)]
+
+        def _render_diff(i, d):
+            key = f"DIFF-{pair}-{i:02d}"
+            keys.append(key)
+            lines.append(f"##### {key} · diff #{i} · `{d.get('verdict')}`")
             lines.append("")
-            for i, d in priority:
-                key = f"DIFF-{pair}-{i:02d}"
-                keys.append(key)
-                lines.append(f"##### {key} · diff #{i} · `{d.get('verdict')}`")
+            lines.append(f"- 参考侧：{esc(d.get('ref'))}")
+            lines.append(f"- 生成侧：{esc(d.get('gen'))}")
+            lines.append("")
+            lines.append("**判定者理由**")
+            lines.append("")
+            lines.append("> " + (d.get("reason") or "").replace("\n", "\n> "))
+            lines.append("")
+            aux = []
+            if d.get("assertable") is not None:
+                aux.append(f"`assertable` = `{d.get('assertable')}`")
+            if d.get("predicate_exists") is not None:
+                aux.append(f"`predicate_exists` = `{d.get('predicate_exists')}`")
+            if d.get("out_of_scope") is not None:
+                aux.append(f"`out_of_scope` = `{d.get('out_of_scope')}`")
+            if aux:
+                lines.append("排除相关字段：" + "；".join(aux))
                 lines.append("")
-                lines.append(f"- 参考侧：{esc(d.get('ref'))}")
-                lines.append(f"- 生成侧：{esc(d.get('gen'))}")
-                lines.append("")
-                lines.append("**判定者理由**")
-                lines.append("")
-                lines.append("> " + (d.get("reason") or "").replace("\n", "\n> "))
-                lines.append("")
-                aux = []
-                if d.get("assertable") is not None:
-                    aux.append(f"`assertable` = `{d.get('assertable')}`")
-                if d.get("predicate_exists") is not None:
-                    aux.append(f"`predicate_exists` = `{d.get('predicate_exists')}`")
-                if d.get("out_of_scope") is not None:
-                    aux.append(f"`out_of_scope` = `{d.get('out_of_scope')}`")
-                if aux:
-                    lines.append("排除相关字段：" + "；".join(aux))
-                    lines.append("")
-                lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
-                lines.append("")
+            lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
+            lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+            lines.append("")
+
+        if claims:
+            lines.append(f"#### §3.2a 判为 problem / extra / uncertain 的 {len(claims)} 条（设裁决区）")
+            lines.append("")
+            for i, d in claims:
+                _render_diff(i, d)
+        if denials:
+            lines.append(f"#### §3.2a-2 生成侧写「—」或「不可能生成」的 {len(denials)} 条"
+                         f"（另一个物种，设裁决区）")
+            lines.append("")
+            lines.append(
+                "这几条的**生成侧逐字否认作者制品在该处有东西**。它们真正主张的是"
+                "**参考模型 / 真值本身的有效性**（「参考侧含 NL 推不出的内容，"
+                "任何 LLM 都无法复现，却会被计成漏检」），而不是一种缺陷形态。"
+            )
+            lines.append("")
+            lines.append(
+                "分出来是因为它们与上面那些不可比：缺陷座标系的判定测试全部落在"
+                "**作者源 PlantUML** 上，而这类在制品内指不出任何一处。"
+                "所以它们映射不上**不能**算作「新座标系覆盖不到」—— "
+                "它们本来就不在座标系要描述的对象集合里。"
+            )
+            lines.append("")
+            lines.append(
+                "它们仍然值得判：若你认为某条其实指出了制品的真问题，照常走「采纳」；"
+                "若你认为它是对参考模型的质疑，那是另一回事，请在理由里写清楚。"
+            )
+            lines.append("")
+            for i, d in denials:
+                _render_diff(i, d)
         if rest:
             lines.append(f"#### §3.2b 判为 correct / similar 的 {len(rest)} 条（备查，不设裁决区）")
             lines.append("")
@@ -826,6 +852,17 @@ def section_candidates(pair, model, records, saved):
         keys.append(key)
         lines.append("上表里值得补入台账的，在这里点名（写行内的 issue 文本或格数+关键词即可）：")
         lines.append("")
+        # ⚠️ 这一个填写块对应的是**整张表**，⛔ 不是一条线索 —— 与上面 `DIFF-` / `VU-`
+        # 那种「一条 = 一个主张」不同构。所以它的映射多数标「没能映射」，
+        # ⛔ 且卡点是**登记单位**而非座标系。不写明这一点，读者会把它读成覆盖度缺口。
+        lines.append(
+            f"注意这一块与上面的 `DIFF-` / `VU-` **不同构**：那些一条对应一个主张，"
+            f"而 `{key}` 一块对应上面**整张表**（本 pair 共 {len(x1) + len(v46)} 组）。"
+            "所以下面的映射多数是「没能映射」，卡点在**登记单位**（一格座标代表不了一整张表），"
+            "**不是**座标系给不出取值 —— 逐组拆开后各组基本都能落格。"
+        )
+        lines.append("")
+        lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
         lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
         lines.append("")
 
@@ -1423,8 +1460,9 @@ def build_howto():
     lines.append(
         "⚠️ 旧 `direction` 与新的 `defect_element` / `defect_logic_kind` 语义有重叠但取值不同，"
         "本轮**直接删除、不做映射**：旧值是自家词表，新值有文献出处，混用会污染出处链。"
-        "台账既有条目仍带着它们自己的 `layer` / `direction`（见 §2 的字段表），"
-        "那是**台账的**字段，不是这一轮要你填的。"
+        "台账既有条目在数据里仍然带着它们自己的 `layer` / `direction`，"
+        "但 §2 **不再把它们印出来**（理由见 §D.1）—— 那是**台账的**字段，"
+        "不是这一轮要你填的，也不该成为你归类时的锚。"
     )
     lines.append("")
     lines.append("### §C.2 为什么是条件式，而不是几个平行维度")
@@ -1469,8 +1507,34 @@ def build_howto():
     lines.append("### §D.1 §2 现有 expected issue 逐条裁决")
     lines.append("")
     lines.append(
-        "裁决区留空由你填；自动风险标记只是**提示**，"
+        "每条只印四样：`statement` 原文、参考侧 / 生成侧证据行、我方到新座标系的映射、"
+        "以及自动风险标记。裁决区留空由你填；自动风险标记只是**提示**，"
         "打了标记不等于该条不成立，没打标记也不等于它成立。"
+    )
+    lines.append("")
+    lines.append(
+        "**为什么台账那一条自己的元数据不印给你看。** §2 此前还印着这一条的 "
+        "`layer`（四层归因）、`direction`（八方向）、`element_of_M`（$M$ 分量）、"
+        "`decided_by`（分层判定来源）、`primary_predicate`（主谓词）、`nl_evidence`、"
+        "`verdict`、`replay`、同质组与上游，外加整节断言组。2026-08-13 全部撤掉，"
+        "理由不是嫌长：本轮要你回答的是**我们这套框架有没有漏掉东西**，"
+        "而那十项里有七项正是框架给这一条贴的标签。先把框架的答案印在题面上，"
+        "你就只会在既有格子之间挑一个 —— 问题被答案定义掉了。`verdict` 与 `replay` "
+        "更直接：那是流水线的判定与复算结论，印出来等于先给标准答案。"
+    )
+    lines.append("")
+    lines.append(
+        "同样的理由，读那些已隐藏字段的风险标记也一并撤了"
+        "（`lexical` / `no_primary` / `no_assertion` / `no_nl_evidence` / `replay`）。"
+        "留下的两类只指向你**能在页面上自己核对**的东西：读了投影、以及已有边界裁定。"
+    )
+    lines.append("")
+    lines.append(
+        "**「我方映射」这一块该怎么用。** 它是我们读完该条正文后自己判的一格座标，"
+        "**不是已经定下来的事实**。给它的目的是省你一遍通读，不是替你判。"
+        "你不同意就按自己的判断填裁决与理由，**你的裁决优先**。"
+        "我们没判出来的，那一块会写「我方没能映射」并说明卡在哪 —— "
+        "那不是留白，是提示你这一条我们也拿不准。"
     )
     lines.append("")
     lines.append(
@@ -1491,11 +1555,40 @@ def build_howto():
     lines.append("| §3.1 | 两臂多报侧判为 `VALID_UNRECORDED` 的「真漏记」 | "
                  "最高 —— 已过一轮独立复核，事实部分通常可直接采信 |")
     lines.append("| §3.2a | 审阅 agent 判为 `problem` / `extra` / `uncertain` 却没进台账的 diff | 高 |")
+    lines.append("| §3.2a-2 | 上述 diff 里**生成侧写「—」或「不可能生成」**的那一族 | "
+                 "另一个物种，见下 |")
     lines.append("| §3.2b | 判为 `correct` / `similar` 的 diff | 备查，不设裁决区 |")
     lines.append("| §3.3 | 两臂产出中机械未匹配任何台账条目的 issue | 中 —— 量大，按出现格数排序 |")
     lines.append("| §3.4 | 已被判为「非缺陷」的多报簇 | 备查 —— 避免与既有裁定撞车 |")
     lines.append("| §3.5 | 与台账同根、但匹配器未归并的簇 | "
                  "**「台账偏浅」的直接证据** —— 对应条目适合走「修正」 |")
+    lines.append("")
+    lines.append(
+        "**§3 的每一条也带一块「我方映射」**，读法同 §D.1，但多一层保留："
+        "候选**本身尚未被认定**，所以映射的是「**若这条线索成立**，它属于座标系的哪一格」，"
+        "**不代表它成立**。它是不是一条真缺陷，正是要你判的。"
+    )
+    lines.append("")
+    lines.append(
+        "**三类候选的粒度不同构，别当成同一种东西。** `VU-` 与 `DIFF-` 是"
+        "「一条 = 一个主张」，映射成一格座标是有意义的。`UM-` 不是："
+        "一个 `UM-<pair>` 填写块对应 §3.3 **整张表**（全语料 619 组，中位 11 组/桶）。"
+        "所以它的映射多数写「我方没能映射」，而卡点是**登记单位**"
+        "（一格代表不了一整张表），**不是**座标系给不出取值 —— "
+        "逐组拆开后各组基本都能落格。"
+    )
+    lines.append("")
+    lines.append(
+        "**§3.2a-2 是另一个物种，不要跟 §3.2a 混算。** 这一族的生成侧"
+        "**逐字否认作者制品在该处有东西**（写的就是「—」或「(不可能生成)」）。"
+        "它们真正主张的是**参考模型 / 真值本身的有效性**"
+        "（「参考侧含 NL 推不出的内容，任何 LLM 都无法复现，却会被计成漏检」），"
+        "而不是一种缺陷形态。缺陷座标系的判定测试全部落在**作者源 PlantUML** 上，"
+        "而这类在制品内指不出任何一处。所以它们映射不上**不能**算作"
+        "「新座标系覆盖不到」—— 它们本来就不在座标系要描述的对象集合里。"
+        "它们仍然值得判：若你认为某条其实指出了制品的真问题，照常走「采纳」；"
+        "若你认为它是对参考模型的质疑，请在理由里写清楚。"
+    )
     lines.append("")
     lines.append(
         "**§3.2 的已知证据缺口**：当年**没有单独记录「为什么不收」**，"
