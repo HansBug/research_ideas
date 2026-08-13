@@ -229,7 +229,7 @@ def _check_basis(rep, pair, nid, basis, layer, nle, cited, stmt):
     if basis == "参考模型":
         rep.W(pair, nid,
               "`basis = 参考模型` —— ⚠️ 参考模型**不是正确答案**"
-              "（语料里多处参考侧比生成侧更差，见 §1.4 与 README §二.3），"
+              "（语料里多处参考侧比生成侧更差，见 §1.3 与 README §二.3），"
               "⛔ 故这一种依据**单独不足以**支撑一条缺陷。"
               "⭐ 请在 `statement` 里写明还缺什么才站得住；⛔ 台账四层也没有它的槽位")
     if basis == "模型自身" and cited:
@@ -322,7 +322,7 @@ def validate_pair(pair, data, rep):
         if not gen:
             rep.E(pair, nid,
                   "必填项 `generated_side` 为空 —— 没指出模型里哪一处"
-                  "（写 §1.3 的行号如 `:12`，或元素名）")
+                  "（写 §1.2 的行号如 `:12`，或元素名）")
 
         # ---- ③ 边界层：先判它，因为**越界条目免填依据层与分类轴**
         scope = _enum_check(rep, pair, nid, f, "scope", NF.SCOPES, required=True)

@@ -37,14 +37,21 @@ import sources as S                                # noqa: E402
 
 SCHEMA = "paper1.relabel.result.v1"
 
-_RE_CHECK = re.compile(r"\[\s*([xX✓√])\s*\]\s*([^\[\n]+)")
+# ⭐ 勾选记号取自 [fillblocks.py](./fillblocks.py) 的 `CHECK_MARKS` —— ⛔ 不在这里另抄一份，
+# ⚠️ 否则解析器与 `is_untouched` 会认不同的记号（那正是修掉的一个 bug）。
+_RE_CHECK = re.compile(r"\[\s*[" + fb.CHECK_MARKS + r"]+\s*\]\s*([^\[\n]+)")
 _RE_EMPTY_BOX = re.compile(r"\[\s*\]\s*([^\[\n]+)")
 _RE_FIELD = re.compile(r"^\s*([一-龥A-Za-z_][一-龥A-Za-z0-9_ ()（）/]*?)\s*[:：]\s*(.*)$")
 
 
 def parse_choice(line):
-    """从 `裁决: [x] 保留  [ ] 修正` 抽出被勾选项。返回 (被勾选列表, 全部选项)。"""
-    chosen = [m.group(2).strip() for m in _RE_CHECK.finditer(line)]
+    """从 `裁决: [x] 保留  [ ] 修正` 抽出被勾选项。返回 (被勾选列表, 全部选项)。
+
+    ⚠️ 取值就是**框后面那段文字**，⛔ 不是框的位置 —— 所以勾完把选项文字删掉
+    （只留 `裁决: [x]`）等于**没勾**：`[x]` 后面没有任何字符，正则不匹配，
+    ⛔ 那一行会退化成自由文本 `"[x]"`。⭐ 「怎么填」一节为此专门警告了一条。
+    """
+    chosen = [m.group(1).strip() for m in _RE_CHECK.finditer(line)]
     allopts = chosen + [m.group(1).strip() for m in _RE_EMPTY_BOX.finditer(line)]
     return chosen, allopts
 
@@ -108,14 +115,36 @@ def parse_fields(body, known=None, choice_fields=None):
     return out
 
 
+# ⭐ 清单项行。⛔ 三处宽容都是实测出来的**静默丢整条**写法：
+#   ① 行首缩进或 Markdown 任务列表前缀（`- [x] REACH-01`）—— ⚠️ 而 `- [ ]` 恰恰是
+#      GitHub 任务列表的通行写法，⛔ 支持任务列表的编辑器会自动补上那个 `-`；
+#   ② 记号写成 `[✔]`（不在旧字符集内）或 `[xx]`（旧正则只收一个字符）；
+#   ③ id 写成小写 `reach-01`（旧正则只收 `[A-Z]+`）。
+# ⛔ 这三种写法此前都让**整条清单项从 `items` 里消失** —— 不是「未勾选」，是不存在：
+# ⚠️ `checklist_items` 总数跟着变小，⛔ 而没有任何一处会报错。
+_RE_CHK_ITEM = re.compile(
+    r"^\s*(?:[-*+]\s+)?\[\s*([" + fb.CHECK_MARKS + r"]*)\s*\]\s*([A-Za-z]+-\d+)\s*(.*)$")
+
+# ⭐ `·` 开头的是**机器生成的机械判据行**，⛔ 刻意不回收（它不是给人写的）。
+_RE_CHK_MACHINE = "·"
+
+
 def parse_checklist(body):
-    """解析 §4 的清单块。返回 [{iid, checked, text, finding}]。"""
+    """解析 §4 的清单块。返回 [{iid, checked, text, finding}]。
+
+    ⭐ `iid` 一律**归一成大写**：作者手打 `reach-01` 与机器给的 `REACH-01` 必须是同一条，
+    ⛔ 否则并表时会变成两条。
+
+    ⚠️ 清单项**下面**的自由文本，不带 `发现:` 前缀也照收进 `finding` —— ⛔ 旧行为是
+    整行丢弃且**不留痕迹**（`parse_checklist` 没有 `raw_lines` 兜底），⭐ 而「勾上之后
+    直接在下一行写发现」是最自然的写法。⛔ 唯一不收的是 `·` 开头那行。
+    """
     items = []
     cur = None
     for line in body.splitlines():
-        m = re.match(r"^\[\s*([xX✓√ ]?)\s*\]\s*([A-Z]+-\d+)\s*(.*)$", line)
+        m = _RE_CHK_ITEM.match(line)
         if m:
-            cur = {"iid": m.group(2), "checked": bool(m.group(1).strip()),
+            cur = {"iid": m.group(2).upper(), "checked": bool(m.group(1).strip()),
                    "text": m.group(3).strip(), "finding": None}
             items.append(cur)
             continue
@@ -124,12 +153,9 @@ def parse_checklist(body):
         m = re.match(r"^\s*发现\s*[:：]\s*(.*)$", line)
         if m:
             cur["finding"] = m.group(1).strip() or None
-            cur["_in_finding"] = True
             continue
-        if cur.get("_in_finding") and line.strip() and not line.strip().startswith("·"):
+        if line.strip() and not line.strip().startswith(_RE_CHK_MACHINE):
             cur["finding"] = ((cur["finding"] or "") + "\n" + line.strip()).strip()
-    for it in items:
-        it.pop("_in_finding", None)
     return items
 
 
@@ -140,16 +166,22 @@ def parse_new(body, pair):
     [newfields.py](./newfields.py) `derive()` 当下能算出来的部分 ——
     ⛔ 算不出来的字段留 `None` 并在 `pending` 里写明为什么，⛔ 不猜。
     """
-    chunks = re.split(r"^###\s+", body, flags=re.M)
+    # ⭐ `#` 的个数与后面的空格都放宽：⛔ 写成 `###NEW-…`（漏空格）或 `## NEW-…`（少一个 `#`）
+    # 此前**不会**切出新条目，⚠️ 于是该条的全部字段被并进**上一条**（若它是第一条则整条消失）——
+    # ⛔ 两种都是静默的。⭐ id 也放宽到大小写不敏感，并归一成大写。
+    chunks = re.split(r"^#{2,6}\s*", body, flags=re.M)
     out = []
     for chunk in chunks:
         chunk = chunk.strip()
         if not chunk:
             continue
         head, _, rest = chunk.partition("\n")
-        nid = head.strip()
-        if not re.match(r"^NEW-\d{4}-\d+", nid):
+        m = re.match(r"^NEW-\d{4}-\d+", head.strip(), re.I)
+        if not m:
             continue
+        # ⭐ 只取匹配到的那一段当 id：标题后面若跟了别的字（`### NEW-0000-03 （补）`），
+        # ⛔ 旧行为会把整行当 id，于是 id 里混进注释。
+        nid = m.group(0).upper()
         fields = parse_fields(rest, known=NF.FIELD_NAMES,
                               choice_fields=NF.CHOICE_FIELDS)
         rec = {"id": nid, "pair": pair, "fields": fields}
@@ -194,10 +226,18 @@ def collect_pair(pair, path):
         kind = kinds.get(key, "orphan")
         if fb.is_untouched(body, kind, pair):
             out["untouched_keys"].append(key)
+        # ⭐ §0 / §2 / §3 三种块也必须传 `known` 与 `choice_fields`（表在 `fillblocks` 里，
+        # ⛔ 逐字从模板算出来）—— ⚠️ 此前只有 §5 传，于是这三种块吃着两个静默丢内容的坑：
+        # 续行里带冒号会截断当前字段、值里带 `[ ]` 会被误读成勾选行。⭐ 见 `fillblocks` 的注释。
         if kind == "pair":
-            out["summary"] = parse_fields(body)
+            out["summary"] = parse_fields(body, known=fb.name_variants(fb.PAIR_FIELDS),
+                                          choice_fields=fb.name_variants(fb.PAIR_CHOICES))
         elif kind == "ledger":
-            out["ledger"].append({"id": key, **parse_fields(body)})
+            out["ledger"].append({
+                "id": key,
+                **parse_fields(body, known=fb.name_variants(fb.LEDGER_FIELDS),
+                               choice_fields=fb.name_variants(fb.LEDGER_CHOICES)),
+            })
         elif kind == "candidate":
             out["candidates"].append({
                 "key": key,
@@ -205,7 +245,8 @@ def collect_pair(pair, path):
                            else "review_diff" if key.startswith("DIFF-")
                            else "unmatched_issue" if key.startswith("UM-")
                            else "unknown"),
-                **parse_fields(body),
+                **parse_fields(body, known=fb.name_variants(fb.CANDIDATE_FIELDS),
+                               choice_fields=fb.name_variants(fb.CANDIDATE_CHOICES)),
             })
         elif kind == "checklist":
             out["checklist"].append({"key": key, "items": parse_checklist(body)})

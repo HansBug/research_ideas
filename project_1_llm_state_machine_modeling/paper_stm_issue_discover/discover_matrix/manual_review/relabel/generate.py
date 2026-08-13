@@ -194,53 +194,93 @@ def regroup_unmatched(entries, model):
     return out
 
 
+# ------------------------------------------------------------------ 怎么填
+
+def _howto_inline(pair):
+    """⭐ 工作单**最开头**的「怎么填」——⛔ 每一条都是 `collect.py` 的一处真实解析行为。
+
+    ⚠️ **这一节不许凭想象写。** 它规定的是「怎么写才会被回收」，⛔ 说明与实现一旦不符，
+    判读者会照着说明填、⛔ 而内容被静默丢掉 —— ⭐ 那比没有说明更坏。
+    因此每一条都有一个对应的 parser 行为测试（`test_relabel.py` 的
+    「怎么填 · 逐条钉住 parser 行为」一组），⛔ 改这里必须同时改那里。
+
+    ⭐ 记号集合读的是 [fillblocks.py](./fillblocks.py) 的 `CHECK_MARKS`，⛔ 不在这里写死 ——
+    ⚠️ 写死就会与解析器分叉，而那正是本节要防的事。
+
+    ⛔ 刻意**不**放长篇 rationale（为什么这么分层、`basis` 与 `layer` 的关系之类）：
+    那些在 [HOWTO.md](./HOWTO.md)。⭐ 本节只回答「手该怎么动」。
+    """
+    marks = "  ".join(f"`[{m}]`" for m in fb.CHECK_MARKS if m != "x")
+    lines = []
+    lines.append("## ⭐ 怎么填（⛔ 先读这 8 条 —— ⛔ 写法不对会被**静默丢掉**）")
+    lines.append("")
+    lines.append(
+        "⭐ 回收脚本是 [collect.py](../collect.py)；下面每一条都是它的一处**真实解析行为**，"
+        "⛔ 不是礼貌约定。⭐ 逐字段的取值含义与判据在 "
+        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO})，⛔ 本节只讲手该怎么动。"
+    )
+    lines.append("")
+    lines.append(
+        "1. **只在 `~~~` 围栏里写。** `<!-- FILL:BEGIN … -->` 与 `<!-- FILL:END … -->` "
+        "两行是回收锚点，⛔ 不许改、不许删。⚠️ 围栏**外**写的字，重跑生成器就没了。"
+    )
+    lines.append(
+        f"2. **勾选写 `[x]`。** ⭐ {marks} 同样认（大小写都行）。⛔ 别写 `[v]` `[是]` "
+        "`[o]` `[1]` `[*]` —— ⚠️ 不认的记号会让**那一个选项连同它的文字一起消失**，"
+        "⛔ 看起来就像你没勾。"
+    )
+    lines.append(
+        "3. **勾完别删掉后面的选项文字。** ⚠️ 取值就是**框后面那段文字**，⛔ 不是框的位置："
+        "只留 `裁决: [x]` 等于**没勾**。"
+    )
+    lines.append(
+        "4. **单选就只勾一个。** ⛔ 勾两个不是「两个都算」，"
+        "⭐ 是 [validate.py](../validate.py) 报「该字段是单值」。"
+    )
+    lines.append(
+        "5. **自由文本写在 `字段名:` 的冒号后面**（⭐ 半角 `:` 与全角 `：` 都认），"
+        "⭐ 可以换行接着往下写，⭐ 续行里带冒号也不会被截断。"
+        "⛔ 但**别改字段名** —— 改了那一行会被并进上一个字段。"
+    )
+    lines.append(
+        "6. **§4 清单**：勾在行首那个 `[ ]` 里（⭐ 前面有缩进或 `-` 都行，⛔ id 别动），"
+        "⭐ 发现写在它下面的 `发现:` 后面 —— ⭐ 直接写在下一行也收。"
+        "⛔ 唯一不回收的是 `·` 开头那行：那是机器给的机械判据。"
+    )
+    lines.append(
+        f"7. **§5 每条新增以 `### NEW-{pair}-01` 这样的标题单独起头**，"
+        "⛔ 别把两条挤在一个标题下，⛔ 也别漏掉 `NEW-` 前缀。"
+    )
+    lines.append(
+        "8. **不适用就留空**（⭐ 回收成 `null`）；⭐ 查过了、结论是「没有」，"
+        "写 `无`（⭐ `none` / `N/A` / `-` 同义）。⚠️ 「留空」与「写 `无`」在校验时是两件事。"
+    )
+    lines.append("")
+    return lines
+
+
 # ------------------------------------------------------------------ §1 原料
 
-def _nl_verbatim_block(pair, segs, seg_mode):
+def _nl_verbatim_block(pair, segs):
     """⭐ §1.1：NL 原文 + 中文严格翻译三列表，⭐ 放在**第一屏**。
 
     ⚠️ **本函数的输出在同组 6 份工作单里必须逐字节相同** —— 它只允许读组级事实
-    （原文、译文、sha8、段 id、兄弟 pair 列表、分段口径），⛔ 一个 pair 级数字都不许进来。
+    （原文、译文、段 id），⛔ 一个 pair 级数字都不许进来。
     `test_nl_verbatim_block_is_byte_identical_across_siblings` 钉住这一点。
 
     ⛔ **只搬原文与译文。** 逐段判读提示（`note`）与整份观察（`translator_notes`）留在
     `NL.md`：⭐ 它们更长，⛔ 且历史上出过「提示里写了制品断言、于是对同组另外 5 份为假」
     的事故（[README.md](./README.md) §十）。⭐ 原文与译文不谈制品，故复制零风险。
 
-    ⭐ 两种方括号标注的图例**必须内联**：它们直接出现在下面的译文单元格里，
-    ⛔ 读者不该为了看懂一个符号去翻另一个文件。
+    ⚠️ **2026-08-13 删掉了表前的三段前言**（共用 NL / sha8 与分段口径、译文纪律、
+    两种方括号标注的图例）：⛔ 用户要的是「表直接跟在标题后面」。⭐ 三段里那两样
+    **不能凭空消失**的信息（分段口径含段 id 范围、译文口径与方括号含义）搬到了
+    `nl_XXXX/NL.md` 的开头与 §1，⛔ 且这里**不留**指向它们的说明段 —— 工作单头部
+    已经写着「开工前两份必读」，⭐ 再加一句就又是一段前言。
     """
     sibs = S.nl_siblings(pair)
-    mode_zh, mode_what = T.SEG_MODE_ZH.get(
-        seg_mode, ("⛔ 该分段口径的语义仓库未定义", "⛔ 仓库未定义"))
     lines = []
     lines.append("### §1.1 NL 规约原文与中文严格翻译（⭐ 判读起点，⛔ 先读这一节）")
-    lines.append("")
-    lines.append(
-        f"⭐ 本目录 {len(sibs)} 份工作单"
-        f"（{'、'.join('`' + p + '`' for p in sibs)}）**共用同一份 NL 原文**"
-        f"（sha8 `{S.nl_sha8(pair)}`） —— "
-        f"⭐ 同一份规约生成了 {len(sibs)} 个不同制品，⛔ 所以 NL 侧完全相同、制品侧各不相同。"
-        f"分段口径 {T.bi(seg_mode, mode_zh)}：{mode_what}，共 **{len(segs)}** 段"
-        f"（`{segs[0][0]}` … `{segs[-1][0]}`）。⭐ 台账里的「NL 第 N 句」与你要填的 "
-        f"`nl_evidence` 都按这套段 id 读。"
-    )
-    lines.append("")
-    lines.append(
-        "⛔ **译文是给人判缺陷用的，⛔ 不是给人读着舒服用的。** 它严格直译，"
-        "⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息（⛔ 含不补主语、不补量词、"
-        "不补逻辑连接词）；状态名 / 事件名 / 变量名 / 守卫表达式一律**保留英文原样**。"
-        "⭐ 原文含糊的地方译文**照样含糊** —— ⛔ 替它消歧就等于替你做了本轮要你自己做的判断。"
-        "⭐ 译文是**辅助**，⛔ 判据仍以英文原文为准；两者不一致时以原文为准并请回报。"
-    )
-    lines.append("")
-    lines.append(
-        "⭐ 表里两种方括号标注的含义（⛔ 图例就在这里，⛔ 不必翻别处）："
-        "`〔原文如此：…〕` 指**原文自身**有语法 / 拼写 / 数格错误，译文照直译并说明错在哪 —— "
-        "⛔ 它不是译文的错，⛔ 也不构成模型的缺陷；"
-        "`〔译者存疑：…〕` 指**原文这里没说清**（谁是主语、并列项是「且」还是「或」、"
-        "源状态是哪个），⭐ 它直接决定判缺陷时这一句**能不能**用来说模型「违反」了什么。"
-    )
     lines.append("")
     lines.append("| 段 id | 原文 | 中文严格翻译 |")
     lines.append("| :-- | :-- | :-- |")
@@ -255,15 +295,16 @@ def _nl_verbatim_block(pair, segs, seg_mode):
         f"**整份 NL 层面的观察**（术语表 · 跨句反复出现的歧义 · 原文质量问题）。"
         f"⚠️ 那些提示**不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 {len(sibs)} 个制品，"
         f"讲制品的话必然对其中 {len(sibs) - 1} 份为假。⭐ 所以「这个状态在不在」"
-        f"「这条边有没有」一律到本页 §1.3（作者源，带行号）与 §4（按本 pair 现算的清单）自己核。"
+        f"「这条边有没有」一律到本页 §1.2（作者源，带行号）与 §4（按本 pair 现算的清单）自己核。"
     )
     lines.append("")
     return lines
 
 
-def section_material(pair, model, records):
-    segs, seg_mode = S.nl_segments(pair)
-    nl = S.nl_text(pair)
+def section_material(pair, model):
+    # ⚠️ `records` 参数 2026-08-13 随结构摘要一并去掉 —— 它只被那张表的
+    # 「台账现有条目」一格用到。⛔ 留着一个没人读的参数，下一个人会以为本节还依赖台账。
+    segs, _ = S.nl_segments(pair)
     puml = S.puml_text(pair)
     ref, ref_note = S.reference_puml(pair)
     meta = S.source_meta(pair)
@@ -288,21 +329,22 @@ def section_material(pair, model, records):
     # ⚠️ 复制的边界是刻意划的：**只搬原文与译文**，逐段判读提示与整份观察留在 `NL.md`。
     # ⛔ 提示更长，且历史上出过跨 pair 污染事故（README §十）—— 一份 NL 服务 6 个制品，
     # 提示里只要出现一句制品断言，对其中 5 份就是假的。原文与译文不谈制品，故复制零风险。
-    lines += _nl_verbatim_block(pair, segs, seg_mode)
+    lines += _nl_verbatim_block(pair, segs)
 
-    # ---- 结构摘要
-    lines.append("### §1.2 结构摘要（⭐ 先看这个判复杂度）")
+    # ---- 作者源
+    #
+    # ⚠️ **结构摘要（旧 §1.2）2026-08-13 整节删除**，含它下面那段「作者源口径 vs 谓词层
+    # `cardinality` 口径」的脚注 —— ⛔ 用户判定它不需要，⭐ 要的是「干净清爽」。
+    # ⭐ 后续小节顺次上移（作者源 由 §1.3 变 §1.2、参考模型 由 §1.4 变 §1.3），⛔ 不留空号。
+    # ⭐ 两段**条件性告警**（区分隔符、解析告警）不是摘要的一部分，只是当年顺手挂在那里的，
+    # ⛔ 删掉它们会真的丢信息（越界判据 / 解析可靠性），故移到本节 —— ⭐ 它们讲的正是
+    # 下面这份作者源。⛔ 那段双口径脚注则按用户要求随摘要一并删除，其长版仍在
+    # `HOWTO.md` §A.1（该节已改锚到本节）。
+    lines.append("### §1.2 作者源 PlantUML（被测制品，带行号）")
     lines.append("")
-    lines.append("| 量 | 值 | 量 | 值 |")
-    lines.append("| :-- | --: | :-- | --: |")
-    lines.append(f"| 状态总数 | {su['states_total']} | 迁移总数 | {su['transitions']} |")
-    lines.append(f"| 其中复合态 | {su['states_composite']} | 顶层初始边 | {su['initial_edges_root']} |")
-    lines.append(f"| 其中叶态 | {su['states_leaf']} | 初始边（含区域内） | {su['initial_edges_all']} |")
-    lines.append(f"| 未 `state` 声明的 | {su['states_implicit']} | 终态边 `--> [*]` | {su['final_edges']} |")
-    lines.append(f"| 最大层次深度 | {su['depth_max']} | 触发词（≈事件） | {su['triggers']} |")
-    lines.append(f"| 守卫数 | {su['guards']} | 迁移效应数 | {su['effects']} |")
-    lines.append(f"| 状态内动作数 | {su['state_actions']} | 变量候选数 | {su['variable_candidates']} |")
-    lines.append(f"| NL 段数 | {len(segs)} | 台账现有条目 | {len(records)} |")
+    lines.append(
+        "⭐ 行号就是引用锚点 —— 裁决理由里写 `:12` 即指这里的第 12 行。"
+    )
     lines.append("")
     if su["region_separators"]:
         lines.append(
@@ -315,30 +357,13 @@ def section_material(pair, model, records):
     if model.parse_warnings:
         lines.append("⚠️ 解析告警：" + "；".join(model.parse_warnings))
         lines.append("")
-
-    lines.append(
-        "⛔ 数字全部来自**作者源**，⛔ 不含 `plantuml_source_lowering.py` 投影合成的 "
-        "`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken`。"
-        "⚠️ 谓词层的 `cardinality` 会把它们算进去，所以「作者写了 3 个子态」在谓词层可能是 4 或 7 —— "
-        "⭐ 两个口径都对，⛔ 但**不能混用**（更长的说明见 "
-        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §A.1）。"
-    )
-    lines.append("")
-
-    # ---- 作者源
-    lines.append("### §1.3 作者源 PlantUML（被测制品，带行号）")
-    lines.append("")
-    lines.append(
-        "⭐ 行号就是引用锚点 —— 裁决理由里写 `:12` 即指这里的第 12 行。"
-    )
-    lines.append("")
     lines.append("```text")
     lines.append(numbered(puml))
     lines.append("```")
     lines.append("")
 
     # ---- 参考模型
-    lines.append("### §1.4 参考模型 PlantUML")
+    lines.append("### §1.3 参考模型 PlantUML")
     lines.append("")
     if ref:
         lines.append(
@@ -391,12 +416,21 @@ def build_nl_doc(dirname):
           f"{len(pairs)} 个不同制品，⛔ 所以 NL 侧材料只有一份，⛔ 制品侧各不相同。"
     )
     lines.append("")
+    # ⭐ **段 id 范围（`NL-M001` … `NL-M006` 这一段）2026-08-13 从工作单搬到这里。**
+    # ⛔ 工作单表前的三段前言被整段删掉了（用户要「干净」），⚠️ 而分段口径与段 id 范围
+    # 是判读者填 `nl_evidence` 时必须知道的两样东西 —— ⛔ 不能凭空消失，故落在本页。
+    mode_zh, mode_what = T.SEG_MODE_ZH.get(
+        seg_mode, ("⛔ 该分段口径的语义仓库未定义", "⛔ 仓库未定义"))
+    # ⭐ `mode_what` 里那个路径在 `terms.py` 里是代码样式，⛔ 这里换成可点击链接 ——
+    # ⚠️ 不要另加一句「人工标注取自 …」，⛔ 那会把同一件事说两遍（实测出过一次）。
+    what = mode_what.replace(
+        "`corpora/nl_segmentation/overrides.json`",
+        "[corpora/nl_segmentation/overrides.json]"
+        "(../../../../corpora/nl_segmentation/overrides.json)")
     lines.append(
-        f"分段口径：`{seg_mode}`"
-        + ("（⭐ 该份规约的编号无法机器判定，分段来自 "
-           "[corpora/nl_segmentation/overrides.json](../../../../corpora/nl_segmentation/overrides.json) "
-           "的人工标注）" if seg_mode == "manual_override" else "（按物理行切，与 pipeline 同口径）")
-        + f"，共 {len(segs)} 段。台账里的「NL 第 N 句」按这套编号读。"
+        f"分段口径 {T.bi(seg_mode, mode_zh)}：{what}"
+        f"，共 **{len(segs)}** 段（`{segs[0][0]}` … `{segs[-1][0]}`）。"
+        "⭐ 台账里的「NL 第 N 句」与你要在工作单 §5 填的 `nl_evidence` 都按这套段 id 读。"
     )
     lines.append("")
 
@@ -447,7 +481,7 @@ def build_nl_doc(dirname):
         "⚠️⚠️ **提示里也不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 "
         f"{len(pairs)} 个 pair，这一页是 {len(pairs)} 份工作单共用的，"
         "⛔ 讲制品的话必然对其中 5 份为假。"
-        "⭐ 因此「这个状态在不在」「这条边有没有」一律请自己到各份工作单的 §1.3"
+        "⭐ 因此「这个状态在不在」「这条边有没有」一律请自己到各份工作单的 §1.2"
         "（作者源，带行号）与 §4（按该 pair 现算的清单）核对，⛔ 不要指望提示替你回答。"
         "⚠️ 2026-08-13 之前的旧版工作单**违反过这一条**，"
         "若你读过旧版，见 [README.md](../README.md) §十。"
@@ -1012,7 +1046,7 @@ def section_new(pair, saved):
     ⛔ 逐字段怎么填、三层结构为什么这么分、四种 `basis` 的强度差别、8 类 `direction`
     的含义、`depth` 三档判据、`layer` 对照表 —— 这些**逐字节相同**的说明搬到了
     [HOWTO.md](../HOWTO.md)，⛔ 不再在 54 份工作单里各印一遍（实测每份 159 行）。
-    ⭐ 留在这里的是：两道登记门（要引用本 pair 的 §1.3 / §2）、真实台账样例
+    ⭐ 留在这里的是：两道登记门（要引用本 pair 的 §1.2 / §2）、真实台账样例
     （⚠️ **按 NL 组回避**，故 9 组各不相同，⛔ 不能上移到共用页）、以及登记区本身。
     """
     lines = []
@@ -1053,7 +1087,7 @@ def section_new(pair, saved):
     lines.append("")
     lines.append(
         "1. 它在**作者源**上成立吗？⛔ 只在 `plantuml_source_lowering.py` 的投影上成立的不算 —— "
-        "判据是能不能回答「这条主张在 §1.3 的作者源上怎么表述」。"
+        "判据是能不能回答「这条主张在 §1.2 的作者源上怎么表述」。"
     )
     lines.append(
         "2. 它和 §2 已有条目是同一个缺陷吗？⭐ 是则回 §2 对那一条走「修正」，"
@@ -1147,7 +1181,7 @@ def build_howto():
     lines.append("")
     lines.append("| 节 | 内容 | 工作单里从哪里跳过来 |")
     lines.append("| :-- | :-- | :-- |")
-    lines.append("| §A | 两处只读材料的口径提醒 | §1.2 · §1.4 |")
+    lines.append("| §A | 两处只读材料的口径提醒 | §1.2 · §1.3 |")
     lines.append("| §B | ⭐ §5 三层结构与逐字段怎么填 | §5 开头 · §5.1 |")
     lines.append("| §C | ③ 边界层 `scope` 的判据 | §5 的两道门 |")
     lines.append("| §D | ④ 分类轴：`direction` · `depth` · `primary_predicate` · `layer` | §5.2 登记区 |")
@@ -1157,20 +1191,23 @@ def build_howto():
     # ============================================================ §A 材料口径
     lines.append("## §A 只读材料的口径提醒")
     lines.append("")
-    lines.append("### §A.1 结构摘要锚在作者源，⛔ 不含投影合成元素")
+    # ⚠️ 本节 2026-08-13 改锚：原文写的是「工作单 §1.2 结构摘要的数字来自作者源」，
+    # ⛔ 而结构摘要那一节已整节删除。⭐ 但双口径本身**没有失效** —— 判读者写 `cardinality`
+    # 类主张时照样会数错，故本节改成锚在 §1.2 作者源本身，⛔ 不是跟着摘要一起删。
+    lines.append("### §A.1 ⚠️ 作者源与谓词层是两套计数口径，⛔ 不能混用")
     lines.append("")
     lines.append(
-        "⛔ 各份工作单 §1.2 的全部数字来自**作者源 PlantUML**，"
-        "⛔ 不含 `plantuml_source_lowering.py` 投影合成的 "
+        "⛔ 各份工作单 §1.2 给的是**作者源 PlantUML 原文**，⛔ 其中不含 "
+        "`plantuml_source_lowering.py` 投影合成的 "
         "`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken`。"
         "谓词层的 `cardinality` 会把它们算进去，所以「作者写了 3 个子态」在谓词层可能是 4 或 7 —— "
-        "两个口径都对，但**不能混用**。"
+        "两个口径都对，但**不能混用**。⭐ 你数元素个数时数的是作者源那一套。"
     )
     lines.append("")
     lines.append("### §A.2 ⚠️ 参考模型不是正确答案")
     lines.append("")
     lines.append(
-        "⚠️ 各份工作单 §1.4 给的参考模型来自作者 workbook 的 `STM Results!D` 列。"
+        "⚠️ 各份工作单 §1.3 给的参考模型来自作者 workbook 的 `STM Results!D` 列。"
         "⛔ 它**不是**正确答案 —— 语料里多处出现参考侧比生成侧更差的情形"
         "（例如 `0000` 的参考模型压根没声明 `autonomous_mode` 的状态体）。"
         "它只是「另一个人怎么建的」，用作对照，⛔ 不作为判据。"
@@ -1270,7 +1307,7 @@ def build_howto():
     lines.append("#### `generated_side` ⭐ 必填")
     lines.append("")
     lines.append(
-        "⭐ 指到**作者源 PlantUML 的具体一处**：优先写工作单 §1.3 的行号（写 `:12` 或 "
+        "⭐ 指到**作者源 PlantUML 的具体一处**：优先写工作单 §1.2 的行号（写 `:12` 或 "
         "`第 12 行`），再附上那一行的元素名或原文片段。⭐ 缺失类缺陷写「（无此边）」"
         "这类否定描述也算合法 —— 台账里就有。"
     )
@@ -1287,7 +1324,7 @@ def build_howto():
     lines.append("#### `basis` ⭐ 必填 · 勾选")
     lines.append("")
     lines.append(
-        "⭐ 勾**一个**：你凭什么说工作单 §1.3 里的那个现象是缺陷。"
+        "⭐ 勾**一个**：你凭什么说工作单 §1.2 里的那个现象是缺陷。"
         "⛔ 四种依据的**强度不同**，⛔ 不许含糊过去。"
     )
     lines.append("")
@@ -1340,7 +1377,7 @@ def build_howto():
     lines.append("#### `reference_side` ⚠️ 可选")
     lines.append("")
     lines.append(
-        "⭐ 参考模型（工作单 §1.4）里对应的那一处。⛔ **参考模型不是正确答案**（见 §A.2）—— "
+        "⭐ 参考模型（工作单 §1.3）里对应的那一处。⛔ **参考模型不是正确答案**（见 §A.2）—— "
         "填它只是为了让后续复核有个对照。⭐ 留空完全可以。"
     )
     lines.append("")
@@ -1595,6 +1632,8 @@ def build_doc(pair, saved):
     )
     head.append("")
 
+    head += _howto_inline(pair)
+
     pair_key = f"PAIR-{pair}"
     keys.append(pair_key)
     head.append("## §0 本 pair 结论（做完再填）")
@@ -1602,7 +1641,7 @@ def build_doc(pair, saved):
     head.append(fb.render(pair_key, "pair", fb.PAIR_TEMPLATE, saved.get(pair_key)))
     head.append("")
 
-    body = [section_material(pair, model, records)]
+    body = [section_material(pair, model)]
 
     s2, k2 = section_ledger(pair, records, saved)
     body.append(s2)

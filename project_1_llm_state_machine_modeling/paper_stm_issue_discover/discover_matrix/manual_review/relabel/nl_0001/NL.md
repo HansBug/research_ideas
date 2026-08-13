@@ -5,7 +5,7 @@
 
 ⭐ 本页服务同目录的 **6** 份工作单：[`0001`](./0001.md)、[`0011`](./0011.md)、[`0021`](./0021.md)、[`0031`](./0031.md)、[`0041`](./0041.md)、[`0051`](./0051.md)。⭐ 它们由**同一份 NL 规约**（sha8 `abb20a21`）生成 6 个不同制品，⛔ 所以 NL 侧材料只有一份，⛔ 制品侧各不相同。
 
-分段口径：`line_split`（按物理行切，与 pipeline 同口径），共 3 段。台账里的「NL 第 N 句」按这套编号读。
+分段口径 `line_split`（按物理行切）：按物理行切分，与 pipeline 同口径，共 **3** 段（`NL-L001` … `NL-L003`）。⭐ 台账里的「NL 第 N 句」与你要在工作单 §5 填的 `nl_evidence` 都按这套段 id 读。
 
 ## §1 译文纪律（⛔ 先读这三段再看表）
 
@@ -27,7 +27,7 @@
 
 ⛔ 提示只陈述「原文这一句说了什么、没说什么」，⛔ 不含任何裁决 —— ⭐ 「所以模型应该怎样」是本轮要你自己填的，⛔ 材料不替你填。
 
-⚠️⚠️ **提示里也不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 6 个 pair，这一页是 6 份工作单共用的，⛔ 讲制品的话必然对其中 5 份为假。⭐ 因此「这个状态在不在」「这条边有没有」一律请自己到各份工作单的 §1.3（作者源，带行号）与 §4（按该 pair 现算的清单）核对，⛔ 不要指望提示替你回答。⚠️ 2026-08-13 之前的旧版工作单**违反过这一条**，若你读过旧版，见 [README.md](../README.md) §十。
+⚠️⚠️ **提示里也不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 6 个 pair，这一页是 6 份工作单共用的，⛔ 讲制品的话必然对其中 5 份为假。⭐ 因此「这个状态在不在」「这条边有没有」一律请自己到各份工作单的 §1.2（作者源，带行号）与 §4（按该 pair 现算的清单）核对，⛔ 不要指望提示替你回答。⚠️ 2026-08-13 之前的旧版工作单**违反过这一条**，若你读过旧版，见 [README.md](../README.md) §十。
 
 - `NL-L001`：【约束元素】无。本句仅界定被建模对象（basic braking device，列车制动的最终执行单元）与建模范围，不约束任何 state（状态）、event（事件）、variable（变量）、transition（迁移）或层次结构。【歧义】无。【越界部分】无（本句不含时钟约束，也不含并发语义）。
 - `NL-L002`：【约束元素】隐含三个 state（状态）：initial state、braking state、operational state；并约束三条 transition（迁移）：(a) initial state → braking state，触发条件为收到 brake signal；(b) 源状态未指明 → operational state，触发条件为 signal transmission 失败；(c) 源状态未指明 → initial state，触发条件为 signal feedback 已发出。【歧义】① 「If the signal transmission fails, it proceeds to the operational state」中的 it 未指明其当时所处的状态，源状态既可读作 initial state（与收到 brake signal 并列的另一条出边），也可读作 braking state（制动过程中传输失败），原文不足以在两种读法之间裁定，因此把源端取成其中任何一个都无法据本句判为违反。② 「Once the signal feedback is sent, it returns to the initial state」同样未指明源状态：按最近先行词读是 operational state，按上下文读也可能是 braking state，或两者皆是；原文既没有说只该有一条，也没有说两条都该有。③ 「the initial state」未区分它是 UML 的 initial pseudostate（初始伪状态）还是一个名为「初始」的 simple state（简单状态）；「returns to the initial state」暗示它是可被重新进入的实体状态，但原文并未明说。④ 未说明 receives a brake signal 与 signal transmission fails 是否互斥、是否针对同一次信号传输，也未说明二者同时成立时的优先级。⑤ 未说明 initial state 是否为整个状态机的启动状态；⛔ 原文没有任何文字规定顶层初始点指向何处。【越界部分】无（本句不含任何时间/时钟约束，也不含并发或 orthogonal region（正交区）语义）。

@@ -1977,8 +1977,12 @@ def test_nl_verbatim_block_is_byte_identical_across_siblings():
 def test_nl_table_sits_on_the_first_screen():
     """⭐ NL 三列表必须在**第一屏** —— ⛔ 判读者一打开工作单就该看到它。
 
-    ⛔ 判据是行号，⛔ 不是「在 §1 里」：材料排在结构摘要之后就已经滑出第一屏了。
-    ⭐ 当前实测每份都在第 32 行，⛔ 档设在 45 行留出余量。
+    ⛔ 判据是行号，⛔ 不是「在 §1 里」：材料排在别的材料之后就已经滑出第一屏了。
+    ⚠️ **2026-08-13 换了后置锚点**：原先钉的是「必须排在结构摘要之前」，⛔ 而结构摘要
+    已整节删除 —— ⭐ 现在钉「必须排在作者源 PlantUML 之前」，⛔ 判据一个字没松：
+    §1 里排在 NL 表后面的第一样材料，就是它。
+    ⭐ 实测每份都在第 39 行（前言删掉 −6、结构摘要删掉 −15、「怎么填」加回 +13），
+    ⛔ 档仍设在 45 行留出余量。
     """
     for pair in S.IN_SCOPE_PAIRS:
         lines = _read(_ws(pair)).splitlines()
@@ -1986,9 +1990,9 @@ def test_nl_table_sits_on_the_first_screen():
                if ln == "| 段 id | 原文 | 中文严格翻译 |"]
         assert hit, f"{pair}.md 没有 NL 三列表"
         assert hit[0] <= 45, f"{pair}.md 的 NL 表在第 {hit[0]} 行 —— ⛔ 掉出第一屏了"
-        # ⛔ 且必须排在结构摘要**之前**
-        summary = [i + 1 for i, ln in enumerate(lines) if ln.startswith("### §1.2 结构摘要")]
-        assert summary and hit[0] < summary[0], f"{pair}.md 的 NL 表排到结构摘要后面了"
+        # ⛔ 且必须排在作者源 PlantUML **之前**
+        nxt = [i + 1 for i, ln in enumerate(lines) if ln.startswith("### §1.2 作者源")]
+        assert nxt and hit[0] < nxt[0], f"{pair}.md 的 NL 表排到作者源后面了"
 
 
 def test_worksheets_stay_under_the_line_budget():
@@ -2153,3 +2157,473 @@ def test_progress_board_links_into_the_nl_dirs():
         assert f"](./{d}/{pair}.md)" in board, f"看板里 {pair} 的链接没指进 {d}/"
         assert f"](./{d}/{S.NL_DOC})" in board, f"看板里缺 {d} 的 NL.md 链接"
     assert "不是 pair id 的末位数字" in board, "⛔ 看板没写清分组判据"
+
+# ==================================================================== 三处清理：前言 / §1.2 / 怎么填
+#
+# ⭐ 本组钉住 2026-08-13 的三条清理要求，⛔ 以及最要紧的一件事：
+# ⚠️ 「怎么填」一节里的**每一条说法都必须与 `collect.py` 的真实行为一致**。
+# ⛔ 说明与实现不符是最坏的情况 —— 判读者照着说明填，⛔ 而内容被静默丢弃。
+
+def _fill_and_collect(pair, key, body):
+    """把某个 FILL 块的内容换成 `body`，走**真实** `collect_pair` 回收。
+
+    ⚠️ 刻意不直接调 `parse_fields` —— ⛔ 那样测的是我在测试里自己拼的参数，
+    ⭐ 而真正决定行为的是 `collect_pair` 传给它的 `known` / `choice_fields`。
+    """
+    text = _read(_ws(pair))
+    pat = (r"(<!-- FILL:BEGIN key=" + re.escape(key) + r" kind=\S+ -->\n~~~\n)"
+           r"(.*?)"
+           r"(\n~~~\n<!-- FILL:END key=" + re.escape(key) + r" -->)")
+    m = re.search(pat, text, re.S)
+    assert m, f"{pair}.md 里找不到 FILL 块 {key}"
+    patched = text[:m.start(2)] + body + text[m.end(2):]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, f"{pair}.md")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(patched)
+        return C.collect_pair(pair, path)
+
+
+def _ledger_rec(body, pair="0000", rid="EIS-0000-01"):
+    data = _fill_and_collect(pair, rid, body)
+    return next(r for r in data["ledger"] if r["id"] == rid)
+
+
+def _chk_items(body, pair="0000", key="CHK-0000-REACH"):
+    data = _fill_and_collect(pair, key, body)
+    return next(c for c in data["checklist"] if c["key"] == key)["items"]
+
+
+def _howto_block(pair):
+    """工作单最开头那一节的正文（⛔ 到下一个 `## ` 标题为止）。"""
+    doc = _read(_ws(pair))
+    i = doc.find("## ⭐ 怎么填")
+    assert i >= 0, f"{pair}.md 没有「怎么填」一节"
+    j = doc.find("\n## ", i + 1)
+    return doc[i:j if j > 0 else len(doc)]
+
+
+# ---------------------------------------------------------------- ① 三段前言已删
+
+def test_the_three_nl_preamble_paragraphs_are_gone_from_every_worksheet():
+    """⛔ NL 三列表**之前**的三段前言（共用 NL / 译文纪律 / 方括号图例）一律不许再出现。
+
+    ⭐ 判据是逐字片段，⛔ 不是「§1.1 变短了」—— ⚠️ 后者会被任何一次改写蒙过去。
+    """
+    for frag in ("共用同一份 NL 原文",          # ① 共用 NL + sha8 + 分段口径
+                 "译文是给人判缺陷用的",         # ② 译文纪律
+                 "两种方括号标注的含义"):        # ③ 图例
+        for pair in S.IN_SCOPE_PAIRS:
+            assert frag not in _read(_ws(pair)), \
+                f"{pair}.md 里三段前言之一又回来了：{frag}"
+
+
+def test_the_nl_table_directly_follows_its_heading():
+    """⭐ 「表直接跟在标题之后」—— ⛔ 标题与表头之间只许有一个空行。
+
+    ⚠️ 这一条比上面那条严：⛔ 上面只查旧措辞没回来，⭐ 这条查**任何**新前言都进不来。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        lines = _read(_ws(pair)).splitlines()
+        i = next(k for k, ln in enumerate(lines) if ln.startswith("### §1.1 "))
+        assert lines[i + 1] == "", f"{pair}.md 的 §1.1 标题后不是空行"
+        assert lines[i + 2] == "| 段 id | 原文 | 中文严格翻译 |", \
+            f"{pair}.md 的 §1.1 标题与表头之间掺进了东西：{lines[i + 2][:80]}"
+
+
+def test_the_two_facts_that_must_not_vanish_landed_in_the_nl_doc():
+    """⭐ 三段前言里那**两样不能凭空消失**的信息必须在 `nl_XXXX/NL.md` 里。
+
+    ⛔ 判据不是「NL.md 提到了分段」，⭐ 而是逐项：
+    ① 分段口径的取值 **与段 id 范围**（`NL-M001` … `NL-M006` 这种）；
+    ② 译文口径 **与两个方括号标记各自的含义**。
+    ⚠️ ①的「段 id 范围」是本轮新搬过去的 —— ⛔ 此前 `NL.md` 只写「共 N 段」，
+    ⛔ 判读者填 `nl_evidence` 时无从知道该写什么形状的 id。
+    """
+    for dirname in S.nl_dirs():
+        doc = _read(os.path.join(HERE, dirname, S.NL_DOC))
+        pair = S.pairs_of_dir(dirname)[0]
+        segs, seg_mode = S.nl_segments(pair)
+        assert f"`{seg_mode}`" in doc, f"{dirname}/{S.NL_DOC} 没写分段口径取值"
+        assert f"共 **{len(segs)}** 段（`{segs[0][0]}` … `{segs[-1][0]}`）" in doc, \
+            f"{dirname}/{S.NL_DOC} 没写段 id 范围 —— ⛔ 那是从工作单搬过来的"
+        assert "nl_evidence" in doc, f"{dirname}/{S.NL_DOC} 没说这套 id 是用来填什么的"
+        assert "译文是给人判缺陷用的" in doc, f"{dirname}/{S.NL_DOC} 缺译文口径"
+        for legend in ("〔原文如此：", "〔译者存疑："):
+            assert legend in doc, f"{dirname}/{S.NL_DOC} 缺方括号标记 {legend} 的含义"
+
+
+def test_the_worksheet_keeps_no_pointer_paragraph_to_those_two_facts():
+    """⛔ 工作单里**不留**指向那两样信息的说明段 —— ⚠️ 用户要的就是干净。
+
+    ⭐ 判据：§1.1 标题到表头之间零内容（上一条已钉），⭐ 且不许出现「口径见 NL.md」
+    这类新增指路句。⛔ 头部「开工前两份必读」那一句是原有的，⭐ 不在此列。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        head, _, rest = doc.partition("### §1.1 ")
+        # ⛔ `partition` 留下的 `rest` 还带着标题行的尾巴，⭐ 先切到行末
+        table_part = rest.split("\n", 1)[1].split("| 段 id |")[0]
+        assert table_part.strip() == "", f"{pair}.md 的 §1.1 里多了指路段：{table_part[:80]}"
+        # ⭐ 「两份必读」只许出现在头部，⛔ 不许在 §1.1 里再补一句
+        assert head.count("开工前两份必读") == 1, f"{pair}.md 的「两份必读」不是恰好一处"
+
+
+# ---------------------------------------------------------------- ② §1.2 整节已删
+
+def test_the_structure_summary_section_is_gone():
+    """⛔ §1.2 结构摘要整节（表 + 那段双口径脚注）不许再出现在任何工作单里。"""
+    dead = [
+        "结构摘要",                       # 节标题
+        "| 量 | 值 | 量 | 值 |",           # 表头
+        "| 状态总数 |",                    # 表内标签（抽三个代表）
+        "| 最大层次深度 |",
+        "| 台账现有条目 |",
+        "数字全部来自",                    # 脚注开头
+        "在谓词层可能是 4 或 7",           # 脚注里的双口径举例
+    ]
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for frag in dead:
+            assert frag not in doc, f"{pair}.md 里结构摘要的残留：{frag}"
+
+
+def test_section_one_subsections_are_contiguous_with_no_gap():
+    """⛔ 删掉 §1.2 之后**不许留空号或错号** —— §1 的小节必须是 1.1 / 1.2 / 1.3 连号。"""
+    want = ["### §1.1 NL 规约原文与中文严格翻译",
+            "### §1.2 作者源 PlantUML",
+            "### §1.3 参考模型 PlantUML"]
+    for pair in S.IN_SCOPE_PAIRS:
+        lines = _read(_ws(pair)).splitlines()
+        got = [ln for ln in lines if re.match(r"^### §1\.\d", ln)]
+        assert len(got) == 3, f"{pair}.md 的 §1 小节数不是 3：{got}"
+        for ln, prefix in zip(got, want):
+            assert ln.startswith(prefix), f"{pair}.md 的小节号错位：{ln}"
+
+
+def test_no_file_still_references_the_deleted_structure_summary():
+    """⛔ 零死引用：全工作区不许再有指向结构摘要或旧 §1.4 的引用。
+
+    ⚠️ 检查范围是**全部** `.py` 与 `.md`（含生成产物与 `README` / `HOWTO`），
+    ⛔ 不只是本轮改过的文件 —— ⭐ 死引用最容易留在没人想起要改的那一份里。
+    ⭐ `generate.py` 自己的注释（记录「旧 §1.2 已删」这件事）豁免：⛔ 它讲的正是删除本身。
+    """
+    bad = []
+    for root, dirs, files in os.walk(HERE):
+        dirs[:] = [d for d in dirs if d not in {"__pycache__", ".pytest_cache"}]
+        for fn in files:
+            if not fn.endswith((".py", ".md")):
+                continue
+            path = os.path.join(root, fn)
+            for no, ln in enumerate(_read(path).splitlines(), 1):
+                if fn == "generate.py" and ln.lstrip().startswith("#"):
+                    continue          # ⭐ 记录删除动作的注释
+                if fn == "test_relabel.py":
+                    continue          # ⭐ 本组测试自己要写出这些字样
+                if "§1.4" in ln or "§1.2 结构摘要" in ln:
+                    bad.append(f"{os.path.relpath(path, HERE)}:{no} {ln.strip()[:90]}")
+    assert not bad, "⛔ 死引用：\n" + "\n".join(bad)
+
+
+def test_the_dual_counting_caliber_note_survived_in_the_howto():
+    """⭐ 脚注删了，⛔ 但「作者源口径 ≠ 谓词层 `cardinality` 口径」这条**没失效**。
+
+    ⚠️ 它的长版此前在 `HOWTO.md` §A.1，⛔ 而 §A.1 原先锚在结构摘要上 ——
+    ⭐ 摘要删了就必须改锚到 §1.2 作者源，⛔ 不是跟着一起删。
+    """
+    howto = _read(S.howto_path(HERE))
+    assert "### §A.1 " in howto
+    a1 = howto.split("### §A.1 ")[1].split("### §A.2")[0]
+    assert "结构摘要" not in a1, "§A.1 还锚在已删除的结构摘要上"
+    assert "§1.2" in a1, "§A.1 没改锚到 §1.2 作者源"
+    assert "cardinality" in a1 and "不能混用" in a1, "§A.1 把双口径这条丢了"
+    assert "| §A | 两处只读材料的口径提醒 | §1.2 · §1.3 |" in howto, \
+        "HOWTO 导航表还指着旧节号"
+
+
+def test_the_region_separator_warning_moved_instead_of_being_deleted():
+    """⭐ 区分隔符告警不是摘要的一部分，⛔ 删摘要不该把它一起删掉。
+
+    ⚠️ 它承载的是**越界判据**（正交区不在 $M$ 内），⛔ 丢了会让判读者把并发主张
+    当成缺陷登记。⭐ 现在挂在 §1.2 作者源上 —— ⛔ 它讲的正是那份作者源。
+    """
+    hits = 0
+    for pair in S.IN_SCOPE_PAIRS:
+        model = PumlModel(S.puml_text(pair), pair)
+        n = model.summary()["region_separators"]
+        doc = _read(_ws(pair))
+        if not n:
+            assert "区分隔符" not in doc, f"{pair}.md 没有区分隔符却挂了告警"
+            continue
+        hits += 1
+        want = f"⚠️ 作者源含 **{n} 个 `--` 区分隔符**。"
+        assert want in doc, f"{pair}.md 丢了区分隔符告警"
+        # ⭐ 必须落在 §1.2 作者源那一节里
+        seg = doc.split("### §1.2 作者源")[1].split("### §1.3")[0]
+        assert want in seg, f"{pair}.md 的区分隔符告警没落在 §1.2 里"
+    assert hits == 9, f"含区分隔符的工作单应有 9 份，实测 {hits}"
+
+
+# ---------------------------------------------------------------- ③ 「怎么填」在最开头
+
+def test_the_howto_inline_section_sits_at_the_very_top():
+    """⭐ 「怎么填」必须在**标题之后、NL 表之前**，⛔ 且是正文第一节。"""
+    for pair in S.IN_SCOPE_PAIRS:
+        lines = _read(_ws(pair)).splitlines()
+        heads = [(i, ln) for i, ln in enumerate(lines) if ln.startswith("## ")]
+        assert heads, f"{pair}.md 没有任何二级标题"
+        assert heads[0][1].startswith("## ⭐ 怎么填"), \
+            f"{pair}.md 的第一节不是「怎么填」，而是 {heads[0][1]}"
+        assert heads[1][1].startswith("## §0 "), \
+            f"{pair}.md 「怎么填」后面不是 §0：{heads[1][1]}"
+        # ⛔ 必须排在标题之后
+        assert lines[1].startswith("# 人工重标工作单"), f"{pair}.md 头两行变了"
+        assert heads[0][0] > 1
+        # ⛔ 也必须排在 NL 表之前
+        tbl = next(i for i, ln in enumerate(lines)
+                   if ln == "| 段 id | 原文 | 中文严格翻译 |")
+        assert heads[0][0] < tbl
+
+
+def test_the_howto_inline_section_stays_short():
+    """⭐ 「尽量短」是硬要求 —— ⛔ 8 条 + 标题 + 一句引子，档设 16 行。
+
+    ⚠️ 它在 54 份里逐字重复（除第 7 条带 pair id），⛔ 长回去等于把 HOWTO 抄了 54 遍。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        n = len([ln for ln in _howto_block(pair).splitlines() if ln.strip()])
+        assert n <= 16, f"{pair}.md 的「怎么填」有 {n} 行非空 —— ⛔ 超档"
+
+
+def test_the_worksheets_got_shorter_not_longer():
+    """⭐ 本轮净效果必须是**行数下降**（⛔ 删 21 行、加 13 行）。
+
+    ⛔ 判据是与 `HEAD` 逐份比 —— ⚠️ 只看中位会被某一份的材料增长掩盖。
+    """
+    proc = subprocess.run(["git", "-C", HERE, "rev-parse", "--verify", "HEAD"],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        pytest.skip("非 git 环境")
+    worse = []
+    for pair in S.IN_SCOPE_PAIRS:
+        rel = os.path.relpath(_ws(pair), HERE)
+        old = subprocess.run(["git", "-C", HERE, "show", f"HEAD:./{rel}"],
+                             capture_output=True, text=True)
+        if old.returncode != 0:
+            pytest.skip(f"{rel} 不在 HEAD 里")
+        a = len(old.stdout.splitlines())
+        b = len(_read(_ws(pair)).splitlines())
+        if b >= a:
+            worse.append(f"{pair}: {a} → {b}")
+    assert not worse, "⛔ 这些工作单没变短：" + "、".join(worse)
+
+
+# ---------------------------------------------------------------- ③b 逐条钉住 parser 行为
+#
+# ⚠️ 下面 8 条与「怎么填」的 8 条**一一对应**。⛔ 改说明必须同时改这里。
+
+def test_claim_1_only_content_inside_the_fence_survives_a_rerun():
+    """第 1 条：⭐ 围栏内的留住，⛔ 围栏外的重跑就没了。"""
+    for pair in S.IN_SCOPE_PAIRS[:1]:
+        assert "只在 `~~~` 围栏里写" in _howto_block(pair)
+    with tempfile.TemporaryDirectory() as tmp:
+        dst = _ws("0000", tmp)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        doc = _read(_ws("0000"))
+        doc = doc.replace("<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->\n~~~\n",
+                          "<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->\n~~~\n"
+                          "理由: 围栏内的字\n")
+        doc += "\n围栏外的字\n"
+        with open(dst, "w", encoding="utf-8") as fh:
+            fh.write(doc)
+        subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
+                        "--pairs", "0000", "--out", tmp], check=True, capture_output=True)
+        after = _read(dst)
+        assert "围栏内的字" in after, "⛔ 围栏内的人工填写被吃掉了"
+        assert "围栏外的字" not in after, "⛔ 围栏外的字居然留下来了 —— 说明第 1 条写错了"
+
+
+def test_claim_2_accepted_and_rejected_check_marks():
+    """第 2 条：⭐ `CHECK_MARKS` 里的记号都认；⛔ 其余记号让**整个选项连文字一起消失**。"""
+    for m in fb.CHECK_MARKS:
+        rec = _ledger_rec(f"裁决: [{m}] 保留  [ ] 修正")
+        assert rec["裁决"]["chosen"] == ["保留"], f"记号 [{m}] 没被认出来"
+    for m in ["v", "V", "是", "o", "O", "1", "*", "·"]:
+        rec = _ledger_rec(f"裁决: [{m}] 保留  [ ] 修正")
+        chosen = rec["裁决"]["chosen"] if isinstance(rec["裁决"], dict) else []
+        opts = rec["裁决"]["options"] if isinstance(rec["裁决"], dict) else []
+        assert chosen == [], f"记号 [{m}] 竟被认成勾选 —— ⛔ 说明第 2 条的禁用清单写错了"
+        assert "保留" not in opts, \
+            f"记号 [{m}] 下「保留」还在 options 里 —— ⛔ 第 2 条「连文字一起消失」写错了"
+    # ⭐ 说明里必须列出这两组
+    blk = _howto_block("0000")
+    for m in fb.CHECK_MARKS:
+        assert f"`[{m}]`" in blk, f"说明里没列出可用记号 [{m}]"
+    for m in ["v", "是", "o", "1", "*"]:
+        assert f"`[{m}]`" in blk, f"说明里没警告不可用记号 [{m}]"
+
+
+def test_claim_3_the_value_is_the_text_after_the_box():
+    """第 3 条：⛔ 只留 `裁决: [x]`（删掉选项文字）= 没勾。"""
+    assert "只留 `裁决: [x]` 等于**没勾**" in _howto_block("0000")
+    rec = _ledger_rec("裁决: [x]")
+    assert not isinstance(rec["裁决"], dict), "⛔ 无标签的 [x] 竟被读成勾选行"
+    assert rec["裁决"] == "[x]", f"⛔ 实际读成了 {rec['裁决']!r}"
+    rep = V.Report()
+    V.validate_pair("0000", _fill_and_collect("0000", "EIS-0000-01", "裁决: [x]"), rep)
+    assert any(i["key"] == "EIS-0000-01" and i["level"] == "E" for i in rep.items), \
+        "⛔ 这种写法必须被 validate 抓住，⭐ 否则「等于没勾」是句空话"
+
+
+def test_claim_4_two_checks_is_an_error_not_two_values():
+    """第 4 条：⛔ 勾两个 → validate 报「单值」，⛔ 不是两个都算。"""
+    assert "该字段是单值" in _howto_block("0000")
+    data = _fill_and_collect("0000", "EIS-0000-01",
+                             "裁决: [x] 保留  [x] 修正  [ ] 删除\n深度: [x] 中层")
+    rec = next(r for r in data["ledger"] if r["id"] == "EIS-0000-01")
+    assert rec["裁决"]["chosen"] == ["保留", "修正"]
+    rep = V.Report()
+    V.validate_pair("0000", data, rep)
+    msgs = [i["msg"] for i in rep.items if i["level"] == "E"]
+    assert any("单值" in m for m in msgs), f"⛔ validate 没报单值错：{msgs}"
+
+
+def test_claim_5_free_text_colons_and_continuation_lines():
+    """第 5 条：⭐ 全角冒号认、⭐ 续行接得上、⭐ 续行里带冒号也**不截断**。
+
+    ⚠️ 最后一点是本轮修的 bug：`理由` 的续行写「NL 第 3 句：…」时，
+    ⛔ 旧行为把那一行当成新字段名，`理由` 就地截断且**不报错**。
+    """
+    blk = _howto_block("0000")
+    assert "全角 `：` 都认" in blk and "续行里带冒号也不会被截断" in blk
+    rec = _ledger_rec("理由： 全角冒号也认")
+    assert rec["理由"] == "全角冒号也认"
+    rec = _ledger_rec("理由: 第一行\nNL 第 3 句：模型没有这条边\n还有第三行")
+    assert rec["理由"] == "第一行\nNL 第 3 句：模型没有这条边\n还有第三行", \
+        f"⛔ 续行被截断了：{rec['理由']!r}"
+    assert "NL 第 3 句" not in rec, "⛔ 续行又被当成新字段了"
+    # ⭐ 顺带钉住另一处同源修复：值里的 `[ ]` 不许把自由文本字段读成勾选行
+    rec = _ledger_rec("修正后的 statement: `HumanDrivingMode` 缺 [ ] 初始边")
+    assert rec["修正后的 statement"] == "`HumanDrivingMode` 缺 [ ] 初始边", \
+        f"⛔ 值里的 [ ] 把这一行读成勾选行了：{rec['修正后的 statement']!r}"
+    # ⛔ 改了字段名 → 并进上一个字段（说明里就是这么写的）
+    rec = _ledger_rec("理由: 甲\n原因: 乙")
+    assert rec["理由"] == "甲\n原因: 乙" and "原因" not in rec
+
+
+def test_claim_6_checklist_tolerates_indent_bullets_and_bare_findings():
+    """第 6 条：⭐ 缩进 / `-` 前缀都收，⭐ 裸下一行也当发现，⛔ 只有 `·` 行不回收。
+
+    ⚠️ 前两种此前让**整条清单项从 `items` 里消失** —— ⛔ 不是「未勾选」，是不存在，
+    ⛔ 而 `checklist_items` 总数会跟着变小且不报错。
+    """
+    blk = _howto_block("0000")
+    assert "前面有缩进或 `-` 都行" in blk
+    assert "直接写在下一行也收" in blk
+    assert "`·` 开头那行" in blk
+    for line in ["[x] REACH-01 甲",
+                 "  [x] REACH-01 甲",
+                 "- [x] REACH-01 甲",
+                 "  - [✓] REACH-01 甲",
+                 "[xx] REACH-01 甲"]:
+        items = _chk_items(line)
+        assert len(items) == 1 and items[0]["iid"] == "REACH-01" and items[0]["checked"], \
+            f"⛔ 这种写法丢了整条：{line!r} → {items}"
+    # ⭐ 小写 id 归一成大写（⛔ 否则并表时变成两条）
+    assert _chk_items("[x] reach-01 甲")[0]["iid"] == "REACH-01"
+    # ⭐ 裸下一行当发现
+    assert _chk_items("[x] REACH-01 甲\n    我发现了问题")[0]["finding"] == "我发现了问题"
+    # ⭐ `发现:` 写法照旧
+    assert _chk_items("[x] REACH-01 甲\n    发现: 有问题")[0]["finding"] == "有问题"
+    # ⛔ `·` 行不回收
+    assert _chk_items("[x] REACH-01 甲\n    · 机械判据：无出边")[0]["finding"] is None
+    # ⛔ 未勾选仍然是未勾选
+    assert _chk_items("[ ] REACH-01 甲")[0]["checked"] is False
+
+
+def test_claim_7_new_entry_needs_its_own_heading():
+    """第 7 条：⭐ 每条一个 `### NEW-<pair>-NN` 标题；⛔ 挤在一个标题下会被并成一条。"""
+    blk = _howto_block("0000")
+    assert "### NEW-0000-01" in blk
+    assert "别把两条挤在一个标题下" in blk
+    two = ("### NEW-0000-01\nstatement: 甲\n\n"
+           "### NEW-0000-02\nstatement: 乙\n")
+    ids = [r["id"] for r in _fill_and_collect("0000", "NEW-0000", two)["new_issues"]]
+    assert ids == ["NEW-0000-01", "NEW-0000-02"], ids
+    # ⛔ 挤在一个标题下 → 只剩一条，且第二条的 statement 被并进第一条
+    one = "### NEW-0000-01\nstatement: 甲\nstatement: 乙\n"
+    recs = _fill_and_collect("0000", "NEW-0000", one)["new_issues"]
+    assert len(recs) == 1, f"⛔ 说明第 7 条写错了：{recs}"
+    # ⭐ 宽容面：漏空格 / 少一个 `#` / 小写都还认（⛔ 但说明仍要求写标准形）
+    for head in ["###NEW-0000-03", "## NEW-0000-03", "### new-0000-03"]:
+        recs = _fill_and_collect("0000", "NEW-0000", head + "\nstatement: 甲\n")["new_issues"]
+        assert [r["id"] for r in recs] == ["NEW-0000-03"], f"{head} → {recs}"
+    # ⛔ 漏掉 NEW- 前缀 → 整条不认（说明里明写了）
+    assert "也别漏掉 `NEW-` 前缀" in blk
+    assert _fill_and_collect("0000", "NEW-0000", "### 0000-03\nstatement: 甲\n")["new_issues"] == []
+
+
+def test_claim_8_blank_is_not_the_same_as_writing_none():
+    """第 8 条：⭐ 留空回收成 `null`；⭐ 写 `无` 是「判过了，结论是没有」。"""
+    blk = _howto_block("0000")
+    assert "回收成 `null`" in blk
+    assert "「留空」与「写 `无`」在校验时是两件事" in blk
+    rec = _ledger_rec("理由:")
+    assert rec["理由"] is None, f"⛔ 留空没回收成 null：{rec['理由']!r}"
+    rec = _ledger_rec("理由: 无")
+    assert rec["理由"] == "无"
+    for mark in ("无", "none", "N/A", "-"):
+        assert NF.is_none_mark(mark), f"⛔ 说明里列了 {mark} 却不被 `is_none_mark` 认"
+    assert not NF.is_none_mark(""), "⛔ 空串不该算「已判定为无」"
+
+
+def test_check_marks_have_exactly_one_source_of_truth():
+    """⛔ 勾选记号只许有一份真源 —— ⚠️ 解析器与 `is_untouched` 分叉过一次。
+
+    ⭐ 症状很具体：`collect.py` 认 `[✓]`，而 `is_untouched` 只认字面 `"[x]"`，
+    ⛔ 于是一份**只用 ✓ 勾选**的块会被报成「原样未填」。
+    """
+    for src in ("collect.py", "generate.py"):
+        text = _read(os.path.join(HERE, src))
+        assert "xX✓√" not in text, f"{src} 里又抄了一份记号字符集 —— ⛔ 必须读 fb.CHECK_MARKS"
+    for m in fb.CHECK_MARKS:
+        assert not fb.is_untouched(f"裁决: [{m}] 保留  [ ] 修正", "ledger"), \
+            f"⛔ is_untouched 不认记号 [{m}]"
+    assert fb.is_untouched(fb.LEDGER_TEMPLATE, "ledger")
+    assert fb.is_untouched("裁决: [ ] 保留  [ ] 修正", "ledger")
+
+
+def test_field_tables_are_derived_from_the_templates_not_hand_copied():
+    """⛔ §0 / §2 / §3 的字段表必须从模板算出来 —— ⚠️ 抄一份就会与模板分叉。
+
+    ⭐ 分叉的后果是静默的：解析器不认某字段名时，那一行被并进**上一个**字段。
+    """
+    assert fb.LEDGER_FIELDS == ["裁决", "深度", "理由", "修正后的 statement"]
+    assert fb.LEDGER_CHOICES == ["裁决", "深度"]
+    assert fb.CANDIDATE_CHOICES == ["裁决", "深度"]
+    assert "并入到" in fb.CANDIDATE_FIELDS and "并入到" not in fb.CANDIDATE_CHOICES
+    assert fb.PAIR_CHOICES == ["本 pair 整体判断", "台账现有条目是否偏浅（整体）"]
+    # ⭐ 每个模板里的每一个字段名都要在表里（⛔ 逐字对模板）
+    for tpl, names in ((fb.LEDGER_TEMPLATE, fb.LEDGER_FIELDS),
+                       (fb.CANDIDATE_TEMPLATE, fb.CANDIDATE_FIELDS),
+                       (fb.PAIR_TEMPLATE, fb.PAIR_FIELDS)):
+        for line in tpl.splitlines():
+            head = re.match(r"^([^:：]+)[:：]", line)
+            assert head and head.group(1).strip() in names, f"模板行没进字段表：{line}"
+    # ⭐ 宽容变体：漏空格的写法也认（⚠️ validate.py 本就同时查两种）
+    assert "修正后的statement" in fb.name_variants(fb.LEDGER_FIELDS)
+    assert "耗时（分钟）" in fb.name_variants(fb.PAIR_FIELDS)
+
+
+def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
+    """⛔ 宽容化不许动四个门面数字：`54 / 99 / 141 / 955`。
+
+    ⚠️ 这是本轮改 parser 的安全网：⭐ 宽容只该多认几种写法，
+    ⛔ 不该让空模板被解析成别的东西。
+    """
+    import json as _json
+    proc = subprocess.run([sys.executable, os.path.join(HERE, "collect.py"), "--stdout"],
+                          check=True, capture_output=True, text=True, cwd=HERE)
+    tot = _json.loads(proc.stdout)["totals"]
+    assert (tot["pairs"], tot["ledger_records_seen"],
+            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 141, 955), tot
