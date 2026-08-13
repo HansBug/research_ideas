@@ -129,7 +129,7 @@
 
 ⛔⛔ **且存在反向证据**：⭐ Konstantinou 等在 **GPT-4o-mini 这个弱模型**上，⭐ 朴素提示胜过四条带执行反馈的流水线——⛔ **直接与「脚手架帮弱模型」相反**（⭐ C3 指出本条此前被漏报，⛔ 属选择性报告风险）。
 
-## 5. ⭐ 三样非空产出
+## 5. ⭐ 前三样非空产出（⭐ 第四样见 §12）
 
 ### 5.1 ⭐ 可用但不承重的替代动机：**开放权重**（⛔ 不是「小」）+ 可复现性
 
@@ -211,8 +211,12 @@
 | [mde_re_venue_scan.md](./mde_re_venue_scan.md) | ⭐ MDE / RE venue 直翻（3,740 条题录，⭐ MDE/RE 侧 1,455） |
 | [small_model_papers.md](./small_model_papers.md) | ⭐ 小模型 + 方法学补偿（24 篇，14 篇读到正文） |
 | [counterarguments.md](./counterarguments.md) | ⛔ 反方与预答（9 条答不上来） |
-| [verification_log.md](./verification_log.md) | ⭐ 主 session 一手核验（V1–V4） |
-| [c2_rebuttal.md](./c2_rebuttal.md) · [c3_coverage.md](./c3_coverage.md) | ⭐ challenge 层产出 |
+| [verification_log.md](./verification_log.md) | ⭐ 主 session 一手核验（V1–V5） |
+| [c1_fact_check.md](./c1_fact_check.md) | ⭐ C1 事实核验（约 180 条） |
+| [c2_rebuttal.md](./c2_rebuttal.md) | ⛔ C2 反驳（3 条，含 1 条无解） |
+| [c3_coverage.md](./c3_coverage.md) | ⛔ C3 覆盖审计 |
+| [c4_rebuttal_neg_result.md](./c4_rebuttal_neg_result.md) | ⛔⛔ C4 专打 §12（⭐ 含 KV cache 精算，⛔ 判负结果二段式无解） |
+| [c5_arithmetic_check.md](./c5_arithmetic_check.md) | ⭐ C5 算术与模型事实核验（41 条） |
 
 ## 11. ⛔ C1 事实核验的结清项与遗留
 
@@ -336,7 +340,7 @@
 
 ⛔ **不去论证「必须用小模型」**（⛔ 论证不了），⭐ 而是**把这个矛盾本身当成测出来的结论报出来**：
 
-> ⚠️ **第三方测量**（⭐ VerIbmc）**提示**这类多阶段脚手架的收益随模型能力下降，⛔ 在其 32B / 120B 两档已降至 +2 / +3；⭐ 而真实私域部署包络允许 **~120B 到 671B**。⛔ **若该趋势成立，则在实际部署条件下这类方法拿不到它设计时假定的增益**——⭐ 因为总能部署一个大到不需要脚手架的开放权重模型。
+> ⚠️ **第三方测量**（⭐ VerIbmc）**提示**这类多阶段脚手架的收益随模型能力下降，⛔ 在其 32B / 120B 两档已降至 +2 / +3；⭐ 而真实私域部署包络的上限约为 **988B 总参**（⭐ 单 8×80G 节点，⭐ 已计入常驻项，⭐ §12.2c）。⛔ **若该趋势成立，则在实际部署条件下这类方法拿不到它设计时假定的增益**——⭐ 因为总能部署一个大到不需要脚手架的开放权重模型。
 
 ⛔⛔ **上面这段的措辞已按 C4 强制改过，⛔ 原文写的是「⭐ **我们测出**这类脚手架的有效区间在 ~20B 以下」——⛔ 那是错的两重**：① ⛔ 那是**第三方的表**，⛔ 不是我们测的；② ⛔⛔ **它在统计上不成立**：⭐ VerIbmc 自陈 $\sigma = 5.3$，⛔ 故 $\sigma_{\text{diff}} \approx 7.5$；⛔ 定义「膝」的 **+15 vs +2 之差只有 1.7σ**（⭐ 而 +35 是 4.7σ、+2/+3 仅 0.3/0.4σ）。⛔ **「有效区间 ≤20B」目前只是 hypothesis。**
 
