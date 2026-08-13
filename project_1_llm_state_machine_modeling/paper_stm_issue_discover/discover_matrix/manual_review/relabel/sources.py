@@ -83,6 +83,96 @@ def source_meta(pair):
     return json.loads(_read(os.path.join(seed_dir(pair), "source_meta.json")))
 
 
+# ---------------------------------------------------------------- 目录布局
+
+WORKSHEET_HOWTO = "HOWTO.md"
+NL_DOC = "NL.md"
+
+
+def nl_sha8(pair):
+    """该 pair 的 NL 全文 sha256 前 8 位。⭐ 与译文 JSON 的 `sha8` 字段同口径。"""
+    return hashlib.sha256(nl_text(pair).encode("utf-8")).hexdigest()[:8]
+
+
+@functools.lru_cache(maxsize=1)
+def _nl_dir_index():
+    """`{sha8: 目录名}`，目录名取该组**最小的 pair id**（如 `nl_0002`）。
+
+    ⛔⛔ **分组判据是 NL 全文的 sha8，⛔ 不是 pair id 的末位数字。** 两者在 8 组上恰好
+    一致，⛔ 但在第 9、第 10 组上**不一致** —— 实测（`nl_text` 的 sha8 直接可复核）：
+
+    - `0002` 的 NL 与 `0013` `0023` `0033` `0043` `0053` 相同（sha8 `a391765d`）；
+    - `0003` 的 NL 与 `0012` `0022` `0032` `0042` `0052` 相同（sha8 `9fe426ba`）。
+
+    ⭐ 即 `0002` / `0003` 与 `0012` / `0013` 是**交叉**的。⛔ 若按末位数字分目录，
+    `nl_0002/` 里就会同时坐着两份**不同**的 NL，而该目录的 `NL.md` 只能对其中一份为真 ——
+    ⛔ 那正好复刻了 [README.md](./README.md) §十记过的那起事故（一份材料被印到不属于它的
+    工作单上，且旁边还立着一句免责声明劝读者不要去核）。
+    ⛔ 所以这里**永远**按 sha8 分，⛔ 不许「化简」成末位数字。
+    """
+    groups = {}
+    for pair in IN_SCOPE_PAIRS:
+        groups.setdefault(nl_sha8(pair), []).append(pair)
+    return {sha: f"nl_{min(ps)}" for sha, ps in groups.items()}
+
+
+def nl_dir(pair):
+    """该 pair 的工作单所在子目录名（相对 `relabel/`）。"""
+    return _nl_dir_index()[nl_sha8(pair)]
+
+
+def nl_dirs():
+    """全部 9 个 NL 子目录名，按名字升序。"""
+    return sorted(set(_nl_dir_index().values()))
+
+
+@functools.lru_cache(maxsize=1)
+def _pairs_by_dir():
+    out = {}
+    for pair in IN_SCOPE_PAIRS:
+        out.setdefault(nl_dir(pair), []).append(pair)
+    return {d: tuple(sorted(ps)) for d, ps in out.items()}
+
+
+def pairs_of_dir(dirname):
+    """该子目录下的 6 个 pair。"""
+    return _pairs_by_dir()[dirname]
+
+
+def nl_siblings(pair):
+    """与该 pair **共用同一份 NL** 的 6 个 pair（含自己）。"""
+    return _pairs_by_dir()[nl_dir(pair)]
+
+
+def worksheet_path(base, pair):
+    """工作单路径 `<base>/nl_XXXX/<pair>.md`。"""
+    return os.path.join(base, nl_dir(pair), f"{pair}.md")
+
+
+def nl_doc_path(base, pair):
+    """该 pair 所属 NL 组的 NL 材料页 `<base>/nl_XXXX/NL.md`。"""
+    return os.path.join(base, nl_dir(pair), NL_DOC)
+
+
+def howto_path(base):
+    """填写说明页 `<base>/HOWTO.md` —— 54 份工作单共用一份。"""
+    return os.path.join(base, WORKSHEET_HOWTO)
+
+
+def find_worksheets(base):
+    """列出 `<base>` 下**任意深度**的 `<4 位数字>.md`，返回 `{pair: 路径}`。
+
+    ⭐ 递归是必须的：工作单已经按 NL 组下沉了一层，⛔ 而 `00x8` 的越界检查要能抓住
+    「有人把工作单放在任何地方」这件事 —— ⛔ 只扫根目录会漏掉子目录里的越界工作单。
+    """
+    out = {}
+    for root, _dirs, files in os.walk(base):
+        for f in files:
+            if re.fullmatch(r"\d{4}\.md", f):
+                out.setdefault(f[:-3], os.path.join(root, f))
+    return out
+
+
 # ---------------------------------------------------------------- NL 分段
 
 @functools.lru_cache(maxsize=1)

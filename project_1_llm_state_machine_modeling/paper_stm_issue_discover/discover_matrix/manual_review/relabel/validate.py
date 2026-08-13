@@ -367,7 +367,8 @@ def validate_pair(pair, data, rep):
         if nle and not NF.is_none_mark(nle) and not cited:
             rep.W(pair, nid,
                   f"`nl_evidence` 里没认出本 pair 的段 id（本 pair 的段 id 形如 "
-                  f"`{sorted(_known_seg_ids(pair))[0]}`）—— ⭐ 写段 id 才能机械回链到 §1.2")
+                  f"`{sorted(_known_seg_ids(pair))[0]}`）—— ⭐ 写段 id 才能机械回链到 "
+                  f"§1.2 指向的 `nl_XXXX/{S.NL_DOC}`")
         for bad in _seg_refs(nle) - _known_seg_ids(pair):
             rep.E(pair, nid, f"`nl_evidence` 引用了本 pair 不存在的段 id `{bad}`")
 
@@ -536,13 +537,22 @@ def write_progress(rows, path, counts):
     lines.append("")
     lines.append(f"最后刷新：`{datetime.datetime.now().isoformat(timespec='seconds')}`")
     lines.append("")
-    lines.append("| pair | 状态 | 台账裁决 | 候选裁决 | 清单已过 | 清单发现 | 新增 | 越界 | 整体判断 | 耗时(分) |")
-    lines.append("| :-- | :-: | --: | --: | --: | --: | --: | --: | :-- | --: |")
+    lines.append("| NL 组 | pair | 状态 | 台账裁决 | 候选裁决 | 清单已过 | 清单发现 | 新增 | 越界 | 整体判断 | 耗时(分) |")
+    lines.append("| :-- | :-- | :-: | --: | --: | --: | --: | --: | --: | :-- | --: |")
     for r in rows:
+        d = S.nl_dir(r["pair"])
         lines.append(
-            f"| [`{r['pair']}`](./{r['pair']}.md) | {r['status']} | {r['ledger']} | "
+            f"| [`{d}`](./{d}/{S.NL_DOC}) | [`{r['pair']}`](./{d}/{r['pair']}.md) | "
+            f"{r['status']} | {r['ledger']} | "
             f"{r['candidates']} | {r['checklist']} | {r['findings']} | {r['new']} | "
             f"{r['out_of_scope']} | {r['overall']} | {r['minutes']} |")
+    lines.append("")
+    lines.append(
+        "⭐ **「NL 组」栏**：同一组的 6 个 pair 由**同一份 NL 规约**生成 6 个不同制品，"
+        f"共用一份 `nl_XXXX/{S.NL_DOC}`。⭐ 想一次处理完同一份 NL 的模型，就按这一栏排着做。"
+        f"⛔ 分组判据是 NL 全文的 sha8，⛔ 不是 pair id 的末位数字 —— `0002` 与 `0013` 同组、"
+        f"`0003` 与 `0012` 同组。"
+    )
     lines.append("")
     lines.append(
         "⭐ **「越界」栏**：判读者在 §5 的**③ 边界层**勾了「越界·…」的条目数。"
@@ -573,16 +583,19 @@ def main():
     pairs = args.pairs or list(S.IN_SCOPE_PAIRS)
     rep = Report()
 
+    # ⛔ 递归扫：工作单已按 NL 组下沉一层，⚠️ 只看根目录会漏掉藏在子目录里的越界工作单。
+    found = S.find_worksheets(args.dir)
     for p in S.OUT_OF_SCOPE_PAIRS:
-        if os.path.exists(os.path.join(args.dir, f"{p}.md")):
+        if p in found:
             rep.E(p, "SCOPE",
-                  "⛔ `00x8` 越界 pair 不该有工作单 —— 它不在评测网格内，"
+                  f"⛔ `00x8` 越界 pair 不该有工作单（发现于 "
+                  f"`{os.path.relpath(found[p], args.dir)}`）—— 它不在评测网格内，"
                   "重标它会把分母改错")
 
     rows = []
     data_all = {}
     for pair in pairs:
-        path = os.path.join(args.dir, f"{pair}.md")
+        path = S.worksheet_path(args.dir, pair)
         if not os.path.exists(path):
             rep.E(pair, "FILE", "工作单不存在 —— 跑 `python3 generate.py`")
             continue

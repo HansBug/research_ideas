@@ -1,6 +1,6 @@
 # 人工全量重标工作区
 
-54 份逐 pair 的工作单 + 生成 / 回收 / 校验工具。目标是让作者**逐 pair 人工裁决**三件事：现有 expected issue 是否成立、是否偏浅、以及台账遗漏了什么。
+54 份逐 pair 的工作单（⭐ 按 NL 组分在 9 个 `nl_XXXX/` 子目录里，见 §3.0）+ 生成 / 回收 / 校验工具。目标是让作者**逐 pair 人工裁决**三件事：现有 expected issue 是否成立、是否偏浅、以及台账遗漏了什么。
 
 ⛔ **本目录不修改台账。** [expected_issue_set.json](../expected_issue_set.json) 保持冻结 —— 它是 v46 与 X1 两轮判定所依据的 ground truth，事后改它比改结果更严重。重标产物只落在本目录内；合并回台账是另一件事，需要单独的裁定与 PR。
 
@@ -54,21 +54,47 @@
 
 ## 三、怎么用
 
+### 3.0 目录布局：⭐ 一个 NL 一个 subdir
+
+工作单按 **NL 组**分在 9 个子目录里，⭐ 目的就是让你**一次处理完同一份 NL 的 6 个模型**：
+
+```text
+relabel/
+├── HOWTO.md            ← ⭐ 填写说明（54 份共用，⛔ 与具体 pair 无关）
+├── PROGRESS.md         ← 进度看板（⭐ 带「NL 组」栏，按它排着做）
+├── nl_0000/
+│   ├── NL.md           ← ⭐ 该 NL 的原文 + 中文严格翻译 + 逐段判读提示 + 整份观察（6 份共用）
+│   ├── 0000.md         ← 工作单（⭐ 唯一有填写区的文件）
+│   └── 0010.md 0020.md 0030.md 0040.md 0050.md
+└── nl_0001/ … nl_0009/  ← 共 9 组 × 6 = 54
+```
+
+⛔⛔ **分组判据是 NL 全文的 sha8，⛔ 不是 pair id 的末位数字。** 两者在 8 组上恰好一致，⛔ 在剩下两组上**交叉**：
+
+| 目录 | 6 个 pair | ⚠️ 注意 |
+| :-- | :-- | :-- |
+| [nl_0002/](./nl_0002/) | `0002` `0013` `0023` `0033` `0043` `0053` | ⚠️ 含 `0013`，⛔ 不含 `0012` |
+| [nl_0003/](./nl_0003/) | `0003` `0012` `0022` `0032` `0042` `0052` | ⚠️ 含 `0012`，⛔ 不含 `0013` |
+
+⛔ 若按末位数字分目录，`nl_0002/` 里会同时坐着两份**不同**的 NL，而该目录的 `NL.md` 只能对其中一半为真 —— 那正好复刻 §十 记的那起事故。判据由 [sources.py](./sources.py) 的 `_nl_dir_index()` 实现、由 `test_nl_grouping_follows_the_nl_text_not_the_last_digit` 钉住。
+
+⭐ 目录名取该组**最小的 pair id**，与 [translations/](./translations/) 下的译文 JSON 文件名一一对应（`nl_0002/` ↔ `translations/nl_0002.json`）。
+
 ### 3.1 一份工作单长什么样
 
-打开 `<pair>.md`（如 [0000.md](./0000.md)）即可开工，⛔ 不需要再翻别的文件。结构：
+开工要读**三份**：同目录的 `NL.md`（NL 侧材料，6 份共用）、根上的 [HOWTO.md](./HOWTO.md)（怎么填，54 份共用）、以及 `nl_XXXX/<pair>.md`（制品侧材料 + ⭐ 唯一的填写区）。
 
 | 节 | 内容 | 要不要填 |
 | :-- | :-- | :-- |
 | §0 | 本 pair 结论 | ⭐ 做完再填 |
-| §1 | 原料：结构摘要 / NL 全文（分段 + 行号）/ 作者源 PlantUML（行号）/ 参考模型 PlantUML | 只读 |
+| §1 | 原料：结构摘要 / §1.2 指向 `NL.md` / 作者源 PlantUML（行号）/ 参考模型 PlantUML | 只读 |
 | §2 | 现有 expected issue 逐条 + ⛔ 自动风险标记 | ⭐ 逐条裁决 |
 | §3 | 候选新增 issue（五个来源，见下） | ⭐ 逐条裁决 |
 | §4 | ⭐ 深度检查清单（逐 pair 点名真实元素） | ⭐ 逐条勾选 + 写发现 |
-| §5 | 新增 issue 登记（⭐ 三层字段块，见 §3.6） | ⭐ 按需填 |
+| §5 | 新增 issue 登记（§5.1 真实样例 + §5.2 ⭐ 三层字段块，见 §3.6 与 [HOWTO.md](./HOWTO.md) §B） | ⭐ 按需填 |
 | §9 | 孤儿填写区（材料变动时才出现） | 并回正文后删掉 |
 
-**只有 `<!-- FILL:BEGIN -->` 与 `<!-- FILL:END -->` 之间的内容是给人填的。** 其余部分重跑生成器会被覆盖。填写用 `~~~` 围栏包着，⭐ 所以你可以在理由里自由粘贴 ``` 代码块。
+**只有 `<!-- FILL:BEGIN -->` 与 `<!-- FILL:END -->` 之间的内容是给人填的。** 其余部分重跑生成器会被覆盖。填写用 `~~~` 围栏包着，⭐ 所以你可以在理由里自由粘贴 ``` 代码块。⛔ `HOWTO.md` 与 `NL.md` **没有**填写区 —— 填在那里的东西 [collect.py](./collect.py) 收不上来，且不会报错（由 `test_shared_pages_carry_no_fill_blocks` 钉住）。
 
 ### 3.2 §3 的五个候选来源
 
@@ -117,6 +143,8 @@
 
 ### 3.6 §5 新增区怎么填（⭐ 三层 + 一个填好的例子）
 
+⭐ **动手时看 [HOWTO.md](./HOWTO.md) §B** —— 那是逐字段的操作版，由 [generate.py](./generate.py) 从 [newfields.py](./newfields.py) 的枚举现算，⛔ 故枚举一改它就跟着改。本节是**读者版**：多一列「必填」的口径、以及一个从头填到尾的完整例子（§3.6.3），⛔ 两者都不是另一份的子集，故两处并存。
+
 §5 的登记块按**三层**组织。三层不是三种详略，⛔ 是三个**必须分开回答**的问题 —— ⭐ 把它们揉在一句话里正是现台账出问题的地方（见 §7.1 与 §7.2）。
 
 | 层 | 它问什么 | 字段 | 必填 |
@@ -149,7 +177,7 @@
 
 #### 3.6.3 ⭐ 一个填好的完整例子
 
-⚠️ ⛔ **以下是示例，⛔ 不是判读结果。** 它写在 README 里，⛔ 不在任何工作单的 `FILL` 块内，因此 [collect.py](./collect.py) **不会**回收它 —— 该脚本只读 54 份 `<pair>.md` 的填写块。
+⚠️ ⛔ **以下是示例，⛔ 不是判读结果。** 它写在 README 里，⛔ 不在任何工作单的 `FILL` 块内，因此 [collect.py](./collect.py) **不会**回收它 —— 该脚本只读 54 份 `nl_XXXX/<pair>.md` 的填写块。
 
 ⭐ 例子特意用 **`0008`**：它是[永久排除](../../docs/protocol/nl_scope_rule.md)的越界 pair，**不生成工作单、不进网格、不进分母**，⛔ 所以没有任何人会去重标它。⭐ 这样既能用**真实的 pair、真实的作者源行号、真实的 NL 段 id**，⛔ 又不会把答案先告诉任何一份工作单的判读者 —— 与 §5 样例「避开本 pair 所属 NL 组」是同一条纪律。⚠️ 顺带一个好处：`0008` 同时含界内与越界两种情形，一份材料就能把 ③ 边界层讲清。
 
@@ -258,7 +286,7 @@ depth: 深层
 ```bash
 cd .../discover_matrix/manual_review/relabel
 
-python3 generate.py                    # 生成 / 刷新全部 54 份（⭐ 幂等，保留已填内容）
+python3 generate.py                    # 刷新 HOWTO.md + 9 份 NL.md + 54 份工作单（⭐ 幂等，保留已填内容）
 python3 generate.py --pairs 0000 0044  # 只刷新指定 pair
 python3 generate.py --check            # 只报告哪些会变，不写盘
 
@@ -280,7 +308,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 | 量 | 值 |
 | :-- | --: |
-| 工作单 | 54 份 |
+| 工作单 | 54 份（⭐ 9 个 NL 组 × 6） |
 | §2 台账条目裁决位 | **99**（98 `REPORTABLE` + `EIS-0043-02`，后者带边界裁定标记） |
 | §3 候选裁决位 | **141** |
 | §4 清单条目 | **955** |
@@ -392,7 +420,7 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 | 文件 | 作用 |
 | :-- | :-- |
-| [generate.py](./generate.py) | 生成 54 份工作单（⭐ 幂等） |
+| [generate.py](./generate.py) | 生成 [HOWTO.md](./HOWTO.md) + 9 份 `nl_XXXX/NL.md` + 54 份工作单（⭐ 幂等） |
 | [collect.py](./collect.py) | 回收成 `relabel_result.json` |
 | [validate.py](./validate.py) | 校验 + 刷新 [PROGRESS.md](./PROGRESS.md) |
 | [export_unmatched.py](./export_unmatched.py) | 从原始 run record 导出 §3.3 的 issue 文本 |
@@ -405,8 +433,10 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | [translations/TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) | 译文的验收依据（⭐ 交给译者的原样规格） |
 | [test_relabel.py](./test_relabel.py) | 回归测试（`python3 -m pytest test_relabel.py -q`） |
 | [unmatched_issues.json](./unmatched_issues.json) | §3.3 的数据（入库，使工作单自包含） |
-| [PROGRESS.md](./PROGRESS.md) | 进度看板（⛔ 由脚本重写，不要手改） |
-| `<pair>.md` | 54 份工作单 |
+| [PROGRESS.md](./PROGRESS.md) | 进度看板（⛔ 由脚本重写，不要手改；⭐ 带「NL 组」栏） |
+| [HOWTO.md](./HOWTO.md) | ⭐ 填写说明（54 份共用，⛔ 由脚本重写；⛔ 无填写区） |
+| `nl_XXXX/NL.md` | ⭐ 9 份 NL 材料页（同组 6 个 pair 共用，⛔ 由脚本重写；⛔ 无填写区） |
+| `nl_XXXX/<pair>.md` | 54 份工作单（⭐ 唯一有填写区的文件） |
 | `relabel_result.json` | 回收产物（跑 `collect.py` 后出现） |
 
 ## 九、口径变更记录

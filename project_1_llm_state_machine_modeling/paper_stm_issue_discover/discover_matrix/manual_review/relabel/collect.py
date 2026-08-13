@@ -8,6 +8,9 @@
     python3 collect.py --out /tmp/x.json
     python3 collect.py --stdout              # 不写盘，只打印
 
+⭐ 工作单按 NL 组分在 `nl_XXXX/` 子目录里；路径由 `sources.worksheet_path()` 算，
+⛔ 不靠 glob 扫盘（扫漏会静默变成「这份没填」）。
+
 ⛔ 本脚本**不合并回台账**。它只把 Markdown 里的勾选与自由文本转成 JSON；
 合并是另一件事，需要单独的裁决与 PR。⛔ 它也不会修改 `<pair>.md`。
 
@@ -229,7 +232,10 @@ def main():
     result = {}
     missing = []
     for pair in pairs:
-        path = os.path.join(args.dir, f"{pair}.md")
+        # ⭐ 工作单在 `nl_XXXX/` 子目录里，⛔ 不在 `--dir` 根上。
+        # ⚠️ 这里**不用** glob 扫盘，而是按 `IN_SCOPE_PAIRS` 逐个算路径 —— ⛔ 扫盘扫漏
+        # 会静默变成「这个 pair 没填」，而按名单取路径缺一份就进 `missing_worksheets`。
+        path = S.worksheet_path(args.dir, pair)
         if not os.path.exists(path):
             missing.append(pair)
             continue

@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import collections
 import contextlib
 import copy
 import hashlib
@@ -48,6 +49,33 @@ def _sha(path):
         return hashlib.sha256(fh.read()).hexdigest()
 
 
+def _ws(pair, base=HERE):
+    """工作单路径。⭐ 一律走 `sources.worksheet_path()`，⛔ 测试里不另拼一份 ——
+    ⚠️ 拼两份的后果是目录布局再变一次时，测试还能全绿地指向不存在的路径。
+    """
+    return S.worksheet_path(base, pair)
+
+
+def _read(path):
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _all_md(base):
+    """`base` 下任意深度的入库 `.md`，返回相对路径的排序表。
+
+    ⛔ 跳过隐藏目录与 `__pycache__` —— ⚠️ `.pytest_cache/README.md` 是工具产物，
+    ⛔ 把它算进入库文档会让 unwrap 检查在一份我们不该改的文件上失败。
+    """
+    out = []
+    for root, dirs, files in os.walk(base):
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
+        for f in files:
+            if f.endswith(".md"):
+                out.append(os.path.relpath(os.path.join(root, f), base))
+    return sorted(out)
+
+
 def test_generator_does_not_touch_the_ledger():
     """⛔ 台账冻结。它是 v46 与 X1 两轮判定的比对对象，改它比改结果更严重。"""
     ledger = os.path.join(S.MANUAL_REVIEW, "expected_issue_set.json")
@@ -60,25 +88,28 @@ def test_generator_does_not_touch_the_ledger():
 
 
 def test_out_of_scope_pairs_get_no_worksheet():
-    """⛔ `00x8` 不进网格也不进分母 —— 给它们做工作单等于把分母改错。"""
+    """⛔ `00x8` 不进网格也不进分母 —— 给它们做工作单等于把分母改错。
+
+    ⭐ 判据是**递归**扫盘：工作单已按 NL 组下沉一层，⛔ 只看根目录的旧判据会漏掉
+    藏在 `nl_XXXX/` 里的越界工作单，而那正是分母被改错时最可能的形态。
+    """
+    found = S.find_worksheets(HERE)
     for pair in S.OUT_OF_SCOPE_PAIRS:
-        assert not os.path.exists(os.path.join(HERE, f"{pair}.md")), \
-            f"{pair} 是越界 pair，不该有工作单"
+        assert pair not in found, \
+            f"{pair} 是越界 pair，不该有工作单（发现于 {found.get(pair)}）"
     assert len(S.IN_SCOPE_PAIRS) == 54
     assert set(S.OUT_OF_SCOPE_PAIRS) == {"0008", "0018", "0028", "0038", "0048", "0058"}
 
 
 def test_every_in_scope_pair_has_a_worksheet():
     for pair in S.IN_SCOPE_PAIRS:
-        assert os.path.exists(os.path.join(HERE, f"{pair}.md")), \
-            f"{pair} 缺工作单 —— 跑 generate.py"
+        assert os.path.exists(_ws(pair)), f"{pair} 缺工作单 —— 跑 generate.py"
 
 
 @pytest.mark.parametrize("pair", ["0000", "0010", "0029", "0044", "0059"])
 def test_worksheet_covers_every_ledger_record_of_that_pair(pair):
     """⭐ 自包含：该 pair 的每一条台账记录都要有裁决区，否则会被静默漏判。"""
-    with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-        text = fh.read()
+    text = _read(_ws(pair))
     blocks = fb.extract(text)
     for rec in S.ledger_records(pair):
         assert rec["id"] in blocks, f"{pair} 缺 {rec['id']} 的裁决区"
@@ -87,9 +118,10 @@ def test_worksheet_covers_every_ledger_record_of_that_pair(pair):
 def test_generate_is_idempotent_and_preserves_human_input():
     """⭐ 重跑生成器不许吃掉人工填写 —— 这条塌了整轮工作就没了。"""
     pair = "0000"
-    src = os.path.join(HERE, f"{pair}.md")
+    src = _ws(pair)
     with tempfile.TemporaryDirectory() as tmp:
-        dst = os.path.join(tmp, f"{pair}.md")
+        dst = _ws(pair, tmp)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copy(src, dst)
         with open(dst, encoding="utf-8") as fh:
             text = fh.read()
@@ -135,9 +167,9 @@ def test_two_consecutive_full_runs_are_byte_identical():
         for _ in range(2):
             subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
                             "--out", tmp], check=True, capture_output=True)
-            digests.append({f: _sha(os.path.join(tmp, f))
-                            for f in sorted(os.listdir(tmp)) if f.endswith(".md")})
-        assert len(digests[0]) == len(S.IN_SCOPE_PAIRS)
+            digests.append({f: _sha(os.path.join(tmp, f)) for f in _all_md(tmp)})
+        # ⭐ 54 份工作单 + 9 份 NL.md + 1 份 HOWTO.md
+        assert len(digests[0]) == len(S.IN_SCOPE_PAIRS) + len(S.nl_dirs()) + 1
         assert digests[0] == digests[1], "两次全量生成的产物不逐字节相同"
 
 
@@ -158,14 +190,14 @@ def test_generation_is_deterministic_across_hash_seeds(seed):
 def test_orphan_blocks_are_kept_not_dropped():
     """⚠️ 材料变动导致 key 消失时，人工内容必须搬进 §9，⛔ 不许静默丢。"""
     with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "0000.md")
+        path = _ws("0000", tmp)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(fb.render("EIS-9999-99", "ledger", "理由: 不该丢的内容"))
         subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
                         "--pairs", "0000", "--out", tmp],
                        check=True, capture_output=True)
-        with open(path, encoding="utf-8") as fh:
-            text = fh.read()
+        text = _read(path)
         assert "不该丢的内容" in text
         assert "孤儿填写区" in text
 
@@ -230,12 +262,13 @@ def test_no_hard_wrapping_inside_paragraphs():
     """
     repo = os.path.dirname(os.path.dirname(os.path.dirname(
         os.path.dirname(os.path.dirname(HERE)))))
-    targets = [os.path.join(HERE, f) for f in sorted(os.listdir(HERE))
-               if f.endswith(".md")]
-    # ⭐ 译文目录里的验收依据也算 —— ⛔ 它是入库文档，不是外部附件
-    trans = os.path.join(HERE, "translations")
-    targets += [os.path.join(trans, f) for f in sorted(os.listdir(trans))
-                if f.endswith(".md")]
+    # ⭐ 递归覆盖：`nl_XXXX/` 下的 54 份工作单与 9 份 `NL.md`、根上的
+    # `HOWTO.md` / `README.md` / `PROGRESS.md`，以及译文目录里的验收依据 ——
+    # ⛔ 它们全是入库文档，不是外部附件。
+    # ⚠️ 旧判据只 `os.listdir(HERE)`，⛔ 目录下沉后会把 63 份文件静默漏掉。
+    targets = [os.path.join(HERE, f) for f in _all_md(HERE)]
+    assert len(targets) >= len(S.IN_SCOPE_PAIRS) + len(S.nl_dirs()) + 3, \
+        f"扫到的 .md 只有 {len(targets)} 份 —— ⛔ 递归漏了"
     proc = subprocess.run(
         [sys.executable, "-m", "tools.unwrap_markdown", "--check", *targets],
         cwd=repo, capture_output=True, text=True)
@@ -247,7 +280,7 @@ def test_no_hard_wrapping_inside_paragraphs():
 def test_worksheets_carry_no_verdicts():
     """⛔ 材料不许替作者裁决 —— 裁决区必须是空模板。"""
     for pair in S.IN_SCOPE_PAIRS:
-        data = C.collect_pair(pair, os.path.join(HERE, f"{pair}.md"))
+        data = C.collect_pair(pair, _ws(pair))
         for rec in data["ledger"]:
             assert not rec.get("裁决", {}).get("chosen"), f"{pair} {rec['id']} 已被预填裁决"
         for cand in data["candidates"]:
@@ -261,29 +294,33 @@ def test_worksheets_carry_no_verdicts():
 
 # ==================================================================== §1.2 三列 NL 表
 
-def test_nl_table_has_three_columns_in_every_worksheet():
-    """⭐ §1.2 必须是「段 id / 原文 / 中文严格翻译」三列，且逐段都有译文。
+def test_nl_table_has_three_columns_in_every_nl_doc():
+    """⭐ `NL.md` §2 必须是「段 id / 原文 / 中文严格翻译」三列，且逐段都有译文。
 
     ⛔ 判据不是「表头有三列」—— 表头对了而行只有两列，Markdown 照样渲染，
     只是最后一列空着，⚠️ 人读起来像「这段没译」。所以逐行数分隔符。
+
+    ⚠️ 检查对象由 54 份工作单改成 9 份 `NL.md`（表本体搬过去了），⛔ 判据一个字没松；
+    ⭐ 覆盖面反而更严：这里对**组内每个 pair** 都算一遍分段，⛔ 若同组两个 pair 的
+    分段不一致，`NL.md` 的单表就必然对其中一个为假 —— 那正是要抓的。
     """
-    for pair in S.IN_SCOPE_PAIRS:
-        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-            lines = fh.read().splitlines()
+    for dirname in S.nl_dirs():
+        lines = _read(os.path.join(HERE, dirname, S.NL_DOC)).splitlines()
         head = next(i for i, ln in enumerate(lines)
                     if ln.startswith("| 段 id |"))
         assert lines[head] == "| 段 id | 原文 | 中文严格翻译 |", \
-            f"{pair} 的 §1.2 表头不是三列：{lines[head]}"
-        segs, _ = S.nl_segments(pair)
-        rows = lines[head + 2: head + 2 + len(segs)]
-        assert len(rows) == len(segs), f"{pair} 的 §1.2 行数与分段数不符"
-        for (sid, _txt), row in zip(segs, rows):
-            cells = [c.strip() for c in row.strip().strip("|").split("|")]
-            assert len(cells) == 3, f"{pair} {sid} 不是三列：{row[:120]}"
-            assert cells[0] == f"`{sid}`"
-            assert cells[1], f"{pair} {sid} 原文列为空"
-            assert cells[2], f"{pair} {sid} 译文列为空"
-            assert "缺译文" not in cells[2], f"{pair} {sid} 缺译文"
+            f"{dirname} 的 §2 表头不是三列：{lines[head]}"
+        for pair in S.pairs_of_dir(dirname):
+            segs, _ = S.nl_segments(pair)
+            rows = lines[head + 2: head + 2 + len(segs)]
+            assert len(rows) == len(segs), f"{dirname}（按 {pair} 算）的 §2 行数与分段数不符"
+            for (sid, _txt), row in zip(segs, rows):
+                cells = [c.strip() for c in row.strip().strip("|").split("|")]
+                assert len(cells) == 3, f"{dirname} {sid} 不是三列：{row[:120]}"
+                assert cells[0] == f"`{sid}`"
+                assert cells[1], f"{dirname} {sid} 原文列为空"
+                assert cells[2], f"{dirname} {sid} 译文列为空"
+                assert "缺译文" not in cells[2], f"{dirname} {sid} 缺译文"
 
 
 def test_every_nl_segment_has_a_chinese_translation():
@@ -474,8 +511,8 @@ def test_nl_0001_note_does_not_miscount_the_triggers_the_source_text_gives():
 
     # ⭐ 全组六份工作单里也不许残留
     for pair in ("0001", "0011", "0021", "0031", "0041", "0051"):
-        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-            assert "只有一条带触发词" not in fh.read(), f"{pair}.md 还印着那句假事实"
+        assert "只有一条带触发词" not in _read(_ws(pair)), \
+            f"{pair}.md 还印着那句假事实"
 
 
 def test_artifact_leak_gate_actually_fires():
@@ -803,15 +840,24 @@ def test_zh_fidelity_fixes_do_not_regress():
 
 
 def test_worksheet_warns_that_notes_never_assert_about_the_artifact():
-    """⭐ 54 份工作单的提示区都要挂那句「提示不含制品断言、请自己去 §1.3 核对」。
+    """⭐ 那句「提示不含制品断言、请自己去 §1.3 核对」两处都得挂。
 
     ⚠️ 旧版页面上立的是「提示只陈述原文、不含任何裁决」，⛔ 而提示里恰恰藏着假的制品事实 ——
     ⛔ 声明反过来在劝读者不要去核。⭐ 故声明必须与新纪律同步，⛔ 不能只改数据不改声明。
+
+    ⭐ 提示本体搬到 `nl_XXXX/NL.md` 之后，声明要落在**两处**：提示所在的那一页
+    （`NL.md` §3），以及**每份工作单**里指向那一页的那句话 —— ⛔ 只落在 `NL.md` 上不够，
+    ⚠️ 判读者是从工作单进来的，⛔ 免责必须在他点进去之前就看到。
+    ⛔ 措辞由「本 pair 制品」改为「被测制品」：`NL.md` 服务 6 个 pair，
+    ⛔ 说「本 pair」在那一页上没有指称。
     """
+    for dirname in S.nl_dirs():
+        block = _read(os.path.join(HERE, dirname, S.NL_DOC)) \
+            .split("## §3 逐段判读提示")[1].split("## §")[0]
+        assert "不含任何关于被测制品的断言" in block, f"{dirname}/{S.NL_DOC} 缺制品免责声明"
     for pair in S.IN_SCOPE_PAIRS:
-        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-            block = fh.read().split("⭐ 逐段判读提示")[1].split("</details>")[0]
-        assert "不含任何关于本 pair 制品的断言" in block, f"{pair} 的提示区缺制品免责声明"
+        doc = _read(_ws(pair))
+        assert "不含任何关于被测制品的断言" in doc, f"{pair} 的 §1.2 缺制品免责声明"
 
 
 def test_every_nl_has_translator_notes():
@@ -821,19 +867,24 @@ def test_every_nl_has_translator_notes():
         assert tn and len(tn) > 200, f"{pair} 的 translator_notes 缺失或过短"
 
 
-def test_worksheet_carries_notes_and_translator_notes():
-    """⭐ 54 份工作单都要有逐段提示与整份观察，⛔ 且提示要逐段挂到真实段 id 上。"""
-    for pair in S.IN_SCOPE_PAIRS:
-        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-            doc = fh.read()
-        assert "⭐ 逐段判读提示" in doc, f"{pair} 缺逐段判读提示区"
-        assert "⭐ 整份 NL 层面的观察" in doc, f"{pair} 缺整份 NL 观察区"
-        assert "./translations/TRANSLATION_SPEC.md" in doc, f"{pair} 未挂译文验收依据"
-        assert f"./translations/{nl_zh.source_file(pair)}" in doc, f"{pair} 未挂译文 JSON"
-        block = doc.split("⭐ 逐段判读提示")[1].split("</details>")[0]
-        for sid, _txt in S.nl_segments(pair)[0]:
-            assert f"- `{sid}`：" in block, f"{pair} 的提示区缺 {sid}"
-            assert "⛔ 译者未给提示" not in block, f"{pair} 的提示区有空提示"
+def test_nl_doc_carries_notes_and_translator_notes():
+    """⭐ 9 份 `NL.md` 都要有逐段提示与整份观察，⛔ 且提示要逐段挂到真实段 id 上。
+
+    ⚠️ 这一条此前作用在 54 份工作单上（同一份材料复制六份）；⭐ 材料合并到 `NL.md` 之后，
+    检查对象跟着变成 9 份 —— ⛔ 但**逐段都要有提示**这一条一个字没松。
+    """
+    for dirname in S.nl_dirs():
+        pairs = S.pairs_of_dir(dirname)
+        doc = _read(os.path.join(HERE, dirname, S.NL_DOC))
+        assert "## §3 逐段判读提示" in doc, f"{dirname} 缺逐段判读提示区"
+        assert "## §4 整份 NL 层面的观察" in doc, f"{dirname} 缺整份 NL 观察区"
+        assert "../translations/TRANSLATION_SPEC.md" in doc, f"{dirname} 未挂译文验收依据"
+        assert f"../translations/{nl_zh.source_file(pairs[0])}" in doc, \
+            f"{dirname} 未挂译文 JSON"
+        block = doc.split("## §3 逐段判读提示")[1].split("## §")[0]
+        for sid, _txt in S.nl_segments(pairs[0])[0]:
+            assert f"- `{sid}`：" in block, f"{dirname} 的提示区缺 {sid}"
+        assert "⛔ 译者未给提示" not in block, f"{dirname} 的提示区有空提示"
 
 
 # ==================================================================== §5 字段块
@@ -979,7 +1030,7 @@ def test_readme_worked_example_can_never_be_collected_as_a_real_judgement():
     assert "NEW-0008-01" in readme, "README 的填好样例不见了"
     assert fb.extract(readme) == {}, "README 里出现了 FILL 哨兵 —— 会被误当成填写块"
     assert "0008" in S.OUT_OF_SCOPE_PAIRS
-    assert not os.path.exists(os.path.join(HERE, "0008.md"))
+    assert "0008" not in S.find_worksheets(HERE)
     # ⭐ 样例引的段 id 与作者源行号必须是**真的**
     assert "NL-L001" in {sid for sid, _ in S.nl_segments("0008")[0]}
     src = S.puml_text("0008").splitlines()
@@ -987,7 +1038,7 @@ def test_readme_worked_example_can_never_be_collected_as_a_real_judgement():
     assert src[7].strip() == "TurnOn --> fork1"
     # ⛔ 全量回收一遍：样例不许出现在产物里
     for pair in S.IN_SCOPE_PAIRS:
-        data = C.collect_pair(pair, os.path.join(HERE, f"{pair}.md"))
+        data = C.collect_pair(pair, _ws(pair))
         assert data["new_issues"] == [], f"{pair} 的 §5 被预填了"
 
 
@@ -1555,8 +1606,7 @@ def test_risk_flag_and_validate_gate_agree_on_which_layers_need_nl_evidence():
 
     # ⛔ 落地检查：那 5 份工作单的裁决块上方不许再有相反教法
     for pair in ("0002", "0007", "0032", "0039", "0046"):
-        with open(os.path.join(HERE, f"{pair}.md"), encoding="utf-8") as fh:
-            text = fh.read()
+        text = _read(_ws(pair))
         assert "非 wellformedness 层却无" not in text, f"{pair}.md 还印着旧教法"
         assert "该层按定义需要 NL 逐字依据" not in text, f"{pair}.md 还印着旧教法"
 
@@ -1613,7 +1663,7 @@ def test_untouched_template_produces_no_new_issue_records():
     """⛔ 空模板不许被当成一条新增条目 —— 否则 54 份会凭空多出 108 条 `E`。"""
     recs = C.parse_new(NF.template("0001"), "0001")
     assert [r for r in recs if "derived" in r] == []
-    data = C.collect_pair("0001", os.path.join(HERE, "0001.md"))
+    data = C.collect_pair("0001", _ws("0001"))
     assert data["new_issues"] == []
 
 
@@ -1632,7 +1682,8 @@ def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text(legacy):
     assert not fb.is_stale_template(NF.template("0001"), "new", "0001")
 
     with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "0001.md")
+        path = _ws("0001", tmp)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(fb.render("NEW-0001", "new", legacy))
         subprocess.run([sys.executable, os.path.join(HERE, "generate.py"),
@@ -1644,7 +1695,8 @@ def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text(legacy):
         assert "basis: [ ]" in swapped and "scope: [ ]" in swapped
 
     with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "0001.md")
+        path = _ws("0001", tmp)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(fb.render("NEW-0001", "new",
                                legacy.replace("statement:", "statement: 我写的判断", 1)))
@@ -1674,8 +1726,9 @@ def test_a_filled_three_layer_block_survives_regeneration():
         "depth: [x] 中层",
     ])
     with tempfile.TemporaryDirectory() as tmp:
-        src = os.path.join(HERE, f"{pair}.md")
-        dst = os.path.join(tmp, f"{pair}.md")
+        src = _ws(pair)
+        dst = _ws(pair, tmp)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copy(src, dst)
         with open(dst, encoding="utf-8") as fh:
             text = fh.read()
@@ -1702,3 +1755,200 @@ def test_a_filled_three_layer_block_survives_regeneration():
                         "--pairs", pair, "--out", tmp],
                        check=True, capture_output=True)
         assert _sha(dst) == before
+
+
+# ============================================== ⭐ 目录布局（按 NL 组分 subdir）
+
+def test_directory_layout_is_one_dir_per_nl():
+    """⭐ 9 个 `nl_XXXX/`，每个 6 份工作单 + 1 份 `NL.md`；根上 1 份 `HOWTO.md`。
+
+    ⛔ 根目录不许再有工作单 —— ⚠️ 留一份在根上不会有任何报错，但它会绕开
+    「同 NL 的 6 份摆在一起」这个全部收益，且 `NL.md` 的相对链接从根上是断的。
+    """
+    dirs = S.nl_dirs()
+    assert len(dirs) == 9, dirs
+    assert dirs == sorted(f"nl_{min(S.pairs_of_dir(d))}" for d in dirs)
+
+    for dirname in dirs:
+        pairs = S.pairs_of_dir(dirname)
+        assert len(pairs) == 6, f"{dirname} 有 {len(pairs)} 个 pair，应为 6"
+        got = sorted(f for f in os.listdir(os.path.join(HERE, dirname))
+                     if f.endswith(".md"))
+        assert got == sorted([S.NL_DOC] + [f"{p}.md" for p in pairs]), \
+            f"{dirname} 的内容不对：{got}"
+
+    assert os.path.exists(S.howto_path(HERE)), "根上缺 HOWTO.md"
+    root_md = {f for f in os.listdir(HERE) if f.endswith(".md")}
+    assert not {f for f in root_md if re.fullmatch(r"\d{4}\.md", f)}, \
+        f"根目录还留着工作单：{sorted(root_md)}"
+    assert root_md == {S.WORKSHEET_HOWTO, "README.md", "PROGRESS.md"}, sorted(root_md)
+
+
+def test_nl_grouping_follows_the_nl_text_not_the_last_digit():
+    """⛔⛔ 分组判据是 **NL 全文的 sha8**，⛔ 不是 pair id 的末位数字。
+
+    ⚠️ 两者在 8 组上恰好一致，⛔ 在第 9、第 10 组上**交叉**：`0002` 的 NL 与 `0013`
+    相同，`0003` 的 NL 与 `0012` 相同。⭐ 这条测试就是为了让「化简成末位数字」这个
+    看起来无害的重构当场变红 —— ⛔ 否则 `nl_0002/NL.md` 会对该目录里一半的工作单为假，
+    而那正是 [README.md](./README.md) §十记过的那起事故的形状。
+    """
+    assert S.nl_sha8("0002") == S.nl_sha8("0013") != S.nl_sha8("0012")
+    assert S.nl_sha8("0003") == S.nl_sha8("0012") != S.nl_sha8("0013")
+    assert S.nl_siblings("0002") == ("0002", "0013", "0023", "0033", "0043", "0053")
+    assert S.nl_siblings("0003") == ("0003", "0012", "0022", "0032", "0042", "0052")
+    # ⛔ 末位数字规则若成立，这两条会相等 —— 它不成立
+    assert S.nl_dir("0002") != S.nl_dir("0012")
+    assert S.nl_dir("0002") == S.nl_dir("0013")
+
+    # ⭐ 正面：同一目录里的 6 份**逐字节**共用同一份 NL，⛔ 且分段完全一致
+    for dirname in S.nl_dirs():
+        pairs = S.pairs_of_dir(dirname)
+        assert len({S.nl_text(p) for p in pairs}) == 1, f"{dirname} 里坐着不止一份 NL"
+        assert len({tuple(S.nl_segments(p)[0]) for p in pairs}) == 1, \
+            f"{dirname} 里 6 份的分段不一致 —— NL.md 的单表必然对其中一份为假"
+    # ⭐ 反面：不同目录之间不许共用 NL（否则本该合成一组）
+    assert len({S.nl_sha8(S.pairs_of_dir(d)[0]) for d in S.nl_dirs()}) == 9
+
+
+def test_every_relative_link_in_the_workspace_resolves():
+    """⛔ 相对链接必须**可达**。⚠️ 目录下沉一层后，`./x.py` 全部要变成 `../x.py`。
+
+    ⛔ 断链的后果不是难看，是自包含塌掉：判读者点不进 `HOWTO.md` 就只能凭记忆填字段。
+    ⭐ 判据覆盖工作区内**全部**入库 `.md`，⛔ 不只是本轮改过的那些。
+    """
+    bad = []
+    for rel in _all_md(HERE):
+        path = os.path.join(HERE, rel)
+        for target in re.findall(r"\]\((\.[^)#\s]*)\)", _read(path)):
+            resolved = os.path.normpath(os.path.join(os.path.dirname(path), target))
+            if not os.path.exists(resolved):
+                bad.append(f"{rel} -> {target}")
+    assert not bad, "断链：\n  " + "\n  ".join(bad)
+
+
+def test_every_worksheet_points_at_its_nl_doc_and_the_howto():
+    """⭐ 每份工作单都要能一步跳到**同组的** `NL.md` 与共用的 `HOWTO.md`。
+
+    ⛔ 判据不是「文中提到过这两个名字」，而是**链接目标存在且指的是同一组** ——
+    ⚠️ 指错组是这套布局里唯一会静默出错的方式（链接照样可达，内容却是别人的 NL）。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        ws = _ws(pair)
+        doc = _read(ws)
+        assert f"](./{S.NL_DOC})" in doc, f"{pair} 未链接同目录的 {S.NL_DOC}"
+        assert f"](../{S.WORKSHEET_HOWTO})" in doc, f"{pair} 未链接 {S.WORKSHEET_HOWTO}"
+        # ⭐ 同目录的 NL.md 必须真的是本 pair 那一组的
+        nl_doc = _read(os.path.join(os.path.dirname(ws), S.NL_DOC))
+        assert f"nl_dir={S.nl_dir(pair)}" in nl_doc
+        assert f"sha8 `{S.nl_sha8(pair)}`" in nl_doc, \
+            f"{pair} 同目录的 {S.NL_DOC} 不是本 pair 的 NL"
+        assert f"[`{pair}`](./{pair}.md)" in nl_doc, \
+            f"{S.nl_dir(pair)}/{S.NL_DOC} 没把 {pair} 列进服务对象"
+
+
+def test_shared_pages_carry_no_fill_blocks():
+    """⛔ `HOWTO.md` 与 `NL.md` 不许有填写区 —— 它们是**共用**页。
+
+    ⚠️ 后果很具体：共用页上的一个填写区会被 6 份（或 54 份）工作单同时指向，
+    ⛔ 而 [collect.py](./collect.py) 只读 `<pair>.md` —— 填在那里的判读**收不上来**，
+    ⛔ 且不会有任何报错。
+    """
+    targets = [S.howto_path(HERE)]
+    targets += [os.path.join(HERE, d, S.NL_DOC) for d in S.nl_dirs()]
+    for path in targets:
+        text = _read(path)
+        assert fb.extract(text) == {}, f"{os.path.relpath(path, HERE)} 里有 FILL 哨兵"
+        assert "FILL:BEGIN" not in text
+
+
+def test_the_field_guide_is_not_copied_back_into_the_worksheets():
+    """⛔ 逐字段说明只许存在**一处**（`HOWTO.md`），⛔ 不许再复制回 54 份工作单。
+
+    ⭐ 判据是**结构性**的、不看措辞：统计「在全部 54 份里逐字相同、且落在 FILL 块外」
+    的非空行数。⚠️ 重构前中位数是 148 行（其中 §5.1 + §5.2 占 159 行）；⭐ 现在只剩
+    标题、表格分隔符、围栏和十来句指针。⛔ 谁把说明抄回去，这个数就会立刻涨上来。
+    """
+    docs = {p: _read(_ws(p)).splitlines() for p in S.IN_SCOPE_PAIRS}
+    seen = collections.Counter()
+    for lines in docs.values():
+        seen.update(set(lines))
+    worst = 0
+    for pair, lines in docs.items():
+        inside = False
+        n = 0
+        for ln in lines:
+            if ln.startswith("<!-- FILL:BEGIN"):
+                inside = True
+                continue
+            if ln.startswith("<!-- FILL:END"):
+                inside = False
+                continue
+            if inside or not ln.strip():
+                continue
+            if seen[ln] == len(docs):
+                n += 1
+        worst = max(worst, n)
+    assert worst <= 60, (
+        f"某份工作单里有 {worst} 行在 54 份中逐字重复且不在 FILL 块内 —— "
+        f"⛔ 说明性文字被抄回了工作单，请搬回 {S.WORKSHEET_HOWTO}")
+
+    # ⛔ 几段搬走的原文不许再出现在任何工作单里
+    for moved in ("三层不是三种详略",                       # §5.1
+                  "选不出来时写 `无`",                      # §5.2 primary_predicate
+                  "台账的 `layer` 是按**缺陷种类**",         # §5.2 basis
+                  "读懂它需要看几个地方",                    # §5.2 depth
+                  "已知证据缺口"):                          # §3.2
+        for pair in S.IN_SCOPE_PAIRS:
+            assert moved not in docs[pair] and moved not in _read(_ws(pair)), \
+                f"{pair}.md 里又出现了搬去 {S.WORKSHEET_HOWTO} 的说明：{moved}"
+        assert moved in _read(S.howto_path(HERE)), \
+            f"{S.WORKSHEET_HOWTO} 里没有这段说明：{moved} —— ⛔ 搬丢了"
+
+
+def test_nl_material_is_not_copied_back_into_the_worksheets():
+    """⛔ NL 原文 / 译文 / 逐段提示只许存在于 `NL.md`，⛔ 不许回到工作单。
+
+    ⚠️ 这条比行数更要紧：复制六份之后，「这段材料对哪一份为真」变成六个独立问题，
+    ⛔ 而 [README.md](./README.md) §十那起事故正是这么发生的。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert "| 段 id | 原文 | 中文严格翻译 |" not in doc, f"{pair} 又印了译文表"
+        segs, _ = S.nl_segments(pair)
+        for sid, _txt in segs:
+            assert f"- `{sid}`：" not in doc, f"{pair} 又印了 {sid} 的判读提示"
+        zh = nl_zh.translate(pair, segs[0][0])
+        assert zh and zh not in doc, f"{pair} 又印了译文正文"
+        # ⭐ 反面：材料确实在 NL.md 里
+        nl_doc = _read(S.nl_doc_path(HERE, pair))
+        assert zh in nl_doc and f"- `{segs[0][0]}`：" in nl_doc
+
+
+def test_worksheets_stay_under_the_line_budget():
+    """⭐ 行数上限 —— ⛔ 防止说明性文字慢慢又长回工作单里。
+
+    ⚠️ 上限**不是**任意选的：一份工作单的下界由两块不可压缩的内容决定 ——
+    ⭐ FILL 块（中位 165 行，人要填的地方）与本 pair 独有的材料（结构摘要、两份
+    PlantUML、台账条目、候选、清单）。⛔ 所以这里给的是「比当前留出余量、
+    但抄一节说明就会破」的档：中位 ≤ 520、单份 ≤ 900。
+    """
+    counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
+    median = counts[len(counts) // 2]
+    assert median <= 520, f"工作单行数中位数 {median} 超预算 —— ⛔ 说明性文字长回来了"
+    assert counts[-1] <= 900, f"最长的一份 {counts[-1]} 行超预算"
+    # ⛔ 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
+    assert counts[0] >= 200, f"最短的一份只有 {counts[0]} 行 —— ⛔ 抽多了"
+
+
+def test_progress_board_links_into_the_nl_dirs():
+    """⭐ 看板的 pair 链接要指进 `nl_XXXX/`，⛔ 并显式给出 NL 组这一栏。
+
+    ⚠️ 这一栏就是用户要的那件事：一次处理完同一份 NL 的 6 个模型。
+    """
+    board = _read(os.path.join(HERE, "PROGRESS.md"))
+    assert "| NL 组 |" in board
+    for pair in S.IN_SCOPE_PAIRS:
+        d = S.nl_dir(pair)
+        assert f"](./{d}/{pair}.md)" in board, f"看板里 {pair} 的链接没指进 {d}/"
+        assert f"](./{d}/{S.NL_DOC})" in board, f"看板里缺 {d} 的 NL.md 链接"
+    assert "不是 pair id 的末位数字" in board, "⛔ 看板没写清分组判据"

@@ -1,0 +1,46 @@
+<!-- RELABEL schema=paper1.relabel.nldoc.v1 nl_dir=nl_0003 -->
+# NL 规约材料 · `nl_0003`
+
+⛔ 本文件由 [generate.py](../generate.py) 生成，**没有任何填写区** —— 它是只读材料。⭐ 判读要填的东西全在同目录的 `<pair>.md` 里。
+
+⭐ 本页服务同目录的 **6** 份工作单：[`0003`](./0003.md)、[`0012`](./0012.md)、[`0022`](./0022.md)、[`0032`](./0032.md)、[`0042`](./0042.md)、[`0052`](./0052.md)。⭐ 它们由**同一份 NL 规约**（sha8 `9fe426ba`）生成 6 个不同制品，⛔ 所以 NL 侧材料只有一份，⛔ 制品侧各不相同。
+
+分段口径：`line_split`（按物理行切，与 pipeline 同口径），共 3 段。台账里的「NL 第 N 句」按这套编号读。
+
+## §1 译文纪律（⛔ 先读这三段再看表）
+
+⛔ **译文是给人判缺陷用的，⛔ 不是给人读着舒服用的。** 它严格直译，⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息（⛔ 含不补主语、不补量词、不补逻辑连接词）；状态名 / 事件名 / 变量名 / 守卫表达式一律**保留英文原样**，建模术语保留英文并在紧跟的括号里给中文。⭐ 原文含糊的地方译文**照样含糊** —— ⛔ 替它消歧就等于替你做了本轮要你自己做的判断。⭐ 译文是**辅助**，⛔ 判据仍以英文原文为准；两者不一致时以原文为准并请回报。
+
+⭐ 两种方括号标注的含义：`〔原文如此：…〕` 指**原文自身**有语法 / 拼写 / 数格错误，译文照直译并说明错在哪 —— ⛔ 它不是译文的错，⛔ 也不构成模型的缺陷；`〔译者存疑：…〕` 指**原文这里没说清**（谁是主语、并列项是「且」还是「或」、源状态是哪个），⭐ 它直接决定判缺陷时这一句**能不能**用来说模型「违反」了什么。
+
+口径与验收依据：[translations/TRANSLATION_SPEC.md](../translations/TRANSLATION_SPEC.md)；本份译文的原始 JSON：[translations/nl_0003.json](../translations/nl_0003.json)；装载与对拍：[nl_zh.py](../nl_zh.py)。
+
+## §2 逐段：原文与中文严格翻译
+
+| 段 id | 原文 | 中文严格翻译 |
+| :-- | :-- | :-- |
+| `NL-L001` | 1. Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states. | 1. 一旦设备上电，系统进入 `Operate` 状态，并且基于用户动作，它在 `Idle`、`Accelerating or Cruising` 和 `Braking` 状态之间迁移。 |
+| `NL-L002` | 2. The system can be turned on with the `start` signal and turned off with the `keyOff` signal. | 2. 系统可以用 `start` 信号被打开并用 `keyOff` 信号被关闭。 |
+| `NL-L003` | 3. Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping. | 3. 在 `Operate` 状态内部，系统在不同的 substates（子状态）之间迁移，取决于诸如加速、制动或停止之类的动作。〔译者存疑：accelerating / braking / stopping 三词原文未加反引号、未大写，故按普通名词译出；若判读者视其为事件名，须自行到 §1.3 逐行核对，本译文不代为指认任何具名事件〕 |
+
+## §3 逐段判读提示（该段约束了哪个元素 · 歧义点 · 边界外部分）
+
+⛔ 提示只陈述「原文这一句说了什么、没说什么」，⛔ 不含任何裁决 —— ⭐ 「所以模型应该怎样」是本轮要你自己填的，⛔ 材料不替你填。
+
+⚠️⚠️ **提示里也不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 6 个 pair，这一页是 6 份工作单共用的，⛔ 讲制品的话必然对其中 5 份为假。⭐ 因此「这个状态在不在」「这条边有没有」一律请自己到各份工作单的 §1.3（作者源，带行号）与 §4（按该 pair 现算的清单）核对，⛔ 不要指望提示替你回答。⚠️ 2026-08-13 之前的旧版工作单**违反过这一条**，若你读过旧版，见 [README.md](../README.md) §十。
+
+- `NL-L001`：约束元素：上电入口（powered on 之后进入 `Operate`）；状态 `Operate`、`Idle`、`Accelerating or Cruising`、`Braking`；以及后三者之间由 user actions 驱动的迁移。歧义：(a) “the device is powered on”未说明上电是否直接进入 `Operate`，也未说明它与第 2 句的 `start` 是否同一事件——两种读法给出**不同的初始结构**（初始点直接落在 `Operate`，还是先落在某个「未上电」状态再经 `start` 进入），判读者须先固定读法；(b) 本句从句用“the device”、主句用“the system”，其余两句只用“the system”，原文未说明二者是否同一对象；(c) 本句未说明这三个状态是 `Operate` 的 substate（第 3 句才提 substates），也未给出它们之间的配对、方向与各自触发；(d) “transitions between”未规定这三者是否两两互通，也未给出任何方向，故任何具体的迁移拓扑（含环形结构）既不能据本句判定为满足、也不能判定为违反；(e) 反引号内的 `Accelerating or Cruising` 含“or”，无法确定它是一个状态名还是 `Accelerating` / `Cruising` 两个状态——这一处读法直接决定状态计数；⚠️ 空格与大小写上的命名差异须另行判定。边界外：无。
+- `NL-L002`：约束元素：事件 `start` 与 `keyOff`，以及各自对应的一条迁移（打开 / 关闭）。歧义：(a) “turned on”是否等同第 1 句的“powered on”——若等同，则第 1 句“上电后进入 `Operate`”与本句“须用 `start` 才打开”互相冲突，判读时必须先裁定采用哪一读法；(b) 未指名“关闭”后的目标状态，也未说明是否需要 final state——⛔ 任何具体的「关机」目标状态或终止点都没有本句依据；(c) 未说明 `keyOff` 是从 `Operate` 整体发出还是从各 substate 分别发出。术语：本句用“signal”，第 1、3 句用“action(s)”，原文两词混用，译文照此区分为“信号”与“动作”，未作统一。边界外：无。
+- `NL-L003`：约束元素：层次结构——`Operate` 内部含有多个 substate（子状态），以及 substate 之间由动作驱动的迁移。歧义：(a) “like”表明这是举例，未把触发集合封闭，因此不能据本句判定“只允许这三个触发”，也不能据此把此外多出的触发记为违反；(b) 本句未点名任何 substate，须与第 1 句合读才能得到 `Idle` / `Accelerating or Cruising` / `Braking`；(c) “braking”与状态名 `Braking` 同形，无法确定它指动作还是指状态；(d) 未给出 substate 之间迁移的配对与方向。术语：本句用“actions”，与第 2 句的“signal”混用，⛔ 原文未说明二者是否指同一类触发物，也未给出任何事件名。边界外：无。
+
+## §4 整份 NL 层面的观察（术语表 · 跨句反复出现的歧义 · 原文质量问题）
+
+【术语表】`Operate`（状态，复合状态，含 substate）· `Idle`（状态）· `Accelerating or Cruising`（状态，⚠️ 原文写法含空格与 or）· `Braking`（状态）· `start`（信号 / 事件）· `keyOff`（信号 / 事件）。以上六个标识符在原文中均由反引号包住，译文连同反引号原样保留，未翻译、未改大小写、未去空格。⛔ 原文只点了上列六个标识符；凡不在此列的状态名、事件名以及初始 / 终止点，本份 NL 都未作任何约束，判读时不得把它们的存在或缺失记为本 NL 的违反项。【建模术语】只出现一处：substates → substates（子状态），按规格保留英文并紧跟中文。【反复出现的歧义】(1) 开机语义两套说法并存：第 1 句“the device is powered on”、第 2 句“the system can be turned on with the `start` signal”，原文既未声明二者等价也未声明二者不同；这是本份 NL 在初始结构上唯一有争议之处（初始点是否直接落在 `Operate`），任何关于初始点的缺陷判定都必须先明示采用了哪一读法。(2) 指称对象在“the device”与“the system”之间摇摆，原文未定义。(3) signal 与 action(s) 两词混用指同一类触发物（第 2 句 signal，第 1、3 句 action(s)），译文照译为“信号”与“动作”，未替原文统一。(4) 全篇未给出任何一条迁移的方向、配对与守卫，只说“transitions between”“depending on actions like…”，因此任何具体的迁移拓扑在本 NL 下既无正面依据也无反面依据。【原文质量】未发现语法、拼写或数格错误，故全篇无〔原文如此〕标注；共 1 处〔译者存疑〕，见第 3 句。【译文取舍说明】(a) 第 1 句列举“`Idle`, `Accelerating or Cruising`, and `Braking`”含牛津逗号，中文按“、…、…和…”结构译出，两个分隔符合并为“、”与“和”，未增删列举项；(b) 第 3 句为保持原文“先说迁移、后说依据”的语序，在“迁移”后补了一个中文分句逗号，此为中文断句所需，未增加任何原文没有的信息；(c) 原文第 1、2 行行尾各有一个尾随空格、第 3 行行尾无换行，译文同样照抄行首编号“N. ”与行尾空格。
+
+## §5 NL 原始字节（带物理行号）
+
+```text
+  1 | 1. Once the device is powered on, the system enters the `Operate` state, and based on user actions, it transitions between `Idle`, `Accelerating or Cruising`, and `Braking` states. 
+  2 | 2. The system can be turned on with the `start` signal and turned off with the `keyOff` signal. 
+  3 | 3. Within the `Operate` state, the system transitions between different substates depending on actions like accelerating, braking, or stopping.
+```
