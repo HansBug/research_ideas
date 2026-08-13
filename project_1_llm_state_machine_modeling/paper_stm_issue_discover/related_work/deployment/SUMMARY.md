@@ -99,7 +99,7 @@
 
 **4×H200 = 564 GB 落在 T3。**
 
-⚠️ **一处两路交叉出的关键区分（主 session 裁定）**：本表说 T3 的**容量上限**是 `Mistral-Large-3-675B`（官方 NVFP4 403.1 GB），⛔ **但 §0b.2 已判 NVFP4 在 Hopper 上无原生张量核、Marlin 回退省显存不省速度**——`GLM-5.2-NVFP4` 正是因此被判不可行。⭐⭐ **故「容量装得下」与「跑得动」是两件事**：`Mistral-Large-3-675B` 的 NVFP4 件在 4×H200 上**同样受此限制**，⛔ **不得因它出现在容量上限格就当作实验候选**。
+⚠️ **一处两路交叉出的关键区分（主 session 裁定）**：本表说 T3 的**容量上限**是 `Mistral-Large-3-675B`（官方 NVFP4 403.1 GB），⛔ **但 §0b.2 已判 NVFP4 在 Hopper 上无原生张量核、Marlin 回退省显存不省速度**——`GLM-5.2-NVFP4` 正是因此被判不可行。⭐⭐ **故「容量装得下」与「跑得动」是两件事**：`Mistral-Large-3-675B` 的 NVFP4 件在 4×H200 上**同样受此限制**，⚠️ **它出现在容量上限格并不意味着可作实验候选**。
 
 **出口管制对各档的影响**：⛔ **中国大陆买不到** T3 全部 NVIDIA 数据中心档 + T1/T2 全球版大显存工作站卡（硬证据是 NVIDIA 季报逐字「No shipments of Data Center Hopper products to China occurred during the quarter」）· ⚠️ **只能买降级版**的是 T1 消费卡，**降级代价直接落在显存上**（5090D V2 砍到 24 GB）· **只能用国产**的是 T5 与国家资金项目。
 
@@ -140,6 +140,20 @@
 
 **该路自陈的三条边界**：⛔ **本文不做能力排序**（证据级别与同质性不足，非无数字）· ⚠️ 其 benchmark 字段**几乎全为 S★**（取自一手页面但未回页复核），仅 Command A / Ling-1T / ERNIE-4.5 三条为 **M** 级 · ⚠️ 约 **40 个条目 KV@30K 未知**，其档位归类**偏乐观**。**五处就地更正已记入该文件 §6.6**（含把 `Qwen3-32B-AWQ` 误放 24 GB 档的算术错误——漏算 7.3 GB KV，实际 26.6 GB 超预算）。
 
+### 0b.5 AA 分数的三条真实例外（回查产出，[aa_measured_vs_estimated.md](./aa_measured_vs_estimated.md)）
+
+**标注机制是机读字段，判据完全确定**：`intelligence_index_is_estimated`（563/563 非空）。前端 JS 逐字 `function i(e){return e.intelligenceIndexIsEstimated?"striped":void 0}`，而 striped 的图例文字是 `Estimate (independent evaluation forthcoming)`；全站 JS 中 `IsEstimated` 仅出现 4 次且全指同一字段，**不存在第二套机制**。双条件：`false`（149 个）⟺ 9 项成分全非空；`true`（412 个）⟺ 至少缺 1 项（270/412 恰缺 GDPval + $\tau^3$-Banking + Terminal-Bench 三项新增昂贵项）。⛔ **AA 官方对估计值如何算出零说明**（methodology 页按四个词根穷举无果）。
+
+**三条须加标注的例外——都不是估计值问题**：
+
+1. ⛔ `Nemotron Cascade 2 30B A3B` 与 `Grok 4.3 (medium)` 的 **IFBench 是 AA 实测，但这两个模型的总分是估计值**——**全库唯一引用了估计值模型的两处**，不标注后人会顺手去取总分。
+2. ⛔ `Muse Glimmer` IFBench **77.0** 与 `Qwen3.6-27B` **70.8** 是**厂商自报**，AA 数据里没有。
+3. ⚠️ **全部 IFBench 值属 v4.0 时代**（v4.1 已移出 Index）。
+
+**一条排序因此不稳**：Meta 自报 IFBench 与 AA 实测在唯一两个可对照行上差 **0.42 与 3.25 点**，⛔ **超过它主张的 1.0 点领先**——故「`Muse Glimmer` 77.0 > `Gemma4-31B` 76.0」这个排序**不稳**，而 Meta 自家那一项 AA 根本没跑、无从校准。⚠️ 但同表 **AA-LCR 三值与 AA 实测逐个吻合**，⛔ **不可推广成全表不可信**。
+
+**一处笔误须改**：官方 methodology 逐字为 **9 项**评测（本目录 [benchmark_landscape.md](./benchmark_landscape.md) §3 的表正是 9 行），[h200x4_envelope.md](./h200x4_envelope.md) 日志误记「十项权重」。
+
 ## 1. 场景叙事：两句话怎么写成学术表述
 
 ### 1.1 前提一：真实项目材料不外发
@@ -158,7 +172,7 @@
 
 **放论文哪一节**：Introduction 的 motivation 段（一到两句）+ Threats to Validity 里显式承认它是 **assumption** 而非已证事实。
 
-⛔ **不得写成法规强制**。法条层能支撑的只有「不能用**未获授权的**商用端点」（DFARS 252.204-7012 (a) + NIST SP 800-171 §3.1.20），**推不出「不外发」这条更强的实践**。
+⚠️ **写成法规强制会有风险**。法条层能支撑的只有「不能用**未获授权的**商用端点」（DFARS 252.204-7012 (a) + NIST SP 800-171 §3.1.20），**推不出「不外发」这条更强的实践**。
 
 ⚠️ **必须主动交代的同域反例**：ABB 那篇同时**用了 Azure AI Foundry 上的 GPT-5**。处置是限定场景——设备厂商的内部工具链 ≠ 型号研制单位的涉密制品。**藏着不说比说出来更危险**，因为它就在同一篇里。
 
@@ -170,12 +184,12 @@
 
 > On-premise deployment implies a **fixed, dedicated compute budget** rather than elastic cloud capacity: capacity is procured once for a specific environment, cannot be shared across isolated segments, and cannot be scaled on demand.
 
-⛔ **不得写「工业单位没有算力基础设施」**——有官方级反证：**浪潮 NF5868G8 官方页 1536 GB、可单机部署 DeepSeek 671B**；新华三一体机官方页覆盖 14B–671B。而这类一体机**正是工信部文件推荐给「算力有难点」群体的形态**。
+⚠️ **「工业单位没有算力基础设施」这个措辞有风险**——有官方级反证：**浪潮 NF5868G8 官方页 1536 GB、可单机部署 DeepSeek 671B**；新华三一体机官方页覆盖 14B–671B。而这类一体机**正是工信部文件推荐给「算力有难点」群体的形态**。
 
 | 可引证据 | 能支撑什么 | ⚠️ 限定 |
 | :-- | :-- | :-- |
 | **工信部工信厅通信〔2026〕14 号** 逐字「针对中小企业在算力获取、应用落地和能力提升中的难点」，并推荐「训推一体机」「整合本地闲置、分散算力」 | **官方承认算力获取存在难点** | ⛔ 口径是**中小企业**——引用时必须带这个限定，**不得暗示它涵盖型号研制单位** |
-| **NVIDIA 10-Q**（期止 2026-04-26，SEC EDGAR）逐字「No shipments of Data Center Hopper products to China occurred during the quarter」「effectively foreclosed from competing in China's data center compute market」 | **高端数据中心 GPU 的可得性受限**，是「算力有限」的一个成因 | ⛔ 只作**成因**，不得用来论证某个具体的显存天花板 |
+| **NVIDIA 10-Q**（期止 2026-04-26，SEC EDGAR）逐字「No shipments of Data Center Hopper products to China occurred during the quarter」「effectively foreclosed from competing in China's data center compute market」 | **高端数据中心 GPU 的可得性受限**，是「算力有限」的一个成因 | ⚠️ 宜只作**成因**——用它论证某个具体显存天花板会站不住 |
 | **Weyssow et al., TOSEM 2025** 把「单卡 24 GB」写进 §3 独立成节、§4 方法论开篇、模型池筛选、直到结论句 | **固定算力预算可以作为承重前提**——这是最强的形态先例 | — |
 | **REFSQ 2026** 把预算收到 **6 GB** | 同上，且更窄 | — |
 
@@ -228,16 +242,32 @@
 | 「换个模型还成立吗」 | 不存在「≥3 模型」的成文要求；EMSE guideline G6 是 `should` 且只要求「用商业模型时加一个开放基线」——用开放权重本来就满足 |
 | 「为什么不微调 / 蒸馏」 | 可驳回（四步全有 M 级引用），⚠️ 但须主动承认边界：**NL2TL 770M 微调 95%+ vs GPT-4 prompting 77.7%** 就在形式化侧 |
 
-## 5. 禁止清单（叙事与口径相关）
+## 5. 风险清单
 
-| ⛔ 不得写 | 理由 |
+本节**不是禁令**——本轮只做调研，无权规定正文怎么写。它标的是**已知反证与薄弱处**，以及**若要写建议配什么条件**。分两层，因为两层性质不同。
+
+### 5.1 事实层：与措辞无关，写了就是错的
+
+| 项 | 事实 |
 | :-- | :-- |
-| 「工业保密**所以必须**私域部署」 | 法条判据是**系统资质**而非「私域」；且私域对商业秘密／研发数据层完全正当（自建不构成委托处理），三层图景不可压成一句 |
-| 「工业单位**没有**算力基础设施」 | 官方统计口径是**中小企业**（对象错配）；且有官方级反证（浪潮一体机单机跑 671B） |
-| 「私域部署本身也不合规」 | **把「引不出」说成了「被禁止」**。法条管的是资质与委托处理义务，不管部署在哪 |
-| 兼享「工业界普遍状况」的修辞 | 该断言无法证实，见 §1.3 |
-| 「据我们所知不存在 X」 | 覆盖不足以支撑全称否定，见 §7 |
-| 「Gemini 3.5/3.6 Pro」「Grok 5」「无后缀 GPT-5.6」「910C 有 xx GB」 | **这些对象不存在** |
+| 「Gemini 3.5 / 3.6 Pro」「Grok 5」「无后缀 GPT-5.6」「910C 有 xx GB」 | **这些对象不存在**：Gemini Pro 线停在 3.1 Pro Preview（此后只发 Flash 系）· xAI 已被 SpaceX 收购、旗舰是 Grok 4.6 · GPT-5.6 只有 Sol / Terra / Luna 三个后缀 · 「910C」从未出现在任何官方硬件规格表 |
+| 引 Anthropic 那句时删掉 `only` | 完整句是「ITAR data **can only** be processed via AWS Bedrock」——删后语义改变。属引文完整性 |
+| 混比不同 AA Index 版本 | v4.0 与 v4.1.1 差可达 8 分（`Qwen3.6-27B` 46 → 37.70） |
+| 引 Terminal-Bench 分数不写脚手架名 | 同一模型换脚手架分数可差近 2 倍，不写等于不可比 |
+
+### 5.2 风险层：可以写，但有具体反证——须知风险并考虑配什么条件
+
+| 若要写 | 风险来自哪 | 建议配的条件 |
+| :-- | :-- | :-- |
+| 「工业保密**所以必须**私域部署」 | 法条判据是**系统资质**而非「私域」；且私域对商业秘密／研发数据层完全正当（自建不构成委托处理），三层图景压成一句会失真 | 写成「因此**倾向于**在自有边界内处理」，或明确限定到「涉密制品」这一层 |
+| 「工业单位**没有**算力基础设施」 | 两条：官方统计口径是**中小企业**（型号研制单位不在该抽样框）· 且有官方级反证——浪潮 NF5868G8 官方页 1536 GB、可单机部署 DeepSeek 671B，而这类一体机**正是工信部推荐给「算力有难点」群体的形态** | 写成「算力**有限、固定、不可弹性扩展**」；若坚持原措辞，须**限定到具体组织层级**并预答一体机反例 |
+| 「私域部署本身也不合规」 | 这是把「引不出」说成了「被禁止」——法条管资质与委托处理义务，不管部署在哪 | 若要提，写成「涉密场景下**私域不构成合规判据**，判据是系统资质」 |
+| 兼享「工业界普遍状况」的修辞 | 该断言无法证实：工业单位实际算力查无严谨来源，且该空白是**结构性的**（三条真实分布的采样机制都排除企业内网） | 用「存在这一部署条件」代替「工业界普遍如此」。⭐ 而「数据结构性不可得」本身可作为**为什么陈述条件而非调查现状**的正当理由 |
+| 「据我们所知不存在 X」 | 本轮覆盖不足以支撑全称否定（ICSE / ASE / ISSTA / FSE 正文覆盖为零；中文四大库不可用） | 写成「在本轮覆盖的 X 内未见」并附覆盖范围 |
+| 「我们实测成本高 212 倍」 | `212×` 是**裸 token 计数的上限**：input 主导（`review_assertions` 一块 98% 是反复重读），且那份 95,589 字符 system prompt 逐调用相同却被各算一遍。本仓库 `run_telemetry.py` 自己写着「跨代比较应以 `output_tokens` 为准」 | 以 `output_tokens` 为主口径，裸 token 比作上限附注 |
+| 「必须用小模型」 | 膝点置信区间 $[8\mathrm{B}, >120\mathrm{B}]$（跨度 ≥15 倍）；且该推断的分子是 MoE（21B 总参 / 3.6B 激活）而分母来自 dense 曲线，量纲不可通约 | 若要主张，需先把膝点测到可分辨（≥5 档 × ≥2 家族 × ≥3 轮）；或改为不含膝点的条件陈述 |
+| 「开源模型 + 本方法 ≈ SOTA」 | 四条同向反证：≤32B 幻觉净分整档为负 · 同档第三方 $\Delta = +2$ · Konstantinou 的反向证据 · 我方前沿负增益实测 | ⭐ **这是待测而非已否**——需 N1b 数据；在有数据前作为 Limitations 陈述 |
+| 「GLM-4.7 结构化输出反超 GPT-5.4」 | 两数逐字为真，但差距 **0.005 < 作者自承的 3% 标签噪声**；换跨模态总分即翻转；该榜运营方自家模型参赛且零 COI 披露；其 text 任务平均仅 919 token（与本文差 30 倍） | 表述为 $G \approx 0$ **且统计上不可分辨**，并披露 COI 与任务长度差异 |
 
 ## 6. 五问的最终答案（契约要求，逐问落档）
 
@@ -358,17 +388,3 @@
 | [verification_log.md](./verification_log.md) | — | 主 session 一手核验（V1–V5） |
 | [revision_log.md](./revision_log.md) | — | **修订审计**：已撤回的主张、六路 challenge 逐条处置 |
 | `c1_fact_check.md` … `c6_final_rebuttal.md` | — | 六路 challenge 原始产出 |
-
-### 0b.5 AA 分数的三条真实例外（回查产出，[aa_measured_vs_estimated.md](./aa_measured_vs_estimated.md)）
-
-**标注机制是机读字段，判据完全确定**：`intelligence_index_is_estimated`（563/563 非空）。前端 JS 逐字 `function i(e){return e.intelligenceIndexIsEstimated?"striped":void 0}`，而 striped 的图例文字是 `Estimate (independent evaluation forthcoming)`；全站 JS 中 `IsEstimated` 仅出现 4 次且全指同一字段，**不存在第二套机制**。双条件：`false`（149 个）⟺ 9 项成分全非空；`true`（412 个）⟺ 至少缺 1 项（270/412 恰缺 GDPval + $\tau^3$-Banking + Terminal-Bench 三项新增昂贵项）。⛔ **AA 官方对估计值如何算出零说明**（methodology 页按四个词根穷举无果）。
-
-**三条须加标注的例外——都不是估计值问题**：
-
-1. ⛔ `Nemotron Cascade 2 30B A3B` 与 `Grok 4.3 (medium)` 的 **IFBench 是 AA 实测，但这两个模型的总分是估计值**——**全库唯一引用了估计值模型的两处**，不标注后人会顺手去取总分。
-2. ⛔ `Muse Glimmer` IFBench **77.0** 与 `Qwen3.6-27B` **70.8** 是**厂商自报**，AA 数据里没有。
-3. ⚠️ **全部 IFBench 值属 v4.0 时代**（v4.1 已移出 Index）。
-
-**一条排序因此不稳**：Meta 自报 IFBench 与 AA 实测在唯一两个可对照行上差 **0.42 与 3.25 点**，⛔ **超过它主张的 1.0 点领先**——故「`Muse Glimmer` 77.0 > `Gemma4-31B` 76.0」这个排序**不稳**，而 Meta 自家那一项 AA 根本没跑、无从校准。⚠️ 但同表 **AA-LCR 三值与 AA 实测逐个吻合**，⛔ **不可推广成全表不可信**。
-
-**一处笔误须改**：官方 methodology 逐字为 **9 项**评测（本目录 [benchmark_landscape.md](./benchmark_landscape.md) §3 的表正是 9 行），[h200x4_envelope.md](./h200x4_envelope.md) 日志误记「十项权重」。
