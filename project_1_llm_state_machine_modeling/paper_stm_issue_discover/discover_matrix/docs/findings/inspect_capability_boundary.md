@@ -124,7 +124,9 @@ state Root {
 
 ⚠️ 全部 33 条 `def` 行**逐字全同**：`def int R45RouteToken = 0;`；该名在 60 份 `stm0.puml` 中出现 **0** 次。故它是投影注入量，见 [representation_debt.md](./representation_debt.md) 例 2。
 
-⭐ 直接后果：`W_DEAD_GUARD` / `W_GUARD_TAUTOLOGY` / `W_EFFECT_SMT_NO_OP` / `W_FORCED_GUARD_UNSAT` 在两种配置下**均为 0**，且这是**按构造**的——没有作者守卫可供求解。⛔ 因此在本语料上给 inspect 增加任何守卫语义检查（守卫两两可满足性、d-完备性推广）的收益**恒为零**，与实现质量无关。
+⭐ 直接后果：`W_DEAD_GUARD` / `W_GUARD_TAUTOLOGY` / `W_EFFECT_SMT_NO_OP` / `W_FORCED_GUARD_UNSAT` 在两种配置下**均为 0**，且这是**按构造**的——没有作者守卫可供求解。
+
+⚠️ **与 §二 的「净增 125」不矛盾，别读成矛盾**：那 125 里 86 条是 `I_EFFECT_GUARD_CONTRADICT`，它命中的守卫是投影注入的 `R45RouteToken` 令牌等值式，**不是作者守卫**；另 18 条零新增主体、21 条是纯结构判据（同源覆盖）。⭐ 即「守卫求解器有输出」与「作者守卫为零」两件事同时成立，因为求解器看到的守卫全部来自编译器。⛔ 因此在本语料上给 inspect 增加任何守卫语义检查（守卫两两可满足性、d-完备性推广）的收益**恒为零**，与实现质量无关。
 
 ⚠️ 对照：pyfcstm 自带 428 份 `.fcstm` 资产中 **83% 含变量声明**、19.2% 的迁移带守卫。故守卫类检查对 pyfcstm 的目标使用场景有真实价值。⛔ 但该批是**测试 fixture**，为触发各项检查而刻意构造，相对真实用户模型高估了变量密度——方向可用，绝对值不可用。
 
@@ -169,9 +171,31 @@ grep -l "R45RouteToken" llms_emp_feedback_final_*/stm0.puml | wc -l     # 0
 pyfcstm inspect -i t.fcstm --format json --enable-verify --max-complexity-tier smt_linear
 ```
 
+## 六、一条被否掉的「更正」（登记为**不存在**，不是已消解）
+
+一个核算方报「`sink.py` 是 `finalize_or_raise()` 收集完该阶段全部 error 后以 `errors[0]` 抛出，故『首个 error 立即抛』的说法不准确」，并据此推出「暴露那 22 个 `E_*` 不需要改收集逻辑、成本更低」。
+
+⛔ **回原文核对后判为不成立。** `sink.py` 的 `emit` 逐字：
+
+```python
+self._diagnostics.append(diagnostic)
+if not self._collect and diagnostic.is_error():
+    raise ModelValidationError(diagnostics=list(self._diagnostics))
+```
+
+其 docstring 逐字「Record a diagnostic. **In strict mode, raise immediately.**」；`imports.py` 的注释亦逐字「mode (`DiagnosticSink(collect=False)`) the **first emit raises**」。`finalize_or_raise()` 确实存在，但那是 `collect=True` 模式的收尾，与 strict 路径无关——该报告把两条路径混了。
+
+⚠️ **连带作废它的推论**：strict 下 sink 里并没有收齐全部 error，故「只改 finalize 策略」办不到；要暴露就得真切到 `collect=True`，那意味着出错后模型对象继续构建，成本不降。
+
+⭐ **登记为「不存在」而不是「已消解」**：这条指控从未成立过，写成「已消解」会让后续读者以为曾有一次真实修复，并可能为一个从没发生的问题保留补丁。
+
+⛔ 这也是一次现场教训：该报告的形式是「代码实际这样、你写错了」，最像硬事实，因此最不容易被再查一遍——而我差点据它去改另一个仓库的 live issue。⭐ **凡「甲处说 X、乙处说 ¬X」形态的指控，必须逐字回原文再决定是否登记。**
+
+## 七、四方各自都算错过一次分母
+
 ⚠️ **本轮四方（主 session + 三个独立核算方）各自都在得出「0 / 从未 / 全部」之前算错过一次分母**：`glob` 匹配到 0 个目录而报「0 次出现」· `DupName` 假报 54 条（真值 0）· 方括号 52→7 · skip 24→3。⭐ **任何「0」结论前先打印分母**，这条已经不是偶发。
 
-## 六、取证档位
+## 八、取证档位
 
 | 结论 | 档位 |
 | :-- | :-- |
