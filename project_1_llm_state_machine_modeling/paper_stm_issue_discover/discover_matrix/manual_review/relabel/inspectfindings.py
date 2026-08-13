@@ -55,12 +55,19 @@ SHOWN_VERDICTS = ("intrinsic", "uncertain")
 #: ⛔ 不是「从材料里删掉」。
 EXCLUDED_CLASSES = ("I_NONTRIVIAL_SCC", "I_TOPOLOGICAL_NON_TERMINATING")
 
-#: ⚠️ **2026-08-13 更正**：本注释此前断言本码有「系统性假阳性」，⛔ **那半句是错的**，已删。
-#: 前提（`analyzers/structural.py` 只数叶态自身出边、不做祖先遍历）为真；⛔ 但由它推出
-#: 「因此会误报」为假 —— **FCSTM 里根本不存在可供子态使用的祖先边**。
-#: `pyfcstm/verify/topology.py` 模块注释逐字：「Parent-level transitions **are followed only
-#: when a descendant leaf explicitly exits to that parent; they are not copied onto every
-#: active descendant leaf.**」即父态出边**不下传**，子态须自己显式 `-> [*]` 才接得上。
+#: ⚠️ **2026-08-13 两轮更正，第二轮改的是引文本身。**
+#:
+#: 第一轮：本注释此前断言本码有「系统性假阳性」，⛔ **那半句是错的**，已删。前提
+#: （`analyzers/structural.py` 只数叶态自身出边、不做祖先遍历）为真；⛔ 但由它推出
+#: 「因此会误报」为假。
+#:
+#: 第二轮：⛔ 第一轮的更正文本把出处与引文都写错了 —— 它写成「`topology.py` **模块注释**
+#: 逐字」，实际那句在 `build_leaf_level_macro_graph()` 的**函数 docstring** 里；且所引
+#: 「are followed only when」是**转述**，原文是「whose source is a composite state are
+#: therefore considered only after」，还丢了 `whose source is a composite state` 这个限定。
+#: ⛔ 另外「FCSTM 里根本不存在可供子态使用的祖先边」**过强**：语料里确有 116 条以复合态
+#: 为源的迁移（31 个 pair），它们是会被用到的，只是只对已显式退出的子态生效。
+#:
 #: 两侧实测同向：语料侧 57 条真实诊断中「祖先有出边」的为 **0 条**；语义侧最小模型上
 #: `W_DEADLOCK_LEAF` 与拓扑层的 `W_TOPOLOGICAL_NOEXIT`（`counterexample_kind=deadlock`）
 #: **两套独立分析一致**。完整证据见 docs/findings/inspect_capability_boundary.md §一。
@@ -70,12 +77,14 @@ EXCLUDED_CLASSES = ("I_NONTRIVIAL_SCC", "I_TOPOLOGICAL_NON_TERMINATING")
 #: 于是「IR 上为真、作者源上为假」—— ⭐ 这正是 `projection_artifact` 的定义
 #: （见 docs/findings/representation_debt.md 的操作化判据），⛔ 不是「码报错了」。
 DEADLOCK_LEAF_CAVEAT = (
-    "本码在 FCSTM 上是**健全的**：FCSTM 的父态出边**不下传**给活动子态"
-    "（`pyfcstm/verify/topology.py` 逐字：「Parent-level transitions are followed only when a "
-    "descendant leaf explicitly exits to that parent; they are not copied onto every active "
-    "descendant leaf.」），子态须自己显式 `-> [*]` 才接得上。故**不要**用「外层有出边」"
-    "去推翻本码的诊断。但仍请做一次归属判定：作者源读作 UML，UML 的成组迁移**成立**，"
-    "故若该叶态在 `stm0.puml` 里的某级祖先有出边，则它在作者源上并非终止态 —— 此时应判 "
+    "本码对**零出边的叶态**是健全的：FCSTM 不把父态出边**不下传**式地复制给每个活动子态，"
+    "子态须自己有一条显式 `-> [*]` 出边、该出边才会冒泡接上父态出边。"
+    "（`pyfcstm/verify/topology.py` 的 `build_leaf_level_macro_graph()` docstring 逐字："
+    "「Parent-level transitions whose source is a composite state are therefore considered "
+    "only after a descendant leaf explicitly exits to that parent; they are not copied onto "
+    "every active descendant leaf.」）故**不要**用「外层有出边」去推翻本码的诊断。"
+    "但仍请做一次归属判定：作者源读作 UML，UML 的成组迁移**成立**，故若该叶态在 "
+    "`stm0.puml` 里的某级祖先有出边，则它在作者源上并非终止态 —— 此时应判 "
     "`projection_artifact`（IR 上为真、作者源上为假），**而不是** `refuted`。"
     "本语料实测该情形为 0/57，故这一步大概率不改变结论，但仍须留痕。"
 )

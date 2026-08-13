@@ -9,22 +9,24 @@
 | 事实 | 数 | 怎么复算 |
 | :-- | :-- | :-- |
 | `codes.yaml` 定义的诊断码 | **73**（error 22 / warning 43 / info 8） | 见 §五 |
-| inspect **结构上**可能输出的 | **48**（全为 warning / info） | 22 个 `E_*` 经 strict sink 抛 `ModelValidationError`，另 3 个 combo 解析期码与 2 个 catalog-only 码被过滤 |
+| inspect **结构上**可能输出的 | **48**（全为 warning / info） | 73 − 22 个 `E_*` − 3 个 combo 解析期码 = 48。⚠️ 不要再减 catalog-only：那 2 个本身就是 `E_*`，已含在 22 里 |
 | 在 54 个 pair 上**实际开火**的 | **14** | §二的两组配置 |
 
 ⚠️ **「59 个码静默」不等于「59 个码没用」。** 静默的原因分三层，学术含义完全不同，⛔ 不可混为一谈：
 
-1. **结构不可达**（22 个 `E_*`）——它们在**可解析**模型上按构造不会出现。⚠️ 这里面含领域文献点名的条款：`E_DUPLICATE_STATE` 对应 SDMetrics 的 `DupName`（标 `Correctness` + WFR）、`E_DANGLING_TRANSITION` 对应 Stateflow 的 dangling transition。**能力已实现，只是走致命通道、首个 error 即退出。**
+1. **结构不可达**（22 个 `E_*`）——⚠️ **其中机制有两种，不可混谈**：**20 个**由 `pyfcstm/model/` 发出、经 strict sink 首个 error 即抛，故在**可解析**模型上按构造不会出现；另 **2 个在 Python 侧零发射点**（`E_TYPE_MISMATCH` 的 `emit_tier` 是 `partial_static_pipeline`、`E_COMBO_TRIGGER_NOT_EXPANDED` 是 `catalog_only`），它们是契约声明而非活代码。⚠️ 这里面含领域文献点名的条款：`E_DUPLICATE_STATE` 对应 SDMetrics 的 `DupName`（标 `Correctness` + WFR）、`E_DANGLING_TRANSITION` 对应 Stateflow 的 dangling transition。**能力已实现，只是走致命通道、首个 error 即退出。**
 2. **未被调用**（8 个 SMT 码）——见 §二，这是一个 CLI 参数问题。
 3. **按构造空转**（守卫 / 数据流一族）——见 §三，这是语料属性，不是工具缺陷。
 
 ## 一、FCSTM 的父态出边不是成组迁移（本轮最重要的语义事实）
 
-`pyfcstm/verify/topology.py` 的模块内注释逐字：
+`pyfcstm/verify/topology.py` 里 `build_leaf_level_macro_graph()` 的**函数 docstring** 逐字（⚠️ 本文件初版把它写成「模块注释」且引文是转述，2026-08-13 已就地更正）：
 
-> "Parent-level transitions **are followed only when a descendant leaf explicitly exits to that parent; they are not copied onto every active descendant leaf.**"
+> "The projection follows normal leaf-to-leaf transitions, expands composite targets through their initial transitions, and bubbles ``Leaf -> [*]`` transitions through parent outgoing transitions. Parent-level transitions **whose source is a composite state are therefore considered only after** a descendant leaf explicitly exits to that parent; **they are not copied onto every active descendant leaf.**"
 
-⭐ 即：**在 FCSTM 里，复合态的出边对其活动子态不可用**；子态必须自己显式 `-> [*]` 退出到父态，才能接上父态的出边。这与 UML 的成组迁移语义**相反**——UML 里复合态的出边对全部子态可用。
+⭐ 即：**父态出边不会被复制给每个活动子态**；子态必须自己有一条显式 `-> [*]` 出边，该出边才会「冒泡」接上父态的出边。这与 UML 的成组迁移语义**相反**——UML 里复合态的出边对全部子态可用。
+
+⚠️ **措辞要收窄，本文件初版写过头了**：不能说「FCSTM 里不存在可供子态使用的祖先边」——语料里确有 **116 条**以复合态为源的迁移（分布在 31 个 pair，分母 985 条迁移），它们**是**会被用到的，只是只对已显式退出的子态生效。⭐ 准确的命题只到这一步：**零出边的叶态**（即 `W_DEADLOCK_LEAF` 的开火条件）接不上父态出边，故该码对这类叶态的报警成立。
 
 最小验证（`Root.Outer.B` 是叶态、自身无出边，其父 `Outer` 有出边 `Outer -> Done : /Esc`）：
 
@@ -48,9 +50,9 @@ state Root {
 - **语料侧**：54 pair 上真实的 57 条 `W_DEADLOCK_LEAF`，其中「某个祖先有出边」的为 **0 条**。
 - **语义侧**：上引 `topology.py` 注释 + §一的最小验证。
 
-⚠️ **该错误未损伤既有数据**：57 条的 verdict 分布是 intrinsic 36 / projection_artifact 21 / **refuted 0**；全部 34 条 `refuted` 里 `W_DEADLOCK_LEAF` 一条都没有，且**零条**使用祖先论据。判读者确实执行了那道检查（`evidence` 字段里有「trap-1 外层出边检查」），它只是从未改变过任一结论。**故这是文档缺陷，不是数据缺陷。**
+⚠️ **该错误未损伤既有数据**：57 条的 verdict 分布是 intrinsic 36 / projection_artifact 21 / **refuted 0**；全部 34 条 `refuted` 里 `W_DEADLOCK_LEAF` 一条都没有。⚠️ **不要写成「零条使用祖先论据」**——恰恰相反，祖先检查被**显式执行并写进证据字段**约 41 处（`evidence` 里有「trap-1 外层出边检查」这类留痕），逐条读下来**全是否定式**（「无外层成组迁移可救」「不是祖先出边型假阳性」）。准确表述是：**判读者确实执行了那道检查，它只是从未改变过任一结论。****故这是文档缺陷，不是数据缺陷。**
 
-⛔ **但传播范围比「文档」大得多，这是本条真正的教训。** 已入册的三份审计文件（`inspect_issues.json` / `inspect_overlap.json` / `inspect_rulings.json`，共 **659** 条）里，有 **34 条**把该错误断言当既有前提引用；另有一个独立评审方原样引用它当事实。
+⛔ **但传播范围比「文档」大得多，这是本条真正的教训。** 已入册的三份审计文件（`inspect_issues.json` / `inspect_overlap.json` / `inspect_rulings.json`，共 **645 条判定记录**——189 条 issue + 189 条 overlap 决定 + 43 条 ruling + 224 条 challenge；另有 14 条是元数据列表，不是判定）里，有 **34 条**把该错误断言当既有前提引用；另有一个独立评审方原样引用它当事实。
 
 ⭐ **万幸的是结论未受影响，且这一点可逐条查**：34 条**全部**是「排除式」用法——判读者用它去**排除**该情形、从而**保留**发现，逐字如「在本组**不触发**」「在这里**不适用**」「没有立足处」「已逐级排除」「确非假阳性」。⛔ **零条**用它推翻或降级任何发现。加上 454 条诊断侧的分布（`W_DEADLOCK_LEAF` = intrinsic 36 / projection_artifact 21 / **refuted 0**，且全部 34 条 `refuted` 里该码一条都没有），可以确定：**该错误让判读者多做了一道核查，但没有改变过任何一个结论。**
 
@@ -73,7 +75,7 @@ state Root {
 
 ## 二、配置天花板：579，且 `smt_linear` 已经够
 
-⛔ `--enable-verify` **单独只跑 6 个结构算法**；8 个 SMT 检查另需 `--max-complexity-tier smt_linear`。
+⛔ `--enable-verify` **单独只跑 6 个结构算法**；SMT 检查另需 `--max-complexity-tier smt_linear`。⚠️ **该档只放行 7 个**：第 8 个 `enter_postcondition_implies_during_precondition`（码 `I_ENTER_DURING_CONTRADICT`）的 `call_count_scaling` 是 `linear_in_leaves`，超出 CLI 默认的 `linear_in_transitions`，**还需第二个开关**。实测它贡献 0 条，故下表数字不受影响，但「加一个 tier 就全开」这个说法是错的。
 
 54 pair 实测：
 
@@ -119,7 +121,7 @@ state Root {
 | `model.fcstm` 含 `def` 声明的份数 | **30** | 33 |
 | 其中作者自己声明的变量 | **0** | **0** |
 | 作者源 `stm0.puml` 迁移行带方括号的份数 | **7** | 10 |
-| `model.fcstm` 带守卫的迁移 / 迁移总数 | 131 / 984 | — |
+| `model.fcstm` 带守卫的迁移 / 迁移总数 | **124 / 985** | — |
 | 其中作者写的守卫 | **0** | **0** |
 
 ⚠️ 全部 33 条 `def` 行**逐字全同**：`def int R45RouteToken = 0;`；该名在 60 份 `stm0.puml` 中出现 **0** 次。故它是投影注入量，见 [representation_debt.md](./representation_debt.md) 例 2。

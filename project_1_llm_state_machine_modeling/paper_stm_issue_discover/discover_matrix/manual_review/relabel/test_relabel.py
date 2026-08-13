@@ -3359,13 +3359,21 @@ def test_the_inspect_data_is_complete_and_every_code_has_a_coordinate():
 def test_the_deadlock_leaf_semantic_split_is_spelled_out_in_every_worksheet():
     """⛔⛔ `W_DEADLOCK_LEAF` 的**两语义归属**必须逐份写明 —— 单独一条钉死。
 
-    ⚠️⚠️ **2026-08-13 重写。本条此前断言该码有「系统性假阳性」，那是错的**，连同它钉住的
-    四个逐字探针一起换掉。⛔ 旧断言的前提为真（`analyzers/structural.py` 只数叶态自身出边、
-    不做祖先遍历），⛔ 但推论为假：**FCSTM 里不存在可供子态使用的祖先边** ——
-    `pyfcstm/verify/topology.py` 模块注释逐字「Parent-level transitions are followed only when
-    a descendant leaf explicitly exits to that parent; they are not copied onto every active
-    descendant leaf.」⭐ 两侧实测同向：语料侧 57 条真实诊断里「祖先有出边」为 **0 条**；
-    语义侧最小模型上本码与拓扑层的 `W_TOPOLOGICAL_NOEXIT` 两套独立分析一致。
+    ⚠️⚠️ **2026-08-13 两轮改动。第一轮：本条此前断言该码有「系统性假阳性」，那是错的**，
+    连同它钉住的四个逐字探针一起换掉。⛔ 旧断言的前提为真（`analyzers/structural.py` 只数
+    叶态自身出边、不做祖先遍历），⛔ 但推论为假。
+
+    ⚠️ **第二轮改的是引文与措辞本身**：第一轮写「`topology.py` **模块注释**逐字『are followed
+    only when』」——⛔ 出处与引文都错。真实位置是 `build_leaf_level_macro_graph()` 的**函数
+    docstring**，原文为「Parent-level transitions **whose source is a composite state are
+    therefore considered only after** a descendant leaf explicitly exits to that parent; they
+    are not copied onto every active descendant leaf.」⛔ 且第一轮那句「FCSTM 里不存在可供
+    子态使用的祖先边」**过强**——语料里确有 116 条以复合态为源的迁移（31 个 pair），它们
+    是会被用到的，只是只对已显式退出的子态生效。⭐ 准确命题只到：**零出边的叶态**（即本码
+    的开火条件）接不上父态出边。
+
+    ⭐ 两侧实测同向：语料侧 57 条真实诊断里「祖先有出边」为 **0 条**；语义侧最小模型上
+    本码与拓扑层的 `W_TOPOLOGICAL_NOEXIT` 两套独立分析一致。
 
     ⭐ 真正要让判读者知道的是**同一个叶态在两种语义下 terminal 性相反**：
     作者源读作 UML（成组迁移成立 → 不是 terminal），`model.fcstm` 读作 FCSTM
