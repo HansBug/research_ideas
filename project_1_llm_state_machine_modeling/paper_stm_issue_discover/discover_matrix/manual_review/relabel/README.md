@@ -503,38 +503,74 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 
 判据是**字面**的（`gen` 去空白后为破折号 / 空 / 「无」，或含「不可能生成」），故读者能在页面上自行核对那行「生成侧：—」。相邻还有一族 `gen` 写「(生成方在第 2、4 句优于参考)」的记录（全语料 5 条），它们同样不指认制品缺陷，但「优于参考」是一句**相对评价**而非否认，字面判据吃不进来，故**未收进**这 12 条 —— 要处理那一族需要另立判据，记为待办。
 
-## 七点六、`pyfcstm inspect` 的 454 条诊断：已入库，**入册不归本轮**
+## 七点六、`pyfcstm inspect` 的 454 条诊断：已入库，**并已入册**
 
-本轮把 `pyfcstm inspect --format json --enable-verify` 对 54 个在评 pair 的 `model.fcstm` 跑出的 **454** 条诊断**入库**（[inspect_findings.json](./inspect_findings.json)），供另一条 workflow 消费。**工作单本轮不含它的任何内容**（由 `test_no_inspect_content_leaked_into_the_worksheets` 钉住）。
+`pyfcstm inspect --format json --enable-verify` 对 54 个在评 pair 的 `model.fcstm` 跑出 **454** 条诊断，全部入库（[inspect_findings.json](./inspect_findings.json)）。其中 **360** 条已经归一化成 **189** 条 issue 并入册到工作单 §3.6 与 §2 / §3 的对应条目下（[inspect_issues.json](./inspect_issues.json) · [inspect_overlap.json](./inspect_overlap.json) · [inspect_rulings.json](./inspect_rulings.json)）。
 
 ### 7.6.1 它与 §3.1–§3.5 的候选不是同一个物种
 
-§3.1–§3.5 的线索全部出自 **LLM 产出**（两臂的 issue、审阅 agent 的 diff、多报簇），带采样噪声，同一个格重跑一次可能就没了。inspect 是**确定性检查**：不采样、不过 LLM，同一份制品永远给同一批诊断。这个差别是有后果的 —— 「模型没提这一条」对前者是采样问题，对后者说明的是**检查器本身看不到那类东西**。
+§3.1–§3.5 的线索全部出自 **LLM 产出**（两臂的 issue、审阅 agent 的 diff、多报簇），带采样噪声，同一个格重跑一次可能就没了。inspect 是**确定性检查**：不采样、不过 LLM，同一份制品永远给同一批诊断。这个差别是有后果的 —— 「模型没提这一条」对前者是采样问题，对后者说明的是**检查器本身看不到那类东西**。工作单 §3.6 的导语逐字写着这一条，有 `test_the_inspect_family_is_marked_as_deterministic_not_llm` 钉住。
 
-### 7.6.2 分拣与对抗复核（已完成，落在数据文件里）
+### 7.6.2 分拣与对抗复核（落在数据文件里）
 
 `model.fcstm` 是从作者源 PlantUML **投影**来的，投影会合成元素（root 复合态、`UnspecifiedInitial` 之类），所以每条诊断都做了「内生 / 投影产物 / 不确定」分拣，判据是回作者源逐字核对；再由第二个判定者做一轮**对抗性复核**，专门尝试推翻「内生」判定。
 
-| 分拣结论 | 条数 | 含义 |
+| 分拣结论 | 条数 | 入册情况 |
 | :-- | --: | :-- |
-| `intrinsic` 确认内生 | 194 | 作者源本身就有这个毛病，投影没引入它 |
-| `projection_artifact` 投影产物 | 84 | 承重事实由投影合成元素造成，作者源里没有 |
-| `uncertain` 不确定 | 142 | 分拣未能确定是内生还是投影产物 |
-| 初判内生、被对抗复核推翻 | 34 | 228 条初判 `intrinsic` 里被推翻的部分（36 次复核，含 2 个重复 key） |
+| `intrinsic` 确认内生 | 194 | 全部入册 |
+| `uncertain` 不确定 | 142 | 全部入册（§3.6b 折叠区，标明「分拣未能确定」） |
+| `projection_artifact` 投影产物 | 84 | 不入册（承重事实由投影合成元素造成，作者源里没有） |
+| 初判内生、被对抗复核推翻 | 34 | **恢复 24 条**（并成 5 条 issue），其余 10 条维持，见 §7.6.5 |
 
-### 7.6.3 入册前必须先做两步**判断**，不许用脚本算
+### 7.6.3 归一化与判重是**判断**，不许用脚本算
 
-⚠️ **454 条作为 inspect 输出是正常的，作为待裁决的 issue 条目不合理。** `0007` 一个 pair 就有 34 条确认内生诊断；原样摆进工作单，判读者要对同一件事按十几次。所以入册前要：**① 按根因归一化**（判哪些诊断出自同一条错误）；**② 与既有条目去重**（已经有的并入那一条当补充证据、不新建，判读者只裁一次）。
+⚠️ **454 条作为 inspect 输出是正常的，作为待裁决的 issue 条目不合理。** `0007` 一个 pair 就有 35 条待呈现诊断；原样摆进工作单，判读者要对同一件事按十几次。所以入册前先做了两步：**① 按根因归一化**（360 条诊断 → 189 条 issue，`0007` 是 35 → 7）；**② 与既有条目判重**（与台账 / 候选是同一个问题的 61 条并入那一条当补充证据、不新建块，判读者只裁一次）。
 
 **这两步都是判断，不许做成模式匹配。** 判「这 13 条 `W_UNREACHABLE_STATE` 是不是同一条错入边导致的」要理解**因果**；判「这条与 `EIS-0007-02` 是不是同一个问题」要比较两段描述的**语义**。做成规则就是 [CLAUDE.md](../../../../../CLAUDE.md) §11 划死的那条边界 —— 本仓库为此栽过一次（`named_elements` 的 validator 把语义判断实现成词法判断，190 行被拒且绝大多数是误伤，对某个 pair 系统性致命）。
 
-⚠️ **本轮一度写过一版自动实现并已撤掉**：`normalize()` 按元素路径 / 父态包含闭包做并查集自动归组，`match_one()` + `NATURE_WORDS` 拿中文关键词表扫台账 `statement` 判重合。它算出来的数**一律不作数**（是**算**出来的不是**判**出来的），存档在 `/tmp/g1trans/removed_automation.py`。
+⚠️ **一度写过一版自动实现并已撤掉**：`normalize()` 按元素路径 / 父态包含闭包做并查集自动归组，`match_one()` + `NATURE_WORDS` 拿中文关键词表扫台账 `statement` 判重合。它算出来的数**一律不作数**（是**算**出来的不是**判**出来的），存档在 `/tmp/g1trans/removed_automation.py`，并由 `test_no_script_decides_the_merging_or_the_overlap` 用 AST 钉住那批符号不再被定义。
 
-### 7.6.4 一处零命中：没有任何 inspect 诊断落在新增的 `region` 取值上
+**正确形态照 [ledger_mapping.py](./ledger_mapping.py) 办：判断产出数据文件，脚本只负责装载校验、渲染与对拍。** 三份文件的分工与装载期机械门：
+
+| 文件 | 记什么 | 装载期机械门（对不上就抛） |
+| :-- | :-- | :-- |
+| [inspect_issues.json](./inspect_issues.json) | 189 条归一化 issue：`statement` · `merge_reason` · `puml_evidence` · 五轴座标 · 恢复依据 | id 形态与 pair / 目录一致 · `diag_indices` 存在且**全局不重复分配** · 336 条待呈现诊断**恰好覆盖一次** · `verdict_class` 与成员诊断一致 · 条件式五轴一致 · `other` 必带说明 · `coord` 与五轴算出来的规范写法逐字相等 · **`puml_evidence` 里至少一段反引号片段是作者源的逐字子串** |
+| [inspect_overlap.json](./inspect_overlap.json) | 189 条判重结论：`ledger` / `candidate` / `suspect` / `none` + 引双方原文的依据 | 与 issue 表一一对应 · target **真的存在**（台账 99 条 / 候选 141 键里查得到）· `none` 不许给 target · 依据非空 |
+| [inspect_rulings.json](./inspect_rulings.json) | 43 条座标终局裁定：`final_coord` · 逐字引证 · 引类型学判定测试与行号的裁定依据 | issue 存在 · 五轴合法 · **裁定的五轴与 issue 表逐轴相等**（两份文件不许各说一套） |
+
+**为什么这三份必须入库**：它们是「189 条判定怎么来的」的**唯一载体**。判定过程在 /tmp 下的三份上游产物里，那些不入库；若三份 audit json 也不入库，事后就无法回答「这一条为什么判成同根因」「凭什么说它与 `EIS-0032-01` 是一个问题」。
+
+### 7.6.4 座标写法归一：`a / b + c / d`
+
+上游判定产物里同一格出现过十几种写法（`global + other`、`global / other · other`、`element / trigger+extraneous / language`、带括注的、把 `reference=` 写在括注里的）。入库时统一归一成 `a / b + c / d`（`+` 与 `/` 两侧各一个空格），并逐条保留 `coord_raw` 与 `coord_normalization`。**不归一的后果不是难看，是看不出两条其实落在同一格** —— 而那正是要拿来做分布统计的字段。归一化只压写法，不改实质；唯一一条动了取值的是 `INS-0006-01`（原判把维度 A 写成两个取值 `transition·trigger`，按一次编辑测试收敛到 `trigger`），理由逐条记在该条的 `coord_normalization` 里。
+
+### 7.6.5 34 条 `refuted` 全量复查：恢复 5 条
+
+判据两条同时成立才恢复：**① 推翻理由没有否掉主张本身**，只否掉了分拣者的措辞 / 归属 / 主语；**② 同型形态在别的 pair 上被判 `intrinsic` 或 `uncertain` 并摆给了判读者** —— 也就是「同一件事两种待遇」。
+
+| 恢复的 issue | 底层诊断 | 为什么是误判 |
+| :-- | :-- | :-- |
+| `INS-0000-04` | 0000 diag 1（`W_INITIAL_UNCONDITIONAL_MISSING`） | 推翻的是**证据措辞**（分拣者说「全文件无裸 `[*] -->`」，而 :8 正是一条），复核方自己写着「结论本身很可能仍成立」；同型形态在 `0030` / `0040` / `0050` 三份上都作为条目摆着 |
+| `INS-0013-05` | 0013 diag 3 / 4 / 5（`W_TOPOLOGICAL_NOEXIT@trap_cycle`） | 复核方逐字承认「事实层面我核过且无异议…不是投影产物」，推翻的是把它**当缺陷登记**，并留了复议入口。而「事实内生、算不算缺陷要人裁」在本流水线里对应的桶是 `uncertain` 而非 `refuted`：同 code 同 kind 全语料 26 条里 7 条判 intrinsic、17 条判 uncertain 摆进折叠区，只有 0013 这 3 条被 refuted |
+| `INS-0017-02` | 0017 diag 0 / 1 / 2 / 13 / 14 | 推翻理由逐字写「推翻归属与主语，**不推翻「缺顶层初始」那条真缺陷**」并给出正确落点。同一机制（缺某层默认入口 → lowering 插占位符 → 子态成片不可达）在 0014 / 0032 / 0035 / 0044 / 0046 / 0053 共 **27 条上判 intrinsic**，且终局裁定把 `INS-0014-01` / `INS-0044-01` 的座标正好锚到「缺的那条边」上 |
+| `INS-0047-03` | 0047 diag 0 / 1 / 2 / 9 / 10 | 同上；判重结论是并入台账 `EIS-0047-02`（那条 statement 逐字说的就是「CollisionAvoidanceSystem 有三个子状态却没有初始子状态」） |
+| `INS-0057-03` | 0057 diag 0-5 / 13 / 14 / 15 / 16 | 同上；判重结论是并入台账 `EIS-0057-01` |
+
+**维持 refuted 的 10 条**（0009 / 0019 / 0029 / 0049 / 0059 各两条 `W_EVENT_UNREACHABLE_EMIT`）：判据②不成立。这一族被诊断的对象是投影把作者的**守卫表达式**整条焊成一个事件标识符后产生的 fcstm 根级 `event` 声明，该标识符在作者源里 0 次命中；而 25 条判 intrinsic 的 `W_EVENT_UNREACHABLE_EMIT` 的事件名（`Activate_Pump` / `Collision_avoided` / `Braking_Done` …）**全部是作者源标签里真实存在的触发事件名，没有一条是布尔守卫表达式**。两种待遇有实质判据。它们对应的可达性事实没有丢 —— 由同 pair 的 `W_UNREACHABLE_STATE` 承载，那些都在册。
+
+### 7.6.6 一处零命中：没有任何 inspect 诊断落在新增的 `region` 取值上
 
 复查全部 454 条：**一条都不落 `region`**。原因是结构性的 —— fcstm 语言里没有正交区构件，投影阶段就把它抹平了，inspect 从定义上看不见区。语料里名字带 `Region` 的状态（如 `0032` 的 `IdleRegion`）是**顺序子态**而非 `--` 划出的并发区。
 
 这条零命中本身有信息：**正交区域这一族只能靠人读作者源发现，确定性检查这条路走不通** —— 反过来又说明为什么不能把它排除出记录体系。
+
+### 7.6.7 相对上一版改了什么
+
+- 标题与首段由「入册不归本轮」改成「已入册」；`candidates_seen` **141 → 269** 的等式写进 §九的口径变更记录。
+- §7.6.2 的表格加「入册情况」一栏；`refuted` 那一行由「34 条被推翻」改成「恢复 24 条诊断（5 条 issue）、维持 10 条」，并新增 §7.6.5 逐条交代。
+- §7.6.3 由「入册前必须先做两步判断」改写为「两步已完成 + 三份文件的分工与机械门」，撤掉「由另一条 workflow 负责」这句（那条 workflow 就是本轮）。
+- 新增 §7.6.4（座标写法归一）与 §7.6.5（`refuted` 全量复查）；原 §7.6.4 顺次改为 §7.6.6。
+- 删掉「工作单本轮不含它的任何内容（由 `test_no_inspect_content_leaked_into_the_worksheets` 钉住）」—— 那条测试已随入册改写成 12 条 inspect 专项测试。
 
 ## 八、文件
 
@@ -553,8 +589,11 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | [ledger_mapping.json](./ledger_mapping.json) | 上者的真源（逐条取值 + 逐字依据 + 判定说明） |
 | [candidate_mapping.py](./candidate_mapping.py) | 候选 141 条的同一套（多一个 `blocker` 卡点分类） |
 | [candidate_mapping.json](./candidate_mapping.json) | 上者的真源 |
-| [inspectfindings.py](./inspectfindings.py) | `pyfcstm inspect` 诊断的装载与到座标系的映射。**不做归并、不做判重** —— 那两步是判断，见该文件 docstring 与 §七点六。⚠️ 本轮不消费它，留给另一条 workflow |
-| [inspect_findings.json](./inspect_findings.json) | 上者的真源（454 条诊断 + 分拣结论 + 逐字复核依据，入库以使工作单自包含） |
+| [inspectfindings.py](./inspectfindings.py) | `pyfcstm inspect` 诊断的装载、到座标系的映射、三份判定文件的装载校验与渲染取数。**自己不做归并、不做判重** —— 那两步是判断，见该文件 docstring 与 §七点六 |
+| [inspect_findings.json](./inspect_findings.json) | 454 条原始诊断 + 分拣结论 + 逐字复核依据（入库以使工作单自包含） |
+| [inspect_issues.json](./inspect_issues.json) | **归一化**判定：189 条 issue（含 5 条恢复的 `refuted`）、逐条合并理由与作者源逐字证据、五轴座标 |
+| [inspect_overlap.json](./inspect_overlap.json) | **判重**判定：189 条结论 + 引双方原文的依据（并入 61 / 新建 128） |
+| [inspect_rulings.json](./inspect_rulings.json) | **座标终局裁定**：43 条，含逐字引证、引类型学判定测试与行号的依据，以及上游 224 条复核挑战 |
 | [translations/](./translations/) | 9 份唯一 NL 的中文严格翻译 JSON（`generate.py` 的输入，必须入库才能复现） |
 | [translations/TRANSLATION_SPEC.md](./translations/TRANSLATION_SPEC.md) | 译文的验收依据（交给译者的原样规格） |
 | [test_relabel.py](./test_relabel.py) | 回归测试（`python3 -m pytest test_relabel.py -q`） |
@@ -572,7 +611,8 @@ python3 export_unmatched.py            # 重新导出 §3.3 的原始 issue 文�
 | 时间 | 改动 | 理由 |
 | :-- | :-- | :-- |
 | 2026-08-13 | **维度 A 新增界外取值 `region`（`counts_as_defect = false`），并新增条件必填字段 `other_note`（任一轴取 `other` 必须附一句说明，[validate.py](./validate.py) 加一条 `E`）**；原判 `blocker = taxonomy` 的 12 条逐条重判（10 条落 `region`、1 条落 `other`、1 条改判为登记单位卡点），`taxonomy` 清零 | 「座标系给不出取值」这个结论站不住：每个轴都有 `other` 且都在用。真正的问题是那个对象在建模边界之外，而把界外对象赶出座标系会让它既进不了记录也进不了统计 —— 等于反过来声称这些模型没有并发问题，同样违反 [CLAUDE.md](../../../../../CLAUDE.md) 的边界。详见 §7.5.1 |
-| 2026-08-13 | **`pyfcstm inspect` 的 454 条诊断入库**（[inspect_findings.json](./inspect_findings.json)，含分拣结论与逐字复核依据）；**工作单不含它的任何内容**，`candidates_seen` **仍是 141** | 入库与入册是两回事：入册前要先按根因归一化、再与既有条目去重，而这两步是**判断**不是脚本能算的，由另一条 workflow 负责。本轮写过一版自动实现（并查集归组 + 关键词判重合）并已撤掉，见 §7.6.3 |
+| 2026-08-13 | **`pyfcstm inspect` 入册**：360 条诊断归一化成 **189** 条 issue（含从 `refuted` 恢复的 5 条），判重后 **61 条并入既有台账 / 候选**作补充证据、**128 条新建 `INS-` 块**；三份判定落盘为 [inspect_issues.json](./inspect_issues.json) / [inspect_overlap.json](./inspect_overlap.json) / [inspect_rulings.json](./inspect_rulings.json)，均带装载期机械门。`candidates_seen` **141 → 269**（= 141 + 126 + 2，等式见 `test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes`）；`ledger_records_seen` **仍是 99**（台账是被审计对象，inspect 发现在裁决前只能是候选）；`W` **195 → 323**（+128 个未裁决候选）。emoji 判据由「全文 ≤ 30」细化为「**生成器侧** ≤ 30（未放宽，实测仍 12–18）+ 全文 ≤ 60」，双份数字记在测试 docstring 里 | 归一化与判重是**判断**：`0007` 一个 pair 35 条诊断，原样摆出来判读者要对同一件事按十几次；而与既有条目重合的若也新建块，同一个问题会出现两份可能互相矛盾的裁决。三份 audit json 必须入库 —— 它们是「这 189 条判定怎么来的」的唯一载体，不入库则事后无法复核。详见 §七点六 |
+| 2026-08-13 | **`pyfcstm inspect` 的 454 条诊断入库**（[inspect_findings.json](./inspect_findings.json)，含分拣结论与逐字复核依据）；当时**工作单不含它的任何内容**，`candidates_seen` 仍是 141 | 入库与入册是两回事：入册前要先按根因归一化、再与既有条目去重，而这两步是**判断**不是脚本能算的。本轮写过一版自动实现（并查集归组 + 关键词判重合）并已撤掉，见 §7.6.3。⚠️ 入册已于同日完成，见上一行 |
 | 2026-08-13 | **§2 剥掉台账既有条目的十项旧元数据与整节断言组**：`layer` · `direction` · `element_of_M` · `decided_by` · `primary_predicate` · `nl_evidence` · `verdict` · `replay` · 同质组 · 上游十行，连同「断言角色」「谓词三族」两张图例与「断言组」小节一并删除，只留 `statement` 原文 + 参考侧 / 生成侧证据行 + 记录 id；[sources.py](./sources.py) 的 `risk_flags` 随之从 8 类收到 4 类（删 `lexical` / `no_primary` / `no_assertion` / `no_nl_evidence` / `replay`），`shallow_hint` 整体删除；[terms.py](./terms.py) 服务这些展示值的 12 个常量与 8 个 helper 全删（313 行 → 51 行） | 那十项里有七项是**我们自己的框架**给这一条贴的标签，而本轮要判读者回答的恰恰是「这套框架有没有漏掉东西」—— 先把框架的答案印在题面上，判读者就只会在既有格子之间挑一个，问题被答案定义掉了。`verdict` / `replay` 更直接：那是流水线的判定与复算结论，等于先给标准答案。被撤的五类风险标记同理，且它们援引的字段判读者已经看不到，**标记无法被核对** |
 | 2026-08-13 | **新增两份座标映射并渲染进 §2 / §3**：[ledger_mapping.json](./ledger_mapping.json)（台账 99 条）与 [candidate_mapping.json](./candidate_mapping.json)（候选 141 条），共 **240** 个对象逐一给出取值或明确的「映射不上 + 卡在哪」。两份都有装载期机械门：id 集合完整、取值在枚举内、条件式分支一致、**`evidence` 必须是原文逐字子串**。渲染时每一块都标明「我方推断、判读者裁决优先」，候选侧另标「映射不代表它成立」 | 剥掉旧元数据后 §2 只剩散文，判读者要从头读起；给一格我方座标能省一遍通读。但它必须**显式标为推断** —— 否则判读者会把它当成已定分类，「裁决」退化成对我方判断的复读。`evidence` 逐字子串是防伪造的**唯一**机械手段：改写过的「依据」看起来同样通顺，却证明不了映射者真读过原文 |
 | 2026-08-13 | **§3.2a 分出 §3.2a-2**：`gen` 字段逐字写「—」或「(不可能生成)」的 **12** 条单列一节，并写明它们映射不上**不算**「新座标系覆盖不到」 | 这一族的生成侧逐字否认作者制品在该处有东西，主张的是**参考模型 / 真值的有效性**，不是缺陷形态。座标系的判定测试锚在作者源 PlantUML 上，它们在制品内指不出任何一处 —— 座标系没覆盖到它们，是因为它们本来就不在座标系要描述的对象集合里，**那不是缺口** |

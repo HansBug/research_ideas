@@ -41,6 +41,7 @@ sys.path.insert(0, HERE)
 import candidate_mapping as CM                      # noqa: E402
 import checklist                                    # noqa: E402
 import fillblocks as fb                             # noqa: E402
+import inspectfindings as IF                       # noqa: E402
 import ledger_mapping as LM                         # noqa: E402
 import newfields as NF                              # noqa: E402
 import nl_zh                                        # noqa: E402
@@ -612,6 +613,9 @@ def section_ledger(pair, records, saved):
             lines.append(f"- 生成侧：{esc(rec.get('generated_side'))}")
             lines.append("")
         lines.extend(_fmt_mapping(LM.for_record(rid)))
+        # ⭐ 判为「与本条是同一个问题」的 inspect 发现挂在这里。⛔ 上面的 statement 与证据行
+        # 一个字都没改 —— 它们是**被判对象**；补充证据只进一个独立折叠区，且**不另设裁决区**。
+        lines.extend(inspect_supplement(rid))
         if flags:
             lines.append("**自动风险标记**")
             lines.append("")
@@ -642,7 +646,7 @@ def section_candidates(pair, model, records, saved):
     lines.append("")
     lines.append(
         "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认，裁决区留空 —— "
-        f"五个来源的优先级与读法见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
+        f"六个来源的优先级与读法见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.2。"
     )
     lines.append("")
 
@@ -685,6 +689,7 @@ def section_candidates(pair, model, records, saved):
                              + (" …" if len(r["members"]) > 8 else ""))
                 lines.append("")
             lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
+            lines.extend(inspect_supplement(key))
             lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
             lines.append("")
 
@@ -738,6 +743,7 @@ def section_candidates(pair, model, records, saved):
                 lines.append("排除相关字段：" + "；".join(aux))
                 lines.append("")
             lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
+            lines.extend(inspect_supplement(key))
             lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
             lines.append("")
 
@@ -879,6 +885,7 @@ def section_candidates(pair, model, records, saved):
         )
         lines.append("")
         lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
+        lines.extend(inspect_supplement(key))
         lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
         lines.append("")
 
@@ -925,6 +932,304 @@ def section_candidates(pair, model, records, saved):
             if r.get("note"):
                 lines.append(f"  - {esc(r.get('note'))}")
         lines.append("")
+
+    return "\n".join(lines), keys
+
+
+# ------------------------------------------------------------------ §3.6 inspect 确定性发现
+
+#: ⛔⛔ **这一族与 §3.1–§3.5 不是同一个物种，抬头不许省。** 前者出自 LLM 产出（两臂的 issue、
+#: 审阅 agent 的 diff、多报簇），带采样噪声，同一个格重跑一次可能就没了；本节出自
+#: `pyfcstm inspect --format json --enable-verify`，是**确定性检查**，同一份 `model.fcstm`
+#: 永远给同一批诊断。⚠️ 这个差别直接改变「模型没提」这句话的含义：对前者是采样问题，
+#: ⛔ 对后者说明的是**检查器本身看不到那类东西**。
+INSPECT_SPECIES_CAVEAT = (
+    "**这一节与 §3.1–§3.5 不是同一个物种。** 上面五节的线索全部出自 **LLM 产出**"
+    "（两臂的 issue、审阅 agent 的 diff、多报簇），所以它们带采样噪声 —— 同一个格重跑一次"
+    "可能就没有了。本节出自 `pyfcstm inspect --format json --enable-verify`，是**确定性检查**："
+    "不采样、不过 LLM，同一份 `model.fcstm` 永远给同一批诊断。"
+    "⚠️ 这个差别会改变你的读法：上面那些「模型没提到」是采样问题，"
+    "本节的「检查器没报」说明的是**检查器本身看不到那类东西**。"
+)
+
+#: ⚠️ 确定性**不等于正确**。这一句同样不许省 —— 判读者若把「工具报的」当成「事实」，
+#: 整节的裁决都会失真。
+INSPECT_PROJECTION_CAVEAT = (
+    "**但确定性不等于正确。** `model.fcstm` 是从作者源 PlantUML **投影**来的，"
+    "投影会合成元素（root 复合态、缺初始时的占位态 `UnspecifiedInitial` 之类）。"
+    "所以每条诊断都先过了一轮「内生 / 投影产物 / 不确定」分拣加一轮对抗性复核："
+    "查明是投影产物的已经不在这里，本节只有**确认内生**与**分拣未能确定**两族。"
+)
+
+#: 整类排除的说明。⛔ 不写会让判读者以为这两类被漏掉了。
+INSPECT_EXCLUDED_NOTE = (
+    "**两个 code 整类不进本节主体**：`I_NONTRIVIAL_SCC`（内生率 **0/54**）与 "
+    "`I_TOPOLOGICAL_NON_TERMINATING`（内生率 **0/52**）。"
+    "理由不是嫌多，是它们对本语料不构成缺陷主张：反应式控制器本来就该有非平凡强连通分量、"
+    "本来就不该终止。⚠️ 但落在「不确定」那一族里的仍然摆在下面 —— "
+    "整类排除说的是「不当缺陷主张看」，不是「从材料里删掉」。"
+)
+
+
+def _flow(text):
+    r"""把一段判定文字压成一行（段内不许硬折行，见 CLAUDE.md §2.2.1b）。
+
+    ⛔ 与 `esc()` 不同：**不转义 `|`**，因为这些文字印在引用块与 bullet 里而不是表格单元格里。
+    ⚠️ 转了反而会让「渲染结果与 audit json 逐字一致」这条对拍失效（`esc` 会把 `|` 变成 `\|`）。
+    """
+    return re.sub(r"\s+", " ", str(text or "")).strip()
+
+
+def _inspect_codes(rec):
+    """一条 issue 底层诊断的 code 集合，按出现顺序去重。"""
+    out = []
+    for m in rec["members"]:
+        key = m["code"]
+        if key == "W_TOPOLOGICAL_NOEXIT":
+            key += "@" + ((m.get("refs") or {}).get("counterexample_kind") or "?")
+        if key not in out:
+            out.append(key)
+    return out
+
+
+def _inspect_axes_lines(rec):
+    """我方座标映射块。⛔ 抬头与 §2 / §3 用同一句 —— 这也是我方推断，判读者的裁决优先。"""
+    out = [CANDIDATE_MAPPING_CAVEAT, ""]
+    out += ["| 轴 | 我方判的取值 |", "| :-- | :-- |"]
+    for axis in ("defect_locus", "defect_element", "defect_qualifier",
+                 "defect_logic_kind", "defect_reference"):
+        val = rec.get(axis)
+        if not val:
+            continue
+        out.append(f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |")
+    out.append("")
+    if (rec.get(NF.OTHER_NOTE_FIELD) or "").strip():
+        out.append(f"- `other` 说明：{_flow(rec[NF.OTHER_NOTE_FIELD])}")
+        out.append("")
+    # ⭐ 座标被改判过的，把终局裁定的**完整**依据印出来 —— 判读者要判的正是「我们这一格判对了
+    # 没有」，⛔ 只印结论不印依据他没法判。⛔ 也不许截断：这些依据里指着类型学的行号与逐字判定
+    # 测试，⚠️ 截一半等于把「凭什么」删掉，所以整段放进折叠区而不是砍长度。
+    for r in rec.get("rulings") or []:
+        # ⚠️ 恢复来的条目**没有原判座标**（它整条都不曾进过判读材料），故换一句抬头 ——
+        # ⛔ 印成「原判 — → 终局 X」会让人以为原判是空的，而事实是**根本没有原判**。
+        if rec.get("recovered_from_refuted"):
+            out.append(f"<details><summary>本条座标由**一份专门裁定**给出（`{rec['coord']}`；"
+                       f"本条是从 refuted 恢复的，没有原判座标）—— 展开裁定依据与逐字引证</summary>")
+        else:
+            before = rec.get("coord_before_ruling") or "（原判原文见 `inspect_issues.json`）"
+            out.append(f"<details><summary>本条座标**经过一轮改判**：原判 `{esc(before)}` → "
+                       f"终局 `{rec['coord']}` —— 展开裁定依据与逐字引证</summary>")
+        out.append("")
+        out.append(f"- 判定依据（引类型学的判定测试与行号）：{_flow(r['ruling_basis'])}")
+        out.append(f"- 逐字引证（回作者源 / NL / fcstm 核过）：{_flow(r['final_evidence'])}")
+        out.append("")
+        out.append("</details>")
+        out.append("")
+    return out
+
+
+def _inspect_diag_details(rec):
+    """底层诊断的折叠区。⭐ 归一化把 N 条诊断压成一条，⛔ 但原始诊断必须可查。"""
+    out = [f"<details><summary>展开底层 {len(rec['members'])} 条 inspect 诊断"
+           f"（工具原文 message 与结构化 refs）</summary>", ""]
+    out += ["| diag | code | severity | 作者源行 | 工具原文 message |",
+            "| --: | :-- | :-- | :-- | :-- |"]
+    for m in rec["members"]:
+        out.append(f"| {m['diag_index']} | `{m['code']}` | `{m['severity']}` | "
+                   f"{clip(m.get('puml_line'), 40)} | {clip(m.get('message'), 150)} |")
+    out.append("")
+    for m in rec["members"]:
+        out.append(f"- diag {m['diag_index']} 的 `refs`：{clip(json.dumps(m.get('refs') or {}, ensure_ascii=False), 400)}")
+        if (m.get("synthesized_names") or "none") != "none":
+            out.append(f"  - 涉及的投影合成名：{esc(m.get('synthesized_names'))}")
+    out.append("")
+    out.append("</details>")
+    out.append("")
+    return out
+
+
+def _inspect_body(rec, with_deadlock_caveat=True):
+    """一条 issue 的正文（不含填写块）。⛔ 并入既有条目时复用同一段，两处口径必须一致。"""
+    out = []
+    out.append("**归一化后的事实陈述**")
+    out.append("")
+    out.append("> " + _flow(rec["statement"]))
+    out.append("")
+    out.append(f"- 作者源逐字证据：{_flow(rec['puml_evidence'])}")
+    out.append(f"- 归并理由（{len(rec['diag_indices'])} 条诊断 → 本条）：{_flow(rec['merge_reason'])}")
+    if (rec.get("nl_evidence") or "").strip():
+        out.append(f"- NL 侧依据：{_flow(rec['nl_evidence'])}")
+    if rec.get("recovered_from_refuted"):
+        out.append(f"- ⚠️ 本条是从「初判内生、被对抗复核推翻」里**恢复**的，恢复依据："
+                   f"{_flow(rec['recovery_basis'])}")
+    out.append("")
+    if with_deadlock_caveat and any(m["code"] == "W_DEADLOCK_LEAF" for m in rec["members"]):
+        out.append(f"- **`W_DEADLOCK_LEAF` 的已知假阳性**：{IF.DEADLOCK_LEAF_CAVEAT}")
+        out.append("")
+    out.extend(_inspect_diag_details(rec))
+    return out
+
+
+def _inspect_suspect_note(rec):
+    """`suspect` 那一族的点名提示。⛔ 不许省 —— 它是「拿不准就新建块」这条口径的另一半。"""
+    d = rec["overlap"]
+    if d["overlap_kind"] != "suspect":
+        return []
+    return [f"- ⚠️ **疑似与 `{d['overlap_target']}` 重合，请你确认**：判重方拿不准，"
+            f"按「拿不准就新建、不许判成重合」的口径单列在这里（错判重合会把一条真发现"
+            f"藏进既有条目）。判重方的比对依据：{_flow(d['basis'])}",
+            ""]
+
+
+def _inspect_block(rec, saved):
+    """一条 issue 的完整块（正文 + 点名提示 + 座标映射 + 填写块）。"""
+    key = rec["issue_id"]
+    codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
+    out = [f"##### {key} · {codes}", ""]
+    out += _inspect_body(rec)
+    out += _inspect_suspect_note(rec)
+    out += _inspect_axes_lines(rec)
+    out.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+    out.append("")
+    return out
+
+
+def inspect_supplement(target):
+    """并入 `target`（台账 id 或候选键）的 inspect 补充证据。⛔ 不设裁决区。
+
+    ⛔⛔ **被并入那条既有条目的 `statement` 与证据行一个字都不许改** —— 它们是**被判对象**。
+    所以补充证据放在一个独立的折叠小节里，并逐字写明「来源是确定性检查」。
+    ⚠️ 也**不给**它自己的填写块：判读者对同一个问题只裁决一次，裁决落在既有条目自己的块里；
+    ⛔ 摆两个块会让同一个问题出现两份可能互相矛盾的裁决。
+    """
+    rows = IF.merged_into(target)
+    if not rows:
+        return []
+    out = [f"<details><summary>{len(rows)} 条 `pyfcstm inspect` 的补充证据"
+           f"（**确定性检查**，判重方判定与本条是同一个问题；⚠️ 上面的 statement 与证据行"
+           f"未作任何改动，本节只是把工具侧的独立证据挂在这里）</summary>", ""]
+    for rec in rows:
+        codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
+        out.append(f"**{rec['issue_id']}** · {codes} · 分拣结论 "
+                   f"`{rec['verdict_class']}` · 我方座标 `{rec['coord']}`")
+        out.append("")
+        out += _inspect_body(rec)
+        out.append(f"- 判为同一个问题的依据：{_flow(rec['overlap']['basis'])}")
+        # ⭐ 并入的这些也要留改判痕迹 —— ⛔ 只印终局座标而不说它被改过，
+        # ⚠️ 事后看不出「我方这一格换过一次」。⛔ 但依据全文不在这里展开：
+        # 本条的裁决落在宿主条目自己的块里，⭐ 详细依据在 inspect_rulings.json。
+        for r in rec.get("rulings") or []:
+            out.append(
+                f"- 本条座标**经过一轮改判**：原判 `{esc(rec.get('coord_before_ruling') or '—')}` → "
+                f"终局 `{rec['coord']}`（逐字依据与判定测试见 "
+                f"[inspect_rulings.json](../inspect_rulings.json) 里 `{rec['issue_id']}` 那条）")
+        out.append("")
+    out.append("</details>")
+    out.append("")
+    return out
+
+
+def section_inspect(pair, saved):
+    """§3.6：`pyfcstm inspect` 的确定性检查发现。
+
+    ⛔ 三件事必须同时成立，缺一条判读者就会误判整节：
+      ① 让他一眼看出这是**确定性检查**而不是 LLM 产出（`INSPECT_SPECIES_CAVEAT`）；
+      ② 把**归一化压缩比**摆出来 —— 他看到的一条 issue 背后有几条诊断（`0007` 是 35 → 7）；
+      ③ `W_DEADLOCK_LEAF` 的**系统性假阳性**与两个 code 的**整类排除**都要写明。
+    """
+    lines, keys = [], []
+    lines.append("### §3.6 `pyfcstm inspect` 的确定性检查发现")
+    lines.append("")
+    if not IF.has_judged_issues():
+        lines.append("**尚未入册。** 归一化与判重是判断、不是脚本能算的，"
+                     "等判定者产出 `inspect_issues.json` / `inspect_overlap.json` / "
+                     "`inspect_rulings.json` 之后本节才渲染。")
+        lines.append("")
+        return "\n".join(lines), keys
+
+    rows = IF.issues_of(pair)
+    diags, n_issues = IF.compression(pair)
+    new_rows = IF.issues_of(pair, new_block_only=True)
+    merged_rows = IF.issues_of(pair, merged_only=True)
+    tot = IF.load_issues()["totals"]
+
+    lines.append(INSPECT_SPECIES_CAVEAT)
+    lines.append("")
+    lines.append(INSPECT_PROJECTION_CAVEAT)
+    lines.append("")
+    lines.append(
+        f"**本 pair：{diags} 条原始诊断归一化成 {n_issues} 条 issue**"
+        f"（全语料 {tot['diagnostics_covered']} 条 → {tot['issues']} 条；压缩最狠的是 `0007`，"
+        f"35 → 7）。⚠️ 你看到的一条 issue 背后往往是**好几条诊断**，"
+        f"每条下面的折叠区里都能展开原始 message 与 `refs`。"
+    )
+    lines.append("")
+    lines.append(INSPECT_EXCLUDED_NOTE)
+    lines.append("")
+    # ⛔ 假阳性说明**每份都印**，不只在命中该 code 的 pair 上印 —— 判读者在 §4 自己数出边时
+    # 同样会踩这个坑（一个叶态自己没有出边，不等于它是终止态）。
+    lines.append(f"**一个必须先知道的工具缺陷**：{IF.DEADLOCK_LEAF_CAVEAT}")
+    lines.append("")
+    if merged_rows:
+        # ⛔ 去重：多条 issue 可以并进**同一条**既有条目（`EIS-0032-01` 就吃了三条），
+        # ⚠️ 不去重会把同一个 id 在这句话里印两遍。
+        targets = []
+        for r in merged_rows:
+            t = r["overlap"]["overlap_target"]
+            if t not in targets:
+                targets.append(t)
+        lines.append(
+            f"**本 pair 另有 {len(merged_rows)} 条判为与既有条目是同一个问题**，已并入对应条目"
+            f"（{'、'.join('`' + t + '`' for t in targets)}）"
+            f"作补充证据，**本节不再重复设裁决区** —— 同一个问题只裁一次。"
+        )
+        lines.append("")
+
+    intrinsic = [r for r in new_rows if r["verdict_class"] == "intrinsic"]
+    uncertain = [r for r in new_rows if r["verdict_class"] == "uncertain"]
+
+    lines.append(f"#### §3.6a 确认内生、且与既有条目不重合的 {len(intrinsic)} 条")
+    lines.append("")
+    if not intrinsic:
+        lines.append("本 pair 无。")
+        lines.append("")
+    else:
+        lines.append("这些的事实部分已回作者源逐字核过，且确认**不是投影产物**。"
+                     "要你判的是：它算不算一条该进台账的缺陷。")
+        lines.append("")
+        for rec in intrinsic:
+            keys.append(rec["issue_id"])
+            lines.extend(_inspect_block(rec, saved))
+
+    lines.append(f"#### §3.6b 分拣未能确定是内生还是投影产物的 {len(uncertain)} 条")
+    lines.append("")
+    if not uncertain:
+        lines.append("本 pair 无。")
+        lines.append("")
+    else:
+        lines.append(
+            f"⚠️ **这一族的事实成不成立本身还没定**：分拣未能确定它是作者制品的问题、"
+            f"还是投影阶段造出来的。摆出来是因为**不许静默丢掉** —— 全语料 142 条不确定诊断"
+            f"归一化成 {tot['uncertain']} 条，而它们恰好集中在那些没有确认内生发现的 pair 上，"
+            f"正是最需要人判的地方。每条的正文默认折叠，展开后照常有裁决区。"
+        )
+        lines.append("")
+        for rec in uncertain:
+            keys.append(rec["issue_id"])
+            codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
+            lines.append(f"##### {rec['issue_id']} · {codes}")
+            lines.append("")
+            lines.append(f"<details><summary>展开这一条（分拣结论 `uncertain`，"
+                         f"我方座标 `{rec['coord']}`）</summary>")
+            lines.append("")
+            lines.extend(_inspect_body(rec))
+            lines.extend(_inspect_suspect_note(rec))
+            lines.extend(_inspect_axes_lines(rec))
+            lines.append("</details>")
+            lines.append("")
+            lines.append(fb.render(rec["issue_id"], "candidate",
+                                   fb.CANDIDATE_TEMPLATE, saved.get(rec["issue_id"])))
+            lines.append("")
 
     return "\n".join(lines), keys
 
@@ -1591,7 +1896,7 @@ def build_howto():
         "请直接从该份的 §3 与 §4 开始，把发现登记到 §5。"
     )
     lines.append("")
-    lines.append("### §D.2 §3 候选新增 issue 的五个来源")
+    lines.append("### §D.2 §3 候选新增 issue 的六个来源")
     lines.append("")
     lines.append(
         "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认，"
@@ -1608,6 +1913,8 @@ def build_howto():
     lines.append("| §3.2b | 判为 `correct` / `similar` 的 diff | 备查，不设裁决区 |")
     lines.append("| §3.3 | 两臂产出中机械未匹配任何台账条目的 issue | 中 —— 量大，按出现格数排序 |")
     lines.append("| §3.4 | 已被判为「非缺陷」的多报簇 | 备查 —— 避免与既有裁定撞车 |")
+    lines.append("| §3.6 | `pyfcstm inspect` 的**确定性检查**发现（归一化后） | "
+                 "**另一个物种** —— 见下，不是 LLM 产出，没有采样噪声 |")
     lines.append("| §3.5 | 与台账同根、但匹配器未归并的簇 | "
                  "**「台账偏浅」的直接证据** —— 对应条目适合走「修正」 |")
     lines.append("")
@@ -1674,6 +1981,32 @@ def build_howto():
         "§3.4 列的是两臂报过、但复核判为不成立的主张。它们**不是**候选 —— "
         "列出来是为了让你在 §4 发现同一形状时，能立刻看到「这条已经被判过，理由是这个」，"
         "避免重复劳动或与既有裁定冲突。"
+    )
+    lines.append("")
+    # ⭐ §3.6 的读法必须写在这里 —— ⚠️ 它是六个来源里**唯一**不带采样噪声的那个，
+    # ⛔ 判读者若拿它跟前五个同样对待，会把「工具没报」当成「不存在」。
+    lines.append(
+        "**§3.6 与前五个来源不是同一个物种。** 前五个全部出自 **LLM 产出**（两臂的 issue、"
+        "审阅 agent 的 diff、多报簇），带采样噪声 —— 同一个格重跑一次可能就没了。"
+        "§3.6 出自 `pyfcstm inspect --format json --enable-verify`，是**确定性检查**："
+        "同一份 `model.fcstm` 永远给同一批诊断。于是「没报」这件事的含义也不同："
+        "前五个的沉默是采样问题，§3.6 的沉默说明**检查器本身看不到那类东西**。"
+    )
+    lines.append("")
+    lines.append(
+        "**§3.6 的四条读法。** ① 全语料 454 条原始诊断先经「内生 / 投影产物 / 不确定」分拣加"
+        "一轮对抗性复核，查明是**投影产物**的 84 条不在工作单里；② 余下的按**根因归一化**（360 条"
+        "诊断 → 189 条 issue，`0007` 一份就是 35 → 7），所以你看到的一条背后常常是好几条诊断，"
+        "折叠区里能展开原始 message；③ 判重后**与既有台账 / 候选是同一个问题的那 61 条不在 §3.6**，"
+        "它们作为补充证据挂在 §2 / §3 对应条目下面，同一个问题只裁一次；④ `§3.6b` 是"
+        "「分拣未能确定是内生还是投影产物」的一族，**事实本身还没定**，摆出来是因为不许静默丢掉。"
+    )
+    lines.append("")
+    lines.append(
+        "**§3.6 有一个必须先知道的工具缺陷**：`W_DEADLOCK_LEAF` 有**系统性假阳性** —— "
+        "pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身的出边、完全不查外层，"
+        "于是「嵌在复合态里、而外层复合态有成组迁移」的叶态一律被误报成终止态"
+        "（顶层态没有外层，不受影响）。裁决这一族之前请先数一遍该叶态各级祖先的出边。"
     )
     lines.append("")
     lines.append(
@@ -1753,6 +2086,10 @@ def build_doc(pair, saved):
     s3, k3 = section_candidates(pair, model, records, saved)
     body.append(s3)
     keys += k3
+
+    s36, k36 = section_inspect(pair, saved)
+    body.append(s36)
+    keys += k36
 
     s4, k4 = section_checklist(pair, model, segs, records, saved)
     body.append(s4)

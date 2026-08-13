@@ -190,12 +190,13 @@ def axes_for(rec):
 #      去扫台账 `statement` 判重合。⛔ 这就是词法冒充语义，与上面那次事故同型。
 #
 # ⭐ 正确形态照 [ledger_mapping.py](./ledger_mapping.py) 办：**判断产出数据文件，
-# 脚本只负责装载校验、渲染与对拍。** 判断落在两份待产出的文件里：
+# 脚本只负责装载校验、渲染与对拍。** ⭐ 2026-08-13 判断已产出，落在**三份**文件里：
 #
 # | 文件 | 谁产出 | 每条要有 |
 # | :-- | :-- | :-- |
-# | `inspect_issues.json` | 逐 pair 读诊断集合 + 作者源 PlantUML 的判定者 | 归一化后的 `statement`（说清根因是什么）· 底层 `diag_index` 列表 · **合并理由**（为什么判为同根因，要能指着制品说）· 未合并的说明 |
-# | `inspect_overlap.json` | 拿归一化结果读台账 / 候选原文的判定者 | `overlap`：`ledger:EIS-xxxx-xx` / `candidate:DIFF-xxxx-xx` / `none` · **判断依据**（引双方原文的对应处） |
+# | [inspect_issues.json](./inspect_issues.json) | 逐 pair 读诊断集合 + 作者源 PlantUML 的判定者 | 归一化后的 `statement` · 底层 `diag_indices` · **合并理由**（为什么判为同根因，指着制品说）· 未合并说明 · 五轴座标 |
+# | [inspect_overlap.json](./inspect_overlap.json) | 拿归一化结果读台账 / 候选原文的判定者 | `overlap_kind`：`ledger` / `candidate` / `suspect` / `none` · **判断依据**（引双方原文的对应处） |
+# | [inspect_rulings.json](./inspect_rulings.json) | 对被挑战的座标出终局裁定的判定者 | `final_coord` · `final_evidence`（逐字引证）· `ruling_basis`（引类型学的判定测试与行号） |
 #
 # 装载期机械门（照 `ledger_mapping.py` 的形态，⛔ 对不上就抛）：字段合法 ·
 # `diag_index` 全部存在且**不重复分配** · 引用的原文片段是逐字子串 · 合并理由非空。
@@ -208,32 +209,359 @@ def axes_for(rec):
 
 ISSUES_FILE = os.path.join(HERE, "inspect_issues.json")
 OVERLAP_FILE = os.path.join(HERE, "inspect_overlap.json")
+RULINGS_FILE = os.path.join(HERE, "inspect_rulings.json")
+
+ISSUES_SCHEMA = "paper1.relabel.inspect_issues.v1"
+OVERLAP_SCHEMA = "paper1.relabel.inspect_overlap.v1"
+RULINGS_SCHEMA = "paper1.relabel.inspect_rulings.v1"
+
+#: issue id 的形态。⛔ 逐字钉住：`INS-<pair>-<两位序号>`，pair 必须与 id 里的四位一致。
+RE_ISSUE_ID = re.compile(r"^INS-(\d{4})-(\d{2})$")
+
+#: 判重结论的四个桶。⛔ 只有后两个新建填写块。
+OVERLAP_KINDS = ("ledger", "candidate", "suspect", "none")
+
+#: 新建填写块的两个桶。⭐ `ledger` / `candidate` 那些**并入既有条目**、不新建块 ——
+#: ⛔ 判读者对同一个问题只裁决一次，重复摆一遍会让两处裁决可能互相矛盾。
+NEW_BLOCK_KINDS = ("suspect", "none")
+
+AXES = ["defect_locus", "defect_element", "defect_qualifier",
+        "defect_logic_kind", "defect_reference"]
+
+
+def _squash(text):
+    return re.sub(r"\s+", "", text or "")
+
+
+def coord_display(rec):
+    """五轴 → 规范写法。⛔ 只有这一处算它，⛔ 不许在渲染器里另拼一份。
+
+    ⚠️ 写法必须归一（`a / b + c / d`，`+` 与 `/` 两侧各一个空格）：上游三份判定产物里
+    同一格出现过 `global + other`、`global / other · other`、`global／other（…）/ other`
+    等十几种写法，⛔ 靠肉眼比对根本发现不了「这两条其实是同一格」。
+    """
+    if rec["defect_locus"] == ELEMENT_LOCUS:
+        return (f"{rec['defect_locus']} / {rec['defect_element']} + "
+                f"{rec['defect_qualifier']} / {rec['defect_reference']}")
+    return (f"{rec['defect_locus']} / {rec['defect_logic_kind']} / "
+            f"{rec['defect_reference']}")
+
+
+ELEMENT_LOCUS = NF.ELEMENT_LOCUS
+
+
+def _check_axes(rec, what):
+    """条件式座标系的五轴校验。⛔ 与 `ledger_mapping._check_one` 是同一套判据。"""
+    for axis in AXES:
+        val = rec.get(axis)
+        if val is not None and val not in NF.ENUMS[axis]:
+            raise FindingsError(f"{what} 的 `{axis} = {val}` 不在枚举内")
+    locus = rec.get("defect_locus")
+    if not locus:
+        raise FindingsError(f"{what} 没给 `defect_locus`")
+    if not rec.get("defect_reference"):
+        raise FindingsError(f"{what} 没给 `defect_reference`")
+    for axis in NF.required_axes_for(locus):
+        if not rec.get(axis):
+            raise FindingsError(f"{what} 走 `{locus}` 支却没给 `{axis}`")
+    for axis in NF.forbidden_axes_for(locus):
+        if rec.get(axis):
+            raise FindingsError(f"{what} 走 `{locus}` 支却给了 `{axis}`")
+    # ⭐ 任一**该答的**轴取 `other` 必须附说明（类型学 §3.7.1）。⛔ 判据只看字段值，
+    # ⛔ 与 [validate.py](./validate.py) 给判读者的那条门、与两个 mapping 装载器的门是同一条 ——
+    # ⚠️ 三处口径不一致，等于我方可以留空出口而判读者不许。
+    answered = ["defect_locus", "defect_reference"] + NF.required_axes_for(locus)
+    picked = [a for a in answered if rec.get(a) == "other"]
+    if picked and not (rec.get(NF.OTHER_NOTE_FIELD) or "").strip():
+        raise FindingsError(
+            f"{what} 的 " + "、".join(f"`{a}`" for a in picked)
+            + f" 取了 `other`，却没写 `{NF.OTHER_NOTE_FIELD}` —— 出口不写清等于没分类")
+    want = coord_display(rec)
+    if rec.get("coord") != want:
+        raise FindingsError(
+            f"{what} 的 `coord = {rec.get('coord')!r}` 与五轴算出来的 {want!r} 不一致 —— "
+            "座标写法必须归一，见 `coord_display`")
+
+
+_ISSUES_CACHE = {}
+
+
+def load_issues():
+    """读并校验归一化 issue 表，返回整份 payload。⛔ 校验不过直接抛。
+
+    装载期机械门（⛔ 全是**防伪造**手段，⛔ 一条都不替判定者做判断）：
+
+    1. schema 对得上；id 形态合法、不重复、`pair` 与 id 里的四位一致、`group` 与该 pair 的
+       工作单目录一致。
+    2. `diag_indices` 非空、每个都在 `inspect_findings.json` 里存在，且**全局不重复分配** ——
+       ⛔ 一条诊断落进两条 issue 等于把同一件事摆给判读者按两次。
+    3. **覆盖完整**：`SHOWN_VERDICTS`（intrinsic + uncertain）的 336 条必须被恰好覆盖一次。
+       ⛔ 少一条就是有诊断被静默丢掉，而工作单会照常渲染、看不出缺了什么。
+    4. `verdict_class` 与成员诊断的 `verdict` 一致；⭐ 例外是 `recovered_from_refuted` 的条目 ——
+       它们的成员是 `refuted`，`verdict_class` 是本轮恢复时判的，故另要求 `recovery_basis` 非空。
+    5. 五轴合法 + 条件式一致 + `other` 带说明 + `coord` 与五轴算出来的规范写法逐字相等。
+    6. `statement` / `merge_reason` / `puml_evidence` 非空，且 `puml_evidence` 里**至少有一段**
+       反引号片段是该 pair 作者源的逐字子串（按去空白比对）。⚠️ 这一条对应
+       `ledger_mapping` 的 `evidence` 子串门：改写过的「证据」看起来同样通顺，⛔ 但它证明不了
+       判定者真的打开过作者源。
+    """
+    import sources as S
+    if ISSUES_FILE in _ISSUES_CACHE:
+        return _ISSUES_CACHE[ISSUES_FILE]
+    if not os.path.exists(ISSUES_FILE):
+        raise FindingsError(
+            "缺 inspect_issues.json —— 工作单 §3.6 从它渲染。⛔ 没有它不许退化成"
+            "「按脚本猜着分组」或「把 454 条原样摆出来」，见本文件「归并与去重：人判，不算」")
+    with open(ISSUES_FILE, encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if payload.get("schema") != ISSUES_SCHEMA:
+        raise FindingsError(f"inspect_issues.json 的 schema 不对：{payload.get('schema')}")
+    rows = payload.get("issues") or []
+    index = {(r["pair"], r["diag_index"]): r for r in all_findings()}
+    seen_ids, owner = set(), {}
+    for rec in rows:
+        iid = rec.get("issue_id")
+        m = RE_ISSUE_ID.match(iid or "")
+        if not m:
+            raise FindingsError(f"issue id 形态不合法：{iid!r}")
+        if iid in seen_ids:
+            raise FindingsError(f"{iid} 出现了两次")
+        seen_ids.add(iid)
+        if m.group(1) != rec.get("pair"):
+            raise FindingsError(f"{iid} 的 `pair = {rec.get('pair')}` 与 id 里的四位不一致")
+        if rec["pair"] not in S.IN_SCOPE_PAIRS:
+            raise FindingsError(f"{iid} 的 pair 不在 54 个在评 pair 内")
+        if rec.get("group") != S.nl_dir(rec["pair"]):
+            raise FindingsError(
+                f"{iid} 的 `group = {rec.get('group')}` 与该 pair 的工作单目录 "
+                f"{S.nl_dir(rec['pair'])} 不一致")
+        diags = rec.get("diag_indices") or []
+        if not diags:
+            raise FindingsError(f"{iid} 没给 `diag_indices` —— 一条 issue 至少要有一条底层诊断")
+        for d in diags:
+            key = (rec["pair"], d)
+            if key not in index:
+                raise FindingsError(f"{iid} 引的诊断 {key} 在 inspect_findings.json 里不存在")
+            if key in owner:
+                raise FindingsError(
+                    f"诊断 {key} 被 {owner[key]} 与 {iid} 同时认领 —— ⛔ 不许重复分配")
+            owner[key] = iid
+        verdicts = {index[(rec["pair"], d)]["verdict"] for d in diags}
+        if rec.get("recovered_from_refuted"):
+            if verdicts != {"refuted"}:
+                raise FindingsError(f"{iid} 标了恢复，成员却不全是 refuted：{verdicts}")
+            if not (rec.get("recovery_basis") or "").strip():
+                raise FindingsError(f"{iid} 标了恢复却没写 `recovery_basis`")
+            if rec.get("verdict_class") not in SHOWN_VERDICTS:
+                raise FindingsError(f"{iid} 恢复后的 `verdict_class` 必须是 {SHOWN_VERDICTS}")
+        elif verdicts != {rec.get("verdict_class")}:
+            raise FindingsError(
+                f"{iid} 的 `verdict_class = {rec.get('verdict_class')}` 与成员诊断的 "
+                f"{verdicts} 对不上")
+        _check_axes(rec, iid)
+        for field in ("statement", "merge_reason", "puml_evidence"):
+            if not (rec.get(field) or "").strip():
+                raise FindingsError(f"{iid} 的 `{field}` 是空的")
+        src = _squash(S.puml_text(rec["pair"]))
+        spans = [s for s in re.findall(r"`([^`]+)`", rec["puml_evidence"])
+                 if len(_squash(s)) >= 8]
+        if not any(_squash(s) in src for s in spans):
+            raise FindingsError(
+                f"{iid} 的 `puml_evidence` 里没有任何一段反引号片段是作者源的逐字子串 —— "
+                "给不出逐字引证就是在猜")
+    shown = {(r["pair"], r["diag_index"]) for r in all_findings()
+             if r["verdict"] in SHOWN_VERDICTS}
+    missing = sorted(shown - set(owner))
+    if missing:
+        raise FindingsError(
+            f"{len(missing)} 条待呈现诊断没有归属：{missing[:5]}… ⛔ 每条都必须落进某条 issue")
+    _ISSUES_CACHE[ISSUES_FILE] = payload
+    return payload
+
+
+_OVERLAP_CACHE = {}
+
+
+def load_overlap():
+    """读并校验判重表，返回 {issue_id: 判重记录}。
+
+    机械门：schema 对得上 · 与 issue 表**一一对应**（不多不少）· `overlap_kind` 在四个桶内 ·
+    `ledger` / `candidate` / `suspect` 必须给 `overlap_target` 且该 id **真的存在**
+    （台账 99 条 / 候选 141 个键里查得到）· `none` 不许给 target · `basis` 非空。
+
+    ⚠️ 「target 真的存在」这条门不是形式主义：判重结论是「并入那一条」，⛔ target 打错一个字
+    就会让并入的证据渲染不出来，⛔ 而工作单照样生成、看不出少了什么。
+    """
+    import candidate_mapping as CM
+    import ledger_mapping as LM
+    if OVERLAP_FILE in _OVERLAP_CACHE:
+        return _OVERLAP_CACHE[OVERLAP_FILE]
+    if not os.path.exists(OVERLAP_FILE):
+        raise FindingsError("缺 inspect_overlap.json —— 没有它就不知道哪些该并入、哪些该新建")
+    with open(OVERLAP_FILE, encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if payload.get("schema") != OVERLAP_SCHEMA:
+        raise FindingsError(f"inspect_overlap.json 的 schema 不对：{payload.get('schema')}")
+    rows = payload.get("decisions") or []
+    issues = {r["issue_id"] for r in load_issues()["issues"]}
+    ledger_ids = set(LM.load())
+    cand_keys = set(CM.load())
+    out = {}
+    for rec in rows:
+        iid = rec.get("issue_id")
+        if iid not in issues:
+            raise FindingsError(f"判重表里的 `{iid}` 不在 issue 表里")
+        if iid in out:
+            raise FindingsError(f"{iid} 在判重表里出现了两次")
+        kind = rec.get("overlap_kind")
+        if kind not in OVERLAP_KINDS:
+            raise FindingsError(f"{iid} 的 `overlap_kind = {kind}` 不在 {OVERLAP_KINDS} 内")
+        target = rec.get("overlap_target")
+        if kind == "none":
+            if target:
+                raise FindingsError(f"{iid} 判了 `none` 却给了 target `{target}`")
+        else:
+            if not target:
+                raise FindingsError(f"{iid} 判了 `{kind}` 却没给 `overlap_target`")
+            known = ledger_ids if kind == "ledger" else cand_keys
+            if kind == "suspect":
+                known = ledger_ids | cand_keys
+            if target not in known:
+                raise FindingsError(
+                    f"{iid} 的 target `{target}` 在{'台账' if kind == 'ledger' else '既有条目'}"
+                    "里查不到 —— 打错一个字就会让并入的证据静默渲染不出来")
+        if not (rec.get("basis") or "").strip():
+            raise FindingsError(f"{iid} 没写判重依据 —— 给不出双方原文的对应处就是在猜")
+        out[iid] = rec
+    missing = sorted(issues - set(out))
+    if missing:
+        raise FindingsError(f"{len(missing)} 条 issue 没有判重结论：{missing[:5]}…")
+    _OVERLAP_CACHE[OVERLAP_FILE] = out
+    return out
+
+
+_RULINGS_CACHE = {}
+
+
+def load_rulings():
+    """读并校验终局裁定表，返回 {issue_id: [裁定…]}。
+
+    机械门：schema 对得上 · `issue_id` 在 issue 表里 · 五轴合法 · `final_coord` 与五轴一致 ·
+    `final_evidence` / `ruling_basis` 非空 · **裁定的五轴与该 issue 的五轴逐轴相等**。
+
+    ⚠️ 最后一条是把两份文件钉在一起：`inspect_issues.json` 里凡 `coord_source = ruling` 的，
+    ⛔ 座标就必须是这里定的那一格，⛔ 不许两份文件各说一套。
+    """
+    if RULINGS_FILE in _RULINGS_CACHE:
+        return _RULINGS_CACHE[RULINGS_FILE]
+    if not os.path.exists(RULINGS_FILE):
+        raise FindingsError("缺 inspect_rulings.json —— 43 条座标改判的依据在它里面")
+    with open(RULINGS_FILE, encoding="utf-8") as fh:
+        payload = json.load(fh)
+    if payload.get("schema") != RULINGS_SCHEMA:
+        raise FindingsError(f"inspect_rulings.json 的 schema 不对：{payload.get('schema')}")
+    by_id = {r["issue_id"]: r for r in load_issues()["issues"]}
+    out = defaultdict(list)
+    for rec in payload.get("rulings") or []:
+        iid = rec.get("issue_id")
+        if iid not in by_id:
+            raise FindingsError(f"裁定表里的 `{iid}` 不在 issue 表里")
+        _check_axes({**rec, "coord": rec.get("final_coord")}, f"{iid} 的裁定")
+        for field in ("final_evidence", "ruling_basis"):
+            if not (rec.get(field) or "").strip():
+                raise FindingsError(f"{iid} 的裁定没写 `{field}`")
+        issue = by_id[iid]
+        for axis in AXES:
+            if (rec.get(axis) or None) != (issue.get(axis) or None):
+                raise FindingsError(
+                    f"{iid} 的裁定给的 `{axis} = {rec.get(axis)}` 与 issue 表里的 "
+                    f"{issue.get(axis)} 不一致 —— 两份文件不许各说一套")
+        out[iid].append(rec)
+    _RULINGS_CACHE[RULINGS_FILE] = dict(out)
+    return _RULINGS_CACHE[RULINGS_FILE]
 
 
 def has_judged_issues():
-    """判定者产出的归一化结果在不在。⛔ 不在就**什么都不渲染**。
+    """判定者产出的三份文件在不在。⛔ 不在就**什么都不渲染**。
 
     ⛔ 不许退化成「那就按脚本分组先渲染着」—— 那正是被撤掉的那版做的事。
     ⚠️ 也不许退化成「那就把 454 条原样摆出来」：`0007` 会出现 34 个填写块，
     判读者要对同一件事按 14 次。
     """
-    return os.path.exists(ISSUES_FILE)
+    return all(os.path.exists(f) for f in (ISSUES_FILE, OVERLAP_FILE, RULINGS_FILE))
 
 
-def judged_issues(pair, verdict="intrinsic"):
-    """读判定者产出的归一化 issue。⛔ 文件不在就返回空表，⛔ 不自己算。"""
+def _member(rec):
+    index = {(r["pair"], r["diag_index"]): r for r in all_findings()}
+    return [index[(rec["pair"], d)] for d in rec["diag_indices"]]
+
+
+def issues_of(pair, verdict=None, new_block_only=False, merged_only=False):
+    """取某个 pair 的归一化 issue，按 id 排序，每条附 `members` / `overlap` / `rulings`。
+
+    - `verdict`：`intrinsic` / `uncertain`，不给就两族都要。
+    - `new_block_only`：只要**新建填写块**的那些（判重结论 `suspect` / `none`）。
+    - `merged_only`：只要**并入既有条目**的那些（`ledger` / `candidate`）。
+    """
     if not has_judged_issues():
         return []
-    with open(ISSUES_FILE, encoding="utf-8") as fh:
-        rows = json.load(fh).get("issues") or []
-    index = {(r["pair"], r["diag_index"]): r for r in all_findings()}
+    overlap = load_overlap()
+    rulings = load_rulings()
     out = []
-    for row in rows:
-        if row.get("pair") != pair or row.get("verdict") != verdict:
+    for rec in load_issues()["issues"]:
+        if rec["pair"] != pair:
             continue
-        members = [index[(pair, i)] for i in row["diag_index"]]
-        out.append(dict(row, members=members))
+        if verdict is not None and rec["verdict_class"] != verdict:
+            continue
+        kind = overlap[rec["issue_id"]]["overlap_kind"]
+        if new_block_only and kind not in NEW_BLOCK_KINDS:
+            continue
+        if merged_only and kind in NEW_BLOCK_KINDS:
+            continue
+        out.append(dict(rec, members=_member(rec),
+                        overlap=overlap[rec["issue_id"]],
+                        rulings=rulings.get(rec["issue_id"]) or []))
+    out.sort(key=lambda r: r["issue_id"])
     return out
+
+
+def merged_into(target):
+    """取判重结论为「并入 `target`」的 issue（`target` 是台账 id 或候选键）。
+
+    ⛔ 只认 `ledger` / `candidate` 两个桶 —— `suspect` 那 24 条**新建自己的块**，
+    ⚠️ 它们只是在块里点名「疑似与某条重合，请判读者确认」，⛔ 不并进被点名那条里。
+    """
+    if not has_judged_issues():
+        return []
+    overlap = load_overlap()
+    out = []
+    for rec in load_issues()["issues"]:
+        d = overlap[rec["issue_id"]]
+        if d["overlap_kind"] in NEW_BLOCK_KINDS or d.get("overlap_target") != target:
+            continue
+        out.append(dict(rec, members=_member(rec), overlap=d,
+                        rulings=load_rulings().get(rec["issue_id"]) or []))
+    out.sort(key=lambda r: r["issue_id"])
+    return out
+
+
+def compression(pair):
+    """该 pair 的归一化压缩比：`(原始待呈现诊断数, issue 数)`。
+
+    ⚠️ 判读者必须知道他看到的一条 issue 背后有几条诊断 —— `0007` 是 35 → 7。
+    ⛔ 分子只数**待呈现**的那些（intrinsic + uncertain）加上本轮恢复的，
+    ⛔ 不含 `projection_artifact` 与仍然维持 refuted 的那些。
+    """
+    rows = issues_of(pair)
+    return sum(len(r["diag_indices"]) for r in rows), len(rows)
+
+
+def verdict_class_of(issue_id):
+    """某条 issue 的分拣族。⛔ 找不到就抛 —— 静默返回 None 会让两个物种混在一起统计。"""
+    for rec in load_issues()["issues"]:
+        if rec["issue_id"] == issue_id:
+            return rec["verdict_class"]
+    raise FindingsError(f"`{issue_id}` 不在 issue 表里")
 
 
 # ---------------------------------------------------------------- 统计

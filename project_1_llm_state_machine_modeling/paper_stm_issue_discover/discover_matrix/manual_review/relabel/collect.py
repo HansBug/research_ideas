@@ -32,6 +32,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import fillblocks as fb                            # noqa: E402
+import inspectfindings as IF                        # noqa: E402
 import newfields as NF                             # noqa: E402
 import sources as S                                # noqa: E402
 
@@ -217,6 +218,24 @@ def _locus_counts(result):
     return dict(sorted(c.items()))
 
 
+def _candidate_source(key):
+    """候选填写块 key → 它的来源。⛔ inspect 一族要连**物种**一起报。
+
+    ⚠️ 三份 audit json 不在树上时退回 `inspect_finding` —— ⛔ 不许抛：`collect.py` 的职责是
+    回收人填的内容，⛔ 判定文件缺失不该让整轮回收失败（照 CLAUDE.md §10 降级而不是崩）。
+    """
+    for prefix, name in (("VU-", "valid_unrecorded"), ("DIFF-", "review_diff"),
+                         ("UM-", "unmatched_issue")):
+        if key.startswith(prefix):
+            return name
+    if key.startswith("INS-"):
+        try:
+            return "inspect_finding_" + IF.verdict_class_of(key)
+        except Exception:
+            return "inspect_finding"
+    return "unknown"
+
+
 def collect_pair(pair, path):
     with open(path, "r", encoding="utf-8") as fh:
         text = fh.read()
@@ -254,14 +273,12 @@ def collect_pair(pair, path):
         elif kind == "candidate":
             out["candidates"].append({
                 "key": key,
-                # ⚠️ `INSU-` 必须排在 `INS-` **前面**判：前缀是后者的扩展，
-                # 顺序反了会把整个「不确定」折叠区错记成确认内生那一族。
-                "source": ("valid_unrecorded" if key.startswith("VU-")
-                           else "review_diff" if key.startswith("DIFF-")
-                           else "unmatched_issue" if key.startswith("UM-")
-                           else "inspect_uncertain" if key.startswith("INSU-")
-                           else "inspect_finding" if key.startswith("INS-")
-                           else "unknown"),
+                # ⚠️ inspect 一族的两个物种（确认内生 / 分拣未定）**必须在回收时分得开** ——
+                # ⛔ 混在一起统计会把「工具确定看到的」与「可能是投影造出来的」算成同一种证据。
+                # ⭐ 分法由 [inspect_issues.json](./inspect_issues.json) 的 `verdict_class` 给，
+                # ⛔ 不再靠 `INSU-` 这种前缀约定：填写块的 key 与 issue id 必须是同一个字符串，
+                # ⚠️ 两套命名会让「工作单里那一条对应 audit json 里哪一条」需要转换才能对上。
+                "source": _candidate_source(key),
                 **parse_fields(body, known=fb.name_variants(fb.CANDIDATE_FIELDS),
                                choice_fields=fb.name_variants(fb.CANDIDATE_CHOICES)),
             })

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import collections
 import contextlib
+import json as _json
 import copy
 import hashlib
 import os
@@ -36,6 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import candidate_mapping as CM  # noqa: E402
+import generate as G          # noqa: E402
 import inspectfindings as IF  # noqa: E402
 import collect as C            # noqa: E402
 import fillblocks as fb        # noqa: E402
@@ -1926,6 +1928,15 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
     两个 code 整类排除的理由，共 19 行）。⛔ 这些必须逐份印：判读者不知道 §3.6 是确定性检查、
     不知道 194 条已经归并成 97 条，就会拿它跟台账 99 条直接比 —— 那是错的。
     档取 200 留约 20% 余量。
+
+    ⚠️ 同日 inspect 真正入册后由 200 提到 **250**，实测 **224**（最差那份）。⭐ 这里要说清
+    增长的机制，否则下次会被误读成「又抄回来了」：**本条数的是行的出现次数、不是不同行数** ——
+    逐字比对 HEAD 与本轮，新增的**不同**共用行只有 **9** 行（§3.6 的标题、物种抬头、
+    投影抬头、整类排除说明、`W_DEADLOCK_LEAF` 假阳性说明、以及每条 issue 的骨架行
+    「**归一化后的事实陈述**」与底层诊断表头）。⛔ 剩下的增量全部来自**同一批骨架行按对象重复**：
+    一份工作单里新建几个 `INS-` 块，这几行就出现几次。⭐ 它随对象数增长，不随说明文字增长，
+    故档取 250（约 12% 余量）而**不是**把说明搬走 —— 那五条限定（确定性 vs LLM、压缩比、
+    假阳性、整类排除、不确定族也要给）必须出现在判读者动笔的那一页上。
     """
     docs = {p: _read(_ws(p)).splitlines() for p in S.IN_SCOPE_PAIRS}
     seen = collections.Counter()
@@ -1947,7 +1958,7 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
             if seen[ln] == len(docs):
                 n += 1
         worst = max(worst, n)
-    assert worst <= 200, (
+    assert worst <= 250, (
         f"某份工作单里有 {worst} 行在 54 份中逐字重复且不在 FILL 块内 —— "
         f"说明性文字被抄回了工作单，请搬回 {S.WORKSHEET_HOWTO}")
 
@@ -2061,28 +2072,59 @@ def test_worksheets_stay_under_the_line_budget():
     | 早期 | 620 | 596 | 自包含：NL 原文译文 + 五个勾选字段全部取值 + 19 谓词搬进来 |
     | 2026-08-13 | 605 | 588 | 三处清理（删前言 / 删结构摘要 / 加「怎么填」），档跟着收 |
     | 2026-08-13 | 650 | 616 | 换成条件式座标系：+27 行五个轴取值、+13 行 Dwyer 句式骨架 |
-    | 本轮 | **650**（不动） | **606** | 剥旧元数据（−）与渲染座标映射（+）**大致相抵** |
+    | 2026-08-13 | 650 → 800 | 606 | 剥旧元数据（−）与渲染座标映射（+）**大致相抵** |
+    | 2026-08-13 | **850 / 最长 1400** | **776 / 最长 1258** | `pyfcstm inspect` 入册：§3.6 逐条印 issue |
 
-    本轮档位**保持 650 不动**，因为两个方向的量级相当、净效果是中位小幅下降：
+    ⚠️ **本轮之前 docstring 与断言已经不一致**（表格写 650、代码断言 800）—— 这里一并更正：
+    档就是代码里的那两个数，表格跟着写。
 
-    - **−**：§2 每条台账记录剥掉十项字段行（约 −12 行/条，含表头）与整节断言组
-      （约 −3 至 −7 行/条），每份再删两张图例（断言角色 + 谓词三族，共约 −14 行/份）。
-    - **+**：§2 每条记录、§3 每个候选各加一块座标映射（映射成功约 +12 行，
-      映射不上约 +8 行），全语料 240 块。
+    本轮上调的理由是**材料真的多了一批**，不是文字松了：360 条 inspect 诊断归一化成 189 条
+    issue，其中 128 条在工作单里各占一个块（事实陈述 + 逐字证据 + 归并理由 + 五轴映射 +
+    底层诊断折叠区 + 裁决区，约 20–30 行），另 61 条作为补充证据挂在 §2 / §3 的对应条目下。
+    ⭐ 中位 606 → **776**，最长 `0029` 1258 行。
 
-    中位 616 → 606。⚠️ 档**不跟着下调**：净增量由「该 pair 的候选数减台账条目数」主导，
-    逐份有正有负（实测 −34 至 +45），⛔ 把档收到贴着中位会让候选密集的那几份
-    （如 `0029` 938 行）频繁擦线，⛔ 而它们长是因为**材料本来就多**，不是文字松。
-    上界防「说明性文字借着改版长回来」，⭐ 650 对 606 留约 7% 余量。
+    ⚠️ 档为什么取 850 而不是贴着 776：⛔ 行数**逐份差异极大**（503 到 1258），因为每个 pair
+    新建的块数从 0 到 9 不等；把档收到贴着中位会让块多的那几份频繁擦线，⛔ 而它们长是因为
+    **材料本来就多**，不是说明性文字长回来了。⭐ 850 对 776 留约 10% 余量，1400 对 1258 留约 11%。
+    ⛔ 上界仍然在守原来那件事：说明性文字不许借着改版长回工作单 —— 那一条另有更准的判据
+    （`test_the_field_guide_is_not_copied_back_into_the_worksheets` 数逐字重复行）。
     反面的下界同样要守：不许瘦到把材料抽走了。
     """
     counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
     median = counts[len(counts) // 2]
-    assert median <= 800, f"工作单行数中位数 {median} 超预算 —— 说明性文字长回来了"
+    assert median <= 850, f"工作单行数中位数 {median} 超预算 —— 说明性文字长回来了"
     assert counts[-1] <= 1400, f"最长的一份 {counts[-1]} 行超预算"
     # 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
     assert counts[0] >= 300, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
 
+
+def _data_borne_marks(pair, doc, marks):
+    """`doc` 里由**数据**逐字带进来的记号数。⛔ 判据是逐字子串命中，⛔ 不做估算。
+
+    ⚠️ 只数那些**确实以逐字形态出现在文件里**的字段值：`generate._flow()` 只压空白、不转义，
+    所以 audit json 里的字段值在工作单里是一个连续子串。⛔ 命中不了就不算数据侧的额度 ——
+    这条不对称是刻意的：算错方向只会让生成器侧的档变严，⛔ 不会让它变松。
+    """
+    import generate as G
+    total = 0
+    seen = set()
+    rows = list(IF.issues_of(pair))
+    for rid in [r["id"] for r in S.ledger_records(pair)] + \
+               [k for k, v in CM.candidate_index().items() if v["pair"] == pair]:
+        rows += IF.merged_into(rid)
+    for rec in rows:
+        chunks = [rec.get(f) for f in ("statement", "merge_reason", "puml_evidence",
+                                       "nl_evidence", NF.OTHER_NOTE_FIELD, "recovery_basis")]
+        chunks.append((rec.get("overlap") or {}).get("basis"))
+        for r in rec.get("rulings") or []:
+            chunks += [r.get("ruling_basis"), r.get("final_evidence")]
+        for chunk in chunks:
+            s = G._flow(chunk) if chunk else ""
+            if not s or s in seen or s not in doc:
+                continue
+            seen.add(s)
+            total += sum(s.count(m) for m in marks)
+    return total
 
 def test_the_worksheets_are_not_wallpapered_with_emoji():
     """emoji 密度的机械档 —— 判据是**对比度**：靠稀疏出现才有用。
@@ -2106,15 +2148,35 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
     ⚠️ 正因为数据里带着这些记号，「生成器正文有没有清干净」不能靠全文计数判。
     所以另加一条更准的判据：**在全部 54 份里逐字相同的那些行就是生成器正文**，
     它们里面 `⭐` 与 `⛔` 必须为 **0**。这一条不受数据干扰。
+
+    ⚠️⚠️ **2026-08-13 口径细化，双份数字都记在这里，⛔ 不是放宽。** `pyfcstm inspect` 入册后，
+    §3.6 逐字引用了判定者写的 `statement` / `merge_reason` / `puml_evidence` /
+    `recovery_basis` / 判重依据 / 终局裁定依据，⭐ 而那些文字里本来就带着记号。全文计数因此
+    由「每份 12–18、中位 13」变成「每份 16–45、中位 27」，`⭐` 最多的一份 6 个。
+
+    ⛔ 若只把档从 30 提到 50，这条测试就再也管不住**生成器自己**了 —— 它可以借数据的额度
+    重新贴满壁纸。所以判据改成**按来源拆开数**：
+
+    - **生成器侧** = 全文计数减去「逐字来自三份 audit json 与既有条目数据」的那些记号。
+      档**仍是每份 ≤ 30、`⭐` ≤ 4**，一格没放宽；实测每份 **15–24、中位 18**。
+      ⚠️ 这一侧确实也涨了（入册前 12–18），涨的是 §3.6 那五条**必须逐份印**的限定：
+      物种抬头、「确定性不等于正确」、两个 code 整类排除、`W_DEADLOCK_LEAF` 假阳性、
+      「不确定那一族也要给」，外加 `suspect` 那 24 条的点名提示与恢复条目的来源标注。
+      ⛔ 它们不是装饰：每一条都对应一种会让判读者判错的具体误读。
+    - **数据侧**另设一个防跑飞的总档（每份 ≤ 60、密度 ≤ 0.05）。⛔ 它不许用来给生成器兜底：
+      改数据里的记号等于改判定者写下的判断文本，⚠️ 那是**证据**，不是排版。
     """
     marks = ("⭐", "⛔", "⚠️")
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
         n = sum(doc.count(m) for m in marks)
         lines = len(doc.splitlines())
-        assert n <= 30, f"{pair}.md 有 {n} 个 emoji —— 又成壁纸了"
+        own = n - _data_borne_marks(pair, doc, marks)
+        assert own <= 30, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
+        assert n <= 60, f"{pair}.md 全文有 {n} 个 emoji —— 连数据侧一起跑飞了"
         assert n / lines <= 0.05, f"{pair}.md 的 emoji 密度 {n / lines:.3f} 超档"
-        assert doc.count("⭐") <= 4, f"{pair}.md 有 {doc.count('⭐')} 个 ⭐"
+        own_star = doc.count("⭐") - _data_borne_marks(pair, doc, ("⭐",))
+        assert own_star <= 4, f"{pair}.md 生成器侧有 {own_star} 个 ⭐"
 
     # 生成器正文 = 在全部 54 份里逐字相同的行。这里一个 ⭐ / ⛔ 都不许有。
     docs = {p: _read(_ws(p)).splitlines() for p in S.IN_SCOPE_PAIRS}
@@ -2366,8 +2428,8 @@ def test_the_mapping_is_always_marked_as_our_own_inference():
         # 而它本该守的是「每个对象都带上了推断声明」，`INS-` 恰恰也需要它。
         # ⚠️ 只数**新建**的 `INS-` 块：与既有条目重合的那些没有自己的映射块，
         # 它们以补充证据的形式印在那条既有条目里（那里已经有台账 / 候选自己的映射抬头）。
-        # ⚠️ inspect 一族本轮未入册（归并与去重待判定者产出），故不计入。
-        n_ins = 0
+        # ⚠️ 2026-08-13 inspect 已入册（三份 audit json），故这里由 0 改成真实块数。
+        n_ins = len(IF.issues_of(pair, new_block_only=True))
         n_map = doc.count("**我方到新座标系的映射（推断，供参考）**")
         assert n_map == n_ledger + n_cand + n_ins, \
             f"{pair}.md 有 {n_ledger + n_cand + n_ins} 个对象却只有 {n_map} 块映射"
@@ -3014,6 +3076,13 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
     ⚠️ 那个职责移交给 `test_every_rendered_mapping_matches_the_mapping_file` ——
     ⭐ 它逐块比对映射文件与渲染结果，比行数区间准得多：
     ⛔ 行数落在区间内也可能是某份根本没渲染映射、却因为别处多了几行而蒙混过关。
+
+    ⚠️ 2026-08-13 `pyfcstm inspect` 入册后区间改成 **[+40, +430]**，实测 **[+71, +387]**、
+    中位 **+162**。⭐ 增量为什么这么大、又为什么必须按 pair 差这么多：§3.6 给**每一条**新建的
+    `INS-` issue 印一个块（事实陈述 + 逐字证据 + 归并理由 + 五轴映射 + 底层诊断折叠区 +
+    裁决区，约 20–30 行），而每个 pair 新建的块数从 0 到 9 不等；并入既有条目的那些还要在
+    §2 / §3 对应条目下多一段补充证据。⛔ 所以下界不再是负数 —— 本轮**没有**任何删减动作，
+    54 份全部只增不减，`+40` 是「至少每份都真的印了 §3.6 的导语与两个小节」的下限哨兵。
     """
     probe = subprocess.run(["git", "-C", HERE, "cat-file", "-e",
                             f"{CLEANUP_BASELINE}^{{commit}}"], capture_output=True)
@@ -3028,9 +3097,9 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
             pytest.skip(f"{rel} 不在基线 commit 里")
         a = len(old.stdout.splitlines())
         b = len(_read(_ws(pair)).splitlines())
-        if not (-60 <= b - a <= 70):
+        if not (40 <= b - a <= 430):
             bad.append(f"{pair}: {a} → {b}（{b - a:+d}）")
-    assert not bad, "这些工作单的增量不在 [−60, +70] 区间：" + "、".join(bad)
+    assert not bad, "这些工作单的增量不在 [+40, +430] 区间：" + "、".join(bad)
 
 
 # ---------------------------------------------------------------- ③b 逐条钉住 parser 行为
@@ -3240,38 +3309,441 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     proc = subprocess.run([sys.executable, os.path.join(HERE, "collect.py"), "--stdout"],
                           check=True, capture_output=True, text=True, cwd=HERE)
     tot = _json.loads(proc.stdout)["totals"]
-    # ⚠️ `candidates_seen` 仍是 **141**：`pyfcstm inspect` 的 336 条诊断本轮**没有入册**。
-    # ⛔ 归并与去重是判断、不是脚本能算的（见 `inspectfindings.py`），等判定者产出
-    # `inspect_issues.json` 之后再渲染，届时这个数字要跟着改并写出等式。
+    # ⚠️ 2026-08-13 `pyfcstm inspect` 入册，`candidates_seen` 由 **141** 变 **269**。
+    # ⭐ 等式（每一项都可机械复算，见下面的断言）：
+    #     269 = 141（VU 15 + DIFF 77 + UM 49，未动）
+    #         + 126（184 条归一化 issue 里判重结论为 `suspect` 24 + `none` 102 的那些）
+    #         +   2（5 条恢复的 refuted 里判重结论为 `none` 的那两条 —— 另外 3 条并入了
+    #               既有台账 / 候选，⛔ 并入的一律不新建块，故不进这个数）
+    # ⛔ 三个不变的数字必须原样：`ledger_records_seen` 尤其 —— 台账是**被审计对象**，
+    # ⚠️ inspect 的发现在判读者裁决之前只能是候选，⛔ 一条都不许并进台账。
     assert (tot["pairs"], tot["ledger_records_seen"],
-            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 141, 955), tot
-    assert not IF.has_judged_issues(), "判定者的归一化结果已就位，这条断言要跟着更新"
+            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 269, 955), tot
+    assert IF.has_judged_issues(), "三份 audit json 必须在树上，否则 §3.6 什么都不渲染"
+    ov = IF.load_overlap()
+    new_blocks = [i for i in IF.load_issues()["issues"]
+                  if ov[i["issue_id"]]["overlap_kind"] in IF.NEW_BLOCK_KINDS]
+    recovered_new = [i for i in new_blocks if i["recovered_from_refuted"]]
+    assert len(new_blocks) == 128 and len(recovered_new) == 2, \
+        (len(new_blocks), len(recovered_new))
+    assert 141 + len(new_blocks) == tot["candidates_seen"]
 
 
-# ==================================================================== inspect 一族：不归我管
+# ==================================================================== inspect 一族
 
-def test_no_inspect_content_leaked_into_the_worksheets():
-    """⛔ `pyfcstm inspect` 那一族**不由本轮入册** —— 工作单里不许有它的任何痕迹。
+def test_the_inspect_data_is_complete_and_every_code_has_a_coordinate():
+    """⛔ 454 条诊断齐全、11 个 code 每个都有座标、两个整类排除的内生率确实是 0。
 
-    ⚠️ 入册要先做两步**判断**（按根因归并、与既有条目去重），⛔ 而那两步不许用脚本算：
-    判「这 13 条 `W_UNREACHABLE_STATE` 是不是同一条错入边导致的」要理解**因果**，
-    判「这条与 `EIS-0007-02` 是不是同一个问题」要比较两段描述的**语义**。
-    ⛔ 做成模式匹配就是 CLAUDE.md §11 划死的那条边界，本仓库为此栽过一次
-    （`named_elements` 的 validator 把「句子点名了几个要素」实现成「字符串里有没有逗号」，
-    190 行被拒且绝大多数是误伤，对某个 pair 系统性致命）。
+    ⚠️ 「每个 code 都有座标」不是形式主义：`axes_for()` 对没映射的 code **抛**而不是留空格，
+    ⛔ 因为静默落空格等于整类诊断在座标统计里消失。
+    """
+    st = IF.stats()
+    assert st["diagnostics"] == 454, st
+    assert st["by_verdict"] == {"intrinsic": 194, "uncertain": 142,
+                                "projection_artifact": 84, "refuted": 34}, st["by_verdict"]
+    assert st["pairs_with_findings"] == 54
+    for rec in IF.all_findings():
+        axes = IF.axes_for(rec)          # ⛔ 缺映射会抛
+        assert axes["defect_locus"] in NF.DEFECT_LOCI
+        assert axes["why"], f"{rec['code']} 的座标没写理由"
+        if "other" in (axes.get("defect_logic_kind"), axes.get("defect_reference")):
+            assert axes["other_note"], f"{rec['code']} 取了 other 却没写说明"
+    # ⭐ 两个整类排除的判据是**内生率为 0**，⛔ 不是「嫌它多」。这里逐条复算。
+    for code, total in (("I_NONTRIVIAL_SCC", 54), ("I_TOPOLOGICAL_NON_TERMINATING", 52)):
+        rows = [r for r in IF.all_findings() if r["code"] == code]
+        assert sum(1 for r in rows if r["verdict"] == "intrinsic") == 0, code
+        assert len(rows) >= total - 9, (code, len(rows))
+    assert set(IF.EXCLUDED_CLASSES) == {"I_NONTRIVIAL_SCC", "I_TOPOLOGICAL_NON_TERMINATING"}
 
-    ⭐ 本条钉住**边界**：数据文件（`inspect_findings.json`）留在树上供另一条 workflow 读，
-    ⛔ 但工作单里一个 `INS-` 块、一条 `INSD-` 都不许有 —— 那是那条 workflow 的产出。
-    ⚠️ 本轮一度把**脚本算出来**的归并结果渲染进过 54 份，已全部撤掉，本条防它回来。
+
+def test_the_deadlock_leaf_false_positive_is_spelled_out_in_every_worksheet():
+    """⛔⛔ `W_DEADLOCK_LEAF` 的**系统性假阳性**必须逐份写明 —— 单独一条钉死。
+
+    ⚠️ 它不是「工具偶尔不准」这种泛泛提醒，而是一条**可定位的实现缺陷**：
+    pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身的出边、**完全不查外层**，
+    ⛔ 于是「嵌在复合态里、而外层复合态有成组迁移」的叶态一律被误报成终止态。
+    ⭐ 判读者不知道这一点就没法正确裁决这一族 —— 他会照着「它没有出边」直接判成缺陷。
+
+    ⭐ 为什么要求**每份都印**而不只在命中该 code 的 pair 上印：判读者在 §4 自己数出边时
+    踩的是同一个坑，⛔ 而 §4 遍布 54 份。
+    """
+    for probe in ("analyzers/structural.py:75-93", "完全不做外层检查", "假阳性", "顶层态"):
+        assert probe in IF.DEADLOCK_LEAF_CAVEAT, f"常量里少了逐字探针：{probe}"
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert IF.DEADLOCK_LEAF_CAVEAT in doc, f"{pair}.md 没印 W_DEADLOCK_LEAF 的假阳性说明"
+    # ⭐ 命中该 code 的那些 issue 处还要**就地**再印一次 —— 导语在几百行之外，
+    # ⛔ 只靠导语，判读者读到具体那一条时早忘了。
+    hit = [(p, r) for p in S.IN_SCOPE_PAIRS for r in IF.issues_of(p)
+           if any(m["code"] == "W_DEADLOCK_LEAF" for m in r["members"])]
+    assert len(hit) >= 20, len(hit)
+    for pair, rec in hit:
+        doc = _read(_ws(pair))
+        i = doc.index(G._flow(rec["statement"]))
+        assert "`W_DEADLOCK_LEAF` 的已知假阳性" in doc[i:i + 6000], \
+            f"{rec['issue_id']} 就地没印假阳性说明"
+
+
+def test_the_excluded_inspect_classes_are_explained_not_silently_dropped():
+    """⛔ 两个整类排除的 code 必须**写明理由**，⚠️ 且落在 `uncertain` 的那些仍要摆出来。
+
+    ⛔ 不写理由的后果很具体：判读者会以为这两类被漏掉了，或者反过来以为
+    「这些模型没有非平凡 SCC」—— 两种误读都错。
     """
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
-        assert not [k for k in fb.extract(doc) if k.startswith("INS")], \
-            f"{pair}.md 出现了 `INS-` 填写块 —— inspect 入册不归本轮"
-        assert "INSD-" not in doc, f"{pair}.md 摆出了未归并的 inspect 诊断"
-        # ⚠️ 探针必须钉小标题本身：映射 note 里会引类型学的「§3.6」（那是 Dwyer 那一节），
-        # ⛔ 用宽探针会在一批工作单上误报。
-        assert "### §3.6" not in doc, f"{pair}.md 还留着 §3.6 的骨架"
+        assert "`I_NONTRIVIAL_SCC`（内生率 **0/54**）" in doc, pair
+        assert "`I_TOPOLOGICAL_NON_TERMINATING`（内生率 **0/52**）" in doc, pair
+        assert "不是「从材料里删掉」" in doc, pair
+    # ⭐ 「仍要摆出来」是可机械核的：这两个 code 的 uncertain 诊断必须都有归属，
+    # ⛔ 且它们的 issue 必须真的渲染进了工作单。
+    shown = 0
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for rec in IF.issues_of(pair):
+            if not any(m["code"] in IF.EXCLUDED_CLASSES for m in rec["members"]):
+                continue
+            shown += 1
+            assert G._flow(rec["statement"]) in doc, f"{rec['issue_id']} 被整类排除连带丢掉了"
+    assert shown >= 54, shown
+
+
+def test_the_ingested_inspect_issues_reconcile_with_the_diagnostics():
+    """⛔⛔ **覆盖对拍**：336 条待呈现诊断 + 24 条恢复的 refuted，逐条恰好归属一次。
+
+    ⚠️ 这是本轮最要紧的一条机械门。归一化把 360 条压成 189 条，⛔ 而压缩过程里
+    「漏掉一条」与「同一条算两次」都是**静默**的：工作单照常生成，看不出少了什么。
+    """
+    payload = IF.load_issues()
+    rows = payload["issues"]
+    owner = {}
+    for rec in rows:
+        for d in rec["diag_indices"]:
+            key = (rec["pair"], d)
+            assert key not in owner, f"诊断 {key} 被 {owner.get(key)} 与 {rec['issue_id']} 重复认领"
+            owner[key] = rec["issue_id"]
+    shown = {(r["pair"], r["diag_index"]) for r in IF.all_findings()
+             if r["verdict"] in IF.SHOWN_VERDICTS}
+    recovered = {(r["pair"], r["diag_index"]) for r in IF.all_findings()
+                 if r["verdict"] == "refuted"} & set(owner)
+    assert shown <= set(owner), sorted(shown - set(owner))[:5]
+    assert set(owner) == shown | recovered
+    assert len(shown) == 336 and len(recovered) == 24, (len(shown), len(recovered))
+    assert len(rows) == 189 and payload["totals"]["diagnostics_covered"] == 360
+    # ⭐ 仍然维持 refuted 的那 10 条必须**逐条列名**并给出理由 —— ⛔ 「其余维持原判」不算交代。
+    kept = payload["kept_refuted"]
+    assert len(kept["diagnostics"]) == 10, kept["diagnostics"]
+    assert {tuple(x) for x in kept["diagnostics"]} & set(owner) == set(), "维持 refuted 的又被认领了"
+    assert len(kept["reason"]) > 200
+    # ⭐ 压缩比必须摆给判读者看，⛔ 且 `0007` 那一份要单列（35 → 7 是全语料最狠的）。
+    assert IF.compression("0007") == (35, 7), IF.compression("0007")
+    for pair in S.IN_SCOPE_PAIRS:
+        diags, issues = IF.compression(pair)
+        doc = _read(_ws(pair))
+        assert f"**本 pair：{diags} 条原始诊断归一化成 {issues} 条 issue**" in doc, pair
+        assert "压缩最狠的是 `0007`，35 → 7" in doc, pair
+
+
+def test_every_ins_block_matches_the_audit_json():
+    """⛔⛔ **渲染结果与三份 audit json 逐条对拍** —— 两边不许有一条只在单侧存在。
+
+    ⚠️ 这条门守的是「工作单里那一条到底是谁判的」：⭐ 三份 json 是「184 + 5 条判定怎么来的」
+    的唯一载体，⛔ 若渲染结果能与它们不一致，事后就无法复核。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        want = IF.issues_of(pair, new_block_only=True)
+        got = [k for k in fb.extract(doc) if k.startswith("INS-")]
+        assert sorted(got) == sorted(r["issue_id"] for r in want), \
+            f"{pair}.md 的 INS- 块与 audit json 对不上：{sorted(got)}"
+        for rec in want:
+            assert f"##### {rec['issue_id']} · " in doc, rec["issue_id"]
+            for field in ("statement", "puml_evidence", "merge_reason"):
+                assert G._flow(rec[field]) in doc, f"{rec['issue_id']} 的 {field} 没逐字渲染"
+            if rec.get(NF.OTHER_NOTE_FIELD):
+                assert G._flow(rec[NF.OTHER_NOTE_FIELD]) in doc, rec["issue_id"]
+            for axis in IF.AXES:
+                if not rec.get(axis):
+                    continue
+                row = f"| `{axis}` | {T.bi(rec[axis], NF.ZH[axis].get(rec[axis]))} |"
+                assert row in doc, f"{rec['issue_id']} 的 {axis} 没渲染：{row}"
+            for r in rec["rulings"]:
+                assert G._flow(r["ruling_basis"]) in doc, f"{rec['issue_id']} 的改判依据没渲染"
+            # ⭐ 底层诊断必须可查 —— ⛔ 归一化不许把原始 message 吃掉。
+            for m in rec["members"]:
+                assert G.clip(m["message"], 150) in doc, \
+                    f"{rec['issue_id']} 少了 diag {m['diag_index']} 的原文 message"
+
+
+def test_the_merged_inspect_evidence_never_creates_a_second_block():
+    """⛔⛔ 判为「与既有条目是同一个问题」的 61 条**不许新建块**，⚠️ 也不许改动被并入那条。
+
+    两条理由都很硬：
+    ⛔ ① 判读者对同一个问题只裁决一次 —— 摆两个块会出现两份可能互相矛盾的裁决；
+    ⛔ ② 被并入的既有条目是**被判对象**，它的 `statement` 与证据行改一个字就等于篡改题面。
+    """
+    merged = [i["issue_id"] for i in IF.load_issues()["issues"]
+              if IF.load_overlap()[i["issue_id"]]["overlap_kind"] not in IF.NEW_BLOCK_KINDS]
+    assert len(merged) == 61, len(merged)
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        keys = set(fb.extract(doc))
+        for iid in merged:
+            assert iid not in keys, f"{pair}.md 给已并入的 {iid} 又开了一个块"
+    # ⭐ 被并入那条的 statement 必须与台账 / 候选原文**逐字**相同（含它自己的证据行）。
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for rec in S.ledger_records(pair):
+            if not IF.merged_into(rec["id"]):
+                continue
+            body = "> " + (rec.get("statement") or "").replace("\n", "\n> ")
+            assert body in doc, f"{rec['id']} 的 statement 被动过了"
+            assert f"- 生成侧：{G.esc(rec.get('generated_side'))}" in doc, \
+                f"{rec['id']} 的生成侧证据行被动过了"
+    # ⭐ 并入的证据必须**真的印出来**，且带「确定性检查」与「未作任何改动」两句抬头。
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        rows = IF.issues_of(pair, merged_only=True)
+        if not rows:
+            continue
+        assert "条 `pyfcstm inspect` 的补充证据" in doc, pair
+        assert "未作任何改动" in doc, pair
+        for rec in rows:
+            assert G._flow(rec["statement"]) in doc, f"{rec['issue_id']} 的补充证据没印出来"
+            assert G._flow(rec["overlap"]["basis"]) in doc, f"{rec['issue_id']} 没印判重依据"
+
+
+def test_the_uncertain_family_is_shown_and_labelled_as_undetermined():
+    """⛔ 142 条「分拣未能确定」的诊断（归一化成 98 条）**不许静默丢掉**，⚠️ 且必须标明它未定。
+
+    ⭐ 为什么这一族最不能丢：它们**集中在那些没有确认内生发现的 pair 上** ——
+    ⛔ 丢掉之后那些 pair 的 §3.6 会变成一片空白，而它们恰恰是最需要人判的。
+    本条把这个集中现象也复算一遍。
+    """
+    rows = [i for i in IF.load_issues()["issues"] if i["verdict_class"] == "uncertain"]
+    assert len(rows) == 98, len(rows)
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        mine = IF.issues_of(pair, verdict="uncertain", new_block_only=True)
+        assert f"#### §3.6b 分拣未能确定是内生还是投影产物的 {len(mine)} 条" in doc, pair
+        for rec in mine:
+            assert G._flow(rec["statement"]) in doc, rec["issue_id"]
+            assert f"分拣结论 `uncertain`" in doc, pair
+    # ⭐ 集中现象：没有任何确认内生 issue 的 pair，必须都有不确定 issue 兜着。
+    bare = [p for p in S.IN_SCOPE_PAIRS if not IF.issues_of(p, verdict="intrinsic")]
+    assert bare, "一个都没有的话这条判据失效了"
+    for p in bare:
+        assert IF.issues_of(p, verdict="uncertain"), \
+            f"{p} 既没有内生发现也没有不确定发现 —— §3.6 会是一片空白"
+
+
+def test_every_other_axis_in_the_inspect_ingest_carries_an_explanation():
+    """⛔ inspect 入册的每一条，凡**该答的**轴取了 `other`，都必须附说明；⭐ 门要两头都灵。
+
+    ⚠️ 口径必须与三处已有的门逐字一致（[validate.py](./validate.py) 给判读者那条、
+    两个 mapping 装载器那两条）：⛔ 只数这一条真要回答的轴，⛔ 另一支填多了的不连带触发。
+    """
+    rows = IF.load_issues()["issues"]
+    n = 0
+    for rec in rows:
+        answered = ["defect_locus", "defect_reference"] + NF.required_axes_for(rec["defect_locus"])
+        picked = [a for a in answered if rec.get(a) == "other"]
+        if picked:
+            n += 1
+            assert len(rec.get(NF.OTHER_NOTE_FIELD) or "") >= 10, rec["issue_id"]
+            assert rec.get("other_note_source"), f"{rec['issue_id']} 没记说明的来源"
+    assert n == 46, n
+    # ⭐ 正面：`other` + 空说明必须被 `load_issues` 的门挡住。
+    sample = copy.deepcopy(rows[0])
+    sample.update({"defect_locus": "global", "defect_element": None, "defect_qualifier": None,
+                   "defect_logic_kind": "other", "defect_reference": "language",
+                   "other_note": "", "coord": "global / other / language"})
+    with pytest.raises(IF.FindingsError, match="出口不写清"):
+        IF._check_axes(sample, "探针")
+    # ⭐ 反面：非 `other` + 空说明放行。
+    sample.update({"defect_logic_kind": "unreachable", "coord": "global / unreachable / language"})
+    IF._check_axes(sample, "探针")
+    # ⭐ 另一支填多了不许连带触发 —— ⚠️ 它报的是「走 global 支却给了 defect_element」，
+    # ⛔ 不是 other_note 那条。
+    sample["defect_element"] = "other"
+    with pytest.raises(IF.FindingsError, match="却给了"):
+        IF._check_axes(sample, "探针")
+
+
+def test_the_coordinate_spelling_is_normalised_to_one_form():
+    """⛔ 座标写法必须归一成 `a / b + c / d`（`+` 与 `/` 两侧各一个空格）。
+
+    ⚠️ 上游三份判定产物里同一格出现过十几种写法（`global + other`、`global / other · other`、
+    `element / trigger+extraneous / language`…）。⛔ 不归一的后果不是难看，是
+    **看不出两条其实落在同一格** —— 而那正是要拿来做分布统计的字段。
+    ⭐ 每条都留了 `coord_raw` 与 `coord_normalization`，归一化过程本身可复核。
+    """
+    for rec in IF.load_issues()["issues"]:
+        assert rec["coord"] == IF.coord_display(rec), rec["issue_id"]
+        assert re.fullmatch(r"[a-z_]+ / [a-z_]+(?: \+ [a-z_]+)? / [a-z_]+", rec["coord"]), \
+            f"{rec['issue_id']} 的写法没归一：{rec['coord']!r}"
+        assert rec.get("coord_raw"), rec["issue_id"]
+        assert rec.get("coord_normalization"), rec["issue_id"]
+        assert rec["coord_source"] in ("original", "ruling", "normalized",
+                                       "recovered_ruling", "recovered_normalized"), rec
+    # ⛔ 被改判过的必须把**原判原文**也留在库里，并渲染成「原判 X → 终局 Y」——
+    # ⚠️ 原判只存在于 /tmp 下那份**不入库**的上游产物里，不留就等于「改判了什么」在仓库内查不到。
+    ruled_ids = set(IF.load_rulings())
+    for rec in IF.load_issues()["issues"]:
+        if rec["issue_id"] not in ruled_ids:
+            continue
+        doc = _read(_ws(rec["pair"]))
+        if rec["recovered_from_refuted"]:
+            # ⚠️ 恢复来的**没有原判座标**：它整条都不曾进过判读材料。⛔ 那也不许含糊过去 ——
+            # 抬头必须写明这一点，⛔ 不许印成「原判 — → 终局 X」（会读成原判是空的）。
+            assert rec.get("coord_before_ruling") is None, rec["issue_id"]
+            assert "本条是从 refuted 恢复的，没有原判座标" in doc, rec["issue_id"]
+            continue
+        assert rec.get("coord_before_ruling"), f"{rec['issue_id']} 没留原判原文"
+        assert (f"原判 `{G.esc(rec['coord_before_ruling'])}` → 终局 `{rec['coord']}`" in doc), \
+            f"{rec['issue_id']} 的改判没渲染成「原判 → 终局」"
+    # ⭐ 有裁定的那些，座标必须**就是**裁定定的那一格（`load_rulings` 的门），
+    # ⛔ 且裁定的依据要引类型学的行号 —— 不引就等于「我说了算」。
+    ruled = IF.load_rulings()
+    assert len(ruled) == 43, len(ruled)
+    for iid, rs in ruled.items():
+        for r in rs:
+            # ⭐ 裁定必须指到类型学的**具体位置** —— 文件名、小节号或行号任一，
+            # ⛔ 只说「按判定测试」不算：那句话在类型学里有九处。
+            assert ("defect_taxonomy.md" in r["ruling_basis"]
+                    or "§3." in r["ruling_basis"]
+                    or re.search(r":\d{3}", r["ruling_basis"])), iid
+            assert len(r["final_evidence"]) > 100, iid
+
+
+def test_the_recovered_refuted_findings_are_documented_one_by_one():
+    """⛔⛔ 5 条从 `refuted` 恢复的条目，每条都要写清**凭什么恢复**，⚠️ 并在工作单里标明来源。
+
+    ⭐ 判据是两条同时成立（写在每条的 `recovery_basis` 里，可回原文核）：
+    ⛔ ① 推翻理由**没有否掉主张本身**，只否掉了分拣者的措辞 / 归属 / 主语；
+    ⛔ ② 同型形态在别的 pair 上被判 intrinsic 或 uncertain 并**摆给了判读者** —— 也就是
+    「同一件事两种待遇」。⚠️ 这一条是硬的：`0000` 的根初始边带触发被 refuted，而完全同型的
+    `0030` / `0040` / `0050` 三份都作为条目摆着。
+    """
+    rows = [i for i in IF.load_issues()["issues"] if i["recovered_from_refuted"]]
+    assert sorted(r["issue_id"] for r in rows) == [
+        "INS-0000-04", "INS-0013-05", "INS-0017-02", "INS-0047-03", "INS-0057-03"], rows
+    index = {(r["pair"], r["diag_index"]): r for r in IF.all_findings()}
+    for rec in rows:
+        assert len(rec["recovery_basis"]) > 300, rec["issue_id"]
+        assert {index[(rec["pair"], d)]["verdict"] for d in rec["diag_indices"]} == {"refuted"}, \
+            rec["issue_id"]
+    # ⭐ `0000` 那条是本轮的判例，逐字钉住它引的那三个同型 pair。
+    zero = next(r for r in rows if r["issue_id"] == "INS-0000-04")
+    for probe in ("INS-0030-01", "INS-0040-01", "INS-0050-01", "结论本身很可能仍成立"):
+        assert probe in zero["recovery_basis"], probe
+    assert zero["coord"] == "element / trigger + extraneous / language", zero["coord"]
+    # ⭐ 工作单里必须标明「这条是恢复来的」—— ⛔ 不标，判读者会以为它与别的诊断同源同流程。
+    for rec in rows:
+        doc = _read(_ws(rec["pair"]))
+        assert G._flow(rec["recovery_basis"]) in doc, rec["issue_id"]
+        assert "里**恢复**的" in doc, rec["pair"]
+
+
+def test_no_script_decides_the_merging_or_the_overlap():
+    """⛔⛔ 归并与判重是**判断**，⛔ 不许任何脚本决定 —— 用 AST 钉住那批符号不再被定义。
+
+    ⚠️ 2026-08-13 撤掉过一版自动实现（并查集按元素名归组 + 中文关键词表扫台账判重合），
+    ⛔ 它当时确实在**决定**结果。判据用 AST 而不是 grep：模块 docstring 里正记着
+    「撤掉了什么」，⛔ 全文 grep 会把那段存档说明本身当成违规。
+
+    ⭐ 入册之后这条**更要留着**：三份 audit json 在树上了，⛔ 下一个人很容易顺手写个
+    「自动重算一遍」的函数，而那等于把判断悄悄换成模式匹配。
+    """
+    import ast
+    tree = ast.parse(_read(os.path.join(HERE, "inspectfindings.py")))
+    defined = {n.name for n in ast.walk(tree)
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+    assigned = {t.id for n in ast.walk(tree) if isinstance(n, ast.Assign)
+                for t in n.targets if isinstance(t, ast.Name)}
+    for banned in ("normalize", "match_one", "NATURE_WORDS", "_UF", "_anchor",
+                   "triage", "statement_of"):
+        assert banned not in defined | assigned, \
+            f"`{banned}` 又回来了 —— 归并 / 判重不许由脚本决定"
+    # ⭐ 装载器只许**读**判定文件，⛔ 不许自己拼归并结果：三份文件都缺时什么都不渲染。
+    assert IF.has_judged_issues()
+    with contextlib.ExitStack() as stack:
+        tmp = stack.enter_context(tempfile.TemporaryDirectory())
+        moved = os.path.join(tmp, "x.json")
+        stack.callback(lambda: shutil.move(moved, IF.ISSUES_FILE))
+        shutil.move(IF.ISSUES_FILE, moved)
+        assert not IF.has_judged_issues(), "少一份文件时必须判成「尚未入册」"
+
+
+def test_the_audit_files_are_the_only_record_of_how_the_judgements_were_made():
+    """⛔⛔ 三份 audit json 是「189 条判定怎么来的」的**唯一载体** —— 不入库则事后无法复核。
+
+    ⚠️ 本条不测渲染，只测这三份文件**自身**够不够复核：每条判定都要能回答
+    ⭐「合并理由是什么」「双方原文怎么对上的」「座标凭哪条判定测试改的」。
+    """
+    for path, schema, key in (
+            (IF.ISSUES_FILE, IF.ISSUES_SCHEMA, "issues"),
+            (IF.OVERLAP_FILE, IF.OVERLAP_SCHEMA, "decisions"),
+            (IF.RULINGS_FILE, IF.RULINGS_SCHEMA, "rulings")):
+        assert os.path.exists(path), path
+        payload = _json.loads(_read(path))
+        assert payload["schema"] == schema
+        assert payload["what_this_is"], path
+        assert payload[key], path
+    # ⭐ 判重依据必须引到**双方**：既有条目那一侧与 INS 这一侧。
+    for iid, d in IF.load_overlap().items():
+        assert len(d["basis"]) >= 80, iid
+        if d["overlap_kind"] != "none":
+            assert d["overlap_target"] in d["basis"], f"{iid} 的依据里没提 target"
+    # ⭐ 归并理由必须逐条有；⛔ 单条诊断的也要写明「不涉归并」而不是留空。
+    for rec in IF.load_issues()["issues"]:
+        assert rec["merge_reason"].strip(), rec["issue_id"]
+        if len(rec["diag_indices"]) > 1:
+            assert len(rec["merge_reason"]) >= 60, rec["issue_id"]
+
+
+def test_the_inspect_family_is_marked_as_deterministic_not_llm():
+    """⛔⛔ 必须让判读者一眼看出：这一族是**确定性检查**，与 §3.1–§3.5 的 LLM 产出不同物种。
+
+    ⚠️ 差别直接改变一句话的含义：「模型没提到」对 LLM 那族是**采样**问题（重跑可能就有了），
+    ⛔ 对本族说明的是**检查器本身看不到那类东西**。⭐ 不写明，判读者会把两族的「没报」
+    当成同一件事，于是拿工具的沉默当证据。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert "### §3.6 `pyfcstm inspect` 的确定性检查发现" in doc, pair
+        assert G.INSPECT_SPECIES_CAVEAT in doc, f"{pair}.md 少了物种抬头"
+        assert G.INSPECT_PROJECTION_CAVEAT in doc, f"{pair}.md 少了「确定性不等于正确」"
+        # ⛔ 位置也要对：物种抬头必须在第一个 INS- 块**之前**。
+        blocks = [k for k in fb.extract(doc) if k.startswith("INS-")]
+        if blocks:
+            assert doc.index(G.INSPECT_SPECIES_CAVEAT) < doc.index(f"##### {blocks[0]}"), pair
+
+
+def test_the_two_inspect_species_stay_separable_after_collection():
+    """⛔ 回收时必须分得开「确认内生」与「分拣未定」两个物种。
+
+    ⚠️ 混在一起统计会把「工具确定看到的」与「可能是投影造出来的」算成同一种证据 ——
+    ⛔ 而后者的事实本身还没成立。⭐ 分法从 audit json 的 `verdict_class` 来，
+    ⛔ 不靠填写块 key 的前缀约定（`INSU-` 那套已撤：key 与 issue id 必须是同一个字符串）。
+    """
+    proc = subprocess.run([sys.executable, os.path.join(HERE, "collect.py"), "--stdout"],
+                          check=True, capture_output=True, text=True, cwd=HERE)
+    pairs = _json.loads(proc.stdout)["pairs"]
+    got = collections.Counter(r["source"] for v in pairs.values() for r in v["candidates"])
+    assert got == {"valid_unrecorded": 15, "review_diff": 77, "unmatched_issue": 49,
+                   "inspect_finding_intrinsic": 38, "inspect_finding_uncertain": 90}, got
+    assert sum(got.values()) == 269
+    # ⭐ 与 audit json 逐条对齐（⛔ 不是只对总数）。
+    want = collections.Counter(
+        "inspect_finding_" + i["verdict_class"]
+        for i in IF.load_issues()["issues"]
+        if IF.load_overlap()[i["issue_id"]]["overlap_kind"] in IF.NEW_BLOCK_KINDS)
+    assert got["inspect_finding_intrinsic"] == want["inspect_finding_intrinsic"]
+    assert got["inspect_finding_uncertain"] == want["inspect_finding_uncertain"]
+    # ⛔ `INSU-` 前缀不许再出现在任何工作单里。
+    for pair in S.IN_SCOPE_PAIRS:
+        assert "INSU-" not in _read(_ws(pair)), pair
 
 
 def test_the_blocker_taxonomy_is_complete_and_accounted_for():
