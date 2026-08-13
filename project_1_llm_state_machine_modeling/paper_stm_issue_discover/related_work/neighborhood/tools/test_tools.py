@@ -282,3 +282,49 @@ class TestShellDetection:
         """
         assert ".md" in _DOC_ONLY
         assert ".gitignore" in _DOC_ONLY
+
+
+# --------------------------------------------------------------------------- #
+# model_recency：⭐ 代际测量
+# --------------------------------------------------------------------------- #
+
+def test_recency_longest_match_wins():
+    """⛔⛔ `GPT-4` 是 `GPT-4o` / `GPT-4.1` 的前缀 —— 若朴素匹配，新模型会被记成 2023-03。"""
+    from tools.model_recency import scan
+    assert scan("we use GPT-4o-mini for all runs") == {"gpt-4o-mini": 1}
+    assert scan("GPT-4.1 Mini with temperature 0") == {"gpt-4.1-mini": 1}
+    assert scan("the GPT-4 technical report") == {"gpt-4": 1}
+    assert scan("GPT-4, GPT-4o, and GPT-4.1") == {"gpt-4": 1, "gpt-4o": 1, "gpt-4.1": 1}
+
+
+def test_recency_boundary_is_not_word_boundary():
+    """⛔ `\\b` 把 `.` 当边界，会让 `gpt-4` 在 `gpt-4.1` 里命中。这里钉住它不会。"""
+    from tools.model_recency import scan
+    assert "gpt-4" not in scan("gpt-4.1-nano")
+    assert "claude-3-haiku" not in scan("Claude 3.5 Sonnet")
+    assert "deepseek-v3" not in scan("DeepSeek-V3.1 Terminus")
+    assert "llama-3-1" not in scan("Llama 3.3 70B")
+
+
+def test_recency_drops_our_own_arm():
+    """⛔⛔ 我方型号出现在每张卡的「与我们对比」节 —— ⭐ 不剔会把旧证据洗成同代。"""
+    from tools.model_recency import scan
+    text = "本篇用 gpt-3.5-turbo；而我们主臂是 gpt-5.5 与 claude-opus-4-7"
+    assert scan(text) == {"gpt-3.5-turbo": 1}
+    assert scan(text, drop_ours=False)["gpt-5.5"] == 1
+
+
+def test_recency_tier_boundaries():
+    from tools.model_recency import _tier
+    assert _tier(0) == "A 同代" and _tier(6) == "A 同代"
+    assert _tier(7) == "B 近一代" and _tier(16) == "B 近一代"
+    assert _tier(17) == "C 隔代" and _tier(28) == "C 隔代"
+    assert _tier(29) == "D 两代以上" and _tier(37) == "D 两代以上"
+
+
+def test_recency_reference_point_is_earlier_arm_model():
+    """⭐ 参照点取主臂较早者，⛔ 使代际差不被高估。"""
+    from tools.model_recency import _REF, _months_behind
+    assert (_REF.year, _REF.month) == (2026, 4)
+    assert _months_behind("gpt-3.5-turbo") == 37
+    assert _months_behind("gpt-5.1") == 5
