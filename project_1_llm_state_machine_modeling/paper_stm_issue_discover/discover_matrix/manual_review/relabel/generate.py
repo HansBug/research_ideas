@@ -1064,7 +1064,7 @@ def _inspect_body(rec, with_deadlock_caveat=True):
                    f"{_flow(rec['recovery_basis'])}")
     out.append("")
     if with_deadlock_caveat and any(m["code"] == "W_DEADLOCK_LEAF" for m in rec["members"]):
-        out.append(f"- **`W_DEADLOCK_LEAF` 的已知假阳性**：{IF.DEADLOCK_LEAF_CAVEAT}")
+        out.append(f"- **`W_DEADLOCK_LEAF` 的语义归属须知**：{IF.DEADLOCK_LEAF_CAVEAT}")
         out.append("")
     out.extend(_inspect_diag_details(rec))
     return out

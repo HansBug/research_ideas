@@ -24,6 +24,9 @@
 | 1 | [v46_weakness_anatomy.md](./v46_weakness_anatomy.md) | ⭐ **主臂为什么低 15.8pp**——成分表 · 谓词分母 · 成本 · 已排除的解释 |
 | 2 | [human_baseline_and_assertion_cot.md](./human_baseline_and_assertion_cot.md) | ⭐⭐ **我们该跟谁比**——人类基线 47–50%、脚手架类型决定符号 |
 | 3 | [route_selection_and_v47_plan.md](./route_selection_and_v47_plan.md) | ⭐ **接下来做什么**——路线裁定 + v47 最小改动集 |
+| 4 | [inspect_capability_boundary.md](./inspect_capability_boundary.md) | ⭐ **inspect 能看见什么**（2026-08-13 加）——73 码只 14 开火的三层原因 · 配置天花板 579 · FCSTM 父态出边不下传 · 可触及面 74/165 |
+
+⚠️ 第 4 篇更正了两处此前被写成事实的错误断言（`W_DEADLOCK_LEAF` 的「系统性假阳性」、`inspect_findings.json` 关于归并算法的自述），⛔ 前者已污染过一个独立评审方。
 
 ⭐ 面向导师的完整报告：[../../../../talks/2026-08-12-实验-为什么主臂比朴素基线低15个点.md](../../../../talks/2026-08-12-实验-为什么主臂比朴素基线低15个点.md)
 

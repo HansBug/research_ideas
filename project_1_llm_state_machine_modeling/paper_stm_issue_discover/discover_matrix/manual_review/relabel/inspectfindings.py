@@ -55,17 +55,29 @@ SHOWN_VERDICTS = ("intrinsic", "uncertain")
 #: ⛔ 不是「从材料里删掉」。
 EXCLUDED_CLASSES = ("I_NONTRIVIAL_SCC", "I_TOPOLOGICAL_NON_TERMINATING")
 
-#: ⚠️⚠️ **本码有系统性假阳性风险，必须原样呈现给判读者。**
-#: 复核时读了 pyfcstm 的 `analyzers/structural.py:75-93`：它**完全不做外层检查**，
-#: 只数叶态自身的出边。于是对**嵌在复合态里、而外层有成组迁移**的叶态，本码是假阳性
-#: —— 那条外层边对该叶态同样可用，它不是终止态。顶层态不受影响（没有外层可言）。
-#: ⛔ 判读者不知道这一点就没法正确裁决这一族。
+#: ⚠️ **2026-08-13 更正**：本注释此前断言本码有「系统性假阳性」，⛔ **那半句是错的**，已删。
+#: 前提（`analyzers/structural.py` 只数叶态自身出边、不做祖先遍历）为真；⛔ 但由它推出
+#: 「因此会误报」为假 —— **FCSTM 里根本不存在可供子态使用的祖先边**。
+#: `pyfcstm/verify/topology.py` 模块注释逐字：「Parent-level transitions **are followed only
+#: when a descendant leaf explicitly exits to that parent; they are not copied onto every
+#: active descendant leaf.**」即父态出边**不下传**，子态须自己显式 `-> [*]` 才接得上。
+#: 两侧实测同向：语料侧 57 条真实诊断中「祖先有出边」的为 **0 条**；语义侧最小模型上
+#: `W_DEADLOCK_LEAF` 与拓扑层的 `W_TOPOLOGICAL_NOEXIT`（`counterexample_kind=deadlock`）
+#: **两套独立分析一致**。完整证据见 docs/findings/inspect_capability_boundary.md §一。
+#:
+#: ⭐ 但**祖先检查仍然要做**，只是它回答的是另一个问题，且结论落在另一个桶里：
+#: 作者源读作 UML，UML 的成组迁移**成立**，故同一个叶态在 UML 下**不是** terminal。
+#: 于是「IR 上为真、作者源上为假」—— ⭐ 这正是 `projection_artifact` 的定义
+#: （见 docs/findings/representation_debt.md 的操作化判据），⛔ 不是「码报错了」。
 DEADLOCK_LEAF_CAVEAT = (
-    "该码有**系统性假阳性**：pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身的"
-    "出边，**完全不做外层检查**。所以对**嵌在复合态里、而外层复合态有成组迁移**的叶态，"
-    "本码报的「无出边」是假阳性 —— 那条外层边对该叶态同样可用，它不是终止态"
-    "（顶层态没有外层，不受影响）。这也正是类型学 §3.5 `unintended_terminal` "
-    "判定测试里写的那类最常见假阳性。裁决前请先数一遍该叶态各级祖先的出边。"
+    "本码在 FCSTM 上是**健全的**：FCSTM 的父态出边**不下传**给活动子态"
+    "（`pyfcstm/verify/topology.py` 逐字：「Parent-level transitions are followed only when a "
+    "descendant leaf explicitly exits to that parent; they are not copied onto every active "
+    "descendant leaf.」），子态须自己显式 `-> [*]` 才接得上。故**不要**用「外层有出边」"
+    "去推翻本码的诊断。但仍请做一次归属判定：作者源读作 UML，UML 的成组迁移**成立**，"
+    "故若该叶态在 `stm0.puml` 里的某级祖先有出边，则它在作者源上并非终止态 —— 此时应判 "
+    "`projection_artifact`（IR 上为真、作者源上为假），**而不是** `refuted`。"
+    "本语料实测该情形为 0/57，故这一步大概率不改变结论，但仍须留痕。"
 )
 
 

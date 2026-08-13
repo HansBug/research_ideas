@@ -2160,7 +2160,7 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
     - **生成器侧** = 全文计数减去「逐字来自三份 audit json 与既有条目数据」的那些记号。
       档**仍是每份 ≤ 30、`⭐` ≤ 4**，一格没放宽；实测每份 **15–24、中位 18**。
       ⚠️ 这一侧确实也涨了（入册前 12–18），涨的是 §3.6 那五条**必须逐份印**的限定：
-      物种抬头、「确定性不等于正确」、两个 code 整类排除、`W_DEADLOCK_LEAF` 假阳性、
+      物种抬头、「确定性不等于正确」、两个 code 整类排除、`W_DEADLOCK_LEAF` 语义归属须知、
       「不确定那一族也要给」，外加 `suspect` 那 24 条的点名提示与恢复条目的来源标注。
       ⛔ 它们不是装饰：每一条都对应一种会让判读者判错的具体误读。
     - **数据侧**另设一个防跑飞的总档（每份 ≤ 60、密度 ≤ 0.05）。⛔ 它不许用来给生成器兜底：
@@ -3356,22 +3356,36 @@ def test_the_inspect_data_is_complete_and_every_code_has_a_coordinate():
     assert set(IF.EXCLUDED_CLASSES) == {"I_NONTRIVIAL_SCC", "I_TOPOLOGICAL_NON_TERMINATING"}
 
 
-def test_the_deadlock_leaf_false_positive_is_spelled_out_in_every_worksheet():
-    """⛔⛔ `W_DEADLOCK_LEAF` 的**系统性假阳性**必须逐份写明 —— 单独一条钉死。
+def test_the_deadlock_leaf_semantic_split_is_spelled_out_in_every_worksheet():
+    """⛔⛔ `W_DEADLOCK_LEAF` 的**两语义归属**必须逐份写明 —— 单独一条钉死。
 
-    ⚠️ 它不是「工具偶尔不准」这种泛泛提醒，而是一条**可定位的实现缺陷**：
-    pyfcstm 的 `analyzers/structural.py:75-93` 只数叶态自身的出边、**完全不查外层**，
-    ⛔ 于是「嵌在复合态里、而外层复合态有成组迁移」的叶态一律被误报成终止态。
-    ⭐ 判读者不知道这一点就没法正确裁决这一族 —— 他会照着「它没有出边」直接判成缺陷。
+    ⚠️⚠️ **2026-08-13 重写。本条此前断言该码有「系统性假阳性」，那是错的**，连同它钉住的
+    四个逐字探针一起换掉。⛔ 旧断言的前提为真（`analyzers/structural.py` 只数叶态自身出边、
+    不做祖先遍历），⛔ 但推论为假：**FCSTM 里不存在可供子态使用的祖先边** ——
+    `pyfcstm/verify/topology.py` 模块注释逐字「Parent-level transitions are followed only when
+    a descendant leaf explicitly exits to that parent; they are not copied onto every active
+    descendant leaf.」⭐ 两侧实测同向：语料侧 57 条真实诊断里「祖先有出边」为 **0 条**；
+    语义侧最小模型上本码与拓扑层的 `W_TOPOLOGICAL_NOEXIT` 两套独立分析一致。
+
+    ⭐ 真正要让判读者知道的是**同一个叶态在两种语义下 terminal 性相反**：
+    作者源读作 UML（成组迁移成立 → 不是 terminal），`model.fcstm` 读作 FCSTM
+    （父态出边不下传 → 是 terminal）。⛔ 于是祖先检查仍要做，但它的结论是
+    `projection_artifact`（IR 上为真、作者源上为假），⛔ **不是** `refuted`。
+
+    ⚠️ 探针只钉**承重内容**（不下传 · 不得据外层推翻 · 归属落 projection_artifact），
+    ⛔ 不钉行号也不钉修辞 —— 旧版钉了 `analyzers/structural.py:75-93` 这种脆定位符，
+    上游一次格式化就会失配。
 
     ⭐ 为什么要求**每份都印**而不只在命中该 code 的 pair 上印：判读者在 §4 自己数出边时
-    踩的是同一个坑，⛔ 而 §4 遍布 54 份。
+    面对的是同一个语义分岔，⛔ 而 §4 遍布 54 份。
     """
-    for probe in ("analyzers/structural.py:75-93", "完全不做外层检查", "假阳性", "顶层态"):
-        assert probe in IF.DEADLOCK_LEAF_CAVEAT, f"常量里少了逐字探针：{probe}"
+    for probe in ("不下传", "not copied onto every active", "projection_artifact", "0/57"):
+        assert probe in IF.DEADLOCK_LEAF_CAVEAT, f"常量里少了承重探针：{probe}"
+    # ⛔ 旧的错误断言不许回流。
+    assert "系统性假阳性" not in IF.DEADLOCK_LEAF_CAVEAT, "错误断言「系统性假阳性」回流了"
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
-        assert IF.DEADLOCK_LEAF_CAVEAT in doc, f"{pair}.md 没印 W_DEADLOCK_LEAF 的假阳性说明"
+        assert IF.DEADLOCK_LEAF_CAVEAT in doc, f"{pair}.md 没印 W_DEADLOCK_LEAF 的语义归属须知"
     # ⭐ 命中该 code 的那些 issue 处还要**就地**再印一次 —— 导语在几百行之外，
     # ⛔ 只靠导语，判读者读到具体那一条时早忘了。
     hit = [(p, r) for p in S.IN_SCOPE_PAIRS for r in IF.issues_of(p)
@@ -3380,8 +3394,8 @@ def test_the_deadlock_leaf_false_positive_is_spelled_out_in_every_worksheet():
     for pair, rec in hit:
         doc = _read(_ws(pair))
         i = doc.index(G._flow(rec["statement"]))
-        assert "`W_DEADLOCK_LEAF` 的已知假阳性" in doc[i:i + 6000], \
-            f"{rec['issue_id']} 就地没印假阳性说明"
+        assert "`W_DEADLOCK_LEAF` 的语义归属须知" in doc[i:i + 6000], \
+            f"{rec['issue_id']} 就地没印语义归属须知"
 
 
 def test_the_excluded_inspect_classes_are_explained_not_silently_dropped():
