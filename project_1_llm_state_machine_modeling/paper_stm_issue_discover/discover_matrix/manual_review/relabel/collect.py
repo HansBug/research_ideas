@@ -256,7 +256,15 @@ def collect_pair(pair, path):
     }
     for key, body in blocks.items():
         kind = kinds.get(key, "orphan")
-        if fb.is_untouched(body, kind, pair):
+        # ⚠️ 清单块必须走专用判据 `checklist_is_untouched`:通用的 `is_untouched`
+        # 只比模板全等,而清单块的模板含逐条 id 与机械判据行,判读者哪怕一个字没填,
+        # 渲染出的 body 也与「空模板」不字面相等 —— 于是未填的清单块被误报成已填。
+        # 实测 `0039` 五个未填清单块里有四个被误报。
+        if kind == "checklist":
+            untouched = fb.checklist_is_untouched(body)
+        else:
+            untouched = fb.is_untouched(body, kind, pair)
+        if untouched:
             out["untouched_keys"].append(key)
         # ⭐ §0 / §2 / §3 三种块也必须传 `known` 与 `choice_fields`（表在 `fillblocks` 里，
         # ⛔ 逐字从模板算出来）—— ⚠️ 此前只有 §5 传，于是这三种块吃着两个静默丢内容的坑：
