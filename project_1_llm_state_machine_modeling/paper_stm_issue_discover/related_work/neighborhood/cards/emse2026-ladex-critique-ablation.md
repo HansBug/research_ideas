@@ -121,7 +121,7 @@
 | B-Match | ⭐ BFS 遍历 + 迹语义相似度（`simLabel` 用 Sentence Transformers v4.1.0 + `Alibaba-NLP/gte-base-en-v1.5` 嵌入余弦） |
 | E-Match | ⭐ 严格字符串相等匹配（⛔ 附录 D，见 C 节 `adverse_results`） |
 | CSV → XMI / PlantUML / Draw.io | ⭐ 三个转换脚本，XMI 经 Eclipse Papyrus 验证 |
-| 统计检验 | ⭐ Wilcoxon Rank-Sum + Vargha-Delaney $\hat{A}_{12}$ + Benjamini-Hochberg 校正 |
+| 统计检验 | ⭐ ⚠️⛔ **配对 Wilcoxon signed-rank**（⛔ **论文正文写 Rank-Sum，⭐ 而复现包 `StatisticalTest.py` 调 `scipy.stats.wilcoxon`、存档 CSV 逐字 `Wilcoxon (paired, per-file)`**）+ Vargha-Delaney $\hat{A}_{12}$ + Benjamini-Hochberg 校正 |
 
 ⭐⭐ **这一格的关键点**：⭐ 他们的「算法检查器」判的是**产物自身的良构性**（只看 $\langle NL, TL, N, T\rangle$ 就能唯一判定），⛔ **不需要任何外部真值**。⭐ 这与本仓库 §11 的准入判据（「给定字段值、不看上下文、不做语义解释就能唯一判断」）**逐条吻合**：SC1/SC2 是计数，SC3/SC4/SC5 是局部度约束，SC6 是图可达性 —— ⭐ 全部是决定性谓词。⛔ **它不是 sound oracle（不做模型检查 / 求解），而是一个决定性语法-图检查器。**
 
@@ -193,7 +193,7 @@
 | ⭐ `LADEX-Alg-NA`（算法查良构） | ⭐⭐ **0%** | ⭐ **1.87** |
 | ⭐ `LADEX-Alg-LLM`（算法查良构 + LLM 查对齐） | ⭐⭐ **0%** | 7.24 |
 
-⭐⭐ **两个关键读法**：⛔ ① **LLM 自评回路把不合规率从 21.80% 只压到 18–19%，几乎等于没做** —— ⛔ 花了 4 次多调用换来 2–3 个百分点；⭐ ② **算法检查一次到 0%，且在无对齐检查时调用数反而降到 1.87（比 LLM 路少 2.49 倍）**。⭐ 而且良构性改善**顺带**带来语义收益：⭐ 算法路比 LLM 路平均 correctness **+16.95%**、completeness **+15.12%**。
+⭐⭐ **两个关键读法**：⛔ ① **LLM 自评回路把不合规率从 21.80% 只压到 18–19%，几乎等于没做** —— ⛔ 花了 4 次多调用换来 2–3 个百分点；⭐ ② **算法检查一次到 0%，且在无对齐检查时调用数反而降到 1.87（比 LLM 路少 2.49 倍）**。⭐ 而且良构性改善**顺带**带来语义收益：⭐ 算法路比 LLM 路平均 correctness **+16.95%**、completeness **+15.12%**（⚠️⛔ **论文自述，本轮不可复算** —— ⭐ 独立重算得 **+15.51% / +15.37%**；⭐ 方向与量级不变）。
 
 ⭐ **搬到我们这里的落点**：⭐ 我们的 `review_requirements` 与 `review_assertions` 两个 LLM 自评节点里，⭐ 凡是判据能写成「只看 `AssertionScript` / `Requirement` 字段值就唯一判定」的检查，⭐ 一律迁到 `precheck_and_seal`（我们已有的确定性节点）。⭐ 本篇给了这个动作的外部量化背书。
 
@@ -205,7 +205,7 @@
 
 **⛔ 第一条：「不收敛就整格丢弃冷重启」不能照搬。** ⛔ 逐字：「we discard the activity diagram and restart the variant from its generation step」。⛔ 这违反本仓库 §10（除 provider 错误与 schema 死活对不上外一律降级）与 §12（结构性死路上重试期望收益为零）。⭐ 他们侥幸的原因是触顶率只有 5.5%；⛔ 我们的 v46 有 22/35 格降级 —— ⛔ 同样的策略在我们这里就是烧钱。⭐ **正确的读法是：他们证明了「当裁决判据形式化后，几乎不会触顶」，⛔ 而不是「触顶时可以冷重启」。**
 
-**⛔ 第二条：LLM 自评的语义对齐检查不是无条件正收益。** ⛔ Industry 上它 completeness 涨（negligible effect）但 correctness 降（small effect）；⛔ Paged 上 6 组比较里只 3 组 correctness 显著改善且效应量 negligible。⭐ 而它的代价是**平均多 5.38 次 LLM 调用**。⭐⭐ **这条与我们「两个 self-review 零收益却吃 79% token」是同一个方向的独立证据** —— ⛔ 但要说清差别：他们的对齐 reviewer 至少不是零收益（Paged 上有统计显著的正效应），⛔ 只是效应量小且成本高；⛔ 我们的是净零。
+**⛔ 第二条：LLM 自评的语义对齐检查不是无条件正收益。** ⛔ **Industry × O4 Mini × L-Match 这一格上** completeness 涨（negligible effect）但 correctness 降（small effect）—— ⚠️⛔ **首版丢了 `using O4 Mini and L-Match` 这个限定，⭐ 而论文原文写满了**。⭐ Industry 共 8 格：⛔ GPT-4.1 Mini 的 4 个 Δ **全为负且全不显著**；⭐ O4 Mini × B-Match 两个 Δ **全为正**也不显著；⛔ **8 格 Δ 均值 = −0.95pp**。⭐⭐ 即这个 trade-off **只在 8 格中的 1 格成立**；⛔ Paged 上 6 组比较里只 3 组 correctness 显著改善且效应量 negligible。⭐ 而它的代价是**平均多 5.38 次 LLM 调用**。⭐⭐ **这条与我们「两个 self-review 零收益却吃 79% token」是同一个方向的独立证据** —— ⛔ 但要说清差别：他们的对齐 reviewer 至少不是零收益（Paged 上有统计显著的正效应），⛔ 只是效应量小且成本高；⛔ 我们的是净零。
 
 **⛔ 第三条：`Baseline` 是自建的消融 baseline，不是外部方法复现。** ⛔ 若引本篇当「critique-refine 优于 SOTA」的证据，那是过度解读 —— ⭐ 它证明的是「同一套 prompt 加不加回路的差别」。
 
@@ -236,3 +236,72 @@
 5. ⚠️ **仓库无 LICENSE、无归档 DOI** —— ⛔ 引用它作为可复现证据时要注明这一点（仓库可被改写 / 删除；⭐ 本卡已钉 HEAD `b515ca1bf2`）。
 6. ⚠️ **README 的 `LLMMatcher.py` 与实际的 `L-Match.py` 文件名不符** —— ⭐ 已实际核过目录列表；⛔ 不影响 prompt 公开性判定，⛔ 但复现时会踩一下。
 7. ⚠️ **Industry 数据集只公开匿名子集，20 份文档的全量不可得** —— ⭐ 属正常工业保密，⛔ 但意味着 Industry 侧结论无法完整外部复现。
+
+---
+
+## G. ⭐⭐ 独立复算与新发现（2026-08-13，⛔ 三层校验）
+
+⭐ 本节由一次**上下文独立**的复算产出（⛔ 复算者未读本仓库的综合层文件）。⭐ 三层校验全部通过：⭐ ① 手抄的 Table 8 四十格能重算出 Fig. 6/7/9 **全部 24 根柱子**的标注值到 0.1pp；⭐ ② 复现包 `Summary_Integrated*.csv` 与 Table 8 **100 格逐格一致**；⭐ ③ 从 `llm-as-judge-results/*.json` 重算 coverage，四个承重格差 ≤ 0.004pp。
+
+### G.1 ⭐⭐⭐ 「加不加 LLM 对齐评审」的完整答案（⛔ 首版只引了 1 格）
+
+⭐ Δ = `Alg-LLM` − `Alg-NA`，**20 格**（2 matcher × 5 个 dataset-LLM 组合 × 2 指标）：
+
+| 切片 | 格数 | 均值 | 正 / 负 | 极值区间 | mean 绝对值 |
+| :-- | --: | --: | :-- | :-- | --: |
+| ⭐⭐ **全部** | **20** | ⭐⭐ **−0.042pp** | **12 / 8** | [−5.93, +4.09] | 1.465 |
+| 仅 Industry | 8 | **−0.950** | 3 / 5 | [−5.93, +4.09] | — |
+| 仅 Paged | 12 | +0.562 | 9 / 3 | [−0.19, +1.52] | — |
+
+⭐⭐ **显著性（20 次比较）**：⛔ **15 次无显著差异**；⭐ 5 次显著中 **4 次效应量 negligible**；⭐⭐ **唯一一次 small 效应是 `Alg-NA`（不加对齐评审）赢**。
+
+⭐ **即：加 LLM 对齐评审的净贡献不可与零区分**，⭐ 单格波动远大于系统性效果。⚠️ 而摘要引的 `+1.75 / −4.24` **只是 20 格里的 1 格**。
+
+### G.2 ⭐⭐⭐ 论文自己推荐哪一档（⛔ 逐字）
+
+⭐⭐ **`preferred` 与 `preferable` 两个词都用在 `Alg-NA`（⛔ 不加 LLM 对齐评审）身上**；⭐ `Alg-LLM` 只拿到 `strongest results`。
+
+> ⭐ 摘要：`using only algorithmic structural checks reaches similar correctness (86%) and slightly lower completeness (90%) with just over one LLM call, **making it the preferred low-cost option**.`
+>
+> ⭐ §1：`**This alternative is preferable when activity diagrams are large and complex or when minimizing LLM costs is a priority.**`
+
+⚠️ ⭐ 而「大而复杂的图」正是 Industry 那侧（⭐ GT 平均 29.15 节点、⭐ 文本 8.1× 字符）。⭐ 实核：⭐ `Alg-LLM` O4 = **86.52** corr，⭐ `Alg-NA` O4 = **86.68** corr —— ⭐⭐ **`Alg-NA` 还高 0.16pp。**
+
+### G.3 ⛔⛔ 三处论文自己不可复算 / 自相矛盾（⭐ 本轮新发现）
+
+| # | 问题 | 证据 |
+| :-: | :-- | :-- |
+| **1** | ⛔⛔ **正文说的检验与代码跑的不是同一个** | ⭐ 正文写 `Wilcoxon Rank-Sum`（非配对），⛔ 代码是**配对 signed-rank**。⭐⭐ **而这决定那句卖点**：⭐ `+1.75%` 那格在**非配对**下 **p = 0.196（不显著）**，⭐ 配对下才 p = 0.0137 → BH 0.025 |
+| **2** | ⛔ **Table 10 的 Industry 列不可复算** | ⭐ 5 份 `cost_evaluation.csv` 的 `Total_Files` 写 **125**，⛔ 实际只有 **100** 份 metrics JSON。⭐ 重算 6.50 / 1.73（⭐ 论文 7.24 / 1.87），⭐ 倍数量级不变，⛔ 但 4.91 / 1.08 / 5.38 不可复算 |
+| **3** | ⛔ **配对单位把 n 放大 5 倍** | ⭐ 配对在 `(run, file_id)` 上。⭐ 按 20 份文档聚合重跑：⚠️ **Completeness p = 0.0411** —— ⛔ 若再进 BH（家族 100）**活不下来** |
+
+⚠️ 另：⭐ §6 说检验在「跨 LLM 聚合」的结果上做，⛔ 与 Table 9 caption「按每个 LLM **分别**计算」矛盾；⭐ **制品支持 caption**。
+
+### G.4 ⭐⭐ 那句 `can only be critiqued using an LLM` 的作用域（⛔ 已定案）
+
+⭐ 完整段落逐字（§1）：
+
+> `We evaluate five ablated variants of LADEX to examine … To isolate the impact of the critique-refine loop, one LADEX variant removes the loop entirely. The remaining four variants retain the loop but vary in how the constraints are checked. **To study the impact of LLM-based alignment checking, we create two groups of variants: one with LLM-based alignment checking and one without, as alignment constraints can only be critiqued using an LLM.** To compare LLM-based and algorithmic methods for structural constraint checking, we create two variants within each group…`
+
+⭐⭐ **裁定：设计空间陈述，⛔ 不是效果发现。** ⭐ 三条依据：⭐ ① 它是 `as` 从句，⭐ 主句是「we create two groups of variants」—— ⭐ 被解释的是**网格为什么长这样**（⭐ `[Alignment]` 槽只有 `LLM` 与 `NA`、⛔ 没有 `Alg`）；⭐ ② 整段全是「消融怎么搭的」，⛔ 无任何结果数字；⭐ ③ 对齐检查的**效果**是同一篇里的另一件事（RQ4），⛔ 答案是小效应 + 有得有失。
+
+⛔⛔ **不得读成「LLM 判对齐是有效的」或「LLM 是对齐层的正确裁决者」。**
+
+### G.5 ⭐⭐ 同节前一段有三样反向材料（⛔ 首版全漏）
+
+> ⭐ `Semantic alignment … involves interpretive nuances that **resist purely algorithmic checks**. While **human oversight remains the most reliable means of ensuring alignment**, it is often resource-intensive and impractical … Therefore, **LLMs are explored as scalable proxies for human judgment**. This raises the question: **How effective are LLMs in evaluating semantic alignment between models and their textual descriptions?**`
+
+⭐ 三样：⭐ ① 是 **`resist`** 而非 `impossible`；⭐⭐ ② **人是最可靠手段**、LLM 是**可扩展代理** —— ⭐⭐ **换用 LLM 的理由是成本，⛔ 不是能力**；⭐⭐ ③ 「LLM 判对齐有多有效」是**开放问题**（⭐ 编成 RQ4）。
+
+⚠️ ⭐ 另：⛔ **论文从未把「对齐 critic 判得准不准」拿去和人对照。** ⭐ 唯一做过人类校准的是**评测端 matcher**（⭐ Cohen kappa 0.916 / 0.888），⛔ **不是生成回路里的对齐 critic** —— ⛔ 两个不同用法，不可互相担保。
+
+### G.6 ⭐ 四处措辞强度
+
+| 强度 | 位置 | 逐字 |
+| :-- | :-- | :-- |
+| ⭐ **最强** | §1 | `alignment constraints **can only** be critiqued using an LLM` |
+| 次强 | §3 | `**still requiring** LLMs to check alignment constraints` |
+| 弱 | 摘要 | `alignment checks **are performed by** an LLM` |
+| ⭐ **最弱** | §1 同节前一段 | `**resist** purely algorithmic checks` |
+
+⛔ **只有最强那处适合被引作「设计空间只有一个选项」**，⭐ 而它恰好是唯一带 `only` 的一处、⭐ 且出现在解释网格构造的从句里。
