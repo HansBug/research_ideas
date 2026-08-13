@@ -38,7 +38,9 @@
 | ＋须模型作者件 | `DeepSeek V4-Flash-0731` | 51.77 | **166.9 GB**，MIT，**余量 320 GB** | 官方作者件 |
 | ＋格式须 Hopper 原生且官方点名 4×H200 | `MiniMax M2.7` | 38.87 | 原生 FP8 **230.1 GB** | 官方作者件 |
 
-⚠️ **本表 AA 分数须先查是否为实测**：⛔ v4.1.1 的 38 个条目里**仅 12 个是 AA 实测、26 个是估计值**（见 §0b.4）。
+**本表 AA 分数已逐条回查：全部为 AA 实测**（详见 [aa_measured_vs_estimated.md](./aa_measured_vs_estimated.md)）——布尔位 `intelligence_index_is_estimated = false` 且 v4.1.1 的 9 项成分齐全，payload 值 `GLM-5.2` 52.6383 · `V4-Flash` 51.7704 · `M2.7` 38.87 · `Opus 5` 63.0532 · `Qwen3.6-27B` 37.7025。
+
+⛔ **此前我在此处加的警报是错的**：「38 条里 26 条是估计值」是 §0b.4 那张**2025 世代表自己的统计**，与本表**几乎不重叠**（前者集中在 DeepSeek V3.x / Nemotron / 旧 MiniMax 等较早模型）——**不同分母，推不出本表有估计值**。已撤。
 
 与 Claude Opus 5 (max) **63.05** 的差：**10.41 / 11.28 / 24.18 分**，比值 **0.835 / 0.821 / 0.616**。对照 ≤32B 档的 `Qwen3.6-27B`（37.70，比值 0.598）——**放到 4×H200 使总分差距减半，但第三层几乎回到小模型水平**。⛔ 这三个数只说明**可行域内总分能到什么量级**，⛔ 不构成选型建议。
 
@@ -356,3 +358,17 @@
 | [verification_log.md](./verification_log.md) | — | 主 session 一手核验（V1–V5） |
 | [revision_log.md](./revision_log.md) | — | **修订审计**：已撤回的主张、六路 challenge 逐条处置 |
 | `c1_fact_check.md` … `c6_final_rebuttal.md` | — | 六路 challenge 原始产出 |
+
+### 0b.5 AA 分数的三条真实例外（回查产出，[aa_measured_vs_estimated.md](./aa_measured_vs_estimated.md)）
+
+**标注机制是机读字段，判据完全确定**：`intelligence_index_is_estimated`（563/563 非空）。前端 JS 逐字 `function i(e){return e.intelligenceIndexIsEstimated?"striped":void 0}`，而 striped 的图例文字是 `Estimate (independent evaluation forthcoming)`；全站 JS 中 `IsEstimated` 仅出现 4 次且全指同一字段，**不存在第二套机制**。双条件：`false`（149 个）⟺ 9 项成分全非空；`true`（412 个）⟺ 至少缺 1 项（270/412 恰缺 GDPval + $\tau^3$-Banking + Terminal-Bench 三项新增昂贵项）。⛔ **AA 官方对估计值如何算出零说明**（methodology 页按四个词根穷举无果）。
+
+**三条须加标注的例外——都不是估计值问题**：
+
+1. ⛔ `Nemotron Cascade 2 30B A3B` 与 `Grok 4.3 (medium)` 的 **IFBench 是 AA 实测，但这两个模型的总分是估计值**——**全库唯一引用了估计值模型的两处**，不标注后人会顺手去取总分。
+2. ⛔ `Muse Glimmer` IFBench **77.0** 与 `Qwen3.6-27B` **70.8** 是**厂商自报**，AA 数据里没有。
+3. ⚠️ **全部 IFBench 值属 v4.0 时代**（v4.1 已移出 Index）。
+
+**一条排序因此不稳**：Meta 自报 IFBench 与 AA 实测在唯一两个可对照行上差 **0.42 与 3.25 点**，⛔ **超过它主张的 1.0 点领先**——故「`Muse Glimmer` 77.0 > `Gemma4-31B` 76.0」这个排序**不稳**，而 Meta 自家那一项 AA 根本没跑、无从校准。⚠️ 但同表 **AA-LCR 三值与 AA 实测逐个吻合**，⛔ **不可推广成全表不可信**。
+
+**一处笔误须改**：官方 methodology 逐字为 **9 项**评测（本目录 [benchmark_landscape.md](./benchmark_landscape.md) §3 的表正是 9 行），[h200x4_envelope.md](./h200x4_envelope.md) 日志误记「十项权重」。
