@@ -589,7 +589,7 @@ $$M_t = \{y \mid \delta(s_t,y)\neq\bot \land \mathrm{ReachAccept}(\delta(s_t,y))
 | ⚠️ `standard-conformant-prompting` | ⚠️⛔ **我没找到 ≠ 未报** | ⛔ 1 generator + 5 validator 共 **6 个模型位**，⭐ 在摘要与全部 7 条图注里**全部匿名**，⛔ 正文付费墙。⛔ **不得写成「原文未报」** |
 | ⚠️ `asew2025-eventb-model-repair` | ⚠️⛔ **我没找到 ≠ 未报** | ⛔ 摘要 + 9 图注 + 11 参考文献均无型号，⛔ 正文未取到 |
 
-4. ⚠️ **snapshot 纪律的全库现状**：⛔ **只有 4 篇给出带日期的 snapshot**（`pat-agent` · `event-b-agent` · `internetware2025` · `zenodo-simulink`）；⭐ 其余 24 张里 **18 张只有别名**、⛔ **6 张连型号都拿不到**。⭐⭐ **这本身是一条可写进论文的观察**：⛔ 该领域的模型报告纪律普遍不足，⭐ 而我们逐格记 `model_id` 是相对优势。
+4. ⚠️ **snapshot 纪律的全库现状**：⛔ **只有 3 篇在论文里给出带日期的 snapshot**（`pat-agent` · `event-b-agent` · `internetware2025`）；⭐ 其余 25 张里 **19 张只有别名**、⛔ **6 张连型号都拿不到**。⚠️⛔ **首版写 4 篇并把 `zenodo-simulink` 列进去，⛔ 那是错的** —— ⭐ 该卡逐字写着「⭐ 模型精确 ID **有**（`claude-sonnet-4-6` / `gpt-5.2`），⛔ **但无 snapshot 日期**」。⭐ 我方逐张扫三种 snapshot 形态后回卡核语境：⛔ 6 张机械命中里 2 张是假阳性（⭐ 一张是卡在**举例**说明 snapshot 长什么样、⭐ 一张是**卡间互引**），⚠️ 第 6 张是边界情形（⭐ 制品的候选列表里有 snapshot，⛔ 论文未说用哪个），⛔ 不计入。⭐⭐ **这本身是一条可写进论文的观察**：⛔ 该领域的模型报告纪律普遍不足，⭐ 而我们逐格记 `model_id` 是相对优势。
 
 5. ⚠️ **分档在 2025-01～2025-03 有一处空洞需注意。** ⭐ 独立核验按「2025-04 ～ 2025-10」定 B 档时，⛔ `pat-agent`（13.8 月）与 `atlas`（14.9 月）会掉进空洞；⭐ 强塞 C 档会把它们报成 20+ 月。⭐⭐ **本文件一律以 [tools/model_recency.py](./tools/model_recency.py) 的月数分档为准**（⭐ B = 7–16 月），⛔ 该空洞不存在。
 
