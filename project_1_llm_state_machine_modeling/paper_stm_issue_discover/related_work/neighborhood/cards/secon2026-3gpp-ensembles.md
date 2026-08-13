@@ -104,9 +104,7 @@ Desired format:
 
 ⭐⭐ **裁决规则完全确定性、且写成了公式**（**M**，§III-E）。两条迁移 $T_i = (S_i^{init}, A_i, C_i, S_i^{next})$ 与 $T_j$ 判为对齐，当且仅当四条同时成立：$S_i^{init} = S_j^{init}$、$S_i^{next} = S_j^{next}$、$\mathrm{Overlap}(A_i, A_j) \ge \theta$、$\mathrm{Overlap}(C_i, C_j) \ge \theta$，其中
 
-$$
-\mathrm{Overlap}(A_i, A_j) = \frac{|\mathrm{span}(A_i) \cap \mathrm{span}(A_j)|}{\min(|\mathrm{span}(A_i)|, |\mathrm{span}(A_j)|)}
-$$
+$$ \mathrm{Overlap}(A_i, A_j) = \frac{|\mathrm{span}(A_i) \cap \mathrm{span}(A_j)|}{\min(|\mathrm{span}(A_i)|, |\mathrm{span}(A_j)|)} $$
 
 ⭐ 取 $\theta = 0.75$（**M**：`We set θ as 0.75 in practice, which yielded the best performance in our evaluation.`）。⭐ 状态名要求**精确相等**，⭐ condition / action 按**词级跨度重叠**比，⛔ 不做语义相似度、⛔ 不用 LLM 判等。
 

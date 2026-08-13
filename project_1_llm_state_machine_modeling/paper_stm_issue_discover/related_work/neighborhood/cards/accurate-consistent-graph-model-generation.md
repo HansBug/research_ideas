@@ -167,9 +167,7 @@
 
 ⭐ 目标函数逐字（§III-E）：
 
-$$
-\max_{\mathcal{X}} \sum_{a \in \mathcal{N} \cup \mathcal{E}} x_a \log P(a) + (1 - x_a)\log(1 - P(a)), \quad s.t.\ \mathcal{X} \models \mathcal{C}
-$$
+$$ \max_{\mathcal{X}} \sum_{a \in \mathcal{N} \cup \mathcal{E}} x_a \log P(a) + (1 - x_a)\log(1 - P(a)), \quad s.t.\ \mathcal{X} \models \mathcal{C} $$
 
 ⭐ 逐字：`"The solution to this problem represents the optimal concretization of the partial model while satisfying all constraints."`
 
