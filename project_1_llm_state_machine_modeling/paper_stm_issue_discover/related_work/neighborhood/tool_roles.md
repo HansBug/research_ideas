@@ -17,7 +17,8 @@
 | 成分 | 它算出什么 | 输出到哪一步 | **角色** | 处置 | 有无对照 | 级别 |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-: |
 | `renderer._model_vocabulary()` | 已声明 states / events / variables · `-> [*]` 终止边(带 `ends_run`)· 复合退出边按 scope 计数 · 复合态声明入口(带 `converter_generated`)· 编译器自造变量 | `split_requirements` · `review_requirements` · `convert_assertions` | ⭐⭐ **表示变换 + 规则建立**(双重,§7 边界 4) | — | ⛔ **无对照** | M |
-| pyfcstm `inspect_digest.diagnostics` | `parse_status` / `semantic_status` / `inspect_status` / `diagnostics` / `metrics` / `model_type` | `split_requirements` · `convert_assertions` | ⛔⛔ **零角色** | — | ⛔ **无对照** | M |
+| pyfcstm `inspect_digest` | `parse_status` / `semantic_status` / `inspect_status` / `diagnostics` / `metrics` / `model_type` | `split_requirements` | ⛔ **零角色** —— ⭐ 逐字 `orientation evidence only` + `never turn a tool warning into a requirement` | — | ⛔ **无对照** | M |
+| ⭐⭐⭐ **同一份 `inspect_digest`** | 同上 | ⭐⭐ **`convert_assertions`** | ⭐⭐⭐ **信息探索** —— ⛔ 该 prompt **7,709 字符里 `diagnostic` / `warning` / `orientation` 各 0 次**,⭐ 而它逐字**要求使用**:`when **structured inspect shows** that an operation/termination event exits an active child to "[*]" ... do not assert a nonexistent child-event-final direct edge` | — | ⛔⛔ **无对照 —— ⭐ 而装置就在我们手里** | M |
 | NL 分段(`nl_segments`) | 把 NL 切成段 | `split_requirements` | ⭐ **表示变换** | — | ⛔ 无对照 | M |
 | `renderer._source_context()` | `source_trace` 的 `attribution_boundary` 投影(`source_level_claim_allowed` / `representation_related` / `conversion_or_lowering_related`) | 三个 LLM 角色 | ⭐ **表示变换**(⚠️ 含少量规则性字段) | — | ⛔ 无对照 | M / S |
 | Pydantic `StrictBaseModel` | 结构合规 | 解析失败原地重试 | ⭐ **求值** | **回灌** | ⛔ 无对照 | M |
@@ -28,7 +29,11 @@
 
 ### 1.2 ⭐⭐⭐ 三条从源码读出的结论
 
-1. ⛔⛔ **我们没有任何一个「信息探索」角色。** ⭐ 唯一的候选(pyfcstm 诊断)被 prompt 框成零角色 —— ⭐ 三处逐字:`orientation evidence only` · `never turn a tool warning into a requirement` · `inspect diagnostics alone are not sufficient evidence`。
+1. ⚠️⛔ **首版写「我们没有任何一个信息探索角色」—— ⛔⛔ 那是错的,已更正。** ⭐ 机械核实:`inspect_digest` 进**两个** `render_*` 函数(`render_requirement_split_input` · `render_assertion_conversion_input`),⛔ 而零角色框定**只在第一个里有**。⭐⭐⭐ **`convert_assertions` 不但没有禁令,⭐ 还逐字要求使用 structured inspect 做层次完成判断** —— ⭐ 故按判据它是**信息探索**。
+
+   ⛔ **三处修正连带**:(a) ⛔ `inspect diagnostics alone are not sufficient evidence` 那句在 `review_assertions` 的 prompt 里,⛔ **而该阶段根本收不到 `inspect_digest`**(`render_assertion_review_input` 无该键)—— ⭐ 那句话框的是审查者看不到的东西;(b) ⭐ 所以我们**有一个信息探索通道**,⛔ 但它**窄**(只服务层次完成判断,⛔ 不服务一般缺陷发现);(c) ⛔⛔ **它从未被量过** —— ⭐ 若有人问「你们的发现里有多少是模型照着 pyfcstm 诊断报出来的」,⛔ **我们现在答不上来**。
+
+   ⭐⭐ **而这一格的对照装置就在我们手里**:⭐ `prompt_json` 的 payload 是逐键装配的,⛔ 去掉 `inspect_digest` 是一行改动,⭐ 而全网格 324 格的跑法已经存在。⭐⭐⭐ **这是 §2.4 那个「信息探索加法未测」的空白里,唯一一个可立即执行的填法。**
 2. ⭐⭐⭐ **「封存」是类型系统保证的,不是约定。** ⭐ 放给审查者的 `AssertionExecutionPublic` 字段只有 `status: Literal["executable", "invalid", "blocked"]` 与 `error` —— ⛔ **结构上没有 `truth_value`**;真值只在 `AssertionResult` 上,⭐ 经 `SealedAssertionReceipt`(只含 `sealed_hash` / `result_count` / `sealed_payload_ref`)间接引用。
 3. ⭐⭐ **有一处「记录 vs 回灌」的显式取舍**,源码注释逐字:`blocked means a prerequisite did not hold... It is not an execution failure and **must not send the script back for repair -- the prerequisite's own False is the finding**.`
 
