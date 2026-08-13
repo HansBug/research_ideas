@@ -10,7 +10,7 @@
 
 同时，一条对我们**非常有利**的证据链已经成立：**脚手架的收益随模型能力上升而单调衰减**。ICLR 2024 的 self-repair、TOSEM 2025 的 prompt engineering 再评估、FSE 2025 的 Agentless、2026 年那篇本地模型 + 符号验证器的工作（直接给出「同一套符号脚手架给最弱模型 +35、给最强模型 +3」的逐模型消融），以及 2026 年单测生成上「朴素提示胜过四条带执行反馈的流水线、而调用量只有一半」的复现研究，从五个角度指向同一件事。
 
-⭐⭐ **其中最重要的一条：有一篇论文的任务域与 project_1 完全相同**——[arXiv:2604.00275](https://arxiv.org/abs/2604.00275)（McGill，2026-03）做 NL → UML 状态机生成，发现**朴素单提示基线在较强模型上（Claude 3.5 Sonnet, $F_1$ 0.7029）打败了它自己所有的多阶段框架（0.3052–0.6336）**，而在较弱模型上（GPT-4o）多阶段框架反而更好。**同任务域、同现象、同方向。** 它既是我们「不是我们做错了什么」的最强外部佐证，也直接构成一个我们必须回应的先例。⚠️ 它同时警示了两件事：它自己也承认「多步流水线更差」里有一部分是**自家的严格后处理门误伤了合法输出**（正是根 CLAUDE.md §11 那条纪律的外部案例）——**我们必须先排除这一项再下结论**；而且它只有 8 个本科课程样本。
+**其中最重要的一条：有一篇论文的任务域与 project_1 完全相同**——[arXiv:2604.00275](https://arxiv.org/abs/2604.00275)（McGill，2026-03）做 NL → UML 状态机生成，发现**朴素单提示基线在较强模型上（Claude 3.5 Sonnet, $F_1$ 0.7029）打败了它自己所有的多阶段框架（0.3052–0.6336）**，而在较弱模型上（GPT-4o）多阶段框架反而更好。**同任务域、同现象、同方向。** 它既是我们「不是我们做错了什么」的最强外部佐证，也直接构成一个我们必须回应的先例。⚠️ 它同时警示了两件事：它自己也承认「多步流水线更差」里有一部分是**自家的严格后处理门误伤了合法输出**（正是根 CLAUDE.md §11 那条纪律的外部案例）——**我们必须先排除这一项再下结论**；而且它只有 8 个本科课程样本。
 
 ⚠️ 最不利的一句话来自本地模型 + 符号验证器那篇：**模型裸能力造成的差距（89 题）大于任何脚手架策略造成的差距（最大 35 题）。** 我们动笔前必须先把自己的 Δ（方法增益）和 G（Qwen-32B 与云端 SOTA 的裸能力差）量出来，再决定讲哪一种 story。
 
@@ -22,16 +22,16 @@
 
 | 论文 | 年份 | venue | 用的什么模型 | motivation 主打 | 怎么处理「比 SOTA 弱」 | 有无 parity claim | 链接 | 读到什么程度 |
 |---|---|---|---|---|---|---|---|---|
-| Caumartin, Qin, Chatragadda, Panjrolia, Li, Costa, *Exploring the Potential of Llama Models in Automated Code Refinement: A Replication Study* | 2025 | **IEEE SANER 2025**, pp. 681–692（CCF B） | CodeLlama-Instruct 7B、Llama 2 7B（GGUF 4-bit，跑在 Mac Mini M1/16GB 与 RTX 3050 4GB 笔记本上）；附加 Llama 3.1-8B | **隐私为首**，其次可控性（闭源模型隐式版本漂移）、成本 | ⭐ **换指标 + 用「统计不显著」定义打平**：EM 上输一半（16.70 vs 8.94）时坦承并归因于 25× 参数差；BLEU-T 上做 Mann-Whitney U 检验、95% 置信下无显著差异，据此宣称 comparable。再叠「只在纯代码变更子任务上表现 reasonable」 | **有，但限定词写进句子**："often comparable to ChatGPT … **as measured by BLEU-T scores**" | [arXiv:2412.02789](https://arxiv.org/abs/2412.02789) · [DOI](https://doi.org/10.1109/SANER64311.2025.00070) | 全文 |
-| Su & McMillan, *Distilled GPT for Source Code Summarization* | 2024 | Automated Software Engineering (Springer) 31(1):22 | jam 350M（自研，从 GPT-3.5 蒸馏）；对照 starcoder，规模扫 38M–15.5B | **隐私（数据保管权）为主**，可复现性为辅，成本第三 | ⭐ **非劣性框架**：人评三维度「未观察到统计显著差异」；直接偏好 52% vs 46% 如实报出但称为 "slight preference" | **有**，措辞是 "mimic" / "replicate"，不是 "outperform" | [arXiv:2308.14731](https://arxiv.org/abs/2308.14731) | 全文 |
-| Pirzada, Parsert, Wang, Korovin, Cordeiro, *Neuro-Symbolic Software Verification: Hyper-charging Local Language Models with Symbolic Reasoning at Scale*（系统名 VerIbmc） | 2026 | 无（arXiv preprint，无 venue 标注） | GPT-OSS-120B / GPT-OSS-20B / Qwen2.5-32B / Qwen2.5-7B / Llama-3.1-8B，本地 Ollama + 4×A6000；后端 ESBMC v8.2 | **隐私 + 可复现性 + 能耗/成本**三条并列，隐私打头 | ⭐ **承认落后 + 立刻绑定约束**："competitive with – though slightly below – Clause2Inv (356) and LORIS (351)"，紧接着指出那两个 "require state of the art expensive frontier models run on external servers"；再补覆盖面优势 | **有，是「约束下的 parity」**："competitive running only on a single local machine" | [arXiv:2606.16886](https://arxiv.org/abs/2606.16886) | 部分正文（引言、模型表、结果表、消融表） |
+| Caumartin, Qin, Chatragadda, Panjrolia, Li, Costa, *Exploring the Potential of Llama Models in Automated Code Refinement: A Replication Study* | 2025 | **IEEE SANER 2025**, pp. 681–692（CCF B） | CodeLlama-Instruct 7B、Llama 2 7B（GGUF 4-bit，跑在 Mac Mini M1/16GB 与 RTX 3050 4GB 笔记本上）；附加 Llama 3.1-8B | **隐私为首**，其次可控性（闭源模型隐式版本漂移）、成本 | **换指标 + 用「统计不显著」定义打平**：EM 上输一半（16.70 vs 8.94）时坦承并归因于 25× 参数差；BLEU-T 上做 Mann-Whitney U 检验、95% 置信下无显著差异，据此宣称 comparable。再叠「只在纯代码变更子任务上表现 reasonable」 | **有，但限定词写进句子**："often comparable to ChatGPT … **as measured by BLEU-T scores**" | [arXiv:2412.02789](https://arxiv.org/abs/2412.02789) · [DOI](https://doi.org/10.1109/SANER64311.2025.00070) | 全文 |
+| Su & McMillan, *Distilled GPT for Source Code Summarization* | 2024 | Automated Software Engineering (Springer) 31(1):22 | jam 350M（自研，从 GPT-3.5 蒸馏）；对照 starcoder，规模扫 38M–15.5B | **隐私（数据保管权）为主**，可复现性为辅，成本第三 | **非劣性框架**：人评三维度「未观察到统计显著差异」；直接偏好 52% vs 46% 如实报出但称为 "slight preference" | **有**，措辞是 "mimic" / "replicate"，不是 "outperform" | [arXiv:2308.14731](https://arxiv.org/abs/2308.14731) | 全文 |
+| Pirzada, Parsert, Wang, Korovin, Cordeiro, *Neuro-Symbolic Software Verification: Hyper-charging Local Language Models with Symbolic Reasoning at Scale*（系统名 VerIbmc） | 2026 | 无（arXiv preprint，无 venue 标注） | GPT-OSS-120B / GPT-OSS-20B / Qwen2.5-32B / Qwen2.5-7B / Llama-3.1-8B，本地 Ollama + 4×A6000；后端 ESBMC v8.2 | **隐私 + 可复现性 + 能耗/成本**三条并列，隐私打头 | **承认落后 + 立刻绑定约束**："competitive with – though slightly below – Clause2Inv (356) and LORIS (351)"，紧接着指出那两个 "require state of the art expensive frontier models run on external servers"；再补覆盖面优势 | **有，是「约束下的 parity」**："competitive running only on a single local machine" | [arXiv:2606.16886](https://arxiv.org/abs/2606.16886) | 部分正文（引言、模型表、结果表、消融表） |
 | Hasan, Islam, Khan, Senjik, Iqbal, *Automatic High-Level Test Case Generation using Large Language Models* | 2025 | **MSR 2025**（CCF B） | LLaMA 3.1 8B + Mistral 7B（QLoRA 4-bit 微调）；对照 GPT-4o、Gemini | **保密 + 成本**，且是**问卷实证**：46.2% 受访者所在公司限制外部服务器工具（保密 34.6%、成本 11.6%） | 自动指标赢（BERTScore F1 90.14 vs 88.43）；**人评输**（correctness 4.15 vs 4.23，completeness 3.61 vs 3.91）→ **重述为取舍**（completeness 与 relevance 负相关） | **有，outperform**（自动指标口径） | [arXiv:2503.17998](https://arxiv.org/abs/2503.17998) | 全文 |
-| Tai, Nie, Golab, Wong, *NL in the Middle: Code Translation with LLMs and Intermediate Representations* | 2025 | 无（arXiv preprint，dblp 记 CoRR；是否被接收**待核验**） | Open Gpt4 8X7B（HuggingFace 开源 MoE，**不是** OpenAI GPT-4）、StarCoder、CodeGen | 主线是 prompt 工程；**隐私只在 §V-B Limitations 里作为模型选型的事后辩护** | ⭐ **限定场景反将一军**（本批最凝练的模板段）：承认 GPT-4 显著更好 → 宣布对方赛道不是企业真实赛道 → 把贡献重定义为「在可部署模型上的相对提升」 | **明确没有**，并明说打不平 | [arXiv:2507.08627](https://arxiv.org/abs/2507.08627) | 全文 |
-| Kumar & Chimalakonda, *Code Review Automation Via Multi-task Federated LLM — An Empirical Study* | 2024 | 无（arXiv preprint；是否发表**待核验**） | LLaMA-3 8B + LoRA 联邦微调（可训练参数 0.016%–0.104%） | **隐私（专有代码不能出企业）**，且直接决定选型："**we avoided using any closed-source models**" | ⭐ **坦承 + 一句话用隐私正当化**："the central model performs better … **However, we choose FL because it offers privacy**"，并提前把差距定义为已知 trade-off。同时**把被牺牲的那一侧（集中训练上界）真的跑了并报数** | **没有**，原则性回避与闭源模型比较 | [arXiv:2412.15676](https://arxiv.org/abs/2412.15676) | 全文 |
-| Sirin, Sami, Granlund, Rasku, Zhang, Abrahamsson, *Enhancing Regulation-Adherent Requirement Engineering with Contextual AI: An Industrial Study* | 2025 | PROFES 2025, LNCS 16362, pp. 69–85（industry/workshop 分册，**非主会 research track**；CCF 未列级） | Llama 3.2 3B、Qwen 2.5 14B、Mistral Small 3 24B、DeepSeek-R1-Distill-Qwen 32B、Llama 3.3 70B，全部 Ollama 本地；真实医疗器械需求数据 | **隐私 / 法规合规**，唯一主打，摘要第一段即是 | ⭐ **干脆不比，并把「不比」包装成研究缺口**：Related Work 点名前人用 GPT-4 的工作，一句 "their approach overlooks data privacy concerns due to the use of cloud-based models" 判其不适用。内部基线是人写的需求（SBERT 余弦 0.446–0.632），无阈值，改用「需 RE 专家密切监督」的定性说法 | **没有**，claim 是「可行性」不是「平手」 | [Springer](https://link.springer.com/chapter/10.1007/978-3-032-12092-2_5) · [同题硕士论文全文](https://trepo.tuni.fi/bitstream/handle/10024/228218/SirinAzizOrhan.pdf?sequence=2&isAllowed=y) | 会议版仅摘要（付费墙）；**同题硕士论文全文已读** ⚠️ 数字可能有出入 |
+| Tai, Nie, Golab, Wong, *NL in the Middle: Code Translation with LLMs and Intermediate Representations* | 2025 | 无（arXiv preprint，dblp 记 CoRR；是否被接收**待核验**） | Open Gpt4 8X7B（HuggingFace 开源 MoE，**不是** OpenAI GPT-4）、StarCoder、CodeGen | 主线是 prompt 工程；**隐私只在 §V-B Limitations 里作为模型选型的事后辩护** | **限定场景反将一军**（本批最凝练的模板段）：承认 GPT-4 显著更好 → 宣布对方赛道不是企业真实赛道 → 把贡献重定义为「在可部署模型上的相对提升」 | **明确没有**，并明说打不平 | [arXiv:2507.08627](https://arxiv.org/abs/2507.08627) | 全文 |
+| Kumar & Chimalakonda, *Code Review Automation Via Multi-task Federated LLM — An Empirical Study* | 2024 | 无（arXiv preprint；是否发表**待核验**） | LLaMA-3 8B + LoRA 联邦微调（可训练参数 0.016%–0.104%） | **隐私（专有代码不能出企业）**，且直接决定选型："**we avoided using any closed-source models**" | **坦承 + 一句话用隐私正当化**："the central model performs better … **However, we choose FL because it offers privacy**"，并提前把差距定义为已知 trade-off。同时**把被牺牲的那一侧（集中训练上界）真的跑了并报数** | **没有**，原则性回避与闭源模型比较 | [arXiv:2412.15676](https://arxiv.org/abs/2412.15676) | 全文 |
+| Sirin, Sami, Granlund, Rasku, Zhang, Abrahamsson, *Enhancing Regulation-Adherent Requirement Engineering with Contextual AI: An Industrial Study* | 2025 | PROFES 2025, LNCS 16362, pp. 69–85（industry/workshop 分册，**非主会 research track**；CCF 未列级） | Llama 3.2 3B、Qwen 2.5 14B、Mistral Small 3 24B、DeepSeek-R1-Distill-Qwen 32B、Llama 3.3 70B，全部 Ollama 本地；真实医疗器械需求数据 | **隐私 / 法规合规**，唯一主打，摘要第一段即是 | **干脆不比，并把「不比」包装成研究缺口**：Related Work 点名前人用 GPT-4 的工作，一句 "their approach overlooks data privacy concerns due to the use of cloud-based models" 判其不适用。内部基线是人写的需求（SBERT 余弦 0.446–0.632），无阈值，改用「需 RE 专家密切监督」的定性说法 | **没有**，claim 是「可行性」不是「平手」 | [Springer](https://link.springer.com/chapter/10.1007/978-3-032-12092-2_5) · [同题硕士论文全文](https://trepo.tuni.fi/bitstream/handle/10024/228218/SirinAzizOrhan.pdf?sequence=2&isAllowed=y) | 会议版仅摘要（付费墙）；**同题硕士论文全文已读** ⚠️ 数字可能有出入 |
 | Çelikmasat, Özgövde, Aydemir, *Instruction-Tuning Open-Weight Language Models for BPMN Model Generation*（InstruBPM） | 2025 | 无（arXiv preprint，"under preparation for journal submission"，**未经同行评审**） | Qwen3-4B-Instruct-2507 + LoRA + HQQ 量化；对照 GPT-5.1、Claude-4.5 Haiku/Sonnet、Gemini-2.5 Flash/Pro | **成本 + 隐私（on-prem）** | **不需要处理——它全面赢**（BLEU 83.06 vs GPT-5.1 12.64；R-GED 99.44 vs 40.95）。⚠️ 这个量级主要来自**目标格式（DOT 约定）一致性**，是它最大的可攻击面 | **有，强 claim** | [arXiv:2512.12063](https://arxiv.org/abs/2512.12063) | 全文 |
 | Silva, Fang, Monperrus, *RepairLLaMA: Efficient Representations and Fine-Tuned Adapters for Program Repair* | 2025 | **IEEE TSE**（DOI 10.1109/TSE.2025.3581062，CCF A） | CodeLlama-7B + LoRA adapter（4M 可训练参数，比底座小 1600×） | **效率/成本**（"does not scale to frontier models"），隐私不是主打 | 它赢，无需处理："clearly outperforms non-fine-tuned baselines, incl. GPT-4" | **有** | [arXiv:2312.15698](https://arxiv.org/abs/2312.15698) | 仅摘要 ⚠️ |
-| Bappy, Mustafa, Saha, Salehat, *Case Study: Fine-tuning Small Language Models for Accurate and Private CWE Detection in Python Code* | 2025 | 无（arXiv preprint，cs.CR） | codegen-mono **350M**，指令微调；训练数据由 gemini-2.0-flash 合成 500 条；推理在**无 GPU 的 i5-13500** 上 | **隐私 / 数据治理合规**（金融、医疗、政府） | ⭐ **最激进的回避**：连一次 GPT-4 实验都没做，基线是未微调的自己（0% → 99%），并把「跟 SOTA 比」整体推给 future work | 有隐含 claim（"comparable to or exceeding more resource-intensive methods"）但**零实验支撑** | [arXiv:2504.16584](https://arxiv.org/abs/2504.16584) | 全文 ⚠️ **质量提示**：非 CCF venue，测试集仅 100 条**合成**样本，报 99% accuracy——**只当修辞语料，不当性能证据** |
+| Bappy, Mustafa, Saha, Salehat, *Case Study: Fine-tuning Small Language Models for Accurate and Private CWE Detection in Python Code* | 2025 | 无（arXiv preprint，cs.CR） | codegen-mono **350M**，指令微调；训练数据由 gemini-2.0-flash 合成 500 条；推理在**无 GPU 的 i5-13500** 上 | **隐私 / 数据治理合规**（金融、医疗、政府） | **最激进的回避**：连一次 GPT-4 实验都没做，基线是未微调的自己（0% → 99%），并把「跟 SOTA 比」整体推给 future work | 有隐含 claim（"comparable to or exceeding more resource-intensive methods"）但**零实验支撑** | [arXiv:2504.16584](https://arxiv.org/abs/2504.16584) | 全文 ⚠️ **质量提示**：非 CCF venue，测试集仅 100 条**合成**样本，报 99% accuracy——**只当修辞语料，不当性能证据** |
 | Wolfe et al., *Laboratory-Scale AI: Open-Weight Models are Competitive with ChatGPT Even in Low-Resource Settings* | 2024 | ACM FAccT 2024（DOI 10.1145/3630106.3658966）⚠️ 非 SE venue | 小开源权重模型（摘要页未列名）vs GPT-4-Turbo，单张低价 GPU | **透明性 / 隐私 / 可适配性 / 证据标准**（面向 "under-resourced yet risk-intolerant" 的政府、科研、医疗） | **限定作用域**：parity 只在 "domain-adapted tasks" 上，**明确让出** zero-shot SOTA 给闭源；再补三项闭源做不到的维度（bias / privacy / abstention） | **有，重度对冲**（"competitive"，非 "better"） | [arXiv:2405.16820](https://arxiv.org/abs/2405.16820) | 仅摘要 ⚠️ |
 | Lu, Yu, Li, Yang, Zuo, *LLaMA-Reviewer* | 2023 | IEEE ISSRE 2023, pp. 647–658（CCF B） | LLaMA + PEFT（<1% 可训练参数） | **资源约束/成本** | 只与 CodeReviewer / AUGER 等**领域专用基线**比，不与 GPT-4 比 | 无 | [arXiv:2308.11148](https://arxiv.org/abs/2308.11148) | 仅摘要 ⚠️ |
 | Jambigi, Bogacz, Mueller, Bach, Felderer, *Fault Localization via Fine-tuning LLMs with Mutation Generated Stack Traces* | 2025 | 无（arXiv preprint；提交者自述尚未取得机构发布许可） | 微调开源 LLM（型号/参数量**待核验**），工业对象 SAP HANA | 摘要口径是**数据可得性**（生产崩溃只有 stack trace），不是隐私 | 根因定位 66.9% vs 基线 12.6% / 10.6% | 摘要中无 GPT-4o 对比 | [arXiv:2501.18005](https://arxiv.org/abs/2501.18005) | 仅摘要 ⚠️ |
@@ -39,7 +39,7 @@
 
 ⚠️ **关于「读到什么程度」的自我约束**：上表中标「仅摘要」的四条（RepairLLaMA、Laboratory-Scale AI、LLaMA-Reviewer、SAP HANA 故障定位），其「怎么处理比 SOTA 弱」一列的判断**只应作为线索**，不得作为论文写作时的引用依据。任务的硬性要求第 2 条要的是正文证据，这四条没有。
 
-## 2. ⭐ 处理不利结果的策略分类（本调研对我们最有用的部分）
+## 2. 处理不利结果的策略分类（本调研对我们最有用的部分）
 
 从读到正文的九篇里抽出**六种彼此正交的手法**。成熟的样本都叠用三种以上。按「对我们的可用性」而非出现频率排序。
 
@@ -85,7 +85,7 @@ Caumartin et al. 是**在真正输了的情况下**用这一招的样本，值�
 
 三篇的主结果**全部是相对增益**，而基线是各自能选的最弱那一个。Bappy 走到了极端：未微调的 codegen-mono **"failed to detect a single CWE"**，于是叙事变成「0 → 99%」，SOTA 对照被挤出了画面；他们在 Limitations 里承认对照缺失是待办——**"conducting rigorous comparative benchmarks against SAST tools and LLMs are also crucial next steps"**。
 
-⚠️⚠️ **这条我单列出来不是推荐，是警告。** 这是本批出现频率最高的手法，也是**我们最需要主动防守的一点**：审稿人只要问一句「跟一个像样的基线比呢」，整段就塌了。而我们的处境比他们更危险——**我们已经知道朴素单提示是 76.2%**，知情不报属于选择性报告，按仓库 §3.5 是 C 级问题。
+⚠️ **这条我单列出来不是推荐，是警告。** 这是本批出现频率最高的手法，也是**我们最需要主动防守的一点**：审稿人只要问一句「跟一个像样的基线比呢」，整段就塌了。而我们的处境比他们更危险——**我们已经知道朴素单提示是 76.2%**，知情不报属于选择性报告，按仓库 §3.5 是 C 级问题。
 
 ### 策略 D：把损失重述为取舍，而不是缺陷
 
@@ -121,7 +121,7 @@ Sirin 的做法最完整：在 Related Work 里点名前人用 GPT-4 的工作�
 
 **对我们的可迁移性：低到不可用。** 2023–2025 年这样做还行，2026 年审稿人一定会问「和 GPT-5.5 直接问一遍比呢」，而我们**已经知道**答案。
 
-### ⭐ 最诚实的一条做法（建议我们采用）：把被约束牺牲掉的那一侧真的跑出来报数
+### 最诚实的一条做法（建议我们采用）：把被约束牺牲掉的那一侧真的跑出来报数
 
 **Kumar & Chimalakonda 是本批唯一这么做的。** 他们的不利结果不是「输给 GPT-4」，而是「联邦版输给集中训练版」——同一个模型、同一份数据，只因隐私约束而降级。他们把这个上界**真的跑了并报了数**，然后一句话收尾：
 
@@ -141,7 +141,7 @@ InstruBPM（Qwen3-4B）在 BLEU 上 83.06 vs GPT-5.1 的 12.64，看起来是碾
 
 这一点值得单独指出，因为它是这批文献的共同短板，也是我们可以在 Related Work 里指出的空白：**所有论文对「够用」的定义几乎全部落在成本与部署侧**——Caumartin 是「假设每天约 100 次代码评审，现有硬件就够，因而 cost-effective」；Bappy 是「无 GPU 的 i5 台式机上 6 tokens/s」；Su & McMillan 是「单张 16GB 消费级 GPU」。**没有一篇说「F1 达到 X 就可以上生产」。** Sirin 甚至只能给定性说法：模型 "usually **miss coverage or introduce out-of-scope lower-level requirements**"，因而 "requires close supervision from RE professionals"。
 
-## 3. ⭐ 防稻草人的做法（他们怎么给大模型设计 prompt）
+## 3. 防稻草人的做法（他们怎么给大模型设计 prompt）
 
 **先给总评：整批的水平很低。** 五篇隐私动机族里，唯一做了实质努力的是 Caumartin（SANER 2025），其余要么根本没跑大模型（Sirin、Bappy、Tai 引用他人数字），要么原则性拒绝跑（Kumar）。**多次采样与方差报告：这五篇全部缺失**（Caumartin 用温度 0 规避，Sirin 明确写了「所有结果只跑一次」）。做得较好的样本反而来自非隐私动机的那几篇。
 
@@ -203,17 +203,17 @@ InstruBPM（Qwen3-4B）在 BLEU 上 83.06 vs GPT-5.1 的 12.64，看起来是碾
 3. **至少一次强化基线的尝试及其结果**——few-shot、结构化输出约束、推理模式、RAG 任选，报告 delta，哪怕是负的（MSR 2025 做法）。
 4. **多次采样**而非单次，报告方差。⚠️ 隐私动机族五篇**全部缺失**这一项；做了的只有 TOSEM 那篇（每个实验跑三次取平均）。这是最容易做到、也最容易成为我们相对优势的一项。
 5. 把 prompt 与版本列入 Threats to Validity（Su & McMillan 做法），并公开 raw output 供复核。
-6. ⭐ **把被约束牺牲掉的那一侧（云端上界）真的跑出来报数**（Kumar 做法）。
+6. **把被约束牺牲掉的那一侧（云端上界）真的跑出来报数**（Kumar 做法）。
 
 另有一份专门的报告规范可直接引：**Korn, Zaruchas, Arora, Metzger, Smolka, Wang, Vogelsang, *Reporting LLM Prompting in Automated Software Engineering: A Guideline Based on Current Practices and Expectations*, FORGE 2026, [arXiv:2601.01954](https://arxiv.org/abs/2601.01954)**。它分析了三大 SE 会议自 2022 年以来约 300 篇论文的 prompt 报告实践，并调查 105 位 PC 成员的期望，发现三处主要错位：**版本披露、prompt 论证、威胁效度**。⚠️ 我只读到摘要页，具体的 essential/desirable/exceptional 分级清单未读到，引用前需补读正文。
 
 **这批论文里没有一篇把上面 6 条都做到**——这本身就是我们相关工作段落可以指出的空白，也是我们做全之后可以主张的方法论贡献。
 
-## 4. ⭐ 「复杂流水线在强模型上反而更差」的文献证据
+## 4. 「复杂流水线在强模型上反而更差」的文献证据
 
 **结论先行：有，而且证据链比预期强得多。** 九篇从不同角度指向同一组机制，其中六篇给了逐格数字；**其中一篇的任务域与 project_1 完全相同**。
 
-### 4.1 ⭐⭐ 同一任务域的直接同形证据：NL → UML 状态机上，朴素单提示在强模型上打败流水线
+### 4.1 同一任务域的直接同形证据：NL → UML 状态机上，朴素单提示在强模型上打败流水线
 
 **Abdulkarim, Boyd, Bridi, Tufenkjian, Chen, Mussbacher (McGill), *Structure- and Event-Driven Frameworks for State Machine Modeling with LLMs*, [arXiv:2604.00275](https://arxiv.org/abs/2604.00275)（2026-03-31）。venue 待核验。**
 
@@ -226,7 +226,7 @@ InstruBPM（Qwen3-4B）在 BLEU 上 83.06 vs GPT-5.1 的 12.64，看起来是碾
 | Event-Driven SMF | 0.3735 | 0.3052 |
 | Hybrid Approach | **0.6559** | 0.6336 |
 
-⭐ **一个干净的 crossover**：在较弱模型（GPT-4o）上脚手架 **+0.11**，在较强模型（Claude 3.5 Sonnet）上脚手架 **−0.07 到 −0.40**。机制陈述逐字：
+**一个干净的 crossover**：在较弱模型（GPT-4o）上脚手架 **+0.11**，在较强模型（Claude 3.5 Sonnet）上脚手架 **−0.07 到 −0.40**。机制陈述逐字：
 
 > "These findings suggest that while non-reasoning LLMs benefit from multi-step generation strategies, **such strategies may interfere with the inherent step-by-step reasoning process of reasoning LLMs.**"
 
@@ -238,7 +238,7 @@ InstruBPM（Qwen3-4B）在 BLEU 上 83.06 vs GPT-5.1 的 12.64，看起来是碾
 
 1. **样本只有 8 个**，且来自本科建模课：`our dataset of eight examples is a limitation. While these examples vary in complexity, they come from an undergraduate modelling course and may not generalize`。
 2. **shot 数不对等，基线被有意加强**：`For our single-prompt strategy we employ 3-shot prompting, adding another ground truth state machine, ChessClock, to our pool, aiming to improve upon the baseline accuracy`（多步策略是 2-shot）。⚠️ 论文内部还自相矛盾：框架定义节写的是 `Single-Prompt Baseline is a generation strategy with a 2-shot technique`——两处口径不一致，**待核验**。
-3. ⭐ **输出格式 + 后处理器混淆**：单提示直出 Umple 代码，多步策略产 HTML 表并过一个 `strict rule-based post-processor module`。作者自陈 `the strict post-processor module for HTML tables may suppress valid LLM outputs that are not fully compliant, hence influencing the final result`。**这正是根 CLAUDE.md §11「确定性门一票否决、模型没有合法写法能通过」的现成外部案例**——「多步流水线更差」里有一部分可能是自家的门吃掉了合法输出，而不是流水线思路有害。⭐ **我们自己也必须先排除这一项再下结论。**
+3. **输出格式 + 后处理器混淆**：单提示直出 Umple 代码，多步策略产 HTML 表并过一个 `strict rule-based post-processor module`。作者自陈 `the strict post-processor module for HTML tables may suppress valid LLM outputs that are not fully compliant, hence influencing the final result`。**这正是根 CLAUDE.md §11「确定性门一票否决、模型没有合法写法能通过」的现成外部案例**——「多步流水线更差」里有一部分可能是自家的门吃掉了合法输出，而不是流水线思路有害。**我们自己也必须先排除这一项再下结论。**
 4. **「Claude 3.5 Sonnet = reasoning LLM」是作者自造口径**，与业界通行分类不符（该模型无 extended thinking）。引用时应改述为「在两个模型上呈相反趋势」，不要照搬标签。
 5. 无 token / 成本数据；评测是**单作者人工判定、无双人复核**（按仓库「判定层是独立误差源」口径，这是单向误差源）。
 
@@ -270,7 +270,7 @@ Critique 在 GPT-4o 上 Java +0.28、Python +0.75；同一个 Critique 在 o1-mi
 
 > "this increased computational overhead **does not necessarily translate into better performance**, indicating that more complex prompts may inadvertently prolong reasoning, leading to greater costs without proportional benefits."
 
-⭐ **对我们最有价值的一条是它的消融**：剥掉执行反馈与迭代（`-no-iter`）后，**AgentCoder 在 GPT-4o 上从 96.3 掉到 87.8，低于 zero-shot 的 90.4**。也就是说，AgentCoder 相对 zero-shot 的 +5.9 分**几乎全部来自真实执行反馈，而不是 multi-agent 的提示词结构**：
+**对我们最有价值的一条是它的消融**：剥掉执行反馈与迭代（`-no-iter`）后，**AgentCoder 在 GPT-4o 上从 96.3 掉到 87.8，低于 zero-shot 的 90.4**。也就是说，AgentCoder 相对 zero-shot 的 +5.9 分**几乎全部来自真实执行反馈，而不是 multi-agent 的提示词结构**：
 
 > "the useful part of each approach's prompt is the **test execution information and the fix phase during the iteration** instead of the **formulation of prompts**."
 
@@ -297,7 +297,7 @@ Java 单测生成，393 类 / 3,657 方法。复现 **HITS、SymPrompt、TestSpa
 
 HITS 16,735 次调用 vs Plain-LLM 11,815（**1.42×**），覆盖率还低 7.5 个点。规模趋势逐字：**"stronger (newer) LLMs may obviate any advantage these techniques bring."**
 
-⭐ **这是「成本上升、收益为负」最干净的一组数字，且被比较的四条流水线都带真实执行反馈**——也就是说，§4.8 那条「有外部可验证信号就还有救」的共识**在这里失效了**。这一点对我们是坏消息：不能简单地把「我们的 loop 没接外部验证器」当成唯一根因。
+**这是「成本上升、收益为负」最干净的一组数字，且被比较的四条流水线都带真实执行反馈**——也就是说，§4.8 那条「有外部可验证信号就还有救」的共识**在这里失效了**。这一点对我们是坏消息：不能简单地把「我们的 loop 没接外部验证器」当成唯一根因。
 
 ⚠️ **两条纠偏**：(a) 摘要里的 **20.92%** 是相对提升且对着 HITS 27.97 算的；对真正的最佳基线 SymPrompt 28.40 算只有 **19.1%**——引绝对百分点更稳。(b)「差距随模型变强而扩大」这条**与数据泄漏混淆**：DeepSeek V3 上差距最大，作者自己归因于数据集可能已进其训练语料，**不可当干净的规模趋势引用**。
 
@@ -309,7 +309,7 @@ HITS 16,735 次调用 vs Plain-LLM 11,815（**1.42×**），覆盖率还低 7.5 
 
 机制解释直指要害：**"bottlenecked by the model's ability to provide feedback on its own code"**——把反馈换成更强模型产生的反馈后收益显著变大；小规模人类反馈实验进一步说明即便最强模型也远不及人类水平的调试。
 
-⭐ **这一条对我们的意义**：我们的 loop 吃掉 79% 的 token 而覆盖率净变化约等于零，与这篇的诊断**完全同形**。它给了一个现成的、可引的因果解释：**自我批判的上限是模型自评的质量，而不是循环的次数或结构。** 同时它指出了下一步方向——**把自评换成外部可验证信号**（这与 §4.2 的 `-no-iter` 消融是同一结论的两次独立观测）。
+**这一条对我们的意义**：我们的 loop 吃掉 79% 的 token 而覆盖率净变化约等于零，与这篇的诊断**完全同形**。它给了一个现成的、可引的因果解释：**自我批判的上限是模型自评的质量，而不是循环的次数或结构。** 同时它指出了下一步方向——**把自评换成外部可验证信号**（这与 §4.2 的 `-no-iter` 消融是同一结论的两次独立观测）。
 
 ⚠️ 读到程度：摘要 + 检索摘要（含 pass@t、1.05×、10%/3%、1.58× 等数字）。**arXiv 摘要页未确认 1.58× 与 pass@t 的具体表述**，正文未通读，这几个数字标为**待核验**。
 
@@ -332,7 +332,7 @@ SWE-bench Lite 上、**同一个 GPT-4o**：
 
 ⚠️ **三条必须一起引的限定**：(a) 它**不是榜首**（CodeStory Aide 43.00%、Bytedance MarsCode 39.33% 都更高），"highest performance" 只在 **open-source** 范围内成立；(b) 它**不是最便宜**（Moatless $0.14），原文措辞是 "less than **most** prior agent-based approaches"；(c) 它**只用了 GPT-4o 一个模型**，**没有模型强度这一维的对照**——所以它支撑的是「同模型下 agent 不如流水线」，**支撑不了**「强模型上 agent 才失效」。后者只有 §4.2 能撑。
 
-### 4.6 ⭐ 逐模型消融：同一套符号脚手架，给最弱模型 +35、给最强模型 +3（2026）
+### 4.6 逐模型消融：同一套符号脚手架，给最弱模型 +35、给最强模型 +3（2026）
 
 **VerIbmc（[arXiv:2606.16886](https://arxiv.org/abs/2606.16886)）** 给了本调研里**最贴合我们处境的一张表**。它对同一套三阶段流水线做 Basic（完整流水线）vs LLM-Only（跳过符号先验）的对照：
 
@@ -360,33 +360,33 @@ SWE-bench Lite 上、**同一个 GPT-4o**：
 
 > "Negative impacts occur in the majority of configurations for both 'code slicing' (8/12) and 'context window' expansion (7/12)"
 
-⭐ 它给了一个可以直接借用的机制词——**噪声稀释**："Additional lines introduce noise (irrelevant code paths, error handling, logging) that **dilutes the repair signal**"；以及 "irrelevant information **alters the model's reasoning trajectory**"。质性案例：给了几何相关函数后，模型错误推断维度不匹配应抛 `ValueError`，而正解是补零升维——`unrelated abstractions bias the model toward an overly restrictive interpretation`。⚠️ 它测的是**上下文粒度**，不是 self-refine / 多智能体，**不能当同一种消融引**。
+它给了一个可以直接借用的机制词——**噪声稀释**："Additional lines introduce noise (irrelevant code paths, error handling, logging) that **dilutes the repair signal**"；以及 "irrelevant information **alters the model's reasoning trajectory**"。质性案例：给了几何相关函数后，模型错误推断维度不匹配应抛 `ValueError`，而正解是补零升维——`unrelated abstractions bias the model toward an overly restrictive interpretation`。⚠️ 它测的是**上下文粒度**，不是 self-refine / 多智能体，**不能当同一种消融引**。
 
 **(b) 多智能体相对单智能体的优势随模型变强而缩小。** Gao, Li, Liu, Yu, Wang, Lin, Lai, *Single-agent or Multi-agent Systems? Why Not Both?*, [arXiv:2505.18286](https://arxiv.org/abs/2505.18286)（2025-05-23，无 venue）。摘要逐字：**"the benefits of MAS over SAS diminish as LLM capabilities improve"**，理由是前沿模型（点名 OpenAI-o3、Gemini-2.5-Pro）在长上下文推理、记忆与工具使用上的进步侵蚀了 MAS 最初的立论基础。⚠️ 仅摘要。
 
-**(c) 中间指标改善不等于端到端改善。** Steenhoek et al., *To Err is Machine: Vulnerability Detection Challenges LLM Reasoning*, [arXiv:2403.17218](https://arxiv.org/abs/2403.17218)。⚠️ **未独立核验，转述自子调研，标待复核。** C/C++ 函数级漏洞检测，14 个模型 × 6 种 prompt 脚手架，据报 `none of the models or prompts exceeded the random-guessing baseline (Balanced Accuracy = 50) by more than 5%`。⭐ 最有用的一条：`CoT-Annotations reduced the errors of bounds/NULL checks recognition by 15-70% […] We also observed that the improvement of understanding bounds/NULL checks did not significantly improve the models' performance`——**中间能力提升了，端到端没动。** ⚠️ 方向要当心：此文说的是「**任何**手段都不涨（含扩大模型）」，**不是**「模型越强脚手架越无用」；作者结尾反而把推理模型 + 脚手架当希望，**不能引成反脚手架**。
+**(c) 中间指标改善不等于端到端改善。** Steenhoek et al., *To Err is Machine: Vulnerability Detection Challenges LLM Reasoning*, [arXiv:2403.17218](https://arxiv.org/abs/2403.17218)。⚠️ **未独立核验，转述自子调研，标待复核。** C/C++ 函数级漏洞检测，14 个模型 × 6 种 prompt 脚手架，据报 `none of the models or prompts exceeded the random-guessing baseline (Balanced Accuracy = 50) by more than 5%`。最有用的一条：`CoT-Annotations reduced the errors of bounds/NULL checks recognition by 15-70% […] We also observed that the improvement of understanding bounds/NULL checks did not significantly improve the models' performance`——**中间能力提升了，端到端没动。** ⚠️ 方向要当心：此文说的是「**任何**手段都不涨（含扩大模型）」，**不是**「模型越强脚手架越无用」；作者结尾反而把推理模型 + 脚手架当希望，**不能引成反脚手架**。
 
 ### 4.8 这条证据链怎么用
 
 **共识机制有三条，彼此独立：**
 
 1. **收益来自可验证的外部信号，不来自脚手架的组织形式。** Agentless 的 Table 4（majority voting 77 → +regression test 81 → +reproduction test 96）与 TOSEM 的 `-no-iter` 消融（AgentCoder GPT-4o 96.3 → 87.8）是两次独立佐证；Olausson 从反面说明外部信号缺席、只能靠自评时收益为什么消失。
-2. ⭐ **噪声稀释 / 推理轨迹被改道。** 这是**单智能体多阶段**的机制，与「多智能体的协调开销」不是一回事——**对我们更相关，因为我们做的是流水线不是多智能体**。见 §4.7(a) 的 `dilutes the repair signal` / `alters the model's reasoning trajectory`，以及 §4.1 的 `may interfere with the inherent step-by-step reasoning process`。
-3. ⭐ **脚手架的收益可能被脚手架自己的确定性门吃掉。** §4.1 的作者亲口承认 `the strict post-processor module for HTML tables may suppress valid LLM outputs that are not fully compliant`。这意味着「多步流水线更差」的观测里有一部分是**流水线自带的严格校验门误伤**，而非流水线思路有害。这既是引用时的诚实限定，也正好是根 CLAUDE.md §11 那条纪律的外部佐证。
+2. **噪声稀释 / 推理轨迹被改道。** 这是**单智能体多阶段**的机制，与「多智能体的协调开销」不是一回事——**对我们更相关，因为我们做的是流水线不是多智能体**。见 §4.7(a) 的 `dilutes the repair signal` / `alters the model's reasoning trajectory`，以及 §4.1 的 `may interfere with the inherent step-by-step reasoning process`。
+3. **脚手架的收益可能被脚手架自己的确定性门吃掉。** §4.1 的作者亲口承认 `the strict post-processor module for HTML tables may suppress valid LLM outputs that are not fully compliant`。这意味着「多步流水线更差」的观测里有一部分是**流水线自带的严格校验门误伤**，而非流水线思路有害。这既是引用时的诚实限定，也正好是根 CLAUDE.md §11 那条纪律的外部佐证。
 
-⭐ **对我们的直接含义（三条自查，写之前必须做完）：**
+**对我们的直接含义（三条自查，写之前必须做完）：**
 
 - 我们那句「loop 吃掉 79% token 而覆盖率净变化约等于零」**不是丑闻，而是一个已被文献反复确认的现象**。但⚠️ **不能直接拿机制 1 挡枪**：§4.3 那四条被打败的流水线**全都带真实执行反馈**，说明「有外部信号就还有救」并不总成立。
 - ⛔ **先排除机制 3 再下任何结论**：我们的契约门 / 致命门 / 谓词拒答有没有在吃掉本来正确的产出？这与仓库 §11、§13 是同一件事，且 §4.1 提供了「别人也栽在这里」的先例。
 - 机制 2（噪声稀释）意味着一个具体的可测假设：**我们的 loop 在后续轮次注入的反馈文本，是否把模型从第一轮已经正确的判断上带偏了**。这可以用「首轮命中但末轮丢失」的条目数直接量出来，不需要新实验。
 
-### 4.9 ⭐ 一条文献真空（可直接写进 motivation）
+### 4.9 一条文献真空（可直接写进 motivation）
 
 **在 2026 年前沿模型（Claude 4.x / GPT-5.x / Gemini 3.x 一级）上，对 self-refine / 多智能体 / 迭代反馈做逐组件消融、并同时报告 token 成本倍数的 SE 实证研究——本次检索一篇都没找到。**
 
 最接近的三个都各差一环：**2604.05481** 用了 GPT-5-mini，但测的是上下文粒度而非循环；**2604.00275** 有干净的 crossover，但只有 8 个本科课程样本、模型是 2024 年的、且有输出格式与后处理器的混淆；**2601.09695** 有完整的调用量记账，但模型主力是 GPT-4o-mini，且规模趋势与数据泄漏混淆。
 
-⭐ 我们手上的 v46 全量矩阵（54 pair × 2 模型 × 3 轮、逐阶段降级诊断、逐格 token 记账）**恰好就是填这个空缺的形状**。⚠️ 但要主张这个空缺，必须先做 §6.1 第 2 条说的 venue 级扫库——「检索没找到」不等于「不存在」。
+我们手上的 v46 全量矩阵（54 pair × 2 模型 × 3 轮、逐阶段降级诊断、逐格 token 记账）**恰好就是填这个空缺的形状**。⚠️ 但要主张这个空缺，必须先做 §6.1 第 2 条说的 venue 级扫库——「检索没找到」不等于「不存在」。
 
 ## 5. 检索过程
 
@@ -427,7 +427,7 @@ SWE-bench Lite 上、**同一个 GPT-4o**：
 
 1. ⛔ **这不是 systematic review。** 没有预注册检索协议、没有 PRISMA 流程、没有双人筛选、没有覆盖 ACM DL / IEEE Xplore / Scopus 的系统检索。检索完全是关键词驱动的机会性检索，命中受搜索引擎排序影响很大。
 2. ⛔ **CCF A 会议的正文覆盖为零。** ICSE / ASE / ISSTA / MODELS / RE 一篇正文都没读到。**下一步应当直接翻 conf.researchr.org 的 ICSE 2025/2026、ASE 2025、ISSTA 2025 accepted papers 列表，而不是继续用关键词搜。**
-3. ⛔ **「小模型 + 推理时方法学补偿」这个精确形态的 SE 论文，样本量极小。** 大量命中其实是「小模型 + 微调」（RepairLLaMA、LLaMA-Reviewer、MSR 2025、InstruBPM、Kumar、Bappy），而**不是**「不微调、靠推理时的多阶段结构补偿」。真正与我们同构的只有 **VerIbmc 一篇**。这本身是个信号：**要么这个 niche 确实空着（对我们是机会），要么它被证明不 work 所以没人发（对我们是警告）。** 目前证据（§4.6 那张表）两种解读都支持，需要更多样本才能分辨。⭐ 有一条可直接引的空白佐证：[arXiv:2509.11446 — LLMs for RE: A Systematic Literature Review](https://arxiv.org/html/2509.11446v1) 明确指出「本地可部署模型」是 LLM4RE 的公认空白（**该 SLR 本身未核验，仅由子调研在检索中命中**）。
+3. ⛔ **「小模型 + 推理时方法学补偿」这个精确形态的 SE 论文，样本量极小。** 大量命中其实是「小模型 + 微调」（RepairLLaMA、LLaMA-Reviewer、MSR 2025、InstruBPM、Kumar、Bappy），而**不是**「不微调、靠推理时的多阶段结构补偿」。真正与我们同构的只有 **VerIbmc 一篇**。这本身是个信号：**要么这个 niche 确实空着（对我们是机会），要么它被证明不 work 所以没人发（对我们是警告）。** 目前证据（§4.6 那张表）两种解读都支持，需要更多样本才能分辨。有一条可直接引的空白佐证：[arXiv:2509.11446 — LLMs for RE: A Systematic Literature Review](https://arxiv.org/html/2509.11446v1) 明确指出「本地可部署模型」是 LLM4RE 的公认空白（**该 SLR 本身未核验，仅由子调研在检索中命中**）。
 4. ⛔ **中文 / 非英文文献、工业界白皮书、工具报告完全未覆盖。**
 5. ⛔ **时间窗**：主要覆盖 2023-06 至 2026-06。2026 年上半年的 arXiv 条目很多只有摘要级验证。
 6. ⚠️ **样本的质量方差极大。** 本文件里既有 TSE / TOSEM / FSE / SANER / MSR，也有测试集只有 100 条合成样本的 arXiv preprint。**修辞策略的归纳跨越了这个质量带**——低质量样本的修辞不代表它能过 CCF A/B 的评审。
@@ -449,10 +449,10 @@ SWE-bench Lite 上、**同一个 GPT-4o**：
 | 11 | **§5 检索式 11 与 16 引出的 2026 年 arXiv 条目** | 一条都没核验，标题与结论均来自搜索摘要 | 逐条回 arXiv 核对是否存在、ID 是否正确 |
 | 12 | **Agentless 的 FSE 2025 归属** | 经 DBLP API 核验为 PACMSE vol.2 (2025) 801–824，DOI 10.1145/3715754。⚠️ arXiv v2 的数字与 FSE 正式版可能有差异 | 若要引具体数字，用正式版复核 |
 | 13 | **arXiv:2509.11446（LLM4RE SLR）中「本地可部署模型是公认空白」这句话** | §6.1 第 3 条拿它当空白佐证，但未核验 | 读正文 |
-| 14 | ⭐⭐ **arXiv:2604.00275 的 venue + 那处 shot 数自相矛盾（3-shot vs 2-shot）** | 它是 §4.1、与我们同任务域的最重要一条。若基线其实是 2-shot，则「基线被有意加强」这个限定不成立，结论的分量反而更重；反之亦然。**这个矛盾必须解开才能引** | 读全文 §框架定义节与 §实验设置节，比对；venue 查 DBLP |
-| 15 | ⭐ **arXiv:2601.09695 的 venue，以及 v1 与 v2（2026-07-29）之间数字是否变化** | §4.3 的数字取自子调研抓取的版本，未标明是 v1 还是 v2 | 比对两版 |
+| 14 | **arXiv:2604.00275 的 venue + 那处 shot 数自相矛盾（3-shot vs 2-shot）** | 它是 §4.1、与我们同任务域的最重要一条。若基线其实是 2-shot，则「基线被有意加强」这个限定不成立，结论的分量反而更重；反之亦然。**这个矛盾必须解开才能引** | 读全文 §框架定义节与 §实验设置节，比对；venue 查 DBLP |
+| 15 | **arXiv:2601.09695 的 venue，以及 v1 与 v2（2026-07-29）之间数字是否变化** | §4.3 的数字取自子调研抓取的版本，未标明是 v1 还是 v2 | 比对两版 |
 | 16 | **arXiv:2604.05481 的 venue** | §4.7(a)，2026-04 提交 | 查 DBLP |
-| 17 | ⭐ **arXiv:2403.17218（Steenhoek et al.）与 arXiv:2601.19239（Li et al.）** | §4.7(c) 与成本线索，**子调研亦未独立核验**，全部转述自检索摘要 | 读正文 |
+| 17 | **arXiv:2403.17218（Steenhoek et al.）与 arXiv:2601.19239（Li et al.）** | §4.7(c) 与成本线索，**子调研亦未独立核验**，全部转述自检索摘要 | 读正文 |
 | 18 | ⛔ **arXiv:2607.03691, *Don't Blame the Large Language Model: How Scaffolding Evolution Shapes Coding Agent Quality*** | **方向可能与 §4 全部结论相反**（主张脚手架才是主因）。若属实，这是我们必须正面处理的反方证据，不能装作没看见 | 仅从检索摘要看到，**优先补读** |
 
 ### 6.3 未收获的方向（记录下来避免重复劳动）
