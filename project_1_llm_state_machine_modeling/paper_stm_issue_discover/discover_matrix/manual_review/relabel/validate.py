@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""校验人工重标的完整性、边界与去重，并刷新 `PROGRESS.md`。
+"""校验人工重标的完整性与去重，并刷新 `PROGRESS.md`。
 
 用法：
 
@@ -10,40 +10,34 @@
 
 退出码：有 `E` 级问题 → 1；只有 `W` 级 → 0。
 
-三类检查：
+两类检查：
 
 1. **完整性** —— 每条台账记录都裁了没、每个候选都裁了没、勾了「修正 / 拆分」有没有
-   写出修正后的 statement、新增条目的**必填项**齐不齐、
-   `basis` / `scope` / `direction` / `depth` / `layer` / `primary_predicate` 的取值
-   在不在枚举内。⭐ 这一类**全部是确定性判据**（枚举成员、非空、字段间的定值一致性），
-   故一律报 `E`。⭐ 标了「越界」的条目只要求事实层三项（见 `NF.REQUIRED_WHEN_OUT_OF_SCOPE`）。
-2. **⛔ 建模对象边界（③ 边界层）** —— 新增条目不许**作为缺陷**落在 $M = (S, E, V, Tr, A)$
-   之外：⛔ 无时钟 / 计时 / 秒级约束，⛔ 无不变式，⛔ 无正交区并发。
-   ⭐ 主判据是判读者自己勾的 `scope`：勾了越界的条目 `in_scope = False`、
-   **不计入缺陷统计**（`pair_progress` 单列一栏）。
-   ⭐ 词法关键词只作**补网**：`statement` 命中越界词却仍勾 `界内` 时报 `W` 让人复核。
-   ⚠️ 它**会误伤**（元素恰好叫 `Timer` / `fork`），故只提醒，⛔ 不自动改判、⛔ 不删。
-   ⛔ 只有两处报 `E`：`00x8` 越界 pair 出现了工作单；枚举取值非法。
-   ⚠️ ⛔ 词法门**不扫 `generated_side`** —— 那是定位串，引用一行叫 `Timer` 的状态
-   不使主张越界。越界与否看的是主张要不要时钟 / 并发语义，⛔ 不是名字里有没有那些词。
-3. **去重** —— 新增条目之间、新增条目与本 pair 现有台账条目之间的近重复。三条判据：
-   同一作者源行号；同 `direction` + 命中同一批模型元素名；归一化文本 Jaccard。
-   ⚠️ 三条都只报 `W` —— 「是不是同一个缺陷」是语义判断，⛔ 不能做成确定性门，
-   ⛔ 也不自动判重，只提示人工确认。
-4. **⭐ 依据自洽（② 依据层）** —— `basis` 与 `nl_evidence` / `layer` / `statement`
-   必须说同一件事。确定性的部分报 `E`：
-   ⛔ 勾了 `NL显式义务` / `NL欠指定` 却给不出本 pair 的段 id；
-   ⛔ 勾了 `NL欠指定` 或 `参考模型` 却把 `layer` 记成 `nl_contradiction`
-   （⚠️ 后者之所以要拦：台账四层里**没有**「参考模型依据」的槽位）；
-   ⛔ 勾了 `模型自身` 却把 `layer` 记成 `nl_named` / `nl_contradiction`。
-   ⭐ 需要读文意的部分只报 `W`：勾了 `NL欠指定` 却在 `statement` 里写「违反」
-   （欠指定的句子不构成显式义务，谈不上违反）；勾了 `参考模型`（依据强度不足）。
+   写出修正后的 statement、新增条目的必填项齐不齐。新增条目这一侧只做两件事，
+   两件都能**只看字段值**判定（[CLAUDE.md](../../../../../CLAUDE.md) §11 对「门」的准入要求）：
 
-⛔ **为什么第 2、3 类与第 4 类的一半只报 `W`**：按 [CLAUDE.md](../../../../../CLAUDE.md) §11，
-只有能被完美判定的约束才允许做成会一票否决的门。「这条主张需不需要时钟语义」
-「这两条是不是同一个缺陷」「这句 statement 算不算在说违反」都要语义解释，
-做成 `E` 会把正确答案挡在门外。⭐ 反过来，「勾了 A 就不能同时勾 B」只看两个枚举字段的值，
-⛔ 不需要任何语义解释，故报 `E`。
+   - **枚举取值合法性** —— 五个座标轴的取值必须落在
+     [newfields.py](./newfields.py) `ENUMS` 里，且是单值。
+   - **条件式分支的必填一致性** —— `defect_locus = element` 必须给出维度 A
+     （`defect_element`）与维度 B（`defect_qualifier`）；`defect_locus` 取
+     `pair` / `global` / `other` 必须给出维度 D（`defect_logic_kind`）。
+     填了**另一支**的轴只报 `W`：那多半是选完 locus 忘了删，而「填多了」
+     不像「填少了」那样让记录不可用。
+
+   自由文本三项（`statement` / `expected_after_fix` / `nl_evidence`）只查非空，
+   同样是确定性判据。`nl_evidence` 写 `无` 是合法答案，留空不是。
+
+2. **去重** —— 新增条目之间、新增条目与本 pair 现有台账条目之间的近重复。
+   判据是归一化文本 Jaccard 与命中同一批模型元素名。
+   ⚠️ 只报 `W` —— 「是不是同一个缺陷」是语义判断，不能做成确定性门，也不自动判重。
+
+**这里不做语义判断。** 「这条主张需不需要时钟语义」「这两条是不是同一个缺陷」
+「这条 `defect_reference` 选对了没有」都要读文意，做成 `E` 会把正确答案挡在门外；
+判据在判读者手里（工作单 §5.2 逐取值内联了判定测试），不在校验器手里。
+
+⛔ **边界（时钟 / 不变式 / 并发）不再由校验器过问。** 判读者只判「这是不是缺陷」，
+不判「它属于我们框架的哪一格」；界外发现照常写在 `statement` 里，
+回收后由主 session 从自由文本人工分拣。理由见 [README.md](./README.md) §二.1。
 """
 
 from __future__ import annotations
@@ -64,20 +58,9 @@ import newfields as NF                             # noqa: E402
 import sources as S                                # noqa: E402
 from pumlmodel import PumlModel                    # noqa: E402
 
-# ⛔ 建模对象边界之外的词。命中只报 W —— 判据是词法，会误伤。
-OUT_OF_SCOPE_CUES = [
-    (r"\bfork\b|\bjoin\b|分叉|汇合", "并发伪状态（fork / join）"),
-    (r"正交|并发|并行|同时活跃|orthogonal|concurrent|parallel|region.*同时", "正交区 / 并发语义"),
-    (r"时钟|计时器|clock\b|timer\b|\btimeout\b", "时钟 / 计时器"),
-    (r"\d+\s*(秒|毫秒|ms\b|s\b|second)|秒级|毫秒", "时间量"),
-    (r"不变式|invariant\b(?!\s*\()", "不变式（$Inv$）"),
-    (r"\bwithin\s+\d|在\s*\d+\s*(秒|毫秒)内", "时限约束"),
-]
-
-# ⭐ 新增条目的必填 / 可选 / 枚举取值口径唯一真源是 [newfields.py](./newfields.py)，
-# ⛔ 不要在本文件里另抄一份 —— 抄了就会与模板走偏。本文件一律经 `NF.` 前缀引用。
+# 新增条目的必填 / 可选 / 枚举取值口径唯一真源是 [newfields.py](./newfields.py)，
+# 不要在本文件里另抄一份 —— 抄了就会与模板走偏。本文件一律经 `NF.` 前缀引用。
 DECISION_FIELD = "裁决"
-DEPTH_FIELD = "深度"
 
 _RE_ENUM_SPLIT = re.compile(r"[,，/、\s]+")
 
@@ -114,17 +97,19 @@ def _enum_values(field):
     return [x for x in _RE_ENUM_SPLIT.split(t) if x]
 
 
-def _enum_check(rep, pair, nid, fields, name, allowed, required):
+def _enum_check(rep, pair, nid, fields, name, allowed, required, why=""):
     """检查枚举字段。返回唯一取值（没有 / 非法时返回 `None`）。
 
-    ⭐ 三条判据都是**确定性**的（有没有、是不是单值、在不在集合内），故一律报 `E`。
+    三条判据都是**确定性**的（有没有、是不是单值、在不在集合内），故一律报 `E`。
+    `why` 只在必填缺失时附上一句「为什么这一条要回答它」。
     """
     vals = _enum_values(fields.get(name))
     if not vals:
         if required:
             rep.E(pair, nid,
                   f"必填项 `{name}` 未选 —— 取值只能是 "
-                  + "、".join(f"`{a}`" for a in allowed))
+                  + "、".join(f"`{a}`" for a in allowed)
+                  + (f"。{why}" if why else ""))
         return None
     if len(vals) > 1:
         rep.E(pair, nid, f"`{name}` 是单值字段，却给了 {vals}")
@@ -133,8 +118,7 @@ def _enum_check(rep, pair, nid, fields, name, allowed, required):
         rep.E(pair, nid,
               f"`{name} = {vals[0]}` 不在枚举内。允许取值："
               + "、".join(f"`{a}`" for a in allowed)
-              + ("。⭐ 归不进就选 `unclassified`，⛔ 不要造新取值"
-                 if "unclassified" in allowed else ""))
+              + "。归不进就选 `other`，不要造新取值")
         return None
     return vals[0]
 
@@ -166,77 +150,6 @@ def _model_vocabulary(pair):
     for var in model.variable_candidates():
         out.add(var.lower())
     return out
-
-
-# ⭐「声称模型违反了 NL」的措辞。⛔ 判据是词法、会误伤，故只报 `W`。
-_RE_VIOLATION = re.compile(r"违反|违背|不符合\s*NL|与\s*NL\s*矛盾|contradict|violat", re.I)
-
-
-def _check_basis(rep, pair, nid, basis, layer, nle, cited, stmt):
-    """② 依据层的自洽检查。
-
-    ⭐ 分两类，⛔ 不许混：**只看两个枚举字段的值**就能判定的报 `E`（确定性，
-    符合 [CLAUDE.md](../../../../../CLAUDE.md) §11 对「门」的准入要求）；
-    需要读文意才能判定的报 `W`。
-
-    ⚠️ 这一层之所以单独存在，是因为台账的 `layer` 是按**缺陷种类**分的，却被同时当成
-    **依据来源**的轴在用；⛔ 而四层里**没有**「依据来自参考模型」的槽位，
-    于是这类记录只能被硬塞进某一层，依据强度就此丢失。见 `newfields.py` 模块 docstring。
-    """
-    if not basis:
-        return
-
-    # ---- E：NL 类依据必须落到具体某一段
-    if basis in NF.NL_BASED_BASES and not cited:
-        rep.E(pair, nid,
-              f"`basis = {basis}` 却给不出本 pair 的 NL 段 id"
-              f"（`nl_evidence` 现为 `{nle or '（空）'}`）。"
-              "⛔ 依据在 NL 上，就必须指到**哪一段** —— 段 id 形如 "
-              f"`{sorted(_known_seg_ids(pair))[0]}`，⭐ 后面可以再跟一句逐字引文。"
-              "⭐ 若依据其实不在 NL 上，请把 `basis` 改成 `模型自身` 或 `参考模型`")
-
-    # ---- E：`layer` 与 `basis` 的定值冲突
-    if basis == "NL欠指定" and layer == "nl_contradiction":
-        rep.E(pair, nid,
-              "`basis = NL欠指定` 与 `layer = nl_contradiction` 不能并存 —— "
-              "⛔ 欠指定的句子**不构成显式义务**，谈不上「与显式义务矛盾」。"
-              "⭐ 要么改 `basis` 为 `NL显式义务`（并说明那一句到底把哪些槽位说清了），"
-              "要么改 `layer`")
-    if basis == "参考模型" and layer == "nl_contradiction":
-        rep.E(pair, nid,
-              "`basis = 参考模型` 与 `layer = nl_contradiction` 不能并存 —— "
-              "⛔ 参考模型不是 NL，与它不同谈不上「与 NL 的显式义务矛盾」。"
-              "⚠️ 台账四层里**没有**「参考模型依据」的槽位，"
-              "⛔ 这类记录只能被硬塞进某一层，依据强度就此丢失 —— "
-              "⭐ 那正是本轮把 `basis` 单列出来的原因。"
-              "⭐ 请把 `layer` 留空（等于「本条待裁定」），"
-              "并在 `statement` 里写明还缺什么这条才站得住")
-    if basis == "模型自身" and layer in ("nl_named", "nl_contradiction"):
-        rep.E(pair, nid,
-              f"`basis = 模型自身` 与 `layer = {layer}` 不能并存 —— "
-              "⛔ 那一层按台账定义要求 NL 逐字依据。"
-              "⭐ 只读模型就能判定的走 `wellformedness`")
-
-    # ---- W：要读文意才能判定的
-    if basis == "NL欠指定" and _RE_VIOLATION.search(stmt):
-        rep.W(pair, nid,
-              "`basis = NL欠指定`，⛔ 但 `statement` 里出现了「违反」类措辞。"
-              "⛔ 欠指定的意思是**原文没把这件事说清**（没写源状态 / 没写触发 / "
-              "并列项无连接词），因此它支撑不起「模型违反了它」。"
-              "⭐ 请改写成「原文未规定，模型自行选择了一种读法」这类表述，"
-              "或改 `basis` 为 `NL显式义务` 并说明那一句说清了什么。"
-              "⚠️ 判据是词法、会误伤（例如你写的是「不违反」）")
-    if basis == "参考模型":
-        rep.W(pair, nid,
-              "`basis = 参考模型` —— ⚠️ 参考模型**不是正确答案**"
-              "（语料里多处参考侧比生成侧更差，见 §1.3 与 README §二.3），"
-              "⛔ 故这一种依据**单独不足以**支撑一条缺陷。"
-              "⭐ 请在 `statement` 里写明还缺什么才站得住；⛔ 台账四层也没有它的槽位")
-    if basis == "模型自身" and cited:
-        rep.W(pair, nid,
-              f"`basis = 模型自身` 却又引了 {sorted(cited)} —— ⭐ 两者不矛盾"
-              "（NL 可以只作背景），⛔ 但若这一条其实是靠 NL 才成立的，"
-              "`basis` 应改成 `NL显式义务` 或 `NL欠指定`")
 
 
 class Report:
@@ -272,11 +185,6 @@ def validate_pair(pair, data, rep):
             rep.E(pair, rid, "台账条目未裁决（`裁决:` 一行没有任何 `[x]`）")
         elif len(chosen) > 1:
             rep.E(pair, rid, f"裁决多选：{chosen} —— 该字段是单值")
-        depth = _chosen(rec.get(DEPTH_FIELD))
-        if chosen and chosen[0] != "删除" and not depth:
-            rep.E(pair, rid, "未判深度（`深度:` 没有任何 `[x]`）")
-        elif len(depth) > 1:
-            rep.E(pair, rid, f"深度多选：{depth}")
         if chosen and chosen[0] in ("修正", "拆分"):
             if not _text(rec.get("修正后的 statement")) and not _text(rec.get("修正后的statement")):
                 rep.E(pair, rid, f"裁决为「{chosen[0]}」但未写出修正后的 statement")
@@ -296,8 +204,6 @@ def validate_pair(pair, data, rep):
         if chosen[0].startswith("采纳"):
             if not _text(cand.get("补入后的 statement")) and not _text(cand.get("补入后的statement")):
                 rep.E(pair, cand["key"], "候选判为采纳但未写出补入后的 statement")
-            if not _chosen(cand.get(DEPTH_FIELD)):
-                rep.E(pair, cand["key"], "候选判为采纳但未判深度")
         if chosen[0] == "并入现有条目" and not _text(cand.get("并入到")):
             rep.E(pair, cand["key"], "候选判为并入但未写「并入到」")
 
@@ -308,126 +214,91 @@ def validate_pair(pair, data, rep):
             rep.W(pair, "PAIR", "§0 未给整体判断")
 
     # ---------------------------------------------------------- 新增条目
+    #
+    # 这一段只做两件事，两件都只看字段值：枚举取值合法性、条件式分支的必填一致性。
+    # 语义判断不进这里 —— 判据逐取值内联在工作单 §5.2，由判读者执行。
     vocab = _model_vocabulary(pair) if data["new_issues"] else set()
     new_sigs = []
     for rec in data["new_issues"]:
         nid = rec["id"]
         f = rec["fields"]
 
-        # ---- ① 事实层：两项恒必填（⭐ 越界条目也要说清「看到了什么、在哪」）
+        # ---- ① 座标系：先判 locus，它决定后面问哪些轴
+        locus = _enum_check(rep, pair, nid, f, "defect_locus",
+                            NF.ENUMS["defect_locus"], required=True)
+        for axis in NF.required_axes_for(locus):
+            _enum_check(rep, pair, nid, f, axis, NF.ENUMS[axis], required=True,
+                        why=f"`defect_locus = {locus}` 走的这一支必须回答它")
+        for axis in NF.forbidden_axes_for(locus):
+            if NF.field_value(f, axis):
+                rep.W(pair, nid,
+                      f"`defect_locus = {locus}` 不问 `{axis}`，但它被填了 "
+                      f"`{NF.field_value(f, axis)}` —— 多半是选完 locus 忘了删。"
+                      f"本条只需回答 {'、'.join('`%s`' % a for a in NF.required_axes_for(locus))}")
+            else:
+                # 没填是对的，但取值若非法仍要报 —— 否则错拼的取值会静默留在盘上
+                _enum_check(rep, pair, nid, f, axis, NF.ENUMS[axis], required=False)
+        # locus 未填时两支都还没定，此时只校验取值合法性，不要求任何一支
+        if locus is None:
+            for axis in NF.ELEMENT_BRANCH_FIELDS + NF.LOGIC_BRANCH_FIELDS:
+                _enum_check(rep, pair, nid, f, axis, NF.ENUMS[axis], required=False)
+        _enum_check(rep, pair, nid, f, "defect_reference",
+                    NF.ENUMS["defect_reference"], required=True)
+
+        # ---- ② 错的描述 · ③ 修好算什么：两项自由文本，只查非空
         stmt = _text(f.get("statement"))
         if not stmt:
-            rep.E(pair, nid, "必填项 `statement` 为空 —— 没写出看到了什么")
-        gen = _text(f.get("generated_side"))
-        if not gen:
+            rep.E(pair, nid, "必填项 `statement` 为空 —— 没写出错在哪、错成什么样")
+        if not _text(f.get("expected_after_fix")):
             rep.E(pair, nid,
-                  "必填项 `generated_side` 为空 —— 没指出模型里哪一处"
-                  "（写 §1.2 的行号如 `:12`，或元素名）")
+                  "必填项 `expected_after_fix` 为空 —— 没写出**修好之后怎样才算 ok**。"
+                  "写成一句可判定的期望结果（「从 X 施加 Y 后应当到达 Z」），"
+                  "不要写「应该修好」")
 
-        # ---- ③ 边界层：先判它，因为**越界条目免填依据层与分类轴**
-        scope = _enum_check(rep, pair, nid, f, "scope", NF.SCOPES, required=True)
-        oos = NF.is_out_of_scope(scope)
-        need = not oos          # ⭐ 越界 → 不是缺陷 → 谈依据强度与缺陷方向没有意义
-
-        # ---- ② 依据层 + ④ 分类轴：完整性
-        basis = _enum_check(rep, pair, nid, f, "basis", NF.BASES, required=need)
+        # ---- NL 依据：留空 ≠ 写 `无`
         nle = _text(f.get("nl_evidence"))
-        if not nle and need:
+        if not nle:
             rep.E(pair, nid,
-                  "必填项 `nl_evidence` 为空。⛔ 留空 ≠ 写 `无`："
-                  "NL 未明说就**显式写 `无`**（那表示本条属模型内生问题，是合法答案）；"
+                  "必填项 `nl_evidence` 为空。留空 ≠ 写 `无`："
+                  "NL 未明说就**显式写 `无`**（那表示本条不靠 NL 判定，是合法答案）；"
                   "留空只能表示还没判")
-        direction = _enum_check(rep, pair, nid, f, "direction", NF.DIRECTIONS,
-                                required=need)
-        _enum_check(rep, pair, nid, f, "depth", NF.DEPTHS, required=need)
-        layer = _enum_check(rep, pair, nid, f, "layer", NF.LAYERS, required=False)
-        pp = _text(f.get("primary_predicate"))
-        if pp and not NF.is_none_mark(pp) and pp not in S.ALL_PREDICATES:
-            rep.E(pair, nid,
-                  f"`primary_predicate = {pp}` 不在 19 谓词封闭词表内。"
-                  "⭐ 写不出谓词就写 `无` 并在 `statement` 末尾写明词表缺口，"
-                  "⛔ 不要造新谓词名")
-
-        # ---- 完整性：字段间的定值一致性（⭐ 确定性，故报 E）
-        # ⚠️ 这道门只对**按台账定义确实要求 NL 依据**的两层生效，见 `NF.NL_GROUNDED_LAYERS`。
-        # ⛔ 2026-08-13 之前它写作 `layer != "wellformedness"`，于是把 `over_specification`
-        # 一并拦下 —— 而那一层的 `layer_basis` 是「生成方凭空多出，且造成可断言的负面后果」，
-        # 一个字都没提 NL；台账既有 6 条里 5 条 `nl_evidence` 本就为空。⛔ 结果是空交集
-        # （CLAUDE.md §13）：改 `wellformedness` 是误分类，给段 id 按定义不存在，
-        # 唯一能过门的做法是把 `layer` 留空 —— 这一层于是在新增条目里被系统性抹掉。
-        if layer in NF.NL_GROUNDED_LAYERS and NF.is_none_mark(nle):
-            rep.E(pair, nid,
-                  f"`layer = {layer}` 的台账定义是「{NF.layer_basis_table().get(layer)}」，"
-                  "⛔ 它要求 NL 逐字依据，但 `nl_evidence` 写的是「无」。"
-                  "⛔ 二者不能并存：要么给出 NL 段 id，"
-                  "要么改 `layer` —— ⭐ 只读模型就能判定的走 `wellformedness`，"
-                  "⭐ 生成方凭空多出并造成负面后果的走 `over_specification`"
-                  "（⭐ 这一层**允许** `nl_evidence = 无`）")
         cited = _known_seg_ids(pair) & _seg_refs(nle)
         if nle and not NF.is_none_mark(nle) and not cited:
             rep.W(pair, nid,
                   f"`nl_evidence` 里没认出本 pair 的段 id（本 pair 的段 id 形如 "
-                  f"`{sorted(_known_seg_ids(pair))[0]}`）—— ⭐ 写段 id 才能机械回链到 "
+                  f"`{sorted(_known_seg_ids(pair))[0]}`）—— 写段 id 才能机械回链到 "
                   f"§1.1 的段 id 表（同组共用 `nl_XXXX/{S.NL_DOC}`）")
         for bad in _seg_refs(nle) - _known_seg_ids(pair):
             rep.E(pair, nid, f"`nl_evidence` 引用了本 pair 不存在的段 id `{bad}`")
-
-        # ---- ④ ⭐ 依据自洽（② 依据层内部，以及依据层与 `layer` / `statement` 之间）
-        _check_basis(rep, pair, nid, basis, layer, nle, cited, stmt)
-
-        # ---- 行号与 element_of_M 推导
-        refs = NF.parse_line_refs(gen)
-        n_lines = len(S.puml_text(pair).splitlines())
-        for r in refs:
-            if r > n_lines:
-                rep.E(pair, nid,
-                      f"`generated_side` 引用了作者源第 {r} 行，但该文件只有 {n_lines} 行")
-        elem, basis = NF.derive_element_of_M(pair, gen, pp if pp not in ("",) else None)
-        if elem is None:
+        if (NF.field_value(f, "defect_reference") == "requirement"
+                and NF.is_none_mark(nle)):
             rep.W(pair, nid,
-                  "推不出 `element_of_M` —— " + basis
-                  + "。⭐ 在 `generated_side` 里加上作者源行号即可自动推出")
-
-        # ---- ③ ⛔ 建模对象边界门（词法补网）
-        # ⛔ 只扫 `statement`（主张本身）。`generated_side` 是定位串，
-        # 引用一行叫 `Timer` 的状态不使主张越界。
-        # ⭐ 已经自己勾了越界的**不再提醒** —— 它已经判过了，再报一遍只是噪声。
-        if not oos:
-            for pattern, label in OUT_OF_SCOPE_CUES:
-                if re.search(pattern, stmt, flags=re.I):
-                    rep.W(pair, nid,
-                          f"⛔ 疑似越界（{label}）而 `scope` 勾的是 "
-                          f"`{scope or '（未填）'}` —— project_1 的建模对象 "
-                          "$M = (S, E, V, Tr, A)$ 无时钟 $C$、无不变式 $Inv$、无正交区。"
-                          "⭐ 若确属越界，请把 `scope` 改成对应的「越界·…」档 ——"
-                          "那样它仍会落盘，但**不计入缺陷统计**。"
-                          "⚠️ 判据是词法，会误伤（元素恰好叫 `Timer` / `fork` 仍在范围内）："
-                          "请自问「这条主张成立与否需不需要时钟或并发语义」，"
-                          "不需要就忽略本条")
-                    break
+                  "`defect_reference = requirement` 的判定测试是「**必须引用 NL 的某一句**"
+                  "才能判定」，而 `nl_evidence` 写的是「无」。"
+                  "两者多半有一个要改：依据真在 NL 上就补段 id，不在就把参照物改成 "
+                  "`language`（只靠建模语言规则）或 `other`。"
+                  "只报提醒不报错 —— 「这一条到底靠不靠某句 NL」要读文意")
 
         new_sigs.append({
-            "id": nid, "stmt": stmt, "gen": gen,
-            "direction": direction,
-            "tokens": _norm_tokens(stmt + " " + gen),
-            "elements": _norm_tokens(stmt + " " + gen) & vocab,
-            "lines": set(refs),
+            "id": nid, "stmt": stmt,
+            "locus": locus,
+            "tokens": _norm_tokens(stmt),
+            "elements": _norm_tokens(stmt) & vocab,
         })
 
-    # ---------------------------------------------------------- ③-c 去重
+    # ---------------------------------------------------------- 去重
+    #
+    # 三条判据全部只报 `W`：「是不是同一个缺陷」是语义判断，做成门会把
+    # 「两条相邻但确实不同的缺陷」挡在外面。
     for i in range(len(new_sigs)):
         for j in range(i + 1, len(new_sigs)):
             a, b = new_sigs[i], new_sigs[j]
             key = f"{a['id']}~{b['id']}"
-            shared_line = a["lines"] & b["lines"]
-            if shared_line:
+            shared = a["elements"] & b["elements"]
+            if a["locus"] and a["locus"] == b["locus"] and shared:
                 rep.W(pair, key,
-                      f"两条新增条目指向同一作者源行 {sorted(shared_line)} —— 是不是同一缺陷？")
-            elif (a["direction"] and a["direction"] == b["direction"]
-                    and a["elements"] & b["elements"]):
-                rep.W(pair, key,
-                      f"两条新增条目同 `direction = {a['direction']}` 且都点到 "
-                      f"{sorted(a['elements'] & b['elements'])} —— 是不是同一缺陷？")
+                      f"两条新增条目同 `defect_locus = {a['locus']}` 且都点到 "
+                      f"{sorted(shared)} —— 是不是同一缺陷？")
             else:
                 sim = _jaccard(a["tokens"], b["tokens"])
                 if sim >= 0.6:
@@ -439,15 +310,13 @@ def validate_pair(pair, data, rep):
             led_tokens = _norm_tokens((rec.get("statement") or "")
                                       + " " + (rec.get("generated_side") or ""))
             hit = sig["elements"] & led_tokens & vocab
-            same_dir = sig["direction"] and sig["direction"] == rec.get("direction")
             sim = _jaccard(sig["tokens"], led_tokens)
             why = None
-            if same_dir and hit:
-                why = (f"同 `direction = {sig['direction']}` 且都点到 {sorted(hit)}")
-            elif sig["direction"] is None and hit:
-                # ⭐ `direction` 空的（越界条目，或还没勾）也要比 —— ⛔ 否则「越界条目
-                # 其实与某条台账记录说的是同一件事」这种最该被看见的撞车会整类漏掉。
-                why = f"都点到 {sorted(hit)}（本条 `direction` 未填，故只按元素比对）"
+            # 只点到同一个元素名**不足以**提示重复：一个 pair 的几条台账记录常常
+            # 围着同一个状态转，那样每条新增都会被标一次，提示就成了噪声。
+            # 故要求元素重合**且**文本也有一定重合；纯文本高度相似另算一条。
+            if hit and sim >= 0.2:
+                why = f"都点到 {sorted(hit)}，且词 Jaccard {sim:.2f}"
             elif sim >= 0.5:
                 why = f"词 Jaccard {sim:.2f}"
             if why:
@@ -467,19 +336,6 @@ def _block_count(data):
             + (1 if data["summary"] is not None else 0) + 1)
 
 
-def new_issue_split(data):
-    """新增条目按边界层拆成「计入缺陷统计」与「越界」两堆。
-
-    ⛔ 越界条目**不得计入缺陷统计** —— 它不是缺陷，也不是漏判，而是「不在建模对象内」。
-    ⭐ 但它必须仍然可见：那是关于**语料**的事实，丢掉它等于把边界问题伪装成「没人发现」。
-    """
-    counted, oos = [], []
-    for rec in data["new_issues"]:
-        scope = NF.field_value(rec.get("fields") or {}, "scope")
-        (oos if NF.is_out_of_scope(scope) else counted).append(rec)
-    return counted, oos
-
-
 def pair_progress(pair, data):
     ledger_total = len(S.ledger_records(pair))
     ledger_done = sum(1 for r in data["ledger"] if _chosen(r.get(DECISION_FIELD)))
@@ -488,7 +344,6 @@ def pair_progress(pair, data):
     chk_total = sum(len(c["items"]) for c in data["checklist"])
     chk_done = sum(1 for c in data["checklist"] for i in c["items"] if i["checked"])
     findings = sum(1 for c in data["checklist"] for i in c["items"] if i["finding"])
-    counted, oos = new_issue_split(data)
     summary = data["summary"] or {}
     overall = (_chosen(summary.get("本 pair 整体判断")) or ["—"])[0]
     minutes = _text(summary.get("耗时(分钟)")) or "—"
@@ -503,15 +358,14 @@ def pair_progress(pair, data):
         "candidates": f"{cand_done}/{cand_total}",
         "checklist": f"{chk_done}/{chk_total}",
         "findings": findings,
-        # ⛔ `new` 只数计入缺陷统计的；越界条目单列在 `out_of_scope`。
-        "new": len(counted), "out_of_scope": len(oos),
+        "new": len(data["new_issues"]),
         "overall": overall, "minutes": minutes,
     }
 
 
 PROGRESS_HEADER = """# 人工重标进度看板
 
-⛔ 本文件由 [validate.py](./validate.py) `--write-progress` 重写，**不要手改** —— 状态直接从 54 份工作单的勾选情况算出来。口径见 [README.md](./README.md)。
+本文件由 [validate.py](./validate.py) `--write-progress` 重写，**不要手改** —— 状态直接从 54 份工作单的勾选情况算出来。口径见 [README.md](./README.md)。
 
 | 记号 | 含义 |
 | :-- | :-- |
@@ -530,41 +384,39 @@ def write_progress(rows, path, counts):
         f"{len(rows) - done - doing} 未开始。"
         f"累计新增条目 **{sum(r['new'] for r in rows)}** 条，"
         f"清单发现 **{sum(r['findings'] for r in rows)}** 处。"
-        f"另有 **{sum(r['out_of_scope'] for r in rows)}** 条被判读者标为越界 —— "
-        f"⛔ 它们**不计入**上面的新增条目数。"
         f"校验：{counts['E']} 个 `E`、{counts['W']} 个 `W`。"
     )
     lines.append("")
     lines.append(f"最后刷新：`{datetime.datetime.now().isoformat(timespec='seconds')}`")
     lines.append("")
-    lines.append("| NL 组 | pair | 状态 | 台账裁决 | 候选裁决 | 清单已过 | 清单发现 | 新增 | 越界 | 整体判断 | 耗时(分) |")
-    lines.append("| :-- | :-- | :-: | --: | --: | --: | --: | --: | --: | :-- | --: |")
+    lines.append("| NL 组 | pair | 状态 | 台账裁决 | 候选裁决 | 清单已过 | 清单发现 | 新增 | 整体判断 | 耗时(分) |")
+    lines.append("| :-- | :-- | :-: | --: | --: | --: | --: | --: | :-- | --: |")
     for r in rows:
         d = S.nl_dir(r["pair"])
         lines.append(
             f"| [`{d}`](./{d}/{S.NL_DOC}) | [`{r['pair']}`](./{d}/{r['pair']}.md) | "
             f"{r['status']} | {r['ledger']} | "
             f"{r['candidates']} | {r['checklist']} | {r['findings']} | {r['new']} | "
-            f"{r['out_of_scope']} | {r['overall']} | {r['minutes']} |")
+            f"{r['overall']} | {r['minutes']} |")
     lines.append("")
     lines.append(
-        "⭐ **「NL 组」栏**：同一组的 6 个 pair 由**同一份 NL 规约**生成 6 个不同制品，"
-        f"共用一份 `nl_XXXX/{S.NL_DOC}`。⭐ 想一次处理完同一份 NL 的模型，就按这一栏排着做。"
-        f"⛔ 分组判据是 NL 全文的 sha8，⛔ 不是 pair id 的末位数字 —— `0002` 与 `0013` 同组、"
+        "**「NL 组」栏**：同一组的 6 个 pair 由**同一份 NL 规约**生成 6 个不同制品，"
+        f"共用一份 `nl_XXXX/{S.NL_DOC}`。想一次处理完同一份 NL 的模型，就按这一栏排着做。"
+        f"分组判据是 NL 全文的 sha8，不是 pair id 的末位数字 —— `0002` 与 `0013` 同组、"
         f"`0003` 与 `0012` 同组。"
     )
     lines.append("")
     lines.append(
-        "⭐ **「越界」栏**：判读者在 §5 的**③ 边界层**勾了「越界·…」的条目数。"
-        "⛔ 越界不是缺陷、也不是漏判，而是该主张需要时钟 $C$ / 不变式 $Inv$ / 正交区语义，"
-        "⛔ 不在 project_1 的建模对象 $M = (S, E, V, Tr, A)$ 内。"
-        "⭐ 它们照常落盘（那是关于语料的事实），⛔ 但不进缺陷统计。"
+        "**「新增」栏**：判读者在 §5 登记的条目数，不分界内界外。"
+        "边界（时钟 $C$ / 不变式 $Inv$ / 正交区）不再由判读者分类 —— "
+        "判读者只判「这是不是缺陷」，界外的发现照常写在 `statement` 里，"
+        "回收后由主 session 从自由文本人工分拣。理由见 [README.md](./README.md) §二.1。"
     )
     lines.append("")
     lines.append(
-        "⛔ **`00x8` 六个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）不在表内** —— "
+        "**`00x8` 六个 pair（`0008` `0018` `0028` `0038` `0048` `0058`）不在表内** —— "
         "它们的 NL 要求 fork/join 与秒级时间约束，忠实模型在 $M = (S, E, V, Tr, A)$ 中无法表示，"
-        "按 [nl_scope_rule.md](../../docs/protocol/nl_scope_rule.md) 永久排除，⛔ 不进网格也不进分母。"
+        "按 [nl_scope_rule.md](../../docs/protocol/nl_scope_rule.md) 永久排除，不进网格也不进分母。"
     )
     lines.append("")
     with open(path, "w", encoding="utf-8") as fh:
@@ -588,7 +440,7 @@ def main():
     for p in S.OUT_OF_SCOPE_PAIRS:
         if p in found:
             rep.E(p, "SCOPE",
-                  f"⛔ `00x8` 越界 pair 不该有工作单（发现于 "
+                  f"`00x8` 越界 pair 不该有工作单（发现于 "
                   f"`{os.path.relpath(found[p], args.dir)}`）—— 它不在评测网格内，"
                   "重标它会把分母改错")
 

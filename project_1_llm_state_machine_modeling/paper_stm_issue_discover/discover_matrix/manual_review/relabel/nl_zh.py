@@ -151,7 +151,7 @@ def artifact_leaks(payload):
                 continue
             if _SNAKE.match(tok) or _CAMEL.match(tok):
                 seen.add(tok)
-                out.append(f"{where} 出现标识符 `{tok}`，⛔ 但本份 NL 原文里没有它")
+                out.append(f"{where} 出现标识符 `{tok}`，但本份 NL 原文里没有它")
     return out
 
 
@@ -198,11 +198,11 @@ def original_ref_errors(payload, seg_ids=None):
         for m in _SENT_REF.finditer(text):
             k = int(m.group(1))
             if not 1 <= k <= n:
-                out.append(f"{where} 引用「{m.group(0)}」，⛔ 但本份 NL 只有 {n} 段")
+                out.append(f"{where} 引用「{m.group(0)}」，但本份 NL 只有 {n} 段")
         if ids:
             for sid in _SEG_ID_REF.findall(text):
                 if sid not in ids:
-                    out.append(f"{where} 引用段 id `{sid}`，⛔ 但本份 NL 的段集合里没有它")
+                    out.append(f"{where} 引用段 id `{sid}`，但本份 NL 的段集合里没有它")
         for m in _QUOTED.finditer(text):
             frag = m.group(1)
             if not _ASCII_FRAG.fullmatch(frag):
@@ -212,7 +212,7 @@ def original_ref_errors(payload, seg_ids=None):
             if _SCHEMA_LETTER.search(frag):
                 continue                       # ⭐ 单大写字母占位符示意写法
             if frag not in en:
-                out.append(f"{where} 引用原文 \"{frag}\"，⛔ 但本份 NL 的 en 里没有这串字")
+                out.append(f"{where} 引用原文 \"{frag}\"，但本份 NL 的 en 里没有这串字")
     return out
 
 
@@ -260,7 +260,7 @@ def zh_literal_drops(payload):
         for num in dict.fromkeys(_ZH_DIGITS.findall(en)):
             if num not in zh_nums:
                 out.append(f"segments[{seg}].zh 丢了 en 的数字 `{num}`"
-                           f"（⛔ 阿拉伯数字须照抄，⛔ 不许改写成中文数字，见 SPEC 第 10 条）")
+                           f"（阿拉伯数字须照抄，不许改写成中文数字，见 SPEC 第 10 条）")
     return out
 
 
@@ -334,7 +334,7 @@ def _store():
         if leaks:
             raise NoteArtifactLeak(
                 f"{name} 的判读提示里指涉了被测制品（共 {len(leaks)} 处）—— "
-                f"⛔ 一份 NL 服务 6 个 pair，制品各不相同，讲制品必然误导另外 5 份"
+                f"一份 NL 服务 6 个 pair，制品各不相同，讲制品必然误导另外 5 份"
                 f"（见 README §十）：\n  " + "\n  ".join(leaks))
         segs, _mode = S.nl_segments(pairs[0])
         jsegs = j.get("segments") or []
@@ -345,14 +345,14 @@ def _store():
         if bad_refs:
             raise NoteOriginalRefError(
                 f"{name} 的判读提示里有指不到原文的引用（共 {len(bad_refs)} 处）—— "
-                f"⛔ 提示会被逐字印进 6 份工作单，引错位置等于把判读者指到别的句子上"
+                f"提示会被逐字印进 6 份工作单，引错位置等于把判读者指到别的句子上"
                 f"（见 README §11）：\n  " + "\n  ".join(bad_refs))
         drops = zh_literal_drops(j)
         if drops:
             raise ZhLiteralDrop(
                 f"{name} 的译文丢了原文的字面量（共 {len(drops)} 处）—— "
-                f"⛔ 判读者要拿 `zh` 与制品逐条比对，⛔ 守卫表达式或数字一旦在译文里消失，"
-                f"⛔ 这条比对就无锚可依（见 README §12）：\n  " + "\n  ".join(drops))
+                f"判读者要拿 `zh` 与制品逐条比对，守卫表达式或数字一旦在译文里消失，"
+                f"这条比对就无锚可依（见 README §12）：\n  " + "\n  ".join(drops))
         zh_map, note_map = {}, {}
         for (sid, txt), js in zip(segs, jsegs):
             if js.get("en") != txt:

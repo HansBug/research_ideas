@@ -79,7 +79,7 @@ def _covered_note(names, records):
     """若某些元素名已被台账条目点到，回一条提示串。"""
     hits = []
     for r in records:
-        blob = (r.get("statement") or "") + " " + (r.get("generated_side") or "") + " " \
+        blob = (r.get("statement") or "") + " " + (r.get("generated_side") or "") + " "\
             + " ".join(str(a.get("expression") or "") for a in (r.get("assertions") or []))
         for n in names:
             if n and re.search(r"\b" + re.escape(n) + r"\b", blob):
@@ -164,7 +164,7 @@ def build(model, nl_segs, records, pair):
                               s, flags=re.I)]
         extra = ""
         if names:
-            extra = ("⚠️ 但存在名字像终态的普通状态：" +
+            extra = ("但存在名字像终态的普通状态：" +
                      "、".join(f"`{x}`" for x in sorted(names)) +
                      " —— 名字像终态**不等于**是终态。")
         items.append(Item(
@@ -176,7 +176,7 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "可达性与终止",
-            f"⭐ 台账的 `reachability`（可达性与终止）方向共 {_counts()['direction']['reachability']} 条"
+            f"台账的 `reachability`（可达性与终止）方向共 {_counts()['direction']['reachability']} 条"
             f"（REPORTABLE {_counts()['total']} 条口径）；"
             "但 X1 的真漏记里**吸收态 / 死端**反复出现，说明这一类仍有漏。",
             items,
@@ -198,7 +198,7 @@ def build(model, nl_segs, records, pair):
             "这些守卫两两互斥吗？有没有某个取值下**两条都成立**（非确定）"
             "或**一条都不成立**（覆盖缺口）？",
             "机械判据：按 `(src, trigger)` 分桶后桶内 > 1 条；"
-            "⛔ 互斥性本身机械判不了，需要读守卫语义。"
+            "互斥性本身机械判不了，需要读守卫语义。"
             + _covered_note([src] + [d for _, _, d in guards], R),
         ))
     guardless = [t for t in model.transitions
@@ -226,7 +226,7 @@ def build(model, nl_segs, records, pair):
             f"以下标签把**比较表达式写在了触发槽**（没有方括号）：{body}{more}。"
             "作者是想写守卫还是想写事件名？这两种读法的后果不同 —— "
             "当事件名读，则它永远不会被外部触发；当守卫读，则它是完成迁移。",
-            "机械判据：`trigger` 含比较算子且 `guard` 为空。⛔ 词法判据，可能误伤"
+            "机械判据：`trigger` 含比较算子且 `guard` 为空。词法判据，可能误伤"
             "（真事件名里也可能有 `=`）。",
         ))
     guarded_only = [t for t in model.transitions
@@ -246,9 +246,9 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "守卫与确定性",
-            f"⭐ 台账 `guard`（守卫与条件）方向 {_counts()['direction']['guard']} 条，"
+            f"台账 `guard`（守卫与条件）方向 {_counts()['direction']['guard']} 条，"
             f"但 `guard_distinguishable` 只做过 {_counts()['primary']['guard_distinguishable']} 次 primary；"
-            "⚠️ 且该谓词在单目标时空真返回 `True`，「这条边必须带区分条件」写不出来 —— "
+            "且该谓词在单目标时空真返回 `True`，「这条边必须带区分条件」写不出来 —— "
             "这一类的**谓词承载本身就有缺口**。",
             items,
         ))
@@ -284,7 +284,7 @@ def build(model, nl_segs, records, pair):
             f"HIER-{n:02d}",
             f"`{s}`（:{st.decl_line}）写成了 `state {s} {{ }}` 但**体内是空的**"
             "（零子态、零内部迁移）。作者是想建复合态却没填，还是只是记法冗余？"
-            "⚠️ 单看这一点**不构成缺陷** —— UML 里空体仍是 simple state；"
+            "单看这一点**不构成缺陷** —— UML 里空体仍是 simple state；"
             "承重的只能是「NL 要求它有子结构而这里没有」。",
             "机械判据：`state X {` 开块、无子态、scope 内无迁移。"
             + _covered_note([s], R),
@@ -308,7 +308,7 @@ def build(model, nl_segs, records, pair):
             f"`{s}` **从未被 `state` 声明**，只在 "
             f"{', '.join(':' + str(x) for x in refs)} 作为迁移端点出现。"
             "PlantUML 会隐式建它 —— 作者是有意省略，还是漏了它的子结构 / 描述 / 终态标记？",
-            "机械判据：无 `state <name>` 行。⚠️ 「未声明」本身在 PlantUML 里不是错误，"
+            "机械判据：无 `state <name>` 行。「未声明」本身在 PlantUML 里不是错误，"
             "承重的是它**因此缺了什么**。" + _covered_note([s], R),
         ))
     # cardinality
@@ -321,16 +321,16 @@ def build(model, nl_segs, records, pair):
                 f"复合态 `{s}` 直接子态 **{len(st.children)}** 个："
                 + "、".join(f"`{k}`" for k in st.children)
                 + "。NL 有没有对这里的数量给出显式断言（「三个子状态」之类）？数对得上吗？",
-                "机械判据：直接子态计数（⛔ 作者源口径，不含投影合成的占位符 —— "
+                "机械判据：直接子态计数（作者源口径，不含投影合成的占位符 —— "
                 "谓词层的 `cardinality` 会把它们算进去，两者可能不同）。" + hint,
             ))
     if items:
         cats.append((
             "层次语义",
-            f"⭐ 台账 `hierarchy`（层次归属）{_counts()['direction']['hierarchy']} 条 + "
+            f"台账 `hierarchy`（层次归属）{_counts()['direction']['hierarchy']} 条 + "
             f"`entry`（初始入口）{_counts()['direction']['entry']} 条，主要靠 `initial_target`"
             f"（{_counts()['primary']['initial_target']} 次 primary）与 `containment`"
-            f"（{_counts()['primary']['containment']} 次）。⚠️ 但 `initial_target` 看不到**带触发的初始边**，"
+            f"（{_counts()['primary']['containment']} 次）。但 `initial_target` 看不到**带触发的初始边**，"
             "该族缺陷会被正向放过。",
             items,
         ))
@@ -347,7 +347,7 @@ def build(model, nl_segs, records, pair):
             f"EVT-{n:02d}",
             f"模型用到的触发词共 {len(trigs)} 个：{body}。"
             "NL 里点名的事件是不是都在这份表里？表里有没有 NL 从没提过的（过度规定）？",
-            "机械判据：迁移标签触发槽的去重集合。⚠️ PlantUML 没有事件声明段，"
+            "机械判据：迁移标签触发槽的去重集合。PlantUML 没有事件声明段，"
             "「声明」只能等同于「出现过」。",
         ))
     if once:
@@ -358,7 +358,7 @@ def build(model, nl_segs, records, pair):
             f"EVT-{n:02d}",
             f"以下触发词**全模型只用了一次**：{body}{more}。"
             "NL 要求它在别的状态下也被响应吗？"
-            "⭐ 「同一事件只在一个子态被消费、在兄弟态被静默丢弃」是 X1 真漏记里出现过的形态。",
+            "「同一事件只在一个子态被消费、在兄弟态被静默丢弃」是 X1 真漏记里出现过的形态。",
             "机械判据：触发词出现次数 == 1。",
         ))
     # 同一事件在不同层级
@@ -382,10 +382,10 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "事件",
-            f"⭐ 台账 `event`（事件与触发）方向只有 **{_counts()['direction']['event']}** 条，"
+            f"台账 `event`（事件与触发）方向只有 **{_counts()['direction']['event']}** 条，"
             f"`event_declared` 做过 {_counts()['primary']['event_declared']} 次 primary、"
             f"`event_consumed` {_counts()['primary']['event_consumed']} 次 —— "
-            "⛔ 这一维几乎是空的，最可能有漏。",
+            "这一维几乎是空的，最可能有漏。",
             items,
         ))
 
@@ -404,7 +404,7 @@ def build(model, nl_segs, records, pair):
             f"VAR-{n:02d}",
             f"守卫 / 标签里出现的变量候选：{body}。"
             "这些变量有**任何一处被更新**吗？只读不写的变量意味着守卫永远停在初值。",
-            "机械判据：从 `x op v` 的左值抽取。⛔ 词法启发式，可能把事件名误当变量。",
+            "机械判据：从 `x op v` 的左值抽取。词法启发式，可能把事件名误当变量。",
         ))
         written = set()
         for v in vars_:
@@ -455,18 +455,18 @@ def build(model, nl_segs, records, pair):
                 f"VAR-{n:02d}",
                 f"模型**没有任何 entry/do/exit 动作**，但有 {len(descs)} 条状态描述行："
                 f"{body}{more}。"
-                "⭐ 这些描述里有没有本该是**动作**的内容被降级成了纯文本？"
+                "这些描述里有没有本该是**动作**的内容被降级成了纯文本？"
                 "（NL 要求「发出信号 X」而模型把 X 写进了状态名或描述串，是已知形态。）",
                 "机械判据：无 entry/do/exit 匹配，但存在 `X : text` 描述行。",
             ))
     if items:
         cats.append((
             "变量与效应",
-            "⛔ **台账的变量维几乎是空的**：`variable_declared` 与 `variable_delta_after` "
+            "**台账的变量维几乎是空的**：`variable_declared` 与 `variable_delta_after` "
             f"**从未作为 primary 出现过**，`effect_declared` {_counts()['primary']['effect_declared']} 次、"
             f"`action_declared` {_counts()['primary']['action_declared']} 次。"
-            "⚠️ 已知原因之一：全语料唯一被投影声明的变量是 `R45RouteToken`，"
-            "所以谓词层几乎无从验证 —— ⭐ 但那是**谓词的**缺口，不代表模型没有变量缺陷。",
+            "已知原因之一：全语料唯一被投影声明的变量是 `R45RouteToken`，"
+            "所以谓词层几乎无从验证 —— 但那是**谓词的**缺口，不代表模型没有变量缺陷。",
             items,
         ))
 
@@ -485,17 +485,17 @@ def build(model, nl_segs, records, pair):
             f"TEMP-{n:02d}",
             f"NL 中带「{cue_name}」义务的句子：{body}{more}。"
             "模型里有没有**结构**承载这条义务？"
-            "⛔ 注意不是要求建时钟 —— 问的是「持续到 X 之前不许离开」有没有对应的"
+            "注意不是要求建时钟 —— 问的是「持续到 X 之前不许离开」有没有对应的"
             "缺边 / 守卫 / 层次结构。",
-            f"机械判据：正则 `{pattern}` 命中该 NL 段。⛔ 词法线索，不是缺陷判据。",
+            f"机械判据：正则 `{pattern}` 命中该 NL 段。词法线索，不是缺陷判据。",
         ))
     if items:
         cats.append((
             "时序 / 持续义务",
-            f"⭐ `persists_until` 只做过 {_counts()['primary']['persists_until']} 次 primary，"
+            f"`persists_until` 只做过 {_counts()['primary']['persists_until']} 次 primary，"
             "`response_within` 与 `invariant` "
-            "**从未作为 primary 出现** —— ⛔ 台账在这一维基本没有覆盖。"
-            "⚠️ 建模对象无时钟，所以这里要找的是**结构性**承载，不是时间约束。",
+            "**从未作为 primary 出现** —— 台账在这一维基本没有覆盖。"
+            "建模对象无时钟，所以这里要找的是**结构性**承载，不是时间约束。",
             items,
         ))
 
@@ -542,8 +542,8 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "跨状态一致性",
-            "⭐ 这一类在台账里没有独立方向（`unclassified` 只有 7 条），"
-            "而它恰好需要**跨状态推理** —— ⛔ 是「深层」缺陷最可能藏身的地方。",
+            "这一类在台账里没有独立方向（`unclassified` 只有 7 条），"
+            "而它恰好需要**跨状态推理** —— 是「深层」缺陷最可能藏身的地方。",
             items,
         ))
 
@@ -566,7 +566,7 @@ def build(model, nl_segs, records, pair):
             + "、".join(f"`{x}`" for x in invented[:12])
             + (f" 等 {len(invented)} 个" if len(invented) > 12 else "")
             + "。它们是合理的实现细节，还是**过度规定**（模型凭空造出 NL 没要求的结构）？",
-            "机械判据：状态名规范化后不是 NL 全文的子串。⛔ 词法判据，"
+            "机械判据：状态名规范化后不是 NL 全文的子串。词法判据，"
             "同义改写（`HumanDrivingMode` vs `human driving mode`）能匹配上，"
             "但语义改写匹配不上。" + _covered_note(invented[:12], R),
         ))
@@ -598,8 +598,8 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "NL 未明说但结构上可疑",
-            f"⭐ `wellformedness`（良构性）层在台账里占 {_counts()['layer']['wellformedness']}/"
-            f"{_counts()['total']}，⛔ 也正是 X1 强而主臂弱的地方 —— "
+            f"`wellformedness`（良构性）层在台账里占 {_counts()['layer']['wellformedness']}/"
+            f"{_counts()['total']}，也正是 X1 强而主臂弱的地方 —— "
             "X1 的 13 条真漏记里 **9 条**被判为 `V1`/`V2`（良构性层，不要求 NL 逐字依据）。",
             items,
         ))

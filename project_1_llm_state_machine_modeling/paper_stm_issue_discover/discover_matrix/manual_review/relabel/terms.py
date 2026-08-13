@@ -61,7 +61,7 @@ DECIDED_BY_ZH = {
     "lexical": (
         "词法分层",
         "基线分层：由 `stratify_candidates.classify` 按**措辞正则**给出，"
-        "⛔ 从未经人工二读。词法层存在的意义只是让人工那一遍变得有限，⛔ 不是用来压过人工判定的。",
+        "从未经人工二读。词法层存在的意义只是让人工那一遍变得有限，不是用来压过人工判定的。",
     ),
     "nl_review": (
         "NL 逐条复核",
@@ -70,7 +70,7 @@ DECIDED_BY_ZH = {
     "harm_test": (
         "有害性判定",
         "只用于 `extra` 档：逐条判 harmful（有害）/ benign（无害）/ uncertain（未定）—— "
-        "⛔ 被模型凭空造出只说明可归因，⛔ 不自动等于缺陷。",
+        "被模型凭空造出只说明可归因，不自动等于缺陷。",
     ),
     "batch5_reclassify": (
         "批 5 重新归层",
@@ -78,12 +78,12 @@ DECIDED_BY_ZH = {
     ),
     "batch5_spotcheck": (
         "批 5 抽验改判",
-        "批 5 对无人全量复核的两层做抽验，⛔ 抽验结论与原判**不一致**，故按抽验改判。",
+        "批 5 对无人全量复核的两层做抽验，抽验结论与原判**不一致**，故按抽验改判。",
     ),
     "parent_ruling": (
         "主裁定",
         "两轮复核彼此冲突、或报告的测量无法复现时，由主 session 裁定；"
-        "⭐ 逐条附证据单独存档，⛔ 使「推翻一位复核者」本身也可审计。",
+        "逐条附证据单独存档，使「推翻一位复核者」本身也可审计。",
     ),
 }
 
@@ -97,7 +97,7 @@ VERDICT_ZH = {
     "extra": (
         "生成方凭空新增",
         "判为「生成方凭空多出一个参考侧没有的元素」。"
-        "⛔ 台账的 8 类分类学**没有 `extra` 的槽位**，⚠️ 故这类记录只能被硬塞进某一层。",
+        "台账的 8 类分类学**没有 `extra` 的槽位**，故这类记录只能被硬塞进某一层。",
     ),
 }
 
@@ -106,7 +106,7 @@ VERDICT_ZH = {
 #: `manual_review/relabel/README.md:366`「主断言未被复算确认（`replay ≠ captured`）」。
 REPLAY_ZH = {
     "captured": ("已捕获", "断言返回 `False` —— 缺陷可被现有谓词表述并捕获。"),
-    None: ("未确认", "主断言未被复算确认 —— ⛔ 不等于该条不成立，⭐ 但它这一条没有实测证据。"),
+    None: ("未确认", "主断言未被复算确认 —— 不等于该条不成立，但它这一条没有实测证据。"),
 }
 
 #: 断言角色。⭐ 中文名出处：`discover_matrix/render_eis_bundle.py:52-57` 的 `ROLE_ZH`；
@@ -115,7 +115,7 @@ ROLE_ZH = {
     "primary": (
         "主断言",
         "陈述缺陷本身，应实测 `False`。返回 `True` 说明断言不判别，返回 `None` 说明无法判定"
-        "——⛔ 两者都不是证据。",
+        "——两者都不是证据。",
     ),
     "negative_control": (
         "负控",
@@ -123,11 +123,11 @@ ROLE_ZH = {
     ),
     "corroborating": (
         "佐证",
-        "补第二个后果，⭐ 加固而非替代主断言。",
+        "补第二个后果，加固而非替代主断言。",
     ),
     "recovered_unverified": (
         "从文本恢复、未能验证",
-        "从复核者散文里恢复但未能自动求值；记录在案供人工核对，⛔ **不计入证据**。",
+        "从复核者散文里恢复但未能自动求值；记录在案供人工核对，**不计入证据**。",
     ),
 }
 
@@ -136,8 +136,8 @@ ROLE_ZH = {
 FAMILY_ZH = {
     "S": ("结构族", "主张关于制品**声明**了什么；一次结构性 / 关系性查询即可直接判定。"),
     "B": ("行为族", "主张关于模型**运行时做什么**；必须实跑仿真 —— "
-                    "⛔ 声明存在不等于它可达、被使能、或就是真正触发的那一条。"),
-    "P": ("性质族", "主张在状态 / 赋值 / 路径上被量化，⛔ 单次查询与单条有限运行都定不下来；"
+                    "声明存在不等于它可达、被使能、或就是真正触发的那一条。"),
+    "P": ("性质族", "主张在状态 / 赋值 / 路径上被量化，单次查询与单条有限运行都定不下来；"
                     "必须做有界模型检查。"),
 }
 
@@ -163,7 +163,7 @@ PREDICATE_ZH = {
                         "this transition declares an effect on this variable, in this direction"),  # L338
     "action_declared": ("S", "该状态声明了一个 `entry` / `exit` / `during` 阶段的动作",
                         "this state declares an entry, exit or during action"),            # L371
-    "guard_distinguishable": ("S", "共享同一源与同一触发的两个目标，⛔ 不会无法区分地同时可达",
+    "guard_distinguishable": ("S", "共享同一源与同一触发的两个目标，不会无法区分地同时可达",
                               "a shared source and trigger cannot reach two targets indistinguishably"),  # L403
     "cardinality": ("S", "该作用域恰好声明了这么多个非伪状态",
                     "this scope declares exactly this many non-pseudo states"),            # L433
@@ -184,7 +184,7 @@ PREDICATE_ZH = {
     "invariant": ("P", "在界内该条件始终成立",
                   "within the bound this condition always holds"),                         # L671
     "response_within": ("P", "该触发每次出现都在界内得到回应；`response` 填的是算作回应的**状态路径**，"
-                             "⛔ 不是表达式",
+                             "不是表达式",
                         "every occurrence of this trigger is answered within the bound; "
                         "`response` is the state path that counts as the answer, not an expression"),  # L708
     "persists_until": ("P", "该状态持续保持，直到该释放条件成立",
@@ -204,14 +204,17 @@ DIRECTION_MEANING = [
     ("effect_action", "效应与状态动作", "效应与状态动作：entry / exit / 迁移效应"),
     ("event", "事件与触发", "事件：触发词缺失、拼错、被并成一个复合名"),
     ("cardinality", "元素数量", "基数：NL 点名了 N 个而模型给了 M 个"),
-    ("unclassified", "未归类", "以上都归不进（⭐ 归不进本身值得在 statement 里说明）"),
+    ("unclassified", "未归类", "以上都归不进（归不进本身值得在 statement 里说明）"),
 ]
 
 DIRECTION_ZH = {k: zh for k, zh, _what in DIRECTION_MEANING}
 DIRECTION_WHAT = {k: what for k, _zh, what in DIRECTION_MEANING}
 
-#: 字段名的中文。⭐ 出处是 HOWTO §B.1 的必填表与 §D 各节标题（同一份生成器渲染），
-#: ⭐ `element_of_M` / `decided_by` / `verdict` / `replay` / `homogeneity_group` 的说明出处见上面各表。
+#: §2 字段表里出现的台账字段的中文名。
+#: 出处：`element_of_M` / `decided_by` / `verdict` / `replay` 见上面各表；
+#: `layer` / `direction` 见 `render_eis_bundle.py`。
+#: ⚠️ 这张表只服务**台账既有字段的展示**。工作单 §5 要人填的那套字段（条件式座标系）
+#: 自带中文名，见 [newfields.py](./newfields.py) 的 `ZH` —— 两套不要混。
 FIELD_ZH = {
     "layer": "归因层",
     "direction": "缺陷方向",
@@ -221,12 +224,6 @@ FIELD_ZH = {
     "nl_evidence": "NL 依据",
     "verdict": "上游判定",
     "replay": "复算",
-    "statement": "缺陷陈述",
-    "generated_side": "生成侧定位",
-    "reference_side": "参考侧对应处",
-    "basis": "依据来源",
-    "scope": "边界",
-    "depth": "深度",
 }
 
 #: NL 分段口径。⭐ 出处：`sources.nl_segments()` 的两个返回值（`sources.py:194` 与 `:202`）。
@@ -242,7 +239,7 @@ SEG_MODE_ZH = {
 
 def bi(term, zh):
     """⭐ 渲染成 `` `term`（中文） ``。⛔ zh 为空时只出英文，⛔ 不编中文。"""
-    return f"`{term}`（{zh}）" if zh else f"`{term}`（⛔ 该取值的中文名仓库未定义）"
+    return f"`{term}`（{zh}）" if zh else f"`{term}`（该取值的中文名仓库未定义）"
 
 
 def layer_cell(rec):
@@ -254,18 +251,18 @@ def layer_cell(rec):
     layer = rec.get("layer")
     basis = (rec.get("layer_basis") or "").strip()
     cell = bi(layer, LAYER_ZH.get(layer))
-    return f"{cell}——判据原话：{basis}" if basis else f"{cell}——⛔ 该条无 `layer_basis`"
+    return f"{cell}——判据原话：{basis}" if basis else f"{cell}——该条无 `layer_basis`"
 
 
 def direction_cell(value):
     if value is None:
-        return "⛔ 无"
-    return f"{bi(value, DIRECTION_ZH.get(value))}——{DIRECTION_WHAT.get(value, '⛔ 该取值的判据仓库未定义')}"
+        return "无"
+    return f"{bi(value, DIRECTION_ZH.get(value))}——{DIRECTION_WHAT.get(value, '该取值的判据仓库未定义')}"
 
 
 def element_cell(value):
     if value is None:
-        return "⛔ 无"
+        return "无"
     zh = ELEMENT_ZH.get(value)
     if value == "多个":
         return f"`多个`（{zh}）"
@@ -274,20 +271,20 @@ def element_cell(value):
 
 def decided_by_cell(value):
     if value is None:
-        return "⛔ 无"
+        return "无"
     got = DECIDED_BY_ZH.get(value)
     if not got:
-        return f"`{value}`（⛔ 该取值的语义仓库未定义）"
+        return f"`{value}`（该取值的语义仓库未定义）"
     zh, what = got
     return f"{bi(value, zh)}——{what}"
 
 
 def predicate_cell(value):
     if not value:
-        return "⛔ 无"
+        return "无"
     got = PREDICATE_ZH.get(value)
     if not got:
-        return f"`{value}`（⛔ 该谓词不在 19 谓词词表内，语义仓库未定义）"
+        return f"`{value}`（该谓词不在 19 谓词词表内，语义仓库未定义）"
     fam, zh, en = got
     fam_zh = FAMILY_ZH[fam][0]
     return f"{bi(value, zh)}——{fam} {fam_zh}；官方原话 `{en}`"
@@ -300,17 +297,17 @@ def verdict_cell(rec):
     rv = rp.get("verdict")
     vz = VERDICT_ZH.get(v)
     rz = REPLAY_ZH.get(rv)
-    left = f"{bi(v, vz[0])}——{vz[1]}" if vz else f"`{v}`（⛔ 该取值的语义仓库未定义）"
+    left = f"{bi(v, vz[0])}——{vz[1]}" if vz else f"`{v}`（该取值的语义仓库未定义）"
     right = (f"{bi(rv, rz[0])}——{rz[1]}" if rz and rv is not None
-             else (f"`{rv}`（{rz[0]}）——{rz[1]}" if rz else f"`{rv}`（⛔ 语义仓库未定义）"))
+             else (f"`{rv}`（{rz[0]}）——{rz[1]}" if rz else f"`{rv}`（语义仓库未定义）"))
     return f"{left} / {right}（实测 value `{rp.get('value')}`）"
 
 
 def role_label(role):
     got = ROLE_ZH.get(role)
-    return bi(role, got[0]) if got else f"`{role}`（⛔ 该角色的语义仓库未定义）"
+    return bi(role, got[0]) if got else f"`{role}`（该角色的语义仓库未定义）"
 
 
 def family_label(fam):
     got = FAMILY_ZH.get(fam)
-    return f"{fam} {got[0]}" if got else f"{fam}（⛔ 该族的语义仓库未定义）"
+    return f"{fam} {got[0]}" if got else f"{fam}（该族的语义仓库未定义）"

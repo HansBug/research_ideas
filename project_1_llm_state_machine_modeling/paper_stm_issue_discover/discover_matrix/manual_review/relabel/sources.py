@@ -306,32 +306,32 @@ def risk_flags(rec):
     if rec.get("decided_by") == "lexical":
         flags.append((
             "lexical",
-            "⛔ 只过正则未二读 —— `decided_by = lexical`，该条从未经过 NL 复读或有害性检验，"
+            "只过正则未二读 —— `decided_by = lexical`，该条从未经过 NL 复读或有害性检验，"
             "分层依据只有词法匹配。",
         ))
     nar = _narrative(rec)
     if _RE_PROJECTION_STRONG.search(nar):
         flags.append((
             "projection_named",
-            "⛔ 读了投影 —— statement / 断言里直接提到 fcstm 或「投影」。"
+            "读了投影 —— statement / 断言里直接提到 fcstm 或「投影」。"
             "投影是本仓库的 `plantuml_source_lowering.py`，它会合成作者从未写过的元素；"
             "请核对该条主张在**作者源 PlantUML** 上是否同样成立。",
         ))
     elif _RE_PROJECTION_ARTIFACT.search(nar):
         flags.append((
             "projection_artifact",
-            "⛔ 读了投影（间接）—— 证据里出现了投影合成的占位符名"
+            "读了投影（间接）—— 证据里出现了投影合成的占位符名"
             "（`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken` / `_GaStep*`）。"
             "作者源里没有这些元素，请核对主张在作者源上如何表述。",
         ))
     if not rec.get("primary_predicate"):
         flags.append((
             "no_primary",
-            "⛔ 不可分层 —— 无 `primary_predicate`，该条没有可执行的主断言，"
+            "不可分层 —— 无 `primary_predicate`，该条没有可执行的主断言，"
             "命中判定只能靠人读。",
         ))
     if not (rec.get("assertions") or []):
-        flags.append(("no_assertion", "⛔ 无任何断言表达式。"))
+        flags.append(("no_assertion", "无任何断言表达式。"))
     # ⚠️ 这个标记只对**按台账自己的 `layer_basis` 定义确实要求 NL 逐字依据**的两层生效。
     # ⛔ 2026-08-13 之前它写作 `layer != "wellformedness"`，于是把 `over_specification`
     # 一并标了出来 —— 而那一层的 `layer_basis` 是「生成方凭空多出，且造成可断言的负面后果」，
@@ -346,34 +346,38 @@ def risk_flags(rec):
             and rec.get("layer") in _NF.NL_GROUNDED_LAYERS):
         flags.append((
             "no_nl_evidence",
-            f"⚠️ `layer = {rec.get('layer')}` 却无 `nl_evidence` —— 这一层的台账定义"
+            f"`layer = {rec.get('layer')}` 却无 `nl_evidence` —— 这一层的台账定义"
             f"（「{_NF.layer_basis_table().get(rec.get('layer'))}」）要求 NL 逐字依据。"
-            "⭐ 依据多半躺在 `statement` 正文里没抄进字段，重标时补上段 id 即可。"
-            "⚠️ 仅 `nl_named` / `nl_contradiction` 会被标；"
+            "依据多半躺在 `statement` 正文里没抄进字段，重标时补上段 id 即可。"
+            "仅 `nl_named` / `nl_contradiction` 会被标；"
             "`wellformedness` 与 `over_specification` 两层**不要求** NL 依据，"
-            "⛔ 它们的 `nl_evidence` 为空是设计如此，不是漏填。",
+            "它们的 `nl_evidence` 为空是设计如此，不是漏填。",
         ))
     if rec.get("boundary_ruling"):
         flags.append((
             "boundary",
-            f"⚠️ 已有边界裁定 `{rec.get('boundary_ruling')}`："
+            f"已有边界裁定 `{rec.get('boundary_ruling')}`："
             f"{rec.get('boundary_rationale') or '（无理由记录）'}",
         ))
     if (rec.get("replay") or {}).get("verdict") not in ("captured",):
         flags.append((
             "replay",
-            f"⚠️ replay 状态为 `{(rec.get('replay') or {}).get('verdict')}`"
+            f"replay 状态为 `{(rec.get('replay') or {}).get('verdict')}`"
             f"（value = {(rec.get('replay') or {}).get('value')}）—— 主断言未被复算确认。",
         ))
     if rec.get("pending_statement_rewrite"):
-        flags.append(("pending_rewrite", "⚠️ 该条 statement 已被登记为待重写。"))
+        flags.append(("pending_rewrite", "该条 statement 已被登记为待重写。"))
     return flags
 
 
-def depth_hint(rec):
-    """⭐ 「深度存疑」的机械提示。⛔ 不是裁决，作者仍需自行判 表层/中层/深层。
+def shallow_hint(rec):
+    """「可能偏浅」的机械提示。不是裁决 —— 判读者仍要自己判这一条成不成立、够不够深。
 
     判据只看**断言形状**，不看内容：单个存在性谓词、单元素、无佐证断言 → 提示可能偏浅。
+
+    ⚠️ 2026-08-13 由 `depth_hint` 更名：工作单的 `depth`（表层 / 中层 / 深层）字段
+    已删除，旧名会让人以为这里在提示该往那个字段里填什么。它提示的是**台账这一条**
+    可能只说到「某元素不存在」而没说到「因此运行时会怎样」。
     """
     prim = rec.get("primary_predicate")
     existence = {"state_declared", "event_declared", "variable_declared",

@@ -60,13 +60,15 @@ def _template_fields(tpl):
             choices.append(name)
     return names, choices
 
+# 裁决块只问三件事：裁成什么、为什么、改成什么。
+# 「深度」一栏 2026-08-13 删除：它是本目录自造的三分（台账没有这个字段），
+# 判据「读懂它需要看几个地方」要人做语义判断，却被摆成一个必填勾选行 ——
+# 判读者的注意力被从「这一条成不成立」拉到「它算中层还是深层」上。
 LEDGER_TEMPLATE = """裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分
-深度: [ ] 表层(单点存在性/拼写)  [ ] 中层(单点关系)  [ ] 深层(跨状态推理/隐含冲突/运行时后果)
 理由:
 修正后的 statement:"""
 
 CANDIDATE_TEMPLATE = """裁决: [ ] 采纳(补入台账)  [ ] 不采纳  [ ] 待议  [ ] 并入现有条目
-深度: [ ] 表层  [ ] 中层  [ ] 深层
 并入到:
 理由:
 补入后的 statement:"""
@@ -77,10 +79,15 @@ def new_template(pair, count=2):
     return NF.template(pair, count)
 
 
-# ⛔ 历史模板。⭐ 留着**只为识别「原样未填的旧模板」** —— 幂等注回是按 key 做的，
-# 若不认出旧模板，字段表改版后旧骨架会被当成「人工内容」永久保留，
-# 新字段永远出不来（实测：改版后重跑 54 份，§5 全部还是旧的 10 字段表）。
+# 历史模板，按代次冻结成**字面量**。留着只为识别「原样未填的旧模板」——
+# 幂等注回是按 key 做的，若不认出旧模板，字段表改版后旧骨架会被当成「人工内容」
+# 永久保留，新字段永远出不来（实测：改版后重跑 54 份，§5 全部还是旧的 10 字段表）。
 # ⚠️ 只做**逐字全等**匹配：作者若已经在旧模板上填了任何东西，就不算旧模板，原样保留。
+#
+# 为什么是字面量而不是「用旧常量重建」：旧代次的枚举（`DIRECTIONS` / `LAYERS` /
+# `BASES` / `SCOPES` / `DEPTHS`）与三层小标题已经在 [newfields.py](./newfields.py) 里删掉了。
+# 一份历史快照本来就该被冻住 —— 它要匹配的是**当年那一批字节**，
+# 跟着现行常量变的「历史模板」根本认不出历史文件。
 LEGACY_NEW_TEMPLATES = ["""### NEW-{pair}-01
 statement:
 layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction
@@ -103,24 +110,129 @@ primary_predicate:
 证据(作者源行号):
 来源: [ ] §3候选  [ ] §4清单  [ ] 自行发现"""]
 
+# 第二代：8 字段平铺、无分层小标题。
+LEGACY_NEW_TEMPLATES.append("""### NEW-{pair}-01
+statement:
+generated_side:
+nl_evidence:
+direction: [ ] reachability  [ ] hierarchy  [ ] guard  [ ] entry  [ ] effect_action  [ ] event  [ ] cardinality  [ ] unclassified
+depth: [ ] 表层  [ ] 中层  [ ] 深层
+--- 以上 5 项必填 · 以下 3 项可留空 ---
+reference_side:
+primary_predicate:
+layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction
 
-# ⭐ 第二代（8 字段、无三层结构）由 [newfields.py](./newfields.py) 的 `template_v2()`
-# 逐字重建 —— ⛔ 别在这里再抄一份字面量：`DIRECTIONS` / `LAYERS` 一改，抄件就对不上，
-# 于是 54 份工作单的旧块会被当成人工内容永久保留，三层字段永远出不来。
-LEGACY_NEW_TEMPLATE_BUILDERS = [NF.template_v2]
+### NEW-{pair}-02
+statement:
+generated_side:
+nl_evidence:
+direction: [ ] reachability  [ ] hierarchy  [ ] guard  [ ] entry  [ ] effect_action  [ ] event  [ ] cardinality  [ ] unclassified
+depth: [ ] 表层  [ ] 中层  [ ] 深层
+--- 以上 5 项必填 · 以下 3 项可留空 ---
+reference_side:
+primary_predicate:
+layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction""")
+
+# 第三代：三层结构（① 事实 / ② 依据 / ③ 边界 / ④ 分类轴），字段 10 项。
+# 2026-08-13 被条件式座标系取代，见 [newfields.py](./newfields.py) 模块 docstring。
+LEGACY_NEW_TEMPLATES.append("""### NEW-{pair}-01
+--- ① 事实层 · 看到了什么（⛔ 只写现象，不下判断） ---
+statement:
+generated_side:
+--- ② 依据层 · 凭什么说它是缺陷（⭐ basis 决定 nl_evidence 怎么写） ---
+basis: [ ] NL显式义务  [ ] NL欠指定  [ ] 模型自身  [ ] 参考模型
+nl_evidence:
+--- ③ 边界层 · 它在 M = (S, E, V, Tr, A) 内吗 ---
+scope: [ ] 界内  [ ] 越界·时钟或不变式  [ ] 越界·并发或正交区  [ ] 越界·其他
+--- ④ 分类轴 · 并表统计用（⛔ 越界条目可不填） ---
+direction: [ ] reachability  [ ] hierarchy  [ ] guard  [ ] entry  [ ] effect_action  [ ] event  [ ] cardinality  [ ] unclassified
+depth: [ ] 表层  [ ] 中层  [ ] 深层
+--- ⑤ 以下三项可留空 ---
+reference_side:
+primary_predicate:
+layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction
+
+### NEW-{pair}-02
+--- ① 事实层 · 看到了什么（⛔ 只写现象，不下判断） ---
+statement:
+generated_side:
+--- ② 依据层 · 凭什么说它是缺陷（⭐ basis 决定 nl_evidence 怎么写） ---
+basis: [ ] NL显式义务  [ ] NL欠指定  [ ] 模型自身  [ ] 参考模型
+nl_evidence:
+--- ③ 边界层 · 它在 M = (S, E, V, Tr, A) 内吗 ---
+scope: [ ] 界内  [ ] 越界·时钟或不变式  [ ] 越界·并发或正交区  [ ] 越界·其他
+--- ④ 分类轴 · 并表统计用（⛔ 越界条目可不填） ---
+direction: [ ] reachability  [ ] hierarchy  [ ] guard  [ ] entry  [ ] effect_action  [ ] event  [ ] cardinality  [ ] unclassified
+depth: [ ] 表层  [ ] 中层  [ ] 深层
+--- ⑤ 以下三项可留空 ---
+reference_side:
+primary_predicate:
+layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction""")
+
+
+# 裁决块的历史模板（含已删除的「深度」一栏）。同样只为识别原样未填的旧块 ——
+# 不认出来的话，54 份工作单的 99 个裁决区会**永远**印着一个不再存在的字段。
+LEGACY_LEDGER_TEMPLATES = ["""裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分
+深度: [ ] 表层(单点存在性/拼写)  [ ] 中层(单点关系)  [ ] 深层(跨状态推理/隐含冲突/运行时后果)
+理由:
+修正后的 statement:"""]
+
+LEGACY_CANDIDATE_TEMPLATES = ["""裁决: [ ] 采纳(补入台账)  [ ] 不采纳  [ ] 待议  [ ] 并入现有条目
+深度: [ ] 表层  [ ] 中层  [ ] 深层
+并入到:
+理由:
+补入后的 statement:"""]
+
+_LEGACY_BY_KIND = {
+    "new": LEGACY_NEW_TEMPLATES,
+    "ledger": LEGACY_LEDGER_TEMPLATES,
+    "candidate": LEGACY_CANDIDATE_TEMPLATES,
+}
+
+
+# §4 清单块的「原样未填」判据。清单块与别的块不同：它的**默认内容本身**就是材料
+# （逐 pair 现算的检查项），所以材料一变就该重印 —— 而 `render` 默认保留旧内容，
+# 于是清单文案的任何更新都到不了工作单里（实测：改了 `checklist.py` 的措辞，
+# 54 份工作单一个字都不变，`generate.py --check` 还报 `unchanged`）。
+#
+# ⚠️ 判据必须比「有没有勾」严：`collect.parse_checklist` **收**清单项下面不带
+# `发现:` 前缀的裸文本行，把那种行当成「未填」会**直接删掉人写的发现**。
+# 故只在每一行都长成生成器自己会产出的形状时才判未填。
+_RE_CHK_EMPTY_ITEM = re.compile(r"^\s*(?:[-*+]\s+)?\[\s*\]\s*[A-Za-z]+-\d+\b")
+_RE_CHK_EMPTY_FINDING = re.compile(r"^\s*发现\s*[:：]\s*$")
+
+
+def checklist_is_untouched(body):
+    """清单块里有没有人工内容（勾选、发现、或任何一行生成器不会产出的文本）。"""
+    if body is None:
+        return False
+    if RE_CHECKED_BOX.search(body):
+        return False
+    for line in body.splitlines():
+        if not line.strip():
+            continue
+        if line.strip().startswith("·"):        # 机器给的机械判据行
+            continue
+        if _RE_CHK_EMPTY_ITEM.match(line):
+            continue
+        if _RE_CHK_EMPTY_FINDING.match(line):
+            continue
+        return False
+    return True
 
 
 def is_stale_template(body, kind, pair=""):
-    """⭐ 该块是不是某个**历史版本的空模板**（因而可以安全换成当前模板）。
+    """该块是不是**原样未填**（因而可以安全换成当前材料 / 当前模板）。
 
-    ⚠️ 只做**逐字全等**匹配：作者若已经在旧模板上填了任何东西，就不算旧模板，原样保留。
+    ⚠️ 对模板类块只做**逐字全等**匹配：作者若已经在旧模板上填了任何东西，
+    就不算旧模板，原样保留。
     """
-    if body is None or kind != "new":
+    if body is None:
         return False
-    if any(body.strip() == t.format(pair=pair).strip() for t in LEGACY_NEW_TEMPLATES):
-        return True
-    return any(body.strip() == build(pair).strip()
-               for build in LEGACY_NEW_TEMPLATE_BUILDERS)
+    if kind == "checklist":
+        return checklist_is_untouched(body)
+    return any(body.strip() == t.format(pair=pair).strip()
+               for t in _LEGACY_BY_KIND.get(kind, ()))
 
 PAIR_TEMPLATE = """本 pair 整体判断: [ ] 台账在本 pair 上够用  [ ] 偏浅但方向对  [ ] 有实质遗漏  [ ] 需推倒重写
 台账现有条目是否偏浅（整体）: [ ] 否  [ ] 部分  [ ] 是
@@ -154,6 +266,12 @@ def name_variants(names):
     return out
 
 
+def _pair_of(key):
+    """从块 key 里取 pair —— §5 的 key 形如 `NEW-0000`。取不到返回空串。"""
+    m = re.match(r"^NEW-(\d{4})$", key or "")
+    return m.group(1) if m else ""
+
+
 def extract(text):
     """从既有工作单里抽出 {key: 块内容（不含围栏）}。"""
     out = {}
@@ -183,6 +301,13 @@ def extract(text):
 
 
 def render(key, kind, default_body, saved=None):
+    """渲染一个填写块。`saved` 是上一版里同 key 的人工内容，原样注回。
+
+    唯一的例外是**原样未填的历史模板**：它按定义不含任何人工内容，
+    留着只会让旧字段表永远印在工作单上，故换成当前模板（见 `is_stale_template`）。
+    """
+    if is_stale_template(saved, kind, _pair_of(key)):
+        saved = None
     body = saved if saved is not None and saved.strip() else default_body
     return "\n".join([
         f"<!-- FILL:BEGIN key={key} kind={kind} -->",

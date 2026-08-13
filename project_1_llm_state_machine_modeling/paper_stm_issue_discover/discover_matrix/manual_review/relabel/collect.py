@@ -82,11 +82,11 @@ def parse_fields(body, known=None, choice_fields=None):
             if cur:
                 out[cur] += "\n"
             continue
-        # ⭐ §5 的分层小标题不是内容，⛔ 也不是字段。
-        # ⛔ 不剔除的后果很具体：`--- ② 依据层 · … ---` 紧跟在 `generated_side:` 之后，
-        # 而它不匹配字段名正则（行首是 `-`），于是会被**并进 `generated_side` 的值**里 ——
-        # 定位串静默多出一整行小标题，行号解析与去重判据都跟着脏掉。
-        if line.strip() in NF.SEPARATORS:
+        # §5 的分支提示行不是内容，也不是字段。
+        # 不剔除的后果很具体：`--- 上一行选了 element…---` 紧跟在勾选行之后，
+        # 而它不匹配字段名正则（行首是 `-`），于是会被并进上一个字段的值里 ——
+        # 值里静默多出一整行提示，去重判据与并表都跟着脏掉。
+        if line.strip() in NF.TEMPLATE_HINTS:
             continue
         m = _RE_FIELD.match(line)
         if m and known is not None and m.group(1).strip() not in known:
@@ -162,9 +162,14 @@ def parse_checklist(body):
 def parse_new(body, pair):
     """解析 §5 的新增登记块。返回 [{id, pair, fields, derived}]。
 
-    ⭐ `fields` 是人工填的 8 项（5 必填 + 3 可选）；`derived` 是
-    [newfields.py](./newfields.py) `derive()` 当下能算出来的部分 ——
-    ⛔ 算不出来的字段留 `None` 并在 `pending` 里写明为什么，⛔ 不猜。
+    `fields` 是人工填的项：条件式座标系的几个勾选轴 + `statement` +
+    `expected_after_fix` + `nl_evidence`（+ 可选 `property_pattern`）；
+    `derived` 是 [newfields.py](./newfields.py) `derive()` 当下能算出来的部分 ——
+    算不出来的字段留 `None` 并在 `pending` 里写明为什么，不猜。
+
+    走 element 支时 `derive()` 会把维度 A 映成 `element_of_M`（`state` → `S`、
+    `transition` / `guard` → `Tr`、`trigger` → `E`、`effect` → `A`、`variable` → `V`）；
+    走逻辑支时该字段留 `None` —— 逻辑层缺陷按定义不落在单个 $M$ 分量上。
     """
     # ⭐ `#` 的个数与后面的空格都放宽：⛔ 写成 `###NEW-…`（漏空格）或 `## NEW-…`（少一个 `#`）
     # 此前**不会**切出新条目，⚠️ 于是该条的全部字段被并进**上一条**（若它是第一条则整条消失）——
@@ -202,6 +207,14 @@ def _is_blank_new(rec):
         elif v:
             return False
     return True
+
+
+def _locus_counts(result):
+    """新增条目按 `defect_locus` 的分布。未填的计入 `未填`。"""
+    from collections import Counter
+    c = Counter(NF.field_value(r.get("fields") or {}, "defect_locus") or "未填"
+                for v in result.values() for r in v["new_issues"])
+    return dict(sorted(c.items()))
 
 
 def collect_pair(pair, path):
@@ -294,15 +307,13 @@ def main():
             "pairs": len(result),
             "ledger_records_seen": sum(len(v["ledger"]) for v in result.values()),
             "candidates_seen": sum(len(v["candidates"]) for v in result.values()),
-            # ⛔ `new_issues` 是登记总数；⭐ 计入缺陷统计的只有 `new_issues_in_scope`。
-            # 越界条目照常落盘（那是关于语料的事实），⛔ 但不是缺陷。
+            # 登记总数。边界（时钟 / 不变式 / 并发）不再由判读者分类，故这里
+            # **不再拆**「界内 / 越界」两栏 —— 分拣改为回收后由主 session 读
+            # `statement` 自由文本人工做，见 [README.md](./README.md) §二.1。
             "new_issues": sum(len(v["new_issues"]) for v in result.values()),
-            "new_issues_in_scope": sum(
-                1 for v in result.values() for r in v["new_issues"]
-                if not NF.is_out_of_scope(NF.field_value(r.get("fields") or {}, "scope"))),
-            "new_issues_out_of_scope": sum(
-                1 for v in result.values() for r in v["new_issues"]
-                if NF.is_out_of_scope(NF.field_value(r.get("fields") or {}, "scope"))),
+            # 走 element 支与走逻辑支各多少条。这是**座标系自己的**分布，
+            # 确定性可算（只看 `defect_locus` 一个字段），拿来看判读者实际用到了哪一支。
+            "new_issues_by_locus": _locus_counts(result),
             "checklist_items": sum(len(c["items"]) for v in result.values()
                                    for c in v["checklist"]),
             "checklist_checked": sum(1 for v in result.values() for c in v["checklist"]
