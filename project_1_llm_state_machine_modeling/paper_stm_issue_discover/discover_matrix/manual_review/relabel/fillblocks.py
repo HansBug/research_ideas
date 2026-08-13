@@ -170,6 +170,41 @@ primary_predicate:
 layer: [ ] wellformedness  [ ] nl_named  [ ] over_specification  [ ] nl_contradiction""")
 
 
+# 第四代：条件式座标系的**首版**（`defect_element` 只有 7 个取值、没有 `other_note`）。
+# 2026-08-13 同日被第五版取代：维度 A 加了界外取值 `region`，并新增条件必填的 `other_note`。
+# ⚠️ 冻成字面量的理由与上面三代完全相同 —— 不认出旧模板，54 份工作单的 §5 会**永远**
+# 印着七取值的旧表，而 `generate.py --check` 只会报 `unchanged`（实测就是这么发生的）。
+LEGACY_NEW_TEMPLATES.append("""### NEW-{pair}-01
+defect_locus: [ ] element  [ ] pair  [ ] global  [ ] other
+--- 上一行选了 element：填下面两项，跳过 defect_logic_kind ---
+defect_element: [ ] state  [ ] transition  [ ] trigger  [ ] guard  [ ] effect  [ ] variable  [ ] other
+defect_qualifier: [ ] missing  [ ] incorrect  [ ] extraneous  [ ] other
+--- 上一行选了 pair / global / other：跳过上面两项，填下面这一项 ---
+defect_logic_kind: [ ] nondeterminism  [ ] incompleteness  [ ] unreachable  [ ] unintended_terminal  [ ] nontermination  [ ] property_violation  [ ] priority_conflict  [ ] hierarchy_entry  [ ] other
+--- 以下四项两支都要填 ---
+defect_reference: [ ] language  [ ] requirement  [ ] other
+statement:
+expected_after_fix:
+nl_evidence:
+--- 以下一项可留空 ---
+property_pattern:
+
+### NEW-{pair}-02
+defect_locus: [ ] element  [ ] pair  [ ] global  [ ] other
+--- 上一行选了 element：填下面两项，跳过 defect_logic_kind ---
+defect_element: [ ] state  [ ] transition  [ ] trigger  [ ] guard  [ ] effect  [ ] variable  [ ] other
+defect_qualifier: [ ] missing  [ ] incorrect  [ ] extraneous  [ ] other
+--- 上一行选了 pair / global / other：跳过上面两项，填下面这一项 ---
+defect_logic_kind: [ ] nondeterminism  [ ] incompleteness  [ ] unreachable  [ ] unintended_terminal  [ ] nontermination  [ ] property_violation  [ ] priority_conflict  [ ] hierarchy_entry  [ ] other
+--- 以下四项两支都要填 ---
+defect_reference: [ ] language  [ ] requirement  [ ] other
+statement:
+expected_after_fix:
+nl_evidence:
+--- 以下一项可留空 ---
+property_pattern:""")
+
+
 # 裁决块的历史模板（含已删除的「深度」一栏）。同样只为识别原样未填的旧块 ——
 # 不认出来的话，54 份工作单的 99 个裁决区会**永远**印着一个不再存在的字段。
 LEGACY_LEDGER_TEMPLATES = ["""裁决: [ ] 保留  [ ] 修正  [ ] 删除  [ ] 拆分

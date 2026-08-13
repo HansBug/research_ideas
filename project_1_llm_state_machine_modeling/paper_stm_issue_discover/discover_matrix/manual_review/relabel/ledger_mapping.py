@@ -48,6 +48,8 @@ SCHEMA = "paper1.relabel.ledger_mapping.v1"
 AXES = ["defect_locus", "defect_element", "defect_qualifier",
         "defect_logic_kind", "defect_reference"]
 
+OTHER_NOTE_FIELD = NF.OTHER_NOTE_FIELD
+
 
 class MappingError(RuntimeError):
     """映射文件与台账 / 座标系对不上。⛔ 一律抛，不降级 —— 见模块 docstring。"""
@@ -94,6 +96,15 @@ def _check_one(rec, ledger):
     for axis in forbid:
         if rec.get(axis):
             raise MappingError(f"{rid} 走 `{locus}` 支却给了 `{axis}`")
+
+    # ⭐ 任一轴取 `other` 必须附一句说明（类型学 §3.7.1）。
+    # ⛔ 判据只看字段值，与 [validate.py](./validate.py) 对新增登记那条门是同一条规则 ——
+    # 两处口径必须一致，否则「我方映射」可以留空出口、而判读者不许，那道门就没有说服力。
+    picked = [a for a in AXES if rec.get(a) == "other"]
+    if picked and not (rec.get(OTHER_NOTE_FIELD) or "").strip():
+        raise MappingError(
+            f"{rid} 的 " + "、".join(f"`{a}`" for a in picked)
+            + f" 取了 `other`，却没写 `{OTHER_NOTE_FIELD}` —— 出口不写清等于没分类")
 
 
 _CACHE = {}

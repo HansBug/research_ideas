@@ -18,6 +18,10 @@
 
    - **枚举取值合法性** —— 五个座标轴的取值必须落在
      [newfields.py](./newfields.py) `ENUMS` 里，且是单值。
+   - **`other` 必须附说明** —— 五个轴里任意一个取 `other`，`other_note` 就必须非空。
+     判据只看字段值（哪几个轴逐字等于 `other`、说明空不空），不读文意。
+     ⛔ 「这句说明写得对不对」是语义判断，不查。见类型学
+     [§3.7.1](../../docs/protocol/defect_taxonomy.md)。
    - **条件式分支的必填一致性** —— `defect_locus = element` 必须给出维度 A
      （`defect_element`）与维度 B（`defect_qualifier`）；`defect_locus` 取
      `pair` / `global` / `other` 必须给出维度 D（`defect_logic_kind`）。
@@ -244,6 +248,25 @@ def validate_pair(pair, data, rep):
                 _enum_check(rep, pair, nid, f, axis, NF.ENUMS[axis], required=False)
         _enum_check(rep, pair, nid, f, "defect_reference",
                     NF.ENUMS["defect_reference"], required=True)
+
+        # ---- ①b 任一轴选了 `other` → 必须附一句说明（类型学 §3.7.1）
+        #
+        # ⭐ 判据只看字段值：「哪几个轴逐字等于 `other`」与「说明字段空不空」，
+        # 两问都不需要读文意，故按 CLAUDE.md §11 允许做成 `E`。
+        # ⛔ 「这句说明写得对不对」是语义判断，**不查** —— 查了就会把正确答案挡在门外。
+        #
+        # 只数**这一条真要回答的轴**：locus + 参照物 + 该分支的轴。
+        # ⛔ 不数另一支那些「填多了忘了删」的轴 —— 它们本来就只报 `W`，
+        # 让它们连带触发一条 `E` 会把提醒升级成阻塞。
+        asked = ["defect_locus", "defect_reference"] + NF.required_axes_for(locus)
+        picked = [a for a in asked if NF.field_value(f, a) == "other"]
+        if picked and not _text(f.get(NF.OTHER_NOTE_FIELD)):
+            rep.E(pair, nid,
+                  "、".join(f"`{a}`" for a in picked)
+                  + f" 选了 `other`，但 `{NF.OTHER_NOTE_FIELD}` 是空的。"
+                    "`other` 是出口，出口不写清等于没分类：请写一句说清**它到底是什么**，"
+                    "或说清**这一条涉及多个取值、一格装不下**（是哪几个）。两种都是合法答案，"
+                    "但必须说出是哪一种")
 
         # ---- ② 错的描述 · ③ 修好算什么：两项自由文本，只查非空
         stmt = _text(f.get("statement"))

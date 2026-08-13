@@ -339,9 +339,11 @@ def section_material(pair, model):
     if su["region_separators"]:
         lines.append(
             f"⚠️ 作者源含 **{su['region_separators']} 个 `--` 区分隔符**。"
-            "正交区并发不在 project_1 的建模对象内（$M$ 无区分量），"
-            "凡「这两个区是否同时活跃」类主张一律**越界**，不得作为新增 issue。"
-            "但同一段文本里的**顺序结构**主张（可达性、边声明、层次）仍在范围内。"
+            "正交区并发不在 project_1 的建模对象内（$M$ 无区分量）—— "
+            "但**这不等于不许记**：维度 A 有一个界外取值 `region`，"
+            "凡「这两个区是否同时活跃」「区应当有几个」类主张照常登记并勾它，"
+            "它会被**记录但不计入缺陷统计**（`counts_as_defect = false`）。"
+            "同一段文本里的**顺序结构**主张（可达性、边声明、层次）在范围内，照常计分。"
         )
         lines.append("")
     if model.parse_warnings:
@@ -538,13 +540,27 @@ def _fmt_mapping(rec, caveat=MAPPING_CAVEAT):
             out += [f"- 这类卡点的含义：{zh[1]}", ""]
         return out
     out += ["| 轴 | 我方判的取值 |", "| :-- | :-- |"]
+    out_of_scope = []
     for axis in ("defect_locus", "defect_element", "defect_qualifier",
                  "defect_logic_kind", "defect_reference"):
         val = rec.get(axis)
         if not val:
             continue
         out.append(f"| `{axis}` | {T.bi(val, NF.ZH[axis].get(val))} |")
+        if not NF.counts_as_defect(axis, val):
+            out_of_scope.append((axis, val))
     out.append("")
+    # ⭐ 界外取值必须当场写明它不计分 —— ⛔ 只印一个 `region` 而不说它不计入统计，
+    # 判读者会把它当成一条普通缺陷，⛔ 而那正好是 CLAUDE.md 边界禁止的两种误读之一。
+    for axis, val in out_of_scope:
+        out.append(f"- **界外取值、不计分** —— `{axis} = {val}`：{NF.OUT_OF_SCOPE_VALUES[(axis, val)]}")
+    if out_of_scope:
+        out.append("")
+    # ⭐ 任一轴取 `other` 时的说明。⛔ 不许省：出口不写清等于没分类，
+    # 而判读者要判的正是「我们这一格判对了没有」。
+    if (rec.get(NF.OTHER_NOTE_FIELD) or "").strip():
+        out.append(f"- `other` 说明：{esc(rec.get(NF.OTHER_NOTE_FIELD))}")
+        out.append("")
     out.append(f"- 依据（原文逐字片段）：{esc(rec.get('evidence'))}")
     if (rec.get("note") or "").strip():
         out.append(f"- 判定说明：{esc(rec.get('note'))}")
@@ -922,7 +938,7 @@ def section_checklist(pair, model, segs, records, saved):
     lines.append("")
     lines.append(
         "每条都是**待核问句**，不是结论；勾 `[x]` = 已看过，「发现:」留空 = 看过但无发现。"
-        "**时钟 / 计时 / 不变式 / 正交区并发一律不许记** —— 读法与边界见 "
+        "**时钟 / 计时 / 不变式 / 正交区并发不计入缺陷统计，但照常记** —— 读法与边界见 "
         f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.3。"
     )
     lines.append("")
@@ -974,7 +990,7 @@ def _fill_enum_legend():
 
     条件式在这里是**分节**体现的：先一张 `defect_locus` 表，然后按分支各起一节。
     走 element 支的人只读 A + B 两张表，走逻辑支的人只读 D 一张表；
-    没有人需要一次面对 27 个取值。
+    没有人需要一次面对 28 个取值。
 
     勾选行里的取值必须保持英文原样，不许在方括号里加中文：
     [validate.py](./validate.py) 的 `_enum_check` 拿勾中的那串文本与
@@ -1020,7 +1036,8 @@ def _fill_enum_legend():
     )
     lines.append("")
 
-    lines.append("#### 走 element 支：`defect_element` 构件（7 选 1）+ `defect_qualifier` 限定词（4 选 1）")
+    lines.append(f"#### 走 element 支：`defect_element` 构件（{len(NF.ELEMENTS)} 选 1）"
+                 f"+ `defect_qualifier` 限定词（{len(NF.QUALIFIERS)} 选 1）")
     lines.append("")
     lines.append("`defect_element` 判定测试：指着作者源那一行问 ——")
     lines.append("")
@@ -1033,6 +1050,15 @@ def _fill_enum_legend():
         "分界提示：一条边接到了**错的目标态**落 `transition` + `incorrect`，不落 `state`；"
         "「Y 应当是 X 的子态而不是兄弟」落 `state` + `incorrect`（父容器是状态的一个属性）；"
         "缺的是**整个条件表达式**落 `guard`，条件在、但它引用的量没有声明落 `variable`。"
+    )
+    lines.append("")
+    lines.append(
+        "⚠️ **`region` 这一档与其余七个不是同一种东西**：正交区并发语义在 "
+        "$M = (S, E, V, Tr, A)$ **之外**，所以它 `counts_as_defect = false` —— "
+        "**照常记，但不计入任何缺陷统计**。给它一个槽位是为了同时满足两条要求："
+        "既不把这类发现记成「方法没检出」，也不反过来声称这些模型没有并发问题。"
+        "时钟 / 计时 / 不变式**没有**对应取值（PlantUML 状态图里没有它们的语法载体），"
+        "撞上了就照常写进 `statement` 自由文本，回收后由主 session 人工分拣。"
     )
     lines.append("")
     lines.append(f"`defect_qualifier` 判定测试（统一一句）：{NF.QUALIFIER_TEST}")
@@ -1051,7 +1077,8 @@ def _fill_enum_legend():
     )
     lines.append("")
 
-    lines.append("#### 走逻辑支（`pair` / `global` / `other`）：`defect_logic_kind` 逻辑类型（9 选 1）")
+    lines.append(f"#### 走逻辑支（`pair` / `global` / `other`）："
+                 f"`defect_logic_kind` 逻辑类型（{len(NF.LOGIC_KINDS)} 选 1）")
     lines.append("")
     lines.append(
         "这一轴承担 A×B 结构上表达不了的那一半：非确定性、不完备、可达性、终止性、"
@@ -1093,6 +1120,27 @@ def _fill_enum_legend():
         "UML 2.5.1 明写允许迁移冲突且优先级只给出偏序；"
         "「复合态缺默认入口」同样**不能**判 `language` —— UML 把它留作语义变异点。"
         "这两条要判成缺陷，必须走 `requirement` 并给出 NL 逐字依据。"
+    )
+    lines.append("")
+
+    lines.append(f"#### 任一轴勾了 `other`：`{NF.OTHER_NOTE_FIELD}` 必填")
+    lines.append("")
+    lines.append(
+        f"上面五个轴里**任意一个**勾了 `other`，就必须在 `{NF.OTHER_NOTE_FIELD}` 里写一句话。"
+        "写清两件事之一即可：**它到底是什么**，或者**这一条涉及多个取值、一格装不下**"
+        "（是哪几个）。两种都是合法答案，但必须说出是哪一种。"
+    )
+    lines.append("")
+    lines.append(
+        "留空会被 [validate.py](../validate.py) 报 `E`。"
+        "这道门只看「有没有 `other`」与「说明空不空」两件事，**不判你这句写得对不对** —— "
+        "后者要读文意，做成门会把正确答案挡在外面。"
+    )
+    lines.append("")
+    lines.append(
+        "为什么值得单立一条：`other` 是出口，出口不写清等于没分类。事后回看只剩一个 "
+        "`other`，既不知道它是什么，也分不出它是「真的都不是」还是「涉及多个」—— "
+        "而这两种情形对「座标系还缺什么」这个问题给出的答案完全不同。"
     )
     lines.append("")
 
@@ -1178,7 +1226,7 @@ def section_new(pair, saved):
     )
     lines.append("")
     lines.append(
-        "所以你实际面对的不是 27 个取值，而是**一次 4 选 1 加两三次不超过 9 选 1**，"
+        "所以你实际面对的不是 28 个取值，而是**一次 4 选 1 加两三次不超过 9 选 1**，"
         "每一步都有一句判定测试（就在下面 §5.2 的表里），加上两段自由文本。"
         "边界（时钟 / 不变式 / 并发）**不再由你分类**：你只判「这是不是缺陷」，"
         "撞上界外的东西照常写进 `statement`，回收后由主 session 统一分拣。"
@@ -1362,7 +1410,7 @@ def build_howto():
     lines.append(
         "所以每条实际要动的是**一次 4 选 1 加两三次不超过 9 选 1**，加两段自由文本，"
         "外加一个段 id。走 element 支时候选面是 4+7+4+3 = 18，走逻辑支时是 4+9+3 = 16 —— "
-        "**没有人需要一次面对 27 个取值**。"
+        "**没有人需要一次面对 28 个取值**。"
     )
     lines.append("")
     lines.append(
@@ -1643,9 +1691,14 @@ def build_howto():
     )
     lines.append("")
     lines.append(
-        "**不在范围内的，一律不许记**：时钟 / 计时 / 秒级约束、不变式、正交区并发"
-        "（fork/join、区域同时活跃）。project_1 的建模对象是 $M = (S, E, V, Tr, A)$，"
-        "没有 $C$、没有 $Inv$、没有区分量。"
+        "**界外的东西照常记，但落点不同**。project_1 的建模对象是 $M = (S, E, V, Tr, A)$，"
+        "没有 $C$、没有 $Inv$、没有区分量，所以下面两族不计入缺陷统计："
+        "① **正交区并发**（fork/join、区域同时活跃、区应当有几个）—— 维度 A 有专属取值 "
+        "`region`，勾它即表示界外，`counts_as_defect = false`；"
+        "② **时钟 / 计时 / 秒级约束 / 不变式** —— 没有专属取值，写进 `statement` 自由文本，"
+        "回收后由主 session 人工分拣。"
+        "⚠️ 一律不记是**旧口径**，2026-08-13 已撤销：不记会让这批发现既进不了记录、"
+        "也进不了统计，等于反过来声称这些模型没有并发问题 —— 那同样是错的。"
     )
     lines.append("")
     return "\n".join(lines)
@@ -1710,8 +1763,14 @@ def build_doc(pair, saved):
 
     doc = "\n".join(head) + "\n" + "\n".join(body)
 
-    # 孤儿填写区：旧文件里有、新骨架里没有的 key
-    orphans = {k: v for k, v in saved.items() if k not in set(keys)}
+    # 孤儿填写区：旧文件里有、新骨架里没有的 key。
+    #
+    # ⛔ **原样未填的块不算孤儿，直接丢。** ⚠️ 它按定义不含任何人工内容，留着只会在 §9
+    # 堆出一批空模板 —— 实测：inspect 发现改成「与既有条目重合的并入、不新建 `INS-` 块」
+    # 之后，上一版渲染过的 51 个空 `INS-` 块全部落进了 §9，而它们一个字都没填过。
+    # ⭐ 判据仍是 `fb.is_untouched`（勾选记号与冒号后有没有写东西），⛔ 只要填过就保留。
+    orphans = {k: v for k, v in saved.items()
+               if k not in set(keys) and not fb.is_untouched(v, "candidate", pair)}
     if orphans:
         tail = ["## §9 孤儿填写区（材料变动导致这些 key 不再出现在正文）", ""]
         tail.append(

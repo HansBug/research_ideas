@@ -11,6 +11,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：这一条捆了两次互不相同的编辑——把边的源端由伪初始改成运行态，以及把目标 `FinalState` 由普通命名状态改成终态伪状态。单取 `incorrect` 只能装下其中一次。",
    "evidence": "生成制品里 Power Off 的源端是顶层伪初始，任何运行态（HumanDrivingMode / AutonomousMode）都没有断电出边",
    "note": "locus=element：最少指一处即作者源第 14 行 `[*] --> FinalState : Power Off`，单看该行自身即违反 NL 第5句。element=transition（源端错、目标端也不是终态伪状态，均属边本身的属性）。qualifier=other 而非 incorrect：statement 同时断言两处互不相同的编辑——(1) 源端须由伪初始改为运行态；(2) 目标 FinalState 只是普通命名状态、无出边，须改为终态伪状态。按 §3.2 一阶编辑约定（Lackner「exactly one syntactic change」）两次不同编辑落 other，同 §3.4「一条边既缺守卫又指错目标」那一行。若台账把它拆成两条记录，则分别为 transition+incorrect 与 state/transition+incorrect。reference=requirement：判定依赖 NL 第5句「运行中的系统在断电时进入终态」。statement 后半段关于 workbook 列 I/Z/AD/AG 与 0030 对照的内容是缺陷来源与可复现性论证，不改变座标。"
   },
@@ -22,6 +23,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：多个事件被塌缩成一个泛化标签，修复要删掉这条标签、再拆出多条边与多个触发，不是一次编辑。",
    "evidence": "pyfcstm 投影得到单一事件 `Human_Steering_Cmd_Brake_Pressed_in_AutoFinal`，模型无法对单独的 human steering cmd 或 brake pressed 作出响应",
    "note": "locus=element：一处即第 13 行边标签。element=trigger：整串文本位于 `/` 之前、方括号之外，是事件名位置（§3.3）。qualifier=other：这正是 §3.4 与 §4.7 点名的「多个事件被塌缩成一个泛化名」——修复要删一条标签、拆出多条边/多个触发，属多阶编辑。附带争议点：`in (AutoFinal)` 实为状态条件，若单独成条应落 guard；但本条记录把三者作为同一个融合标签处理，故仍锚在 trigger。reference=requirement：依赖 NL 第5句与第2句。"
   },
@@ -104,14 +106,14 @@
   },
   {
    "id": "EIS-0006-01",
-   "mappable": false,
-   "defect_locus": null,
-   "defect_element": null,
-   "defect_qualifier": null,
+   "mappable": true,
+   "defect_locus": "element",
+   "defect_element": "region",
+   "defect_qualifier": "missing",
    "defect_logic_kind": null,
-   "defect_reference": null,
+   "defect_reference": "requirement",
    "evidence": "本模型一个区域都没有，三区域语义完全缺失",
-   "note": "卡在轴 A（defect_element）。缺失的构件是「区域 / state area」，而 §3.3 的 7 个取值（state / transition / trigger / guard / effect / variable / other）里没有 region；更关键的是 §3.7 明确把正交区并发语义列为界外并写「不得取为维度取值」，§1.3 亦把区域语义排除在 M = (S, E, V, Tr, A) 之外。于是两条路都不通：落 element=other 会把一个座标系明文声明界外的构件伪装成界内的「其他构件」；落 logic_kind 也无对应取值（不是可达性、非确定性、层次进入中的任何一种）。statement 自己预判了这个争议并主张「这是数量/结构问题，不是并发风格问题」，但参考侧实现恰恰是 `state Raster_Scanning { region1 -- region2 -- region3 }` 即正交区，界内/界外本身未决——按 §1.3 该判定归工作单 scope 字段而非本类型学。其余各轴本可定（locus 倾向 element、qualifier 倾向 missing、reference=requirement，NL 第 2 句 'operates within three different state areas' 是数量断言），仅因轴 A 无法给出不失真的取值而整条标 false。"
+   "note": "**重判（原判 `taxonomy` 卡点，已撤销）**。缺失的构件就是正交区本身：NL 第 2 句 'operates within three different state areas' 是一条数量断言，参考侧用 `state Raster_Scanning { region1 -- region2 -- region3 }` 三个并发区承载，生成侧一个区都没有。补上 `--` 分隔符使条数变多 → `missing`；数量断言来自 NL → `requirement`。⚠️ 本条 `counts_as_defect = false`：正交区并发语义在 $M$ 之外，登记它只为不丢信息，**不计入任何缺陷统计**。原判的理由是「轴 A 的 7 个取值里没有 region、且类型学 §3.7 明写界外条目不得取为维度取值」——后半句已在 2026-08-13 撤销，理由见类型学 §3.7：把界外对象赶出座标系会让它既进不了记录也进不了统计。"
   },
   {
    "id": "EIS-0006-02",
@@ -209,6 +211,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：触发词是「搬家」——要在初始边上补 `Power On`、同时在另一条边上去掉它，两次互不相同的编辑；Lackner 明确把元素移动排除在一阶算子之外。",
    "evidence": "生成制品把 Power On 挪到了 HumanDriving→Autonomous 这条边上：顶层初始边成了无触发迁移（丢失 NL 明确给出的触发条件）",
    "note": "locus=element：两处（第 2 行初始边、第 5 行 HumanDriving-->Autonomous），但单看每一处相对 NL 都自身有毛病（前者缺该有的触发、后者带不该有的触发），按 §3.1 分界属 element 而非 pair。element=trigger。qualifier=other：这是一次「搬家」——Lackner 明确把元素替换/移动排除在一阶算子之外，修复需要两次互不相同的编辑（在初始边上补 Power On、在另一条边上去掉它），故按 §3.2 落 other。reference=requirement：判定依赖 NL 第 3 句（power on 进入 human driving mode）与第 4 句（front_distance>10 才切自动驾驶）。附注：statement 顺带指出 HumanDriving 有两条通向 Autonomous 的边，若单独成条属 pair/nondeterminism。"
   },
@@ -297,6 +300,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：删掉初始边标签上的触发器（条数变少）加上在 `Accelerating` 上补一个 entry 动作（条数变多），一增一减，单值装不下。",
    "evidence": "Accelerating 不再声明任何 entry 动作，且初始伪状态迁移被挂上了本不该存在的触发器",
    "note": "NL 第 8 句要求的是一个 entry 动作，故构件轴落 effect（§3.3 effect 含状态体内 entry/exit/do 动作）。限定词取 other 而非 missing：statement 明写「后果有两个」，修好要两次互不相同的编辑（删掉初始边标签上的触发器 + 在 Accelerating 上加 entry 动作），方向一增一减，属 §3.2 的多阶情形。⚠️ 构件轴不干净：被删的那半落在 trigger 上，被加的那半落在 effect 上；按「NL 义务指向哪类构件」取 effect。"
   },
@@ -308,6 +312,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：删掉虚假子状态 `Entry`（连带 `UnspecifiedInitial`）再补一个 entry 动作，一增一减且跨两类构件。",
    "evidence": "NL 第 3 句要求的 'Emergency Stop' 动作被降级成 EmergencyStopping 内部一个虚假子状态",
    "note": "NL 义务是一个 entry 动作 → effect。修法要删掉虚假子状态 Entry（及连带的 UnspecifiedInitial）再补一个 entry 动作，多阶且一增一减 → other。⚠️ 这条是本批里构件轴最不干净的一条：statement 的两个主张分属两类构件（动作缺失落 effect、虚假复合子态落 state），轴系是单值的，按「NL 义务指向哪类构件」取 effect，但换成 state 同样说得通——这是座标系表达不了「动作被降级成状态」这种跨类塌缩的证据。"
   },
@@ -352,6 +357,7 @@
    "defect_qualifier": null,
    "defect_logic_kind": "other",
    "defect_reference": "language",
+   "other_note": "这是「同名碰撞 / 作用域捕获导致某区域默认入口失效」——9 个逻辑取值里没有这一类：它不是 `hierarchy_entry`（那要求目标是复合态本身），也不是 `unreachable` 或 `unintended_terminal`。类型学 §2.8 把它记为「候选精化但未收」的 designation clash。",
    "evidence": "名字碰撞后 Region2/Region3 的初始迁移目标落在 Region1.Search 上",
    "note": "单看 Region2 内的 `[*] --> Search`、单看 Region1 内的 `state Search`，每一处自身都合法；缺陷在两者的名字/作用域关系里 → pair（§3.1「单看每一处都合法」）。⛔ 逻辑类型轴给不出真值：9 个取值里没有「同名碰撞 / 作用域捕获导致某区域默认入口失效」这一类——它不是 hierarchy_entry（那要求目标是复合态本身），也不是 unreachable / unintended_terminal，故只能落 other，这正是 §2.8 里被记为「候选精化但未收」的 designation clash。reference 取 language：statement 通篇不引 NL，判据是投影给出的 InvalidInitial 良构性诊断；与 §3.6 那条陷阱不同——这里不是「缺默认入口」，而是默认入口存在但目标越出本区域。"
   },
@@ -363,6 +369,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：既要换完成条件的触发，又要把终止边从最内层区域挪到顶层，两次编辑。",
    "evidence": "本模型把『第三区域搜索完成』当作结束条件，既无 mission-complete 事件也无顶层终态",
    "note": "指得出具体一行（最内层区域内那条 `Search --> [*] : Finished Region3 Search`）→ element；缺陷落在这条边上 → transition。限定词取 other：statement 主张的是「提前完成 + 完成条件错置」两件事，修好要既换触发条件、又把终止边从最内层区域挪到顶层，属多阶。犹豫点：若只取「完成条件错置」一句，可落 trigger + incorrect。"
   },
@@ -418,6 +425,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：三个检测事件被塌缩成一个泛化事件——要删一条复合事件、加两条独立触发，再为 `in (auto final)` 补一条独立承载。",
    "evidence": "两个接管条件被压成一个不可分解事件",
    "note": "缺陷落在边标签上 `/` 之前、方括号之外的事件名 → trigger。限定词取 other：这正是 §3.4「三个检测事件被塌缩成一个泛化事件」那一行——修好要删一条复合事件、加两条独立触发，再为 in (auto final) 补一条独立承载，属多阶（§4.7 的融合/塌缩类真空）。"
   },
@@ -440,6 +448,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：删掉被误解析成触发器的迁移标签（少一条）再在 `Approaching` 上补 entry 动作（多一条），一增一减且跨构件类。",
    "evidence": "作者把它写成一条迁移的标签，PlantUML 下整串 'exit/Send' 成为触发器",
    "note": "NL 第 9 句的义务是一个输出动作 → effect。修好要删掉这条被误解析成触发器的迁移标签、再在 Approaching 上补 entry 动作，一增一减且跨构件类 → other。⚠️ 与 EIS-0014-02 / 0014-03 同族的构件轴不干净问题：被删那半落 trigger，被加那半落 effect；按 NL 义务指向取 effect。"
   },
@@ -489,14 +498,14 @@
   },
   {
    "id": "EIS-0026-01",
-   "mappable": false,
-   "defect_locus": null,
-   "defect_element": null,
-   "defect_qualifier": null,
+   "mappable": true,
+   "defect_locus": "element",
+   "defect_element": "region",
+   "defect_qualifier": "missing",
    "defect_logic_kind": null,
-   "defect_reference": null,
+   "defect_reference": "requirement",
    "evidence": "NL 第 2 句要求搜索期间存在三个不同状态区域；本模型只有一个区域",
-   "note": "卡在轴 A（defect_element）：缺陷对象是「区域（region）的个数」，7 个取值里没有 region，只能落 other；而 §3.7 又把正交区并发语义明确列为界外、由工作单 scope 字段承担、『不得取为维度取值』。参考侧 state Raster_Scanning { region1 -- region2 -- region3 } 用的正是 PlantUML 的正交区分隔。轴 B 同样定不下来：若读成「补两个 region 分隔符」是 missing，若读成「三个搜索区域是全新内容、需整体重构」是 other。附：若允许把 other 出口算作已映射，则本条为 locus=element / element=other / qualifier=other / reference=requirement。"
+   "note": "**重判（原判 `taxonomy` 卡点，已撤销）**。与 `EIS-0006-01` 同型：对象是区域的**个数**，NL 第 2 句要三个搜索区域而本模型只有一个。补区使条数变多 → `missing`。⚠️ `counts_as_defect = false`。原判里那句「若读成整体重构则是 other」不采：记录自己主张的是数量不足，不是内容重构。"
   },
   {
    "id": "EIS-0026-02",
@@ -616,6 +625,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：典型的「融合 / 塌缩」——修复要删一条、加三条。",
    "evidence": "三个接管条件压成一个不可分解事件",
    "note": "§4.7 明写的「融合 / 塌缩」原型：修复要删一条加三条，是多阶编辑，故 qualifier=other。落点在边标签上方括号外的事件名 → trigger。犹豫点：statement 未引 NL 句号，「三个接管条件」这一前提来自 NL（参考侧把三条件拆成三条独立边），故 reference 取 requirement 而非 other。"
   },
@@ -660,6 +670,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "language",
+   "other_note": "涉及多个：既要改目标使其回到 `PumpControl` 子作用域，又要删掉多余的初始边使默认进入点唯一。",
    "evidence": "三条初始边目标全部越出了 PumpControl 的子作用域",
    "note": "缺陷落在三条 [*] --> 初始边上 → transition。qualifier=other：本条捆了两种互不相同的编辑 —— 改目标使其回到 PumpControl 子作用域，以及删掉多余的初始边使默认进入点唯一，一次编辑改不完。reference=language：判定不需要引 NL —— 目标越出子作用域是元模型良构性问题（投影直接标 Invalid），「三条初始边并存」直接违反 UML 2.5.1 Region::initial_vertex『A Region can have at most one initial Vertex』。⚠️ 这与 §3.6 陷阱二（缺默认入口不得判 language）不冲突：本条不是「缺」而是「初始边非法且多于一条」。犹豫点：statement 以 NL 3 开篇，若认为其成立性依赖 NL 3/4/5 则应改判 requirement。"
   },
@@ -775,14 +786,15 @@
   },
   {
    "id": "EIS-0036-01",
-   "mappable": false,
-   "defect_locus": null,
-   "defect_element": null,
-   "defect_qualifier": null,
+   "mappable": true,
+   "defect_locus": "element",
+   "defect_element": "region",
+   "defect_qualifier": "other",
    "defect_logic_kind": null,
-   "defect_reference": null,
+   "defect_reference": "requirement",
+   "other_note": "涉及多个：这一条在两种读法下各指一处不同的毛病——**顺序**读法下是 `region0` 起于 `InitialState` 且永不离开（那半落 `global` + `unintended_terminal`），**并发**读法下是顶层区域槽位数量不对且 `region0` 恒定无用（这半落 `region`）。限定词单值装不下：前一半要补出边，后一半要重划区。",
    "evidence": "在并发读法下 region0 是恒定无用区域，在顺序读法下",
-   "note": "卡在 locus 轴（连带 A 与 D）。两个原因：① statement 明说「两种读法下都有缺陷」，而两种读法给出的定位完全不同——顺序读法是 global + unintended_terminal（起于 InitialState 且永不离开），并发读法是「区域数量断言不满足 + region0 恒定无用」，后者既不是单元素也不是可枚举的元素间关系，locus 无法定于一个取值；② 该条的承载对象是「顶层区域槽位」，而维度 A 的 7 个取值里没有 region，§3.7 又把正交区并发语义列为界外、明确不设取值。故不硬塞。"
+   "note": "**重判（原判 `taxonomy` 卡点，已撤销）**。承载对象是顶层区域槽位，故轴 A 取新增的 `region`。⚠️ 但这一条比另外几条勉强：statement 明说「两种读法下都有缺陷」，而两种读法给出的定位并不相同，故限定词落 `other` 并按类型学 §3.7.1 附说明。`counts_as_defect = false` 只对并发那一半成立；顺序读法那一半是界内的 `unintended_terminal`——**判读者若采顺序读法，应当把它当成界内缺陷登记**。"
   },
   {
    "id": "EIS-0036-02",
@@ -847,6 +859,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：三个条件被塌缩成一个事件名，修复要删一条边、加三条边。",
    "evidence": "投影得到单一事件 `human_steering_cmd_brake_pressed_in_AutoFinal`：单独的 human_steering_cmd 无法触发接管",
    "note": "标签在方括号外、'/' 之前，按 §3.3 属 trigger。三个条件被塌缩成一个事件名，修复要删一条边、加三条边 → §3.4 明列的多阶情形，qualifier=other。判定「单独的 human_steering_cmd 应能触发接管」需引 NL → requirement。"
   },
@@ -880,6 +893,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：要删 `Region2` 及其 `Idle` / `Active`，还要把三个具名子态直接挂到 `PumpControl` 下——单取 `extraneous` 或 `incorrect` 都只能装下一半。",
    "evidence": "问题不是包裹层数，而是分解成员被替换了",
    "note": "statement 主张的是「PumpControl 的顶层分解恰由这三个具名子态构成」被违反，对象是具名子态 → element=state。改对需要多次互不相同的编辑（删 Region2 及其 Idle/Active、把 Region1 拆包让三个子态直接挂到 PumpControl），一次编辑改不完 → §3.2/§3.4 落 other。数量断言来自 NL 2 的逐字枚举 → requirement。犹豫点：若只取「Idle/Active 是 NL 里不存在的多余状态」这一半，则是 extraneous；若只取「三个子态挂错了父容器」这一半，则是 incorrect——正因为两半都要改，才落 other。"
   },
@@ -924,19 +938,20 @@
    "defect_qualifier": "missing",
    "defect_logic_kind": null,
    "defect_reference": "other",
+   "other_note": "两者都不是：论证完全在模型内部（入口歧义），一句 NL 都没引，故不是 `requirement`；而「复合态缺默认入口」按类型学 §3.6 又不得判 `language`（UML 把它留作语义变异点）。剩下的依据只有参考模型对照，正是 `other` 的典型落点。",
    "evidence": "包壳 composite 有两个顺序子状态却没有初始子状态，进入哪个区域完全未定义",
    "note": "locus/element/qualifier 与其余「缺默认入口」同族（transition + missing）；此条实际缺两条（根层与包壳层各一，statement 自述「投影在根与包壳内各插入一个 UnspecifiedInitial」）。⚠️ reference 轴是难点：statement 的论证完全是模型内部的入口歧义，一句 NL 都没引；而 §3.6 陷阱明写「复合态缺默认入口」不得判 language（UML 把它留作语义变异点）。既非 language 又无 NL 逐字依据，只能落 other（§3.6 给的典型落点之一正是「只能靠参考模型对照」，本条 reference_side 给的就是 [*] --> Raster_Scanning）。"
   },
   {
    "id": "EIS-0046-02",
-   "mappable": false,
-   "defect_locus": null,
-   "defect_element": null,
-   "defect_qualifier": null,
+   "mappable": true,
+   "defect_locus": "element",
+   "defect_element": "region",
+   "defect_qualifier": "missing",
    "defect_logic_kind": null,
-   "defect_reference": null,
+   "defect_reference": "requirement",
    "evidence": "只有两个所谓 region，且都不是 -- 并发区域",
-   "note": "卡在 defect_element 轴（且连带 locus）。这条缺陷的实体是「正交区域」及其数量：NL 要三个搜索区域，参考用 state Raster_Scanning { r1 -- r2 -- r3 } 三个并发区承载，生成侧只有顺序子状态。§3.3 的 7 个取值里没有 region 这一档（region 在 PlantUML 里也没有独立声明行，只有 -- 分隔符），落 other 等于把内容全丢掉；更关键的是 §3.7 明写正交区并发语义属界外、不进本座标系，由工作单 scope 字段承担。statement 自己也把它记为「谓词缺口」。故如实标 mappable=false，而不是硬塞 element=other。"
+   "note": "**重判（原判 `taxonomy` 卡点，已撤销）**。NL 要三个搜索区域，参考用 `state Raster_Scanning { r1 -- r2 -- r3 }` 三个并发区承载，生成侧只有顺序子状态。补 `--` 使区数变多 → `missing`。⚠️ `counts_as_defect = false`。statement 自己把它记为「谓词缺口」，与本判定不冲突：谓词侧没有这条检查，是另一回事。"
   },
   {
    "id": "EIS-0046-03",
@@ -957,6 +972,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "language",
+   "other_note": "涉及多个：三套避撞控制因重名塌缩成一套，修复要重命名 / 补齐 6 个状态声明并重连初始边。",
    "evidence": "Idle / Braking / Clamping 在 Frontend 里首次声明后，RearEnd 与 Pedestrian 中的同名引用指向的是 Frontend 内的同一批状态",
    "note": "塌缩型缺陷：三套避撞控制因重名合并成一套。qualifier 取 other——修复需要重命名/补齐 6 个状态声明并重连初始边，是 §3.2/§4.7 说的多阶编辑（§4.7 把「N 个东西被塌缩成一个」明确指派给维度 B 的 other）。⚠️ 两处犹豫：① locus 也可读成 pair（单看每一行 state Idle 都合法，毛病在三处的关系里），我取 element 是因为修复动作落在具体声明行上、且 §4.7 把塌缩类归在 B 轴；② reference 在 language 与 requirement 之间：statement 同时给了工具级良构性报错（pyfcstm 报 initial target outside child scope）与 NL 第 1、3 句。按 §3.6「需不需要引用 NL」的最小性测试，工具报错不引 NL 也成立，故取 language；若按 statement 自述的缺陷主张（三路控制塌缩为一）则应取 requirement。"
   },
@@ -968,6 +984,7 @@
    "defect_qualifier": "missing",
    "defect_logic_kind": null,
    "defect_reference": "other",
+   "other_note": "两者都不是：statement 自述依据是「UML 要求区必须有默认入口」即主张 `language`，但类型学 §3.6 点名这一条不得判 `language`；它又没引任何 NL 句。⚠️ 这条本身就是「台账主张的判定依据与文献口径不符」的样本。",
    "evidence": "CollisionAvoidanceSystem 有三个子状态却没有初始子状态，进入它时落到合成的 UnspecifiedInitial",
    "note": "与 0046-01 同型。⚠️ reference 轴冲突：statement 自述的依据逐字是「UML 要求区必须有默认入口或显式进入点，这是结构缺陷」，即它主张 language；但 §3.6 陷阱恰恰点名这一条不得判 language（UML 2.5.1 把 initial Pseudostate 缺席留作未定，SDMetrics 也把 InitialAndFinalStates 标为 Style 而非 Correctness）。statement 又没引任何 NL 句，故按座标系规则只能落 other。这条本身就是「台账所主张的判定依据与文献口径不符」的样本，值得单独看。"
   },
@@ -1023,6 +1040,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "requirement",
+   "other_note": "涉及多个：析取守卫被压成一个标签，修复要删一条边、加三条边。",
    "evidence": "三个接管条件压成一个跨行自由文本标签，投影为单一事件，任一单独条件都不能触发接管",
    "note": "§4.7 点名的塌缩/融合类（「析取守卫被压成一个标签」），修复要删一条边、加三条边 → qualifier = other。element 取 trigger：该文本整块落在标签的方括号外、/ 之前，statement 也说「投影为单一事件」。⚠️ 犹豫点：三个条件里 human steering cmd / brake pressed 像事件，in (auto final) 是状态条件（本该进 guard 或另作处理），所以 element 也可读成 guard 或 other；我按它实际所处的记法槽位判 trigger。reference=requirement：「三个接管条件」这一分母来自 NL。"
   },
@@ -1067,6 +1085,7 @@
    "defect_qualifier": "other",
    "defect_logic_kind": null,
    "defect_reference": "language",
+   "other_note": "涉及多个：要「删掉这个 guard + 增加一个 effect」，跨两类构件——按 guard 计条数变少、按 effect 计变多，而从文本上看又只是一次单行改写，三个值各说一半。",
    "evidence": "递减被写在 UML 的 guard 槽位 [...] 而不是 effect 槽位 /",
    "note": "槽位放错：动作被写进方括号。element 按 §3.3 的「方括号内 → guard」取 guard。⚠️ qualifier 是本批最难的一处：修好要「删掉这个 guard + 增加一个 effect」，跨两类构件——按 guard 计声明数变少（extraneous），按 effect 计变多（missing），而从文本上看又只是一次单行改写（incorrect）。三个值都能各说一半，故按 §3.4 的 other 定义（一次编辑改不完 / 多阶）落 other。reference=language：本条 statement 通篇没有引任何 NL 句，其论证是 UML 记法槽位语义加上「该条件不可满足」，只读模型即可看出，符合 §3.6 的 language 判定测试。"
   },

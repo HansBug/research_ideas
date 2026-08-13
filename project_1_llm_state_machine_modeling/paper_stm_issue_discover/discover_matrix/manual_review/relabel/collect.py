@@ -254,9 +254,13 @@ def collect_pair(pair, path):
         elif kind == "candidate":
             out["candidates"].append({
                 "key": key,
+                # ⚠️ `INSU-` 必须排在 `INS-` **前面**判：前缀是后者的扩展，
+                # 顺序反了会把整个「不确定」折叠区错记成确认内生那一族。
                 "source": ("valid_unrecorded" if key.startswith("VU-")
                            else "review_diff" if key.startswith("DIFF-")
                            else "unmatched_issue" if key.startswith("UM-")
+                           else "inspect_uncertain" if key.startswith("INSU-")
+                           else "inspect_finding" if key.startswith("INS-")
                            else "unknown"),
                 **parse_fields(body, known=fb.name_variants(fb.CANDIDATE_FIELDS),
                                choice_fields=fb.name_variants(fb.CANDIDATE_CHOICES)),

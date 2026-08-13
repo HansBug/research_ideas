@@ -10,7 +10,7 @@
 
 ① 是一套**条件式座标系**：先答「定位范围」`defect_locus`，它决定后面问哪些轴。
 走 `element` 支问构件与限定词（A + B），走逻辑支问逻辑类型（D）；两支都要答参照物（C）。
-判读者面对的从来不是 27 个取值，而是一次 4 选 1 加两三次不超过 9 选 1。
+判读者面对的从来不是 28 个取值，而是一次 4 选 1 加两三次不超过 9 选 1。
 
 **取值与判定测试的唯一真源是**
 [defect_taxonomy.md](../../docs/protocol/defect_taxonomy.md)。
@@ -48,7 +48,7 @@ LOCI = [
     ("global", "全图性质",
      "指不出具体处，必须说「整张图」或「所有执行」"),
     ("other", "其他",
-     "以上都不是。必须在 `statement` 里写清它是什么形状"),
+     "以上都不是。必须在 `other_note` 里写清它是什么形状"),
 ]
 
 #: 维度 A · 构件。**仅** `defect_locus = element` 时填。判定测试指着作者源那一行问。
@@ -65,9 +65,36 @@ ELEMENTS = [
      "那一处是边标签上 `/` **之后**的内容，或状态体内的 `entry` / `exit` / `do` 动作"),
     ("variable", "变量",
      "守卫或效应**引用了**某个量，而该量在模型里没有独立声明"),
+    ("region", "正交区域（界外·记录用）",
+     "那一处是 PlantUML 的**正交区分隔符 `--`**，或它划出的一个并发区槽位"
+     "（含「区应当有几个」这类数量断言）。只需数 `--` 有几条、划出几个区，"
+     "**不需要判断并发语义本身**。本档 `counts_as_defect = false`：**可记录、不计分**"),
     ("other", "其他",
-     "以上都不是。必须在 `statement` 里写清它是什么"),
+     "以上都不是。必须在 `other_note` 里写清它是什么；"
+     "若一格装不下（涉及多个取值），同样落这里并写清是哪几个"),
 ]
+
+#: 界外取值：**可记录、不计入缺陷统计**（`counts_as_defect = false`）。
+#:
+#: ⚠️⚠️ 这不是把边界放宽了。[CLAUDE.md](../../../../../CLAUDE.md) 的建模对象边界要求
+#: **两条同时成立** —— ⛔ 既不得把并发 / 时间类问题记为「方法未能检出」，
+#: ⛔ 也不得反过来声称「这些模型没有并发 / 时间问题」。给它一个可记录、但不计分的槽位，
+#: ⭐ 是唯一能同时满足这两条的做法。⛔ 把 `region` 计入命中率、覆盖率或缺陷数都是错的。
+#:
+#: 为什么只给正交区域开槽位、时钟与不变式没开：判据是「有没有一条只看制品就能唯一判定的
+#: 测试」。正交区在 PlantUML 里有**逐字的语法载体**（`--`），数它是纯词法操作；
+#: 时钟与不变式在本语料的作者源里根本没有语法载体，判读者只能从散文语义推断。
+#: 详见类型学 [§3.7](../../docs/protocol/defect_taxonomy.md)。
+OUT_OF_SCOPE_VALUES = {
+    ("defect_element", "region"):
+        "正交区并发语义在 $M = (S, E, V, Tr, A)$ 之外。本取值只为**记录**存在，"
+        "不承载缺陷类型学主张，故不计入任何缺陷统计。",
+}
+
+
+def counts_as_defect(axis, value):
+    """该取值算不算一条缺陷。⛔ 界外取值一律 `False`。"""
+    return (axis, value) not in OUT_OF_SCOPE_VALUES
 
 #: 维度 B · 限定词。**仅** `defect_locus = element` 时填。
 QUALIFIERS = [
@@ -79,7 +106,8 @@ QUALIFIERS = [
     ("extraneous", "多余",
      "条数**变少**（删掉一个已有构件）"),
     ("other", "其他",
-     "一次编辑改不完。例如三个检测事件被塌缩成一个泛化事件（要删一条、加三条）"),
+     "一次编辑改不完。例如三个检测事件被塌缩成一个泛化事件（要删一条、加三条）。"
+     "在 `other_note` 里写清要改哪几步"),
 ]
 
 #: 维度 B 的统一判定测试。放在表头，不逐行重复。
@@ -118,7 +146,7 @@ LOGIC_KINDS = [
      "存在一条迁移，其目标是**复合态本身**而非其某个子态，且该复合态有默认入口 —— "
      "于是每次进入都会重跑内部初始，把内部阶段重置"),
     ("other", "其他",
-     "以上都不是。必须在 `statement` 里写清它是什么"),
+     "以上都不是。必须在 `other_note` 里写清它是什么"),
 ]
 
 #: 维度 C · 参照物。两支都要填。判定测试：判定这条缺陷成立，你需不需要引用 NL 的某一句？
@@ -129,7 +157,7 @@ REFERENCES = [
      "**必须引用 NL 的某一句**才能判定"),
     ("other", "其他",
      "两者都不是。典型落点：只能靠参考模型对照（参考模型不是正确答案，"
-     "故这类等于「本条待裁定」）；或依据是「人读不懂」"),
+     "故这类等于「本条待裁定」）；或依据是「人读不懂」。在 `other_note` 里写清是哪一种"),
 ]
 
 #: 维度 E（可选）· Dwyer 性质模式 × 作用域，供 `expected_after_fix` 套句式。
@@ -204,13 +232,31 @@ ZH = {name: dict((v, zh) for v, zh, _t in table)
 ALWAYS_REQUIRED_FIELDS = ["defect_locus", "defect_reference",
                           "statement", "expected_after_fix", "nl_evidence"]
 
+#: **条件必填**：五个轴里任意一个取 `other` 时必须写，否则可留空。
+#:
+#: ⭐ 判据只看字段值（「有没有 `other`」「说明空不空」），故按
+#: [CLAUDE.md](../../../../../CLAUDE.md) §11 允许做成 `E` 级门，见 [validate.py](./validate.py)。
+#: ⛔ 「这句说明写得对不对」是语义判断，**不做成门**。
+#:
+#: 为什么要有它：`other` 是出口，出口不写清等于没分类 —— 事后回看只剩一个 `other`，
+#: 既不知道它是什么，也不知道它是「真的都不是」还是「涉及多个、一格装不下」。
+#: ⭐ 两种情形都合法，但**必须说出是哪一种**。
+OTHER_NOTE_FIELD = "other_note"
+CONDITIONAL_FIELDS = [OTHER_NOTE_FIELD]
+
 #: 可留空的项。
 OPTIONAL_FIELDS = ["property_pattern"]
+
+
+def other_axes(values):
+    """给定 `{轴: 取值}`，返回其中取了 `other` 的轴名。⛔ 判据是逐字相等，不做语义推断。"""
+    return [a for a in ENUMS if values.get(a) == "other"]
 
 #: 只有这些名字能在填写块里起一个新字段。其余带冒号的行一律并进当前字段 ——
 #: 否则作者在 `statement` 里写「NL 第 3 句：…」就会被解析器当成新字段名而截断。
 FIELD_NAMES = (["defect_locus"] + ELEMENT_BRANCH_FIELDS + LOGIC_BRANCH_FIELDS
-               + ["defect_reference", "statement", "expected_after_fix",
+               + ["defect_reference"] + CONDITIONAL_FIELDS
+               + ["statement", "expected_after_fix",
                   "nl_evidence"] + OPTIONAL_FIELDS)
 
 #: 只有这些是勾选行；其余一律读成自由文本。
@@ -259,9 +305,12 @@ def is_none_mark(text):
 HINT_ELEMENT_BRANCH = "--- 上一行选了 element：填下面两项，跳过 defect_logic_kind ---"
 HINT_LOGIC_BRANCH = "--- 上一行选了 pair / global / other：跳过上面两项，填下面这一项 ---"
 HINT_BOTH = "--- 以下四项两支都要填 ---"
+#: ⚠️ 这一行**不许出现半角冒号**，理由同上（`fillblocks.is_untouched` 的判据）。
+HINT_OTHER_NOTE = "--- 上面任一轴勾了 other：下面这一项必填，写一句说清它是什么、或涉及哪几个取值 ---"
 HINT_OPTIONAL = "--- 以下一项可留空 ---"
 
-TEMPLATE_HINTS = [HINT_ELEMENT_BRANCH, HINT_LOGIC_BRANCH, HINT_BOTH, HINT_OPTIONAL]
+TEMPLATE_HINTS = [HINT_ELEMENT_BRANCH, HINT_LOGIC_BRANCH, HINT_BOTH,
+                  HINT_OTHER_NOTE, HINT_OPTIONAL]
 
 
 def _choice_line(name, options):
@@ -279,6 +328,8 @@ def entry_template(pair, index):
         _choice_line("defect_logic_kind", DEFECT_LOGIC_KINDS),
         HINT_BOTH,
         _choice_line("defect_reference", DEFECT_REFERENCES),
+        HINT_OTHER_NOTE,
+        f"{OTHER_NOTE_FIELD}:",
         "statement:",
         "expected_after_fix:",
         "nl_evidence:",
@@ -420,8 +471,11 @@ def derive_element_of_M(defect_element):
     if defect_element in ELEMENT_TO_M:
         return (ELEMENT_TO_M[defect_element],
                 f"维度 A `{defect_element}` 到 $M$ 分量的确定性映射")
+    if defect_element == "region":
+        return None, ("维度 A 选了 `region` —— 正交区在 $M = (S, E, V, Tr, A)$ 里"
+                      "**没有分量**（界外，`counts_as_defect = false`）")
     if defect_element == "other":
-        return None, "维度 A 选了 `other` —— 分量取决于它到底是什么，见 `statement`"
+        return None, "维度 A 选了 `other` —— 分量取决于它到底是什么，见 `other_note`"
     return None, "本条走逻辑支，缺陷按定义不落在单个 $M$ 分量上"
 
 
@@ -448,6 +502,7 @@ def derive(pair, nid, fields):
         "defect_logic_kind": (field_value(fields, "defect_logic_kind")
                               if locus and locus != ELEMENT_LOCUS else None),
         "defect_reference": field_value(fields, "defect_reference"),
+        OTHER_NOTE_FIELD: field_value(fields, OTHER_NOTE_FIELD),
         "element_of_M": elem,
         "element_of_M_basis": elem_basis,
         "upstream": {
@@ -458,6 +513,12 @@ def derive(pair, nid, fields):
         },
         "pending": dict(PENDING_AT_MERGE),
     }
+    # ⭐ 界外取值现在能**当场判定** `counts_as_defect`，不必留到合并那一步：
+    # 勾了 `region` 就是界外、不计分。其余仍按边界分拣待定。
+    if locus == ELEMENT_LOCUS and not counts_as_defect("defect_element", elem_axis):
+        out["counts_as_defect"] = False
+        out["counts_as_defect_basis"] = OUT_OF_SCOPE_VALUES[("defect_element", elem_axis)]
+        out["pending"].pop("counts_as_defect", None)
     if locus is None:
         out["pending"]["defect_locus"] = "未选定位范围 —— 分支轴与 $M$ 分量都无从推起"
     return out

@@ -46,7 +46,7 @@
 | 脚本推导 | | `id` `pair` `group` `llm` `element_of_M` `upstream` | 由 [newfields.py](./newfields.py) 的 `derive()` 算出，**一律不填** |
 | 合并时补 | | `assertions` `replay` `verdict` `layer` `homogeneity_*` `decided_by` `in_scope` | 要跑断言器 / 要全库重算 / 要主裁定，**一律不填** |
 
-所以每条实际要动的是**一次 4 选 1 加两三次不超过 9 选 1**，加两段自由文本，外加一个段 id。走 element 支时候选面是 4+7+4+3 = 18，走逻辑支时是 4+9+3 = 16 —— **没有人需要一次面对 27 个取值**。
+所以每条实际要动的是**一次 4 选 1 加两三次不超过 9 选 1**，加两段自由文本，外加一个段 id。走 element 支时候选面是 4+7+4+3 = 18，走逻辑支时是 4+9+3 = 16 —— **没有人需要一次面对 28 个取值**。
 
 填了**另一支**的轴不报错，只报 `W` 提醒你多半是选完 `defect_locus` 忘了删；该支必填的轴缺了则报 `E`。这两条是 [validate.py](./validate.py) 在座标系上做的**全部**判断，加上「取值在不在枚举内」—— 其余一律不由校验器管，因为其余都要读文意（[CLAUDE.md](../../../../../CLAUDE.md) §11：只有能被完美判定的约束才允许做成会一票否决的门）。
 
@@ -56,7 +56,7 @@
 
 撞上**界外**的东西（时钟 / 不变式 / 正交区并发）也写在这里，照常登记。本轮**不再要求你判它在不在 $M = (S, E, V, Tr, A)$ 内** —— 你只判「这是不是缺陷」，分拣由主 session 回收后统一做。理由见 [README.md](./README.md) §二.1。
 
-⚠️ **写成一段，不要换行**。回收器只把 `defect_locus` / `defect_element` / `defect_qualifier` / `defect_logic_kind` / `defect_reference` / `statement` / `expected_after_fix` / `nl_evidence` / `property_pattern` 这几个名字当作新字段起点，其余行都会并进当前字段 —— 所以你可以在 `statement` 里放冒号、放引文，但请别自己起一个像字段名的行。
+⚠️ **写成一段，不要换行**。回收器只把 `defect_locus` / `defect_element` / `defect_qualifier` / `defect_logic_kind` / `defect_reference` / `other_note` / `statement` / `expected_after_fix` / `nl_evidence` / `property_pattern` 这几个名字当作新字段起点，其余行都会并进当前字段 —— 所以你可以在 `statement` 里放冒号、放引文，但请别自己起一个像字段名的行。
 
 ### §B.3 ③ `expected_after_fix`：修好之后怎样才算 ok
 
@@ -159,4 +159,4 @@
 
 清单里的每一条都是**待核问句**，不是结论。机械判据写在每条下方，判错了就直接在「发现」里写「机械判错，理由 X」。勾选 `[x]` 表示**已看过**；「发现:」留空表示看过但无发现。
 
-**不在范围内的，一律不许记**：时钟 / 计时 / 秒级约束、不变式、正交区并发（fork/join、区域同时活跃）。project_1 的建模对象是 $M = (S, E, V, Tr, A)$，没有 $C$、没有 $Inv$、没有区分量。
+**界外的东西照常记，但落点不同**。project_1 的建模对象是 $M = (S, E, V, Tr, A)$，没有 $C$、没有 $Inv$、没有区分量，所以下面两族不计入缺陷统计：① **正交区并发**（fork/join、区域同时活跃、区应当有几个）—— 维度 A 有专属取值 `region`，勾它即表示界外，`counts_as_defect = false`；② **时钟 / 计时 / 秒级约束 / 不变式** —— 没有专属取值，写进 `statement` 自由文本，回收后由主 session 人工分拣。⚠️ 一律不记是**旧口径**，2026-08-13 已撤销：不记会让这批发现既进不了记录、也进不了统计，等于反过来声称这些模型没有并发问题 —— 那同样是错的。

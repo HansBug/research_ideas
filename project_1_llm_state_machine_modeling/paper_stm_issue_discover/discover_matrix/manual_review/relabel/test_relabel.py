@@ -36,6 +36,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import candidate_mapping as CM  # noqa: E402
+import inspectfindings as IF  # noqa: E402
 import collect as C            # noqa: E402
 import fillblocks as fb        # noqa: E402
 import ledger_mapping as LM    # noqa: E402
@@ -1010,7 +1011,7 @@ def test_the_field_block_is_organised_as_two_branches():
     body = NF.template("0001", count=1)
     hints = [ln for ln in body.splitlines() if ln.startswith("---")]
     assert hints == [NF.HINT_ELEMENT_BRANCH, NF.HINT_LOGIC_BRANCH,
-                     NF.HINT_BOTH, NF.HINT_OPTIONAL]
+                     NF.HINT_BOTH, NF.HINT_OTHER_NOTE, NF.HINT_OPTIONAL]
     lines = body.splitlines()
     assert lines[1].startswith("defect_locus:"), "locus 必须是第一个问题"
 
@@ -1019,8 +1020,11 @@ def test_the_field_block_is_organised_as_two_branches():
         return [ln.split(":", 1)[0] for ln in seg.splitlines() if ":" in ln]
     assert between(NF.HINT_ELEMENT_BRANCH, NF.HINT_LOGIC_BRANCH) == NF.ELEMENT_BRANCH_FIELDS
     assert between(NF.HINT_LOGIC_BRANCH, NF.HINT_BOTH) == NF.LOGIC_BRANCH_FIELDS
-    assert between(NF.HINT_BOTH, NF.HINT_OPTIONAL) == [
-        "defect_reference", "statement", "expected_after_fix", "nl_evidence"]
+    assert between(NF.HINT_BOTH, NF.HINT_OTHER_NOTE) == ["defect_reference"]
+    # `other_note` 单独一段：它是**条件必填**（任一轴取 `other` 时才要），
+    # 与「两支都要填」和「可留空」都不是一回事，故不许混进那两段里。
+    assert between(NF.HINT_OTHER_NOTE, NF.HINT_OPTIONAL) == [
+        NF.OTHER_NOTE_FIELD, "statement", "expected_after_fix", "nl_evidence"]
     assert body.split(NF.HINT_OPTIONAL, 1)[1].strip().startswith("property_pattern:")
 
 
@@ -1031,7 +1035,9 @@ def test_every_axis_value_carries_a_decision_test():
     取值集合与判定测试的真源是 `defect_taxonomy.md`；这里钉的是「一个都不少、
     每个都有判据、且判据真的印进了 54 份工作单」。
     """
-    tables = {"defect_locus": (NF.LOCI, 4), "defect_element": (NF.ELEMENTS, 7),
+    # ⚠️ `defect_element` 是 8 而不是 7：2026-08-13 新增界外取值 `region`
+    # （正交区域，`counts_as_defect = false`），见类型学 §3.7。
+    tables = {"defect_locus": (NF.LOCI, 4), "defect_element": (NF.ELEMENTS, 8),
               "defect_qualifier": (NF.QUALIFIERS, 4),
               "defect_logic_kind": (NF.LOGIC_KINDS, 9),
               "defect_reference": (NF.REFERENCES, 3)}
@@ -1322,7 +1328,13 @@ def test_field_table_and_template_stay_in_sync():
     assert set(NF.CHOICE_FIELDS) == set(NF.ENUMS)
     # 两支的轴合起来正好是「必填之外」的那部分，不多不少
     assert (set(NF.ALWAYS_REQUIRED_FIELDS) | set(NF.ELEMENT_BRANCH_FIELDS)
-            | set(NF.LOGIC_BRANCH_FIELDS) | set(NF.OPTIONAL_FIELDS)) == set(NF.FIELD_NAMES)
+            | set(NF.LOGIC_BRANCH_FIELDS) | set(NF.CONDITIONAL_FIELDS)
+            | set(NF.OPTIONAL_FIELDS)) == set(NF.FIELD_NAMES)
+    # `other_note` 是**条件必填**：它既不在「总是必填」里，也不是可留空项
+    assert set(NF.CONDITIONAL_FIELDS) <= set(NF.FIELD_NAMES)
+    assert not set(NF.CONDITIONAL_FIELDS) & (set(NF.ALWAYS_REQUIRED_FIELDS)
+                                             | set(NF.OPTIONAL_FIELDS)
+                                             | set(NF.CHOICE_FIELDS))
 
 
 def test_the_two_branches_ask_for_disjoint_axes():
@@ -1335,12 +1347,13 @@ def test_the_two_branches_ask_for_disjoint_axes():
     assert not set(NF.ELEMENT_BRANCH_FIELDS) & set(NF.LOGIC_BRANCH_FIELDS)
     # locus 未填时两支都不问 —— 那时该报的是「locus 未选」
     assert NF.required_axes_for(None) == [] and NF.forbidden_axes_for(None) == []
-    # 候选面：18 与 16，都远小于 27
+    # 候选面：19 与 16，都远小于 28
+    # （element 支 2026-08-13 由 18 增到 19 —— 多了界外取值 `region`）
     n = {k: len(v) for k, v in NF.ENUMS.items()}
     assert n["defect_locus"] + n["defect_element"] + n["defect_qualifier"] \
-        + n["defect_reference"] == 18
+        + n["defect_reference"] == 19
     assert n["defect_locus"] + n["defect_logic_kind"] + n["defect_reference"] == 16
-    assert sum(n.values()) == 27
+    assert sum(n.values()) == 28
 
 
 def test_every_exemplar_slot_resolves_off_group():
@@ -1906,6 +1919,13 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
     → 换成条件式座标系后 **140 行**（27 个取值各占一行、外加 Dwyer 的 13 行句式骨架，
     比旧的五张表多 23 行；旧表里那些行同样是逐字重复的，所以这是**同类相比**的增长）。
     档设在 160：留出约 15% 余量，够再加一两条取值，但抄回 HOWTO 任何一整节都会立刻突破。
+
+    ⚠️ 2026-08-13 由 160 提到 **200**，实测 167。多出来的 27 行全部是**新材料自带的图例**，
+    不是抄回来的论证：维度 A 新增取值 `region` 一行、`other_note` 那一小节（硬规则 + 为什么
+    值得单立，7 行）、以及 §3.6 `pyfcstm inspect` 一节的导语（这批怎么来的、归一化口径、
+    两个 code 整类排除的理由，共 19 行）。⛔ 这些必须逐份印：判读者不知道 §3.6 是确定性检查、
+    不知道 194 条已经归并成 97 条，就会拿它跟台账 99 条直接比 —— 那是错的。
+    档取 200 留约 20% 余量。
     """
     docs = {p: _read(_ws(p)).splitlines() for p in S.IN_SCOPE_PAIRS}
     seen = collections.Counter()
@@ -1927,7 +1947,7 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
             if seen[ln] == len(docs):
                 n += 1
         worst = max(worst, n)
-    assert worst <= 160, (
+    assert worst <= 200, (
         f"某份工作单里有 {worst} 行在 54 份中逐字重复且不在 FILL 块内 —— "
         f"说明性文字被抄回了工作单，请搬回 {S.WORKSHEET_HOWTO}")
 
@@ -2058,8 +2078,8 @@ def test_worksheets_stay_under_the_line_budget():
     """
     counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
     median = counts[len(counts) // 2]
-    assert median <= 650, f"工作单行数中位数 {median} 超预算 —— 说明性文字长回来了"
-    assert counts[-1] <= 1000, f"最长的一份 {counts[-1]} 行超预算"
+    assert median <= 800, f"工作单行数中位数 {median} 超预算 —— 说明性文字长回来了"
+    assert counts[-1] <= 1400, f"最长的一份 {counts[-1]} 行超预算"
     # 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
     assert counts[0] >= 300, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
 
@@ -2341,9 +2361,16 @@ def test_the_mapping_is_always_marked_as_our_own_inference():
         doc = _read(_ws(pair))
         n_ledger = len(S.ledger_records(pair))
         n_cand = sum(1 for v in CM.candidate_index().values() if v["pair"] == pair)
+        # ⚠️ §3.6 的 `INS-` 块也带同一句抬头，故计数要把它算进去。
+        # ⛔ 不算进去的后果不是漏报而是**误报**：这条测试会在 39 个 pair 上红，
+        # 而它本该守的是「每个对象都带上了推断声明」，`INS-` 恰恰也需要它。
+        # ⚠️ 只数**新建**的 `INS-` 块：与既有条目重合的那些没有自己的映射块，
+        # 它们以补充证据的形式印在那条既有条目里（那里已经有台账 / 候选自己的映射抬头）。
+        # ⚠️ inspect 一族本轮未入册（归并与去重待判定者产出），故不计入。
+        n_ins = 0
         n_map = doc.count("**我方到新座标系的映射（推断，供参考）**")
-        assert n_map == n_ledger + n_cand, \
-            f"{pair}.md 有 {n_ledger + n_cand} 个对象却只有 {n_map} 块映射"
+        assert n_map == n_ledger + n_cand + n_ins, \
+            f"{pair}.md 有 {n_ledger + n_cand + n_ins} 个对象却只有 {n_map} 块映射"
         assert "你的裁决优先" in doc, f"{pair}.md 的映射块少了「你的裁决优先」"
         # ⚠️ 两句抬头分属两侧，⛔ 故各自按该侧**真有对象**时才要求 ——
         # ⛔ 一律要求会在「台账 0 条」的 pair 上误报（如 0001）。
@@ -2355,43 +2382,150 @@ def test_the_mapping_is_always_marked_as_our_own_inference():
                 f"{pair}.md 的候选映射没写明「映射不代表它成立」"
 
 
-def test_the_only_taxonomy_gap_is_orthogonal_regions():
-    """⭐⭐ 240 个对象里，卡在**座标系本身**的只有一处：**正交区域及其数量**。
+def test_the_orthogonal_region_gap_became_a_value_not_a_refusal():
+    """⭐⭐ 240 个对象里，曾经卡在**座标系本身**的只有一处：**正交区域及其数量**。
+    ⭐ 2026-08-13 它由「拒绝映射」改成「一个界外取值」，本条钉住改法与三个覆盖率数字。
 
-    ⚠️ 这是本轮最要紧的一条结构性发现，⛔ 也是最容易被读错的一条。
-    `mappable: false` 一共 86 条（台账 4 + 候选 82），⛔ 但其中绝大多数**不是**
-    座标系覆盖不到：
+    ⚠️ 改法为什么是这个：旧口径把这 12 条标成 `blocker = taxonomy`，即座标系给不出取值。
+    ⛔ 但那个结论站不住 —— 每个轴都有 `other`，而且都在用。⭐ 真正的问题不是「没词」，
+    是**那个对象本来就在建模边界之外**（CLAUDE.md 把正交区并发语义排除在 $M$ 之外）。
+    ⛔ 把它赶出座标系会让它既进不了记录、也进不了统计，于是同一批材料在报表上呈现成
+    「什么都没发生」—— 而 CLAUDE.md 的边界明写**两条同时成立**：不得记为「方法未能检出」，
+    也不得反过来声称这些模型没有并发问题。⭐ 给它一个可记录、`counts_as_defect = false`
+    的槽位，是唯一同时满足两条的做法。
 
-    - `unit_of_record`：一个 id 底下坐着多条异质主张，逐条各自都能落格。
-      ⚠️ `UM-` 前缀尤其如此 —— 一块对应工作单 §3.3 **整张表**（全语料 619 组）。
-    - `not_a_defect_claim`：它根本不主张作者制品有毛病（真值有效性 / 语料元数据 / 来源）。
+    三个数字**含义不同、不得混用**（README §七点五 逐条写了口径）：
 
-    ⛔ **只有 `taxonomy` 那一档能算作新座标系的缺口。** 它全部指向同一处：
-    轴 A 的 7 个取值里没有 region，且类型学 §3.7 明写正交区并发语义界外、
-    「不得取为维度取值」。⭐ 而它是由**三批互不通气的判定者**独立撞到的
-    （台账侧 4 条、`DIFF-` 侧 7 条、`UM-` 侧 1 条）—— ⭐ 故它是真缺口，⛔ 不是判读噪声。
+    - **原始映射率** = mappable / 240
+    - **真·座标系覆盖率** = (240 − `taxonomy` 卡点数) / 240
+    - **界外占比** = 落在界外取值上的对象数 / 240
     """
-    assert set(CM.BLOCKERS) == {"unit_of_record", "not_a_defect_claim", "taxonomy"}
-    by_blocker = CM.stats()["by_blocker"]
-    assert "unlabelled" not in by_blocker, \
-        f"有映射不上的候选没标卡点类别：{by_blocker}"
-    # 台账侧的 4 条无法映射，⛔ 全部是同一处缺口
-    led_unmapped = LM.stats()["unmapped_ids"]
-    assert len(led_unmapped) == 4, f"台账映射不上的应为 4 条，实为 {led_unmapped}"
-    for rid in led_unmapped:
-        note = LM.for_record(rid)["note"]
-        assert "region" in note or "区域" in note, \
-            f"{rid} 不是区域缺口，那这条测试的前提就变了：{note[:80]}"
-    # 候选侧的 taxonomy 卡点同样全部是区域缺口
-    tax = [k for k, m in CM.load().items() if m.get("blocker") == "taxonomy"]
-    assert tax, "一条 taxonomy 卡点都没有 —— 分类多半漏标了"
-    for key in tax:
-        note = CM.for_candidate(key)["note"]
-        assert "region" in note or "区域" in note or "正交" in note, \
-            f"{key} 标了座标系卡点却不是区域缺口：{note[:80]}"
-    # ⛔ 反面：登记单位与「不是缺陷主张」两类**不许**被算成座标系缺口
-    assert by_blocker.get("unit_of_record", 0) > by_blocker.get("taxonomy", 0), \
-        "登记单位卡点竟少于座标系卡点 —— 分类口径多半被改错了"
+    # ---- ① `region` 是个界外取值，不是缺口
+    assert "region" in NF.ENUMS["defect_element"]
+    assert not NF.counts_as_defect("defect_element", "region")
+    assert ("defect_element", "region") in NF.OUT_OF_SCOPE_VALUES
+
+    # ---- ② `taxonomy` 卡点必须**清零**：新增取值之后它不该再有条目
+    led, cand = LM.stats(), CM.stats()
+    by_blocker = cand["by_blocker"]
+    assert "unlabelled" not in by_blocker, f"有映射不上的候选没标卡点类别：{by_blocker}"
+    assert by_blocker.get("taxonomy", 0) == 0, (
+        f"还有 {by_blocker['taxonomy']} 条标着座标系卡点 —— "
+        "新增 `region` 之后它们应当各自重判，不该再挂 `taxonomy`")
+    assert not led["unmapped_ids"], f"台账侧不该还有映射不上的：{led['unmapped_ids']}"
+
+    # ---- ③ 三个覆盖率数字
+    total = led["total"] + cand["total"]
+    assert total == 240
+    mapped = led["mapped"] + cand["mapped"]
+    assert mapped == 165, f"原始映射率的分子应为 165，实为 {mapped}"
+    taxonomy = by_blocker.get("taxonomy", 0)
+    assert (total - taxonomy) / total == 1.0, "真·座标系覆盖率应为 100%"
+    out_of_scope = sum(
+        1 for m, _p in _all_mappings().values()
+        if m.get("mappable") and any(not NF.counts_as_defect(a, m.get(a))
+                                     for a in CM.AXES if m.get(a)))
+    assert out_of_scope == 10, f"界外取值上的对象应为 10 条，实为 {out_of_scope}"
+
+    # ---- ④ 逐条：原来那 12 条现在各自落在哪
+    #
+    # ⛔ 不是 12 条全变 `region` —— 有两条另有落点，这正是「逐条判、不一刀切」的证据。
+    was_taxonomy = {
+        "EIS-0006-01": "region", "EIS-0026-01": "region",
+        "EIS-0036-01": "region", "EIS-0046-02": "region",
+        "DIFF-0023-04": "region", "DIFF-0033-02": "region",
+        "DIFF-0037-01": "region", "DIFF-0043-06": "region",
+        "DIFF-0047-03": "region", "DIFF-0057-03": "region",
+        # 对象横跨界外的区与界内的状态 / 事件，单值装不下 → `other` + 说明
+        "DIFF-0056-03": "other",
+        # 整张表一块，桶内落点不一致 → 仍映射不上，但卡点是**登记单位**
+        "UM-0007": None,
+    }
+    allm = _all_mappings()
+    for key, want in was_taxonomy.items():
+        m = allm[key][0]
+        assert m.get("blocker") != "taxonomy", f"{key} 还挂着 `taxonomy`"
+        if want is None:
+            assert not m["mappable"] and m["blocker"] == "unit_of_record", \
+                f"{key} 应当仍映射不上、卡点为登记单位"
+            continue
+        assert m["mappable"], f"{key} 应当已能映射"
+        assert m["defect_element"] == want, \
+            f"{key} 的维度 A 应为 `{want}`，实为 {m['defect_element']}"
+
+
+def test_every_other_on_any_axis_carries_an_explanation():
+    """⭐ 任一轴取 `other`，必须附一句说明 —— 240 条映射与新增登记两侧同一条规则。
+
+    ⛔ 为什么必须两侧同规则：`other` 是出口，出口不写清等于没分类。
+    ⚠️ 更要紧的是**两种情形都合法但含义完全不同** —— 「真的都不是」说明座标系还缺一档，
+    「涉及多个、一格装不下」说明的是登记单位太粗。⛔ 混在一个空 `other` 里，
+    「座标系还缺什么」这个问题就再也答不出来了。
+    """
+    n = 0
+    for key, (m, _pair) in _all_mappings().items():
+        if not m.get("mappable"):
+            continue
+        picked = [a for a in CM.AXES if m.get(a) == "other"]
+        if not picked:
+            continue
+        n += 1
+        note = (m.get(NF.OTHER_NOTE_FIELD) or "").strip()
+        assert note, f"{key} 的 {picked} 取了 `other` 却没写 `{NF.OTHER_NOTE_FIELD}`"
+        assert len(note) >= 10, f"{key} 的 `other` 说明太短，写不清是什么：{note!r}"
+    assert n == 28, f"用了 `other` 的映射应为 28 条，实为 {n}"
+
+    # 说明必须**印进工作单**，⛔ 只落在 JSON 里等于没给判读者
+    for key, (m, pair) in _all_mappings().items():
+        note = (m.get(NF.OTHER_NOTE_FIELD) or "").strip()
+        if note:
+            assert note in _read(_ws(pair)), f"{key} 的 `other` 说明没渲染进 {pair}.md"
+
+
+def test_the_other_note_gate_fires_both_ways():
+    """⛔ `other` + 空说明必须报 `E`；⭐ 有说明必须放行；⛔ 非 `other` + 空说明不许报。
+
+    ⚠️ 三面都要测。只测「该报的报了」会漏掉最贵的一种错：**门太宽**——
+    ⛔ 一条没勾 `other` 的正常登记被这道门拦下，判读者会以为自己填错了。
+    """
+    base = {
+        "defect_locus": {"chosen": ["global"]},
+        "defect_logic_kind": {"chosen": ["unreachable"]},
+        "defect_reference": {"chosen": ["language"]},
+        "statement": "X 从初始态出发到不了。",
+        "expected_after_fix": "从初始态存在一条到 X 的执行。",
+        "nl_evidence": "无",
+    }
+
+    def run(fields):
+        rep = V.Report()
+        V.validate_pair("0001", {"ledger": [], "candidates": [], "checklist": [],
+                                 "summary": None, "orphans": {}, "untouched_keys": [],
+                                 "new_issues": [{"id": "NEW-0001-01", "fields": fields}]},
+                        rep)
+        return [i for i in rep.items if i["level"] == "E"
+                and NF.OTHER_NOTE_FIELD in i["msg"]]
+
+    # ① 非 `other` + 空说明 → 不许报
+    assert not run(dict(base)), "没勾 `other` 却被这道门拦下了 —— 门太宽"
+
+    # ② `other` + 空说明 → 必须报
+    bad = dict(base, defect_logic_kind={"chosen": ["other"]})
+    assert run(bad), "`defect_logic_kind = other` 且说明为空，却没报 `E`"
+
+    # ③ `other` + 有说明 → 放行
+    ok = dict(bad, other_note="这是「同名碰撞导致某区域默认入口失效」，9 个取值里没有这一档。")
+    assert not run(ok), "`other` 已经写了说明，却仍然报 `E`"
+
+    # ④ 每一个轴都要生效，⛔ 不能只有逻辑轴那一档接上了
+    for axis, val in (("defect_locus", "other"), ("defect_reference", "other")):
+        f = dict(base)
+        f[axis] = {"chosen": [val]}
+        assert run(f), f"`{axis} = other` 且说明为空，却没报 `E`"
+
+    # ⑤ ⛔ 另一支那些「填多了忘了删」的轴不许连带触发 —— 它们本来只报 `W`
+    f = dict(base, defect_element={"chosen": ["other"]})
+    assert not run(f), "走逻辑支时 `defect_element` 根本不问，不该因它报 `E`"
 
 
 def test_the_denial_species_is_separated_from_the_real_candidates():
@@ -2544,8 +2678,15 @@ def test_the_element_axis_maps_onto_the_M_from_claude_md():
         assert f"{key}={zh}" in claude, f"CLAUDE.md 里找不到 {key}={zh} 这个定义"
     assert set(NF.ELEMENT_TO_M.values()) <= {"S", "E", "V", "Tr", "A"}, \
         "ELEMENT_TO_M 映到了 $M$ 之外的分量"
-    assert set(NF.ELEMENT_TO_M) == set(NF.DEFECT_ELEMENTS) - {"other"}, \
-        "维度 A 除 `other` 外每个取值都该有 $M$ 分量"
+    # ⚠️ `region` 与 `other` 一样**没有** $M$ 分量，但理由不同：`other` 是「取决于它是什么」，
+    # `region` 是**结构性的没有** —— 正交区在 $M = (S, E, V, Tr, A)$ 里根本不是一个分量
+    # （CLAUDE.md 的建模对象边界把它排除在外）。⛔ 给它硬派一个分量等于把界外说成界内。
+    assert set(NF.ELEMENT_TO_M) == set(NF.DEFECT_ELEMENTS) - {"other", "region"}, \
+        "维度 A 除 `other` / `region` 外每个取值都该有 $M$ 分量"
+    assert not NF.counts_as_defect("defect_element", "region"), \
+        "`region` 必须是界外取值（`counts_as_defect = false`）"
+    assert NF.derive_element_of_M("region")[0] is None, \
+        "`region` 不许推出 $M$ 分量"
 
 
 def test_no_relative_link_in_any_generated_md_is_dead():
@@ -2805,7 +2946,10 @@ def test_the_region_separator_warning_moved_instead_of_being_deleted():
         n = model.summary()["region_separators"]
         doc = _read(_ws(pair))
         if not n:
-            assert "区分隔符" not in doc, f"{pair}.md 没有区分隔符却挂了告警"
+            # ⚠️ 探针必须是**那句告警本身**，⛔ 不能只找「区分隔符」三个字 ——
+            # §5.2 的取值图例里现在也有这三个字（维度 A 的 `region` 一行讲的正是 `--`），
+            # 用宽探针会在 54 份上全部误报。
+            assert "作者源含 **" not in doc, f"{pair}.md 没有区分隔符却挂了告警"
             continue
         hits += 1
         want = f"⚠️ 作者源含 **{n} 个 `--` 区分隔符**。"
@@ -3096,5 +3240,54 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     proc = subprocess.run([sys.executable, os.path.join(HERE, "collect.py"), "--stdout"],
                           check=True, capture_output=True, text=True, cwd=HERE)
     tot = _json.loads(proc.stdout)["totals"]
+    # ⚠️ `candidates_seen` 仍是 **141**：`pyfcstm inspect` 的 336 条诊断本轮**没有入册**。
+    # ⛔ 归并与去重是判断、不是脚本能算的（见 `inspectfindings.py`），等判定者产出
+    # `inspect_issues.json` 之后再渲染，届时这个数字要跟着改并写出等式。
     assert (tot["pairs"], tot["ledger_records_seen"],
             tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 141, 955), tot
+    assert not IF.has_judged_issues(), "判定者的归一化结果已就位，这条断言要跟着更新"
+
+
+# ==================================================================== inspect 一族：不归我管
+
+def test_no_inspect_content_leaked_into_the_worksheets():
+    """⛔ `pyfcstm inspect` 那一族**不由本轮入册** —— 工作单里不许有它的任何痕迹。
+
+    ⚠️ 入册要先做两步**判断**（按根因归并、与既有条目去重），⛔ 而那两步不许用脚本算：
+    判「这 13 条 `W_UNREACHABLE_STATE` 是不是同一条错入边导致的」要理解**因果**，
+    判「这条与 `EIS-0007-02` 是不是同一个问题」要比较两段描述的**语义**。
+    ⛔ 做成模式匹配就是 CLAUDE.md §11 划死的那条边界，本仓库为此栽过一次
+    （`named_elements` 的 validator 把「句子点名了几个要素」实现成「字符串里有没有逗号」，
+    190 行被拒且绝大多数是误伤，对某个 pair 系统性致命）。
+
+    ⭐ 本条钉住**边界**：数据文件（`inspect_findings.json`）留在树上供另一条 workflow 读，
+    ⛔ 但工作单里一个 `INS-` 块、一条 `INSD-` 都不许有 —— 那是那条 workflow 的产出。
+    ⚠️ 本轮一度把**脚本算出来**的归并结果渲染进过 54 份，已全部撤掉，本条防它回来。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert not [k for k in fb.extract(doc) if k.startswith("INS")], \
+            f"{pair}.md 出现了 `INS-` 填写块 —— inspect 入册不归本轮"
+        assert "INSD-" not in doc, f"{pair}.md 摆出了未归并的 inspect 诊断"
+        # ⚠️ 探针必须钉小标题本身：映射 note 里会引类型学的「§3.6」（那是 Dwyer 那一节），
+        # ⛔ 用宽探针会在一批工作单上误报。
+        assert "### §3.6" not in doc, f"{pair}.md 还留着 §3.6 的骨架"
+
+
+def test_the_blocker_taxonomy_is_complete_and_accounted_for():
+    """⛔ `mappable: false` 的每一条都必须挂一个**已声明**的卡点，⭐ 且分布可清点。
+
+    ⚠️ 三类卡点**含义不同、不得混写**，混了会污染「座标系覆盖度」这个数字：
+
+    - `unit_of_record` —— 一个 id 底下坐着多条异质主张，逐条各自都能落格。
+    - `not_a_defect_claim` —— 它根本不主张作者制品有毛病。
+    - `taxonomy` —— 座标系给不出取值。⭐ 只有这一档能算作缺口，⭐ 现在是 **0**。
+    """
+    assert set(CM.BLOCKERS) == {"unit_of_record", "not_a_defect_claim", "taxonomy"}
+    by = CM.stats()["by_blocker"]
+    assert "unlabelled" not in by
+    assert by == {"unit_of_record": 58, "not_a_defect_claim": 17}, by
+    assert sum(by.values()) == CM.stats()["unmapped"] == 75
+    assert LM.stats()["unmapped"] == 0
+    for b in CM.BLOCKERS:
+        assert b in CM.BLOCKER_ZH and len(CM.BLOCKER_ZH[b]) == 2

@@ -22,7 +22,7 @@
 
 按 [CLAUDE.md](../../../../../CLAUDE.md)「研究内容一的建模对象边界」，本类型学服务的对象是 $M = (S, E, V, Tr, A)$，即 FSM / HSM / EFSM。**时钟变量、状态不变式、正交区并发语义全部在建模对象之外。**
 
-文献里确实存在这三类的缺陷类型（见 §2.6 与 §4.5），本文件把它们**列出并标为界外**，但不设维度取值。界内 / 界外的判定由工作单既有的 `scope` 字段承担，不由本类型学承担——两者不要混。
+文献里确实存在这三类的缺陷类型（见 §2.6 与 §4.5），本文件把它们**列出并标为界外**。界外不等于不许记：正交区域一族已在 2026-08-13 获得一个**可记录、不计分**的取值 `defect_element = region`（`counts_as_defect = false`），时钟与不变式两族仍无取值、走自由描述。判据与撤销「不得取为维度取值」那句旧规则的理由见 §3.7。
 
 ## 2. 文献综述（按流派）
 
@@ -395,7 +395,10 @@ Arendt、Mantz 与 Taentzer 2009 的 SPES 交付件 [32] §3.4 "UML State Machin
 | `guard` | 守卫条件 | 那一处是边标签上**方括号 `[...]` 内**的布尔表达式 |
 | `effect` | 效应与状态动作 | 那一处是边标签上 `/` **之后**的内容，或状态体内的 `entry` / `exit` / `do` 动作 |
 | `variable` | 变量 | 守卫或效应**引用了**某个量，而该量在模型里没有独立声明 |
-| `other` | 其他 | 以上都不是。**必须在自由描述里写清它是什么** |
+| `region` | 正交区域（**界外·记录用**） | 那一处是 PlantUML 的**正交区分隔符 `--`**，或它划出的一个并发区槽位（含「区应当有几个」这类数量断言）。只需数 `--` 的条数与它划出的区个数，**不需要判断并发语义本身** |
+| `other` | 其他 | 以上都不是。**必须在自由描述里写清它是什么**；若一格装不下（涉及多个取值），同样落这里并写清是哪几个 |
+
+⛔ **`region` 与其余六个取值不是同一种东西**：它 `counts_as_defect = false`，即**可记录、不计入缺陷统计**。理由与准入条件见 §3.7。
 
 **正式定义与出处，逐取值：**
 
@@ -405,6 +408,7 @@ Arendt、Mantz 与 Taentzer 2009 的 SPES 交付件 [32] §3.4 "UML State Machin
 - `guard` —— Lackner & Schmidt [7] 的第 (iv) 个变异目标 "guard"（算子 `DGD` / `CGD`）；EFSM 故障类里的 **predicate fault** [3]（该名下无稳定内部结构，见 §2.1）；UML 2.5.1 `Transition::guard`。
 - `effect` —— Chow [1] 第一类以输出函数定义："changing only the **output function** of A"；Lackner & Schmidt [7] 的第 (v) 个变异目标 "effect"（算子 `DEF`，且明写 "We consider sending signals to the environment or other components to be part of a transition's effect"）；UML 2.5.1 `Transition::effect`、`State::entry` / `exit` / `doActivity`。
 - `variable` —— ⚠️ **本取值的文献支撑最弱，判定测试却很清晰。** EFSM 传统有 **assignment fault**（对上下文变量的更新被破坏）与 **predicate fault** [3]，但**没有「缺少变量声明」这一故障类**——EFSM 的变量集合被假定给定。邻域的三份现成分类学则明确把数据维排除在外：AbsCon 逐字 "this paper **ignores node attributes**" [17]；BEF4LLM 逐字 "data objects **omitted**, as the data perspective is not assessed within the chosen metrics and therefore **outside the scope** of our framework" [18]；Lackner & Schmidt 逐字 "the classes are **merely containers for variables** and diagrams"，即不对其施加变异 [7]。详见 §4.3。
+- `region` —— ⚠️ **本取值不承载任何缺陷类型学主张，它是一个记录槽位。** 文献侧确有正交区 / 并发的缺陷条目（见 §3.7 罗列的 UML 2.5.1 fork / join 8 条 constraint、itemis CREATE 的 `transition.SourceNotOrthogonalToTarget`、BEF4LLM 的 concurrency 组 [18]），但它们**全部落在 $M = (S, E, V, Tr, A)$ 之外**，故本取值 `counts_as_defect = false`。⛔ 不得据此把区域相关的发现计入缺陷统计，⛔ 也不得反过来据此声称语料里不存在区域相关问题 —— 两种读法都是错的，理由见 §3.7。
 - `other` —— 出口。依据是检查阅读传统自带 `Others / Miscellaneous` 类 [13]，以及 F-A 的自陈："The taxonomy is **an organising scheme rather than a measurement instrument**" [27]。
 
 **与最易混取值的分界：**
@@ -512,9 +516,33 @@ Arendt、Mantz 与 Taentzer 2009 的 SPES 交付件 [32] §3.4 "UML State Machin
 
 采用时必须带上 §2.6.2 引的两条口径：scope 是**可选**的（分隔事件不出现则性质自动为真）；`Before` / `After` 相对**首次**出现解释。
 
-### 3.7 界外内容不进本座标系
+### 3.7 界外内容：可记录、不计分
 
-时钟约束、状态不变式、正交区并发语义落在 $M$ 之外，由工作单的 `scope` 字段承担。文献里对应的界外条目（列出以便审计，**不得取为维度取值**）：UML 2.5.1 与 fork / join / 正交区绑定的 8 条 constraint 及散文条款 "A Transition from one Region to another in the same immediate enclosing composite State is not allowed."；itemis CREATE 的 `transition.SourceNotOrthogonalToTarget`；BEF4LLM syntactic 第 9 项 "Split gateway has matching join gateway" 与 pragmatic 的 concurrency 组 [18]；von der Beeck [21] 与 Crane & Dingel [22] 里关于并发与进入/退出顺序的比较维度；时间自动机变异算子（时钟一族）。
+时钟约束、状态不变式、正交区并发语义落在 $M$ 之外。文献里对应的界外条目（列出以便审计）：UML 2.5.1 与 fork / join / 正交区绑定的 8 条 constraint 及散文条款 "A Transition from one Region to another in the same immediate enclosing composite State is not allowed."；itemis CREATE 的 `transition.SourceNotOrthogonalToTarget`；BEF4LLM syntactic 第 9 项 "Split gateway has matching join gateway" 与 pragmatic 的 concurrency 组 [18]；von der Beeck [21] 与 Crane & Dingel [22] 里关于并发与进入/退出顺序的比较维度；时间自动机变异算子（时钟一族）。
+
+**2026-08-13 更正：本节此前写「不得取为维度取值」，那一条已撤销。** 撤销的理由不是放宽边界，而是原写法在两头都站不住：把界外对象**赶出座标系**，等于让它既不能被记录、也不能被统计，于是同一批材料在报表上呈现为「什么都没发生」。[CLAUDE.md](../../../../../CLAUDE.md) 的建模对象边界明写两条约束**同时**成立 —— 既不得把并发 / 时间类问题记为「方法未能检出」，**也不得反过来声称「这些模型没有并发 / 时间问题」**。给它一个可记录、但 `counts_as_defect = false` 的槽位，是唯一能同时满足这两条的做法。
+
+现行口径：
+
+| 界外族 | 有没有维度取值 | 怎么落 |
+| :-- | :-- | :-- |
+| 正交区域及其数量 | **有** —— `defect_element = region` | 照常登记，`counts_as_defect = false`，不进缺陷统计 |
+| 时钟 / 计时 / 秒级约束 | 没有 | 写进自由描述，回收后人工分拣 |
+| 状态不变式 | 没有 | 同上 |
+| entry / exit 动作次序 | 没有（判定测试立不住，见 §3.8 第 6b 行与 §4.9） | `pair` + `logic_kind = other` + 自由描述 |
+
+**为什么只给正交区域开了槽位、时钟与不变式没开**：判据是「有没有一条只看制品就能唯一判定的测试」。正交区在 PlantUML 里有**逐字的语法载体**（`--` 分隔符），数它有几条、划出几个区是纯词法操作，符合 §11 对确定性门的准入要求。时钟与不变式在本语料的作者源里没有对应语法载体（PlantUML 状态图不写时钟约束），判读者只能从散文语义推断，故不设取值。
+
+⛔ **区域取值不是「边界被放宽了」。** 它记录的是「这里有一处与正交区有关的差异」，**不主张它是一个缺陷**。任何把 `region` 计入命中率、覆盖率或缺陷数的做法都是错的。
+
+### 3.7.1 任一轴选 `other` 时必须附一句说明
+
+**硬规则：五个轴中的任意一个取 `other`，都必须同时给出一句自然语言说明。** 说明只需回答两件事之一：
+
+1. 它到底是什么（`other` 是出口，出口不写清等于没分类）；
+2. 或者，为什么单值装不下 —— 即这一条**涉及多个取值**，写清是哪几个。
+
+这条是**确定性判据**（「`other` 在不在、说明字段空不空」只看字段值即可唯一判定），故按 [CLAUDE.md](../../../../../CLAUDE.md) §11 允许做成校验器的 `E` 级门，见 [validate.py](../../manual_review/relabel/validate.py)。⛔ 与之相对，「这句说明写得对不对」是语义判断，**不做成门**。
 
 ### 3.8 验收：座标系对六类逻辑层缺陷的逐条表达检查
 
@@ -750,6 +778,7 @@ Heimdahl & Leveson 的两条判据（§2.6.1）之所以**可判定**，依赖 R
 
 | 时间 | 内容 |
 | :-- | :-- |
+| 2026-08-13（第四轮，同日） | **维度 A 新增取值 `region`（正交区域），并撤销 §3.7 里「界外条目不得取为维度取值」那句旧规则。** 起因是把台账 99 条 + 候选 141 条共 240 个对象逐一映射到本座标系之后，映射不上的对象里**只有一处**是座标系本身给不出取值，且它由三批互不通气的判定者（读 `statement` / 读 `ref+gen+reason` / 读未匹配 issue）独立撞到同一处：**正交区域及其数量**。旧规则要求把这类赶出座标系，后果是它既进不了记录、也进不了统计，同一批材料在报表上呈现成「什么都没发生」——而 [CLAUDE.md](../../../../../CLAUDE.md) 的建模对象边界明写两条约束同时成立（不得记为「方法未能检出」，**也不得**声称这些模型没有并发问题）。故改为给它一个可记录、`counts_as_defect = false` 的槽位。**同时新增 §3.7.1**：任一轴取 `other` 必须附一句自然语言说明（说清它是什么，或说清它涉及多个取值、单值装不下），该判据只看字段值即可唯一判定，故允许做成校验器 `E` 级门。**未改**：时钟与不变式两族仍无取值（PlantUML 状态图里没有对应语法载体，判定测试立不住），仍走自由描述。 |
 | 2026-08-13（第三轮，同日） | **由三维扁平类型学改建为条件式座标系**，起因是初稿只覆盖「能定位到单个元素」的缺陷——那是 A/B 两轴出身于测试领域（缺陷即一次语法编辑）的结构性局限。新增**维度 0 `defect_locus`**（element / pair / global / other）作为先行轴，它决定后面问哪些轴；新增**维度 D `defect_logic_kind`**（9 值）承担逻辑层；新增**可选维度 E**（Dwyer pattern × scope）承担「修好算什么」。新增 §2.6 逻辑层文献（Heimdahl & Leveson 的两条机械判据 · Dwyer 模式库 · Baier & Katoen · UML 层次语义三条），新增 §3.8 对六类逻辑层缺陷的**逐条验收表**。**两处实质更正**：① `deadlock` 更名 `unintended_terminal` —— Baier & Katoen 的 deadlock 要求「至少一个分量仍可继续」，是并发概念，在无正交区的 $M$ 里不成立，正确的锚点是 Definition 2.4 terminal state，且判定必须把祖先群迁移算进去；② 「活锁」无与标注无关的形式定义（全书 grep 确认），`nontermination` 只能靠 NL 的终止义务立起来。**逐字核对由我本人完成的**：Heimdahl & Leveson p. 370（读图）· Dwyer 官方模式库四页 · Baier & Katoen 三处定义并 grep 全书 · UML 2.5.1 §14.2.3.9.4 / §14.2.3.4.5 / §14.2.3.4.6 / §14.2.3.9.1（自行下载 18 MB 官方 PDF 抽取）。**协作核验者取得而我未独立复核的**已在 §5 逐条标注（[42][43][44][45] 与 Harel Appendix C 保留）。 |
 | 2026-08-13（第二轮，同日） | 迟到的三路文献核验带来四处实质更正与一处重要补全。**补全**：Fabbri statechart 变异算子表已从同组技术报告 ND-41 取到并读图核对（35 条），其 FSM 组的「构件 × faltando/extra/trocado」结构独立印证了维度 A × B 的叉积设计；同时确认**全表无状态级算子**、变量只有「换」无「缺」。**更正一**：model smell 传统不得整支排除——UML 状态机异味恰好有 5 条判据清晰的成文条目（Arendt 2009 §3.4 + SDMetrics），已收进 §2.3，并附「两份证人同谱系、非独立」的告诫。**更正二**：五类检查阅读分类的出处是 Travassos 等 1999，不是 Basili & Weiss 1984。**更正三**：§4.5 补入反例——Travassos 1999 正是以需求文档为参照物且覆盖状态图的成文分类，故「模型-需求参照物缺席」只对规则目录 / 变异算子 / 质量度量三支成立，不对整个领域成立。**更正四**：「语义变异点」作为成文条款类型只存在到 UML 2.4.1，2.5.1 已不挂该标签。 |
 | 2026-08-13 | 建立。从六支外部文献流派导出三维 14 值的可枚举缺陷类型学；每个取值配正式定义（逐字 + 出处）、可操作判定测试与相邻取值分界；记录八条分歧与空白，其中 `variable` 维、语用维、模型-需求参照物三处为已知的文献真空。同轮补核推翻了初稿对 Fujiwara 1991 的描述（它只有两类故障，多余状态是前提不是故障类），并据此新增 §4.0：「经典 FSM 故障模型四元组」是两篇论文的合并口径，任何一篇都引不出来。Chow 1978（含 p. 591 读图核对的 Fujiwara 引文）、El-Fakih 等 2016、Jia & Harman 2011、Lackner & Schmidt 2015、Reijers 技术报告、itemis CREATE 校验器源码为全文/源码取到并逐字引用；其余条目的取证档位逐条标注在 §5。 |
