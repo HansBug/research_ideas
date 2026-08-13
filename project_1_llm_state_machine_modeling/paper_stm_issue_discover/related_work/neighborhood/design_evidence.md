@@ -532,13 +532,44 @@ $$M_t = \{y \mid \delta(s_t,y)\neq\bot \land \mathrm{ReachAccept}(\delta(s_t,y))
 
 ⭐⭐ **规律 1 也属于这一类**：它的四条原始数字跨了 2023-03（GPT-4）· 2024-05（GPT-4o）· 2025-04（GPT-4.1-Mini）· 2025-08（GPT-5）四代仍**全部同向**。⛔ 绝对数字要打折，⭐ **但方向不用** —— ⭐ 跨两代半仍成立的方向比只在一代上成立的更可信。
 
-### 9.7 ⛔ 一条与 §4.4 方向相反的同代证据
+### 9.7 ⚠️⛔ 一条与 §4.4 方向相反的同代证据 —— ⛔ 但本地直接证据推翻了我从它推出的结论
 
-⭐ §4.4 写「⭐ 我们已经在那条曲线的高位」（⭐ 指注入已声明元素清单），⛔ 依据是我们的 `_model_vocabulary()` 比两篇外部工作注入得更细。
+⭐ §4.4 写「我们已经在那条曲线的高位」（⭐ 指注入已声明元素清单）。⭐ [zenodo](./cards/zenodo-simulink-repair-traces.md) 给了**反向的同代证据**：注入制品结构字典，**fix rate +7.5 / +5.6pp、Score +11.4 / +5.1pp**（⭐ GPT-5.4 / GPT-5.2 两臂，⭐ 消融轴机械核验 32/32 vs 0/32 干净），代价约 **4.7× token**。
 
-⛔⛔ **zenodo 那张卡给了反向的同代证据**：注入制品结构字典，**fix rate +7.5 / +5.6pp、Score +11.4 / +5.1pp**（GPT-5.4 / GPT-5.2 两臂，⭐ 两臂经机械核验 32/32 vs 0/32 干净），代价约 **4.7× token**。
+⚠️⛔ **本节上一版据此推出「所以我们那条曲线尚未饱和，⭐ 而 `edge_declared` 被问 0.0% 恰好是这个机制所指的缺口」。⛔⛔ 那条推论撤回。**
 
-⭐⭐ **含义**：⛔ 不能说「已经饱和」。⭐ 至少说明**那条曲线在当代模型上尚未饱和**。⭐ 而 §4.4 自己点出的那个缺口 —— **普通迁移的完整清单不在注入内容里，⛔ 而 `edge_declared` 被问 0.0%** —— 恰好就是这个机制所指的东西。
+#### ⛔ 撤回理由：我们自己已经做过这个干预，⛔ 结果是 0
+
+⭐ [v46_weakness_anatomy.md](../../discover_matrix/docs/findings/v46_weakness_anatomy.md) §三 记着一次 **30 格三臂、事前登记跑前 push** 的干预实验：
+
+| 臂 | 做了什么 | `edge_declared` 提问 |
+| :-- | :-- | :-- |
+| ⛔ **干预 v1** | ⭐ **只追加四条结构扫描** | ⛔⛔ **仍得 0** |
+| ⭐ **干预 v2** | ⭐ 按 `CLAUDE.md` §13 解决 `occupancy_after` 的 `nl_cue` 措辞冲突 | ⭐⭐ **立刻 4/6** |
+
+⭐⭐⭐ **根因不是供给不足，⛔ 是词表自己在教模型不要用它。** ⭐ 源码注释逐字：`the supply gap is not an oversight, it is what the catalogue instructs`。
+
+⭐ **所以瓶颈是路由，⛔ 不是数据可得性。** ⚠️ 我提的「注入完整迁移清单」**没有被逐字测过**（⭐ v1 加的是扫描指令、⛔ 不是迁移数据），⛔ **但被诊断出的机制预测它同样会失败**：⭐ 只要词表还在把 `edge_declared` 划给「制品含有什么」而把事件驱动行为划给 `occupancy_after`，⛔ 给模型一份迁移表并不会改变它的路由。⭐ 而**最接近的已测变体确实失败了**。
+
+#### ⛔ 另有一条独立的反对理由：体积
+
+⭐ `renderer.py` 的注释已经考虑过铺开完整迁移行并否决，逐字：
+
+> `Full rows only for the edges a claim can be built on. … Spelled out, pair 0029's 36 exit rows added 8.5 KB to a 2 KB vocabulary, and its requirement splitter is the one call in the corpus whose response the gateway truncates.`
+
+⛔ **即 pair 0029 的 splitter 是全语料唯一会被网关截断的调用**，⭐ 而铺开会把它推得更远。
+
+#### ⭐ 真正待裁的是另一件事
+
+⭐ v2 的修法**已经在代码里**（`prompts.py` 的 `X1_SWEEP_CATALOGUE_PRECEDENCE`），⛔ **但只在 mode 2 生效**。⭐ 源码注释说明这是刻意的：`It is applied in mode 2 only, so v1's prompt hash -- and therefore v1's reproducibility -- is untouched.`
+
+⭐⭐ **所以待裁的是「要不要把它提升进主臂」，⛔ 而代价是主臂 prompt hash 变化、v1 不再可复现。** ⛔ 这不是本文件能裁的，⭐ 属实验编排决策。
+
+#### ⭐⭐ 一条方法论教训（⛔ 比这条更正本身重要）
+
+⭐⭐⭐ **本地直接证据优先于外部类比证据。** ⭐ zenodo 那条是**别的任务、别的制品、别的注入内容**上的效应；⛔ 而我们在**自己的流水线、自己的谓词、自己的语料**上直接测过同类干预，⭐ 得到 0。⛔⛔ **拿外部类比去覆盖本地直接测量，是这轮我犯的一个具体错误** —— ⭐ 而它之所以发生，是因为我先读到外部证据、后才回去查本地是否测过。
+
+⭐ **纪律**：⛔ **提任何「文献说该这么做」的建议之前，先查我们自己有没有测过。**
 
 ### 9.8 ⛔ 本节暴露的三类问题（⭐ 口径问题比代次问题更多）
 
