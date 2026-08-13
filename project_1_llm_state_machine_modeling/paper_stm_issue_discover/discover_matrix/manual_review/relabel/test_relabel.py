@@ -2007,11 +2007,16 @@ def test_worksheets_stay_under_the_line_budget():
     19 个谓词（+~60 行）、断言角色与谓词三族图例（+~18 行）都搬进来了。
     ⛔ 这不是「说明性文字长回来了」，⭐ 判据是上面
     `test_the_field_guide_is_not_copied_back_into_the_worksheets` 那条：
-    长篇 rationale 仍然只在 HOWTO。⭐ 档：中位 ≤ 620、单份 ≤ 1000。
+    长篇 rationale 仍然只在 HOWTO。
+
+    ⚠️ **2026-08-13 档位下调**：620 → **605**。⭐ 三处清理后中位是 588
+    （删前言 −6、删结构摘要 −15、加「怎么填」+13，逐份净 −8）——
+    ⛔ 档必须跟着收，否则「行数应当下降」这条只在当天成立，⚠️ 之后又能悄悄涨回 620。
+    ⭐ 档：中位 ≤ 605、单份 ≤ 1000。
     """
     counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
     median = counts[len(counts) // 2]
-    assert median <= 620, f"工作单行数中位数 {median} 超预算 —— ⛔ 说明性文字长回来了"
+    assert median <= 605, f"工作单行数中位数 {median} 超预算 —— ⛔ 说明性文字长回来了"
     assert counts[-1] <= 1000, f"最长的一份 {counts[-1]} 行超预算"
     # ⛔ 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
     assert counts[0] >= 300, f"最短的一份只有 {counts[0]} 行 —— ⛔ 抽多了"
@@ -2395,22 +2400,29 @@ def test_the_howto_inline_section_stays_short():
         assert n <= 16, f"{pair}.md 的「怎么填」有 {n} 行非空 —— ⛔ 超档"
 
 
-def test_the_worksheets_got_shorter_not_longer():
-    """⭐ 本轮净效果必须是**行数下降**（⛔ 删 21 行、加 13 行）。
+# ⭐ 本轮清理**之前**的那个 commit。⛔ 必须写死，⚠️ 不能用 `HEAD` ——
+# 本轮一旦落成 commit，`HEAD` 就是清理**之后**的状态，⛔ 那条断言会变成拿自己比自己。
+CLEANUP_BASELINE = "b609ee8f"
 
-    ⛔ 判据是与 `HEAD` 逐份比 —— ⚠️ 只看中位会被某一份的材料增长掩盖。
+
+def test_the_worksheets_got_shorter_not_longer():
+    """⭐ 本轮净效果必须是**行数下降**（⛔ 删 21 行、加 13 行，逐份净 −8）。
+
+    ⛔ 判据是与清理前那个 commit **逐份**比 —— ⚠️ 只看中位会被某一份的材料增长掩盖。
+    ⭐ 基线写死为 `CLEANUP_BASELINE`；⛔ 该 commit 不可达时（浅克隆 / 非 git）跳过，
+    ⭐ 但下面那条绝对档（`test_worksheets_stay_under_the_line_budget`）仍然拦着回胖。
     """
-    proc = subprocess.run(["git", "-C", HERE, "rev-parse", "--verify", "HEAD"],
-                          capture_output=True, text=True)
-    if proc.returncode != 0:
-        pytest.skip("非 git 环境")
+    probe = subprocess.run(["git", "-C", HERE, "cat-file", "-e",
+                            f"{CLEANUP_BASELINE}^{{commit}}"], capture_output=True)
+    if probe.returncode != 0:
+        pytest.skip(f"基线 commit {CLEANUP_BASELINE} 不可达")
     worse = []
     for pair in S.IN_SCOPE_PAIRS:
         rel = os.path.relpath(_ws(pair), HERE)
-        old = subprocess.run(["git", "-C", HERE, "show", f"HEAD:./{rel}"],
+        old = subprocess.run(["git", "-C", HERE, "show", f"{CLEANUP_BASELINE}:./{rel}"],
                              capture_output=True, text=True)
         if old.returncode != 0:
-            pytest.skip(f"{rel} 不在 HEAD 里")
+            pytest.skip(f"{rel} 不在基线 commit 里")
         a = len(old.stdout.splitlines())
         b = len(_read(_ws(pair)).splitlines())
         if b >= a:
