@@ -21,6 +21,11 @@ import re
 
 from pumlmodel import PSEUDO
 
+# ⭐ 分类导语里的台账条数一律**现算**，⛔ 不写字面量 —— 旧版把 `reachability 25 条`
+# 这类数字硬编在正文里，⛔ 且用的是全 126 条口径，于是同一份工作单里 §4 与 HOWTO §D
+# 的同一个数对不上（126 含 `00x8` 六个永久越界 pair）。⭐ 现算的口径统一为 REPORTABLE 98 条。
+# ⭐ 延迟导入见 `_counts()`：`newfields` 在模块级导入 `sources`，⛔ 顶层 import 会拖慢建表。
+
 # NL 侧的义务关键词。命中只说明「这句话可能带一条结构义务」，⛔ 不是缺陷判据。
 NL_CUES = [
     ("持续 / 保持", r"\b(until|as long as|continues?|remains?|keeps?|persist\w*|while)\b"),
@@ -50,6 +55,24 @@ def _elements_named_by_ledger(records):
         for tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", blob):
             named.add(tok)
     return named
+
+
+def _counts():
+    """⭐ 台账现状计数（⛔ REPORTABLE 98 条口径）。⭐ 缓存一次，⛔ 54 份工作单共用同一份。"""
+    global _COUNTS
+    if _COUNTS is None:
+        import newfields as NF
+        _COUNTS = {
+            "direction": NF.direction_counts(),
+            "layer": NF.layer_counts(),
+            "primary": NF.primary_predicate_counts(),
+            "total": NF.layer_counts().total() if hasattr(NF.layer_counts(), "total")
+                     else sum(NF.layer_counts().values()),
+        }
+    return _COUNTS
+
+
+_COUNTS = None
 
 
 def _covered_note(names, records):
@@ -153,7 +176,8 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "可达性与终止",
-            "⭐ 台账的 `reachability` 方向共 25 条，是最大的一类；"
+            f"⭐ 台账的 `reachability`（可达性与终止）方向共 {_counts()['direction']['reachability']} 条"
+            f"（REPORTABLE {_counts()['total']} 条口径）；"
             "但 X1 的真漏记里**吸收态 / 死端**反复出现，说明这一类仍有漏。",
             items,
         ))
@@ -222,7 +246,8 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "守卫与确定性",
-            "⭐ 台账 `guard` 方向 22 条，但 `guard_distinguishable` 只做过 5 次 primary；"
+            f"⭐ 台账 `guard`（守卫与条件）方向 {_counts()['direction']['guard']} 条，"
+            f"但 `guard_distinguishable` 只做过 {_counts()['primary']['guard_distinguishable']} 次 primary；"
             "⚠️ 且该谓词在单目标时空真返回 `True`，「这条边必须带区分条件」写不出来 —— "
             "这一类的**谓词承载本身就有缺口**。",
             items,
@@ -302,8 +327,10 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "层次语义",
-            "⭐ 台账 `hierarchy` 21 条 + `entry` 23 条，主要靠 `initial_target`（21 次 primary）"
-            "与 `containment`（12 次）。⚠️ 但 `initial_target` 看不到**带触发的初始边**，"
+            f"⭐ 台账 `hierarchy`（层次归属）{_counts()['direction']['hierarchy']} 条 + "
+            f"`entry`（初始入口）{_counts()['direction']['entry']} 条，主要靠 `initial_target`"
+            f"（{_counts()['primary']['initial_target']} 次 primary）与 `containment`"
+            f"（{_counts()['primary']['containment']} 次）。⚠️ 但 `initial_target` 看不到**带触发的初始边**，"
             "该族缺陷会被正向放过。",
             items,
         ))
@@ -355,8 +382,10 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "事件",
-            "⭐ 台账 `event` 方向只有 **4** 条，`event_declared` / `event_consumed` "
-            "各只做过 4 次 primary —— ⛔ 这一维几乎是空的，最可能有漏。",
+            f"⭐ 台账 `event`（事件与触发）方向只有 **{_counts()['direction']['event']}** 条，"
+            f"`event_declared` 做过 {_counts()['primary']['event_declared']} 次 primary、"
+            f"`event_consumed` {_counts()['primary']['event_consumed']} 次 —— "
+            "⛔ 这一维几乎是空的，最可能有漏。",
             items,
         ))
 
@@ -434,7 +463,8 @@ def build(model, nl_segs, records, pair):
         cats.append((
             "变量与效应",
             "⛔ **台账的变量维几乎是空的**：`variable_declared` 与 `variable_delta_after` "
-            "**从未作为 primary 出现过**，`effect_declared` 3 次、`action_declared` 6 次。"
+            f"**从未作为 primary 出现过**，`effect_declared` {_counts()['primary']['effect_declared']} 次、"
+            f"`action_declared` {_counts()['primary']['action_declared']} 次。"
             "⚠️ 已知原因之一：全语料唯一被投影声明的变量是 `R45RouteToken`，"
             "所以谓词层几乎无从验证 —— ⭐ 但那是**谓词的**缺口，不代表模型没有变量缺陷。",
             items,
@@ -462,7 +492,8 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "时序 / 持续义务",
-            "⭐ `persists_until` 只做过 3 次 primary，`response_within` 与 `invariant` "
+            f"⭐ `persists_until` 只做过 {_counts()['primary']['persists_until']} 次 primary，"
+            "`response_within` 与 `invariant` "
             "**从未作为 primary 出现** —— ⛔ 台账在这一维基本没有覆盖。"
             "⚠️ 建模对象无时钟，所以这里要找的是**结构性**承载，不是时间约束。",
             items,
@@ -567,8 +598,9 @@ def build(model, nl_segs, records, pair):
     if items:
         cats.append((
             "NL 未明说但结构上可疑",
-            "⭐ 这类在台账里占 30/98（`wellformedness` 层），⛔ 也正是 X1 强而主臂弱的地方 —— "
-            "X1 的 13 条真漏记里 **9 条**被判为 `V1`/`V2`（合式性层，不要求 NL 逐字依据）。",
+            f"⭐ `wellformedness`（良构性）层在台账里占 {_counts()['layer']['wellformedness']}/"
+            f"{_counts()['total']}，⛔ 也正是 X1 强而主臂弱的地方 —— "
+            "X1 的 13 条真漏记里 **9 条**被判为 `V1`/`V2`（良构性层，不要求 NL 逐字依据）。",
             items,
         ))
 

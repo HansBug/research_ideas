@@ -368,7 +368,7 @@ def validate_pair(pair, data, rep):
             rep.W(pair, nid,
                   f"`nl_evidence` 里没认出本 pair 的段 id（本 pair 的段 id 形如 "
                   f"`{sorted(_known_seg_ids(pair))[0]}`）—— ⭐ 写段 id 才能机械回链到 "
-                  f"§1.2 指向的 `nl_XXXX/{S.NL_DOC}`")
+                  f"§1.1 的段 id 表（同组共用 `nl_XXXX/{S.NL_DOC}`）")
         for bad in _seg_refs(nle) - _known_seg_ids(pair):
             rep.E(pair, nid, f"`nl_evidence` 引用了本 pair 不存在的段 id `{bad}`")
 

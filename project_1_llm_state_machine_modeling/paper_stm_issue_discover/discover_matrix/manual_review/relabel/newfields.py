@@ -248,6 +248,20 @@ def layer_counts():
     return Counter(r["layer"] for r in S.ledger_records(reportable_only=True))
 
 
+def primary_predicate_counts():
+    """⭐ 台账里每个谓词作为 `primary_predicate` 出现的次数（⛔ REPORTABLE 98 条口径）。
+
+    ⚠️ 存在的理由是防漂移：这些数字此前以字面量散在 [checklist.py](./checklist.py) 的
+    分类导语里，⛔ 且用的是**全 126 条**口径 —— 于是同一份工作单里 §4 说
+    `initial_target` 做过 21 次 primary、而 HOWTO §D 按 98 条算是 14 次。
+    ⛔ 两个数都对，但**混在一份文件里就是错的**：126 里含 `00x8` 六个永久越界 pair。
+    """
+    from collections import Counter
+    return Counter(r.get("primary_predicate")
+                   for r in S.ledger_records(reportable_only=True)
+                   if r.get("primary_predicate"))
+
+
 def layer_basis_table():
     """台账里每个 `layer` 对应的 `layer_basis` 原话。⭐ 这就是分层判据的真源。"""
     out = {}

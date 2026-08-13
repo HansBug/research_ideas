@@ -6,7 +6,7 @@
 2. ⛔ `00x8` 越界 pair 不许有工作单。
 3. ⭐ 生成器幂等 —— 连跑两次产物逐字节相同，且重跑**不吃掉**人工填写的内容。
 4. ⭐ 每份工作单自包含 —— 台账里该 pair 的每一条都有裁决区。
-5. ⭐ §1.2 的 NL 表是三列，且**每一段都真有中文译文**（⛔ 不许留 TODO 占位）。
+5. ⭐ §1.1 的 NL 表是三列，且**每一段都真有中文译文**（⛔ 不许留 TODO 占位）。
 6. ⭐ 译文与语料的机械对拍：9 份 JSON 按 **sha8** 一一对上 9 份唯一 NL，逐段 `en`
    与原文逐字节相等且能拼回全文，⛔ 对不上必须**抛异常**而不是静默跳过（正反用例都测）；
    ⭐ 逐段判读提示与整份 `translator_notes` 都不许缺。
@@ -40,6 +40,7 @@ import fillblocks as fb        # noqa: E402
 import newfields as NF         # noqa: E402
 import nl_zh                   # noqa: E402
 import sources as S            # noqa: E402
+import terms as T              # noqa: E402
 import validate as V           # noqa: E402
 from pumlmodel import PumlModel  # noqa: E402
 
@@ -292,7 +293,7 @@ def test_worksheets_carry_no_verdicts():
         assert not data["new_issues"], f"{pair} 的 §5 被预填了新增条目"
 
 
-# ==================================================================== §1.2 三列 NL 表
+# ==================================================================== §1.1 三列 NL 表
 
 def test_nl_table_has_three_columns_in_every_nl_doc():
     """⭐ `NL.md` §2 必须是「段 id / 原文 / 中文严格翻译」三列，且逐段都有译文。
@@ -857,7 +858,7 @@ def test_worksheet_warns_that_notes_never_assert_about_the_artifact():
         assert "不含任何关于被测制品的断言" in block, f"{dirname}/{S.NL_DOC} 缺制品免责声明"
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
-        assert "不含任何关于被测制品的断言" in doc, f"{pair} 的 §1.2 缺制品免责声明"
+        assert "不含任何关于被测制品的断言" in doc, f"{pair} 的 §1.1 缺制品免责声明"
 
 
 def test_every_nl_has_translator_notes():
@@ -1862,11 +1863,17 @@ def test_shared_pages_carry_no_fill_blocks():
 
 
 def test_the_field_guide_is_not_copied_back_into_the_worksheets():
-    """⛔ 逐字段说明只许存在**一处**（`HOWTO.md`），⛔ 不许再复制回 54 份工作单。
+    """⛔ 逐字段说明的**长篇 rationale** 只许存在于 `HOWTO.md`，⛔ 不许复制回 54 份工作单。
 
-    ⭐ 判据是**结构性**的、不看措辞：统计「在全部 54 份里逐字相同、且落在 FILL 块外」
-    的非空行数。⚠️ 重构前中位数是 148 行（其中 §5.1 + §5.2 占 159 行）；⭐ 现在只剩
-    标题、表格分隔符、围栏和十来句指针。⛔ 谁把说明抄回去，这个数就会立刻涨上来。
+    ⚠️ **2026-08-13 这条的边界移动过，⛔ 不是放松而是重划。** 用户要求工作单「简单清晰
+    自包含无垃圾」，且明确「要人填的字段必须列全部选项 + 每项英中双写 + 一句判据」——
+    ⭐ 所以**枚举图例本身现在必须在工作单里**（§5.2 登记块紧邻处），
+    ⛔ 仍然不许搬回去的是「为什么这么分」的长篇论证（`basis` 为何单列一轴、
+    `layer` 与 `basis` 为何不同构之类）。
+
+    ⭐ 判据仍是**结构性**的、不看措辞：统计「在全部 54 份里逐字相同、且落在 FILL 块外」
+    的非空行数。⚠️ 历史刻度：重构前中位 148 行 → 搬走后 ~55 行 → 补回枚举图例后 117 行。
+    ⛔ 谁把 HOWTO 整节抄回去，这个数会立刻突破下面的档。
     """
     docs = {p: _read(_ws(p)).splitlines() for p in S.IN_SCOPE_PAIRS}
     seen = collections.Counter()
@@ -1888,16 +1895,16 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
             if seen[ln] == len(docs):
                 n += 1
         worst = max(worst, n)
-    assert worst <= 60, (
+    assert worst <= 130, (
         f"某份工作单里有 {worst} 行在 54 份中逐字重复且不在 FILL 块内 —— "
         f"⛔ 说明性文字被抄回了工作单，请搬回 {S.WORKSHEET_HOWTO}")
 
-    # ⛔ 几段搬走的原文不许再出现在任何工作单里
-    for moved in ("三层不是三种详略",                       # §5.1
-                  "选不出来时写 `无`",                      # §5.2 primary_predicate
-                  "台账的 `layer` 是按**缺陷种类**",         # §5.2 basis
-                  "读懂它需要看几个地方",                    # §5.2 depth
-                  "已知证据缺口"):                          # §3.2
+    # ⛔ 几段**长篇 rationale** 不许出现在任何工作单里 —— ⭐ 它们回答的是「为什么这么分」，
+    # ⛔ 与填表无关；⚠️ 而枚举取值与一句判据是填表必需的，故**不**在此列。
+    for moved in ("选不出来时写 `无`",                      # §D.3 primary_predicate 的长说明
+                  "台账的 `layer` 是按**缺陷种类**",         # §B.3 basis 为何单列一轴
+                  "两者并不同构",                           # §B.3 layer 与 basis 的关系
+                  "已知证据缺口"):                          # §E.2
         for pair in S.IN_SCOPE_PAIRS:
             assert moved not in docs[pair] and moved not in _read(_ws(pair)), \
                 f"{pair}.md 里又出现了搬去 {S.WORKSHEET_HOWTO} 的说明：{moved}"
@@ -1905,39 +1912,233 @@ def test_the_field_guide_is_not_copied_back_into_the_worksheets():
             f"{S.WORKSHEET_HOWTO} 里没有这段说明：{moved} —— ⛔ 搬丢了"
 
 
-def test_nl_material_is_not_copied_back_into_the_worksheets():
-    """⛔ NL 原文 / 译文 / 逐段提示只许存在于 `NL.md`，⛔ 不许回到工作单。
+def test_nl_verbatim_is_in_the_worksheet_but_the_notes_are_not():
+    """⭐ NL **原文与译文**必须在工作单里；⛔ **逐段判读提示与整份观察**必须只在 `NL.md`。
 
-    ⚠️ 这条比行数更要紧：复制六份之后，「这段材料对哪一份为真」变成六个独立问题，
-    ⛔ 而 [README.md](./README.md) §十那起事故正是这么发生的。
+    ⚠️ **这条边界是刻意划的，⛔ 两半的理由不同**：
+
+    - ⭐ 原文与译文**不谈被测制品**，同组 6 份逐字节相同，⛔ 复制零风险；
+      而判读者填 `nl_evidence` 时手边必须有段 id 与原句，⛔ 让他翻另一个文件是纯摩擦。
+    - ⛔ **判读提示谈的是「这一句约束了什么」，历史上出过写进制品断言的事故**
+      （[README.md](./README.md) §十）—— 一份 NL 服务 6 个制品，
+      ⛔ 一句制品断言必然对其中 5 份为假。⭐ 只留一份，问题就只有一个。
     """
     for pair in S.IN_SCOPE_PAIRS:
         doc = _read(_ws(pair))
-        assert "| 段 id | 原文 | 中文严格翻译 |" not in doc, f"{pair} 又印了译文表"
         segs, _ = S.nl_segments(pair)
+        # ⭐ 正面：三列表与每一段的译文都在工作单里
+        assert "| 段 id | 原文 | 中文严格翻译 |" in doc, f"{pair}.md 缺 NL 三列表"
+        for sid, txt in segs:
+            zh = nl_zh.translate(pair, sid)
+            assert zh, f"{pair}/{sid} 没有译文"
+            assert f"| `{sid}` |" in doc, f"{pair}.md 的 NL 表缺 {sid} 这一行"
+            assert esc_like(zh) in doc, f"{pair}.md 缺 {sid} 的译文正文"
+            assert esc_like(txt) in doc, f"{pair}.md 缺 {sid} 的英文原文"
+        # ⛔ 反面：逐段判读提示与整份观察仍然只在 NL.md
         for sid, _txt in segs:
-            assert f"- `{sid}`：" not in doc, f"{pair} 又印了 {sid} 的判读提示"
-        zh = nl_zh.translate(pair, segs[0][0])
-        assert zh and zh not in doc, f"{pair} 又印了译文正文"
-        # ⭐ 反面：材料确实在 NL.md 里
+            assert f"- `{sid}`：" not in doc, f"{pair}.md 又印了 {sid} 的判读提示"
+        assert "整份 NL 层面的观察（术语表" not in doc, f"{pair}.md 又印了整份观察正文"
         nl_doc = _read(S.nl_doc_path(HERE, pair))
-        assert zh in nl_doc and f"- `{segs[0][0]}`：" in nl_doc
+        assert f"- `{segs[0][0]}`：" in nl_doc, f"{pair} 的 NL.md 丢了判读提示"
+
+
+def esc_like(text):
+    """⭐ 与 [generate.py](./generate.py) 的 `esc()` 同口径（压空白 + 转义竖线）。
+
+    ⛔ 不能直接拿原始字符串去 `in doc` 比：译文里带竖线的段落（守卫表达式
+    `dist_to_rear<5 | vel>30` 之类）在表格单元格里是 `\\|`，⛔ 原串永远匹配不上。
+    """
+    import generate as G
+    return G.esc(text)
+
+
+def test_nl_verbatim_block_is_byte_identical_across_siblings():
+    """⭐ 同组 6 份工作单的 NL 节必须**逐字节相同**。
+
+    ⛔ 这是允许复制的**前提**：一旦某份的 NL 节掺进了 pair 级的数字，
+    「改一处要记得改六处」就回来了，⚠️ 而漏改的那几份不会有任何报错。
+    """
+    for dirname in sorted({S.nl_dir(p) for p in S.IN_SCOPE_PAIRS}):
+        blocks = {}
+        for pair in S.pairs_of_dir(dirname):
+            doc = _read(_ws(pair))
+            head = "### §1.1 "
+            tail = "### §1.2 "
+            i, j = doc.find(head), doc.find(tail)
+            assert 0 <= i < j, f"{pair}.md 的 §1.1 / §1.2 结构不对"
+            blocks[pair] = doc[i:j]
+        vals = set(blocks.values())
+        assert len(vals) == 1, (
+            f"{dirname} 的 6 份工作单 §1.1 不是逐字节相同 —— "
+            f"⛔ 有 pair 级内容漏进了共用节：" + "、".join(
+                p for p in blocks if blocks[p] != sorted(vals)[0]))
+
+
+def test_nl_table_sits_on_the_first_screen():
+    """⭐ NL 三列表必须在**第一屏** —— ⛔ 判读者一打开工作单就该看到它。
+
+    ⛔ 判据是行号，⛔ 不是「在 §1 里」：材料排在结构摘要之后就已经滑出第一屏了。
+    ⭐ 当前实测每份都在第 32 行，⛔ 档设在 45 行留出余量。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        lines = _read(_ws(pair)).splitlines()
+        hit = [i + 1 for i, ln in enumerate(lines)
+               if ln == "| 段 id | 原文 | 中文严格翻译 |"]
+        assert hit, f"{pair}.md 没有 NL 三列表"
+        assert hit[0] <= 45, f"{pair}.md 的 NL 表在第 {hit[0]} 行 —— ⛔ 掉出第一屏了"
+        # ⛔ 且必须排在结构摘要**之前**
+        summary = [i + 1 for i, ln in enumerate(lines) if ln.startswith("### §1.2 结构摘要")]
+        assert summary and hit[0] < summary[0], f"{pair}.md 的 NL 表排到结构摘要后面了"
 
 
 def test_worksheets_stay_under_the_line_budget():
     """⭐ 行数上限 —— ⛔ 防止说明性文字慢慢又长回工作单里。
 
-    ⚠️ 上限**不是**任意选的：一份工作单的下界由两块不可压缩的内容决定 ——
-    ⭐ FILL 块（中位 165 行，人要填的地方）与本 pair 独有的材料（结构摘要、两份
-    PlantUML、台账条目、候选、清单）。⛔ 所以这里给的是「比当前留出余量、
-    但抄一节说明就会破」的档：中位 ≤ 520、单份 ≤ 900。
+    ⚠️ 上限**不是**任意选的：一份工作单的下界由三块不可压缩的内容决定 ——
+    ⭐ FILL 块（中位 165 行，人要填的地方）、本 pair 独有的材料（结构摘要、两份
+    PlantUML、台账条目、候选、清单）、以及**自包含所需的枚举图例与 NL 原文译文**。
+
+    ⚠️ **2026-08-13 上调过一次档**：中位 478.5 → 596，因为用户要求工作单
+    「简单清晰自包含」——⭐ NL 原文与译文（+~20 行）、五个勾选字段的全部取值与
+    19 个谓词（+~60 行）、断言角色与谓词三族图例（+~18 行）都搬进来了。
+    ⛔ 这不是「说明性文字长回来了」，⭐ 判据是上面
+    `test_the_field_guide_is_not_copied_back_into_the_worksheets` 那条：
+    长篇 rationale 仍然只在 HOWTO。⭐ 档：中位 ≤ 620、单份 ≤ 1000。
     """
     counts = sorted(len(_read(_ws(p)).splitlines()) for p in S.IN_SCOPE_PAIRS)
     median = counts[len(counts) // 2]
-    assert median <= 520, f"工作单行数中位数 {median} 超预算 —— ⛔ 说明性文字长回来了"
-    assert counts[-1] <= 900, f"最长的一份 {counts[-1]} 行超预算"
+    assert median <= 620, f"工作单行数中位数 {median} 超预算 —— ⛔ 说明性文字长回来了"
+    assert counts[-1] <= 1000, f"最长的一份 {counts[-1]} 行超预算"
     # ⛔ 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
-    assert counts[0] >= 200, f"最短的一份只有 {counts[0]} 行 —— ⛔ 抽多了"
+    assert counts[0] >= 300, f"最短的一份只有 {counts[0]} 行 —— ⛔ 抽多了"
+
+
+# ==================================================================== 术语英中双写
+
+def test_every_displayed_layer_value_carries_its_chinese_and_its_verbatim_basis():
+    """⭐ `layer` 每一处展示值都必须带**中文名**与**该条自己的 `layer_basis` 逐字原话**。
+
+    ⛔ 判据不是「文档里有个 layer 表」，⭐ 而是**逐条**：该 pair 每条台账记录的
+    `layer` 取值都得在它自己那张字段表里写成 `` `wellformedness`（良构性）——判据原话：… ``。
+    ⚠️ 旧版写的是「判据原话见 HOWTO.md §D.4」—— ⛔ 最需要判据的一栏跳得最远。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert "判据原话见" not in doc, f"{pair}.md 还留着「判据原话见 …」的跳转"
+        for rec in S.ledger_records(pair):
+            want = T.layer_cell(rec)
+            assert "⛔ 该取值的中文名仓库未定义" not in want, \
+                f"{rec['id']} 的 layer `{rec.get('layer')}` 没有中文名"
+            assert want in doc, f"{rec['id']} 的 layer 单元格没按英中双写 + 判据原话渲染"
+            assert (rec.get("layer_basis") or "") in doc, \
+                f"{rec['id']} 的 `layer_basis` 原话没进工作单"
+
+
+def test_every_displayed_enum_value_is_written_in_both_languages():
+    """⭐ §2 字段表里的 `direction` / `element_of_M` / `decided_by` / `primary_predicate` /
+    `verdict` / `replay` 展示值一律 `english（中文）`，⛔ 不许留裸英文标识符。
+
+    ⛔ 判据是**逐条逐字段**比对 [terms.py](./terms.py) 渲染出的单元格，
+    ⭐ 而不是「文档里能搜到某个中文词」——⚠️ 后者会被别处偶然出现的同一个词蒙过去。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for rec in S.ledger_records(pair):
+            for label, cell in (
+                ("direction", T.direction_cell(rec.get("direction"))),
+                ("element_of_M", T.element_cell(rec.get("element_of_M"))),
+                ("decided_by", T.decided_by_cell(rec.get("decided_by"))),
+                ("primary_predicate", T.predicate_cell(rec.get("primary_predicate"))),
+                ("verdict/replay", T.verdict_cell(rec)),
+            ):
+                assert "仓库未定义" not in cell, \
+                    f"{rec['id']} 的 {label} 取值在仓库里查不到语义：{cell}"
+                assert cell in doc, f"{rec['id']} 的 {label} 没按英中双写渲染：{cell}"
+
+
+def test_element_of_M_uses_the_definition_from_claude_md():
+    """⛔ `element_of_M` 的五个中文名必须与仓库根 `CLAUDE.md` 的定义逐字一致。
+
+    ⚠️ 这一条钉的是**出处**而不是措辞：$M = (S, E, V, Tr, A)$ 里
+    S=状态集合 E=事件集合 V=变量集合 Tr=迁移集合 A=动作集合 是 `CLAUDE.md`
+    「核心技术概念」一节写下的，⛔ 不是本目录自己编的。⭐ 谁改了 `terms.ELEMENT_ZH`
+    又没回去改 `CLAUDE.md`，这条会红。
+    """
+    root = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", ".."))
+    claude = _read(os.path.join(root, "CLAUDE.md"))
+    for key, zh in (("S", "状态集合"), ("E", "事件集合"), ("V", "变量集合"),
+                    ("Tr", "迁移集合"), ("A", "动作集合")):
+        assert T.ELEMENT_ZH[key] == zh
+        assert f"{key}={zh}" in claude, f"CLAUDE.md 里找不到 {key}={zh} 这个定义"
+
+
+def test_predicate_chinese_is_a_translation_of_the_official_meaning():
+    """⭐ 19 个谓词的中文必须**逐条挂着官方英文原话**，⛔ 且原话要与谓词目录逐字一致。
+
+    ⛔ 这是「不许自己编中文」的机械化：中文允许是译文，⛔ 但英文原话必须能在
+    `discover/predicates.py` 里逐字找到 —— ⭐ 于是读者可以自行复核译得对不对。
+    """
+    cat = os.path.join(
+        HERE, "..", "..", "..", "pipeline", "feedback_loop", "src",
+        "paper_stm_feedback_loop", "discover", "predicates.py")
+    src = _read(os.path.abspath(cat))
+    assert set(T.PREDICATE_ZH) == set(S.ALL_PREDICATES), \
+        "terms.PREDICATE_ZH 与 sources.ALL_PREDICATES 的谓词集合不一致"
+    for name, (fam, zh, en) in T.PREDICATE_ZH.items():
+        assert fam in ("S", "B", "P")
+        assert zh.strip(), f"{name} 没有中文"
+        # ⭐ 目录里的长 `meaning` 是跨行字面量，⛔ 故按去空白后的子串比
+        flat = re.sub(r'"\s*\n\s*"', "", src)
+        assert en in flat, f"{name} 的英文原话与 predicates.py 对不上：{en}"
+
+
+def test_no_relative_link_in_any_generated_md_is_dead():
+    """⛔ 生成物里不许有死链。
+
+    ⚠️ 这一条是实测出来的：把 `HOWTO.md` 的 `BASIS_MEANING` 直接搬进工作单时，
+    ⛔ 里面的 `[README.md](./README.md)` 在 `nl_0000/` 下解析成
+    `nl_0000/README.md` —— **一个不存在的路径，而 Markdown 死链不报错**。
+    ⭐ `generate.updir()` 负责改写，⛔ 这条负责证明它真的改了。
+    """
+    import generate as G  # noqa: F401  ⭐ 只为确认生成器可导入
+    bad = []
+    for rel in _all_md(HERE):
+        # ⚠️ `_all_md()` 给的是**相对 HERE** 的路径，⛔ 不是相对进程 CWD 的。
+        # ⛔ 早先这里直接拿它去 open / dirname，于是本条只在 `cd relabel` 后才绿，
+        # ⛔ 从仓库根跑就 FileNotFoundError('HOWTO.md') —— ⭐ 一律先并成绝对路径。
+        path = os.path.join(HERE, rel)
+        text = _read(path)
+        for m in re.finditer(r"\]\(([^)]+)\)", text):
+            target = m.group(1)
+            if target.startswith(("http://", "https://", "#")):
+                continue
+            resolved = os.path.normpath(
+                os.path.join(os.path.dirname(path), target.split("#")[0]))
+            if not os.path.exists(resolved):
+                bad.append(f"{rel} -> {target}")
+    assert not bad, "死链：\n" + "\n".join(sorted(set(bad)))
+
+
+def test_worksheet_ledger_counts_use_the_reportable_denominator():
+    """⛔ §4 分类导语里的台账条数必须是 REPORTABLE 98 条口径，⛔ 不是全 126 条。
+
+    ⚠️ 旧版把 `reachability 25 条`、`entry 23 条`、`initial_target 21 次 primary`
+    这些**全 126 条**口径的数字硬编在正文里，⛔ 而 HOWTO §D 用的是 98 条口径 ——
+    于是同一份工作单里同一个数有两个值。⛔ 126 含 `00x8` 六个永久越界 pair。
+    """
+    dc = NF.direction_counts()
+    pc = NF.primary_predicate_counts()
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        for stale in ("`reachability`（可达性与终止）方向共 25 条",
+                      "`entry`（初始入口）23 条",
+                      "`initial_target`（21 次 primary）",
+                      "占 30/98"):
+            assert stale not in doc, f"{pair}.md 里还有全 126 条口径的旧数字：{stale}"
+        if "方向共" in doc:
+            assert f"方向共 {dc['reachability']} 条" in doc
+        if "次 primary、" in doc:
+            assert f"`event_declared` 做过 {pc['event_declared']} 次 primary" in doc
 
 
 def test_progress_board_links_into_the_nl_dirs():

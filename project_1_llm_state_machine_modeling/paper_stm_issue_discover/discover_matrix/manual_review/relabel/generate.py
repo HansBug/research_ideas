@@ -43,6 +43,7 @@ import fillblocks as fb                             # noqa: E402
 import newfields as NF                              # noqa: E402
 import nl_zh                                        # noqa: E402
 import sources as S                                 # noqa: E402
+import terms as T                                   # noqa: E402
 from pumlmodel import PumlModel                     # noqa: E402
 
 SCHEMA = "paper1.relabel.worksheet.v1"
@@ -70,6 +71,31 @@ def esc(text):
 def clip(text, n):
     t = esc(text)
     return t if len(t) <= n else t[: n - 1] + "…"
+
+
+def updir(text):
+    """把 `](./x)` 改写成 `](../x)`。
+
+    ⛔ 存在的理由是**目录深度**：[newfields.py](./newfields.py) 的 `BASIS_MEANING` /
+    `SCOPE_MEANING` 是给 `relabel/HOWTO.md`（在 relabel 根）写的，链接一律 `./`；
+    ⚠️ 工作单在 `nl_XXXX/` 下、深一层，同一串字面量搬进去就变成
+    `nl_0000/README.md` —— ⛔ 一个**不存在**的路径，而 Markdown 死链不会有任何报错。
+    ⭐ 所以复用共用页文案时必须过这一层，⛔ 不许各处手抄一份改好的。
+    """
+    return re.sub(r"\]\(\./", "](../", str(text))
+
+
+def codespan(text):
+    """把一段文本包成 code span，⭐ 文本里**含反引号**时自动加长围栏。
+
+    ⛔ 不这么做会静默炸掉：`response_within` 的官方 `meaning` 里就带着一对反引号
+    （`` `response` is the state path … ``），用单反引号包起来渲染出的是三段错位的
+    行内代码，⛔ 而源码看上去毫无问题。
+    """
+    t = str(text)
+    if "`" not in t:
+        return f"`{t}`"
+    return f"`` {t} ``"
 
 
 def oneline(text):
@@ -170,6 +196,71 @@ def regroup_unmatched(entries, model):
 
 # ------------------------------------------------------------------ §1 原料
 
+def _nl_verbatim_block(pair, segs, seg_mode):
+    """⭐ §1.1：NL 原文 + 中文严格翻译三列表，⭐ 放在**第一屏**。
+
+    ⚠️ **本函数的输出在同组 6 份工作单里必须逐字节相同** —— 它只允许读组级事实
+    （原文、译文、sha8、段 id、兄弟 pair 列表、分段口径），⛔ 一个 pair 级数字都不许进来。
+    `test_nl_verbatim_block_is_byte_identical_across_siblings` 钉住这一点。
+
+    ⛔ **只搬原文与译文。** 逐段判读提示（`note`）与整份观察（`translator_notes`）留在
+    `NL.md`：⭐ 它们更长，⛔ 且历史上出过「提示里写了制品断言、于是对同组另外 5 份为假」
+    的事故（[README.md](./README.md) §十）。⭐ 原文与译文不谈制品，故复制零风险。
+
+    ⭐ 两种方括号标注的图例**必须内联**：它们直接出现在下面的译文单元格里，
+    ⛔ 读者不该为了看懂一个符号去翻另一个文件。
+    """
+    sibs = S.nl_siblings(pair)
+    mode_zh, mode_what = T.SEG_MODE_ZH.get(
+        seg_mode, ("⛔ 该分段口径的语义仓库未定义", "⛔ 仓库未定义"))
+    lines = []
+    lines.append("### §1.1 NL 规约原文与中文严格翻译（⭐ 判读起点，⛔ 先读这一节）")
+    lines.append("")
+    lines.append(
+        f"⭐ 本目录 {len(sibs)} 份工作单"
+        f"（{'、'.join('`' + p + '`' for p in sibs)}）**共用同一份 NL 原文**"
+        f"（sha8 `{S.nl_sha8(pair)}`） —— "
+        f"⭐ 同一份规约生成了 {len(sibs)} 个不同制品，⛔ 所以 NL 侧完全相同、制品侧各不相同。"
+        f"分段口径 {T.bi(seg_mode, mode_zh)}：{mode_what}，共 **{len(segs)}** 段"
+        f"（`{segs[0][0]}` … `{segs[-1][0]}`）。⭐ 台账里的「NL 第 N 句」与你要填的 "
+        f"`nl_evidence` 都按这套段 id 读。"
+    )
+    lines.append("")
+    lines.append(
+        "⛔ **译文是给人判缺陷用的，⛔ 不是给人读着舒服用的。** 它严格直译，"
+        "⛔ 不意译、⛔ 不润色、⛔ 不补原文没有的信息（⛔ 含不补主语、不补量词、"
+        "不补逻辑连接词）；状态名 / 事件名 / 变量名 / 守卫表达式一律**保留英文原样**。"
+        "⭐ 原文含糊的地方译文**照样含糊** —— ⛔ 替它消歧就等于替你做了本轮要你自己做的判断。"
+        "⭐ 译文是**辅助**，⛔ 判据仍以英文原文为准；两者不一致时以原文为准并请回报。"
+    )
+    lines.append("")
+    lines.append(
+        "⭐ 表里两种方括号标注的含义（⛔ 图例就在这里，⛔ 不必翻别处）："
+        "`〔原文如此：…〕` 指**原文自身**有语法 / 拼写 / 数格错误，译文照直译并说明错在哪 —— "
+        "⛔ 它不是译文的错，⛔ 也不构成模型的缺陷；"
+        "`〔译者存疑：…〕` 指**原文这里没说清**（谁是主语、并列项是「且」还是「或」、"
+        "源状态是哪个），⭐ 它直接决定判缺陷时这一句**能不能**用来说模型「违反」了什么。"
+    )
+    lines.append("")
+    lines.append("| 段 id | 原文 | 中文严格翻译 |")
+    lines.append("| :-- | :-- | :-- |")
+    for sid, txt in segs:
+        zh = nl_zh.translate(pair, sid)
+        lines.append(f"| `{sid}` | {esc(txt)} | "
+                     f"{esc(zh) if zh else '⛔ 缺译文 —— 见 nl_zh.py'} |")
+    lines.append("")
+    lines.append(
+        f"⭐ **还有两样材料在同组共用的 [{S.NL_DOC}](./{S.NL_DOC}) 里**，"
+        f"⛔ 篇幅关系不搬进来：**逐段判读提示**（该段约束了哪个元素 · 歧义点在哪）与"
+        f"**整份 NL 层面的观察**（术语表 · 跨句反复出现的歧义 · 原文质量问题）。"
+        f"⚠️ 那些提示**不含任何关于被测制品的断言** —— ⛔ 一份 NL 服务 {len(sibs)} 个制品，"
+        f"讲制品的话必然对其中 {len(sibs) - 1} 份为假。⭐ 所以「这个状态在不在」"
+        f"「这条边有没有」一律到本页 §1.3（作者源，带行号）与 §4（按本 pair 现算的清单）自己核。"
+    )
+    lines.append("")
+    return lines
+
+
 def section_material(pair, model, records):
     segs, seg_mode = S.nl_segments(pair)
     nl = S.nl_text(pair)
@@ -191,8 +282,16 @@ def section_material(pair, model, records):
     )
     lines.append("")
 
+    # ---- NL 原文与译文：⭐ **第一屏**。
+    # ⛔ 这一节的字节在同组 6 份工作单里**完全相同** —— 它只用到组级事实
+    # （NL 原文、译文、sha8、段 id、兄弟列表），⛔ 一个 pair 级的数字都没有。
+    # ⚠️ 复制的边界是刻意划的：**只搬原文与译文**，逐段判读提示与整份观察留在 `NL.md`。
+    # ⛔ 提示更长，且历史上出过跨 pair 污染事故（README §十）—— 一份 NL 服务 6 个制品，
+    # 提示里只要出现一句制品断言，对其中 5 份就是假的。原文与译文不谈制品，故复制零风险。
+    lines += _nl_verbatim_block(pair, segs, seg_mode)
+
     # ---- 结构摘要
-    lines.append("### §1.1 结构摘要（⭐ 先看这个判复杂度）")
+    lines.append("### §1.2 结构摘要（⭐ 先看这个判复杂度）")
     lines.append("")
     lines.append("| 量 | 值 | 量 | 值 |")
     lines.append("| :-- | --: | :-- | --: |")
@@ -218,28 +317,11 @@ def section_material(pair, model, records):
         lines.append("")
 
     lines.append(
-        "⛔ 数字全部来自**作者源**，⛔ 不含投影合成元素 —— 口径见 "
-        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §A.1。"
-    )
-    lines.append("")
-
-    # ---- NL：⭐ 材料本体在同组共用的 NL.md 里，⛔ 这里只留指针。
-    # ⛔ 不许把 NL 原文 / 译文 / 判读提示复制回来：一份 NL 服务 6 个 pair，
-    # 复制 6 份的后果是改一处要记得改六处，⛔ 而漏改的那几份不会有任何报错。
-    lines.append("### §1.2 NL 规约全文 · 中文严格翻译 · 逐段判读提示")
-    lines.append("")
-    lines.append(
-        f"⛔⛔ **判读前先读 [{S.NL_DOC}](./{S.NL_DOC})** —— 本 pair 的 NL 规约原文、"
-        f"中文严格翻译、逐段判读提示与整份 NL 层面的观察都在那里。"
-        f"⭐ 它由同一份 NL 的 {len(S.nl_siblings(pair))} 个 pair"
-        f"（{'、'.join('`' + p + '`' for p in S.nl_siblings(pair))}）共用。"
-    )
-    lines.append("")
-    lines.append(
-        f"本 pair 分段口径 `{seg_mode}`，共 **{len(segs)}** 段"
-        f"（`{segs[0][0]}` … `{segs[-1][0]}`）。台账里的「NL 第 N 句」按这套编号读。"
-        f"⚠️ [{S.NL_DOC}](./{S.NL_DOC}) 里的判读提示**不含任何关于被测制品的断言** —— "
-        f"「这个状态在不在」「这条边有没有」一律到下面的 §1.3 与 §4 自己核。"
+        "⛔ 数字全部来自**作者源**，⛔ 不含 `plantuml_source_lowering.py` 投影合成的 "
+        "`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken`。"
+        "⚠️ 谓词层的 `cardinality` 会把它们算进去，所以「作者写了 3 个子态」在谓词层可能是 4 或 7 —— "
+        "⭐ 两个口径都对，⛔ 但**不能混用**（更长的说明见 "
+        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §A.1）。"
     )
     lines.append("")
 
@@ -261,8 +343,10 @@ def section_material(pair, model, records):
     if ref:
         lines.append(
             f"来源：作者 workbook `{ref_note}`。"
-            "⚠️ **参考模型不是正确答案**，只作对照、⛔ 不作判据 —— 理由见 "
-            f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §A.2。"
+            "⚠️ **参考模型不是正确答案**，只作对照、⛔ 不作判据 —— "
+            "⭐ 语料里多处出现**参考侧比生成侧更差**的情形（例如 `0000` 的参考模型压根没声明 "
+            "`autonomous_mode` 的状态体）。⭐ 它只是「另一个人怎么建的」（更长的说明见 "
+            f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §A.2）。"
         )
         lines.append("")
         lines.append("```text")
@@ -394,18 +478,18 @@ def build_nl_doc(dirname):
 def _fmt_assertions(rec):
     out = []
     for a in rec.get("assertions") or []:
-        role = a.get("role")
+        role = T.role_label(a.get("role"))
         expr = a.get("expression")
         measured = a.get("measured")
         extra = []
         if a.get("families"):
-            extra.append("族 " + "/".join(a["families"]))
+            extra.append("族 " + "/".join(T.family_label(f) for f in a["families"]))
         if measured is not None:
             extra.append(f"实测 `{measured}`")
         if a.get("demoted_because"):
             extra.append("⚠️ " + a["demoted_because"])
         suffix = f"（{'；'.join(extra)}）" if extra else ""
-        out.append(f"  - `{role}` · `{expr}`{suffix}")
+        out.append(f"  - {role} · `{expr}`{suffix}")
     return out or ["  - ⛔ **无任何断言表达式**"]
 
 
@@ -424,8 +508,28 @@ def section_ledger(pair, records, saved):
     keys = []
     lines.append(
         f"本 pair 共 **{len(records)}** 条。⛔ 裁决区留空由你填；自动风险标记只是**提示** —— "
-        f"读法见 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §E.1。"
+        "⛔ **打了标记不等于该条不成立，⛔ 没打标记也不等于它成立**（标记怎么打出来的见 "
+        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §E.1）。"
     )
+    lines.append("")
+    # ⭐ 展示值的中文与判据**逐条内联**在下面每张字段表里（⛔ 只印该条自己的那一个取值，
+    # ⛔ 不把四层 / 八方向全列一遍）。⚠️ 唯一例外是断言组的**角色**与**族**：它们在同一条
+    # 记录里就要出现四五次，逐处展开会把表撑爆，⭐ 故整份工作单印一次图例。
+    lines.append("⭐ **断言组的四个角色**（下面每条记录的「断言组」里会用到）：")
+    lines.append("")
+    lines.append("| 角色 | 应有实测值 | 作用 |")
+    lines.append("| :-- | :-: | :-- |")
+    for role in ("primary", "negative_control", "corroborating", "recovered_unverified"):
+        want = {"primary": "`False`", "negative_control": "**`True`**",
+                "corroborating": "`False` 或 `True`", "recovered_unverified": "—"}[role]
+        lines.append(f"| {T.role_label(role)} | {want} | {T.ROLE_ZH[role][1]} |")
+    lines.append("")
+    lines.append("⭐ **谓词三族**（决定一条主张要用什么证据）：")
+    lines.append("")
+    lines.append("| 族 | 它是什么 |")
+    lines.append("| :-- | :-- |")
+    for f in ("S", "B", "P"):
+        lines.append(f"| {T.family_label(f)} | {T.FAMILY_ZH[f][1]} |")
     lines.append("")
     for rec in records:
         rid = rec["id"]
@@ -436,20 +540,25 @@ def section_ledger(pair, records, saved):
         lines.append("")
         lines.append("| 字段 | 值 |")
         lines.append("| :-- | :-- |")
-        # ⛔ 不印 `layer_basis`：台账里它是 `layer` 的**函数**（四层各只有一个取值，
-        # 可在 `expected_issue_set.json` 上直接复核），逐条重印等于把同一句话抄 99 遍。
-        # ⭐ 四层各自的 `layer_basis` 原话见 HOWTO §D.4 的表。
-        lines.append(f"| `layer` | `{rec.get('layer')}`（判据原话见 "
-                     f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §D.4） |")
-        lines.append(f"| `direction` | `{rec.get('direction')}` |")
-        lines.append(f"| `element_of_M` | `{rec.get('element_of_M')}` |")
-        lines.append(f"| `decided_by` | `{rec.get('decided_by')}` |")
-        lines.append(f"| `primary_predicate` | "
-                     f"{'`' + str(rec.get('primary_predicate')) + '`' if rec.get('primary_predicate') else '⛔ 无'} |")
-        lines.append(f"| `nl_evidence` | {esc(rec.get('nl_evidence')) if (rec.get('nl_evidence') or '').strip() else '⛔ 空'} |")
-        lines.append(f"| `verdict` / `replay` | `{rec.get('verdict')}` / "
-                     f"`{(rec.get('replay') or {}).get('verdict')}`"
-                     f"（value `{(rec.get('replay') or {}).get('value')}`） |")
+        # ⭐ **逐条内联该条自己那一个取值的中文名 + 判据原话** —— ⛔ 不再写「判据原话见
+        # HOWTO §D.4」这类跳转：最需要判据的那一栏此前恰恰是跳得最远的一栏。
+        # ⛔ 也**不**在这里把四层 / 八方向 / 六种判定来源全列一遍：这是**已填的展示值**，
+        # ⭐ 判读者要读懂的只有它自己这一个；全列一遍是给「要填的字段」用的（见 §5.2 前的图例）。
+        # ⚠️ `layer` 的判据取该条记录**自己的** `layer_basis`（台账里的分层判据真源），
+        # ⛔ 不从本文件、也不从 HOWTO 抄一份近似表述。
+        lines.append(f"| `layer`（{T.FIELD_ZH['layer']}） | {T.layer_cell(rec)} |")
+        lines.append(f"| `direction`（{T.FIELD_ZH['direction']}） | "
+                     f"{T.direction_cell(rec.get('direction'))} |")
+        lines.append(f"| `element_of_M`（{T.FIELD_ZH['element_of_M']}） | "
+                     f"{T.element_cell(rec.get('element_of_M'))} |")
+        lines.append(f"| `decided_by`（{T.FIELD_ZH['decided_by']}） | "
+                     f"{T.decided_by_cell(rec.get('decided_by'))} |")
+        lines.append(f"| `primary_predicate`（{T.FIELD_ZH['primary_predicate']}） | "
+                     f"{T.predicate_cell(rec.get('primary_predicate'))} |")
+        lines.append(f"| `nl_evidence`（{T.FIELD_ZH['nl_evidence']}） | "
+                     f"{esc(rec.get('nl_evidence')) if (rec.get('nl_evidence') or '').strip() else '⛔ 空'} |")
+        lines.append(f"| `verdict` / `replay`（{T.FIELD_ZH['verdict']} / "
+                     f"{T.FIELD_ZH['replay']}） | {T.verdict_cell(rec)} |")
         lines.append(f"| 同质组 | `{rec.get('homogeneity_group')}`（组大小 {rec.get('homogeneity_group_size')}） |")
         up = rec.get("upstream") or {}
         lines.append(f"| 上游 | `{up.get('review_file')}` diff #{up.get('diff_index')}"
@@ -797,6 +906,106 @@ def _ex(slot, pair, field=None, limit=300):
     return rec, (clip(val, limit) if val else None)
 
 
+def _fill_enum_legend():
+    """⭐ §5.2 登记块**紧邻处**的枚举图例：五个勾选字段的**全部**取值 + 19 个谓词。
+
+    ⚠️ 这一节与 §2 的展示值走的是**相反**的口径，⛔ 不要混：
+    §2 是「已经填好、只需读懂」，故只内联该条自己那一个取值；⭐ 这里是「要你选」，
+    ⛔ 所以必须把选项**全部**列出 —— 判读者看不到全集就没法选。
+
+    ⛔ **勾选行里的取值必须保持英文原样，⛔ 不许在方括号里加中文。**
+    [validate.py](./validate.py) 的 `_enum_check` 拿勾中的那串文本与
+    `newfields.DIRECTIONS` / `LAYERS` 等**逐字**比对；写成 `[x] reachability（可达性）`
+    会被判成非法取值。⭐ 所以英中双写落在下面这几张表里，⛔ 不落在方括号里。
+    """
+    lines = []
+    lines.append(
+        "⭐ **下面五张表把五个勾选字段的取值全列在这里** —— ⛔ 填表不必再翻 "
+        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO})（那一页仍是总说明，"
+        "⭐ 想看「为什么这么分」再去读）。"
+        "⚠️ **勾选行里的取值请保持英文原样**：校验器逐字比对，"
+        "⛔ 在方括号里加中文会被判成非法取值。"
+    )
+    lines.append("")
+
+    lines.append("⭐ ② 依据层 · `basis`（依据来源，⭐ 4 选 1，⛔ 必填）：")
+    lines.append("")
+    lines.append("| 取值 | 什么时候勾它 |")
+    lines.append("| :-- | :-- |")
+    for val, what in NF.BASIS_MEANING:
+        lines.append(f"| `{val}` | {esc(updir(what))} |")
+    lines.append("")
+
+    lines.append("⭐ ③ 边界层 · `scope`（边界，⭐ 4 选 1，⛔ 必填）：")
+    lines.append("")
+    lines.append("| 取值 | 判据 |")
+    lines.append("| :-- | :-- |")
+    for val, what in NF.SCOPE_MEANING:
+        lines.append(f"| `{val}` | {esc(updir(what))} |")
+    lines.append("")
+
+    dc = NF.direction_counts()
+    lines.append(
+        "⭐ ④ 分类轴 · `direction`（缺陷方向，⭐ 8 选 1，⛔ 必填，归不进就选 `unclassified`）"
+        "—— 括号里的条数是台账现状，⭐ **数字越小的方向越可能是台账的盲区**："
+    )
+    lines.append("")
+    lines.append("| 取值 | 台账条数 | 指什么 |")
+    lines.append("| :-- | --: | :-- |")
+    for d, zh, what in T.DIRECTION_MEANING:
+        lines.append(f"| {T.bi(d, zh)} | {dc.get(d, 0)} | {what} |")
+    lines.append("")
+
+    lines.append(
+        "⭐ ④ 分类轴 · `depth`（深度，⭐ 3 选 1，⛔ 必填）—— 判据是**读懂它需要看几个地方**："
+    )
+    lines.append("")
+    lines.append("| 取值 | 判据 |")
+    lines.append("| :-- | :-- |")
+    lines.append("| `表层` | 一处即可：单点存在性 / 拼写 |")
+    lines.append("| `中层` | 两处之间的关系 |")
+    lines.append("| `深层` | 需沿执行路径推理、或跨多个状态比对；隐含冲突；运行时后果 |")
+    lines.append("")
+
+    lc = NF.layer_counts()
+    lb = NF.layer_basis_table()
+    lines.append(
+        "⭐ ⑤ 可留空 · `layer`（归因层，⭐ 4 选 1）—— ⛔ 判据是台账 `layer_basis` 的**逐字原话**。"
+        "⚠️ 勾了 `wellformedness` 之外的任何一层，`nl_evidence` 就**不能**写 `无`："
+    )
+    lines.append("")
+    lines.append("| 取值 | 台账条数 | 判据原话 |")
+    lines.append("| :-- | --: | :-- |")
+    for layer in S.LAYERS:
+        lines.append(f"| {T.bi(layer, T.LAYER_ZH.get(layer))} | {lc.get(layer, 0)} | "
+                     f"{lb.get(layer, '⛔ 台账无此层')} |")
+    lines.append("")
+
+    npp, total_n = NF.no_primary_predicate_count()
+    lines.append(
+        f"⭐ ⑤ 可留空 · `primary_predicate`（主谓词）—— 19 个封闭谓词，⭐ **写 `无` 本身就是发现**"
+        f"（说明词表覆盖不到这个缺陷；台账已有 **{npp} / {total_n}** 条如此）。"
+        "⛔ 中文是对官方 `meaning` 的翻译，⭐ 英文原话一并给出以便复核："
+    )
+    lines.append("")
+    lines.append("| 族 | 谓词 | 一句判据 | 官方原话 |")
+    lines.append("| :-- | :-- | :-- | :-- |")
+    for fam in ("S", "B", "P"):
+        for name, (f, zh, en) in T.PREDICATE_ZH.items():
+            if f != fam:
+                continue
+            lines.append(f"| {T.family_label(fam)} | `{name}` | {zh} | {codespan(en)} |")
+    lines.append("")
+    lines.append(
+        "⚠️ **已知谓词缺口**（选谓词时留意）：`guard_distinguishable` 在单目标时空真返回 "
+        "`True`；`initial_target` 看不到**带触发**的初始边；`variable_declared` 对投影的 "
+        "`R45RouteToken` 按设计返回 `False`；「无事件、以 in-state 为守卫」的迁移形状"
+        "**没有承载谓词**。"
+    )
+    lines.append("")
+    return lines
+
+
 def section_new(pair, saved):
     """§5 新增登记。⭐ **只留**「本 pair 独有的东西 + 要填的块」。
 
@@ -815,17 +1024,31 @@ def section_new(pair, saved):
     )
     lines.append("")
     lines.append(
-        f"⛔⛔ **动笔前先读 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO})** —— "
-        "三层结构、7 个必填项与 3 个可选项逐字段怎么填、四种 `basis` 的强度差别、"
-        "8 类 `direction`、`depth` 三档判据、19 个谓词、`layer` 对照，全在那一页。"
-        "⭐ 那一页 54 份工作单共用，⛔ 本节不再重复。"
+        "⭐ 登记块按**三层 + 分类轴**组织，⛔ 三层不是三种详略，而是三个**必须分开回答**的问题："
+        "**① 事实层**你看到了什么、在哪一处（`statement` · `generated_side`，⛔ 只写现象、不下判断）；"
+        "**② 依据层**凭什么说它是缺陷（`basis` · `nl_evidence`）；"
+        "**③ 边界层**它在 $M = (S, E, V, Tr, A)$ 内吗（`scope`）；"
+        "**④ 分类轴**并表统计用（`direction` · `depth`）。"
+        "⛔ 必填 7 项（前三层全部 + `direction` + `depth`）里 4 项是勾选，"
+        "⭐ 真正要动笔的只有 `statement` / `generated_side` / `nl_evidence` 三项。"
+        f"⭐ 五个勾选字段的**全部取值**列在 §5.2 登记块紧邻处，⛔ 填表不必翻别的文件；"
+        f"「为什么这么分」的长说明在 [{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §B。"
+    )
+    lines.append("")
+    lines.append(
+        "⭐ **勾了「越界·…」的条目只需填 ① 事实层两项 + `scope`** —— "
+        "⛔ 它不是缺陷，谈「缺陷方向」「依据强度」没有意义，"
+        "[validate.py](../validate.py) 对越界条目不再要求 ② 与 ④。"
+        "⛔ **`element_of_M` 不要你填**：它由 [newfields.py](../newfields.py) 的 `derive()` "
+        "从你写的**作者源行号**反查那一行是状态声明、迁移还是状态动作 —— "
+        "⭐ 所以 `generated_side` 里**带上行号**比写元素名更有用。"
     )
     lines.append("")
     lines.append(
         "⛔ 登记前先过两道门 —— ⭐ 它们只管**要不要在这里登记**，"
-        f"⛔ 至于「在不在 $M$ 内」不再是门，它已经变成 ③ 边界层的一个字段 `scope`"
-        f"（⭐ 越界照样登记，⛔ 只是不计入缺陷统计；判据见 "
-        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §C）："
+        "⛔ 至于「在不在 $M$ 内」不再是门，它已经变成 ③ 边界层的一个字段 `scope`"
+        "（⭐ 越界照样登记，⛔ 只是不计入缺陷统计；⭐ 四个取值的判据就在下面 §5.2 的 "
+        "`scope` 表里）："
     )
     lines.append("")
     lines.append(
@@ -873,9 +1096,11 @@ def section_new(pair, saved):
                      f"{clip(rec['statement'], 160)} |")
     lines.append("")
     lines.append(
-        f"⭐ `nl_evidence` 要写的是本 pair §1.2 那套段 id（本 pair 的第一段是 "
-        f"`{segs_hint(pair)}`）。⛔ 留空与写 `无` 不是一回事 —— 见 "
-        f"[{S.WORKSHEET_HOWTO}](../{S.WORKSHEET_HOWTO}) §B.2。"
+        f"⭐ `nl_evidence` 要写的是本页 §1.1 那套段 id（本 pair 的第一段是 "
+        f"`{segs_hint(pair)}`），多个用逗号分隔，后面可以再跟一句逐字引文。"
+        "⛔⛔ **留空与写 `无` 不是一回事**：写 `无` 表示「NL 未明说，本条属模型内生问题」，"
+        f"⭐ 那是**有意义的答案**（台账 {'{} / {}'.format(*NF.nl_evidence_empty_count())} "
+        "条正是这种情况）；⛔ 而留空会被校验判成没填。"
     )
     lines.append("")
 
@@ -887,6 +1112,7 @@ def section_new(pair, saved):
         "[collect.py](../collect.py) 收走，块外写的东西重跑生成器就没了。"
     )
     lines.append("")
+    lines += _fill_enum_legend()
     key = f"NEW-{pair}"
     kept = saved.get(key)
     if fb.is_stale_template(kept, "new", pair):
@@ -921,7 +1147,7 @@ def build_howto():
     lines.append("")
     lines.append("| 节 | 内容 | 工作单里从哪里跳过来 |")
     lines.append("| :-- | :-- | :-- |")
-    lines.append("| §A | 两处只读材料的口径提醒 | §1.1 · §1.4 |")
+    lines.append("| §A | 两处只读材料的口径提醒 | §1.2 · §1.4 |")
     lines.append("| §B | ⭐ §5 三层结构与逐字段怎么填 | §5 开头 · §5.1 |")
     lines.append("| §C | ③ 边界层 `scope` 的判据 | §5 的两道门 |")
     lines.append("| §D | ④ 分类轴：`direction` · `depth` · `primary_predicate` · `layer` | §5.2 登记区 |")
@@ -934,7 +1160,7 @@ def build_howto():
     lines.append("### §A.1 结构摘要锚在作者源，⛔ 不含投影合成元素")
     lines.append("")
     lines.append(
-        "⛔ 各份工作单 §1.1 的全部数字来自**作者源 PlantUML**，"
+        "⛔ 各份工作单 §1.2 的全部数字来自**作者源 PlantUML**，"
         "⛔ 不含 `plantuml_source_lowering.py` 投影合成的 "
         "`UnspecifiedInitial` / `InvalidInitial*` / `FinalWait*` / `R45RouteToken`。"
         "谓词层的 `cardinality` 会把它们算进去，所以「作者写了 3 个子态」在谓词层可能是 4 或 7 —— "
@@ -1101,7 +1327,7 @@ def build_howto():
     lines.append("")
     empty_n, total_n = NF.nl_evidence_empty_count()
     lines.append(
-        "⭐ 写本 pair 工作单 §1.2 指向的那套**段 id**（同组 6 份共用一套编号，"
+        "⭐ 写本 pair 工作单 §1.1 那套**段 id**（同组 6 份共用一套编号，"
         f"见各组的 `nl_XXXX/{S.NL_DOC}`），多个用逗号分隔，后面可以再跟一句逐字引文。"
     )
     lines.append("")
@@ -1162,8 +1388,8 @@ def build_howto():
     lines.append("")
     lines.append("| 取值 | 台账条数 | 指什么 |")
     lines.append("| :-- | --: | :-- |")
-    for d, what in DIRECTION_MEANING:
-        lines.append(f"| `{d}` | {dc.get(d, 0)} | {what} |")
+    for d, zh, what in DIRECTION_MEANING:
+        lines.append(f"| {T.bi(d, zh)} | {dc.get(d, 0)} | {what} |")
     lines.append("")
     lines.append(
         "⚠️ 全 126 条台账里还有第 9 个取值 `pseudostate`（9 条），"
@@ -1331,16 +1557,10 @@ def build_howto():
     lines.append("")
     return "\n".join(lines)
 
-DIRECTION_MEANING = [
-    ("hierarchy", "层次归属：谁该是谁的子态、复合括号有没有打开"),
-    ("reachability", "可达性与终止：进得去 / 出得来 / 停得下"),
-    ("entry", "入口：初始边、初始目标、进入某状态时落到哪"),
-    ("guard", "守卫：条件写没写、写对没写对、能不能区分多条出边"),
-    ("effect_action", "效应与状态动作：entry / exit / 迁移效应"),
-    ("event", "事件：触发词缺失、拼错、被并成一个复合名"),
-    ("cardinality", "基数：NL 点名了 N 个而模型给了 M 个"),
-    ("unclassified", "以上都归不进（⭐ 归不进本身值得在 statement 里说明）"),
-]
+#: ⭐ `direction` 八类的中文名与判据都在 [terms.py](./terms.py) —— ⛔ 本文件不再另存一份：
+#: 工作单 §5 的枚举图例与 HOWTO §D.1 的表必须逐字同源，⛔ 两处各抄一份必然走偏
+#: （[CLAUDE.md](../../../../../CLAUDE.md) §13 第 2 条：门的报错文案必须与其它文案给出同一个形状）。
+DIRECTION_MEANING = T.DIRECTION_MEANING
 
 
 def segs_hint(pair):
