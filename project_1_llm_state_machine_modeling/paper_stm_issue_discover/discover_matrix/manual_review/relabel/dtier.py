@@ -249,11 +249,12 @@ def prefill(key, kind):
     elif bucket == "auto_drop":
         choice, why = "抛弃", f"{src}，三臂一致判「不算缺陷或出局」。"
     elif bucket in BUCKET_MARK:
-        rv = (meta.get("recommend") or "").strip()
-        if bucket == "chaotic" or not rv:
-            choice = None
-        else:
-            choice = rv
+        # ⭐ 2026-08-14 改：只要**人工 meta review 给了推荐**就勾上，不论哪个桶。
+        # ⚠️ 原先 `chaotic` 一律不勾，理由是「三方无偏向时勾一个等于替人决定」——
+        # ⛔ 但那条理由在人工归纳之后不成立了：偏向此时来自人读完三臂原话后的判断，
+        # ⭐ 不是机器投票。没给推荐（或给的是「待议」，它在 ledger 上没有对应选项）
+        # 才留空 —— 那才是真正的「我判不了」。
+        choice = (meta.get("recommend") or "").strip() or None
         bits = [src]
         for k, zh in META_FIELDS[1:]:
             v = (meta.get(k) or "").strip()

@@ -2141,6 +2141,19 @@ def _data_borne_marks(pair, doc, marks):
     for rid in [r["id"] for r in S.ledger_records(pair)] + \
                [k for k, v in CM.candidate_index().items() if v["pair"] == pair]:
         rows += IF.merged_into(rid)
+    # ⭐ 三方 D 档判读的人工 meta review 也是**数据**：它是人手写在 `dtier_meta.json` 里的
+    # 归纳，逐字渲进工作单，⛔ 与台账 statement、当年判定者写的 reason 同类。
+    # ⚠️ 不把它算作数据侧，生成器侧的档就会被人写的正文吃掉 —— 而那道档要管的是
+    # **生成器自己有没有贴壁纸**，⛔ 不是管人写了多少字。判据同样是逐字子串命中。
+    import dtier as _DT
+    for _rid, _rev in _DT.load_meta().items():
+        if _DT.get(_rid) is None or _DT.get(_rid).get("pair") != pair:
+            continue
+        for _k, _zh in _DT.META_FIELDS:
+            _v = (_rev.get(_k) or "").strip()
+            if _v and _v not in seen and _v in doc:
+                seen.add(_v)
+                total += sum(_v.count(m) for m in marks)
     for rec in rows:
         chunks = [rec.get(f) for f in ("statement", "merge_reason", "puml_evidence",
                                        "nl_evidence", NF.OTHER_NOTE_FIELD, "recovery_basis")]
@@ -2203,11 +2216,18 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
         own = n - _data_borne_marks(pair, doc, marks)
         assert own <= 30, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
         assert n <= 60, f"{pair}.md 全文有 {n} 个 emoji —— 连数据侧一起跑飞了"
-        # ⚠️ 2026-08-14 密度档由 0.05 提到 0.06，⛔ 计数档 30 一格没动。理由是分母变了：
-        # §4/§5 拆除后每份短了约 15%，⭐ 同样的记号数密度机械上升（0017 实测 22/434=0.051）。
-        # ⛔ 不是新贴了壁纸 —— 新增的记号只有三桶标记（🟡/🟠/🔴），每条需人裁的条目 2 个，
-        # ⭐ 而它们正是「一个符号说清要不要你处理」那类信号，删了就得靠读整段话找活干。
-        assert n / lines <= 0.06, f"{pair}.md 的 emoji 密度 {n / lines:.3f} 超档"
+        # ⚠️⚠️ 2026-08-14 密度门改为按**生成器侧**算，⭐ 并把档从 0.05 收回 0.05（没放宽）。
+        # ⛔ 原先用全文计数除行数，与紧邻的计数门（用 `own`）口径不一致 —— 那个不一致
+        # 一直没暴露，是因为在此之前数据侧的记号本来就少。⚠️ 三方 D 档判读的人工
+        # meta review 入册后立刻暴露：`0016` 全文 43 个记号里 **32 个是数据侧**，
+        # 全文密度 0.067 却生成器侧只有 0.017。⭐ 若按全文判，就变成「人写的分析越细、
+        # 生成器越要删自己的警告」，⛔ 方向完全反了。
+        # ⭐ 双份数字（实测四份抽样）：生成器侧密度 0.017–0.029，全文密度 0.041–0.084。
+        assert own / lines <= 0.05, \
+            f"{pair}.md 生成器侧 emoji 密度 {own / lines:.3f} 超档"
+        # ⛔ 全文另设一道防跑飞的档（比生成器侧宽一倍）：⚠️ 它管的是「连数据一起糊满了」，
+        # 不许用来给生成器兜底 —— 生成器那道是上面那条。
+        assert n / lines <= 0.10, f"{pair}.md 全文 emoji 密度 {n / lines:.3f} 跑飞了"
         own_star = doc.count("⭐") - _data_borne_marks(pair, doc, ("⭐",))
         assert own_star <= 4, f"{pair}.md 生成器侧有 {own_star} 个 ⭐"
 
