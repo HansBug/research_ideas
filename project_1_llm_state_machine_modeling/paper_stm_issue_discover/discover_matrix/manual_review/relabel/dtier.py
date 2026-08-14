@@ -294,13 +294,15 @@ def prefill(key, kind):
     # ⭐ `UM-` 一族没有三方 D 判定（它们不在判读包里），⛔ 但用户要求它们也必须有
     # 推荐与理由，且**一律人工裁决**。⚠️ 故有 meta review 就照它预填，不看有没有 ruling。
     if not rec:
+        # ⭐ `UM-` 一族：无三方 D 判定（不在判读包内），⛔ 一律人工裁决 —— 故照需人裁那套走。
         if not meta:
             return None
         rv = (meta.get("recommend") or "").strip()
         ch = REC_TO_CHOICE.get(rv) if rv else None
         why = (meta.get("brief") or "").strip() or "人工 meta review 待补。"
-        lines = [_choice_line(kind, ch), f"理由: {why}{PREFILL_TAIL}"]
-        return "\n".join(lines)
+        import fillblocks as fb
+        return "\n".join([_choice_line(kind, ch), f"meta review 意见: {why}",
+                           f"理由: {fb.REASON_PLACEHOLDER}"])
     bucket = rec.get("bucket")
     combo = rec.get("combo")
     src = f"三方独立判读票面 `{combo}`（{_arm_line(rec)}）"
@@ -323,14 +325,13 @@ def prefill(key, kind):
         return None
 
     ch = REC_TO_CHOICE.get(choice) if choice else None
-    lines = [_choice_line(kind, ch)]
-    tpl_rest = __import__("fillblocks").LEDGER_TEMPLATE.splitlines()[1:]
-    for ln in tpl_rest:
-        field = ln.split(":", 1)[0]
-        if field == "理由":
-            lines.append(f"理由: {why}{PREFILL_TAIL}")
-        else:
-            lines.append(ln)
+    import fillblocks as fb
+    lines = [_choice_line(kind, ch), f"meta review 意见: {why}"]
+    # ⭐⭐ **只有需人裁的条目才带待填 `理由` 栏。**
+    # ⛔ 无争议的条目不带 —— 我方已给决议与意见，⚠️ 让人去删一个括号纯属白做，
+    # ⭐ 而「不需要人动」正是它与需人裁那批的实质区别，版式上必须体现出来。
+    if bucket in BUCKET_MARK or not rec:
+        lines.append(f"理由: {fb.REASON_PLACEHOLDER}")
     return "\n".join(lines)
 
 

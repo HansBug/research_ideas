@@ -73,7 +73,15 @@ def _template_fields(tpl):
 # ⭐ 「采纳」的含义在两侧统一：**这一条是一个成立的缺陷，应当在台账里**。
 # 台账侧的「不采纳」= 把这条从台账去掉；候选侧的「不采纳」= 不补进台账。
 # ⚠️ 旧的「修正」没有独立选项了 —— 事实成立但陈述要改写的，勾「采纳」并把改法写进理由。
+#: ⭐ 待填占位。⛔ 措辞不许改 —— `is_untouched()` 靠它逐字判「这一条还没被人处理」。
+#: ⚠️ 它**只出现在需人裁的条目上**；无争议的条目不带它，也就不需要人做任何动作。
+REASON_PLACEHOLDER = ("（请在此写一句你的判断理由 —— 哪怕一句话都行；"
+                      "只要不再是本括号里的内容，即视为已处理）")
+
+#: ⭐ 三段式。⛔ `理由` 一栏在**无争议**条目上会被整行省掉（见 `dtier.prefill()`）：
+#: 那些条目我方已给出决议与意见，⚠️ 让人去删一个括号纯属白做。
 LEDGER_TEMPLATE = """裁决: [ ] 采纳  [ ] 不采纳
+meta review 意见:
 理由:"""
 
 CANDIDATE_TEMPLATE = LEDGER_TEMPLATE
@@ -314,11 +322,21 @@ def is_stale_template(body, kind, pair=""):
     # ⭐ 未经人动过的预填体有确定形状：**行数恰等于模板字段数**，且最后一行以尾标结尾。
     # ⚠️ 人一旦加行、删行或改掉尾标，形状就变了 ⇒ 判为人工内容、原样保留。
     lines = [ln for ln in body.strip().splitlines() if ln.strip()]
-    if cur is not None and len(lines) == len(
-            [ln for ln in cur.strip().splitlines() if ln.strip()]):
+    nfields = len([ln for ln in (cur or "").strip().splitlines() if ln.strip()])
+    # ⚠️ 预填体的行数不固定：无争议 2 行（无 `理由` 栏）、需人裁 3 行。⭐ 故两种都认，
+    # ⛔ 但不许多于模板字段数 —— 多出来的行只可能是人加的。
+    if cur is not None and 2 <= len(lines) <= nfields:
         for tail in PREFILL_TAILS:
             if lines[-1].rstrip().endswith(tail):
                 return True
+        if lines[-1].rstrip().endswith(REASON_PLACEHOLDER):
+            return True
+        # ⭐ 无争议预填：末行是 `meta review 意见: …`，⛔ 无占位无尾标。
+        # ⚠️ 判据是「首行是勾好的裁决行 + 末行是意见行」——⛔ 人一动就不成形。
+        if (len(lines) == 2 and lines[0].startswith("裁决:")
+                and RE_CHECKED_BOX.search(lines[0])
+                and lines[1].startswith("meta review 意见:")):
+            return True
     return False
 
 PAIR_TEMPLATE = """本 pair 整体判断: [ ] 台账在本 pair 上够用  [ ] 偏浅但方向对  [ ] 有实质遗漏  [ ] 需推倒重写
@@ -422,7 +440,10 @@ def is_untouched(body, kind, pair="", key=None):
         except Exception:
             pre = None
         if pre is not None and body.strip() == pre.strip():
-            return True
+            # ⭐⭐ **判据是「`理由` 一栏是否还是占位」，⛔ 不是「等于预填体」。**
+            # ⚠️ 无争议的条目预填里**没有** `理由` 栏 —— 我方已给决议与意见、
+            # 人不需要做任何动作，⛔ 故它不算「待处理」。⭐ 需人裁的条目带占位，算待处理。
+            return REASON_PLACEHOLDER in pre
     defaults = {
         "ledger": LEDGER_TEMPLATE,
         "candidate": CANDIDATE_TEMPLATE,

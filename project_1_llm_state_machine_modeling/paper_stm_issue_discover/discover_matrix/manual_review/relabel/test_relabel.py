@@ -135,7 +135,7 @@ def test_generate_is_idempotent_and_preserves_human_input():
         # 「人工填写」是**在预填之后再加一行**：⭐ 那正是真实用法（同意就删括号、不同意就改写）。
         # ⛔ 判据必须是「人加的那行还在」，⚠️ 不能再假设块是空模板。
         marker = "人工补充: 这是人工写的理由，重跑必须留住"
-        k = "<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->"
+        k = "<!-- FILL:BEGIN key=EIS-0000-02 kind=ledger -->"
         assert k in text
         i = text.index(k)
         j = text.index("~~~", text.index("~~~", i) + 3)      # 第二个围栏
@@ -160,9 +160,11 @@ def test_generate_is_idempotent_and_preserves_human_input():
         assert _sha(dst) == before
 
         parsed = C.collect_pair(pair, dst)
-        rec = next(r for r in parsed["ledger"] if r["id"] == "EIS-0000-01")
+        # ⚠️ 人加的那行落在 `EIS-0000-02`（需人裁、带待填 `理由` 栏）的块里。
+        # ⛔ 不能用 `EIS-0000-01`：它无争议，预填里**没有** `理由` 栏。
+        rec = next(r for r in parsed["ledger"] if r["id"] == "EIS-0000-02")
         assert rec["裁决"]["chosen"] == ["采纳"]
-        assert "重跑必须留住" in rec["理由"]
+        assert "重跑必须留住" in (rec.get("理由") or "") + (rec.get("meta review 意见") or "")
 
 
 def test_two_consecutive_full_runs_are_byte_identical():
@@ -307,40 +309,67 @@ def test_every_verdict_block_is_prefilled_and_none_is_blank():
     ⛔ 所以本条只管一件事：**没有一个裁决区是空白的**。
     """
     import dtier as DT
-    blank = []
+    blank, no_reason = [], []
     for pair in S.IN_SCOPE_PAIRS:
         data = C.collect_pair(pair, _ws(pair))
-        for rec in data["ledger"]:
-            if not rec.get("裁决", {}).get("chosen") or not (rec.get("理由") or "").strip():
-                blank.append(f"{pair}/{rec['id']}")
-        for cand in data["candidates"]:
-            if not cand.get("裁决", {}).get("chosen") or not (cand.get("理由") or "").strip():
-                blank.append(f"{pair}/{cand['key']}")
-    assert not blank, f"这些裁决区没有预填（裁决未勾或理由为空）：{blank[:20]}（共 {len(blank)}）"
+        for rec in list(data["ledger"]) + list(data["candidates"]):
+            key = rec.get("id") or rec.get("key")
+            if not rec.get("裁决", {}).get("chosen"):
+                blank.append(f"{pair}/{key}")
+            if not (rec.get("meta review 意见") or "").strip():
+                blank.append(f"{pair}/{key}(无意见)")
+            # ⭐ `理由` 是**待人填**的一栏，⛔ 只有需人裁的条目才有它。
+            r = DT.get(key)
+            needs = (r or {}).get("bucket") in DT.BUCKET_MARK or (r is None and key in DT.load_meta())
+            if needs and not (rec.get("理由") or "").strip():
+                no_reason.append(f"{pair}/{key}")
+    assert not blank, f"这些裁决区没有预填（裁决未勾或缺 meta review 意见）：{blank[:20]}（共 {len(blank)}）"
+    assert not no_reason, f"这些需人裁的条目缺待填 `理由` 栏：{no_reason[:20]}（共 {len(no_reason)}）"
 
 
-def test_a_prefilled_block_still_counts_as_untouched():
-    """⛔ 预填体必须仍被判为「未经人确认」，否则进度统计一上线就全绿。
+def test_untouched_means_the_reason_placeholder_is_still_there():
+    """⭐ 「待处理」的判据是**`理由` 一栏是否还是占位**，⛔ 不是「等于预填体」。
 
-    ⚠️ 这是 2026-08-13 那个 bug 的同型：幂等注回把旧模板当人工内容保留，改版后
-    54 份的 §5 全都还是旧字段表。⭐ 判据走逐字全等，与 `is_stale_template` 同机制。
+    ⚠️⚠️ **2026-08-14 这条的语义翻转过一次，⛔ 翻转必须记下来。** 原先它叫
+    `test_a_prefilled_block_still_counts_as_untouched`，要求**任何**预填体都判「未确认」。
+    ⭐ 用户裁定改成两档：
+
+    - ⭐ **无争议的条目**（三臂方向一致）预填里**没有** `理由` 栏 —— 我方给了决议与
+      `meta review 意见`，⛔ 人不需要做任何动作，⚠️ 让人去删一个括号纯属白做 ⇒ **不算待处理**。
+    - ⭐ **需人裁的条目**带一行 `理由: （请在此写一句…）` 占位 ⇒ **算待处理**，
+      人写任何一句话（只要不再是占位原文）即视为已处理。
+
+    ⛔ 防线没撤，换了位置：预填体仍必须能被 `is_stale_template()` 认出并替换
+    （否则第一版预填会被永久钉住，与 2026-08-13 那个 bug 同型），
+    ⭐ 而「人动过一个字就算已处理」由本条下半段钉住。
     """
     import dtier as DT
-    checked = 0
+    n_need = n_free = 0
     for rid, rec in DT.load_rulings().items():
         kind = "ledger" if rid.startswith("EIS-") else "candidate"
         pre = DT.prefill(rid, kind)
         if pre is None:
             continue
-        checked += 1
-        assert fb.is_untouched(pre, kind, rid[-7:-3], key=rid), \
-            f"{rid} 的预填体没被认成「未确认」—— 进度统计会把它当已填"
-        # ⭐ 人动过一个字就必须变成「已填」
-        touched = pre + "\n人工补充：我不同意"
-        assert not fb.is_untouched(touched, kind, rid[-7:-3], key=rid), \
-            f"{rid} 被人改过却仍判「未填」"
-    assert checked >= 300, f"只检了 {checked} 条预填，⛔ 覆盖不足"
-
+        pair = rid.split("-")[1]
+        needs = rec.get("bucket") in DT.BUCKET_MARK
+        if needs:
+            n_need += 1
+            assert fb.REASON_PLACEHOLDER in pre, f"{rid} 需人裁却没有待填 `理由` 占位"
+            assert fb.is_untouched(pre, kind, pair, key=rid), \
+                f"{rid} 带占位却没被认成待处理"
+            # ⭐ 人写了一句话 ⇒ 已处理
+            done = pre.replace(fb.REASON_PLACEHOLDER, "我同意")
+            assert not fb.is_untouched(done, kind, pair, key=rid), \
+                f"{rid} 人写过理由却仍判待处理"
+        else:
+            n_free += 1
+            assert fb.REASON_PLACEHOLDER not in pre, \
+                f"{rid} 无争议却带了待填占位 —— ⛔ 那会让人白做一次删除"
+            assert not fb.is_untouched(pre, kind, pair, key=rid), \
+                f"{rid} 无争议却被算成待处理"
+        # ⭐ 两档都必须能被认出是「原样预填」，⛔ 否则改版后旧预填永久钉住
+        assert fb.is_stale_template(pre, kind, pair), f"{rid} 的预填体不被认作可替换"
+    assert n_need >= 100 and n_free >= 200, f"覆盖不足：需人裁 {n_need} / 无争议 {n_free}"
 
 def test_every_disputed_item_has_a_meta_review():
     """⛔ 每一条需人裁的条目都必须有人工 meta review，且必须给出推荐。
@@ -1275,7 +1304,7 @@ def test_the_deleted_fields_are_gone_everywhere():
 
 
 def test_the_decision_block_has_no_depth_row():
-    """裁决块只剩「裁决 + 理由」—— 「深度」那一栏必须没了。
+    """裁决块只剩「裁决 + meta review 意见 + 理由」—— 「深度」那一栏必须没了。
 
     ⚠️ 2026-08-14 两处更新：① 模板合并成「采纳 / 不采纳 + 理由」，故不再有第三个字段；
     ② ⛔ **工作单侧的判据从「子串不含『深度』」改成「没有名为『深度』的字段行」** ——
@@ -1284,7 +1313,7 @@ def test_the_decision_block_has_no_depth_row():
     """
     for tpl in (fb.LEDGER_TEMPLATE, fb.CANDIDATE_TEMPLATE):
         assert "深度" not in tpl, tpl
-    assert fb.LEDGER_FIELDS == ["裁决", "理由"]
+    assert fb.LEDGER_FIELDS == ["裁决", "meta review 意见", "理由"]
     assert fb.LEDGER_CHOICES == ["裁决"]
     assert "深度" not in fb.CANDIDATE_FIELDS
     # 落地：54 份工作单的 99 个裁决区 + 141 个候选区里一个「深度」都不许剩
@@ -3303,8 +3332,8 @@ def test_claim_1_only_content_inside_the_fence_survives_a_rerun():
         dst = _ws("0000", tmp)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         doc = _read(_ws("0000"))
-        doc = doc.replace("<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->\n~~~\n",
-                          "<!-- FILL:BEGIN key=EIS-0000-01 kind=ledger -->\n~~~\n"
+        doc = doc.replace("<!-- FILL:BEGIN key=EIS-0000-02 kind=ledger -->\n~~~\n",
+                          "<!-- FILL:BEGIN key=EIS-0000-02 kind=ledger -->\n~~~\n"
                           "理由: 围栏内的字\n")
         doc += "\n围栏外的字\n"
         with open(dst, "w", encoding="utf-8") as fh:
@@ -3481,11 +3510,12 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
 
     ⭐ 分叉的后果是静默的：解析器不认某字段名时，那一行被并进**上一个**字段。
     """
-    assert fb.LEDGER_FIELDS == ["裁决", "理由"]
+    assert fb.LEDGER_FIELDS == ["裁决", "meta review 意见", "理由"]
     assert fb.LEDGER_CHOICES == ["裁决"]
     assert fb.CANDIDATE_CHOICES == ["裁决"]
     # ⚠️ 2026-08-14 两个模板合并成「采纳 / 不采纳 + 理由」，⛔ `并入到` 已不存在。
     assert "理由" in fb.CANDIDATE_FIELDS and "理由" not in fb.CANDIDATE_CHOICES
+    assert "meta review 意见" in fb.CANDIDATE_FIELDS
     assert fb.PAIR_CHOICES == ["本 pair 整体判断", "台账现有条目是否偏浅（整体）"]
     # ⭐ 每个模板里的每一个字段名都要在表里（⛔ 逐字对模板）
     for tpl, names in ((fb.LEDGER_TEMPLATE, fb.LEDGER_FIELDS),
