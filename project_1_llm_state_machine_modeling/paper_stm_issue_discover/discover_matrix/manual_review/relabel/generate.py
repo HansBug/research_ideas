@@ -40,6 +40,7 @@ sys.path.insert(0, HERE)
 
 import candidate_mapping as CM                      # noqa: E402
 import checklist                                    # noqa: E402
+import dtier as DT                                  # noqa: E402
 import fillblocks as fb                             # noqa: E402
 import inspectfindings as IF                       # noqa: E402
 import ledger_mapping as LM                         # noqa: E402
@@ -592,7 +593,7 @@ def section_ledger(pair, records, saved):
         rid = rec["id"]
         keys.append(rid)
         flags = S.risk_flags(rec)
-        lines.append(f"### {rid}")
+        lines.append(f"### {rid}{DT.mark(rid)}")
         lines.append("")
         # ⛔⛔ 这里**只印三样**：statement 原文、参考侧 / 生成侧证据行、以及我方到新座标
         # 系的映射。2026-08-13 剥掉的十项（`layer` / `direction` / `element_of_M` /
@@ -613,6 +614,8 @@ def section_ledger(pair, records, saved):
             lines.append(f"- 生成侧：{esc(rec.get('generated_side'))}")
             lines.append("")
         lines.extend(_fmt_mapping(LM.for_record(rid)))
+        # ⭐ 三方独立 D 档判读。⛔ 摆在映射之后、裁决区之前：它是判读材料，不是我方结论。
+        lines.extend(DT.block(rid))
         # ⭐ 判为「与本条是同一个问题」的 inspect 发现挂在这里。⛔ 上面的 statement 与证据行
         # 一个字都没改 —— 它们是**被判对象**；补充证据只进一个独立折叠区，且**不另设裁决区**。
         lines.extend(inspect_supplement(rid))
@@ -622,7 +625,9 @@ def section_ledger(pair, records, saved):
             for _, msg in flags:
                 lines.append(f"- {msg}")
             lines.append("")
-        lines.append(fb.render(rid, "ledger", fb.LEDGER_TEMPLATE, saved.get(rid)))
+        lines.append(fb.render(rid, "ledger",
+                               DT.prefill(rid, "ledger") or fb.LEDGER_TEMPLATE,
+                               saved.get(rid)))
         lines.append("")
     return "\n".join(lines), keys
 
@@ -665,7 +670,7 @@ def section_candidates(pair, model, records, saved):
         for i, r in enumerate(vu, 1):
             key = f"VU-{pair}-{i:02d}"
             keys.append(key)
-            lines.append(f"#### {key} · 簇 `{r.get('cluster')}`（{r.get('_arm')} 臂，"
+            lines.append(f"#### {key}{DT.mark(key)} · 簇 `{r.get('cluster')}`（{r.get('_arm')} 臂，"
                          f"子类 `{r.get('subclass')}`）")
             lines.append("")
             if r.get("claim"):
@@ -690,7 +695,10 @@ def section_candidates(pair, model, records, saved):
                 lines.append("")
             lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
             lines.extend(inspect_supplement(key))
-            lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+            lines.extend(DT.block(key))
+            lines.append(fb.render(key, "candidate",
+                                   DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
+                                   saved.get(key)))
             lines.append("")
 
     # ---- §3.2 审阅 agent 未采纳的 diff
@@ -723,7 +731,7 @@ def section_candidates(pair, model, records, saved):
         def _render_diff(i, d):
             key = f"DIFF-{pair}-{i:02d}"
             keys.append(key)
-            lines.append(f"##### {key} · diff #{i} · `{d.get('verdict')}`")
+            lines.append(f"##### {key} · diff #{i} · `{d.get('verdict')}`{DT.mark(key)}")
             lines.append("")
             lines.append(f"- 参考侧：{esc(d.get('ref'))}")
             lines.append(f"- 生成侧：{esc(d.get('gen'))}")
@@ -744,7 +752,10 @@ def section_candidates(pair, model, records, saved):
                 lines.append("")
             lines.extend(_fmt_mapping(CM.for_candidate(key), CANDIDATE_MAPPING_CAVEAT))
             lines.extend(inspect_supplement(key))
-            lines.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+            lines.extend(DT.block(key))
+            lines.append(fb.render(key, "candidate",
+                                   DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
+                                   saved.get(key)))
             lines.append("")
 
         if claims:
@@ -1085,11 +1096,14 @@ def _inspect_block(rec, saved):
     """一条 issue 的完整块（正文 + 点名提示 + 座标映射 + 填写块）。"""
     key = rec["issue_id"]
     codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
-    out = [f"##### {key} · {codes}", ""]
+    out = [f"##### {key} · {codes}{DT.mark(key)}", ""]
     out += _inspect_body(rec)
     out += _inspect_suspect_note(rec)
     out += _inspect_axes_lines(rec)
-    out.append(fb.render(key, "candidate", fb.CANDIDATE_TEMPLATE, saved.get(key)))
+    out += DT.block(key)
+    out.append(fb.render(key, "candidate",
+                         DT.prefill(key, "candidate") or fb.CANDIDATE_TEMPLATE,
+                         saved.get(key)))
     out.append("")
     return out
 
@@ -1110,9 +1124,12 @@ def inspect_supplement(target):
            f"未作任何改动，本节只是把工具侧的独立证据挂在这里）</summary>", ""]
     for rec in rows:
         codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
-        out.append(f"**{rec['issue_id']}** · {codes} · 分拣结论 "
+        out.append(f"**{rec['issue_id']}**{DT.mark(rec['issue_id'])} · {codes} · 分拣结论 "
                    f"`{rec['verdict_class']}` · 我方座标 `{rec['coord']}`")
         out.append("")
+        # ⭐ 三方判读只给一行摘要。⛔ 不展开成完整区块：本条没有自己的裁决区，
+        # ⚠️ 摆一整块「需你裁决」却没有可勾的地方，会让判读者以为漏了一个块。
+        out.extend(DT.compact(rec["issue_id"]))
         out += _inspect_body(rec)
         out.append(f"- 判为同一个问题的依据：{_flow(rec['overlap']['basis'])}")
         # ⭐ 并入的这些也要留改判痕迹 —— ⛔ 只印终局座标而不说它被改过，
@@ -1217,7 +1234,7 @@ def section_inspect(pair, saved):
         for rec in uncertain:
             keys.append(rec["issue_id"])
             codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
-            lines.append(f"##### {rec['issue_id']} · {codes}")
+            lines.append(f"##### {rec['issue_id']} · {codes}{DT.mark(rec['issue_id'])}")
             lines.append("")
             lines.append(f"<details><summary>展开这一条（分拣结论 `uncertain`，"
                          f"我方座标 `{rec['coord']}`）</summary>")
@@ -1227,8 +1244,11 @@ def section_inspect(pair, saved):
             lines.extend(_inspect_axes_lines(rec))
             lines.append("</details>")
             lines.append("")
+            lines.extend(DT.block(rec["issue_id"]))
             lines.append(fb.render(rec["issue_id"], "candidate",
-                                   fb.CANDIDATE_TEMPLATE, saved.get(rec["issue_id"])))
+                                   DT.prefill(rec["issue_id"], "candidate")
+                                   or fb.CANDIDATE_TEMPLATE,
+                                   saved.get(rec["issue_id"])))
             lines.append("")
 
     return "\n".join(lines), keys
@@ -2076,6 +2096,8 @@ def build_doc(pair, saved):
     head.append("")
     head.append(fb.render(pair_key, "pair", fb.PAIR_TEMPLATE, saved.get(pair_key)))
     head.append("")
+    # ⭐ 待处理速览摆在 §0 之后：先让人知道这份要花多少工夫，再进正文。
+    head += DT.pair_overview(pair)
 
     body = [section_material(pair, model)]
 
@@ -2091,13 +2113,17 @@ def build_doc(pair, saved):
     body.append(s36)
     keys += k36
 
-    s4, k4 = section_checklist(pair, model, segs, records, saved)
-    body.append(s4)
-    keys += k4
-
-    body.append(section_new(pair, saved))
-    keys.append(f"NEW-{pair}")
-
+    # ⛔⛔ **§4 深度检查清单与 §5 新增登记于 2026-08-14 整体拆除。**
+    #
+    # 用户裁定：本轮工作单只做一件事 —— **对现有台账 + 候选逐条裁决**。⭐ 拆除的理由不是
+    # 嫌长，是**任务边界**：清单在引导判读者去「挖新的」，新增登记在收「挖出来的」，
+    # ⛔ 而本轮要的是「已有这 380 条哪些站得住」。两件事混在一份工作单里，注意力会被
+    # 从裁决拉到发掘上，而发掘那一路的产物（`NEW-` 块）本轮没有下游消费者。
+    #
+    # ⚠️ 代码没删：`section_checklist()` / `section_new()` / `checklist.py` / `newfields.py`
+    # 仍在，⭐ 因为下一轮若要重开「挖深」，它们连同 27 个取值的枚举图例可以整段接回来 ——
+    # 删掉等于把那批口径连同 Dwyer 句式骨架一起丢了。⛔ 只是不再装进 `build_doc`。
+    # 已填过的 `CHK-` / `NEW-` 内容不会丢：它们会落进 §9 孤儿填写区（下面那段）。
     doc = "\n".join(head) + "\n" + "\n".join(body)
 
     # 孤儿填写区：旧文件里有、新骨架里没有的 key。
@@ -2106,8 +2132,18 @@ def build_doc(pair, saved):
     # 堆出一批空模板 —— 实测：inspect 发现改成「与既有条目重合的并入、不新建 `INS-` 块」
     # 之后，上一版渲染过的 51 个空 `INS-` 块全部落进了 §9，而它们一个字都没填过。
     # ⭐ 判据仍是 `fb.is_untouched`（勾选记号与冒号后有没有写东西），⛔ 只要填过就保留。
+    # ⚠️ 判据必须按 key 的种类选。⛔ 清单块走通用 `is_untouched` 会被误判成「填过了」——
+    # 它的模板含逐条 id 与机械判据行，一个字没填也与空模板不字面相等。这个坑 `collect.py`
+    # 里已经栽过一次（`0039` 五个未填清单块里四个被误报），⭐ 这里读同一份判据真源。
+    # ⚠️ 2026-08-14 §4/§5 拆除后这条立刻要紧：54 份的 `CHK-` 块全部变成待判孤儿，
+    # ⛔ 若判错，六个空清单块会逐份堆进 §9。
+    def _orphan_kept(k, v):
+        if k.startswith("CHK-"):
+            return not fb.checklist_is_untouched(v)
+        return not fb.is_untouched(v, "candidate", pair, key=k)
+
     orphans = {k: v for k, v in saved.items()
-               if k not in set(keys) and not fb.is_untouched(v, "candidate", pair)}
+               if k not in set(keys) and _orphan_kept(k, v)}
     if orphans:
         tail = ["## §9 孤儿填写区（材料变动导致这些 key 不再出现在正文）", ""]
         tail.append(

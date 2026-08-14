@@ -353,13 +353,24 @@ def render(key, kind, default_body, saved=None):
     ])
 
 
-def is_untouched(body, kind, pair=""):
+def is_untouched(body, kind, pair="", key=None):
     """块是否仍为模板原样（没有任何勾选、没有任何自由文本）。
 
     ⚠️ 勾选判据走 `RE_CHECKED_BOX`（即 `CHECK_MARKS` 那套记号），⛔ 不是字面 `"[x]"` ——
     ⛔ 后者会把**只用 `[✓]` 勾选**的块报成「原样未填」，而 `collect.py` 那边明明认了它。
     ⭐ 两边读同一份记号真源，这类分歧才不可能再出现。
     """
+    # ⭐⭐ 预填体也算「原样未填」。⛔ 2026-08-14 起裁决区带我方预填（三方判读的决议），
+    # ⚠️ 若不认它，380 条一上线进度统计立刻全变「已填」——⛔ 与 2026-08-13 栽过的
+    # 「幂等注回把旧模板当人工内容」是同型 bug。⭐ 判据走**逐字全等**，同 `is_stale_template`。
+    if key:
+        try:
+            import dtier as _DT
+            pre = _DT.prefill(key, kind)
+        except Exception:
+            pre = None
+        if pre is not None and body.strip() == pre.strip():
+            return True
     defaults = {
         "ledger": LEDGER_TEMPLATE,
         "candidate": CANDIDATE_TEMPLATE,

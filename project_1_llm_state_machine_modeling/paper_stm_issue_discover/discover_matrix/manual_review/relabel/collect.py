@@ -263,7 +263,7 @@ def collect_pair(pair, path):
         if kind == "checklist":
             untouched = fb.checklist_is_untouched(body)
         else:
-            untouched = fb.is_untouched(body, kind, pair)
+            untouched = fb.is_untouched(body, kind, pair, key=key)
         if untouched:
             out["untouched_keys"].append(key)
         # ⭐ §0 / §2 / §3 三种块也必须传 `known` 与 `choice_fields`（表在 `fillblocks` 里，

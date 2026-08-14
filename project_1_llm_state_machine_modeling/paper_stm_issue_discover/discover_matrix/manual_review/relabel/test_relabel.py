@@ -1037,6 +1037,11 @@ def test_every_axis_value_carries_a_decision_test():
     取值集合与判定测试的真源是 `defect_taxonomy.md`；这里钉的是「一个都不少、
     每个都有判据、且判据真的印进了 54 份工作单」。
     """
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     # ⚠️ `defect_element` 是 8 而不是 7：2026-08-13 新增界外取值 `region`
     # （正交区域，`counts_as_defect = false`），见类型学 §3.7。
     tables = {"defect_locus": (NF.LOCI, 4), "defect_element": (NF.ELEMENTS, 8),
@@ -1068,6 +1073,11 @@ def test_unintended_terminal_tells_the_judge_to_count_ancestor_group_transitions
     判据不是「文档里提过祖先」，而是：该取值**自己那一格**里有这句话，
     且它出现在全部 54 份工作单里（判读者选取值时看到的就是那一格）。
     """
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     test = dict((v, t) for v, _zh, t in NF.LOGIC_KINDS)["unintended_terminal"]
     assert "祖先" in test, "判定测试没提祖先"
     assert "成组迁移" in test, "判定测试没提成组迁移"
@@ -1096,6 +1106,11 @@ def test_the_known_expression_gap_is_told_to_the_judge():
 
     否则他撞上它时会以为是自己选错了，然后硬塞进某个取值里。
     """
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     assert len(NF.KNOWN_GAPS) >= 1
     gap, where, why = NF.KNOWN_GAPS[0]
     assert "次序" in gap
@@ -1705,6 +1720,11 @@ def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text(gen):
     幂等注回是按 key 做的，旧骨架会被当成「人工内容」原样保留，新字段一个都出不来。
     三代旧模板都要认：第一代 10 字段平铺、第二代 8 字段、第三代三层结构。
     """
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     legacy = fb.LEGACY_NEW_TEMPLATES[gen].format(pair="0001")
     assert fb.is_stale_template(legacy, "new", "0001")
     assert not fb.is_stale_template(legacy + "\nstatement: 我写的", "new", "0001")
@@ -1740,6 +1760,11 @@ def test_regenerating_swaps_the_stale_field_block_but_keeps_human_text(gen):
 
 def test_a_filled_block_survives_regeneration():
     """幂等的正面用例：座标块**填过之后**重跑生成器，一个字都不许变。"""
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     pair = "0001"
     filled = "\n".join([
         "### NEW-0001-01",
@@ -2095,7 +2120,11 @@ def test_worksheets_stay_under_the_line_budget():
     assert median <= 850, f"工作单行数中位数 {median} 超预算 —— 说明性文字长回来了"
     assert counts[-1] <= 1400, f"最长的一份 {counts[-1]} 行超预算"
     # 反面：也不许瘦到把材料抽走了（判读者拿着它必须还能干活）
-    assert counts[0] >= 300, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
+    # ⚠️ 2026-08-14 下限由 300 降到 260：§4/§5 拆除后每份少约 15%，⛔ 不是「抽多了」。
+    # ⭐ 双份数字：拆除前最短 416 行、中位 594；拆除后最短 **242** 行、中位 594。
+    # ⚠️ 242 那份（`0052`）台账 1 条、候选 2 条，⛔ 它本来就是全语料最薄的一份 ——
+    # §4/§5 那约 150 行固定文案占它原先 416 行的三分之一以上，拆掉后剩下的几乎全是材料。
+    assert counts[0] >= 230, f"最短的一份只有 {counts[0]} 行 —— 抽多了"
 
 
 def _data_borne_marks(pair, doc, marks):
@@ -2174,7 +2203,11 @@ def test_the_worksheets_are_not_wallpapered_with_emoji():
         own = n - _data_borne_marks(pair, doc, marks)
         assert own <= 30, f"{pair}.md 生成器侧有 {own} 个 emoji —— 又成壁纸了"
         assert n <= 60, f"{pair}.md 全文有 {n} 个 emoji —— 连数据侧一起跑飞了"
-        assert n / lines <= 0.05, f"{pair}.md 的 emoji 密度 {n / lines:.3f} 超档"
+        # ⚠️ 2026-08-14 密度档由 0.05 提到 0.06，⛔ 计数档 30 一格没动。理由是分母变了：
+        # §4/§5 拆除后每份短了约 15%，⭐ 同样的记号数密度机械上升（0017 实测 22/434=0.051）。
+        # ⛔ 不是新贴了壁纸 —— 新增的记号只有三桶标记（🟡/🟠/🔴），每条需人裁的条目 2 个，
+        # ⭐ 而它们正是「一个符号说清要不要你处理」那类信号，删了就得靠读整段话找活干。
+        assert n / lines <= 0.06, f"{pair}.md 的 emoji 密度 {n / lines:.3f} 超档"
         own_star = doc.count("⭐") - _data_borne_marks(pair, doc, ("⭐",))
         assert own_star <= 4, f"{pair}.md 生成器侧有 {own_star} 个 ⭐"
 
@@ -3083,6 +3116,19 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
     裁决区，约 20–30 行），而每个 pair 新建的块数从 0 到 9 不等；并入既有条目的那些还要在
     §2 / §3 对应条目下多一段补充证据。⛔ 所以下界不再是负数 —— 本轮**没有**任何删减动作，
     54 份全部只增不减，`+40` 是「至少每份都真的印了 §3.6 的导语与两个小节」的下限哨兵。
+
+    ⚠️⚠️ **2026-08-14 区间改成 [−200, +300]，实测 [−134, +285]、中位 −29。** 本轮又是有符号的：
+
+    - **减**：§4 深度检查清单与 §5 新增登记整体拆除（用户裁定本轮只做「对现有台账 + 候选
+      逐条裁决」）—— 这两节合计约 100–150 行/份，是本轮减量的全部来源。
+    - **加**：每条台账 / 候选多一块三方 D 档判读（无争议的 2 行、需人裁的约 12 行）
+      + 顶部两行速览。加量由**该 pair 需人裁的条目数**主导，从 0 到 8 不等。
+
+    ⭐ 故下界重回负数，且比上界宽得多 —— 减的是固定两节，加的按条目数摊。
+    ⛔ 上界取 `+300`：⚠️ 实测最大 `0039` 的 **+285** —— 它一份里有 8 条需人裁的条目，
+    每条约 12 行，外加 §3.6 的 inspect 块本来就多。⭐ 那是**按条目数摊出来的**，不是文案变长；
+    「文案有没有长回去」由 `test_the_field_guide_is_not_copied_back_into_the_worksheets`
+    数重复行来守，比行数区间准。
     """
     probe = subprocess.run(["git", "-C", HERE, "cat-file", "-e",
                             f"{CLEANUP_BASELINE}^{{commit}}"], capture_output=True)
@@ -3097,7 +3143,7 @@ def test_the_line_count_change_is_bounded_pair_by_pair():
             pytest.skip(f"{rel} 不在基线 commit 里")
         a = len(old.stdout.splitlines())
         b = len(_read(_ws(pair)).splitlines())
-        if not (40 <= b - a <= 430):
+        if not (-200 <= b - a <= 300):
             bad.append(f"{pair}: {a} → {b}（{b - a:+d}）")
     assert not bad, "这些工作单的增量不在 [+40, +430] 区间：" + "、".join(bad)
 
@@ -3201,6 +3247,11 @@ def test_claim_6_checklist_tolerates_indent_bullets_and_bare_findings():
     ⚠️ 前两种此前让**整条清单项从 `items` 里消失** —— ⛔ 不是「未勾选」，是不存在，
     ⛔ 而 `checklist_items` 总数会跟着变小且不报错。
     """
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     blk = _howto_block("0000")
     assert "前面有缩进或 `-` 都行" in blk
     assert "直接写在下一行也收" in blk
@@ -3227,6 +3278,11 @@ def test_claim_6_checklist_tolerates_indent_bullets_and_bare_findings():
 
 def test_claim_7_new_entry_needs_its_own_heading():
     """第 7 条：⭐ 每条一个 `### NEW-<pair>-NN` 标题；⛔ 挤在一个标题下会被并成一条。"""
+    pytest.skip("§4 深度检查清单与 §5 新增登记于 2026-08-14 按用户裁定整体拆除"
+                "（本轮工作单只做「对现有台账 + 候选逐条裁决」）。⛔ 本条测的是那两节的"
+                "行为，故整条挂起而不是删除 —— 代码（section_checklist / section_new / checklist.py / newfields.py）仍在，"
+                "下一轮若重开挖深可整段接回，届时把本 skip 去掉即可。"
+                "⭐ 「那两节确实不在了」由 test_the_removed_sections_are_really_gone 守着。")
     blk = _howto_block("0000")
     assert "### NEW-0000-01" in blk
     assert "别把两条挤在一个标题下" in blk
@@ -3300,7 +3356,13 @@ def test_field_tables_are_derived_from_the_templates_not_hand_copied():
 
 
 def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
-    """⛔ 宽容化不许动四个门面数字：`54 / 99 / 141 / 955`。
+    """⛔ 宽容化不许动门面数字：`54 / 99 / 269`（⚠️ 第四个 `955` 已归零，见下）。
+
+    ⚠️⚠️ **2026-08-14 第四个数字由 955 改为 0，⛔ 这不是丢数据。** 用户裁定本轮工作单
+    只做「对现有台账 + 候选逐条裁决」，§4 深度检查清单与 §5 新增登记整体不再装进
+    `build_doc`（`generate.py` 里那段注释写了理由与保留方式）。⭐ 故 `checklist_items`
+    结构上为 0。⛔ 前三个数字**一格没动** —— 那正是本条要守的：拆节不许顺手丢条目。
+    ⭐ 双份数字都记在这里：拆除前 `54 / 99 / 269 / 955`，拆除后 `54 / 99 / 269 / 0`。
 
     ⚠️ 这是本轮改 parser 的安全网：⭐ 宽容只该多认几种写法，
     ⛔ 不该让空模板被解析成别的东西。
@@ -3318,7 +3380,7 @@ def test_the_four_headline_totals_are_unchanged_by_the_tolerance_fixes():
     # ⛔ 三个不变的数字必须原样：`ledger_records_seen` 尤其 —— 台账是**被审计对象**，
     # ⚠️ inspect 的发现在判读者裁决之前只能是候选，⛔ 一条都不许并进台账。
     assert (tot["pairs"], tot["ledger_records_seen"],
-            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 269, 955), tot
+            tot["candidates_seen"], tot["checklist_items"]) == (54, 99, 269, 0), tot
     assert IF.has_judged_issues(), "三份 audit json 必须在树上，否则 §3.6 什么都不渲染"
     ov = IF.load_overlap()
     new_blocks = [i for i in IF.load_issues()["issues"]
@@ -3785,3 +3847,20 @@ def test_the_blocker_taxonomy_is_complete_and_accounted_for():
     assert LM.stats()["unmapped"] == 0
     for b in CM.BLOCKERS:
         assert b in CM.BLOCKER_ZH and len(CM.BLOCKER_ZH[b]) == 2
+
+
+def test_the_removed_sections_are_really_gone():
+    """⛔ §4 深度检查清单与 §5 新增登记必须真的不在 54 份工作单里。
+
+    ⚠️ 这一条是上面七个 `pytest.skip` 的对侧。⭐ CLAUDE.md §9.5-8 记过这个坑：
+    把测试改成 skip 会让检查**静默消失**而测试全绿 —— 那比测试变红危险。
+    ⛔ 所以拆除本身必须有门守：若哪天两节被接回来（不管是有意还是误接），
+    ⭐ 本条立刻红，提醒把那七个 skip 一起解开、别让它们继续躺着装绿。
+    """
+    for pair in S.IN_SCOPE_PAIRS:
+        doc = _read(_ws(pair))
+        assert "## §4 " not in doc, f"{pair}.md 又出现 §4 —— 那七个 skip 该解开了"
+        assert "## §5 " not in doc, f"{pair}.md 又出现 §5 —— 那七个 skip 该解开了"
+        keys = fb.extract(doc)
+        assert not [k for k in keys if k.startswith("CHK-")], f"{pair}.md 还有 CHK- 块"
+        assert not [k for k in keys if k.startswith("NEW-")], f"{pair}.md 还有 NEW- 块"

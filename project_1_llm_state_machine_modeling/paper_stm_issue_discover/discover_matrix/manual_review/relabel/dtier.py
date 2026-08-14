@@ -1,0 +1,315 @@
+"""三方 D 档判读结果 → 工作单区块与裁决区预填。
+
+两个事实源，⛔ 职责不许混：
+
+  [dtier_rulings.json](./dtier_rulings.json)  三臂全量判定 + 机械分桶（脚本产出）
+  [dtier_meta.json](./dtier_meta.json)        争议条目的人工 meta review（人写，持久化）
+
+⛔⛔ **本模块不生成任何判断。** 它只做三件事：按桶选版式、把三臂原话逐字引出、
+把 `dtier_meta.json` 里人写的归纳渲进去。⚠️ 争议条目的推荐、理由、分歧点、关注建议
+一律来自人工归纳 —— 理由见 [docs/protocol/dtier_triage.md](../../docs/protocol/dtier_triage.md) §5：
+脚本能做的只有拼接与计票，⛔ 而「这两读的分歧点在哪」需要读懂三臂各自的 `basis`
+并判断谁更站得住。脚本代劳会产出**看起来像结论的模板文本**，⛔ 比留空更坏。
+
+## 两条硬约束，⛔ 改本文件前必须先读
+
+**① 版式必须紧凑，不许用表格。** 表头 + 分隔行会按条目数重复，54 份工作单上千次出现，
+直接顶穿 `test_the_field_guide_is_not_copied_back_into_the_worksheets` 那道门（它数的是
+**行的出现次数**，不是不同行数）。⭐ 故三臂对照压成一行、长文本各占一行、说明放 HOWTO。
+
+**② 预填必须可被识别为「未经人确认」。** `prefill()` 的产出被当作 `fb.render()` 的
+`default_body`，⛔ 而 `fb.is_untouched()` 要能认出它 —— 否则 380 条预填一上线，
+进度统计立刻全部变成「已填」，⚠️ 而那是 2026-08-13 已经栽过一次的同型 bug
+（幂等注回把旧模板当人工内容保留）。⭐ 判据走**逐字全等**，与 `is_stale_template` 同机制。
+"""
+import collections
+import json
+import os
+import re
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+RULINGS = os.path.join(HERE, "dtier_rulings.json")
+META = os.path.join(HERE, "dtier_meta.json")
+
+#: 三臂的显示名与模型。⛔ 不写成「臂 1/2/3」——判读者需要知道分歧来自不同模型家族。
+ARM_ZH = {
+    "codex": ("codex", "GPT-5"),
+    "claude": ("claude", "Opus 5"),
+    "dsh": ("dsh", "deepseek-v4-pro"),
+}
+
+#: 需要人处理的三桶各自的标记与抬头。⛔ `auto_*` 不在此表 —— 它们不打标记。
+#: ⭐ emoji 遵循「对比」而非「数量」：两边都打，标记就不再是信号。
+BUCKET_MARK = {
+    "ambiguous": ("🟡", "**两读并立，需你在两读之间选**"),
+    "leaning": ("🟠", "**有偏向，需你认可或否决推荐**"),
+    "chaotic": ("🔴", "**三方无偏向，需你亲自裁决**"),
+}
+
+#: meta review 的四个字段：json 键 → 工作单里的中文抬头。⭐ 顺序即渲染顺序。
+META_FIELDS = (("recommend", "推荐"), ("reason", "理由"),
+               ("crux", "分歧点"), ("focus", "重点关注"))
+
+#: 人工归纳里 `recommend` 的合法取值 → 各 kind 的勾选项。
+#: ⛔ 只认这几个词：`prefill()` 要靠它机械决定勾哪个框，⚠️ 自由文本会静默勾错。
+REC_TO_CHOICE = {
+    "保留": {"ledger": "保留", "candidate": "采纳(补入台账)"},
+    "修正": {"ledger": "修正", "candidate": "采纳(补入台账)"},
+    "抛弃": {"ledger": "删除", "candidate": "不采纳"},
+    "待议": {"ledger": None, "candidate": "待议"},
+}
+
+_META_CACHE = None
+_RULINGS_CACHE = None
+
+
+def load_rulings():
+    global _RULINGS_CACHE
+    if _RULINGS_CACHE is None:
+        if not os.path.exists(RULINGS):
+            _RULINGS_CACHE = {}
+        else:
+            with open(RULINGS, encoding="utf-8") as fh:
+                _RULINGS_CACHE = json.load(fh).get("rulings") or {}
+    return _RULINGS_CACHE
+
+
+def load_meta():
+    """读人写的 meta review。⭐ 存 json 是为了持久化与机器可读，⛔ 不再用 md 手写格式。
+
+    ⚠️ 缺字段一律当「没写」，⛔ 不补默认值：一条 meta review 少了 `recommend`，
+    含义是「我不给推荐」，⭐ 那与「推荐保留」是两件完全不同的事。
+    """
+    global _META_CACHE
+    if _META_CACHE is not None:
+        return _META_CACHE
+    out = {}
+    if os.path.exists(META):
+        with open(META, encoding="utf-8") as fh:
+            out = json.load(fh).get("reviews") or {}
+    _META_CACHE = out
+    return out
+
+
+def get(rid):
+    return load_rulings().get(rid)
+
+
+def mark(rid):
+    """条目标题后缀的标记。⭐ 只有需人处理的三桶有，⛔ 便于全文搜索定位。"""
+    rec = load_rulings().get(rid)
+    if not rec:
+        return ""
+    m = BUCKET_MARK.get(rec.get("bucket"))
+    return (" " + m[0]) if m else ""
+
+
+def _arm_line(rec):
+    """三臂档位的一行式摘要。⛔ 不用表格 —— 见模块 docstring 约束 ①。"""
+    parts = []
+    for key in ("codex", "claude", "dsh"):
+        a = (rec.get("arms") or {}).get(key) or {}
+        extra = f"·{a.get('a0')}" if a.get("a0") else ""
+        parts.append(f"{ARM_ZH[key][0]} `{a.get('tier') or '?'}{extra}`")
+    return " / ".join(parts)
+
+
+def _readings(rec):
+    """第二种读法与设计意图主张，逐字。⭐ 这两样是「两读并立」的实体，⛔ 不许省。"""
+    out = []
+    for field, label in (("alternative_reading", "第二种读法"),
+                         ("design_rationale", "作者可主张的设计意图")):
+        for key in ("codex", "claude", "dsh"):
+            a = (rec.get("arms") or {}).get(key) or {}
+            v = (a.get(field) or "").strip().replace("\n", " ")
+            if v:
+                out.append(f"- {label}（{ARM_ZH[key][0]} 原话）：{v}")
+    return out
+
+
+def _opinions(rec):
+    """三臂各自的判定依据，逐字，折叠。⭐ 每臂一行 —— 长文本不占额外行数。"""
+    out = ["<details><summary>三臂各自的判定依据（原话逐字）</summary>", ""]
+    for key in ("codex", "claude", "dsh"):
+        a = (rec.get("arms") or {}).get(key) or {}
+        b = (a.get("basis") or "").replace("\n", " ").strip()
+        out.append(f"- **{ARM_ZH[key][0]}**（判 `{a.get('tier')}`）：{b or '（未给）'}")
+    out += ["", "</details>", ""]
+    return out
+
+
+def _meta_lines(rid, bucket):
+    """人工 meta review。⛔ 缺失时如实说明，不编造。"""
+    m = load_meta().get(rid)
+    if not m:
+        return ["- 人工 meta review **待补** —— 本条属需人裁桶，推荐与分歧点必须人工归纳"
+                "（脚本不代劳，理由见 "
+                "[dtier_triage.md](../../../docs/protocol/dtier_triage.md) §5）。"]
+    out = []
+    rv = (m.get("recommend") or "").strip()
+    if rv:
+        out.append(f"- 人工归纳推荐：**{rv}**（已按此预填下面的裁决区）")
+    elif bucket == "chaotic":
+        out.append("- 人工归纳**不给推荐**，裁决区留空 —— 三方无偏向，硬给一个等于替你决定。")
+    for k, zh in META_FIELDS[1:]:
+        v = (m.get(k) or "").strip()
+        if v:
+            out.append(f"- {zh}：{v}")
+    return out
+
+
+def block(rid):
+    """一条条目的三方判读区块。⭐ 无争议的压到一行，⛔ 需人裁的才展开。"""
+    rec = load_rulings().get(rid)
+    if not rec:
+        return []
+    bucket = rec.get("bucket") or "?"
+    combo = rec.get("combo")
+    if bucket not in BUCKET_MARK:
+        verdict = "保留" if bucket == "auto_keep" else "抛弃"
+        return [f"**三方 D 档判读**：票面 `{combo}`（{_arm_line(rec)}），"
+                f"三臂方向一致判「**{verdict}**」，裁决区已按此预填。", ""]
+    mk, desc = BUCKET_MARK[bucket]
+    out = [f"**三方 D 档判读** {mk} {desc}", "",
+           f"票面 `{combo}`：{_arm_line(rec)}。", ""]
+    out += _readings(rec)
+    out += _meta_lines(rid, bucket)
+    out.append("")
+    out += _opinions(rec)
+    return out
+
+
+def compact(rid):
+    """一行式摘要，给**没有自己裁决区**的条目用（inspect 补充证据那一族）。
+
+    ⛔ 不展开完整区块：那些条目按设计不设裁决区（同一个问题只裁一次，裁决落在宿主条目上），
+    ⚠️ 摆一整块「需你裁决」却没有可勾的地方，会让判读者以为漏了块。
+    """
+    rec = load_rulings().get(rid)
+    if not rec:
+        return []
+    m = BUCKET_MARK.get(rec.get("bucket"))
+    tail = ""
+    if m:
+        meta = load_meta().get(rid) or {}
+        rv = (meta.get("recommend") or "").strip()
+        crux = (meta.get("crux") or "").strip()
+        tail = (f" 人工归纳推荐**{rv}**。" if rv else " 人工 meta review 待补。")
+        if crux:
+            tail += f"分歧点：{crux}"
+    return [f"- 三方 D 档判读：票面 `{rec.get('combo')}`（{_arm_line(rec)}）。"
+            f"{m[1] + '（裁决落在本条的宿主条目上）。' if m else '三臂方向一致。'}{tail}", ""]
+
+
+# ------------------------------------------------------------------ 裁决区预填
+
+#: 预填体的尾标。⭐ 它是「这份是我方预填、你还没确认」的唯一判据，
+#: ⛔ 不许改动措辞 —— `fillblocks.is_untouched()` 靠逐字全等认它。
+PREFILL_TAIL = "（以上为我方预填，你确认或改写后即视为已处理）"
+
+
+def _choice_line(kind, choice):
+    """把某个选项勾上，其余留空。⛔ 从 fillblocks 的模板取选项表，不另抄一份。"""
+    import fillblocks as fb
+    tpl = fb.LEDGER_TEMPLATE if kind == "ledger" else fb.CANDIDATE_TEMPLATE
+    head = tpl.splitlines()[0]
+    if not choice:
+        return head
+    out, hit = [], False
+    for m in re.finditer(r"\[\s*\]\s*([^\[]+?)(?=\s{2,}\[|\s*$)", head):
+        name = m.group(1).strip()
+        box = "[x]" if (name == choice and not hit) else "[ ]"
+        if name == choice:
+            hit = True
+        out.append(f"{box} {name}")
+    if not hit:                       # ⛔ 选项名对不上就不勾，⚠️ 不许猜
+        return head
+    return "裁决: " + "  ".join(out)
+
+
+def prefill(key, kind):
+    """裁决区的预填体。无判定记录、或该桶不预填时返回 `None`（调用方回落到空模板）。
+
+    ⛔⛔ **`chaotic` 桶不勾任何框。** 三方无偏向时勾一个等于替人决定，
+    ⚠️ 而人一眼看到已勾就很可能直接放过 —— 那是把「最需要人判的一批」变成橡皮章。
+    ⭐ 但理由行照样写满：分歧在哪、该重点看什么，那些是有依据的。
+    """
+    if kind not in ("ledger", "candidate"):
+        return None
+    rec = load_rulings().get(key)
+    if not rec:
+        return None
+    bucket = rec.get("bucket")
+    meta = load_meta().get(key) or {}
+    combo = rec.get("combo")
+    src = f"三方独立判读票面 `{combo}`（{_arm_line(rec)}）"
+
+    if bucket == "auto_keep":
+        choice, why = "保留", f"{src}，三臂一致判「算缺陷」且无一臂指出第二读法。"
+    elif bucket == "auto_drop":
+        choice, why = "抛弃", f"{src}，三臂一致判「不算缺陷或出局」。"
+    elif bucket in BUCKET_MARK:
+        rv = (meta.get("recommend") or "").strip()
+        if bucket == "chaotic" or not rv:
+            choice = None
+        else:
+            choice = rv
+        bits = [src]
+        for k, zh in META_FIELDS[1:]:
+            v = (meta.get(k) or "").strip()
+            if v:
+                bits.append(f"{zh}：{v}")
+        if not meta:
+            bits.append("人工 meta review 待补，请对照上面三臂原话自行判断。")
+        why = "；".join(bits) + "。"
+    else:
+        return None
+
+    ch = REC_TO_CHOICE.get(choice, {}).get(kind) if choice else None
+    lines = [_choice_line(kind, ch)]
+    tpl_rest = ((__import__("fillblocks").LEDGER_TEMPLATE if kind == "ledger"
+                 else __import__("fillblocks").CANDIDATE_TEMPLATE).splitlines()[1:])
+    for ln in tpl_rest:
+        field = ln.split(":", 1)[0]
+        if field == "理由":
+            lines.append(f"理由: {why}{PREFILL_TAIL}")
+        else:
+            lines.append(ln)
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ 速览与统计
+
+def pair_overview(pair):
+    """一份工作单顶部的待处理速览。⭐ 让人不必逐节翻就知道这份要花多少工夫。
+
+    ⛔ 必须极短：NL 表必须留在第一屏（`test_nl_table_sits_on_the_first_screen`
+    要求它在第 45 行以内），⚠️ 本节每多一行就把 NL 往下推一行。
+    """
+    R = {rid: rec for rid, rec in load_rulings().items() if rec.get("pair") == pair}
+    if not R:
+        return []
+    need = []
+    for b in ("chaotic", "leaning", "ambiguous"):
+        ids = sorted(rid for rid, rec in R.items() if rec.get("bucket") == b)
+        if ids:
+            need.append(f"{BUCKET_MARK[b][0]} {len(ids)} 条（" +
+                        "、".join(f"`{i}`" for i in ids) + "）")
+    n = sum(1 for rec in R.values() if rec.get("bucket") in BUCKET_MARK)
+    out = [f"**三方 D 档判读速览**：本 pair {len(R)} 条进了判读，其中 **{n} 条需你处理** —— "
+           + ("；".join(need) if need else "无") +
+           f"。其余 {len(R) - n} 条三臂方向一致，裁决区已预填。"
+           f"标记含义与分桶判据见 "
+           f"[dtier_triage.md](../../../docs/protocol/dtier_triage.md)。", ""]
+    return out
+
+
+def stats():
+    return dict(collections.Counter(v.get("bucket") for v in load_rulings().values()))
+
+
+def missing_meta():
+    """需人裁但 meta 还没写的条目 id（排序后）。⭐ 这是欠账清单。"""
+    meta = load_meta()
+    return sorted(rid for rid, rec in load_rulings().items()
+                  if rec.get("bucket") in BUCKET_MARK and rid not in meta)
