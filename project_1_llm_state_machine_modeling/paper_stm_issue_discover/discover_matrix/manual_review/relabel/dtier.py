@@ -53,9 +53,20 @@ META_FIELDS = (("recommend", "推荐"), ("brief", "一句话理由"), ("reason",
 #: 人工归纳里 `recommend` 的合法取值 → 各 kind 的勾选项。
 #: ⛔ 只认这几个词：`prefill()` 要靠它机械决定勾哪个框，⚠️ 自由文本会静默勾错。
 REC_TO_CHOICE = {
-    "保留": "采纳",
-    "修正": "采纳",       # ⚠️ 合并后没有独立的「修正」选项：勾采纳、把改法写进理由
-    "抛弃": "不采纳",
+    "D2": "按 D2 采纳",
+    "D1": "按 D1 采纳",
+    "不采纳": "不采纳",
+}
+
+#: 桶 → 标记。⭐ **每个条目 id 都带标记**，⛔ 让「谁要你裁、有多要紧」一眼可见。
+#: ✅/❌ = 已定（不需你动）；🟡/🟠/🔴 = 需你裁，三级递增。
+BUCKET_ICON = {
+    "auto_keep": "✅",
+    "auto_drop": "❌",
+    "auto_d1": "❓",
+    "ambiguous": "🟡",
+    "leaning": "🟠",
+    "chaotic": "🔴",
 }
 
 _META_CACHE = None
@@ -95,14 +106,15 @@ def get(rid):
 
 
 def mark(rid):
-    """条目标题后缀的标记。⭐ 只有需人处理的三桶有，⛔ 便于全文搜索定位。"""
+    """条目标题后缀的标记。⭐ **每个条目都有**，⛔ 便于全文搜索与一眼分级。
+
+    ✅ 确定采纳 · ❌ 确定不采纳 · 🟡 两读并立待选 · 🟠 有偏向待认可 · 🔴 无偏向待亲裁。
+    ⚠️ `UM-` 一族无三方判读、一律人工裁决，故打 🟠。
+    """
     rec = load_rulings().get(rid)
     if not rec:
-        # ⭐ `UM-` 一族一律人工裁决，故一律打 🟠
         return " 🟠" if rid in load_meta() else ""
-    m = BUCKET_MARK.get(rec.get("bucket"))
-    return (" " + m[0]) if m else ""
-
+    return " " + BUCKET_ICON.get(rec.get("bucket"), "")
 
 def _arm_line(rec):
     """三臂档位的一行式摘要。⛔ 不用表格 —— 见模块 docstring 约束 ①。"""
@@ -176,6 +188,12 @@ def block(rid):
         return out
     bucket = rec.get("bucket") or "?"
     combo = rec.get("combo")
+    if bucket == "auto_d1":
+        return [f"**三方 D 档判读** ❓ **三臂一致判「两读并立」（`D1`）**：票面 `{combo}`。",
+                "",
+                "「这段内容本身就是模糊的」已是三方共识，⛔ 故不需你在两读之间选 —— "
+                "裁决区已按 `D1` 预填。⚠️ 但它**不是**一条确定的缺陷，"
+                "入账时必须带着那个第二读法一起记。", ""] + _readings(rec) + [""] + _opinions(rec)
     if bucket not in BUCKET_MARK:
         verdict = "保留" if bucket == "auto_keep" else "抛弃"
         return [f"**三方 D 档判读**：票面 `{combo}`（{_arm_line(rec)}），"
@@ -250,19 +268,21 @@ def _auto_brief(rec, keep):
         for k in ("codex", "claude", "dsh"):
             q = ((arms.get(k) or {}).get("nl_quote") or "").strip()
             if q:
-                return (f"三臂一致认定它违反了 NL 里这句「{q[:90]}」，"
-                        f"且都找不出站得住的第二种读法 —— 是一条成立的缺陷。")
+                return (f"**判 D2**：三臂一致认定它违反了 NL 里这句「{q[:90]}」，"
+                        f"且三方都尝试过推翻、都没找到站得住的第二种读法 —— "
+                        f"义务有成文条文可引、反驳不存活，是 `D2-lit`。")
         for k in ("codex", "claude", "dsh"):
             o = ((arms.get(k) or {}).get("obligation_sentence") or "").strip()
             if o:
-                return (f"三臂一致认定它违反了这条领域义务：{o[:110]}"
-                        f"；没人拿出站得住的第二种读法 —— 是一条成立的缺陷。")
+                return (f"**判 D2**：三臂一致认定它违反了这条领域义务：{o[:110]}"
+                        f"；没人拿出站得住的第二种读法 —— 义务已被陈述、反驳不存活，是 `D2-norm`。")
         g = {(arms.get(k) or {}).get("grounding") for k in arms}
         if "impl" in g:
-            return ("三臂一致认定它是死锁（进去出不来），"
-                    "这一类免领域知识即可判为失效，且没人拿出合法终止的依据 —— 是一条成立的缺陷。")
-        return ("三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— "
-                "建议你顺手核一眼它的义务出处。")
+            return ("**判 D2**：三臂一致认定它是死锁（进去出不来）——"
+                    "这一类免领域知识、免形式规约即可判为失效，且没人拿出「作者显式声明合法终止」"
+                    "的依据，是 `D2-impl`。")
+        return ("**判 D2**：三臂一致判它成立，⚠️ 但都没给出可引的 NL 原句或领域义务 —— "
+                "⛔ 建议你顺手核一眼它的义务出处，若拿不出出处应降到 D1。")
     a0 = [(arms.get(k) or {}).get("a0") for k in ("codex", "claude", "dsh")]
     a0 = [x for x in a0 if x]
     if len(a0) == 3:
@@ -317,10 +337,15 @@ def prefill(key, kind):
         why = (meta.get("brief") or "").strip()
         if not why:
             why = ("人工 meta review 待补 —— 请对照上面三臂原话自行判断。")
+    elif bucket == "auto_d1":
+        # ⭐ 三臂一致判「两读并立」⇒ 那本身就是共识，⛔ 不需人在两读之间选。
+        choice = "D1"
+        why = ((meta.get("brief") or "").strip()
+               or _auto_brief(rec, True))
     elif bucket == "auto_keep":
-        choice, why = "保留", _auto_brief(rec, True)
+        choice, why = "D2", _auto_brief(rec, True)
     elif bucket == "auto_drop":
-        choice, why = "抛弃", _auto_brief(rec, False)
+        choice, why = "不采纳", _auto_brief(rec, False)
     else:
         return None
 
@@ -366,14 +391,16 @@ def stats():
 
 
 def missing_meta(extra_keys=()):
-    """需人裁但 meta 还没写的条目 id（排序后）。⭐ 这是欠账清单。
+    """**没有**人工 meta review 的条目 id（排序后）。⭐ 这是欠账清单。
 
-    `extra_keys` 用来把**没有 D 判定**的键也纳进来（`UM-` 一族）——
-    ⛔ 用户明确要求「不允许有任何一个待裁决项缺少 meta review」，⚠️ 而它们不在判读包里，
-    ⭐ 只靠 `load_rulings()` 数不到。
+    ⚠️⚠️ **2026-08-14 口径扩到全部条目。** 用户裁定：「全部条目都得有 meta review 意见，
+    包括没有争议的，也都得有对应针对性的 meta review 文本」——⛔ 所以这里不再只数
+    需人裁的那几桶。⭐ 无争议的条目虽然不需要人做动作，但仍需一句**针对本条**的说明，
+    ⚠️ 否则读者只看到一个 ✅ 而不知道它凭什么成立。
+
+    `extra_keys` 用来把没有 D 判定的键（`UM-` 一族）也纳进来。
     """
     meta = load_meta()
-    out = [rid for rid, rec in load_rulings().items()
-           if rec.get("bucket") in BUCKET_MARK and rid not in meta]
+    out = [rid for rid in load_rulings() if rid not in meta]
     out += [k for k in extra_keys if k not in meta and k not in load_rulings()]
     return sorted(set(out))

@@ -648,7 +648,7 @@ _DIFF_VERDICT_NOTE = {
 def section_candidates(pair, model, records, saved):
     lines = []
     keys = []
-    lines.append("## §3 候选新增 issue（挖深的入口）")
+    lines.append("## §3 候选 issue 逐条裁决")
     lines.append("")
     lines.append(
         "本节把**已知但未入账**的线索集中在一处。它们都没有经过人工确认；"
@@ -659,7 +659,7 @@ def section_candidates(pair, model, records, saved):
 
     # ---- §3.1 真漏记
     vu = S.valid_unrecorded(pair)
-    lines.append("### §3.1 两臂多报侧判定的「真漏记」（`VALID_UNRECORDED`）")
+    lines.append("**§3.1 两臂多报侧判定的「真漏记」（`VALID_UNRECORDED`）**")
     lines.append("")
     if not vu:
         lines.append("本 pair 无。（全语料 X1 侧 13 条、主臂侧 2 条。）")
@@ -672,7 +672,7 @@ def section_candidates(pair, model, records, saved):
         for i, r in enumerate(vu, 1):
             key = f"VU-{pair}-{i:02d}"
             keys.append(key)
-            lines.append(f"#### {key}{DT.mark(key)} · 簇 `{r.get('cluster')}`（{r.get('_arm')} 臂，"
+            lines.append(f"### {key}{DT.mark(key)} · 簇 `{r.get('cluster')}`（{r.get('_arm')} 臂，"
                          f"子类 `{r.get('subclass')}`）")
             lines.append("")
             if r.get("claim"):
@@ -708,7 +708,7 @@ def section_candidates(pair, model, records, saved):
     adopted = S.adopted_diff_ids(pair)
     rv = S.review_json(pair)
     total_diffs = len(rv.get("diffs") or []) if rv else 0
-    lines.append("### §3.2 审阅 agent 产出但未进台账的 diff")
+    lines.append("**§3.2 审阅 agent 产出但未进台账的 diff**")
     lines.append("")
     if rv is None:
         lines.append(f"无 `{pair}-review.json`。")
@@ -733,7 +733,7 @@ def section_candidates(pair, model, records, saved):
         def _render_diff(i, d):
             key = f"DIFF-{pair}-{i:02d}"
             keys.append(key)
-            lines.append(f"##### {key} · diff #{i} · `{d.get('verdict')}`{DT.mark(key)}")
+            lines.append(f"### {key}{DT.mark(key)} · diff #{i} · `{d.get('verdict')}`")
             lines.append("")
             lines.append(f"- 参考侧：{esc(d.get('ref'))}")
             lines.append(f"- 生成侧：{esc(d.get('gen'))}")
@@ -761,12 +761,12 @@ def section_candidates(pair, model, records, saved):
             lines.append("")
 
         if claims:
-            lines.append(f"#### §3.2a 判为 problem / extra / uncertain 的 {len(claims)} 条（设裁决区）")
+            lines.append(f"**§3.2a 判为 problem / extra / uncertain 的 {len(claims)} 条（设裁决区）**")
             lines.append("")
             for i, d in claims:
                 _render_diff(i, d)
         if denials:
-            lines.append(f"#### §3.2a-2 生成侧写「—」或「不可能生成」的 {len(denials)} 条"
+            lines.append(f"**§3.2a-2 生成侧写「—」或「不可能生成」的 {len(denials)} 条"
                          f"（另一个物种，设裁决区）")
             lines.append("")
             lines.append(
@@ -790,7 +790,7 @@ def section_candidates(pair, model, records, saved):
             for i, d in denials:
                 _render_diff(i, d)
         if rest:
-            lines.append(f"#### §3.2b 判为 correct / similar 的 {len(rest)} 条（备查，不设裁决区）")
+            lines.append(f"**§3.2b 判为 correct / similar 的 {len(rest)} 条（备查，不设裁决区）**")
             lines.append("")
             lines.append(
                 f"<details><summary>展开 {len(rest)} 条备查 diff —— "
@@ -808,7 +808,7 @@ def section_candidates(pair, model, records, saved):
 
     # ---- §3.3 机械未匹配
     um = S.unmatched_issues(pair)
-    lines.append("### §3.3 两臂产出中机械未匹配任何台账条目的 issue")
+    lines.append("**§3.3 两臂产出中机械未匹配任何台账条目的 issue**")
     lines.append("")
     if um is None:
         lines.append(
@@ -832,7 +832,7 @@ def section_candidates(pair, model, records, saved):
         )
         lines.append("")
         if x1:
-            lines.append(f"#### §3.3a X1 臂未认领 {len(x1)} 组")
+            lines.append(f"**§3.3a X1 臂未认领 {len(x1)} 组**")
             lines.append("")
             lines.append(f"<details><summary>展开 {len(x1)} 组（已有的多报侧裁定"
                          f"是另一轮判定者做的，你可以推翻）</summary>")
@@ -858,7 +858,7 @@ def section_candidates(pair, model, records, saved):
             lines.append("")
         if v46:
             shown = v46[:30]
-            lines.append(f"#### §3.3b 主臂 v46 机械未匹配 {len(v46)} 组"
+            lines.append(f"**§3.3b 主臂 v46 机械未匹配 {len(v46)} 组"
                          + (f"（列出出现格数最多的 {len(shown)} 组）"
                             if len(v46) > len(shown) else ""))
             lines.append("")
@@ -885,6 +885,10 @@ def section_candidates(pair, model, records, saved):
             lines.append("")
         key = f"UM-{pair}"
         keys.append(key)
+        # ⭐ §3 拉平后每个可裁决对象都要有自己的 `###` 抬头 —— ⛔ `UM-` 块此前只有小节标题，
+        # ⚠️ 于是它在目录里找不到，而它恰恰是一律需要人裁的一族。
+        lines.append(f"### {key}{DT.mark(key)} · 机械未匹配任何台账条目的多报簇（整表一块）")
+        lines.append("")
         lines.append("上表里值得补入台账的，在这里点名（写行内的 issue 文本或格数+关键词即可）：")
         lines.append("")
         # ⚠️ 这一个填写块对应的是**整张表**，⛔ 不是一条线索 —— 与上面 `DIFF-` / `VU-`
@@ -909,7 +913,7 @@ def section_candidates(pair, model, records, saved):
 
     # ---- §3.4 已裁定为非缺陷的多报簇
     other = S.other_unexpected(pair)
-    lines.append("### §3.4 本 pair 已被判为「非缺陷」的多报簇（备查）")
+    lines.append("**§3.4 本 pair 已被判为「非缺陷」的多报簇（备查）**")
     lines.append("")
     if not other:
         lines.append("本 pair 无。")
@@ -933,7 +937,7 @@ def section_candidates(pair, model, records, saved):
 
     # ---- §3.5 同根但未归并
     la = S.ledger_accounted().get(pair) or []
-    lines.append("### §3.5 与台账同根、但匹配器未归并的簇（「台账偏浅」的直接证据）")
+    lines.append("**§3.5 与台账同根、但匹配器未归并的簇（「台账偏浅」的直接证据）**")
     lines.append("")
     if not la:
         lines.append("本 pair 无。")
@@ -1103,7 +1107,7 @@ def _inspect_block(rec, saved):
     """一条 issue 的完整块（正文 + 点名提示 + 座标映射 + 填写块）。"""
     key = rec["issue_id"]
     codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
-    out = [f"##### {key} · {codes}{DT.mark(key)}", ""]
+    out = [f"### {key}{DT.mark(key)} · {codes}", ""]
     out += _inspect_body(rec)
     out += _inspect_suspect_note(rec)
     out += _inspect_axes_lines(rec)
@@ -1162,7 +1166,7 @@ def section_inspect(pair, saved):
       ③ `W_DEADLOCK_LEAF` 的**系统性假阳性**与两个 code 的**整类排除**都要写明。
     """
     lines, keys = [], []
-    lines.append("### §3.6 `pyfcstm inspect` 的确定性检查发现")
+    lines.append("**§3.6 `pyfcstm inspect` 的确定性检查发现**")
     lines.append("")
     if not IF.has_judged_issues():
         lines.append("**尚未入册。** 归一化与判重是判断、不是脚本能算的，"
@@ -1212,7 +1216,7 @@ def section_inspect(pair, saved):
     intrinsic = [r for r in new_rows if r["verdict_class"] == "intrinsic"]
     uncertain = [r for r in new_rows if r["verdict_class"] == "uncertain"]
 
-    lines.append(f"#### §3.6a 确认内生、且与既有条目不重合的 {len(intrinsic)} 条")
+    lines.append(f"**§3.6a 确认内生、且与既有条目不重合的 {len(intrinsic)} 条**")
     lines.append("")
     if not intrinsic:
         lines.append("本 pair 无。")
@@ -1225,7 +1229,7 @@ def section_inspect(pair, saved):
             keys.append(rec["issue_id"])
             lines.extend(_inspect_block(rec, saved))
 
-    lines.append(f"#### §3.6b 分拣未能确定是内生还是投影产物的 {len(uncertain)} 条")
+    lines.append(f"**§3.6b 分拣未能确定是内生还是投影产物的 {len(uncertain)} 条**")
     lines.append("")
     if not uncertain:
         lines.append("本 pair 无。")
@@ -1241,7 +1245,7 @@ def section_inspect(pair, saved):
         for rec in uncertain:
             keys.append(rec["issue_id"])
             codes = "、".join(f"`{c}`" for c in _inspect_codes(rec))
-            lines.append(f"##### {rec['issue_id']} · {codes}{DT.mark(rec['issue_id'])}")
+            lines.append(f"### {rec['issue_id']}{DT.mark(rec['issue_id'])} · {codes}")
             lines.append("")
             lines.append(f"<details><summary>展开这一条（分拣结论 `uncertain`，"
                          f"我方座标 `{rec['coord']}`）</summary>")

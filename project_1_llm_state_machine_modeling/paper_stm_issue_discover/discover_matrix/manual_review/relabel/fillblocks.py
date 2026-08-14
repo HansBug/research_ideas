@@ -80,7 +80,12 @@ REASON_PLACEHOLDER = ("（请在此写一句你的判断理由 —— 哪怕一�
 
 #: ⭐ 三段式。⛔ `理由` 一栏在**无争议**条目上会被整行省掉（见 `dtier.prefill()`）：
 #: 那些条目我方已给出决议与意见，⚠️ 让人去删一个括号纯属白做。
-LEDGER_TEMPLATE = """裁决: [ ] 采纳  [ ] 不采纳
+#: ⭐ 三选项：**D2 与 D1 都进台账**，⛔ 但必须分开记 —— 二者含义完全不同：
+#: `D2` = 有一条可陈述的被违反义务且拿不出站得住的反驳；
+#: `D1` = 两读并立（存在一种与结构事实相容的第二种称职读法）。
+#: ⚠️ 混成一个「采纳」会把「确定的缺陷」与「本身就模糊的内容」记成同一件事，
+#: ⛔ 而后者入账时必须带着那个第二读法 —— 那是两种不同的台账条目。
+LEDGER_TEMPLATE = """裁决: [ ] 按 D2 采纳  [ ] 按 D1 采纳  [ ] 不采纳
 meta review 意见:
 理由:"""
 
@@ -331,10 +336,14 @@ def is_stale_template(body, kind, pair=""):
                 return True
         if lines[-1].rstrip().endswith(REASON_PLACEHOLDER):
             return True
-        # ⭐ 无争议预填：末行是 `meta review 意见: …`，⛔ 无占位无尾标。
-        # ⚠️ 判据是「首行是勾好的裁决行 + 末行是意见行」——⛔ 人一动就不成形。
+        # ⭐ 无争议预填：两行「裁决 + meta review 意见」，⛔ 无占位无尾标。
+        #
+        # ⛔⛔ **判据不许要求「已勾选」。** ⚠️ 这里栽过一次：原先要求首行有勾选记号，
+        # 于是**未勾选**的预填体（`chaotic` 桶按设计不勾；`REC_TO_CHOICE` 改名那一版
+        # auto 两桶一度也没勾上）被判成人工内容、**永久保留** ——
+        # ⛔ 实测重跑报 `0 written / 54 unchanged`，新版预填一份都没上线。
+        # ⭐ 正确判据只看形状：两行、首行是裁决行、次行是意见行；人一加行就不成形。
         if (len(lines) == 2 and lines[0].startswith("裁决:")
-                and RE_CHECKED_BOX.search(lines[0])
                 and lines[1].startswith("meta review 意见:")):
             return True
     return False
