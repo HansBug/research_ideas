@@ -1,0 +1,27 @@
+# 状态机来源景观执行计划
+
+## 1. 本 PR 目标
+
+1. 建立与 PR #96 同构的论文工作区。
+2. 落地 #95 -> #85 初筛矩阵与下载交接。
+3. 明确后续论文启动前必须完成的 G0--G10 门禁。
+
+## 2. 后续门禁
+
+| 门禁 | 目标 | 当前 PR 状态 |
+|---|---|---|
+| G0 | 制品 / 版权边界 | 只提交元数据、BibTeX、CSV，未完成最终发布包 |
+| G1 | 后验协议审计 | 未完成；本 PR 只建入口 |
+| G2 | 编码可靠性审计 | 未完成；本 PR 只建入口 |
+| G3 | 相关工作查重 | 本 PR 完成 #95 元数据级初筛与 Stage 1b 起点审计；DBLP/arXiv 已有轻量记录，Semantic Scholar / Google Scholar / ACM DL / IEEE Xplore / SpringerLink / ScienceDirect 等仍需后续人工或带凭证补跑 |
+| G4 | RQ 到数据 / 资格规则对齐 | 未完成；需后续资格规则 |
+| G5 | 跨论文边界 / 反切香肠边界 | `story/` 中已标注，需 companion boundary 文档 |
+| G6 | CCF-A 综述 / 映射研究门槛 | 投稿门禁已建，待 checklist |
+| G7 | 外部有用性 / 验证 | 未完成 |
+| G8 | 负例 / 排除样本审计 | 本 PR 提供 `Skip` / excluded 起点，待正式负例审计 |
+| G9 | 基准任务卡小规模试跑 | 未完成 |
+| G10 | LLM 抽取基线 / 污染审计 | 未完成 |
+
+## 3. 四例真实运行判断
+
+不需要运行四个真实 LLM 例子。本 PR 不涉及 agent-loop 方法、真实 LLM provider、Path-1/Path-2 运行时或 `.env` 调用；它只新增文档、CSV、BibTeX 与规划证据。若后续 G10 需要 LLM 抽取敏感性检查，必须先 `source .env` 并产出运行记录。
