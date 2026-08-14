@@ -1,0 +1,92 @@
+{
+  "sample_id": "state-machine-control-multi-sources-pv-pemfc-batteries__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper says the SMC has \"15 states under three SOC intervals\"; Low/Medium/High group states 1-5, 6-10, and 11-15, but it is presented as a flat table rather than explicit composite-state semantics."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "State selection combines SOC intervals with Pnet intervals, and Pnet is defined arithmetically as Pnet = Pload - Ppv; Table 2 then uses threshold guards such as Pnet(t) in [Pfcmin,Pfcopt[ and Pnet(t) >= Pfcmax."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Each state assigns a PEMFC reference power P*fc, including arithmetic outputs such as Pfcopt + Pfcmin, Pfcmid + Pfcopt, Pnet, and Pfcmid - Pfcmin; the case prose maps these to battery charge/discharge behavior."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper discusses backup power and load support, but gives no explicit fault state, recovery transition, emergency stop, or from-any-state escape rule."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The formal state/guard/action table appears in Table 2, while operational actions such as low-SOC charging, medium-SOC charge/discharge alternation, and high-SOC discharge are explained later across Cases 1-3."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as SOC, load following, and backup source are accompanied by explicit threshold definitions or prose rules, so no unstated external ruleset is required."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Table 2 lists P*fc outputs, but battery behavior is attributed from prose: low SOC charges regardless of load, medium SOC alternates charge/discharge, and high SOC discharges whatever the load/source value."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Guards combine SOC interval tests with Pnet thresholds, where Pnet = Pload - Ppv, creating arithmetic multi-variable guarded selection."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Low/Medium/High are grouping intervals, not declared composite states with their own entry/during/exit behavior beyond substates."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No global fault, safe-state, abort, or recovery rule is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no explicit composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The controller has 15 threshold guards over SOC and arithmetic Pnet = Pload - Ppv; an expression IR/SMT check could validate interval coverage and threshold consistency."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Group-level behavior applies across many states: low-SOC states charge the battery, high-SOC states discharge it, and global load-following/DC-bus regulation applies across operating cases."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Actions are concrete power-reference and charge/discharge commands, not abstract notifications, logging, or provider-neutral side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "the state machine control method used comprises 15 states under three SOC intervals",
+    "Pnet=Pload−Ppv"
+  ],
+  "one_line_pitch": "A 15-state energy-management EFSM whose states are selected by SOC plus arithmetic net-power intervals and whose real actions are partly scattered through simulation prose is a strong guard/action stress test.",
+  "verdict": "candidate",
+  "rationale": "This sample has a compact but nontrivial EFSM: 15 states, SOC-segmented mode groups, arithmetic Pnet guards, and per-state PEMFC reference-power actions. It is especially hard for prior baselines because the state table captures only part of the behavior while battery charge/discharge policy is described later in case prose. It lacks explicit hierarchy and fault recovery, but the guard/action density and cross-section attribution traps make it a strong candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 205174,
+      "cached_input_tokens": 168832,
+      "output_tokens": 6733,
+      "reasoning_output_tokens": 4267
+    },
+    "duration_s": 133.1,
+    "attempt": 1
+  }
+}

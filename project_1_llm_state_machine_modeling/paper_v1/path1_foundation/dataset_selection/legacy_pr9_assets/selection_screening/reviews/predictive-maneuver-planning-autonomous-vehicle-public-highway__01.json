@@ -1,0 +1,92 @@
+{
+  "sample_id": "predictive-maneuver-planning-autonomous-vehicle-public-highway__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The paper says switching among discrete references is done hierarchically: first rule-based reference-speed switching per lane, then optimization-based reference-lane switching."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Guards include detection and approaching conditions using |s - s_oi| < T_d v_t,ref and (s - s_oi)(v_t,ref - v_t,oi) < 0, plus speed-band, adjacent-lane, min-distance, and collision-ellipse constraints."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions/modes assign v_t,r,l = v_t,ref or v_t,r,l = v_t,oi, adjust v_t,r,j = k_l v_t,oj for forced lane change, generate reference sequences, and send u0 to lower-level vehicle controllers."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The paper discusses emergency sudden cut-in handling via hard braking/speed reduction and lane change, but does not define an explicit fault state or global recovery transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State/maneuver names appear in the control framework, guards and reference-speed actions in Section IV-B, collision constraints in Section V, and concrete behavior in simulations."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as cruising, following, leading, and forced lane change are accompanied by explicit speed-assignment and guard equations rather than relying mainly on outside domain decoding."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Lane-change and collision-avoidance actions are described across narrative MPC/control prose and simulation discussion, not only in a co-located state table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The forced lane-change rule combines current-lane speed-band violation, adjacent-lane occupancy, assigned-speed comparison, and min-distance/min-speed-gap conditions."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Although the decision process is hierarchical, the paper does not specify a parent composite state with its own entry/during/exit behavior beyond child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The rule-based reference-speed automaton is applied for every lane at every prediction interval, and the forced lane-change escape rule is parameterized over current lane l."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No explicit composite-state initialization or pseudo-state chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "There are more than three arithmetic/boolean guards over vehicle positions, speeds, lane bounds, safe headway, uncertainty ellipses, and lane-selection constraints."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The per-lane, per-prediction-interval speed automaton and forced lane-change rule apply across multiple lane states, favoring one parameterized forced/aspect rule over many duplicated transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "The automaton emits abstract references, constraints, and control trajectories to PTG/lower-level controllers, though the actuator layer is still concrete vehicle throttle/brake/steering control."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "the switching among the discrete references can be done hierarchically",
+    "a forced lane change is necessary to help the ACV jump out of the trap"
+  ],
+  "one_line_pitch": "A highway maneuver EFSM with hierarchical lane/speed switching, dense arithmetic guards, reference-update actions, and cross-lane forced escape rules is a strong stress test for weak guard/action/state recovery in Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "The paper gives a concrete hybrid maneuver automaton coupled to MPC, with explicit states for cruising, following, leading, and lane change plus rich guard equations over positions, speeds, lane occupancy, uncertainty, and headway. Its key actions are not trivial outputs: they reassign reference speeds, alter objective costs, and command optimized control trajectories. It lacks a formal fault-recovery state hierarchy, but the forced lane-change escape rule and cross-section presentation make it a high-density baseline trap.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 260210,
+      "cached_input_tokens": 220416,
+      "output_tokens": 8183,
+      "reasoning_output_tokens": 5311
+    },
+    "duration_s": 163.1,
+    "attempt": 1
+  }
+}

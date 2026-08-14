@@ -1,0 +1,107 @@
+{
+  "case_id": "long-duration-fully-autonomous-operation-of-rotorcraft-uas-for-remote-sensing-data-acquisition__01",
+  "case_name": "Master-and-Autopilot Mission Cycle for Autonomous Rotorcraft UAS",
+  "expanded_nl": "The autonomy engine controls a rotorcraft UAS for repeated observation flights without human intervention, with high-level decisions implemented as a hierarchy of master and slave state machines [E1][E2]. The master coordinates the takeoff, mission, landing, and emergency-landing states by activating the phase-specific autopilot and waiting for it to complete [E3], and it can abort an autopilot when robust behavior is needed [E4]. The takeoff autopilot starts from a motors-off vehicle on the charging pad [E5]; before climb it validates battery voltage and motor performance [E6], reinitializes the state estimator after charging, saves the launch location in permanent memory [E7], and commands velocity-controlled climb to the target altitude [E8]. Its motor check spins the motors at low RPM, requires measured speed within 400 RPM of nominal, and aborts takeoff after ten failed attempts [E9]. The mission autopilot flies user-defined waypoints and hover times through the guidance subsystem until the route completes or low battery requests return to the charging pad [E10]. The landing autopilot checks the downfacing navigation camera for any AprilTag in the pad bundle and performs a spiral grid search when the bundle is not visible [E11], then aligns yaw and lateral position over the pad center and descends until height is below 0.3 m and vertical speed is below 0.1 m/s [E12]. If battery voltage becomes critically low, mission or landing can be aborted and the emergency lander performs an in-place soft touchdown with a 0.3 m/s descent and 0.1 m/s velocity threshold [E13]. During mission execution, a health observer monitors critical components and issues fail-safe emergency messages such as return-to-home or emergency landing on low battery or state-estimation failure [E14].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Abstract",
+      "quote": "performing repeated flights for long-term observation missions without any human intervention",
+      "supports": "UAS performs repeated observation flights without human intervention"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 A | paper.pdf p.1 Abstract",
+      "quote": "High-level autonomous decision making is implemented as a hierarchy of master and slave state machines.",
+      "supports": "high-level decisions are hierarchical master/slave state machines"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.2",
+      "quote": "activates the appropriate autopilot and waits for it to complete",
+      "supports": "master activates phase-specific autopilot and waits"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.2",
+      "quote": "abort each autopilot in order to execute robust behaviors",
+      "supports": "master can abort an autopilot for robust behavior"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.3",
+      "quote": "from a motors-off state on the charging pad to a hover",
+      "supports": "takeoff starts from motors-off vehicle on charging pad"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §3.3",
+      "quote": "adequate battery voltage level and motor nominal performance",
+      "supports": "pre-takeoff battery-voltage and motor-performance validation"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.3",
+      "quote": "re-initializing the state estimator after the prolonged charging phase and memorizing the current horizontal location in permanent memory",
+      "supports": "state-estimator reinitialization and launch-location memory action"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.3",
+      "quote": "commands a velocity-controlled takeoff that takes it from the initial position on the charging pad to a target altitude.",
+      "supports": "velocity-controlled climb to target altitude"
+    },
+    {
+      "marker": "E9",
+      "source": "STM §1 摘录 B | paper.pdf p.20 §7.3",
+      "quote": "verified to rotate within 400 RPM of the nominal value. Ten attempts to pass this check are allowed",
+      "supports": "RPM deviation guard and ten-attempt abort condition"
+    },
+    {
+      "marker": "E10",
+      "source": "paper.pdf p.21 §7.4 | paper_content.txt 行 518-520",
+      "quote": "individual waypoints and hover times; low battery charge requests the UAS to return to the charging pad",
+      "supports": "mission waypoints/hover-times and low-battery return request"
+    },
+    {
+      "marker": "E11",
+      "source": "STM §1 摘录 C | paper.pdf p.21 §7.5",
+      "quote": "if any AprilTag in the bundle is detected. If not, the UAS executes the spiral grid search trajectory",
+      "supports": "camera AprilTag check and spiral-grid-search fallback"
+    },
+    {
+      "marker": "E12",
+      "source": "STM §1 摘录 C | paper.pdf p.23 §7.5",
+      "quote": "align the vehicle’s lateral position over the center of the charging pad; 0.3 m height and 0.1 m/s velocity thresholds",
+      "supports": "alignment over pad center and conjunctive touchdown thresholds"
+    },
+    {
+      "marker": "E13",
+      "source": "STM §1 摘录 C | paper.pdf p.23 §7.6",
+      "quote": "triggered in response to a critically low battery voltage; mild vertical velocity of 0.3 m/s; 0.1 m/s velocity threshold",
+      "supports": "critical-battery emergency landing and descent/touchdown thresholds"
+    },
+    {
+      "marker": "E14",
+      "source": "paper.pdf p.10 §3.3",
+      "quote": "system health observer monitors all critical components of the UAS and issues emergency messages",
+      "supports": "health observer monitors components and issues fail-safe emergency messages"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 在 [E1][E2][E3] 暴露 master/slave state machines 与 phase-specific autopilot 调度关系，[E5] 给出 takeoff autopilot 的进入起点，形成 H 轴覆盖。",
+    "G_guards_arith": "G 钩子主要在 [E9] 的 400 RPM 偏差与 ten attempts abort，以及 [E12][E13] 的高度/速度 touchdown 阈值；均以具名物理量自然语言表达。",
+    "A_actions_nontrivial": "A 钩子包括 [E3][E4] 的 activate/wait/abort，[E7][E8] 的 estimator reinit、memory save、velocity climb，以及 [E11][E12] 的 camera search、alignment、descent。",
+    "F_fault_recovery": "F 钩子在 [E4][E13][E14]：master 可 abort autopilot，critically low battery 触发 emergency lander，health observer 发出 fail-safe emergency messages。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain、implicit-action-prose、multivar-guard 与 global-cross-cutting 失败模式，集中体现在 rotorcraft/AprilTag 术语、散叙述动作、touchdown 复合阈值和健康监控/abort 规则 [E7]-[E14]。",
+    "ft_fcstm_fit": "pyfcstm fit 较强：层次 master/slave 与 autopilot 进入点适配深复合 init [E2][E3][E5]，数值守卫适配 Expr-IR/SMT [E9][E12][E13]，abort/emergency 语义适配 forced recovery [E4][E13][E14]；原文不支持每 tick aspect。"
+  },
+  "word_count_estimate": 273,
+  "intentional_omissions": "未加入原文没有明确支持的 per-cycle watchdog/aspect、forced reset、额外传感器型号或执行器编号。也未逐个枚举 Figure 17/18 的全部 state/flowchart node，以避免把任务退化为状态清单复述。",
+  "_meta": {
+    "id": "long-duration-fully-autonomous-operation-of-rotorcraft-uas-for-remote-sensing-data-acquisition__01",
+    "actual_word_count": 273,
+    "markers_count": 14,
+    "provenance_count": 14
+  }
+}

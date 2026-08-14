@@ -1,0 +1,92 @@
+{
+  "sample_id": "scada-multi-area-parking-system-plc-m221__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper describes one flat active parking-control process with entry, exit, and full-lot conditions; it does not define parent states, nested modes, or internal sub-FSMs."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Entry is allowed only when a vehicle is detected and the area count has not reached 10; when count is 10/full, the entrance remains closed even if the sensor detects a vehicle."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The PLC opens/closes barrier motors, switches green/red indicators, updates HMI displays, increments/decrements occupancy, counts daily entries, and calculates parking revenue."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "No fault, emergency-stop, rollback, degraded mode, or recovery transition is specified; the Stop button is only mentioned as ending the repeated process."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The same controller behavior is distributed across non-adjacent locations: the abstract states motor/light/HMI actions, the introduction states green/red full-entry behavior, and results/tables define count<10 repetition, full=10 blocking, and exit decrement."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Terms such as SCADA and full parking are accompanied by explicit rules; the paper spells out that full means red light on and entrance barrier closed despite sensor detection."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "The main actions are stated directly with the relevant conditions in the results narrative and HMI/plant tables, rather than requiring attribution from an unrelated prose section."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard combines sensor detection with occupancy comparison, e.g. vehicle detected at entrance AND number of parked cars below 10; full=10 blocks entry even when the sensor is active."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state or parent-level entry/during/exit behavior is defined."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "There is no from-any-state fault or recovery rule; no safe-state transition is described."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite state or init/pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The entry/full/exit logic uses composed guards over sensor status and occupancy thresholds, but the guard set is small and not deeply arithmetic."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The HMI monitors sensor status, lamp status, barrier movement, counts, and revenue in real time during the active parking process, which could be encoded once as an active-mode during/aspect behavior instead of repeated per transition."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Most side effects are concrete PLC/HMI actions: motor movement, LED switching, display updates, and counter/revenue calculation."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 2,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "Kondisi ini akan berulang tiap kali ada mobil terdeteksi ada di depan pintu masuk dan jumlah mobil yang berada di area parkir belum mencapai 10.",
+    "Lampu indikator merah akan menyala saat kondisi parkir full (berjumlah 10) dan palang pintu masuk tidak akan membuka meskipun sensor mendeteksi ada mobil di depan pintu masuk."
+  ],
+  "one_line_pitch": "A flat but action-heavy parking EFSM that stresses guard synthesis and transition-action attribution through sensor-plus-count interlocks, HMI counter updates, and full-lot blocking.",
+  "verdict": "backup",
+  "rationale": "This is a meaningful stress-test for weak guard and action extraction: the controller combines loop-sensor events with occupancy thresholds and drives barriers, LEDs, HMI animation, occupancy counts, daily totals, and revenue. It lacks hierarchy and fault recovery, so it is weaker than top candidate samples targeting all four weak baseline dimensions. The cross-section scattering and multivariable guard logic make it useful as a backup benchmark case rather than an exclusion.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 147285,
+      "cached_input_tokens": 131968,
+      "output_tokens": 6953,
+      "reasoning_output_tokens": 5047
+    },
+    "duration_s": 137.9,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "packaging-filling-machine-control-plc-logicon__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The controller is organized as a main program that conditionally invokes subprograms for device polling, thermoknife motion, quality control, and temperature recording."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Guards include no-emergency calls, shutter-closed before hopper filling, hopper-filled before sealing, package-present before weighing, and weight mismatch before ejection."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Actions command multiple actuators: start screw feeder/conveyor, stop vibrating tray, open shutter, move thermoknives, eject package, stop all processes on fault."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "On any emergency, all working processes stop, the system enters waiting mode, and resumes only after operator fault reset."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Process actions are described in the equipment/process section, while subprogram structure, guards, and fault behavior are described later in the main-program section."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as emergency stop, аварийная ситуация, режим ожидания, and сброс аварии imply fail-safe stop and reset semantics."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions for feeder, shutter, thermoknives, conveyor, quality control, and pusher are given in narrative prose rather than a state/action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Quality control combines package presence with comparison of measured weight against the required weight before pneumatic ejection."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "The parent main program has its own behavior: it calls every subprogram only when no emergency is present, while feeder and conveyor run continuously after Start."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper states that when an emergency occurs, all working processes stop and the system switches to waiting mode."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "There is a shallow composite supervisor-to-subprogram structure, but no deep pseudo-state initialization chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are 1-2 meaningful composed guards, especially package-present plus weight-mismatch and no-emergency gating of subprogram calls."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The emergency rule applies across multiple machine subprocesses, and normal operation has parent-level continuous feeder/conveyor behavior."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Most effects are concrete actuator commands, but temperature recording and emergency signaling are abstract side effects without a fixed channel."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "В основной программе производится вызов каждой подпрограммы при условии отсутствия аварийной ситуации.",
+    "В случае возникновения аварийной ситуации все рабочие процессы останавливаются, и система переходит в режим ожидания."
+  ],
+  "one_line_pitch": "This sample stresses weak baseline action, guard, hierarchy, and global-recovery handling through a PLC supervisor whose behavior is scattered across process prose, subprogram structure, and fault semantics.",
+  "verdict": "candidate",
+  "rationale": "The paper provides a concrete industrial controller with a main supervisor, nested subprocesses, guarded actuator sequencing, quality-control checks, and explicit global emergency recovery. Its information is not presented as a clean state table, so an LLM-to-SMF baseline must infer state/action attribution and duplicate cross-cutting fault behavior. The combination of BD=3 and FT=3 makes it a strong top-15 stress-test candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 52614,
+      "cached_input_tokens": 43264,
+      "output_tokens": 5567,
+      "reasoning_output_tokens": 4327
+    },
+    "duration_s": 104.7,
+    "attempt": 1
+  }
+}

@@ -1,5 +1,33 @@
 # `paper_v1/` — 第一篇论文工作区
 
+## 0. Current overlay（2026-06-09）
+
+当前第一篇论文已经从 2026-05 的 Direction-Decision Sprint 进入 **Path-1 paper foundation** 阶段。后续第一篇 paper 的默认入口是 [path1_foundation/README.md](./path1_foundation/README.md)。
+
+当前导师定调与执行口径：
+
+1. 第一篇主线优先走 **Path-1 baseline hard comparison**，而不是 Path-2 控制系统差异化主线。
+2. Path-2、变量三分法、BMC/LTL 和更深控制系统语义保留为后续论文或 future work。
+3. E1 自建 agent-loop 与 E2 mature-agent skill route 是同一底座的不同 agent orchestration 条件，不再主打 Hybrid。
+4. 论文贡献应落在形式化状态机表示、形式化检查反馈、可执行仿真反馈、LLM agent 修复与可审计 run record，而不是 `fcstm`、LangGraph、Codex、Claude 等工程名。
+5. 投稿计划按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 2026 夏季期刊冲刺口径推进：**按 CCF-A 论文标准打磨，2026 夏季优先投 CCF-B 期刊**；默认主投 SoSyM regular rolling，ASE Journal / Requirements Engineering Journal regular rolling 作备投。这不是把论文质量降到 B，而是用 A 类 reviewer 会追问的 novelty / baseline / oracle / artifact 标准来准备一篇更稳的 B 类期刊首投稿。
+6. PR #92 已合入 `main`，后续 baseline 冻结必须把 9 个五绿 direct baseline 逐篇吸收为反证门；不能只读总账摘要或继续沿用过期 corpus。
+
+后续新 session 推荐阅读顺序：
+
+1. [path1_foundation/README.md](./path1_foundation/README.md)
+2. [path1_foundation/story/paper_story.md](./path1_foundation/story/paper_story.md)
+3. [path1_foundation/story/paper_outline.md](./path1_foundation/story/paper_outline.md)
+4. [path1_foundation/story/venue_readiness_gate.md](./path1_foundation/story/venue_readiness_gate.md)
+5. [path1_foundation/dataset_selection/sample_assets.md](./path1_foundation/dataset_selection/sample_assets.md)
+6. [path1_foundation/experiment_design/experiment_inventory.md](./path1_foundation/experiment_design/experiment_inventory.md)
+7. [path1_foundation/experiment_design/execution_plan.md](./path1_foundation/experiment_design/execution_plan.md)
+8. [path1_foundation/dataset_selection/legacy_pr9_assets/README.md](./path1_foundation/dataset_selection/legacy_pr9_assets/README.md)
+9. [../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md](../talks/2026-06-04-导师-第一篇论文路线与E1E2定位.md)
+
+以下历史内容保留用于追溯 2026-05 Direction-Decision Sprint，不再代表当前默认施工入口。
+
+
 ## 1. 目录定位
 
 `paper_v1/` 是 `project_1` 第一篇论文的工作区，负责承载：
@@ -10,9 +38,9 @@
 
 它不收录论文（不属于论文集），所以**不遵循** [CLAUDE.md §2.2](../../CLAUDE.md) 的论文集规范；它的命名约定是"工作产物面向 paper 写作"。
 
-## 2. 当前阶段 — Direction-Decision Sprint
+## 2. 历史阶段 — Direction-Decision Sprint（2026-05，已被 current overlay 覆盖）
 
-本目录**当前阶段**（2026-05-26 起 30 小时窗口）承担的核心任务是：
+本目录在 **2026-05 Direction-Decision Sprint 历史阶段** 曾承担以下任务：
 
 1. 在 main 分支稳定 `method/` 共同基础（agent loop + pyfcstm 反馈 + ex1 judge）
 2. fork 两个 branch（`dev/path1-hard-comparison` / `dev/path2-differentiation`）
@@ -23,7 +51,7 @@
 
 ## 3. 目录结构
 
-当前阶段产物：
+历史 sprint 阶段产物：
 
 ```text
 paper_v1/
@@ -34,7 +62,7 @@ paper_v1/
 └── PATH2_REPORT.md                      (Path 2 sprint 跑完后由 Phase 6 产出)
 ```
 
-方向定后的扩展产物（推迟创建，sprint 阶段不建）：
+方向定后曾设想的扩展产物（历史计划，当前以 [path1_foundation/](./path1_foundation/) 为准）：
 
 ```text
 paper_v1/
@@ -46,17 +74,16 @@ paper_v1/
 └── submission/                          (投稿 package)
 ```
 
-## 4. 新 session 进入顺序
+## 4. 历史 sprint 新 session 进入顺序
 
-任何新 Claude / codex session 进入本目录后，按以下顺序读：
+以下顺序仅用于追溯 2026-05 sprint 历史，不是当前默认施工入口。当前默认入口见本文件 §0。
 
-1. 本 [README.md](./README.md)（理解目录定位与当前阶段）
-2. [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（meta-level 路线规划与决策准则）
-3. 根据当前所在 branch 选读：
-   - 若在 `dev/path1-hard-comparison`：读 [PATH1_HARD_COMPARISON_GUIDE.md](./PATH1_HARD_COMPARISON_GUIDE.md)
-   - 若在 `dev/path2-differentiation`：读 [PATH2_DIFFERENTIATION_GUIDE.md](./PATH2_DIFFERENTIATION_GUIDE.md)
-   - 若在 `main`：两份 GUIDE 都读，但**只能动 `method/` 共同基础**，不能动 path 特有的 evaluation 代码
-4. `method/STATUS.md`（如果存在，查 sprint 当前进度）
+1. 本 [README.md](./README.md)（先读 §0 current overlay）
+2. [../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md](../discussions/2026-05-26-15-30-00-AI-讨论-第一篇论文agent-loop闭环2日冲刺计划.md)（历史 meta-level 路线规划与决策准则）
+3. 如需追溯历史 branch，再选读：
+   - `dev/path1-hard-comparison` 历史材料：[PATH1_HARD_COMPARISON_GUIDE.md](./PATH1_HARD_COMPARISON_GUIDE.md)
+   - `dev/path2-differentiation` 历史材料：[PATH2_DIFFERENTIATION_GUIDE.md](./PATH2_DIFFERENTIATION_GUIDE.md)
+4. [../method/STATUS.md](../method/STATUS.md) 顶部 current overlay
 
 ## 5. 与 project_1 其他目录的关系
 
@@ -80,6 +107,6 @@ Sprint 阶段所有 LLM 调用统一走仓库根 `.env`（已 gitignore）中的
 
 详细约束见 [PATH1_HARD_COMPARISON_GUIDE.md §4.2a](./PATH1_HARD_COMPARISON_GUIDE.md#42a-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0) 与 [PATH2_DIFFERENTIATION_GUIDE.md §4.3](./PATH2_DIFFERENTIATION_GUIDE.md#43-methodgpt_clientpy-统一-llm-clientv3-新增--必须实现在-phase-0)。
 
-## 7. 投稿目标
+## 7. 历史投稿目标
 
-按用户 2026-05-26 对齐讨论：**ICSE / FSE / ASE 2027 conf paper**（10-12 页），截稿 2026 年 7-8 月。journal 投稿是 fallback。
+本节记录 2026-05 sprint 时的旧口径：当时曾按 **ICSE / FSE / ASE 2027 conf paper**（10-12 页）设想推进，journal 投稿作为 fallback。当前投稿口径已经被本文件 §0 覆盖：优先按 issue [#67](https://github.com/HansBug/research_ideas/issues/67) 的 SoSyM / ASE Journal / RE Journal regular rolling 期刊路线推进。

@@ -1,0 +1,92 @@
+{
+  "sample_id": "battery-balancing-fsm-flyback-converters__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The controller is presented as one flat three-state FSM: off, SoC balancing, and temperature balancing; no parent state or nested sub-FSM is described."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "State selection depends on SL,max, TL,max, and Sav; Sav,lim is computed from an arithmetic condition involving SL,max, It, It,max, and a coefficient, with AND/OR-style stay and exit conditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "The states set alpha/beta mode factors, turn balancing on/off, and invoke per-sampling current-allocation actions that compute Imax, sigma_i, and reference currents for each cell."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper discusses balancing and charge-limit behavior, but gives no fault state, emergency transition, rollback, or recovery path."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and guard criteria are in Section 4.2.1, while the detailed SoC/temperature balancing-current actions are described separately in Section 4.2.2 and the observed State 3 to State 2 sequence appears in Section 5.3."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as SoC balancing and temperature balancing are operationalized with explicit thresholds, factors, and current-allocation formulas rather than relying on unstated external rules."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state list says State 2 prioritizes SoC and State 3 prioritizes temperature, but the concrete actions are narrative algorithms for computing balancing currents in the following subsection."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard uses multiple variables and arithmetic, especially the piecewise Sav,lim condition based on 80% - gamma * SL,max * It / It,max, plus state guards over SL,max, TL,max, and Sav."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "There is no composite state with parent-level entry, during, or exit behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault or recovery transition is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "The FSM is flat and has no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The sample has several threshold guards with arithmetic and boolean composition over SL,max, TL,max, Sav, Sav,lim, and charging current terms."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 1,
+      "evidence": "The thermal upper-bound rule that enters the temperature-balancing state is source-agnostic for the other operating states, but it is only a small flat-FSM duplication saving."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete mode factors and flyback-converter reference currents, not abstract publish/log/notify-style side effects."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "The FSM section defines three operating states and says each state has its balancing strategy.",
+    "The operating state is decided from SL,max, TL,max, and Sav at each sampling instant."
+  ],
+  "one_line_pitch": "A flat but guard-heavy battery BMS supervisor whose arithmetic mode logic and per-sampling current-allocation actions stress the weakest guard/action parts of Umple-style baselines.",
+  "verdict": "backup",
+  "rationale": "This is a meaningful stress-test sample because the core FSM depends on multi-variable arithmetic guards and nontrivial per-state balancing actions. It also has baseline traps from cross-section action attribution and formula-heavy guard reconstruction. It is better as a backup than a top candidate because it has no hierarchy and no fault-recovery/global escape structure.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 141266,
+      "cached_input_tokens": 107008,
+      "output_tokens": 8863,
+      "reasoning_output_tokens": 6849
+    },
+    "duration_s": 169.2,
+    "attempt": 1
+  }
+}

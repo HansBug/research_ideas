@@ -1,0 +1,92 @@
+{
+  "sample_id": "size-adjustable-pediatric-lower-limb-exoskeleton-weight-shift__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper defines a flat FSM with S1-S6 gait states and no parent/child mode structure or composite sub-FSM."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Automatic step triggering uses the arithmetic guard gamma_GRF=(F0_GRF,i-Ft_GRF,i)/F0_GRF,i and triggers when it exceeds a preset threshold for i=1,3,6."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions go through eight explicit actions: COM shifts, full-step swings, half-step returns, minimum-jerk COM trajectory generation, inverse kinematics, and 1 kHz real-time joint control."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The implementation mentions EtherCAT initialization/error management and driver error-state monitoring, but gives no explicit fault state, rollback, or recovery transition."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State and action names are in Section IV.A, the trajectory/action equations are in IV.B, and the GRF trigger guard is in IV.C, so one transition must be reconstructed across subsections."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Although terms such as COM shift, support polygon, and swing leg are domain-specific, the paper explicitly spells out the transition rationale and GRF threshold rule."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "A1-A8 are listed as transition actions in IV.A, while their realization through minimum-jerk trajectories and inverse kinematics is described later in narrative prose and equations."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The step guard computes normalized force decrease from F0_GRF,i and Ft_GRF,i and compares it with a preset threshold."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite state or parent-level entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault, abort, emergency-stop, or global recovery rule is specified."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The normalized-GRF arithmetic guard is useful for an expression IR, but it is essentially one guard schema reused for A1/A3/A6 rather than a rich interacting guard set."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The same continuous GRF monitoring and trigger rule applies across the three COM-shift actions A1, A3, and A6, which an aspect-style encoding could declare once instead of duplicating."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Actions are expressed as abstract gait effects such as shifting COM, swinging a leg, and returning by half-step, then mapped to concrete trajectories and joint commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Transitions between different states need to go through some well-deigned actions.",
+    "After the COM shift action is finished, the controller will keep monitoring the gamma_GRF,i and if it is larger than a preset threshold, the step will be triggered."
+  ],
+  "one_line_pitch": "A flat but action- and guard-heavy exoskeleton gait supervisor whose transitions require reconstructing trajectory actions and arithmetic GRF triggers across several control subsections.",
+  "verdict": "candidate",
+  "rationale": "This is not a hierarchy or fault-recovery stress test, but it is a strong guard/action stress case: each FSM transition is mediated by domain actions, trajectory generation, inverse kinematics, and GRF-based arithmetic triggering. The key baseline traps are cross-section reconstruction, prose-to-action attribution, and multivariable arithmetic guards. It is therefore a good top-set candidate for exposing known Umple-style weaknesses in actions and guards.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 90582,
+      "cached_input_tokens": 69248,
+      "output_tokens": 7306,
+      "reasoning_output_tokens": 5429
+    },
+    "duration_s": 138.1,
+    "attempt": 1
+  }
+}

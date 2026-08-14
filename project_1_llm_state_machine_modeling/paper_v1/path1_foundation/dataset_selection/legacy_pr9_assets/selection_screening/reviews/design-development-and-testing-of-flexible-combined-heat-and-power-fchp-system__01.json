@@ -1,0 +1,92 @@
+{
+  "sample_id": "design-development-and-testing-of-flexible-combined-heat-and-power-fchp-system__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The controller has a flat mode set: off, ready-to-run, grid-connected, islanded, and fault; the paper groups active states but does not define nested sub-states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Mode choices depend on grid availability/operator-required islanding, BESS activation uses LV dc bus thresholds with an OR condition, and fault transitions depend on any system fault."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions/modes include ordered startup of PCS/sources/BESS/loads, stopping PCS bus-voltage control on islanding, sending BESS voltage-control commands, droop-mode switching, setpoint issuing, protection updates, and data logging."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The paper states a global rule from every active state except off into fault, and fault recovery must go through ready-to-run after clearance."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Grid-connected/islanded behavior is introduced in the operation-modes section, transitions and BESS threshold behavior are in the state-machine section, and protection/fault handling appears in a separate protection section and test section."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as islanded mode, grid-forming/grid-following, load shedding, fault ride-through, protection coordination, and reconnection imply domain-specific transition and action semantics."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are not in a compact state/action table; PCS, BESS, source, load, relay, and logging behaviors are attributed from narrative prose around the mode descriptions."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one mode condition combines grid unavailability with operator request, and BESS control is guarded by a low-threshold OR high-threshold LV dc bus condition."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No parent/composite state is defined with its own entry/during/exit behavior; the mode machine is essentially flat."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "All active modes share the same transition to fault, followed by the single recovery path fault to ready-to-run."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "There is no composite-state initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are boolean/comparison guard families around grid availability, operator-required islanding, BESS thresholds, and faults, but not enough explicit arithmetic guard sets for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The global any-active-state fault transition applies to at least ready-to-run, grid-connected, and islanded, so forced transitions avoid duplicating the same escape edge."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some side effects are abstract controller outputs such as dispatch commands, protection-setting updates, and data logging, while core mode actions are still concrete PCS/BESS commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "All the active states ... can go to the fault state",
+    "below a threshold value Vth1 or higher than ... Vth2"
+  ],
+  "one_line_pitch": "A flat but action-heavy F-CHP mode manager with thresholded BESS handover, prose-scattered mode semantics, and a global fault escape rule that weak baselines must duplicate correctly.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test for actions, guards, and global recovery rather than hierarchy. The paper gives enough concrete behavior to build a reference EFSM: startup sequencing, grid-connected/islanded handover, BESS threshold control, reconnection, and mandatory restart after faults. Its main baseline trap is that the semantics are split across operation-mode, state-machine, protection, and testing prose, while the global fault transition must be applied consistently across all active modes.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 198152,
+      "cached_input_tokens": 160128,
+      "output_tokens": 7724,
+      "reasoning_output_tokens": 5628
+    },
+    "duration_s": 150.8,
+    "attempt": 1
+  }
+}

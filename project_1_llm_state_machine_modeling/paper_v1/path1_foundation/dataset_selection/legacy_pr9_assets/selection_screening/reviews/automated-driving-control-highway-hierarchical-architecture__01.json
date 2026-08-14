@@ -1,0 +1,92 @@
+{
+  "sample_id": "automated-driving-control-highway-hierarchical-architecture__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The controller is a two-level hierarchy, and the FSM uses composite driving tasks such as Lane Keeping / Speed Tracking and Lane Keeping / Distance Tracking with Lane Keeping active across ST/DT."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Explicit hysteresis guards: ST -> DT if d_O < d_tar - d_m1; DT -> ST if d_O > d_tar + d_m2, with d_tar depending on relative speed."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Each selected FSM task reconfigures the MPC problem; the planner outputs way-points and target speed, and the lower controller computes steering and acceleration continuously."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "The paper explicitly states that emergency maneuvers are not considered; robustness to uncertainty is handled, but no fault or recovery state machine is defined."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Task names and switching rules are in Behavioral Logic, while lane/distance APF behavior, MPC outputs, interpolation, and low-level actions are spread across earlier and later sections."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as overtaking, returning, lane keeping, and distance tracking imply driving-specific transition/action semantics beyond a simple state name."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively as APF selection, MPC cost-term inclusion, trajectory generation, and low-level tracking rather than in a state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The ST/DT hysteresis guard combines d_O, d_tar, d_m1/d_m2; d_tar itself is a speed-dependent arithmetic target distance."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Lane Keeping is treated as always active while Speed Tracking and Distance Tracking switch internally, so the parent behavior contributes a persistent lane APF objective."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state recovery, fail-safe transition, or global fault escape is specified."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No explicit initial pseudo-state chain or deep composite-state initialization is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The sample has 1-2 explicit arithmetic hysteresis guards suitable for expression checking, but not a large guard set."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Lane Keeping is a parent-level continuous behavior active across ST and DT, matching an aspect/during declaration rather than duplicated substate actions."
+    },
+    "C4_abstract_action": {
+      "strength": 2,
+      "evidence": "The high-level FSM emits abstract references such as way-points and target speed, decoupled from throttle/brake/steering actuation handled by the lower layer."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "A switching logic described by a finite state machine ... selects the most appropriate maneuver",
+    "ST -> DT if d_O < d_tar - d_m1; DT -> ST if d_O > d_tar + d_m2"
+  ],
+  "one_line_pitch": "A compact highway-driving supervisor stresses hierarchy, arithmetic hysteresis guards, and continuous controller actions without relying on fault handling.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test because the FSM is embedded in a two-layer control architecture and its states are coupled to MPC/APF objectives rather than simple event labels. The explicit hysteresis guards and distributed action semantics target known weak points in Umple-style baselines. The lack of fault recovery reduces F, but H/G/A plus high BD and FT make it a top candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 489303,
+      "cached_input_tokens": 441600,
+      "output_tokens": 11285,
+      "reasoning_output_tokens": 7414
+    },
+    "duration_s": 240.5,
+    "attempt": 1
+  }
+}

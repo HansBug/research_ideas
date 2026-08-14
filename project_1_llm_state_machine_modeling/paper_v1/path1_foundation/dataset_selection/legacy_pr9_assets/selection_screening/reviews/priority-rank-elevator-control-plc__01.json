@@ -1,0 +1,92 @@
+{
+  "sample_id": "priority-rank-elevator-control-plc__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 2,
+      "evidence": "The controller is organized into Normal, Rank1, Rank2, and Rank3 modes; privileged modes reuse collective-operation dispatch internally for same-rank calls, but the paper does not define a deep named substate tree."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Normal-mode output is derived from a Karnaugh expression over movement state, call direction, cabin/floor call, and closest-call variables; privileged modes add rank, before/after, and en-route conditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Transitions perform call cancellation, memory storage/reset, nearest-floor stop, passenger announcement, direct dispatch to the privileged caller, and mode return after fulfillment."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "Rank1 acts as a cross-cutting escape path from Rank2, Rank3, or Normal: the elevator stops, evacuates passengers, cancels lower-priority traffic, and serves Rank1 directly."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Mode summaries are in the Introduction, guard logic and Karnaugh conditions are in section 2.2.1, and per-rank transition actions are spread across sections 2.2.2.1-2.2.2.3 and Table 2."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as collective operation, en-route closeness, most appropriate call, and privileged use require mapping elevator-dispatch domain notions into state-transition guards."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": false,
+      "evidence": "Most actions are stated under the relevant Rank1, Rank2, Rank3, or Normal-mode paragraphs, so state-action attribution is largely local despite being prose."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The Karnaugh-derived normal-mode condition combines multiple boolean variables for elevator movement, halt/stop status, call direction, cabin calls, and proximity."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Privileged rank modes have their own override/entry behavior while also embedding collective-operation behavior for same-rank calls."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "A Rank1 request preempts Rank2, Rank3, and Normal through the same stop-evacuate-direct-service rule."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "The paper does not define explicit initial pseudo-state chains or non-trivial composite initialization."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The Karnaugh and priority guards combine many boolean conditions, making expression normalization and consistency checking useful."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Rank1 preemption applies across three high-level modes, so a forced transition can encode one cross-cutting rule instead of duplicating it."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Announcement, call cancellation, and call-memory updates are abstract control effects, although much of the elevator movement behavior is concrete."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "When in either Rank2, Rank3 or Normal mode",
+    "Collective operation answers same direction calls according to proximity"
+  ],
+  "one_line_pitch": "A rank-priority elevator supervisor with Karnaugh-style multi-variable guards, mode-local collective dispatch, and global Rank1 preemption directly stresses guard, action, and hierarchy weaknesses in Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test because the paper gives real control logic rather than a toy FSM: rank modes, same-rank collective dispatch, multi-variable guard synthesis, and non-trivial transition effects are all present. The hardest baseline trap is the cross-cutting Rank1 preemption rule, which must be propagated from multiple modes while preserving cancellation, announcement, and direct-dispatch actions. It has no hard-exclusion features and has enough paper evidence to construct a meaningful reference state machine.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 81146,
+      "cached_input_tokens": 69248,
+      "output_tokens": 7752,
+      "reasoning_output_tokens": 5965
+    },
+    "duration_s": 146.5,
+    "attempt": 1
+  }
+}

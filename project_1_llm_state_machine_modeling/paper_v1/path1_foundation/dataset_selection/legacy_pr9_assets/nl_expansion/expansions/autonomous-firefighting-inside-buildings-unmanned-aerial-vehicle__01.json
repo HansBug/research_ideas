@@ -1,0 +1,131 @@
+{
+  "case_id": "autonomous-firefighting-inside-buildings-unmanned-aerial-vehicle__01",
+  "case_name": "Building-interior firefighting mission supervisor",
+  "expanded_nl": "The mission supervisor is a FlexBE hierarchical state machine in ROS that interconnects MAV subsystems and contains nested lower-level state machines [E1] [E2] [E3]. It first verifies key parts, calls automatic takeoff only after every component is operational, then runs outdoor and indoor phases before returning home and landing [E4] [E5]. In outdoor phase, 2D LIDAR scans form a virtual bumper against plans closer than a predefined safe distance, and the MAV flies along the building at a predefined distance and heading while searching for windows [E6] [E7]. When a window is located, it stops wall-following, moves to 2 m from the window center, switches to indoor flying localization, and retries flythrough until success or maximum allowed flight time triggers automatic landing [E8] [E9]. The flythrough submachine faces the window, hovers to stabilize, waits for an updated window estimate, then flies through the center to a goal behind the window at constant altitude [E10]. If that estimate is lost during flythrough while the MAV remains outside, Escaping returns it to the original hover point [E11]. Any state outcome meaning the MAV cannot continue also calls a landing event [E12]. Indoors, exploration and fire detection send the MAV to a validated fire position 1.5 m in front of the target before extinguishing [E13]. Its effector is a water bag and pump driving water through a front nozzle; spraying is active only in the drifting state and disabled outside the outer range [E14] [E15]. If the fire is lost, exploration resumes [E16]; otherwise the MAV depletes its water, treats all-water-depleted as completion [E17], exits through the same window, switches back to outdoor localization, and lands at the start position [E18].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 905-908",
+      "quote": "constructed as a hierarchical state machine, which is used for interconnecting all the subsystems",
+      "supports": "hierarchical state machine; interconnects MAV subsystems"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 910-912",
+      "quote": "The hierarchical state machine is implemented using the Flexbe library [40], and it is fully integrated into the designed ROS framework.",
+      "supports": "FlexBE implementation and ROS integration"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 913-916",
+      "quote": "the nested lower-level state machines are visualized as double-outline rectangles",
+      "supports": "nested lower-level state machines"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 928-932",
+      "quote": "In the first step, the correct performance of all key parts of the system is checked. When every component is verified to be operational, an automatic takeoff is called.",
+      "supports": "verify key parts; automatic takeoff only after components are operational"
+    },
+    {
+      "marker": "E5",
+      "source": "STM §1 摘录 A | paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 932-939",
+      "quote": "The mission is divided into two parts: the outdoor phase and the indoor phase... the MAV flies back to the home position and lands.",
+      "supports": "outdoor/indoor phases; return-home landing"
+    },
+    {
+      "marker": "E6",
+      "source": "paper.pdf p.10 §F Outdoor phase | paper_content.txt 行 949-956",
+      "quote": "These scans... are used in a virtual bumper... prevents the MAV from following a plan... closer than the predefined safe distance.",
+      "supports": "2D LIDAR virtual bumper and predefined safe-distance guard"
+    },
+    {
+      "marker": "E7",
+      "source": "STM §1 摘录 B | paper.pdf p.10 §F Outdoor phase | paper_content.txt 行 960-963",
+      "quote": "the MAV starts flying alongside the building at a predefined distance with a heading towards the building, and begins the window detection mechanism.",
+      "supports": "wall-following at predefined distance and heading while detecting windows"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 B | paper.pdf p.10-11 §F Outdoor phase | paper_content.txt 行 963-973",
+      "quote": "the MAV stops flying alongside the building... flies in front of the window to distance of 2 m... localization... switched to indoor flying mode",
+      "supports": "stop wall-following; move 2 m from window center; switch to indoor localization"
+    },
+    {
+      "marker": "E9",
+      "source": "STM §1 摘录 B | paper.pdf p.11 §F Outdoor phase | paper_content.txt 行 974-984",
+      "quote": "The attempts can be repeated until the maximum allowed flight time is reached. After reaching this time, the MAV automatically lands.",
+      "supports": "retry flythrough until maximum flight time; automatic landing"
+    },
+    {
+      "marker": "E10",
+      "source": "STM §1 摘录 C | paper.pdf p.11-12 §F Window flythrough | paper_content.txt 行 985-1005",
+      "quote": "hovers in front of the center of the window to stabilize itself... waits for an up-to-date window estimate... maintaining a constant altitude",
+      "supports": "flythrough submachine sequence: hover, wait for updated estimate, fly through at constant altitude"
+    },
+    {
+      "marker": "E11",
+      "source": "STM §1 摘录 C | paper.pdf p.12 §F Window flythrough | paper_content.txt 行 1004-1009",
+      "quote": "If the window estimate is lost... the state machine switches to the Escaping state and the MAV returns to its original hovering position",
+      "supports": "estimate-lost-and-still-outside recovery through Escaping"
+    },
+    {
+      "marker": "E12",
+      "source": "paper.pdf p.10 §F High-Level Behavior Control | paper_content.txt 行 920-922",
+      "quote": "A landing event is called whenever any state produces an outcome that means that the MAV cannot continue its mission.",
+      "supports": "global landing event from any state that cannot continue"
+    },
+    {
+      "marker": "E13",
+      "source": "paper.pdf p.9 §E Fire Extinguishing | paper_content.txt 行 856-863",
+      "quote": "Upon obtaining the first validated fire detection state... the MAV is sent to a position... 1.5 m in front... handed over to the fire-extinguishing subsystem.",
+      "supports": "validated fire detection leads to a 1.5 m target position before extinguishing"
+    },
+    {
+      "marker": "E14",
+      "source": "paper.pdf p.13 Platform Description | paper_content.txt 行 1143-1151",
+      "quote": "To extinguish fires, the MAV is equipped with a water bag and a pump... The pump drives the water through a nozzle",
+      "supports": "water bag, pump, and front-nozzle effector"
+    },
+    {
+      "marker": "E15",
+      "source": "paper.pdf p.10 §E Fire Extinguishing | paper_content.txt 行 887-904",
+      "quote": "Water spraying is only activated when the MAV is in this drifting state... outside the outer ranges... water spraying is disabled.",
+      "supports": "spraying active only in drifting state and disabled outside outer range"
+    },
+    {
+      "marker": "E16",
+      "source": "STM §1 摘录 D | paper.pdf p.12 §F Indoor phase | paper_content.txt 行 1020-1021",
+      "quote": "In the case that the fire is lost, the MAV starts exploring again.",
+      "supports": "fire lost causes exploration to resume"
+    },
+    {
+      "marker": "E17",
+      "source": "STM §1 摘录 D | paper.pdf p.12 §F Indoor phase | paper_content.txt 行 1015-1020",
+      "quote": "If the fire target is not lost, the MAV depletes all the water... extinguishing is therefore declared completed once all the water is depleted.",
+      "supports": "not-lost fire target; water depletion as completion"
+    },
+    {
+      "marker": "E18",
+      "source": "STM §1 摘录 D | paper.pdf p.12 §F Indoor phase | paper_content.txt 行 1021-1028",
+      "quote": "the MAV flies back in front of the window that it entered through... localization... switched to outdoor flying again and MAV flies back to land",
+      "supports": "exit through same window; switch outdoor localization; land at start position"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 用 FlexBE HSM、nested lower-level state machines、outdoor/indoor phase 和 flythrough submachine 暴露层次结构，并用主流程先 verification、flythrough 先 hover/wait 作为原文支持的 init 线索 [E1][E2][E3][E4][E5][E10]。",
+    "G_guards_arith": "G 钩子集中在 predefined safe distance、2 m window-center distance、maximum allowed flight time、estimate lost 且仍在室外、1.5 m fire standoff、outer range spraying-disable 这些具名变量/自然复合条件 [E6][E8][E9][E11][E13][E15]。",
+    "A_actions_nontrivial": "A 钩子包括 verify 后 automatic takeoff、localization mode switch、hover/wait/flythrough、pump/nozzle spraying、water depletion completion、exit and land 等非平凡动作 [E4][E8][E10][E14][E15][E17][E18]。",
+    "F_fault_recovery": "F 钩子包括 window estimate 丢失时进入 Escaping 回到原 hover 点、最大飞行时间自动 landing、以及任何 state 不能继续时的全局 landing event [E9][E11][E12]。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain（MAV/FlexBE/GNSS/LIDAR）、implicit-action-prose（动作散落叙述）、multivar-guard（estimate lost AND still outside）、composite-internal（flythrough submachine）和 global-cross-cutting（any-state landing）等 baseline 失败模式 [E1][E6][E10][E11][E12]。",
+    "ft_fcstm_fit": "pyfcstm 适配点主要是深复合 HSM 与子机初始行为、数值/复合守卫、forced/global landing 语义，以及 pump/nozzle/water-spraying 这类 effector-agnostic abstract action；未强行加入 per-tick aspect [E1][E3][E6][E8][E11][E12][E14][E15]。"
+  },
+  "word_count_estimate": 278,
+  "intentional_omissions": "没有加入阀门编号、紧急停止按钮、传感器型号、显式最大飞行时间数值或额外 safe-state 名称，因为 STM §1 与相关 PDF 段落没有支撑。也没有把“灭火是否成功”写成反馈 guard，因为原文明说 MAV 无法识别喷洒液体是否足以灭火。",
+  "_meta": {
+    "id": "autonomous-firefighting-inside-buildings-unmanned-aerial-vehicle__01",
+    "actual_word_count": 278,
+    "markers_count": 18,
+    "provenance_count": 18
+  }
+}

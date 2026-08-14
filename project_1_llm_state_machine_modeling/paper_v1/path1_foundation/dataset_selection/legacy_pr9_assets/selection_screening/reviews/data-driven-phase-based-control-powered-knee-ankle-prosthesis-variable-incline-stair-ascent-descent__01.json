@@ -1,0 +1,92 @@
+{
+  "sample_id": "data-driven-phase-based-control-powered-knee-ankle-prosthesis-variable-incline-stair-ascent-descent__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 1,
+      "evidence": "The paper groups S1-S3 as stance and S4-S5 as swing, but presents them as a flat five-state FSM rather than explicit nested composite states."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions use arithmetic and multi-variable guards: S1->S2 at 0.85*s_MHE_st, MHE detection with 10 ms/40 ms moving-average minima, and S4->S5 when theta_dot_th <= 0.75 rad/s AND theta_th >= theta_4->5, with theta_4->5 computed from TO and MHF thigh angles."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States select different continuous phase-estimate equations; stance states feed variable impedance torque control K,B,theta_eq, swing states feed PD kinematic tracking, and FS/TO trigger interpolation between stance and swing torques."
+    },
+    "F_fault_recovery": {
+      "score": 0,
+      "evidence": "No explicit emergency stop, fault rollback, abort transition, or safe-state recovery path is defined; tripping/loss of balance is discussed only as a performance risk."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and transition criteria are in Section III-A, while low-level output actions are in Section III-B and impedance details continue in Section IV."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "FS, TO, MHE, MHF, stance, swing, and feed-forward are biomechanical/control terms used as transition or behavior triggers that require domain decoding beyond generic event names."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are described narratively as stance impedance control, swing kinematic control, phase saturation, and torque interpolation rather than co-located in a state-action table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "S4->S5 combines thigh velocity and thigh-angle threshold, and the angle threshold is itself an arithmetic expression over measured TO and estimated MHF thigh angles."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Although stance and swing share behaviors, the paper does not define an explicit parent/composite state with its own entry/during/exit behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "No from-any-state fault, emergency, or recovery transition is declared."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No deep composite state or non-trivial init/pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are 1-2 clear arithmetic/boolean transition guards, especially S4->S5 and S1->S2, but not three or more guard constraints requiring strong SMT consistency checking."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Per-mode continuous behavior applies across multiple substates: S1-S3 use stance impedance behavior and fix swing phase to 0, while S4-S5 use swing/feed-forward behavior and saturate stance phase to 1."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete prosthesis control quantities such as torque commands and joint tracking, not abstract log/publish/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "An FSM governs changes between phase variable definitions at biologically-inspired thresholds, such as maximum hip extension (MHE) or toe-off (TO).",
+    "The FSM transitions from S4 to S5 at thigh velocity of theta_dot_th <= 0.75 rad/s and theta_th greater than or equal to theta_4->5."
+  ],
+  "one_line_pitch": "This five-state prosthesis supervisor stresses arithmetic gait-event guards and state-dependent continuous torque/phase actions split across the paper, exactly where Umple-style baselines lose guards and actions.",
+  "verdict": "candidate",
+  "rationale": "The sample is a strong guard/action stress test: the controller is fundamentally organized around biologically triggered phase transitions with arithmetic thresholds and state-dependent continuous control equations. It is not a strong hierarchy or fault-recovery case, but its guard complexity, implicit domain events, and cross-section action attribution create high baseline-trap density. The case is also practically meaningful because modeling errors could desynchronize a powered knee-ankle prosthesis during stair ascent/descent.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 126709,
+      "cached_input_tokens": 93696,
+      "output_tokens": 7733,
+      "reasoning_output_tokens": 5690
+    },
+    "duration_s": 149.6,
+    "attempt": 1
+  }
+}

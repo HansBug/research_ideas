@@ -1,0 +1,93 @@
+{
+  "sample_id": "autonomous-mobile-manipulation-wall-building-mbzirc-2020__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper defines a top-level challenge state machine with Load Bricks/Unload Bricks blocks; those contain Initial Approach, Pose Detection, Alignment, Final Approach, and Brick Pickup is further split into four visual-servo stages."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transitions/phase changes use composed conditions: pickup runs only if the patch is reachable; x-and-pitch finishes when pitch reaches pi/2 and patch y is near zero; zApproach starts when the patch is near image center and orientation error is small."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "States activate different controllers, stop/restart local approach, compute aligned map-frame goal poses, save wall/brick positions, and continuously output velocity or end-effector displacement commands from proportional controllers."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "The paper mentions emergency manual switching and dropped-brick information to high-level control, but it does not specify a concrete recovery state or rollback path in the state machine."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names and composite blocks are in Section 4, while controller actions, completion guards, contact-sensor termination, and pose computations are explained later in Sections 5-6.3."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as emergency manual mode, reachability check, and dropped brick imply safety/override or recovery semantics without a fully enumerated transition rule."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions for states are mostly narrative: controller switching, vehicle stopping, map-frame alignment, memorized placements, and visual-servo control are described in prose rather than attached to each state in a table."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least two phase guards combine variables with boolean conditions, such as pitch plus image-coordinate convergence and center-position plus orientation-error convergence."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Composite parents carry their own behavior: Brick Pickup makes the manipulator active while the UGV stays idle across four substages, and Unload Bricks changes routing after the first wall-pose detection."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "Emergency manual switching is mentioned, but the paper does not define a from-any-state transition to a named safe or recovery state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 2,
+      "evidence": "The hierarchy is multi-level and routing is nontrivial because Unload Bricks performs the full approach once, then skips directly to Alignment using the saved wall pose."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There are 1-2 clear boolean/comparison guards over controller variables, but not a dense set of three or more SMT-worthy arithmetic guard constraints."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Parent-level during/aspect rules would compress repeated behavior, especially UGV-idle/manipulator-active across all Brick Pickup substages and controller activation across approach substates."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Most side effects are concrete robot commands, controller activations, sensor checks, or stored poses; the paper does not emphasize abstract log/publish/notify outputs."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "A challenge-specific state machine",
+    "the local approach controller is switched off",
+    "when the camera pitch angle reaches pi/2"
+  ],
+  "one_line_pitch": "This is a strong stress test because the model must recover a nested robotic mission supervisor whose state names, controller actions, saved context, and boolean phase guards are distributed across the paper.",
+  "verdict": "candidate",
+  "rationale": "The sample is fundamentally hierarchical, with mission-level Load/Unload blocks and lower-level approach and pickup substages. It also has meaningful guarded transitions and rich continuous actions, including controller switching, pose computation, memorized map-frame state, and servo outputs. Fault handling is weakly specified, but baseline-trap density remains high because crucial state semantics are cross-section, prose-based, and include composite behavior plus multi-variable guards.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 228547,
+      "cached_input_tokens": 190208,
+      "output_tokens": 7601,
+      "reasoning_output_tokens": 5180
+    },
+    "duration_s": 152.4,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "terrestrial-unmanned-roving-vertical-take-off-and-landing-turvtol__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "Paper explicitly defines a hierarchical SMACH FSM: top-level FLY_OPERATE and DRIVE_OPERATE are sub-machines; FLY_OPERATE contains LANDING, and DRIVE_OPERATE contains TRACTION_LOSS and DORMANT."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Transition signals include boolean/multi-variable guards: land is planner-confirmed landing OR low battery OR no destination; safe_takeoff requires suitable terrain AND sufficient battery; slipping/stuck compare VIO motion against wheel encoders."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Actions/protocols are meaningful but mostly supervisory commands: DRIVE_NO_TAKEOFF informs the path planner not to consider flight paths, LANDING executes search/return/landing protocols, and traction-loss states trigger traction recovery protocols."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "Dedicated abnormal states and recovery structures are present: TRACTION_LOSS handles STUCK, SLIPPING, and FLIPPED; DORMANT handles CHARGING/SLEEPING; nav_error/nav_regained and return_to_safe are explicit safety-related signals."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State names are listed in Table 4, transition predicates in Table 5, while behaviors such as DRIVE_NO_TAKEOFF informing the path planner and SLIPPING/STUCK recovery are described earlier in Design Criteria/Vehicle Safety prose."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as safe landing, safe takeoff, return to launch, low battery, slipping, stuck, flipped, and traction regaining protocols imply domain-specific control rules not fully expanded in the state table."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state table gives brief descriptions, while actions are narrated elsewhere: DRIVE_NO_TAKEOFF informs path planning, LANDING executes protocols, and the control loop executes traction-regaining protocols."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least three guards combine variables or predicates: land uses a three-way OR; safe_takeoff uses terrain AND battery; slipping/stuck compare VIO movement with wheel-encoder estimates."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "Composite states are defined, but the paper does not clearly assign entry/during/exit behavior to parent states beyond their child states."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper provides safety and recovery signals but does not explicitly state a from-any-state fault transition to a global safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The FSM has several composite submachines, but the paper does not document a deep non-trivial initialization or pseudo-state chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "Multiple transition signals use boolean and comparison structure, including land, safe_takeoff/unsafe_takeoff, return_to_safe, slipping, and stuck; consistency checks could catch contradictory guard encodings."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The paper describes per-mode continuous monitoring while driving: the control loop continuously compares VIO pose and wheel encoders to trigger SLIPPING or STUCK."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "FSM states inform other ROS nodes and influence path-planner/control-loop behavior, but many concrete effectors and methods are left for future implementation."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Both of these states are sub-machines in the hierarchical state machine design.",
+    "While driving, the control loop will run continuous comparisons of the vehicle's pose as obtained through VIO and the wheel encoders."
+  ],
+  "one_line_pitch": "A hierarchical multi-modal rover-flight supervisor with split prose/table evidence, composite submachines, boolean safety guards, continuous driving-mode monitors, and explicit abnormal recovery states is a strong stress test for baseline guard/action/hierarchy recall.",
+  "verdict": "candidate",
+  "rationale": "The sample is fundamentally hierarchical and contains nested flight, drive, landing, dormant, and traction-loss structures. Its transition logic relies on multi-source safety guards and sensor comparisons, while actions are spread across prose as supervisory effects on path planning and recovery protocols. It is especially difficult for Umple-style baselines because state names, guards, and actions are distributed across separate sections and tables rather than co-located in one specification.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 205811,
+      "cached_input_tokens": 172928,
+      "output_tokens": 6690,
+      "reasoning_output_tokens": 4384
+    },
+    "duration_s": 134.2,
+    "attempt": 1
+  }
+}

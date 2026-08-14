@@ -1,0 +1,92 @@
+{
+  "sample_id": "sequence-supervisory-control-onboard-uav-mission-management__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper states that the Sequence Control System \"has two hierarchical levels\" and that \"Mission Mode\" and \"Command Mode\" are composite states for mission-plan processing and direct-command execution."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "Command admissibility is checked by a truth table over multiple boolean/numeric input values from GCS, vision computer, and FLARM; the EBNF grammar also checks parameters such as non-negative wait time and required preconditions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Actions include stopping actuator-command production and resetting onboard components, Stand By holding the UAV at the entered position, Parse Command fetching behavior commands and issuing events, and rejecting illegal commands or malformed missions."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The model has global safety escape behavior: every top-level state transitions to Mission Controller Off on manual control, every auto-mode state can stop, and Stand By is described as a fall-back state in case of errors."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "State and event names are in Figure 3 and §4.2, behavior outputs are described in §4.1, command guards in §4.2, and fallback/min-ground-distance safety is reinforced in the conclusion and testing discussion."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as manual control, auto mode, operator overrule, stand-by, and fall-back state imply priority and safety semantics beyond the state names themselves."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The state chart labels states/events, while actions such as hover-on-entry, smooth slow-down, command parsing, command rejection, and reset-to-stand-by are described narratively in surrounding prose."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "The direct-command truth table combines multiple input-channel variables with boolean/numeric values, and the mission grammar adds numeric/precondition checks such as non-negative waiting time and at least three trajectory-planner commands."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The composite states have internal behavior and parsing states, but the paper does not explicitly specify separate parent-level entry/during/exit behavior beyond the child-state logic."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The paper explicitly says every top-level state handles manual-control transition to Mission Controller Off, and every auto-mode state has a stop-command transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The sample has shallow composite states, especially Mission Mode and Command Mode, with implied internal routing such as Parse Command, but no deep nested pseudo-state chain is specified."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 2,
+      "evidence": "The multichannel truth table plus grammar checks, timeouts, numeric thresholds, and behavior preconditions give several guard constraints where a unified expression IR and SMT consistency checks would help."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Manual override, stop handling from every auto-mode state, and minimum-ground-distance checking apply across multiple states or behaviors, making forced transitions or parent-level aspects much shorter than explicit duplication."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Some effects are abstract policy actions such as issuing events, rejecting malformed missions, and ignoring illegal commands, although many outputs are still concrete flight-controller or behavior commands."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "It has two hierarchical levels where the top level models the procedural flow for a safe operation.",
+    "Every state of the top level has a transition to the \"Mission Controller Off\" to handle a manual control event."
+  ],
+  "one_line_pitch": "A two-level UAV mission supervisor with composite modes, multichannel validity guards, parser actions, and global manual/stop safety transitions directly targets hierarchy, guard, action, and recovery weaknesses.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test sample because the paper gives an explicit hierarchical state-chart supervisor, not just an informal command list. Its command validity logic combines truth-table, grammar, numeric, and precondition checks, while its actions and safety handling are spread across prose, architecture discussion, and conclusion. The global manual/stop/fallback rules create exactly the kind of cross-cutting recovery pattern that prior Umple-style baselines tend to duplicate or miss.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 84537,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6187,
+      "reasoning_output_tokens": 4326
+    },
+    "duration_s": 118.3,
+    "attempt": 1
+  }
+}

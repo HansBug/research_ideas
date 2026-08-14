@@ -1,0 +1,92 @@
+{
+  "sample_id": "behavior-trees-for-uav-mission-management__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper states that BTs are similar to HFSMs and \"build on a hierarchy of operational modes\"; the mission plan is a nested sequence/selector/loop tree."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple condition-like guards drive control flow, including the altitude check \"h >= 100?\", waypoint \"reached?\", and Success/Failure outcomes from advance/reset actions."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "Actions include engaging autopilot modes, switching payloads, taking photographs, advancing/resetting the waypoint pointer, and an exit hook resetting autopilot to safe altitude/speed hold."
+    },
+    "F_fault_recovery": {
+      "score": 1,
+      "evidence": "Fault handling is motivating but under-specified: a remote sensing mission may be aborted due to system failure and cameras deactivated during fallback behavior."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The same control object is described across Sec. 2 task interfaces, Sec. 5 activation/deactivation semantics, and Sec. 6 concrete mission tasks and exit effects."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as fallback behavior, system failure, safe altitude and speed hold mode, autopilot mode, and waypoint following imply domain control rules not fully expanded as transitions."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The T/O node is shown in the mission profile, while its key exit action is later described narratively as resetting the autopilot to safe altitude and speed hold."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The paper gives simple condition nodes such as altitude and waypoint-reached checks, but no explicit guard combining multiple variables with arithmetic or boolean composition."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Composite tasks perform their own control behavior: the superior composite deactivates a running sub-task, activates the requesting sub-task, and may re-tick it."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": false,
+      "evidence": "The paper mentions fallback behavior after system failure, but does not specify an explicit from-any-state transition to a safe state."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 2,
+      "evidence": "The mission tree has nested sequence/selector/loop structure plus non-trivial Idle -> Activating -> Running activation through superior composite tasks."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 0,
+      "evidence": "The available guards are simple condition nodes, not arithmetic-plus-boolean guard sets where SMT consistency checking would be central."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The generic interruption rule applies to whichever sub-task is currently running, and the root task is ticked cyclically through the hierarchy."
+    },
+    "C4_abstract_action": {
+      "strength": 1,
+      "evidence": "Actions are high-level subsystem commands such as engaging autopilot modes, switching payloads, taking photographs, and resetting autopilot hold mode."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Behavior Trees are similar to Hierarchical Finite State Machines in that they build on a hierarchy of operational modes.",
+    "If a currently Idle sub-task needs to be executed by its superior node, the currently Running sub-task needs to be deactivated first."
+  ],
+  "one_line_pitch": "A nested UAV mission-management controller whose activation/deactivation hooks, status cycle, and narrative action effects stress exactly the hierarchy and action-attribution weaknesses of Umple-style baselines.",
+  "verdict": "candidate",
+  "rationale": "This is a strong stress-test sample because hierarchy and non-trivial actions are central rather than incidental: mission behavior is encoded as nested composite tasks with explicit Idle, Activating, and Running semantics. The main baseline traps are cross-section distribution, implicit domain control terms, prose-described actions, and composite internal behavior. It is weaker on arithmetic guards and explicit global fault recovery, but the H/A signal plus BD=3 and FT=3 make it suitable for the candidate set.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 83024,
+      "cached_input_tokens": 68736,
+      "output_tokens": 6190,
+      "reasoning_output_tokens": 4458
+    },
+    "duration_s": 118.6,
+    "attempt": 1
+  }
+}

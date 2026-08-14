@@ -1,0 +1,92 @@
+{
+  "sample_id": "plc-course-fsm__02",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The paper separates an outer auto/standby FSM in rung one from an inner three-state box-fill FSM in rungs two through four, with the inner sequence gated by the auto permissive C100."
+    },
+    "G_guards_arith": {
+      "score": 3,
+      "evidence": "The auto permissive combines external estop, auto-start pushbutton, stop pushbutton, and seal-in/previous auto state; the inner rungs also use permissive AND entry/OR seal AND NOT exit logic."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Actions are present mainly as PLC outputs and state coils: C100 gates the sub-process, while the paper identifies Y001 conveyor run and Y002 box fill as state chores/output logic."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "The estop is embedded in the auto permissive used by the sequence rungs, so loss of the safety permissive stops the sequence from any inner state."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "The auto/standby FSM is introduced near Figure 4, while C100's role as a permissive for all inner state rungs and the estop effect are explained later in the generic-state discussion."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as external estop relay, NO/NC pushbutton, standby, and permissive require PLC-domain interpretation to infer latch and safety-gating behavior."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "The action/effect of the auto state is not a local action table; prose later explains that the auto coil contains the estop and acts as the operational permissive for the sequence."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "At least one guard is a multi-variable Boolean latch/permissive condition over estop, start, stop, prior auto state, and inner sequence contacts."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "The outer auto/standby mode gates the child sequence, but the paper does not define separate parent entry/during/exit chores beyond the permissive behavior."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The estop/auto permissive is applied across the sequence rungs, creating a global stop rule rather than a single local transition."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The architecture is a shallow composite: entering auto initializes the inner sequence through state 30 rather than simply starting at the load state."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "The relevant guards are Boolean-composed PLC permissive and seal-in expressions, but there is no rich arithmetic guard set."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "The estop/auto permissive applies to the three inner sequence states, a cross-cutting rule that pyfcstm could encode once instead of duplicating per state."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "The outputs are concrete PLC coils and physical commands, not effector-agnostic notifications such as logging or publishing."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "rung one is a two state FSM and rungs two through four are a separate three state FSM",
+    "the estop will stop the sequence"
+  ],
+  "one_line_pitch": "A compact but hard stress case because the model must preserve an outer safety permissive, a gated inner sequence, and a global estop rule without flattening away the hierarchy.",
+  "verdict": "candidate",
+  "rationale": "This sample is small, but it concentrates the exact structures that weak baselines tend to lose: hierarchy, composed PLC guards, and a cross-cutting safety permissive. The auto/standby FSM is not just a label; it gates the three-state box-fill sequence and encodes the estop/stop behavior globally. Actions are less rich than the guards and hierarchy, but the combination of non-default sequence entry, permissive gating, and global escape makes it a strong stress-test candidate.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 85843,
+      "cached_input_tokens": 73856,
+      "output_tokens": 7976,
+      "reasoning_output_tokens": 6562
+    },
+    "duration_s": 151.8,
+    "attempt": 1
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "sample_id": "ship-water-supply-automatic-control-plc__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 0,
+      "evidence": "The paper describes start/work/stop and temperature-regulation branches, but no parent state with nested substates or composite FSM."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Multiple meaningful guards appear: temperature lower/higher than design value, water flow switch opened, circulating pump total switch and individual systems opened."
+    },
+    "A_actions_nontrivial": {
+      "score": 2,
+      "evidence": "Temperature branches command actuator outputs: gate valve closes/opens slightly, temperature switch closes/disconnects, heater starts/stops, and water pump starts."
+    },
+    "F_fault_recovery": {
+      "score": 2,
+      "evidence": "The paper gives a dedicated emergency-stop path: in emergency the circulating pump control switch closes and the whole system ceases to work."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "Temperature-control actions are described in Section IV.A, while PLC inputs/outputs and Start/Work/Stop behavior are described later in Section V."
+    },
+    "T2_implicit_domain_term": {
+      "present": false,
+      "evidence": "Domain terms such as PLC, temperature probe, and emergency are used, but the relevant transition actions are mostly spelled out in the text."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Actions are embedded in narrative prose rather than a state table, requiring attribution of valve/heater/pump actions back to operating and temperature states."
+    },
+    "T4_multivar_arith_guard": {
+      "present": true,
+      "evidence": "Normal operation depends on both the circulating pump total switch and the individual systems being opened, a multi-variable boolean guard."
+    },
+    "T5_composite_internal_behavior": {
+      "present": false,
+      "evidence": "No composite parent state with its own entry/during/exit behavior is described."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The emergency rule says the whole system ceases to work, implying a cross-cutting stop path over the active controller behavior."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 0,
+      "evidence": "No composite state or non-trivial initial pseudo-state chain is present."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 1,
+      "evidence": "There is one clear boolean-composed guard plus several threshold guards, but not enough arithmetic/boolean guard structure for a strong SMT advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 1,
+      "evidence": "The emergency whole-system stop could be encoded as a forced transition, but the paper does not enumerate many explicit substates."
+    },
+    "C4_abstract_action": {
+      "strength": 0,
+      "evidence": "Outputs are concrete actuator commands, not abstract log/publish/notify actions."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 2,
+  "key_nl_quotes": [
+    "When the water temperature in the supply pipe is lower than the design value... The gate valve will close slightly... the temperature switch will be closed. the heater heat water until the water temperature get the settings",
+    "In case of emergency, the staff will control the circulating pump control switch closing. The whole system will cease to work in order to avoid accident intensifies."
+  ],
+  "one_line_pitch": "A compact PLC water-supply controller with threshold guards, action-heavy valve/heater/pump outputs, cross-section behavior splitting, and a global emergency stop.",
+  "verdict": "backup",
+  "rationale": "This is a meaningful stress case for guard/action extraction because the temperature regulation branches contain several actuator side effects and the PLC section adds switch-based start/stop logic. Its baseline-trap density is high due to cross-section splitting, prose-only action attribution, a multi-variable start guard, and whole-system emergency stop. It is better as a backup than a top candidate because it lacks hierarchical or composite states and its arithmetic guard complexity is modest.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 84420,
+      "cached_input_tokens": 71296,
+      "output_tokens": 5004,
+      "reasoning_output_tokens": 3343
+    },
+    "duration_s": 103.3,
+    "attempt": 1
+  }
+}

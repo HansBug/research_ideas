@@ -1,0 +1,92 @@
+{
+  "sample_id": "hybrid-autonomy-future-mars-science-helicopter__01",
+  "scores": {
+    "H_hierarchical": {
+      "score": 3,
+      "evidence": "The architecture is explicitly two-tier: a mission-phase FSM activates a corresponding Behavior Tree inside each phase, including Takeoff and Land BTs with Sequence/Fallback structures."
+    },
+    "G_guards_arith": {
+      "score": 2,
+      "evidence": "Transitions are driven by BT Success/Failure and Healthguard events such as BatteryLow, BatteryCritical, StateEstimatorFailure, NoLandingSitesFound, and LandingSiteChecks, with thresholds and retries implied, but no fully specified guard formulas."
+    },
+    "A_actions_nontrivial": {
+      "score": 3,
+      "evidence": "State behavior includes multi-step BT actions: set PX4 Offboard mode, arm, ascend with lateral/vertical control, descend, land, disarm, fly a search pattern, select a landing site, and command emergency descent."
+    },
+    "F_fault_recovery": {
+      "score": 3,
+      "evidence": "Health events injected across Init, Takeoff, Mission, and Land trigger adaptive landing or emergency landing; severe cases such as BatteryCritical or StateEstimatorFailure initiate rapid emergency landing."
+    }
+  },
+  "bd_trap_signals": {
+    "T1_cross_section_element": {
+      "present": true,
+      "evidence": "FSM states and BT structure are described in Section III/Fig. 4, while per-state health-event distributions and fail-safe behavior are described later in simulations, Table I, and reliability evaluation."
+    },
+    "T2_implicit_domain_term": {
+      "present": true,
+      "evidence": "Terms such as fail-safe actions, emergency landing, Offboard mode, arming, Healthguard, and state estimator failure imply control rules not fully expanded as transition specifications."
+    },
+    "T3_implicit_action_from_prose": {
+      "present": true,
+      "evidence": "Takeoff and Land actions are narrated in prose around Fig. 4 rather than listed in a state-action table, requiring attribution of action sequences back to their FSM states."
+    },
+    "T4_multivar_arith_guard": {
+      "present": false,
+      "evidence": "The paper mentions thresholds, retries, and a dynamically calculated timeout, but does not provide an explicit multi-variable arithmetic or boolean transition guard."
+    },
+    "T5_composite_internal_behavior": {
+      "present": true,
+      "evidence": "Each mission phase is a parent FSM state whose internal behavior is governed by an activated BT; the FSM can execute, pause, abort, or reset those BTs."
+    },
+    "T6_global_cross_cutting_recovery": {
+      "present": true,
+      "evidence": "The same health events are tested across multiple FSM states, and severe events consistently transition the vehicle to predefined fail-safe or emergency landing behavior."
+    }
+  },
+  "ft_primitive_advantage": {
+    "C1_speculative_dfs": {
+      "strength": 1,
+      "evidence": "The sample has shallow composite behavior through phase-owned BTs, but no deep explicit init or pseudostate chain."
+    },
+    "C2_expr_ir_smt": {
+      "strength": 0,
+      "evidence": "Named health events and thresholds are present, but the paper does not expose enough arithmetic or boolean guard formulas for a strong SMT-checking advantage."
+    },
+    "C3_forced_and_aspect": {
+      "strength": 2,
+      "evidence": "Healthguard events such as BatteryCritical and StateEstimatorFailure apply across several mission states, making forced cross-cutting transitions much shorter than duplicating per-state transitions."
+    },
+    "C4_abstract_action": {
+      "strength": 2,
+      "evidence": "The Connector is explicitly middleware-agnostic and decouples autonomy logic from ROS, F-Prime, PX4, and hardware-specific communication."
+    }
+  },
+  "exclusions": {
+    "has_parallel": false,
+    "has_history_restore": false,
+    "only_io_no_stm": false,
+    "too_thin_for_stm": false
+  },
+  "baseline_difficulty": 3,
+  "fcstm_fit": 3,
+  "key_nl_quotes": [
+    "Each state's logic is governed by its corresponding Behavior Tree, which the FSM activates based on the mission phase.",
+    "In more severe cases, like BatteryCritical or StateEstimatorFailure events, the system initiated an emergency landing with a rapid descent."
+  ],
+  "one_line_pitch": "A strong stress test because the model must recover a hierarchical FSM-BT supervisor with rich phase actions and cross-cutting health-event recovery from prose, figures, and evaluation tables.",
+  "verdict": "candidate",
+  "rationale": "The sample is fundamentally hierarchical and action-heavy: mission phases are top-level FSM states, while each phase owns BT behavior with concrete flight-control actions. Fault handling is also strong because Healthguard events are injected across multiple states and severe faults drive emergency landing behavior. Guard complexity is meaningful but not fully formalized, so the main stress comes from hierarchy, action attribution, and global recovery duplication.",
+  "_meta": {
+    "annotator": "codex",
+    "model": "gpt-5.5",
+    "usage": {
+      "input_tokens": 86929,
+      "cached_input_tokens": 71296,
+      "output_tokens": 7679,
+      "reasoning_output_tokens": 5944
+    },
+    "duration_s": 146.1,
+    "attempt": 1
+  }
+}

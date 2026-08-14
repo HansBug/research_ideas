@@ -1,0 +1,218 @@
+{
+  "source": "codex_draft+manual_audit",
+  "case_id": "cara-infusion-pump-formal-spec__01",
+  "model_text_path": "ref_model.txt",
+  "states": [
+    {
+      "id": "s0",
+      "name": "Mode_Control_Algorithm",
+      "parent": null,
+      "text": "state Mode_Control_Algorithm { ... } (children: ['Wait', 'Manual', 'Ask_StartAC', 'AutocontrolInit', 'Autocontrol'])"
+    },
+    {
+      "id": "s1",
+      "name": "Wait",
+      "parent": "Mode_Control_Algorithm",
+      "text": "state Mode_Control_Algorithm.Wait"
+    },
+    {
+      "id": "s2",
+      "name": "Manual",
+      "parent": "Mode_Control_Algorithm",
+      "text": "state Mode_Control_Algorithm.Manual"
+    },
+    {
+      "id": "s3",
+      "name": "Ask_StartAC",
+      "parent": "Mode_Control_Algorithm",
+      "text": "state Mode_Control_Algorithm.Ask_StartAC"
+    },
+    {
+      "id": "s4",
+      "name": "AutocontrolInit",
+      "parent": "Mode_Control_Algorithm",
+      "text": "state Mode_Control_Algorithm.AutocontrolInit"
+    },
+    {
+      "id": "s5",
+      "name": "Autocontrol",
+      "parent": "Mode_Control_Algorithm",
+      "text": "state Mode_Control_Algorithm.Autocontrol"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t0",
+      "src": "*",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "CA_backManual",
+      "guard": "",
+      "action": "",
+      "is_forced": true,
+      "text": "* -> Mode_Control_Algorithm.Manual :: CA_backManual"
+    },
+    {
+      "id": "t1",
+      "src": "*",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "CB_backManual",
+      "guard": "",
+      "action": "",
+      "is_forced": true,
+      "text": "* -> Mode_Control_Algorithm.Manual :: CB_backManual"
+    },
+    {
+      "id": "t2",
+      "src": "*",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "CP_backManual",
+      "guard": "",
+      "action": "",
+      "is_forced": true,
+      "text": "* -> Mode_Control_Algorithm.Manual :: CP_backManual"
+    },
+    {
+      "id": "t3",
+      "src": "*",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "CC_backManual",
+      "guard": "",
+      "action": "",
+      "is_forced": true,
+      "text": "* -> Mode_Control_Algorithm.Manual :: CC_backManual"
+    },
+    {
+      "id": "t4",
+      "src": "[*]",
+      "tgt": "Mode_Control_Algorithm.Wait",
+      "event": "",
+      "guard": "",
+      "action": "",
+      "is_forced": false,
+      "text": "[*] -> Mode_Control_Algorithm.Wait"
+    },
+    {
+      "id": "t5",
+      "src": "Mode_Control_Algorithm.Wait",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "",
+      "guard": "",
+      "action": "CA_mode_set_to_Manual = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Wait -> Mode_Control_Algorithm.Manual effect { CA_mode_set_to_Manual = 1; }"
+    },
+    {
+      "id": "t6",
+      "src": "Mode_Control_Algorithm.Manual",
+      "tgt": "Mode_Control_Algorithm.Ask_StartAC",
+      "event": "InitiateAlgorithmicPumpControl",
+      "guard": "",
+      "action": "",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Manual -> Mode_Control_Algorithm.Ask_StartAC :: InitiateAlgorithmicPumpControl"
+    },
+    {
+      "id": "t7",
+      "src": "Mode_Control_Algorithm.Ask_StartAC",
+      "tgt": "Mode_Control_Algorithm.Ask_StartAC",
+      "event": "ChangeSetpoint",
+      "guard": "",
+      "action": "target_blood_pressure_modified = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Ask_StartAC -> Mode_Control_Algorithm.Ask_StartAC :: ChangeSetpoint effect { target_blood_pressure_modified = 1; }"
+    },
+    {
+      "id": "t8",
+      "src": "Mode_Control_Algorithm.Ask_StartAC",
+      "tgt": "Mode_Control_Algorithm.AutocontrolInit",
+      "event": "StartAC",
+      "guard": "",
+      "action": "algorithmic_pump_control_started = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Ask_StartAC -> Mode_Control_Algorithm.AutocontrolInit :: StartAC effect { algorithmic_pump_control_started = 1; }"
+    },
+    {
+      "id": "t9",
+      "src": "Mode_Control_Algorithm.AutocontrolInit",
+      "tgt": "Mode_Control_Algorithm.Autocontrol",
+      "event": "",
+      "guard": "",
+      "action": "external_control_voltage_selected = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.AutocontrolInit -> Mode_Control_Algorithm.Autocontrol effect { external_control_voltage_selected = 1; }"
+    },
+    {
+      "id": "t10",
+      "src": "Mode_Control_Algorithm.Autocontrol",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "TerminateAlgorithmicPumpControl",
+      "guard": "",
+      "action": "algorithmic_pump_control_terminated = 1; CA_mode_set_to_Manual = 1; CARA_control_released = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Autocontrol -> Mode_Control_Algorithm.Manual :: TerminateAlgorithmicPumpControl effect { algorithmic_pump_control_terminated = 1; CA_mode_set_to_Manual = 1; CARA_control_released = 1; }"
+    },
+    {
+      "id": "t11",
+      "src": "Mode_Control_Algorithm.Autocontrol",
+      "tgt": "Mode_Control_Algorithm.Manual",
+      "event": "PumpOperationComplication",
+      "guard": "",
+      "action": "alarm_signals_activated = 1; error_messages_displayed_and_sounded = 1; caregiver_removes_pump_fault = 1; CARA_control_released = 1; CA_mode_set_to_Manual = 1;",
+      "is_forced": false,
+      "text": "Mode_Control_Algorithm.Autocontrol -> Mode_Control_Algorithm.Manual :: PumpOperationComplication effect { alarm_signals_activated = 1; error_messages_displayed_and_sounded = 1; caregiver_removes_pump_fault = 1; CARA_control_released = 1; CA_mode_set_to_Manual = 1; }"
+    }
+  ],
+  "guards": [],
+  "actions": [
+    {
+      "id": "a0",
+      "transition_id": "t5",
+      "expr": "CA_mode_set_to_Manual = 1;",
+      "text": "Mode_Control_Algorithm.Wait -> Mode_Control_Algorithm.Manual effect { CA_mode_set_to_Manual = 1; }"
+    },
+    {
+      "id": "a1",
+      "transition_id": "t7",
+      "expr": "target_blood_pressure_modified = 1;",
+      "text": "Mode_Control_Algorithm.Ask_StartAC -> Mode_Control_Algorithm.Ask_StartAC :: ChangeSetpoint effect { target_blood_pressure_modified = 1; }"
+    },
+    {
+      "id": "a2",
+      "transition_id": "t8",
+      "expr": "algorithmic_pump_control_started = 1;",
+      "text": "Mode_Control_Algorithm.Ask_StartAC -> Mode_Control_Algorithm.AutocontrolInit :: StartAC effect { algorithmic_pump_control_started = 1; }"
+    },
+    {
+      "id": "a3",
+      "transition_id": "t9",
+      "expr": "external_control_voltage_selected = 1;",
+      "text": "Mode_Control_Algorithm.AutocontrolInit -> Mode_Control_Algorithm.Autocontrol effect { external_control_voltage_selected = 1; }"
+    },
+    {
+      "id": "a4",
+      "transition_id": "t10",
+      "expr": "algorithmic_pump_control_terminated = 1; CA_mode_set_to_Manual = 1; CARA_control_released = 1;",
+      "text": "Mode_Control_Algorithm.Autocontrol -> Mode_Control_Algorithm.Manual :: TerminateAlgorithmicPumpControl effect { algorithmic_pump_control_terminated = 1; CA_mode_set_to_Manual = 1; CARA_control_released = 1; }"
+    },
+    {
+      "id": "a5",
+      "transition_id": "t11",
+      "expr": "alarm_signals_activated = 1; error_messages_displayed_and_sounded = 1; caregiver_removes_pump_fault = 1; CARA_control_released = 1; CA_mode_set_to_Manual = 1;",
+      "text": "Mode_Control_Algorithm.Autocontrol -> Mode_Control_Algorithm.Manual :: PumpOperationComplication effect { alarm_signals_activated = 1; error_messages_displayed_and_sounded = 1; caregiver_removes_pump_fault = 1; CARA_control_released = 1; CA_mode_set_to_Manual = 1; }"
+    }
+  ],
+  "hierarchical_states": [
+    {
+      "id": "hs0",
+      "name": "Mode_Control_Algorithm",
+      "children": [
+        "Wait",
+        "Manual",
+        "Ask_StartAC",
+        "AutocontrolInit",
+        "Autocontrol"
+      ],
+      "text": "state Mode_Control_Algorithm { ... } (children: ['Wait', 'Manual', 'Ask_StartAC', 'AutocontrolInit', 'Autocontrol'])"
+    }
+  ]
+}

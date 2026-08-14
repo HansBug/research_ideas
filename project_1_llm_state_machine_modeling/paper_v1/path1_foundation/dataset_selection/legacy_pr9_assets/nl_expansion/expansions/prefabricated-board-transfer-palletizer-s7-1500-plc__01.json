@@ -1,0 +1,77 @@
+{
+  "case_id": "prefabricated-board-transfer-palletizer-s7-1500-plc__01",
+  "case_name": "Manual-Maintenance-Auto Palletizer Supervisor",
+  "expanded_nl": "The S7-1500 PLC controls a prefabricated-board transfer palletizer whose hardware includes transverse movement, lifting, bracket, pushing, positioning, and door-lifting mechanisms [E1]. The operator interface provides HMI instructions and monitoring, while the outer mode manager separates manual, maintenance, and automatic operation [E2]. Manual mode supports protected single-step execution, maintenance mode supports debugging and device-exception work by clicking, and automatic mode performs normal production according to HMI-issued instructions [E3]. Within automatic mode, the controller selects operational phases such as board storage, board retrieval, frame transverse movement, platform lifting, combined transverse-plus-lifting, board taking, or board sending, then starts the selected predefined sequence when the automatic start button is pressed [E4]. Target selection uses the kiln number as the named variable: a number at most 20 selects kiln A, a number from 21 to 41 selects kiln B, a number above 41 is invalid and is reset to 0, and MOD/DIV calculations derive the target column and layer [E5]. A storage cycle moves the board from the roller conveyor line through transverse movement, lifting, door opening, conveying, pushing, and door closing, while retrieval opens the door, hooks, closes the door, conveys, lifts, traverses, and returns the board to the roller conveyor line [E6]. Motion and IO subroutines drive motors, positioning devices, door-lifting claws, push/hook hardware, frequency converters, hydraulic cylinders, and indicator lights while reading sensors, station buttons, converter status, and motor status [E7]. After failure, restart, or work completion, initialization resets startup parameters, working mode, motor-protection and emergency-stop faults, and the palletizer initial state at A1-1 [E8]. During operation, the alarm interface presents frequency-converter faults, motor malfunctions, limit triggers, and sensor failures for operator verification, and the stop button halts all operations before clear resets indicators, operation modes, and the kiln-template number [E9].",
+  "provenance": [
+    {
+      "marker": "E1",
+      "source": "paper.pdf p.1 §2 | paper_content.txt 行 22-24",
+      "quote": "consisting primarily of a transverse movement system, a lifting system, a bracket, a pushing mechanism, transverse movement positioning devices, lifting positioning devices",
+      "supports": "hardware includes transverse movement, lifting, bracket, pushing, positioning, and door-lifting mechanisms"
+    },
+    {
+      "marker": "E2",
+      "source": "STM §1 摘录 B | paper.pdf p.5 §4.2 | paper_content.txt 行 215-222",
+      "quote": "The control mode of the palletizer is divided into manual mode, maintenance mode, and automatic mode.",
+      "supports": "outer mode manager separates manual, maintenance, and automatic operation"
+    },
+    {
+      "marker": "E3",
+      "source": "STM §1 摘录 B | paper.pdf p.5 §4.2 | paper_content.txt 行 216-222",
+      "quote": "Manual mode is primarily utilized for scenarios requiring single-step execution",
+      "supports": "manual single-step, maintenance debugging/exception work, automatic HMI-commanded production"
+    },
+    {
+      "marker": "E4",
+      "source": "STM §1 摘录 C | paper.pdf p.6 §4.3 | paper_content.txt 行 236-241",
+      "quote": "Upon pressing the automatic start button, the palletizer executes its tasks automatically in accordance with a predefined sequence of actions.",
+      "supports": "automatic operational phases and predefined sequence after automatic start"
+    },
+    {
+      "marker": "E5",
+      "source": "paper.pdf p.5 §4.1 | paper_content.txt 行 208-212",
+      "quote": "If the kiln number is less than or equal to 20, it is classified as kiln A",
+      "supports": "kiln-number guard ranges, invalid reset to 0, and MOD/DIV column/layer calculation"
+    },
+    {
+      "marker": "E6",
+      "source": "STM §1 摘录 A | paper.pdf p.2 §3.1 | paper_content.txt 行 62-70",
+      "quote": "through a series of movements, including transverse movement, lifting, opening the door, conveying, pushing, and closing the door",
+      "supports": "storage and retrieval action sequences"
+    },
+    {
+      "marker": "E7",
+      "source": "paper.pdf p.6 §4.3 | paper_content.txt 行 242-260",
+      "quote": "gathering input signals from sensors, operation station buttons, frequency converter operating status, motor operating status",
+      "supports": "IO and motion subroutines reading inputs and driving equipment"
+    },
+    {
+      "marker": "E8",
+      "source": "STM §1 摘录 C | paper.pdf p.6 §4.3 | paper_content.txt 行 230-235",
+      "quote": "resetting working mode, motor protection and emergency stop faults, as well as controlling the reset of the palletizer’s initial state",
+      "supports": "initialization reset after failure/restart/completion and reset to initial state"
+    },
+    {
+      "marker": "E9",
+      "source": "paper.pdf p.7-p.8 §4.4-§5 | paper_content.txt 行 276-279, 337-339",
+      "quote": "Press the “stop” button while the palletizer is in operation to halt all operations.",
+      "supports": "alarm presentation, stop halt, and clear reset behavior"
+    }
+  ],
+  "axis_coverage": {
+    "H_hierarchical": "expanded_nl 用 outer manual/maintenance/automatic mode 加 automatic 内部 operational phases 暴露层次结构，但原文只支持 automatic start 后进入所选预定义序列，未给出更深的默认 init 子状态；对应 [E2][E4]。",
+    "G_guards_arith": "G 钩子来自 kiln number 变量的区间判定：≤20 为 kiln A、21-41 为 kiln B、>41 为无效并置 0，再用 MOD/DIV 计算 column/layer；对应 [E5]。",
+    "A_actions_nontrivial": "A 钩子来自 storage/retrieval 的多步动作链和 motion/IO 子程序对电机、定位装置、门爪、push/hook、变频器、液压缸、指示灯等执行器的控制；对应 [E6][E7]。",
+    "F_fault_recovery": "F 轴只弱覆盖：原文支持 initialization reset motor-protection/emergency-stop faults、HMI alarm verification、stop/clear reset，但不支持任意状态强制进入 Safe mode；对应 [E8][E9]。",
+    "bd_baseline_traps": "expanded_nl 命中 implicit-domain、implicit-action-prose 和 multivar-guard 三类 baseline-trap：PLC/HMI/变频器等领域术语、跨句动作链、kiln number 区间与 MOD/DIV 计算；对应 [E5][E6][E7]。",
+    "ft_fcstm_fit": "pyfcstm 适配主要体现在层次 mode-to-phase 表达、kiln number 的可 SMT 化算术守卫、以及硬件执行器与传感器读写可抽象成 action handler；对应 [E2][E4][E5][E7]，forced+aspect 横切覆盖较弱。"
+  },
+  "word_count_estimate": 289,
+  "intentional_omissions": "没有编造任意状态 emergency forced transition、safe-state 名称、阈值时间、传感器型号或具体阀门编号。原文虽有报警与 stop/clear，但未明确给出全局故障恢复路径，因此只写弱恢复语义。",
+  "_meta": {
+    "id": "prefabricated-board-transfer-palletizer-s7-1500-plc__01",
+    "actual_word_count": 289,
+    "markers_count": 9,
+    "provenance_count": 9
+  }
+}
